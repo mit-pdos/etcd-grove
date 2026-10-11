@@ -9,11 +9,11 @@ claimed at `r1 < r2`, the key-value the second claim saw at `r2 - 1` (mod revisi
 created at or before `rev < r1`) would have lived through `r1` (`etcdState_create_persist`), where
 the first claim left `key` absent.
 
-What the lemma does not say: that two transactions cannot both be at the same revision. The
-client contract (`txnCommitResult`) gives each commit a revision and etcd's states around it, not
-an exclusive token for the revision; so two dequeuers cannot be told apart from their claims
-alone, and the queue's "dequeued at most once" needs, on top of this lemma, that a written
-revision is one transaction's (a ghost token per written revision in the contract).
+That lemma does not say that two transactions cannot both be at the same revision; the client
+contract does: a commit that wrote holds the token of its revision (`etcdRevToken`,
+`txnCommitResultTok`), and `deleteRevKey`'s `true` returns it. So two successful claims of one
+`(key, rev)`, each with its token, are impossible (`revKeyDeleted_once`): an item is dequeued at
+most once, by any number of dequeuers.
 -/
 module
 
@@ -71,6 +71,18 @@ theorem revKeyDeleted_same_rev (pfx key : GoString) (rev r1 r2 : w64) :
   · ipureintro; word
   · ihave %F := revKeyDeleted_not_lt pfx key rev r2 r1 h $$ [$H2 $H1]
     exact F.elim
+
+/-- **A claim succeeds once**: two successful claims of the same `(key, rev)`, each with the
+token of its revision (what `deleteRevKey`'s `true` returns), are impossible: they would be at
+the same revision (`revKeyDeleted_same_rev`), whose token is exclusive (`etcdRevToken_excl`). -/
+theorem revKeyDeleted_once (pfx key : GoString) (rev r1 r2 : w64) :
+    (revKeyDeleted (GF := GF) pfx key rev r1 ∗ etcdRevToken r1) ∗
+      (revKeyDeleted pfx key rev r2 ∗ etcdRevToken r2) ⊢ False := by
+  iintro ⟨⟨#H1, T1⟩, ⟨#H2, T2⟩⟩
+  ihave %Heq := revKeyDeleted_same_rev pfx key rev r1 r2 $$ [$H1 $H2]
+  subst Heq
+  iapply etcdRevToken_excl r1
+  iframe
 
 end claim
 

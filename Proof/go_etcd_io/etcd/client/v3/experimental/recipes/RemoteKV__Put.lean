@@ -40,7 +40,7 @@ theorem RemoteKV.Put.wp_proof (hTODO : EtcdGrove.context.TODO.spec (GF := GF) (h
   (try wp_auto)
   ihave #Hnil := concurrency.optsAt_nil (GF := GF)
   iunfold isEtcdPutKVTodo at HPut
-  wp_apply HPut $$ %key %val %slice.nil %([] : List (OpFull → OpFull)) %(TxnOp.put key val (W64 0)) %lo [$Hnil $Hlo] as %resp %err #Hres
+  wp_apply HPut $$ %key %val %slice.nil %([] : List (OpFull → OpFull)) %(TxnOp.put key val (W64 0)) %lo [$Hnil $Hlo] as %resp %err Hres
   · ipureintro
     exact ⟨putOp_not_panics' key val, putOp_txnOpOf' key val, Hk⟩
   (try wp_auto)

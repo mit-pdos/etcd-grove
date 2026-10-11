@@ -8,6 +8,7 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/etcd/client/v3/concurrency/(Link|Results)\.lean$
 axiom etcdReachedAt
+axiom etcdRevToken
 axiom etcdState
 axiom etcdState_agree
 axiom etcdState_create_persist

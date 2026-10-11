@@ -8,8 +8,12 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update (none yet: no Link.lean).
 roots ^Proof/go_etcd_io/etcd/client/v3/experimental/recipes/(Link|Results)\.lean$
 axiom etcdReachedAt
+axiom etcdRevToken
+axiom etcdRevToken_excl
 axiom etcdState
+axiom etcdState_agree
 axiom etcdState_create_persist
+axiom etcdState_modrev_det
 axiom etcdState_revs
 axiom fmt.Sscanf.wp_proof
 axiom proto.Clone.wp_proof

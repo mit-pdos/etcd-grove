@@ -27,7 +27,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 knowing etcd has reached `lo`: the transaction `If(Version(key) = 0).Then(OpPut(key, val,
 WithLease(leaseID)))` (`newKeyTxn`):
 * `(r, nil)`: `key` was created at `r ≥ lo` with `val` and `leaseID` (`keyCreatedAt`: absent at
-  `r - 1`, at `r` with create and mod revision `r`), and etcd has reached `r`;
+  `r - 1`, at `r` with create and mod revision `r`), etcd has reached `r`, and `r` is this call's
+  revision (`etcdRevToken r`: the put wrote);
 * `(0, ErrKeyExists)`: `key` was present at some `r ≥ lo` etcd has reached;
 * any other error (the client's: it may be any value, `ErrKeyExists`'s too, so this case does
   not exclude the previous one), a client error as `errors.Is` sees it (`clientErrIs`, from the
@@ -39,7 +40,7 @@ abbrev putNewKV.spec : Prop :=
       (Val #(GoInterface.ok kv))) (Val #key)) (Val #val)) (Val #lease))
   {{ (rev : w64) (err : GoInterface), RET (PairV #rev #err);
       (⌜err = GoInterface.nil⌝ ∗ etcdReached rev ∗ keyCreatedAt pfx key val lease rev ∗
-        ⌜sint.Z lo ≤ sint.Z rev ∧ sint.Z rev < 2 ^ 63 - 1⌝) ∨
+        etcdRevToken rev ∗ ⌜sint.Z lo ≤ sint.Z rev ∧ sint.Z rev < 2 ^ 63 - 1⌝) ∨
       (concurrency.isPkgErr ErrKeyExists err ∗ ⌜rev = W64 0⌝ ∗ ∃ r : w64, etcdReached r ∗
         etcdPresent pfx key r ∗ ⌜sint.Z lo ≤ sint.Z r⌝) ∨
       (⌜err ≠ GoInterface.nil ∧ rev = W64 0⌝ ∗ clientErrIs err) }}

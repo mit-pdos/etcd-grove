@@ -2242,7 +2242,7 @@ callers use them directly, as the cache uses `bytes.wp_Compare`.
 
 ## Recipes: the client contracts reused, the queue's claim, two prefixes as one
 
-**2026-10-11 · proposed** (`client/v3/experimental/recipes`, 778 lines: barrier, double barrier,
+**2026-10-11 · implemented** (last bullet; `client/v3/experimental/recipes`, 778 lines: barrier, double barrier,
 queue, priority queue, RWMutex, the key helpers and `WaitEvents`; the plan, for review)
 
 The recipes are client code on `Session`, transactions and watches, the shape of concurrency and
@@ -2401,6 +2401,45 @@ leasing, so the plan reuses their contracts and adds as little as possible.
   excludes) and gives `keyCreatedAt`'s facts at `r`. The priority queue's prefixes are
   `q.key ++ %05d(pr)` (always five digits), so its priorities never share a range; two queues
   whose keys are prefixes of each other (`q` and `q0`) can, which the premise excludes.
+- **Unit 2: the token's form** (decided above, settled here). `etcdRevToken (r : w64) : IProp GF`
+  and `etcdRevToken_excl : etcdRevToken r ∗ etcdRevToken r ⊢ False`, axioms in
+  `InvEtcdTxn.lean` beside the history laws (an opaque predicate of the server, as `etcdState`;
+  not timeless, nothing needs it). The builder's `Commit` under the prefix returns
+  `txnCommitResultTok` (`txnCommitResult`'s disjunction with `if txnWrote … then etcdRevToken r
+  else True` in the success case) rather than a token inside `txnCommitResult`: leasing's
+  `serverTxn` builds a `txnCommitResult` from its own commit (`txnCommitResultO`, no token) and the
+  six concurrency proofs keep it persistent (`txnCommitResultTok_result` drops the token). The
+  token only when the transaction wrote: etcd's `storeTxnWrite.End` advances the revision only if
+  the transaction changed something, which is the model's `txnWrote` (a delete of nothing does not
+  write). `putResult` carries it unconditionally (a put always writes). *Rejected:* a token in
+  `deleteResult` (no caller), in leasing's owned variant (out of scope); a token inside
+  `txnCommitResult` (non-persistent: every use rewritten, leasing's construction impossible).
+- **Unit 2: the get's `More` flag** in the `TODO()` get contract (`getRespMore`, beside
+  `kvGetResult` in `isEtcdKVTodo`'s postcondition; etcd's semantics: `More` iff a positive limit
+  cut the selection, none for count-only). The queues' wait path needs it (`More` false: the get
+  listed every item). *Rejected:* adding it to `getRespRange` (every cache, concurrency and leasing
+  pattern on it rewritten). Unit 1b's and unit 3's proofs that call a `TODO()` `Get` bind three
+  conjuncts (`⟨HR, #Hres, -⟩`), and their `Commit` calls take `Hres` (not `#Hres`) and
+  `txnCommitResultTok_result` (or unfold `txnCommitResultTok`); `putNewKV`'s `nil` has the token
+  as a fourth conjunct (`newUniqueKV`'s proof drops it).
+- **Unit 2: FIFO where it holds.** The plan's FIFO at the claim (`r - 1`) needs a history law the
+  model does not assume: that a key-value lives unchanged from its mod revision while present
+  (`EtcdModRevPersist`). Stated as a hypothesis of `queue_fifo_before_claim` (the get path), not an
+  axiom: one result needs it, and the trust base stays the plan's. `queue_fifo` (no hypothesis)
+  is at the get's revision. The wait path is weaker (the watch contract does not promise that no
+  event is skipped). The priority queue's least key is at the get only: at the claim it is false
+  in etcd (a higher-priority `Enqueue` between the get and the claim; `STATUS.md`, Unit 2).
+  *Rejected:* a seventh history axiom for one result.
+- **Unit 2: `pqueue_order`, for the merge with unit 1b.** With 1b's order premise and theorem
+  (`SeqKeysWf kp s`: every key under `kp ++ "/"` is `kp ++ "/" ++ padZeros 16 (decimal n)`, made by
+  `newSequentialKV`, fewer than `10^16`), the statement is: for the priority queue on `key`, if at
+  the get's revision `r0` of a get-path dequeue of `it` every key under `key ++ "/"` is
+  `key ++ "/" ++ padZeros 5 (decimal p) ++ "/" ++ padZeros 16 (decimal n)` for a `p : w16` and an
+  `n < 10^16` (what `Enqueue` writes, under `SeqKeysWf (key ++ "/" ++ padZeros 5 (decimal p))` for
+  each `p`), then `it`'s `(p, n)` is the least, lexicographically, among the items under
+  `key ++ "/"` in `s0`: the highest priority (the smallest `p`; five digits hold every `uint16`, so
+  key order is numeric order), then the earliest allocated. It composes `pqueue_min_key`'s get path
+  (`go.GoStringLe it.key w.key`) with the order of fixed-width decimals.
 - **Unit 3: `rwHeldAt`, exclusion under unmodified keys.** `rwHeldAt pfx role key c R`
   (`InvRWMutex.lean`): `key` under `(pfx ++ role.name) ++ "/"`, `0 < c ≤ R`, and at `R` no key with
   the role's blocking prefix (`pfx ++ "write"` for a reader, as `RLock`'s `waitOnLastRev(pfx +
@@ -2434,6 +2473,24 @@ leasing, so the plan reuses their contracts and adds as little as possible.
   a pointer the proof does not track (nil after `New*`, or the previous key when
   `newUniqueEphemeralKey` fails), `some (ek, st)` the owned `*EphemeralKV` with its record and its
   `KV`'s contracts. `ek.rev` (`Enter`) loads through the embedded struct's points-to.
+- **Implemented (2026-10-11, units 0 to 3 merged).** Every function of the package is specified
+  and proved (38 of 38), sorry-free. Deviations from the plan, each in its unit's bullet above or
+  in `STATUS.md`: the client's calls are at `context.TODO()` (contracts `*Todo`, not
+  `isContext`); `WithFirstKey()`'s options need a resource; `fmt.Sscanf` an etcd-grove axiom;
+  `clientErrIs` and the revision token (`etcdRevToken`, `etcdRevToken_excl`: two new axioms of the
+  trust base) and the get's `More` flag in the client contract, with `txnCommitErrTodo` returning
+  both the token and the error premise after the merge; `newSequentialKV` puts but does not create
+  its key (`seqKeyPutAt`), so `PriorityQueue.Enqueue`'s spec returns `seqKeyPutAt` (not
+  `keyCreatedAt`, as unit 2 had it); FIFO at the get's revision, at the claim only under the
+  hypothesis `EtcdModRevPersist` (not promoted to an axiom: the owner decides), the wait path
+  weaker (the watch may skip events); the priority queue's least key at the get only (not
+  linearizable); the RWMutex's exclusion under `keyUnmodified`; the double barrier's count under
+  `readyPutsCounted`. **`pqueue_order`** as drafted above, with `PQKeysWf key s0` (every key
+  under `key/` is `pqKey key p n = key/%05d(p)/%016d(n)`, `p < 10^5`, `n < 10^16`; `p < 10^5`
+  rather than `p : w16`, a weaker premise) and the item's key under `key/` from `dequeuedAt`;
+  `pqueue_enqueue_order` restates `seqKeyPutAt_order` on `Enqueue`'s result, and
+  `pqKeysWf_seqKeysWf` shows the dequeue's premise gives each priority's `SeqKeysWf` (the
+  enqueue's order takes the bound `10^16 - 1`, one less). No piece was missing.
 
 ## One `AllG`: `HeapGS` provides the ghost-state instance
 

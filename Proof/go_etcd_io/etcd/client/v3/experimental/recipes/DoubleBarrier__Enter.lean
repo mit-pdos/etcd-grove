@@ -177,7 +177,7 @@ theorem DoubleBarrier.Enter.wp_proof
       · iapply concurrency.optsAt_nil
       ihave #HP := HPut $$ %(key ++ go!"/ready") %([] : GoString) %slice.nil
         %([] : List (OpFull → OpFull)) %(TxnOp.put (key ++ go!"/ready") [] (W64 0)) %R2
-      wp_apply HP $$ [] as %presp %perr #Hpres
+      wp_apply HP $$ [] as %presp %perr Hpres
       · iframe Hnil HR2
         ipureintro
         exact ⟨putOp_not_panics' _ _, putOp_txnOpOf' _ _, hpr⟩

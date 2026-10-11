@@ -58,7 +58,7 @@ theorem newUniqueKV.wp_proof (hPNK : putNewKV.spec (GF := GF) (hG := hG)) :
   have Hpk : pfx <+: key := Hk.trans (by rw [Hkey', List.append_assoc]; exact List.prefix_append _ _)
   wp_apply hPNK kv pfx key val (W64 0) lo $$ [$Hpkg $Hkv $Hlo] as %rev %err Hres
   · ipureintro; exact Hpk
-  icases Hres with (⟨%Heq, #Hr, #Hc, %Hrr⟩ | ⟨#HerrK, %Hrev, -⟩ | ⟨⟨%Hne, %Hrev⟩, #Hce⟩)
+  icases Hres with (⟨%Heq, #Hr, #Hc, -, %Hrr⟩ | ⟨#HerrK, %Hrev, -⟩ | ⟨⟨%Hne, %Hrev⟩, #Hce⟩)
   · -- created
     subst Heq
     wp_auto

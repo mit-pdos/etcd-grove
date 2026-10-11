@@ -82,7 +82,7 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
   ihave #Hgres := optsAt_res gsl (withTopM (W64 0) (W64 2)) (iprop(True) : IProp GF) $$ Hgsl
   iunfold isEtcdKVTodo at HGet
   wp_apply HGet $$ %kp %gsl %(withTopM (W64 0) (W64 2)) %(iprop(True) : IProp GF) %lo [$Hgres $Hlo]
-    as %gresp %gerr ⟨-, #Hgr⟩
+    as %gresp %gerr ⟨-, #Hgr, -⟩
   · ipureintro
     exact ⟨lastKeyOp_not_panics, (lastKeyOp_fields kp).1⟩
   iunfold kvGetResult at Hgr
@@ -302,8 +302,9 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
   iintro HB
   (try wp_auto)
   ihave HB := B_conv' B _ (seqBuild kp key val g) (by rfl) $$ HB
-  wp_apply HCommit $$ %(seqBuild kp key val g) %g [$HB $Hg] as %tresp %terr ⟨#Hres, -⟩
+  wp_apply HCommit $$ %(seqBuild kp key val g) %g [$HB $Hg] as %tresp %terr ⟨Hres, -⟩
   · ipureintro; exact seqTxn_under pfx kp key val g Hk.2 Hpk
+  ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
   iunfold txnCommitResult at Hres
   icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, terr = GoInterface.ok e := by

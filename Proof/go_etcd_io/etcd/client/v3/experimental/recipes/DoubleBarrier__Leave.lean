@@ -82,7 +82,7 @@ theorem DoubleBarrier.Leave.wp_proof
   ihave #HG := HKV $$ %(key ++ go!"/waiters") %optsSl %([withPrefixM] : List (OpFull → OpFull))
     %iprop(True) %lo
   wp_auto
-  wp_apply HG $$ [] as %gresp %gerr ⟨-, #Hgres⟩
+  wp_apply HG $$ [] as %gresp %gerr ⟨-, #Hgres, -⟩
   · iframe Hopts' Hlo
     ipureintro
     exact ⟨waitersOp_not_panics.2, (waitersOp_t _).2⟩

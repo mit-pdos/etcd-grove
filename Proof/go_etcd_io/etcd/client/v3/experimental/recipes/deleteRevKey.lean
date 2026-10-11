@@ -108,10 +108,10 @@ theorem deleteRevKey.wp_proof (hMR : EtcdGrove.ModRevision.spec (GF := GF) (hG :
   iintro HB
   (try wp_auto)
   ihave HB := B_conv B _ ({ model := deleteRevTxn key rev, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
-  wp_apply HCommit $$ %({ model := deleteRevTxn key rev, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err #Hres
+  wp_apply HCommit $$ %({ model := deleteRevTxn key rev, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
   · ipureintro; exact deleteRevTxn_under pfx key rev Hk.1
-  iunfold txnCommitResult at Hres
-  icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts⟩)
+  iunfold txnCommitResultTok at Hres
+  icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts, Htok⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
       cases err with
       | nil => exact absurd rfl Hne
@@ -154,6 +154,7 @@ theorem deleteRevKey.wp_proof (hMR : EtcdGrove.ModRevision.spec (GF := GF) (hG :
   · -- claimed: present with mod revision `rev` at `r - 1`, absent at `r`
     obtain ⟨hpres, h2, habs⟩ := deleteRevTxn_then key rev r s0 hrev0 hok
     ihave ⟨#Hs0, #Hs1⟩ := txnStates_wrote pfx r s0 _ _ _ h2 rfl $$ Hts
+    ihave Htok := tokIf_true h2 _ $$ Htok
     have hok' : (deleteRevTxn key rev).cmps.all (cmpHolds s0) = true := hok
     simp only [deleteRevTxn] at hok'
     rw [hok']
@@ -167,6 +168,7 @@ theorem deleteRevKey.wp_proof (hMR : EtcdGrove.ModRevision.spec (GF := GF) (hG :
     isplitr
     · ipureintro; exact ⟨Hlo_r, Hrmax⟩
     simp only [↓reduceIte]
+    iframe Htok
     unfold revKeyDeleted
     iexists s0, _
     iframe Hs0 Hs1

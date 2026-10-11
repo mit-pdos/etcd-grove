@@ -19,7 +19,6 @@ The Spec/Proof files of a function are found by its name: `Spec/<pkg>/<fn>.lean`
 Spec/go_etcd_io/raft/v3/tracker/NewInflights.lean).
 
 usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
-       etc/gen-link.py --recipes --skip-unproved > Proof/go_etcd_io/etcd/client/v3/experimental/recipes/Link.lean
        etc/gen-link.py --cache > Proof/go_etcd_io/etcd/cache/v3/Link.lean
        etc/gen-link.py --server > Proof/go_etcd_io/etcd/server/v3/etcdserver/Link.lean
        etc/gen-link.py --concurrency > Proof/go_etcd_io/etcd/client/v3/concurrency/Link.lean

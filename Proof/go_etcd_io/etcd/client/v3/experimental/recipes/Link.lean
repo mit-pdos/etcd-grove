@@ -5,14 +5,12 @@ callees' results. All of them are Lean-first, listed with their callees in
 hand.
 
 `#print axioms` on a result is its trust base.
-
-Generated with `--skip-unproved`: not linked yet (no proof file, or reaching such a function):
-`Barrier__Hold`, `Barrier__Release`, `Barrier__Wait`, `NewBarrier`, `NewPriorityQueue`,
-`NewQueue`, `PriorityQueue__Dequeue`, `PriorityQueue__Enqueue`, `Queue__Dequeue`,
-`Queue__Enqueue`.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.Barrier__Hold
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.Barrier__Release
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.Barrier__Wait
 public import Proof.go_etcd_io.etcd.client.v3.Cmp__Clone
 public import Proof.go_etcd_io.etcd.client.v3.Cmp__ensureCompare
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier__Enter
@@ -21,12 +19,19 @@ public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.DoubleBarrier
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithFromKey
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithPrefix
 public import Proof.go_etcd_io.etcd.client.v3.ModRevision
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.NewBarrier
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.NewDoubleBarrier
 public import Proof.go_etcd_io.etcd.client.v3.NewOp
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.NewPriorityQueue
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.NewQueue
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.NewRWMutex
 public import Proof.go_etcd_io.etcd.client.v3.OpDelete
 public import Proof.go_etcd_io.etcd.client.v3.OpPut
 public import Proof.go_etcd_io.etcd.client.v3.Op__applyOpts
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue__Dequeue
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.PriorityQueue__Enqueue
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.Queue__Dequeue
+public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.Queue__Enqueue
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex__Lock
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex__RLock
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.RWMutex__RUnlock
@@ -91,6 +96,10 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
+theorem v3.wp_Version :
+    EtcdGrove.Version.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Version.wp_proof
+
 theorem proto.wp_Clone :
     EtcdGrove.proto.Clone.spec (GF := GF) (hG := hG) :=
   EtcdGrove.proto.Clone.wp_proof
@@ -106,22 +115,6 @@ theorem v3.Cmp.wp_Clone :
 theorem v3.Cmp.wp_ensureCompare :
     EtcdGrove.Cmp.ensureCompare.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Cmp.ensureCompare.wp_proof
-
-theorem v3.wp_getPrefix :
-    EtcdGrove.getPrefix.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.getPrefix.wp_proof
-
-theorem v3.wp_WithPrefix :
-    EtcdGrove.WithPrefix.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.WithPrefix.wp_proof v3.wp_getPrefix
-
-theorem v3.wp_WithSort :
-    EtcdGrove.WithSort.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.WithSort.wp_proof
-
-theorem v3.wp_Version :
-    EtcdGrove.Version.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.Version.wp_proof
 
 theorem v3.wp_mustInt64 :
     EtcdGrove.mustInt64.spec (GF := GF) (hG := hG) :=
@@ -155,6 +148,18 @@ theorem v3.wp_WithRev :
     EtcdGrove.WithRev.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithRev.wp_proof
 
+theorem v3.wp_getPrefix :
+    EtcdGrove.getPrefix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.getPrefix.wp_proof
+
+theorem v3.wp_WithPrefix :
+    EtcdGrove.WithPrefix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithPrefix.wp_proof v3.wp_getPrefix
+
+theorem v3.wp_WithSort :
+    EtcdGrove.WithSort.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithSort.wp_proof
+
 theorem v3.wp_NewOp :
     EtcdGrove.NewOp.spec (GF := GF) (hG := hG) :=
   EtcdGrove.NewOp.wp_proof
@@ -179,9 +184,25 @@ theorem v3.wp_WithLimit :
     EtcdGrove.WithLimit.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithLimit.wp_proof
 
+theorem v3.wp_WithFirstKey :
+    EtcdGrove.WithFirstKey.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithFirstKey.wp_proof v3.wp_WithPrefix v3.wp_WithLimit
+
 theorem v3.wp_withTop :
     EtcdGrove.withTop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.withTop.wp_proof v3.wp_WithPrefix v3.wp_WithSort v3.wp_WithLimit
+
+theorem v3.wp_WithLastKey :
+    EtcdGrove.WithLastKey.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithLastKey.wp_proof v3.wp_withTop
+
+theorem fmt.wp_Sscanf :
+    EtcdGrove.fmt.Sscanf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.fmt.Sscanf.wp_proof
+
+theorem v3.wp_WithFirstRev :
+    EtcdGrove.WithFirstRev.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithFirstRev.wp_proof v3.wp_withTop
 
 theorem v3.wp_WithLastRev :
     EtcdGrove.WithLastRev.spec (GF := GF) (hG := hG) :=
@@ -191,25 +212,9 @@ theorem v3.wp_WithMaxModRev :
     EtcdGrove.WithMaxModRev.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithMaxModRev.wp_proof
 
-theorem v3.wp_WithFirstKey :
-    EtcdGrove.WithFirstKey.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.WithFirstKey.wp_proof v3.wp_WithPrefix v3.wp_WithLimit
-
-theorem v3.wp_WithFirstRev :
-    EtcdGrove.WithFirstRev.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.WithFirstRev.wp_proof v3.wp_withTop
-
-theorem v3.wp_WithLastKey :
-    EtcdGrove.WithLastKey.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.WithLastKey.wp_proof v3.wp_withTop
-
 theorem v3.wp_WithMinModRev :
     EtcdGrove.WithMinModRev.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithMinModRev.wp_proof
-
-theorem fmt.wp_Sscanf :
-    EtcdGrove.fmt.Sscanf.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.fmt.Sscanf.wp_proof
 
 end links
 
@@ -222,6 +227,38 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
+theorem wp_putNewKV :
+    EtcdGrove.recipes.putNewKV.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.recipes.putNewKV.wp_proof v3.wp_Version v3.wp_Compare v3.wp_WithLease v3.wp_OpPut context.wp_TODO
+
+theorem wp_newKV :
+    EtcdGrove.recipes.newKV.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.recipes.newKV.wp_proof wp_putNewKV
+
+theorem wp_newKey :
+    EtcdGrove.recipes.newKey.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.recipes.newKey.wp_proof wp_newKV
+
+theorem Barrier.wp_Hold :
+    EtcdGrove.recipes.Barrier.Hold.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.recipes.Barrier.Hold.wp_proof wp_newKey
+
+theorem Barrier.wp_Release :
+    EtcdGrove.recipes.Barrier.Release.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.recipes.Barrier.Release.wp_proof
+
+theorem wp_waitEvents :
+    EtcdGrove.recipes.waitEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.recipes.waitEvents.wp_proof
+
+theorem wp_WaitEvents :
+    EtcdGrove.recipes.WaitEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.recipes.WaitEvents.wp_proof v3.wp_WithRev wp_waitEvents
+
+theorem Barrier.wp_Wait :
+    EtcdGrove.recipes.Barrier.Wait.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.recipes.Barrier.Wait.wp_proof wp_WaitEvents
+
 theorem concurrency.Session.wp_Client :
     EtcdGrove.concurrency.Session.Client.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.Session.Client.wp_proof
@@ -233,14 +270,6 @@ theorem DoubleBarrier.wp_enteredClients :
 theorem concurrency.Session.wp_Lease :
     EtcdGrove.concurrency.Session.Lease.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.Session.Lease.wp_proof
-
-theorem wp_putNewKV :
-    EtcdGrove.recipes.putNewKV.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.recipes.putNewKV.wp_proof v3.wp_Version v3.wp_Compare v3.wp_WithLease v3.wp_OpPut context.wp_TODO
-
-theorem wp_newKV :
-    EtcdGrove.recipes.newKV.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.recipes.newKV.wp_proof wp_putNewKV
 
 theorem wp_newEphemeralKV :
     EtcdGrove.recipes.newEphemeralKV.spec (GF := GF) (hG := hG) :=
@@ -262,14 +291,6 @@ theorem RemoteKV.wp_Revision :
     EtcdGrove.recipes.RemoteKV.Revision.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.RemoteKV.Revision.wp_proof
 
-theorem wp_waitEvents :
-    EtcdGrove.recipes.waitEvents.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.recipes.waitEvents.wp_proof
-
-theorem wp_WaitEvents :
-    EtcdGrove.recipes.WaitEvents.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.recipes.WaitEvents.wp_proof v3.wp_WithRev wp_waitEvents
-
 theorem DoubleBarrier.wp_Enter :
     EtcdGrove.recipes.DoubleBarrier.Enter.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.DoubleBarrier.Enter.wp_proof concurrency.Session.wp_Client DoubleBarrier.wp_enteredClients wp_newUniqueEphemeralKey RemoteKV.wp_Delete RemoteKV.wp_Revision wp_WaitEvents
@@ -282,13 +303,61 @@ theorem DoubleBarrier.wp_Leave :
     EtcdGrove.recipes.DoubleBarrier.Leave.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.DoubleBarrier.Leave.wp_proof concurrency.Session.wp_Client v3.wp_WithPrefix RemoteKV.wp_Key RemoteKV.wp_Delete wp_WaitEvents
 
+theorem wp_NewBarrier :
+    EtcdGrove.recipes.NewBarrier.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.recipes.NewBarrier.wp_proof context.wp_TODO
+
 theorem wp_NewDoubleBarrier :
     EtcdGrove.recipes.NewDoubleBarrier.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.NewDoubleBarrier.wp_proof context.wp_TODO
 
+theorem wp_NewPriorityQueue :
+    EtcdGrove.recipes.NewPriorityQueue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.recipes.NewPriorityQueue.wp_proof context.wp_TODO
+
+theorem wp_NewQueue :
+    EtcdGrove.recipes.NewQueue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.recipes.NewQueue.wp_proof context.wp_TODO
+
 theorem wp_NewRWMutex :
     EtcdGrove.recipes.NewRWMutex.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.NewRWMutex.wp_proof context.wp_TODO
+
+theorem wp_deleteRevKey :
+    EtcdGrove.recipes.deleteRevKey.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.recipes.deleteRevKey.wp_proof v3.wp_ModRevision v3.wp_Compare v3.wp_OpDelete context.wp_TODO
+
+theorem wp_claimFirstKey :
+    EtcdGrove.recipes.claimFirstKey.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.recipes.claimFirstKey.wp_proof wp_deleteRevKey
+
+theorem wp_WaitPrefixEvents :
+    EtcdGrove.recipes.WaitPrefixEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.recipes.WaitPrefixEvents.wp_proof v3.wp_WithPrefix v3.wp_WithRev wp_waitEvents
+
+theorem PriorityQueue.wp_Dequeue :
+    EtcdGrove.recipes.PriorityQueue.Dequeue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.recipes.PriorityQueue.Dequeue.wp_proof v3.wp_WithFirstKey wp_claimFirstKey wp_WaitPrefixEvents wp_deleteRevKey
+
+theorem wp_newSequentialKV :
+    EtcdGrove.recipes.newSequentialKV.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.recipes.newSequentialKV.wp_proof v3.wp_WithLastKey v3.wp_ModRevision v3.wp_Compare v3.wp_OpPut context.wp_TODO fmt.wp_Sscanf
+
+theorem PriorityQueue.wp_Enqueue :
+    EtcdGrove.recipes.PriorityQueue.Enqueue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.recipes.PriorityQueue.Enqueue.wp_proof wp_newSequentialKV
+
+theorem Queue.wp_Dequeue :
+    EtcdGrove.recipes.Queue.Dequeue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.recipes.Queue.Dequeue.wp_proof v3.wp_WithFirstRev wp_claimFirstKey wp_WaitPrefixEvents wp_deleteRevKey
+
+theorem wp_newUniqueKV :
+    EtcdGrove.recipes.newUniqueKV.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.recipes.newUniqueKV.wp_proof wp_putNewKV
+
+theorem Queue.wp_Enqueue :
+    EtcdGrove.recipes.Queue.Enqueue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.recipes.Queue.Enqueue.wp_proof wp_newUniqueKV
 
 theorem RWMutex.wp_waitOnLastRev :
     EtcdGrove.recipes.RWMutex.waitOnLastRev.spec (GF := GF) (hG := hG) :=
@@ -317,30 +386,6 @@ theorem RemoteKV.wp_Put :
 theorem RemoteKV.wp_Value :
     EtcdGrove.recipes.RemoteKV.Value.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.RemoteKV.Value.wp_proof
-
-theorem wp_WaitPrefixEvents :
-    EtcdGrove.recipes.WaitPrefixEvents.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.recipes.WaitPrefixEvents.wp_proof v3.wp_WithPrefix v3.wp_WithRev wp_waitEvents
-
-theorem wp_deleteRevKey :
-    EtcdGrove.recipes.deleteRevKey.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.recipes.deleteRevKey.wp_proof v3.wp_ModRevision v3.wp_Compare v3.wp_OpDelete context.wp_TODO
-
-theorem wp_claimFirstKey :
-    EtcdGrove.recipes.claimFirstKey.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.recipes.claimFirstKey.wp_proof wp_deleteRevKey
-
-theorem wp_newKey :
-    EtcdGrove.recipes.newKey.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.recipes.newKey.wp_proof wp_newKV
-
-theorem wp_newSequentialKV :
-    EtcdGrove.recipes.newSequentialKV.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.recipes.newSequentialKV.wp_proof v3.wp_WithLastKey v3.wp_ModRevision v3.wp_Compare v3.wp_OpPut context.wp_TODO fmt.wp_Sscanf
-
-theorem wp_newUniqueKV :
-    EtcdGrove.recipes.newUniqueKV.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.recipes.newUniqueKV.wp_proof wp_putNewKV
 
 end links_hasLC
 

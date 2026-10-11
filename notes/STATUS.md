@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-11 (`client/v3/experimental/recipes` units 1b and 3 merged: no proof changes needed, the recipes 28 of 38 functions verified, all sorry-free, 300 of 401 lines, etcd 363 verified of 3599, gates 43 axioms, 1 sorry, see "Merge of units 1b and 3"; `client/v3/experimental/recipes` unit 3: the RWMutex and the double barrier specified and proved, exclusion under unmodified keys, see "Unit 3"; `client/v3/experimental/recipes` unit 1b: `newUniqueKV`, `newUniqueEphemeralKV`, `newSequentialKV` proved, `fmt.Sscanf` an etcd-grove axiom, the client's transaction errors `clientErrIs` (for `errors.Is`), `newSequentialKV` puts but does not create its key, its order under `SeqKeysBelow`, gates 43 axioms, 1 sorry, etcd 353 verified of 3599, see "Unit 1b"; Perennial `e4e126e46` pinned (`cb6a5921e` plus `strings.Split`, `errors.Is`, `fmt.Sprintf`'s integer directives under `ArgsWf`), merged with the one-`AllG` bump and the register's cluster driver, the recipes files without `[AllG GF]` (`waitEvents`' spec names `isSpsc (GF := GF)`), the gates unchanged (42 axioms, 4 sorries; etcd 350 verified of 3599); `client/v3/experimental/recipes` unit 1: the client bundle under the premise that a watch channel is never closed, the client's contracts at `context.TODO()` and its puts, `WithFirstKey`'s options needing a resource, `key.go`/`client.go`/`watch.go` specified and proved but three helpers left to unit 1b, the claim happens at one revision, see "Unit 1"; `client/v3/experimental/recipes` unit 0: translated (a Gooseable commit `bc8b52a50` pinned), the clientv3 option bodies, `gen-link.py --recipes`, the collection, two findings reproduced and fixed on a fork branch (`waitEvents` returns `nil` on a closed watch channel: `Dequeue` panics, `Barrier.Wait` returns released), see "Recipes"; Perennial `cb6a5921e` pinned: one `AllG GF`, provided by `HeapGS`; the `[AllG GF]` section variable dropped from 654 files, see "Perennial `cb6a5921e`: one `AllG`"; the register's cluster driver `Main` proved safe from package initialization, everything allocated in the proof; raft's `isLogger` was unsatisfiable, fixed, see "The register's cluster driver"; 2026-10-10: Perennial's panics and `recover` adopted (Perennial branch `panic`, not yet pinned: needs `7cea8cc26`), the STM's two panic axioms gone, `lockerMutex.Lock`/`Unlock` specified, four standard-library axioms of `client/v3/leasing` replaced by Perennial's specs, see "Panic and recover"; `client/v3/leasing` unit 5: the monitors, `NewKV` and `Close` proved, every leasing result unconditional, 66 of 67 functions verified; two findings reproduced (`waitRescind`'s `nil` without a delete lets a range delete through another client's lease; a session reset between `acquire` and `Add` leaves a stale entry), see "Unit 5: the monitors; the package"; `client/v3/leasing` units 3 and 4: `txn.go` and `kv.go` but the monitors specified and proved, nested transactions and owned responses in the contract, two new findings (a write of an uncached key applied twice, a failed acquisition ignores the get's options), see "Units 3 and 4"; `client/v3/leasing` units 1 and 2: translated, the protocol as a premise on etcd's history with `leased_value_stable`, the lease cache specified and proved, findings in `EvictRange` and `evalCmp`, see "client/v3/leasing: the protocol premise and the lease cache"; merged upstream's register example, `node.go`, raft from upstream etcd-io/raft and thread tokens into the Mutex/Election/STM line, Perennial `7c93f27aa`, see "Merge: the register, `node.go` and thread tokens"; `STM`: all of `stm.go` specified and proved, atomicity of the serializable levels, Perennial `9276bd1ed`: a map has fewer than `2^63` keys, two trust-boundary axioms for the STM's panic and `recover`, a new history law, the serializable snapshot broken after a retry (a finding, reproduced and fixed on a fork branch), see "STM"; `Election`: all of `election.go` specified and proved, election exclusion, only the leader proclaims, `Campaign` may return `nil` without its key (a finding), see "Election"; `Mutex`: mutual exclusion, Perennial `d240c1732`: `fmt.Sprintf` formats `%s`, `strings.HasPrefix`, see "Mutex: mutual exclusion"; the register example verified over raft: logically atomic `Put`/`Get`, raft proposals over a client log, see "The register example"; the cache's wait-group counter bounded by thread tokens, Perennial `105fb79f5`: the `WaitGroup.Add` overflow assumption reverted, `New` assumes fewer than `2^31 - 3` live threads, see "The wait-group counter and thread tokens"; `node.go` proved: `RestartNode`, `run`, `Propose`, `Step`, `Tick`, `Ready`, `Advance`, see "`node.go`: the concurrent `Node`"; groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-11 (`client/v3/experimental/recipes` unit 2 merged: the whole package verified, 38 of 38 functions, 401 of 401 lines, sorry-free, `pqueue_order` (least priority, then earliest, under `PQKeysWf`), `PriorityQueue.Enqueue` returns `seqKeyPutAt`, the token in `txnCommitErrTodo`, gates 45 axioms, 1 sorry, etcd 373 verified of 3599, see "Merge of unit 2" and "The whole package"; `client/v3/experimental/recipes` units 1b and 3 merged: no proof changes needed, the recipes 28 of 38 functions verified, all sorry-free, 300 of 401 lines, etcd 363 verified of 3599, gates 43 axioms, 1 sorry, see "Merge of units 1b and 3"; `client/v3/experimental/recipes` unit 3: the RWMutex and the double barrier specified and proved, exclusion under unmodified keys, see "Unit 3"; `client/v3/experimental/recipes` unit 1b: `newUniqueKV`, `newUniqueEphemeralKV`, `newSequentialKV` proved, `fmt.Sscanf` an etcd-grove axiom, the client's transaction errors `clientErrIs` (for `errors.Is`), `newSequentialKV` puts but does not create its key, its order under `SeqKeysBelow`, gates 43 axioms, 1 sorry, etcd 353 verified of 3599, see "Unit 1b"; Perennial `e4e126e46` pinned (`cb6a5921e` plus `strings.Split`, `errors.Is`, `fmt.Sprintf`'s integer directives under `ArgsWf`), merged with the one-`AllG` bump and the register's cluster driver, the recipes files without `[AllG GF]` (`waitEvents`' spec names `isSpsc (GF := GF)`), the gates unchanged (42 axioms, 4 sorries; etcd 350 verified of 3599); `client/v3/experimental/recipes` unit 1: the client bundle under the premise that a watch channel is never closed, the client's contracts at `context.TODO()` and its puts, `WithFirstKey`'s options needing a resource, `key.go`/`client.go`/`watch.go` specified and proved but three helpers left to unit 1b, the claim happens at one revision, see "Unit 1"; `client/v3/experimental/recipes` unit 0: translated (a Gooseable commit `bc8b52a50` pinned), the clientv3 option bodies, `gen-link.py --recipes`, the collection, two findings reproduced and fixed on a fork branch (`waitEvents` returns `nil` on a closed watch channel: `Dequeue` panics, `Barrier.Wait` returns released), see "Recipes"; Perennial `cb6a5921e` pinned: one `AllG GF`, provided by `HeapGS`; the `[AllG GF]` section variable dropped from 654 files, see "Perennial `cb6a5921e`: one `AllG`"; the register's cluster driver `Main` proved safe from package initialization, everything allocated in the proof; raft's `isLogger` was unsatisfiable, fixed, see "The register's cluster driver"; 2026-10-10: Perennial's panics and `recover` adopted (Perennial branch `panic`, not yet pinned: needs `7cea8cc26`), the STM's two panic axioms gone, `lockerMutex.Lock`/`Unlock` specified, four standard-library axioms of `client/v3/leasing` replaced by Perennial's specs, see "Panic and recover"; `client/v3/leasing` unit 5: the monitors, `NewKV` and `Close` proved, every leasing result unconditional, 66 of 67 functions verified; two findings reproduced (`waitRescind`'s `nil` without a delete lets a range delete through another client's lease; a session reset between `acquire` and `Add` leaves a stale entry), see "Unit 5: the monitors; the package"; `client/v3/leasing` units 3 and 4: `txn.go` and `kv.go` but the monitors specified and proved, nested transactions and owned responses in the contract, two new findings (a write of an uncached key applied twice, a failed acquisition ignores the get's options), see "Units 3 and 4"; `client/v3/leasing` units 1 and 2: translated, the protocol as a premise on etcd's history with `leased_value_stable`, the lease cache specified and proved, findings in `EvictRange` and `evalCmp`, see "client/v3/leasing: the protocol premise and the lease cache"; merged upstream's register example, `node.go`, raft from upstream etcd-io/raft and thread tokens into the Mutex/Election/STM line, Perennial `7c93f27aa`, see "Merge: the register, `node.go` and thread tokens"; `STM`: all of `stm.go` specified and proved, atomicity of the serializable levels, Perennial `9276bd1ed`: a map has fewer than `2^63` keys, two trust-boundary axioms for the STM's panic and `recover`, a new history law, the serializable snapshot broken after a retry (a finding, reproduced and fixed on a fork branch), see "STM"; `Election`: all of `election.go` specified and proved, election exclusion, only the leader proclaims, `Campaign` may return `nil` without its key (a finding), see "Election"; `Mutex`: mutual exclusion, Perennial `d240c1732`: `fmt.Sprintf` formats `%s`, `strings.HasPrefix`, see "Mutex: mutual exclusion"; the register example verified over raft: logically atomic `Put`/`Get`, raft proposals over a client log, see "The register example"; the cache's wait-group counter bounded by thread tokens, Perennial `105fb79f5`: the `WaitGroup.Add` overflow assumption reverted, `New` assumes fewer than `2^31 - 3` live threads, see "The wait-group counter and thread tokens"; `node.go` proved: `RestartNode`, `run`, `Propose`, `Step`, `Tick`, `Ready`, `Advance`, see "`node.go`: the concurrent `Node`"; groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
@@ -18,7 +18,9 @@ module system").
 
 Plan: `decisions.md`, "Recipes: the client contracts reused, the queue's claim, two prefixes as
 one". Units 0 to 4; unit 0 (translation, scaffolding, the reproductions), unit 1 (the bundle,
-`key.go`, `client.go`, `watch.go`) and unit 1b (the three key helpers unit 1 left) are done.
+`key.go`, `client.go`, `watch.go`), unit 1b (the three key helpers unit 1 left), unit 2 (the barrier,
+the queue, the priority queue, the revision token) and unit 3 (the RWMutex, the double barrier)
+are done and merged; the package is verified ("The whole package").
 
 ### Unit 0: translation and scaffolding (2026-10-11)
 
@@ -200,6 +202,90 @@ The three `sorry`s of unit 1 proved; decisions: `decisions.md`, "Recipes", "Unit
   `fmt.Sscanf.wp_proof` added (Perennial's `errors.wp_Is` and `time.wp_Now` are not listed:
   the report lists this repository's); `etc/tcb-report.py --check --update`: the same change to
   the repository baseline (43 axioms, 1 sorry).
+### Unit 2: the barrier, the queue, the priority queue (2026-10-11)
+
+Files: `Proof/go_etcd_io/etcd/client/v3/experimental/recipes/` (`InvRecipesBarrier`,
+`InvRecipesQueue`, one proof per function, `Results`, `Link`) and their specs; the token and the
+`More` flag in `Proof/go_etcd_io/etcd/cache/v3/InvEtcdTxn.lean`; deviations from the plan:
+`decisions.md`, "Recipes", "Units 1b, 2 and 3".
+
+- **The revision token** (`InvEtcdTxn.lean`): `etcdRevToken r` (an axiom beside `etcdState`,
+  exclusive: `etcdRevToken_excl : etcdRevToken r ∗ etcdRevToken r ⊢ False`). The builder's
+  `Commit` (`txnBuilderSpec`, under the prefix; so `isEtcdTxnKV` and `isEtcdTxnKVTodo`) returns
+  `txnCommitResultTok`: `txnCommitResult`'s facts and, if the transaction wrote (`txnWrote`), the
+  token of its revision; `txnCommitResultTok_result` drops it (the six concurrency call sites:
+  `Mutex.tryAcquire`, `Election.Campaign/Proclaim/Resign`, the two STM commits, one line each).
+  A read-only transaction makes no revision (etcd's `storeTxnWrite.End` advances the revision
+  only if the transaction changed something) and gets no token. `putResult` carries the token (a
+  put always writes). Not given: `deleteResult` (no caller needs it), leasing's
+  `txnCommitResultO`. `deleteRevKey`'s `true`, `putNewKV`'s `nil` and `claimFirstKey`'s claimed
+  item return it; `revKeyDeleted_once` (`InvRecipesClaim.lean`): two successful claims of one
+  `(key, rev)` are impossible.
+- **The get's `More` flag** (`getRespMore`, `InvEtcdTxn.lean`): `isEtcdKVTodo` also returns the
+  response's `More`, etcd's (`asembleRangeResponse`: a positive limit cut the selection). The
+  queues read it; without it the wait path could not say that the get listed every item.
+- **Barrier** (`isBarrier b client key`: read-only fields, the bundle at the prefix `key`):
+  `NewBarrier`, `Hold` (`newKey`: `keyCreatedAt`, or `ErrKeyExists` with the key present, or an
+  error), `Release` (`nil`: the key absent at some `r ≥ lo`), `Wait` (`nil`: the key absent at
+  some `r ≥ lo`: at the get's revision, the early return, or at the delete event's, from
+  `R + 1`). `Wait` takes `0 ≤ lo` (the watch's revision `R + 1` must be non-negative).
+- **Queue** (`isQueue q client kp`, `kp ≠ []`, the bundle at `kp`): `NewQueue`, `Enqueue`
+  (`newUniqueKV`'s key under `kp ++ "/"` created with the value), `Dequeue` (Löb induction,
+  `iloeb`, for the two retries: `More`, and a lost claim on the wait path; the recursive call is
+  `rw [method_unfold ...]` then the induction hypothesis). `(v, nil)`: an item `it` with
+  `v = it.value`, `dequeuedAt kp kp it r` (in etcd's state at `r - 1`, `revKeyDeleted` at `r`,
+  the token of `r`) and `dequeueOrder kp kp modRevLe it r` (below).
+  A get's `*KeyValue` may be a nil pointer as far as the contract says (nothing makes it
+  non-nil), so the code's `kv != nil` is a real branch: a claimed item at a nil pointer counts as
+  gone (`revKeyDeleted` gives `revKeyGone` at the same revision), and the proof goes on as if
+  nothing were claimed.
+- **Priority queue** (`isPriorityQueue q client key`: the prefix field `key ++ "/"`, the bundle at
+  `""`): `NewPriorityQueue`, `Enqueue` (`Sprintf("%s%05d", ...)` by `SprintfOut.str_05d_uint16`:
+  the key is under `key ++ "/" ++ padZeros 5 (decimal pr) ++ "/"`), `Dequeue` (the queue's
+  proof, with `WithFirstKey()`'s resource-threaded options and `keyLe`).
+- **Results** (`Results.lean`, `#print axioms` of each): the specs restated (`barrier_hold`,
+  `barrier_release`, `barrier_wait_release`, `queue_*`, `pqueue_*`); `queue_dequeued_once`,
+  `pqueue_dequeued_once` (two dequeues of the same `(key, mod revision)`: `False`, by the
+  tokens); `queue_dequeued_was_enqueued`, `pqueue_dequeued_was_enqueued` (the item, with its
+  value, under the prefix at `r - 1`; for the queue also absent at `r`); `queue_fifo`,
+  `pqueue_min_key` (at the get's revision `r0 < r`: the item was there with the least mod
+  revision / key under the prefix — **the get path** — or every item under the prefix at `r0`
+  was gone at some revision in `[r0, r]` and the item was put at or after `r0` — **the wait
+  path**); `queue_fifo_before_claim`, under the hypothesis `EtcdModRevPersist` (below).
+- **Weaker than planned, and why.** (1) *FIFO just before the claim* (`r - 1`) is not provable from
+  the model's history laws: they do not exclude a key whose mod revision goes back within one
+  lifetime (`etcdState_create_persist` keeps the key, not its record; `etcdState_modrev_det` says
+  one record per mod revision), so an item older than the claimed one could be at `r - 1`
+  without being at the get's revision. With the law that a key-value lives unchanged from its mod
+  revision while present (`EtcdModRevPersist`, true of etcd, stated as a hypothesis, not an
+  axiom), the get path's FIFO holds at `r - 1` (`queue_fifo_before_claim`). (2) *The wait path*:
+  the watch contract (`rangeWatchRespOk`) says events are real, not that none is skipped, so
+  nothing is said of items put between the get and the event; the wait path states that the
+  get's items were all claimed by others by `r` and that the item was put at or after the get's
+  revision (`WaitPrefixEvents` from `r0`, not `r0 + 1`: an event at `r0` itself is possible).
+  (3) *The priority queue's least key* is at the get's revision only, and **is false at the
+  claim** in etcd, not only unprovable: an `Enqueue` of a higher priority (a smaller key) between
+  the get and the claim is not seen, and `Dequeue` returns a lower-priority item while a
+  higher-priority one is present (no premise rules it out; the recipe is not a linearizable
+  priority queue; its comment "returns Enqueue()'d items in FIFO order" is copied from the
+  queue). Reproduction sketch: client A calls `Dequeue` on a queue holding priority 5 only;
+  after A's `Get` returns the priority-5 item and before A's `deleteRevKey` commits (a
+  breakpoint, or a delay injected in `claimFirstKey`), client B calls `Enqueue(v, 1)`; A returns
+  the priority-5 item while the priority-1 item is present. FIFO for the plain queue has no such
+  race: an item put after the get has a larger mod revision.
+- **`pqueue_order`** (least key = highest priority, then FIFO) is not stated: it needs unit 1b's
+  `SeqKeysWf` order theorem; the statement for the merge is in `decisions.md` (stated at the
+  merge: "Merge of unit 2").
+- **Numbers** (`etc/verified-code.py --reuse`): the recipes 25 of 38 functions verified (22
+  sorry-free; 3 unfinished: unit 1b's), 203 of 401 Go lines (`barrier.go` 26/26, `queue.go` 37/37,
+  `priority_queue.go` 38/38); etcd 360 verified of 3599. The enqueues reach unit 1b's `sorry`s
+  (`newUniqueKV`, `newSequentialKV`).
+- **Gates**: `lake build` passes (the cache, concurrency and leasing rebuilt on the contract
+  change); `etc/tcb-report.py --collection etc/tcb-collections/recipes.txt --check --update`: new
+  `etcdRevToken`, `etcdRevToken_excl` (the token), `etcdState_agree`, `etcdState_create_persist`,
+  `etcdState_modrev_det` (already in the repository's base, now reached by the recipes);
+  `etc/tcb-report.py --check --update`: the two token laws only (48 entries).
+
 ### Unit 3: the RWMutex and the double barrier (2026-10-11)
 
 Files: `Proof/go_etcd_io/etcd/client/v3/experimental/recipes/` (`InvRWMutex`, `InvDoubleBarrier`,
@@ -255,6 +341,82 @@ which merged cleanly), the notes (both units' subsections kept).
   `etcdState_revs`, `fmt.Sscanf.wp_proof`, `proto.Clone.wp_proof`, no `sorry`;
   `etc/tcb-report.py --check` matches the repository baseline (43 axioms, 1 sorry), every other
   collection unchanged.
+
+### Merge of unit 2 (2026-10-11)
+
+Unit 2 (branch `recipes-u2`) merged onto units 1, 1b and 3.
+
+- **Conflicts**: `InvEtcdTxn.lean` merged textually; resolved by hand so that 1b's
+  `txnCommitErrTodo` (the `TODO()` builder's `Commit` with `clientErrIs`) returns unit 2's
+  `txnCommitResultTok` (the token and the error premise both: `putNewKV`'s `nil` has the token,
+  its third case `clientErrIs`). `putNewKV.lean`, `newKV.lean` (both sides' patterns combined),
+  `Results.lean` (unit 2's section, then unit 3's, then the order below; every `#print axioms`),
+  `Link.lean` (regenerated), `etc/tcb-collections/recipes.txt`, the notes (subsections in unit order).
+- **Adaptations to unit 2's contract** (one line each): the `TODO()` `Get`'s third conjunct
+  (`getRespMore`) in `newSequentialKV`, `RWMutex.waitOnLastRev`, `DoubleBarrier.enteredClients`,
+  `Leave`; `newSequentialKV`'s `Commit` (`txnCommitResultTok_result`); `newUniqueKV` drops
+  `putNewKV`'s token; `DoubleBarrier.Enter`'s `Put` result bound non-persistent.
+  `newUniqueEphemeralKV`, `newKV`'s callers, `RLock`/`Lock`, `Barrier.Hold` needed nothing.
+- **Adaptations to 1b's**: `PriorityQueue.Enqueue`'s spec returns `seqKeyPutAt [] (key/%05d(pr))
+  k val g r` with `lo ≤ g ≤ r` (unit 2 had `keyCreatedAt`, which `newSequentialKV` no longer
+  gives: it does not check the key's absence); `Queue.Enqueue` needed nothing.
+- **`pqueue_order`** (`Results.lean`, section "The priority queue's order"): `pqKey key p n =
+  key/%05d(p)/%016d(n)`; `PQKeysWf key s` (every key under `key/` is a `pqKey` with `p < 10^5`,
+  `n < 10^16`); `pqKey_lt`/`pqKey_le` (key order is lexicographic (priority, sequence number):
+  `padZeros_decimalNat_lt` and equal-width prefixes); `pqueue_order`: from `dequeuedAt` and
+  `dequeueOrder … keyLe`, at the get's revision `r0 < r`, `it ∈ s0` and, under `PQKeysWf key s0`,
+  `it.key = pqKey key p n` with `(p, n)` lexicographically least among the items under `key/`
+  (or the wait path's facts); `pqueue_enqueue_order`: on `Enqueue`'s result, under
+  `SeqKeysBelow (key/%05d(pr)) (10^16 - 1)` at the get, the key is `pqKey key pr n`, above every
+  key of that priority then, `n` one past the greatest; `pqKeysWf_seqKeysWf`: `PQKeysWf` gives
+  each priority's `SeqKeysWf`. No axiom; `EtcdModRevPersist` stays a hypothesis.
+- **Gates**: the full `lake build` passes; `gen-link.py --recipes` (plain: `--skip-unproved` now
+  skips nothing, and the usage line for it is gone) reproduces `Link.lean`; the recipes collection
+  (`--check --update`): `etcdReachedAt`, `etcdRevToken`, `etcdRevToken_excl`, `etcdState`,
+  `etcdState_agree`, `etcdState_create_persist`, `etcdState_modrev_det`, `etcdState_revs`,
+  `fmt.Sscanf.wp_proof`, `proto.Clone.wp_proof`, no `sorry`; `etc/tcb-report.py --check --update`:
+  `etcdRevToken`, `etcdRevToken_excl` added (45 axioms, 1 sorry); the cache and concurrency
+  collections gain `etcdRevToken` (their builder's `Commit` names it since unit 2; unit 2 left them
+  stale; updated), the others match.
+
+### The whole package (2026-10-11)
+
+All 38 functions of `client/v3/experimental/recipes` (401 Go lines, at `bc8b52a50`) are specified
+and proved, sorry-free (`etc/verified-code.py --reuse`: 38 of 38, 401 of 401 lines; etcd 373
+verified of 3599, 3712 lines). `Results.lean` restates 33 results with `#print axioms`.
+
+- **Results**: `barrier_hold` (`nil`: the key created), `barrier_release` (absent after the
+  call), `barrier_wait_release` (`Wait`'s `nil` only once released); `queue_Enqueue`,
+  `queue_Dequeue`, `pqueue_Enqueue`, `pqueue_Dequeue` (the specs); `queue_dequeued_once`,
+  `pqueue_dequeued_once` (no item dequeued twice, by the revision tokens);
+  `queue_dequeued_was_enqueued`, `pqueue_dequeued_was_enqueued` (the item was under the prefix
+  just before the claim); `queue_fifo` (least mod revision at the get, or the wait path),
+  `queue_fifo_before_claim` (least just before the claim, under `EtcdModRevPersist`),
+  `pqueue_min_key` (least key at the get), `pqueue_enqueue_order` (an enqueue's key above its
+  priority's), `pqueue_order` (least priority, then earliest, at the get);
+  `rwmutex_RLock`/`Lock`/`RUnlock`/`Unlock`, `rwmutex_unlock_released`,
+  `rwmutex_write_exclusion`, `rwmutex_read_write_exclusion` (writer/writer and reader/writer
+  exclusion); `double_barrier_Enter`/`Leave`, `double_barrier_enter_ready` (what each path saw),
+  `double_barrier_enter_count` (`count` waiters seen), `double_barrier_leave` (the key gone); the
+  constructors.
+- **Premises**: the watch channel is never closed (the bundle, `isEtcdRangeWatcherOpen`: no
+  compaction past a watched revision, the client not closed while a recipe waits; the fixed code
+  would not need it); the session's lease (as `Mutex`'s exclusion); `keyUnmodified` (RWMutex: no
+  other client rewrites a lock key); `SeqKeysWf`/`SeqKeysBelow`/`PQKeysWf` (the priority queue's
+  order: the keys under its prefix are the recipe's, fewer than `10^16` per priority);
+  `readyPutsCounted` (the double barrier's count: only `Enter`s write `key/ready`); and the
+  hypothesis `EtcdModRevPersist` (a law of etcd's history the model does not assume; only
+  `queue_fifo_before_claim`; promoting it to an axiom is the owner's call).
+- **Trust base** (the recipes collection): the model's `etcdState` laws, the token
+  (`etcdRevToken`, `etcdRevToken_excl`), `fmt.Sscanf.wp_proof`, `proto.Clone.wp_proof`.
+- **Findings** (unit 0; `issues/recipes-dequeue-closed-watch.md`,
+  `recipes-barrier-wait-closed-watch.md`, fix branch `recipes-closed-watch-channel`): on a closed
+  watch channel `Queue.Dequeue`/`PriorityQueue.Dequeue` panic on a nil `ev.Kv`, and
+  `Barrier.Wait` (and `DoubleBarrier.Enter`) report release while held.
+- **Design note, not a bug report**: the priority queue is not linearizable: an `Enqueue` of a
+  higher priority between a `Dequeue`'s get and its claim is not seen, so `Dequeue` can return a
+  lower-priority item while a higher-priority one is present (unit 2, "Weaker than planned");
+  its order holds at the get's revision.
 
 ## Perennial `cb6a5921e`: one `AllG` (2026-10-11)
 

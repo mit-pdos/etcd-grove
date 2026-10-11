@@ -290,6 +290,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
+/-- The token of a commit that wrote (`txnCommitResultTok`'s last conjunct). -/
+theorem tokIf_true {b : Bool} (h : b = true) (P : IProp GF) :
+    (if b then P else iprop(True)) ⊢ P := by
+  subst h; exact .rfl
+
 /-- The state before a transaction has positive versions (`etcdState_revs`). -/
 theorem txnStates_pos' (pfx : GoString) (r : w64) (s s' : List EtcdKv) (wrote : Bool) :
     txnStates (GF := GF) pfx r s s' wrote ⊢ ⌜∀ v ∈ s, 0 < sint.Z v.version⌝ := by
