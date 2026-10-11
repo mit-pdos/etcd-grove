@@ -346,6 +346,280 @@ theorem rangeAnswers_kv (log : Log) (hwf : LogWf log) (hlen : log.length < 2 ^ 6
     obtain ⟨hmod, hcr, hver, hb⟩ := hm
     exact ⟨kv, rfl, hmod, hcr, hver, bucketMap_lookup_of_BucketHas log hwf hlen hcs m kv hb hmod⟩
 
+/-! ### The pending revision grows: well-formedness -/
+
+/-- The state the pending revision's changes act on: after the committed log. -/
+theorem stateAt_pend (ilog : Log) (pend : List Change) :
+    stateAt (ilog ++ [pend]) ilog.length = applyChanges (W64 ilog.length) (stateAfter ilog) pend :=
+  stateAt_append_ge ilog pend (Nat.le_refl _)
+
+/-- A change appended to the pending revision keeps the log well formed, if it is a put, or a
+delete of a key present after the pending changes. -/
+theorem LogWf'.append_change {ilog : Log} {pend : List Change} (h : LogWf' (ilog ++ [pend]))
+    (hne : ilog ≠ []) (c : Change)
+    (hc : ∀ k, c = .del k →
+      (findKey k (applyChanges (W64 ilog.length) (stateAfter ilog) pend)).isSome) :
+    LogWf' (ilog ++ [pend ++ [c]]) := by
+  have hpos : 0 < ilog.length := List.length_pos_iff.2 hne
+  refine ⟨fun _ => ?_, fun r cs i k hr hi => ?_⟩
+  · have := h.1 (by simp)
+    rw [List.getElem?_append_left hpos] at this ⊢
+    exact this
+  · by_cases hlt : r < ilog.length
+    · rw [List.getElem?_append_left hlt] at hr
+      have := h.2 r cs i k (by rw [List.getElem?_append_left hlt]; exact hr) hi
+      rw [stateAt_append_lt _ _ (by omega)] at this ⊢
+      exact this
+    · rw [List.getElem?_append_right (by omega)] at hr
+      have hr0 : r - ilog.length = 0 := by
+        have := (List.getElem?_eq_some_iff.1 hr).1
+        simp at this; omega
+      rw [hr0] at hr
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at hr
+      subst hr
+      have hreq : r = ilog.length := by omega
+      subst hreq
+      rw [stateAt_append_lt _ _ (by omega), stateAt_last]
+      by_cases hil : i < pend.length
+      · rw [List.getElem?_append_left hil] at hi
+        rw [List.take_append_of_le_length (by omega)]
+        have := h.2 ilog.length pend i k
+          (by rw [List.getElem?_append_right (Nat.le_refl _), Nat.sub_self]; rfl) hi
+        rw [stateAt_append_lt _ _ (by omega), stateAt_last] at this
+        exact this
+      · rw [List.getElem?_append_right (by omega)] at hi
+        have hi0 : i - pend.length = 0 := by
+          have := (List.getElem?_eq_some_iff.1 hi).1
+          simp at this; omega
+        rw [hi0] at hi
+        simp only [List.getElem?_cons_zero, Option.some.injEq] at hi
+        have hieq : i = pend.length := by omega
+        subst hieq
+        rw [List.take_left]
+        exact hc k hi
+
+/-! ## The write transaction: the pending revision -/
+
+/-- A word from its non-negative signed value. -/
+theorem W64_sint_nat (x : w64) (h : 0 ≤ sint.Z x) : W64 (sint.nat x : Int) = x := by
+  have := Int.toNat_of_nonneg h
+  show BitVec.ofInt 64 ((sint.Z x).toNat : Int) = x
+  rw [this]
+  exact BitVec.ofInt_toInt
+
+/-- The revision a write transaction reads the index at (`deleteRange`'s `rrev`, `Range`'s
+`rev`): the pending revision once it has a change, else the committed log's last. -/
+def writeRev (ilog : Log) (pend : List Change) : Nat :=
+  if pend = [] then ilog.length - 1 else ilog.length
+
+theorem writeRev_lt (ilog : Log) (pend : List Change) (hne : ilog ≠ []) :
+    writeRev ilog pend < (ilog ++ [pend]).length := by
+  have := List.length_pos_iff.2 hne
+  unfold writeRev; split <;> simp <;> omega
+
+/-- The state at `writeRev`: after the pending changes. -/
+theorem stateAt_writeRev (ilog : Log) (pend : List Change) (hne : ilog ≠ []) :
+    stateAt (ilog ++ [pend]) (writeRev ilog pend) =
+      applyChanges (W64 ilog.length) (stateAfter ilog) pend := by
+  have := List.length_pos_iff.2 hne
+  unfold writeRev
+  split
+  · subst pend
+    rw [stateAt_append_lt _ _ (by omega), stateAt_last]; rfl
+  · exact stateAt_pend ilog pend
+
+/-- The keys `deleteRange` deletes: the index's answers in the range at `writeRev`, in key
+order. -/
+def delKeys (ilog : Log) (pend : List Change) (endNil : Bool) (k e : GoString) : List GoString :=
+  (rangeTaken (ilog ++ [pend]) endNil k e (W64 (writeRev ilog pend)) (W64 0)).map Prod.fst
+
+/-- Every key to delete is present after the pending changes. -/
+theorem delKeys_present (ilog : Log) (pend : List Change) (endNil : Bool) (k e : GoString)
+    (hwf : LogWf (ilog ++ [pend])) (hlen : (ilog ++ [pend]).length < 2 ^ 63)
+    (hcs : ∀ cs ∈ ilog ++ [pend], cs.length < 2 ^ 63) (hne : ilog ≠ []) :
+    ∀ kk ∈ delKeys ilog pend endNil k e,
+      (findKey kk (applyChanges (W64 ilog.length) (stateAfter ilog) pend)).isSome := by
+  intro kk hkk
+  unfold delKeys at hkk
+  rw [List.mem_map] at hkk
+  obtain ⟨a, ha, rfl⟩ := hkk
+  have hmem := mem_rangeAnswers_of_taken _ _ _ _ _ _ a ha
+  have hlt := writeRev_lt ilog pend hne
+  obtain ⟨kv, hfind, -⟩ := rangeAnswers_kv (ilog ++ [pend]) hwf hlen hcs endNil k e
+    (writeRev ilog pend) (by omega) a hmem
+  rw [stateAt_writeRev ilog pend hne] at hfind
+  rw [hfind]; rfl
+
+theorem rangeAt_keys_sublist (idx : IndexM) (k e : GoString) (atRev : w64) :
+    ((rangeAt idx k e atRev).map Prod.fst).Sublist (idx.map Prod.fst) := by
+  unfold rangeAt
+  induction idx with
+  | nil => simp
+  | cons z zs ih =>
+    rw [List.filter_cons]
+    split
+    · rw [List.filterMap_cons, List.map_cons]
+      cases kiGet z.2 atRev with
+      | none => exact ih.cons _
+      | some r => simp only [Option.map_some, List.map_cons]; exact ih.cons₂ _
+    · rw [List.map_cons]; exact ih.cons _
+
+/-- The keys to delete are distinct (the index's keys are sorted). -/
+theorem delKeys_nodup (ilog : Log) (pend : List Change) (endNil : Bool) (k e : GoString) :
+    (delKeys ilog pend endNil k e).Nodup := by
+  unfold delKeys rangeTaken
+  cases endNil with
+  | true =>
+    simp only [↓reduceIte, rangeAnswers]
+    cases kiGet (kiOfKey (evsOf (ilog ++ [pend])) k) (W64 (writeRev ilog pend)) <;> simp
+  | false =>
+    simp only [Bool.false_eq_true, ↓reduceIte, rangeAnswers]
+    have h1 : (takeLimit (limitOf (W64 0))
+        (rangeAt (indexOf (evsOf (ilog ++ [pend]))) k e (W64 (writeRev ilog pend)))).Sublist
+        (rangeAt (indexOf (evsOf (ilog ++ [pend]))) k e (W64 (writeRev ilog pend))) := by
+      unfold takeLimit; split
+      · exact List.take_sublist _ _
+      · exact List.Sublist.refl _
+    exact (nodup_of_sorted (keys_sorted _)).sublist
+      ((h1.map Prod.fst).trans (rangeAt_keys_sublist _ k e _))
+
+/-- Deleting other keys keeps a key's key-value. -/
+theorem findKey_applyChanges_dels (r : w64) (k : GoString) :
+    ∀ (ks : List GoString) (s : List EtcdKv), k ∉ ks →
+      findKey k (applyChanges r s (ks.map .del)) = findKey k s
+  | [], s, _ => rfl
+  | k' :: ks, s, hk => by
+    rw [List.map_cons]
+    unfold applyChanges
+    rw [List.foldl_cons]
+    have ih := findKey_applyChanges_dels r k ks (applyChange r s (.del k'))
+      (fun h => hk (List.mem_cons_of_mem _ h))
+    unfold applyChanges at ih
+    rw [ih]
+    simp only [applyChange]
+    rw [findKey_filter_ne]
+    have : k' ≠ k := fun h => hk (h ▸ List.mem_cons_self)
+    simp [this]
+
+/-- A change's key-value is unchanged by later changes of the revision. -/
+theorem changeKv_append_lt (r : w64) (s : List EtcdKv) (cs : List Change) (c : Change) {i : Nat}
+    (hi : i < cs.length) : changeKv r s (cs ++ [c]) i = changeKv r s cs i := by
+  unfold changeKv
+  rw [List.getElem?_append_left hi, List.take_append_of_le_length (by omega)]
+
+/-- The entries a write transaction has put: the pending revision's. -/
+def pendPuts (ilog : Log) (pend : List Change) : List (GoString × GoString) :=
+  bucketOfRev ilog.length (stateAfter ilog) pend
+
+theorem pendPuts_nil (ilog : Log) : pendPuts ilog [] = [] := rfl
+
+/-- The entries after one more change: one more entry, at the change's revision bytes. -/
+theorem pendPuts_append (ilog : Log) (pend : List Change) (c : Change) (kv : EtcdKv)
+    (hkv : changeKv (W64 ilog.length) (stateAfter ilog) (pend ++ [c]) pend.length = some kv) :
+    pendPuts ilog (pend ++ [c]) =
+      pendPuts ilog pend ++ [(revBytes ⟨W64 ilog.length, W64 pend.length⟩ c.isDel, kvEncode kv)] := by
+  unfold pendPuts bucketOfRev
+  rw [List.zipIdx_append, List.filterMap_append]
+  congr 1
+  · apply filterMap_congr'
+    intro p hp
+    rw [List.mem_zipIdx_iff_getElem?] at hp
+    have hlt : p.2 < pend.length := (List.getElem?_eq_some_iff.1 hp).1
+    rw [changeKv_append_lt _ _ _ _ hlt]
+  · simp only [List.zipIdx_cons, List.zipIdx_nil, Nat.zero_add, List.filterMap_cons,
+      List.filterMap_nil]
+    rw [hkv]
+    rfl
+
+/-- The bucket of the log with the pending revision committed: the old entries, then the
+pending puts. -/
+theorem bucketOf_append (ilog : Log) (pend : List Change) (hne : ilog ≠ []) :
+    bucketOf (ilog ++ [pend]) = bucketOf ilog ++ pendPuts ilog pend := by
+  have hpos := List.length_pos_iff.2 hne
+  unfold bucketOf pendPuts
+  rw [List.zipIdx_append, List.map_append, List.flatten_append]
+  congr 1
+  · congr 1
+    apply List.map_congr_left
+    intro p hp
+    rw [List.mem_zipIdx_iff_getElem?] at hp
+    have hlt : p.2 < ilog.length := (List.getElem?_eq_some_iff.1 hp).1
+    rw [stateAt_append_lt _ _ (by omega)]
+  · simp only [List.zipIdx_cons, List.zipIdx_nil, List.map_cons, List.map_nil, List.flatten_cons,
+      List.flatten_nil, List.append_nil, Nat.zero_add]
+    rw [stateAt_append_lt _ _ (by omega), stateAt_last]
+
+theorem bucketMap_append (ilog : Log) (pend : List Change) (hne : ilog ≠ []) :
+    bucketMap (ilog ++ [pend]) =
+      (pendPuts ilog pend).foldl (fun m p => GMap.insert p.1 p.2 m) (bucketMap ilog) := by
+  unfold bucketMap
+  rw [bucketOf_append ilog pend hne, List.foldl_append]
+
+theorem applyChanges_append_singleton (r : w64) (s : List EtcdKv) (cs : List Change) (c : Change) :
+    applyChanges r s (cs ++ [c]) = applyChange r (applyChanges r s cs) c := by
+  unfold applyChanges; rw [List.foldl_append]; rfl
+
+/-- `findKey` of the put key after `putKv`, as a value. -/
+theorem findKey_putKv_self_eq {s : List EtcdKv} (hs : s.Pairwise etcdKvLess) (r : w64)
+    (k v : GoString) (l : w64) :
+    findKey k (putKv r k v l s) = some (match findKey k s with
+      | some old => { old with modRev := r, version := old.version + W64 1, value := v, lease := l }
+      | none => { key := k, createRev := r, modRev := r, version := W64 1, value := v, lease := l }) := by
+  unfold putKv
+  simp only
+  rw [findKey_btInsert _ s hs]
+  unfold findKey
+  cases h : s.find? (fun v => decide (v.key = k)) with
+  | none => simp
+  | some old =>
+    have hk : old.key = k := by simpa using List.find?_some h
+    simp [hk]
+
+/-- The key-value `put` writes for `k`, given the index's answer of `k` at the pending revision
+`r`: created and versioned after the answer, or new. -/
+def putKvOf (k v : GoString) (l : w64) (r : w64) : Option (Rev × Rev × w64) → EtcdKv
+  | some (_, c, ver) =>
+    { key := k, createRev := c.main, modRev := r, version := ver + W64 1, value := v, lease := l }
+  | none => { key := k, createRev := r, modRev := r, version := W64 1, value := v, lease := l }
+
+/-- What `put` writes: the pending revision's new put of `k`, from the index's answer of the
+key at the pending revision (the writer's log `ilog ++ [pend]`). -/
+theorem changeKv_put (ilog : Log) (pend : List Change) (k v : GoString) (l : w64)
+    (hwf : LogWf (ilog ++ [pend])) (hlen : (ilog ++ [pend]).length < 2 ^ 63)
+    (hcs : ∀ cs ∈ ilog ++ [pend], cs.length < 2 ^ 63) :
+    changeKv (W64 ilog.length) (stateAfter ilog) (pend ++ [.put k v l]) pend.length =
+      some (putKvOf k v l (W64 ilog.length)
+        (kiGet (kiOfKey (evsOf (ilog ++ [pend])) k) (W64 ilog.length))) := by
+  have hm := kiGet_indexOf (ilog ++ [pend]) hlen hcs hwf k ilog.length (by simp at hlen; omega)
+  rw [idxGet_indexOf_bind, stateAt_pend] at hm
+  unfold changeKv
+  rw [List.getElem?_append_right (Nat.le_refl _), Nat.sub_self]
+  simp only [List.getElem?_cons_zero]
+  rw [List.take_of_length_le (by simp), applyChanges_append_singleton]
+  simp only [applyChange]
+  have hs := applyChanges_sorted (W64 ilog.length) pend (stateAfter_sorted ilog)
+  rw [findKey_putKv_self_eq hs]
+  cases hg : kiGet (kiOfKey (evsOf (ilog ++ [pend])) k) (W64 ilog.length) with
+  | none =>
+    rw [hg] at hm
+    rw [KvMatch_none_left hm]
+    rfl
+  | some a =>
+    obtain ⟨m, c, ver⟩ := a
+    rw [hg] at hm
+    cases hf : findKey k (applyChanges (W64 ilog.length) (stateAfter ilog) pend) with
+    | none => rw [hf] at hm; simp [KvMatch] at hm
+    | some old =>
+      rw [hf] at hm
+      obtain ⟨-, hocr, hover, -⟩ := hm
+      have hk := findKey_key hf
+      simp only [putKvOf]
+      congr 1
+      cases old
+      simp only at hk hocr hover
+      subst hk hocr hover
+      rfl
+
 end mvcc
 end EtcdGrove
 end Perennial

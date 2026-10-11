@@ -489,6 +489,7 @@ instance idxLockInv_fractional (t : Loc) (γ : IdxNames) :
 
 end reprs
 
+
 section addrs
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 
@@ -524,6 +525,10 @@ lower bound of the event count at its last write. -/
 def idxWriter (γ : IdxNames) (ilog : Log) (pend : List Change) : IProp GF :=
   iprop(monoListAuthOwn γ.hist 1 (histShape ilog pend) ∗
     monoNatLbOwn γ.nev (evsOf (ilog ++ [pend])).length ∗ ⌜IdxWf ilog pend⌝)
+
+theorem idxWriter_wf (γ : IdxNames) (ilog : Log) (pend : List Change) :
+    idxWriter (GF := GF) γ ilog pend ⊢ ⌜IdxWf ilog pend⌝ := by
+  unfold idxWriter; iintro ⟨-, -, %H⟩; ipureintro; exact H
 
 /-- The certificate of a committed log `log`: its history is a prefix of the index's, and the
 index had all its events. -/
@@ -587,6 +592,99 @@ theorem idxWriter_commit (γ : IdxNames) (ilog : Log) (pend : List Change)
     ipureintro
     exact ⟨hwf, by simp; omega, hcs'⟩
 
+
+/-! ### What a reader of the index knows -/
+
+/-- What a reader of the index knows of its contents: the certificate of a committed log, or
+the writer's own handle (its committed log with its pending revision). -/
+inductive IdxKnow where
+  | cert (log : Log)
+  | writer (ilog : Log) (pend : List Change)
+
+/-- The log the knowledge is of: the index's answers at revisions below its length are its
+(`idxKnows_facts`, then `reader_answer`/`reader_range`). -/
+def IdxKnow.log : IdxKnow → Log
+  | .cert log => log
+  | .writer ilog pend => ilog ++ [pend]
+
+@[simp] theorem IdxKnow.log_cert (log : Log) : (IdxKnow.cert log).log = log := rfl
+@[simp] theorem IdxKnow.log_writer (ilog : Log) (pend : List Change) :
+    (IdxKnow.writer ilog pend).log = ilog ++ [pend] := rfl
+
+/-- The resource of the knowledge: the certificate, or the writer's handle (which the index's
+readers give back as is). -/
+def idxKnows (γ : IdxNames) : IdxKnow → IProp GF
+  | .cert log => idxCert γ log
+  | .writer ilog pend => idxWriter γ ilog pend
+
+theorem idxKnows_cert (γ : IdxNames) (log : Log) :
+    idxKnows (GF := GF) γ (.cert log) = idxCert γ log := rfl
+theorem idxKnows_writer (γ : IdxNames) (ilog : Log) (pend : List Change) :
+    idxKnows (GF := GF) γ (.writer ilog pend) = idxWriter γ ilog pend := rfl
+
+/-- The lock's events are the writer's. -/
+theorem writer_events (ilog ilog' : Log) (pend pend' : List Change)
+    (hpre : histShape ilog' pend' <+: histShape ilog pend)
+    (hcnt : (evsOf (ilog ++ [pend])).length ≤ (evsOf (ilog' ++ [pend'])).length) :
+    evsOf (ilog' ++ [pend']) = evsOf (ilog ++ [pend]) := by
+  have := evsOfHist_prefix_eq _ _ hpre
+    (by rw [evsOfHist_histShape, evsOfHist_histShape]; exact hcnt)
+  rw [evsOfHist_histShape, evsOfHist_histShape] at this
+  exact this
+
+/-- Under the index's lock (its history's lower bound and its event count: `idxLockInv`), what
+the reader knows gives the reader lemmas' premises: its log's history is comparable with the
+lock's and its events are among the lock's, and the log is well formed and bounded. -/
+theorem idxKnows_facts (γ : IdxNames) (kn : IdxKnow) (log : Log) (hlog : kn.log = log)
+    (ilog : Log) (pend : List Change) (q : Qp) :
+    ⊢ idxKnows (GF := GF) γ kn -∗ monoListLbOwn γ.hist (histShape ilog pend) -∗
+      monoNatAuthOwn γ.nev q (evsOf (ilog ++ [pend])).length -∗
+      ⌜(histOf log <+: histShape ilog pend ∨ histShape ilog pend <+: histOf log) ∧
+        (evsOf log).length ≤ (evsOf (ilog ++ [pend])).length ∧ LogWf' log ∧
+        log.length < 2 ^ 63 ∧ ∀ cs ∈ log, cs.length < 2 ^ 63⌝ ∗
+      idxKnows γ kn ∗ monoNatAuthOwn γ.nev q (evsOf (ilog ++ [pend])).length := by
+  cases kn with
+  | cert log' =>
+    simp only [IdxKnow.log] at hlog
+    subst hlog
+    rw [idxKnows_cert]
+    iintro #Hkn #Hlb Hnev
+    ihave #Hcert0 : idxCert γ log' $$ []
+    · iexact Hkn
+    iunfold idxCert at Hkn
+    icases Hkn with ⟨#Hclb, #Hcnt, %Hcwf⟩
+    ihave %Hcmp := mono_list_lb_valid γ.hist _ _ $$ Hclb Hlb
+    ihave %Hcnt' := monoNatLbOwn_valid γ.nev q _ _ $$ Hnev Hcnt
+    iframe Hnev
+    isplitl []
+    · ipureintro; exact ⟨Hcmp, Hcnt'.2, Hcwf.1, Hcwf.2.1, Hcwf.2.2⟩
+    iexact Hcert0
+  | writer ilog' pend' =>
+    simp only [IdxKnow.log] at hlog
+    subst hlog
+    rw [idxKnows_writer]
+    iintro Hkn #Hlb Hnev
+    iunfold idxWriter at Hkn
+    icases Hkn with ⟨Hauth, #Hwlb, %Hwwf⟩
+    ihave %Hpre := mono_list_auth_lb_valid γ.hist 1 _ _ $$ Hauth Hlb
+    ihave %Hcnt := monoNatLbOwn_valid γ.nev q _ _ $$ Hnev Hwlb
+    iframe Hnev
+    isplitl []
+    · ipureintro
+      obtain ⟨hwf, hlen, hpend, hcs⟩ := Hwwf
+      refine ⟨Or.inr ?_, Hcnt.2, hwf, by simp; omega, ?_⟩
+      · have h2 : histOf (ilog' ++ [pend']) = histShape ilog' pend' ++ [HistItem.commit] := by
+          rw [histShape_commit]; simp [histShape, evsOfRev]
+        rw [h2]
+        exact Hpre.2.trans (List.prefix_append _ _)
+      · intro cs hcs'
+        rcases List.mem_append.1 hcs' with h | h
+        · exact hcs cs h
+        · rw [List.mem_singleton] at h; rw [h]; exact hpend
+    iunfold idxWriter
+    iframe Hauth
+    iframe #
+    ipureintro; exact Hwwf
 
 end reprs2
 

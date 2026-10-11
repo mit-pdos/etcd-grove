@@ -66,6 +66,25 @@ protobuf's `Unmarshal` are the trust boundary (two axioms). -/
 #print axioms Perennial.EtcdGrove.mvcc.readView.wp_Rev
 #print axioms Perennial.EtcdGrove.mvcc.readView.wp_Range
 
+/-! The write transactions (`kvstore_txn.go`, `metrics_txn.go`, `kv_view.go`): `Write` opens one
+under the batch lock, `Put`/`DeleteRange` append to the pending revision (the index's answers,
+the bucket's puts, the lessor), `End` commits it under `s.revMu` and certifies the new log;
+protobuf's `Marshal` and zap's `Error` are the trust boundary (axioms). -/
+#print axioms Perennial.EtcdGrove.mvcc.wp_newMetricsTxnWrite
+#print axioms Perennial.EtcdGrove.mvcc.store.wp_Write
+#print axioms Perennial.EtcdGrove.mvcc.storeTxnWrite.wp_put
+#print axioms Perennial.EtcdGrove.mvcc.storeTxnWrite.wp_Put
+#print axioms Perennial.EtcdGrove.mvcc.storeTxnWrite.wp_delete
+#print axioms Perennial.EtcdGrove.mvcc.storeTxnWrite.wp_deleteRange
+#print axioms Perennial.EtcdGrove.mvcc.storeTxnWrite.wp_DeleteRange
+#print axioms Perennial.EtcdGrove.mvcc.storeTxnWrite.wp_End
+#print axioms Perennial.EtcdGrove.mvcc.storeTxnWrite.wp_Rev
+#print axioms Perennial.EtcdGrove.mvcc.storeTxnWrite.wp_Changes
+#print axioms Perennial.EtcdGrove.mvcc.metricsTxnWrite.wp_Put
+#print axioms Perennial.EtcdGrove.mvcc.metricsTxnWrite.wp_DeleteRange
+#print axioms Perennial.EtcdGrove.mvcc.writeView.wp_Put
+#print axioms Perennial.EtcdGrove.mvcc.writeView.wp_DeleteRange
+
 /-! The model: what the index answers of a key at a revision is the state's key-value, and a
 reader's range answer is its certified log's. -/
 #print axioms Perennial.EtcdGrove.mvcc.kiGet_indexOf

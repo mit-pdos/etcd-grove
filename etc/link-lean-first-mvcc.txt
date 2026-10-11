@@ -53,12 +53,34 @@ traceutil_Trace__Step:
 proto_Unmarshal:
 storeTxnCommon__rangeKeys: treeIndex__CountRevisions treeIndex__Range treeIndex__Revisions sliceCapWithLimit NewRevBytes RevToBytes traceutil_Trace__Step proto_Unmarshal
 storeTxnCommon__Range: storeTxnCommon__Rev storeTxnCommon__rangeKeys
+# The write transactions (kvstore_txn.go): `Write` takes the batch lock (the writer's
+# resources: the index writer's handle, the committed log's half, the revision budget),
+# `put`/`delete` write the bucket and the index and keep the change, `End` commits under
+# `s.revMu` (the batch transaction's write-back); protobuf's `Marshal` and zap's `Error`
+# are the trust boundary (axioms).
+newMetricsTxnWrite:
+proto_Marshal:
+zap_Error:
+zap_Logger__Error:
+store__Write: newMetricsTxnWrite
+storeTxnWrite__put: treeIndex__Get traceutil_Trace__Step NewRevBytes RevToBytes proto_Marshal treeIndex__Put zap_Error zap_Logger__Error
+storeTxnWrite__Put: storeTxnWrite__put
+storeTxnWrite__delete: NewRevBytes newBucketKey BucketKeyToBytes proto_Marshal treeIndex__Tombstone zap_Error zap_Logger__Error
+storeTxnWrite__deleteRange: treeIndex__Range storeTxnWrite__delete
+storeTxnWrite__DeleteRange: storeTxnWrite__deleteRange
+storeTxnWrite__End:
+storeTxnWrite__Rev:
+storeTxnWrite__Changes:
 # The wrappers (metrics_txn.go, kv_view.go): `metricsTxnWrite` counts and forwards to the
 # promoted methods of `txnReadWrite` and `storeTxnRead` (unfolded in the proofs); `readView`
 # opens and closes a transaction around each read; `traceutil.TODO` is an axiom.
 traceutil_TODO:
 metricsTxnWrite__Range: storeTxnCommon__Range
-metricsTxnWrite__End: storeTxnRead__End
+metricsTxnWrite__Put: storeTxnWrite__Put
+metricsTxnWrite__DeleteRange: storeTxnWrite__DeleteRange
+metricsTxnWrite__End: storeTxnRead__End storeTxnWrite__End
 readView__FirstRev: traceutil_TODO store__Read storeTxnCommon__FirstRev metricsTxnWrite__End
 readView__Rev: traceutil_TODO store__Read storeTxnCommon__Rev metricsTxnWrite__End
 readView__Range: traceutil_TODO store__Read metricsTxnWrite__Range metricsTxnWrite__End
+writeView__Put: traceutil_TODO store__Write metricsTxnWrite__Put metricsTxnWrite__End
+writeView__DeleteRange: traceutil_TODO store__Write metricsTxnWrite__DeleteRange metricsTxnWrite__End

@@ -137,10 +137,12 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
         | true =>
           -- `FastKeysOnly`: the index's keys, revisions and versions
           (try wp_auto)
-          wp_apply (hRange ti γ.idx log key endk k e (mvcc.rangeRev rev ro.Rev') ro.Limit'
-            ro.WithTotalCount' e0) $$ [$Hti $Hti0 $Hcert0 $Hkey $Hend $Herr]
+          ihave Hkn : mvcc.idxKnows γ.idx (.cert log) $$ []
+          · rw [mvcc.idxKnows_cert]; iexact Hcert0
+          wp_apply (hRange ti γ.idx (.cert log) key endk k e (mvcc.rangeRev rev ro.Rev') ro.Limit'
+            ro.WithTotalCount' e0) $$ [$Hti $Hti0 $Hkn $Hkey $Hend $Herr]
             as %keys %modifies %creates %vers %total
-              ⟨Hti0, Hkeys, Hmod, Hmodcap, Hcre, Hcrecap, Hvers, Hverscap, %Htotal⟩
+              ⟨Hti0, -, Hkeys, Hmod, Hmodcap, Hcre, Hcrecap, Hvers, Hverscap, %Htotal⟩
           · ipureintro; exact ⟨hR0, hRlt⟩
           (try wp_auto)
           wp_apply (hStep trace _ _)

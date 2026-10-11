@@ -28,17 +28,15 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.treeIndex.Get.wp_proof
     (hUnsafe : mvcc.treeIndex.unsafeGet.spec (GF := GF) (hG := hG)) :
     mvcc.treeIndex.Get.spec (GF := GF) (hG := hG) := by
-  intro ti γ log key k atRev e
-  wp_start as ⟨#Hti, Hrd, #Hcert, %Hrev, #Hkey, #Herr⟩
+  intro ti γ kn key k atRev e
+  generalize hlog : kn.log = log at *
+  wp_start as ⟨#Hti, Hrd, Hkn, %Hrev, #Hkey, #Herr⟩
   iunfold mvcc.isTreeIndex at Hti
   iNamed Hti
   iunfold mvcc.idxReader at Hrd
   icases Hrd with ⟨%t', #Htree', Hrd⟩
   icombine Htree Htree' gives %Ht'
   subst Ht'
-  iunfold mvcc.idxCert at Hcert
-  icases Hcert with ⟨#Hclb, #Hcnt, %Hcwf⟩
-  obtain ⟨Hwf0, Hlen0, Hcs0⟩ := Hcwf
   wp_apply wp_with_defer
   iintro %defer Hdefer
   (try wp_auto)
@@ -60,8 +58,8 @@ theorem mvcc.treeIndex.Get.wp_proof
     ipureintro
     exact entries_not_empty L _ HLL
   -- the answer is the certified log's
-  ihave %Hcmp := mono_list_lb_valid γ.hist _ _ $$ Hclb HhistL
-  ihave %Hcnt' := monoNatLbOwn_valid γ.nev sync.rfrac _ _ $$ HnevL Hcnt
+  icases mvcc.idxKnows_facts γ kn log hlog ilog pend sync.rfrac $$ Hkn HhistL HnevL with ⟨%Hfacts, Hkn, HnevL⟩
+  obtain ⟨Hcmp, Hcnt', Hwf0, Hlen0, Hcs0⟩ := Hfacts
   obtain ⟨r, hr, hrz⟩ : ∃ r : Nat, atRev = W64 r ∧ sint.Z atRev = r :=
     ⟨(sint.Z atRev).toNat, by
       have h := Int.toNat_of_nonneg Hrev.1
@@ -71,7 +69,7 @@ theorem mvcc.treeIndex.Get.wp_proof
   have hans : (mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty =
       mvcc.kiOfKey (mvcc.evsOf (ilog ++ [pend])) k := by
     rw [HLL]; exact (mvcc.indexOf_rep _).2 k
-  have hstab := mvcc.reader_answer log ilog pend Hcmp Hcnt'.2 (by omega) Hwf0 Hcs0 k r hrlt
+  have hstab := mvcc.reader_answer log ilog pend Hcmp Hcnt' (by omega) Hwf0 Hcs0 k r hrlt
   have hval : mvcc.kiGetVal ((mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty) atRev
       (GoInterface.ok e) = mvcc.kiGetVal (mvcc.kiOfKey (mvcc.evsOf log) k) atRev (GoInterface.ok e) := by
     unfold mvcc.kiGetVal; rw [hans, hr, hstab]
@@ -95,6 +93,7 @@ theorem mvcc.treeIndex.Get.wp_proof
   (try wp_auto)
   rw [← hp]
   iapply HΦ
+  iframe Hkn
   iframe #
   iunfold mvcc.idxReader
   iexists t

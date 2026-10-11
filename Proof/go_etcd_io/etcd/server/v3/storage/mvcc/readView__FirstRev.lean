@@ -66,7 +66,9 @@ theorem mvcc.readView.FirstRev.wp_proof
     iexists trw, tr, trace, ti, rt, ranges
     iframe
     iframe #
-  wp_apply (hEnd mw s γ log rev) $$ [$Htx] as Hrd
+  ihave Htx' : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
+  · simp only [mvcc.isTxn]; iexact Htx
+  wp_apply (hEnd mw s γ (.read log rev)) $$ [$Htx'] as ⟨Hrd, -⟩
   (try wp_auto)
   iapply HΦ
   iexact Hrd

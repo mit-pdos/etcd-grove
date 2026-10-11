@@ -47,7 +47,7 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   icases HP with ⟨%log, HP⟩
   iNamed HP
   iunfold mvcc.isKeyBackend at Hbk
-  icases Hbk with ⟨%bi, %Hbi, #HC, #HR⟩
+  icases Hbk with ⟨%bi, %Hbi, #HC, #HR, -⟩
   subst Hbi
   (try wp_auto)
   -- the snapshot: `b.ConcurrentReadTx()` or `b.ReadTx()`
@@ -68,12 +68,12 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     wp_apply HRL
     (try wp_auto)
     -- `s.revMu.RUnlock()`
-    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrevl Hrev Hbucket Hcert] as HrevMuR
+    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrevl Hrev Hbucket Hclog Hcert] as HrevMuR
     · inext
       iunfold mvcc.revMuInv
       iexists log
       simp only [named]
-      iframe Hrev Hbucket
+      iframe Hrev Hbucket Hclog
       iframe #
       ipureintro; exact Hne
     (try wp_auto)
