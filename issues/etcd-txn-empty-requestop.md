@@ -28,7 +28,10 @@
   }
   ```
 
-  Output: `Txn panicked: runtime error: invalid memory address or nil pointer dereference`.
+  Output: `Txn panicked: runtime error: invalid memory address or nil pointer dereference`;
+  the test then hangs in its cleanup (`backend.(*batchTx).lock` in `CommitAndStop`) until
+  `go test`'s timeout: the panic left the write transaction's batch lock held. In the server
+  the panic is in the apply loop, so the member crashes.
 - **Expected**: either the empty op is skipped, as the `// empty union` comments in
   `newTxnResp`, `executeTxn` and `checkTxn` suggest (its response left empty), or `Txn`'s
   documentation states that requests must have been validated (`checkTxnRequest`).
