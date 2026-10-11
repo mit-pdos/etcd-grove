@@ -26,8 +26,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 /-- **`claimFirstKey(kv, kvs)`**, for a read-only slice of `*KeyValue`s `ps` holding `vs`
 (`kvPtrsAt`: a get response's), each a key under the prefix `pfx` of `kv`'s contracts with a
 positive mod revision, knowing etcd has reached `lo`: claims them in order (`deleteRevKey`) and
-* `(p, nil)`: `p` is the `i`-th, the first one claimed (`revKeyDeleted` at some `r ≥ lo`), each
-  before it was gone at some revision at least `lo` (`revKeyGone`);
+* `(p, nil)`: `p` is the `i`-th, the first one claimed (`revKeyDeleted` at some `r ≥ lo`, with
+  the token of the revision `r`, `etcdRevToken`), each before it was gone at some revision at
+  least `lo` (`revKeyGone`);
 * `(nil, nil)`: every one was gone at some revision at least `lo`;
 * `(nil, err)` with an error. -/
 abbrev claimFirstKey.spec : Prop :=
@@ -41,7 +42,8 @@ abbrev claimFirstKey.spec : Prop :=
       (⌜err = GoInterface.nil⌝ ∗ ∃ n : Nat, claimedBefore pfx lo vs n ∗
         ((⌜p = null ∧ n = vs.length⌝) ∨
          (∃ (v : EtcdKv) (r : w64), ⌜ps[n]? = some p ∧ vs[n]? = some v⌝ ∗ kvValAt p v ∗
-           etcdReached r ∗ revKeyDeleted pfx v.key v.modRev r ∗ ⌜sint.Z lo ≤ sint.Z r⌝))) ∨
+           etcdReached r ∗ revKeyDeleted pfx v.key v.modRev r ∗ etcdRevToken r ∗
+           ⌜sint.Z lo ≤ sint.Z r⌝))) ∨
       ⌜err ≠ GoInterface.nil ∧ p = null⌝ }}
 
 end spec

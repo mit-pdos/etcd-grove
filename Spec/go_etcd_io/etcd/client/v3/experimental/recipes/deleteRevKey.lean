@@ -27,7 +27,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptio
 prefix `pfx` of `kv`'s contracts), knowing etcd has reached `lo`: the transaction
 `If(ModRevision(key) = rev).Then(OpDelete(key))` (`deleteRevTxn`):
 * `(true, nil)`: at a revision `r ≥ lo` etcd has reached, the claim succeeded
-  (`revKeyDeleted`: `key` had mod revision `rev` at `r - 1` and is absent at `r`);
+  (`revKeyDeleted`: `key` had mod revision `rev` at `r - 1` and is absent at `r`), and the
+  revision `r` is this call's (`etcdRevToken r`: the delete wrote, so `r` is its own);
 * `(false, nil)`: at a revision `r ≥ lo`, `key` does not have mod revision `rev`
   (`revKeyGone`: absent, or modified since);
 * `(false, err)` with an error. -/
@@ -40,7 +41,7 @@ abbrev deleteRevKey.spec : Prop :=
   {{ (ok : Bool) (err : GoInterface), RET (PairV #ok #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ r : w64, etcdReached r ∗
         ⌜sint.Z lo ≤ sint.Z r ∧ sint.Z r < 2 ^ 63 - 1⌝ ∗
-        (if ok then revKeyDeleted pfx key rev r else revKeyGone pfx key rev r)) ∨
+        (if ok then revKeyDeleted pfx key rev r ∗ etcdRevToken r else revKeyGone pfx key rev r)) ∨
       ⌜err ≠ GoInterface.nil ∧ ok = false⌝ }}
 
 end spec

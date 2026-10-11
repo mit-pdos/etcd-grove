@@ -127,10 +127,10 @@ theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
   iintro HB
   (try wp_auto)
   ihave HB := B_conv B _ ({ model := newKeyTxn key val lease, cif := true, cthen := true, celse := false } : TxnBuild) (by rfl) $$ HB
-  wp_apply HCommit $$ %({ model := newKeyTxn key val lease, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err #Hres
+  wp_apply HCommit $$ %({ model := newKeyTxn key val lease, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
   · ipureintro; exact newKeyTxn_under pfx key val lease Hk
-  iunfold txnCommitResult at Hres
-  icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts⟩)
+  iunfold txnCommitResultTok at Hres
+  icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts, Htok⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
       cases err with
       | nil => exact absurd rfl Hne
@@ -180,6 +180,7 @@ theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
     ihave %Hrevs := txnStates_pos' pfx r s0 _ _ $$ Hts
     obtain ⟨habs, h1, h2, hwf', hv⟩ := newKeyTxn_then pfx key val lease r s0 Hwf0 Hk Hrevs hok
     ihave ⟨#Hs0, #Hs1⟩ := txnStates_wrote pfx r s0 _ _ _ h2 h1 $$ Hts
+    ihave Htok := tokIf_true h2 _ $$ Htok
     have hok' : (newKeyTxn key val lease).cmps.all (cmpHolds s0) = true := hok
     simp only [newKeyTxn] at hok'
     rw [hok']
@@ -198,6 +199,7 @@ theorem putNewKV.wp_proof (hVer : EtcdGrove.Version.spec (GF := GF) (hG := hG))
       iexists putKv r key val lease s0
       iframe Hs1
       ipureintro; exact ⟨Hr0, hwf', hv⟩
+    iframe Htok
     ipureintro; exact ⟨Hlo_r, Hrmax⟩
 
 end proof

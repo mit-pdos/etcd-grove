@@ -69,8 +69,9 @@ theorem stm.commit.wp_proof (hPuts : writeSet.puts.spec (GF := GF) (hG := hG)) :
   ihave #Hfacts := readsAt_readFacts pfx rsMap st.reads $$ Hreads
   ihave %Hru := readFacts_under pfx st.reads $$ Hfacts
   ihave %Hwu := writesAt_under pfx wsMap st.writes $$ Hwrites
-  wp_apply HCommit $$ %({ model := { cmps := ms, thenOps := ops, elseOps := [] }, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err #Hres
+  wp_apply HCommit $$ %({ model := { cmps := ms, thenOps := ops, elseOps := [] }, cif := true, cthen := true, celse := false } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
   · ipureintro; exact stmTxn_under pfx lvl Hru Hwu Hms Hops.2 (by simp)
+  ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
   iunfold txnCommitResult at Hres
   icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by

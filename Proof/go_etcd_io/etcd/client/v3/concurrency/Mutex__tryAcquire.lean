@@ -243,8 +243,9 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
   iintro HB
   (try wp_auto)
   ihave HB := B_conv B _ ({ model := acquireTxn pfx key id, cif := true, cthen := true, celse := true } : TxnBuild) (by rfl) $$ HB
-  wp_apply HCommit $$ %({ model := acquireTxn pfx key id, cif := true, cthen := true, celse := true } : TxnBuild) %lo [$HB $Hlo] as %resp %err #Hres
+  wp_apply HCommit $$ %({ model := acquireTxn pfx key id, cif := true, cthen := true, celse := true } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
   · ipureintro; exact acquireTxn_under pfx key id Hpfx Hpk
+  ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
   iunfold txnCommitResult at Hres
   icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by

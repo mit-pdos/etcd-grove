@@ -320,8 +320,9 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
   iintro HB
   (try wp_auto)
   ihave HB := B_conv' B _ ({ model := campaignTxn key pv id, cif := true, cthen := true, celse := true } : TxnBuild) (by rfl) $$ HB
-  wp_apply HCommit $$ %({ model := campaignTxn key pv id, cif := true, cthen := true, celse := true } : TxnBuild) %lo [$HB $Hlo] as %resp %err #Hres
+  wp_apply HCommit $$ %({ model := campaignTxn key pv id, cif := true, cthen := true, celse := true } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
   · ipureintro; exact campaignTxn_under pfx key pv id Hpk
+  ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
   iunfold txnCommitResult at Hres
   icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts⟩)
   · obtain ⟨e', rfl⟩ : ∃ e', err = GoInterface.ok e' := by

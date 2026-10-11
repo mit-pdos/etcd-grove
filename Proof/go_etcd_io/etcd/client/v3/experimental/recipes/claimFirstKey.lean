@@ -104,6 +104,7 @@ theorem claimFirstKey.wp_proof (hDRK : deleteRevKey.spec (GF := GF) (hG := hG)) 
         ipureintro; constructor <;> word
       · -- claimed
         simp only [↓reduceIte]
+        icases Hc with ⟨Hc, Htok⟩
         iunfold revKeyDeleted at Hc
         icases Hc with ⟨%sd, %sd', #Hsd, #Hsd', %Hd⟩
         wp_auto
@@ -119,8 +120,9 @@ theorem claimFirstKey.wp_proof (hDRK : deleteRevKey.spec (GF := GF) (hG := hG)) 
         iframe Hkvp Hr
         isplitr
         · ipureintro; exact ⟨Hp, Hv⟩
-        isplitl
+        isplitr
         · unfold revKeyDeleted; iexists sd, sd'; iframe Hsd Hsd'; ipureintro; exact Hd
+        iframe Htok
         ipureintro; exact Hrr.1
     · obtain ⟨Hne, rfl⟩ := Hne
       obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
