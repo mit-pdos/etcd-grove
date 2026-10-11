@@ -554,6 +554,7 @@ def isTreeIndex (ti : Loc) (γ : IdxNames) : IProp GF :=
   iprop(∃ (t lg : Loc),
     "#Htree" ∷ ti.[treeIndex, go!"tree"] ↦□ t ∗
     "#Hlg" ∷ ti.[treeIndex, go!"lg"] ↦□ lg ∗
+    "%Hlgnn" ∷ ⌜lg ≠ null⌝ ∗
     "#Hmu" ∷ sync.isRWMutexGuard (idxMuAddr ti) (idxLockInv t γ))
 
 instance isTreeIndex_persistent (ti : Loc) (γ : IdxNames) : Persistent (isTreeIndex (GF := GF) ti γ) := by

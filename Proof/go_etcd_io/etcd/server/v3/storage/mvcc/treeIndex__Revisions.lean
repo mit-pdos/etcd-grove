@@ -84,7 +84,7 @@ theorem mvcc.treeIndex.Revisions.wp_proof
     wp_apply (hUnsafe ti t lg L sync.rfrac key k (W64 r) e0) $$ [$HtreeL] as ⟨HtreeL, -⟩
     · iframe #
       ipureintro
-      exact hne
+      exact ⟨Hlgnn, hne⟩
     have hans : (mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty =
         mvcc.kiOfKey (mvcc.evsOf (ilog ++ [pend])) k := by
       rw [HLL]; exact (mvcc.indexOf_rep _).2 k
@@ -231,8 +231,15 @@ theorem mvcc.treeIndex.Revisions.wp_proof
             · exact Or.inr h
             · exact Or.inl (by simpa using h)
           wp_auto
-          wp_apply (hget z.1 gs z.2.2 (DFrac.own sync.rfrac) lg (W64 r) e0) $$ [$Hki $Herr] as Hki
-          · ipureintro; exact hne z hzL
+          ihave #HzKey := Hzi
+          iunfold mvcc.kiItemIs at HzKey
+          icases HzKey with ⟨-, #HzKey⟩
+          wp_apply (hget z.1 gs z.2.2 z.2.1 (DFrac.own sync.rfrac) lg (W64 r) e0) $$ [$HzKey $Hki $Herr]
+            as %res Hres
+          · ipureintro; exact Hlgnn
+          simp only [hne z hzL, Bool.false_eq_true, ↓reduceIte]
+          icases Hres with ⟨%Hres, Hki⟩
+          subst Hres
           unfold mvcc.kiGetVal
           cases hg : mvcc.kiGet z.2.2 (W64 r) with
           | none =>

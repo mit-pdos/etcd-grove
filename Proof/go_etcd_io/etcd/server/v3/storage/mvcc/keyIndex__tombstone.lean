@@ -7,6 +7,8 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__tombstone
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__isEmpty
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isEmpty
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__put
+public import Spec.go_uber_org.zap.String
+public import Spec.go_uber_org.zap.Logger__Panic
 
 @[expose] public section
 
@@ -29,11 +31,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.keyIndex.tombstone.wp_proof
     (hIE : mvcc.keyIndex.isEmpty.spec (GF := GF) (hG := hG))
     (hGE : mvcc.generation.isEmpty.spec (GF := GF) (hG := hG))
+    (hZS : zap.String.spec (GF := GF) (hG := hG))
+    (hPanic : zap.Logger.Panic.spec (GF := GF) (hG := hG))
     (hPut : mvcc.keyIndex.put.spec (GF := GF) (hG := hG)) :
     mvcc.keyIndex.tombstone.spec (GF := GF) (hG := hG) := by
-  intro p gs ki lg main sub e
-  wp_start as ⟨%H, Hki, #Herr⟩
-  obtain ⟨Hne, Hemp, Hlt⟩ := H
+  intro p gs ki k lg main sub e
+  wp_start as ⟨%Hlg, %Hne, #Hkey, Hki, #Herr⟩
   ihave Hinit : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, -, -, ⟨%gg, #Hgauge, #Hgspec⟩, -, -, -, -, -⟩
@@ -42,7 +45,30 @@ theorem mvcc.keyIndex.tombstone.wp_proof
   wp_auto
   wp_apply (hIE p gs ki (DFrac.own 1)) $$ [Hki] as Hki
   · iframe Hki
-  rw [Hemp]
+  cases Hemp : mvcc.kiIsEmpty ki
+  rotate_left
+  · -- an empty key index: `lg.Panic(...)`
+    wp_auto
+    iunfold mvcc.kiKey at Hkey
+    icases Hkey with ⟨%ks, #Hks, #Hk⟩
+    wp_load
+    wp_apply wp_bytes_to_string ks k DFrac.discard $$ [$Hk] as -
+    wp_apply hZS _ _ as %f1 -
+    (try wp_auto)
+    wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1]
+    isplitr
+    · ipureintro; rfl
+    iintro %fsl ⟨-, -⟩
+    (try wp_auto)
+    wp_apply hPanic lg _ _ $$ [] as %r %Hr
+    · ipureintro; exact Hlg
+    subst Hr
+    wp_auto
+    iapply HΦ
+    simp only [↓reduceIte]
+    isplitr
+    · ipureintro; trivial
+    iexact Hki
   wp_auto
   -- `ki.generations[len-1].isEmpty()`
   iunfold mvcc.ownKi at Hki
@@ -64,20 +90,35 @@ theorem mvcc.keyIndex.tombstone.wp_proof
   rw [mvcc.set_same Hidx]
   wp_if_destruct
   · -- the key is already deleted
+    iapply HΦ
     simp only [show mvcc.kiLastEmpty ki = true by unfold mvcc.kiLastEmpty; exact decide_eq_true Hif,
       ↓reduceIte]
-    iapply HΦ
     isplitr
-    · ipureintro; rfl
+    · ipureintro; trivial
     iunfold mvcc.ownKi
     iframe Hmod Hgs Hback
   · -- the tombstone's revision, then a new empty generation
-    simp only [show mvcc.kiLastEmpty ki = false by unfold mvcc.kiLastEmpty; exact decide_eq_false Hif,
-      Bool.false_eq_true, ↓reduceIte]
+    have HlastF : mvcc.kiLastEmpty ki = false := by
+      unfold mvcc.kiLastEmpty; exact decide_eq_false Hif
     ihave Hki : iprop(mvcc.ownKi p gs ki (DFrac.own 1)) $$ [Hmod Hgs Hback]
     · iunfold mvcc.ownKi; iframe Hmod Hgs Hback
-    wp_apply (hPut p gs ki lg main sub) $$ [Hki] as ⟨%gs', Hki⟩
-    · iframe Hki; ipureintro; exact Hlt
+    wp_apply (hPut p gs ki lg main sub) $$ [Hki] as %r Hr
+    · iframe Hki; ipureintro; exact Hlg
+    by_cases Hlt : mvcc.Rev.lt ki.modified ⟨main, sub⟩
+    rotate_left
+    · -- `put` panics, the key index unchanged
+      simp only [Hlt, ↓reduceIte]
+      icases Hr with ⟨%Hr, Hki⟩
+      subst Hr
+      wp_auto
+      iapply HΦ
+      simp only [HlastF, Bool.false_eq_true, ↓reduceIte]
+      isplitr
+      · ipureintro; trivial
+      iexact Hki
+    simp only [Hlt, ↓reduceIte]
+    icases Hr with ⟨%Hr, %gs', Hki⟩
+    subst Hr
     iunfold mvcc.ownKi at Hki
     icases Hki with ⟨Hmod, Hgs, Hgens⟩
     iunfold mvcc.ownGens at Hgens
@@ -90,8 +131,9 @@ theorem mvcc.keyIndex.tombstone.wp_proof
     wp_apply wp_slice_append $$ [$Hgvs $Hcap $Hsl] as %gs'' ⟨Hgvs, Hcap, -⟩
     wp_apply HDec
     iapply HΦ
+    simp only [HlastF, Bool.false_eq_true, ↓reduceIte]
     isplitr
-    · ipureintro; rfl
+    · ipureintro; trivial
     iexists gs''
     iunfold mvcc.ownKi
     simp only [mvcc.kiTombstone]

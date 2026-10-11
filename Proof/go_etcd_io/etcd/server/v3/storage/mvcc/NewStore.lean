@@ -137,7 +137,8 @@ theorem mvcc.NewStore.wp_proof
   wp_join iprop(∃ c : StoreConfig, cfg_ptr ↦ c) with [cfg] as ⟨%cfg1, cfg⟩
   wp_join iprop(∃ c : StoreConfig, cfg_ptr ↦ c) with [cfg] as ⟨%cfg2, cfg⟩
   -- the store's struct
-  wp_apply hNewIdx as %ti ⟨%γi, #Hti, Hiw, Hird⟩
+  wp_apply hNewIdx $$ [] as %ti ⟨%γi, #Hti, Hiw, Hird⟩
+  · ipureintro; exact Hlgnn
   (try wp_auto)
   wp_apply hFifo as %sc -
   (try wp_auto)

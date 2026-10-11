@@ -29,7 +29,7 @@ theorem mvcc.treeIndex.unsafeGet.wp_proof
     (hGet : mvcc.keyIndex.get.spec (GF := GF) (hG := hG)) :
     mvcc.treeIndex.unsafeGet.spec (GF := GF) (hG := hG) := by
   intro ti t lg L q key k atRev e
-  wp_start as ⟨#Htree, #Hlg, Htr, %Hne, #Hkey, #Herr⟩
+  wp_start as ⟨#Htree, #Hlg, %Hlgnn, Htr, %Hne, #Hkey, #Herr⟩
   wp_auto
   iStructNamedPrefix «$r0» "K"
   ipersist Kkey
@@ -65,14 +65,23 @@ theorem mvcc.treeIndex.unsafeGet.wp_proof
     simp only [Option.map_some, Option.getD_some] at Hp Hidx
     subst Hp
     obtain ⟨i, hi, hk⟩ := mvcc.find?_entry_getElem? L k z hf
+    -- the key index's key (`ki.get` reads it to log a panic)
+    ihave Htr : iprop(mvcc.ownTree t L q) $$ [Ht Hkis]
+    · iunfold mvcc.ownTree; iframe Ht Hkis; ipureintro; exact Hsorted
+    icases mvcc.ownTree_entry t L q z (List.mem_of_getElem? hi) $$ Htr with ⟨Htr, -, #HzKey⟩
+    iunfold mvcc.ownTree at Htr
+    icases Htr with ⟨-, Ht, Hkis⟩
     icases BigSepL.bigSepL_lookup_acc (Φ := fun _ z => mvcc.ownEntry (GF := GF) z q) hi |>.1 $$ Hkis
       with ⟨Hz, Hback⟩
     iunfold mvcc.ownEntry at Hz
     icases Hz with ⟨%Hn, %gs, Hki⟩
     wp_if_destruct
     · exact absurd Hif Hn
-    wp_apply (hGet z.1 gs z.2.2 (DFrac.own q) lg atRev e) $$ [$Hki $Herr] as Hki
-    · ipureintro; exact Hne z (List.mem_of_getElem? hi)
+    wp_apply (hGet z.1 gs z.2.2 z.2.1 (DFrac.own q) lg atRev e) $$ [$HzKey $Hki $Herr] as %r Hr
+    · ipureintro; exact Hlgnn
+    simp only [Hne z (List.mem_of_getElem? hi), Bool.false_eq_true, ↓reduceIte]
+    icases Hr with ⟨%Hr, Hki⟩
+    subst Hr
     cases hg : mvcc.kiGet z.2.2 atRev with
     | none =>
       rw [show mvcc.kiGetVal z.2.2 atRev (GoInterface.ok e) =

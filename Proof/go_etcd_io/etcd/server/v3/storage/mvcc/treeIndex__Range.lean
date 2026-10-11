@@ -110,7 +110,7 @@ theorem mvcc.treeIndex.Range.wp_proof
     wp_apply (hUnsafe ti t lg L sync.rfrac key k (W64 r) e0) $$ [$HtreeL] as ⟨HtreeL, -⟩
     · iframe #
       ipureintro
-      exact hne
+      exact ⟨Hlgnn, hne⟩
     have hans : (mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty =
         mvcc.kiOfKey (mvcc.evsOf (ilog ++ [pend])) k := by
       rw [HLL]; exact (mvcc.indexOf_rep _).2 k
@@ -287,6 +287,7 @@ theorem mvcc.treeIndex.Range.wp_proof
         icases Hz with ⟨%Hnn, %gs, Hki⟩
         iunfold mvcc.kiItemIs at Hzi
         icases Hzi with ⟨-, #Hkz⟩
+        ihave #HzKey := Hkz
         iunfold mvcc.kiKey at Hkz
         icases Hkz with ⟨%zks, #Hzkf, #Hzks⟩
         have hzL : z ∈ L := by
@@ -337,8 +338,12 @@ theorem mvcc.treeIndex.Range.wp_proof
             · exact Or.inr h
             · exact Or.inl (by simpa using h)
           wp_auto
-          wp_apply (hget z.1 gs z.2.2 (DFrac.own sync.rfrac) lg (W64 r) e0) $$ [$Hki $Herr] as Hki
-          · ipureintro; exact hne z hzL
+          wp_apply (hget z.1 gs z.2.2 z.2.1 (DFrac.own sync.rfrac) lg (W64 r) e0) $$ [$HzKey $Hki $Herr]
+            as %res Hres
+          · ipureintro; exact Hlgnn
+          simp only [hne z hzL, Bool.false_eq_true, ↓reduceIte]
+          icases Hres with ⟨%Hres, Hki⟩
+          subst Hres
           unfold mvcc.kiGetVal
           cases hg : mvcc.kiGet z.2.2 (W64 r) with
           | none =>

@@ -2095,6 +2095,26 @@ releases it before returning); a snapshot as a copy of the bucket's `GMap` in th
 *Scope.* `Read` with both modes, `Range`/`FirstRev`/`Rev`/`End` of the read transaction and
 the wrappers, `readView.Range`/`Rev`/`FirstRev`; `Write`/`Put`/`DeleteRange`/`End` next, with
 the batch transaction's contract and the lessor's.
+### `key_index.go`'s panics as outcomes
+
+**2026-10-11 · adopted.** The key index's `put`, `tombstone` and `get` call `lg.Panic` on
+inputs the tree index never gives them (a revision not above `modified`, an empty key index).
+Their specs excluded those inputs by precondition ("else the code panics" as a remark). With
+Perennial's panic outcome (`PanicV p`, a value the postcondition receives) the remark is now
+formal: the specs are over all inputs, the former precondition selects the normal case, and the
+other case is `r = PanicV #msg` with zap's message and the key index unchanged (every check
+precedes every write; `tombstone`'s cases in the code's order, including `put`'s panic through
+it). The callers keep their preconditions and resolve the `if`. `zap.Logger.Panic`'s axiom:
+with a non-nil logger, the panic with the message (zapcore's `panic(ce.Message)`, whatever the
+core); `zap.Logger.Fatal`'s: never returns (`os.Exit(1)`: divergence, as Perennial's
+`AngelicExit`, so any postcondition — `False`), reached by no verified function (the protobuf
+axioms never fail), hence not linked: a linked but uncalled result would be an exported root and
+put its axiom in the baseline. The non-nil logger is threaded through `isTreeIndex` (a persistent
+fact), `newTreeIndex`'s premise and `NewStore` (which has it after its `lg == nil` check).
+*Rejected:* `Panic` without the non-nil premise (`∃ p, r = PanicV p`: a nil logger panics with a
+nil dereference, not the message), which would have made the key index's specs say "some
+panic"; modelling `Fatal` as a panic (a `recover` could catch it, which an exit cannot be).
+
 ### The write transactions: the batch lock's resources, the backend's write path, the lessor
 
 **2026-10-11 · adopted** (the write side specified at the checkpoint `628f69632`, the proofs

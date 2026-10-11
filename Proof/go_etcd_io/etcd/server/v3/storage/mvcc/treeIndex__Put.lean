@@ -133,9 +133,14 @@ theorem mvcc.treeIndex.Put.wp_proof
       · iapply ownSliceCap_nil
       simp only [mvcc.KeyIndex.fresh, mvcc.ownGensL]
       itrivial
+    have Hlt : mvcc.Rev.lt mvcc.Rev.zero ⟨rev.Main', rev.Sub'⟩ := by
+      rw [hrevm, hrevs]; exact mvcc.Rev.lt_zero_of_pos _ _ Hilog (by omega)
     wp_apply (hPut «$r0_ptr» slice.nil mvcc.KeyIndex.fresh lg rev.Main' rev.Sub') $$ [$Hki]
-      as ⟨%gs', Hki⟩
-    · ipureintro; rw [hrevm, hrevs]; exact mvcc.Rev.lt_zero_of_pos _ _ Hilog (by omega)
+      as %r Hr
+    · ipureintro; exact Hlgnn
+    simp only [Hlt, ↓reduceIte]
+    icases Hr with ⟨%Hr, %gs', Hki⟩
+    subst Hr
     (try wp_auto)
     -- `ti.tree.ReplaceOrInsert(keyi)`
     wp_apply (wp_ROI mvcc.kiPtrT t mvcc.kiItemIs mvcc.kiItemLess _ «$r0_ptr» («$r0_ptr», k))
@@ -207,11 +212,15 @@ theorem mvcc.treeIndex.Put.wp_proof
     icases Hz with ⟨%Hzn, %gs, Hki⟩
     simp only at Hiw
     rw [Hiw]
-    wp_apply (hPut z.1 gs z.2.2 lg rev.Main' rev.Sub') $$ [$Hki] as ⟨%gs', Hki⟩
-    · ipureintro
+    have Hlt : mvcc.Rev.lt z.2.2.modified ⟨rev.Main', rev.Sub'⟩ := by
       rw [hrevm, hrevs, hz, mvcc.kiOfKey_eq_kiFold]
       exact mvcc.kiFold_modified_lt k _ _ _ (mvcc.Rev.lt_zero_of_pos _ _ Hilog (by omega))
         (mvcc.evsOf_rev_lt ilog pend (by omega) Hplen)
+    wp_apply (hPut z.1 gs z.2.2 lg rev.Main' rev.Sub') $$ [$Hki] as %r Hr
+    · ipureintro; exact Hlgnn
+    simp only [Hlt, ↓reduceIte]
+    icases Hr with ⟨%Hr, %gs', Hki⟩
+    subst Hr
     (try wp_auto)
     -- the deferred `ti.Unlock()`
     rw [method_unfold (t := go.GoType.PointerType treeIndex.ty) (m := go!"Unlock")]
