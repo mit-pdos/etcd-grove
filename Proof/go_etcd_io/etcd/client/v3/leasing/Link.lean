@@ -358,7 +358,7 @@ theorem ResponseHeader.wp_GetRaftTerm :
     EtcdGrove.ResponseHeader.GetRaftTerm.spec (GF := GF) (hG := hG) :=
   EtcdGrove.ResponseHeader.GetRaftTerm.wp_proof
 
-theorem ResponseHeader.wp_GetRevision [AllG GF] :
+theorem ResponseHeader.wp_GetRevision :
     EtcdGrove.ResponseHeader.GetRevision.spec (GF := GF) (hG := hG) :=
   EtcdGrove.ResponseHeader.GetRevision.wp_proof
 
@@ -457,283 +457,283 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
-theorem v3.Client.wp_GetLogger [AllG GF] :
+theorem v3.Client.wp_GetLogger :
     EtcdGrove.Client.GetLogger.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Client.GetLogger.wp_proof
 
-theorem concurrency.wp_NewSession [AllG GF] :
+theorem concurrency.wp_NewSession :
     EtcdGrove.concurrency.NewSession.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.NewSession.wp_proof v3.Client.wp_GetLogger v3.Client.wp_Ctx
 
-theorem concurrency.Session.wp_Done [AllG GF] :
+theorem concurrency.Session.wp_Done :
     EtcdGrove.concurrency.Session.Done.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.Session.Done.wp_proof
 
-theorem leasingKV.wp_monitorSession [AllG GF] :
+theorem leasingKV.wp_monitorSession :
     EtcdGrove.leasing.leasingKV.monitorSession.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.monitorSession.wp_proof concurrency.wp_NewSession concurrency.Session.wp_Done
 
-theorem leaseCache.wp_clearOldRevokes [AllG GF] :
+theorem leaseCache.wp_clearOldRevokes :
     EtcdGrove.leasing.leaseCache.clearOldRevokes.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leaseCache.clearOldRevokes.wp_proof
 
-theorem leasingKV.wp_Close [AllG GF] :
+theorem leasingKV.wp_Close :
     EtcdGrove.leasing.leasingKV.Close.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.Close.wp_proof
 
-theorem leasingKV.wp_waitSession [AllG GF] :
+theorem leasingKV.wp_waitSession :
     EtcdGrove.leasing.leasingKV.waitSession.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.waitSession.wp_proof
 
-theorem wp_NewKV [AllG GF] :
+theorem wp_NewKV :
     EtcdGrove.leasing.NewKV.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.NewKV.wp_proof v3.Client.wp_Ctx leasingKV.wp_monitorSession leaseCache.wp_clearOldRevokes leasingKV.wp_Close leasingKV.wp_waitSession
 
-theorem concurrency.Session.wp_Lease [AllG GF] :
+theorem concurrency.Session.wp_Lease :
     EtcdGrove.concurrency.Session.Lease.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.Session.Lease.wp_proof
 
-theorem wp_closeAll [AllG GF] :
+theorem wp_closeAll :
     EtcdGrove.leasing.closeAll.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.closeAll.wp_proof
 
-theorem wp_compareInt64 [AllG GF] :
+theorem wp_compareInt64 :
     EtcdGrove.leasing.compareInt64.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.compareInt64.wp_proof
 
-theorem wp_copyHeader [AllG GF] :
+theorem wp_copyHeader :
     EtcdGrove.leasing.copyHeader.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.copyHeader.wp_proof ResponseHeader.wp_GetClusterId ResponseHeader.wp_GetMemberId ResponseHeader.wp_GetRevision ResponseHeader.wp_GetRaftTerm ResponseHeader.wp_GetLeaderId
 
-theorem wp_copyGetResponseMetadataOnly [AllG GF] :
+theorem wp_copyGetResponseMetadataOnly :
     EtcdGrove.leasing.copyGetResponseMetadataOnly.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.copyGetResponseMetadataOnly.wp_proof wp_copyHeader
 
-theorem wp_copyKeyValue [AllG GF] :
+theorem wp_copyKeyValue :
     EtcdGrove.leasing.copyKeyValue.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.copyKeyValue.wp_proof
 
-theorem wp_evalCmp [AllG GF] :
+theorem wp_evalCmp :
     EtcdGrove.leasing.evalCmp.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.evalCmp.wp_proof wp_compareInt64 v3.Cmp.wp_GetCompare Compare.wp_GetTarget Compare.wp_GetTargetUnion Compare.wp_GetResult
 
-theorem wp_gatherOps [AllG GF] :
+theorem wp_gatherOps :
     EtcdGrove.leasing.gatherOps.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.gatherOps.wp_proof v3.Op.wp_IsTxn v3.Op.wp_Txn
 
-theorem wp_gatherResponseOps [AllG GF] :
+theorem wp_gatherResponseOps :
     EtcdGrove.leasing.gatherResponseOps.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.gatherResponseOps.wp_proof v3.Op.wp_IsTxn v3.Op.wp_Txn ResponseOp.wp_GetResponseTxn
 
-theorem wp_inRange [AllG GF] :
+theorem wp_inRange :
     EtcdGrove.leasing.inRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.inRange.wp_proof
 
-theorem wp_isBadOp [AllG GF] :
+theorem wp_isBadOp :
     EtcdGrove.leasing.isBadOp.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.isBadOp.wp_proof v3.Op.wp_Rev v3.Op.wp_RangeBytes
 
-theorem leaseKey.wp_get [AllG GF] :
+theorem leaseKey.wp_get :
     EtcdGrove.leasing.leaseKey.get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leaseKey.get.wp_proof v3.Op.wp_IsCountOnly v3.Op.wp_MinModRev v3.Op.wp_MaxModRev v3.Op.wp_MinCreateRev v3.Op.wp_MaxCreateRev v3.Op.wp_IsKeysOnly wp_copyGetResponseMetadataOnly wp_copyKeyValue
 
-theorem leaseCache.wp_Add [AllG GF] :
+theorem leaseCache.wp_Add :
     EtcdGrove.leasing.leaseCache.Add.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leaseCache.Add.wp_proof leaseKey.wp_get
 
-theorem leaseCache.wp_delete [AllG GF] :
+theorem leaseCache.wp_delete :
     EtcdGrove.leasing.leaseCache.delete.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leaseCache.delete.wp_proof wp_copyHeader
 
-theorem leaseCache.wp_Delete [AllG GF] :
+theorem leaseCache.wp_Delete :
     EtcdGrove.leasing.leaseCache.Delete.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leaseCache.Delete.wp_proof leaseCache.wp_delete
 
-theorem leaseCache.wp_Evict [AllG GF] :
+theorem leaseCache.wp_Evict :
     EtcdGrove.leasing.leaseCache.Evict.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leaseCache.Evict.wp_proof
 
-theorem leaseCache.wp_EvictRange [AllG GF] :
+theorem leaseCache.wp_EvictRange :
     EtcdGrove.leasing.leaseCache.EvictRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leaseCache.EvictRange.wp_proof wp_inRange
 
-theorem leaseCache.wp_notify [AllG GF] :
+theorem leaseCache.wp_notify :
     EtcdGrove.leasing.leaseCache.notify.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leaseCache.notify.wp_proof
 
-theorem leaseCache.wp_Get [AllG GF] :
+theorem leaseCache.wp_Get :
     EtcdGrove.leasing.leaseCache.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leaseCache.Get.wp_proof wp_isBadOp v3.Op.wp_KeyBytes leaseCache.wp_notify leaseKey.wp_get
 
-theorem leaseCache.wp_Lock [AllG GF] :
+theorem leaseCache.wp_Lock :
     EtcdGrove.leasing.leaseCache.Lock.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leaseCache.Lock.wp_proof
 
-theorem leaseCache.wp_LockRange [AllG GF] :
+theorem leaseCache.wp_LockRange :
     EtcdGrove.leasing.leaseCache.LockRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leaseCache.LockRange.wp_proof wp_inRange
 
-theorem leaseCache.wp_LockWriteOps [AllG GF] :
+theorem leaseCache.wp_LockWriteOps :
     EtcdGrove.leasing.leaseCache.LockWriteOps.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leaseCache.LockWriteOps.wp_proof leaseCache.wp_Lock leaseCache.wp_LockRange v3.Op.wp_IsGet v3.Op.wp_KeyBytes v3.Op.wp_RangeBytes
 
-theorem leaseCache.wp_MayAcquire [AllG GF] :
+theorem leaseCache.wp_MayAcquire :
     EtcdGrove.leasing.leaseCache.MayAcquire.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leaseCache.MayAcquire.wp_proof
 
-theorem leaseCache.wp_NotifyOps [AllG GF] :
+theorem leaseCache.wp_NotifyOps :
     EtcdGrove.leasing.leaseCache.NotifyOps.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leaseCache.NotifyOps.wp_proof v3.Op.wp_IsGet v3.Op.wp_KeyBytes leaseCache.wp_notify
 
-theorem leaseCache.wp_Rev [AllG GF] :
+theorem leaseCache.wp_Rev :
     EtcdGrove.leasing.leaseCache.Rev.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leaseCache.Rev.wp_proof
 
-theorem leaseCache.wp_Update [AllG GF] :
+theorem leaseCache.wp_Update :
     EtcdGrove.leasing.leaseCache.Update.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leaseCache.Update.wp_proof
 
-theorem leaseCache.wp_evalCmp [AllG GF] :
+theorem leaseCache.wp_evalCmp :
     EtcdGrove.leasing.leaseCache.evalCmp.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leaseCache.evalCmp.wp_proof v3.Cmp.wp_GetCompare Compare.wp_GetRangeEnd v3.Cmp.wp_KeyBytes EtcdGrove.leasing.wp_evalCmp
 
-theorem leaseCache.wp_evalOps [AllG GF] :
+theorem leaseCache.wp_evalOps :
     EtcdGrove.leasing.leaseCache.evalOps.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leaseCache.evalOps.wp_proof leaseKey.wp_get wp_isBadOp v3.Op.wp_IsGet v3.Op.wp_KeyBytes
 
-theorem leasingKV.wp_Compact [AllG GF] :
+theorem leasingKV.wp_Compact :
     EtcdGrove.leasing.leasingKV.Compact.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.Compact.wp_proof
 
-theorem leasingKV.wp_leaseID [AllG GF] :
+theorem leasingKV.wp_leaseID :
     EtcdGrove.leasing.leasingKV.leaseID.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.leaseID.wp_proof concurrency.Session.wp_Lease
 
-theorem leasingKV.wp_waitRescind [AllG GF] :
+theorem leasingKV.wp_waitRescind :
     EtcdGrove.leasing.leasingKV.waitRescind.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.waitRescind.wp_proof v3.wp_WithRev
 
-theorem leasingKV.wp_revoke [AllG GF] :
+theorem leasingKV.wp_revoke :
     EtcdGrove.leasing.leasingKV.revoke.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.revoke.wp_proof leaseCache.wp_Rev v3.wp_CreateRevision v3.wp_Compare v3.wp_WithIgnoreLease v3.wp_OpPut leasingKV.wp_waitRescind
 
-theorem leasingKV.wp_revokeLeaseKvs [AllG GF] :
+theorem leasingKV.wp_revokeLeaseKvs :
     EtcdGrove.leasing.leasingKV.revokeLeaseKvs.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.revokeLeaseKvs.wp_proof leasingKV.wp_leaseID v3.wp_OpGet leasingKV.wp_revoke
 
-theorem leasingKV.wp_revokeRange [AllG GF] :
+theorem leasingKV.wp_revokeRange :
     EtcdGrove.leasing.leasingKV.revokeRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.revokeRange.wp_proof v3.wp_WithRange leasingKV.wp_revokeLeaseKvs
 
-theorem leasingKV.wp_deleteRangeRPC [AllG GF] :
+theorem leasingKV.wp_deleteRangeRPC :
     EtcdGrove.leasing.leasingKV.deleteRangeRPC.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.deleteRangeRPC.wp_proof v3.wp_CreateRevision v3.Cmp.wp_WithRange v3.wp_Compare v3.wp_WithRange v3.wp_WithKeysOnly v3.wp_OpGet v3.wp_OpDelete leaseCache.wp_EvictRange ResponseOp.wp_GetResponseRange leaseCache.wp_Delete ResponseOp.wp_GetResponseDeleteRange
 
-theorem leasingKV.wp_deleteRange [AllG GF] :
+theorem leasingKV.wp_deleteRange :
     EtcdGrove.leasing.leasingKV.deleteRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.deleteRange.wp_proof v3.Op.wp_KeyBytes v3.Op.wp_RangeBytes leasingKV.wp_revokeRange leaseCache.wp_LockRange leasingKV.wp_deleteRangeRPC wp_closeAll
 
-theorem leasingKV.wp_tryModifyOp [AllG GF] :
+theorem leasingKV.wp_tryModifyOp :
     EtcdGrove.leasing.leasingKV.tryModifyOp.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.tryModifyOp.wp_proof v3.Op.wp_KeyBytes leaseCache.wp_Lock v3.wp_CreateRevision v3.wp_Compare leaseCache.wp_Evict
 
-theorem leasingKV.wp_delete [AllG GF] :
+theorem leasingKV.wp_delete :
     EtcdGrove.leasing.leasingKV.delete.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.delete.wp_proof leasingKV.wp_waitSession v3.Op.wp_RangeBytes leasingKV.wp_deleteRange v3.Op.wp_KeyBytes leasingKV.wp_tryModifyOp leasingKV.wp_revoke leaseCache.wp_Evict ResponseOp.wp_GetResponseDeleteRange leaseCache.wp_Delete
 
-theorem leasingKV.wp_Delete [AllG GF] :
+theorem leasingKV.wp_Delete :
     EtcdGrove.leasing.leasingKV.Delete.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.Delete.wp_proof v3.wp_OpDelete leasingKV.wp_delete
 
-theorem leasingKV.wp_readySession [AllG GF] :
+theorem leasingKV.wp_readySession :
     EtcdGrove.leasing.leasingKV.readySession.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.readySession.wp_proof concurrency.Session.wp_Done
 
-theorem leasingKV.wp_acquire [AllG GF] :
+theorem leasingKV.wp_acquire :
     EtcdGrove.leasing.leasingKV.acquire.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.acquire.wp_proof leasingKV.wp_waitSession v3.wp_LeaseValue v3.wp_CreateRevision v3.wp_Compare leasingKV.wp_leaseID v3.wp_WithLease v3.wp_OpPut v3.wp_OpGet ResponseOp.wp_GetResponseRange status.wp_FromError
 
-theorem leasingKV.wp_rescind [AllG GF] :
+theorem leasingKV.wp_rescind :
     EtcdGrove.leasing.leasingKV.rescind.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.rescind.wp_proof leaseCache.wp_Evict v3.wp_CreateRevision v3.wp_Compare v3.wp_OpDelete
 
-theorem leasingKV.wp_monitorLease [AllG GF] :
+theorem leasingKV.wp_monitorLease :
     EtcdGrove.leasing.leasingKV.monitorLease.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.monitorLease.wp_proof leasingKV.wp_leaseID v3.wp_WithRev leasingKV.wp_rescind
 
-theorem leasingKV.wp_get [AllG GF] :
+theorem leasingKV.wp_get :
     EtcdGrove.leasing.leasingKV.get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.get.wp_proof v3.OpResponse.wp_Get leasingKV.wp_readySession leaseCache.wp_Get v3.Op.wp_IsSerializable v3.Op.wp_KeyBytes leaseCache.wp_MayAcquire v3.wp_OpGet leasingKV.wp_acquire ResponseOp.wp_GetResponseRange leaseCache.wp_Add leasingKV.wp_monitorLease
 
-theorem leasingKV.wp_put [AllG GF] :
+theorem leasingKV.wp_put :
     EtcdGrove.leasing.leasingKV.put.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.put.wp_proof leasingKV.wp_waitSession leasingKV.wp_tryModifyOp v3.Op.wp_KeyBytes leasingKV.wp_revoke v3.Op.wp_ValueBytes leaseCache.wp_Update ResponseOp.wp_GetResponsePut
 
-theorem leasingKV.wp_Txn [AllG GF] :
+theorem leasingKV.wp_Txn :
     EtcdGrove.leasing.leasingKV.Txn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.Txn.wp_proof
 
-theorem txnLeasing.wp_If [AllG GF] :
+theorem txnLeasing.wp_If :
     EtcdGrove.leasing.txnLeasing.If.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.txnLeasing.If.wp_proof
 
-theorem txnLeasing.wp_Then [AllG GF] :
+theorem txnLeasing.wp_Then :
     EtcdGrove.leasing.txnLeasing.Then.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.txnLeasing.Then.wp_proof
 
-theorem txnLeasing.wp_Else [AllG GF] :
+theorem txnLeasing.wp_Else :
     EtcdGrove.leasing.txnLeasing.Else.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.txnLeasing.Else.wp_proof
 
-theorem txnLeasing.wp_eval [AllG GF] :
+theorem txnLeasing.wp_eval :
     EtcdGrove.leasing.txnLeasing.eval.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.txnLeasing.eval.wp_proof wp_gatherOps leaseCache.wp_NotifyOps leaseCache.wp_evalCmp leaseCache.wp_evalOps wp_copyHeader
 
-theorem txnLeasing.wp_fallback [AllG GF] :
+theorem txnLeasing.wp_fallback :
     EtcdGrove.leasing.txnLeasing.fallback.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.txnLeasing.fallback.wp_proof v3.Op.wp_IsGet v3.Op.wp_KeyBytes v3.Op.wp_RangeBytes v3.wp_WithRange v3.wp_OpGet
 
-theorem txnLeasing.wp_guardKeys [AllG GF] :
+theorem txnLeasing.wp_guardKeys :
     EtcdGrove.leasing.txnLeasing.guardKeys.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.txnLeasing.guardKeys.wp_proof v3.Op.wp_KeyBytes v3.Op.wp_IsGet v3.Op.wp_RangeBytes leaseCache.wp_Rev v3.wp_CreateRevision v3.wp_Compare
 
-theorem txnLeasing.wp_guardRanges [AllG GF] :
+theorem txnLeasing.wp_guardRanges :
     EtcdGrove.leasing.txnLeasing.guardRanges.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.txnLeasing.guardRanges.wp_proof v3.Op.wp_IsGet v3.Op.wp_RangeBytes v3.Op.wp_KeyBytes leasingKV.wp_revokeRange v3.wp_WithLastRev v3.wp_WithRange v3.wp_ModRevision v3.Cmp.wp_WithRange v3.wp_Compare v3.wp_CreateRevision
 
-theorem txnLeasing.wp_guard [AllG GF] :
+theorem txnLeasing.wp_guard :
     EtcdGrove.leasing.txnLeasing.guard.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.txnLeasing.guard.wp_proof txnLeasing.wp_guardKeys txnLeasing.wp_guardRanges
 
-theorem txnLeasing.wp_commitToCache [AllG GF] :
+theorem txnLeasing.wp_commitToCache :
     EtcdGrove.leasing.txnLeasing.commitToCache.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.txnLeasing.commitToCache.wp_proof wp_gatherResponseOps v3.Op.wp_KeyBytes v3.Op.wp_IsDelete v3.Op.wp_RangeBytes wp_inRange leaseCache.wp_delete v3.Op.wp_IsPut v3.Op.wp_ValueBytes leaseCache.wp_Update
 
-theorem txnLeasing.wp_revokeFallback [AllG GF] :
+theorem txnLeasing.wp_revokeFallback :
     EtcdGrove.leasing.txnLeasing.revokeFallback.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.txnLeasing.revokeFallback.wp_proof ResponseOp.wp_GetResponseRange leasingKV.wp_revokeLeaseKvs
 
-theorem txnLeasing.wp_serverTxn [AllG GF] :
+theorem txnLeasing.wp_serverTxn :
     EtcdGrove.leasing.txnLeasing.serverTxn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.txnLeasing.serverTxn.wp_proof leasingKV.wp_waitSession wp_gatherOps v3.wp_OpTxn txnLeasing.wp_fallback leaseCache.wp_LockWriteOps wp_closeAll txnLeasing.wp_guard v3.Cmp.wp_KeyBytes leaseCache.wp_Evict txnLeasing.wp_commitToCache ResponseOp.wp_GetResponseTxn txnLeasing.wp_revokeFallback
 
-theorem txnLeasing.wp_Commit [AllG GF] :
+theorem txnLeasing.wp_Commit :
     EtcdGrove.leasing.txnLeasing.Commit.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.txnLeasing.Commit.wp_proof txnLeasing.wp_eval txnLeasing.wp_serverTxn
 
-theorem leasingKV.wp_Do [AllG GF] :
+theorem leasingKV.wp_Do :
     EtcdGrove.leasing.leasingKV.Do.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.Do.wp_proof v3.Op.wp_IsGet leasingKV.wp_get v3.GetResponse.wp_OpResponse v3.Op.wp_IsPut leasingKV.wp_put v3.PutResponse.wp_OpResponse v3.Op.wp_IsDelete leasingKV.wp_delete v3.DeleteResponse.wp_OpResponse v3.Op.wp_IsTxn v3.Op.wp_Txn leasingKV.wp_Txn txnLeasing.wp_If txnLeasing.wp_Then txnLeasing.wp_Else txnLeasing.wp_Commit v3.TxnResponse.wp_OpResponse
 
-theorem leasingKV.wp_Get [AllG GF] :
+theorem leasingKV.wp_Get :
     EtcdGrove.leasing.leasingKV.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.Get.wp_proof v3.wp_OpGet leasingKV.wp_get
 
-theorem leasingKV.wp_GetStream [AllG GF] :
+theorem leasingKV.wp_GetStream :
     EtcdGrove.leasing.leasingKV.GetStream.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.GetStream.wp_proof status.wp_Error
 
-theorem leasingKV.wp_Put [AllG GF] :
+theorem leasingKV.wp_Put :
     EtcdGrove.leasing.leasingKV.Put.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.leasingKV.Put.wp_proof v3.wp_OpPut leasingKV.wp_put
 

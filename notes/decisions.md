@@ -2215,3 +2215,21 @@ callers use them directly, as the cache uses `bytes.wp_Compare`.
   that type; true of gRPC status errors, `rpctypes.EtcdError`s and context errors). *Rejected:*
   an `errors.As` spec without the tree (false for an error whose `As` method loops or panics).
 - **`status.FromError`** (grpc) stays an etcd-grove axiom.
+
+## One `AllG`: `HeapGS` provides the ghost-state instance
+
+Since Perennial `cb6a5921e` (2026-10-11) `AllG GF` is a singleton carried by `GooseGlobalGS`
+(`gooseAllG`), hence by `HeapGS`; `ThreadGS` and `ReceiptGS` no longer bundle their own.
+- **Section variables**: a section with `[hG : HeapGS hlc GF]` has no `[AllG GF]` (654 files
+  changed); only the generic ghost theory without `HeapGS` (`Proof/go_etcd_io/raft/v3/Protocol/`,
+  `Results.lean`) assumes `[AllG GF]`. *Why:* two instances in scope make the client's ghost
+  resources (`own`, `ghostVar`, `threadTok`) a different term from Perennial's, and the cache
+  proofs that take `threadTok` from `wp_fork_tok` or `dghostVar` from the broadcast idiom fail
+  to unify. *Rejected:* keeping `[AllG GF]` and living with the two instances, which worked
+  only while no Perennial lemma exposed ghost resources to clients.
+- **Fixing `GF`**: the `AllG` out-parameter used to fix `GF` for a bare ghost-state term;
+  `HeapGS`'s `GF` is not an out-parameter, so such a term needs `(GF := GF)` (porting guide,
+  "Section variables"). A theorem that does not mention `GF` but is declared under the
+  section's `[hG : HeapGS hlc GF]` (the register's `regStorIface_inj`) gets `GF` as a binder it
+  can never infer: write `(GF := GF)` at its uses, or declare it outside the section.
+

@@ -349,7 +349,7 @@ axiom etcdState_modrev_det {GF : BundledGFunctors} (a b : w64) (pfx : GoString)
 section client
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-! ## The client's transactions -/

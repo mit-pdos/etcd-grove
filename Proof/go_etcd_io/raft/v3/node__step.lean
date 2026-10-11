@@ -19,7 +19,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [AllG GF]
 
 /-- `stepWithWaitOption(ctx, m, false)`: `m` is not a proposal (`NetMsgOk`). -/
 theorem node.step.wp_proof

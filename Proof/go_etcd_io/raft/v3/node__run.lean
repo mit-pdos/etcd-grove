@@ -29,7 +29,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [AllG GF]
 
 theorem node.run.wp_proof
     (wp_RawNode_HasReady : RawNode.HasReady.spec (GF := GF) (hG := hG))

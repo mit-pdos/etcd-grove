@@ -154,7 +154,7 @@ theorem OpT.txnOp_txn (o : OpFull) (cs : List CmpModel) (ts es : List OpT) (op :
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- A comparison with its operand set is a comparison. -/

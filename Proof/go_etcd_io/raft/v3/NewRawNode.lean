@@ -21,7 +21,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [AllG GF]
 
 /-- `newRaft` on the empty storage is the protocol's initial state (`newRaft_post_init`);
 the new `RawNode` holds it with nothing handed out. -/
