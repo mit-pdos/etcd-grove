@@ -47,9 +47,7 @@ instance DiscoveryError_access_load_Op (l : Loc) (v : go_etcd_io.etcd.server.v3.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) DiscoveryError_access_store_Op (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError) (Op' : GoString) :
+instance DiscoveryError_access_store_Op (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError) (Op' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError go!"Op" l) v.Op' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError go!"Op" l) Op' (DFrac.own 1))
@@ -65,9 +63,7 @@ instance DiscoveryError_access_load_Err (l : Loc) (v : go_etcd_io.etcd.server.v3
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) DiscoveryError_access_store_Err (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError) (Err' : GoError) :
+instance DiscoveryError_access_store_Err (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError) (Err' : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError go!"Err" l) v.Err' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.errors.DiscoveryError go!"Err" l) Err' (DFrac.own 1))

@@ -69,9 +69,7 @@ instance LeaseItem_access_load_Key (l : Loc) (v : go_etcd_io.etcd.server.v3.leas
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) LeaseItem_access_store_Key (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.LeaseItem) (Key' : GoString) :
+instance LeaseItem_access_store_Key (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.LeaseItem) (Key' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.LeaseItem go!"Key" l) v.Key' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.LeaseItem go!"Key" l) Key' (DFrac.own 1))
@@ -113,9 +111,7 @@ instance LeaseWithTime_access_load_id (l : Loc) (v : go_etcd_io.etcd.server.v3.l
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) LeaseWithTime_access_store_id (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.LeaseWithTime) (id' : go_etcd_io.etcd.server.v3.lease.LeaseID) :
+instance LeaseWithTime_access_store_id (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.LeaseWithTime) (id' : go_etcd_io.etcd.server.v3.lease.LeaseID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.LeaseWithTime go!"id" l) v.id' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.LeaseWithTime go!"id" l) id' (DFrac.own 1))
@@ -131,9 +127,7 @@ instance LeaseWithTime_access_load_time (l : Loc) (v : go_etcd_io.etcd.server.v3
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) LeaseWithTime_access_store_time (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.LeaseWithTime) (time' : time.Time) :
+instance LeaseWithTime_access_store_time (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.LeaseWithTime) (time' : time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.LeaseWithTime go!"time" l) v.time' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.LeaseWithTime go!"time" l) time' (DFrac.own 1))
@@ -149,9 +143,7 @@ instance LeaseWithTime_access_load_index (l : Loc) (v : go_etcd_io.etcd.server.v
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) LeaseWithTime_access_store_index (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.LeaseWithTime) (index' : w64) :
+instance LeaseWithTime_access_store_index (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.LeaseWithTime) (index' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.LeaseWithTime go!"index" l) v.index' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.LeaseWithTime go!"index" l) index' (DFrac.own 1))
@@ -192,9 +184,7 @@ instance LeaseExpiredNotifier_access_load_m (l : Loc) (v : go_etcd_io.etcd.serve
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) LeaseExpiredNotifier_access_store_m (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier) (m' : GoMap) :
+instance LeaseExpiredNotifier_access_store_m (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier) (m' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier go!"m" l) v.m' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier go!"m" l) m' (DFrac.own 1))
@@ -210,9 +200,7 @@ instance LeaseExpiredNotifier_access_load_queue (l : Loc) (v : go_etcd_io.etcd.s
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) LeaseExpiredNotifier_access_store_queue (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier) (queue' : go_etcd_io.etcd.server.v3.lease.LeaseQueue) :
+instance LeaseExpiredNotifier_access_store_queue (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier) (queue' : go_etcd_io.etcd.server.v3.lease.LeaseQueue) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier go!"queue" l) v.queue' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier go!"queue" l) queue' (DFrac.own 1))
@@ -294,9 +282,7 @@ instance LessorConfig_access_load_MinLeaseTTL (l : Loc) (v : go_etcd_io.etcd.ser
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) LessorConfig_access_store_MinLeaseTTL (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.LessorConfig) (MinLeaseTTL' : w64) :
+instance LessorConfig_access_store_MinLeaseTTL (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.LessorConfig) (MinLeaseTTL' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.LessorConfig go!"MinLeaseTTL" l) v.MinLeaseTTL' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.LessorConfig go!"MinLeaseTTL" l) MinLeaseTTL' (DFrac.own 1))
@@ -312,9 +298,7 @@ instance LessorConfig_access_load_CheckpointInterval (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) LessorConfig_access_store_CheckpointInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.LessorConfig) (CheckpointInterval' : time.Duration) :
+instance LessorConfig_access_store_CheckpointInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.LessorConfig) (CheckpointInterval' : time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.LessorConfig go!"CheckpointInterval" l) v.CheckpointInterval' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.LessorConfig go!"CheckpointInterval" l) CheckpointInterval' (DFrac.own 1))
@@ -330,9 +314,7 @@ instance LessorConfig_access_load_ExpiredLeasesRetryInterval (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) LessorConfig_access_store_ExpiredLeasesRetryInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.LessorConfig) (ExpiredLeasesRetryInterval' : time.Duration) :
+instance LessorConfig_access_store_ExpiredLeasesRetryInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.LessorConfig) (ExpiredLeasesRetryInterval' : time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.LessorConfig go!"ExpiredLeasesRetryInterval" l) v.ExpiredLeasesRetryInterval' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.LessorConfig go!"ExpiredLeasesRetryInterval" l) ExpiredLeasesRetryInterval' (DFrac.own 1))
@@ -348,9 +330,7 @@ instance LessorConfig_access_load_CheckpointPersist (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) LessorConfig_access_store_CheckpointPersist (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.LessorConfig) (CheckpointPersist' : Bool) :
+instance LessorConfig_access_store_CheckpointPersist (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.LessorConfig) (CheckpointPersist' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.LessorConfig go!"CheckpointPersist" l) v.CheckpointPersist' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.LessorConfig go!"CheckpointPersist" l) CheckpointPersist' (DFrac.own 1))
@@ -366,9 +346,7 @@ instance LessorConfig_access_load_leaseRevokeRate (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) LessorConfig_access_store_leaseRevokeRate (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.LessorConfig) (leaseRevokeRate' : w64) :
+instance LessorConfig_access_store_leaseRevokeRate (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.LessorConfig) (leaseRevokeRate' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.LessorConfig go!"leaseRevokeRate" l) v.leaseRevokeRate' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.LessorConfig go!"leaseRevokeRate" l) leaseRevokeRate' (DFrac.own 1))
@@ -408,9 +386,7 @@ instance FakeLessor_access_load_LeaseSet (l : Loc) (v : go_etcd_io.etcd.server.v
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) FakeLessor_access_store_LeaseSet (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.FakeLessor) (LeaseSet' : GoMap) :
+instance FakeLessor_access_store_LeaseSet (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.FakeLessor) (LeaseSet' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.FakeLessor go!"LeaseSet" l) v.LeaseSet' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.FakeLessor go!"LeaseSet" l) LeaseSet' (DFrac.own 1))
@@ -450,9 +426,7 @@ instance FakeTxnDelete_access_load_BatchTx (l : Loc) (v : go_etcd_io.etcd.server
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) FakeTxnDelete_access_store_BatchTx (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.FakeTxnDelete) (BatchTx' : go_etcd_io.etcd.server.v3.storage.backend.BatchTx) :
+instance FakeTxnDelete_access_store_BatchTx (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.FakeTxnDelete) (BatchTx' : go_etcd_io.etcd.server.v3.storage.backend.BatchTx) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.FakeTxnDelete go!"BatchTx" l) v.BatchTx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.FakeTxnDelete go!"BatchTx" l) BatchTx' (DFrac.own 1))

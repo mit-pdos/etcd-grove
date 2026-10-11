@@ -55,9 +55,7 @@ instance KeyValue_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) KeyValue_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+instance KeyValue_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"state" l) state' (DFrac.own 1))
@@ -73,9 +71,7 @@ instance KeyValue_access_load_Key (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.K
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) KeyValue_access_store_Key (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (Key' : GoSlice) :
+instance KeyValue_access_store_Key (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (Key' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Key" l) v.Key' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Key" l) Key' (DFrac.own 1))
@@ -91,9 +87,7 @@ instance KeyValue_access_load_CreateRevision (l : Loc) (v : go_etcd_io.etcd.api.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) KeyValue_access_store_CreateRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (CreateRevision' : w64) :
+instance KeyValue_access_store_CreateRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (CreateRevision' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"CreateRevision" l) v.CreateRevision' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"CreateRevision" l) CreateRevision' (DFrac.own 1))
@@ -109,9 +103,7 @@ instance KeyValue_access_load_ModRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) KeyValue_access_store_ModRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (ModRevision' : w64) :
+instance KeyValue_access_store_ModRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (ModRevision' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"ModRevision" l) v.ModRevision' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"ModRevision" l) ModRevision' (DFrac.own 1))
@@ -127,9 +119,7 @@ instance KeyValue_access_load_Version (l : Loc) (v : go_etcd_io.etcd.api.v3.mvcc
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) KeyValue_access_store_Version (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (Version' : w64) :
+instance KeyValue_access_store_Version (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (Version' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Version" l) v.Version' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Version" l) Version' (DFrac.own 1))
@@ -145,9 +135,7 @@ instance KeyValue_access_load_Value (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) KeyValue_access_store_Value (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (Value' : GoSlice) :
+instance KeyValue_access_store_Value (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (Value' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Value" l) v.Value' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Value" l) Value' (DFrac.own 1))
@@ -163,9 +151,7 @@ instance KeyValue_access_load_Lease (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) KeyValue_access_store_Lease (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (Lease' : w64) :
+instance KeyValue_access_store_Lease (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (Lease' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Lease" l) v.Lease' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"Lease" l) Lease' (DFrac.own 1))
@@ -181,9 +167,7 @@ instance KeyValue_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) KeyValue_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (unknownFields' : GoSlice) :
+instance KeyValue_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (unknownFields' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"unknownFields" l) unknownFields' (DFrac.own 1))
@@ -199,9 +183,7 @@ instance KeyValue_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.mv
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) KeyValue_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (sizeCache' : w32) :
+instance KeyValue_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.KeyValue) (sizeCache' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"sizeCache" l) sizeCache' (DFrac.own 1))
@@ -246,9 +228,7 @@ instance Event_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Ev
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Event_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+instance Event_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"state" l) state' (DFrac.own 1))
@@ -264,9 +244,7 @@ instance Event_access_load_Type (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Eve
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Event_access_store_Type (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (Type' : go_etcd_io.etcd.api.v3.mvccpb.Event_EventType) :
+instance Event_access_store_Type (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (Type' : go_etcd_io.etcd.api.v3.mvccpb.Event_EventType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"Type" l) v.Type' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"Type" l) Type' (DFrac.own 1))
@@ -282,9 +260,7 @@ instance Event_access_load_Kv (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Event_access_store_Kv (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (Kv' : Loc) :
+instance Event_access_store_Kv (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (Kv' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"Kv" l) v.Kv' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"Kv" l) Kv' (DFrac.own 1))
@@ -300,9 +276,7 @@ instance Event_access_load_PrevKv (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.E
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Event_access_store_PrevKv (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (PrevKv' : Loc) :
+instance Event_access_store_PrevKv (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (PrevKv' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"PrevKv" l) v.PrevKv' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"PrevKv" l) PrevKv' (DFrac.own 1))
@@ -318,9 +292,7 @@ instance Event_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.m
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Event_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (unknownFields' : GoSlice) :
+instance Event_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (unknownFields' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"unknownFields" l) unknownFields' (DFrac.own 1))
@@ -336,9 +308,7 @@ instance Event_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccp
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Event_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (sizeCache' : w32) :
+instance Event_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (sizeCache' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"sizeCache" l) sizeCache' (DFrac.own 1))

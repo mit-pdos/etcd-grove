@@ -46,9 +46,7 @@ instance MaxRetryRPCBufferSizeCallOption_access_load_MaxRetryRPCBufferSize (l : 
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) MaxRetryRPCBufferSizeCallOption_access_store_MaxRetryRPCBufferSize (l : Loc) (v : google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption) (MaxRetryRPCBufferSize' : w64) :
+instance MaxRetryRPCBufferSizeCallOption_access_store_MaxRetryRPCBufferSize (l : Loc) (v : google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption) (MaxRetryRPCBufferSize' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption go!"MaxRetryRPCBufferSize" l) v.MaxRetryRPCBufferSize' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption go!"MaxRetryRPCBufferSize" l) MaxRetryRPCBufferSize' (DFrac.own 1))
@@ -233,9 +231,7 @@ instance ServiceDesc_access_load_ServiceName (l : Loc) (v : google_golang_org.gr
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ServiceDesc_access_store_ServiceName (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (ServiceName' : GoString) :
+instance ServiceDesc_access_store_ServiceName (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (ServiceName' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"ServiceName" l) v.ServiceName' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"ServiceName" l) ServiceName' (DFrac.own 1))
@@ -251,9 +247,7 @@ instance ServiceDesc_access_load_HandlerType (l : Loc) (v : google_golang_org.gr
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ServiceDesc_access_store_HandlerType (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (HandlerType' : GoInterface) :
+instance ServiceDesc_access_store_HandlerType (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (HandlerType' : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"HandlerType" l) v.HandlerType' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"HandlerType" l) HandlerType' (DFrac.own 1))
@@ -269,9 +263,7 @@ instance ServiceDesc_access_load_Methods (l : Loc) (v : google_golang_org.grpc.S
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ServiceDesc_access_store_Methods (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (Methods' : GoSlice) :
+instance ServiceDesc_access_store_Methods (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (Methods' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Methods" l) v.Methods' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Methods" l) Methods' (DFrac.own 1))
@@ -287,9 +279,7 @@ instance ServiceDesc_access_load_Streams (l : Loc) (v : google_golang_org.grpc.S
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ServiceDesc_access_store_Streams (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (Streams' : GoSlice) :
+instance ServiceDesc_access_store_Streams (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (Streams' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams" l) v.Streams' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams" l) Streams' (DFrac.own 1))
@@ -305,9 +295,7 @@ instance ServiceDesc_access_load_Metadata (l : Loc) (v : google_golang_org.grpc.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ServiceDesc_access_store_Metadata (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (Metadata' : GoInterface) :
+instance ServiceDesc_access_store_Metadata (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (Metadata' : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Metadata" l) v.Metadata' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Metadata" l) Metadata' (DFrac.own 1))
@@ -349,9 +337,7 @@ instance serviceInfo_access_load_serviceImpl (l : Loc) (v : google_golang_org.gr
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) serviceInfo_access_store_serviceImpl (l : Loc) (v : google_golang_org.grpc.serviceInfo) (serviceImpl' : GoInterface) :
+instance serviceInfo_access_store_serviceImpl (l : Loc) (v : google_golang_org.grpc.serviceInfo) (serviceImpl' : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"serviceImpl" l) v.serviceImpl' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"serviceImpl" l) serviceImpl' (DFrac.own 1))
@@ -367,9 +353,7 @@ instance serviceInfo_access_load_streams (l : Loc) (v : google_golang_org.grpc.s
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) serviceInfo_access_store_streams (l : Loc) (v : google_golang_org.grpc.serviceInfo) (streams' : GoMap) :
+instance serviceInfo_access_store_streams (l : Loc) (v : google_golang_org.grpc.serviceInfo) (streams' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"streams" l) v.streams' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"streams" l) streams' (DFrac.own 1))
@@ -385,9 +369,7 @@ instance serviceInfo_access_load_mdata (l : Loc) (v : google_golang_org.grpc.ser
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) serviceInfo_access_store_mdata (l : Loc) (v : google_golang_org.grpc.serviceInfo) (mdata' : GoInterface) :
+instance serviceInfo_access_store_mdata (l : Loc) (v : google_golang_org.grpc.serviceInfo) (mdata' : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"mdata" l) v.mdata' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"mdata" l) mdata' (DFrac.own 1))
@@ -488,9 +470,7 @@ instance funcServerOption_access_load_f (l : Loc) (v : google_golang_org.grpc.fu
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) funcServerOption_access_store_f (l : Loc) (v : google_golang_org.grpc.funcServerOption) (f' : GoFunc) :
+instance funcServerOption_access_store_f (l : Loc) (v : google_golang_org.grpc.funcServerOption) (f' : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.funcServerOption go!"f" l) v.f' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.funcServerOption go!"f" l) f' (DFrac.own 1))
@@ -530,9 +510,7 @@ instance joinServerOption_access_load_opts (l : Loc) (v : google_golang_org.grpc
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) joinServerOption_access_store_opts (l : Loc) (v : google_golang_org.grpc.joinServerOption) (opts' : GoSlice) :
+instance joinServerOption_access_store_opts (l : Loc) (v : google_golang_org.grpc.joinServerOption) (opts' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.joinServerOption go!"opts" l) v.opts' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.joinServerOption go!"opts" l) opts' (DFrac.own 1))
@@ -572,9 +550,7 @@ instance MaxHeaderListSizeServerOption_access_load_MaxHeaderListSize (l : Loc) (
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) MaxHeaderListSizeServerOption_access_store_MaxHeaderListSize (l : Loc) (v : google_golang_org.grpc.MaxHeaderListSizeServerOption) (MaxHeaderListSize' : w32) :
+instance MaxHeaderListSizeServerOption_access_store_MaxHeaderListSize (l : Loc) (v : google_golang_org.grpc.MaxHeaderListSizeServerOption) (MaxHeaderListSize' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.MaxHeaderListSizeServerOption go!"MaxHeaderListSize" l) v.MaxHeaderListSize' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.MaxHeaderListSizeServerOption go!"MaxHeaderListSize" l) MaxHeaderListSize' (DFrac.own 1))
@@ -616,9 +592,7 @@ instance MethodInfo_access_load_Name (l : Loc) (v : google_golang_org.grpc.Metho
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) MethodInfo_access_store_Name (l : Loc) (v : google_golang_org.grpc.MethodInfo) (Name' : GoString) :
+instance MethodInfo_access_store_Name (l : Loc) (v : google_golang_org.grpc.MethodInfo) (Name' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"Name" l) v.Name' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"Name" l) Name' (DFrac.own 1))
@@ -634,9 +608,7 @@ instance MethodInfo_access_load_IsClientStream (l : Loc) (v : google_golang_org.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) MethodInfo_access_store_IsClientStream (l : Loc) (v : google_golang_org.grpc.MethodInfo) (IsClientStream' : Bool) :
+instance MethodInfo_access_store_IsClientStream (l : Loc) (v : google_golang_org.grpc.MethodInfo) (IsClientStream' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsClientStream" l) v.IsClientStream' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsClientStream" l) IsClientStream' (DFrac.own 1))
@@ -652,9 +624,7 @@ instance MethodInfo_access_load_IsServerStream (l : Loc) (v : google_golang_org.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) MethodInfo_access_store_IsServerStream (l : Loc) (v : google_golang_org.grpc.MethodInfo) (IsServerStream' : Bool) :
+instance MethodInfo_access_store_IsServerStream (l : Loc) (v : google_golang_org.grpc.MethodInfo) (IsServerStream' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsServerStream" l) v.IsServerStream' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsServerStream" l) IsServerStream' (DFrac.own 1))
@@ -695,9 +665,7 @@ instance ServiceInfo_access_load_Methods (l : Loc) (v : google_golang_org.grpc.S
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ServiceInfo_access_store_Methods (l : Loc) (v : google_golang_org.grpc.ServiceInfo) (Methods' : GoSlice) :
+instance ServiceInfo_access_store_Methods (l : Loc) (v : google_golang_org.grpc.ServiceInfo) (Methods' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceInfo go!"Methods" l) v.Methods' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceInfo go!"Methods" l) Methods' (DFrac.own 1))
@@ -713,9 +681,7 @@ instance ServiceInfo_access_load_Metadata (l : Loc) (v : google_golang_org.grpc.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ServiceInfo_access_store_Metadata (l : Loc) (v : google_golang_org.grpc.ServiceInfo) (Metadata' : GoInterface) :
+instance ServiceInfo_access_store_Metadata (l : Loc) (v : google_golang_org.grpc.ServiceInfo) (Metadata' : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceInfo go!"Metadata" l) v.Metadata' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.ServiceInfo go!"Metadata" l) Metadata' (DFrac.own 1))
@@ -877,9 +843,7 @@ instance healthCheckConfig_access_load_ServiceName (l : Loc) (v : google_golang_
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) healthCheckConfig_access_store_ServiceName (l : Loc) (v : google_golang_org.grpc.healthCheckConfig) (ServiceName' : GoString) :
+instance healthCheckConfig_access_store_ServiceName (l : Loc) (v : google_golang_org.grpc.healthCheckConfig) (ServiceName' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.healthCheckConfig go!"ServiceName" l) v.ServiceName' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.healthCheckConfig go!"ServiceName" l) ServiceName' (DFrac.own 1))
@@ -939,9 +903,7 @@ instance retryThrottlingPolicy_access_load_MaxTokens (l : Loc) (v : google_golan
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) retryThrottlingPolicy_access_store_MaxTokens (l : Loc) (v : google_golang_org.grpc.retryThrottlingPolicy) (MaxTokens' : w64) :
+instance retryThrottlingPolicy_access_store_MaxTokens (l : Loc) (v : google_golang_org.grpc.retryThrottlingPolicy) (MaxTokens' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.retryThrottlingPolicy go!"MaxTokens" l) v.MaxTokens' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.retryThrottlingPolicy go!"MaxTokens" l) MaxTokens' (DFrac.own 1))
@@ -957,9 +919,7 @@ instance retryThrottlingPolicy_access_load_TokenRatio (l : Loc) (v : google_gola
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) retryThrottlingPolicy_access_store_TokenRatio (l : Loc) (v : google_golang_org.grpc.retryThrottlingPolicy) (TokenRatio' : w64) :
+instance retryThrottlingPolicy_access_store_TokenRatio (l : Loc) (v : google_golang_org.grpc.retryThrottlingPolicy) (TokenRatio' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.retryThrottlingPolicy go!"TokenRatio" l) v.TokenRatio' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.retryThrottlingPolicy go!"TokenRatio" l) TokenRatio' (DFrac.own 1))
@@ -1000,9 +960,7 @@ instance jsonName_access_load_Service (l : Loc) (v : google_golang_org.grpc.json
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) jsonName_access_store_Service (l : Loc) (v : google_golang_org.grpc.jsonName) (Service' : GoString) :
+instance jsonName_access_store_Service (l : Loc) (v : google_golang_org.grpc.jsonName) (Service' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.jsonName go!"Service" l) v.Service' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.jsonName go!"Service" l) Service' (DFrac.own 1))
@@ -1018,9 +976,7 @@ instance jsonName_access_load_Method (l : Loc) (v : google_golang_org.grpc.jsonN
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) jsonName_access_store_Method (l : Loc) (v : google_golang_org.grpc.jsonName) (Method' : GoString) :
+instance jsonName_access_store_Method (l : Loc) (v : google_golang_org.grpc.jsonName) (Method' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.jsonName go!"Method" l) v.Method' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.jsonName go!"Method" l) Method' (DFrac.own 1))
@@ -1194,9 +1150,7 @@ instance replayOp_access_load_op (l : Loc) (v : google_golang_org.grpc.replayOp)
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) replayOp_access_store_op (l : Loc) (v : google_golang_org.grpc.replayOp) (op' : GoFunc) :
+instance replayOp_access_store_op (l : Loc) (v : google_golang_org.grpc.replayOp) (op' : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.replayOp go!"op" l) v.op' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.replayOp go!"op" l) op' (DFrac.own 1))
@@ -1212,9 +1166,7 @@ instance replayOp_access_load_cleanup (l : Loc) (v : google_golang_org.grpc.repl
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) replayOp_access_store_cleanup (l : Loc) (v : google_golang_org.grpc.replayOp) (cleanup' : GoFunc) :
+instance replayOp_access_store_cleanup (l : Loc) (v : google_golang_org.grpc.replayOp) (cleanup' : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.replayOp go!"cleanup" l) v.cleanup' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.replayOp go!"cleanup" l) cleanup' (DFrac.own 1))
@@ -1369,9 +1321,7 @@ instance payload_access_load_sent (l : Loc) (v : google_golang_org.grpc.payload)
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) payload_access_store_sent (l : Loc) (v : google_golang_org.grpc.payload) (sent' : Bool) :
+instance payload_access_store_sent (l : Loc) (v : google_golang_org.grpc.payload) (sent' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.payload go!"sent" l) v.sent' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.payload go!"sent" l) sent' (DFrac.own 1))
@@ -1387,9 +1337,7 @@ instance payload_access_load_msg (l : Loc) (v : google_golang_org.grpc.payload) 
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) payload_access_store_msg (l : Loc) (v : google_golang_org.grpc.payload) (msg' : GoInterface) :
+instance payload_access_store_msg (l : Loc) (v : google_golang_org.grpc.payload) (msg' : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.payload go!"msg" l) v.msg' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.payload go!"msg" l) msg' (DFrac.own 1))
@@ -1430,9 +1378,7 @@ instance fmtStringer_access_load_format (l : Loc) (v : google_golang_org.grpc.fm
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) fmtStringer_access_store_format (l : Loc) (v : google_golang_org.grpc.fmtStringer) (format' : GoString) :
+instance fmtStringer_access_store_format (l : Loc) (v : google_golang_org.grpc.fmtStringer) (format' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.fmtStringer go!"format" l) v.format' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.fmtStringer go!"format" l) format' (DFrac.own 1))
@@ -1448,9 +1394,7 @@ instance fmtStringer_access_load_a (l : Loc) (v : google_golang_org.grpc.fmtStri
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) fmtStringer_access_store_a (l : Loc) (v : google_golang_org.grpc.fmtStringer) (a' : GoSlice) :
+instance fmtStringer_access_store_a (l : Loc) (v : google_golang_org.grpc.fmtStringer) (a' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.fmtStringer go!"a" l) v.a' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.fmtStringer go!"a" l) a' (DFrac.own 1))

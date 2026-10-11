@@ -237,9 +237,7 @@ instance SocketOpts_access_load_ReusePort (l : Loc) (v : go_etcd_io.etcd.client.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) SocketOpts_access_store_ReusePort (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (ReusePort' : Bool) :
+instance SocketOpts_access_store_ReusePort (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (ReusePort' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReusePort" l) v.ReusePort' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReusePort" l) ReusePort' (DFrac.own 1))
@@ -255,9 +253,7 @@ instance SocketOpts_access_load_ReuseAddress (l : Loc) (v : go_etcd_io.etcd.clie
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) SocketOpts_access_store_ReuseAddress (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (ReuseAddress' : Bool) :
+instance SocketOpts_access_store_ReuseAddress (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (ReuseAddress' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReuseAddress" l) v.ReuseAddress' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReuseAddress" l) ReuseAddress' (DFrac.own 1))

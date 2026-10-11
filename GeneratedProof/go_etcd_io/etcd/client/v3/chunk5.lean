@@ -65,9 +65,7 @@ instance SortOption_access_load_Target (l : Loc) (v : go_etcd_io.etcd.client.v3.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) SortOption_access_store_Target (l : Loc) (v : go_etcd_io.etcd.client.v3.SortOption) (Target' : go_etcd_io.etcd.client.v3.SortTarget) :
+instance SortOption_access_store_Target (l : Loc) (v : go_etcd_io.etcd.client.v3.SortOption) (Target' : go_etcd_io.etcd.client.v3.SortTarget) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SortOption go!"Target" l) v.Target' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SortOption go!"Target" l) Target' (DFrac.own 1))
@@ -83,9 +81,7 @@ instance SortOption_access_load_Order (l : Loc) (v : go_etcd_io.etcd.client.v3.S
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) SortOption_access_store_Order (l : Loc) (v : go_etcd_io.etcd.client.v3.SortOption) (Order' : go_etcd_io.etcd.client.v3.SortOrder) :
+instance SortOption_access_store_Order (l : Loc) (v : go_etcd_io.etcd.client.v3.SortOption) (Order' : go_etcd_io.etcd.client.v3.SortOrder) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SortOption go!"Order" l) v.Order' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.SortOption go!"Order" l) Order' (DFrac.own 1))
@@ -133,9 +129,7 @@ instance watcherStream_access_load_initReq (l : Loc) (v : go_etcd_io.etcd.client
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) watcherStream_access_store_initReq (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (initReq' : go_etcd_io.etcd.client.v3.watchRequest) :
+instance watcherStream_access_store_initReq (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (initReq' : go_etcd_io.etcd.client.v3.watchRequest) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"initReq" l) v.initReq' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"initReq" l) initReq' (DFrac.own 1))
@@ -151,9 +145,7 @@ instance watcherStream_access_load_outc (l : Loc) (v : go_etcd_io.etcd.client.v3
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) watcherStream_access_store_outc (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (outc' : GoChan) :
+instance watcherStream_access_store_outc (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (outc' : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"outc" l) v.outc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"outc" l) outc' (DFrac.own 1))
@@ -169,9 +161,7 @@ instance watcherStream_access_load_recvc (l : Loc) (v : go_etcd_io.etcd.client.v
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) watcherStream_access_store_recvc (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (recvc' : GoChan) :
+instance watcherStream_access_store_recvc (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (recvc' : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"recvc" l) v.recvc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"recvc" l) recvc' (DFrac.own 1))
@@ -187,9 +177,7 @@ instance watcherStream_access_load_donec (l : Loc) (v : go_etcd_io.etcd.client.v
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) watcherStream_access_store_donec (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (donec' : GoChan) :
+instance watcherStream_access_store_donec (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (donec' : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"donec" l) v.donec' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"donec" l) donec' (DFrac.own 1))
@@ -205,9 +193,7 @@ instance watcherStream_access_load_closing (l : Loc) (v : go_etcd_io.etcd.client
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) watcherStream_access_store_closing (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (closing' : Bool) :
+instance watcherStream_access_store_closing (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (closing' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"closing" l) v.closing' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"closing" l) closing' (DFrac.own 1))
@@ -223,9 +209,7 @@ instance watcherStream_access_load_id (l : Loc) (v : go_etcd_io.etcd.client.v3.w
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) watcherStream_access_store_id (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (id' : w64) :
+instance watcherStream_access_store_id (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (id' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"id" l) v.id' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"id" l) id' (DFrac.own 1))
@@ -241,9 +225,7 @@ instance watcherStream_access_load_buf (l : Loc) (v : go_etcd_io.etcd.client.v3.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) watcherStream_access_store_buf (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (buf' : GoSlice) :
+instance watcherStream_access_store_buf (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (buf' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"buf" l) v.buf' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"buf" l) buf' (DFrac.own 1))
@@ -259,9 +241,7 @@ instance watcherStream_access_load_bufLogger (l : Loc) (v : go_etcd_io.etcd.clie
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) watcherStream_access_store_bufLogger (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (bufLogger' : Loc) :
+instance watcherStream_access_store_bufLogger (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (bufLogger' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufLogger" l) v.bufLogger' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufLogger" l) bufLogger' (DFrac.own 1))
@@ -277,9 +257,7 @@ instance watcherStream_access_load_bufWaitStartTime (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) watcherStream_access_store_bufWaitStartTime (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (bufWaitStartTime' : time.Time) :
+instance watcherStream_access_store_bufWaitStartTime (l : Loc) (v : go_etcd_io.etcd.client.v3.watcherStream) (bufWaitStartTime' : time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufWaitStartTime" l) v.bufWaitStartTime' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.watcherStream go!"bufWaitStartTime" l) bufWaitStartTime' (DFrac.own 1))

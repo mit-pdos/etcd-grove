@@ -179,9 +179,7 @@ instance closeNotifier_access_load_done (l : Loc) (v : go_etcd_io.etcd.server.v3
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) closeNotifier_access_store_done (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.closeNotifier) (done' : GoChan) :
+instance closeNotifier_access_store_done (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.closeNotifier) (done' : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.closeNotifier go!"done" l) v.done' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.closeNotifier go!"done" l) done' (DFrac.own 1))
@@ -336,9 +334,7 @@ instance failureType_access_load_source (l : Loc) (v : go_etcd_io.etcd.server.v3
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) failureType_access_store_source (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.failureType) (source' : GoString) :
+instance failureType_access_store_source (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.failureType) (source' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.failureType go!"source" l) v.source' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.failureType go!"source" l) source' (DFrac.own 1))
@@ -354,9 +350,7 @@ instance failureType_access_load_action (l : Loc) (v : go_etcd_io.etcd.server.v3
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) failureType_access_store_action (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.failureType) (action' : GoString) :
+instance failureType_access_store_action (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.failureType) (action' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.failureType go!"action" l) v.action' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.failureType go!"action" l) action' (DFrac.own 1))

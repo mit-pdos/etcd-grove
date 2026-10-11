@@ -50,9 +50,7 @@ instance FreeList_access_load_mu {T' : Type} [TypedPointsto (GF := GF) T'] (l : 
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) FreeList_access_store_mu {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.FreeList T')) (mu' : sync.Mutex) :
+instance FreeList_access_store_mu {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.FreeList T')) (mu' : sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.FreeList T') go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.FreeList T') go!"mu" l) mu' (DFrac.own 1))
@@ -68,9 +66,7 @@ instance FreeList_access_load_freelist {T' : Type} [TypedPointsto (GF := GF) T']
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) FreeList_access_store_freelist {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.FreeList T')) (freelist' : GoSlice) :
+instance FreeList_access_store_freelist {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.FreeList T')) (freelist' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.FreeList T') go!"freelist" l) v.freelist' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.FreeList T') go!"freelist" l) freelist' (DFrac.own 1))
@@ -112,9 +108,7 @@ instance node_access_load_items {T' : Type} [TypedPointsto (GF := GF) T'] (l : L
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) node_access_store_items {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.node T')) (items' : (k8s_io.utils.third_party.forked.golang.btree.items T')) :
+instance node_access_store_items {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.node T')) (items' : (k8s_io.utils.third_party.forked.golang.btree.items T')) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.node T') go!"items" l) v.items' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.node T') go!"items" l) items' (DFrac.own 1))
@@ -130,9 +124,7 @@ instance node_access_load_children {T' : Type} [TypedPointsto (GF := GF) T'] (l 
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) node_access_store_children {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.node T')) (children' : (k8s_io.utils.third_party.forked.golang.btree.items Loc)) :
+instance node_access_store_children {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.node T')) (children' : (k8s_io.utils.third_party.forked.golang.btree.items Loc)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.node T') go!"children" l) v.children' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.node T') go!"children" l) children' (DFrac.own 1))
@@ -148,9 +140,7 @@ instance node_access_load_cow {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) node_access_store_cow {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.node T')) (cow' : Loc) :
+instance node_access_store_cow {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.node T')) (cow' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.node T') go!"cow" l) v.cow' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.node T') go!"cow" l) cow' (DFrac.own 1))
@@ -191,9 +181,7 @@ instance optionalItem_access_load_item {T' : Type} [TypedPointsto (GF := GF) T']
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) optionalItem_access_store_item {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.optionalItem T')) (item' : T') :
+instance optionalItem_access_store_item {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.optionalItem T')) (item' : T') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.optionalItem T') go!"item" l) v.item' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.optionalItem T') go!"item" l) item' (DFrac.own 1))
@@ -209,9 +197,7 @@ instance optionalItem_access_load_valid {T' : Type} [TypedPointsto (GF := GF) T'
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) optionalItem_access_store_valid {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.optionalItem T')) (valid' : Bool) :
+instance optionalItem_access_store_valid {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.optionalItem T')) (valid' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.optionalItem T') go!"valid" l) v.valid' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.optionalItem T') go!"valid" l) valid' (DFrac.own 1))
@@ -254,9 +240,7 @@ instance BTree_access_load_degree {T' : Type} [TypedPointsto (GF := GF) T'] (l :
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) BTree_access_store_degree {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (degree' : w64) :
+instance BTree_access_store_degree {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (degree' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.BTree T') go!"degree" l) v.degree' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.BTree T') go!"degree" l) degree' (DFrac.own 1))
@@ -272,9 +256,7 @@ instance BTree_access_load_length {T' : Type} [TypedPointsto (GF := GF) T'] (l :
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) BTree_access_store_length {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (length' : w64) :
+instance BTree_access_store_length {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (length' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.BTree T') go!"length" l) v.length' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.BTree T') go!"length" l) length' (DFrac.own 1))
@@ -290,9 +272,7 @@ instance BTree_access_load_root {T' : Type} [TypedPointsto (GF := GF) T'] (l : L
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) BTree_access_store_root {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (root' : Loc) :
+instance BTree_access_store_root {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (root' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.BTree T') go!"root" l) v.root' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.BTree T') go!"root" l) root' (DFrac.own 1))
@@ -308,9 +288,7 @@ instance BTree_access_load_cow {T' : Type} [TypedPointsto (GF := GF) T'] (l : Lo
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) BTree_access_store_cow {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (cow' : Loc) :
+instance BTree_access_store_cow {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.BTree T')) (cow' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.BTree T') go!"cow" l) v.cow' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.BTree T') go!"cow" l) cow' (DFrac.own 1))
@@ -351,9 +329,7 @@ instance copyOnWriteContext_access_load_freelist {T' : Type} [TypedPointsto (GF 
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) copyOnWriteContext_access_store_freelist {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext T')) (freelist' : Loc) :
+instance copyOnWriteContext_access_store_freelist {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext T')) (freelist' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext T') go!"freelist" l) v.freelist' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext T') go!"freelist" l) freelist' (DFrac.own 1))
@@ -369,9 +345,7 @@ instance copyOnWriteContext_access_load_less {T' : Type} [TypedPointsto (GF := G
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) copyOnWriteContext_access_store_less {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext T')) (less' : (k8s_io.utils.third_party.forked.golang.btree.LessFunc T')) :
+instance copyOnWriteContext_access_store_less {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext T')) (less' : (k8s_io.utils.third_party.forked.golang.btree.LessFunc T')) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext T') go!"less" l) v.less' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.utils.third_party.forked.golang.btree.copyOnWriteContext T') go!"less" l) less' (DFrac.own 1))

@@ -53,9 +53,7 @@ instance Changer_access_load_Tracker (l : Loc) (v : go_etcd_io.raft.v3.confchang
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Changer_access_store_Tracker (l : Loc) (v : go_etcd_io.raft.v3.confchange.Changer) (Tracker' : go_etcd_io.raft.v3.tracker.ProgressTracker) :
+instance Changer_access_store_Tracker (l : Loc) (v : go_etcd_io.raft.v3.confchange.Changer) (Tracker' : go_etcd_io.raft.v3.tracker.ProgressTracker) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.confchange.Changer go!"Tracker" l) v.Tracker' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.confchange.Changer go!"Tracker" l) Tracker' (DFrac.own 1))
@@ -71,9 +69,7 @@ instance Changer_access_load_LastIndex (l : Loc) (v : go_etcd_io.raft.v3.confcha
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Changer_access_store_LastIndex (l : Loc) (v : go_etcd_io.raft.v3.confchange.Changer) (LastIndex' : w64) :
+instance Changer_access_store_LastIndex (l : Loc) (v : go_etcd_io.raft.v3.confchange.Changer) (LastIndex' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.confchange.Changer go!"LastIndex" l) v.LastIndex' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.confchange.Changer go!"LastIndex" l) LastIndex' (DFrac.own 1))

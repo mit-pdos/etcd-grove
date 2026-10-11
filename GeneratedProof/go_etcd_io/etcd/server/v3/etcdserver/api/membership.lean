@@ -85,9 +85,7 @@ instance ConfigChangeContext_access_load_Member (l : Loc) (v : go_etcd_io.etcd.s
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ConfigChangeContext_access_store_Member (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext) (Member' : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) :
+instance ConfigChangeContext_access_store_Member (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext) (Member' : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"Member" l) v.Member' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"Member" l) Member' (DFrac.own 1))
@@ -103,9 +101,7 @@ instance ConfigChangeContext_access_load_IsPromote (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ConfigChangeContext_access_store_IsPromote (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext) (IsPromote' : Bool) :
+instance ConfigChangeContext_access_store_IsPromote (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext) (IsPromote' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"IsPromote" l) v.IsPromote' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"IsPromote" l) IsPromote' (DFrac.own 1))
@@ -145,9 +141,7 @@ instance ClusterOptions_access_load_maxLearners (l : Loc) (v : go_etcd_io.etcd.s
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ClusterOptions_access_store_maxLearners (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions) (maxLearners' : w64) :
+instance ClusterOptions_access_store_maxLearners (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions) (maxLearners' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions go!"maxLearners" l) v.maxLearners' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions go!"maxLearners" l) maxLearners' (DFrac.own 1))
@@ -188,9 +182,7 @@ instance RaftAttributes_access_load_PeerURLs (l : Loc) (v : go_etcd_io.etcd.serv
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RaftAttributes_access_store_PeerURLs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes) (PeerURLs' : GoSlice) :
+instance RaftAttributes_access_store_PeerURLs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes) (PeerURLs' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"PeerURLs" l) v.PeerURLs' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"PeerURLs" l) PeerURLs' (DFrac.own 1))
@@ -206,9 +198,7 @@ instance RaftAttributes_access_load_IsLearner (l : Loc) (v : go_etcd_io.etcd.ser
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RaftAttributes_access_store_IsLearner (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes) (IsLearner' : Bool) :
+instance RaftAttributes_access_store_IsLearner (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes) (IsLearner' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"IsLearner" l) v.IsLearner' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"IsLearner" l) IsLearner' (DFrac.own 1))
@@ -249,9 +239,7 @@ instance Attributes_access_load_Name (l : Loc) (v : go_etcd_io.etcd.server.v3.et
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Attributes_access_store_Name (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes) (Name' : GoString) :
+instance Attributes_access_store_Name (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes) (Name' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"Name" l) v.Name' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"Name" l) Name' (DFrac.own 1))
@@ -267,9 +255,7 @@ instance Attributes_access_load_ClientURLs (l : Loc) (v : go_etcd_io.etcd.server
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Attributes_access_store_ClientURLs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes) (ClientURLs' : GoSlice) :
+instance Attributes_access_store_ClientURLs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes) (ClientURLs' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"ClientURLs" l) v.ClientURLs' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"ClientURLs" l) ClientURLs' (DFrac.own 1))

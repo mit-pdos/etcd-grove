@@ -52,9 +52,7 @@ instance Storage_access_load_MemoryStorage (l : Loc) (v : github_com.mit_pdos.et
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Storage_access_store_MemoryStorage (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Storage) (MemoryStorage' : Loc) :
+instance Storage_access_store_MemoryStorage (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Storage) (MemoryStorage' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Storage go!"MemoryStorage" l) v.MemoryStorage' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Storage go!"MemoryStorage" l) MemoryStorage' (DFrac.own 1))
@@ -70,9 +68,7 @@ instance Storage_access_load_voters (l : Loc) (v : github_com.mit_pdos.etcd_grov
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Storage_access_store_voters (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Storage) (voters' : GoSlice) :
+instance Storage_access_store_voters (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Storage) (voters' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Storage go!"voters" l) v.voters' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Storage go!"voters" l) voters' (DFrac.own 1))
@@ -119,9 +115,7 @@ instance Register_access_load_id (l : Loc) (v : github_com.mit_pdos.etcd_grove.e
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Register_access_store_id (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Register) (id' : w64) :
+instance Register_access_store_id (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Register) (id' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"id" l) v.id' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"id" l) id' (DFrac.own 1))
@@ -137,9 +131,7 @@ instance Register_access_load_node (l : Loc) (v : github_com.mit_pdos.etcd_grove
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Register_access_store_node (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Register) (node' : go_etcd_io.raft.v3.Node) :
+instance Register_access_store_node (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Register) (node' : go_etcd_io.raft.v3.Node) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"node" l) v.node' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"node" l) node' (DFrac.own 1))
@@ -155,9 +147,7 @@ instance Register_access_load_storage (l : Loc) (v : github_com.mit_pdos.etcd_gr
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Register_access_store_storage (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Register) (storage' : Loc) :
+instance Register_access_store_storage (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Register) (storage' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"storage" l) v.storage' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"storage" l) storage' (DFrac.own 1))
@@ -173,9 +163,7 @@ instance Register_access_load_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.e
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Register_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Register) (mu' : sync.Mutex) :
+instance Register_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Register) (mu' : sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"mu" l) mu' (DFrac.own 1))
@@ -191,9 +179,7 @@ instance Register_access_load_value (l : Loc) (v : github_com.mit_pdos.etcd_grov
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Register_access_store_value (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Register) (value' : GoString) :
+instance Register_access_store_value (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Register) (value' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"value" l) v.value' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"value" l) value' (DFrac.own 1))
@@ -209,9 +195,7 @@ instance Register_access_load_nextSeq (l : Loc) (v : github_com.mit_pdos.etcd_gr
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Register_access_store_nextSeq (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Register) (nextSeq' : w64) :
+instance Register_access_store_nextSeq (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Register) (nextSeq' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"nextSeq" l) v.nextSeq' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"nextSeq" l) nextSeq' (DFrac.own 1))
@@ -227,9 +211,7 @@ instance Register_access_load_applied (l : Loc) (v : github_com.mit_pdos.etcd_gr
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Register_access_store_applied (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Register) (applied' : GoMap) :
+instance Register_access_store_applied (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Register) (applied' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"applied" l) v.applied' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"applied" l) applied' (DFrac.own 1))
@@ -245,9 +227,7 @@ instance Register_access_load_waiters (l : Loc) (v : github_com.mit_pdos.etcd_gr
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Register_access_store_waiters (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Register) (waiters' : GoMap) :
+instance Register_access_store_waiters (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Register) (waiters' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"waiters" l) v.waiters' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"waiters" l) waiters' (DFrac.own 1))

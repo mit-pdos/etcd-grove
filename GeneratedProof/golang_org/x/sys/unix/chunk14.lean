@@ -53,9 +53,7 @@ instance GPIOV2LineRequest_access_load_Offsets (l : Loc) (v : golang_org.x.sys.u
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) GPIOV2LineRequest_access_store_Offsets (l : Loc) (v : golang_org.x.sys.unix.GPIOV2LineRequest) (Offsets' : (GoArray w32 64)) :
+instance GPIOV2LineRequest_access_store_Offsets (l : Loc) (v : golang_org.x.sys.unix.GPIOV2LineRequest) (Offsets' : (GoArray w32 64)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.GPIOV2LineRequest go!"Offsets" l) v.Offsets' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.GPIOV2LineRequest go!"Offsets" l) Offsets' (DFrac.own 1))
@@ -71,9 +69,7 @@ instance GPIOV2LineRequest_access_load_Consumer (l : Loc) (v : golang_org.x.sys.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) GPIOV2LineRequest_access_store_Consumer (l : Loc) (v : golang_org.x.sys.unix.GPIOV2LineRequest) (Consumer' : (GoArray w8 32)) :
+instance GPIOV2LineRequest_access_store_Consumer (l : Loc) (v : golang_org.x.sys.unix.GPIOV2LineRequest) (Consumer' : (GoArray w8 32)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.GPIOV2LineRequest go!"Consumer" l) v.Consumer' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.GPIOV2LineRequest go!"Consumer" l) Consumer' (DFrac.own 1))
@@ -89,9 +85,7 @@ instance GPIOV2LineRequest_access_load_Config (l : Loc) (v : golang_org.x.sys.un
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) GPIOV2LineRequest_access_store_Config (l : Loc) (v : golang_org.x.sys.unix.GPIOV2LineRequest) (Config' : golang_org.x.sys.unix.GPIOV2LineConfig) :
+instance GPIOV2LineRequest_access_store_Config (l : Loc) (v : golang_org.x.sys.unix.GPIOV2LineRequest) (Config' : golang_org.x.sys.unix.GPIOV2LineConfig) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.GPIOV2LineRequest go!"Config" l) v.Config' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.GPIOV2LineRequest go!"Config" l) Config' (DFrac.own 1))
@@ -107,9 +101,7 @@ instance GPIOV2LineRequest_access_load_Num_lines (l : Loc) (v : golang_org.x.sys
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) GPIOV2LineRequest_access_store_Num_lines (l : Loc) (v : golang_org.x.sys.unix.GPIOV2LineRequest) (Num_lines' : w32) :
+instance GPIOV2LineRequest_access_store_Num_lines (l : Loc) (v : golang_org.x.sys.unix.GPIOV2LineRequest) (Num_lines' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.GPIOV2LineRequest go!"Num_lines" l) v.Num_lines' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.GPIOV2LineRequest go!"Num_lines" l) Num_lines' (DFrac.own 1))
@@ -125,9 +117,7 @@ instance GPIOV2LineRequest_access_load_Event_buffer_size (l : Loc) (v : golang_o
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) GPIOV2LineRequest_access_store_Event_buffer_size (l : Loc) (v : golang_org.x.sys.unix.GPIOV2LineRequest) (Event_buffer_size' : w32) :
+instance GPIOV2LineRequest_access_store_Event_buffer_size (l : Loc) (v : golang_org.x.sys.unix.GPIOV2LineRequest) (Event_buffer_size' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.GPIOV2LineRequest go!"Event_buffer_size" l) v.Event_buffer_size' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.GPIOV2LineRequest go!"Event_buffer_size" l) Event_buffer_size' (DFrac.own 1))
@@ -143,9 +133,7 @@ instance GPIOV2LineRequest_access_load__5 (l : Loc) (v : golang_org.x.sys.unix.G
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) GPIOV2LineRequest_access_store__5 (l : Loc) (v : golang_org.x.sys.unix.GPIOV2LineRequest) (_5' : (GoArray w32 5)) :
+instance GPIOV2LineRequest_access_store__5 (l : Loc) (v : golang_org.x.sys.unix.GPIOV2LineRequest) (_5' : (GoArray w32 5)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.GPIOV2LineRequest go!"_5" l) v._5' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.GPIOV2LineRequest go!"_5" l) _5' (DFrac.own 1))
@@ -161,9 +149,7 @@ instance GPIOV2LineRequest_access_load_Fd (l : Loc) (v : golang_org.x.sys.unix.G
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) GPIOV2LineRequest_access_store_Fd (l : Loc) (v : golang_org.x.sys.unix.GPIOV2LineRequest) (Fd' : w32) :
+instance GPIOV2LineRequest_access_store_Fd (l : Loc) (v : golang_org.x.sys.unix.GPIOV2LineRequest) (Fd' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.GPIOV2LineRequest go!"Fd" l) v.Fd' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.GPIOV2LineRequest go!"Fd" l) Fd' (DFrac.own 1))

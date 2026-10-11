@@ -104,9 +104,7 @@ instance notifier_access_load_c (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdser
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) notifier_access_store_c (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.notifier) (c' : GoChan) :
+instance notifier_access_store_c (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.notifier) (c' : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.notifier go!"c" l) v.c' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.notifier go!"c" l) c' (DFrac.own 1))
@@ -122,9 +120,7 @@ instance notifier_access_load_err (l : Loc) (v : go_etcd_io.etcd.server.v3.etcds
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) notifier_access_store_err (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.notifier) (err' : GoError) :
+instance notifier_access_store_err (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.notifier) (err' : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.notifier go!"err" l) v.err' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.notifier go!"err" l) err' (DFrac.own 1))

@@ -16,6 +16,7 @@ public import Code.go_etcd_io.etcd.server.v3.etcdserver
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
 public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Proof.go_etcd_io.bbolt.Init
 
 @[expose] public section
 
@@ -82,14 +83,7 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_opentelemet
 
 end go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
 
-namespace go_etcd_io.bbolt
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.bbolt :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.bbolt :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.bbolt
+-- bbolt's (and its imports'): `Proof/go_etcd_io/bbolt/Init.lean`
 
 namespace go_etcd_io.etcd.client.pkg.v3.transport
 

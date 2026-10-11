@@ -103,6 +103,72 @@ theorem Page_bytes (l : Loc) (p : Page) (dq : DFrac) (h : l.locCar ≠ 0) :
       itrivial
     · ipureintro; exact loc_ne_null_of_car l h
 
+/-- The bytes of an `InBucket`: `root` (8), `sequence` (8). -/
+def inBucketBytes (b : InBucket) : List w8 :=
+  leBytes 8 b.root'.toNat ++ leBytes 8 b.sequence'.toNat
+
+include package_sem in
+theorem InBucket_fields (l : Loc) (h : l.locCar ≠ 0) :
+    structFieldRef InBucket go!"root" l = l ∧ structFieldRef InBucket go!"sequence" l = l +ₗ 8 := by
+  refine ⟨?_, ?_⟩
+  · have H0 : structFieldRef InBucket go!"root" l = l +ₗ 0 := by solve_field_ref
+    simpa using H0
+  · solve_field_ref
+
+include package_sem in
+/-- An `InBucket` (a bucket's header, inline in a leaf or in a meta) is its bytes. -/
+theorem InBucket_bytes (l : Loc) (b : InBucket) (dq : DFrac) (h : l.locCar ≠ 0) :
+    l ↦{dq} b ⊣⊢ bytesPointsto (GF := GF) l dq (inBucketBytes b) := by
+  obtain ⟨Hr, Hs⟩ := InBucket_fields (hG := hG) l h
+  rw [typedPointsto_unseal_eq]
+  simp only [TypedPointsto.typedPointstoDef]
+  rw [Hr, Hs]
+  refine Iris.BI.BiEntails.trans ?_ ((bytesPointsto_app l dq _ _).symm)
+  simp only [leBytes_length]
+  constructor
+  · iintro ⟨⟨Hr, Hs, -⟩, -⟩
+    isplitl [Hr]; · iapply (typedPointsto_w64_bytes _ _ _).1 $$ Hr
+    iapply (typedPointsto_w64_bytes _ _ _).1 $$ Hs
+  · iintro ⟨Hr, Hs⟩
+    isplitl [Hr Hs]
+    · isplitl [Hr]; · iapply (typedPointsto_w64_bytes _ _ _).2 $$ Hr
+      isplitl [Hs]; · iapply (typedPointsto_w64_bytes _ _ _).2 $$ Hs
+      itrivial
+    · ipureintro; exact loc_ne_null_of_car l h
+
+/-- The bytes of a `Meta`: `magic`, `version`, `pageSize`, `flags` (4 each), `root` (16),
+`freelist`, `pgid`, `txid`, `checksum` (8 each); 64 in all, the checksum the last 8. -/
+def metaBytes (m : Meta) : List w8 :=
+  leBytes 4 m.magic'.toNat ++ leBytes 4 m.version'.toNat ++ leBytes 4 m.pageSize'.toNat ++
+    leBytes 4 m.flags'.toNat ++ inBucketBytes m.root' ++ leBytes 8 m.freelist'.toNat ++
+    leBytes 8 m.pgid'.toNat ++ leBytes 8 m.txid'.toNat ++ leBytes 8 m.checksum'.toNat
+
+theorem metaBytes_length (m : Meta) : (metaBytes m).length = 64 := by
+  simp [metaBytes, inBucketBytes, leBytes_length]
+
+include package_sem in
+theorem Meta_fields (l : Loc) (h : l.locCar ≠ 0) :
+    structFieldRef Meta go!"magic" l = l ∧ structFieldRef Meta go!"version" l = l +ₗ 4 ∧
+    structFieldRef Meta go!"pageSize" l = l +ₗ 8 ∧ structFieldRef Meta go!"flags" l = l +ₗ 12 ∧
+    structFieldRef Meta go!"root" l = l +ₗ 16 ∧ structFieldRef Meta go!"freelist" l = l +ₗ 32 ∧
+    structFieldRef Meta go!"pgid" l = l +ₗ 40 ∧ structFieldRef Meta go!"txid" l = l +ₗ 48 ∧
+    structFieldRef Meta go!"checksum" l = l +ₗ 56 := by
+  have Hib : typeSize InBucket = 16 := by
+    rw [go.StructLayout.size (V := InBucket)]
+    simp [go.structLayout, go.structLayoutAux, go.roundUp] <;> decide
+  have Hia : typeAlign InBucket = 8 := by
+    rw [go.StructLayout.align (V := InBucket)]
+    simp [go.structLayout, go.structLayoutAux, go.roundUp] <;> decide
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · have H0 : structFieldRef Meta go!"magic" l = l +ₗ 0 := by
+      apply go.StructLayout.field_ref _ _ _ _ h
+      simp [go.structFieldOffset, go.structLayout, go.structLayoutAux, go.roundUp, Hib, Hia]
+    simpa using H0
+  all_goals
+    apply go.StructLayout.field_ref _ _ _ _ h
+    simp [go.structFieldOffset, go.structLayout, go.structLayoutAux, go.roundUp, Hib, Hia]
+    try decide
+
 end bytes
 
 end bbolt

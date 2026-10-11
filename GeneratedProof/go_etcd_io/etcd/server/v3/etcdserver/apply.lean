@@ -87,9 +87,7 @@ instance applierV3backend_access_load_options (l : Loc) (v : go_etcd_io.etcd.ser
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) applierV3backend_access_store_options (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend) (options' : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) :
+instance applierV3backend_access_store_options (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend) (options' : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend go!"options" l) v.options' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend go!"options" l) options' (DFrac.own 1))
@@ -167,9 +165,7 @@ instance applierV3Corrupt_access_load_applierV3 (l : Loc) (v : go_etcd_io.etcd.s
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) applierV3Corrupt_access_store_applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt) (applierV3' : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3) :
+instance applierV3Corrupt_access_store_applierV3 (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt) (applierV3' : go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt go!"applierV3" l) v.applierV3' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt go!"applierV3" l) applierV3' (DFrac.own 1))
@@ -250,9 +246,7 @@ instance Result_access_load_Resp (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdse
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Result_access_store_Resp (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (Resp' : google_golang_org.protobuf.reflect.protoreflect.ProtoMessage) :
+instance Result_access_store_Resp (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (Resp' : google_golang_org.protobuf.reflect.protoreflect.ProtoMessage) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Resp" l) v.Resp' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Resp" l) Resp' (DFrac.own 1))
@@ -268,9 +262,7 @@ instance Result_access_load_Err (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdser
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Result_access_store_Err (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (Err' : GoError) :
+instance Result_access_store_Err (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (Err' : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" l) v.Err' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" l) Err' (DFrac.own 1))
@@ -286,9 +278,7 @@ instance Result_access_load_Physc (l : Loc) (v : go_etcd_io.etcd.server.v3.etcds
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Result_access_store_Physc (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (Physc' : GoChan) :
+instance Result_access_store_Physc (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (Physc' : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Physc" l) v.Physc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Physc" l) Physc' (DFrac.own 1))
@@ -304,9 +294,7 @@ instance Result_access_load_Trace (l : Loc) (v : go_etcd_io.etcd.server.v3.etcds
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Result_access_store_Trace (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (Trace' : Loc) :
+instance Result_access_store_Trace (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result) (Trace' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Trace" l) v.Trace' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Trace" l) Trace' (DFrac.own 1))

@@ -55,9 +55,7 @@ instance consistentIndex_access_load_consistentIndex (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) consistentIndex_access_store_consistentIndex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex) (consistentIndex' : w64) :
+instance consistentIndex_access_store_consistentIndex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex) (consistentIndex' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"consistentIndex" l) v.consistentIndex' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"consistentIndex" l) consistentIndex' (DFrac.own 1))
@@ -73,9 +71,7 @@ instance consistentIndex_access_load_term (l : Loc) (v : go_etcd_io.etcd.server.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) consistentIndex_access_store_term (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex) (term' : w64) :
+instance consistentIndex_access_store_term (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex) (term' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"term" l) v.term' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"term" l) term' (DFrac.own 1))
@@ -91,9 +87,7 @@ instance consistentIndex_access_load_applyingIndex (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) consistentIndex_access_store_applyingIndex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex) (applyingIndex' : w64) :
+instance consistentIndex_access_store_applyingIndex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex) (applyingIndex' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"applyingIndex" l) v.applyingIndex' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"applyingIndex" l) applyingIndex' (DFrac.own 1))
@@ -109,9 +103,7 @@ instance consistentIndex_access_load_applyingTerm (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) consistentIndex_access_store_applyingTerm (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex) (applyingTerm' : w64) :
+instance consistentIndex_access_store_applyingTerm (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex) (applyingTerm' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"applyingTerm" l) v.applyingTerm' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"applyingTerm" l) applyingTerm' (DFrac.own 1))
@@ -127,9 +119,7 @@ instance consistentIndex_access_load_be (l : Loc) (v : go_etcd_io.etcd.server.v3
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) consistentIndex_access_store_be (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex) (be' : go_etcd_io.etcd.server.v3.etcdserver.cindex.Backend) :
+instance consistentIndex_access_store_be (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex) (be' : go_etcd_io.etcd.server.v3.etcdserver.cindex.Backend) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"be" l) v.be' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"be" l) be' (DFrac.own 1))
@@ -145,9 +135,7 @@ instance consistentIndex_access_load_mutex (l : Loc) (v : go_etcd_io.etcd.server
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) consistentIndex_access_store_mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex) (mutex' : sync.Mutex) :
+instance consistentIndex_access_store_mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex) (mutex' : sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"mutex" l) v.mutex' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"mutex" l) mutex' (DFrac.own 1))
@@ -188,9 +176,7 @@ instance fakeConsistentIndex_access_load_index (l : Loc) (v : go_etcd_io.etcd.se
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) fakeConsistentIndex_access_store_index (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.cindex.fakeConsistentIndex) (index' : w64) :
+instance fakeConsistentIndex_access_store_index (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.cindex.fakeConsistentIndex) (index' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.fakeConsistentIndex go!"index" l) v.index' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.fakeConsistentIndex go!"index" l) index' (DFrac.own 1))
@@ -206,9 +192,7 @@ instance fakeConsistentIndex_access_load_term (l : Loc) (v : go_etcd_io.etcd.ser
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) fakeConsistentIndex_access_store_term (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.cindex.fakeConsistentIndex) (term' : w64) :
+instance fakeConsistentIndex_access_store_term (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.cindex.fakeConsistentIndex) (term' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.fakeConsistentIndex go!"term" l) v.term' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.fakeConsistentIndex go!"term" l) term' (DFrac.own 1))

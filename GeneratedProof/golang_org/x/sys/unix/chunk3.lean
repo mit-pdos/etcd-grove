@@ -113,9 +113,7 @@ instance TCPInfo_access_load_State (l : Loc) (v : golang_org.x.sys.unix.TCPInfo)
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_State (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (State' : w8) :
+instance TCPInfo_access_store_State (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (State' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"State" l) v.State' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"State" l) State' (DFrac.own 1))
@@ -131,9 +129,7 @@ instance TCPInfo_access_load_Ca_state (l : Loc) (v : golang_org.x.sys.unix.TCPIn
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Ca_state (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Ca_state' : w8) :
+instance TCPInfo_access_store_Ca_state (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Ca_state' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Ca_state" l) v.Ca_state' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Ca_state" l) Ca_state' (DFrac.own 1))
@@ -149,9 +145,7 @@ instance TCPInfo_access_load_Retransmits (l : Loc) (v : golang_org.x.sys.unix.TC
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Retransmits (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Retransmits' : w8) :
+instance TCPInfo_access_store_Retransmits (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Retransmits' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Retransmits" l) v.Retransmits' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Retransmits" l) Retransmits' (DFrac.own 1))
@@ -167,9 +161,7 @@ instance TCPInfo_access_load_Probes (l : Loc) (v : golang_org.x.sys.unix.TCPInfo
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Probes (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Probes' : w8) :
+instance TCPInfo_access_store_Probes (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Probes' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Probes" l) v.Probes' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Probes" l) Probes' (DFrac.own 1))
@@ -185,9 +177,7 @@ instance TCPInfo_access_load_Backoff (l : Loc) (v : golang_org.x.sys.unix.TCPInf
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Backoff (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Backoff' : w8) :
+instance TCPInfo_access_store_Backoff (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Backoff' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Backoff" l) v.Backoff' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Backoff" l) Backoff' (DFrac.own 1))
@@ -203,9 +193,7 @@ instance TCPInfo_access_load_Options (l : Loc) (v : golang_org.x.sys.unix.TCPInf
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Options (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Options' : w8) :
+instance TCPInfo_access_store_Options (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Options' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Options" l) v.Options' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Options" l) Options' (DFrac.own 1))
@@ -221,9 +209,7 @@ instance TCPInfo_access_load_Rto (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Rto (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Rto' : w32) :
+instance TCPInfo_access_store_Rto (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Rto' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Rto" l) v.Rto' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Rto" l) Rto' (DFrac.own 1))
@@ -239,9 +225,7 @@ instance TCPInfo_access_load_Ato (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Ato (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Ato' : w32) :
+instance TCPInfo_access_store_Ato (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Ato' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Ato" l) v.Ato' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Ato" l) Ato' (DFrac.own 1))
@@ -257,9 +241,7 @@ instance TCPInfo_access_load_Snd_mss (l : Loc) (v : golang_org.x.sys.unix.TCPInf
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Snd_mss (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Snd_mss' : w32) :
+instance TCPInfo_access_store_Snd_mss (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Snd_mss' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Snd_mss" l) v.Snd_mss' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Snd_mss" l) Snd_mss' (DFrac.own 1))
@@ -275,9 +257,7 @@ instance TCPInfo_access_load_Rcv_mss (l : Loc) (v : golang_org.x.sys.unix.TCPInf
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Rcv_mss (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Rcv_mss' : w32) :
+instance TCPInfo_access_store_Rcv_mss (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Rcv_mss' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Rcv_mss" l) v.Rcv_mss' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Rcv_mss" l) Rcv_mss' (DFrac.own 1))
@@ -293,9 +273,7 @@ instance TCPInfo_access_load_Unacked (l : Loc) (v : golang_org.x.sys.unix.TCPInf
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Unacked (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Unacked' : w32) :
+instance TCPInfo_access_store_Unacked (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Unacked' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Unacked" l) v.Unacked' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Unacked" l) Unacked' (DFrac.own 1))
@@ -311,9 +289,7 @@ instance TCPInfo_access_load_Sacked (l : Loc) (v : golang_org.x.sys.unix.TCPInfo
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Sacked (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Sacked' : w32) :
+instance TCPInfo_access_store_Sacked (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Sacked' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Sacked" l) v.Sacked' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Sacked" l) Sacked' (DFrac.own 1))
@@ -329,9 +305,7 @@ instance TCPInfo_access_load_Lost (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) 
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Lost (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Lost' : w32) :
+instance TCPInfo_access_store_Lost (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Lost' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Lost" l) v.Lost' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Lost" l) Lost' (DFrac.own 1))
@@ -347,9 +321,7 @@ instance TCPInfo_access_load_Retrans (l : Loc) (v : golang_org.x.sys.unix.TCPInf
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Retrans (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Retrans' : w32) :
+instance TCPInfo_access_store_Retrans (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Retrans' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Retrans" l) v.Retrans' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Retrans" l) Retrans' (DFrac.own 1))
@@ -365,9 +337,7 @@ instance TCPInfo_access_load_Fackets (l : Loc) (v : golang_org.x.sys.unix.TCPInf
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Fackets (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Fackets' : w32) :
+instance TCPInfo_access_store_Fackets (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Fackets' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Fackets" l) v.Fackets' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Fackets" l) Fackets' (DFrac.own 1))
@@ -383,9 +353,7 @@ instance TCPInfo_access_load_Last_data_sent (l : Loc) (v : golang_org.x.sys.unix
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Last_data_sent (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Last_data_sent' : w32) :
+instance TCPInfo_access_store_Last_data_sent (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Last_data_sent' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Last_data_sent" l) v.Last_data_sent' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Last_data_sent" l) Last_data_sent' (DFrac.own 1))
@@ -401,9 +369,7 @@ instance TCPInfo_access_load_Last_ack_sent (l : Loc) (v : golang_org.x.sys.unix.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Last_ack_sent (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Last_ack_sent' : w32) :
+instance TCPInfo_access_store_Last_ack_sent (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Last_ack_sent' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Last_ack_sent" l) v.Last_ack_sent' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Last_ack_sent" l) Last_ack_sent' (DFrac.own 1))
@@ -419,9 +385,7 @@ instance TCPInfo_access_load_Last_data_recv (l : Loc) (v : golang_org.x.sys.unix
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Last_data_recv (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Last_data_recv' : w32) :
+instance TCPInfo_access_store_Last_data_recv (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Last_data_recv' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Last_data_recv" l) v.Last_data_recv' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Last_data_recv" l) Last_data_recv' (DFrac.own 1))
@@ -437,9 +401,7 @@ instance TCPInfo_access_load_Last_ack_recv (l : Loc) (v : golang_org.x.sys.unix.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Last_ack_recv (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Last_ack_recv' : w32) :
+instance TCPInfo_access_store_Last_ack_recv (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Last_ack_recv' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Last_ack_recv" l) v.Last_ack_recv' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Last_ack_recv" l) Last_ack_recv' (DFrac.own 1))
@@ -455,9 +417,7 @@ instance TCPInfo_access_load_Pmtu (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) 
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Pmtu (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Pmtu' : w32) :
+instance TCPInfo_access_store_Pmtu (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Pmtu' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Pmtu" l) v.Pmtu' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Pmtu" l) Pmtu' (DFrac.own 1))
@@ -473,9 +433,7 @@ instance TCPInfo_access_load_Rcv_ssthresh (l : Loc) (v : golang_org.x.sys.unix.T
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Rcv_ssthresh (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Rcv_ssthresh' : w32) :
+instance TCPInfo_access_store_Rcv_ssthresh (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Rcv_ssthresh' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Rcv_ssthresh" l) v.Rcv_ssthresh' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Rcv_ssthresh" l) Rcv_ssthresh' (DFrac.own 1))
@@ -491,9 +449,7 @@ instance TCPInfo_access_load_Rtt (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Rtt (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Rtt' : w32) :
+instance TCPInfo_access_store_Rtt (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Rtt' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Rtt" l) v.Rtt' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Rtt" l) Rtt' (DFrac.own 1))
@@ -509,9 +465,7 @@ instance TCPInfo_access_load_Rttvar (l : Loc) (v : golang_org.x.sys.unix.TCPInfo
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Rttvar (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Rttvar' : w32) :
+instance TCPInfo_access_store_Rttvar (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Rttvar' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Rttvar" l) v.Rttvar' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Rttvar" l) Rttvar' (DFrac.own 1))
@@ -527,9 +481,7 @@ instance TCPInfo_access_load_Snd_ssthresh (l : Loc) (v : golang_org.x.sys.unix.T
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Snd_ssthresh (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Snd_ssthresh' : w32) :
+instance TCPInfo_access_store_Snd_ssthresh (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Snd_ssthresh' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Snd_ssthresh" l) v.Snd_ssthresh' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Snd_ssthresh" l) Snd_ssthresh' (DFrac.own 1))
@@ -545,9 +497,7 @@ instance TCPInfo_access_load_Snd_cwnd (l : Loc) (v : golang_org.x.sys.unix.TCPIn
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Snd_cwnd (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Snd_cwnd' : w32) :
+instance TCPInfo_access_store_Snd_cwnd (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Snd_cwnd' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Snd_cwnd" l) v.Snd_cwnd' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Snd_cwnd" l) Snd_cwnd' (DFrac.own 1))
@@ -563,9 +513,7 @@ instance TCPInfo_access_load_Advmss (l : Loc) (v : golang_org.x.sys.unix.TCPInfo
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Advmss (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Advmss' : w32) :
+instance TCPInfo_access_store_Advmss (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Advmss' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Advmss" l) v.Advmss' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Advmss" l) Advmss' (DFrac.own 1))
@@ -581,9 +529,7 @@ instance TCPInfo_access_load_Reordering (l : Loc) (v : golang_org.x.sys.unix.TCP
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Reordering (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Reordering' : w32) :
+instance TCPInfo_access_store_Reordering (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Reordering' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Reordering" l) v.Reordering' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Reordering" l) Reordering' (DFrac.own 1))
@@ -599,9 +545,7 @@ instance TCPInfo_access_load_Rcv_rtt (l : Loc) (v : golang_org.x.sys.unix.TCPInf
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Rcv_rtt (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Rcv_rtt' : w32) :
+instance TCPInfo_access_store_Rcv_rtt (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Rcv_rtt' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Rcv_rtt" l) v.Rcv_rtt' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Rcv_rtt" l) Rcv_rtt' (DFrac.own 1))
@@ -617,9 +561,7 @@ instance TCPInfo_access_load_Rcv_space (l : Loc) (v : golang_org.x.sys.unix.TCPI
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Rcv_space (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Rcv_space' : w32) :
+instance TCPInfo_access_store_Rcv_space (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Rcv_space' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Rcv_space" l) v.Rcv_space' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Rcv_space" l) Rcv_space' (DFrac.own 1))
@@ -635,9 +577,7 @@ instance TCPInfo_access_load_Total_retrans (l : Loc) (v : golang_org.x.sys.unix.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Total_retrans (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Total_retrans' : w32) :
+instance TCPInfo_access_store_Total_retrans (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Total_retrans' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Total_retrans" l) v.Total_retrans' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Total_retrans" l) Total_retrans' (DFrac.own 1))
@@ -653,9 +593,7 @@ instance TCPInfo_access_load_Pacing_rate (l : Loc) (v : golang_org.x.sys.unix.TC
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Pacing_rate (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Pacing_rate' : w64) :
+instance TCPInfo_access_store_Pacing_rate (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Pacing_rate' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Pacing_rate" l) v.Pacing_rate' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Pacing_rate" l) Pacing_rate' (DFrac.own 1))
@@ -671,9 +609,7 @@ instance TCPInfo_access_load_Max_pacing_rate (l : Loc) (v : golang_org.x.sys.uni
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Max_pacing_rate (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Max_pacing_rate' : w64) :
+instance TCPInfo_access_store_Max_pacing_rate (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Max_pacing_rate' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Max_pacing_rate" l) v.Max_pacing_rate' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Max_pacing_rate" l) Max_pacing_rate' (DFrac.own 1))
@@ -689,9 +625,7 @@ instance TCPInfo_access_load_Bytes_acked (l : Loc) (v : golang_org.x.sys.unix.TC
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Bytes_acked (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Bytes_acked' : w64) :
+instance TCPInfo_access_store_Bytes_acked (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Bytes_acked' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Bytes_acked" l) v.Bytes_acked' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Bytes_acked" l) Bytes_acked' (DFrac.own 1))
@@ -707,9 +641,7 @@ instance TCPInfo_access_load_Bytes_received (l : Loc) (v : golang_org.x.sys.unix
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Bytes_received (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Bytes_received' : w64) :
+instance TCPInfo_access_store_Bytes_received (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Bytes_received' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Bytes_received" l) v.Bytes_received' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Bytes_received" l) Bytes_received' (DFrac.own 1))
@@ -725,9 +657,7 @@ instance TCPInfo_access_load_Segs_out (l : Loc) (v : golang_org.x.sys.unix.TCPIn
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Segs_out (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Segs_out' : w32) :
+instance TCPInfo_access_store_Segs_out (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Segs_out' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Segs_out" l) v.Segs_out' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Segs_out" l) Segs_out' (DFrac.own 1))
@@ -743,9 +673,7 @@ instance TCPInfo_access_load_Segs_in (l : Loc) (v : golang_org.x.sys.unix.TCPInf
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Segs_in (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Segs_in' : w32) :
+instance TCPInfo_access_store_Segs_in (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Segs_in' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Segs_in" l) v.Segs_in' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Segs_in" l) Segs_in' (DFrac.own 1))
@@ -761,9 +689,7 @@ instance TCPInfo_access_load_Notsent_bytes (l : Loc) (v : golang_org.x.sys.unix.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Notsent_bytes (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Notsent_bytes' : w32) :
+instance TCPInfo_access_store_Notsent_bytes (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Notsent_bytes' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Notsent_bytes" l) v.Notsent_bytes' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Notsent_bytes" l) Notsent_bytes' (DFrac.own 1))
@@ -779,9 +705,7 @@ instance TCPInfo_access_load_Min_rtt (l : Loc) (v : golang_org.x.sys.unix.TCPInf
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Min_rtt (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Min_rtt' : w32) :
+instance TCPInfo_access_store_Min_rtt (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Min_rtt' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Min_rtt" l) v.Min_rtt' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Min_rtt" l) Min_rtt' (DFrac.own 1))
@@ -797,9 +721,7 @@ instance TCPInfo_access_load_Data_segs_in (l : Loc) (v : golang_org.x.sys.unix.T
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Data_segs_in (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Data_segs_in' : w32) :
+instance TCPInfo_access_store_Data_segs_in (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Data_segs_in' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Data_segs_in" l) v.Data_segs_in' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Data_segs_in" l) Data_segs_in' (DFrac.own 1))
@@ -815,9 +737,7 @@ instance TCPInfo_access_load_Data_segs_out (l : Loc) (v : golang_org.x.sys.unix.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Data_segs_out (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Data_segs_out' : w32) :
+instance TCPInfo_access_store_Data_segs_out (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Data_segs_out' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Data_segs_out" l) v.Data_segs_out' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Data_segs_out" l) Data_segs_out' (DFrac.own 1))
@@ -833,9 +753,7 @@ instance TCPInfo_access_load_Delivery_rate (l : Loc) (v : golang_org.x.sys.unix.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Delivery_rate (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Delivery_rate' : w64) :
+instance TCPInfo_access_store_Delivery_rate (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Delivery_rate' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Delivery_rate" l) v.Delivery_rate' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Delivery_rate" l) Delivery_rate' (DFrac.own 1))
@@ -851,9 +769,7 @@ instance TCPInfo_access_load_Busy_time (l : Loc) (v : golang_org.x.sys.unix.TCPI
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Busy_time (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Busy_time' : w64) :
+instance TCPInfo_access_store_Busy_time (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Busy_time' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Busy_time" l) v.Busy_time' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Busy_time" l) Busy_time' (DFrac.own 1))
@@ -869,9 +785,7 @@ instance TCPInfo_access_load_Rwnd_limited (l : Loc) (v : golang_org.x.sys.unix.T
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Rwnd_limited (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Rwnd_limited' : w64) :
+instance TCPInfo_access_store_Rwnd_limited (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Rwnd_limited' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Rwnd_limited" l) v.Rwnd_limited' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Rwnd_limited" l) Rwnd_limited' (DFrac.own 1))
@@ -887,9 +801,7 @@ instance TCPInfo_access_load_Sndbuf_limited (l : Loc) (v : golang_org.x.sys.unix
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Sndbuf_limited (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Sndbuf_limited' : w64) :
+instance TCPInfo_access_store_Sndbuf_limited (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Sndbuf_limited' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Sndbuf_limited" l) v.Sndbuf_limited' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Sndbuf_limited" l) Sndbuf_limited' (DFrac.own 1))
@@ -905,9 +817,7 @@ instance TCPInfo_access_load_Delivered (l : Loc) (v : golang_org.x.sys.unix.TCPI
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Delivered (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Delivered' : w32) :
+instance TCPInfo_access_store_Delivered (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Delivered' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Delivered" l) v.Delivered' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Delivered" l) Delivered' (DFrac.own 1))
@@ -923,9 +833,7 @@ instance TCPInfo_access_load_Delivered_ce (l : Loc) (v : golang_org.x.sys.unix.T
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Delivered_ce (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Delivered_ce' : w32) :
+instance TCPInfo_access_store_Delivered_ce (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Delivered_ce' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Delivered_ce" l) v.Delivered_ce' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Delivered_ce" l) Delivered_ce' (DFrac.own 1))
@@ -941,9 +849,7 @@ instance TCPInfo_access_load_Bytes_sent (l : Loc) (v : golang_org.x.sys.unix.TCP
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Bytes_sent (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Bytes_sent' : w64) :
+instance TCPInfo_access_store_Bytes_sent (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Bytes_sent' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Bytes_sent" l) v.Bytes_sent' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Bytes_sent" l) Bytes_sent' (DFrac.own 1))
@@ -959,9 +865,7 @@ instance TCPInfo_access_load_Bytes_retrans (l : Loc) (v : golang_org.x.sys.unix.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Bytes_retrans (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Bytes_retrans' : w64) :
+instance TCPInfo_access_store_Bytes_retrans (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Bytes_retrans' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Bytes_retrans" l) v.Bytes_retrans' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Bytes_retrans" l) Bytes_retrans' (DFrac.own 1))
@@ -977,9 +881,7 @@ instance TCPInfo_access_load_Dsack_dups (l : Loc) (v : golang_org.x.sys.unix.TCP
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Dsack_dups (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Dsack_dups' : w32) :
+instance TCPInfo_access_store_Dsack_dups (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Dsack_dups' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Dsack_dups" l) v.Dsack_dups' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Dsack_dups" l) Dsack_dups' (DFrac.own 1))
@@ -995,9 +897,7 @@ instance TCPInfo_access_load_Reord_seen (l : Loc) (v : golang_org.x.sys.unix.TCP
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Reord_seen (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Reord_seen' : w32) :
+instance TCPInfo_access_store_Reord_seen (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Reord_seen' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Reord_seen" l) v.Reord_seen' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Reord_seen" l) Reord_seen' (DFrac.own 1))
@@ -1013,9 +913,7 @@ instance TCPInfo_access_load_Rcv_ooopack (l : Loc) (v : golang_org.x.sys.unix.TC
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Rcv_ooopack (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Rcv_ooopack' : w32) :
+instance TCPInfo_access_store_Rcv_ooopack (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Rcv_ooopack' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Rcv_ooopack" l) v.Rcv_ooopack' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Rcv_ooopack" l) Rcv_ooopack' (DFrac.own 1))
@@ -1031,9 +929,7 @@ instance TCPInfo_access_load_Snd_wnd (l : Loc) (v : golang_org.x.sys.unix.TCPInf
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Snd_wnd (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Snd_wnd' : w32) :
+instance TCPInfo_access_store_Snd_wnd (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Snd_wnd' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Snd_wnd" l) v.Snd_wnd' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Snd_wnd" l) Snd_wnd' (DFrac.own 1))
@@ -1049,9 +945,7 @@ instance TCPInfo_access_load_Rcv_wnd (l : Loc) (v : golang_org.x.sys.unix.TCPInf
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Rcv_wnd (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Rcv_wnd' : w32) :
+instance TCPInfo_access_store_Rcv_wnd (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Rcv_wnd' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Rcv_wnd" l) v.Rcv_wnd' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Rcv_wnd" l) Rcv_wnd' (DFrac.own 1))
@@ -1067,9 +961,7 @@ instance TCPInfo_access_load_Rehash (l : Loc) (v : golang_org.x.sys.unix.TCPInfo
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Rehash (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Rehash' : w32) :
+instance TCPInfo_access_store_Rehash (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Rehash' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Rehash" l) v.Rehash' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Rehash" l) Rehash' (DFrac.own 1))
@@ -1085,9 +977,7 @@ instance TCPInfo_access_load_Total_rto (l : Loc) (v : golang_org.x.sys.unix.TCPI
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Total_rto (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Total_rto' : w16) :
+instance TCPInfo_access_store_Total_rto (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Total_rto' : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Total_rto" l) v.Total_rto' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Total_rto" l) Total_rto' (DFrac.own 1))
@@ -1103,9 +993,7 @@ instance TCPInfo_access_load_Total_rto_recoveries (l : Loc) (v : golang_org.x.sy
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Total_rto_recoveries (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Total_rto_recoveries' : w16) :
+instance TCPInfo_access_store_Total_rto_recoveries (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Total_rto_recoveries' : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Total_rto_recoveries" l) v.Total_rto_recoveries' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Total_rto_recoveries" l) Total_rto_recoveries' (DFrac.own 1))
@@ -1121,9 +1009,7 @@ instance TCPInfo_access_load_Total_rto_time (l : Loc) (v : golang_org.x.sys.unix
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Total_rto_time (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Total_rto_time' : w32) :
+instance TCPInfo_access_store_Total_rto_time (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Total_rto_time' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Total_rto_time" l) v.Total_rto_time' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Total_rto_time" l) Total_rto_time' (DFrac.own 1))
@@ -1139,9 +1025,7 @@ instance TCPInfo_access_load_Received_ce (l : Loc) (v : golang_org.x.sys.unix.TC
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Received_ce (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Received_ce' : w32) :
+instance TCPInfo_access_store_Received_ce (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Received_ce' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Received_ce" l) v.Received_ce' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Received_ce" l) Received_ce' (DFrac.own 1))
@@ -1157,9 +1041,7 @@ instance TCPInfo_access_load_Delivered_e1_bytes (l : Loc) (v : golang_org.x.sys.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Delivered_e1_bytes (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Delivered_e1_bytes' : w32) :
+instance TCPInfo_access_store_Delivered_e1_bytes (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Delivered_e1_bytes' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Delivered_e1_bytes" l) v.Delivered_e1_bytes' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Delivered_e1_bytes" l) Delivered_e1_bytes' (DFrac.own 1))
@@ -1175,9 +1057,7 @@ instance TCPInfo_access_load_Delivered_e0_bytes (l : Loc) (v : golang_org.x.sys.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Delivered_e0_bytes (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Delivered_e0_bytes' : w32) :
+instance TCPInfo_access_store_Delivered_e0_bytes (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Delivered_e0_bytes' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Delivered_e0_bytes" l) v.Delivered_e0_bytes' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Delivered_e0_bytes" l) Delivered_e0_bytes' (DFrac.own 1))
@@ -1193,9 +1073,7 @@ instance TCPInfo_access_load_Delivered_ce_bytes (l : Loc) (v : golang_org.x.sys.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Delivered_ce_bytes (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Delivered_ce_bytes' : w32) :
+instance TCPInfo_access_store_Delivered_ce_bytes (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Delivered_ce_bytes' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Delivered_ce_bytes" l) v.Delivered_ce_bytes' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Delivered_ce_bytes" l) Delivered_ce_bytes' (DFrac.own 1))
@@ -1211,9 +1089,7 @@ instance TCPInfo_access_load_Received_e1_bytes (l : Loc) (v : golang_org.x.sys.u
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Received_e1_bytes (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Received_e1_bytes' : w32) :
+instance TCPInfo_access_store_Received_e1_bytes (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Received_e1_bytes' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Received_e1_bytes" l) v.Received_e1_bytes' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Received_e1_bytes" l) Received_e1_bytes' (DFrac.own 1))
@@ -1229,9 +1105,7 @@ instance TCPInfo_access_load_Received_e0_bytes (l : Loc) (v : golang_org.x.sys.u
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Received_e0_bytes (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Received_e0_bytes' : w32) :
+instance TCPInfo_access_store_Received_e0_bytes (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Received_e0_bytes' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Received_e0_bytes" l) v.Received_e0_bytes' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Received_e0_bytes" l) Received_e0_bytes' (DFrac.own 1))
@@ -1247,9 +1121,7 @@ instance TCPInfo_access_load_Received_ce_bytes (l : Loc) (v : golang_org.x.sys.u
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store_Received_ce_bytes (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Received_ce_bytes' : w32) :
+instance TCPInfo_access_store_Received_ce_bytes (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (Received_ce_bytes' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Received_ce_bytes" l) v.Received_ce_bytes' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"Received_ce_bytes" l) Received_ce_bytes' (DFrac.own 1))
@@ -1265,9 +1137,7 @@ instance TCPInfo_access_load__64 (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPInfo_access_store__64 (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (_64' : (GoArray w8 4)) :
+instance TCPInfo_access_store__64 (l : Loc) (v : golang_org.x.sys.unix.TCPInfo) (_64' : (GoArray w8 4)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"_64" l) v._64' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPInfo go!"_64" l) _64' (DFrac.own 1))
@@ -1310,9 +1180,7 @@ instance TCPVegasInfo_access_load_Enabled (l : Loc) (v : golang_org.x.sys.unix.T
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPVegasInfo_access_store_Enabled (l : Loc) (v : golang_org.x.sys.unix.TCPVegasInfo) (Enabled' : w32) :
+instance TCPVegasInfo_access_store_Enabled (l : Loc) (v : golang_org.x.sys.unix.TCPVegasInfo) (Enabled' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPVegasInfo go!"Enabled" l) v.Enabled' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPVegasInfo go!"Enabled" l) Enabled' (DFrac.own 1))
@@ -1328,9 +1196,7 @@ instance TCPVegasInfo_access_load_Rttcnt (l : Loc) (v : golang_org.x.sys.unix.TC
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPVegasInfo_access_store_Rttcnt (l : Loc) (v : golang_org.x.sys.unix.TCPVegasInfo) (Rttcnt' : w32) :
+instance TCPVegasInfo_access_store_Rttcnt (l : Loc) (v : golang_org.x.sys.unix.TCPVegasInfo) (Rttcnt' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPVegasInfo go!"Rttcnt" l) v.Rttcnt' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPVegasInfo go!"Rttcnt" l) Rttcnt' (DFrac.own 1))
@@ -1346,9 +1212,7 @@ instance TCPVegasInfo_access_load_Rtt (l : Loc) (v : golang_org.x.sys.unix.TCPVe
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPVegasInfo_access_store_Rtt (l : Loc) (v : golang_org.x.sys.unix.TCPVegasInfo) (Rtt' : w32) :
+instance TCPVegasInfo_access_store_Rtt (l : Loc) (v : golang_org.x.sys.unix.TCPVegasInfo) (Rtt' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPVegasInfo go!"Rtt" l) v.Rtt' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPVegasInfo go!"Rtt" l) Rtt' (DFrac.own 1))
@@ -1364,9 +1228,7 @@ instance TCPVegasInfo_access_load_Minrtt (l : Loc) (v : golang_org.x.sys.unix.TC
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPVegasInfo_access_store_Minrtt (l : Loc) (v : golang_org.x.sys.unix.TCPVegasInfo) (Minrtt' : w32) :
+instance TCPVegasInfo_access_store_Minrtt (l : Loc) (v : golang_org.x.sys.unix.TCPVegasInfo) (Minrtt' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPVegasInfo go!"Minrtt" l) v.Minrtt' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPVegasInfo go!"Minrtt" l) Minrtt' (DFrac.own 1))
@@ -1410,9 +1272,7 @@ instance TCPDCTCPInfo_access_load_Enabled (l : Loc) (v : golang_org.x.sys.unix.T
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPDCTCPInfo_access_store_Enabled (l : Loc) (v : golang_org.x.sys.unix.TCPDCTCPInfo) (Enabled' : w16) :
+instance TCPDCTCPInfo_access_store_Enabled (l : Loc) (v : golang_org.x.sys.unix.TCPDCTCPInfo) (Enabled' : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPDCTCPInfo go!"Enabled" l) v.Enabled' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPDCTCPInfo go!"Enabled" l) Enabled' (DFrac.own 1))
@@ -1428,9 +1288,7 @@ instance TCPDCTCPInfo_access_load_Ce_state (l : Loc) (v : golang_org.x.sys.unix.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPDCTCPInfo_access_store_Ce_state (l : Loc) (v : golang_org.x.sys.unix.TCPDCTCPInfo) (Ce_state' : w16) :
+instance TCPDCTCPInfo_access_store_Ce_state (l : Loc) (v : golang_org.x.sys.unix.TCPDCTCPInfo) (Ce_state' : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPDCTCPInfo go!"Ce_state" l) v.Ce_state' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPDCTCPInfo go!"Ce_state" l) Ce_state' (DFrac.own 1))
@@ -1446,9 +1304,7 @@ instance TCPDCTCPInfo_access_load_Alpha (l : Loc) (v : golang_org.x.sys.unix.TCP
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPDCTCPInfo_access_store_Alpha (l : Loc) (v : golang_org.x.sys.unix.TCPDCTCPInfo) (Alpha' : w32) :
+instance TCPDCTCPInfo_access_store_Alpha (l : Loc) (v : golang_org.x.sys.unix.TCPDCTCPInfo) (Alpha' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPDCTCPInfo go!"Alpha" l) v.Alpha' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPDCTCPInfo go!"Alpha" l) Alpha' (DFrac.own 1))
@@ -1464,9 +1320,7 @@ instance TCPDCTCPInfo_access_load_Ab_ecn (l : Loc) (v : golang_org.x.sys.unix.TC
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPDCTCPInfo_access_store_Ab_ecn (l : Loc) (v : golang_org.x.sys.unix.TCPDCTCPInfo) (Ab_ecn' : w32) :
+instance TCPDCTCPInfo_access_store_Ab_ecn (l : Loc) (v : golang_org.x.sys.unix.TCPDCTCPInfo) (Ab_ecn' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPDCTCPInfo go!"Ab_ecn" l) v.Ab_ecn' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPDCTCPInfo go!"Ab_ecn" l) Ab_ecn' (DFrac.own 1))
@@ -1482,9 +1336,7 @@ instance TCPDCTCPInfo_access_load_Ab_tot (l : Loc) (v : golang_org.x.sys.unix.TC
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPDCTCPInfo_access_store_Ab_tot (l : Loc) (v : golang_org.x.sys.unix.TCPDCTCPInfo) (Ab_tot' : w32) :
+instance TCPDCTCPInfo_access_store_Ab_tot (l : Loc) (v : golang_org.x.sys.unix.TCPDCTCPInfo) (Ab_tot' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPDCTCPInfo go!"Ab_tot" l) v.Ab_tot' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPDCTCPInfo go!"Ab_tot" l) Ab_tot' (DFrac.own 1))
@@ -1528,9 +1380,7 @@ instance TCPBBRInfo_access_load_Bw_lo (l : Loc) (v : golang_org.x.sys.unix.TCPBB
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPBBRInfo_access_store_Bw_lo (l : Loc) (v : golang_org.x.sys.unix.TCPBBRInfo) (Bw_lo' : w32) :
+instance TCPBBRInfo_access_store_Bw_lo (l : Loc) (v : golang_org.x.sys.unix.TCPBBRInfo) (Bw_lo' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPBBRInfo go!"Bw_lo" l) v.Bw_lo' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPBBRInfo go!"Bw_lo" l) Bw_lo' (DFrac.own 1))
@@ -1546,9 +1396,7 @@ instance TCPBBRInfo_access_load_Bw_hi (l : Loc) (v : golang_org.x.sys.unix.TCPBB
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPBBRInfo_access_store_Bw_hi (l : Loc) (v : golang_org.x.sys.unix.TCPBBRInfo) (Bw_hi' : w32) :
+instance TCPBBRInfo_access_store_Bw_hi (l : Loc) (v : golang_org.x.sys.unix.TCPBBRInfo) (Bw_hi' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPBBRInfo go!"Bw_hi" l) v.Bw_hi' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPBBRInfo go!"Bw_hi" l) Bw_hi' (DFrac.own 1))
@@ -1564,9 +1412,7 @@ instance TCPBBRInfo_access_load_Min_rtt (l : Loc) (v : golang_org.x.sys.unix.TCP
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPBBRInfo_access_store_Min_rtt (l : Loc) (v : golang_org.x.sys.unix.TCPBBRInfo) (Min_rtt' : w32) :
+instance TCPBBRInfo_access_store_Min_rtt (l : Loc) (v : golang_org.x.sys.unix.TCPBBRInfo) (Min_rtt' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPBBRInfo go!"Min_rtt" l) v.Min_rtt' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPBBRInfo go!"Min_rtt" l) Min_rtt' (DFrac.own 1))
@@ -1582,9 +1428,7 @@ instance TCPBBRInfo_access_load_Pacing_gain (l : Loc) (v : golang_org.x.sys.unix
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPBBRInfo_access_store_Pacing_gain (l : Loc) (v : golang_org.x.sys.unix.TCPBBRInfo) (Pacing_gain' : w32) :
+instance TCPBBRInfo_access_store_Pacing_gain (l : Loc) (v : golang_org.x.sys.unix.TCPBBRInfo) (Pacing_gain' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPBBRInfo go!"Pacing_gain" l) v.Pacing_gain' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPBBRInfo go!"Pacing_gain" l) Pacing_gain' (DFrac.own 1))
@@ -1600,9 +1444,7 @@ instance TCPBBRInfo_access_load_Cwnd_gain (l : Loc) (v : golang_org.x.sys.unix.T
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPBBRInfo_access_store_Cwnd_gain (l : Loc) (v : golang_org.x.sys.unix.TCPBBRInfo) (Cwnd_gain' : w32) :
+instance TCPBBRInfo_access_store_Cwnd_gain (l : Loc) (v : golang_org.x.sys.unix.TCPBBRInfo) (Cwnd_gain' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPBBRInfo go!"Cwnd_gain" l) v.Cwnd_gain' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPBBRInfo go!"Cwnd_gain" l) Cwnd_gain' (DFrac.own 1))
@@ -1643,9 +1485,7 @@ instance CanFilter_access_load_Id (l : Loc) (v : golang_org.x.sys.unix.CanFilter
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) CanFilter_access_store_Id (l : Loc) (v : golang_org.x.sys.unix.CanFilter) (Id' : w32) :
+instance CanFilter_access_store_Id (l : Loc) (v : golang_org.x.sys.unix.CanFilter) (Id' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.CanFilter go!"Id" l) v.Id' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.CanFilter go!"Id" l) Id' (DFrac.own 1))
@@ -1661,9 +1501,7 @@ instance CanFilter_access_load_Mask (l : Loc) (v : golang_org.x.sys.unix.CanFilt
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) CanFilter_access_store_Mask (l : Loc) (v : golang_org.x.sys.unix.CanFilter) (Mask' : w32) :
+instance CanFilter_access_store_Mask (l : Loc) (v : golang_org.x.sys.unix.CanFilter) (Mask' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.CanFilter go!"Mask" l) v.Mask' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.CanFilter go!"Mask" l) Mask' (DFrac.own 1))
@@ -1704,9 +1542,7 @@ instance TCPRepairOpt_access_load_Code (l : Loc) (v : golang_org.x.sys.unix.TCPR
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPRepairOpt_access_store_Code (l : Loc) (v : golang_org.x.sys.unix.TCPRepairOpt) (Code' : w32) :
+instance TCPRepairOpt_access_store_Code (l : Loc) (v : golang_org.x.sys.unix.TCPRepairOpt) (Code' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPRepairOpt go!"Code" l) v.Code' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPRepairOpt go!"Code" l) Code' (DFrac.own 1))
@@ -1722,9 +1558,7 @@ instance TCPRepairOpt_access_load_Val (l : Loc) (v : golang_org.x.sys.unix.TCPRe
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TCPRepairOpt_access_store_Val (l : Loc) (v : golang_org.x.sys.unix.TCPRepairOpt) (Val' : w32) :
+instance TCPRepairOpt_access_store_Val (l : Loc) (v : golang_org.x.sys.unix.TCPRepairOpt) (Val' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPRepairOpt go!"Val" l) v.Val' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.TCPRepairOpt go!"Val" l) Val' (DFrac.own 1))
@@ -1768,9 +1602,7 @@ instance NlMsghdr_access_load_Len (l : Loc) (v : golang_org.x.sys.unix.NlMsghdr)
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) NlMsghdr_access_store_Len (l : Loc) (v : golang_org.x.sys.unix.NlMsghdr) (Len' : w32) :
+instance NlMsghdr_access_store_Len (l : Loc) (v : golang_org.x.sys.unix.NlMsghdr) (Len' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.NlMsghdr go!"Len" l) v.Len' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.NlMsghdr go!"Len" l) Len' (DFrac.own 1))
@@ -1786,9 +1618,7 @@ instance NlMsghdr_access_load_Type (l : Loc) (v : golang_org.x.sys.unix.NlMsghdr
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) NlMsghdr_access_store_Type (l : Loc) (v : golang_org.x.sys.unix.NlMsghdr) (Type' : w16) :
+instance NlMsghdr_access_store_Type (l : Loc) (v : golang_org.x.sys.unix.NlMsghdr) (Type' : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.NlMsghdr go!"Type" l) v.Type' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.NlMsghdr go!"Type" l) Type' (DFrac.own 1))
@@ -1804,9 +1634,7 @@ instance NlMsghdr_access_load_Flags (l : Loc) (v : golang_org.x.sys.unix.NlMsghd
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) NlMsghdr_access_store_Flags (l : Loc) (v : golang_org.x.sys.unix.NlMsghdr) (Flags' : w16) :
+instance NlMsghdr_access_store_Flags (l : Loc) (v : golang_org.x.sys.unix.NlMsghdr) (Flags' : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.NlMsghdr go!"Flags" l) v.Flags' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.NlMsghdr go!"Flags" l) Flags' (DFrac.own 1))
@@ -1822,9 +1650,7 @@ instance NlMsghdr_access_load_Seq (l : Loc) (v : golang_org.x.sys.unix.NlMsghdr)
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) NlMsghdr_access_store_Seq (l : Loc) (v : golang_org.x.sys.unix.NlMsghdr) (Seq' : w32) :
+instance NlMsghdr_access_store_Seq (l : Loc) (v : golang_org.x.sys.unix.NlMsghdr) (Seq' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.NlMsghdr go!"Seq" l) v.Seq' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.NlMsghdr go!"Seq" l) Seq' (DFrac.own 1))
@@ -1840,9 +1666,7 @@ instance NlMsghdr_access_load_Pid (l : Loc) (v : golang_org.x.sys.unix.NlMsghdr)
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) NlMsghdr_access_store_Pid (l : Loc) (v : golang_org.x.sys.unix.NlMsghdr) (Pid' : w32) :
+instance NlMsghdr_access_store_Pid (l : Loc) (v : golang_org.x.sys.unix.NlMsghdr) (Pid' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.NlMsghdr go!"Pid" l) v.Pid' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.NlMsghdr go!"Pid" l) Pid' (DFrac.own 1))
@@ -1882,9 +1706,7 @@ instance RtGenmsg_access_load_Family (l : Loc) (v : golang_org.x.sys.unix.RtGenm
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RtGenmsg_access_store_Family (l : Loc) (v : golang_org.x.sys.unix.RtGenmsg) (Family' : w8) :
+instance RtGenmsg_access_store_Family (l : Loc) (v : golang_org.x.sys.unix.RtGenmsg) (Family' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtGenmsg go!"Family" l) v.Family' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtGenmsg go!"Family" l) Family' (DFrac.own 1))
@@ -1925,9 +1747,7 @@ instance NlAttr_access_load_Len (l : Loc) (v : golang_org.x.sys.unix.NlAttr) (dq
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) NlAttr_access_store_Len (l : Loc) (v : golang_org.x.sys.unix.NlAttr) (Len' : w16) :
+instance NlAttr_access_store_Len (l : Loc) (v : golang_org.x.sys.unix.NlAttr) (Len' : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.NlAttr go!"Len" l) v.Len' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.NlAttr go!"Len" l) Len' (DFrac.own 1))
@@ -1943,9 +1763,7 @@ instance NlAttr_access_load_Type (l : Loc) (v : golang_org.x.sys.unix.NlAttr) (d
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) NlAttr_access_store_Type (l : Loc) (v : golang_org.x.sys.unix.NlAttr) (Type' : w16) :
+instance NlAttr_access_store_Type (l : Loc) (v : golang_org.x.sys.unix.NlAttr) (Type' : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.NlAttr go!"Type" l) v.Type' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.NlAttr go!"Type" l) Type' (DFrac.own 1))
@@ -1986,9 +1804,7 @@ instance RtAttr_access_load_Len (l : Loc) (v : golang_org.x.sys.unix.RtAttr) (dq
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RtAttr_access_store_Len (l : Loc) (v : golang_org.x.sys.unix.RtAttr) (Len' : w16) :
+instance RtAttr_access_store_Len (l : Loc) (v : golang_org.x.sys.unix.RtAttr) (Len' : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtAttr go!"Len" l) v.Len' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtAttr go!"Len" l) Len' (DFrac.own 1))
@@ -2004,9 +1820,7 @@ instance RtAttr_access_load_Type (l : Loc) (v : golang_org.x.sys.unix.RtAttr) (d
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RtAttr_access_store_Type (l : Loc) (v : golang_org.x.sys.unix.RtAttr) (Type' : w16) :
+instance RtAttr_access_store_Type (l : Loc) (v : golang_org.x.sys.unix.RtAttr) (Type' : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtAttr go!"Type" l) v.Type' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtAttr go!"Type" l) Type' (DFrac.own 1))
@@ -2051,9 +1865,7 @@ instance IfInfomsg_access_load_Family (l : Loc) (v : golang_org.x.sys.unix.IfInf
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) IfInfomsg_access_store_Family (l : Loc) (v : golang_org.x.sys.unix.IfInfomsg) (Family' : w8) :
+instance IfInfomsg_access_store_Family (l : Loc) (v : golang_org.x.sys.unix.IfInfomsg) (Family' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfInfomsg go!"Family" l) v.Family' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfInfomsg go!"Family" l) Family' (DFrac.own 1))
@@ -2069,9 +1881,7 @@ instance IfInfomsg_access_load__1 (l : Loc) (v : golang_org.x.sys.unix.IfInfomsg
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) IfInfomsg_access_store__1 (l : Loc) (v : golang_org.x.sys.unix.IfInfomsg) (_1' : w8) :
+instance IfInfomsg_access_store__1 (l : Loc) (v : golang_org.x.sys.unix.IfInfomsg) (_1' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfInfomsg go!"_1" l) v._1' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfInfomsg go!"_1" l) _1' (DFrac.own 1))
@@ -2087,9 +1897,7 @@ instance IfInfomsg_access_load_Type (l : Loc) (v : golang_org.x.sys.unix.IfInfom
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) IfInfomsg_access_store_Type (l : Loc) (v : golang_org.x.sys.unix.IfInfomsg) (Type' : w16) :
+instance IfInfomsg_access_store_Type (l : Loc) (v : golang_org.x.sys.unix.IfInfomsg) (Type' : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfInfomsg go!"Type" l) v.Type' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfInfomsg go!"Type" l) Type' (DFrac.own 1))
@@ -2105,9 +1913,7 @@ instance IfInfomsg_access_load_Index (l : Loc) (v : golang_org.x.sys.unix.IfInfo
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) IfInfomsg_access_store_Index (l : Loc) (v : golang_org.x.sys.unix.IfInfomsg) (Index' : w32) :
+instance IfInfomsg_access_store_Index (l : Loc) (v : golang_org.x.sys.unix.IfInfomsg) (Index' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfInfomsg go!"Index" l) v.Index' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfInfomsg go!"Index" l) Index' (DFrac.own 1))
@@ -2123,9 +1929,7 @@ instance IfInfomsg_access_load_Flags (l : Loc) (v : golang_org.x.sys.unix.IfInfo
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) IfInfomsg_access_store_Flags (l : Loc) (v : golang_org.x.sys.unix.IfInfomsg) (Flags' : w32) :
+instance IfInfomsg_access_store_Flags (l : Loc) (v : golang_org.x.sys.unix.IfInfomsg) (Flags' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfInfomsg go!"Flags" l) v.Flags' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfInfomsg go!"Flags" l) Flags' (DFrac.own 1))
@@ -2141,9 +1945,7 @@ instance IfInfomsg_access_load_Change (l : Loc) (v : golang_org.x.sys.unix.IfInf
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) IfInfomsg_access_store_Change (l : Loc) (v : golang_org.x.sys.unix.IfInfomsg) (Change' : w32) :
+instance IfInfomsg_access_store_Change (l : Loc) (v : golang_org.x.sys.unix.IfInfomsg) (Change' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfInfomsg go!"Change" l) v.Change' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfInfomsg go!"Change" l) Change' (DFrac.own 1))
@@ -2190,9 +1992,7 @@ instance Prefixmsg_access_load_Family (l : Loc) (v : golang_org.x.sys.unix.Prefi
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Prefixmsg_access_store_Family (l : Loc) (v : golang_org.x.sys.unix.Prefixmsg) (Family' : w8) :
+instance Prefixmsg_access_store_Family (l : Loc) (v : golang_org.x.sys.unix.Prefixmsg) (Family' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.Prefixmsg go!"Family" l) v.Family' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.Prefixmsg go!"Family" l) Family' (DFrac.own 1))
@@ -2208,9 +2008,7 @@ instance Prefixmsg_access_load_Pad1 (l : Loc) (v : golang_org.x.sys.unix.Prefixm
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Prefixmsg_access_store_Pad1 (l : Loc) (v : golang_org.x.sys.unix.Prefixmsg) (Pad1' : w8) :
+instance Prefixmsg_access_store_Pad1 (l : Loc) (v : golang_org.x.sys.unix.Prefixmsg) (Pad1' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.Prefixmsg go!"Pad1" l) v.Pad1' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.Prefixmsg go!"Pad1" l) Pad1' (DFrac.own 1))
@@ -2226,9 +2024,7 @@ instance Prefixmsg_access_load_Pad2 (l : Loc) (v : golang_org.x.sys.unix.Prefixm
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Prefixmsg_access_store_Pad2 (l : Loc) (v : golang_org.x.sys.unix.Prefixmsg) (Pad2' : w16) :
+instance Prefixmsg_access_store_Pad2 (l : Loc) (v : golang_org.x.sys.unix.Prefixmsg) (Pad2' : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.Prefixmsg go!"Pad2" l) v.Pad2' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.Prefixmsg go!"Pad2" l) Pad2' (DFrac.own 1))
@@ -2244,9 +2040,7 @@ instance Prefixmsg_access_load_Ifindex (l : Loc) (v : golang_org.x.sys.unix.Pref
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Prefixmsg_access_store_Ifindex (l : Loc) (v : golang_org.x.sys.unix.Prefixmsg) (Ifindex' : w32) :
+instance Prefixmsg_access_store_Ifindex (l : Loc) (v : golang_org.x.sys.unix.Prefixmsg) (Ifindex' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.Prefixmsg go!"Ifindex" l) v.Ifindex' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.Prefixmsg go!"Ifindex" l) Ifindex' (DFrac.own 1))
@@ -2262,9 +2056,7 @@ instance Prefixmsg_access_load_Type (l : Loc) (v : golang_org.x.sys.unix.Prefixm
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Prefixmsg_access_store_Type (l : Loc) (v : golang_org.x.sys.unix.Prefixmsg) (Type' : w8) :
+instance Prefixmsg_access_store_Type (l : Loc) (v : golang_org.x.sys.unix.Prefixmsg) (Type' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.Prefixmsg go!"Type" l) v.Type' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.Prefixmsg go!"Type" l) Type' (DFrac.own 1))
@@ -2280,9 +2072,7 @@ instance Prefixmsg_access_load_Len (l : Loc) (v : golang_org.x.sys.unix.Prefixms
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Prefixmsg_access_store_Len (l : Loc) (v : golang_org.x.sys.unix.Prefixmsg) (Len' : w8) :
+instance Prefixmsg_access_store_Len (l : Loc) (v : golang_org.x.sys.unix.Prefixmsg) (Len' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.Prefixmsg go!"Len" l) v.Len' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.Prefixmsg go!"Len" l) Len' (DFrac.own 1))
@@ -2298,9 +2088,7 @@ instance Prefixmsg_access_load_Flags (l : Loc) (v : golang_org.x.sys.unix.Prefix
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Prefixmsg_access_store_Flags (l : Loc) (v : golang_org.x.sys.unix.Prefixmsg) (Flags' : w8) :
+instance Prefixmsg_access_store_Flags (l : Loc) (v : golang_org.x.sys.unix.Prefixmsg) (Flags' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.Prefixmsg go!"Flags" l) v.Flags' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.Prefixmsg go!"Flags" l) Flags' (DFrac.own 1))
@@ -2316,9 +2104,7 @@ instance Prefixmsg_access_load_Pad3 (l : Loc) (v : golang_org.x.sys.unix.Prefixm
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Prefixmsg_access_store_Pad3 (l : Loc) (v : golang_org.x.sys.unix.Prefixmsg) (Pad3' : w8) :
+instance Prefixmsg_access_store_Pad3 (l : Loc) (v : golang_org.x.sys.unix.Prefixmsg) (Pad3' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.Prefixmsg go!"Pad3" l) v.Pad3' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.Prefixmsg go!"Pad3" l) Pad3' (DFrac.own 1))
@@ -2359,9 +2145,7 @@ instance PrefixCacheinfo_access_load_Preferred_time (l : Loc) (v : golang_org.x.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) PrefixCacheinfo_access_store_Preferred_time (l : Loc) (v : golang_org.x.sys.unix.PrefixCacheinfo) (Preferred_time' : w32) :
+instance PrefixCacheinfo_access_store_Preferred_time (l : Loc) (v : golang_org.x.sys.unix.PrefixCacheinfo) (Preferred_time' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.PrefixCacheinfo go!"Preferred_time" l) v.Preferred_time' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.PrefixCacheinfo go!"Preferred_time" l) Preferred_time' (DFrac.own 1))
@@ -2377,9 +2161,7 @@ instance PrefixCacheinfo_access_load_Valid_time (l : Loc) (v : golang_org.x.sys.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) PrefixCacheinfo_access_store_Valid_time (l : Loc) (v : golang_org.x.sys.unix.PrefixCacheinfo) (Valid_time' : w32) :
+instance PrefixCacheinfo_access_store_Valid_time (l : Loc) (v : golang_org.x.sys.unix.PrefixCacheinfo) (Valid_time' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.PrefixCacheinfo go!"Valid_time" l) v.Valid_time' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.PrefixCacheinfo go!"Valid_time" l) Valid_time' (DFrac.own 1))
@@ -2423,9 +2205,7 @@ instance IfAddrmsg_access_load_Family (l : Loc) (v : golang_org.x.sys.unix.IfAdd
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) IfAddrmsg_access_store_Family (l : Loc) (v : golang_org.x.sys.unix.IfAddrmsg) (Family' : w8) :
+instance IfAddrmsg_access_store_Family (l : Loc) (v : golang_org.x.sys.unix.IfAddrmsg) (Family' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfAddrmsg go!"Family" l) v.Family' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfAddrmsg go!"Family" l) Family' (DFrac.own 1))
@@ -2441,9 +2221,7 @@ instance IfAddrmsg_access_load_Prefixlen (l : Loc) (v : golang_org.x.sys.unix.If
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) IfAddrmsg_access_store_Prefixlen (l : Loc) (v : golang_org.x.sys.unix.IfAddrmsg) (Prefixlen' : w8) :
+instance IfAddrmsg_access_store_Prefixlen (l : Loc) (v : golang_org.x.sys.unix.IfAddrmsg) (Prefixlen' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfAddrmsg go!"Prefixlen" l) v.Prefixlen' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfAddrmsg go!"Prefixlen" l) Prefixlen' (DFrac.own 1))
@@ -2459,9 +2237,7 @@ instance IfAddrmsg_access_load_Flags (l : Loc) (v : golang_org.x.sys.unix.IfAddr
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) IfAddrmsg_access_store_Flags (l : Loc) (v : golang_org.x.sys.unix.IfAddrmsg) (Flags' : w8) :
+instance IfAddrmsg_access_store_Flags (l : Loc) (v : golang_org.x.sys.unix.IfAddrmsg) (Flags' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfAddrmsg go!"Flags" l) v.Flags' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfAddrmsg go!"Flags" l) Flags' (DFrac.own 1))
@@ -2477,9 +2253,7 @@ instance IfAddrmsg_access_load_Scope (l : Loc) (v : golang_org.x.sys.unix.IfAddr
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) IfAddrmsg_access_store_Scope (l : Loc) (v : golang_org.x.sys.unix.IfAddrmsg) (Scope' : w8) :
+instance IfAddrmsg_access_store_Scope (l : Loc) (v : golang_org.x.sys.unix.IfAddrmsg) (Scope' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfAddrmsg go!"Scope" l) v.Scope' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfAddrmsg go!"Scope" l) Scope' (DFrac.own 1))
@@ -2495,9 +2269,7 @@ instance IfAddrmsg_access_load_Index (l : Loc) (v : golang_org.x.sys.unix.IfAddr
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) IfAddrmsg_access_store_Index (l : Loc) (v : golang_org.x.sys.unix.IfAddrmsg) (Index' : w32) :
+instance IfAddrmsg_access_store_Index (l : Loc) (v : golang_org.x.sys.unix.IfAddrmsg) (Index' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfAddrmsg go!"Index" l) v.Index' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfAddrmsg go!"Index" l) Index' (DFrac.own 1))
@@ -2542,9 +2314,7 @@ instance IfAddrlblmsg_access_load_Family (l : Loc) (v : golang_org.x.sys.unix.If
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) IfAddrlblmsg_access_store_Family (l : Loc) (v : golang_org.x.sys.unix.IfAddrlblmsg) (Family' : w8) :
+instance IfAddrlblmsg_access_store_Family (l : Loc) (v : golang_org.x.sys.unix.IfAddrlblmsg) (Family' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfAddrlblmsg go!"Family" l) v.Family' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfAddrlblmsg go!"Family" l) Family' (DFrac.own 1))
@@ -2560,9 +2330,7 @@ instance IfAddrlblmsg_access_load__1 (l : Loc) (v : golang_org.x.sys.unix.IfAddr
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) IfAddrlblmsg_access_store__1 (l : Loc) (v : golang_org.x.sys.unix.IfAddrlblmsg) (_1' : w8) :
+instance IfAddrlblmsg_access_store__1 (l : Loc) (v : golang_org.x.sys.unix.IfAddrlblmsg) (_1' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfAddrlblmsg go!"_1" l) v._1' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfAddrlblmsg go!"_1" l) _1' (DFrac.own 1))
@@ -2578,9 +2346,7 @@ instance IfAddrlblmsg_access_load_Prefixlen (l : Loc) (v : golang_org.x.sys.unix
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) IfAddrlblmsg_access_store_Prefixlen (l : Loc) (v : golang_org.x.sys.unix.IfAddrlblmsg) (Prefixlen' : w8) :
+instance IfAddrlblmsg_access_store_Prefixlen (l : Loc) (v : golang_org.x.sys.unix.IfAddrlblmsg) (Prefixlen' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfAddrlblmsg go!"Prefixlen" l) v.Prefixlen' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfAddrlblmsg go!"Prefixlen" l) Prefixlen' (DFrac.own 1))
@@ -2596,9 +2362,7 @@ instance IfAddrlblmsg_access_load_Flags (l : Loc) (v : golang_org.x.sys.unix.IfA
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) IfAddrlblmsg_access_store_Flags (l : Loc) (v : golang_org.x.sys.unix.IfAddrlblmsg) (Flags' : w8) :
+instance IfAddrlblmsg_access_store_Flags (l : Loc) (v : golang_org.x.sys.unix.IfAddrlblmsg) (Flags' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfAddrlblmsg go!"Flags" l) v.Flags' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfAddrlblmsg go!"Flags" l) Flags' (DFrac.own 1))
@@ -2614,9 +2378,7 @@ instance IfAddrlblmsg_access_load_Index (l : Loc) (v : golang_org.x.sys.unix.IfA
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) IfAddrlblmsg_access_store_Index (l : Loc) (v : golang_org.x.sys.unix.IfAddrlblmsg) (Index' : w32) :
+instance IfAddrlblmsg_access_store_Index (l : Loc) (v : golang_org.x.sys.unix.IfAddrlblmsg) (Index' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfAddrlblmsg go!"Index" l) v.Index' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfAddrlblmsg go!"Index" l) Index' (DFrac.own 1))
@@ -2632,9 +2394,7 @@ instance IfAddrlblmsg_access_load_Seq (l : Loc) (v : golang_org.x.sys.unix.IfAdd
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) IfAddrlblmsg_access_store_Seq (l : Loc) (v : golang_org.x.sys.unix.IfAddrlblmsg) (Seq' : w32) :
+instance IfAddrlblmsg_access_store_Seq (l : Loc) (v : golang_org.x.sys.unix.IfAddrlblmsg) (Seq' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfAddrlblmsg go!"Seq" l) v.Seq' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfAddrlblmsg go!"Seq" l) Seq' (DFrac.own 1))
@@ -2677,9 +2437,7 @@ instance IfaCacheinfo_access_load_Prefered (l : Loc) (v : golang_org.x.sys.unix.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) IfaCacheinfo_access_store_Prefered (l : Loc) (v : golang_org.x.sys.unix.IfaCacheinfo) (Prefered' : w32) :
+instance IfaCacheinfo_access_store_Prefered (l : Loc) (v : golang_org.x.sys.unix.IfaCacheinfo) (Prefered' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfaCacheinfo go!"Prefered" l) v.Prefered' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfaCacheinfo go!"Prefered" l) Prefered' (DFrac.own 1))
@@ -2695,9 +2453,7 @@ instance IfaCacheinfo_access_load_Valid (l : Loc) (v : golang_org.x.sys.unix.Ifa
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) IfaCacheinfo_access_store_Valid (l : Loc) (v : golang_org.x.sys.unix.IfaCacheinfo) (Valid' : w32) :
+instance IfaCacheinfo_access_store_Valid (l : Loc) (v : golang_org.x.sys.unix.IfaCacheinfo) (Valid' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfaCacheinfo go!"Valid" l) v.Valid' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfaCacheinfo go!"Valid" l) Valid' (DFrac.own 1))
@@ -2713,9 +2469,7 @@ instance IfaCacheinfo_access_load_Cstamp (l : Loc) (v : golang_org.x.sys.unix.If
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) IfaCacheinfo_access_store_Cstamp (l : Loc) (v : golang_org.x.sys.unix.IfaCacheinfo) (Cstamp' : w32) :
+instance IfaCacheinfo_access_store_Cstamp (l : Loc) (v : golang_org.x.sys.unix.IfaCacheinfo) (Cstamp' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfaCacheinfo go!"Cstamp" l) v.Cstamp' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfaCacheinfo go!"Cstamp" l) Cstamp' (DFrac.own 1))
@@ -2731,9 +2485,7 @@ instance IfaCacheinfo_access_load_Tstamp (l : Loc) (v : golang_org.x.sys.unix.If
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) IfaCacheinfo_access_store_Tstamp (l : Loc) (v : golang_org.x.sys.unix.IfaCacheinfo) (Tstamp' : w32) :
+instance IfaCacheinfo_access_store_Tstamp (l : Loc) (v : golang_org.x.sys.unix.IfaCacheinfo) (Tstamp' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfaCacheinfo go!"Tstamp" l) v.Tstamp' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.IfaCacheinfo go!"Tstamp" l) Tstamp' (DFrac.own 1))
@@ -2781,9 +2533,7 @@ instance RtMsg_access_load_Family (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (d
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RtMsg_access_store_Family (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (Family' : w8) :
+instance RtMsg_access_store_Family (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (Family' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtMsg go!"Family" l) v.Family' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtMsg go!"Family" l) Family' (DFrac.own 1))
@@ -2799,9 +2549,7 @@ instance RtMsg_access_load_Dst_len (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RtMsg_access_store_Dst_len (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (Dst_len' : w8) :
+instance RtMsg_access_store_Dst_len (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (Dst_len' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtMsg go!"Dst_len" l) v.Dst_len' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtMsg go!"Dst_len" l) Dst_len' (DFrac.own 1))
@@ -2817,9 +2565,7 @@ instance RtMsg_access_load_Src_len (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RtMsg_access_store_Src_len (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (Src_len' : w8) :
+instance RtMsg_access_store_Src_len (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (Src_len' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtMsg go!"Src_len" l) v.Src_len' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtMsg go!"Src_len" l) Src_len' (DFrac.own 1))
@@ -2835,9 +2581,7 @@ instance RtMsg_access_load_Tos (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (dq :
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RtMsg_access_store_Tos (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (Tos' : w8) :
+instance RtMsg_access_store_Tos (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (Tos' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtMsg go!"Tos" l) v.Tos' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtMsg go!"Tos" l) Tos' (DFrac.own 1))
@@ -2853,9 +2597,7 @@ instance RtMsg_access_load_Table (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (dq
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RtMsg_access_store_Table (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (Table' : w8) :
+instance RtMsg_access_store_Table (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (Table' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtMsg go!"Table" l) v.Table' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtMsg go!"Table" l) Table' (DFrac.own 1))
@@ -2871,9 +2613,7 @@ instance RtMsg_access_load_Protocol (l : Loc) (v : golang_org.x.sys.unix.RtMsg) 
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RtMsg_access_store_Protocol (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (Protocol' : w8) :
+instance RtMsg_access_store_Protocol (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (Protocol' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtMsg go!"Protocol" l) v.Protocol' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtMsg go!"Protocol" l) Protocol' (DFrac.own 1))
@@ -2889,9 +2629,7 @@ instance RtMsg_access_load_Scope (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (dq
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RtMsg_access_store_Scope (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (Scope' : w8) :
+instance RtMsg_access_store_Scope (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (Scope' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtMsg go!"Scope" l) v.Scope' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtMsg go!"Scope" l) Scope' (DFrac.own 1))
@@ -2907,9 +2645,7 @@ instance RtMsg_access_load_Type (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (dq 
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RtMsg_access_store_Type (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (Type' : w8) :
+instance RtMsg_access_store_Type (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (Type' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtMsg go!"Type" l) v.Type' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtMsg go!"Type" l) Type' (DFrac.own 1))
@@ -2925,9 +2661,7 @@ instance RtMsg_access_load_Flags (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (dq
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RtMsg_access_store_Flags (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (Flags' : w32) :
+instance RtMsg_access_store_Flags (l : Loc) (v : golang_org.x.sys.unix.RtMsg) (Flags' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtMsg go!"Flags" l) v.Flags' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtMsg go!"Flags" l) Flags' (DFrac.own 1))
@@ -2970,9 +2704,7 @@ instance RtNexthop_access_load_Len (l : Loc) (v : golang_org.x.sys.unix.RtNextho
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RtNexthop_access_store_Len (l : Loc) (v : golang_org.x.sys.unix.RtNexthop) (Len' : w16) :
+instance RtNexthop_access_store_Len (l : Loc) (v : golang_org.x.sys.unix.RtNexthop) (Len' : w16) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtNexthop go!"Len" l) v.Len' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtNexthop go!"Len" l) Len' (DFrac.own 1))
@@ -2988,9 +2720,7 @@ instance RtNexthop_access_load_Flags (l : Loc) (v : golang_org.x.sys.unix.RtNext
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RtNexthop_access_store_Flags (l : Loc) (v : golang_org.x.sys.unix.RtNexthop) (Flags' : w8) :
+instance RtNexthop_access_store_Flags (l : Loc) (v : golang_org.x.sys.unix.RtNexthop) (Flags' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtNexthop go!"Flags" l) v.Flags' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtNexthop go!"Flags" l) Flags' (DFrac.own 1))
@@ -3006,9 +2736,7 @@ instance RtNexthop_access_load_Hops (l : Loc) (v : golang_org.x.sys.unix.RtNexth
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RtNexthop_access_store_Hops (l : Loc) (v : golang_org.x.sys.unix.RtNexthop) (Hops' : w8) :
+instance RtNexthop_access_store_Hops (l : Loc) (v : golang_org.x.sys.unix.RtNexthop) (Hops' : w8) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtNexthop go!"Hops" l) v.Hops' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtNexthop go!"Hops" l) Hops' (DFrac.own 1))
@@ -3024,9 +2752,7 @@ instance RtNexthop_access_load_Ifindex (l : Loc) (v : golang_org.x.sys.unix.RtNe
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RtNexthop_access_store_Ifindex (l : Loc) (v : golang_org.x.sys.unix.RtNexthop) (Ifindex' : w32) :
+instance RtNexthop_access_store_Ifindex (l : Loc) (v : golang_org.x.sys.unix.RtNexthop) (Ifindex' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtNexthop go!"Ifindex" l) v.Ifindex' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.sys.unix.RtNexthop go!"Ifindex" l) Ifindex' (DFrac.own 1))

@@ -65,9 +65,7 @@ instance CommonAuthInfo_access_load_SecurityLevel (l : Loc) (v : google_golang_o
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) CommonAuthInfo_access_store_SecurityLevel (l : Loc) (v : google_golang_org.grpc.credentials.CommonAuthInfo) (SecurityLevel' : google_golang_org.grpc.credentials.SecurityLevel) :
+instance CommonAuthInfo_access_store_SecurityLevel (l : Loc) (v : google_golang_org.grpc.credentials.CommonAuthInfo) (SecurityLevel' : google_golang_org.grpc.credentials.SecurityLevel) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.CommonAuthInfo go!"SecurityLevel" l) v.SecurityLevel' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.CommonAuthInfo go!"SecurityLevel" l) SecurityLevel' (DFrac.own 1))
@@ -110,9 +108,7 @@ instance ProtocolInfo_access_load_ProtocolVersion (l : Loc) (v : google_golang_o
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ProtocolInfo_access_store_ProtocolVersion (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (ProtocolVersion' : GoString) :
+instance ProtocolInfo_access_store_ProtocolVersion (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (ProtocolVersion' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"ProtocolVersion" l) v.ProtocolVersion' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"ProtocolVersion" l) ProtocolVersion' (DFrac.own 1))
@@ -128,9 +124,7 @@ instance ProtocolInfo_access_load_SecurityProtocol (l : Loc) (v : google_golang_
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ProtocolInfo_access_store_SecurityProtocol (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (SecurityProtocol' : GoString) :
+instance ProtocolInfo_access_store_SecurityProtocol (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (SecurityProtocol' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"SecurityProtocol" l) v.SecurityProtocol' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"SecurityProtocol" l) SecurityProtocol' (DFrac.own 1))
@@ -146,9 +140,7 @@ instance ProtocolInfo_access_load_SecurityVersion (l : Loc) (v : google_golang_o
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ProtocolInfo_access_store_SecurityVersion (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (SecurityVersion' : GoString) :
+instance ProtocolInfo_access_store_SecurityVersion (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (SecurityVersion' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"SecurityVersion" l) v.SecurityVersion' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"SecurityVersion" l) SecurityVersion' (DFrac.own 1))
@@ -164,9 +156,7 @@ instance ProtocolInfo_access_load_ServerName (l : Loc) (v : google_golang_org.gr
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ProtocolInfo_access_store_ServerName (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (ServerName' : GoString) :
+instance ProtocolInfo_access_store_ServerName (l : Loc) (v : google_golang_org.grpc.credentials.ProtocolInfo) (ServerName' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"ServerName" l) v.ServerName' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.ProtocolInfo go!"ServerName" l) ServerName' (DFrac.own 1))
@@ -226,9 +216,7 @@ instance RequestInfo_access_load_Method (l : Loc) (v : google_golang_org.grpc.cr
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RequestInfo_access_store_Method (l : Loc) (v : google_golang_org.grpc.credentials.RequestInfo) (Method' : GoString) :
+instance RequestInfo_access_store_Method (l : Loc) (v : google_golang_org.grpc.credentials.RequestInfo) (Method' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.RequestInfo go!"Method" l) v.Method' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.RequestInfo go!"Method" l) Method' (DFrac.own 1))
@@ -244,9 +232,7 @@ instance RequestInfo_access_load_AuthInfo (l : Loc) (v : google_golang_org.grpc.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RequestInfo_access_store_AuthInfo (l : Loc) (v : google_golang_org.grpc.credentials.RequestInfo) (AuthInfo' : google_golang_org.grpc.credentials.AuthInfo) :
+instance RequestInfo_access_store_AuthInfo (l : Loc) (v : google_golang_org.grpc.credentials.RequestInfo) (AuthInfo' : google_golang_org.grpc.credentials.AuthInfo) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.RequestInfo go!"AuthInfo" l) v.AuthInfo' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.RequestInfo go!"AuthInfo" l) AuthInfo' (DFrac.own 1))
@@ -388,9 +374,7 @@ instance TLSChannelzSecurityValue_access_load_ChannelzSecurityValue (l : Loc) (v
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TLSChannelzSecurityValue_access_store_ChannelzSecurityValue (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (ChannelzSecurityValue' : google_golang_org.grpc.credentials.ChannelzSecurityValue) :
+instance TLSChannelzSecurityValue_access_store_ChannelzSecurityValue (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (ChannelzSecurityValue' : google_golang_org.grpc.credentials.ChannelzSecurityValue) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"ChannelzSecurityValue" l) v.ChannelzSecurityValue' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"ChannelzSecurityValue" l) ChannelzSecurityValue' (DFrac.own 1))
@@ -406,9 +390,7 @@ instance TLSChannelzSecurityValue_access_load_StandardName (l : Loc) (v : google
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TLSChannelzSecurityValue_access_store_StandardName (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (StandardName' : GoString) :
+instance TLSChannelzSecurityValue_access_store_StandardName (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (StandardName' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"StandardName" l) v.StandardName' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"StandardName" l) StandardName' (DFrac.own 1))
@@ -424,9 +406,7 @@ instance TLSChannelzSecurityValue_access_load_LocalCertificate (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TLSChannelzSecurityValue_access_store_LocalCertificate (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (LocalCertificate' : GoSlice) :
+instance TLSChannelzSecurityValue_access_store_LocalCertificate (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (LocalCertificate' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"LocalCertificate" l) v.LocalCertificate' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"LocalCertificate" l) LocalCertificate' (DFrac.own 1))
@@ -442,9 +422,7 @@ instance TLSChannelzSecurityValue_access_load_RemoteCertificate (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) TLSChannelzSecurityValue_access_store_RemoteCertificate (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (RemoteCertificate' : GoSlice) :
+instance TLSChannelzSecurityValue_access_store_RemoteCertificate (l : Loc) (v : google_golang_org.grpc.credentials.TLSChannelzSecurityValue) (RemoteCertificate' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"RemoteCertificate" l) v.RemoteCertificate' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.TLSChannelzSecurityValue go!"RemoteCertificate" l) RemoteCertificate' (DFrac.own 1))

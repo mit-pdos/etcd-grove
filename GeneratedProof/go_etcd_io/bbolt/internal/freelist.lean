@@ -53,9 +53,7 @@ instance array'_access_load_shared (l : Loc) (v : go_etcd_io.bbolt.internal.free
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) array'_access_store_shared (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.array') (shared' : Loc) :
+instance array'_access_store_shared (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.array') (shared' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.array' go!"shared" l) v.shared' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.array' go!"shared" l) shared' (DFrac.own 1))
@@ -71,9 +69,7 @@ instance array'_access_load_ids (l : Loc) (v : go_etcd_io.bbolt.internal.freelis
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) array'_access_store_ids (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.array') (ids' : GoSlice) :
+instance array'_access_store_ids (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.array') (ids' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.array' go!"ids" l) v.ids' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.array' go!"ids" l) ids' (DFrac.own 1))
@@ -117,9 +113,7 @@ instance hashMap_access_load_shared (l : Loc) (v : go_etcd_io.bbolt.internal.fre
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) hashMap_access_store_shared (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.hashMap) (shared' : Loc) :
+instance hashMap_access_store_shared (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.hashMap) (shared' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"shared" l) v.shared' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"shared" l) shared' (DFrac.own 1))
@@ -135,9 +129,7 @@ instance hashMap_access_load_freePagesCount (l : Loc) (v : go_etcd_io.bbolt.inte
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) hashMap_access_store_freePagesCount (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.hashMap) (freePagesCount' : w64) :
+instance hashMap_access_store_freePagesCount (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.hashMap) (freePagesCount' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"freePagesCount" l) v.freePagesCount' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"freePagesCount" l) freePagesCount' (DFrac.own 1))
@@ -153,9 +145,7 @@ instance hashMap_access_load_freemaps (l : Loc) (v : go_etcd_io.bbolt.internal.f
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) hashMap_access_store_freemaps (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.hashMap) (freemaps' : GoMap) :
+instance hashMap_access_store_freemaps (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.hashMap) (freemaps' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"freemaps" l) v.freemaps' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"freemaps" l) freemaps' (DFrac.own 1))
@@ -171,9 +161,7 @@ instance hashMap_access_load_forwardMap (l : Loc) (v : go_etcd_io.bbolt.internal
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) hashMap_access_store_forwardMap (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.hashMap) (forwardMap' : GoMap) :
+instance hashMap_access_store_forwardMap (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.hashMap) (forwardMap' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"forwardMap" l) v.forwardMap' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"forwardMap" l) forwardMap' (DFrac.own 1))
@@ -189,9 +177,7 @@ instance hashMap_access_load_backwardMap (l : Loc) (v : go_etcd_io.bbolt.interna
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) hashMap_access_store_backwardMap (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.hashMap) (backwardMap' : GoMap) :
+instance hashMap_access_store_backwardMap (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.hashMap) (backwardMap' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"backwardMap" l) v.backwardMap' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"backwardMap" l) backwardMap' (DFrac.own 1))
@@ -233,9 +219,7 @@ instance txPending_access_load_ids (l : Loc) (v : go_etcd_io.bbolt.internal.free
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) txPending_access_store_ids (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.txPending) (ids' : GoSlice) :
+instance txPending_access_store_ids (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.txPending) (ids' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.txPending go!"ids" l) v.ids' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.txPending go!"ids" l) ids' (DFrac.own 1))
@@ -251,9 +235,7 @@ instance txPending_access_load_alloctx (l : Loc) (v : go_etcd_io.bbolt.internal.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) txPending_access_store_alloctx (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.txPending) (alloctx' : GoSlice) :
+instance txPending_access_store_alloctx (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.txPending) (alloctx' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.txPending go!"alloctx" l) v.alloctx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.txPending go!"alloctx" l) alloctx' (DFrac.own 1))
@@ -269,9 +251,7 @@ instance txPending_access_load_lastReleaseBegin (l : Loc) (v : go_etcd_io.bbolt.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) txPending_access_store_lastReleaseBegin (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.txPending) (lastReleaseBegin' : go_etcd_io.bbolt.internal.common.Txid) :
+instance txPending_access_store_lastReleaseBegin (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.txPending) (lastReleaseBegin' : go_etcd_io.bbolt.internal.common.Txid) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.txPending go!"lastReleaseBegin" l) v.lastReleaseBegin' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.txPending go!"lastReleaseBegin" l) lastReleaseBegin' (DFrac.own 1))
@@ -315,9 +295,7 @@ instance shared_access_load_Interface (l : Loc) (v : go_etcd_io.bbolt.internal.f
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) shared_access_store_Interface (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.shared) (Interface' : go_etcd_io.bbolt.internal.freelist.Interface) :
+instance shared_access_store_Interface (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.shared) (Interface' : go_etcd_io.bbolt.internal.freelist.Interface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"Interface" l) v.Interface' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"Interface" l) Interface' (DFrac.own 1))
@@ -333,9 +311,7 @@ instance shared_access_load_readonlyTXIDs (l : Loc) (v : go_etcd_io.bbolt.intern
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) shared_access_store_readonlyTXIDs (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.shared) (readonlyTXIDs' : GoSlice) :
+instance shared_access_store_readonlyTXIDs (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.shared) (readonlyTXIDs' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"readonlyTXIDs" l) v.readonlyTXIDs' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"readonlyTXIDs" l) readonlyTXIDs' (DFrac.own 1))
@@ -351,9 +327,7 @@ instance shared_access_load_allocs (l : Loc) (v : go_etcd_io.bbolt.internal.free
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) shared_access_store_allocs (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.shared) (allocs' : GoMap) :
+instance shared_access_store_allocs (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.shared) (allocs' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"allocs" l) v.allocs' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"allocs" l) allocs' (DFrac.own 1))
@@ -369,9 +343,7 @@ instance shared_access_load_cache (l : Loc) (v : go_etcd_io.bbolt.internal.freel
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) shared_access_store_cache (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.shared) (cache' : GoMap) :
+instance shared_access_store_cache (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.shared) (cache' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"cache" l) v.cache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"cache" l) cache' (DFrac.own 1))
@@ -387,9 +359,7 @@ instance shared_access_load_pending (l : Loc) (v : go_etcd_io.bbolt.internal.fre
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) shared_access_store_pending (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.shared) (pending' : GoMap) :
+instance shared_access_store_pending (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.shared) (pending' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"pending" l) v.pending' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"pending" l) pending' (DFrac.own 1))

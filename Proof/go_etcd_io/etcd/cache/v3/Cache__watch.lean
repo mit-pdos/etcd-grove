@@ -83,7 +83,7 @@ theorem Cache.watch.wp_proof
   have hcur := Hi
   ihave #Hcfg' := Hcfg
   iStructNamedPrefix Hcfg' "Cfg"
-  wp_auto
+  try wp_auto
   wp_apply wp_newWatcher cf.cfg.PerWatcherBufferSize' func.nil none
     (demuxPub (cacheCert cf) none rev) as %w %γw ⟨#Hwi, Hwopen, Hwcons, Hwuniq⟩
   · isplitr

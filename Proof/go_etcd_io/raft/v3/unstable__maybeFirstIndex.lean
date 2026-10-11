@@ -36,7 +36,7 @@ theorem unstable.maybeFirstIndex.wp_proof :
     · exact absurd Hif Hnn
     iStructNamed Hsv
     iStructNamed Metadata
-    wp_auto
+    try wp_auto
     iapply HΦ
     isplitl
     · close_unstable

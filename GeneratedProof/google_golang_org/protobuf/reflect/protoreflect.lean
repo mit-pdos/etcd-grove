@@ -339,9 +339,7 @@ instance SourceLocation_access_load_Path (l : Loc) (v : google_golang_org.protob
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) SourceLocation_access_store_Path (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (Path' : google_golang_org.protobuf.reflect.protoreflect.SourcePath) :
+instance SourceLocation_access_store_Path (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (Path' : google_golang_org.protobuf.reflect.protoreflect.SourcePath) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"Path" l) v.Path' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"Path" l) Path' (DFrac.own 1))
@@ -357,9 +355,7 @@ instance SourceLocation_access_load_StartLine (l : Loc) (v : google_golang_org.p
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) SourceLocation_access_store_StartLine (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (StartLine' : w64) :
+instance SourceLocation_access_store_StartLine (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (StartLine' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"StartLine" l) v.StartLine' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"StartLine" l) StartLine' (DFrac.own 1))
@@ -375,9 +371,7 @@ instance SourceLocation_access_load_StartColumn (l : Loc) (v : google_golang_org
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) SourceLocation_access_store_StartColumn (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (StartColumn' : w64) :
+instance SourceLocation_access_store_StartColumn (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (StartColumn' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"StartColumn" l) v.StartColumn' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"StartColumn" l) StartColumn' (DFrac.own 1))
@@ -393,9 +387,7 @@ instance SourceLocation_access_load_EndLine (l : Loc) (v : google_golang_org.pro
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) SourceLocation_access_store_EndLine (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (EndLine' : w64) :
+instance SourceLocation_access_store_EndLine (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (EndLine' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"EndLine" l) v.EndLine' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"EndLine" l) EndLine' (DFrac.own 1))
@@ -411,9 +403,7 @@ instance SourceLocation_access_load_EndColumn (l : Loc) (v : google_golang_org.p
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) SourceLocation_access_store_EndColumn (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (EndColumn' : w64) :
+instance SourceLocation_access_store_EndColumn (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (EndColumn' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"EndColumn" l) v.EndColumn' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"EndColumn" l) EndColumn' (DFrac.own 1))
@@ -429,9 +419,7 @@ instance SourceLocation_access_load_LeadingDetachedComments (l : Loc) (v : googl
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) SourceLocation_access_store_LeadingDetachedComments (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (LeadingDetachedComments' : GoSlice) :
+instance SourceLocation_access_store_LeadingDetachedComments (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (LeadingDetachedComments' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"LeadingDetachedComments" l) v.LeadingDetachedComments' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"LeadingDetachedComments" l) LeadingDetachedComments' (DFrac.own 1))
@@ -447,9 +435,7 @@ instance SourceLocation_access_load_LeadingComments (l : Loc) (v : google_golang
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) SourceLocation_access_store_LeadingComments (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (LeadingComments' : GoString) :
+instance SourceLocation_access_store_LeadingComments (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (LeadingComments' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"LeadingComments" l) v.LeadingComments' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"LeadingComments" l) LeadingComments' (DFrac.own 1))
@@ -465,9 +451,7 @@ instance SourceLocation_access_load_TrailingComments (l : Loc) (v : google_golan
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) SourceLocation_access_store_TrailingComments (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (TrailingComments' : GoString) :
+instance SourceLocation_access_store_TrailingComments (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (TrailingComments' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"TrailingComments" l) v.TrailingComments' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"TrailingComments" l) TrailingComments' (DFrac.own 1))
@@ -483,9 +467,7 @@ instance SourceLocation_access_load_Next (l : Loc) (v : google_golang_org.protob
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) SourceLocation_access_store_Next (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (Next' : w64) :
+instance SourceLocation_access_store_Next (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.SourceLocation) (Next' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"Next" l) v.Next' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.SourceLocation go!"Next" l) Next' (DFrac.own 1))
@@ -527,9 +509,7 @@ instance FileImport_access_load_FileDescriptor (l : Loc) (v : google_golang_org.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) FileImport_access_store_FileDescriptor (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.FileImport) (FileDescriptor' : google_golang_org.protobuf.reflect.protoreflect.FileDescriptor) :
+instance FileImport_access_store_FileDescriptor (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.FileImport) (FileDescriptor' : google_golang_org.protobuf.reflect.protoreflect.FileDescriptor) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.FileImport go!"FileDescriptor" l) v.FileDescriptor' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.FileImport go!"FileDescriptor" l) FileDescriptor' (DFrac.own 1))
@@ -545,9 +525,7 @@ instance FileImport_access_load_IsPublic (l : Loc) (v : google_golang_org.protob
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) FileImport_access_store_IsPublic (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.FileImport) (IsPublic' : Bool) :
+instance FileImport_access_store_IsPublic (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.FileImport) (IsPublic' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.FileImport go!"IsPublic" l) v.IsPublic' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.FileImport go!"IsPublic" l) IsPublic' (DFrac.own 1))
@@ -563,9 +541,7 @@ instance FileImport_access_load_IsWeak (l : Loc) (v : google_golang_org.protobuf
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) FileImport_access_store_IsWeak (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.FileImport) (IsWeak' : Bool) :
+instance FileImport_access_store_IsWeak (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.FileImport) (IsWeak' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.FileImport go!"IsWeak" l) v.IsWeak' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.FileImport go!"IsWeak" l) IsWeak' (DFrac.own 1))
@@ -683,9 +659,7 @@ instance ifaceHeader_access_load__0 (l : Loc) (v : google_golang_org.protobuf.re
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ifaceHeader_access_store__0 (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) (_0' : (GoArray GoInterface 0)) :
+instance ifaceHeader_access_store__0 (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) (_0' : (GoArray GoInterface 0)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"_0" l) v._0' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"_0" l) _0' (DFrac.own 1))
@@ -701,9 +675,7 @@ instance ifaceHeader_access_load_Type (l : Loc) (v : google_golang_org.protobuf.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ifaceHeader_access_store_Type (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) (Type' : Loc) :
+instance ifaceHeader_access_store_Type (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) (Type' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"Type" l) v.Type' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"Type" l) Type' (DFrac.own 1))
@@ -719,9 +691,7 @@ instance ifaceHeader_access_load_Data (l : Loc) (v : google_golang_org.protobuf.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ifaceHeader_access_store_Data (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) (Data' : Loc) :
+instance ifaceHeader_access_store_Data (l : Loc) (v : google_golang_org.protobuf.reflect.protoreflect.ifaceHeader) (Data' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"Data" l) v.Data' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.reflect.protoreflect.ifaceHeader go!"Data" l) Data' (DFrac.own 1))

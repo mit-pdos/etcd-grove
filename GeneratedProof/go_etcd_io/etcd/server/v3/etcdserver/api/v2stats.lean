@@ -85,9 +85,7 @@ instance leaderStats_access_load_Leader (l : Loc) (v : go_etcd_io.etcd.server.v3
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) leaderStats_access_store_Leader (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats) (Leader' : GoString) :
+instance leaderStats_access_store_Leader (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats) (Leader' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats go!"Leader" l) v.Leader' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats go!"Leader" l) Leader' (DFrac.own 1))
@@ -103,9 +101,7 @@ instance leaderStats_access_load_Followers (l : Loc) (v : go_etcd_io.etcd.server
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) leaderStats_access_store_Followers (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats) (Followers' : GoMap) :
+instance leaderStats_access_store_Followers (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats) (Followers' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats go!"Followers" l) v.Followers' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.leaderStats go!"Followers" l) Followers' (DFrac.own 1))
@@ -169,9 +165,7 @@ instance LatencyStats_access_load_Current (l : Loc) (v : go_etcd_io.etcd.server.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) LatencyStats_access_store_Current (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (Current' : w64) :
+instance LatencyStats_access_store_Current (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (Current' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"Current" l) v.Current' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"Current" l) Current' (DFrac.own 1))
@@ -187,9 +181,7 @@ instance LatencyStats_access_load_Average (l : Loc) (v : go_etcd_io.etcd.server.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) LatencyStats_access_store_Average (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (Average' : w64) :
+instance LatencyStats_access_store_Average (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (Average' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"Average" l) v.Average' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"Average" l) Average' (DFrac.own 1))
@@ -205,9 +197,7 @@ instance LatencyStats_access_load_averageSquare (l : Loc) (v : go_etcd_io.etcd.s
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) LatencyStats_access_store_averageSquare (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (averageSquare' : w64) :
+instance LatencyStats_access_store_averageSquare (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (averageSquare' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"averageSquare" l) v.averageSquare' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"averageSquare" l) averageSquare' (DFrac.own 1))
@@ -223,9 +213,7 @@ instance LatencyStats_access_load_StandardDeviation (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) LatencyStats_access_store_StandardDeviation (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (StandardDeviation' : w64) :
+instance LatencyStats_access_store_StandardDeviation (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (StandardDeviation' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"StandardDeviation" l) v.StandardDeviation' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"StandardDeviation" l) StandardDeviation' (DFrac.own 1))
@@ -241,9 +229,7 @@ instance LatencyStats_access_load_Minimum (l : Loc) (v : go_etcd_io.etcd.server.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) LatencyStats_access_store_Minimum (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (Minimum' : w64) :
+instance LatencyStats_access_store_Minimum (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (Minimum' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"Minimum" l) v.Minimum' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"Minimum" l) Minimum' (DFrac.own 1))
@@ -259,9 +245,7 @@ instance LatencyStats_access_load_Maximum (l : Loc) (v : go_etcd_io.etcd.server.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) LatencyStats_access_store_Maximum (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (Maximum' : w64) :
+instance LatencyStats_access_store_Maximum (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats) (Maximum' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"Maximum" l) v.Maximum' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.LatencyStats go!"Maximum" l) Maximum' (DFrac.own 1))
@@ -302,9 +286,7 @@ instance CountsStats_access_load_Fail (l : Loc) (v : go_etcd_io.etcd.server.v3.e
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) CountsStats_access_store_Fail (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats) (Fail' : w64) :
+instance CountsStats_access_store_Fail (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats) (Fail' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats go!"Fail" l) v.Fail' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats go!"Fail" l) Fail' (DFrac.own 1))
@@ -320,9 +302,7 @@ instance CountsStats_access_load_Success (l : Loc) (v : go_etcd_io.etcd.server.v
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) CountsStats_access_store_Success (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats) (Success' : w64) :
+instance CountsStats_access_store_Success (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats) (Success' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats go!"Success" l) v.Success' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.CountsStats go!"Success" l) Success' (DFrac.own 1))

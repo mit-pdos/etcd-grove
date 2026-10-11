@@ -106,9 +106,7 @@ instance SamplingConfig_access_load_Initial (l : Loc) (v : go_uber_org.zap.Sampl
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) SamplingConfig_access_store_Initial (l : Loc) (v : go_uber_org.zap.SamplingConfig) (Initial' : w64) :
+instance SamplingConfig_access_store_Initial (l : Loc) (v : go_uber_org.zap.SamplingConfig) (Initial' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.SamplingConfig go!"Initial" l) v.Initial' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.SamplingConfig go!"Initial" l) Initial' (DFrac.own 1))
@@ -124,9 +122,7 @@ instance SamplingConfig_access_load_Thereafter (l : Loc) (v : go_uber_org.zap.Sa
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) SamplingConfig_access_store_Thereafter (l : Loc) (v : go_uber_org.zap.SamplingConfig) (Thereafter' : w64) :
+instance SamplingConfig_access_store_Thereafter (l : Loc) (v : go_uber_org.zap.SamplingConfig) (Thereafter' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.SamplingConfig go!"Thereafter" l) v.Thereafter' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.SamplingConfig go!"Thereafter" l) Thereafter' (DFrac.own 1))
@@ -142,9 +138,7 @@ instance SamplingConfig_access_load_Hook (l : Loc) (v : go_uber_org.zap.Sampling
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) SamplingConfig_access_store_Hook (l : Loc) (v : go_uber_org.zap.SamplingConfig) (Hook' : GoFunc) :
+instance SamplingConfig_access_store_Hook (l : Loc) (v : go_uber_org.zap.SamplingConfig) (Hook' : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.SamplingConfig go!"Hook" l) v.Hook' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.SamplingConfig go!"Hook" l) Hook' (DFrac.own 1))
@@ -212,9 +206,7 @@ instance Config_access_load_Level (l : Loc) (v : go_uber_org.zap.Config) (dq : D
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Config_access_store_Level (l : Loc) (v : go_uber_org.zap.Config) (Level' : go_uber_org.zap.AtomicLevel) :
+instance Config_access_store_Level (l : Loc) (v : go_uber_org.zap.Config) (Level' : go_uber_org.zap.AtomicLevel) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"Level" l) v.Level' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"Level" l) Level' (DFrac.own 1))
@@ -230,9 +222,7 @@ instance Config_access_load_Development (l : Loc) (v : go_uber_org.zap.Config) (
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Config_access_store_Development (l : Loc) (v : go_uber_org.zap.Config) (Development' : Bool) :
+instance Config_access_store_Development (l : Loc) (v : go_uber_org.zap.Config) (Development' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"Development" l) v.Development' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"Development" l) Development' (DFrac.own 1))
@@ -248,9 +238,7 @@ instance Config_access_load_DisableCaller (l : Loc) (v : go_uber_org.zap.Config)
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Config_access_store_DisableCaller (l : Loc) (v : go_uber_org.zap.Config) (DisableCaller' : Bool) :
+instance Config_access_store_DisableCaller (l : Loc) (v : go_uber_org.zap.Config) (DisableCaller' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"DisableCaller" l) v.DisableCaller' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"DisableCaller" l) DisableCaller' (DFrac.own 1))
@@ -266,9 +254,7 @@ instance Config_access_load_DisableStacktrace (l : Loc) (v : go_uber_org.zap.Con
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Config_access_store_DisableStacktrace (l : Loc) (v : go_uber_org.zap.Config) (DisableStacktrace' : Bool) :
+instance Config_access_store_DisableStacktrace (l : Loc) (v : go_uber_org.zap.Config) (DisableStacktrace' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"DisableStacktrace" l) v.DisableStacktrace' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"DisableStacktrace" l) DisableStacktrace' (DFrac.own 1))
@@ -284,9 +270,7 @@ instance Config_access_load_Sampling (l : Loc) (v : go_uber_org.zap.Config) (dq 
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Config_access_store_Sampling (l : Loc) (v : go_uber_org.zap.Config) (Sampling' : Loc) :
+instance Config_access_store_Sampling (l : Loc) (v : go_uber_org.zap.Config) (Sampling' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"Sampling" l) v.Sampling' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"Sampling" l) Sampling' (DFrac.own 1))
@@ -302,9 +286,7 @@ instance Config_access_load_Encoding (l : Loc) (v : go_uber_org.zap.Config) (dq 
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Config_access_store_Encoding (l : Loc) (v : go_uber_org.zap.Config) (Encoding' : GoString) :
+instance Config_access_store_Encoding (l : Loc) (v : go_uber_org.zap.Config) (Encoding' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"Encoding" l) v.Encoding' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"Encoding" l) Encoding' (DFrac.own 1))
@@ -320,9 +302,7 @@ instance Config_access_load_EncoderConfig (l : Loc) (v : go_uber_org.zap.Config)
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Config_access_store_EncoderConfig (l : Loc) (v : go_uber_org.zap.Config) (EncoderConfig' : go_uber_org.zap.zapcore.EncoderConfig) :
+instance Config_access_store_EncoderConfig (l : Loc) (v : go_uber_org.zap.Config) (EncoderConfig' : go_uber_org.zap.zapcore.EncoderConfig) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"EncoderConfig" l) v.EncoderConfig' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"EncoderConfig" l) EncoderConfig' (DFrac.own 1))
@@ -338,9 +318,7 @@ instance Config_access_load_OutputPaths (l : Loc) (v : go_uber_org.zap.Config) (
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Config_access_store_OutputPaths (l : Loc) (v : go_uber_org.zap.Config) (OutputPaths' : GoSlice) :
+instance Config_access_store_OutputPaths (l : Loc) (v : go_uber_org.zap.Config) (OutputPaths' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"OutputPaths" l) v.OutputPaths' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"OutputPaths" l) OutputPaths' (DFrac.own 1))
@@ -356,9 +334,7 @@ instance Config_access_load_ErrorOutputPaths (l : Loc) (v : go_uber_org.zap.Conf
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Config_access_store_ErrorOutputPaths (l : Loc) (v : go_uber_org.zap.Config) (ErrorOutputPaths' : GoSlice) :
+instance Config_access_store_ErrorOutputPaths (l : Loc) (v : go_uber_org.zap.Config) (ErrorOutputPaths' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"ErrorOutputPaths" l) v.ErrorOutputPaths' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"ErrorOutputPaths" l) ErrorOutputPaths' (DFrac.own 1))
@@ -374,9 +350,7 @@ instance Config_access_load_InitialFields (l : Loc) (v : go_uber_org.zap.Config)
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Config_access_store_InitialFields (l : Loc) (v : go_uber_org.zap.Config) (InitialFields' : GoMap) :
+instance Config_access_store_InitialFields (l : Loc) (v : go_uber_org.zap.Config) (InitialFields' : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"InitialFields" l) v.InitialFields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"InitialFields" l) InitialFields' (DFrac.own 1))
@@ -416,9 +390,7 @@ instance errArrayElem_access_load_error (l : Loc) (v : go_uber_org.zap.errArrayE
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) errArrayElem_access_store_error (l : Loc) (v : go_uber_org.zap.errArrayElem) (error' : GoError) :
+instance errArrayElem_access_store_error (l : Loc) (v : go_uber_org.zap.errArrayElem) (error' : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.errArrayElem go!"error" l) v.error' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.errArrayElem go!"error" l) error' (DFrac.own 1))
@@ -458,9 +430,7 @@ instance loggerWriter_access_load_logFunc (l : Loc) (v : go_uber_org.zap.loggerW
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) loggerWriter_access_store_logFunc (l : Loc) (v : go_uber_org.zap.loggerWriter) (logFunc' : GoFunc) :
+instance loggerWriter_access_store_logFunc (l : Loc) (v : go_uber_org.zap.loggerWriter) (logFunc' : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.loggerWriter go!"logFunc" l) v.logFunc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.loggerWriter go!"logFunc" l) logFunc' (DFrac.own 1))
@@ -509,9 +479,7 @@ instance Logger_access_load_core (l : Loc) (v : go_uber_org.zap.Logger) (dq : DF
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Logger_access_store_core (l : Loc) (v : go_uber_org.zap.Logger) (core' : go_uber_org.zap.zapcore.Core) :
+instance Logger_access_store_core (l : Loc) (v : go_uber_org.zap.Logger) (core' : go_uber_org.zap.zapcore.Core) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"core" l) v.core' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"core" l) core' (DFrac.own 1))
@@ -527,9 +495,7 @@ instance Logger_access_load_development (l : Loc) (v : go_uber_org.zap.Logger) (
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Logger_access_store_development (l : Loc) (v : go_uber_org.zap.Logger) (development' : Bool) :
+instance Logger_access_store_development (l : Loc) (v : go_uber_org.zap.Logger) (development' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"development" l) v.development' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"development" l) development' (DFrac.own 1))
@@ -545,9 +511,7 @@ instance Logger_access_load_addCaller (l : Loc) (v : go_uber_org.zap.Logger) (dq
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Logger_access_store_addCaller (l : Loc) (v : go_uber_org.zap.Logger) (addCaller' : Bool) :
+instance Logger_access_store_addCaller (l : Loc) (v : go_uber_org.zap.Logger) (addCaller' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"addCaller" l) v.addCaller' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"addCaller" l) addCaller' (DFrac.own 1))
@@ -563,9 +527,7 @@ instance Logger_access_load_onPanic (l : Loc) (v : go_uber_org.zap.Logger) (dq :
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Logger_access_store_onPanic (l : Loc) (v : go_uber_org.zap.Logger) (onPanic' : go_uber_org.zap.zapcore.CheckWriteHook) :
+instance Logger_access_store_onPanic (l : Loc) (v : go_uber_org.zap.Logger) (onPanic' : go_uber_org.zap.zapcore.CheckWriteHook) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"onPanic" l) v.onPanic' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"onPanic" l) onPanic' (DFrac.own 1))
@@ -581,9 +543,7 @@ instance Logger_access_load_onFatal (l : Loc) (v : go_uber_org.zap.Logger) (dq :
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Logger_access_store_onFatal (l : Loc) (v : go_uber_org.zap.Logger) (onFatal' : go_uber_org.zap.zapcore.CheckWriteHook) :
+instance Logger_access_store_onFatal (l : Loc) (v : go_uber_org.zap.Logger) (onFatal' : go_uber_org.zap.zapcore.CheckWriteHook) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"onFatal" l) v.onFatal' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"onFatal" l) onFatal' (DFrac.own 1))
@@ -599,9 +559,7 @@ instance Logger_access_load_name (l : Loc) (v : go_uber_org.zap.Logger) (dq : DF
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Logger_access_store_name (l : Loc) (v : go_uber_org.zap.Logger) (name' : GoString) :
+instance Logger_access_store_name (l : Loc) (v : go_uber_org.zap.Logger) (name' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"name" l) v.name' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"name" l) name' (DFrac.own 1))
@@ -617,9 +575,7 @@ instance Logger_access_load_errorOutput (l : Loc) (v : go_uber_org.zap.Logger) (
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Logger_access_store_errorOutput (l : Loc) (v : go_uber_org.zap.Logger) (errorOutput' : go_uber_org.zap.zapcore.WriteSyncer) :
+instance Logger_access_store_errorOutput (l : Loc) (v : go_uber_org.zap.Logger) (errorOutput' : go_uber_org.zap.zapcore.WriteSyncer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"errorOutput" l) v.errorOutput' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"errorOutput" l) errorOutput' (DFrac.own 1))
@@ -635,9 +591,7 @@ instance Logger_access_load_addStack (l : Loc) (v : go_uber_org.zap.Logger) (dq 
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Logger_access_store_addStack (l : Loc) (v : go_uber_org.zap.Logger) (addStack' : go_uber_org.zap.zapcore.LevelEnabler) :
+instance Logger_access_store_addStack (l : Loc) (v : go_uber_org.zap.Logger) (addStack' : go_uber_org.zap.zapcore.LevelEnabler) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"addStack" l) v.addStack' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"addStack" l) addStack' (DFrac.own 1))
@@ -653,9 +607,7 @@ instance Logger_access_load_callerSkip (l : Loc) (v : go_uber_org.zap.Logger) (d
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Logger_access_store_callerSkip (l : Loc) (v : go_uber_org.zap.Logger) (callerSkip' : w64) :
+instance Logger_access_store_callerSkip (l : Loc) (v : go_uber_org.zap.Logger) (callerSkip' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"callerSkip" l) v.callerSkip' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"callerSkip" l) callerSkip' (DFrac.own 1))
@@ -671,9 +623,7 @@ instance Logger_access_load_clock (l : Loc) (v : go_uber_org.zap.Logger) (dq : D
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Logger_access_store_clock (l : Loc) (v : go_uber_org.zap.Logger) (clock' : go_uber_org.zap.zapcore.Clock) :
+instance Logger_access_store_clock (l : Loc) (v : go_uber_org.zap.Logger) (clock' : go_uber_org.zap.zapcore.Clock) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"clock" l) v.clock' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"clock" l) clock' (DFrac.own 1))
@@ -732,9 +682,7 @@ instance errSinkNotFound_access_load_scheme (l : Loc) (v : go_uber_org.zap.errSi
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) errSinkNotFound_access_store_scheme (l : Loc) (v : go_uber_org.zap.errSinkNotFound) (scheme' : GoString) :
+instance errSinkNotFound_access_store_scheme (l : Loc) (v : go_uber_org.zap.errSinkNotFound) (scheme' : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.errSinkNotFound go!"scheme" l) v.scheme' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.errSinkNotFound go!"scheme" l) scheme' (DFrac.own 1))
@@ -774,9 +722,7 @@ instance nopCloserSink_access_load_WriteSyncer (l : Loc) (v : go_uber_org.zap.no
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) nopCloserSink_access_store_WriteSyncer (l : Loc) (v : go_uber_org.zap.nopCloserSink) (WriteSyncer' : go_uber_org.zap.zapcore.WriteSyncer) :
+instance nopCloserSink_access_store_WriteSyncer (l : Loc) (v : go_uber_org.zap.nopCloserSink) (WriteSyncer' : go_uber_org.zap.zapcore.WriteSyncer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.nopCloserSink go!"WriteSyncer" l) v.WriteSyncer' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.nopCloserSink go!"WriteSyncer" l) WriteSyncer' (DFrac.own 1))
@@ -835,9 +781,7 @@ instance SugaredLogger_access_load_base (l : Loc) (v : go_uber_org.zap.SugaredLo
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) SugaredLogger_access_store_base (l : Loc) (v : go_uber_org.zap.SugaredLogger) (base' : Loc) :
+instance SugaredLogger_access_store_base (l : Loc) (v : go_uber_org.zap.SugaredLogger) (base' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.SugaredLogger go!"base" l) v.base' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.SugaredLogger go!"base" l) base' (DFrac.own 1))
@@ -879,9 +823,7 @@ instance invalidPair_access_load_position (l : Loc) (v : go_uber_org.zap.invalid
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) invalidPair_access_store_position (l : Loc) (v : go_uber_org.zap.invalidPair) (position' : w64) :
+instance invalidPair_access_store_position (l : Loc) (v : go_uber_org.zap.invalidPair) (position' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.invalidPair go!"position" l) v.position' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.invalidPair go!"position" l) position' (DFrac.own 1))
@@ -897,9 +839,7 @@ instance invalidPair_access_load_key (l : Loc) (v : go_uber_org.zap.invalidPair)
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) invalidPair_access_store_key (l : Loc) (v : go_uber_org.zap.invalidPair) (key' : GoInterface) :
+instance invalidPair_access_store_key (l : Loc) (v : go_uber_org.zap.invalidPair) (key' : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.invalidPair go!"key" l) v.key' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.invalidPair go!"key" l) key' (DFrac.own 1))
@@ -915,9 +855,7 @@ instance invalidPair_access_load_value (l : Loc) (v : go_uber_org.zap.invalidPai
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) invalidPair_access_store_value (l : Loc) (v : go_uber_org.zap.invalidPair) (value' : GoInterface) :
+instance invalidPair_access_store_value (l : Loc) (v : go_uber_org.zap.invalidPair) (value' : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.invalidPair go!"value" l) v.value' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.invalidPair go!"value" l) value' (DFrac.own 1))

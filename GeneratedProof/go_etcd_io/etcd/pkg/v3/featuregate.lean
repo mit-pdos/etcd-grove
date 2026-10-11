@@ -48,9 +48,7 @@ instance FeatureSpec_access_load_Default (l : Loc) (v : go_etcd_io.etcd.pkg.v3.f
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) FeatureSpec_access_store_Default (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (Default' : Bool) :
+instance FeatureSpec_access_store_Default (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (Default' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"Default" l) v.Default' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"Default" l) Default' (DFrac.own 1))
@@ -66,9 +64,7 @@ instance FeatureSpec_access_load_LockToDefault (l : Loc) (v : go_etcd_io.etcd.pk
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) FeatureSpec_access_store_LockToDefault (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (LockToDefault' : Bool) :
+instance FeatureSpec_access_store_LockToDefault (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (LockToDefault' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"LockToDefault" l) v.LockToDefault' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"LockToDefault" l) LockToDefault' (DFrac.own 1))
@@ -84,9 +80,7 @@ instance FeatureSpec_access_load_PreRelease (l : Loc) (v : go_etcd_io.etcd.pkg.v
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) FeatureSpec_access_store_PreRelease (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (PreRelease' : go_etcd_io.etcd.pkg.v3.featuregate.prerelease) :
+instance FeatureSpec_access_store_PreRelease (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) (PreRelease' : go_etcd_io.etcd.pkg.v3.featuregate.prerelease) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"PreRelease" l) v.PreRelease' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec go!"PreRelease" l) PreRelease' (DFrac.own 1))

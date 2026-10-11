@@ -143,9 +143,7 @@ instance InternalRaftStringer_access_load_Request (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) InternalRaftStringer_access_store_Request (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftStringer) (Request' : Loc) :
+instance InternalRaftStringer_access_store_Request (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftStringer) (Request' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftStringer go!"Request" l) v.Request' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftStringer go!"Request" l) Request' (DFrac.own 1))
@@ -185,9 +183,7 @@ instance txnRequestStringer_access_load_Request (l : Loc) (v : go_etcd_io.etcd.a
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) txnRequestStringer_access_store_Request (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.txnRequestStringer) (Request' : Loc) :
+instance txnRequestStringer_access_store_Request (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.txnRequestStringer) (Request' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.txnRequestStringer go!"Request" l) v.Request' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.txnRequestStringer go!"Request" l) Request' (DFrac.own 1))
@@ -227,9 +223,7 @@ instance requestOpStringer_access_load_Op (l : Loc) (v : go_etcd_io.etcd.api.v3.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) requestOpStringer_access_store_Op (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.requestOpStringer) (Op' : Loc) :
+instance requestOpStringer_access_store_Op (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.requestOpStringer) (Op' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.requestOpStringer go!"Op" l) v.Op' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.requestOpStringer go!"Op" l) Op' (DFrac.own 1))
@@ -274,9 +268,7 @@ instance loggablePutRequest_access_load_Key (l : Loc) (v : go_etcd_io.etcd.api.v
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) loggablePutRequest_access_store_Key (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (Key' : GoSlice) :
+instance loggablePutRequest_access_store_Key (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (Key' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"Key" l) v.Key' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"Key" l) Key' (DFrac.own 1))
@@ -292,9 +284,7 @@ instance loggablePutRequest_access_load_ValueSize (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) loggablePutRequest_access_store_ValueSize (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (ValueSize' : w64) :
+instance loggablePutRequest_access_store_ValueSize (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (ValueSize' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"ValueSize" l) v.ValueSize' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"ValueSize" l) ValueSize' (DFrac.own 1))
@@ -310,9 +300,7 @@ instance loggablePutRequest_access_load_Lease (l : Loc) (v : go_etcd_io.etcd.api
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) loggablePutRequest_access_store_Lease (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (Lease' : w64) :
+instance loggablePutRequest_access_store_Lease (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (Lease' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"Lease" l) v.Lease' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"Lease" l) Lease' (DFrac.own 1))
@@ -328,9 +316,7 @@ instance loggablePutRequest_access_load_PrevKv (l : Loc) (v : go_etcd_io.etcd.ap
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) loggablePutRequest_access_store_PrevKv (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (PrevKv' : Bool) :
+instance loggablePutRequest_access_store_PrevKv (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (PrevKv' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"PrevKv" l) v.PrevKv' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"PrevKv" l) PrevKv' (DFrac.own 1))
@@ -346,9 +332,7 @@ instance loggablePutRequest_access_load_IgnoreValue (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) loggablePutRequest_access_store_IgnoreValue (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (IgnoreValue' : Bool) :
+instance loggablePutRequest_access_store_IgnoreValue (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (IgnoreValue' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"IgnoreValue" l) v.IgnoreValue' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"IgnoreValue" l) IgnoreValue' (DFrac.own 1))
@@ -364,9 +348,7 @@ instance loggablePutRequest_access_load_IgnoreLease (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) loggablePutRequest_access_store_IgnoreLease (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (IgnoreLease' : Bool) :
+instance loggablePutRequest_access_store_IgnoreLease (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest) (IgnoreLease' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"IgnoreLease" l) v.IgnoreLease' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.loggablePutRequest go!"IgnoreLease" l) IgnoreLease' (DFrac.own 1))
@@ -413,9 +395,7 @@ instance ResponseHeader_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ResponseHeader_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+instance ResponseHeader_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"state" l) state' (DFrac.own 1))
@@ -431,9 +411,7 @@ instance ResponseHeader_access_load_ClusterId (l : Loc) (v : go_etcd_io.etcd.api
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ResponseHeader_access_store_ClusterId (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (ClusterId' : w64) :
+instance ResponseHeader_access_store_ClusterId (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (ClusterId' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"ClusterId" l) v.ClusterId' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"ClusterId" l) ClusterId' (DFrac.own 1))
@@ -449,9 +427,7 @@ instance ResponseHeader_access_load_MemberId (l : Loc) (v : go_etcd_io.etcd.api.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ResponseHeader_access_store_MemberId (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (MemberId' : w64) :
+instance ResponseHeader_access_store_MemberId (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (MemberId' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"MemberId" l) v.MemberId' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"MemberId" l) MemberId' (DFrac.own 1))
@@ -467,9 +443,7 @@ instance ResponseHeader_access_load_Revision (l : Loc) (v : go_etcd_io.etcd.api.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ResponseHeader_access_store_Revision (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (Revision' : w64) :
+instance ResponseHeader_access_store_Revision (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (Revision' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"Revision" l) v.Revision' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"Revision" l) Revision' (DFrac.own 1))
@@ -485,9 +459,7 @@ instance ResponseHeader_access_load_RaftTerm (l : Loc) (v : go_etcd_io.etcd.api.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ResponseHeader_access_store_RaftTerm (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (RaftTerm' : w64) :
+instance ResponseHeader_access_store_RaftTerm (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (RaftTerm' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"RaftTerm" l) v.RaftTerm' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"RaftTerm" l) RaftTerm' (DFrac.own 1))
@@ -503,9 +475,7 @@ instance ResponseHeader_access_load_LeaderId (l : Loc) (v : go_etcd_io.etcd.api.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ResponseHeader_access_store_LeaderId (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (LeaderId' : w64) :
+instance ResponseHeader_access_store_LeaderId (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (LeaderId' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"LeaderId" l) v.LeaderId' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"LeaderId" l) LeaderId' (DFrac.own 1))
@@ -521,9 +491,7 @@ instance ResponseHeader_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ResponseHeader_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (unknownFields' : GoSlice) :
+instance ResponseHeader_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (unknownFields' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"unknownFields" l) unknownFields' (DFrac.own 1))
@@ -539,9 +507,7 @@ instance ResponseHeader_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ResponseHeader_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (sizeCache' : w32) :
+instance ResponseHeader_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (sizeCache' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"sizeCache" l) sizeCache' (DFrac.own 1))
@@ -606,9 +572,7 @@ instance RangeResponse_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.e
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RangeResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+instance RangeResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"state" l) state' (DFrac.own 1))
@@ -624,9 +588,7 @@ instance RangeResponse_access_load_Header (l : Loc) (v : go_etcd_io.etcd.api.v3.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RangeResponse_access_store_Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (Header' : Loc) :
+instance RangeResponse_access_store_Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (Header' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"Header" l) v.Header' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"Header" l) Header' (DFrac.own 1))
@@ -642,9 +604,7 @@ instance RangeResponse_access_load_Kvs (l : Loc) (v : go_etcd_io.etcd.api.v3.etc
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RangeResponse_access_store_Kvs (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (Kvs' : GoSlice) :
+instance RangeResponse_access_store_Kvs (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (Kvs' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"Kvs" l) v.Kvs' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"Kvs" l) Kvs' (DFrac.own 1))
@@ -660,9 +620,7 @@ instance RangeResponse_access_load_More (l : Loc) (v : go_etcd_io.etcd.api.v3.et
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RangeResponse_access_store_More (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (More' : Bool) :
+instance RangeResponse_access_store_More (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (More' : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"More" l) v.More' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"More" l) More' (DFrac.own 1))
@@ -678,9 +636,7 @@ instance RangeResponse_access_load_Count (l : Loc) (v : go_etcd_io.etcd.api.v3.e
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RangeResponse_access_store_Count (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (Count' : w64) :
+instance RangeResponse_access_store_Count (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (Count' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"Count" l) v.Count' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"Count" l) Count' (DFrac.own 1))
@@ -696,9 +652,7 @@ instance RangeResponse_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RangeResponse_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (unknownFields' : GoSlice) :
+instance RangeResponse_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (unknownFields' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"unknownFields" l) unknownFields' (DFrac.own 1))
@@ -714,9 +668,7 @@ instance RangeResponse_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RangeResponse_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (sizeCache' : w32) :
+instance RangeResponse_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (sizeCache' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"sizeCache" l) sizeCache' (DFrac.own 1))
@@ -779,9 +731,7 @@ instance PutResponse_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etc
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) PutResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+instance PutResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"state" l) state' (DFrac.own 1))
@@ -797,9 +747,7 @@ instance PutResponse_access_load_Header (l : Loc) (v : go_etcd_io.etcd.api.v3.et
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) PutResponse_access_store_Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse) (Header' : Loc) :
+instance PutResponse_access_store_Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse) (Header' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"Header" l) v.Header' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"Header" l) Header' (DFrac.own 1))
@@ -815,9 +763,7 @@ instance PutResponse_access_load_PrevKv (l : Loc) (v : go_etcd_io.etcd.api.v3.et
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) PutResponse_access_store_PrevKv (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse) (PrevKv' : Loc) :
+instance PutResponse_access_store_PrevKv (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse) (PrevKv' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"PrevKv" l) v.PrevKv' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"PrevKv" l) PrevKv' (DFrac.own 1))
@@ -833,9 +779,7 @@ instance PutResponse_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.ap
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) PutResponse_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse) (unknownFields' : GoSlice) :
+instance PutResponse_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse) (unknownFields' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"unknownFields" l) unknownFields' (DFrac.own 1))
@@ -851,9 +795,7 @@ instance PutResponse_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) PutResponse_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse) (sizeCache' : w32) :
+instance PutResponse_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse) (sizeCache' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"sizeCache" l) sizeCache' (DFrac.own 1))
@@ -917,9 +859,7 @@ instance DeleteRangeResponse_access_load_state (l : Loc) (v : go_etcd_io.etcd.ap
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) DeleteRangeResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+instance DeleteRangeResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"state" l) state' (DFrac.own 1))
@@ -935,9 +875,7 @@ instance DeleteRangeResponse_access_load_Header (l : Loc) (v : go_etcd_io.etcd.a
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) DeleteRangeResponse_access_store_Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse) (Header' : Loc) :
+instance DeleteRangeResponse_access_store_Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse) (Header' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"Header" l) v.Header' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"Header" l) Header' (DFrac.own 1))
@@ -953,9 +891,7 @@ instance DeleteRangeResponse_access_load_Deleted (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) DeleteRangeResponse_access_store_Deleted (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse) (Deleted' : w64) :
+instance DeleteRangeResponse_access_store_Deleted (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse) (Deleted' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"Deleted" l) v.Deleted' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"Deleted" l) Deleted' (DFrac.own 1))
@@ -971,9 +907,7 @@ instance DeleteRangeResponse_access_load_PrevKvs (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) DeleteRangeResponse_access_store_PrevKvs (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse) (PrevKvs' : GoSlice) :
+instance DeleteRangeResponse_access_store_PrevKvs (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse) (PrevKvs' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"PrevKvs" l) v.PrevKvs' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"PrevKvs" l) PrevKvs' (DFrac.own 1))
@@ -989,9 +923,7 @@ instance DeleteRangeResponse_access_load_unknownFields (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) DeleteRangeResponse_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse) (unknownFields' : GoSlice) :
+instance DeleteRangeResponse_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse) (unknownFields' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"unknownFields" l) unknownFields' (DFrac.own 1))
@@ -1007,9 +939,7 @@ instance DeleteRangeResponse_access_load_sizeCache (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) DeleteRangeResponse_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse) (sizeCache' : w32) :
+instance DeleteRangeResponse_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse) (sizeCache' : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"sizeCache" l) sizeCache' (DFrac.own 1))
@@ -1068,9 +998,7 @@ instance RequestOp_RequestRange_access_load_RequestRange (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RequestOp_RequestRange_access_store_RequestRange (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp_RequestRange) (RequestRange' : Loc) :
+instance RequestOp_RequestRange_access_store_RequestRange (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp_RequestRange) (RequestRange' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp_RequestRange go!"RequestRange" l) v.RequestRange' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp_RequestRange go!"RequestRange" l) RequestRange' (DFrac.own 1))
@@ -1110,9 +1038,7 @@ instance RequestOp_RequestPut_access_load_RequestPut (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RequestOp_RequestPut_access_store_RequestPut (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp_RequestPut) (RequestPut' : Loc) :
+instance RequestOp_RequestPut_access_store_RequestPut (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp_RequestPut) (RequestPut' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp_RequestPut go!"RequestPut" l) v.RequestPut' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp_RequestPut go!"RequestPut" l) RequestPut' (DFrac.own 1))
@@ -1152,9 +1078,7 @@ instance RequestOp_RequestDeleteRange_access_load_RequestDeleteRange (l : Loc) (
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RequestOp_RequestDeleteRange_access_store_RequestDeleteRange (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp_RequestDeleteRange) (RequestDeleteRange' : Loc) :
+instance RequestOp_RequestDeleteRange_access_store_RequestDeleteRange (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp_RequestDeleteRange) (RequestDeleteRange' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp_RequestDeleteRange go!"RequestDeleteRange" l) v.RequestDeleteRange' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp_RequestDeleteRange go!"RequestDeleteRange" l) RequestDeleteRange' (DFrac.own 1))
@@ -1194,9 +1118,7 @@ instance RequestOp_RequestTxn_access_load_RequestTxn (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) RequestOp_RequestTxn_access_store_RequestTxn (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp_RequestTxn) (RequestTxn' : Loc) :
+instance RequestOp_RequestTxn_access_store_RequestTxn (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp_RequestTxn) (RequestTxn' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp_RequestTxn go!"RequestTxn" l) v.RequestTxn' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp_RequestTxn go!"RequestTxn" l) RequestTxn' (DFrac.own 1))
@@ -1236,9 +1158,7 @@ instance ResponseOp_ResponseRange_access_load_ResponseRange (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ResponseOp_ResponseRange_access_store_ResponseRange (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseRange) (ResponseRange' : Loc) :
+instance ResponseOp_ResponseRange_access_store_ResponseRange (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseRange) (ResponseRange' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseRange go!"ResponseRange" l) v.ResponseRange' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseRange go!"ResponseRange" l) ResponseRange' (DFrac.own 1))
@@ -1278,9 +1198,7 @@ instance ResponseOp_ResponsePut_access_load_ResponsePut (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ResponseOp_ResponsePut_access_store_ResponsePut (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponsePut) (ResponsePut' : Loc) :
+instance ResponseOp_ResponsePut_access_store_ResponsePut (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponsePut) (ResponsePut' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponsePut go!"ResponsePut" l) v.ResponsePut' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponsePut go!"ResponsePut" l) ResponsePut' (DFrac.own 1))
@@ -1320,9 +1238,7 @@ instance ResponseOp_ResponseDeleteRange_access_load_ResponseDeleteRange (l : Loc
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ResponseOp_ResponseDeleteRange_access_store_ResponseDeleteRange (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseDeleteRange) (ResponseDeleteRange' : Loc) :
+instance ResponseOp_ResponseDeleteRange_access_store_ResponseDeleteRange (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseDeleteRange) (ResponseDeleteRange' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseDeleteRange go!"ResponseDeleteRange" l) v.ResponseDeleteRange' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseDeleteRange go!"ResponseDeleteRange" l) ResponseDeleteRange' (DFrac.own 1))
@@ -1362,9 +1278,7 @@ instance ResponseOp_ResponseTxn_access_load_ResponseTxn (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) ResponseOp_ResponseTxn_access_store_ResponseTxn (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseTxn) (ResponseTxn' : Loc) :
+instance ResponseOp_ResponseTxn_access_store_ResponseTxn (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseTxn) (ResponseTxn' : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseTxn go!"ResponseTxn" l) v.ResponseTxn' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseTxn go!"ResponseTxn" l) ResponseTxn' (DFrac.own 1))
@@ -1404,9 +1318,7 @@ instance Compare_Version_access_load_Version (l : Loc) (v : go_etcd_io.etcd.api.
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Compare_Version_access_store_Version (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Version) (Version' : w64) :
+instance Compare_Version_access_store_Version (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Version) (Version' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Version go!"Version" l) v.Version' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Version go!"Version" l) Version' (DFrac.own 1))
@@ -1446,9 +1358,7 @@ instance Compare_CreateRevision_access_load_CreateRevision (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Compare_CreateRevision_access_store_CreateRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.Compare_CreateRevision) (CreateRevision' : w64) :
+instance Compare_CreateRevision_access_store_CreateRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.Compare_CreateRevision) (CreateRevision' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_CreateRevision go!"CreateRevision" l) v.CreateRevision' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_CreateRevision go!"CreateRevision" l) CreateRevision' (DFrac.own 1))
@@ -1488,9 +1398,7 @@ instance Compare_ModRevision_access_load_ModRevision (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Compare_ModRevision_access_store_ModRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.Compare_ModRevision) (ModRevision' : w64) :
+instance Compare_ModRevision_access_store_ModRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.Compare_ModRevision) (ModRevision' : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_ModRevision go!"ModRevision" l) v.ModRevision' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_ModRevision go!"ModRevision" l) ModRevision' (DFrac.own 1))
@@ -1530,9 +1438,7 @@ instance Compare_Value_access_load_Value (l : Loc) (v : go_etcd_io.etcd.api.v3.e
  by
   solve_pointsto_access_struct
 
--- below the load instance, which a load must find (with `dq`): the store instance
--- also matches a load (storing the same value), but only at `DFrac.own 1`
-instance (priority := low) Compare_Value_access_store_Value (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Value) (Value' : GoSlice) :
+instance Compare_Value_access_store_Value (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Value) (Value' : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Value go!"Value" l) v.Value' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.Compare_Value go!"Value" l) Value' (DFrac.own 1))
