@@ -158,6 +158,46 @@ Files: `Proof/go_etcd_io/etcd/client/v3/experimental/recipes/` (`Base`, `InvReci
   `proto.Clone.wp_proof` and the three unit-1b `sorry`s; `etc/tcb-report.py --check`: the three
   `sorry`s are new, the repository baseline updated (`--check --update`: 42 axioms, 4 sorries).
 
+### Unit 3: the RWMutex and the double barrier (2026-10-11)
+
+Files: `Proof/go_etcd_io/etcd/client/v3/experimental/recipes/` (`InvRWMutex`, `InvDoubleBarrier`,
+one proof per function, `Results` (unit 3's section)) and their specs; decisions:
+`decisions.md`, "Recipes", "Units 1b, 2 and 3" (the unit 3 bullets).
+
+- **RWMutex** (`isRWMutex m s γ client id pfx`: session, `context.TODO()`, prefix `pfx` with
+  `NewRWMutex`'s `/`, the bundle at `pfx`, `context.isClosedchanInit`; `rwMyKey m pfx o`: `myKey`).
+  `waitOnLastRev(bp)`: the get `lastRevOp bp (myRev - 1)` (`WithLastRev()` appended with
+  `WithMaxModRev`, `lastRevOp_kvs`); `(true, nil)` with `RWBlockFree bp myRev` at the get's
+  revision, else `WaitEvents` for the last key's deletion and `false`. `RLock`/`Lock`: a fresh key
+  under `pfx/read/` / `pfx/write/`, then `waitOnLastRev(pfx + "write")` / `(pfx)` until done:
+  `nil` means `rwHeldAt pfx role key c R`. `RUnlock`/`Unlock`: `myKey.Delete()`
+  (`rwUnlockResult`). **Exclusion** (`rwmutex_write_exclusion`, `rwmutex_read_write_exclusion`):
+  as `Mutex`'s, plus the premise that the holders' keys are never modified (`keyUnmodified`): the
+  recipe filters by mod revision, so a key rewritten by another client stops blocking.
+- **DoubleBarrier** (`isDoubleBarrier b s γ client id key count`: with `0 < count`, a
+  precondition of `NewDoubleBarrier`; `dbMyKey`). `enteredClients`: the waiters (prefix
+  `key/waiters`) sorted by create revision (`waitersResp`). `Enter` (`enterResult`): `nil` with
+  `enterReady` (the direct path's `count` waiters seen, `waitersSeen`; the waiting path's write of
+  `key/ready` at or after its key's creation, `readyPut`); `ErrTooManyClients` with the key
+  possibly left (its `Delete`'s error is ignored); results `double_barrier_enter_ready` (no
+  premise) and `double_barrier_enter_count` (under `readyPutsCounted`: `count` waiters seen at a
+  revision etcd has reached). `Leave` (Löb induction): `nil` means the key absent at some `r ≥ lo`
+  (`double_barrier_leave`, for the record `Enter` leaves), or its record already deleted.
+- **No finding.** Misuse is a precondition: `RUnlock`/`Unlock`/`Leave` with a nil `myKey` (a nil
+  dereference; `Leave` only if waiters are left), `count ≤ 0`. The mod-revision filter of
+  `waitOnLastRev` is the premise above, not an issue (only another client's `Put` into the
+  prefix triggers it).
+- **Link**: `NewRWMutex`, `NewDoubleBarrier` take `context_TODO`; the other unit 3 lines were in
+  hypothesis order already. `Link.lean` regenerated (`--skip-unproved`).
+- **Numbers** (`etc/verified-code.py --reuse`): the recipes 25 of 38 functions verified (21
+  sorry-free: `RLock`, `Lock`, `Enter` and `newUniqueEphemeralKey` reach unit 1b's
+  `newUniqueEphemeralKV` `sorry`), 249 of 401 Go lines (`rwmutex.go` 46/46,
+  `double_barrier.go` 101/101); etcd 360 verified of 3599.
+- **Gates**: `lake build` passes; `etc/tcb-report.py --collection etc/tcb-collections/recipes.txt`:
+  the exclusion results add the existing history law `etcdState_create_persist` to the
+  collection's baseline (updated); `etc/tcb-report.py --check` matches the repository baseline
+  (42 axioms, 4 sorries).
+
 ## Perennial `cb6a5921e`: one `AllG` (2026-10-11)
 
 Perennial `cb6a5921e` (`lean`) makes `AllG GF` a singleton: `GooseGlobalGS` has the field
