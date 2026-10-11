@@ -105,35 +105,35 @@ theorem register.wp_New [RegStor GF] :
     register.New.spec (GF := GF) (hG := hG) :=
   register.New.wp_proof register.Register.wp_run
 
-theorem register.wp_deliverable [AllG GF] :
+theorem register.wp_deliverable :
     register.deliverable.spec (GF := GF) (hG := hG) :=
   register.deliverable.wp_proof
 
-theorem register.wp_deliver [AllG GF] [StorageModel GF] :
+theorem register.wp_deliver [StorageModel GF] :
     register.deliver.spec (GF := GF) (hG := hG) :=
   register.deliver.wp_proof register.wp_deliverable node.wp_Step
 
-theorem register.wp_tick [AllG GF] [StorageModel GF] :
+theorem register.wp_tick [StorageModel GF] :
     register.tick.spec (GF := GF) (hG := hG) :=
   register.tick.wp_proof node.wp_Tick
 
-theorem register.quietLogger.wp_Debugf [AllG GF] :
+theorem register.quietLogger.wp_Debugf :
     register.quietLogger.Debugf.spec (GF := GF) (hG := hG) :=
   register.quietLogger.Debugf.wp_proof
 
-theorem register.quietLogger.wp_Errorf [AllG GF] :
+theorem register.quietLogger.wp_Errorf :
     register.quietLogger.Errorf.spec (GF := GF) (hG := hG) :=
   register.quietLogger.Errorf.wp_proof
 
-theorem register.quietLogger.wp_Infof [AllG GF] :
+theorem register.quietLogger.wp_Infof :
     register.quietLogger.Infof.spec (GF := GF) (hG := hG) :=
   register.quietLogger.Infof.wp_proof
 
-theorem register.quietLogger.wp_Warningf [AllG GF] :
+theorem register.quietLogger.wp_Warningf :
     register.quietLogger.Warningf.spec (GF := GF) (hG := hG) :=
   register.quietLogger.Warningf.wp_proof
 
-theorem register.wp_Main [AllG GF] :
+theorem register.wp_Main :
     register.Main.spec (GF := GF) (hG := hG) :=
   register.Main.wp_proof register.wp_NewStorage register.Storage.wp_InitialState register.Storage.wp_Snapshot register.wp_New register.Register.wp_Put register.Register.wp_Get register.wp_deliver register.wp_tick register.quietLogger.wp_Debugf register.quietLogger.wp_Errorf register.quietLogger.wp_Infof register.quietLogger.wp_Warningf wp_RestartNode
 
