@@ -82,7 +82,8 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       iframe #
     unfold mvcc.commitLog
     rw [if_pos rfl]
-    iexact Hcert
+    try rw [if_pos rfl]
+    iframe Hcert Htok
 
   · -- a change: commit the pending revision under `s.revMu`
     have hne' : pend ≠ [] := fun h => Hif (hpend.1 h)
@@ -166,7 +167,8 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
         iframe #
       unfold mvcc.commitLog
       rw [if_neg hne']
-      iexact Hcert'
+      try rw [if_neg hne']
+      iframe Hcert'
 end proof
 
 end EtcdGrove

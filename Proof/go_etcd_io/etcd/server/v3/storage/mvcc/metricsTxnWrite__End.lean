@@ -90,10 +90,10 @@ theorem mvcc.metricsTxnWrite.End.wp_proof
       wp_apply HcdA
       (try wp_auto)
       -- the deferred `tw.TxnWrite.End()`: `storeTxnWrite.End`
-      wp_apply (hEndW tw s γ ilog pend) $$ [$Htw] as ⟨Hrd, #Hcert⟩
+      wp_apply (hEndW tw s γ ilog pend) $$ [$Htw] as ⟨Hrd, #Hcert, Htok⟩
       (try wp_auto)
       iapply HΦ
-      iframe Hrd
+      iframe Hrd Htok
       iexact Hcert
 
 end proof

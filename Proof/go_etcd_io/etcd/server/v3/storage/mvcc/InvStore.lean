@@ -672,10 +672,11 @@ def isTxn (mw s : Loc) (γ : StoreNames) : TxnKind → IProp GF
   | .write ilog pend puts deletes putSize => isTxnWrite mw s γ ilog pend puts deletes putSize
 
 /-- What `End` leaves of a transaction: nothing of a read one; of a write one, the
-certificate of the committed log. -/
+certificate of the committed log, and the revision token back if no revision was made. -/
 def txnEndPost (γ : StoreNames) : TxnKind → IProp GF
   | .read _ _ => iprop(True)
-  | .write ilog pend _ _ _ => idxCert γ.idx (commitLog ilog pend)
+  | .write ilog pend _ _ _ =>
+    iprop(idxCert γ.idx (commitLog ilog pend) ∗ if pend = [] then revToken γ else iprop(True))
 
 /-- The store's `writeView` (`kv_view.go`): its `kv` is the store `s`. -/
 def isWriteView (wv s : Loc) (γ : StoreNames) : IProp GF :=

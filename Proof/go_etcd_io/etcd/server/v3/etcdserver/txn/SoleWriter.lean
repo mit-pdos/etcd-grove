@@ -107,9 +107,9 @@ theorem soleWriter_split (γ : mvcc.StoreNames) (log : Log) (h : log.length + 4 
   iframe H1 Hn
   iexact Hc
 
-/-- **Closing a write transaction** at the sole writer's log: with a change, the committed log is
-one revision longer and the transaction's token is spent; with none, the token comes back
-(a premise: mvcc's `End` does not return it). -/
+/-- **Closing a write transaction** at the sole writer's log, with what `storeTxnWrite.End`
+returns: with a change, the committed log is one revision longer and the transaction's token is
+spent; with none, `End` gives the token back. -/
 theorem soleWriter_close (γ : mvcc.StoreNames) (log : Log) (pend : List Change)
     (h : log.length + 4 ≤ 2 ^ 63) :
     soleWriterOpen (GF := GF) γ log ∗ idxCert γ.idx (commitLog log pend) ∗
@@ -132,6 +132,14 @@ theorem soleWriter_close (γ : mvcc.StoreNames) (log : Log) (pend : List Change)
     simp only [hp, ↓reduceIte, hc, hb]
     iintro ⟨⟨-, Hn⟩, #Hc, -⟩
     iframe Hc Hn
+
+/-- `soleWriter_close` from what `metricsTxnWrite.End` returns (`txnEndPost`). -/
+theorem soleWriter_close_end (γ : mvcc.StoreNames) (log : Log) (pend : List Change)
+    (puts deletes putSize : w64) (h : log.length + 4 ≤ 2 ^ 63) :
+    soleWriterOpen (GF := GF) γ log ∗ txnEndPost γ (.write log pend puts deletes putSize) ⊢
+      soleWriter γ (commitLog log pend) := by
+  unfold txnEndPost
+  exact soleWriter_close γ log pend h
 
 /-! ## The pins -/
 
