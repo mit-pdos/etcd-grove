@@ -1,0 +1,233 @@
+/-
+The database and its read transactions (sequential use: one goroutine at a time uses the
+database, with any number of transactions open), first for the read path: no writer open.
+
+**The state.** `DBState`: the file (`fd`, its bytes `bs`) and its mapping (`data`, `sz`), the
+page size, the freelist's state, and the open readers (a map from a ghost key to each
+reader's `Reader`: its txid, its tree's root and high-water mark, the pages it sees and its
+fraction `q` of them).
+
+**The mapping's cells.** The caller's half of each mapped slot (`FilePages.lean`) is shared:
+the database holds `rem s` of slot `s` and every reader that sees `s` holds its `q` (the
+pages it sees, `pagesView`): `slotsOK`. The fields `data` and `pageSize` are shared the same
+way (`fieldsOK`). A reader's pages are the file's (`pagesOf`): the database never changes a
+slot a reader sees, which is bbolt's MVCC rule (`mvccOK`: such a slot is no meta page, not
+free, and pending only from a transaction newer than the reader).
+
+**The locks.** `mmaplock` (an RWMutex) protects the mapping against a remap: its invariant is
+a ghost token (`mmapTok`); each open reader holds a read lock, and its `mmapTok γ rfrac` is
+kept here (`Htoks`), so a writer holding the write lock (`mmapTok γ 1`) knows that no reader
+is open. `metalock` (a Mutex) protects nothing more in sequential use. `statlock` (an RWMutex)
+protects the statistics, which in sequential use are simply the database's (`statsInv` is
+`True`). The database holds the unused read handles of
+`mmaplock` (`ownRWMutex`, one per reader that can still begin, `rwmutex.actualMaxReaders` in
+all) and one of `statlock`.
+-/
+module
+
+public import Proof.go_etcd_io.bbolt.DBSplit
+public import Proof.go_etcd_io.bbolt.DBModel
+public import Proof.go_etcd_io.bbolt.FilePages
+public import Proof.go_etcd_io.bbolt.Tx__init
+public import Proof.os.FileModel
+public import Proof.go_etcd_io.bbolt.internal.freelist.Model
+public import Perennial.Proof.sync_proof.mutex
+public import Perennial.Proof.sync_proof.rwmutex_guard
+public import Perennial.Ghost.GhostMap
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace bbolt
+
+open Iris Iris.BI go_etcd_io.bbolt sync
+
+section defs
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [AllG GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.bbolt.Assumptions]
+variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
+
+/-- An open read transaction, as the database accounts for it. -/
+structure Reader where
+  txid : w64
+  root : Nat
+  hwm : Nat
+  pages : GMap Nat (List w8)
+  q : Qp
+
+noncomputable instance countableRat : Pos.Countable Rat :=
+  .ofInjective (fun r => Pos.Countable.encode (r.num, r.den)) (fun a b h => by
+    have h' := Pos.encode_inj h
+    exact Rat.ext (congrArg Prod.fst h') (congrArg Prod.snd h'))
+
+noncomputable instance countableQp : Pos.Countable Qp :=
+  .ofInjective (fun q => Pos.Countable.encode q.val) (fun a b h => Qp.ext_iff.2 (Pos.encode_inj h))
+
+noncomputable instance countableReader : Pos.Countable Reader :=
+  .ofInjective (fun r => Pos.Countable.encode (r.txid, r.root, r.hwm, r.pages, r.q)) (fun a b h => by
+    have h' := Pos.encode_inj h
+    cases a; cases b; simp only [Prod.mk.injEq] at h'
+    obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := h'; rfl)
+
+/-- The database's state. -/
+structure DBState where
+  file : Loc
+  fd : w64
+  bs : List w8
+  data : Loc
+  sz : Nat
+  ps : Nat
+  fl : FLState
+  readers : GMap Nat Reader
+  /-- The database's fraction of each slot. -/
+  rem : Nat → Qp
+  /-- The database's fraction of the fields `data`, `pageSize`. -/
+  frem : Qp
+
+/-- The number of whole slots the mapping holds of the file. -/
+def DBState.nslots (σ : DBState) : Nat := min σ.sz σ.bs.length / σ.ps
+
+/-- Adding fractions, `none` being none. -/
+def optAdd (a : Qp) : Option Qp → Option Qp
+  | none => some a
+  | some b => some (a + b)
+
+/-- The sum of the fractions `q` of the readers `rs` that `sees` (`none`: no reader). -/
+def readersQ (rs : GMap Nat Reader) (sees : Reader → Bool) : Option Qp :=
+  GMap.mapFold (fun _ r acc => if sees r then optAdd r.q acc else acc) none rs
+
+open Classical in
+/-- Reader `r` sees slot `s`. -/
+def Reader.sees (r : Reader) (s : Nat) : Bool := decide (coversSlot r.pages s)
+
+/-- `a` and the fractions `o` make up `whole`. -/
+def fracSum (a : Qp) (o : Option Qp) (whole : Qp) : Prop :=
+  match o with
+  | none => a = whole
+  | some s => a + s = whole
+
+/-- The slots: the database's part and the readers' make up the caller's half. -/
+def slotsOK (σ : DBState) : Prop :=
+  ∀ s < σ.nslots, fracSum (σ.rem s) (readersQ σ.readers (fun r => r.sees s)) halfQ
+
+/-- The shared fields: the database's part and every reader's make up the whole. -/
+def fieldsOK (σ : DBState) : Prop := fracSum σ.frem (readersQ σ.readers (fun _ => true)) 1
+
+/-- A reader's pages are the file's, inside the mapping, and form its well-formed tree. -/
+def readerOK (σ : DBState) (r : Reader) : Prop :=
+  treeWF r.pages r.hwm r.root ∧ pagesDisjoint r.pages ∧
+  (∀ id pg, r.pages !! id = some pg →
+    pageAt σ.bs σ.ps id = pg ∧ id + pageSpan σ.bs σ.ps id ≤ σ.nslots)
+
+/-- bbolt's MVCC rule: a slot a reader sees is no meta page, not free, and pending only from a
+transaction newer than the reader (which freed it after the reader began). -/
+def mvccOK (σ : DBState) : Prop :=
+  ∀ k r s, σ.readers !! k = some r → r.sees s →
+    2 ≤ s ∧ W64 s ∉ σ.fl.free ∧
+    ∀ t pd, σ.fl.pending !! t = some pd → W64 s ∈ pd.ids → uint.Z r.txid < uint.Z t
+
+/-- The meta in slot `s`'s bytes after the page header. -/
+def metaIn (σ : DBState) (s : Nat) (v : internal.common.Meta) : Prop :=
+  ((slotAt σ.bs σ.ps s).drop 16).take 64 = metaBytes v
+
+/-- The current tree (of the meta `db.meta()` picks): well-formed, its pages disjoint, inside
+the mapping, and none free or pending (a new reader sees it, `mvccOK`). -/
+def currentOK (σ : DBState) (v0 v1 : internal.common.Meta) : Prop :=
+  let m := if metaPick v0 v1 then v1 else v0
+  let hwm := uint.nat m.pgid'
+  let root := uint.nat m.root'.root'
+  let ps := treePages (filePages σ.bs σ.ps hwm) root
+  treeWF ps hwm root ∧ pagesDisjoint ps ∧
+  (∀ id pg, ps !! id = some pg → id + pageSpan σ.bs σ.ps id ≤ σ.nslots) ∧
+  (∀ s, coversSlot ps s → 2 ≤ s ∧ W64 s ∉ σ.fl.free ∧
+    ∀ t pd, σ.fl.pending !! t = some pd → W64 s ∉ pd.ids)
+
+/-- The database's facts: the mapping, the two metas (one valid), the current tree, the
+readers, the accounting. -/
+def dbOK (σ : DBState) (v0 v1 : internal.common.Meta) : Prop :=
+  80 ≤ σ.ps ∧ σ.ps < 2 ^ 32 ∧ 2 ≤ σ.nslots ∧ σ.sz < 281474976710655 ∧ σ.data.locCar ≠ 0 ∧
+  metaIn σ 0 v0 ∧ metaIn σ 1 v1 ∧ (metaValid v0 ∨ metaValid v1) ∧ currentOK σ v0 v1 ∧
+  (∀ k r, σ.readers !! k = some r → readerOK σ r) ∧ mvccOK σ ∧ slotsOK σ ∧ fieldsOK σ ∧
+  σ.fl.readonly.Perm (σ.readers.toList.map (·.2.txid)) ∧
+  σ.readers.size < Int.toNat rwmutex.actualMaxReaders
+
+/-- `mmaplock`'s invariant: a ghost token. -/
+def mmapTok (γ : GName) (q : Qp) : IProp GF := ghostVar γ q ()
+
+/-- `statlock`'s invariant: nothing (in sequential use the statistics are the database's). -/
+def statsInv (_q : Qp) : IProp GF := iprop(True)
+
+/-- `AddReadonlyTXID(tid)` through the freelist interface: `tid` is a read-only transaction. -/
+def FLImpl.AddReadonlySpec (I : FLImpl (GF := GF)) : Prop :=
+  ∀ (s : Loc) (σ : FLState) (tid : w64),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ ownFL I s σ }}
+      (App (Val #(methods I.ity go!"AddReadonlyTXID" I.iv)) (Val #tid))
+    {{ RET #(); ownFL I s { σ with readonly := σ.readonly ++ [tid] } }}
+
+/-- `RemoveReadonlyTXID(tid)` through the freelist interface: one `tid` is no longer a
+read-only transaction (the rest in some order: `shared`'s swaps the last one into its place). -/
+def FLImpl.RemoveReadonlySpec (I : FLImpl (GF := GF)) : Prop :=
+  ∀ (s : Loc) (σ : FLState) (tid : w64),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ ownFL I s σ }}
+      (App (Val #(methods I.ity go!"RemoveReadonlyTXID" I.iv)) (Val #tid))
+    {{ (ro : List w64), RET #(); ⌜ro.Perm (σ.readonly.erase tid)⌝ ∗
+        ownFL I s { σ with readonly := ro } }}
+
+/-- The ghost names of a database. -/
+structure DBNames where
+  mmap : GName
+  readers : GName
+
+/-- The database at `dbl` (sequential use, no writer open), its freelist an implementation `I`
+of the freelist interface. -/
+def ownDB (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DBState) : IProp GF :=
+  iprop(∃ (dv : DB) (fls : Loc) (v0 v1 : internal.common.Meta),
+    "%Hdv" ∷ ⌜dv.data' = σ.data ∧ dv.pageSize' = W64 σ.ps ∧ dv.datasz' = W64 σ.sz ∧
+      dv.meta0' = σ.data +ₗ 16 ∧ dv.meta1' = σ.data +ₗ ((σ.ps + 16 : Nat) : Int) ∧
+      dv.opened' = true ∧ dv.file' = σ.file ∧ dv.freelist' = I.iface ∧ dv.rwtx' = null⌝ ∗
+    "%Hok" ∷ ⌜dbOK σ v0 v1⌝ ∗
+    "Hplain" ∷ dbPlain dbl (DFrac.own 1) dv ∗
+    "Hdata" ∷ structFieldRef DB go!"data" dbl ↦{DFrac.own σ.frem} σ.data ∗
+    "Hps" ∷ structFieldRef DB go!"pageSize" dbl ↦{DFrac.own σ.frem} W64 σ.ps ∗
+    "#Hfile" ∷ osFile σ.file σ.fd ∗
+    "Hbytes" ∷ fileBytes σ.fd σ.bs ∗
+    "Hmap" ∷ fileMap σ.fd (some (σ.data, σ.sz)) ∗
+    "Hslots" ∷ slotsView σ.data σ.bs σ.ps σ.rem (List.range σ.nslots) ∗
+    "Hfl" ∷ ownFL I fls σ.fl ∗
+    "#Hmetalock" ∷ isMutex (structFieldRef DB go!"metalock" dbl) iprop(True) ∗
+    "Hmmaph" ∷ ([∗list] _x ∈ List.replicate (Int.toNat rwmutex.actualMaxReaders - σ.readers.size) (),
+      ownRWMutex (structFieldRef DB go!"mmaplock" dbl) (mmapTok γ.mmap)) ∗
+    "Htoks" ∷ ([∗map] _k ↦ _r ∈ σ.readers, mmapTok γ.mmap rfrac) ∗
+    "Hstath" ∷ ownRWMutex (structFieldRef DB go!"statlock" dbl) statsInv ∗
+    "Hstats" ∷ (⌜dv.stats' = null⌝ ∨ ∃ (sv : Stats), dv.stats' ↦ sv) ∗
+    "Hrauth" ∷ ghostMapAuth γ.readers 1 σ.readers)
+
+/-- The read transaction at `txl` of the database at `dbl`, which accounts for it as `r` under
+the key `k`. -/
+def ownReadTx (dbl : Loc) (γ : DBNames) (txl : Loc) (k : Nat) (r : Reader) (data : Loc)
+    (ps : Nat) : IProp GF :=
+  iprop(∃ (t : Tx) (mv : internal.common.Meta),
+    "Htx" ∷ txl ↦ t ∗
+    "%Ht" ∷ ⌜t.db' = dbl ∧ t.writable' = false ∧ t.pages' = map.nil ∧
+      t.root'.tx' = txl ∧ t.root'.buckets' = map.nil ∧ t.root'.nodes' = map.nil ∧
+      t.root'.page' = null ∧ t.root'.rootNode' = null ∧
+      mv.txid' = r.txid ∧ uint.nat mv.root'.root' = r.root ∧ uint.nat mv.pgid' = r.hwm⌝ ∗
+    "Hmeta" ∷ t.meta' ↦ mv ∗
+    "Hroot" ∷ t.root'.InBucket' ↦ mv.root' ∗
+    "Hrdata" ∷ structFieldRef DB go!"data" dbl ↦{DFrac.own r.q} data ∗
+    "Hrps" ∷ structFieldRef DB go!"pageSize" dbl ↦{DFrac.own r.q} W64 ps ∗
+    "Hpages" ∷ pagesView data ps r.q r.pages ∗
+    "Hrl" ∷ ownRWMutexRLocked (structFieldRef DB go!"mmaplock" dbl) (mmapTok γ.mmap) ∗
+    "Hkey" ∷ k ↪[γ.readers] r)
+
+end defs
+
+end bbolt
+end EtcdGrove
+end Perennial

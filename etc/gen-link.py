@@ -89,6 +89,8 @@ LEAN_FIRST = {
 BBOLT_HASH = """-- `hash.Hash64`'s type: bbolt's `Assumptions` do not include `hash`'s (it reaches `hash` only
 -- through `hash/fnv`)
 variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
+-- the ghost state of the database's predicates (`DBPred.lean`)
+variable [AllG GF]
 """
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--concurrency": "concurrency", "--bbolt": "bbolt", "--bbolt-root": "bbolt"}

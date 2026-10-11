@@ -10,13 +10,28 @@ module
 
 public import Proof.go_etcd_io.bbolt.BucketStats__Add
 public import Proof.go_etcd_io.bbolt.Bucket__pageNode
+public import Proof.go_etcd_io.bbolt.Cursor__Bucket
+public import Proof.go_etcd_io.bbolt.Cursor__First
+public import Proof.go_etcd_io.bbolt.Cursor__Last
+public import Proof.go_etcd_io.bbolt.Cursor__Next
+public import Proof.go_etcd_io.bbolt.Cursor__Prev
+public import Proof.go_etcd_io.bbolt.Cursor__Seek
+public import Proof.go_etcd_io.bbolt.Cursor__first
+public import Proof.go_etcd_io.bbolt.Cursor__goToFirstElementOnTheStack
 public import Proof.go_etcd_io.bbolt.Cursor__keyValue
+public import Proof.go_etcd_io.bbolt.Cursor__last
+public import Proof.go_etcd_io.bbolt.Cursor__next
 public import Proof.go_etcd_io.bbolt.Cursor__nsearch
+public import Proof.go_etcd_io.bbolt.Cursor__prev
+public import Proof.go_etcd_io.bbolt.Cursor__search
+public import Proof.go_etcd_io.bbolt.Cursor__searchPage
+public import Proof.go_etcd_io.bbolt.Cursor__seek
 public import Proof.go_etcd_io.bbolt.DB__GoString
 public import Proof.go_etcd_io.bbolt.DB__Info
 public import Proof.go_etcd_io.bbolt.DB__IsReadOnly
 public import Proof.go_etcd_io.bbolt.DB__Path
 public import Proof.go_etcd_io.bbolt.DB__String
+public import Proof.go_etcd_io.bbolt.DB__beginTx
 public import Proof.go_etcd_io.bbolt.DB__growSize
 public import Proof.go_etcd_io.bbolt.DB__invalidate
 public import Proof.go_etcd_io.bbolt.DB__meta
@@ -24,6 +39,7 @@ public import Proof.go_etcd_io.bbolt.DB__mmapSize
 public import Proof.go_etcd_io.bbolt.DB__munmap
 public import Proof.go_etcd_io.bbolt.DB__page
 public import Proof.go_etcd_io.bbolt.DB__pageInBuffer
+public import Proof.go_etcd_io.bbolt.DB__removeTx
 public import Proof.go_etcd_io.bbolt.Options__String
 public import Proof.go_etcd_io.bbolt.Stats__Sub
 public import Proof.go_etcd_io.bbolt.TxStats__GetCursorCount
@@ -107,6 +123,8 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 -- `hash.Hash64`'s type: bbolt's `Assumptions` do not include `hash`'s (it reaches `hash` only
 -- through `hash/fnv`)
 variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
+-- the ghost state of the database's predicates (`DBPred.lean`)
+variable [AllG GF]
 
 theorem BucketStats.wp_Add :
     EtcdGrove.bbolt.BucketStats.Add.spec (GF := GF) (hG := hG) :=
@@ -124,17 +142,77 @@ theorem Bucket.wp_pageNode :
     EtcdGrove.bbolt.Bucket.pageNode.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Bucket.pageNode.wp_proof EtcdGrove.bbolt.InBucket.wp_RootPage EtcdGrove.bbolt.Tx.wp_page
 
+theorem Cursor.wp_Bucket :
+    EtcdGrove.bbolt.Cursor.Bucket.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Cursor.Bucket.wp_proof
+
 theorem elemRef.wp_count :
     EtcdGrove.bbolt.elemRef.count.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.elemRef.count.wp_proof EtcdGrove.bbolt.Page.wp_Count
+
+theorem elemRef.wp_isLeaf :
+    EtcdGrove.bbolt.elemRef.isLeaf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.elemRef.isLeaf.wp_proof EtcdGrove.bbolt.Page.wp_IsLeafPage
+
+theorem Cursor.wp_goToFirstElementOnTheStack :
+    EtcdGrove.bbolt.Cursor.goToFirstElementOnTheStack.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Cursor.goToFirstElementOnTheStack.wp_proof EtcdGrove.bbolt.Bucket.wp_pageNode EtcdGrove.bbolt.elemRef.wp_isLeaf EtcdGrove.bbolt.Page.wp_BranchPageElement EtcdGrove.bbolt.branchPageElement.wp_Pgid
 
 theorem Cursor.wp_keyValue :
     EtcdGrove.bbolt.Cursor.keyValue.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Cursor.keyValue.wp_proof EtcdGrove.bbolt.elemRef.wp_count EtcdGrove.bbolt.Page.wp_LeafPageElement EtcdGrove.bbolt.leafPageElement.wp_Key EtcdGrove.bbolt.leafPageElement.wp_Value EtcdGrove.bbolt.leafPageElement.wp_Flags
 
+theorem Cursor.wp_next :
+    EtcdGrove.bbolt.Cursor.next.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Cursor.next.wp_proof EtcdGrove.bbolt.elemRef.wp_count EtcdGrove.bbolt.Cursor.wp_goToFirstElementOnTheStack EtcdGrove.bbolt.Cursor.wp_keyValue
+
+theorem Cursor.wp_first :
+    EtcdGrove.bbolt.Cursor.first.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Cursor.first.wp_proof EtcdGrove.bbolt.InBucket.wp_RootPage EtcdGrove.bbolt.Bucket.wp_pageNode EtcdGrove.bbolt.elemRef.wp_count EtcdGrove.bbolt.Cursor.wp_goToFirstElementOnTheStack EtcdGrove.bbolt.Cursor.wp_next EtcdGrove.bbolt.Cursor.wp_keyValue
+
+theorem Cursor.wp_First :
+    EtcdGrove.bbolt.Cursor.First.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Cursor.First.wp_proof EtcdGrove.bbolt.wp_Assert EtcdGrove.bbolt.Cursor.wp_first
+
+theorem Cursor.wp_last :
+    EtcdGrove.bbolt.Cursor.last.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Cursor.last.wp_proof EtcdGrove.bbolt.Bucket.wp_pageNode EtcdGrove.bbolt.elemRef.wp_isLeaf EtcdGrove.bbolt.elemRef.wp_count EtcdGrove.bbolt.Page.wp_BranchPageElement EtcdGrove.bbolt.branchPageElement.wp_Pgid
+
+theorem Cursor.wp_prev :
+    EtcdGrove.bbolt.Cursor.prev.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Cursor.prev.wp_proof EtcdGrove.bbolt.Cursor.wp_first EtcdGrove.bbolt.Cursor.wp_last EtcdGrove.bbolt.Cursor.wp_keyValue
+
+theorem Cursor.wp_Last :
+    EtcdGrove.bbolt.Cursor.Last.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Cursor.Last.wp_proof EtcdGrove.bbolt.wp_Assert EtcdGrove.bbolt.InBucket.wp_RootPage EtcdGrove.bbolt.Bucket.wp_pageNode EtcdGrove.bbolt.elemRef.wp_count EtcdGrove.bbolt.Cursor.wp_last EtcdGrove.bbolt.Cursor.wp_prev EtcdGrove.bbolt.Cursor.wp_keyValue
+
+theorem Cursor.wp_Next :
+    EtcdGrove.bbolt.Cursor.Next.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Cursor.Next.wp_proof EtcdGrove.bbolt.wp_Assert EtcdGrove.bbolt.Cursor.wp_next
+
+theorem Cursor.wp_Prev :
+    EtcdGrove.bbolt.Cursor.Prev.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Cursor.Prev.wp_proof EtcdGrove.bbolt.wp_Assert EtcdGrove.bbolt.Cursor.wp_prev
+
 theorem Cursor.wp_nsearch :
     EtcdGrove.bbolt.Cursor.nsearch.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Cursor.nsearch.wp_proof EtcdGrove.bbolt.Page.wp_LeafPageElements EtcdGrove.bbolt.Page.wp_Count EtcdGrove.bbolt.leafPageElement.wp_Key
+
+theorem Cursor.wp_search :
+    EtcdGrove.bbolt.Cursor.search.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Cursor.search.wp_proof EtcdGrove.bbolt.Bucket.wp_pageNode EtcdGrove.bbolt.Page.wp_IsBranchPage EtcdGrove.bbolt.Page.wp_IsLeafPage EtcdGrove.bbolt.elemRef.wp_isLeaf EtcdGrove.bbolt.Cursor.wp_nsearch EtcdGrove.bbolt.Page.wp_BranchPageElements EtcdGrove.bbolt.Page.wp_Count EtcdGrove.bbolt.branchPageElement.wp_Key EtcdGrove.bbolt.branchPageElement.wp_Pgid
+
+theorem Cursor.wp_seek :
+    EtcdGrove.bbolt.Cursor.seek.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Cursor.seek.wp_proof EtcdGrove.bbolt.InBucket.wp_RootPage EtcdGrove.bbolt.Cursor.wp_search EtcdGrove.bbolt.Cursor.wp_keyValue
+
+theorem Cursor.wp_Seek :
+    EtcdGrove.bbolt.Cursor.Seek.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Cursor.Seek.wp_proof EtcdGrove.bbolt.wp_Assert EtcdGrove.bbolt.Cursor.wp_seek EtcdGrove.bbolt.elemRef.wp_count EtcdGrove.bbolt.Cursor.wp_next
+
+theorem Cursor.wp_searchPage :
+    EtcdGrove.bbolt.Cursor.searchPage.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Cursor.searchPage.wp_proof EtcdGrove.bbolt.Page.wp_BranchPageElements EtcdGrove.bbolt.Page.wp_Count EtcdGrove.bbolt.branchPageElement.wp_Key EtcdGrove.bbolt.branchPageElement.wp_Pgid EtcdGrove.bbolt.Cursor.wp_search
 
 theorem DB.wp_GoString :
     EtcdGrove.bbolt.DB.GoString.spec (GF := GF) (hG := hG) :=
@@ -156,6 +234,22 @@ theorem DB.wp_String :
     EtcdGrove.bbolt.DB.String.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.String.wp_proof
 
+theorem DB.wp_meta :
+    EtcdGrove.bbolt.DB.meta.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.meta.wp_proof EtcdGrove.bbolt.Meta.wp_Txid EtcdGrove.bbolt.Meta.wp_Validate
+
+theorem wp_newBucket :
+    EtcdGrove.bbolt.newBucket.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.newBucket.wp_proof
+
+theorem Tx.wp_init :
+    EtcdGrove.bbolt.Tx.init.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Tx.init.wp_proof EtcdGrove.bbolt.DB.wp_meta EtcdGrove.bbolt.Meta.wp_Copy EtcdGrove.bbolt.wp_newBucket EtcdGrove.bbolt.Meta.wp_RootBucket EtcdGrove.bbolt.Meta.wp_IncTxid
+
+theorem DB.wp_beginTx [AllG GF] :
+    EtcdGrove.bbolt.DB.beginTx.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.beginTx.wp_proof EtcdGrove.bbolt.Tx.wp_init EtcdGrove.bbolt.Meta.wp_Txid
+
 theorem DB.wp_growSize :
     EtcdGrove.bbolt.DB.growSize.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.growSize.wp_proof
@@ -163,10 +257,6 @@ theorem DB.wp_growSize :
 theorem DB.wp_invalidate :
     EtcdGrove.bbolt.DB.invalidate.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.invalidate.wp_proof
-
-theorem DB.wp_meta :
-    EtcdGrove.bbolt.DB.meta.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DB.meta.wp_proof EtcdGrove.bbolt.Meta.wp_Txid EtcdGrove.bbolt.Meta.wp_Validate
 
 theorem DB.wp_mmapSize :
     EtcdGrove.bbolt.DB.mmapSize.spec (GF := GF) (hG := hG) :=
@@ -188,33 +278,53 @@ theorem DB.wp_pageInBuffer :
     EtcdGrove.bbolt.DB.pageInBuffer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.pageInBuffer.wp_proof
 
-theorem Options.wp_String :
-    EtcdGrove.bbolt.Options.String.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Options.String.wp_proof
-
 theorem TxStats.wp_GetPageCount :
     EtcdGrove.bbolt.TxStats.GetPageCount.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.TxStats.GetPageCount.wp_proof
+
+theorem TxStats.wp_IncPageCount :
+    EtcdGrove.bbolt.TxStats.IncPageCount.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.TxStats.IncPageCount.wp_proof
 
 theorem TxStats.wp_GetPageAlloc :
     EtcdGrove.bbolt.TxStats.GetPageAlloc.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.TxStats.GetPageAlloc.wp_proof
 
+theorem TxStats.wp_IncPageAlloc :
+    EtcdGrove.bbolt.TxStats.IncPageAlloc.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.TxStats.IncPageAlloc.wp_proof
+
 theorem TxStats.wp_GetCursorCount :
     EtcdGrove.bbolt.TxStats.GetCursorCount.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.TxStats.GetCursorCount.wp_proof
+
+theorem TxStats.wp_IncCursorCount :
+    EtcdGrove.bbolt.TxStats.IncCursorCount.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.TxStats.IncCursorCount.wp_proof
 
 theorem TxStats.wp_GetNodeCount :
     EtcdGrove.bbolt.TxStats.GetNodeCount.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.TxStats.GetNodeCount.wp_proof
 
+theorem TxStats.wp_IncNodeCount :
+    EtcdGrove.bbolt.TxStats.IncNodeCount.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.TxStats.IncNodeCount.wp_proof
+
 theorem TxStats.wp_GetNodeDeref :
     EtcdGrove.bbolt.TxStats.GetNodeDeref.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.TxStats.GetNodeDeref.wp_proof
 
+theorem TxStats.wp_IncNodeDeref :
+    EtcdGrove.bbolt.TxStats.IncNodeDeref.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.TxStats.IncNodeDeref.wp_proof
+
 theorem TxStats.wp_GetRebalance :
     EtcdGrove.bbolt.TxStats.GetRebalance.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.TxStats.GetRebalance.wp_proof
+
+theorem TxStats.wp_IncRebalance :
+    EtcdGrove.bbolt.TxStats.IncRebalance.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.TxStats.IncRebalance.wp_proof
 
 theorem wp_atomicLoadDuration :
     EtcdGrove.bbolt.atomicLoadDuration.spec (GF := GF) (hG := hG) :=
@@ -224,58 +334,6 @@ theorem TxStats.wp_GetRebalanceTime :
     EtcdGrove.bbolt.TxStats.GetRebalanceTime.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.TxStats.GetRebalanceTime.wp_proof EtcdGrove.bbolt.wp_atomicLoadDuration
 
-theorem TxStats.wp_GetSplit :
-    EtcdGrove.bbolt.TxStats.GetSplit.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.TxStats.GetSplit.wp_proof
-
-theorem TxStats.wp_GetSpill :
-    EtcdGrove.bbolt.TxStats.GetSpill.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.TxStats.GetSpill.wp_proof
-
-theorem TxStats.wp_GetSpillTime :
-    EtcdGrove.bbolt.TxStats.GetSpillTime.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.TxStats.GetSpillTime.wp_proof EtcdGrove.bbolt.wp_atomicLoadDuration
-
-theorem TxStats.wp_GetWrite :
-    EtcdGrove.bbolt.TxStats.GetWrite.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.TxStats.GetWrite.wp_proof
-
-theorem TxStats.wp_GetWriteTime :
-    EtcdGrove.bbolt.TxStats.GetWriteTime.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.TxStats.GetWriteTime.wp_proof EtcdGrove.bbolt.wp_atomicLoadDuration
-
-theorem TxStats.wp_Sub :
-    EtcdGrove.bbolt.TxStats.Sub.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.TxStats.Sub.wp_proof EtcdGrove.bbolt.TxStats.wp_GetPageCount EtcdGrove.bbolt.TxStats.wp_GetPageAlloc EtcdGrove.bbolt.TxStats.wp_GetCursorCount EtcdGrove.bbolt.TxStats.wp_GetNodeCount EtcdGrove.bbolt.TxStats.wp_GetNodeDeref EtcdGrove.bbolt.TxStats.wp_GetRebalance EtcdGrove.bbolt.TxStats.wp_GetRebalanceTime EtcdGrove.bbolt.TxStats.wp_GetSplit EtcdGrove.bbolt.TxStats.wp_GetSpill EtcdGrove.bbolt.TxStats.wp_GetSpillTime EtcdGrove.bbolt.TxStats.wp_GetWrite EtcdGrove.bbolt.TxStats.wp_GetWriteTime
-
-theorem Stats.wp_Sub :
-    EtcdGrove.bbolt.Stats.Sub.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Stats.Sub.wp_proof EtcdGrove.bbolt.TxStats.wp_Sub
-
-theorem TxStats.wp_IncCursorCount :
-    EtcdGrove.bbolt.TxStats.IncCursorCount.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.TxStats.IncCursorCount.wp_proof
-
-theorem TxStats.wp_IncNodeCount :
-    EtcdGrove.bbolt.TxStats.IncNodeCount.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.TxStats.IncNodeCount.wp_proof
-
-theorem TxStats.wp_IncNodeDeref :
-    EtcdGrove.bbolt.TxStats.IncNodeDeref.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.TxStats.IncNodeDeref.wp_proof
-
-theorem TxStats.wp_IncPageAlloc :
-    EtcdGrove.bbolt.TxStats.IncPageAlloc.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.TxStats.IncPageAlloc.wp_proof
-
-theorem TxStats.wp_IncPageCount :
-    EtcdGrove.bbolt.TxStats.IncPageCount.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.TxStats.IncPageCount.wp_proof
-
-theorem TxStats.wp_IncRebalance :
-    EtcdGrove.bbolt.TxStats.IncRebalance.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.TxStats.IncRebalance.wp_proof
-
 theorem wp_atomicAddDuration :
     EtcdGrove.bbolt.atomicAddDuration.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.atomicAddDuration.wp_proof
@@ -284,21 +342,41 @@ theorem TxStats.wp_IncRebalanceTime :
     EtcdGrove.bbolt.TxStats.IncRebalanceTime.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.TxStats.IncRebalanceTime.wp_proof EtcdGrove.bbolt.wp_atomicAddDuration
 
-theorem TxStats.wp_IncSpill :
-    EtcdGrove.bbolt.TxStats.IncSpill.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.TxStats.IncSpill.wp_proof
-
-theorem TxStats.wp_IncSpillTime :
-    EtcdGrove.bbolt.TxStats.IncSpillTime.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.TxStats.IncSpillTime.wp_proof EtcdGrove.bbolt.wp_atomicAddDuration
+theorem TxStats.wp_GetSplit :
+    EtcdGrove.bbolt.TxStats.GetSplit.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.TxStats.GetSplit.wp_proof
 
 theorem TxStats.wp_IncSplit :
     EtcdGrove.bbolt.TxStats.IncSplit.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.TxStats.IncSplit.wp_proof
 
+theorem TxStats.wp_GetSpill :
+    EtcdGrove.bbolt.TxStats.GetSpill.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.TxStats.GetSpill.wp_proof
+
+theorem TxStats.wp_IncSpill :
+    EtcdGrove.bbolt.TxStats.IncSpill.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.TxStats.IncSpill.wp_proof
+
+theorem TxStats.wp_GetSpillTime :
+    EtcdGrove.bbolt.TxStats.GetSpillTime.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.TxStats.GetSpillTime.wp_proof EtcdGrove.bbolt.wp_atomicLoadDuration
+
+theorem TxStats.wp_IncSpillTime :
+    EtcdGrove.bbolt.TxStats.IncSpillTime.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.TxStats.IncSpillTime.wp_proof EtcdGrove.bbolt.wp_atomicAddDuration
+
+theorem TxStats.wp_GetWrite :
+    EtcdGrove.bbolt.TxStats.GetWrite.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.TxStats.GetWrite.wp_proof
+
 theorem TxStats.wp_IncWrite :
     EtcdGrove.bbolt.TxStats.IncWrite.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.TxStats.IncWrite.wp_proof
+
+theorem TxStats.wp_GetWriteTime :
+    EtcdGrove.bbolt.TxStats.GetWriteTime.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.TxStats.GetWriteTime.wp_proof EtcdGrove.bbolt.wp_atomicLoadDuration
 
 theorem TxStats.wp_IncWriteTime :
     EtcdGrove.bbolt.TxStats.IncWriteTime.spec (GF := GF) (hG := hG) :=
@@ -307,6 +385,22 @@ theorem TxStats.wp_IncWriteTime :
 theorem TxStats.wp_add :
     EtcdGrove.bbolt.TxStats.add.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.TxStats.add.wp_proof EtcdGrove.bbolt.TxStats.wp_GetPageCount EtcdGrove.bbolt.TxStats.wp_IncPageCount EtcdGrove.bbolt.TxStats.wp_GetPageAlloc EtcdGrove.bbolt.TxStats.wp_IncPageAlloc EtcdGrove.bbolt.TxStats.wp_GetCursorCount EtcdGrove.bbolt.TxStats.wp_IncCursorCount EtcdGrove.bbolt.TxStats.wp_GetNodeCount EtcdGrove.bbolt.TxStats.wp_IncNodeCount EtcdGrove.bbolt.TxStats.wp_GetNodeDeref EtcdGrove.bbolt.TxStats.wp_IncNodeDeref EtcdGrove.bbolt.TxStats.wp_GetRebalance EtcdGrove.bbolt.TxStats.wp_IncRebalance EtcdGrove.bbolt.TxStats.wp_GetRebalanceTime EtcdGrove.bbolt.TxStats.wp_IncRebalanceTime EtcdGrove.bbolt.TxStats.wp_GetSplit EtcdGrove.bbolt.TxStats.wp_IncSplit EtcdGrove.bbolt.TxStats.wp_GetSpill EtcdGrove.bbolt.TxStats.wp_IncSpill EtcdGrove.bbolt.TxStats.wp_GetSpillTime EtcdGrove.bbolt.TxStats.wp_IncSpillTime EtcdGrove.bbolt.TxStats.wp_GetWrite EtcdGrove.bbolt.TxStats.wp_IncWrite EtcdGrove.bbolt.TxStats.wp_GetWriteTime EtcdGrove.bbolt.TxStats.wp_IncWriteTime
+
+theorem DB.wp_removeTx [AllG GF] :
+    EtcdGrove.bbolt.DB.removeTx.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.removeTx.wp_proof EtcdGrove.bbolt.Meta.wp_Txid EtcdGrove.bbolt.TxStats.wp_add
+
+theorem Options.wp_String :
+    EtcdGrove.bbolt.Options.String.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Options.String.wp_proof
+
+theorem TxStats.wp_Sub :
+    EtcdGrove.bbolt.TxStats.Sub.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.TxStats.Sub.wp_proof EtcdGrove.bbolt.TxStats.wp_GetPageCount EtcdGrove.bbolt.TxStats.wp_GetPageAlloc EtcdGrove.bbolt.TxStats.wp_GetCursorCount EtcdGrove.bbolt.TxStats.wp_GetNodeCount EtcdGrove.bbolt.TxStats.wp_GetNodeDeref EtcdGrove.bbolt.TxStats.wp_GetRebalance EtcdGrove.bbolt.TxStats.wp_GetRebalanceTime EtcdGrove.bbolt.TxStats.wp_GetSplit EtcdGrove.bbolt.TxStats.wp_GetSpill EtcdGrove.bbolt.TxStats.wp_GetSpillTime EtcdGrove.bbolt.TxStats.wp_GetWrite EtcdGrove.bbolt.TxStats.wp_GetWriteTime
+
+theorem Stats.wp_Sub :
+    EtcdGrove.bbolt.Stats.Sub.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Stats.Sub.wp_proof EtcdGrove.bbolt.TxStats.wp_Sub
 
 theorem Tx.wp_DB :
     EtcdGrove.bbolt.Tx.DB.spec (GF := GF) (hG := hG) :=
@@ -332,14 +426,6 @@ theorem Tx.wp_Writable :
     EtcdGrove.bbolt.Tx.Writable.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Tx.Writable.wp_proof
 
-theorem wp_newBucket :
-    EtcdGrove.bbolt.newBucket.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.newBucket.wp_proof
-
-theorem Tx.wp_init :
-    EtcdGrove.bbolt.Tx.init.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Tx.init.wp_proof EtcdGrove.bbolt.DB.wp_meta EtcdGrove.bbolt.Meta.wp_Copy EtcdGrove.bbolt.wp_newBucket EtcdGrove.bbolt.Meta.wp_RootBucket EtcdGrove.bbolt.Meta.wp_IncTxid
-
 theorem wp_cloneBytes :
     EtcdGrove.bbolt.cloneBytes.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.cloneBytes.wp_proof
@@ -363,10 +449,6 @@ theorem unix.wp_Madvise :
 theorem wp_mmap :
     EtcdGrove.bbolt.mmap.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.mmap.wp_proof EtcdGrove.bbolt.os.File.wp_Fd EtcdGrove.bbolt.unix.wp_Mmap EtcdGrove.bbolt.unix.wp_Madvise
-
-theorem elemRef.wp_isLeaf :
-    EtcdGrove.bbolt.elemRef.isLeaf.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.elemRef.isLeaf.wp_proof EtcdGrove.bbolt.Page.wp_IsLeafPage
 
 theorem fs.FileInfo.wp_Size :
     EtcdGrove.bbolt.fs.FileInfo.Size.spec (GF := GF) (hG := hG) :=

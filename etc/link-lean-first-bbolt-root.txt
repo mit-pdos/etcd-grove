@@ -95,3 +95,24 @@ bbolt_compareKeys:
 Options__String:
 nodes__Len:
 nodes__Swap:
+Page__IsBranchPage: @
+Page__BranchPageElements: @
+Page__BranchPageElement: @
+branchPageElement__Key: @
+branchPageElement__Pgid: @
+Cursor__Bucket:
+Cursor__search: Bucket__pageNode Page__IsBranchPage Page__IsLeafPage elemRef__isLeaf Cursor__nsearch Page__BranchPageElements Page__Count branchPageElement__Key branchPageElement__Pgid
+Cursor__searchPage: Page__BranchPageElements Page__Count branchPageElement__Key branchPageElement__Pgid Cursor__search
+Cursor__goToFirstElementOnTheStack: Bucket__pageNode elemRef__isLeaf Page__BranchPageElement branchPageElement__Pgid
+Cursor__last: Bucket__pageNode elemRef__isLeaf elemRef__count Page__BranchPageElement branchPageElement__Pgid
+Cursor__next: elemRef__count Cursor__goToFirstElementOnTheStack Cursor__keyValue
+Cursor__first: InBucket__RootPage Bucket__pageNode elemRef__count Cursor__goToFirstElementOnTheStack Cursor__next Cursor__keyValue
+Cursor__prev: Cursor__first Cursor__last Cursor__keyValue
+Cursor__seek: InBucket__RootPage Cursor__search Cursor__keyValue
+Cursor__First: common_Assert Cursor__first
+Cursor__Next: common_Assert Cursor__next
+Cursor__Prev: common_Assert Cursor__prev
+Cursor__Last: common_Assert InBucket__RootPage Bucket__pageNode elemRef__count Cursor__last Cursor__prev Cursor__keyValue
+Cursor__Seek: common_Assert Cursor__seek elemRef__count Cursor__next
+DB__beginTx: Tx__init Meta__Txid
+DB__removeTx: Meta__Txid TxStats__add
