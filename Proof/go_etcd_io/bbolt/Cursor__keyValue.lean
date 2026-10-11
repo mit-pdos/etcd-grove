@@ -86,7 +86,7 @@ theorem Cursor.keyValue.wp_proof (hcount : elemRef.count.spec (GF := GF) (hG := 
   wp_apply hLPE rv.page' (W16 (sint.Z rv.index'))
   rw [Hu]
   try wp_auto
-  obtain ⟨Hle, Helems, Hkvs⟩ := Hwf
+  obtain ⟨Hle, Helems, Hkvs, -⟩ := Hwf
   have Hit : (sint.Z rv.index').toNat < pageCount pg := by omega
   have Hin : elemOff (sint.Z rv.index').toNat + 16 ≤ pg.length := by
     unfold elemOff at *; omega

@@ -16,6 +16,7 @@ safety rests on the file being well-formed: these predicates are the database in
 module
 
 public import Perennial.Golang.Theory.Bytes
+public import Perennial.Golang.Defn.String
 
 @[expose] public section
 
@@ -58,12 +59,14 @@ def metaPageFlag : Nat := 0x04
 def freelistPageFlag : Nat := 0x10
 
 /-- A leaf page's elements, keys and values lie inside its `len` bytes, below
-`MaxAllocSize` (what `UnsafeByteSlice` requires). -/
+`MaxAllocSize` (what `UnsafeByteSlice` requires), and its keys increase strictly (what the
+binary search of a cursor relies on: `sort.Search`'s predicate is then monotone). -/
 def leafWF (pg : List w8) (len : Nat) : Prop :=
   len ≤ pg.length ∧ elemOff (pageCount pg) ≤ len ∧
-  ∀ i < pageCount pg,
+  (∀ i < pageCount pg,
     elemOff i + leafPos pg i + leafKsize pg i + leafVsize pg i ≤ len ∧
-    leafPos pg i + leafKsize pg i + leafVsize pg i ≤ 2147483647
+    leafPos pg i + leafKsize pg i + leafVsize pg i ≤ 2147483647) ∧
+  ∀ i j, i < j → j < pageCount pg → go.GoStringLt (leafKey pg i) (leafKey pg j)
 
 /-- A branch page has an element (a cursor reads element 0, or `count - 1`, of a branch it
 descends: of an empty one, that is a garbage child, or element 65535, past the page), its
@@ -71,9 +74,10 @@ elements and keys lie inside its `len` bytes, and its children are below the hig
 `hwm`. -/
 def branchWF (pg : List w8) (len hwm : Nat) : Prop :=
   0 < pageCount pg ∧ len ≤ pg.length ∧ elemOff (pageCount pg) ≤ len ∧
-  ∀ i < pageCount pg,
+  (∀ i < pageCount pg,
     elemOff i + branchPos pg i + branchKsize pg i ≤ len ∧
-    branchPos pg i + branchKsize pg i ≤ 2147483647 ∧ branchPgid pg i < hwm
+    branchPos pg i + branchKsize pg i ≤ 2147483647 ∧ branchPgid pg i < hwm) ∧
+  ∀ i j, i < j → j < pageCount pg → go.GoStringLt (branchKey pg i) (branchKey pg j)
 
 /-- A leaf page's contents: its elements' flags, keys and values. -/
 def leafItems (pg : List w8) : List (Nat × List w8 × List w8) :=

@@ -307,6 +307,43 @@ theorem branchElem_in_page (l : Loc) (q : DFrac) (pg : List w8) (i : Nat)
   rw [← branchElemBytes_of pg i h]
   exact (branchElem_bytes (hG := hG) _ _ q (by simpa [Loc.add] using hc)).symm
 
+/-- The `n` bytes at `off` of the page at `l`, as a slice (a key or a value). -/
+def sliceAt (l : Loc) (off n : Nat) : GoSlice :=
+  slice.mk (l +ₗ (off : Int)) (W64 (n : Int)) (W64 (n : Int))
+
+/-- `n` bytes inside a page's bytes, taken out as a byte slice (and given back). -/
+theorem bytes_slice_acc (l : Loc) (q : DFrac) (pg : List w8) (off n : Nat)
+    (h : off + n ≤ pg.length) (hn : n < 2 ^ 32) (hc : l.locCar ≠ 0) :
+    bytesPointsto (GF := GF) l q pg ⊢ sliceAt l off n ↦*{q} bytesAt pg off n ∗
+      (sliceAt l off n ↦*{q} bytesAt pg off n -∗ bytesPointsto l q pg) := by
+  iintro H
+  icases (bytesPointsto_around l q pg off n h).1 $$ H with ⟨Hpre, Hmid, Hpost⟩
+  have Hlen := bytesAt_length pg off n h
+  have Hcar : (l +ₗ (off : Int)).locCar ≠ 0 := by simpa [Loc.add] using hc
+  by_cases hz : n = 0
+  · subst hz
+    have Hnil : bytesAt pg off 0 = [] := by simp [bytesAt]
+    rw [Hnil]
+    isplitl []
+    · iapply ownSlice_empty (V := w8) q _ (by unfold sliceAt; simp) (by unfold sliceAt; simp)
+      iapply array_empty
+      exact loc_ne_null_of_car _ Hcar
+    · iintro -
+      iapply (bytesPointsto_around l q pg off 0 h).2
+      iframe
+
+  · have Hne : bytesAt pg off n ≠ [] := by
+      intro e; rw [e] at Hlen; simp at Hlen; omega
+    isplitl [Hmid]
+    · iapply (ownSlice_bytes (sliceAt l off n) _ q Hne).2
+      unfold sliceAt; simp only
+      iframe
+      ipureintro; constructor <;> word
+    · iintro Hs
+      icases (ownSlice_bytes (sliceAt l off n) _ q Hne).1 $$ Hs with ⟨Hmid, -⟩
+      iapply (bytesPointsto_around l q pg off n h).2
+      iframe
+
 end view
 
 end bbolt

@@ -234,7 +234,10 @@ variable [sem : go.Semantics]
 variable [package_sem : {assumptions}]
 """)
     def emit_cache(fn):
-        args = " ".join(result(c) for c in callees[fn])
+        # qualified in a namespaced mode: in `theorem DB.wp_munmap`, a bare `wp_munmap` would be
+        # `DB.wp_munmap` itself
+        args = " ".join((f"EtcdGrove.{nsd}.{result(c)}" if nsd else result(c))
+                        for c in callees[fn])
         body = f"{specref(fn)}.wp_proof" + (f" {args}" if args else "")
         # the specs with ghost state (the store's) take `[AllG GF]`
         src = open(spec_file(fn)).read()

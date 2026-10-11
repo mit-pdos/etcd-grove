@@ -20,12 +20,12 @@ bbolt_mmap: os_File__Fd unix_Mmap unix_Madvise
 bbolt_munmap: unix_Munmap
 DB__page:
 DB__pageInBuffer:
-Page__FastCheck: @
-Tx__page: DB__page Page__FastCheck
+# (pending internal/common link) Page__FastCheck: @
+# (pending internal/common link) Tx__page: DB__page Page__FastCheck
 Page__IsLeafPage: @
 Page__Count: @
 InBucket__RootPage: @
-Bucket__pageNode: InBucket__RootPage Tx__page
+# (pending internal/common link) Bucket__pageNode: InBucket__RootPage Tx__page
 elemRef__isLeaf: Page__IsLeafPage
 elemRef__count: Page__Count
 Page__LeafPageElement: @
@@ -33,3 +33,58 @@ leafPageElement__Key: @
 leafPageElement__Value: @
 leafPageElement__Flags: @
 Cursor__keyValue: elemRef__count Page__LeafPageElement leafPageElement__Key leafPageElement__Value leafPageElement__Flags
+# (pending internal/common link) common_Assert: @
+Meta__Txid: @
+Meta__Pgid: @
+Page__LeafPageElements: @
+Cursor__nsearch: Page__LeafPageElements Page__Count leafPageElement__Key
+bbolt_atomicLoadDuration:
+bbolt_atomicAddDuration:
+TxStats__GetPageCount:
+TxStats__GetPageAlloc:
+TxStats__GetCursorCount:
+TxStats__GetNodeCount:
+TxStats__GetNodeDeref:
+TxStats__GetRebalance:
+TxStats__GetRebalanceTime: bbolt_atomicLoadDuration
+TxStats__GetSplit:
+TxStats__GetSpill:
+TxStats__GetSpillTime: bbolt_atomicLoadDuration
+TxStats__GetWrite:
+TxStats__GetWriteTime: bbolt_atomicLoadDuration
+TxStats__IncPageCount:
+TxStats__IncPageAlloc:
+TxStats__IncCursorCount:
+TxStats__IncNodeCount:
+TxStats__IncNodeDeref:
+TxStats__IncRebalance:
+TxStats__IncRebalanceTime: bbolt_atomicAddDuration
+TxStats__IncSplit:
+TxStats__IncSpill:
+TxStats__IncSpillTime: bbolt_atomicAddDuration
+TxStats__IncWrite:
+TxStats__IncWriteTime: bbolt_atomicAddDuration
+TxStats__add: TxStats__GetPageCount TxStats__IncPageCount TxStats__GetPageAlloc TxStats__IncPageAlloc TxStats__GetCursorCount TxStats__IncCursorCount TxStats__GetNodeCount TxStats__IncNodeCount TxStats__GetNodeDeref TxStats__IncNodeDeref TxStats__GetRebalance TxStats__IncRebalance TxStats__GetRebalanceTime TxStats__IncRebalanceTime TxStats__GetSplit TxStats__IncSplit TxStats__GetSpill TxStats__IncSpill TxStats__GetSpillTime TxStats__IncSpillTime TxStats__GetWrite TxStats__IncWrite TxStats__GetWriteTime TxStats__IncWriteTime
+TxStats__Sub: TxStats__GetPageCount TxStats__GetPageAlloc TxStats__GetCursorCount TxStats__GetNodeCount TxStats__GetNodeDeref TxStats__GetRebalance TxStats__GetRebalanceTime TxStats__GetSplit TxStats__GetSpill TxStats__GetSpillTime TxStats__GetWrite TxStats__GetWriteTime
+Stats__Sub: TxStats__Sub
+BucketStats__Add:
+DB__mmapSize:
+DB__growSize:
+DB__invalidate:
+DB__munmap: bbolt_munmap DB__invalidate
+DB__Path:
+DB__IsReadOnly:
+DB__GoString:
+DB__String:
+# (pending internal/common link) DB__Info: common_Assert
+Tx__ID: Meta__Txid
+Tx__DB:
+Tx__Writable:
+Tx__Stats:
+Tx__Size: Meta__Pgid
+Tx__OnCommit:
+bbolt_cloneBytes:
+bbolt_compareKeys:
+Options__String:
+nodes__Len:
+nodes__Swap:
