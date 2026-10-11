@@ -209,83 +209,83 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
-theorem RemoteKV.wp_Delete [AllG GF] :
+theorem RemoteKV.wp_Delete :
     EtcdGrove.recipes.RemoteKV.Delete.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.RemoteKV.Delete.wp_proof context.wp_TODO
 
-theorem RemoteKV.wp_Key [AllG GF] :
+theorem RemoteKV.wp_Key :
     EtcdGrove.recipes.RemoteKV.Key.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.RemoteKV.Key.wp_proof
 
-theorem RemoteKV.wp_Put [AllG GF] :
+theorem RemoteKV.wp_Put :
     EtcdGrove.recipes.RemoteKV.Put.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.RemoteKV.Put.wp_proof context.wp_TODO
 
-theorem RemoteKV.wp_Revision [AllG GF] :
+theorem RemoteKV.wp_Revision :
     EtcdGrove.recipes.RemoteKV.Revision.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.RemoteKV.Revision.wp_proof
 
-theorem RemoteKV.wp_Value [AllG GF] :
+theorem RemoteKV.wp_Value :
     EtcdGrove.recipes.RemoteKV.Value.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.RemoteKV.Value.wp_proof
 
-theorem concurrency.Session.wp_Client [AllG GF] :
+theorem concurrency.Session.wp_Client :
     EtcdGrove.concurrency.Session.Client.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.Session.Client.wp_proof
 
-theorem concurrency.Session.wp_Lease [AllG GF] :
+theorem concurrency.Session.wp_Lease :
     EtcdGrove.concurrency.Session.Lease.spec (GF := GF) (hG := hG) :=
   EtcdGrove.concurrency.Session.Lease.wp_proof
 
-theorem wp_waitEvents [AllG GF] :
+theorem wp_waitEvents :
     EtcdGrove.recipes.waitEvents.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.waitEvents.wp_proof
 
-theorem wp_WaitEvents [AllG GF] :
+theorem wp_WaitEvents :
     EtcdGrove.recipes.WaitEvents.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.WaitEvents.wp_proof v3.wp_WithRev wp_waitEvents
 
-theorem wp_WaitPrefixEvents [AllG GF] :
+theorem wp_WaitPrefixEvents :
     EtcdGrove.recipes.WaitPrefixEvents.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.WaitPrefixEvents.wp_proof v3.wp_WithPrefix v3.wp_WithRev wp_waitEvents
 
-theorem wp_deleteRevKey [AllG GF] :
+theorem wp_deleteRevKey :
     EtcdGrove.recipes.deleteRevKey.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.deleteRevKey.wp_proof v3.wp_ModRevision v3.wp_Compare v3.wp_OpDelete context.wp_TODO
 
-theorem wp_claimFirstKey [AllG GF] :
+theorem wp_claimFirstKey :
     EtcdGrove.recipes.claimFirstKey.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.claimFirstKey.wp_proof wp_deleteRevKey
 
-theorem wp_putNewKV [AllG GF] :
+theorem wp_putNewKV :
     EtcdGrove.recipes.putNewKV.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.putNewKV.wp_proof v3.wp_Version v3.wp_Compare v3.wp_WithLease v3.wp_OpPut context.wp_TODO
 
-theorem wp_newKV [AllG GF] :
+theorem wp_newKV :
     EtcdGrove.recipes.newKV.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.newKV.wp_proof wp_putNewKV
 
-theorem wp_newEphemeralKV [AllG GF] :
+theorem wp_newEphemeralKV :
     EtcdGrove.recipes.newEphemeralKV.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.newEphemeralKV.wp_proof concurrency.Session.wp_Client concurrency.Session.wp_Lease wp_newKV
 
-theorem wp_newKey [AllG GF] :
+theorem wp_newKey :
     EtcdGrove.recipes.newKey.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.newKey.wp_proof wp_newKV
 
-theorem wp_newSequentialKV [AllG GF] :
+theorem wp_newSequentialKV :
     EtcdGrove.recipes.newSequentialKV.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.newSequentialKV.wp_proof v3.wp_WithLastKey v3.wp_ModRevision v3.wp_Compare v3.wp_OpPut context.wp_TODO
 
-theorem wp_newUniqueEphemeralKV [AllG GF] :
+theorem wp_newUniqueEphemeralKV :
     EtcdGrove.recipes.newUniqueEphemeralKV.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.newUniqueEphemeralKV.wp_proof wp_newEphemeralKV
 
-theorem wp_newUniqueEphemeralKey [AllG GF] :
+theorem wp_newUniqueEphemeralKey :
     EtcdGrove.recipes.newUniqueEphemeralKey.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.newUniqueEphemeralKey.wp_proof wp_newUniqueEphemeralKV
 
-theorem wp_newUniqueKV [AllG GF] :
+theorem wp_newUniqueKV :
     EtcdGrove.recipes.newUniqueKV.spec (GF := GF) (hG := hG) :=
   EtcdGrove.recipes.newUniqueKV.wp_proof wp_putNewKV
 

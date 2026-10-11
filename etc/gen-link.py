@@ -340,7 +340,7 @@ its spec is a hypothesis (`h_<fn>`) of each of them. -/
 section links_pending
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF] [allG : AllG GF]
+variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : {assumptions}]
 {hyps}
@@ -395,13 +395,13 @@ generic = [fn for fn in order if fn not in haslc]
 special = [fn for fn in order if fn in haslc]
 assert all(c not in haslc for fn in generic for c in callees[fn])
 out.append("section links\n" + VARS.format(
-    heap="variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]\nvariable [AllG GF]"))
+    heap="variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]"))
 out.extend(emit(fn) for fn in generic)
 out.append("end links\n")
 out.append("""/-! The specs stated at `HeapGS HasLC.hasLC GF`: the ghost state holds an
 invariant (`raftCommitInv`), whose world is the heap's only at `.hasLC`. -/""")
 out.append("section links_hasLC\n" + VARS.format(
-    heap="variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]\nvariable [AllG GF]"))
+    heap="variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]"))
 out.extend(emit(fn) for fn in special)
 out.append("end links_hasLC\n\nend EtcdGrove\nend Perennial")
 print("\n".join(out))

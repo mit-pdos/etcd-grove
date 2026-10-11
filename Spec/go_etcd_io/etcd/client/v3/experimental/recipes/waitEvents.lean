@@ -19,7 +19,7 @@ open Iris Iris.BI go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions]
 
@@ -34,7 +34,7 @@ abbrev waitEvents.spec : Prop :=
   ∀ (wc : Loc) (γ : EtcdWatchNames) (pfx : GoString) (o : OpFull) (rev : w64)
     (rcv : List go_etcd_io.etcd.client.v3.WatchResponse) (sl : GoSlice) (ts : List w32)
     (typ : w32),
-  {{ isSpsc γ.spsc wc (rangeWatchElem γ pfx o rev) (fun _ => iprop(False)) ∗
+  {{ isSpsc (GF := GF) γ.spsc wc (rangeWatchElem γ pfx o rev) (fun _ => iprop(False)) ∗
       spscConsumer γ.spsc rcv ∗ sl ↦*□ ts ∗ ⌜ts.getLast? = some typ⌝ }}
     (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.waitEvents)) (Val #wc))
       (Val #sl))
