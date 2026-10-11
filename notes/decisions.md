@@ -2329,6 +2329,26 @@ leasing, so the plan reuses their contracts and adds as little as possible.
 - **`newUniqueEphemeralKey`** is proved now (one call), so three `sorry`s, not four.
 - **`gen-link.py --skip-unproved`** links what is proved from the full list.
 
+### Units 1b, 2 and 3: two decisions (2026-10-11, decided)
+
+- **A token per written revision in the commit contract.** "Dequeued at most once" (two
+  dequeuers never return the same item) needs that two successful writing commits never share a
+  revision: `revKeyDeleted_same_rev` gives "the same revision", and the contract gave each
+  commit a revision without ownership of it. The transaction contract (`txnCommitResult`, and
+  the `TODO()` variants) now yields an exclusive token for the revision a writing commit made
+  (`etcdRevToken r`, in the trust boundary with `etcdState`): true of etcd, where every
+  committed write is its own revision; as `etcdState_modrev_det` was, a law of the history the
+  model already assumes. *Rejected:* a ghost protocol over the recipe's own transactions
+  (another client's dequeue is not the recipe's code).
+- **The priority queue's order under a premise on the keys.** `newSequentialKV` parses the last
+  key's last path segment with `%d` and formats `%016d`, so its order holds only if every key
+  under `kp/` was made by it (`kp/%016d`) and fewer than `10^16` were allocated: a premise on
+  etcd's state under the prefix (`SeqKeysWf kp s`), stated on the theorems that need it (the
+  priority queue's "least key"), not an issue to file (the keys under a priority queue's prefix
+  are the recipe's by construction; the overflow is at `10^16` items). *Rejected:* an
+  unconditional order (false, above); a documentation issue (the package documents nothing of
+  its key format).
+
 ## One `AllG`: `HeapGS` provides the ghost-state instance
 
 Since Perennial `cb6a5921e` (2026-10-11) `AllG GF` is a singleton carried by `GooseGlobalGS`

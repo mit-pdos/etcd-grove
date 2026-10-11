@@ -74,7 +74,7 @@ one". Units 0 to 4; unit 0 (translation, scaffolding, the reproductions) and uni
   `etc/tcb-collections/recipes.txt`: the `roots` line, no baseline yet. `etc/proof_roots.py`
   and `etc/verified-code.py` need nothing (they find a package's `Link.lean`/`Results.lean` by
   directory).
-- **Two findings, reproduced before any Lean** (`notes/issues/recipes-dequeue-closed-watch.md`,
+- **Two findings, reproduced before any Lean** (`issues/recipes-dequeue-closed-watch.md`,
   `recipes-barrier-wait-closed-watch.md`; fix branch `recipes-closed-watch-channel`
   `0aa6c6af8`, one commit off upstream `main`, worktree `/shared/etcd-recipes-repro`; tests
   `tests/integration/clientv3/experimental/recipes/v3_closed_watch_test.go`): `waitEvents`
