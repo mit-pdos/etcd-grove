@@ -108,7 +108,10 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
   case wf =>
     rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
     simp only [List.set_cons_succ, List.set_cons_zero]
-    exact .cons_string _ _ (.cons_other _ _ _ (by simp [go.string, go_etcd_io.etcd.client.v3.LeaseID.ty]) .nil)
+    exact .cons_string _ _ (.cons_other _ _ _ (by simp [go.string, go_etcd_io.etcd.client.v3.LeaseID.ty])
+      (by simp [_root_.Perennial.fmt.IsIntType, go.int, go.int64, go.int32, go.int16, go.int8,
+        go.uint, go.uint64, go.uint32, go.uint16, go.uint8, go_etcd_io.etcd.client.v3.LeaseID.ty])
+      .nil)
   rw [show sint.nat (W64 (0 + 1)) = 1 by rfl] at Hkey
   simp only [List.set_cons_succ, List.set_cons_zero] at Hkey
   have Hpk : pfx <+: key := _root_.Perennial.fmt.SprintfOut.str_x_prefix pfx _ _ Hkey

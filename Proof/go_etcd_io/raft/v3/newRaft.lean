@@ -258,8 +258,7 @@ theorem newRaft.wp_proof
     wp_auto
     wp_apply wp_fmt_Sprintf $$ [$Hargs] as %str Hargs
     · ipureintro
-      exact _root_.Perennial.fmt.StringArgsWf.cons_other _ _ _ (by simp [go.uint64, go.string])
-        _root_.Perennial.fmt.StringArgsWf.nil
+      exact _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.uint64 _) _root_.Perennial.fmt.ArgsWf.nil
     wp_apply wp_slice_literal
     try (isplitr; (ipureintro; rfl))
     iintro %sl2 ⟨Hsl2, -⟩
