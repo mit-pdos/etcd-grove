@@ -14,6 +14,75 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## The server's txn package (`server/v3/etcdserver/txn`)
+
+### Unit 0b: the index answers the state; the sole writer (2026-10-11)
+
+Branch `txn-u0b` (from `e3effe933`), two new files in
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/txn/`, sorry-free; built with
+`--packages=.lake/manifest-merge.json` (Perennial `e4e126e46`).
+
+- **`Lemmas.lean`** (pure; standard axioms only). Hypotheses: `LogOk log` (`LogWf`, length and
+  every revision's change count below `2^63`; `LogOk.of_cert` from `idxCert`'s pure part for a
+  non-empty log), a revision `r < 2^63` (any: past the log's end the state is `stateAfter`).
+  The server's range is `srvInRange endNil k e key` (`endNil`: `key = k`; else mvcc's
+  `inRange`: `k ≤ key` and `key < e` unless `e = []`, no upper bound), `srvSel s endNil k e` the
+  state's key-values in it. Results: `rangeAnswers_stateAt` (`List.Forall₂ (AnsKv log
+  (stateAt log r))` between `rangeAnswers log endNil k e (W64 r)` and `srvSel (stateAt log r)
+  endNil k e`: one for one, in key order; `AnsKv`: `findKey` of the answer's key is the
+  key-value, its mod revision/create revision mains and version are the answer's, `BucketHas`
+  at the mod revision; the created revision's sub-revision is not characterized), via
+  `forall2_filterMap_keys` (answers by sorted keys against a sorted state); `rangeAnswers_keys`,
+  `rangeAnswers_findKey`, `rangeAnswers_length`, `rangeAnswers_stateAt_w` (at a word revision,
+  `sint.nat`); `rangeTaken_eq` (`takeLimit (limitOf limit)` of the answers for both kinds of
+  read), `rangeTaken_nonpos`, `rangeTaken_pos`, `rangeTaken_stateAt`, `rangeTotal_stateAt`
+  (`totalOf (limitOf limit) withTotal` of the selection's length); `delKeys_eq` (the keys of the
+  pending state in the range, needs `LogOk (ilog ++ [pend])`, `ilog ≠ []`), `delKeys_length`,
+  `applyChanges_delKeys` (the pending changes then the deletes: the pending state without the
+  range); `applyChange_put` (`putKv`, `rfl`), `applyChange_del`, `applyChanges_append`,
+  `applyChanges_dels`, `applyChanges_dels_sel`, `stateAfter_snoc`; `lastRev_sint`,
+  `lastRev_nat`, `stateAt_lastRev` (a read transaction's `rev`).
+- **The end key.** `srvEnd rangeEnd`: `[]` is `(true, [])` (a `nil` end: the one key), `[0]` is
+  `(false, [])` (`mkGteRange` makes it `[]byte{}`, non-nil and empty: mvcc's `end == nil` test
+  fails and `unsafeVisit`'s `len(end) > 0` test makes it unbounded), anything else
+  `(false, rangeEnd)`. `srvInRange_srvEnd`: exactly the client's `inRange k rangeEnd key`
+  (`InvEtcd.lean`); `srvSel_srvEnd` (= `rangeIn`), `applyChanges_delKeys_client` (a range
+  delete is the client's `.delete` filter). Unit 0's request predicates must give mvcc
+  `endNil := (RangeEnd = nil)` after `mkGteRange`, and an empty `RangeEnd` decodes to `nil`.
+- **Shapes.** The index's history records events (revision, key, delete or not) and commit
+  markers, not values: `histOf_prefix_logShape`/`histOf_prefix_shape_logShape` (a history
+  prefix is a `logShape` prefix), `logShape_eq_of_prefix`. Two certificates `idxCert a`,
+  `idxCert b` give `logShape a`, `logShape b` comparable (`idxCert_logShape`), not `a`, `b`.
+- **`SoleWriter.lean`** (Iris). `soleWriter γ log := idxCert γ.idx log ∗ ownToks γ.revs
+  (soleBudget log)`, `soleBudget log = 2^63 - 3 - log.length` (timeless, not persistent);
+  `soleWriterOpen` with one token fewer. `soleWriter_of_NewStore` (`[[], []]`: `2^63 - 5`
+  tokens, as `NewStore` returns), `soleWriter_split` (one `revToken`, needs
+  `log.length + 4 ≤ 2^63`), `soleWriter_close` (`soleWriterOpen log ∗ idxCert (commitLog log
+  pend) ∗ (if pend = [] then revToken else True) ⊢ soleWriter (commitLog log pend)`),
+  `soleWriter_pins_write` (`soleWriterOpen γ log ∗ storeTxnWriteIs tw s γ ilog pend ⊢
+  ⌜ilog.length = log.length ∧ logShape ilog = logShape log⌝`: the auth's count covers the
+  caller's tokens and the transaction's, the writer's history authority is above the caller's
+  certificate), `soleWriter_pins_write'` (keeping the resources), `stateAfter_commitLog`,
+  `soleWriter_read_shape` (a read transaction's log and the sole writer's: shapes comparable).
+- **Not provable from the current mvcc specs** (proposed mvcc changes, one each):
+  1. *Values*: the pins give the log's length and shape, not `ilog = log`; make the index
+     history's commit marker carry the revision's changes (`HistItem.commit cs`, so `histOf`
+     is injective and `idxCert` certifies the log itself), or add a monotone list of committed
+     logs whose lower bound `idxCert` includes.
+  2. *The empty `End`*: `storeTxnWrite.End` (and `txnEndPost`) with `pend = []` drops the
+     `revToken` (the proof keeps `ownTokAuth`'s count): return it (`… ∗ if pend = [] then
+     revToken γ else True`; the token is in `storeTxnWriteIs`). Without it a `Put`/`DeleteRange`
+     that changes nothing loses the exact count, and no bookkeeping recovers the pin (each lost
+     token lets an unseen writer commit a revision): `soleWriter_close` takes it as a premise.
+  3. *`NewStore`* does not return `idxCert γ.idx [[], []]`; `soleWriter_of_NewStore` takes it.
+  4. *The read pin* (`log' = log` for `store.Read`'s `∃ log' rev`): the read transaction holds
+     no token authority and its certificate is only comparable with the caller's. `store.Read`
+     must take the caller's `idxCert γ.idx log₀` and `ownToks γ.revs m` (unchanged) and return
+     `histOf log₀ <+: histOf log'` and `log'.length + m + 3 ≤ 2^63` — provable if `revMuInv`
+     kept a fraction of `ownTokAuth γ.revs` with the budget (`End` changes the count under
+     `s.revMu` held exclusively). Until then, unit 3 can use only the write pin and the
+     certificates' order.
+
 ## Merge: mvcc into lean (2026-10-11)
 
 Branch `mvcc` (25 commits: the KV core's translation, model, key index, tree index, read and
