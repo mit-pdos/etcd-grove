@@ -28,3 +28,8 @@ InBucket__RootPage: @
 Bucket__pageNode: InBucket__RootPage Tx__page
 elemRef__isLeaf: Page__IsLeafPage
 elemRef__count: Page__Count
+Page__LeafPageElement: @
+leafPageElement__Key: @
+leafPageElement__Value: @
+leafPageElement__Flags: @
+Cursor__keyValue: elemRef__count Page__LeafPageElement leafPageElement__Key leafPageElement__Value leafPageElement__Flags
