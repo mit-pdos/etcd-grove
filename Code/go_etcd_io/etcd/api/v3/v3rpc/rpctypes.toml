@@ -1,6 +1,7 @@
 # Types and names only: function and method bodies are axiomatized.
 translate = ["!*"]
-imports = ["!*"]
+# `EtcdError`'s field `code` is a `codes.Code`: `client/v3/leasing`'s `acquire` allocates one.
+imports = ["!*", "google.golang.org/grpc/codes"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

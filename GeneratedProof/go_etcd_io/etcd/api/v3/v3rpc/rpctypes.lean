@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.google_golang_org.grpc.codes
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.api.v3.v3rpc.rpctypes
 
@@ -26,12 +27,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
 
 instance EtcdError_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError where
+  typedPointstoDef l v dq := iprop(
+    "code" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) v.code' dq ∗
+    "desc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"desc" l) v.desc' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance EtcdError_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.underlying := by
+  solve_into_val_typed_struct
+
+instance EtcdError_access_load_code (l : Loc) (v : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) v.code' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) v.code' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance EtcdError_access_store_code (l : Loc) (v : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (code' : google_golang_org.grpc.codes.Code) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) v.code' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) code' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with code' := code' } : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance EtcdError_access_load_desc (l : Loc) (v : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"desc" l) v.desc' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"desc" l) v.desc' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance EtcdError_access_store_desc (l : Loc) (v : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (desc' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"desc" l) v.desc' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"desc" l) desc' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with desc' := desc' } : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end EtcdError

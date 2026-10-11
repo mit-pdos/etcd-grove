@@ -27,7 +27,8 @@ create revision in the range. -/
 abbrev WithLastCreate.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 }}
     (App (Val (@! go_etcd_io.etcd.client.v3.WithLastCreate)) (Val #()))
-  {{ (sl : GoSlice), RET #sl; optsAt sl (withTopM (W64 2) (W64 2)) }}
+  {{ (sl : GoSlice), RET #sl; optsAt sl (withTopM (W64 2) (W64 2))∗
+      ownSliceCap GoFunc sl (DFrac.own 1) }}
 
 end spec
 

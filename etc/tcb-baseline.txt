@@ -15,6 +15,10 @@ axiom errors.Is.wp_proof
 axiom etcdReachedAt
 axiom etcdReachedAt_timeless
 axiom etcdState
+axiom etcdState_agree
+axiom etcdState_create_persist
+axiom etcdState_modrev_det
+axiom etcdState_revs
 axiom etcdStep_compose
 axiom etcdStep_delete_present
 axiom etcdStep_transfer
@@ -26,6 +30,7 @@ axiom proto.Clone.wp_proof
 axiom reflect.DeepEqual.wp_proof
 axiom rpctypes.Error.wp_proof
 axiom status.Error.wp_proof
+axiom status.FromError.wp_proof
 axiom v3alarm.AlarmStore.Get.wp_proof
 axiom verify.Verify.wp_proof
 axiom zap.Error.wp_proof

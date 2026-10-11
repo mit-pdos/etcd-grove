@@ -1,0 +1,45 @@
+/-
+Proof of `Spec/go_etcd_io/etcd/client/v3/concurrency/NewLocker.lean`. Lean-first (no Rocq counterpart).
+-/
+module
+
+public import Spec.go_etcd_io.etcd.client.v3.concurrency.NewLocker
+public import Spec.go_etcd_io.etcd.client.v3.concurrency.NewMutex
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace concurrency
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.concurrency
+
+section proof
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
+
+theorem NewLocker.wp_proof (hNM : NewMutex.spec (GF := GF) (hG := hG)) :
+    NewLocker.spec (GF := GF) (hG := hG) := by
+  intro s γ client id pfx
+  wp_start as ⟨#Hs, #Hc⟩
+  (try wp_auto)
+  wp_apply hNM s γ client id pfx $$ [$Hs $Hc] as %m ⟨#Hm, Hst⟩
+  (try wp_auto)
+  wp_alloc lm as Hlm
+  iStructNamed Hlm
+  (try wp_auto)
+  iapply HΦ
+  iexists lm, m
+  iframe
+  iframe #
+  ipureintro; rfl
+end proof
+
+end concurrency
+end EtcdGrove
+end Perennial

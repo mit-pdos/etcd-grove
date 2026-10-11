@@ -2,7 +2,9 @@
 # The messages the cache reads are listed explicitly: translate_types never translates
 # a struct with a field of another package's alias type, as every protobuf message
 # has (`state protoimpl.MessageState`, ...).
-translate = ["!*", "KeyValue", "Event"]
+# For `client/v3/concurrency` (`waitDelete` compares an event's type with `Event_DELETE`): the
+# event type constants.
+translate = ["!*", "KeyValue", "Event", "Event_PUT", "Event_DELETE"]
 imports = ["!*", "google.golang.org/protobuf/runtime/protoimpl"]
 
 # translate the definitions of all type declarations goose supports

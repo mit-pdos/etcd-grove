@@ -83,6 +83,12 @@ instance etcdserverpb_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb :=
   build_get_is_pkg_init_wf
 
+instance grpc_codes_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.codes :=
+  define_is_pkg_init iprop(True)
+instance grpc_codes_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.codes :=
+  build_get_is_pkg_init_wf
+
 /-- The error value `e`'s `Error()` returns some string (and does not panic). -/
 def errorStringSpec (e : GoInterfaceOk) : IProp GF :=
   iprop(□ ∀ Φ : val → IProp GF, ▷ (∀ str : GoString, Φ #str) -∗
@@ -108,10 +114,13 @@ instance rpctypes_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes :=
   build_get_is_pkg_init_wf
 
-instance grpc_codes_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.codes :=
+-- The names-only target of the alias `grpc/status.Status` (imported by `grpc/status` since
+-- `client/v3/leasing` names it).
+instance grpc_internal_status_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.internal.status :=
   define_is_pkg_init iprop(True)
-instance grpc_codes_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.codes :=
+instance grpc_internal_status_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.internal.status :=
   build_get_is_pkg_init_wf
 
 instance grpc_status_is_pkg_init_inst :

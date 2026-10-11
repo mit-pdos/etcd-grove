@@ -622,7 +622,8 @@ axiom DowngradeCancel [FfiSyntax] [GoGlobalContext] : val
 @[reducible] noncomputable def tDeleteRange [FfiSyntax] [GoGlobalContext] : val :=
   #(W64 3)
 
-axiom tTxn [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def tTxn [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 4)
 
 axiom MaxLeaseTTL [FfiSyntax] [GoGlobalContext] : val
 
@@ -647,7 +648,8 @@ axiom SortByVersion [FfiSyntax] [GoGlobalContext] : val
 @[reducible] noncomputable def SortByCreateRevision [FfiSyntax] [GoGlobalContext] : val :=
   #(W64 2)
 
-axiom SortByModRevision [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def SortByModRevision [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 3)
 
 axiom SortByValue [FfiSyntax] [GoGlobalContext] : val
 
@@ -1099,6 +1101,18 @@ noncomputable def Client.Ctx.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"ctx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "c")))))))))
 
+/-- go: compare.go:45:17 -/
+noncomputable def Cmp.GetCompare.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "cmp"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "cmp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Cmp.ty)))) (Var "cmp"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Compare.ty)))) (App (Val (GoInstruction (StructFieldRef Cmp.ty go!"c"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cmp.ty)))) (Var "cmp")))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Cmp.ty) go!"ensureCompare"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cmp.ty)))) (Var "cmp"))) (Val #()))))))))
+
 /-- go: compare.go:50:17 -/
 noncomputable def Cmp.Clone.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cmp"
@@ -1289,6 +1303,23 @@ noncomputable def Cmp.ensureCompare.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
+/-- KeyBytes returns the byte slice holding with the comparison key.
+
+    go: compare.go:126:17 -/
+noncomputable def Cmp.KeyBytes.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "cmp"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "cmp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Cmp.ty)))) (Var "cmp"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Compare.ty) go!"GetKey"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Compare.ty)))) (App (Val (GoInstruction (StructFieldRef Cmp.ty go!"c"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cmp.ty)))) (Var "cmp"))))) (Val #())))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Cmp.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cmp.ty)))) (Var "cmp")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Cmp.ty)))) (Val UntypedNil)))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.byte)))) (Val UntypedNil)))
+  (App (Val doExecute)
+  (Val #()))))))))
+
 /-- WithRange sets the comparison to scan the range [key, end).
 
     go: compare.go:154:16 -/
@@ -1434,6 +1465,88 @@ noncomputable def cloneCompare.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))
 
+/-- go: kv.go:118:22 -/
+noncomputable def OpResponse.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc OpResponse.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType GetResponse.ty)))) (App (Val (GoInstruction (StructFieldRef OpResponse.ty go!"get"))) (Var "op"))))))))
+
+/-- go: kv.go:122:26 -/
+noncomputable def PutResponse.OpResponse.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "resp"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType PutResponse.ty)))) (Var "resp"))
+  (App (Val doReturn)
+  (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PutResponse.ty)))) (Var "resp"))
+  (App (Val (GoInstruction (CompositeLiteral OpResponse.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"put")) (ElementExpression (go.GoType.PointerType PutResponse.ty) (Var "$v0")))]))))))))
+
+/-- go: kv.go:126:26 -/
+noncomputable def GetResponse.OpResponse.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "resp"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType GetResponse.ty)))) (Var "resp"))
+  (App (Val doReturn)
+  (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType GetResponse.ty)))) (Var "resp"))
+  (App (Val (GoInstruction (CompositeLiteral OpResponse.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"get")) (ElementExpression (go.GoType.PointerType GetResponse.ty) (Var "$v0")))]))))))))
+
+/-- go: kv.go:130:29 -/
+noncomputable def DeleteResponse.OpResponse.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "resp"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType DeleteResponse.ty)))) (Var "resp"))
+  (App (Val doReturn)
+  (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DeleteResponse.ty)))) (Var "resp"))
+  (App (Val (GoInstruction (CompositeLiteral OpResponse.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"del")) (ElementExpression (go.GoType.PointerType DeleteResponse.ty) (Var "$v0")))]))))))))
+
+/-- go: kv.go:134:26 -/
+noncomputable def TxnResponse.OpResponse.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "resp"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "resp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType TxnResponse.ty)))) (Var "resp"))
+  (App (Val doReturn)
+  (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TxnResponse.ty)))) (Var "resp"))
+  (App (Val (GoInstruction (CompositeLiteral OpResponse.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"txn")) (ElementExpression (go.GoType.PointerType TxnResponse.ty) (Var "$v0")))]))))))))
+
+/-- IsTxn returns true if the "Op" type is transaction.
+
+    go: op.go:89:14 -/
+noncomputable def Op.IsTxn.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoOp GoEquals opType.ty))) (Pair (App (Val (GoInstruction (GoLoad opType.ty))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"t"))) (Var "op"))) (Val tTxn))))))))
+
+/-- Txn returns the comparison(if) operations, "then" operations, and "else" operations.
+
+    go: op.go:94:14 -/
+noncomputable def Op.Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (Pair (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Cmp.ty)))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"cmps"))) (Var "op"))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Op.ty)))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"thenOps"))) (Var "op")))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Op.ty)))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"elseOps"))) (Var "op")))))))))
+
+/-- KeyBytes returns the byte slice holding the Op's key.
+
+    go: op.go:99:14 -/
+noncomputable def Op.KeyBytes.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"key"))) (Var "op"))))))))
+
 /-- RangeBytes returns the byte slice holding with the Op's range end, if any.
 
     go: op.go:105:14 -/
@@ -1467,6 +1580,39 @@ noncomputable def Op.Limit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"limit"))) (Var "op"))))))))
 
+/-- IsPut returns true iff the operation is a Put.
+
+    go: op.go:114:14 -/
+noncomputable def Op.IsPut.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoOp GoEquals opType.ty))) (Pair (App (Val (GoInstruction (GoLoad opType.ty))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"t"))) (Var "op"))) (Val tPut))))))))
+
+/-- IsGet returns true iff the operation is a Get.
+
+    go: op.go:117:14 -/
+noncomputable def Op.IsGet.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoOp GoEquals opType.ty))) (Pair (App (Val (GoInstruction (GoLoad opType.ty))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"t"))) (Var "op"))) (Val tRange))))))))
+
+/-- IsDelete returns true iff the operation is a Delete.
+
+    go: op.go:120:14 -/
+noncomputable def Op.IsDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoOp GoEquals opType.ty))) (Pair (App (Val (GoInstruction (GoLoad opType.ty))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"t"))) (Var "op"))) (Val tDeleteRange))))))))
+
 /-- IsSerializable returns true if the serializable field is true.
 
     go: op.go:123:14 -/
@@ -1477,6 +1623,17 @@ noncomputable def Op.IsSerializable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"serializable"))) (Var "op"))))))))
+
+/-- IsKeysOnly returns whether keysOnly is set.
+
+    go: op.go:126:14 -/
+noncomputable def Op.IsKeysOnly.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"keysOnly"))) (Var "op"))))))))
 
 /-- IsCountOnly returns whether countOnly is set.
 
@@ -1609,6 +1766,17 @@ noncomputable def Op.MaxCreateRev.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"maxCreateRev"))) (Var "op"))))))))
+
+/-- ValueBytes returns the byte slice holding the Op's value, if any.
+
+    go: op.go:172:14 -/
+noncomputable def Op.ValueBytes.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc Op.ty))) (Var "op"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef Op.ty go!"val"))) (Var "op"))))))))
 
 /-- go: op.go:252:6 -/
 noncomputable def NewOp.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -1795,6 +1963,42 @@ noncomputable def OpPut.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Op.ty) go!"applyOpts"))) (Var "ret")) (Var "$a0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Op.ty))) (Pair (Var "ret") (Var "$r0"))))))))))))))
+
+/-- OpTxn returns "txn" operation based on given transaction conditions.
+
+    go: op.go:330:6 -/
+noncomputable def OpTxn.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "cmps"
+  (Lam "thenOps"
+  (Lam "elseOps"
+  (App (Val exceptionDo)
+  (Let "elseOps" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Op.ty)))) (Var "elseOps"))
+  (Let "thenOps" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Op.ty)))) (Var "thenOps"))
+  (Let "cmps" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Cmp.ty)))) (Var "cmps"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType Cmp.ty)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Cmp.ty)))) (Var "cmps"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType Cmp.ty)]))) (Val #())) (Var "$a0"))))
+  (Let "clonedCmps" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Cmp.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType Cmp.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Let "$v0" (Val tTxn)
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Cmp.ty)))) (Var "clonedCmps"))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Op.ty)))) (Var "thenOps"))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Op.ty)))) (Var "elseOps"))
+  (App (Val (GoInstruction (CompositeLiteral Op.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"t")) (ElementExpression opType.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"cmps")) (ElementExpression (go.GoType.SliceType Cmp.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"thenOps")) (ElementExpression (go.GoType.SliceType Op.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"elseOps")) (ElementExpression (go.GoType.SliceType Op.ty) (Var "$v3")))])))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Cmp.ty)))) (Var "cmps"))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange Cmp.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Cmp.ty) go!"Clone"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Cmp.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Cmp.ty)))) (Var "cmps")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (Val #()))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Cmp.ty))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType Cmp.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType Cmp.ty)))) (Var "clonedCmps")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType Cmp.ty)))) (Pair (Var "clonedCmps") (Var "$r0"))))))))))))))
 
 /-- go: op.go:338:6 -/
 noncomputable def OpWatch.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -2137,6 +2341,24 @@ noncomputable def WithSerializable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef Op.ty go!"serializable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))) (Var "$r0"))))))))))))
 
+/-- WithKeysOnly makes the 'Get' request return only the keys and the corresponding
+    values will be omitted.
+
+    go: op.go:470:6 -/
+noncomputable def WithKeysOnly.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (Lam "op"
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Op.ty)))) (Var "op"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef Op.ty go!"keysOnly"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))) (Var "$r0"))))))))))))
+
 /-- WithCountOnly makes the 'Get' request return only the count of keys.
 
     go: op.go:475:6 -/
@@ -2194,6 +2416,17 @@ noncomputable def WithLastCreate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a1" (Val SortDescend)
   (App (App (App (Val (GoInstruction (FuncResolve withTop []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
 
+/-- WithLastRev gets the key with the latest modification revision in the request range.
+
+    go: op.go:507:6 -/
+noncomputable def WithLastRev.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (Let "$a0" (Val SortByModRevision)
+  (Let "$a1" (Val SortDescend)
+  (App (App (App (Val (GoInstruction (FuncResolve withTop []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+
 /-- withTop gets the first key over the get's prefix given a sort order
 
     go: op.go:510:6 -/
@@ -2247,6 +2480,25 @@ noncomputable def WithCreatedNotify.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$r0" (Val #true)
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef Op.ty go!"createdNotify"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))) (Var "$r0"))))))))))))
+
+/-- WithIgnoreLease updates the key using its current lease.
+    This option can not be combined with WithLease.
+    Returns an error if the key does not exist.
+
+    go: op.go:576:6 -/
+noncomputable def WithIgnoreLease.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (Lam "op"
+  (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Op.ty)))) (Var "op"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef Op.ty go!"ignoreLease"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))) (Var "$r0"))))))))))))
 
 /-- IsOptsWithPrefix returns true if WithPrefix option is called in the given opts.
 
@@ -3214,6 +3466,8 @@ class Cmp.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSema
   WithPrefix_unfold : MethodUnfold Cmp.ty go!"WithPrefix" Cmp.WithPrefix.impl
   WithRange_unfold : MethodUnfold Cmp.ty go!"WithRange" Cmp.WithRange.impl
   ptr_Clone_unfold : MethodUnfold (go.GoType.PointerType Cmp.ty) go!"Clone" Cmp.Clone.impl
+  ptr_GetCompare_unfold : MethodUnfold (go.GoType.PointerType Cmp.ty) go!"GetCompare" Cmp.GetCompare.impl
+  ptr_KeyBytes_unfold : MethodUnfold (go.GoType.PointerType Cmp.ty) go!"KeyBytes" Cmp.KeyBytes.impl
   ptr_WithPrefix_unfold : MethodUnfold (go.GoType.PointerType Cmp.ty) go!"WithPrefix" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Cmp.ty go!"WithPrefix"))) (App (Val (GoInstruction (GoLoad Cmp.ty))) (Var "$r"))))
   ptr_WithRange_unfold : MethodUnfold (go.GoType.PointerType Cmp.ty) go!"WithRange" (LamV "$r"
@@ -3227,6 +3481,8 @@ attribute [instance] Cmp.TypeAssumptions.type_repr
   Cmp.TypeAssumptions.WithPrefix_unfold
   Cmp.TypeAssumptions.WithRange_unfold
   Cmp.TypeAssumptions.ptr_Clone_unfold
+  Cmp.TypeAssumptions.ptr_GetCompare_unfold
+  Cmp.TypeAssumptions.ptr_KeyBytes_unfold
   Cmp.TypeAssumptions.ptr_WithPrefix_unfold
   Cmp.TypeAssumptions.ptr_WithRange_unfold
   Cmp.TypeAssumptions.ptr_ensureCompare_unfold
@@ -3431,8 +3687,10 @@ abbrev PutResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3
 
 class PutResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PutResponse.ty PutResponse.underlying
+  ptr_OpResponse_unfold : MethodUnfold (go.GoType.PointerType PutResponse.ty) go!"OpResponse" PutResponse.OpResponse.impl
 
 attribute [instance] PutResponse.TypeAssumptions.underlying
+  PutResponse.TypeAssumptions.ptr_OpResponse_unfold
 
 abbrev GetResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse
 
@@ -3441,8 +3699,10 @@ abbrev GetResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3
 
 class GetResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq GetResponse.ty GetResponse.underlying
+  ptr_OpResponse_unfold : MethodUnfold (go.GoType.PointerType GetResponse.ty) go!"OpResponse" GetResponse.OpResponse.impl
 
 attribute [instance] GetResponse.TypeAssumptions.underlying
+  GetResponse.TypeAssumptions.ptr_OpResponse_unfold
 
 abbrev GetStreamChan [FfiSyntax] : Type := GoChan
 
@@ -3461,8 +3721,10 @@ abbrev DeleteResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api
 
 class DeleteResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DeleteResponse.ty DeleteResponse.underlying
+  ptr_OpResponse_unfold : MethodUnfold (go.GoType.PointerType DeleteResponse.ty) go!"OpResponse" DeleteResponse.OpResponse.impl
 
 attribute [instance] DeleteResponse.TypeAssumptions.underlying
+  DeleteResponse.TypeAssumptions.ptr_OpResponse_unfold
 
 abbrev TxnResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse
 
@@ -3471,8 +3733,10 @@ abbrev TxnResponse [FfiSyntax] : Type := _root_.Perennial.go_etcd_io.etcd.api.v3
 
 class TxnResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TxnResponse.ty TxnResponse.underlying
+  ptr_OpResponse_unfold : MethodUnfold (go.GoType.PointerType TxnResponse.ty) go!"OpResponse" TxnResponse.OpResponse.impl
 
 attribute [instance] TxnResponse.TypeAssumptions.underlying
+  TxnResponse.TypeAssumptions.ptr_OpResponse_unfold
 
 structure RangeStreamResponse [FfiSyntax] where
   mk ::
@@ -3548,6 +3812,9 @@ class OpResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_del : ∀ (x : OpResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet OpResponse.underlying go!"del") (PairV #x #y) (Val #(({ x with del' := y } : OpResponse)))
   get_txn : ∀ (x : OpResponse), go.IsGoStepPureDetTagged under (StructFieldGet OpResponse.underlying go!"txn") #x (Val #(x.txn'))
   set_txn : ∀ (x : OpResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet OpResponse.underlying go!"txn") (PairV #x #y) (Val #(({ x with txn' := y } : OpResponse)))
+  Get_unfold : MethodUnfold OpResponse.ty go!"Get" OpResponse.Get.impl
+  ptr_Get_unfold : MethodUnfold (go.GoType.PointerType OpResponse.ty) go!"Get" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve OpResponse.ty go!"Get"))) (App (Val (GoInstruction (GoLoad OpResponse.ty))) (Var "$r"))))
 
 attribute [instance] OpResponse.TypeAssumptions.type_repr
   OpResponse.TypeAssumptions.underlying
@@ -3559,6 +3826,8 @@ attribute [instance] OpResponse.TypeAssumptions.type_repr
   OpResponse.TypeAssumptions.set_del
   OpResponse.TypeAssumptions.get_txn
   OpResponse.TypeAssumptions.set_txn
+  OpResponse.TypeAssumptions.Get_unfold
+  OpResponse.TypeAssumptions.ptr_Get_unfold
 
 structure kv [FfiSyntax] where
   mk ::
@@ -4261,13 +4530,19 @@ class Op.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSeman
   set_isOptsWithPrefix : ∀ (x : Op) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Op.underlying go!"isOptsWithPrefix") (PairV #x #y) (Val #(({ x with isOptsWithPrefix' := y } : Op)))
   IsCountOnly_unfold : MethodUnfold Op.ty go!"IsCountOnly" Op.IsCountOnly.impl
   IsCreatedNotify_unfold : MethodUnfold Op.ty go!"IsCreatedNotify" Op.IsCreatedNotify.impl
+  IsDelete_unfold : MethodUnfold Op.ty go!"IsDelete" Op.IsDelete.impl
   IsFilterDelete_unfold : MethodUnfold Op.ty go!"IsFilterDelete" Op.IsFilterDelete.impl
   IsFilterPut_unfold : MethodUnfold Op.ty go!"IsFilterPut" Op.IsFilterPut.impl
   IsFragment_unfold : MethodUnfold Op.ty go!"IsFragment" Op.IsFragment.impl
+  IsGet_unfold : MethodUnfold Op.ty go!"IsGet" Op.IsGet.impl
+  IsKeysOnly_unfold : MethodUnfold Op.ty go!"IsKeysOnly" Op.IsKeysOnly.impl
   IsPrevKV_unfold : MethodUnfold Op.ty go!"IsPrevKV" Op.IsPrevKV.impl
   IsProgressNotify_unfold : MethodUnfold Op.ty go!"IsProgressNotify" Op.IsProgressNotify.impl
+  IsPut_unfold : MethodUnfold Op.ty go!"IsPut" Op.IsPut.impl
   IsSerializable_unfold : MethodUnfold Op.ty go!"IsSerializable" Op.IsSerializable.impl
   IsSortSet_unfold : MethodUnfold Op.ty go!"IsSortSet" Op.IsSortSet.impl
+  IsTxn_unfold : MethodUnfold Op.ty go!"IsTxn" Op.IsTxn.impl
+  KeyBytes_unfold : MethodUnfold Op.ty go!"KeyBytes" Op.KeyBytes.impl
   Limit_unfold : MethodUnfold Op.ty go!"Limit" Op.Limit.impl
   MaxCreateRev_unfold : MethodUnfold Op.ty go!"MaxCreateRev" Op.MaxCreateRev.impl
   MaxModRev_unfold : MethodUnfold Op.ty go!"MaxModRev" Op.MaxModRev.impl
@@ -4275,24 +4550,38 @@ class Op.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSeman
   MinModRev_unfold : MethodUnfold Op.ty go!"MinModRev" Op.MinModRev.impl
   RangeBytes_unfold : MethodUnfold Op.ty go!"RangeBytes" Op.RangeBytes.impl
   Rev_unfold : MethodUnfold Op.ty go!"Rev" Op.Rev.impl
+  Txn_unfold : MethodUnfold Op.ty go!"Txn" Op.Txn.impl
+  ValueBytes_unfold : MethodUnfold Op.ty go!"ValueBytes" Op.ValueBytes.impl
   ptr_IsCountOnly_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"IsCountOnly" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Op.ty go!"IsCountOnly"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
   ptr_IsCreatedNotify_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"IsCreatedNotify" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Op.ty go!"IsCreatedNotify"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_IsDelete_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"IsDelete" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"IsDelete"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
   ptr_IsFilterDelete_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"IsFilterDelete" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Op.ty go!"IsFilterDelete"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
   ptr_IsFilterPut_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"IsFilterPut" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Op.ty go!"IsFilterPut"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
   ptr_IsFragment_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"IsFragment" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Op.ty go!"IsFragment"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_IsGet_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"IsGet" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"IsGet"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_IsKeysOnly_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"IsKeysOnly" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"IsKeysOnly"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
   ptr_IsPrevKV_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"IsPrevKV" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Op.ty go!"IsPrevKV"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
   ptr_IsProgressNotify_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"IsProgressNotify" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Op.ty go!"IsProgressNotify"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_IsPut_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"IsPut" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"IsPut"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
   ptr_IsSerializable_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"IsSerializable" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Op.ty go!"IsSerializable"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
   ptr_IsSortSet_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"IsSortSet" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Op.ty go!"IsSortSet"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_IsTxn_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"IsTxn" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"IsTxn"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_KeyBytes_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"KeyBytes" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"KeyBytes"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
   ptr_Limit_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"Limit" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Op.ty go!"Limit"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
   ptr_MaxCreateRev_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"MaxCreateRev" (LamV "$r"
@@ -4307,6 +4596,10 @@ class Op.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSeman
 (App (Val (GoInstruction (MethodResolve Op.ty go!"RangeBytes"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
   ptr_Rev_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"Rev" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Op.ty go!"Rev"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_Txn_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"Txn" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"Txn"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
+  ptr_ValueBytes_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"ValueBytes" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Op.ty go!"ValueBytes"))) (App (Val (GoInstruction (GoLoad Op.ty))) (Var "$r"))))
   ptr_applyOpts_unfold : MethodUnfold (go.GoType.PointerType Op.ty) go!"applyOpts" Op.applyOpts.impl
 
 attribute [instance] Op.TypeAssumptions.type_repr
@@ -4371,13 +4664,19 @@ attribute [instance] Op.TypeAssumptions.type_repr
   Op.TypeAssumptions.set_isOptsWithPrefix
   Op.TypeAssumptions.IsCountOnly_unfold
   Op.TypeAssumptions.IsCreatedNotify_unfold
+  Op.TypeAssumptions.IsDelete_unfold
   Op.TypeAssumptions.IsFilterDelete_unfold
   Op.TypeAssumptions.IsFilterPut_unfold
   Op.TypeAssumptions.IsFragment_unfold
+  Op.TypeAssumptions.IsGet_unfold
+  Op.TypeAssumptions.IsKeysOnly_unfold
   Op.TypeAssumptions.IsPrevKV_unfold
   Op.TypeAssumptions.IsProgressNotify_unfold
+  Op.TypeAssumptions.IsPut_unfold
   Op.TypeAssumptions.IsSerializable_unfold
   Op.TypeAssumptions.IsSortSet_unfold
+  Op.TypeAssumptions.IsTxn_unfold
+  Op.TypeAssumptions.KeyBytes_unfold
   Op.TypeAssumptions.Limit_unfold
   Op.TypeAssumptions.MaxCreateRev_unfold
   Op.TypeAssumptions.MaxModRev_unfold
@@ -4385,15 +4684,23 @@ attribute [instance] Op.TypeAssumptions.type_repr
   Op.TypeAssumptions.MinModRev_unfold
   Op.TypeAssumptions.RangeBytes_unfold
   Op.TypeAssumptions.Rev_unfold
+  Op.TypeAssumptions.Txn_unfold
+  Op.TypeAssumptions.ValueBytes_unfold
   Op.TypeAssumptions.ptr_IsCountOnly_unfold
   Op.TypeAssumptions.ptr_IsCreatedNotify_unfold
+  Op.TypeAssumptions.ptr_IsDelete_unfold
   Op.TypeAssumptions.ptr_IsFilterDelete_unfold
   Op.TypeAssumptions.ptr_IsFilterPut_unfold
   Op.TypeAssumptions.ptr_IsFragment_unfold
+  Op.TypeAssumptions.ptr_IsGet_unfold
+  Op.TypeAssumptions.ptr_IsKeysOnly_unfold
   Op.TypeAssumptions.ptr_IsPrevKV_unfold
   Op.TypeAssumptions.ptr_IsProgressNotify_unfold
+  Op.TypeAssumptions.ptr_IsPut_unfold
   Op.TypeAssumptions.ptr_IsSerializable_unfold
   Op.TypeAssumptions.ptr_IsSortSet_unfold
+  Op.TypeAssumptions.ptr_IsTxn_unfold
+  Op.TypeAssumptions.ptr_KeyBytes_unfold
   Op.TypeAssumptions.ptr_Limit_unfold
   Op.TypeAssumptions.ptr_MaxCreateRev_unfold
   Op.TypeAssumptions.ptr_MaxModRev_unfold
@@ -4401,6 +4708,8 @@ attribute [instance] Op.TypeAssumptions.type_repr
   Op.TypeAssumptions.ptr_MinModRev_unfold
   Op.TypeAssumptions.ptr_RangeBytes_unfold
   Op.TypeAssumptions.ptr_Rev_unfold
+  Op.TypeAssumptions.ptr_Txn_unfold
+  Op.TypeAssumptions.ptr_ValueBytes_unfold
   Op.TypeAssumptions.ptr_applyOpts_unfold
 
 abbrev OpOption [FfiSyntax] : Type := GoFunc
@@ -5578,6 +5887,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   OpGet_unfold : FuncUnfold OpGet [] OpGet.impl
   OpDelete_unfold : FuncUnfold OpDelete [] OpDelete.impl
   OpPut_unfold : FuncUnfold OpPut [] OpPut.impl
+  OpTxn_unfold : FuncUnfold OpTxn [] OpTxn.impl
   OpWatch_unfold : FuncUnfold OpWatch [] OpWatch.impl
   WithLease_unfold : FuncUnfold WithLease [] WithLease.impl
   WithLimit_unfold : FuncUnfold WithLimit [] WithLimit.impl
@@ -5589,13 +5899,16 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   WithRange_unfold : FuncUnfold WithRange [] WithRange.impl
   WithFromKey_unfold : FuncUnfold WithFromKey [] WithFromKey.impl
   WithSerializable_unfold : FuncUnfold WithSerializable [] WithSerializable.impl
+  WithKeysOnly_unfold : FuncUnfold WithKeysOnly [] WithKeysOnly.impl
   WithCountOnly_unfold : FuncUnfold WithCountOnly [] WithCountOnly.impl
   WithMaxCreateRev_unfold : FuncUnfold WithMaxCreateRev [] WithMaxCreateRev.impl
   WithFirstCreate_unfold : FuncUnfold WithFirstCreate [] WithFirstCreate.impl
   WithLastCreate_unfold : FuncUnfold WithLastCreate [] WithLastCreate.impl
+  WithLastRev_unfold : FuncUnfold WithLastRev [] WithLastRev.impl
   withTop_unfold : FuncUnfold withTop [] withTop.impl
   WithProgressNotify_unfold : FuncUnfold WithProgressNotify [] WithProgressNotify.impl
   WithCreatedNotify_unfold : FuncUnfold WithCreatedNotify [] WithCreatedNotify.impl
+  WithIgnoreLease_unfold : FuncUnfold WithIgnoreLease [] WithIgnoreLease.impl
   IsOptsWithPrefix_unfold : FuncUnfold IsOptsWithPrefix [] IsOptsWithPrefix.impl
   IsOptsWithFromKey_unfold : FuncUnfold IsOptsWithFromKey [] IsOptsWithFromKey.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
@@ -5734,6 +6047,7 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.OpGet_unfold
   Assumptions.OpDelete_unfold
   Assumptions.OpPut_unfold
+  Assumptions.OpTxn_unfold
   Assumptions.OpWatch_unfold
   Assumptions.WithLease_unfold
   Assumptions.WithLimit_unfold
@@ -5745,13 +6059,16 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.WithRange_unfold
   Assumptions.WithFromKey_unfold
   Assumptions.WithSerializable_unfold
+  Assumptions.WithKeysOnly_unfold
   Assumptions.WithCountOnly_unfold
   Assumptions.WithMaxCreateRev_unfold
   Assumptions.WithFirstCreate_unfold
   Assumptions.WithLastCreate_unfold
+  Assumptions.WithLastRev_unfold
   Assumptions.withTop_unfold
   Assumptions.WithProgressNotify_unfold
   Assumptions.WithCreatedNotify_unfold
+  Assumptions.WithIgnoreLease_unfold
   Assumptions.IsOptsWithPrefix_unfold
   Assumptions.IsOptsWithFromKey_unfold
   Assumptions.import_context_Assumption

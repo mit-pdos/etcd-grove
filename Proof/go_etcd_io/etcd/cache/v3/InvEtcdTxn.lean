@@ -11,7 +11,8 @@ revision, version and lease `0` — **except a value comparison, which then fail
 chosen branch's operations **in order, each on the state the previous one left** (`runOps`,
 `applyTxnOp`), all at one revision `r`: a put of a new key creates it with create and mod
 revision `r` and version `1`; a put of an existing key keeps its create revision, sets its mod
-revision to `r`, increments its version, and sets its value and lease; a delete removes the keys
+revision to `r`, increments its version, and sets its value and lease (or keeps the lease: a
+put with `WithIgnoreLease`, `putKeep`); a delete removes the keys
 its range selects; a get reads the state at that point (`rangeSel`: the keys in its range,
 filtered by its revision filters; the response sorts and limits them, `rangeKvsOk`). The
 revision advances only if the transaction wrote (`txnWrote`: a put, or a delete of at least one
@@ -32,9 +33,19 @@ methods are the trust boundary (the client's `txn` calls protobuf's `proto.Clone
 see `decisions.md`.
 
 **History laws** (axioms, about `etcdState`): every key-value of etcd's state at `r` has
-`0 < createRev ≤ modRev ≤ r` and `0 < version` (`etcdState_revs`); and a key present at `r`
+`0 < createRev ≤ modRev ≤ r` and `0 < version` (`etcdState_revs`); a key present at `r`
 with create revision `c` is present, with the same create revision, at every revision in
-`[c, r]` (`etcdState_create_persist`: a key is created once and lives until it is deleted).
+`[c, r]` (`etcdState_create_persist`: a key is created once and lives until it is deleted); and
+two states holding a key with the same mod revision hold the same key-value
+(`etcdState_modrev_det`: a revision writes a key at most once).
+
+**Linearizability** holds for a transaction with an operation that is not a serializable get
+(`TxnModel.linearizable`); etcd answers one of serializable gets alone, or of no operation, from
+the member's state, which may lag (`EtcdServer.Txn`, `IsTxnSerializable`).
+
+**Read transactions** (`isEtcdReadTxnKV`): a transaction of gets alone, each at the current
+revision or at an earlier one (`WithRev`): `Commit()` returns each get's range response on
+etcd's state at its revision (`readTxnResult`); the STM's reads.
 
 **Leases** (`isEtcdLease l`, a definition): `Grant` returns an error or a lease ID other than
 `NoLease` with a header revision etcd has reached; `KeepAlive` returns an error, or a channel
@@ -61,17 +72,6 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.api.v3
 
 /-! ## Key ranges and comparisons -/
-
-/-- The key `k` is in the range `[key, rangeEnd)` of a request or a comparison: the key alone if
-`rangeEnd` is empty, every key from `key` on if it is `[0]`. -/
-def inRange (key rangeEnd k : GoString) : Bool :=
-  if rangeEnd = [] then decide (k = key)
-  else if rangeEnd = [W8 0] then !decide (go.GoStringLt k key)
-  else !decide (go.GoStringLt k key) && decide (go.GoStringLt k rangeEnd)
-
-/-- Every key of the range `[key, rangeEnd)` has the prefix `pfx`. -/
-def KeyRangeUnder (pfx key rangeEnd : GoString) : Prop :=
-  ∀ k, inRange key rangeEnd k = true → pfx <+: k
 
 /-- `-1`, `0` or `1`, as `bytes.Compare` and etcd's `compareInt64`. -/
 def cmpSign (lt eq : Bool) : Int := if lt then -1 else if eq then 0 else 1
@@ -112,11 +112,24 @@ def cmpHolds (s : List EtcdKv) (c : CmpModel) : Bool :=
 /-! ## Transactions -/
 
 /-- An operation of a transaction: a get (a range request, with its `Op`'s model), a put of a
-key's value with a lease (`0`: none), or a delete (a range). -/
+key's value with a lease (`0`: none), a delete (a range), a put that keeps the key's lease
+(`WithIgnoreLease`), a put that keeps the key's value (`WithIgnoreValue`), or a nested
+transaction (`OpTxn(cmps, thenOps, elseOps)`). -/
 inductive TxnOp where
   | get (o : OpFull)
   | put (key value : GoString) (lease : w64)
   | delete (o : OpFull)
+  /-- `OpPut(key, value, WithIgnoreLease())`: the key keeps its lease. etcd fails the whole
+  transaction (an error) if the key does not exist (`ErrKeyNotFound`); the model then gives it no
+  lease, which no successful response claims. -/
+  | putKeep (key value : GoString)
+  /-- `OpPut(key, "", WithIgnoreValue(), ...)`: the key keeps its value, and its lease too if
+  `lease` is `none` (`WithIgnoreLease()`), otherwise gets `lease`. etcd fails the whole transaction
+  if the key does not exist (`ErrKeyNotFound`); the model then gives it the empty value. -/
+  | putIgnVal (key : GoString) (lease : Option w64)
+  /-- A nested transaction, `OpTxn(cmps, thenOps, elseOps)`: run as etcd runs it, at the same
+  revision, on the state the operations before it left, its comparisons choosing the branch. -/
+  | txn (cmps : List CmpModel) (thenOps elseOps : List TxnOp)
 
 /-- A transaction: `If(cmps...).Then(thenOps...).Else(elseOps...)`. -/
 structure TxnModel where
@@ -128,36 +141,32 @@ structure TxnModel where
 def TxnModel.empty : TxnModel := { cmps := [], thenOps := [], elseOps := [] }
 
 /-- The result of an operation: a get's selected key-values (in key order) and the number of keys
-in its range; a put; a delete's number of deleted keys. -/
+in its range; a put; a delete's number of deleted keys; a nested transaction's outcome (whether its
+comparisons held) and its chosen branch's results. -/
 inductive TxnOpResult where
   | range (sel : List EtcdKv) (count : Nat)
   | put
   | delete (deleted : Nat)
+  | txn (ok : Bool) (rs : List TxnOpResult)
 
 /-- The operation an `Op` (`Then`'s and `Else`'s arguments) stands for in a transaction: a range
-at the current revision, a put (without `WithIgnoreValue`/`WithIgnoreLease`), a delete; nothing
-for a nested transaction or another revision (not modelled). -/
+at the current revision, a put (with `WithIgnoreLease` and no lease, a put keeping the key's lease;
+with `WithIgnoreValue` and no value, a put keeping its value), a delete; nothing for another
+revision or what etcd rejects (a value with `WithIgnoreValue`, a lease with `WithIgnoreLease`). A
+nested transaction's `Op` has no `OpFull` model of its own: `OpT` (below) describes it. -/
 def txnOpOf (o : OpFull) : Option TxnOp :=
   if o.t = W64 1 then (if o.base.rev = W64 0 then some (.get o) else none)
   else if o.t = W64 2 then
     (if o.ignoreValue = false ∧ o.ignoreLease = false then some (.put o.key o.val o.leaseID)
+     else if o.ignoreValue = false ∧ o.ignoreLease = true ∧ o.leaseID = W64 0 then
+       some (.putKeep o.key o.val)
+     else if o.ignoreValue = true ∧ o.val = [] ∧ o.ignoreLease = false then
+       some (.putIgnVal o.key (some o.leaseID))
+     else if o.ignoreValue = true ∧ o.val = [] ∧ o.ignoreLease = true ∧ o.leaseID = W64 0 then
+       some (.putIgnVal o.key none)
      else none)
   else if o.t = W64 3 then some (.delete o)
   else none
-
-/-- The keys of the range of `o`, in the state `s` (in key order). -/
-def rangeIn (s : List EtcdKv) (o : OpFull) : List EtcdKv :=
-  s.filter (fun v => inRange o.key o.base.rangeEnd v.key)
-
-/-- A range request's revision filters (`0`: no filter). -/
-def kvFilterOk (o : OpFull) (v : EtcdKv) : Bool :=
-  (decide (o.base.minModRev = W64 0) || decide (sint.Z o.base.minModRev ≤ sint.Z v.modRev)) &&
-  (decide (o.base.maxModRev = W64 0) || decide (sint.Z v.modRev ≤ sint.Z o.base.maxModRev)) &&
-  (decide (o.base.minCreateRev = W64 0) || decide (sint.Z o.base.minCreateRev ≤ sint.Z v.createRev)) &&
-  (decide (o.base.maxCreateRev = W64 0) || decide (sint.Z v.createRev ≤ sint.Z o.base.maxCreateRev))
-
-/-- What a get selects: the keys of its range that pass its filters, in key order. -/
-def rangeSel (s : List EtcdKv) (o : OpFull) : List EtcdKv := (rangeIn s o).filter (kvFilterOk o)
 
 /-- A put of `key` at revision `r` (see the module docstring). -/
 def putKv (r : w64) (key value : GoString) (lease : w64) (s : List EtcdKv) : List EtcdKv :=
@@ -167,12 +176,22 @@ def putKv (r : w64) (key value : GoString) (lease : w64) (s : List EtcdKv) : Lis
                 lease := lease }
   btInsert etcdKvLess nv s
 
+mutual
 /-- One operation, at revision `r`, on the state `s`: the state after it and its result. -/
 def applyTxnOp (r : w64) (s : List EtcdKv) : TxnOp → List EtcdKv × TxnOpResult
   | .get o => (s, .range (rangeSel s o) (rangeIn s o).length)
   | .put k v l => (putKv r k v l s, .put)
+  | .putKeep k v =>
+    (putKv r k v (((s.find? (fun v => decide (v.key = k))).map EtcdKv.lease).getD (W64 0)) s, .put)
   | .delete o => (s.filter (fun v => !inRange o.key o.base.rangeEnd v.key),
       .delete (rangeIn s o).length)
+  | .putIgnVal k l =>
+    (putKv r k (((s.find? (fun v => decide (v.key = k))).map EtcdKv.value).getD [])
+      (l.getD (((s.find? (fun v => decide (v.key = k))).map EtcdKv.lease).getD (W64 0))) s, .put)
+  | .txn cs ts es =>
+    match cs.all (cmpHolds s) with
+    | true => ((runOps r s ts).1, .txn true (runOps r s ts).2)
+    | false => ((runOps r s es).1, .txn false (runOps r s es).2)
 
 /-- Operations in order, each on the state the previous one left. -/
 def runOps (r : w64) : List EtcdKv → List TxnOp → List EtcdKv × List TxnOpResult
@@ -181,6 +200,7 @@ def runOps (r : w64) : List EtcdKv → List TxnOp → List EtcdKv × List TxnOpR
     let p := applyTxnOp r s op
     let q := runOps r p.1 ops
     (q.1, p.2 :: q.2)
+end
 
 /-- The branch the comparisons choose. -/
 def TxnModel.branch (t : TxnModel) (ok : Bool) : List TxnOp := if ok then t.thenOps else t.elseOps
@@ -192,14 +212,68 @@ def runTxn (r : w64) (s : List EtcdKv) (t : TxnModel) : Bool × List EtcdKv × L
   let q := runOps r s (t.branch ok)
   (ok, q.1, q.2)
 
-/-- An operation's result is a write: a put, or a delete of some key. -/
+mutual
+/-- An operation's result is a write: a put, a delete of some key, or a nested transaction whose
+chosen branch wrote. -/
 def TxnOpResult.wrote : TxnOpResult → Bool
   | .put => true
   | .delete n => n != 0
   | .range _ _ => false
+  | .txn _ rs => TxnOpResult.wroteL rs
+
+/-- Some result of the list is a write (`List.any TxnOpResult.wrote`, `wroteL_eq`). -/
+def TxnOpResult.wroteL : List TxnOpResult → Bool
+  | [] => false
+  | r :: rs => r.wrote || TxnOpResult.wroteL rs
+end
+
+theorem TxnOpResult.wroteL_eq : ∀ rs : List TxnOpResult, TxnOpResult.wroteL rs = rs.any TxnOpResult.wrote
+  | [] => rfl
+  | r :: rs => by simp [TxnOpResult.wroteL, TxnOpResult.wroteL_eq rs]
+
+/-- An operation that makes a transaction linearizable: anything but a serializable get (a nested
+transaction too: etcd's `IsTxnSerializable` looks at the top-level operations only). -/
+def TxnOp.linearizable : TxnOp → Bool
+  | .get o => !o.base.serializable
+  | _ => true
+
+/-- **The transaction is linearizable**: one of its operations (either branch) is not a
+serializable get. etcd serves a transaction whose operations are all serializable gets (or
+which has none) from the member's own state, without the read barrier (`IsTxnSerializable`,
+`EtcdServer.Txn`): its revision may be behind one the caller has seen. -/
+def TxnModel.linearizable (t : TxnModel) : Bool := (t.thenOps ++ t.elseOps).any TxnOp.linearizable
 
 /-- The transaction wrote (so it has a revision of its own). -/
 def txnWrote (rs : List TxnOpResult) : Bool := rs.any TxnOpResult.wrote
+
+theorem delete_noWrite (s : List EtcdKv) (o : OpFull) (h0 : (rangeIn s o).length = 0) :
+    s.filter (fun v => !inRange o.key o.base.rangeEnd v.key) = s := by
+  rw [List.filter_eq_self]
+  intro v hv
+  have : v ∉ rangeIn s o := by
+    rw [List.length_eq_zero_iff] at h0; rw [h0]; simp
+  unfold rangeIn at this
+  simp only [List.mem_filter, not_and] at this
+  simpa using this hv
+
+mutual
+/-- An operation that did not write leaves the state as it was. -/
+theorem applyTxnOp_noWrite (r : w64) (s : List EtcdKv) :
+    ∀ op : TxnOp, (applyTxnOp r s op).2.wrote = false → (applyTxnOp r s op).1 = s
+  | .get o => fun _ => rfl
+  | .put k v l => by simp [applyTxnOp, TxnOpResult.wrote]
+  | .putKeep k v => by simp [applyTxnOp, TxnOpResult.wrote]
+  | .putIgnVal k l => by simp [applyTxnOp, TxnOpResult.wrote]
+  | .delete o => by
+    simp only [applyTxnOp, TxnOpResult.wrote, bne_eq_false_iff_eq]
+    exact delete_noWrite s o
+  | .txn cs ts es => by
+    simp only [applyTxnOp]
+    split
+    · simp only [TxnOpResult.wrote, TxnOpResult.wroteL_eq]
+      exact runOps_noWrite r s ts
+    · simp only [TxnOpResult.wrote, TxnOpResult.wroteL_eq]
+      exact runOps_noWrite r s es
 
 /-- Operations that did not write leave the state as it was. -/
 theorem runOps_noWrite (r : w64) :
@@ -208,71 +282,36 @@ theorem runOps_noWrite (r : w64) :
   | _, [] => fun _ => rfl
   | s, op :: ops => by
     intro h
-    cases op with
-    | get o =>
-      simp only [runOps, applyTxnOp, txnWrote, List.any_cons, TxnOpResult.wrote,
-        Bool.false_or] at h ⊢
-      exact runOps_noWrite r s ops h
-    | put k v l =>
-      simp [runOps, applyTxnOp, txnWrote, TxnOpResult.wrote] at h
-    | delete o =>
-      simp only [runOps, applyTxnOp, txnWrote, List.any_cons, TxnOpResult.wrote,
-        Bool.or_eq_false_iff, bne_eq_false_iff_eq] at h ⊢
-      obtain ⟨h0, h1⟩ := h
-      have hs : s.filter (fun v => !inRange o.key o.base.rangeEnd v.key) = s := by
-        rw [List.filter_eq_self]
-        intro v hv
-        have : v ∉ rangeIn s o := by
-          rw [List.length_eq_zero_iff] at h0; rw [h0]; simp
-        unfold rangeIn at this
-        simp only [List.mem_filter, not_and] at this
-        simpa using this hv
-      rw [hs] at h1 ⊢
-      exact runOps_noWrite r s ops h1
+    simp only [runOps, txnWrote, List.any_cons, Bool.or_eq_false_iff] at h ⊢
+    obtain ⟨h0, h1⟩ := h
+    have hs := applyTxnOp_noWrite r s op h0
+    have h1' := runOps_noWrite r (applyTxnOp r s op).1 ops h1
+    rw [h1', hs]
+end
 
-/-- The keys an operation touches are under the prefix `pfx`. -/
+mutual
+/-- The keys an operation touches (and a nested transaction compares) are under the prefix
+`pfx`. -/
 def TxnOp.Under (pfx : GoString) : TxnOp → Prop
   | .get o => KeyRangeUnder pfx o.key o.base.rangeEnd
   | .put k _ _ => pfx <+: k
   | .delete o => KeyRangeUnder pfx o.key o.base.rangeEnd
+  | .putKeep k _ => pfx <+: k
+  | .putIgnVal k _ => pfx <+: k
+  | .txn cs ts es => (∀ c ∈ cs, KeyRangeUnder pfx c.key c.rangeEnd) ∧ TxnOp.UnderL pfx ts ∧
+      TxnOp.UnderL pfx es
+
+/-- Every operation of the list is under `pfx`. -/
+def TxnOp.UnderL (pfx : GoString) : List TxnOp → Prop
+  | [] => True
+  | op :: ops => op.Under pfx ∧ TxnOp.UnderL pfx ops
+end
 
 /-- Every key the transaction compares or touches is under the prefix `pfx` (the client's
 contract is stated per prefix, as `isEtcdKV`'s). -/
 def TxnModel.Under (pfx : GoString) (t : TxnModel) : Prop :=
   (∀ c ∈ t.cmps, KeyRangeUnder pfx c.key c.rangeEnd) ∧ (∀ op ∈ t.thenOps, op.Under pfx) ∧
     (∀ op ∈ t.elseOps, op.Under pfx)
-
-/-! ### A get's response: sort, limit, keys-only, count-only -/
-
-/-- etcd's sort order for a range (`pb.RangeRequest_SortOrder`: `0` none, `1` ascending, `2`
-descending): none if not set; a sort by another target than the key with no order is ascending
-(etcd's `Range`). -/
-def OpFull.effSortOrder (o : OpFull) : w64 :=
-  if o.base.sortSet = false then W64 0
-  else if o.sortTarget ≠ W64 0 ∧ o.sortOrder = W64 0 then W64 1
-  else if o.sortTarget = W64 0 ∧ o.sortOrder = W64 1 then W64 0
-  else o.sortOrder
-
-/-- `a` sorts no later than `b` by the target (`0` key, `1` version, `2` create revision,
-`3` mod revision, `4` value). -/
-def kvLeBy (target : w64) (a b : EtcdKv) : Prop :=
-  if target = W64 1 then sint.Z a.version ≤ sint.Z b.version
-  else if target = W64 2 then sint.Z a.createRev ≤ sint.Z b.createRev
-  else if target = W64 3 then sint.Z a.modRev ≤ sint.Z b.modRev
-  else if target = W64 4 then go.GoStringLe a.value b.value
-  else go.GoStringLe a.key b.key
-
-/-- **A get's response key-values** `kvs`, for its selection `sel` (key order): a reordering of
-`sel` sorted as requested (etcd's sort is not stable: ties in any order), limited (a positive
-limit), values dropped if keys-only, nothing if count-only. -/
-def rangeKvsOk (o : OpFull) (sel kvs : List EtcdKv) : Prop :=
-  ∃ l : List EtcdKv, l.Perm sel ∧
-    (o.effSortOrder = W64 0 → l = sel) ∧
-    (o.effSortOrder = W64 1 → l.Pairwise (kvLeBy o.sortTarget)) ∧
-    (o.effSortOrder = W64 2 → l.Pairwise (fun a b => kvLeBy o.sortTarget b a)) ∧
-    kvs = (if o.base.countOnly then []
-      else ((if 0 < sint.Z o.base.limit then l.take (sint.Z o.base.limit).toNat else l).map
-        (fun v => if o.keysOnly then { v with value := [] } else v)))
 
 /-! ## History laws -/
 
@@ -294,6 +333,19 @@ axiom etcdState_create_persist {GF : BundledGFunctors} (r a : w64) (pfx : GoStri
     ⌜∀ v ∈ s, sint.Z v.createRev ≤ sint.Z a → sint.Z a ≤ sint.Z r →
       ∃ v' ∈ s', v'.key = v.key ∧ v'.createRev = v.createRev⌝
 
+/-- **A key's record is determined by its mod revision** (an axiom about etcd's history): two
+states (at any revisions) holding the same key with the same mod revision hold the same
+key-value. A revision is one transaction's, which writes a key at most once (etcd rejects a
+transaction writing one key twice), and what it writes (value, lease) and the key's create
+revision and version then are fixed by the history; a key is never changed without a new mod
+revision (a lease's expiry deletes it). Used by the STM: a commit's comparison
+`ModRevision(key) = m` on the state before it, for a key read with mod revision `m`, means the
+key still holds what was read. -/
+axiom etcdState_modrev_det {GF : BundledGFunctors} (a b : w64) (pfx : GoString)
+    (s s' : List EtcdKv) :
+  etcdState (GF := GF) a pfx s ∗ etcdState b pfx s' ⊢
+    ⌜∀ v ∈ s, ∀ v' ∈ s', v.key = v'.key → v.modRev = v'.modRev → v = v'⌝
+
 section client
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -302,37 +354,39 @@ variable [sem : go.Semantics]
 
 /-! ## The client's transactions -/
 
-/-- The `*mvccpb.KeyValue`s `ps` hold, in order, the key-values `kvs` (read-only). -/
-def kvPtrsAt (ps : List Loc) (kvs : List EtcdKv) : IProp GF :=
-  iprop(⌜ps.length = kvs.length⌝ ∗
-    □ ∀ (i : Nat) (p : Loc) (v : EtcdKv), ⌜ps[i]? = some p⌝ -∗ ⌜kvs[i]? = some v⌝ -∗ kvValAt p v)
-
-instance kvPtrsAt_persistent (ps : List Loc) (kvs : List EtcdKv) :
-    Persistent (kvPtrsAt (GF := GF) ps kvs) := by
-  unfold kvPtrsAt; infer_instance
-
 /-- The `*pb.RangeResponse` `rr` answers the get `o` whose selection is `sel` and whose range
-has `count` keys (read-only). -/
+has `count` keys (read-only), and has a header (etcd sets one on every range response: the
+revision of the transaction's view, which nothing here needs). -/
 def rangeRespAt (rr : Loc) (o : OpFull) (sel : List EtcdKv) (count : Nat) : IProp GF :=
   iprop(∃ (sl : GoSlice) (ps : List Loc) (kvs : List EtcdKv),
     structFieldRef etcdserverpb.RangeResponse go!"Kvs" rr ↦□ sl ∗ sl ↦*□ ps ∗ kvPtrsAt ps kvs ∗
     ⌜rangeKvsOk o sel kvs⌝ ∗
-    structFieldRef etcdserverpb.RangeResponse go!"Count" rr ↦□ W64 (count : Int))
+    structFieldRef etcdserverpb.RangeResponse go!"Count" rr ↦□ W64 (count : Int) ∗
+    ∃ (h : Loc) (hr : w64), structFieldRef etcdserverpb.RangeResponse go!"Header" rr ↦□ h ∗
+      ⌜h ≠ null⌝ ∗ structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦□ hr)
 
 instance rangeRespAt_persistent (rr : Loc) (o : OpFull) (sel : List EtcdKv) (count : Nat) :
     Persistent (rangeRespAt (GF := GF) rr o sel count) := by
   unfold rangeRespAt; infer_instance
 
-/-- The `*pb.ResponseOp` `p` is the response of the operation `op` with result `res` (read-only):
-its `Response` oneof holds the wrapper of the operation's kind. -/
+/-- The `*pb.ResponseOp` `p` (not nil) is the response of the operation `op` with result `res`
+(read-only): its `Response` oneof holds the wrapper of the operation's kind. -/
 def txnOpRespAt (p : Loc) (op : TxnOp) (res : TxnOpResult) : IProp GF :=
-  iprop(∃ u : GoInterface, structFieldRef etcdserverpb.ResponseOp go!"Response" p ↦□ u ∗
+  iprop(⌜p ≠ null⌝ ∗ ∃ u : GoInterface, structFieldRef etcdserverpb.ResponseOp go!"Response" p ↦□ u ∗
     match op, res with
     | .get o, .range sel n => iprop(∃ (w rr : Loc),
         ⌜u = interface.mkOk (go.GoType.PointerType etcdserverpb.ResponseOp_ResponseRange.ty) #w⌝ ∗
         structFieldRef etcdserverpb.ResponseOp_ResponseRange go!"ResponseRange" w ↦□ rr ∗
         ⌜rr ≠ null⌝ ∗ rangeRespAt rr o sel n)
     | .put _ _ _, .put => iprop(∃ (w pr : Loc),
+        ⌜u = interface.mkOk (go.GoType.PointerType etcdserverpb.ResponseOp_ResponsePut.ty) #w⌝ ∗
+        structFieldRef etcdserverpb.ResponseOp_ResponsePut go!"ResponsePut" w ↦□ pr ∗
+        ⌜pr ≠ null⌝)
+    | .putKeep _ _, .put => iprop(∃ (w pr : Loc),
+        ⌜u = interface.mkOk (go.GoType.PointerType etcdserverpb.ResponseOp_ResponsePut.ty) #w⌝ ∗
+        structFieldRef etcdserverpb.ResponseOp_ResponsePut go!"ResponsePut" w ↦□ pr ∗
+        ⌜pr ≠ null⌝)
+    | .putIgnVal _ _, .put => iprop(∃ (w pr : Loc),
         ⌜u = interface.mkOk (go.GoType.PointerType etcdserverpb.ResponseOp_ResponsePut.ty) #w⌝ ∗
         structFieldRef etcdserverpb.ResponseOp_ResponsePut go!"ResponsePut" w ↦□ pr ∗
         ⌜pr ≠ null⌝)
@@ -378,23 +432,39 @@ instance txnStates_persistent (pfx : GoString) (r : w64) (s s' : List EtcdKv) (w
   unfold txnStates; split <;> infer_instance
 
 /-- **What `Commit()` returns** for the transaction `t` under the prefix `pfx`, called knowing
-that etcd has reached `lo`: an error; or a response at a revision `r` (at least `lo`, reached,
-below `2^63 - 1`) and a state `s` (sorted, under `pfx`) such that the response is the
-transaction run at `r` on `s` (`runTxn`), and either it wrote, `s` was etcd's state at `r - 1`
-and the state it leaves is etcd's state at `r`, or it did not write and `s` is etcd's state at
-`r` (which it leaves unchanged: `runOps_noWrite`). -/
+that etcd has reached `lo`: an error; or a response at a revision `r` (reached, below
+`2^63 - 1`, and at least `lo` if the transaction is linearizable: `TxnModel.linearizable`) and a
+state `s` (sorted, under `pfx`) such that the response is the transaction run at `r` on `s`
+(`runTxn`), and either it wrote, `s` was etcd's state at `r - 1` and the state it leaves is
+etcd's state at `r`, or it did not write and `s` is etcd's state at `r` (which it leaves
+unchanged: `runOps_noWrite`). -/
 def txnCommitResult (pfx : GoString) (lo : w64) (t : TxnModel) (resp : Loc) (err : GoInterface) :
     IProp GF :=
   iprop(⌜err ≠ GoInterface.nil⌝ ∨
     (⌜err = GoInterface.nil⌝ ∗ ∃ (r : w64) (s : List EtcdKv),
       txnRespAt resp r (runTxn r s t).1 (t.branch (runTxn r s t).1) (runTxn r s t).2.2 ∗
       etcdReached r ∗
-      ⌜sint.Z lo ≤ sint.Z r ∧ 0 < sint.Z r ∧ sint.Z r < 2 ^ 63 - 1 ∧ EtcdStateWf pfx s⌝ ∗
+      ⌜(t.linearizable = true → sint.Z lo ≤ sint.Z r) ∧ 0 < sint.Z r ∧ sint.Z r < 2 ^ 63 - 1 ∧
+        EtcdStateWf pfx s⌝ ∗
       txnStates pfx r s (runTxn r s t).2.1 (txnWrote (runTxn r s t).2.2)))
 
 instance txnCommitResult_persistent (pfx : GoString) (lo : w64) (t : TxnModel) (resp : Loc)
     (err : GoInterface) : Persistent (txnCommitResult (GF := GF) pfx lo t resp err) := by
   unfold txnCommitResult; infer_instance
+
+/-- **What `Commit()` returns for any transaction** (one with a key outside the prefix the
+contract speaks for, say): an error, or a response with a header and `Succeeded`, read-only, and
+nothing else (`Election.Resign` and `Proclaim` after a failed `Proclaim` commit a transaction on the
+key `""`). -/
+def txnAnyResult (resp : Loc) (err : GoInterface) : IProp GF :=
+  iprop(⌜err ≠ GoInterface.nil⌝ ∨
+    (⌜err = GoInterface.nil⌝ ∗ ∃ (hdr : Loc) (ok : Bool),
+      structFieldRef etcdserverpb.TxnResponse go!"Header" resp ↦□ hdr ∗
+      structFieldRef etcdserverpb.TxnResponse go!"Succeeded" resp ↦□ ok))
+
+instance txnAnyResult_persistent (resp : Loc) (err : GoInterface) :
+    Persistent (txnAnyResult (GF := GF) resp err) := by
+  unfold txnAnyResult; infer_instance
 
 /-- A transaction being built: the model so far and which of `If`, `Then`, `Else` were called. -/
 structure TxnBuild where
@@ -410,7 +480,7 @@ def TxnBuild.empty : TxnBuild := { model := .empty, cif := false, cthen := false
 `B b` is owned by the caller): the triples of its four methods. `If(cs...)` (before `Then` and
 `Else`, once), `Then(ops...)` (before `Else`, once), `Else(ops...)` (once) append the comparisons
 or operations (each `Op` one a transaction can run, `txnOpOf`) and return `t`; `Commit()`, for a
-transaction under `pfx`, returns `txnCommitResult`. -/
+transaction under `pfx`, returns `txnCommitResult`, and for any transaction `txnAnyResult`. -/
 def txnBuilderSpec (t : GoInterfaceOk) (pfx : GoString) (B : TxnBuild → IProp GF) : IProp GF :=
   iprop(
     (□ ∀ (b : TxnBuild) (sl : GoSlice) (ms : List CmpModel),
@@ -435,7 +505,11 @@ def txnBuilderSpec (t : GoInterfaceOk) (pfx : GoString) (B : TxnBuild → IProp 
       {{ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx⌝ }}
         (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          txnCommitResult pfx lo b.model resp err }}))
+          txnCommitResult pfx lo b.model resp err }}) ∗
+    (□ ∀ (b : TxnBuild),
+      {{ B b }}
+        (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); txnAnyResult resp err }}))
 
 instance txnBuilderSpec_persistent (t : GoInterfaceOk) (pfx : GoString)
     (B : TxnBuild → IProp GF) : Persistent (txnBuilderSpec t pfx B) := by
@@ -453,6 +527,229 @@ def isEtcdTxnKV (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
 instance isEtcdTxnKV_persistent (kv : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdTxnKV (GF := GF) kv pfx) := by
   unfold isEtcdTxnKV; infer_instance
+
+/-! ## Read transactions: gets at the current or an earlier revision -/
+
+/-- An operation of a read transaction (`Txn(ctx).Then(ops...).Commit()` with gets only): a get
+(`OpGet`) of a range under `pfx`, at the current revision (`rev = 0`) or an earlier one
+(`WithRev(rev)`), serializable or not, with any of the response options `rangeKvsOk` covers. -/
+def readOpOk (pfx : GoString) (o : OpFull) : Prop :=
+  o.t = W64 1 ∧ KeyRangeUnder pfx o.key o.base.rangeEnd
+
+/-- The revision a get `o` of a read transaction answered at `r` reads: `r` for `rev = 0`,
+otherwise its `rev`. -/
+def readRevAt (r : w64) (o : OpFull) : w64 := if o.base.rev = W64 0 then r else o.base.rev
+
+/-- **What a read transaction's `Commit()` returns** for the gets `os` under `pfx`, called
+knowing that etcd has reached `lo`: an error (among others `ErrCompacted` or `ErrFutureRev` for a
+revision etcd no longer has or does not have yet); or a response with header revision `r`
+(reached, positive, below `2^63 - 1`, at least `lo` unless every get is serializable: etcd then
+answers from the member's own state, `IsTxnSerializable`), `Succeeded`, and, for each get `o`, in
+order, its range response on etcd's state at `readRevAt r o` (a positive revision at most `r`).
+The `Txn` contract `isEtcdTxnKV` covers gets at the current revision only (`txnOpOf`); a get at
+an earlier revision reads another state than the transaction's, hence this contract, for
+transactions of gets alone (the STM's reads, `stm.fetch`). -/
+def readTxnResult (pfx : GoString) (lo : w64) (os : List OpFull) (resp : Loc) (err : GoInterface) :
+    IProp GF :=
+  iprop(⌜err ≠ GoInterface.nil⌝ ∨
+    (⌜err = GoInterface.nil⌝ ∗ ∃ (r : w64) (hdr : Loc) (sl : GoSlice) (ps : List Loc),
+      structFieldRef etcdserverpb.TxnResponse go!"Header" resp ↦□ hdr ∗ ⌜hdr ≠ null⌝ ∗
+      structFieldRef etcdserverpb.ResponseHeader go!"Revision" hdr ↦□ r ∗
+      structFieldRef etcdserverpb.TxnResponse go!"Succeeded" resp ↦□ true ∗
+      structFieldRef etcdserverpb.TxnResponse go!"Responses" resp ↦□ sl ∗ sl ↦*□ ps ∗
+      etcdReached r ∗
+      ⌜ps.length = os.length ∧
+        (os.any (fun o => !o.base.serializable) = true → sint.Z lo ≤ sint.Z r) ∧
+        0 < sint.Z r ∧ sint.Z r < 2 ^ 63 - 1⌝ ∗
+      □ ∀ (i : Nat) (p : Loc) (o : OpFull), ⌜ps[i]? = some p⌝ -∗ ⌜os[i]? = some o⌝ -∗
+        ∃ (s : List EtcdKv) (n : Nat), □ etcdState (readRevAt r o) pfx s ∗
+          ⌜EtcdStateWf pfx s ∧ 0 < sint.Z (readRevAt r o) ∧ sint.Z (readRevAt r o) ≤ sint.Z r⌝ ∗
+          txnOpRespAt p (.get o) (.range (rangeSel s o) n)))
+
+instance readTxnResult_persistent (pfx : GoString) (lo : w64) (os : List OpFull) (resp : Loc)
+    (err : GoInterface) : Persistent (readTxnResult (GF := GF) pfx lo os resp err) := by
+  unfold readTxnResult; infer_instance
+
+/-- **A read transaction's builder** `t` with abstract state `B` (`none` before `Then`, the gets
+after it): `Then(ops...)` of gets under `pfx` (`readOpOk`), then `Commit()`, returning
+`readTxnResult`. -/
+def readTxnBuilderSpec (t : GoInterfaceOk) (pfx : GoString)
+    (B : Option (List OpFull) → IProp GF) : IProp GF :=
+  iprop(
+    (□ ∀ (sl : GoSlice) (os : List OpFull),
+      {{ B none ∗ opsAt sl os ∗ ⌜∀ o ∈ os, readOpOk pfx o⌝ }}
+        (App (Val #(methods t.ty go!"Then" t.v)) (Val #sl))
+      {{ RET #(GoInterface.ok t); B (some os) }}) ∗
+    (□ ∀ (os : List OpFull) (lo : w64),
+      {{ B (some os) ∗ etcdReached lo }}
+        (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+          readTxnResult pfx lo os resp err }}))
+
+instance readTxnBuilderSpec_persistent (t : GoInterfaceOk) (pfx : GoString)
+    (B : Option (List OpFull) → IProp GF) : Persistent (readTxnBuilderSpec t pfx B) := by
+  unfold readTxnBuilderSpec; infer_instance
+
+/-- **The client's read transactions** (`clientv3.KV`'s `Txn`, used with gets alone; a
+definition, the assumption a caller makes of `client.KV`, beside `isEtcdTxnKV` for the same
+method): `kv.Txn(ctx)` returns a builder in its empty state. -/
+def isEtcdReadTxnKV (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
+  iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
+    {{ context.isContext ctx cs }}
+      (App (Val #(methods kv.ty go!"Txn" kv.v)) (Val #(GoInterface.ok ctx)))
+    {{ (t : GoInterfaceOk), RET #(GoInterface.ok t);
+        ∃ B : Option (List OpFull) → IProp GF, B none ∗ readTxnBuilderSpec t pfx B }})
+
+instance isEtcdReadTxnKV_persistent (kv : GoInterfaceOk) (pfx : GoString) :
+    Persistent (isEtcdReadTxnKV (GF := GF) kv pfx) := by
+  unfold isEtcdReadTxnKV; infer_instance
+
+/-! ## The client's deletes -/
+
+/-- The one-operation transaction of a delete `o` (`kv.Delete` is `kv.Do(OpDelete(...))`, a
+`DeleteRange` request, which etcd applies as a transaction of that one operation). -/
+def deleteTxn (o : OpFull) : TxnModel := { cmps := [], thenOps := [.delete o], elseOps := [] }
+
+/-- **What `kv.Delete` returns** for the delete `o` under the prefix `pfx`, called knowing that etcd
+has reached `lo`: an error, or a revision `r` (at least `lo`, reached, below `2^63 - 1`) and a state
+`s` such that the delete ran as a one-operation transaction (`deleteTxn`): if it deleted a key, `s`
+was etcd's state at `r - 1` and the state without the range's keys is its state at `r`; if it
+deleted nothing, `s` is etcd's state at `r` (`txnStates`). The response itself is not modelled
+(`client/v3/concurrency` ignores it). -/
+def deleteResult (pfx : GoString) (lo : w64) (o : OpFull) (err : GoInterface) : IProp GF :=
+  iprop(⌜err ≠ GoInterface.nil⌝ ∨
+    (⌜err = GoInterface.nil⌝ ∗ ∃ (r : w64) (s : List EtcdKv), etcdReached r ∗
+      ⌜sint.Z lo ≤ sint.Z r ∧ 0 < sint.Z r ∧ sint.Z r < 2 ^ 63 - 1 ∧ EtcdStateWf pfx s⌝ ∗
+      txnStates pfx r s (runTxn r s (deleteTxn o)).2.1 (txnWrote (runTxn r s (deleteTxn o)).2.2)))
+
+instance deleteResult_persistent (pfx : GoString) (lo : w64) (o : OpFull) (err : GoInterface) :
+    Persistent (deleteResult (GF := GF) pfx lo o err) := by
+  unfold deleteResult; infer_instance
+
+/-- **The client's deletes** (`clientv3.KV`'s `Delete(ctx, key, opts...)`; a definition, the
+assumption a caller makes of `client.KV`, as `isEtcdKV` for `Get`): for options with which
+`OpDelete` does not panic, of a range under `pfx`, the result is `deleteResult` (linearizable, as
+`Get` and `Commit`). -/
+def isEtcdDeleteKV (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
+  iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
+      (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64),
+    {{ context.isContext ctx cs ∗ optsAt sl gs ∗ etcdReached lo ∗
+        ⌜¬ opDeletePanics key gs ∧
+          KeyRangeUnder pfx (opDeleteModel key gs).key (opDeleteModel key gs).base.rangeEnd⌝ }}
+      (App (App (App (Val #(methods kv.ty go!"Delete" kv.v)) (Val #(GoInterface.ok ctx)))
+        (Val #key)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        deleteResult pfx lo (opDeleteModel key gs) err }})
+
+instance isEtcdDeleteKV_persistent (kv : GoInterfaceOk) (pfx : GoString) :
+    Persistent (isEtcdDeleteKV (GF := GF) kv pfx) := by
+  unfold isEtcdDeleteKV; infer_instance
+
+/-- The key `key` is absent from etcd's state at `r` under the prefix `pfx` (persistent). -/
+def etcdAbsent (pfx key : GoString) (r : w64) : IProp GF :=
+  iprop(∃ s : List EtcdKv, □ etcdState r pfx s ∗ ⌜∀ v ∈ s, v.key ≠ key⌝)
+
+instance etcdAbsent_persistent (pfx key : GoString) (r : w64) :
+    Persistent (etcdAbsent (GF := GF) pfx key r) := by
+  unfold etcdAbsent; infer_instance
+
+/-! ## The client's range watch (a key, or a prefix) -/
+
+/-- A watch of the range of `o` (`[o.key, o.base.rangeEnd)`: one key if the range end is empty,
+a prefix with `WithPrefix`) from revision `rev` (`WithRev(rev)`), with none of the options that
+change which events are sent or how (`WithPrevKV`, `WithFragment`, the event filters); progress
+and created notifications allowed, requested or not. -/
+def OpFull.isRangeWatch (rev : w64) (o : OpFull) : Bool :=
+  decide (o.t = W64 1 ∧ o.base.rev = rev ∧ o.base.prevKV = false ∧ o.base.fragment = false ∧
+    o.base.filterPut = false ∧ o.base.filterDelete = false)
+
+/-- A delete event's `*KeyValue` `l`: its `Value` (some byte slice) and `Lease` fields can be read
+(read-only). -/
+def delKvAt (l : Loc) : IProp GF :=
+  iprop(∃ (valSl : GoSlice) (val : GoString) (lease : w64),
+    structFieldRef mvccpb.KeyValue go!"Value" l ↦□ valSl ∗ valSl ↦*□ val ∗
+    structFieldRef mvccpb.KeyValue go!"Lease" l ↦□ lease)
+
+instance delKvAt_persistent (l : Loc) : Persistent (delKvAt (GF := GF) l) := by
+  unfold delKvAt; infer_instance
+
+/-- **etcd's contract for one event** `e` of a watch of the range of `o` (under `pfx`) from
+revision `rev`: it is a put or a delete (`mvccpb.Event_EventType` has no other value); its key is
+in the range; its revision is at least `rev`, below `2^63 - 1`, and
+etcd has reached it; a delete event at `e.rev` means the key is absent from etcd's state at
+`e.rev`, and its `*KeyValue`'s `Value` and `Lease` fields can be read (`delKvAt`: etcd sends the
+deleted key with empty other fields; the contract does not say which values); a put event's
+`*KeyValue` holds a key-value `v` of that key, modified at `e.rev`, which is in etcd's state at
+`e.rev`. (etcd emits a delete event only for a key a `DeleteRange` or a lease's expiry removes, and
+the events of one revision are one transaction's, which cannot write one key twice, so the
+key-value an event carries is the key's at that revision.) -/
+def rangeWatchEvOk (pfx : GoString) (o : OpFull) (rev : w64) (e : EvModel) : IProp GF :=
+  iprop(⌜inRange o.key o.base.rangeEnd e.key = true ∧ sint.Z rev ≤ sint.Z e.rev ∧
+      sint.Z e.rev < 2 ^ 63 - 1 ∧ (e.typ = W32 0 ∨ e.typ = W32 1)⌝ ∗ etcdReached e.rev ∗
+    (⌜e.typ = W32 1⌝ -∗ etcdAbsent pfx e.key e.rev ∗ delKvAt e.kv) ∗
+    (⌜e.typ = W32 0⌝ -∗ ∃ v : EtcdKv, kvValAt e.kv v ∗ ⌜v.key = e.key ∧ v.modRev = e.rev⌝ ∗
+      ∃ s : List EtcdKv, □ etcdState e.rev pfx s ∗ ⌜v ∈ s ∧ EtcdStateWf pfx s⌝))
+
+instance rangeWatchEvOk_persistent (pfx : GoString) (o : OpFull) (rev : w64) (e : EvModel) :
+    Persistent (rangeWatchEvOk (GF := GF) pfx o rev e) := by
+  unfold rangeWatchEvOk; infer_instance
+
+/-- **etcd's range watch contract**, for one response modelled by `r`, received when the stream
+is at position `c` (the revision of the last event before it; `rev - 1` at the start), after
+which it is at `c'`: its events are sorted by revision, all above `c`, each satisfying
+`rangeWatchEvOk`; the position becomes the last event's revision (`c` if there is none). Nothing
+else is promised: errors, compactions, cancellations, created and progress notifications, any;
+and no event is promised (the stream may skip some: the contract does not say it is complete). -/
+def rangeWatchRespOk (pfx : GoString) (o : OpFull) (rev c c' : w64) (r : RespModel) :
+    IProp GF :=
+  iprop(⌜EvRevSorted r.events ∧ (∀ e ∈ r.events, sint.Z c < sint.Z e.rev) ∧
+      c' = (r.events.getLast?.map EvModel.rev).getD c⌝ ∗
+    □ ∀ (i : Nat) (e : EvModel), ⌜r.events[i]? = some e⌝ -∗ rangeWatchEvOk pfx o rev e)
+
+instance rangeWatchRespOk_persistent (pfx : GoString) (o : OpFull) (rev c c' : w64)
+    (r : RespModel) : Persistent (rangeWatchRespOk (GF := GF) pfx o rev c c' r) := by
+  unfold rangeWatchRespOk; infer_instance
+
+/-- A watch response's header `h`: for a response with events, the receiver owns its `Revision`
+field (the client builds each event response from its own gRPC message, whose header no other
+watch receives, and does not read it after sending it); otherwise read-only (`hdrAt`: a progress
+notification's header is shared by every watch it is broadcast to). -/
+def watchHdrOwn (h : Loc) (r : RespModel) : IProp GF :=
+  if r.events = [] then hdrAt h r.hdrRev
+  else iprop(⌜h ≠ null⌝ ∗ structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦ r.hdrRev)
+
+/-- The `i`-th response `v` of a range watch channel: modelled by some `r` (its events, read-only;
+its header, `watchHdrOwn`; the flags), satisfying the contract from the position before it to the
+one after it (`γ.cur`, a monotone list of positions). -/
+def rangeWatchElem (γ : EtcdWatchNames) (pfx : GoString) (o : OpFull) (rev : w64) (i : Int)
+    (v : go_etcd_io.etcd.client.v3.WatchResponse) : IProp GF :=
+  iprop(∃ (r : RespModel) (c c' : w64), eventsAt v.Events' r.events ∗ watchHdrOwn v.Header' r ∗
+    ⌜v.CompactRevision' = r.compactRev ∧ v.Canceled' = r.canceled ∧ v.Created' = r.created⌝ ∗
+    monoListIdxOwn γ.cur i.toNat c ∗ monoListIdxOwn γ.cur (i.toNat + 1) c' ∗
+    rangeWatchRespOk pfx o rev c c' r)
+
+/-- **The client's range watch** (`clientv3.Watcher`'s `Watch`; a definition, as `isEtcdWatcher`
+for the cache's prefix watch): a watch of a range under `pfx` (a key, or a sub-prefix with
+`WithPrefix`) from revision `rev ≥ 0` (`isRangeWatch`; the options must not make `OpWatch` panic)
+returns an SPSC channel (the caller consumes it) whose responses satisfy `rangeWatchRespOk`
+from position `rev - 1`, and which may be closed at any time. -/
+def isEtcdRangeWatcher (w : GoInterfaceOk) (pfx : GoString) : IProp GF :=
+  iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
+      (sl : GoSlice) (gs : List (OpFull → OpFull)) (rev : w64),
+    {{ context.isContext ctx cs ∗ optsAt sl gs ∗
+        ⌜(opWatchModel key gs).isRangeWatch rev = true ∧ ¬ opWatchPanics key gs ∧
+          0 ≤ sint.Z rev ∧
+          KeyRangeUnder pfx (opWatchModel key gs).key (opWatchModel key gs).base.rangeEnd⌝ }}
+      (App (App (App (Val #(methods w.ty go!"Watch" w.v)) (Val #(GoInterface.ok ctx)))
+        (Val #key)) (Val #sl))
+    {{ (ch : Loc) (γ : EtcdWatchNames), RET #ch;
+        isSpsc γ.spsc ch (rangeWatchElem γ pfx (opWatchModel key gs) rev) (fun _ => iprop(True)) ∗
+          spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
+          monoListIdxOwn γ.cur 0 (rev - W64 1) }})
+
+instance isEtcdRangeWatcher_persistent (w : GoInterfaceOk) (pfx : GoString) :
+    Persistent (isEtcdRangeWatcher (GF := GF) w pfx) := by
+  unfold isEtcdRangeWatcher; infer_instance
 
 /-! ## Leases -/
 
@@ -486,8 +783,7 @@ def isEtcdLease (l : GoInterfaceOk) : IProp GF :=
         (App (App (Val #(methods l.ty go!"KeepAlive" l.v)) (Val #(GoInterface.ok ctx))) (Val #id))
       {{ (ch : Loc) (err : GoInterface), RET (PairV #ch #err);
           ⌜err ≠ GoInterface.nil⌝ ∨
-          (⌜err = GoInterface.nil⌝ ∗ (⌜ch = null⌝ ∨ ∃ γ : ChanNames,
-            isChanAny γ ch)) }}) ∗
+          (⌜err = GoInterface.nil⌝ ∗ ∃ γ : ChanNames, isChanAny γ ch) }}) ∗
     (□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (id : w64),
       {{ context.isContext ctx cs }}
         (App (App (Val #(methods l.ty go!"Revoke" l.v)) (Val #(GoInterface.ok ctx))) (Val #id))

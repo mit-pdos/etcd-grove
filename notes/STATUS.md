@@ -1,12 +1,12 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-11 (the register's cluster driver `Main` proved safe from package initialization, everything allocated in the proof; raft's `isLogger` was unsatisfiable, fixed, see "The register's cluster driver"; the register example verified over raft: logically atomic `Put`/`Get`, raft proposals over a client log, see "The register example"; the cache's wait-group counter bounded by thread tokens, Perennial `105fb79f5`: the `WaitGroup.Add` overflow assumption reverted, `New` assumes fewer than `2^31 - 3` live threads, see "The wait-group counter and thread tokens"; `node.go` proved: `RestartNode`, `run`, `Propose`, `Step`, `Tick`, `Ready`, `Advance`, see "`node.go`: the concurrent `Node`"; groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-11 (the register's cluster driver `Main` proved safe from package initialization, everything allocated in the proof; raft's `isLogger` was unsatisfiable, fixed, see "The register's cluster driver"; Perennial's panics and `recover` adopted (Perennial branch `panic`, not yet pinned: needs `7cea8cc26`), the STM's two panic axioms gone, `lockerMutex.Lock`/`Unlock` specified, four standard-library axioms of `client/v3/leasing` replaced by Perennial's specs, see "Panic and recover"; `client/v3/leasing` unit 5: the monitors, `NewKV` and `Close` proved, every leasing result unconditional, 66 of 67 functions verified; two findings reproduced (`waitRescind`'s `nil` without a delete lets a range delete through another client's lease; a session reset between `acquire` and `Add` leaves a stale entry), see "Unit 5: the monitors; the package"; `client/v3/leasing` units 3 and 4: `txn.go` and `kv.go` but the monitors specified and proved, nested transactions and owned responses in the contract, two new findings (a write of an uncached key applied twice, a failed acquisition ignores the get's options), see "Units 3 and 4"; `client/v3/leasing` units 1 and 2: translated, the protocol as a premise on etcd's history with `leased_value_stable`, the lease cache specified and proved, findings in `EvictRange` and `evalCmp`, see "client/v3/leasing: the protocol premise and the lease cache"; merged upstream's register example, `node.go`, raft from upstream etcd-io/raft and thread tokens into the Mutex/Election/STM line, Perennial `7c93f27aa`, see "Merge: the register, `node.go` and thread tokens"; `STM`: all of `stm.go` specified and proved, atomicity of the serializable levels, Perennial `9276bd1ed`: a map has fewer than `2^63` keys, two trust-boundary axioms for the STM's panic and `recover`, a new history law, the serializable snapshot broken after a retry (a finding, reproduced and fixed on a fork branch), see "STM"; `Election`: all of `election.go` specified and proved, election exclusion, only the leader proclaims, `Campaign` may return `nil` without its key (a finding), see "Election"; `Mutex`: mutual exclusion, Perennial `d240c1732`: `fmt.Sprintf` formats `%s`, `strings.HasPrefix`, see "Mutex: mutual exclusion"; the register example verified over raft: logically atomic `Put`/`Get`, raft proposals over a client log, see "The register example"; the cache's wait-group counter bounded by thread tokens, Perennial `105fb79f5`: the `WaitGroup.Add` overflow assumption reverted, `New` assumes fewer than `2^31 - 3` live threads, see "The wait-group counter and thread tokens"; `node.go` proved: `RestartNode`, `run`, `Propose`, `Step`, `Tick`, `Ready`, `Advance`, see "`node.go`: the concurrent `Node`"; groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
 `worktree-raft-replication`'s `feb5c73d4` and adds Ready/Advance/HasReady; the files
 were first ported from `main`, then from `feb5c73d4`) to Lean on top of Perennial's Lean
-port (mit-pdos/perennial `lean`, pinned at 7d0b56b07 (2026-10-09: on 7d0b56b07: our `9092f8eaa` merged with upstream's Goose changes (per-iteration loop variables, array ranges, `fallthrough`, `break` out of `switch`/`select`, local types) and `context.wp_WithCancel` building again, see "Perennial `7d0b56b07`"; on f52ce33dc (upstream's, in 7d0b56b07): the Goose features for upstream raft, see "Perennial `f52ce33dc`"; on 79adaac01 (upstream's, in 7d0b56b07): `context.wp_withCancel` builds again; on 9092f8eaa: `WaitGroup.Add`'s overflow a model assumption, the `RWMutex` writer guard, see "The cache as shipped"; on 56b1b6651: our 3ae7dc6a4 merged with upstream's `00b3c10ea` (trusted models and proved specs of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`; `math/big`'s `ownInt` normalized, its and `crypto/rand`'s `IsPkgInit` instances now Perennial's), see "Perennial `56b1b6651`"; on 68d220ac8: `fmt.wp_Errorf` proved, `map.forRange` with `wp_map_for_range_mut{,_keys}`, `context.wp_WithCancel` proved; on 3ae7dc6a4: `context.isClosedchanInit`, see "Sorry-free"; on 8c33774d0: upstream's `37416dd10` (Rocq code removed) and `cdf8c0f81` (Goose without `-lean` and the ⁱᵐᵖˡ encoding) merged, see below; on f8b35ddbf: `context.wp_Background`, `wp_WithCancel_Background`; on f35530719: Goose prints an axiomatized generic type in Lean; on 8c7000190: `time.NewTimer`, `Timer.Stop`/`Reset` axioms; on 96ec7016d: `fmt.wp_Printf`, `time.Minute`; on 099c2a08b: `fmt.wp_Errorf`'s `Error()`; on 640a605cc: a `select` case on a nil channel is never ready, `chan.wp_select_blocking_nil`; on 48e1192c7: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
+port (mit-pdos/perennial `lean`, pinned at 7c93f27aa (2026-10-10: on 7c93f27aa: our 9276bd1ed merged with upstream's 105fb79f5 (thread tokens, `wp_fork_tok_*`, the revert of the `WaitGroup.Add` assumption, `wp_slice_append_undo`, the iframe heartbeat option), see "Merge: the register, `node.go` and thread tokens"; on 9276bd1ed: a map has fewer than `2^63` keys, `wp_map_len_lt`, see "STM"; on d240c1732: models of `fmt.Sprintf` formatting `%s` and of `strings.HasPrefix`, see "Mutex: mutual exclusion"; on 7d0b56b07: our `9092f8eaa` merged with upstream's Goose changes (per-iteration loop variables, array ranges, `fallthrough`, `break` out of `switch`/`select`, local types) and `context.wp_WithCancel` building again, see "Perennial `7d0b56b07`"; on f52ce33dc (upstream's, in 7d0b56b07): the Goose features for upstream raft, see "Perennial `f52ce33dc`"; on 79adaac01 (upstream's, in 7d0b56b07): `context.wp_withCancel` builds again; on 9092f8eaa: `WaitGroup.Add`'s overflow a model assumption, the `RWMutex` writer guard, see "The cache as shipped"; on 56b1b6651: our 3ae7dc6a4 merged with upstream's `00b3c10ea` (trusted models and proved specs of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`; `math/big`'s `ownInt` normalized, its and `crypto/rand`'s `IsPkgInit` instances now Perennial's), see "Perennial `56b1b6651`"; on 68d220ac8: `fmt.wp_Errorf` proved, `map.forRange` with `wp_map_for_range_mut{,_keys}`, `context.wp_WithCancel` proved; on 3ae7dc6a4: `context.isClosedchanInit`, see "Sorry-free"; on 8c33774d0: upstream's `37416dd10` (Rocq code removed) and `cdf8c0f81` (Goose without `-lean` and the ⁱᵐᵖˡ encoding) merged, see below; on f8b35ddbf: `context.wp_Background`, `wp_WithCancel_Background`; on f35530719: Goose prints an axiomatized generic type in Lean; on 8c7000190: `time.NewTimer`, `Timer.Stop`/`Reset` axioms; on 96ec7016d: `fmt.wp_Printf`, `time.Minute`; on 099c2a08b: `fmt.wp_Errorf`'s `Error()`; on 640a605cc: a `select` case on a nil channel is never ready, `chan.wp_select_blocking_nil`; on 48e1192c7: rlocker, `Cond.wp_Wait_with`, `time.wp_Since`) on cbb85c041: upstream's `11fd2db` merged with
 `bytes.Compare`, on Lean's module system since 2026-10-09). The Goose translations of
 etcd-raft and etcd's `cache` package are this repository's `Code/` and `GeneratedProof/`,
 generated and checked by `etc/goose.py`. Files are laid out by kind and Go package path
@@ -71,6 +71,622 @@ hand (see below).
 Not checked: `etc/tcb-report.py --collection etc/tcb-collections/register.txt --check --update`
 needs a full build, and the disk (≈400 MB free) does not allow one. The collection's
 `axiom reflect.DeepEqual.wp_proof` line was written from `#print axioms register_Main`.
+
+## Panic and recover: Perennial's panics adopted, the STM's axioms gone (2026-10-10)
+
+Perennial branch `panic` (`b4f46e1dd`..`c46da895a`: a panic outcome `PanicV` in GooseLang,
+`Catch`, `with_defer_recover:`; and `d958136aa`, `c01745d27`, `7cea8cc26`: standard-library
+models) is adopted; **the pin is not moved in this tree**: the branch builds with
+`lake build --packages=<a manifest whose perennial is a path to that checkout>` and needs
+Perennial `7cea8cc26` pinned once pushed. Design and the implementation's deviations:
+`decisions.md`, "Panic and recover" and "The standard library's models".
+
+- **Adoption**: Goose translates only `runSTM`'s goroutine differently (its deferred literal calls
+  `recover()`: `with_defer_recover:`); the 68 other `with_defer` sites are unchanged. Two proofs
+  changed: `runSTM` (`wp_with_defer_recover`, `wp_recoverPanic`) and, indirectly,
+  `EtcdServer.applyEntryNormal` (it binds `etcdserverpb.AlarmType_NOSPACE`, an axiomatized
+  constant `val` a `let` can no longer bind without knowing it is not a panic: now translated,
+  `etcdserverpb.toml`). Every other proof builds unchanged.
+- **STM**: `fetch` and both commits state their abort (`stmRet`: a return, or the panic of
+  `stmError{err}`, `err ≠ nil`; `wp_panic`); `Get`, `Rev`, the interface's triples and the closure
+  (`applySpec`) propagate it; `runSTM` recovers it (`Catch`, the deferred literal's `recover()`,
+  the assertion to `stmError`, `(nil, err)` sent). `NewSTM`'s spec is unchanged. The axioms
+  `stmPanic.spec`, `stmRecover.spec` are gone.
+- **Mutex**: `lockerMutex.Lock`/`Unlock` (`NewLocker`'s `sync.Locker`) specified and proved, a
+  return or `panic(err)` (`locker_Lock`, `locker_Unlock` in `Results.lean`).
+- **Leasing**: `strings.Compare`, `strings.TrimPrefix`, `errors.As`, `(*time.Time).Add` are
+  Perennial's (`strings.wp_Compare`/`wp_TrimPrefix` from trusted models, `errors.wp_As` an axiom
+  in Perennial with an error-tree precondition, `time.Time.wp_ptr_Add` from `ptr_Add_unfold`);
+  their four axiom pairs here are gone. Contract change: `txnCommitResultO`'s error case carries
+  `clientErr` (a leaf error without `As`/`Unwrap` methods, an `EtcdError` if of that type), which
+  `acquire` gives `errors.wp_As`. `status.FromError` stays an axiom.
+- **Merged** `lean` at `1bf5733bf` (leasing unit 5) on top: no conflict but the leasing link list
+  (regenerated); builds unchanged.
+- **Trust base** (after `--check --update`): 42 axioms, 1 `sorry` (`etc/tcb-baseline.txt`; −6:
+  `stmPanic`, `stmRecover`, `strings.Compare`, `strings.TrimPrefix`, `errors.As`,
+  `time.Time.Add`); collections: concurrency 11 axioms (the etcd model's), 1 `sorry`
+  (Perennial's `context.wp_WithDeadlineCause`); leasing 8 axioms; btree 0, cache 9, raft 1,
+  register 0, server 26, unchanged.
+- **Gates** (with `--packages`): `lake build` passes (2176 jobs); `etc/tcb-report.py --check` and
+  every collection pass; `etc/goose.py --check --perennial /shared/perennial-panic` passes;
+  `etc/gen-link.py --cache/--concurrency/--leasing/--server` reproduce the Links;
+  `etc/verified-code.py --reuse --package go.etcd.io/etcd/client/v3/concurrency`: 62 functions,
+  61 verified, 1 unfinished (`Session.Close`, through Perennial's `sorry`), none translated-only
+  (the two locker wrappers were).
+- **Push order**: Perennial `panic` (`7cea8cc26`) first, re-pin, then etcd-grove.
+
+## client/v3/leasing: the protocol premise and the lease cache (2026-10-10)
+
+Units 1 and 2 of 5 of `client/v3/leasing` (the caching `KV`): its translation, the protocol as a
+premise on etcd's history with its key lemma, and the lease cache (`cache.go`, `util.go`)
+specified and proved: every function of `cache.go`, and of `util.go` but
+`gatherOps`/`gatherResponseOps` (nested transactions, unit 5). Design: `decisions.md`, "Leasing: the protocol as a premise on the
+history". Files: `Proof/go_etcd_io/etcd/client/v3/leasing/` (`Base`, `InvLeasingModel`,
+`InvLeaseCache`, `InvLeaseEval`, lemma modules `InvLeaseCacheLemmas`, `InvLeaseCacheWrite`,
+`InvLeaseEvalLemmas`, `Link`, `Results`), `Spec`/`Proof`
+pairs for every function of `cache.go` and of `util.go` but `gatherOps`/`gatherResponseOps`.
+
+- **Translation**: `client/v3/leasing` with bodies (`leasing.toml`), on the etcd fork's
+  `0fc6f23b1` = `goose-lean` (`ab1deb078`) + one **Gooseable** commit (not pushed: push it to
+  `upamanyus/etcd`'s `goose-lean` first): kv.go calls `lkv.cl.Watcher.Watch(...)` (the promoted
+  `Watch` of `*Client` has no unfolding) and binds `resp.Events` to a `[]*mvccpb.Event` (the alias
+  issue), as `207c8f747` did for concurrency. `client/v3.toml`: the `Op` getters
+  (`KeyBytes`, `ValueBytes`, `IsGet`, `IsPut`, `IsDelete`, `IsTxn`, `Txn`, `IsKeysOnly`), `OpTxn`,
+  `WithIgnoreLease`, `WithKeysOnly`, `WithLastRev`, `Cmp.KeyBytes`/`GetCompare`, the responses'
+  `OpResponse`, `OpResponse.Get`; `etcdserverpb.toml`: the header's, `Compare`'s and `ResponseOp`'s
+  getters. **Goose issue**: an untranslated type alias (`grpc/status.Status`, of
+  `internal/status.Status`) is emitted as an axiomatized type (`axiom Status : go.GoType`) while its
+  users name `Status.ty`: `status.toml` now translates the alias, and `grpc/internal/status` is a
+  names-only package. Package init (`Base.lean`): `closedCh` holds a fixed channel (that it is
+  closed is ghost, `closedChInit`, in `isLeaseCache`).
+- **The protocol premise** (`InvLeasingModel.lean`; a hypothesis, not an axiom), in words: *there
+  is a history `h` of etcd's whole keyspace — its state at every revision `r ≥ 0` is `h.st r`
+  (`etcdState r "" (h.st r)`, keys unique) — and for each revision `z` the session lease of the
+  leasing client that committed it (`h.writer z`), such that at every revision `0 < z < 2^63`, for
+  every data key `k` (outside `pfx`): (1) if `k`'s record changes at `z`, then `pfx ++ k` is absent
+  at `z - 1`, or present with a lease `L ≠ 0` and `h.writer z = L` (the holder wrote it); (2) a lease
+  key present at `z - 1` and at `z` with the same create revision keeps its lease.* **Changed from
+  the plan**: "`k` changes only while `pfx ++ k` is absent" is false, since the holder writes `k`
+  while holding its lease (its guard is its own entry's revision); the model does not record
+  writers, so the premise names them (`h.writer`).
+- **`leased_value_stable`** (verbatim): `(hk : LeasingDataKey pfx k) (hab : sint.Z a ≤ sint.Z b)
+  (hlv : kvOf sa (pfx ++ k) = some lv) (hlb : kvOf sb (pfx ++ k) = some lb)
+  (hc : lb.createRev = lv.createRev) (hw : ∀ z, sint.Z a < z → z ≤ sint.Z b → h.writer z ≠ lv.lease) :
+  LeasingProtocol pfx h ∗ etcdState a [] sa ∗ etcdState b [] sb ⊢ ⌜kvOf sb k = kvOf sa k⌝`: the
+  lease key present at `a` and `b` with one create revision, and no transaction of its holder in
+  `(a, b]`, give `k` the same record. Proved by induction from `a` (`leased_incarnation`, pure): the
+  incarnation stays present (`etcdState_create_persist` from `b`) with its lease (premise (2)), so
+  no revision changes `k` (premise (1)). **`revoked_protects`**: after the lease key has the record
+  `lv` at `a` (e.g. `"REVOKE"`, a put keeping create revision and lease), a transaction at `z > a`
+  of anyone but the holder that changes `k` runs once that incarnation is gone at `z - 1`.
+- **Contract extensions** (`InvEtcdTxn.lean`): `TxnOp.putKeep`, a put with `WithIgnoreLease`
+  keeping the key's lease (`txnOpOf` maps an `ignoreLease` put with no lease to it). The range
+  comparison `Compare(CreateRevision(lkey).WithRange(lend), "<", n)` needed nothing (`cmpHolds` is
+  over the range's keys). Not yet: nested transactions (`OpTxn`, `serverTxn`: unit 5) and an owned
+  range response (the cache mutates the acquisition's response, which the contract gives
+  read-only: unit 4).
+- **The lease cache** (`InvLeaseCache.lean`): `isLeaseCache lc γ pfx X` (persistent: the
+  `RWMutex` guard with the lock invariant `leaseCacheInv`, and `closedChInit`),
+  `leaseCacheReader` (a reader slot), the state `LeaseCacheSt` (the entries map — nil until the
+  session monitor makes it — its entries `LeaseEntry` with their `*leaseKey`, revision, waiter,
+  response, cached `CachedKv`s, ghost lease and acquisition record, the revocation times, the latest
+  header, the frozen entries, the installed `*leaseKey`s), `LeaseCacheWf`, and `entryFacts` (each
+  entry's and frozen entry's acquisition: etcd's whole keyspace at `rev` has the key's record `acq`
+  and the lease key with the holder's lease, created at most at `rev`). The lock invariant is
+  fractional (a reader holds `rfrac`), with the client's part `X st q` (kv.go's fields under the
+  same lock, its invariant over the state). **Specs, as exact transitions** (writers take the
+  client's step `X st 1 ={⊤}=∗ X (f st) 1 ∗ Q st`; readers return what the client learns of the
+  state read, `lcPeek`):
+  - `Add(key, resp, op)` (verbatim, abridged): with `respOwn e0 (DFrac.own 1) ∗ entryFacts pfx key
+    e0 ∗ ⌜e0.rev = e0.hm.revision ∧ e0.acq = e0.kv⌝ ∗ opFullAt opv o ∗ leaseCacheReady γ` and the
+    step `∀ st li ch, X st 1 ={⊤}=∗ X (st.add key {e0 with li := li, waitc := ch}) 1 ∗ Q st`, returns
+    `ret` with `∃ st, □ Qr st ∗ Q st ∗ freshGetResp ret e0.hm e0.more e0.count (getResult o e0)`
+    (`LeaseCacheSt.add`: the old entry frozen, a fresh `*leaseKey`, the closed channel as waiter,
+    the header replaced if newer).
+  - `Get(ctx, op)` (verbatim, abridged): `(nil, false)` if `isBadOpM o`; otherwise `ok = true` and
+    `nil`, or `∃ st e, □ Qr st ∗ ⌜st.entries !! o.key = some e ∨ (o.key, e) ∈ st.frozen⌝ ∗
+    entryFacts pfx o.key e ∗ freshGetResp ret e.hm e.more e.count (getResult o e)` (the entry as it
+    is at the second read: still the key's, or evicted since).
+  - `Rev`, `notify`, `MayAcquire` (read lock); `Lock`, `LockRange`, `LockWriteOps` (fresh waiter
+    channels the caller closes; `WaitcOnly`), `NotifyOps`; `Evict`, `EvictRange` (`LeaseCacheSt.evict`,
+    `evictRange`: frozen entries, revocation times); `Update`, `delete` (on the owned state: the
+    holder's put and delete applied to the entry, `LeaseEntry.update`, `del`), `Delete`;
+    `clearOldRevokes` (a goroutine: some revocation times dropped, `RevokesSub`); `leaseKey.get`
+    (`getResult`, a fresh response), `isBadOp`, `inRange` (`leaseInRange`), `compareInt64`,
+    `copyHeader`, `copyGetResponseMetadataOnly`, `copyKeyValue`, `closeAll`; `evalCmp`,
+    `leaseCache.evalCmp`, `leaseCache.evalOps` (`InvLeaseEval.lean`: what they compute).
+- **Findings**:
+  - **`EvictRange` evicts the wrong key** (upstream, `cache.go`): `for k := range lc.entries { if
+    inRange(k, key, end) { delete(lc.entries, key); lc.revokes[key] = time.Now() } }` deletes
+    `key`, not `k`. After a failed range delete (`deleteRangeRPC`'s error path, where the delete
+    may have committed), the entries in the range other than `key` stay cached: stale reads.
+    Confirmed by a unit test (`EvictRange("a", "c")` leaves `"b"` cached). The spec states it
+    (`LeaseCacheSt.evictRange`).
+  - **`evalCmp` is not etcd's comparison** (upstream, `util.go`), so a transaction whose
+    comparisons' keys are all cached is answered from the cache with the wrong `Succeeded`: on a
+    key cached as absent, `result` stays `0` for every target (`CreateRevision(k) < 5` fails,
+    etcd: holds; `Version(k) = 3` holds, etcd: fails; `Value(k) = ""` holds, etcd: a value
+    comparison on a missing key fails); and there is no `LEASE` case (`LeaseValue(k) = 8` holds for
+    a key with lease 7). Confirmed by unit tests; the spec states what it computes
+    (`leaseCmpHolds`).
+  - To confirm in unit 4 (kv.go): `Update` writes the op's value even for a `WithIgnoreValue` put
+    (the cache then serves an empty value) and never the lease (`WithLease`: stale `Lease`); with
+    two concurrent puts of one key by one client, an `Update` applied out of order bumps the version
+    without the value, so a cached `Get` in between returns a version etcd never had; `waitRescind`
+    returns `nil` when the watch closes without a delete event, so `revokeRange`'s bound may cover a
+    lease key still present (a range delete while another client's lease protects a key).
+  - `gatherOps` appends `elseOps` to `thenOps` (`append(thenOps, elseOps...)`), writing into the
+    op's spare capacity: a data race if two goroutines gather one `Op` (unit 5).
+- **Trust base**: two new axioms, `strings.Compare.wp_proof` (`Spec/strings/Compare.lean`: Perennial
+  has no model; a Perennial trusted model and `wp_Compare` were written and proved but lost: the
+  shared `.lake/packages/perennial` was reset by another worktree's Lake (`/shared/etcd-grove-mvcc`
+  links its `.lake/packages` to this one) while it was at the uncommitted pin; redo it in a
+  separate Perennial checkout, `lake build --packages=<file>`, as `CLAUDE.md` says) and
+  `time.Time.Add.wp_proof` (`Spec/time/Time__Add.lean`: `(*time.Time).Add`, Perennial models the
+  value receiver only). No `sorry`.
+- **Proof-mode notes**: `wp_load` does not find a struct field's points-to inside a whole struct's
+  (`AccessStrict` instances exist; the search fails): `entryOwn` is field by field and
+  `leaseKey_struct` converts for `Get`'s `*li`. `wp_apply` leaves persistent premises unframed
+  unless written `$H` (`$$ [$Hlc ...]`). `unfold` of a predicate also unfolds the postcondition's
+  instances: `rw [entryOwn_def]` (one instance) or `iunfold X at H`.
+- **Linking**: `etc/gen-link.py --leasing` writes `Link.lean` from
+  `etc/link-lean-first-leasing.txt` (namespace `leasing`; a callee named like the theorem's last
+  component is qualified, `EtcdGrove.leasing.wp_evalCmp`); `etc/link-lean-first-concurrency.txt`
+  names clientv3's `Compare` `v3_Compare` (now ambiguous with `strings.Compare`; its `Link.lean`
+  reorders two theorems). `ResponseHeader.GetRevision`'s spec takes etcdserverpb's assumptions
+  (was the cache's), so both links use it. `etc/verified-code.py` counts an axiom outside a Link's
+  namespace (`strings.Compare.wp_proof`) as assumed.
+- **Gates**: `lake build` passes (2061 jobs); no `sorry` of this work; `etc/tcb-report.py --check`
+  after `--update`: 45 axioms, 1 sorry (new: `strings.Compare.wp_proof`, `time.Time.Add.wp_proof`);
+  `--collection leasing` (new): 6 axioms (`etcdState`, `etcdState_agree`, `etcdState_create_persist`,
+  `etcdState_revs` and the two above), no `sorry`; the other collections unchanged;
+  `etc/goose.py --check` passes (with `ETCD_SRC=/shared/etcd` until `0fc6f23b1` is pushed);
+  `etc/gen-link.py --cache/--concurrency/--server/--register/--leasing` reproduce;
+  `etc/verified-code.py --reuse` (with `0fc6f23b1` fetched into `.lake/go-src/etcd`):
+  `client/v3/leasing` 26 verified of 67, `cache.go` 20 of 20 (231/231 lines), `util.go` 6 of 8;
+  etcd 278 verified of 3599.
+- **Push order**: the etcd fork's `0fc6f23b1` (to `goose-lean`), then etcd-grove `lean`
+  (Perennial unchanged).
+
+### Units 3 and 4: `txn.go` and `kv.go` (2026-10-10)
+
+Every function of `txn.go`, of `kv.go` but the monitors (unit 5: `NewKV`, `Close`,
+`monitorSession`, `monitorLease`, `rescind`, `waitRescind`, `waitSession`), and `util.go`'s
+`gatherOps`/`gatherResponseOps` specified and proved, no `sorry`. Design: `decisions.md`, "Nested
+transactions, owned responses, `isLeasingKV`". Files: `Proof/go_etcd_io/etcd/cache/v3/
+InvEtcdTxnOwn.lean` (operation trees `OpT`, nested and owned responses, `isEtcdTxnKVO`,
+`isEtcdDoKV`), `Proof/go_etcd_io/etcd/client/v3/leasing/InvLeasingKV.lean` (`isLeasingKV`,
+`leasingX`, the results' predicates), lemma modules `InvLeasingKVLemmas` (the log's steps, the wait
+group), `InvLeasingTxnLemmas`, `InvLeasingPutLemmas`, `InvLeasingDeleteLemmas`,
+`InvLeasingGetLemmas`, `InvLeasingCommitLemmas`, `InvLeasingResults` (the pure parts of the main
+theorems); `Spec`/`Proof` pairs for the 31 leasing functions, ten clientv3 functions (`OpTxn`,
+`Op.Txn`, `WithKeysOnly`, `WithIgnoreLease`, `WithLastRev`, `OpResponse.Get`, the four
+`OpResponse()` conversions) and three `ResponseOp` getters.
+
+- **Model and contract extensions** (every cache/concurrency proof unchanged): `TxnOp.txn`
+  (nested transactions, run at the same revision on the state the operations before them left,
+  the branch chosen by their comparisons), `TxnOp.putIgnVal` (`WithIgnoreValue`), `TxnOpResult.txn`;
+  `applyTxnOp`/`runOps` mutually recursive. The owned-response builder `isEtcdTxnKVO` (a second
+  contract of the client's `Txn`), `isEtcdDoKV`. `HdrM`, `hdrFull`, `CachedKv`, `cachedKvOwn` moved
+  from `InvLeaseCache.lean` to `InvEtcdTxnOwn.lean`. Translation: grpc `codes.Unavailable` and
+  `codes.Unimplemented` (`codes.toml`), and `rpctypes.EtcdError` as a struct (`rpctypes.toml`
+  imports `codes`; it was an axiomatized type whose `sorry` instances `acquire` reached).
+- **Unit 5's functions are hypotheses**: their specs are written (`leasingKV__waitSession`,
+  `__waitRescind`, `__monitorLease`) and `Link.lean` links every result reaching them in
+  `section links_pending`, with the specs as hypotheses (`etc/gen-link.py`'s `fn: ?`;
+  `etc/verified-code.py` counts them as unfinished). `Results.lean` restates the main theorems
+  with the same three hypotheses.
+- **The main theorems** (`Results.lean`, with `#print axioms`):
+  1. **Cached reads** — `leasing_get : leasingKV.Get.spec`: `getOutcome γ pfx lo o ret err`, whose
+     cache case is `getCached`: `∃ st e, leasingSeen γ st ∗ ⌜st.entries !! key = some e ∨ (key, e)
+     ∈ st.frozen⌝ ∗ entryFacts pfx key e ∗ freshGetResp ret e.hm e.more e.count (getResult o e)`;
+     `leasing_getResult_acq` (`e.kv = e.acq → getResult o e` is `e.acq`'s answer) and
+     `leasing_cached_get_stable` (verbatim: `LeasingDataKey pfx key → e.rev ≤ b → (∀ z, e.rev < z
+     → z ≤ b → h.writer z ≠ e.lease) → LeasingProtocol pfx h ∗ entryFacts pfx key e ∗ etcdState b
+     [] sb ⊢ ∃ s lv, □ etcdState e.rev [] s ∗ ⌜kvOf s (pfx ++ key) = some lv ∧ lv.lease = e.lease ∧
+     ∀ lb, kvOf sb (pfx ++ key) = some lb → lb.createRev = lv.createRev → kvOf sb key = e.acq⌝`).
+     **Changed from the plan:** "the returned kv is `e.acq`" holds only while this client has not
+     written the key since acquiring it (`Update`/`delete` change the cached key-value, theorem 3),
+     hence the hypothesis `e.kv = e.acq`.
+  2. **Uncached operations** — `leasing_get`'s other cases (`kvGetResult [] lo o`: the client's
+     answer, linearizable unless serializable; `getAcquired`: etcd's record at a revision `≥ lo`;
+     `getNotAcquired`), `leasing_put` (`putCommitted`: the put at `r ≥ lo` on etcd's state at
+     `r - 1`), `leasing_delete` (`deleteCommitted`: the range deleted at `r ≥ lo`, `Deleted` its
+     size), `leasing_Txn_Commit`/`leasing_Do`.
+  3. **The holder's writes** — `putCommitted` includes the cache's step `leasingStep γ st
+     (st.modify key (e.update (freshKv …) … hdr hm vsl o.val))` with `hm.revision = r` (consecutive
+     states of the cache's log: `Update` does not change `e.rev` or `e.acq`, so "the entry's facts at
+     `r`" is not what the code does); `leasing_update_tracks_put`: the bumped key-value is etcd's
+     record after a plain put iff the put's lease is the cached one; `leasing_update_new_key` (a key
+     cached as absent: iff no lease); `leasing_update_ignoreValue` and
+     `leasing_update_out_of_order` (findings below).
+  4. **Locally evaluated transactions** — `leasing_Txn_Commit : txnLeasing.Commit.spec`:
+     `commitOutcome`, whose cache case `evalResult`: in a state `st` of the log,
+     `leaseEvalCmps st b.cmps = (ok, true)`, `st.header ≠ null`, every operation of the chosen
+     branch a cached get (`leaseEvalOk`), a fresh response with a copy of `st`'s header, `Succeeded
+     = ok`, `respOpFresh` of each; otherwise exactly `txnCommitResult [] lo` of the user's
+     transaction. `leasing_evalCmpM_agrees`: `leaseCmpHolds m (kvOf s m.key) = cmpHolds s m` for
+     a one-key comparison not of the lease, if an absent key is not compared by value and with
+     operand `0`; `leasing_leaseEvalCmps_agrees` for a transaction whose keys are cached with
+     etcd's records; `leasing_evalCmpM_absent_lt`, `leasing_evalCmpM_lease`: the divergences.
+- **Spec changes made while proving**: `tryModifyOp` returns `((resp, wc), err)` (Goose's tuple);
+  `tryModifyOp`/`revoke` do not claim `resp ≠ null`; `Put`/`Delete` take `(opPutModel …).t = 2`,
+  `(opDeleteModel …).t = 3` (the option transformers are arbitrary; as `Get`'s); `guardRanges`'s
+  error case has `cmps = nil` (`guard` appends it); `eval`, `Commit` and `Do`'s transaction case
+  take `len(then) + len(else) < 2^63` (`make([]Op, 0, len+len)`); `Compact`'s delegation is for a
+  pair result. Contexts: writes may `revoke`, whose `waitRescind` calls `WithCancel(ctx)`, so `put`,
+  `delete`, `Commit`, `Do` take `isCancelCtxCtx ctx`. User transactions are flat (`Txn().Then`
+  takes plain operations).
+- **Findings** (the Go code is unchanged; reproductions in an integration test, kept out of the
+  tree):
+  - **A write of a key not in the cache is applied twice** (`kv.go`, `put`/`delete`):
+    `tryModifyOp` commits the op (guard `CreateRevision(pfx+key) < 1`) and returns a nil waiter
+    channel because the key has no entry; `put`/`delete` then call `revoke` because `wc == nil`,
+    which commits the op again. Confirmed: on a fresh key `lkv.Put(ctx, "k", "v")` leaves etcd at
+    version 2 (create 2, mod 3); `lkv.Delete(ctx, "k")` of an existing uncached key returns
+    `Deleted: 0`. The spec describes the second commit.
+  - **A failed acquisition ignores the get's options** (`get`): when another client holds the
+    lease, `get` returns `acquire`'s answer to `OpGet(key)`: `WithCountOnly` returns the key-value,
+    `WithKeysOnly` the value, the revision filters are not applied (confirmed: count-only gives 1
+    kv, keys-only the value `"v"`). `getNotAcquired` states it.
+  - **`Update` and `WithIgnoreValue`, leases** (confirmed by the proof): `put`'s step caches the
+    op's value (empty for `WithIgnoreValue`, where etcd keeps the old value:
+    `leasing_update_ignoreValue`) and never the lease (`leasing_update_tracks_put`: a put without
+    `WithLease` of a key with a lease leaves the cached lease stale).
+  - **Out-of-order `Update`s** (confirmed by `leasing_update_out_of_order`): two concurrent puts
+    of one key at `r1 < r2` whose `Update`s run in the opposite order leave, in between, a cached
+    record with `r2`'s value and mod revision but the version incremented once: etcd never had it,
+    and a cached `Get` waiting on the later waiter channel can serve it.
+  - **An entry can carry an old session's lease** (`get`): the lease ID is read in `acquire`, the
+    entry added later; a session reset in between (the session monitor clears the map, then sets
+    a new session) leaves an entry of the expired lease, whose lease key etcd deleted, cached until
+    the next reset (`monitorLease` only rescinds on a `"REVOKE"` put). Not excluded by the specs
+    (the facts are about the acquisition revision); this is why `leasingX` has no "entries carry
+    the current lease" invariant.
+  - `waitRescind` returning `nil` without a delete event (unit 1's list): confirmed by unit 5.
+- **Trust base**: three new axioms, `strings.TrimPrefix.wp_proof` (`Spec/strings/TrimPrefix.lean`),
+  `errors.As.wp_proof` (`Spec/errors/As.lean`, for a `*rpctypes.EtcdError` target), both
+  standard-library functions Perennial does not model (to move to Perennial), and
+  `status.FromError.wp_proof` (grpc, names only; its result's `Code()` returns). The existing
+  `status.Error.wp_proof` and `proto.Clone.wp_proof` are now reached. `--collection leasing`: 12
+  axioms, no `sorry`.
+- **Gates**: `lake build` passes (2171 jobs); `etc/tcb-report.py --check` (after `--update`: 3 new
+  axioms) and every other collection unchanged; `ETCD_SRC=/shared/etcd etc/goose.py --check`;
+  `etc/gen-link.py --leasing` (and the other modes) reproduce; `etc/verified-code.py --reuse
+  --package go.etcd.io/etcd/client/v3/leasing`: 42 verified of 67 (`cache.go` 20/20, `util.go`
+  8/8, `txn.go` 7 of 12, `kv.go` 7 of 27 verified), 17 unfinished (resting on unit 5's specs), 7
+  translated (unit 5's); 509 of 921 lines verified, 917 specified; etcd 304 verified of 3599.
+- **Push order**: unchanged (the etcd fork's `0fc6f23b1` to `goose-lean`, then etcd-grove).
+
+### Unit 5: the monitors; the package (2026-10-10)
+
+Every function of `client/v3/leasing` but `init` (not translated apart from package
+initialization, `Base.lean`) is specified and proved, no `sorry`: unit 5 proved `waitSession`,
+`waitRescind`, `rescind`, `monitorLease`, `monitorSession`, `Close` and `NewKV`. Files:
+`Spec`/`Proof` pairs for the seven (`rescind`, `monitorSession`, `Close`, `NewKV` newly specified),
+lemma modules `InvLeasingSessionLemmas` (the cache's reset `LeaseCacheSt.reset m st := { st with
+emap := m, entries := ∅, frozen := st.entries.toList ++ st.frozen }`, joining the session
+monitor's halves) and `InvLeasingNewLemmas` (the wait group's two owed goroutines and `Wait`, the
+cache's allocation). Design: `decisions.md`, "Leasing unit 5".
+
+- **No hypotheses left**: the link list has no `fn: ?`; `Link.lean`'s `links_pending` section is
+  gone and the 17 results that took the unit-5 specs (`leasingKV.wp_Get`, `wp_Put`, `wp_Delete`,
+  `wp_Do`, `txnLeasing.wp_Commit` and their callees `get`, `put`, `delete`, `deleteRange`,
+  `acquire`, `revoke`, `revokeLeaseKvs`, `revokeRange`, `guard`, `guardRanges`, `revokeFallback`,
+  `serverTxn`) are unconditional; `Results.lean`'s theorems take no hypotheses, with
+  `leasing_NewKV`, `leasing_Close`, `leasing_waitRescind`, `leasing_monitorLease`,
+  `leasing_monitorSession` added.
+- **Specs**: `NewKV` (`isLeasingEtcdClient`, `closedChInit`, a thread bound) returns
+  `newKVResult`: the `KV` interface value of an `isLeasingKV` with every reader slot, the "open"
+  token, `leasingCloseFn` and `waitSession`'s error; `Close` needs the whole "open" token; the two
+  monitors return (`True`); `waitRescind`: an error, `nil` with `leaseKeyDeleted` (the lease key
+  absent at a revision above `rev`), **or `nil` with no promise** (the watch closed without a
+  delete event).
+- **Changes to existing specs and contracts**: `leasingXBody` holds half of `session`/`sessionc`,
+  `sessionMonitor` the other half (`monitorSession` reads `session` without the lock);
+  `acquireResult`'s success gives `sessionReady` (`monitorLease` calls `leaseID`), `monitorLease`
+  and `waitRescind` take a revision bound (`WithRev(rev+1)`; `txnCommitOk_guarded` exports the
+  header's); the range watch contract gives a delete event's `Value`/`Lease` fields readable
+  (`delKvAt`; `monitorLease` reads `Value` of every event); `isEtcdLease`'s `KeepAlive` success
+  gives a channel (no nil: etcd's lessor always makes one), so `NewSession`'s nil session comes
+  with an error (`monitorSession` would otherwise set a nil session and close `sessionc`).
+- **Findings** (reproduced by integration tests kept out of the tree):
+  - **`waitRescind` returns `nil` without a delete** (confirmed, the spec's third outcome): when
+    the watch channel closes while `ctx` is live (the watch canceled: its start revision
+    compacted, or the client closed), it returns `ctx.Err() == nil`. A single-key write then just
+    retries (its guard still fails); a **range delete goes through another client's lease**:
+    `revokeRange`'s bound covers the still-present lease key, so `deleteRangeRPC`'s guard holds.
+    Reproduction: A caches `k` (`lkvA.Get("k")`, A's watcher stalled so its lease monitor has not
+    run); B's watcher, before its `Watch`, puts twice and compacts; `lkvB.Delete("k",
+    WithPrefix())` returns `Deleted=1` while A's lease key `pfx/k` still exists, and
+    `lkvA.Get("k")` returns `"v1"` though etcd has no `k`. Without the stall, A usually rescinds
+    first (a race). This breaks the protocol premise (`LeasingProtocol` (1)) for leasing clients.
+  - **A stale entry survives a session reset** (confirmed): `get` adds the entry after `acquire`
+    commits; a reset in between (`monitorSession` clears the map before `Add`) leaves an entry of
+    the old lease, whose lease key etcd deleted with the lease. `monitorLease` ignores the delete
+    event (its `Value` is not `"REVOKE"`: `continue`), and a `"REVOKE"` put carrying the old
+    lease (`WithIgnoreLease`) is not this client's current `leaseID()`, so it returns without
+    rescinding. The entry stays until the next reset. Reproduction: A's `KV` wrapped so that after
+    the acquisition's `Commit` it revokes A's session lease (as an expiry would) and waits for A's
+    new session (`WithTTL(2)`); then B (`NewKV` after) puts `"v2"` (its guard holds: no lease
+    key), and `lkvA.Get("k")` returns `"v1"`.
+- **Trust base**: no new axiom; `--collection leasing` 12 axioms, no `sorry` (unchanged); every
+  collection unchanged; `etc/tcb-report.py --check`: 48 axioms, 1 sorry (unchanged).
+- **Gates**: `lake build` passes (2184 jobs); `ETCD_SRC=/shared/etcd etc/goose.py --check`;
+  `etc/gen-link.py` reproduces every `Link.lean`; `etc/verified-code.py --reuse --package
+  go.etcd.io/etcd/client/v3/leasing`: **66 verified of 67** (every one sorry-free; `init`, 4
+  lines, not translated), 0 unfinished, 917 of 921 lines verified (`kv.go` 26/27, `cache.go`,
+  `txn.go`, `util.go` all); etcd 328 verified of 3599.
+- **Push order**: unchanged (the etcd fork's `0fc6f23b1` to `goose-lean`, then etcd-grove).
+
+## Merge: the register, `node.go` and thread tokens (2026-10-10)
+
+Merged upstream `lean` (`67c6b9292`, 43 commits: Perennial thread tokens and the cache's
+wait-group counter bounded by them, `node.go` proved, the `examples/register` replicated
+register, raft translated from upstream `etcd-io/raft` `40f8be7` unmodified, bbolt's
+`internal/common`) into the Mutex/Election/STM line (`e5406a399`).
+
+- **Perennial `7c93f27aa`** (`lean`): our `9276bd1ed` (`Sprintf`/`HasPrefix` models, the map-length
+  bound) merged cleanly with upstream's `105fb79f5` (thread tokens, `wp_fork_tok_*`, the revert of
+  our `WaitGroup.Add` assumption, `wp_slice_append_undo`, the iframe heartbeat option).
+  `etc/lean-ci.sh`: 374/374; the std-lib regeneration (`GOTOOLCHAIN=go1.26.0
+  etc/update-goose-new.py --compile --std-lib`) is clean; `go test ./...` in `goose/` passes.
+- **Conflicts**: only the Perennial pin (`lakefile.toml`, `lake-manifest.json`: `7c93f27aa`) and
+  these notes (both sides' sections; the `WaitGroup.Add` assumption marked superseded in "The cache
+  as shipped"). `etc/goose.py` is upstream's (raft from `etcd-io/raft`, the `register` project) and
+  already has the concurrency package and the `ab1deb078` pin; `etc/tcb-baseline.txt` is ours
+  (upstream added no axiom or `sorry`). The regenerated translation is identical to the merge.
+- **Thread tokens**: no proof of ours changed. Our side never touched the cache's wait-group files,
+  so they are upstream's (shared writers and `cacheBound` already in, from the earlier merge).
+  `wp_fork` keeps its statement (the forked thread keeps its own token, `wp_fork_tok` underneath),
+  so the other `go` statements (`NewDemux`, `Session`'s keep-alive, `Observe`, `waitTillRevision`,
+  the progress requestor, STM/Mutex/Election) build unchanged. The exported statements are ours but
+  for upstream's thread-token changes: `New`/`newCache` assume `threadBound GF + 3 ≤ 2^31`,
+  `Watch` takes and returns a `threadTok` (see "The wait-group counter and thread tokens").
+- **`etc/verified-code.py`**: crashed on the `register` project (no `repo`: `fork()` now names
+  its directory), and did not resolve the register's results (`register.Register.Put`: a name
+  qualified by the main package's own qualifier is now looked up there).
+- **Gates**: `lake build` passes (1958 jobs); `etc/goose.py --check --perennial
+  .lake/packages/perennial` passes; `etc/tcb-report.py --check`: 43 axioms, 1 `sorry` (the
+  baseline unchanged); per collection: btree 51 roots, no axiom; cache 152, 9 axioms, sorry-free;
+  concurrency 125 (124 sorry-free), 13 axioms, 1 `sorry` (`Session.Close`); raft 213, 1 axiom,
+  sorry-free; register 19, no axiom, sorry-free; server 47, 26 axioms, sorry-free. `etc/gen-link.py
+  --cache`/`--concurrency`/`--server`/`--register` and `etc/gen-btree-link.py` reproduce their
+  `Link.lean` (raft's is by hand since upstream's `MemoryStorage` work). `etc/verified-code.py
+  --reuse`: raft 203/323 (2608 of 3646 lines), all sorry-free; etcd 243 verified, 1 unfinished, 13
+  assumed of 3599 (the cache 107/107 sorry-free; `client/v3/concurrency` 59 + 1 unfinished of 62);
+  register 12/12 (96 lines).
+- **Push order**: Perennial `lean` (`7c93f27aa`) first, then etcd-grove `lean`.
+
+## STM (2026-10-10)
+
+`client/v3/concurrency`'s software transactional memory (`stm.go`) is specified and proved: every
+function (28), with atomicity theorems per isolation level. Design: `decisions.md`, "STM:
+a higher-order closure spec, aborts as divergence, what each isolation level gives". Files:
+`client/v3/concurrency/InvSTM.lean` (vocabulary), `InvSTMAtomic.lean` (the commit key by key, the
+per-level theorems), lemma modules `InvSTMMaps`, `InvSTMReads`, `InvSTMCommit`, `InvSTMRun`; `Spec`/`Proof`
+pairs `NewSTM`, `NewSTM{Repeatable,Serializable,ReadCommitted}`, `mkSTM`, `runSTM`, `With{Isolation,
+AbortContext,Prefetch}`, `stm__{Get,Put,Rev,Del,commit,fetch,reset}`,
+`stmSerializable__{Get,Rev,gets,commit}`, `readSet__{add,first,cmps}`, `writeSet__{get,cmps,puts}`,
+`isKeyCurrent`, `respToValue`, and (until the panic adoption) the trust boundary `stmPanic`,
+`stmRecover`; `Results.lean`.
+
+- **The closure** (`applySpec pfx apply Q`): for any STM with the interface's triples
+  (`stmMethods`), from any state, `apply` returns an error or `nil`, and `nil` means `Q` of the
+  attempt's reads and writes (`STMSt`). `NewSTM` returns an error, or `nil` with a committed attempt
+  `st`, `Q st` and `stmOutcome` (`stmResult`).
+- **What each level is proved to give** (`stmOutcome`: a revision `R`, the state `s` the commit ran
+  on, etcd's at `R - 1` if it wrote (at `R` otherwise), and `s'`, etcd's at `R`; `STMCommitted`):
+  - all levels: `s'` is `s` with the attempt's writes applied, key by key, independently of the
+    write set's order (`stm_read_committed`); every read is etcd's key-value at the revision it read
+    (`readFact`); `R` is at least a revision the caller had seen if the commit had an operation.
+  - `SerializableSnapshot`, `Serializable` (`stm_atomicity`) and `RepeatableReads`
+    (`stm_repeatable_reads`): additionally, **every read of the committed attempt is `s`'s
+    key-value of its key**: the attempt ran atomically at `R` (`R - 1` → `R`). `SerializableSnapshot`
+    also: no written key was modified after `first()` (the least header revision of the reads).
+  - within an attempt, a key read once reads the same (repeatable reads, `GetPost`), all levels.
+- **Finding: a retried serializable attempt reads from two revisions.** The serializable levels
+  document "reads within the same transaction attempt return data from the revision of the first
+  read". After a failed commit, the next attempt's prefetched reads are at the failed commit's
+  revision `r`; if its first read is of a key not prefetched, that read is at the latest revision
+  `r2` and sets the snapshot to `r2`, while later reads of prefetched keys return values at `r`. An
+  attempt can then see a state that never existed (the commit fails afterwards, so serializability
+  holds, but the closure ran on an inconsistent view). The specs claim no snapshot. **Reproduced**
+  on upstream main (`f061acd09`) by an integration test, for both levels; fix and test on
+  `/shared/etcd-stm-repro`, branch `stm-serializable-snapshot` (`479a65c65`, not pushed): after a
+  failed commit, the next attempt reads at the prefetched reads' revision (`WithRev`). The existing
+  STM integration tests pass with the fix.
+- **Other observations** (stated, not bugs): a `RepeatableReads`/`ReadCommitted` attempt with no
+  write commits an empty transaction, which etcd answers from the member's state (no recency
+  promise); `fetch` of a key listed twice keeps the later response (the same key-value); after
+  `apply` fails, `runSTM` returns the response field an earlier attempt left (nil in practice: a
+  failed commit). A successful commit's response is not known to be non-nil from the contract
+  (the spec allows nil; `runSTM` would then retry).
+- **Contract changes** (`InvEtcdTxn.lean`, definitions): **read transactions** (`isEtcdReadTxnKV`,
+  `readTxnResult`: gets alone, each at the current revision or its `WithRev`, serializable or not;
+  `isEtcdSTMClient` bundles it with `isEtcdTxnKV`); **linearizability corrected**: `txnCommitResult`'s
+  `lo ≤ r` only for a transaction with an operation that is not a serializable get
+  (`TxnModel.linearizable`; etcd serves the others from the member's state; no existing proof used
+  such a transaction; Mutex/Election proofs discharge it by `rfl`); a range response's header exists
+  (`rangeRespAt`).
+- **Trust base** (`etc/tcb-baseline.txt` after `--check --update`: 43 axioms, 1 sorry; `--collection
+  concurrency` updated): a new history law `etcdState_modrev_det` (same key, same mod revision ⇒ same
+  key-value); the STM's abort `stmPanic.wp_proof` (`panic(stmError{err})`, `err ≠ nil`, does not
+  return) and `stmRecover.wp_proof` (`recover()` returns nil; both gone since "Panic and recover"): Perennial's `panic` is stuck and it has
+  no `recover`, see decisions.md. No `sorry`.
+- **Perennial `9276bd1ed`** (on `d240c1732`): `len` of a map assumes fewer than `2^63` keys (as
+  `append` assumes no overflow): `wp_map_len_lt`. Needed by `make([]T, 0, len(m))` (a negative
+  capacity panics).
+- **Gates**: `lake build` passes (1880 jobs); `etc/tcb-report.py --check` (and per collection) passes;
+  `etc/goose.py --check` passes; `etc/gen-link.py --cache/--concurrency/--server` reproduce;
+  `etc/verified-code.py --reuse`: `stm.go` 28 of 28 (243/243 lines); `client/v3/concurrency` 59
+  verified, 1 unfinished (`Session.Close`) of 62; etcd 243 verified of 3599.
+- **Push order**: Perennial `lean` (`9276bd1ed`) first, then etcd-grove `lean`. The etcd fork's
+  `goose` is unchanged; the fix branch `stm-serializable-snapshot` is for an upstream PR.
+
+## Election (2026-10-10)
+
+`client/v3/concurrency`'s `Election` (`election.go`) is specified and proved: all 11 functions,
+with the mutex's exclusion as the election's and a pure theorem that only the leader proclaims.
+Design: `decisions.md`, "Election: the mutex's leader fact, no final check, what `Observe` can
+promise". Files: `client/v3/concurrency/InvElection.lean` (vocabulary, `proclaimStep_guard`),
+`Spec`/`Proof` pairs `NewElection`, `ResumeElection`, `Election__*`, `Results.lean`.
+
+- **The leader fact** is the mutex's: `leaderAt pfx key c R := lockedAt pfx key c R` (at `R`,
+  under the election's prefix, `key` present with create revision `c`, no key with a smaller one).
+- **Specs, in words** (the prefix `pfx` is `NewElection`'s argument plus `/`, `ResumeElection`'s
+  as given; `isElection` holds the session and prefix, `electionState e s st` the fields
+  `leaderKey`/`leaderRev`/`leaderSession` (nil or `s`)/`hdr`; every method runs from any state,
+  knowing etcd has reached `lo`):
+  - `NewElection(s, pfx)`: `isElection` and the zero state; `ResumeElection(s, pfx, key, rev)`:
+    the given key and revision, `s` as leader session (nothing checked).
+  - `Campaign(ctx, val)` (cancelable `ctx`): `nil` ⇒ the key `key` (under the prefix) was created
+    at `rev`, had value `val` at a revision `rv` (`keyValAt`: put, found, or proclaimed), and at
+    `waitDeletes`' last revision `R ≥ rv` no key under the prefix was created before `rev`:
+    **`leaderAt pfx key rev R ∨ campaignLost pfx key rev R`** (the second: `key` is not there with
+    create revision `rev`); the state holds the key, `rev`, the session and the transaction's header.
+    Errors: some state.
+  - `Proclaim(ctx, val)`: `nil` ⇒ a leader session, and (key under the prefix) etcd's states at
+    `r - 1` and `r ≥ lo` are a `ProclaimStep` (`proclaimedAt`: the guard
+    `CreateRevision(key) = rev` held and the key was put with `val`); `ErrElectionNotLeader` ⇒ no
+    leader session (unchanged), or the guard failed (the key is not there with create revision `rev`
+    at some `r ≥ lo`, `notLeaderAt`; `leaderKey` cleared); other errors unchanged.
+  - `Resign(ctx)`: no leader session ⇒ `nil`, unchanged; otherwise the guarded delete, leader key
+    and session cleared, and on `nil` the key is not there with create revision `rev` at the
+    header's revision `R ≥ lo`.
+  - `Leader(ctx)`: `nil` ⇒ the response lists one key-value, the leader at its revision
+    (`leaderKvAt`); `ErrElectionNoLeader` ⇒ the prefix is empty at some `R ≥ lo`.
+  - `Observe(ctx)`: an SPSC channel (`isObserveChan`) of `*GetResponse`s each listing one
+    key-value `v` with `observedAt pfx v R`, the `R`s non-decreasing from `lo` (a monotone ghost
+    list). `observe` is its goroutine (Perennial `go`, the channel's producer).
+  - `Key`, `Rev`, `Header`: the fields.
+- **What `Observe` guarantees** (`observedAt pfx v R`): `v` is in etcd's state at `R` and either
+  (1) it is the leader there, or (2) `v`'s key was the leader at an earlier `R0` with create
+  revision `c0`, `v` is a later incarnation of it (`c0 < v.createRev`) and no key created before
+  `c0` is alive at `R`, or (3) the prefix was empty at an earlier `R0` and every key alive at `R`
+  (`v` too) was created after `R0`. Responses from `Get(pfx, WithFirstCreate)` are (1); a
+  forwarded put on the leader's key is (1) if it has the leader's create revision, else (2); the
+  first put after an empty prefix, and puts forwarded from it, are (3). (2) and (3) are the leader
+  too with etcd's real watch (gap-free: the delete before a re-creation would end the forwarding;
+  the first put's batch creates every key there is), but the client contract does not promise a
+  gap-free stream, nor that a key's create revision is the revision of a put event, so the spec
+  says what the code gives against it.
+- **Finding: `Campaign` may return `nil` without being the leader.** After `waitDeletes`, `Campaign`
+  returns `nil` without looking at its own key; if the key was deleted while it waited (the
+  session's lease expired or was revoked, the session closed, another `Election` value on the same
+  session and prefix (which shares the key `pfx/<lease>`) resigned, or anyone deleted it), `Campaign`
+  still returns `nil` once the older keys are gone, and the caller believes it is the leader while
+  another candidate may be. `Mutex.Lock` had the same gap and got a final `Get` of its key
+  (`ErrSessionExpired`, upstream `b14c7cd44`, 2019, "concurrency: make lock more reliable");
+  `Campaign` never did. The spec states it (`campaignLost`). Not yet reproduced by a Go test;
+  a reproduction: candidate B campaigns behind leader A, B's key is deleted (e.g. `client.Delete`
+  or revoking B's lease) while B waits, A resigns: B's `Campaign` returns `nil`, B's key absent.
+  A fix would end `Campaign` as `Lock` does (a `Get` of the key comparing its create revision).
+- **Contract extensions** (definitions; `InvEtcdTxn.lean`): the single-key watch becomes a
+  **range watch** (`isEtcdRangeWatcher`, in `isEtcdMutexClient`: a key or a sub-prefix under the
+  client's prefix, from `rev ≥ 0`): an event is a put or a delete, its key in the range, at a
+  revision `≥ rev`, `< 2^63 - 1`, reached; a delete means absent; **a put's key-value is in etcd's
+  state at the event's revision**; events sorted above the stream's position (a monotone list,
+  as the cache's watch); the receiver **owns the header's `Revision`** of a response with events
+  (`observe` writes it). The transaction builder's `Commit` gains a triple for **any** transaction
+  (`txnAnyResult`). `waitDeletes` takes `maxCreateRev ≥ 0`. `concurrencyInit` holds Election's two
+  errors. `Observe` takes `lo ≥ 0` (its gets' revisions are watched from, and `Watch` needs them
+  non-negative; `0` is free).
+- **Other observations** (stated, not bugs): `ResumeElection` does not add `/` to the prefix
+  (`NewElection` does); after a failed `Proclaim` the leader key is `""` while the leader session
+  stays, so a second `Proclaim` or a `Resign` commits a transaction on the key `""` (etcd rejects
+  the empty key): their specs promise nothing beyond some header then (`txnAnyResult`).
+- **Gates**: `lake build` passes (1814 jobs); no `sorry` of this work; `etc/tcb-report.py --check`
+  unchanged (40 axioms, 1 sorry; `--collection concurrency`: 10 axioms, 1 sorry; no new trust-boundary
+  item); `etc/goose.py --check` passes; `etc/gen-link.py --cache/--concurrency/--server` reproduce;
+  `etc/verified-code.py --reuse`: `client/v3/concurrency` 31 verified, 1 unfinished (`Session.Close`)
+  of 62, `election.go` 11 of 11 (164/164 lines); etcd 215 verified of 3599.
+- **Push order**: etcd-grove `lean` only (Perennial and the etcd fork unchanged).
+
+## Mutex: mutual exclusion (2026-10-10)
+
+`client/v3/concurrency`'s `Mutex` (`mutex.go`, `key.go`) is specified and proved, with mutual
+exclusion as a theorem over etcd's model. Design: `decisions.md`, "Mutex: `lockedAt`, exclusion from
+the two history laws". Files: `client/v3/concurrency/InvMutex.lean` (vocabulary, exclusion),
+`InvMutexLemmas.lean` (the gets, the transaction, the delete, `Lock`'s last step), `Results.lean`.
+
+- **The ownership fact** `lockedAt pfx key c R`: etcd's state at `R` under the mutex's prefix has
+  `key` with create revision `c`, and no key with a smaller one. **Mutual exclusion**
+  (`lockedAt_exclusion`, exported as `mutex_exclusion`): two holders `(k1, c1)` at `R1`, `(k2, c2)`
+  at `R2` with `c1 ≠ c2` are never both present in etcd's state at any revision `a ≥ R1, R2`; from
+  `etcdState_revs` and `etcdState_create_persist` alone. `mutex_holder_unique`: two ownership facts
+  at one revision have the same create revision (`etcdState_agree`). Equal create revisions with
+  different keys (two keys created by one transaction) are not excluded: the model does not record
+  who wrote a key (a mutex's transaction creates one).
+- **Specs, in words** (the mutex's prefix `pfx` is `NewMutex`'s argument plus `/`; `isMutex` holds
+  the session and prefix, `mutexState m st` the fields `myKey`/`myRev`/`hdr`, which every method
+  accepts in any state; all knowing etcd has reached `lo`):
+  - `NewMutex(s, pfx)`: `isMutex` and the initial state, for a client answering for `pfx + "/"`
+    (`isEtcdMutexClient`). `NewLocker`: the same, wrapped in a `lockerMutex`.
+  - `tryAcquire`: `myKey` under the prefix (`Sprintf`), then the transaction: an error, or
+    `acquireResp` (at `r ≥ lo`, the key with create revision `myRev ≤ r`, and the owner get).
+  - `TryLock`: `nil` ⇒ `lockedAt pfx key rev r`; `ErrLocked` ⇒ the key deleted (absent at some
+    `r ≥ lo`), released state; other errors, some state.
+  - `Lock` (a cancelable context): `nil` ⇒ at the last `Get`'s revision `R ≥ lo`,
+    `lockedAt pfx key rev R` **or `keyRecreated`** (below); `ErrSessionExpired` ⇒ the key absent at
+    `R`; other errors, some state.
+  - `Unlock`: `nil` ⇒ the key absent at some `R ≥ lo`, released; `ErrLockReleased` ⇒ no key;
+    other errors (the delete, the `HasPrefix` check), unchanged.
+  - `IsOwner`: the comparison `CreateRevision(myKey) = myRev`; `Key`, `Header`: the fields.
+  - `waitDelete(ctx, client, key, rev)`: `nil` ⇒ `key` absent at some `r ≥ rev` (a delete event);
+    `waitDeletes(ctx, client, pfx, n)` (`n > 0`): `nil` ⇒ at some `R ≥ lo` no key under `pfx` has a
+    create revision `≤ n`.
+- **Finding: `Lock` may return `nil` without the lock.** `Lock`'s last check is that `myKey`
+  exists (`len(gresp.Kvs) == 0`), not that its create revision is still `myRev`. Two `Mutex`
+  values of one session on one prefix share the key (`pfx/<lease>`); if the other one unlocks
+  (e.g. its `Lock`'s context is canceled, which calls `Unlock`) and locks again while this one
+  waits, the key is re-created with a later create revision, `waitDeletes(myRev - 1)` returns, and
+  `Lock` returns `nil` while a key created between `myRev` and the new create revision may hold the
+  lock too. The spec states it (`keyRecreated pfx key rev R`: present with a create revision above
+  `rev`, nothing older); with one `Mutex` per session and prefix the disjunct cannot arise, but the
+  model cannot express that (it does not record who writes). Not confirmed by a Go test; a fix
+  would compare `gresp.Kvs[0].CreateRevision` with `m.myRev`.
+- **Client contracts, extended** (definitions; `isEtcdMutexClient` bundles them):
+  `kvGetResult` lists, for any get of a range under the prefix at the latest revision, etcd's
+  selection (`getRespRange`: sorted, limited, filtered — `rangeKvsOk`; the single-key `Get` and
+  `waitDeletes`' `WithLastCreate, WithMaxCreateRev`); `isEtcdDeleteKV` (`Delete` as a
+  one-operation transaction, `deleteResult`); `isEtcdKeyWatcher` (a single-key watch from `rev`:
+  an SPSC channel whose events are of the key, at revisions `≥ rev` etcd reached, and a delete
+  event at `r` means the key is absent at `r`, `keyWatchRespOk`); `txnOpRespAt`'s `ResponseOp` is
+  non-nil.
+- **`Sprintf`**: Perennial's model returned the format string, so `myKey` would have been
+  `"%s%x"`, not under the prefix (the transaction's `Under` premise and `Unlock`'s `HasPrefix` need
+  it). Perennial **`d240c1732`** (on `7d0b56b07`): `fmt.Sprintf` formats `%%` and `%s` of a string
+  argument exactly and makes the rest arbitrary at any other directive or with arguments left
+  over (`fmt.SprintfOut`, an over-approximation); `wp_Sprintf` needs `StringArgsWf` (an argument
+  of dynamic type `string` holds a string), so raft's `fmt.Sprintf.spec` gained that premise
+  (`newRaft` passes `uint64`s). The mutex gets `pfx <+: myKey`; nothing about `%x` (not needed:
+  exclusion does not use distinct keys). Also a trusted model of `strings.HasPrefix`
+  (`wp_HasPrefix`: `decide (pfx <+: s)`; a byte loop, Goose has no string slicing).
+- **The panic question** (settled since "Panic and recover": specified, a return or `panic(err)`):
+  `lockerMutex.Lock`/`Unlock` call `panic(err)` on any error of
+  `Mutex.Lock`/`Unlock`, which every client call allows, and Perennial's `panic` is a stuck
+  expression (a WP of it is unprovable). A `sync.Locker` spec would have to promise no error, which
+  is false of the client contract: they are not specified (counted "translated"), and `NewLocker`
+  is.
+- **Translation**: `etcdserverpb.ResponseOp.GetResponseRange` (proved), `mvccpb.Event_PUT`/
+  `Event_DELETE` (constants; were axiomatized `val`s). `withTop`/`WithFirstCreate`/
+  `WithLastCreate` return the slice's capacity (`waitDeletes` appends to it). concurrency's package
+  facts (`concurrencyInit`): Mutex's three errors. No change to etcd's Go code.
+- **Perennial tooling** (worked around in `Mutex__tryAcquire.lean`): `wp_apply` fails silently on
+  a triple whose continuation's premise is a local predicate (`B b`, the transaction builder's
+  state): `wp_apply_post` calls `whnfR` outside the goal's context ("unknown free variable",
+  swallowed); `wp_apply_raw` works. A fix in Perennial would run it under `mv'.withContext`.
+- **Gates**: `lake build` passes (1791 jobs); no `sorry` of this work; `etc/tcb-report.py --check`
+  after `--update`: 40 axioms, 1 sorry (new in the trust base, all existing model axioms:
+  `etcdState_revs`, `etcdState_create_persist`, `etcdState_agree`); `--collection concurrency`
+  (now `Link` and `Results`): 10 axioms, 1 sorry; the other collections unchanged;
+  `etc/goose.py --check` passes; `etc/gen-link.py --cache/--concurrency/--server` and
+  `gen-btree-link.py` reproduce; `etc/verified-code.py --reuse`: `client/v3/concurrency` 20
+  verified, 1 unfinished (`Session.Close`) of 62, `mutex.go` 9 of 11 (89/101 lines), `key.go` 2 of 2;
+  etcd 204 verified of 3599.
+- **Push order**: Perennial `lean` (`d240c1732`, a fast-forward of `7d0b56b07`) first, then
+  etcd-grove `lean`. The etcd fork is unchanged.
 
 ## The register example: verified over raft, logically atomic (2026-10-10)
 
@@ -595,7 +1211,9 @@ the readiness fix and the Gooseable changes. `go build ./...`, `go vet ./cache/`
 `etc/goose.py` pins it; only `Code/go_etcd_io/etcd/cache/v3.lean` changed (`watch`,
 `watchEvents`). Design: `decisions.md`, "No code changes unless a bug".
 
-- **Perennial `9092f8eaa`** (branch `wg-assume`, on `56b1b6651`; push Perennial first):
+- **Perennial `9092f8eaa`** (branch `wg-assume`, on `56b1b6651`; push Perennial first;
+  **the `WaitGroup.Add` assumption is superseded** by the thread-token bound, Perennial `105fb79f5`,
+  see "The wait-group counter and thread tokens"):
   `614fa61d3` **`WaitGroup.Add`'s counter overflow is a model assumption**: `WaitGroup.Add` is a
   trusted model (`TrustedCode/sync.lean`), Goose's translation of Go's `Add` verbatim but for the
   atomic add, which is `waitGroupStateAddAssume` (a compare-and-swap loop that `assume`s the
@@ -1836,7 +2454,9 @@ boundary".
   fail on a large context (`Cache.Watch` after `isCacheFields` grew): clearing two unused
   hypotheses fixed it.
 - **What the cache's results rest on, since the cache as shipped** (2026-10-09): as below, plus
-  the model axiom `etcdStep_delete_present` (`cache_New`), and Perennial's model assumption that
+  the model axiom `etcdStep_delete_present` (`cache_New`), and (superseded 2026-10-10 by the
+  thread-token bound and `New`'s thread-bound premise, see "The wait-group counter and thread
+  tokens") Perennial's model assumption that
   `WaitGroup.Add`'s `int32` counter does not overflow (trusted code, `TrustedCode/sync.lean`, not
   an axiom: every result using the cache's wait group, `cache_New`, `cache_Watch`, `cache_Close`).
 - **What the cache's results rest on** (closed 2026-10-09: the four `sorry`s below are gone,

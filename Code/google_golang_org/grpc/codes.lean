@@ -52,11 +52,13 @@ axiom Aborted [FfiSyntax] [GoGlobalContext] : val
 
 axiom OutOfRange [FfiSyntax] [GoGlobalContext] : val
 
-axiom Unimplemented [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Unimplemented [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 12)
 
 axiom Internal [FfiSyntax] [GoGlobalContext] : val
 
-axiom Unavailable [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Unavailable [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 14)
 
 axiom DataLoss [FfiSyntax] [GoGlobalContext] : val
 

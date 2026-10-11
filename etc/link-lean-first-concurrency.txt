@@ -35,7 +35,7 @@ Version:
 CreateRevision:
 ModRevision:
 LeaseValue:
-Compare: Cmp__Clone Cmp__ensureCompare mustInt64 mustInt64orLeaseID
+v3_Compare: Cmp__Clone Cmp__ensureCompare mustInt64 mustInt64orLeaseID
 Cmp__WithRange: Cmp__Clone Cmp__ensureCompare
 Compare__GetKey:
 Cmp__WithPrefix: Cmp__Clone Cmp__ensureCompare Compare__GetKey getPrefix
@@ -56,3 +56,68 @@ Session__Ctx:
 Session__Done:
 Session__Orphan:
 Session__Close: Session__Orphan
+# clientv3's single-key gets and watches, and the transaction's range responses, for Mutex.
+OpGet: IsOptsWithPrefix IsOptsWithFromKey Op__applyOpts
+WithRev:
+WithSerializable:
+rpctypes_Error:
+status_Error:
+WatchResponse__Err: rpctypes_Error status_Error
+ResponseOp__GetResponseRange:
+# Mutex (client/v3/concurrency/mutex.go, key.go), see InvMutex.lean. lockerMutex's Lock and Unlock
+# panic on any error (their specs' panic outcome).
+NewMutex:
+Mutex__Key:
+Mutex__Header:
+Mutex__IsOwner: CreateRevision v3_Compare
+NewLocker: NewMutex
+waitDelete: WithRev WatchResponse__Err
+waitDeletes: WithLastCreate WithMaxCreateRev waitDelete
+Mutex__tryAcquire: Session__Client Session__Lease CreateRevision v3_Compare v3_WithLease OpPut OpGet WithFirstCreate ResponseOp__GetResponseRange
+Mutex__Unlock: Session__Client
+Mutex__TryLock: Mutex__tryAcquire ResponseOp__GetResponseRange Session__Client
+Mutex__Lock: Mutex__tryAcquire ResponseOp__GetResponseRange Session__Client waitDeletes Client__Ctx Mutex__Unlock
+lockerMutex__Lock: Session__Client Client__Ctx Mutex__Lock
+lockerMutex__Unlock: Session__Client Client__Ctx Mutex__Unlock
+# Election (client/v3/concurrency/election.go), see InvElection.lean.
+NewElection:
+ResumeElection:
+Election__Key:
+Election__Rev:
+Election__Header:
+Election__Leader: Session__Client WithFirstCreate
+Election__Resign: Session__Client CreateRevision v3_Compare OpDelete
+Election__Proclaim: Session__Client CreateRevision v3_Compare Session__Lease v3_WithLease OpPut
+Election__Campaign: Session__Client Session__Lease CreateRevision v3_Compare v3_WithLease OpPut OpGet ResponseOp__GetResponseRange Election__Proclaim Election__Resign waitDeletes Client__Ctx
+Election__observe: Session__Client WithFirstCreate WithRev WithPrefix WatchResponse__Err
+Election__Observe: Election__observe
+# STM (client/v3/concurrency/stm.go), see InvSTM.lean. The STM's abort (`panic(stmError{err})`)
+# is a panic outcome of fetch and the commits, which runSTM's deferred literal recovers.
+WithIsolation:
+WithAbortContext:
+WithPrefetch:
+isKeyCurrent: ModRevision v3_Compare
+respToValue:
+readSet__add: ResponseOp__GetResponseRange
+readSet__first:
+readSet__cmps: isKeyCurrent
+writeSet__get:
+writeSet__cmps: ModRevision v3_Compare
+writeSet__puts:
+stmSerializable__gets: OpGet
+stm__reset:
+stm__Put: OpPut
+stm__Del: OpDelete
+stm__fetch: OpGet ResponseOp__GetResponseRange readSet__add
+stm__Get: writeSet__get stm__fetch respToValue
+stm__Rev: stm__fetch
+stmSerializable__Get: writeSet__get stm__fetch respToValue WithRev WithSerializable
+stmSerializable__Rev: stmSerializable__Get stm__Rev
+stm__commit: writeSet__puts
+stmSerializable__commit: stmSerializable__gets writeSet__puts readSet__add
+mkSTM: readSet__cmps readSet__first writeSet__cmps stm__Get stm__Put stm__Rev stm__Del stm__commit stm__reset stmSerializable__Get stmSerializable__Rev stmSerializable__commit WithSerializable
+runSTM:
+NewSTM: Client__Ctx mkSTM runSTM
+NewSTMRepeatable: NewSTM WithAbortContext WithIsolation
+NewSTMSerializable: NewSTM WithAbortContext WithIsolation
+NewSTMReadCommitted: NewSTM WithAbortContext WithIsolation

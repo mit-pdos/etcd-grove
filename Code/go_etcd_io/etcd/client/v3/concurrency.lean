@@ -2143,8 +2143,10 @@ noncomputable def runSTM.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "outc" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv stmResponse.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.sendrecv stmResponse.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$go" (Lam BAnon
-  (App (Val wrapDefer)
+  (App (App (Val wrapDeferRecover) (Lam BAnon
+  (Val #())))
   (Lam "$defer"
+  (Lam "$panic"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -2186,7 +2188,8 @@ noncomputable def runSTM.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.recover []))) (Val #())) (Val #()))
+  (Let "$r0" (App (Val recoverPanic)
+  (Var "$panic"))
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [])))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.InterfaceType [])))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "r")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.InterfaceType [])))) (Val UntypedNil))))))
@@ -2223,7 +2226,7 @@ noncomputable def runSTM.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
   (Lam BAnon
   (Seq (App (Var "$f") (Val #()))
-  (App (Var "$oldf") (Val #()))))))))))))))
+  (App (Var "$oldf") (Val #())))))))))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Fst (App (Val (chan.receive stmResponse.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv stmResponse.ty)))) (Var "outc"))))
   (Let "r" (App (Val (GoInstruction (GoAlloc stmResponse.ty))) (App (Val (GoInstruction (GoZeroVal stmResponse.ty))) (Val #())))

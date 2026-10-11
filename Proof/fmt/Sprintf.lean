@@ -25,8 +25,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 (`Perennial/TrustedCode/fmt.lean`). -/
 theorem fmt.Sprintf.wp_proof : fmt.Sprintf.spec (GF := GF) (hG := hG) := by
   intro format args xs dq
-  iintro %Φ ⟨#Hpkg, Hargs⟩ HΦ
-  wp_apply _root_.Perennial.fmt.wp_Sprintf format args as %s _
+  iintro %Φ ⟨#Hpkg, Hargs, %Hwf⟩ HΦ
+  wp_apply _root_.Perennial.fmt.wp_Sprintf format args xs dq Hwf $$ [$Hargs] as %s ⟨Hargs, -⟩
   iapply HΦ $$ Hargs
 
 #check @fmt.Sprintf.wp_proof

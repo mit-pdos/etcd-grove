@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.google_golang_org.grpc.internal.status
 public import Perennial.Golang.Theory
 public import Code.google_golang_org.grpc.status
 

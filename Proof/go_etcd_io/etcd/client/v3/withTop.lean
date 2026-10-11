@@ -39,11 +39,12 @@ theorem withTop.wp_proof (wp_WithPrefix : WithPrefix.spec (GF := GF) (hG := hG))
   wp_apply wp_slice_literal (l := [f0, f1, f2])
   isplitr
   · ipureintro; rfl
-  iintro %sl ⟨Hsl, -⟩
+  iintro %sl ⟨Hsl, Hcap⟩
   ipersist Hsl
   wp_auto
   imodintro
   iapply HΦ
+  iframe Hcap
   unfold optsAt
   iexists [f0, f1, f2]
   iframe Hsl

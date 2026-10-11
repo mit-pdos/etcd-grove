@@ -30,7 +30,9 @@ a project.  Needs a built project (`lake build`) and `go` (to parse the Go sourc
                   specs may be assumed or unfinished;
                   "sorry-free" counts this repository's verified functions whose
                   linked result reaches no `sorry` at all;
-  * unfinished -- it has a spec whose proof has a `sorry` of its own;
+  * unfinished -- it has a spec whose proof has a `sorry` of its own, or whose linked result
+                  rests on a function specified but not proved yet (a hypothesis of its
+                  Link's `links_pending`, `etc/gen-link.py`);
   * assumed    -- its spec is an axiom (the trust boundary);
   * translated -- Goose translates it, but nothing specifies it;
   * not translated.
@@ -99,6 +101,8 @@ def link_project(mod):
 LINKS = {m: link_project(m) for m in proof_roots.link_modules()}
 # The namespace each Link names its results in, beyond `NS` (etc/proof_roots.py).
 LINK_NS = {m: proof_roots.link_namespace(m) for m in LINKS}
+# The linked results resting on a function specified but not proved yet (`links_pending`).
+LINK_PENDING = {m: proof_roots.link_pending(m) for m in LINKS}
 # The qualifiers of the packages Goose translates (`v3`, `zap`, `proto`, …).
 QUALIFIERS = {pkg.rsplit("/", 1)[-1].replace("-", "_").replace(".", "_")
               for p in goose.PROJECTS for _, _, pkgs, _ in goose.pieces(p) for pkg in pkgs}
@@ -122,6 +126,8 @@ def git(cwd, *args):
 
 
 def fork(p):
+    if p.local is not None:
+        return p.local
     return p.repo.removeprefix("https://github.com/")
 
 
@@ -247,9 +253,13 @@ def local_proofs(objs):
         fn = ".".join(pre + [last.removeprefix("wp_")])
         inherited = {s for u in r["uses"] if u in roots for s in roots[u]["sorries"]}
         own = set(r["sorries"]) - inherited
-        if f"{NS}{fn}.wp_proof" in axioms:
+        # a spec of another package not among the qualifiers (`leasing.strings.Compare`, an axiom
+        # `strings.Compare.wp_proof` outside the Link's namespace)
+        bare = fn.removeprefix(lns) if lns and fn.startswith(lns) else fn
+        pend = n.removeprefix(NS).removeprefix(lns) in LINK_PENDING[r["module"]]
+        if f"{NS}{fn}.wp_proof" in axioms or f"{NS}{bare}.wp_proof" in axioms:
             state = "assumed"
-        elif own:
+        elif own or pend:
             state = "unfinished"
         else:
             state = "verified"
@@ -288,6 +298,12 @@ def resolve_local(fn, pkgs, part_pkgs, by_key, known):
         return None
     for pkg in pkgs:
         key = (pkg, parts[0], parts[1]) if len(parts) == 2 else (pkg, "", parts[0])
+        if key in by_key or key in known:
+            return key, False
+    # qualified by the main package's own qualifier (the register's `register.Register.Put`)
+    if len(parts) in (2, 3) and parts[0] == qualifier(pkgs[0]):
+        rest = parts[1:]
+        key = (pkgs[0], rest[0], rest[1]) if len(rest) == 2 else (pkgs[0], "", rest[0])
         if key in by_key or key in known:
             return key, False
     return None
