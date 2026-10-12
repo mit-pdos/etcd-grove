@@ -8,12 +8,33 @@ hand.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewKVServer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkDeleteRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkIntervals
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkPutRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkRangeRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkRangeStreamRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkRequestOp
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkTxnRequest
 public import Proof.errors.Is
+public import Proof.errors.IsDeadlineExceeded
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.headerFillingRangeStream__Send
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header__fill
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header__fillWithoutRevision
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__DeleteRange
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Put
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Range
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Txn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newHeader
 public import Proof.google_golang_org.grpc.status.Error
 public import Proof.google_golang_org.grpc.status.Errorf
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base
+public import Spec.go_etcd_io.etcd.pkg.v3.adt.NewIntervalTree
+public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__InsertAny
+public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Intersects
+public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Union
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Link
 
 @[expose] public section
@@ -33,19 +54,107 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-theorem errors.wp_Is :
-    EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.errors.Is.wp_proof
+theorem wp_newHeader :
+    EtcdGrove.v3rpc.newHeader.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.newHeader.wp_proof
 
-theorem status.wp_Error :
-    EtcdGrove.status.Error.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.status.Error.wp_proof
+theorem wp_NewKVServer :
+    EtcdGrove.v3rpc.NewKVServer.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.NewKVServer.wp_proof wp_newHeader
+
+theorem wp_checkDeleteRequest :
+    EtcdGrove.v3rpc.checkDeleteRequest.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.checkDeleteRequest.wp_proof
+
+theorem wp_checkPutRequest :
+    EtcdGrove.v3rpc.checkPutRequest.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.checkPutRequest.wp_proof
+
+theorem wp_checkRangeRequest :
+    EtcdGrove.v3rpc.checkRangeRequest.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.checkRangeRequest.wp_proof
 
 theorem status.wp_Errorf :
     EtcdGrove.status.Errorf.spec (GF := GF) (hG := hG) :=
   EtcdGrove.status.Errorf.wp_proof
 
+theorem wp_checkRangeStreamRequest :
+    EtcdGrove.v3rpc.checkRangeStreamRequest.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.checkRangeStreamRequest.wp_proof wp_checkRangeRequest txn.wp_IsDefaultOrdering txn.wp_HasRevisionFilters status.wp_Errorf
+
+theorem wp_checkTxnRequest :
+    EtcdGrove.v3rpc.checkTxnRequest.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.checkTxnRequest.wp_proof wp_checkRangeRequest wp_checkPutRequest wp_checkDeleteRequest
+
+theorem wp_checkRequestOp :
+    EtcdGrove.v3rpc.checkRequestOp.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.checkRequestOp.wp_proof wp_checkRangeRequest wp_checkPutRequest wp_checkDeleteRequest wp_checkTxnRequest
+
+theorem errors.wp_Is :
+    EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.Is.wp_proof
+
+theorem errors.wp_IsDeadlineExceeded :
+    EtcdGrove.errors.IsDeadlineExceeded.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.IsDeadlineExceeded.wp_proof
+
+theorem header.wp_fillWithoutRevision :
+    EtcdGrove.v3rpc.header.fillWithoutRevision.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.header.fillWithoutRevision.wp_proof
+
+theorem headerFillingRangeStream.wp_Send :
+    EtcdGrove.v3rpc.headerFillingRangeStream.Send.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.headerFillingRangeStream.Send.wp_proof header.wp_fillWithoutRevision
+
+theorem header.wp_fill :
+    EtcdGrove.v3rpc.header.fill.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.header.fill.wp_proof header.wp_fillWithoutRevision
+
+theorem status.wp_Error :
+    EtcdGrove.status.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.status.Error.wp_proof
+
+theorem wp_togRPCError :
+    EtcdGrove.v3rpc.togRPCError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.togRPCError.wp_proof errors.wp_Is errors.wp_IsDeadlineExceeded status.wp_Error
+
+theorem kvServer.wp_DeleteRange :
+    EtcdGrove.v3rpc.kvServer.DeleteRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.kvServer.DeleteRange.wp_proof wp_checkDeleteRequest wp_togRPCError header.wp_fill
+
+theorem kvServer.wp_Put :
+    EtcdGrove.v3rpc.kvServer.Put.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.kvServer.Put.wp_proof wp_checkPutRequest wp_togRPCError header.wp_fill
+
+theorem kvServer.wp_Range :
+    EtcdGrove.v3rpc.kvServer.Range.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.kvServer.Range.wp_proof wp_checkRangeRequest wp_togRPCError header.wp_fill
+
 end links
+
+/-! The results that reach a function specified but not proved yet (a later unit's):
+its spec is a hypothesis (`h_<fn>`) of each of them. -/
+section links_pending
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable (h_adt_NewIntervalTree : EtcdGrove.adt.NewIntervalTree.spec (GF := GF) (hG := hG))
+variable (h_adt_intervalTree__InsertAny : EtcdGrove.adt.intervalTree.InsertAny.spec (GF := GF) (hG := hG))
+variable (h_adt_intervalTree__Intersects : EtcdGrove.adt.intervalTree.Intersects.spec (GF := GF) (hG := hG))
+variable (h_adt_intervalTree__Union : EtcdGrove.adt.intervalTree.Union.spec (GF := GF) (hG := hG))
+include h_adt_NewIntervalTree h_adt_intervalTree__InsertAny h_adt_intervalTree__Intersects h_adt_intervalTree__Union
+
+theorem wp_checkIntervals :
+    EtcdGrove.v3rpc.checkIntervals.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.checkIntervals.wp_proof h_adt_NewIntervalTree adt.wp_NewStringAffineInterval adt.wp_NewStringAffinePoint h_adt_intervalTree__InsertAny h_adt_intervalTree__Intersects h_adt_intervalTree__Union
+
+theorem kvServer.wp_Txn :
+    EtcdGrove.v3rpc.kvServer.Txn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.kvServer.Txn.wp_proof wp_checkTxnRequest (wp_checkIntervals h_adt_NewIntervalTree h_adt_intervalTree__InsertAny h_adt_intervalTree__Intersects h_adt_intervalTree__Union) wp_togRPCError header.wp_fill
+
+end links_pending
 
 end v3rpc
 end EtcdGrove

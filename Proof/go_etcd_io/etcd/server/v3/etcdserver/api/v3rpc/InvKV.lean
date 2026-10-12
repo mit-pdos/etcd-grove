@@ -10,8 +10,12 @@ oneof the wrapper of `u`'s kind holding a non-nil request that denotes it (`txn.
 `ReqOp.empty`. A `nil` `*pb.RequestOp` or a wrapper holding a `nil` request is left out: the
 checks dereference both (`u.Request`, `r.Key`), and protobuf-go never decodes either. As the
 txn package's `requestOpIs`, but keeping a put's value and lease (what `checkPutRequest`
-reads) and the empty oneof (what `checkRequestOp` rejects); `reqOpsIs_requestOpsIs` gives the
-txn package's predicate of a request whose operations are all non-empty.
+reads) and the empty oneof (what `checkRequestOp` rejects); `reqOpsIs_requestOpsIs`
+(`CheckLemmas.lean`) gives the txn package's predicate of a request whose operations are all
+non-empty. **Off the wire** (`reqOpsWire`, `txnReqWire`): every delete's `RangeEnd` is `nil` or
+not empty, as protobuf-go decodes it; `checkIntervals` reads an empty one as a point
+(`len == 0`), the model (`txn.rangeEndOf`, as mvcc) an empty non-`nil` one as no upper bound, so
+`checkIntervals`' spec takes it.
 
 **The response header** (`hdrW`, `hdrRevIn`, `hdrRevOut`, `hdrFilled`): `header.fill(rh)`
 writes `rh`'s `ClusterId`, `MemberId`, `RaftTerm` and `LeaderId` (owned: `hdrW`), and its
@@ -159,6 +163,59 @@ def txnReqIs (rt : Loc) (cs : List CmpModel) (ts es : List ReqOp) : IProp GF :=
 instance txnReqIs_persistent (rt : Loc) (cs : List CmpModel) (ts es : List ReqOp) :
     Persistent (txnReqIs (GF := GF) rt cs ts es) := by
   unfold txnReqIs; infer_instance
+
+mutual
+/-- **The deletes' range ends are as decoded from the wire** (persistent): every delete of the
+operation `u` at `p` (at any depth) has a `RangeEnd` that is `nil` or not empty. Protobuf-go
+decodes an empty `bytes` field as `nil`; an empty non-`nil` `RangeEnd` (built in memory) denotes
+`[0]` (`txn.rangeEndOf`, as mvcc reads it) but `checkIntervals` reads it as a point (`len == 0`),
+so without this `ivCheck`'s `delIvl` would not be the code's interval. Stated over the fields'
+points-tos (whatever they hold), as a wand, so that it composes with `reqOpIs`. -/
+def reqOpWire (p : Loc) : ReqOp → IProp GF
+  | .delete _ => iprop(□ ∀ (w r : Loc) (esl : GoSlice),
+      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestDeleteRange.ty) #w :
+          GoInterface) -∗
+      structFieldRef etcdserverpb.RequestOp_RequestDeleteRange go!"RequestDeleteRange" w ↦□ r -∗
+      structFieldRef etcdserverpb.DeleteRangeRequest go!"RangeEnd" r ↦□ esl -∗
+      ⌜esl = slice.nil ∨ esl.len ≠ W64 0⌝)
+  | .txn _ ts es => iprop(□ ∀ (w r : Loc) (ssl fsl : GoSlice) (sps fps : List Loc),
+      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestTxn.ty) #w :
+          GoInterface) -∗
+      structFieldRef etcdserverpb.RequestOp_RequestTxn go!"RequestTxn" w ↦□ r -∗
+      structFieldRef etcdserverpb.TxnRequest go!"Success" r ↦□ ssl -∗ ssl ↦*□ sps -∗
+      structFieldRef etcdserverpb.TxnRequest go!"Failure" r ↦□ fsl -∗ fsl ↦*□ fps -∗
+      reqOpsWire sps ts ∗ reqOpsWire fps es)
+  | _ => iprop(True)
+
+/-- `reqOpWire` of each operation. -/
+def reqOpsWire : List Loc → List ReqOp → IProp GF
+  | [], [] => iprop(True)
+  | p :: ps, u :: us => iprop(reqOpWire p u ∗ reqOpsWire ps us)
+  | _, _ => iprop(True)
+end
+
+instance reqOpWire_persistent (p : Loc) (u : ReqOp) : Persistent (reqOpWire (GF := GF) p u) := by
+  cases u <;> unfold reqOpWire <;> infer_instance
+
+instance reqOpsWire_persistent (ps : List Loc) (us : List ReqOp) :
+    Persistent (reqOpsWire (GF := GF) ps us) := by
+  induction us generalizing ps with
+  | nil => cases ps <;> unfold reqOpsWire <;> infer_instance
+  | cons u us ih => cases ps <;> unfold reqOpsWire <;> infer_instance
+
+/-- **The transaction `rt`'s deletes are as decoded from the wire** (`reqOpsWire`, what
+`checkIntervals` needs: a delete's `RangeEnd` is `nil` or not empty), in both branches. -/
+def txnReqWire (rt : Loc) (ts es : List ReqOp) : IProp GF :=
+  iprop(□ ∀ (ssl fsl : GoSlice) (sps fps : List Loc),
+    structFieldRef etcdserverpb.TxnRequest go!"Success" rt ↦□ ssl -∗ ssl ↦*□ sps -∗
+    structFieldRef etcdserverpb.TxnRequest go!"Failure" rt ↦□ fsl -∗ fsl ↦*□ fps -∗
+    reqOpsWire sps ts ∗ reqOpsWire fps es)
+
+instance txnReqWire_persistent (rt : Loc) (ts es : List ReqOp) :
+    Persistent (txnReqWire (GF := GF) rt ts es) := by
+  unfold txnReqWire; infer_instance
 
 /-! ## The errors -/
 

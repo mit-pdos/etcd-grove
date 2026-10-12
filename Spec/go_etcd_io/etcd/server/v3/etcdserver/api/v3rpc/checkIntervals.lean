@@ -30,10 +30,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- **`checkIntervals(reqs)`** of the operations `us`: as `ivCheck` computes it. On `nil`, the
 map's keys are `ivCheck`'s puts and the tree (an owned `*intervalTree`) holds, in some order,
-`ivCheck`'s deletes; otherwise `ErrGRPCDuplicateKey`. -/
+`ivCheck`'s deletes; otherwise `ErrGRPCDuplicateKey`. The deletes' range ends as off the wire
+(`reqOpsWire`). -/
 abbrev v3rpc.checkIntervals.spec : Prop :=
   ∀ (sl : GoSlice) (ps : List Loc) (us : List v3rpc.ReqOp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ sl ↦*□ ps ∗ v3rpc.reqOpsIs ps us }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ sl ↦*□ ps ∗ v3rpc.reqOpsIs ps us ∗
+      v3rpc.reqOpsWire ps us }}
     (App (Val (@! v3rpc.checkIntervals)) (Val #sl))
   {{ (m : Loc) (t err : GoInterface), RET (PairV (PairV #m #t) #err);
       match v3rpc.ivCheck us with
