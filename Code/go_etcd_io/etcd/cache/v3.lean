@@ -3664,7 +3664,7 @@ noncomputable def ringBuffer.findFirstIndexGreaterOrEqual.impl [FfiSyntax] [GoGl
   (App (Val (GoInstruction (GoLoad go.int))) (Var "left")))))
   (App (App (App (Val doFor) (Lam BAnon
   (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "left")) (App (Val (GoInstruction (GoLoad go.int))) (Var "right")))))) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoOp GoShiftr go.uint))) (Pair (App (Val (GoInstruction (Convert go.int go.uint))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "left")) (App (Val (GoInstruction (GoLoad go.int))) (Var "right"))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint))) (Val #(1 : Int))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoOp GoShiftr go.uint))) (Pair (App (Val (GoInstruction (Convert go.int go.uint))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "left")) (App (Val (GoInstruction (GoLoad go.int))) (Var "right"))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(1 : Int))))))
   (Let "mid" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "mid"))
@@ -3707,7 +3707,7 @@ noncomputable def ringBuffer.findLastIndexLessOrEqual.impl [FfiSyntax] [GoGlobal
   (App (Val (GoInstruction (GoLoad go.int))) (Var "right")))))
   (App (App (App (Val doFor) (Lam BAnon
   (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "left")) (App (Val (GoInstruction (GoLoad go.int))) (Var "right")))))) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoOp GoShiftr go.uint))) (Pair (App (Val (GoInstruction (Convert go.int go.uint))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "left")) (App (Val (GoInstruction (GoLoad go.int))) (Var "right"))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint))) (Val #(1 : Int))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoOp GoShiftr go.uint))) (Pair (App (Val (GoInstruction (Convert go.int go.uint))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "left")) (App (Val (GoInstruction (GoLoad go.int))) (Var "right"))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(1 : Int))))))
   (Let "mid" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "mid"))
