@@ -3005,3 +3005,48 @@ transaction's range is `storeTxnWrite.Range`'s, `TxnKind.readLog`/`readRev`), an
 `rangeCtx todo ctx cd` (an `isContext`, or `context.TODO()`'s value) with `todo = true → r ≠ null`
 in the post (`TxnRange.lean`); the old statements are the instances `kind := .read …`, `todo :=
 false`. `metricsTxnWrite.Range` links `storeTxnWrite.Range` too.
+
+## mvcc: the batch lock runs the hook
+
+**2026-10-12 · adopted** (the server's apply package, unit A; plan: the apply package's
+"The hook through mvcc"; `notes/STATUS.md`, "Unit A: the hook through mvcc")
+
+The real backend's `batchTx.LockInsideApply` runs the server's `txPostLockInsideApplyHook`
+under the lock (`backend/batch_tx.go`). The server's protocol (`apply.Apply.spec`,
+`InvApplier.lean`: `hook_set_au` is the hook's triple, `writes_done` the caller's update)
+assumes the applier's writes happen in one critical section that runs the hook first; mvcc's
+backend contract had `LockInsideApply : {True} … {Locked [] ∗ W}`, no hook, so the server
+could not be proved of the real write path. The contract now carries it, in the shape of
+`apply.Apply.spec`:
+
+- **The backend** (`batchTxSpec bt View W Locked P f`, `isBatchTx … P f`, `isKeyBackend b View
+  W P f`): the lock's invariant is `W ∗ P` (`W` the store's resource, from `NewStore`'s first
+  `Unlock`; `P` the backend's from its creation); `LockInsideApply : ∀ Pre Q, {Pre ∗ □ {P ∗ Pre}
+  f() {Q}} … {Locked [] ∗ W ∗ Q}` (the hook `f : val`, called `App (Val f) (Val #())`, runs on
+  the caller's `Pre` under the lock); both `Unlock` triples take `P` back;
+  `LockOutsideApply : {True} … {Locked [] ∗ P}` (no hook: the hook is nil when `NewStore` runs,
+  the server sets it later, `server.go:412`; `P` is handed out so that `NewStore`'s `Unlock` can
+  return it).
+- **The store records `P f`**: `StoreNames` gains `hook` (a saved proposition of `P`,
+  discarded) and `hookFn` (a `dghostVar` of `f`, discarded; `val` is countable); `hookIs γ P f`
+  (persistent) is both. `isStore s γ` holds `∃ P f, hookIs γ P f ∗ isKeyBackend b … P f`, so its
+  arity is unchanged and no spec that ignores the hook changed. `NewStore` takes the backend's
+  contract at any `P f` and returns `hookIs γ P f`. Two views agree (`hookIs_agree`: `f = f'`,
+  `▷ (P ≡ P')`); `hookIs_agree_lc` spends a later credit for `□ (P -∗ P') ∗ □ (P' -∗ P)` now
+  (`store.Write` and `storeTxnWrite.End` take one from their first pure steps).
+- **The write path**: `store.Write` takes `hookIs γ P f ∗ Pre ∗ □ {P ∗ Pre} f() {Q}` and returns
+  `Q` beside `isTxnWrite`; `storeTxnWrite.End` takes `hookIs γ P f ∗ P`; `metricsTxnWrite.End`
+  takes `txnEndPre γ kind` (`True` for a read, `∃ P f, hookIs γ P f ∗ P` for a write;
+  `txnEndPre_write`). `csContract P f Pre Q Post := Pre ∗ □ {P ∗ Pre} f() {Q} ∗ (Q ={⊤}=∗ P ∗
+  Post)` (the three conjuncts of `apply.Apply.spec`) is what a writing call takes:
+  `writeView.Put`/`DeleteRange` and txn's `Put`/`DeleteRange`/`Txn` return `Post` iff they opened a
+  write transaction, else `Pre` (`Put`'s lease check, `Txn`'s failed check or read-only request).
+  The caller's update is applied right after `Write` (ghost: the writes are the caller's model,
+  `writes_done`), before `End`.
+- **The no-hook instance**: `P := True`, `f` a no-op, `Q = Post = Pre` (`csContract_noHook`).
+  The results (mvcc's, txn's sole-writer corollaries) are stated at any `P f Pre Q Post`.
+
+*Rejected:* `P f` as parameters of `isStore` (some 40 spec files would change for nothing);
+the hook's effect folded into `W` (the hook needs the caller's `Pre`, which is per call: it has
+to be in the lock's triple). *Considered:* `Unlock` taking `▷ P` (Perennial's `Mutex.Unlock`
+convention), which would spare `End` its credit; kept `P`, the form `apply.Apply.spec` uses.
