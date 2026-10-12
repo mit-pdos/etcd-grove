@@ -194,6 +194,13 @@ def dbOK (σ : DBState) (v0 v1 : internal.common.Meta) : Prop :=
   σ.fl.readonly.Perm (σ.readers.toList.map (·.2.txid)) ∧
   σ.readers.size < Int.toNat rwmutex.actualMaxReaders ∧ writerOK σ
 
+/-- The database's part of its `freelist` field: all of it, or half if a writer is open (which
+holds the other half: it frees and allocates pages through it). -/
+def flfQ (rwtx : Loc) : Qp := if rwtx = null then 1 else halfQ
+
+theorem flfQ_null : flfQ null = halfQ + halfQ := by
+  simp [flfQ, halfQ, Qp.half_add_half]
+
 /-- The caller's half of the mapped cells after the whole slots (inside the file): no reader
 sees them, and a remap gives them back with the slots (`munmap` takes the whole mapping). -/
 def mapTail (data : Loc) (bs : List w8) (sz ps : Nat) : IProp GF :=
@@ -226,6 +233,7 @@ def ownDB (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DBState) : IP
       dv.logger' = interface.mkOk (go.GoType.PointerType DefaultLogger.ty) #dl⌝ ∗
     "Hplain" ∷ dbPlain dbl (DFrac.own 1) dv ∗
     "#Hlogger" ∷ structFieldRef DB go!"logger" dbl ↦□ dv.logger' ∗
+    "Hflf" ∷ structFieldRef DB go!"freelist" dbl ↦{DFrac.own (flfQ σ.rwtx)} dv.freelist' ∗
     "Hdata" ∷ structFieldRef DB go!"data" dbl ↦{DFrac.own σ.frem} σ.data ∗
     "Hps" ∷ structFieldRef DB go!"pageSize" dbl ↦{DFrac.own σ.frem} W64 σ.ps ∗
     "#Hfile" ∷ osFile σ.file σ.fd ∗

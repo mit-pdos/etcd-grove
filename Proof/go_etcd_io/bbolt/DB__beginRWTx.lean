@@ -44,7 +44,7 @@ theorem DB.beginRWTx.wp_proof (hinit : Tx.init.spec (GF := GF) (hG := hG)) :
     ileft
     isplitr
     · ipureintro; obtain ⟨t, p, rfl⟩ := Hne; exact fun h => by cases h
-    ihave Hplain : dbPlain dbl (DFrac.own 1) dv $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize Mlock path openFile file dataref datasz meta0 meta1 opened rwtx stats freelist batch ops readOnly]
+    ihave Hplain : dbPlain dbl (DFrac.own 1) dv $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize Mlock path openFile file dataref datasz meta0 meta1 opened rwtx stats batch ops readOnly]
     · simp only [dbPlain]; rw [hro]; iframe
     try simp only [ownDB]
     iexists dv, fls, v0, v1, dl
@@ -100,6 +100,8 @@ theorem DB.beginRWTx.wp_proof (hinit : Tx.init.spec (GF := GF) (hG := hG)) :
     Hwf.2.2.2.2
   have hok1 := dbOK_release σ v0 v1 Hok hw hrng hl fl' Heq
   icases typedPointsto_not_null_dup _ _ _ $$ Ht with ⟨Ht, %Htxl⟩
+  rw [flfQ_null]
+  icases (pointsto_split _ _ halfQ halfQ).1 $$ Hflf with ⟨Hflf, Hflw⟩
   have hok2 := dbOK_addWriter { σ with fl := fl' } v0 v1 hok1 hw «$r0_ptr» Htxl
   ihave Hslots := Hmback $$ HM0 HM1
   icases begin_carve { σ with fl := fl' } v0 v1 hok1 0 dbl $$ [Hslots Hdata Hps]
@@ -112,25 +114,32 @@ theorem DB.beginRWTx.wp_proof (hinit : Tx.init.spec (GF := GF) (hG := hG)) :
   iexists fl', (newReader { σ with fl := fl' } v0 v1 (beginQ { σ with fl := fl' })), v0, v1
   isplitr
   · ipureintro; exact Heq
-  isplitr [Ht Hml Hibl Hmaps Hdq Hpsq Hpages]
+  isplitr [Ht Hml Hibl Hmaps Hdq Hpsq Hpages Hflw]
   · iexists { dv with rwtx' := «$r0_ptr» }, fls, v0, v1, dl
     isplitr
     · ipureintro
       exact ⟨Hdata', Hps', Hdsz, Hm0, Hm1, Hopen, Hfile', Hfl', rfl, Hdbl⟩
     isplitr
     · ipureintro; exact hok2
-    ihave Hplain : dbPlain dbl (DFrac.own 1) { dv with rwtx' := «$r0_ptr» } $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize Mlock path openFile file dataref datasz meta0 meta1 opened rwtx stats freelist batch ops readOnly]
+    ihave Hplain : dbPlain dbl (DFrac.own 1) { dv with rwtx' := «$r0_ptr» } $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize Mlock path openFile file dataref datasz meta0 meta1 opened rwtx stats batch ops readOnly]
     · simp only [dbPlain]
       try simp only
-      rw [Hopen, Hfl', hro]; simp only [FLImpl.iface, interface.mkOk]; iframe
+      rw [Hopen, hro]
+      iframe
     simp only [DBState.addWriter.proj_rwtx, decide_eq_false Htxl, Bool.false_eq_true, ↓reduceIte]
     simp only [DBState.addWriter.proj_data, DBState.addWriter.proj_ps, DBState.addWriter.proj_sz,
       DBState.addWriter.proj_file, DBState.addWriter.proj_fd, DBState.addWriter.proj_bs,
       DBState.addWriter.proj_readers, DBState.addWriter.proj_fl]
+    simp only [flfQ, Htxl, ↓reduceIte]
+    rw [Hfl']
+    simp only [FLImpl.iface, interface.mkOk]
     iframe
     iframe #
     try (ipureintro; exact Hlog)
-  · simp only [wtxInit]
+  · isplitr [Hflw]
+    rotate_left
+    · iframe
+    simp only [wtxInit]
     iexists ml, ibl, pm, bm, nm
     have hq : ∀ (σ' : DBState) (q : Qp), (newReader σ' v0 v1 q).q = q := fun _ _ => rfl
     simp only [hq, show (zero_val Tx).managed' = false from rfl, show (zero_val Tx).db' = null from rfl,
@@ -138,6 +147,7 @@ theorem DB.beginRWTx.wp_proof (hinit : Tx.init.spec (GF := GF) (hG := hG)) :
       show (zero_val Tx).pages' = null from rfl, show (zero_val Tx).stats' = zeroValDef from rfl,
       show (zero_val Tx).commitHandlers' = slice.nil from rfl, show (zero_val Tx).WriteFlag' = 0 from rfl]
     simp only [↓reduceIte] at *
+    try simp only [FLImpl.iface, interface.mkOk]
     iframe
 
 end proof

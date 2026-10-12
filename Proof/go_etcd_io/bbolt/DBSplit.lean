@@ -45,7 +45,6 @@ def dbPlain (dbl : Loc) (dq : DFrac) (dv : DB) : IProp GF :=
     "opened" ∷ structFieldRef DB go!"opened" dbl ↦{dq} dv.opened' ∗
     "rwtx" ∷ structFieldRef DB go!"rwtx" dbl ↦{dq} dv.rwtx' ∗
     "stats" ∷ structFieldRef DB go!"stats" dbl ↦{dq} dv.stats' ∗
-    "freelist" ∷ structFieldRef DB go!"freelist" dbl ↦{dq} dv.freelist' ∗
     "batch" ∷ structFieldRef DB go!"batch" dbl ↦{dq} dv.batch' ∗
     "ops" ∷ structFieldRef DB go!"ops" dbl ↦{dq} dv.ops' ∗
     "readOnly" ∷ structFieldRef DB go!"readOnly" dbl ↦{dq} dv.readOnly')
@@ -61,13 +60,14 @@ def dbSync (dbl : Loc) (dq : DFrac) (dv : DB) : IProp GF :=
     "mmaplock" ∷ structFieldRef DB go!"mmaplock" dbl ↦{dq} dv.mmaplock' ∗
     "statlock" ∷ structFieldRef DB go!"statlock" dbl ↦{dq} dv.statlock')
 
-/-- A `DB` is its fields: those read transactions share, the logger, the synchronization ones,
-the rest. -/
+/-- A `DB` is its fields: those read transactions share, the logger, the freelist, the
+synchronization ones, the rest. -/
 theorem DB_split (dbl : Loc) (dq : DFrac) (dv : DB) :
     (dbl ↦{dq} dv : IProp GF) ⊣⊢
       structFieldRef DB go!"data" dbl ↦{dq} dv.data' ∗
       structFieldRef DB go!"pageSize" dbl ↦{dq} dv.pageSize' ∗
       structFieldRef DB go!"logger" dbl ↦{dq} dv.logger' ∗
+      structFieldRef DB go!"freelist" dbl ↦{dq} dv.freelist' ∗
       dbSync dbl dq dv ∗ dbPlain dbl dq dv ∗ ⌜dbl ≠ null⌝ := by
   rw [typedPointsto_unseal_eq]
   simp only [TypedPointsto.typedPointstoDef, dbSync, dbPlain]
@@ -76,7 +76,7 @@ theorem DB_split (dbl : Loc) (dq : DFrac) (dv : DB) :
     iNamed H
     iframe
     ipureintro; exact Hn
-  · iintro ⟨Hd, Hp, Hl, Hs, Hr, %Hn⟩
+  · iintro ⟨Hd, Hp, Hl, Hf, Hs, Hr, %Hn⟩
     iNamed Hs
     iNamed Hr
     iframe

@@ -116,11 +116,13 @@ theorem DB.beginTx.wp_proof (hinit : Tx.init.spec (GF := GF) (hG := hG))
       · ipureintro; exact ⟨Hdata', Hps', Hdsz, Hm0, Hm1, Hopen, Hfile', Hfl', Hrw, Hdbl⟩
       isplitr
       · ipureintro; exact dbOK_addReader σ v0 v1 Hok hsize
-      ihave Hplain : dbPlain dbl (DFrac.own 1) dv $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize Mlock path openFile file dataref datasz meta0 meta1 opened rwtx stats freelist batch ops readOnly]
+      ihave Hplain : dbPlain dbl (DFrac.own 1) dv $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize Mlock path openFile file dataref datasz meta0 meta1 opened rwtx stats batch ops readOnly]
       · simp only [dbPlain]
-        rw [Hopen, Hfl']
-        simp only [FLImpl.iface, interface.mkOk]
+        rw [Hopen]
         iframe
+      simp only [DBState.addReader.proj_rwtx]
+      rw [Hfl']
+      simp only [FLImpl.iface, interface.mkOk]
       iframe
       ihave Htoks := (show (mmapTok (GF := GF) γ.mmap sync.rfrac ∗
           [∗map] _r ∈ σ.readers, mmapTok (GF := GF) γ.mmap sync.rfrac) ⊢
