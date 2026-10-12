@@ -36,17 +36,19 @@ views, all the reader slots of its locks (`storeReader`, one per slot) and the r
   at its first `tx.Unlock()`.
 * The lessor's ghost name `γl` (its granted leases) is its own: the lessor exists before the
   store.
+* The backend's batch lock has invariant `P` and runs the post-lock hook `f` (`isKeyBackend`'s
+  `P f`, any); the store records them (`hookIs`, returned), for its writers.
 * A `nil` logger is replaced by `zap.NewNop()`'s; the configuration `cfg` is not modelled. -/
 abbrev mvcc.NewStore.spec : Prop :=
-  ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (γb γl : GName),
+  ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (γb γl : GName) (P : IProp GF) (f : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb⌝ →
-        mvcc.isKeyBackend b (mvcc.bucketView γ) (mvcc.writerRes s γ)) ∗
+        mvcc.isKeyBackend b (mvcc.bucketView γ) (mvcc.writerRes s γ) P f) ∗
       ghostMapAuth γb 1 (∅ : mvcc.Bucket) ∗ mvcc.isLessor le γl }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
       (Val #b)) (Val #le)) (Val #cfg))
   {{ (s : Loc), RET #s; ∃ γ : mvcc.StoreNames, ⌜γ.bucket = γb ∧ γ.leases = γl⌝ ∗
-      mvcc.isStore s γ ∗
+      mvcc.isStore s γ ∗ mvcc.hookIs γ P f ∗
       (∃ rv wv : Loc,
         s.[store, go!"ReadView"] ↦□
           (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗

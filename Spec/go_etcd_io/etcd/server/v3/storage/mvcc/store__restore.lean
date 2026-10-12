@@ -35,9 +35,10 @@ resource); in the code the write is protected by `s.mu` held exclusively, which 
 `s.mu` (holding nothing) does not express. A backend with data is out of scope (the real
 `restore` would rebuild the index from it). -/
 abbrev mvcc.store.restore.spec : Prop :=
-  ∀ (s : Loc) (γ : mvcc.StoreNames) (b le : GoInterface) (ti lg : Loc) (q : Qp),
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (b le : GoInterface) (ti lg : Loc) (q : Qp) (P : IProp GF)
+    (f : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      s.[store, go!"b"] ↦□ b ∗ mvcc.isKeyBackend b (mvcc.bucketView γ) (mvcc.writerRes s γ) ∗
+      s.[store, go!"b"] ↦□ b ∗ mvcc.isKeyBackend b (mvcc.bucketView γ) (mvcc.writerRes s γ) P f ∗
       mvcc.bucketView γ q ∅ ∗
       s.[store, go!"kvindex"] ↦□
         (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
