@@ -320,6 +320,45 @@ def downgradeInfoSetIs (d : Loc) (dm : DowngradeModel) : IProp GF :=
     structFieldRef membershippb.DowngradeInfoSetRequest go!"Enabled" d ↦□ dm.enabled ∗
     structFieldRef membershippb.DowngradeInfoSetRequest go!"Ver" d ↦□ dm.ver)
 
+instance headerIs_persistent (h : Loc) (hm : HeaderModel) : Persistent (headerIs (GF := GF) h hm) := by
+  unfold headerIs; infer_instance
+
+instance compactionIs_persistent (c : Loc) (rev : w64) : Persistent (compactionIs (GF := GF) c rev) := by
+  unfold compactionIs; infer_instance
+
+instance leaseGrantIs_persistent (l : Loc) (g : LeaseGrantModel) : Persistent (leaseGrantIs (GF := GF) l g) := by
+  unfold leaseGrantIs; infer_instance
+
+instance leaseRevokeIs_persistent (l : Loc) (id : w64) : Persistent (leaseRevokeIs (GF := GF) l id) := by
+  unfold leaseRevokeIs; infer_instance
+
+instance alarmRequestIs_persistent (a : Loc) (am : AlarmModel) : Persistent (alarmRequestIs (GF := GF) a am) := by
+  unfold alarmRequestIs; infer_instance
+
+instance checkpointIs_persistent (c : Loc) (cm : CheckpointModel) : Persistent (checkpointIs (GF := GF) c cm) := by
+  unfold checkpointIs; infer_instance
+
+instance leaseCheckpointIs_persistent (l : Loc) (cms : List CheckpointModel) : Persistent (leaseCheckpointIs (GF := GF) l cms) := by
+  unfold leaseCheckpointIs checkpointIs; infer_instance
+
+instance authenticateIs_persistent (a : Loc) (am : AuthenticateModel) : Persistent (authenticateIs (GF := GF) a am) := by
+  unfold authenticateIs; infer_instance
+
+instance authUserGetIs_persistent (u : Loc) (name : GoString) : Persistent (authUserGetIs (GF := GF) u name) := by
+  unfold authUserGetIs; infer_instance
+
+instance authRoleGetIs_persistent (r : Loc) (role : GoString) : Persistent (authRoleGetIs (GF := GF) r role) := by
+  unfold authRoleGetIs; infer_instance
+
+instance clusterVersionSetIs_persistent (c : Loc) (ver : GoString) : Persistent (clusterVersionSetIs (GF := GF) c ver) := by
+  unfold clusterVersionSetIs; infer_instance
+
+instance memberAttrSetIs_persistent (c : Loc) (m : MemberAttrModel) : Persistent (memberAttrSetIs (GF := GF) c m) := by
+  unfold memberAttrSetIs; infer_instance
+
+instance downgradeInfoSetIs_persistent (d : Loc) (dm : DowngradeModel) : Persistent (downgradeInfoSetIs (GF := GF) d dm) := by
+  unfold downgradeInfoSetIs; infer_instance
+
 /-- An `InternalRaftRequest` field: its value `l` and what it holds. -/
 abbrev irrField (p : Loc) (f : GoString) (Q : Loc → IProp GF) : IProp GF :=
   iprop(∃ l : Loc, structFieldRef etcdserverpb.InternalRaftRequest f p ↦□ l ∗ Q l)
@@ -367,6 +406,19 @@ instance internalRaftRequestIs_persistent (p : Loc) (rq : IRRModel) :
     leaseCheckpointIs checkpointIs authenticateIs authUserGetIs authRoleGetIs clusterVersionSetIs
     memberAttrSetIs downgradeInfoSetIs
   infer_instance
+
+/-- **The `*InternalRaftRequestWrapper` `r`** (not nil; `apply.Apply` builds it): its request
+`rq` and its `SkipRangeExecution` `skip`, read-only. -/
+def irrWrapperIs (r : Loc) (rq : IRRModel) (skip : Bool) : IProp GF :=
+  iprop(⌜r ≠ null⌝ ∗ ∃ p : Loc,
+    structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper
+      go!"InternalRaftRequest" r ↦□ p ∗ internalRaftRequestIs p rq ∗
+    structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.InternalRaftRequestWrapper
+      go!"SkipRangeExecution" r ↦□ skip)
+
+instance irrWrapperIs_persistent (r : Loc) (rq : IRRModel) (skip : Bool) :
+    Persistent (irrWrapperIs (GF := GF) r rq skip) := by
+  unfold irrWrapperIs; infer_instance
 
 end defs
 
