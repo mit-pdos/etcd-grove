@@ -250,7 +250,13 @@ namespace go_etcd_io.etcd.server.v3.etcdserver
 `ErrTimeoutDueToLeaderFail`, `ErrTimeoutDueToConnectionLost` (a proposal's context done), and
 `auth.ErrAuthOldRevision` (`doSerialize`'s stale token). An assumption about those packages'
 initialization (each `var X = errors.New(...)`), stated here rather than in their packages'
-facts, as the apply package's `applyErrVars`. -/
+facts, as the apply package's `applyErrVars`. And (2026-10-12, the request path's unit 3b) a
+method-set fact: `*errors.errorString` (the dynamic type of an `errors.New` error and, in
+Perennial's model, of a `fmt.Errorf` error: `mvcc.errorfIs`) has no `Is`, `As` or `Unwrap`
+method (`EtcdGrove.errLeaf`), as Go's `errors` package defines it (its only method is
+`Error()`); method sets are uninterpreted in the semantics (as Perennial's
+`context.ErrorStringIsError`), so the read side's context errors need it to be errors the gRPC
+layer can take (`applyErrIs`). -/
 abbrev srvErrVars : IProp GF :=
   iprop(EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTooManyRequests ∗
     EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrRequestTooLarge ∗
@@ -259,7 +265,9 @@ abbrev srvErrVars : IProp GF :=
     EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeout ∗
     EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToLeaderFail ∗
     EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToConnectionLost ∗
-    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.auth.ErrAuthOldRevision)
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.auth.ErrAuthOldRevision ∗
+    ⌜∀ x : Loc, EtcdGrove.errLeaf
+      ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩⌝)
 
 /-- **The request path's part of the server package's facts** (2026-10-12; `True` until then): the
 metrics `metrics.go` declares and the request path updates (`requestDurationSec`, a

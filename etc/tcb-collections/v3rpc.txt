@@ -14,6 +14,9 @@
 # (the proposal's: otel, prometheus, traceutil, the transport queries, `MarshalIRR`, the context
 # axioms, `errors.IsCtxErr`, the new `context.ErrDone`); the handlers' own results do not.
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/(Link|Results)\.lean$
+axiom attribute.Bool.wp_proof
+axiom attribute.Int.wp_proof
+axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
 axiom config.ServerConfig.ReqTimeout.wp_proof
 axiom context.ErrDone.wp_proof
@@ -23,9 +26,13 @@ axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom isConnectedSince.wp_proof
 axiom isConnectedToQuorumSince.wp_proof
+axiom membership.RaftCluster.ID.wp_proof
 axiom membership.RaftCluster.Members.wp_proof
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof
+axiom proto.Marshal.wp_proof
 axiom proto.MarshalIRR.wp_proof
+axiom proto.Size.wp_proof
+axiom proto.Unmarshal.wp_proof
 axiom status.Error.wp_proof
 axiom status.Errorf.wp_proof
 axiom strconv.FormatBool.wp_proof
@@ -33,8 +40,23 @@ axiom time.Duration.Seconds.wp_proof
 axiom time.Time.After.wp_proof
 axiom trace.SpanFromContext.wp_proof
 axiom trace.WithAttributes.wp_proof
+axiom traceutil.EnsureTrace.wp_proof
+axiom traceutil.Get.wp_proof
+axiom traceutil.Trace.AddField.wp_proof
 axiom traceutil.Trace.GetStartTime.wp_proof
 axiom traceutil.Trace.InsertStep.wp_proof
 axiom traceutil.Trace.LogIfLong.wp_proof
 axiom traceutil.Trace.SetStartTime.wp_proof
+axiom traceutil.Trace.StartSubTrace.wp_proof
+axiom traceutil.Trace.Step.wp_proof
+axiom traceutil.Trace.StepWithFunction.wp_proof
+axiom traceutil.Trace.StopSubTrace.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
+axiom txn.RangeSecObserve.wp_proof
+axiom txn.WarnOfExpensiveReadOnlyRangeRequest.wp_proof
+axiom txn.WarnOfExpensiveReadOnlyTxnRequest.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Int64.wp_proof
+axiom zap.Logger.Error.wp_proof
+axiom zap.Logger.Panic.wp_proof
+axiom zap.String.wp_proof

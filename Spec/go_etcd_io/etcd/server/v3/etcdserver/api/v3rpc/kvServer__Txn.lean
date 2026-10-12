@@ -33,7 +33,7 @@ at the server's budget `n`, or `ErrGRPCDuplicateKey` from `checkIntervals` of a 
 abbrev v3rpc.kvServer.Txn.spec : Prop :=
   ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid n : w64) (ctx : GoInterface) (r : Loc) (cs : List CmpModel) (ts es : List v3rpc.ReqOp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ v3rpc.kvServerIs p s A cid mid n ∗ A.call ctx ∗ v3rpc.txnReqIs r cs ts es ∗
-      v3rpc.txnReqWire r ts es }}
+      v3rpc.txnReqWire r ts es ∗ ⌜A.pre (.txn cs ts es)⌝ }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.kvServer.ty @!! go!"Txn")) (Val #ctx))
       (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
