@@ -53,10 +53,10 @@ theorem MemoryStorage.Entries.wp_proof
   obtain ⟨Hd0, Hd1⟩ := Hdummy
   wp_if_destruct
   · exfalso; rw [Hd0] at Hif; omega
-  ihave Hf : memstorageFields ms σ $$ [HhardState Hsnapshot Hvoters Hents_f Hents_cap HcallStats]
+  ihave Hf : memstorageFields ms σ $$ [HhardState Hsnapshot Hvoters Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · unfold memstorageFields
-    iexists _, _, _, _, _, _
-    iframe HhardState Hsnapshot Hvoters Hents_f HcallStats Hents Hents_cap
+    iexists _, _, _, _, _, _, _, _, _, _
+    iframe HhardState Hsnapshot Hvoters Hents_f Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hents Hents_cap
     ipureintro
     exact ⟨Hsnap_id, Hd0, Hd1⟩
   wp_apply wp_MemoryStorage_lastIndex ms σ Hpb_inv $$ [$Hf] as %li ⟨%Hli, Hf⟩
@@ -113,10 +113,10 @@ theorem MemoryStorage.Entries.wp_proof
           go.arrayIndexRef_0])
     (by simp only [slice.fullSlice]; word)
     (by simp only [slice.fullSlice]; word) $$ Hs1
-  ihave Hf : memstorageFields ms σ $$ [HhardState Hsnapshot Hvoters Hents_f Hents_cap HcallStats]
+  ihave Hf : memstorageFields ms σ $$ [HhardState Hsnapshot Hvoters Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · unfold memstorageFields
-    iexists _, _, _, _, _, _
-    iframe HhardState Hsnapshot Hvoters Hents_f HcallStats Hents Hents_cap
+    iexists _, _, _, _, _, _, _, _, _, _
+    iframe HhardState Hsnapshot Hvoters Hents_f Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hents Hents_cap
     ipureintro
     exact ⟨Hsnap_id, Hd0', Hd1'⟩
   wp_auto

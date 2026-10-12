@@ -91,9 +91,9 @@ theorem MemoryStorage.Append.wp_proof
   have Hσp : σp = σ := by rw [Hlast] at HD; injection HD with h; exact h.symm
   subst Hσp
   iNamed Hfields_inv
-  ihave Hf : memstorageFields ms σp $$ [HhardState Hsnapshot Hvoters Hents_f Hents Hents_cap HcallStats]
+  ihave Hf : memstorageFields ms σp $$ [HhardState Hsnapshot Hvoters Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · unfold memstorageFields
-    iexists hs, snap, es, dummy, cs, voters
+    iexists hs, snap, es, dummy, nfi, nli, nen, nte, nsn, voters
     iframe
     ipureintro; exact ⟨Hsnap_id, Hdummy⟩
   wp_apply wp_MemoryStorage_firstIndex ms σp Hpb_inv $$ [$Hf] as %fi ⟨%Hfi, Hf⟩
@@ -190,7 +190,7 @@ theorem MemoryStorage.Append.wp_proof
     wp_method_call
     wp_call
     wp_apply sync.Mutex.wp_Unlock
-      $$ [$Hmu $Hlocked Hd_inv HhardState Hsnapshot Hvoters Hents_f Hes'_cap HcallStats]
+      $$ [$Hmu $Hlocked Hd_inv HhardState Hsnapshot Hvoters Hents_f Hes'_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
     · inext
       unfold memstorageInv
       iexists storAbsorb { σp with pend := e0 :: rest }
@@ -201,7 +201,7 @@ theorem MemoryStorage.Append.wp_proof
         ipureintro; simp
       isplitl
       · unfold memstorageFields
-        iexists hs, snap, es', dummy, cs, voters
+        iexists hs, snap, es', dummy, nfi, nli, nen, nte, nsn, voters
         simp only [storAbsorb, storApp_pend, named]
         iframe
         isplitr
@@ -234,7 +234,7 @@ theorem MemoryStorage.Append.wp_proof
     wp_method_call
     wp_call
     wp_apply sync.Mutex.wp_Unlock
-      $$ [$Hmu $Hlocked Hd_inv HhardState Hsnapshot Hvoters Hents_f Hes'_cap HcallStats]
+      $$ [$Hmu $Hlocked Hd_inv HhardState Hsnapshot Hvoters Hents_f Hes'_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
     · inext
       unfold memstorageInv
       iexists storAbsorb { σp with pend := e0 :: rest }
@@ -245,7 +245,7 @@ theorem MemoryStorage.Append.wp_proof
         ipureintro; simp
       isplitl
       · unfold memstorageFields
-        iexists hs, snap, es', dummy, cs, voters
+        iexists hs, snap, es', dummy, nfi, nli, nen, nte, nsn, voters
         simp only [storAbsorb, storApp_pend, named]
         iframe
         isplitr

@@ -41,6 +41,13 @@ NewRawNode: newRaft raft__softState raft__hardState
 # application's side of the pending append.
 MemoryStorage__Append: MemoryStorage__firstIndex
 NewMemoryStorage:
+# The rest of MemoryStorage (storage.go), Lean-first (2026-10-12): the hard state, the
+# snapshots and compaction (memStorMeta, InvMemstorage.lean).
+MemoryStorage__InitialState:
+MemoryStorage__SetHardState:
+MemoryStorage__ApplySnapshot:
+MemoryStorage__CreateSnapshot: MemoryStorage__lastIndex
+MemoryStorage__Compact: MemoryStorage__lastIndex
 # RawNode.Ready split into readyWithoutAccept and acceptReady (rawnode.go), Lean-first
 # (2026-10-10): node.go calls the two apart; Ready (a Rocq-side function) is listed to
 # override its Rocq callees with the two halves.

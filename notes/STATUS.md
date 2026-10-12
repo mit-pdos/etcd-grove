@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-12 (a closed theorem about the register's driver in the operational semantics, `register_adequate`, from Perennial's adequacy; package initialization proved for raft, its subpackages, `context` and the register; the account of every axiom and `sorry` it rests on, see "Adequacy of the register's driver"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
+**Last updated:** 2026-10-12 (raft's `MemoryStorage` complete: `InitialState`, `SetHardState`, `ApplySnapshot`, `CreateSnapshot`, `Compact` specified and proved over `memStorMeta` (the hard state and snapshot, half of each outside the lock), two findings (`CreateSnapshot`'s undocumented range, below the compaction boundary a runtime panic; `InitialState` races, unlocked), see "`MemoryStorage`: the rest of the storage"; a closed theorem about the register's driver in the operational semantics, `register_adequate`, from Perennial's adequacy; package initialization proved for raft, its subpackages, `context` and the register; the account of every axiom and `sorry` it rests on, see "Adequacy of the register's driver"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
 as pinned), the requests and responses as the client model's values (`Requests.lean`), `isKV`,
 `isTxnLessor`, 13 trust-boundary axioms (`sort.Sort`/`Reverse`, traceutil, `proto.Size`,
 `zap.Logger.Panic`, ...), mvcc's read-only write transaction proved, `gen-link.py --txn`, a
@@ -18,6 +18,49 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## `MemoryStorage`: the rest of the storage (2026-10-12)
+
+The five unverified methods of `storage.go` specified and proved (Lean-first, linked in
+`etc/link-lean-first.txt` and the hand-kept `Link.lean`), sorry- and axiom-free
+(`etc/tcb-report.py --roots`):
+
+- **`memStorMeta ms γs hs snap`** (new, `InvMemstorage.lean`): the hard state and the
+  snapshot, which `InitialState` reads *without the lock*, and the `callStats.initialState`
+  counter it increments bare. The lock's invariant now holds half of `hardState` and of
+  `snapshot` (`memstorageFields`; `ptsto_halves`) and the other five counters as separate
+  points-tos (`callStats` was one whole points-to); `memStorMeta` holds the other halves, the
+  `initialState` counter, the mutex and the snapshot's read-only `Voters`. It is separate from
+  `ownMemoryStorage` (raft's, through `isStorage`): the application keeps it.
+  `NewMemoryStorage` returns it at the zero values (its post gained the conjunct; the
+  register's `NewStorage` drops it). The existing proofs changed only in the names of the
+  counters.
+- `InitialState`: on `memStorMeta`, returns `(hs, snap.ConfState, nil)`.
+  `SetHardState(st)`: on `memStorMeta` alone (raft never reads the hard state but there),
+  `memStorMeta ... st snap`.
+- `ApplySnapshot(snap')`, `CreateSnapshot(i, cs, data)`, `Compact(ci)`: change what raft
+  reads, so they take `ownMemoryStorage` with nothing pending (`σ.pend = []`) and move it
+  with `memView_set` (both halves of `done` and `hist` record the new state, under the
+  lock); the first two also take `memStorMeta`. Each is a disjunction: the error
+  (`ErrSnapOutOfDate`/`ErrCompacted`, the error variable's value passed in as `Snapshot`'s
+  spec does), nothing changed; or the new state: `memStorApplied snap'` (boundary at the
+  snapshot, no entries); `{ σ with ss := snapId snap' }`, `snap' = memSnapCreated snap i t
+  ocs data` with `termAt σ.prev σ.ents i = some t`; `memStorCompacted σ ci t`.
+- Premises excluding the panics: `CreateSnapshot`, for a newer `i`, `prev.index ≤ i ≤
+  lastIndex` (above: `Panicf`; below the boundary `ms.ents[i-offset]` wraps, a runtime
+  panic -- neither documented: issues/raft-memorystorage-createsnapshot-bounds.md);
+  `Compact`, for `ci` above the boundary, `ci ≤ lastIndex` (`Panicf`; documented as
+  `ci ≤ applied`) and the entry at `ci` has index `ci` (the new boundary's index is read
+  from it; `StorState` does not record that entries are consecutively indexed);
+  `ApplySnapshot`, the snapshot's index below `2^61` (`ownMemoryStorage`'s bound).
+- Finding: `InitialState` takes no lock although the mutex "protects access to all fields":
+  `go test -race` reports it against `SetHardState`
+  (issues/raft-memorystorage-initialstate-unlocked.md). The spec's `memStorMeta` excludes
+  the concurrent writers.
+
+**Open**: the writers need the owner's `ownMemoryStorage`, which raft holds inside
+`isStorage` while it runs; applying a snapshot or compacting under a running node needs a
+protocol like the pending append's.
 
 ## Adequacy of the register's driver: the closed theorem and its trust base (2026-10-12)
 
