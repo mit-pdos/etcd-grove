@@ -31,7 +31,7 @@ abbrev curMeta (v0 v1 : Meta) : Meta := if metaPick v0 v1 then v1 else v0
 
 /-- The writer's view, from `beginRWTx`'s. -/
 def wViewOf (dbl : Loc) (w : Reader) (data : Loc) (ps : Nat) (lg : GoInterface) (dl : Loc)
-    (fli : GoInterface) : WView := ⟨dbl, data, ps, w.pages, w.q, lg, dl, fli⟩
+    (fli : GoInterface) : WView := ⟨dbl, data, ps, w.pages, w.q, lg, dl, fli, w.hwm⟩
 
 /-- The new write transaction's records: its struct, its meta copy, no dirty page, the root
 bucket (the transaction's field `root`) with its header copy at `ibl` and no node. -/
@@ -48,6 +48,7 @@ the current tree strict, its root page not 0 and the high-water mark at least 2,
 locations and page size. -/
 theorem ownWriteTx_init (dbl txl : Loc) (w : Reader) (data : Loc) (ps : Nat) (v0 v1 : Meta)
     (lg : GoInterface) (dl : Loc) (fli : GoInterface)
+    (hhwmw : w.hwm = uint.nat (curMeta v0 v1).pgid')
     (hstrict : treeStrict w.pages (uint.nat (curMeta v0 v1).pgid')
       (uint.nat (curMeta v0 v1).root'.root'))
     (hroot : (curMeta v0 v1).root'.root' ≠ W64 0) (hhwm : 2 ≤ uint.nat (curMeta v0 v1).pgid')
@@ -61,7 +62,7 @@ theorem ownWriteTx_init (dbl txl : Loc) (w : Reader) (data : Loc) (ps : Nat) (v0
   iintro ⟨Hi, #Hlg, #Hdl, Hfl⟩
   unfold wtxInit
   icases Hi with ⟨%ml, %ibl, %pm, %bm, %nm, Ht, Hml, Hibl, Hpm, Hbm, Hnm, Hdata, #Hps, Hpv⟩
-  icases (Tx_split_root _ _ _).1 $$ Ht with ⟨Hroot, Hrest⟩
+  icases (TxW_split_root _ _ _).1 $$ Ht with ⟨Hroot, Hrest⟩
   iexists wtxInitT txl dbl ml ibl pm bm nm v0 v1
   unfold ownWriteTx ownWriteTxG wView
   simp only [wtxInitT, wViewOf, txInitOf, newBucketOf]
@@ -79,7 +80,7 @@ theorem ownWriteTx_init (dbl txl : Loc) (w : Reader) (data : Loc) (ps : Nat) (v0
     iapply BigSepM.bigSepM_empty.2; iempintro
   ipureintro
   refine ⟨hlg, ⟨hdata, hps.1, hps.2, hbound, hstrict.2⟩, ?_⟩
-  refine ⟨by simp [txInitOf], by simp [txInitOf], hdbl, rfl, by rw [txMetaOf_pgid]; exact hhwm,
+  refine ⟨by simp [txInitOf], by simp [txInitOf], hdbl, rfl, by rw [txMetaOf_pgid]; exact hhwm, by rw [txMetaOf_pgid]; simp [wViewOf, hhwmw],
     by rw [GMap.lookup_singleton]; rfl, ?_⟩
   intro bl B hB
   rw [GMap.lookup_singleton_Some] at hB

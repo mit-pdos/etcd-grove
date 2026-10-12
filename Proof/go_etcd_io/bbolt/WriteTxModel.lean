@@ -77,6 +77,8 @@ structure WView where
   dl : Loc
   /-- `db.freelist` (the writer holds half of the field). -/
   fli : GoInterface
+  /-- The view's high-water mark (the current meta's `pgid`). -/
+  hwm : Nat
 
 /-- The bytes `bs` at `p` are bytes of a page of the view. -/
 def inViewLoc (W : WView) (p : Loc) (bs : List w8) : Prop :=
@@ -292,7 +294,7 @@ def nodeClean (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (l : Loc) (r : NRec)
 /-- The bucket `bl` (record `B`) is well-formed (see the module doc). -/
 def bktClean (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) : Prop :=
   (B.ib.root' = W64 0 → B.bv.rootNode' = null →
-    B.bv.page' ≠ null ∧ B.isrc ≠ Src.stale ∧ inlineOK B.ipg) ∧
+    B.bv.page' ≠ null ∧ (B.isrc = Src.view ∨ B.isrc = Src.own DFrac.discard) ∧ inlineOK B.ipg) ∧
   (B.ib.root' ≠ W64 0 → uint.nat B.ib.root' < hwm ∧
     (B.bv.rootNode' = null → treeWF W.pages hwm (uint.nat B.ib.root'))) ∧
   (B.bv.rootNode' = null → B.ns = ∅ ∧ B.nm = ∅) ∧

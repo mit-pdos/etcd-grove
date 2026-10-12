@@ -1,7 +1,7 @@
 /-
 A write transaction's objects (`WriteTxModel.lean`'s records) as resources.
 
-`ownWriteTxG W txl T` owns, of the transaction at `txl`: its fields but `root` (`Tx_rest_root`),
+`ownWriteTxG W txl T` owns, of the transaction at `txl`: its fields but `root` (`TxW_rest_root`),
 its meta copy, its page cache and the buffers in it, and its buckets (`bktOwn`: the struct, the
 `InBucket` header, the node and bucket caches, the inline page, the nodes: `nodeOwn`). The root
 bucket is the transaction's field `root` (`txRoot txl`). Nothing in it depends on the view but
@@ -75,7 +75,7 @@ def bktOwn (W : WView) (bl : Loc) (B : BRec) : IProp GF :=
 def txRoot (txl : Loc) : Loc := structFieldRef Tx go!"root" txl
 
 /-- The fields of a `Tx` but `root`. -/
-def Tx_rest_root (l : Loc) (dq : DFrac) (v : Tx) : IProp GF :=
+def TxW_rest_root (l : Loc) (dq : DFrac) (v : Tx) : IProp GF :=
   iprop("writable" ∷ structFieldRef Tx go!"writable" l ↦{dq} v.writable' ∗
     "managed" ∷ structFieldRef Tx go!"managed" l ↦{dq} v.managed' ∗
     "db" ∷ structFieldRef Tx go!"db" l ↦{dq} v.db' ∗
@@ -85,11 +85,11 @@ def Tx_rest_root (l : Loc) (dq : DFrac) (v : Tx) : IProp GF :=
     "commitHandlers" ∷ structFieldRef Tx go!"commitHandlers" l ↦{dq} v.commitHandlers' ∗
     "WriteFlag" ∷ structFieldRef Tx go!"WriteFlag" l ↦{dq} v.WriteFlag' ∗ ⌜l ≠ null⌝)
 
-theorem Tx_split_root (l : Loc) (dq : DFrac) (v : Tx) :
+theorem TxW_split_root (l : Loc) (dq : DFrac) (v : Tx) :
     (l ↦{dq} v : IProp GF) ⊣⊢
-      structFieldRef Tx go!"root" l ↦{dq} v.root' ∗ Tx_rest_root l dq v := by
+      structFieldRef Tx go!"root" l ↦{dq} v.root' ∗ TxW_rest_root l dq v := by
   rw [typedPointsto_unseal_eq]
-  simp only [TypedPointsto.typedPointstoDef, Tx_rest_root]
+  simp only [TypedPointsto.typedPointstoDef, TxW_rest_root]
   constructor
   · iintro ⟨⟨Hwritable, Hmanaged, Hdb, Hmeta, Hroot, Hpages, Hstats, HcommitHandlers, HWriteFlag, -⟩, %Hn⟩
     iframe
@@ -100,7 +100,7 @@ theorem Tx_split_root (l : Loc) (dq : DFrac) (v : Tx) :
 
 /-- The transaction's resources (see the module doc). -/
 def ownWriteTxG (W : WView) (txl : Loc) (T : WTx) : IProp GF :=
-  iprop(Tx_rest_root txl (DFrac.own 1) T.t ∗ T.t.meta' ↦ T.mv ∗ T.t.pages' ↦$ T.pm ∗
+  iprop(TxW_rest_root txl (DFrac.own 1) T.t ∗ T.t.meta' ↦ T.mv ∗ T.t.pages' ↦$ T.pm ∗
     ([∗map] id ↦ p ∈ T.pm, ∃ bs, ⌜T.bufs !! id = some bs⌝ ∗ bytesPointsto p (DFrac.own 1) bs) ∗
     [∗map] bl ↦ B ∈ T.bs, bktOwn W bl B)
 
@@ -117,7 +117,7 @@ def wView (W : WView) : IProp GF :=
 `WriteTxModel.lean`). -/
 def txClean (W : WView) (txl rl : Loc) (T : WTx) : Prop :=
   T.t.writable' = true ∧ T.t.db' = W.dbl ∧ W.dbl ≠ null ∧ T.pm = ∅ ∧
-  2 ≤ uint.nat T.mv.pgid' ∧ (T.bs !! rl).isSome ∧
+  2 ≤ uint.nat T.mv.pgid' ∧ W.hwm ≤ uint.nat T.mv.pgid' ∧ (T.bs !! rl).isSome ∧
   ∀ bl B, T.bs !! bl = some B → B.bv.tx' = txl ∧ bktClean W (uint.nat T.mv.pgid') bl B ∧
     ∀ name c, B.bm !! name = some c → (T.bs !! c).isSome
 

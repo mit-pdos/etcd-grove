@@ -11,15 +11,23 @@ module
 public import Proof.go_etcd_io.bbolt.BucketStats__Add
 public import Proof.go_etcd_io.bbolt.Bucket__Bucket
 public import Proof.go_etcd_io.bbolt.Bucket__Cursor
+public import Proof.go_etcd_io.bbolt.Bucket__Cursor_w
+public import Proof.go_etcd_io.bbolt.Bucket__Delete
 public import Proof.go_etcd_io.bbolt.Bucket__ForEach
 public import Proof.go_etcd_io.bbolt.Bucket__ForEachBucket
 public import Proof.go_etcd_io.bbolt.Bucket__Get
+public import Proof.go_etcd_io.bbolt.Bucket__NextSequence
+public import Proof.go_etcd_io.bbolt.Bucket__Put
 public import Proof.go_etcd_io.bbolt.Bucket__Root
 public import Proof.go_etcd_io.bbolt.Bucket__Sequence
+public import Proof.go_etcd_io.bbolt.Bucket__SetSequence
 public import Proof.go_etcd_io.bbolt.Bucket__Tx
 public import Proof.go_etcd_io.bbolt.Bucket__Writable
+public import Proof.go_etcd_io.bbolt.Bucket__Writable_w
+public import Proof.go_etcd_io.bbolt.Bucket__node
 public import Proof.go_etcd_io.bbolt.Bucket__openBucket
 public import Proof.go_etcd_io.bbolt.Bucket__pageNode
+public import Proof.go_etcd_io.bbolt.Bucket__pageNode_w
 public import Proof.go_etcd_io.bbolt.Cursor__Bucket
 public import Proof.go_etcd_io.bbolt.Cursor__First
 public import Proof.go_etcd_io.bbolt.Cursor__Last
@@ -29,13 +37,20 @@ public import Proof.go_etcd_io.bbolt.Cursor__Seek
 public import Proof.go_etcd_io.bbolt.Cursor__first
 public import Proof.go_etcd_io.bbolt.Cursor__goToFirstElementOnTheStack
 public import Proof.go_etcd_io.bbolt.Cursor__keyValue
+public import Proof.go_etcd_io.bbolt.Cursor__keyValue_w
 public import Proof.go_etcd_io.bbolt.Cursor__last
 public import Proof.go_etcd_io.bbolt.Cursor__next
+public import Proof.go_etcd_io.bbolt.Cursor__node
 public import Proof.go_etcd_io.bbolt.Cursor__nsearch
+public import Proof.go_etcd_io.bbolt.Cursor__nsearch_w
 public import Proof.go_etcd_io.bbolt.Cursor__prev
 public import Proof.go_etcd_io.bbolt.Cursor__search
+public import Proof.go_etcd_io.bbolt.Cursor__searchNode
 public import Proof.go_etcd_io.bbolt.Cursor__searchPage
+public import Proof.go_etcd_io.bbolt.Cursor__searchPage_w
+public import Proof.go_etcd_io.bbolt.Cursor__search_w
 public import Proof.go_etcd_io.bbolt.Cursor__seek
+public import Proof.go_etcd_io.bbolt.Cursor__seek_w
 public import Proof.go_etcd_io.bbolt.DB__Begin
 public import Proof.go_etcd_io.bbolt.DB__Close
 public import Proof.go_etcd_io.bbolt.DB__GoString
@@ -106,6 +121,7 @@ public import Proof.go_etcd_io.bbolt.Tx__close
 public import Proof.go_etcd_io.bbolt.Tx__init
 public import Proof.go_etcd_io.bbolt.Tx__nonPhysicalRollback
 public import Proof.go_etcd_io.bbolt.Tx__page
+public import Proof.go_etcd_io.bbolt.Tx__page_w
 public import Proof.go_etcd_io.bbolt.atomicAddDuration
 public import Proof.go_etcd_io.bbolt.atomicLoadDuration
 public import Proof.go_etcd_io.bbolt.cloneBytes
@@ -113,7 +129,9 @@ public import Proof.go_etcd_io.bbolt.compareKeys
 public import Proof.go_etcd_io.bbolt.mmap
 public import Proof.go_etcd_io.bbolt.munmap
 public import Proof.go_etcd_io.bbolt.elemRef__count
+public import Proof.go_etcd_io.bbolt.elemRef__count_w
 public import Proof.go_etcd_io.bbolt.elemRef__isLeaf
+public import Proof.go_etcd_io.bbolt.elemRef__isLeaf_w
 public import Proof.go_etcd_io.bbolt.fdatasync
 public import Proof.go_etcd_io.bbolt.flock
 public import Proof.io.fs.FileInfo__Size
@@ -122,12 +140,15 @@ public import Proof.go_etcd_io.bbolt.getDiscardLogger
 public import Proof.go_etcd_io.bbolt.header
 public import Proof.log.Logger__Output
 public import Proof.go_etcd_io.bbolt.newBucket
+public import Proof.go_etcd_io.bbolt.node__childAt
 public import Proof.go_etcd_io.bbolt.node__childIndex
 public import Proof.go_etcd_io.bbolt.node__del
 public import Proof.go_etcd_io.bbolt.node__dereference
 public import Proof.go_etcd_io.bbolt.node__minKeys
+public import Proof.go_etcd_io.bbolt.node__nextSibling
 public import Proof.go_etcd_io.bbolt.node__numChildren
 public import Proof.go_etcd_io.bbolt.node__pageElementSize
+public import Proof.go_etcd_io.bbolt.node__prevSibling
 public import Proof.go_etcd_io.bbolt.node__put
 public import Proof.go_etcd_io.bbolt.node__read
 public import Proof.go_etcd_io.bbolt.node__removeChild
@@ -245,6 +266,82 @@ theorem Bucket.wp_Bucket :
     EtcdGrove.bbolt.Bucket.Bucket.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Bucket.Bucket.wp_proof EtcdGrove.bbolt.Bucket.wp_Cursor EtcdGrove.bbolt.Cursor.wp_seek EtcdGrove.bbolt.Bucket.wp_openBucket
 
+theorem Bucket.wp_Cursor_w :
+    EtcdGrove.bbolt.Bucket.Cursor.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Bucket.Cursor.wp_wproof EtcdGrove.bbolt.TxStats.wp_IncCursorCount
+
+theorem wp_getDiscardLogger :
+    EtcdGrove.bbolt.getDiscardLogger.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.getDiscardLogger.wp_proof
+
+theorem DB.wp_Logger :
+    EtcdGrove.bbolt.DB.Logger.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.Logger.wp_proof EtcdGrove.bbolt.wp_getDiscardLogger
+
+theorem Bucket.wp_Writable_w :
+    EtcdGrove.bbolt.Bucket.Writable.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Bucket.Writable.wp_wproof
+
+theorem Tx.wp_page_w :
+    EtcdGrove.bbolt.Tx.page.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Tx.page.wp_wproof EtcdGrove.bbolt.DB.wp_page EtcdGrove.bbolt.Page.wp_FastCheck
+
+theorem Bucket.wp_pageNode_w :
+    EtcdGrove.bbolt.Bucket.pageNode.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Bucket.pageNode.wp_wproof EtcdGrove.bbolt.InBucket.wp_RootPage EtcdGrove.bbolt.Tx.wp_page_w
+
+theorem elemRef.wp_isLeaf_w :
+    EtcdGrove.bbolt.elemRef.isLeaf.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.elemRef.isLeaf.wp_wproof EtcdGrove.bbolt.Page.wp_IsLeafPage
+
+theorem Cursor.wp_nsearch_w :
+    EtcdGrove.bbolt.Cursor.nsearch.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Cursor.nsearch.wp_wproof EtcdGrove.bbolt.Page.wp_LeafPageElements EtcdGrove.bbolt.Page.wp_Count EtcdGrove.bbolt.leafPageElement.wp_Key EtcdGrove.bbolt.Inode.wp_Key
+
+theorem Cursor.wp_search_w :
+    EtcdGrove.bbolt.Cursor.search.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Cursor.search.wp_wproof EtcdGrove.bbolt.Bucket.wp_pageNode_w EtcdGrove.bbolt.Page.wp_IsBranchPage EtcdGrove.bbolt.Page.wp_IsLeafPage EtcdGrove.bbolt.elemRef.wp_isLeaf_w EtcdGrove.bbolt.Cursor.wp_nsearch_w EtcdGrove.bbolt.Page.wp_BranchPageElements EtcdGrove.bbolt.Page.wp_Count EtcdGrove.bbolt.branchPageElement.wp_Key EtcdGrove.bbolt.branchPageElement.wp_Pgid EtcdGrove.bbolt.Inode.wp_Key EtcdGrove.bbolt.Inode.wp_Pgid
+
+theorem elemRef.wp_count_w :
+    EtcdGrove.bbolt.elemRef.count.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.elemRef.count.wp_wproof EtcdGrove.bbolt.Page.wp_Count
+
+theorem Cursor.wp_keyValue_w :
+    EtcdGrove.bbolt.Cursor.keyValue.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Cursor.keyValue.wp_wproof EtcdGrove.bbolt.elemRef.wp_count_w EtcdGrove.bbolt.Page.wp_LeafPageElement EtcdGrove.bbolt.leafPageElement.wp_Key EtcdGrove.bbolt.leafPageElement.wp_Value EtcdGrove.bbolt.leafPageElement.wp_Flags EtcdGrove.bbolt.Inode.wp_Key EtcdGrove.bbolt.Inode.wp_Value EtcdGrove.bbolt.Inode.wp_Flags
+
+theorem Cursor.wp_seek_w :
+    EtcdGrove.bbolt.Cursor.seek.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Cursor.seek.wp_wproof EtcdGrove.bbolt.InBucket.wp_RootPage EtcdGrove.bbolt.Cursor.wp_search_w EtcdGrove.bbolt.Cursor.wp_keyValue_w
+
+theorem node.wp_read :
+    EtcdGrove.bbolt.node.read.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.node.read.wp_proof EtcdGrove.bbolt.Page.wp_Id EtcdGrove.bbolt.Page.wp_IsLeafPage EtcdGrove.bbolt.wp_ReadInodeFromPage EtcdGrove.bbolt.Inode.wp_Key EtcdGrove.bbolt.wp_Assert
+
+theorem TxStats.wp_IncNodeCount :
+    EtcdGrove.bbolt.TxStats.IncNodeCount.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.TxStats.IncNodeCount.wp_proof
+
+theorem Bucket.wp_node :
+    EtcdGrove.bbolt.Bucket.node.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Bucket.node.wp_proof EtcdGrove.bbolt.wp_Assert EtcdGrove.bbolt.wp_Verify EtcdGrove.bbolt.Tx.wp_page_w EtcdGrove.bbolt.node.wp_read EtcdGrove.bbolt.TxStats.wp_IncNodeCount
+
+theorem node.wp_childAt :
+    EtcdGrove.bbolt.node.childAt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.node.childAt.wp_proof EtcdGrove.bbolt.Inode.wp_Pgid EtcdGrove.bbolt.Bucket.wp_node
+
+theorem Cursor.wp_node :
+    EtcdGrove.bbolt.Cursor.node.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Cursor.node.wp_proof EtcdGrove.bbolt.wp_Assert EtcdGrove.bbolt.elemRef.wp_isLeaf_w EtcdGrove.bbolt.Page.wp_Id EtcdGrove.bbolt.Bucket.wp_node EtcdGrove.bbolt.node.wp_childAt
+
+theorem node.wp_del :
+    EtcdGrove.bbolt.node.del.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.node.del.wp_proof EtcdGrove.bbolt.Inode.wp_Key
+
+theorem Bucket.wp_Delete :
+    EtcdGrove.bbolt.Bucket.Delete.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Bucket.Delete.wp_proof EtcdGrove.bbolt.DB.wp_Logger EtcdGrove.bbolt.Bucket.wp_Writable_w EtcdGrove.bbolt.Bucket.wp_Cursor_w EtcdGrove.bbolt.Cursor.wp_seek_w EtcdGrove.bbolt.Cursor.wp_node EtcdGrove.bbolt.node.wp_del
+
 theorem Cursor.wp_goToFirstElementOnTheStack :
     EtcdGrove.bbolt.Cursor.goToFirstElementOnTheStack.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Cursor.goToFirstElementOnTheStack.wp_proof EtcdGrove.bbolt.Bucket.wp_pageNode EtcdGrove.bbolt.elemRef.wp_isLeaf EtcdGrove.bbolt.Page.wp_BranchPageElement EtcdGrove.bbolt.branchPageElement.wp_Pgid
@@ -277,6 +374,18 @@ theorem Bucket.wp_Get :
     EtcdGrove.bbolt.Bucket.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Bucket.Get.wp_proof EtcdGrove.bbolt.Bucket.wp_Cursor EtcdGrove.bbolt.Cursor.wp_seek
 
+theorem Bucket.wp_NextSequence :
+    EtcdGrove.bbolt.Bucket.NextSequence.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Bucket.NextSequence.wp_proof EtcdGrove.bbolt.Bucket.wp_Writable_w EtcdGrove.bbolt.InBucket.wp_RootPage EtcdGrove.bbolt.Bucket.wp_node EtcdGrove.bbolt.InBucket.wp_IncSequence EtcdGrove.bbolt.InBucket.wp_InSequence
+
+theorem node.wp_put :
+    EtcdGrove.bbolt.node.put.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.node.put.wp_proof EtcdGrove.bbolt.Meta.wp_Pgid EtcdGrove.bbolt.Inode.wp_Key EtcdGrove.bbolt.Inode.wp_SetFlags EtcdGrove.bbolt.Inode.wp_SetKey EtcdGrove.bbolt.Inode.wp_SetValue EtcdGrove.bbolt.Inode.wp_SetPgid EtcdGrove.bbolt.wp_Assert
+
+theorem Bucket.wp_Put :
+    EtcdGrove.bbolt.Bucket.Put.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Bucket.Put.wp_proof EtcdGrove.bbolt.DB.wp_Logger EtcdGrove.bbolt.Bucket.wp_Writable_w EtcdGrove.bbolt.wp_cloneBytes EtcdGrove.bbolt.Bucket.wp_Cursor_w EtcdGrove.bbolt.Cursor.wp_seek_w EtcdGrove.bbolt.Cursor.wp_node EtcdGrove.bbolt.node.wp_put
+
 theorem Bucket.wp_Root :
     EtcdGrove.bbolt.Bucket.Root.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Bucket.Root.wp_proof EtcdGrove.bbolt.InBucket.wp_RootPage
@@ -284,6 +393,10 @@ theorem Bucket.wp_Root :
 theorem Bucket.wp_Sequence :
     EtcdGrove.bbolt.Bucket.Sequence.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Bucket.Sequence.wp_proof EtcdGrove.bbolt.InBucket.wp_InSequence
+
+theorem Bucket.wp_SetSequence :
+    EtcdGrove.bbolt.Bucket.SetSequence.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Bucket.SetSequence.wp_proof EtcdGrove.bbolt.Bucket.wp_Writable_w EtcdGrove.bbolt.InBucket.wp_RootPage EtcdGrove.bbolt.Bucket.wp_node EtcdGrove.bbolt.InBucket.wp_SetInSequence
 
 theorem Bucket.wp_Tx :
     EtcdGrove.bbolt.Bucket.Tx.spec (GF := GF) (hG := hG) :=
@@ -317,17 +430,17 @@ theorem Cursor.wp_Seek :
     EtcdGrove.bbolt.Cursor.Seek.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Cursor.Seek.wp_proof EtcdGrove.bbolt.wp_Assert EtcdGrove.bbolt.Cursor.wp_seek EtcdGrove.bbolt.elemRef.wp_count EtcdGrove.bbolt.Cursor.wp_next
 
+theorem Cursor.wp_searchNode :
+    EtcdGrove.bbolt.Cursor.searchNode.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Cursor.searchNode.wp_proof EtcdGrove.bbolt.Inode.wp_Key EtcdGrove.bbolt.Inode.wp_Pgid EtcdGrove.bbolt.Cursor.wp_search_w
+
 theorem Cursor.wp_searchPage :
     EtcdGrove.bbolt.Cursor.searchPage.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Cursor.searchPage.wp_proof EtcdGrove.bbolt.Page.wp_BranchPageElements EtcdGrove.bbolt.Page.wp_Count EtcdGrove.bbolt.branchPageElement.wp_Key EtcdGrove.bbolt.branchPageElement.wp_Pgid EtcdGrove.bbolt.Cursor.wp_search
 
-theorem wp_getDiscardLogger :
-    EtcdGrove.bbolt.getDiscardLogger.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.getDiscardLogger.wp_proof
-
-theorem DB.wp_Logger :
-    EtcdGrove.bbolt.DB.Logger.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DB.Logger.wp_proof EtcdGrove.bbolt.wp_getDiscardLogger
+theorem Cursor.wp_searchPage_w :
+    EtcdGrove.bbolt.Cursor.searchPage.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Cursor.searchPage.wp_wproof EtcdGrove.bbolt.Page.wp_BranchPageElements EtcdGrove.bbolt.Page.wp_Count EtcdGrove.bbolt.branchPageElement.wp_Key EtcdGrove.bbolt.branchPageElement.wp_Pgid EtcdGrove.bbolt.Cursor.wp_search_w
 
 theorem DB.wp_meta :
     EtcdGrove.bbolt.DB.meta.spec (GF := GF) (hG := hG) :=
@@ -432,10 +545,6 @@ theorem TxStats.wp_GetCursorCount :
 theorem TxStats.wp_GetNodeCount :
     EtcdGrove.bbolt.TxStats.GetNodeCount.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.TxStats.GetNodeCount.wp_proof
-
-theorem TxStats.wp_IncNodeCount :
-    EtcdGrove.bbolt.TxStats.IncNodeCount.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.TxStats.IncNodeCount.wp_proof
 
 theorem TxStats.wp_GetNodeDeref :
     EtcdGrove.bbolt.TxStats.GetNodeDeref.spec (GF := GF) (hG := hG) :=
@@ -693,10 +802,6 @@ theorem node.wp_childIndex :
     EtcdGrove.bbolt.node.childIndex.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.node.childIndex.wp_proof EtcdGrove.bbolt.Inode.wp_Key
 
-theorem node.wp_del :
-    EtcdGrove.bbolt.node.del.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.node.del.wp_proof EtcdGrove.bbolt.Inode.wp_Key
-
 theorem node.wp_dereference :
     EtcdGrove.bbolt.node.dereference.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.node.dereference.wp_proof EtcdGrove.bbolt.Inode.wp_Key EtcdGrove.bbolt.Inode.wp_Value EtcdGrove.bbolt.Inode.wp_SetKey EtcdGrove.bbolt.Inode.wp_SetValue EtcdGrove.bbolt.wp_Assert EtcdGrove.bbolt.TxStats.wp_IncNodeDeref
@@ -709,17 +814,17 @@ theorem node.wp_numChildren :
     EtcdGrove.bbolt.node.numChildren.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.node.numChildren.wp_proof
 
+theorem node.wp_nextSibling :
+    EtcdGrove.bbolt.node.nextSibling.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.node.nextSibling.wp_proof EtcdGrove.bbolt.node.wp_childIndex EtcdGrove.bbolt.node.wp_numChildren EtcdGrove.bbolt.node.wp_childAt
+
 theorem node.wp_pageElementSize :
     EtcdGrove.bbolt.node.pageElementSize.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.node.pageElementSize.wp_proof
 
-theorem node.wp_put :
-    EtcdGrove.bbolt.node.put.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.node.put.wp_proof EtcdGrove.bbolt.Meta.wp_Pgid EtcdGrove.bbolt.Inode.wp_Key EtcdGrove.bbolt.Inode.wp_SetFlags EtcdGrove.bbolt.Inode.wp_SetKey EtcdGrove.bbolt.Inode.wp_SetValue EtcdGrove.bbolt.Inode.wp_SetPgid EtcdGrove.bbolt.wp_Assert
-
-theorem node.wp_read :
-    EtcdGrove.bbolt.node.read.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.node.read.wp_proof EtcdGrove.bbolt.Page.wp_Id EtcdGrove.bbolt.Page.wp_IsLeafPage EtcdGrove.bbolt.wp_ReadInodeFromPage EtcdGrove.bbolt.Inode.wp_Key EtcdGrove.bbolt.wp_Assert
+theorem node.wp_prevSibling :
+    EtcdGrove.bbolt.node.prevSibling.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.node.prevSibling.wp_proof EtcdGrove.bbolt.node.wp_childIndex EtcdGrove.bbolt.node.wp_childAt
 
 theorem node.wp_removeChild :
     EtcdGrove.bbolt.node.removeChild.spec (GF := GF) (hG := hG) :=

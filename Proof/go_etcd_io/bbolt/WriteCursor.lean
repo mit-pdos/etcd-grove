@@ -50,13 +50,15 @@ def refAt (W : WView) (B : BRec) (pid : w64) (r : elemRef) : Prop :=
   (∃ l, resolve B pid = some l ∧ r.node' = l ∧ r.page' = null) ∨
   (resolve B pid = none ∧ r.node' = null ∧ ∃ pg, wpageAt W B pid = some (r.page', pg))
 
-/-- Position `pid`: whether it is a leaf, and its children. -/
+/-- Position `pid`: whether it is a leaf, and its children (none for a leaf). -/
 def kidsAt (W : WView) (B : BRec) (pid : w64) : Option (Bool × List w64) :=
   match resolve B pid with
-  | some l => (B.ns !! l).map fun r => (r.nv.isLeaf', r.ws.map WEntry.pgid)
+  | some l => (B.ns !! l).map fun r =>
+      (r.nv.isLeaf', if r.nv.isLeaf' then [] else r.ws.map WEntry.pgid)
   | none => (wpageAt W B pid).map fun lp =>
       (decide (pageFlags lp.2 = leafPageFlag),
-        (List.range (pageCount lp.2)).map fun i => W64 (branchPgid lp.2 i : Int))
+        if pageFlags lp.2 = leafPageFlag then []
+        else (List.range (pageCount lp.2)).map fun i => W64 (branchPgid lp.2 i : Int))
 
 /-- The stack elements `es` go from position `pid` down to a leaf (see the module doc). -/
 def wpath (W : WView) (B : BRec) : w64 → List elemRef → Prop

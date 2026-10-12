@@ -531,7 +531,7 @@ theorem ownWriteTxG_meta_acc (W : WView) (txl : Loc) (T : WTx) :
     ownWriteTxG (GF := GF) W txl T ⊢ structFieldRef Tx go!"meta" txl ↦ T.t.meta' ∗ T.t.meta' ↦ T.mv ∗
       (∀ mv', structFieldRef Tx go!"meta" txl ↦ T.t.meta' ∗ T.t.meta' ↦ mv' -∗
         ownWriteTxG W txl { T with mv := mv' }) := by
-  unfold ownWriteTxG Tx_rest_root
+  unfold ownWriteTxG TxW_rest_root
   iintro ⟨⟨Hw, Hm, Hdb, Hmeta, Hpages, Hst, Hch, Hwf, %Hn⟩, Hmv, Hpm, Hbufs, Hbs⟩
   iframe Hmeta Hmv
   iintro %mv' ⟨Hmeta, Hmv⟩

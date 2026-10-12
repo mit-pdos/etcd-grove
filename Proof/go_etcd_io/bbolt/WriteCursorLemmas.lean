@@ -30,7 +30,7 @@ theorem treeHas_child (pages : GMap Nat (List w8)) (id : Nat) (pg : List w8)
 theorem treeHas_self (pages : GMap Nat (List w8)) (id : Nat) (pg : List w8)
     (hpg : pages !! id = some pg) : treeHas pages id id := treeHas.root id pg hpg
 
-theorem uint_nat_W64 (n : Nat) (h : n < 2 ^ 64) : uint.nat (W64 (n : Int)) = n := by
+theorem uint_nat_W64_w (n : Nat) (h : n < 2 ^ 64) : uint.nat (W64 (n : Int)) = n := by
   unfold uint.nat; word
 
 theorem branchPgid_lt (pg : List w8) (i : Nat) : branchPgid pg i < 2 ^ 64 := leAt_lt _ _ 8
@@ -66,9 +66,9 @@ theorem posOK_page_child (W : WView) (hwm : Nat) (B : BRec) (pid : w64) (pg : Li
       cases hwf i hi with
       | page _ pg' _ hpg' _ _ => exact treeHas_self _ _ pg' hpg'))
     exact this
-  · rw [uint_nat_W64 _ hl]; exact hwf i hi
+  · rw [uint_nat_W64_w _ hl]; exact hwf i hi
   · intro d hd
-    rw [uint_nat_W64 _ hl] at hd
+    rw [uint_nat_W64_w _ hl] at hd
     exact hfree d (treeHas_child _ _ pg hpg hb i hi d hd)
 
 /-- A branch node's children are positions of a clean bucket. -/
@@ -127,7 +127,8 @@ theorem posOK_root (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hc : bktClean 
     right
     by_cases hr : B.ib.root' = W64 0
     · refine ⟨by unfold resolve; rw [if_pos hr, if_pos hrn], Or.inl ⟨hr, hr, ?_⟩⟩
-      exact hinl hr hrn
+      obtain ⟨h1, h2, h3⟩ := hinl hr hrn
+      exact ⟨h1, by rcases h2 with h | h <;> rw [h] <;> nofun, h3⟩
     · refine ⟨by unfold resolve; rw [if_neg hr, hnm0]; rfl, Or.inr ⟨hr, (hfile hr).2 hrn, ?_⟩⟩
       intro d _; rw [hnm0]; rfl
   · left
@@ -160,7 +161,7 @@ theorem wpath_last (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hc : bktClean 
         · rw [hres] at hk
           simp only [hrr, Option.map_some, Option.some.injEq, Prod.mk.injEq] at hk
           obtain ⟨hleaf, rfl⟩ := hk
-          rw [List.getElem?_map] at hc'
+          simp only [hleaf, Bool.false_eq_true, ↓reduceIte, List.getElem?_map] at hc'
           obtain ⟨w, hw, rfl⟩ := Option.map_eq_some_iff.1 hc'
           exact posOK_node_child W hwm bl B l rr hc hrr hleaf _ w hw
         · rw [hres] at hk
@@ -176,7 +177,8 @@ theorem wpath_last (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hc : bktClean 
             obtain ⟨-, -, -, hkind⟩ := treeWF_page _ _ _ pg hwf hpg
             rcases hkind with ⟨hfl, -⟩ | ⟨hfl, -, hkids⟩
             · exfalso; revert hleaf; simp [hfl]
-            · rw [List.getElem?_map] at hc'
+            · rw [if_neg (by rw [hfl]; unfold branchPageFlag leafPageFlag; decide),
+                List.getElem?_map] at hc'
               obtain ⟨i, hi', rfl⟩ := Option.map_eq_some_iff.1 hc'
               have hil := (List.mem_range.1 (List.mem_of_getElem? hi'))
               exact posOK_page_child W hwm B pid pg hr0 hpg hfl hkids hfree _ hil

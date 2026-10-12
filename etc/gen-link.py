@@ -173,9 +173,15 @@ with open(os.path.join(here, mode[0] if cache else "link-lean-first.txt")) as f:
 fns.sort()
 
 spec = {}
+# a second spec of a function (`<T>.<M>.wspec`, proved by `<T>.<M>.wp_wproof`: the writer's
+# view of a function a reader also calls) is linked as `<T>.wp_<M>_w`
+wspec = set()
 for fn in fns:
     src = open(spec_file(fn)).read()
     m = re.search(r"^abbrev ([\w.«»']+)\.spec\b", src, re.M)
+    if m is None:
+        m = re.search(r"^abbrev ([\w.«»']+)\.wspec\b", src, re.M)
+        wspec.add(fn)
     # the namespaces below `EtcdGrove` the spec is declared in (`btree` for the btree's)
     nss = re.findall(r"^namespace (\S+)", src, re.M)
     inner = nss[nss.index("EtcdGrove") + 1:] if "EtcdGrove" in nss else []
@@ -199,7 +205,8 @@ def result(fn):
             parts = parts[1:]
         elif where[fn].split(".")[:-1] == ["go_etcd_io", "etcd", "client", "v3"]:
             parts = ["v3"] + parts
-    return ".".join(parts[:-1] + [f"wp_{last}"])
+    suffix = "_w" if fn in wspec else ""
+    return ".".join(parts[:-1] + [f"wp_{last}{suffix}"])
 
 
 def specref(fn):
@@ -258,13 +265,14 @@ variable [package_sem : {assumptions}]
         # `DB.wp_munmap` itself
         args = " ".join((f"EtcdGrove.{nsd}.{result(c)}" if nsd else result(c))
                         for c in callees[fn])
-        body = f"{specref(fn)}.wp_proof" + (f" {args}" if args else "")
+        sp, pf = ("wspec", "wp_wproof") if fn in wspec else ("spec", "wp_proof")
+        body = f"{specref(fn)}.{pf}" + (f" {args}" if args else "")
         # the specs with ghost state (the store's) take `[AllG GF]`
         src = open(spec_file(fn)).read()
         allg = " [AllG GF]" if "[AllG GF]" in src else ""
         # the register's specs take its storage registry
         allg += " [RegStor GF]" if "[RegStor GF]" in src else ""
-        return (f"theorem {result(fn)}{allg} :\n    {specref(fn)}.spec (GF := GF) (hG := hG) :=\n"
+        return (f"theorem {result(fn)}{allg} :\n    {specref(fn)}.{sp} (GF := GF) (hG := hG) :=\n"
                 f"  {body}\n")
 
     generic = [fn for fn in order if fn not in haslc and fn not in external]

@@ -575,7 +575,7 @@ theorem search_loeb_w
       iapply HΦ
       isplitr
       · ipureintro
-        refine ⟨Hbl, Or.inl ⟨n, Hres, rfl, rfl⟩, Hidx.1, r.ws.map WEntry.pgid, ?_⟩
+        refine ⟨Hbl, Or.inl ⟨n, Hres, rfl, rfl⟩, Hidx.1, [], ?_⟩
         unfold kidsAt; rw [Hres]; simp [Hr, Hleaf]
       iframe
       unfold wctx wView; iframe; iframe #; ipureintro; exact Hlgv
@@ -656,7 +656,7 @@ theorem search_loeb_w
       iapply HΦ
       isplitr
       · ipureintro
-        refine ⟨Hbl, Or.inr ⟨Hres, rfl, pg, Hpa⟩, Hidx.1, (List.range (pageCount pg)).map fun i => W64 (branchPgid pg i : Int), ?_⟩
+        refine ⟨Hbl, Or.inr ⟨Hres, rfl, pg, Hpa⟩, Hidx.1, [], ?_⟩
         unfold kidsAt; rw [Hres, Hpa]; simp [Hfl]
       iframe
       unfold wctx wView bktOwn; iframe; iframe #; ipureintro; exact Hlgv
@@ -698,7 +698,8 @@ theorem search_loeb_w
       | nil => exact absurd Hpath (by simp [wpath])
       | cons r2 rs =>
         refine ⟨Or.inr ⟨Hres, rfl, pg, Hpa⟩, Hi0, (List.range (pageCount pg)).map fun i => W64 (branchPgid pg i : Int), _, ?_, ?_, Hpath⟩
-        · unfold kidsAt; rw [Hres, Hpa]; simp [Hfl]; unfold branchPageFlag leafPageFlag; decide
+        · have hne : branchPageFlag ≠ leafPageFlag := by unfold branchPageFlag leafPageFlag; decide
+          unfold kidsAt; rw [Hres, Hpa]; simp [Hfl, hne]
         · simp only [List.getElem?_map, List.getElem?_range (show (sint.Z i).toNat < pageCount pg by omega)]
           rfl
 

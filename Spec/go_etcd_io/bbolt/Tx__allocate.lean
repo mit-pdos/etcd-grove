@@ -53,7 +53,7 @@ transaction was dereferenced, the database is lost (an error, the transaction al
 abbrev Tx.allocate.wspec (R : Type) (dbR : WView → Loc → R → IProp GF) : Prop :=
   ∀ (W : WView) (txl : Loc) (T : WTx) (ρ : R) (count : w64),
   0 < sint.Z count → sint.Z count ≤ 2 ^ 32 → sint.Z count * W.ps < 2 ^ 47 →
-  uint.Z T.mv.pgid' * W.ps < 2 ^ 48 →
+  uint.Z T.mv.pgid' * W.ps < 2 ^ 48 → W.hwm ≤ uint.nat T.mv.pgid' →
   derefReady T (structFieldRef Tx go!"root" txl) → T.t.db' = W.dbl →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ dbR W txl ρ ∗ ownWriteTxG W txl T ∗
       wView W }}
@@ -62,7 +62,7 @@ abbrev Tx.allocate.wspec (R : Type) (dbR : WView → Loc → R → IProp GF) : P
       (∃ (ρ' : R) (data' : Loc) (T0 T' : WTx), dbR { W with data := data' } txl ρ' ∗
         ownWriteTxG { W with data := data' } txl T' ∗ wView { W with data := data' } ∗
         ⌜allocRes W T T0 T' count p err data'⌝) ∨
-      (⌜err ≠ interface.nil⌝ ∗ ∃ (T0 : WTx), ⌜derefRel T T0⌝ ∗ ownWriteTxG W txl T0) }}
+      (⌜err ≠ interface.nil⌝ ∗ ∃ (T0 : WTx), ⌜T0 = T ∨ derefRel T T0⌝ ∗ ownWriteTxG W txl T0) }}
 
 end spec
 
