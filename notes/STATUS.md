@@ -154,7 +154,7 @@ what `beginRWTx` hands the writer (its object graph's predicate is the write age
   `Rollback`, `release`, `releaseRange`, `ReleasePendingPages`: Perennial's map range does
   allow deleting), the interface contract (`Iface.lean`, `ArrayIface.lean`), `hashMap.addSpan`;
   `sort.Sort` an axiom.
-- the root package (135, `--bbolt-root`): statistics, accessors, `mmap`/`munmap`,
+- the root package (143, `--bbolt-root`): statistics, accessors, `mmap`/`munmap`,
   `mmapSize`, `db.page`, `db.meta`, `Tx.page`, `Tx.init`, `beginTx`, `beginRWTx` (the
   freelist's pending pages no reader sees released), `removeTx`, `Begin` (both kinds),
   `Tx.close`/`Rollback` (read), `View`, the logger (`DB.Logger`, the default logger's
@@ -162,10 +162,20 @@ what `beginRWTx` hands the writer (its object graph's predicate is the write age
   bucket read API (`Bucket.Get`, `Tx.Bucket`, `ForEach`, ...), `node.go` but the
   graph-shaped parts. `sync.Pool` (`Proof/sync/PoolModel.lean`) and `os.FileInfo`
   (`Proof/os/FileInfoAlias.lean`) are trust-boundary models.
-- pure, for the write path: a remap's cells (`DBRemap.lean`: `remap_gather`,
-  `remap_carve`, `dbOK_remap`), a freelist allocation (`DBAlloc.lean`); specs written for
-  `db.mmap` (open and remap, a writer dereferenced first; its proof running) and
-  `db.allocate`.
+- the mapping and the allocator: `db.mmap` (for `Open` and for a remap: the readers'
+  tokens show none is open, the writer is dereferenced, the metas are read out of the new
+  mapping, the deferred rollback `munmap`s), `db.allocate` (the page pool or a new buffer; a
+  freelist run, or the high-water mark with the mapping grown), over `DBRemap.lean`
+  (`remap_gather`, `remap_carve`, `dbOK_remap`), `DBAlloc.lean` (`dbOK_allocate`, ...),
+  `AllocPage.lean`; `Open`'s leaves `flock`, `funlock`, `fdatasync`, `hasSyncedFreelist`,
+  `getPageSizeFromFirstMeta`; `getPageSize` (proved, not linked:
+  `getPageSizeFromSecondMeta` is specified, its proof blocked, below).
+- the errors bbolt compares with its error variables are well-formed (`Proof/os/ErrWF.lean`:
+  a pointer-typed error holds a pointer; `ErrShape.lean`: `errors.New`, `fmt.Errorf` return
+  pointers): `Stat`, `ReadAt`, `Mmap` say so of theirs.
+- the write agent's object graph so far (`WriteTx*.lean`, the writer's cursor, `Bucket.node`,
+  `node.childAt`/siblings), committed as the agent left it (it stopped on an API limit);
+  `wip/` holds its unfinished `WriteTxClean.lean` and `getPageSizeFromSecondMeta`.
 
 **Safety findings** (preconditions that rule out a reachable panic or a false spec):
 `Rollback` inside `View` panics (`managed`); an empty branch page would make the cursor read
@@ -178,15 +188,21 @@ bucket's value longer than 16 bytes; `grow` needs the file no longer than the ma
 file must be well-formed: a nested bucket inside an inline one, a page shared by two
 parents (freed twice), an empty first key (`node.read`), a freelist id at the high-water
 mark or above (`node.spill` panics), a page running past the high-water mark. A failed
-remap (the `mmap` system call) leaves `db.data` nil: the next `Begin` dereferences it.
+remap (the `mmap` system call) leaves `db.data` nil: the next `Begin` dereferences it. If the
+first meta page cannot be read (an I/O error), `getPageSize` probes the file at `1024 << i`
+for any valid meta: a value holding a forged one (a valid checksum) at such an offset sets
+the page size (`Open` will assume the file's valid metas agree on it).
 
 **Perennial gaps** (batch for `goose-bbolt`): float conversions (`node.splitTwo`,
 `rebalance`; `FloatConv.lean` a class meanwhile); `delete`/`clear` on a named map type
 (`hashMap`'s `pidSet`: `delete_map`, `wp_mapDelete` take a literal `go.MapType`); a
 package's `Assumptions` should include the types it reaches through others (`hash.Hash64`);
-`runtime.GOOS` constants, the `os.FileInfo` alias; moving `SliceWithin` into Perennial.
+`runtime.GOOS` constants, the `os.FileInfo` alias; moving `SliceWithin` into Perennial;
+`io`'s initialization should give `io.EOF`'s value (`getPageSizeFromSecondMeta` compares with
+it; `isPkgInit pkg_id.io` is `True`). Not started: the build machine's disk is full (the
+batch changes `Defn/Map.lean`, a full rebuild).
 
-**Next.** `db.mmap`'s proof (running), `db.allocate`, the write agent's `Tx.allocate`; the
+**Next.** The write agent's `Tx.allocate` (from `DB.allocate`); the
 writer's object graph (`WriteTxPred.lean`, the write agent: bucket/node graph, `Put`,
 `Delete`, spill); `Commit` (freelist write, page writes, `writeMeta`, `grow`), the writer's
 `Rollback`/`close`; `Open`/`init`/`close`; `Batch`; `etc/tcb-report.py --check --update`
