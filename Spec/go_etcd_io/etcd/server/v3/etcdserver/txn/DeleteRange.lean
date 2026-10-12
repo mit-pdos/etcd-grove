@@ -53,6 +53,7 @@ abbrev txn.DeleteRange.spec : Prop :=
               (W64 ((mvcc.writeRev ilog (txn.delChanges (mvcc.stateAfter ilog) o) : Nat) : Int))
               (rangeIn (mvcc.stateAfter ilog) o).length
               (if o.base.prevKV then rangeIn (mvcc.stateAfter ilog) o else []) ∗
+            txn.respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"Header" resp) ∗
             mvcc.idxCert γ.idx (mvcc.commitLog ilog (txn.delChanges (mvcc.stateAfter ilog) o)) ∗
             (if txn.delChanges (mvcc.stateAfter ilog) o = [] then mvcc.revToken γ else True)) ∨
          (⌜err ≠ GoInterface.nil ∧ o.base.prevKV = true ∧ resp = null ∧ nd = false⌝ ∗

@@ -12,6 +12,7 @@ public import Spec.go_opentelemetry_io.otel.trace.WithAttributes
 public import Spec.go_opentelemetry_io.otel.«attribute».String
 public import Spec.context.WithValue
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ProposerLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WrapLemmas
 
 @[expose] public section
 
@@ -135,7 +136,7 @@ theorem EtcdServer.Put.wp_proof
   · iframe # Hrd Hcred
     iexists _; iexact Header
   (try wp_auto)
-  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hok⟩ | ⟨%Hre, Hfail⟩)
+  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hok⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · subst Herr
     have Hrq : rq' = apply.withHeader (irrPut op) hm := by
       refine (Hwire.2.2.2 ?_)
@@ -151,6 +152,10 @@ theorem EtcdServer.Put.wp_proof
     obtain ⟨Hop', Hresp⟩ := Hop
     simp [apply.withHeader, irrPut] at Hop'
     subst Hop' Hresp
+    ihave %Hap := apply.putAnswerIs_nil _ _ _ _ $$ Hpo
+    obtain ⟨log', rfl⟩ := Hap
+    simp only [apply.putAnswerIs]
+    icases Hpo with ⟨Hpo, Hhdr⟩
     (try wp_auto)
     wp_apply HEnd
     (try wp_auto)
@@ -159,9 +164,9 @@ theorem EtcdServer.Put.wp_proof
     ileft
     isplitr
     · ipureintro; rfl
-    iexists hm, x, x', o, skip
-    iframe Hpo Hcert
-    ipureintro; exact Hstep
+    iexists hm, x, x', .applied log' false, skip
+    iframe Hpo Hhdr Hcert
+    ipureintro; exact ⟨Hstep, log', rfl⟩
   · obtain ⟨rfl, Hne⟩ := Hre
     (try wp_auto)
     rcases err with ei | _
@@ -173,6 +178,8 @@ theorem EtcdServer.Put.wp_proof
       iright
       isplitr
       · ipureintro; exact ⟨rfl, Hne⟩
+      isplitr
+      · iexact HaE
       icases Hfail with (⟨%hm, %rq', %Hwire, Herr⟩ | Hdep)
       · ileft
         iexists hm

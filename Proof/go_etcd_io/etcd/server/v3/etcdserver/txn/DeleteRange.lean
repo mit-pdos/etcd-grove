@@ -87,7 +87,7 @@ theorem txn.DeleteRange.wp_proof
     ipureintro; exact hb
   rw [txn.pendState_nil]
   simp only [List.nil_append]
-  icases Hout with (⟨%Herr, ⟨%deletes', Htx⟩, #Hresp⟩ | ⟨%Hne, Htx⟩)
+  icases Hout with (⟨%Herr, ⟨%deletes', Htx⟩, #Hresp, Hhdr⟩ | ⟨%Hne, Htx⟩)
   · -- deleted: the deferred `End` commits (if something was deleted)
     ihave Htx : mvcc.isTxn mw s γ (.write ilog (txn.delChanges (mvcc.stateAfter ilog) o) (W64 0)
         deletes' (W64 0)) $$ [Htx]
@@ -107,7 +107,7 @@ theorem txn.DeleteRange.wp_proof
     isplitl []
     · ipureintro; exact ⟨Hpin, Hfx.1⟩
     ileft
-    iframe Hresp Hc Htok
+    iframe Hresp Hhdr Hc Htok
     ipureintro; exact Herr
   · -- the range read's context error: nothing written, the token back
     ihave Htx : mvcc.isTxn mw s γ (.write ilog [] (W64 0) (W64 0) (W64 0)) $$ [Htx]

@@ -3560,6 +3560,43 @@ gRPC checks discharge the txn package's request premises.
   (raft's `Node` and `None`, rafthttp's `Transporter`, otel's `Tracer`: imports and a constant
   only) rather than axiomatizing loads of axiomatized types.
 
+**2026-10-12 · unit 3a implemented** (the handoff gaps; `Put`/`DeleteRange` end to end):
+
+- **The header's id fields: a separate, non-persistent conjunct** (unit 3a). The txn package
+  allocates the response header (`&pb.ResponseHeader{}` in `put`/`deleteRange`); its four id
+  fields go owned through `txn.respHdrOwn hf` beside the response's read-only predicate
+  (`putResponseIs`, unchanged and persistent), then the apply package's `appliedHdr log hf` (the
+  four fields, and the log at least `NewStore`'s two revisions with room for the write, so the
+  response's revision is not `0`: `soleWriter` now keeps `2 ≤ log.length`), wrapped with the
+  persistent outcome as `putAnswerIs`/`deleteAnswerIs` (the chain's triples, `dispatchAnswer`),
+  through the wait's handoff (`resultΨ`, `appliedOk`: resources, nothing kept them under `□`), to
+  `EtcdServer.Put`/`DeleteRange`'s success. *Rejected:* the fields inside `putOutcomeIs` (it is
+  persistent and named by many layers; the handler's `A.ok` keeps it while `hdrW` takes the
+  fields); `Txn` and `Range` (their headers are `newTxnResp`'s and `executeRange`'s: unit 3b).
+- **The error facts in `applyErrIs`** (unit 3a). `applyErrIs err` gains `errKeyMsg err`: `nil`,
+  or a safe key of `togRPCError`'s map (`SafeMapKey`) whose `Error()` returns (`errMsgOk`). Every
+  producer discharges it: `nil`; the `errors.New` variables (`errVarLeaf` keeps the message
+  triple, `errors.wp_New`'s; a pointer error is a safe key, `safeMapKey_ptrErr`); the contracts'
+  errors (the auth store's, the lessor's: premises, now stronger). So `srvErrIs` is `applyErrIs`
+  of a non-nil error (`srvErrIs_of_applyErrIs`). The proposal's errors needed it too, which the
+  plan missed: the auth store's `AuthInfoFromCtx` and raft's `Propose` contracts return
+  `applyErrIs` errors, `proto.MarshalIRR`'s error is one (protobuf-go's pointer errors), and
+  `parseProposeCtxErr` returns only its variables: its `default` branch returns `cctx.Err()`,
+  an error Perennial's `isContext` says only "typed" of, so **a new trust-boundary axiom**
+  `context.ErrDone` (a done context's `Err()` is `Canceled` or `DeadlineExceeded`, Go's
+  documented contract of `Context.Err`) and `errors.IsCtxErr` strengthened (`true` when the error
+  is the target, Go's `Is` compares first) make the branch unreachable. *Rejected:* a conjunct
+  beside `applyErrIs` on the server's path (every apply-side producer already had the facts; one
+  predicate is simpler); a premise that every typed error is a safe key (false: an error of an
+  uncomparable type).
+- **`raftKV` per method; the server's parameters** (unit 3a, `ServerKV.lean`). `raftKV s A` is
+  now `kvRangeOk ∗ kvPutOk ∗ kvDeleteOk ∗ kvTxnOk ∗ kvGetOk` (the handlers take their conjunct);
+  `srvKVAns s E ρ A0` instantiates `A` for the write path (`srvCall`: the context, one id credit,
+  a `leadTimeMu` reader slot, given back in `putAppliedOk`/`putErrOk`) and defers `Range`, `Txn`,
+  `revR` to `A0` (3b's); `raftKV_of_server` proves the `Put`/`DeleteRange` conjuncts from the
+  linked `EtcdServer.Put`/`DeleteRange` with the other three as premises. `KV().Rev()` stays in
+  `kvGetOk` (3b): `header.fill` never calls it on these answers (their revision is not `0`).
+
 ## The server's raft wrapper: raft.Node as a contract, an SPSC stream to the apply side
 
 **2026-10-12 · plan, carried out the same day** (`server/v3/etcdserver/raft.go`, ~450 Go lines; branch `server-raft`; `STATUS.md`, "etcd's server: the raft wrapper"). Two changes in the proof: the WAL's `Close` succeeds by the contract (else `onStop` panics in the loop's goroutine), and `start` case-splits `islead` rather than joining (the follower's select returns on `stopped`, which no join assertion reaches).

@@ -9,7 +9,32 @@
 # `context.DeadlineExceeded` (an empty struct, which Perennial's `errors.wp_Is` does not take);
 # the txn package's `IsDefaultOrdering`/`HasRevisionFilters` and adt's intervals are proved, and
 # the interval tree's contract (pending) is a hypothesis of `checkIntervals` and `Txn`, not an axiom.
+# Unit 3a (2026-10-12): `put_end_to_end`/`deleteRange_end_to_end` (Results.lean) link the server's
+# `EtcdServer.Put`/`DeleteRange`, so the collection reaches the request path's trust boundary too
+# (the proposal's: otel, prometheus, traceutil, the transport queries, `MarshalIRR`, the context
+# axioms, `errors.IsCtxErr`, the new `context.ErrDone`); the handlers' own results do not.
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/(Link|Results)\.lean$
+axiom attribute.String.wp_proof
+axiom config.ServerConfig.ReqTimeout.wp_proof
+axiom context.ErrDone.wp_proof
+axiom context.ValueStartTime.wp_proof
+axiom context.WithValue.wp_proof
+axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
+axiom isConnectedSince.wp_proof
+axiom isConnectedToQuorumSince.wp_proof
+axiom membership.RaftCluster.Members.wp_proof
+axiom prometheus.HistogramVec.WithLabelValues.wp_proof
+axiom proto.MarshalIRR.wp_proof
 axiom status.Error.wp_proof
 axiom status.Errorf.wp_proof
+axiom strconv.FormatBool.wp_proof
+axiom time.Duration.Seconds.wp_proof
+axiom time.Time.After.wp_proof
+axiom trace.SpanFromContext.wp_proof
+axiom trace.WithAttributes.wp_proof
+axiom traceutil.Trace.GetStartTime.wp_proof
+axiom traceutil.Trace.InsertStep.wp_proof
+axiom traceutil.Trace.LogIfLong.wp_proof
+axiom traceutil.Trace.SetStartTime.wp_proof
+axiom traceutil.Tracer.Start.wp_proof

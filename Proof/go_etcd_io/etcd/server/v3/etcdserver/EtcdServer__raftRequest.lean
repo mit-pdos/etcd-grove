@@ -73,7 +73,7 @@ theorem EtcdServer.raftRequest.wp_proof
   wp_apply hP s E ρ ctx cd p rq Hid0 $$ [Hrd Hcred Hhdr] as %res %err ⟨Hrd, Hres⟩
   · iframe # Hrd Hcred Hhdr
   (try wp_auto)
-  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hri⟩ | ⟨%Hres, Hdep⟩)
+  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hri⟩ | ⟨%Hres, #HaE, Hdep⟩)
   · subst Herr
     (try wp_auto)
     iunfold resultIs at Hri
@@ -99,6 +99,8 @@ theorem EtcdServer.raftRequest.wp_proof
         iright
         isplitr
         · ipureintro; exact ⟨rfl, by simp⟩
+        isplitr
+        · rw [← hve]; iexact HerrIs
         ileft
         iexists hm, rq'
         isplitr
@@ -130,6 +132,8 @@ theorem EtcdServer.raftRequest.wp_proof
         iright
         isplitr
         · ipureintro; exact ⟨rfl, by simp⟩
+        isplitr
+        · rw [← hve]; iexact HerrIs
         ileft
         iexists hm, rq'
         isplitr
@@ -194,6 +198,8 @@ theorem EtcdServer.raftRequest.wp_proof
       iright
       isplitr
       · ipureintro; exact ⟨rfl, Hne⟩
+      isplitr
+      · iexact HaE
       iright; iexact Hdep
     · exact absurd rfl Hne
 
