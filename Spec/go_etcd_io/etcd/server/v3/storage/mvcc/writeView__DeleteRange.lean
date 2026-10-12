@@ -23,16 +23,19 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `wv.DeleteRange(key, end)`: a write transaction deleting the range, committed if it
 deleted something: the keys deleted (`delKeys` of the committed log `ilog` the transaction
-found) and the revision; the range's keys fit a revision (trivially, for one key). -/
+found) and the revision; the range's keys fit a revision (trivially, for one key). Under the
+batch lock, by the critical-section contract (`csContract`). -/
 abbrev mvcc.writeView.DeleteRange.spec : Prop :=
-  ∀ (wv s : Loc) (γ : mvcc.StoreNames) (key endk : GoSlice) (k e : GoString),
+  ∀ (wv s : Loc) (γ : mvcc.StoreNames) (P Pre Q Post : IProp GF) (f : val)
+    (key endk : GoSlice) (k e : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isWriteView wv s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗ key ↦*□ k ∗
+      mvcc.isWriteView wv s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗
+      mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post ∗ key ↦*□ k ∗
       endk ↦*□ e ∗
       ⌜∀ ilog : mvcc.Log, (mvcc.delKeys ilog [] (decide (endk = slice.nil)) k e).length < 2 ^ 63⌝ }}
     (App (App (Val (wv @!! go.GoType.PointerType writeView.ty @!! go!"DeleteRange")) (Val #key))
       (Val #endk))
-  {{ (n rev : w64), RET (PairV #n #rev); mvcc.storeReader s γ ∗
+  {{ (n rev : w64), RET (PairV #n #rev); mvcc.storeReader s γ ∗ Post ∗
       ∃ ilog : mvcc.Log,
         mvcc.idxCert γ.idx (mvcc.commitLog ilog
           ((mvcc.delKeys ilog [] (decide (endk = slice.nil)) k e).map .del)) ∗

@@ -73,21 +73,21 @@ theorem stepCandidate.wp_proof
     with [myVoteRespType] as myVoteRespType
   · rw [show raftpb.MsgPreVoteResp = #(W32 18) from rfl]
     wp_auto
-    rw [if_pos (Hpre_iff.1 Hif)]
+    rw [ite_eq_left (Hpre_iff.1 Hif)]
     iframe myVoteRespType
     ipureintro; exact rfl
   · rw [show raftpb.MsgVoteResp = #(W32 6) from rfl]
     wp_auto
-    rw [if_neg (fun h => Hif (Hpre_iff.2 h))]
+    rw [ite_eq_right (fun h => Hif (Hpre_iff.2 h))]
     iframe myVoteRespType
     ipureintro; exact rfl
   -- kept opaque below, so that the arms' `decide` rewrites find the program's
   -- comparisons and not this one
   generalize Hmvr : (if s.role = .preCandidate then W32 18 else W32 6) = mvr
   have Hmp : s.role = .preCandidate → mvr = W32 18 := by
-    intro Hp; rw [← Hmvr, if_pos Hp]
+    intro Hp; rw [← Hmvr, ite_eq_left Hp]
   have Hmc : s.role ≠ .preCandidate → mvr = W32 6 := by
-    intro Hp; rw [← Hmvr, if_neg Hp]
+    intro Hp; rw [← Hmvr, ite_eq_right Hp]
   clear Hmvr
   rcases Hty with Hty | Hty | Hty | Hty | Hty | Hty | Hty
   · -- `MsgVoteResp`: none of `MsgProp`, `MsgApp`, `MsgHeartbeat`, `MsgSnap`, so it falls

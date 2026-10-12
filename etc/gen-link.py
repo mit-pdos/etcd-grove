@@ -28,6 +28,7 @@ usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --mvcc > Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link.lean
        etc/gen-link.py --adt > Proof/go_etcd_io/etcd/pkg/v3/adt/Link.lean
        etc/gen-link.py --txn > Proof/go_etcd_io/etcd/server/v3/etcdserver/txn/Link.lean
+       etc/gen-link.py --apply > Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -63,6 +64,17 @@ from etc/link-lean-first-adt.txt: the tree's contract pending (`?`), the compari
 from etc/link-lean-first-txn.txt, under the txn package's assumptions; as `--recipes`, its
 results are in a namespace of their own (`txn`: `txn.traceutil.wp_EnsureTrace`), and mvcc's
 functions are `@` callees, linked in mvcc's `Link.lean`.
+`--apply` links the proofs of etcd's server `apply` package (`server/v3/etcdserver/apply`: the
+applier chain between the apply thread and the txn package) and of the trust-boundary functions
+they call, from etc/link-lean-first-apply.txt, under the apply package's assumptions; as `--txn`,
+its results are in a namespace of their own (`apply`), and the txn package's and mvcc's functions
+are `@` callees, linked in their `Link.lean`s.
+**Reuse** (2026-10-12): a callee whose result a Link this one imports already defines, under the
+same name, is imported, not redefined: two Links defining one theorem cannot be imported
+together (the trust report runs Lean on the roots a group of parts reaches together: the
+server's Link, which reaches `EtcdDeps`, with the apply package's, which imports mvcc's). The
+Links searched are those of the `@` callees' packages and those a mode declares it imports
+(`REUSES`: the server's imports mvcc's, which defines encoding/binary's and zap's `Error` too).
 `--skip-unproved` (after the mode) leaves out the listed functions with no proof file yet (no
 spec, or no `Proof/` file: a later unit's) and every function that reaches one, and names them
 in the header: a package proved in units links what is done, from the full list.
@@ -115,6 +127,14 @@ LEAN_FIRST = {
               "go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions",
               "The server's `txn` package's proofs (etcd's `server/v3/etcdserver/txn`) and the "
               "functions they call", [""]),
+    # the server's apply package (etcd's server/v3/etcdserver/apply), over the txn package
+    "--apply": ("link-lean-first-apply.txt",
+                "go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.server.v3.etcdserver.txn "
+                "go_etcd_io.etcd.server.v3.storage.mvcc go_etcd_io.etcd.api.v3 go_etcd_io.etcd.pkg.v3 "
+                "go_uber_org",
+                "go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions",
+                "The server's `apply` package's proofs (etcd's `server/v3/etcdserver/apply`) and the "
+                "functions they call", [""]),
     "--recipes": ("link-lean-first-recipes.txt",
                   "go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3",
                   "go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions",
@@ -129,7 +149,10 @@ LEAN_FIRST = {
 }
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
-              "--txn": "txn"}
+              "--txn": "txn", "--apply": "apply"}
+# The Links a mode imports for the callees' results they already define (see "Reuse" above), by
+# their module below `Proof/`, beside those of its `@` callees.
+REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
 mode = LEAN_FIRST.get(sys.argv[1])
 cache = mode is not None
 here = os.path.dirname(os.path.abspath(__file__))
@@ -253,6 +276,39 @@ def specref(fn):
     return f"EtcdGrove.{spec[fn]}" if nsd else spec[fn]
 
 
+# **Reuse**: the callees whose result a Link this one imports already defines (same full name):
+# imported from there (`reused`: fn -> the Link's module), not emitted.
+reused = {}
+if cache:
+    def link_file(mod):
+        return os.path.join(root, *mod.split(".")) + ".lean"
+
+    def link_namespace(src):
+        nss = re.findall(r"^namespace (\S+)", src, re.M)
+        inner = nss[nss.index("EtcdGrove") + 1:] if "EtcdGrove" in nss else []
+        return ".".join(["EtcdGrove"] + inner)
+
+    todo = sorted({"Proof." + ".".join(where[fn].split(".")[:-1] + ["Link"]) for fn in external}
+                  | set(REUSES.get(sys.argv[1], [])))
+    links, seen_links = [], set()
+    while todo:
+        mod = todo.pop(0)
+        if mod in seen_links or not os.path.exists(link_file(mod)):
+            continue
+        seen_links.add(mod)
+        src = open(link_file(mod)).read()
+        links.append((mod, link_namespace(src), set(re.findall(r"^theorem (\S+)", src, re.M))))
+        todo.extend(re.findall(r"^public import (Proof\.\S+\.Link)$", src, re.M))
+    here_ns = "EtcdGrove" + (f".{nsd}" if nsd else "")
+    for fn in fns:
+        if fn in external or fn in pending:
+            continue
+        full = f"{here_ns}.{result(fn)}"
+        for mod, ns, thms in links:
+            if any(f"{ns}.{t}" == full for t in thms):
+                reused[fn] = mod
+                break
+
 order, seen = [], set()
 
 
@@ -282,10 +338,10 @@ hand.
         break_on_hyphens=False) if skipped else "") + """
 -/""", "module", ""]
     out.extend(f"public import {proof_module(fn)}" for fn in fns
-               if fn not in external and fn not in pending)
+               if fn not in external and fn not in pending and fn not in reused)
     out.extend(f"public import {prefix[fn]}Spec.{where[fn]}" for fn in fns if fn in pending)
     out.extend(sorted({"public import Proof." + ".".join(where[fn].split(".")[:-1] + ["Link"])
-                       for fn in external}))
+                       for fn in external} | {f"public import {mod}" for mod in reused.values()}))
     out.append(f"""
 @[expose] public section
 
@@ -339,15 +395,27 @@ variable [package_sem : {assumptions}]
 
     cache_assumptions = set()
     for fn in order:
+        if fn in reused:
+            # a callee whose result an imported Link defines: as an `@` callee, the cache's
+            # assumptions if that result takes them
+            if re.search(r"^theorem " + re.escape(result(fn)) +
+                         r" \[go_etcd_io\.etcd\.cache\.v3\.Assumptions\]",
+                         open(link_file(reused[fn])).read(), re.M):
+                cache_assumptions.add(fn)
+            continue
         if fn in external:
             # an `@` callee whose result (in its own package's `Link.lean`) takes the cache's
             # assumptions (mvcc's range read and write path, through the index's btree): so does
             # every result linking it
             link = os.path.join(root, prefix[fn].rstrip("."), "Proof",
                                 *where[fn].split(".")[:-1], "Link.lean")
-            if os.path.exists(link) and re.search(
-                    r"^theorem " + re.escape(result(fn)) +
-                    r" \[go_etcd_io\.etcd\.cache\.v3\.Assumptions\]", open(link).read(), re.M):
+            # the result as that Link names it: in its own namespace (the txn package's
+            # `wp_Txn`, which a namespaced mode calls `txn.wp_Txn`)
+            names = {result(fn), result(fn).split(".", 1)[-1]}
+            if os.path.exists(link) and any(re.search(
+                    r"^theorem " + re.escape(n) +
+                    r" \[go_etcd_io\.etcd\.cache\.v3\.Assumptions\]", open(link).read(), re.M)
+                    for n in names):
                 cache_assumptions.add(fn)
             continue
         if ("variable [go_etcd_io.etcd.cache.v3.Assumptions]" in open(spec_file(fn)).read()
@@ -360,8 +428,10 @@ variable [package_sem : {assumptions}]
     for fn in order:
         if any(c in blocked for c in callees[fn]):
             blocked.add(fn)
-    generic = [fn for fn in order if fn not in haslc and fn not in external and fn not in blocked]
-    special = [fn for fn in order if fn in haslc and fn not in external and fn not in blocked]
+    generic = [fn for fn in order if fn not in haslc and fn not in external and fn not in blocked
+               and fn not in reused]
+    special = [fn for fn in order if fn in haslc and fn not in external and fn not in blocked
+               and fn not in reused]
     assert all(c not in haslc for fn in generic for c in callees[fn])
     out.extend(emit_cache(fn) for fn in generic)
     out.append("end links\n")

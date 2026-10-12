@@ -37,7 +37,7 @@ theorem WithLease.wp_proof : WithLease.spec (GF := GF) (hG := hG) := by
   wp_start as ⟨Hp, -⟩
   wp_auto
   iapply HΦ
-  simp only [withLeaseSM, withContextM, SessionOpts.val]
+  simp only [withLeaseSM, SessionOpts.val]
   iexact Hp
 
 end proof

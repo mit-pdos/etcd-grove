@@ -1,0 +1,7 @@
+# Types and names only: function and method bodies are axiomatized (the apply package's
+# ClusterVersionSet calls MustParse, Version.LessThan and Version.String).
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

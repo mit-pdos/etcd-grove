@@ -85,7 +85,7 @@ theorem txn.Count.wp_proof
     ileft
     ipureintro
     refine ⟨rfl, hle, ?_⟩
-    simp [txn.srvCount, txn.countOp, txn.rangeOpOf, hrevo]
+    simp [txn.srvCount, txn.countOp, txn.rangeOpOf]
 
 end proof
 

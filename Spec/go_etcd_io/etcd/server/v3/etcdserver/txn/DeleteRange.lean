@@ -31,18 +31,21 @@ request's range at `ilog`'s state deleted (`delChanges`; the client's delete the
 nothing was deleted), the response with their number, the revision (`writeRev`: the new one, or
 `ilog`'s last if nothing was deleted) and (`PrevKv`) the deleted key-values; or, with `PrevKv`,
 the range read's context error (`ctx` done): nothing deleted, the token back. The trace is not
-`nil`. -/
+`nil`. The write transaction runs under the store's batch lock by the critical-section contract
+(`csContract P f Pre Q Post`, the store's hook `hookIs γ P f`): `Post`. -/
 abbrev txn.DeleteRange.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg : Loc) (kv : GoInterface)
-    (s : Loc) (γ : mvcc.StoreNames) (dr : Loc) (o : OpFull) (m : Nat) (log₀ : mvcc.Log),
+    (s : Loc) (γ : mvcc.StoreNames) (dr : Loc) (o : OpFull) (m : Nat) (log₀ : mvcc.Log)
+    (P Pre Q Post : IProp GF) (f : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗
       ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗ txn.deleteRangeRequestIs dr o ∗
-      context.isContext ctx cd ∗
-      ⌜∀ ilog : mvcc.Log, txn.Pinned log₀ m ilog → (mvcc.stateAfter ilog).length < 2 ^ 63⌝ }}
+      mvcc.txnCtx ctx cd ∗
+      ⌜∀ ilog : mvcc.Log, txn.Pinned log₀ m ilog → (mvcc.stateAfter ilog).length < 2 ^ 63⌝ ∗
+      mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
     (App (App (App (App (Val (@! txn.DeleteRange)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #kv)) (Val #dr))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      mvcc.storeReader s γ ∗ ownToks γ.revs m ∗ ⌜trace ≠ null⌝ ∗
+      mvcc.storeReader s γ ∗ ownToks γ.revs m ∗ ⌜trace ≠ null⌝ ∗ Post ∗
       ∃ ilog : mvcc.Log, ⌜txn.Pinned log₀ m ilog ∧ ilog ≠ []⌝ ∗
         ((⌜err = GoInterface.nil⌝ ∗
             txn.deleteRangeResponseIs resp

@@ -38,13 +38,13 @@ theorem notify.Notifier.Notify.wp_proof : notify.Notifier.Notify.spec (GF := GF)
   wp_apply +noauto sync.RWMutex.wp_Lock_guard $$ [$Hg] as ⟨Hlk, HP⟩
   wp_auto_lc 1
   imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 HP with HP
-  iunfold notifierLockInv at HP
+  iunfold notifyLockInv at HP
   iNamed HP
   (try wp_auto)
   imod ghostVar_update (NotifyCur.mk ch' γch' γi') γ c $$ Hcur with Hcur
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hcur Hch Hpend']
   · inext
-    iunfold notifierLockInv
+    iunfold notifyLockInv
     iexists NotifyCur.mk ch' γch' γi'
     simp only [named]
     iframe

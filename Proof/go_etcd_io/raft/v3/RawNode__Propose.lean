@@ -103,7 +103,7 @@ theorem RawNode.Propose.wp_proof
     · imodintro
       iintro %Hc
       simp [MsgSnap] at Hc
-  simp only [MsgProp, ite_true]
+  simp only [MsgProp]
   iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, %Hloc, %_, %_, %_, Herr⟩
   wp_auto
   -- what the `RawNode` tracks is kept: `LocalStepOk`, and the commit index does not move

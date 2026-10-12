@@ -85,7 +85,7 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         | exact fun _ => Hpv
         | exact fun h => by
             have := congrArg List.length h
-            simp [campaignElection, campaignPreElection] at this
+            simp [campaignPreElection] at this
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys
     ipureintro

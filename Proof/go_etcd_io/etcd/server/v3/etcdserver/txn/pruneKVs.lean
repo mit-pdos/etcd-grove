@@ -77,7 +77,7 @@ theorem txn.pruneKVs.wp_proof : txn.pruneKVs.spec (GF := GF) (hG := hG) := by
     have hcsn' : (cs.set (sint.Z jw).toNat x.1)[(sint.Z n).toNat]? = some x.1 := by
       rw [List.getElem?_set]
       split
-      · rw [if_pos (by rw [hcsl]; word)]
+      · rw [ite_eq_left (by rw [hcsl]; word)]
       · exact hcsn
     simp only [Hbn, _root_.and_self, ite_true]
     wp_apply wp_load_slice_index sl (sint.Z n) _ (DFrac.own 1) x.1 hn0 $$ [Hsl] as Hsl
@@ -89,7 +89,7 @@ theorem txn.pruneKVs.wp_proof : txn.pruneKVs.spec (GF := GF) (hG := hG) := by
     wp_apply Hf $$ %x.1 %x.2 [$Hx] as Hx
     have htake : (l.take (sint.nat n + 1)).filter (fun x => !P x.2) =
         kept ++ (if P x.2 then [] else [x]) := by
-      rw [List.take_succ, hx, List.filter_append, ← hkept]
+      rw [List.take_add_one, hx, List.filter_append, ← hkept]
       cases hpx : P x.2 <;> simp [hpx]
     have hsn : sint.nat (n + W64 1) = sint.nat n + 1 := by word
     have hk : (sint.Z jw).toNat = kept.length := by omega
@@ -114,10 +114,10 @@ theorem txn.pruneKVs.wp_proof : txn.pruneKVs.spec (GF := GF) (hG := hG) := by
         rw [List.getElem?_set]
         simp only [List.length_append, List.length_singleton] at ht
         by_cases htk : kept.length = t
-        · subst htk; rw [if_pos rfl, if_pos (by omega)]; simp
-        · rw [if_neg htk, hpre t (by omega), List.getElem?_append_left (by omega)]
+        · subst htk; rw [ite_eq_left rfl, ite_eq_left (by omega)]; simp
+        · rw [ite_eq_right htk, hpre t (by omega), List.getElem?_append_left (by omega)]
       · intro t ht
-        rw [List.getElem?_set, if_neg (by omega), hsuf t (by omega)]
+        rw [List.getElem?_set, ite_eq_right (by omega), hsuf t (by omega)]
     · -- pruned
       wp_auto
       wp_for_post
@@ -130,9 +130,9 @@ theorem txn.pruneKVs.wp_proof : txn.pruneKVs.spec (GF := GF) (hG := hG) := by
       rw [hk]
       refine ⟨by word, by omega, by rw [htake, hp]; simp, hjw, by simp [hcsl], ?_, ?_⟩
       · intro t ht
-        rw [List.getElem?_set, if_neg (by omega), hpre t ht]
+        rw [List.getElem?_set, ite_eq_right (by omega), hpre t ht]
       · intro t ht
-        rw [List.getElem?_set, if_neg (by omega), hsuf t (by omega)]
+        rw [List.getElem?_set, ite_eq_right (by omega), hsuf t (by omega)]
 
   · obtain ⟨hn0, hnl, hkept, hjw, hcsl, hpre, hsuf⟩ := Hinv
     have hnlen : sint.nat n = l.length := by have := Hlen.1; word
@@ -149,8 +149,8 @@ theorem txn.pruneKVs.wp_proof : txn.pruneKVs.spec (GF := GF) (hG := hG) := by
       intro t
       simp only [subslice, show sint.nat (W64 0) = 0 from rfl, List.drop_zero, List.getElem?_take]
       by_cases ht : t < kept.length
-      · rw [if_pos (by word), hpre t ht, List.getElem?_map]
-      · rw [if_neg (by word), List.getElem?_map, List.getElem?_eq_none (by omega)]; rfl
+      · rw [ite_eq_left (by word), hpre t ht, List.getElem?_map]
+      · rw [ite_eq_right (by word), List.getElem?_map, List.getElem?_eq_none (by omega)]; rfl
     rw [hsub] at *
     iapply HΦ
     unfold txn.rangeResultIs txn.kvsOwnAt

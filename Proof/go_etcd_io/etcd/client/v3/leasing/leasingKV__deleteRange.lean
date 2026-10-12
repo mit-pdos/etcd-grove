@@ -69,7 +69,7 @@ theorem leasingKV.deleteRange.wp_proof
   wp_apply HErrU as %cerr Hcerr
   cases cerr with
   | ok e =>
-    rw [if_neg (show GoInterface.ok e ≠ GoInterface.nil from fun h => by cases h)]
+    rw [ite_eq_right (show GoInterface.ok e ≠ GoInterface.nil from fun h => by cases h)]
     icases Hcerr with ⟨#HPD, #HCC⟩
     (try wp_auto)
     simp only [goose_wp_simp_extra, Bool.false_eq_true, ↓reduceIte]

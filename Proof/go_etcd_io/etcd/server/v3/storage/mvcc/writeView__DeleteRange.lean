@@ -33,10 +33,12 @@ theorem mvcc.writeView.DeleteRange.wp_proof
     (hDel : mvcc.metricsTxnWrite.DeleteRange.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     mvcc.writeView.DeleteRange.spec (GF := GF) (hG := hG) := by
-  intro wv s γ key endk k e
-  wp_start as ⟨#Hwv, Hrd, Htok, #Hkey, #Hend, %Hb⟩
+  intro wv s γ P Pre Q Post f key endk k e
+  wp_start as ⟨#Hwv, Hrd, Htok, #Hhook, Hcs, #Hkey, #Hend, %Hb⟩
   iunfold mvcc.isWriteView at Hwv
   iNamed Hwv
+  iunfold mvcc.csContract at Hcs
+  icases Hcs with ⟨Hpre, #Htr, Hupd⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   wp_apply wp_with_defer as %defer defer
@@ -44,7 +46,7 @@ theorem mvcc.writeView.DeleteRange.wp_proof
   wp_apply hTODO as %t %Ht
   (try wp_auto)
   -- `wv.kv.Write(trace)`
-  wp_apply (hWrite s γ t) $$ [$Hs $Hrd $Htok] as %mw ⟨%ilog, Htx⟩
+  wp_apply (hWrite s γ t P Pre Q f) $$ [$Hs $Hrd $Htok $Hhook $Hpre $Htr] as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
   · ipureintro; exact Ht
   (try wp_auto)
   -- `tw.DeleteRange(key, end)`
@@ -58,10 +60,13 @@ theorem mvcc.writeView.DeleteRange.wp_proof
       ((mvcc.delKeys ilog [] (decide (endk = slice.nil)) k e).map .del) (W64 0)
       (W64 0 + W64 1) (W64 0)) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
-  wp_apply (hEnd mw s γ _) $$ [$Htx'] as ⟨Hrd, Hcert⟩
+  -- the caller's update: the lock's invariant back for `Unlock`
+  imod Hupd $$ HQ with ⟨HP, HPost⟩
+  wp_apply (hEnd mw s γ _) $$ [$Htx' Hhook HP] as ⟨Hrd, Hcert⟩
   (try wp_auto)
+  · iapply mvcc.txnEndPre_write; iframe Hhook HP
   iapply HΦ
-  iframe Hrd
+  iframe Hrd HPost
   iexists ilog
   simp only [mvcc.txnEndPost]
   icases Hcert with ⟨Hcert, -⟩

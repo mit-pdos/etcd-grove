@@ -8,7 +8,7 @@ current channel. So `n.channel` is a sequence of close-to-broadcast channels (Pe
 `ownBroadcastChan` idiom), as the cache's `notifier` (`cache/v3/InvNotifier.lean`), whose
 broadcast here carries nothing (`True`: no caller in the proofs waits on it).
 
-**The lock invariant** `notifierLockInv n γ q` is the `RWMutex`'s fractional `P q`: a
+**The lock invariant** `notifyLockInv n γ q` is the `RWMutex`'s fractional `P q`: a
 `q`-fraction of `n.channel`, of a ghost variable `γ` naming the current channel and its
 broadcast ghost names (`NotifyCur`), and `q/2` of the current broadcast channel's "pending"
 token (the other `1/2` of a pending broadcast channel is in its invariant); `Notify` takes the
@@ -80,15 +80,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- The lock invariant `P q` of `n.mu` (see the module docstring). -/
-def notifierLockInv (n : Loc) (γ : GName) (q : Qp) : IProp GF :=
+def notifyLockInv (n : Loc) (γ : GName) (q : Qp) : IProp GF :=
   iprop(∃ c : NotifyCur,
     "Hcur" ∷ ghostVar γ q c ∗
     "Hch" ∷ notifyChAddr n ↦{DFrac.own q} c.ch ∗
     "#Hbc" ∷ isBroadcastChanInternal c.ch c.γch c.γi iprop(True) ∗
     "Hpend" ∷ dghostVar c.γi.doneGn (.own q.half) false)
 
-instance notifierLockInv_fractional (n : Loc) (γ : GName) :
-    Fractional (notifierLockInv (GF := GF) n γ) where
+instance notifyLockInv_fractional (n : Loc) (γ : GName) :
+    Fractional (notifyLockInv (GF := GF) n γ) where
   fractional q1 q2 := by
     have hch : ∀ l : Loc, (notifyChAddr n ↦{DFrac.own (q1 + q2)} l : IProp GF) ⊣⊢
         notifyChAddr n ↦{DFrac.own q1} l ∗ notifyChAddr n ↦{DFrac.own q2} l :=
@@ -99,7 +99,7 @@ instance notifierLockInv_fractional (n : Loc) (γ : GName) :
       (dghostVar_fractional (GF := GF) g false).fractional q1.half q2.half
     refine ⟨?_, ?_⟩
     · iintro H
-      unfold notifierLockInv
+      unfold notifyLockInv
       iNamed H
       rw [notify_qp_half_add] at *
       icases (hcur c).1 $$ Hcur with ⟨Hc1, Hc2⟩
@@ -109,7 +109,7 @@ instance notifierLockInv_fractional (n : Loc) (γ : GName) :
       · iexists c; simp only [named]; iframe; iframe #
       · iexists c; simp only [named]; iframe; iframe #
     · iintro ⟨H1, H2⟩
-      unfold notifierLockInv
+      unfold notifyLockInv
       iNamedSuffix H1 "1"
       iNamedSuffix H2 "2"
       icombine Hcur1 Hcur2 gives % ⟨_, Heq⟩
@@ -127,7 +127,7 @@ instance notifierLockInv_fractional (n : Loc) (γ : GName) :
 
 /-- `n` is a `Notifier` (persistent): its mutex's writer guard, with the lock invariant. -/
 def isNotifier (n : Loc) : IProp GF :=
-  iprop(∃ γ : GName, sync.isRWMutexGuard (notifyMuAddr n) (notifierLockInv (hG := hG) n γ))
+  iprop(∃ γ : GName, sync.isRWMutexGuard (notifyMuAddr n) (notifyLockInv (hG := hG) n γ))
 
 instance isNotifier_persistent (n : Loc) : Persistent (isNotifier (GF := GF) n) := by
   unfold isNotifier; infer_instance

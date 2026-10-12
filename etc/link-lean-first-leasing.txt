@@ -35,14 +35,14 @@ Op__MaxModRev:
 Op__MinCreateRev:
 Op__MaxCreateRev:
 # The lease cache's helpers (client/v3/leasing/util.go, cache.go), see InvLeaseCache.lean.
-compareInt64:
+leasing_compareInt64:
 closeAll:
 inRange:
 isBadOp: Op__Rev Op__RangeBytes
 copyHeader: ResponseHeader__GetClusterId ResponseHeader__GetMemberId ResponseHeader__GetRevision ResponseHeader__GetRaftTerm ResponseHeader__GetLeaderId
 copyKeyValue:
 copyGetResponseMetadataOnly: copyHeader
-evalCmp: compareInt64 Cmp__GetCompare Compare__GetTarget Compare__GetTargetUnion Compare__GetResult
+evalCmp: leasing_compareInt64 Cmp__GetCompare Compare__GetTarget Compare__GetTargetUnion Compare__GetResult
 leaseKey__get: Op__IsCountOnly Op__MinModRev Op__MaxModRev Op__MinCreateRev Op__MaxCreateRev Op__IsKeysOnly copyGetResponseMetadataOnly copyKeyValue
 # The lease cache (client/v3/leasing/cache.go), see InvLeaseCache.lean.
 leaseCache__Rev:

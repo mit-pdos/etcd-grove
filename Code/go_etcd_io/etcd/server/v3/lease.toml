@@ -1,8 +1,9 @@
 # Types and names only: function and method bodies are axiomatized.
 # Lessor is an interface (the apply thread calls its Promote), so the packages its methods'
 # signatures name are imported (Checkpointer's context and request type, Recover's backend).
+# `sync` for the struct `Lease` (its locks), whose `ID` the server's apply package reads.
 translate = ["!*", "Lessor", "NoLease"]
-imports = ["!*", "context", "time", "go.etcd.io/etcd/api/v3/etcdserverpb",
+imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb",
   "go.etcd.io/etcd/server/v3/storage/backend"]
 
 # translate the definitions of all type declarations goose supports

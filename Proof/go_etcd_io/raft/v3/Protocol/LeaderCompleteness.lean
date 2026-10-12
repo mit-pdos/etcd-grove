@@ -464,7 +464,7 @@ theorem fire_one (γ : RaftNames) (G : List raftpb.Entry) (m : Nat) (e : raftpb.
   by_cases Hfire : ∃ d, o = some d ∧ d ∉ firstOcc ods
   · obtain ⟨d, rfl, Hdn⟩ := Hfire
     have Hocc : firstOcc (ods ++ [some d]) = firstOcc ods ++ [d] := by
-      rw [firstOcc_snoc]; show (if d ∈ firstOcc ods then _ else _) = _; rw [if_neg Hdn]
+      rw [firstOcc_snoc]; show (if d ∈ firstOcc ods then _ else _) = _; rw [ite_eq_right Hdn]
     unfold entDataIs deposited
     icases Ho with ⟨-, -, %γp, #Hdep⟩
     icases ghost_map_lookup $$ Hra Hdep with %HRd
@@ -515,7 +515,7 @@ theorem fire_one (γ : RaftNames) (G : List raftpb.Entry) (m : Nat) (e : raftpb.
         have : d ∈ firstOcc ods :=
           Classical.byContradiction fun h => Hfire ⟨d, rfl, h⟩
         show (if d ∈ firstOcc ods then _ else _) = _
-        rw [if_pos this]
+        rw [ite_eq_left this]
     imodintro
     iframe HP
     iexists ods ++ [o]

@@ -1,0 +1,39 @@
+# The server's apply package (etcd's server/v3/etcdserver/apply): every linked result of
+# Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Link.lean and the results Results.lean prints.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/apply.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/(Link|Results)\.lean$
+axiom context.WithValue.wp_proof
+axiom etcdserverpb.AlarmType.String.wp_proof
+axiom pbutil.MustUnmarshalMessage.wp_proof
+axiom prometheus.GaugeVec.WithLabelValues.wp_proof
+axiom proto.Marshal.wp_proof
+axiom proto.Size.wp_proof
+axiom proto.Unmarshal.wp_proof
+axiom semver.MustParse.wp_proof
+axiom semver.Version.LessThan.wp_proof
+axiom semver.Version.String.wp_proof
+axiom storage.BackendQuota.Cost.wp_proof
+axiom storage.NewBackendQuota.wp_proof
+axiom traceutil.EnsureTrace.wp_proof
+axiom traceutil.Get.wp_proof
+axiom traceutil.Trace.AddField.wp_proof
+axiom traceutil.Trace.StartSubTrace.wp_proof
+axiom traceutil.Trace.Step.wp_proof
+axiom traceutil.Trace.StepWithFunction.wp_proof
+axiom traceutil.Trace.StopSubTrace.wp_proof
+axiom txn.RangeSecObserve.wp_proof
+axiom txn.WarnOfExpensiveRequest.wp_proof
+axiom txn.WarnOfFailedRequest.wp_proof
+axiom types.ID.String.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Int64.wp_proof
+axiom zap.Logger.Debug.wp_proof
+axiom zap.Logger.Error.wp_proof
+axiom zap.Logger.Info.wp_proof
+axiom zap.Logger.Panic.wp_proof
+axiom zap.String.wp_proof
+axiom zap.Stringer.wp_proof

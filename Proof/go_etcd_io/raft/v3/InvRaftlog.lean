@@ -394,7 +394,7 @@ theorem plogTermAt_truncateAppend_below (b : entryID) (es ents : List raftpb.Ent
     · simp [h1] at Ht
     by_cases h2 : uint.Z i = uint.Z b.index'
     · simpa [h1, h2] using Ht
-    simp only [h1, h2, if_false] at Ht ⊢
+    simp only [h1, h2, ite_false] at Ht ⊢
     cases He : es[(uint.Z i - uint.Z b.index' - 1).toNat]? with
     | none => rw [He] at Ht; simp at Ht
     | some e =>

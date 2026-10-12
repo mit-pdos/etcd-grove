@@ -215,7 +215,7 @@ theorem leasingKV.deleteRangeRPC.wp_proof
   icases Hresp with ⟨%hdr, %rsl, %ps, #HH, #Hhdr, HSucc, #HR, #Hps, Hops⟩
   have hmod : (TxnBuild.mk (drpcTxn pfx key e maxLeaseRev) true true false).model =
       drpcTxn pfx key e maxLeaseRev := rfl
-  simp only [hmod] at Hfacts ⊢
+  simp only at Hfacts ⊢
   obtain ⟨Hlin, Hr0, Hrmax, Hwf⟩ := Hfacts
   have Hlor : sint.Z lo ≤ sint.Z r :=
     Hlin (by simp [drpcTxn, TxnModel.linearizable, TxnOp.linearizable])

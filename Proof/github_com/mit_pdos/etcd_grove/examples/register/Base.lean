@@ -96,11 +96,11 @@ theorem encodeOp_length (replica seq : w64) (kind : w8) (val : List w8) :
 theorem decodeOp_encodeOp (replica seq : w64) (kind : w8) (val : List w8) :
     decodeOp (encodeOp replica seq kind val) = some (replica, seq, kind, val) := by
   unfold decodeOp
-  rw [if_pos (by rw [encodeOp_length]; omega)]
+  rw [ite_eq_left (by rw [encodeOp_length]; omega)]
   have h1 : (encodeOp replica seq kind val).take 8 = u64Le replica := by
-    simp [encodeOp, List.take_append_of_le_length, u64Le_length]
+    simp [encodeOp, u64Le_length]
   have h2 : ((encodeOp replica seq kind val).drop 8).take 8 = u64Le seq := by
-    simp [encodeOp, List.drop_append_of_le_length, u64Le_length]
+    simp [encodeOp, u64Le_length]
   have h3 : (encodeOp replica seq kind val).getD 16 (W8 0) = kind := by
     simp [encodeOp, List.getD_eq_getElem?_getD, List.getElem?_append_right, u64Le_length]
   have h4 : (encodeOp replica seq kind val).drop 17 = val := by

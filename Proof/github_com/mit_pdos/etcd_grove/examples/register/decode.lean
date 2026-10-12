@@ -32,7 +32,7 @@ theorem decode.wp_proof : decode.spec (GF := GF) (hG := hG) := by
   ihave %Hwf := ownSlice_wf _ _ _ $$ Hb
   wp_if_destruct
   · have Hd : decodeOp d = none := by
-      unfold decodeOp; rw [if_neg (by obtain ⟨h1, h2⟩ := Hlen; word)]
+      unfold decodeOp; rw [ite_eq_right (by obtain ⟨h1, h2⟩ := Hlen; word)]
     unfold decodeRet; rw [Hd]
     iapply HΦ
     iexact Hb
@@ -40,7 +40,7 @@ theorem decode.wp_proof : decode.spec (GF := GF) (hG := hG) := by
   have Hbl : 17 ≤ sint.Z b.len := by word
   have Hd : decodeOp d = some (leToU64 (d.take 8), leToU64 ((d.drop 8).take 8),
       d.getD 16 (W8 0), d.drop 17) := by
-    unfold decodeOp; rw [if_pos H17]
+    unfold decodeOp; rw [ite_eq_left H17]
   unfold decodeRet; rw [Hd]
   simp only []
   ihave Hb := (show (b ↦*{dq} d : IProp GF) ⊣⊢ b ↦*{dq} (d.take 8 ++ d.drop 8) by
@@ -48,7 +48,7 @@ theorem decode.wp_proof : decode.spec (GF := GF) (hG := hG) := by
   wp_apply encoding.binary.wp_LittleEndian_Uint64 b (d.take 8) dq (d.drop 8)
     (by simp; omega) $$ [$Hb] as Hb
   rw [List.take_append_drop 8 d]
-  rw [if_pos (by word)]
+  rw [ite_eq_left (by word)]
   icases (ownSlice_split_all (W64 8) b dq d ⟨by decide, by word⟩).1 $$ Hb with ⟨Hb1, Hb2⟩
   ihave Hb2 := (show (slice.slice b w8 (W64 8) b.len ↦*{dq} d.drop (sint.nat (W64 8)) : IProp GF) ⊣⊢
       slice.slice b w8 (W64 8) b.len ↦*{dq} ((d.drop 8).take 8 ++ (d.drop 8).drop 8) by
@@ -60,7 +60,7 @@ theorem decode.wp_proof : decode.spec (GF := GF) (hG := hG) := by
   · rw [show sint.nat (W64 8) = 8 from rfl]; iexact Hb2
   ihave Hb := (ownSlice_split_all (W64 8) b dq d ⟨by decide, by word⟩).2 $$ [$Hb1 $Hb2]
   try wp_auto
-  rw [if_pos (by word)]
+  rw [ite_eq_left (by word)]
   wp_apply wp_load_slice_index b (sint.Z (W64 16)) d dq (d.getD 16 (W8 0)) (by decide)
     $$ [$Hb] as Hb
   · ipureintro
@@ -68,7 +68,7 @@ theorem decode.wp_proof : decode.spec (GF := GF) (hG := hG) := by
     rw [h16, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]
     rfl
   try wp_auto
-  rw [if_pos (by word)]
+  rw [ite_eq_left (by word)]
   icases (ownSlice_split_all (W64 17) b dq d ⟨by decide, by word⟩).1 $$ Hb with ⟨Hb1, Hb2⟩
   wp_apply wp_bytes_to_string _ (d.drop (sint.nat (W64 17))) dq $$ [$Hb2] as Hb2
   ihave Hb2 : slice.slice b w8 (W64 17) b.len ↦*{dq} d.drop (sint.nat (W64 17)) $$ [Hb2]

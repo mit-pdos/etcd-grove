@@ -36,7 +36,7 @@ abbrev txn.executeRange.spec : Prop :=
     (γ : mvcc.StoreNames) (tw : GoInterface) (kind : mvcc.TxnKind) (ro : Bool) (r : Loc)
     (o : OpFull) (withTotal : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
-      txn.txnViewIs tw s γ kind ro ∗ context.isContext ctx cd ∗
+      txn.txnViewIs tw s γ kind ro ∗ mvcc.txnCtx ctx cd ∗
       (if nd then mvcc.neverDone cd else iprop(True)) ∗ txn.rangeRequestIs r o ∗
       ⌜txn.validSortTarget o ∧ txn.sortSmall o (mvcc.stateAt kind.readLog
         (sint.nat (mvcc.rangeRev kind.readRev o.base.rev)))⌝ }}

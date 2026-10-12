@@ -1,9 +1,29 @@
-# Types and names only: function and method bodies are axiomatized.
-# Result is a struct (the apply thread reads its Err field), UberApplier an interface (the
-# apply thread hands it to Apply), so the packages their fields and methods name are imported.
-translate = ["!*", "Result", "UberApplier"]
-imports = ["!*", "go.etcd.io/etcd/pkg/v3/traceutil", "google.golang.org/protobuf/proto",
-  "go.etcd.io/etcd/server/v3/etcdserver/api/membership"]
+# The applier chain (server/v3/etcdserver/apply), with bodies: apply.go, uber_applier.go,
+# backend.go, auth.go, quota.go, capped.go, corrupt.go and interface.go (the promoted methods of
+# the wrappers' embedded applierV3 interface are goose's MethodUnfold wrappers). metrics.go (the
+# prometheus gauge `alarms` and the `init` that registers it) is names only.
+translate = ["*", "!alarms", "!init"]
+imports = ["!*", "context", "errors", "sync", "time",
+  "go.uber.org/zap", "google.golang.org/protobuf/proto",
+  "github.com/prometheus/client_golang/prometheus",
+  "github.com/Masterminds/semver/v3",
+  "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/membershippb",
+  "go.etcd.io/etcd/client/pkg/v3/types",
+  "go.etcd.io/etcd/pkg/v3/pbutil", "go.etcd.io/etcd/pkg/v3/traceutil",
+  "go.etcd.io/etcd/pkg/v3/wait",
+  "go.etcd.io/etcd/server/v3/auth",
+  "go.etcd.io/etcd/server/v3/etcdserver/api",
+  "go.etcd.io/etcd/server/v3/etcdserver/api/membership",
+  "go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm",
+  "go.etcd.io/etcd/server/v3/etcdserver/cindex",
+  "go.etcd.io/etcd/server/v3/etcdserver/errors",
+  "go.etcd.io/etcd/server/v3/etcdserver/txn",
+  "go.etcd.io/etcd/server/v3/etcdserver/version",
+  "go.etcd.io/etcd/server/v3/lease",
+  "go.etcd.io/etcd/server/v3/storage",
+  "go.etcd.io/etcd/server/v3/storage/backend",
+  "go.etcd.io/etcd/server/v3/storage/mvcc",
+  "go.etcd.io/raft/v3/raftpb"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

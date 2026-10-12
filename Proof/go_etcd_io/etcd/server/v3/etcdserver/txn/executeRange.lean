@@ -47,17 +47,17 @@ theorem txn.executeRange_core
     (hAsm : txn.asembleRangeResponse.spec (GF := GF) (hG := hG))
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc)
     (tyX : go.GoType) (vX : val) (V : IProp GF) (kind : mvcc.TxnKind) (hkind : txn.KindOk kind)
-    (hR : ∀ (key endk : GoSlice) (k e : GoString)
+    (hR : ∀ (td : Bool) (key endk : GoSlice) (k e : GoString)
       (ro' : go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions),
       {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ V ∗
-          mvcc.rangeCtx nd ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e }}
+          mvcc.rangeCtx td ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e }}
         (App (App (App (App (Val #(methods tyX go!"Range" vX)) (Val #(GoInterface.ok ctx)))
           (Val #key)) (Val #endk)) (Val #ro'))
-      {{ (rr : Loc) (err : GoInterface), RET (PairV #rr #err); ⌜nd = true → rr ≠ null⌝ ∗ V ∗
+      {{ (rr : Loc) (err : GoInterface), RET (PairV #rr #err); ⌜td = true → rr ≠ null⌝ ∗ V ∗
           mvcc.rangeOutcome rr err kind.readLog kind.readRev (decide (endk = slice.nil)) k e ro' }})
     (r : Loc) (o : OpFull) (withTotal : Bool) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ V ∗
-        context.isContext ctx cd ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
+        mvcc.txnCtx ctx cd ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
         txn.rangeRequestIs r o ∗
         ⌜txn.validSortTarget o ∧ txn.sortSmall o (mvcc.stateAt kind.readLog
           (sint.nat (mvcc.rangeRev kind.readRev o.base.rev)))⌝ }}
@@ -89,11 +89,8 @@ theorem txn.executeRange_core
   have Hend := (srvEnd_mkGte esl esl' e hnil Hgte).symm
   generalize (if e = [W8 0] then [] else e) = e' at Hend ⊢
   -- the transaction's `Range`, at the request's context
-  ihave #Hctx' : mvcc.rangeCtx nd ctx cd $$ []
-  · cases nd
-    · simp only [mvcc.rangeCtx, Bool.false_eq_true, ↓reduceIte]; iexact Hctx
-    · simp only [mvcc.rangeCtx, ↓reduceIte]; iright; iframe Hctx Hnd
-  wp_apply (hR ksl esl' k e' _) $$ [$Htx $Hctx' $Hks $Hes'] as %rr %err ⟨%Hrn, Htx, Hout⟩
+  icases mvcc.txnCtx_rangeCtx nd ctx cd $$ Hctx Hnd with ⟨%td, %Htd, #Hctx'⟩
+  wp_apply (hR td ksl esl' k e' _) $$ [$Htx $Hctx' $Hks $Hes'] as %rr %err ⟨%Hrn, Htx, Hout⟩
   have hrevo : o.base.rev = rev0 := by subst Ho; rfl
   have hco : o.base.countOnly = co := by subst Ho; rfl
   have hfast : fastKeysOnly o = (ko && !decide (target = W32 4)) := by
@@ -128,7 +125,7 @@ theorem txn.executeRange_core
         ipureintro
         exact ⟨by rw [hrevo]; exact Hle, by rw [hco]; exact Hflags.1, by rw [hfast]; exact Hflags.2,
           rfl, Herr⟩
-      · ipureintro; intro hnd; exact absurd rfl (Hrn hnd)
+      · ipureintro; intro hnd; exact absurd rfl (Hrn (Htd hnd))
   · simp only at Hle
     subst Herr
     wp_auto
@@ -253,7 +250,7 @@ theorem txn.executeRange.wp_proof
     subst Htw
     icases txn.isTxn_kindOk mw s γ kind $$ Htx with ⟨%Hk, Htx⟩
     iapply (txn.executeRange_core hGet hLimit hGte hFilter hSort hStep hAsm ctx cd nd lg _ _
-      (mvcc.isTxn mw s γ kind) kind Hk (hRange mw s γ kind ctx cd nd) r o withTotal) $$ [Htx]
+      (mvcc.isTxn mw s γ kind) kind Hk (fun td => hRange mw s γ kind ctx cd td) r o withTotal) $$ [Htx]
     · iframe Htx Hctx Hnd Hr Hpkg
       ipureintro; exact Hpre
     inext
@@ -272,7 +269,7 @@ theorem txn.executeRange.wp_proof
     icases txn.isRoTxnWrite_pure trw s γ log rev $$ Hro with ⟨Hro, %Hp⟩
     iapply (txn.executeRange_core hGet hLimit hGte hFilter hSort hStep hAsm ctx cd nd lg _ _
       (mvcc.isRoTxnWrite trw s γ log rev) (.read log rev) (txn.kindOk_read log rev Hp)
-      (hRoRange trw s γ log rev ctx cd nd) r o withTotal) $$ [Hro]
+      (fun td => hRoRange trw s γ log rev ctx cd td) r o withTotal) $$ [Hro]
     · iframe Hro Hctx Hnd Hr Hpkg
       ipureintro; exact Hpre
     inext

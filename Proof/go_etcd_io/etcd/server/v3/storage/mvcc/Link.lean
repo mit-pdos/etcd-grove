@@ -66,6 +66,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__delete
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__deleteRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__put
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore
 public import Proof.go_opentelemetry_io.otel.trace.SpanFromContext
@@ -480,6 +481,10 @@ theorem mvcc.readView.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
 theorem mvcc.readView.wp_Rev :
     mvcc.readView.Rev.spec (GF := GF) (hG := hG) :=
   mvcc.readView.Rev.wp_proof traceutil.wp_TODO mvcc.store.wp_Read mvcc.storeTxnCommon.wp_Rev mvcc.metricsTxnWrite.wp_End
+
+theorem mvcc.store.wp_Rev :
+    mvcc.store.Rev.spec (GF := GF) (hG := hG) :=
+  mvcc.store.Rev.wp_proof traceutil.wp_TODO mvcc.store.wp_Read mvcc.storeTxnCommon.wp_Rev mvcc.metricsTxnWrite.wp_End
 
 theorem mvcc.store.wp_Write :
     mvcc.store.Write.spec (GF := GF) (hG := hG) :=

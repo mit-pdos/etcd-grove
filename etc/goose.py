@@ -124,7 +124,7 @@ PROJECTS = [
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=",
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
-                    "go.etcd.io/raft/v3=EtcdDeps"],
+                    "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=EtcdDeps"],
         packages=[
             # with bodies (cache/v3.toml)
             "go.etcd.io/etcd/cache/v3",
@@ -145,6 +145,9 @@ PROJECTS = [
             # with bodies (etcdserver/txn.toml): the server's Range, Put, DeleteRange, Txn over
             # the mvcc core
             "go.etcd.io/etcd/server/v3/etcdserver/txn",
+            # with bodies (etcdserver/apply.toml): the applier chain, between the apply thread
+            # and the txn package (metrics.go names only)
+            "go.etcd.io/etcd/server/v3/etcdserver/apply",
             # types and names only: what the server's types and the apply thread name
             "go.etcd.io/etcd/server/v3/storage",
             "go.etcd.io/etcd/server/v3/storage/backend",
@@ -156,7 +159,13 @@ PROJECTS = [
             "go.etcd.io/etcd/server/v3/etcdserver/api/v2stats",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor",
-            "go.etcd.io/etcd/server/v3/etcdserver/apply",
+            # names only: what the apply package names (api.UpdateCapability,
+            # version.DowngradeInfo, the membership requests, semver)
+            "go.etcd.io/etcd/server/v3/etcdserver/api",
+            "go.etcd.io/etcd/server/v3/etcdserver/version",
+            "go.etcd.io/etcd/api/v3/membershippb",
+            "go.etcd.io/etcd/api/v3/authpb",
+            "github.com/Masterminds/semver/v3",
             "go.etcd.io/etcd/server/v3/etcdserver/errors",
             "go.etcd.io/etcd/server/v3/etcdserver/read",
             "go.etcd.io/etcd/server/v3/lease",
@@ -218,6 +227,7 @@ PROJECTS = [
         ],
         owned=[os.path.join("go_etcd_io", "etcd"), os.path.join("go_etcd_io", "bbolt"),
                os.path.join("github_com", "prometheus"),
+               os.path.join("github_com", "Masterminds"),
                "k8s_io", "google_golang_org", "go_uber_org", "go_opentelemetry_io",
                os.path.join("net", "http"), os.path.join("github_com", "dustin")],
         parts=[

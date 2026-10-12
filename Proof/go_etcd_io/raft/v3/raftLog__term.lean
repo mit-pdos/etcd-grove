@@ -39,10 +39,10 @@ private theorem termAt_visible (prev : entryID) (sents uents stored : List raftp
   obtain ⟨k, rfl⟩ := Hpre
   unfold termAt at Ht
   unfold plogTermAt
-  rw [if_neg (by omega)]
+  rw [ite_eq_right (by omega)]
   by_cases Heq : uint.Z i = uint.Z prev.index'
-  · rw [if_pos Heq] at Ht ⊢; exact Ht
-  · rw [if_neg Heq] at Ht ⊢
+  · rw [ite_eq_left Heq] at Ht ⊢; exact Ht
+  · rw [ite_eq_right Heq] at Ht ⊢
     rw [List.getElem?_append_left (by omega)] at Ht
     rw [List.getElem?_append_left (by omega)]
     exact Ht
@@ -105,7 +105,7 @@ theorem raftLog.term.wp_proof
     iapply HΦ $$ %t %interface.nil
     isplitl [Hl HStorage Huents Huents_cap]
     · reseal_raftLog
-    simp only [unstableOf, true_implies] at Hokt
+    simp only [true_implies] at Hokt
     rcases Hokt with ⟨⟨Hlo, Hhi⟩, e, He, rfl⟩ | ⟨sid, Hs, rfl, rfl⟩
     · isplitr
       · ipureintro; exact ⟨fun _ => ⟨by omega, by omega⟩, fun _ => rfl⟩

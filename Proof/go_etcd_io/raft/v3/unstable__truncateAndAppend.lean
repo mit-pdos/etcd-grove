@@ -86,8 +86,8 @@ theorem unstable.truncateAndAppend.wp_proof
     · iapply ownUnstable_intro $$ Hu Hents_cap Hents Hsnap Hlogger
       ipureintro
       constructor
-      · unfold w64Min; rw [if_neg (by omega)]
-      · simp only [truncOffsetInProgress, if_pos Hcont]
+      · unfold w64Min; rw [ite_eq_right (by omega)]
+      · simp only [truncOffsetInProgress, ite_eq_left Hcont]
     iexact Hes
   have Hguard : ¬e0.Index' = us.offset + uv.entries'.len := fun Heq => Hcont (by
     rw [Heq]; word)
@@ -121,7 +121,7 @@ theorem unstable.truncateAndAppend.wp_proof
         split
         · rfl
         · apply BitVec.eq_of_toNat_eq; word
-      · simp only [truncOffsetInProgress, if_neg Hcont, if_pos Hrep]
+      · simp only [truncOffsetInProgress, ite_eq_right Hcont, ite_eq_left Hrep]
     itrivial
   -- arm 3: keep the suffix below `fromIndex`, then append
   have Had : ¬(uint.Z e0.Index' ≤ uint.Z us.offset ∧
@@ -158,8 +158,8 @@ theorem unstable.truncateAndAppend.wp_proof
     · iapply ownUnstable_intro $$ Hu Hsl_cap Hsl Hsnap Hlogger
       ipureintro
       constructor
-      · unfold w64Min; rw [if_neg (by omega)]
-      · simp only [truncOffsetInProgress, if_neg Hcont, if_neg Hrep, w64Min]
+      · unfold w64Min; rw [ite_eq_right (by omega)]
+      · simp only [truncOffsetInProgress, ite_eq_right Hcont, ite_eq_right Hrep, w64Min]
         split <;> first | rfl | (apply BitVec.eq_of_toNat_eq; word) | omega
     iexact Hes
   done

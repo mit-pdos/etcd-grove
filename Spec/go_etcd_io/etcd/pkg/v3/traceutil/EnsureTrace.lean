@@ -8,10 +8,14 @@ descriptor with other values: `WithValue` derives a context with the parent's de
 `Done` channel (its `Deadline`/`Done`/`Err` delegate to the parent) and one more value. Which
 values is left open (`vs`): nothing here reads a context's values but `traceutil.Get`, whose
 trace is opaque. (Perennial has no model of `context.WithValue`.)
+
+The input is a `txnCtx` (2026-10-12): an `isContext`, or a context whose `Done()` is `nil`
+(`doneNil`: `context.TODO()`'s, at which the apply package calls the txn package); the output is
+the same kind: the derived context's `Done` is its parent's, `nil` or the described channel.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.traceutil
 public import Perennial.Proof.context
 
@@ -39,12 +43,12 @@ abbrev traceutil.EnsureTrace.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg : Loc) (op : GoString)
     (fields : GoSlice),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗
-      context.isContext ctx cd }}
+      mvcc.txnCtx ctx cd }}
     (App (App (App (App (Val (@! traceutil.EnsureTrace)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #op)) (Val #fields))
   {{ (ctx' : GoInterfaceOk) (t : Loc), RET (PairV #(GoInterface.ok ctx') #t);
       ⌜t ≠ null⌝ ∗ ∃ vs : GMap GoInterface GoInterface,
-        context.isContext ctx' { cd with Values := vs } }}
+        mvcc.txnCtx ctx' { cd with Values := vs } }}
 
 end spec
 

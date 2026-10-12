@@ -23,6 +23,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevBytes
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketLemmas
 public import Perennial.Ghost.GhostVar
+public import Perennial.Ghost.SavedProp
+public import Perennial.Ghost.DGhostVar
 public import Perennial.Proof.TokSet
 public import Perennial.Proof.context
 
@@ -52,7 +54,13 @@ structure StoreNames where
   /-- the revision budget (`ownTokAuth`): a write transaction costs one token (`revToken`), so
   `currentRev` never overflows -/
   revs : GName
+  /-- the batch lock's invariant `P` (a saved proposition, read-only): the backend's
+  `LockInsideApply` runs the post-lock hook with it (`hookIs`) -/
+  hook : GName
+  /-- the post-lock hook's function value `f` (`dghostVar`, read-only) -/
+  hookFn : GName
 
+set_option linter.unusedVariables false in
 /-- `s.mu`'s resource: nothing (see the module docstring); it takes the semantics' instances
 (unused) so that the lock lemmas' own are determined at its uses. -/
 def muInv [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -188,6 +196,61 @@ theorem idxKnows_wf (γ : IdxNames) (kn : IdxKnow) :
     · exact hcs cs h
     · rw [List.mem_singleton] at h; rw [h]; exact hp
 
+/-! ## The post-lock hook -/
+
+/-- **The store's post-lock hook** (persistent): the backend's batch lock has invariant `P` and
+its `LockInsideApply` runs the hook `f` (a Go `func()`) right after taking the lock
+(`batchTx.LockInsideApply` calls `txPostLockInsideApplyHook`). `P` and `f` are fixed per store
+(`NewStore` allocates the names); a saved proposition and a read-only ghost variable, so that a
+caller naming them agrees with the store's (`hookIs_agree`, `hookIs_agree_lc`). -/
+def hookIs (γ : StoreNames) (P : IProp GF) (f : val) : IProp GF :=
+  iprop(savedPropOwn γ.hook DFrac.discard P ∗ dghostVar γ.hookFn DFrac.discard f)
+
+instance hookIs_persistent (γ : StoreNames) (P : IProp GF) (f : val) :
+    Persistent (hookIs γ P f) := by
+  unfold hookIs; infer_instance
+
+/-- Two views of the hook agree: the same function, the same invariant a step later. -/
+theorem hookIs_agree (γ : StoreNames) (P P' : IProp GF) (f f' : val) :
+    hookIs γ P f ∗ hookIs γ P' f' ⊢ ⌜f = f'⌝ ∗ ▷ (P ≡ P') := by
+  iintro ⟨H1, H2⟩
+  iunfold hookIs at H1 H2
+  icases H1 with ⟨HP1, Hf1⟩
+  icases H2 with ⟨HP2, Hf2⟩
+  ihave %Hf := dghostVar_agree γ.hookFn f DFrac.discard f' DFrac.discard $$ Hf1 Hf2
+  ihave Heq := saved_prop_agree γ.hook DFrac.discard DFrac.discard P P' $$ HP1 HP2
+  iframe Heq
+  ipureintro; exact Hf
+
+/-- **The critical-section contract** of a writing call under the store's batch lock with
+invariant `P` and post-lock hook `f` (the shape of the server's `apply.Apply` contract): the
+caller's `Pre`, the hook's triple from it (`{P ∗ Pre} f() {Q}`, run by `LockInsideApply`), and
+the caller's update `Q ={⊤}=∗ P ∗ Post`, applied after the writes, before `Unlock` (which
+takes `P` back). The call returns `Post` if it took the lock, else `Pre`. -/
+def csContract (P : IProp GF) (f : val) (Pre Q Post : IProp GF) : IProp GF :=
+  iprop(Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗
+    (Q ={⊤}=∗ P ∗ Post))
+
+/-- **The no-hook instance**: with invariant `True` and a hook that does nothing
+(`{True} f() {True}`), any `Pre` is its own contract (`Q = Post = Pre`). -/
+theorem csContract_noHook (f : val) (Pre : IProp GF) :
+    □ ({{ True }} (App (Val f) (Val #())) {{ RET #(); True }}) ∗ Pre ⊢
+      csContract iprop(True) f Pre Pre Pre := by
+  iintro ⟨#Hf, Hpre⟩
+  iunfold csContract
+  iframe Hpre
+  isplitr
+  · iintro !> %Φ !> ⟨-, Hpre⟩ HΦ
+    iapply Hf $$ %Φ [] [Hpre HΦ]
+    · itrivial
+    inext
+    iintro -
+    iapply HΦ
+    iexact Hpre
+  · iintro Hq
+    imodintro
+    iframe Hq
+
 /-! ## The batch transaction -/
 
 /-- The entries a batch transaction has put into the `Key` bucket since it was locked, in
@@ -211,19 +274,22 @@ no-puts `Unlock` triple, which takes `W`, deposits it there; `NewStore` builds `
 `LockInsideApply` is the writers' lock, taken after that. `UnsafeCreateBucket(b)` under the
 lock leaves the puts as they are (it does not touch the `Key` bucket's entries). -/
 def batchTxSpec (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (W : IProp GF)
-    (Locked : Puts → IProp GF) : IProp GF :=
-  iprop(□ ({{ True }} (App (Val #(methods bt.ty go!"LockInsideApply" bt.v)) (Val #()))
-      {{ RET #(); Locked [] ∗ W }}) ∗
+    (Locked : Puts → IProp GF) (P : IProp GF) (f : val) : IProp GF :=
+  iprop(□ (∀ (Pre Q : IProp GF),
+      {{ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
+        (App (Val #(methods bt.ty go!"LockInsideApply" bt.v)) (Val #()))
+      {{ RET #(); Locked [] ∗ W ∗ Q }}) ∗
     □ (∀ (l : Puts) (b : GoInterface) (key val : GoSlice) (k v : GoString) (dq dq' : DFrac),
       {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ Locked l ∗
           key ↦*{dq} k ∗ val ↦*{dq'} v }}
         (App (App (App (Val #(methods bt.ty go!"UnsafeSeqPut" bt.v)) (Val #b)) (Val #key))
           (Val #val))
       {{ RET #(); Locked (l ++ [(k, v)]) ∗ key ↦*{dq} k ∗ val ↦*{dq'} v }}) ∗
-    □ ({{ Locked [] ∗ W }} (App (Val #(methods bt.ty go!"Unlock" bt.v)) (Val #()))
+    □ ({{ Locked [] ∗ W ∗ P }} (App (Val #(methods bt.ty go!"Unlock" bt.v)) (Val #()))
       {{ RET #(); True }}) ∗
     □ (∀ (l : Puts) (m : Bucket) (Q : IProp GF),
-      {{ Locked l ∗ View 1 m ∗ (View 1 (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) -∗ W ∗ Q) }}
+      {{ Locked l ∗ View 1 m ∗ (View 1 (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) -∗ W ∗ Q) ∗
+          P }}
         (App (Val #(methods bt.ty go!"Unlock" bt.v)) (Val #()))
       {{ RET #(); Q }}) ∗
     □ (∀ (l : Puts) (q : Qp) (m : Bucket) (b : GoInterface) (key : GoSlice) (k : GoString)
@@ -235,23 +301,25 @@ def batchTxSpec (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (W : IP
       {{ (ks vs : GoSlice), RET (PairV #ks #vs); Locked l ∗ View q m ∗ key ↦*{dq} k ∗
           keyVals ks vs (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) k }}) ∗
     □ ({{ True }} (App (Val #(methods bt.ty go!"LockOutsideApply" bt.v)) (Val #()))
-      {{ RET #(); Locked [] }}) ∗
+      {{ RET #(); Locked [] ∗ P }}) ∗
     □ (∀ (l : Puts) (b : GoInterface),
       {{ Locked l }} (App (Val #(methods bt.ty go!"UnsafeCreateBucket" bt.v)) (Val #b))
       {{ RET #(); Locked l }}))
 
 instance batchTxSpec_persistent (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
-    (W : IProp GF) (Locked : Puts → IProp GF) : Persistent (batchTxSpec bt View W Locked) := by
+    (W : IProp GF) (Locked : Puts → IProp GF) (P : IProp GF) (f : val) :
+    Persistent (batchTxSpec bt View W Locked P f) := by
   unfold batchTxSpec; infer_instance
 
 /-- `bt` is a batch transaction (its lock token's predicate is its own). -/
-def isBatchTx (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (W : IProp GF) : IProp GF :=
-  iprop(∃ Locked : Puts → IProp GF, batchTxSpec bt View W Locked)
+def isBatchTx (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (W : IProp GF)
+    (P : IProp GF) (f : val) : IProp GF :=
+  iprop(∃ Locked : Puts → IProp GF, batchTxSpec bt View W Locked P f)
 
 /-- The batch transaction under its lock is a reader of its own puts over the view. -/
 theorem batchTx_reader (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (W : IProp GF)
-    (Locked : Puts → IProp GF) (l : Puts) (q : Qp) (m : Bucket) :
-    batchTxSpec bt View W Locked ⊢
+    (Locked : Puts → IProp GF) (P : IProp GF) (f : val) (l : Puts) (q : Qp) (m : Bucket) :
+    batchTxSpec bt View W Locked P f ⊢
       keyReader bt (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) iprop(Locked l ∗ View q m) := by
   iintro #H
   iunfold batchTxSpec at H
@@ -266,14 +334,15 @@ theorem batchTx_reader (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) 
   iframe Hl Hv Hkey Hkv
 
 instance isBatchTx_persistent (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
-    (W : IProp GF) : Persistent (isBatchTx bt View W) := by
+    (W : IProp GF) (P : IProp GF) (f : val) : Persistent (isBatchTx bt View W P f) := by
   unfold isBatchTx; infer_instance
 
 /-- `b` is a `Backend` whose `ConcurrentReadTx()` and `ReadTx()` return a snapshot reader of
 the bucket the caller holds as `View q m` (any fraction `q`), which the caller keeps, and
 whose `BatchTx()` is a batch transaction over the view, its lock holding `W`; `ForceCommit()`
 returns (the commit to disk has no effect on the view). -/
-def isKeyBackend (b : GoInterface) (View : Qp → Bucket → IProp GF) (W : IProp GF) : IProp GF :=
+def isKeyBackend (b : GoInterface) (View : Qp → Bucket → IProp GF) (W : IProp GF)
+    (P : IProp GF) (f : val) : IProp GF :=
   iprop(∃ bi : GoInterfaceOk, ⌜b = GoInterface.ok bi⌝ ∗
     □ (∀ (q : Qp) (m : Bucket),
       {{ View q m }} (App (Val #(methods bi.ty go!"ConcurrentReadTx" bi.v)) (Val #()))
@@ -282,12 +351,12 @@ def isKeyBackend (b : GoInterface) (View : Qp → Bucket → IProp GF) (W : IPro
       {{ View q m }} (App (Val #(methods bi.ty go!"ReadTx" bi.v)) (Val #()))
       {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); View q m ∗ keyReadSnap rt m }}) ∗
     □ ({{ True }} (App (Val #(methods bi.ty go!"BatchTx" bi.v)) (Val #()))
-      {{ (bt : GoInterfaceOk), RET #(GoInterface.ok bt); isBatchTx bt View W }}) ∗
+      {{ (bt : GoInterfaceOk), RET #(GoInterface.ok bt); isBatchTx bt View W P f }}) ∗
     □ ({{ True }} (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
       {{ RET #(); True }}))
 
 instance isKeyBackend_persistent (b : GoInterface) (View : Qp → Bucket → IProp GF)
-    (W : IProp GF) : Persistent (isKeyBackend b View W) := by
+    (W : IProp GF) (P : IProp GF) (f : val) : Persistent (isKeyBackend b View W P f) := by
   unfold isKeyBackend; infer_instance
 
 /-! ## The lessor -/
@@ -480,9 +549,10 @@ instance revMuInv_fractional (s : Loc) (γ : StoreNames) : Fractional (revMuInv 
 /-- A store (persistent): its backend, index, lessor, logger, and the two locks' guards. The
 fields `restore` and `Close` change are fixed here (out of scope). -/
 def isStore (s : Loc) (γ : StoreNames) : IProp GF :=
-  iprop(∃ (b le : GoInterface) (ti lg : Loc),
+  iprop(∃ (b le : GoInterface) (ti lg : Loc) (Ph : IProp GF) (fh : val),
     "#Hb" ∷ s.[store, go!"b"] ↦□ b ∗
-    "#Hbk" ∷ isKeyBackend b (bucketView γ) (writerRes s γ) ∗
+    "#Hhook" ∷ hookIs γ Ph fh ∗
+    "#Hbk" ∷ isKeyBackend b (bucketView γ) (writerRes s γ) Ph fh ∗
     "#Hle" ∷ s.[store, go!"le"] ↦□ le ∗
     "#Hlessor" ∷ isLessor le γ.leases ∗
     "#Hidx" ∷ s.[store, go!"kvindex"] ↦□
@@ -656,7 +726,7 @@ pending changes in the index writer's handle), the revision token the transactio
 with, and the transaction's tokens. -/
 def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change) : IProp GF :=
   iprop(∃ (trace ti : Loc) (bt : GoInterfaceOk) (Locked : Puts → IProp GF) (chs : GoSlice)
-    (ps : List Loc) (ntok : Nat),
+    (ps : List Loc) (ntok : Nat) (Pw : IProp GF) (fw : val),
     "Htoks" ∷ ownTokAuthDfrac γ.revs (DFrac.own (1 : Qp).half) ntok ∗
     "%Hbudget" ∷ ⌜ilog.length + ntok + 3 ≤ 2 ^ 63⌝ ∗
     "Htok" ∷ revToken γ ∗
@@ -672,7 +742,8 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Cha
     "#Hs" ∷ isStore s γ ∗
     "#Hidx" ∷ s.[store, go!"kvindex"] ↦□
       (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
-    "#Hbt" ∷ batchTxSpec bt (bucketView γ) (writerRes s γ) Locked ∗
+    "#Hhook" ∷ hookIs γ Pw fw ∗
+    "#Hbt" ∷ batchTxSpec bt (bucketView γ) (writerRes s γ) Locked Pw fw ∗
     "Hlocked" ∷ Locked (pendPuts ilog pend) ∗
     "Hw" ∷ idxWriter γ.idx ilog pend ∗
     "Hclog" ∷ ghostVar γ.clog (1 : Qp).half ilog ∗
@@ -722,6 +793,20 @@ def txnEndPost (γ : StoreNames) : TxnKind → IProp GF
   | .write ilog pend _ _ _ =>
     iprop(idxCert γ.idx (commitLog ilog pend) ∗ if pend = [] then revToken γ else iprop(True))
 
+/-- What `End` takes of a transaction: nothing of a read one; of a write one, the batch lock's
+invariant `P` (the store's: `hookIs`), which `Unlock` takes back. -/
+def txnEndPre (γ : StoreNames) : TxnKind → IProp GF
+  | .read _ _ => iprop(True)
+  | .write _ _ _ _ _ => iprop(∃ (P : IProp GF) (f : val), hookIs γ P f ∗ P)
+
+theorem txnEndPre_write (γ : StoreNames) (P : IProp GF) (f : val) (ilog : Log)
+    (pend : List Change) (puts deletes putSize : w64) :
+    hookIs γ P f ∗ P ⊢ txnEndPre γ (.write ilog pend puts deletes putSize) := by
+  iintro ⟨#Hh, HP⟩
+  simp only [txnEndPre]
+  iexists P, f
+  iframe Hh HP
+
 /-- The store's `writeView` (`kv_view.go`): its `kv` is the store `s`. -/
 def isWriteView (wv s : Loc) (γ : StoreNames) : IProp GF :=
   iprop("#Hkv" ∷ wv.[writeView, go!"kv"] ↦□
@@ -734,6 +819,38 @@ instance isWriteView_persistent (wv s : Loc) (γ : StoreNames) :
 
 
 end reprs
+
+section hookLc
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+/-- Two views of the hook agree, the invariants now (a later credit spent): the same function,
+each invariant gives the other. -/
+theorem hookIs_agree_lc (E : CoPset) (γ : StoreNames) (P P' : IProp GF) (f f' : val) :
+    £ 1 ∗ hookIs γ P f ∗ hookIs γ P' f' ⊢
+      |={E}=> ⌜f = f'⌝ ∗ □ (P -∗ P') ∗ □ (P' -∗ P) := by
+  iintro ⟨Hlc, #H1, #H2⟩
+  ihave ⟨%Hf, Heq⟩ := hookIs_agree γ P P' f f' $$ [H1 H2]
+  · iframe H1 H2
+  imod lc_fupd_elim_later $$ Hlc Heq with #Heq
+  ihave #Hiff := internalEq_iff P P' $$ Heq
+  imodintro
+  isplitl []
+  · ipureintro; exact Hf
+  isplitl []
+  · iintro !> HP
+    icases Hiff with ⟨#H, -⟩
+    iapply H
+    iexact HP
+  · iintro !> HP
+    icases Hiff with ⟨-, #H⟩
+    iapply H
+    iexact HP
+
+end hookLc
 
 end mvcc
 end EtcdGrove

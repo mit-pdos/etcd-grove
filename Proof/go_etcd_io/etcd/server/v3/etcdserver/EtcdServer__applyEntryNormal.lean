@@ -290,7 +290,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         $$ [$Htree] as %isns -
       · ipureintro; exact HS.1
       iunfold waitOk at Hwok
-      icases Hwok with ⟨%wi, %Hwi, #HTrig⟩
+      icases Hwok with ⟨%wi, %Hwi, #HTrig, -⟩
       cases isns
       · -- not `ErrNoSpace`: hand the result to the waiter
         (try wp_auto)

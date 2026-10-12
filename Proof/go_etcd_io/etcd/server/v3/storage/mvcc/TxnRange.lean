@@ -13,6 +13,13 @@ The txn package's `getPrevKV` and `applyCompare` read at `context.TODO()`, which
 `isContext` does not describe; its `executeTxn` (txn unit 3) at the context `Txn` derives from
 the apply thread's `context.TODO()` (`traceutil.EnsureTrace`), never canceled either.
 
+**`context.TODO()` and its derived contexts** (2026-10-12, the apply package, which calls the
+txn package at `context.TODO()`): `doneNil ctx`, a context whose `Done()` returns `nil`, is
+`TODO()`'s (`doneNil_todo`) and that of every context `context.WithValue` derives from such a
+context (its `Done` is its parent's), as `traceutil.EnsureTrace` does; `rangeCtx true` takes it
+in place of `TODO()`'s value alone. `txnCtx ctx cd` (an `isContext`, or `doneNil`) is the
+context premise of the txn package's functions and of `traceutil`'s `EnsureTrace` and `Get`.
+
 **The kind's reads** (`TxnKind.readLog`, `readRev`, `readState`): a read transaction reads its
 committed log at its revision; a write transaction the committed log with its pending revision
 appended at `writeRev` (`storeTxnWrite.Range`): the state after the pending changes.
@@ -77,11 +84,42 @@ instance ite_neverDone_persistent (nd : Bool) (cd : context.ContextDesc (IProp G
     Persistent (if nd then neverDone (GF := GF) cd else iprop(True)) := by
   cases nd <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> infer_instance
 
-/-- The context of a range read: an `isContext`, or (`todo`) one never canceled:
-`context.TODO()`'s, or an `isContext` whose Done proposition never holds. -/
+/-- The context `ctx`'s `Done()` returns `nil`: it is never canceled. `context.TODO()`'s
+(`doneNil_todo`), and every context `context.WithValue` derives from one (its `Done` is its
+parent's): the context `traceutil.EnsureTrace` returns for `TODO()`. -/
+def doneNil (ctx : GoInterfaceOk) : IProp GF :=
+  iprop(□ {{ True }} (App (Val #(methods ctx.ty go!"Done" ctx.v)) (Val #()))
+    {{ RET #chan.nil; True }})
+
+instance doneNil_persistent (ctx : GoInterfaceOk) : Persistent (doneNil (GF := GF) ctx) := by
+  unfold doneNil; infer_instance
+
+/-- The context of the server's txn functions (and of `traceutil.EnsureTrace`/`Get`): an
+`isContext`, or one whose `Done()` is `nil` (`context.TODO()`'s, or derived from it). -/
+def txnCtx (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
+  iprop(doneNil ctx ∨ context.isContext ctx cd)
+
+instance txnCtx_persistent (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
+    Persistent (txnCtx (GF := GF) ctx cd) := by
+  unfold txnCtx; infer_instance
+
+/-- A descriptor whose Done proposition is `False`: never done (`neverDone_neverCd`), for a
+context with a `nil` `Done()`, which no descriptor describes (`txnCtx` ignores it then). -/
+def neverCd : context.ContextDesc (IProp GF) :=
+  { Values := GMap.empty, Deadline := none, Done_gn := ⟨0, 0⟩, PDone := iprop(False) }
+
+theorem neverDone_neverCd : ⊢ neverDone (GF := GF) neverCd := by
+  unfold neverDone neverCd
+  imodintro
+  iintro H
+  iexact H
+
+/-- The context of a range read: an `isContext`, or (`todo`) one never canceled: one whose
+`Done()` is `nil` (`context.TODO()`'s, or derived from it), or an `isContext` whose Done
+proposition never holds. -/
 def rangeCtx (todo : Bool) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
     IProp GF :=
-  if todo then iprop(⌜ctx = todoCtxV⌝ ∨ (context.isContext ctx cd ∗ neverDone cd))
+  if todo then iprop(doneNil ctx ∨ (context.isContext ctx cd ∗ neverDone cd))
   else context.isContext ctx cd
 
 instance rangeCtx_persistent (todo : Bool) (ctx : GoInterfaceOk)
@@ -130,11 +168,11 @@ theorem rangeCtx_Done (todo : Bool) (ctx : GoInterfaceOk) (cd : context.ContextD
     iexists γch
     iexact Hd
   · simp only [↓reduceIte]
-    iintro (%Hc | ⟨#Hctx, #Hnd⟩)
-    · subst Hc
+    iintro (#Hdn | ⟨#Hctx, #Hnd⟩)
+    · iunfold doneNil at Hdn
       imodintro
       iintro %Φ - HΦ
-      iapply wp_todoCtx_Done
+      iapply Hdn
       · itrivial
       inext
       iintro -
@@ -154,6 +192,37 @@ theorem rangeCtx_Done (todo : Bool) (ctx : GoInterfaceOk) (cd : context.ContextD
       · iexists γch
         iexact Hd
       · iexact Hnd
+
+/-- `context.TODO()`'s `Done()` is `nil`. -/
+theorem doneNil_todo : ⊢ doneNil (GF := GF) todoCtxV := by
+  iunfold doneNil
+  imodintro
+  iapply wp_todoCtx_Done
+
+/-- `context.TODO()`'s value is a `txnCtx` (with any descriptor). -/
+theorem txnCtx_todo (cd : context.ContextDesc (IProp GF)) : ⊢ txnCtx (GF := GF) todoCtxV cd := by
+  iunfold txnCtx
+  ileft
+  iapply doneNil_todo
+
+/-- **A range read's context from a `txnCtx`**: the context `rangeCtx td` takes, never canceled
+(`td`) if the caller's is (`nd`), or if its `Done()` is `nil`. -/
+theorem txnCtx_rangeCtx (nd : Bool) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
+    txnCtx ctx cd ⊢ (if nd then neverDone cd else iprop(True)) -∗
+      ∃ td : Bool, ⌜nd = true → td = true⌝ ∗ rangeCtx td ctx cd := by
+  iunfold txnCtx
+  iintro (#Hdn | #Hctx) #Hnd
+  · iexists true
+    isplitl []
+    · ipureintro; intro _; rfl
+    simp only [rangeCtx, ↓reduceIte]
+    ileft; iexact Hdn
+  · iexists nd
+    isplitl []
+    · ipureintro; exact id
+    cases nd
+    · simp only [rangeCtx, Bool.false_eq_true, ↓reduceIte]; iexact Hctx
+    · simp only [rangeCtx, ↓reduceIte]; iright; iframe Hctx Hnd
 
 /-- A nonblocking `select` with one case, on a channel that is either one the case's
 `nonblockingAltClausePre` describes, or `nil` (`chan.nilClausePre`: the case never fires): the

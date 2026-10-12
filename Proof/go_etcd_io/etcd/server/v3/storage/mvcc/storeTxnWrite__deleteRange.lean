@@ -61,7 +61,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
   iunfold mvcc.isLessor at HlessorS
   icases HlessorS with ⟨%li, %Hli, #HGetL, #HAttach, #HDetach, -⟩
   subst Hli
-  ihave #Hbt0 : mvcc.batchTxSpec bt (mvcc.bucketView γ) (mvcc.writerRes s γ) Locked $$ []
+  ihave #Hbt0 : mvcc.batchTxSpec bt (mvcc.bucketView γ) (mvcc.writerRes s γ) Locked Pw fw $$ []
   · iexact Hbt
   iunfold mvcc.batchTxSpec at Hbt
   icases Hbt with ⟨-, #HSeqPut, -, -, -⟩
@@ -92,7 +92,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
     (try wp_auto)
     (try rw [hrev])
     have hwr : (W64 ((mvcc.writeRev ilog pend : Nat) : Int) : w64) = W64 (ilog.length : Int) := by
-      unfold mvcc.writeRev; rw [if_neg hpend]
+      unfold mvcc.writeRev; rw [ite_eq_right hpend]
     have hks' : (mvcc.rangeTaken (ilog ++ [pend]) (decide (endk = slice.nil)) k e (W64 (ilog.length : Int)) (W64 0)).map
         Prod.fst = ks := by
       rw [← hwr]; exact hks
@@ -218,7 +218,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
         iframe HΦ tw Hmod Hmodcap Hcre Hcrecap Hvers Hverscap keys Hkss Hkscap
         iexists (j + 1), kw
         (try simp only [named])
-        rw [List.take_succ, hkj, Option.toList_some, List.map_append, List.map_singleton,
+        rw [List.take_add_one, hkj, Option.toList_some, List.map_append, List.map_singleton,
           ← List.append_assoc]
         rw [show (W64 ((j + 1 : Nat) : Int) : w64) = W64 (j : Int) + W64 1 by
           rw [← mvcc.W64_add_one]; simp]
@@ -250,7 +250,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
         | (have h := congrArg sint.Z Hif; rw [hpz, h0] at h; omega)
     (try wp_auto)
     have hwr : (W64 ((mvcc.writeRev ilog pend : Nat) : Int) : w64) = W64 ((ilog.length : Int) - 1) := by
-      unfold mvcc.writeRev; rw [if_pos hpend]; congr 1; omega
+      unfold mvcc.writeRev; rw [ite_eq_left hpend]; congr 1; omega
     have hks' : (mvcc.rangeTaken (ilog ++ [pend]) (decide (endk = slice.nil)) k e (W64 ((ilog.length : Int) - 1)) (W64 0)).map
         Prod.fst = ks := by
       rw [← hwr]; exact hks
@@ -376,7 +376,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
         iframe HΦ tw Hmod Hmodcap Hcre Hcrecap Hvers Hverscap keys Hkss Hkscap
         iexists (j + 1), kw
         (try simp only [named])
-        rw [List.take_succ, hkj, Option.toList_some, List.map_append, List.map_singleton,
+        rw [List.take_add_one, hkj, Option.toList_some, List.map_append, List.map_singleton,
           ← List.append_assoc]
         rw [show (W64 ((j + 1 : Nat) : Int) : w64) = W64 (j : Int) + W64 1 by
           rw [← mvcc.W64_add_one]; simp]

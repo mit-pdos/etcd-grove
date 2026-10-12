@@ -74,7 +74,7 @@ theorem leasingKV.Do.wp_proof
   · iPkgInit
   wp_apply hIsGet $$ [$Hcv $op $Hop] as op
   by_cases h1 : o.t = W64 1
-  · simp only [decide_eq_true h1, decide_eq_self_any]
+  · simp only [decide_eq_true h1]
     wp_auto
     wp_apply hget lkv γ pfx ctx cs opv o lo q $$ [$Hpkg $Hlkv $Hrd $Hslot $Hctx $Hop $Hlo $Hopen $Htok]
       as %ret %err ⟨Hrd, Hopen, Htok, Hout⟩
@@ -83,13 +83,13 @@ theorem leasingKV.Do.wp_proof
     wp_apply hGOR $$ [$Hcv]
     try wp_auto
     iapply HΦ
-    rw [if_pos h1]
+    rw [ite_eq_left h1]
     iframe
   simp only [decide_eq_false h1, Bool.true_eq_false, decide_False_any]
   wp_auto
   wp_apply hIsPut $$ [$Hcv $op $Hop] as op
   by_cases h2 : o.t = W64 2
-  · simp only [decide_eq_true h2, decide_eq_self_any]
+  · simp only [decide_eq_true h2]
     obtain ⟨top, htop⟩ := Option.ne_none_iff_exists'.1 (Hput h2)
     wp_auto
     wp_apply hput lkv γ pfx ctx cs opv o top lo $$ [$Hpkg $Hlkv $Hrd $Hctx $Hcc $Hop $Hlo]
@@ -99,7 +99,7 @@ theorem leasingKV.Do.wp_proof
     wp_apply hPOR $$ [$Hcv]
     try wp_auto
     iapply HΦ
-    rw [if_neg h1, if_pos h2]
+    rw [ite_eq_right h1, ite_eq_left h2]
     iframe
     icases Hout with (%Hne | ⟨%Heq, Hc⟩)
     · ileft; ipureintro; exact Hne
@@ -112,7 +112,7 @@ theorem leasingKV.Do.wp_proof
   wp_auto
   wp_apply hIsDel $$ [$Hcv $op $Hop] as op
   by_cases h3 : o.t = W64 3
-  · simp only [decide_eq_true h3, decide_eq_self_any]
+  · simp only [decide_eq_true h3]
     wp_auto
     wp_apply hdel lkv γ pfx ctx cs opv o lo $$ [$Hpkg $Hlkv $Hrd $Hctx $Hcc $Hop $Hlo]
       as %dr %err ⟨Hrd, Hout⟩
@@ -121,13 +121,13 @@ theorem leasingKV.Do.wp_proof
     wp_apply hDOR $$ [$Hcv]
     try wp_auto
     iapply HΦ
-    rw [if_neg h1, if_neg h2, if_pos h3]
+    rw [ite_eq_right h1, ite_eq_right h2, ite_eq_left h3]
     iframe
   simp only [decide_eq_false h3, Bool.true_eq_false, decide_False_any]
   wp_auto
   wp_apply hIsTxn $$ [$Hcv $op $Hop] as op
   by_cases h4 : o.t = W64 4
-  · simp only [decide_eq_true h4, decide_eq_self_any]
+  · simp only [decide_eq_true h4]
     ihave Htxn := Htxn $$ [] 
     · ipureintro; exact h4
     iunfold doTxnPre at Htxn
@@ -156,13 +156,13 @@ theorem leasingKV.Do.wp_proof
     wp_apply hTOR $$ [$Hcv]
     try wp_auto
     iapply HΦ
-    rw [if_neg h1, if_neg h2, if_neg h3, if_pos h4]
+    rw [ite_eq_right h1, ite_eq_right h2, ite_eq_right h3, ite_eq_left h4]
     iframe
     iframe #
   simp only [decide_eq_false h4, Bool.true_eq_false, decide_False_any]
   wp_auto
   iapply HΦ
-  rw [if_neg h1, if_neg h2, if_neg h3, if_neg h4]
+  rw [ite_eq_right h1, ite_eq_right h2, ite_eq_right h3, ite_eq_right h4]
   iframe
   ipureintro; exact ⟨rfl, rfl⟩
 

@@ -116,11 +116,8 @@ theorem txn.deleteRange.wp_proof
     iapply txn.kvsIs_nil
   · -- `PrevKv`: the range read first
     (try wp_auto)
-    ihave #Hctx' : mvcc.rangeCtx nd ctx cd $$ []
-    · cases nd
-      · simp only [mvcc.rangeCtx, Bool.false_eq_true, ↓reduceIte]; iexact Hctx
-      · simp only [mvcc.rangeCtx, ↓reduceIte]; iright; iframe Hctx Hnd
-    wp_apply (hRange mw s γ (.write ilog pend puts deletes putSize) ctx cd nd ksl endk k
+    icases mvcc.txnCtx_rangeCtx nd ctx cd $$ Hctx Hnd with ⟨%td, %Htd, #Hctx'⟩
+    wp_apply (hRange mw s γ (.write ilog pend puts deletes putSize) ctx cd td ksl endk k
         (txn.srvEnd o.base.rangeEnd).2 (zero_val RangeOptions)) $$ [$Htx $Hctx' $Hks $Hend]
       as %rr %rerr ⟨%Hrn', Htx, Hout⟩
     imod txn.rangeOutcome_sel rr rerr _ _ k _ (zero_val RangeOptions) Hok ⟨rfl, rfl, rfl, rfl⟩
@@ -139,7 +136,7 @@ theorem txn.deleteRange.wp_proof
           refine ⟨Hne, rfl, rfl, ?_⟩
           cases nd
           · rfl
-          · exact absurd Hrnull (Hrn' rfl)
+          · exact absurd Hrnull (Hrn' (Htd rfl))
         simp only [mvcc.isTxn]
         iexact Htx
     · subst Herr
