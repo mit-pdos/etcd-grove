@@ -124,6 +124,8 @@ public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Find
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Insert
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Intersects
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Stab
+public import Proof.context.Link
+public import Proof.fmt.Link
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Link
 
@@ -440,7 +442,7 @@ theorem mvcc.treeIndex.wp_Revisions [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem mvcc.storeTxnCommon.wp_rangeKeys [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.storeTxnCommon.rangeKeys.spec (GF := GF) (hG := hG) :=
-  mvcc.storeTxnCommon.rangeKeys.wp_proof mvcc.treeIndex.wp_CountRevisions mvcc.treeIndex.wp_Range mvcc.treeIndex.wp_Revisions mvcc.wp_sliceCapWithLimit mvcc.wp_NewRevBytes mvcc.wp_RevToBytes traceutil.Trace.wp_Step proto.wp_Unmarshal
+  mvcc.storeTxnCommon.rangeKeys.wp_proof mvcc.treeIndex.wp_CountRevisions mvcc.treeIndex.wp_Range mvcc.treeIndex.wp_Revisions mvcc.wp_sliceCapWithLimit mvcc.wp_NewRevBytes mvcc.wp_RevToBytes traceutil.Trace.wp_Step proto.wp_Unmarshal context.wp_Err fmt.wp_Errorf
 
 theorem mvcc.storeTxnCommon.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.storeTxnCommon.Range.spec (GF := GF) (hG := hG) :=

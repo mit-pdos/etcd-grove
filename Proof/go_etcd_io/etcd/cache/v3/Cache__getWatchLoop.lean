@@ -3,13 +3,15 @@ Proof of `Spec/Cache__getWatchLoop.lean`. Lean-first (no Rocq counterpart).
 
 The loop's invariant: the demux's writer, in any state, with the revision bound's authority, and
 the wait-group token. Each `get` gets etcd's linearizability for the revision bound from the
-client (`isEtcdKV`), knowing etcd has reached it (`cacheBound`).
+client (`isEtcdKVE`), knowing etcd has reached it (`cacheBound`).
 -/
 module
 
 public import Spec.go_etcd_io.etcd.cache.v3.Cache__getWatchLoop
 public import Spec.go_etcd_io.etcd.cache.v3.defaultConfig
 public import Spec.go_etcd_io.etcd.cache.v3.Cache__getWatch
+public import Spec.fmt.Printf
+public import Spec.time.Duration__String
 
 @[expose] public section
 
@@ -31,7 +33,9 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 theorem Cache.getWatchLoop.wp_proof
     (wp_defaultConfig : defaultConfig.spec (GF := GF) (hG := hG))
-    (wp_getWatch : Cache.getWatch.spec (GF := GF) (hG := hG)) :
+    (wp_getWatch : Cache.getWatch.spec (GF := GF) (hG := hG))
+    (wp_Printf : EtcdGrove.fmt.Printf.spec (GF := GF) (hG := hG))
+    (wp_DurStr : EtcdGrove.time.Duration.String.spec (GF := GF) (hG := hG)) :
     Cache.getWatchLoop.spec (GF := GF) (hG := hG) := by
   intro c cf γr γd cap c0
   wp_start as ⟨#Hc, Hw, Hrun⟩
@@ -67,7 +71,7 @@ theorem Cache.getWatchLoop.wp_proof
   wp_auto
   -- `c.getWatch()`
   wp_apply wp_getWatch c cf γr γd cap c1 $$ [$Hpkg $Hc $Hw $Hrun]
-    as %err ⟨%Hne, Hrun, %c2, Hw⟩
+    as %err ⟨%Hne, #HeS, Hrun, %c2, Hw⟩
   obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
     cases err with
     | nil => exact absurd rfl Hne
@@ -77,8 +81,19 @@ theorem Cache.getWatchLoop.wp_proof
   wp_apply wp_slice_literal
   isplitr
   · ipureintro; rfl
-  iintro %sl -
-  wp_apply fmt.wp_Printf $$ [$Hfmt] as %n %e2 -
+  iintro %sl ⟨Hsl, -⟩
+  ihave #HeS' : EtcdGrove.fmt.stringMethodSpec e go!"Error" $$ []
+  · rw [show EtcdGrove.fmt.stringMethodSpec e go!"Error" = errorStringSpec e from rfl]
+    iapply errStrOk_elim; iexact HeS
+  wp_apply wp_Printf $$ [$Hfmt $Hsl] as %n %e2 -
+  · try rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
+    try simp only [List.set_cons_succ, List.set_cons_zero]
+    simp only [EtcdGrove.fmt.argsOk]
+    isplitr
+    · iapply EtcdGrove.time.Duration.String.argOk wp_DurStr
+    isplitr
+    · simp only [EtcdGrove.fmt.argOk]; iright; ileft; iexact HeS'
+    itrivial
   -- the backoff: `select` on `ctx.Done()` and `time.After(backoff)`
   wp_apply +noauto HDone as %ch1 %γ1 #Hdone
   wp_auto

@@ -3,6 +3,8 @@ Proof of `Spec/.../mvcc/storeTxnCommon__rangeKeys.lean`. Lean-first (no Rocq cou
 -/
 module
 
+public import Spec.context.Err
+public import Spec.fmt.Errorf
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__rangeKeys
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__CountRevisions
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Range
@@ -44,7 +46,9 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
     (hNew : mvcc.NewRevBytes.spec (GF := GF) (hG := hG))
     (hRevTo : mvcc.RevToBytes.spec (GF := GF) (hG := hG))
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG))
-    (hUnm : proto.Unmarshal.spec (GF := GF) (hG := hG)) :
+    (hUnm : proto.Unmarshal.spec (GF := GF) (hG := hG))
+    (hCtxErr : EtcdGrove.context.Err.spec (GF := GF) (hG := hG))
+    (hErrorf : EtcdGrove.fmt.Errorf.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnCommon.rangeKeys.spec (GF := GF) (hG := hG) := by
   intro txc s trace ti rt dq m R γ kn log rev ctx cd todo key endk k e ro Htrnn
   wp_start as ⟨#Hs, HsT, HtxcT, HtraceT, #Hrdr, HRr, %HsubT, Hkn, %Hklog, %HneT, %Hrv, #Hidx0, Hti0,
@@ -607,15 +611,23 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
               · -- the context is done: no result, an error
                 iintro ⟨-, #Hclosed⟩
                 (try wp_auto)
-                ihave #HE := HErr $$ %Broadcast.Done
-                wp_apply HE $$ [$Hclosed] as %cerr %Hne
+                ihave #HE := hCtxErr _ _ Broadcast.Done $$ Hctx
+                wp_apply HE $$ [$Hclosed] as %cerr %Hne #HcS
+                obtain ⟨ce, rfl⟩ : ∃ ce, cerr = GoInterface.ok ce := by
+                  cases cerr with
+                  | nil => exact absurd rfl Hne
+                  | ok ce => exact ⟨ce, rfl⟩
+                ihave #Hce : EtcdGrove.fmt.stringMethodSpec ce go!"Error" $$ []
+                · iunfold EtcdGrove.context.errStringOk at HcS
+                  iapply HcS; ipureintro; rfl
                 (try wp_auto)
                 wp_apply wp_slice_literal
                 isplitr
                 · ipureintro; rfl
                 iintro %asl ⟨Hasl, -⟩
                 (try wp_auto)
-                wp_apply fmt.wp_Errorf $$ [$Hasl] as %e' -
+                wp_apply hErrorf $$ [$Hfmt $Hasl] as %e' -
+                · fmt_args_ok
                 (try wp_auto)
                 wp_for_post
                 (try wp_auto)

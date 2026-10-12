@@ -58,7 +58,12 @@ storeTxnRead__End:
 sliceCapWithLimit:
 traceutil_Trace__Step:
 proto_Unmarshal:
-storeTxnCommon__rangeKeys: treeIndex__CountRevisions treeIndex__Range treeIndex__Revisions sliceCapWithLimit NewRevBytes RevToBytes traceutil_Trace__Step proto_Unmarshal
+# The trust boundary (etcd-grove axioms, linked in `Proof/{context,fmt}/Link.lean`, `@`): a context's `Err()` gives an error whose `Error()`
+# returns some string (`Spec/context/Err.lean`), which `fmt.Errorf`'s `%w` formats
+# (`Spec/fmt/Errorf.lean`).
+context_Err: @
+fmt_Errorf: @
+storeTxnCommon__rangeKeys: treeIndex__CountRevisions treeIndex__Range treeIndex__Revisions sliceCapWithLimit NewRevBytes RevToBytes traceutil_Trace__Step proto_Unmarshal context_Err fmt_Errorf
 storeTxnCommon__Range: storeTxnCommon__Rev storeTxnCommon__rangeKeys
 # The write transactions (kvstore_txn.go): `Write` takes the batch lock (the writer's
 # resources: the index writer's handle, the committed log's half, the revision budget),

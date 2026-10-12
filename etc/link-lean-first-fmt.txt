@@ -1,0 +1,6 @@
+# etcd-grove's trust boundary of `fmt` (axioms, `Proof/fmt/`), read by `etc/gen-link.py --fmt`:
+# `fmt.Errorf` and `fmt.Printf` for arguments that are basic or have an `Error()`/`String()`
+# returning some string (`fmt.argsOk`, `Spec/fmt/Errorf.lean`). The cache's and mvcc's Links
+# take them as `@` callees.
+fmt_Errorf:
+fmt_Printf:

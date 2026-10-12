@@ -27,7 +27,8 @@ theorem realTimer.Stop.wp_proof : realTimer.Stop.spec (GF := GF) (hG := hG) := b
   unfold isRealTimer
   icases Hr with ⟨%t, %ch, %γ, #Ht, #HT⟩
   wp_auto
-  wp_apply time.Timer.wp_Stop t ch γ $$ [$HT] as %b -
+  wp_apply time.Timer.wp_Stop t $$ [] as %b -
+  · ileft; iexists ch, γ; iexact HT
   iapply HΦ
   itrivial
 

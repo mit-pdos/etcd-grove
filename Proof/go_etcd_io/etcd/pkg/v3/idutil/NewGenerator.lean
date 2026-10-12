@@ -61,7 +61,7 @@ theorem idutil.NewGenerator.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := 
   ihave #Ptime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
   wp_auto
-  wp_apply time.Time.wp_UnixNano now_ptr now $$ [$now] as %ns now
+  wp_apply time.Time.wp_ptr_UnixNano now_ptr now $$ [$now] as %ns now
   wp_apply hL _ (W64 40) (by word)
   wp_alloc gp as Hgp
   ihave ⟨Hgp, %Hgpn⟩ := typedPointsto_not_null_dup _ _ _ $$ Hgp

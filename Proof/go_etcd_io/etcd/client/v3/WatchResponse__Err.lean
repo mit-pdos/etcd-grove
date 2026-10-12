@@ -44,45 +44,56 @@ theorem WatchResponse.Err.wp_proof
   · iPkgInit
   ihave Hri : (rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hrpc
-  icases Hri with ⟨⟨%eFR, #HeFR⟩, ⟨%eCP, #HeCP, -⟩⟩
+  icases Hri with ⟨⟨%eFR, #HeFR⟩, ⟨%eCP, #HeCP, #HeCPs⟩, #HFR⟩
+  ihave #HeFRs := HFR $$ HeFR
   wp_auto
   cases hce : resp.closeErr' with
   | ok i =>
     wp_auto
-    wp_apply wp_rpctypes_Error as %err' %Hne
+    wp_apply wp_rpctypes_Error as %err' ⟨%Hne, #Hw⟩
     · ipureintro; simp [hce]
     iapply HΦ
     iframe
-    ipureintro; simp [Hne]
+    isplitl []
+    · ipureintro; simp [Hne]
+    rw [hce]; iexact Hw
   | nil =>
     wp_auto
     wp_if_destruct
     · -- compacted
       iapply HΦ
       iframe
-      ipureintro; simp_all
+      isplitl []
+      · ipureintro; simp_all
+      imodintro; iintro -; iapply errStrOk_ok; iexact HeCPs
     cases hca : resp.Canceled'
     · wp_auto
       iapply HΦ
       iframe
-      ipureintro; simp_all
+      isplitl []
+      · ipureintro; simp_all
+      imodintro; iintro -; iapply errStrOk_nil
     · wp_auto
       wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %-
       wp_if_destruct
       · -- `rpctypes.ErrFutureRev`
         iapply HΦ
         iframe
-        ipureintro; simp
+        isplitl []
+        · ipureintro; simp
+        imodintro; iintro -; iapply errStrOk_ok; iexact HeFRs
       · -- a cancel reason: `rpctypes.Error(status.Error(codes.FailedPrecondition, reason))`
-        wp_apply wp_status_Error as %e1 %He1
+        wp_apply wp_status_Error as %e1 ⟨%He1, #He1s⟩
         · ipureintro
           simp only [google_golang_org.grpc.codes.OK]
           exact fun h => absurd (go.intoVal_inj h) (by decide)
-        wp_apply wp_rpctypes_Error as %e2 %He2
+        wp_apply wp_rpctypes_Error as %e2 ⟨%He2, #Hw⟩
         · ipureintro; exact He1
         iapply HΦ
         iframe
-        ipureintro; simp [He2]
+        isplitl []
+        · ipureintro; simp [He2]
+        imodintro; iintro -; iapply Hw; iexact He1s
 
 end proof
 

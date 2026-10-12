@@ -119,7 +119,11 @@ theorem Mutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := hG)) 
   isplitr
   · ipureintro; rfl
   iintro %sl ⟨Hsl, -⟩
-  wp_apply fmt.wp_Errorf $$ [$Hsl] as %e -
+  wp_apply fmt.wp_Errorf _ _ _ ?wf $$ [$Hsl] as %e -
+  case wf =>
+    rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
+    simp only [List.set_cons_succ, List.set_cons_zero]
+    exact .cons_string _ _ (.cons_string _ _ .nil)
   iapply HΦ
   iright; iright
   iframe

@@ -3607,3 +3607,23 @@ after the applied index, as raft hands them over". Its proof is what discharges 
 - **Ticks**: node.go's `Tick` spends a term-budget credit; the wrapper ticks without bound. The
   contract's `Tick` takes a resource `T` the caller supplies, and `start` takes `□ |==> T`: the
   gap a composition with node.go must close (a bound on a run's ticks).
+
+---
+
+## Perennial `a54e1999f`, not its `lean`
+
+**2026-10-12 · accepted (decided with the user)**
+
+**Decision:** pin Perennial `a54e1999f` (its proof layout), not its current `lean`
+(`d0324b842`). Since `3fbe65749` Perennial's model does not propagate a panic to the caller, so
+etcd's STM, which recovers `stm.fetch`'s and `commit`'s panics in `runSTM`, is not provable
+there. The calls Perennial's new `ArgsWf` excludes (errors, `Duration`s, `LeaseID` as `fmt`
+arguments; a context's `Err()` formatted) are trust-boundary axioms and strengthened
+assumptions, each listed in `STATUS.md` ("Perennial `a54e1999f`") to be replaced by proofs.
+
+**Rejected:** axioms for the STM at `d0324b842` (the model's code is stuck where `fetch`
+panics; an axiom that `runSTM` returns would contradict it and could derive `False`); the STM's
+specs restated in Perennial's "stuck" style (a premise equivalent to `▷ False`: vacuous results
+that look verified); waiting for Perennial to propagate panics before any bump (the layout
+change broke etcd-grove's imports now). The port to `d0324b842` is kept on branch
+`perennial-d0324-wip`.

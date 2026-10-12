@@ -5,7 +5,7 @@ etcd's cache `New`/`newCache` (`cache/cache.go`): the vocabulary of
 **The client.** `isEtcdClient client pfx` is what `New`'s caller assumes of its
 `*clientv3.Client` (the trust boundary about the client, a definition like `isEtcdKV`): its
 embedded `KV` and `Watcher` fields hold, for good, a `KV` that answers `Get`s with etcd's state
-(`isEtcdKV`) and a `Watcher` that streams etcd's watch responses (`isEtcdWatcher`) and accepts
+(`isEtcdKVE`: `isEtcdKV`, its errors' `Error()` returning some string) and a `Watcher` that streams etcd's watch responses (`isEtcdWatcher`) and accepts
 `RequestProgress` (`isEtcdProgressNotifier`), for the prefix `pfx`; the same `KV` runs
 transactions (`isEtcdTxnKV`) and the `Lease` field grants, keeps alive and revokes leases
 (`isEtcdLeaseClient`): `InvEtcdTxn.lean`, unused by the cache. etcd's **linearizability**
@@ -74,7 +74,7 @@ which the cache does not use. -/
 def isEtcdClient (client : Loc) (pfx : GoString) : IProp GF :=
   iprop(∃ (kv w : GoInterfaceOk),
     clientKVAddr client ↦□ GoInterface.ok kv ∗ clientWatcherAddr client ↦□ GoInterface.ok w ∗
-    isEtcdKV kv pfx ∗ isEtcdWatcher w pfx ∗ isEtcdProgressNotifier w ∗
+    isEtcdKVE kv pfx ∗ isEtcdWatcher w pfx ∗ isEtcdProgressNotifier w ∗
     isEtcdTxnKV kv pfx ∗ isEtcdLeaseClient client)
 
 instance isEtcdClient_persistent (client : Loc) (pfx : GoString) :

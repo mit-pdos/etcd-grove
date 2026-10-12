@@ -32,7 +32,7 @@ snapshot it appends and every revision it moves to certified), so that the store
 certified and synced whoever writes. The state found had a newest snapshot, the latest map, at a
 revision at least `lo`; afterwards the latest revision and the newest snapshot are at least
 those of `(applyResp cap st r).1`. (A canceled response is rejected before the lock: just an
-error.) -/
+error.) An error's `Error()` returns some string (`errStrOk`: `errors.New`'s or `fmt.Errorf`'s). -/
 abbrev store.Apply.spec : Prop :=
   ∀ (s : Loc) (γ : StoreNames) (cap : Nat) (E : w64 → KvMap → IProp GF) (R : w64 → IProp GF)
     (lo : w64) (resp : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel),
@@ -40,13 +40,13 @@ abbrev store.Apply.spec : Prop :=
       isStore s γ cap ∗ isStoreWriter s γ cap E R ∗ respAt resp r ∗ ⌜EvRevSorted r.events⌝ ∗
       storeSnapLb γ lo ∗ ⌜0 ≤ sint.Z lo⌝ ∗ storeApplyCert cap E R lo r }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Apply")) (Val #resp))
-  {{ (err : GoInterface), RET #err; ⌜r.canceled = true ∧ ∃ e, err = GoInterface.ok e⌝ ∨
+  {{ (err : GoInterface), RET #err; errStrOk err ∗ (⌜r.canceled = true ∧ ∃ e, err = GoInterface.ok e⌝ ∨
       ∃ st : StoreState,
       ⌜StoreInv cap st ∧ st.Synced ∧
         ∃ Y : w64, st.history.getLast? = some (Y, st.latest) ∧ sint.Z lo ≤ sint.Z Y⌝ ∗
       storeRevLb γ (applyResp cap st r).1.latestRev ∗
       monoNatLbOwn γ.snap (storeSnapKey (applyResp cap st r).1) ∗
-      ⌜if (applyResp cap st r).2 then err = GoInterface.nil else ∃ e, err = GoInterface.ok e⌝ }}
+      ⌜if (applyResp cap st r).2 then err = GoInterface.nil else ∃ e, err = GoInterface.ok e⌝) }}
 
 end spec
 

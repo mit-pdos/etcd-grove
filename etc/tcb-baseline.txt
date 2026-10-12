@@ -8,6 +8,7 @@ axiom attribute.Int.wp_proof
 axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
 axiom config.ServerConfig.ReqTimeout.wp_proof
+axiom context.Err.wp_proof
 axiom context.ValueStartTime.wp_proof
 axiom context.WithValue.wp_proof
 axiom errors.IsCtxErr.wp_proof
@@ -26,6 +27,9 @@ axiom etcdStep_compose
 axiom etcdStep_delete_present
 axiom etcdStep_transfer
 axiom etcdserverpb.AlarmType.String.wp_proof
+axiom fmt.Errorf.wp_proof
+axiom fmt.Printf.wp_proof
+axiom fmt.SprintfNamed.wp_proof
 axiom fmt.Sscanf.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom isConnectedSince.wp_proof
@@ -54,6 +58,7 @@ axiom storage.BackendQuota.Cost.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom time.Duration.Seconds.wp_proof
+axiom time.Duration.String.wp_proof
 axiom time.Time.After.wp_proof
 axiom trace.SpanFromContext.wp_proof
 axiom trace.WithAttributes.wp_proof
@@ -92,12 +97,12 @@ axiom zap.NewNop.wp_proof
 axiom zap.String.wp_proof
 axiom zap.Stringer.wp_proof
 axiom zap.Uint64.wp_proof
-sorry Perennial.crypto.rand.wp_initialize'
+sorry Perennial.crypto.rand.initialize'.wp_proof
 sorry Perennial.errors.wp_errorType_init
 sorry Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize'
-sorry Perennial.log.wp_initialize'
-sorry Perennial.math.big.wp_initialize'
-sorry Perennial.math.wp_initialize'
+sorry Perennial.log.initialize'.wp_proof
+sorry Perennial.math.big.initialize'.wp_proof
+sorry Perennial.math.initialize'.wp_proof
 sorry Perennial.os.wp_initialize'
 sorry Perennial.strconv.wp_initialize'
-sorry Perennial.time.wp_initialize'
+sorry Perennial.time.initialize'.wp_proof

@@ -11,7 +11,8 @@ cache's `ErrNotReady` (`fmt.Errorf` at init), `ErrUnsupportedRequest` and
 `ErrKeyRangeInvalid`, `ErrCacheTimeout` (`errors.New`), and `rpctypes`' `ErrFutureRev` and
 `ErrCompacted` each hold a fixed non-nil error (`globalAddr X ↦□ interface.ok e`, as
 Perennial's own packages state their globals), and `ErrCompacted.Error()` returns some string
-(`errorStringSpec`: it is an `EtcdError`, whose `Error` returns its description);
+(`errorStringSpec`: it is an `EtcdError`, whose `Error` returns its description), as do the
+cache's `ErrKeyRangeInvalid.Error()` and `ErrUnsupportedRequest.Error()`;
 `clientv3`'s `noPrefixEnd` points for good to a slice holding the byte `0`. Everything here is an assumption about
 package initialization, as in `Proof/go_etcd_io/raft/v3/Base.lean`: nothing proves it from `initialize'`.
 -/
@@ -122,12 +123,17 @@ instance errorStringSpec_persistent (e : GoInterfaceOk) :
   unfold errorStringSpec; infer_instance
 
 /-- `rpctypes`' package facts: the two errors the store returns; `ErrCompacted.Error()`
-(the watcher's `Compact` puts it in the cancel response) returns some string. -/
+(the watcher's `Compact` puts it in the cancel response) returns some string, and so does
+`ErrFutureRev.Error()` (`WatchResponse.Err` returns it; both are `EtcdError`s, whose `Error`
+returns their description). -/
 abbrev rpctypesInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrCompacted ↦□ GoInterface.ok e ∗
+      errorStringSpec e) ∗
+    □ (∀ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrFutureRev ↦□ GoInterface.ok e -∗
       errorStringSpec e))
 
 instance rpctypes_is_pkg_init_inst :
@@ -219,13 +225,16 @@ instance clientv3_get_is_pkg_init_wf_inst :
 `ErrUnsupportedRequest` (wrapped by `validateGet`/`validateWatch`), `ErrKeyRangeInvalid`
 (`validateRange`) and `ErrCacheTimeout` (`waitTillRevision`), each a fixed non-nil error;
 `ErrKeyRangeInvalid.Error()` returns some string (`errors.New`'s `*errorString`; `Cache.Watch`
-puts it in a cancel response). -/
+puts it in a cancel response), and so does `ErrUnsupportedRequest.Error()` (`errors.New`'s too;
+`fmt.Errorf`'s `%w` of it calls it, `fmt.argsOk`). -/
 abbrev cacheInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrNotReady ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrUnsupportedRequest ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrKeyRangeInvalid ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrCacheTimeout ↦□ GoInterface.ok e) ∗
-    □ (∀ e : GoInterfaceOk, globalAddr ErrKeyRangeInvalid ↦□ GoInterface.ok e -∗ errorStringSpec e))
+    □ (∀ e : GoInterfaceOk, globalAddr ErrKeyRangeInvalid ↦□ GoInterface.ok e -∗ errorStringSpec e) ∗
+    □ (∀ e : GoInterfaceOk, globalAddr ErrUnsupportedRequest ↦□ GoInterface.ok e -∗
+      errorStringSpec e))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 :=
   define_is_pkg_init cacheInit
@@ -233,6 +242,50 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
   build_get_is_pkg_init_wf
 
 end init
+
+section errstr
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- A non-nil error `err`'s `Error()` returns some string (`errorStringSpec`; persistent): what
+`fmt`'s `%v`/`%w` of it needs (`fmt.argsOk`). -/
+def errStrOk (err : GoInterface) : IProp GF :=
+  iprop(□ ∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ → errorStringSpec e)
+
+instance errStrOk_persistent (err : GoInterface) : Persistent (errStrOk (GF := GF) err) := by
+  unfold errStrOk; infer_instance
+
+theorem errStrOk_nil : ⊢ errStrOk (GF := GF) GoInterface.nil := by
+  unfold errStrOk
+  iintro !> %e %h
+  cases h
+
+theorem errStrOk_ok (e : GoInterfaceOk) : errorStringSpec (GF := GF) e ⊢ errStrOk (GoInterface.ok e) := by
+  unfold errStrOk
+  iintro #H !> %e' %h
+  cases h
+  iexact H
+
+/-- `errStrOk` of `ok e` gives `errorStringSpec e`. -/
+theorem errStrOk_elim (e : GoInterfaceOk) : errStrOk (GF := GF) (GoInterface.ok e) ⊢ errorStringSpec e := by
+  unfold errStrOk
+  iintro #H
+  iapply H
+  ipureintro; rfl
+
+/-- The `Error()` of an error with a known message (`errors.wp_New`'s) returns some string. -/
+theorem errorStringSpec_of_msg (e : GoInterfaceOk) (msg : GoString) :
+    iprop(□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
+      WP (App (Val #(methods e.ty go!"Error" e.v)) (Val #())) {{ Φ }}) ⊢ errorStringSpec e := by
+  unfold errorStringSpec
+  iintro #H !> %Φ HΦ
+  iapply H
+  inext
+  iapply HΦ
+
+end errstr
 
 end go_etcd_io.etcd.cache.v3
 

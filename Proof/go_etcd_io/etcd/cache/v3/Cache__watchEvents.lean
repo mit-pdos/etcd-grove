@@ -9,6 +9,7 @@ context itself.
 -/
 module
 
+public import Spec.context.Err
 public import Spec.go_etcd_io.etcd.cache.v3.Cache__watchEvents
 public import Spec.go_etcd_io.etcd.cache.v3.demux__Broadcast
 public import Spec.go_etcd_io.etcd.cache.v3.ready__Set
@@ -209,7 +210,7 @@ theorem watchRespOk_case (pfx : GoString) (k k' : w64)
       ⌜WatchCase pfx k k' r⌝ ∗ watchChain pfx k (splitBatches r.events) ∗
         □ (⌜r.isProgressNotify = true⌝ -∗ etcdReached r.hdrRev) := by
   unfold watchRespOk
-  iintro ⟨%Hh, (%H | ⟨%H, #Hre⟩ | ⟨%H, #Hre⟩ | ⟨%H, #Hc⟩)⟩
+  iintro ⟨%Hh, (⟨%H, -⟩ | ⟨%H, #Hre⟩ | ⟨%H, #Hre⟩ | ⟨%H, #Hc⟩)⟩
   · exact absurd H.1 hne
   · isplitr
     · ipureintro; exact ⟨Hh, Or.inl H.2⟩
@@ -227,6 +228,26 @@ theorem watchRespOk_case (pfx : GoString) (k k' : w64)
     imodintro; iintro %Hp
     rw [isProgressNotify_false_of_events H.2.1] at Hp
     cases Hp
+
+/-- The close error of a response etcd's watch contract allows (`watchRespOk`) has an `Error()`
+returning some string: the contract says so of an error response, and any other has none. -/
+theorem watchRespOk_closeErr (pfx : GoString) (k k' : w64)
+    (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :
+    watchRespOk (GF := GF) pfx k k' v r ⊢ errStrOk v.closeErr' := by
+  unfold watchRespOk
+  iintro ⟨%Hh, (⟨%H, #He⟩ | ⟨%H, -⟩ | ⟨%H, -⟩ | ⟨%H, -⟩)⟩
+  · iexact He
+  all_goals
+    have hn : v.closeErr' = GoInterface.nil :=
+      Classical.byContradiction fun h => H.1 (Or.inl h)
+    rw [hn]; iapply errStrOk_nil
+
+/-- `context.errStringOk` (`Spec/context/Err.lean`) is the cache's `errStrOk`. -/
+theorem errStrOk_of_ctx (err : GoInterface) :
+    EtcdGrove.context.errStringOk (GF := GF) err ⊢ errStrOk err := by
+  unfold EtcdGrove.context.errStringOk errStrOk EtcdGrove.fmt.stringMethodSpec errorStringSpec
+  iintro #H
+  iexact H
 
 /-- What `Broadcast` asks of the caller: the response's certificate, from the stream's state
 `c` continuing the watch at the cursor `k`. -/
@@ -293,7 +314,8 @@ theorem Cache.watchEvents.wp_proof
     (wp_Set : ready.Set.spec (GF := GF) (hG := hG))
     (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
     (wp_Reset : ready.Reset.spec (GF := GF) (hG := hG))
-    (wp_Broadcast : demux.Broadcast.spec (GF := GF) (hG := hG)) :
+    (wp_Broadcast : demux.Broadcast.spec (GF := GF) (hG := hG))
+    (wp_ctxErr : EtcdGrove.context.Err.spec (GF := GF) (hG := hG)) :
     Cache.watchEvents.spec (GF := GF) (hG := hG) := by
   intro c cf γr γd cap rev aec γa P Ws Wc ro c0
   wp_start as ⟨#Hc, #Hae, Haec, #Honce, Hw, %Hpre⟩
@@ -382,15 +404,15 @@ theorem Cache.watchEvents.wp_proof
     iapply context.isContextDone_receive _ _ _ _ $$ Hdone
     iintro -
     wp_auto
-    ihave #HErrU := HErr $$ %Broadcast.Unknown
-    wp_apply HErrU as %err -
+    ihave #HErrU := wp_ctxErr _ _ Broadcast.Unknown $$ Hctxi
+    wp_apply HErrU as %err - #HcS
     wp_for_post
     iapply HΦ
     iexists cc
     iframe Hw
     isplitr
     · ipureintro; exact Hk0c
-    ileft; iexact Haec
+    ileft; iframe Haec; iapply errStrOk_of_ctx; iexact HcS
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `<-watchCh`
@@ -414,7 +436,7 @@ theorem Cache.watchEvents.wp_proof
       iframe Hw
       isplitr
       · ipureintro; exact Hk0c
-      ileft; iexact Haec
+      ileft; iframe Haec; iapply errStrOk_nil
     simp only [↓reduceIte]
     icases H with ⟨%r, %k', #Hr, #Hok, Hcons⟩
     wp_auto
@@ -424,7 +446,7 @@ theorem Cache.watchEvents.wp_proof
       wp_apply wp_Set cf.ready γr 0 $$ [$HisReady $Hlb0'] as -
       iapply HΨ
       itrivial
-    wp_apply wp_Err resp_ptr v (DFrac.own 1) $$ [$resp] as %err ⟨resp, %Herr⟩
+    wp_apply wp_Err resp_ptr v (DFrac.own 1) $$ [$resp] as %err ⟨resp, %Herr, #HwE⟩
     cases err with
     | ok e =>
       -- `resp.Err() != nil`: reset `ready`, return the error
@@ -436,7 +458,7 @@ theorem Cache.watchEvents.wp_proof
       iframe Hw
       isplitr
       · ipureintro; exact Hk0c
-      ileft; iexact Haec
+      ileft; iframe Haec; iapply HwE; iapply watchRespOk_closeErr; iexact Hok
     | nil =>
     have hnw : ¬ watchErr v := by
       have h := Herr.1 rfl
@@ -450,7 +472,7 @@ theorem Cache.watchEvents.wp_proof
     imod respCert_cacheCert_cond cf cc r B _ $$ [$Hcert0 $Hbd] with ⟨%B', #Hcert, Hbd⟩
     wp_auto
     wp_apply wp_Broadcast cf.demux γd cap (cacheCert cf) cc v r
-      $$ [$HisDemux $Hdw $Hr $Hcert] as %berr Hb
+      $$ [$HisDemux $Hdw $Hr $Hcert] as %berr ⟨#HbS, Hb⟩
     · ipureintro; exact watchCase_pre Hcase
     cases hb : broadcastCore cap cc r with
     | none =>
@@ -468,7 +490,7 @@ theorem Cache.watchEvents.wp_proof
         iexists B'; iexact Hbd
       isplitr
       · ipureintro; exact Hk0c
-      ileft; iexact Haec
+      ileft; iframe Haec; iexact HbS
     | some c' =>
       have hc' : c' = updResp cap cc r := by
         unfold broadcastCore at hb

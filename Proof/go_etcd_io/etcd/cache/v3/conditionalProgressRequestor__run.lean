@@ -5,6 +5,7 @@ Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.cache.v3.conditionalProgressRequestor__run
+public import Spec.fmt.Printf
 
 @[expose] public section
 
@@ -38,7 +39,8 @@ theorem wp_contextDone_receive (s : context.ContextDesc (IProp GF)) (ch : Loc) (
 theorem val_false_ne_true : (#false : val) ≠ #true :=
   fun h => absurd (GoGlobalContext.intoVal_inj_bool h) (by decide)
 
-theorem conditionalProgressRequestor.run.wp_proof :
+theorem conditionalProgressRequestor.run.wp_proof
+    (wp_Printf : EtcdGrove.fmt.Printf.spec (GF := GF) (hG := hG)) :
     conditionalProgressRequestor.run.spec (GF := GF) (hG := hG) := by
   intro p n clk ri ctx s
   wp_start as ⟨#Hp, #Hrun, #Hclk, #Hn, #Hctx⟩
@@ -151,7 +153,7 @@ theorem conditionalProgressRequestor.run.wp_proof :
             try wp_auto
             wp_apply HReset as %rb -
             iunfold isEtcdProgressNotifier at Hn
-            wp_apply Hn $$ [$Hctx] as %err -
+            wp_apply Hn $$ [$Hctx] as %err #Herr
             cases err with
             | nil =>
               wp_auto
@@ -162,8 +164,12 @@ theorem conditionalProgressRequestor.run.wp_proof :
               wp_apply wp_slice_literal
               isplitr
               · ipureintro; rfl
-              iintro %sl -
-              wp_apply fmt.wp_Printf $$ [$Hfmt] as %nb %e2 -
+              iintro %sl ⟨Hsl, -⟩
+              ihave #HeS : EtcdGrove.fmt.stringMethodSpec e go!"Error" $$ []
+              · rw [show EtcdGrove.fmt.stringMethodSpec e go!"Error" = errorStringSpec e from rfl]
+                iapply Herr; ipureintro; rfl
+              wp_apply wp_Printf $$ [$Hfmt $Hsl] as %nb %e2 -
+              · fmt_args_ok
               wp_for_post
               iframe
           · try wp_auto

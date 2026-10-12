@@ -62,7 +62,7 @@ theorem Cache.Get.wp_proof
   · iPkgInit
   ihave Hri : (rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hrpc
-  icases Hri with ⟨⟨%eFR, #HeFR⟩, ⟨%eCP, #HeCP, -⟩⟩
+  icases Hri with ⟨⟨%eFR, #HeFR⟩, ⟨%eCP, #HeCP, -⟩, -⟩
   iunfold storeSeen at Hseen0
   icases Hseen0 with ⟨%Hst0, #Hlbst0⟩
   imod monoNatLbOwn_0 (GF := GF) γr.epoch with #Hep0

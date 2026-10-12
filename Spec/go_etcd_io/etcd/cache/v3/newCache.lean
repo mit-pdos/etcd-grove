@@ -28,8 +28,8 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 `context.WithCancel(context.Background())`, starts the watch loop (`getWatchLoop`, with the
 store's and the demux's writers) and the progress requestor's loop (`run`) on the wait group, and
 returns the cache with its handles (`newCacheResult`). A configuration it accepts must moreover be
-`CfgBounded` (finding 5: a negative `PerWatcherBufferSize` panics later; the capacity and the
-degree must not overflow). `context.isClosedchanInit` (`context`'s package-init fact about
+`CfgBounded` (finding 5: a negative `PerWatcherBufferSize` panics later, and Perennial's
+`make(chan T, n)` needs it below `2^32`; the capacity and the degree must not overflow). `context.isClosedchanInit` (`context`'s package-init fact about
 `closedchan`) is for `WithCancel(Background())`. -/
 abbrev newCache.spec : Prop :=
   ∀ (client : Loc) (pfx : GoString) (cfg : Config) (clk : GoInterfaceOk),
