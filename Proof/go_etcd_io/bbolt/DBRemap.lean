@@ -190,7 +190,7 @@ theorem readerOK_remap (σ : DBState) (d' : Loc) (sz' : Nat) (hsz : σ.sz ≤ sz
 /-- A remap to a mapping no smaller (below `MaxMapSize`, at a non-null address) keeps the
 database's facts. -/
 theorem dbOK_remap (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 v1)
-    (d' : Loc) (sz' : Nat) (hsz : σ.sz ≤ sz') (hsz' : sz' < 281474976710655)
+    (d' : Loc) (sz' : Nat) (hsz : σ.sz ≤ sz') (hsz' : sz' ≤ 281474976710655)
     (hd' : d'.locCar ≠ 0) : dbOK (σ.remap d' sz') v0 v1 := by
   have hmono : σ.nslots ≤ (σ.remap d' sz').nslots := by
     unfold DBState.nslots DBState.remap; exact Nat.div_le_div_right (by simp only; omega)
