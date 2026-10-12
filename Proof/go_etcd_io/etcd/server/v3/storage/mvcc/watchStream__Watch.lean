@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF := GF) (hG := hG)) :
     mvcc.watchStream.Watch.spec (GF := GF) (hG := hG) := by
   intro ws wa P γ ctx cd id key endk fcs k e fs startRev
-  wp_start as ⟨Hws, #Hctx, #Hk, #He, #Hfcs, #Hfs⟩
+  wp_start as ⟨Hws, #Hctx, #Hk, #He, #Hfcs, #Hfs, HPR, %Hsr⟩
   iunfold mvcc.isWatchStream at Hws
   iNamed Hws
   ihave Hmi : (mvccInit : IProp GF) $$ []
@@ -63,6 +63,7 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
   rotate_left
   -- `key ≥ end`: the empty range
   iapply HΦ
+  iframe HPR
   iright
   isplitr
   · ipureintro; rfl
@@ -88,6 +89,7 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
       iframe #
       ipureintro; exact ⟨Hdom, Hnn⟩
     iapply HΦ
+    iframe HPR
     iright
     isplitr
     · ipureintro; rfl
@@ -139,6 +141,7 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
       · ipureintro; exact Hdom
       ipureintro; exact Hnn
     iapply HΦ
+    iframe HPR
     iright
     isplitr
     · ipureintro; rfl
@@ -151,8 +154,9 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
     simp only [Option.isSome_none]
     wp_auto
     all_goals
-      wp_apply Hwatch $$ [$HCR] as %w %c ⟨%hwnn, #HIW, #Hcspec, HCR⟩
+      wp_apply Hwatch $$ [$HCR $HPR] as %w %c ⟨%hwnn, #HIW, #Hcspec, HCR, HPR⟩
       · iframe #
+        try (ipureintro; exact Hsr)
       wp_apply hspan $$ [$Hctx] as %sp #Hsp
       iunfold trace.isSpan at Hsp
       icases Hsp with ⟨%si, %hsi, #HEnd⟩
@@ -237,6 +241,7 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
           · iright
             iexact Hc0
       iapply HΦ
+      iframe HPR
       ileft
       isplitr
       · ipureintro; rfl

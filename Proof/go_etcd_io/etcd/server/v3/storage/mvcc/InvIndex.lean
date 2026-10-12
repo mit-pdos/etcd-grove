@@ -55,13 +55,28 @@ theorem Rev.enc_inj : Function.Injective Rev.enc := by
 instance Rev.countable : Pos.Countable Rev :=
   .ofInjective (fun r => Pos.Countable.encode r.enc) (fun _ _ h => Rev.enc_inj (Pos.encode_inj h))
 
-def Ev.enc (e : Ev) : Rev × GoString × Bool := (e.rev, e.key, e.tomb)
+def Change.enc : Change → Bool × GoString × GoString × w64
+  | .put k v l => (false, k, v, l)
+  | .del k => (true, k, [], W64 0)
+
+theorem Change.enc_inj : Function.Injective Change.enc := by
+  intro x y h
+  cases x <;> cases y <;> simp only [Change.enc, Prod.mk.injEq] at h
+  · obtain ⟨-, rfl, rfl, rfl⟩ := h; rfl
+  · exact Bool.noConfusion h.1
+  · exact Bool.noConfusion h.1
+  · obtain ⟨-, rfl, -, -⟩ := h; rfl
+
+instance Change.countable : Pos.Countable Change :=
+  .ofInjective (fun c => Pos.Countable.encode c.enc) (fun _ _ h => Change.enc_inj (Pos.encode_inj h))
+
+def Ev.enc (e : Ev) : Rev × (Bool × GoString × GoString × w64) := (e.rev, e.change.enc)
 
 theorem Ev.enc_inj : Function.Injective Ev.enc := by
-  rintro ⟨a, b, c⟩ ⟨a', b', c'⟩ h
+  rintro ⟨a, b⟩ ⟨a', b'⟩ h
   simp only [Ev.enc, Prod.mk.injEq] at h
-  obtain ⟨rfl, rfl, rfl⟩ := h
-  rfl
+  obtain ⟨rfl, h⟩ := h
+  rw [Change.enc_inj h]
 
 instance Ev.countable : Pos.Countable Ev :=
   .ofInjective (fun e => Pos.Countable.encode e.enc) (fun _ _ h => Ev.enc_inj (Pos.encode_inj h))
@@ -81,23 +96,6 @@ theorem HistItem.enc_inj : Function.Injective HistItem.enc := by
 instance HistItem.countable : Pos.Countable HistItem :=
   .ofInjective (fun x => Pos.Countable.encode x.enc)
     (fun _ _ h => HistItem.enc_inj (Pos.encode_inj h))
-
-/-! ### Countability of the log (for the committed log's ghosts) -/
-
-def Change.enc : Change → Bool × GoString × GoString × w64
-  | .put k v l => (false, k, v, l)
-  | .del k => (true, k, [], W64 0)
-
-theorem Change.enc_inj : Function.Injective Change.enc := by
-  intro x y h
-  cases x <;> cases y <;> simp only [Change.enc, Prod.mk.injEq] at h
-  · obtain ⟨-, rfl, rfl, rfl⟩ := h; rfl
-  · exact Bool.noConfusion h.1
-  · exact Bool.noConfusion h.1
-  · obtain ⟨-, rfl, -, -⟩ := h; rfl
-
-instance Change.countable : Pos.Countable Change :=
-  .ofInjective (fun c => Pos.Countable.encode c.enc) (fun _ _ h => Change.enc_inj (Pos.encode_inj h))
 
 section reprs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -600,6 +598,69 @@ theorem idxWriter_wf (γ : IdxNames) (ilog : Log) (pend : List Change) :
     idxWriter (GF := GF) γ ilog pend ⊢ ⌜IdxWf ilog pend⌝ := by
   unfold idxWriter; iintro ⟨-, -, %H, -⟩; ipureintro; exact H
 
+/-- The writer's handle once **sealed**: the pending revision `pend` (not empty) is final, its
+commit marker already in the history (so the history's lower bound `histOf (ilog ++ [pend])`
+is persistent before the commit, which needs `s.revMu`'s half of the committed log); the
+committed log's authority is still at `ilog` until the commit (`idxWriterSealed_commit`). The
+watchable store seals before it notifies the watchers of the revision. -/
+def idxWriterSealed (γ : IdxNames) (ilog : Log) (pend : List Change) : IProp GF :=
+  iprop(monoListAuthOwn γ.hist 1 (histOf (ilog ++ [pend])) ∗
+    monoNatLbOwn γ.nev (evsOf (ilog ++ [pend])).length ∗ ⌜IdxWf ilog pend ∧ pend ≠ []⌝ ∗
+    idxLogAuth γ (1 : Qp).half ilog)
+
+/-- The writer's handle, sealed or not. -/
+def idxWriterB (γ : IdxNames) (ilog : Log) (pend : List Change) (sealed : Bool) : IProp GF :=
+  if sealed then idxWriterSealed γ ilog pend else idxWriter γ ilog pend
+
+@[simp] theorem idxWriterB_false (γ : IdxNames) (ilog : Log) (pend : List Change) :
+    idxWriterB (GF := GF) γ ilog pend false = idxWriter γ ilog pend := rfl
+
+@[simp] theorem idxWriterB_true (γ : IdxNames) (ilog : Log) (pend : List Change) :
+    idxWriterB (GF := GF) γ ilog pend true = idxWriterSealed γ ilog pend := rfl
+
+/-- **Seal** (a ghost step of the writer alone): the pending revision's commit marker, and the
+persistent lower bound of the history with the revision committed. -/
+theorem idxWriter_seal (γ : IdxNames) (ilog : Log) (pend : List Change) (hne : pend ≠ []) :
+    idxWriter (GF := GF) γ ilog pend ==∗
+      idxWriterSealed γ ilog pend ∗ monoListLbOwn γ.hist (histOf (ilog ++ [pend])) := by
+  unfold idxWriter idxWriterSealed
+  iintro ⟨Hauth, #Hnev, %Hwf, Hlauth⟩
+  imod monoListAuthOwn_update_app [HistItem.commit] $$ Hauth with ⟨Hauth, #Hlb⟩
+  imodintro
+  rw [histShape_seal]
+  iframe Hauth Hlauth Hlb Hnev
+  ipureintro; exact ⟨Hwf, hne⟩
+
+/-- A sealed writer's pending revision is not empty. -/
+theorem idxWriterB_ne (γ : IdxNames) (ilog : Log) (pend : List Change) (b : Bool) :
+    idxWriterB (GF := GF) γ ilog pend b ⊢ idxWriterB γ ilog pend b ∗ ⌜b = true → pend ≠ []⌝ := by
+  cases b
+  · iintro H; iframe H; ipureintro; intro h; cases h
+  · simp only [idxWriterB_true]
+    unfold idxWriterSealed
+    iintro ⟨Ha, Hn, %Hw, Hl⟩
+    iframe Ha Hn Hl
+    ipureintro; exact ⟨Hw, fun _ => Hw.2⟩
+
+/-- An empty pending revision is never sealed. -/
+theorem idxWriterB_nil (γ : IdxNames) (ilog : Log) (b : Bool) :
+    idxWriterB (GF := GF) γ ilog [] b ⊢ idxWriter γ ilog [] := by
+  cases b
+  · exact .rfl
+  · simp only [idxWriterB_true]
+    unfold idxWriterSealed
+    iintro ⟨-, -, %Hw, -⟩
+    exact absurd rfl Hw.2
+
+theorem idxWriterB_wf (γ : IdxNames) (ilog : Log) (pend : List Change) (b : Bool) :
+    idxWriterB (GF := GF) γ ilog pend b ⊢ ⌜IdxWf ilog pend⌝ := by
+  cases b
+  · exact idxWriter_wf γ ilog pend
+  · simp only [idxWriterB_true]
+    unfold idxWriterSealed
+    iintro ⟨-, -, %Hw, -⟩
+    ipureintro; exact Hw.1
+
 /-- The certificate of a committed log `log`: its history is a prefix of the index's, the
 index had all its events, and `log` is a prefix of the committed log (so two certificates
 are of logs in prefix order: `idxCert_prefix`). -/
@@ -718,6 +779,60 @@ theorem idxWriter_commit (γ : IdxNames) (ilog : Log) (pend : List Change)
     iframe Hllb
     ipureintro
     exact ⟨hwf, by simp; omega, hcs'⟩
+
+/-- **Commit** of a sealed writer: the committed log's authority catches up with the history. -/
+theorem idxWriterSealed_commit (γ : IdxNames) (ilog : Log) (pend : List Change)
+    (hlen : ilog.length + 2 < 2 ^ 63) :
+    ⊢ idxWriterSealed (GF := GF) γ ilog pend -∗ idxLogAuth γ (1 : Qp).half ilog ==∗
+      idxWriter γ (ilog ++ [pend]) [] ∗ idxLogAuth γ (1 : Qp).half (ilog ++ [pend]) ∗
+        idxCert γ (ilog ++ [pend]) := by
+  have hhalves := fun (l : Log) =>
+    (monoListAuthOwn_fractional (GF := GF) γ.log l).fractional (1 : Qp).half (1 : Qp).half
+  rw [Qp.half_add_half] at hhalves
+  unfold idxWriterSealed idxWriter idxCert idxLogAuth
+  iintro ⟨Hauth, #Hnev, %Hwf, Hlauth⟩ Hlother
+  obtain ⟨⟨hwf, hl, hp, hcs⟩, -⟩ := Hwf
+  ihave Hlauth : monoListAuthOwn γ.log 1 ilog $$ [Hlauth Hlother]
+  · iapply (hhalves ilog).2; iframe Hlauth Hlother
+  ihave #Hlb := monoListLbOwn_get γ.hist 1 _ $$ Hauth
+  imod monoListAuthOwn_update_app [pend] $$ Hlauth with ⟨Hlauth, #Hllb⟩
+  icases (hhalves (ilog ++ [pend])).1 $$ Hlauth with ⟨Hlauth, Hlother⟩
+  imodintro
+  have hwf' : LogWf' (ilog ++ [pend] ++ [[]]) := hwf.append_nil (by simp)
+  have hcs' : ∀ cs ∈ ilog ++ [pend], cs.length < 2 ^ 63 := by
+    intro cs hcs'
+    rcases List.mem_append.1 hcs' with h | h
+    · exact hcs cs h
+    · rw [List.mem_singleton] at h; rw [h]; exact hp
+  have hhist : histShape (ilog ++ [pend]) [] = histOf (ilog ++ [pend]) := by
+    rw [← histShape_seal, histShape_commit]
+  have hevs : evsOf (ilog ++ [pend] ++ [[]]) = evsOf (ilog ++ [pend]) := by
+    rw [evsOf_append (ilog ++ [pend]) []]; simp [evsOfRev]
+  rw [hhist, hevs]
+  isplitl [Hauth Hlauth]
+  · iframe Hauth Hlauth
+    isplitl []
+    · iexact Hnev
+    ipureintro
+    refine ⟨hwf', by simp; omega, by simp, hcs'⟩
+  iframe Hlother
+  · isplitl []
+    · iexact Hlb
+    isplitl []
+    · iexact Hnev
+    iframe Hllb
+    ipureintro
+    exact ⟨hwf, by simp; omega, hcs'⟩
+
+/-- **Commit** of a writer, sealed or not. -/
+theorem idxWriterB_commit (γ : IdxNames) (ilog : Log) (pend : List Change) (b : Bool)
+    (hlen : ilog.length + 2 < 2 ^ 63) :
+    ⊢ idxWriterB (GF := GF) γ ilog pend b -∗ idxLogAuth γ (1 : Qp).half ilog ==∗
+      idxWriter γ (ilog ++ [pend]) [] ∗ idxLogAuth γ (1 : Qp).half (ilog ++ [pend]) ∗
+        idxCert γ (ilog ++ [pend]) := by
+  cases b
+  · exact idxWriter_commit γ ilog pend hlen
+  · exact idxWriterSealed_commit γ ilog pend hlen
 
 
 /-! ### What a reader of the index knows -/

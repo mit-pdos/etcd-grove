@@ -57,6 +57,7 @@ theorem mvcc.writeView.DeleteRange.wp_proof
       ((mvcc.delKeys ilog [] (decide (endk = slice.nil)) k e).map .del) (W64 0)
       (W64 0 + W64 1) (W64 0)) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
+  ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ $$ Htx'
   wp_apply (hEnd mw s γ _) $$ [$Htx'] as ⟨Hrd, Hcert⟩
   (try wp_auto)
   iapply HΦ

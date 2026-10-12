@@ -684,6 +684,115 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Cha
     "HrevMu" ∷ sync.ownRWMutex (revMuAddr s) (revMuInv s γ) ∗
     "Hti" ∷ idxReader ti γ.idx)
 
+/-- The write transaction of `storeTxnWriteIs` without its `changes` slice's contents and their
+key-values (`chs ↦* ps`, `changesAre ps ilog pend`: the caller's, `storeTxnWrite.Changes`):
+the slice is `chs`, of `ps.length = pend.length` pointers, and the index writer may be sealed
+(`idxWriterB`: the watchable store seals the pending revision before it notifies). What
+`storeTxnWrite.End` needs (it reads the slice's length only). -/
+def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
+    (chs : GoSlice) (ps : List Loc) (sealed : Bool) : IProp GF :=
+  iprop(∃ (trace ti : Loc) (bt : GoInterfaceOk) (Locked : Puts → IProp GF) (ntok : Nat),
+    "Htoks" ∷ ownTokAuthDfrac γ.revs (DFrac.own (1 : Qp).half) ntok ∗
+    "%Hbudget" ∷ ⌜ilog.length + ntok + 3 ≤ 2 ^ 63⌝ ∗
+    "Htok" ∷ revToken γ ∗
+    "Htw" ∷ tw ↦ ({
+        storeTxnCommon' := {
+          s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace },
+        tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
+        changes' := chs } : storeTxnWrite) ∗
+    "Hcap" ∷ ownSliceCap Loc chs (DFrac.own 1) ∗
+    "%Hps" ∷ ⌜ps.length = pend.length ∧ ps.length = sint.nat chs.len ∧ 0 ≤ sint.Z chs.len⌝ ∗
+    "#Hs" ∷ isStore s γ ∗
+    "#Hidx" ∷ s.[store, go!"kvindex"] ↦□
+      (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
+    "#Hbt" ∷ batchTxSpec bt (bucketView γ) (writerRes s γ) Locked ∗
+    "Hlocked" ∷ Locked (pendPuts ilog pend) ∗
+    "Hw" ∷ idxWriterB γ.idx ilog pend sealed ∗
+    "Hclog" ∷ ghostVar γ.clog (1 : Qp).half ilog ∗
+    "Hcur" ∷ (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half}
+      (W64 ((ilog.length : Int) - 1) : w64) : IProp GF) ∗
+    "Hbv" ∷ bucketView γ (1 : Qp).half (bucketMap ilog) ∗
+    "#Hcert" ∷ idxCert γ.idx ilog ∗
+    "%Hne" ∷ ⌜ilog ≠ []⌝ ∗
+    "Hmu" ∷ sync.ownRWMutexRLocked (muAddr s) muInv ∗
+    "HrevMu" ∷ sync.ownRWMutex (revMuAddr s) (revMuInv s γ) ∗
+    "Hti" ∷ idxReader ti γ.idx)
+
+/-- The write transaction as its core, its `changes` and their key-values. -/
+theorem storeTxnWriteIs_split (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change) :
+    storeTxnWriteIs (GF := GF) tw s γ ilog pend ⊢
+      ∃ (chs : GoSlice) (ps : List Loc), storeTxnWriteCore tw s γ ilog pend chs ps false ∗
+        chs ↦* ps ∗ changesAre ps ilog pend := by
+  iintro Htw
+  iunfold storeTxnWriteIs at Htw
+  iNamed Htw
+  ihave %Hlen := ownSlice_len _ _ _ $$ Hchs
+  iexists chs, ps
+  iframe Hchs Hkvs
+  iunfold storeTxnWriteCore
+  iexists trace, ti, bt, Locked, ntok
+  simp only [named, idxWriterB_false]
+  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
+  iframe #
+  ipureintro; exact ⟨Hbudget, ⟨Hps, Hlen.1, Hlen.2⟩, Hne⟩
+
+theorem storeTxnWriteIs_join (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
+    (chs : GoSlice) (ps : List Loc) :
+    storeTxnWriteCore (GF := GF) tw s γ ilog pend chs ps false ∗ chs ↦* ps ∗
+      changesAre ps ilog pend ⊢ storeTxnWriteIs tw s γ ilog pend := by
+  iintro ⟨Hc, Hchs, Hkvs⟩
+  iunfold storeTxnWriteCore at Hc
+  iNamed Hc
+  simp only [idxWriterB_false]
+  iunfold storeTxnWriteIs
+  iexists trace, ti, bt, Locked, chs, ps, ntok
+  simp only [named]
+  iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
+  iframe #
+  ipureintro; exact ⟨Hbudget, Hps.1, Hne⟩
+
+/-- **Seal** the write transaction's pending revision (not empty): its history's lower bound
+with the revision committed, persistent. -/
+theorem storeTxnWriteCore_seal (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
+    (chs : GoSlice) (ps : List Loc) (hne : pend ≠ []) :
+    storeTxnWriteCore (GF := GF) tw s γ ilog pend chs ps false ==∗
+      storeTxnWriteCore tw s γ ilog pend chs ps true ∗
+        monoListLbOwn γ.idx.hist (histOf (ilog ++ [pend])) := by
+  iintro Hc
+  iunfold storeTxnWriteCore at Hc
+  iNamed Hc
+  simp only [idxWriterB_false]
+  imod idxWriter_seal γ.idx ilog pend hne $$ Hw with ⟨Hw, #Hlb⟩
+  imodintro
+  iframe Hlb
+  iunfold storeTxnWriteCore
+  iexists trace, ti, bt, Locked, ntok
+  simp only [named, idxWriterB_true]
+  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
+  iframe #
+  ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+
+/-- The write transaction's facts: the writer's log is well formed, and its committed log is
+the store's view of `currentRev` (kept). -/
+theorem storeTxnWriteCore_wf (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
+    (chs : GoSlice) (ps : List Loc) (b : Bool) :
+    storeTxnWriteCore (GF := GF) tw s γ ilog pend chs ps b ⊢
+      storeTxnWriteCore tw s γ ilog pend chs ps b ∗
+        ⌜IdxWf ilog pend ∧ ps.length = pend.length ∧ ps.length = sint.nat chs.len ∧
+          0 ≤ sint.Z chs.len ∧ ilog ≠ []⌝ := by
+  iintro Hc
+  iunfold storeTxnWriteCore at Hc
+  iNamed Hc
+  ihave %Hwf := idxWriterB_wf γ.idx ilog pend b $$ Hw
+  isplitl
+  · iunfold storeTxnWriteCore
+    iexists trace, ti, bt, Locked, ntok
+    simp only [named]
+    iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
+    iframe #
+    ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+  ipureintro; exact ⟨Hwf, Hps.1, Hps.2.1, Hps.2.2, Hne⟩
+
 /-- The write transaction `store.Write` returns, as the caller sees it: the `metricsTxnWrite`
 wrapper at `mw` (its counters `puts`, `deletes`, `putSize`) around the `storeTxnWrite`. -/
 def isTxnWrite (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
@@ -693,6 +802,58 @@ def isTxnWrite (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
         TxnWrite' := interface.mkOk (go.GoType.PointerType storeTxnWrite.ty) #tw,
         ranges' := ranges, puts' := puts, deletes' := deletes, putSize' := putSize } : metricsTxnWrite) ∗
     "Htw" ∷ storeTxnWriteIs tw s γ ilog pend)
+
+/-- The write transaction at `mw` without its key-values (`storeTxnWriteCore`). -/
+def isTxnWriteCore (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
+    (puts deletes putSize : w64) (chs : GoSlice) (ps : List Loc) (sealed : Bool) : IProp GF :=
+  iprop(∃ (tw : Loc) (ranges : w64),
+    "Hmw" ∷ mw ↦ ({
+        TxnWrite' := interface.mkOk (go.GoType.PointerType storeTxnWrite.ty) #tw,
+        ranges' := ranges, puts' := puts, deletes' := deletes, putSize' := putSize } : metricsTxnWrite) ∗
+    "Htw" ∷ storeTxnWriteCore tw s γ ilog pend chs ps sealed)
+
+theorem isTxnWrite_split (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
+    (puts deletes putSize : w64) :
+    isTxnWrite (GF := GF) mw s γ ilog pend puts deletes putSize ⊢
+      ∃ (chs : GoSlice) (ps : List Loc),
+        isTxnWriteCore mw s γ ilog pend puts deletes putSize chs ps false ∗
+        chs ↦* ps ∗ changesAre ps ilog pend := by
+  iintro H
+  iunfold isTxnWrite at H
+  iNamed H
+  icases storeTxnWriteIs_split tw s γ ilog pend $$ Htw with ⟨%chs, %ps, Hc, Hchs, Hkvs⟩
+  iexists chs, ps
+  iframe Hchs Hkvs
+  iunfold isTxnWriteCore
+  iexists tw, ranges
+  iframe
+
+theorem isTxnWrite_join (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
+    (puts deletes putSize : w64) (chs : GoSlice) (ps : List Loc) :
+    isTxnWriteCore (GF := GF) mw s γ ilog pend puts deletes putSize chs ps false ∗
+      chs ↦* ps ∗ changesAre ps ilog pend ⊢ isTxnWrite mw s γ ilog pend puts deletes putSize := by
+  iintro ⟨H, Hchs, Hkvs⟩
+  iunfold isTxnWriteCore at H
+  iNamed H
+  iunfold isTxnWrite
+  iexists tw, ranges
+  iframe Hmw
+  iapply storeTxnWriteIs_join $$ [$Htw $Hchs $Hkvs]
+
+theorem isTxnWriteCore_seal (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
+    (puts deletes putSize : w64) (chs : GoSlice) (ps : List Loc) (hne : pend ≠ []) :
+    isTxnWriteCore (GF := GF) mw s γ ilog pend puts deletes putSize chs ps false ==∗
+      isTxnWriteCore mw s γ ilog pend puts deletes putSize chs ps true ∗
+        monoListLbOwn γ.idx.hist (histOf (ilog ++ [pend])) := by
+  iintro H
+  iunfold isTxnWriteCore at H
+  iNamed H
+  imod storeTxnWriteCore_seal tw s γ ilog pend chs ps hne $$ Htw with ⟨Htw, #Hlb⟩
+  imodintro
+  iframe Hlb
+  iunfold isTxnWriteCore
+  iexists tw, ranges
+  iframe
 
 /-- The log a write transaction commits at `End`: the pending revision appended, if it has a
 change (else no revision is made). -/
@@ -712,6 +873,26 @@ inductive TxnKind where
 def isTxn (mw s : Loc) (γ : StoreNames) : TxnKind → IProp GF
   | .read log rev => isTxnRead mw s γ log rev
   | .write ilog pend puts deletes putSize => isTxnWrite mw s γ ilog pend puts deletes putSize
+
+/-- What `End` needs of a transaction (`metricsTxnWrite.End`): a read transaction; a write
+transaction's core (its key-values released: `isTxnWrite_split`), sealed or not. -/
+def isTxnEnd (mw s : Loc) (γ : StoreNames) : TxnKind → IProp GF
+  | .read log rev => isTxnRead mw s γ log rev
+  | .write ilog pend puts deletes putSize =>
+    iprop(∃ (chs : GoSlice) (ps : List Loc) (sealed : Bool),
+      isTxnWriteCore mw s γ ilog pend puts deletes putSize chs ps sealed)
+
+/-- A transaction is ready to end (its key-values, if any, dropped). -/
+theorem isTxn_toEnd (mw s : Loc) (γ : StoreNames) (kind : TxnKind) :
+    isTxn (GF := GF) mw s γ kind ⊢ isTxnEnd mw s γ kind := by
+  cases kind with
+  | read log rev => exact .rfl
+  | write ilog pend puts deletes putSize =>
+    simp only [isTxn, isTxnEnd]
+    iintro H
+    icases isTxnWrite_split mw s γ ilog pend puts deletes putSize $$ H with ⟨%chs, %ps, Hc, -, -⟩
+    iexists chs, ps, false
+    iexact Hc
 
 /-- What `End` leaves of a transaction: nothing of a read one; of a write one, the
 certificate of the committed log, and the revision token back if no revision was made. -/

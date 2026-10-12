@@ -153,7 +153,8 @@ them), their values unconstrained (the store's configuration is not modelled); a
 stream's (`watcher.go`): the errors `ErrWatcherNotExist`, `ErrEmptyWatcherRange` and
 `ErrWatcherDuplicateID`, each a fixed non-nil error, and the gauge `watchStreamGauge`; and the
 watcher group's (`watcher_group.go`): `watchBatchMaxRevs`, a `var` for tests only, read-only at
-its initial value `1000`. -/
+its initial value `1000`; and the watchable store's (`watchable_store.go`, `metrics.go`): the
+gauges `watcherGauge`, `slowWatcherGauge` and `pendingEventsGauge`. -/
 abbrev mvccInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok e) ∗
@@ -170,7 +171,10 @@ abbrev mvccInit : IProp GF :=
     (∃ e : GoInterfaceOk, globalAddr ErrEmptyWatcherRange ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrWatcherDuplicateID ↦□ GoInterface.ok e) ∗
     (∃ g : GoInterfaceOk, globalAddr watchStreamGauge ↦□ GoInterface.ok g ∗ gaugeSpec g) ∗
-    globalAddr watchBatchMaxRevs ↦□ (W64 1000 : w64))
+    globalAddr watchBatchMaxRevs ↦□ (W64 1000 : w64) ∗
+    (∃ g : GoInterfaceOk, globalAddr watcherGauge ↦□ GoInterface.ok g ∗ gaugeSpec g) ∗
+    (∃ g : GoInterfaceOk, globalAddr slowWatcherGauge ↦□ GoInterface.ok g ∗ gaugeSpec g) ∗
+    (∃ g : GoInterfaceOk, globalAddr pendingEventsGauge ↦□ GoInterface.ok g ∗ gaugeSpec g))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc :=
   define_is_pkg_init mvccInit

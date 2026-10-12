@@ -56,6 +56,7 @@ theorem mvcc.writeView.Put.wp_proof
   ihave Htx' : mvcc.isTxn mw s γ (.write ilog [.put k v leaseID] (W64 0 + W64 1) (W64 0)
       (W64 0 + (key.len + value.len))) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
+  ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ $$ Htx'
   wp_apply (hEnd mw s γ _) $$ [$Htx'] as ⟨Hrd, Hcert⟩
   (try wp_auto)
   iapply HΦ

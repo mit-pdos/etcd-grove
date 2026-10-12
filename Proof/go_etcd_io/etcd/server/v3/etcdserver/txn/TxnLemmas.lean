@@ -501,10 +501,12 @@ theorem wp_txnWrite_Changes (hCh : mvcc.metricsTxnWrite.Changes.spec (GF := GF) 
     iapply (hCh mw s γ ilog pend puts deletes putSize) $$ [Htx]
     · simp only [mvcc.isTxn] at *; iframe Htx Hpkg
     inext
-    iintro %chs ⟨%Hl, Htx⟩
+    iintro %chs %ps ⟨Hchs, Hkvs, %Hps, Htx⟩
+    ihave %Hl := ownSlice_len _ _ _ $$ Hchs
+    ihave Htx := mvcc.isTxnWrite_join mw s γ ilog pend puts deletes putSize chs ps $$ [$Htx $Hchs $Hkvs]
     iapply HΦ
     isplitl []
-    · ipureintro; exact Hl
+    · ipureintro; rw [← Hps]; exact ⟨Hl.1.symm, Hl.2⟩
     iunfold txnWriteIs
     iexists _
     isplitl

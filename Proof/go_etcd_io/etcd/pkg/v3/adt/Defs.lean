@@ -45,13 +45,16 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
 /-- The tree at `t` (a `*intervalTree`) holds the entries `L` (distinct intervals, in the
-tree's order). Unit 4 defines it (the red-black tree's representation invariant: the sentinel,
-the colours, the `max` augmentation, the in-order list); until then, an opaque constant (a
-definition with a hidden body, not an axiom) used only through the contract's triples. Its
-body names the heap, the semantics and the package's assumptions so that they are arguments
-already (`include` does not reach an `opaque`), as unit 4's definition will need them. -/
-opaque ownIvt (t : Loc) (L : List Entry) : IProp GF :=
-  have := hG; have := sem; have := package_sem; iprop(True)
+tree's order), at the fraction `q` (the reads, `Find`/`Intersects`/`Stab`/`Len`, at any
+fraction; `Insert`/`Delete` at `1`: the watchable store reads its groups under its lock's read
+side). Unit 4 defines it (the red-black tree's representation invariant: the sentinel, the
+colours, the `max` augmentation, the in-order list); until then, an opaque constant (a
+definition with a hidden body, not an axiom) used only through the contract's triples and the
+pending fractionality `adt.ownIvt_split.spec`. Its body names the heap, the semantics and the
+package's assumptions so that they are arguments already (`include` does not reach an
+`opaque`), as unit 4's definition will need them. -/
+opaque ownIvt (t : Loc) (L : List Entry) (q : Qp) : IProp GF :=
+  have := hG; have := sem; have := package_sem; have := q; iprop(True)
 
 open Iris.ProofMode in
 /-- An `Interval` points-to as its fields. -/

@@ -86,6 +86,7 @@ theorem txn.DeleteRange.wp_proof
         deletes' (W64 0)) $$ [Htx]
     · simp only [mvcc.isTxn]; iexact Htx
     (try wp_auto)
+    ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
     wp_apply (hEnd mw s γ _) $$ [$Htx] as ⟨Hrd, Hpost⟩
     simp only [mvcc.txnEndPost]
     icases Hpost with ⟨#Hc, Htok⟩
@@ -104,6 +105,7 @@ theorem txn.DeleteRange.wp_proof
     ihave Htx : mvcc.isTxn mw s γ (.write ilog [] (W64 0) (W64 0) (W64 0)) $$ [Htx]
     · simp only [mvcc.isTxn]; iexact Htx
     (try wp_auto)
+    ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
     wp_apply (hEnd mw s γ _) $$ [$Htx] as ⟨Hrd, Hpost⟩
     simp only [mvcc.txnEndPost, mvcc.commitLog, ↓reduceIte]
     icases Hpost with ⟨#Hc, Htok⟩

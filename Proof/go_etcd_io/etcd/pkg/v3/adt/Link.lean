@@ -19,6 +19,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Insert
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Intersects
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Len
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Stab
+public import Spec.go_etcd_io.etcd.pkg.v3.adt.ownIvt_split
 
 @[expose] public section
 

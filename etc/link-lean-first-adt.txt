@@ -15,3 +15,5 @@ intervalTree__Find: ?
 intervalTree__Intersects: ?
 intervalTree__Stab: ?
 intervalTree__Len: ?
+# The tree's ownership at fractions: splitting/combining with agreement (unit 4 proves it).
+ownIvt_split: ?

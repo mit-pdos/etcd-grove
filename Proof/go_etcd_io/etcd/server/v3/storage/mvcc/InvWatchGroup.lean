@@ -618,15 +618,18 @@ structure WatcherSt where
   restore : Bool
   ch : GoChan
 
-/-- The watcher's mutable fields hold `st`. -/
-def watcherOwn (w : Loc) (st : WatcherSt) : IProp GF :=
-  iprop(w.[watcher, go!"minRev"] ↦ st.minRev ∗ w.[watcher, go!"victim"] ↦ st.victim ∗
-    w.[watcher, go!"compacted"] ↦ st.compacted ∗ w.[watcher, go!"restore"] ↦ st.restore ∗
-    w.[watcher, go!"ch"] ↦ st.ch)
+/-- The watcher's mutable fields hold `st` (at the fraction `q`: the watchable store's lock
+invariant at its read side). -/
+def watcherOwn (w : Loc) (st : WatcherSt) (q : Qp := 1) : IProp GF :=
+  iprop(w.[watcher, go!"minRev"] ↦{DFrac.own q} st.minRev ∗
+    w.[watcher, go!"victim"] ↦{DFrac.own q} st.victim ∗
+    w.[watcher, go!"compacted"] ↦{DFrac.own q} st.compacted ∗
+    w.[watcher, go!"restore"] ↦{DFrac.own q} st.restore ∗
+    w.[watcher, go!"ch"] ↦{DFrac.own q} st.ch)
 
-/-- The watcher set `m` (a `map[*watcher]struct{}`) holds exactly `S`. -/
-def ownWatcherSet (m : GoMap) (S : GMap Loc Unit) : IProp GF :=
-  iprop(m ↦$ S)
+/-- The watcher set `m` (a `map[*watcher]struct{}`) holds exactly `S` (at the fraction `q`). -/
+def ownWatcherSet (m : GoMap) (S : GMap Loc Unit) (q : Qp := 1) : IProp GF :=
+  iprop(ownMap m (DFrac.own q) S)
 
 /-- A watcher set or `nil` (an empty set, not owned: Perennial's map points-to is of a non-nil
 map, `ownMap_not_nil`). -/
@@ -635,29 +638,33 @@ def ownWatcherSetOpt (m : GoMap) (S : GMap Loc Unit) : IProp GF :=
 
 /-- The key map `km` (`watcherSetByKey`) of the members `W`: one non-empty set per key of a
 single-key member, holding the single-key members of that key. -/
-def ownKeyMap (km : GoMap) (KM : GMap GoString GoMap) (W : GMap Loc WatchRange) : IProp GF :=
-  iprop(km ↦$ KM ∗
+def ownKeyMap (km : GoMap) (KM : GMap GoString GoMap) (W : GMap Loc WatchRange) (q : Qp := 1) :
+    IProp GF :=
+  iprop(ownMap km (DFrac.own q) KM ∗
     ⌜∀ k, (KM !! k).isSome ↔ ∃ w r, W !! w = some r ∧ r.end? = none ∧ r.key = k⌝ ∗
-    [∗map] k ↦ m ∈ KM, ownWatcherSet m (keyMembers W k))
+    [∗map] k ↦ m ∈ KM, ownWatcherSet m (keyMembers W k) q)
 
 /-- An entry of the tree is a range set: its value is the set (as an interface value of the
 named type `watcherSet`) of the range members of its interval. -/
-def rangeSet (W : GMap Loc WatchRange) (z : adt.Entry) : IProp GF :=
-  iprop(∃ m : GoMap, ⌜z.2 = interface.mkOk watcherSet.ty #m⌝ ∗ ownWatcherSet m (ivlMembers W z.1))
+def rangeSet (W : GMap Loc WatchRange) (z : adt.Entry) (q : Qp := 1) : IProp GF :=
+  iprop(∃ m : GoMap, ⌜z.2 = interface.mkOk watcherSet.ty #m⌝ ∗ ownWatcherSet m (ivlMembers W z.1) q)
 
 /-- The group at `wg` holds the members `W` (pointer ↦ range): the all-watchers set, the key
-map, the interval tree, consistent with `W`, and the members' fixed fields. -/
-def ownWatcherGroup (wg : Loc) (W : GMap Loc WatchRange) : IProp GF :=
+map, the interval tree, consistent with `W`, and the members' fixed fields; at the fraction `q`
+(the watchable store's read lock: `ownWatcherGroup_split`, through the tree's pending
+fractionality; the group's operations at `1`). -/
+def ownWatcherGroup (wg : Loc) (W : GMap Loc WatchRange) (q : Qp := 1) : IProp GF :=
   iprop(∃ (km ws t : Loc) (KM : GMap GoString GoMap) (L : List adt.Entry),
-    "Hwg" ∷ wg ↦ ({ keyWatchers' := km,
-                    ranges' := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #t,
-                    watchers' := ws } : watcherGroup) ∗
-    "Hws" ∷ ownWatcherSet ws (domSet W) ∗
+    "Hwg" ∷ typedPointsto wg
+      ({ keyWatchers' := km,
+         ranges' := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #t,
+         watchers' := ws } : watcherGroup) (DFrac.own q) ∗
+    "Hws" ∷ ownWatcherSet ws (domSet W) q ∗
     "#Hfixed" ∷ ([∗map] w ↦ r ∈ W, ∃ fcs, watcherFixed w r fcs) ∗
-    "Hkm" ∷ ownKeyMap km KM W ∗
-    "Hivt" ∷ adt.ownIvt t L ∗
+    "Hkm" ∷ ownKeyMap km KM W q ∗
+    "Hivt" ∷ adt.ownIvt t L q ∗
     "%HL" ∷ ⌜RangesOk W L⌝ ∗
-    "Hranges" ∷ [∗list] z ∈ L, rangeSet W z)
+    "Hranges" ∷ [∗list] z ∈ L, rangeSet W z q)
 
 /-- An `IntervalValue` points-to (what the tree's `Find` and `Stab` return, read-only) as its
 fields. -/
@@ -741,7 +748,7 @@ theorem ownWatcherGroup_intro (wg : Loc) (W : GMap Loc WatchRange) (km ws t : Lo
               (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #t,
             watchers' := ws } : watcherGroup) ∗
       ownWatcherSet ws (domSet W) ∗ ([∗map] w ↦ r ∈ W, ∃ fcs, watcherFixed w r fcs) ∗
-      ownKeyMap km KM W ∗ adt.ownIvt t L ∗ ([∗list] z ∈ L, rangeSet W z) ⊢
+      ownKeyMap km KM W ∗ adt.ownIvt t L 1 ∗ ([∗list] z ∈ L, rangeSet W z) ⊢
     ownWatcherGroup (GF := GF) wg W := by
   iintro ⟨Hwg, Hws, #Hfixed, Hkm, Hivt, Hranges⟩
   unfold ownWatcherGroup

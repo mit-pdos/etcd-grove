@@ -21,12 +21,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `tw.Rev()`: the committed log's last revision (`beginRev`). -/
+/-- `tw.Rev()`: the committed log's last revision (`beginRev`), on the transaction's core (its
+key-values are not read). -/
 abbrev mvcc.storeTxnWrite.Rev.spec : Prop :=
-  ∀ (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.storeTxnWriteIs tw s γ ilog pend }}
+  ∀ (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
+    (chs : GoSlice) (ps : List Loc) (sealed : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.storeTxnWriteCore tw s γ ilog pend chs ps sealed }}
     (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"Rev")) (Val #()))
-  {{ RET #(W64 ((ilog.length : Int) - 1) : w64); mvcc.storeTxnWriteIs tw s γ ilog pend }}
+  {{ RET #(W64 ((ilog.length : Int) - 1) : w64);
+      mvcc.storeTxnWriteCore tw s γ ilog pend chs ps sealed }}
 
 end spec
 

@@ -112,6 +112,7 @@ theorem txn.Txn.wp_proof
       wp_auto
       ihave Htx : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
       · simp only [mvcc.isTxn]; iexact Htx
+      ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
       wp_apply (hEnd mw s γ (.read log rev)) $$ [$Htx] as ⟨Hrd, -⟩
       iapply HΦ
       iframe Hrd
@@ -176,6 +177,7 @@ theorem txn.Txn.wp_proof
     wp_auto
     ihave Htx : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
     · simp only [mvcc.isTxn]; iexact Htx
+    ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
     wp_apply (hEnd mw s γ (.read log rev)) $$ [$Htx] as ⟨Hrd, -⟩
     icases soleWriter_split γ log hlen4 $$ Hsw with ⟨Htok, Hsw⟩
     wp_apply (hWrite s γ tr) $$ [$Hs $Hrd $Htok] as %mw' ⟨%ilog, Htx⟩
@@ -200,6 +202,7 @@ theorem txn.Txn.wp_proof
     obtain ⟨hkis, -, -, -, -⟩ := Hk
     obtain ⟨p1, p2, p3, rfl⟩ := hkis
     ihave Htx := (txnViewIs_mw mw' s γ _).1 $$ Hv
+    ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
     wp_apply (hEnd mw' s γ _) $$ [$Htx] as ⟨Hrd, Hpost⟩
     ihave Hsw := soleWriter_close_end γ log _ p1 p2 p3 hlen4 $$ [Htoks Hpost]
     · iframe Hpost; iunfold soleWriterOpen; iframe Hc Htoks

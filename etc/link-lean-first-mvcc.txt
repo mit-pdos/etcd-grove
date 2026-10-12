@@ -157,3 +157,19 @@ txnReadWrite__End: metricsTxnWrite__End
 txnReadWrite__Changes:
 txnReadWrite__Put:
 txnReadWrite__DeleteRange:
+# The watchable store (watchable_store.go, watchable_store_txn.go), unit 3a: the write path
+# (the wrapper's End seals the revision, notifies under the store's lock, then commits), the
+# registration and cancellation, the progress calls, see InvWatchStore.lean, InvWatchFrac.lean,
+# WatchClose.lean; `verify.Verify` is the trust boundary (an axiom).
+verify_Verify:
+watchableStore__Write: store__Write
+watchableStoreTxnWrite__End: metricsTxnWrite__Changes metricsTxnWrite__End storeTxnWrite__Rev watchableStore__notify
+watchableStore__notify: newWatcherBatch watcher__send watcherGroup__delete watchableStore__addVictim
+watchableStore__addVictim:
+watcher__send: verify_Verify
+watchableStore__watch: watcherGroup__add watchableStore__cancelWatcher
+watchableStore__cancelWatcher: watcherGroup__delete
+watchableStore__rev: traceutil_TODO store__Read storeTxnCommon__Rev metricsTxnWrite__End
+watchableStore__progressIfSync: watchableStore__rev watcher__send
+watchableStore__progress: watchableStore__progressIfSync
+watchableStore__progressAll: watchableStore__progressIfSync

@@ -55,13 +55,15 @@ theorem mvcc.metricsTxnWrite.Rev.wp_proof
     simp only [mvcc.isTxn, mvcc.TxnKind.beginRev]
     iunfold mvcc.isTxnWrite at Htx
     iNamed Htx
+    icases mvcc.storeTxnWriteIs_split tw s γ ilog pend $$ Htw with ⟨%chs, %ps, Htw, Hchs, Hkvs⟩
     (try wp_auto)
-    wp_apply (hRevW tw s γ ilog pend) $$ [$Htw] as Htw
+    wp_apply (hRevW tw s γ ilog pend chs ps false) $$ [$Htw] as Htw
     (try wp_auto)
     iapply HΦ
     iunfold mvcc.isTxnWrite
     iexists tw, ranges
-    iframe
+    iframe Hmw
+    iapply mvcc.storeTxnWriteIs_join $$ [$Htw $Hchs $Hkvs]
 
 end proof
 

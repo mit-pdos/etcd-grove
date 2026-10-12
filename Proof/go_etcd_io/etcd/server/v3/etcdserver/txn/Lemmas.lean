@@ -595,7 +595,7 @@ theorem evsOfRev_shape (i : Nat) (cs : List Change) :
   unfold evsOfRev
   rw [List.map_map]
   have : (evShape ∘ fun p : Change × Nat =>
-      ({ rev := ⟨W64 i, W64 p.2⟩, key := p.1.key, tomb := p.1.isDel } : Ev)) = chShape ∘ Prod.fst := rfl
+      ({ rev := ⟨W64 i, W64 p.2⟩, change := p.1 } : Ev)) = chShape ∘ Prod.fst := rfl
   rw [this, ← List.map_map, List.zipIdx_map_fst]
 
 theorem histOfFrom_ne_commit_free (i : Nat) (cs : List Change) (log : Log) (X : List HistItem)

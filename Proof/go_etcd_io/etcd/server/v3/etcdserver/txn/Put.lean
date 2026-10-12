@@ -113,6 +113,7 @@ theorem txn.Put.wp_proof
     icases He' with ⟨%e, -, %Hee⟩
     subst Hee
     (try wp_auto)
+    ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
     wp_apply (hEnd mw s γ _) $$ [$Htx] as ⟨Hrd, Hpost⟩
     simp only [mvcc.txnEndPost, mvcc.commitLog, ↓reduceIte]
     icases Hpost with ⟨#Hc, Htok⟩
@@ -148,6 +149,7 @@ theorem txn.Put.wp_proof
   ihave Htx : mvcc.isTxn mw s γ (.write ilog
       [txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))] puts' (W64 0) putSize') $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
+  ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
   wp_apply (hEnd mw s γ _) $$ [$Htx] as ⟨Hrd, Hpost⟩
   simp only [mvcc.txnEndPost, mvcc.commitLog, List.cons_ne_nil, ↓reduceIte]
   icases Hpost with ⟨#Hc, -⟩

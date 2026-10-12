@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-12 (`origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
+**Last updated:** 2026-10-12 (mvcc: the watchable store, unit 3a: the write path proved (`Write`, the wrapper's `End` sealing the revision in the history before `notify`, `notify`, `addVictim`, `watch`, `cancelWatcher`, `send`, `rev`, the progress calls) over the lock invariant and the channel protocol; the history carries the change; the tree contract at a fraction (`ownIvt_split` pending); `storeTxnWriteIs` split; `verify.Verify` axiom, see "The watchable store"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
 as pinned), the requests and responses as the client model's values (`Requests.lean`), `isKV`,
 `isTxnLessor`, 13 trust-boundary axioms (`sort.Sort`/`Reverse`, traceutil, `proto.Size`,
 `zap.Logger.Panic`, ...), mvcc's read-only write transaction proved, `gen-link.py --txn`, a
@@ -167,6 +167,71 @@ hypotheses.
   `wp_wand_r`. Baselines unchanged (58 axioms, 1 sorry; mvcc 17); verified-code: mvcc 74 of 155
   functions (7 conditional on the tree's contract), 823 of 2073 lines; `watcher_group.go` 9 + 7
   conditional of 16, `watcher.go` all 7. Unit 2 is complete; unit 3 follows.
+- **Unit 3a, the write path** (2026-10-12; design: decisions.md, "The watchable store's
+  concurrency (unit 3)" and its "Refinements for 3a"; the proof's own refinements below).
+  **Contract changes first.** (1) The history carries the change: `Ev := {rev, change}` with
+  `Ev.key`/`Ev.tomb` abbrevs (`Model.lean`; `Ev.enc` through `Change.enc`; `histOf_inj`,
+  `histOf_prefix_log`, `histOf_cmp_log`: a history lower bound determines the log). (2)
+  `storeTxnWriteIs` split: `storeTxnWriteCore tw s γ ilog pend chs ps sealed` (no key-values:
+  the slice's length only) and `isTxnWriteCore`, with `_split`/`_join`; `storeTxnWrite.End`/
+  `Rev` over the core; `storeTxnWrite.Changes` and `metricsTxnWrite.Changes` return the slice,
+  `changesAre` and the core (the key-values are the caller's); `metricsTxnWrite.End` takes
+  `isTxnEnd` (`isTxn_toEnd`); `NewStore` returns `ReadView`/`WriteView` owned; the kv-view,
+  `readView` and txn callers adapted (`isTxnWrite_join` in txn's `wp_txnWrite_Changes`). (3)
+  The tree contract at a fraction: `ownIvt t L q` (reads at any `q`, `Insert`/`Delete`/
+  `NewIntervalTree` at `1`) with the pending `adt.ownIvt_split.spec` (split, combine *and
+  agreement*; `?` in the adt list); `ownWatcherGroup`/`ownWatcherSet`/`ownKeyMap`/`rangeSet`/
+  `watcherOwn`/`ownEventBatch`/`ownWatcherBatch` take `(q : Qp := 1)` (unit 2's proofs
+  unchanged); `InvWatchFrac.lean`: `ownWatcherGroup_fractional`, `watchStoreInv_fractional`
+  from that hypothesis. (4) `WatchParams.R` (owned; the store's `watchReader`: a
+  `storeReader`) through `isWatchable`'s `rev`/`progress`/`progressAll` and `watch`, and the
+  stream's `Watch`/`Rev`/`RequestProgress`/`RequestProgressAll`; `0 ≤ startRev`. The package
+  facts `watcherGauge`/`slowWatcherGauge`/`pendingEventsGauge`.
+  **The proof's refinements** (sound reasons found while proving): (a) **the pending revision
+  is sealed before `notify`**: a lower bound of `histShape ilog pend` does not fix `pend`
+  (`histShape ilog [c]` is a prefix of `histShape ilog [c, c']`), so a response could have
+  stated part of a revision; `idxWriter_seal` appends the commit marker early
+  (`idxWriterSealed`, `idxWriterB … sealed`, `idxWriterSealed_commit`/`idxWriterB_commit`), and
+  `End` seals, notifies, then commits: every response carries the lower bound of the log that
+  commits it (`evsWf`). (b) **A sole-writer token**: `notify` must know the notified log is
+  the writer's `ilog`, which the inner store's own `Write` could break; `watchableStore.Write`
+  takes `watchWriter γ L` (the certificate of `L`, the unspent revision tokens `wBudget L`,
+  half of `γ.wlog`) and `End` returns it at `commitLog ilog pend`. (c) **A synced watcher's
+  `minRev` is not advanced when it gets no events**, so "synced ⇒ above the committed
+  revision" is false; the lock tracks a delivery bound per watcher (`WsOk.synced_d`,
+  `syncedBelow`/`syncedAbove`). (d) **Filters are recorded per delivery**: a partial-correctness
+  triple does not fix the predicate a filter implements (two witnesses may differ), so each
+  delivery (`Deliv`) records the predicate its sender used (`filtersImpl`); `RespM` carries the
+  watcher sent for as ghost data (watch ids are reused after a cancel). (e) `C ch := True`
+  and the close right `CR` carries the channel's invariant; `WatcherNames` has `lo` (the first
+  revision watched) and the channel's names; victims out with the mover are a population of
+  their own (`Wo`, half their state) so `cancelWatcher`'s retry is real; the lock invariant
+  holds `ghostVar γ.wst q σ` so that its fractions agree; `newWatchableStore` points the read
+  view's `kv` at the watchable store (`rev()` steps through `readView.Rev`).
+  **Definitions** (`InvWatchStore.lean`): `evOfKv`/`evsOfRevM`/`logEvents`/`watchEvents`/
+  `filtered` with prefix and append lemmas; `RespM`, `respIs`/`respsIs`, `respOk` (the revision
+  at or above the events', the id of a response with events); `WatchChanNames`,
+  `WatcherNames`, `WsNames` (`st`, `wmeta`, `wlog`, `wst`); `WsState`/`WsOk` (the populations
+  disjoint, a victim in one batch, the flags, the delivery bounds); `filterSpec`/
+  `filtersImpl`; `watcherMeta` (a persistent ghost-map element), `cancelled` (`dghostVar
+  … .discard false`), `evsWf`, `chanWatcher`, `watchChanInv` (`inv watchN`: the channel, the
+  responses sent with `respOk`, the consumer's prefix `watchConsumer`, the registered list
+  (half the close right's), per watcher its deliveries and its live half or `cancelled`),
+  `popFacts`/`memberRes`/`outRes`/`watchStoreBody`/`watchStoreInv`, `watchReader`,
+  `isStopChan` (3b), `isWatchableStore s st γ`, `storeWatchParams`, `watchWriter`/`wBudget`,
+  `isWatchTxnWrite`; `WatchClose.lean`: the stream's close triple `wp_watch_close`. **Proved**:
+  `watchableStore.Write`, `watchableStoreTxnWrite.End`, `notify`, `addVictim`, `watcher.send`
+  (the filtering loop, `verify.Verify`'s assertion, the non-blocking send opening the channel
+  invariant with a later credit — it holds filter triples, so it is not timeless), `watch`,
+  `cancelWatcher`, `rev`, `progress`, `progressAll`, `progressIfSync`. Notes: `simp only [h,
+  ↓reduceIte]` for an `if` under binders; stale oleans after a definition change — rebuild the
+  dependent spec modules; `go.delete_underlying` on a named map. Checks: `goose --check`
+  passes (no regeneration); the global baseline unchanged (70 axioms, 1 sorry: `verify.Verify`
+  was the server's already), the mvcc collection 18 axioms (`verify.Verify` added), the
+  others unchanged; verified-code: mvcc 85 of 155 functions (11 conditional on the tree's
+  contract), 909 of 2073 lines. Next: 3b (`syncWatchers`, `moveVictims`, the loops,
+  `rangeEvents`/`kvsToEvents`, `New`/`newWatchableStore`/`Close`/`NewWatchStream`), after the
+  merge of `lean`'s hook change (the batch lock runs the server's post-lock hook).
 
 ## The server's txn package (`server/v3/etcdserver/txn`)
 

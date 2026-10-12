@@ -355,7 +355,7 @@ theorem evsOf_append (log : Log) (cs : List Change) :
 theorem evsOfRev_take_succ (m : Nat) (cs : List Change) {i : Nat} (hi : i < cs.length) :
     evsOfRev m (cs.take (i + 1)) =
       evsOfRev m (cs.take i) ++
-        [{ rev := ⟨W64 m, W64 i⟩, key := cs[i].key, tomb := cs[i].isDel }] := by
+        [{ rev := ⟨W64 m, W64 i⟩, change := cs[i] }] := by
   unfold evsOfRev
   rw [List.take_add_one, List.getElem?_eq_getElem hi, Option.toList_some, List.zipIdx_append,
     List.map_append]
@@ -616,7 +616,7 @@ theorem rev_step (log : Log) (cs : List Change) (hlen : log.length + 1 < 2 ^ 63)
     generalize hm : log.length = m at hlen hs_sorted hbefore hlogm hwf_i hrevs_i hlow_i hmatch_i hmpos ⊢
     generalize hs : applyChanges (W64 m) (stateAfter log) (cs.take i) = s at hs_sorted hmatch_i ⊢
     generalize hki : kiFold ki0 (evsOfRev m (cs.take i)) k = ki at hwf_i hrevs_i hlow_i hmatch_i ⊢
-    simp only
+    try simp only
     have hmt : (W64 m).toNat = m := by word
     have hit : (W64 i).toNat = i := by word
     have htop : KiAbove ki ⟨W64 m, W64 0⟩ :=
@@ -630,7 +630,7 @@ theorem rev_step (log : Log) (cs : List Change) (hlen : log.length + 1 < 2 ^ 63)
         rw [hc] at hkk
         simp only [Change.key] at hkk
         subst hkk
-        simp only [Change.isDel, kiApply, Bool.false_eq_true, ↓reduceIte, applyChange]
+        simp only [Ev.tomb, Ev.key, Change.isDel, kiApply, Bool.false_eq_true, ↓reduceIte, applyChange]
         have hne := hwf_i.ne
         have habove : KiAbove ki ⟨W64 m, W64 i⟩ := by
           intro x hx; have := hrevs_i x hx; simp only; word
@@ -700,7 +700,7 @@ theorem rev_step (log : Log) (cs : List Change) (hlen : log.length + 1 < 2 ^ 63)
         rw [hc] at hkk
         simp only [Change.key] at hkk
         subst hkk
-        simp only [Change.isDel, kiApply, ↓reduceIte, applyChange]
+        simp only [Ev.tomb, Ev.key, Change.isDel, kiApply, ↓reduceIte, applyChange]
         have hne := hwf_i.ne
         -- the key is present (the log is well formed), so the last generation is not empty
         have hpresent := hwf.2 m cs i k' hlogm (by rw [List.getElem?_eq_getElem hi', hc])

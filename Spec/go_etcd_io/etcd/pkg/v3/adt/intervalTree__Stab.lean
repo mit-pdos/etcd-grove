@@ -24,13 +24,13 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
 /-- `t.Stab(ivl)`: a fresh slice of pointers to the nodes' `IntervalValue`s (read-only for good)
-of the entries overlapping the interval, in the tree's order (`nil` for an empty tree). -/
+of the entries overlapping the interval, in the tree's order (`nil` for an empty tree). At any fraction of the tree. -/
 abbrev adt.intervalTree.Stab.spec : Prop :=
-  ∀ (t : Loc) (L : List adt.Entry) (b e : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ adt.ownIvt t L }}
+  ∀ (t : Loc) (L : List adt.Entry) (b e : GoString) (q : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ adt.ownIvt t L q }}
     (App (Val (t @!! go.GoType.PointerType intervalTree.ty @!! go!"Stab"))
       (Val #(adt.affIvl b e)))
-  {{ (ivs : GoSlice) (ps : List Loc), RET #ivs; adt.ownIvt t L ∗ ivs ↦* ps ∗
+  {{ (ivs : GoSlice) (ps : List Loc), RET #ivs; adt.ownIvt t L q ∗ ivs ↦* ps ∗
       ownSliceCap Loc ivs (DFrac.own 1) ∗ ⌜ps.length = (adt.stab (b, e) L).length⌝ ∗
       [∗list] x ∈ ps.zip (adt.stab (b, e) L), ⌜x.1 ≠ null⌝ ∗
         x.1 ↦□ ({ Ivl' := adt.affIvl x.2.1.1 x.2.1.2, Val' := x.2.2 } : IntervalValue) }}

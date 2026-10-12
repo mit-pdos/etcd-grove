@@ -24,13 +24,13 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
 /-- `t.Find(ivl)`: a pointer to the node's `IntervalValue` of the entry with the interval
-(read-only for good: a node's `iv` is written at its creation only), or `nil`. -/
+(read-only for good: a node's `iv` is written at its creation only), or `nil`. At any fraction of the tree. -/
 abbrev adt.intervalTree.Find.spec : Prop :=
-  ∀ (t : Loc) (L : List adt.Entry) (b e : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ adt.ownIvt t L }}
+  ∀ (t : Loc) (L : List adt.Entry) (b e : GoString) (q : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ adt.ownIvt t L q }}
     (App (Val (t @!! go.GoType.PointerType intervalTree.ty @!! go!"Find"))
       (Val #(adt.affIvl b e)))
-  {{ (p : Loc), RET #p; adt.ownIvt t L ∗
+  {{ (p : Loc), RET #p; adt.ownIvt t L q ∗
       match L.find? (fun z => decide (z.1 = (b, e))) with
       | some z => ⌜p ≠ null⌝ ∗ p ↦□ ({ Ivl' := adt.affIvl b e, Val' := z.2 } : IntervalValue)
       | none => ⌜p = null⌝ }}

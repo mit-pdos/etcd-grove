@@ -30,17 +30,17 @@ theorem mvcc.storeTxnWrite.Changes.wp_proof :
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw
   (try wp_auto)
+  ihave %Hlen := ownSlice_len _ _ _ $$ Hchs
   iapply HΦ
   iframe Hchs Hkvs
   isplitl []
   · ipureintro; exact Hps
-  iintro Hchs Hkvs
-  iunfold mvcc.storeTxnWriteIs
-  iexists trace, ti, bt, Locked, chs, ps, ntok
-  simp only [named]
-  iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
+  iunfold mvcc.storeTxnWriteCore
+  iexists trace, ti, bt, Locked, ntok
+  simp only [named, mvcc.idxWriterB_false]
+  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
   iframe #
-  ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+  ipureintro; exact ⟨Hbudget, ⟨Hps, Hlen⟩, Hne⟩
 
 end proof
 

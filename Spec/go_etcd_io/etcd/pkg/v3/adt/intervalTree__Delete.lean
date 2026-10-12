@@ -23,14 +23,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
-/-- `t.Delete(ivl)`: the entry with the interval removed, if any (and whether there was one). -/
+/-- `t.Delete(ivl)`: the entry with the interval removed, if any (and whether there was one). The whole tree (fraction `1`). -/
 abbrev adt.intervalTree.Delete.spec : Prop :=
   ∀ (t : Loc) (L : List adt.Entry) (b e : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ adt.ownIvt t L }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ adt.ownIvt t L 1 }}
     (App (Val (t @!! go.GoType.PointerType intervalTree.ty @!! go!"Delete"))
       (Val #(adt.affIvl b e)))
   {{ RET #(decide ((b, e) ∈ L.map Prod.fst));
-      adt.ownIvt t (L.eraseP fun z => decide (z.1 = (b, e))) }}
+      adt.ownIvt t (L.eraseP fun z => decide (z.1 = (b, e))) 1 }}
 
 end spec
 

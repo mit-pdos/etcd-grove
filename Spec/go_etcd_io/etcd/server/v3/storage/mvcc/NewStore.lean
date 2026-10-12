@@ -25,7 +25,7 @@ variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `NewStore(lg, b, le, cfg)` on a fresh backend `b` returns a store `s` (`isStore`) at the
 initial committed log `[[], []]` (revision 0 and `currentRev = 1`, both empty), with its two
-views, all the reader slots of its locks (`storeReader`, one per slot) and the revision budget
+views (owned: `newWatchableStore` overwrites them), all the reader slots of its locks (`storeReader`, one per slot) and the revision budget
 (`2 ^ 63 - 5` tokens: the batch lock's resource `writerRes` needs `ilog.length + ntok + 3 ≤
 2 ^ 63`, with the initial log of length 2), and the index's certificate of the initial log.
 
@@ -48,10 +48,10 @@ abbrev mvcc.NewStore.spec : Prop :=
   {{ (s : Loc), RET #s; ∃ γ : mvcc.StoreNames, ⌜γ.bucket = γb ∧ γ.leases = γl⌝ ∗
       mvcc.isStore s γ ∗
       (∃ rv wv : Loc,
-        s.[store, go!"ReadView"] ↦□
+        s.[store, go!"ReadView"] ↦
           (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗
         mvcc.isReadView rv s γ ∗
-        s.[store, go!"WriteView"] ↦□
+        s.[store, go!"WriteView"] ↦
           (interface.mkOk (go.GoType.PointerType writeView.ty) #wv : GoInterface) ∗
         mvcc.isWriteView wv s γ) ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),

@@ -57,6 +57,8 @@ structure WatchParams (GF : BundledGFunctors) where
   F : GoFunc → IProp GF
   /-- The right to close the channel, with the watchers registered on it. -/
   CR : GoChan → List Loc → IProp GF
+  /-- What the caller owns to call the store (lent to each call: the store's reader slots). -/
+  R : IProp GF
   IW_pers : ∀ w, Persistent (IW w)
   WC_pers : ∀ w, Persistent (WC w)
   C_pers : ∀ ch, Persistent (C ch)
@@ -84,25 +86,29 @@ instance cancelSpec_persistent (P : WatchParams GF) (c : GoFunc) (w : Loc) :
 `watch(key, end, startRev, id, ch, fcs)` registers a watcher on `ch` (the stream's channel,
 converted to send-only) with the range `key`/`end` and the filters `fcs`, all read-only for
 good (the watcher keeps them), and returns it with its cancel closure, adding it to the close
-right's watchers; `progress(w)` takes a watcher's persistent fact only; `progressAll(m)` reads
-the map of the stream's watchers; `rev()` returns a revision. -/
+right's watchers (a start revision at least `0`: `0` is "now", the documented domain);
+`progress(w)` takes a watcher's persistent fact only; `progressAll(m)` reads the map of the
+stream's watchers; `rev()` returns a revision. Every call is lent the caller's `P.R` (the store's
+reader slots: `rev` opens a read transaction, the others take the store's locks). -/
 def isWatchable (wa : GoInterface) (P : WatchParams GF) : IProp GF :=
   iprop(∃ wi : GoInterfaceOk, ⌜wa = GoInterface.ok wi⌝ ∗
     □ (∀ (key endk fcs : GoSlice) (k e : List w8) (fs : List GoFunc) (startRev id : w64)
         (ch : GoChan) (L : List Loc),
-      {{ key ↦*□ k ∗ endk ↦*□ e ∗ fcs ↦*□ fs ∗ ([∗list] f ∈ fs, P.F f) ∗ P.C ch ∗ P.CR ch L }}
+      {{ key ↦*□ k ∗ endk ↦*□ e ∗ fcs ↦*□ fs ∗ ([∗list] f ∈ fs, P.F f) ∗ P.C ch ∗ P.CR ch L ∗
+          P.R ∗ ⌜0 ≤ sint.Z startRev⌝ }}
         (App (App (App (App (App (App (Val #(methods wi.ty go!"watch" wi.v)) (Val #key))
           (Val #endk)) (Val #startRev)) (Val #id)) (Val #ch)) (Val #fcs))
       {{ (w : Loc) (c : GoFunc), RET (PairV #w #c);
-          ⌜w ≠ null⌝ ∗ P.IW w ∗ cancelSpec P c w ∗ P.CR ch (w :: L) }}) ∗
+          ⌜w ≠ null⌝ ∗ P.IW w ∗ cancelSpec P c w ∗ P.CR ch (w :: L) ∗ P.R }}) ∗
     □ (∀ w : Loc,
-      {{ P.IW w }} (App (Val #(methods wi.ty go!"progress" wi.v)) (Val #w)) {{ RET #(); True }}) ∗
+      {{ P.IW w ∗ P.R }} (App (Val #(methods wi.ty go!"progress" wi.v)) (Val #w))
+      {{ RET #(); P.R }}) ∗
     □ (∀ (m : Loc) (dq : DFrac) (M : GMap w64 Loc),
-      {{ m ↦${dq} M ∗ □ (∀ (id : w64) (w : Loc), ⌜M !! id = some w⌝ -∗ P.IW w) }}
+      {{ m ↦${dq} M ∗ □ (∀ (id : w64) (w : Loc), ⌜M !! id = some w⌝ -∗ P.IW w) ∗ P.R }}
         (App (Val #(methods wi.ty go!"progressAll" wi.v)) (Val #m))
-      {{ (b : Bool), RET #b; m ↦${dq} M }}) ∗
-    □ ({{ True }} (App (Val #(methods wi.ty go!"rev" wi.v)) (Val #()))
-      {{ (r : w64), RET #r; True }}))
+      {{ (b : Bool), RET #b; m ↦${dq} M ∗ P.R }}) ∗
+    □ ({{ P.R }} (App (Val #(methods wi.ty go!"rev" wi.v)) (Val #()))
+      {{ (r : w64), RET #r; P.R }}))
 
 instance isWatchable_persistent (wa : GoInterface) (P : WatchParams GF) :
     Persistent (isWatchable wa P) := by

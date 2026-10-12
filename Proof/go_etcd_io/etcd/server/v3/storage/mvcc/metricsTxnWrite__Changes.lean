@@ -32,14 +32,13 @@ theorem mvcc.metricsTxnWrite.Changes.wp_proof
   iunfold mvcc.isTxnWrite at Htx
   iNamed Htx
   (try wp_auto)
-  wp_apply (hCh tw s γ ilog pend) $$ [$Htw] as %chs %ps ⟨Hchs, Hkvs, %Hps, Hback⟩
-  ihave %Hlen := ownSlice_len _ _ _ $$ Hchs
-  ihave Htw := Hback $$ Hchs Hkvs
+  wp_apply (hCh tw s γ ilog pend) $$ [$Htw] as %chs %ps ⟨Hchs, Hkvs, %Hps, Htw⟩
   (try wp_auto)
   iapply HΦ
+  iframe Hchs Hkvs
   isplitl []
-  · ipureintro; rw [← Hps]; exact ⟨Hlen.1.symm, Hlen.2⟩
-  iunfold mvcc.isTxnWrite
+  · ipureintro; exact Hps
+  iunfold mvcc.isTxnWriteCore
   iexists tw, ranges
   iframe
 
