@@ -33,18 +33,26 @@ mvcc_txnReadWrite__End: @
 mvcc_txnReadWrite__Changes: @
 mvcc_txnReadWrite__Put: @
 mvcc_txnReadWrite__DeleteRange: @
+# mvcc's write transaction as `Put` and `DeleteRange` use it (unit 1), linked in mvcc's Link.lean.
+mvcc_store__Write: @
+mvcc_metricsTxnWrite__Range: @
+mvcc_metricsTxnWrite__Put: @
+mvcc_metricsTxnWrite__DeleteRange: @
+mvcc_metricsTxnWrite__End: @
+#
+# Unit 1: put.go and delete.go.
+mkGteRange:
+deleteRange: mkGteRange mvcc_metricsTxnWrite__Range mvcc_metricsTxnWrite__DeleteRange
+DeleteRange: traceutil_EnsureTrace mvcc_store__Write deleteRange mvcc_metricsTxnWrite__End
+checkLease:
+getPrevKV: traceutil_Trace__StepWithFunction context_TODO mvcc_metricsTxnWrite__Range
+checkAndGetPrevKV: getPrevKV
+checkPut: checkLease checkAndGetPrevKV
+put: traceutil_Get mvcc_metricsTxnWrite__Put traceutil_Trace__AddField
+Put: traceutil_EnsureTrace proto_Size checkLease mvcc_store__Write checkAndGetPrevKV put mvcc_metricsTxnWrite__End
 #
 # The package's functions, for the next units (no spec yet), with their callees in Go order as a
 # first guess (uncomment as they are specified; `?` for specified but not proved):
-# mkGteRange:
-# deleteRange: mkGteRange
-# DeleteRange: traceutil_EnsureTrace deleteRange
-# checkLease:
-# getPrevKV: context_TODO traceutil_Trace__StepWithFunction
-# checkAndGetPrevKV: getPrevKV
-# checkPut: checkLease checkAndGetPrevKV
-# put: traceutil_Get traceutil_Trace__AddField
-# Put: traceutil_EnsureTrace proto_Size checkLease checkAndGetPrevKV put
 # IsDefaultOrdering:
 # HasRevisionFilters:
 # rangeLimit: IsDefaultOrdering HasRevisionFilters

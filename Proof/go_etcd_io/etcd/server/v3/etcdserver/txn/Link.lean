@@ -8,8 +8,17 @@ hand.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.DeleteRange
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Put
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.checkAndGetPrevKV
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.checkLease
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.checkPut
 public import Proof.context.TODO
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.deleteRange
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.getPrevKV
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.mkGteRange
 public import Proof.google_golang_org.protobuf.proto.Size
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.put
 public import Proof.sort.Reverse
 public import Proof.sort.Sort
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace
@@ -45,13 +54,29 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-theorem context.wp_TODO :
-    EtcdGrove.context.TODO.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.context.TODO.wp_proof
+theorem wp_mkGteRange :
+    EtcdGrove.txn.mkGteRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.mkGteRange.wp_proof
 
 theorem proto.wp_Size :
     EtcdGrove.proto.Size.spec (GF := GF) (hG := hG) :=
   EtcdGrove.proto.Size.wp_proof
+
+theorem wp_checkLease :
+    EtcdGrove.txn.checkLease.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.checkLease.wp_proof
+
+theorem traceutil.Trace.wp_StepWithFunction :
+    EtcdGrove.traceutil.Trace.StepWithFunction.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.Trace.StepWithFunction.wp_proof
+
+theorem context.wp_TODO :
+    EtcdGrove.context.TODO.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.context.TODO.wp_proof
+
+theorem traceutil.Trace.wp_AddField :
+    EtcdGrove.traceutil.Trace.AddField.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.Trace.AddField.wp_proof
 
 theorem sort.wp_Reverse :
     EtcdGrove.sort.Reverse.spec (GF := GF) (hG := hG) :=
@@ -65,10 +90,6 @@ theorem traceutil.wp_TODO :
     EtcdGrove.traceutil.TODO.spec (GF := GF) (hG := hG) :=
   EtcdGrove.traceutil.TODO.wp_proof
 
-theorem traceutil.Trace.wp_AddField :
-    EtcdGrove.traceutil.Trace.AddField.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.traceutil.Trace.AddField.wp_proof
-
 theorem traceutil.Trace.wp_StartSubTrace :
     EtcdGrove.traceutil.Trace.StartSubTrace.spec (GF := GF) (hG := hG) :=
   EtcdGrove.traceutil.Trace.StartSubTrace.wp_proof
@@ -76,10 +97,6 @@ theorem traceutil.Trace.wp_StartSubTrace :
 theorem traceutil.Trace.wp_Step :
     EtcdGrove.traceutil.Trace.Step.spec (GF := GF) (hG := hG) :=
   EtcdGrove.traceutil.Trace.Step.wp_proof
-
-theorem traceutil.Trace.wp_StepWithFunction :
-    EtcdGrove.traceutil.Trace.StepWithFunction.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.traceutil.Trace.StepWithFunction.wp_proof
 
 theorem traceutil.Trace.wp_StopSubTrace :
     EtcdGrove.traceutil.Trace.StopSubTrace.spec (GF := GF) (hG := hG) :=
@@ -124,9 +141,37 @@ theorem traceutil.wp_EnsureTrace :
     EtcdGrove.traceutil.EnsureTrace.spec (GF := GF) (hG := hG) :=
   EtcdGrove.traceutil.EnsureTrace.wp_proof
 
+theorem wp_deleteRange [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.txn.deleteRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.deleteRange.wp_proof wp_mkGteRange mvcc.metricsTxnWrite.wp_Range mvcc.metricsTxnWrite.wp_DeleteRange
+
+theorem wp_DeleteRange [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.txn.DeleteRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.DeleteRange.wp_proof traceutil.wp_EnsureTrace mvcc.store.wp_Write wp_deleteRange mvcc.metricsTxnWrite.wp_End
+
+theorem wp_getPrevKV [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.txn.getPrevKV.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.getPrevKV.wp_proof traceutil.Trace.wp_StepWithFunction context.wp_TODO mvcc.metricsTxnWrite.wp_Range
+
+theorem wp_checkAndGetPrevKV [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.txn.checkAndGetPrevKV.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.checkAndGetPrevKV.wp_proof wp_getPrevKV
+
 theorem traceutil.wp_Get :
     EtcdGrove.traceutil.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.traceutil.Get.wp_proof
+
+theorem wp_put [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.txn.put.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.put.wp_proof traceutil.wp_Get mvcc.metricsTxnWrite.wp_Put traceutil.Trace.wp_AddField
+
+theorem wp_Put [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.txn.Put.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.Put.wp_proof traceutil.wp_EnsureTrace proto.wp_Size wp_checkLease mvcc.store.wp_Write wp_checkAndGetPrevKV wp_put mvcc.metricsTxnWrite.wp_End
+
+theorem wp_checkPut [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.txn.checkPut.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.checkPut.wp_proof wp_checkLease wp_checkAndGetPrevKV
 
 end links_hasLC
 
