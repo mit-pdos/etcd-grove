@@ -204,7 +204,7 @@ def currentOK (σ : DBState) (v0 v1 : internal.common.Meta) : Prop :=
 /-- The database's facts: the mapping, the two metas (one valid), the current tree, the
 readers, the accounting. -/
 def dbOK (σ : DBState) (v0 v1 : internal.common.Meta) : Prop :=
-  80 ≤ σ.ps ∧ σ.ps < 2 ^ 32 ∧ 2 ≤ σ.nslots ∧ σ.sz ≤ 281474976710655 ∧ σ.data.locCar ≠ 0 ∧
+  80 ≤ σ.ps ∧ σ.ps < 2 ^ 32 ∧ 2 ≤ σ.nslots ∧ (σ.sz ≤ 281474976710655 ∧ σ.bs.length < 2 ^ 62) ∧ σ.data.locCar ≠ 0 ∧
   metaIn σ 0 v0 ∧ metaIn σ 1 v1 ∧ (metaValid v0 ∨ metaValid v1) ∧ currentOK σ v0 v1 ∧
   (∀ k r, σ.readers !! k = some r → readerOK σ r) ∧ mvccOK σ ∧ slotsOK σ ∧ fieldsOK σ ∧
   σ.fl.readonly.Perm (σ.readers.toList.map (·.2.txid)) ∧

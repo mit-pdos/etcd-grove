@@ -63,7 +63,7 @@ abbrev DB.mmap.spec : Prop :=
       structFieldRef DB go!"logger" dbl ↦□ lg ∗ (globalAddr discardLogger ↦□ dl : IProp GF) ∗
       defaultLoggerOK dl ∗ structFieldRef DB go!"pageSize" dbl ↦□ ps ∗
       structFieldRef DB go!"file" dbl ↦{dq} f ∗ structFieldRef DB go!"MaxSize" dbl ↦{dq} ms ∗
-      structFieldRef DB go!"Mlock" dbl ↦{dq} false ∗ structFieldRef DB go!"rwtx" dbl ↦{dq} rw ∗
+      structFieldRef DB go!"Mlock" dbl ↦□ false ∗ structFieldRef DB go!"rwtx" dbl ↦{dq} rw ∗
       structFieldRef DB go!"MmapFlags" dbl ↦{dq} mf ∗
       structFieldRef DB go!"dataref" dbl ↦ dr ∗ structFieldRef DB go!"datasz" dbl ↦ ds ∗
       structFieldRef DB go!"meta0" dbl ↦ m0 ∗ structFieldRef DB go!"meta1" dbl ↦ m1 ∗
@@ -76,7 +76,7 @@ abbrev DB.mmap.spec : Prop :=
   {{ (err : GoInterface), RET #err;
       ⌜M = ∅⌝ ∗
       structFieldRef DB go!"file" dbl ↦{dq} f ∗ structFieldRef DB go!"MaxSize" dbl ↦{dq} ms ∗
-      structFieldRef DB go!"Mlock" dbl ↦{dq} false ∗ structFieldRef DB go!"rwtx" dbl ↦{dq} rw ∗
+      structFieldRef DB go!"Mlock" dbl ↦□ false ∗ structFieldRef DB go!"rwtx" dbl ↦{dq} rw ∗
       structFieldRef DB go!"MmapFlags" dbl ↦{dq} mf ∗ fileBytes fd bs ∗
       sync.ownRWMutex (structFieldRef DB go!"mmaplock" dbl) (mmapTok γ) ∗
       ((⌜err ≠ interface.nil⌝ ∗ WR ∗
