@@ -56,7 +56,7 @@ theorem txn.DeleteRange.wp_proof
   · ipureintro; rfl
   iintro %fsl ⟨Hfsl, -⟩
   (try wp_auto)
-  wp_apply (hEnsure ctx cd lg _ _) $$ [$Hctx] as %ctx' %t ⟨%Ht, %vs, #Hctx'⟩
+  wp_apply (hEnsure ctx cd lg _ _) $$ [$Hctx] as %ctx' %t ⟨%Ht, %vs, #Hctx', -⟩
   (try wp_auto)
   -- `kv.Write(trace)`: the store's
   iunfold txn.isKV at Hkv

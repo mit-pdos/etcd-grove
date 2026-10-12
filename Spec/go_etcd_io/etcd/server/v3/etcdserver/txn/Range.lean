@@ -31,7 +31,10 @@ committed log `log` pinned between the caller's certificate `log₀` and its `m`
 (`store.Read`), at its last revision `rev`, and `rangeResult` there; the trace is not `nil`.
 Premises: a valid sort target, and the sort's premise (`sortOk`) on every log the read may
 see. At a context never canceled (`nd`: `neverDone`), no context error (2026-10-12: for the
-apply package's backend, at `context.TODO()`, whose errors `errors.Is` takes). -/
+apply package's backend, at `context.TODO()`, whose errors `errors.Is` takes). 2026-10-12 (the
+request path's unit 3b): the sort's premise is asked of the logs the read may see that are
+certified (`idxCert`: the server's readers know only that the store's certified logs are small),
+and a success's response header has its id fields owned (`rangeHdr`). -/
 abbrev txn.Range.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc) (kv : GoInterface)
     (s : Loc) (γ : mvcc.StoreNames) (r : Loc) (o : OpFull) (withTotal : Bool) (m : Nat)
@@ -39,9 +42,9 @@ abbrev txn.Range.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
       txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
       txn.rangeRequestIs r o ∗ mvcc.txnCtx ctx cd ∗
-      (if nd then mvcc.neverDone cd else iprop(True)) ∗ ⌜lg ≠ null⌝ ∗
-      ⌜txn.validSortTarget o ∧
-        ∀ log : mvcc.Log, log₀ <+: log → log.length + m + 3 ≤ 2 ^ 63 → txn.sortOk o log⌝ }}
+      (if nd then mvcc.neverDone cd else iprop(True)) ∗ ⌜lg ≠ null⌝ ∗ ⌜txn.validSortTarget o⌝ ∗
+      (□ ∀ log : mvcc.Log, ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63⌝ -∗
+        mvcc.idxCert γ.idx log -∗ ⌜txn.sortOk o log⌝) }}
     (App (App (App (App (App (Val (@! txn.Range)) (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #kv))
       (Val #r)) (Val #withTotal))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
@@ -49,7 +52,7 @@ abbrev txn.Range.spec : Prop :=
       ∃ (log : mvcc.Log) (rev : w64), mvcc.idxCert γ.idx log ∗
         ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ log ≠ [] ∧
           rev = W64 ((log.length : Int) - 1)⌝ ∗
-        txn.rangeResult resp err log rev o withTotal ∗
+        txn.rangeResult resp err log rev o withTotal ∗ txn.rangeHdr resp err ∗
         ⌜nd = true → err = GoInterface.nil ∨ sint.Z rev < sint.Z o.base.rev⌝ }}
 
 end spec

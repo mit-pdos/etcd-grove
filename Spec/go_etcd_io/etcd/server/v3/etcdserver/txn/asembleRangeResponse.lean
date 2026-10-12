@@ -35,7 +35,8 @@ abbrev txn.asembleRangeResponse.spec : Prop :=
       txn.rangeResultIs rr rev count vs ∗ txn.rangeRequestIs r o }}
     (App (App (Val (@! txn.asembleRangeResponse)) (Val #rr)) (Val #r))
   {{ (resp : Loc), RET #resp;
-      txn.rangeResponseIs resp rev ((txn.srvTrunc o vs).map (txn.respKv o)) (txn.srvMore o vs) count }}
+      txn.rangeResponseIs resp rev ((txn.srvTrunc o vs).map (txn.respKv o)) (txn.srvMore o vs) count ∗
+      txn.respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" resp) }}
 
 end spec
 

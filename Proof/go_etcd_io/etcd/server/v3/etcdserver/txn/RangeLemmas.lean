@@ -206,7 +206,7 @@ def rangeResultClient (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w
     (⌜sint.Z rev < sint.Z o.base.rev ∧ resp = null⌝ ∗
       ∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∨
     (⌜sint.Z o.base.rev ≤ sint.Z rev ∧ o.base.countOnly = false ∧ fastKeysOnly o = false ∧
-      resp = null ∧ err ≠ GoInterface.nil⌝) ∨
+      resp = null⌝ ∗ mvcc.errorfIs err) ∨
     (⌜sint.Z o.base.rev ≤ sint.Z rev ∧ err = GoInterface.nil⌝ ∗
       ∃ (kvs : List EtcdKv) (more : Bool) (kvs' : List EtcdKv),
       rangeResponseIs resp rev kvs more

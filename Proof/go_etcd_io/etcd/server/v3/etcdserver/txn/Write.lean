@@ -442,9 +442,10 @@ theorem rangeOutcome_sel (r : Loc) (err : GoInterface) (kind : TxnKind) (endNil 
     (by show (sint.Z kind.readRev).toNat < 2 ^ 63; have := hok.len; omega)
   rw [W64_sint_nat _ h0] at hans
   unfold rangeOutcome
-  iintro (⟨%Hlt, -, -⟩ | ⟨-, -, %Hn, %He⟩ | ⟨-, %Herr, H⟩)
+  iintro (⟨%Hlt, -, -⟩ | ⟨-, -, %Hn, #He⟩ | ⟨-, %Herr, H⟩)
   · rw [hrev, h00] at Hlt; omega
-  · imodintro; ileft; ipureintro; exact ⟨Hn, He⟩
+  · ihave %He' := mvcc.errorfIs_ne_nil err $$ He
+    imodintro; ileft; ipureintro; exact ⟨Hn, He'⟩
   rw [hco, hfk, hRR, hlim, rangeTaken_nonpos _ _ _ _ _ _ (by rw [h00]; omega)]
   simp only [Bool.false_eq_true, ↓reduceIte, Bool.not_false]
   icases H with ⟨%kvs, Hr, Hkvs⟩

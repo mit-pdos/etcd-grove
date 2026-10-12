@@ -185,8 +185,7 @@ theorem txn.newTxnResp.wp_proof : txn.newTxnResp.spec (GF := GF) (hG := hG) := b
   ipersist RHeader
   ipersist RSucceeded
   ipersist RResponses
-  iclear Rstate RunknownFields RsizeCache R_ Hstate HClusterId HMemberId HRaftTerm HLeaderId
-    HunknownFields HsizeCache H_
+  iclear Rstate RunknownFields RsizeCache R_ Hstate HunknownFields HsizeCache H_
   ihave IH2 : (∃ (n ig : w64) (rq : Loc) (pl' : GoSlice) (x : Bool) (done : List Loc),
       "i" ∷ i_ptr ↦ n ∗ "Higo" ∷ igo ↦ ig ∗ "req" ∷ req_ptr ↦ rq ∗
       "txnPath" ∷ txnPath_ptr ↦ pl' ∗
@@ -232,7 +231,7 @@ theorem txn.newTxnResp.wp_proof : txn.newTxnResp.spec (GF := GF) (hG := hG) := b
       rw [hpath, show sint.nat (W64 1) = 1 from rfl, List.drop_one, List.tail_cons, List.append_assoc]
       rw [txn.txnPath, List.cons_append]
       wp_apply IH $$ %r %T %(slice.slice pl' Bool (W64 1) pl'.len)
-        %(txn.opsPath s0 (List.drop (sint.nat n + 1) ops) ++ rest) [] as %resp %txns ⟨Hsk, %Htxns⟩
+        %(txn.opsPath s0 (List.drop (sint.nat n + 1) ops) ++ rest) [] as %resp %txns ⟨Hsk, -, %Htxns⟩
       · iframe #
       subst Htxns
       irename «$v0» => Hw0
@@ -369,7 +368,7 @@ theorem txn.newTxnResp.wp_proof : txn.newTxnResp.spec (GF := GF) (hG := hG) := b
   rw [show (zero_val etcdserverpb.ResponseHeader).Revision' = (W64 0 : w64) from rfl]
   imodintro
   iapply HΦ
-  isplitl
+  isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
   · iunfold txn.txnSkel
     isplitl []
     · ipureintro; exact Hrn
@@ -381,6 +380,14 @@ theorem txn.newTxnResp.wp_proof : txn.newTxnResp.spec (GF := GF) (hG := hG) := b
     iexists rsl, done
     iframe
     iframe #
+  isplitl
+  · iunfold txn.respHdrOwn
+    iexists hdrL
+    iframe RHeader
+    isplitl []
+    · ipureintro; exact Hhn
+    iexists _, _, _, _
+    iframe
   · ipureintro; rfl
 
 end proof
