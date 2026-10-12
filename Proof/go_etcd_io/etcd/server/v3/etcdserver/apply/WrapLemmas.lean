@@ -43,7 +43,7 @@ theorem putOutcomeIs_nil (log : mvcc.Log) (o : OpFull) (resp : Loc) (oc : Outcom
   · cases k <;> simp only [putOutcomeIs, rejErrIs]
     · iintro ⟨-, H⟩; iexfalso; iapply errVarIs_nil $$ H
     · iintro ⟨-, H⟩; iexfalso; iapply errVarIs_nil $$ H
-    · iintro ⟨-, %H⟩; exact absurd rfl H
+    · iintro ⟨-, %H, -⟩; exact absurd rfl H
     · iintro ⟨-, (H | H)⟩ <;> iexfalso <;> iapply errVarIs_nil $$ H
   · cases ns <;> simp only [putOutcomeIs, noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
     · iintro -; ipureintro; exact ⟨log', rfl⟩
@@ -58,7 +58,7 @@ theorem txnOutcomeIs_nil (log : mvcc.Log) (t : TxnModel) (skip : Bool) (resp : L
   · cases k <;> simp only [txnOutcomeIs, rejErrIs]
     · iintro ⟨-, H⟩; iexfalso; iapply errVarIs_nil $$ H
     · iintro ⟨-, H⟩; iexfalso; iapply errVarIs_nil $$ H
-    · iintro ⟨-, %H⟩; exact absurd rfl H
+    · iintro ⟨-, %H, -⟩; exact absurd rfl H
     · iunfold txn.checkErrIs
       iintro ⟨-, (H | H | ⟨%e, -, %He⟩ | ⟨%e, -, %He⟩)⟩
       · iexfalso; iapply errVarIs_nil $$ H

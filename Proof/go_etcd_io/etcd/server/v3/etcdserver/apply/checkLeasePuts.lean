@@ -39,14 +39,14 @@ theorem apply.checkLeasePuts.wp_proof
   icases Hl with (%Hl | #Hl)
   · subst Hl
     wp_auto
-    iapply HΦ; iexact Hai
+    iapply HΦ; iframe Hai; iapply applyErrIs_nil
   · ihave #Hl' := Hl
     iunfold apply.leaseIs at Hl'
     icases Hl' with ⟨%Hln, -⟩
     simp only [Hln, decide_false, Bool.not_false]
     wp_auto
-    wp_apply (hKeys st P f ai info dq l id) $$ [$Hst $Hai $Hl] as %err Hai
-    iapply HΦ; iexact Hai
+    wp_apply (hKeys st P f ai info dq l id) $$ [$Hst $Hai $Hl] as %err ⟨Hai, #HeI⟩
+    iapply HΦ; iframe Hai HeI
 
 end proof
 

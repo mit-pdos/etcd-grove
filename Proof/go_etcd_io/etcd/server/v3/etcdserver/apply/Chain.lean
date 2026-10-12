@@ -32,6 +32,12 @@ them to the methods; the other layers own nothing). Each layer's methods are `Sp
 files stated over `applierSpec E c inner` (the inner applier is a dynamic interface call); the
 constructors' specs package them (`newQuotaApplierV3`: `{applierSpec E c app} … {a; applierSpec E
 (.quota c) a}`).
+
+**The errors** (2026-10-12, the merge of unit 2): every error a method returns is one `errors.Is`
+can take (`applyErrIs`): the methods that leave the log say it in their triples; the KV methods'
+answers name their errors (`ErrCorrupt`, `ErrNoSpace`, the txn checks' and mvcc's error
+variables, `errors.New` errors by the apply package's facts `applyErrVars`; the auth store's and
+the lessor's by their contracts), from which `outcomeErrIs` (`UberLemmas.lean`) derives it.
 -/
 module
 
@@ -256,11 +262,12 @@ def chainRes : Chain → GoInterface → IProp GF
 /-! ## The outcomes, in the heap -/
 
 /-- The error of a rejection `k`: the corrupt applier's `ErrCorrupt`, the capped applier's
-`ErrNoSpace`, the auth store's (not nil), or the backend's (`bk`, by the request). -/
+`ErrNoSpace`, the auth store's (not nil, one `errors.Is` can take: `applyErrIs`, the contract's),
+or the backend's (`bk`, by the request). -/
 def rejErrIs (bk : GoInterface → IProp GF) : RejectKind → GoInterface → IProp GF
   | .corrupt, err => txn.errVarIs go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt err
   | .noSpace, err => txn.errVarIs go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace err
-  | .auth, err => iprop(⌜err ≠ GoInterface.nil⌝)
+  | .auth, err => iprop(⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)
   | .backend, err => bk err
 
 /-- The error of an applied request: `nil`, or the quota's `ErrNoSpace` (`ns`). -/
@@ -281,11 +288,13 @@ def putOutcomeIs (log : mvcc.Log) (o : OpFull) (resp : Loc) (err : GoInterface) 
       noSpaceErrIs ns err)
 
 /-- **A delete's answer** (`txn.DeleteRange` at the sole writer): the number of keys deleted,
-the revision (`writeRev`), the deleted key-values if `PrevKv`; or the range read's error. -/
+the revision (`writeRev`), the deleted key-values if `PrevKv`. The backend's own rejection (the
+range read's context error) does not happen at `context.TODO()` (never done: `txn.DeleteRange`'s
+`nd`; 2026-10-12, it was `err ≠ nil ∧ PrevKv`). -/
 def deleteOutcomeIs (log : mvcc.Log) (o : OpFull) (resp : Loc) (err : GoInterface) :
     Outcome → IProp GF
   | .rejected k => iprop(⌜resp = null⌝ ∗
-      rejErrIs (fun e => iprop(⌜e ≠ GoInterface.nil ∧ o.base.prevKV = true⌝)) k err)
+      rejErrIs (fun _ => iprop(False)) k err)
   | .applied _ ns => iprop(txn.deleteRangeResponseIs resp
       (W64 ((mvcc.writeRev log (txn.delChanges (mvcc.stateAfter log) o) : Nat) : Int))
       (rangeIn (mvcc.stateAfter log) o).length
@@ -293,11 +302,13 @@ def deleteOutcomeIs (log : mvcc.Log) (o : OpFull) (resp : Loc) (err : GoInterfac
       noSpaceErrIs ns err)
 
 /-- **A range's answer** (`txn.Range` at the sole writer): `rangeResult` at `log`'s last
-revision (with the total count). -/
+revision (with the total count), without the context error (at `context.TODO()`, never done:
+`txn.Range`'s `nd`): no error, or `ErrFutureRev`. -/
 def rangeOutcomeIs (log : mvcc.Log) (o : OpFull) (resp : Loc) (err : GoInterface) :
     Outcome → IProp GF
   | .rejected k => iprop(⌜resp = null⌝ ∗ rejErrIs (fun _ => iprop(False)) k err)
-  | .applied _ _ => txn.rangeResult resp err log (W64 ((log.length : Int) - 1)) o true
+  | .applied _ _ => iprop(txn.rangeResult resp err log (W64 ((log.length : Int) - 1)) o true ∗
+      ⌜err = GoInterface.nil ∨ sint.Z (W64 ((log.length : Int) - 1)) < sint.Z o.base.rev⌝)
 
 /-- **A transaction's answer** (`txn.Txn` at the sole writer): `checkTxn`'s error, or the
 response of the server's run `srvRunTxn` at the revision `writeRev` (`skip`: ranges header-only). -/
@@ -311,15 +322,17 @@ def txnOutcomeIs (log : mvcc.Log) (t : TxnModel) (skip : Bool) (resp : Loc) (err
       (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2 ∗
       noSpaceErrIs ns err)
 
-/-- **A revocation's answer**: rejected, no response; applied, the lessor's error (any). -/
+/-- **A revocation's answer**: rejected, no response; applied, the lessor's error (one
+`errors.Is` can take, the contract's). -/
 def revokeOutcomeIs (resp : Loc) (err : GoInterface) : Outcome → IProp GF
   | .rejected k => iprop(⌜resp = null⌝ ∗ rejErrIs (fun _ => iprop(False)) k err)
-  | .applied _ _ => iprop(True)
+  | .applied _ _ => applyErrIs err
 
-/-- The result of `authApplierV3.Apply`'s admin check failing: a fresh `&Result{Err: err}`. -/
+/-- The result of `authApplierV3.Apply`'s admin check failing: a fresh `&Result{Err: err}`, the
+auth store's error. -/
 def rejectResultIs (ar : Loc) : IProp GF :=
   iprop(⌜ar ≠ null⌝ ∗ ∃ v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result, ar ↦ v ∗
-    ⌜v.Err' ≠ GoInterface.nil ∧ v.Resp' = GoInterface.nil⌝)
+    ⌜v.Err' ≠ GoInterface.nil ∧ v.Resp' = GoInterface.nil⌝ ∗ applyErrIs v.Err')
 
 /-! ## The methods' pre- and postconditions
 
@@ -339,6 +352,17 @@ def mPre (E : AEnv GF) (c : Chain) (a : GoInterface) (log : mvcc.Log)
 def mPost (E : AEnv GF) (c : Chain) (a : GoInterface) (log : mvcc.Log)
     (Pre Post : IProp GF) : IProp GF :=
   iprop(kvOwn E log ∗ chainRes c a ∗ (Post ∨ Pre))
+
+/-- The precondition of a method that writes only with `shouldApplyV3` (`v3`: the cluster's):
+`cPre v3`, the critical-section contract with `v3`, else `Pre` alone. -/
+def mPreV (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface) (log : mvcc.Log)
+    (Pre Q Post : IProp GF) : IProp GF :=
+  iprop(kvOwn E log ∗ chainRes c a ∗ cPre v3 E.P E.f Pre Q Post)
+
+/-- Its postcondition: `cPost v3` (`Post ∨ Pre` with `v3`, else `Pre`: no write). -/
+def mPostV (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface) (log : mvcc.Log)
+    (Pre Post : IProp GF) : IProp GF :=
+  iprop(kvOwn E log ∗ chainRes c a ∗ cPost v3 Pre Post)
 
 /-- The postcondition of a KV method on `rq`: an outcome of the chain, its answer `R`, the log
 it commits. -/
@@ -452,22 +476,22 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
       {{ reqFacts m r ∗ mPre E c (.ok ai) log Pre Q Post }}
         (App (Val #(methods ai.ty m ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          mPost E c (.ok ai) log Pre Post }}) ∗
+          mPost E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
     □ (∀ (m : GoString) (log : mvcc.Log) (Pre Q Post : IProp GF), ⌜m ∈ resp0Methods⌝ -∗
       {{ mPre E c (.ok ai) log Pre Q Post }}
         (App (Val #(methods ai.ty m ai.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          mPost E c (.ok ai) log Pre Post }}) ∗
+          mPost E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
     □ (∀ (log : mvcc.Log),
       {{ kvOwn E log ∗ chainRes c (.ok ai) }}
         (App (Val #(methods ai.ty go!"AuthStatus" ai.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          kvOwn E log ∗ chainRes c (.ok ai) }}) ∗
+          kvOwn E log ∗ chainRes c (.ok ai) ∗ applyErrIs err }}) ∗
     □ (∀ (m : GoString) (r : Loc) (v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF),
       ⌜m ∈ clusterMethods⌝ -∗
-      {{ reqFacts m r ∗ mPre E c (.ok ai) log Pre Q Post }}
+      {{ reqFacts m r ∗ mPreV v3 E c (.ok ai) log Pre Q Post }}
         (App (App (Val #(methods ai.ty m ai.v)) (Val #r)) (Val #v3))
-      {{ RET #(); mPost E c (.ok ai) log Pre Post }}) ∗
+      {{ RET #(); mPostV v3 E c (.ok ai) log Pre Post }}) ∗
     -- `Apply`: the `applyFunc` under the chain's resources, or the auth layers' admin rejection
     □ (∀ (r : Loc) (rq : IRRModel) (skip v3 : Bool) (af : GoFunc) (A : IProp GF)
         (B : Loc → IProp GF),

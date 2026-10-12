@@ -32,14 +32,15 @@ nothing was deleted), the response with their number, the revision (`writeRev`: 
 `ilog`'s last if nothing was deleted) and (`PrevKv`) the deleted key-values; or, with `PrevKv`,
 the range read's context error (`ctx` done): nothing deleted, the token back. The trace is not
 `nil`. The write transaction runs under the store's batch lock by the critical-section contract
-(`csContract P f Pre Q Post`, the store's hook `hookIs γ P f`): `Post`. -/
+(`csContract P f Pre Q Post`, the store's hook `hookIs γ P f`): `Post`. At a context never
+canceled (`nd`: `neverDone`), no context error (2026-10-12: for the apply package's backend). -/
 abbrev txn.DeleteRange.spec : Prop :=
-  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg : Loc) (kv : GoInterface)
+  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc) (kv : GoInterface)
     (s : Loc) (γ : mvcc.StoreNames) (dr : Loc) (o : OpFull) (m : Nat) (log₀ : mvcc.Log)
     (P Pre Q Post : IProp GF) (f : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗
       ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗ txn.deleteRangeRequestIs dr o ∗
-      mvcc.txnCtx ctx cd ∗
+      mvcc.txnCtx ctx cd ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
       ⌜∀ ilog : mvcc.Log, txn.Pinned log₀ m ilog → (mvcc.stateAfter ilog).length < 2 ^ 63⌝ ∗
       mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
     (App (App (App (App (Val (@! txn.DeleteRange)) (Val #(GoInterface.ok ctx))) (Val #lg))
@@ -54,7 +55,7 @@ abbrev txn.DeleteRange.spec : Prop :=
               (if o.base.prevKV then rangeIn (mvcc.stateAfter ilog) o else []) ∗
             mvcc.idxCert γ.idx (mvcc.commitLog ilog (txn.delChanges (mvcc.stateAfter ilog) o)) ∗
             (if txn.delChanges (mvcc.stateAfter ilog) o = [] then mvcc.revToken γ else True)) ∨
-         (⌜err ≠ GoInterface.nil ∧ o.base.prevKV = true ∧ resp = null⌝ ∗
+         (⌜err ≠ GoInterface.nil ∧ o.base.prevKV = true ∧ resp = null ∧ nd = false⌝ ∗
             mvcc.revToken γ ∗ mvcc.idxCert γ.idx ilog)) }}
 
 end spec

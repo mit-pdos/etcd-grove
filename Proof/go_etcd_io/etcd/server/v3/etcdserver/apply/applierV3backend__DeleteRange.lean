@@ -48,11 +48,13 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
   iunfold apply.isApplyKV at Hkv
   icases Hkv with ⟨#Hkv, -⟩
   obtain ⟨hdel, hk, hlen, hst⟩ := Hrq
-  wp_apply (txn.deleteRange_soleWriter_of hDel todoCtxVal mvcc.neverCd opts.Logger' opts.KV'
+  wp_apply (txn.deleteRange_soleWriter_of hDel todoCtxVal mvcc.neverCd true opts.Logger' opts.KV'
       E.s E.γ r o log E.P Pre Q Post E.f hlen hst) $$ [$Hrd $Hsw $Hcs]
     as %resp %trace %err ⟨Hrd, %Htr, HPost, Hout⟩
   · iframe #
-    iapply mvcc.txnCtx_todo
+    isplitr
+    · iapply mvcc.txnCtx_todo
+    simp only [↓reduceIte]; iapply mvcc.neverDone_neverCd
   iapply HΦ
   iunfold apply.kvPost
   icases Hout with (⟨%Herr, #Hresp, Hsw, %Hst⟩ | ⟨%Herr, Hsw⟩)
@@ -73,20 +75,8 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
       iframe Hrd Hsw
       iapply apply.leasesKnown_commit_delete $$ Hknown
     ileft; iexact HPost
-  · -- the range read failed
-    iexists (.rejected .backend)
-    isplitr
-    · ipureintro
-      unfold apply.chainStep apply.backendStep
-      rw [hk]
-      exact ⟨o, hdel, Or.inr ⟨Herr.2.1, rfl⟩⟩
-    simp only [apply.deleteOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
-    iframe Hres
-    isplitl []
-    · ipureintro; exact ⟨Herr.2.2, Herr.1, Herr.2.1⟩
-    isplitl [Hrd Hsw Hknown]
-    · iunfold apply.kvOwn; iframe
-    ileft; iexact HPost
+  · -- the range read's context error: not at `context.TODO()` (`nd`)
+    exact Herr.elim
 
 end proof
 

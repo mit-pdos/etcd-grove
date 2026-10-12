@@ -5,7 +5,7 @@ axiom EtcdServer.stopWithDelay.wp_proof
 axiom EtcdStep
 axiom applierFor
 axiom applierFor_persistent
-axiom apply.Apply.wp_proof
+axiom apply.Apply_server.wp_proof
 axiom context.WithValue.wp_proof
 axiom etcdReachedAt
 axiom etcdReachedAt_timeless

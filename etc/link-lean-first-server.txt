@@ -27,7 +27,10 @@ Entry__GetType:
 ConfChange__GetId:
 # The apply thread's trust boundary (`axiom … .wp_proof`), see InvApplier.lean: the applier
 # and the membership change's contracts, and names-only callees (zap, the alarm store, ...).
-apply_Apply:
+# `apply_Apply_server`: `apply.Apply` as the apply thread assumes it (2026-10-12): the function
+# is proved in the apply package (`--apply`) against its own spec, which threads the KV state the
+# server's proofs do not have yet (unit 3 of the apply plan switches them).
+apply_Apply_server:
 EtcdServer__applyConfChange:
 pbutil_MustUnmarshalMessage:
 EtcdServer__GoAttach:
@@ -60,5 +63,5 @@ EtcdServer__getTxPostLockInsideApplyHook: consistentIndex__ConsistentApplyingInd
 EtcdServer__setAppliedIndex:
 EtcdServer__setTerm:
 EtcdServer__applyEntries: Entry__GetIndex EtcdServer__apply EtcdServer__stopWithDelay
-EtcdServer__applyEntryNormal: Entry__GetIndex Entry__GetTerm consistentIndex__ConsistentIndex consistentIndex__SetConsistentIndex Notifier__Notify EtcdServer__isLeader ServerConfig__ElectionTimeout apply_Apply errors_Is AlarmStore__Get EtcdServer__Logger zap_String zap_Int64 zap_Error go_humanize_Bytes zap_Logger__Warn EtcdServer__GoAttach
+EtcdServer__applyEntryNormal: Entry__GetIndex Entry__GetTerm consistentIndex__ConsistentIndex consistentIndex__SetConsistentIndex Notifier__Notify EtcdServer__isLeader ServerConfig__ElectionTimeout apply_Apply_server errors_Is AlarmStore__Get EtcdServer__Logger zap_String zap_Int64 zap_Error go_humanize_Bytes zap_Logger__Warn EtcdServer__GoAttach
 EtcdServer__apply: zap_Logger__Debug zap_Int zap_Uint64 zap_Stringer consistentIndex__ConsistentIndex consistentIndex__SetConsistentApplyingIndex consistentIndex__SetConsistentIndex Entry__GetIndex Entry__GetTerm Entry__GetType EtcdServer__applyEntryNormal EtcdServer__setAppliedIndex EtcdServer__setTerm pbutil_MustUnmarshalMessage EtcdServer__applyConfChange ConfChange__GetId RaftCluster__Members

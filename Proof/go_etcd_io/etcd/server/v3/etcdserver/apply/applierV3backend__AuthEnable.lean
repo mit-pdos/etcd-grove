@@ -44,13 +44,15 @@ theorem apply.applierV3backend.AuthEnable.wp_proof
   iStructNamed Hopts
   wp_auto
   rw [Hai]
-  wp_apply HM $$ %Pre %Q %Post [$Hcs] as %err HPP
+  wp_apply HM $$ %Pre %Q %Post [$Hcs] as %err ⟨HPP, #HeI⟩
   iunfold apply.kvOwn at Hkv
   icases Hkv with ⟨Hrd, Hsw, Hknown⟩
   rcases err with ei | _
   · -- the store's error
     wp_auto
     iapply HΦ
+    isplitl; rotate_left
+    · first | iexact HeI | iapply applyErrIs_nil
     iunfold apply.mPost
     iunfold apply.kvOwn
     iframe
@@ -60,6 +62,8 @@ theorem apply.applierV3backend.AuthEnable.wp_proof
     wp_alloc l as Hl
     wp_auto
     iapply HΦ
+    isplitl; rotate_left
+    · first | iexact HeI | iapply applyErrIs_nil
     iunfold apply.mPost
     iunfold apply.kvOwn
     iframe

@@ -32,11 +32,13 @@ theorem apply.applierV3Corrupt.LeaseGrant.wp_proof :
   wp_start as ⟨-, -, Hpre⟩
   ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hai with ⟨-, ⟨%eC, #HeC⟩⟩
+  icases Hai with ⟨-, -, #Hev⟩
+  icases applyErrVars_corrupt $$ Hev with ⟨%eC, #HeC, #HeI⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   wp_auto
   iapply HΦ
+  iframe HeI
   iunfold apply.mPost
   iframe Hkv Hres
   iright

@@ -33,7 +33,7 @@ abbrev apply.authApplierV3.UserGet.spec : Prop :=
       (∃ n : GoString, apply.authUserGetIs r n) ∗
       apply.mPre E (.auth c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) log Pre Q Post }}
     (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"UserGet")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.mPost E (.auth c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) log Pre Post }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.mPost E (.auth c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) log Pre Post ∗ applyErrIs err }}
 
 end spec
 

@@ -11,7 +11,7 @@ axiom EtcdServer.applyConfChange.wp_proof
 axiom EtcdServer.stopWithDelay.wp_proof
 axiom applierFor
 axiom applierFor_persistent
-axiom apply.Apply.wp_proof
+axiom apply.Apply_server.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom membership.RaftCluster.Members.wp_proof
 axiom pbutil.MustUnmarshalMessage.wp_proof

@@ -25,6 +25,7 @@ axiom traceutil.Trace.StartSubTrace.wp_proof
 axiom traceutil.Trace.Step.wp_proof
 axiom traceutil.Trace.StepWithFunction.wp_proof
 axiom traceutil.Trace.StopSubTrace.wp_proof
+axiom txn.ApplySecObserve.wp_proof
 axiom txn.RangeSecObserve.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof

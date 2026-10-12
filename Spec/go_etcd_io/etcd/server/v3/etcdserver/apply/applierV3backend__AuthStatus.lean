@@ -32,7 +32,7 @@ abbrev apply.applierV3backend.AuthStatus.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
       apply.kvOwn E log }}
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"AuthStatus")) (Val #()))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.kvOwn E log }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.kvOwn E log ∗ applyErrIs err }}
 
 end spec
 

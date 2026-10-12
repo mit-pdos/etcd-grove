@@ -30,7 +30,7 @@ theorem apply.applierV3backend.DowngradeInfoSet.wp_proof :
     apply.applierV3backend.DowngradeInfoSet.spec (GF := GF) (hG := hG) := by
   intro E p r v3 log Pre Q Post
   wp_start as ⟨#Hb, ⟨%dm, #Hr⟩, Hpre⟩
-  iunfold apply.mPre at Hpre
+  iunfold apply.mPreV at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
@@ -47,7 +47,7 @@ theorem apply.applierV3backend.DowngradeInfoSet.wp_proof :
     wp_auto
     wp_apply HSD $$ [$Hcs $d] as HPP
     iapply HΦ
-    iunfold apply.mPost
+    iunfold apply.mPostV
     iframe
 
 end proof

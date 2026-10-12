@@ -49,7 +49,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   wp_auto
   rw [Hli]
   wp_auto
-  wp_apply HRevoke $$ [$Hcs $Hsw] as %err ⟨HPP, %pend, %Hdel, Hsw⟩
+  wp_apply HRevoke $$ [$Hcs $Hsw] as %err ⟨HPP, ⟨%pend, %Hdel, Hsw⟩, #HeI⟩
   wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh⟩
   · iexact Hb
   wp_alloc resp as Hresp
@@ -63,7 +63,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
     rw [Hrq.2]
     exact ⟨pend, Hdel, rfl⟩
   simp only [apply.revokeOutcomeIs, apply.Outcome.logAfter]
-  iframe Hres HPP
+  iframe HeI Hres HPP
   iunfold apply.kvOwn
   iframe Hrd Hsw
   iapply apply.leasesKnown_commit_dels _ log pend Hdel $$ Hknown

@@ -69,5 +69,8 @@ the verified code; found 2026-10-12 while fixing `etcd-range-sort-none-limit`; n
 alarm gauge counts an alarm activated twice twice (`AlarmStore.Activate` returns the existing
 member) and stays at 1 after it is disarmed (a wrong metric; reproduced; found 2026-10-12, apply
 unit 0; not filed).
+[etcd-apply-authstatus-metric-label](etcd-apply-authstatus-metric-label.md): `dispatch` does not
+set `op` for `AuthStatus`, whose apply latency is recorded under `op="unknown"` (a wrong metric
+label; found 2026-10-12, apply unit 2; not filed).
 Leads not yet assessed: the gRPC proxy's cache (`server/proxy/grpcproxy/cache/store.go`) builds
 its intervals as `checkIntervals` did, so a cached from-key range may never be invalidated.

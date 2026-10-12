@@ -32,7 +32,8 @@ theorem apply.applierV3Corrupt.Compaction.wp_proof :
   wp_start
   ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hai with ⟨-, ⟨%eC, #HeC⟩⟩
+  icases Hai with ⟨-, -, #Hev⟩
+  icases applyErrVars_corrupt $$ Hev with ⟨%eC, #HeC, #HeI⟩
   wp_auto
   iapply HΦ
   isplitl []
