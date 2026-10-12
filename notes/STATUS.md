@@ -246,6 +246,119 @@ btree 0/0); `goose.py --check` up to date; `verified-code.py`: etcd 435 verified
 functions (4373 of 45570 lines), txn 0 of 48 (2 assumed, 39 translated; 570 of 653 lines
 translated).
 
+### Unit 1: Put and DeleteRange (2026-10-11)
+
+Branch `txn-u1` (main tree, off `lean` at `5e3fc3803`), sorry-free, no new axiom; built with
+`--packages=.lake/manifest-merge.json` (Perennial `e4e126e46`). Every function of `put.go` and
+`delete.go` is specified (`Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/`) and proved, each proof
+importing only its callees' specs, linked (`etc/link-lean-first-txn.txt`, `Link.lean`).
+
+- **The specs**, one line each:
+  - `mkGteRange(e)`: `[0]` becomes a slice holding `[]` and not `nil`; anything else is returned
+    as it is.
+  - `checkLease(lessor, p)`: `nil` with `leaseOk γl o.leaseID` (no lease, or `Lookup` found it:
+    `leaseKnown`), or `lease.ErrLeaseNotFound` with the lease nonzero (`errVarIs`: the package
+    variable's error).
+  - `getPrevKV(trace, tw, p)`, on a transaction of either kind (`isTxn mw s γ kind`; `checkPut`
+    reads at `Txn`'s read transaction): if `readsPrev o` (`IgnoreValue`, `IgnoreLease` or
+    `PrevKv`), `prevKvIs r (kindState kind) o.key` (the `RangeResult`'s `KVs` hold the key's
+    key-value at the state read, if any), else `nil`; the error is always `nil` (`context.TODO()`).
+  - `checkAndGetPrevKV`: `getPrevKV`'s answer, with `needsPrev o → findKey` some; or
+    `errors.ErrKeyNotFound` when an ignore flag finds no key-value.
+  - `checkPut(trace, tw, lessor, p)`: `nil` (with `leaseOk` and the previous key-value present if
+    needed), `ErrLeaseNotFound` (checked first) or `ErrKeyNotFound`.
+  - `put(ctx, tw, p, prevKV)` at a write transaction `isTxnWrite mw s γ ilog pend ...` with
+    `getPrevKV`'s answer at `pendState ilog pend`, the previous key-value there if needed and the
+    lease written `leaseOk`: the change `putChangeOf o pv` pending, and `putResponseIs resp
+    (W64 ilog.length) (if o.base.prevKV then pv else none)` (the answer's own `*KeyValue` made
+    read-only).
+  - `deleteRange(ctx, tw, dr)` at a write transaction: `delChanges (pendState ilog pend) o`
+    pending (the range's keys deleted) and `deleteRangeResponseIs resp (W64 writeRev …)
+    |rangeIn …| (if PrevKv then rangeIn … else [])`; or, with `PrevKv`, the range read's context
+    error (`ctx` done), nothing changed.
+  - `Put(ctx, lg, lessor, kv, p)`: pre `isKV ∗ storeReader ∗ revToken ∗ ownToks γ.revs m ∗ idxCert
+    γ.idx log₀ ∗ isTxnLessor le γ.leases ∗ putRequestIs p o ∗ isContext ctx cd ∗ □ (∀ ilog,
+    Pinned log₀ m ilog ∧ IgnoreLease -∗ leaseOk (the previous lease at ilog))`; post `storeReader ∗
+    ownToks m ∗ trace ≠ nil ∗` either `ErrLeaseNotFound` (lease nonzero, `resp = nil`, the token
+    back) or `∃ ilog, Pinned log₀ m ilog ∧ ilog ≠ []` and either `ErrKeyNotFound` (ignore flag, no
+    key-value at `ilog`, token and `idxCert ilog` back) or `err = nil ∗ putResponseIs resp
+    (W64 ilog.length) prev ∗ idxCert (ilog ++ [[putChangeOf o pv]]) ∗ leaseOk γ.leases (putLeaseOf
+    o pv)`, `pv = findKey o.key (stateAfter ilog)`.
+  - `DeleteRange(ctx, lg, kv, dr)`: the same pin, fewer than `2^63` keys at the pinned `ilog`;
+    post `∃ ilog` pinned, either `err = nil ∗ deleteRangeResponseIs resp (W64 (writeRev ilog dels))
+    |rangeIn (stateAfter ilog) o| prevs ∗ idxCert (commitLog ilog dels) ∗ (if dels = [] then
+    revToken else True)` (`dels = delChanges (stateAfter ilog) o`), or with `PrevKv` the context
+    error, `resp = nil`, the token and `idxCert ilog` back.
+- **The pin, as `store.Read`'s** (decision: `decisions.md`, txn entry, "Unit 1"): `Put`'s and
+  `DeleteRange`'s specs take the revision token for their transaction and, beside it, any `m`
+  tokens and certificate of `log₀` (`m = 0`, `log₀ = []`: the plain token spec), and return
+  `Pinned log₀ m ilog` (`log₀ <+: ilog ∧ ilog.length + m + 4 ≤ 2^63`), read inside the open
+  transaction (`isTxnWrite_pinned`: `soleWriter_pins_write` for any caller). After `End` nothing
+  pins `ilog` any more (the token is spent), so the sole writer's statements could not be derived
+  from a spec with the token alone. At the sole writer (`m = soleBudget log - 1`) `Pinned` is
+  `ilog = log` (`pinned_sole`).
+- **Two premises the code needs** (stated on the specs, not findings): (1) with `IgnoreLease`, the
+  lease `put` writes is the previous key-value's, which mvcc's `Put` attaches (`Attach` needs
+  `leaseKnown`; Go panics on an unknown lease): `Put` takes `leaseOk` of the previous lease at the
+  pinned log (the sole writer: at its own log), and returns `leaseOk` of the lease it wrote, so a
+  sole writer can keep "every lease in the state is known" by itself (not proved here: mvcc has
+  no invariant on the leases in its state). (2) `DeleteRange` needs fewer than `2^63` keys
+  (mvcc's `DeleteRange` premise).
+- **`metricsTxnWrite.Range` of either kind; a range read at `context.TODO()`** (mvcc change,
+  minimal, `decisions.md`): `getPrevKV` calls `Range` on the *write* transaction, through
+  `mvcc.ReadView`, at `context.TODO()`. mvcc's `metricsTxnWrite.Range` spec was for a read
+  transaction and an `isContext` only, and `context.TODO()`'s `todoCtx{}` is not an `isContext`
+  (its `Done()` is `nil`). Now `metricsTxnWrite.Range` is over `isTxn mw s γ kind` (as `End`; a
+  write transaction's range is `storeTxnWrite.Range`'s: `ilog ++ [pend]` at `writeRev`,
+  `TxnKind.readLog`/`readRev`), and `rangeKeys`, `storeTxnCommon.Range`, `storeTxnWrite.Range`
+  and `metricsTxnWrite.Range` take the context as `rangeCtx todo ctx cd` (`isContext ctx cd`, or
+  `ctx = todoCtxV` when `todo`) and return `todo = true → r ≠ null` (at `context.TODO()` the
+  `select` on `Done()` takes its default: `wp_select_nonblocking_nil`; no context error). New
+  file `mvcc/TxnRange.lean` (`rangeCtx`, `rangeDone`, `rangeCtx_Done`, `wp_todoCtx_Done`,
+  `wp_select1_alt_or_nil`, `readLog`/`readRev`). The old statement is the instance `kind :=
+  .read log rev`, `todo := false` (`readView.Range` and `txnReadWrite.Range` use it, their specs
+  unchanged). mvcc's link list: `metricsTxnWrite__Range: storeTxnCommon__Range
+  storeTxnWrite__Range`. So `Put`'s spec has no context-error case; unit 3 (`applyCompare` reads
+  at `context.TODO()` too) can use the same.
+- **`Write.lean`** (shared, pure and Iris): `putChangeOf`/`putValOf`/`putLeaseOf`,
+  `applyChange_putChangeOf`/`stateAfter_put` (the server's put is the client's `putTxnOp`),
+  `delChanges`, `delKeys_client`, `stateAfter_commit_delete` (the delete is the client's filter),
+  `srvEnd_mkGte` (`mkGteRange`'s slice is `srvEnd (rangeEndOf …)`), `pendState`, `kindState`,
+  `KindOk`, `isTxn_kindOk`, `isTxnWrite_facts`, `Pinned`, `isTxnWrite_pinned`, `pinned_sole`,
+  `rangeAnswers_one`, `prevKvIs`, `prevKvIs_of_outcome`, `rangeOutcome_sel`, `zip_kvsIs`,
+  `kvPtrIs_kvIs`/`kvPtrIs_not_null` (a range result's fresh `*KeyValue` made `kvIs`),
+  `errVarIs`, `leaseOk`, `todoCd`, and `wp_slice_literal_nn` (Perennial's `wp_slice_literal`
+  keeping `typedPointsto_not_null`: `[]byte{}` is not `nil`, so mvcc's `decide (end = nil)` is
+  `false` for `mkGteRange("\x00")`).
+- **Responses**: `putResponseIs`'s `PrevKv` is the range result's own pointer; the result is
+  dropped, so its `*KeyValue` is made read-only (`kvIs`) and shared, no change to unit 0's
+  predicates. The responses' fields are persisted after their last store (`wp_fupd` in
+  `deleteRange`, where the stores are the last steps).
+- **Results** (`Results.lean`, `#print axioms` of each, no `sorryAx`): `put_putKv` and
+  `deleteRange_filter` (the specs restated; the committed states `stateAfter_put`,
+  `stateAfter_commit_delete`), `put_put`, `deleteRange_deleteRange`, `put_checkPut` (for unit 3),
+  `put_soleWriter` and `deleteRange_soleWriter`: derived triples with `soleWriter γ log` for the
+  token: the commit is at `log`, `soleWriter γ (log ++ [[c]])` (or `soleWriter γ (commitLog log
+  dels)`, or `soleWriter γ log` on an error) comes back, and the committed state is the client's
+  `applyTxnOp`.
+- **`gen-link.py`**: an `@` callee's result takes `[go_etcd_io.etcd.cache.v3.Assumptions]` when
+  its own package's `Link.lean` gives it them (mvcc's write path reaches the index's btree); so
+  do the txn results that reach one. Every mode's `Link.lean` reproduces.
+- **Findings**: none in the Go code. The ignore flags' `prevKV.KVs[0]` in `put` is safe in `Put`
+  (`checkAndGetPrevKV` found the key in the same write transaction); `checkLease` checks `Lease`
+  even with `IgnoreLease` (the client rejects that combination; a behavior, not a bug).
+- **Gates**: full `lake build --packages=.lake/manifest-merge.json` clean (2525 jobs); `gen-link.py` reproduces
+  every mode's `Link.lean` (`--txn`, `--mvcc` regenerated: mvcc's adds `storeTxnWrite.wp_Range` as a
+  callee of `metricsTxnWrite.wp_Range`); `tcb-report.py --check`: the baseline matches (69
+  axioms, 1 sorry: no axiom added or removed); `--collection txn.txt --check --update`: 20 axioms,
+  0 sorries (was 17: `proto.Marshal`, `proto.Unmarshal`, `binary.bigEndian.PutUint64`, mvcc's
+  existing axioms, now reached through mvcc's write path by the package's own results); every
+  other collection unchanged (mvcc 13/0, server 26/0, concurrency 12/1, recipes 11/0, cache 10/0,
+  leasing 8/0, raft 1/0, register 1/0, btree 0/0); `verified-code.py --reuse`: txn 9 of 48
+  functions verified (18.8%; 2 assumed, 30 translated), 110 of 653 lines (16.8%); mvcc unchanged
+  (62 of 155, 661 lines); etcd 444 verified of 3599 functions (was 435), 4483 of 45570 lines (was
+  4373).
+
 ## Merge: mvcc into lean (2026-10-11)
 
 Branch `mvcc` (25 commits: the KV core's translation, model, key index, tree index, read and

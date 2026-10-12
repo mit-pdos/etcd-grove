@@ -2850,6 +2850,30 @@ corresponding ones for `Put` (`putKv`), `DeleteRange` (the filter) and `Range`
   verified, not assumed (`InvRoTxn.lean`: its reads delegate, `Changes` is `nil`, `Put` and
   `DeleteRange` panic).
 
+- **Unit 1** (2026-10-11, `Put` and `DeleteRange`; `notes/STATUS.md`, "Unit 1"). Three changes to
+  the plan. (1) *The pin travels with the token.* A spec taking only the revision token cannot
+  give the sole writer's corollary: after `End` the token is spent and nothing bounds the log
+  the transaction found. `Put`/`DeleteRange` take, beside the token, any `ownToks γ.revs m ∗
+  idxCert γ.idx log₀` and return `Pinned log₀ m ilog` (read inside the open transaction,
+  `isTxnWrite_pinned`), as unit 0c's `store.Read`; `m = 0`, `log₀ = []` is the plain spec, the
+  sole writer's `m = soleBudget log - 1` gives `ilog = log` (`pinned_sole`), and
+  `put_soleWriter`/`deleteRange_soleWriter` are derived triples. *Rejected:* specs at the sole
+  writer only (no token-level statement for other callers). (2) *`IgnoreLease` needs a premise.*
+  The put writes the previous key-value's lease and mvcc's `Put` attaches it (`leaseKnown`); mvcc
+  has no invariant that a stored lease is known, so `Put` takes `leaseOk` of the previous lease
+  at the pinned log and returns `leaseOk` of the lease written (a sole writer can maintain "every
+  lease in its state is known" from these). *Rejected:* an mvcc invariant on the leases of the
+  committed state (`idxCert`/the writer's resources would carry it; another session's package).
+  (3) *A range read at `context.TODO()`* (mvcc, minimal): `getPrevKV` ranges on the write
+  transaction at `context.TODO()`, which is not an `isContext` (`Done()` is `nil`); the range specs
+  take `rangeCtx todo ctx cd` and promise no context error at `context.TODO()` (`todo = true → r ≠
+  null`), and `metricsTxnWrite.Range` is over `isTxn` of either kind (the plan's preferred option,
+  "a never-done context gives no error", done for `TODO` only; the caller's `isContext` keeps the
+  error case: `DeleteRange` with `PrevKv` reports it). *Rejected:* refining `rangeOutcome` itself
+  (`InvStore.lean`, every mvcc proof). The request and response predicates of unit 0 are
+  unchanged: `PrevKv`'s pointer is the range result's, made read-only (`kvIs`) since the result is
+  dropped.
+
 ## mvcc: the certificate carries the log, the token count is exact, a read is pinned by tokens
 
 2026-10-11, for the server's txn package, unit 0c (`notes/STATUS.md`, "Unit 0c"). The txn
@@ -2895,3 +2919,10 @@ gaps in mvcc's specs. Each change is minimal and keeps every spec at least as st
 Spec changes: `store.Read` (two binders, pre and post), `storeTxnWrite.End` and
 `metricsTxnWrite.End` (`txnEndPost`) posts, `NewStore` post, `newTreeIndex` post (the other half
 of `idxLogAuth γ`). The `Link.lean` binders are unchanged (`gen-link.py --mvcc` reproduces it).
+
+*Later (txn unit 1, 2026-10-11):* `metricsTxnWrite.Range` is over `isTxn mw s γ kind` (a write
+transaction's range is `storeTxnWrite.Range`'s, `TxnKind.readLog`/`readRev`), and the range specs
+(`rangeKeys`, `storeTxnCommon.Range`, `storeTxnWrite.Range`, `metricsTxnWrite.Range`) take
+`rangeCtx todo ctx cd` (an `isContext`, or `context.TODO()`'s value) with `todo = true → r ≠ null`
+in the post (`TxnRange.lean`); the old statements are the instances `kind := .read …`, `todo :=
+false`. `metricsTxnWrite.Range` links `storeTxnWrite.Range` too.
