@@ -2938,6 +2938,21 @@ corresponding ones for `Put` (`putKv`), `DeleteRange` (the filter) and `Range`
   (7) `compareIs` states the operand's wrapper is not a typed `nil`; `checkTxn` returns `0` on an
   error; `metricsTxnWrite.Rev` of either kind, `metricsTxnWrite.Changes` added (mvcc, additive).
 
+- **Unit 4 (the history laws of the log, 2026-10-12).** `HistoryLaws.lean` proves the pure content
+  of the client's history axioms of `stateAt` (and of `stateAtPfx`, its restriction to a prefix):
+  they *validate* the axioms against the server's model, they do not discharge them (`etcdState`
+  stays an abstract axiom; a later refactor could instantiate it by the log). Each law takes the
+  weakest hypothesis it needs: `create_persist`, `modrev_persist`, `modrev_det` only the word bound
+  `log.length < 2^63`; `revs` `LogOk` and **`NoDupKeysPerRev`**. That one is **what the client
+  axioms assume of the server** beyond `LogOk`: a revision writes a key at most once (else a key's
+  version, a word counting its puts, can wrap to a non-positive signed value). `modrev_det` does
+  not need it, against the plan's expectation (only the later of two writes of a key in one
+  revision survives it). The commit keeps both (`LogOk.snoc`, `NoDupKeysPerRev.snoc`), the latter
+  exactly when the transaction passes etcd's `checkIntervals` (`keys_nodup_iff_check`), which unit
+  3 takes as the premise of a writing transaction. *Rejected:* a bound on the log's total change
+  count instead of `NoDupKeysPerRev` (it bounds versions too, but is no fact etcd states; the
+  distinct keys are its rule).
+
 ## mvcc: the certificate carries the log, the token count is exact, a read is pinned by tokens
 
 2026-10-11, for the server's txn package, unit 0c (`notes/STATUS.md`, "Unit 0c"). The txn

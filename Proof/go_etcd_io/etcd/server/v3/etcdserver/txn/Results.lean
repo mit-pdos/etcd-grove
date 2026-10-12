@@ -13,6 +13,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.RangeLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.SoleWriter
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.HistoryLaws
 
 @[expose] public section
 
@@ -580,3 +581,33 @@ end Perennial
 #print axioms Perennial.EtcdGrove.mvcc.txnReadWrite.wp_Changes
 #print axioms Perennial.EtcdGrove.mvcc.txnReadWrite.wp_Put
 #print axioms Perennial.EtcdGrove.mvcc.txnReadWrite.wp_DeleteRange
+
+/-! ## Unit 4: the history laws of the log (`HistoryLaws.lean`)
+
+The server's log model validates the client's history axioms: each `etcdState_*` law holds of
+`stateAt` (per prefix: `stateAtPfx`); `revs` needs `NoDupKeysPerRev` (a revision writes a key at
+most once) for the version, the others only the word bound. A commit keeps `LogOk` and
+`NoDupKeysPerRev` when it passes etcd's check of a transaction's requests. These validate the
+axioms; they do not discharge them (`etcdState` is abstract).
+-/
+
+section unit4
+#print axioms Perennial.EtcdGrove.txn.stateAt_revInv
+#print axioms Perennial.EtcdGrove.txn.stateAt_revs
+#print axioms Perennial.EtcdGrove.txn.stateAt_create_persist
+#print axioms Perennial.EtcdGrove.txn.stateAt_modrev_persist
+#print axioms Perennial.EtcdGrove.txn.stateAt_modrev_det
+#print axioms Perennial.EtcdGrove.txn.stateAtPfx_agree
+#print axioms Perennial.EtcdGrove.txn.stateAtPfx_wf
+#print axioms Perennial.EtcdGrove.txn.stateAtPfx_revs
+#print axioms Perennial.EtcdGrove.txn.stateAtPfx_create_persist
+#print axioms Perennial.EtcdGrove.txn.stateAtPfx_modrev_det
+#print axioms Perennial.EtcdGrove.txn.stateAtPfx_modrev_persist
+#print axioms Perennial.EtcdGrove.txn.stateAt_of_prefix
+#print axioms Perennial.EtcdGrove.txn.stateAtPfx_of_prefix
+#print axioms Perennial.EtcdGrove.txn.LogOk.snoc
+#print axioms Perennial.EtcdGrove.txn.NoDupKeysPerRev.snoc_iff
+#print axioms Perennial.EtcdGrove.txn.keys_nodup_iff_check
+#print axioms Perennial.EtcdGrove.txn.NoDupKeysPerRev.snoc
+#print axioms Perennial.EtcdGrove.txn.sel_keys_nodup
+end unit4

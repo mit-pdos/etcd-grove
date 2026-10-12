@@ -597,6 +597,63 @@ package's `compareInt64` is `txn_compareInt64` there, leasing has one too). Deci
   lines; `metricsTxnWrite.Changes`/`Rev` are promoted methods, outside the totals); etcd 474 of
   3599 functions, 4943 of 45570 lines (was 462, 4647).
 
+### Unit 4: the history laws of the log (2026-10-12)
+
+Branch `txn-u4` (main tree, off `lean` at `10cc14b29`). `Proof/.../etcdserver/txn/HistoryLaws.lean`
+(pure Lean, standard axioms only; `#print axioms` in `Results.lean`, `section unit4`). The client's
+history axioms (`etcdState_*`, `InvEtcd.lean`/`InvEtcdTxn.lean`) are stated over the abstract
+`etcdState`; these theorems show that each law holds of the server's log model (`stateAt log r`,
+for `r < log.length`; per prefix `stateAtPfx log r pfx`, the filter by `pfx <+: key`). They
+**validate** the axioms against the server model, they do not discharge them (nothing links
+`etcdState` to a log yet). Each law and what it needs:
+
+- **`revs`** (`stateAt_revs`): positive create revision, create ≤ mod ≤ `r`, positive version.
+  Needs `LogOk` (revision 0 empty, `log[0]? = some []`, for a positive create revision; the word
+  bound) and **`NoDupKeysPerRev log`** (each revision's changes have distinct keys) for the
+  version only. *Counterexample without it:* a revision may put one key many times (`LogOk` bounds
+  only each revision's change count, below `2^63`): two revisions of `2^62` puts of `k` each give
+  `k` version `2^63`, whose signed value is negative. With it, a record created at `c` and
+  modified last at `m` has version at most `m - c + 1` (`KvInv`). The revision parts alone need
+  only `log.length < 2^63` (`stateAt_revInv`). (Unit 2 met the same unbounded version in the
+  sort's comparators: its `LogSmall`.)
+- **`create_persist`** (`stateAt_create_persist`): only `log.length < 2^63`. A record whose
+  create revision is not the current revision's had its key, with that create revision, before
+  it (`mem_applyChanges_createRev`); a delete-and-recreate in one revision gives the new record
+  that revision as its create revision, so no counterexample.
+- **`modrev_persist`** (`stateAt_modrev_persist`): only `log.length < 2^63` (a record whose mod
+  revision is not the revision's was there before it, `mem_applyChanges_modRev`).
+- **`modrev_det`** (`stateAt_modrev_det`): only `log.length < 2^63`, **not** `NoDupKeysPerRev`:
+  the expected counterexample (`[.put k v1 l, .put k v2 l']` in one revision: one mod revision,
+  two records) is not one, since only the later record survives the revision; by
+  `modrev_persist` both records of the law are in the state at their mod revision, which holds
+  one record per key (sorted). No other counterexample found (delete-and-recreate within a
+  revision: the same argument).
+- **`agree`** (`stateAtPfx_agree`): `stateAtPfx` is a function. `stateAtPfx_wf`: its states are
+  `EtcdStateWf` (keys strictly increasing, under the prefix). The four laws per prefix
+  (`stateAtPfx_revs`, `_create_persist`, `_modrev_det`, `_modrev_persist`) follow.
+- **`etcdReachedAt`** has no pure law (its only axiom is `Timeless`). The log analogue of what it
+  is used for: a revision's state is fixed once the log has it (`stateAt_of_prefix`,
+  `stateAtPfx_of_prefix`: a longer log has the same state at every revision of the shorter one).
+- **A commit keeps the hypotheses.** `LogOk.snoc`: `LogOk (log ++ [pend])` from `LogOk log`, the
+  word bounds, and `DelsPresent` (the commit's deletes are of keys present when they run:
+  `LogWf`'s condition for the one revision). `NoDupKeysPerRev.snoc_iff`: kept iff the commit's
+  keys are distinct; `keys_nodup_iff_check`: for a revision with `DelsPresent`, its keys are
+  distinct **iff its put keys are distinct and none of them is also deleted** — etcd's
+  `checkIntervals` (v3rpc, "duplicate key given in txn request": distinct put keys, no put key in
+  a delete's range); two deletes of one key need a put between them, which the check excludes.
+  `NoDupKeysPerRev.snoc` packages it; `sel_keys_nodup`: a range delete's keys (`delKeys_eq`'s
+  `(srvSel s …).map key`) are distinct. Unit 3 instantiates it with `runOps`' changes (a put
+  `.put k v l`, a delete `(delKeys …).map .del`): its premise is the client's transaction passing
+  that check (the check is in the gRPC layer, not in the apply path the proof covers).
+
+**What the client axioms assume of the server**, beyond `LogOk`: `NoDupKeysPerRev` (a revision
+writes a key at most once), for `etcdState_revs`'s positive version only.
+
+Gates: `lake build --packages=.lake/manifest-merge.json` of `HistoryLaws` and `Results` clean, no
+`sorry`, `#print axioms` standard only (`propext`, `Classical.choice`, `Quot.sound`). The
+`tcb-report.py --collection txn.txt --check` not run (`.lake/tcb.json` not current; the merge runs
+it); no new axiom.
+
 ## Merge: mvcc into lean (2026-10-11)
 
 Branch `mvcc` (25 commits: the KV core's translation, model, key index, tree index, read and
