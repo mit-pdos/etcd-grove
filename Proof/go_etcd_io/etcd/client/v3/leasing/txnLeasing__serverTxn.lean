@@ -61,6 +61,7 @@ theorem txnLeasing.serverTxn.wp_proof
   icases Hcso with ⟨%cvs, #Hcv, -, %Hcl, #Hcall⟩
   icases Htso with ⟨%tvs, #Htv, Htcap, %Htl, #Htall⟩
   icases Heso with ⟨%evs, #Hev, -, %Hel, #Heall⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   wp_apply hws $$ [$Hlkv $Hrd $Hctx] as %err ⟨Hrd, Hw⟩
   unfold sessionReadyQ

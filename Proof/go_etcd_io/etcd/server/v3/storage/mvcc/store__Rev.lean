@@ -43,6 +43,7 @@ theorem mvcc.store.Rev.wp_proof
   iNamed Hrv
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply hTODO as %t %Ht

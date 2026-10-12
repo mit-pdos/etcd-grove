@@ -85,11 +85,11 @@ noncomputable def JointConfig.String.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "c" (App (Val (GoInstruction (GoAlloc JointConfig.ty))) (Var "c"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType MajorityConfig.ty) go!"String"))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 0))))) (Val #())))))
+  (App (App (Val (GoInstruction (MethodResolve MajorityConfig.ty go!"String"))) (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 0)))))) (Val #())))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 1)))))
   (App (App (Val (GoInstruction (FuncResolve go.len [MajorityConfig.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType MajorityConfig.ty) go!"String"))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 0))))) (Val #())) (Val #(go!"&&")))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType MajorityConfig.ty) go!"String"))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 1))))) (Val #())))))
+  (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (App (Val (GoInstruction (MethodResolve MajorityConfig.ty go!"String"))) (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 0)))))) (Val #())) (Val #(go!"&&")))) (App (App (Val (GoInstruction (MethodResolve MajorityConfig.ty go!"String"))) (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 1)))))) (Val #())))))
   (App (Val doExecute)
   (Val #()))))))))
 
@@ -145,7 +145,7 @@ noncomputable def JointConfig.Describe.impl [FfiSyntax] [GoGlobalContext] : val 
   (Let "l" (App (Val (GoInstruction (GoAlloc AckedIndexer.ty))) (Var "l"))
   (App (Val doReturn)
   (Let "$a0" (App (Val (GoInstruction (GoLoad AckedIndexer.ty))) (Var "l"))
-  (App (App (Val (GoInstruction (MethodResolve MajorityConfig.ty go!"Describe"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType JointConfig.ty) go!"IDs"))) (Var "c")) (Val #()))) (Var "$a0")))))))))
+  (App (App (Val (GoInstruction (MethodResolve MajorityConfig.ty go!"Describe"))) (App (App (Val (GoInstruction (MethodResolve JointConfig.ty go!"IDs"))) (App (Val (GoInstruction (GoLoad JointConfig.ty))) (Var "c"))) (Val #()))) (Var "$a0")))))))))
 
 /-- CommittedIndex returns the largest committed index for the given joint
     quorum. An index is jointly committed if it is committed in both constituent
@@ -159,11 +159,11 @@ noncomputable def JointConfig.CommittedIndex.impl [FfiSyntax] [GoGlobalContext] 
   (Let "c" (App (Val (GoInstruction (GoAlloc JointConfig.ty))) (Var "c"))
   (Let "l" (App (Val (GoInstruction (GoAlloc AckedIndexer.ty))) (Var "l"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad AckedIndexer.ty))) (Var "l"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType MajorityConfig.ty) go!"CommittedIndex"))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 0))))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve MajorityConfig.ty go!"CommittedIndex"))) (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 0)))))) (Var "$a0")))
   (Let "idx0" (App (Val (GoInstruction (GoAlloc Index'.ty))) (App (Val (GoInstruction (GoZeroVal Index'.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad AckedIndexer.ty))) (Var "l"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType MajorityConfig.ty) go!"CommittedIndex"))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 1))))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve MajorityConfig.ty go!"CommittedIndex"))) (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 1)))))) (Var "$a0")))
   (Let "idx1" (App (Val (GoInstruction (GoAlloc Index'.ty))) (App (Val (GoInstruction (GoZeroVal Index'.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -191,11 +191,11 @@ noncomputable def JointConfig.VoteResult.impl [FfiSyntax] [GoGlobalContext] : va
   (Let "c" (App (Val (GoInstruction (GoAlloc JointConfig.ty))) (Var "c"))
   (Let "votes" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 go.bool)))) (Var "votes"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (Var "votes"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType MajorityConfig.ty) go!"VoteResult"))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 0))))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve MajorityConfig.ty go!"VoteResult"))) (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 0)))))) (Var "$a0")))
   (Let "r1" (App (Val (GoInstruction (GoAlloc VoteResult.ty))) (App (Val (GoInstruction (GoZeroVal VoteResult.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (Var "votes"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType MajorityConfig.ty) go!"VoteResult"))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 1))))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve MajorityConfig.ty go!"VoteResult"))) (App (Val (GoInstruction (GoLoad MajorityConfig.ty))) (App (Val (GoInstruction (IndexRef JointConfig.ty))) (Pair (Var "c") (Val #(W64 1)))))) (Var "$a0")))
   (Let "r2" (App (Val (GoInstruction (GoAlloc VoteResult.ty))) (App (Val (GoInstruction (GoZeroVal VoteResult.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon

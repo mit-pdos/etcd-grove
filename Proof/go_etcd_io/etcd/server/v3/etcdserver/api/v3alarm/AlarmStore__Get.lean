@@ -54,6 +54,7 @@ theorem v3alarm.AlarmStore.Get.wp_proof :
   iunfold isAlarmStore at Ha
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply sync.Mutex.wp_Lock $$ [$Ha] as ⟨Hlocked, HR⟩

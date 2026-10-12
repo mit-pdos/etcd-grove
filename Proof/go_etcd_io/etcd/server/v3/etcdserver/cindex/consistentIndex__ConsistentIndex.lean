@@ -38,6 +38,7 @@ theorem consistentIndex.ConsistentIndex.wp_proof
   · iPkgInit
   ihave #Hsch : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   iunfold isCI at Hci
   icases Hci with ⟨#Hinv, #Hmu⟩

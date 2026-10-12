@@ -467,7 +467,8 @@ noncomputable def intervalTree.Delete.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doReturn)
   (Val #true))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt")))) (Val #(W64 1))))))))))
+  (Let "$opa" (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt")))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$opa") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$opa")) (Val #(W64 1)))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals rbcolor.ty))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"sentinel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType intervalNode.ty) go!"color"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "y"))) (Var "$a0"))) (Val black))))
   (App (Val doExecute)
@@ -816,7 +817,8 @@ noncomputable def intervalTree.Insert.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt")))) (Val #(W64 1)))))))))
+  (Let "$opa" (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt")))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$opa") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$opa")) (Val #(W64 1))))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "z"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType intervalTree.ty) go!"insertFixup"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))) (Var "$a0")))))))

@@ -43,6 +43,7 @@ theorem waitDelete.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
   ihave #Hcl' := Hcl
   iunfold isEtcdMutexClient at Hcl'
   icases Hcl' with ⟨%kv, %wt, %cctx, %ccs, -, #Hwf, -, -, -, -, -, #HW⟩
+  wp_auto
   wp_apply wp_with_defer
   iintro %defer Hdefer
   (try wp_auto)

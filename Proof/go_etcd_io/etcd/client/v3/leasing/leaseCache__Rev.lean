@@ -26,6 +26,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 theorem leaseCache.Rev.wp_proof : leaseCache.Rev.spec (GF := GF) (hG := hG) := by
   intro lc γ pfx X Qr key
   wp_start as ⟨#Hlc, Hrd, #Hpeek⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

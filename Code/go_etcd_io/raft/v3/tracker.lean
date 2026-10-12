@@ -156,9 +156,12 @@ noncomputable def Inflights.Add.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"bytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in"))) (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"bytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "bytes")))))))))
+  (Let "$opy" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "bytes"))
+  (Let "$opa" (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"bytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in")))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$opa") (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$opa")) (Var "$opy"))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in"))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in")))) (Val #(W64 1))))))))))
+  (Let "$opa" (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in")))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$opa") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$opa")) (Val #(W64 1)))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore inflight.ty))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType inflight.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType inflight.ty)))) (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "next")))) (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "next")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType inflight.ty)))) (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in"))))
@@ -169,7 +172,8 @@ noncomputable def Inflights.Add.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "next")) (App (Val (GoInstruction (GoLoad go.int))) (Var "size")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "next") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "next")) (App (Val (GoInstruction (GoLoad go.int))) (Var "size")))))))
+  (Let "$opy" (App (Val (GoInstruction (GoLoad go.int))) (Var "size"))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "next") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "next")) (Var "$opy")))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -177,9 +181,8 @@ noncomputable def Inflights.Add.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "next") (Var "$r0")))))))))
   (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Inflights.ty) go!"Full"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in"))) (Val #()))
-  (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"cannot add into a Full inflights")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0")))
   (App (Val doExecute)
   (Val #()))))))))))))
 
@@ -259,9 +262,13 @@ noncomputable def Inflights.FreeLE.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"start"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in"))) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"bytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in"))) (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"bytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in")))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "bytes"))))))))))
+  (Let "$opy" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "bytes"))
+  (Let "$opa" (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"bytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in")))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$opa") (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$opa")) (Var "$opy")))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in"))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))))))
+  (Let "$opy" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
+  (Let "$opa" (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in")))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$opa") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$opa")) (Var "$opy")))))))))))
   (Let "$r0" (Val #(W64 0))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
@@ -274,7 +281,8 @@ noncomputable def Inflights.FreeLE.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "idx")) (App (Val (GoInstruction (GoLoad go.int))) (Var "size")))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "idx") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "idx")) (App (Val (GoInstruction (GoLoad go.int))) (Var "size")))))))
+  (Let "$opy" (App (Val (GoInstruction (GoLoad go.int))) (Var "size"))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "idx") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "idx")) (Var "$opy")))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -282,7 +290,8 @@ noncomputable def Inflights.FreeLE.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "size") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "bytes") (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "bytes")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef inflight.ty go!"bytes"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType inflight.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType inflight.ty)))) (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "idx"))))))))))))))
+  (Let "$opy" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef inflight.ty go!"bytes"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType inflight.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType inflight.ty)))) (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "idx"))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "bytes") (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "bytes")) (Var "$opy"))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "to")) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef inflight.ty go!"index"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType inflight.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType inflight.ty)))) (App (Val (GoInstruction (StructFieldRef Inflights.ty go!"buffer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (Var "in")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "idx")))))))))
   (App (Val doBreak) (Val #()))
   (App (Val doExecute)
@@ -493,7 +502,9 @@ noncomputable def Progress.SentEntries.impl [FfiSyntax] [GoGlobalContext] : val 
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "bytes"))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Inflights.ty) go!"Add"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Inflights.ty)))) (App (Val (GoInstruction (StructFieldRef Progress.ty go!"Inflights"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))))) (Var "$a0")) (Var "$a1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (StructFieldRef Progress.ty go!"Next"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))) (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef Progress.ty go!"Next"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr")))) (App (Val (GoInstruction (Convert go.int go.uint64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "entries")))))))))
+  (Let "$opy" (App (Val (GoInstruction (Convert go.int go.uint64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "entries")))
+  (Let "$opa" (App (Val (GoInstruction (StructFieldRef Progress.ty go!"Next"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr")))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$opa") (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$opa")) (Var "$opy")))))))))
   (App (Val doExecute)
   (Val #()))))
   (If (App (Val (GoInstruction (GoOp GoEquals StateType.ty))) (Pair (Var "$sw") (Val StateProbe)))
@@ -503,12 +514,11 @@ noncomputable def Progress.SentEntries.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef Progress.ty go!"MsgAppFlowPaused"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr"))) (Var "$r0")))))
   (App (Val doExecute)
   (Val #())))
-  (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Let "$a0" (Val #(go!"sending append in unhandled state %s"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert StateType.ty go.any))) (App (Val (GoInstruction (GoLoad StateType.ty))) (App (Val (GoInstruction (StructFieldRef Progress.ty go!"State"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Progress.ty)))) (Var "pr")))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0")))))))))))))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))))))))))
 
 /-- CanBumpCommit returns true if sending the given commit index can potentially
     advance the follower's commit index.
@@ -666,9 +676,8 @@ noncomputable def Progress.IsPaused.impl [FfiSyntax] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (GoOp GoEquals StateType.ty))) (Pair (Var "$sw") (Val StateSnapshot)))
   (App (Val doReturn)
   (Val #true))
-  (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"unexpected state")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))))))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0")))))))))))
 
 /-- go: progress.go:275:21 -/
 noncomputable def Progress.String.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -950,8 +959,8 @@ noncomputable def ProgressTracker.ConfState.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val exceptionDo)
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))
   (App (Val doReturn)
-  (Let "$v0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty) go!"Slice"))) (App (Val (GoInstruction (IndexRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Voters"))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p")))) (Val #(W64 0))))) (Val #()))
-  (Let "$v1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty) go!"Slice"))) (App (Val (GoInstruction (IndexRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Voters"))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p")))) (Val #(W64 1))))) (Val #()))
+  (Let "$v0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty go!"Slice"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (IndexRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Voters"))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p")))) (Val #(W64 0)))))) (Val #()))
+  (Let "$v1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty go!"Slice"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (IndexRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Config.ty go!"Voters"))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p")))) (Val #(W64 1)))))) (Val #()))
   (Let "$v2" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty go!"Slice"))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Learners"))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p")))))) (Val #()))
   (Let "$v3" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty go!"Slice"))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"LearnersNext"))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p")))))) (Val #()))
   (Let "$v4" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"AutoLeave"))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p")))))
@@ -1013,7 +1022,7 @@ noncomputable def ProgressTracker.Committed.impl [FfiSyntax] [GoGlobalContext] :
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))
   (App (Val doReturn)
   (Let "$a0" (App (Val (GoInstruction (Convert matchAckIndexer.ty _root_.Perennial.go_etcd_io.raft.v3.quorum.AckedIndexer.ty))) (App (Val (GoInstruction (GoLoad ProgressMap.ty))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Progress"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty) go!"CommittedIndex"))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Voters"))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))))) (Var "$a0"))))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"CommittedIndex"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Voters"))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p")))))) (Var "$a0"))))))))
 
 /-- Visit invokes the supplied closure for all tracked progresses in stable order.
 
@@ -1094,7 +1103,7 @@ noncomputable def ProgressTracker.QuorumActive.impl [FfiSyntax] [GoGlobalContext
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteResult.ty))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (Var "votes"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty) go!"VoteResult"))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Voters"))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))))) (Var "$a0"))) (Val _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteWon))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"VoteResult"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Voters"))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p")))))) (Var "$a0"))) (Val _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteWon))))))
   (App (Val doExecute)
   (Let "$a0" (Lam "id"
   (Lam "pr"
@@ -1125,7 +1134,7 @@ noncomputable def ProgressTracker.VoterNodes.impl [FfiSyntax] [GoGlobalContext] 
   (Lam BAnon
   (App (Val exceptionDo)
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty) go!"IDs"))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Voters"))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"IDs"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Voters"))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p")))))) (Val #()))
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType go.uint64)]))) (Val #())) (Val #(W64 0))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Var "m"))
@@ -1264,7 +1273,7 @@ noncomputable def ProgressTracker.TallyVotes.impl [FfiSyntax] [GoGlobalContext] 
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 go.bool)))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Votes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty) go!"VoteResult"))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Voters"))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p"))))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty go!"VoteResult"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"Voters"))) (App (Val (GoInstruction (StructFieldRef ProgressTracker.ty go!"Config"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ProgressTracker.ty)))) (Var "p")))))) (Var "$a0")))
   (Let "result" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteResult.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteResult.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)

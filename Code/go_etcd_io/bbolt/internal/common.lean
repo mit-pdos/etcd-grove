@@ -226,13 +226,15 @@ noncomputable def Pgids.Swap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
+  (Let "$l0" (App (Val (GoInstruction (IndexRef Pgids.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))
+  (Let "$l1" (App (Val (GoInstruction (IndexRef Pgids.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (IndexRef Pgids.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))
   (Let "$r1" (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (IndexRef Pgids.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Pgid.ty))) (Pair (App (Val (GoInstruction (IndexRef Pgids.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))) (Var "$r1"))))))
+  (App (Val (GoInstruction (GoStore Pgid.ty))) (Pair (Var "$l1") (Var "$r1"))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Pgid.ty))) (Pair (App (Val (GoInstruction (IndexRef Pgids.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoStore Pgid.ty))) (Pair (Var "$l0") (Var "$r0")))))))))))))))))
 
 /-- go: page.go:347:16 -/
 noncomputable def Pgids.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -341,7 +343,7 @@ noncomputable def Mergepgids.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "follow"))
   (Let "$r1" (Let "$s" (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "lead"))
-  (App (Val (GoInstruction (Slice Pgids.ty))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))) (App (App (Val (GoInstruction (FuncResolve go.len [Pgids.ty]))) (Val #())) (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "lead"))))))
+  (App (Val (GoInstruction (Slice Pgids.ty))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))) (App (App (Val (GoInstruction (FuncResolve go.len [Pgids.ty]))) (Val #())) (Var "$s")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Pgids.ty))) (Pair (Var "follow") (Var "$r1"))))))
@@ -400,7 +402,6 @@ noncomputable def Mergepgids.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.len [Pgids.ty]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "a"))
   (App (App (Val (GoInstruction (FuncResolve go.len [Pgids.ty]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "b"))
   (App (App (Val (GoInstruction (FuncResolve go.len [Pgids.ty]))) (Val #())) (Var "$a0"))))))))
-  (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.error (go.GoType.InterfaceType [])))) (Let "$a0" (Val #(go!"mergepgids bad len %d < %d + %d"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.int go.any))) (Let "$a0" (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "dst"))
   (App (App (Val (GoInstruction (FuncResolve go.len [Pgids.ty]))) (Val #())) (Var "$a0"))))
@@ -410,7 +411,7 @@ noncomputable def Mergepgids.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.len [Pgids.ty]))) (Val #())) (Var "$a0"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1"))), (KeyedElement none (ElementExpression go.any (Var "$sl2")))])))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0")))
   (App (Val doExecute)
   (Val #()))))))))))))
 

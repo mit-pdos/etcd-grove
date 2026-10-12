@@ -39,6 +39,7 @@ theorem Cache.waitTillRevision.wp_proof
     Cache.waitTillRevision.spec (GF := GF) (hG := hG) := by
   intro c cf γr γd cap ctx s rev
   wp_start as ⟨#Hc, #Hctx, Hrd⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

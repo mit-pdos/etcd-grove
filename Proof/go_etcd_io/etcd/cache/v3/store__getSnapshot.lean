@@ -61,6 +61,7 @@ theorem store.getSnapshot.wp_proof
     store.getSnapshot.spec (GF := GF) (hG := hG) := by
   intro s γ cap E R r0 rev
   wp_start as ⟨#HS, Hrd, #Hlb⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

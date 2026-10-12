@@ -31,6 +31,7 @@ theorem apply.authApplierV3.Apply.wp_proof
     apply.authApplierV3.Apply.spec (GF := GF) (hG := hG) := by
   intro E c inner p r rq skip v3 af A B
   wp_start as ⟨#Hauth, #Hinner, #Hw, HA, #Haf⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

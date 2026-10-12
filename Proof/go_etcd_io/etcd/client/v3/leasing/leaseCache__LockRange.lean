@@ -29,6 +29,7 @@ theorem leaseCache.LockRange.wp_proof (hinRange : inRange.spec (GF := GF) (hG :=
     leaseCache.LockRange.spec (GF := GF) (hG := hG) := by
   intro lc γ pfx X Qr b e
   wp_start as ⟨#Hlc, #Hpeek, #Hstep⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

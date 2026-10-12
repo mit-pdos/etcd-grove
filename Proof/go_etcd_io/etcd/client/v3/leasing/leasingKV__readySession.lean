@@ -30,6 +30,7 @@ theorem leasingKV.readySession.wp_proof
     leasingKV.readySession.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx
   wp_start as ⟨#Hlkv, Hrd⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

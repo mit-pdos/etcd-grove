@@ -102,7 +102,9 @@ noncomputable def New.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable def list.Register.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "id"
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.recvonly go.any)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.recvonly go.any)))) (Val #())))
+  (App (App (Val wrapDefer) (Lam BAnon
+  (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly go.any)))) (Var "$res0"))))
   (Lam "$defer"
   (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType list'.ty)))) (Var "w"))
   (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "id"))
@@ -115,8 +117,10 @@ noncomputable def list.Register.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$rv0" (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv go.any) (go.GoType.ChannelType go.ChanDir.recvonly go.any)))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv go.any)))) (Var "newCh")))
+  (Seq (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly go.any)))) (Pair (Var "$res0") (Var "$rv0")))
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv go.any) (go.GoType.ChannelType go.ChanDir.recvonly go.any)))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv go.any)))) (Var "newCh"))))))
+  (Val #()))))))
   (Let "__p" (App (App (Val (map.lookup2 go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint64 (go.GoType.ChannelType go.ChanDir.sendrecv go.any))))) (App (Val (GoInstruction (StructFieldRef listElement.ty go!"m"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType listElement.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType listElement.ty)))) (App (Val (GoInstruction (StructFieldRef list'.ty go!"e"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType list'.ty)))) (Var "w")))) (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "idx")))))))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "id")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -149,7 +153,7 @@ noncomputable def list.Register.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv go.any)))) (Pair (Var "newCh") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "idx") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "idx") (Var "$r0"))))))))))))))
 
 /-- go: wait.go:76:16 -/
 noncomputable def list.Trigger.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -200,7 +204,9 @@ noncomputable def list.Trigger.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable def list.IsRegistered.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "id"
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val wrapDefer) (Lam BAnon
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))
   (Lam "$defer"
   (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType list'.ty)))) (Var "w"))
   (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "id"))
@@ -217,8 +223,10 @@ noncomputable def list.IsRegistered.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$rv0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Seq (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$rv0")))
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))))
+  (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
   (App (Val doExecute)
@@ -232,7 +240,7 @@ noncomputable def list.IsRegistered.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef listElement.ty go!"l"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType listElement.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType listElement.ty)))) (App (Val (GoInstruction (StructFieldRef list'.ty go!"e"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType list'.ty)))) (Var "w")))) (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "idx"))))))) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "idx") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "idx") (Var "$r0"))))))))))))))
 
 /-- go: wait.go:100:6 -/
 noncomputable def NewWithResponse.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -272,9 +280,8 @@ noncomputable def waitWithResponse.IsRegistered.impl [FfiSyntax] [GoGlobalContex
   (App (Val exceptionDo)
   (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType waitWithResponse.ty)))) (Var "w"))
   (Let "id" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "id"))
-  (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"waitWithResponse.IsRegistered() shouldn't be called")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0")))))))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.wait where
   pkgImportedPkgs := [pkg_id.log, pkg_id.sync]

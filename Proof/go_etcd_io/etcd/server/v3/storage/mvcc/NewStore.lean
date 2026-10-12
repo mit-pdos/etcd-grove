@@ -123,6 +123,7 @@ theorem mvcc.NewStore.wp_proof
   · iPkgInit
   ihave #Hsched : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer
   iintro %defer Hdefer
   (try wp_auto)

@@ -40,6 +40,7 @@ theorem WaitPrefixEvents.wp_proof (wp_WithPrefix : EtcdGrove.WithPrefix.spec (GF
   ihave #Hcl' := Hcl
   iunfold isEtcdRecipesClient at Hcl'
   icases Hcl' with ⟨%kv, %w, -, #HWf, -, #HW⟩
+  wp_auto
   wp_apply wp_with_defer
   iintro %defer Hdefer
   (try wp_auto)

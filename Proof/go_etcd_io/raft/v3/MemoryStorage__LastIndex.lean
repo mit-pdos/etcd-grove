@@ -28,6 +28,7 @@ theorem MemoryStorage.LastIndex.wp_proof
   wp_start as ⟨Hms, %Hpnil⟩
   iunfold ownMemoryStorage at Hms
   icases Hms with ⟨#Hinit, #Hmu, Hview, %Hbounded⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

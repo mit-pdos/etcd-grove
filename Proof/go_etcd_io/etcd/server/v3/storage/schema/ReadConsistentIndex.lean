@@ -32,6 +32,7 @@ theorem schema.ReadConsistentIndex.wp_proof
   wp_start as #Hrt
   unfold metaReadTx
   icases Hrt with ⟨#HRLock, #HRUnlock, #Hrd⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   wp_apply HRLock
   wp_apply_core (hR rt E View) $$ [] [HΦ defer]

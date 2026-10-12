@@ -47,6 +47,7 @@ theorem EtcdServer.DeleteRange.wp_proof
     EtcdServer.DeleteRange.spec (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd r op
   wp_start as ⟨#Hsrv, Hrd, Hcred, #Hctx, #Hdel⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg

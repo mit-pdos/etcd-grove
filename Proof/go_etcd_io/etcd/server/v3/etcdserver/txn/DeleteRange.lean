@@ -45,6 +45,7 @@ theorem txn.DeleteRange.wp_proof
   ihave #Hdr0 := Hdr
   iunfold txn.deleteRangeRequestIs at Hdr0
   icases Hdr0 with ⟨%Hdnn, %ksl, %esl, %k, %e, %pk, #Hk, #Hks, #He, #Hes, #Hpk, %Ho⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply wp_bytes_to_string $$ [$Hks] as -

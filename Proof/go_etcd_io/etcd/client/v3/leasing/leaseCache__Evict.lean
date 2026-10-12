@@ -27,6 +27,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 theorem leaseCache.Evict.wp_proof : leaseCache.Evict.spec (GF := GF) (hG := hG) := by
   intro lc γ pfx X Qr key Q
   wp_start as ⟨#Hlc, #Hpeek, Hstep⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

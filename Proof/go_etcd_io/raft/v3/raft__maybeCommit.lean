@@ -94,6 +94,7 @@ theorem raft.maybeCommit.wp_proof
   intro cfg r id s Hlead Hid
   wp_start as H
   iNamed H
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
   icases ownRaftPhys_tracker_same cfg r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩

@@ -4,7 +4,7 @@
 module
 
 public import Spec.sort.Reverse
-public import Perennial.Proof.sort_proof.sortInterface
+public import Perennial.Proof.sort
 
 @[expose] public section
 

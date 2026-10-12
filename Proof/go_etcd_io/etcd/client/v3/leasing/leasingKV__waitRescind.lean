@@ -47,6 +47,7 @@ theorem leasingKV.waitRescind.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG
   icases HLC with ⟨-, ⟨%w, #HWf, #HW⟩, -⟩
   ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer
   iintro %defer Hdefer
   (try wp_auto)

@@ -341,6 +341,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
     EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd p rq Hid0
   wp_start as ⟨#Hsrv, Hrd, Hcred, #Hctx, #Hirr, ⟨%h0, Hhdr⟩⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   iunfold isServerReq at Hsrv
   icases Hsrv with ⟨%v, #Hv⟩

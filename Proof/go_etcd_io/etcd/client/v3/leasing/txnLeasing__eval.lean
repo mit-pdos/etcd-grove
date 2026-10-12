@@ -41,6 +41,7 @@ theorem txnLeasing.eval.wp_proof (hgather : gatherOps.spec (GF := GF) (hG := hG)
   icases ownTxnLeasing_acc $$ Htxn with ⟨%csl, %tsl, %esl, %tops, %eops, Hl, Hc, Hcs, Hts, Hes,
     #⟨Hlkv, Hctx, Hcmps, Hthen, Helse⟩, %Hops, Hback⟩
   obtain ⟨Ht, He⟩ := Hops
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave ⟨%tvs, #Htvs, Htl⟩ := opsAt_gather tsl b.thenOs tops Ht $$ Hthen
   wp_apply hgather $$ [$Htvs $Htl] as %tr ⟨Htr, %Htr4⟩

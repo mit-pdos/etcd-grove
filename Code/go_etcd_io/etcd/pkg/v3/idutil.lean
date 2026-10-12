@@ -51,15 +51,15 @@ noncomputable def NewGenerator.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (Let "now" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (Var "now"))
   (Let "memberID" (App (Val (GoInstruction (GoAlloc go.uint16))) (Var "memberID"))
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoShiftl go.uint64))) (Pair (App (Val (GoInstruction (Convert go.uint16 go.uint64))) (App (Val (GoInstruction (GoLoad go.uint16))) (Var "memberID"))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val suffixLen))))
+  (Let "$r0" (App (Val (GoInstruction (GoShift GoShiftl go.uint64 go.untypedInt))) (Pair (App (Val (GoInstruction (Convert go.uint16 go.uint64))) (App (Val (GoInstruction (GoLoad go.uint16))) (Var "memberID"))) (Val suffixLen)))
   (Let "prefix" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoDiv go.uint64))) (Pair (App (Val (GoInstruction (Convert go.int64 go.uint64))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"UnixNano"))) (Var "now")) (Val #()))) (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.uint64))) (App (Val (GoInstruction (GoOp GoDiv _root_.Perennial.time.Duration.ty))) (Pair (Val _root_.Perennial.time.Millisecond) (Val _root_.Perennial.time.Nanosecond))))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoDiv go.uint64))) (Pair (App (Val (GoInstruction (Convert go.int64 go.uint64))) (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.time.Time.ty go!"UnixNano"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "now"))) (Val #()))) (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.uint64))) (App (Val (GoInstruction (GoOp GoDiv _root_.Perennial.time.Duration.ty))) (Pair (Val _root_.Perennial.time.Millisecond) (Val _root_.Perennial.time.Nanosecond))))))
   (Let "unixMilli" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoShiftl go.uint64))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "unixMilli"))
+  (Let "$r0" (App (Val (GoInstruction (GoShift GoShiftl go.uint64 go.untypedInt))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "unixMilli"))
   (Let "$a1" (App (Val (GoInstruction (Convert go.untypedInt go.uint))) (Val tsLen))
-  (App (App (App (Val (GoInstruction (FuncResolve lowbit []))) (Val #())) (Var "$a0")) (Var "$a1")))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val cntLen))))
+  (App (App (App (Val (GoInstruction (FuncResolve lowbit []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val cntLen)))
   (Let "suffix" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -106,7 +106,7 @@ noncomputable def lowbit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "n" (App (Val (GoInstruction (GoAlloc go.uint))) (Var "n"))
   (Let "x" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "x"))
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "x")) (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val _root_.Perennial.math.MaxUint64)) (App (Val (GoInstruction (Convert go.uint go.uint64))) (App (Val (GoInstruction (GoOp GoSub go.uint))) (Pair (Val #(W64 64)) (App (Val (GoInstruction (GoLoad go.uint))) (Var "n")))))))))))))))
+  (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "x")) (App (Val (GoInstruction (GoShift GoShiftr go.uint64 go.uint))) (Pair (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val _root_.Perennial.math.MaxUint64)) (App (Val (GoInstruction (GoOp GoSub go.uint))) (Pair (Val #(W64 64)) (App (Val (GoInstruction (GoLoad go.uint))) (Var "n"))))))))))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.idutil where
   pkgImportedPkgs := [pkg_id.math, pkg_id.sync.atomic, pkg_id.time]

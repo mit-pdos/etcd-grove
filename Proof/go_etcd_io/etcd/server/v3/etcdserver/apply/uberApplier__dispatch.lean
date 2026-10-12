@@ -203,6 +203,7 @@ theorem apply.uberApplier.dispatch.wp_proof
   · iPkgInit
   ihave #Ptxn : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   wp_apply time.wp_Now as %start -
   wp_if_destruct

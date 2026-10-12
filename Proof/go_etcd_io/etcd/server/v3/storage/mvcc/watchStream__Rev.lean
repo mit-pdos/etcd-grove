@@ -28,6 +28,7 @@ theorem mvcc.watchStream.Rev.wp_proof : mvcc.watchStream.Rev.spec (GF := GF) (hG
   wp_start as Hws
   iunfold mvcc.isWatchStream at Hws
   iNamed Hws
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

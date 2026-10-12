@@ -70,7 +70,9 @@ noncomputable def NewConsistentIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable def consistentIndex.ConsistentIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ci"
   (Lam BAnon
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val wrapDefer) (Lam BAnon
+  (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))
   (Lam "$defer"
   (Let "ci" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType consistentIndex.ty)))) (Var "ci"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -87,8 +89,10 @@ noncomputable def consistentIndex.ConsistentIndex.impl [FfiSyntax] [GoGlobalCont
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$rv0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "v"))
+  (Seq (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$rv0")))
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.uint64))) (Var "v")))))
+  (Val #()))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "v"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "term"))
@@ -110,12 +114,14 @@ noncomputable def consistentIndex.ConsistentIndex.impl [FfiSyntax] [GoGlobalCont
   (Let "index" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index")) (Val #(W64 0)))))
+  (Let "$rv0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index"))
+  (Seq (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$rv0")))
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.uint64))) (Var "index")))
+  (Val #()))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "index") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "index") (Var "$r0"))))))))))))))
 
 /-- go: cindex.go:102:28 -/
 noncomputable def consistentIndex.UnsafeConsistentIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -211,7 +217,8 @@ noncomputable def consistentIndex.UnsafeSave.impl [FfiSyntax] [GoGlobalContext] 
 noncomputable def consistentIndex.SetBackend.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ci"
   (Lam "be"
-  (App (Val wrapDefer)
+  (App (App (Val wrapDefer) (Lam BAnon
+  (Val #())))
   (Lam "$defer"
   (Let "ci" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType consistentIndex.ty)))) (Var "ci"))
   (Let "be" (App (Val (GoInstruction (GoAlloc Backend.ty))) (Var "be"))
@@ -377,7 +384,8 @@ noncomputable def UpdateConsistentIndexForce.impl [FfiSyntax] [GoGlobalContext] 
   (LamV "tx"
   (Lam "index"
   (Lam "term"
-  (App (Val wrapDefer)
+  (App (App (Val wrapDefer) (Lam BAnon
+  (Val #())))
   (Lam "$defer"
   (Let "term" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "term"))
   (Let "index" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "index"))

@@ -1,7 +1,7 @@
 module
 public import Spec.go_etcd_io.bbolt.internal.common.Mergepgids
 public import Proof.go_etcd_io.bbolt.internal.common.SliceLemmas
-public import Perennial.Proof.sort_proof.search
+public import Perennial.Proof.sort
 
 @[expose] public section
 

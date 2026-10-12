@@ -50,6 +50,7 @@ theorem MemoryStorage.Append.wp_proof
     subst Hnil
     ihave %Hslen := ownSlice_len $$ Hs
     simp only [List.length_nil] at Hslen
+    wp_auto
     wp_apply wp_with_defer as %defer defer
     wp_if_destruct
     · iapply HΦ
@@ -69,6 +70,7 @@ theorem MemoryStorage.Append.wp_proof
   have Hb0 := Hbnd e0 rfl
   ihave %Hslen := ownSlice_len $$ Hs
   simp only [List.length_cons] at Hslen Hb0
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   wp_if_destruct
   · exfalso
