@@ -1,10 +1,11 @@
 /-
-`executeRange` (`range.go`): a range on a read transaction.
-Lean-first; see `InvRange.lean`, `RangeModel.lean`.
+`executeRange` (`range.go`): a range on a transaction (`Range`'s read transaction, `Txn`'s write
+transaction or read-only wrapper). Lean-first; see `InvRange.lean`, `RangeModel.lean`,
+`InvTxn.lean`.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvRange
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvTxn
 
 @[expose] public section
 
@@ -25,21 +26,25 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `executeRange(ctx, lg, txnRead, r, withTotalCount)` on a read transaction (the `mvcc.TxnRead`
-whose dynamic type is `*metricsTxnWrite`, of the committed log `log` at revision `rev`):
-`rangeResult` (the response of the server's selection, or `ErrFutureRev`, or a context error).
-Premises: a valid sort target, and the sort's premise on the log (`sortOk`). -/
+/-- `executeRange(ctx, lg, txnRead, r, withTotalCount)` on a transaction of either kind behind a
+`*metricsTxnWrite`, or the read-only wrapper of a read transaction (`txnViewIs`): `rangeResult`
+at the log and revision the transaction reads (the response of the server's selection, or
+`ErrFutureRev`, or a context error); at a context never canceled (`nd`), no context error.
+Premises: a valid sort target, and a small sorted selection (`sortSmall`, at the state read). -/
 abbrev txn.executeRange.spec : Prop :=
-  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg mw s : Loc)
-    (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (r : Loc) (o : OpFull) (withTotal : Bool),
+  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg s : Loc)
+    (γ : mvcc.StoreNames) (tw : GoInterface) (kind : mvcc.TxnKind) (ro : Bool) (r : Loc)
+    (o : OpFull) (withTotal : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
-      mvcc.isTxnRead mw s γ log rev ∗ context.isContext ctx cd ∗ txn.rangeRequestIs r o ∗
-      ⌜txn.validSortTarget o ∧ txn.sortOk o log⌝ }}
+      txn.txnViewIs tw s γ kind ro ∗ context.isContext ctx cd ∗
+      (if nd then mvcc.neverDone cd else iprop(True)) ∗ txn.rangeRequestIs r o ∗
+      ⌜txn.validSortTarget o ∧ txn.sortSmall o (mvcc.stateAt kind.readLog
+        (sint.nat (mvcc.rangeRev kind.readRev o.base.rev)))⌝ }}
     (App (App (App (App (App (Val (@! txn.executeRange)) (Val #(GoInterface.ok ctx))) (Val #lg))
-      (Val #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface)))
-      (Val #r)) (Val #withTotal))
+      (Val #tw)) (Val #r)) (Val #withTotal))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      mvcc.isTxnRead mw s γ log rev ∗ txn.rangeResult resp err log rev o withTotal }}
+      txn.txnViewIs tw s γ kind ro ∗ txn.rangeResult resp err kind.readLog kind.readRev o withTotal ∗
+      ⌜nd = true → err = GoInterface.nil ∨ sint.Z kind.readRev < sint.Z o.base.rev⌝ }}
 
 end spec
 

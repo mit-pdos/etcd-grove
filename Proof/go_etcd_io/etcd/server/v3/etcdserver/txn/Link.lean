@@ -253,7 +253,7 @@ theorem wp_checkRange :
 
 theorem wp_executeRange [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.executeRange.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.txn.executeRange.wp_proof traceutil.wp_Get wp_rangeLimit wp_mkGteRange mvcc.metricsTxnWrite.wp_Range wp_filterRangeResults wp_sortRangeResults traceutil.Trace.wp_Step wp_asembleRangeResponse
+  EtcdGrove.txn.executeRange.wp_proof traceutil.wp_Get wp_rangeLimit wp_mkGteRange mvcc.metricsTxnWrite.wp_Range mvcc.txnReadWrite.wp_Range wp_filterRangeResults wp_sortRangeResults traceutil.Trace.wp_Step wp_asembleRangeResponse
 
 theorem wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.Range.spec (GF := GF) (hG := hG) :=
