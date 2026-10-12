@@ -29,7 +29,7 @@ abbrev DB.beginTx.spec : Prop :=
     (App (Val (dbl @!! go.GoType.PointerType DB.ty @!! go!"beginTx")) (Val #()))
   {{ (txl : Loc), RET (PairV #txl #interface.nil);
       ∃ (k : Nat) (r : Reader), ⌜σ.readers !! k = none⌝ ∗
-        ownDB I dbl γ (σ.addReader k r) ∗ ownReadTx dbl γ txl k r σ.data σ.ps }}
+        ownDB I dbl γ (σ.addReader k r) ∗ ownReadTx dbl γ txl k r σ.data σ.ps false }}
 
 end spec
 

@@ -209,12 +209,12 @@ def ownDB (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DBState) : IP
     "Hrauth" ∷ ghostMapAuth γ.readers 1 σ.readers)
 
 /-- The read transaction at `txl` of the database at `dbl`, which accounts for it as `r` under
-the key `k`. -/
+the key `k` (`managed`: inside `View`, where `Rollback` panics). -/
 def ownReadTx (dbl : Loc) (γ : DBNames) (txl : Loc) (k : Nat) (r : Reader) (data : Loc)
-    (ps : Nat) : IProp GF :=
+    (ps : Nat) (managed : Bool) : IProp GF :=
   iprop(∃ (t : Tx) (mv : internal.common.Meta),
     "Htx" ∷ txl ↦ t ∗
-    "%Ht" ∷ ⌜t.db' = dbl ∧ t.writable' = false ∧ t.pages' = map.nil ∧
+    "%Ht" ∷ ⌜t.db' = dbl ∧ t.writable' = false ∧ t.pages' = map.nil ∧ t.managed' = managed ∧
       t.root'.tx' = txl ∧ t.root'.buckets' = map.nil ∧ t.root'.nodes' = map.nil ∧
       t.root'.page' = null ∧ t.root'.rootNode' = null ∧
       mv.txid' = r.txid ∧ uint.nat mv.root'.root' = r.root ∧ uint.nat mv.pgid' = r.hwm⌝ ∗

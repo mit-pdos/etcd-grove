@@ -25,14 +25,14 @@ variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
 theorem DB.removeTx.wp_proof (hTxid : Meta.Txid.spec (GF := GF) (hG := hG))
     (hadd : TxStats.add.spec (GF := GF) (hG := hG)) :
     DB.removeTx.spec (GF := GF) (hG := hG) := by
-  intro I dbl γ σ txl k r hRem
+  intro I dbl γ σ txl k r m hRem
   wp_start as ⟨Hdb, Htx⟩
   simp only [ownDB]
   iNamed Hdb
   simp only [ownReadTx]
   iNamed Htx
   obtain ⟨Hdata', Hps', Hdsz, Hm0, Hm1, Hopen, Hfile', Hfl', Hrw⟩ := Hdv
-  obtain ⟨Htdb, Htw, Htp, _, _, _, _, _, Hmtx, _⟩ := Ht
+  obtain ⟨Htdb, Htw, Htp, _, _, _, _, _, _, Hmtx, _⟩ := Ht
   ihave %Hk := ghost_map_lookup $$ Hrauth Hkey
   imod ghost_map_delete $$ Hrauth Hkey with Hrauth
   -- the reader's token

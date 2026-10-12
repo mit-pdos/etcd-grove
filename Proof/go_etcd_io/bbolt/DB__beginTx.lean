@@ -140,7 +140,7 @@ theorem DB.beginTx.wp_proof (hinit : Tx.init.spec (GF := GF) (hG := hG))
       iframe
       ipureintro
       simp [txInitOf, newBucketOf, newReader]
-      rfl
+      exact ⟨rfl, rfl⟩
 
 end proof
 

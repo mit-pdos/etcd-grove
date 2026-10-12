@@ -24,10 +24,10 @@ database no longer accounts for it (`DBState.removeReader`), and gets its fracti
 transaction is left (its statistics merged into the database's). -/
 abbrev DB.removeTx.spec : Prop :=
   ∀ (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DBState) (txl : Loc) (k : Nat)
-    (r : Reader),
+    (r : Reader) (m : Bool),
   I.RemoveReadonlySpec →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownDB I dbl γ σ ∗
-      ownReadTx dbl γ txl k r σ.data σ.ps }}
+      ownReadTx dbl γ txl k r σ.data σ.ps m }}
     (App (Val (dbl @!! go.GoType.PointerType DB.ty @!! go!"removeTx")) (Val #txl))
   {{ RET #(); ∃ (ro : List w64) (t : Tx), ⌜σ.readers !! k = some r⌝ ∗
       ownDB I dbl γ (σ.removeReader k r ro) ∗ txl ↦ t ∗ ⌜t.db' = dbl ∧ t.writable' = false⌝ }}
