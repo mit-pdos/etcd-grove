@@ -1,6 +1,6 @@
 /-
 The database and its read transactions (sequential use: one goroutine at a time uses the
-database, with any number of transactions open), first for the read path: no writer open.
+database, with any number of read transactions open and at most one writer).
 
 **The state.** `DBState`: the file (`fd`, its bytes `bs`) and its mapping (`data`, `sz`), the
 page size, the freelist's state, and the open readers (a map from a ghost key to each
@@ -92,6 +92,11 @@ structure DBState where
   rem : Nat → Qp
   /-- The database's fraction of the fields `data`, `pageSize`. -/
   frem : Qp
+  /-- The open writer (`db.rwtx`, null if none) and its view of the current tree: accounted
+  for as a reader is (it reads the pages it does not rewrite), but no read-only transaction
+  of the freelist and no holder of a read lock. -/
+  rwtx : Loc
+  wr : Option Reader
 
 /-- The number of whole slots the mapping holds of the file. -/
 def DBState.nslots (σ : DBState) : Nat := min σ.sz σ.bs.length / σ.ps
@@ -115,12 +120,22 @@ def fracSum (a : Qp) (o : Option Qp) (whole : Qp) : Prop :=
   | none => a = whole
   | some s => a + s = whole
 
-/-- The slots: the database's part and the readers' make up the caller's half. -/
-def slotsOK (σ : DBState) : Prop :=
-  ∀ s < σ.nslots, fracSum (σ.rem s) (readersQ σ.readers (fun r => r.sees s)) halfQ
+/-- The writer's fraction added to `o` where it `sees`. -/
+def wQ (wr : Option Reader) (sees : Reader → Bool) (o : Option Qp) : Option Qp :=
+  match wr with
+  | none => o
+  | some w => if sees w then optAdd w.q o else o
 
-/-- The shared fields: the database's part and every reader's make up the whole. -/
-def fieldsOK (σ : DBState) : Prop := fracSum σ.frem (readersQ σ.readers (fun _ => true)) 1
+/-- The slots: the database's part and the readers' (and the writer's) make up the caller's
+half. -/
+def slotsOK (σ : DBState) : Prop :=
+  ∀ s < σ.nslots,
+    fracSum (σ.rem s) (wQ σ.wr (fun r => r.sees s) (readersQ σ.readers (fun r => r.sees s))) halfQ
+
+/-- The shared fields: the database's part and every reader's (and the writer's) make up the
+whole. -/
+def fieldsOK (σ : DBState) : Prop :=
+  fracSum σ.frem (wQ σ.wr (fun _ => true) (readersQ σ.readers (fun _ => true))) 1
 
 /-- A reader's pages are the file's, inside the mapping, and form its well-formed tree. -/
 def readerOK (σ : DBState) (r : Reader) : Prop :=
@@ -134,6 +149,14 @@ def mvccOK (σ : DBState) : Prop :=
   ∀ k r s, σ.readers !! k = some r → r.sees s →
     2 ≤ s ∧ W64 s ∉ σ.fl.free ∧
     ∀ t pd, σ.fl.pending !! t = some pd → W64 s ∈ pd.ids → uint.Z r.txid < uint.Z t
+
+/-- The writer: its view is a reader's (`readerOK`, MVCC: the pages it frees go pending for
+its own transaction, newer than its view), and it exists exactly when `rwtx` is set. -/
+def writerOK (σ : DBState) : Prop :=
+  (σ.wr = none ↔ σ.rwtx = null) ∧
+  ∀ w, σ.wr = some w → readerOK σ w ∧ ∀ s, w.sees s →
+    2 ≤ s ∧ W64 s ∉ σ.fl.free ∧
+    ∀ t pd, σ.fl.pending !! t = some pd → W64 s ∈ pd.ids → uint.Z w.txid < uint.Z t
 
 /-- The meta in slot `s`'s bytes after the page header. -/
 def metaIn (σ : DBState) (s : Nat) (v : internal.common.Meta) : Prop :=
@@ -158,7 +181,7 @@ def dbOK (σ : DBState) (v0 v1 : internal.common.Meta) : Prop :=
   metaIn σ 0 v0 ∧ metaIn σ 1 v1 ∧ (metaValid v0 ∨ metaValid v1) ∧ currentOK σ v0 v1 ∧
   (∀ k r, σ.readers !! k = some r → readerOK σ r) ∧ mvccOK σ ∧ slotsOK σ ∧ fieldsOK σ ∧
   σ.fl.readonly.Perm (σ.readers.toList.map (·.2.txid)) ∧
-  σ.readers.size < Int.toNat rwmutex.actualMaxReaders
+  σ.readers.size < Int.toNat rwmutex.actualMaxReaders ∧ writerOK σ
 
 /-- `mmaplock`'s invariant: a ghost token. -/
 def mmapTok (γ : GName) (q : Qp) : IProp GF := ghostVar γ q ()
@@ -171,13 +194,13 @@ structure DBNames where
   mmap : GName
   readers : GName
 
-/-- The database at `dbl` (sequential use, no writer open), its freelist an implementation `I`
+/-- The database at `dbl` (sequential use), its freelist an implementation `I`
 of the freelist interface. -/
 def ownDB (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DBState) : IProp GF :=
   iprop(∃ (dv : DB) (fls : Loc) (v0 v1 : internal.common.Meta) (dl : Loc),
     "%Hdv" ∷ ⌜dv.data' = σ.data ∧ dv.pageSize' = W64 σ.ps ∧ dv.datasz' = W64 σ.sz ∧
       dv.meta0' = σ.data +ₗ 16 ∧ dv.meta1' = σ.data +ₗ ((σ.ps + 16 : Nat) : Int) ∧
-      dv.opened' = true ∧ dv.file' = σ.file ∧ dv.freelist' = I.iface ∧ dv.rwtx' = null ∧
+      dv.opened' = true ∧ dv.file' = σ.file ∧ dv.freelist' = I.iface ∧ dv.rwtx' = σ.rwtx ∧
       dbl ≠ null⌝ ∗
     "%Hok" ∷ ⌜dbOK σ v0 v1⌝ ∗
     "#Hdl" ∷ (globalAddr discardLogger ↦□ dl : IProp GF) ∗
@@ -192,6 +215,8 @@ def ownDB (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DBState) : IP
     "Hslots" ∷ slotsView σ.data σ.bs σ.ps σ.rem (List.range σ.nslots) ∗
     "Hfl" ∷ ownFL I fls σ.fl ∗
     "#Hmetalock" ∷ isMutex (structFieldRef DB go!"metalock" dbl) iprop(True) ∗
+    "#Hrwlock" ∷ isMutex (structFieldRef DB go!"rwlock" dbl) iprop(True) ∗
+    "Hrwl" ∷ (if decide (σ.rwtx = null) then emp else ownMutex (structFieldRef DB go!"rwlock" dbl)) ∗
     "Hmmaph" ∷ ([∗list] _x ∈ List.replicate (Int.toNat rwmutex.actualMaxReaders - σ.readers.size) (),
       ownRWMutex (structFieldRef DB go!"mmaplock" dbl) (mmapTok γ.mmap)) ∗
     "Htoks" ∷ ([∗map] _k ↦ _r ∈ σ.readers, mmapTok γ.mmap rfrac) ∗

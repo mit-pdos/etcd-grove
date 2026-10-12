@@ -157,7 +157,7 @@ theorem span_of_pageAt (bs : List w8) (ps id : Nat) (pg : List w8) (hps : 16 ≤
 theorem dbOK_addReader (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 v1)
     (hsize : σ.readers.size + 1 < Int.toNat sync.rwmutex.actualMaxReaders) :
     dbOK (σ.addReader (freshKey σ.readers) (newReader σ v0 v1 (beginQ σ))) v0 v1 := by
-  obtain ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, hrd, hmv, hsl, hfl, hro, hrs⟩ := h
+  obtain ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, hrd, hmv, hsl, hfl, hro, hrs, hwr⟩ := h
   have hk := freshKey_none σ.readers
   have hcur' := hcur
   obtain ⟨cwf, cdisj, cin, cfree⟩ := hcur'
@@ -173,7 +173,7 @@ theorem dbOK_addReader (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK �
     have hspan := span_of_pageAt σ.bs σ.ps id pg hps16 (newReader_pages σ v0 v1 _ id pg hid)
     have hin := cin id pg hid
     exact ⟨by omega, hc⟩
-  refine ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, ?_, ?_, ?_, ?_, ?_, ?_, hwr⟩
   · -- the readers' facts
     intro k' r' hk'
     rw [DBState.addReader, GMap.lookup_insert_Some] at hk'
@@ -192,9 +192,10 @@ theorem dbOK_addReader (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK �
     intro s hs
     show fracSum (if (newReader σ v0 v1 (beginQ σ)).sees s then
         qsub (σ.rem s) (newReader σ v0 v1 (beginQ σ)).q else σ.rem s)
-      (readersQ (<[freshKey σ.readers := newReader σ v0 v1 (beginQ σ)]> σ.readers)
-        (fun r => r.sees s)) halfQ
-    rw [readersQ_insert _ _ _ _ hk]
+      (wQ σ.wr (fun r => r.sees s)
+        (readersQ (<[freshKey σ.readers := newReader σ v0 v1 (beginQ σ)]> σ.readers)
+        (fun r => r.sees s))) halfQ
+    rw [readersQ_insert _ _ _ _ hk, wQ_step]
     unfold readersStep
     cases hrs' : (newReader σ v0 v1 (beginQ σ)).sees s
     · simp only [hrs', Bool.false_eq_true, ↓reduceIte]
@@ -203,9 +204,10 @@ theorem dbOK_addReader (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK �
       exact fracSum_take _ _ _ _ _ (hsl s hs) (qsub_add _ _ (beginQ_lt_rem σ s hs))
   · -- the fields
     show fracSum (qsub σ.frem (newReader σ v0 v1 (beginQ σ)).q)
-      (readersQ (<[freshKey σ.readers := newReader σ v0 v1 (beginQ σ)]> σ.readers)
-        (fun _ => true)) 1
-    rw [readersQ_insert _ _ _ _ hk]
+      (wQ σ.wr (fun _ => true)
+        (readersQ (<[freshKey σ.readers := newReader σ v0 v1 (beginQ σ)]> σ.readers)
+        (fun _ => true))) 1
+    rw [readersQ_insert _ _ _ _ hk, wQ_step]
     unfold readersStep
     simp only [↓reduceIte]
     exact fracSum_take _ _ _ _ _ hfl (qsub_add _ _ (beginQ_lt_frem σ))
@@ -237,12 +239,20 @@ theorem nslots_mul_le (σ : DBState) : σ.nslots * σ.ps ≤ σ.bs.length := by
 /-- No reader sees a meta page: the database holds its whole half. -/
 theorem rem_meta (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 v1) (s : Nat)
     (hs : s < 2) : σ.rem s = halfQ := by
-  obtain ⟨_, _, hn, _, _, _, _, _, _, _, hmv, hsl, _⟩ := h
+  obtain ⟨_, _, hn, _, _, _, _, _, _, _, hmv, hsl, _, _, _, hwr⟩ := h
   have := hsl s (by omega)
-  rwa [readersQ_none _ _ (fun k r hk => by
+  rw [readersQ_none _ _ (fun k r hk => by
     cases hr : r.sees s
     · rfl
     · exact absurd (hmv k r s hk hr).1 (by omega))] at this
+  cases hw : σ.wr with
+  | none => rw [hw] at this; exact this
+  | some w =>
+    rw [hw] at this
+    unfold wQ at this
+    cases hws : w.sees s
+    · simp only [hws, Bool.false_eq_true, ↓reduceIte] at this; exact this
+    · exact absurd ((hwr.2 w hw).2 s hws).1 (by omega)
 
 open Iris.ProofMode in
 /-- The two metas, taken out of the database's slots (and given back). -/

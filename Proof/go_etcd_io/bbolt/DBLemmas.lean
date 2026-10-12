@@ -31,6 +31,16 @@ theorem readersStep_comm (sees : Reader → Bool) (j1 : Nat) (z1 : Reader) (j2 :
   unfold readersStep
   cases sees z1 <;> cases sees z2 <;> simp [optAdd_left_comm]
 
+/-- The writer's part commutes with a reader's. -/
+theorem wQ_step (wr : Option Reader) (sees : Reader → Bool) (k : Nat) (r : Reader)
+    (o : Option Qp) :
+    wQ wr sees (readersStep sees k r o) = readersStep sees k r (wQ wr sees o) := by
+  cases wr with
+  | none => rfl
+  | some w =>
+    unfold wQ readersStep
+    cases h1 : sees w <;> cases h2 : sees r <;> simp [h1, h2, optAdd_left_comm]
+
 theorem readersQ_eq (rs : GMap Nat Reader) (sees : Reader → Bool) :
     readersQ rs sees = GMap.mapFold (readersStep sees) none rs := rfl
 

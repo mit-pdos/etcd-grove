@@ -38,8 +38,8 @@ theorem dbOK_removeReader (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbO
     (k : Nat) (r : Reader) (hk : σ.readers !! k = some r) (ro : List w64)
     (hro : ro.Perm (σ.fl.readonly.erase r.txid)) :
     dbOK (σ.removeReader k r ro) v0 v1 := by
-  obtain ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, hrd, hmv, hsl, hfl, hroP, hrs⟩ := h
-  refine ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  obtain ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, hrd, hmv, hsl, hfl, hroP, hrs, hwr⟩ := h
+  refine ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, ?_, ?_, ?_, ?_, ?_, ?_, hwr⟩
   · intro k' r' hk'
     rw [DBState.removeReader.proj_readers, GMap.lookup_delete_Some] at hk'
     exact hrd k' r' hk'.2
@@ -48,16 +48,16 @@ theorem dbOK_removeReader (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbO
     exact hmv k' r' s hk'.2 hs
   · intro s hs
     have H := hsl s hs
-    rw [readersQ_delete _ _ k r hk] at H
+    rw [readersQ_delete _ _ k r hk, wQ_step] at H
     unfold readersStep at H
     show fracSum (if r.sees s then σ.rem s + r.q else σ.rem s)
-      (readersQ (GMap.delete k σ.readers) (fun r => r.sees s)) halfQ
+      (wQ σ.wr (fun r => r.sees s) (readersQ (GMap.delete k σ.readers) (fun r => r.sees s))) halfQ
     cases hrs' : r.sees s
     · simp only [hrs', Bool.false_eq_true, ↓reduceIte] at H ⊢; exact H
     · simp only [hrs', ↓reduceIte] at H ⊢; exact fracSum_give _ _ _ _ H
   · have H := hfl
     unfold fieldsOK at H
-    rw [readersQ_delete _ _ k r hk] at H
+    rw [readersQ_delete _ _ k r hk, wQ_step] at H
     unfold readersStep at H
     simp only [↓reduceIte] at H
     exact fracSum_give _ _ _ _ H
