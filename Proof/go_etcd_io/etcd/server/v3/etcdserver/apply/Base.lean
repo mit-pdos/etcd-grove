@@ -162,16 +162,6 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.github_com.Mas
 
 end github_com.Masterminds.semver.v3
 
--- `etcdserver/api` (names only: `UpdateCapability`, passed as a value)
-namespace go_etcd_io.etcd.server.v3.etcdserver.api
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.etcdserver.api
-
 -- `etcdserver/version` (types only: `DowngradeInfo`)
 namespace go_etcd_io.etcd.server.v3.etcdserver.version
 
@@ -242,6 +232,17 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
   build_get_is_pkg_init_wf
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.membership
+
+-- `etcdserver/api` (names only: `UpdateCapability`, passed as a value; the `Cluster` interface type,
+-- whose methods name `types`, `membership` and `semver`: after their instances)
+namespace go_etcd_io.etcd.server.v3.etcdserver.api
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.server.v3.etcdserver.api
 
 -- `server/v3/storage` (names only: `Quota`, `BackendQuota`)
 namespace go_etcd_io.etcd.server.v3.storage
