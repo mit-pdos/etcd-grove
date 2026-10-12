@@ -333,6 +333,14 @@ variable [package_sem : {assumptions}]
     cache_assumptions = set()
     for fn in order:
         if fn in external:
+            # an `@` callee whose result (in its own package's `Link.lean`) takes the cache's
+            # assumptions (mvcc's range read, through the btree): so does every result linking it
+            link = os.path.join(root, prefix[fn].rstrip("."), "Proof",
+                                *where[fn].split(".")[:-1], "Link.lean")
+            if os.path.exists(link) and re.search(
+                    r"theorem " + re.escape(result(fn)) +
+                    r" \[go_etcd_io\.etcd\.cache\.v3\.Assumptions\]", open(link).read()):
+                cache_assumptions.add(fn)
             continue
         if ("variable [go_etcd_io.etcd.cache.v3.Assumptions]" in open(spec_file(fn)).read()
                 or any(c in cache_assumptions for c in callees[fn])):

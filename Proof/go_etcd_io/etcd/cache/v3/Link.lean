@@ -55,7 +55,6 @@ public import Proof.go_etcd_io.etcd.client.v3.Op__RangeBytes
 public import Proof.go_etcd_io.etcd.client.v3.Op__Rev
 public import Proof.go_etcd_io.etcd.client.v3.Op__applyOpts
 public import Proof.go_etcd_io.etcd.cache.v3.Prefix__Match
-public import Proof.go_etcd_io.etcd.cache.v3.Range
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader__GetRevision
 public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__Err
 public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__IsProgressNotify
@@ -149,6 +148,7 @@ public import Proof.go_etcd_io.etcd.cache.v3.store__applyEventsLocked
 public import Proof.go_etcd_io.etcd.cache.v3.store__applyProgressNotifyLocked
 public import Proof.go_etcd_io.etcd.cache.v3.store__getSnapshot
 public import Proof.go_etcd_io.etcd.cache.v3.New
+public import Proof.go_etcd_io.etcd.cache.v3.Range
 public import Proof.go_etcd_io.etcd.cache.v3.validateRevisions
 public import Proof.go_etcd_io.etcd.cache.v3.watcher__Compact
 public import Proof.go_etcd_io.etcd.cache.v3.watcher__Stop
