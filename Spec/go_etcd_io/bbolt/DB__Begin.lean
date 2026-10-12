@@ -35,7 +35,7 @@ abbrev DB.Begin.spec : Prop :=
       if w then
         (⌜err ≠ interface.nil⌝ ∗ ownDB I dbl γ σ) ∨
         (⌜err = interface.nil⌝ ∗ ∃ (fl' : FLState) (wr : Reader) (v0 v1 : internal.common.Meta),
-          ⌜fl'.equiv σ.fl.releasePending⌝ ∗
+          ⌜fl'.equiv σ.fl.releasePending ∧ wtxOK dbl wr σ.data σ.ps v0 v1⌝ ∗
           ownDB I dbl γ ({ σ with fl := fl' }.addWriter txl wr) ∗
           wtxInit dbl txl wr σ.data σ.ps v0 v1 ∗
           structFieldRef DB go!"freelist" dbl ↦{DFrac.own halfQ} I.iface)

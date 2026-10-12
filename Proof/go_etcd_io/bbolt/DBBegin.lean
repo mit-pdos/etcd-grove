@@ -214,7 +214,7 @@ theorem dbOK_addReader (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK �
     intro k' r' hk'
     rw [DBState.addReader, GMap.lookup_insert_Some] at hk'
     rcases hk' with ⟨_, rfl⟩ | ⟨_, hk'⟩
-    · exact ⟨cwf, cdisj, fun id pg hid =>
+    · exact ⟨cwf.1, cdisj, fun id pg hid =>
         ⟨(newReader_pages σ v0 v1 _ id pg hid).symm, cin id pg hid⟩⟩
     · exact hrd k' r' hk'
   · -- MVCC

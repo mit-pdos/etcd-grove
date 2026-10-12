@@ -97,6 +97,17 @@ theorem ownWriteTx_init (dbl txl : Loc) (w : Reader) (data : Loc) (ps : Nat) (v0
   · intro l1 i1 c1 _ _ _ h; obtain ⟨r, _, h, _⟩ := h; simp at h
   · intro l i c h; obtain ⟨r, _, h, _⟩ := h; simp at h
 
+/-- The write transaction `Begin(true)` returns (`wtxInit`, with `wtxOK`), as `ownWriteTx`. -/
+theorem ownWriteTx_begin (dbl txl : Loc) (w : Reader) (data : Loc) (ps : Nat) (v0 v1 : Meta)
+    (lg : GoInterface) (dl : Loc) (fli : GoInterface) (h : wtxOK dbl w data ps v0 v1)
+    (hlg : lg = interface.nil ∨ lg = discardIface dl) :
+    wtxInit dbl txl w data ps v0 v1 ∗ structFieldRef DB go!"logger" dbl ↦□ lg ∗
+      (globalAddr discardLogger ↦□ dl : IProp GF) ∗
+      structFieldRef DB go!"freelist" dbl ↦{DFrac.own halfQ} fli ⊢
+    ∃ T, ownWriteTx (wViewOf dbl w data ps lg dl fli) txl T :=
+  ownWriteTx_init dbl txl w data ps v0 v1 lg dl fli h.1 h.2.1 h.2.2.1 h.2.2.2.1 h.2.2.2.2.1
+    h.2.2.2.2.2.1 h.2.2.2.2.2.2.1 h.2.2.2.2.2.2.2 hlg
+
 end init
 
 end bbolt

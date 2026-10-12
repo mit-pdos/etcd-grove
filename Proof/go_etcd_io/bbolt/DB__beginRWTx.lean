@@ -115,7 +115,7 @@ theorem DB.beginRWTx.wp_proof (hinit : Tx.init.spec (GF := GF) (hG := hG)) :
   · ipureintro; rfl
   iexists fl', (newReader { σ with fl := fl' } v0 v1 (beginQ { σ with fl := fl' })), v0, v1
   isplitr
-  · ipureintro; exact Heq
+  · ipureintro; exact ⟨Heq, dbOK_wtxOK _ v0 v1 hok1 _ dbl Hdbl⟩
   isplitr [Ht Hml Hibl Hmaps Hdq Hpages Hflw]
   · iexists { dv with rwtx' := «$r0_ptr» }, fls, v0, v1, dl
     isplitr

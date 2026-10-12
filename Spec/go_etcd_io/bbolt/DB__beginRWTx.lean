@@ -33,7 +33,7 @@ abbrev DB.beginRWTx.spec : Prop :=
   {{ (txl : Loc) (err : GoInterface), RET (PairV #txl #err);
       (⌜err ≠ interface.nil⌝ ∗ ownDB I dbl γ σ) ∨
       (⌜err = interface.nil⌝ ∗ ∃ (fl' : FLState) (w : Reader) (v0 v1 : internal.common.Meta),
-        ⌜fl'.equiv σ.fl.releasePending⌝ ∗
+        ⌜fl'.equiv σ.fl.releasePending ∧ wtxOK dbl w σ.data σ.ps v0 v1⌝ ∗
         ownDB I dbl γ ({ σ with fl := fl' }.addWriter txl w) ∗
         wtxInit dbl txl w σ.data σ.ps v0 v1 ∗
         structFieldRef DB go!"freelist" dbl ↦{DFrac.own halfQ} I.iface) }}

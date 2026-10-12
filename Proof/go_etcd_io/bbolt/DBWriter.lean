@@ -91,13 +91,50 @@ theorem dbOK_addWriter (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK �
     refine ⟨by simp [htxl], fun w hw' => ?_⟩
     simp only [Option.some.injEq] at hw'
     subst hw'
-    refine ⟨⟨cwf, cdisj, fun id pg hid =>
+    refine ⟨⟨cwf.1, cdisj, fun id pg hid =>
       ⟨(newReader_pages σ v0 v1 _ id pg hid).symm, cin id pg hid⟩⟩, ?_, fun s hs => ?_⟩
     · exact fun id pg hid a ha => calloc id pg hid a ha
     · have hs' : (newReader σ v0 v1 (beginQ σ)).sees s = true := by
         unfold Reader.sees; simp only [decide_eq_true_eq]; exact hs
       obtain ⟨_, h2, h3, h4⟩ := hsees s hs'
       exact ⟨h2, h3, h4⟩
+
+/-- What a new writer's view `w` of the metas `v0`, `v1` gives the transaction's predicate
+(`ownWriteTx_init`): the view is the current tree, strict, its root no meta page, and inside
+the mapping (whose size bounds every page's offset). -/
+def wtxOK (dbl : Loc) (w : Reader) (data : Loc) (ps : Nat) (v0 v1 : internal.common.Meta) : Prop :=
+  let m := if metaPick v0 v1 then v1 else v0
+  w.hwm = uint.nat m.pgid' ∧ treeStrict w.pages (uint.nat m.pgid') (uint.nat m.root'.root') ∧
+  m.root'.root' ≠ W64 0 ∧ 2 ≤ uint.nat m.pgid' ∧ data.locCar ≠ 0 ∧ (80 ≤ ps ∧ ps < 2 ^ 32) ∧
+  (∀ id pg, w.pages !! id = some pg → id * ps < 281474976710655) ∧ dbl ≠ null
+
+theorem wtx_root_ne (x : w64) (h : 2 ≤ uint.nat x) : x ≠ W64 0 := by
+  intro e; subst e; simp at h
+
+theorem wtx_bound (id nslots ps sz : Nat) (h : id + 1 ≤ nslots) (hn : nslots * ps ≤ sz)
+    (hsz : sz ≤ 281474976710655) (hps : 80 ≤ ps) : id * ps < 281474976710655 := by
+  have := Nat.mul_le_mul_right ps h
+  rw [Nat.succ_mul] at this
+  omega
+
+/-- A writer begun on the current tree (`newReader`) of a database with its facts. -/
+theorem dbOK_wtxOK (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 v1) (q : Qp)
+    (dbl : Loc) (hdbl : dbl ≠ null) : wtxOK dbl (newReader σ v0 v1 q) σ.data σ.ps v0 v1 := by
+  obtain ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, -⟩ := h
+  obtain ⟨cwf, cdisj, cin, calloc, cfree, -⟩ := hcur
+  have hroot : ∃ pg, (newReader σ v0 v1 q).pages !! (newReader σ v0 v1 q).root = some pg ∧
+      (newReader σ v0 v1 q).root < (newReader σ v0 v1 q).hwm := by
+    match cwf.1 with
+    | .page _ pg hlt hpg _ _ => exact ⟨pg, hpg, hlt⟩
+  obtain ⟨pg, hpg, hlt⟩ := hroot
+  have h2 := (cfree _ ⟨_, pg, hpg, Nat.le_refl _, by omega⟩).1
+  refine ⟨rfl, cwf, wtx_root_ne _ h2, by simp only [newReader] at hlt h2; omega, hdc, ⟨by omega, hps2⟩,
+    fun id pg' hid => ?_, hdbl⟩
+  have hin := cin id pg' hid
+  unfold pageSpan at hin
+  exact wtx_bound id σ.nslots σ.ps σ.sz (by omega)
+    (Nat.le_trans (Nat.div_mul_le_self (min σ.sz σ.bs.length) σ.ps) (Nat.min_le_left _ _))
+    hsz.1 hps
 
 /-- What a new write transaction at `txl` holds (as `Tx.init` leaves it, writable): the
 transaction (`txInitOf`; managed off), its meta copy (the current one, its txid incremented),

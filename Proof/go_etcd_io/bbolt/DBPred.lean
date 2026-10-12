@@ -31,6 +31,7 @@ module
 public import Proof.go_etcd_io.bbolt.DBSplit
 public import Proof.go_etcd_io.bbolt.DBModel
 public import Proof.go_etcd_io.bbolt.FilePages
+public import Proof.go_etcd_io.bbolt.TreeStrict
 public import Proof.go_etcd_io.bbolt.Tx__init
 public import Spec.go_etcd_io.bbolt.DefaultLogger__Errorf
 public import Proof.os.FileModel
@@ -205,7 +206,8 @@ def viewsAgree (σ : DBState) (txid : w64) (cur : GMap Nat (List w8)) : Prop :=
   ∀ w, σ.wr = some w → pagesAgree cur w.pages ∧
     ∀ k r, σ.readers !! k = some r → pagesAgree w.pages r.pages
 
-/-- The current tree (of the meta `db.meta()` picks): well-formed, its pages disjoint, inside
+/-- The current tree (of the meta `db.meta()` picks): well-formed and strict (`treeStrict`: what a
+writer needs of it), its pages disjoint, inside
 the mapping and below the high-water mark, allocated by its transaction or before, and none
 free, and pending only for the open writer (which frees them; a new reader sees it, `mvccOK`);
 the freelist below its high-water mark; the views agree with it and among themselves. -/
@@ -214,7 +216,7 @@ def currentOK (σ : DBState) (v0 v1 : internal.common.Meta) : Prop :=
   let hwm := uint.nat m.pgid'
   let root := uint.nat m.root'.root'
   let ps := treePages (filePages σ.bs σ.ps hwm) root
-  treeWF ps hwm root ∧ pagesDisjoint ps ∧
+  treeStrict ps hwm root ∧ pagesDisjoint ps ∧
   (∀ id pg, ps !! id = some pg → id + pageSpan σ.bs σ.ps id ≤ min σ.nslots hwm) ∧
   (∀ id pg, ps !! id = some pg → ∀ a, σ.fl.allocs !! W64 id = some a →
     uint.Z a ≤ uint.Z m.txid') ∧
