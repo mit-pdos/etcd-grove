@@ -1,5 +1,5 @@
 /-
-`Bucket.Cursor` (bbolt). `b.Cursor()` in the write transaction: a cursor over the bucket's entries now.
+`Bucket.Cursor_kvw` (bbolt). `b.Cursor()` in the write transaction: a cursor over the bucket's entries now.
 The trust boundary: bbolt's key-value contract as the backend uses it (`InvBbolt.lean`), from the
 Go documentation; an axiom in `Proof/go_etcd_io/bbolt/Bucket__Cursor_kvw.lean`. Lean-first (no Rocq
 counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a key-value contract,
@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `b.Cursor()` in the write transaction: a cursor over the bucket's entries now. -/
-abbrev bbolt.Bucket.Cursor.kvwspec : Prop :=
+abbrev bbolt.Bucket.Cursor_kvw.spec : Prop :=
   ∀ (tx : Loc) (γ : DBNames) (D S : Data) (b : Loc) (n : GoString) (m : BktData),
   S.lookup n = some m →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownWTx tx γ D S ∗ wBkt tx b n }}

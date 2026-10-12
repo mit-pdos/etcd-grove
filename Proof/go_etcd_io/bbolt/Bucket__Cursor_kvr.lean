@@ -21,7 +21,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-axiom bbolt.Bucket.Cursor.wp_kvr : bbolt.Bucket.Cursor.kvrspec (GF := GF) (hG := hG)
+axiom bbolt.Bucket.Cursor_kvr.wp_proof : bbolt.Bucket.Cursor_kvr.spec (GF := GF) (hG := hG)
 
 end proof
 

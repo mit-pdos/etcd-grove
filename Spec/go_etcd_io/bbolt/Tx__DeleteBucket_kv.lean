@@ -1,5 +1,5 @@
 /-
-`Tx.DeleteBucket` (bbolt). `tx.DeleteBucket(name)`: the bucket deleted, or, if absent, `errors.ErrBucketNotFound`'s
+`Tx.DeleteBucket_kv` (bbolt). `tx.DeleteBucket(name)`: the bucket deleted, or, if absent, `errors.ErrBucketNotFound`'s
 value.
 The trust boundary: bbolt's key-value contract as the backend uses it (`InvBbolt.lean`), from the
 Go documentation; an axiom in `Proof/go_etcd_io/bbolt/Tx__DeleteBucket_kv.lean`. Lean-first (no Rocq
@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `tx.DeleteBucket(name)`: the bucket deleted, or, if absent, `errors.ErrBucketNotFound`'s
 value. -/
-abbrev bbolt.Tx.DeleteBucket.kvspec : Prop :=
+abbrev bbolt.Tx.DeleteBucket_kv.spec : Prop :=
   ∀ (tx : Loc) (γ : DBNames) (D S : Data) (name : GoSlice) (n : GoString) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownWTx tx γ D S ∗ name ↦*{dq} n }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"DeleteBucket")) (Val #name))

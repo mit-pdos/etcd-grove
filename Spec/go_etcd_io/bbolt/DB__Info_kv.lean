@@ -1,5 +1,5 @@
 /-
-`DB.Info` (bbolt). `db.Info()`: a pointer to some information, read-only.
+`DB.Info_kv` (bbolt). `db.Info()`: a pointer to some information, read-only.
 The trust boundary: bbolt's key-value contract as the backend uses it (`InvBbolt.lean`), from the
 Go documentation; an axiom in `Proof/go_etcd_io/bbolt/DB__Info_kv.lean`. Lean-first (no Rocq
 counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a key-value contract,
@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `db.Info()`: a pointer to some information, read-only. -/
-abbrev bbolt.DB.Info.kvspec : Prop :=
+abbrev bbolt.DB.Info_kv.spec : Prop :=
   ∀ (db : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ isDB db }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Info")) (Val #()))

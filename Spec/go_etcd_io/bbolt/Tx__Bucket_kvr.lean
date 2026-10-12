@@ -1,5 +1,5 @@
 /-
-`Tx.Bucket` (bbolt). `tx.Bucket(name)` in a read transaction: the bucket of the snapshot, or nil.
+`Tx.Bucket_kvr` (bbolt). `tx.Bucket(name)` in a read transaction: the bucket of the snapshot, or nil.
 The trust boundary: bbolt's key-value contract as the backend uses it (`InvBbolt.lean`), from the
 Go documentation; an axiom in `Proof/go_etcd_io/bbolt/Tx__Bucket_kvr.lean`. Lean-first (no Rocq
 counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a key-value contract,
@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `tx.Bucket(name)` in a read transaction: the bucket of the snapshot, or nil. -/
-abbrev bbolt.Tx.Bucket.kvrspec : Prop :=
+abbrev bbolt.Tx.Bucket_kvr.spec : Prop :=
   ∀ (tx : Loc) (q : Qp) (D : Data) (name : GoSlice) (n : GoString) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ txLive tx q ∗ rtxSnap tx D ∗ rtxStats tx ∗ name ↦*{dq} n }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"Bucket")) (Val #name))

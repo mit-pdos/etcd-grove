@@ -1,5 +1,5 @@
 /-
-`Open` (bbolt). `bolt.Open(path, mode, opts)`: the database the file holds, open, or an error.
+`Open_kv` (bbolt). `bolt.Open(path, mode, opts)`: the database the file holds, open, or an error.
 The trust boundary: bbolt's key-value contract as the backend uses it (`InvBbolt.lean`), from the
 Go documentation; an axiom in `Proof/go_etcd_io/bbolt/Open_kv.lean`. Lean-first (no Rocq
 counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a key-value contract,
@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `bolt.Open(path, mode, opts)`: the database the file holds, open, or an error. -/
-abbrev bbolt.Open.kvspec : Prop :=
+abbrev bbolt.Open_kv.spec : Prop :=
   ∀ (path : GoString) (mode : w32) (opts : Loc) (D : Data),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ fileHolds path D }}
     (App (App (App (Val (@! go_etcd_io.bbolt.Open)) (Val #path)) (Val #mode)) (Val #opts))

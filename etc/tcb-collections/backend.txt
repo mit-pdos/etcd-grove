@@ -1,0 +1,9 @@
+# etcd's backend (server/v3/storage/backend): every linked result of
+# Proof/go_etcd_io/etcd/server/v3/storage/backend/Link.lean (its trust boundary: bbolt's
+# key-value contract, sort.Stable, verify).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/backend.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/go_etcd_io/etcd/server/v3/storage/backend/Link\.lean$

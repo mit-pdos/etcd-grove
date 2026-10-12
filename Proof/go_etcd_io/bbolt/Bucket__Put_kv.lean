@@ -21,7 +21,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-axiom bbolt.Bucket.Put.wp_kv : bbolt.Bucket.Put.kvspec (GF := GF) (hG := hG)
+axiom bbolt.Bucket.Put_kv.wp_proof : bbolt.Bucket.Put_kv.spec (GF := GF) (hG := hG)
 
 end proof
 

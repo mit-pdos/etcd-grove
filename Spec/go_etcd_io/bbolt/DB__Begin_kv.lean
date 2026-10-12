@@ -1,5 +1,5 @@
 /-
-`DB.Begin` (bbolt). `db.Begin(writable)`: a read transaction over the committed data, or the write transaction
+`DB.Begin_kv` (bbolt). `db.Begin(writable)`: a read transaction over the committed data, or the write transaction
 (its token spent), or an error.
 The trust boundary: bbolt's key-value contract as the backend uses it (`InvBbolt.lean`), from the
 Go documentation; an axiom in `Proof/go_etcd_io/bbolt/DB__Begin_kv.lean`. Lean-first (no Rocq
@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `db.Begin(writable)`: a read transaction over the committed data, or the write transaction
 (its token spent), or an error. -/
-abbrev bbolt.DB.Begin.kvspec : Prop :=
+abbrev bbolt.DB.Begin_kv.spec : Prop :=
   ∀ (db : Loc) (γ : DBNames) (D : Data) (w : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownDB db γ D ∗ (if w then wrTok γ else iprop(True)) }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Begin")) (Val #w))

@@ -1,5 +1,5 @@
 /-
-`Bucket.Delete` (bbolt). `b.Delete(key)` in the write transaction: the entry removed (if present).
+`Bucket.Delete_kv` (bbolt). `b.Delete(key)` in the write transaction: the entry removed (if present).
 The trust boundary: bbolt's key-value contract as the backend uses it (`InvBbolt.lean`), from the
 Go documentation; an axiom in `Proof/go_etcd_io/bbolt/Bucket__Delete_kv.lean`. Lean-first (no Rocq
 counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a key-value contract,
@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `b.Delete(key)` in the write transaction: the entry removed (if present). -/
-abbrev bbolt.Bucket.Delete.kvspec : Prop :=
+abbrev bbolt.Bucket.Delete_kv.spec : Prop :=
   ∀ (tx : Loc) (γ : DBNames) (D S : Data) (b : Loc) (n : GoString) (m : BktData)
     (key : GoSlice) (kb : GoString) (dk : DFrac),
   S.lookup n = some m →

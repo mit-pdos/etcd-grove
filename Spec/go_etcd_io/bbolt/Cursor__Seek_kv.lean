@@ -1,5 +1,5 @@
 /-
-`Cursor.Seek` (bbolt). `c.Seek(key)`: the first entry whose key is not below `key` (nil, nil past the end).
+`Cursor.Seek_kv` (bbolt). `c.Seek(key)`: the first entry whose key is not below `key` (nil, nil past the end).
 The trust boundary: bbolt's key-value contract as the backend uses it (`InvBbolt.lean`), from the
 Go documentation; an axiom in `Proof/go_etcd_io/bbolt/Cursor__Seek_kv.lean`. Lean-first (no Rocq
 counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a key-value contract,
@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `c.Seek(key)`: the first entry whose key is not below `key` (nil, nil past the end). -/
-abbrev bbolt.Cursor.Seek.kvspec : Prop :=
+abbrev bbolt.Cursor.Seek_kv.spec : Prop :=
   ∀ (tx c : Loc) (es : List Ent) (pos : Option Nat) (q : Qp) (key : GoSlice) (kb : GoString)
     (dk : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownCur tx c es pos ∗ txLive tx q ∗ key ↦*{dk} kb }}

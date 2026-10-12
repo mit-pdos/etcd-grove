@@ -1,5 +1,5 @@
 /-
-`DB.Stats` (bbolt). `db.Stats()`: some statistics.
+`DB.Stats_kv` (bbolt). `db.Stats()`: some statistics.
 The trust boundary: bbolt's key-value contract as the backend uses it (`InvBbolt.lean`), from the
 Go documentation; an axiom in `Proof/go_etcd_io/bbolt/DB__Stats_kv.lean`. Lean-first (no Rocq
 counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a key-value contract,
@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `db.Stats()`: some statistics. -/
-abbrev bbolt.DB.Stats.kvspec : Prop :=
+abbrev bbolt.DB.Stats_kv.spec : Prop :=
   ∀ (db : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ isDB db }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Stats")) (Val #()))

@@ -1,5 +1,5 @@
 /-
-`Cursor.Next` (bbolt). `c.Next()` of a positioned cursor: the next entry (nil, nil past the end, where it stays).
+`Cursor.Next_kv` (bbolt). `c.Next()` of a positioned cursor: the next entry (nil, nil past the end, where it stays).
 The trust boundary: bbolt's key-value contract as the backend uses it (`InvBbolt.lean`), from the
 Go documentation; an axiom in `Proof/go_etcd_io/bbolt/Cursor__Next_kv.lean`. Lean-first (no Rocq
 counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a key-value contract,
@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `c.Next()` of a positioned cursor: the next entry (nil, nil past the end, where it stays). -/
-abbrev bbolt.Cursor.Next.kvspec : Prop :=
+abbrev bbolt.Cursor.Next_kv.spec : Prop :=
   ∀ (tx c : Loc) (es : List Ent) (i : Nat) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownCur tx c es (some i) ∗ txLive tx q }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"Next")) (Val #()))

@@ -1,5 +1,5 @@
 /-
-`Tx.CreateBucketIfNotExists` (bbolt). `tx.CreateBucketIfNotExists(name)` (a name of `1..MaxKeySize` bytes): the bucket, empty if
+`Tx.CreateBucketIfNotExists_kv` (bbolt). `tx.CreateBucketIfNotExists(name)` (a name of `1..MaxKeySize` bytes): the bucket, empty if
 it was absent, and its handle (bbolt copies the name).
 The trust boundary: bbolt's key-value contract as the backend uses it (`InvBbolt.lean`), from the
 Go documentation; an axiom in `Proof/go_etcd_io/bbolt/Tx__CreateBucketIfNotExists_kv.lean`. Lean-first (no Rocq
@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `tx.CreateBucketIfNotExists(name)` (a name of `1..MaxKeySize` bytes): the bucket, empty if
 it was absent, and its handle (bbolt copies the name). -/
-abbrev bbolt.Tx.CreateBucketIfNotExists.kvspec : Prop :=
+abbrev bbolt.Tx.CreateBucketIfNotExists_kv.spec : Prop :=
   ∀ (tx : Loc) (γ : DBNames) (D S : Data) (name : GoSlice) (n : GoString) (dq : DFrac),
   0 < n.length → n.length ≤ maxKeySize →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownWTx tx γ D S ∗ name ↦*{dq} n }}

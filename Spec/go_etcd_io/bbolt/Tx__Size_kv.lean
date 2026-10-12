@@ -1,5 +1,5 @@
 /-
-`Tx.Size` (bbolt). `tx.Size()`: some size.
+`Tx.Size_kv` (bbolt). `tx.Size()`: some size.
 The trust boundary: bbolt's key-value contract as the backend uses it (`InvBbolt.lean`), from the
 Go documentation; an axiom in `Proof/go_etcd_io/bbolt/Tx__Size_kv.lean`. Lean-first (no Rocq
 counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a key-value contract,
@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `tx.Size()`: some size. -/
-abbrev bbolt.Tx.Size.kvspec : Prop :=
+abbrev bbolt.Tx.Size_kv.spec : Prop :=
   ∀ (tx : Loc) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ txLive tx q }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"Size")) (Val #()))

@@ -1,0 +1,29 @@
+# etcd's backend (all Lean-first: no Rocq counterpart), read by `etc/gen-link.py --backend`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+# The trust boundary: `sort.Stable` (Perennial translates it, proves only `sort.Sort`) and
+# `verify.Assert`/`Verify` (names-only: they read ETCD_VERIFY); `sort.Sort` is Perennial's.
+sort_Stable:
+sort_Sort:
+verify_Verify:
+verify_Assert:
+# The buffers (tx_buffer.go), see Model.lean, InvBuffer.lean.
+newBucketBuffer:
+bucketBuffer__Len:
+bucketBuffer__Less:
+bucketBuffer__Swap:
+bucketBuffer__Range:
+bucketBuffer__ForEach:
+bucketBuffer__CopyUsed: verify_Assert
+bucketBuffer__add:
+bucketBuffer__dedupe: sort_Stable bucketBuffer__Len bucketBuffer__Less bucketBuffer__Swap
+bucketBuffer__merge: bucketBuffer__add bucketBuffer__dedupe
+txBuffer__reset:
+txReadBuffer__Range: bucketBuffer__Range
+txReadBuffer__ForEach: bucketBuffer__ForEach
+txReadBuffer__unsafeCopy: bucketBuffer__CopyUsed
+txReadBuffer__reset: txBuffer__reset
+txWriteBuffer__putInternal: newBucketBuffer bucketBuffer__add
+txWriteBuffer__put: txWriteBuffer__putInternal
+txWriteBuffer__putSeq: verify_Verify txWriteBuffer__putInternal
+txWriteBuffer__reset: txBuffer__reset
+txWriteBuffer__writeback: bucketBuffer__dedupe sort_Sort bucketBuffer__Len bucketBuffer__Less bucketBuffer__Swap bucketBuffer__merge txWriteBuffer__reset

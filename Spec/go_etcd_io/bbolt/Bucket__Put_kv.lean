@@ -1,5 +1,5 @@
 /-
-`Bucket.Put` (bbolt). `b.Put(key, value)` in the write transaction (a key of `1..MaxKeySize` bytes, a value of
+`Bucket.Put_kv` (bbolt). `b.Put(key, value)` in the write transaction (a key of `1..MaxKeySize` bytes, a value of
 at most `MaxValueSize`): the entry set (bbolt copies the key and keeps the value).
 The trust boundary: bbolt's key-value contract as the backend uses it (`InvBbolt.lean`), from the
 Go documentation; an axiom in `Proof/go_etcd_io/bbolt/Bucket__Put_kv.lean`. Lean-first (no Rocq
@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `b.Put(key, value)` in the write transaction (a key of `1..MaxKeySize` bytes, a value of
 at most `MaxValueSize`): the entry set (bbolt copies the key and keeps the value). -/
-abbrev bbolt.Bucket.Put.kvspec : Prop :=
+abbrev bbolt.Bucket.Put_kv.spec : Prop :=
   ∀ (tx : Loc) (γ : DBNames) (D S : Data) (b : Loc) (n : GoString) (m : BktData)
     (key value : GoSlice) (kb vb : GoString) (dk : DFrac),
   S.lookup n = some m → 0 < kb.length → kb.length ≤ maxKeySize → vb.length ≤ maxValueSize →

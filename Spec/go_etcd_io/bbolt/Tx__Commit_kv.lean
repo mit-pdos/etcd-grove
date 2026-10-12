@@ -1,5 +1,5 @@
 /-
-`Tx.Commit` (bbolt). `tx.Commit()` of the write transaction: its contents committed (the write token back), or
+`Tx.Commit_kv` (bbolt). `tx.Commit()` of the write transaction: its contents committed (the write token back), or
 an error.
 The trust boundary: bbolt's key-value contract as the backend uses it (`InvBbolt.lean`), from the
 Go documentation; an axiom in `Proof/go_etcd_io/bbolt/Tx__Commit_kv.lean`. Lean-first (no Rocq
@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `tx.Commit()` of the write transaction: its contents committed (the write token back), or
 an error. -/
-abbrev bbolt.Tx.Commit.kvspec : Prop :=
+abbrev bbolt.Tx.Commit_kv.spec : Prop :=
   ∀ (db tx : Loc) (γ : DBNames) (D S : Data),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownDB db γ D ∗ txDB tx db ∗ ownWTx tx γ D S }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"Commit")) (Val #()))

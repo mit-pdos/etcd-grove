@@ -21,7 +21,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-axiom bbolt.DB.Close.wp_kv : bbolt.DB.Close.kvspec (GF := GF) (hG := hG)
+axiom bbolt.DB.Close_kv.wp_proof : bbolt.DB.Close_kv.spec (GF := GF) (hG := hG)
 
 end proof
 

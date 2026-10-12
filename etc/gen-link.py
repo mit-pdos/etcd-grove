@@ -26,6 +26,7 @@ usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --recipes > Proof/go_etcd_io/etcd/client/v3/experimental/recipes/Link.lean
        etc/gen-link.py --register > Proof/github_com/mit_pdos/etcd_grove/examples/register/Link.lean
        etc/gen-link.py --mvcc > Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link.lean
+       etc/gen-link.py --backend > Proof/go_etcd_io/etcd/server/v3/storage/backend/Link.lean
        etc/gen-link.py --adt > Proof/go_etcd_io/etcd/pkg/v3/adt/Link.lean
        etc/gen-link.py --txn > Proof/go_etcd_io/etcd/server/v3/etcdserver/txn/Link.lean
        etc/gen-link.py --apply > Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Link.lean
@@ -58,6 +59,10 @@ A callee list `?` (`fn: ?`) marks a function specified but not proved yet (a lat
 spec is a hypothesis (`h_<fn>`, `section links_pending`) of every result that reaches it.
 `--mvcc` links the proofs of the KV core of etcd's `server/v3/storage/mvcc`
 (`Proof/go_etcd_io/etcd/server/v3/storage/mvcc/`), from etc/link-lean-first-mvcc.txt.
+`--backend` links the proofs of etcd's backend (`server/v3/storage/backend`: the buffers, the
+read and batch transactions), from etc/link-lean-first-backend.txt; bbolt's key-value contract
+(`Spec/go_etcd_io/bbolt/*_kv*.lean`, axioms) is its trust boundary. As `--recipes`, its results are
+in a namespace of their own (`backend`).
 `--adt` links the proofs of etcd's interval tree (`pkg/v3/adt`, `Proof/go_etcd_io/etcd/pkg/v3/adt/`),
 from etc/link-lean-first-adt.txt: the tree's contract pending (`?`), the comparisons proved.
 `--txn` links the proofs of etcd's server `txn` package (`server/v3/etcdserver/txn`: `Range`,
@@ -123,6 +128,11 @@ LEAN_FIRST = {
     "--mvcc": ("link-lean-first-mvcc.txt", "go_etcd_io.etcd.server.v3.storage.mvcc",
                "go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions",
                "The mvcc KV core's proofs (etcd's `server/v3/storage/mvcc`)", [""]),
+    # etcd's backend (server/v3/storage/backend) over bbolt's key-value contract
+    "--backend": ("link-lean-first-backend.txt", "go_etcd_io.etcd.server.v3.storage.backend",
+                  "go_etcd_io.etcd.server.v3.storage.backend.Assumptions",
+                  "The backend's proofs (etcd's `server/v3/storage/backend`) and the trust "
+                  "boundary they rest on (bbolt's key-value contract)", [""]),
     # the interval tree (etcd's pkg/v3/adt), the watchable store's
     "--adt": ("link-lean-first-adt.txt", "go_etcd_io.etcd.pkg.v3.adt",
               "go_etcd_io.etcd.pkg.v3.adt.Assumptions",
@@ -163,7 +173,7 @@ LEAN_FIRST = {
                    "The register example's proofs (`examples/register`)", [""]),
 }
 # The mode whose results are put in a namespace of their own (see the docstring).
-NAMESPACED = {"--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
+NAMESPACED = {"--backend": "backend", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
               "--txn": "txn", "--apply": "apply", "--v3rpc": "v3rpc"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
