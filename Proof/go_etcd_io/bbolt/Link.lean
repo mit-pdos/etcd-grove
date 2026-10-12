@@ -35,6 +35,7 @@ public import Proof.go_etcd_io.bbolt.DB__Path
 public import Proof.go_etcd_io.bbolt.DB__String
 public import Proof.go_etcd_io.bbolt.DB__View
 public import Proof.go_etcd_io.bbolt.DB__beginTx
+public import Proof.go_etcd_io.bbolt.DB__fileSize
 public import Proof.go_etcd_io.bbolt.DB__growSize
 public import Proof.go_etcd_io.bbolt.DB__invalidate
 public import Proof.go_etcd_io.bbolt.DB__meta
@@ -147,6 +148,8 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
 -- the ghost state of the database's predicates (`DBPred.lean`)
 variable [AllG GF]
+-- `os.FileInfo`, an alias Perennial's `os` keeps opaque (`Proof/os/FileInfoAlias.lean`)
+variable [os_fi : OsFileInfoAssumptions (GF := GF)]
 
 theorem BucketStats.wp_Add :
     EtcdGrove.bbolt.BucketStats.Add.spec (GF := GF) (hG := hG) :=
@@ -412,6 +415,18 @@ theorem DB.wp_View [AllG GF] :
     EtcdGrove.bbolt.DB.View.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.View.wp_proof EtcdGrove.bbolt.DB.wp_Begin EtcdGrove.bbolt.Tx.wp_Rollback
 
+theorem os.File.wp_Stat :
+    EtcdGrove.bbolt.os.File.Stat.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.os.File.Stat.wp_proof
+
+theorem fs.FileInfo.wp_Size :
+    EtcdGrove.bbolt.fs.FileInfo.Size.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.fs.FileInfo.Size.wp_proof
+
+theorem DB.wp_fileSize :
+    EtcdGrove.bbolt.DB.fileSize.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.fileSize.wp_proof EtcdGrove.bbolt.os.File.wp_Stat EtcdGrove.bbolt.fs.FileInfo.wp_Size
+
 theorem DB.wp_growSize :
     EtcdGrove.bbolt.DB.growSize.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.growSize.wp_proof
@@ -500,10 +515,6 @@ theorem wp_mmap :
     EtcdGrove.bbolt.mmap.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.mmap.wp_proof EtcdGrove.bbolt.os.File.wp_Fd EtcdGrove.bbolt.unix.wp_Mmap EtcdGrove.bbolt.unix.wp_Madvise
 
-theorem fs.FileInfo.wp_Size :
-    EtcdGrove.bbolt.fs.FileInfo.Size.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.fs.FileInfo.Size.wp_proof
-
 theorem node.wp_childIndex :
     EtcdGrove.bbolt.node.childIndex.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.node.childIndex.wp_proof EtcdGrove.bbolt.Inode.wp_Key
@@ -583,10 +594,6 @@ theorem os.File.wp_Name :
 theorem os.File.wp_ReadAt :
     EtcdGrove.bbolt.os.File.ReadAt.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.os.File.ReadAt.wp_proof
-
-theorem os.File.wp_Stat :
-    EtcdGrove.bbolt.os.File.Stat.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.os.File.Stat.wp_proof
 
 theorem os.File.wp_Sync :
     EtcdGrove.bbolt.os.File.Sync.spec (GF := GF) (hG := hG) :=

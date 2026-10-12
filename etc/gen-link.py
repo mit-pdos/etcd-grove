@@ -96,6 +96,10 @@ variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
 -- the ghost state of the database's predicates (`DBPred.lean`)
 variable [AllG GF]
 """
+# the root package's proofs also take `os.FileInfo`'s assumptions (an alias Perennial's `os`
+# keeps opaque, `Proof/os/FileInfoAlias.lean`)
+BBOLT_ROOT = """variable [os_fi : OsFileInfoAssumptions (GF := GF)]
+"""
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--concurrency": "concurrency", "--bbolt": "bbolt", "--bbolt-root": "bbolt",
               "--bbolt-freelist": "bbolt"}
@@ -245,7 +249,8 @@ variable [go_gctx : GoGlobalContext]
 variable {{hlc : HasLC}} {{GF : BundledGFunctors}} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : {assumptions}]
-""" + (BBOLT_HASH if sys.argv[1] in ("--bbolt", "--bbolt-root", "--bbolt-freelist") else ""))
+""" + (BBOLT_HASH if sys.argv[1] in ("--bbolt", "--bbolt-root", "--bbolt-freelist") else "")
+      + (BBOLT_ROOT if sys.argv[1] == "--bbolt-root" else ""))
     def emit_cache(fn):
         # qualified in a namespaced mode: in `theorem DB.wp_munmap`, a bare `wp_munmap` would be
         # `DB.wp_munmap` itself

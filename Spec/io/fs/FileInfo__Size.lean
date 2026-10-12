@@ -18,11 +18,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `fi.Size()` of a `FileInfo` from `Stat`: the file's size then. -/
+/-- `fi.Size()` of a `FileInfo` from `Stat`: the file's size then. Stated on the call as Goose
+emits it (`MethodResolve` on the interface type, whose underlying type is opaque in
+Perennial's translation of `io/fs`, so the call cannot be resolved to a method). -/
 abbrev fs.FileInfo.Size.spec : Prop :=
   ∀ (fi : GoInterface) (n : Nat),
   {{ fileInfo (GF := GF) fi n }}
-    (App (Val (fi @!! _root_.Perennial.io.fs.FileInfo.ty @!! go!"Size")) (Val #()))
+    (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.io.fs.FileInfo.ty go!"Size")))
+      (Val #fi)) (Val #()))
   {{ RET #(W64 n); True }}
 
 end spec

@@ -83,6 +83,9 @@ namespace bbolt
 #print axioms Tx.wp_nonPhysicalRollback
 #print axioms Tx.wp_Rollback
 #print axioms DB.wp_View
+#print axioms os.File.wp_Stat
+#print axioms fs.FileInfo.wp_Size
+#print axioms DB.wp_fileSize
 #print axioms DB.wp_growSize
 #print axioms DB.wp_invalidate
 #print axioms DB.wp_mmapSize
@@ -105,7 +108,6 @@ namespace bbolt
 #print axioms unix.wp_Mmap
 #print axioms unix.wp_Madvise
 #print axioms wp_mmap
-#print axioms fs.FileInfo.wp_Size
 #print axioms node.wp_childIndex
 #print axioms node.wp_del
 #print axioms node.wp_dereference
@@ -126,7 +128,6 @@ namespace bbolt
 #print axioms os.File.wp_Close
 #print axioms os.File.wp_Name
 #print axioms os.File.wp_ReadAt
-#print axioms os.File.wp_Stat
 #print axioms os.File.wp_Sync
 #print axioms os.File.wp_Truncate
 #print axioms os.File.wp_WriteAt
