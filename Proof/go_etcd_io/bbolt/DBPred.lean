@@ -194,6 +194,12 @@ def dbOK (σ : DBState) (v0 v1 : internal.common.Meta) : Prop :=
   σ.fl.readonly.Perm (σ.readers.toList.map (·.2.txid)) ∧
   σ.readers.size < Int.toNat rwmutex.actualMaxReaders ∧ writerOK σ
 
+/-- The caller's half of the mapped cells after the whole slots (inside the file): no reader
+sees them, and a remap gives them back with the slots (`munmap` takes the whole mapping). -/
+def mapTail (data : Loc) (bs : List w8) (sz ps : Nat) : IProp GF :=
+  bytesPointsto (data +ₗ (((min sz bs.length / ps) * ps : Nat) : Int)) (DFrac.own halfQ)
+    ((bs.take sz).drop ((min sz bs.length / ps) * ps))
+
 /-- `mmaplock`'s invariant: a ghost token. -/
 def mmapTok (γ : GName) (q : Qp) : IProp GF := ghostVar γ q ()
 
@@ -226,6 +232,7 @@ def ownDB (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DBState) : IP
     "Hbytes" ∷ fileBytes σ.fd σ.bs ∗
     "Hmap" ∷ fileMap σ.fd (some (σ.data, σ.sz)) ∗
     "Hslots" ∷ slotsView σ.data σ.bs σ.ps σ.rem (List.range σ.nslots) ∗
+    "Htail" ∷ mapTail σ.data σ.bs σ.sz σ.ps ∗
     "Hfl" ∷ ownFL I fls σ.fl ∗
     "#Hmetalock" ∷ isMutex (structFieldRef DB go!"metalock" dbl) iprop(True) ∗
     "#Hrwlock" ∷ isMutex (structFieldRef DB go!"rwlock" dbl) iprop(True) ∗
