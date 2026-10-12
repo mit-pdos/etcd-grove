@@ -154,11 +154,11 @@ what `beginRWTx` hands the writer (its object graph's predicate is the write age
 - `internal/common` (117 results, `gen-link.py --bbolt`): all but `Meta.Print`,
   `Page.hexdump` (an `io.Writer`) and `CopyFile` (filesystem); `hash/fnv`, `os.Getenv`/
   `Setenv`/`Unsetenv`, `strings.ToLower` are trust-boundary axioms.
-- `internal/freelist` (30, `--bbolt-freelist`): the array freelist, all of `shared` (also
+- `internal/freelist` (44, `--bbolt-freelist`): the array freelist, all of `shared` (also
   `Rollback`, `release`, `releaseRange`, `ReleasePendingPages`: Perennial's map range does
   allow deleting), the interface contract (`Iface.lean`, `ArrayIface.lean`), `hashMap.addSpan`;
   `sort.Sort` an axiom.
-- the root package (184, `--bbolt-root`): statistics, accessors, `mmap`/`munmap`,
+- the root package (224, `--bbolt-root`): statistics, accessors, `mmap`/`munmap`,
   `mmapSize`, `db.page`, `db.meta`, `Tx.page`, `Tx.init`, `beginTx`, `beginRWTx` (the
   freelist's pending pages no reader sees released), `removeTx`, `Begin` (both kinds),
   `Tx.close`/`Rollback` (read), `View`, the logger (`DB.Logger`, the default logger's
@@ -196,9 +196,22 @@ what `beginRWTx` hands the writer (its object graph's predicate is the write age
   `uint64` slice, `FLPage.lean`, `U64Bytes.lean`; a meta's bytes determine it, `MetaInj.lean`),
   its locks, ghost state and page pool set up. Not yet: a new (empty) file (`init`'s file
   `fileWF`).
-- Coverage (bbolt v1.5.0's non-test files): 284 of 378 functions, 2954 of 4811 lines; left in the
-  root package mostly `Commit` and its pieces (`tx.go`), the spill and rebalance
-  (`bucket.go`, `node.go`), `Update`/`Batch`, `Check` (`tx_check.go`), `Compact`.
+- The writer's shape (`WriteTxShape.lean`, design in `notes/bbolt-proof-plan.md`, "The spill
+  and `Commit`"): the B+tree's keys (`TreeKeys.lean`, now in `treeStrict`), opened buckets tied
+  to their entries, ghost page tokens for disjointness. Proved with it (`sspec`s, `_s` files):
+  `Bucket.node`, `Cursor.node`, the cursor's descent by a key (`Cursor.seek`/`search`: Perennial's
+  `sort.Search` spec restated with the index it last evaluated), `Put`, `Delete`,
+  `Bucket.Bucket`, `CreateBucket(IfNotExists)`, `Set`/`NextSequence`, the `Tx` wrappers, the shape
+  at `Begin`. In progress (agents): rebalance, spill, `Commit`'s database side, `Open` of a new
+  file.
+- The hashMap freelist (every function, its interface contract; `hashMap.Init([])` keeps a stale
+  cache, so not `InitSpec`); `Reload` of a page holding pending ids; the logger's methods,
+  `DB.Stats`, `DB.Sync`, `panicked.Error` (new trust-boundary axioms: `fmt.Sprint`, `os.Exit`,
+  `log.Logger.Flags`/`SetFlags`, `sort.SliceIsSorted`, `reflect.DeepEqual` of page-id sets; the
+  TCB baseline is not updated yet). `safelyCall` needs `recover`, which Perennial does not model.
+- Coverage (bbolt v1.5.0's non-test files): 316 of 378 functions, 3284 of 4811 lines; the freelist
+  complete; left in the root package mostly `Commit` and its pieces (`tx.go`), the spill and
+  rebalance (`bucket.go`, `node.go`), `Update`/`Batch`, `Check` (`tx_check.go`), `Compact`.
 - the errors bbolt compares with its error variables are well-formed (`Proof/os/ErrWF.lean`:
   an error holds a pointer of a pointer type or is a `syscall.Errno`, so comparing it with
   another does not panic; `ErrShape.lean`: `errors.New`, `fmt.Errorf` return pointers):
