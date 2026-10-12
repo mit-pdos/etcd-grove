@@ -11,7 +11,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__
 public import Spec.go_etcd_io.etcd.pkg.v3.notify.Notifier__Notify
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__isLeader
 public import Spec.go_etcd_io.etcd.server.v3.config.ServerConfig__ElectionTimeout
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.Apply_server
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.Apply
 public import Spec.errors.Is
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore__Get
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
@@ -76,7 +76,7 @@ local macro "tail_skip" : tactic => `(tactic| (
   iintro Hst
   (try wp_auto)
   iapply HΦ
-  iframe Hbe Hlr
+  iframe Hbe Hlr HKV
   (try simp only [↓reduceIte])
   iframe Happ
   iexists st.eff
@@ -100,7 +100,7 @@ local macro "tail_done" : tactic => `(tactic| (
   rw [decide_eq_false (by unfold ciEff; rw [ite_eq_right hi0]; exact Int.lt_irrefl _)]
   (try wp_auto)
   iapply HΦ
-  iframe Hbe Hlr
+  iframe Hbe Hlr HKV
   (try simp only [↓reduceIte])
   iframe Happ
   iexists m.index
@@ -125,7 +125,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     (hN : notify.Notifier.Notify.spec (GF := GF) (hG := hG))
     (hL : EtcdServer.isLeader.spec (GF := GF) (hG := hG))
     (hE : config.ServerConfig.ElectionTimeout.spec (GF := GF) (hG := hG))
-    (hA : apply.Apply_server.spec (GF := GF) (hG := hG))
+    (hA : apply.Apply.spec (GF := GF) (hG := hG))
     (hIs : errors.Is.spec (GF := GF) (hG := hG))
     (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))
@@ -136,13 +136,14 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     (hW : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (hGA : EtcdServer.GoAttach.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM b e m st v3
-  wp_start as ⟨#Hsrv, #He, Hst, Hbe, Hlr, %Hp, Hv3⟩
+  intro s γ ci TM E b e m st v3 x
+  wp_start as ⟨#Hsrv, #He, Hst, Hbe, Hlr, HKV, %Hpo, Hv3⟩
+  obtain ⟨Hp, Hok⟩ := Hpo
   wp_apply wp_with_defer as %defer defer
   iunfold isServer at Hsrv
   icases Hsrv with ⟨#Hsci, ⟨%fv, #Hfv⟩, #Hat⟩
   iunfold srvFieldsAt at Hfv
-  icases Hfv with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, #Hua, #Happl, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl, #Hq,
+  icases Hfv with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, #Hua, #Happl, %HE, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl, #Hq,
     #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
   ihave #He' := He
   iunfold entryAt at He'
@@ -175,6 +176,13 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     wp_auto
     wp_if_destruct
     · -- no data
+      have hnil : m.data = [] := by
+        apply List.eq_nil_of_length_eq_zero; rw [Hdlen.1, Hif]; rfl
+      ihave HKV : iprop(∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKV s E x' ∗
+          ⌜entryStep m false x x' out⌝) $$ [HKV]
+      · iexists x, apply.ApplyOut.skipped
+        iframe HKV
+        ipureintro; unfold entryStep; rw [ite_eq_left hnil]; exact ⟨rfl, rfl⟩
       wp_apply hN fv.firstCommit
       · iexact Hnot
       wp_apply hL s fv.memberID as %ldr -
@@ -182,7 +190,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       cases ldr
       · (try wp_auto)
         iapply HΦ
-        iframe Hbe Hst Hlr
+        iframe Hbe Hst Hlr HKV
       · (try wp_auto)
         wp_apply hE (srvCfgAddr s) fv.electionTicks fv.tickMs as %dur -
         · iframe Het Htm
@@ -193,16 +201,36 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         wp_apply HP
         (try wp_auto)
         iapply HΦ
-        iframe Hbe Hst Hlr
+        iframe Hbe Hst Hlr HKV
     · -- data: the applier, with nothing to write (`ApplyV2storeOnly`)
-      wp_apply hA fv.lg e m fv.ua fv.w false (batchLockInv γ TM) iprop(True) iprop(True)
-        iprop(True) fv.hook $$ [] as %ar %id ⟨-, #Har⟩
-      · iframe Happl He
+      have hdata : m.data ≠ [] := by
+        intro h; apply Hif
+        have h1 := Hdlen.1; rw [h] at h1; simp only [List.length_nil] at h1
+        have h2 := Hdlen.2
+        have h1' : (sint.Z d.len).toNat = 0 := h1.symm
+        have h3 : sint.Z d.len = 0 := by omega
+        word
+      obtain ⟨rq, hdec, ⟨id0, hid⟩, hrq, hdk⟩ := Hok.resolve_left hdata
+      iunfold srvApplyKV at HKV
+      icases HKV with ⟨%ua', #Hua', HKV⟩
+      icombine Hua Hua' gives %Hueq
+      subst Hueq
+      wp_apply hA fv.lg e m fv.ua fv.w false E iprop(True) iprop(True) iprop(True) x rq id0
+        $$ [HKV] as %ar %id ⟨-, #Har, %Hid, %x', %out, HKV, %Hstep, -⟩
+      · iframe Happl Hwok He HKV
         simp only [Bool.false_eq_true, ↓reduceIte]
-        isplitl <;> itrivial
+        isplitr
+        · ipureintro; exact Hlgnn
+        isplitr
+        · itrivial
+        ipureintro; exact ⟨hdec, hid, hrq, hdk⟩
       (try wp_auto)
       iapply HΦ
       iframe Hbe Hst Hlr
+      iexists x', out
+      isplitl
+      · iunfold srvApplyKV; iexists fv.ua; iframe HKV Hua
+      · ipureintro; unfold entryStep; rw [ite_eq_right hdata]; exact ⟨rq, id0, hdec, hid, Hstep⟩
   · -- the entry `i = p + 1`, above `ci`
     simp only [↓reduceIte]
     icases Hv3 with ⟨Happ, %Hv3⟩
@@ -211,6 +239,13 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     wp_auto
     wp_if_destruct
     · -- no data: processed with no writes
+      have hnil : m.data = [] := by
+        apply List.eq_nil_of_length_eq_zero; rw [Hdlen.1, Hif]; rfl
+      ihave HKV : iprop(∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKV s E x' ∗
+          ⌜entryStep m true x x' out⌝) $$ [HKV]
+      · iexists x, apply.ApplyOut.skipped
+        iframe HKV
+        ipureintro; unfold entryStep; rw [ite_eq_left hnil]; exact ⟨rfl, rfl⟩
       wp_apply hN fv.firstCommit
       · iexact Hnot
       wp_apply hL s fv.memberID as %ldr -
@@ -236,17 +271,33 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       icases Hsci with ⟨#Hcif, #Hci, #Hinv⟩
       have hpre : st.pending = false ∧ m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
           uint.Z (ciEff γ st.k) < uint.Z m.index := ⟨Hp, hi, hlt, hce⟩
-      wp_apply hA fv.lg e m fv.ua fv.w true (batchLockInv γ TM)
+      have hdata : m.data ≠ [] := by
+        intro h; apply Hif
+        have h1 := Hdlen.1; rw [h] at h1; simp only [List.length_nil] at h1
+        have h2 := Hdlen.2
+        have h1' : (sint.Z d.len).toNat = 0 := h1.symm
+        have h3 : sint.Z d.len = 0 := by omega
+        word
+      obtain ⟨rq, hdec, ⟨id0, hid⟩, hrq, hdk⟩ := Hok.resolve_left hdata
+      iunfold srvApplyKV at HKV
+      icases HKV with ⟨%ua', #Hua', HKV⟩
+      icombine Hua Hua' gives %Hueq
+      subst Hueq
+      obtain ⟨HEP, HEf⟩ := HE
+      wp_apply hA fv.lg e m fv.ua fv.w true E
         iprop(applyThread γ st ∗ ciApplying ci m.index m.term ∗ applyBackend γ ci b ∗
           ⌜st.pending = false ∧ m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
             uint.Z (ciEff γ st.k) < uint.Z m.index⌝)
         iprop(hookDone γ TM ∗ applyThread γ { st with k := m.index, pending := true } ∗
           ciApplying ci m.index m.term ∗ applyBackend γ ci b)
         iprop(applyThread γ ⟨m.index, m.index, m.index, false⟩ ∗ ciApplying ci m.index m.term ∗
-          applyBackend γ ci b)
-        fv.hook $$ [Hst Happ Hbe] as %ar %id ⟨Hout, #Har⟩
-      · iframe Happl He
+          applyBackend γ ci b) x rq id0
+        $$ [Hst Happ Hbe HKV] as %ar %id ⟨Hout, #Har, %Hid, %x', %out, HKV, %Hstep, -⟩
+      · iframe Happl Hwok He HKV
         simp only [↓reduceIte]
+        rw [HEP, HEf]
+        isplitr
+        · ipureintro; exact Hlgnn
         isplitr
         · isplitr
           · iunfold hookSpec at Hhook
@@ -264,7 +315,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
             · iunfold batchLockInv; iexists mm; iframe
             iexact Hst
         · iframe Hst Happ Hbe
-          ipureintro; exact hpre
+          ipureintro; exact ⟨hpre, hdec, hid, hrq, hdk⟩
       ihave Hj : iprop(|={⊤}=> ∃ st1 : ApplyState, applyThread γ st1 ∗
           ciApplying ci m.index m.term ∗ applyBackend γ ci b ∗
           ⌜st1 = ⟨m.index, m.index, m.index, false⟩ ∨ st1 = { st with p := m.index }⌝) $$ [Hout]
@@ -273,11 +324,17 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         · imod skip_done γ st m.index Hp hi hlt $$ Hinv Hst with Hst
           imodintro; iexists _; iframe Hst Happ Hbe; ipureintro; right; rfl
       imod Hj with ⟨%st1, Hst, Happ, Hbe, %hst1⟩
+      ihave HKV : iprop(∃ (x'' : apply.ApplyKV) (out' : apply.ApplyOut), srvApplyKV s E x'' ∗
+          ⌜entryStep m true x x'' out'⌝) $$ [HKV]
+      · iexists x', out
+        isplitl
+        · iunfold srvApplyKV; iexists fv.ua; iframe HKV Hua
+        · ipureintro; unfold entryStep; rw [ite_eq_right hdata]; exact ⟨rq, id0, hdec, hid, Hstep⟩
       (try wp_auto)
       wp_if_destruct
       · (try wp_auto)
         tail_any
-      iunfold resultOk at Har
+      iunfold apply.resultErrOk at Har
       icases Har with (%Hnull | ⟨%err, #Herr, #HerrIs⟩)
       · exact absurd Hnull Hif
       ihave Hei : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []

@@ -75,8 +75,8 @@ if the target does (`errors.TreeTyped`, Go's typing). What `errors.Is(ar.Err, Er
 (the server's `applyEntryNormal`) and `errors.Is(ar.Err, mvcc.ErrCompacted)` (`dispatch`'s
 metrics) need of it (`errors.wp_Is`). As `clientErrIs` for the client's errors. Defined here,
 in the apply package's `Base` (moved from the server's `InvApplier.lean`, 2026-10-12, the merge
-of the apply package's unit 2), so that the apply package states it and the server's
-`resultOk` uses the same. `nil` has it (`applyErrIs_nil`), and so has an `errors.New` error
+of the apply package's unit 2), so that the apply package states it and the server reads
+it (`apply.resultErrOk`). `nil` has it (`applyErrIs_nil`), and so has an `errors.New` error
 (`applyErrIs_leaf`). -/
 def applyErrIs (err : GoInterface) : IProp GF :=
   iprop(□ ∀ target : GoInterface, ∃ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop),

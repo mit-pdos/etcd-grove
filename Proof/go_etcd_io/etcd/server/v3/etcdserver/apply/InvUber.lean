@@ -147,8 +147,8 @@ def applyKV (E : AEnv GF) (ua : GoInterface) (x : ApplyKV) : IProp GF :=
 /-! ## The results -/
 
 /-- `ar` is an `*apply.Result` whose `Err` can be read (nil: no result), an error `errors.Is`
-can take (`applyErrIs`): the server's `resultOk` (`InvApplier.lean`, which the apply package does
-not import), the same definition. -/
+can take (`applyErrIs`): what the server's apply thread reads of it (`applyEntryNormal`; its own
+`resultOk`, the same definition, went in the apply package's unit 3). -/
 def resultErrOk (ar : Loc) : IProp GF :=
   iprop(⌜ar = null⌝ ∨
     ∃ err : GoInterface, structFieldRef Result go!"Err" ar ↦□ err ∗ applyErrIs err)

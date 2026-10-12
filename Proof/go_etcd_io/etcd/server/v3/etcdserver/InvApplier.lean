@@ -3,16 +3,25 @@ The etcd server as its apply thread uses it: the shared vocabulary of the specs 
 `applyEntryNormal`, `apply`, `applyEntries` and the applier's contract. Lean-first (no Rocq
 counterpart); the protocol is `InvApply.lean`, the hook `InvServer.lean`.
 
-**The applier (trust boundary).** `apply.Apply` (the `UberApplier`'s dispatch, through
-mvcc, the lessor, auth, ...) and `applyConfChange` (the cluster's membership) write the
-backend's batch transaction. What the protocol needs of them is their contract
-(`Spec/apply_Apply.lean`, `Spec/EtcdServer__applyConfChange.lean`): an entry's writes happen
-in one critical section of the batch lock, which runs the post-lock hook first, or not at
-all. `applierFor ua P f` (an axiom: the applier and the backend are not translated) says
-that `ua`'s backend's batch lock has invariant `P` and runs `f` right after every
-`LockInsideApply`.
+**The applier.** `apply.Apply` (the `UberApplier`'s dispatch, through mvcc, the lessor, auth,
+...) and `applyConfChange` (the cluster's membership) write the backend's batch transaction.
+What the protocol needs of them is their contract (`Spec/.../apply/Apply.lean`,
+`Spec/.../EtcdServer__applyConfChange.lean`): an entry's writes happen in one critical section
+of the batch lock, which runs the post-lock hook first, or not at all. Since the apply package's
+unit 3 (2026-10-12) the applier is the apply package's (`apply.applierFor ua E`, a definition,
+`apply/InvUber.lean`; `apply.Apply` proved): its environment `E` (the store, its ghost names,
+the batch lock's invariant `E.P` and hook `E.f`) is a parameter of `isServer`, whose fields pin
+`E.P = batchLockInv γ TM` and `E.f` the server's hook. The apply thread owns the applier's KV
+state (`srvApplyKV s E x`: the uber-applier's current chain and the KV's committed log, at the
+server's `uberApply`).
 
-**The server** (`isServer s γ ci TM`, persistent): the fields the apply thread reads, their
+**What a batch does to the KV** (pure): one normal entry by `entryStep` (no data: nothing;
+else its request decoded, `apply.applyStep`), a batch by `entriesStep c` (each normal entry
+applied with `v3` iff it is above the consistent index `c` the batch starts at; a conf change
+leaves the KV), under `entriesOk c` (every normal entry `entryOk` at every state a run of the
+batch reaches it in).
+
+**The server** (`isServer s γ ci TM E`, persistent): the fields the apply thread reads, their
 values and contracts. `uberApply` is replaced by `applySnapshot` (not translated), on the
 apply thread; here it is read-only.
 -/
@@ -21,6 +30,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftpb
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Wait
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 public import Perennial.Proof.errors
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Defs
@@ -86,6 +96,125 @@ index, through which the backend holds everything) and `applyEntries` keeps it. 
 def loopOk (γ : ApplyNames) (st : ApplyState) (a : w64) : Prop :=
   st.pending = false ∧ uint.Z st.p = max (uint.Z (ciEff γ st.k)) (uint.Z a)
 
+/-! ## What a batch of entries does to the KV (pure) -/
+
+/-- **The premise on a normal entry** at the KV state `x` it meets: no data (`applyEntryNormal`
+skips it), or its data decode (`irrDecode`: the proposer marshalled an `InternalRaftRequest`) to
+a request with an id or a header (`irrId`: else `apply.Apply` panics; pre-3.0 entries), neither a
+compaction nor empty (`dispatchOk`), and satisfying the txn package's premises at `x.log`
+(`rqOk`: `apply.Apply.spec`'s). -/
+def entryOk (x : apply.ApplyKV) (m : EntryModel) : Prop :=
+  m.data = [] ∨ ∃ rq, apply.irrDecode m.data = some rq ∧ (∃ id, apply.irrId rq = some id) ∧
+    apply.rqOk x.log rq ∧ apply.dispatchOk rq
+
+/-- **What `applyEntryNormal` does to the KV** with the normal entry `m` (`v3`: above `ci`): no
+data, nothing (`skipped`); else its decoded request through `apply.Apply` (`applyStep`). -/
+def entryStep (m : EntryModel) (v3 : Bool) (x x' : apply.ApplyKV) (out : apply.ApplyOut) :
+    Prop :=
+  if m.data = [] then x' = x ∧ out = .skipped
+  else ∃ rq id, apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧
+    apply.applyStep rq v3 x x' out
+
+/-- **What `apply` does to the KV with one entry** of a batch that starts at the consistent
+index `c`: a normal entry by `entryStep`, with `v3` iff it is above `c` (an entry at or below is
+replayed, `ApplyV2storeOnly`); a conf change leaves the KV. -/
+def batchStep (c : w64) (m : EntryModel) (x x' : apply.ApplyKV) : Prop :=
+  if m.typ = W32 0 then ∃ out, entryStep m (decide (uint.Z c < uint.Z m.index)) x x' out
+  else x' = x
+
+/-- **What a batch does to the KV** from the consistent index `c`: the entries' `batchStep`s in
+order (a relation: `applyStep` is). -/
+def entriesStep (c : w64) : List EntryModel → apply.ApplyKV → apply.ApplyKV → Prop
+  | [], x, x' => x' = x
+  | m :: ms, x, x' => ∃ x1, batchStep c m x x1 ∧ entriesStep c ms x1 x'
+
+/-- **The premise on a batch** from the KV state `x` (consistent index `c`): every normal entry
+is `entryOk` at every state a run of the batch's earlier entries (`batchStep`) reaches it in.
+Stated over every run, since `applyStep` is a relation (an auth or quota rejection, the alarm
+store's answers): the server cannot choose the run. -/
+def entriesOk (c : w64) : List EntryModel → apply.ApplyKV → Prop
+  | [], _ => True
+  | m :: ms, x => (m.typ = W32 0 → entryOk x m) ∧ ∀ x1, batchStep c m x x1 → entriesOk c ms x1
+
+/-- The entries of a batch above the applied index `ai` (those `applyEntries` hands to
+`apply`). -/
+def unapplied (ai : w64) (ms : List EntryModel) : List EntryModel :=
+  ms.filter (fun m => decide (uint.Z ai < uint.Z m.index))
+
+theorem entriesStep_append (c : w64) (l : List EntryModel) (m : EntryModel)
+    (x x1 x2 : apply.ApplyKV) (h1 : entriesStep c l x x1) (h2 : batchStep c m x1 x2) :
+    entriesStep c (l ++ [m]) x x2 := by
+  induction l generalizing x with
+  | nil => simp only [entriesStep] at h1; subst h1; exact ⟨x2, h2, rfl⟩
+  | cons m' l ih =>
+    obtain ⟨y, hy, hl⟩ := h1
+    exact ⟨y, hy, ih y hl⟩
+
+theorem entriesOk_drop (c : w64) (ms : List EntryModel) (x : apply.ApplyKV) (j : Nat)
+    (m : EntryModel) (h : entriesOk c (ms.drop j) x) (hm : ms[j]? = some m) :
+    (m.typ = W32 0 → entryOk x m) ∧
+      ∀ x1, batchStep c m x x1 → entriesOk c (ms.drop (j + 1)) x1 := by
+  have hj : j < ms.length := by
+    rcases Nat.lt_or_ge j ms.length with h | h
+    · exact h
+    · rw [List.getElem?_eq_none h] at hm; cases hm
+  rw [List.drop_eq_getElem_cons hj] at h
+  have hm' : ms[j] = m := by rw [List.getElem?_eq_getElem hj] at hm; exact Option.some.inj hm
+  rw [hm'] at h
+  exact h
+
+theorem entriesStep_take_succ (c : w64) (ms : List EntryModel) (j : Nat) (m : EntryModel)
+    (x xj x1 : apply.ApplyKV) (hm : ms[j]? = some m) (h1 : entriesStep c (ms.take j) x xj)
+    (h2 : batchStep c m xj x1) : entriesStep c (ms.take (j + 1)) x x1 := by
+  rw [List.take_add_one, hm, Option.toList_some]
+  exact entriesStep_append c _ m x xj x1 h1 h2
+
+/-- The entries above `ai` of a batch whose indices count up from `b`: those from the offset
+`ai + 1 - b` on. -/
+theorem unapplied_eq_drop (ai : w64) (ms : List EntryModel) (b : Int)
+    (h : ∀ (n : Nat) (m : EntryModel), ms[n]? = some m → uint.Z m.index = b + n) :
+    unapplied ai ms = ms.drop (uint.Z ai + 1 - b).toNat := by
+  induction ms generalizing b with
+  | nil => simp [unapplied]
+  | cons m ms ih =>
+    have hm : uint.Z m.index = b := by simpa using h 0 m rfl
+    have ht : ∀ (n : Nat) (m' : EntryModel), ms[n]? = some m' → uint.Z m'.index = (b + 1) + n := by
+      intro n m' hn
+      have := h (n + 1) m' (by simpa using hn)
+      push_cast at this; omega
+    have ih' := ih (b + 1) ht
+    unfold unapplied at ih' ⊢
+    by_cases hb : uint.Z ai < b
+    · rw [List.filter_cons_of_pos (by simp [hm, hb]), ih']
+      rw [show (uint.Z ai + 1 - b).toNat = 0 by omega, show (uint.Z ai + 1 - (b + 1)).toNat = 0 by omega]
+      rfl
+    · rw [List.filter_cons_of_neg (by simp [hm, hb]), ih']
+      rw [show (uint.Z ai + 1 - b).toNat = (uint.Z ai + 1 - (b + 1)).toNat + 1 by omega]
+      rfl
+
+/-- **The trace of a batch**: the states a run of `entriesStep` passes through. -/
+theorem entriesStep_trace (c : w64) (ms : List EntryModel) (x x' : apply.ApplyKV)
+    (h : entriesStep c ms x x') :
+    ∃ xs : List apply.ApplyKV, xs.length = ms.length + 1 ∧ xs[0]? = some x ∧
+      xs[ms.length]? = some x' ∧
+      ∀ (n : Nat) (m : EntryModel) (y y' : apply.ApplyKV), ms[n]? = some m →
+        xs[n]? = some y → xs[n + 1]? = some y' → batchStep c m y y' := by
+  induction ms generalizing x with
+  | nil => simp only [entriesStep] at h; subst h; exact ⟨[x'], rfl, rfl, rfl, by simp⟩
+  | cons m ms ih =>
+    obtain ⟨x1, h1, hr⟩ := h
+    obtain ⟨xs, hl, h0, hL, hs⟩ := ih x1 hr
+    refine ⟨x :: xs, by simp [hl], rfl, by simpa using hL, ?_⟩
+    intro n m' y y' hm hy hy'
+    cases n with
+    | zero =>
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at hm hy
+      simp only [Nat.zero_add, List.getElem?_cons_succ, h0, Option.some.injEq] at hy'
+      subst hm hy hy'; exact h1
+    | succ n =>
+      simp only [List.getElem?_cons_succ] at hm hy hy'
+      exact hs n m' y y' hm hy hy'
+
 /-- The server's atomics' invariant's namespace. -/
 abbrev srvN : Namespace := nroot.@"server"
 
@@ -94,18 +223,6 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-/-- **Trust boundary.** `ua` (an `UberApplier`) applies entries to a backend whose batch
-transaction's lock has invariant `P` and which runs the post-lock hook `f` right after every
-`LockInsideApply` (`batchTx.LockInsideApply`; the server registers its hook with
-`SetTxPostLockInsideApplyHook`). An axiom: the applier and the backend are not translated. -/
-axiom applierFor (ua : GoInterface) (P : IProp GF) (f : val) : IProp GF
-
-/-- **Trust boundary.** `applierFor` is persistent (a fact about the server's components). -/
-axiom applierFor_persistent (ua : GoInterface) (P : IProp GF) (f : val) :
-    Persistent (applierFor ua P f)
-
-attribute [instance] applierFor_persistent
 
 -- `waitOk w` (the `wait.Wait`'s `Trigger` and `IsRegistered`): `apply/Wait.lean` (2026-10-12,
 -- shared with the apply package).
@@ -168,16 +285,8 @@ instance entriesAt_persistent (ents : List Loc) (ms : List EntryModel) :
     Persistent (entriesAt (GF := GF) ents ms) := by
   unfold entriesAt; infer_instance
 
-/-- `ar` is an `*apply.Result` whose `Err` can be read (nil: no result), an error as
-`errors.Is` sees it (`applyErrIs`, the apply package's: `apply/Base.lean`, where it moved from
-here on 2026-10-12, so that `apply.Apply`'s result states the same). -/
-def resultOk (ar : Loc) : IProp GF :=
-  iprop(⌜ar = null⌝ ∨
-    ∃ err : GoInterface, structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result
-      go!"Err" ar ↦□ err ∗ applyErrIs err)
-
-instance resultOk_persistent (ar : Loc) : Persistent (resultOk (GF := GF) ar) := by
-  unfold resultOk; infer_instance
+-- `resultOk ar` (the server's, until the apply package's unit 3): `apply.resultErrOk`
+-- (`apply/InvUber.lean`), the same definition, which `apply.Apply`'s spec returns.
 
 end defs
 
@@ -186,18 +295,20 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-! At `HeapGS HasLC.hasLC GF` (later credits), as the notifier `s.firstCommitInTerm`'s
-predicate is (Perennial's channel specs are). -/
+predicate is (Perennial's channel specs are), and the apply package's. -/
 
 /-- The server `s`'s fields hold `v`, with their contracts; the backend's applier `uberApply`
-runs the post-lock hook `v.hook` under a batch lock with the protocol's invariant
-`batchLockInv γ TM`. -/
+is the apply package's uber-applier in the environment `E` (`apply.applierFor`), whose batch
+lock has the protocol's invariant `batchLockInv γ TM` and runs the post-lock hook `v.hook`. -/
 def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (v : SrvFields) : IProp GF :=
+    (E : apply.AEnv GF) (v : SrvFields) : IProp GF :=
   iprop(srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
       srvWAddr s ↦□ v.w ∗ waitOk v.w ∗
-      srvUberApplyAddr s ↦□ v.ua ∗ applierFor v.ua (batchLockInv γ TM) v.hook ∗
+      srvUberApplyAddr s ↦□ v.ua ∗ apply.applierFor v.ua E ∗
+      ⌜E.P = batchLockInv γ TM ∧ E.f = v.hook⌝ ∗
       hookSpec γ ci TM v.hook ∗
       srvLessorAddr s ↦□ v.lessor ∗ lessorOk v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
@@ -208,17 +319,25 @@ def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
       isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore)
 
 instance srvFieldsAt_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (v : SrvFields) : Persistent (srvFieldsAt s γ ci TM v) := by
+    (E : apply.AEnv GF) (v : SrvFields) : Persistent (srvFieldsAt s γ ci TM E v) := by
   unfold srvFieldsAt; infer_instance
 
 /-- The apply thread's view of the server `s` (persistent): `s.consistIndex` (with the
-protocol, `isServerCI`), the fields `applyEntryNormal` and `apply` read, and the atomics. -/
-def isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) : IProp GF :=
-  iprop(isServerCI s γ ci ∗ (∃ v : SrvFields, srvFieldsAt s γ ci TM v) ∗ srvAtomics s)
+protocol, `isServerCI`), the fields `applyEntryNormal` and `apply` read (the applier's in the
+environment `E`), and the atomics. -/
+def isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) : IProp GF :=
+  iprop(isServerCI s γ ci ∗ (∃ v : SrvFields, srvFieldsAt s γ ci TM E v) ∗ srvAtomics s)
 
-instance isServer_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) :
-    Persistent (isServer s γ ci TM) := by
+instance isServer_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) : Persistent (isServer s γ ci TM E) := by
   unfold isServer; infer_instance
+
+/-- **The apply thread's applier state** at `x` (not persistent): the server's `uberApply`'s
+(`apply.applyKV`: its current chain `x.chain`, the KV's resources at the committed log
+`x.log`). -/
+def srvApplyKV (s : Loc) (E : apply.AEnv GF) (x : apply.ApplyKV) : IProp GF :=
+  iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦□ ua ∗ apply.applyKV E ua x)
 
 end defs_lc
 
