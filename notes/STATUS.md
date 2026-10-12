@@ -485,6 +485,118 @@ functions verified (56.2%; `range.go` 18/18, `put.go` 6/6, `delete.go` 3/3; 2 as
 translated), 274 of 653 lines (42.0%); mvcc unchanged (62 of 155, 661 lines); etcd 462 of 3599
 functions, 4647 of 45570 lines (was 435, 4373 before the units).
 
+### Unit 3: Txn (2026-10-12)
+
+Branch `txn-u3` (worktree `/shared/etcd-grove-txn3`, off `lean` at `10cc14b29`), sorry-free;
+Perennial `e4e126e46` (`--packages=.lake/manifest-merge.json`). Every function of `txn.go` (12)
+and `etcdserverpb.RequestOp.GetRequestRange` specified (`Spec/.../txn/`, `Spec/go_etcd_io/etcd/
+api/v3/etcdserverpb/`) and proved, linked (`etc/link-lean-first-txn.txt`, `Link.lean`; the
+package's `compareInt64` is `txn_compareInt64` there, leasing has one too). Decisions:
+`decisions.md`, the txn entry's "Unit 3" bullet.
+
+- **The pure model** (`TxnRun.lean`, standard axioms only): the path `txnPath s t` (`opPath`,
+  `opsPath`: the verdict of `t`, then the paths of the chosen branch's nested transactions, in
+  pre-order, every comparison at the read state `s`; `txnPath_length`: one plus `nestedCount`, the
+  number of nested transactions, what `newTxnResp`/`checkTxn`/`executeTxn` return; the slicing
+  `path[1:]`, `path[n+1:]` keeps `x :: opsPath s (rest of the branch) ++ rest`). **The server's run**
+  `srvOp`/`srvOps`/`srvRunTxn`: the client's `applyTxnOp`/`runOps` but a nested transaction's
+  branch is its verdict at the read state, and the run returns the mvcc changes (a put's
+  `putChangeOf`, a delete's keys; `srvOp_putTxnOp`, `srvOp_delete`) with the results; the state
+  is `applyChanges` of them (`srvOp_state`). `srvRunTxn_runTxn`: the server's run is the client's
+  `runTxn` when every nested verdict is stable (`OpsStable`), always without nested transactions
+  (`opsStable_flat`). The premises `OpsOk weak` (below), `PathsIgnOk` (what `checkTxn` checks),
+  `opsOk_strong`, `opsLeases`, `TxnPre`, `txnReadonly`/`txnSerializable` (`serializable_linearizable`:
+  `txnSerializable t = !t.linearizable`, the client's).
+- **The heap** (`InvTxn.lean`): `txnViewIs tw s γ kind ro` (a `*metricsTxnWrite` of either kind,
+  or the read-only wrapper of a read transaction), `txnWriteIs tw s γ ro ilog pend`
+  (`executeTxn`'s); the transaction responses (moved from `Requests.lean`, `responseOpIs skip`:
+  a range's key-values the client's `rangeKvsOk` of the selection up to `leaseZ`, its count the
+  range's; `skip`: header-only, no key-values, `More` false, count `0`), `txnRespFieldsIs`,
+  `respsIs`, `txnResponseIs skip`; the skeleton `opSkel`/`opsSkel`/`respsSkel`/`txnSkel`
+  (`newTxnResp`'s: each wrapper's response field `nil` and owned; a nested transaction's response
+  complete but for its operations'); `leasesOk`, `leasesKnown`; `checkErrIs`. `TxnLemmas.lean`:
+  the run split at an index, the requests/responses element by element, `Rev`/`Changes` of
+  `executeTxn`'s transaction, `txnWriteIs_kind`, `rangeResult_txn` (a range at revision `0` at a
+  context never canceled: no error, the client's selection).
+- **The specs** (one line each): `compareInt64` (`int64Cmp`); `compareKV(c, ckv)` (`cmpKv cm v`);
+  `applyCompare(rv, c)` on a read transaction of `log` (`cmpHolds (stateAfter log) cm`; the range
+  at `context.TODO()`, no error); `applyCompares` (`cms.all (cmpHolds …)`); `compareToPath(rv, rt)`
+  (a fresh slice of `txnPath (stateAfter log) t`); `GetRequestRange` (the range request of a
+  range op, else `nil`); `IsTxnReadonly` (`txnReadonly t`), `IsTxnSerializable`
+  (`txnSerializable t`); `checkTxn(trace, rv, rt, lessor, path)` (nil, `nestedCount`,
+  `PathsIgnOk` and `leasesOk` of the path's puts' leases; or `checkErrIs` and `0`; nothing
+  written); `newTxnResp(rt, path)` (`txnSkel` of the branch the path chooses, `nestedCount`; any
+  `s0`); `executeTxn(ctx, lg, tw, rt, path, tresp, skip)` (on `txnWriteIs tw s γ ro ilog pend`,
+  path at `stateAfter ilog`, at a context never canceled: nil, `nestedCount`, `srvOps` of the
+  branch at the pending state, its changes pending, `respsIs skip`, the state's leases known);
+  `txn(ctx, lg, tw, rt, isWrite, path, skip)` (`srvRunTxn` at `ilog`, the header revision
+  `writeRev ilog chs`, nil); `Txn` (at the sole writer: `checkErrIs` with `resp`, `trace` `nil` and
+  the sole writer unchanged; or `srvRunTxn` committed, `soleWriter γ (commitLog log chs)`, the
+  response at `writeRev log chs`, `chs = []` for a read-only request, the leases known).
+- **The premises of `Txn`**, in one list: `soleWriter γ log` (the apply thread); `isKV`,
+  `storeReader`; `isTxnLessor lessor γ.leases`; `txnRequestIs rt t` (no empty oneof, unit 0's; a
+  comparison's operand wrapper not a typed `nil`, new: `compareKV`'s `tv != nil`); the context
+  an `isContext` that is never canceled (`neverDone`: its Done proposition never holds; the
+  apply thread passes `context.TODO()`, whose `EnsureTrace` derivative has `nil` `Done`, see
+  below); `leasesKnown γ.leases (stateAfter log)` (every lease of the state granted: an
+  `IgnoreLease` put attaches the previous key's lease; `Txn` returns it for the new state);
+  `TxnPre log t`: `log.length + 4 ≤ 2^63`; `OpsOk true` on the chosen branch's run: every range
+  at revision `0` (the transaction's state, the client's `txnOpOf`), a valid sort target, not
+  `cutEarly`, a small sorted selection (`sortSmall`, `sortRangeResults`' premise at the state
+  read); every `IgnoreValue`/`IgnoreLease` put finds its key at the state it runs at unless it is
+  missing at `log` (`IgnOk`; `checkTxn` fails then); fewer than `2^63` changes.
+- **Changes to units 0–2's and mvcc's files**: mvcc (`TxnRange.lean`): `rangeCtx true` also takes
+  an `isContext` with `neverDone` (`rangeDone` likewise; `rangeKeys`' proof: the `select`'s case
+  would give `□ PDone`), `TxnKind.beginRev`/`pend`; `metricsTxnWrite.Rev` of either kind (was a
+  read transaction's; `checkRange` adapted); `metricsTxnWrite.Changes` (new: the length, non-
+  negative); `txnReadWrite.Range` at `rangeCtx`. `executeRange` on `txnViewIs` (either kind or the
+  wrapper), at `nd` a context never canceled with no context error, premise `sortSmall` at the
+  state read (was `sortOk` of the log; `Range` adapted through `sortSmall_of_sortOk`);
+  `deleteRange` at `nd` with no error (`DeleteRange` passes `false`); `Requests.lean`: the
+  transaction responses moved to `InvTxn.lean` (they name `leaseZ`, `RangeModel.lean`), `compareIs`
+  gains the typed-`nil` conjunct; `getPrevKV`'s proof one line.
+- **Results** (`Results.lean`, `#print axioms`: no `sorryAx`): `txn_srvRunTxn` (the spec),
+  `txn_runTxn` (under `OpsStable`: the committed state, the verdict and the results are the
+  client's `runTxn` at the sole writer's log), `txn_readonly_no_revision`,
+  `txn_check_error_no_write`, `compareToPath_txnPath`, `txn_serializable_iff`
+  (`IsTxnSerializable` returns `!t.linearizable`), `srvRunTxn_runTxn_flat`.
+- **Findings** (both in `issues/`, with Go tests): `etcd-txn-delete-then-ignore-put.md` (a
+  reachable panic: a from-key delete then an `IgnoreValue`/`IgnoreLease` put of a deleted key in
+  one transaction passes `checkIntervals`, whose interval for a `"\x00"` range end is empty, and
+  `checkTxn`, which checks at the read state, and `put` indexes an empty `KVs` in the apply loop);
+  `etcd-txn-nested-compare-snapshot.md` (nested comparisons are evaluated before the outer
+  operations run: undocumented). **This repository's client model is wrong there**:
+  `applyTxnOp (.txn …)` (`cache/v3/InvEtcdTxn.lean`) evaluates a nested transaction's comparisons
+  on the state the operations before it left; etcd on the state before the transaction. The
+  client contracts that use nested transactions (leasing's) inherit that; not changed here
+  (another package's proofs), `txn_runTxn` carries the agreement as `OpsStable`.
+- **The plan's suspects**: (1) the re-read of `prevKV` in the write transaction after `checkTxn`
+  checked it at the read: with a concurrent writer committing in between it could panic, but under
+  the sole writer the write transaction's log is the read's (`soleWriter_pins_write`): not
+  reachable, a design note; the reachable case is within one transaction (finding above). (2) the
+  comparisons at an earlier snapshot: under the sole writer the snapshot is the write
+  transaction's committed log, so the top-level comparisons see exactly the state the branch runs
+  on; only the nested ones are early (finding above). `checkTxn`'s error case returns `0`: Go's
+  `txnCount += txns + 1; txnPath = txnPath[txns+1:]` runs before the error test, so a nested
+  call's count must be bounded on an error too (the spec says `0`, as Go returns).
+- **The context**: `EnsureTrace`'s axiom takes an `isContext`, which `context.TODO()` (the apply
+  thread's) is not; `Txn`'s spec is for an `isContext` never canceled. The apply package will need
+  `EnsureTrace` of `TODO()` (a derived context whose `Done` is `nil`) or a `neverDone` descriptor
+  for it.
+- **Gates**: full `lake build --packages=.lake/manifest-merge.json` clean (2599 jobs), no `sorry`;
+  `gen-link.py --txn` and `--mvcc` reproduce their `Link.lean` (mvcc's: `metricsTxnWrite.Changes`,
+  `Rev`'s new callee; txn's: unit 3's functions, `executeRange`'s new callee);
+  `tcb-report.py --check`: 69 axioms, 1 sorry (the baseline unchanged: no axiom added);
+  `--collection txn.txt --check --update`: 20 axioms, 0 sorries (unchanged); every other
+  collection unchanged (mvcc 13/0, server 26/0, concurrency 12/1, recipes 11/0, cache 10/0,
+  leasing 8/0, raft 1/0, register 1/0, btree 0/0); `ETCD_SRC=/shared/etcd goose.py --check
+  --perennial /shared/perennial-merge` up to date; `verified-code.py --reuse --package
+  go.etcd.io/etcd/server/v3/etcdserver/txn`: txn 39 of 48 functions verified (81.2%: every
+  function Goose translates with a body: `txn.go` 12/12, `range.go` 18/18, `put.go` 6/6,
+  `delete.go` 3/3; 2 assumed, `metrics.go`), 570 of 653 lines (87.3%); mvcc 62 of 155 (661
+  lines; `metricsTxnWrite.Changes`/`Rev` are promoted methods, outside the totals); etcd 474 of
+  3599 functions, 4943 of 45570 lines (was 462, 4647).
+
 ## Merge: mvcc into lean (2026-10-11)
 
 Branch `mvcc` (25 commits: the KV core's translation, model, key index, tree index, read and

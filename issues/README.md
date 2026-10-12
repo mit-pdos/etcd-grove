@@ -59,3 +59,10 @@ with `SortOrder: NONE` and a limit sorts only the first `limit + 1` keys of the 
 result; found 2026-10-11, txn unit 2; not filed).
 [etcd-range-keys-only-lease](etcd-range-keys-only-lease.md): keys-only ranges return lease `0`
 unless sorted by value (since 7624a8a2e; found 2026-10-11, txn unit 2; not filed).
+[etcd-txn-delete-then-ignore-put](etcd-txn-delete-then-ignore-put.md): a transaction with a
+from-key delete then an `IgnoreValue`/`IgnoreLease` put of a deleted key passes the gRPC checks
+and panics the apply loop (`index out of range`; a reachable crash; found 2026-10-12, txn unit 3;
+not filed).
+[etcd-txn-nested-compare-snapshot](etcd-txn-nested-compare-snapshot.md): a nested transaction's
+comparisons are evaluated before the outer transaction's operations run (undocumented; found
+2026-10-12, txn unit 3; not filed).
