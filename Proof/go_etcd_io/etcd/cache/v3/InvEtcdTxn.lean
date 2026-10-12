@@ -812,13 +812,15 @@ has them) whose `Is` methods claim (`M`) only targets of their own error's dynam
 etcd's client errors: a gRPC status error's `(*status.Error).Is` returns `true` only for a
 `*status.Error` (it compares the statuses), and an `rpctypes.EtcdError`, an `errors.New` error
 or a context error has no `Is` method. So it never claims another package's pointer error (the
-recipes' `ErrKeyExists`, an `*errors.errorString`). What `errors.Is(err, ErrKeyExists)` needs
+recipes' `ErrKeyExists`, an `*errors.errorString`). The tree's errors of the target's type hold
+pointers if the target does (`errors.TreeTyped`, Go's typing). What `errors.Is(err, ErrKeyExists)` needs
 of the client's error (`errors.wp_Is`, `newUniqueKV`); the recipes' addition to the
 transaction contract at `context.TODO()` (`txnCommitErrTodo`). -/
 def clientErrIs (err : GoInterface) : IProp GF :=
   iprop(□ ∀ target : GoInterface, ∃ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop),
     errors.errorIsTree (GF := GF) S M target ∗
-    ⌜S err ∧ ∀ ii tii, M ii → target = GoInterface.ok tii → tii.ty = ii.ty⌝)
+    ⌜S err ∧ (∀ ii tii, M ii → target = GoInterface.ok tii → tii.ty = ii.ty) ∧
+      errors.TreeTyped S target⌝)
 
 instance clientErrIs_persistent (err : GoInterface) :
     Persistent (clientErrIs (GF := GF) err) := by
