@@ -23,19 +23,16 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 theorem DB.munmap.wp_proof (hmunmap : _root_.Perennial.EtcdGrove.bbolt.munmap.spec (GF := GF) (hG := hG))
     (hinv : DB.invalidate.spec (GF := GF) (hG := hG)) :
     DB.munmap.spec (GF := GF) (hG := hG) := by
-  intro dbl d fd bs n
-  wp_start as ⟨Hdb, Hf, Hm⟩
+  intro dbl dr dp ds m0 m1 fd bs n
+  wp_start as ⟨Hm0, Hm1, Hdr, Hdp, Hds, Hf, Hm⟩
   wp_apply wp_with_defer as %defer defer
   try wp_auto
-  wp_apply hmunmap dbl d fd bs n $$ [$Hdb $Hf $Hm] as ⟨Hdb, Hf, Hm⟩
+  wp_apply hmunmap dbl dr dp ds fd bs n $$ [$Hdr $Hdp $Hds $Hf $Hm] as ⟨Hdr, Hdp, Hds, Hf, Hm⟩
   try wp_auto
-  wp_apply hinv $$ [$Hdb] as %d' ⟨%Hd', Hdb⟩
+  wp_apply hinv $$ [$Hdr $Hdp $Hds $Hm0 $Hm1] as ⟨Hdr, Hdp, Hds, Hm0, Hm1⟩
   try wp_auto
   iapply HΦ
   iframe
-  ipureintro
-  subst Hd'
-  split <;> rfl
 
 end proof
 

@@ -19,12 +19,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 theorem DB.invalidate.wp_proof : DB.invalidate.spec (GF := GF) (hG := hG) := by
-  intro dbl d
-  wp_start as Hl
+  intro dbl dr dp ds m0 m1
+  wp_start as ⟨Hdr, Hdp, Hds, Hm0, Hm1⟩
   wp_auto
   iapply HΦ
   iframe
-  ipureintro; rfl
 
 end proof
 

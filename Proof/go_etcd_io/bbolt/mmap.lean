@@ -27,15 +27,15 @@ theorem mmap.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
     (hMmap : unix.Mmap.spec (GF := GF) (hG := hG))
     (hMadvise : unix.Madvise.spec (GF := GF) (hG := hG)) :
     mmap.spec (GF := GF) (hG := hG) := by
-  intro dbl d fd bs sz Hsz
-  have Hfl : (W64 1 ||| d.MmapFlags') &&& W64 1 = W64 1 := or_one_and_one _
-  wp_start as ⟨Hdb, #Hf, Hfb, Hmap⟩
+  intro dbl f fl dq dr dp ds fd bs sz Hsz
+  have Hfl : (W64 1 ||| fl) &&& W64 1 = W64 1 := or_one_and_one _
+  wp_start as ⟨Hfile, Hflags, Hdr, Hdp, Hds, #Hf, Hfb, Hmap⟩
   wp_auto
   wp_apply hFd $$ [Hf]
   · iexact Hf
   iintro -
   try wp_auto
-  wp_apply hMmap fd bs sz (W64 1 ||| d.MmapFlags') Hsz Hfl $$ [Hfb Hmap]
+  wp_apply hMmap fd bs sz (W64 1 ||| fl) Hsz Hfl $$ [Hfb Hmap]
     as %b %err ⟨Hfb, Hres⟩
   · iframe
   icases Hres with (⟨%Herr, Hmap⟩ | ⟨%Hok, Hmap, Hrange⟩)

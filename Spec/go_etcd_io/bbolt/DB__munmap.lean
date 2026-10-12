@@ -20,15 +20,20 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `db.munmap()`: unmaps the file (if mapped: `munmap`) and forgets the mapping and the
-metas (`invalidate`, deferred). -/
+metas (`invalidate`, deferred). Over the fields it touches. -/
 abbrev DB.munmap.spec : Prop :=
-  ∀ (dbl : Loc) (d : DB) (fd : w64) (bs : List w8) (n : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ dbl ↦ d ∗ fileBytes fd bs ∗
-      ((⌜d.dataref' = slice.nil⌝ ∗ fileMap fd none) ∨
-       (⌜d.dataref'.ptr ≠ null ∧ d.dataref'.len = W64 n ∧ d.dataref'.cap = W64 n⌝ ∗
-        fileMap fd (some (d.dataref'.ptr, n)) ∗ mapRange (some (d.dataref'.ptr, n)) bs 0 n)) }}
+  ∀ (dbl : Loc) (dr : GoSlice) (dp : Loc) (ds : w64) (m0 m1 : Loc) (fd : w64) (bs : List w8)
+    (n : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ structFieldRef DB go!"meta0" dbl ↦ m0 ∗
+      structFieldRef DB go!"meta1" dbl ↦ m1 ∗ structFieldRef DB go!"dataref" dbl ↦ dr ∗ structFieldRef DB go!"data" dbl ↦ dp ∗ structFieldRef DB go!"datasz" dbl ↦ ds ∗
+      fileBytes fd bs ∗
+      ((⌜dr = slice.nil⌝ ∗ fileMap fd none) ∨
+       (⌜dr.ptr ≠ null ∧ dr.len = W64 n ∧ dr.cap = W64 n⌝ ∗
+        fileMap fd (some (dr.ptr, n)) ∗ mapRange (some (dr.ptr, n)) bs 0 n)) }}
     (App (Val (dbl @!! go.GoType.PointerType DB.ty @!! go!"munmap")) (Val #()))
-  {{ (d' : DB), RET #interface.nil; ⌜d' = ({ d with dataref' := slice.nil, data' := null, datasz' := W64 0, meta0' := null, meta1' := null } : DB)⌝ ∗ dbl ↦ d' ∗ fileBytes fd bs ∗ fileMap fd none }}
+  {{ RET #interface.nil; structFieldRef DB go!"dataref" dbl ↦ slice.nil ∗ structFieldRef DB go!"data" dbl ↦ null ∗
+      structFieldRef DB go!"datasz" dbl ↦ W64 0 ∗ structFieldRef DB go!"meta0" dbl ↦ null ∗ structFieldRef DB go!"meta1" dbl ↦ null ∗
+      fileBytes fd bs ∗ fileMap fd none }}
 
 end spec
 

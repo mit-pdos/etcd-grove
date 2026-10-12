@@ -20,17 +20,20 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `munmap(db)`: if the file is mapped (`db.dataref`, as `mmap` set it), the mapping goes,
-with the caller's half of its cells, and `dataref`, `data`, `datasz` are cleared. -/
+with the caller's half of its cells, and `dataref`, `data`, `datasz` are cleared. Over the
+fields it touches. -/
 abbrev munmap.spec : Prop :=
-  ∀ (dbl : Loc) (d : DB) (fd : w64) (bs : List w8) (n : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ dbl ↦ d ∗ fileBytes fd bs ∗
-      ((⌜d.dataref' = slice.nil⌝ ∗ fileMap fd none) ∨
-       (⌜d.dataref'.ptr ≠ null ∧ d.dataref'.len = W64 n ∧ d.dataref'.cap = W64 n⌝ ∗
-        fileMap fd (some (d.dataref'.ptr, n)) ∗ mapRange (some (d.dataref'.ptr, n)) bs 0 n)) }}
+  ∀ (dbl : Loc) (dr : GoSlice) (dp : Loc) (ds : w64) (fd : w64) (bs : List w8) (n : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ structFieldRef DB go!"dataref" dbl ↦ dr ∗ structFieldRef DB go!"data" dbl ↦ dp ∗ structFieldRef DB go!"datasz" dbl ↦ ds ∗
+      fileBytes fd bs ∗
+      ((⌜dr = slice.nil⌝ ∗ fileMap fd none) ∨
+       (⌜dr.ptr ≠ null ∧ dr.len = W64 n ∧ dr.cap = W64 n⌝ ∗
+        fileMap fd (some (dr.ptr, n)) ∗ mapRange (some (dr.ptr, n)) bs 0 n)) }}
     (App (Val #(functions munmap [])) (Val #dbl))
   {{ RET #interface.nil;
-      dbl ↦ (if d.dataref' = slice.nil then d
-             else { d with dataref' := slice.nil, data' := null, datasz' := W64 0 }) ∗
+      structFieldRef DB go!"dataref" dbl ↦ slice.nil ∗
+      structFieldRef DB go!"data" dbl ↦ (if dr = slice.nil then dp else null) ∗
+      structFieldRef DB go!"datasz" dbl ↦ (if dr = slice.nil then ds else W64 0) ∗
       fileBytes fd bs ∗ fileMap fd none }}
 
 end spec
