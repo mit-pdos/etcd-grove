@@ -154,7 +154,7 @@ what `beginRWTx` hands the writer (its object graph's predicate is the write age
   `Rollback`, `release`, `releaseRange`, `ReleasePendingPages`: Perennial's map range does
   allow deleting), the interface contract (`Iface.lean`, `ArrayIface.lean`), `hashMap.addSpan`;
   `sort.Sort` an axiom.
-- the root package (143, `--bbolt-root`): statistics, accessors, `mmap`/`munmap`,
+- the root package (146, `--bbolt-root`): statistics, accessors, `mmap`/`munmap`,
   `mmapSize`, `db.page`, `db.meta`, `Tx.page`, `Tx.init`, `beginTx`, `beginRWTx` (the
   freelist's pending pages no reader sees released), `removeTx`, `Begin` (both kinds),
   `Tx.close`/`Rollback` (read), `View`, the logger (`DB.Logger`, the default logger's
@@ -168,7 +168,9 @@ what `beginRWTx` hands the writer (its object graph's predicate is the write age
   freelist run, or the high-water mark with the mapping grown), over `DBRemap.lean`
   (`remap_gather`, `remap_carve`, `dbOK_remap`), `DBAlloc.lean` (`dbOK_allocate`, ...),
   `AllocPage.lean`; `Open`'s leaves `flock`, `funlock`, `fdatasync`, `hasSyncedFreelist`,
-  `getPageSizeFromFirstMeta`; `getPageSize` (proved, not linked:
+  `getPageSizeFromFirstMeta`, `init` (a fresh database's file, `initBytes`); `close` and
+  `Close` (the locks show no transaction is open; the file is given back to the file system
+  under its path); `getPageSize` (proved, not linked:
   `getPageSizeFromSecondMeta` is specified, its proof blocked, below).
 - the errors bbolt compares with its error variables are well-formed (`Proof/os/ErrWF.lean`:
   a pointer-typed error holds a pointer; `ErrShape.lean`: `errors.New`, `fmt.Errorf` return
@@ -205,7 +207,7 @@ batch changes `Defn/Map.lean`, a full rebuild).
 **Next.** The write agent's `Tx.allocate` (from `DB.allocate`); the
 writer's object graph (`WriteTxPred.lean`, the write agent: bucket/node graph, `Put`,
 `Delete`, spill); `Commit` (freelist write, page writes, `writeMeta`, `grow`), the writer's
-`Rollback`/`close`; `Open`/`init`/`close`; `Batch`; `etc/tcb-report.py --check --update`
+`Rollback`/`close`; `Open` (`loadFreelist`, a well-formed file's predicate to establish `dbOK`); `Batch`; `etc/tcb-report.py --check --update`
 for the new axioms (CI fails its check until then).
 
 ## `node.go` groundwork: abandoning a `Ready`, pre-vote off, the messages' terms (2026-10-10)
