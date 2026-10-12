@@ -48,7 +48,7 @@ theorem RawNode.Propose.wp_proof
   · ipureintro; rfl
   iintro %sl_ptr ⟨Hes, Hcap⟩
   wp_auto
-  wp_apply wp_raft_Step γ.reCfg γ _ id s ps _ [propEntry data_sl] rfl
+  wp_apply wp_raft_Step γ.reCfg γ _ id s ps _ [propEntry data_sl] [] rfl
     (by simp [StepMsg, stepMsgTypes, MsgProp]) Hin
     (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne)
@@ -93,8 +93,7 @@ theorem RawNode.Propose.wp_proof
         iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entData (GF := GF) γ e)).2
         iexact Hent
     isplitr
-    · iexists []
-      isplitr
+    · isplitr
       · iapply ownSlice_nil
       · ipureintro
         refine ⟨?_, fun Hc => ?_⟩

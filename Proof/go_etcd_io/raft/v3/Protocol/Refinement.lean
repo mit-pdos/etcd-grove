@@ -901,9 +901,9 @@ theorem ownRaftGhost_step_prop_forward (γ : RaftNames) (id : w64) (s : PState) 
     ⊢ isMessage (GF := GF) γ m -∗ ownRaftGhost γ id s ==∗
       ownRaftGhost γ id
         (psendMsgs s
-           [Msg.mk .propose id s.lead (W64 0) m.reject
+           [Msg.mkV .propose id s.lead (W64 0) m.reject
               m.index m.logterm m.commit m.rejecthint
-              m.entries]) := by
+              m.entries [] m.ctx]) := by
   iintro #Hm Hown
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γv, %voted, %kl, H⟩
@@ -1110,7 +1110,7 @@ theorem ownRaftGhost_step_heartbeat (γ : RaftNames) (id : w64) (s : PState) (m 
       ownRaftGhost γ id
         (psendMsgs
            { padoptLeader s m.src with commit := plogCommitTo s.commit m.commit }
-           [Msg.plain .heartbeatResp id m.src s.term false]) := by
+           [{ Msg.plain .heartbeatResp id m.src s.term false with ctx := m.ctx }]) := by
   intro Hty Hto Hterm Hfid Hrole Hcm
   iintro #Hm Hown
   iunfold ownRaftGhost at Hown

@@ -62,7 +62,7 @@ local macro "prevote_resp_tail" : tactic =>
     wp_raft_log
     try (wp_apply Perennial.EtcdGrove.raft.wp_load_Term $$ Hphys as Hphys)
     wp_apply _P.voteRespMsgType m.Type' _ (.inr ⟨Hty, rfl⟩)
-    wp_apply _P.send cfg r id s _ [] _ (Or.inl rfl)
+    wp_apply _P.send cfg r id s _ [] [] _ (Or.inl rfl)
         (Or.inl ⟨.preVoteResp, Or.inr (Or.inr (Or.inr rfl)), mtypeOf_MsgPreVoteResp,
           by first | exact Hterm | exact Hs0,
           fun Hc => by rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
@@ -70,6 +70,8 @@ local macro "prevote_resp_tail" : tactic =>
           fun Hpf => absurd (Hpvon.symm.trans Hpf) (by decide), rfl⟩)
       $$ [Hphys]
     · iframe Hphys
+      isplitr
+      · iapply ownSlice_nil
       isplitr
       · iapply ownSlice_nil
       iapply send_no_snap

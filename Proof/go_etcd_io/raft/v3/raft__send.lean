@@ -65,11 +65,11 @@ set_option hygiene false in
 message, whose `Entries` is `m`'s, and the outbox is then `sendMsgs s out` by
 computation. -/
 local macro "finish_some" : tactic => `(tactic| (
-  ihave Hphys := Hback $$ %q' %_ %(some (absMsg ty _ ents)) Hf Hq Hq_cap [] []
+  ihave Hphys := Hback $$ %q' %_ %(some (absMsg ty _ ents ctx)) Hf Hq Hq_cap [] []
   · unfold msgAbs
     iright; ileft
-    iexists ty, ents
-    iframe Hents
+    iexists ty, ents, ctx
+    iframe Hents Hctx
     ipureintro
     refine ⟨Hty, ?_, rfl⟩
     rintro rfl
@@ -83,11 +83,11 @@ set_option hygiene false in
 message is `AAMsgOk` -- from `id`, and if self-addressed, as `SendOk`'s vote clause
 says (`Hself2`). -/
 local macro "finish_some_aa" : tactic => `(tactic| (
-  ihave Hphys := Hback $$ %q' %_ %(some (absMsg ty _ ents)) Hf Hq Hq_cap [] [] []
+  ihave Hphys := Hback $$ %q' %_ %(some (absMsg ty _ ents ctx)) Hf Hq Hq_cap [] [] []
   · unfold msgAbs
     iright; ileft
-    iexists ty, ents
-    iframe Hents
+    iexists ty, ents, ctx
+    iframe Hents Hctx
     ipureintro
     refine ⟨Hty, ?_, rfl⟩
     rintro rfl
@@ -115,7 +115,7 @@ local macro "finish_none" : tactic => `(tactic| (
 theorem raft.send.wp_proof
     (wp_traceSendMessage : traceSendMessage.spec (GF := GF) (hG := hG)) :
     raft.send.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s m ents out Hfrom Hok
+  intro cfg r id s m ents ctx out Hfrom Hok
   wp_start as H
   iNamed H
   wp_auto
@@ -136,7 +136,7 @@ theorem raft.send.wp_proof
   rcases Hok with ⟨ty, Hvoty, Hty, Hmterm, Hself, Hself2, Hpvt, rfl⟩ |
     ⟨ty, Hlty, Hty, Hmterm, Hself, rfl⟩ |
     (⟨HSnap, Hmterm, Hself⟩ | ⟨Hty, Hmterm, Hself, rfl⟩) | ⟨HAR, Hmterm, Hself2, rfl⟩ |
-    ⟨HProp, Hmterm, Hself, rfl⟩
+    (⟨HProp, Hmterm, Hself, rfl⟩ | ⟨HRI, Hmterm, Hself, rfl⟩)
   · -- (a) a vote message: `Term` is kept. `MsgVote` goes onto `r.msgs`, `MsgVoteResp`
     -- onto `r.msgsAfterAppend`; either way the abstract outbox grows by exactly that
     -- message -- up to permutation, since a `MsgVote` lands in front of whatever
@@ -261,11 +261,11 @@ theorem raft.send.wp_proof
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
     have Hty : mtypeOf (W32 4) = some MsgType.appResp := rfl
     send_tail ownRaftPhys_msgsAA
-    ihave Hphys := Hback $$ %q' %_ %(some (absMsg .appResp _ ents)) Hf Hq Hq_cap [] [] []
+    ihave Hphys := Hback $$ %q' %_ %(some (absMsg .appResp _ ents ctx)) Hf Hq Hq_cap [] [] []
     · unfold msgAbs
       iright; ileft
-      iexists .appResp, ents
-      iframe Hents
+      iexists .appResp, ents, ctx
+      iframe Hents Hctx
       ipureintro
       exact ⟨Hty, by decide, rfl⟩
     · -- stamped `From: id`, `Term: r.Term`; a self-addressed one as `AAMsgOk` asks
@@ -286,11 +286,31 @@ theorem raft.send.wp_proof
     rw [decide_eq_false Hself]
     wp_auto
     send_tail ownRaftPhys_msgs
-    ihave Hphys := Hback $$ %q' %_ %(some (absMsg .propose _ ents)) Hf Hq Hq_cap [] []
+    ihave Hphys := Hback $$ %q' %_ %(some (absMsg .propose _ ents ctx)) Hf Hq Hq_cap [] []
     · unfold msgAbs
       iright; ileft
-      iexists .propose, ents
-      iframe Hents
+      iexists .propose, ents, ctx
+      iframe Hents Hctx
+      ipureintro
+      exact ⟨rfl, by decide, rfl⟩
+    · ipureintro; out_term
+    iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
+    rfl
+  · -- (e') a forwarded `MsgReadIndex` (2026-10-12): as a proposal
+    obtain ⟨mty, mto, mfrom, mterm, mlt, midx, ments, mcommit, mvote, msnap, mrej, mrh, mctx,
+      mresp⟩ := m
+    simp only [MsgReadIndex] at HRI Hmterm Hself ⊢
+    subst HRI Hmterm
+    wp_auto
+    wp_apply raft.wp_load_id $$ Hphys as Hphys
+    rw [decide_eq_false Hself]
+    wp_auto
+    send_tail ownRaftPhys_msgs
+    ihave Hphys := Hback $$ %q' %_ %(some (absMsg .readIndex _ ents ctx)) Hf Hq Hq_cap [] []
+    · unfold msgAbs
+      iright; ileft
+      iexists .readIndex, ents, ctx
+      iframe Hents Hctx
       ipureintro
       exact ⟨rfl, by decide, rfl⟩
     · ipureintro; out_term

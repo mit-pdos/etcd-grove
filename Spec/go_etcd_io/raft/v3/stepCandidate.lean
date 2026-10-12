@@ -94,8 +94,8 @@ def PrecandVoteRespResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.M
 (`Spec/stepFollower.lean`). For `MsgApp` the `Progress` values `becomeFollower`'s
 `reset` leaves are `pvs` (unconstrained: a follower's are invisible to `toPState`). -/
 def CandidateStepResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState) :
-    Prop :=
+    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
+    (cl : List w8 := []) : Prop :=
   if m.Type' = MsgVoteResp then
     dropped = false ∧
     (if s.role = .preCandidate then s' = s
@@ -108,7 +108,7 @@ def CandidateStepResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Mes
   else if m.Type' = MsgHeartbeat then
     dropped = false ∧
     ∃ (pvs : GMap w64 Progress), s' = heartbeatResult id
-      { becomeFollower s s.term m.From' with prvals := pvs } m
+      { becomeFollower s s.term m.From' with prvals := pvs } m cl
   else if m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp then
     dropped = false ∧ s' = s
   else if m.Type' = MsgSnap then
@@ -149,7 +149,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
   `campaign`, which increments it. -/
 abbrev stepCandidate.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (voters : List w64),
+    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (voters : List w64) (cl : List w8),
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
    m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
    (m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp) ∨
@@ -178,6 +178,8 @@ abbrev stepCandidate.spec : Prop :=
    uint.Z s.term + 1 < 2 ^ 64) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
+      -- the `Context` (2026-10-12): what the response to a heartbeat carries
+      "Hctx" ∷ (⌜m.Type' = MsgHeartbeat⌝ -∗ m.Context' ↦*□ cl) ∗
       "Hsnap" ∷ (⌜m.Type' = MsgSnap⌝ -∗
                  ⌜SnapScope cfg sv voters ∧ m.From' ≠ id⌝ ∗
                  m.Snapshot' ↦□ sv ∗
@@ -188,7 +190,7 @@ abbrev stepCandidate.spec : Prop :=
     (App (App (Val #(functions stepCandidate [])) (Val #r)) (Val #m))
   {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
       ownRaftPhys cfg r id s' ∗
-      ⌜CandidateStepResult cfg id s m ents sv dropped s'⌝ ∗
+      ⌜CandidateStepResult cfg id s m ents sv dropped s' cl⌝ ∗
       (if dropped then globalAddr ErrProposalDropped ↦□ err
        else ⌜err = interface.nil⌝) }}
 

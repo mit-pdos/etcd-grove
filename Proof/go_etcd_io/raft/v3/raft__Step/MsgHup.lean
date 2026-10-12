@@ -78,7 +78,7 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   cases Hpv : s.prevote
   all_goals
     wp_auto
-    wp_apply _P.hup cfg r id s _ Hnowrap ?Hpvt Hwf $$ [$Hphys]
+    wp_apply _P.hup cfg r id s _ Hnowrap ?Hpvt ?Htr Hwf $$ [$Hphys]
       as %s' ⟨Hphys, %Hwf', %Hstep, %Hl, %Ht1, %Ht2, %Hpv', %Hg'⟩
     case Hpvt =>
       first
@@ -86,6 +86,10 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         | exact fun h => by
             have := congrArg List.length h
             simp [campaignElection, campaignPreElection] at this
+    case Htr =>
+      exact fun h => by
+        simp (config := {decide := true}) [campaignElection, campaignPreElection,
+          campaignTransfer] at h
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys
     ipureintro

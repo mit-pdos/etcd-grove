@@ -27,12 +27,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- The heartbeat `sendHeartbeat` sends is `HeartbeatOk` at the protocol reading of a
 leader's state, given its two bounds against that state's `committed` and `Match`. -/
-private theorem heartbeatOk_intro (id : w64) (s : NState) (to c : w64)
+private theorem heartbeatOk_intro (id : w64) (s : NState) (to c : w64) (cl : List w8)
     (Hl : s.role = .leader) (Hto : to ≠ id)
     (Hc : uint.Z c ≤ uint.Z s.logst.committed)
     (Hm : uint.Z c ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))) :
     HeartbeatOk id (toPState s)
-      (Msg.mk .heartbeat id to s.term false (W64 0) (W64 0) c (W64 0) []) := by
+      (Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) c (W64 0) [] [] cl) := by
   unfold HeartbeatOk matchOf toPState
   simp only [Hl, ↓reduceIte]
   exact ⟨trivial, trivial, trivial, Hto, Hc, Hm⟩
@@ -53,7 +53,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
     (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
     (wp_raft_sendHeartbeat : raft.sendHeartbeat.spec (GF := GF) (hG := hG)) :
     raft.bcastHeartbeatWithCtx.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s ctx Hlead
+  intro cfg r id s ctx cl Hlead
   wp_start as Hphys
   iNamed Hphys
   wp_auto
@@ -62,7 +62,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
       (fun _ pvsx => iprop(∃ (ms : List Msg),
         "rp" ∷ r_ptr ↦ r ∗
         "cp" ∷ ctx_ptr ↦ ctx ∗
-        "%Hms" ∷ ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m⌝ ∗
+        "%Hms" ∷ ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = cl⌝ ∗
         "%Hmm" ∷ ⌜prvalsMatch pvsx = prvalsMatch s.prvals⌝ ∗
         "Hrest" ∷ (∀ tvx pvsx', r.[raft, go!"trk"] ↦ tvx -∗
             ownTracker cfg tvx ⟨s.votes, s.progress, pvsx'⟩ -∗
@@ -116,8 +116,9 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
     · -- a peer: one heartbeat
       rw [decide_eq_false Hii]
       wp_auto
-      wp_apply wp_raft_sendHeartbeat _ _ _ _ i ctx Hii Hicfg $$ [$Hphys]
+      wp_apply wp_raft_sendHeartbeat _ _ _ _ i ctx cl Hii Hicfg $$ [$Hphys]
         as %c %pvs' ⟨Hphys, %Hc1, %Hc2, %Hmm'⟩
+      · iexact Hctx
       try wp_auto
       icases ownRaftPhys_tracker_prvals $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hrest⟩
       ihave Htrk := ownTracker_cast cfg tv1 _ ⟨s.votes, s.progress, pvs'⟩ ?_ $$ Htrk
@@ -125,7 +126,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
       iapply HΦ
       iexists tv1, _
       iframe Htrkf Htrk
-      iexists ms ++ [Msg.mk .heartbeat id i s.term false (W64 0) (W64 0) c (W64 0) []]
+      iexists ms ++ [Msg.mkV .heartbeat id i s.term false (W64 0) (W64 0) c (W64 0) [] [] cl]
       simp only [named]
       iframe rp cp
       isplitr
@@ -135,7 +136,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
         · exact Hms m Hm
         · rw [List.mem_singleton] at Hm
           subst Hm
-          refine heartbeatOk_intro id s i c Hlead Hii Hc1 ?_
+          refine ⟨heartbeatOk_intro id s i c cl Hlead Hii Hc1 ?_, rfl⟩
           simp only at Hc2
           rw [Hmi] at Hc2
           exact Hc2

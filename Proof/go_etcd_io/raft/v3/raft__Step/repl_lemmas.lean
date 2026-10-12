@@ -106,18 +106,18 @@ theorem step_handle_app (cfg : GSet w64) (id : w64) (ps : PState) (t : NState)
 
 /-- `heartbeatResult` refines `Step.heartbeat` at `ps`. -/
 theorem step_handle_heartbeat (cfg : GSet w64) (id : w64) (ps : PState) (t : NState)
-    (m : raftpb.Message) (ents : List raftpb.Entry) :
+    (m : raftpb.Message) (ents : List raftpb.Entry) (ctx : List w8) :
     toPState t = padoptLeader ps m.From' →
     m.To' = id →
     m.Term' = ps.term →
     ps.role ≠ .leader →
     uint.Z m.Commit' ≤ plogLastIndexZ ps.base ps.log →
     m.From' ≠ id →
-    Step cfg id ps [absMsg .heartbeat m ents] (toPState (heartbeatResult id t m)) := by
+    Step cfg id ps [absMsg .heartbeat m ents ctx] (toPState (heartbeatResult id t m ctx)) := by
   intro Ht Hto Hterm Hnl Hcm Hfid
   have Htm : t.term = ps.term := congrArg PState.term Ht
   refine step_eq cfg id _ _ _ _
-    (Step.heartbeat (absMsg .heartbeat m ents) ps rfl Hto Hfid Hterm Hnl Hcm) ?_
+    (Step.heartbeat (absMsg .heartbeat m ents ctx) ps rfl Hto Hfid Hterm Hnl Hcm) ?_
   unfold heartbeatResult
   rw [toPState_sendMsgs']
   have Hs : toPState { t with logst := { t.logst with
@@ -128,15 +128,15 @@ theorem step_handle_heartbeat (cfg : GSet w64) (id : w64) (ps : PState) (t : NSt
 
 /-- The term preamble's step-down for a message only a leader sends. -/
 theorem step_higher_term_leader (cfg : GSet w64) (id : w64) (ps : PState) (ty : MsgType)
-    (m : raftpb.Message) (ents : List raftpb.Entry) :
+    (m : raftpb.Message) (ents : List raftpb.Entry) (ctx : List w8 := []) :
     fromLeader ty = true →
     uint.Z ps.term < uint.Z m.Term' →
     m.To' = id →
     m.From' ≠ id →
-    Step cfg id ps [absMsg ty m ents] (pbecomeFollower ps m.Term' m.From') := by
+    Step cfg id ps [absMsg ty m ents ctx] (pbecomeFollower ps m.Term' m.From') := by
   intro Hfl Hgt Hto Hfid
   refine step_eq cfg id _ _ _ _
-    (Step.higherTerm (absMsg ty m ents) ps Hgt Hto (fun _ => Hfid)) ?_
+    (Step.higherTerm (absMsg ty m ents ctx) ps Hgt Hto (fun _ => Hfid)) ?_
   simp only [absMsg, absMsgFrom, Hfl, ↓reduceIte]
 
 /-! ## The three adoptions are `padoptLeader` -/
@@ -199,8 +199,9 @@ theorem app_frame {id : w64} {m : raftpb.Message} {ents : List raftpb.Entry}
     fun h => absurd Happ h⟩
   rw [Happ] at h; exact absurd h (by w32_ne)
 
-theorem nstateWf_heartbeatResult (id : w64) (t : NState) (m : raftpb.Message) :
-    NStateWf t → NStateWf (heartbeatResult id t m) := by
+theorem nstateWf_heartbeatResult (id : w64) (t : NState) (m : raftpb.Message)
+    (cl : List w8 := []) :
+    NStateWf t → NStateWf (heartbeatResult id t m cl) := by
   intro Hwf; exact Hwf
 
 /-! ## Taking the `stepX` results apart, by type -/
@@ -216,10 +217,11 @@ theorem followerStepResult_app (id : w64) (s : NState) (m : raftpb.Message)
     MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
 
 theorem followerStepResult_heartbeat (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState) :
+    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
+    (cl : List w8) :
     m.Type' = MsgHeartbeat →
-    FollowerStepResult id s m ents sv dropped s' →
-    dropped = false ∧ s' = heartbeatResult id { s with lead := m.From' } m := by
+    FollowerStepResult id s m ents sv dropped s' cl →
+    dropped = false ∧ s' = heartbeatResult id { s with lead := m.From' } m cl := by
   intro Hty H
   unfold FollowerStepResult at H
   simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
@@ -240,11 +242,11 @@ theorem candidateStepResult_app (cfg : GSet w64) (id : w64) (s : NState)
 
 theorem candidateStepResult_heartbeat (cfg : GSet w64) (id : w64) (s : NState)
     (m : raftpb.Message) (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool)
-    (s' : NState) :
+    (s' : NState) (cl : List w8) :
     m.Type' = MsgHeartbeat →
-    CandidateStepResult cfg id s m ents sv dropped s' →
+    CandidateStepResult cfg id s m ents sv dropped s' cl →
     dropped = false ∧
-    ∃ pvs, s' = heartbeatResult id { becomeFollower s s.term m.From' with prvals := pvs } m := by
+    ∃ pvs, s' = heartbeatResult id { becomeFollower s s.term m.From' with prvals := pvs } m cl := by
   intro Hty H
   unfold CandidateStepResult at H
   simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,

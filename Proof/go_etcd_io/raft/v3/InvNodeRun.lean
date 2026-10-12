@@ -382,7 +382,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
         StableOk s.logst (entryID.mk m.LogTerm' m.Index')) ∧ s.gh.unst = false := by
     not_net
   have P8 : m.Type' = MsgStorageApplyResp → m.Term' = W64 0 := by not_net
-  wp_apply wp_raft_Step γ.reCfg γ _ id s ps m ents rfl Hsm Hin P1
+  wp_apply wp_raft_Step γ.reCfg γ _ id s ps m ents ctx rfl Hsm Hin P1
     (fun _ => ⟨Hto, Hterm, Hfrom⟩) (fun _ => ⟨Hto, Hterm⟩) P2 P3
     (fun h => ⟨Hto, Hterm, Hfrom, Hself (.inl h)⟩)
     (fun h => ⟨Hto, Hterm, Hfrom, Hself (.inr (.inl h))⟩)
@@ -402,10 +402,10 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
       · ipureintro; not_net
       imodintro
       iintro %ty %Hty' _
+      iapply isMessage_ctx_intro
       iapply Hmsg $$ %ty %Hty'
     isplitr
-    · iexists ctx
-      iframe Hctx
+    · iframe Hctx
       ipureintro; exact Hctx_ok
     imodintro
     iintro %h
@@ -505,7 +505,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
   ihave %Hpm := isMessage_propose_pure γ m ents $$ Hm
   obtain ⟨Hterm, Hne, Hnorm, Hlen⟩ := Hpm
   have Hty' : ({ m with From' := id } : raftpb.Message).Type' = MsgProp := Hty
-  wp_apply wp_raft_Step γ.reCfg γ _ id s ps ({ m with From' := id }) ents rfl
+  wp_apply wp_raft_Step γ.reCfg γ _ id s ps ({ m with From' := id }) ents ctx rfl
     (by simp only [StepMsg, stepMsgTypes]; rw [Hty']; simp [MsgProp]) Hin
     (by msg_ne') (by msg_ne')
     (by msg_ne') (by msg_ne')
@@ -536,10 +536,11 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
         try rw [Hty'] at Hty2
         rw [show mtypeOf MsgProp = some .propose from rfl] at Hty2
         cases Hty2
+        iapply isMessage_ctx_intro
         iexact Hm'
     isplitr
-    · iexists ctx
-      iframe Hctx
+    · isplitr
+      · iexact Hctx
       ipureintro
       refine ⟨Hctxne, fun Hc => ?_⟩
       simp [Hty', MsgProp, MsgHeartbeatResp] at Hc

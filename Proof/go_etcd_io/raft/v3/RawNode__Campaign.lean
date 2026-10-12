@@ -38,7 +38,7 @@ theorem RawNode.Campaign.wp_proof
   iNamed H
   iNamed Hrn
   wp_auto
-  wp_apply wp_raft_Step γ.reCfg γ _ id s ps _ [] rfl
+  wp_apply wp_raft_Step γ.reCfg γ _ id s ps _ [] [] rfl
     (by simp [StepMsg, stepMsgTypes, MsgHup]) Hin
     (fun _ => ⟨rfl, by rw [← Htrm]; exact Hterm⟩)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
@@ -62,8 +62,7 @@ theorem RawNode.Campaign.wp_proof
       rw [show mtypeOf (W32 0) = none from rfl] at Hty
       cases Hty
     isplitr
-    · iexists []
-      isplitr
+    · isplitr
       · iapply ownSlice_nil
       ipureintro
       exact ⟨by simp [campaignTransfer], fun Hc => by simp [MsgHeartbeatResp] at Hc⟩

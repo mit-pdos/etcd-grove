@@ -121,6 +121,9 @@ structure Msg [FfiSyntax] where
   entries : List raftpb.Entry
   /-- a `snap`'s `ConfState.Voters`; `[]` otherwise -/
   voters : List w64
+  /-- `Context` (2026-10-12, for read-index): the bytes `Message.Context` holds; `[]`
+  for every message but a heartbeat and its response carrying a read position -/
+  ctx : List w8
 
 section msgs
 variable [FfiSyntax]
@@ -132,7 +135,7 @@ nothing that reduces, injects or rewrites a message has to unfold anything by ha
 changed). -/
 @[reducible] def Msg.mk (t0 : MsgType) (fr to0 tm : w64) (rj : Bool) (ix lt cm rh : w64)
     (es : List raftpb.Entry) : Msg :=
-  Msg.mkV t0 fr to0 tm rj ix lt cm rh es []
+  Msg.mkV t0 fr to0 tm rj ix lt cm rh es [] []
 
 /-- A message with no payload: every replication field zero. -/
 def Msg.plain (ty : MsgType) (src dst term : w64) (reject : Bool) : Msg :=
@@ -1470,7 +1473,8 @@ inductive Step : PState → List Msg → PState → Prop where
         (psendMsgs (padoptLeader s m.src)
           [Msg.mk .appResp id m.src s.term true m.index hintterm (W64 0) hint []])
   /-- `handleHeartbeat`: `commitTo(m.Commit)`, whose `Panicf` the premise rules out
-  (`heartbeat_commit_le_last`). -/
+  (`heartbeat_commit_le_last`). The response echoes the heartbeat's context (2026-10-12):
+  a read-index position, which the leader counts as an acknowledgement. -/
   | heartbeat (m : Msg) (s : PState) :
       m.ty = .heartbeat →
       m.dst = id →
@@ -1481,7 +1485,7 @@ inductive Step : PState → List Msg → PState → Prop where
       Step s [m]
         (psendMsgs
           { padoptLeader s m.src with commit := plogCommitTo s.commit m.commit }
-          [Msg.plain .heartbeatResp id m.src s.term false])
+          [{ Msg.plain .heartbeatResp id m.src s.term false with ctx := m.ctx }])
   /-- `MsgBeat` / `bcastHeartbeat`: any heartbeats `HeartbeatOk` allows. -/
   | beat (s : PState) (ms : List Msg) :
       s.role = .leader →
@@ -1537,8 +1541,8 @@ inductive Step : PState → List Msg → PState → Prop where
       s.lead ≠ W64 0 →
       Step s [m]
         (psendMsgs s
-          [Msg.mk .propose id s.lead (W64 0) m.reject m.index m.logterm m.commit
-             m.rejecthint m.entries])
+          [Msg.mkV .propose id s.lead (W64 0) m.reject m.index m.logterm m.commit
+             m.rejecthint m.entries [] m.ctx])
 
   /- ### Snapshots (phase 2 of notes/raft-replication-model.md)
 

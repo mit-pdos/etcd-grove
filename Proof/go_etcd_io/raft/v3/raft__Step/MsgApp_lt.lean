@@ -103,10 +103,12 @@ theorem wp_Step_MsgApp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       { Type' := W32 4, To' := m.From', From' := 0, Term' := 0, LogTerm' := 0, Index' := 0,
         Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := null, Reject' := false,
         RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil }
-    have Hok : SendOk id s ack [] [absMsgFrom .appResp ack id s.term []] :=
+    have Hok : SendOk id s ack [] [] [absMsgFrom .appResp ack id s.term []] :=
       Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun h => absurd h Hfid, rfl⟩)))
-    wp_apply _P.send cfg r id s ack [] _ (Or.inl rfl) Hok $$ [$Hphys] as Hphys
+    wp_apply _P.send cfg r id s ack [] [] _ (Or.inl rfl) Hok $$ [$Hphys] as Hphys
     · isplitr
+      · iapply ownSlice_nil
+      isplitr
       · iapply ownSlice_nil
       · iapply send_no_snap
         exact (by decide : W32 4 ≠ W32 7)

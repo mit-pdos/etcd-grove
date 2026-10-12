@@ -55,7 +55,7 @@ theorem stepCandidate.wp_proof
     (wp_raft_handleSnapshot : raft.handleSnapshot.spec (GF := GF) (hG := hG))
     (wp_raft_campaign : raft.campaign.spec (GF := GF) (hG := hG)) :
     stepCandidate.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s m ents sv voters Hty Hterm Hrole Hcfg Happ Hhb Hpvnw
+  intro cfg r id s m ents sv voters cl Hty Hterm Hrole Hcfg Happ Hhb Hpvnw
   wp_start as H
   iNamed H
   ihave #Hinit := isInitialized_access $$ Hpkg
@@ -223,7 +223,9 @@ theorem stepCandidate.wp_proof
     wp_apply wp_raft_becomeFollower _ _ _ _ _ _
       (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) $$ [$Hphys]
       as %pvs Hphys
-    wp_apply wp_raft_handleHeartbeat _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs } _ Hcommit Hfrom $$ [$Hphys] as Hphys
+    ihave #Hcl := Hctx $$ %(by simp [Hty, MsgHeartbeat, MsgProp])
+    wp_apply wp_raft_handleHeartbeat _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs } _
+      cl Hcommit Hfrom $$ [$Hphys $Hcl] as Hphys
     iapply HΦ $$ %GoInterface.nil %_ %false
     iframe Hphys
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -311,7 +313,7 @@ theorem stepCandidate.wp_proof
           (lost = true →
             ¬ IsQuorum cfg (cfg \ rejected (recordVote s.votes m.From' (!m.Reject')))) →
           s' = { prevoteRespResult id s m.From' m.Reject' won lost peers with prvals := pvs } →
-          CandidateStepResult cfg id s m ents sv false s' := by
+          CandidateStepResult cfg id s m ents sv false s' cl := by
         intro s' won lost peers pvs Hw Hl Hs'
         simp only [CandidateStepResult, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat,
           MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, Hrole]
@@ -332,6 +334,7 @@ theorem stepCandidate.wp_proof
             (fun h => by
               have := congrArg List.length h
               simp [campaignElection, campaignPreElection] at this)
+            (fun h => by simp (config := {decide := true}) [campaignElection, campaignTransfer] at h)
             $$ [$Hphys]
           as %peers %pvs ⟨%Hpeers, Hphys⟩
         iapply HΦ $$ %GoInterface.nil %_ %false

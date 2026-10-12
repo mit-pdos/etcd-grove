@@ -86,13 +86,16 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   rw [show ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).stepfn
       = functions stepFollower [] from rfl]
   wp_apply _P.stepFollower cfg r id
-      ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) m [] sv voters
+      ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) m [] sv voters []
       (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
     $$ [$Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
   · isplitl []
+    · iintro %Hc; exfalso; rw [Hty] at Hc
+      first | (rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
+    isplitl []
     · iintro %_
       isplitr
       · ipureintro

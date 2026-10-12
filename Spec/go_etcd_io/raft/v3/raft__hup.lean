@@ -37,6 +37,8 @@ abbrev raft.hup.spec : Prop :=
   uint.Z s.term + 1 < 2 ^ 64 →
   -- a pre-election only with pre-vote on (2026-10-10; see `raft.campaign.spec`)
   (t = campaignPreElection → s.prevote = true) →
+  -- not a leader transfer's (2026-10-12; see `raft.campaign.spec`)
+  t ≠ campaignTransfer →
   -- `r.step` matches the role; kept by the call
   NStateWf s →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}

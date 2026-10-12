@@ -130,7 +130,7 @@ theorem raft.campaign.wp_proof
     (wp_raftLog_lastEntryID : raftLog.lastEntryID.spec (GF := GF) (hG := hG))
     (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG := hG)) :
     raft.campaign.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s t Hrole Hid_cfg Hnowrap Hpv
+  intro cfg r id s t Hrole Hid_cfg Hnowrap Hpv Htr
   -- every `send` below carries `Term + 1`; `send` panics on a zero term,
   -- whence the premise.
   have Hno_wrap : s.term + W64 1 ≠ W64 0 := by word
@@ -298,7 +298,7 @@ theorem raft.campaign.wp_proof
       -- `mtypeOf`, the term is nonzero (this is what the no-wrap premise
       -- buys), and -- only for a request -- the destination is not this
       -- node. The last is vacuous here: this is a response.
-      wp_apply wp_raft_send _ _ _ _ _ [] [Msg.plain (vrespTy pre) y y (s.term + W64 1) false]
+      wp_apply wp_raft_send _ _ _ _ _ [] [] [Msg.plain (vrespTy pre) y y (s.term + W64 1) false]
           (Or.inl rfl)
           (Or.inl ⟨vrespTy pre,
             by cases pre <;> simp [vrespW32],
@@ -319,6 +319,8 @@ theorem raft.campaign.wp_proof
             by cases pre <;> rfl⟩)
         $$ [$Hphys]
       · isplitr
+        · iapply ownSlice_nil
+        isplitr
         · iapply ownSlice_nil
         iapply send_no_snap
         cases pre <;> simp [vrespW32, MsgSnap, MsgVoteResp, MsgPreVoteResp]
@@ -353,10 +355,13 @@ theorem raft.campaign.wp_proof
       rw [campRoleState_logst] at HlastID
       -- `ctx` is the `campaignTransfer` marker or nil; the model does not
       -- look at a vote request's context, so both arms run the same tail.
-      wp_join iprop(∃ (csl : GoSlice), ctx_ptr ↦ csl ∗ t_ptr ↦ t) with [ctx t] as ⟨%csl, ctx, t⟩
-      · wp_apply wp_string_to_bytes as %csl ⟨-, -⟩
-        wp_join_done
-      wp_apply wp_raft_send _ _ _ _ _ [] [campReq pre id y (s.term + W64 1) lastID]
+      wp_join iprop(∃ (csl : GoSlice), ctx_ptr ↦ csl ∗ csl ↦*□ ([] : List w8) ∗ t_ptr ↦ t)
+        with [ctx t] as ⟨%csl, ctx, #Hcl, t⟩
+      · exfalso; exact Htr rfl
+      · iexists _
+        iframe
+        iapply ownSlice_nil
+      wp_apply wp_raft_send _ _ _ _ _ [] [] [campReq pre id y (s.term + W64 1) lastID]
           (Or.inl rfl)
           (Or.inl ⟨vreqTy pre,
             by cases pre <;> simp [vreqW32],
@@ -373,6 +378,8 @@ theorem raft.campaign.wp_proof
         $$ [$Hphys]
       · isplitr
         · iapply ownSlice_nil
+        isplitr
+        · iexact Hcl
         iapply send_no_snap
         cases pre <;> simp [vreqW32, MsgSnap, MsgVote, MsgPreVote]
       iintro Hphys

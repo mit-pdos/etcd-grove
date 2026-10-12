@@ -39,12 +39,13 @@ theorem raft.bcastHeartbeat.wp_proof
   icases Hsl with (⟨%_, %Hsl⟩ | ⟨%Hne, -⟩)
   · subst Hsl
     ihave Hphys := Hback $$ %ro %rr %Hpend Hrof Hro
-    wp_apply wp_raft_bcastHeartbeatWithCtx _ _ _ _ _ Hlead $$ [$Hphys]
+    wp_apply wp_raft_bcastHeartbeatWithCtx _ _ _ _ _ [] Hlead $$ [$Hphys]
       as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+    · iapply ownSlice_nil
     iapply HΦ
     iframe Hphys
     ipureintro
-    exact ⟨Hms, Hmm⟩
+    exact ⟨fun m Hm => (Hms m Hm).1, Hmm⟩
   · exact absurd Hpend Hne
 
 end proof

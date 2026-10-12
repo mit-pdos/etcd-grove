@@ -55,6 +55,10 @@ abbrev raft.campaign.spec : Prop :=
   -- next term, which `ownRaftPhys` allows only then (`OutTermOk`); `hup` is called with
   -- `campaignPreElection` exactly when `r.preVote`
   (t = campaignPreElection → s.prevote = true) →
+  -- not a leader transfer's campaign (2026-10-12): its requests carry the marker as their
+  -- `Context`, which the model's campaign messages do not (leader transfer is not in
+  -- scope yet)
+  t ≠ campaignTransfer →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"campaign")) (Val #t))
   {{ (peers : List w64) (pvs : GMap w64 Progress), RET #();

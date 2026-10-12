@@ -94,13 +94,15 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
     wp_raft_log
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
-    wp_apply _P.send cfg r id s _ [] _ (Or.inl rfl)
+    wp_apply _P.send cfg r id s _ [] [] _ (Or.inl rfl)
         (Or.inl ⟨.preVoteResp, Or.inr (Or.inr (Or.inr rfl)), mtypeOf_MsgPreVoteResp, Hs0,
           fun Hc => by rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
           fun h => absurd h Hfid,
           fun Hpf => absurd (Hpvon.symm.trans Hpf) (by decide), rfl⟩)
       $$ [$Hphys]
     · isplitr
+      · iapply ownSlice_nil
+      isplitr
       · iapply ownSlice_nil
       iapply send_no_snap
       w32_ne

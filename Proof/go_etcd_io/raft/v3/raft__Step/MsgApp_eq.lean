@@ -95,12 +95,15 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · -- Follower: `stepFollower`'s arm, with `r.lead = m.From`
     simp only [stepFuncOf]
     have Hvs := Hvotes Hrole
-    wp_apply _P.stepFollower cfg r id s m ents (zero_val _) [] (.inr (.inr (.inl Hty)))
+    wp_apply _P.stepFollower cfg r id s m ents (zero_val _) [] [] (.inr (.inr (.inl Hty)))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ => ⟨Hpwf, Hnw, Hnorm, Hconf, Hfid⟩)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys Hcap] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
     · isplitl []
+      · iintro %Hc; exfalso; rw [Hty] at Hc
+        first | (rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
+      isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
       · iintro %_; iframe Hents Hcap
     obtain ⟨rfl, Happ⟩ := followerStepResult_app _ _ _ _ _ _ _ Hty Hres
@@ -119,12 +122,15 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (by simp [toPState, Hrole, proleRole]) Hconf Happ Hfid
   · -- Candidate: `becomeFollower(r.Term, m.From)`, then the handler
     simp only [stepFuncOf]
-    wp_apply _P.stepCandidate cfg r id s m ents (zero_val _) [] (.inr (.inr (.inl Hty)))
+    wp_apply _P.stepCandidate cfg r id s m ents (zero_val _) [] [] (.inr (.inr (.inl Hty)))
         (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole) Hcfg (fun _ => ⟨Hpwf, Hnw, Hnorm, Hconf, Hfid⟩)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys Hcap] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
     · isplitl []
+      · iintro %Hc; exfalso; rw [Hty] at Hc
+        first | (rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
+      isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
       · iintro %_; iframe Hents Hcap
     obtain ⟨rfl, pvs, Happ⟩ := candidateStepResult_app _ _ _ _ _ _ _ _ Hty Hres
@@ -168,12 +174,15 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · -- PreCandidate (2026-10-04), as a candidate: `becomeFollower(r.Term, m.From)`, then
     -- the handler
     simp only [stepFuncOf]
-    wp_apply _P.stepCandidate cfg r id s m ents (zero_val _) [] (.inr (.inr (.inl Hty)))
+    wp_apply _P.stepCandidate cfg r id s m ents (zero_val _) [] [] (.inr (.inr (.inl Hty)))
         (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole) Hcfg (fun _ => ⟨Hpwf, Hnw, Hnorm, Hconf, Hfid⟩)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys Hcap] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
     · isplitl []
+      · iintro %Hc; exfalso; rw [Hty] at Hc
+        first | (rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
+      isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
       · iintro %_; iframe Hents Hcap
     obtain ⟨rfl, pvs, Happ⟩ := candidateStepResult_app _ _ _ _ _ _ _ _ Hty Hres

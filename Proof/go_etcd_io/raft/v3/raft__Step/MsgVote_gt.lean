@@ -172,15 +172,17 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       { Type' := MsgVoteResp, To' := m.From', From' := 0, Term' := s1.term, LogTerm' := 0,
         Index' := 0, Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := null,
         Reject' := true, RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil }
-    have Hok : SendOk id s1 resp [] [Msg.plain .voteResp id m.From' s1.term true] :=
+    have Hok : SendOk id s1 resp [] [] [Msg.plain .voteResp id m.From' s1.term true] :=
       Or.inl ⟨.voteResp, Or.inr (Or.inl rfl), rfl, by show s1.term ≠ W64 0; rw [Ht1]; exact Hterm,
         fun Hc => by
           exfalso; change MsgVoteResp = _ ∨ MsgVoteResp = _ at Hc
           rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
         fun _ => ⟨rfl, rfl, by show uint.Z s1.term ≤ _; split <;> omega⟩,
         fun _ => ⟨Int.le_refl _, (by w32_ne : MsgVoteResp ≠ MsgPreVoteResp)⟩, rfl⟩
-    wp_apply _P.send cfg r id s1 resp [] _ (.inl rfl) Hok $$ [$Hphys] as Hphys
+    wp_apply _P.send cfg r id s1 resp [] [] _ (.inl rfl) Hok $$ [$Hphys] as Hphys
     · isplitr
+      · iapply ownSlice_nil
+      isplitr
       · iapply ownSlice_nil
       · iapply send_no_snap
         exact (by w32_ne : MsgVoteResp ≠ MsgSnap)
@@ -199,7 +201,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       { Type' := MsgVoteResp, To' := m.From', From' := 0, Term' := m.Term', LogTerm' := 0,
         Index' := 0, Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := null,
         Reject' := false, RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil }
-    have Hok : SendOk id s1 resp [] [Msg.plain .voteResp id m.From' m.Term' false] :=
+    have Hok : SendOk id s1 resp [] [] [Msg.plain .voteResp id m.From' m.Term' false] :=
       Or.inl ⟨.voteResp, Or.inr (Or.inl rfl), rfl, Hterm,
         fun Hc => by
           exfalso; change MsgVoteResp = _ ∨ MsgVoteResp = _ at Hc
@@ -207,8 +209,10 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         fun _ => ⟨rfl, rfl, by show uint.Z m.Term' ≤ _; rw [Ht1]; split <;> omega⟩,
         fun _ => ⟨by show uint.Z m.Term' ≤ _; rw [Ht1]; exact Int.le_refl _, (by w32_ne : MsgVoteResp ≠ MsgPreVoteResp)⟩, rfl⟩
     -- `send` the granted vote response, then record the vote
-    wp_apply _P.send cfg r id s1 resp [] _ (.inl rfl) Hok $$ [$Hphys] as Hphys
+    wp_apply _P.send cfg r id s1 resp [] [] _ (.inl rfl) Hok $$ [$Hphys] as Hphys
     · isplitr
+      · iapply ownSlice_nil
+      isplitr
       · iapply ownSlice_nil
       · iapply send_no_snap
         exact (by w32_ne : MsgVoteResp ≠ MsgSnap)

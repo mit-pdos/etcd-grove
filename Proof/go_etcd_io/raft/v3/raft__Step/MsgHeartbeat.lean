@@ -50,7 +50,7 @@ namespace StepProof
 
 theorem wp_Step_MsgHeartbeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) :
+    (ents : List raftpb.Entry) (ctx : List w8) :
     m.Type' = MsgHeartbeat →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -67,24 +67,25 @@ theorem wp_Step_MsgHeartbeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (s.role = .follower → s.votes = ∅) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhys cfg r id s ∗
-        "#Hents" ∷ m.Entries' ↦*□ ents }}
+        "#Hents" ∷ m.Entries' ↦*□ ents ∗
+        "#Hctx" ∷ m.Context' ↦*□ ctx }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhys cfg r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeat m ents) ∧
+        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeat m ents ctx) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hcommit Hvotes
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · exact wp_Step_MsgHeartbeat_gt _P cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf
+  · exact wp_Step_MsgHeartbeat_gt _P cfg r id s m ents ctx Hty Hto Hterm Hfnz Hfid Hcfg Hwf
       (Hcommit (by omega)) Hgt
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · exact wp_Step_MsgHeartbeat_lt _P cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hlt
+    · exact wp_Step_MsgHeartbeat_lt _P cfg r id s m ents ctx Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hlt
     · have Hteq : m.Term' = s.term := by word
-      exact wp_Step_MsgHeartbeat_eq _P cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf
+      exact wp_Step_MsgHeartbeat_eq _P cfg r id s m ents ctx Hty Hto Hterm Hfnz Hfid Hcfg Hwf
         (Hcommit (by omega)) Hteq Hvotes
 
 end StepProof

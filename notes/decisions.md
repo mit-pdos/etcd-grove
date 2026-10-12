@@ -3183,3 +3183,58 @@ transaction's range is `storeTxnWrite.Range`'s, `TxnKind.readLog`/`readRev`), an
 `rangeCtx todo ctx cd` (an `isContext`, or `context.TODO()`'s value) with `todo = true → r ≠ null`
 in the post (`TxnRange.lean`); the old statements are the instances `kind := .read …`, `todo :=
 false`. `metricsTxnWrite.Range` links `storeTxnWrite.Range` too.
+
+---
+
+## Read-index: a request registry per leader term, acks bounded by the event history
+
+**2026-10-12 · accepted** (branch `worktree-raft-rest`)
+
+`ReadIndex` (`ReadOnlySafe`; `ReadOnlyLeaseBased` needs bounded clock drift and stays out
+of scope) is verified against the pinned raft, whose `readOnly` is the fixed one
+(etcd-io/raft#392's stale validation is gone: a heartbeat's context is the leader's
+request *position* in the term, `confirmedReads + len(unconfirmedReads)`, not the
+client's context, and `maybeAdvance` confirms the positions a quorum acknowledged).
+
+**What a `ReadState` promises.** A client creates a read context `c` with a fresh token
+(`propFresh`, the proposals' token space); creation snapshots the global committed log
+`Lc` into a registry in `raftCommitInv` (`readReq γ c Lc`, persistent, agreeing). A
+`ReadState{Index: i, RequestCtx: c}` that `Ready` hands out carries `readOk γ c i`:
+`|Lc| ≤ i`. Since committed logs are prefixes of one another, any committed log of length
+at least `i` extends `Lc`: reading the applied state at an index `a ≥ i` reads a version
+between the request's creation and now -- a linearizable read, stated with lower bounds
+(the register's `Get`), not as an atomic update (the version is known only after the
+fact).
+
+**Why it holds.** At a request's arrival at the leader `L` of term `T` (commit `i`,
+an entry of `T` committed, or a single voter), the global log `C` is justified by a
+quorum `q` that acknowledged it at some term `t` (`committedJust`, `cq`). Either `t ≤ T`,
+and then `|C| ≤ i`: for `t < T` because `C`'s last entry is of a term below `T` and `L`'s
+log has an entry of `T` at `i`; for `t = T` because `C` was extended only by `L`'s own
+commit (the commit lower bound `cmtLb γ L T n` now stored with the justification, against
+the leader's monotone `cmtAuth`); or `t > T`, and then the request is *doomed*: every
+member of `q` has acknowledged at a term above `T`. The arrival records which, under the
+request's position `p`, in a per-(leader, term) mono list (`rqRec`). A heartbeat of
+context `q ≥ p` carries the list's prefix (`rqLb`); a follower `v` answering it at term
+`T` holds its event history (`ownEvs`, every event at or below its term), so `v` is in no
+doomed request's quorum: its response carries `hbAck γ L T v q`. A quorum of such acks
+for position `p` meets the doomed quorum, so a confirmed request is never doomed: its
+`|Lc| ≤ |C| ≤ i`.
+
+**Where the facts live.** `isMessage` is unchanged. The abstract `Msg` gained `ctx`
+(default `[]`; `absMsg` takes it, default `[]`; `msgAbs` records `Context ↦*□ ctx`), and
+the facts about contexts and read messages are `isCtx γ m` (heartbeat: the registry
+prefix; heartbeat response: the ack; `MsgReadIndex`: `readReq`; `MsgReadIndexResp`:
+`readOk`). They, the per-term registry, the leader's acks and the `ReadState`s are in a
+predicate beside `ownRaftGhost`, `ownReadGhost γ id ps rd` (`rd` is the physical read
+state, now `NState.rd`, which `ownRaftMisc` is indexed by). `ownRaftGhost` gains only
+`cmtAuth` for a leader's terms (and `raftCommitInv` the read registry and `cmtLb`).
+
+**Read credits.** The model lets the transport redeliver a message, so arrivals -- and
+positions -- are unbounded, and a position that wrapped at `2^64` would confirm the wrong
+requests. A `MsgReadIndex` therefore carries one read credit (`rdCred`, an `Auth Nat`
+fragment, like the tick credits), linear: the client pays it at `ReadIndex`, a forward
+moves it, an arrival moves it into the leader's stash, and the stash bounds the position.
+`Ready` hands out each queued `MsgReadIndex`'s credit with it; the transport passes it
+to `Step`. *Rejected*: a no-wrap premise on `Step` (no client could discharge it); a
+credit per node (a forwarded request's destination is not known when it is paid).

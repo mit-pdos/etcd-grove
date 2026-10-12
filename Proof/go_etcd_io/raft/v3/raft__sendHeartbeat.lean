@@ -32,8 +32,9 @@ theorem raft.sendHeartbeat.wp_proof
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
     (wp_Progress_SentCommit : tracker.Progress.SentCommit.spec (GF := GF) (hG := hG)) :
     raft.sendHeartbeat.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s to ctx Hto Hcfg
-  wp_start as Hphys
+  intro cfg r id s to ctx cl Hto Hcfg
+  wp_start as H
+  iNamed H
   icases ownRaftPhys_tracker_same $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
   icases ownTracker_progress_map $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
   icases ownTracker_prvals_dom $$ Htrk with ⟨%Hpdom, Htrk⟩
@@ -65,12 +66,14 @@ theorem raft.sendHeartbeat.wp_proof
     { Type' := W32 8, To' := to, From' := 0, Term' := 0, LogTerm' := 0, Index' := 0,
       Entries' := slice.nil, Commit' := c, Vote' := 0, Snapshot' := null, Reject' := false,
       RejectHint' := 0, Context' := ctx, Responses' := slice.nil }
-  have Hok : SendOk id s hb []
-      [Msg.mk .heartbeat id to s.term false (W64 0) (W64 0) c (W64 0) []] :=
+  have Hok : SendOk id s hb [] cl
+      [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) c (W64 0) [] [] cl] :=
     Or.inr (Or.inl ⟨.heartbeat, Or.inr (Or.inl rfl), rfl, rfl, Hto, rfl⟩)
-  wp_apply wp_raft_send cfg r id s hb [] _ (Or.inl rfl) Hok $$ [$Hphys] as Hphys
+  wp_apply wp_raft_send cfg r id s hb [] cl _ (Or.inl rfl) Hok $$ [$Hphys] as Hphys
   · isplitr
     · iapply ownSlice_nil
+    isplitr
+    · iexact Hctx
     · iapply send_no_snap
       exact (by decide : W32 8 ≠ W32 7)
   icases ownRaftPhys_pr_upd _ _ _ _ _ _ p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩

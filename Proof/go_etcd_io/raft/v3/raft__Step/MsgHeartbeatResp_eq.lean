@@ -87,13 +87,16 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
   cases Hrole : s.role
   · -- Follower: no `MsgHeartbeatResp` arm
     simp only [stepFuncOf]
-    wp_apply _P.stepFollower cfg r id s m [] (zero_val _) []
+    wp_apply _P.stepFollower cfg r id s m [] (zero_val _) [] []
         (.inr (.inr (.inr (.inr (.inl Hty3)))))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
     · isplitl []
+      · iintro %Hc; exfalso; rw [Hty] at Hc
+        first | (rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
+      isplitl []
       · iapply Hsnap0
       · iintro %Hc; exfalso; rw [Hty] at Hc
         rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
@@ -110,7 +113,7 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
       keep_frame rfl rfl rfl rfl rfl⟩
   · -- Candidate: no `MsgHeartbeatResp` arm either
     simp only [stepFuncOf]
-    wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) []
+    wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) [] []
         (.inr (.inr (.inr (.inr (.inl Hty3)))))
         (fun _ => ⟨Hteq, Hterm⟩)
         (.inl Hrole) Hcfg
@@ -119,6 +122,9 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
     · isplitl []
+      · iintro %Hc; exfalso; rw [Hty] at Hc
+        first | (rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
+      isplitl []
       · iapply Hsnap0
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     obtain ⟨rfl, Hs1⟩ := candidateStepResult_noop _ _ _ _ _ _ _ _ Hty3 Hres
@@ -155,7 +161,7 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
       keep_frame_logst Ht Hl Hpv Hg⟩
   · -- PreCandidate (2026-10-04), as a candidate: no `MsgHeartbeatResp` arm either
     simp only [stepFuncOf]
-    wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) []
+    wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) [] []
         (.inr (.inr (.inr (.inr (.inl Hty3)))))
         (fun _ => ⟨Hteq, Hterm⟩)
         (.inr Hrole) Hcfg
@@ -164,6 +170,9 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
     · isplitl []
+      · iintro %Hc; exfalso; rw [Hty] at Hc
+        first | (rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
+      isplitl []
       · iapply Hsnap0
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     obtain ⟨rfl, Hs1⟩ := candidateStepResult_noop _ _ _ _ _ _ _ _ Hty3 Hres

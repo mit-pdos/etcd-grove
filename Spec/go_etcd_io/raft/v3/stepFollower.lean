@@ -60,24 +60,25 @@ variable [FfiSyntax]
 (stamped; `m.From = 0`), `Term = 0` (not stamped for `MsgProp`), the rest `m`'s. Field
 for field what `Step.propForward` sends (`Msg.mk .propose id s.lead (W64 0) m.reject
 m.index m.logterm m.commit m.rejecthint m.entries`). -/
-def propForward (id lead : w64) (m : raftpb.Message) (ents : List raftpb.Entry) : Msg :=
-  Msg.mk .propose id lead (W64 0) m.Reject' m.Index' m.LogTerm' m.Commit' m.RejectHint'
-    ents
+def propForward (id lead : w64) (m : raftpb.Message) (ents : List raftpb.Entry)
+    (cl : List w8 := []) : Msg :=
+  Msg.mkV .propose id lead (W64 0) m.Reject' m.Index' m.LogTerm' m.Commit' m.RejectHint'
+    ents [] cl
 
 /-- What `stepFollower` does with `m`, by type. `dropped` is whether it returned
 `ErrProposalDropped` (the postcondition then says `err` is that global's value;
 otherwise `err = nil`). -/
 def FollowerStepResult (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState) :
-    Prop :=
+    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
+    (cl : List w8 := []) : Prop :=
   if m.Type' = MsgVoteResp then dropped = false ∧ s' = s
   else if m.Type' = MsgProp then
     if s.lead = W64 0 then dropped = true ∧ s' = s
-    else dropped = false ∧ s' = sendMsgs s [propForward id s.lead m ents]
+    else dropped = false ∧ s' = sendMsgs s [propForward id s.lead m ents cl]
   else if m.Type' = MsgApp then
     dropped = false ∧ HandleAppResult id { s with lead := m.From' } m ents s'
   else if m.Type' = MsgHeartbeat then
-    dropped = false ∧ s' = heartbeatResult id { s with lead := m.From' } m
+    dropped = false ∧ s' = heartbeatResult id { s with lead := m.From' } m cl
   else if m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp then
     dropped = false ∧ s' = s
   else if m.Type' = MsgSnap then
@@ -109,7 +110,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
   For `MsgVoteResp` the wand is discharged by the type. -/
 abbrev stepFollower.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (voters : List w64),
+    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (voters : List w64) (cl : List w8),
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
    m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
    (m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp) ∨
@@ -135,6 +136,9 @@ abbrev stepFollower.spec : Prop :=
      m.From' ≠ id) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
+      -- the `Context` (2026-10-12): what a forwarded proposal and the response to a
+      -- heartbeat carry
+      "Hctx" ∷ (⌜m.Type' = MsgHeartbeat ∨ m.Type' = MsgProp⌝ -∗ m.Context' ↦*□ cl) ∗
       "Hsnap" ∷ (⌜m.Type' = MsgSnap⌝ -∗
                  ⌜SnapScope cfg sv voters ∧ s.role = .follower ∧
                    s.votes = ∅ ∧ id ∈ cfg ∧ m.From' ≠ id⌝ ∗
@@ -146,7 +150,7 @@ abbrev stepFollower.spec : Prop :=
     (App (App (Val #(functions stepFollower [])) (Val #r)) (Val #m))
   {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
       ownRaftPhys cfg r id s' ∗
-      ⌜FollowerStepResult id s m ents sv dropped s'⌝ ∗
+      ⌜FollowerStepResult id s m ents sv dropped s' cl⌝ ∗
       (if dropped then globalAddr ErrProposalDropped ↦□ err
        else ⌜err = interface.nil⌝) }}
 

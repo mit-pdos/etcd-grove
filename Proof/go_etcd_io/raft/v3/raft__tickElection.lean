@@ -51,7 +51,7 @@ theorem raft.tickElection.wp_proof
     wp_apply raft.wp_load_id $$ Hphys as Hphys
     try wp_auto
     have hP : (W32 0 : w32) ≠ MsgProp := by simp [MsgProp]
-    wp_apply wp_raft_Step cfg γ r id s ps _ [] Hcfg
+    wp_apply wp_raft_Step cfg γ r id s ps _ [] [] Hcfg
       (by simp [StepMsg, stepMsgTypes, MsgHup]) Hin
       (fun _ => ⟨rfl, Hterm⟩)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
@@ -73,8 +73,7 @@ theorem raft.tickElection.wp_proof
         rw [show mtypeOf (W32 0) = none from rfl] at Hty
         cases Hty
       isplitr
-      · iexists []
-        isplitr
+      · isplitr
         · iapply ownSlice_nil
         ipureintro
         exact ⟨by simp [campaignTransfer], fun Hc => by simp [MsgHeartbeatResp] at Hc⟩

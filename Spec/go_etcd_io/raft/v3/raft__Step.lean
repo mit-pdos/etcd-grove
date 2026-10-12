@@ -231,7 +231,10 @@ abbrev raft.Step.spec : Prop :=
     -- client's result predicate for each entry: a proposal's atomic update is now
     -- deposited before the proposal reaches `Step` (`prop_deposit`), and its entries'
     -- `isMessage` says so (`entData`).)
-    (ents : List raftpb.Entry),
+    (ents : List raftpb.Entry)
+    -- (2026-10-12) the list the message's `Context` holds, which the abstract message
+    -- carries (a heartbeat's response echoes it; a forwarded proposal keeps it)
+    (ctx : List w8),
   -- The ghost state is about one configuration, and it is this one. Without this the
   -- caller could hand `ownRaftGhost_step` a `cfg` of its own choosing -- a singleton
   -- one, say, in which the node is its own quorum -- and election safety would not
@@ -368,13 +371,13 @@ abbrev raft.Step.spec : Prop :=
                        uint.Z e.Index' ≤ uint.Z s.logst.committed⌝ ∗
          "#Hmsg" ∷ □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗
                             ⌜ty ≠ .snap⌝ -∗
-                            isMessage γ (absMsg ty m ents))) ∗
+                            isMessage γ (absMsg ty m ents ctx))) ∗
       -- the `Context`: not the leader-transfer marker (out of scope), and empty on a
       -- heartbeat response (no read-index requests in scope: `bcastHeartbeat` sends
       -- `nil` and `handleHeartbeat` echoes it)
-      "#Hctx" ∷ (∃ (ctx : List w8), m.Context' ↦*□ ctx ∗
-                        ⌜ctx ≠ campaignTransfer⌝ ∗
-                        ⌜m.Type' = MsgHeartbeatResp → ctx = []⌝) ∗
+      "#Hctx" ∷ (m.Context' ↦*□ ctx ∗
+                 ⌜ctx ≠ campaignTransfer⌝ ∗
+                 ⌜m.Type' = MsgHeartbeatResp → ctx = []⌝) ∗
       -- A `MsgSnap`'s snapshot (2026-10-02): what `m.Snapshot` points to, read-only,
       -- and the list behind its `ConfState.Voters`; under the fixed-voter-set scope
       -- `SnapScope` (`Spec/raft__restore.lean`): the voters are `cfg`'s, `cfg` is

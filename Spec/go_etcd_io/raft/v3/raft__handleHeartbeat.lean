@@ -18,7 +18,8 @@ the `HeartbeatResp` the model's rule names, `Msg.plain .heartbeatResp id m.From 
 false`. That is what `SendOk`'s clause (b) makes of the literal: `send` stamps `From :=
 r.id` and `Term := r.Term`; the literal sets only `To`/`Type`/`Context`, so `Reject` is
 `false`, `Index`/`LogTerm`/`Commit`/`RejectHint` are `0`, and `Entries` is the nil
-slice, whose list is `[]`. (`Context` is not part of the abstraction.) Adopting the
+slice, whose list is `[]`; the response's `Context` is `m`'s, whose list `cl` the abstract
+response carries (2026-10-12). Adopting the
 leader (`lead := m.From`, `becomeFollower`) is the caller's business
 (`stepFollower`/`stepCandidate`); this function does not do it.
 
@@ -49,11 +50,12 @@ variable [FfiSyntax]
 /-- The state after `handleHeartbeat`: `committed` moved by `commitTo`, and the
 `HeartbeatResp` queued. Named because `stepFollower` and `stepCandidate` state their
 `MsgHeartbeat` results with it. -/
-def heartbeatResult (id : w64) (s : NState) (m : raftpb.Message) : NState :=
+def heartbeatResult (id : w64) (s : NState) (m : raftpb.Message) (cl : List w8 := []) :
+    NState :=
   sendMsgs
     { s with logst :=
         { s.logst with committed := plogCommitTo s.logst.committed m.Commit' } }
-    [Msg.plain .heartbeatResp id m.From' s.term false]
+    [{ Msg.plain .heartbeatResp id m.From' s.term false with ctx := cl }]
 
 end heartbeat_result
 
@@ -66,13 +68,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev raft.handleHeartbeat.spec : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message),
+  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message) (cl : List w8),
   uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) →
   m.From' ≠ id →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhys cfg r id s }}
+      "Hphys" ∷ ownRaftPhys cfg r id s ∗
+      "#Hctx" ∷ m.Context' ↦*□ cl }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleHeartbeat")) (Val #m))
-  {{ RET #(); ownRaftPhys cfg r id (heartbeatResult id s m) }}
+  {{ RET #(); ownRaftPhys cfg r id (heartbeatResult id s m cl) }}
 
 end spec
 

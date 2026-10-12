@@ -116,9 +116,16 @@ theorem raftMsg_deliverable (γ : RaftNames) (m : raftpb.Message) (Hd : Delivera
   obtain ⟨ty0, Hty0, Hns⟩ := deliverable_mtype m Hd
   iintro Hm
   unfold isRaftMsg msgAbs
-  icases Hm with ⟨%a, (⟨%Hn, -⟩ | ⟨%ty, %ents, %H, #He⟩ | ⟨%sv, %voters, %H, -⟩), #Hl⟩
+  icases Hm with ⟨%a, (⟨%Hn, -⟩ | ⟨%ty, %ents, %ctx, %H, #He, #Hc⟩ | ⟨%sv, %voters, %H, -⟩), #Hl⟩
   · rw [Hty0] at Hn; cases Hn
   · obtain ⟨H1, -, rfl⟩ := H
+    -- a deliverable message's `Context` is nil, so the abstraction's is empty
+    obtain ⟨-, -, -, Hcnil⟩ := Hd
+    ihave %Hlc := ownSlice_len _ _ _ $$ Hc
+    have Hc0 : ctx = [] := by
+      rw [Hcnil] at Hlc
+      exact List.eq_nil_of_length_eq_zero Hlc.1
+    subst Hc0
     iexists ty, ents
     iframe He
     isplitr

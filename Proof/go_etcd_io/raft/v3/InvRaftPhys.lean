@@ -108,8 +108,8 @@ The receiving side, `Step`'s `Hsnap`, holds the same points-tos.
 queues contribute. Persistent. -/
 def msgAbs (m : raftpb.Message) (a : Option Msg) : IProp GF :=
   iprop(⌜mtypeOf m.Type' = none ∧ a = none⌝ ∨
-    (∃ ty ents, ⌜mtypeOf m.Type' = some ty ∧ ty ≠ .snap ∧ a = some (absMsg ty m ents)⌝ ∗
-                m.Entries' ↦*□ ents) ∨
+    (∃ ty ents ctx, ⌜mtypeOf m.Type' = some ty ∧ ty ≠ .snap ∧ a = some (absMsg ty m ents ctx)⌝ ∗
+                m.Entries' ↦*□ ents ∗ m.Context' ↦*□ ctx) ∨
     (∃ (sv : raftpb.Snapshot) (voters : List w64),
        ⌜mtypeOf m.Type' = some .snap ∧ a = some (absSnap m sv voters)⌝ ∗
        m.Snapshot' ↦□ sv ∗

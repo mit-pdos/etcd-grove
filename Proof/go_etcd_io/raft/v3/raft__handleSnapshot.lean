@@ -29,7 +29,7 @@ private theorem appResp_sendOk (id : w64) (s : NState) (dst idx : w64) (Hdst : d
       { Type' := W32 4, To' := dst, From' := 0, Term' := 0, LogTerm' := 0, Index' := idx,
         Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := null, Reject' := false,
         RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil }
-      [] [appResp id s dst false idx (W64 0) (W64 0)] :=
+      [] [] [appResp id s dst false idx (W64 0) (W64 0)] :=
   Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun h => absurd h Hdst, rfl⟩)))
 
 /-- `m.Snapshot` points to `sv`, so the copy `s = *m.Snapshot` is taken and the `nil`
@@ -69,9 +69,11 @@ theorem raft.handleSnapshot.wp_proof
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
     rw [Hlv2.1]
-    wp_apply wp_raft_send _ _ _ _ _ [] _ (Or.inl rfl)
+    wp_apply wp_raft_send _ _ _ _ _ [] [] _ (Or.inl rfl)
       (appResp_sendOk id s1 m.From' s1.logst.committed Hfid) $$ [$Hphys] as Hphys
     · isplitr
+      · iapply ownSlice_nil
+      isplitr
       · iapply ownSlice_nil
       · iapply send_no_snap
         exact (by decide : W32 4 ≠ W32 7)
@@ -96,9 +98,11 @@ theorem raft.handleSnapshot.wp_proof
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
     rw [Hlv2.1]
-    wp_apply wp_raft_send _ _ _ _ _ [] _ (Or.inl rfl)
+    wp_apply wp_raft_send _ _ _ _ _ [] [] _ (Or.inl rfl)
       (appResp_sendOk id _ m.From' sv.Metadata'.Index' Hfid) $$ [$Hphys] as Hphys
     · isplitr
+      · iapply ownSlice_nil
+      isplitr
       · iapply ownSlice_nil
       · iapply send_no_snap
         exact (by decide : W32 4 ≠ W32 7)
@@ -125,9 +129,11 @@ theorem raft.handleSnapshot.wp_proof
       simp only [logRestore, List.length_nil, Int.natCast_zero, Int.add_zero] at Hli
       exact Hli
     subst Hli'
-    wp_apply wp_raft_send _ _ _ _ _ [] _ (Or.inl rfl)
+    wp_apply wp_raft_send _ _ _ _ _ [] [] _ (Or.inl rfl)
       (appResp_sendOk id _ m.From' sv.Metadata'.Index' Hfid) $$ [$Hphys] as Hphys
     · isplitr
+      · iapply ownSlice_nil
+      isplitr
       · iapply ownSlice_nil
       · iapply send_no_snap
         exact (by decide : W32 4 ≠ W32 7)

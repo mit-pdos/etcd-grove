@@ -50,13 +50,16 @@ local macro "prevote_resp_dispatch" : tactic =>
     cases Hrole : s.role
     · -- Follower: no arm
       simp only [stepFuncOf]
-      wp_apply _P.stepFollower cfg r id s m [] (zero_val _) []
+      wp_apply _P.stepFollower cfg r id s m [] (zero_val _) [] []
           (.inr (.inr (.inr (.inr (.inr (.inr Hty))))))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         $$ [Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
       · iframe Hphys
+        isplitl []
+        · iintro %Hc; exfalso; rw [Hty] at Hc
+          first | (rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
         isplitl []
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
         · iintro %Hc; exfalso; rw [Hty] at Hc
@@ -74,7 +77,7 @@ local macro "prevote_resp_dispatch" : tactic =>
     · -- Candidate: `myVoteRespType` is `MsgVoteResp`; a stale pre-vote response is
       -- ignored
       simp only [stepFuncOf]
-      wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) []
+      wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) [] []
           (.inr (.inr (.inr (.inr (.inr (.inr Hty))))))
           (fun Hc => by
             exfalso; rw [Hty] at Hc
@@ -85,6 +88,9 @@ local macro "prevote_resp_dispatch" : tactic =>
           (fun Hp _ => Hnw Hp)
         $$ [Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
       · iframe Hphys
+        isplitl []
+        · iintro %Hc; exfalso; rw [Hty] at Hc
+          first | (rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
         isplitl []
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
@@ -124,7 +130,7 @@ local macro "prevote_resp_dispatch" : tactic =>
       RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
     · -- PreCandidate: the pre-vote tally
       simp only [stepFuncOf]
-      wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) []
+      wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) [] []
           (.inr (.inr (.inr (.inr (.inr (.inr Hty))))))
           (fun Hc => by
             exfalso; rw [Hty] at Hc
@@ -135,6 +141,9 @@ local macro "prevote_resp_dispatch" : tactic =>
           (fun Hp _ => Hnw Hp)
         $$ [Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
       · iframe Hphys
+        isplitl []
+        · iintro %Hc; exfalso; rw [Hty] at Hc
+          first | (rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
         isplitl []
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)

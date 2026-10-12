@@ -61,7 +61,7 @@ private theorem sendOk_voteResp (id : w64) (s : NState) (to term : w64) (rej : B
       { Type' := MsgVoteResp, To' := to, From' := 0, Term' := term, LogTerm' := 0,
         Index' := 0, Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := null,
         Reject' := rej, RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil }
-      [] [Msg.plain .voteResp id to term rej] :=
+      [] [] [Msg.plain .voteResp id to term rej] :=
   Or.inl ⟨.voteResp, Or.inr (Or.inl rfl), rfl, Ht,
     fun Hc => by
       exfalso; change MsgVoteResp = _ ∨ MsgVoteResp = _ at Hc
@@ -85,10 +85,12 @@ local macro "vote_grant_tail" : tactic => `(tactic| (
   wp_raft_log
   wp_apply _P.voteRespMsgType m.Type' MsgVoteResp (.inl ⟨Hty, rfl⟩)
   try wp_auto
-  wp_apply _P.send cfg r id s _ [] _ (.inl rfl)
+  wp_apply _P.send cfg r id s _ [] [] _ (.inl rfl)
       (sendOk_voteResp id s m.From' m.Term' false Hterm
         (Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Heq0))) $$ [Hphys] as Hphys
   · iframe Hphys
+    isplitr
+    · iapply ownSlice_nil
     isplitr
     · iapply ownSlice_nil
     · iapply send_no_snap
@@ -125,10 +127,12 @@ local macro "vote_reject_tail" : tactic => `(tactic| (
   try wp_auto
   -- the response carries `s.term`, so `send`'s `m.Term ≠ 0` premise is the incoming
   -- message's, transported along `m.Term = s.term`
-  wp_apply _P.send cfg r id s _ [] _ (.inl rfl)
+  wp_apply _P.send cfg r id s _ [] [] _ (.inl rfl)
       (sendOk_voteResp id s m.From' s.term true (Heq0 ▸ Hterm)
         (Int.le_refl _)) $$ [Hphys] as Hphys
   · iframe Hphys
+    isplitr
+    · iapply ownSlice_nil
     isplitr
     · iapply ownSlice_nil
     · iapply send_no_snap

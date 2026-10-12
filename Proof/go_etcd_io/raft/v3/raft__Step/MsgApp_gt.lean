@@ -98,12 +98,15 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       functions stepFollower [] := rfl
   rw [Hsf]
   wp_apply _P.stepFollower cfg r id { becomeFollower s m.Term' m.From' with prvals := pvs } m
-      ents (zero_val _) [] (.inr (.inr (.inl Hty)))
+      ents (zero_val _) [] [] (.inr (.inr (.inl Hty)))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun _ => ⟨Hpwf, Hnw, Hnorm, Hconf, Hfid⟩)
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
     $$ [$Hphys Hcap] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
   · isplitl []
+    · iintro %Hc; exfalso; rw [Hty] at Hc
+      first | (rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
+    isplitl []
     · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     · iintro %_; iframe Hents Hcap
   obtain ⟨rfl, Happ⟩ := followerStepResult_app _ _ _ _ _ _ _ Hty Hres
@@ -122,7 +125,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   refine ⟨[absMsg .app m ents] ++ [absMsg .app m ents], ?_, ?_⟩
   · intro m' Hm'; simpa using Hm'
   · refine Step.trans _ _ _ _ _
-      (step_higher_term_leader cfg id (toPState s) .app m ents rfl Hgt Hto Hfid) ?_
+      (step_higher_term_leader cfg id (toPState s) .app m ents [] rfl Hgt Hto Hfid) ?_
     exact step_handle_app cfg id _ _ m ents s1
       (adopt_after_stepdown s m.Term' m.From' pvs) Hto rfl (by simp [pbecomeFollower])
       Hconf Happ Hfid

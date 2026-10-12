@@ -70,11 +70,13 @@ private theorem wp_send_app (wp_raft_send : raft.send.spec (GF := GF) (hG := hG)
     {{ RET #(); ownRaftPhys cfg r id (sendMsgs s
           [Msg.mk .app id dst s.term false idx lt cm (W64 0) es]) }} := by
   iintro %Φ ⟨#Hpkg, Hphys, #Hes⟩ HΦ
-  wp_apply wp_raft_send cfg r id s _ es [Msg.mk .app id dst s.term false idx lt cm (W64 0) es]
+  wp_apply wp_raft_send cfg r id s _ es [] [Msg.mk .app id dst s.term false idx lt cm (W64 0) es]
       (Or.inl rfl)
       (Or.inr (Or.inl ⟨.app, Or.inl rfl, rfl, rfl, Hdst, rfl⟩)) $$ [$Hphys] as Hphys
   · isplitr
     · iexact Hes
+    isplitr
+    · iapply ownSlice_nil
     · iapply send_no_snap
       exact (by decide : W32 3 ≠ W32 7)
   iapply HΦ

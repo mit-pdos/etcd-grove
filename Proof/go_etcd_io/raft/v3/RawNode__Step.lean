@@ -109,7 +109,7 @@ theorem RawNode.Step.wp_proof
             StableOk s.logst (entryID.mk m.LogTerm' m.Index')) ∧ s.gh.unst = false := by
         not_net
       have P8 : m.Type' = MsgStorageApplyResp → m.Term' = W64 0 := by not_net
-      wp_apply wp_raft_Step γ.reCfg γ _ id s ps m ents rfl Hsm Hin P1
+      wp_apply wp_raft_Step γ.reCfg γ _ id s ps m ents ctx rfl Hsm Hin P1
         (fun _ => ⟨Hto, Hterm, Hfrom⟩) (fun _ => ⟨Hto, Hterm⟩) P2 P3
         (fun h => ⟨Hto, Hterm, Hfrom, Hself (.inl h)⟩)
         (fun h => ⟨Hto, Hterm, Hfrom, Hself (.inr (.inl h))⟩)
@@ -129,10 +129,10 @@ theorem RawNode.Step.wp_proof
           · ipureintro; not_net
           imodintro
           iintro %ty %Hty' _
+          iapply isMessage_ctx_intro
           iapply Hmsg $$ %ty %Hty'
         isplitr
-        · iexists ctx
-          iframe Hctx
+        · iframe Hctx
           ipureintro; exact Hctx_ok
         imodintro
         iintro %h

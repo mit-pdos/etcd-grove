@@ -215,7 +215,7 @@ theorem self_pending (γ : RaftNames) (id t : w64) (o : List Msg) (ms : List raf
         imodintro
         iintro %ty %Hty'
         unfold msgAbs
-        icases Hm with (%Hn | ⟨%ty0, %ents, %Hs, #Hents⟩ | ⟨%sv, %voters, %Hs, -, -⟩)
+        icases Hm with (%Hn | ⟨%ty0, %ents, %ctx0, %Hs, #Hents, #Hctx0⟩ | ⟨%sv, %voters, %Hs, -, -⟩)
         · rw [Hn.1] at Hty'; cases Hty'
         · obtain ⟨Hty0, -, rfl⟩ := Hs
           rw [Hty0] at Hty'
@@ -225,6 +225,11 @@ theorem self_pending (γ : RaftNames) (id t : w64) (o : List Msg) (ms : List raf
             rw [Hen] at Hl
             exact List.eq_nil_of_length_eq_zero Hl.1
           subst He
+          ihave %Hlc := ownSlice_len _ _ _ $$ Hctx0
+          have Hc0 : ctx0 = [] := by
+            rw [Hcn] at Hlc
+            exact List.eq_nil_of_length_eq_zero Hlc.1
+          subst Hc0
           iapply BigSepL.bigSepL_mem (Φ := fun x => isMessage (GF := GF) γ x)
             (HP _ List.mem_cons_self _ rfl) $$ Ho
         · exact absurd Hs.1 (mtypeOf_resp_ne_snap m Hty)

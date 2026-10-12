@@ -180,15 +180,16 @@ the sender and term given separately: `send` stamps both (`From := r.id` when un
 `Term := r.Term` for most types), so what reaches the queue is `m` with those two
 fields replaced. -/
 def absMsgFrom (ty : MsgType) (m : raftpb.Message) (src term : w64)
-    (ents : List raftpb.Entry) : Msg :=
-  Msg.mk ty src m.To' term m.Reject' m.Index' m.LogTerm' m.Commit' m.RejectHint' ents
+    (ents : List raftpb.Entry) (ctx : List w8 := []) : Msg :=
+  Msg.mkV ty src m.To' term m.Reject' m.Index' m.LogTerm' m.Commit' m.RejectHint' ents [] ctx
 
 /-- The abstraction of a physical message. Not a function of `m` alone: `m.Entries` is
 a slice, and `ents` is the list it points to -- `ownRaftPhys` holds `m.Entries ↦*□ ents`
 for every queued message (`outboxRel`, `InvRaftPhys.lean`). Not for a `MsgSnap`: see
 `absSnap`. -/
-def absMsg (ty : MsgType) (m : raftpb.Message) (ents : List raftpb.Entry) : Msg :=
-  absMsgFrom ty m m.From' m.Term' ents
+def absMsg (ty : MsgType) (m : raftpb.Message) (ents : List raftpb.Entry)
+    (ctx : List w8 := []) : Msg :=
+  absMsgFrom ty m m.From' m.Term' ents ctx
 
 /-- The abstraction of a `MsgSnap` (2026-10-02). What the protocol reads of a snapshot
 is behind the pointer `m.Snapshot`: `sv` is the `Snapshot` it points to, and `voters`
@@ -199,12 +200,30 @@ snapshot's `Metadata.Index`/`Metadata.Term` -- not `m`'s own `Index`/`LogTerm`, 
 def absSnapFrom (m : raftpb.Message) (src term : w64) (sv : raftpb.Snapshot)
     (voters : List w64) : Msg :=
   Msg.mkV .snap src m.To' term m.Reject' sv.Metadata'.Index' sv.Metadata'.Term'
-    m.Commit' m.RejectHint' [] voters
+    m.Commit' m.RejectHint' [] voters []
 
 def absSnap (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : List w64) : Msg :=
   absSnapFrom m m.From' m.Term' sv voters
 
 end msgs
+
+section msgs_ghost
+variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF]
+
+/-- What a message carries as a protocol message does not depend on its `Context`
+(2026-10-12): the branches that do not echo it work at the abstraction with none. -/
+theorem isMessage_absMsg_ctx (γ : RaftNames) (ty : MsgType) (m : raftpb.Message)
+    (ents : List raftpb.Entry) (ctx : List w8) :
+    isMessage (GF := GF) γ (absMsg ty m ents ctx) = isMessage γ (absMsg ty m ents) := by
+  unfold isMessage absMsg absMsgFrom
+  rfl
+
+theorem isMessage_ctx_intro (γ : RaftNames) (ty : MsgType) (m : raftpb.Message)
+    (ents : List raftpb.Entry) (ctx : List w8) :
+    isMessage (GF := GF) γ (absMsg ty m ents) ⊢ isMessage γ (absMsg ty m ents ctx) := by
+  rw [isMessage_absMsg_ctx]; exact .rfl
+
+end msgs_ghost
 
 /-! ## The abstract state of a `raftLog`
 

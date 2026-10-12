@@ -48,7 +48,7 @@ theorem stepFollower.wp_proof
     (wp_raft_handleSnapshot : raft.handleSnapshot.spec (GF := GF) (hG := hG))
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG)) :
     stepFollower.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s m ents sv voters Hty Hprop Happ Hhb
+  intro cfg r id s m ents sv voters cl Hty Hprop Happ Hhb
   wp_start as H
   iNamed H
   ihave #Hinit := isInitialized_access $$ Hpkg
@@ -94,9 +94,10 @@ theorem stepFollower.wp_proof
       wp_apply raft.wp_load_lead $$ Hphys as Hphys
       ihave Hes := Hents $$ %(Or.inr trivial)
       icases Hes with ⟨#Hes, -⟩
-      wp_apply wp_raft_send _ _ _ _ { m with To' := s.lead } ents [propForward id s.lead m ents]
-          Hfrom0 (Or.inr (Or.inr (Or.inr (Or.inr ⟨Hty, Hterm0, fun h => Hlid h, rfl⟩))))
-        $$ [$Hphys $Hes]
+      ihave #Hcl := Hctx $$ %(by simp [Hty, MsgHeartbeat, MsgProp])
+      wp_apply wp_raft_send _ _ _ _ { m with To' := s.lead } ents cl [propForward id s.lead m ents cl]
+          Hfrom0 (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Hterm0, fun h => Hlid h, rfl⟩)))))
+        $$ [$Hphys $Hes $Hcl]
       · iapply send_no_snap
         simp [Hty, MsgProp, MsgSnap]
       iintro Hphys
@@ -134,7 +135,9 @@ theorem stepFollower.wp_proof
     wp_auto
     wp_apply raft.wp_store_electionElapsed $$ Hphys as Hphys
     wp_apply raft.wp_store_lead $$ Hphys as Hphys
-    wp_apply wp_raft_handleHeartbeat _ _ _ { s with lead := m.From' } _ Hcommit Hfrom $$ [$Hphys] as Hphys
+    ihave #Hcl := Hctx $$ %(by simp [Hty, MsgHeartbeat, MsgProp])
+    wp_apply wp_raft_handleHeartbeat _ _ _ { s with lead := m.From' } _ cl Hcommit Hfrom
+      $$ [$Hphys $Hcl] as Hphys
     iapply HΦ $$ %GoInterface.nil %_ %false
     iframe
     simp only [Bool.false_eq_true, ↓reduceIte]
