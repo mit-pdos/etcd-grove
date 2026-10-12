@@ -28,15 +28,18 @@ the larger of `ci` and `f0 - 1` (`loopOk`): each entry at or below `ci` is repla
 backend writes (`ApplyV2storeOnly`), each above is applied (`ApplyBoth`), and afterwards
 `ci` and the processed-through index are both the larger of the old `ci` and the last index
 `L`, which it returns with its term. So no entry's writes are applied twice, and none above
-`ci` is skipped. -/
+`ci` is skipped. **The KV** (the apply package's unit 3): the apply thread's applier state goes
+from `x` to `x'` by `entriesStep c ms x x'` (`c` the consistent index the batch starts at: each
+normal entry applied by `apply.Apply`, with `v3` iff above `c`), under `entriesOk c ms x` (each
+normal entry's premise at every state the batch can reach it in). -/
 abbrev EtcdServer.apply.spec : Prop :=
-  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (b : GoInterface)
-    (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
-    (rac : GoChan) (st : ApplyState) (a at0 : w64),
-  ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
+  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+    (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
+    (rac : GoChan) (st : ApplyState) (a at0 : w64) (x : apply.ApplyKV),
+  ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → entriesOk (ciEff γ st.k) ms x →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfStateAddr ep ↦ cs ∗
-      srvLgReader s }}
+      srvLgReader s ∗ srvApplyKV s E x }}
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"apply"))
       (Val #es)) (Val #ep)) (Val #rac))
   {{ (appliedt appliedi : w64) (shouldStop : Bool),
@@ -44,6 +47,7 @@ abbrev EtcdServer.apply.spec : Prop :=
       ∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
         applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
         epConfStateAddr ep ↦ csl ∗ srvLgReader s ∗
+        (∃ x' : apply.ApplyKV, srvApplyKV s E x' ∗ ⌜entriesStep (ciEff γ st.k) ms x x'⌝) ∗
         ⌜(ms.getLast?).map EntryModel.index = some appliedi ∧
           (ms.getLast?).map EntryModel.term = some appliedt ∧
           loopOk γ st' appliedi ∧

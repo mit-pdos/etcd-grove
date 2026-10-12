@@ -1,20 +1,22 @@
 # etcd's server (the consistent index, the apply thread): every linked result of
-# Proof/go_etcd_io/etcd/server/v3/etcdserver/Link.lean.
+# Proof/go_etcd_io/etcd/server/v3/etcdserver/Link.lean and the results Results.lean prints
+# (the apply loop's end-to-end result, over the apply package's `apply.Apply`).
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/server.txt [--check [--update]]
 #
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
-roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/Link\.lean$
+roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/(Link|Results)\.lean$
 axiom EtcdServer.GoAttach.wp_proof
 axiom EtcdServer.applyConfChange.wp_proof
 axiom EtcdServer.stopWithDelay.wp_proof
-axiom applierFor
-axiom applierFor_persistent
-axiom apply.Apply_server.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom membership.RaftCluster.Members.wp_proof
 axiom pbutil.MustUnmarshalMessage.wp_proof
+axiom storage.BackendQuota.Cost.wp_proof
+axiom txn.ApplySecObserve.wp_proof
+axiom txn.WarnOfExpensiveRequest.wp_proof
+axiom txn.WarnOfFailedRequest.wp_proof
 axiom verify.Verify.wp_proof
 axiom zap.Error.wp_proof
 axiom zap.Int'.wp_proof
