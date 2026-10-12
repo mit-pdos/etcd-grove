@@ -116,3 +116,30 @@ Cursor__Last: common_Assert InBucket__RootPage Bucket__pageNode elemRef__count C
 Cursor__Seek: common_Assert Cursor__seek elemRef__count Cursor__next
 DB__beginTx: Tx__init Meta__Txid
 DB__removeTx: Meta__Txid TxStats__add
+Inode__Key: @
+Inode__Value: @
+Inode__SetKey: @
+Inode__SetValue: @
+Inode__SetFlags: @
+Inode__SetPgid: @
+Page__Id: @
+Page__Flags: @
+Page__SetFlags: @
+Page__SetCount: @
+common_ReadInodeFromPage: @
+common_WriteInodeToPage: @
+node__minKeys:
+node__pageElementSize:
+node__numChildren:
+node__size: node__pageElementSize Inode__Key Inode__Value
+node__sizeLessThan: node__pageElementSize Inode__Key Inode__Value
+node__splitIndex: node__pageElementSize Inode__Key Inode__Value
+node__read: Page__Id Page__IsLeafPage common_ReadInodeFromPage Inode__Key common_Assert
+node__write: common_Assert Page__Count Page__Flags Page__SetFlags Page__SetCount common_WriteInodeToPage
+node__childIndex: Inode__Key
+node__del: Inode__Key
+node__put: Meta__Pgid Inode__Key Inode__SetFlags Inode__SetKey Inode__SetValue Inode__SetPgid common_Assert
+node__removeChild:
+node__root:
+node__dereference: Inode__Key Inode__Value Inode__SetKey Inode__SetValue common_Assert TxStats__IncNodeDeref
+nodes__Less: Inode__Key
