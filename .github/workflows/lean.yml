@@ -83,11 +83,15 @@ jobs:
       - name: Check the Goose translation
         run: ./etc/goose.py --check
       - name: Build
-        # `build-report.py build` runs `lake build` and prints a build report
-        # after it, pass or fail (time, parallelism over time, critical path);
-        # this also puts it on the run's summary page.
+        # `timed-build.py` is `lake build`, recording each module compile's
+        # timing for the report below.
         id: build
-        run: ./etc/build-report.py --markdown-to "$GITHUB_STEP_SUMMARY" build
+        run: ./etc/timed-build.py
+      - name: Build report
+        # Pass or fail (time, parallelism over time, critical path); also on
+        # the run's summary page.
+        if: always() && steps.build.outcome != 'skipped'
+        run: ./etc/build-report.py --markdown-to "$GITHUB_STEP_SUMMARY"
       - name: Save dependencies
         if: always() && steps.build.outcome != 'skipped'
         uses: actions/cache/save@v4
