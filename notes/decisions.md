@@ -1146,7 +1146,9 @@ either take the batch lock (`P`, whose invariant `applierFor ua P f` asserts), r
 `f`, write (the caller's update `Q ={⊤}=∗ P ∗ Post`) and unlock, in one critical section, or
 write nothing. That is what etcd's design relies on, and the contracts state it; whether the
 applier keeps an entry's writes in one critical section is not verified here. The hook itself
-is verified (`getTxPostLockInsideApplyHook`). *Rejected:* axiomatizing "the applier advances
+is verified (`getTxPostLockInsideApplyHook`). (2026-10-12: the apply package proves
+`apply.Apply` against this contract plus the KV, and `applierFor` is its definition; only
+`applyConfChange` stays assumed: "The server's apply", unit 3.) *Rejected:* axiomatizing "the applier advances
 `ci`", which would leave the hook unverified; an opaque `entryNoop` receipt for the no-write
 outcome (dropped: an entry without data skips the applier, and that path is justified by the
 code itself).
@@ -3332,6 +3334,40 @@ results and making the server's `applierFor` a definition.
   need `fmt.Errorf`'s `%w` wrapper's tree and the context errors' types, for a branch that does
   not run); `applyErrIs` in `kvPost` (every KV method's proof would change, for a fact its
   answer already implies).
+
+- **The server bridge: `E` a parameter of `isServer`** (unit 3). The applier's environment `E`
+  (store, ghost names, `P`, `f`) must be the same in the persistent `apply.applierFor v.ua E`
+  (in `isServer`'s fields) and in the thread's `apply.applyKV E ua x`, and nothing in the heap
+  pins it (the hook `v.hook` is a value, not a field), so `isServer s γ ci TM E` takes it, its
+  fields pin `E.P = batchLockInv γ TM ∧ E.f = v.hook` by equations (a proof rewrites them where it
+  hands the hook's triple to `apply.Apply` or `applyConfChange`). The thread's resource is
+  `srvApplyKV s E x := ∃ ua, srvUberApplyAddr s ↦□ ua ∗ apply.applyKV E ua x`: the `ua` is the
+  field's, which `isServer` hides behind its `∃ v`; the two `↦□` agree. `applyConfChange`'s
+  contract (an axiom) named the old `applierFor ua P f` too: restated at `apply.applierFor ua E`
+  (and `HasLC.hasLC`, where `apply.applierFor` lives). *Rejected:* `E` existential in
+  `isServer` (the thread's `applyKV` could not name it); `E` built from parameters `(s, γ)` and
+  the hook (the hook is not in the heap, so no agreement).
+- **The fold as a relation** (unit 3). `apply.Apply`'s post is a relation (`applyStep`: the
+  auth store's, the quota's, the alarm store's answers are any), so what a batch does is a
+  relation too: `entryStep m v3 x x' out` (no data: `x' = x`, `skipped`; else the decoded
+  request's `applyStep`), `batchStep c m` (a normal entry by `entryStep` with `v3` iff above the
+  consistent index `c` the batch starts at; a conf change leaves the KV) and `entriesStep c ms`
+  their composition. `v3` is a function of `c` and the entry's index: in `apply`'s loop the
+  entry's test is against the current `ci`, which is the starting one or an earlier entry of
+  the batch (below this one), so `index > ci` iff `index > c`. `applyEntries` hands `apply` the
+  entries above the applied index, `unapplied ai ms` (a filter; `unapplied_eq_drop` is the code's
+  offset).
+- **`entriesOk` over every run** (unit 3). `rqOk x.log rq` depends on the log the earlier
+  entries committed, which the relation does not determine, so the premise cannot be "the
+  entry is fine at the state the batch reaches": `entriesOk c (m :: ms) x := (normal → entryOk x
+  m) ∧ ∀ x1, batchStep c m x x1 → entriesOk c ms x1`, i.e. at every state any run reaches the
+  entry in (the server does not choose the run). It is also asked of replayed entries (`v3 =
+  false`), at the state they meet: `apply.Apply.spec`'s premise does not depend on `v3`, so a
+  replayed entry's request must satisfy the txn package's premises (`rqOk`) although it is not
+  run (`apply_no_v3_no_write`): stronger than the code needs; weakening it is a change to
+  `apply.Apply.spec` (`rqOk` only if `v3`), left open. *Rejected:* `entryOk` in
+  `entriesFrom` (pure in `ms`, it cannot see the state); a premise on all reachable states of the
+  whole KV (stronger than needed, and not a property of the batch).
 
 ## mvcc: the batch lock runs the hook
 
