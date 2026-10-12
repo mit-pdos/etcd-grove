@@ -3413,3 +3413,68 @@ could not be proved of the real write path. The contract now carries it, in the 
 the hook's effect folded into `W` (the hook needs the caller's `Pre`, which is per call: it has
 to be in the lock's triple). *Considered:* `Unlock` taking `▷ P` (Perennial's `Mutex.Unlock`
 convention), which would spare `End` its credit; kept `P`, the form `apply.Apply.spec` uses.
+
+## The request path: raft as a contract, the wait registry, the checks as the premises' discharge
+
+**2026-10-12 · plan, unit 0 implemented** (the gRPC KV handlers `server/etcdserver/api/v3rpc/
+key.go` → `EtcdServer.Range`/`Put`/`DeleteRange`/`Txn` (`v3_server.go`) → the proposal and its
+wait → the apply loop; units 1 (the checks, the handlers), 2 (the wait, the ids, the proposal),
+3 (the read side), 4 (the loops, optional) append). Goal: a client request's response is the
+apply package's outcome of that request at the log it met, with mvcc's certificate, and the
+gRPC checks discharge the txn package's request premises.
+
+- **Raft as a contract, not the verified raft** (unit 0). The server's raft is etcd's
+  dependency (raft v3.7.0, protobuf-go v2 raftpb, `EtcdDeps/`, names-only); the verified raft
+  (`Code/go_etcd_io/raft/`) is the fork 118 commits earlier, and both translations define
+  `Perennial.go_etcd_io.raft.v3.*`, so no module imports both. `raftNode.Propose` (promoted from
+  `raft.Node` through `raftNodeConfig`) gets, as a contract of the server's `Node` field
+  (`raftPropose`, `InvRequest.lean`), exactly the statement the verified `node.Propose` proves
+  for the register (`propArg`/`propRes`/`propAu` over `cLog`), restated over the server's own
+  ghost names (`ServerRaftNames`; a context `mvcc.txnCtx` in place of `Background`); its apply
+  side (`batchCommitted`: a batch's client data are the committed client log's next entries,
+  each deposited and claimed by its id) is what unit 4 states the loops with. Discharging it is
+  retargeting the verified raft to v3.7 (`notes/STATUS.md`, "Retargeting raft to upstream").
+  *Rejected:* retargeting first (it blocks the path on a large mechanical port; the path's own
+  content, the checks, the wait protocol, the handoff, does not depend on it).
+- **The wait registry: a handoff per registration, a registration condition** (unit 0). The
+  wait's contract (`isWait w γi R`) is generic in the registration condition `R : id →
+  expectation → IProp`: `Register(id)` takes the id's slot (`idSlot`, from the generator) and
+  `□ R id Ψ`, returns a handoff channel (`cache/v3/Handoff.lean`: buffer 1, sent once, closed)
+  carrying `Ψ x`, or `nil` with the proposer's consumer token (its own `Trigger(id, nil)` after a
+  timeout); `Trigger(id, x)` from anyone else takes `∀ Ψ, R id Ψ -∗ Ψ x`. The server's condition
+  (`reqWaitR`): `Ψ = resultΨ E rq` for the request `rq` the id was claimed for (`idClaim γi id
+  d`, `irrDecode d = some rq`). The apply thread learns the registered request through the claim
+  agreement: the entry's data and the registration's data were claimed for the same id.
+  *Rejected:* a registry of saved predicates the apply thread looks up (it would still need the
+  claim to identify the request); `Ψ` in the wait's own state (the wait package's proof would
+  name the server's model).
+- **Ids: credits per process, claims per cluster** (unit 0). `idGen` hands `2^48 - 1` credits
+  (`Auth Nat`), each `Next` an `idFresh` id (unclaimed, with its wait slot). Claims are one
+  cluster-wide map: that other members' entries never claim an id this member issued is the
+  premise that member ids differ in their low 16 bits (`issues/etcd-request-id-member-prefix.md`),
+  part of the raft contract's apply side.
+- **The checks as pure functions of what they read** (unit 0, `v3rpc/Defs.lean`). A
+  `RequestOp` as the checks see it is `ReqOp` (the txn package's `OpFull` for range, put,
+  delete: a `TxnOp` forgets the put's value and lease, which `checkPutRequest` reads), and each
+  check is a function to its first error (`CheckErr`, the `rpctypes` variable), so unit 1's specs
+  are "returns `CheckErr.var` of the function's value, or `nil`". `checkIntervals` is the code's
+  algorithm over the `adt` model (`ivCheck`), not the intended predicate: a `"\x00"` range end is
+  the empty interval, and a nested transaction's puts are not checked against later siblings'
+  deletes (`issues/etcd-txn-check-intervals-sibling.md`); what it gives the txn package
+  (`intervalsOkCheckStmt`) is stated under both exclusions. The range end is read from the
+  denotation (`rangeEndOf`): equal to the request's bytes off the wire.
+- **`proto.Marshal` of a raft request, up to the model** (unit 0). A second axiom on
+  `proto.Marshal` (`proto.MarshalIRR`, beside mvcc's `KeyValue` one: mvcc must not import the
+  apply package's model): an error, or bytes that decode (`irrDecode`) to a request with the same
+  id, header and kind, and to the request itself when no range end is `[0]` (`irrWireOf`): the
+  model denotes both `"\x00"` and an empty non-nil slice by `[0]`, and the wire turns the latter
+  into `nil`.
+- **Trust boundary, unit 0**: 22 axioms (otel's tracer, spans and attributes; prometheus'
+  histogram; `strconv`, `time`'s float and comparison helpers; traceutil's bookkeeping; the txn
+  package's read-only loggers; the transport queries; the request timeout; the cluster id;
+  `MarshalIRR`), each a function with no effect the model sees, or the encoding. The components
+  reached through the server's fields (the raft node, the wait, the generator, the read loop, the
+  auth store's request side, the feature gate) are contracts (`InvRequest.lean`), established by
+  the server's construction (not translated) or by units 2 and 4. `trace.isSpan` gains
+  `AddEvent`/`RecordError`; `context.WithValue` takes `traceutil.StartTimeKey` and returns a
+  context of the parent's descriptor.
