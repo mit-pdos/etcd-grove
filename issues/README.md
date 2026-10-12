@@ -68,5 +68,9 @@ the verified code; found 2026-10-12 while fixing `etcd-range-sort-none-limit`; n
 alarm gauge counts an alarm activated twice twice (`AlarmStore.Activate` returns the existing
 member) and stays at 1 after it is disarmed (a wrong metric; reproduced; found 2026-10-12, apply
 unit 0; not filed).
+[etcd-apply-lease-checkpoint-sections](etcd-apply-lease-checkpoint-sections.md): a lease checkpoint
+entry with several checkpoints writes the backend in one critical section per checkpoint, so a
+backend commit between two persists the entry's consistent index with part of its writes (a
+remaining TTL lost across a crash; reproduced; found 2026-10-12, apply unit 1; not filed).
 Leads not yet assessed: the gRPC proxy's cache (`server/proxy/grpcproxy/cache/store.go`) builds
 its intervals as `checkIntervals` did, so a cached from-key range may never be invalidated.
