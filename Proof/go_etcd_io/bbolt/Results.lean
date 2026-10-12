@@ -34,9 +34,6 @@ namespace bbolt
 #print axioms Bucket.wp_openBucket
 #print axioms Bucket.wp_Bucket
 #print axioms Bucket.wp_Cursor_w
-#print axioms wp_getDiscardLogger
-#print axioms DB.wp_Logger
-#print axioms Bucket.wp_Writable_w
 #print axioms Tx.wp_page_w
 #print axioms Bucket.wp_pageNode_w
 #print axioms elemRef.wp_isLeaf_w
@@ -45,6 +42,11 @@ namespace bbolt
 #print axioms elemRef.wp_count_w
 #print axioms Cursor.wp_keyValue_w
 #print axioms Cursor.wp_seek_w
+#print axioms Bucket.wp_openBucket_w
+#print axioms Bucket.wp_Bucket_w
+#print axioms wp_getDiscardLogger
+#print axioms DB.wp_Logger
+#print axioms Bucket.wp_Writable_w
 #print axioms node.wp_read
 #print axioms TxStats.wp_IncNodeCount
 #print axioms Bucket.wp_node

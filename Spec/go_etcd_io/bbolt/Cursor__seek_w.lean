@@ -30,7 +30,7 @@ abbrev Cursor.seek.wspec : Prop :=
       ownSliceCap elemRef cv.stack' (DFrac.own 1) ∗ wctx W bl B txl pmap pm dqp ∗ key ↦*{dk} kb }}
     (App (Val (cl @!! go.GoType.PointerType Cursor.ty @!! go!"seek")) (Val #key))
   {{ (cv' : Cursor) (path : List elemRef) (k v : GoSlice) (f : w32), RET (PairV (PairV #k #v) #f);
-      ⌜cv'.bucket' = bl ∧ wpath W B B.ib.root' path ∧ keySrcOK W B k⌝ ∗
+      ⌜cv'.bucket' = bl ∧ wpath W B B.ib.root' path ∧ kvSrcOK W hwm B (k, v, f)⌝ ∗
       cl ↦ cv' ∗ cv'.stack' ↦* path ∗ ownSliceCap elemRef cv'.stack' (DFrac.own 1) ∗
       wctx W bl B txl pmap pm dqp ∗ key ↦*{dk} kb }}
 

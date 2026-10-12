@@ -206,8 +206,9 @@ theorem bktClean_addChild (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hv : vi
     (hrp : B.ns !! nl = some rp) (hbr : rp.nv.isLeaf' = false) (hw : rp.ws[i]? = some w)
     (hnone : B.nm !! w.pgid = none) (l : Loc) (hfresh : B.ns !! l = none) (hl : l ≠ null)
     (hnl : nl ≠ null) (pg : List w8) (hpg : W.pages !! uint.nat w.pgid = some pg) (p : Loc)
-    (s cs' : GoSlice) (src' : Src) (hsrc : src' ≠ Src.stale) :
+    (s cs' : GoSlice) (src' : Src) (hsrc1 : src' = Src.view ∨ src' = Src.own DFrac.discard) :
     bktClean W hwm bl (nodeAdded B w.pgid nl l (readNRec bl nl p pg s src') cs') := by
+  have hsrc : src' ≠ Src.stale := by rcases hsrc1 with h | h <;> rw [h] <;> nofun
   obtain ⟨hc1, hc2, hc3, hc4, hc5, hc6, hc7, hc8, hc9, hc10⟩ := hc
   have hroot : B.ib.root' ≠ W64 0 := by
     intro h0; have := hc7 h0 nl rp hrp; rw [hbr] at this; cases this
@@ -351,7 +352,7 @@ theorem bktClean_addChild (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hv : vi
         simp only [pageW, hfl, ↓reduceIte] at hbk ⊢
         rw [isBktFlag_iff _ (by unfold leafFlags; exact leAt_lt _ _ 4)] at hbk
         rcases hkind with ⟨-, -, hbw⟩ | ⟨hb, -, -⟩
-        · refine ⟨hbw j hj hbk, fun h0 => (hgood.1 hfl j hj).2 hbk h0⟩
+        · exact ⟨⟨hbw j hj hbk, fun h0 => (hgood.1 hfl j hj).2 hbk h0⟩, hsrc1⟩
         · rw [hb] at hfl; exact absurd hfl (by unfold branchPageFlag leafPageFlag; decide)
       · intro hleaf
         have hnleaf : pageFlags pg ≠ leafPageFlag := by
@@ -587,8 +588,9 @@ theorem bktClean_addRoot (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hv : vie
     (pg : List w8)
     (hpgf : B.ib.root' ≠ W64 0 → W.pages !! uint.nat B.ib.root' = some pg)
     (hpgi : B.ib.root' = W64 0 → pg = B.ipg) (p : Loc)
-    (s cs' : GoSlice) (src' : Src) (hsrc : src' ≠ Src.stale) :
+    (s cs' : GoSlice) (src' : Src) (hsrc1 : src' = Src.view ∨ src' = Src.own DFrac.discard) :
     bktClean W hwm bl (nodeAdded B B.ib.root' null l (readNRec bl null p pg s src') cs') := by
+  have hsrc : src' ≠ Src.stale := by rcases hsrc1 with h | h <;> rw [h] <;> nofun
   obtain ⟨hc1, hc2, hc3, hc4, hc5, hc6, hc7, hc8, hc9, hc10⟩ := hc
   obtain ⟨hns0, hnm0⟩ := hc3 hrn
   have hns' := nodeAdded_root_ns B B.ib.root' l (readNRec bl null p pg s src') cs' hns0
@@ -704,7 +706,7 @@ theorem bktClean_addRoot (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hv : vie
         simp only [pageW, hfl, ↓reduceIte] at hbk ⊢
         rw [isBktFlag_iff _ (by unfold leafFlags; exact leAt_lt _ _ 4)] at hbk
         rcases hkind with ⟨-, -, hbw⟩ | ⟨hb, -, -⟩
-        · exact hbw j hj hbk
+        · exact ⟨hbw j hj hbk, hsrc1⟩
         · rw [hb] at hfl; exact absurd hfl (by unfold branchPageFlag leafPageFlag; decide)
       · intro hleaf
         have hnleaf : pageFlags pg ≠ leafPageFlag := by
@@ -852,7 +854,7 @@ theorem childStep (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hv : viewOK W)
     have hsrc' := hs1 rfl
     subst hsrc'
     refine ⟨bktClean_addChild W hwm bl B hv hc nk rk i w hrk hbr hw hk l hfresh hl hnk pg hpg p s cs'
-      Src.view (by nofun), ⟨rfl, rfl, rfl, B.bv.rootNode', by simp [nodeAdded, hnk]⟩,
+      Src.view (Or.inl rfl), ⟨rfl, rfl, rfl, B.bv.rootNode', by simp [nodeAdded, hnk]⟩,
       kidsAt_addChild W hwm bl B hc nk rk w.pgid hrk hbr hk l hfresh hnk pg hpg p s cs' Src.view, ?_, ?_⟩
     · unfold resolve
       rw [if_neg (show (nodeAdded B w.pgid nk l (readNRec bl nk p pg s Src.view) cs').ib.root' ≠ W64 0
@@ -948,10 +950,10 @@ theorem rootStep (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hv : viewOK W)
     unfold wpageAt at hpa'; rw [if_pos hr, if_pos hr] at hpa'
     cases hpa'
     rw [if_neg hpn] at hs1 hs2
-    have hsrc' : src' ≠ Src.stale := by
+    have hsrc' : src' = Src.view ∨ src' = Src.own DFrac.discard := by
       by_cases h : B.isrc = Src.view
-      · rw [hs1 h]; nofun
-      · rw [hs2 h]; nofun
+      · exact Or.inl (hs1 h)
+      · exact Or.inr (hs2 h)
     refine ⟨bktClean_addRoot W hwm bl B hv hc hrn l hl B.ipg (fun h => absurd hr h) (fun _ => rfl)
       B.bv.page' s cs' src' hsrc', hgrow, ?_, hsome, ?_⟩
     · unfold resolve; simp [nodeAdded, hr, hl]
@@ -982,7 +984,7 @@ theorem rootStep (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hv : viewOK W)
     obtain ⟨pg', hpg', heq⟩ := Option.map_eq_some_iff.1 hpa'
     cases heq
     refine ⟨bktClean_addRoot W hwm bl B hv hc hrn l hl pg (fun _ => hpg') (fun h => absurd h hr)
-      _ s cs' Src.view (by nofun), hgrow, ?_, hsome, ?_⟩
+      _ s cs' Src.view (Or.inl rfl), hgrow, ?_, hsome, ?_⟩
     · unfold resolve; rw [if_neg (show (nodeAdded B B.ib.root' null l
         (readNRec bl null _ pg s Src.view) cs').ib.root' ≠ W64 0 from hr)]; exact hnm'
     · exact kpath_mono W B _ (kidsAt_addRoot W hwm bl B hc hrn hr l pg hpg' _ s cs' Src.view) _ _

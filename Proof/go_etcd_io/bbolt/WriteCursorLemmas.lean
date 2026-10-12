@@ -226,6 +226,58 @@ theorem nodeKV_keySrc (W : WView) (B : BRec) (l : Loc) (r : NRec) (i : Int)
       exact Or.inr (Or.inl ⟨l, r, i.toNat, it, w, hr, hit, hw, rfl,
         (hlive w (List.mem_of_getElem? hw)).1⟩)
 
+/-- What a writer's cursor returns (key, value, flags): nil, an entry of a leaf node of the bucket,
+or an element of a leaf page of the bucket (with the page's facts). -/
+def kvSrcOK (W : WView) (hwm : Nat) (B : BRec) (kv : GoSlice × GoSlice × w32) : Prop :=
+  kv = (slice.nil, slice.nil, W32 0) ∨
+  (∃ (l : Loc) (r : NRec) (i : Nat) (it : Inode) (w : WEntry), B.ns !! l = some r ∧
+    r.nv.isLeaf' = true ∧ r.ins[i]? = some it ∧ r.ws[i]? = some w ∧
+    kv = (it.key', it.value', it.flags') ∧ it.flags' = w.flags ∧ w.ks ≠ Src.stale ∧
+    w.vs ≠ Src.stale) ∨
+  (∃ (pid : w64) (p : Loc) (pg : List w8) (i : Nat), wpageAt W B pid = some (p, pg) ∧
+    (B.ib.root' = W64 0 → B.bv.page' ≠ null ∧ B.isrc ≠ Src.stale ∧ inlineOK pg) ∧
+    (B.ib.root' ≠ W64 0 → treeWF W.pages hwm (uint.nat pid)) ∧
+    16 ≤ pg.length ∧ leafWF pg pg.length ∧ pageFlags pg = leafPageFlag ∧ i < pageCount pg ∧
+    kv = kvResult p pg (i : Int))
+
+theorem kvSrc_key (W : WView) (hwm : Nat) (B : BRec) (kv : GoSlice × GoSlice × w32)
+    (h : kvSrcOK W hwm B kv) : keySrcOK W B kv.1 := by
+  rcases h with rfl | ⟨l, r, i, it, w, hr, -, hit, hw, rfl, -, hks, -⟩ |
+    ⟨pid, p, pg, i, hpa, hinl, -, hlen, hwf, -, hi, rfl⟩
+  · exact Or.inl rfl
+  · exact Or.inr (Or.inl ⟨l, r, i, it, w, hr, hit, hw, rfl, hks⟩)
+  · have := kvResult_keySrc W B pid p pg (i : Int) hpa (fun h => ⟨(hinl h).1, (hinl h).2.1⟩) hlen hwf
+    exact this
+
+theorem nodeKV_kvSrc (W : WView) (hwm : Nat) (B : BRec) (l : Loc) (r : NRec) (i : Int)
+    (hr : B.ns !! l = some r) (hleaf : r.nv.isLeaf' = true) (hlive : wsLive r.ws)
+    (hlen : r.ins.length = r.ws.length)
+    (hfl : ∀ it w, r.ins[i.toNat]? = some it → r.ws[i.toNat]? = some w → it.flags' = w.flags) :
+    kvSrcOK W hwm B (nodeKV r.ins i) := by
+  unfold nodeKV
+  split
+  · exact Or.inl rfl
+  · cases hit : r.ins[i.toNat]? with
+    | none => exact Or.inl rfl
+    | some it =>
+      have hl := (List.getElem?_eq_some_iff.1 hit).1
+      obtain ⟨w, hw⟩ : ∃ w, r.ws[i.toNat]? = some w := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+      have hlv := hlive w (List.mem_of_getElem? hw)
+      exact Or.inr (Or.inl ⟨l, r, i.toNat, it, w, hr, hleaf, hit, hw, rfl, hfl it w hit hw, hlv.1, hlv.2⟩)
+
+theorem kvResult_kvSrc (W : WView) (hwm : Nat) (B : BRec) (pid : w64) (p : Loc) (pg : List w8)
+    (i : Int) (hi0 : 0 ≤ i) (hpa : wpageAt W B pid = some (p, pg))
+    (hinl : B.ib.root' = W64 0 → B.bv.page' ≠ null ∧ B.isrc ≠ Src.stale ∧ inlineOK pg)
+    (htree : B.ib.root' ≠ W64 0 → treeWF W.pages hwm (uint.nat pid))
+    (hlen : 16 ≤ pg.length) (hwf : leafWF pg pg.length) (hfl : pageFlags pg = leafPageFlag) :
+    kvSrcOK W hwm B (kvResult p pg i) := by
+  by_cases hc : pageCount pg = 0 ∨ (pageCount pg : Int) ≤ i
+  · left; unfold kvResult; rw [if_pos hc]
+  · right; right
+    have hi : i.toNat < pageCount pg := by omega
+    refine ⟨pid, p, pg, i.toNat, hpa, hinl, htree, hlen, hwf, hfl, hi, ?_⟩
+    rw [Int.toNat_of_nonneg hi0]
+
 /-- A writer's cursor's facts: the view's, the bucket clean, no dirty page of the view's. -/
 def wctxOK (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (txl : Loc) (pm : GMap w64 Loc) : Prop :=
   viewOK W ∧ bktClean W hwm bl B ∧ B.bv.tx' = txl ∧

@@ -156,7 +156,8 @@ theorem bktClean_leafSet (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hc : bkt
     (e4 : r'.nv.pgid' = r.nv.pgid') (e5 : r'.nv.parent' = r.nv.parent') (e6 : r'.nv.key' = r.nv.key')
     (e7 : r'.key = r.key) (e8 : r'.ksrc = r.ksrc) (e9 : r'.cs = r.cs)
     (hlen : r'.ins.length = r'.ws.length) (hs : wsSorted r'.ws) (hk : ∀ w ∈ r'.ws, 0 < w.key.length)
-    (hlive : wsLive r'.ws) (hbv : ∀ w ∈ r'.ws, isBktFlag w.flags → bvalOK W.pages hwm w.value) :
+    (hlive : wsLive r'.ws) (hbv : ∀ w ∈ r'.ws, isBktFlag w.flags → bvalOK W.pages hwm w.value ∧
+      (w.vs = Src.view ∨ w.vs = Src.own DFrac.discard)) :
     bktClean W hwm bl { B with ns := <[l := r']> B.ns } := by
   obtain ⟨c1, c2, c3, c4, c5, c6, c7, c8, c9, c10⟩ := hc
   have hns : ∀ y, (<[l := r']> B.ns) !! y = if y = l then some r' else B.ns !! y := by
@@ -291,10 +292,10 @@ theorem rootStep0 (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hv : viewOK W)
     unfold wpageAt at hpa'; rw [if_pos hr, if_pos hr] at hpa'
     cases hpa'
     rw [if_neg hpn] at hs1 hs2
-    have hsrc' : src' ≠ Src.stale := by
+    have hsrc' : src' = Src.view ∨ src' = Src.own DFrac.discard := by
       by_cases h : B.isrc = Src.view
-      · rw [hs1 h]; nofun
-      · rw [hs2 h]; nofun
+      · exact Or.inl (hs1 h)
+      · exact Or.inr (hs2 h)
     exact ⟨bktClean_addRoot W hwm bl B hv hc hrn l hl B.ipg (fun h => absurd hr h) (fun _ => rfl)
       B.bv.page' s cs' src' hsrc', hgrow⟩
   · have hpn : B.bv.page' = null := hc.2.2.2.2.2.1 hr
@@ -306,7 +307,7 @@ theorem rootStep0 (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hv : viewOK W)
     obtain ⟨pg', hpg', heq⟩ := Option.map_eq_some_iff.1 hpa'
     cases heq
     exact ⟨bktClean_addRoot W hwm bl B hv hc hrn l hl pg (fun _ => hpg') (fun h => absurd h hr)
-      _ s cs' Src.view (by nofun), hgrow⟩
+      _ s cs' Src.view (Or.inl rfl), hgrow⟩
 
 /-- A bucket's header changed but its root: still clean. -/
 theorem bktClean_ib (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (ib' : InBucket)

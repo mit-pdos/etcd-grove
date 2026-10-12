@@ -156,7 +156,7 @@ theorem Bucket.Put.wp_proof (hLog : DB.Logger.spec (GF := GF) (hG := hG))
           · unfold wView; iframe; iframe #; ipureintro; exact Hlgv
           iframe
         try wp_auto
-        icases keySrc_acc W bl B txl T.t.pages' T.pm (DFrac.own 1) k HvOK.1 Hsk.2.2 $$ Hctx
+        icases keySrc_acc W bl B txl T.t.pages' T.pm (DFrac.own 1) k HvOK.1 (kvSrc_key W _ B _ Hsk.2.2) $$ Hctx
           with ⟨%dq, %bs, Hkk, Hkback⟩
         wp_apply bytes.wp_Equal nk k (DFrac.own 1) dq kb bs $$ [Hnk Hkk] as ⟨Hnk, Hkk⟩
         · iframe

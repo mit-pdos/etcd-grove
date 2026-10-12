@@ -10,6 +10,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.BucketStats__Add
 public import Proof.go_etcd_io.bbolt.Bucket__Bucket
+public import Proof.go_etcd_io.bbolt.Bucket__Bucket_w
 public import Proof.go_etcd_io.bbolt.Bucket__Cursor
 public import Proof.go_etcd_io.bbolt.Bucket__Cursor_w
 public import Proof.go_etcd_io.bbolt.Bucket__Delete
@@ -26,6 +27,7 @@ public import Proof.go_etcd_io.bbolt.Bucket__Writable
 public import Proof.go_etcd_io.bbolt.Bucket__Writable_w
 public import Proof.go_etcd_io.bbolt.Bucket__node
 public import Proof.go_etcd_io.bbolt.Bucket__openBucket
+public import Proof.go_etcd_io.bbolt.Bucket__openBucket_w
 public import Proof.go_etcd_io.bbolt.Bucket__pageNode
 public import Proof.go_etcd_io.bbolt.Bucket__pageNode_w
 public import Proof.go_etcd_io.bbolt.Cursor__Bucket
@@ -270,18 +272,6 @@ theorem Bucket.wp_Cursor_w :
     EtcdGrove.bbolt.Bucket.Cursor.wspec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Bucket.Cursor.wp_wproof EtcdGrove.bbolt.TxStats.wp_IncCursorCount
 
-theorem wp_getDiscardLogger :
-    EtcdGrove.bbolt.getDiscardLogger.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.getDiscardLogger.wp_proof
-
-theorem DB.wp_Logger :
-    EtcdGrove.bbolt.DB.Logger.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DB.Logger.wp_proof EtcdGrove.bbolt.wp_getDiscardLogger
-
-theorem Bucket.wp_Writable_w :
-    EtcdGrove.bbolt.Bucket.Writable.wspec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Bucket.Writable.wp_wproof
-
 theorem Tx.wp_page_w :
     EtcdGrove.bbolt.Tx.page.wspec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Tx.page.wp_wproof EtcdGrove.bbolt.DB.wp_page EtcdGrove.bbolt.Page.wp_FastCheck
@@ -313,6 +303,26 @@ theorem Cursor.wp_keyValue_w :
 theorem Cursor.wp_seek_w :
     EtcdGrove.bbolt.Cursor.seek.wspec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Cursor.seek.wp_wproof EtcdGrove.bbolt.InBucket.wp_RootPage EtcdGrove.bbolt.Cursor.wp_search_w EtcdGrove.bbolt.Cursor.wp_keyValue_w
+
+theorem Bucket.wp_openBucket_w :
+    EtcdGrove.bbolt.Bucket.openBucket.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Bucket.openBucket.wp_wproof EtcdGrove.bbolt.wp_newBucket EtcdGrove.bbolt.wp_cloneBytes EtcdGrove.bbolt.InBucket.wp_RootPage
+
+theorem Bucket.wp_Bucket_w :
+    EtcdGrove.bbolt.Bucket.Bucket.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Bucket.Bucket.wp_wproof EtcdGrove.bbolt.Bucket.wp_Cursor_w EtcdGrove.bbolt.Cursor.wp_seek_w EtcdGrove.bbolt.Bucket.wp_openBucket_w
+
+theorem wp_getDiscardLogger :
+    EtcdGrove.bbolt.getDiscardLogger.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.getDiscardLogger.wp_proof
+
+theorem DB.wp_Logger :
+    EtcdGrove.bbolt.DB.Logger.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.Logger.wp_proof EtcdGrove.bbolt.wp_getDiscardLogger
+
+theorem Bucket.wp_Writable_w :
+    EtcdGrove.bbolt.Bucket.Writable.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Bucket.Writable.wp_wproof
 
 theorem node.wp_read :
     EtcdGrove.bbolt.node.read.spec (GF := GF) (hG := hG) :=

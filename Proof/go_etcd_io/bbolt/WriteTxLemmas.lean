@@ -263,6 +263,23 @@ theorem wOwn_at (W : WView) (ins : List Inode) (ws : List WEntry) (i : Nat) (it 
   iframe
   ipureintro; exact Hp
 
+/-- The flags of entry `i` of a node's inodes are its record's. -/
+theorem wOwn_flags_at (W : WView) (ins : List Inode) (ws : List WEntry) (i : Nat) :
+    ([∗list] it;w ∈ ins;ws, wOwn (GF := GF) W it w) ⊢
+      ⌜∀ it w, ins[i]? = some it → ws[i]? = some w → it.flags' = w.flags⌝ ∗
+      [∗list] it;w ∈ ins;ws, wOwn (GF := GF) W it w := by
+  cases h1 : ins[i]? with
+  | none =>
+    iintro H; iframe; ipureintro; intro it w h; cases h
+  | some it =>
+    cases h2 : ws[i]? with
+    | none => iintro H; iframe; ipureintro; intro it w _ h; cases h
+    | some w =>
+      iintro H
+      icases wOwn_at W ins ws i it w h1 h2 $$ H with ⟨%Hp, H⟩
+      iframe
+      ipureintro; intro it' w' e1 e2; cases e1; cases e2; exact Hp.1
+
 /-- A node of a bucket, out of it (and back, possibly changed). -/
 theorem bktOwn_node_acc (W : WView) (bl : Loc) (B : BRec) (nl : Loc) (r : NRec)
     (h : B.ns !! nl = some r) :

@@ -84,7 +84,7 @@ theorem Bucket.Delete.wp_proof (hLog : DB.Logger.spec (GF := GF) (hG := hG))
     · unfold wView; iframe; iframe #; ipureintro; exact Hlgv
     iframe
   try wp_auto
-  icases keySrc_acc W bl B txl T.t.pages' T.pm (DFrac.own 1) k HvOK.1 Hsk.2.2 $$ Hctx
+  icases keySrc_acc W bl B txl T.t.pages' T.pm (DFrac.own 1) k HvOK.1 (kvSrc_key W _ B _ Hsk.2.2) $$ Hctx
     with ⟨%dq, %bs, Hkk, Hkback⟩
   wp_apply bytes.wp_Equal key k dk dq kb bs $$ [Hk Hkk] as ⟨Hk, Hkk⟩
   · iframe

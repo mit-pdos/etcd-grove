@@ -84,6 +84,7 @@ theorem Cursor.seek.wp_wproof
     icases bktOwn_node_acc W bl B l nrec Hrec $$ Hbk with ⟨Hnd, Hback⟩
     isimp only [nodeOwn] at Hnd
     icases Hnd with ⟨Hn0, Hins, Hicap, Hents, Hch, Hchcap, Hkey⟩
+    icases wOwn_flags_at W nrec.ins nrec.ws (sint.Z r.index').toNat $$ Hents with ⟨%Hfl, Hents⟩
     wp_apply hkv cl cv' (DFrac.own 1) path (DFrac.own 1) r (DFrac.own 1) [] nrec.nv (DFrac.own 1) nrec.ins
       (DFrac.own 1) Hlast (fun h => absurd h Hnn) (fun _ => Hi0) $$ [Hcl Hs Hn0 Hins] as ⟨Hcl, Hs, Hres'⟩
     · simp only [Hnn, ↓reduceIte]; rw [Hn]; iframe
@@ -99,7 +100,7 @@ theorem Cursor.seek.wp_wproof
     · ipureintro
       refine ⟨Hb', Hpath, ?_⟩
       unfold kvResW; rw [if_neg Hnn]
-      exact nodeKV_keySrc W B l nrec _ Hrec Hlive Hilen
+      exact nodeKV_kvSrc W hwm B l nrec _ Hrec Hrk.1 Hlive Hilen Hfl
     iframe
   · -- a leaf page
     unfold kidsAt at Hkids
@@ -127,6 +128,19 @@ theorem Cursor.seek.wp_wproof
         · exact ⟨hl, hw⟩
         · rw [hfl] at Hkids; exact absurd Hkids.1 (by unfold branchPageFlag leafPageFlag; decide)
     have Hne : pg ≠ [] := by intro h; rw [h] at Hlw; simp at Hlw
+    have Hinl3 : B.ib.root' = W64 0 → B.bv.page' ≠ null ∧ B.isrc ≠ Src.stale ∧ inlineOK pg := by
+      intro h0
+      rcases Hpos'.2 with ⟨l, r, h1, -⟩ | ⟨-, ⟨-, h0', h2, h3, hg⟩ | ⟨h4, -⟩⟩
+      · rw [Hres] at h1; cases h1
+      · refine ⟨h2, h3, ?_⟩
+        unfold wpageAt at Hpa; rw [if_pos h0, if_pos h0'] at Hpa
+        obtain ⟨-, rfl⟩ := Prod.mk.inj (Option.some.inj Hpa)
+        exact hg
+      · exact absurd h0 h4
+    have Htree : B.ib.root' ≠ W64 0 → treeWF W.pages hwm (uint.nat pid') := by
+      intro hr
+      obtain ⟨-, -, -, hwf, -⟩ := posOK_page W hwm B pid' hr Hres Hpos'
+      exact hwf
     unfold wctx
     icases Hctx with ⟨Hbk, Hv, Hpf, Hpm, Hdb⟩
     isimp only [wView] at Hv
@@ -148,7 +162,7 @@ theorem Cursor.seek.wp_wproof
     · ipureintro
       refine ⟨Hb', Hpath, ?_⟩
       unfold kvResW; rw [if_pos Hn]
-      exact kvResult_keySrc W B pid' r.page' pg _ Hpa Hinl Hlw.1 Hlw.2
+      exact kvResult_kvSrc W hwm B pid' r.page' pg _ Hi0 Hpa Hinl3 Htree Hlw.1 Hlw.2 Hkids.1
     iframe
     unfold wView bktOwn; iframe; iframe #; ipureintro; exact Hlgv
 

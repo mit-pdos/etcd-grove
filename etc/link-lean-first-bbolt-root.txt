@@ -222,3 +222,5 @@ InBucket__SetInSequence: @
 InBucket__IncSequence: @
 Bucket__SetSequence: Bucket__Writable_w InBucket__RootPage Bucket__node InBucket__SetInSequence
 Bucket__NextSequence: Bucket__Writable_w InBucket__RootPage Bucket__node InBucket__IncSequence InBucket__InSequence
+Bucket__openBucket_w: newBucket bbolt_cloneBytes InBucket__RootPage
+Bucket__Bucket_w: Bucket__Cursor_w Cursor__seek_w Bucket__openBucket_w

@@ -281,7 +281,8 @@ def nodeClean (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (l : Loc) (r : NRec)
   (B.ib.root' = W64 0 → r.nv.pgid' = W64 0) ∧
   (B.ib.root' ≠ W64 0 → treeWF W.pages hwm (uint.nat r.nv.pgid')) ∧
   (r.nv.key' = slice.nil ∨ (0 < r.key.length ∧ r.ksrc ≠ Src.stale)) ∧
-  (r.nv.isLeaf' = true → ∀ w ∈ r.ws, isBktFlag w.flags → bvalOK W.pages hwm w.value) ∧
+  (r.nv.isLeaf' = true → ∀ w ∈ r.ws, isBktFlag w.flags → bvalOK W.pages hwm w.value ∧
+    (w.vs = Src.view ∨ w.vs = Src.own DFrac.discard)) ∧
   (r.nv.isLeaf' = false → 0 < r.ws.length ∧ (r.ws.map WEntry.pgid).Nodup ∧ ∀ w ∈ r.ws,
     uint.nat w.pgid < hwm ∧
     (∀ l', B.nm !! w.pgid = some l' → ∃ r', B.ns !! l' = some r' ∧ r'.nv.parent' = l) ∧
