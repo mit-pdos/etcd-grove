@@ -45,7 +45,7 @@ theorem DB.getPageSizeFromFirstMeta.wp_proof (hReadAt : os.File.ReadAt.spec (GF 
   wp_apply hReadAt f fd bs _ _ (W64 0) (by decide) $$ [Hof Hfb Hsl] as %n %err ⟨%k, %hk, Hfb, Hsl⟩
   · iframe; iframe #
   try wp_auto
-  obtain ⟨hk1, rfl, hk3⟩ := hk
+  obtain ⟨hk1, rfl, hk3, -⟩ := hk
   obtain ⟨t', p', rfl⟩ := Hne
   cases err with
   | ok ei =>

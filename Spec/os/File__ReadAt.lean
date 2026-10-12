@@ -1,5 +1,6 @@
 module
 public import Proof.os.FileModel
+public import Proof.os.ErrWF
 
 @[expose] public section
 
@@ -19,7 +20,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `f.ReadAt(b, off)`: the first `k` bytes of `b` become the file's from `off` on, where `k`
-is `len(b)` unless the file ends first (or the read fails: then `err` is not nil). -/
+is `len(b)` unless the file ends first (or the read fails: then `err` is not nil, a pointer:
+`io.EOF` or a `*PathError`). -/
 abbrev os.File.ReadAt.spec : Prop :=
   ∀ (f : Loc) (fd : w64) (bs : List w8) (b : GoSlice) (ds : List w8) (off : w64),
   0 ≤ sint.Z off →
@@ -27,7 +29,7 @@ abbrev os.File.ReadAt.spec : Prop :=
     (App (App (Val (f @!! go.GoType.PointerType _root_.Perennial.os.File.ty @!! go!"ReadAt")) (Val #b)) (Val #off))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
       ∃ (k : Nat), ⌜k ≤ ((bs.drop (sint.nat off)).take ds.length).length ∧ n = W64 k ∧
-        (err = interface.nil → k = ds.length)⌝ ∗
+        (err = interface.nil → k = ds.length) ∧ errWF err⌝ ∗
       fileBytes fd bs ∗ b ↦* (((bs.drop (sint.nat off)).take k) ++ ds.drop k) }}
 
 end spec

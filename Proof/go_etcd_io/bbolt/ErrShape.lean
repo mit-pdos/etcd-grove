@@ -9,6 +9,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Init
 public import Perennial.Proof.fmt
+public import Proof.os.ErrWF
 
 @[expose] public section
 
@@ -23,28 +24,8 @@ open Iris Iris.BI Iris.ProofMode
 section shape
 variable [ext : FfiSyntax] [go_gctx : GoGlobalContext]
 
-/-- An error whose dynamic type is a pointer type holds a location. -/
-def errWF (e : GoInterface) : Prop :=
-  ∀ ei, e = interface.ok ei → ∀ t, ei.ty = go.GoType.PointerType t → ∃ l : Loc, ei.v = #l
-
-theorem errWF_nil : errWF interface.nil := by
-  intro ei h; cases h
-
-theorem errWF_ptr (t : go.GoType) (l : Loc) :
-    errWF (interface.mkOk (go.GoType.PointerType t) #l) := by
-  intro ei h t' _
-  simp only [interface.mkOk, GoInterface.ok.injEq] at h
-  subst h; exact ⟨l, rfl⟩
-
 theorem errWF_newErr (e : GoInterface) (h : IsNewErr e) : errWF e := by
   obtain ⟨t, l, rfl⟩ := h; exact errWF_ptr t l
-
-theorem errWF_errno (x : w64) :
-    errWF (interface.mkOk _root_.Perennial.syscall.Errno.ty #x) := by
-  intro ei h t ht
-  simp only [interface.mkOk, GoInterface.ok.injEq] at h
-  subst h
-  simp [_root_.Perennial.syscall.Errno.ty] at ht
 
 end shape
 

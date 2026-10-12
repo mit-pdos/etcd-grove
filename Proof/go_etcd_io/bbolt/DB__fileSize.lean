@@ -34,7 +34,7 @@ theorem DB.fileSize.wp_proof (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
   try wp_auto
   icases Hfi with (%Herr | ⟨%Herr, #Hfi⟩)
   · cases err with
-    | nil => exact absurd rfl Herr
+    | nil => exact absurd rfl Herr.1
     | ok i =>
       try wp_auto
       wp_apply wp_slice_literal
