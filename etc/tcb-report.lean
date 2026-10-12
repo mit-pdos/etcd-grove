@@ -63,12 +63,59 @@ def hasSyntheticSorry (e : Expr) : Bool :=
 constants containing a `sorry` it depends on (as `.inl` / `.inr`). -/
 abbrev Item := Name ⊕ Name
 
+instance : Inhabited Item := ⟨.inl .anonymous⟩
+
+/-- An `Item`'s order, for the sorted arrays that represent sets of them. -/
+def Item.lt : Item → Item → Bool
+  | .inl a, .inl b | .inr a, .inr b => Name.quickLt a b
+  | .inl _, .inr _ => true
+  | .inr _, .inl _ => false
+
+/-- The union of two sorted, duplicate-free arrays of `Item`s. -/
+def mergeItems (a b : Array Item) : Array Item := Id.run do
+  let mut out : Array Item := Array.mkEmpty (a.size + b.size)
+  let mut i := 0
+  let mut j := 0
+  while i < a.size || j < b.size do
+    if j ≥ b.size then out := out.push a[i]!; i := i + 1
+    else if i ≥ a.size then out := out.push b[j]!; j := j + 1
+    else if Item.lt a[i]! b[j]! then out := out.push a[i]!; i := i + 1
+    else if Item.lt b[j]! a[i]! then out := out.push b[j]!; j := j + 1
+    else out := out.push a[i]!; i := i + 1; j := j + 1
+  return out
+
+instance : Hashable Item where
+  hash | .inl a => mixHash 11 (hash a) | .inr a => mixHash 13 (hash a)
+
+/-- The sets of `Item`s met so far, interned: almost every constant reaches the same few
+thousand axioms (Goose's untranslated types among them), so the distinct sets are few
+and a union of two of them is computed once. -/
+structure Interned where
+  sets : Array (Array Item) := #[#[]]
+  ids : Std.HashMap (Array Item) Nat := ({} : Std.HashMap (Array Item) Nat).insert #[] 0
+  unions : Std.HashMap (Nat × Nat) Nat := {}
+
+def Interned.intern (t : Interned) (s : Array Item) : Interned × Nat :=
+  match t.ids.get? s with
+  | some i => (t, i)
+  | none => ({ t with sets := t.sets.push s, ids := t.ids.insert s t.sets.size }, t.sets.size)
+
+def Interned.union (t : Interned) (a b : Nat) : Interned × Nat :=
+  if a == b || b == 0 then (t, a) else if a == 0 then (t, b) else
+  let k := if a < b then (a, b) else (b, a)
+  match t.unions.get? k with
+  | some u => (t, u)
+  | none =>
+    let (t, u) := t.intern (mergeItems t.sets[a]! t.sets[b]!)
+    ({ t with unions := t.unions.insert k u }, u)
+
 /-- Memoized transitive closure of `Item`s (iterative DFS; a constant on a cycle sees
-the partial result, as in `collectAxioms`). -/
+the partial result, as in `collectAxioms`). Each constant's set is an interned id. -/
 partial def closure (env : Environment) (roots : Array Name) :
     IO (Std.HashMap Name (Array Item)) := do
-  let mut memo : Std.HashMap Name (Array Item) := {}
+  let mut memo : Std.HashMap Name Nat := {}
   let mut onStack : NameSet := {}
+  let mut t : Interned := {}
   for r in roots do
     if memo.contains r then continue
     let mut stack : Array (Name × Bool) := #[(r, false)]
@@ -77,7 +124,7 @@ partial def closure (env : Environment) (roots : Array Name) :
       if memo.contains n then
         stack := stack.pop; continue
       match env.find? n with
-      | none => memo := memo.insert n #[]; stack := stack.pop
+      | none => memo := memo.insert n 0; stack := stack.pop
       | some ci =>
         let deps := ci.getUsedConstantsAsSet
         if !expanded then
@@ -87,16 +134,21 @@ partial def closure (env : Environment) (roots : Array Name) :
             if !memo.contains d && !onStack.contains d then
               stack := stack.push (d, false)
         else
-          let mut acc : Array Item := #[]
-          if ci matches .axiomInfo _ then acc := acc.push (.inl n)
-          if deps.contains ``sorryAx then acc := acc.push (.inr n)
+          let mut own : Array Item := #[]
+          if ci matches .axiomInfo _ then own := own.push (.inl n)
+          if deps.contains ``sorryAx then own := own.push (.inr n)
+          let (t', i0) := t.intern own
+          t := t'
+          let mut acc := i0
           for d in deps do
-            for a in memo.getD d #[] do
-              if !acc.contains a then acc := acc.push a
+            let (t', u) := t.union acc (memo.getD d 0)
+            t := t'
+            acc := u
           memo := memo.insert n acc
           onStack := onStack.erase n
           stack := stack.pop
-  return memo
+  IO.eprintln s!"tcb: {t.sets.size} distinct trust bases, {t.unions.size} unions"
+  return roots.foldl (init := {}) fun m r => m.insert r t.sets[memo.getD r 0]!
 
 /-- Whether `n` is declared in this repository's specs and proofs: `Spec.*`, `Proof.*`,
 and `ROOT.Spec.*`, `ROOT.Proof.*` for the part roots `parts`. -/
@@ -122,25 +174,41 @@ def meaningDeps (ci : ConstantInfo) : NameSet :=
   | .ctorInfo d => s.insert d.induct
   | _ => s
 
+/-- `statementDefs`' view of a constant, shared by all roots: `none` if the walk does not
+enter it (outside this repository, a theorem, unknown), else the constants of its
+meaning (`meaningDeps`) and the declaration it belongs to (`rootOf`). -/
+abbrev DefCache := Std.HashMap Name (Option (Array Name × Name))
+
 /-- This repository's definitions a statement is written in terms of: the closure of
 `meaningDeps` from the statement, not descending outside this repository (the
 framework is trusted as a whole) or into proofs. -/
-partial def statementDefs (parts : List Name) (env : Environment) (stmt : Expr) :
-    NameSet := Id.run do
+partial def statementDefs (parts : List Name) (env : Environment) (stmt : Expr)
+    (cache : DefCache) : NameSet × DefCache := Id.run do
+  let mut cache := cache
   let mut seen : NameSet := {}
+  let mut out : NameSet := {}
   let mut todo : Array Name := stmt.getUsedConstants
   while todo.size > 0 do
     let n := todo.back!
     todo := todo.pop
-    if seen.contains n || !isProject parts env n then continue
-    let some ci := env.find? n | continue
-    if ci matches .thmInfo _ then continue
+    if seen.contains n then continue
     seen := seen.insert n
-    for d in meaningDeps ci do
+    let entry ← match cache.get? n with
+      | some e => pure e
+      | none =>
+        let e := if !isProject parts env n then none else
+          match env.find? n with
+          | none | some (.thmInfo _) => none
+          | some ci => some ((meaningDeps ci).toList.toArray, (rootOf env n (user := false)).1)
+        cache := cache.insert n e
+        pure e
+    let some (deps, r) := entry | continue
+    -- auxiliary constants (`match_n`, `_proof_n`, equation lemmas, …) count as part of
+    -- the declaration they belong to; private names are kept (printed by `etc/tcb-report.py`)
+    out := out.insert r
+    for d in deps do
       if !seen.contains d then todo := todo.push d
-  -- auxiliary constants (`match_n`, `_proof_n`, equation lemmas, …) count as part of
-  -- the declaration they belong to; private names are kept (printed by `etc/tcb-report.py`)
-  return seen.toList.foldl (init := {}) fun acc n => acc.insert (rootOf env n (user := false)).1
+  return (out, cache)
 
 def main (args : List String) : IO UInt32 := do
   initSearchPath (← findSysroot)
@@ -163,6 +231,7 @@ def main (args : List String) : IO UInt32 := do
   let mut axioms : NameSet := {}
   let mut sorries : Std.HashMap Name (Name × Nat × Bool) := {}
   let mut defs : NameSet := {}
+  let mut defCache : DefCache := {}
   let rootSet : NameSet := roots.foldl (·.insert ·) {}
   for r in roots do
     let items := memo.getD r #[]
@@ -182,7 +251,8 @@ def main (args : List String) : IO UInt32 := do
     let some rci := env.find? r | continue
     let uses := ((rci.value? (allowOpaque := true)).map (·.getUsedConstants) |>.getD #[]).filter
       (fun d => rootSet.contains d && d != r)
-    let sd := statementDefs parts env rci.type
+    let (sd, dc) := statementDefs parts env rci.type defCache
+    defCache := dc
     defs := sd.toList.foldl (init := defs) (·.insert ·)
     let jl (a : Array Name) := ",".intercalate (a.toList.map (jstr ·.toString))
     out.putStrLn s!"\{\"t\":\"root\",\"name\":{jstr r.toString},\"module\":{jstr (modOf env r).toString},\"line\":{line},\"axioms\":[{",".intercalate (axs.toList.map jstr)}],\"sorries\":[{",".intercalate (srs.toList.map jstr)}],\"uses\":[{jl uses}],\"defs\":[{jl sd.toList.toArray}]}"
