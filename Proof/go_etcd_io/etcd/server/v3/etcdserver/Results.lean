@@ -211,15 +211,94 @@ theorem applyEntries_rejected_no_write (c : w64) (m : EntryModel) (y y' : apply.
     (hr : out = .rejected ∨ ∃ k sk, out = .dispatched (.rejected k) sk) : y'.log = y.log :=
   entryStep_rejected_no_write m _ y y' out h hr
 
-/-! ## The request path (`v3_server.go`; units 2 and 3 of the request path, pending)
+/-! ## The request path (`v3_server.go`, `pkg/wait`, `pkg/idutil`; unit 2 of the request path)
 
-Planned (`notes/decisions.md`, "The request path"): `put_applied` (a `(resp, nil)` return of
-`EtcdServer.Put` is the outcome `apply.apply_kv` gives the request at the log the entry met,
-with `idxCert` of the log after), `put_err` (the error cases; on a timeout the proposal may
-still be applied), the same for `DeleteRange` and a writing `Txn`; `range_serializable`,
-`range_linearizable` (with `readIndexOk`), `txn_readonly`. Their vocabulary is
-`InvRequest.lean`; the trust boundary they add is linked in `Link.lean` (the raft contract, the
-wait registry and the read loop are contracts, not axioms). -/
+**The handoff** (`processInternalRaftRequestOnce`, linked): a request proposed through raft with a
+fresh id (`idutil.Generator.Next`), registered in the wait (`pkg/wait`) with the expectation that
+its result be the apply thread's result of applying it (`resultΨ`), returns that result: the
+apply package's `applyStep` and `applyResultIs` of the request the proposed data decode to, at
+the KV state the entry met, with mvcc's certificate of the log after (`resultIs`); or an error,
+with the proposal, if made, deposited with raft (it may still be applied: etcd's documented
+behavior on a timeout). Its premises: the raft contract (`raftPropose`), the server's request-path
+fields and invariants (`isServerReq`), a reader slot of `s.leadTimeMu`, one id credit, and, on the
+apply side, the entries' claims (`entryWaitOk`, from raft's `batchCommitted`, unit 4).
+
+**`put_applied`, `deleteRange_applied`** (linked `EtcdServer.Put`, `DeleteRange`): a `(resp, nil)`
+return is the apply package's answer to the request (`putOutcomeIs`/`deleteOutcomeIs` at the log
+`x.log` the entry met, no error), dispatched at `x` to `x'`, with `idxCert` of `x'.log`; an error
+is the apply's (`appliedErr`) or the proposal's (`srvMaybeDeposited`: `put_err` is the right
+disjunct of the same postcondition). `put_applied_model`/`deleteRange_applied_model`: through the
+uber-applier's chain (`alarmChain`), the outcome is `alarmPut`/`alarmDelete` (the txn package's
+`putModel`/`deleteModel`, or a layer's rejection) and the log after is the outcome's
+(`apply.apply_kv`). The writing `Txn` and the read side are unit 3's. -/
+
+section request
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **The handoff** (see the section header). -/
+theorem request_handoff : EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG) :=
+  EtcdServer.wp_processInternalRaftRequestOnce
+
+/-- **`put_applied` and `put_err`** (see the section header). -/
+theorem put_applied : EtcdServer.Put.spec (GF := GF) (hG := hG) :=
+  EtcdServer.wp_Put
+
+/-- **`deleteRange_applied`** (see the section header). -/
+theorem deleteRange_applied : EtcdServer.DeleteRange.spec (GF := GF) (hG := hG) :=
+  EtcdServer.wp_DeleteRange
+
+/-- **The wait registry** (`pkg/wait`'s `New`, linked). -/
+theorem wait_new : wait.New.spec (GF := GF) (hG := hG) :=
+  wait.wp_New
+
+/-- **The id generator** (`pkg/idutil`, linked). -/
+theorem idutil_next : idutil.Generator.Next.spec (GF := GF) (hG := hG) :=
+  idutil.Generator.wp_Next
+
+end request
+
+/-- **What a successful `Put` applied** (pure; the success components of `put_applied`): through
+the uber-applier's chain `alarmChain ns cr`, the put's outcome is `alarmPut` (the txn package's
+`putModel`, or a layer's rejection) and the log after is the outcome's. -/
+theorem put_applied_model (op : OpFull) (hm : apply.HeaderModel) (x x' : apply.ApplyKV)
+    (o : apply.Outcome) (skip ns cr : Bool) (hc : x.chain = apply.alarmChain ns cr)
+    (h : apply.applyStep (apply.withHeader (irrPut op) hm) true x x' (.dispatched o skip)) :
+    x'.log = o.logAfter x.log ∧ apply.alarmPut ns cr op x.log o := by
+  have hk : apply.dispatchKind (apply.withHeader (irrPut op) hm) = .put := by
+    simp [apply.dispatchKind, apply.withHeader, irrPut, apply.irrEmpty]
+  rcases apply.apply_kv _ x x' _ ns cr hc (by rw [hk]; rfl) h with ⟨hout, -⟩ | ⟨o', sk, hout, hlog, -, hcases⟩
+  · rcases hout with h1 | h1 <;> cases h1
+  · cases hout
+    refine ⟨hlog, ?_⟩
+    rcases hcases with ⟨op', hop, -, ha⟩ | ⟨-, -, hd, -⟩ | ⟨hd, -⟩ | ⟨-, -, hd, -⟩
+    · simp [apply.withHeader, irrPut] at hop
+      subst hop; exact ha
+    all_goals (rw [hk] at hd; cases hd)
+
+/-- **What a successful `DeleteRange` applied** (pure): through `alarmChain ns cr`, the delete's
+outcome is `alarmDelete` of the decoded request's delete `op'` (`deleteModel`, or a layer's
+rejection), the log after the outcome's. -/
+theorem deleteRange_applied_model (op op' : OpFull) (hm : apply.HeaderModel) (rq' : apply.IRRModel)
+    (x x' : apply.ApplyKV) (o : apply.Outcome) (skip ns cr : Bool)
+    (hc : x.chain = apply.alarmChain ns cr)
+    (hw : irrWireOf (apply.withHeader (irrDeleteRange op) hm) rq')
+    (hop : rq'.deleteRange = some op')
+    (h : apply.applyStep rq' true x x' (.dispatched o skip)) :
+    x'.log = o.logAfter x.log ∧ apply.alarmDelete cr op' x.log o := by
+  have hk : apply.dispatchKind rq' = .deleteRange := by
+    rw [hw.2.2.1]; simp [apply.dispatchKind, apply.withHeader, irrDeleteRange, apply.irrEmpty]
+  rcases apply.apply_kv _ x x' _ ns cr hc (by rw [hk]; rfl) h with ⟨hout, -⟩ | ⟨o', sk, hout, hlog, -, hcases⟩
+  · rcases hout with h1 | h1 <;> cases h1
+  · cases hout
+    refine ⟨hlog, ?_⟩
+    rcases hcases with ⟨-, -, hd, -⟩ | ⟨op'', hop', -, ha⟩ | ⟨hd, -⟩ | ⟨-, -, hd, -⟩
+    · rw [hk] at hd; cases hd
+    · rw [hop] at hop'; cases hop'; exact ha
+    all_goals (rw [hk] at hd; cases hd)
 
 #print axioms Perennial.EtcdGrove.applyEntries_model
 #print axioms Perennial.EtcdGrove.applyEntries_trace
@@ -229,6 +308,13 @@ wait registry and the read loop are contracts, not axioms). -/
 #print axioms Perennial.EtcdGrove.applyEntries_rejected_no_write
 #print axioms Perennial.EtcdGrove.EtcdServer.wp_apply
 #print axioms Perennial.EtcdGrove.EtcdServer.wp_applyEntryNormal
+#print axioms Perennial.EtcdGrove.request_handoff
+#print axioms Perennial.EtcdGrove.put_applied
+#print axioms Perennial.EtcdGrove.deleteRange_applied
+#print axioms Perennial.EtcdGrove.put_applied_model
+#print axioms Perennial.EtcdGrove.deleteRange_applied_model
+#print axioms Perennial.EtcdGrove.wait_new
+#print axioms Perennial.EtcdGrove.idutil_next
 
 end EtcdGrove
 end Perennial
