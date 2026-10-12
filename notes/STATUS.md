@@ -723,6 +723,22 @@ non-key target with order `NONE` and a limit is cut by the limit; unit 2),
 panics in the apply loop; unit 3), `etcd-txn-nested-compare-snapshot` (nested comparisons see the
 state before the transaction, undocumented; unit 3).
 
+**Fix branches (2026-10-12).** Three of them are bugs with fix branches on the fork, one
+signed-off commit each off upstream `main` (f061acd09), with tests, and their drafts rewritten
+for etcd-io/etcd: `txn-delete-then-ignore-put` (d9ba0e03c: `checkIntervals` reads a `"\x00"`
+range end as the affine infinity, as `mkGteRange` does, so the transaction is rejected as a
+duplicate key; restart runs with the real binaries show the crash is permanent: the entry is in
+every member's WAL beyond the stored consistent index and replays on every restart, with a fixed
+binary too, so one write-permitted request takes the whole cluster down for good),
+`range-sort-none-limit` (7362d4129: a `rangeSortOrder` shared by `rangeLimit` and
+`sortRangeResults`, so the limit is dropped exactly when the results are re-sorted;
+`IsDefaultOrdering` unchanged, since `RangeStream` relies on it) and `range-keys-only-lease`
+(01e522548: the server no longer requests mvcc's index-only read, since the lessor's item map
+holds a key's lease now, not at the revision read; this reverts the speedup of upstream PR
+#21791, which upstream may prefer to keep by documenting the omission instead). Found while
+fixing the sort cut: `etcd-rangestream-sort-none` (`RangeStream` with a non-key sort target and
+order `NONE` returns duplicated and missing keys; outside the verified code, no fix branch).
+
 ## Merge: mvcc into lean (2026-10-11)
 
 Branch `mvcc` (25 commits: the KV core's translation, model, key index, tree index, read and
