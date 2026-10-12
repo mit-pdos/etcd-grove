@@ -288,7 +288,7 @@ theorem EtcdServer.apply.wp_proof
         iunfold entryAt at He2
         icases He2 with ⟨%Hnn, %pt, %pi, %pty, %d, #Ht, #Hpt, #Hi, #Hpi, #Hty, #Hpty, #Hd, #Hds⟩
         (try wp_auto)
-        wp_apply (hMU cc_ptr _ d m.data DFrac.discard) $$ [cc] as ⟨⟨%v', %cid, Hcc, #Hcid⟩, -⟩
+        wp_apply (hMU.1 cc_ptr _ d m.data DFrac.discard) $$ [cc] as ⟨⟨%v', %cid, Hcc, #Hcid⟩, -⟩
         · iframe cc Hds
         (try wp_auto)
         have hpre : (stLoaded γ st').pending = false ∧ m.index = (stLoaded γ st').p + 1 ∧
@@ -472,7 +472,7 @@ theorem EtcdServer.apply.wp_proof
         iunfold entryAt at He2
         icases He2 with ⟨%Hnn, %pt, %pi, %pty, %d, #Ht, #Hpt, #Hi, #Hpi, #Hty, #Hpty, #Hd, #Hds⟩
         (try wp_auto)
-        wp_apply (hMU cc_ptr _ d m.data DFrac.discard) $$ [cc] as ⟨⟨%v', %cid, Hcc, #Hcid⟩, -⟩
+        wp_apply (hMU.1 cc_ptr _ d m.data DFrac.discard) $$ [cc] as ⟨⟨%v', %cid, Hcc, #Hcid⟩, -⟩
         · iframe cc Hds
         (try wp_auto)
         wp_apply (hACC s cc_ptr ep v' csl false ci sv.ua (batchLockInv γ TM)
