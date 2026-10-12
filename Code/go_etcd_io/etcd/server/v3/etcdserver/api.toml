@@ -1,6 +1,9 @@
 # Types and names only: function and method bodies are axiomatized.
 translate = ["!*"]
-imports = ["!*"]
+# The packages `Cluster`'s methods name (types.ID, *membership.Member, *semver.Version), so that
+# the interface type is translated (v3rpc's newHeader calls `s.Cluster().ID()` through it).
+imports = ["!*", "go.etcd.io/etcd/client/pkg/v3/types",
+  "go.etcd.io/etcd/server/v3/etcdserver/api/membership", "github.com/Masterminds/semver/v3"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

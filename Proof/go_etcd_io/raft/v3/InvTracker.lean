@@ -979,7 +979,7 @@ theorem wp_min2_uint64 (x y : w64) :
   wp_if_destruct
   · rw [show w64Min x y = x by unfold w64Min; simp_all]
     iapply HΦ; itrivial
-  · rw [show w64Min x y = y by unfold w64Min; rw [if_neg (by omega)]]
+  · rw [show w64Min x y = y by unfold w64Min; rw [ite_eq_right (by omega)]]
     iapply HΦ; itrivial
 
 /-- The progress *map* with the `Progress` objects it points at -- the object a

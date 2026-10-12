@@ -47,13 +47,14 @@ theorem mvcc.watchableStore.rev.wp_proof
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply hTODO as %t -
+  wp_apply hTODO as %t %Ht
   (try wp_auto)
   rw [method_unfold (t := go.GoType.PointerType watchableStore.ty) (m := go!"Read")]
   wp_auto
   imod ownToks_0 (GF := GF) γ.st.revs with Hnone
   imod mvcc.idxCert_nil (GF := GF) γ.st.idx with #Hc0
   wp_apply (hRead st γ.st _ t 0 []) $$ [$Hs $Hrd $Hnone $Hc0] as %mw ⟨%log, %rev, Htx, -, -⟩
+  · ipureintro; exact Ht
   (try wp_auto)
   iunfold mvcc.isTxnRead at Htx
   iNamed Htx

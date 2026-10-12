@@ -41,12 +41,13 @@ theorem mvcc.readView.FirstRev.wp_proof
   · iPkgInit
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply hTODO as %t -
+  wp_apply hTODO as %t %Ht
   (try wp_auto)
   -- `rv.kv.Read(mode, trace)`: the store's
   imod ownToks_0 (GF := GF) γ.revs with Hnone
   imod mvcc.idxCert_nil (GF := GF) γ.idx with #Hc0
   wp_apply (hRead s γ _ t 0 []) $$ [$Hs $Hrd $Hnone $Hc0] as %mw ⟨%log, %rev, Htx, -, -⟩
+  · ipureintro; exact Ht
   (try wp_auto)
   iunfold mvcc.isTxnRead at Htx
   iNamed Htx

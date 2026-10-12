@@ -12,8 +12,18 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/register/(Link|Results)\.le
 #
 # Until 2026-10-10 no axiom or `sorry` of this repository (the results rested only on
 # Perennial's axiomatized standard-library types). Since 2026-10-11 the cluster driver
-# (`register_Main`, through raft's `RestartNode`) rests on raft's `reflect.DeepEqual` axiom,
-# and on nothing else of this repository. The line below was written by hand from
-# `#print axioms register_Main` in Results.lean (no `sorryAx`): `--check --update` needs a
-# full build, which the disk did not allow; rerun it when one is at hand.
+# (`register_Main`, through raft's `RestartNode`) rests on raft's `reflect.DeepEqual` axiom.
+# Since 2026-10-12 the closed theorem `register_cluster_safe` (adequacy, with package
+# initialization proved) also rests on the 9 `sorry`s below: package initializers that run
+# opaque (untranslated) variable initializers (notes/STATUS.md, "Adequacy of the register's
+# driver"). Written by `--check --update` after a full build.
 axiom reflect.DeepEqual.wp_proof
+sorry Perennial.crypto.rand.wp_initialize'
+sorry Perennial.errors.wp_errorType_init
+sorry Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize'
+sorry Perennial.log.wp_initialize'
+sorry Perennial.math.big.wp_initialize'
+sorry Perennial.math.wp_initialize'
+sorry Perennial.os.wp_initialize'
+sorry Perennial.strconv.wp_initialize'
+sorry Perennial.time.wp_initialize'

@@ -4,7 +4,7 @@
 # The trust boundary (axioms; unit 0): the callees the package's functions reach that have no
 # model elsewhere. Perennial-specified standard-library calls (bytes.Compare, fmt.Errorf,
 # time.Now/Since) and interface calls (mvcc's KV/TxnRead/TxnWrite, the lessor's Lookup) are not
-# listed.
+# listed. (`traceutil.TODO`, listed here, is proved: a fresh trace.)
 sort_Sort:
 sort_Reverse:
 traceutil_EnsureTrace:

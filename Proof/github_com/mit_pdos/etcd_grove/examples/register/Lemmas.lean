@@ -32,11 +32,11 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 /-! ## The applier's table, pure -/
 
 theorem occStep_mem (L : List (List w8)) (d : List w8) (h : d ∈ L) : occStep L (some d) = L := by
-  show (if d ∈ L then _ else _) = _; rw [if_pos h]
+  show (if d ∈ L then _ else _) = _; rw [ite_eq_left h]
 
 theorem occStep_nmem (L : List (List w8)) (d : List w8) (h : d ∉ L) :
     occStep L (some d) = L ++ [d] := by
-  show (if d ∈ L then _ else _) = _; rw [if_neg h]
+  show (if d ∈ L then _ else _) = _; rw [ite_eq_right h]
 
 theorem appliedOk_skip (A : GMap (List w8) Bool) (L : List (List w8)) (d : List w8)
     (HA : AppliedOk A L) (Hd : decodeOp d = none ∨ d ∈ L) : AppliedOk A (occStep L (some d)) := by

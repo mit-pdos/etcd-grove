@@ -39,7 +39,8 @@ peak memory and exit status. Lake prints only a duration per job, after the fact
 and has no hook around the compiler; it runs `<sysroot>/bin/lean`, with the
 sysroot from `LEAN_SYSROOT` when `LAKE_OVERRIDE_LEAN` is set.
 
-**Decision:** `build-report.py build` makes `.lake/build-report/sysroot/`, symlinks
+**Decision:** `etc/timed-build.py` (until 2026-10-12 `build-report.py build`; the
+report now only reads what it records) makes `.lake/build-report/sysroot/`, symlinks
 to the real toolchain except `bin/lean`, a shim that runs the real `lean` under
 `wait4` and appends one JSON line per compile to `.lake/build-report/<build>.jsonl`;
 then it runs `lake build` with those two variables set. Lake's traces do not
@@ -1145,7 +1146,9 @@ either take the batch lock (`P`, whose invariant `applierFor ua P f` asserts), r
 `f`, write (the caller's update `Q ={⊤}=∗ P ∗ Post`) and unlock, in one critical section, or
 write nothing. That is what etcd's design relies on, and the contracts state it; whether the
 applier keeps an entry's writes in one critical section is not verified here. The hook itself
-is verified (`getTxPostLockInsideApplyHook`). *Rejected:* axiomatizing "the applier advances
+is verified (`getTxPostLockInsideApplyHook`). (2026-10-12: the apply package proves
+`apply.Apply` against this contract plus the KV, and `applierFor` is its definition; only
+`applyConfChange` stays assumed: "The server's apply", unit 3.) *Rejected:* axiomatizing "the applier advances
 `ci`", which would leave the hook unverified; an opaque `entryNoop` receipt for the no-write
 outcome (dropped: an entry without data skips the applier, and that path is justified by the
 code itself).
@@ -2009,7 +2012,9 @@ record.
   `Find`/`Delete` promise *some* entry with the interval (the code's `find` returns the topmost
   duplicate; which one `Delete` removes is not determined) — the watcher group, with one
   interval per range, recovers `find?`/`eraseP` by uniqueness. Their `Union` spec must also take
-  the fraction and the count bound.
+  the fraction and the count bound. Done at the merge (2026-10-12): `Union` takes `L.length + L'.length < 2^63`,
+  which `checkIntervals` gets from a premise on the request (`delCount`, the deletes at every depth,
+  in `txnReqWire`): nested transactions may share structure in memory, so no slice length bounds it.
 - **The hole's frames have locations** (2026-10-12, 4c). 4b's `ownCtx t s C n p mh` quantified
   the frames' nodes existentially: enough for `Insert` (the fixup only moves up, by reading
   `parent`), not for `Delete`, which reads a node back after a helper has walked up through
@@ -3341,6 +3346,108 @@ results and making the server's `applierFor` a definition.
   mode's declared ones (`REUSES`: the server's imports mvcc's). The apply package's results are
   in a namespace of their own (`apply`), as the txn package's.
 
+- **The layers' triples** (unit 1, `Chain.lean`). `applierSpec E c a` is not recursive in its
+  shape: it is the method triples of `a` as the chain `c` runs them (`applierTriples`), stated
+  with `chainStep backendStep c` and `chainRes c`, which recurse on `c`; each layer's methods are
+  `Spec/`+`Proof/` files over `applierSpec E c inner`, and the constructors prove the triples
+  (promoted methods through the inner's). The environment `E : AEnv` (store, ghost names, the
+  batch lock's `P f`) is a record. Every method takes and returns the apply thread's
+  `kvOwn E log` (reader slots, sole writer, leases known: `newHeader`'s `store.Rev` needs the
+  first two), so `dispatch` (unit 2) threads one resource. The KV methods and `LeaseRevoke` are
+  stated for the request `rq` `dispatch` passes on (`dispatchKind rq`), so that unit 2's outcome
+  is `chainStep`'s; their answers keep the txn package's response predicates at the exact model
+  values. A writing method returns `Post ∨ Pre`, not "`Post` iff applied": a put whose ignore
+  flag finds no key took the lock (`Post`) and wrote nothing; a read-only `Txn` is applied with
+  `Pre`.
+- **The auth layer's mutex** (unit 1): `aa.mu`'s resource is `authInfo`; `Apply` locks it and
+  hands `authInfo` to the `applyFunc` through `chainRes`. *Rejected:* `authInfo` thread-owned
+  with a trivial lock resource (`Apply` and unit 2's uber-applier would carry `chainRes`).
+- **A lease checkpoint request with one checkpoint** (unit 1): the lessor persists each
+  checkpoint in its own critical section, which the critical-section contract cannot express
+  (`issues/etcd-apply-lease-checkpoint-sections.md`): a premise, not a weaker contract.
+- **`auth.AuthStore` translated** (unit 1): `auth.toml` imports the packages its methods'
+  signatures name; it was an axiomatized type whose generated instances are `sorry`.
+
+- **The uber-applier: persistent and thread-owned halves** (unit 2, `InvUber.lean`). `uberIs E p
+  opts` (fields written once, the options' contracts, the base chain) is persistent;
+  `uberOwn E p c` (the `applyV3` field and its chain) is the apply thread's, since
+  `restoreAlarms` rewrites it, also from inside the chain's `Apply` (an alarm request: `dispatch`
+  → `Alarm` → `restoreAlarms`), which is why `dispatch`'s `A`/`B` carry `applyV3 ↦` and the
+  chain's resources `chainRes c a` stay those of the applier `Apply` was called on. The chain
+  after `restoreAlarms` is existential (`alarmChain ns cr`: the alarm store's `Get` is any
+  slice). `applierFor ua E` takes the environment, not `P f`: the persistent and owned halves
+  must name the same store, which `P f` do not pin.
+- **`apply.Apply.spec` strengthened; the server keeps the old contract as an axiom until unit 3**
+  (unit 2). The new precondition's `rqOk x.log rq` depends on the log the earlier entries wrote,
+  so the server's loop can supply it only with the fold (`applyEntries_model`, unit 3); a
+  threaded `applyKV` with no claim about the next state cannot. The old statement is kept as
+  `apply.Apply_server.spec` with its axiom (renamed from `apply.Apply.wp_proof`; not derivable
+  from the new one, which has more premises), the server's `applierFor` axiom unchanged.
+  *Rejected:* deriving the old statement (impossible); putting `applyKV` in an invariant (the
+  call is not atomic).
+- **The cluster writes only with `shouldApplyV3`** (unit 2, `Contracts.lean` `cPre`/`cPost`): so
+  that `apply.Apply` without `v3`, which gets no hook triple from the server, can call the
+  cluster's methods and still return `Pre`. A strictly stronger restatement of the unit 1
+  triple (membership's `RaftCluster` saves to the backend `if shouldApplyV3`).
+- **`errors.Is`** (unit 2): the server's axiom (any error, any target) restated under the
+  `errors` package's assumptions and shared with `dispatch`, since Perennial's `errors.wp_Is`
+  (at `e4e126e46`) needs an error tree the components' errors do not have. On `lean` the
+  `errors.Is` spec now takes the tree (Perennial `e6ec34885`): the merge states `applyErrIs` of
+  the chain's and the contracts' errors (STATUS, unit 2, "Gap for the merge").
+- **The applier's errors, as `errors.Is` sees them** (the merge of unit 2 into `lean`): `lean`'s
+  `errors.Is` proof kept (under the `errors` package's assumptions, unit 2's generalization);
+  `applyErrIs` moved from the server's `InvApplier.lean` to the apply package's `Base.lean`
+  (with `errLeaf`, `errVarLeaf`, `applyErrIs_nil`/`_leaf`), so that `apply.resultErrOk` is the
+  server's `resultOk` and the apply package does not import the server. Where each error comes
+  from: the contracts assert it of the auth store's and the lessor's errors (a trust-boundary
+  fact, as `clientErrIs` for the client); the error variables the chain returns or compares
+  with (`ErrCorrupt`, `ErrNoSpace`, `ErrKeyNotFound`, `ErrLeaseNotFound`, `ErrFutureRev`,
+  `ErrCompacted`) are `errors.New` errors by the apply package's facts (`applyErrVars` in
+  `applyInit`, not in their packages' facts, which their proofs destructure by position); the
+  triples of the methods that leave the log carry `applyErrIs err`; a KV method's answer names
+  its error and `DispatchLemmas` derives `applyErrIs` from it (`putOutcomeIs_errIs`, ...,
+  `keep_errIs`). The range read's context error, which no tree describes (mvcc's
+  `fmt.Errorf("%w", ctx.Err())`), is excluded rather than described: `txn.Range`/`DeleteRange`
+  take `nd` (a context never done, as `executeRange`/`deleteRange` already did) and the backend
+  calls them at `context.TODO()` (`neverCd`). *Rejected:* a tree for the context error (would
+  need `fmt.Errorf`'s `%w` wrapper's tree and the context errors' types, for a branch that does
+  not run); `applyErrIs` in `kvPost` (every KV method's proof would change, for a fact its
+  answer already implies).
+
+- **The server bridge: `E` a parameter of `isServer`** (unit 3). The applier's environment `E`
+  (store, ghost names, `P`, `f`) must be the same in the persistent `apply.applierFor v.ua E`
+  (in `isServer`'s fields) and in the thread's `apply.applyKV E ua x`, and nothing in the heap
+  pins it (the hook `v.hook` is a value, not a field), so `isServer s γ ci TM E` takes it, its
+  fields pin `E.P = batchLockInv γ TM ∧ E.f = v.hook` by equations (a proof rewrites them where it
+  hands the hook's triple to `apply.Apply` or `applyConfChange`). The thread's resource is
+  `srvApplyKV s E x := ∃ ua, srvUberApplyAddr s ↦□ ua ∗ apply.applyKV E ua x`: the `ua` is the
+  field's, which `isServer` hides behind its `∃ v`; the two `↦□` agree. `applyConfChange`'s
+  contract (an axiom) named the old `applierFor ua P f` too: restated at `apply.applierFor ua E`
+  (and `HasLC.hasLC`, where `apply.applierFor` lives). *Rejected:* `E` existential in
+  `isServer` (the thread's `applyKV` could not name it); `E` built from parameters `(s, γ)` and
+  the hook (the hook is not in the heap, so no agreement).
+- **The fold as a relation** (unit 3). `apply.Apply`'s post is a relation (`applyStep`: the
+  auth store's, the quota's, the alarm store's answers are any), so what a batch does is a
+  relation too: `entryStep m v3 x x' out` (no data: `x' = x`, `skipped`; else the decoded
+  request's `applyStep`), `batchStep c m` (a normal entry by `entryStep` with `v3` iff above the
+  consistent index `c` the batch starts at; a conf change leaves the KV) and `entriesStep c ms`
+  their composition. `v3` is a function of `c` and the entry's index: in `apply`'s loop the
+  entry's test is against the current `ci`, which is the starting one or an earlier entry of
+  the batch (below this one), so `index > ci` iff `index > c`. `applyEntries` hands `apply` the
+  entries above the applied index, `unapplied ai ms` (a filter; `unapplied_eq_drop` is the code's
+  offset).
+- **`entriesOk` over every run** (unit 3). `rqOk x.log rq` depends on the log the earlier
+  entries committed, which the relation does not determine, so the premise cannot be "the
+  entry is fine at the state the batch reaches": `entriesOk c (m :: ms) x := (normal → entryOk x
+  m) ∧ ∀ x1, batchStep c m x x1 → entriesOk c ms x1`, i.e. at every state any run reaches the
+  entry in (the server does not choose the run). It is also asked of replayed entries (`v3 =
+  false`), at the state they meet: `apply.Apply.spec`'s premise does not depend on `v3`, so a
+  replayed entry's request must satisfy the txn package's premises (`rqOk`) although it is not
+  run (`apply_no_v3_no_write`): stronger than the code needs; weakening it is a change to
+  `apply.Apply.spec` (`rqOk` only if `v3`), left open. *Rejected:* `entryOk` in
+  `entriesFrom` (pure in `ms`, it cannot see the state); a premise on all reachable states of the
+  whole KV (stronger than needed, and not a property of the batch).
+
 ## mvcc: the batch lock runs the hook
 
 **2026-10-12 · adopted** (the server's apply package, unit A; plan: the apply package's
@@ -3385,3 +3492,234 @@ could not be proved of the real write path. The contract now carries it, in the 
 the hook's effect folded into `W` (the hook needs the caller's `Pre`, which is per call: it has
 to be in the lock's triple). *Considered:* `Unlock` taking `▷ P` (Perennial's `Mutex.Unlock`
 convention), which would spare `End` its credit; kept `P`, the form `apply.Apply.spec` uses.
+
+## The request path: raft as a contract, the wait registry, the checks as the premises' discharge
+
+**2026-10-12 · plan, units 0 and 2 implemented** (the gRPC KV handlers `server/etcdserver/api/v3rpc/
+key.go` → `EtcdServer.Range`/`Put`/`DeleteRange`/`Txn` (`v3_server.go`) → the proposal and its
+wait → the apply loop; units 1 (the checks, the handlers), 2 (the wait, the ids, the proposal),
+3 (the read side), 4 (the loops, optional) append). Goal: a client request's response is the
+apply package's outcome of that request at the log it met, with mvcc's certificate, and the
+gRPC checks discharge the txn package's request premises.
+
+- **Raft as a contract, not the verified raft** (unit 0). The server's raft is etcd's
+  dependency (raft v3.7.0, protobuf-go v2 raftpb, `EtcdDeps/`, names-only); the verified raft
+  (`Code/go_etcd_io/raft/`) is the fork 118 commits earlier, and both translations define
+  `Perennial.go_etcd_io.raft.v3.*`, so no module imports both. `raftNode.Propose` (promoted from
+  `raft.Node` through `raftNodeConfig`) gets, as a contract of the server's `Node` field
+  (`raftPropose`, `InvRequest.lean`), exactly the statement the verified `node.Propose` proves
+  for the register (`propArg`/`propRes`/`propAu` over `cLog`), restated over the server's own
+  ghost names (`ServerRaftNames`; a context `mvcc.txnCtx` in place of `Background`); its apply
+  side (`batchCommitted`: a batch's client data are the committed client log's next entries,
+  each deposited and claimed by its id) is what unit 4 states the loops with. Discharging it is
+  retargeting the verified raft to v3.7 (`notes/STATUS.md`, "Retargeting raft to upstream").
+  *Rejected:* retargeting first (it blocks the path on a large mechanical port; the path's own
+  content, the checks, the wait protocol, the handoff, does not depend on it).
+- **The wait registry: a handoff per registration, a registration condition** (unit 0). The
+  wait's contract (`isWait w γi R`) is generic in the registration condition `R : id →
+  expectation → IProp`: `Register(id)` takes the id's slot (`idSlot`, from the generator) and
+  `□ R id Ψ`, returns a handoff channel (`cache/v3/Handoff.lean`: buffer 1, sent once, closed)
+  carrying `Ψ x`, or `nil` with the proposer's consumer token (its own `Trigger(id, nil)` after a
+  timeout); `Trigger(id, x)` from anyone else takes `∀ Ψ, R id Ψ -∗ Ψ x`. The server's condition
+  (`reqWaitR`): `Ψ = resultΨ E rq` for the request `rq` the id was claimed for (`idClaim γi id
+  d`, `irrDecode d = some rq`). The apply thread learns the registered request through the claim
+  agreement: the entry's data and the registration's data were claimed for the same id.
+  *Rejected:* a registry of saved predicates the apply thread looks up (it would still need the
+  claim to identify the request); `Ψ` in the wait's own state (the wait package's proof would
+  name the server's model).
+- **Ids: credits per process, claims per cluster** (unit 0). `idGen` hands `2^48 - 1` credits
+  (`Auth Nat`), each `Next` an `idFresh` id (unclaimed, with its wait slot). Claims are one
+  cluster-wide map: that other members' entries never claim an id this member issued is the
+  premise that member ids differ in their low 16 bits (`issues/etcd-request-id-member-prefix.md`),
+  part of the raft contract's apply side.
+- **The checks as pure functions of what they read** (unit 0, `v3rpc/Defs.lean`). A
+  `RequestOp` as the checks see it is `ReqOp` (the txn package's `OpFull` for range, put,
+  delete: a `TxnOp` forgets the put's value and lease, which `checkPutRequest` reads), and each
+  check is a function to its first error (`CheckErr`, the `rpctypes` variable), so unit 1's specs
+  are "returns `CheckErr.var` of the function's value, or `nil`". `checkIntervals` is the code's
+  algorithm over the `adt` model (`ivCheck`), not the intended predicate: a `"\x00"` range end is
+  the empty interval, and a nested transaction's puts are not checked against later siblings'
+  deletes (`issues/etcd-txn-check-intervals-sibling.md`); what it gives the txn package
+  (`intervalsOkCheckStmt`) is stated under both exclusions. The range end is read from the
+  denotation (`rangeEndOf`): equal to the request's bytes off the wire.
+- **`proto.Marshal` of a raft request, up to the model** (unit 0). A second axiom on
+  `proto.Marshal` (`proto.MarshalIRR`, beside mvcc's `KeyValue` one: mvcc must not import the
+  apply package's model): an error, or bytes that decode (`irrDecode`) to a request with the same
+  id, header and kind, and to the request itself when no range end is `[0]` (`irrWireOf`): the
+  model denotes both `"\x00"` and an empty non-nil slice by `[0]`, and the wire turns the latter
+  into `nil`.
+- **Trust boundary, unit 0**: 22 axioms (otel's tracer, spans and attributes; prometheus'
+  histogram; `strconv`, `time`'s float and comparison helpers; traceutil's bookkeeping; the txn
+  package's read-only loggers; the transport queries; the request timeout; the cluster id;
+  `MarshalIRR`), each a function with no effect the model sees, or the encoding. The components
+  reached through the server's fields (the raft node, the wait, the generator, the read loop, the
+  auth store's request side, the feature gate) are contracts (`InvRequest.lean`), established by
+  the server's construction (not translated) or by units 2 and 4. `trace.isSpan` gains
+  `AddEvent`/`RecordError`; `context.WithValue` takes `traceutil.StartTimeKey` and returns a
+  context of the parent's descriptor.
+- **The server as the handlers see it: a contract over parameters** (unit 1, `v3rpc/InvKV.lean`).
+  The handlers call `*EtcdServer`'s `Range`/`Put`/`DeleteRange`/`Txn` through the `RaftKV`
+  interface, and the header calls `KV().Rev()`, `Cluster().ID()`, `MemberID`, `Term`, `Leader`:
+  all nine are triples of one persistent predicate `raftKV s A` (in `kvServerIs`, the handlers'
+  precondition), not callees in the link, so the handlers are proved before units 2 and 3 prove
+  `EtcdServer`'s functions, which then prove `raftKV s A` for their instance of the parameters
+  `A : KVAns`: what a call needs (`A.call ctx`: the context, the per-request credits), what a
+  successful answer holds (`A.ok q resp h r`), what an error is (`A.err q err`), what `Rev()`
+  needs (`A.revR`). The fixed part is what the handlers need: a request that passed its check,
+  and either a non-nil response whose header's four id fields are owned (`hdrW`: `fill` writes
+  them) and whose revision is read-only and not `0`, or owned (`hdrRevIn`), or a `nil` response
+  and an error `togRPCError` can take (`srvErrIs`). *Rejected:* `EtcdServer`'s specs as the
+  handlers' callees (unit 2's files, written in parallel; the header's five getters would have
+  needed the server's fields, which the apply thread's `isServer` does not give other
+  goroutines).
+- **Header ownership is a requirement on the apply side** (unit 1). `header.fill` writes the
+  response header's `ClusterId`, `MemberId`, `RaftTerm`, `LeaderId`: the response the apply
+  thread built must reach the handler with those fields owned. The txn package's response
+  predicates (`putResponseIs`, ...) keep only the revision, read-only, and drop the other
+  header fields: unit 2 (the wait's handoff) must keep them (`hdrW`) from the response's
+  construction (txn's `Put`, ..., the applier's `newHeader`) to the proposer, a change to the
+  txn and apply packages' response predicates.
+- **Two names-only interfaces translated** (unit 1): `etcdserver/api.Cluster` (its methods name
+  `types`, `membership`, `semver`: `api.toml` imports them) and `etcdserverpb.KVServer` (with
+  `context` imported, which translates the package's other service interfaces too): a method
+  call on, or a conversion to, an interface whose underlying type is an axiom does not reduce.
+  *Rejected:* an axiom about `Cluster.underlying`.
+- **`errors.Is` at `context.DeadlineExceeded`, an axiom** (unit 1, `Spec/errors/
+  IsDeadlineExceeded.lean`). Perennial's `errors.wp_Is` takes pointer targets (its tree walk
+  compares pointers; its `reflectlite` model says only that pointers are comparable);
+  `DeadlineExceeded` holds `deadlineExceededError{}`, an empty struct, for which Go's `==`
+  never panics. The axiom is `errors.Is` at the value that variable holds, for an `err` in an
+  error tree. `context.Canceled` (an `errors.New` error) needs only that it is a pointer error,
+  which Perennial's `context` package fact does not keep: a v3rpc package fact
+  (`ctxCanceledPtr`). `parseProposeCtxErr` (unit 2) needs the same two.
+- **`checkIntervals` over the interval tree with duplicate intervals** (unit 1). A transaction
+  deleting the same range twice inserts the same interval twice (`Insert` adds a second node,
+  after the equal ones): the adt contract gains `intervalTree.InsertAny` (`Insert` without its
+  newness premise; pending, as the rest of the contract, for the mvcc session's tree proof). The
+  map's keys and the tree's intervals are stated as sets (the map ranges in any order; `Union`
+  inserts in `Visit`'s order). The deletes' range ends are as off the wire (`reqOpsWire`: `nil`
+  or not empty; unit 0's premise), since `checkIntervals` reads an empty non-`nil` range end as
+  a point and mvcc as no upper bound.
+- **What `checkIntervals` gives needs the key check too** (unit 1, `CheckNodup.lean`). Unit 0's
+  `intervalsOkCheckStmt` lacked it and is false (`intervalsOkNoKeysStmt_false`): the affine order
+  reads `""` as +∞, so a put and a delete of the empty key pass `checkIntervals`. The statement
+  now takes `opsCheck n ops = none`; `kvServer.Txn` runs `checkTxnRequest` first, so nothing
+  reachable is lost.
+
+**2026-10-12 · unit 2 implemented** (the wait, the ids, the proposal path, the apply side):
+
+- **The handoff channel, with the registration's record** (unit 2). `Register(id)` returns, with
+  the handoff channel, a persistent record `waitRegd γw id t` (a ghost map of every id ever
+  registered to the channel's consumer-token name `t`), and `Trigger(id, nil)` takes the
+  proposer's consumer token with that record: the shard's entry for `id` then names the same
+  token, so the `nil` carries the proposer's own token (a receive of it would meet the token the
+  proposer kept: impossible). The channel is never closed without a send (`Wc = False`), so the
+  proposer's receive yields a value satisfying `Ψ`. *Rejected:* unit 0's `Trigger` premise
+  `∃ γh, x = nil ∗ handoffConsumer γh false` (nothing ties `γh` to the channel registered
+  under `id`); a registration token kept in the wait's state per id (the slot is consumed by
+  `Register`, and the record must survive the deletion).
+- **The id claim mints raft's fresh token** (unit 2, `srvMintInv`). `Propose` with `fresh` wants
+  a token nobody had for the data; the data decode to a request carrying the fresh id, so a
+  mint invariant (raft's fresh-token authority, every token of data claimed under their id)
+  lets the proposer mint it when it claims the id for the data (`srv_claim_mint`). The update
+  deposited is the trivial one (`Q = True`, the client log's other half in `srvCLogInv`): the
+  server does not linearize at raft's commit, its result comes through the wait.
+  *Rejected:* `Q` carrying the result (the apply thread, not raft's commit, computes it).
+- **`waitOk` stays in the apply package, as `IsRegistered` with a reader's resource**
+  (unit 2). `pkg/wait`'s `IsRegistered` read-locks a shard's `RWMutex`, which needs a reader slot
+  (Perennial bounds readers), so `waitOk w RD` is `{RD} IsRegistered(id) {RD}` and
+  `apply.Apply` threads `RD`; the apply thread's `srvApplyKV` holds `waitOk w RD ∗ RD` (from
+  `isWait_waitOk`), and the server's fields hold `waitInv` for `Trigger`. *Rejected:* `waitInv ⊢
+  waitOk` with `waitOk`'s `{True} Trigger {True}` (not implied: `Trigger` needs `waitTrig`);
+  `waitOk` as a parameter predicate of the apply package (more churn for the same content).
+- **Typed facts for the trust boundary, not new contracts** (unit 2): the context's `Value` at
+  `StartTimeKey` and `errors.Is` at the context errors are axioms (Perennial specifies neither);
+  `time.Duration.Seconds` returns a word, `pbutil`'s conf-change id is `ccIdOf bs`,
+  `WithValue`/`Tracer.Start` keep `isContext` (restatements). Three translations completed
+  (raft's `Node` and `None`, rafthttp's `Transporter`, otel's `Tracer`: imports and a constant
+  only) rather than axiomatizing loads of axiomatized types.
+
+**2026-10-12 · unit 3a implemented** (the handoff gaps; `Put`/`DeleteRange` end to end):
+
+- **The header's id fields: a separate, non-persistent conjunct** (unit 3a). The txn package
+  allocates the response header (`&pb.ResponseHeader{}` in `put`/`deleteRange`); its four id
+  fields go owned through `txn.respHdrOwn hf` beside the response's read-only predicate
+  (`putResponseIs`, unchanged and persistent), then the apply package's `appliedHdr log hf` (the
+  four fields, and the log at least `NewStore`'s two revisions with room for the write, so the
+  response's revision is not `0`: `soleWriter` now keeps `2 ≤ log.length`), wrapped with the
+  persistent outcome as `putAnswerIs`/`deleteAnswerIs` (the chain's triples, `dispatchAnswer`),
+  through the wait's handoff (`resultΨ`, `appliedOk`: resources, nothing kept them under `□`), to
+  `EtcdServer.Put`/`DeleteRange`'s success. *Rejected:* the fields inside `putOutcomeIs` (it is
+  persistent and named by many layers; the handler's `A.ok` keeps it while `hdrW` takes the
+  fields); `Txn` and `Range` (their headers are `newTxnResp`'s and `executeRange`'s: unit 3b).
+- **The error facts in `applyErrIs`** (unit 3a). `applyErrIs err` gains `errKeyMsg err`: `nil`,
+  or a safe key of `togRPCError`'s map (`SafeMapKey`) whose `Error()` returns (`errMsgOk`). Every
+  producer discharges it: `nil`; the `errors.New` variables (`errVarLeaf` keeps the message
+  triple, `errors.wp_New`'s; a pointer error is a safe key, `safeMapKey_ptrErr`); the contracts'
+  errors (the auth store's, the lessor's: premises, now stronger). So `srvErrIs` is `applyErrIs`
+  of a non-nil error (`srvErrIs_of_applyErrIs`). The proposal's errors needed it too, which the
+  plan missed: the auth store's `AuthInfoFromCtx` and raft's `Propose` contracts return
+  `applyErrIs` errors, `proto.MarshalIRR`'s error is one (protobuf-go's pointer errors), and
+  `parseProposeCtxErr` returns only its variables: its `default` branch returns `cctx.Err()`,
+  an error Perennial's `isContext` says only "typed" of, so **a new trust-boundary axiom**
+  `context.ErrDone` (a done context's `Err()` is `Canceled` or `DeadlineExceeded`, Go's
+  documented contract of `Context.Err`) and `errors.IsCtxErr` strengthened (`true` when the error
+  is the target, Go's `Is` compares first) make the branch unreachable. *Rejected:* a conjunct
+  beside `applyErrIs` on the server's path (every apply-side producer already had the facts; one
+  predicate is simpler); a premise that every typed error is a safe key (false: an error of an
+  uncomparable type).
+- **`raftKV` per method; the server's parameters** (unit 3a, `ServerKV.lean`). `raftKV s A` is
+  now `kvRangeOk ∗ kvPutOk ∗ kvDeleteOk ∗ kvTxnOk ∗ kvGetOk` (the handlers take their conjunct);
+  `srvKVAns s E ρ A0` instantiates `A` for the write path (`srvCall`: the context, one id credit,
+  a `leadTimeMu` reader slot, given back in `putAppliedOk`/`putErrOk`) and defers `Range`, `Txn`,
+  `revR` to `A0` (3b's); `raftKV_of_server` proves the `Put`/`DeleteRange` conjuncts from the
+  linked `EtcdServer.Put`/`DeleteRange` with the other three as premises. `KV().Rev()` stays in
+  `kvGetOk` (3b): `header.fill` never calls it on these answers (their revision is not `0`).
+
+## The server's raft wrapper: raft.Node as a contract, an SPSC stream to the apply side
+
+**2026-10-12 · plan, carried out the same day** (`server/v3/etcdserver/raft.go`, ~450 Go lines; branch `server-raft`; `STATUS.md`, "etcd's server: the raft wrapper"). Two changes in the proof: the WAL's `Close` succeeds by the contract (else `onStop` panics in the loop's goroutine), and `start` case-splits `islead` rather than joining (the follower's select returns on `stopped`, which no join assertion reaches).
+Toward an end-to-end statement (a client driver against a slice of etcd: the raft wrapper, the
+apply thread, the applier chain, mvcc), the raft wrapper is the link between raft's `Ready` and
+the apply thread, whose `applyEntries` assumes its batch "consecutive from `f0`, with no gap
+after the applied index, as raft hands them over". Its proof is what discharges that premise.
+
+- **Translation.** `etcdserver.toml` lists `raftNode`'s methods, `updateCommittedIndex`,
+  `raftReadyHandler` and the promoted `raft.Node` methods (`raftNode.Ready`/`Advance`/`Tick`/
+  `Stop`, through `raftNodeConfig`; goose emits their `MethodUnfold` wrappers only when listed);
+  v3.7's raft gets `IsEmptySnap`, `IsEmptyHardState`, `isHardStateEqual` and `emptyState` (its
+  initializer, which was an axiom), `SoftState`, `ReadState`; raftpb gets `Message`, `Snapshot`,
+  `SnapshotMetadata`, `HardState` as structs with the getters the wrapper reads.
+- **`raft.Node` is a contract shaped like node.go's verified specs** (`InvNode.lean`): `Ready()`
+  is a handshake channel whose payload is the node's half of the delivered log `d`, its record,
+  and the `Ready`'s data (the committed entries `ce`, with `C (d ++ ce)` for the contract's
+  persistent "committed" predicate `C`; the entries to append with their append right; the
+  messages, each `M m`; no snapshot and no read states, as node.go guarantees); `Advance()`
+  takes the driver's busy token and the append receipt. The v3.7 raft is not the verified one
+  (protobuf-go v2, `STATUS.md`, "Retargeting raft to upstream"), so the contract is stated in the
+  server's terms (`EntryModel`, the v3.7 types), to be discharged by node.go's specs once raft is
+  retargeted. *Rejected:* stating the contract over node.go's own predicates (no module imports
+  both raft translations).
+- **`applyc` is an SPSC channel** (Perennial's `isSpsc`), and the delivered log after each
+  payload is a persistent mono-list `cum` (element `k`: the log forwarded after `k` payloads): the
+  payload at position `i` carries `cum[i] = F`, `cum[i+1] = F ++ ce` and the batch's entries
+  `ce`. The loop owns the producer half and the mono-list's authority (`cum`'s last is the
+  node's delivered log); the apply side owns the consumer half and `cum[|received|]`, so it
+  learns the batch extends exactly what it got. *Rejected:* a handshake with a record half (as
+  node.go's `rof`): `applyc` has no return path and a handshake's receiver obligation `Q` is
+  fixed before the value is known, so the loop could not recover its half.
+- **The other components are contracts** (persistent predicates of triples): the WAL
+  (`serverstorage.Storage.Save`), the `MemoryStorage`'s `Append` (append right to receipt), the
+  transport (`Send` of messages each `M m`, `Stop`), the timeout detector, the ready handler's
+  four closures, the gauges and counters, the ticker (its `C` a bag channel or nil, as
+  `newRaftNode` makes it when `heartbeat == 0`), `proto.Clone` of a nil `*Snapshot` (a case added
+  to its axiom). `notifyc`, `raftAdvancedC`, `msgSnapC`, `stopped` are bag channels of `True`
+  payloads (or of `M m` for `msgSnapC`); `done` a broadcast channel. `latestTickTs` is under
+  `tickMu` (Perennial's guarded `RWMutex`: `tick` writes through the persistent guard).
+- **Out of the model, by the contract**: snapshots (`rd.Snapshot` nil: the `SaveSnap`/`Sync`/
+  `ApplySnapshot`/`Release` branch is dead), read states (the linearizable-read path: nil, so the
+  `readStateC` branch is dead; needed later for linearizable `Range`). Conf changes are not
+  excluded: the loop's scan and the follower's second `notifyc` send are verified as written.
+- **Ticks**: node.go's `Tick` spends a term-budget credit; the wrapper ticks without bound. The
+  contract's `Tick` takes a resource `T` the caller supplies, and `start` takes `□ |==> T`: the
+  gap a composition with node.go must close (a bound on a run's ticks).

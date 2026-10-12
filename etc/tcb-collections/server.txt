@@ -1,33 +1,60 @@
 # etcd's server (the consistent index, the apply thread): every linked result of
-# Proof/go_etcd_io/etcd/server/v3/etcdserver/Link.lean.
+# Proof/go_etcd_io/etcd/server/v3/etcdserver/Link.lean and the results Results.lean prints
+# (the apply loop's end-to-end result, over the apply package's `apply.Apply`; since the request
+# path's unit 2, 2026-10-12: the proposal path, pkg/wait and pkg/idutil, whose new axioms are
+# the context's Value at StartTimeKey and errors.Is at the context errors, and which reach
+# trace.SpanFromContext (mvcc's) and context.WithValue (the apply package's): 40 -> 44;
+# merged with the raft wrapper's proto.Clone, zap.Duration and zap.Logger.Fatal: 47).
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/server.txt [--check [--update]]
 #
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
-roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/Link\.lean$
+roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/(Link|Results)\.lean$
 axiom EtcdServer.GoAttach.wp_proof
-axiom EtcdServer.Logger.wp_proof
 axiom EtcdServer.applyConfChange.wp_proof
-axiom EtcdServer.isLeader.wp_proof
 axiom EtcdServer.stopWithDelay.wp_proof
-axiom applierFor
-axiom applierFor_persistent
-axiom apply.Apply.wp_proof
-axiom binary.bigEndian.PutUint64.wp_proof
-axiom binary.bigEndian.Uint64.wp_proof
-axiom config.ServerConfig.ElectionTimeout.wp_proof
-axiom errors.Is.wp_proof
+axiom attribute.Bool.wp_proof
+axiom attribute.Int.wp_proof
+axiom attribute.Int64.wp_proof
+axiom attribute.String.wp_proof
+axiom config.ServerConfig.ReqTimeout.wp_proof
+axiom context.ErrDone.wp_proof
+axiom context.ValueStartTime.wp_proof
+axiom context.WithValue.wp_proof
+axiom errors.IsCtxErr.wp_proof
 axiom go_humanize.Bytes.wp_proof
+axiom isConnectedSince.wp_proof
+axiom isConnectedToQuorumSince.wp_proof
+axiom membership.RaftCluster.ID.wp_proof
 axiom membership.RaftCluster.Members.wp_proof
-axiom notify.Notifier.Notify.wp_proof
 axiom pbutil.MustUnmarshalMessage.wp_proof
-axiom v3alarm.AlarmStore.Get.wp_proof
+axiom prometheus.HistogramVec.WithLabelValues.wp_proof
+axiom proto.Clone.wp_proof
+axiom proto.MarshalIRR.wp_proof
+axiom storage.BackendQuota.Cost.wp_proof
+axiom strconv.FormatBool.wp_proof
+axiom time.Duration.Seconds.wp_proof
+axiom time.Time.After.wp_proof
+axiom trace.SpanFromContext.wp_proof
+axiom trace.WithAttributes.wp_proof
+axiom traceutil.Trace.GetStartTime.wp_proof
+axiom traceutil.Trace.InsertStep.wp_proof
+axiom traceutil.Trace.LogIfLong.wp_proof
+axiom traceutil.Trace.SetStartTime.wp_proof
+axiom traceutil.Tracer.Start.wp_proof
+axiom txn.ApplySecObserve.wp_proof
+axiom txn.WarnOfExpensiveReadOnlyRangeRequest.wp_proof
+axiom txn.WarnOfExpensiveReadOnlyTxnRequest.wp_proof
+axiom txn.WarnOfExpensiveRequest.wp_proof
+axiom txn.WarnOfFailedRequest.wp_proof
 axiom verify.Verify.wp_proof
+axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof
 axiom zap.Int'.wp_proof
 axiom zap.Int64.wp_proof
 axiom zap.Logger.Debug.wp_proof
+axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Warn.wp_proof
 axiom zap.String.wp_proof
 axiom zap.Stringer.wp_proof

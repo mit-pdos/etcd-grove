@@ -61,6 +61,7 @@ structure StoreNames where
   /-- the post-lock hook's function value `f` (`dghostVar`, read-only) -/
   hookFn : GName
 
+set_option linter.unusedVariables false in
 /-- `s.mu`'s resource: nothing (see the module docstring); it takes the semantics' instances
 (unused) so that the lock lemmas' own are determined at its uses. -/
 def muInv [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -634,7 +635,8 @@ def storeTxnReadIs (tr s : Loc) (rt : GoInterfaceOk) (trace : Loc) (γ : StoreNa
     "%Hsub" ∷ ⌜GMap.Subseteq (bucketMap log) m⌝ ∗
     "#Hcert" ∷ idxCert γ.idx log ∗
     "%Hne" ∷ ⌜log ≠ []⌝ ∗
-    "%Hrev" ∷ ⌜rev = W64 ((log.length : Int) - 1)⌝)
+    "%Hrev" ∷ ⌜rev = W64 ((log.length : Int) - 1)⌝ ∗
+    "%Htrnn" ∷ ⌜trace ≠ null⌝)
 
 instance storeTxnReadIs_persistent (tr s : Loc) (rt : GoInterfaceOk) (trace : Loc) (γ : StoreNames)
     (log : Log) (rev : w64) : Persistent (storeTxnReadIs (GF := GF) tr s rt trace γ log rev) := by
@@ -791,7 +793,8 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Cha
     "%Hne" ∷ ⌜ilog ≠ []⌝ ∗
     "Hmu" ∷ sync.ownRWMutexRLocked (muAddr s) muInv ∗
     "HrevMu" ∷ sync.ownRWMutex (revMuAddr s) (revMuInv s γ) ∗
-    "Hti" ∷ idxReader ti γ.idx)
+    "Hti" ∷ idxReader ti γ.idx ∗
+    "%Htrnn" ∷ ⌜trace ≠ null⌝)
 
 /-- The write transaction of `storeTxnWriteIs` without its `changes` slice's contents and their
 key-values (`chs ↦* ps`, `changesAre ps ilog pend`: the caller's, `storeTxnWrite.Changes`):
@@ -827,7 +830,8 @@ def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List C
     "%Hne" ∷ ⌜ilog ≠ []⌝ ∗
     "Hmu" ∷ sync.ownRWMutexRLocked (muAddr s) muInv ∗
     "HrevMu" ∷ sync.ownRWMutex (revMuAddr s) (revMuInv s γ) ∗
-    "Hti" ∷ idxReader ti γ.idx)
+    "Hti" ∷ idxReader ti γ.idx ∗
+    "%Htrnn" ∷ ⌜trace ≠ null⌝)
 
 /-- The write transaction as its core, its `changes` and their key-values. -/
 theorem storeTxnWriteIs_split (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change) :
@@ -845,7 +849,7 @@ theorem storeTxnWriteIs_split (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend 
   simp only [named, idxWriterB_false]
   iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
   iframe #
-  ipureintro; exact ⟨Hbudget, ⟨Hps, Hlen.1, Hlen.2⟩, Hne⟩
+  ipureintro; exact ⟨Hbudget, ⟨Hps, Hlen.1, Hlen.2⟩, Hne, Htrnn⟩
 
 theorem storeTxnWriteIs_join (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
     (chs : GoSlice) (ps : List Loc) :
@@ -860,7 +864,7 @@ theorem storeTxnWriteIs_join (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend :
   simp only [named]
   iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
   iframe #
-  ipureintro; exact ⟨Hbudget, Hps.1, Hne⟩
+  ipureintro; exact ⟨Hbudget, Hps.1, Hne, Htrnn⟩
 
 /-- **Seal** the write transaction's pending revision (not empty): its history's lower bound
 with the revision committed, persistent. -/
@@ -881,7 +885,7 @@ theorem storeTxnWriteCore_seal (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend
   simp only [named, idxWriterB_true]
   iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
   iframe #
-  ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+  ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
 
 /-- The write transaction's facts: the writer's log is well formed, and its committed log is
 the store's view of `currentRev` (kept). -/
@@ -901,7 +905,7 @@ theorem storeTxnWriteCore_wf (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend :
     simp only [named]
     iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
     iframe #
-    ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+    ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
   ipureintro; exact ⟨Hwf, Hps.1, Hps.2.1, Hps.2.2, Hne⟩
 
 /-- The write transaction `store.Write` returns, as the caller sees it: the `metricsTxnWrite`

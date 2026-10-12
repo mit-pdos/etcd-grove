@@ -46,7 +46,7 @@ theorem WithMaxCreateRev.wp_proof : WithMaxCreateRev.spec (GF := GF) (hG := hG) 
   · ipureintro; simp_all
   isplitl []
   · ipureintro; simp_all
-  · iapply opSortAt_of _ o _ (by simp [withMaxCreateRevM]) (by simp [withMaxCreateRevM]) (by simp [withMaxCreateRevM]) $$ Hs
+  · iapply opSortAt_of _ o _ (by simp) (by simp) (by simp) $$ Hs
 
 end proof
 

@@ -43,10 +43,11 @@ theorem mvcc.writeView.DeleteRange.wp_proof
   · iPkgInit
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply hTODO as %t -
+  wp_apply hTODO as %t %Ht
   (try wp_auto)
   -- `wv.kv.Write(trace)`
   wp_apply (hWrite s γ t P Pre Q f) $$ [$Hs $Hrd $Htok $Hhook $Hpre $Htr] as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
+  · ipureintro; exact Ht
   (try wp_auto)
   -- `tw.DeleteRange(key, end)`
   wp_apply (hDel mw s γ ilog [] (W64 0) (W64 0) (W64 0) key endk k e)

@@ -1,8 +1,32 @@
 # The apply thread's handling of the consistent index (server.go), with bodies: the
 # backend's post-lock hook, the apply loop and the entry applier, and the types they
-# use. The rest of the package is names only.
-translate = ["!*", "EtcdServer.getTxPostLockInsideApplyHook", "EtcdServer.apply", "EtcdServer.applyEntryNormal", "EtcdServer.applyEntries", "EtcdServer.setAppliedIndex", "EtcdServer.setTerm", "EtcdServer", "raftNode", "raftNodeConfig", "etcdProgress", "toApply"]
-imports = ["!*", "context", "errors", "fmt", "net/http", "sync", "sync/atomic", "time", "go.uber.org/zap", "github.com/dustin/go-humanize", "google.golang.org/protobuf/proto", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/client/pkg/v3/types", "go.etcd.io/etcd/pkg/v3/contention", "go.etcd.io/etcd/pkg/v3/idutil", "go.etcd.io/etcd/pkg/v3/notify", "go.etcd.io/etcd/pkg/v3/pbutil", "go.etcd.io/etcd/pkg/v3/wait", "go.etcd.io/etcd/server/v3/auth", "go.etcd.io/etcd/server/v3/config", "go.etcd.io/etcd/server/v3/etcdserver/api/membership", "go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp", "go.etcd.io/etcd/server/v3/etcdserver/api/snap", "go.etcd.io/etcd/server/v3/etcdserver/api/v2stats", "go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm", "go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor", "go.etcd.io/etcd/server/v3/etcdserver/apply", "go.etcd.io/etcd/server/v3/etcdserver/cindex", "go.etcd.io/etcd/server/v3/etcdserver/errors", "go.etcd.io/etcd/server/v3/etcdserver/read", "go.etcd.io/etcd/server/v3/lease", "go.etcd.io/etcd/server/v3/storage", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/server/v3/storage/mvcc", "go.etcd.io/raft/v3", "go.etcd.io/raft/v3/raftpb"]
+# use; the raft wrapper (raft.go): the Ready loop and its helpers; and the request path's
+# KV entry points (v3_server.go: Range, Put, DeleteRange,
+# Txn, the proposal and its wait, the serialized read) with what they call. The rest of
+# the package is names only.
+translate = ["!*", "EtcdServer.Logger", "EtcdServer.isLeader", "EtcdServer.MemberID", "EtcdServer.Lead", "EtcdServer.getLead", "EtcdServer.getTxPostLockInsideApplyHook", "EtcdServer.apply", "EtcdServer.applyEntryNormal", "EtcdServer.applyEntries", "EtcdServer.setAppliedIndex", "EtcdServer.setTerm", "EtcdServer", "raftNode", "raftNodeConfig", "etcdProgress", "toApply",
+  # the raft wrapper (raft.go): the Ready loop and its helpers
+  "raftReadyHandler", "raftNode.tick", "raftNode.getLatestTickTs", "raftNode.start",
+  "updateCommittedIndex", "raftNode.processMessages", "raftNode.apply", "raftNode.stop",
+  "raftNode.onStop", "raftNode.advanceTicks", "raftNode.ReadState", "maxInFlightMsgSnap",
+  "raftNode.Ready", "raftNode.Advance", "raftNode.Tick", "raftNode.Stop",
+  "raftNodeConfig.Ready", "raftNodeConfig.Advance", "raftNodeConfig.Tick", "raftNodeConfig.Stop",
+  # the request path (v3_server.go, tracing.go, util.go, interface.go, server.go): the KV
+  # entry points, the proposal and its wait, the serialized read, and what they call
+  "EtcdServer.Range", "EtcdServer.Put", "EtcdServer.DeleteRange", "EtcdServer.Txn",
+  "EtcdServer.raftRequest", "EtcdServer.doSerialize", "EtcdServer.processInternalRaftRequestOnce",
+  "getRequestType", "exceedsRequestLimit", "isPriorityRequest", "EtcdServer.parseProposeCtxErr",
+  "EtcdServer.AuthInfoFromCtx", "EtcdServer.newHeader", "EtcdServer.KV", "EtcdServer.AuthStore",
+  "EtcdServer.Cluster", "EtcdServer.getAppliedIndex", "EtcdServer.getCommittedIndex",
+  "EtcdServer.getTerm", "EtcdServer.Term", "EtcdServer.Leader", "EtcdServer.FeatureEnabled",
+  "EtcdServer.LinearizableReadNotify",
+  "firstCompareKey", "firstOpKey", "firstOpType", "firstOpLease",
+  "maxGapBetweenApplyAndCommitIndex", "maxNormalGap", "maxPriorityGap", "traceThreshold",
+  "RaftKV",
+  # raft.Node's Propose, promoted through raftNode's embedded raftNodeConfig (goose's
+  # MethodUnfold wrappers down to the interface field Node)
+  "raftNode.Propose", "raftNodeConfig.Propose"]
+imports = ["!*", "context", "errors", "fmt", "net/http", "sync", "sync/atomic", "time", "go.uber.org/zap", "github.com/dustin/go-humanize", "google.golang.org/protobuf/proto", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/client/pkg/v3/types", "go.etcd.io/etcd/pkg/v3/contention", "go.etcd.io/etcd/pkg/v3/idutil", "go.etcd.io/etcd/pkg/v3/notify", "go.etcd.io/etcd/pkg/v3/pbutil", "go.etcd.io/etcd/pkg/v3/wait", "go.etcd.io/etcd/server/v3/auth", "go.etcd.io/etcd/server/v3/config", "go.etcd.io/etcd/server/v3/etcdserver/api/membership", "go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp", "go.etcd.io/etcd/server/v3/etcdserver/api/snap", "go.etcd.io/etcd/server/v3/etcdserver/api/v2stats", "go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm", "go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor", "go.etcd.io/etcd/server/v3/etcdserver/apply", "go.etcd.io/etcd/server/v3/etcdserver/cindex", "go.etcd.io/etcd/server/v3/etcdserver/errors", "go.etcd.io/etcd/server/v3/etcdserver/read", "go.etcd.io/etcd/server/v3/lease", "go.etcd.io/etcd/server/v3/storage", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/server/v3/storage/mvcc", "go.etcd.io/raft/v3", "go.etcd.io/raft/v3/raftpb", "strconv", "go.opentelemetry.io/otel/attribute", "go.opentelemetry.io/otel/trace", "go.etcd.io/etcd/pkg/v3/traceutil", "go.etcd.io/etcd/pkg/v3/featuregate", "go.etcd.io/etcd/server/v3/features", "go.etcd.io/etcd/server/v3/etcdserver/txn", "go.etcd.io/etcd/server/v3/etcdserver/api", "github.com/prometheus/client_golang/prometheus"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

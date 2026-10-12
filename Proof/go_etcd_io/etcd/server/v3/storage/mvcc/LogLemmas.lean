@@ -75,20 +75,20 @@ theorem btFind_btInsert_idx (k' : GoString) (ki : KeyIndex) (k : GoString) (x : 
     have ih := btFind_btInsert_idx k' ki k x ws hs.2
     unfold btInsert
     by_cases h1 : idxLess w (k', ki)
-    · rw [if_pos h1]
+    · rw [ite_eq_left h1]
       rw [idxLess_iff] at h1
       unfold btFind
       by_cases hwk : idxLess w (k, x)
-      · rw [if_pos hwk, if_pos hwk, ih]
-      · rw [if_neg hwk, if_neg hwk]
+      · rw [ite_eq_left hwk, ite_eq_left hwk, ih]
+      · rw [ite_eq_right hwk, ite_eq_right hwk]
         rw [idxLess_iff] at hwk
         have : k' ≠ k := by
           intro e; subst e; exact hwk h1
         simp only [this, ↓reduceIte]
-    · rw [if_neg h1]
+    · rw [ite_eq_right h1]
       rw [idxLess_iff] at h1
       by_cases h2 : idxLess (k', ki) w
-      · rw [if_pos h2]
+      · rw [ite_eq_left h2]
         rw [idxLess_iff] at h2
         conv => lhs; unfold btFind
         simp only [idxLess_iff]
@@ -106,7 +106,7 @@ theorem btFind_btInsert_idx (k' : GoString) (ki : KeyIndex) (k : GoString) (x : 
           · have := goStringLt_eq_of_not_lt h3 h4
             subst this
             simp only [goStringLt_irrefl, ↓reduceIte]
-      · rw [if_neg h2]
+      · rw [ite_eq_right h2]
         rw [idxLess_iff] at h2
         have hw : w.1 = k' := goStringLt_eq_of_not_lt h1 h2
         conv => lhs; unfold btFind
@@ -157,21 +157,21 @@ theorem IdxRep.step {evs : List Ev} {idx : IndexM} (h : IdxRep evs idx) (ev : Ev
   · simp only [ht, ↓reduceIte]
     rw [idxTombstone_eq, hk]
     by_cases he : kiLastEmpty (kiOfKey evs ev.key)
-    · rw [if_pos he]
+    · rw [ite_eq_left he]
       refine ⟨hs, fun k => ?_⟩
       rw [hk, kiOfKey_append]
       by_cases hkk : ev.key = k
       · subst hkk
         simp only [↓reduceIte, kiApply, ht, he]
-      · rw [if_neg hkk]
-    · rw [if_neg he]
+      · rw [ite_eq_right hkk]
+    · rw [ite_eq_right he]
       refine ⟨btInsert_sorted idxLess_swo hs, fun k => ?_⟩
       rw [idxGet_btInsert hs, kiOfKey_append]
       by_cases hkk : ev.key = k
       · subst hkk
         simp only [↓reduceIte, kiApply, ht, Option.getD_some]
-        rw [if_neg he]
-      · rw [if_neg hkk, if_neg hkk, hk]
+        rw [ite_eq_right he]
+      · rw [ite_eq_right hkk, ite_eq_right hkk, hk]
   · simp only [ht, Bool.false_eq_true, ↓reduceIte]
     rw [idxPut_eq, hk]
     refine ⟨btInsert_sorted idxLess_swo hs, fun k => ?_⟩
@@ -179,7 +179,7 @@ theorem IdxRep.step {evs : List Ev} {idx : IndexM} (h : IdxRep evs idx) (ev : Ev
     by_cases hkk : ev.key = k
     · subst hkk
       simp only [↓reduceIte, kiApply, ht, Bool.false_eq_true, Option.getD_some]
-    · rw [if_neg hkk, if_neg hkk, hk]
+    · rw [ite_eq_right hkk, ite_eq_right hkk, hk]
 
 theorem IdxRep.foldl (evs : List Ev) : ∀ (pre : List Ev) (idx : IndexM), IdxRep pre idx →
     IdxRep (pre ++ evs) (evs.foldl idxApply idx)
@@ -245,7 +245,7 @@ theorem findKey_filter_ne (k k' : GoString) :
       rw [findKey_filter_ne k k' ws]
       by_cases hk : k' = k
       · simp [hk]
-      · simp [hk, show w.key ≠ k by rw [hw]; exact hk]
+      · simp [hk]
     · simp only [hw, decide_false, Bool.not_false, ↓reduceIte, findKey_cons]
       rw [findKey_filter_ne k k' ws]
       by_cases hk : k' = k
@@ -384,7 +384,7 @@ theorem kiFindGenAux_none_of_above {ki : KeyIndex} (hwf : KiWf ki) {r : w64} (ha
     have htail := habove _ (kiRevs_mem hmem (getLastD_mem _ Rev.zero hne))
     simp only at htail
     simp only [hne, ↓reduceIte, ne_eq]
-    rw [if_pos ⟨by omega, htail⟩]
+    rw [ite_eq_left ⟨by omega, htail⟩]
 
 /-- `findGeneration` at or above every revision: the last generation, if it is not empty. -/
 theorem kiFindGen_top {ki : KeyIndex} (hwf : KiWf ki) {r : w64} (habove : KiAbove ki ⟨r, W64 0⟩) :
@@ -624,7 +624,7 @@ theorem rev_step (log : Log) (cs : List Change) (hlen : log.length + 1 < 2 ^ 63)
     have hget_top := kiGet_top hwf_i htop
     have hmatch_top := hmatch_i m (Nat.le_refl _) (by omega)
     by_cases hkk : cs[i].key = k
-    · rw [if_pos hkk]
+    · rw [ite_eq_left hkk]
       cases hc : cs[i] with
       | put k' v l =>
         rw [hc] at hkk
@@ -664,13 +664,13 @@ theorem rev_step (log : Log) (cs : List Change) (hlen : log.length + 1 < 2 ^ 63)
           refine ⟨hmod, ?_, ?_, hbucket⟩
           · rw [hcreate]
             by_cases he : (ki.gens.getLastD Gen.empty).revs = []
-            · rw [if_pos he]
-              rw [if_pos he] at hget_top
+            · rw [ite_eq_left he]
+              rw [ite_eq_left he] at hget_top
               rw [hget_top] at hmatch_top
               rw [KvMatch_none_left hmatch_top]
               rfl
-            · rw [if_neg he]
-              rw [if_neg he] at hget_top
+            · rw [ite_eq_right he]
+              rw [ite_eq_right he] at hget_top
               rw [hget_top] at hmatch_top
               cases hf : findKey k' s with
               | none => rw [hf] at hmatch_top; exact absurd hmatch_top (by simp [KvMatch])
@@ -681,13 +681,13 @@ theorem rev_step (log : Log) (cs : List Change) (hlen : log.length + 1 < 2 ^ 63)
                 exact hmatch_top.2.1
           · rw [hver]
             by_cases he : (ki.gens.getLastD Gen.empty).revs = []
-            · rw [if_pos he] at hget_top
+            · rw [ite_eq_left he] at hget_top
               rw [hget_top] at hmatch_top
               rw [KvMatch_none_left hmatch_top]
               have hwfl := hwf_i.last_wf
               rw [hwfl.1, he]
               simp
-            · rw [if_neg he] at hget_top
+            · rw [ite_eq_right he] at hget_top
               rw [hget_top] at hmatch_top
               cases hf : findKey k' s with
               | none => rw [hf] at hmatch_top; exact absurd hmatch_top (by simp [KvMatch])
@@ -708,7 +708,7 @@ theorem rev_step (log : Log) (cs : List Change) (hlen : log.length + 1 < 2 ^ 63)
         have hlast : kiLastEmpty ki = false := by
           unfold kiLastEmpty
           by_cases he : (ki.gens.getLastD Gen.empty).revs = []
-          · rw [if_pos he] at hget_top
+          · rw [ite_eq_left he] at hget_top
             rw [hget_top] at hmatch_top
             rw [KvMatch_none_left hmatch_top] at hpresent
             simp at hpresent
@@ -728,9 +728,9 @@ theorem rev_step (log : Log) (cs : List Change) (hlen : log.length + 1 < 2 ^ 63)
           exact hlow_i r hr
         · intro r hr hr2
           rw [kiGet_kiTombstone_above hwf_i habove (by simp only; word), findKey_filter_ne,
-            if_pos rfl]
+            ite_eq_left rfl]
           trivial
-    · rw [if_neg hkk]
+    · rw [ite_eq_right hkk]
       refine ⟨hwf_i, hrevs_i, hlow_i, fun r hr hr2 => ?_⟩
       have := hmatch_i r hr hr2
       cases hc : cs[i] with
@@ -744,7 +744,7 @@ theorem rev_step (log : Log) (cs : List Change) (hlen : log.length + 1 < 2 ^ 63)
         rw [hc] at hkk
         simp only [Change.key] at hkk
         simp only [applyChange]
-        rw [findKey_filter_ne, if_neg hkk]
+        rw [findKey_filter_ne, ite_eq_right hkk]
         exact this
 
 /-- The link, through an appended revision. -/

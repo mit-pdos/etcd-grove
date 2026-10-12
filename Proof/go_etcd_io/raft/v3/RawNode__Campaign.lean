@@ -71,7 +71,7 @@ theorem RawNode.Campaign.wp_proof
     iintro %Hc
     simp [MsgSnap] at Hc
   have hP : (W32 0 : w32) ≠ MsgProp := by simp [MsgProp]
-  simp only [hP, ↓reduceIte]
+  simp only [hP]
   iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, -, Herr⟩
   wp_auto
   obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by msg_ne) (by msg_ne)

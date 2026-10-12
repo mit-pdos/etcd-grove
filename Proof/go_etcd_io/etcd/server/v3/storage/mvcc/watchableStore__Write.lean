@@ -46,7 +46,7 @@ theorem mvcc.watchWriter_pins (γ : mvcc.StoreNames) (L ilog : mvcc.Log) (pend :
 theorem mvcc.watchableStore.Write.wp_proof (hWrite : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.Write.spec (GF := GF) (hG := hG) := by
   intro s st γ trace L P Pre Q f
-  wp_start as ⟨#Hws, Hrd, Hww, %Hlen, #Hhook, Hpre, #Htr⟩
+  wp_start as ⟨#Hws, Hrd, Hww, %Hlen, %Htrnn, #Hhook, Hpre, #Htr⟩
   ihave #Hws0 : mvcc.isWatchableStore s st γ $$ []
   · iexact Hws
   iunfold mvcc.isWatchableStore at Hws
@@ -58,7 +58,7 @@ theorem mvcc.watchableStore.Write.wp_proof (hWrite : mvcc.store.Write.spec (GF :
   icases (ownToks_add 1 (mvcc.wBudget L - 1) γ.st.revs).1 $$ Htoks with ⟨Htoks, H1⟩
   (try wp_auto)
   wp_apply (hWrite st γ.st trace P Pre Q f) $$ [$Hs $Hrd H1 $Hhook $Hpre $Htr] as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
-  · unfold mvcc.revToken; iexact H1
+  · unfold mvcc.revToken; iframe H1; ipureintro; exact Htrnn
   iunfold mvcc.isTxnWrite at Htx
   iNamed Htx
   ihave %Heq := mvcc.watchWriter_pins γ.st L ilog [] tw st $$ [$Hcert $Htoks $Htw]

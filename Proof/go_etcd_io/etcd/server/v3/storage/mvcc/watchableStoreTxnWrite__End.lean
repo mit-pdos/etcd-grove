@@ -69,7 +69,7 @@ theorem mvcc.isTxnWriteCore_room (mw s : Loc) (γ : mvcc.StoreNames) (ilog : mvc
     unfold mvcc.revToken
     iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
     iframe #
-    ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+    ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
   ipureintro; omega
 
 /-- The writer's unsealed history bounds every synced watcher's delivery: its lower bound is

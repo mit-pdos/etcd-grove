@@ -1,9 +1,10 @@
 /-
-`v3alarm.AlarmStore.Get`: the trust boundary (`api/v3alarm` is names-only: `Get` reads the alarms under a mutex). Lean-first (no Rocq counterpart).
+`v3alarm.AlarmStore.Get` (`alarms.go`: it reads the alarms under the store's mutex). Lean-first
+(no Rocq counterpart).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Defs
 
 @[expose] public section
 
@@ -19,13 +20,14 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `a.Get(aty)` returns some slice of the alarms of type `aty`. -/
+/-- `a.Get(aty)` on an alarm store `a` returns some slice of the alarms of type `aty` (of
+every type for `AlarmType_NONE`). -/
 abbrev v3alarm.AlarmStore.Get.spec : Prop :=
-  ∀ (a : Loc) (aty : val),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm }}
-    (App (Val (a @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore.ty @!! go!"Get")) (Val aty))
+  ∀ (a : Loc) (aty : w32),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm ∗
+      isAlarmStore a }}
+    (App (Val (a @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore.ty @!! go!"Get")) (Val #aty))
   {{ (sl : GoSlice), RET #sl; True }}
 
 end spec

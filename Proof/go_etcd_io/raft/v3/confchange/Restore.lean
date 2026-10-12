@@ -153,7 +153,7 @@ theorem confchange.Restore.wp_proof
       · have Hv0' : voters[0]? = some idn := (Hfslen.symm.trans Hj0) ▸ Hidn
         rw [Hj0]
         show (<[idn := ()]> ∅).domSet = listToSet (List.take (0 + 1) voters)
-        simp only [List.take_succ, List.take_zero, Hv0', Option.toList_some, List.nil_append,
+        simp only [List.take_add_one, List.take_zero, Hv0', Option.toList_some, List.nil_append,
           GMap.listToSet_cons, GMap.listToSet_nil, GMap.dom_insert, GMap.dom_empty]
       · rw [GMap.map_size_insert_None _ _ _ (by rfl), GMap.map_size_empty]; omega
     · -- op `fs.length > 0`: from the configuration the previous op built

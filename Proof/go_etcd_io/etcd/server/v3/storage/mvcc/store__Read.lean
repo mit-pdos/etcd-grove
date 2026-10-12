@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) (hG := hG)) :
     mvcc.store.Read.spec (GF := GF) (hG := hG) := by
   intro s γ mode trace m log₀
-  wp_start as ⟨#Hs, Hrd, Hmine, #Hc0⟩
+  wp_start as ⟨#Hs, Hrd, Hmine, #Hc0, %Htrnn⟩
   iunfold mvcc.idxCert at Hc0
   icases Hc0 with ⟨-, -, -, #Hl0⟩
   ihave #Hs0 : mvcc.isStore s γ $$ []
@@ -114,7 +114,7 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
       iframe #
       isplitl []
       · ipureintro; exact fun _ _ h => h
-      ipureintro; exact ⟨Hne, trivial⟩
+      ipureintro; exact ⟨Hne, trivial, Htrnn⟩
     iexact HidxR
 
 end proof

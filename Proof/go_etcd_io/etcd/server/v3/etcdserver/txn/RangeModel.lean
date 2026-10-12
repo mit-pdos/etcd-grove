@@ -168,23 +168,23 @@ def kvLtBy (target : w64) (a b : EtcdKv) : Bool :=
   else decide (go.GoStringLt a.key b.key)
 
 theorem kvLtBy_key (a b : EtcdKv) : kvLtBy (W64 0) a b = decide (go.GoStringLt a.key b.key) := by
-  unfold kvLtBy; rw [if_neg (by decide), if_neg (by decide), if_neg (by decide), if_neg (by decide)]
+  unfold kvLtBy; rw [ite_eq_right (by decide), ite_eq_right (by decide), ite_eq_right (by decide), ite_eq_right (by decide)]
 
 theorem kvLtBy_version (a b : EtcdKv) :
     kvLtBy (W64 1) a b = decide (sint.Z a.version < sint.Z b.version) := by
-  unfold kvLtBy; rw [if_pos rfl]
+  unfold kvLtBy; rw [ite_eq_left rfl]
 
 theorem kvLtBy_create (a b : EtcdKv) :
     kvLtBy (W64 2) a b = decide (sint.Z a.createRev < sint.Z b.createRev) := by
-  unfold kvLtBy; rw [if_neg (by decide), if_pos rfl]
+  unfold kvLtBy; rw [ite_eq_right (by decide), ite_eq_left rfl]
 
 theorem kvLtBy_mod (a b : EtcdKv) :
     kvLtBy (W64 3) a b = decide (sint.Z a.modRev < sint.Z b.modRev) := by
-  unfold kvLtBy; rw [if_neg (by decide), if_neg (by decide), if_pos rfl]
+  unfold kvLtBy; rw [ite_eq_right (by decide), ite_eq_right (by decide), ite_eq_left rfl]
 
 theorem kvLtBy_value (a b : EtcdKv) :
     kvLtBy (W64 4) a b = decide (go.GoStringLt a.value b.value) := by
-  unfold kvLtBy; rw [if_neg (by decide), if_neg (by decide), if_neg (by decide), if_pos rfl]
+  unfold kvLtBy; rw [ite_eq_right (by decide), ite_eq_right (by decide), ite_eq_right (by decide), ite_eq_left rfl]
 
 /-- A key-value whose version and revisions are non-negative. -/
 def kvOk (v : EtcdKv) : Prop := 0 ≤ sint.Z v.version ∧ 0 ≤ sint.Z v.createRev ∧ 0 ≤ sint.Z v.modRev
@@ -459,8 +459,8 @@ theorem respKv_kvRead (o : OpFull) (v : EtcdKv) :
       leaseZ (fastKeysOnly o) (if o.keysOnly then { v with value := [] } else v) := by
   unfold respKv kvRead leaseZ fastKeysOnly
   cases hk : o.keysOnly <;> by_cases ht : o.sortTarget = W64 4 <;>
-    simp only [hk, ht, ne_eq, not_true, not_false_eq_true, decide_true, decide_false,
-      Bool.and_true, Bool.and_false, Bool.true_and, ↓reduceIte, Bool.false_eq_true] <;> rfl
+    simp only [ht, ne_eq, not_true, not_false_eq_true, decide_true, decide_false,
+      Bool.and_true, Bool.and_false, ↓reduceIte, Bool.false_eq_true] <;> rfl
 
 /-- A permutation of a map is the map of a permutation. -/
 theorem perm_map_exists {α β : Type} (f : α → β) :
@@ -620,7 +620,7 @@ theorem srvTrunc_eq (o : OpFull) (L : List EtcdKv) :
   by_cases hpos : 0 < sint.Z o.base.limit
   · by_cases hlt : sint.Z o.base.limit < (L.length : Int)
     · simp [hpos, hlt]
-    · simp only [hpos, hlt, and_false, decide_false, Bool.false_eq_true, ↓reduceIte, true_and]
+    · simp only [hpos, hlt, and_false, decide_false, Bool.false_eq_true, ↓reduceIte]
       rw [List.take_of_length_le (by omega)]
   · simp [hpos]
 
@@ -722,9 +722,9 @@ theorem srvRangeOk_rangeKvsOk (o : OpFull) (s : List EtcdKv) (kvs : List EtcdKv)
         · by_cases ht : o.sortTarget = W64 0
           · simp [ho, ht]
           · exfalso; apply hsort; left
-            simp only [ho, ht, ne_eq, eq_self_iff_true, not_false_eq_true, not_true_eq_false,
-              or_true, true_or, false_or, or_false, decide_true, Bool.true_eq_false, ↓reduceIte,
-              and_self, and_true]
+            simp only [ho, ht, ne_eq, not_false_eq_true, not_true_eq_false,
+              or_true, decide_true, Bool.true_eq_false, ↓reduceIte,
+              and_self]
         · simp [ho, ht]
       rw [hl, hpre] at hkvs hmore
       have hLn : (sint.Z o.base.limit).toNat ≤ (sint.Z (rangeLimitOf o)).toNat := by omega

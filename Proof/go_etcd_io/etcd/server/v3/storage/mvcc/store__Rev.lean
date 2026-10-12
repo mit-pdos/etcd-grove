@@ -45,10 +45,11 @@ theorem mvcc.store.Rev.wp_proof
   · iPkgInit
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply hTODO as %t -
+  wp_apply hTODO as %t %Ht
   (try wp_auto)
   -- `rv.kv.Read(mode, trace)`: the store's, with the caller's tokens and certificate
   wp_apply (hRead s γ _ t m log₀) $$ [$Hs $Hrd $Htoks $Hc0] as %mw ⟨%log, %rev, Htx, Htoks, %Hpin⟩
+  · ipureintro; exact Ht
   (try wp_auto)
   iunfold mvcc.isTxnRead at Htx
   iNamed Htx

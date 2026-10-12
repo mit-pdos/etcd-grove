@@ -20,7 +20,7 @@ the log's term at an index of the suffix is the entry's. -/
 private theorem stableHit_unstable [FfiSyntax] (lv : raftLog) (ls : LogState) (id : entryID)
     (Hoff : uint.Z lv.unstable'.offset' = logOffset ls) :
     StableHit ls id ↔ UnstableHit (unstableOf lv ls) id := by
-  simp only [StableHit, UnstableHit, logOffset, plogTermAt, unstableOf] at Hoff ⊢
+  simp only [StableHit, UnstableHit, logOffset, plogTermAt] at Hoff ⊢
   rw [Hoff]
   have key : ∀ (h : uint.Z ls.prev.index' + (ls.sents.length : Int) + 1 ≤ uint.Z id.index'),
       (ls.sents ++ ls.uents)[(uint.Z id.index' - uint.Z ls.prev.index' - 1).toNat]?
@@ -31,7 +31,7 @@ private theorem stableHit_unstable [FfiSyntax] (lv : raftLog) (ls : LogState) (i
     omega
   constructor
   · rintro ⟨⟨h1, h2⟩, ht⟩
-    rw [if_neg (by omega), if_neg (by omega), key h1] at ht
+    rw [ite_eq_right (by omega), ite_eq_right (by omega), key h1] at ht
     refine ⟨⟨h1, by omega⟩, ?_⟩
     cases he : ls.uents[(uint.Z id.index' - (uint.Z ls.prev.index' + (ls.sents.length : Int) + 1)).toNat]?
       with
@@ -42,7 +42,7 @@ private theorem stableHit_unstable [FfiSyntax] (lv : raftLog) (ls : LogState) (i
       exact ⟨e, rfl, ht⟩
   · rintro ⟨⟨h1, h2⟩, e, he, ht⟩
     refine ⟨⟨h1, by omega⟩, ?_⟩
-    rw [if_neg (by omega), if_neg (by omega), key h1, he]
+    rw [ite_eq_right (by omega), ite_eq_right (by omega), key h1, he]
     simp [ht]
 
 section proof
@@ -79,7 +79,7 @@ theorem raftLog.stableTo.wp_proof
   unfold logStableTo
   by_cases Hh : StableHit ls id
   · -- the hit: the persisted prefix moves stable
-    rw [if_pos Hh]
+    rw [ite_eq_left Hh]
     obtain rfl := Hhit (Hiff.1 Hh)
     obtain ⟨Hsn, Hup, Hsto⟩ := Hok Hh
     obtain ⟨Hr, -⟩ := Hh
@@ -130,9 +130,9 @@ theorem raftLog.stableTo.wp_proof
       exact Hps.1
     · -- nothing pending: an acknowledgement that hits comes after the append
       exact ⟨Hpend.1, fun _ e0 He0 => by simp [Hup] at He0⟩
-    · simp only [unstableOf, Hk]
+    · simp only [Hk]
   · -- a miss: nothing changes
-    rw [if_neg Hh]
+    rw [ite_eq_right Hh]
     obtain rfl := Hmiss (fun H => Hh (Hiff.2 H))
     reseal_raftLog
 

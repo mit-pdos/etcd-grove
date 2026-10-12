@@ -245,7 +245,7 @@ theorem ownerOp_under (pfx : GoString) (hp : pfx ≠ []) :
 theorem ownerOp_txnOpOf (pfx : GoString) : txnOpOf (ownerOp pfx) = some (.get (ownerOp pfx)) := by
   by_cases h : pfx = [] <;> simp [ownerOp, lastCreateOp, keyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM, withMaxCreateRevM, withLeaseM, OpFull.getInit, OpFull.newOp, OpModel.zero, opPutModel, OpFull.putInit, opDeleteModel, OpFull.deleteInit, h, txnOpOf]
 
-theorem ownerOp_not_panics (pfx : GoString) : ¬ opGetPanics (withTopM (W64 2) (W64 1)) := by
+theorem ownerOp_not_panics (_pfx : GoString) : ¬ opGetPanics (withTopM (W64 2) (W64 1)) := by
   simp [ownerOp, lastCreateOp, keyOp, opGetModel, opFold, withTopM, withPrefixM, withSortM, withLimitM, withMaxCreateRevM, withLeaseM, OpFull.getInit, OpFull.newOp, OpModel.zero, opPutModel, OpFull.putInit, opDeleteModel, OpFull.deleteInit, opGetPanics]
 
 /-- **The owner get** (`OpGet(pfx, WithFirstCreate()...)`) on a state with some key lists exactly

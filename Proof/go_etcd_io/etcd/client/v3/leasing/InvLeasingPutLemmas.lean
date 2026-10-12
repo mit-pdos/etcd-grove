@@ -45,17 +45,17 @@ theorem txnOpOf_write_lin {o : OpFull} {top : TxnOp} (h : txnOpOf o = some top)
     (ht : o.t = W64 2 ∨ o.t = W64 3) : top.linearizable = true := by
   unfold txnOpOf at h
   rcases ht with ht | ht
-  · rw [if_neg (by rw [ht]; decide), if_pos ht] at h
+  · rw [ite_eq_right (by rw [ht]; decide), ite_eq_left ht] at h
     repeat' (split at h)
     all_goals first | (injection h with h; subst h; rfl) | simp at h
-  · rw [if_neg (by rw [ht]; decide), if_neg (by rw [ht]; decide), if_pos ht] at h
+  · rw [ite_eq_right (by rw [ht]; decide), ite_eq_right (by rw [ht]; decide), ite_eq_left ht] at h
     injection h with h; subst h; rfl
 
 /-- A put `Op` stands for a put kind. -/
 theorem txnOpOf_put_kind {o : OpFull} {top : TxnOp} (h : txnOpOf o = some top)
     (ht : o.t = W64 2) : putKind top = true := by
   unfold txnOpOf at h
-  rw [if_neg (by rw [ht]; decide), if_pos ht] at h
+  rw [ite_eq_right (by rw [ht]; decide), ite_eq_left ht] at h
   repeat' (split at h)
   all_goals first | (injection h with h; subst h; rfl) | simp at h
 

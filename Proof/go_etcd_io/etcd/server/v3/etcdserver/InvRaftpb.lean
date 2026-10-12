@@ -28,6 +28,18 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
+/-- The bytes `bs` are the protobuf encoding of some `raftpb.ConfChange` (what etcd proposes
+as an `EntryConfChange`'s data: `cc.Marshal()` in `configure`); opaque, as the encoding is
+(`mvcc.kvEncode`). `pbutil.MustUnmarshalMessage` panics on any other bytes. -/
+opaque isConfChangeEncoding : List w8 → Prop
+
+/-- **Trust boundary (the encoding).** The `ID` of the `raftpb.ConfChange` the bytes decode to
+(`pbutil.MustUnmarshalMessage`'s, a function of the bytes): what the apply thread triggers the
+wait with after a conf change (`s.w.Trigger(cc.ID, ...)`). Opaque, as `isConfChangeEncoding`
+(2026-10-12, the request path's unit 2: the decoder's axiom names it, so that the apply loop's
+premise can say the conf change's id is no KV request's). -/
+opaque ccIdOf : List w8 → w64
+
 /-- A raft entry as the apply thread uses it. -/
 structure EntryModel where
   term : w64

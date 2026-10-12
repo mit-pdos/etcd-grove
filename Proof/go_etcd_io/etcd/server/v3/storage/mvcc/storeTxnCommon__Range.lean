@@ -52,7 +52,7 @@ theorem mvcc.storeTxnCommon.Range.wp_proof (hRev : mvcc.storeTxnCommon.Rev.spec 
   ihave Hkn : mvcc.idxKnows γ.idx (.cert log) $$ []
   · rw [mvcc.idxKnows_cert]; iexact Hcert0
   wp_apply (hKeys (mvcc.txCommon tr) s trace ti rt DFrac.discard m iprop(True) γ (.cert log) log rev
-      ctx cd todo key endk k e ro)
+      ctx cd todo key endk k e ro (by assumption))
     $$ [$Hs $HsT $HtxcT $HtraceT $Hrdr $Hkn $Hidx $Hti $Hctx $Hkey $Hend]
     as %r %err ⟨%Htodo, -, -, -, -, -, Hti, Hout⟩
   · isplitl []

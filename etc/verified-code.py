@@ -21,7 +21,8 @@ usage: etc/verified-code.py [-o REPORT.txt|REPORT.md]... [--markdown] [--functio
                the current root modules (etc/proof_roots.py)
 
 For a Goose verification project laid out as CLAUDE.md describes; nothing in it names
-a project.  Needs a built project (`lake build`) and `go` (to parse the Go sources, with
+a project.  Needs an up-to-date build (`lake build`: it never builds, and exits saying so
+if the build is out of date) and `go` (to parse the Go sources, with
 `etc/verified-code.go`).  Every Go function and method is in exactly one state:
 
   * verified   -- it has a spec, proved: this repository's `Proof/<fn>.lean` is a

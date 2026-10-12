@@ -93,6 +93,7 @@ theorem txn.Put.wp_proof
   subst Hkv
   (try wp_auto)
   wp_apply (hWrite s γ t P Pre Q f) $$ [$Hs $Hrd $Htok $Hhook $Hpre $Htr] as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
+  · ipureintro; exact Ht
   -- the caller's update (the writes are the model's): the lock's invariant back for `End`
   imod Hupd $$ HQ with ⟨HP, HPost⟩
   (try wp_auto)
@@ -148,7 +149,7 @@ theorem txn.Put.wp_proof
   · simp only [mvcc.isTxn]; iexact Htx
   have hp := hput ctx' { cd with Values := vs } mw s γ ilog [] (W64 0) (W64 0) (W64 0) p o prev
   simp only [txn.pendState_nil, List.nil_append, List.length_nil] at hp
-  wp_apply hp $$ [$Hctx' $Htx $Hp $Hprev $Hlok2] as %resp ⟨⟨%puts', %putSize', Htx⟩, #Hresp⟩
+  wp_apply hp $$ [$Hctx' $Htx $Hp $Hprev $Hlok2] as %resp ⟨⟨%puts', %putSize', Htx⟩, #Hresp, Hhdr⟩
   · ipureintro; exact ⟨Hn, by omega⟩
   (try wp_auto)
   -- the deferred `txnWrite.End()`: the put committed
@@ -171,7 +172,7 @@ theorem txn.Put.wp_proof
   · ipureintro; exact ⟨Hpin, Hfx.1⟩
   iframe HPost
   iright
-  iframe Hresp Hc Hlok2
+  iframe Hresp Hhdr Hc Hlok2
   ipureintro; rfl
 
 end proof

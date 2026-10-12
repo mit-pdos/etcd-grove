@@ -40,7 +40,7 @@ theorem mvcc.storeTxnWrite.Changes.wp_proof :
   simp only [named, mvcc.idxWriterB_false]
   iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
   iframe #
-  ipureintro; exact ⟨Hbudget, ⟨Hps, Hlen⟩, Hne⟩
+  ipureintro; exact ⟨Hbudget, ⟨Hps, Hlen⟩, Hne, Htrnn⟩
 
 end proof
 

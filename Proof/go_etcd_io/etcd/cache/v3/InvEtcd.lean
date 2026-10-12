@@ -273,8 +273,8 @@ theorem pairs_applyEv (Z : List (KvEntry × EtcdKv)) (e : EvModel) (c : EtcdEv) 
   unfold applyEv at hm
   unfold applyEvState
   by_cases h1 : e.typ = W32 1
-  · rw [if_pos h1] at hm
-    rw [if_pos (htyp ▸ h1)]
+  · rw [ite_eq_left h1] at hm
+    rw [ite_eq_left (htyp ▸ h1)]
     split at hm
     · cases hm
       refine ⟨btDelete pairLess ((e.key, null), c.kv) Z, ?_, ?_, ?_, ?_⟩
@@ -285,11 +285,11 @@ theorem pairs_applyEv (Z : List (KvEntry × EtcdKv)) (e : EvModel) (c : EtcdEv) 
       · exact fun z hz => hZ z (btDelete_mem hz)
       · exact fun z hz => Or.inl (btDelete_mem hz)
     · cases hm
-  · rw [if_neg h1] at hm
-    rw [if_neg (by rw [← htyp]; exact h1)]
+  · rw [ite_eq_right h1] at hm
+    rw [ite_eq_right (by rw [← htyp]; exact h1)]
     by_cases h0 : e.typ = W32 0
-    · rw [if_pos h0] at hm
-      rw [if_pos (htyp ▸ h0)]
+    · rw [ite_eq_left h0] at hm
+      rw [ite_eq_left (htyp ▸ h0)]
       cases hm
       refine ⟨btInsert pairLess ((e.key, e.kv), c.kv) Z, ?_, ?_, ?_, ?_⟩
       · exact (btInsert_map (lessA := pairLess) (lessB := kvLess) Prod.fst
@@ -304,8 +304,8 @@ theorem pairs_applyEv (Z : List (KvEntry × EtcdKv)) (e : EvModel) (c : EtcdEv) 
         rcases btInsert_mem hz with rfl | hz
         · exact Or.inr ⟨rfl, htyp ▸ h0⟩
         · exact Or.inl hz
-    · rw [if_neg h0] at hm
-      rw [if_neg (by rw [← htyp]; exact h0)]
+    · rw [ite_eq_right h0] at hm
+      rw [ite_eq_right (by rw [← htyp]; exact h0)]
       cases hm
       exact ⟨Z, rfl, rfl, hZ, fun z hz => Or.inl hz⟩
 
@@ -511,11 +511,11 @@ theorem btFind_isSome_of_key (k : GoString) : ∀ (m : KvMap), m.Pairwise kvLess
     rw [List.pairwise_cons] at hs
     simp only [btFind]
     by_cases h1 : kvLess w (k, null)
-    · rw [if_pos h1]
+    · rw [ite_eq_left h1]
       rcases List.mem_cons.1 hx with rfl | hx
       · exfalso; unfold kvLess at h1; rw [hxk] at h1; exact goStringLt_irrefl _ h1
       · exact btFind_isSome_of_key k ws hs.2 ⟨x, hx, hxk⟩
-    · rw [if_neg h1]
+    · rw [ite_eq_right h1]
       by_cases h2 : kvLess (k, null) w
       · exfalso
         rcases List.mem_cons.1 hx with rfl | hx
@@ -524,7 +524,7 @@ theorem btFind_isSome_of_key (k : GoString) : ∀ (m : KvMap), m.Pairwise kvLess
           unfold kvLess at h2 h3
           rw [hxk] at h3
           exact goStringLt_irrefl _ (goStringLt_trans h2 h3)
-      · rw [if_neg h2]; rfl
+      · rw [ite_eq_right h2]; rfl
 
 /-- A batch whose deletes are of keys present (on etcd's side) applies, on the store's side,
 without failing. -/
@@ -541,16 +541,16 @@ theorem pairs_applyBatch_ok : ∀ (Z : List (KvEntry × EtcdKv)) (evs : List EvM
     have hsome : ∃ m1, applyEv (Z.map Prod.fst) e = some m1 := by
       unfold applyEv
       by_cases h1 : e.typ = W32 1
-      · rw [if_pos h1]
+      · rw [ite_eq_left h1]
         obtain ⟨v, hv, hvk⟩ := hdel 0 c rfl (htyp ▸ h1)
         simp only [List.take_zero, applyEvsState, List.foldl_nil] at hv
         obtain ⟨z, hz, rfl⟩ := List.mem_map.1 hv
         have hfind : (btFind kvLess (e.key, null) (Z.map Prod.fst)).isSome :=
           btFind_isSome_of_key e.key _ hsorted
             ⟨z.1, List.mem_map_of_mem hz, by rw [hZ z hz, hvk, hkey]⟩
-        rw [if_pos hfind]
+        rw [ite_eq_left hfind]
         exact ⟨_, rfl⟩
-      · rw [if_neg h1]
+      · rw [ite_eq_right h1]
         split
         · exact ⟨_, rfl⟩
         · exact ⟨_, rfl⟩

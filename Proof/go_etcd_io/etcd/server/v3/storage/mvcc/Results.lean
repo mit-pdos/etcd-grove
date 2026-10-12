@@ -11,6 +11,11 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchRecv
 
 @[expose] public section
 
+-- `#print axioms` prints the axioms by their full names: shortening each name to the
+-- shortest unambiguous one in this environment took most of this module's build (25s of
+-- 31s for the server's `txn/Results.lean`).
+set_option pp.fullNames true
+
 #print axioms Perennial.EtcdGrove.mvcc.Revision.wp_GreaterThan
 #print axioms Perennial.EtcdGrove.mvcc.generation.wp_isEmpty
 #print axioms Perennial.EtcdGrove.mvcc.generation.wp_walk

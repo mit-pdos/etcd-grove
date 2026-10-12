@@ -9,7 +9,9 @@ mvcc translation got bodies and `storage/mvcc`'s instance needed prometheus's). 
 by a script from the translation's `PkgInfo` imports.
 
 As there, these are assumptions about package initialization, not proved from
-`initialize'`. They are `True` (the packages are translated names-only or types-only).
+`initialize'`. They are `True` (the packages are translated names-only or types-only), but the
+server's own (`srvInit`, 2026-10-12: the request path's metrics, `traceutil.Tracer` and error
+variables).
 `etcdserver/errors`' (`ErrNoSpace`, which the entry applier compares the applier's error
 with) is in its own `errors/Base.lean` (2026-10-11: moved there, unchanged, for the server's
 txn package, which imports it without the apply thread's translation). The instances of the
@@ -120,15 +122,6 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.server.v3.config
 
-namespace go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
-
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.snap
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap :=
@@ -138,13 +131,35 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.snap
 
+-- (after `snap`, which it imports since 2026-10-12: the `Transporter` interface)
+namespace go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
+
 -- etcdserver/errors: its own `errors/Base.lean` (imported above; the server txn package needs it
 -- without the apply thread's translation).
 
 namespace go_etcd_io.raft.v3
 
+/-- raft v3.7's package facts (2026-10-12, for the raft wrapper's `IsEmptyHardState`): its
+`emptyState` holds for good a pointer to a `HardState` with every field absent
+(`emptyState = &pb.HardState{}`). -/
+def raftInit : IProp GF :=
+  iprop(∃ e : Loc, globalAddr emptyState ↦□ e ∗ ⌜e ≠ null⌝ ∗
+    structFieldRef raftpb.HardState go!"Term" e ↦□ (null : Loc) ∗
+    structFieldRef raftpb.HardState go!"Vote" e ↦□ (null : Loc) ∗
+    structFieldRef raftpb.HardState go!"Commit" e ↦□ (null : Loc))
+
+instance raftInit_persistent : Persistent (raftInit (GF := GF)) := by
+  unfold raftInit; infer_instance
+
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init raftInit
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
   build_get_is_pkg_init_wf
 
@@ -204,10 +219,97 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.server.v3.etcdserver.read
 
+-- `server/v3/features` (names only, with the two feature constants the request path reads)
+namespace go_etcd_io.etcd.server.v3.features
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.server.v3.features
+
+-- `strconv` (Perennial's translation, names only: `FormatBool`, the request path's metrics
+-- labels; no variable read). Raft's `Base.lean` states the same instance for raft's proofs,
+-- which no module imports with the server's.
+namespace strconv
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.strconv :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.strconv :=
+  build_get_is_pkg_init_wf
+
+end strconv
+
 namespace go_etcd_io.etcd.server.v3.etcdserver
 
+/-- **The error variables the request path returns** (`v3_server.go`, `server.go`'s
+`parseProposeCtxErr`) hold `errors.New` errors (`EtcdGrove.errVarLeaf`): `etcdserver/errors`'
+`ErrTooManyRequests` (the request limit), `ErrRequestTooLarge` (`MaxRequestBytes`),
+`ErrStopped` (the server stopped while a proposal waited), `ErrCanceled`, `ErrTimeout`,
+`ErrTimeoutDueToLeaderFail`, `ErrTimeoutDueToConnectionLost` (a proposal's context done), and
+`auth.ErrAuthOldRevision` (`doSerialize`'s stale token). An assumption about those packages'
+initialization (each `var X = errors.New(...)`), stated here rather than in their packages'
+facts, as the apply package's `applyErrVars`. -/
+abbrev srvErrVars : IProp GF :=
+  iprop(EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTooManyRequests ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrRequestTooLarge ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrStopped ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCanceled ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeout ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToLeaderFail ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToConnectionLost ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.auth.ErrAuthOldRevision)
+
+/-- **The request path's part of the server package's facts** (2026-10-12; `True` until then): the
+metrics `metrics.go` declares and the request path updates (`requestDurationSec`, a
+`*prometheus.HistogramVec`, whose `WithLabelValues` is the trust boundary; `proposalsFailed`, a
+`Counter`, and `proposalsPending`, a `Gauge`, with mvcc's `counterSpec`/`gaugeSpec` as their
+contracts), `traceutil.Tracer` (a fixed tracer, stated here rather than in `traceutil`'s facts:
+its `Start` is the trust boundary, `Spec/go_etcd_io/etcd/pkg/v3/traceutil/Tracer__Start.lean`),
+and the error variables (`srvErrVars`). -/
+abbrev srvReqInit : IProp GF :=
+  iprop((∃ hv : Loc, globalAddr requestDurationSec ↦□ hv) ∗
+    (∃ c : GoInterfaceOk, globalAddr proposalsFailed ↦□ GoInterface.ok c ∗
+      go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c) ∗
+    (∃ g : GoInterfaceOk, globalAddr proposalsPending ↦□ GoInterface.ok g ∗
+      go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec g) ∗
+    (∃ tr : GoInterfaceOk, globalAddr go_etcd_io.etcd.pkg.v3.traceutil.Tracer ↦□ GoInterface.ok tr) ∗
+    srvErrVars)
+
+/-- A prometheus `Gauge` as the raft wrapper uses it: `Set(x)` returns. -/
+def gaugeSetSpec (g : GoInterfaceOk) : IProp GF :=
+  iprop(□ (∀ x : w64, {{ True }} (App (Val #(methods g.ty go!"Set" g.v)) (Val #x))
+    {{ RET #(); True }}))
+
+instance gaugeSetSpec_persistent (g : GoInterfaceOk) :
+    Persistent (gaugeSetSpec (GF := GF) g) := by
+  unfold gaugeSetSpec; infer_instance
+
+/-- The raft wrapper's part of the server's package facts (2026-10-12, `raft.go`): the metrics of
+`metrics.go` the `Ready` loop updates each hold a fixed gauge (`hasLeader`, `isLeader`,
+`proposalsCommitted`: `Set`) or counter (`leaderChanges`, `heartbeatSendFailures`: `Inc`, mvcc's
+`counterSpec`). -/
+abbrev srvRaftInit : IProp GF :=
+  iprop((∃ g : GoInterfaceOk, globalAddr hasLeader ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
+    (∃ g : GoInterfaceOk, globalAddr isLeader ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
+    (∃ g : GoInterfaceOk, globalAddr proposalsCommitted ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
+    (∃ c : GoInterfaceOk, globalAddr leaderChanges ↦□ GoInterface.ok c ∗
+      go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c) ∗
+    (∃ c : GoInterfaceOk, globalAddr heartbeatSendFailures ↦□ GoInterface.ok c ∗
+      go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c))
+
+instance srvRaftInit_persistent : Persistent (srvRaftInit (GF := GF)) := by
+  unfold srvRaftInit go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec; infer_instance
+
+/-- **The server package's facts**: the raft wrapper's (`srvRaftInit`) and the request path's
+(`srvReqInit`), merged 2026-10-12. Both are abbreviations, so `icases` sees through them: a
+proof destructs `srvInit` as `⟨⟨raft wrapper's⟩, ⟨request path's⟩⟩`. -/
+abbrev srvInit : IProp GF :=
+  iprop(srvRaftInit ∗ srvReqInit)
+
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init srvInit
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver :=
   build_get_is_pkg_init_wf
 

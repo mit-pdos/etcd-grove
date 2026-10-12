@@ -33,6 +33,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__replaceParent
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__rotateLeft
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__rotateRight
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.ownIvt_split
+public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Union
 
 @[expose] public section
 

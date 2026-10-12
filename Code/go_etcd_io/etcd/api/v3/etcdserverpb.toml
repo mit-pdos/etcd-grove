@@ -6,8 +6,9 @@
 # oneof wrappers), the transaction's response (`TxnResponse`, `ResponseOp` and its oneof wrappers,
 # `PutResponse`, `DeleteRangeResponse`) and `LeaseRevokeResponse`; for `Mutex`, `ResponseOp.GetResponseRange`;
 # for client/v3/leasing, the header's, the comparison's and the response's getters; for the
-# server's apply thread, `AlarmType_NOSPACE` (an axiomatized constant is an opaque `val`, which a
-# `let` cannot bind without knowing it is not a panic); for the server's txn package, the requests
+# server's apply thread, `AlarmType_NOSPACE` and (for `AlarmStore.Get`) `AlarmType_NONE` (an
+# axiomatized constant is an opaque `val`, which a `let` cannot bind without knowing it is not a
+# panic, nor a comparison decide); for the server's txn package, the requests
 # (`TxnRequest`, `RequestOp` and its oneof wrappers, `RangeRequest`, `PutRequest`,
 # `DeleteRangeRequest`), the range's sort constants and `RequestOp.GetRequestRange`; for the
 # server's apply package, the raft request (`InternalRaftRequest`, its `RequestHeader`, the
@@ -24,7 +25,7 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   "ResponseHeader.GetClusterId", "ResponseHeader.GetMemberId", "ResponseHeader.GetRaftTerm",
   "ResponseHeader.GetLeaderId", "Compare.GetRangeEnd", "Compare.GetResult", "Compare.GetTarget",
   "Compare.GetTargetUnion", "ResponseOp.GetResponseTxn", "ResponseOp.GetResponsePut",
-  "ResponseOp.GetResponseDeleteRange", "ResponseOp.GetResponse", "AlarmType_NOSPACE",
+  "ResponseOp.GetResponseDeleteRange", "ResponseOp.GetResponse", "AlarmType_NOSPACE", "AlarmType_NONE",
   "TxnRequest", "RequestOp", "RequestOp_RequestRange", "RequestOp_RequestPut",
   "RequestOp_RequestDeleteRange", "RequestOp_RequestTxn", "RequestOp.GetRequestRange",
   "RangeRequest", "PutRequest", "DeleteRangeRequest",
@@ -41,10 +42,22 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   "AuthUserGrantRoleResponse", "AuthUserGetRequest", "AuthUserGetResponse",
   "AuthUserRevokeRoleResponse", "AuthRoleAddResponse", "AuthRoleGrantPermissionResponse",
   "AuthRoleGetRequest", "AuthRoleGetResponse", "AuthRoleRevokePermissionResponse",
-  "AuthRoleDeleteResponse", "AuthUserListResponse", "AuthRoleListResponse"]
+  "AuthRoleDeleteResponse", "AuthUserListResponse", "AuthRoleListResponse",
+  # the server's RaftKV interface names the stream of RangeStream (an alias of a generic grpc
+  # interface: an untranslated alias is emitted without the `.ty` its users name)
+  "KV_RangeStreamServer",
+  # the getters the request path calls (the trace span's attributes, tracing.go's first*)
+  "RangeRequest.GetKey", "RangeRequest.GetRangeEnd", "RangeRequest.GetRevision",
+  "RangeRequest.GetLimit", "RangeRequest.GetCountOnly", "RangeRequest.GetKeysOnly",
+  "PutRequest.GetKey", "PutRequest.GetLease", "DeleteRangeRequest.GetKey",
+  "DeleteRangeRequest.GetRangeEnd", "TxnRequest.GetCompare", "TxnRequest.GetSuccess",
+  "TxnRequest.GetFailure", "RequestOp.GetRequest",
+  # the gRPC KV service's interface (`v3rpc.NewKVServer` converts its `*kvServer` to it) and the
+  # stream's chunk (`v3rpc.headerFillingRangeStream.Send` reads its `RangeResponse`)
+  "KVServer", "RangeStreamResponse"]
 imports = ["!*", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/membershippb",
   "go.etcd.io/etcd/api/v3/authpb",
-  "google.golang.org/protobuf/runtime/protoimpl"]
+  "google.golang.org/protobuf/runtime/protoimpl", "google.golang.org/grpc", "context"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

@@ -29,6 +29,7 @@ usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --adt > Proof/go_etcd_io/etcd/pkg/v3/adt/Link.lean
        etc/gen-link.py --txn > Proof/go_etcd_io/etcd/server/v3/etcdserver/txn/Link.lean
        etc/gen-link.py --apply > Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Link.lean
+       etc/gen-link.py --v3rpc > Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -69,6 +70,12 @@ applier chain between the apply thread and the txn package) and of the trust-bou
 they call, from etc/link-lean-first-apply.txt, under the apply package's assumptions; as `--txn`,
 its results are in a namespace of their own (`apply`), and the txn package's and mvcc's functions
 are `@` callees, linked in their `Link.lean`s.
+`--v3rpc` links the proofs of etcd's gRPC KV service (`server/v3/etcdserver/api/v3rpc`: the
+handlers, the request checks, the response header, `togRPCError`) and of the trust-boundary
+functions they call, from etc/link-lean-first-v3rpc.txt, under the package's assumptions (which
+include the server's: its Link reaches `EtcdDeps`); as `--apply`, its results are in a namespace
+of their own (`v3rpc`), and the server's, the txn package's and the interval tree's functions are
+`@` callees, linked in their `Link.lean`s.
 **Reuse** (2026-10-12): a callee whose result a Link this one imports already defines, under the
 same name, is imported, not redefined: two Links defining one theorem cannot be imported
 together (the trust report runs Lean on the roots a group of parts reaches together: the
@@ -135,6 +142,14 @@ LEAN_FIRST = {
                 "go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions",
                 "The server's `apply` package's proofs (etcd's `server/v3/etcdserver/apply`) and the "
                 "functions they call", [""]),
+    # the gRPC KV service (etcd's server/v3/etcdserver/api/v3rpc), over the server's request
+    # path; its assumptions include the server's (whose Link reaches EtcdDeps)
+    "--v3rpc": ("link-lean-first-v3rpc.txt",
+                "go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc go_etcd_io.etcd.server.v3.etcdserver "
+                "go_etcd_io.etcd.api.v3 go_etcd_io.etcd.pkg.v3",
+                "go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions",
+                "The gRPC KV service's proofs (etcd's `server/v3/etcdserver/api/v3rpc`) and the "
+                "functions they call", ["", "EtcdDeps"]),
     "--recipes": ("link-lean-first-recipes.txt",
                   "go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3",
                   "go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions",
@@ -149,10 +164,13 @@ LEAN_FIRST = {
 }
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
-              "--txn": "txn", "--apply": "apply"}
+              "--txn": "txn", "--apply": "apply", "--v3rpc": "v3rpc"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
+# The modules a mode imports beside its proofs (its package's translation, through its `Base`,
+# while no proof of the package is linked yet: the v3rpc package's unit 0).
+EXTRA_IMPORTS = {"--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base"]}
 mode = LEAN_FIRST.get(sys.argv[1])
 cache = mode is not None
 here = os.path.dirname(os.path.abspath(__file__))
@@ -171,6 +189,12 @@ for mroot in (mode[4] if cache else [""]):
                 rel = os.path.relpath(os.path.join(dp, f), spec_dir)[:-len(".lean")]
                 *pkg, stem = rel.split(os.sep)
                 qual = pkg[-1] + "_" + stem
+                if qual in where and where[qual] == ".".join(pkg + [stem]) and prefix[qual] == "":
+                    # the same Go function in a later root (the server's `EtcdDeps`: etcd's
+                    # raft v3.7, whose Go path is the verified raft's; no module imports both):
+                    # the later root's spec is the one this mode links
+                    prefix[qual] = prefix[stem] = mroot + "."
+                    continue
                 assert qual not in where, f"two specs for {qual}"
                 where[qual] = ".".join(pkg + [stem])
                 prefix[qual] = mroot + "." if mroot else ""
@@ -339,6 +363,7 @@ hand.
 -/""", "module", ""]
     out.extend(f"public import {proof_module(fn)}" for fn in fns
                if fn not in external and fn not in pending and fn not in reused)
+    out.extend(f"public import {m}" for m in EXTRA_IMPORTS.get(sys.argv[1], []))
     out.extend(f"public import {prefix[fn]}Spec.{where[fn]}" for fn in fns if fn in pending)
     out.extend(sorted({"public import Proof." + ".".join(where[fn].split(".")[:-1] + ["Link"])
                        for fn in external} | {f"public import {mod}" for mod in reused.values()}))
@@ -409,9 +434,13 @@ variable [package_sem : {assumptions}]
             # every result linking it
             link = os.path.join(root, prefix[fn].rstrip("."), "Proof",
                                 *where[fn].split(".")[:-1], "Link.lean")
-            if os.path.exists(link) and re.search(
-                    r"^theorem " + re.escape(result(fn)) +
-                    r" \[go_etcd_io\.etcd\.cache\.v3\.Assumptions\]", open(link).read(), re.M):
+            # the result as that Link names it: in its own namespace (the txn package's
+            # `wp_Txn`, which a namespaced mode calls `txn.wp_Txn`)
+            names = {result(fn), result(fn).split(".", 1)[-1]}
+            if os.path.exists(link) and any(re.search(
+                    r"^theorem " + re.escape(n) +
+                    r" \[go_etcd_io\.etcd\.cache\.v3\.Assumptions\]", open(link).read(), re.M)
+                    for n in names):
                 cache_assumptions.add(fn)
             continue
         if ("variable [go_etcd_io.etcd.cache.v3.Assumptions]" in open(spec_file(fn)).read()

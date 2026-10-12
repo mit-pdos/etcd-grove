@@ -211,8 +211,10 @@ theorem txn.executeRange_core
     wp_apply (hSort rr r lg o rev cnt (srvPre o st)) $$ [$Hrr $Hr] as ⟨%vs', Hrr, %Hsorted⟩
     · ipureintro; exact ⟨Hpre.1, hsmall⟩
     wp_apply (hStep t)
+    · ipureintro; exact Ht
     wp_apply (hAsm rr r o rev cnt vs') $$ [$Hrr $Hr] as %resp #Hresp
     wp_apply (hStep t)
+    · ipureintro; exact Ht
     iapply HΦ
     iframe Htx
     isplitl

@@ -153,7 +153,7 @@ theorem Register.apply.wp_proof (wp_decode : register.decode.spec (GF := GF) (hG
       · -- a `Put`
         ihave Hv : r.[RRegister, go!"value"] ↦ regApply v d $$ [Hv]
         · simp only [regApply, Hdec]
-          rw [if_pos (show W8 1 = opPutB from rfl)]
+          rw [ite_eq_left (show W8 1 = opPutB from rfl)]
           iexact Hv
         wp_if_destruct
         · -- this replica's operation: its waiter, if any
@@ -228,7 +228,7 @@ theorem Register.apply.wp_proof (wp_decode : register.decode.spec (GF := GF) (hG
           iapply Hfin $$ Hv HmA HA
       · ihave Hv : r.[RRegister, go!"value"] ↦ regApply v d $$ [Hv]
         · simp only [regApply, Hdec]
-          rw [if_neg (by unfold opPutB; exact Hif)]
+          rw [ite_eq_right (by unfold opPutB; exact Hif)]
           iexact Hv
         wp_if_destruct
         · -- this replica's operation: its waiter, if any

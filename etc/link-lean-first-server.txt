@@ -25,18 +25,27 @@ Entry__GetIndex:
 Entry__GetTerm:
 Entry__GetType:
 ConfChange__GetId:
-# The apply thread's trust boundary (`axiom … .wp_proof`), see InvApplier.lean: the applier
-# and the membership change's contracts, and names-only callees (zap, the alarm store, ...).
-apply_Apply:
+# The applier (`apply.Apply`): proved in the apply package (`--apply`), linked in its
+# `Link.lean` (`@`; since the apply package's unit 3, 2026-10-12).
+apply_Apply: @
+# The apply thread's trust boundary (`axiom … .wp_proof`), see InvApplier.lean: the
+# membership change's contract, and names-only callees (zap, the alarm store, ...).
 EtcdServer__applyConfChange:
 pbutil_MustUnmarshalMessage:
-EtcdServer__isLeader:
-EtcdServer__Logger:
 EtcdServer__GoAttach:
 EtcdServer__stopWithDelay:
+# The apply thread's small callees, with bodies (proved): the server's leader test and
+# logger (server.go), the notifier (pkg/notify), the election timeout (server/config), the
+# alarm store's Get (api/v3alarm).
+EtcdServer__MemberID:
+EtcdServer__getLead:
+EtcdServer__Lead: EtcdServer__getLead
+EtcdServer__isLeader: EtcdServer__MemberID EtcdServer__Lead
+EtcdServer__Logger:
 Notifier__Notify:
 ServerConfig__ElectionTimeout:
 AlarmStore__Get:
+# (the trust boundary, continued)
 RaftCluster__Members:
 errors_Is:
 go_humanize_Bytes:
@@ -55,3 +64,116 @@ EtcdServer__setTerm:
 EtcdServer__applyEntries: Entry__GetIndex EtcdServer__apply EtcdServer__stopWithDelay
 EtcdServer__applyEntryNormal: Entry__GetIndex Entry__GetTerm consistentIndex__ConsistentIndex consistentIndex__SetConsistentIndex Notifier__Notify EtcdServer__isLeader ServerConfig__ElectionTimeout apply_Apply errors_Is AlarmStore__Get EtcdServer__Logger zap_String zap_Int64 zap_Error go_humanize_Bytes zap_Logger__Warn EtcdServer__GoAttach
 EtcdServer__apply: zap_Logger__Debug zap_Int zap_Uint64 zap_Stringer consistentIndex__ConsistentIndex consistentIndex__SetConsistentApplyingIndex consistentIndex__SetConsistentIndex Entry__GetIndex Entry__GetTerm Entry__GetType EtcdServer__applyEntryNormal EtcdServer__setAppliedIndex EtcdServer__setTerm pbutil_MustUnmarshalMessage EtcdServer__applyConfChange ConfChange__GetId RaftCluster__Members
+# The raft wrapper (server/etcdserver/raft.go), see InvRaftNode.lean: raft v3.7's helpers and
+# getters it calls, its trust boundary (zap's Duration and Fatal, proto.Clone: names-only), and
+# raftNode's methods (raft.Node, the WAL, the transport, ... are contracts in isRaftNode).
+HardState__GetTerm:
+HardState__GetVote:
+HardState__GetCommit:
+Message__GetTo:
+Message__GetType:
+Snapshot__GetMetadata:
+SnapshotMetadata__GetIndex:
+isHardStateEqual: HardState__GetTerm HardState__GetVote HardState__GetCommit
+IsEmptyHardState: isHardStateEqual
+IsEmptySnap: Snapshot__GetMetadata SnapshotMetadata__GetIndex
+zap_Duration:
+zap_Logger__Fatal:
+proto_Clone:
+updateCommittedIndex: Entry__GetIndex
+raftNode__tick:
+raftNode__advanceTicks: raftNode__tick
+raftNode__getLatestTickTs:
+raftNode__ReadState:
+raftNode__apply:
+raftNode__onStop:
+raftNode__stop:
+raftNode__processMessages: Message__GetTo Message__GetType zap_String zap_Duration zap_Logger__Warn
+raftNode__start: raftNode__tick raftNode__processMessages updateCommittedIndex raftNode__onStop IsEmptySnap IsEmptyHardState HardState__GetCommit Entry__GetType proto_Clone zap_Error zap_Logger__Fatal
+#
+# The request path (v3_server.go; plan: notes/decisions.md, "The request path"; unit 0,
+# 2026-10-12). The trust boundary (axioms): otel's tracer, spans and attributes, the metrics'
+# histogram, strconv and time's names-only helpers, traceutil's trace bookkeeping, the txn
+# package's read-only loggers, the transport queries of parseProposeCtxErr, the configuration's
+# request timeout, the cluster's id, and proto.Marshal of an InternalRaftRequest. The components
+# the path calls through fields (the raft node, the wait, the id generator, the read loop, the
+# auth store, the feature gate) are contracts (InvRequest.lean), not axioms.
+traceutil_Tracer__Start:
+trace_WithAttributes:
+attribute_String:
+attribute_Int64:
+attribute_Bool:
+attribute_Int:
+strconv_FormatBool:
+time_Duration__Seconds:
+time_Time__After:
+prometheus_HistogramVec__WithLabelValues:
+traceutil_Trace__LogIfLong:
+traceutil_Trace__GetStartTime:
+traceutil_Trace__SetStartTime:
+traceutil_Trace__InsertStep:
+txn_WarnOfExpensiveReadOnlyRangeRequest:
+txn_WarnOfExpensiveReadOnlyTxnRequest:
+etcdserver_isConnectedSince:
+etcdserver_isConnectedToQuorumSince:
+config_ServerConfig__ReqTimeout:
+membership_RaftCluster__ID:
+proto_MarshalIRR:
+# Two more trust-boundary axioms of the request path (unit 2, 2026-10-12): a context's
+# `Value` at `traceutil.StartTimeKey` (Perennial's `isContext` specifies `Value` only at
+# `&cancelCtxKey`), and `errors.Is` of a context's error against `context.Canceled` /
+# `DeadlineExceeded` (no error tree for a context's `Err`; `DeadlineExceeded` is not a pointer).
+# And (unit 3a) a done context's `Err()` is `Canceled` or `DeadlineExceeded` (Go's contract of
+# `Context.Err`; Perennial's `isContext` says only "a typed error").
+context_ValueStartTime:
+errors_IsCtxErr:
+context_ErrDone:
+# (reused from the Links that define them: mvcc's span, the apply package's `WithValue`)
+trace_SpanFromContext:
+context_WithValue:
+# etcdserverpb's getters the request path calls, with bodies (proved).
+PutRequest__GetKey:
+DeleteRangeRequest__GetKey:
+DeleteRangeRequest__GetRangeEnd:
+# pkg/idutil and pkg/wait, with bodies (unit 2): the request ids and the wait registry.
+idutil_lowbit:
+idutil_NewGenerator: idutil_lowbit
+idutil_Generator__Next: idutil_lowbit
+wait_list__Register:
+wait_list__Trigger:
+wait_list__IsRegistered:
+wait_New: wait_list__Register wait_list__Trigger wait_list__IsRegistered
+wait_NewWithResponse:
+wait_waitWithResponse__Register:
+wait_waitWithResponse__Trigger:
+# The request path's write side (v3_server.go, util.go, server.go; unit 2): the proposal, its
+# wait and the handoff, Put and DeleteRange. See InvRequest.lean, InvProposer.lean.
+isPriorityRequest:
+exceedsRequestLimit: isPriorityRequest
+getRequestType:
+EtcdServer__getAppliedIndex:
+EtcdServer__getCommittedIndex:
+EtcdServer__FeatureEnabled:
+EtcdServer__AuthStore:
+EtcdServer__AuthInfoFromCtx: EtcdServer__AuthStore
+EtcdServer__parseProposeCtxErr: errors_IsCtxErr time_Time__After EtcdServer__getLead EtcdServer__MemberID RaftCluster__Members etcdserver_isConnectedToQuorumSince etcdserver_isConnectedSince
+EtcdServer__processInternalRaftRequestOnce: EtcdServer__getAppliedIndex EtcdServer__getCommittedIndex EtcdServer__FeatureEnabled exceedsRequestLimit idutil_Generator__Next EtcdServer__AuthInfoFromCtx getRequestType proto_MarshalIRR config_ServerConfig__ReqTimeout trace_SpanFromContext EtcdServer__parseProposeCtxErr context_ErrDone strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues
+EtcdServer__raftRequest: EtcdServer__processInternalRaftRequestOnce trace_SpanFromContext context_ValueStartTime traceutil_Trace__GetStartTime traceutil_Trace__SetStartTime traceutil_Trace__InsertStep traceutil_Trace__LogIfLong
+EtcdServer__Put: EtcdServer__raftRequest PutRequest__GetKey traceutil_Tracer__Start trace_WithAttributes attribute_String context_WithValue
+EtcdServer__DeleteRange: EtcdServer__raftRequest DeleteRangeRequest__GetKey DeleteRangeRequest__GetRangeEnd traceutil_Tracer__Start trace_WithAttributes attribute_String
+# The rest of the request path (unit 3, the read side; Txn, whose span attributes call the
+# first* loops), with a first guess of their callees.
+# EtcdServer__KV:
+# EtcdServer__Cluster:
+# EtcdServer__getTerm:
+# EtcdServer__Term: EtcdServer__getTerm
+# EtcdServer__Leader: EtcdServer__getLead
+# EtcdServer__LinearizableReadNotify:
+# EtcdServer__newHeader: membership_RaftCluster__ID EtcdServer__MemberID EtcdServer__KV EtcdServer__Term EtcdServer__Leader
+# firstCompareKey: Compare__GetKey
+# firstOpKey: RequestOp__GetRequest PutRequest__GetKey RangeRequest__GetKey DeleteRangeRequest__GetKey
+# firstOpType: RequestOp__GetRequest
+# firstOpLease: RequestOp__GetRequest PutRequest__GetLease
+# EtcdServer__doSerialize: traceutil_Get EtcdServer__AuthInfoFromCtx traceutil_Trace__Step
+# EtcdServer__Txn: txn_IsTxnReadonly traceutil_Tracer__Start trace_WithAttributes firstCompareKey firstOpKey firstOpType firstOpLease attribute_String attribute_Int64 attribute_Int attribute_Bool traceutil_EnsureTrace txn_IsTxnSerializable EtcdServer__LinearizableReadNotify traceutil_Trace__Step apply_CheckTxnAuth txn_WarnOfExpensiveReadOnlyTxnRequest traceutil_Trace__LogIfLong strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues txn_Txn EtcdServer__doSerialize context_WithValue EtcdServer__raftRequest
+# EtcdServer__Range: traceutil_Tracer__Start trace_WithAttributes attribute_String attribute_Int64 attribute_Bool traceutil_EnsureTrace txn_WarnOfExpensiveReadOnlyRangeRequest traceutil_Trace__AddField traceutil_Trace__LogIfLong strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues EtcdServer__LinearizableReadNotify traceutil_Trace__Step txn_Range EtcdServer__doSerialize

@@ -74,7 +74,7 @@ theorem txn.Txn.wp_proof
       (try simp only [SharedBufReadTxMode, ConcurrentReadTxMode]) <;> wp_auto <;>
       (isplitl []; · itrivial) <;> iexists _ <;> iframe
   have hlen3 : log.length + 3 ≤ 2 ^ 63 := by have := Hpre.1; omega
-  wp_apply (txn.soleWriter_Read hRead s γ md tr log hlen3) $$ [$Hs $Hrd $Hsw] as %mw ⟨%rev, Htx, Hsw⟩
+  wp_apply (txn.soleWriter_Read hRead s γ md tr log hlen3 Htr) $$ [$Hs $Hrd $Hsw] as %mw ⟨%rev, Htx, Hsw⟩
   -- `compareToPath` in the trace's step
   wp_apply (hStepF tr _ _ slice.nil
       (fun x => iprop(⌜x = #()⌝ ∗ ∃ sl : GoSlice, txnPath_ptr ↦ sl ∗
@@ -126,6 +126,7 @@ theorem txn.Txn.wp_proof
   obtain ⟨rfl, -, Hign⟩ := Hok
   wp_auto
   wp_apply (hStep tr _ _)
+  · ipureintro; exact Htr
   have hoks := opsOk_strong _ _ _ _ Hpre.2.1 Hign
   have hlen4 : log.length + 4 ≤ 2 ^ 63 := Hpre.1
   ihave #Hnd' : mvcc.neverDone { cd with Values := vs } $$ []
@@ -191,10 +192,11 @@ theorem txn.Txn.wp_proof
     icases soleWriter_split γ log hlen4 $$ Hsw with ⟨Htok, Hsw⟩
     wp_apply (hWrite s γ tr P Pre Q f) $$ [$Hs $Hrd $Htok $Hhook $HPre $Htr]
       as %mw' ⟨⟨%ilog, Htx⟩, HQ⟩
+    · ipureintro; exact Htr
     -- the caller's update (the writes are the model's): the lock's invariant back for `End`
     imod Hupd $$ HQ with ⟨HP, HPost⟩
     iunfold soleWriterOpen at Hsw
-    icases Hsw with ⟨#Hc, Htoks⟩
+    icases Hsw with ⟨#Hc, Htoks, %Hl2⟩
     ihave ⟨%Hpin, Htoks, -, Htx⟩ := isTxnWrite_pinned γ log ilog [] mw' s (W64 0) (W64 0) (W64 0)
       (soleBudget log - 1) $$ [$Htoks $Hc $Htx]
     have hil := pinned_sole log ilog hlen4 Hpin
@@ -218,7 +220,7 @@ theorem txn.Txn.wp_proof
     wp_apply (hEnd mw' s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost⟩
     · iapply mvcc.txnEndPre_write; iframe Hhook HP
     ihave Hsw := soleWriter_close_end γ log _ p1 p2 p3 hlen4 $$ [Htoks Hpost]
-    · iframe Hpost; iunfold soleWriterOpen; iframe Hc Htoks
+    · iframe Hpost; iunfold soleWriterOpen; iframe Hc Htoks; ipureintro; exact Hl2
     ihave #Hresp2 := Hresp
     iunfold txnResponseIs at Hresp2
     icases Hresp2 with ⟨%Hrn, #Hf⟩

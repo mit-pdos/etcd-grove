@@ -1,6 +1,11 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
-imports = ["!*"]
+# The server's wait registry (wait.go), with bodies: New, the sharded list's Register,
+# Trigger and IsRegistered, and waitWithResponse. wait_time.go (WaitTime, the applied
+# index's waiters) is names only.
+translate = ["!*", "defaultListElementLength", "Wait", "list", "listElement", "New",
+  "list.Register", "list.Trigger", "list.IsRegistered",
+  "waitWithResponse", "NewWithResponse", "waitWithResponse.Register",
+  "waitWithResponse.Trigger", "waitWithResponse.IsRegistered"]
+imports = ["!*", "log", "sync"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

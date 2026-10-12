@@ -2,6 +2,8 @@
 module
 
 public import Code.go_etcd_io.etcd.server.v3.storage.backend
+public import EtcdDeps.Code.go_etcd_io.raft.v3.raftpb
+public import Code.github_com.Masterminds.semver.v3
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -53,8 +55,6 @@ def storage.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 attribute [irreducible] storage.ty
 
 axiom BackendHooks.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom Storage.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom storage.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
@@ -121,7 +121,7 @@ noncomputable def GetEffectiveNodeIDsFromWALEntries [FfiSyntax] [GoGlobalContext
   go!"go.etcd.io/etcd/server/v3/storage.GetEffectiveNodeIDsFromWALEntries"
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage where
-  pkgImportedPkgs := [pkg_id.go_etcd_io.etcd.server.v3.storage.backend]
+  pkgImportedPkgs := [pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.github_com.Masterminds.semver.v3]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -132,6 +132,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val maxQuotaSize.init) (Val #())))))
   (App (Val doExecute)
@@ -139,7 +141,11 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val quotaBackendBytes.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.Masterminds.semver.v3.initialize') (Val #()))))))))
 
 axiom BackendHooks : Type
 axiom BackendHooks.zero_val : ZeroVal BackendHooks
@@ -227,18 +233,15 @@ attribute [instance] BackendQuota.TypeAssumptions.type_repr
   BackendQuota.TypeAssumptions.get_maxBackendBytes
   BackendQuota.TypeAssumptions.set_maxBackendBytes
 
-axiom Storage : Type
-axiom Storage.zero_val : ZeroVal Storage
-attribute [instance] Storage.zero_val
+abbrev Storage [FfiSyntax] : Type := GoInterface
+
+@[reducible] def Storage.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Close" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"MinimalEtcdVersion" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)])), (go.InterfaceElem.MethodElem go!"Release" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)] false [go.error])), (go.InterfaceElem.MethodElem go!"Save" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty), (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false [go.error])), (go.InterfaceElem.MethodElem go!"SaveSnap" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)] false [go.error])), (go.InterfaceElem.MethodElem go!"Sync" (go.signature.Signature [] false [go.error]))])
 
 class Storage.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying Storage.underlying Storage
   underlying : go.UnderlyingDirectedEq Storage.ty Storage.underlying
-  isUnderlying : go.IsUnderlying Storage.underlying Storage.underlying
 
-attribute [instance] Storage.TypeAssumptions.type_repr
-  Storage.TypeAssumptions.underlying
-  Storage.TypeAssumptions.isUnderlying
+attribute [instance] Storage.TypeAssumptions.underlying
 
 axiom storage : Type
 axiom storage.zero_val : ZeroVal storage
@@ -261,6 +264,8 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Storage_instance : Storage.TypeAssumptions
   storage_instance : storage.TypeAssumptions
   import_backend_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
+  import_raftpb_Assumption : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
+  import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
 
 attribute [instance] Assumptions.BackendHooks_instance
   Assumptions.Quota_instance
@@ -269,6 +274,8 @@ attribute [instance] Assumptions.BackendHooks_instance
   Assumptions.Storage_instance
   Assumptions.storage_instance
   Assumptions.import_backend_Assumption
+  Assumptions.import_raftpb_Assumption
+  Assumptions.import_semver_Assumption
 
 end go_etcd_io.etcd.server.v3.storage
 

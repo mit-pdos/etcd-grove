@@ -77,9 +77,11 @@ end go_etcd_io.etcd.pkg.v3.schedule
 
 namespace github_com.prometheus.client_golang.prometheus
 
+set_option linter.iris.dupNamespace false in
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus :=
   define_is_pkg_init iprop(True)
+set_option linter.iris.dupNamespace false in
 instance get_isPkgInit_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus :=
   build_get_is_pkg_init_wf

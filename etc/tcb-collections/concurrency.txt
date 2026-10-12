@@ -19,4 +19,3 @@ axiom rpctypes.Error.wp_proof
 axiom status.Error.wp_proof
 axiom zap.Int64.wp_proof
 axiom zap.Logger.Warn.wp_proof
-sorry Perennial.context.wp_WithDeadlineCause
