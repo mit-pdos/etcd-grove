@@ -42,7 +42,7 @@ theorem find?_range_some (p : Nat → Bool) (n k : Nat) (hk : k < n) (hp : p k =
 
 set_option maxHeartbeats 400000 in
 theorem DB.mmapSize.wp_proof : DB.mmapSize.spec (GF := GF) (hG := hG) := by
-  intro dbl d dq size Hps Hps2
+  intro dbl ps dq size Hps Hps2
   wp_start as Hdb
   wp_auto
   ihave IH : iprop(∃ (n : w64), "i" ∷ i_ptr ↦ n ∗
@@ -84,12 +84,12 @@ theorem DB.mmapSize.wp_proof : DB.mmapSize.spec (GF := GF) (hG := hG) := by
         have := shl_one_sint n Hn30
         omega
   · have Hn31 : uint.Z n = 31 := by word
-    have Hnone : mmapSizeOf (sint.Z size) (sint.Z d.pageSize') =
+    have Hnone : mmapSizeOf (sint.Z size) (sint.Z ps) =
         (if sint.Z size > 281474976710655 then none else
           let sz := if sint.Z size % 1073741824 > 0
             then sint.Z size + 1073741824 - sint.Z size % 1073741824 else sint.Z size
-          let sz := if sz % sint.Z d.pageSize' ≠ 0
-            then (sz / sint.Z d.pageSize' + 1) * sint.Z d.pageSize' else sz
+          let sz := if sz % sint.Z ps ≠ 0
+            then (sz / sint.Z ps + 1) * sint.Z ps else sz
           some (min sz 281474976710655)) := by
       unfold mmapSizeOf
       rw [find?_range_none _ 16 (fun j hj => by
@@ -122,11 +122,11 @@ theorem DB.mmapSize.wp_proof : DB.mmapSize.spec (GF := GF) (hG := hG) := by
           word
         have Hzb : sint.Z z ≤ 2 ^ 49 := by rw [Hz]; split <;> omega
         have Hz0' : 0 < sint.Z z := by rw [Hz]; split <;> omega
-        have Hr2 := sint_srem z d.pageSize' (by omega) Hps
-        have Hq := sint_sdiv z d.pageSize' (by omega) Hps
-        have Hq0 := Int.ediv_nonneg (by omega : 0 ≤ sint.Z z) (by omega : 0 ≤ sint.Z d.pageSize')
-        have Hqle := Int.ediv_le_self (sint.Z d.pageSize') (by omega : 0 ≤ sint.Z z)
-        have Hqm := Int.ediv_mul_le (sint.Z z) (by omega : sint.Z d.pageSize' ≠ 0)
+        have Hr2 := sint_srem z ps (by omega) Hps
+        have Hq := sint_sdiv z ps (by omega) Hps
+        have Hq0 := Int.ediv_nonneg (by omega : 0 ≤ sint.Z z) (by omega : 0 ≤ sint.Z ps)
+        have Hqle := Int.ediv_le_self (sint.Z ps) (by omega : 0 ≤ sint.Z z)
+        have Hqm := Int.ediv_mul_le (sint.Z z) (by omega : sint.Z ps ≠ 0)
         wp_if_destruct
         · -- the size is a whole number of pages
           have Hz0 := Hif
@@ -138,7 +138,7 @@ theorem DB.mmapSize.wp_proof : DB.mmapSize.spec (GF := GF) (hG := hG) := by
             rw [ite_eq_right_of_eq_false _ _ (eq_false (by word))]
             simp only []
             rw [← Hz]
-            have he : ¬ (sint.Z z % sint.Z d.pageSize' ≠ 0) := by
+            have he : ¬ (sint.Z z % sint.Z ps ≠ 0) := by
               rw [← Hr2, Hz0]; decide
             rw [ite_eq_right_of_eq_false _ _ (eq_false he)]
             refine ⟨by trivial, ?_⟩
@@ -149,7 +149,7 @@ theorem DB.mmapSize.wp_proof : DB.mmapSize.spec (GF := GF) (hG := hG) := by
             rw [ite_eq_right_of_eq_false _ _ (eq_false (by word))]
             simp only []
             rw [← Hz]
-            have he : ¬ (sint.Z z % sint.Z d.pageSize' ≠ 0) := by
+            have he : ¬ (sint.Z z % sint.Z ps ≠ 0) := by
               rw [← Hr2, Hz0]; decide
             rw [ite_eq_right_of_eq_false _ _ (eq_false he)]
             refine ⟨by trivial, ?_⟩
@@ -157,12 +157,12 @@ theorem DB.mmapSize.wp_proof : DB.mmapSize.spec (GF := GF) (hG := hG) := by
         · -- rounded up to a whole page
           have Hnz := Hif
           try wp_auto
-          have HQ1 : sint.Z (BitVec.sdiv z d.pageSize' + W64 1) = sint.Z z / sint.Z d.pageSize' + 1 := by
+          have HQ1 : sint.Z (BitVec.sdiv z ps + W64 1) = sint.Z z / sint.Z ps + 1 := by
             rw [← Hq] at Hq0 Hqle ⊢; word
-          have Hprod : (sint.Z z / sint.Z d.pageSize' + 1) * sint.Z d.pageSize' < 2 ^ 63 := by
+          have Hprod : (sint.Z z / sint.Z ps + 1) * sint.Z ps < 2 ^ 63 := by
             rw [Int.add_mul, Int.one_mul]; omega
-          generalize hz2 : (BitVec.sdiv z d.pageSize' + W64 1) * d.pageSize' = z2
-          have Hz2 : sint.Z z2 = (sint.Z z / sint.Z d.pageSize' + 1) * sint.Z d.pageSize' := by
+          generalize hz2 : (BitVec.sdiv z ps + W64 1) * ps = z2
+          have Hz2 : sint.Z z2 = (sint.Z z / sint.Z ps + 1) * sint.Z ps := by
             subst hz2
             rw [sint_mul _ _ (by rw [HQ1]; omega) (by omega) (by rw [HQ1]; exact Hprod), HQ1]
           wp_if_destruct
@@ -172,7 +172,7 @@ theorem DB.mmapSize.wp_proof : DB.mmapSize.spec (GF := GF) (hG := hG) := by
             rw [ite_eq_right_of_eq_false _ _ (eq_false (by word))]
             simp only []
             rw [← Hz]
-            have hne : sint.Z z % sint.Z d.pageSize' ≠ 0 := by
+            have hne : sint.Z z % sint.Z ps ≠ 0 := by
               intro h; apply Hnz; rw [← Hr2] at h; word
             rw [ite_eq_left_of_eq_true _ _ (eq_true hne)]
             refine ⟨by trivial, ?_⟩
@@ -183,7 +183,7 @@ theorem DB.mmapSize.wp_proof : DB.mmapSize.spec (GF := GF) (hG := hG) := by
             rw [ite_eq_right_of_eq_false _ _ (eq_false (by word))]
             simp only []
             rw [← Hz]
-            have hne : sint.Z z % sint.Z d.pageSize' ≠ 0 := by
+            have hne : sint.Z z % sint.Z ps ≠ 0 := by
               intro h; apply Hnz; rw [← Hr2] at h; word
             rw [ite_eq_left_of_eq_true _ _ (eq_true hne)]
             refine ⟨by trivial, ?_⟩
@@ -195,11 +195,11 @@ theorem DB.mmapSize.wp_proof : DB.mmapSize.spec (GF := GF) (hG := hG) := by
           rw [ite_eq_right_of_eq_false _ _ (eq_false (by omega))]
         have Hzb : sint.Z z ≤ 2 ^ 49 := by rw [Hz]; split <;> omega
         have Hz0' : 0 < sint.Z z := by rw [Hz]; split <;> omega
-        have Hr2 := sint_srem z d.pageSize' (by omega) Hps
-        have Hq := sint_sdiv z d.pageSize' (by omega) Hps
-        have Hq0 := Int.ediv_nonneg (by omega : 0 ≤ sint.Z z) (by omega : 0 ≤ sint.Z d.pageSize')
-        have Hqle := Int.ediv_le_self (sint.Z d.pageSize') (by omega : 0 ≤ sint.Z z)
-        have Hqm := Int.ediv_mul_le (sint.Z z) (by omega : sint.Z d.pageSize' ≠ 0)
+        have Hr2 := sint_srem z ps (by omega) Hps
+        have Hq := sint_sdiv z ps (by omega) Hps
+        have Hq0 := Int.ediv_nonneg (by omega : 0 ≤ sint.Z z) (by omega : 0 ≤ sint.Z ps)
+        have Hqle := Int.ediv_le_self (sint.Z ps) (by omega : 0 ≤ sint.Z z)
+        have Hqm := Int.ediv_mul_le (sint.Z z) (by omega : sint.Z ps ≠ 0)
         wp_if_destruct
         · -- the size is a whole number of pages
           have Hz0 := Hif
@@ -211,7 +211,7 @@ theorem DB.mmapSize.wp_proof : DB.mmapSize.spec (GF := GF) (hG := hG) := by
             rw [ite_eq_right_of_eq_false _ _ (eq_false (by word))]
             simp only []
             rw [← Hz]
-            have he : ¬ (sint.Z z % sint.Z d.pageSize' ≠ 0) := by
+            have he : ¬ (sint.Z z % sint.Z ps ≠ 0) := by
               rw [← Hr2, Hz0]; decide
             rw [ite_eq_right_of_eq_false _ _ (eq_false he)]
             refine ⟨by trivial, ?_⟩
@@ -222,7 +222,7 @@ theorem DB.mmapSize.wp_proof : DB.mmapSize.spec (GF := GF) (hG := hG) := by
             rw [ite_eq_right_of_eq_false _ _ (eq_false (by word))]
             simp only []
             rw [← Hz]
-            have he : ¬ (sint.Z z % sint.Z d.pageSize' ≠ 0) := by
+            have he : ¬ (sint.Z z % sint.Z ps ≠ 0) := by
               rw [← Hr2, Hz0]; decide
             rw [ite_eq_right_of_eq_false _ _ (eq_false he)]
             refine ⟨by trivial, ?_⟩
@@ -230,12 +230,12 @@ theorem DB.mmapSize.wp_proof : DB.mmapSize.spec (GF := GF) (hG := hG) := by
         · -- rounded up to a whole page
           have Hnz := Hif
           try wp_auto
-          have HQ1 : sint.Z (BitVec.sdiv z d.pageSize' + W64 1) = sint.Z z / sint.Z d.pageSize' + 1 := by
+          have HQ1 : sint.Z (BitVec.sdiv z ps + W64 1) = sint.Z z / sint.Z ps + 1 := by
             rw [← Hq] at Hq0 Hqle ⊢; word
-          have Hprod : (sint.Z z / sint.Z d.pageSize' + 1) * sint.Z d.pageSize' < 2 ^ 63 := by
+          have Hprod : (sint.Z z / sint.Z ps + 1) * sint.Z ps < 2 ^ 63 := by
             rw [Int.add_mul, Int.one_mul]; omega
-          generalize hz2 : (BitVec.sdiv z d.pageSize' + W64 1) * d.pageSize' = z2
-          have Hz2 : sint.Z z2 = (sint.Z z / sint.Z d.pageSize' + 1) * sint.Z d.pageSize' := by
+          generalize hz2 : (BitVec.sdiv z ps + W64 1) * ps = z2
+          have Hz2 : sint.Z z2 = (sint.Z z / sint.Z ps + 1) * sint.Z ps := by
             subst hz2
             rw [sint_mul _ _ (by rw [HQ1]; omega) (by omega) (by rw [HQ1]; exact Hprod), HQ1]
           wp_if_destruct
@@ -245,7 +245,7 @@ theorem DB.mmapSize.wp_proof : DB.mmapSize.spec (GF := GF) (hG := hG) := by
             rw [ite_eq_right_of_eq_false _ _ (eq_false (by word))]
             simp only []
             rw [← Hz]
-            have hne : sint.Z z % sint.Z d.pageSize' ≠ 0 := by
+            have hne : sint.Z z % sint.Z ps ≠ 0 := by
               intro h; apply Hnz; rw [← Hr2] at h; word
             rw [ite_eq_left_of_eq_true _ _ (eq_true hne)]
             refine ⟨by trivial, ?_⟩
@@ -256,7 +256,7 @@ theorem DB.mmapSize.wp_proof : DB.mmapSize.spec (GF := GF) (hG := hG) := by
             rw [ite_eq_right_of_eq_false _ _ (eq_false (by word))]
             simp only []
             rw [← Hz]
-            have hne : sint.Z z % sint.Z d.pageSize' ≠ 0 := by
+            have hne : sint.Z z % sint.Z ps ≠ 0 := by
               intro h; apply Hnz; rw [← Hr2] at h; word
             rw [ite_eq_left_of_eq_true _ _ (eq_true hne)]
             refine ⟨by trivial, ?_⟩

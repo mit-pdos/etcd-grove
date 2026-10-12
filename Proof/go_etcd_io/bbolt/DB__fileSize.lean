@@ -25,7 +25,7 @@ variable [os_fi : OsFileInfoAssumptions (GF := GF)]
 theorem DB.fileSize.wp_proof (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
     (hSize : fs.FileInfo.Size.spec (GF := GF) (hG := hG)) :
     DB.fileSize.spec (GF := GF) (hG := hG) := by
-  intro dbl f fd bs ps dq Hbl Hps
+  intro dbl f fd bs ps dq dqs Hbl Hps
   wp_start as ⟨Hf, Hp, #Hfile, Hbytes⟩
   wp_auto
   wp_apply hStat f fd bs $$ [Hbytes] as %fi %err ⟨Hbytes, Hfi⟩

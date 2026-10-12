@@ -42,7 +42,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     rcases Hlg with rfl | rfl <;> simp [discardIface, interface.mkOk]
   rw [Hd]
   try wp_auto
-  wp_apply hfileSize dbl f fd bs ps dq Hbl Hps $$ [Hf Hp Hbytes] as %fs %err ⟨Hf, Hp, Hbytes, %Hfs⟩
+  wp_apply hfileSize dbl f fd bs ps dq dq Hbl Hps $$ [Hf Hp Hbytes] as %fs %err ⟨Hf, Hp, Hbytes, %Hfs⟩
   · iframe; iframe #
   try wp_auto
   ihave Hm0 : mapRange m bs bs.length bs.length $$ []

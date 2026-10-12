@@ -25,13 +25,13 @@ variable [os_fi : OsFileInfoAssumptions (GF := GF)]
 /-- `db.fileSize()`: the file's size, if `Stat` works and it holds two pages; otherwise an
 error. Over the fields it reads. -/
 abbrev DB.fileSize.spec : Prop :=
-  ∀ (dbl f : Loc) (fd : w64) (bs : List w8) (ps : w64) (dq : DFrac),
+  ∀ (dbl f : Loc) (fd : w64) (bs : List w8) (ps : w64) (dq dqs : DFrac),
   bs.length < 2 ^ 62 → uint.Z ps < 2 ^ 32 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ structFieldRef DB go!"file" dbl ↦{dq} f ∗
-      structFieldRef DB go!"pageSize" dbl ↦{dq} ps ∗ osFile f fd ∗ fileBytes fd bs }}
+      structFieldRef DB go!"pageSize" dbl ↦{dqs} ps ∗ osFile f fd ∗ fileBytes fd bs }}
     (App (Val (dbl @!! go.GoType.PointerType DB.ty @!! go!"fileSize")) (Val #()))
   {{ (sz : w64) (err : GoInterface), RET (PairV #sz #err);
-      structFieldRef DB go!"file" dbl ↦{dq} f ∗ structFieldRef DB go!"pageSize" dbl ↦{dq} ps ∗
+      structFieldRef DB go!"file" dbl ↦{dq} f ∗ structFieldRef DB go!"pageSize" dbl ↦{dqs} ps ∗
       fileBytes fd bs ∗
       ⌜err = interface.nil → sz = W64 bs.length ∧ 2 * uint.Z ps ≤ bs.length⌝ }}
 

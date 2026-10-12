@@ -32,15 +32,15 @@ def mmapSizeOf (size ps : Int) : Option Int :=
       let sz := if sz % ps ≠ 0 then (sz / ps + 1) * ps else sz
       some (min sz 281474976710655)
 
-/-- `db.mmapSize(size)`: `mmapSizeOf`, or an error. The page size is positive and below
+/-- `db.mmapSize(size)`: `mmapSizeOf`, or an error (over the field it reads). The page size is positive and below
 `2^32` (a meta's page size is a `uint32`; a larger one would overflow the rounding up). -/
 abbrev DB.mmapSize.spec : Prop :=
-  ∀ (dbl : Loc) (d : DB) (dq : DFrac) (size : w64),
-  0 < sint.Z d.pageSize' → sint.Z d.pageSize' < 2 ^ 32 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ dbl ↦{dq} d }}
+  ∀ (dbl : Loc) (ps : w64) (dq : DFrac) (size : w64),
+  0 < sint.Z ps → sint.Z ps < 2 ^ 32 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ structFieldRef DB go!"pageSize" dbl ↦{dq} ps }}
     (App (Val (dbl @!! go.GoType.PointerType DB.ty @!! go!"mmapSize")) (Val #size))
-  {{ (r : w64) (err : GoInterface), RET (PairV #r #err); dbl ↦{dq} d ∗
-      ⌜match mmapSizeOf (sint.Z size) (sint.Z d.pageSize') with
+  {{ (r : w64) (err : GoInterface), RET (PairV #r #err); structFieldRef DB go!"pageSize" dbl ↦{dq} ps ∗
+      ⌜match mmapSizeOf (sint.Z size) (sint.Z ps) with
        | some s => err = interface.nil ∧ sint.Z r = s
        | none => err ≠ interface.nil⌝ }}
 
