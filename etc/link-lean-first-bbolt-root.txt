@@ -182,3 +182,5 @@ Page__SetOverflow: @
 Page__SetId: @
 Meta__SetPgid: @
 DB__allocate: sync_Pool__Get Page__SetOverflow Page__SetId Page__Id Meta__Pgid Meta__SetPgid DB__mmapSize DB__growSize DB__Logger DefaultLogger__Errorf DB__mmap
+Meta__PageSize: @
+DB__getPageSizeFromFirstMeta: os_File__ReadAt DB__pageInBuffer Page__Meta Meta__Validate Meta__PageSize

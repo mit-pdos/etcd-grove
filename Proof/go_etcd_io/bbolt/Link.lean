@@ -48,6 +48,7 @@ public import Proof.go_etcd_io.bbolt.DB__allocate
 public import Proof.go_etcd_io.bbolt.DB__beginRWTx
 public import Proof.go_etcd_io.bbolt.DB__beginTx
 public import Proof.go_etcd_io.bbolt.DB__fileSize
+public import Proof.go_etcd_io.bbolt.DB__getPageSizeFromFirstMeta
 public import Proof.go_etcd_io.bbolt.DB__grow
 public import Proof.go_etcd_io.bbolt.DB__growSize
 public import Proof.go_etcd_io.bbolt.DB__hasSyncedFreelist
@@ -565,6 +566,18 @@ theorem DB.wp_allocate [AllG GF] :
     EtcdGrove.bbolt.DB.allocate.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.allocate.wp_proof EtcdGrove.bbolt.sync.Pool.wp_Get EtcdGrove.bbolt.Page.wp_SetOverflow EtcdGrove.bbolt.Page.wp_SetId EtcdGrove.bbolt.Page.wp_Id EtcdGrove.bbolt.Meta.wp_Pgid EtcdGrove.bbolt.Meta.wp_SetPgid EtcdGrove.bbolt.DB.wp_mmapSize EtcdGrove.bbolt.DB.wp_growSize EtcdGrove.bbolt.DB.wp_Logger EtcdGrove.bbolt.DefaultLogger.wp_Errorf EtcdGrove.bbolt.DB.wp_mmap
 
+theorem os.File.wp_ReadAt :
+    EtcdGrove.bbolt.os.File.ReadAt.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.os.File.ReadAt.wp_proof
+
+theorem DB.wp_pageInBuffer :
+    EtcdGrove.bbolt.DB.pageInBuffer.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.pageInBuffer.wp_proof
+
+theorem DB.wp_getPageSizeFromFirstMeta :
+    EtcdGrove.bbolt.DB.getPageSizeFromFirstMeta.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.getPageSizeFromFirstMeta.wp_proof EtcdGrove.bbolt.os.File.wp_ReadAt EtcdGrove.bbolt.DB.wp_pageInBuffer EtcdGrove.bbolt.Page.wp_Meta EtcdGrove.bbolt.Meta.wp_Validate EtcdGrove.bbolt.Meta.wp_PageSize
+
 theorem os.File.wp_Truncate :
     EtcdGrove.bbolt.os.File.Truncate.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.os.File.Truncate.wp_proof
@@ -580,10 +593,6 @@ theorem DB.wp_grow :
 theorem DB.wp_hasSyncedFreelist :
     EtcdGrove.bbolt.DB.hasSyncedFreelist.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.hasSyncedFreelist.wp_proof EtcdGrove.bbolt.DB.wp_meta EtcdGrove.bbolt.Meta.wp_Freelist
-
-theorem DB.wp_pageInBuffer :
-    EtcdGrove.bbolt.DB.pageInBuffer.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DB.pageInBuffer.wp_proof
 
 theorem Options.wp_String :
     EtcdGrove.bbolt.Options.String.spec (GF := GF) (hG := hG) :=
@@ -732,10 +741,6 @@ theorem os.File.wp_Close :
 theorem os.File.wp_Name :
     EtcdGrove.bbolt.os.File.Name.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.os.File.Name.wp_proof
-
-theorem os.File.wp_ReadAt :
-    EtcdGrove.bbolt.os.File.ReadAt.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.os.File.ReadAt.wp_proof
 
 theorem os.File.wp_WriteAt :
     EtcdGrove.bbolt.os.File.WriteAt.spec (GF := GF) (hG := hG) :=

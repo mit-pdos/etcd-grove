@@ -114,11 +114,13 @@ namespace bbolt
 #print axioms wp_mmap
 #print axioms DB.wp_mmap
 #print axioms DB.wp_allocate
+#print axioms os.File.wp_ReadAt
+#print axioms DB.wp_pageInBuffer
+#print axioms DB.wp_getPageSizeFromFirstMeta
 #print axioms os.File.wp_Truncate
 #print axioms os.File.wp_Sync
 #print axioms DB.wp_grow
 #print axioms DB.wp_hasSyncedFreelist
-#print axioms DB.wp_pageInBuffer
 #print axioms Options.wp_String
 #print axioms TxStats.wp_Sub
 #print axioms Stats.wp_Sub
@@ -156,7 +158,6 @@ namespace bbolt
 #print axioms nodes.wp_Swap
 #print axioms os.File.wp_Close
 #print axioms os.File.wp_Name
-#print axioms os.File.wp_ReadAt
 #print axioms os.File.wp_WriteAt
 #print axioms os.wp_OpenFile
 
