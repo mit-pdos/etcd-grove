@@ -121,6 +121,10 @@ namespace bbolt
 #print axioms os.File.wp_Sync
 #print axioms DB.wp_grow
 #print axioms DB.wp_hasSyncedFreelist
+#print axioms os.File.wp_WriteAt
+#print axioms syscall.wp_Fdatasync
+#print axioms wp_fdatasync
+#print axioms DB.wp_init
 #print axioms Options.wp_String
 #print axioms TxStats.wp_Sub
 #print axioms Stats.wp_Sub
@@ -134,8 +138,6 @@ namespace bbolt
 #print axioms Tx.wp_Stats
 #print axioms Tx.wp_Writable
 #print axioms wp_compareKeys
-#print axioms syscall.wp_Fdatasync
-#print axioms wp_fdatasync
 #print axioms syscall.wp_Flock
 #print axioms wp_flock
 #print axioms wp_funlock
@@ -158,7 +160,6 @@ namespace bbolt
 #print axioms nodes.wp_Swap
 #print axioms os.File.wp_Close
 #print axioms os.File.wp_Name
-#print axioms os.File.wp_WriteAt
 #print axioms os.wp_OpenFile
 
 end bbolt
