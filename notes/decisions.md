@@ -3478,3 +3478,51 @@ gRPC checks discharge the txn package's request premises.
   the server's construction (not translated) or by units 2 and 4. `trace.isSpan` gains
   `AddEvent`/`RecordError`; `context.WithValue` takes `traceutil.StartTimeKey` and returns a
   context of the parent's descriptor.
+- **The server as the handlers see it: a contract over parameters** (unit 1, `v3rpc/InvKV.lean`).
+  The handlers call `*EtcdServer`'s `Range`/`Put`/`DeleteRange`/`Txn` through the `RaftKV`
+  interface, and the header calls `KV().Rev()`, `Cluster().ID()`, `MemberID`, `Term`, `Leader`:
+  all nine are triples of one persistent predicate `raftKV s A` (in `kvServerIs`, the handlers'
+  precondition), not callees in the link, so the handlers are proved before units 2 and 3 prove
+  `EtcdServer`'s functions, which then prove `raftKV s A` for their instance of the parameters
+  `A : KVAns`: what a call needs (`A.call ctx`: the context, the per-request credits), what a
+  successful answer holds (`A.ok q resp h r`), what an error is (`A.err q err`), what `Rev()`
+  needs (`A.revR`). The fixed part is what the handlers need: a request that passed its check,
+  and either a non-nil response whose header's four id fields are owned (`hdrW`: `fill` writes
+  them) and whose revision is read-only and not `0`, or owned (`hdrRevIn`), or a `nil` response
+  and an error `togRPCError` can take (`srvErrIs`). *Rejected:* `EtcdServer`'s specs as the
+  handlers' callees (unit 2's files, written in parallel; the header's five getters would have
+  needed the server's fields, which the apply thread's `isServer` does not give other
+  goroutines).
+- **Header ownership is a requirement on the apply side** (unit 1). `header.fill` writes the
+  response header's `ClusterId`, `MemberId`, `RaftTerm`, `LeaderId`: the response the apply
+  thread built must reach the handler with those fields owned. The txn package's response
+  predicates (`putResponseIs`, ...) keep only the revision, read-only, and drop the other
+  header fields: unit 2 (the wait's handoff) must keep them (`hdrW`) from the response's
+  construction (txn's `Put`, ..., the applier's `newHeader`) to the proposer, a change to the
+  txn and apply packages' response predicates.
+- **Two names-only interfaces translated** (unit 1): `etcdserver/api.Cluster` (its methods name
+  `types`, `membership`, `semver`: `api.toml` imports them) and `etcdserverpb.KVServer` (with
+  `context` imported, which translates the package's other service interfaces too): a method
+  call on, or a conversion to, an interface whose underlying type is an axiom does not reduce.
+  *Rejected:* an axiom about `Cluster.underlying`.
+- **`errors.Is` at `context.DeadlineExceeded`, an axiom** (unit 1, `Spec/errors/
+  IsDeadlineExceeded.lean`). Perennial's `errors.wp_Is` takes pointer targets (its tree walk
+  compares pointers; its `reflectlite` model says only that pointers are comparable);
+  `DeadlineExceeded` holds `deadlineExceededError{}`, an empty struct, for which Go's `==`
+  never panics. The axiom is `errors.Is` at the value that variable holds, for an `err` in an
+  error tree. `context.Canceled` (an `errors.New` error) needs only that it is a pointer error,
+  which Perennial's `context` package fact does not keep: a v3rpc package fact
+  (`ctxCanceledPtr`). `parseProposeCtxErr` (unit 2) needs the same two.
+- **`checkIntervals` over the interval tree with duplicate intervals** (unit 1). A transaction
+  deleting the same range twice inserts the same interval twice (`Insert` adds a second node,
+  after the equal ones): the adt contract gains `intervalTree.InsertAny` (`Insert` without its
+  newness premise; pending, as the rest of the contract, for the mvcc session's tree proof). The
+  map's keys and the tree's intervals are stated as sets (the map ranges in any order; `Union`
+  inserts in `Visit`'s order). The deletes' range ends are as off the wire (`reqOpsWire`: `nil`
+  or not empty; unit 0's premise), since `checkIntervals` reads an empty non-`nil` range end as
+  a point and mvcc as no upper bound.
+- **What `checkIntervals` gives needs the key check too** (unit 1, `CheckNodup.lean`). Unit 0's
+  `intervalsOkCheckStmt` lacked it and is false (`intervalsOkNoKeysStmt_false`): the affine order
+  reads `""` as +∞, so a put and a delete of the empty key pass `checkIntervals`. The statement
+  now takes `opsCheck n ops = none`; `kvServer.Txn` runs `checkTxnRequest` first, so nothing
+  reachable is lost.
