@@ -32,6 +32,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
+-- (the unused-variables linter walks the whole info tree of this long proof: 10-15s of
+-- the build of this module, which is on the build's critical path)
+set_option linter.unusedVariables false in
 set_option maxHeartbeats 4000000 in
 theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
     (hCount : mvcc.treeIndex.CountRevisions.spec (GF := GF) (hG := hG))

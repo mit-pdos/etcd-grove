@@ -112,6 +112,9 @@ local macro "fin_kv" : tactic => `(tactic| (
   · first | iexact HeI | iapply applyErrIs_nil
   simp only [apply.dispatchAnswer, hk]))
 
+-- (the unused-variables linter walks the whole info tree of this long proof: 10-15s of
+-- the build of this module, which is on the build's critical path)
+set_option linter.unusedVariables false in
 set_option maxHeartbeats 10000000 in
 theorem apply.uberApplier.dispatch.wp_proof
     (hIs : errors.Is.spec (GF := GF) (hG := hG))
