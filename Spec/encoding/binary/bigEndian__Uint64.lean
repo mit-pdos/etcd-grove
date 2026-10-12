@@ -1,8 +1,7 @@
 /-
-`binary.BigEndian.Uint64(b)`, of Go's `encoding/binary`: Perennial translates only
-`LittleEndian` (`Code/encoding/binary.toml`), so `bigEndian`'s methods have no body and this
-is the trust boundary (stated as Perennial's `wp_littleEndian_Uint64`, with the bytes
-reversed). Lean-first (no Rocq counterpart); see `InvCindex.lean`.
+`binary.BigEndian.Uint64(b)`, of Go's `encoding/binary`, stated as Perennial's
+`encoding.binary.wp_BigEndian_Uint64` (which proves it; Perennial translates `bigEndian`).
+Lean-first (no Rocq counterpart); see `InvCindex.lean`.
 -/
 module
 
