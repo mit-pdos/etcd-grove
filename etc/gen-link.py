@@ -101,6 +101,8 @@ variable [AllG GF]
 BBOLT_ROOT = """variable [os_fi : OsFileInfoAssumptions (GF := GF)]
 -- the platform (`Proof/runtime/GOOS.lean`)
 variable [linux : GOOSLinux]
+-- integer/float64 conversions, which Perennial does not model yet (`FloatConv.lean`)
+variable [float_sem : go.FloatConvSemantics]
 """
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--concurrency": "concurrency", "--bbolt": "bbolt", "--bbolt-root": "bbolt",
@@ -240,6 +242,8 @@ hand.
 `#print axioms` on a result is its trust base.
 -/""", "module", ""]
     out.extend(f"public import {proof_module(fn)}" for fn in fns if fn not in external)
+    if sys.argv[1] == "--bbolt-root":
+        out.append("public import Proof.go_etcd_io.bbolt.FloatConv")
     out.extend(sorted({"public import Proof." + ".".join(where[fn].split(".")[:-1] + ["Link"])
                        for fn in external}))
     out.append(f"""

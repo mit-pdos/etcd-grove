@@ -183,6 +183,7 @@ public import Proof.syscall.Flock
 public import Proof.golang_org.x.sys.unix.Madvise
 public import Proof.golang_org.x.sys.unix.Mmap
 public import Proof.golang_org.x.sys.unix.Munmap
+public import Proof.go_etcd_io.bbolt.FloatConv
 public import Proof.go_etcd_io.bbolt.internal.common.Link
 
 @[expose] public section
@@ -209,6 +210,8 @@ variable [AllG GF]
 variable [os_fi : OsFileInfoAssumptions (GF := GF)]
 -- the platform (`Proof/runtime/GOOS.lean`)
 variable [linux : GOOSLinux]
+-- integer/float64 conversions, which Perennial does not model yet (`FloatConv.lean`)
+variable [float_sem : go.FloatConvSemantics]
 
 theorem BucketStats.wp_Add :
     EtcdGrove.bbolt.BucketStats.Add.spec (GF := GF) (hG := hG) :=
