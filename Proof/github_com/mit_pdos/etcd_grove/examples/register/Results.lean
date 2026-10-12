@@ -29,6 +29,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.RegStorageInstance
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Alloc
+public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Adequacy
 
 @[expose] public section
 
@@ -120,6 +121,7 @@ end main
 #print axioms regStorInv_alloc
 #print axioms regInv_alloc
 #print axioms register_Main
+#print axioms register_adequate
 
 end EtcdGrove
 end Perennial
