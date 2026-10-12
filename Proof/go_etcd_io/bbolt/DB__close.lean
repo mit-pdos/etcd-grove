@@ -26,12 +26,37 @@ theorem DB.close.wp_proof (hmunmap : DB.munmap.spec (GF := GF) (hG := hG))
     (hfunlock : funlock.spec (GF := GF) (hG := hG))
     (hClose : os.File.Close.spec (GF := GF) (hG := hG)) :
     DB.close.spec (GF := GF) (hG := hG) := by
-  intro dbl f fd bs path p ro fl wa dr dp ds m0 m1 n hf
-  wp_start as ⟨Hop, Hfl, Hwa, Hm0, Hm1, Hdr, Hdp, Hds, Hbytes, Hmap, Hfile, Hro, Hp, #Hof, Hfp⟩
+  intro dbl f fd bs path p ro fl wa dr dp ds m0 m1 n
+  wp_start as ⟨Hop, Hfl, Hwa, Hm0, Hm1, Hdr, Hdp, Hds, Hfile, Hro, Hp, Hfr⟩
+  icases Hfr with (%Hnf | ⟨%hf, Hbytes, Hmap, #Hof, Hfp⟩)
+  · -- no file (its open failed): nothing mapped, nothing to close
+    obtain ⟨rfl, rfl⟩ := Hnf
+    wp_auto
+    wp_apply hmunmap dbl slice.nil dp ds m0 m1 fd bs n iprop(emp) $$ [Hm0 Hm1 Hdr Hdp Hds]
+      as ⟨Hdr, Hdp, Hds, Hm0, Hm1, -⟩
+    · iframe; ileft; iframe; ipureintro; trivial
+    try wp_auto
+    try rw [decide_eq_true rfl]
+    ihave Hs : ((zero_val GoSlice : GoSlice) ↦* ([] : List GoInterface)) $$ []
+    · iapply ownSlice_nil
+    icases persistent_entails_left (ownSlice_len _ _ _) $$ Hs with ⟨Hs, %Hxl⟩
+    try wp_auto
+    iapply HΦ
+    iframe
+    ileft; ipureintro; rfl
+  ihave Hmu : ((⌜dr = slice.nil⌝ ∗ (fileBytes fd bs ∗ fileMap fd none)) ∨
+      (⌜dr.ptr ≠ null ∧ dr.len = W64 n ∧ dr.cap = W64 n⌝ ∗ fileBytes fd bs ∗
+        fileMap fd (some (dr.ptr, n)) ∗ mapRange (some (dr.ptr, n)) bs 0 n)) $$ [Hbytes Hmap]
+  · icases Hmap with (⟨%Hn, Hfm⟩ | ⟨%Hc, Hfm, Hr⟩)
+    · ileft; iframe; ipureintro; exact Hn
+    · iright; iframe; ipureintro; exact Hc
   wp_auto
-  wp_apply hmunmap dbl dr dp ds m0 m1 fd bs n $$ [Hm0 Hm1 Hdr Hdp Hds Hbytes Hmap]
-    as ⟨Hdr, Hdp, Hds, Hm0, Hm1, Hbytes, Hmap⟩
+  wp_apply hmunmap dbl dr dp ds m0 m1 fd bs n iprop(fileBytes fd bs ∗ fileMap fd none)
+    $$ [Hm0 Hm1 Hdr Hdp Hds Hmu] as ⟨Hdr, Hdp, Hds, Hm0, Hm1, Hmu⟩
   · iframe
+  ihave HBM : (fileBytes fd bs ∗ fileMap fd none : IProp GF) $$ [Hmu]
+  · icases Hmu with (⟨-, HB⟩ | HB) <;> iexact HB
+  icases HBM with ⟨Hbytes, Hmap⟩
   try wp_auto
   rw [decide_eq_false hf]
   ihave Hs : ((zero_val GoSlice : GoSlice) ↦* ([] : List GoInterface)) $$ []

@@ -23,18 +23,18 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 with the caller's half of its cells, and `dataref`, `data`, `datasz` are cleared. Over the
 fields it touches. -/
 abbrev munmap.spec : Prop :=
-  ∀ (dbl : Loc) (dr : GoSlice) (dp : Loc) (ds : w64) (fd : w64) (bs : List w8) (n : Nat),
+  ∀ (dbl : Loc) (dr : GoSlice) (dp : Loc) (ds : w64) (fd : w64) (bs : List w8) (n : Nat)
+    (K : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ structFieldRef DB go!"dataref" dbl ↦ dr ∗ structFieldRef DB go!"data" dbl ↦ dp ∗ structFieldRef DB go!"datasz" dbl ↦ ds ∗
-      fileBytes fd bs ∗
-      ((⌜dr = slice.nil⌝ ∗ fileMap fd none) ∨
-       (⌜dr.ptr ≠ null ∧ dr.len = W64 n ∧ dr.cap = W64 n⌝ ∗
+      ((⌜dr = slice.nil⌝ ∗ K) ∨
+       (⌜dr.ptr ≠ null ∧ dr.len = W64 n ∧ dr.cap = W64 n⌝ ∗ fileBytes fd bs ∗
         fileMap fd (some (dr.ptr, n)) ∗ mapRange (some (dr.ptr, n)) bs 0 n)) }}
     (App (Val #(functions munmap [])) (Val #dbl))
   {{ RET #interface.nil;
       structFieldRef DB go!"dataref" dbl ↦ slice.nil ∗
       structFieldRef DB go!"data" dbl ↦ (if dr = slice.nil then dp else null) ∗
       structFieldRef DB go!"datasz" dbl ↦ (if dr = slice.nil then ds else W64 0) ∗
-      fileBytes fd bs ∗ fileMap fd none }}
+      ((⌜dr = slice.nil⌝ ∗ K) ∨ (fileBytes fd bs ∗ fileMap fd none)) }}
 
 end spec
 

@@ -26,18 +26,20 @@ abbrev DB.close.spec : Prop :=
   ∀ (dbl f : Loc) (fd : w64) (bs : List w8) (path p : GoString) (ro : Bool)
     (fl : GoInterface) (wa : GoFunc) (dr : GoSlice) (dp : Loc) (ds : w64) (m0 m1 : Loc)
     (n : Nat),
-  f ≠ null →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗
       structFieldRef DB go!"opened" dbl ↦ true ∗ structFieldRef DB go!"freelist" dbl ↦ fl ∗
       structFieldRef anonStruct_f41ae3ebe286c14c go!"writeAt" (structFieldRef DB go!"ops" dbl) ↦ wa ∗
       structFieldRef DB go!"meta0" dbl ↦ m0 ∗ structFieldRef DB go!"meta1" dbl ↦ m1 ∗
       structFieldRef DB go!"dataref" dbl ↦ dr ∗ structFieldRef DB go!"data" dbl ↦ dp ∗
-      structFieldRef DB go!"datasz" dbl ↦ ds ∗ fileBytes fd bs ∗
-      ((⌜dr = slice.nil⌝ ∗ fileMap fd none) ∨
-       (⌜dr.ptr ≠ null ∧ dr.len = W64 n ∧ dr.cap = W64 n⌝ ∗
-        fileMap fd (some (dr.ptr, n)) ∗ mapRange (some (dr.ptr, n)) bs 0 n)) ∗
+      structFieldRef DB go!"datasz" dbl ↦ ds ∗
       structFieldRef DB go!"file" dbl ↦ f ∗ structFieldRef DB go!"readOnly" dbl ↦ ro ∗
-      structFieldRef DB go!"path" dbl ↦ p ∗ osFile f fd ∗ filePath fd path }}
+      structFieldRef DB go!"path" dbl ↦ p ∗
+      (⌜f = null ∧ dr = slice.nil⌝ ∨
+       (⌜f ≠ null⌝ ∗ fileBytes fd bs ∗
+        ((⌜dr = slice.nil⌝ ∗ fileMap fd none) ∨
+         (⌜dr.ptr ≠ null ∧ dr.len = W64 n ∧ dr.cap = W64 n⌝ ∗
+          fileMap fd (some (dr.ptr, n)) ∗ mapRange (some (dr.ptr, n)) bs 0 n)) ∗
+        osFile f fd ∗ filePath fd path)) }}
     (App (Val (dbl @!! go.GoType.PointerType DB.ty @!! go!"close")) (Val #()))
   {{ (err : GoInterface), RET #err;
       structFieldRef DB go!"opened" dbl ↦ false ∗
@@ -48,7 +50,7 @@ abbrev DB.close.spec : Prop :=
       structFieldRef DB go!"dataref" dbl ↦ slice.nil ∗ structFieldRef DB go!"data" dbl ↦ null ∗
       structFieldRef DB go!"datasz" dbl ↦ W64 0 ∗
       structFieldRef DB go!"file" dbl ↦ null ∗ structFieldRef DB go!"readOnly" dbl ↦ ro ∗
-      structFieldRef DB go!"path" dbl ↦ go!"" ∗ fsFile path (some bs) }}
+      structFieldRef DB go!"path" dbl ↦ go!"" ∗ (⌜f = null⌝ ∨ fsFile path (some bs)) }}
 
 end spec
 

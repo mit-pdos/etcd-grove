@@ -186,15 +186,18 @@ theorem DB.mmap.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       -- the old mapping goes: no reader holds it now
       ihave Hold := Hold $$ %rfl HWR
       icases Hold with ⟨Hdata, Hrange, HK⟩
-      ihave Hmd : iprop((⌜dr = slice.nil⌝ ∗ fileMap fd none) ∨
-          (⌜dr.ptr ≠ null ∧ dr.len = W64 (n : Int) ∧ dr.cap = W64 (n : Int)⌝ ∗
-            fileMap fd (some (dr.ptr, n)) ∗ mapRange (some (dr.ptr, n)) bs 0 n)) $$ [Hmap Hrange]
+      ihave Hmd : iprop((⌜dr = slice.nil⌝ ∗ (fileBytes fd bs ∗ fileMap fd none)) ∨
+          (⌜dr.ptr ≠ null ∧ dr.len = W64 (n : Int) ∧ dr.cap = W64 (n : Int)⌝ ∗ fileBytes fd bs ∗
+            fileMap fd (some (dr.ptr, n)) ∗ mapRange (some (dr.ptr, n)) bs 0 n)) $$ [Hbytes Hmap Hrange]
       · rcases Hdr with ⟨rfl, rfl⟩ | ⟨h1, h2, h3, rfl⟩
         · ileft; iframe; ipureintro; rfl
         · iright; iframe; ipureintro; exact ⟨h1, h2, h3⟩
-      wp_apply hmunmap dbl dr dp ds m0 m1 fd bs n $$ [Hm0 Hm1 Hdrf Hdata Hds Hbytes Hmd]
-        as ⟨Hdrf, Hdata, Hds, Hm0, Hm1, Hbytes, Hmap⟩
+      wp_apply hmunmap dbl dr dp ds m0 m1 fd bs n iprop(fileBytes fd bs ∗ fileMap fd none)
+        $$ [Hm0 Hm1 Hdrf Hdata Hds Hmd] as ⟨Hdrf, Hdata, Hds, Hm0, Hm1, HBM⟩
       · iframe
+      ihave HBM : (fileBytes fd bs ∗ fileMap fd none : IProp GF) $$ [HBM]
+      · icases HBM with (⟨-, HB⟩ | HB) <;> iexact HB
+      icases HBM with ⟨Hbytes, Hmap⟩
       try wp_auto
       have Hsge := mmapSizeOf_ge _ _ _ (by omega) (by omega) hms
       have Hr0 : 0 < sint.Z r := by omega
@@ -342,19 +345,22 @@ theorem DB.mmap.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
             wp_apply hErrorf dl _ _ $$ [Hdlok]
             · iframe; iexact Hdlok
             try wp_auto
-            ihave Hmd : iprop((⌜b = slice.nil⌝ ∗ fileMap fd none) ∨
+            ihave Hmd : iprop((⌜b = slice.nil⌝ ∗ (fileBytes fd bs ∗ fileMap fd none)) ∨
                 (⌜b.ptr ≠ null ∧ b.len = W64 ((sint.nat r : Nat) : Int) ∧
-                    b.cap = W64 ((sint.nat r : Nat) : Int)⌝ ∗
+                    b.cap = W64 ((sint.nat r : Nat) : Int)⌝ ∗ fileBytes fd bs ∗
                   fileMap fd (some (b.ptr, sint.nat r)) ∗
-                  mapRange (some (b.ptr, sint.nat r)) bs 0 (sint.nat r))) $$ [Hmap Hb]
+                  mapRange (some (b.ptr, sint.nat r)) bs 0 (sint.nat r))) $$ [Hbytes Hmap Hb]
             · iright
               rw [Hmr]
               iframe
               ipureintro
               exact ⟨loc_ne_null_of_car _ Hbp, by rw [Hbl']; word, by rw [Hbc]; word⟩
-            wp_apply hmunmap dbl b b.ptr r _ _ fd bs (sint.nat r) $$ [Hm0 Hm1 Hdrf Hdata Hds Hbytes Hmd]
-              as ⟨Hdrf, Hdata, Hds, Hm0, Hm1, Hbytes, Hmap⟩
+            wp_apply hmunmap dbl b b.ptr r _ _ fd bs (sint.nat r) iprop(fileBytes fd bs ∗ fileMap fd none)
+              $$ [Hm0 Hm1 Hdrf Hdata Hds Hmd] as ⟨Hdrf, Hdata, Hds, Hm0, Hm1, HBM⟩
             · iframe
+            ihave HBM : (fileBytes fd bs ∗ fileMap fd none : IProp GF) $$ [HBM]
+            · icases HBM with (⟨-, HB⟩ | HB) <;> iexact HB
+            icases HBM with ⟨Hbytes, Hmap⟩
             try wp_auto
             wp_apply sync.RWMutex.wp_Unlock _ _ $$ [$Hlocked $Htok1] as Hmmh
             try wp_auto

@@ -21,22 +21,22 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 theorem munmap.wp_proof (hMunmap : unix.Munmap.spec (GF := GF) (hG := hG)) :
     munmap.spec (GF := GF) (hG := hG) := by
-  intro dbl dr dp ds fd bs n
-  wp_start as ⟨Hdr, Hdp, Hds, Hf, Hm⟩
+  intro dbl dr dp ds fd bs n K
+  wp_start as ⟨Hdr, Hdp, Hds, Hm⟩
   wp_auto
   wp_if_destruct
-  · icases Hm with (⟨-, Hm⟩ | ⟨%Hc, -⟩)
+  · icases Hm with (⟨-, HK⟩ | ⟨%Hc, -⟩)
     · try simp only [↓reduceIte]
-      iapply HΦ; iframe
+      iapply HΦ; iframe; try (ileft; iframe; try (ipureintro; rfl))
     · exfalso; exact Hc.1 rfl
-  icases Hm with (⟨%Hnil, -⟩ | ⟨%Hc, Hmap, Hrange⟩)
+  icases Hm with (⟨%Hnil, -⟩ | ⟨%Hc, Hf, Hmap, Hrange⟩)
   · exact absurd Hnil Hif
   try wp_auto
   wp_apply hMunmap fd bs dr n Hc.2.1 Hc.2.2 $$ [Hf Hmap Hrange] as ⟨Hf, Hmap⟩
   · iframe
   try wp_auto
   simp only [Hif, ↓reduceIte]
-  iapply HΦ; iframe
+  iapply HΦ; iframe; iright; iframe
 
 end proof
 

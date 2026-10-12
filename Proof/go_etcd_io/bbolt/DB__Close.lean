@@ -70,10 +70,14 @@ theorem DB.Close.wp_proof (hclose : DB.close.spec (GF := GF) (hG := hG)) :
   simp only [flfQ, ↓reduceIte]
   rw [Hfile', Hopen]
   wp_apply hclose dbl σ.file σ.fd σ.bs σ.path dv.path' dv.readOnly' dv.freelist' dv.ops'.writeAt'
-    dv.dataref' σ.data dv.datasz' dv.meta0' dv.meta1' σ.sz hf
+    dv.dataref' σ.data dv.datasz' dv.meta0' dv.meta1' σ.sz
     $$ [opened Hflf writeAt meta0 meta1 dataref Hdata datasz Hbytes Hmap Hmr file readOnly path Hfp]
     as %err Hres
-  · iframe; iframe #
+  · iframe
+    iright
+    iframe; iframe #
+    isplitr
+    · ipureintro; exact hf
     rw [Hdr]
     iright
     iframe
@@ -90,6 +94,8 @@ theorem DB.Close.wp_proof (hclose : DB.close.spec (GF := GF) (hG := hG)) :
   · iframe; inext; itrivial
   try wp_auto
   iapply HΦ
+  icases Hfs with (%Hn | Hfs)
+  · exact absurd Hn hf
   iexact Hfs
 
 end proof
