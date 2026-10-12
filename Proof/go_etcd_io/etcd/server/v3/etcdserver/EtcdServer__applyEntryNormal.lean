@@ -11,7 +11,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__
 public import Spec.go_etcd_io.etcd.pkg.v3.notify.Notifier__Notify
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__isLeader
 public import Spec.go_etcd_io.etcd.server.v3.config.ServerConfig__ElectionTimeout
-public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.Apply
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.Apply_server
 public import Spec.errors.Is
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore__Get
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
@@ -125,7 +125,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     (hN : notify.Notifier.Notify.spec (GF := GF) (hG := hG))
     (hL : EtcdServer.isLeader.spec (GF := GF) (hG := hG))
     (hE : config.ServerConfig.ElectionTimeout.spec (GF := GF) (hG := hG))
-    (hA : apply.Apply.spec (GF := GF) (hG := hG))
+    (hA : apply.Apply_server.spec (GF := GF) (hG := hG))
     (hIs : errors.Is.spec (GF := GF) (hG := hG))
     (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))

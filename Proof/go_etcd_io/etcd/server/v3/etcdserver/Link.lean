@@ -28,7 +28,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.NewConsistentInd
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Notifier__Notify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Members
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ElectionTimeout
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Apply
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Apply_server
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentApplyingIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__SetBackend
@@ -144,9 +144,9 @@ theorem config.ServerConfig.wp_ElectionTimeout :
     config.ServerConfig.ElectionTimeout.spec (GF := GF) (hG := hG) :=
   config.ServerConfig.ElectionTimeout.wp_proof
 
-theorem apply.wp_Apply :
-    apply.Apply.spec (GF := GF) (hG := hG) :=
-  apply.Apply.wp_proof
+theorem apply.wp_Apply_server :
+    apply.Apply_server.spec (GF := GF) (hG := hG) :=
+  apply.Apply_server.wp_proof
 
 theorem errors.wp_Is :
     errors.Is.spec (GF := GF) (hG := hG) :=
@@ -162,7 +162,7 @@ theorem zap.Logger.wp_Warn :
 
 theorem EtcdServer.wp_applyEntryNormal :
     EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG) :=
-  EtcdServer.applyEntryNormal.wp_proof raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentIndex notify.Notifier.wp_Notify EtcdServer.wp_isLeader config.ServerConfig.wp_ElectionTimeout apply.wp_Apply errors.wp_Is v3alarm.AlarmStore.wp_Get EtcdServer.wp_Logger zap.wp_String zap.wp_Int64 zap.wp_Error go_humanize.wp_Bytes zap.Logger.wp_Warn EtcdServer.wp_GoAttach
+  EtcdServer.applyEntryNormal.wp_proof raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentIndex notify.Notifier.wp_Notify EtcdServer.wp_isLeader config.ServerConfig.wp_ElectionTimeout apply.wp_Apply_server errors.wp_Is v3alarm.AlarmStore.wp_Get EtcdServer.wp_Logger zap.wp_String zap.wp_Int64 zap.wp_Error go_humanize.wp_Bytes zap.Logger.wp_Warn EtcdServer.wp_GoAttach
 
 theorem EtcdServer.wp_setAppliedIndex :
     EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) :=

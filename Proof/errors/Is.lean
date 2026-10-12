@@ -19,7 +19,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [package_sem : _root_.Perennial.errors.Assumptions]
 
 axiom errors.Is.wp_proof : errors.Is.spec (GF := GF) (hG := hG)
 
