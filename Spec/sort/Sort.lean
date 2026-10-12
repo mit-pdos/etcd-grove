@@ -1,7 +1,8 @@
 /-
-`sort.Sort` over a `sort.Interface`: the trust boundary (Perennial translates `sort` without
-`Sort`, `Reverse` and the pdqsort behind them). Lean-first; see `notes/decisions.md`, "The
-server's txn".
+`sort.Sort` over a `sort.Interface`, proved by Perennial's `sort.wp_Sort` (Perennial translates
+`sort.Sort`, `Reverse` and the pdqsort of `zsortinterface.go`, and proves them over its sorter
+predicate `sort.isSorter`, which `sorterSpec` gives: `sorterSpec_isSorter`). Lean-first; see
+`notes/decisions.md`, "The server's txn".
 
 **The sorter** (`sorterSpec x R lt`): the interface value `x` is a sorter over a list of
 elements of any type `E`, its state the resource `R l` for the list `l` it holds: `Len()`
@@ -10,13 +11,13 @@ exchanges the two elements. **`sort.Sort(x)`**, for a strict weak order `lt` (Pe
 `slices.StrictWeakOrder`, as its `slices.SortFunc`) and a list of at most `2^62` elements (as
 Perennial's `slices.Sort`: past that, the heapsort fallback's index arithmetic overflows),
 leaves the sorter holding a permutation of `l` sorted by `lt` (no later element less than an
-earlier one); the sort is not stable. The pure statement is Perennial's `slices.wp_SortFunc`'s.
-*Rejected:* proving Go's pdqsort over `sort.Interface` (large, and not etcd's code).
+earlier one); the sort is not stable. The pure statement is Perennial's `slices.wp_SortFunc`'s (and `sort.wp_Sort`'s).
 -/
 module
 
 public import Perennial.Proof.sort
 public import Perennial.Proof.slices_proof.pdqSort.sort_basics
+public import Perennial.Proof.sort_proof.pdqSort.sort_basics
 
 @[expose] public section
 
@@ -34,6 +35,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : _root_.Perennial.sort.Assumptions]
 
 /-- **The `sort.Interface` `x` sorts a list** held by `R` (persistent): `Len`, `Less` and
 `Swap` on the list `l` with `R l`. -/
@@ -55,6 +57,46 @@ def sorterSpec {E : Type} (x : GoInterfaceOk) (R : List E → IProp GF) (lt : E 
 instance sorterSpec_persistent {E : Type} (x : GoInterfaceOk) (R : List E → IProp GF)
     (lt : E → E → Bool) : Persistent (sorterSpec x R lt) := by
   unfold sorterSpec; infer_instance
+
+omit package_sem in
+/-- A sorter is one of Perennial's (`sort.isSorter`), for the order `lt a b = true`. -/
+theorem sorterSpec_isSorter {E : Type} (x : GoInterfaceOk) (R : List E → IProp GF)
+    (lt : E → E → Bool) :
+    sorterSpec x R lt ⊢ _root_.Perennial.sort.isSorter x R (fun a b => lt a b = true) := by
+  unfold sorterSpec _root_.Perennial.sort.isSorter
+  iintro #⟨#HLen, #HLess, #HSwap⟩
+  isplitr
+  · iexact HLen
+  isplitr
+  · iintro !> %l %i %j %a %b %Hij %Φ !> Hl HΦ
+    iapply HLess $$ %l %i %j %a %b %Hij Hl
+    inext
+    iintro Hl
+    iapply HΦ
+    iframe Hl
+    ipureintro; exact Iff.rfl
+  · iexact HSwap
+
+omit package_sem in
+/-- One of Perennial's sorters (`sort.isSorter`) for an order `lt a b = true` is a sorter. -/
+theorem isSorter_sorterSpec {E : Type} (x : GoInterfaceOk) (R : List E → IProp GF)
+    (lt : E → E → Bool) :
+    _root_.Perennial.sort.isSorter x R (fun a b => lt a b = true) ⊢ sorterSpec x R lt := by
+  iintro #Hs
+  unfold _root_.Perennial.sort.isSorter
+  icases Hs with ⟨#HLen, #HLess, #HSwap⟩
+  unfold sorterSpec
+  isplitr
+  · iexact HLen
+  isplitr
+  · iintro !> %l %i %j %a %b %Hij %Φ !> Hl HΦ
+    iapply HLess $$ %l %i %j %a %b %Hij Hl
+    inext
+    iintro %r ⟨Hl, %Hr⟩
+    have : r = lt a b := by cases r <;> cases h : lt a b <;> simp_all
+    subst this
+    iapply HΦ $$ Hl
+  · iexact HSwap
 
 /-- `sort.Sort(x)`: the sorter's list permuted into an order sorted by the strict weak order
 `lt`. -/
