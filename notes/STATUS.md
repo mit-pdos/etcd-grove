@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-10 (the register example verified over raft: logically atomic `Put`/`Get`, raft proposals over a client log, see "The register example"; the cache's wait-group counter bounded by thread tokens, Perennial `105fb79f5`: the `WaitGroup.Add` overflow assumption reverted, `New` assumes fewer than `2^31 - 3` live threads, see "The wait-group counter and thread tokens"; `node.go` proved: `RestartNode`, `run`, `Propose`, `Step`, `Tick`, `Ready`, `Advance`, see "`node.go`: the concurrent `Node`"; groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-12 (bbolt: the read path verified in sequential use, see "bbolt"; the register example verified over raft: logically atomic `Put`/`Get`, raft proposals over a client log, see "The register example"; the cache's wait-group counter bounded by thread tokens, Perennial `105fb79f5`: the `WaitGroup.Add` overflow assumption reverted, `New` assumes fewer than `2^31 - 3` live threads, see "The wait-group counter and thread tokens"; `node.go` proved: `RestartNode`, `run`, `Propose`, `Step`, `Tick`, `Ready`, `Advance`, see "`node.go`: the concurrent `Node`"; groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
@@ -109,53 +109,59 @@ concurrently); `newRaft` returns `s.gh = {}`.
 
 Not checked: `etc/tcb-report.py --check` (needs a full build; the disk is short).
 
-## bbolt: translated with bodies on branch `bbolt`; the models; `internal/common` (2026-10-10)
+## bbolt: the read path verified, sequential use (2026-10-12)
 
-**Branch.** This work is on etcd-grove branch `bbolt`, pinned to Perennial branch
-`goose-bbolt` (`92924a9`, not merged into Perennial's `lean`). Merging it needs Perennial's
-branch merged first and the whole repository rebuilt against it (below).
+**Branch.** etcd-grove branch `bbolt`, pinned to Perennial branch `goose-bbolt` (`ec19aee`,
+not merged into Perennial's `lean`; builds here use `.lake/perennial-dev`). Merging needs
+Perennial's branch merged first and the repository rebuilt against it.
 
 **The models** (`notes/bbolt-unsafe.md`, "The models"): integers are little-endian byte
-cells, types have gc's sizes and layouts, array and struct allocation is real, `unsafe.Add`
-and `unsafe.Slice` have semantics, `Golang/Theory/Bytes.lean` is the byte view; the file and
-the memory map are `Proof/os/FileModel.lean` (abstract state; the specs of the `os`,
-`syscall` and `unix` functions bbolt calls are axioms, `Spec/{os,io/fs,syscall,golang_org}/`).
-No crash semantics.
+cells, gc's sizes and layouts, real array and struct allocation, `unsafe.Add`/`unsafe.Slice`;
+the file and the memory map are `Proof/os/FileModel.lean` (axioms for the `os`, `syscall`,
+`unix` functions bbolt calls). No crash semantics. The plan: `notes/bbolt-proof-plan.md`.
 
-**Translation.** bbolt v1.5.0 (etcd's `go.mod`) with bodies: the root package, `errors`,
-`internal/common`, `internal/freelist`; `golang.org/x/sys/unix` names only (with its
-constants: Goose's new `translate_consts`, also on for Perennial's `syscall` and `os`).
+**The database predicate** (`Proof/go_etcd_io/bbolt/DBPred.lean`), sequential use (one
+goroutine uses the database; any number of read transactions open; no writer yet): `ownDB`
+holds the DB's fields, the file and mapping, every mapped slot at the fraction no reader
+holds (`FilePages`, `SlotsCarve`), the freelist (`ownFL` of an implementation of the
+freelist interface), `metalock`, `mmaplock`'s unused read handles and each reader's ghost
+token (so a writer's write lock will know no reader is open), and a ghost map of the
+readers; `dbOK` says the metas are valid, the current tree is well-formed, a reader's pages
+are the file's, and bbolt's MVCC rule (a slot a reader sees is no meta, not free, pending
+only from a newer transaction). `ownReadTx` holds a reader's pages at its fraction. The
+logger is the default one (a logger contract is later work).
 
-**Proved** (no `sorry`; `Results.lean` of each prints the axioms):
-- `Proof/go_etcd_io/bbolt/internal/common/` (`Link.lean` by `etc/gen-link.py --bbolt`, 81
-  results): `Mergepgids`, `Pgids.{Len,Less,Swap,Merge}`, `UnsafeAdd`, `UnsafeIndex`,
-  `UnsafeByteSlice`, every getter (at any fraction) and setter of `Page`, `Meta`,
-  `InBucket`, `Inode` and the page elements, `Page`'s flag tests, `IsValidPage`, `Meta()`,
-  `LeafPageElement(i)`, `BranchPageElement(i)`, `LeafPageElements`, `BranchPageElements`,
-  `PageElementSize`, the elements' `Key`/`Value`, `IsBucketEntry`, `LoadPage`,
-  `LoadBucket`, `LoadPageMeta`, `IsFreelistPersisted`, `RootBucket`, `IncTxid`, `DecTxid`,
-  `IncSequence`; `Page_bytes` (`Bytes.lean`: a page header is its 16 bytes).
-- `Proof/go_etcd_io/bbolt/` (`Link.lean` by `etc/gen-link.py --bbolt-root`): `mmap`,
-  `munmap`, over the file model.
+**Proved** (no `sorry`; each package's `Results.lean` prints its axioms):
+- `internal/common` (117 results, `gen-link.py --bbolt`): all but `Meta.Print`,
+  `Page.hexdump` (an `io.Writer`) and `CopyFile` (filesystem); `hash/fnv`, `os.Getenv`/
+  `Setenv`/`Unsetenv`, `strings.ToLower` are trust-boundary axioms.
+- `internal/freelist` (25, `--bbolt-freelist`): the array freelist, `shared`'s methods, the
+  interface contract (`Iface.lean`, `ArrayIface.lean`); `sort.Sort` an axiom. Specs only:
+  `Rollback`, `release`, `releaseRange`, `ReleasePendingPages` (they delete from a map while
+  ranging over it: Perennial's map range does not allow it); `hashMap` not done.
+- the root package (116, `--bbolt-root`): statistics, accessors, `mmap`/`munmap`,
+  `mmapSize`, `db.page`, `db.meta`, `Tx.page`, `Tx.init`, `beginTx`, `removeTx`,
+  `Begin(false)`, `Tx.close`/`Rollback` (read), `View`, the cursor read path (`search`
+  through `First`/`Last`/`Next`/`Prev`/`Seek`), `node.go` but the graph-shaped parts
+  (`read`, `write`, `put`, `del`, `dereference`, ...).
 
-**Found on the way** (Perennial `goose-bbolt`): a load through a fractional or persistent
-struct points-to failed (`wp_auto`'s `Access` search took the store instance first and did
-not come back); proofgen now puts the store instances at low priority. Perennial's `workq`
-proof changed with it (a `wp_auto_lc 2` with nothing left to do), and any proof here that
-relied on the old behaviour may need the same (not checked, below).
+**Safety findings** (preconditions that rule out a reachable panic or a false spec):
+`Rollback` inside `View` panics (`managed`); an empty branch page would make the cursor read
+garbage (branches need an element); `mmapSize` overflows for a page size of 2^32 or more;
+`node.put` needs `pgId < meta.pgid` and non-empty keys; `node.write` fewer than 65535
+inodes; more than 2^30 - 1 open readers overflow `mmaplock`.
 
-**Not checked.** The rest of the repository (raft, cache, server, register) was regenerated
-with the new translator but not rebuilt against `goose-bbolt`: the disk had under 1G free,
-and a full build needs about 2G. Its proofs may need changes where they unfold word
-points-tos or struct allocation, or after the `Access` priority change. `etc/tcb-report.py
---check` likewise (the bbolt axioms are new: the baseline needs `--check --update`).
+**Perennial gaps** (batch for `goose-bbolt`): float conversions (`uintptr`/`float64`/`int`:
+`node.splitTwo`, `rebalance`); pointer to `uintptr` (`openBucket`'s alignment test);
+deleting from a map inside a range over it (the freelist's release); a package's
+`Assumptions` should include the types it reaches through others (`hash.Hash64`, taken as
+an instance hypothesis now); `runtime.GOOS`, `os.FileInfo`, `unix.Mlock`, `log`/`fmt` specs.
 
-**Next.** `internal/common`'s rest (`FreelistPageCount`/`FreelistPageIds`, which read the
-page body as `Pgid`s; `Meta.Validate`/`Write`/`Sum64`, which need a `hash/fnv` model;
-`InlinePage`, `leafPageElement.Bucket`); `internal/freelist` (the array and hashmap
-freelists, `Read`/`Write` over a page); then the root package bottom-up: page access
-(`db.page`, `db.meta`), `node`, `Cursor`, `Bucket`, `Tx` (commit writes pages through
-`WriteAt`, the model's discipline), `DB.Open`/`init`/`mmap` growth.
+**Next.** The bucket read API (`Bucket.Get`, `Tx.Bucket`, `ForEach`: running); the write
+path (`beginRWTx`, the node/bucket graph, `Put`/`Delete`/`CreateBucket`, `Commit`: spill,
+freelist write, page writes through `WriteAt`, `writeMeta`, `allocate`/`grow`/remap);
+`Open`/`init`/`close`; `Batch`; `etc/tcb-report.py --check --update` for the new axioms (CI
+fails its check until then).
 
 ## `node.go` groundwork: abandoning a `Ready`, pre-vote off, the messages' terms (2026-10-10)
 
