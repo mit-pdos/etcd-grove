@@ -54,3 +54,42 @@ its arguments; `dereference` copies on a remap).
    `db.mmap`, `init`, `Open`, `close`.
 5. Nodes, cursors, buckets, transactions (`Commit`: spill, freelist write, `write`,
    `writeMeta`), `Update`/`View`/`Batch`.
+
+## The write path (design, 2026-10-12)
+
+Sequential use, as for the read path (`DBPred.lean`): the caller holds `ownDB` and passes it to
+every call. A writer is a reader of the current tree too (it reads its pages through the
+database's slots, at a fraction it carves like a reader, `SlotsCarve`), plus heap objects.
+
+**Two layers.**
+- *The transaction's objects* (the `Tx` struct, its meta copy, `tx.pages`, the bucket/node
+  graph): an agent's predicate `ownWriteTx` (in its own files). Nodes are a finite map from
+  location to node record (entries as `NodeModel.lean`'s `NodeEntry`s, parent, children,
+  pgid), with the structure invariant (each node's `bucket` is its bucket, its `parent`'s
+  `children` hold it, `b.nodes` maps a node's page id to it, `b.rootNode` the root). It
+  *refines* a page tree: the tree the transaction would write is the file's current tree
+  with each materialized node's page replaced by the node's entries; that tree stays
+  well-formed (`treeWF`-like, over node entries and file pages) through `Put`/`Delete`/
+  `CreateBucket`, and `spill` turns it into page buffers (`tx.pages`) whose bytes are
+  `treeWF` pages, the old pages of spilled nodes freed (`freelist.Free`: pending for this
+  transaction).
+- *The database* (mine): `ownDB` with a writer open (`rwtx`, `rwlock`), `beginRWTx`,
+  `Tx.allocate`/`DB.allocate` (a free run from the freelist, or the high-water mark moved;
+  `grow` and the remap under `mmaplock`'s write lock: the write lock's token shows no reader
+  is open, so the mapping's cells are all the database's), `Tx.write` (the dirty pages
+  through `WriteAt`: they are free or new slots, which no reader sees, so the database holds
+  their whole half), `commitFreelist`, `writeMeta` (the meta slot `txid % 2`, no reader's),
+  and `Commit`'s accounting: the new meta's tree is the current one, the freed pages go
+  pending, readers keep their pages (MVCC).
+
+**The interface** between them is the callee specs the graph needs from the database:
+`Tx.allocate` (a buffer of `count` pages, its id new: free or at the high-water mark), the
+freelist's `Free` (`Iface.lean`), `Tx.page` for a writer (a page of `tx.pages`, or of the
+current tree through the writer's view). The graph's agent states the specs it needs;
+they are proved on the database's side.
+
+**Simplifications** (each an `ownDB` fact, to lift later): the default logger;
+`StrictMode` off (`Check` runs goroutines); `NoFreelistSync` off; no `Batch`.
+`node.splitTwo` and `rebalance` convert between integers and `float64`, which Perennial does
+not model: `FloatConv.lean` adds the conversions as uninterpreted functions, as a typeclass
+of step facts taken as a hypothesis (to move into Perennial with its next batch).
