@@ -3264,6 +3264,28 @@ results and making the server's `applierFor` a definition.
   mode's declared ones (`REUSES`: the server's imports mvcc's). The apply package's results are
   in a namespace of their own (`apply`), as the txn package's.
 
+- **The layers' triples** (unit 1, `Chain.lean`). `applierSpec E c a` is not recursive in its
+  shape: it is the method triples of `a` as the chain `c` runs them (`applierTriples`), stated
+  with `chainStep backendStep c` and `chainRes c`, which recurse on `c`; each layer's methods are
+  `Spec/`+`Proof/` files over `applierSpec E c inner`, and the constructors prove the triples
+  (promoted methods through the inner's). The environment `E : AEnv` (store, ghost names, the
+  batch lock's `P f`) is a record. Every method takes and returns the apply thread's
+  `kvOwn E log` (reader slots, sole writer, leases known: `newHeader`'s `store.Rev` needs the
+  first two), so `dispatch` (unit 2) threads one resource. The KV methods and `LeaseRevoke` are
+  stated for the request `rq` `dispatch` passes on (`dispatchKind rq`), so that unit 2's outcome
+  is `chainStep`'s; their answers keep the txn package's response predicates at the exact model
+  values. A writing method returns `Post ∨ Pre`, not "`Post` iff applied": a put whose ignore
+  flag finds no key took the lock (`Post`) and wrote nothing; a read-only `Txn` is applied with
+  `Pre`.
+- **The auth layer's mutex** (unit 1): `aa.mu`'s resource is `authInfo`; `Apply` locks it and
+  hands `authInfo` to the `applyFunc` through `chainRes`. *Rejected:* `authInfo` thread-owned
+  with a trivial lock resource (`Apply` and unit 2's uber-applier would carry `chainRes`).
+- **A lease checkpoint request with one checkpoint** (unit 1): the lessor persists each
+  checkpoint in its own critical section, which the critical-section contract cannot express
+  (`issues/etcd-apply-lease-checkpoint-sections.md`): a premise, not a weaker contract.
+- **`auth.AuthStore` translated** (unit 1): `auth.toml` imports the packages its methods'
+  signatures name; it was an axiomatized type whose generated instances are `sorry`.
+
 ## mvcc: the batch lock runs the hook
 
 **2026-10-12 · adopted** (the server's apply package, unit A; plan: the apply package's

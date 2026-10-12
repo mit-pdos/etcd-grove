@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-12 (the apply package's units 0 and A merged into `lean` (the context premise `txnCtx` and the hook premise `csContract ∗ hookIs` both on txn's write path; one `csContract`, mvcc's; `store.Rev` under the hook's `End`; the server's `Link` reuses mvcc's zap results; gates 82 axioms, 1 sorry, apply 17/0, txn 22/0, mvcc 17/0, server 26/0, etcd 494 verified of 3599 functions), see "Merge 0/A"; the apply package's unit A: the backend's post-lock hook in mvcc's contract (`hookIs`, `csContract`), threaded through `store.Write`/`End` and txn's `Put`/`DeleteRange`/`Txn`, see "Unit A: the hook through mvcc"; the server's apply package, unit 0 on branch `apply-u0`: translated with bodies, scaffolding, 12 trust-boundary axioms, the txn functions at `context.TODO()` (`txnCtx`), `store.Rev`, `gen-link.py --apply` and the reuse rule; gates 81 axioms, 1 sorry; a finding (the alarm gauge), see "The server's apply package"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
+**Last updated:** 2026-10-12 (the apply package's unit 1 on branch `apply-u1`: every function of `backend.go` (but `Compaction`), `quota.go`, `capped.go`, `corrupt.go`, `auth.go` specified and proved, the constructors packaging the layers into `applierSpec`, `chainStep` over `backendStep`, `chain_put`/`_deleteRange`/`_range`/`_txn`; `auth.AuthStore` translated as an interface; a finding (a lease checkpoint entry's several critical sections; fix branch `lease-checkpoint-one-section`); gates 82 axioms, 1 sorry, apply 35/0, apply 63 of 73 functions verified, etcd 557 of 3599, see "Unit 1: the layers"; the apply package's units 0 and A merged into `lean` (the context premise `txnCtx` and the hook premise `csContract ∗ hookIs` both on txn's write path; one `csContract`, mvcc's; `store.Rev` under the hook's `End`; the server's `Link` reuses mvcc's zap results; gates 82 axioms, 1 sorry, apply 17/0, txn 22/0, mvcc 17/0, server 26/0, etcd 494 verified of 3599 functions), see "Merge 0/A"; the apply package's unit A: the backend's post-lock hook in mvcc's contract (`hookIs`, `csContract`), threaded through `store.Write`/`End` and txn's `Put`/`DeleteRange`/`Txn`, see "Unit A: the hook through mvcc"; the server's apply package, unit 0 on branch `apply-u0`: translated with bodies, scaffolding, 12 trust-boundary axioms, the txn functions at `context.TODO()` (`txnCtx`), `store.Rev`, `gen-link.py --apply` and the reuse rule; gates 81 axioms, 1 sorry; a finding (the alarm gauge), see "The server's apply package"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
 as pinned), the requests and responses as the client model's values (`Requests.lean`), `isKV`,
 `isTxnLessor`, 13 trust-boundary axioms (`sort.Sort`/`Reverse`, traceutil, `proto.Size`,
 `zap.Logger.Panic`, ...), mvcc's read-only write transaction proved, `gen-link.py --txn`, a
@@ -193,6 +193,105 @@ work. Perennial `e4e126e46` and the etcd pin `bc8b52a50` unchanged.
   register 1). Verified code: apply 73 functions, 0 verified, 1 assumed (`Apply`), 71
   translated, 684 lines (681 translated); etcd 494 verified of 3599 functions, 5149 of 45570
   lines (unchanged: `store.Rev` is a promoted method).
+
+### Unit 1: the layers (2026-10-12)
+
+Branch `apply-u1` (worktree `/shared/etcd-grove-apply1`, off `lean` at `504afa17e`). Every
+function of `backend.go`, `quota.go`, `capped.go`, `corrupt.go` and `auth.go` is specified and
+proved but the backend's `Compaction` (out of the model), the constructors package each layer,
+`chainStep` is closed over the backend's relation (`Chain.lean`; decisions.md, the apply entry's
+unit 1 bullets).
+- **A translation fix** (`auth.toml`): `auth.AuthStore` was an axiomatized type (its methods'
+  signatures name `context`, `etcdserverpb`, `authpb`, not imported), so its typed points-to was
+  `sorry -- axiomatized type`, reached by `ApplierOptions` and the auth applier's `as` field;
+  importing the three packages translates it (and `AuthBackend`, `AuthReadTx`, `AuthBatchTx`,
+  `TokenProvider`) as interfaces, as `lease.toml` does for `Lessor`. Nothing else generated
+  changed; `goose.py` itself untouched.
+- **The triples** (`applierTriples E c ai`, `applierSpec E c a := ∃ ai, a = ok ai ∗ applierTriples
+  E c ai`, persistent): one per `applierV3` method but `Compaction`, in the environment `E : AEnv`
+  (the store `s`, its ghost names `γ`, the batch lock's `P` and hook `f`). Every method takes the
+  apply thread's KV resources `kvOwn E log` (the store's reader slots, the sole writer of `log`,
+  the state's leases known) and the chain's thread-owned resources `chainRes c a`, and returns
+  them. The KV methods (`Put`, `DeleteRange`, `Range`, `Txn`) and `LeaseRevoke` (whose lessor
+  deletes through the store) run the request `rq` `dispatch` passes on (`dispatchKind rq`, the
+  field `some o`, the per-request premise) and return `∃ oc, ⌜chainStep backendStep c rq log oc⌝
+  ∗ <answer> ∗ kvOwn E (oc.logAfter log) ∗ chainRes c a ∗ (Post ∨ Pre)` (`kvPost`; `Range` without
+  the contract); the answers (`putOutcomeIs`, `deleteOutcomeIs`, `rangeOutcomeIs`,
+  `txnOutcomeIs`, `revokeOutcomeIs`) carry the txn package's response predicates at their exact
+  model values for an applied outcome, the error of a rejection (`rejErrIs`: `ErrCorrupt`,
+  `ErrNoSpace`, the auth store's, the backend's), the quota's `ErrNoSpace` after a write
+  (`noSpaceErrIs`). The other methods (`mPre`/`mPost`) take `csContract P f Pre Q Post` where
+  they may write and return `Post ∨ Pre`, the log as it is; one triple per shape, over the
+  method name (`respMethods`, `resp0Methods`, `clusterMethods`, the request facts the layers
+  read: `reqFacts`). `Apply` is higher-order: `{irrWrapperIs r rq skip ∗ A ∗ {chainRes c a ∗ A}
+  af(r, v3) {ar; chainRes c a ∗ B ar}} a.Apply(r, v3, af) {ar; B ar ∨ (⌜needAdminPermission rq⌝ ∗
+  A ∗ rejectResultIs ar)}`.
+- **`backendStep rq log o`**: by `dispatchKind rq`: a put is `put_soleWriter`'s three cases (the
+  lease not found, the ignore flag's key missing: `.rejected .backend`; else `log ++
+  [[putChangeOf …]]`); a delete the filter (`commitLog log delChanges`) or the range read's error;
+  a range `.applied log false`; a transaction `checkTxn`'s error or `srvRunTxn` committed (none
+  for a read-only one); a revocation the lessor's deletions (`commitLog log pend`, all
+  deletions); compaction and an empty request `False`; the others the log as it is or the
+  component's error.
+- **`chainRes`, the auth mutex**: `chainRes (.auth c) a` owns the auth layer's `authInfo`
+  (`authInfoOwn p`) beside the inner's; the other layers own nothing. `aa.mu` is a Perennial
+  mutex whose resource is `authInfoOwn p` (`authIs`, made by `newAuthApplierV3` with
+  `init_Mutex`): `Apply` locks it, owns `authInfo`, hands it to the `applyFunc` through the
+  inner's `Apply` (whose `A`/`B` frame it), resets it, unlocks. So `Apply`'s caller owns
+  nothing of the chain (its triple has no `chainRes`), and `dispatch` gets `chainRes` from the
+  `applyFunc`'s precondition. Rejected: `authInfo` thread-owned with a trivial mutex resource
+  (`Apply`'s statement would carry `chainRes`, and unit 2's `uberOwn` with it).
+- **The constructors** package the layers: `{backendOptsOk E opts} newApplierV3Backend(opts)
+  {a; applierSpec E .backend a}`, `{applierSpec E c app} newQuotaApplierV3(lg, cfg, be, app) {a;
+  applierSpec E (.quota c) a}`, `newApplierV3Capped`, `newApplierV3Corrupt` (a pointer `p`,
+  `applierSpec E (.corrupt c) (mkOk (*applierV3Corrupt) p)`), `newAuthApplierV3(as, base, lessor)`
+  (with `isAuthStore`, `isApplyLessor`). A constructor's proof takes its layer's method specs as
+  hypotheses (the link) and proves the promoted methods through the inner's triples
+  (`chainRes_<layer>_out`/`_in`, `Packaging.lean`). No thread-owned part is returned: the auth
+  layer's resource is in its mutex.
+- **Lemmas**: `txn/SoleWriterKV.lean` (`put_soleWriter_of`, `deleteRange_soleWriter_of`,
+  `range_soleWriter_of`: the txn results over their callee's spec, moved from txn's
+  `Results.lean`, which restates them unchanged); `apply/KVLemmas.lean` (the leases known across
+  a put, a delete, a revocation's deletions); `apply/Packaging.lean`; `WrapLemmas.lean` (an `err = nil` answer is an applied outcome: the quota layer), `AuthLemmas.lean` (`checkTxnPermission`'s Löb proof over `checkTxnReqsPermission`'s body, the auth layer's rejection/pass lemmas), `BackendLemmas2.lean` (`go.NotInterface go.uint64`, a missing Perennial instance: `types.ID.String`'s method resolution stalls without it; belongs in Perennial's `PostLifting.lean`).
+- **Contracts**: unit 0's contracts used as stated, none changed (the lessor's `Checkpoint` is one critical section per call: the finding below). Not in the contracts: `cappedIs`/`corruptIs` have no `Persistent` instance (the proofs `ipersist`; harmless).
+- **`Compaction`**: no triple in `applierSpec`, `backendStep` is `False` of a compaction; the
+  corrupt applier's `Compaction` (`ErrCorrupt`) is proved, the backend's is not specified.
+  Unit 2's `dispatch` takes `dispatchKind rq ≠ .compaction` and never calls a `Compaction`.
+- **A finding** (`issues/etcd-apply-lease-checkpoint-sections.md`, reproduced): a lease checkpoint
+  entry with several checkpoints writes the backend in one critical section per checkpoint
+  (`lessor.Checkpoint` persists each lease in its own `LockInsideApply`), so a backend commit
+  between two persists the entry's consistent index with part of its writes; the backend's
+  `LeaseCheckpoint` triple takes a request with at most one checkpoint (the premise, in its
+  request facts and `rqOk`; not a weaker contract). A fix exists on the fork branch
+  `lease-checkpoint-one-section` (2a163496c: `Lessor.Checkpoint` takes the whole batch and
+  persists it in one critical section); the issue file is the upstream draft.
+- **The plan's suspects**: (3) `quotaApplierV3.Put`/`Txn`/`LeaseGrant` apply, then answer
+  `ErrNoSpace` if the quota said no: by design, the apply loop raises the `NOSPACE` alarm on that
+  error (`server.go:1976`); the client gets an error for a committed write; the spec says so
+  (`chainStep`'s quota case, `.applied log' true`); not a bug. (5) `authApplierV3.UserGet`/
+  `RoleGet` reset `authInfo` and return an empty response with the error, so `dispatch`'s result
+  has both `Resp` (not nil) and `Err`, unlike the other rejections (`Resp` nil): harmless
+  (`raftRequest` reads `Err` first; `Apply` resets `authInfo` again); the triples say nothing of
+  the response. (6) the corrupt applier blocks the KV requests, compactions and lease grants and
+  revocations only; alarms (so that the alarm can be disarmed), auth, cluster requests and lease
+  checkpoints go through: by design (`corruptRejects`).
+- **Results** (`apply/Results.lean`, unit 1's section): `chain_put`, `chain_deleteRange`,
+  `chain_range`, `chain_txn` at `alarmChain ns cr` (`baseChain` at `false false`), the outcome in
+  the txn package's terms (`putModel`, `deleteModel`, `txnModel`, `quotaAfter`; `alarmPut`, ...),
+  with `#print axioms`.
+- **Gates**: full `lake build` clean (2860 jobs, no `sorry`); `gen-link.py --apply` reproduces `Link.lean`
+  (81 results; `gen-link.py` learned that an `@` callee's result taking the cache's assumptions is
+  named in its own Link without the namespace prefix: txn's `wp_Txn`), `--txn/--mvcc/--server/
+  --leasing/--cache/--recipes/--concurrency/--register/--adt` unchanged; `etc/goose.py --check
+  --perennial /shared/perennial-merge` (`ETCD_SRC=/shared/etcd`) passes with the `auth.toml`
+  change; `tcb-report.py --check`: 82 axioms, 1 sorry (unchanged: no new axiom); every collection
+  matches but apply's, updated: 35 axioms, 0 sorries (was 17: its results now reach the txn
+  package's and mvcc's trust base through `txn.Put`/...`/store.Rev`, and `context.TODO`'s proof
+  is linked); `verified-code.py --reuse --package go.etcd.io/etcd/server/v3/etcdserver/apply`: 73
+  functions, 63 verified (all sorry-free), 1 assumed (`Apply`, the server's axiom), 8 translated
+  (the backend's `Compaction`, `uber_applier.go`'s 6, `noSideEffect`), 486 of 684 lines verified;
+  backend.go 31 of 32, auth.go 16/16, quota.go 4/4, capped.go 4/4, corrupt.go 8/8; etcd 557
+  verified of 3599 functions, 5635 of 45570 lines (was 494, 5149)..
 
 ## Merge: lean into mvcc (2026-10-12)
 
