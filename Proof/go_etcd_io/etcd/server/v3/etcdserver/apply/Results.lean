@@ -326,7 +326,7 @@ theorem chain_txn (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
         {{ txnPre E (alarmChain ns cr) (.ok ai) r rq t log Pre Q Post }}
           (App (App (Val #(methods ai.ty go!"Txn" ai.v)) (Val #r)) (Val #skip))
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-            ∃ oc : Outcome, ⌜alarmTxn ns cr t log oc⌝ ∗ txnOutcomeIs log t skip resp err oc ∗
+            ∃ oc : Outcome, ⌜alarmTxn ns cr t log oc⌝ ∗ txnAnswerIs log t skip resp err oc ∗
               kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain ns cr) (.ok ai) ∗ (Post ∨ Pre) }}) := by
   iintro #Hs
   iunfold applierSpec at Hs

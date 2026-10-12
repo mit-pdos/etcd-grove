@@ -62,7 +62,7 @@ theorem apply.applierV3Capped.Txn.wp_proof
     · ipureintro
       simp only [apply.chainStep, apply.cappedRejects, Hk.2.1, ↓reduceIte]
       simp
-    simp only [apply.txnOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
+    simp only [apply.txnAnswerIs, apply.txnOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
     iframe Hkv Hres
     isplitl []
     · isplitl []

@@ -65,7 +65,7 @@ theorem txn.Put.wp_proof
   · ipureintro; rfl
   iintro %fsl ⟨Hfsl, -⟩
   (try wp_auto)
-  wp_apply (hEnsure ctx cd lg _ _) $$ [$Hctx] as %ctx' %t ⟨%Ht, %vs, #Hctx'⟩
+  wp_apply (hEnsure ctx cd lg _ _) $$ [$Hctx] as %ctx' %t ⟨%Ht, %vs, #Hctx', -⟩
   (try wp_auto)
   -- `checkLease(lessor, p)`
   wp_apply (hLease le γ.leases p o) $$ [$Hle $Hp] as %err Herr

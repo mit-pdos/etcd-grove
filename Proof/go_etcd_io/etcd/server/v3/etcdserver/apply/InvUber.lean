@@ -174,7 +174,7 @@ def dispatchAnswer (rq : IRRModel) (log : mvcc.Log) (skip : Bool) (resp err : Go
       rangeOutcomeIs log op r err o)
   | .txn => iprop(∃ (t : TxnModel) (r : Loc), ⌜rq.txn = some t ∧
       resp = interface.mkOk (go.GoType.PointerType etcdserverpb.TxnResponse.ty) #r⌝ ∗
-      txnOutcomeIs log t skip r err o)
+      txnAnswerIs log t skip r err o)
   | .leaseRevoke => iprop(∃ r : Loc,
       ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseRevokeResponse.ty) #r⌝ ∗
       revokeOutcomeIs r err o)

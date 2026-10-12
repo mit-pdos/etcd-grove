@@ -235,7 +235,7 @@ is the apply's (`appliedErr`) or the proposal's (`srvMaybeDeposited`: `put_err` 
 disjunct of the same postcondition). `put_applied_model`/`deleteRange_applied_model`: through the
 uber-applier's chain (`alarmChain`), the outcome is `alarmPut`/`alarmDelete` (the txn package's
 `putModel`/`deleteModel`, or a layer's rejection) and the log after is the outcome's
-(`apply.apply_kv`). The writing `Txn` and the read side are unit 3's. -/
+(`apply.apply_kv`). The writing `Txn` and the read side: unit 3b's, below. -/
 
 section request
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -305,6 +305,179 @@ theorem deleteRange_applied_model (op op' : OpFull) (hm : apply.HeaderModel) (rq
     · rw [hop] at hop'; cases hop'; exact ha
     all_goals (rw [hk] at hd; cases hd)
 
+/-! ## The read side and `Txn` (unit 3b of the request path)
+
+**`range_serializable`**, **`range_linearizable`** (linked `EtcdServer.Range`, restated): a
+`(resp, nil)` of `Range` is the txn package's answer at a certified log of at least `NewStore`'s
+two revisions, the response header's id fields owned (for the gRPC layer to fill); serializable,
+in the client model's terms (`txn.rangeResultClient`: `rangeKvsOk` of `rangeSel` of the state
+read, for a sort not cut early); linearizable, read after the read index (`readIndexOk γr c`:
+the applied index reached an index at least the committed index `c` the caller knew of, the read
+loop's contract `isRead`; unit 4 ties the applied index to the KV's log). An error is one the
+gRPC layer can take (`applyErrIs`: the read loop's, the auth store's, `ErrFutureRev`, the
+context's).
+
+**`txn_readonly`** (linked `EtcdServer.Txn` at a read-only request): the server's run of the
+transaction at a certified log (`txnReadOk`, both serializability modes: after the read index
+unless every get is serializable), the id credit back. **`txn_applied`** (at a writing request):
+the apply thread's application of the request the proposed data decode to (`txnAppliedOk`),
+possibly with header-only ranges (`SkipRangeExecution`: the wait's `IsRegistered` is "some
+boolean" in its contract, so the model admits the run of a transaction whose waiter had timed
+out, the plan's suspect 2, here for a waiter that did not), or the apply's or the proposal's
+error. **`txn_applied_model`** (pure): through the uber-applier's chain the outcome is `alarmTxn`
+(the txn package's `txnModel` or a layer's rejection), the log after the outcome's. -/
+
+section read
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+
+open go_etcd_io.etcd.api.v3
+
+/-- **`range_linearizable`** (see the section header). -/
+theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (c : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (o : OpFull)
+    (hlin : o.base.serializable = false) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗
+        txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ }}
+      (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Range"))
+        (Val #(GoInterface.ok ctx))) (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
+        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
+            ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63⌝ ∗ readIndexOk γr c ∗
+            txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) o true ∗
+            txn.respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" resp)) ∨
+         (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
+  iintro %Φ Hpre HΦ
+  iapply (EtcdServer.wp_Range s E ρ γr c ctx cd r o) $$ [Hpre]
+  · iexact Hpre
+  inext
+  iintro %resp %err ⟨Hrc, H⟩
+  iapply HΦ
+  iframe Hrc
+  icases H with (⟨%Hok, H⟩ | H)
+  · ileft
+    iunfold rangeReadOk at H
+    simp only [hlin, Bool.false_eq_true, ↓reduceIte]
+    isplitr
+    · ipureintro; exact Hok
+    iexact H
+  · iright; iexact H
+
+/-- **`range_serializable`** (see the section header): in the client model's terms, for a
+request whose sort is not cut early (a serializable one's whole answer: it takes no read index;
+a linearizable one's adds `range_linearizable`'s `readIndexOk`). -/
+theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (c : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (o : OpFull)
+    (hcut : ¬ txn.cutEarly o) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗
+        txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ }}
+      (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Range"))
+        (Val #(GoInterface.ok ctx))) (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
+        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
+            ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63⌝ ∗
+            txn.rangeResultClient resp GoInterface.nil log (W64 ((log.length : Int) - 1)) o true ∗
+            txn.respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" resp)) ∨
+         (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
+  iintro %Φ ⟨#Hp, #Hq, #Hd, Hrc, #Hctx, #Hr, %Hv⟩ HΦ
+  ihave %Hset := txn.rangeRequestIs_sortSet r o $$ Hr
+  iapply (EtcdServer.wp_Range s E ρ γr c ctx cd r o) $$ [Hrc]
+  · iframe #; iframe Hrc; ipureintro; exact Hv
+  inext
+  iintro %resp %err ⟨Hrc, H⟩
+  iapply HΦ
+  iframe Hrc
+  icases H with (⟨%Hok, H⟩ | H)
+  · ileft
+    iunfold rangeReadOk at H
+    icases H with ⟨%log, #Hcert, %Hlen, -, #Hres, Hown⟩
+    isplitr
+    · ipureintro; exact Hok
+    iexists log
+    iframe Hcert Hown
+    isplitr
+    · ipureintro; exact Hlen
+    iapply txn.rangeResult_client _ _ _ _ o true Hset hcut $$ Hres
+  · iright; iexact H
+
+/-- **`txn_readonly`** (see the section header). -/
+theorem txn_readonly (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (t : TxnModel)
+    (hro : txn.txnReadonly t = true) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
+        srvRdCall s E γr c ∗ context.isContext ctx cd ∗ txn.txnRequestIs r t ∗
+        ⌜txn.txnGetsOk t⌝ }}
+      (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Txn"))
+        (Val #(GoInterface.ok ctx))) (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        srvLeadTimeReader s ∗ srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗
+        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnReadOk E γr c t resp) ∨
+         (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
+  iintro %Φ ⟨#Hp, #Hq, #Hd, Hlt, Hcr, Hrc, #Hctx, #Hr, %Hg⟩ HΦ
+  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t
+  simp only [hro, ↓reduceIte] at hT
+  iapply hT $$ [Hlt Hcr Hrc]
+  · iframe #; iframe Hlt Hcr Hrc; ipureintro; exact fun _ => Hg
+  inext
+  iintro %resp %err ⟨Hlt, Hrc, Hcr, H⟩
+  iapply HΦ
+  iframe Hlt Hrc Hcr H
+
+/-- **`txn_applied`** (see the section header). -/
+theorem txn_applied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (t : TxnModel)
+    (hw : txn.txnReadonly t = false) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
+        srvRdCall s E γr c ∗ context.isContext ctx cd ∗ txn.txnRequestIs r t }}
+      (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Txn"))
+        (Val #(GoInterface.ok ctx))) (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        srvLeadTimeReader s ∗ srvRdCall s E γr c ∗
+        ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnAppliedOk E t resp) ∨
+         (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ txnErrOk E ρ t err)) }} := by
+  iintro %Φ ⟨#Hp, #Hq, #Hd, Hlt, Hcr, Hrc, #Hctx, #Hr⟩ HΦ
+  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t
+  simp only [hw, Bool.false_eq_true, ↓reduceIte] at hT
+  iapply hT $$ [Hlt Hcr Hrc]
+  · iframe #; iframe Hlt Hcr Hrc; ipureintro; exact fun h => h.elim
+  inext
+  iintro %resp %err ⟨Hlt, Hrc, H⟩
+  iapply HΦ
+  iframe Hlt Hrc H
+
+end read
+
+/-- **What a successful writing `Txn` applied** (pure; the success components of `txn_applied`):
+through the uber-applier's chain `alarmChain ns cr`, the transaction `t'` of the decoded request
+has the outcome `alarmTxn` (the txn package's `txnModel`, or a layer's rejection), the log after
+the outcome's. -/
+theorem txn_applied_model (t t' : TxnModel) (hm : apply.HeaderModel) (rq' : apply.IRRModel)
+    (x x' : apply.ApplyKV) (o : apply.Outcome) (skip ns cr : Bool)
+    (hc : x.chain = apply.alarmChain ns cr)
+    (hw : irrWireOf (apply.withHeader (irrTxn t) hm) rq')
+    (ht : rq'.txn = some t')
+    (h : apply.applyStep rq' true x x' (.dispatched o skip)) :
+    x'.log = o.logAfter x.log ∧ apply.alarmTxn ns cr t' x.log o := by
+  have hk : apply.dispatchKind rq' = .txn := by
+    rw [hw.2.2.1]; simp [apply.dispatchKind, apply.withHeader, irrTxn, apply.irrEmpty]
+  rcases apply.apply_kv _ x x' _ ns cr hc (by rw [hk]; rfl) h with ⟨hout, -⟩ | ⟨o', sk, hout, hlog, -, hcases⟩
+  · rcases hout with h1 | h1 <;> cases h1
+  · cases hout
+    refine ⟨hlog, ?_⟩
+    rcases hcases with ⟨-, -, hd, -⟩ | ⟨-, -, hd, -⟩ | ⟨hd, -⟩ | ⟨t'', ht', -, ha⟩
+    · rw [hk] at hd; cases hd
+    · rw [hk] at hd; cases hd
+    · rw [hk] at hd; cases hd
+    · rw [ht] at ht'; cases ht'; exact ha
+
 #print axioms Perennial.EtcdGrove.applyEntries_model
 #print axioms Perennial.EtcdGrove.applyEntries_trace
 #print axioms Perennial.EtcdGrove.applyEntries_kv
@@ -318,6 +491,11 @@ theorem deleteRange_applied_model (op op' : OpFull) (hm : apply.HeaderModel) (rq
 #print axioms Perennial.EtcdGrove.deleteRange_applied
 #print axioms Perennial.EtcdGrove.put_applied_model
 #print axioms Perennial.EtcdGrove.deleteRange_applied_model
+#print axioms Perennial.EtcdGrove.range_linearizable
+#print axioms Perennial.EtcdGrove.range_serializable
+#print axioms Perennial.EtcdGrove.txn_readonly
+#print axioms Perennial.EtcdGrove.txn_applied
+#print axioms Perennial.EtcdGrove.txn_applied_model
 #print axioms Perennial.EtcdGrove.wait_new
 #print axioms Perennial.EtcdGrove.idutil_next
 

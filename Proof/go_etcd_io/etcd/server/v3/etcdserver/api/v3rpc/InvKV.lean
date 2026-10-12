@@ -309,6 +309,9 @@ the file header). -/
 structure KVAns [FfiSyntax] (GF : BundledGFunctors) where
   /-- What a call needs, of its context `ctx` and per request. -/
   call : GoInterface → IProp GF
+  /-- What a request must satisfy beyond its check (2026-10-12, unit 3b: the server's read-only
+  transactions' gets within the txn package's model, `txn.txnGetsOk`). -/
+  pre : KVReq → Prop := fun _ => True
   /-- A successful answer to `q`: the response, its header, the header's revision. -/
   ok : KVReq → Loc → Loc → w64 → IProp GF
   /-- An error answer to `q`. -/
@@ -323,12 +326,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- **The server's answer** to `q` (`hf`: the address of the response's `Header` field): no
-error and a response whose header the handler can fill, or a `nil` response and an error
-`togRPCError` can take. -/
+error and a response whose header the handler can fill, or an error `togRPCError` can take
+(and any response: the handler returns `nil`; a read-only `Txn` whose context is done returns
+its partly filled response with the error, 2026-10-12, unit 3b). -/
 def kvAnswer (A : KVAns GF) (q : KVReq) (hf resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (r : w64),
       hf ↦□ h ∗ hdrW h ∗ hdrRevIn A.revR h r ∗ A.ok q resp h r) ∨
-    (⌜resp = null⌝ ∗ srvErrIs err ∗ A.err q err))
+    (srvErrIs err ∗ A.err q err))
 
 /-- **The handler's answer** to `q` past its check (`cid`, `mid`: its header's ids): the
 server's answer with the header filled, or `nil` and a non-nil error (the server's, through
@@ -350,7 +354,7 @@ instance checkOut_persistent (e : CheckErr) (resp : Loc) (err : GoInterface) :
 /-- **The server's `Range`** on a checked request (one conjunct of `raftKV`). -/
 def kvRangeOk (s : Loc) (A : KVAns GF) : IProp GF :=
   iprop(∀ (ctx : GoInterface) (r : Loc) (o : OpFull),
-      {{ A.call ctx ∗ txn.rangeRequestIs r o ∗ ⌜rangeReqOk o⌝ }}
+      {{ A.call ctx ∗ txn.rangeRequestIs r o ∗ ⌜rangeReqOk o ∧ A.pre (.range o)⌝ }}
         (App (App (Val (srvM s go!"Range")) (Val #ctx)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           kvAnswer A (.range o) (structFieldRef etcdserverpb.RangeResponse go!"Header" resp)
@@ -359,7 +363,7 @@ def kvRangeOk (s : Loc) (A : KVAns GF) : IProp GF :=
 /-- **The server's `Put`** on a checked request (one conjunct of `raftKV`). -/
 def kvPutOk (s : Loc) (A : KVAns GF) : IProp GF :=
   iprop(∀ (ctx : GoInterface) (r : Loc) (o : OpFull),
-      {{ A.call ctx ∗ txn.putRequestIs r o ∗ ⌜putReqOk o⌝ }}
+      {{ A.call ctx ∗ txn.putRequestIs r o ∗ ⌜putReqOk o ∧ A.pre (.put o)⌝ }}
         (App (App (Val (srvM s go!"Put")) (Val #ctx)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           kvAnswer A (.put o) (structFieldRef etcdserverpb.PutResponse go!"Header" resp)
@@ -368,7 +372,7 @@ def kvPutOk (s : Loc) (A : KVAns GF) : IProp GF :=
 /-- **The server's `DeleteRange`** on a checked request (one conjunct of `raftKV`). -/
 def kvDeleteOk (s : Loc) (A : KVAns GF) : IProp GF :=
   iprop(∀ (ctx : GoInterface) (r : Loc) (o : OpFull),
-      {{ A.call ctx ∗ txn.deleteRangeRequestIs r o ∗ ⌜deleteReqOk o⌝ }}
+      {{ A.call ctx ∗ txn.deleteRangeRequestIs r o ∗ ⌜deleteReqOk o ∧ A.pre (.deleteRange o)⌝ }}
         (App (App (Val (srvM s go!"DeleteRange")) (Val #ctx)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           kvAnswer A (.deleteRange o)
@@ -378,7 +382,7 @@ def kvDeleteOk (s : Loc) (A : KVAns GF) : IProp GF :=
 def kvTxnOk (s : Loc) (A : KVAns GF) : IProp GF :=
   iprop(∀ (ctx : GoInterface) (r : Loc) (cs : List CmpModel) (ts es : List ReqOp) (n : Int),
       {{ A.call ctx ∗ txnReqIs r cs ts es ∗
-          ⌜txnReqOk n cs ts es ∧ intervalsOk ts ∧ intervalsOk es⌝ }}
+          ⌜txnReqOk n cs ts es ∧ intervalsOk ts ∧ intervalsOk es ∧ A.pre (.txn cs ts es)⌝ }}
         (App (App (Val (srvM s go!"Txn")) (Val #ctx)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           kvAnswer A (.txn cs ts es) (structFieldRef etcdserverpb.TxnResponse go!"Header" resp)
@@ -414,7 +418,7 @@ instance kvGetOk_persistent (s : Loc) (A : KVAns GF) : Persistent (kvGetOk s A) 
 the file header): the `RaftKV` methods (`Range`, `Put`, `DeleteRange`, `Txn`) on checked
 requests, and `KV().Rev()`, `Cluster().ID()`, `MemberID()`, `Term()`, `Leader()`; one conjunct
 per method (2026-10-12, unit 3a: `Put` and `DeleteRange` are proved from the server's
-`EtcdServer.Put`/`DeleteRange`, `kvServer.lean`, the others are 3b's). -/
+`EtcdServer.Put`/`DeleteRange`; unit 3b: every conjunct, `ServerKV.lean`'s `raftKV_of_server`). -/
 def raftKV (s : Loc) (A : KVAns GF) : IProp GF :=
   iprop(kvRangeOk s A ∗ kvPutOk s A ∗ kvDeleteOk s A ∗ kvTxnOk s A ∗ kvGetOk s A)
 

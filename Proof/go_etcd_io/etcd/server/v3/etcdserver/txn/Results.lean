@@ -206,9 +206,14 @@ theorem range_rangeSel (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
   · iframe # ∗
     isplitr
     · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
-    ipureintro; exact ⟨Hlg, Hpre.1, Hpre.2.2⟩
+    isplitr
+    · ipureintro; exact Hlg
+    isplitr
+    · ipureintro; exact Hpre.1
+    iintro !> %log' %h -
+    ipureintro; exact Hpre.2.2 log' h.1 h.2
   inext
-  iintro %resp %tr %err ⟨Hrd, Ht, %Htr, %log, %rev, #Hcert, %Hp, #Hres, -⟩
+  iintro %resp %tr %err ⟨Hrd, Ht, %Htr, %log, %rev, #Hcert, %Hp, #Hres, -, -⟩
   iapply HΦ
   iframe Hrd Ht
   isplitr
@@ -359,13 +364,13 @@ theorem txn_runTxn (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (
             soleWriter γ (mvcc.commitLog log pend) ∗
             leasesKnown γ.leases (runTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1)) }} := by
   wp_start_folded as Hpre
-  iapply (wp_Txn ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f) $$ [Hpre]
+  iapply (wp_Txn.1 ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f) $$ [Hpre]
   · iframe Hpre Hpkg
   inext
   iintro %resp %trace %err ⟨Hrd, Hout⟩
   iapply HΦ
   iframe Hrd
-  icases Hout with (Herr | ⟨%Hok, #Hresp, Hsw, #Hknown, HPP⟩)
+  icases Hout with (Herr | ⟨%Hok, #Hresp, -, Hsw, #Hknown, HPP⟩)
   · ileft; iexact Herr
   · iright
     obtain ⟨h1, h2, h3⟩ := srvRunTxn_runTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t hst
@@ -402,13 +407,13 @@ theorem txn_readonly_no_revision (ctx : GoInterfaceOk) (cd : context.ContextDesc
               (srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
               (srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2)) }} := by
   wp_start_folded as Hpre
-  iapply (wp_Txn ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f) $$ [Hpre]
+  iapply (wp_Txn.1 ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f) $$ [Hpre]
   · iframe Hpre Hpkg
   inext
   iintro %resp %trace %err ⟨Hrd, Hout⟩
   iapply HΦ
   iframe Hrd
-  icases Hout with (⟨%Hn, #Herr, Hsw, HPre⟩ | ⟨%Hok, #Hresp, Hsw, -, HPP⟩)
+  icases Hout with (⟨%Hn, #Herr, Hsw, HPre⟩ | ⟨%Hok, #Hresp, -, Hsw, -, HPP⟩)
   · iframe Hsw HPre
     ileft
     iframe Herr
@@ -440,13 +445,13 @@ theorem txn_check_error_no_write (ctx : GoInterfaceOk) (cd : context.ContextDesc
           ((⌜err ≠ GoInterface.nil⌝ ∗ Pre) ∨ (Pre ∨ Post)) ∗
           ⌜err ≠ GoInterface.nil → log' = log ∧ resp = null⌝ }} := by
   wp_start_folded as Hpre
-  iapply (wp_Txn ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f) $$ [Hpre]
+  iapply (wp_Txn.1 ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f) $$ [Hpre]
   · iframe Hpre Hpkg
   inext
   iintro %resp %trace %err ⟨Hrd, Hout⟩
   iapply HΦ
   iframe Hrd
-  icases Hout with (⟨%Hn, -, Hsw, HPre⟩ | ⟨%Hok, -, Hsw, -, HPP⟩)
+  icases Hout with (⟨%Hn, -, Hsw, HPre⟩ | ⟨%Hok, -, -, Hsw, -, HPP⟩)
   · iexists log
     iframe Hsw
     isplitl [HPre]

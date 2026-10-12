@@ -34,7 +34,7 @@ abbrev apply.authApplierV3.Txn.spec : Prop :=
       apply.txnPre E (.auth c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) r rq t log Pre Q Post }}
     (App (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"Txn")) (Val #r)) (Val #skip))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      apply.kvPost E (.auth c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) rq log (apply.txnOutcomeIs log t skip resp err) Pre Post }}
+      apply.kvPost E (.auth c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) rq log (apply.txnAnswerIs log t skip resp err) Pre Post }}
 
 end spec
 

@@ -20,7 +20,7 @@ Unit 1 (2026-10-12): every function of `key.go` but `kvServer.RangeStream` and
 * **`put_handler`**: `kvServer.Put`'s answer is the server's `Put` answer (`A.ok`, units 2/3's)
   with the header filled, or the check's error, or the server's error through `togRPCError`; the
   same for `Range`, `DeleteRange` and `Txn` (`range_handler`, `deleteRange_handler`,
-  `txn_handler`, the last over the interval tree's pending contract).
+  `txn_handler`).
 
 Unit 3a (2026-10-12): the server's contract discharged for `Put` and `DeleteRange`
 (`ServerKV.lean`: `srvKVAns`, `raftKV_of_server`, from the linked `EtcdServer.Put`/`DeleteRange`):
@@ -108,21 +108,23 @@ theorem deleteRange_handler : EtcdGrove.v3rpc.kvServer.DeleteRange.spec (GF := G
 
 end handlers
 
-/-! ## End to end: the gRPC `Put` and `DeleteRange` through raft and the apply thread (unit 3a)
+/-! ## End to end: the gRPC KV service through the server (units 3a and 3b)
 
-`kvServer.Put`'s linked spec with the server's contract `raftKV` discharged for `Put` and
-`DeleteRange` (`raftKV_of_server`, from the linked `EtcdServer.Put`/`DeleteRange`), at the
-server's parameters `srvKVAns s E ρ A0`. Premises: the server's request-path fields and
-invariants (`isServerReq`: the raft contract, the wait registry, the id generator, the auth
-store's request side, ...), the handler's `*kvServer` (`kvServerAt`: what `NewKVServer(s)`
-built), and the read side's conjuncts of `raftKV` (`kvRangeOk`, `kvTxnOk`, `kvGetOk`: unit 3b's)
-with `A0`, its parameters. A call needs the request's context, one id credit, a reader slot of
-`s.leadTimeMu` (`srvCall`; given back with any answer) and `A0.call`. The answer: the check's
-error; or `(resp, nil)` with the response header filled with the cluster's and member's ids
-(`hdrFilled`) and its revision the write's (`hdrRevOut`: kept, not `0`), the apply thread's
-application of the request at the log the entry met (`putAppliedOk`: `applyStep … (.dispatched
-(.applied l false) skip)`, `putOutcomeIs`, `idxCert` of the log after); or `nil` and an error
-(`putErrOk`: the apply's, or the proposal's, which may still be applied). -/
+Each handler's linked spec with the server's contract `raftKV` discharged
+(`raftKV_of_server`, from the server's linked `EtcdServer.Put`/`DeleteRange`/`Range`/`Txn` and
+the getters), at the server's parameters `srvKVAns s E ρ γr c`. Premises: the server's
+request-path fields and invariants (`isServerReq`: the raft contract, the wait registry, the id
+generator, the auth store's request side, ...), its read side's (`isServerRead`: the read
+loop's contract, the bare store, the lessor and auth store's contracts, the store stays small),
+and the handler's `*kvServer` (`kvServerAt`: what `NewKVServer(s)` built). A call needs the
+request's context, one id credit, a reader slot of `s.leadTimeMu` (`srvCall`), and the read
+call's resources (`srvRdCall`: the store's reader slots, the logger's, the committed index `c`
+the caller knew of); every resource but a write's id credit comes back with any answer. The
+answer: the check's error; or `(resp, nil)` with the response header filled with the cluster's
+and member's ids (`hdrFilled`) and its revision kept (`hdrRevOut`: not `0`), and the server's
+answer (`A.ok`): for a write, the apply thread's application of the request at the log the entry
+met; for a read, the txn package's at a certified log, after the read index unless serializable;
+or `nil` and an error (`A.err`: the apply's or the proposal's for a write). -/
 
 section endToEnd
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -131,32 +133,44 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-open Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3 in
+open Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
+
+/-- **The server's contract, discharged** (`raftKV_of_server` at the linked results). -/
+theorem raftKV_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ⊢
+      raftKV s (srvKVAns s E ρ γr c) :=
+  raftKV_of_server EtcdServer.wp_Put EtcdServer.wp_DeleteRange EtcdServer.wp_Range
+    EtcdServer.wp_Txn EtcdServer.wp_KV mvcc.store.wp_Rev EtcdServer.wp_Cluster
+    membership.RaftCluster.wp_ID EtcdServer.wp_MemberID EtcdServer.wp_Term EtcdServer.wp_Leader
+    s E ρ γr c
+
 /-- **`put_end_to_end`** (see the section header). -/
-theorem put_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (A0 : KVAns GF)
+theorem put_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (cid mid n : w64) (ctx : GoInterface) (r : Loc) (o : OpFull) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerReq s E ρ ∗ kvServerAt p s (srvKVAns s E ρ A0) cid mid n ∗
-        kvRangeOk s (srvKVAns s E ρ A0) ∗ kvTxnOk s (srvKVAns s E ρ A0) ∗
-        kvGetOk s (srvKVAns s E ρ A0) ∗
-        srvCall s ρ ctx ∗ A0.call ctx ∗ txn.putRequestIs r o }}
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ kvServerAt p s (srvKVAns s E ρ γr c) cid mid n ∗
+        srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ txn.putRequestIs r o }}
       (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Put")) (Val #ctx))
         (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         match putCheck o with
-        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ A0.call ctx
+        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c
         | none =>
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
               structFieldRef etcdserverpb.PutResponse go!"Header" resp ↦□ h ∗ hdrFilled h cid mid ∗
-              hdrRevOut A0.revR h rv rv' ∗ putAppliedOk s E o resp rv) ∨
-          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface, putErrOk s E ρ o e) }} := by
-  iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hat, #HR, #HT, #HG, Hc, Hc0, #Hr⟩ HΦ
-  ihave #HKV := raftKV_of_server EtcdServer.wp_Put EtcdServer.wp_DeleteRange s E ρ A0 $$ []
+              hdrRevOut (mvcc.storeReader E.s E.γ) h rv rv' ∗ srvRdCall s E γr c ∗
+              putAppliedOk s E o resp rv) ∨
+          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
+            srvRdCall s E γr c ∗ putErrOk s E ρ o e) }} := by
+  iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, Hc, Hc0, #Hr⟩ HΦ
+  ihave #HKV := raftKV_server s E ρ γr c $$ []
   · iframe #
   ihave #Hks := kvServerIs_of_at p s _ cid mid n $$ [$Hat $HKV]
-  iapply (kvServer.wp_Put p s (srvKVAns s E ρ A0) cid mid n ctx r o) $$ [Hc Hc0]
+  iapply (kvServer.wp_Put p s (srvKVAns s E ρ γr c) cid mid n ctx r o) $$ [Hc Hc0]
   · iframe #; simp only [srvKVAns]; iframe Hc Hc0
   inext
   iintro %resp %err Hpost
@@ -170,32 +184,31 @@ theorem put_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (A0 : KVA
     simp only [hc, kvOut, srvKVAns]
     iexact Hpost
 
-open Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3 in
 /-- **`deleteRange_end_to_end`** (as `put_end_to_end`, for `DeleteRange`: the answer's request is
 the one the proposed data decode to, `deleteAppliedOk`). -/
-theorem deleteRange_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (A0 : KVAns GF)
-    (cid mid n : w64) (ctx : GoInterface) (r : Loc) (o : OpFull) :
+theorem deleteRange_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (c : w64) (cid mid n : w64) (ctx : GoInterface) (r : Loc) (o : OpFull) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerReq s E ρ ∗ kvServerAt p s (srvKVAns s E ρ A0) cid mid n ∗
-        kvRangeOk s (srvKVAns s E ρ A0) ∗ kvTxnOk s (srvKVAns s E ρ A0) ∗
-        kvGetOk s (srvKVAns s E ρ A0) ∗
-        srvCall s ρ ctx ∗ A0.call ctx ∗ txn.deleteRangeRequestIs r o }}
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ kvServerAt p s (srvKVAns s E ρ γr c) cid mid n ∗
+        srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ txn.deleteRangeRequestIs r o }}
       (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"DeleteRange")) (Val #ctx))
         (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         match deleteCheck o with
-        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ A0.call ctx
+        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c
         | none =>
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
-              structFieldRef etcdserverpb.DeleteRangeResponse go!"Header" resp ↦□ h ∗ hdrFilled h cid mid ∗
-              hdrRevOut A0.revR h rv rv' ∗ deleteAppliedOk s E o resp rv) ∨
-          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface, deleteErrOk s E ρ o e) }} := by
-  iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hat, #HR, #HT, #HG, Hc, Hc0, #Hr⟩ HΦ
-  ihave #HKV := raftKV_of_server EtcdServer.wp_Put EtcdServer.wp_DeleteRange s E ρ A0 $$ []
+              structFieldRef etcdserverpb.DeleteRangeResponse go!"Header" resp ↦□ h ∗
+              hdrFilled h cid mid ∗ hdrRevOut (mvcc.storeReader E.s E.γ) h rv rv' ∗
+              srvRdCall s E γr c ∗ deleteAppliedOk s E o resp rv) ∨
+          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
+            srvRdCall s E γr c ∗ deleteErrOk s E ρ o e) }} := by
+  iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, Hc, Hc0, #Hr⟩ HΦ
+  ihave #HKV := raftKV_server s E ρ γr c $$ []
   · iframe #
   ihave #Hks := kvServerIs_of_at p s _ cid mid n $$ [$Hat $HKV]
-  iapply (kvServer.wp_DeleteRange p s (srvKVAns s E ρ A0) cid mid n ctx r o) $$ [Hc Hc0]
+  iapply (kvServer.wp_DeleteRange p s (srvKVAns s E ρ γr c) cid mid n ctx r o) $$ [Hc Hc0]
   · iframe #; simp only [srvKVAns]; iframe Hc Hc0
   inext
   iintro %resp %err Hpost
@@ -209,6 +222,98 @@ theorem deleteRange_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (
     simp only [hc, kvOut, srvKVAns]
     iexact Hpost
 
+/-- **`range_end_to_end`**: the gRPC `Range`'s `(resp, nil)` is the txn package's range at a
+certified log of at least two revisions (`rangeAnsOk`: `rangeResult` of the server's selection
+at the revision read, the header's revision the log's last), read after the read index unless
+serializable (`readIndexOk γr c`), the header filled; the id credit and the reader slot back. -/
+theorem range_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (c : w64) (cid mid n : w64) (ctx : GoInterface) (r : Loc) (o : OpFull) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ kvServerAt p s (srvKVAns s E ρ γr c) cid mid n ∗
+        srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ txn.rangeRequestIs r o }}
+      (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Range")) (Val #ctx))
+        (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        match rangeCheck o with
+        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c
+        | none =>
+          (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
+              structFieldRef etcdserverpb.RangeResponse go!"Header" resp ↦□ h ∗
+              hdrFilled h cid mid ∗ hdrRevOut (mvcc.storeReader E.s E.γ) h rv rv' ∗
+              srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s ∗
+              rangeAnsOk E γr c o resp rv) ∨
+          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ _e : GoInterface,
+            srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s) }} := by
+  iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, Hc, Hc0, #Hr⟩ HΦ
+  ihave #HKV := raftKV_server s E ρ γr c $$ []
+  · iframe #
+  ihave #Hks := kvServerIs_of_at p s _ cid mid n $$ [$Hat $HKV]
+  iapply (kvServer.wp_Range p s (srvKVAns s E ρ γr c) cid mid n ctx r o) $$ [Hc Hc0]
+  · iframe #; simp only [srvKVAns]; iframe Hc Hc0
+  inext
+  iintro %resp %err Hpost
+  iapply HΦ
+  cases hc : rangeCheck o with
+  | some e =>
+    simp only [hc, srvKVAns]
+    icases Hpost with ⟨Hco, Hc, Hc0⟩
+    iframe
+  | none =>
+    simp only [hc, kvOut, srvKVAns]
+    iexact Hpost
+
+/-- **`txn_end_to_end`**: the gRPC `Txn`, for a request whose read-only gets are within
+the txn package's model (`txnInModel`): the check's error, or `(resp, nil)` with the header
+filled and, for the checked request's model `t`: if read-only, the server's run of `t` at a
+certified log after the read index unless serializable (`txnReadAns`; the id credit back), else
+the apply thread's application of the request the proposed data decode to (`txnAppliedAns`,
+possibly with header-only ranges: `SkipRangeExecution`); or `nil` and an error (for a writing
+`t`, `txnErrOk`: the apply's or the proposal's). -/
+theorem txn_end_to_end
+    (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (c : w64) (cid mid n : w64) (ctx : GoInterface) (r : Loc) (cs : List CmpModel)
+    (ts es : List ReqOp) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ kvServerAt p s (srvKVAns s E ρ γr c) cid mid n ∗
+        srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ txnReqIs r cs ts es ∗ txnReqWire r ts es ∗
+        ⌜txnInModel cs ts es⌝ }}
+      (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Txn")) (Val #ctx))
+        (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        match txnAllCheck (sint.Z n) cs ts es with
+        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c
+        | none =>
+          (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
+              structFieldRef etcdserverpb.TxnResponse go!"Header" resp ↦□ h ∗
+              hdrFilled h cid mid ∗ hdrRevOut (mvcc.storeReader E.s E.γ) h rv rv' ∗
+              srvRdCall s E γr c ∗ srvLeadTimeReader s ∗
+              ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
+                if txn.txnReadonly t then iprop(idCred ρ.ids 1 ∗ txnReadAns E γr c t resp rv)
+                else txnAppliedAns E t resp rv) ∨
+          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
+            srvRdCall s E γr c ∗ srvLeadTimeReader s ∗
+            ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
+              if txn.txnReadonly t then idCred ρ.ids 1 else txnErrOk E ρ t e) }} := by
+  iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, Hc, Hc0, #Hr, #Hw, %Hin⟩ HΦ
+  ihave #HKV := raftKV_server s E ρ γr c $$ []
+  · iframe #
+  ihave #Hks := kvServerIs_of_at p s _ cid mid n $$ [$Hat $HKV]
+  iapply (kvServer.wp_Txn p s (srvKVAns s E ρ γr c) cid mid n
+    ctx r cs ts es) $$ [Hc Hc0]
+  · iframe #; simp only [srvKVAns]; iframe Hc Hc0; ipureintro; exact Hin
+  inext
+  iintro %resp %err Hpost
+  iapply HΦ
+  cases hc : txnAllCheck (sint.Z n) cs ts es with
+  | some e =>
+    simp only [hc, srvKVAns]
+    icases Hpost with ⟨Hco, Hc, Hc0⟩
+    iframe
+  | none =>
+    simp only [hc, kvOut, srvKVAns]
+    iexact Hpost
 
 /-- **What a successful gRPC `Put` applied** (pure; with `put_end_to_end`'s `putAppliedOk`):
 through the uber-applier's chain `alarmChain ns cr`, the put was applied by the client model:
@@ -275,6 +380,9 @@ end v3rpc
 #print axioms Perennial.EtcdGrove.v3rpc.wp_togRPCError
 #print axioms Perennial.EtcdGrove.v3rpc.put_end_to_end
 #print axioms Perennial.EtcdGrove.v3rpc.deleteRange_end_to_end
+#print axioms Perennial.EtcdGrove.v3rpc.range_end_to_end
+#print axioms Perennial.EtcdGrove.v3rpc.txn_end_to_end
+#print axioms Perennial.EtcdGrove.v3rpc.raftKV_server
 #print axioms Perennial.EtcdGrove.v3rpc.put_end_to_end_model
 #print axioms Perennial.EtcdGrove.v3rpc.deleteRange_end_to_end_model
 

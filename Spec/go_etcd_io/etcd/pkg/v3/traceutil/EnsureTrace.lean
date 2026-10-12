@@ -38,7 +38,10 @@ variable [sem : go.Semantics]
 variable [package_sem : context.Assumptions]
 
 /-- `EnsureTrace(ctx, lg, op, fields...)`: a context like `ctx` (the same deadline and `Done`
-channel, other values) and a trace, not nil. -/
+channel, other values) and a trace, not nil; an `isContext` of `ctx` stays one of the result
+(2026-10-12, the request path's unit 3b: `EnsureTrace` returns `ctx` or
+`context.WithValue(ctx, …)`, as `Tracer.Start`'s spec; the server's writing `Txn` passes the
+result to `raftRequest`). -/
 abbrev traceutil.EnsureTrace.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg : Loc) (op : GoString)
     (fields : GoSlice),
@@ -48,7 +51,8 @@ abbrev traceutil.EnsureTrace.spec : Prop :=
       (Val #op)) (Val #fields))
   {{ (ctx' : GoInterfaceOk) (t : Loc), RET (PairV #(GoInterface.ok ctx') #t);
       ⌜t ≠ null⌝ ∗ ∃ vs : GMap GoInterface GoInterface,
-        mvcc.txnCtx ctx' { cd with Values := vs } }}
+        mvcc.txnCtx ctx' { cd with Values := vs } ∗
+        (context.isContext ctx cd -∗ context.isContext ctx' { cd with Values := vs }) }}
 
 end spec
 

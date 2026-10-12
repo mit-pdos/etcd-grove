@@ -346,6 +346,14 @@ def deleteAnswerIs (log : mvcc.Log) (o : OpFull) (resp : Loc) (err : GoInterface
   | .applied l ns => iprop(deleteOutcomeIs log o resp err (.applied l ns) ∗
       appliedHdr log (structFieldRef etcdserverpb.DeleteRangeResponse go!"Header" resp))
 
+/-- **A transaction's answer, with the response header** (as `putAnswerIs`; 2026-10-12, the
+request path's unit 3b: `newTxnResp` allocates the header). -/
+def txnAnswerIs (log : mvcc.Log) (t : TxnModel) (skip : Bool) (resp : Loc) (err : GoInterface) :
+    Outcome → IProp GF
+  | .rejected k => txnOutcomeIs log t skip resp err (.rejected k)
+  | .applied l ns => iprop(txnOutcomeIs log t skip resp err (.applied l ns) ∗
+      appliedHdr log (structFieldRef etcdserverpb.TxnResponse go!"Header" resp))
+
 /-- **A revocation's answer**: rejected, no response; applied, the lessor's error (one
 `errors.Is` can take, the contract's). -/
 def revokeOutcomeIs (resp : Loc) (err : GoInterface) : Outcome → IProp GF
@@ -489,7 +497,7 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
       {{ txnPre E c (.ok ai) r rq t log Pre Q Post }}
         (App (App (Val #(methods ai.ty go!"Txn" ai.v)) (Val #r)) (Val #skip))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-          kvPost E c (.ok ai) rq log (txnOutcomeIs log t skip resp err) Pre Post }}) ∗
+          kvPost E c (.ok ai) rq log (txnAnswerIs log t skip resp err) Pre Post }}) ∗
     □ (∀ (r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log) (Pre Q Post : IProp GF),
       {{ revokePre E c (.ok ai) r rq id log Pre Q Post }}
         (App (Val #(methods ai.ty go!"LeaseRevoke" ai.v)) (Val #r))
