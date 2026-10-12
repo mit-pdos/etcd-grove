@@ -10,8 +10,8 @@ writer its `Pre`, the post-lock hook's triple `{P ∗ Pre} f() {Q}` and the upda
 `Q ={⊤}=∗ P ∗ Post` (the write itself); a writer that takes the lock (`P`), runs the hook,
 writes and unlocks returns `Post`, one that does not write returns `Pre` (`Post ∨ Pre`). `P` is
 the batch lock's invariant and `f` the hook, fixed per backend. The txn package's write path
-gets the same shape through mvcc (unit A of the apply plan: `hookIs`, `store.Write`); the merge
-keeps one definition.
+gets the same shape through mvcc (unit A of the apply plan: `hookIs`, `store.Write`): the
+definition is mvcc's (`InvStore.lean`), shared by both.
 
 **The components** (each with the hook's `P f` where it writes the backend):
 * `isAuthStore st P f` (`auth.AuthStore`): the permission checks (`Is*Permitted`) return some
@@ -40,6 +40,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Wait
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.SoleWriter
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 
 @[expose] public section
 
@@ -64,17 +65,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-! ## The hook's contract -/
 
-/-- **One write under the batch lock, or none** (the caller's side): its `Pre`, the post-lock
-hook's triple, and the write as an update of `Q`. A writer returns `Post ∨ Pre`. -/
-def csContract (P : IProp GF) (f : val) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop(Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗
-    (Q ={⊤}=∗ P ∗ Post))
-
-/-- The no-hook instance's resources are the caller's to give back: with nothing written,
-`Pre`. -/
+/-- The caller's resources are its own to give back: with nothing written, `Pre`. (The
+contract is mvcc's `csContract`, `InvStore.lean`.) -/
 theorem csContract_pre (P : IProp GF) (f : val) (Pre Q Post : IProp GF) :
-    csContract P f Pre Q Post ⊢ Pre := by
-  unfold csContract
+    mvcc.csContract P f Pre Q Post ⊢ Pre := by
+  unfold mvcc.csContract
   iintro ⟨HPre, -, -⟩
   iexact HPre
 
@@ -92,7 +87,7 @@ def respHdrOk (T : Type) (resp : Loc) : IProp GF :=
 def authReqContract (ai : GoInterfaceOk) (m : GoString) (T : Type) (P : IProp GF) (f : val) :
     IProp GF :=
   iprop(□ (∀ (r : Loc) (Pre Q Post : IProp GF),
-    {{ csContract P f Pre Q Post }} (App (Val #(methods ai.ty m ai.v)) (Val #r))
+    {{ mvcc.csContract P f Pre Q Post }} (App (Val #(methods ai.ty m ai.v)) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗
         respHdrOk T resp }}))
 
@@ -131,13 +126,13 @@ def isAuthStore (st : GoInterface) (P : IProp GF) (f : val) : IProp GF :=
     □ ({{ True }} (App (Val #(methods ai.ty go!"Revision" ai.v)) (Val #()))
       {{ (x : w64), RET #x; True }}) ∗
     □ (∀ (Pre Q Post : IProp GF),
-      {{ csContract P f Pre Q Post }} (App (Val #(methods ai.ty go!"AuthEnable" ai.v)) (Val #()))
+      {{ mvcc.csContract P f Pre Q Post }} (App (Val #(methods ai.ty go!"AuthEnable" ai.v)) (Val #()))
       {{ (err : GoInterface), RET #err; Post ∨ Pre }}) ∗
     □ (∀ (Pre Q Post : IProp GF),
-      {{ csContract P f Pre Q Post }} (App (Val #(methods ai.ty go!"AuthDisable" ai.v)) (Val #()))
+      {{ mvcc.csContract P f Pre Q Post }} (App (Val #(methods ai.ty go!"AuthDisable" ai.v)) (Val #()))
       {{ RET #(); Post ∨ Pre }}) ∗
     □ (∀ (ctx : GoInterface) (name pw : GoString) (Pre Q Post : IProp GF),
-      {{ csContract P f Pre Q Post }}
+      {{ mvcc.csContract P f Pre Q Post }}
         (App (App (App (Val #(methods ai.ty go!"Authenticate" ai.v)) (Val #ctx)) (Val #name))
           (Val #pw))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗
@@ -183,19 +178,19 @@ def isApplyLessor (le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : 
     IProp GF :=
   iprop(txn.isTxnLessor le γ.leases ∗ ∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
     □ (∀ (id ttl : w64) (Pre Q Post : IProp GF),
-      {{ csContract P f Pre Q Post }}
+      {{ mvcc.csContract P f Pre Q Post }}
         (App (App (Val #(methods li.ty go!"Grant" li.v)) (Val #id)) (Val #ttl))
       {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); (Post ∨ Pre) ∗
           (⌜err ≠ GoInterface.nil⌝ ∨
             (⌜err = GoInterface.nil⌝ ∗ ∃ id' : w64, leaseIs l id' ∗ mvcc.leaseKnown γ.leases id')) }}) ∗
     □ (∀ (id : w64) (log : mvcc.Log) (Pre Q Post : IProp GF),
-      {{ csContract P f Pre Q Post ∗ txn.soleWriter γ log }}
+      {{ mvcc.csContract P f Pre Q Post ∗ txn.soleWriter γ log }}
         (App (Val #(methods li.ty go!"Revoke" li.v)) (Val #id))
       {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗
           ∃ pend : List mvcc.Change, ⌜∀ c ∈ pend, c.isDel = true⌝ ∗
             txn.soleWriter γ (mvcc.commitLog log pend) }}) ∗
     □ (∀ (id rem : w64) (Pre Q Post : IProp GF),
-      {{ csContract P f Pre Q Post }}
+      {{ mvcc.csContract P f Pre Q Post }}
         (App (App (Val #(methods li.ty go!"Checkpoint" li.v)) (Val #id)) (Val #rem))
       {{ (err : GoInterface), RET #err; Post ∨ Pre }}) ∗
     □ (∀ id : w64,
@@ -226,12 +221,12 @@ def isAlarmStore (st : Loc) (P : IProp GF) (f : val) : IProp GF :=
           (Val #at'))
       {{ (sl : GoSlice), RET #sl; True }}) ∗
     □ (∀ (id : w64) (at' : w32) (Pre Q Post : IProp GF),
-      {{ csContract P f Pre Q Post }}
+      {{ mvcc.csContract P f Pre Q Post }}
         (App (App (Val (st @!! go.GoType.PointerType etcdserver.api.v3alarm.AlarmStore.ty @!!
           go!"Activate")) (Val #id)) (Val #at'))
       {{ (m : Loc), RET #m; (Post ∨ Pre) ∗ (⌜m = null⌝ ∨ alarmMemberIs m) }}) ∗
     □ (∀ (id : w64) (at' : w32) (Pre Q Post : IProp GF),
-      {{ csContract P f Pre Q Post }}
+      {{ mvcc.csContract P f Pre Q Post }}
         (App (App (Val (st @!! go.GoType.PointerType etcdserver.api.v3alarm.AlarmStore.ty @!!
           go!"Deactivate")) (Val #id)) (Val #at'))
       {{ (m : Loc), RET #m; (Post ∨ Pre) ∗ (⌜m = null⌝ ∨ alarmMemberIs m) }}))
@@ -255,18 +250,18 @@ def isCluster (c : Loc) (P : IProp GF) (f : val) : IProp GF :=
           go!"ID")) (Val #()))
       {{ (id : w64), RET #id; True }}) ∗
     □ (∀ (v : Loc) (onSet : val) (b : Bool) (Pre Q Post : IProp GF),
-      {{ csContract P f Pre Q Post ∗ ⌜v ≠ null⌝ }}
+      {{ mvcc.csContract P f Pre Q Post ∗ ⌜v ≠ null⌝ }}
         (App (App (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty
           @!! go!"SetVersion")) (Val #v)) (Val onSet)) (Val #b))
       {{ RET #(); Post ∨ Pre }}) ∗
     □ (∀ (id : w64) (attr : etcdserver.api.membership.Attributes) (b : Bool)
         (Pre Q Post : IProp GF),
-      {{ csContract P f Pre Q Post }}
+      {{ mvcc.csContract P f Pre Q Post }}
         (App (App (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty
           @!! go!"UpdateAttributes")) (Val #id)) (Val #attr)) (Val #b))
       {{ RET #(); Post ∨ Pre }}) ∗
     □ (∀ (d : Loc) (di : etcdserver.version.DowngradeInfo) (b : Bool) (Pre Q Post : IProp GF),
-      {{ csContract P f Pre Q Post ∗ d ↦ di }}
+      {{ mvcc.csContract P f Pre Q Post ∗ d ↦ di }}
         (App (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty @!!
           go!"SetDowngradeInfo")) (Val #d)) (Val #b))
       {{ RET #(); Post ∨ Pre }}))
