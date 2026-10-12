@@ -89,6 +89,61 @@ instance rbuf_countable : Pos.Countable RBuf :=
 /-- The view of a readers' state. -/
 def vOf (P : BParams) (rv : RView) : VFun := ovB P.BT rv.2.bks (dget rv.1)
 
+/-! ## The readers' view as a finite map -/
+
+/-- The keys a view of `rv` can have: the committed data's, and the read buffer's (through the
+table). -/
+def vKeys (P : BParams) (rv : RView) : List (GoString × GoString) :=
+  rv.1.toList.flatMap (fun nm => nm.2.toList.map (fun kv => (nm.1, kv.1))) ++
+  P.BT.toList.flatMap (fun ni => (bkOf rv.2.bks ni.2).map (fun e => (ni.1, e.1)))
+
+theorem lastVal_isSome_mem {l : List Ent} {k : GoString} (h : (lastVal l k).isSome) :
+    ∃ e ∈ l, e.1 = k := by
+  unfold lastVal at h
+  cases hf : l.reverse.find? (fun e => decide (e.1 = k)) with
+  | none => rw [hf] at h; simp at h
+  | some e =>
+    have hm := List.mem_of_find?_eq_some hf
+    have hk := List.find?_some hf
+    exact ⟨e, List.mem_reverse.1 hm, by simpa using hk⟩
+
+theorem vOf_isSome_mem (P : BParams) (rv : RView) (n k : GoString)
+    (h : (vOf P rv n k).isSome) : (n, k) ∈ vKeys P rv := by
+  unfold vOf ovB at h
+  unfold vKeys
+  rw [List.mem_append]
+  cases hb : (P.BT.lookup n).bind (fun i => lastVal (bkOf rv.2.bks i) k) with
+  | some v =>
+    right
+    obtain ⟨i, hi, hl⟩ := Option.bind_eq_some_iff.1 hb
+    obtain ⟨e, he, hek⟩ := lastVal_isSome_mem (l := bkOf rv.2.bks i) (k := k) (by rw [hl]; rfl)
+    rw [List.mem_flatMap]
+    refine ⟨(n, i), (GMap.mem_toList _ _ _).2 hi, ?_⟩
+    rw [List.mem_map]
+    exact ⟨e, he, by rw [hek]⟩
+  | none =>
+    left
+    rw [hb, Option.none_or] at h
+    unfold dget at h
+    obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 h
+    obtain ⟨m, hm, hk⟩ := Option.bind_eq_some_iff.1 hv
+    rw [List.mem_flatMap]
+    refine ⟨(n, m), (GMap.mem_toList _ _ _).2 hm, ?_⟩
+    rw [List.mem_map]
+    exact ⟨(k, v), (GMap.mem_toList _ _ _).2 hk, rfl⟩
+
+/-- The readers' view off the hook's buckets, as a finite map from (bucket, key) to the value:
+the ghost state's value (two states with one view have one `vData`). -/
+def vData (P : BParams) (rv : RView) : GMap (GoString × GoString) GoString :=
+  ⟨fun nk => if P.HB nk.1 then none else vOf P rv nk.1 nk.2,
+   ⟨vKeys P rv, fun nk h => by
+      split at h
+      · simp at h
+      · exact vOf_isSome_mem P rv nk.1 nk.2 h⟩⟩
+
+/-- bbolt's data off the hook's buckets, as a finite map (what the writer's contents read as). -/
+def sData (P : BParams) (S : Data) : GMap (GoString × GoString) GoString := vData P (S, ⟨∅, W64 0⟩)
+
 /-- The buffers' buckets are the table's. -/
 def idsOk (P : BParams) (B : GMap w64 (List Ent)) : Prop :=
   ∀ i es, B.lookup i = some es → ∃ n, P.BT.lookup n = some i
@@ -106,6 +161,76 @@ def sessWf (P : BParams) (st : BSess) : Prop :=
 def freeOk (P : BParams) (st : BSess) : Prop :=
   sessWf P st ∧ sint.Z st.pend < sint.Z P.limit ∧ st.ndel = W64 0 ∧
   ∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []
+
+end backend
+end EtcdGrove
+end Perennial
+
+namespace Perennial
+namespace EtcdGrove
+namespace backend
+
+/-! ## The batch transaction's operations -/
+
+/-- A bucket's contents in bbolt's data (empty if absent). -/
+def bktOf (D : Data) (n : GoString) : BktData := (D.lookup n).getD ∅
+
+/-- `UnsafePut(bucket, k, v)` (and `UnsafeSeqPut`, with the write buffer's `putSeq`): bbolt's
+writer sets the entry, the write buffer gets it, one more pending operation. -/
+def BSess.put (st : BSess) (bi : BucketInfo) (k v : GoString) (seq : Bool) : BSess :=
+  { st with S := st.S.insert bi.name ((bktOf st.S bi.name).insert k v),
+            W := if seq then st.W.putSeq bi.id (k, v) else st.W.put bi.id (k, v),
+            pend := st.pend + W64 1 }
+
+/-- `UnsafeDelete(bucket, k)`: bbolt's writer deletes the entry (no buffer), one more pending
+operation and pending delete. -/
+def BSess.del (st : BSess) (bi : BucketInfo) (k : GoString) : BSess :=
+  { st with S := st.S.insert bi.name ((bktOf st.S bi.name).delete k),
+            pend := st.pend + W64 1, ndel := st.ndel + W64 1 }
+
+/-- `UnsafeCreateBucket(bucket)`: the bucket, empty if it was absent. -/
+def BSess.create (st : BSess) (bi : BucketInfo) : BSess :=
+  { st with S := if st.S.lookup bi.name = none then st.S.insert bi.name ∅ else st.S,
+            pend := st.pend + W64 1 }
+
+/-- `UnsafeDeleteBucket(bucket)`: the bucket deleted (absent or not), one more pending operation
+and pending delete. -/
+def BSess.delBucket (st : BSess) (bi : BucketInfo) : BSess :=
+  { st with S := st.S.delete bi.name, pend := st.pend + W64 1, ndel := st.ndel + W64 1 }
+
+/-- One run of the pre-commit hook, from `st` to `st'`: the committed data and the read buffer
+untouched, the writer's contents changed only in the hook's buckets, the write buffer's
+other buckets untouched, at most `hookMax` operations more. -/
+def hookStep (P : BParams) (st st' : BSess) : Prop :=
+  st'.C = st.C ∧ st'.R = st.R ∧ sData P st'.S = sData P st.S ∧
+  (∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st'.W.bks i = bkOf st.W.bks i) ∧
+  sint.Z st.pend ≤ sint.Z st'.pend ∧ sint.Z st'.pend ≤ sint.Z st.pend + P.hookMax ∧
+  sint.Z st.ndel ≤ sint.Z st'.ndel
+
+/-! ## Ranges -/
+
+/-- The limit `UnsafeRange` uses: 1 for a single key (no end key), else `limit` (all of them if
+`limit ≤ 0`). -/
+def rangeLimit (endKey : GoString) (limit : w64) : w64 :=
+  if endKey = [] then W64 1 else if sint.Z limit ≤ 0 then W64 (2 ^ 63 - 1) else limit
+
+/-- `unsafeRange(cursor, key, endKey, limit)` over a bucket's sorted entries: from the first
+entry not below `key`, the entries below `endKey`, or the one equal to `key` (no end key), at most
+`limit` (all if `limit ≤ 0`). -/
+def cursorRange (es : List Ent) (key endKey : GoString) (limit : w64) : List Ent :=
+  let rest := es.drop (seekIdx es key)
+  if endKey = [] then (rest.takeWhile (fun e => decide (e.1 = key))).take 1
+  else (rest.takeWhile (fun e => decide (strLt e.1 endKey))).take
+    (if sint.Z limit ≤ 0 then 2 ^ 63 - 1 else (sint.Z limit).toNat)
+
+/-- A read transaction's `UnsafeRange(bucket, key, endKey, limit)` over the readers' state
+`rv`: the read buffer's range, and, if it has fewer than the limit, bbolt's range for the rest
+before it. -/
+def rtRange (rv : RView) (bi : BucketInfo) (key endKey : GoString) (limit : w64) : List Ent :=
+  let lim := rangeLimit endKey limit
+  let bufR := bbRange (bkOf rv.2.bks bi.id) key endKey lim
+  if (bufR.length : Int) = sint.Z lim then bufR
+  else cursorRange (bktEnts (bktOf rv.1 bi.name)) key endKey (lim - W64 bufR.length) ++ bufR
 
 end backend
 end EtcdGrove

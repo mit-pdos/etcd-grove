@@ -45,6 +45,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Model2
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.GhostMap
+public import Perennial.Ghost.DGhostVar
 public import Perennial.Proof.TokSet
 public import Perennial.Proof.sync_proof.rwmutex_guard
 public import Perennial.Proof.sync_proof.waitgroup
@@ -146,11 +147,18 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-! ## The clients' tokens -/
 
-/-- The clients' share of the readers' state. -/
-def bView (γ : BNames) (q : Qp) (rv : RView) : IProp GF := ghostVar γ.view q.half rv
+/-- The readers' view off the hook's buckets (`vData`), as the clients see it. -/
+abbrev VData := GMap (GoString × GoString) GoString
 
-/-- The clients' share of the backend being open. -/
-def bOpen (γ : BNames) (q : Qp) : IProp GF := ghostVar γ.opn q.half ()
+/-- The clients' share of the readers' view. -/
+def bView (γ : BNames) (q : Qp) (vd : VData) : IProp GF := ghostVar γ.view q.half vd
+
+/-- The clients' share of the backend being open (`γ.opn`, a `dghostVar` of whether it
+stopped: the `run` goroutine holds the other half; the stop makes it `true` and persistent). -/
+def bOpen (γ : BNames) (q : Qp) : IProp GF := dghostVar γ.opn (DFrac.own q.half) false
+
+/-- The backend stopped (persistent). -/
+def bStopped (γ : BNames) : IProp GF := dghostVar γ.opn DFrac.discard true
 
 /-- The clients' half of the post-lock hook (`SetTxPostLockInsideApplyHook` changes it). -/
 def plHook (γ : BNames) (f : GoFunc) : IProp GF := ghostVar γ.hook (1 : Qp).half f
@@ -173,7 +181,7 @@ is in progress (the writer then keeps the clients' half of the view here). -/
 def cacheInv (γ : BNames) : IProp GF :=
   iprop(inv (bN.@"cached") iprop(∃ (Cs : GMap (w64 × Nat) Unit) (cur : Option (w64 × Nat)),
     ghostMapAuth γ.cached 1 Cs ∗
-    (⌜cur.isSome⌝ ∨ ∃ rv, bView γ 1 rv) ∗ ghostVar γ.cur (1 : Qp).half cur))
+    (⌜cur.isSome⌝ ∨ ∃ vd, bView γ 1 vd) ∗ ghostVar γ.cur (1 : Qp).half cur))
 
 /-! ## `txMu` and the intervals -/
 
@@ -224,25 +232,27 @@ def wgInv (γ : BNames) (rtx wg : Loc) (γw γo : GName) : IProp GF :=
 buckets: every marked state at `ver` with the current committed data. -/
 def cacheValid (γ : BNames) (P : BParams) (rv : RView) : IProp GF :=
   iprop(□ ∀ (i : Nat) (rv' : RView), histAt γ rv.2.ver i rv' -∗ cachedAt γ rv.2.ver i -∗
-    ⌜agreeOff P.HB (vOf P (rv.1, rv'.2)) (vOf P rv)⌝)
+    ⌜vData P (rv.1, rv'.2) = vData P rv⌝)
 
-/-- `readTx.mu`'s resource at `q`. -/
-def rtRes (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) : IProp GF :=
-  iprop(∃ (rd : RdSt) (rv : RView) (H : GMap (w64 × Nat) RView),
-    ghostVar γ.rd q rd ∗ ghostVar γ.view q.half.half rv ∗ ghostMapAuth γ.hist q H ∗
+/-- `readTx.mu`'s resource at `q`, in the layout `rd`, the readers' state `rv` and the history
+`H`. -/
+def rtResAt (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) (rd : RdSt) (rv : RView)
+    (H : GMap (w64 × Nat) RView) : IProp GF :=
+  iprop(ghostVar γ.rd q rd ∗ ghostVar γ.view q.half.half (vData P rv) ∗ ghostMapAuth γ.hist q H ∗
     rbAt (rbufOf (baseOf rt)) (DFrac.own q) rd.m rd.P rv.2 ∗
     rtxOf (baseOf rt) ↦{DFrac.own q} rd.rtx ∗ rbktOf (baseOf rt) ↦{DFrac.own q} rd.cm ∗
     rwgOf (baseOf rt) ↦{DFrac.own q} rd.wg ∗
     ⌜rv.2.Wf ∧ idsOk P rv.2.bks ∧ H.lookup (rv.2.ver, rd.idx) = some rv ∧
       ∀ k rv', H.lookup k = some rv' → k.1 = rv.2.ver → k.2 ≤ rd.idx⌝ ∗
     histAt γ rv.2.ver rd.idx rv ∗ cacheValid γ P rv ∗
-    (⌜rd.rtx = Loc.null⌝ ∨
+    ((⌜rd.rtx = Loc.null⌝ ∗ bStopped γ) ∨
       (txLive rd.rtx q.half ∗ rtxSnap rd.rtx rv.1 ∗ □ intvInv γ P rd.rtx rd.cm rv.1 ∗
         □ wgInv γ rd.rtx rd.wg rd.γw rd.γo ∗ wgOpen rd.γw q)))
 
-/-- A reader's token: a reader slot of `readTx.mu` and a reader's budget token. -/
-def rdTok (γ : BNames) (P : BParams) (rt : Loc) : IProp GF :=
-  iprop(sync.ownRWMutex (rmuOf (baseOf rt)) (rtRes γ P rt) ∗ ownToks γ.rdt 1)
+/-- `readTx.mu`'s resource at `q`. -/
+def rtRes (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) : IProp GF :=
+  iprop(∃ (rd : RdSt) (rv : RView) (H : GMap (w64 × Nat) RView), rtResAt γ P rt q rd rv H)
+
 
 /-! ## The cache -/
 
@@ -267,19 +277,129 @@ def batchPhys (γ : BNames) (b t db : Loc) (st : BSess) : IProp GF :=
 
 /-- The batch lock's share of the ghost state for `st`: the view's quarter at `(C, R)` and the
 write-back budget's authority (the version and the tokens left fit in a `uint64`). -/
-def batchGhost (γ : BNames) (st : BSess) : IProp GF :=
-  iprop(ghostVar γ.view (1 : Qp).half.half (st.C, st.R) ∗
+def batchGhost (γ : BNames) (P : BParams) (st : BSess) : IProp GF :=
+  iprop(ghostVar γ.view (1 : Qp).half.half (vData P (st.C, st.R)) ∗
     ∃ n : Nat, ownTokAuth γ.wb n ∗ ⌜uint.Z st.R.ver + n < 2 ^ 64⌝)
 
-/-- The batch lock's resource, free: a state with `freeOk`; or the backend stopped (the `run`
-goroutine's `CommitAndStop`: the open token whole inside). -/
-def batchFree (γ : BNames) (P : BParams) (b t db : Loc) : IProp GF :=
-  iprop((∃ st : BSess, batchPhys γ b t db st ∗ batchGhost γ st ∗ ⌜freeOk P st⌝) ∨
-    ghostVar γ.opn 1 ())
+/-- The batch lock's resource, free: a state with `freeOk` and the client's resource `WR`; or
+the backend stopped (the `run` goroutine's `CommitAndStop`: the open token whole inside). -/
+def batchFree (γ : BNames) (P : BParams) (WR : IProp GF) (b t db : Loc) : IProp GF :=
+  iprop((∃ st : BSess, batchPhys γ b t db st ∗ batchGhost γ P st ∗ ⌜freeOk P st⌝ ∗ WR) ∨
+    bStopped γ)
 
-/-- The batch lock held, in state `st`. -/
-def batchLocked (γ : BNames) (P : BParams) (b t db : Loc) (st : BSess) : IProp GF :=
-  iprop(sync.ownMutex (muOf t) ∗ batchPhys γ b t db st ∗ batchGhost γ st ∗ ⌜sessWf P st⌝)
+/-- The batch lock held, in state `st` (its transaction `t`, its database `db`). -/
+def batchLockedAt (γ : BNames) (P : BParams) (b t db : Loc) (st : BSess) : IProp GF :=
+  iprop(sync.ownMutex (muOf t) ∗ batchPhys γ b t db st ∗ batchGhost γ P st ∗ ⌜sessWf P st⌝)
+
+/-- The batch lock held by the client, in state `st`. -/
+def batchLocked (γ : BNames) (P : BParams) (b : Loc) (st : BSess) : IProp GF :=
+  iprop(∃ (t db : Loc), bF go!"batchTx" b ↦□ t ∗ batchLockedAt γ P b t db st)
+
+/-- A `Hooks` value: nil, or one whose `OnPreCommitUnsafe(tx)`, on the batch transaction `t`
+held in a state `st`, with the client's resource `WR`, makes a hook step (`hookStep`). -/
+def hooksSpec (γ : BNames) (P : BParams) (WR : IProp GF) (b t : Loc) (h : GoInterface) :
+    IProp GF :=
+  iprop(⌜h = GoInterface.nil⌝ ∨ ∃ ho : GoInterfaceOk, ⌜h = GoInterface.ok ho⌝ ∗
+    □ ∀ st : BSess,
+      {{ batchLocked γ P b st ∗ WR }}
+        (App (Val #(methods ho.ty go!"OnPreCommitUnsafe" ho.v))
+          (Val #(interface.mk (go.GoType.PointerType batchTxBuffered.ty) #t)))
+      {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ WR ∗ ⌜hookStep P st st'⌝ }})
+
+/-- A `HookFunc` with the same contract (what `NewHooks` wraps). -/
+def hookFnSpec (γ : BNames) (P : BParams) (WR : IProp GF) (b t : Loc) (f : GoFunc) : IProp GF :=
+  iprop(□ ∀ st : BSess,
+    {{ batchLocked γ P b st ∗ WR }}
+      (App (Val #f) (Val #(interface.mk (go.GoType.PointerType batchTxBuffered.ty) #t)))
+    {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ WR ∗ ⌜hookStep P st st'⌝ }})
+
+/-- The backend's metrics fields (atomics). -/
+def metricsInv (b : Loc) : IProp GF :=
+  iprop(inv (bN.@"metrics") iprop(∃ (a c d e : w64), bF go!"size" b ↦ a ∗
+    bF go!"sizeInUse" b ↦ c ∗ bF go!"commits" b ↦ d ∗ bF go!"openReadTxN" b ↦ e))
+
+/-- `b` is a backend with parameters `P`, ghost names `γ`, the client's batch-lock resource
+`WR` (persistent). -/
+def isBackend (γ : BNames) (P : BParams) (WR : IProp GF) (b : Loc) : IProp GF :=
+  iprop(□ ∃ (t rt tm db lg : Loc) (h : GoInterface),
+    bF go!"batchTx" b ↦□ t ∗ bF go!"readTx" b ↦□ rt ∗ bF go!"batchLimit" b ↦□ P.limit ∗
+    bF go!"lg" b ↦□ lg ∗ ⌜lg ≠ Loc.null⌝ ∗ bF go!"hooks" b ↦□ h ∗ beOf t ↦□ b ∗
+    rtmuOf (baseOf rt) ↦□ tm ∗ hooksSpec γ P WR b t h ∗
+    sync.isMutex (muOf t) (batchFree γ P WR b t db) ∗
+    sync.isRWMutexGuard (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
+    sync.isRWMutexGuard tm (fun q => tmTok γ q) ∗
+    sync.isMutex (cmuOf b) (cacheRes γ P b) ∗ cacheInv γ ∗ metricsInv b ∗
+    sync.isRWMutexGuard (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
+    isDB db ∗ ⌜P.Wf⌝)
+
+instance isBackend_persistent (γ : BNames) (P : BParams) (WR : IProp GF) (b : Loc) :
+    Persistent (isBackend γ P WR b) := by
+  unfold isBackend; infer_instance
+
+/-! ## Readers -/
+
+/-- The bytes a read returns: from the read buffer (read-only for good), or from bbolt's read
+transaction `rtx` (valid while it is open). -/
+def rdB (rtx : Loc) (s : GoSlice) (b : GoString) : IProp GF :=
+  iprop(s ↦*□ b ∨ txBytes rtx s b)
+
+instance rdB_persistent (rtx : Loc) (s : GoSlice) (b : GoString) :
+    Persistent (rdB (GF := GF) rtx s b) := by
+  unfold rdB; infer_instance
+
+/-- The slices a read returns are `rdB`. -/
+def rdSlices (rtx : Loc) (ss : List GoSlice) (bs : List GoString) : IProp GF :=
+  iprop(⌜ss.length = bs.length⌝ ∗ [∗list] x ∈ ss.zip bs, rdB rtx x.1 x.2)
+
+/-- The two slices a read returns, owned, of the entries' keys and values. -/
+def kvsOutRd (rtx : Loc) (keys vals : GoSlice) (res : List Ent) : IProp GF :=
+  iprop(∃ (ks vs : List GoSlice), keys ↦* ks ∗ ownSliceCap GoSlice keys (DFrac.own 1) ∗
+    vals ↦* vs ∗ ownSliceCap GoSlice vals (DFrac.own 1) ∗
+    rdSlices rtx ks (res.map Prod.fst) ∗ rdSlices rtx vs (res.map Prod.snd))
+
+/-- A reader's tokens, beside `readTx.mu`'s slot: a slot of `txMu` and a reader's budget
+token (a `ConcurrentReadTx` keeps them until its `RUnlock`). -/
+def crTok (γ : BNames) (b : Loc) : IProp GF :=
+  iprop(∃ (rt tm : Loc), bF go!"readTx" b ↦□ rt ∗ rtmuOf (baseOf rt) ↦□ tm ∗
+    sync.ownRWMutex tm (fun q => tmTok γ q) ∗ ownToks γ.rdt 1)
+
+/-- A reader's token: a slot of `readTx.mu`, and `crTok`. -/
+def rdTok (γ : BNames) (P : BParams) (b : Loc) : IProp GF :=
+  iprop(∃ rt : Loc, bF go!"readTx" b ↦□ rt ∗ sync.ownRWMutex (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
+    crTok γ b)
+
+/-- What `baseReadTx.UnsafeRange` needs of its receiver `base` (a shared or a concurrent read
+transaction): its read buffer at `dq`, its bbolt transaction `rtx` (open: `txLive` at `q`) over
+the readers' state `rv`, its buckets map with the interval's invariant, `txMu` and a slot of it.
+-/
+def baseRd (γ : BNames) (P : BParams) (base : Loc) (dq : DFrac) (rtx : Loc) (rv : RView) (q : Qp) :
+    IProp GF :=
+  iprop(∃ (m : GoMap) (Pb : BksPhys) (cm : GoMap) (tm : Loc),
+    rbAt (rbufOf base) dq m Pb rv.2 ∗ rtxOf base ↦{dq} rtx ∗ rbktOf base ↦{dq} cm ∗
+    rtmuOf base ↦□ tm ∗ sync.ownRWMutex tm (fun q => tmTok γ q) ∗
+    sync.isRWMutexGuard tm (fun q => tmTok γ q) ∗
+    txLive rtx q ∗ rtxSnap rtx rv.1 ∗ □ intvInv γ P rtx cm rv.1 ∗
+    ⌜rv.2.Wf ∧ idsOk P rv.2.bks⌝)
+
+/-- A `ConcurrentReadTx` at `crt` (until its `RUnlock`): its fields (its copy of the read
+buffer read-only for good), its share of the interval, its slot of `txMu`, over the readers' state
+`rv` (the interval's committed data and the copy) and bbolt's transaction `rtx`. -/
+def crtSnap (γ : BNames) (P : BParams) (b crt : Loc) (rtx : Loc) (rv : RView) : IProp GF :=
+  iprop(∃ (m : GoMap) (Pb : BksPhys) (cm : GoMap) (tm wg : Loc) (γw γo : GName) (k : Nat)
+      (q : Qp) (rt : Loc),
+    bF go!"readTx" b ↦□ rt ∗ rtmuOf (baseOf rt) ↦□ tm ∗
+    rbAt (rbufOf (cbaseOf crt)) DFrac.discard m Pb rv.2 ∗ rtxOf (cbaseOf crt) ↦□ rtx ∗
+    rbktOf (cbaseOf crt) ↦□ cm ∗ rtmuOf (cbaseOf crt) ↦□ tm ∗ rwgOf (cbaseOf crt) ↦□ wg ∗
+    sync.ownRWMutex tm (fun q => tmTok γ q) ∗ sync.isRWMutexGuard tm (fun q => tmTok γ q) ∗
+    rdShare rtx γo k q ∗ rtxSnap rtx rv.1 ∗ □ intvInv γ P rtx cm rv.1 ∗
+    □ wgInv γ rtx wg γw γo ∗ ⌜rv.2.Wf ∧ idsOk P rv.2.bks⌝)
+
+/-- The shared read transaction held (`ReadTx().RLock()`), over the readers' state `rv` and
+bbolt's transaction `rtx`. -/
+def rtHeld (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView) : IProp GF :=
+  iprop(∃ (rt : Loc) (rd : RdSt) (H : GMap (w64 × Nat) RView), bF go!"readTx" b ↦□ rt ∗
+    sync.ownRWMutexRLocked (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
+    rtResAt γ P rt sync.rfrac rd rv H ∗ ⌜rd.rtx = rtx⌝ ∗ crTok γ b)
 
 end preds
 
