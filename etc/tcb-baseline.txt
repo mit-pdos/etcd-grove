@@ -9,6 +9,7 @@ axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
 axiom config.ServerConfig.ReqTimeout.wp_proof
 axiom context.WithValue.wp_proof
+axiom errors.IsDeadlineExceeded.wp_proof
 axiom etcdReachedAt
 axiom etcdReachedAt_timeless
 axiom etcdRevToken
