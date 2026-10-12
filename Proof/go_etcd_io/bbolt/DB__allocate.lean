@@ -331,7 +331,7 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                   try wp_auto
                   by_cases hty : ei.ty = go.GoType.PointerType t'
                   · rw [if_pos hty]
-                    obtain ⟨l, hl⟩ := He.2 ei rfl t' hty
+                    obtain ⟨l, hl⟩ := errWF_ptr_val He.2 rfl hty
                     rcases ei with ⟨ety, ev⟩
                     simp only at hty hl
                     subst hty hl
@@ -387,7 +387,7 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                   try wp_auto
                   by_cases hty : ei.ty = go.GoType.PointerType t'
                   · rw [if_pos hty]
-                    obtain ⟨l, hl⟩ := He.2 ei rfl t' hty
+                    obtain ⟨l, hl⟩ := errWF_ptr_val He.2 rfl hty
                     rcases ei with ⟨ety, ev⟩
                     simp only at hty hl
                     subst hty hl
@@ -663,7 +663,7 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
               try wp_auto
               by_cases hty : ei.ty = go.GoType.PointerType t'
               · rw [if_pos hty]
-                obtain ⟨l, hl⟩ := He.2 ei rfl t' hty
+                obtain ⟨l, hl⟩ := errWF_ptr_val He.2 rfl hty
                 rcases ei with ⟨ety, ev⟩
                 simp only at hty hl
                 subst hty hl
@@ -719,7 +719,7 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
               try wp_auto
               by_cases hty : ei.ty = go.GoType.PointerType t'
               · rw [if_pos hty]
-                obtain ⟨l, hl⟩ := He.2 ei rfl t' hty
+                obtain ⟨l, hl⟩ := errWF_ptr_val He.2 rfl hty
                 rcases ei with ⟨ety, ev⟩
                 simp only at hty hl
                 subst hty hl

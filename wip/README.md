@@ -2,7 +2,5 @@
 
 Unfinished proofs kept out of the build (the `lean_lib` globs do not reach `wip/`), saved when
 their agents stopped on an API limit: `WriteTxClean.lean` (the write agent: the clean
-invariant across `Bucket.node`, `bktClean_addChild` unfinished);
-`DB__getPageSizeFromSecondMeta.lean` (blocked: it compares with `io.EOF`, whose value Perennial's
-`io` initialization does not give: `isPkgInit pkg_id.io` is `True`).
+invariant across `Bucket.node`, `bktClean_addChild` unfinished).
 Move a file back under `Proof/go_etcd_io/bbolt/` to resume it.

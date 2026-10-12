@@ -71,7 +71,9 @@ public import Proof.go_etcd_io.bbolt.DB__beginRWTx
 public import Proof.go_etcd_io.bbolt.DB__beginTx
 public import Proof.go_etcd_io.bbolt.DB__close
 public import Proof.go_etcd_io.bbolt.DB__fileSize
+public import Proof.go_etcd_io.bbolt.DB__getPageSize
 public import Proof.go_etcd_io.bbolt.DB__getPageSizeFromFirstMeta
+public import Proof.go_etcd_io.bbolt.DB__getPageSizeFromSecondMeta
 public import Proof.go_etcd_io.bbolt.DB__grow
 public import Proof.go_etcd_io.bbolt.DB__growSize
 public import Proof.go_etcd_io.bbolt.DB__hasSyncedFreelist
@@ -765,6 +767,14 @@ theorem DB.wp_pageInBuffer :
 theorem DB.wp_getPageSizeFromFirstMeta :
     EtcdGrove.bbolt.DB.getPageSizeFromFirstMeta.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.getPageSizeFromFirstMeta.wp_proof EtcdGrove.bbolt.os.File.wp_ReadAt EtcdGrove.bbolt.DB.wp_pageInBuffer EtcdGrove.bbolt.Page.wp_Meta EtcdGrove.bbolt.Meta.wp_Validate EtcdGrove.bbolt.Meta.wp_PageSize
+
+theorem DB.wp_getPageSizeFromSecondMeta :
+    EtcdGrove.bbolt.DB.getPageSizeFromSecondMeta.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.getPageSizeFromSecondMeta.wp_proof EtcdGrove.bbolt.os.File.wp_Stat EtcdGrove.bbolt.fs.FileInfo.wp_Size EtcdGrove.bbolt.os.File.wp_ReadAt EtcdGrove.bbolt.DB.wp_pageInBuffer EtcdGrove.bbolt.Page.wp_Meta EtcdGrove.bbolt.Meta.wp_Validate EtcdGrove.bbolt.Meta.wp_PageSize
+
+theorem DB.wp_getPageSize :
+    EtcdGrove.bbolt.DB.getPageSize.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.getPageSize.wp_proof EtcdGrove.bbolt.DB.wp_getPageSizeFromFirstMeta EtcdGrove.bbolt.DB.wp_getPageSizeFromSecondMeta
 
 theorem os.File.wp_Truncate :
     EtcdGrove.bbolt.os.File.Truncate.spec (GF := GF) (hG := hG) :=

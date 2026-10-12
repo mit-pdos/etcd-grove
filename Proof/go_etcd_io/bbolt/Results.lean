@@ -155,6 +155,8 @@ namespace bbolt
 #print axioms os.File.wp_ReadAt
 #print axioms DB.wp_pageInBuffer
 #print axioms DB.wp_getPageSizeFromFirstMeta
+#print axioms DB.wp_getPageSizeFromSecondMeta
+#print axioms DB.wp_getPageSize
 #print axioms os.File.wp_Truncate
 #print axioms os.File.wp_Sync
 #print axioms DB.wp_grow
