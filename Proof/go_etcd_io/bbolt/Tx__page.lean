@@ -30,7 +30,7 @@ theorem Tx.page.wp_proof (hpage : DB.page.spec (GF := GF) (hG := hG))
   wp_auto
   rw [Hpages, decide_eq_true rfl, Bool.not_true]
   try wp_auto
-  wp_apply hpage t.db' data ps dq id Hc Hlt $$ [Hd Hps] as ⟨Hd, Hps⟩
+  wp_apply hpage t.db' data ps dq dq id Hc Hlt $$ [Hd Hps] as ⟨Hd, Hps⟩
   · iframe
   try wp_auto
   have Hcar : (data +ₗ uint.Z (id * ps)).locCar ≠ 0 := by simpa [Loc.add] using Hc

@@ -40,7 +40,7 @@ theorem DB.View.wp_proof (hBegin : DB.Begin.spec (GF := GF) (hG := hG))
   try wp_auto
   try simp only
   ihave Hrtx : ownReadTx dbl γ txl k r σ.data σ.ps true $$ [Htx Hmeta Hroot Hrdata Hrps Hpages Hrl Hkey]
-  · simp only [ownReadTx]; iexists _, mv; iframe; ipureintro
+  · simp only [ownReadTx]; iexists _, mv; iframe; iframe #; ipureintro
     obtain ⟨a, b, c, _, rest⟩ := Ht; exact ⟨a, b, c, rfl, rest⟩
   have Hk' : (σ.addReader k r).readers !! k = some r := GMap.lookup_insert _ _ _
   have hfn' := hfn txl k r (σ.addReader k r) Hk'
@@ -55,7 +55,7 @@ theorem DB.View.wp_proof (hBegin : DB.Begin.spec (GF := GF) (hG := hG))
   try simp only
   obtain ⟨Hd2, Hp2⟩ := Hσ2
   ihave Hrtx : ownReadTx dbl γ txl k r σ2.data σ2.ps false $$ [Htx Hmeta Hroot Hrdata Hrps Hpages Hrl Hkey]
-  · simp only [ownReadTx]; rw [Hd2, Hp2]; iexists _, mv; iframe; ipureintro
+  · simp only [ownReadTx]; rw [Hd2, Hp2]; iexists _, mv; iframe; iframe #; ipureintro
     obtain ⟨a, b, c, _, rest⟩ := Ht; exact ⟨a, b, c, rfl, rest⟩
   cases e with
   | nil =>

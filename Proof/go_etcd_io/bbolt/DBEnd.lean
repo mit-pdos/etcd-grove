@@ -78,13 +78,10 @@ theorem end_give (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 v
     (k : Nat) (r : Reader) (hk : σ.readers !! k = some r) (ro : List w64) (dbl : Loc) :
     slotsView (GF := GF) σ.data σ.bs σ.ps σ.rem (List.range σ.nslots) ∗
       structFieldRef DB go!"data" dbl ↦{DFrac.own σ.frem} σ.data ∗
-      structFieldRef DB go!"pageSize" dbl ↦{DFrac.own σ.frem} W64 σ.ps ∗
       pagesView σ.data σ.ps r.q r.pages ∗
-      structFieldRef DB go!"data" dbl ↦{DFrac.own r.q} σ.data ∗
-      structFieldRef DB go!"pageSize" dbl ↦{DFrac.own r.q} W64 σ.ps ⊢
+      structFieldRef DB go!"data" dbl ↦{DFrac.own r.q} σ.data ⊢
     slotsView σ.data σ.bs σ.ps (σ.removeReader k r ro).rem (List.range σ.nslots) ∗
-      structFieldRef DB go!"data" dbl ↦{DFrac.own (σ.removeReader k r ro).frem} σ.data ∗
-      structFieldRef DB go!"pageSize" dbl ↦{DFrac.own (σ.removeReader k r ro).frem} W64 σ.ps := by
+      structFieldRef DB go!"data" dbl ↦{DFrac.own (σ.removeReader k r ro).frem} σ.data := by
   have h' := h
   obtain ⟨hps, _, _, _, _, _, _, _, _, hrd, _⟩ := h'
   obtain ⟨_, rdisj, rin⟩ := hrd k r hk
@@ -100,12 +97,9 @@ theorem end_give (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 v
       rw [show r.sees s = false by unfold Reader.sees; simp only [decide_eq_false_iff_not]; exact hc]
       rfl)
   rw [DBState.removeReader.proj_frem]
-  iintro ⟨Hs, Hd, Hp, Hpg, Hd', Hp'⟩
-  iframe
+  iintro ⟨Hs, Hd, Hpg, Hd'⟩
   isplitl [Hs Hpg]
   · iapply Hcarve.2; iframe
-  isplitl [Hd Hd']
-  · iapply (pointsto_split _ _ _ _).2; iframe
   · iapply (pointsto_split _ _ _ _).2; iframe
 
 end defs

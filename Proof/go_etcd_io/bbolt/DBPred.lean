@@ -235,7 +235,7 @@ def ownDB (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DBState) : IP
     "#Hlogger" ∷ structFieldRef DB go!"logger" dbl ↦□ dv.logger' ∗
     "Hflf" ∷ structFieldRef DB go!"freelist" dbl ↦{DFrac.own (flfQ σ.rwtx)} dv.freelist' ∗
     "Hdata" ∷ structFieldRef DB go!"data" dbl ↦{DFrac.own σ.frem} σ.data ∗
-    "Hps" ∷ structFieldRef DB go!"pageSize" dbl ↦{DFrac.own σ.frem} W64 σ.ps ∗
+    "#Hps" ∷ structFieldRef DB go!"pageSize" dbl ↦□ W64 σ.ps ∗
     "#Hfile" ∷ osFile σ.file σ.fd ∗
     "Hbytes" ∷ fileBytes σ.fd σ.bs ∗
     "Hmap" ∷ fileMap σ.fd (some (σ.data, σ.sz)) ∗
@@ -265,7 +265,7 @@ def ownReadTx (dbl : Loc) (γ : DBNames) (txl : Loc) (k : Nat) (r : Reader) (dat
     "Hmeta" ∷ t.meta' ↦ mv ∗
     "Hroot" ∷ t.root'.InBucket' ↦ mv.root' ∗
     "Hrdata" ∷ structFieldRef DB go!"data" dbl ↦{DFrac.own r.q} data ∗
-    "Hrps" ∷ structFieldRef DB go!"pageSize" dbl ↦{DFrac.own r.q} W64 ps ∗
+    "#Hrps" ∷ structFieldRef DB go!"pageSize" dbl ↦□ W64 ps ∗
     "Hpages" ∷ pagesView data ps r.q r.pages ∗
     "Hrl" ∷ ownRWMutexRLocked (structFieldRef DB go!"mmaplock" dbl) (mmapTok γ.mmap) ∗
     "Hkey" ∷ k ↪[γ.readers] r)

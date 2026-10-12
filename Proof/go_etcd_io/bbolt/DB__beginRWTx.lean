@@ -104,8 +104,8 @@ theorem DB.beginRWTx.wp_proof (hinit : Tx.init.spec (GF := GF) (hG := hG)) :
   icases (pointsto_split _ _ halfQ halfQ).1 $$ Hflf with ⟨Hflf, Hflw⟩
   have hok2 := dbOK_addWriter { σ with fl := fl' } v0 v1 hok1 hw «$r0_ptr» Htxl
   ihave Hslots := Hmback $$ HM0 HM1
-  icases begin_carve { σ with fl := fl' } v0 v1 hok1 0 dbl $$ [Hslots Hdata Hps]
-    with ⟨Hslots, Hdata, Hps, Hpages, Hdq, Hpsq⟩
+  icases begin_carve { σ with fl := fl' } v0 v1 hok1 0 dbl $$ [Hslots Hdata]
+    with ⟨Hslots, Hdata, Hpages, Hdq⟩
   · simp only; iframe
   iapply HΦ
   iright
@@ -114,7 +114,7 @@ theorem DB.beginRWTx.wp_proof (hinit : Tx.init.spec (GF := GF) (hG := hG)) :
   iexists fl', (newReader { σ with fl := fl' } v0 v1 (beginQ { σ with fl := fl' })), v0, v1
   isplitr
   · ipureintro; exact Heq
-  isplitr [Ht Hml Hibl Hmaps Hdq Hpsq Hpages Hflw]
+  isplitr [Ht Hml Hibl Hmaps Hdq Hpages Hflw]
   · iexists { dv with rwtx' := «$r0_ptr» }, fls, v0, v1, dl
     isplitr
     · ipureintro
@@ -149,6 +149,8 @@ theorem DB.beginRWTx.wp_proof (hinit : Tx.init.spec (GF := GF) (hG := hG)) :
     simp only [↓reduceIte] at *
     try simp only [FLImpl.iface, interface.mkOk]
     iframe
+    iframe #
+    iexact Hmaps
 
 end proof
 

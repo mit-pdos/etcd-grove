@@ -37,8 +37,8 @@ theorem Tx.nonPhysicalRollback.wp_proof (hclose : Tx.close.spec (GF := GF) (hG :
   try wp_auto
   rw [Htw]
   try wp_auto
-  ihave Hrtx : ownReadTx dbl γ txl k r σ.data σ.ps m $$ [Htx Hmeta Hroot Hrdata Hrps Hpages Hrl Hkey]
-  · simp only [ownReadTx]; iexists t, mv; iframe; ipureintro; exact Ht
+  ihave Hrtx : ownReadTx dbl γ txl k r σ.data σ.ps m $$ [Htx Hmeta Hroot Hrdata Hpages Hrl Hkey]
+  · simp only [ownReadTx]; iexists t, mv; iframe; iframe #; ipureintro; exact Ht
   wp_apply hclose I dbl γ σ txl k r m hRem $$ [Hdb Hrtx] as Hpost
   · iframe
   try wp_auto

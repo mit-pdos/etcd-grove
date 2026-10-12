@@ -94,14 +94,14 @@ theorem DB.beginTx.wp_proof (hinit : Tx.init.spec (GF := GF) (hG := hG))
     · iright; iexists _; iframe
   all_goals
     ihave Hslots := Hmback $$ HM0 HM1
-    icases begin_carve σ v0 v1 Hok (freshKey σ.readers) dbl $$ [Hslots Hdata Hps]
-      with ⟨Hslots, Hdata, Hps, Hpages, Hdq, Hpsq⟩
+    icases begin_carve σ v0 v1 Hok (freshKey σ.readers) dbl $$ [Hslots Hdata]
+      with ⟨Hslots, Hdata, Hpages, Hdq⟩
     · iframe
     iapply HΦ
     iexists (freshKey σ.readers), (newReader σ v0 v1 (beginQ σ))
     isplitr
     · ipureintro; exact Hk
-    isplitr [Ht Hml Hibl Hdq Hpsq Hpages Hrl Hkey]
+    isplitr [Ht Hml Hibl Hdq Hpages Hrl Hkey]
     · iexists dv
       iexists fls
       iexists v0
@@ -142,6 +142,7 @@ theorem DB.beginTx.wp_proof (hinit : Tx.init.spec (GF := GF) (hG := hG))
       iexists (if metaPick v0 v1 then v1 else v0)
       simp only [txInitOf.proj_meta', txInitOf.proj_root', txMetaOf, Bool.false_eq_true, ↓reduceIte]
       iframe
+      iframe #
       ipureintro
       simp [txInitOf, newBucketOf, newReader]
       exact ⟨rfl, rfl⟩

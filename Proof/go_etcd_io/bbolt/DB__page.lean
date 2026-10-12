@@ -20,7 +20,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 theorem DB.page.wp_proof : DB.page.spec (GF := GF) (hG := hG) := by
-  intro dbl data ps dq id Hc Hlt
+  intro dbl data ps dq dqs id Hc Hlt
   wp_start as ⟨Hd, Hps⟩
   wp_auto
   rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by word, by word⟩), arrayIndexRef_w8 (hG := hG) _ _ Hc,

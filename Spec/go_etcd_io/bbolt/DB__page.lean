@@ -22,11 +22,11 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 if that is past `MaxMapSize`). Over the two fields it reads (a read transaction holds
 fractions of them, the DB struct being the writer's). -/
 abbrev DB.page.spec : Prop :=
-  ∀ (dbl : Loc) (data : Loc) (ps : w64) (dq : DFrac) (id : w64),
+  ∀ (dbl : Loc) (data : Loc) (ps : w64) (dq dqs : DFrac) (id : w64),
   data.locCar ≠ 0 → uint.Z (id * ps) < 281474976710655 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ structFieldRef DB go!"data" dbl ↦{dq} data ∗ structFieldRef DB go!"pageSize" dbl ↦{dq} ps }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ structFieldRef DB go!"data" dbl ↦{dq} data ∗ structFieldRef DB go!"pageSize" dbl ↦{dqs} ps }}
     (App (Val (dbl @!! go.GoType.PointerType DB.ty @!! go!"page")) (Val #id))
-  {{ RET #(data +ₗ uint.Z (id * ps)); structFieldRef DB go!"data" dbl ↦{dq} data ∗ structFieldRef DB go!"pageSize" dbl ↦{dq} ps }}
+  {{ RET #(data +ₗ uint.Z (id * ps)); structFieldRef DB go!"data" dbl ↦{dq} data ∗ structFieldRef DB go!"pageSize" dbl ↦{dqs} ps }}
 
 end spec
 

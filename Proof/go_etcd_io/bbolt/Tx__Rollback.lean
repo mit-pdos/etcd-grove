@@ -41,8 +41,8 @@ theorem Tx.Rollback.wp_proof (hAssert : Assert.spec (GF := GF) (hG := hG))
   try wp_auto
   rw [Htdb, decide_eq_false Hdbl]
   try wp_auto
-  ihave Hrtx : ownReadTx dbl γ txl k r σ.data σ.ps false $$ [Htx Hmeta Hroot Hrdata Hrps Hpages Hrl Hkey]
-  · simp only [ownReadTx]; iexists t, mv; iframe; ipureintro; exact Ht
+  ihave Hrtx : ownReadTx dbl γ txl k r σ.data σ.ps false $$ [Htx Hmeta Hroot Hrdata Hpages Hrl Hkey]
+  · simp only [ownReadTx]; iexists t, mv; iframe; iframe #; ipureintro; exact Ht
   wp_apply hrb I dbl γ σ txl k r false hRem $$ [Hdb Hrtx] as Hpost
   · iframe
   try wp_auto

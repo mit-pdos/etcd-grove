@@ -318,17 +318,13 @@ open Iris.ProofMode in
 theorem begin_carve (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 v1)
     (k : Nat) (dbl : Loc) :
     slotsView (GF := GF) σ.data σ.bs σ.ps σ.rem (List.range σ.nslots) ∗
-      structFieldRef DB go!"data" dbl ↦{DFrac.own σ.frem} σ.data ∗
-      structFieldRef DB go!"pageSize" dbl ↦{DFrac.own σ.frem} W64 σ.ps ⊢
+      structFieldRef DB go!"data" dbl ↦{DFrac.own σ.frem} σ.data ⊢
     slotsView σ.data σ.bs σ.ps (σ.addReader k (newReader σ v0 v1 (beginQ σ))).rem
         (List.range σ.nslots) ∗
       structFieldRef DB go!"data" dbl ↦{DFrac.own (σ.addReader k (newReader σ v0 v1 (beginQ σ))).frem}
         σ.data ∗
-      structFieldRef DB go!"pageSize" dbl ↦{DFrac.own (σ.addReader k (newReader σ v0 v1 (beginQ σ))).frem}
-        W64 σ.ps ∗
       pagesView σ.data σ.ps (beginQ σ) (newReader σ v0 v1 (beginQ σ)).pages ∗
-      structFieldRef DB go!"data" dbl ↦{DFrac.own (beginQ σ)} σ.data ∗
-      structFieldRef DB go!"pageSize" dbl ↦{DFrac.own (beginQ σ)} W64 σ.ps := by
+      structFieldRef DB go!"data" dbl ↦{DFrac.own (beginQ σ)} σ.data := by
   have h' := h
   obtain ⟨hps, _, _, _, _, _, _, _, ⟨_, cdisj, cin, _⟩, _⟩ := h'
   have Hcarve := slots_carve (GF := GF) σ.data σ.bs σ.ps σ.rem
@@ -350,10 +346,9 @@ theorem begin_carve (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v
   have Hf := qsub_add σ.frem (beginQ σ) (beginQ_lt_frem σ)
   have Hfr : (σ.addReader k (newReader σ v0 v1 (beginQ σ))).frem = qsub σ.frem (beginQ σ) := rfl
   rw [Hfr]
-  iintro ⟨Hs, Hd, Hp⟩
+  iintro ⟨Hs, Hd⟩
   icases Hcarve.1 $$ Hs with ⟨Hs, Hpg⟩
   icases (pointsto_split' _ _ _ _ _ Hf).1 $$ Hd with ⟨Hd, Hd'⟩
-  icases (pointsto_split' _ _ _ _ _ Hf).1 $$ Hp with ⟨Hp, Hp'⟩
   iframe
 
 end defs

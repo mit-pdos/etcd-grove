@@ -87,8 +87,8 @@ theorem DB.removeTx.wp_proof (hTxid : Meta.Txid.spec (GF := GF) (hG := hG))
     ihave Hstats : (⌜dv.stats' = null⌝ ∨ ∃ (sv : Stats), dv.stats' ↦ sv : IProp GF) $$ [Hsv]
     · iright; iexists _; iframe
   all_goals
-    icases end_give σ v0 v1 Hok k r Hk ro dbl $$ [Hslots Hdata Hps Hpages Hrdata Hrps]
-      with ⟨Hslots, Hdata, Hps⟩
+    icases end_give σ v0 v1 Hok k r Hk ro dbl $$ [Hslots Hdata Hpages Hrdata]
+      with ⟨Hslots, Hdata⟩
     · iframe
     iapply HΦ
     iexists ro, t

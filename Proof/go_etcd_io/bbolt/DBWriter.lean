@@ -104,7 +104,7 @@ def wtxInit (dbl : Loc) (txl : Loc) (w : Reader) (data : Loc) (ps : Nat)
     ml ↦ txMetaOf true v0 v1 ∗ ibl ↦ (if metaPick v0 v1 then v1 else v0).root' ∗
     pm ↦$ (∅ : GMap w64 Loc) ∗ bm ↦$ (∅ : GMap GoString Loc) ∗ nm ↦$ (∅ : GMap w64 Loc) ∗
     structFieldRef DB go!"data" dbl ↦{DFrac.own w.q} data ∗
-    structFieldRef DB go!"pageSize" dbl ↦{DFrac.own w.q} W64 ps ∗
+    structFieldRef DB go!"pageSize" dbl ↦□ W64 ps ∗
     pagesView data ps w.q w.pages)
 
 end defs
