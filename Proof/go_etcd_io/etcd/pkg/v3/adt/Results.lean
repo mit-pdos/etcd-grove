@@ -18,3 +18,11 @@ public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 /-! The model's lemmas `Insert`'s contract rests on (`Model.lean`). -/
 #print axioms Perennial.EtcdGrove.adt.ivtInsert_sorted
 #print axioms Perennial.EtcdGrove.adt.mem_ivtInsert
+
+/-! The tree model's lemmas the reads rest on (`Tree.lean`): `find`'s, `Intersects`'s and
+`visit`'s descents are correct over the in-order list, and the rotations keep it. -/
+#print axioms Perennial.EtcdGrove.adt.findE_eq
+#print axioms Perennial.EtcdGrove.adt.intersects_iff
+#print axioms Perennial.EtcdGrove.adt.visit_stab
+#print axioms Perennial.EtcdGrove.adt.RbT.inorder_rotateLeft
+#print axioms Perennial.EtcdGrove.adt.RbT.inorder_rotateRight

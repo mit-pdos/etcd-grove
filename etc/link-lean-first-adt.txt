@@ -5,15 +5,19 @@ StringAffineComparable__Compare:
 NewStringAffineInterval:
 NewStringAffinePoint: NewStringAffineInterval
 Interval__Compare: StringAffineComparable__Compare
-# The tree's contract (string-affine intervals over the opaque `ownIvt`), see Model.lean,
-# Defs.lean: specified, not proved yet; unit 4 (the tree's proof) proves them, until then
-# hypotheses of every result that reaches them.
-NewIntervalTree: ?
+# The tree's contract (string-affine intervals over `ownIvt`, the red-black tree's
+# representation, Tree.lean/Defs.lean), see Model.lean: the reads (unit 4a).
+NewIntervalTree:
+intervalTree__Len:
+intervalTree__find: StringAffineComparable__Compare
+intervalTree__Find: intervalTree__find
+intervalTree__Intersects: Interval__Compare StringAffineComparable__Compare
+intervalNode__visit: Interval__Compare
+intervalTree__Visit: intervalNode__visit
+intervalTree__Stab: intervalTree__Visit
+# The tree's ownership at fractions: splitting/combining with agreement (NodeLemmas.lean).
+ownIvt_split:
+# The writes (unit 4b: Insert with the fixups and rotations; 4c: Delete): specified, not
+# proved yet; hypotheses of every result that reaches them.
 intervalTree__Insert: ?
 intervalTree__Delete: ?
-intervalTree__Find: ?
-intervalTree__Intersects: ?
-intervalTree__Stab: ?
-intervalTree__Len: ?
-# The tree's ownership at fractions: splitting/combining with agreement (unit 4 proves it).
-ownIvt_split: ?

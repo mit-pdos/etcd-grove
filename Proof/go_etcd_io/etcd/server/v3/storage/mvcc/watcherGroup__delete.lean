@@ -99,7 +99,7 @@ theorem mvcc.watcherGroup.delete.wp_proof
     wp_apply wp_bytes_to_string ks r.key DFrac.discard $$ [$Hks] as -
     wp_apply wp_bytes_to_string es e DFrac.discard $$ [$Hes] as -
     wp_apply hIvl r.key e
-    wp_apply hFind $$ [$Hivt] as %p ⟨Hivt, Hp⟩
+    wp_apply hFind $$ [$Hivt] as %p Hp
     have Hnd := mvcc.sorted_nodup L HL.1
     have Hin : (r.key, e) ∈ L.map Prod.fst := (HL.2 _).2 ⟨wa, r, e, HwaS, hend, rfl⟩
     obtain ⟨z, hf⟩ : ∃ z, L.find? (fun z => decide (z.1 = (r.key, e))) = some z := by
@@ -111,17 +111,16 @@ theorem mvcc.watcherGroup.delete.wp_proof
         have := List.find?_eq_none.1 h z hz
         simp [hz1] at this
     rw [hf]
-    icases Hp with ⟨%Hpn, #Hp⟩
+    icases Hp with ⟨%Hpn, Hp, Hback⟩
     have hz1 : z.1 = (r.key, e) := by simpa using List.find?_some hf
     have Hperm := mvcc.perm_eraseP_of_find? L _ z hf
     icases (BigSepL.bigSepL_perm Hperm).1 $$ Hranges with Hranges
     icases BigSepL.bigSepL_cons.1 $$ Hranges with ⟨Hz, Hrest⟩
     iunfold mvcc.rangeSet at Hz
     icases Hz with ⟨%m0, %Hz2, Hm0⟩
-    icases mvcc.iv_split p _ _ $$ Hp with ⟨-, #Hpv⟩
     rw [_root_.decide_eq_false Hpn]
     wp_auto
-    simp only
+    ihave Hivt := Hback $$ Hp
     rw [Hz2]
     wp_auto
     rw [go.delete_underlying, go.is_underlying (t := watcherSet.ty)]

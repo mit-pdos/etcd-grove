@@ -1977,6 +1977,24 @@ record.
   `max` augmentation, the in-order list) and proves the triples, without changing any
   result's statement. *Rejected:* writing the representation invariant in unit 1b (unit 4's
   hardest design decision before any client exercises the contract).
+- **Two corrections found by the tree's proof** (2026-10-12, unit 4a). (a) *The nodes' pairs
+  are not read-only*: `Delete`'s two-children case copies the successor's `iv` into the deleted
+  node (`z.iv = y.iv`, CLRS), so a `↦□` of a node's pair is unsound with `Delete` — a client
+  holding `&z.iv` for good would later read another entry there. `Find` and `Stab` now *lend*
+  the pointers at the tree's fraction with a wand giving `ownIvt` back (`p ↦{q} … ∗ (p ↦{q} …
+  -∗ ownIvt t L q)`; `Stab`: a big-sep of the pointers and one wand); the watcher group reads
+  `iv.Val` right after the call and returns the pointers before its next tree operation. (b)
+  *`Stab` is wrong for a degenerate query*: `visit`'s pruning (`[node.begin, node.max)` against
+  the query) misses entries when the query has `begin ≥ end` with a non-empty `begin` (a
+  two-node counterexample: `[1, 10)` under `[5, 4)`, query `[5, 5)`); `Stab`'s spec takes
+  `⌜b = "" ∨ affLt b e⌝`, which the only query the group makes, the point `[key, key ++ "\x00")`,
+  satisfies. `Intersects` needs no premise (checked). Neither is an etcd bug: the client never
+  holds a pointer across a delete nor stabs a degenerate interval.
+- **The count's bound** (4a → 4b): `ownIvt` keeps `L.length < 2^63` because `Stab` returns
+  `nil` on `count == 0` (a wrapped count would hide entries); `Insert` cannot establish it from
+  the heap, so its spec takes `L.length + 1 < 2^63`, which the watcher group proves from its
+  map's size bound (every interval has a member: `RangesOk`). `RbOk` is kept although no spec
+  uses it: it is what makes the fixups provable in 4b/4c.
 
 ### The watcher group and the stream (unit 2)
 

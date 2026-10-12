@@ -94,11 +94,11 @@ theorem mvcc.watcherGroup.add.wp_proof
     wp_apply wp_bytes_to_string ks r.key DFrac.discard $$ [$Hks] as -
     wp_apply wp_bytes_to_string es e DFrac.discard $$ [$Hes] as -
     wp_apply hIvl r.key e
-    wp_apply hFind $$ [$Hivt] as %p ⟨Hivt, Hp⟩
+    wp_apply hFind $$ [$Hivt] as %p Hp
     have Hnd := mvcc.sorted_nodup L HL.1
     cases hf : L.find? (fun z => decide (z.1 = (r.key, e))) with
     | some z =>
-      icases Hp with ⟨%Hpn, #Hp⟩
+      icases Hp with ⟨%Hpn, Hp, Hback⟩
       have hzL : z ∈ L := List.mem_of_find?_eq_some hf
       have hz1 : z.1 = (r.key, e) := by simpa using List.find?_some hf
       obtain ⟨i, hi⟩ := List.getElem?_of_mem hzL
@@ -106,9 +106,8 @@ theorem mvcc.watcherGroup.add.wp_proof
       iunfold mvcc.rangeSet at Hz
       icases Hz with ⟨%m0, %Hz2, Hm0⟩
       rw [_root_.decide_eq_false Hpn]
-      icases mvcc.iv_split p _ _ $$ Hp with ⟨-, #Hpv⟩
       wp_auto
-      simp only
+      ihave Hivt := Hback $$ Hp
       rw [Hz2]
       wp_auto
       ihave Hm0 : mvcc.ownWatcherSet m0 (mvcc.ivlMembers W z.1) $$ [Hm0]
@@ -145,7 +144,7 @@ theorem mvcc.watcherGroup.add.wp_proof
       rw [hz']
       iexact Hm0
     | none =>
-      icases Hp with %Hpn
+      icases Hp with ⟨%Hpn, Hivt⟩
       subst Hpn
       have Hnotin : (r.key, e) ∉ L.map Prod.fst := by
         intro hm

@@ -666,7 +666,7 @@ def ownWatcherGroup (wg : Loc) (W : GMap Loc WatchRange) (q : Qp := 1) : IProp G
     "%HL" ∷ ⌜RangesOk W L⌝ ∗
     "Hranges" ∷ [∗list] z ∈ L, rangeSet W z q)
 
-/-- An `IntervalValue` points-to (what the tree's `Find` and `Stab` return, read-only) as its
+/-- An `IntervalValue` points-to (what the tree's `Find` and `Stab` lend) as its
 fields. -/
 theorem iv_split (l : Loc) (v : go_etcd_io.etcd.pkg.v3.adt.IntervalValue) (dq : DFrac) :
     (l ↦{dq} v : IProp GF) ⊢

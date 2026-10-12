@@ -146,13 +146,8 @@ public import Proof.go_uber_org.zap.Logger__Error
 public import Proof.go_uber_org.zap.Logger__Panic
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_uber_org.zap.String
-public import Spec.go_etcd_io.etcd.pkg.v3.adt.NewIntervalTree
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Delete
-public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Find
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Insert
-public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Intersects
-public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Stab
-public import Spec.go_etcd_io.etcd.pkg.v3.adt.ownIvt_split
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Link
 
@@ -292,6 +287,10 @@ theorem proto.wp_Unmarshal :
     proto.Unmarshal.spec (GF := GF) (hG := hG) :=
   proto.Unmarshal.wp_proof
 
+theorem mvcc.watcherGroup.wp_contains :
+    mvcc.watcherGroup.contains.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherGroup.contains.wp_proof adt.wp_NewStringAffinePoint adt.intervalTree.wp_Intersects
+
 theorem mvcc.treeIndex.wp_keyIndex [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.keyIndex.spec (GF := GF) (hG := hG) :=
   mvcc.treeIndex.keyIndex.wp_proof btree.BTree.wp_Get
@@ -332,6 +331,10 @@ theorem mvcc.wp_sliceCapWithLimit :
     mvcc.sliceCapWithLimit.spec (GF := GF) (hG := hG) :=
   mvcc.sliceCapWithLimit.wp_proof
 
+theorem mvcc.wp_newWatcherGroup :
+    mvcc.newWatcherGroup.spec (GF := GF) (hG := hG) :=
+  mvcc.newWatcherGroup.wp_proof adt.wp_NewIntervalTree
+
 theorem mvcc.watcherGroup.wp_size :
     mvcc.watcherGroup.size.spec (GF := GF) (hG := hG) :=
   mvcc.watcherGroup.size.wp_proof
@@ -352,9 +355,17 @@ theorem mvcc.watcherSet.wp_union :
     mvcc.watcherSet.union.spec (GF := GF) (hG := hG) :=
   mvcc.watcherSet.union.wp_proof mvcc.watcherSet.wp_add
 
+theorem mvcc.watcherGroup.wp_watcherSetByKey :
+    mvcc.watcherGroup.watcherSetByKey.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherGroup.watcherSetByKey.wp_proof adt.wp_NewStringAffinePoint adt.intervalTree.wp_Stab mvcc.watcherSet.wp_union
+
 theorem mvcc.watcherBatch.wp_add :
     mvcc.watcherBatch.add.spec (GF := GF) (hG := hG) :=
   mvcc.watcherBatch.add.wp_proof mvcc.eventBatch.wp_add
+
+theorem mvcc.wp_newWatcherBatch :
+    mvcc.newWatcherBatch.spec (GF := GF) (hG := hG) :=
+  mvcc.newWatcherBatch.wp_proof mvcc.watcherGroup.wp_watcherSetByKey mvcc.watcherBatch.wp_add
 
 theorem verify.wp_Verify :
     verify.Verify.spec (GF := GF) (hG := hG) :=
@@ -398,6 +409,10 @@ theorem mvcc.wp_NewReadOnlyTxnWrite :
 theorem mvcc.wp_NewStore [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.NewStore.spec (GF := GF) (hG := hG) :=
   mvcc.NewStore.wp_proof zap.wp_NewNop mvcc.wp_newTreeIndex schedule.wp_NewFIFOScheduler mvcc.wp_NewHashStorage schema.wp_UnsafeCreateMetaBucket mvcc.store.wp_restore
+
+theorem mvcc.wp_kvsToEvents :
+    mvcc.kvsToEvents.spec (GF := GF) (hG := hG) :=
+  mvcc.kvsToEvents.wp_proof proto.wp_Unmarshal mvcc.wp_isTombstone mvcc.wp_BytesToRev mvcc.watcherGroup.wp_contains
 
 theorem mvcc.storeTxnWrite.wp_Changes :
     mvcc.storeTxnWrite.Changes.spec (GF := GF) (hG := hG) :=
@@ -499,6 +514,10 @@ theorem mvcc.metricsTxnWrite.wp_Rev :
     mvcc.metricsTxnWrite.Rev.spec (GF := GF) (hG := hG) :=
   mvcc.metricsTxnWrite.Rev.wp_proof mvcc.storeTxnCommon.wp_Rev mvcc.storeTxnWrite.wp_Rev
 
+theorem mvcc.wp_newWatchableStore [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.newWatchableStore.spec (GF := GF) (hG := hG) :=
+  mvcc.newWatchableStore.wp_proof zap.wp_NewNop mvcc.wp_NewStore mvcc.wp_newWatcherGroup adt.wp_ownIvt_split
+
 theorem time.wp_NewTicker :
     time.NewTicker.spec (GF := GF) (hG := hG) :=
   time.NewTicker.wp_proof
@@ -506,6 +525,10 @@ theorem time.wp_NewTicker :
 theorem time.Ticker.wp_Stop :
     time.Ticker.Stop.spec (GF := GF) (hG := hG) :=
   time.Ticker.Stop.wp_proof
+
+theorem mvcc.wp_rangeEvents :
+    mvcc.rangeEvents.spec (GF := GF) (hG := hG) :=
+  mvcc.rangeEvents.wp_proof mvcc.wp_NewRevBytes mvcc.wp_RevToBytes mvcc.wp_kvsToEvents
 
 theorem mvcc.watcher.wp_send :
     mvcc.watcher.send.spec (GF := GF) (hG := hG) :=
@@ -665,94 +688,61 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-variable (h_adt_NewIntervalTree : adt.NewIntervalTree.spec (GF := GF) (hG := hG))
 variable (h_adt_intervalTree__Delete : adt.intervalTree.Delete.spec (GF := GF) (hG := hG))
-variable (h_adt_intervalTree__Find : adt.intervalTree.Find.spec (GF := GF) (hG := hG))
 variable (h_adt_intervalTree__Insert : adt.intervalTree.Insert.spec (GF := GF) (hG := hG))
-variable (h_adt_intervalTree__Intersects : adt.intervalTree.Intersects.spec (GF := GF) (hG := hG))
-variable (h_adt_intervalTree__Stab : adt.intervalTree.Stab.spec (GF := GF) (hG := hG))
-variable (h_adt_ownIvt_split : adt.ownIvt_split.spec (GF := GF) (hG := hG))
-include h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split
-
-theorem mvcc.watcherGroup.wp_contains :
-    mvcc.watcherGroup.contains.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherGroup.contains.wp_proof adt.wp_NewStringAffinePoint h_adt_intervalTree__Intersects
-
-theorem mvcc.wp_kvsToEvents :
-    mvcc.kvsToEvents.spec (GF := GF) (hG := hG) :=
-  mvcc.kvsToEvents.wp_proof proto.wp_Unmarshal mvcc.wp_isTombstone mvcc.wp_BytesToRev (mvcc.watcherGroup.wp_contains h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split)
-
-theorem mvcc.wp_newWatcherGroup :
-    mvcc.newWatcherGroup.spec (GF := GF) (hG := hG) :=
-  mvcc.newWatcherGroup.wp_proof h_adt_NewIntervalTree
-
-theorem mvcc.wp_newWatchableStore [go_etcd_io.etcd.cache.v3.Assumptions] :
-    mvcc.newWatchableStore.spec (GF := GF) (hG := hG) :=
-  mvcc.newWatchableStore.wp_proof zap.wp_NewNop mvcc.wp_NewStore (mvcc.wp_newWatcherGroup h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split) h_adt_ownIvt_split
+include h_adt_intervalTree__Delete h_adt_intervalTree__Insert
 
 theorem mvcc.watcherGroup.wp_add :
     mvcc.watcherGroup.add.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherGroup.add.wp_proof mvcc.watcherSet.wp_add mvcc.watcherSetByKey.wp_add adt.wp_NewStringAffineInterval h_adt_intervalTree__Find h_adt_intervalTree__Insert
+  mvcc.watcherGroup.add.wp_proof mvcc.watcherSet.wp_add mvcc.watcherSetByKey.wp_add adt.wp_NewStringAffineInterval adt.intervalTree.wp_Find h_adt_intervalTree__Insert
 
 theorem mvcc.watcherGroup.wp_choose :
     mvcc.watcherGroup.choose.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherGroup.choose.wp_proof (mvcc.wp_newWatcherGroup h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split) (mvcc.watcherGroup.wp_add h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split) mvcc.watcherGroup.wp_chooseAll
-
-theorem mvcc.wp_rangeEvents :
-    mvcc.rangeEvents.spec (GF := GF) (hG := hG) :=
-  mvcc.rangeEvents.wp_proof mvcc.wp_NewRevBytes mvcc.wp_RevToBytes (mvcc.wp_kvsToEvents h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split)
-
-theorem mvcc.watcherGroup.wp_watcherSetByKey :
-    mvcc.watcherGroup.watcherSetByKey.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherGroup.watcherSetByKey.wp_proof adt.wp_NewStringAffinePoint h_adt_intervalTree__Stab mvcc.watcherSet.wp_union
-
-theorem mvcc.wp_newWatcherBatch :
-    mvcc.newWatcherBatch.spec (GF := GF) (hG := hG) :=
-  mvcc.newWatcherBatch.wp_proof (mvcc.watcherGroup.wp_watcherSetByKey h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split) mvcc.watcherBatch.wp_add
+  mvcc.watcherGroup.choose.wp_proof mvcc.wp_newWatcherGroup (mvcc.watcherGroup.wp_add h_adt_intervalTree__Delete h_adt_intervalTree__Insert) mvcc.watcherGroup.wp_chooseAll
 
 theorem mvcc.watcherGroup.wp_delete :
     mvcc.watcherGroup.delete.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherGroup.delete.wp_proof mvcc.watcherSet.wp_delete mvcc.watcherSetByKey.wp_delete adt.wp_NewStringAffineInterval h_adt_intervalTree__Find h_adt_intervalTree__Delete
+  mvcc.watcherGroup.delete.wp_proof mvcc.watcherSet.wp_delete mvcc.watcherSetByKey.wp_delete adt.wp_NewStringAffineInterval adt.intervalTree.wp_Find h_adt_intervalTree__Delete
 
 theorem mvcc.watchableStore.wp_syncWatchers :
     mvcc.watchableStore.syncWatchers.spec (GF := GF) (hG := hG) :=
-  mvcc.watchableStore.syncWatchers.wp_proof mvcc.watcherGroup.wp_size (mvcc.watcherGroup.wp_choose h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split) (mvcc.wp_rangeEvents h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split) (mvcc.wp_newWatcherBatch h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split) mvcc.watcher.wp_send (mvcc.watcherGroup.wp_add h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split) (mvcc.watcherGroup.wp_delete h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split) mvcc.watchableStore.wp_addVictim
+  mvcc.watchableStore.syncWatchers.wp_proof mvcc.watcherGroup.wp_size (mvcc.watcherGroup.wp_choose h_adt_intervalTree__Delete h_adt_intervalTree__Insert) mvcc.wp_rangeEvents mvcc.wp_newWatcherBatch mvcc.watcher.wp_send (mvcc.watcherGroup.wp_add h_adt_intervalTree__Delete h_adt_intervalTree__Insert) (mvcc.watcherGroup.wp_delete h_adt_intervalTree__Delete h_adt_intervalTree__Insert) mvcc.watchableStore.wp_addVictim
 
 theorem mvcc.watchableStore.wp_syncWatchersLoop :
     mvcc.watchableStore.syncWatchersLoop.spec (GF := GF) (hG := hG) :=
-  mvcc.watchableStore.syncWatchersLoop.wp_proof time.wp_NewTicker time.Ticker.wp_Stop mvcc.watcherGroup.wp_size (mvcc.watchableStore.wp_syncWatchers h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split) time.wp_Since time.Ticker.wp_Reset
+  mvcc.watchableStore.syncWatchersLoop.wp_proof time.wp_NewTicker time.Ticker.wp_Stop mvcc.watcherGroup.wp_size (mvcc.watchableStore.wp_syncWatchers h_adt_intervalTree__Delete h_adt_intervalTree__Insert) time.wp_Since time.Ticker.wp_Reset
 
 theorem mvcc.watchableStore.wp_moveVictims :
     mvcc.watchableStore.moveVictims.spec (GF := GF) (hG := hG) :=
-  mvcc.watchableStore.moveVictims.wp_proof mvcc.watcher.wp_send (mvcc.watcherGroup.wp_add h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split)
+  mvcc.watchableStore.moveVictims.wp_proof mvcc.watcher.wp_send (mvcc.watcherGroup.wp_add h_adt_intervalTree__Delete h_adt_intervalTree__Insert)
 
 theorem mvcc.watchableStore.wp_syncVictimsLoop :
     mvcc.watchableStore.syncVictimsLoop.spec (GF := GF) (hG := hG) :=
-  mvcc.watchableStore.syncVictimsLoop.wp_proof (mvcc.watchableStore.wp_moveVictims h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split)
+  mvcc.watchableStore.syncVictimsLoop.wp_proof (mvcc.watchableStore.wp_moveVictims h_adt_intervalTree__Delete h_adt_intervalTree__Insert)
 
 theorem mvcc.wp_New [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.New.spec (GF := GF) (hG := hG) :=
-  mvcc.New.wp_proof (mvcc.wp_newWatchableStore h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split) (mvcc.watchableStore.wp_syncWatchersLoop h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split) (mvcc.watchableStore.wp_syncVictimsLoop h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split)
+  mvcc.New.wp_proof mvcc.wp_newWatchableStore (mvcc.watchableStore.wp_syncWatchersLoop h_adt_intervalTree__Delete h_adt_intervalTree__Insert) (mvcc.watchableStore.wp_syncVictimsLoop h_adt_intervalTree__Delete h_adt_intervalTree__Insert)
 
 theorem mvcc.watchableStore.wp_notify :
     mvcc.watchableStore.notify.spec (GF := GF) (hG := hG) :=
-  mvcc.watchableStore.notify.wp_proof (mvcc.wp_newWatcherBatch h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split) mvcc.watcher.wp_send (mvcc.watcherGroup.wp_delete h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split) mvcc.watchableStore.wp_addVictim
+  mvcc.watchableStore.notify.wp_proof mvcc.wp_newWatcherBatch mvcc.watcher.wp_send (mvcc.watcherGroup.wp_delete h_adt_intervalTree__Delete h_adt_intervalTree__Insert) mvcc.watchableStore.wp_addVictim
 
 theorem mvcc.watchableStoreTxnWrite.wp_End :
     mvcc.watchableStoreTxnWrite.End.spec (GF := GF) (hG := hG) :=
-  mvcc.watchableStoreTxnWrite.End.wp_proof mvcc.metricsTxnWrite.wp_Changes mvcc.metricsTxnWrite.wp_End mvcc.storeTxnWrite.wp_Rev (mvcc.watchableStore.wp_notify h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split)
+  mvcc.watchableStoreTxnWrite.End.wp_proof mvcc.metricsTxnWrite.wp_Changes mvcc.metricsTxnWrite.wp_End mvcc.storeTxnWrite.wp_Rev (mvcc.watchableStore.wp_notify h_adt_intervalTree__Delete h_adt_intervalTree__Insert)
 
 theorem mvcc.watchableStore.wp_cancelWatcher :
     mvcc.watchableStore.cancelWatcher.spec (GF := GF) (hG := hG) :=
-  mvcc.watchableStore.cancelWatcher.wp_proof (mvcc.watcherGroup.wp_delete h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split)
+  mvcc.watchableStore.cancelWatcher.wp_proof (mvcc.watcherGroup.wp_delete h_adt_intervalTree__Delete h_adt_intervalTree__Insert)
 
 theorem mvcc.watchableStore.wp_watch :
     mvcc.watchableStore.watch.spec (GF := GF) (hG := hG) :=
-  mvcc.watchableStore.watch.wp_proof (mvcc.watcherGroup.wp_add h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split) (mvcc.watchableStore.wp_cancelWatcher h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split)
+  mvcc.watchableStore.watch.wp_proof (mvcc.watcherGroup.wp_add h_adt_intervalTree__Delete h_adt_intervalTree__Insert) (mvcc.watchableStore.wp_cancelWatcher h_adt_intervalTree__Delete h_adt_intervalTree__Insert)
 
 theorem mvcc.watchableStore.wp_NewWatchStream :
     mvcc.watchableStore.NewWatchStream.spec (GF := GF) (hG := hG) :=
-  mvcc.watchableStore.NewWatchStream.wp_proof (mvcc.watchableStore.wp_watch h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab h_adt_ownIvt_split) mvcc.watchableStore.wp_progress mvcc.watchableStore.wp_progressAll mvcc.watchableStore.wp_rev
+  mvcc.watchableStore.NewWatchStream.wp_proof (mvcc.watchableStore.wp_watch h_adt_intervalTree__Delete h_adt_intervalTree__Insert) mvcc.watchableStore.wp_progress mvcc.watchableStore.wp_progressAll mvcc.watchableStore.wp_rev
 
 end links_pending
 

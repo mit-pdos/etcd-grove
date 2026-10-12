@@ -164,6 +164,22 @@ theorem affLt_trichotomy (a b : GoString) : affLt a b ∨ a = b ∨ affLt b a :=
     · exact Or.inl ((affCmp_neg_iff a b).1 hn)
     · exact Or.inr (Or.inr ((affCmp_neg_iff b a).1 (by omega)))
 
+/-- A string is below its proper extensions. -/
+theorem strLt_append (a b : GoString) (hb : b ≠ []) : go.GoStringLt a (a ++ b) := by
+  induction a with
+  | nil =>
+    cases b with
+    | nil => exact absurd rfl hb
+    | cons y ys => exact List.Lex.nil
+  | cons x xs ih => exact List.Lex.cons ih
+
+/-- The point query `NewStringAffinePoint key = [key, key ++ "\x00")` is not empty-and-finite:
+its begin is `""` (above everything: it overlaps nothing) or below its end. -/
+theorem point_ok (key : GoString) : key = go!"" ∨ affLt key (key ++ go!"\x00") := by
+  by_cases h : key = go!""
+  · exact Or.inl h
+  · exact Or.inr ⟨h, Or.inr (strLt_append key _ (by simp))⟩
+
 theorem ivlLt_iff (x y : IvlS) :
     ivlLt x y ↔ affLt x.1 y.1 ∨ (x.1 = y.1 ∧ affLt x.2 y.2) := by
   unfold ivlLt

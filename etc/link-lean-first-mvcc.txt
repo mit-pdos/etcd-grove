@@ -114,13 +114,13 @@ NewStore: zap_NewNop newTreeIndex schedule_NewFIFOScheduler NewHashStorage schem
 # then hypotheses of every result that reaches them).
 adt_NewStringAffineInterval: @
 adt_NewStringAffinePoint: @
-adt_NewIntervalTree: ?
-adt_intervalTree__Find: ?
+adt_NewIntervalTree: @
+adt_intervalTree__Find: @
 adt_intervalTree__Insert: ?
 adt_intervalTree__Delete: ?
-adt_intervalTree__Intersects: ?
-adt_intervalTree__Stab: ?
-adt_ownIvt_split: ?
+adt_intervalTree__Intersects: @
+adt_intervalTree__Stab: @
+adt_ownIvt_split: @
 # The watcher group (watcher_group.go): the sets and the group's structure over the tree's
 # contract, see InvWatchGroup.lean.
 watcherSet__add:
