@@ -24,5 +24,7 @@ axiom txn.ApplySecObserve.wp_proof
 axiom txn.RangeSecObserve.wp_proof
 axiom zap.Error.wp_proof
 axiom zap.Int32.wp_proof
+axiom zap.Int64.wp_proof
 axiom zap.Logger.Error.wp_proof
 axiom zap.Logger.Panic.wp_proof
+axiom zap.String.wp_proof

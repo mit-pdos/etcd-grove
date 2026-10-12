@@ -2,8 +2,10 @@
 # (revision.go), the key index and its generations (key_index.go), the tree index
 # (index.go), the KV interfaces and views (kv.go, kv_view.go), the read and write
 # transactions (kvstore_txn.go) and their metrics wrappers (metrics_txn.go), and the
-# store type (kvstore.go). The rest of the package (restore, compaction, hashing, the
-# watchable store) is names only.
+# store type (kvstore.go), and the watchable store: the store with watchers
+# (watchable_store.go, watchable_store_txn.go), the watch streams (watcher.go) and the
+# watcher groups (watcher_group.go). The rest of the package (restore, compaction,
+# hashing) is names only.
 translate = ["!*",
   # revision.go
   "revBytesLen", "markedRevBytesLen", "markBytePosition", "markTombstone",
@@ -35,9 +37,31 @@ translate = ["!*",
   "metricsTxnWrite.DeleteRange", "metricsTxnWrite.Put", "metricsTxnWrite.End",
   # kvstore.go
   "ErrCompacted", "ErrFutureRev", "NewStore",
+  # watchable_store.go
+  "chanBufLen", "maxWatchersPerSync", "watchResyncPeriod", "ChanBufLen", "New",
+  "newWatchableStore", "watchableStore.Close", "watchableStore.NewWatchStream",
+  "watchableStore.watch", "watchableStore.cancelWatcher", "watchableStore.Restore",
+  "watchableStore.syncWatchersLoop", "watchableStore.syncVictimsLoop",
+  "watchableStore.moveVictims", "watchableStore.syncWatchers", "rangeEvents", "kvsToEvents",
+  "watchableStore.notify", "watchableStore.addVictim", "watchableStore.rev",
+  "watchableStore.progress", "watchableStore.progressAll", "watchableStore.progressIfSync",
+  "watcher.send",
+  # watchable_store_txn.go
+  "watchableStoreTxnWrite.End", "watchableStore.Write",
+  # watcher.go
+  "ErrWatcherNotExist", "ErrEmptyWatcherRange", "ErrWatcherDuplicateID",
+  "watchStream.Watch", "watchStream.Chan", "watchStream.Cancel", "watchStream.Close",
+  "watchStream.Rev", "watchStream.RequestProgress", "watchStream.RequestProgressAll",
+  # watcher_group.go
+  "watchBatchMaxRevs", "eventBatch.add", "watcherBatch.add", "newWatcherBatch",
+  "watcherSet.add", "watcherSet.union", "watcherSet.delete", "watcherSetByKey.add",
+  "watcherSetByKey.delete", "newWatcherGroup", "watcherGroup.add", "watcherGroup.contains",
+  "watcherGroup.size", "watcherGroup.delete", "watcherGroup.choose", "watcherGroup.chooseAll",
+  "watcherGroup.watcherSetByKey",
   # the promoted methods of embedded fields (goose's MethodUnfold wrappers): treeIndex's
   # RWMutex; storeTxnRead's and storeTxnWrite's storeTxnCommon; metricsTxnWrite's and
-  # txnReadWrite's embedded interfaces; store's ReadView and WriteView; BucketKey's Revision
+  # txnReadWrite's embedded interfaces; store's ReadView and WriteView; BucketKey's Revision;
+  # watchableStore's *store (its KV methods); watchableStoreTxnWrite's TxnWrite
   "treeIndex.Lock", "treeIndex.Unlock", "treeIndex.RLock", "treeIndex.RUnlock",
   "treeIndex.TryLock", "treeIndex.TryRLock", "treeIndex.RLocker",
   "storeTxnRead.FirstRev", "storeTxnRead.Rev", "storeTxnRead.Range", "storeTxnRead.rangeKeys",
@@ -45,9 +69,16 @@ translate = ["!*",
   "metricsTxnWrite.FirstRev", "metricsTxnWrite.Rev", "metricsTxnWrite.Changes",
   "txnReadWrite.FirstRev", "txnReadWrite.Rev", "txnReadWrite.Range", "txnReadWrite.End",
   "store.FirstRev", "store.Rev", "store.Range", "store.DeleteRange", "store.Put",
-  "BucketKey.GreaterThan"]
-imports = ["!*", "bytes", "context", "encoding/binary", "errors", "fmt", "sync", "time",
-  "go.etcd.io/etcd/pkg/v3/schedule",
+  "BucketKey.GreaterThan",
+  "watchableStore.Read", "watchableStore.FirstRev", "watchableStore.Rev",
+  "watchableStore.Range", "watchableStore.DeleteRange", "watchableStore.Put",
+  "watchableStoreTxnWrite.FirstRev", "watchableStoreTxnWrite.Rev",
+  "watchableStoreTxnWrite.Range", "watchableStoreTxnWrite.DeleteRange",
+  "watchableStoreTxnWrite.Put", "watchableStoreTxnWrite.Changes"]
+imports = ["!*", "bytes", "context", "encoding/binary", "errors", "fmt", "math", "sync", "time",
+  "go.etcd.io/etcd/pkg/v3/schedule", "go.etcd.io/etcd/pkg/v3/adt",
+  "go.etcd.io/etcd/client/v3", "go.etcd.io/etcd/client/pkg/v3/verify",
+  "go.opentelemetry.io/otel/trace",
   "github.com/prometheus/client_golang/prometheus",
   "go.uber.org/zap", "google.golang.org/protobuf/proto",
   "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/pkg/v3/traceutil",

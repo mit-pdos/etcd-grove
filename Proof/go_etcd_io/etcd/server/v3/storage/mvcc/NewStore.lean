@@ -113,7 +113,7 @@ theorem mvcc.NewStore.wp_proof
   -- package facts: the configuration defaults, the `Key` bucket, zap, schedule, schema
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hmi with ⟨-, -, -, -, -, -, -, -, -, ⟨%dbl, #Hdbl⟩, ⟨%dsi, #Hdsi⟩⟩
+  icases Hmi with ⟨-, -, -, -, -, -, -, -, -, ⟨%dbl, #Hdbl⟩, ⟨%dsi, #Hdsi⟩, -⟩
   ihave #Hsch : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
   · iPkgInit
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
@@ -137,7 +137,8 @@ theorem mvcc.NewStore.wp_proof
   wp_join iprop(∃ c : StoreConfig, cfg_ptr ↦ c) with [cfg] as ⟨%cfg1, cfg⟩
   wp_join iprop(∃ c : StoreConfig, cfg_ptr ↦ c) with [cfg] as ⟨%cfg2, cfg⟩
   -- the store's struct
-  wp_apply hNewIdx as %ti ⟨%γi, #Hti, Hiw, Hil, Hird⟩
+  wp_apply hNewIdx $$ [] as %ti ⟨%γi, #Hti, Hiw, Hil, Hird⟩
+  · ipureintro; exact Hlgnn
   (try wp_auto)
   wp_apply hFifo as %sc -
   (try wp_auto)

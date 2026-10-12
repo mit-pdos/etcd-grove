@@ -1,10 +1,5 @@
 /-
-`zap.Logger.Panic`: the trust boundary (`go.uber.org/zap` is names-only). Lean-first.
-
-`l.Panic(msg, fields...)` logs the message and then panics (zap's `WriteThenPanic`, whatever
-the logger's level; a logger built `WithPanicHook` could do otherwise, which etcd's loggers are
-not): it never returns. Its outcome is a panic (Perennial's `PanicV`, "Panic and recover" in
-`notes/decisions.md`), whose value is left open (zap panics with the message).
+`zap.Logger.Panic`: the trust boundary (`go.uber.org/zap` is names-only). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -12,8 +7,6 @@ public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import GeneratedProof.go_uber_org.zap
 
 @[expose] public section
-
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -28,12 +21,14 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `l.Panic(msg, fields...)` (a non-nil logger) panics. -/
+/-- `l.Panic(msg, fields...)` (a non-nil logger) logs, then panics with the message (zapcore's
+`CheckedEntry.Write`: `panic(ce.Message)`), whatever the logger's core (a nop logger too:
+`Panic`/`Fatal` entries are always written). -/
 abbrev zap.Logger.Panic.spec : Prop :=
   ∀ (l : Loc) (msg : GoString) (fields : GoSlice),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap ∗ ⌜l ≠ null⌝ }}
     (App (App (Val (l @!! go.GoType.PointerType zap.Logger.ty @!! go!"Panic")) (Val #msg)) (Val #fields))
-  {{ (r : val), RET r; ⌜∃ p : val, r = PanicV p⌝ }}
+  {{ (r : val), RET r; ⌜r = PanicV #msg⌝ }}
 
 end spec
 

@@ -661,9 +661,11 @@ axiom SortByValue [FfiSyntax] [GoGlobalContext] : val
 
 axiom closeSendErrTimeout [FfiSyntax] [GoGlobalContext] : val
 
-axiom AutoWatchID [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def AutoWatchID [FfiSyntax] [GoGlobalContext] : val :=
+  #(0 : Int)
 
-axiom InvalidWatchID [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def InvalidWatchID [FfiSyntax] [GoGlobalContext] : val :=
+  #(-1 : Int)
 
 axiom watcherStreamBufWarningInterval [FfiSyntax] [GoGlobalContext] : val
 

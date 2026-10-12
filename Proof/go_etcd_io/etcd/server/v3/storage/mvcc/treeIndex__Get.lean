@@ -56,7 +56,7 @@ theorem mvcc.treeIndex.Get.wp_proof
   wp_apply (hUnsafe ti t lg L sync.rfrac key k atRev e) $$ [$HtreeL] as ⟨HtreeL, -⟩
   · iframe #
     ipureintro
-    exact entries_not_empty L _ HLL
+    exact ⟨Hlgnn, entries_not_empty L _ HLL⟩
   -- the answer is the certified log's
   icases mvcc.idxKnows_facts γ kn log hlog ilog pend sync.rfrac $$ Hkn HhistL HnevL with ⟨%Hfacts, Hkn, HnevL⟩
   obtain ⟨Hcmp, Hcnt', Hwf0, Hlen0, Hcs0⟩ := Hfacts

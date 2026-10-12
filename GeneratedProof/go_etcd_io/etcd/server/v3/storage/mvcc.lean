@@ -9,14 +9,19 @@ public import Perennial.GeneratedProof.errors
 public import Perennial.GeneratedProof.fmt
 public import GeneratedProof.github_com.prometheus.client_golang.prometheus
 public import GeneratedProof.go_etcd_io.etcd.api.v3.mvccpb
+public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.verify
+public import GeneratedProof.go_etcd_io.etcd.client.v3
+public import GeneratedProof.go_etcd_io.etcd.pkg.v3.adt
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.schedule
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.traceutil
 public import GeneratedProof.go_etcd_io.etcd.server.v3.lease
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.backend
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.schema
+public import GeneratedProof.go_opentelemetry_io.otel.trace
 public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.google_golang_org.protobuf.proto
 public import GeneratedProof.k8s_io.utils.third_party.forked.golang.btree
+public import Perennial.GeneratedProof.math
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
@@ -1621,12 +1626,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 instance watcherGroup_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup where
+  typedPointstoDef l v dq := iprop(
+    "keyWatchers" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup go!"keyWatchers" l) v.keyWatchers' dq ∗
+    "ranges" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup go!"ranges" l) v.ranges' dq ∗
+    "watchers" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup go!"watchers" l) v.watchers' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance watcherGroup_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup.underlying := by
+  solve_into_val_typed_struct
+
+instance watcherGroup_access_load_keyWatchers (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup go!"keyWatchers" l) v.keyWatchers' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup go!"keyWatchers" l) v.keyWatchers' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance watcherGroup_access_store_keyWatchers (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup) (keyWatchers' : go_etcd_io.etcd.server.v3.storage.mvcc.watcherSetByKey) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup go!"keyWatchers" l) v.keyWatchers' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup go!"keyWatchers" l) keyWatchers' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with keyWatchers' := keyWatchers' } : go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance watcherGroup_access_load_ranges (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup go!"ranges" l) v.ranges' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup go!"ranges" l) v.ranges' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance watcherGroup_access_store_ranges (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup) (ranges' : go_etcd_io.etcd.pkg.v3.adt.IntervalTree) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup go!"ranges" l) v.ranges' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup go!"ranges" l) ranges' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ranges' := ranges' } : go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance watcherGroup_access_load_watchers (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup go!"watchers" l) v.watchers' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup go!"watchers" l) v.watchers' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance watcherGroup_access_store_watchers (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup) (watchers' : go_etcd_io.etcd.server.v3.storage.mvcc.watcherSet) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup go!"watchers" l) v.watchers' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup go!"watchers" l) watchers' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with watchers' := watchers' } : go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end watcherGroup

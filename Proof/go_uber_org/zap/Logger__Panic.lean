@@ -1,5 +1,5 @@
 /-
-The trust boundary: `zap.Logger.Panic` (names-only; it logs, then panics).
+The trust boundary: `zap.Logger.Panic` (`go.uber.org/zap` is names-only).
 -/
 module
 
@@ -12,7 +12,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI go_uber_org
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

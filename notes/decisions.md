@@ -1941,6 +1941,163 @@ record.
 
 ---
 
+## The watchable store: the plan, the interval tree's contract
+
+**2026-10-11 · adopted** (the plan; the contract's design, unit 1b, to be written against it).
+- **Contract first, the tree's proof last.** The watch guarantee is the result; the red-black
+  interval tree (`pkg/adt`, 950 lines: insert/delete fixups with the `max` augmentation) is
+  infrastructure, the longest single proof of the plan. So the tree gets model specs (a
+  contract) first, pending (`?` in the link list: hypotheses of every result that reaches them,
+  the recipes' mechanism), the watcher group and the store are proved over the contract, and
+  the tree's proof comes last, discharging the hypotheses. *Rejected:* proving the tree first
+  as the B-tree was (no pending hypotheses, but the guarantee two units later); taking the tree
+  as six trusted axioms (fastest, but a trusted data structure in the mvcc collection).
+- **String-affine intervals only.** The tree is generic over the `Comparable` interface
+  (dynamic dispatch of `Compare`), but its only client, the watcher group, uses
+  `StringAffineComparable` intervals (`""` as the end is +∞: a `WithFromKey` watch arrives
+  with an empty, non-nil end). The model: intervals as pairs of Go strings under the affine
+  order, the overlap test mirroring `Interval.Compare` exactly (`ivlCmp`: left if
+  `b < b' ∧ e ≤ b'`, right if `b ≥ e'`, else 0), entries sorted by (begin, end) — `Insert`
+  descends by begin then end and goes right on equality, rotations and the successor-based
+  delete preserve the in-order sequence — and distinct (the group `Find`s before it
+  `Insert`s; a precondition of `Insert`, so `Delete`'s removed entry is determined). `Stab q`
+  is the entries overlapping `q` in that order; `Intersects q` whether there is one; `Find`
+  the entry with exactly that interval. *Rejected:* a contract generic over a key type with a
+  comparison and a predicate per comparable (the B-tree's `isItem`): no client needs it.
+- **The nodes' pairs are read-only, for good.** A node's `iv` (`IntervalValue`: the interval
+  and the `any` value) is written at creation only (`updateMax`, the rotations and the fixups
+  touch `max`, the links and the colour), so `Find` and `Stab` return persistent read-only
+  pointers to the nodes' `iv` fields (`p ↦□ …`): no lending protocol (as `unsafeVisit`'s) is
+  needed, and the group reads `iv.Val` whenever it likes. The values are interface values the
+  tree keeps opaque; the ownership of the watcher sets they wrap is the group's.
+- **`ownIvt` is an `opaque` placeholder until unit 4.** The tree's ownership predicate
+  `ownIvt t L` (the tree at `t` holds the entries `L`) is a Lean `opaque` constant (a
+  definition with a hidden trivial body, not an axiom), used only through the contract's
+  triples; unit 4 replaces it by the representation invariant (the sentinel, the colours, the
+  `max` augmentation, the in-order list) and proves the triples, without changing any
+  result's statement. *Rejected:* writing the representation invariant in unit 1b (unit 4's
+  hardest design decision before any client exercises the contract).
+
+### The watcher group and the stream (unit 2)
+
+**2026-10-11 · adopted** (design; the unit to be proved against it).
+- **A group is a set of watcher pointers; the structures are indexes.** A watcher's `key`,
+  `end`, `startRev`, `id` and `fcs` are never written after `watch()` builds it, so its range
+  is a persistent fact of the pointer (`watcherFixed w r fcs`, as a key index's `kiKey`): a
+  single key (`end == nil`) or `[key, end)` under the affine order (`end` empty, non-nil, is
+  +∞: a `WithFromKey` watch). `ownWatcherGroup wg W` (`W` the members with their ranges) holds
+  the key map, the interval tree (through its contract, the tree's values the `watcherSet`
+  maps as interface values) and the all-watchers set, consistent with `W`: no empty set in
+  the key map or the tree (both delete them), every set's members those of that key or
+  interval. `add` is union (premise: not a member), `delete` removal returning membership,
+  `contains key` a decidable existence over `W`, `size` the cardinality; `watcherSetByKey`
+  lends (by a wand) the set of the members whose range holds the key, since the code returns
+  its own maps by alias when it can (and a nil map when there is none: the specs say so).
+- **The members' mutable state is the caller's.** `minRev`, `victim`, `compacted`, `restore`
+  and `ch` are written by the store under its lock, or by the victim mover after taking the
+  batch out, never through a group; a watcher in no group (a victim) has its state with the
+  batch. So the group owns membership only, and `choose`, `chooseAll` and `newWatcherBatch`
+  take the members' states as a big-sep (`watcherOwn w st`) and give them back. *Rejected:*
+  the group owning its members' state (every move between groups and to the victims would
+  split and rejoin it).
+- **Batches are a pure fold.** `newWatcherBatch wg evs` is, per member, the fold of the events
+  in order (`ebAdd`, mirroring `eventBatch.add`: a new revision counts, past
+  `watchBatchMaxRevs` the first revision left out is `moreRev`), keeping those whose key the
+  member's range holds at or above its `minRev`; the map's iteration order does not matter
+  since each member's batch depends on the events only. An `mvccpb.Event` is a persistent
+  fact of its pointer (`evIs e ev`: the type, the key-value pointer read-only for good, the
+  previous key-value or `nil`): events are immutable once `End` has fixed a delete's
+  `ModRevision`, and batches share them (the copies `newWatcherBatch` makes share the
+  key-value).
+- **Compaction and `restore` out of scope, as premises.** `chooseAll` (and so `choose`) take
+  that no member is below `compactRev` or above `curRev` and none is restoring: the store's
+  invariant on the unsynced group (unit 3), which excludes its compaction response and its
+  panic. The group's own panics (`add watcher twice`, `removing missing watcher`, the tree's
+  `Delete` failing) are plain `panic(...)`s on inputs the invariants exclude: premises, as
+  `treeIndex.Put`'s, not panic outcomes (no logger to specify; the key index's total specs
+  were for `zap.Logger.Panic`). `choose`'s subset is nondeterministic (map iteration): some
+  subset of the right size, the group returned being `wg` itself or a fresh one.
+- **The stream over an abstract `watchable`.** `watcher.go` is proved now against the
+  `watchable` interface's contract (persistent triples `watch` — a live-watcher token and a
+  cancel closure whose spec consumes it —, `progress`/`progressAll` — a persistent "is a
+  watcher of this store" fact only, since `RequestProgress` runs without the stream's lock
+  while `Cancel` may run —, `rev`), which unit 3's store satisfies. The stream's state (its
+  `watchers` and `cancels` maps, `closed`, `nextID`) is under its own `sync.Mutex`; `Watch`
+  returns a registration token per id (consumed by `Cancel`; `Close` cancels all). The
+  constants `clientv3.AutoWatchID`/`InvalidWatchID` are translated with their values (`Watch`
+  and `progressAll` compare against them).
+
+### The watchable store's concurrency (unit 3)
+
+**2026-10-12 · adopted** (design; three parts: 3a the write path, 3b the sync machinery, 3c the
+theorem).
+- **The store's lock invariant** (`watchableStore.mu`, its own `RWMutex`, shadowing the
+  embedded store's `mu`): the synced and unsynced groups (unit 2's predicates), every
+  registered watcher's state (`ownStates`), the victim batches (`ownWatcherBatch` each, with
+  their watchers' states), and what unit 2's premises need: the three populations disjoint, a
+  victim flagged, an unsynced watcher at or below the committed revision and a synced one
+  above it — through a persistent lower bound of `currentRev` (`idxCert` of a committed log:
+  `revMu` owns the revision, and it only grows), not the revision itself; no compaction
+  (`compactMainRev = -1`, `isStore`) and no `restore`. A cancelled watcher (`ch = nil`) is in
+  no population; `cancelWatcher` is idempotent, which the stream's contract relies on.
+- **The guarantee as a channel protocol** (the cache's `InvWatcher` is the template): per
+  stream channel, an invariant owning the channel (`ownChan`), a ghost log of every response
+  sent (append-only; the senders are many — `notify` under the lock, `syncWatchers`, the victim
+  mover outside it, the progress calls under a read lock — all non-blocking `select`s, each
+  appending atomically with its send), and the consumer's received prefix, the in-flight
+  buffer being the difference. Per watcher, a "next revision" ghost kept with its state (so
+  with the lock, or with the victim mover while its batch is out): the responses sent for the
+  watcher, plus any batch still pending for it, carry exactly the range's changes from
+  `startRev` up to that revision, in revision order, each response's `Revision` at or above
+  its events (`notify` sends one revision's events and advances to `rev + 1`; `syncWatchers`
+  sends `[minRev, curRev]`'s, or up to `moreRev` under the cap; a victim's batch is resent
+  as is). Progress responses interleave with no events. The client's side is a receive lemma,
+  not a Go function (`wp_watch_receive`, as the cache's): receiving extends the prefix and
+  yields the response's fact; the theorem (3c) reads the prefix per watch id. Safety only:
+  nothing says a victim's batch is eventually sent (Iris proves no liveness).
+- **The filters** are pure predicates: `F f := ∃ p, □ ∀ e ev, {{ evIs e ev }} f(e) {{ b;
+  ⌜b = p ev⌝ }}` (etcd's `filterNoPut`/`filterNoDelete` are), and a watcher's delivered
+  events are the range's changes with no filter true. *Rejected:* unconstrained filters and a
+  theorem for unfiltered watches only.
+- **Start revisions are at least 0** (`watch` and the stream's `Watch`): the documented domain
+  (`0` is "now"). The code's behaviour on negatives is a remark: with no compaction, `-1` is
+  read as `0` (with a warning in `rangeEvents`), and `≤ -2` makes `chooseAll` cancel the
+  watcher with a compaction response at revision `-1` (`minRev < compactMainRev`), which the
+  gRPC layer does not prevent — to reproduce with a Go test if wanted as a finding.
+  *Rejected:* modelling the compaction-response path for an input nobody sends.
+- **Contract changes**: `storeTxnWrite.End` releases the changes' key-values (the wrapper
+  `watchableStoreTxnWrite.End` fixes a delete's `ModRevision` on them, then shares them with
+  the watchers for good, `evIs`; the inner `End` reads only the slice's length): the write
+  transaction's predicate is split so that `End` takes it without `changesAre`. `NewStore`'s
+  `ReadView`/`WriteView` become owned fields (`newWatchableStore` overwrites them).
+  `time.NewTicker`/`Ticker.Reset`/`Stop` are axioms with a bag channel, as `time.After`.
+  The `watchable` contract of the stream (unit 2) is instantiated with the store's
+  `WatchParams`: `IW` the registration, `WC` cancelled, `C` the channel's invariant, `F` the
+  filter predicate, `CR` the close right with the registered watchers.
+- **Refinements for 3a** (2026-10-12, after the second merge with `lean`): (1) **the
+  history carries the change.** `notify` sends a revision's events before the inner `End`
+  commits it (program order), and on the merged base the commit (`idxWriter_commit`) needs
+  `revMu`'s half of the committed log's authority (`idxLogAuth`), so no certificate of the
+  revision exists when its events go on the channel; the history's lower bound the writer
+  holds (`histShape ilog pend`, advanced at every `Put`/`Tombstone`) is persistent before the
+  commit but records keys, revisions and tombstones only. So `Ev` gains the change itself
+  (`change : Change`; `key`/`tomb` become projections): a history lower bound then determines
+  the log with its values, the response's fact is such a lower bound, and certificates
+  (lower bounds of the same list) are comparable with it without any lock — the watch
+  theorem is lock-free. *Rejected:* a ghost commit before `notify` (needs `revMu`'s half); a
+  separate watch-log ghost (a second list to thread through `writerRes`, both `End`s,
+  `NewStore` and `idxCert`); a theorem stated under a read lock only. (2) **The tree
+  contract gets a fraction** (`ownIvt t L q`): `progressIfSync` sends progress responses
+  under the store's *read* lock, so the lock's resource must be fractional, hence the groups,
+  hence the tree (reads at any fraction, `Insert`/`Delete` at one; unit 4 proves it that
+  way, as the B-tree's reads are). A fractional per-watcher "live" ghost (not an exclusive
+  token) says a registered watcher is not cancelled, which a sender needs against the
+  channel's "closed → all cancelled" clause. (3) **The `watchable` contract gains an owned
+  resource** `P.R` for `rev`/`progress`/`progressAll` (the store's: a reader slot,
+  `storeReader`, since `store.Rev` opens a read transaction), passed through the stream's
+  `Rev`/`RequestProgress`/`RequestProgressAll`; `watch` and the stream's `Watch` take
+  `0 ≤ startRev`.
+
 ## mvcc: the log of changes as the model, the key index as a function of its events
 
 **2026-10-10 · accepted** (Lean-first; the plan discussed with the user: "start on the mvcc KV
@@ -2095,6 +2252,26 @@ releases it before returning); a snapshot as a copy of the bucket's `GMap` in th
 *Scope.* `Read` with both modes, `Range`/`FirstRev`/`Rev`/`End` of the read transaction and
 the wrappers, `readView.Range`/`Rev`/`FirstRev`; `Write`/`Put`/`DeleteRange`/`End` next, with
 the batch transaction's contract and the lessor's.
+### `key_index.go`'s panics as outcomes
+
+**2026-10-11 · adopted.** The key index's `put`, `tombstone` and `get` call `lg.Panic` on
+inputs the tree index never gives them (a revision not above `modified`, an empty key index).
+Their specs excluded those inputs by precondition ("else the code panics" as a remark). With
+Perennial's panic outcome (`PanicV p`, a value the postcondition receives) the remark is now
+formal: the specs are over all inputs, the former precondition selects the normal case, and the
+other case is `r = PanicV #msg` with zap's message and the key index unchanged (every check
+precedes every write; `tombstone`'s cases in the code's order, including `put`'s panic through
+it). The callers keep their preconditions and resolve the `if`. `zap.Logger.Panic`'s axiom:
+with a non-nil logger, the panic with the message (zapcore's `panic(ce.Message)`, whatever the
+core); `zap.Logger.Fatal`'s: never returns (`os.Exit(1)`: divergence, as Perennial's
+`AngelicExit`, so any postcondition — `False`), reached by no verified function (the protobuf
+axioms never fail), hence not linked: a linked but uncalled result would be an exported root and
+put its axiom in the baseline. The non-nil logger is threaded through `isTreeIndex` (a persistent
+fact), `newTreeIndex`'s premise and `NewStore` (which has it after its `lg == nil` check).
+*Rejected:* `Panic` without the non-nil premise (`∃ p, r = PanicV p`: a nil logger panics with a
+nil dereference, not the message), which would have made the key index's specs say "some
+panic"; modelling `Fatal` as a panic (a `recover` could catch it, which an exit cannot be).
+
 ### The write transactions: the batch lock's resources, the backend's write path, the lessor
 
 **2026-10-11 · adopted** (the write side specified at the checkpoint `628f69632`, the proofs

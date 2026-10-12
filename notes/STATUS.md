@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-12 (the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
+**Last updated:** 2026-10-12 (`origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
 as pinned), the requests and responses as the client model's values (`Requests.lean`), `isKV`,
 `isTxnLessor`, 13 trust-boundary axioms (`sort.Sort`/`Reverse`, traceutil, `proto.Size`,
 `zap.Logger.Panic`, ...), mvcc's read-only write transaction proved, `gen-link.py --txn`, a
@@ -18,6 +18,155 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## Merge: lean into mvcc (2026-10-12)
+
+`origin/lean` (`436f363c4`: the server's `txn` package, units 0–4, and its changes to mvcc's
+files: the read-only write transaction `NewReadOnlyTxnWrite`/`txnReadWrite.*` (`InvRoTxn.lean`),
+`metricsTxnWrite.Rev`/`FirstRev`/`Range` of either transaction kind and `Changes`, `idxLogAuth`,
+reads pinned by the caller's tokens, `NewStore` returning the initial log's certificate)
+merged into `mvcc` (base `e3effe933`). The Perennial and etcd pins did not move.
+- **Conflicts**, all resolved by keeping both sides: `etc/gen-link.py` (our `--adt` mode and
+  theirs `--txn`, with its `NAMESPACED` entry), `etc/goose.py` (`pkg/v3/adt` and
+  `etcdserver/txn` both translated with bodies), `etc/link-lean-first-mvcc.txt` (our adt,
+  watcher-group, batch and stream lines and their read-only transaction lines; the lines both
+  changed merged without conflict: our key index's `zap_*` callees, their
+  `metricsTxnWrite__*` callees), `etc/tcb-baseline.txt` (the union: `trace.SpanFromContext`
+  and their `traceutil`/`sort`/`txn` axioms), `notes/STATUS.md` (both sides' sections).
+  `zap.Logger.Panic` (added by both): ours kept (`⌜r = PanicV #msg⌝`); no `txn` proof
+  destructures its postcondition (`sortRangeResults`' panic branch is unreachable), so nothing
+  needed adapting. `newTreeIndex` (spec and proof): our `⌜lg ≠ null⌝` premise and `%Hlgnn` in
+  `isTreeIndex` with their `idxLogAuth γ ½ []` in the postcondition; `NewStore`: the
+  call to `newTreeIndex` discharges our premise and destructures their `idxLogAuth` (`Hil`).
+- **Link.lean** regenerated for mvcc (their eleven functions added); `--txn` and `--adt`
+  regenerate unchanged.
+- **The build** (2683 jobs) needed no further change: no semantic conflict between our
+  `isTreeIndex`, total key-index specs and watch files and their `InvStore`/`InvIndex` changes.
+- **Checked**: `etc/goose.py --check` passes at the unchanged pins with no regeneration;
+  `etc/tcb-report.py --check` matches the textual union (70 axioms, 1 sorry; ours 58, theirs
+  69); every collection matches but `txn`, which now reaches our `zap.Int64`/`zap.String`
+  (through the key index's total specs under `treeIndex.Put`/`Tombstone`): updated, 20 to 22
+  axioms. Verified code: etcd 494 of 3599 functions (5149 of 45570 lines); mvcc 78 of 155 (7
+  conditional on the tree's contract), 829 of 2073 lines; adt 4 of 42; txn 39 of 48, 570 of
+  653 lines.
+
+## The watchable store (2026-10-11, branch `mvcc`)
+
+The next target after the KV core: etcd's watchers (`watchable_store.go`, the sync loops and
+`notify`; `watchable_store_txn.go`, the write transaction's `End` notifies; `watcher.go`, the
+client's stream; `watcher_group.go`, the synced and unsynced groups: key watchers in a map,
+range watchers in the interval tree of `pkg/v3/adt`, a red-black tree with a `max`
+augmentation). The result to reach: the watch guarantee — a watcher on `[key, end)` from
+`startRev` receives every change of a key in its range at a revision at or above `startRev`,
+once, in revision order, until cancelled, the events being the store's log of changes
+(`Log`); compaction and `Restore` out of scope, as for the store. The plan (decisions.md,
+"The watchable store: the plan, the interval tree's contract"): contract first, the tree's
+proof last — unit 1a the translation (done), 1b the interval tree's contract (its model
+specs, pending: `?` in the link list, hypotheses of what reaches them, as the recipes did),
+unit 2 `watcher_group.go` and `watcher.go` over the contract, unit 3 the store's concurrency
+and the guarantee, unit 4 the tree's proof (red-black insert/delete fixups), discharging the
+hypotheses.
+- **Unit 1a, the translation** (2026-10-11): `pkg/v3/adt` with bodies
+  (`Code/go_etcd_io/etcd/pkg/v3/adt.toml`: everything but `MaxHeight` (floating point),
+  the two `String`s (`fmt`) and `visitLevel` (debugging); 38 of its 42 functions, 495 of 548
+  lines) and the four watchable-store files in the mvcc toml (all 46 of their functions;
+  the promoted wrappers of `watchableStore` over `*store` and of `watchableStoreTxnWrite`
+  over `TxnWrite`, which `End` needs for `Changes`/`Rev`); `go.opentelemetry.io/otel/trace`
+  names-only (new; `watcher.go`'s `trace.SpanFromContext`), `client/v3` and `verify` already
+  were; `Base.lean` gets the package-init instances of `adt` and `otel/trace`. Goose took
+  the type assertions `.(watcherSet)`, the maps keyed by `*watcher`, five `select`s (two with
+  `default`, one on a nil-able `time.After` channel, one on a ticker), `time.NewTicker`/
+  `Ticker.Reset`/`time.Since`, the builtin `max`, `float64(n)` for the gauges, `verify.Verify`
+  with a closure, the variadic `fcs ...FilterFunc`, and `Stab`'s closure over its named
+  result (heap-allocated). `etc/goose.py --check` passes; the build, the baselines (57 axioms,
+  1 sorry; mvcc 16, 0) and the verified-code figures are unchanged, with the package now
+  1348 of 2073 lines translated (65%). A remark for unit 2: `watcherSetByKey`'s second
+  `switch` case (`len(wranges) == 0 && len(wkeys) == 0`) is unreachable after the first
+  (harmless dead code).
+- **Unit 1b, the interval tree's contract** (2026-10-11): `Proof/go_etcd_io/etcd/pkg/v3/adt/`
+  (`Base`: the package's init instance, moved out of mvcc's; `Model`: `IvlS`, `affCmp`
+  (`StringAffineComparable.Compare`), `ivlCmp` (`Interval.Compare`: left, right, or overlap),
+  `ivlLt` (the tree's order: begin, then end), `ivtInsert`, `stab`, the orders' lemmas and
+  `ivtInsert_sorted`/`mem_ivtInsert`; `Defs`: `affIvl b e` (the Go `Interval` of two
+  `StringAffineComparable` interface values) and the `opaque ownIvt t L`, its body naming the
+  heap, semantics and package instances so that unit 4's definition changes no statement).
+  **Pending** (`?` in `etc/link-lean-first-adt.txt`; hypotheses of what reaches them):
+  `NewIntervalTree` (`ownIvt t []`), `intervalTree.Insert` (a new interval: `ivtInsert`),
+  `Delete` (`eraseP`, returns membership), `Find` (the entry's pair, a read-only pointer for
+  good, or `nil`), `Intersects` (`stab ≠ []`), `Stab` (the overlapping entries' pairs as a
+  slice of pointers, read-only for good, in the tree's order), `Len`. **Proved**:
+  `StringAffineComparable.Compare` (`affCmp`), `NewStringAffineInterval`,
+  `NewStringAffinePoint` (`s ++ "\x00"`), `Interval.Compare` (`ivlCmp`; the type assertion
+  and the dynamic `Compare` calls step under `wp_auto`, the interface call reducing to the
+  value-receiver method; the struct is split into its fields for the loads, `ivl_split`/
+  `ivl_combine`). `Link.lean` by `etc/gen-link.py --adt`, `Results.lean`, collection
+  `etc/tcb-collections/adt.txt` (0 axioms); the baselines unchanged; verified-code: adt 4 of
+  42 functions. Unit 2's design is in decisions.md, "The watcher group and the stream".
+- **Unit 2, first half** (2026-10-12; design: decisions.md, "The watcher group and the stream
+  (unit 2)"). **The group's sets and structure** (`InvWatchGroup.lean`): `WatchRange` (a key, or
+  `[key, end)` affine) with `covers`, `watcherFixed w r fcs` (the never-written fields,
+  persistent), `WatcherSt`/`watcherOwn` (the mutable fields, for the store), `ownWatcherSet`
+  (a `map[*watcher]struct{}` as a `GMap Loc Unit`; `ownWatcherSetOpt` for a possibly nil map,
+  which Perennial gives no ownership: lookups, `len` and `range` on it are pure),
+  `ownKeyMap`, `ownWatcherGroup wg W` (the all-watchers set, the key map, the tree through
+  `ownIvt` with `RangesOk`: sorted by `ivlLt`, one interval per distinct range), the lemmas
+  `ownWatcherGroup_fixed`/`_member`/`_not_null`/`_intro`, `ivlCmp_point_iff` (the stab of the
+  point `[k, k\x00)` is the overlap `b ≤ k < e`: `strLt_succ_le`). Proved: `watcherSet.add`/
+  `delete`/`union` (disjoint, the argument possibly nil), `watcherSetByKey.add`/`delete`,
+  `newWatcherGroup` (a value; a wand from the location), `watcherGroup.add` (a non-member),
+  `contains` (a decidable existence over `W`), `size` (with the bound), `delete` (returns
+  membership; two `watcherFixed` of a pointer agree, `watcherFixed_agree`),
+  `watcherSetByKey` (the covering members, lent by a wand, by alias when the code can; its
+  unreachable second `switch` case falls through). The five that reach the tree's pending
+  contract are linked with its specs as hypotheses (`?` lines in the mvcc link list;
+  `adt_NewStringAffine*: @`). Map notes: `make`/`delete` on a named map type need
+  `go.make1_underlying`/`go.delete_underlying` first; a pointer-receiver call on a named map
+  needs `wp_method_call; wp_call` then a load; `Convert watcherSet.ty go.any` is
+  `interface.mkOk watcherSet.ty #m` and the assertion back steps under `wp_auto`.
+  **The stream** (`InvWatchStream.lean`): the `watchable` contract `isWatchable wa P` over the
+  store's choice `P : WatchParams` (`IW w` a watcher of the store, `WC w` cancelled, `C ch`
+  what it needs of the channel, `F f` of a filter, all persistent; `CR ch L` the right to
+  close `ch` with the watchers `L` registered on it, owned): `watch` registers (returning
+  `IW`, the cancel closure's spec `cancelSpec` yielding `WC`, `CR` grown), `progress`/
+  `progressAll` take `IW` only, `rev`; `isWatchStream ws wa P γ` (the fields, `C ch`, the
+  store's close triple for `ch` once every registered watcher is cancelled, the `sync.Mutex`
+  guarding `watchStreamInv`: the id maps with their watchers' `IW` and closures' specs, `CR`
+  or, once closed, the token `watchStreamOpen γ`). Proved: `Watch` (the empty-range and
+  closed cases both `ErrEmptyWatcherRange`, duplicate id, else `nil` with the id), `Chan`,
+  `Cancel` (`nil` or `ErrWatcherNotExist`), `Close` (consumes `watchStreamOpen γ`: the
+  double close excluded), `Rev`, `RequestProgress`, `RequestProgressAll`. `clientv3.AutoWatchID`
+  /`InvalidWatchID` translated as values (`client/v3.toml`); `trace.SpanFromContext` an
+  axiom (`trace.isSpan`: `End` returns), with `otel/trace/embedded`, `otel/codes`,
+  `otel/attribute` types-only so that `trace.Span` is an interface, not an axiomatized type
+  (`Watch` stores the span); the package facts `ErrWatcherNotExist`/`ErrEmptyWatcherRange`/
+  `ErrWatcherDuplicateID`/`watchStreamGauge`. A translator remark: Goose emits the deferred
+  variadic `span.End()` with no arguments as a call on `()` (elsewhere a deferred call passes
+  its argument): to check in Perennial. Proof notes: `wp_apply` of a closure's spec inside the
+  stored closure's proof failed with "unknown free variable" (again: `wp_bind` + `iapply`); a
+  local named `end` needs `irename`. Baselines: 58 axioms, 1 sorry; mvcc 17. Verified-code:
+  mvcc 71 of 155 functions (5 conditional), `watcher.go` all 7, `watcher_group.go` 6 + 5
+  conditional of 16; 771 of 2073 lines.
+- **Unit 2, second half** (2026-10-12): `InvWatchBatch.lean`: `EvM` (an `mvccpb.Event`: put or
+  delete, the key-value, the previous one), `kvPtrFixed`/`evIs` (persistent: events are shared),
+  `EventBatch`/`ebAdd` (`eventBatch.add` exactly, over `getLast?`; the cap
+  `watchBatchMaxRevsV = 1000`, a package fact `globalAddr watchBatchMaxRevs ↦□`), `batchOf W ST
+  evs` (per member, the fold of the covering events at or above its `minRev`; `batchOf_snoc`:
+  any nodup listing of the covering members gives the same step, so the map's iteration order
+  does not matter), `minRevOf`, `takeMembers` (`choose`'s prefix of the iteration),
+  `ownEventBatch`, `ownWatcherBatch` (a map of pointer-and-model pairs), `ownStates ST`, the
+  borrow `ownWatcherGroup_watchers` (the all-watchers set out of the group and back, for the
+  loops over `wg.watchers`). Proved: `eventBatch.add`, `watcherBatch.add` (a fresh batch when
+  absent), `newWatcherBatch` (`nil` for an empty group, else `batchOf`), `chooseAll` (the
+  minimum `minRev`; premises: every member's state given, none below `compactRev`, none above
+  `curRev`, none restoring — the store's invariant, unit 3 — excluding the compaction response
+  and the panic), `choose` (the group itself below `maxWatchers`, else a fresh group of a
+  nondeterministic subset of `max 0 maxWatchers` members). Notes: `BigSepM.bigSepM_lookup_acc`/
+  `_insert_acc` for the states; a struct allocated by `wp_auto` is persisted by `ipersist`
+  after `typedPointsto_not_null`; `&eventBatch{}` arrives as `zero_val`, rewritten to the
+  literal by `rfl`; `math.MaxInt64` reduces under `wp_auto`; a map `range` with `break` under
+  `wp_wand_r`. Baselines unchanged (58 axioms, 1 sorry; mvcc 17); verified-code: mvcc 74 of 155
+  functions (7 conditional on the tree's contract), 823 of 2073 lines; `watcher_group.go` 9 + 7
+  conditional of 16, `watcher.go` all 7. Unit 2 is complete; unit 3 follows.
 
 ## The server's txn package (`server/v3/etcdserver/txn`)
 
@@ -1011,7 +1160,24 @@ another session was committing `client/v3/leasing` to the main checkout at the t
   `wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))` then `iapply` (cause not found); the
   store's names are an `obtain`ed variable with equations, rewritten into the context
   (`rw [← hγi, …]`), not a `let`.
-- **Not yet**: `zap.Logger.Fatal`/`Panic`, the restore and the compaction (out of scope).
+- **`key_index.go`'s panics** (2026-10-11): `zap.Logger.Panic` is an axiom panicking with its
+  message (`RET r; ⌜r = PanicV #msg⌝`, Perennial's panic outcome; a nop logger panics too:
+  `Panic`/`Fatal` entries are always written) and `zap.Logger.Fatal` an axiom that never
+  returns (`os.Exit(1)`; as Perennial's `AngelicExit`, divergence: postcondition `False`); no
+  verified function reaches `Fatal` (the protobuf axioms never fail), so it is not linked and
+  in no baseline. `keyIndex.put`, `tombstone` and `get` are now specified over all inputs
+  (decisions.md, "`key_index.go`'s panics as outcomes"): the former precondition is the normal
+  case, and otherwise the result is the panic with zap's message and the key index unchanged
+  (`tombstone`, in the code's order: empty → its panic; last generation empty →
+  `ErrRevisionNotFound`; revision not above `modified` → `put`'s panic; `ki.gens ≠ []` stays a
+  premise, an index out of range being stuck). They take `⌜lg ≠ null⌝` (so does
+  `treeIndex.unsafeGet`; `isTreeIndex` records it, `newTreeIndex` requires it, `NewStore` has
+  it) and `kiKey p k` where the panic reads the key. The callers (`treeIndex.Put`/`Tombstone`/
+  `unsafeGet`, the range reads' visitors) discharge the case (`simp only [h, ↓reduceIte]` on
+  the `if` under the result's binder, then `subst`); the panic unwinds through `wp_auto` with
+  nothing special. Baselines: 57 axioms (`zap.Logger.Panic`), the mvcc collection 16
+  (`zap.Int64`, `zap.String`, `zap.Logger.Panic`); verified-code figures unchanged.
+- **Not yet**: the restore and the compaction (out of scope).
   `etc/verified-code.py` (2026-10-11, after `treeIndex.KeyIndex`/`Insert`): 58 of the package's
   155 functions verified, 655 of 2073 lines; of the KV core translated with bodies (661 lines),
   99% of the lines; `NewHashStorage` and `restore` count as assumed (`kvstore_txn.go` all 17
