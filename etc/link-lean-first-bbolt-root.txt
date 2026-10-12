@@ -195,3 +195,4 @@ Meta__Sum64: @
 common_NewInBucket: @
 DB__init: DB__pageInBuffer Page__SetId Page__SetFlags Page__SetCount Page__Meta Meta__SetMagic Meta__SetVersion Meta__SetPageSize Meta__SetFreelist Meta__SetRootBucket Meta__SetPgid Meta__SetTxid Meta__SetChecksum Meta__Sum64 common_NewInBucket os_File__WriteAt fdatasync DB__Logger DefaultLogger__Errorf
 DB__close: DB__munmap funlock os_File__Close
+DB__Close: DB__close
