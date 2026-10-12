@@ -158,7 +158,7 @@ what `beginRWTx` hands the writer (its object graph's predicate is the write age
   `Rollback`, `release`, `releaseRange`, `ReleasePendingPages`: Perennial's map range does
   allow deleting), the interface contract (`Iface.lean`, `ArrayIface.lean`), `hashMap.addSpan`;
   `sort.Sort` an axiom.
-- the root package (181, `--bbolt-root`): statistics, accessors, `mmap`/`munmap`,
+- the root package (184, `--bbolt-root`): statistics, accessors, `mmap`/`munmap`,
   `mmapSize`, `db.page`, `db.meta`, `Tx.page`, `Tx.init`, `beginTx`, `beginRWTx` (the
   freelist's pending pages no reader sees released), `removeTx`, `Begin` (both kinds),
   `Tx.close`/`Rollback` (read), `View`, the logger (`DB.Logger`, the default logger's
@@ -186,6 +186,19 @@ what `beginRWTx` hands the writer (its object graph's predicate is the write age
   `nonPhysicalRollback`, `close`; `DBRollback.lean`: the freelist's `Rollback` does not panic,
   the writer's pending pages having been allocated before its view, and the writer's view is
   given back): a writer's life without `Commit` is verified.
+- `Open` of an existing well-formed file (`DBOpen.lean`: `fileWF`, the current tree strict and
+  inside the file, the freelist synced, below the high-water mark; `pageSizeOK`: `getPageSize`
+  finds the file's page size, also through its probes after an I/O error, the forged-meta
+  finding as an assumption; the options: no logger, the array freelist, the file's page size,
+  read-write). Every error path closes the database and gives the file back; on success the
+  database's predicate (`openState`, `dbOK_open`), its freelist read from the freelist page
+  (`loadFreelist`: its `sync.Once` run fresh, `Proof/sync/OnceFresh.lean`; the page's ids as a
+  `uint64` slice, `FLPage.lean`, `U64Bytes.lean`; a meta's bytes determine it, `MetaInj.lean`),
+  its locks, ghost state and page pool set up. Not yet: a new (empty) file (`init`'s file
+  `fileWF`).
+- Coverage (bbolt v1.5.0's non-test files): 284 of 378 functions, 2954 of 4811 lines; left in the
+  root package mostly `Commit` and its pieces (`tx.go`), the spill and rebalance
+  (`bucket.go`, `node.go`), `Update`/`Batch`, `Check` (`tx_check.go`), `Compact`.
 - the errors bbolt compares with its error variables are well-formed (`Proof/os/ErrWF.lean`:
   an error holds a pointer of a pointer type or is a `syscall.Errno`, so comparing it with
   another does not panic; `ErrShape.lean`: `errors.New`, `fmt.Errorf` return pointers):
@@ -213,12 +226,18 @@ type is a map, as `len` does (`hashMap`'s `pidSet` was stuck); `io`'s initializa
 `EOF`, an `errors.New` pointer (`errors.wp_New_ptr`). Still gaps: float conversions
 (`node.splitTwo`, `rebalance`; `FloatConv.lean` a class meanwhile); a package's
 `Assumptions` should include the types it reaches through others (`hash.Hash64`);
+`os.FileMode`'s underlying type (an `OsFileInfoAssumptions` field: Perennial's `os` keeps it
+opaque);
 `runtime.GOOS` constants, the `os.FileInfo` alias; moving `SliceWithin` into Perennial.
 
 **TCB.** `etc/tcb-baseline.txt` has bbolt's model axioms (`--check --update`, 2026-10-12).
 
-**Next.** `Open` (a well-formed file's predicate; its error paths' `close` of a partly built
-database); `node.split`, `node.spill`, `Bucket.spill`, `node.free` (over `ownDB_free`),
+**Model changes this round.** bbolt's package initialization gives `discardLogger`
+(`bboltRootInit`, assumed as `errors`' is); the `os` axioms: `OpenFile`'s file is null exactly
+on an error, `File.Close` takes the file whatever its mapping (on Linux a mapping outlives its
+file: `mmap`'s `Madvise` failure leaks one, which `close` then cannot unmap).
+
+**Next.** `Open` of a new file (`fileWF (initBytes ps) ps`); `node.split`, `node.spill`, `Bucket.spill`, `node.free` (over `ownDB_free`),
 the rebalance, `DeleteBucket` (`Bucket.free`); the hashMap freelist (now that `delete` on
 `pidSet` steps); `Commit` (freelist write, page writes, `writeMeta`, `grow`; the written tree
 `treeStrict`); `Batch`.
