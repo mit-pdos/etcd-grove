@@ -1,6 +1,7 @@
 # etcd's own raft dependency (go.etcd.io/raft/v3 v3.7.0; see raft/v3/raftpb.toml): types and
-# names only, for the types of the server's fields (raft.Node, raft.MemoryStorage, ...).
-translate = ["!*"]
+# names only, for the types of the server's fields (raft.Node, raft.MemoryStorage, ...), but
+# the helpers the server's raft wrapper calls (raft.go's Ready loop) and what they read.
+translate = ["!*", "IsEmptySnap", "IsEmptyHardState", "isHardStateEqual", "emptyState", "None", "StateLeader", "StateType", "SoftState", "Ready", "ReadState"]
 imports = ["!*", "go.etcd.io/raft/v3/raftpb"]
 
 # translate the definitions of all type declarations goose supports
