@@ -165,6 +165,8 @@ namespace bbolt
 #print axioms syscall.wp_Fdatasync
 #print axioms wp_fdatasync
 #print axioms DB.wp_init
+#print axioms wp_newFreelist
+#print axioms DB.wp_loadFreelist
 #print axioms Options.wp_String
 #print axioms TxStats.wp_Sub
 #print axioms Stats.wp_Sub

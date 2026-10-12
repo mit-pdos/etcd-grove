@@ -236,3 +236,6 @@ DB__getPageSize: DB__getPageSizeFromFirstMeta DB__getPageSizeFromSecondMeta
 Tx__close_w: TxStats__add
 Tx__nonPhysicalRollback_w: Meta__Txid Tx__close_w
 Tx__Rollback_w: common_Assert Tx__nonPhysicalRollback_w
+newFreelist: freelist_NewArrayFreelist
+DB__loadFreelist: newFreelist DB__hasSyncedFreelist DB__meta Meta__Freelist DB__page
+freelist_NewArrayFreelist: @

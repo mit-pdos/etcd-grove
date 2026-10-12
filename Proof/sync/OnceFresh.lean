@@ -19,7 +19,7 @@ open Iris Iris.BI Iris.ProofMode
 section wps
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : sync.Assumptions]
 
@@ -32,10 +32,10 @@ theorem Once.wp_Do_fresh (o : Loc) (P Q : IProp GF) (f : GoFunc) :
   iStructNamed Ho
   have hz : (zero_val sync.atomic.Bool') =
       ({ _0' := zero_val _, v' := sync.atomic.b32w false } : sync.atomic.Bool') := rfl
-  ihave Hd : sync.atomic.ownBool (GF := GF) (sync.OnceDone (GF := GF) o) (DFrac.own 1) false $$ [done]
+  ihave Hd : sync.atomic.ownBool (GF := GF) (structFieldRef sync.Once go!"done" o) (DFrac.own 1) false $$ [done]
   · simp only [sync.atomic.ownBool_unseal, sync.atomic.ownBoolDef]
     rw [← hz]; iexact done
-  imod sync.init_Mutex iprop(True) ⊤ (sync.OnceM (GF := GF) o) $$ m [] with #Hm
+  imod sync.init_Mutex iprop(True) ⊤ (structFieldRef sync.Once go!"m" o) $$ m [] with #Hm
   · inext; itrivial
   wp_auto
   wp_apply_core sync.atomic.Bool.wp_Load $$ [] [-]

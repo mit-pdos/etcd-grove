@@ -79,6 +79,7 @@ public import Proof.go_etcd_io.bbolt.DB__growSize
 public import Proof.go_etcd_io.bbolt.DB__hasSyncedFreelist
 public import Proof.go_etcd_io.bbolt.DB__init
 public import Proof.go_etcd_io.bbolt.DB__invalidate
+public import Proof.go_etcd_io.bbolt.DB__loadFreelist
 public import Proof.go_etcd_io.bbolt.DB__meta
 public import Proof.go_etcd_io.bbolt.DB__mmap
 public import Proof.go_etcd_io.bbolt.DB__mmapSize
@@ -152,6 +153,7 @@ public import Proof.go_etcd_io.bbolt.getDiscardLogger
 public import Proof.go_etcd_io.bbolt.header
 public import Proof.log.Logger__Output
 public import Proof.go_etcd_io.bbolt.newBucket
+public import Proof.go_etcd_io.bbolt.newFreelist
 public import Proof.go_etcd_io.bbolt.node__childAt
 public import Proof.go_etcd_io.bbolt.node__childIndex
 public import Proof.go_etcd_io.bbolt.node__del
@@ -191,6 +193,7 @@ public import Proof.golang_org.x.sys.unix.Mmap
 public import Proof.golang_org.x.sys.unix.Munmap
 public import Proof.go_etcd_io.bbolt.FloatConv
 public import Proof.go_etcd_io.bbolt.internal.common.Link
+public import Proof.go_etcd_io.bbolt.internal.freelist.Link
 
 @[expose] public section
 
@@ -810,6 +813,14 @@ theorem wp_fdatasync :
 theorem DB.wp_init :
     EtcdGrove.bbolt.DB.init.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.init.wp_proof EtcdGrove.bbolt.DB.wp_pageInBuffer EtcdGrove.bbolt.Page.wp_SetId EtcdGrove.bbolt.Page.wp_SetFlags EtcdGrove.bbolt.Page.wp_SetCount EtcdGrove.bbolt.Page.wp_Meta EtcdGrove.bbolt.Meta.wp_SetMagic EtcdGrove.bbolt.Meta.wp_SetVersion EtcdGrove.bbolt.Meta.wp_SetPageSize EtcdGrove.bbolt.Meta.wp_SetFreelist EtcdGrove.bbolt.Meta.wp_SetRootBucket EtcdGrove.bbolt.Meta.wp_SetPgid EtcdGrove.bbolt.Meta.wp_SetTxid EtcdGrove.bbolt.Meta.wp_SetChecksum EtcdGrove.bbolt.Meta.wp_Sum64 EtcdGrove.bbolt.wp_NewInBucket EtcdGrove.bbolt.os.File.wp_WriteAt EtcdGrove.bbolt.wp_fdatasync EtcdGrove.bbolt.DB.wp_Logger EtcdGrove.bbolt.DefaultLogger.wp_Errorf
+
+theorem wp_newFreelist :
+    EtcdGrove.bbolt.newFreelist.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.newFreelist.wp_proof EtcdGrove.bbolt.wp_NewArrayFreelist
+
+theorem DB.wp_loadFreelist :
+    EtcdGrove.bbolt.DB.loadFreelist.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.loadFreelist.wp_proof EtcdGrove.bbolt.wp_newFreelist EtcdGrove.bbolt.DB.wp_hasSyncedFreelist EtcdGrove.bbolt.DB.wp_meta EtcdGrove.bbolt.Meta.wp_Freelist EtcdGrove.bbolt.DB.wp_page
 
 theorem Options.wp_String :
     EtcdGrove.bbolt.Options.String.spec (GF := GF) (hG := hG) :=
