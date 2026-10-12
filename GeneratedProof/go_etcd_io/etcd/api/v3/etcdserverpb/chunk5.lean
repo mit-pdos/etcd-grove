@@ -5,6 +5,7 @@ public import Perennial.Proof.ProofPrelude
 public import GeneratedProof.go_etcd_io.etcd.api.v3.authpb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.membershippb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.mvccpb
+public import GeneratedProof.google_golang_org.grpc
 public import GeneratedProof.google_golang_org.protobuf.runtime.protoimpl
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.api.v3.etcdserverpb
@@ -1319,12 +1320,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 instance kVClient_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.kVClient :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.kVClient where
+  typedPointstoDef l v dq := iprop(
+    "cc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.kVClient go!"cc" l) v.cc' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance kVClient_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.kVClient go_etcd_io.etcd.api.v3.etcdserverpb.kVClient.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.kVClient go_etcd_io.etcd.api.v3.etcdserverpb.kVClient.underlying := by
+  solve_into_val_typed_struct
+
+instance kVClient_access_load_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.kVClient) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.kVClient go!"cc" l) v.cc' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.kVClient go!"cc" l) v.cc' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance kVClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.kVClient) (cc' : google_golang_org.grpc.ClientConnInterface) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.kVClient go!"cc" l) v.cc' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.kVClient go!"cc" l) cc' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cc' := cc' } : go_etcd_io.etcd.api.v3.etcdserverpb.kVClient) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end kVClient
@@ -1370,25 +1392,6 @@ instance UnimplementedKVServer_into_val_typed :
 
 end def_
 end UnimplementedKVServer
-
-namespace WatchClient
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance WatchClient_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.WatchClient :=
-  sorry -- axiomatized type
-
-instance WatchClient_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.WatchClient go_etcd_io.etcd.api.v3.etcdserverpb.WatchClient.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end WatchClient
 
 end go_etcd_io.etcd.api.v3.etcdserverpb
 end

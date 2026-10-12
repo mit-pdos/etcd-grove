@@ -91,6 +91,14 @@ instance authpb_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.authpb :=
   build_get_is_pkg_init_wf
 
+-- `grpc` (names only; `etcdserverpb`'s streams are its generic interfaces, 2026-10-12: the
+-- request path's `RaftKV` names `KV_RangeStreamServer`), before `etcdserverpb`, which imports it
+instance grpc_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc :=
+  define_is_pkg_init iprop(True)
+instance grpc_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc :=
+  build_get_is_pkg_init_wf
+
 instance etcdserverpb_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb :=
   define_is_pkg_init iprop(True)
@@ -146,11 +154,6 @@ instance grpc_status_get_is_pkg_init_wf_inst :
   build_get_is_pkg_init_wf
 
 -- The names-only packages of `clientv3.Client`'s field types.
-instance grpc_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc :=
-  define_is_pkg_init iprop(True)
-instance grpc_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc :=
-  build_get_is_pkg_init_wf
 
 instance grpc_credentials_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.credentials :=
   define_is_pkg_init iprop(True)

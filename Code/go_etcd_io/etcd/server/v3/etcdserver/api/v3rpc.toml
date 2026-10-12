@@ -1,0 +1,26 @@
+# The gRPC KV service (key.go), with bodies: NewKVServer, the handlers, the request checks
+# (checkRangeRequest, ..., checkIntervals, checkRequestOp) and the stream wrapper's Send;
+# header.go (the response header's fill) and util.go's togRPCError, with bodies. The error
+# map toGRPCErrorMap (a map literal over sixty error variables of seven packages) and the
+# rest of the package (the other services, the interceptors, metrics.go's init) are names
+# only.
+translate = ["!*",
+  # key.go
+  "kvServer", "NewKVServer", "kvServer.Range", "kvServer.RangeStream", "kvServer.Put",
+  "kvServer.DeleteRange", "kvServer.Txn", "kvServer.Compact",
+  "headerFillingRangeStream", "headerFillingRangeStream.Send",
+  "checkRangeRequest", "checkRangeStreamRequest", "checkPutRequest", "checkDeleteRequest",
+  "checkTxnRequest", "checkIntervals", "checkRequestOp",
+  # header.go
+  "header", "newHeader", "header.fill", "header.fillWithoutRevision",
+  # util.go
+  "togRPCError"]
+imports = ["!*", "context", "errors",
+  "google.golang.org/grpc/codes", "google.golang.org/grpc/status",
+  "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes",
+  "go.etcd.io/etcd/pkg/v3/adt", "go.etcd.io/etcd/server/v3/etcdserver",
+  "go.etcd.io/etcd/server/v3/etcdserver/apply", "go.etcd.io/etcd/server/v3/etcdserver/txn",
+  "go.etcd.io/etcd/server/v3/auth"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

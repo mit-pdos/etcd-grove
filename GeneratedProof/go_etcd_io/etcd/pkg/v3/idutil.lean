@@ -2,6 +2,9 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.math
+public import Perennial.GeneratedProof.sync.atomic
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.pkg.v3.idutil
 

@@ -1,6 +1,7 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
-imports = ["!*"]
+# The request id generator (id.go), with bodies: NewGenerator, Next, lowbit.
+translate = ["!*", "tsLen", "cntLen", "suffixLen", "Generator", "NewGenerator",
+  "Generator.Next", "lowbit"]
+imports = ["!*", "math", "sync/atomic", "time"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

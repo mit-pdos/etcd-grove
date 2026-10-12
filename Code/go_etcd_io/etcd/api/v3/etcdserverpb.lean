@@ -5,6 +5,7 @@ public import Code.google_golang_org.protobuf.runtime.protoimpl
 public import Code.go_etcd_io.etcd.api.v3.membershippb
 public import Code.go_etcd_io.etcd.api.v3.authpb
 public import Code.go_etcd_io.etcd.api.v3.mvccpb
+public import Code.google_golang_org.grpc
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -969,53 +970,47 @@ axiom RangeStreamResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom KVClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom kVClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom KV_RangeStreamClient [FfiSyntax] [GoGlobalContext] : go.GoType
+@[reducible] def KV_RangeStreamClient.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (_root_.Perennial.google_golang_org.grpc.ServerStreamingClient.ty RangeStreamResponse.ty)
 
 axiom KVServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom KV_RangeStreamServer [FfiSyntax] [GoGlobalContext] : go.GoType
+@[reducible] def KV_RangeStreamServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty RangeStreamResponse.ty)
 
 axiom WatchClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom watchClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+@[reducible] def Watch_WatchClient.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty WatchRequest.ty WatchResponse.ty)
 
-axiom Watch_WatchClient [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom WatchServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom Watch_WatchServer [FfiSyntax] [GoGlobalContext] : go.GoType
+@[reducible] def Watch_WatchServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty WatchRequest.ty WatchResponse.ty)
 
 axiom LeaseClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom leaseClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom Lease_LeaseKeepAliveClient [FfiSyntax] [GoGlobalContext] : go.GoType
+@[reducible] def Lease_LeaseKeepAliveClient.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (_root_.Perennial.google_golang_org.grpc.BidiStreamingClient.ty LeaseKeepAliveRequest.ty LeaseKeepAliveResponse.ty)
 
 axiom LeaseServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom Lease_LeaseKeepAliveServer [FfiSyntax] [GoGlobalContext] : go.GoType
+@[reducible] def Lease_LeaseKeepAliveServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty LeaseKeepAliveRequest.ty LeaseKeepAliveResponse.ty)
 
 axiom ClusterClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom clusterClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom ClusterServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom MaintenanceClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom maintenanceClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom Maintenance_SnapshotClient [FfiSyntax] [GoGlobalContext] : go.GoType
+@[reducible] def Maintenance_SnapshotClient.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (_root_.Perennial.google_golang_org.grpc.ServerStreamingClient.ty SnapshotResponse.ty)
 
 axiom MaintenanceServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom Maintenance_SnapshotServer [FfiSyntax] [GoGlobalContext] : go.GoType
+@[reducible] def Maintenance_SnapshotServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty SnapshotResponse.ty)
 
 axiom AuthClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom authClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom AuthServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
@@ -1894,7 +1889,7 @@ noncomputable def Compare.GetRangeEnd.impl [FfiSyntax] [GoGlobalContext] : val :
   (Val #()))))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb where
-  pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.runtime.protoimpl, pkg_id.go_etcd_io.etcd.api.v3.membershippb, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.api.v3.mvccpb]
+  pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.runtime.protoimpl, pkg_id.go_etcd_io.etcd.api.v3.membershippb, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.google_golang_org.grpc]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -1902,6 +1897,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2008,7 +2004,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.initialize') (Val #()))))))))
 
 axiom Metadata : Type
 axiom Metadata.zero_val : ZeroVal Metadata
@@ -6487,18 +6485,36 @@ attribute [instance] KVClient.TypeAssumptions.type_repr
   KVClient.TypeAssumptions.underlying
   KVClient.TypeAssumptions.isUnderlying
 
-axiom kVClient : Type
-axiom kVClient.zero_val : ZeroVal kVClient
-attribute [instance] kVClient.zero_val
+structure kVClient [FfiSyntax] where
+  mk ::
+  cc' : _root_.Perennial.google_golang_org.grpc.ClientConnInterface
+
+instance kVClient.zero_val [FfiSyntax] : ZeroVal kVClient :=
+  ⟨kVClient.mk zeroValDef⟩
+
+@[reducible] def kVClient.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"cc" _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty)]
+
+@[irreducible] def kVClient.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  kVClient.fieldsUnsealed
+
+instance equals_unfold_kVClient [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold kVClient.fields kVClient.fieldsUnsealed :=
+  ⟨by unfold kVClient.fields; rfl⟩
+
+@[reducible] def kVClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType kVClient.fields)
 
 class kVClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying kVClient.underlying kVClient
   underlying : go.UnderlyingDirectedEq kVClient.ty kVClient.underlying
-  isUnderlying : go.IsUnderlying kVClient.underlying kVClient.underlying
+  get_cc : ∀ (x : kVClient), go.IsGoStepPureDetTagged under (StructFieldGet kVClient.underlying go!"cc") #x (Val #(x.cc'))
+  set_cc : ∀ (x : kVClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface), go.IsGoStepPureDetTagged under (StructFieldSet kVClient.underlying go!"cc") (PairV #x #y) (Val #(({ x with cc' := y } : kVClient)))
 
 attribute [instance] kVClient.TypeAssumptions.type_repr
   kVClient.TypeAssumptions.underlying
-  kVClient.TypeAssumptions.isUnderlying
+  kVClient.TypeAssumptions.get_cc
+  kVClient.TypeAssumptions.set_cc
 
 axiom KVServer : Type
 axiom KVServer.zero_val : ZeroVal KVServer
@@ -6562,31 +6578,46 @@ attribute [instance] WatchClient.TypeAssumptions.type_repr
   WatchClient.TypeAssumptions.underlying
   WatchClient.TypeAssumptions.isUnderlying
 
-axiom watchClient : Type
-axiom watchClient.zero_val : ZeroVal watchClient
-attribute [instance] watchClient.zero_val
+structure watchClient [FfiSyntax] where
+  mk ::
+  cc' : _root_.Perennial.google_golang_org.grpc.ClientConnInterface
+
+instance watchClient.zero_val [FfiSyntax] : ZeroVal watchClient :=
+  ⟨watchClient.mk zeroValDef⟩
+
+@[reducible] def watchClient.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"cc" _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty)]
+
+@[irreducible] def watchClient.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  watchClient.fieldsUnsealed
+
+instance equals_unfold_watchClient [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold watchClient.fields watchClient.fieldsUnsealed :=
+  ⟨by unfold watchClient.fields; rfl⟩
+
+@[reducible] def watchClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType watchClient.fields)
 
 class watchClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying watchClient.underlying watchClient
   underlying : go.UnderlyingDirectedEq watchClient.ty watchClient.underlying
-  isUnderlying : go.IsUnderlying watchClient.underlying watchClient.underlying
+  get_cc : ∀ (x : watchClient), go.IsGoStepPureDetTagged under (StructFieldGet watchClient.underlying go!"cc") #x (Val #(x.cc'))
+  set_cc : ∀ (x : watchClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface), go.IsGoStepPureDetTagged under (StructFieldSet watchClient.underlying go!"cc") (PairV #x #y) (Val #(({ x with cc' := y } : watchClient)))
 
 attribute [instance] watchClient.TypeAssumptions.type_repr
   watchClient.TypeAssumptions.underlying
-  watchClient.TypeAssumptions.isUnderlying
+  watchClient.TypeAssumptions.get_cc
+  watchClient.TypeAssumptions.set_cc
 
-axiom WatchServer : Type
-axiom WatchServer.zero_val : ZeroVal WatchServer
-attribute [instance] WatchServer.zero_val
+abbrev WatchServer [FfiSyntax] : Type := GoInterface
+
+@[reducible] def WatchServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Watch" (go.signature.Signature [(_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty WatchRequest.ty WatchResponse.ty)] false [go.error])), (go.InterfaceElem.MethodElem go!"mustEmbedUnimplementedWatchServer" (go.signature.Signature [] false []))])
 
 class WatchServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying WatchServer.underlying WatchServer
   underlying : go.UnderlyingDirectedEq WatchServer.ty WatchServer.underlying
-  isUnderlying : go.IsUnderlying WatchServer.underlying WatchServer.underlying
 
-attribute [instance] WatchServer.TypeAssumptions.type_repr
-  WatchServer.TypeAssumptions.underlying
-  WatchServer.TypeAssumptions.isUnderlying
+attribute [instance] WatchServer.TypeAssumptions.underlying
 
 structure UnimplementedWatchServer [FfiSyntax] where
   mk ::
@@ -6637,18 +6668,36 @@ attribute [instance] LeaseClient.TypeAssumptions.type_repr
   LeaseClient.TypeAssumptions.underlying
   LeaseClient.TypeAssumptions.isUnderlying
 
-axiom leaseClient : Type
-axiom leaseClient.zero_val : ZeroVal leaseClient
-attribute [instance] leaseClient.zero_val
+structure leaseClient [FfiSyntax] where
+  mk ::
+  cc' : _root_.Perennial.google_golang_org.grpc.ClientConnInterface
+
+instance leaseClient.zero_val [FfiSyntax] : ZeroVal leaseClient :=
+  ⟨leaseClient.mk zeroValDef⟩
+
+@[reducible] def leaseClient.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"cc" _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty)]
+
+@[irreducible] def leaseClient.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  leaseClient.fieldsUnsealed
+
+instance equals_unfold_leaseClient [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold leaseClient.fields leaseClient.fieldsUnsealed :=
+  ⟨by unfold leaseClient.fields; rfl⟩
+
+@[reducible] def leaseClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType leaseClient.fields)
 
 class leaseClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying leaseClient.underlying leaseClient
   underlying : go.UnderlyingDirectedEq leaseClient.ty leaseClient.underlying
-  isUnderlying : go.IsUnderlying leaseClient.underlying leaseClient.underlying
+  get_cc : ∀ (x : leaseClient), go.IsGoStepPureDetTagged under (StructFieldGet leaseClient.underlying go!"cc") #x (Val #(x.cc'))
+  set_cc : ∀ (x : leaseClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface), go.IsGoStepPureDetTagged under (StructFieldSet leaseClient.underlying go!"cc") (PairV #x #y) (Val #(({ x with cc' := y } : leaseClient)))
 
 attribute [instance] leaseClient.TypeAssumptions.type_repr
   leaseClient.TypeAssumptions.underlying
-  leaseClient.TypeAssumptions.isUnderlying
+  leaseClient.TypeAssumptions.get_cc
+  leaseClient.TypeAssumptions.set_cc
 
 axiom LeaseServer : Type
 axiom LeaseServer.zero_val : ZeroVal LeaseServer
@@ -6712,18 +6761,36 @@ attribute [instance] ClusterClient.TypeAssumptions.type_repr
   ClusterClient.TypeAssumptions.underlying
   ClusterClient.TypeAssumptions.isUnderlying
 
-axiom clusterClient : Type
-axiom clusterClient.zero_val : ZeroVal clusterClient
-attribute [instance] clusterClient.zero_val
+structure clusterClient [FfiSyntax] where
+  mk ::
+  cc' : _root_.Perennial.google_golang_org.grpc.ClientConnInterface
+
+instance clusterClient.zero_val [FfiSyntax] : ZeroVal clusterClient :=
+  ⟨clusterClient.mk zeroValDef⟩
+
+@[reducible] def clusterClient.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"cc" _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty)]
+
+@[irreducible] def clusterClient.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  clusterClient.fieldsUnsealed
+
+instance equals_unfold_clusterClient [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold clusterClient.fields clusterClient.fieldsUnsealed :=
+  ⟨by unfold clusterClient.fields; rfl⟩
+
+@[reducible] def clusterClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType clusterClient.fields)
 
 class clusterClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying clusterClient.underlying clusterClient
   underlying : go.UnderlyingDirectedEq clusterClient.ty clusterClient.underlying
-  isUnderlying : go.IsUnderlying clusterClient.underlying clusterClient.underlying
+  get_cc : ∀ (x : clusterClient), go.IsGoStepPureDetTagged under (StructFieldGet clusterClient.underlying go!"cc") #x (Val #(x.cc'))
+  set_cc : ∀ (x : clusterClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface), go.IsGoStepPureDetTagged under (StructFieldSet clusterClient.underlying go!"cc") (PairV #x #y) (Val #(({ x with cc' := y } : clusterClient)))
 
 attribute [instance] clusterClient.TypeAssumptions.type_repr
   clusterClient.TypeAssumptions.underlying
-  clusterClient.TypeAssumptions.isUnderlying
+  clusterClient.TypeAssumptions.get_cc
+  clusterClient.TypeAssumptions.set_cc
 
 axiom ClusterServer : Type
 axiom ClusterServer.zero_val : ZeroVal ClusterServer
@@ -6787,18 +6854,36 @@ attribute [instance] MaintenanceClient.TypeAssumptions.type_repr
   MaintenanceClient.TypeAssumptions.underlying
   MaintenanceClient.TypeAssumptions.isUnderlying
 
-axiom maintenanceClient : Type
-axiom maintenanceClient.zero_val : ZeroVal maintenanceClient
-attribute [instance] maintenanceClient.zero_val
+structure maintenanceClient [FfiSyntax] where
+  mk ::
+  cc' : _root_.Perennial.google_golang_org.grpc.ClientConnInterface
+
+instance maintenanceClient.zero_val [FfiSyntax] : ZeroVal maintenanceClient :=
+  ⟨maintenanceClient.mk zeroValDef⟩
+
+@[reducible] def maintenanceClient.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"cc" _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty)]
+
+@[irreducible] def maintenanceClient.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  maintenanceClient.fieldsUnsealed
+
+instance equals_unfold_maintenanceClient [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold maintenanceClient.fields maintenanceClient.fieldsUnsealed :=
+  ⟨by unfold maintenanceClient.fields; rfl⟩
+
+@[reducible] def maintenanceClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType maintenanceClient.fields)
 
 class maintenanceClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying maintenanceClient.underlying maintenanceClient
   underlying : go.UnderlyingDirectedEq maintenanceClient.ty maintenanceClient.underlying
-  isUnderlying : go.IsUnderlying maintenanceClient.underlying maintenanceClient.underlying
+  get_cc : ∀ (x : maintenanceClient), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceClient.underlying go!"cc") #x (Val #(x.cc'))
+  set_cc : ∀ (x : maintenanceClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface), go.IsGoStepPureDetTagged under (StructFieldSet maintenanceClient.underlying go!"cc") (PairV #x #y) (Val #(({ x with cc' := y } : maintenanceClient)))
 
 attribute [instance] maintenanceClient.TypeAssumptions.type_repr
   maintenanceClient.TypeAssumptions.underlying
-  maintenanceClient.TypeAssumptions.isUnderlying
+  maintenanceClient.TypeAssumptions.get_cc
+  maintenanceClient.TypeAssumptions.set_cc
 
 axiom MaintenanceServer : Type
 axiom MaintenanceServer.zero_val : ZeroVal MaintenanceServer
@@ -6862,18 +6947,36 @@ attribute [instance] AuthClient.TypeAssumptions.type_repr
   AuthClient.TypeAssumptions.underlying
   AuthClient.TypeAssumptions.isUnderlying
 
-axiom authClient : Type
-axiom authClient.zero_val : ZeroVal authClient
-attribute [instance] authClient.zero_val
+structure authClient [FfiSyntax] where
+  mk ::
+  cc' : _root_.Perennial.google_golang_org.grpc.ClientConnInterface
+
+instance authClient.zero_val [FfiSyntax] : ZeroVal authClient :=
+  ⟨authClient.mk zeroValDef⟩
+
+@[reducible] def authClient.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"cc" _root_.Perennial.google_golang_org.grpc.ClientConnInterface.ty)]
+
+@[irreducible] def authClient.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  authClient.fieldsUnsealed
+
+instance equals_unfold_authClient [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold authClient.fields authClient.fieldsUnsealed :=
+  ⟨by unfold authClient.fields; rfl⟩
+
+@[reducible] def authClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType authClient.fields)
 
 class authClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying authClient.underlying authClient
   underlying : go.UnderlyingDirectedEq authClient.ty authClient.underlying
-  isUnderlying : go.IsUnderlying authClient.underlying authClient.underlying
+  get_cc : ∀ (x : authClient), go.IsGoStepPureDetTagged under (StructFieldGet authClient.underlying go!"cc") #x (Val #(x.cc'))
+  set_cc : ∀ (x : authClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface), go.IsGoStepPureDetTagged under (StructFieldSet authClient.underlying go!"cc") (PairV #x #y) (Val #(({ x with cc' := y } : authClient)))
 
 attribute [instance] authClient.TypeAssumptions.type_repr
   authClient.TypeAssumptions.underlying
-  authClient.TypeAssumptions.isUnderlying
+  authClient.TypeAssumptions.get_cc
+  authClient.TypeAssumptions.set_cc
 
 axiom AuthServer : Type
 axiom AuthServer.zero_val : ZeroVal AuthServer
@@ -7095,6 +7198,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_membershippb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.Assumptions
   import_authpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Assumptions
   import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
+  import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
 
 attribute [instance] Assumptions.Metadata_instance
   Assumptions.RequestHeader_instance
@@ -7266,6 +7370,7 @@ attribute [instance] Assumptions.Metadata_instance
   Assumptions.import_membershippb_Assumption
   Assumptions.import_authpb_Assumption
   Assumptions.import_mvccpb_Assumption
+  Assumptions.import_grpc_Assumption
 
 end go_etcd_io.etcd.api.v3.etcdserverpb
 
