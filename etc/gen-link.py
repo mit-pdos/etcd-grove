@@ -409,9 +409,13 @@ variable [package_sem : {assumptions}]
             # every result linking it
             link = os.path.join(root, prefix[fn].rstrip("."), "Proof",
                                 *where[fn].split(".")[:-1], "Link.lean")
-            if os.path.exists(link) and re.search(
-                    r"^theorem " + re.escape(result(fn)) +
-                    r" \[go_etcd_io\.etcd\.cache\.v3\.Assumptions\]", open(link).read(), re.M):
+            # the result as that Link names it: in its own namespace (the txn package's
+            # `wp_Txn`, which a namespaced mode calls `txn.wp_Txn`)
+            names = {result(fn), result(fn).split(".", 1)[-1]}
+            if os.path.exists(link) and any(re.search(
+                    r"^theorem " + re.escape(n) +
+                    r" \[go_etcd_io\.etcd\.cache\.v3\.Assumptions\]", open(link).read(), re.M)
+                    for n in names):
                 cache_assumptions.add(fn)
             continue
         if ("variable [go_etcd_io.etcd.cache.v3.Assumptions]" in open(spec_file(fn)).read()

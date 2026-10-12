@@ -24,6 +24,7 @@ prometheus_GaugeVec__WithLabelValues:
 context_WithValue:
 storage_NewBackendQuota:
 storage_BackendQuota__Cost:
+context_TODO:
 # The txn package's functions and mvcc's the apply proofs call (`@`: linked in their Link.lean):
 # the backend applier's KV methods, `dispatch`'s metrics, `newHeader`'s `KV.Rev()`.
 txn_Put: @
@@ -37,72 +38,72 @@ mvcc_store__Rev: @
 # (`dispatch`'s deferred metrics) is the server's axiom, stated under the server's
 # assumptions: unit 2 restates it (or uses Perennial's `errors.wp_Is`).
 # Unit 1: backend.go (applierV3backend; `Compaction` has no spec: compaction is out of the model).
-# newApplierV3Backend:
-# applierV3backend__Apply:
-# applierV3backend__newHeader: mvcc_store__Rev
-# applierV3backend__Put: txn_Put
-# applierV3backend__DeleteRange: txn_DeleteRange
-# applierV3backend__Range: txn_Range
-# applierV3backend__Txn: txn_Txn
-# applierV3backend__LeaseGrant: applierV3backend__newHeader
-# applierV3backend__LeaseRevoke: applierV3backend__newHeader
-# applierV3backend__LeaseCheckpoint: applierV3backend__newHeader
-# applierV3backend__Alarm: types_ID__String etcdserverpb_AlarmType__String prometheus_GaugeVec__WithLabelValues
-# applierV3backend__AuthEnable: applierV3backend__newHeader
-# applierV3backend__AuthDisable: applierV3backend__newHeader
-# applierV3backend__AuthStatus: applierV3backend__newHeader
-# applierV3backend__Authenticate: context_WithValue applierV3backend__newHeader
-# applierV3backend__UserAdd: applierV3backend__newHeader
-# applierV3backend__UserDelete: applierV3backend__newHeader
-# applierV3backend__UserChangePassword: applierV3backend__newHeader
-# applierV3backend__UserGrantRole: applierV3backend__newHeader
-# applierV3backend__UserGet: applierV3backend__newHeader
-# applierV3backend__UserRevokeRole: applierV3backend__newHeader
-# applierV3backend__RoleAdd: applierV3backend__newHeader
-# applierV3backend__RoleGrantPermission: applierV3backend__newHeader
-# applierV3backend__RoleGet: applierV3backend__newHeader
-# applierV3backend__RoleRevokePermission: applierV3backend__newHeader
-# applierV3backend__RoleDelete: applierV3backend__newHeader
-# applierV3backend__UserList: applierV3backend__newHeader
-# applierV3backend__RoleList: applierV3backend__newHeader
-# applierV3backend__ClusterVersionSet: MustParse Version__LessThan Version__String zap_String zap_Logger__Info
-# applierV3backend__ClusterMemberAttrSet:
-# applierV3backend__DowngradeInfoSet:
+newApplierV3Backend: applierV3backend__Apply applierV3backend__Put applierV3backend__DeleteRange applierV3backend__Range applierV3backend__Txn applierV3backend__LeaseRevoke applierV3backend__LeaseGrant applierV3backend__LeaseCheckpoint applierV3backend__Alarm applierV3backend__Authenticate applierV3backend__UserAdd applierV3backend__UserDelete applierV3backend__UserChangePassword applierV3backend__UserGrantRole applierV3backend__UserGet applierV3backend__UserRevokeRole applierV3backend__RoleAdd applierV3backend__RoleGrantPermission applierV3backend__RoleGet applierV3backend__RoleRevokePermission applierV3backend__RoleDelete applierV3backend__UserList applierV3backend__RoleList applierV3backend__AuthEnable applierV3backend__AuthDisable applierV3backend__AuthStatus applierV3backend__ClusterVersionSet applierV3backend__ClusterMemberAttrSet applierV3backend__DowngradeInfoSet
+applierV3backend__Apply:
+applierV3backend__newHeader: mvcc_store__Rev
+applierV3backend__Put: context_TODO txn_Put
+applierV3backend__DeleteRange: context_TODO txn_DeleteRange
+applierV3backend__Range: context_TODO txn_Range
+applierV3backend__Txn: context_TODO txn_Txn
+applierV3backend__LeaseGrant: applierV3backend__newHeader
+applierV3backend__LeaseRevoke: applierV3backend__newHeader
+applierV3backend__LeaseCheckpoint: applierV3backend__newHeader
+applierV3backend__Alarm: types_ID__String etcdserverpb_AlarmType__String prometheus_GaugeVec__WithLabelValues
+applierV3backend__AuthEnable: applierV3backend__newHeader
+applierV3backend__AuthDisable: applierV3backend__newHeader
+applierV3backend__AuthStatus: applierV3backend__newHeader
+applierV3backend__Authenticate: context_WithValue applierV3backend__newHeader
+applierV3backend__UserAdd: applierV3backend__newHeader
+applierV3backend__UserDelete: applierV3backend__newHeader
+applierV3backend__UserChangePassword: applierV3backend__newHeader
+applierV3backend__UserGrantRole: applierV3backend__newHeader
+applierV3backend__UserGet: applierV3backend__newHeader
+applierV3backend__UserRevokeRole: applierV3backend__newHeader
+applierV3backend__RoleAdd: applierV3backend__newHeader
+applierV3backend__RoleGrantPermission: applierV3backend__newHeader
+applierV3backend__RoleGet: applierV3backend__newHeader
+applierV3backend__RoleRevokePermission: applierV3backend__newHeader
+applierV3backend__RoleDelete: applierV3backend__newHeader
+applierV3backend__UserList: applierV3backend__newHeader
+applierV3backend__RoleList: applierV3backend__newHeader
+applierV3backend__ClusterVersionSet: MustParse Version__LessThan Version__String zap_String zap_Logger__Info
+applierV3backend__ClusterMemberAttrSet:
+applierV3backend__DowngradeInfoSet:
 # Unit 1: quota.go, capped.go, corrupt.go.
-# newQuotaApplierV3: storage_NewBackendQuota
-# quotaApplierV3__Put:
-# quotaApplierV3__Txn:
-# quotaApplierV3__LeaseGrant:
-# newApplierV3Capped:
-# applierV3Capped__Put:
-# applierV3Capped__Txn: storage_BackendQuota__Cost
-# applierV3Capped__LeaseGrant:
-# newApplierV3Corrupt:
-# applierV3Corrupt__Put:
-# applierV3Corrupt__Range:
-# applierV3Corrupt__DeleteRange:
-# applierV3Corrupt__Txn:
-# applierV3Corrupt__Compaction:
-# applierV3Corrupt__LeaseGrant:
-# applierV3Corrupt__LeaseRevoke:
+newQuotaApplierV3: storage_NewBackendQuota quotaApplierV3__Put quotaApplierV3__Txn quotaApplierV3__LeaseGrant
+quotaApplierV3__Put:
+quotaApplierV3__Txn:
+quotaApplierV3__LeaseGrant:
+newApplierV3Capped: applierV3Capped__Put applierV3Capped__Txn applierV3Capped__LeaseGrant
+applierV3Capped__Put:
+applierV3Capped__Txn: storage_BackendQuota__Cost
+applierV3Capped__LeaseGrant:
+newApplierV3Corrupt: applierV3Corrupt__Put applierV3Corrupt__Range applierV3Corrupt__DeleteRange applierV3Corrupt__Txn applierV3Corrupt__LeaseGrant applierV3Corrupt__LeaseRevoke
+applierV3Corrupt__Put:
+applierV3Corrupt__Range:
+applierV3Corrupt__DeleteRange:
+applierV3Corrupt__Txn:
+applierV3Corrupt__Compaction:
+applierV3Corrupt__LeaseGrant:
+applierV3Corrupt__LeaseRevoke:
 # Unit 1: auth.go (`checkTxnPermission` and `checkTxnReqsPermission` are mutually recursive:
-# one proof by the request's nesting depth).
-# newAuthApplierV3:
-# needAdminPermission:
-# authApplierV3__Apply: needAdminPermission
-# checkLeasePutsKeys:
-# checkLeasePuts: checkLeasePutsKeys
-# checkPutAuth: checkLeasePuts
-# checkTxnReqsPermission: checkPutAuth
-# checkTxnPermission: checkTxnReqsPermission
-# CheckTxnAuth: checkTxnPermission
-# authApplierV3__Put: checkPutAuth
-# authApplierV3__Range:
-# authApplierV3__DeleteRange:
-# authApplierV3__Txn: CheckTxnAuth
-# authApplierV3__LeaseRevoke: checkLeasePuts
-# authApplierV3__UserGet:
-# authApplierV3__RoleGet:
+# one Löb proof in AuthLemmas.lean, the latter's result over the former's).
+needAdminPermission:
+checkLeasePutsKeys:
+checkLeasePuts: checkLeasePutsKeys
+checkPutAuth: checkLeasePuts
+checkTxnPermission: checkPutAuth
+checkTxnReqsPermission: checkPutAuth checkTxnPermission
+CheckTxnAuth: checkTxnPermission
+authApplierV3__Put: checkPutAuth
+authApplierV3__Range:
+authApplierV3__DeleteRange:
+authApplierV3__Txn: CheckTxnAuth
+authApplierV3__LeaseRevoke: checkLeasePuts
+authApplierV3__UserGet:
+authApplierV3__RoleGet:
+authApplierV3__Apply: needAdminPermission
+newAuthApplierV3: authApplierV3__Apply authApplierV3__Put authApplierV3__Range authApplierV3__DeleteRange authApplierV3__Txn authApplierV3__LeaseRevoke authApplierV3__UserGet authApplierV3__RoleGet
 # Unit 2: uber_applier.go, apply.go.
 # newApplierV3: newApplierV3Backend newQuotaApplierV3 newAuthApplierV3
 # uberApplier__restoreAlarms: newApplierV3Capped newApplierV3Corrupt
