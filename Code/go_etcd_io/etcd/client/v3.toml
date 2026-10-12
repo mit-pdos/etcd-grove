@@ -117,6 +117,10 @@ translate = [
   "WithLastKey",
   "WithMaxModRev",
   "WithMinModRev",
+  # server/v3/storage/mvcc's watch stream: the watch ids `watchStream.Watch` and
+  # `RequestProgressAll` compare against
+  "AutoWatchID",
+  "InvalidWatchID",
 ]
 imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt"]
 

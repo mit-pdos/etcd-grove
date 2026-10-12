@@ -1,8 +1,9 @@
 /-
 Package initialization instances for etcd's mvcc store (`server/v3/storage/mvcc`) and the
 packages it imports that no other proof module provides: `pkg/v3/traceutil`, `server/v3/lease`,
-`pkg/v3/schedule`, prometheus's `client_golang/prometheus` and opentelemetry's `otel/trace` (all
-names and types only). The others are the interval tree's (`pkg/v3/adt/Base.lean`), the
+`pkg/v3/schedule`, prometheus's `client_golang/prometheus` and opentelemetry's `otel/trace` with
+the packages of the types its `Span` names (`trace/embedded`, `codes`, `attribute`) (all names and
+types only). The others are the interval tree's (`pkg/v3/adt/Base.lean`), the
 cache's (`cache/v3/Base.lean`: `zap`, `proto`, `mvccpb`, `client/v3`), the server's
 (`etcdserver/Base.lean`: `backend`, `schema`, `client/pkg/v3/verify`), the btree's
 (`btree/Init.lean`) and Perennial's (`sync`, `bytes`, `context`, `errors`, `fmt`, `time`,
@@ -84,6 +85,35 @@ instance get_isPkgInit_wf_inst :
 
 end github_com.prometheus.client_golang.prometheus
 
+namespace go_opentelemetry_io.otel.trace.embedded
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_opentelemetry_io.otel.trace.embedded :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.go_opentelemetry_io.otel.trace.embedded :=
+  build_get_is_pkg_init_wf
+
+end go_opentelemetry_io.otel.trace.embedded
+
+namespace go_opentelemetry_io.otel.codes
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_opentelemetry_io.otel.codes :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_opentelemetry_io.otel.codes :=
+  build_get_is_pkg_init_wf
+
+end go_opentelemetry_io.otel.codes
+
+namespace go_opentelemetry_io.otel.attribute
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_opentelemetry_io.otel.attribute :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.go_opentelemetry_io.otel.attribute :=
+  build_get_is_pkg_init_wf
+
+end go_opentelemetry_io.otel.attribute
+
 namespace go_opentelemetry_io.otel.trace
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_opentelemetry_io.otel.trace :=
@@ -118,7 +148,9 @@ of `metrics.go` the KV core updates: the gauge `keysGauge` (the key index), the 
 `txnCounter`, `rangeCounter`, `putCounter`, `deleteCounter` and the gauge `totalPutSizeGauge`
 (the transactions' `End`); and the variables `defaultCompactionBatchLimit` and
 `defaultCompactionSleepInterval` (`kvstore.go`) `NewStore` reads, read-only (only tests change
-them), their values unconstrained (the store's configuration is not modelled). -/
+them), their values unconstrained (the store's configuration is not modelled); and the watch
+stream's (`watcher.go`): the errors `ErrWatcherNotExist`, `ErrEmptyWatcherRange` and
+`ErrWatcherDuplicateID`, each a fixed non-nil error, and the gauge `watchStreamGauge`. -/
 abbrev mvccInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok e) ∗
@@ -130,7 +162,11 @@ abbrev mvccInit : IProp GF :=
     (∃ c : GoInterfaceOk, globalAddr deleteCounter ↦□ GoInterface.ok c ∗ counterSpec c) ∗
     (∃ g : GoInterfaceOk, globalAddr totalPutSizeGauge ↦□ GoInterface.ok g ∗ gaugeSpec g) ∗
     (∃ n : w64, globalAddr defaultCompactionBatchLimit ↦□ n) ∗
-    (∃ d : w64, globalAddr defaultCompactionSleepInterval ↦□ d))
+    (∃ d : w64, globalAddr defaultCompactionSleepInterval ↦□ d) ∗
+    (∃ e : GoInterfaceOk, globalAddr ErrWatcherNotExist ↦□ GoInterface.ok e) ∗
+    (∃ e : GoInterfaceOk, globalAddr ErrEmptyWatcherRange ↦□ GoInterface.ok e) ∗
+    (∃ e : GoInterfaceOk, globalAddr ErrWatcherDuplicateID ↦□ GoInterface.ok e) ∗
+    (∃ g : GoInterfaceOk, globalAddr watchStreamGauge ↦□ GoInterface.ok g ∗ gaugeSpec g))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc :=
   define_is_pkg_init mvccInit
