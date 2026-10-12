@@ -20,6 +20,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftpb
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Wait
 
 @[expose] public section
 
@@ -95,16 +96,8 @@ axiom applierFor_persistent (ua : GoInterface) (P : IProp GF) (f : val) :
 
 attribute [instance] applierFor_persistent
 
-/-- `w` is a `wait.Wait` whose `Trigger` returns (it hands the result to a waiting
-request; nothing of the protocol). -/
-def waitOk (w : GoInterface) : IProp GF :=
-  iprop(∃ wi : GoInterfaceOk, ⌜w = GoInterface.ok wi⌝ ∗
-    □ (∀ (id : w64) (x : GoInterface),
-      {{ True }} (App (App (Val #(methods wi.ty go!"Trigger" wi.v)) (Val #id)) (Val #x))
-      {{ RET #(); True }}))
-
-instance waitOk_persistent (w : GoInterface) : Persistent (waitOk (GF := GF) w) := by
-  unfold waitOk; infer_instance
+-- `waitOk w` (the `wait.Wait`'s `Trigger` and `IsRegistered`): `apply/Wait.lean` (2026-10-12,
+-- shared with the apply package).
 
 /-- `l` is a `lease.Lessor` whose `Promote` returns (in memory: no backend writes). -/
 def lessorOk (l : GoInterface) : IProp GF :=

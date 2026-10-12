@@ -368,7 +368,7 @@ theorem EtcdServer.apply.wp_proof
         (try wp_auto)
         ihave #Hwok2 := Hwok
         iunfold waitOk at Hwok2
-        icases Hwok2 with ⟨%wi, %hw, #Htrig⟩
+        icases Hwok2 with ⟨%wi, %hw, #Htrig, -⟩
         simp only [hw]
         (try wp_auto)
         wp_apply Htrig
@@ -501,7 +501,7 @@ theorem EtcdServer.apply.wp_proof
         (try wp_auto)
         ihave #Hwok2 := Hwok
         iunfold waitOk at Hwok2
-        icases Hwok2 with ⟨%wi, %hw, #Htrig⟩
+        icases Hwok2 with ⟨%wi, %hw, #Htrig, -⟩
         simp only [hw]
         (try wp_auto)
         wp_apply Htrig
