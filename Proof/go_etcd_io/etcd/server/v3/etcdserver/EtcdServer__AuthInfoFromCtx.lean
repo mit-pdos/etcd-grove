@@ -48,7 +48,9 @@ theorem EtcdServer.AuthInfoFromCtx.wp_proof
       wp_auto
       cases cca
       · wp_auto
-        iapply HΦ; iunfold authInfoOpt; ileft; ipureintro; rfl
+        iapply HΦ; isplitr
+        · iunfold authInfoOpt; ileft; ipureintro; rfl
+        iapply applyErrIs_nil
       · wp_auto
         wp_apply hAS s _ $$ []
         · iframe #
@@ -56,7 +58,7 @@ theorem EtcdServer.AuthInfoFromCtx.wp_proof
         wp_auto
         wp_apply HFromTLS $$ %ctx %cd [] as %a' Ha'
         · iframe #
-        iapply HΦ; iexact Ha'
+        iapply HΦ; iframe Ha'; iapply applyErrIs_nil
   · iapply HΦ; iexact Ha
 
 end proof

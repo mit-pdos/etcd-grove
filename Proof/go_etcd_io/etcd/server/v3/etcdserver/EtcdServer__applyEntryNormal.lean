@@ -377,8 +377,8 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       · iapply isPkgInit_access $$ Perrs
       icases Hei with ⟨%ens, #Hens, %Hensp⟩
       (try wp_auto)
-      iunfold applyErrIs at HerrIs
-      ihave ⟨%S, %M, #Htree, %HS⟩ := HerrIs $$ %(GoInterface.ok ens)
+      ihave #HerrT := applyErrIs_tree err $$ HerrIs
+      ihave ⟨%S, %M, #Htree, %HS⟩ := HerrT $$ %(GoInterface.ok ens)
       wp_apply hIs S M err (GoInterface.ok ens) (fun tii h => by cases h; exact Hensp) HS.2
         $$ [$Htree] as %isns -
       · ipureintro; exact HS.1

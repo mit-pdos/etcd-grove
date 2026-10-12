@@ -69,28 +69,75 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **An error the applier returns, as `errors.Is` sees it** (persistent): for any target, the
-error is in an error tree (`errors.errorIsTree`: the specs of its `Is` and `Unwrap` methods, if
-it has them, which return without panicking), whose errors of the target's type hold pointers
-if the target does (`errors.TreeTyped`, Go's typing). What `errors.Is(ar.Err, ErrNoSpace)`
-(the server's `applyEntryNormal`) and `errors.Is(ar.Err, mvcc.ErrCompacted)` (`dispatch`'s
-metrics) need of it (`errors.wp_Is`). As `clientErrIs` for the client's errors. Defined here,
-in the apply package's `Base` (moved from the server's `InvApplier.lean`, 2026-10-12, the merge
-of the apply package's unit 2), so that the apply package states it and the server reads
-it (`apply.resultErrOk`). `nil` has it (`applyErrIs_nil`), and so has an `errors.New` error
+/-- **An error's message**: the error `ei`'s `Error()` returns (a string). What `togRPCError`
+needs of a non-nil error it does not map (`status.Error(codes.Unknown, err.Error())`). An
+`errors.New` error's (`errors.wp_New`: it returns the message). -/
+def errMsgOk (ei : GoInterfaceOk) : IProp GF :=
+  iprop({{ True }} (App (Val #(methods ei.ty go!"Error" ei.v)) (Val #()))
+    {{ (msg : GoString), RET #msg; True }})
+
+instance errMsgOk_persistent (ei : GoInterfaceOk) : Persistent (errMsgOk (GF := GF) ei) := by
+  unfold errMsgOk; infer_instance
+
+/-- **What the gRPC layer needs of an error besides its tree** (persistent): `nil`, or a safe key
+of `togRPCError`'s error map (`SafeMapKey`: comparing it with itself does not panic; a pointer
+error is one, `safeMapKey_ptrErr`) whose `Error()` returns (`errMsgOk`). -/
+def errKeyMsg (err : GoInterface) : IProp GF :=
+  iprop(⌜err = GoInterface.nil⌝ ∨
+    (⌜SafeMapKey (GF := GF) go.error err⌝ ∗ ∃ ei : GoInterfaceOk, ⌜err = GoInterface.ok ei⌝ ∗
+      errMsgOk ei))
+
+instance errKeyMsg_persistent (err : GoInterface) : Persistent (errKeyMsg (GF := GF) err) := by
+  unfold errKeyMsg; infer_instance
+
+/-- **An error the applier returns, as `errors.Is` and the gRPC layer see it** (persistent): for
+any target, the error is in an error tree (`errors.errorIsTree`: the specs of its `Is` and
+`Unwrap` methods, if it has them, which return without panicking), whose errors of the target's
+type hold pointers if the target does (`errors.TreeTyped`, Go's typing); and it is `nil` or a
+safe map key whose `Error()` returns (`errKeyMsg`, what `togRPCError` needs: 2026-10-12, the
+request path's unit 3a, so that every error the server's request path returns can go to the
+gRPC layer). What `errors.Is(ar.Err, ErrNoSpace)` (the server's `applyEntryNormal`) and
+`errors.Is(ar.Err, mvcc.ErrCompacted)` (`dispatch`'s metrics) need of it (`errors.wp_Is`,
+through `applyErrIs_tree`). As `clientErrIs` for the client's errors. Defined here, in the apply
+package's `Base` (moved from the server's `InvApplier.lean`, 2026-10-12, the merge of the apply
+package's unit 2), so that the apply package states it and the server reads it
+(`apply.resultErrOk`). `nil` has it (`applyErrIs_nil`), and so has an `errors.New` error
 (`applyErrIs_leaf`). -/
 def applyErrIs (err : GoInterface) : IProp GF :=
-  iprop(□ ∀ target : GoInterface, ∃ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop),
+  iprop((□ ∀ target : GoInterface, ∃ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop),
     _root_.Perennial.errors.errorIsTree (GF := GF) S M target ∗
-    ⌜S err ∧ _root_.Perennial.errors.TreeTyped S target⌝)
+    ⌜S err ∧ _root_.Perennial.errors.TreeTyped S target⌝) ∗ errKeyMsg err)
 
 instance applyErrIs_persistent (err : GoInterface) :
     Persistent (applyErrIs (GF := GF) err) := by
   unfold applyErrIs; infer_instance
 
+/-- The error tree of an `applyErrIs` error (what `errors.wp_Is` takes). -/
+theorem applyErrIs_tree (err : GoInterface) :
+    applyErrIs (GF := GF) err ⊢ □ ∀ target : GoInterface,
+      ∃ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop),
+        _root_.Perennial.errors.errorIsTree (GF := GF) S M target ∗
+        ⌜S err ∧ _root_.Perennial.errors.TreeTyped S target⌝ := by
+  iunfold applyErrIs
+  iintro ⟨#H, -⟩
+  iexact H
+
+/-- A pointer error is a safe map key at `error`: Go's `==` on two pointer errors of one type
+compares the pointers. -/
+theorem safeMapKey_ptrErr (e : GoInterfaceOk) (h : _root_.Perennial.errors.IsPointerError e) :
+    SafeMapKey (GF := GF) go.error (GoInterface.ok e) := by
+  obtain ⟨T, l, hT, hv⟩ := h
+  obtain ⟨ty, v⟩ := e
+  simp only at hT hv
+  subst hT hv
+  exact ⟨fun s E Φ => by iintro H; wp_auto; iapply H⟩
+
 /-- `nil` is in the empty tree. -/
 theorem applyErrIs_nil : ⊢ applyErrIs (GF := GF) GoInterface.nil := by
   iunfold applyErrIs
+  isplitl
+  rotate_left
+  · iunfold errKeyMsg; ileft; ipureintro; rfl
   iintro !> %target
   iexists (· = GoInterface.nil), (fun _ => False)
   isplitl
@@ -101,10 +148,17 @@ theorem applyErrIs_nil : ⊢ applyErrIs (GF := GF) GoInterface.nil := by
   intro ii tii h
   cases h
 
-/-- An `errors.New` error is a one-error tree. -/
+/-- An `errors.New` error (whose `Error()` returns) is a one-error tree. -/
 theorem applyErrIs_leaf [_root_.Perennial.errors.Assumptions] (e : GoInterfaceOk) (h : errLeaf e) :
-    ⊢ applyErrIs (GF := GF) (GoInterface.ok e) := by
+    errMsgOk (GF := GF) e ⊢ applyErrIs (GoInterface.ok e) := by
+  iintro #Hm
   iunfold applyErrIs
+  isplitl
+  rotate_left
+  · iunfold errKeyMsg; iright
+    isplitr
+    · ipureintro; exact safeMapKey_ptrErr e h.1
+    iexists e; iframe Hm; ipureintro; rfl
   iintro !> %target
   iexists (· = GoInterface.ok e), (fun _ => False)
   isplitl
@@ -112,9 +166,11 @@ theorem applyErrIs_leaf [_root_.Perennial.errors.Assumptions] (e : GoInterfaceOk
   ipureintro
   exact ⟨rfl, _root_.Perennial.errors.treeTyped_pointer e target h.1⟩
 
-/-- **The error variable `g` holds an `errors.New` error** (persistent; a package fact). -/
+/-- **The error variable `g` holds an `errors.New` error** (persistent; a package fact): a leaf
+pointer error whose `Error()` returns (`errors.wp_New`; the message part since 2026-10-12, the
+request path's unit 3a). -/
 def errVarLeaf (g : GoString) : IProp GF :=
-  iprop(∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗ ⌜errLeaf e⌝)
+  iprop(∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗ ⌜errLeaf e⌝ ∗ errMsgOk e)
 
 instance errVarLeaf_persistent (g : GoString) : Persistent (errVarLeaf (GF := GF) g) := by
   unfold errVarLeaf; infer_instance
@@ -126,21 +182,21 @@ theorem errVar_applyErrIs [_root_.Perennial.errors.Assumptions] (g : GoString) (
       (∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗ ⌜err = GoInterface.ok e⌝) -∗
       applyErrIs err := by
   iunfold errVarLeaf
-  iintro ⟨%e, #He, %hl⟩ ⟨%e', #He', %heq⟩
+  iintro ⟨%e, #He, %hl, #Hm⟩ ⟨%e', #He', %heq⟩
   icombine He He' gives %h
   subst heq
   cases h
-  iapply applyErrIs_leaf e hl
+  iapply applyErrIs_leaf e hl $$ Hm
 
 /-- The variable `g`'s error, one `errors.Is` can take. -/
 theorem errVarLeaf_get [_root_.Perennial.errors.Assumptions] (g : GoString) :
     errVarLeaf (GF := GF) g ⊢
       ∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗ applyErrIs (GoInterface.ok e) := by
   iunfold errVarLeaf
-  iintro ⟨%e, #He, %hl⟩
+  iintro ⟨%e, #He, %hl, #Hm⟩
   iexists e
   iframe He
-  iapply applyErrIs_leaf e hl
+  iapply applyErrIs_leaf e hl $$ Hm
 
 end errIsIProp
 

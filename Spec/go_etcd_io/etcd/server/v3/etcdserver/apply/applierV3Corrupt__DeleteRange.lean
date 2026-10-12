@@ -34,7 +34,7 @@ abbrev apply.applierV3Corrupt.DeleteRange.spec : Prop :=
       apply.deletePre E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) r rq o log Pre Q Post }}
     (App (Val (p @!! go.GoType.PointerType applierV3Corrupt.ty @!! go!"DeleteRange")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      apply.kvPost E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) rq log (apply.deleteOutcomeIs log o resp err) Pre Post }}
+      apply.kvPost E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) rq log (apply.deleteAnswerIs log o resp err) Pre Post }}
 
 end spec
 

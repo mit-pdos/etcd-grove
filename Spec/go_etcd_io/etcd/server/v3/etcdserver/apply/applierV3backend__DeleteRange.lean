@@ -34,7 +34,7 @@ abbrev apply.applierV3backend.DeleteRange.spec : Prop :=
       apply.deletePre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) r rq o log Pre Q Post }}
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"DeleteRange")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      apply.kvPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) rq log (apply.deleteOutcomeIs log o resp err) Pre Post }}
+      apply.kvPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) rq log (apply.deleteAnswerIs log o resp err) Pre Post }}
 
 end spec
 

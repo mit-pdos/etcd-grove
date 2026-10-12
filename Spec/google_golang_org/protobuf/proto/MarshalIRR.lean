@@ -9,7 +9,10 @@ MustUnmarshalMessage`'s cases, but in a file of its own); the two have disjoint 
 
 **What it says** (`processInternalRaftRequestOnce` marshals the request it proposes): either an
 error (protobuf-go rejects a string field that is not valid UTF-8, a `Header.Username` from the
-auth store), or a fresh slice of bytes that decode (`irrDecode`) to the request: the same id and
+auth store; protobuf-go's errors are pointer errors, `*prefixError` with an `Is` method comparing
+the target with its sentinel, `*wrapError` with `Unwrap` too, and `Error()` returns: so in an error
+tree for every target, a safe map key, with a message, `applyErrIs`; 2026-10-12, the request
+path's unit 3a, for `togRPCError`), or a fresh slice of bytes that decode (`irrDecode`) to the request: the same id and
 header, the same kind (`dispatchKind`), and the same model altogether when no range end of its
 KV requests is `[0]` (`irrNoZeroEnd`). The exception is the model's, not the encoding's: a
 request's range end denotes `[0]` both for the bytes `"\x00"` and for an empty non-nil slice
@@ -88,7 +91,7 @@ abbrev proto.MarshalIRR.spec : Prop :=
       (⌜err = GoInterface.nil⌝ ∗ ∃ (bs : List w8) (rq' : apply.IRRModel),
         d ↦* bs ∗ ownSliceCap w8 d (DFrac.own 1) ∗
         ⌜apply.irrDecode bs = some rq' ∧ irrWireOf rq rq'⌝) ∨
-      ⌜err ≠ GoInterface.nil⌝ }}
+      (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err) }}
 
 end spec
 

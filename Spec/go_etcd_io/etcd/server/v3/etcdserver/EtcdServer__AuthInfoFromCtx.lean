@@ -32,7 +32,7 @@ abbrev EtcdServer.AuthInfoFromCtx.spec : Prop :=
       srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ mvcc.txnCtx ctx cd }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"AuthInfoFromCtx"))
       (Val #(GoInterface.ok ctx)))
-  {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); authInfoOpt a }}
+  {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); authInfoOpt a ∗ applyErrIs err }}
 
 end spec
 

@@ -13,6 +13,7 @@ public import Spec.go_opentelemetry_io.otel.trace.WithAttributes
 public import Spec.go_opentelemetry_io.otel.«attribute».String
 public import Spec.context.WithValue
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ProposerLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WrapLemmas
 
 @[expose] public section
 
@@ -138,7 +139,7 @@ theorem EtcdServer.DeleteRange.wp_proof
   · iframe # Hrd Hcred
     iexists _; iexact Header
   (try wp_auto)
-  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hok⟩ | ⟨%Hre, Hfail⟩)
+  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hok⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · subst Herr
     iunfold appliedOk at Hok
     icases Hok with ⟨%x, %x', %o, %skip, %Hstep, Hans, #Hcert⟩
@@ -149,6 +150,10 @@ theorem EtcdServer.DeleteRange.wp_proof
     icases Hans with ⟨%op', %pr, %Hop, Hpo⟩
     obtain ⟨Hop', Hresp⟩ := Hop
     subst Hresp
+    ihave %Hap := apply.deleteAnswerIs_nil _ _ _ _ $$ Hpo
+    obtain ⟨log', rfl⟩ := Hap
+    simp only [apply.deleteAnswerIs]
+    icases Hpo with ⟨Hpo, Hhdr⟩
     (try wp_auto)
     wp_apply HEnd
     (try wp_auto)
@@ -157,10 +162,10 @@ theorem EtcdServer.DeleteRange.wp_proof
     ileft
     isplitr
     · ipureintro; rfl
-    iexists hm, rq', op', x, x', o, skip
-    iframe Hpo Hcert
+    iexists hm, rq', op', x, x', .applied log' false, skip
+    iframe Hpo Hhdr Hcert
     ipureintro
-    refine ⟨Hwire, Hop', ?_, Hstep⟩
+    refine ⟨Hwire, Hop', ?_, Hstep, log', rfl⟩
     intro Hnz
     have Hrq : rq' = apply.withHeader (irrDeleteRange op) hm := by
       refine (Hwire.2.2.2 ?_)
@@ -179,7 +184,7 @@ theorem EtcdServer.DeleteRange.wp_proof
       iright
       isplitr
       · ipureintro; exact ⟨rfl, Hne⟩
-      iexact Hfail
+      iframe HaE Hfail
     · exact absurd rfl Hne
 
 end proof

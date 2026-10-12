@@ -40,7 +40,8 @@ theorem v3rpc.kvServer.DeleteRange.wp_proof
   iunfold v3rpc.kvServerIs at Hsrv'
   icases Hsrv' with ⟨%Hpn, #Hhdr, #Hkv, #Hn, #HKV⟩
   iunfold v3rpc.raftKV at HKV
-  icases HKV with ⟨-, -, #HPut, -, -, -, -, -⟩
+  icases HKV with ⟨-, -, #HPut, -, -⟩
+  iunfold v3rpc.kvDeleteOk at HPut
   wp_auto
   wp_apply hChk $$ [] as %err #Herr
   · iframe #

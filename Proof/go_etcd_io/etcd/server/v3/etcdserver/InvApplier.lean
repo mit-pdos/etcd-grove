@@ -364,7 +364,7 @@ theorem applyKV_idxCert (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyK
     iunfold apply.kvOwn at Hk
     icases Hk with ⟨-, Hsw, -⟩
     iunfold txn.soleWriter at Hsw
-    icases Hsw with ⟨#Hc, -⟩
+    icases Hsw with ⟨#Hc, -, -⟩
     iexact Hc
   iframe H Hc
 

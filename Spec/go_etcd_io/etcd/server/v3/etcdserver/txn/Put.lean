@@ -59,6 +59,7 @@ abbrev txn.Put.spec : Prop :=
          (⌜err = GoInterface.nil⌝ ∗
             txn.putResponseIs resp (W64 (ilog.length : Int))
               (if o.base.prevKV then mvcc.findKey o.key (mvcc.stateAfter ilog) else none) ∗
+            txn.respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"Header" resp) ∗
             mvcc.idxCert γ.idx (ilog ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))]]) ∗
             txn.leaseOk γ.leases (txn.putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter ilog)))))) }}
 
