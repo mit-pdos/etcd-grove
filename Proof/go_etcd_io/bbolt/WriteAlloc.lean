@@ -32,7 +32,7 @@ theorem noView_of_derefRel (T T' : WTx) (h : derefRel T T') : noView T' := by
   refine ⟨?_, fun l r' hr' => ?_⟩
   · rw [hsrc]; cases B.isrc <;> simp [staleOf]
   · obtain ⟨r, -, hd⟩ := hns l r' hr'
-    obtain ⟨-, hws, -, -, -, hks⟩ := hd
+    obtain ⟨-, hws, -, -, -, hks, -⟩ := hd
     refine ⟨fun w hw => ?_, by rw [hks]; nofun⟩
     rw [hws] at hw
     obtain ⟨w0, -, rfl⟩ := List.mem_map.1 hw

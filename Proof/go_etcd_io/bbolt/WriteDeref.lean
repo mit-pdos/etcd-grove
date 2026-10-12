@@ -302,9 +302,10 @@ theorem node_deref_acc (W : WView) (hc : W.data.locCar ≠ 0) (bl l : Loc) (r : 
       · rw [if_pos hkn]; ipureintro; trivial
       · rw [if_neg hkn]; unfold srcOwn; iexact Hk
   have Hrel : ∀ (nv' : node) (insN : List Inode), nv' = { r.nv with key' := nv'.key' } →
-      (r.nv.key' = slice.nil → nv'.key' = slice.nil) → derefNode r (derefRec r nv' insN) := by
-    intro nv' insN Hnv' Hkk
-    refine ⟨?_, rfl, rfl, rfl, Hkk, rfl⟩
+      (r.nv.key' = slice.nil → nv'.key' = slice.nil) → insN.length = r.ws.length →
+      derefNode r (derefRec r nv' insN) := by
+    intro nv' insN Hnv' Hkk Hil
+    refine ⟨?_, rfl, rfl, rfl, Hkk, rfl, by simp [derefRec, Hil]⟩
     simp only [derefRec]
     rw [Hnv']
   by_cases hk : r.nv.key' = slice.nil
@@ -316,12 +317,14 @@ theorem node_deref_acc (W : WView) (hc : W.data.locCar ≠ 0) (bl l : Loc) (r : 
       · ipureintro; exact ⟨rfl, hbl, hkeys⟩
       ileft; ipureintro; exact hk
     iintro ⟨%nv', Hn', Hch', %Hnv', ⟨%insN, HinsN, HesN⟩, Hold, Hkd⟩
+    ihave %HiL := inodesOwn_length _ _ $$ HesN
+    have HiL' : insN.length = r.ws.length := by rw [HiL]; simp [borrowEs_length]
     ihave Hb := Hesback $$ Hold
     icases Hb with ⟨Hpe, -⟩
     iexists nv', insN
     icases Hkd with (%Hkn | ⟨%Hkn, -, -⟩)
     · isplitr
-      · ipureintro; exact Hrel nv' insN Hnv' (fun _ => Hkn.2)
+      · ipureintro; exact Hrel nv' insN Hnv' (fun _ => Hkn.2) HiL'
       isplitl [Hn' Hch' HinsN HesN Hcap Hchcap]
       · iapply Hnew nv' insN Hnv'
         iframe
@@ -349,6 +352,8 @@ theorem node_deref_acc (W : WView) (hc : W.data.locCar ≠ 0) (bl l : Loc) (r : 
       iframe
       ipureintro; exact hkp
     iintro ⟨%nv', Hn', Hch', %Hnv', ⟨%insN, HinsN, HesN⟩, Hold, Hkd⟩
+    ihave %HiL := inodesOwn_length _ _ $$ HesN
+    have HiL' : insN.length = r.ws.length := by rw [HiL]; simp [borrowEs_length]
     ihave Hb := Hesback $$ Hold
     icases Hb with ⟨Hpe, -⟩
     iexists nv', insN
@@ -357,7 +362,7 @@ theorem node_deref_acc (W : WView) (hc : W.data.locCar ≠ 0) (bl l : Loc) (r : 
     ihave Hb := Hkback $$ Hko
     icases Hb with ⟨Hpk, -⟩
     isplitr
-    · ipureintro; exact Hrel nv' insN Hnv' (fun h => absurd h hk)
+    · ipureintro; exact Hrel nv' insN Hnv' (fun h => absurd h hk) HiL'
     isplitl [Hn' Hch' HinsN HesN Hcap Hchcap Hkn]
     · iapply Hnew nv' insN Hnv'
       iframe

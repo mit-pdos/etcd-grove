@@ -56,7 +56,7 @@ def derefOK (bl : Loc) (r : NRec) : Prop :=
 
 /-- The live nodes of the bucket `B`: those of its root node's tree. -/
 def liveNodes (B : BRec) (S : List Loc) : Prop :=
-  ∃ p top, upPath B.ns B.bv.rootNode' p top ∧ p.Nodup ∧ kidsTree B.ns top S
+  ∃ p top, upPath B.ns B.bv.rootNode' p top ∧ p.Nodup ∧ kidsTree B.ns top S ∧ ∀ l ∈ p, l ∈ S
 
 /-- The bucket `bl` is the bucket `rl` or cached under one reachable from it. -/
 inductive bktReach (T : WTx) (rl : Loc) : Loc → Prop
@@ -68,6 +68,7 @@ inductive bktReach (T : WTx) (rl : Loc) : Loc → Prop
 reachable from it. -/
 def derefReady (T : WTx) (rl : Loc) : Prop :=
   (∀ bl, (T.bs !! bl).isSome → bktReach T rl bl) ∧
+  (∃ dep : Loc → Nat, ∀ bl B name c, T.bs !! bl = some B → B.bm !! name = some c → dep c < dep bl) ∧
   ∀ bl B, T.bs !! bl = some B →
     (B.bv.rootNode' = null ∨ ∃ S, liveNodes B S ∧ ∀ l ∈ S, ∃ r, B.ns !! l = some r ∧ derefOK bl r) ∧
     ∀ name c, B.bm !! name = some c → (T.bs !! c).isSome
@@ -79,7 +80,7 @@ def ownFresh (w : WEntry) : WEntry := { w with ks := Src.own (DFrac.own 1), vs :
 def derefNode (r r' : NRec) : Prop :=
   r'.nv = { r.nv with inodes' := r'.nv.inodes', key' := r'.nv.key' } ∧ r'.ws = r.ws.map ownFresh ∧
   r'.cs = r.cs ∧ r'.key = r.key ∧ (r.nv.key' = slice.nil → r'.nv.key' = slice.nil) ∧
-  r'.ksrc = Src.own (DFrac.own 1)
+  r'.ksrc = Src.own (DFrac.own 1) ∧ r'.ins.length = r'.ws.length
 
 /-- An inline page in the view is stale after a remap. -/
 def staleOf : Src → Src
