@@ -143,16 +143,6 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.membership
 
--- `server/v3/storage` (names only: `Quota`, `BackendQuota`)
-namespace go_etcd_io.etcd.server.v3.storage
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.storage
-
 -- raft v3.7's `raftpb` (etcd's own raft dependency; types only)
 namespace go_etcd_io.raft.v3.raftpb
 
@@ -162,6 +152,16 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raf
   build_get_is_pkg_init_wf
 
 end go_etcd_io.raft.v3.raftpb
+
+-- `server/v3/storage` (names only: `Quota`, `BackendQuota`)
+namespace go_etcd_io.etcd.server.v3.storage
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.server.v3.storage
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.apply
 

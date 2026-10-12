@@ -23,13 +23,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `updateCommittedIndex(ap, rh)` on a batch with no snapshot. -/
+/-- `updateCommittedIndex(ap, rh)` on a batch with no snapshot (its fields read-only). -/
 abbrev updateCommittedIndex.spec : Prop :=
-  ∀ (ap rh : Loc) (dq : DFrac) (apv : toApply) (ceL : List Loc) (ce : List EntryModel),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ ap ↦{dq} apv ∗ apv.entries' ↦*□ ceL ∗ entriesAt ceL ce ∗
-      ⌜apv.snapshot' = null⌝ ∗ isReadyHandler rh }}
+  ∀ (ap rh : Loc) (es : GoSlice) (ceL : List Loc) (ce : List EntryModel),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      taEntriesAddr ap ↦□ es ∗ es ↦*□ ceL ∗ entriesAt ceL ce ∗
+      structFieldRef toApply go!"snapshot" ap ↦□ (null : Loc) ∗ isReadyHandler rh }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex)) (Val #ap)) (Val #rh))
-  {{ RET #(); ap ↦{dq} apv }}
+  {{ RET #(); True }}
 
 end spec
 

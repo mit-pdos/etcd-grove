@@ -72,7 +72,7 @@ end countable
 /-- The ghost names of a raft wrapper: the node's `Ready` channel, its delivered log `dlv`
 (halves: the node's, the driver's), its record of the last `Ready` `rof`, the append right
 and receipt `app`; `applyc`'s SPSC names and the mono-list `cum` of the log forwarded after
-each payload. -/
+each payload; the broadcast channel `done`. -/
 structure RNNames where
   readyc : ChanNames
   dlv : GName
@@ -80,6 +80,7 @@ structure RNNames where
   app : GName
   ap : SpscNames
   cum : GName
+  done : ChanNames
 
 section addrs
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
@@ -138,9 +139,10 @@ def appendRight (γ : RNNames) (es : List EntryModel) : IProp GF :=
 def appendReceipt (γ : RNNames) (es : List EntryModel) : IProp GF :=
   dghostVar γ.app (DFrac.own (1 : Qp).half) (es, true)
 
-/-- A `Ready`'s `SoftState`: nil, or a read-only struct. -/
+/-- A `Ready`'s `SoftState`: nil, or read-only fields. -/
 def softStateAt (p : Loc) : IProp GF :=
-  iprop(⌜p = null⌝ ∨ ∃ ss : SoftState, p ↦□ ss)
+  iprop(⌜p = null⌝ ∨ ∃ (lead : w64) (rs : StateType),
+    structFieldRef SoftState go!"Lead" p ↦□ lead ∗ structFieldRef SoftState go!"RaftState" p ↦□ rs)
 
 instance softStateAt_persistent (p : Loc) : Persistent (softStateAt (GF := GF) p) := by
   unfold softStateAt; infer_instance
@@ -293,10 +295,13 @@ instance isReadyHandler_persistent (rh : Loc) : Persistent (isReadyHandler (GF :
   unfold isReadyHandler; infer_instance
 
 /-- **The ticker `tk`** (Perennial models no `time.Ticker`): its `C` is a channel on which a
-receive may yield some time, or nil (`newRaftNode`'s `&time.Ticker{}` when `heartbeat == 0`). -/
+receive may yield some time, or nil (`newRaftNode`'s `&time.Ticker{}` when `heartbeat == 0`);
+`Stop` returns. -/
 def isRNTicker (tk : Loc) : IProp GF :=
   iprop(∃ c : Loc, structFieldRef time.Ticker go!"C" tk ↦□ c ∗
-    (⌜c = chan.nil⌝ ∨ ∃ γc : ChanNames, isChanBag γc c (V := time.Time) (fun _ => iprop(True))))
+    (⌜c = chan.nil⌝ ∨ ∃ γc : ChanNames, isChanBag γc c (V := time.Time) (fun _ => iprop(True))) ∗
+    □ ({{ True }} (App (Val (tk @!! go.GoType.PointerType time.Ticker.ty @!! go!"Stop")) (Val #()))
+      {{ RET #(); True }}))
 
 instance isRNTicker_persistent (tk : Loc) : Persistent (isRNTicker (GF := GF) tk) := by
   unfold isRNTicker; infer_instance
@@ -379,7 +384,7 @@ def isRaftNode (E : RNEnv GF) (γ : RNNames) (r : Loc) : IProp GF :=
     "#Htk" ∷ rnTickerAddr r ↦□ tk ∗ "#Htki" ∷ isRNTicker tk ∗
     "#Htd" ∷ rnTdAddr r ↦□ td ∗ "#Htdi" ∷ isRNTimeoutDetector td ∗
     "#Hstc" ∷ rnStoppedAddr r ↦□ stc ∗ "#Hstci" ∷ isUnitBag stc ∗
-    "#Hdnc" ∷ rnDoneAddr r ↦□ dnc)
+    "#Hdnc" ∷ rnDoneAddr r ↦□ dnc ∗ "#Hdnci" ∷ ownBroadcastChan dnc γ.done iprop(True) .Unknown)
 
 
 
@@ -394,6 +399,10 @@ instance isRaftNode_persistent (E : RNEnv GF) (γ : RNNames) (r : Loc) :
     simp only [named]
     iframe #
     ipureintro; exact Hlgnn
+
+/-- The right to close `done` (the loop's: its deferred `onStop`). -/
+def rnDoneTok (γ : RNNames) (r : Loc) : IProp GF :=
+  iprop(∃ dnc : GoChan, rnDoneAddr r ↦□ dnc ∗ ownBroadcastChan dnc γ.done iprop(True) .Pending)
 
 end defs
 

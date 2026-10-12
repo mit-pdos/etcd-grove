@@ -1,6 +1,8 @@
-# Types and names only: function and method bodies are axiomatized.
+# Types and names only: function and method bodies are axiomatized. The packages the interface
+# `Transporter`'s method signatures name are imported (the raft wrapper's transport; otherwise
+# an axiomatized type).
 translate = ["!*"]
-imports = ["!*"]
+imports = ["!*", "net/http", "time", "go.etcd.io/raft/v3/raftpb", "go.etcd.io/etcd/server/v3/etcdserver/api/snap", "go.etcd.io/etcd/client/pkg/v3/types"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

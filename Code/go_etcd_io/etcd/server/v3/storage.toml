@@ -1,7 +1,9 @@
 # Types and names only: function and method bodies are axiomatized.
-# `backend` for the struct `BackendQuota` (a field of the apply package's capped applier).
+# `backend` for the struct `BackendQuota` (a field of the apply package's capped applier);
+# `raftpb` and `semver` for the interface `Storage` (the raft wrapper's WAL), whose methods'
+# signatures name them (otherwise an axiomatized type).
 translate = ["!*"]
-imports = ["!*", "go.etcd.io/etcd/server/v3/storage/backend"]
+imports = ["!*", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/raft/v3/raftpb", "github.com/Masterminds/semver/v3"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

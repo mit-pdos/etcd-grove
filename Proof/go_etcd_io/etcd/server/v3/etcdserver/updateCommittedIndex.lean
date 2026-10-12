@@ -27,54 +27,55 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem updateCommittedIndex.wp_proof
     (hGI : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG)) :
     updateCommittedIndex.spec (GF := GF) (hG := hG) := by
-  intro ap rh dq apv ceL ce
-  wp_start as ⟨Hap, #Hsl, #Hents, %Hsnap, #Hrh⟩
+  intro ap rh es ceL ce
+  wp_start as ⟨#Hes, #Hsl, #Hents, #Hsnap, #Hrh⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
   iunfold entriesAt at Hents
   icases Hents with ⟨%Hlen2, #Hent⟩
-  iunfold isReadyHandler at Hrh
-  icases Hrh with ⟨%gl, %ul, %uls, %uci, #Hgl, #Hul, #Huls, #Huci, #Hglt, #Hult, #Hulst, #Hucit⟩
   ihave #Hrpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
   wp_auto
   -- `ci`: the last entry's index, or 0
-  wp_join iprop(∃ ci : w64, ci_ptr ↦ ci)
-    at next with [ci] as ⟨%ci, ci⟩
+  wp_join iprop(∃ ci : w64, ci_ptr ↦ ci ∗ ap_ptr ↦ ap)
+    at next with [ci ap] as ⟨%ci, ci, ap⟩
   · wp_if_destruct
-    · have hlenpos : 0 < ceL.length := by
+    · -- no entries: `ci` stays 0
+      (try wp_auto)
+      isplitr
+      · itrivial
+      iexists _; iframe ci ap
+    · have hlenz : 0 < sint.Z es.len := by
         rcases Hlen with ⟨h1, h2⟩
-        rw [h1]
         rcases Int.lt_or_eq_of_le h2 with h | h
-        · omega
+        · exact h
         · exfalso; apply Hif; word
+      have hlenpos : 0 < ceL.length := by rw [Hlen.1]; word
       list_elem ceL (ceL.length - 1) as e
       have hm : ∃ m, ce[ceL.length - 1]? = some m := by
         rw [List.getElem?_eq_getElem (by omega)]; exact ⟨_, rfl⟩
       obtain ⟨m, hm⟩ := hm
-      wp_auto
-      wp_apply wp_load_slice_index apv.entries' (sint.Z (apv.entries'.len - W64 1)) ceL
+      rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by word, by word⟩)]
+      wp_apply wp_load_slice_index es (sint.Z (es.len - W64 1)) ceL
         DFrac.discard e (by word) $$ [] as -
       · iframe Hsl; ipureintro
-        have : (sint.Z (apv.entries'.len - W64 1)).toNat = ceL.length - 1 := by word
+        have : (sint.Z (es.len - W64 1)).toNat = ceL.length - 1 := by word
         rw [this]; exact He_lookup
       ihave He := Hent $$ %(ceL.length - 1) %e %m %He_lookup %hm
       wp_apply hGI e m $$ [$Hrpkg $He]
-      wp_auto
-      wp_join_done
-      iexists _; iframe ci
-    · wp_join_done
-      iexists _; iframe ci
+      (try wp_auto)
+      isplitr
+      · itrivial
+      iexists _; iframe ci ap
   -- `ap.snapshot != nil`: never (no snapshot)
-  wp_auto
-  simp only [Hsnap]
-  wp_auto
+  iunfold isReadyHandler at Hrh
+  icases Hrh with ⟨%gl, %ul, %uls, %uci, #Hgl, #Hul, #Huls, #Huci, #Hglt, #Hult, #Hulst, #Hucit⟩
   wp_if_destruct
-  · wp_apply Hucit ci
-    wp_auto
-    iapply HΦ
-    iframe
   · iapply HΦ
-    iframe
+    itrivial
+  · ispecialize Hucit $$ %ci
+    wp_apply Hucit
+    iapply HΦ
+    itrivial
 
 end proof
 
