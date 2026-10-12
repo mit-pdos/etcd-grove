@@ -26,7 +26,8 @@ usage: etc/tcb-report.py [-o REPORT.md] [--defs] [--json TCB.json] [--reuse]
            baseline: with --check, compared (exit 1 if they differ); with
            --check --update, rewritten (the other lines kept)
 
-Needs a built project (`lake build`; `$LAKE_OPTS` is passed to lake, e.g.
+Needs an up-to-date build of the root modules: it never builds, and exits saying so
+if `lake build --no-build` finds them out of date (`$LAKE_OPTS` is passed to lake, e.g.
 `--packages=<file>` when the build used it).  For a Goose verification project laid out as
 CLAUDE.md describes (`Spec/<pkg>/`, `Proof/<pkg>/` with a `Link.lean` per package, the
 projects and parts of `etc/goose.py`; etc/proof_roots.py); nothing in it names a

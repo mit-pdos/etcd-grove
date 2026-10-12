@@ -170,11 +170,37 @@ def git_head():
     return r.stdout.strip() if r.returncode == 0 else "?"
 
 
+def lake(*args):
+    """The `lake` command line, with `$LAKE_OPTS`."""
+    return ["lake", *os.environ.get("LAKE_OPTS", "").split(), *args]
+
+
+def check_built(prog, env):
+    """Exit unless the build of every root module is up to date.  Nothing here builds:
+    `lake build --no-build` only checks, and `etc/tcb-report.lean` reads the `.olean`s
+    as they are, so on a stale build it would report on the proofs as last built."""
+    r = subprocess.run(lake("build", "--no-build", *root_modules()), cwd=ROOT, env=env,
+                       capture_output=True, text=True, check=False)
+    if r.returncode == 0:
+        return
+    out = r.stdout + r.stderr
+    tail = out.split("Some required targets logged failures:\n")[-1]
+    stale = re.findall(r"^- (\S+)$", tail, re.M)
+    if r.returncode == 3 and stale:
+        more = f", and {len(stale) - 5} more" if len(stale) > 5 else ""
+        sys.exit(f"{prog}: the build is not up to date ({', '.join(stale[:5])}{more} "
+                 "and what imports them); run `lake build` (or `etc/build-report.py "
+                 "build`), then rerun")
+    sys.exit(f"{prog}: `{' '.join(lake('build', '--no-build'))} <root modules>` failed "
+             f"(exit {r.returncode}):\n" + "\n".join(out.splitlines()[-20:]))
+
+
 def run(json_path, prog):
     """Run `etc/tcb-report.lean` on every root module into `json_path` (replaced only
-    when every run succeeds)."""
+    when every run succeeds), if their build is up to date."""
     env = dict(os.environ)
     env["PATH"] = os.path.expanduser("~/.elan/bin") + os.pathsep + env.get("PATH", "")
+    check_built(prog, env)
     runs = lean_runs()
     tmp = json_path + ".tmp"
     with open(tmp, "w") as f:
@@ -183,15 +209,14 @@ def run(json_path, prog):
         for mods in runs:
             f.flush()
             r = subprocess.run(
-                ["lake", *os.environ.get("LAKE_OPTS", "").split(), "env", "lean", "--run",
-                 "etc/tcb-report.lean", *lean_args(), *mods],
+                lake("env", "lean", "--run", "etc/tcb-report.lean", *lean_args(), *mods),
                 cwd=ROOT, stdout=f, env=env, check=False,
             )
             if r.returncode != 0:
                 f.close()
                 os.remove(tmp)
                 sys.exit(f"{prog}: etc/tcb-report.lean {' '.join(mods)} failed "
-                         f"(exit {r.returncode}); is the project built?")
+                         f"(exit {r.returncode})")
     os.replace(tmp, json_path)
 
 
