@@ -20,7 +20,7 @@ translate = ["!*",
   "treeIndex.Tombstone", "treeIndex.Insert",
   # kv.go
   "txnReadWrite.DeleteRange", "txnReadWrite.Put", "txnReadWrite.Changes",
-  "NewReadOnlyTxnWrite", "ConcurrentReadTxMode", "SharedBufReadTxMode",
+  "NewReadOnlyTxnWrite", "NewHashStorage", "ConcurrentReadTxMode", "SharedBufReadTxMode",
   # kv_view.go
   "readView.FirstRev", "readView.Rev", "readView.Range", "writeView.DeleteRange",
   "writeView.Put",
