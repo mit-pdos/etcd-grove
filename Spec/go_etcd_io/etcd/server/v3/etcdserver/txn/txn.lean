@@ -8,7 +8,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvTxn
 @[expose] public section
 
 set_option linter.unusedSectionVars false
-set_option linter.iris.dupNamespace false
 
 noncomputable section
 
@@ -25,6 +24,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
+set_option linter.iris.dupNamespace false in
 /-- `txn(ctx, lg, txnWrite, rt, isWrite, txnPath, skip)` on a fresh write transaction of the
 committed log `ilog` (`isWrite`), or the read-only wrapper of a read transaction of `ilog`, the
 path `txnPath` of `rt` at the state after `ilog`, at a context never canceled: the server's
