@@ -68,7 +68,6 @@ axiom zap.NewNop.wp_proof
 axiom zap.String.wp_proof
 axiom zap.Stringer.wp_proof
 axiom zap.Uint64.wp_proof
-sorry Perennial.context.wp_WithDeadlineCause
 sorry Perennial.crypto.rand.wp_initialize'
 sorry Perennial.errors.wp_errorType_init
 sorry Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize'

@@ -125,7 +125,7 @@ followed by `Main()`, from a fresh state with one thread, of any length, has no 
 thread, no thread ended in a panic, and the main thread's result, if any, is `#()`. -/
 theorem register_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.register.Assumptions]
-    [hErr : context.ErrorStringIsError] [hLog : log.NewModel]
+    [hErr : context.ErrorStringIsError] [hDE : context.DeadlineExceededIsError] [hLog : log.NewModel]
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : g.threads = 1)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
