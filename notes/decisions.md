@@ -2940,3 +2940,222 @@ Since Perennial `cb6a5921e` (2026-10-11) `AllG GF` is a singleton carried by `Go
   section's `[hG : HeapGS hlc GF]` (the register's `regStorIface_inj`) gets `GF` as a binder it
   can never infer: write `(GF := GF)` at its uses, or declare it outside the section.
 
+
+## The server's txn: the two models meet, the sole writer as tokens
+
+**2026-10-11 · plan, unit 0 implemented** (`server/v3/etcdserver/txn`, 749 Go lines: the
+server's `Range`, `Put`, `DeleteRange`, `Txn` over the mvcc core; later units append)
+
+The txn package is where the mvcc model (the log of changes, `stateAt`) meets the client's
+transaction model (`runTxn`, `InvEtcdTxn.lean`): mvcc's `applyChange` is the client's `putKv`
+and a delete is its filter, so the server's `Txn` on a request denoting `t : TxnModel` is to
+produce `runTxn (W64 log.length) (stateAfter log) t` (the comparisons' verdict, the branch's
+results, the committed log); that theorem (`txn_runTxn`) is the package's result, with the
+corresponding ones for `Put` (`putKv`), `DeleteRange` (the filter) and `Range`
+(`rangeSel`/`rangeKvsOk`).
+- **The sole writer, as the revision tokens.** `Txn` reads (`checkTxn`, the comparisons) in a
+  read transaction, ends it, then opens the write transaction and re-reads; it is safe and
+  `runTxn` only if nothing commits in between. mvcc's `NewStore` hands out `2^63 - 5` revision
+  tokens and its writer's authority bounds the log by them, so a caller holding all the tokens
+  left for `log` (`ownToks γ.revs (2^63 - 3 - log.length)`) with `idxCert γ.idx log` pins every
+  later write transaction to `log`: `soleWriter γ log` (unit 0b's `SoleWriter.lean`). Every
+  spec takes `isKV kv s γ ∗ storeReader s γ ∗ soleWriter γ log` and returns `soleWriter γ
+  (commitLog log pend)`: the apply thread's situation (the lessor's range deleter writes outside
+  it).
+- **The requests as the client's values** (unit 0, `Requests.lean`): a range, put or delete
+  request denotes an `OpFull` (the fields `Op.toRangeRequest` sends; the others `newOp`'s), a
+  comparison a `CmpModel`, a `TxnRequest` a `TxnModel` (recursively through `RequestOp`'s
+  oneof); so the statements are in the client model's terms and `runTxn` applies as it is.
+  *Rejected:* a record of the protobuf fields (a second vocabulary). The range end denotes
+  mvcc's reading (`rangeEndOf`: `nil` the key alone, empty non-nil from the key on, which is
+  `mkGteRange("\x00")`); on decoded requests (protobuf-go decodes an empty `bytes` field as
+  `nil`) that is the client's `inRange`. A put denotes the server's total `putTxnOp` (the
+  ignore flags keep the value or lease whatever the request says), not the client's partial
+  `txnOpOf`. An empty oneof denotes nothing (`Txn` panics on it, `issues/etcd-txn-empty-requestop.md`).
+  The responses mirror `TxnOpResult` (`txnResponseIs`), recursively; a nested response's
+  header revision is `0`.
+- **The index answers the state** (unit 0b, pure): for a well-formed log, mvcc's
+  `rangeAnswers` are the keys of the state in the range with their revisions; `delKeys` is the
+  client's filter, `rangeTaken` its `rangeIn`.
+- **The lessor's `Lookup`** (unit 0, `Defs.lean`): `isTxnLessor` adds to mvcc's `isLessor` a
+  `Lookup` triple returning `nil` or a granted lease (`leaseKnown`), which `checkLease` hands to
+  mvcc's `Put`. Additive.
+- **Package facts of other packages** (unit 0, `Base.lean`): the txn code returns
+  `lease.ErrLeaseNotFound` and `etcdserver/errors.ErrKeyNotFound`, whose packages' facts are
+  mvcc's (`True`) and the server's (`ErrNoSpace` only); `txnInit` states them (each a fixed
+  non-nil error, true once the txn package and so its imports are initialized) rather than
+  changing those files.
+- **Contexts.** mvcc's `rangeOutcome` has an unconditional "context done" error disjunct, which
+  in `Txn`'s write path leads to `lg.Panic`; preferred: a never-done context gives no error (a
+  refinement of mvcc's spec, coordinated with the mvcc session); fallback: the result holds
+  "unless it panics". `traceutil.EnsureTrace` (unit 0's axiom) returns a context with the input's
+  deadline and `Done` (`{ cd with Values := vs }`): `context.WithValue` derives one that
+  delegates them to its parent; the values are left open (only `traceutil.Get` reads them).
+- **Sorting** (unit 0's axioms, `Spec/sort/`): `sort.Sort` over a `sort.Interface` given as
+  `Len`/`Less`/`Swap` triples on a model list (`sorterSpec`): a permutation sorted by a strict
+  weak order, at most `2^62` elements (Perennial's `slices.SortFunc` statement); `sort.Reverse`
+  flips `Less`. The five `kvSort*` sorters are proved against them. *Rejected:* proving Go's
+  pdqsort over `sort.Interface` (large, not etcd's).
+- **The rest of the trust boundary** (unit 0): traceutil (`Get`, `StepWithFunction` runs its
+  closure, its outcome a panic included; `AddField`, `Start/StopSubTrace` return), `proto.Size`
+  of a put request (its atomically written size cache in an invariant, so the request stays
+  persistent), `zap.Logger.Panic` (a panic outcome, `PanicV`), `zap.Int32`, the two metrics
+  functions. mvcc's read-only write transaction (`NewReadOnlyTxnWrite`, `txnReadWrite`) is
+  verified, not assumed (`InvRoTxn.lean`: its reads delegate, `Changes` is `nil`, `Put` and
+  `DeleteRange` panic).
+- **Unit 1** (2026-10-11, `Put` and `DeleteRange`; `notes/STATUS.md`, "Unit 1"). Three changes to
+  the plan. (1) *The pin travels with the token.* A spec taking only the revision token cannot
+  give the sole writer's corollary: after `End` the token is spent and nothing bounds the log
+  the transaction found. `Put`/`DeleteRange` take, beside the token, any `ownToks γ.revs m ∗
+  idxCert γ.idx log₀` and return `Pinned log₀ m ilog` (read inside the open transaction,
+  `isTxnWrite_pinned`), as unit 0c's `store.Read`; `m = 0`, `log₀ = []` is the plain spec, the
+  sole writer's `m = soleBudget log - 1` gives `ilog = log` (`pinned_sole`), and
+  `put_soleWriter`/`deleteRange_soleWriter` are derived triples. *Rejected:* specs at the sole
+  writer only (no token-level statement for other callers). (2) *`IgnoreLease` needs a premise.*
+  The put writes the previous key-value's lease and mvcc's `Put` attaches it (`leaseKnown`); mvcc
+  has no invariant that a stored lease is known, so `Put` takes `leaseOk` of the previous lease
+  at the pinned log and returns `leaseOk` of the lease written (a sole writer can maintain "every
+  lease in its state is known" from these). *Rejected:* an mvcc invariant on the leases of the
+  committed state (`idxCert`/the writer's resources would carry it; another session's package).
+  (3) *A range read at `context.TODO()`* (mvcc, minimal): `getPrevKV` ranges on the write
+  transaction at `context.TODO()`, which is not an `isContext` (`Done()` is `nil`); the range specs
+  take `rangeCtx todo ctx cd` and promise no context error at `context.TODO()` (`todo = true → r ≠
+  null`), and `metricsTxnWrite.Range` is over `isTxn` of either kind (the plan's preferred option,
+  "a never-done context gives no error", done for `TODO` only; the caller's `isContext` keeps the
+  error case: `DeleteRange` with `PrevKv` reports it). *Rejected:* refining `rangeOutcome` itself
+  (`InvStore.lean`, every mvcc proof). The request and response predicates of unit 0 are
+  unchanged: `PrevKv`'s pointer is the range result's, made read-only (`kvIs`) since the result is
+  dropped.
+
+- **Unit 2 (Range, 2026-10-11).** The server's range is specified as the code computes it, not as
+  the client model's `rangeKvsOk` (`RangeModel.lean`: `srvPre` the key-values read, at most the
+  limit mvcc read with, as read, filtered; `srvSorted` a permutation sorted by the target when
+  `effSortOrder` is `1`/`2` (Go's `sort.Sort` is not stable: ties in any order), unchanged
+  otherwise; `srvTrunc`/`srvMore`/`respKv` the assembly), and bridged to the client's
+  (`srvRangeOk_rangeKvsOk`, `range_rangeSel`) where they agree: the server and the client model
+  differ on two points, both etcd findings, and the bridge says so instead of the spec hiding
+  them: a fast keys-only read zeroes the lease (`leaseZ`; `issues/etcd-range-keys-only-lease.md`),
+  and a sort by a non-key target with order `NONE` and a positive limit is cut early (premise
+  `¬ cutEarly o`; `issues/etcd-range-sort-none-limit.md`). Changes to the plan: (1) **the sort's
+  premise is a small log** (`sortOk o log`: a request that sorts reads a log of at most `2^62`
+  changes, `LogSmall`): `sort.Sort`'s axiom wants at most `2^62` elements, which nothing bounds
+  in the model (locations are unbounded), and the comparators' `(a - b) < 0` is the signed order
+  only for values less than `2^63` apart: revisions are below the log's length, but a version
+  counts puts, which `LogOk` does not bound below `2^63` (a revision may put a key many times);
+  both follow from `LogSmall` (`stateAt_small`: at most `2^62` keys, revisions and versions in
+  `[0, 2^62]`). `Range`'s general spec quantifies it over the logs its read may see (between the
+  caller's certificate and its tokens), which the sole writer reduces to its log
+  (`range_soleWriter`). *Rejected:* a premise on the selection's length alone (the versions
+  would still need one). (2) **The sort target is a premise** (`validSortTarget`: one of the
+  protobuf's; else `lg.Panic`, which the gRPC layer's `checkRangeRequest` rules out); the panic
+  branch is unreachable, `zap.Int32`/`Logger.Panic` are not callees of the proof. (3) The
+  sorters' list is of (pointer, key-value) pairs (`kvsAt`, owned key-values; `Swap` permutes the
+  pointers, `Less` reads two elements). (4) `executeRange`'s result names the state read
+  (`stateAt log (rangeRev rev o.base.rev)`) and mvcc's three outcomes (`rangeResult`: a future
+  revision, a context error on a full read, the response); the context error stays (mvcc's
+  `rangeOutcome` has it unconditionally). (5) `mkGteRange` (`delete.go`) is specified and proved
+  here (`executeRange` calls it; unit 1's `deleteRange` too): the empty literal `[]byte{}` is
+  shown non-`nil` by a variant of Perennial's `wp_slice_literal` (`wp_slice_literal_nn`). (Merged
+  with unit 1, which proved the same function: unit 1's stronger spec, result `rangeEnd` itself
+  unless `[0]`, and its `Write.lean` lemma are kept; `executeRange` gets `srvEnd` through
+  `srvEnd_mkGte`.) (6)
+  mvcc gains `metricsTxnWrite.Rev`/`FirstRev` for a read transaction (`checkRange`'s
+  `ReadView`), additive.
+
+- **Unit 3 (`Txn`, 2026-10-12).** (1) **The server's run, not the client's**: `Txn` is specified
+  over `srvRunTxn` (`TxnRun.lean`), the client's `runOps` with every nested transaction's branch
+  chosen by its verdict at the read state (`compareToPath` evaluates every comparison first) and
+  the mvcc changes named (the write transaction's pending list); `txn_runTxn` relates it to the
+  client's `runTxn` under `OpsStable`. *Rejected:* stating `Txn` over `runTxn` (false for a nested
+  comparison on a key written earlier in the transaction: the client model is wrong there,
+  `issues/etcd-txn-nested-compare-snapshot.md`); changing the client model (leasing's proofs use
+  it). (2) **A context never canceled** instead of a panic: in the write path a range or a
+  `PrevKv` delete at a done context returns an error that `txn` turns into `lg.Panic`; mvcc's
+  `rangeCtx true` now also takes an `isContext` whose Done proposition never holds (`neverDone`:
+  a receive on its channel would give it), and `executeRange`/`deleteRange` take `nd` with no
+  context error. *Rejected:* a panic disjunct in `Txn`'s post (the result would hold "unless it
+  panics"); refining `rangeOutcome` itself (every mvcc proof). (3) **The run's premises as a pure
+  predicate on the run** (`OpsOk`, at each operation's state): a range's at its state
+  (`sortSmall` replaces unit 2's `sortOk` of the log, which a write transaction's pending log does
+  not give), an ignore-flag put's key present where it runs (the finding
+  `etcd-txn-delete-then-ignore-put.md`), weak in `Txn` (missing at the read state: `checkTxn`
+  fails) and strong in `executeTxn` (`opsOk_strong` with `checkTxn`'s `PathsIgnOk`). Ranges at
+  revision `0` only (the client's `txnOpOf`), so `checkRange` never fails in `Txn`'s scope.
+  (4) **Leases as a state invariant** (`leasesKnown`): `Txn` takes every lease of the committed
+  state known and returns it for the new one (a put names a checked lease or keeps the previous
+  key's); unit 1's per-call premise generalizes to a run. (5) **One transaction predicate for both
+  paths** (`txnWriteIs`: a `*metricsTxnWrite` write transaction or the read-only wrapper, the
+  latter with nothing pending and only ranges), and `executeRange` over `txnViewIs` (either kind
+  or the wrapper), so `executeTxn`, `txn` and `executeRange` have one proof each. (6) **Responses**
+  moved to `InvTxn.lean` and stated as the server answers (a range's `leaseZ`; `skip`:
+  header-only), the skeleton `newTxnResp` allocates owned only where `executeTxn` stores.
+  (7) `compareIs` states the operand's wrapper is not a typed `nil`; `checkTxn` returns `0` on an
+  error; `metricsTxnWrite.Rev` of either kind, `metricsTxnWrite.Changes` added (mvcc, additive).
+
+- **Unit 4 (the history laws of the log, 2026-10-12).** `HistoryLaws.lean` proves the pure content
+  of the client's history axioms of `stateAt` (and of `stateAtPfx`, its restriction to a prefix):
+  they *validate* the axioms against the server's model, they do not discharge them (`etcdState`
+  stays an abstract axiom; a later refactor could instantiate it by the log). Each law takes the
+  weakest hypothesis it needs: `create_persist`, `modrev_persist`, `modrev_det` only the word bound
+  `log.length < 2^63`; `revs` `LogOk` and **`NoDupKeysPerRev`**. That one is **what the client
+  axioms assume of the server** beyond `LogOk`: a revision writes a key at most once (else a key's
+  version, a word counting its puts, can wrap to a non-positive signed value). `modrev_det` does
+  not need it, against the plan's expectation (only the later of two writes of a key in one
+  revision survives it). The commit keeps both (`LogOk.snoc`, `NoDupKeysPerRev.snoc`), the latter
+  exactly when the transaction passes etcd's `checkIntervals` (`keys_nodup_iff_check`), which unit
+  3 takes as the premise of a writing transaction. *Rejected:* a bound on the log's total change
+  count instead of `NoDupKeysPerRev` (it bounds versions too, but is no fact etcd states; the
+  distinct keys are its rule).
+
+## mvcc: the certificate carries the log, the token count is exact, a read is pinned by tokens
+
+2026-10-11, for the server's txn package, unit 0c (`notes/STATUS.md`, "Unit 0c"). The txn
+package's sole writer (`txn/SoleWriter.lean`: the certificate of `log` and every revision token
+not spent) must pin the logs its write and read transactions see to `log`; unit 0b found four
+gaps in mvcc's specs. Each change is minimal and keeps every spec at least as strong.
+
+- **The certificate carries the log.** `IdxNames` gains `log`, a monotone list of the committed
+  log's revisions (`List Change` items); `idxCert γ log` adds its lower bound, the index writer
+  (`idxWriter`) half its authority (`idxLogAuth γ (1/2) ilog`), and `idxWriter_commit` appends
+  the pending revision (it takes the other half and gives it back). So two certificates are of
+  logs in prefix order (`idxCert_prefix`, `idxCert_agree_len`), and a committed log extends every
+  certificate (`idxWriter_cert_prefix`, `idxLogAuth_cert_prefix`). *Rejected:* the history's
+  commit marker carrying the revision's changes (`HistItem.commit cs`): `histOf` would be
+  injective with no new ghost, but `HistItem.commit` is a constant in some 200 places of
+  `Hist.lean` and the index proofs; the second list touches only the definitions, the
+  allocation and the three writer proofs that unfold `idxWriter` (one more conjunct framed).
+  (`Change`'s countability moved from `InvStore` to `InvIndex`.)
+- **The token count is exact.** `storeTxnWrite.End` with no change (`pend = []`) makes no
+  revision and leaves the authority's count, so it now returns the transaction's `revToken`
+  (`… ∗ if pend = [] then revToken γ else True`, also in `txnEndPost`, hence
+  `metricsTxnWrite.End`); `writeView.Put`/`DeleteRange` drop it. Without it each such `End`
+  lost a token for good and the sole writer's count (`ntok = 2^63 - 3 - log.length`) could not
+  be kept.
+- **`NewStore` returns `idxCert γ.idx [[], []]`** (its proof had it).
+- **A read is pinned by the caller's tokens and certificate.** The revision budget's authority
+  `ownTokAuth γ.revs ntok` is split in halves (`ownTokAuth_halves`, `ownTokAuthDfrac_split`):
+  one is the writer's, as before (`writerRes`, `storeTxnWriteIs`), the other is under `s.revMu`
+  (`revMuInv`, with `log.length + ntok + 3 ≤ 2^63` for the committed log); `revMuInv` also holds
+  the other half of the committed log's authority (`idxLogAuth`). `End` changes both under
+  `s.revMu` held exclusively (`currentRev++`). `store.Read` takes `ownToks γ.revs m` and
+  `idxCert γ.idx log₀` (new binders `m`, `log₀`) and returns them with
+  `⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2^63⌝` for the log read: the tokens bound it from above,
+  the certificate from below. With `m = 0` and `log₀ = []` (`ownToks_0`, `idxCert_nil`, ghost
+  updates; the `readView` proofs do this) it is the old spec. *Why the certificate too:* the
+  tokens alone give `log.length ≤ log₀.length`; without a lower bound read under `s.revMu` the
+  read log could be a strict prefix of the sole writer's (unit 0b's "read pin" proposal had only
+  the tokens). *Rejected:* a separate "committed length" monotone counter in `StoreNames`
+  (its lower bound would have to travel beside `idxCert`, and `End` and `NewStore` return it);
+  keeping the whole authority in `revMuInv` and borrowing it at `End` (the writer's pin,
+  `soleWriter_pins_write`, reads it inside `storeTxnWriteIs`).
+
+Spec changes: `store.Read` (two binders, pre and post), `storeTxnWrite.End` and
+`metricsTxnWrite.End` (`txnEndPost`) posts, `NewStore` post, `newTreeIndex` post (the other half
+of `idxLogAuth γ`). The `Link.lean` binders are unchanged (`gen-link.py --mvcc` reproduces it).
+
+*Later (txn unit 1, 2026-10-11):* `metricsTxnWrite.Range` is over `isTxn mw s γ kind` (a write
+transaction's range is `storeTxnWrite.Range`'s, `TxnKind.readLog`/`readRev`), and the range specs
+(`rangeKeys`, `storeTxnCommon.Range`, `storeTxnWrite.Range`, `metricsTxnWrite.Range`) take
+`rangeCtx todo ctx cd` (an `isContext`, or `context.TODO()`'s value) with `todo = true → r ≠ null`
+in the post (`TxnRange.lean`); the old statements are the instances `kind := .read …`, `todo :=
+false`. `metricsTxnWrite.Range` links `storeTxnWrite.Range` too.

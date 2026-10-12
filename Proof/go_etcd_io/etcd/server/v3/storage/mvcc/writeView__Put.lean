@@ -62,6 +62,7 @@ theorem mvcc.writeView.Put.wp_proof
   iframe Hrd
   iexists ilog
   simp only [mvcc.txnEndPost, mvcc.commitLog, List.cons_ne_self, ↓reduceIte]
+  icases Hcert with ⟨Hcert, -⟩
   iframe Hcert
   try (ipureintro; rfl)
 

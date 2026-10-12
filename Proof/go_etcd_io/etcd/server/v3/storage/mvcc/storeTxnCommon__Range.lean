@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.storeTxnCommon.Range.wp_proof (hRev : mvcc.storeTxnCommon.Rev.spec (GF := GF) (hG := hG))
     (hKeys : mvcc.storeTxnCommon.rangeKeys.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnCommon.Range.spec (GF := GF) (hG := hG) := by
-  intro tr s trace ti rt γ log rev ctx cd key endk k e ro
+  intro tr s trace ti rt γ log rev ctx cd todo key endk k e ro
   wp_start as ⟨#Hs, #Htr, #Hidx, Hti, #Hctx, #Hkey, #Hend⟩
   ihave #Htr0 : mvcc.storeTxnReadIs tr s rt trace γ log rev $$ []
   · iexact Htr
@@ -42,7 +42,7 @@ theorem mvcc.storeTxnCommon.Range.wp_proof (hRev : mvcc.storeTxnCommon.Rev.spec 
   ihave #Hcert0 : mvcc.idxCert γ.idx log $$ []
   · iexact HcertT
   iunfold mvcc.idxCert at HcertT
-  icases HcertT with ⟨-, -, %Hcwf⟩
+  icases HcertT with ⟨-, -, %Hcwf, -⟩
   have hpos : 0 < log.length := List.length_pos_iff.2 HneT
   have hrv : 0 ≤ sint.Z rev ∧ sint.Z rev < log.length := by
     rw [HrevT]; unfold sint.Z W64
@@ -52,15 +52,16 @@ theorem mvcc.storeTxnCommon.Range.wp_proof (hRev : mvcc.storeTxnCommon.Rev.spec 
   ihave Hkn : mvcc.idxKnows γ.idx (.cert log) $$ []
   · rw [mvcc.idxKnows_cert]; iexact Hcert0
   wp_apply (hKeys (mvcc.txCommon tr) s trace ti rt DFrac.discard m iprop(True) γ (.cert log) log rev
-      ctx cd key endk k e ro)
+      ctx cd todo key endk k e ro)
     $$ [$Hs $HsT $HtxcT $HtraceT $Hrdr $Hkn $Hidx $Hti $Hctx $Hkey $Hend]
-    as %r %err ⟨-, -, -, -, -, Hti, Hout⟩
+    as %r %err ⟨%Htodo, -, -, -, -, -, Hti, Hout⟩
   · isplitl []
     · itrivial
     ipureintro; exact ⟨rfl, HneT, hrv⟩
   (try wp_auto)
   iapply HΦ
   iframe Hti Hout
+  ipureintro; exact Htodo
 
 end proof
 

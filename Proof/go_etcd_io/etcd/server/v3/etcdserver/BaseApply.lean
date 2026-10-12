@@ -9,9 +9,10 @@ mvcc translation got bodies and `storage/mvcc`'s instance needed prometheus's). 
 by a script from the translation's `PkgInfo` imports.
 
 As there, these are assumptions about package initialization, not proved from
-`initialize'`. They are `True` (the packages are translated names-only or types-only), except
-`etcdserver/errors`: `ErrNoSpace` holds a fixed non-nil error (`errors.New` at init), which
-the entry applier compares the applier's error with.
+`initialize'`. They are `True` (the packages are translated names-only or types-only).
+`etcdserver/errors`' (`ErrNoSpace`, which the entry applier compares the applier's error
+with) is in its own `errors/Base.lean` (2026-10-11: moved there, unchanged, for the server's
+txn package, which imports it without the apply thread's translation).
 -/
 module
 
@@ -20,6 +21,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
 public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Base
 
 @[expose] public section
 
@@ -158,18 +160,8 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.snap
 
-namespace go_etcd_io.etcd.server.v3.etcdserver.errors
-
-/-- `etcdserver/errors`' package facts: `ErrNoSpace` is a fixed non-nil error. -/
-abbrev errorsInit : IProp GF :=
-  iprop(∃ e : GoInterfaceOk, globalAddr ErrNoSpace ↦□ GoInterface.ok e)
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors :=
-  define_is_pkg_init errorsInit
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.etcdserver.errors
+-- etcdserver/errors: its own `errors/Base.lean` (imported above; the server txn package needs it
+-- without the apply thread's translation).
 
 namespace go_etcd_io.etcd.server.v3.storage
 

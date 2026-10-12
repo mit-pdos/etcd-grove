@@ -44,7 +44,9 @@ theorem mvcc.readView.Rev.wp_proof
   wp_apply hTODO as %t -
   (try wp_auto)
   -- `rv.kv.Read(mode, trace)`: the store's
-  wp_apply (hRead s γ _ t) $$ [$Hs $Hrd] as %mw ⟨%log, %rev, Htx⟩
+  imod ownToks_0 (GF := GF) γ.revs with Hnone
+  imod mvcc.idxCert_nil (GF := GF) γ.idx with #Hc0
+  wp_apply (hRead s γ _ t 0 []) $$ [$Hs $Hrd $Hnone $Hc0] as %mw ⟨%log, %rev, Htx, -, -⟩
   (try wp_auto)
   iunfold mvcc.isTxnRead at Htx
   iNamed Htx

@@ -35,7 +35,7 @@ theorem mvcc.treeIndex.Insert.wp_proof
   iunfold mvcc.isTreeIndex at Hti
   iNamed Hti
   iunfold mvcc.idxWriter at Hw
-  icases Hw with ⟨Hauth, #Hwlb, %Hwwf⟩
+  icases Hw with ⟨Hauth, #Hwlb, %Hwwf, Hlauth⟩
   wp_apply wp_with_defer
   iintro %defer Hdefer
   (try wp_auto)
@@ -136,9 +136,9 @@ theorem mvcc.treeIndex.Insert.wp_proof
     rw [hset, hidx, HLL]
   (try wp_auto)
   iapply HΦ
-  isplitl [Hauth]
+  isplitl [Hauth Hlauth]
   · iunfold mvcc.idxWriter
-    iframe Hauth
+    iframe Hauth Hlauth
     isplitl []
     · iexact Hwlb
     ipureintro; exact Hwwf

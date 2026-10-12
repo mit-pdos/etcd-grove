@@ -142,6 +142,9 @@ PROJECTS = [
             "go.etcd.io/etcd/server/v3/storage/schema",
             # with bodies (pkg/v3/adt.toml): the interval tree of mvcc's watcher groups
             "go.etcd.io/etcd/pkg/v3/adt",
+            # with bodies (etcdserver/txn.toml): the server's Range, Put, DeleteRange, Txn over
+            # the mvcc core
+            "go.etcd.io/etcd/server/v3/etcdserver/txn",
             # types and names only: what the server's types and the apply thread name
             "go.etcd.io/etcd/server/v3/storage",
             "go.etcd.io/etcd/server/v3/storage/backend",

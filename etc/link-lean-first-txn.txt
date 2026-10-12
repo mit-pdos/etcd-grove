@@ -1,0 +1,95 @@
+# The server's txn package (etcd's server/v3/etcdserver/txn; all Lean-first), read by
+# `etc/gen-link.py --txn`: `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+#
+# The trust boundary (axioms; unit 0): the callees the package's functions reach that have no
+# model elsewhere. Perennial-specified standard-library calls (bytes.Compare, fmt.Errorf,
+# time.Now/Since) and interface calls (mvcc's KV/TxnRead/TxnWrite, the lessor's Lookup) are not
+# listed.
+sort_Sort:
+sort_Reverse:
+traceutil_EnsureTrace:
+traceutil_Get:
+traceutil_TODO:
+traceutil_Trace__Step:
+traceutil_Trace__StepWithFunction:
+traceutil_Trace__AddField:
+traceutil_Trace__StartSubTrace:
+traceutil_Trace__StopSubTrace:
+proto_Size:
+zap_Error:
+zap_Int32:
+zap_Logger__Error:
+zap_Logger__Panic:
+context_TODO:
+txn_RangeSecObserve:
+txn_ApplySecObserve:
+# mvcc's read-only write transaction (`Txn`'s read-only path), proved and linked in mvcc's
+# Link.lean (`@`).
+mvcc_NewReadOnlyTxnWrite: @
+mvcc_txnReadWrite__FirstRev: @
+mvcc_txnReadWrite__Rev: @
+mvcc_txnReadWrite__Range: @
+mvcc_txnReadWrite__End: @
+mvcc_txnReadWrite__Changes: @
+mvcc_txnReadWrite__Put: @
+mvcc_txnReadWrite__DeleteRange: @
+# mvcc's functions the txn proofs call (`@`: linked in mvcc's Link.lean): the store's `Write`
+# and `Read`, and the transaction's `Range`, `Put`, `DeleteRange`, `End` (units 1 and 2), `Rev`,
+# `FirstRev` (unit 2), `Changes` (unit 3) (the `KV`, `TxnRead`/`TxnWrite` and `ReadView` interface values, whose
+# dynamic types are `*store` and `*metricsTxnWrite`).
+mvcc_store__Write: @
+mvcc_store__Read: @
+mvcc_metricsTxnWrite__Range: @
+mvcc_metricsTxnWrite__Put: @
+mvcc_metricsTxnWrite__DeleteRange: @
+mvcc_metricsTxnWrite__End: @
+mvcc_metricsTxnWrite__Rev: @
+mvcc_metricsTxnWrite__FirstRev: @
+mvcc_metricsTxnWrite__Changes: @
+#
+# Unit 1: put.go and delete.go (`mkGteRange`, of delete.go, is also `executeRange`'s).
+mkGteRange:
+deleteRange: mkGteRange mvcc_metricsTxnWrite__Range mvcc_metricsTxnWrite__DeleteRange
+DeleteRange: traceutil_EnsureTrace mvcc_store__Write deleteRange mvcc_metricsTxnWrite__End
+checkLease:
+getPrevKV: traceutil_Trace__StepWithFunction context_TODO mvcc_metricsTxnWrite__Range
+checkAndGetPrevKV: getPrevKV
+checkPut: checkLease checkAndGetPrevKV
+put: traceutil_Get mvcc_metricsTxnWrite__Put traceutil_Trace__AddField
+Put: traceutil_EnsureTrace proto_Size checkLease mvcc_store__Write checkAndGetPrevKV put mvcc_metricsTxnWrite__End
+#
+# Unit 2: range.go.
+IsDefaultOrdering:
+HasRevisionFilters:
+rangeLimit: IsDefaultOrdering HasRevisionFilters
+pruneKVs:
+filterRangeResults: pruneKVs
+kvSort__Swap:
+kvSort__Len:
+kvSortByKey__Less:
+kvSortByVersion__Less:
+kvSortByCreate__Less:
+kvSortByMod__Less:
+kvSortByValue__Less:
+sortRangeResults: IsDefaultOrdering sort_Sort sort_Reverse kvSort__Len kvSort__Swap kvSortByKey__Less kvSortByVersion__Less kvSortByCreate__Less kvSortByMod__Less kvSortByValue__Less
+asembleRangeResponse:
+checkRange: mvcc_metricsTxnWrite__Rev mvcc_metricsTxnWrite__FirstRev
+executeRange: traceutil_Get rangeLimit mkGteRange mvcc_metricsTxnWrite__Range mvcc_txnReadWrite__Range filterRangeResults sortRangeResults traceutil_Trace__Step asembleRangeResponse
+txn_Range: traceutil_EnsureTrace txn_RangeSecObserve mvcc_store__Read executeRange mvcc_metricsTxnWrite__End
+txn_Count: txn_Range
+#
+# Unit 3: txn.go (and etcdserverpb's RequestOp.GetRequestRange, which IsTxnReadonly and
+# IsTxnSerializable call).
+txn_compareInt64:
+compareKV: txn_compareInt64
+applyCompare: context_TODO mkGteRange mvcc_metricsTxnWrite__Range compareKV
+applyCompares: applyCompare
+compareToPath: applyCompares
+etcdserverpb_RequestOp__GetRequestRange:
+IsTxnSerializable: etcdserverpb_RequestOp__GetRequestRange
+IsTxnReadonly: etcdserverpb_RequestOp__GetRequestRange
+checkTxn: checkRange checkPut
+newTxnResp:
+executeTxn: traceutil_Get traceutil_Trace__StartSubTrace mvcc_metricsTxnWrite__Rev mvcc_txnReadWrite__Rev mvcc_metricsTxnWrite__Changes mvcc_txnReadWrite__Changes executeRange traceutil_Trace__StopSubTrace proto_Size getPrevKV put deleteRange
+txn: newTxnResp executeTxn mvcc_metricsTxnWrite__Rev mvcc_txnReadWrite__Rev mvcc_metricsTxnWrite__Changes mvcc_txnReadWrite__Changes
+Txn: traceutil_EnsureTrace IsTxnReadonly mvcc_store__Read traceutil_Trace__StepWithFunction compareToPath traceutil_Trace__AddField checkTxn mvcc_metricsTxnWrite__End traceutil_Trace__Step mvcc_store__Write mvcc_NewReadOnlyTxnWrite txn mvcc_txnReadWrite__End

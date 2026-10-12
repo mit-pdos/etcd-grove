@@ -63,6 +63,7 @@ theorem mvcc.writeView.DeleteRange.wp_proof
   iframe Hrd
   iexists ilog
   simp only [mvcc.txnEndPost]
+  icases Hcert with ⟨Hcert, -⟩
   iframe Hcert
   try (ipureintro; exact Hnr)
 

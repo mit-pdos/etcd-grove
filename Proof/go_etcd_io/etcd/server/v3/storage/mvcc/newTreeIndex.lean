@@ -73,7 +73,12 @@ theorem mvcc.newTreeIndex.wp_proof
   ipersist lg
   imod mono_list_own_alloc (GF := GF) ([] : List mvcc.HistItem) with ⟨%γh, Hhauth, #Hhlb⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γn, Hnauth, #Hnlb⟩
-  let γ : mvcc.IdxNames := ⟨γh, γn⟩
+  imod mono_list_own_alloc (GF := GF) ([] : mvcc.Log) with ⟨%γl, Hlauth, -⟩
+  have hhalves := (monoListAuthOwn_fractional (GF := GF) γl ([] : mvcc.Log)).fractional
+    (1 : Qp).half (1 : Qp).half
+  rw [Qp.half_add_half] at hhalves
+  icases hhalves.1 $$ Hlauth with ⟨Hlauth, Hlother⟩
+  let γ : mvcc.IdxNames := ⟨γh, γn, γl⟩
   have hshape : mvcc.histShape [] [] = [] := rfl
   have hevs : (mvcc.evsOf ([] ++ [[]])).length = 0 := rfl
   have hwf : mvcc.IdxWf [] [] := by
@@ -118,14 +123,16 @@ theorem mvcc.newTreeIndex.wp_proof
     simp only [named, γ]
     iframe #
     ipureintro; exact Hlgnn
-  isplitl [Hhauth]
+  isplitl [Hhauth Hlauth]
   · iunfold mvcc.idxWriter
     simp only [γ]
     rw [hshape, hevs]
-    iframe Hhauth
+    iframe Hhauth Hlauth
     isplitl []
     · iexact Hnlb
     ipureintro; exact hwf
+  isplitl [Hlother]
+  · iexact Hlother
   rw [← List.replicate_succ]
   iapply idxReaders_of_toks ti t γ (m + 1)
   isplitl []

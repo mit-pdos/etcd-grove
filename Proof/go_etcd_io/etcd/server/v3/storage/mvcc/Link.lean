@@ -13,6 +13,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BytesToBucketKey
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BytesToRev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.IsTombstone
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewHashStorage
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewReadOnlyTxnWrite
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewRevBytes
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevToBytes
@@ -29,10 +30,13 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__get
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__isEmpty
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__put
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__tombstone
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Changes
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__DeleteRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__FirstRev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Put
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Range
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Rev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newBucketKey
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnRead
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnWrite
@@ -78,6 +82,13 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Tombstone
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__keyIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__unsafeGet
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__unsafeVisit
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Changes
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__DeleteRange
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__End
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__FirstRev
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Put
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Range
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Rev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Cancel
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Chan
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Close
@@ -271,6 +282,10 @@ theorem zap.Logger.wp_Error :
     zap.Logger.Error.spec (GF := GF) (hG := hG) :=
   zap.Logger.Error.wp_proof
 
+theorem mvcc.storeTxnCommon.wp_FirstRev :
+    mvcc.storeTxnCommon.FirstRev.spec (GF := GF) (hG := hG) :=
+  mvcc.storeTxnCommon.FirstRev.wp_proof
+
 theorem traceutil.Trace.wp_Step :
     traceutil.Trace.Step.spec (GF := GF) (hG := hG) :=
   traceutil.Trace.Step.wp_proof
@@ -307,10 +322,6 @@ theorem traceutil.wp_TODO :
     traceutil.TODO.spec (GF := GF) (hG := hG) :=
   traceutil.TODO.wp_proof
 
-theorem mvcc.storeTxnCommon.wp_FirstRev :
-    mvcc.storeTxnCommon.FirstRev.spec (GF := GF) (hG := hG) :=
-  mvcc.storeTxnCommon.FirstRev.wp_proof
-
 theorem mvcc.watcherSetByKey.wp_add :
     mvcc.watcherSetByKey.add.spec (GF := GF) (hG := hG) :=
   mvcc.watcherSetByKey.add.wp_proof mvcc.watcherSet.wp_add
@@ -342,9 +353,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
+theorem mvcc.wp_NewReadOnlyTxnWrite :
+    mvcc.NewReadOnlyTxnWrite.spec (GF := GF) (hG := hG) :=
+  mvcc.NewReadOnlyTxnWrite.wp_proof
+
 theorem mvcc.wp_NewStore [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.NewStore.spec (GF := GF) (hG := hG) :=
   mvcc.NewStore.wp_proof zap.wp_NewNop mvcc.wp_newTreeIndex schedule.wp_NewFIFOScheduler mvcc.wp_NewHashStorage schema.wp_UnsafeCreateMetaBucket mvcc.store.wp_restore
+
+theorem mvcc.storeTxnWrite.wp_Changes :
+    mvcc.storeTxnWrite.Changes.spec (GF := GF) (hG := hG) :=
+  mvcc.storeTxnWrite.Changes.wp_proof
+
+theorem mvcc.metricsTxnWrite.wp_Changes :
+    mvcc.metricsTxnWrite.Changes.spec (GF := GF) (hG := hG) :=
+  mvcc.metricsTxnWrite.Changes.wp_proof mvcc.storeTxnWrite.wp_Changes
 
 theorem mvcc.treeIndex.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.Range.spec (GF := GF) (hG := hG) :=
@@ -382,6 +405,10 @@ theorem mvcc.metricsTxnWrite.wp_End :
     mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG) :=
   mvcc.metricsTxnWrite.End.wp_proof mvcc.storeTxnRead.wp_End mvcc.storeTxnWrite.wp_End
 
+theorem mvcc.metricsTxnWrite.wp_FirstRev :
+    mvcc.metricsTxnWrite.FirstRev.spec (GF := GF) (hG := hG) :=
+  mvcc.metricsTxnWrite.FirstRev.wp_proof mvcc.storeTxnCommon.wp_FirstRev
+
 theorem mvcc.treeIndex.wp_Get [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.Get.spec (GF := GF) (hG := hG) :=
   mvcc.treeIndex.Get.wp_proof mvcc.treeIndex.wp_unsafeGet
@@ -418,9 +445,21 @@ theorem mvcc.storeTxnCommon.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.storeTxnCommon.Range.spec (GF := GF) (hG := hG) :=
   mvcc.storeTxnCommon.Range.wp_proof mvcc.storeTxnCommon.wp_Rev mvcc.storeTxnCommon.wp_rangeKeys
 
+theorem mvcc.storeTxnWrite.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.storeTxnWrite.Range.spec (GF := GF) (hG := hG) :=
+  mvcc.storeTxnWrite.Range.wp_proof mvcc.storeTxnCommon.wp_rangeKeys
+
 theorem mvcc.metricsTxnWrite.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.metricsTxnWrite.Range.spec (GF := GF) (hG := hG) :=
-  mvcc.metricsTxnWrite.Range.wp_proof mvcc.storeTxnCommon.wp_Range
+  mvcc.metricsTxnWrite.Range.wp_proof mvcc.storeTxnCommon.wp_Range mvcc.storeTxnWrite.wp_Range
+
+theorem mvcc.storeTxnWrite.wp_Rev :
+    mvcc.storeTxnWrite.Rev.spec (GF := GF) (hG := hG) :=
+  mvcc.storeTxnWrite.Rev.wp_proof
+
+theorem mvcc.metricsTxnWrite.wp_Rev :
+    mvcc.metricsTxnWrite.Rev.spec (GF := GF) (hG := hG) :=
+  mvcc.metricsTxnWrite.Rev.wp_proof mvcc.storeTxnCommon.wp_Rev mvcc.storeTxnWrite.wp_Rev
 
 theorem mvcc.wp_newMetricsTxnWrite :
     mvcc.newMetricsTxnWrite.spec (GF := GF) (hG := hG) :=
@@ -442,18 +481,6 @@ theorem mvcc.readView.wp_Rev :
     mvcc.readView.Rev.spec (GF := GF) (hG := hG) :=
   mvcc.readView.Rev.wp_proof traceutil.wp_TODO mvcc.store.wp_Read mvcc.storeTxnCommon.wp_Rev mvcc.metricsTxnWrite.wp_End
 
-theorem mvcc.storeTxnWrite.wp_Changes :
-    mvcc.storeTxnWrite.Changes.spec (GF := GF) (hG := hG) :=
-  mvcc.storeTxnWrite.Changes.wp_proof
-
-theorem mvcc.storeTxnWrite.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
-    mvcc.storeTxnWrite.Range.spec (GF := GF) (hG := hG) :=
-  mvcc.storeTxnWrite.Range.wp_proof mvcc.storeTxnCommon.wp_rangeKeys
-
-theorem mvcc.storeTxnWrite.wp_Rev :
-    mvcc.storeTxnWrite.Rev.spec (GF := GF) (hG := hG) :=
-  mvcc.storeTxnWrite.Rev.wp_proof
-
 theorem mvcc.store.wp_Write :
     mvcc.store.Write.spec (GF := GF) (hG := hG) :=
   mvcc.store.Write.wp_proof mvcc.wp_newMetricsTxnWrite
@@ -469,6 +496,34 @@ theorem mvcc.treeIndex.wp_Insert [go_etcd_io.etcd.cache.v3.Assumptions] :
 theorem mvcc.treeIndex.wp_KeyIndex [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.KeyIndex.spec (GF := GF) (hG := hG) :=
   mvcc.treeIndex.KeyIndex.wp_proof mvcc.treeIndex.wp_keyIndex
+
+theorem mvcc.txnReadWrite.wp_Changes :
+    mvcc.txnReadWrite.Changes.spec (GF := GF) (hG := hG) :=
+  mvcc.txnReadWrite.Changes.wp_proof
+
+theorem mvcc.txnReadWrite.wp_DeleteRange :
+    mvcc.txnReadWrite.DeleteRange.spec (GF := GF) (hG := hG) :=
+  mvcc.txnReadWrite.DeleteRange.wp_proof
+
+theorem mvcc.txnReadWrite.wp_End :
+    mvcc.txnReadWrite.End.spec (GF := GF) (hG := hG) :=
+  mvcc.txnReadWrite.End.wp_proof mvcc.metricsTxnWrite.wp_End
+
+theorem mvcc.txnReadWrite.wp_FirstRev :
+    mvcc.txnReadWrite.FirstRev.spec (GF := GF) (hG := hG) :=
+  mvcc.txnReadWrite.FirstRev.wp_proof mvcc.storeTxnCommon.wp_FirstRev
+
+theorem mvcc.txnReadWrite.wp_Put :
+    mvcc.txnReadWrite.Put.spec (GF := GF) (hG := hG) :=
+  mvcc.txnReadWrite.Put.wp_proof
+
+theorem mvcc.txnReadWrite.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.txnReadWrite.Range.spec (GF := GF) (hG := hG) :=
+  mvcc.txnReadWrite.Range.wp_proof mvcc.metricsTxnWrite.wp_Range
+
+theorem mvcc.txnReadWrite.wp_Rev :
+    mvcc.txnReadWrite.Rev.spec (GF := GF) (hG := hG) :=
+  mvcc.txnReadWrite.Rev.wp_proof mvcc.storeTxnCommon.wp_Rev
 
 theorem mvcc.watchStream.wp_Cancel :
     mvcc.watchStream.Cancel.spec (GF := GF) (hG := hG) :=

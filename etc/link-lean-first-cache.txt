@@ -123,8 +123,8 @@ WatchResponse__Err: rpctypes_Error status_Error
 # (cache/cache.go), see InvCache.lean.
 ExactKey:
 FromKey:
-Range:
-KeyPredForRange: ExactKey FromKey Range
+v3_Range:
+KeyPredForRange: ExactKey FromKey v3_Range
 Prefix__Match:
 Cache__validateRange: GetPrefixRangeEnd
 Cache__validateGet: Op__IsCountOnly Op__IsPrevKV Op__IsSortSet Op__Limit Op__MinModRev Op__MaxModRev Op__MinCreateRev Op__MaxCreateRev Op__RangeBytes Cache__validateRange KeyPredForRange

@@ -12,7 +12,10 @@ caller's `View q m` holds (the store's ghost map authority at the caller's fract
 **The locks.** `s.mu` (every transaction holds it shared; exclusively only by what is out of
 scope) holds nothing. `s.revMu` holds `currentRev` (the committed log's last revision),
 `compactMainRev` (`-1`, no compaction), the index's certificate of the committed log and the
-bucket's authority: a reader's snapshot, taken under it, is the committed log's bucket.
+bucket's authority: a reader's snapshot, taken under it, is the committed log's bucket. It also
+holds half the revision budget's authority and half the committed log's (`idxLogAuth`; the
+writer holds the other halves), so a reader knows its log is above every certificate and leaves
+room for the tokens it holds (`store.Read`).
 -/
 module
 
@@ -49,23 +52,6 @@ structure StoreNames where
   /-- the revision budget (`ownTokAuth`): a write transaction costs one token (`revToken`), so
   `currentRev` never overflows -/
   revs : GName
-
-/-! ### Countability of the log (for its ghost variable) -/
-
-def Change.enc : Change → Bool × GoString × GoString × w64
-  | .put k v l => (false, k, v, l)
-  | .del k => (true, k, [], W64 0)
-
-theorem Change.enc_inj : Function.Injective Change.enc := by
-  intro x y h
-  cases x <;> cases y <;> simp only [Change.enc, Prod.mk.injEq] at h
-  · obtain ⟨-, rfl, rfl, rfl⟩ := h; rfl
-  · exact Bool.noConfusion h.1
-  · exact Bool.noConfusion h.1
-  · obtain ⟨-, rfl, -, -⟩ := h; rfl
-
-instance Change.countable : Pos.Countable Change :=
-  .ofInjective (fun c => Pos.Countable.encode c.enc) (fun _ _ h => Change.enc_inj (Pos.encode_inj h))
 
 /-- `s.mu`'s resource: nothing (see the module docstring); it takes the semantics' instances
 (unused) so that the lock lemmas' own are determined at its uses. -/
@@ -187,7 +173,7 @@ theorem idxKnows_wf (γ : IdxNames) (kn : IdxKnow) :
     iintro #H
     iframe H
     iunfold idxCert at H
-    icases H with ⟨-, -, %Hc⟩
+    icases H with ⟨-, -, %Hc, -⟩
     ipureintro; exact Hc
   | writer ilog pend =>
     rw [idxKnows_writer]
@@ -368,6 +354,21 @@ theorem own_half_half (q : Qp) : (DFrac.own q : DFrac) = DFrac.own q.half • DF
   calc (DFrac.own q : DFrac) = DFrac.own (q.half + q.half) := by rw [h]
     _ = DFrac.own q.half • DFrac.own q.half := rfl
 
+/-- The revision budget's authority in two parts (`s.revMu`'s and the writer's). -/
+theorem ownTokAuthDfrac_split (γr : GName) (dq dq' : DFrac) (n : Nat) :
+    ownTokAuthDfrac (GF := GF) γr (dq • dq') n ⊣⊢ ownTokAuthDfrac γr dq n ∗ ownTokAuthDfrac γr dq' n := by
+  rw [ownTokAuthDfrac_unseal]
+  unfold ownTokAuthDfracDef
+  rw [Auth.auth_dfrac_op]
+  exact own_op γr _ _
+
+/-- The revision budget's authority as two halves. -/
+theorem ownTokAuth_halves (γr : GName) (n : Nat) :
+    ownTokAuth (GF := GF) γr n ⊣⊢
+      ownTokAuthDfrac γr (DFrac.own (1 : Qp).half) n ∗ ownTokAuthDfrac γr (DFrac.own (1 : Qp).half) n := by
+  rw [ownTokAuth, own_half_half]
+  exact ownTokAuthDfrac_split γr _ _ n
+
 /-! ## The locks -/
 
 
@@ -375,10 +376,11 @@ theorem own_half_half (q : Qp) : (DFrac.own q : DFrac) = DFrac.own q.half • DF
 at the committed log `ilog` with no pending change, half the committed-log ghost variable (the
 other half under `s.revMu`), half of `currentRev` (`store.Write` reads it under the batch lock
 alone), half the bucket's view (the other half under `s.revMu`: the write transaction's reads
-of the bucket, through the batch transaction) and the certificate of `ilog`. -/
+of the bucket, through the batch transaction), the certificate of `ilog`, and half the
+revision budget's authority (the other half under `s.revMu`). -/
 def writerRes (s : Loc) (γ : StoreNames) : IProp GF :=
   iprop(∃ (ilog : Log) (ntok : Nat),
-    "Htoks" ∷ ownTokAuth γ.revs ntok ∗
+    "Htoks" ∷ ownTokAuthDfrac γ.revs (DFrac.own (1 : Qp).half) ntok ∗
     "%Hbudget" ∷ ⌜ilog.length + ntok + 3 ≤ 2 ^ 63⌝ ∗
     "Hw" ∷ idxWriter γ.idx ilog [] ∗
     "Hclog" ∷ ghostVar γ.clog (1 : Qp).half ilog ∗
@@ -391,16 +393,21 @@ def writerRes (s : Loc) (γ : StoreNames) : IProp GF :=
 /-- `s.revMu`'s resource at fraction `q`: the committed log `log`'s last revision in
 `currentRev` (half of it: the writer holds the other half under the batch lock), half the
 committed-log ghost variable, the index's certificate of `log` and the bucket's authority
-(`bucketMap log`, half of it: the batch lock holds the other half). (`compactMainRev` is fixed at `-1`, no compaction in scope: `isStore`;
-`rangeKeys` reads it without the lock.) -/
+(`bucketMap log`, half of it: the batch lock holds the other half), half the revision
+budget's authority with its bound for `log`, and half the committed log's authority (the index
+writer holds the other half). (`compactMainRev` is fixed at `-1`, no compaction in scope:
+`isStore`; `rangeKeys` reads it without the lock.) -/
 def revMuInv (s : Loc) (γ : StoreNames) (q : Qp) : IProp GF :=
-  iprop(∃ log : Log,
+  iprop(∃ (log : Log) (ntok : Nat),
     "Hrev" ∷ (s.[store, go!"currentRev"] ↦{DFrac.own q.half} (W64 ((log.length : Int) - 1) : w64) :
       IProp GF) ∗
     "Hclog" ∷ ghostVar γ.clog q.half log ∗
     "#Hcert" ∷ idxCert γ.idx log ∗
     "%Hne" ∷ ⌜log ≠ []⌝ ∗
-    "Hbucket" ∷ bucketView γ q.half (bucketMap log))
+    "Hbucket" ∷ bucketView γ q.half (bucketMap log) ∗
+    "Htoks" ∷ ownTokAuthDfrac γ.revs (DFrac.own q.half) ntok ∗
+    "%Hbudget" ∷ ⌜log.length + ntok + 3 ≤ 2 ^ 63⌝ ∗
+    "Hlog" ∷ idxLogAuth γ.idx q.half log)
 
 /-- Halving distributes over a sum of fractions. -/
 theorem qp_half_add (q1 q2 : Qp) : (q1 + q2).half = q1.half + q2.half := by
@@ -421,26 +428,38 @@ instance revMuInv_fractional (s : Loc) (γ : StoreNames) : Fractional (revMuInv 
       (ghostVar_fractional (GF := GF) γ.clog log).fractional q1.half q2.half
     have hbv := fun (m : Bucket) =>
       (ghostMapAuth_fractional (GF := GF) γ.bucket m).fractional q1.half q2.half
+    have htk : ∀ n : Nat, ownTokAuthDfrac (GF := GF) γ.revs (DFrac.own (q1.half + q2.half)) n ⊣⊢
+        ownTokAuthDfrac γ.revs (DFrac.own q1.half) n ∗ ownTokAuthDfrac γ.revs (DFrac.own q2.half) n :=
+      fun n => ownTokAuthDfrac_split (GF := GF) γ.revs (DFrac.own q1.half) (DFrac.own q2.half) n
+    have hlg := fun (log : Log) =>
+      (monoListAuthOwn_fractional (GF := GF) γ.idx.log log).fractional q1.half q2.half
     unfold revMuInv bucketView
     rw [qp_half_add]
     refine ⟨?_, ?_⟩
     · iintro H
-      icases H with ⟨%log, H⟩
+      icases H with ⟨%log, %ntok, H⟩
       iNamed H
       icases (hcur _).1 $$ Hrev with ⟨Hr1, Hr2⟩
       icases (hclog log).1 $$ Hclog with ⟨Hc1, Hc2⟩
       icases (hbv _).1 $$ Hbucket with ⟨Hb1, Hb2⟩
-      isplitl [Hr1 Hc1 Hb1]
-      · iexists log; simp only [named]; iframe Hr1 Hc1 Hb1; iframe #; ipureintro; exact Hne
-      · iexists log; simp only [named]; iframe Hr2 Hc2 Hb2; iframe #; ipureintro; exact Hne
+      icases (htk ntok).1 $$ Htoks with ⟨Ht1, Ht2⟩
+      icases (hlg log).1 $$ Hlog with ⟨Hl1, Hl2⟩
+      isplitl [Hr1 Hc1 Hb1 Ht1 Hl1]
+      · iexists log, ntok; simp only [named]; iframe Hr1 Hc1 Hb1 Ht1 Hl1; iframe #; ipureintro
+        exact ⟨Hne, Hbudget⟩
+      · iexists log, ntok; simp only [named]; iframe Hr2 Hc2 Hb2 Ht2 Hl2; iframe #; ipureintro
+        exact ⟨Hne, Hbudget⟩
     · iintro ⟨H1, H2⟩
-      icases H1 with ⟨%log, H1⟩
-      icases H2 with ⟨%log2, H2⟩
+      icases H1 with ⟨%log, %ntok, H1⟩
+      icases H2 with ⟨%log2, %ntok2, H2⟩
       iNamedSuffix H1 "1"
       iNamedSuffix H2 "2"
       ihave %Hlog := ghostVar_agree γ.clog _ _ _ _ $$ Hclog1 Hclog2
       subst Hlog
-      iexists log
+      icombine Htoks1 Htoks2 gives %Hn
+      obtain ⟨-, Hn⟩ := Hn
+      subst Hn
+      iexists log, ntok
       simp only [named]
       isplitl [Hrev1 Hrev2]
       · iapply (hcur _).2; iframe Hrev1 Hrev2
@@ -450,7 +469,13 @@ instance revMuInv_fractional (s : Loc) (γ : StoreNames) : Fractional (revMuInv 
       · iexact Hcert1
       isplitr
       · ipureintro; exact Hne1
-      iapply (hbv _).2; iframe Hbucket1 Hbucket2
+      isplitl [Hbucket1 Hbucket2]
+      · iapply (hbv _).2; iframe Hbucket1 Hbucket2
+      isplitl [Htoks1 Htoks2]
+      · iapply (htk ntok).2; iframe Htoks1 Htoks2
+      isplitl []
+      · ipureintro; exact Hbudget1
+      iapply (hlg log).2; iframe Hlog1 Hlog2
 
 /-- A store (persistent): its backend, index, lessor, logger, and the two locks' guards. The
 fields `restore` and `Close` change are fixed here (out of scope). -/
@@ -631,7 +656,7 @@ with, and the transaction's tokens. -/
 def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change) : IProp GF :=
   iprop(∃ (trace ti : Loc) (bt : GoInterfaceOk) (Locked : Puts → IProp GF) (chs : GoSlice)
     (ps : List Loc) (ntok : Nat),
-    "Htoks" ∷ ownTokAuth γ.revs ntok ∗
+    "Htoks" ∷ ownTokAuthDfrac γ.revs (DFrac.own (1 : Qp).half) ntok ∗
     "%Hbudget" ∷ ⌜ilog.length + ntok + 3 ≤ 2 ^ 63⌝ ∗
     "Htok" ∷ revToken γ ∗
     "Htw" ∷ tw ↦ ({
@@ -689,10 +714,11 @@ def isTxn (mw s : Loc) (γ : StoreNames) : TxnKind → IProp GF
   | .write ilog pend puts deletes putSize => isTxnWrite mw s γ ilog pend puts deletes putSize
 
 /-- What `End` leaves of a transaction: nothing of a read one; of a write one, the
-certificate of the committed log. -/
+certificate of the committed log, and the revision token back if no revision was made. -/
 def txnEndPost (γ : StoreNames) : TxnKind → IProp GF
   | .read _ _ => iprop(True)
-  | .write ilog pend _ _ _ => idxCert γ.idx (commitLog ilog pend)
+  | .write ilog pend _ _ _ =>
+    iprop(idxCert γ.idx (commitLog ilog pend) ∗ if pend = [] then revToken γ else iprop(True))
 
 /-- The store's `writeView` (`kv_view.go`): its `kv` is the store `s`. -/
 def isWriteView (wv s : Loc) (γ : StoreNames) : IProp GF :=
