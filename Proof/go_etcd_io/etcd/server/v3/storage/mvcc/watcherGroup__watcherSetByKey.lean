@@ -228,9 +228,7 @@ theorem mvcc.watcherGroup.watcherSetByKey.wp_proof
       · exact absurd Hnil.1 Hm0
       iapply Hsets $$ H
   icases Hopt with ⟨Hopt, Hback⟩
-  wp_method_call
-  wp_call
-  wp_load
+  (try wp_auto)
   ihave Hret : mvcc.ownWatcherSet mret ∅ $$ [Hret]
   · iunfold mvcc.ownWatcherSet; iexact Hret
   wp_apply hUnion $$ [$Hret $Hopt] as ⟨Hret, Hopt⟩
@@ -282,9 +280,7 @@ theorem mvcc.watcherGroup.watcherSetByKey.wp_proof
     wp_auto
     rw [Hz2]
     wp_auto
-    wp_method_call
-    wp_call
-    wp_load
+    (try wp_auto)
     have hnotin : zj.1 ∉ (St.take (sint.nat j)).map Prod.fst := by
       intro hm
       obtain ⟨y, hy, hy1⟩ := List.mem_map.1 hm

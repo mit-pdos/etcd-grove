@@ -74,7 +74,7 @@ theorem leaseCache.LockWriteOps.wp_proof
     wp_apply wp_load_slice_index sl (sint.Z n) vs DFrac.discard v Hn.1 $$ [Hvs] as -
     · iframe #; ipureintro; exact Hvi
     ihave #Hat := Hv $$ %(sint.nat n) %v %o %Hvi %Hoi
-    wp_apply hIsGet $$ [$op $Hat] as op
+    wp_apply hIsGet $$ [$Hat]
     wp_if_destruct
     · wp_for_post
       iframe
@@ -82,12 +82,12 @@ theorem leaseCache.LockWriteOps.wp_proof
       simp only [named]
       iframe
       ipureintro; constructor <;> word
-    · wp_apply hKey $$ [$op $Hat] as %ksl ⟨op, #Hk⟩
+    · wp_apply hKey $$ [$Hat] as %ksl #Hk
       wp_apply wp_bytes_to_string ksl o.key DFrac.discard $$ [$Hk] as -
       ihave #Hat' := Hat
       unfold opFullAt
       icases Hat' with ⟨#Hbase, -⟩
-      wp_apply hRange $$ [$op $Hbase] as %esl ⟨op, #He⟩
+      wp_apply hRange $$ [$Hbase] as %esl #He
       wp_apply wp_bytes_to_string esl o.base.rangeEnd DFrac.discard $$ [$He] as -
       wp_if_destruct
       · wp_apply (hLock lc γ pfx X (fun _ => iprop(True)) o.key) $$ [$Hlc $Hpeek $Hstep]

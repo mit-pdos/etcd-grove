@@ -22,13 +22,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `trw.DeleteRange(key, end)` panics (`panic("unexpected DeleteRange")`). -/
+/-- `trw.DeleteRange(...)` panics (`panic("unexpected DeleteRange")`), with no deferred function to recover it:
+the call gets stuck where the panic reaches `exceptionDo` (`wp_exceptionDo_panic`). As for
+Perennial's `shouldPanic`, the spec states where it gets stuck, assuming a WP of that
+expression (which only `▷ False` provides). -/
 abbrev mvcc.txnReadWrite.DeleteRange.spec : Prop :=
-  ∀ (trw : Loc) (key endk : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc }}
-    (App (App (Val (trw @!! go.GoType.PointerType txnReadWrite.ty @!! go!"DeleteRange"))
-      (Val #key)) (Val #endk))
-  {{ (r : val), RET r; ⌜∃ p : val, r = PanicV p⌝ }}
+  ∀ (trw : Loc) (key endk : GoSlice) (Φ : val → IProp GF),
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      (∀ Ψ : val → IProp GF,
+        WP (App (Val exceptionDo)
+          (Val (panicVal #(interface.mkOk go.string #(go!"unexpected DeleteRange"))))) {{ Ψ }}) ⊢
+      WP (App (App (Val (trw @!! go.GoType.PointerType txnReadWrite.ty @!! go!"DeleteRange"))
+        (Val #key)) (Val #endk)) {{ Φ }}
 
 end spec
 

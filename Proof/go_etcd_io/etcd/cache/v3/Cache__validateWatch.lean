@@ -49,7 +49,7 @@ theorem Cache.validateWatch.wp_proof
   ihave #Hcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   wp_auto
-  wp_apply wp_IsPrevKV $$ [$op $Ho] as op
+  wp_apply wp_IsPrevKV $$ [$Ho]
   wp_if_destruct
   · wp_apply wp_slice_literal
     isplitr
@@ -66,7 +66,7 @@ theorem Cache.validateWatch.wp_proof
     · ipureintro; simp
     unfold errorStringSpec; iexact HeS
   have HprevKV : o.prevKV = false := by simpa using Hif
-  wp_apply wp_IsFragment $$ [$op $Ho] as op
+  wp_apply wp_IsFragment $$ [$Ho]
   wp_if_destruct
   · wp_apply wp_slice_literal
     isplitr
@@ -83,7 +83,7 @@ theorem Cache.validateWatch.wp_proof
     · ipureintro; simp
     unfold errorStringSpec; iexact HeS
   have Hfragment : o.fragment = false := by simpa using Hif
-  wp_apply wp_IsCreatedNotify $$ [$op $Ho] as op
+  wp_apply wp_IsCreatedNotify $$ [$Ho]
   wp_if_destruct
   · wp_apply wp_slice_literal
     isplitr
@@ -100,7 +100,7 @@ theorem Cache.validateWatch.wp_proof
     · ipureintro; simp
     unfold errorStringSpec; iexact HeS
   have HcreatedNotify : o.createdNotify = false := by simpa using Hif
-  wp_apply wp_IsFilterPut $$ [$op $Ho] as op
+  wp_apply wp_IsFilterPut $$ [$Ho]
   wp_if_destruct
   · wp_apply wp_slice_literal
     isplitr
@@ -117,7 +117,7 @@ theorem Cache.validateWatch.wp_proof
     · ipureintro; simp
     unfold errorStringSpec; iexact HeS
   have HfilterPut : o.filterPut = false := by simpa using Hif
-  wp_apply wp_IsFilterDelete $$ [$op $Ho] as op
+  wp_apply wp_IsFilterDelete $$ [$Ho]
   wp_if_destruct
   · wp_apply wp_slice_literal
     isplitr
@@ -137,7 +137,7 @@ theorem Cache.validateWatch.wp_proof
   have hu : o.watchUnsupported = false := by simp [OpModel.watchUnsupported, HprevKV, Hfragment, HcreatedNotify, HfilterPut, HfilterDelete]
   wp_apply wp_string_to_bytes key as %ssl ⟨Hssl, -⟩
   ipersist Hssl
-  wp_apply wp_RangeBytes $$ [$op $Ho] as %esl ⟨op, #Hesl⟩
+  wp_apply wp_RangeBytes $$ [$Ho] as %esl #Hesl
   wp_apply wp_validateRange c cf γr γd cap ssl esl key o.rangeEnd DFrac.discard DFrac.discard $$ [$Hc $Hssl $Hesl] as %err ⟨-, -, #Herr⟩
   cases hv : validRange cf.pfx key o.rangeEnd
   · simp only [rangeErr, hv, Bool.false_eq_true, ↓reduceIte]

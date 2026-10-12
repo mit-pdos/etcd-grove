@@ -7,8 +7,6 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__tombstone
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__isEmpty
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isEmpty
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__put
-public import Spec.go_uber_org.zap.String
-public import Spec.go_uber_org.zap.Logger__Panic
 
 @[expose] public section
 
@@ -31,12 +29,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.keyIndex.tombstone.wp_proof
     (hIE : mvcc.keyIndex.isEmpty.spec (GF := GF) (hG := hG))
     (hGE : mvcc.generation.isEmpty.spec (GF := GF) (hG := hG))
-    (hZS : zap.String.spec (GF := GF) (hG := hG))
-    (hPanic : zap.Logger.Panic.spec (GF := GF) (hG := hG))
     (hPut : mvcc.keyIndex.put.spec (GF := GF) (hG := hG)) :
     mvcc.keyIndex.tombstone.spec (GF := GF) (hG := hG) := by
   intro p gs ki k lg main sub e
-  wp_start as ⟨%Hlg, %Hne, #Hkey, Hki, #Herr⟩
+  wp_start as ⟨%Hlg, %Hne, %Hemp0, %Hlt0, #Hkey, Hki, #Herr⟩
   ihave Hinit : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, -, -, ⟨%gg, #Hgauge, #Hgspec⟩, -, -, -, -, -⟩
@@ -47,28 +43,8 @@ theorem mvcc.keyIndex.tombstone.wp_proof
   · iframe Hki
   cases Hemp : mvcc.kiIsEmpty ki
   rotate_left
-  · -- an empty key index: `lg.Panic(...)`
-    wp_auto
-    iunfold mvcc.kiKey at Hkey
-    icases Hkey with ⟨%ks, #Hks, #Hk⟩
-    wp_load
-    wp_apply wp_bytes_to_string ks k DFrac.discard $$ [$Hk] as -
-    wp_apply hZS _ _ as %f1 -
-    (try wp_auto)
-    wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1]
-    isplitr
-    · ipureintro; rfl
-    iintro %fsl ⟨-, -⟩
-    (try wp_auto)
-    wp_apply hPanic lg _ _ $$ [] as %r %Hr
-    · ipureintro; exact Hlg
-    subst Hr
-    wp_auto
-    iapply HΦ
-    simp only [↓reduceIte]
-    isplitr
-    · ipureintro; trivial
-    iexact Hki
+  · -- an empty key index: excluded by the premise (`lg.Panic` would be stuck)
+    simp [Hemp] at Hemp0
   wp_auto
   -- `ki.generations[len-1].isEmpty()`
   iunfold mvcc.ownKi at Hki
@@ -102,21 +78,9 @@ theorem mvcc.keyIndex.tombstone.wp_proof
       unfold mvcc.kiLastEmpty; exact decide_eq_false Hif
     ihave Hki : iprop(mvcc.ownKi p gs ki (DFrac.own 1)) $$ [Hmod Hgs Hback]
     · iunfold mvcc.ownKi; iframe Hmod Hgs Hback
+    have Hlt := Hlt0 HlastF
     wp_apply (hPut p gs ki lg main sub) $$ [Hki] as %r Hr
-    · iframe Hki; ipureintro; exact Hlg
-    by_cases Hlt : mvcc.Rev.lt ki.modified ⟨main, sub⟩
-    rotate_left
-    · -- `put` panics, the key index unchanged
-      simp only [Hlt, ↓reduceIte]
-      icases Hr with ⟨%Hr, Hki⟩
-      subst Hr
-      wp_auto
-      iapply HΦ
-      simp only [HlastF, Bool.false_eq_true, ↓reduceIte]
-      isplitr
-      · ipureintro; trivial
-      iexact Hki
-    simp only [Hlt, ↓reduceIte]
+    · iframe Hki; ipureintro; exact ⟨Hlg, Hlt⟩
     icases Hr with ⟨%Hr, %gs', Hki⟩
     subst Hr
     iunfold mvcc.ownKi at Hki

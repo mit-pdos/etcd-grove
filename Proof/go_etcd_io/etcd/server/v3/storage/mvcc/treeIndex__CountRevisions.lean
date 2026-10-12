@@ -46,12 +46,11 @@ theorem mvcc.treeIndex.CountRevisions.wp_proof
   icases Hrd with ⟨%t', #Htree', Hrd⟩
   icombine Htree Htree' gives %Ht'
   subst Ht'
+  wp_auto
   wp_apply wp_with_defer
   iintro %defer Hdefer
   (try wp_auto)
   -- `ti.RLock()`: the promoted method
-  rw [method_unfold (t := go.GoType.PointerType treeIndex.ty) (m := go!"RLock")]
-  wp_call
   (try wp_auto)
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hrl, HP⟩
   wp_auto_lc 1
@@ -92,8 +91,6 @@ theorem mvcc.treeIndex.CountRevisions.wp_proof
       simp only [Option.map_none, Option.toList_none, List.length_nil]
       wp_auto
       -- the deferred `ti.RUnlock()`
-      rw [method_unfold (t := go.GoType.PointerType treeIndex.ty) (m := go!"RUnlock")]
-      wp_call
       (try wp_auto)
       wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HnevL HtreeL] as Hrd
       · inext
@@ -116,8 +113,6 @@ theorem mvcc.treeIndex.CountRevisions.wp_proof
       simp only [Option.map_some, Option.toList_some, List.length_singleton]
       wp_auto
       -- the deferred `ti.RUnlock()`
-      rw [method_unfold (t := go.GoType.PointerType treeIndex.ty) (m := go!"RUnlock")]
-      wp_call
       (try wp_auto)
       wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HnevL HtreeL] as Hrd
       · inext
@@ -170,8 +165,7 @@ theorem mvcc.treeIndex.CountRevisions.wp_proof
         icases HzKey with ⟨-, #HzKey⟩
         wp_apply (hget z.1 gs z.2.2 z.2.1 (DFrac.own sync.rfrac) lg (W64 r) e0) $$ [$HzKey $Hki $Herr]
           as %res Hres
-        · ipureintro; exact Hlgnn
-        simp only [hne z hzL, Bool.false_eq_true, ↓reduceIte]
+        · ipureintro; exact ⟨Hlgnn, hne z hzL⟩
         icases Hres with ⟨%Hres, Hki⟩
         subst Hres
         unfold mvcc.kiGetVal
@@ -217,8 +211,6 @@ theorem mvcc.treeIndex.CountRevisions.wp_proof
     icases HQ with ⟨%total, Htot, %Htot⟩
     wp_auto
     -- the deferred `ti.RUnlock()`
-    rw [method_unfold (t := go.GoType.PointerType treeIndex.ty) (m := go!"RUnlock")]
-    wp_call
     (try wp_auto)
     wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HnevL HtreeL] as Hrd
     · inext

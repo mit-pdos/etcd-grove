@@ -137,11 +137,8 @@ theorem raftpb.ConfState.Equivalent.wp_proof
     (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG := hG))
     (wp_reflect_DeepEqual : reflect.DeepEqual.spec (GF := GF) (hG := hG)) :
     raftpb.ConfState.Equivalent.spec (GF := GF) (hG := hG) := by
-  intro p cs1 cs2 v1 v2 dq1 dq2 Hperm Hlen H1 H2 H3 H4 H5 H6 Hal
-  wp_start as ⟨Hp, Hv1, Hv2⟩
-  wp_auto
-  wp_method_call
-  wp_call
+  intro cs1 cs2 v1 v2 dq1 dq2 Hperm Hlen H1 H2 H3 H4 H5 H6 Hal
+  wp_start as ⟨Hv1, Hv2⟩
   wp_auto
   -- `for _, cs := range []*ConfState{&cs1, &cs2}`
   wp_apply wp_slice_literal (V := Loc) [cs1_ptr, cs2_ptr]
@@ -186,7 +183,7 @@ theorem raftpb.ConfState.Equivalent.wp_proof
       wp_apply (wp_sortCopy_empty wp_slices_Sort f hf.symm) _ _ H3 $$ [$LearnersNext]
         as ⟨LearnersNext, -⟩
       wp_for_post
-      iframe HΦ Hp s Hsl Hslcap orig1 orig2
+      iframe HΦ s Hsl Hslcap orig1 orig2
       iexists n + W64 1, cs1_ptr
       simp only [named]
       iframe i cs
@@ -221,7 +218,7 @@ theorem raftpb.ConfState.Equivalent.wp_proof
       wp_apply (wp_sortCopy_empty wp_slices_Sort f hf.symm) _ _ H6 $$ [$LearnersNext]
         as ⟨LearnersNext, -⟩
       wp_for_post
-      iframe HΦ Hp s Hsl Hslcap orig1 orig2
+      iframe HΦ s Hsl Hslcap orig1 orig2
       iexists n + W64 1, cs2_ptr
       simp only [named]
       iframe i cs

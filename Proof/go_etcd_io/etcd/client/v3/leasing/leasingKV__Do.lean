@@ -72,7 +72,7 @@ theorem leasingKV.Do.wp_proof
   ipersist ctx
   ihave #Hcv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
-  wp_apply hIsGet $$ [$Hcv $op $Hop] as op
+  wp_apply hIsGet $$ [$Hcv $Hop]
   by_cases h1 : o.t = W64 1
   · simp only [decide_eq_true h1]
     wp_auto
@@ -87,7 +87,7 @@ theorem leasingKV.Do.wp_proof
     iframe
   simp only [decide_eq_false h1, Bool.true_eq_false, decide_False_any]
   wp_auto
-  wp_apply hIsPut $$ [$Hcv $op $Hop] as op
+  wp_apply hIsPut $$ [$Hcv $Hop]
   by_cases h2 : o.t = W64 2
   · simp only [decide_eq_true h2]
     obtain ⟨top, htop⟩ := Option.ne_none_iff_exists'.1 (Hput h2)
@@ -110,7 +110,7 @@ theorem leasingKV.Do.wp_proof
       ipureintro; exact htop
   simp only [decide_eq_false h2, Bool.true_eq_false, decide_False_any]
   wp_auto
-  wp_apply hIsDel $$ [$Hcv $op $Hop] as op
+  wp_apply hIsDel $$ [$Hcv $Hop]
   by_cases h3 : o.t = W64 3
   · simp only [decide_eq_true h3]
     wp_auto
@@ -125,15 +125,15 @@ theorem leasingKV.Do.wp_proof
     iframe
   simp only [decide_eq_false h3, Bool.true_eq_false, decide_False_any]
   wp_auto
-  wp_apply hIsTxn $$ [$Hcv $op $Hop] as op
+  wp_apply hIsTxn $$ [$Hcv $Hop]
   by_cases h4 : o.t = W64 4
   · simp only [decide_eq_true h4]
-    ihave Htxn := Htxn $$ [] 
+    ihave Htxn := Htxn $$ []
     · ipureintro; exact h4
     iunfold doTxnPre at Htxn
     icases Htxn with ⟨%ms, %tos, %eos, %tops, %eops, #Hcmps, #Htos, #Heos, %Hops⟩
     try wp_auto
-    wp_apply hOpTxn $$ [$Hcv $op] as op
+    wp_apply hOpTxn $$ [$Hcv]
     try wp_auto
     wp_apply hTxn lkv γ pfx ctx cs $$ [$Hpkg $Hlkv $Hctx] as %txn Ht
     try wp_auto

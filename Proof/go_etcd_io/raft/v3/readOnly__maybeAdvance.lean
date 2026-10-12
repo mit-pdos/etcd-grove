@@ -35,7 +35,7 @@ private theorem bigSepL2_take_drop {A B : Type} (Φ : A → B → IProp GF) (n :
 
 /-- `CommittedIndex` is called on the object itself, as an `AckedIndexer`, with the
 whole object as the indexer's resource and the voter map lent (the receiver is the
-local copy of `c`). Then, if the quorum index is past `confirmedReads`, the first
+value `c`). Then, if the quorum index is past `confirmedReads`, the first
 `N - confirmed` requests are split off the queue (`ownSlice_split_all` at `↦*□`): the
 slice returned is that prefix, read-only and without the capacity; the rest, with the
 capacity (`ownSliceCap_slice`), is the new queue. -/
@@ -60,9 +60,9 @@ theorem readOnly.maybeAdvance.wp_proof
     wp_start_folded as HP
     wp_apply wp_readOnly_AckedIndex $$ [$HP] as HP
     iapply HΦ $$ HP
-  wp_apply wp_JointConfig_CommittedIndex c_ptr c m0 ids _ (ownReadOnly ro r)
-      (fun v => r.acks !! v) $$ [$c $Hvoters $Hown $Hidx]
-    as %N ⟨c, Hv, Hown, %Hemp, %Hq⟩
+  wp_apply wp_JointConfig_CommittedIndex c m0 ids _ (ownReadOnly ro r)
+      (fun v => r.acks !! v) $$ [$Hvoters $Hown $Hidx]
+    as %N ⟨Hv, Hown, %Hemp, %Hq⟩
   · isplitr
     · ipureintro; exact Hsz
     ipureintro; exact Hc

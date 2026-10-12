@@ -33,14 +33,10 @@ theorem confchange.checkInvariants.wp_proof
   obtain ⟨⟨Harr, Hl, Hln⟩, Hal⟩ := Hcfg
   wp_start as ⟨Hv, Htrk⟩
   wp_auto
-  -- `cfg.Voters.IDs()`: the field out of the local copy, and back
-  icases (Access.access (A := iprop(cfg_ptr.[tracker.Config, go!"Voters"] ↦ cfg.Voters'))
-    (A' := iprop(cfg_ptr.[tracker.Config, go!"Voters"] ↦ cfg.Voters'))
-    (P := iprop(cfg_ptr ↦ cfg))) $$ cfg with ⟨Hf, Hback⟩
-  wp_apply wp_JointConfig_IDs _ _ v vm _ _ Harr $$ [$Hf $Hv] as %mref %idm ⟨Hf, Hv, Hidm, %Hidm⟩
-  ihave cfg := Hback $$ Hf
-  wp_auto
-  rw [Hl, Hln, Hal]
+  -- `cfg.Voters.IDs()`: the field was read out of the local copy when the method value
+  -- was formed
+  wp_apply wp_JointConfig_IDs _ v vm _ Harr $$ [$Hv] as %mref %idm ⟨Hv, Hidm, %Hidm⟩
+  rw [Hl, Hln]
   wp_apply wp_slice_literal (V := GoMap) [mref, map.nil, map.nil]
   isplitr
   · ipureintro; rfl
@@ -125,12 +121,16 @@ theorem confchange.checkInvariants.wp_proof
       ipureintro; constructor <;> word
   · -- the learner ranges (nil), then the non-joint checks
     wp_func_lits
+    rw [Hln]
     wp_auto
     wp_func_lits
+    rw [Hl]
     wp_auto
-    wp_apply wp_confchange_joint
-      { Voters' := cfg.Voters', AutoLeave' := false, Learners' := map.nil, LearnersNext' := map.nil }
-      v Harr
+    wp_apply wp_confchange_joint cfg v Harr
     wp_apply wp_confchange_outgoing _ v map.nil Harr
+    rw [Hln]
+    wp_auto
+    rw [Hal]
+    wp_auto
     iapply HΦ
     iframe

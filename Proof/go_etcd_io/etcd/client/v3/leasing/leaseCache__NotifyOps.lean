@@ -71,9 +71,9 @@ theorem leaseCache.NotifyOps.wp_proof
     wp_apply wp_load_slice_index sl (sint.Z n) vs DFrac.discard v Hn.1 $$ [Hvs] as -
     · iframe #; ipureintro; exact Hvi
     ihave #Hat := Hv $$ %(sint.nat n) %v %o %Hvi %Hoi
-    wp_apply hIsGet $$ [$op $Hat] as op
+    wp_apply hIsGet $$ [$Hat]
     wp_if_destruct
-    · wp_apply hKey $$ [$op $Hat] as %ksl ⟨op, #Hk⟩
+    · wp_apply hKey $$ [$Hat] as %ksl #Hk
       wp_apply wp_bytes_to_string ksl o.key DFrac.discard $$ [$Hk] as -
       wp_apply (hnotify lc γ pfx X (fun _ => iprop(True)) o.key) $$ [$Hrd $Hlc $Hpeek] as %li %wc ⟨Hrd, %st, -, Hres⟩
       icases Hres with (⟨%Hnone, %Hli, %Hwc⟩ | ⟨%ent, %Hent, #Hw, -, -⟩)

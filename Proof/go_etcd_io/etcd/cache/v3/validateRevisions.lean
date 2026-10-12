@@ -30,6 +30,8 @@ theorem validateRevisions.wp_proof
     validateRevisions.spec (GF := GF) (hG := hG) := by
   intro resp r latestRev
   wp_start as #Hresp
+  ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
+  · iPkgInit
   wp_auto
   wp_apply wp_IsProgressNotify $$ [$resp $Hresp] as resp
   have Hhdr0 : r.isProgressNotify = true → r.hdrRev ≠ W64 0 := by
@@ -77,22 +79,24 @@ theorem validateRevisions.wp_proof
           simp only [validRevisions, hp, Bool.false_eq_true, ↓reduceIte, List.all_eq_false]
           exact ⟨e, Hmem, by simp; omega⟩
         wp_if_destruct
-        · wp_apply wp_slice_literal
+        · wp_apply wp_slice_literal (V := GoInterface)
+              [interface.mkOk go.int64 #e.rev, interface.mkOk go.int64 #latestRev]
           isplitr
           · ipureintro; rfl
           iintro %sl ⟨Hsl', -⟩
-          wp_apply fmt.wp_Errorf $$ [$Hsl'] as %er _
+          wp_apply fmt.wp_Errorf _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int64 _) (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int64 _) _root_.Perennial.fmt.ArgsWf.nil)) $$ [$Hfmt $Hsl'] as %er _
           wp_for_post
           iapply HΦ
           ipureintro
           rw [Hbad _ (by omega)]
           exact ⟨er, rfl⟩
         · wp_if_destruct
-          · wp_apply wp_slice_literal
+          · wp_apply wp_slice_literal (V := GoInterface)
+                [interface.mkOk go.int64 #e.rev, interface.mkOk go.int64 #e.rev]
             isplitr
             · ipureintro; rfl
             iintro %sl ⟨Hsl', -⟩
-            wp_apply fmt.wp_Errorf $$ [$Hsl'] as %er _
+            wp_apply fmt.wp_Errorf _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int64 _) (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int64 _) _root_.Perennial.fmt.ArgsWf.nil)) $$ [$Hfmt $Hsl'] as %er _
             wp_for_post
             iapply HΦ
             ipureintro
@@ -130,11 +134,12 @@ theorem validateRevisions.wp_proof
     · exact absurd Hnull.2 Hne
     wp_auto
     wp_if_destruct
-    · wp_apply wp_slice_literal
+    · wp_apply wp_slice_literal (V := GoInterface)
+          [interface.mkOk go.int64 #r.hdrRev, interface.mkOk go.int64 #latestRev]
       isplitr
       · ipureintro; rfl
       iintro %sl ⟨Hsl', -⟩
-      wp_apply fmt.wp_Errorf $$ [$Hsl'] as %e _
+      wp_apply fmt.wp_Errorf _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int64 _) (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int64 _) _root_.Perennial.fmt.ArgsWf.nil)) $$ [$Hfmt $Hsl'] as %e _
       iapply HΦ
       ipureintro
       simp only [validRevisions, hp, ↓reduceIte]

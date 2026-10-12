@@ -145,18 +145,15 @@ them, reversed, and `i = n - 1 - J`); `slices.Sort`; the read at `pos = n - (n/2
 theorem quorum.MajorityConfig.CommittedIndex.wp_proof
     (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG := hG)) :
     quorum.MajorityConfig.CommittedIndex.spec (GF := GF) (hG := hG) := by
-  intro cs cref mref l Pres acked
-  wp_start as ⟨%Hsz, Hc, Hm, #Hl, HP⟩
-  wp_auto
-  wp_method_call
-  wp_call
+  intro cs mref l Pres acked
+  wp_start as ⟨%Hsz, Hm, #Hl, HP⟩
   wp_auto
   icases Hm with (⟨%Hnil, %Hs⟩ | ⟨%ids, %Hids, Hids⟩)
   · -- the nil component: `len(c) == 0`.
     subst Hnil Hs
     wp_auto
     iapply HΦ
-    iframe Hc HP
+    iframe HP
     isplitr
     · ileft; ipureintro; exact ⟨rfl, rfl⟩
     ipureintro
@@ -171,7 +168,7 @@ theorem quorum.MajorityConfig.CommittedIndex.wp_proof
     rw [Hz]
     wp_auto
     iapply HΦ
-    iframe Hc HP
+    iframe HP
     isplitl [Hids]
     · iright
       iexists ids
@@ -352,7 +349,7 @@ theorem quorum.MajorityConfig.CommittedIndex.wp_proof
     rw [GMap.elem_of_list_to_set, Hkset, GMap.elem_of_dom']
     rfl
   iapply HΦ
-  iframe Hc HP
+  iframe HP
   isplitl [Hids]
   · iright; iexists ids; iframe Hids; ipureintro; rfl
   ipureintro

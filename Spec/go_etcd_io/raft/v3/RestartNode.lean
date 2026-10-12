@@ -53,7 +53,7 @@ abbrev RestartNode.spec : Prop :=
   (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
   σ.pend = [] →
   HsEmpty hs →
-  voters ≠ [] → voters.Nodup → W64 0 ∉ voters → (voters.length : Int) ≤ 2 ^ 62 →
+  voters ≠ [] → voters.Nodup → W64 0 ∉ voters → (voters.length : Int) ≤ 2 ^ 40 →
   cs.VotersOutgoing'.len = W64 0 →
   cs.Learners'.len = W64 0 →
   cs.LearnersNext'.len = W64 0 →

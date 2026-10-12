@@ -58,8 +58,8 @@ tighter `size s ≤ 2^62`, which is the premise. Calls: `l.AckedIndex`
 and `slices.Sort` (`Spec/slices_Sort.lean` -- whose *sortedness* conjunct is
 what this function needs).
 
-The receiver is a `*MajorityConfig` at `cref`, exactly as for
-`MajorityConfig.VoteResult`: the component is either `map.nil` (then `s = ∅`) or an
+The receiver is the `MajorityConfig` value `mref` (a value receiver, which the call
+copies), exactly as for `MajorityConfig.VoteResult`: the component is either `map.nil` (then `s = ∅`) or an
 owned map with key set `s`. The indexer `l` owns whatever `P` it needs; `P` comes back
 unchanged.
 
@@ -69,18 +69,15 @@ per-voter values `(acked v).getD 0` (`IsQuorumIndex`): one of the values, acknow
 by a quorum of `s`, and the largest such. A voter the indexer does not know counts as
 `0` -- that is the zero the `srt` slot keeps. -/
 abbrev quorum.MajorityConfig.CommittedIndex.spec : Prop :=
-  ∀ (s : GSet w64) (cref mref : Loc) (l : GoInterface) (P : IProp GF)
+  ∀ (s : GSet w64) (mref : Loc) (l : GoInterface) (P : IProp GF)
     (acked : w64 → Option w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗
       ⌜(GMap.size s : Int) ≤ 2 ^ 62⌝ ∗
-      cref ↦ mref ∗
       (⌜mref = map.nil ∧ s = ∅⌝ ∨
        ∃ (ids : GMap w64 Unit), ⌜domSet ids = s⌝ ∗ mref ↦$ ids) ∗
       isAckedIndexer l P acked ∗ P }}
-    (App (Val (cref @!! go.GoType.PointerType quorum.MajorityConfig.ty
-      @!! go!"CommittedIndex")) (Val #l))
+    (App (Val (mref @!! quorum.MajorityConfig.ty @!! go!"CommittedIndex")) (Val #l))
   {{ (N : w64), RET #N;
-      cref ↦ mref ∗
       (⌜mref = map.nil ∧ s = ∅⌝ ∨
        ∃ (ids : GMap w64 Unit), ⌜domSet ids = s⌝ ∗ mref ↦$ ids) ∗
       P ∗

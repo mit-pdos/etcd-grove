@@ -40,8 +40,6 @@ theorem mvcc.treeIndex.KeyIndex.wp_proof
   iintro %defer Hdefer
   (try wp_auto)
   -- `ti.RLock()`: the promoted method
-  rw [method_unfold (t := go.GoType.PointerType treeIndex.ty) (m := go!"RLock")]
-  wp_call
   (try wp_auto)
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hrl, HP⟩
   wp_auto_lc 1
@@ -118,8 +116,6 @@ theorem mvcc.treeIndex.KeyIndex.wp_proof
       cases Hidx
   icases Hres with ⟨Hres, %Hc1, %Hc2, HtreeL⟩
   -- the deferred `ti.RUnlock()`
-  rw [method_unfold (t := go.GoType.PointerType treeIndex.ty) (m := go!"RUnlock")]
-  wp_call
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HnevL HtreeL] as Hrd
   · inext

@@ -22,13 +22,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `op.IsFilterPut()` (called through a pointer, as the cache does): whether `WithFilterPut` is set, `o.filterPut`. A read, on
-any fraction. -/
+/-- `op.IsFilterPut()`: whether `WithFilterPut` is set, `o.filterPut`. -/
 abbrev Op.IsFilterPut.spec : Prop :=
-  ∀ (opp : Loc) (op : go_etcd_io.etcd.client.v3.Op) (o : OpModel) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opp ↦{dq} op ∗ opAt op o }}
-    (App (Val (opp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Op.ty @!! go!"IsFilterPut")) (Val #()))
-  {{ RET #(o.filterPut); opp ↦{dq} op }}
+  ∀ (op : go_etcd_io.etcd.client.v3.Op) (o : OpModel),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opAt op o }}
+    (App (Val (op @!! go_etcd_io.etcd.client.v3.Op.ty @!! go!"IsFilterPut")) (Val #()))
+  {{ RET #(o.filterPut); True }}
 
 end spec
 

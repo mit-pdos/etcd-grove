@@ -51,7 +51,7 @@ theorem newCache.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf $$ [$Hfmt $Hsl] as %e -
+    wp_apply fmt.wp_Errorf _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int _) _root_.Perennial.fmt.ArgsWf.nil) $$ [$Hfmt $Hsl] as %e -
     iapply HΦ
     unfold newCacheResult CfgValid
     have hn : ¬ (0 < sint.Z cfg.HistoryWindowSize' ∧ 2 ≤ sint.Z cfg.BTreeDegree') := by omega
@@ -64,7 +64,7 @@ theorem newCache.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf $$ [$Hfmt $Hsl] as %e -
+    wp_apply fmt.wp_Errorf _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int _) _root_.Perennial.fmt.ArgsWf.nil) $$ [$Hfmt $Hsl] as %e -
     iapply HΦ
     unfold newCacheResult CfgValid
     have hn : ¬ (0 < sint.Z cfg.HistoryWindowSize' ∧ 2 ≤ sint.Z cfg.BTreeDegree') := by omega

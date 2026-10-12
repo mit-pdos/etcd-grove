@@ -20,11 +20,11 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `v.String()` (`v` not nil) returns some string. -/
+/-- `v.String()` (a value method; a caller of `p.String()` loads `*p`) returns some string. -/
 abbrev semver.Version.String.spec : Prop :=
-  ∀ (v : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 ∗ ⌜v ≠ null⌝ }}
-    (App (Val (v @!! go.GoType.PointerType github_com.Masterminds.semver.v3.Version.ty @!! go!"String")) (Val #()))
+  ∀ (v : github_com.Masterminds.semver.v3.Version),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 }}
+    (App (Val (v @!! github_com.Masterminds.semver.v3.Version.ty @!! go!"String")) (Val #()))
   {{ (s : GoString), RET #s; True }}
 
 end spec

@@ -22,13 +22,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `op.IsCreatedNotify()` (called through a pointer, as the cache does): whether `WithCreatedNotify` is set, `o.createdNotify`. A read, on
-any fraction. -/
+/-- `op.IsCreatedNotify()`: whether `WithCreatedNotify` is set, `o.createdNotify`. -/
 abbrev Op.IsCreatedNotify.spec : Prop :=
-  ∀ (opp : Loc) (op : go_etcd_io.etcd.client.v3.Op) (o : OpModel) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opp ↦{dq} op ∗ opAt op o }}
-    (App (Val (opp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Op.ty @!! go!"IsCreatedNotify")) (Val #()))
-  {{ RET #(o.createdNotify); opp ↦{dq} op }}
+  ∀ (op : go_etcd_io.etcd.client.v3.Op) (o : OpModel),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opAt op o }}
+    (App (Val (op @!! go_etcd_io.etcd.client.v3.Op.ty @!! go!"IsCreatedNotify")) (Val #()))
+  {{ RET #(o.createdNotify); True }}
 
 end spec
 

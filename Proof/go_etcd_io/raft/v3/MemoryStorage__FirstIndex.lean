@@ -33,8 +33,6 @@ theorem MemoryStorage.FirstIndex.wp_proof
   wp_auto
   wp_apply wp_with_defer as %defer defer
   -- `ms.Lock()`: the method of the embedded `sync.Mutex`
-  wp_method_call
-  wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold memstorageInv at Hinv
   icases Hinv with ⟨%σ0, Hinv⟩
@@ -58,8 +56,6 @@ theorem MemoryStorage.FirstIndex.wp_proof
     iframe
   wp_apply wp_MemoryStorage_firstIndex ms σ0 Hpb_inv $$ [$Hf] as %fi ⟨%Hfi, Hf⟩
   -- the deferred `ms.Unlock()`
-  wp_method_call
-  wp_call
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv Hf]
   · unfold memstorageInv
     iexists σ0

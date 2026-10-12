@@ -84,7 +84,7 @@ theorem gatherOps_wp_size
     | leaf o =>
       iunfold opTAtC at Ht
       icases Ht with ⟨#Hat, %Ho4⟩
-      wp_apply hIsTxn $$ [$op $Hat] as op
+      wp_apply hIsTxn $$ [$Hat]
       rw [decide_eq_false Ho4]
       (try wp_auto)
       wp_apply wp_slice_literal (l := [v])
@@ -116,10 +116,10 @@ theorem gatherOps_wp_size
     | txn o cs ts' es' =>
       iunfold opTAtC at Ht
       icases Ht with ⟨#Hat, %Ho4, #Hcs, %tvs, %evs, #Htvs, #Hevs, Hcapt, Hts', Hes'⟩
-      wp_apply hIsTxn $$ [$op $Hat] as op
+      wp_apply hIsTxn $$ [$Hat]
       rw [decide_eq_true Ho4]
       (try wp_auto)
-      wp_apply hTxn $$ [$op] as op
+      wp_apply hTxn
       (try wp_auto)
       simp only [↓reduceIte]
       wp_apply (wp_slice_append_persistent v.thenOps' tvs v.elseOps' evs DFrac.discard)
@@ -157,7 +157,7 @@ theorem gatherOps_wp_size
       rw [← Hlen]; word
     iapply HΦ
     rw [hn, List.take_length] at Ht4
-    rw [hn, List.take_length] 
+    rw [hn, List.take_length]
     iunfold opsOwn
     isplitl
     · iexists rvs

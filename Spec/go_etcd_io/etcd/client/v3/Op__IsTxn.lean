@@ -22,12 +22,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `op.IsTxn()` (called through a pointer): whether it is a transaction (`t = tTxn`, `4`). -/
+/-- `op.IsTxn()`: whether it is a transaction (`t = tTxn`, `4`). -/
 abbrev Op.IsTxn.spec : Prop :=
-  ∀ (opp : Loc) (op : go_etcd_io.etcd.client.v3.Op) (o : OpFull) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opp ↦{dq} op ∗ opFullAt op o }}
-    (App (Val (opp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Op.ty @!! go!"IsTxn")) (Val #()))
-  {{ RET #(decide (o.t = W64 4)); opp ↦{dq} op }}
+  ∀ (op : go_etcd_io.etcd.client.v3.Op) (o : OpFull),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opFullAt op o }}
+    (App (Val (op @!! go_etcd_io.etcd.client.v3.Op.ty @!! go!"IsTxn")) (Val #()))
+  {{ RET #(decide (o.t = W64 4)); True }}
 
 end spec
 

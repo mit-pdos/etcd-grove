@@ -53,9 +53,9 @@ theorem leasingKV.deleteRange.wp_proof
   iunfold opFullAt at Hop'
   icases Hop' with ⟨#HopAt, -⟩
   (try wp_auto)
-  wp_apply hKey $$ [$Hcv $op $Hop] as %ksl ⟨op, #Hk⟩
+  wp_apply hKey $$ [$Hcv $Hop] as %ksl #Hk
   wp_apply wp_bytes_to_string ksl o.key DFrac.discard $$ [$Hk] as -
-  wp_apply hRange $$ [$Hcv $op $HopAt] as %esl ⟨op, #He⟩
+  wp_apply hRange $$ [$Hcv $HopAt] as %esl #He
   wp_apply wp_bytes_to_string esl o.base.rangeEnd DFrac.discard $$ [$He] as -
   (try wp_auto)
   ihave #Hpeek := leasingX_peek (GF := GF) lkv γ

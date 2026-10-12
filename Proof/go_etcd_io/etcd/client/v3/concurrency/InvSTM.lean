@@ -266,7 +266,7 @@ def stmIface (lvl : w64) (p : Loc) : GoInterfaceOk :=
 /-- **The STM's abort** with the client error `err`: the panic of `panic(stmError{err})` (the
 `stmError` converted to `interface{}`), by `stm.fetch` and the commits, which `runSTM`'s deferred
 function recovers. -/
-def stmAbort (err : GoInterface) : val := PanicV #(interface.mkOk stmError.ty #(stmError.mk err))
+def stmAbort (err : GoInterface) : val := panicVal #(interface.mkOk stmError.ty #(stmError.mk err))
 
 /-- `r` is the STM's abort with a client error. -/
 def stmAborted (r : val) : Prop := ∃ err, err ≠ GoInterface.nil ∧ r = stmAbort err
@@ -523,7 +523,7 @@ theorem stmRet_ret {V : Type} (x : V) (Q : V → IProp GF) : Q x ⊢ stmRet #x Q
 
 theorem stmRet_abort {V : Type} (err : GoInterface) (h : err ≠ GoInterface.nil)
     (Q : V → IProp GF) :
-    ⊢ stmRet (PanicV #(interface.mkOk stmError.ty #(stmError.mk err))) Q := by
+    ⊢ stmRet (panicVal #(interface.mkOk stmError.ty #(stmError.mk err))) Q := by
   unfold stmRet
   iright
   ipureintro

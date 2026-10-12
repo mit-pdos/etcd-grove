@@ -22,13 +22,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `op.IsSortSet()` (called through a pointer, as the cache does): whether `WithSort` is set (`sort != nil`), `o.sortSet`. A read, on
-any fraction. -/
+/-- `op.IsSortSet()`: whether `WithSort` is set (`sort != nil`), `o.sortSet`. -/
 abbrev Op.IsSortSet.spec : Prop :=
-  ∀ (opp : Loc) (op : go_etcd_io.etcd.client.v3.Op) (o : OpModel) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opp ↦{dq} op ∗ opAt op o }}
-    (App (Val (opp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Op.ty @!! go!"IsSortSet")) (Val #()))
-  {{ RET #(o.sortSet); opp ↦{dq} op }}
+  ∀ (op : go_etcd_io.etcd.client.v3.Op) (o : OpModel),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opAt op o }}
+    (App (Val (op @!! go_etcd_io.etcd.client.v3.Op.ty @!! go!"IsSortSet")) (Val #()))
+  {{ RET #(o.sortSet); True }}
 
 end spec
 

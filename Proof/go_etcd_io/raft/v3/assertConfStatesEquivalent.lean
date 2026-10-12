@@ -26,8 +26,8 @@ theorem assertConfStatesEquivalent.wp_proof
   intro l cs1 cs2 v1 v2 dq1 dq2 Hperm Hlen H1 H2 H3 H4 H5 H6 Hal
   wp_start as ⟨H1, H2⟩
   wp_auto
-  wp_apply wp_ConfState_Equivalent _ _ _ _ _ _ _ Hperm Hlen H1 H2 H3 H4 H5 H6 Hal
-    $$ [$cs1 $H1 $H2] as ⟨-, H1, H2⟩
+  wp_apply wp_ConfState_Equivalent _ _ _ _ _ _ Hperm Hlen H1 H2 H3 H4 H5 H6 Hal
+    $$ [$H1 $H2] as ⟨H1, H2⟩
   iapply HΦ
   iframe
 

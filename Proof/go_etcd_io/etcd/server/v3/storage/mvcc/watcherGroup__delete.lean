@@ -64,10 +64,7 @@ theorem mvcc.watcherGroup.delete.wp_proof
   · icases (BigSepM.bigSepM_delete (m := W) HwaS).1 $$ Hfixed with ⟨-, H⟩
     iexact H
   wp_auto
-  wp_method_call
-  wp_call
-  wp_load
-  simp only
+  (try wp_auto)
   ihave Hws : mvcc.ownWatcherSet ws (GMap.domSet W) $$ [Hws]
   · iunfold mvcc.ownWatcherSet; iexact Hws
   wp_apply hSDel $$ [$Hws] as Hws
@@ -80,10 +77,7 @@ theorem mvcc.watcherGroup.delete.wp_proof
     subst Hes
     rw [_root_.decide_eq_true rfl]
     wp_auto
-    wp_method_call
-    wp_call
-    wp_load
-    simp only
+    (try wp_auto)
     wp_apply hKDel $$ [$Hkm] as ⟨%KM', Hkm⟩
     · iframe Hfix; ipureintro; exact ⟨hend, Or.inr HwaS⟩
     iapply HΦ

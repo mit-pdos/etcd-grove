@@ -139,9 +139,10 @@ theorem confchange.Restore.wp_proof
     · -- op 0: from the empty configuration `Restore` started from
       subst Hcfg Hprs
       have Hcv : ConfigVotersOnly chg.Tracker'.Config' v0 := ⟨Harr, Hl, Hln⟩
-      wp_apply wp_Changer_Simple _ _ _ idn v0 ∅ ∅ _ _ _ _ Hidn0
-        (by rw [GMap.map_size_empty]; decide) Hcv rfl Hmi $$ [$chg $Hsl2 $Hv0 $Hpm]
-        as %cfg' %trk %v' %prs'' ⟨chg, Hsl2, Hv0, -, %Hcs', Hv', Htrk, %Hd', Hprogs'⟩
+      wp_auto
+      wp_apply wp_Changer_Simple _ _ idn v0 ∅ ∅ _ _ _ Hidn0
+        (by rw [GMap.map_size_empty]; decide) Hcv rfl Hmi $$ [$Hsl2 $Hv0 $Hpm]
+        as %cfg' %trk %v' %prs'' ⟨Hsl2, Hv0, -, %Hcs', Hv', Htrk, %Hd', Hprogs'⟩
       · iapply BigSepM.bigSepM_empty.2; iempintro
       iapply HΦ
       iframe Hv0
@@ -161,12 +162,13 @@ theorem confchange.Restore.wp_proof
         have := Hd.2.2
         have h2 := Hvlen.1
         word
-      wp_apply wp_Changer_Simple _
+      wp_auto
+      wp_apply wp_Changer_Simple
         ({ chg with Tracker' := { chg.Tracker' with Config' := cfg, Progress' := prs } } :
           confchange.Changer)
-        _ idn v vm prs' _ _ _ _ Hidn0 Hsz Hcs.1 Hd.1 Hmi
-        $$ [$chg $Hsl2 $Hv $Hprs $Hprogs]
-        as %cfg' %trk %v' %prs'' ⟨chg, Hsl2, -, -, %Hcs', Hv', Htrk, %Hd', Hprogs'⟩
+        _ idn v vm prs' _ _ _ Hidn0 Hsz Hcs.1 Hd.1 Hmi
+        $$ [$Hsl2 $Hv $Hprs $Hprogs]
+        as %cfg' %trk %v' %prs'' ⟨Hsl2, -, -, %Hcs', Hv', Htrk, %Hd', Hprogs'⟩
       iapply HΦ
       iframe Hv0
       iright

@@ -5,8 +5,6 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__put
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Revision__GreaterThan
-public import Spec.go_uber_org.zap.Int64
-public import Spec.go_uber_org.zap.Logger__Panic
 
 @[expose] public section
 
@@ -27,12 +25,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.keyIndex.put.wp_proof
-    (hGT : mvcc.Revision.GreaterThan.spec (GF := GF) (hG := hG))
-    (hZI : zap.Int64.spec (GF := GF) (hG := hG))
-    (hPanic : zap.Logger.Panic.spec (GF := GF) (hG := hG)) :
+    (hGT : mvcc.Revision.GreaterThan.spec (GF := GF) (hG := hG)) :
     mvcc.keyIndex.put.spec (GF := GF) (hG := hG) := by
   intro p gs ki lg main sub
-  wp_start as ⟨%Hlg, Hki⟩
+  wp_start as ⟨%Hlg, %Hlt, Hki⟩
   ihave Hinit : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, -, -, ⟨%gg, #Hgauge, #Hgspec⟩, -, -, -, -, -⟩
@@ -42,42 +38,8 @@ theorem mvcc.keyIndex.put.wp_proof
   icases Hki with ⟨Hmod, Hgs, Hgens⟩
   ihave %Hlen := mvcc.ownGens_len _ _ _ $$ Hgens
   wp_auto
-  -- `rev.GreaterThan(ki.modified)`: the pointer wrapper, then the value method
-  rw [method_unfold (t := go.GoType.PointerType Revision.ty) (m := go!"GreaterThan")]
-  wp_call
-  wp_auto
+  -- `rev.GreaterThan(ki.modified)`: the method value copies `rev`, so the value method
   wp_apply (hGT { Main' := main, Sub' := sub } (mvcc.revVal ki.modified))
-  by_cases Hlt : mvcc.Rev.lt ki.modified ⟨main, sub⟩
-  rotate_left
-  · -- the panic: `lg.Panic(...)` before any write
-    have Hgt : mvcc.Rev.gt (mvcc.revOf { Main' := main, Sub' := sub })
-        (mvcc.revOf (mvcc.revVal ki.modified)) = false :=
-      Bool.eq_false_iff.2 fun h => Hlt ((mvcc.Rev.gt_iff _ _).1 h)
-    rw [Hgt]
-    wp_auto
-    wp_apply hZI _ _ as %f1 -
-    (try wp_auto)
-    wp_apply hZI _ _ as %f2 -
-    (try wp_auto)
-    wp_apply hZI _ _ as %f3 -
-    (try wp_auto)
-    wp_apply hZI _ _ as %f4 -
-    (try wp_auto)
-    wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2, f3, f4]
-    isplitr
-    · ipureintro; rfl
-    iintro %fsl ⟨-, -⟩
-    (try wp_auto)
-    wp_apply hPanic lg _ _ $$ [] as %r %Hr
-    · ipureintro; exact Hlg
-    subst Hr
-    wp_auto
-    iapply HΦ
-    simp only [Hlt, ↓reduceIte]
-    isplitr
-    · ipureintro; trivial
-    iunfold mvcc.ownKi
-    iframe Hmod Hgs Hgens
   rw [show mvcc.Rev.gt (mvcc.revOf { Main' := main, Sub' := sub })
     (mvcc.revOf (mvcc.revVal ki.modified)) = true from (mvcc.Rev.gt_iff _ _).2 Hlt]
   wp_auto
@@ -160,7 +122,6 @@ theorem mvcc.keyIndex.put.wp_proof
       _ _ _ (DFrac.own 1) Hnn $$ [Hver Hcreated Hrevsf]
     · iframe Hver Hcreated Hrevsf
     iapply HΦ
-    simp only [Hlt, ↓reduceIte]
     isplitr
     · ipureintro; trivial
     iexists gs'
@@ -192,7 +153,6 @@ theorem mvcc.keyIndex.put.wp_proof
       _ _ _ (DFrac.own 1) Hnn $$ [Hver Hcreated Hrevsf]
     · iframe Hver Hcreated Hrevsf
     iapply HΦ
-    simp only [Hlt, ↓reduceIte]
     isplitr
     · ipureintro; trivial
     iexists gs'

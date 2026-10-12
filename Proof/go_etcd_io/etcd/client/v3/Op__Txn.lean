@@ -22,13 +22,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 theorem Op.Txn.wp_proof : Op.Txn.spec (GF := GF) (hG := hG) := by
-  intro opp op dq
-  wp_start as Hop
+  intro op
+  wp_start
   wp_auto
-  wp_method_call
-  wp_auto
-  iapply HΦ
-  iframe
+  wp_end
 
 end proof
 

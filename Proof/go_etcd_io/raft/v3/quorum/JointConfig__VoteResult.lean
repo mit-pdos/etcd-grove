@@ -52,21 +52,19 @@ paths. The array element reads go through `array_acc_same'`
 theorem quorum.JointConfig.VoteResult.wp_proof
     (wp_MajorityConfig_VoteResult : quorum.MajorityConfig.VoteResult.spec (GF := GF) (hG := hG)) :
     quorum.JointConfig.VoteResult.spec (GF := GF) (hG := hG) := by
-  intro cfg trk tv t Hcfg_ne
+  intro cfg tv t Hcfg_ne
   obtain ⟨votes, prs, pvs⟩ := t
-  wp_start as ⟨Htrk, Hown⟩
+  wp_start as Hown
   iunfold ownTracker at Hown
   icases Hown with ⟨%voters_ref, %voters, %learners, %learnersNext, Hown⟩
   iNamed Hown
   wp_auto
-  wp_method_call
-  wp_call
-  wp_call
-  wp_auto
   icases array_acc_same' (GF := GF) _ (sint.Z (W64 0)) _ _ _ voters_ref (by decide)
       (by simp [Hvoters_arr]) $$ c with ⟨Hc0, Hcback⟩
-  wp_apply wp_MajorityConfig_VoteResult cfg $$ [$Hc0 $Hvotes Hvoters]
-    as %r1 ⟨Hc0, Hvotes, Hv, %Hr1, -, %Hwon1, %Hlost1⟩
+  wp_auto
+  ihave c := Hcback $$ Hc0
+  wp_apply wp_MajorityConfig_VoteResult cfg $$ [$Hvotes Hvoters]
+    as %r1 ⟨Hvotes, Hv, %Hr1, -, %Hwon1, %Hlost1⟩
   · isplitr
     · ipureintro; omega
     iright
@@ -78,11 +76,12 @@ theorem quorum.JointConfig.VoteResult.wp_proof
   icases Hv with (⟨-, %Hemp⟩ | ⟨%voters', %Hvoters'_dom, Hvoters⟩)
   · exact absurd Hemp Hcfg_ne
   -- `c[1]`: the nil component of a simple configuration
-  ihave c := Hcback $$ Hc0
   icases array_acc_same' (GF := GF) _ (sint.Z (W64 1)) _ _ _ map.nil (by decide)
       (by simp [Hvoters_arr]) $$ c with ⟨Hc1, Hcback⟩
-  wp_apply wp_MajorityConfig_VoteResult ∅ $$ [$Hc1 $Hvotes]
-    as %r2 ⟨Hc1, Hvotes, -, %Hr2, %Hr2won, -, -⟩
+  wp_auto
+  ihave c := Hcback $$ Hc1
+  wp_apply wp_MajorityConfig_VoteResult ∅ $$ [$Hvotes]
+    as %r2 ⟨Hvotes, -, %Hr2, %Hr2won, -, -⟩
   · isplitr
     · ipureintro; rw [GMap.map_size_empty]; decide
     ileft
@@ -91,7 +90,6 @@ theorem quorum.JointConfig.VoteResult.wp_proof
   -- on every path
   have HN2 : r2 = VoteWon := Hr2won rfl
   subst HN2
-  ihave c := Hcback $$ Hc1
   rw [show quorum.VoteLost = #VoteLost from rfl, show quorum.VotePending = #VotePending from rfl]
   ihave Hown := ownTracker_intro cfg tv votes prs pvs voters_ref voters' learners learnersNext
     Hprs_dom Hvoters_arr Hautoleave Hvoters'_dom Hno_learners Hcfg_size HmaxInfl
@@ -101,21 +99,21 @@ theorem quorum.JointConfig.VoteResult.wp_proof
     rw [decide_eq_true rfl]
     wp_auto
     iapply HΦ
-    iframe Htrk Hown
+    iframe Hown
     ipureintro
     exact ⟨Or.inl rfl, Hwon1 Hcfg_ne, Hlost1 Hcfg_ne⟩
   · -- `r1` lost, `r2` won: the second test fires on `r1`
     rw [decide_eq_false (by decide)]
     wp_auto
     iapply HΦ
-    iframe Htrk Hown
+    iframe Hown
     ipureintro
     exact ⟨Or.inr (Or.inl rfl), Hwon1 Hcfg_ne, Hlost1 Hcfg_ne⟩
   · -- `r1` still pending: neither test fires
     rw [decide_eq_false (by decide)]
     wp_auto
     iapply HΦ
-    iframe Htrk Hown
+    iframe Hown
     ipureintro
     exact ⟨Or.inr (Or.inr rfl), Hwon1 Hcfg_ne, Hlost1 Hcfg_ne⟩
 

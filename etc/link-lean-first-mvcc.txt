@@ -16,17 +16,14 @@ BytesToRev: BytesToBucketKey
 # The key index and its generations (key_index.go), see Model.lean, Defs.lean.
 generation__isEmpty:
 generation__walk:
-# zap's field constructors and `Logger.Panic` (the key index's panics) are the trust boundary
-# (axioms; `Logger.Fatal` has one too, which no verified function reaches).
-zap_Int64:
-zap_String:
-zap_Logger__Panic:
+# The key index's panics (`lg.Panic`, with zap's field constructors) are excluded by its specs'
+# premises (a panic is stuck), so no zap function of theirs is linked.
 keyIndex__Less:
 keyIndex__isEmpty: generation__isEmpty
 keyIndex__findGeneration:
-keyIndex__get: keyIndex__isEmpty zap_String zap_Logger__Panic keyIndex__findGeneration generation__isEmpty generation__walk
-keyIndex__put: Revision__GreaterThan zap_Int64 zap_Logger__Panic
-keyIndex__tombstone: keyIndex__isEmpty generation__isEmpty zap_String zap_Logger__Panic keyIndex__put
+keyIndex__get: keyIndex__isEmpty keyIndex__findGeneration generation__isEmpty generation__walk
+keyIndex__put: Revision__GreaterThan
+keyIndex__tombstone: keyIndex__isEmpty generation__isEmpty keyIndex__put
 # The btree (k8s.io/utils/third_party/forked/golang/btree), proved and linked in its own
 # package (`@`, as in the cache's list).
 btree_New: @

@@ -22,11 +22,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- From Perennial's `strings.wp_Join`, proved from its model of `Join`
-(`Perennial/TrustedCode/strings.lean`). -/
+(goose's translation of `Join`). -/
 theorem strings.Join.wp_proof : strings.Join.spec (GF := GF) (hG := hG) := by
-  intro elems xs dq sep
+  intro elems xs dq sep Hfits
   iintro %Φ ⟨#Hpkg, Hs⟩ HΦ
-  wp_apply _root_.Perennial.strings.wp_Join elems xs dq sep $$ [$Hs] as Hs
+  wp_apply _root_.Perennial.strings.wp_Join elems xs dq sep Hfits $$ [$Hs] as Hs
   iapply HΦ $$ Hs
 
 

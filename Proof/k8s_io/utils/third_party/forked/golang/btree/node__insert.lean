@@ -106,9 +106,6 @@ theorem node.insert.wp_proof
   wp_alloc_anon
   wp_auto
   have hsis : Sorted o.lt is := sorted_sublist (items_sublist is cs) hsorted
-  wp_method_call
-  wp_call
-  wp_auto
   wp_apply wp_find o isl is (DFrac.own 1) item k less hsis $$ [$Hisl $Hless $Hitem]
     as %idx %found ⟨Hisl, %Hidx, %Hidx0, %Hfound⟩
   · iapply allItems_mono o is _ (fun x hx => (items_sublist is cs).subset hx) $$ Hall

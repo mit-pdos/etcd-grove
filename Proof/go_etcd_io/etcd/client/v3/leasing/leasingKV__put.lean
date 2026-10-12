@@ -104,7 +104,7 @@ theorem leasingKV.put.wp_proof
       cases err1 with
       | ok e =>
         (try wp_auto)
-        wp_apply hKey $$ [$Hcv $op $Hop] as %ksl ⟨op, #Hk⟩
+        wp_apply hKey $$ [$Hcv $Hop] as %ksl #Hk
         wp_apply wp_bytes_to_string ksl o.key DFrac.discard $$ [$Hk] as -
         (try wp_auto)
         wp_apply (hRevoke lkv γ pfx ctx cs o.key opv o top lo) $$ [$Hlkv $Hrd $Hctx $Hcc $Hop $Hlo]
@@ -117,7 +117,7 @@ theorem leasingKV.put.wp_proof
         ileft; ipureintro; rfl
       | nil =>
         (try wp_auto)
-        wp_apply hKey $$ [$Hcv $op $Hop] as %ksl ⟨op, #Hk⟩
+        wp_apply hKey $$ [$Hcv $Hop] as %ksl #Hk
         wp_apply wp_bytes_to_string ksl o.key DFrac.discard $$ [$Hk] as -
         (try wp_auto)
         wp_apply (hRevoke lkv γ pfx ctx cs o.key opv o top lo) $$ [$Hlkv $Hrd $Hctx $Hcc $Hop $Hlo]
@@ -132,7 +132,7 @@ theorem leasingKV.put.wp_proof
       icases Hw1 with (%Hw1 | Hw1)
       · subst Hw1
         (try wp_auto)
-        wp_apply hKey $$ [$Hcv $op $Hop] as %ksl ⟨op, #Hk⟩
+        wp_apply hKey $$ [$Hcv $Hop] as %ksl #Hk
         wp_apply wp_bytes_to_string ksl o.key DFrac.discard $$ [$Hk] as -
         (try wp_auto)
         wp_apply (hRevoke lkv γ pfx ctx cs o.key opv o top lo) $$ [$Hlkv $Hrd $Hctx $Hcc $Hop $Hlo]
@@ -146,7 +146,7 @@ theorem leasingKV.put.wp_proof
       · (try wp_auto)
         wp_if_destruct
         · (try wp_auto)
-          wp_apply hKey $$ [$Hcv $op $Hop] as %ksl ⟨op, #Hk⟩
+          wp_apply hKey $$ [$Hcv $Hop] as %ksl #Hk
           wp_apply wp_bytes_to_string ksl o.key DFrac.discard $$ [$Hk] as -
           (try wp_auto)
           wp_apply (hRevoke lkv γ pfx ctx cs o.key opv o top lo) $$ [$Hlkv $Hrd $Hctx $Hcc $Hop $Hlo]
@@ -186,8 +186,8 @@ theorem leasingKV.put.wp_proof
     icases Hcache' with ⟨#Hguard, #Hclch⟩
     wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hguard] as ⟨Hlk, HP⟩
     icases leaseCacheInv_open_w $$ HP with ⟨%st, Hown, HX, Hinst, Hready, #Hfacts, %Hwf, Hclose⟩
-    wp_apply hKey $$ [$Hcv $op $Hop] as %ksl ⟨op, #Hk⟩
-    wp_apply hVal $$ [$Hcv $op $Hop] as %vsl ⟨op, #Hv⟩
+    wp_apply hKey $$ [$Hcv $Hop] as %ksl #Hk
+    wp_apply hVal $$ [$Hcv $Hop] as %vsl #Hv
     (try wp_auto)
     wp_apply hUpd (lkvLeases lkv) st ksl o.key vsl o.val hdr hm $$ [$Hpkg $Hown $Hk $Hv $Hhf]
       as ⟨%pp, %sl', Hown⟩

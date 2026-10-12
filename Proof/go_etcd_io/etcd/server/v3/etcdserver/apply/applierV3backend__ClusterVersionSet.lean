@@ -54,13 +54,10 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
   icases Hr with ⟨%Hrnn, #Hver⟩
   iStructNamed Hopts
   wp_auto
-  wp_apply HVer as %prev -
-  wp_apply hMP as %rv %Hrv
-  obtain ⟨nv, rfl, Hnv⟩ : ∃ v : Loc, rv = #v ∧ v ≠ null := by
-    rcases Hrv with ⟨-, h⟩ | ⟨Hn, -⟩
-    · exact h
-    · exact absurd Hvalid Hn
-  wp_auto
+  wp_apply HVer as %prev #Hprevv
+  wp_apply hMP as %nv ⟨%Hnv, %nver, #Hnver⟩
+  · ipureintro; exact Hvalid
+  (try wp_auto)
   wp_apply HSV $$ [$Hcs] as HPP
   · ipureintro; exact Hnv
   wp_if_destruct
@@ -79,11 +76,13 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
   -- a downgrade: logged, a snapshot forced
   wp_if_destruct
   · exact absurd Hif Hlg
+  icases Hprevv with (%Hpn | ⟨%pver, #Hpver⟩)
+  · exact absurd Hpn Hprev
+  (try wp_auto)
   wp_apply hVS as %s1 -
-  · ipureintro; exact Hprev
   wp_apply hZS as %f1 -
+  (try wp_auto)
   wp_apply hVS as %s2 -
-  · ipureintro; exact Hnv
   wp_apply hZS as %f2 -
   wp_apply wp_slice_literal (l := [f1, f2])
   isplitr

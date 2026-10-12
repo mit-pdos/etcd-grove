@@ -23,12 +23,13 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `t.After(u)`: some boolean (`parseProposeCtxErr` only classifies its error by it); `t` kept. -/
+/-- `t.After(u)` (the value method: the method value copies `t`): some boolean
+(`parseProposeCtxErr` only classifies its error by it). -/
 abbrev time.Time.After.spec : Prop :=
-  ∀ (p : Loc) (t u : _root_.Perennial.time.Time) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.time ∗ p ↦{dq} t }}
-    (App (Val (p @!! go.GoType.PointerType _root_.Perennial.time.Time.ty @!! go!"After")) (Val #u))
-  {{ (b : Bool), RET #b; p ↦{dq} t }}
+  ∀ (t u : _root_.Perennial.time.Time),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.time }}
+    (App (Val (t @!! _root_.Perennial.time.Time.ty @!! go!"After")) (Val #u))
+  {{ (b : Bool), RET #b; True }}
 
 end spec
 

@@ -95,10 +95,10 @@ theorem leaseKey.get.wp_proof
     unfold cachedKvOwn
     icases Hc with ⟨%Hcpnn, HcK, #HcKs, HcC, HcM, HcV, HcVal, #HcVs, HcL⟩
     wp_auto
-    wp_apply hcount $$ [$op $Hat] as op
+    wp_apply hcount $$ [$Hat]
     cases hco : o.base.countOnly
     · wp_auto
-      wp_apply hminm $$ [$op $Hat] as op
+      wp_apply hminm $$ [$Hat]
       simp only [hb0, _root_.and_self, ↓reduceIte]
       wp_apply wp_load_slice_index e.kvsSl (sint.Z (W64 0)) ((c :: cs).map CachedKv.p) dq2 c.p
         hb0.1 $$ [HKs] as HKs
@@ -134,11 +134,11 @@ theorem leaseKey.get.wp_proof
         clear hmeta hkv hcount hminm hmaxm hminc hmaxc hkeys
         simp_all [getResult, getEmpty]
         all_goals (simp only [Int.lt_iff_add_one_le] at *; split <;> first | rfl | (exfalso; omega) | skip)
-      · wp_apply hmaxm $$ [$op $Hat] as op
+      · wp_apply hmaxm $$ [$Hat]
         by_cases hz : o.base.maxModRev = W64 0
         · rw [decide_eq_true hz]
           wp_auto
-          wp_apply hminc $$ [$op $Hat] as op
+          wp_apply hminc $$ [$Hat]
           simp only [hb0, _root_.and_self, ↓reduceIte]
           wp_apply wp_load_slice_index e.kvsSl (sint.Z (W64 0)) ((c :: cs).map CachedKv.p) dq2 c.p
             hb0.1 $$ [HKs] as HKs
@@ -174,7 +174,7 @@ theorem leaseKey.get.wp_proof
             clear hmeta hkv hcount hminm hmaxm hminc hmaxc hkeys
             simp_all [getResult, getEmpty]
             all_goals (simp only [Int.lt_iff_add_one_le] at *; split <;> first | rfl | (exfalso; omega) | skip)
-          · wp_apply hmaxc $$ [$op $Hat] as op
+          · wp_apply hmaxc $$ [$Hat]
             by_cases hz2 : o.base.maxCreateRev = W64 0
             · rw [decide_eq_true hz2]
               wp_auto
@@ -192,7 +192,7 @@ theorem leaseKey.get.wp_proof
               wp_apply wp_load_slice_index e.kvsSl (sint.Z (W64 0)) ((c :: cs).map CachedKv.p) dq2 c.p
                 hb0.1 $$ [HKs] as HKs
               · iframe; ipureintro; rfl
-              wp_apply hkeys $$ [$op] as op
+              wp_apply hkeys $$ [] as -
               · unfold opFullAt; iframe #; ipureintro; exact Hf
               wp_apply (hkv c dq2 o.keysOnly) $$ [$Hc] as %p' ⟨Hc, %c', %Hc', Hc'⟩
               wp_apply wp_slice_literal (l := [p'])
@@ -230,7 +230,7 @@ theorem leaseKey.get.wp_proof
               simp only [List.map_cons, List.map_nil, Hc'.2, Option.toList_some]
             · rw [decide_eq_false hz2]
               wp_auto
-              wp_apply hmaxc $$ [$op $Hat] as op
+              wp_apply hmaxc $$ [$Hat]
               simp only [hb0, _root_.and_self, ↓reduceIte]
               wp_apply wp_load_slice_index e.kvsSl (sint.Z (W64 0)) ((c :: cs).map CachedKv.p) dq2 c.p
                 hb0.1 $$ [HKs] as HKs
@@ -276,7 +276,7 @@ theorem leaseKey.get.wp_proof
                 wp_apply wp_load_slice_index e.kvsSl (sint.Z (W64 0)) ((c :: cs).map CachedKv.p) dq2 c.p
                   hb0.1 $$ [HKs] as HKs
                 · iframe; ipureintro; rfl
-                wp_apply hkeys $$ [$op] as op
+                wp_apply hkeys $$ [] as -
                 · unfold opFullAt; iframe #; ipureintro; exact Hf
                 wp_apply (hkv c dq2 o.keysOnly) $$ [$Hc] as %p' ⟨Hc, %c', %Hc', Hc'⟩
                 wp_apply wp_slice_literal (l := [p'])
@@ -314,7 +314,7 @@ theorem leaseKey.get.wp_proof
                 simp only [List.map_cons, List.map_nil, Hc'.2, Option.toList_some]
         · rw [decide_eq_false hz]
           wp_auto
-          wp_apply hmaxm $$ [$op $Hat] as op
+          wp_apply hmaxm $$ [$Hat]
           simp only [hb0, _root_.and_self, ↓reduceIte]
           wp_apply wp_load_slice_index e.kvsSl (sint.Z (W64 0)) ((c :: cs).map CachedKv.p) dq2 c.p
             hb0.1 $$ [HKs] as HKs
@@ -350,7 +350,7 @@ theorem leaseKey.get.wp_proof
             clear hmeta hkv hcount hminm hmaxm hminc hmaxc hkeys
             simp_all [getResult, getEmpty]
             all_goals (simp only [Int.lt_iff_add_one_le] at *; split <;> first | rfl | (exfalso; omega) | skip)
-          · wp_apply hminc $$ [$op $Hat] as op
+          · wp_apply hminc $$ [$Hat]
             simp only [hb0, _root_.and_self, ↓reduceIte]
             wp_apply wp_load_slice_index e.kvsSl (sint.Z (W64 0)) ((c :: cs).map CachedKv.p) dq2 c.p
               hb0.1 $$ [HKs] as HKs
@@ -386,7 +386,7 @@ theorem leaseKey.get.wp_proof
               clear hmeta hkv hcount hminm hmaxm hminc hmaxc hkeys
               simp_all [getResult, getEmpty]
               all_goals (simp only [Int.lt_iff_add_one_le] at *; split <;> first | rfl | (exfalso; omega) | skip)
-            · wp_apply hmaxc $$ [$op $Hat] as op
+            · wp_apply hmaxc $$ [$Hat]
               by_cases hz2 : o.base.maxCreateRev = W64 0
               · rw [decide_eq_true hz2]
                 wp_auto
@@ -404,7 +404,7 @@ theorem leaseKey.get.wp_proof
                 wp_apply wp_load_slice_index e.kvsSl (sint.Z (W64 0)) ((c :: cs).map CachedKv.p) dq2 c.p
                   hb0.1 $$ [HKs] as HKs
                 · iframe; ipureintro; rfl
-                wp_apply hkeys $$ [$op] as op
+                wp_apply hkeys $$ [] as -
                 · unfold opFullAt; iframe #; ipureintro; exact Hf
                 wp_apply (hkv c dq2 o.keysOnly) $$ [$Hc] as %p' ⟨Hc, %c', %Hc', Hc'⟩
                 wp_apply wp_slice_literal (l := [p'])
@@ -442,7 +442,7 @@ theorem leaseKey.get.wp_proof
                 simp only [List.map_cons, List.map_nil, Hc'.2, Option.toList_some]
               · rw [decide_eq_false hz2]
                 wp_auto
-                wp_apply hmaxc $$ [$op $Hat] as op
+                wp_apply hmaxc $$ [$Hat]
                 simp only [hb0, _root_.and_self, ↓reduceIte]
                 wp_apply wp_load_slice_index e.kvsSl (sint.Z (W64 0)) ((c :: cs).map CachedKv.p) dq2 c.p
                   hb0.1 $$ [HKs] as HKs
@@ -488,7 +488,7 @@ theorem leaseKey.get.wp_proof
                   wp_apply wp_load_slice_index e.kvsSl (sint.Z (W64 0)) ((c :: cs).map CachedKv.p) dq2 c.p
                     hb0.1 $$ [HKs] as HKs
                   · iframe; ipureintro; rfl
-                  wp_apply hkeys $$ [$op] as op
+                  wp_apply hkeys $$ [] as -
                   · unfold opFullAt; iframe #; ipureintro; exact Hf
                   wp_apply (hkv c dq2 o.keysOnly) $$ [$Hc] as %p' ⟨Hc, %c', %Hc', Hc'⟩
                   wp_apply wp_slice_literal (l := [p'])

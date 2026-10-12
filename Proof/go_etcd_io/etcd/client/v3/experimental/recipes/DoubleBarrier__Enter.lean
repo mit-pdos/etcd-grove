@@ -150,8 +150,7 @@ theorem DoubleBarrier.Enter.wp_proof
     wp_auto
     wp_if_destruct
     · -- too late: delete the key (its error ignored), `ErrTooManyClients`
-      wp_method_call
-      wp_auto
+      try wp_auto
       wp_apply wp_Delete (structFieldRef EphemeralKV go!"RemoteKV" ek) ⟨GoInterface.ok kv, k, r, []⟩
         (key ++ go!"/") r $$ [Hek] as %derr ⟨Hek, -⟩
       · unfold ownRemoteKV RemoteKVSt.val'
@@ -225,8 +224,6 @@ theorem DoubleBarrier.Enter.wp_proof
       ipureintro; exact ⟨Hkr.1, Hkr.2.1, fun h => by cases h⟩
     -- an earlier waiter: wait for `key/ready`
     (try wp_auto)
-    wp_method_call
-    wp_auto
     wp_apply wp_Revision (structFieldRef EphemeralKV go!"RemoteKV" ek) ⟨GoInterface.ok kv, k, r, []⟩
       $$ [Hek] as Hek
     · unfold ownRemoteKV RemoteKVSt.val'; iexact Hek
@@ -271,8 +268,6 @@ theorem DoubleBarrier.Enter.wp_proof
     ipureintro; exact ⟨Hkr.1, Hkr.2.1, fun h => by cases h⟩
   -- fewer than `count` waiters: wait for `key/ready`
   (try wp_auto)
-  wp_method_call
-  wp_auto
   wp_apply wp_Revision (structFieldRef EphemeralKV go!"RemoteKV" ek) ⟨GoInterface.ok kv, k, r, []⟩
     $$ [Hek] as Hek
   · unfold ownRemoteKV RemoteKVSt.val'; iexact Hek

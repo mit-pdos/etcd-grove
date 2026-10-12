@@ -179,9 +179,7 @@ theorem mvcc.newWatcherBatch.wp_proof
             iexists p, q, _, _, _
             iframe «$a1» Hkv Hprev
             ipureintro; exact ⟨Ha1, Hnn.2⟩
-          wp_method_call
-          wp_call
-          wp_load
+          (try wp_auto)
           wp_apply (hAdd wbm _ key «$a1_ptr» evn) $$ [$Hwb $Hnew] as Hwb
           (try wp_auto)
           unfold forMapPostcondition

@@ -27,13 +27,10 @@ theorem confchange.Changer.apply.wp_proof
     (wp_Changer_makeVoter : confchange.Changer.makeVoter.spec (GF := GF) (hG := hG))
     (wp_confchange_incoming : confchange.incoming.spec (GF := GF) (hG := hG)) :
     confchange.Changer.apply.spec (GF := GF) (hG := hG) := by
-  intro p cfgp trk v chg cfg ccs id vm prs dq dqc Hid Hsz Hcfg Hdom Hmi
+  intro cfgp trk v chg cfg ccs id vm prs dqc Hid Hsz Hcfg Hdom Hmi
   have Hcfg' := Hcfg
   obtain ⟨⟨Harr, Hl, Hln⟩, Hal⟩ := Hcfg'
-  wp_start as ⟨Hp, Hcfgp, Hccs, Hv, Htrk, Hprogs⟩
-  wp_auto
-  wp_method_call
-  wp_call
+  wp_start as ⟨Hcfgp, Hccs, Hv, Htrk, Hprogs⟩
   wp_auto
   ihave %Hclen := ownSlice_len $$ Hccs
   have Hlen1 : sint.Z ccs.len = 1 := by
@@ -67,8 +64,8 @@ theorem confchange.Changer.apply.wp_proof
       · exact absurd rfl Hid
       -- `cc.Type == ConfChangeAddNode`: yes
       have Hdom0 : domSet prs' = domSet vm' := by rw [← h1, ← h2]; exact Hdom
-      wp_apply wp_Changer_makeVoter c_ptr cfgp trk v _ cfg id vm' prs' _ Hcfg Hdom0 Hmi
-        $$ [$c $Hcfgp $Hv $Htrk $Hprogs] as %prs'' ⟨c, Hcfgp, Hv, Htrk, %Hdom'', Hprogs⟩
+      wp_apply wp_Changer_makeVoter cfgp trk v _ cfg id vm' prs' Hcfg Hdom0 Hmi
+        $$ [$Hcfgp $Hv $Htrk $Hprogs] as %prs'' ⟨Hcfgp, Hv, Htrk, %Hdom'', Hprogs⟩
       wp_for_post
       iframe
       iexists n + W64 1, addNodeCC id, <[id := ()]> vm', prs''

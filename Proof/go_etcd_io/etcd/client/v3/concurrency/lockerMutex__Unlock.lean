@@ -31,7 +31,7 @@ theorem lockerMutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG :=
     (hUnlock : Mutex.Unlock.spec (GF := GF) (hG := hG)) :
     lockerMutex.Unlock.spec (GF := GF) (hG := hG) := by
   intro lm m s γ client id pfx st cctx ccs lo
-  wp_start as ⟨Hlm, #Hm, Hst, #Hcc, #Hctx, #Hlo⟩
+  wp_start as ⟨Hlm, #Hm, Hst, #Hcc, #Hctx, #Hlo, Hstuck⟩
   ihave #Hm' := Hm
   iunfold isMutex at Hm'
   icases Hm' with ⟨#Hms, -, -, #Hsess, -⟩
@@ -45,9 +45,6 @@ theorem lockerMutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG :=
     wp_auto
     iapply HΦ
     iframe Hlm
-    ileft
-    isplitr
-    · ipureintro; rfl
     iexact Hok
   · iunfold isPkgErr at Hexp
     icases Hexp with ⟨-, %Hne⟩
@@ -57,26 +54,14 @@ theorem lockerMutex.Unlock.wp_proof (hCl : Session.Client.spec (GF := GF) (hG :=
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     wp_apply wp_panic
-    iapply HΦ
-    iframe Hlm
-    iright
-    iexists _
-    isplitr
-    · ipureintro; exact ⟨Hne, rfl⟩
-    iexact Hst
+    iapply Hstuck $$ %_ %Hne
   · obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
       cases err with
       | nil => exact absurd rfl Hne
       | ok e => exact ⟨e, rfl⟩
     wp_auto
     wp_apply wp_panic
-    iapply HΦ
-    iframe Hlm
-    iright
-    iexists _
-    isplitr
-    · ipureintro; exact ⟨Hne, rfl⟩
-    iexact Hst
+    iapply Hstuck $$ %_ %Hne
 
 end proof
 

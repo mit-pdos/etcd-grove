@@ -92,7 +92,7 @@ theorem leaseCache.clearOldRevokes.wp_proof :
       iintro %i %key %v %m' ⟨%Hki, %Hmv, %Hagree⟩ HP Hm
       iNamed HP
       wp_auto
-      wp_apply time.Time.wp_ptr_Add $$ [$lr] as %t1 lr
+      wp_apply time.Time.wp_Add as %t1 -
       wp_apply time.wp_Since as %d -
       wp_if_destruct
       · wp_apply wp_mapDelete $$ [$Hm] as Hm

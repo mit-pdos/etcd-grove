@@ -27,12 +27,9 @@ theorem confchange.Changer.initProgress.wp_proof
     (wp_confchange_incoming : confchange.incoming.spec (GF := GF) (hG := hG))
     (wp_tracker_NewInflights : tracker.NewInflights.spec (GF := GF) (hG := hG)) :
     confchange.Changer.initProgress.spec (GF := GF) (hG := hG) := by
-  intro p cfgp trk v chg cfg id vm prs dq Hcfg Hmi
+  intro cfgp trk v chg cfg id vm prs Hcfg Hmi
   obtain ⟨⟨Harr, Hl, Hln⟩, Hal⟩ := Hcfg
-  wp_start as ⟨Hp, Hcfgp, Hv, Htrk⟩
-  wp_auto
-  wp_method_call
-  wp_call
+  wp_start as ⟨Hcfgp, Hv, Htrk⟩
   wp_auto
   wp_apply wp_confchange_incoming _ v map.nil Harr
   wp_apply wp_mapInsert $$ Hv as Hv
@@ -45,5 +42,5 @@ theorem confchange.Changer.initProgress.wp_proof
     wp_apply wp_tracker_NewInflights _ _ Hmi as %il Hinfl
     wp_apply wp_mapInsert $$ Htrk as Htrk
     iapply HΦ
-    iframe Hp Hcfgp Hv Htrk
+    iframe Hcfgp Hv Htrk
     iapply ownProgress_of _ _ .probe _ rfl rfl $$ «$r0» Hinfl

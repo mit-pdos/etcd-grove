@@ -180,11 +180,12 @@ theorem raft.campaign.wp_proof
     fun h => Hpv (of_decide_eq_true h)
   generalize decide (t = campaignPreElection) = pre at Hpvpre
   wp_auto
-  -- the voter ids, as a map. `IDs` is a method of the tracker's
-  -- `Config.Voters`, so it takes the tracker object; the call does not
-  -- change it, and the struct is re-sealed right after.
+  -- the voter ids, as a map. `IDs` is a value method of the tracker's
+  -- `Config.Voters`, read out of the tracker field when the method value is formed;
+  -- the call does not change the tracker, and the struct is re-sealed right after.
   icases ownRaftPhys_tracker_same cfg r id _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-  wp_apply (quorum.JointConfig.IDs.spec_tracker wp_JointConfig_IDs) $$ [$Htrkf $Htrk] as %mref %idm ⟨Htrkf, Hown, Hidm, %Hdomidm⟩
+  wp_auto
+  wp_apply (quorum.JointConfig.IDs.spec_tracker wp_JointConfig_IDs) $$ [$Htrk] as %mref %idm ⟨Hown, Hidm, %Hdomidm⟩
   -- `ownTracker` pins the voter set's cardinality: `campaign` runs
   -- `make([]uint64, 0, len(idMap))` and `wp_slice_make3` needs `0 ≤ cap`.
   -- (Rocq's `own_tracker_cfg_size`; here the tracker is opened and re-sealed.)

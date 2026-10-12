@@ -78,8 +78,7 @@ theorem mvcc.treeIndex.unsafeGet.wp_proof
     wp_if_destruct
     · exact absurd Hif Hn
     wp_apply (hGet z.1 gs z.2.2 z.2.1 (DFrac.own q) lg atRev e) $$ [$HzKey $Hki $Herr] as %r Hr
-    · ipureintro; exact Hlgnn
-    simp only [Hne z (List.mem_of_getElem? hi), Bool.false_eq_true, ↓reduceIte]
+    · ipureintro; exact ⟨Hlgnn, Hne z (List.mem_of_getElem? hi)⟩
     icases Hr with ⟨%Hr, Hki⟩
     subst Hr
     cases hg : mvcc.kiGet z.2.2 atRev with

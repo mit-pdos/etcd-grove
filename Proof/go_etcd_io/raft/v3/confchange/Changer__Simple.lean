@@ -35,22 +35,19 @@ theorem confchange.Changer.Simple.wp_proof
     (wp_confchange_symdiff : confchange.symdiff.spec (GF := GF) (hG := hG))
     (wp_confchange_checkAndReturn : confchange.checkAndReturn.spec (GF := GF) (hG := hG)) :
     confchange.Changer.Simple.spec (GF := GF) (hG := hG) := by
-  intro p chg ccs id v vm prs dq dqc dqv dqp Hid Hsz Hcfg Hdom Hmi
+  intro chg ccs id v vm prs dqc dqv dqp Hid Hsz Hcfg Hdom Hmi
   have Hcfg' := Hcfg
   obtain ⟨Harr, Hl, Hln⟩ := Hcfg'
-  wp_start as ⟨Hp, Hccs, Hv, Hpm, Hprogs⟩
+  wp_start as ⟨Hccs, Hv, Hpm, Hprogs⟩
   wp_auto
-  wp_method_call
-  wp_call
-  wp_auto
-  -- `cfg, trk, err := c.checkAndCopy()`, on the local copy of the receiver
-  wp_apply wp_Changer_checkAndCopy c_ptr _ v vm prs _ _ _ Hcfg Hdom $$ [$c $Hv $Hpm $Hprogs]
-    as %cfg' %trk %v' %prs' ⟨c, Hv, Hpm, %Hcfg', Hv', Htrk, %Hdom', Hprogs'⟩
+  -- `cfg, trk, err := c.checkAndCopy()`, on the receiver read from the local copy
+  wp_apply wp_Changer_checkAndCopy _ v vm prs _ _ Hcfg Hdom $$ [$Hv $Hpm $Hprogs]
+    as %cfg' %trk %v' %prs' ⟨Hv, Hpm, %Hcfg', Hv', Htrk, %Hdom', Hprogs'⟩
   -- `joint(cfg)`: no
   wp_apply wp_confchange_joint _ v' Hcfg'.1.1
   -- `c.apply(&cfg, trk, ccs...)`
-  wp_apply wp_Changer_apply c_ptr cfg_ptr trk v' _ cfg' ccs id vm prs' _ _ Hid Hsz Hcfg' Hdom' Hmi
-    $$ [$c $cfg $Hccs $Hv' $Htrk $Hprogs'] as %prs'' ⟨c, cfg, Hccs, Hv', Htrk, %Hdom'', Hprogs''⟩
+  wp_apply wp_Changer_apply cfg_ptr trk v' _ cfg' ccs id vm prs' _ Hid Hsz Hcfg' Hdom' Hmi
+    $$ [$cfg $Hccs $Hv' $Htrk $Hprogs'] as %prs'' ⟨cfg, Hccs, Hv', Htrk, %Hdom'', Hprogs''⟩
   -- `symdiff(incoming(c.Tracker.Voters), incoming(cfg.Voters))`: at most one voter changed
   wp_apply wp_confchange_incoming _ v map.nil Harr
   wp_apply wp_confchange_incoming _ v' map.nil Hcfg'.1.1

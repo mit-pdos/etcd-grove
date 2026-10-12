@@ -48,10 +48,7 @@ theorem mvcc.watcherGroup.add.wp_proof
     iframe Hfixed
     iexists fcs; iexact Hfix
   wp_auto
-  wp_method_call
-  wp_call
-  wp_load
-  simp only
+  (try wp_auto)
   wp_apply hSAdd $$ [$Hws] as Hws
   · ipureintro; rw [GMap.domSet, GMap.lookup_fmap, Hwa]; rfl
   rw [show <[wa := ()]> (GMap.domSet W) = GMap.domSet (<[wa := r]> W) from
@@ -62,10 +59,7 @@ theorem mvcc.watcherGroup.add.wp_proof
     subst Hes
     rw [_root_.decide_eq_true rfl]
     wp_auto
-    wp_method_call
-    wp_call
-    wp_load
-    simp only
+    (try wp_auto)
     wp_apply hKAdd $$ [$Hkm] as ⟨%KM', Hkm⟩
     · iframe Hfix; ipureintro; exact ⟨Hwa, hend⟩
     wp_auto
@@ -158,9 +152,7 @@ theorem mvcc.watcherGroup.add.wp_proof
       wp_auto
       rw [go.make1_underlying, go.is_underlying (t := watcherSet.ty)]
       wp_apply (wp_map_make1 (K := Loc) (V := Unit)) as %mn Hmn
-      wp_method_call
-      wp_call
-      wp_load
+      (try wp_auto)
       ihave Hmn : mvcc.ownWatcherSet mn ∅ $$ [Hmn]
       · iunfold mvcc.ownWatcherSet; iexact Hmn
       wp_apply hSAdd $$ [$Hmn] as Hmn

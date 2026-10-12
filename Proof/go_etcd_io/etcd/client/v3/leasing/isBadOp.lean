@@ -35,7 +35,7 @@ theorem isBadOp.wp_proof (hrev : Op.Rev.spec (GF := GF) (hG := hG))
   unfold opFullAt
   icases Hop with ⟨#Hat, #Hkey, %Hf, #Hval, #Hsort⟩
   wp_auto
-  wp_apply hrev $$ [$op $Hat] as op
+  wp_apply hrev $$ [$Hat]
   unfold isBadOpM
   by_cases h1 : 0 < sint.Z o.base.rev
   · simp only [show sint.Z (W64 0) = 0 from rfl, h1, decide_true, true_or]
@@ -43,7 +43,7 @@ theorem isBadOp.wp_proof (hrev : Op.Rev.spec (GF := GF) (hG := hG))
     wp_end
   · simp only [show sint.Z (W64 0) = 0 from rfl, h1, decide_false, false_or]
     wp_auto
-    wp_apply hrange $$ [$op $Hat] as %sl ⟨op, #Hend⟩
+    wp_apply hrange $$ [$Hat] as %sl #Hend
     ihave %Hlen := ownSlice_len $$ Hend
     have : decide (sint.Z (W64 0) < sint.Z sl.len) = decide (o.base.rangeEnd ≠ []) := by
       apply decide_eq_decide.2

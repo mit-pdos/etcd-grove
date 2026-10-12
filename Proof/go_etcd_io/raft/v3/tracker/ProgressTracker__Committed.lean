@@ -55,17 +55,11 @@ theorem tracker.ProgressTracker.Committed.wp_proof
   · unfold ownProgressMap
     iexists prs
     iframe Hprs Hprogs
-  -- the `Voters` field's location, out of `trk ↦ tv`
-  icases (tracker.ProgressTracker.ProgressTracker_access_load_Config trk tv (DFrac.own 1)).access_strict
-    $$ Htrk with ⟨Hcfgf, Hback1⟩
-  icases (tracker.Config.Config_access_load_Voters _ tv.Config' (DFrac.own 1)).access_strict
-    $$ Hcfgf with ⟨Hvf, Hback2⟩
-  wp_apply wp_JointConfig_CommittedIndex _ _ voters_ref voters _ _ (pvsAcked pvs)
-      $$ [$Hidx $HP $Hvf $Hvoters] as %N ⟨Hvf, ⟨%voters', %Hdom, Hvoters⟩, HP, %Hemp, %Hq⟩
+  -- `p.Voters` was read out of `trk ↦ tv` when the method value was formed
+  wp_apply wp_JointConfig_CommittedIndex _ voters_ref voters _ _ (pvsAcked pvs)
+      $$ [$Hidx $HP $Hvoters] as %N ⟨⟨%voters', %Hdom, Hvoters⟩, HP, %Hemp, %Hq⟩
   · ipureintro
     exact ⟨by rw [Hvoters_dom]; exact Hcfg_size, Hvoters_arr⟩
-  ihave Hcfgf := Hback2 $$ Hvf
-  ihave Htrk := Hback1 $$ Hcfgf
   -- the map is the tracker's: its contents agree with `Hprs`
   iunfold ownProgressMap at HP
   icases HP with ⟨%prs', #Hprs', Hprogs⟩

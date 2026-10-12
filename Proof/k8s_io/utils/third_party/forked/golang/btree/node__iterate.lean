@@ -73,9 +73,6 @@ theorem node.iterate.wp_proof (wp_find : items.find.spec (GF := GF) (hG := hG)) 
       · wp_auto
         obtain ⟨a, rfl⟩ := Hksv.1 hv
         ihave #Ha := optKey_some o start a $$ Hks
-        wp_method_call
-        wp_call
-        wp_auto
         wp_apply wp_find o isl is dq' start.item' a less hsi $$ [Hisl] as %idx %found ⟨Hisl, %Hres⟩
         · iframe # ∗
         isplitr
@@ -440,9 +437,6 @@ theorem node.iterate.wp_proof (wp_find : items.find.spec (GF := GF) (hG := hG)) 
         · wp_auto
           obtain ⟨a, rfl⟩ := Hksv.1 hv
           ihave #Ha := optKey_some o start a $$ Hks
-          wp_method_call
-          wp_call
-          wp_auto
           wp_apply wp_find o isl is dq' start.item' a less hsi $$ [Hisl]
             as %idx %fnd ⟨Hisl, %Hres⟩
           · iframe # ∗

@@ -79,8 +79,6 @@ theorem MemoryStorage.Append.wp_proof
     omega
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
-  wp_method_call
-  wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold memstorageInv at Hinv
   icases Hinv with ⟨%σp, Hinv⟩
@@ -189,8 +187,6 @@ theorem MemoryStorage.Append.wp_proof
     ihave #Hes2 : es' ↦*□ (dummy :: storApp σp (e0 :: rest)) $$ [Hes']
     · rw [← append_cut dummy σp e0 rest _ Hk (by omega)]; iexact Hes'
     -- the deferred `ms.Unlock()`, at the appended state
-    wp_method_call
-    wp_call
     wp_apply sync.Mutex.wp_Unlock
       $$ [$Hmu $Hlocked Hd_inv HhardState Hsnapshot Hvoters Hents_f Hes'_cap HcallStats]
     · inext
@@ -233,8 +229,6 @@ theorem MemoryStorage.Append.wp_proof
     ihave #Hes2 : es' ↦*□ (dummy :: storApp σp (e0 :: rest)) $$ [Hes']
     · rw [← append_end dummy σp e0 rest Hk]; iexact Hes'
     -- the deferred `ms.Unlock()`, at the appended state
-    wp_method_call
-    wp_call
     wp_apply sync.Mutex.wp_Unlock
       $$ [$Hmu $Hlocked Hd_inv HhardState Hsnapshot Hvoters Hents_f Hes'_cap HcallStats]
     · inext

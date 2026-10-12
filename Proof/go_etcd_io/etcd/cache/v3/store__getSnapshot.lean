@@ -61,6 +61,8 @@ theorem store.getSnapshot.wp_proof
     store.getSnapshot.spec (GF := GF) (hG := hG) := by
   intro s γ cap E R r0 rev
   wp_start as ⟨#HS, Hrd, #Hlb⟩
+  ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
+  · iPkgInit
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -108,7 +110,7 @@ theorem store.getSnapshot.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e _
+    wp_apply fmt.wp_Errorf _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int64 _) _root_.Perennial.fmt.ArgsWf.nil) $$ [$Hfmt $Hsl] as %e _
     wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hst Hrev HlatestRev Hhist Hrest] as Hrd
     · inext; iexists st; simp only [named]; iframe; iframe #; ipureintro; exact Hinv
     iapply HΦ

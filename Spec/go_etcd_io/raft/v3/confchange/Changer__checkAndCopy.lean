@@ -30,17 +30,17 @@ the original map is its points-to only, its `Progress` objects are not owned any
 On this path the originals are garbage after the call (`chain` replaces them), except
 `MakeProgressTracker`'s empty map, which has no `Progress` to lose. -/
 abbrev confchange.Changer.checkAndCopy.spec : Prop :=
-  ∀ (p : Loc) (chg : confchange.Changer) (v : Loc) (vm : GMap w64 Unit)
-    (prs : GMap w64 Loc) (dq dqv dqp : DFrac),
+  ∀ (chg : confchange.Changer) (v : Loc) (vm : GMap w64 Unit)
+    (prs : GMap w64 Loc) (dqv dqp : DFrac),
   ConfigVotersOnly chg.Tracker'.Config' v →
   domSet prs = domSet vm →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dq} chg ∗ v ↦${dqv} vm ∗ chg.Tracker'.Progress' ↦${dqp} prs ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ v ↦${dqv} vm ∗ chg.Tracker'.Progress' ↦${dqp} prs ∗
       ([∗map] _k ↦ pr ∈ prs, ∃ pp, ownProgress pr pp) }}
-    (App (Val (p @!! go.GoType.PointerType confchange.Changer.ty @!! go!"checkAndCopy"))
+    (App (Val (chg @!! confchange.Changer.ty @!! go!"checkAndCopy"))
       (Val #()))
   {{ (cfg' : tracker.Config) (trk v' : Loc) (prs' : GMap w64 Loc),
       RET (PairV (PairV #cfg' #trk) #interface.nil);
-      p ↦{dq} chg ∗ v ↦${dqv} vm ∗ chg.Tracker'.Progress' ↦${dqp} prs ∗
+      v ↦${dqv} vm ∗ chg.Tracker'.Progress' ↦${dqp} prs ∗
       ⌜ConfigSimple cfg' v'⌝ ∗ v' ↦$ vm ∗ trk ↦$ prs' ∗ ⌜domSet prs' = domSet vm⌝ ∗
       ([∗map] _k ↦ pr ∈ prs', ∃ pp, ownProgress pr pp) }}
 

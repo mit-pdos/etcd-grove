@@ -56,8 +56,9 @@ theorem newRaft.wp_proof
     (wp_strings_Join : strings.Join.spec (GF := GF) (hG := hG)) :
     newRaft.spec (GF := GF) (hG := hG) := by
   intro c cv lok si σ hs cs voters dqv
-    Hvalid Hlok Hsto HmaxInfl Hcq Hdpf Hmcs Hidx Hncc Hss Hpe Hhs Happ Hvne Hvnd Hv0 Hvlen62 Hcs1 Hcs2 Hcs3 Hal
+    Hvalid Hlok Hsto HmaxInfl Hcq Hdpf Hmcs Hidx Hncc Hss Hpe Hhs Happ Hvne Hvnd Hv0 Hvlen40 Hcs1 Hcs2 Hcs3 Hal
   obtain ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩ := Hvalid
+  have Hvlen62 : (voters.length : Int) ≤ 2 ^ 62 := Int.le_trans Hvlen40 (by decide)
   wp_start as ⟨Hc, #Hlg0, #HisSto, HSto, #HInit⟩
   wp_auto
   wp_apply wp_Config_validate _ _ ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩
@@ -230,20 +231,24 @@ theorem newRaft.wp_proof
   icases ownRaftPhys_tracker_same _ _ _ s3 $$ Hphys with ⟨%tv3, Htrkf, Htrk3, Htrkback⟩
   wp_apply wp_ProgressTracker_VoterNodes $$ [$Htrkf $Htrk3] as %nsl %nxs ⟨Htrkf, Htrk3, Hnsl, %Hnxs⟩
   ihave Hphys := Htrkback $$ %tv3 Htrkf Htrk3
-  -- the log line's `nodesStrs` loop; what it builds is never read
+  -- the log line's `nodesStrs` loop: one `%x` string of at most 16 bytes per voter, which
+  -- is what `strings.Join` below needs
   ihave IH : iprop(∃ (k x : w64) (sl' : GoSlice) (strs : List GoString),
       "i" ∷ i_ptr ↦ k ∗ "n" ∷ n_ptr ↦ x ∗ "nodesStrs" ∷ nodesStrs_ptr ↦ sl' ∗
       "Hstrs" ∷ sl' ↦* strs ∗
       "Hstrs_cap" ∷ ownSliceCap GoString sl' (DFrac.own 1) ∗
       "Hnsl" ∷ nsl ↦* nxs ∗
-      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (nxs.length : Int)⌝) $$ [i n nodesStrs Hnsl]
+      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (nxs.length : Int)⌝ ∗
+      "%Hstrs_len" ∷ ⌜(strs.length : Int) = sint.Z k ∧ ∀ y ∈ strs, y.length ≤ 16⌝)
+      $$ [i n nodesStrs Hnsl]
   · iexists W64 0, _, slice.nil, []
     iframe i n nodesStrs Hnsl
     isplitr
     · iapply ownSlice_nil
     isplitr
     · iapply ownSliceCap_nil
-    ipureintro; constructor <;> word
+    ipureintro
+    refine ⟨⟨by word, by word⟩, by simp, fun y hy => absurd hy List.not_mem_nil⟩
   wp_for IH
   wp_if_destruct
   · ihave %Hnl := ownSlice_len $$ Hnsl
@@ -256,9 +261,7 @@ theorem newRaft.wp_proof
     try (isplitr; (ipureintro; rfl))
     iintro %sla ⟨Hargs, -⟩
     wp_auto
-    wp_apply wp_fmt_Sprintf $$ [$Hargs] as %str Hargs
-    · ipureintro
-      exact _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.uint64 _) _root_.Perennial.fmt.ArgsWf.nil
+    wp_apply wp_fmt_Sprintf.2 $$ [$Hargs] as %str ⟨Hargs, %Hstr⟩
     wp_apply wp_slice_literal
     try (isplitr; (ipureintro; rfl))
     iintro %sl2 ⟨Hsl2, -⟩
@@ -268,11 +271,50 @@ theorem newRaft.wp_proof
     iframe
     iexists _, _, _, _
     iframe
-    ipureintro; constructor <;> word
+    ipureintro
+    refine ⟨⟨by word, by word⟩, ?_, ?_⟩
+    · simp only [List.length_append, List.length_singleton]; push_cast; word
+    · intro y hy
+      rcases List.mem_append.1 hy with hy | hy
+      · exact Hstrs_len.2 y hy
+      · rw [List.mem_singleton.1 hy]; exact Hstr
   -- the log line: `r.id`, `strings.Join(nodesStrs, ",")`, `r.Term`, then
   -- `r.raftLog.committed` and `r.raftLog.applied` through the log
   wp_apply raft.wp_load_id $$ Hphys as Hphys
-  wp_apply wp_strings_Join $$ [$Hstrs] as %joined Hstrs
+  -- `strings.Join` returns only when the join fits (`JoinFits`: at most `maxAlloc` bytes for
+  -- two or more elements). Not provable here: the strings are `fmt.Sprintf("%x", n)`, whose
+  -- output Perennial's model of `fmt` leaves arbitrary (it formats `%x` as an unknown
+  -- directive), so their lengths are unbounded. With `%x` modelled (at most 16 bytes) it
+  -- would follow from a bound on the number of voters (about `2^40`) tighter than the
+  -- spec's `2^62`.
+  have Hfits : _root_.Perennial.strings.JoinFits strs (go!",") := by
+    have Hknx : (nxs.length : Int) = voters.length := by
+      rw [Hnxs.length_eq, GMap.length_elements, GMap.size_list_to_set _ Hvnd]
+    have Hsl : strs.length ≤ 2 ^ 40 := by
+      have : (strs.length : Int) ≤ 2 ^ 40 := by
+        rw [Hstrs_len.1]; exact Int.le_trans Hk.2 (Hknx ▸ Hvlen40)
+      omega
+    have Hsum : ∀ l : List GoString, (∀ y ∈ l, y.length ≤ 16) →
+        (l.map List.length).sum ≤ 16 * l.length := by
+      intro l
+      induction l with
+      | nil => intro _; simp
+      | cons y ys ih =>
+        intro h
+        have h1 := h y List.mem_cons_self
+        have h2 := ih (fun z hz => h z (List.mem_cons_of_mem _ hz))
+        simp only [List.map_cons, List.sum_cons, List.length_cons]
+        omega
+    have Hs := Hsum strs Hstrs_len.2
+    by_cases Hne : strs = []
+    · left; rw [Hne]; simp
+    · right
+      rw [_root_.Perennial.strings.intercalate_length _ _ Hne]
+      show _ ≤ (2 : Int) ^ 48
+      have : (go!",").length = 1 := rfl
+      rw [this]
+      omega
+  wp_apply wp_strings_Join _ _ _ _ Hfits $$ [$Hstrs] as %joined Hstrs
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
   icases ownRaftPhys_log_same _ _ _ s3 $$ Hphys with ⟨Hlog3, Hlogback⟩

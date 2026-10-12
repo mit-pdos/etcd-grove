@@ -8,8 +8,6 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__isEmpty
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__findGeneration
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isEmpty
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.generation__walk
-public import Spec.go_uber_org.zap.String
-public import Spec.go_uber_org.zap.Logger__Panic
 
 @[expose] public section
 
@@ -31,42 +29,19 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.keyIndex.get.wp_proof
     (hIE : mvcc.keyIndex.isEmpty.spec (GF := GF) (hG := hG))
-    (hZS : zap.String.spec (GF := GF) (hG := hG))
-    (hPanic : zap.Logger.Panic.spec (GF := GF) (hG := hG))
     (hFG : mvcc.keyIndex.findGeneration.spec (GF := GF) (hG := hG))
     (hGE : mvcc.generation.isEmpty.spec (GF := GF) (hG := hG))
     (hW : mvcc.generation.walk.spec (GF := GF) (hG := hG)) :
     mvcc.keyIndex.get.spec (GF := GF) (hG := hG) := by
   intro p gs ki k dq lg atRev e
-  wp_start as ⟨%Hlg, #Hkey, Hki, #Herr⟩
+  wp_start as ⟨%Hlg, %Hne0, #Hkey, Hki, #Herr⟩
   wp_auto
   wp_apply (hIE p gs ki dq) $$ [Hki] as Hki
   · iframe Hki
   cases Hne : mvcc.kiIsEmpty ki
   rotate_left
-  · -- an empty key index: `lg.Panic(...)`
-    wp_auto
-    iunfold mvcc.kiKey at Hkey
-    icases Hkey with ⟨%ks, #Hks, #Hk⟩
-    wp_load
-    wp_apply wp_bytes_to_string ks k DFrac.discard $$ [$Hk] as -
-    wp_apply hZS _ _ as %f1 -
-    (try wp_auto)
-    wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1]
-    isplitr
-    · ipureintro; rfl
-    iintro %fsl ⟨-, -⟩
-    (try wp_auto)
-    wp_apply hPanic lg _ _ $$ [] as %r %Hr
-    · ipureintro; exact Hlg
-    subst Hr
-    wp_auto
-    iapply HΦ
-    simp only [↓reduceIte]
-    isplitr
-    · ipureintro; trivial
-    iexact Hki
-  simp only [Bool.false_eq_true, ↓reduceIte]
+  · -- an empty key index: excluded by the premise (`lg.Panic` would be stuck)
+    simp [Hne] at Hne0
   wp_auto
   wp_apply (hFG p gs ki dq atRev) $$ [Hki] as Hki
   · iframe Hki

@@ -1245,7 +1245,7 @@ capacity `cf.scap`), `cf.kv` a client of etcd for the prefix (`isEtcdKV`), `cf.w
 watcher (`isEtcdWatcher`), the progress requestor a `*conditionalProgressRequestor`, the internal
 context a context, `cf.clock` a clock, `cf.stop` the internal context's cancel function; the wait
 group is a `WaitGroup` with the counter invariant `cacheWgInv`; and the configuration's
-`PerWatcherBufferSize` is not negative (finding 5). -/
+`PerWatcherBufferSize` is not negative (finding 5) and below `2^32` (`make(chan T, n)`). -/
 def isCacheFields (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNames)
     (cap : Nat) : IProp GF :=
   iprop("#Hprefix" ∷ cachePrefixAddr c ↦□ cf.pfx ∗
@@ -1274,7 +1274,7 @@ def isCacheFields (c : Loc) (cf : CacheFields) (γr : ReadyNames) (γd : DemuxNa
     "#Hstop" ∷ cacheStopAddr c ↦□ cf.stop ∗
     "#HisStop" ∷ □ (∀ Φ : val → IProp GF, □ (True : IProp GF) -∗ ▷ (True -∗ Φ #()) -∗
       WP (App (Val #cf.stop) (Val #())) {{ Φ }}) ∗
-    "%Hbuf" ∷ ⌜0 ≤ sint.Z cf.cfg.PerWatcherBufferSize'⌝ ∗
+    "%Hbuf" ∷ ⌜0 ≤ sint.Z cf.cfg.PerWatcherBufferSize' ∧ sint.Z cf.cfg.PerWatcherBufferSize' < 2 ^ 32⌝ ∗
     "%Hthreads" ∷ ⌜threadBound GF + cacheWgOwedMax ≤ 2 ^ 31⌝)
 
 instance isCacheFields_persistent (c : Loc) (cf : CacheFields) (γr : ReadyNames)

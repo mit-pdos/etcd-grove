@@ -63,9 +63,7 @@ theorem mvcc.watcherSetByKey.add.wp_proof
     wp_apply (wp_map_make1 (K := Loc) (V := Unit)) as %mn Hmn
     wp_apply wp_bytes_to_string ks r.key DFrac.discard $$ [$Hks] as -
     wp_apply wp_mapInsert $$ Hkm as Hkm
-    wp_method_call
-    wp_call
-    wp_auto
+    (try wp_auto)
     ihave Hmn : mvcc.ownWatcherSet mn ∅ $$ [Hmn]
     · iunfold mvcc.ownWatcherSet; iexact Hmn
     wp_apply hAdd $$ [$Hmn] as Hmn
@@ -98,9 +96,7 @@ theorem mvcc.watcherSetByKey.add.wp_proof
     ihave %Hm0 := ownMap_not_nil _ _ _ $$ Hset
     rw [decide_eq_false Hm0]
     wp_auto
-    wp_method_call
-    wp_call
-    wp_auto
+    (try wp_auto)
     ihave Hset : mvcc.ownWatcherSet m0 (mvcc.keyMembers W r.key) $$ [Hset]
     · iunfold mvcc.ownWatcherSet; iexact Hset
     wp_apply hAdd $$ [$Hset] as Hset

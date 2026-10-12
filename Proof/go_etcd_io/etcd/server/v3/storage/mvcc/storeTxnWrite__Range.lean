@@ -83,8 +83,6 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
        rw [← hwr])
   -- `tw.rangeKeys(ctx, key, end, rev, ro)`: the promoted method, `storeTxnCommon`'s
   all_goals
-    rw [method_unfold (t := go.GoType.PointerType storeTxnWrite.ty) (m := go!"rangeKeys")]
-    wp_call
     (try wp_auto)
     -- the bucket through the batch transaction (its own puts), the index by the writer
     ihave #Hrdr := mvcc.batchTx_reader bt (mvcc.bucketView γ) (mvcc.writerRes s γ) Locked Pw fw

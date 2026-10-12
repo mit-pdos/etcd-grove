@@ -52,7 +52,7 @@ theorem leasingKV.tryModifyOp.wp_proof
   ihave #Hcv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply hKey $$ [$Hcv $op $Hop] as %ksl ⟨op, #Hk⟩
+  wp_apply hKey $$ [$Hcv $Hop] as %ksl #Hk
   wp_apply wp_bytes_to_string ksl o.key DFrac.discard $$ [$Hk] as -
   (try wp_auto)
   wp_apply (hLock (lkvLeases lkv) γ.lc pfx (leasingX lkv γ) (leasingSeen γ) o.key)

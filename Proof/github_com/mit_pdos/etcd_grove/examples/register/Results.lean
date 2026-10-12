@@ -127,7 +127,8 @@ variable [go_gctx : GoGlobalContext]
 /-- **The register's cluster driver is safe, in the operational semantics**
 (`register_adequate`): every real execution of the register package's initialization
 followed by `Main()`, from a fresh state with one thread, of any length, has no stuck
-thread, no thread ended in a panic, and the main thread's result, if any, is `#()`. -/
+thread (so no thread panics: an unrecovered panic is stuck), and the main thread's result, if
+any, is `#()`. -/
 theorem register_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.register.Assumptions]
     [hErr : context.ErrorStringIsError] [hDE : context.DeadlineExceededIsError] [hLog : log.NewModel]
@@ -136,8 +137,7 @@ theorem register_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([registerProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
-    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) :=
   register_adequate σ g Hlctx Hinit Hthreads n κs t2 σ2 Hsteps
 
 end adequacy

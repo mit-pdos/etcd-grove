@@ -27,11 +27,8 @@ theorem confchange.Changer.checkAndCopy.wp_proof
     (wp_Config_Clone : tracker.Config.Clone.spec (GF := GF) (hG := hG))
     (wp_confchange_checkAndReturn : confchange.checkAndReturn.spec (GF := GF) (hG := hG)) :
     confchange.Changer.checkAndCopy.spec (GF := GF) (hG := hG) := by
-  intro p chg v vm prs dq dqv dqp Hcfg Hdom
-  wp_start as ⟨Hp, Hv, Hpm, Hprogs⟩
-  wp_auto
-  wp_method_call
-  wp_call
+  intro chg v vm prs dqv dqp Hcfg Hdom
+  wp_start as ⟨Hv, Hpm, Hprogs⟩
   wp_auto
   -- `cfg := c.Tracker.Config.Clone()`: the field of the local copy, and back
   icases (Access.access

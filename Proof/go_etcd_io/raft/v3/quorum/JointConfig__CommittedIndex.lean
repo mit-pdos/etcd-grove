@@ -51,19 +51,17 @@ theorem quorum.JointConfig.CommittedIndex.wp_proof
     (wp_MajorityConfig_CommittedIndex :
       quorum.MajorityConfig.CommittedIndex.spec (GF := GF) (hG := hG)) :
     quorum.JointConfig.CommittedIndex.spec (GF := GF) (hG := hG) := by
-  intro c a m0 ids l PP acked
-  wp_start as ⟨%Hsz, Hc, %Harr, Hm0, #Hidx, HP⟩
-  wp_auto
-  wp_method_call
-  wp_call
-  wp_call
+  intro a m0 ids l PP acked
+  wp_start as ⟨%Hsz, %Harr, Hm0, #Hidx, HP⟩
   wp_auto
   icases array_acc_same' (GF := GF) _ (sint.Z (W64 0)) _ _ _ m0 (by decide) (by simp [Harr])
     $$ c with ⟨Hc0, Hcback⟩
+  wp_auto
+  ihave c := Hcback $$ Hc0
   -- the voter map is a real map, so the callee's `map.nil` disjunct cannot come back for it
   ihave %Hvnn := ownMap_not_nil _ _ _ $$ Hm0
-  wp_apply wp_MajorityConfig_CommittedIndex (domSet ids) $$ [$Hc0 $Hidx $HP Hm0]
-    as %N0 ⟨Hc0, Hv, HP, %Hemp0, %Hq0⟩
+  wp_apply wp_MajorityConfig_CommittedIndex (domSet ids) $$ [$Hidx $HP Hm0]
+    as %N0 ⟨Hv, HP, %Hemp0, %Hq0⟩
   · isplitr
     · ipureintro; exact Hsz
     iright
@@ -73,22 +71,22 @@ theorem quorum.JointConfig.CommittedIndex.wp_proof
   icases Hv with (⟨%Hnil, -⟩ | ⟨%voters', %Hvoters'_dom, Hvoters⟩)
   · exact absurd Hnil Hvnn
   -- `c[1]`: the nil component of a simple configuration
-  ihave c := Hcback $$ Hc0
   icases array_acc_same' (GF := GF) _ (sint.Z (W64 1)) _ _ _ map.nil (by decide) (by simp [Harr])
     $$ c with ⟨Hc1, Hcback⟩
-  wp_apply wp_MajorityConfig_CommittedIndex ∅ $$ [$Hc1 $Hidx $HP]
-    as %N1 ⟨Hc1, -, HP, %Hemp1, -⟩
+  wp_auto
+  ihave c := Hcback $$ Hc1
+  wp_apply wp_MajorityConfig_CommittedIndex ∅ $$ [$Hidx $HP]
+    as %N1 ⟨-, HP, %Hemp1, -⟩
   · isplitr
     · ipureintro; rw [GMap.map_size_empty]; decide
     ileft
     ipureintro; exact ⟨rfl, rfl⟩
   have HN1 : N1 = W64 (2 ^ 64 - 1) := Hemp1 rfl
   subst HN1
-  ihave c := Hcback $$ Hc1
   -- `min`: `c[0]`'s answer on both exits
   wp_if_destruct
   · iapply HΦ
-    iframe Hc HP
+    iframe HP
     isplitl [Hvoters]
     · iexists voters'
       iframe
@@ -98,7 +96,7 @@ theorem quorum.JointConfig.CommittedIndex.wp_proof
   · have Heq : N0 = W64 (2 ^ 64 - 1) := by word
     subst Heq
     iapply HΦ
-    iframe Hc HP
+    iframe HP
     isplitl [Hvoters]
     · iexists voters'
       iframe

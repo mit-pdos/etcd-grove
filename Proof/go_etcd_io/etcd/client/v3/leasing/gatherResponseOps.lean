@@ -97,7 +97,7 @@ theorem gatherResponseOps_wp_size
     | leaf o =>
       iunfold opTAtC at Ht
       icases Ht with ⟨#Hat, %Ho4⟩
-      wp_apply hIsTxn $$ [$op $Hat] as op
+      wp_apply hIsTxn $$ [$Hat]
       rw [decide_eq_false Ho4]
       (try wp_auto)
       wp_apply wp_slice_literal (l := [v])
@@ -125,10 +125,10 @@ theorem gatherResponseOps_wp_size
       obtain ⟨a, b, rfl, Ha, Hb⟩ := OpT.txnOp_txn o cs ts' es' op Hop1
       iunfold opTAtC at Ht
       icases Ht with ⟨#Hat, %Ho4, #Hcs, %tvs, %evs, #Htvs, #Hevs, -, #Hts', #Hes'⟩
-      wp_apply hIsTxn $$ [$op $Hat] as op
+      wp_apply hIsTxn $$ [$Hat]
       rw [decide_eq_true Ho4]
       (try wp_auto)
-      wp_apply hTxn $$ [$op] as op
+      wp_apply hTxn
       (try wp_auto)
       have Hpb : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z rsl.len := ⟨Hn.1, by
         have : sint.nat n < ps.length := (List.getElem?_eq_some_iff.1 Hpi).1

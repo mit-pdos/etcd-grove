@@ -67,8 +67,6 @@ theorem mvcc.treeIndex.Put.wp_proof
     iexists key
     iframe #
   -- `ti.Lock()`: the promoted method, through the guard
-  rw [method_unfold (t := go.GoType.PointerType treeIndex.ty) (m := go!"Lock")]
-  wp_call
   (try wp_auto)
   wp_apply +noauto sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HP⟩
   wp_auto_lc 1
@@ -137,8 +135,7 @@ theorem mvcc.treeIndex.Put.wp_proof
       rw [hrevm, hrevs]; exact mvcc.Rev.lt_zero_of_pos _ _ Hilog (by omega)
     wp_apply (hPut «$r0_ptr» slice.nil mvcc.KeyIndex.fresh lg rev.Main' rev.Sub') $$ [$Hki]
       as %r Hr
-    · ipureintro; exact Hlgnn
-    simp only [Hlt, ↓reduceIte]
+    · ipureintro; exact ⟨Hlgnn, Hlt⟩
     icases Hr with ⟨%Hr, %gs', Hki⟩
     subst Hr
     (try wp_auto)
@@ -148,8 +145,6 @@ theorem mvcc.treeIndex.Put.wp_proof
     · ipureintro; exact mvcc.kiItemLess_swo
     (try wp_auto)
     -- the deferred `ti.Unlock()`
-    rw [method_unfold (t := go.GoType.PointerType treeIndex.ty) (m := go!"Unlock")]
-    wp_call
     (try wp_auto)
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HnevL Ht Hkis Hki]
     · inext
@@ -217,14 +212,11 @@ theorem mvcc.treeIndex.Put.wp_proof
       exact mvcc.kiFold_modified_lt k _ _ _ (mvcc.Rev.lt_zero_of_pos _ _ Hilog (by omega))
         (mvcc.evsOf_rev_lt ilog pend (by omega) Hplen)
     wp_apply (hPut z.1 gs z.2.2 lg rev.Main' rev.Sub') $$ [$Hki] as %r Hr
-    · ipureintro; exact Hlgnn
-    simp only [Hlt, ↓reduceIte]
+    · ipureintro; exact ⟨Hlgnn, Hlt⟩
     icases Hr with ⟨%Hr, %gs', Hki⟩
     subst Hr
     (try wp_auto)
     -- the deferred `ti.Unlock()`
-    rw [method_unfold (t := go.GoType.PointerType treeIndex.ty) (m := go!"Unlock")]
-    wp_call
     (try wp_auto)
     have hset : mvcc.itemsOfEntries (L.set i (z.1, z.2.1, mvcc.kiPut z.2.2 ⟨W64 ilog.length, W64 pend.length⟩)) =
         mvcc.itemsOfEntries L := mvcc.itemsOfEntries_set L i z _ hi rfl rfl

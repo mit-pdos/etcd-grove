@@ -40,11 +40,8 @@ Lean notes: Rocq's `wp_MajorityConfig_len` is Perennial's `wp_map_len` at
 instance `pure_wp_map_nil_len`, which `wp_auto` uses. -/
 theorem quorum.MajorityConfig.VoteResult.wp_proof :
     quorum.MajorityConfig.VoteResult.spec (GF := GF) (hG := hG) := by
-  intro s cref mref votes_ref dq votes
-  wp_start as ⟨%Hsz, Hc, Hvotes, Hm⟩
-  wp_auto
-  wp_method_call
-  wp_call
+  intro s mref votes_ref dq votes
+  wp_start as ⟨%Hsz, Hvotes, Hm⟩
   wp_auto
   icases Hm with (⟨%Hnil, %Hs⟩ | ⟨%ids, %Hids, Hids⟩)
   · -- the nil component of a simple config: `len(c) == 0`, so `VoteWon`.
@@ -52,7 +49,7 @@ theorem quorum.MajorityConfig.VoteResult.wp_proof :
     wp_auto
     rw [show quorum.VoteWon = #VoteWon from rfl]
     iapply HΦ $$ %VoteWon
-    iframe Hc Hvotes
+    iframe Hvotes
     isplitr
     · ileft; ipureintro; exact ⟨rfl, rfl⟩
     ipureintro
@@ -67,7 +64,7 @@ theorem quorum.MajorityConfig.VoteResult.wp_proof :
     wp_auto
     rw [show quorum.VoteWon = #VoteWon from rfl]
     iapply HΦ $$ %VoteWon
-    iframe Hc Hvotes
+    iframe Hvotes
     isplitl [Hids]
     · iright
       iexists ids
@@ -195,7 +192,7 @@ theorem quorum.MajorityConfig.VoteResult.wp_proof :
     wp_auto
     rw [show quorum.VoteWon = #VoteWon from rfl]
     iapply HΦ $$ %VoteWon
-    iframe Hc Hvotes
+    iframe Hvotes
     isplitl [Hids]
     · iright; iexists ids; iframe Hids; ipureintro; exact Hids
     ipureintro
@@ -211,7 +208,7 @@ theorem quorum.MajorityConfig.VoteResult.wp_proof :
     wp_auto
     rw [show quorum.VotePending = #VotePending from rfl]
     iapply HΦ $$ %VotePending
-    iframe Hc Hvotes
+    iframe Hvotes
     isplitl [Hids]
     · iright; iexists ids; iframe Hids; ipureintro; exact Hids
     ipureintro
@@ -225,7 +222,7 @@ theorem quorum.MajorityConfig.VoteResult.wp_proof :
   -- `votedCnt + missing < q`: the candidate cannot still win
   rw [show quorum.VoteLost = #VoteLost from rfl]
   iapply HΦ $$ %VoteLost
-  iframe Hc Hvotes
+  iframe Hvotes
   isplitl [Hids]
   · iright; iexists ids; iframe Hids; ipureintro; exact Hids
   ipureintro

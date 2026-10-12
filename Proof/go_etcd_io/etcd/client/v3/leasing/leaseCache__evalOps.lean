@@ -80,7 +80,7 @@ theorem leaseCache.evalOps.wp_proof
     wp_apply wp_load_slice_index sl (sint.Z n) vs DFrac.discard v Hn.1 $$ [Hvs] as -
     · iframe #; ipureintro; exact Hvi
     ihave #Hat := Hv $$ %(sint.nat n) %v %o %Hvi %Hoi
-    wp_apply hIsGet $$ [$op $Hat] as op
+    wp_apply hIsGet $$ [$Hat]
     wp_if_destruct
     · wp_apply hbad $$ [$Hat]
       by_cases Hbad : isBadOpM o = true
@@ -94,7 +94,7 @@ theorem leaseCache.evalOps.wp_proof
         ileft; ipureintro; exact ⟨rfl, rfl⟩
       rw [Bool.eq_false_iff.mpr Hbad]
       wp_auto
-      wp_apply hKey $$ [$op $Hat] as %ksl ⟨op, #Hk⟩
+      wp_apply hKey $$ [$Hat] as %ksl #Hk
       wp_apply wp_bytes_to_string ksl o.key DFrac.discard $$ [$Hk] as -
       rw [lcOwn_def]
       icases Hown with ⟨Hentries, Hemap, Hrv, Hrmap, Hhdr, #HhdrOk, Hents, #Hfrozen⟩

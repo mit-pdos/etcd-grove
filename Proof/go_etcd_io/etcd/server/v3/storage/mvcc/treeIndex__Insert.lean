@@ -45,8 +45,6 @@ theorem mvcc.treeIndex.Insert.wp_proof
     · ipureintro; rfl
     iexact Hkey
   -- `ti.Lock()`: the promoted method, through the guard
-  rw [method_unfold (t := go.GoType.PointerType treeIndex.ty) (m := go!"Lock")]
-  wp_call
   (try wp_auto)
   wp_apply +noauto sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HP⟩
   wp_auto_lc 1
@@ -107,8 +105,6 @@ theorem mvcc.treeIndex.Insert.wp_proof
       unfold mvcc.idxOfEntries; rw [List.getElem_map, hget]
     rw [← this, List.set_getElem_self]
   -- the deferred `ti.Unlock()`
-  rw [method_unfold (t := go.GoType.PointerType treeIndex.ty) (m := go!"Unlock")]
-  wp_call
   (try wp_auto)
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HnevL Ht Hback Hki]
   · inext

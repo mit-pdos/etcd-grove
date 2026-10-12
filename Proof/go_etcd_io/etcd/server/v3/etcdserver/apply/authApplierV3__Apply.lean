@@ -143,9 +143,9 @@ theorem apply.authApplierV3.Apply.wp_proof
     · iright; iframe; ipureintro; first | rfl | (rw [hna] at h; exact h)
   | ok e =>
     wp_auto
-    wp_alloc ar as Har
+    irename «$rv0» => Har
     ihave ⟨Har, %Harn⟩ := typedPointsto_not_null_dup _ _ _ $$ Har
-    wp_auto
+    (try wp_auto)
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hinfo]
     · inext; iunfold apply.authInfoOwn; iexists _; iexact Hinfo
     iapply HΦ

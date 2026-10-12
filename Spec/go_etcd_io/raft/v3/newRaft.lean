@@ -45,8 +45,12 @@ are, in order:
   (etcd's `StartNode` with no peers), which `ownTracker`'s `Hcfg_ne` excludes -- so
   **such a node is outside the development** until it receives a snapshot, which is out
   of scope too.
-- **at most `2^62` voters.** The tracker sorts the voter ids with `slices.Sort`, whose
-  heapsort fallback overflows `int` past `2^62` elements (`ownTracker`'s `Hcfg_size`).
+- **at most `2^40` voters.** The tracker sorts the voter ids with `slices.Sort`, whose
+  heapsort fallback overflows `int` past `2^62` elements (`ownTracker`'s `Hcfg_size`); and
+  the log line joins the voters' ids, `strings.Join` of one `%x` string (at most 16 bytes)
+  per voter with `,`, which panics if the join exceeds `maxAlloc` (`2^48` bytes): at most
+  `17 * 2^40` bytes for `2^40` voters. (Tightened from `2^62` on 2026-10-12, when
+  `strings.Join` became goose's translation, with that panic.)
 
 ## What it gives
 
@@ -132,7 +136,7 @@ abbrev newRaft.spec : Prop :=
    uint.Z σ.prev.index' ≤ uint.Z cv.Applied' ∧
      uint.Z cv.Applied' ≤ uint.Z (committedAfter σ.prev hs)) →
   -- the persisted ConfState: voters only
-  voters ≠ [] → voters.Nodup → W64 0 ∉ voters → (voters.length : Int) ≤ 2 ^ 62 →
+  voters ≠ [] → voters.Nodup → W64 0 ∉ voters → (voters.length : Int) ≤ 2 ^ 40 →
   cs.VotersOutgoing'.len = W64 0 →
   cs.Learners'.len = W64 0 →
   cs.LearnersNext'.len = W64 0 →

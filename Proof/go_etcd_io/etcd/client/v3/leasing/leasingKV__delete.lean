@@ -74,7 +74,7 @@ theorem leasingKV.delete.wp_proof
     ileft; ipureintro; exact ⟨Hne, rfl⟩
   subst Heq
   (try wp_auto)
-  wp_apply hRange $$ [$Hcv $op $HopAt] as %esl ⟨op, #He⟩
+  wp_apply hRange $$ [$Hcv $HopAt] as %esl #He
   (try wp_auto)
   wp_if_destruct
   · wp_apply (hDR lkv γ pfx ctx cs opv o lo) $$ [$Hlkv $Hrd $Hsr $Hctx $Hcc $Hop $Hlo]
@@ -82,7 +82,7 @@ theorem leasingKV.delete.wp_proof
     (try wp_auto)
     iapply HΦ
     iframe
-  wp_apply hKey $$ [$Hcv $op $Hop] as %ksl ⟨op, #Hk⟩
+  wp_apply hKey $$ [$Hcv $Hop] as %ksl #Hk
   wp_apply wp_bytes_to_string ksl o.key DFrac.discard $$ [$Hk] as -
   (try wp_auto)
   ihave IH : iprop(∃ drv : Loc, "dr" ∷ dr_ptr ↦ drv ∗ "Hrd" ∷ lkvReader lkv γ pfx ∗

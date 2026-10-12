@@ -22,12 +22,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 theorem Op.ValueBytes.wp_proof : Op.ValueBytes.spec (GF := GF) (hG := hG) := by
-  intro opp op o dq
+  intro op o
   simp only [opFullAt]
-  wp_start as ⟨Hop, ⟨Hat, #Hkey, %Hf, #Hval, #Hsort⟩⟩
+  wp_start as ⟨Hat, #Hkey, %Hf, #Hval, #Hsort⟩
   obtain ⟨Ht, Hko, -, -, -, -, -, -⟩ := Hf
-  wp_auto
-  wp_method_call
   wp_auto
   iapply HΦ
   iframe

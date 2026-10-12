@@ -229,8 +229,6 @@ theorem DoubleBarrier.Leave.wp_proof
   icases Hmk with ⟨Hmk, Hek, #Hkv, %Hk⟩
   try unfold ownEphemeralKV
   (try wp_auto)
-  wp_method_call
-  wp_auto
   wp_apply wp_Key $$ [$Hek] as Hek
   have Hwls : wl ∈ s' := by
     have := List.mem_of_getElem? Hwl; rw [Hkvs, List.mem_filter] at this; exact this.1
@@ -270,8 +268,6 @@ theorem DoubleBarrier.Leave.wp_proof
       subst Hdnil
       iclear HDel
       (try wp_auto)
-      wp_method_call
-      wp_auto
       wp_apply wp_Delete _ st (key ++ go!"/") lo $$ [$Hek $Hkv $Hlo] as %err2 ⟨Hek, Hres⟩
       · ipureintro; exact Hk
       ihave #Hres := leaveResult_of_delete _ st lo err2 $$ Hres
@@ -286,8 +282,6 @@ theorem DoubleBarrier.Leave.wp_proof
       ipureintro; exact Hk
     · -- not the lowest: delete the key, wait for the lowest's deletion, retry
       (try wp_auto)
-      wp_method_call
-      wp_auto
       wp_apply wp_Delete _ st (key ++ go!"/") lo $$ [$Hek $Hkv $Hlo] as %derr ⟨Hek, Hres⟩
       · ipureintro; exact Hk
       ihave #Hres := leaveResult_of_delete _ st lo derr $$ Hres
@@ -369,8 +363,6 @@ theorem DoubleBarrier.Leave.wp_proof
       iframe Hmk' Hl
     · -- not the lowest: delete the key, wait for the lowest's deletion, retry
       (try wp_auto)
-      wp_method_call
-      wp_auto
       wp_apply wp_Delete _ st (key ++ go!"/") lo $$ [$Hek $Hkv $Hlo] as %derr ⟨Hek, Hres⟩
       · ipureintro; exact Hk
       ihave #Hres := leaveResult_of_delete _ st lo derr $$ Hres

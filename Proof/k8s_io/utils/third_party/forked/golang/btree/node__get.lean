@@ -43,9 +43,6 @@ theorem node.get.wp_proof (wp_find : items.find.spec (GF := GF) (hG := hG)) :
   ihave #HisLess := isCow_isLess o f less cow $$ Hcow'
   ihave #HitemsIs := allItems_mono o (l1 := is) (l2 := (Tree.node is cs).elems)
     (fun e he => by simpa using (items_sublist_elemsAux is cs).subset he) $$ Hitems
-  wp_method_call
-  wp_call
-  wp_auto
   wp_apply wp_find o isl is dq' key k less hsi $$ [Hisl] as %idx %found ⟨Hisl, %Hres⟩
   · iframe # ∗
   obtain ⟨Hidx, Hidx0, Hfound⟩ := Hres

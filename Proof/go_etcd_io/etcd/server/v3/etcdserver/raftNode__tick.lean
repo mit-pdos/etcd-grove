@@ -38,10 +38,6 @@ theorem raftNode.tick.wp_proof : raftNode.tick.spec (GF := GF) (hG := hG) := by
   · iPkgInit
   wp_auto
   wp_apply sync.RWMutex.wp_Lock_guard mu (rnTickInv r) $$ [$Hsync $Hmug] as ⟨Hl, HP⟩
-  rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Tick")]
-  wp_auto
-  rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Tick")]
-  wp_auto
   wp_apply HTick $$ [$HT]
   wp_apply time.wp_Now as %t -
   iunfold rnTickInv at HP

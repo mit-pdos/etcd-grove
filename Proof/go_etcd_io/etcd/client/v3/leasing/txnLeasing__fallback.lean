@@ -88,7 +88,7 @@ theorem txnLeasing.fallback.wp_proof
     wp_apply wp_load_slice_index sl (sint.Z n) vs DFrac.discard v Hn.1 $$ [Hvs] as -
     · iframe #; ipureintro; exact Hvi
     ihave #Hat := Hv $$ %(sint.nat n) %v %o %Hvi %Hoi
-    wp_apply hIsGet $$ [$op $Hat] as op
+    wp_apply hIsGet $$ [$Hat]
     wp_if_destruct
     · wp_for_post
       iframe
@@ -97,18 +97,18 @@ theorem txnLeasing.fallback.wp_proof
       iframe
       iframe #
       ipureintro; exact ⟨Hfos, by constructor <;> word⟩
-    · wp_apply hKey $$ [$op $Hat] as %ksl ⟨op, #Hk⟩
+    · wp_apply hKey $$ [$Hat] as %ksl #Hk
       wp_apply wp_bytes_to_string ksl o.key DFrac.discard $$ [$Hk] as -
       ihave #Hat' := Hat
       iunfold opFullAt at Hat'
       icases Hat' with ⟨#Hbase, -⟩
-      wp_apply hRange $$ [$op $Hbase] as %esl ⟨op, #He⟩
+      wp_apply hRange $$ [$Hbase] as %esl #He
       ihave %Hel := ownSlice_len _ _ _ $$ He
       wp_join iprop(∃ lend : GoString, lend_ptr ↦ lend ∗ op_ptr ↦ v ∗ txn_ptr ↦ txn ∗
           structFieldRef txnLeasing go!"lkv" txn ↦{dq} lkv) with [op lend txn Hlkvf]
         as ⟨%lend, lend, op, txn, Hlkvf⟩
       · (try wp_auto)
-        wp_apply hRange $$ [$op $Hbase] as %esl2 ⟨op, #He2⟩
+        wp_apply hRange $$ [$Hbase] as %esl2 #He2
         wp_apply wp_bytes_to_string esl2 o.base.rangeEnd DFrac.discard $$ [$He2] as -
         (try wp_auto)
         wp_join_done

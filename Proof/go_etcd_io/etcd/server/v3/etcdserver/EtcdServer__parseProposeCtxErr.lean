@@ -122,14 +122,14 @@ theorem EtcdServer.parseProposeCtxErr.wp_proof
       wp_apply sync.RWMutex.wp_RUnlock _ _ $$ [Hrl Htl] as Hrd
       · iframe #; iframe Hrl; inext; iunfold leadTimeP; iexists tl; iframe Htl
       (try wp_auto)
-      wp_apply time.Time.wp_ptr_Add $$ [$curLeadElected] as %prev curLeadElected
+      wp_apply time.Time.wp_Add as %prev -
       (try wp_auto)
-      wp_apply hAfter $$ [$start] as %b3 start
+      wp_apply hAfter as %b3 -
       cases b3
       · (try wp_auto)
         ppce_tail
       · (try wp_auto)
-        wp_apply time.Time.wp_ptr_Before $$ [$start] as %b4 start
+        wp_apply time.Time.wp_Before as %b4 -
         cases b4
         · (try wp_auto)
           ppce_tail

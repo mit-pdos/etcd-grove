@@ -22,11 +22,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 theorem Op.IsCountOnly.wp_proof : Op.IsCountOnly.spec (GF := GF) (hG := hG) := by
-  intro opp op o dq
+  intro op o
   simp only [opAt]
-  wp_start as ⟨Hop, ⟨%Hf, -⟩⟩
-  wp_auto
-  wp_method_call
+  wp_start as ⟨%Hf, -⟩
   wp_auto
   rw [Hf.1]
   wp_end

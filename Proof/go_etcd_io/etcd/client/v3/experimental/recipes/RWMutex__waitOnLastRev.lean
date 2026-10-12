@@ -49,8 +49,7 @@ theorem RWMutex.waitOnLastRev.wp_proof
   wp_apply wp_Client s γ client id $$ [$Hcp $Hsess]
   (try wp_auto)
   wp_apply wp_WithLastRev as %sl1 ⟨#Hsl1, Hcap1⟩
-  wp_method_call
-  wp_auto
+  try wp_auto
   unfold ownEphemeralKV
   wp_apply wp_Revision $$ [$Hek] as Hek
   wp_apply wp_WithMaxModRev (st.rev - W64 1) as %f #Hf
@@ -176,8 +175,7 @@ theorem RWMutex.waitOnLastRev.wp_proof
   wp_auto
   wp_apply wp_bytes_to_string keySl w.key DFrac.discard $$ [$HkeySl] as -
   iclear HG HKV
-  wp_method_call
-  wp_auto
+  try wp_auto
   wp_apply wp_Revision $$ [$Hek] as Hek
   wp_apply wp_slice_literal
   isplitr

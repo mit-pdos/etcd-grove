@@ -30,8 +30,6 @@ theorem RWMutex.Unlock.wp_proof (wp_Delete : RemoteKV.Delete.spec (GF := GF) (hG
   unfold rwMyKey
   wp_start as ⟨⟨Hmk, Hek, #Hkv, %Hk⟩, #Hlo⟩
   wp_auto
-  wp_method_call
-  wp_auto
   unfold ownEphemeralKV
   wp_apply wp_Delete _ st pfx lo $$ [$Hek $Hkv $Hlo] as %err ⟨Hek, Hres⟩
   · ipureintro; exact Hk

@@ -678,7 +678,7 @@ theorem v3rpc.checkIntervals.wp_proof
                     · simp [hkp, hh]
                 · wp_auto
                   unfold forMapPostcondition
-                  iright; iright; iright
+                  iright; iright; iright; ileft
                   iexists _
                   isplitr
                   · ipureintro; rfl
@@ -697,7 +697,7 @@ theorem v3rpc.checkIntervals.wp_proof
               · simp only [_root_.decide_true]
                 wp_auto
                 unfold forMapPostcondition
-                iright; iright; iright
+                iright; iright; iright; ileft
                 iexists _
                 isplitr
                 · ipureintro; rfl
@@ -797,7 +797,7 @@ theorem v3rpc.checkIntervals.wp_proof
                     · rw [decide_eq_false hc0, hh]
                 · wp_auto
                   unfold forMapPostcondition
-                  iright; iright; iright
+                  iright; iright; iright; ileft
                   iexists _
                   isplitr
                   · ipureintro; rfl
@@ -830,7 +830,7 @@ theorem v3rpc.checkIntervals.wp_proof
                       · exact absurd h hnt
                     simp [h2, h3]
                   unfold forMapPostcondition
-                  iright; iright; iright
+                  iright; iright; iright; ileft
                   iexists _
                   isplitr
                   · ipureintro; rfl
@@ -881,7 +881,7 @@ theorem v3rpc.checkIntervals.wp_proof
                       · rw [decide_eq_false hc0, hh]
                   · wp_auto
                     unfold forMapPostcondition
-                    iright; iright; iright
+                    iright; iright; iright; ileft
                     iexists _
                     isplitr
                     · ipureintro; rfl
@@ -993,8 +993,10 @@ theorem v3rpc.checkIntervals.wp_proof
         exact ⟨⟨by decide, by have := Hsll.2; word⟩, by simp [v3rpc.levelPuts], HM⟩
       clear HM
       wp_for HI
-      wp_if_destruct
-      · obtain ⟨p, hp⟩ : ∃ p, ps[(sint.Z n).toNat]? = some p :=
+      by_cases Hif : sint.Z n < sint.Z sl.len
+      · simp only [Hif, _root_.decide_true, ↓reduceIte]
+        (try wp_auto)
+        obtain ⟨p, hp⟩ : ∃ p, ps[(sint.Z n).toNat]? = some p :=
           ⟨_, List.getElem?_eq_getElem (by unfold sint.nat at Hsll; word)⟩
         obtain ⟨u, hu⟩ : ∃ u, us[(sint.Z n).toNat]? = some u :=
           ⟨_, List.getElem?_eq_getElem (by unfold sint.nat at Hsll; rw [← Hlen]; word)⟩
@@ -1108,7 +1110,9 @@ theorem v3rpc.checkIntervals.wp_proof
           rw [show (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 by word,
             v3rpc.ci_put_other hu (by intro _ h; cases h)]
           exact Hpre
-      · iapply HΦ
+      · simp only [Hif, _root_.decide_false, Bool.false_eq_true, ↓reduceIte]
+        (try wp_auto)
+        iapply HΦ
         have hn : (sint.Z n).toNat = us.length := by
           rw [← Hlen, Hsll.1]; unfold sint.nat; word
         rw [hn, List.take_length] at Hpre

@@ -6,11 +6,11 @@ A closed theorem about the operational semantics of `Main()` (`examples/register
 the program `initialize'(); Main()` -- the register package's initialization (which
 initializes its dependencies, raft's among them, then the package itself) followed by
 `Main` -- started from a fresh state (no package initialized, one thread), never gets
-stuck, no thread of it ends in a panic, and the main thread's result, if it has one, is
-`#()`. For every real execution, of any length: the thread bound comes from
+stuck (so no thread panics: an unrecovered panic is stuck), and the main thread's
+result, if it has one, is `#()`. For every real execution, of any length: the thread bound comes from
 `threads_le_steps` (one step forks at most one thread).
 
-It follows from Perennial's `goose_adequacy_nopanic`, instantiated with the disk FFI (the
+It follows from Perennial's `goose_adequacy`, instantiated with the disk FFI (the
 register's proofs are generic over the FFI; the disk's adequacy instance has trivial
 initial-state conditions) and a concrete ghost-state bundle `registerGF`, from
 `register_Main` (`Spec/.../register/Main.lean`) and the register package's
@@ -56,14 +56,10 @@ theorem realStep_threads_le {ρ₁ ρ₂ : List Expr × CfgState} {κ : List Obs
   rcases hk : redexKind e₁ with _ | _ | _ | _
   · have := baseStep_threads hb (by simp [hk]) (by simp [hk]); omega
   · obtain ⟨e₀, rfl⟩ := redexKind_eq_fork hk
-    rcases hb with ⟨hu⟩ | ⟨_, hb⟩
-    · exact absurd hu (not_unwinds_Fork _ _)
     cases hb
     simp
   · have := redexKind_eq_exit hk
     subst this
-    rcases hb with ⟨hu⟩ | ⟨_, hb⟩
-    · exact absurd hu (not_unwinds_ThreadExit _)
     cases hb
     simp; omega
   · have := baseStep_threads hb (by simp [hk]) (by simp [hk]); omega
@@ -154,6 +150,8 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.go_etcd_io.raft.v3.quorum, isPkgInit pkg_id.go_etcd_io.raft.v3.quorum),
    (pkg_id.strconv, isPkgInit pkg_id.strconv),
    (pkg_id.strings, isPkgInit pkg_id.strings),
+   (pkg_id.internal.abi, isPkgInit pkg_id.internal.abi),
+   (pkg_id.internal.bytealg, isPkgInit pkg_id.internal.bytealg),
    (pkg_id.go_etcd_io.raft.v3.confchange, isPkgInit pkg_id.go_etcd_io.raft.v3.confchange),
    (pkg_id.math.big, isPkgInit pkg_id.math.big),
    (pkg_id.crypto.rand, isPkgInit pkg_id.crypto.rand),
@@ -187,8 +185,9 @@ def registerProgram [GoSemanticsFunctions] : Expr :=
 /-- **The register's cluster driver is safe.** Every real execution of `registerProgram`
 (the register package's initialization, then `Main()`) from a fresh state -- no package
 initialized (`IsInit`), one live thread -- of any length `n`: if the main thread has
-finished, its result is `#()`; no thread is stuck (each is a value or can step); no thread
-has ended in a panic (client B's check of its `Get` among them). Parametric in the Go
+finished, its result is `#()`; no thread is stuck (each is a value or can step). An
+unrecovered panic is stuck, so no thread panics (client B's check of its `Get` among
+them). Parametric in the Go
 semantics: any `go.Semantics` at the state's local context and any package assumptions
 (the translated bodies behind the register's and its imports' names). -/
 theorem register_adequate [lctx : GoLocalContext] [sem : go.Semantics]
@@ -199,10 +198,9 @@ theorem register_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([registerProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
-    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine goose_adequacy_nopanic (GF := registerGF) (n + 1) (n + 2) registerProgram σ g
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) trivial trivial ?_
+    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) := by
+  refine goose_adequacy (GF := registerGF) (n + 1) (n + 2) registerProgram σ g
+    (fun v => v = #()) trivial trivial ?_
     n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
   intro hG _ _ HL
   obtain ⟨G, ⟨fl, lc, nh, gs⟩⟩ := hG

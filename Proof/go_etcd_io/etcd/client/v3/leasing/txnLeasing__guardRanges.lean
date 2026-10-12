@@ -105,7 +105,7 @@ theorem txnLeasing.guardRanges.wp_proof
     ihave #Hat' := Hat
     iunfold opFullAt at Hat'
     icases Hat' with ⟨#Hbase, -⟩
-    wp_apply hIsGet $$ [$op $Hat] as op
+    wp_apply hIsGet $$ [$Hat]
     wp_if_destruct
     · (try wp_auto)
       wp_for_post
@@ -115,7 +115,7 @@ theorem txnLeasing.guardRanges.wp_proof
       iframe
       iframe #
       ipureintro; constructor <;> word
-    · wp_apply hRange $$ [$op $Hbase] as %esl ⟨op, #He⟩
+    · wp_apply hRange $$ [$Hbase] as %esl #He
       ihave %Hel := ownSlice_len _ _ _ $$ He
       (try wp_auto)
       wp_if_destruct
@@ -128,9 +128,9 @@ theorem txnLeasing.guardRanges.wp_proof
         iframe #
         ipureintro; constructor <;> word
       · (try wp_auto)
-        wp_apply hKey $$ [$op $Hat] as %ksl ⟨op, #Hk⟩
+        wp_apply hKey $$ [$Hat] as %ksl #Hk
         wp_apply wp_bytes_to_string ksl o.key DFrac.discard $$ [$Hk] as -
-        wp_apply hRange $$ [$op $Hbase] as %esl2 ⟨op, #He2⟩
+        wp_apply hRange $$ [$Hbase] as %esl2 #He2
         wp_apply wp_bytes_to_string esl2 o.base.rangeEnd DFrac.discard $$ [$He2] as -
         (try wp_auto)
         wp_apply (hRR lkv γ pfx ctx cs o.key o.base.rangeEnd) $$ [$HLKV $Hrd $Hsr $Hctx $Hcc]

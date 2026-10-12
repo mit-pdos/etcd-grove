@@ -55,7 +55,7 @@ theorem Cache.validateGet.wp_proof
   ihave #Hcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   wp_auto
-  wp_apply wp_IsCountOnly $$ [$op $Ho] as op
+  wp_apply wp_IsCountOnly $$ [$Ho]
   wp_if_destruct
   · wp_apply wp_slice_literal
     isplitr
@@ -72,7 +72,7 @@ theorem Cache.validateGet.wp_proof
     · ipureintro; simp
     unfold errorStringSpec; iexact HeS
   have HcountOnly : o.countOnly = false := by simpa using Hif
-  wp_apply wp_IsPrevKV $$ [$op $Ho] as op
+  wp_apply wp_IsPrevKV $$ [$Ho]
   wp_if_destruct
   · wp_apply wp_slice_literal
     isplitr
@@ -89,7 +89,7 @@ theorem Cache.validateGet.wp_proof
     · ipureintro; simp
     unfold errorStringSpec; iexact HeS
   have HprevKV : o.prevKV = false := by simpa using Hif
-  wp_apply wp_IsSortSet $$ [$op $Ho] as op
+  wp_apply wp_IsSortSet $$ [$Ho]
   wp_if_destruct
   · wp_apply wp_slice_literal
     isplitr
@@ -106,9 +106,9 @@ theorem Cache.validateGet.wp_proof
     · ipureintro; simp
     unfold errorStringSpec; iexact HeS
   have HsortSet : o.sortSet = false := by simpa using Hif
-  wp_apply wp_Limit $$ [$op $Ho] as op
+  wp_apply wp_Limit $$ [$Ho]
   wp_if_destruct
-  · wp_apply wp_Limit $$ [$op $Ho] as op
+  · wp_apply wp_Limit $$ [$Ho]
     wp_apply wp_slice_literal
     isplitr
     · ipureintro; rfl
@@ -126,9 +126,9 @@ theorem Cache.validateGet.wp_proof
     · ipureintro; simp
     unfold errorStringSpec; iexact HeS
   have Hlimit : o.limit = W64 0 := Classical.byContradiction fun hne => Hif (by rw [decide_eq_false hne]; rfl)
-  wp_apply wp_MinModRev $$ [$op $Ho] as op
+  wp_apply wp_MinModRev $$ [$Ho]
   wp_if_destruct
-  · wp_apply wp_MinModRev $$ [$op $Ho] as op
+  · wp_apply wp_MinModRev $$ [$Ho]
     wp_apply wp_slice_literal
     isplitr
     · ipureintro; rfl
@@ -146,9 +146,9 @@ theorem Cache.validateGet.wp_proof
     · ipureintro; simp
     unfold errorStringSpec; iexact HeS
   have HminModRev : o.minModRev = W64 0 := Classical.byContradiction fun hne => Hif (by rw [decide_eq_false hne]; rfl)
-  wp_apply wp_MaxModRev $$ [$op $Ho] as op
+  wp_apply wp_MaxModRev $$ [$Ho]
   wp_if_destruct
-  · wp_apply wp_MaxModRev $$ [$op $Ho] as op
+  · wp_apply wp_MaxModRev $$ [$Ho]
     wp_apply wp_slice_literal
     isplitr
     · ipureintro; rfl
@@ -166,9 +166,9 @@ theorem Cache.validateGet.wp_proof
     · ipureintro; simp
     unfold errorStringSpec; iexact HeS
   have HmaxModRev : o.maxModRev = W64 0 := Classical.byContradiction fun hne => Hif (by rw [decide_eq_false hne]; rfl)
-  wp_apply wp_MinCreateRev $$ [$op $Ho] as op
+  wp_apply wp_MinCreateRev $$ [$Ho]
   wp_if_destruct
-  · wp_apply wp_MinCreateRev $$ [$op $Ho] as op
+  · wp_apply wp_MinCreateRev $$ [$Ho]
     wp_apply wp_slice_literal
     isplitr
     · ipureintro; rfl
@@ -186,9 +186,9 @@ theorem Cache.validateGet.wp_proof
     · ipureintro; simp
     unfold errorStringSpec; iexact HeS
   have HminCreateRev : o.minCreateRev = W64 0 := Classical.byContradiction fun hne => Hif (by rw [decide_eq_false hne]; rfl)
-  wp_apply wp_MaxCreateRev $$ [$op $Ho] as op
+  wp_apply wp_MaxCreateRev $$ [$Ho]
   wp_if_destruct
-  · wp_apply wp_MaxCreateRev $$ [$op $Ho] as op
+  · wp_apply wp_MaxCreateRev $$ [$Ho]
     wp_apply wp_slice_literal
     isplitr
     · ipureintro; rfl
@@ -209,7 +209,7 @@ theorem Cache.validateGet.wp_proof
   have hu : o.getUnsupported = false := by simp [OpModel.getUnsupported, HcountOnly, HprevKV, HsortSet, Hlimit, HminModRev, HmaxModRev, HminCreateRev, HmaxCreateRev]
   wp_apply wp_string_to_bytes key as %ssl ⟨Hssl, -⟩
   ipersist Hssl
-  wp_apply wp_RangeBytes $$ [$op $Ho] as %esl ⟨op, #Hesl⟩
+  wp_apply wp_RangeBytes $$ [$Ho] as %esl #Hesl
   wp_apply wp_validateRange c cf γr γd cap ssl esl key o.rangeEnd DFrac.discard DFrac.discard $$ [$Hc $Hssl $Hesl] as %err ⟨-, -, #Herr⟩
   cases hv : validRange cf.pfx key o.rangeEnd
   · simp only [rangeErr, hv, Bool.false_eq_true, ↓reduceIte]

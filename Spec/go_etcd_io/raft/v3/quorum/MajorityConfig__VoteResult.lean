@@ -32,9 +32,8 @@ This is the arithmetic half of `TallyVotes`: `JointConfig.VoteResult` calls it o
 of the two components of the joint config (`quorum.go:154,158`) and combines the two
 answers.
 
-The receiver is a `*MajorityConfig`, i.e. a location `cref` holding the map value
-`mref`, because the call site indexes the `JointConfig` array and takes the address of
-the element. The component is described by its *id set* `s`, and the two shapes a
+The receiver is the map value `mref` (a value receiver: the call site reads the element
+of the `JointConfig` array when it forms the method value). The component is described by its *id set* `s`, and the two shapes a
 component can have are both allowed:
 
   - `mref = map.nil` -- the second component of a simple configuration
@@ -73,16 +72,16 @@ The size bound is needed because `len`, `votedCnt`, `missing` and `q` are `go.in
 `size s < 2^63` none of the additions wraps. Callers get it from `ownTracker`'s
 `Hcfg_size`. -/
 abbrev quorum.MajorityConfig.VoteResult.spec : Prop :=
-  ∀ (s : GSet w64) (cref mref votes_ref : Loc) (dq : DFrac) (votes : GMap w64 Bool),
+  ∀ (s : GSet w64) (mref votes_ref : Loc) (dq : DFrac) (votes : GMap w64 Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗
       ⌜(GMap.size s : Int) < 2 ^ 63⌝ ∗
-      cref ↦ mref ∗ votes_ref ↦${dq} votes ∗
+      votes_ref ↦${dq} votes ∗
       (⌜mref = map.nil ∧ s = ∅⌝ ∨
        ∃ (ids : GMap w64 Unit), ⌜domSet ids = s⌝ ∗ mref ↦$ ids) }}
-    (App (Val (cref @!! go.GoType.PointerType quorum.MajorityConfig.ty @!! go!"VoteResult"))
+    (App (Val (mref @!! quorum.MajorityConfig.ty @!! go!"VoteResult"))
       (Val #votes_ref))
   {{ (res : w8), RET #res;
-      cref ↦ mref ∗ votes_ref ↦${dq} votes ∗
+      votes_ref ↦${dq} votes ∗
       (⌜mref = map.nil ∧ s = ∅⌝ ∨
        ∃ (ids : GMap w64 Unit), ⌜domSet ids = s⌝ ∗ mref ↦$ ids) ∗
       ⌜res = VoteWon ∨ res = VoteLost ∨ res = VotePending⌝ ∗

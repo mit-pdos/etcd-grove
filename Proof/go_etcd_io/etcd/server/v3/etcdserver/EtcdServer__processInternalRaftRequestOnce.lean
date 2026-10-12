@@ -174,9 +174,7 @@ local macro "piro_tail" : tactic => `(tactic| (
     iunfold raftPropose at Hprop
     icases Hprop with ⟨%ni, %Hni, #HPropose⟩
     ihave #Hau := srvPropAu_trivial ρ.raft bs $$ Hclog
-    rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Propose")]
     (try wp_auto)
-    rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Propose")]
     wp_pures
     (try wp_auto)
     rw [Hni]

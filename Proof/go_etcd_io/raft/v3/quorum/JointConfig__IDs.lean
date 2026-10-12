@@ -32,17 +32,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem quorum.JointConfig.IDs.wp_proof :
     quorum.JointConfig.IDs.spec (GF := GF) (hG := hG) := by
-  intro p jc v vm dq dqv Harr
+  intro jc v vm dqv Harr
   obtain ⟨arr⟩ := jc
   simp only at Harr
   subst Harr
-  wp_start as ⟨Hp, Hvoters⟩
-  -- `wp_auto` reads the `JointConfig` out of `p ↦{dq} jc` and reduces the pointer method
-  -- to the value method applied to the `JointConfig` value.
-  wp_auto
-  wp_method_call
-  wp_call
-  -- `GoAlloc JointConfig` gives `"c" ∷ c_ptr ↦ jc`
+  wp_start as Hvoters
+  -- the value method's call, then `GoAlloc JointConfig` gives `"c" ∷ c_ptr ↦ jc`
   wp_auto
   -- `m := map[uint64]struct{}{}`
   wp_apply wp_map_make1 (K := w64) (V := Unit) as %mref Hmref
@@ -115,7 +110,7 @@ theorem quorum.JointConfig.IDs.wp_proof :
     rw [Int.toNat_natCast, ← Hklen, List.take_length] at Hidm
     wp_for_post
     simp only [named]
-    iframe HΦ Hp
+    iframe HΦ
     iexists W64 1, _, _
     iframe
     ipureintro; right; left; refine ⟨rfl, ?_⟩
@@ -126,13 +121,13 @@ theorem quorum.JointConfig.IDs.wp_proof :
     wp_auto
     wp_for_post
     simp only [named]
-    iframe HΦ Hp
+    iframe HΦ
     iexists W64 2, _, _
     iframe
     ipureintro; right; right; exact ⟨rfl, Hdom⟩
   · -- `return m`
     iapply HΦ
-    iframe Hp Hvoters Hmref
+    iframe Hvoters Hmref
     ipureintro
     exact Hdom
 

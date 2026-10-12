@@ -88,22 +88,23 @@ theorem txnLeasing.commitToCache.wp_proof
     wp_apply wp_load_slice_index ops (sint.Z n) ovs DFrac.discard v Hn.1 $$ [Hovs] as -
     · iframe #; ipureintro; exact Hvi
     ihave #Hat := Hovall $$ %(sint.nat n) %v %o %Hvi %Hoi
-    wp_apply hKey $$ [$op $Hat] as %ksl ⟨op, #Hk⟩
+    wp_apply hKey $$ [$Hat] as %ksl #Hk
     wp_apply wp_bytes_to_string ksl o.key DFrac.discard $$ [$Hk] as -
-    wp_apply hIsDel $$ [$op $Hat] as op
+    wp_apply hIsDel $$ [$Hat]
     ihave #Hat' := Hat
     iunfold opFullAt at Hat'
     icases Hat' with ⟨#Hbase, -⟩
     by_cases h3 : o.t = W64 3
     · rw [decide_eq_true h3]
-      wp_apply hRange $$ [$op $Hbase] as %esl ⟨op, #He⟩
+      wp_auto
+      wp_apply hRange $$ [$Hbase] as %esl #He
       ihave %Helen := ownSlice_len _ _ _ $$ He
       by_cases hr : o.base.rangeEnd = []
       · have hlen0 : sint.Z esl.len = 0 := by
           have := Helen.1; rw [hr] at this; simp at this; word
         rw [decide_eq_false (by word : ¬ sint.Z (W64 0) < sint.Z esl.len)]
         wp_auto
-        wp_apply hIsDel $$ [$op $Hat] as op
+        wp_apply hIsDel $$ [$Hat]
         rw [decide_eq_true h3]
         wp_auto
         wp_apply hdel $$ [$Hown $Hhm] as ⟨%h', Hown⟩
@@ -112,7 +113,7 @@ theorem txnLeasing.commitToCache.wp_proof
           (fun e => (del_fields e h' hm).1) Hsame
         ihave #Hf' := modify_facts pfx o.key (fun e => e.del h' hm) st
           (fun e => (del_fields e h' hm).2) $$ Hf
-        wp_apply hIsPut $$ [$op $Hat] as op
+        wp_apply hIsPut $$ [$Hat]
         rw [decide_eq_false (by rw [h3]; decide : ¬ (o.t = W64 2))]
         wp_auto
         wp_for_post
@@ -130,7 +131,7 @@ theorem txnLeasing.commitToCache.wp_proof
           word
         rw [decide_eq_true hlenpos]
         wp_auto
-        wp_apply hRange $$ [$op $Hbase] as %esl2 ⟨op, #He2⟩
+        wp_apply hRange $$ [$Hbase] as %esl2 #He2
         wp_apply wp_bytes_to_string esl2 o.base.rangeEnd DFrac.discard $$ [$He2] as -
         icases lcOwn_emap_acc $$ Hown with ⟨Hentries, Hemap, Hcl⟩
         wp_auto
@@ -140,7 +141,7 @@ theorem txnLeasing.commitToCache.wp_proof
           wp_auto
           ihave Hown := Hcl $$ Hentries Hemap
           have HSAME := Hsame
-          wp_apply hIsPut $$ [$op $Hat] as op
+          wp_apply hIsPut $$ [$Hat]
           rw [decide_eq_false (by rw [h3]; decide : ¬ (o.t = W64 2))]
           wp_auto
           wp_for_post
@@ -236,7 +237,7 @@ theorem txnLeasing.commitToCache.wp_proof
           · simp only [emapOwn, hs4, hnil, ↓reduceIte, hs3]; iexact Hm
           wp_auto
           have HSAME := hs1
-          wp_apply hIsPut $$ [$op $Hat] as op
+          wp_apply hIsPut $$ [$Hat]
           rw [decide_eq_false (by rw [h3]; decide : ¬ (o.t = W64 2))]
           wp_auto
           wp_for_post
@@ -248,15 +249,15 @@ theorem txnLeasing.commitToCache.wp_proof
           ipureintro; exact ⟨HSAME, by word, by word⟩
     · rw [decide_eq_false h3]
       wp_auto
-      wp_apply hIsDel $$ [$op $Hat] as op
+      wp_apply hIsDel $$ [$Hat]
       rw [decide_eq_false h3]
       wp_auto
-      wp_apply hIsPut $$ [$op $Hat] as op
+      wp_apply hIsPut $$ [$Hat]
       by_cases h2 : o.t = W64 2
       · rw [decide_eq_true h2]
         wp_auto
-        wp_apply hKey $$ [$op $Hat] as %ksl2 ⟨op, #Hk2⟩
-        wp_apply hVal $$ [$op $Hat] as %vsl ⟨op, #Hv⟩
+        wp_apply hKey $$ [$Hat] as %ksl2 #Hk2
+        wp_apply hVal $$ [$Hat] as %vsl #Hv
         wp_apply (hupd (lkvLeases lkv) st ksl2 o.key vsl o.val hdr hm) $$ [$Hown $Hk2 $Hv $Hhm] as ⟨%p, %sl', Hown⟩
         · ipureintro; exact Hsame.1
         have Hsame' := cacheSame_modify st0 st o.key

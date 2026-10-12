@@ -61,7 +61,12 @@ theorem readOnly.recvAck.wp_proof : readOnly.recvAck.spec (GF := GF) (hG := hG) 
       · exact h
     wp_apply wp_map_lookup1 $$ Hacks as Hacks
     rw [show cs = cs.take 8 ++ cs.drop 8 from (List.take_append_drop 8 cs).symm]
-    wp_apply encoding.binary.wp_LittleEndian_Uint64 ctx (cs.take 8) dq (cs.drop 8)
+    -- `binary.LittleEndian.Uint64`: the global is read, then the value method
+    ihave #Hbin : isPkgInit (PROP := IProp GF) pkg_id.encoding.binary $$ []
+    · iPkgInit
+    ihave #Hle := isPkgInit_access (PROP := IProp GF) pkg_id.encoding.binary $$ Hbin
+    wp_auto
+    wp_apply encoding.binary.littleEndian.wp_Uint64 _ ctx (cs.take 8) (cs.drop 8) dq
       (by rw [List.length_take]; omega) $$ [$Hctx] as Hctx
     wp_func_call
     wp_call

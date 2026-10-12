@@ -161,8 +161,8 @@ theorem tracker.ProgressTracker.TallyVotes.wp_proof
   ihave Hown := ownTracker_intro cfg tv votes prs pvs voters_ref voters
     learners learnersNext Hprs_dom Hvoters_arr Hautoleave Hvoters_dom Hno_learners Hcfg_size
     HmaxInfl $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext
-  wp_apply wp_JointConfig_VoteResult cfg trk tv ⟨votes, prs, pvs⟩ Hcfg_ne $$ [$Htrk $Hown]
-    as %res ⟨Htrk, Hown, %Hres, %Hwon, %Hlost⟩
+  wp_apply wp_JointConfig_VoteResult cfg tv ⟨votes, prs, pvs⟩ Hcfg_ne $$ [$Hown]
+    as %res ⟨Hown, %Hres, %Hwon, %Hlost⟩
   iapply HΦ
   iframe Htrk Hown
   ipureintro

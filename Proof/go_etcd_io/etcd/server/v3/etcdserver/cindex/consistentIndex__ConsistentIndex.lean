@@ -44,7 +44,7 @@ theorem consistentIndex.ConsistentIndex.wp_proof
   icases Hci with ⟨#Hinv, #Hmu⟩
   (try wp_auto)
   -- the fast read: the first linearization point
-  wp_apply_core sync.atomic.wp_LoadUint64 $$ [] [HΦ Hown ci defer]
+  wp_apply_core sync.atomic.wp_LoadUint64 $$ [] [HΦ Hown ci defer «$res0»]
   · iPkgInit
   iinv Hinv with Hi Hclose
   imod HΦ with ⟨%k, Hk, HΦ⟩
@@ -85,13 +85,13 @@ theorem consistentIndex.ConsistentIndex.wp_proof
   dsimp only
   wp_apply HReadTx as %rt #Hrt
   (try wp_auto)
-  wp_apply_core (hR rt E View) $$ [] [HΦ Hown Hb1 Hlocked defer ci]
+  wp_apply_core (hR rt E View) $$ [] [HΦ Hown Hb1 Hlocked defer ci «$res0»]
   · iframe Hsch Hrt
   iapply readCIAU_wand $$ HΦ
   iintro %m Hm
   (try wp_auto)
   -- the store: the second linearization point
-  wp_apply_core (hS ci γ m.1 m.2) $$ [] [Hm Hown Hb1 Hlocked defer v]
+  wp_apply_core (hS ci γ m.1 m.2) $$ [] [Hm Hown Hb1 Hlocked defer v «$res0»]
   · iframe Hpkg; iunfold isCI; iframe Hinv Hmu
   imod Hm with ⟨%k', Hk', Hm⟩
   imodintro

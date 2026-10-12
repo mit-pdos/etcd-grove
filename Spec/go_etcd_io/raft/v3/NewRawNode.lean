@@ -88,7 +88,7 @@ abbrev NewRawNode.spec : Prop :=
   σ.pend = [] →
   HsEmpty hs →
   -- the persisted ConfState: voters only, this node among them, and the cluster's
-  voters ≠ [] → voters.Nodup → W64 0 ∉ voters → (voters.length : Int) ≤ 2 ^ 62 →
+  voters ≠ [] → voters.Nodup → W64 0 ∉ voters → (voters.length : Int) ≤ 2 ^ 40 →
   cs.VotersOutgoing'.len = W64 0 →
   cs.Learners'.len = W64 0 →
   cs.LearnersNext'.len = W64 0 →

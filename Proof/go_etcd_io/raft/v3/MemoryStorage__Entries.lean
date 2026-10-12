@@ -32,8 +32,6 @@ theorem MemoryStorage.Entries.wp_proof
   wp_auto
   wp_apply wp_with_defer as %defer defer
   -- `ms.Lock()`: the method of the embedded `sync.Mutex`
-  wp_method_call
-  wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold memstorageInv at Hinv
   icases Hinv with ⟨%σ, Hinv⟩
@@ -122,8 +120,6 @@ theorem MemoryStorage.Entries.wp_proof
     exact ⟨Hsnap_id, Hd0', Hd1'⟩
   wp_auto
   -- the deferred `ms.Unlock()`
-  wp_method_call
-  wp_call
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv Hf]
   · unfold memstorageInv
     iexists σ

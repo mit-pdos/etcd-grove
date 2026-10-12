@@ -199,7 +199,8 @@ theorem EtcdServer.applyEntries.wp_proof
     · ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
       · iPkgInit
       wp_auto
-      wp_apply fmt.wp_Errorf _ slice.nil ([] : List GoAny) $$ [] as %err -
+      wp_apply fmt.wp_Errorf _ slice.nil ([] : List GoAny) _root_.Perennial.fmt.ArgsWf.nil
+        $$ [$Hfmt] as %err -
       · iapply ownSlice_nil
       (try wp_auto)
       wp_apply wp_fork $$ []

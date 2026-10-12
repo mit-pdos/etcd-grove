@@ -45,7 +45,11 @@ theorem decode.wp_proof : decode.spec (GF := GF) (hG := hG) := by
   simp only []
   ihave Hb := (show (b ↦*{dq} d : IProp GF) ⊣⊢ b ↦*{dq} (d.take 8 ++ d.drop 8) by
     rw [List.take_append_drop 8 d]; exact .rfl).1 $$ Hb
-  wp_apply encoding.binary.wp_LittleEndian_Uint64 b (d.take 8) dq (d.drop 8)
+  ihave #Hbin : isPkgInit (PROP := IProp GF) pkg_id.encoding.binary $$ []
+  · iPkgInit
+  ihave #Hle := isPkgInit_access (PROP := IProp GF) pkg_id.encoding.binary $$ Hbin
+  wp_auto
+  wp_apply encoding.binary.littleEndian.wp_Uint64 _ b (d.take 8) (d.drop 8) dq
     (by simp; omega) $$ [$Hb] as Hb
   rw [List.take_append_drop 8 d]
   rw [ite_eq_left (by word)]
@@ -53,7 +57,8 @@ theorem decode.wp_proof : decode.spec (GF := GF) (hG := hG) := by
   ihave Hb2 := (show (slice.slice b w8 (W64 8) b.len ↦*{dq} d.drop (sint.nat (W64 8)) : IProp GF) ⊣⊢
       slice.slice b w8 (W64 8) b.len ↦*{dq} ((d.drop 8).take 8 ++ (d.drop 8).drop 8) by
     rw [List.take_append_drop]; exact .rfl).1 $$ Hb2
-  wp_apply encoding.binary.wp_LittleEndian_Uint64 _ ((d.drop 8).take 8) dq ((d.drop 8).drop 8)
+  wp_auto
+  wp_apply encoding.binary.littleEndian.wp_Uint64 _ _ ((d.drop 8).take 8) ((d.drop 8).drop 8) dq
     (by simp; omega) $$ [$Hb2] as Hb2
   rw [List.take_append_drop]
   ihave Hb2 : slice.slice b w8 (W64 8) b.len ↦*{dq} d.drop (sint.nat (W64 8)) $$ [Hb2]

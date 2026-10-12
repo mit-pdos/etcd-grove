@@ -29,13 +29,10 @@ theorem confchange.Changer.makeVoter.wp_proof
     (wp_confchange_incoming : confchange.incoming.spec (GF := GF) (hG := hG))
     (wp_confchange_nilAwareDelete : confchange.nilAwareDelete.spec (GF := GF) (hG := hG)) :
     confchange.Changer.makeVoter.spec (GF := GF) (hG := hG) := by
-  intro p cfgp trk v chg cfg id vm prs dq Hcfg Hdom Hmi
+  intro cfgp trk v chg cfg id vm prs Hcfg Hdom Hmi
   have Hcfg' := Hcfg
   obtain ⟨⟨Harr, Hl, Hln⟩, Hal⟩ := Hcfg'
-  wp_start as ⟨Hp, Hcfgp, Hv, Htrk, Hprogs⟩
-  wp_auto
-  wp_method_call
-  wp_call
+  wp_start as ⟨Hcfgp, Hv, Htrk, Hprogs⟩
   wp_auto
   -- `pr := trk[id]`
   wp_apply wp_map_lookup1 $$ Htrk as Htrk
@@ -43,11 +40,11 @@ theorem confchange.Changer.makeVoter.wp_proof
   · -- a new id: `initProgress`
     simp only [Option.getD_none]
     wp_auto
-    -- `c.initProgress(...)` on the local copy of the receiver
-    wp_apply wp_Changer_initProgress c_ptr _ _ v _ _ _ _ _ _ Hcfg Hmi $$ [$c $Hcfgp $Hv $Htrk]
-      as %pr %pp ⟨c, Hcfgp, Hv, Htrk, Hpr⟩
+    -- `c.initProgress(...)` on the receiver, read from the local copy
+    wp_apply wp_Changer_initProgress _ _ v _ _ _ _ _ Hcfg Hmi $$ [$Hcfgp $Hv $Htrk]
+      as %pr %pp ⟨Hcfgp, Hv, Htrk, Hpr⟩
     iapply HΦ
-    iframe Hp Hcfgp Hv Htrk
+    iframe Hcfgp Hv Htrk
     isplitr
     · ipureintro
       rw [GMap.dom_insert, GMap.dom_insert, Hdom]
@@ -83,7 +80,7 @@ theorem confchange.Changer.makeVoter.wp_proof
     wp_apply wp_confchange_incoming _ v map.nil Harr
     wp_apply wp_mapInsert $$ Hv as Hv
     iapply HΦ
-    iframe Hp Hcfgp Hv Htrk
+    iframe Hcfgp Hv Htrk
     have Hid_vm : vm !! id = some () := by
       have h1 : id ∈ domSet prs := GMap.elem_of_dom_2 _ _ _ Hlk
       rw [Hdom, GMap.elem_of_dom] at h1

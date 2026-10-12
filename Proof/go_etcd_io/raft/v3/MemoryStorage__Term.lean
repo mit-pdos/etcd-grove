@@ -31,8 +31,6 @@ theorem MemoryStorage.Term.wp_proof :
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
-  wp_method_call
-  wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold memstorageInv at Hinv
   icases Hinv with ⟨%σ0, Hinv⟩
@@ -93,8 +91,6 @@ theorem MemoryStorage.Term.wp_proof :
       simp only [List.getElem?_cons_succ] at He
       rw [He]
       rfl
-  wp_method_call
-  wp_call
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState Hsnapshot Hvoters Hents_f Hents_cap HcallStats]
   · inext
     unfold memstorageInv memstorageFields

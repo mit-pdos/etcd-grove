@@ -22,13 +22,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `op.MinCreateRev()` (called through a pointer, as the cache does): the minimum create revision, `o.minCreateRev`. A read, on
-any fraction. -/
+/-- `op.MinCreateRev()`: the minimum create revision, `o.minCreateRev`. -/
 abbrev Op.MinCreateRev.spec : Prop :=
-  ∀ (opp : Loc) (op : go_etcd_io.etcd.client.v3.Op) (o : OpModel) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opp ↦{dq} op ∗ opAt op o }}
-    (App (Val (opp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Op.ty @!! go!"MinCreateRev")) (Val #()))
-  {{ RET #(o.minCreateRev); opp ↦{dq} op }}
+  ∀ (op : go_etcd_io.etcd.client.v3.Op) (o : OpModel),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opAt op o }}
+    (App (Val (op @!! go_etcd_io.etcd.client.v3.Op.ty @!! go!"MinCreateRev")) (Val #()))
+  {{ RET #(o.minCreateRev); True }}
 
 end spec
 

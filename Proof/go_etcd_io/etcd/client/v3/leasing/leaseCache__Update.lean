@@ -122,9 +122,6 @@ theorem leaseCache.Update.wp_proof : leaseCache.Update.spec (GF := GF) (hG := hG
     simp only [hb, _root_.and_self, ↓reduceIte]
     wp_apply wp_load_slice_index _ (sint.Z (W64 0)) _ _ c0.p (by word) $$ [Hsl] as Hsl
     · iframe; ipureintro; rfl
-    simp only [hb, _root_.and_self, ↓reduceIte]
-    wp_apply wp_load_slice_index _ (sint.Z (W64 0)) _ _ c0.p (by word) $$ [Hsl] as Hsl
-    · iframe; ipureintro; rfl
     obtain ⟨hs_li, hs_resp, hs_rev, hs_wc, hs_hdr, hs_hm, hs_more, hs_lease, hs_acq⟩ :=
       hsame e1 he1.symm
     have hli' : ∀ x : LeaseEntry,

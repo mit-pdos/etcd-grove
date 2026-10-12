@@ -23,10 +23,10 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- `op.Txn()`: the `Op`'s comparisons, then- and else-operations (its three slice fields). -/
 abbrev Op.Txn.spec : Prop :=
-  ∀ (opp : Loc) (op : go_etcd_io.etcd.client.v3.Op) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opp ↦{dq} op }}
-    (App (Val (opp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Op.ty @!! go!"Txn")) (Val #()))
-  {{ RET (PairV (PairV #op.cmps' #op.thenOps') #op.elseOps'); opp ↦{dq} op }}
+  ∀ (op : go_etcd_io.etcd.client.v3.Op),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 }}
+    (App (Val (op @!! go_etcd_io.etcd.client.v3.Op.ty @!! go!"Txn")) (Val #()))
+  {{ RET (PairV (PairV #op.cmps' #op.thenOps') #op.elseOps'); True }}
 
 end spec
 

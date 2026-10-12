@@ -25,13 +25,13 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.txnReadWrite.Put.wp_proof : mvcc.txnReadWrite.Put.spec (GF := GF) (hG := hG) := by
-  intro trw key value lease
-  wp_start
+  intro trw key value lease Φ
+  iintro ⟨-, Hstuck⟩
+  rw [method_unfold (t := go.GoType.PointerType txnReadWrite.ty) (m := go!"Put")]
+  wp_call
   (try wp_auto)
   wp_apply wp_panic
-  iapply HΦ
-  ipureintro
-  exact ⟨_, rfl⟩
+  iapply Hstuck
 
 end proof
 

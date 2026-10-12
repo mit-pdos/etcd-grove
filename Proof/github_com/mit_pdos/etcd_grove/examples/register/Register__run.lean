@@ -84,8 +84,6 @@ theorem Register.run.wp_proof
     iexists σ; iright; iexact Htok
   icases Htok with ⟨%σ, Htok⟩
   wp_auto
-  wp_method_call
-  wp_auto
   wp_apply wp_MemoryStorage_Append ms γs σ es rdv'.Entries' DFrac.discard (Hfit rfl)
     $$ [$Hraftinit $Htok $Hes] as ⟨Hdone, -⟩
   ihave Hrcpt : appendReceipt γp.node.stor es $$ [Hdone]

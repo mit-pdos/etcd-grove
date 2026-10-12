@@ -20,15 +20,18 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `semver.MustParse(s)`: a version, not nil, if `s` parses (`semverValid`); else a panic
-(`MustParse` panics on an error of `NewVersion`). -/
+/-- `semver.MustParse(s)` for an `s` that parses (`semverValid`): a new version, not nil, never
+written afterwards (a `Version` has no mutating method the verified code calls), so its
+points-to is returned persistent (`Version.String` is a value method: its callers load `*v`).
+(On an error of `NewVersion`, `MustParse` panics, which no deferred function recovers: the call
+is stuck there, so the spec requires `s` to parse.) -/
 abbrev semver.MustParse.spec : Prop :=
   ∀ (s : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 ∗
+      ⌜apply.semverValid s⌝ }}
     (App (Val (@! github_com.Masterminds.semver.v3.MustParse)) (Val #s))
-  {{ (r : val), RET r;
-      ⌜(apply.semverValid s ∧ ∃ v : Loc, r = #v ∧ v ≠ null) ∨
-        (¬ apply.semverValid s ∧ ∃ p : val, r = PanicV p)⌝ }}
+  {{ (v : Loc), RET #v; ⌜v ≠ null⌝ ∗
+      ∃ ver : github_com.Masterminds.semver.v3.Version, v ↦□ ver }}
 
 end spec
 

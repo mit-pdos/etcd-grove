@@ -113,11 +113,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSet__union
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.writeView__DeleteRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.writeView__Put
 public import Proof.go_uber_org.zap.Error
-public import Proof.go_uber_org.zap.Int64
 public import Proof.go_uber_org.zap.Logger__Error
-public import Proof.go_uber_org.zap.Logger__Panic
 public import Proof.go_uber_org.zap.NewNop
-public import Proof.go_uber_org.zap.String
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.NewIntervalTree
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Delete
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Find
@@ -235,29 +232,17 @@ theorem mvcc.keyIndex.wp_isEmpty :
     mvcc.keyIndex.isEmpty.spec (GF := GF) (hG := hG) :=
   mvcc.keyIndex.isEmpty.wp_proof mvcc.generation.wp_isEmpty
 
-theorem zap.wp_String :
-    zap.String.spec (GF := GF) (hG := hG) :=
-  zap.String.wp_proof
-
-theorem zap.Logger.wp_Panic :
-    zap.Logger.Panic.spec (GF := GF) (hG := hG) :=
-  zap.Logger.Panic.wp_proof
-
 theorem mvcc.keyIndex.wp_get :
     mvcc.keyIndex.get.spec (GF := GF) (hG := hG) :=
-  mvcc.keyIndex.get.wp_proof mvcc.keyIndex.wp_isEmpty zap.wp_String zap.Logger.wp_Panic mvcc.keyIndex.wp_findGeneration mvcc.generation.wp_isEmpty mvcc.generation.wp_walk
-
-theorem zap.wp_Int64 :
-    zap.Int64.spec (GF := GF) (hG := hG) :=
-  zap.Int64.wp_proof
+  mvcc.keyIndex.get.wp_proof mvcc.keyIndex.wp_isEmpty mvcc.keyIndex.wp_findGeneration mvcc.generation.wp_isEmpty mvcc.generation.wp_walk
 
 theorem mvcc.keyIndex.wp_put :
     mvcc.keyIndex.put.spec (GF := GF) (hG := hG) :=
-  mvcc.keyIndex.put.wp_proof mvcc.Revision.wp_GreaterThan zap.wp_Int64 zap.Logger.wp_Panic
+  mvcc.keyIndex.put.wp_proof mvcc.Revision.wp_GreaterThan
 
 theorem mvcc.keyIndex.wp_tombstone :
     mvcc.keyIndex.tombstone.spec (GF := GF) (hG := hG) :=
-  mvcc.keyIndex.tombstone.wp_proof mvcc.keyIndex.wp_isEmpty mvcc.generation.wp_isEmpty zap.wp_String zap.Logger.wp_Panic mvcc.keyIndex.wp_put
+  mvcc.keyIndex.tombstone.wp_proof mvcc.keyIndex.wp_isEmpty mvcc.generation.wp_isEmpty mvcc.keyIndex.wp_put
 
 theorem mvcc.treeIndex.wp_keyIndex [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.keyIndex.spec (GF := GF) (hG := hG) :=

@@ -41,6 +41,7 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
   iunfold mvcc.idxWriter at Hw
   icases Hw with ⟨Hauth, #Hwlb, %Hwwf, Hlauth⟩
   obtain ⟨Hwf, Hlen, Hplen, Hcs⟩ := Hwwf
+  wp_auto
   wp_apply wp_with_defer
   iintro %defer Hdefer
   (try wp_auto)
@@ -55,8 +56,6 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
     iexists key
     iframe #
   -- `ti.Lock()`
-  rw [method_unfold (t := go.GoType.PointerType treeIndex.ty) (m := go!"Lock")]
-  wp_call
   (try wp_auto)
   wp_apply +noauto sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HP⟩
   wp_auto_lc 1
@@ -136,15 +135,13 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
     exact mvcc.kiFold_modified_lt k _ _ _ (mvcc.Rev.lt_zero_of_pos _ _ Hilog (by omega))
       (mvcc.evsOf_rev_lt ilog pend (by omega) Hplen)
   wp_apply (hTomb z.1 gs z.2.2 z.2.1 lg rev.Main' rev.Sub' _) $$ [$HzKey $Hki $Herr] as %err Hpost
-  · ipureintro; exact ⟨Hlgnn, hne.2⟩
-  rw [hne.1, hlast]
-  simp only [Hlt, Bool.false_eq_true, ↓reduceIte]
+  · ipureintro; exact ⟨Hlgnn, hne.2, hne.1, fun _ => Hlt⟩
+  rw [hlast]
+  simp only [Bool.false_eq_true, ↓reduceIte]
   icases Hpost with ⟨%Herr', %gs', Hki⟩
   subst Herr'
   (try wp_auto)
   -- the deferred `ti.Unlock()`
-  rw [method_unfold (t := go.GoType.PointerType treeIndex.ty) (m := go!"Unlock")]
-  wp_call
   (try wp_auto)
   have hset : mvcc.itemsOfEntries (L.set i (z.1, z.2.1, mvcc.kiTombstone z.2.2 ⟨W64 ilog.length, W64 pend.length⟩)) =
       mvcc.itemsOfEntries L := mvcc.itemsOfEntries_set L i z _ hi rfl rfl

@@ -124,9 +124,9 @@ theorem Cache.Get.wp_proof
       subst Hvnil
       wp_auto
       wp_apply wp_string_to_bytes key as %ssl ⟨Hssl, -⟩
-      wp_apply wp_RangeBytes op_ptr op of.base (DFrac.own 1) $$ [$op $HopAt] as %esl ⟨op, #Hesl⟩
-      wp_apply wp_Rev op_ptr op of.base (DFrac.own 1) $$ [$op $HopAt] as op
-      wp_apply wp_IsSerializable op_ptr op of.base (DFrac.own 1) $$ [$op $HopAt] as op
+      wp_apply wp_RangeBytes op of.base $$ [$HopAt] as %esl #Hesl
+      wp_apply wp_Rev op of.base $$ [$HopAt]
+      wp_apply wp_IsSerializable op of.base $$ [$HopAt]
       cases hs : of.base.serializable
       focus
         -- linearizable: catch up with etcd's current revision first

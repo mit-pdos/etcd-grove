@@ -23,12 +23,17 @@ variable [sem : go.Semantics]
 
 /-- `l.Panic(msg, fields...)` (a non-nil logger) logs, then panics with the message (zapcore's
 `CheckedEntry.Write`: `panic(ce.Message)`), whatever the logger's core (a nop logger too:
-`Panic`/`Fatal` entries are always written). -/
+`Panic`/`Fatal` entries are always written). No deferred function on the way recovers it, so
+the call gets stuck where the panic reaches `exceptionDo` (`wp_exceptionDo_panic`): like
+Perennial's `shouldPanic`, the spec states where it gets stuck, assuming a WP of that expression
+(which only `▷ False` provides), so a caller shows the call unreachable. -/
 abbrev zap.Logger.Panic.spec : Prop :=
-  ∀ (l : Loc) (msg : GoString) (fields : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap ∗ ⌜l ≠ null⌝ }}
-    (App (App (Val (l @!! go.GoType.PointerType zap.Logger.ty @!! go!"Panic")) (Val #msg)) (Val #fields))
-  {{ (r : val), RET r; ⌜r = PanicV #msg⌝ }}
+  ∀ (l : Loc) (msg : GoString) (fields : GoSlice) (Φ : val → IProp GF),
+    isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap ∗ ⌜l ≠ null⌝ ∗
+      (∀ Ψ : val → IProp GF,
+        WP (App (Val exceptionDo) (Val (panicVal #(interface.mkOk go.string #msg)))) {{ Ψ }}) ⊢
+      WP (App (App (Val (l @!! go.GoType.PointerType zap.Logger.ty @!! go!"Panic")) (Val #msg))
+        (Val #fields)) {{ Φ }}
 
 end spec
 

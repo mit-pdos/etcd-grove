@@ -37,7 +37,7 @@ and the result is `nil`. The `Voters` lists have at most `2^62` elements, the bo
 Only the `nil` outcome is specified: the one caller, `assertConfStatesEquivalent`,
 `Panic`s on anything else. -/
 abbrev raftpb.ConfState.Equivalent.spec : Prop :=
-  ∀ (p : Loc) (cs1 cs2 : raftpb.ConfState) (v1 v2 : List w64) (dq1 dq2 : DFrac),
+  ∀ (cs1 cs2 : raftpb.ConfState) (v1 v2 : List w64) (dq1 dq2 : DFrac),
   v1 ≡ₚ v2 → (v1.length : Int) ≤ 2 ^ 62 →
   cs1.VotersOutgoing'.len = W64 0 →
   cs1.Learners'.len = W64 0 →
@@ -46,13 +46,12 @@ abbrev raftpb.ConfState.Equivalent.spec : Prop :=
   cs2.Learners'.len = W64 0 →
   cs2.LearnersNext'.len = W64 0 →
   cs1.AutoLeave' = cs2.AutoLeave' →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ p ↦ cs1 ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗
       cs1.Voters' ↦*{dq1} v1 ∗
       cs2.Voters' ↦*{dq2} v2 }}
-    (App (Val (p @!! go.GoType.PointerType raftpb.ConfState.ty @!! go!"Equivalent"))
+    (App (Val (cs1 @!! raftpb.ConfState.ty @!! go!"Equivalent"))
       (Val #cs2))
   {{ RET #interface.nil;
-      p ↦ cs1 ∗
       cs1.Voters' ↦*{dq1} v1 ∗
       cs2.Voters' ↦*{dq2} v2 }}
 

@@ -35,8 +35,8 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
   wp_start as ⟨Htrk, Hown⟩
   iNamed Hown
   wp_auto
-  -- `Voters[0].Slice()`: the receiver is a pointer into the tracker's `JointConfig`
-  -- array. Split the array field out of `trk ↦ tv` and element 0 out of the array.
+  -- `Voters[0].Slice()`: the receiver is read from the tracker's `JointConfig` array.
+  -- Split the array field out of `trk ↦ tv` and element 0 out of the array.
   icases (Access.access
       (A := trk.[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Voters"] ↦
         tv.Config'.Voters')
@@ -45,8 +45,6 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
       (P := trk ↦ tv)) $$ Htrk with ⟨Hvf, Htrkback⟩
   icases array_acc _ (sint.Z (W64 0)) _ _ _ voters_ref (by decide) (by rw [Hvoters_arr]; rfl)
     $$ Hvf with ⟨Hc0, Hcback⟩
-  wp_method_call
-  wp_call
   wp_auto
   -- `Slice`'s postcondition gives back an `ownIdsetOpt`, whose `map.nil` disjunct we
   -- refute with the voter map's own points-to
@@ -59,8 +57,6 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
   -- element 1, the nil outgoing config
   icases array_acc _ (sint.Z (W64 1)) _ _ _ map.nil (by decide) (by rw [Hvoters_arr]; rfl)
     $$ Hvf with ⟨Hc1, Hcback⟩
-  wp_method_call
-  wp_call
   wp_auto
   wp_apply wp_MajorityConfig_Slice map.nil ∅ $$ [] as %sl1 %xs1 ⟨-, Hsl1, -, %Hxs1⟩
   · isplitl

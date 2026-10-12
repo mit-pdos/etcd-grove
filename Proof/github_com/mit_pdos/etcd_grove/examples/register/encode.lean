@@ -33,7 +33,11 @@ theorem encode.wp_proof : encode.spec (GF := GF) (hG := hG) := by
     as %b ⟨Hb, Hbcap, %Hbc⟩
   rw [show List.replicate 17 (zero_val w8) =
     List.replicate 8 (W8 0) ++ List.replicate 9 (W8 0) from rfl]
-  wp_apply encoding.binary.wp_LittleEndian_PutUint64 b (List.replicate 8 (W8 0))
+  ihave #Hbin : isPkgInit (PROP := IProp GF) pkg_id.encoding.binary $$ []
+  · iPkgInit
+  ihave #Hle := isPkgInit_access (PROP := IProp GF) pkg_id.encoding.binary $$ Hbin
+  wp_auto
+  wp_apply encoding.binary.littleEndian.wp_PutUint64 _ b (List.replicate 8 (W8 0))
     (List.replicate 9 (W8 0)) replica rfl $$ [$Hb] as Hb
   ihave %Hlen := ownSlice_len _ _ _ $$ Hb
   have hr := u64Le_length replica
@@ -45,7 +49,7 @@ theorem encode.wp_proof : encode.spec (GF := GF) (hG := hG) := by
       List.replicate 8 (W8 0) ++ [W8 0] by
     rw [show sint.nat (W64 8) = (u64Le replica).length by rw [hr]; rfl, List.drop_left]; rfl]
   wp_auto
-  wp_apply encoding.binary.wp_LittleEndian_PutUint64 _ (List.replicate 8 (W8 0))
+  wp_apply encoding.binary.littleEndian.wp_PutUint64 _ _ (List.replicate 8 (W8 0))
     [W8 0] seq rfl $$ [$Hb2] as Hb2
   rw [show (u64Le replica ++ List.replicate 9 (W8 0)).take (sint.nat (W64 8)) = u64Le replica by
     rw [show sint.nat (W64 8) = (u64Le replica).length by rw [hr]; rfl, List.take_left]]

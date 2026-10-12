@@ -39,7 +39,7 @@ theorem leaseCache.Get.wp_proof
   wp_apply hBad $$ [$Hat]
   cases hbad : isBadOpM o
   · wp_auto
-    wp_apply hKey $$ [$op $Hat] as %ksl ⟨op, #Hk⟩
+    wp_apply hKey $$ [$Hat] as %ksl #Hk
     wp_apply wp_bytes_to_string ksl o.key DFrac.discard $$ [$Hk] as -
     wp_apply (hnotify lc γ pfx X Qr o.key) $$ [$Hrd $Hlc $Hpeek] as %li %wc ⟨Hrd, %st1, -, Hres⟩
     icases Hres with (⟨%Hnone, %Hli, %Hwc⟩ | ⟨%e1, %He1, #Hw, #Hinst1, -⟩)

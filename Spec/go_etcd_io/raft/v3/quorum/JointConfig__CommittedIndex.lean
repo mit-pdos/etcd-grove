@@ -37,8 +37,8 @@ it needs, which comes back.
 with the read-only object as the indexer; `ProgressTracker.Committed`
 (`proof_ProgressTracker__Committed.v`) instantiates it at the tracker.)
 
-The receiver is a `*JointConfig` at `c` (a caller holding a struct field passes the
-field's location), pointing at a simple configuration: `a = [m0, nil]`, `m0` holding
+The receiver is the `JointConfig` value `a` (a value receiver, which the call copies), a
+simple configuration: `a = [m0, nil]`, `m0` holding
 the voters (`domSet ids`), `c[1]` nil, whose `CommittedIndex` is `MaxUint64` by
 convention, so that `min` picks `c[0]`'s answer on both exits. The result is
 `MaxUint64` for an empty configuration, and otherwise the quorum index of
@@ -46,16 +46,16 @@ convention, so that `min` picks `c[0]`'s answer on both exits. The result is
 counts `0`. The voter map comes back at some `ids'` with the same key set (the callee's
 contract). -/
 abbrev quorum.JointConfig.CommittedIndex.spec : Prop :=
-  ∀ (c : Loc) (a : quorum.JointConfig) (m0 : Loc) (ids : GMap w64 Unit)
+  ∀ (a : quorum.JointConfig) (m0 : Loc) (ids : GMap w64 Unit)
     (l : GoInterface) (P : IProp GF) (acked : w64 → Option w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗
       ⌜(GMap.size (domSet ids) : Int) ≤ 2 ^ 62⌝ ∗
-      c ↦ a ∗ ⌜a.arr = [m0, map.nil]⌝ ∗ m0 ↦$ ids ∗
+      ⌜a.arr = [m0, map.nil]⌝ ∗ m0 ↦$ ids ∗
       isAckedIndexer l P acked ∗ P }}
-    (App (Val (c @!! go.GoType.PointerType quorum.JointConfig.ty @!! go!"CommittedIndex"))
+    (App (Val (a @!! quorum.JointConfig.ty @!! go!"CommittedIndex"))
       (Val #l))
   {{ (N : w64), RET #N;
-      c ↦ a ∗ (∃ ids' : GMap w64 Unit, ⌜domSet ids' = domSet ids⌝ ∗ m0 ↦$ ids') ∗ P ∗
+      (∃ ids' : GMap w64 Unit, ⌜domSet ids' = domSet ids⌝ ∗ m0 ↦$ ids') ∗ P ∗
       ⌜domSet ids = ∅ → N = W64 (2 ^ 64 - 1)⌝ ∗
       ⌜domSet ids ≠ ∅ → IsQuorumIndex (domSet ids) (fun v => (acked v).getD (W64 0)) N⌝ }}
 

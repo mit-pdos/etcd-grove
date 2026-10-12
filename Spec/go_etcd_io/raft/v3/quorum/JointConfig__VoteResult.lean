@@ -28,8 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `c.VoteResult(votes)` for the joint config, i.e. the last statement of
-`TallyVotes`. The receiver is `&r.trk.Config.Voters`, the same field ref `campaign`
-passes to `JointConfig.IDs`.
+`TallyVotes`. The receiver is the value `r.trk.Config.Voters` (a value receiver, which
+the call copies), as `campaign` passes it to `JointConfig.IDs`.
 
 The body (`quorum.JointConfig.VoteResult.impl`, joint.go:62) asks each component and
 combines:
@@ -56,15 +56,13 @@ here so that the empty tracker is an `ownTracker ∅ …`. In the proof it refut
 `map.nil` disjunct of `MajorityConfig.wp_VoteResult`'s postcondition for the first
 component. -/
 abbrev quorum.JointConfig.VoteResult.spec : Prop :=
-  ∀ (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk),
+  ∀ (cfg : GSet w64) (tv : tracker.ProgressTracker) (t : Trk),
   cfg ≠ ∅ →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗ trk ↦ tv ∗
-      ownTracker cfg tv t }}
-    (App (Val ((trk.[tracker.ProgressTracker, go!"Config"]).[tracker.Config, go!"Voters"]
-        @!! go.GoType.PointerType quorum.JointConfig.ty @!! go!"VoteResult"))
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗ ownTracker cfg tv t }}
+    (App (Val (tv.Config'.Voters' @!! quorum.JointConfig.ty @!! go!"VoteResult"))
       (Val #(tv.Votes')))
   {{ (res : w8), RET #res;
-      trk ↦ tv ∗ ownTracker cfg tv t ∗
+      ownTracker cfg tv t ∗
       ⌜res = VoteWon ∨ res = VoteLost ∨ res = VotePending⌝ ∗
       ⌜res = VoteWon ↔ IsQuorum cfg (granted t.votes)⌝ ∗
       -- `VoteLost` is "cannot still win", not "a majority rejected"; see

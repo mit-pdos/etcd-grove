@@ -26,8 +26,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The ids of the voters, in some order, as `campaign` enumerates them: a fresh map
 with the keys of the incoming voter map `v` (the outgoing one being `nil`, the
-non-joint case). `campaign` calls this on `&r.trk.Config.Voters`, so the receiver is a
-field ref and not the tracker itself; `IDs.spec_tracker` below is that form.
+non-joint case). The receiver is a `JointConfig` value (a value receiver, which the call
+copies); `campaign` and `VoterNodes` call this on `r.trk.Config.Voters`, and
+`IDs.spec_tracker` below is that form.
 
 **In scope. The translation defect that blocked this is fixed** (2026-09-17); what is
 left is ordinary proof work.
@@ -40,45 +41,34 @@ which steps (`index_ref_array'`), so the proof goes through.
 
 Generalized 2026-10-08 (when `confchange` was translated): stated on any `JointConfig`
 cell at any fraction, with the voter map at any fraction, since `checkInvariants` calls
-it on a local copy of a `Config`; the tracker form it used to state is derived. -/
+it on a local copy of a `Config`; the tracker form it used to state is derived. Stated on
+the receiver value since 2026-10-12 (method values copy their receiver). -/
 abbrev quorum.JointConfig.IDs.spec : Prop :=
-  ∀ (p : Loc) (jc : quorum.JointConfig) (v : Loc) (vm : GMap w64 Unit) (dq dqv : DFrac),
+  ∀ (jc : quorum.JointConfig) (v : Loc) (vm : GMap w64 Unit) (dqv : DFrac),
   jc.arr = [v, map.nil] →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗
-      p ↦{dq} jc ∗ v ↦${dqv} vm }}
-    (App (Val (p @!! go.GoType.PointerType quorum.JointConfig.ty @!! go!"IDs")) (Val #()))
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗ v ↦${dqv} vm }}
+    (App (Val (jc @!! quorum.JointConfig.ty @!! go!"IDs")) (Val #()))
   {{ (mref : Loc) (idm : GMap w64 Unit), RET #mref;
-      p ↦{dq} jc ∗ v ↦${dqv} vm ∗ mref ↦$ idm ∗ ⌜domSet idm = domSet vm⌝ }}
+      v ↦${dqv} vm ∗ mref ↦$ idm ∗ ⌜domSet idm = domSet vm⌝ }}
 
-/-- The tracker form: `IDs` on `&trk.Config.Voters` with the tracker sealed, as
-`campaign` and `VoterNodes` call it (the statement this spec had until 2026-10-08). -/
+/-- The tracker form: `IDs` on `trk.Config.Voters` with the tracker sealed, as
+`campaign` and `VoterNodes` call it. -/
 theorem quorum.JointConfig.IDs.spec_tracker
     (H : quorum.JointConfig.IDs.spec (GF := GF) (hG := hG))
-    (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗ trk ↦ tv ∗
-        ownTracker cfg tv t }}
-      (App (Val (((trk.[tracker.ProgressTracker, go!"Config"]).[tracker.Config, go!"Voters"])
-        @!! go.GoType.PointerType quorum.JointConfig.ty @!! go!"IDs")) (Val #()))
+    (cfg : GSet w64) (tv : tracker.ProgressTracker) (t : Trk) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗ ownTracker cfg tv t }}
+      (App (Val (tv.Config'.Voters' @!! quorum.JointConfig.ty @!! go!"IDs")) (Val #()))
     {{ (mref : Loc) (idm : GMap w64 Unit), RET #mref;
-        trk ↦ tv ∗ ownTracker cfg tv t ∗
-        mref ↦$ idm ∗ ⌜domSet idm = cfg⌝ }} := by
+        ownTracker cfg tv t ∗ mref ↦$ idm ∗ ⌜domSet idm = cfg⌝ }} := by
   obtain ⟨votes, prs, pvs⟩ := t
-  iintro %Φ ⟨#Hpkg, Htrk, Hown⟩ HΦ
+  iintro %Φ ⟨#Hpkg, Hown⟩ HΦ
   iNamed Hown
-  -- the field `trk.Config.Voters` out of the struct, and back after the call
-  icases (Access.access (A := iprop(
-      (trk.[tracker.ProgressTracker, go!"Config"]).[tracker.Config, go!"Voters"] ↦
-        tv.Config'.Voters'))
-    (A' := iprop((trk.[tracker.ProgressTracker, go!"Config"]).[tracker.Config, go!"Voters"] ↦
-        tv.Config'.Voters'))
-    (P := iprop(trk ↦ tv))) $$ Htrk with ⟨Hf, Hback⟩
-  iapply H _ _ _ _ _ _ Hvoters_arr $$ [$Hf $Hvoters]
+  iapply H _ _ _ _ Hvoters_arr $$ [$Hvoters]
   · iPkgInit
   inext
-  iintro %mref %idm ⟨Hf, Hvoters, Hidm, %Hdom⟩
+  iintro %mref %idm ⟨Hvoters, Hidm, %Hdom⟩
   iapply HΦ
-  ihave Htrk := Hback $$ Hf
-  iframe Htrk Hidm
+  iframe Hidm
   isplitl [Hvotes Hprogs Hvoters Hlearners HlearnersNext]
   · iapply ownTracker_intro cfg tv votes prs pvs voters_ref voters learners learnersNext
       Hprs_dom Hvoters_arr Hautoleave Hvoters_dom Hno_learners Hcfg_size HmaxInfl

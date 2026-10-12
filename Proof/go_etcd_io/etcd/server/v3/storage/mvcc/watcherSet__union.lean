@@ -61,9 +61,7 @@ theorem mvcc.watcherSet.union.wp_proof
     iNamed HP
     obtain ⟨Hup, Hnone⟩ := mvcc.upTo_succ keys S' i.toNat key Hkey Hknodup Hv
     wp_auto
-    wp_method_call
-    wp_call
-    wp_auto
+    (try wp_auto)
     wp_apply hAdd $$ [$Hm] as Hm
     · ipureintro
       rw [GMap.lookup_union_None]

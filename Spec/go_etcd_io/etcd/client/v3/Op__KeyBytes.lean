@@ -22,12 +22,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `op.KeyBytes()` (called through a pointer): the key `key` (a read-only byte slice holding `o.key`). -/
+/-- `op.KeyBytes()`: the key `key` (a read-only byte slice holding `o.key`). -/
 abbrev Op.KeyBytes.spec : Prop :=
-  ∀ (opp : Loc) (op : go_etcd_io.etcd.client.v3.Op) (o : OpFull) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opp ↦{dq} op ∗ opFullAt op o }}
-    (App (Val (opp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Op.ty @!! go!"KeyBytes")) (Val #()))
-  {{ (sl : GoSlice), RET #sl; opp ↦{dq} op ∗ sl ↦*□ o.key }}
+  ∀ (op : go_etcd_io.etcd.client.v3.Op) (o : OpFull),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ opFullAt op o }}
+    (App (Val (op @!! go_etcd_io.etcd.client.v3.Op.ty @!! go!"KeyBytes")) (Val #()))
+  {{ (sl : GoSlice), RET #sl; sl ↦*□ o.key }}
 
 end spec
 

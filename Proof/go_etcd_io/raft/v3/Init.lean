@@ -67,7 +67,7 @@ theorem wp_New (out : GoInterface) (pfx : GoString) (flag : w64) :
       (App (App (App (Val (@! log.New)) (Val #out)) (Val #pfx)) (Val #flag))
     {{ (l : Loc), RET #l; True }} := by
   wp_start
-  wp_apply (wp_alloc_untyped _ (isPanic_intoVal _)) as %l Hl
+  wp_apply (wp_alloc_untyped _) as %l Hl
   iapply HΦ
   itrivial
 
@@ -290,9 +290,6 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   ipersist HisResp
   iframe Hown
   imodintro
-  isplitr
-  · ipureintro
-    exact isPanic_intoVal _
   is_pkg_init_finish
   imodintro
   unfold isInitialized isLockedRand

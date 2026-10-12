@@ -210,7 +210,7 @@ theorem Cache.Watch.wp_proof
   generalize Ho : (opWatchModel key gs) = of at *
   iunfold opFullAt at HopF
   icases HopF with ⟨#HopAt, -, -⟩
-  wp_apply wp_Rev op_ptr op of.base (DFrac.own 1) $$ [$op $HopAt] as op
+  wp_apply wp_Rev op of.base $$ [$HopAt]
   wp_apply wp_validateWatch c cf γr γd cap key op of.base $$ [$Hc $HopAt] as %f %verr #Hval
   by_cases hvn : verr = GoInterface.nil
   focus
@@ -294,7 +294,7 @@ theorem Cache.Watch.wp_proof
           watchDeferOk cf γd cap w γw (some (keyPredForRange key of.base.rangeEnd)) sR γ.spsc d)
         at next with [progressTimer progressChan defer]
         as ⟨%pt, %pc, %d, progressTimer, progressChan, defer, #Htm, #Hd⟩
-      · wp_apply wp_IsProgressNotify op_ptr op of.base DFrac.discard $$ [$op $HopAt] as op'
+      · wp_apply wp_IsProgressNotify op of.base $$ [$HopAt]
         cases hpn : of.base.progressNotify
         rotate_left
         · -- `progressTimer = c.clock.NewTimer(...)`, `defer progressTimer.Stop()`, its channel

@@ -60,7 +60,12 @@ theorem readOnly.heartbeatCtx.wp_proof :
       rw [← Hro_conf, ← Hlen, Hl.1]
       word
     rw [Hpos]
-    wp_apply encoding.binary.wp_LittleEndian_PutUint64 sl
+    -- `binary.LittleEndian.PutUint64`: the global is read, then the value method
+    ihave #Hbin : isPkgInit (PROP := IProp GF) pkg_id.encoding.binary $$ []
+    · iPkgInit
+    ihave #Hle := isPkgInit_access (PROP := IProp GF) pkg_id.encoding.binary $$ Hbin
+    wp_auto
+    wp_apply encoding.binary.littleEndian.wp_PutUint64 _ sl
       (List.replicate 8 (zero_val w8)) [] (readonlyPosition r) rfl $$ [Hsl] as Hsl
     · rw [List.append_nil]; iexact Hsl
     iapply HΦ

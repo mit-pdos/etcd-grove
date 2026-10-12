@@ -269,7 +269,8 @@ instance isAlarmStore_persistent (st : Loc) (P : IProp GF) (f : val) :
   unfold isAlarmStore; infer_instance
 
 /-- **The `*membership.RaftCluster` `c`** (trust boundary: `membership` is names-only):
-`Version` (a `*semver.Version`, maybe nil) and `ID` return; `SetVersion` (with a version not
+`Version` (a new `*semver.Version` (`MustParse` of the cluster's version), maybe nil, with a
+persistent points-to: no one writes it) and `ID` return; `SetVersion` (with a version not
 nil), `UpdateAttributes` and `SetDowngradeInfo` (which keeps the `DowngradeInfo` pointer) write
 the cluster's bucket under the batch lock only with `shouldApplyV3` (`cPre b`: the
 critical-section contract; without it, no write: `ApplyV2storeOnly`; unit 2). -/
@@ -278,7 +279,7 @@ def isCluster (c : Loc) (P : IProp GF) (f : val) : IProp GF :=
     □ ({{ True }}
         (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty @!!
           go!"Version")) (Val #()))
-      {{ (v : Loc), RET #v; True }}) ∗
+      {{ (v : Loc), RET #v; ⌜v = null⌝ ∨ ∃ ver : github_com.Masterminds.semver.v3.Version, v ↦□ ver }}) ∗
     □ ({{ True }}
         (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty @!!
           go!"ID")) (Val #()))

@@ -69,7 +69,7 @@ theorem leasingKV.get.wp_proof
     wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $Hop $Hlo] as %r %err #Hres
     · ipureintro; exact Ho
     try wp_auto
-    wp_apply hRG $$ [$Hcv $r] as r
+    wp_apply hRG $$ [$Hcv]
     try wp_auto
     iapply HΦ
     iframe
@@ -91,7 +91,7 @@ theorem leasingKV.get.wp_proof
     wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $Hop $Hlo] as %r %err #Hres
     · ipureintro; exact Ho
     try wp_auto
-    wp_apply hRG $$ [$Hcv $r] as r
+    wp_apply hRG $$ [$Hcv]
     try wp_auto
     iapply HΦ
     iframe
@@ -104,10 +104,10 @@ theorem leasingKV.get.wp_proof
     ihave #Hop' := Hop
     iunfold opFullAt at Hop'
     icases Hop' with ⟨#HopAt, #HopKey, -⟩
-    wp_apply hSer $$ [$Hcv $op $HopAt] as op
+    wp_apply hSer $$ [$Hcv $HopAt]
     cases hser : o.base.serializable
     · wp_auto
-      wp_apply hKey $$ [$Hcv $op $Hop] as %ksl ⟨op, #Hk⟩
+      wp_apply hKey $$ [$Hcv $Hop] as %ksl #Hk
       wp_apply wp_bytes_to_string ksl o.key DFrac.discard $$ [$Hk] as -
       try wp_auto
       ipersist key
@@ -118,7 +118,7 @@ theorem leasingKV.get.wp_proof
         wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $Hop $Hlo] as %r %err #Hres
         · ipureintro; exact Ho
         try wp_auto
-        wp_apply hRG $$ [$Hcv $resp] as resp
+        wp_apply hRG $$ [$Hcv]
         try wp_auto
         iapply HΦ
         iframe
@@ -255,7 +255,7 @@ theorem leasingKV.get.wp_proof
       wp_apply HDo $$ %ctx %cs %opv %o %lo [$Hctx $Hop $Hlo] as %r %err #Hres
       · ipureintro; exact Ho
       try wp_auto
-      wp_apply hRG $$ [$Hcv $r] as r
+      wp_apply hRG $$ [$Hcv]
       try wp_auto
       iapply HΦ
       iframe

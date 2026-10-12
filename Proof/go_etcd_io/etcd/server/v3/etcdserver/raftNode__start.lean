@@ -98,11 +98,8 @@ theorem raftNode.start.wp_proof
     · iexists L, false
       iframe
     wp_for HI
-    rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Ready")]
-    wp_auto_lc 4
-    rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Ready")]
-    wp_auto
-    wp_apply HReady as %rc #Hrc
+    -- the later credits of the steps after `r.Ready()`
+    wp_apply (lc := 4) HReady as %rc #Hrc
     wp_apply_core chan.wp_select_blocking_nil
     -- `<-r.ticker.C`: a tick
     iapply BigAndL.bigAndL_cons.2
@@ -350,10 +347,7 @@ theorem raftNode.start.wp_proof
           · wp_auto
             wp_apply HSend $$ [$Hout $Houtok]
             -- `r.Advance()`: the driver moves to `L' ++ ce`
-            rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Advance")]
-            wp_auto
-            rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Advance")]
-            wp_auto
+            (try wp_auto)
             ihave HAdv' := HAdv $$ %L' %ce %es
             wp_apply HAdv' $$ [$Hbusy $Hrcpt] as Hdrv
             -- no conf change
@@ -386,10 +380,7 @@ theorem raftNode.start.wp_proof
               wp_auto
               wp_apply HSend $$ [$Hout $Houtok]
               -- `r.Advance()`: the driver moves to `L' ++ ce`
-              rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Advance")]
-              wp_auto
-              rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Advance")]
-              wp_auto
+              (try wp_auto)
               ihave HAdv' := HAdv $$ %L' %ce %es
               wp_apply HAdv' $$ [$Hbusy $Hrcpt] as Hdrv
               -- a conf change: `raftAdvancedC <- struct{}{}`
@@ -428,10 +419,7 @@ theorem raftNode.start.wp_proof
           wp_auto
           wp_apply wp_bag_send γnc nc _ (fun _ => iprop(True)) $$ [$Hncb]
           -- `r.Advance()`: the driver moves to `L' ++ ce`
-          rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Advance")]
-          wp_auto
-          rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Advance")]
-          wp_auto
+          (try wp_auto)
           ihave HAdv' := HAdv $$ %L' %ce %es
           wp_apply HAdv' $$ [$Hbusy $Hrcpt] as Hdrv
           -- `if confChanged { raftAdvancedC <- struct{}{} }`
