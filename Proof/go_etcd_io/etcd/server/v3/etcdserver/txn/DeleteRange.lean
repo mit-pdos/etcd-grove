@@ -73,9 +73,11 @@ theorem txn.DeleteRange.wp_proof
     have := List.length_filter_le (fun v => inRange o.key o.base.rangeEnd v.key) (mvcc.stateAfter ilog)
     have := Hbig ilog Hpin
     simp only [List.length_nil]; omega
-  wp_apply (hdel ctx' { cd with Values := vs } mw s γ ilog [] (W64 0) (W64 0) (W64 0) dr o)
+  wp_apply (hdel ctx' { cd with Values := vs } false mw s γ ilog [] (W64 0) (W64 0) (W64 0) dr o)
     $$ [$Hctx' $Htx $Hdr] as %resp %err Hout
-  · ipureintro; exact hb
+  · isplitr
+    · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+    ipureintro; exact hb
   rw [txn.pendState_nil]
   simp only [List.nil_append]
   icases Hout with (⟨%Herr, ⟨%deletes', Htx⟩, #Hresp⟩ | ⟨%Hne, Htx⟩)

@@ -11,15 +11,25 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.DeleteRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.HasRevisionFilters
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.IsDefaultOrdering
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.IsTxnReadonly
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.IsTxnSerializable
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Put
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Txn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.applyCompare
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.applyCompares
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.asembleRangeResponse
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.checkAndGetPrevKV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.checkLease
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.checkPut
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.checkRange
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.checkTxn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.compareKV
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.compareToPath
 public import Proof.context.TODO
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.deleteRange
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp__GetRequestRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.executeRange
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.executeTxn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.filterRangeResults
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.getPrevKV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate__Less
@@ -30,6 +40,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByVersion__Le
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort__Len
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.kvSort__Swap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.mkGteRange
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.newTxnResp
 public import Proof.google_golang_org.protobuf.proto.Size
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.pruneKVs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.put
@@ -45,10 +56,12 @@ public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__StartSubTrace
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__Step
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__StepWithFunction
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__StopSubTrace
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.txn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApplySecObserve
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Count
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Range
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.RangeSecObserve
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.compareInt64
 public import Proof.go_uber_org.zap.Error
 public import Proof.go_uber_org.zap.Int32
 public import Proof.go_uber_org.zap.Logger__Error
@@ -84,6 +97,10 @@ theorem wp_IsDefaultOrdering :
     EtcdGrove.txn.IsDefaultOrdering.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.IsDefaultOrdering.wp_proof
 
+theorem RequestOp.wp_GetRequestRange :
+    EtcdGrove.RequestOp.GetRequestRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.RequestOp.GetRequestRange.wp_proof
+
 theorem proto.wp_Size :
     EtcdGrove.proto.Size.spec (GF := GF) (hG := hG) :=
   EtcdGrove.proto.Size.wp_proof
@@ -104,9 +121,13 @@ theorem traceutil.Trace.wp_AddField :
     EtcdGrove.traceutil.Trace.AddField.spec (GF := GF) (hG := hG) :=
   EtcdGrove.traceutil.Trace.AddField.wp_proof
 
-theorem wp_asembleRangeResponse :
-    EtcdGrove.txn.asembleRangeResponse.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.txn.asembleRangeResponse.wp_proof
+theorem traceutil.Trace.wp_Step :
+    EtcdGrove.traceutil.Trace.Step.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.Trace.Step.wp_proof
+
+theorem traceutil.Trace.wp_StartSubTrace :
+    EtcdGrove.traceutil.Trace.StartSubTrace.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.Trace.StartSubTrace.wp_proof
 
 theorem wp_rangeLimit :
     EtcdGrove.txn.rangeLimit.spec (GF := GF) (hG := hG) :=
@@ -160,21 +181,17 @@ theorem wp_sortRangeResults :
     EtcdGrove.txn.sortRangeResults.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.sortRangeResults.wp_proof wp_IsDefaultOrdering sort.wp_Sort sort.wp_Reverse kvSort.wp_Len kvSort.wp_Swap kvSortByKey.wp_Less kvSortByVersion.wp_Less kvSortByCreate.wp_Less kvSortByMod.wp_Less kvSortByValue.wp_Less
 
-theorem traceutil.Trace.wp_Step :
-    EtcdGrove.traceutil.Trace.Step.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.traceutil.Trace.Step.wp_proof
-
-theorem traceutil.wp_TODO :
-    EtcdGrove.traceutil.TODO.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.traceutil.TODO.wp_proof
-
-theorem traceutil.Trace.wp_StartSubTrace :
-    EtcdGrove.traceutil.Trace.StartSubTrace.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.traceutil.Trace.StartSubTrace.wp_proof
+theorem wp_asembleRangeResponse :
+    EtcdGrove.txn.asembleRangeResponse.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.asembleRangeResponse.wp_proof
 
 theorem traceutil.Trace.wp_StopSubTrace :
     EtcdGrove.traceutil.Trace.StopSubTrace.spec (GF := GF) (hG := hG) :=
   EtcdGrove.traceutil.Trace.StopSubTrace.wp_proof
+
+theorem traceutil.wp_TODO :
+    EtcdGrove.traceutil.TODO.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.TODO.wp_proof
 
 theorem wp_ApplySecObserve :
     EtcdGrove.txn.ApplySecObserve.spec (GF := GF) (hG := hG) :=
@@ -223,6 +240,14 @@ theorem wp_DeleteRange [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.DeleteRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.DeleteRange.wp_proof traceutil.wp_EnsureTrace mvcc.store.wp_Write wp_deleteRange mvcc.metricsTxnWrite.wp_End
 
+theorem wp_IsTxnReadonly :
+    EtcdGrove.txn.IsTxnReadonly.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.IsTxnReadonly.wp_proof RequestOp.wp_GetRequestRange
+
+theorem wp_IsTxnSerializable :
+    EtcdGrove.txn.IsTxnSerializable.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.IsTxnSerializable.wp_proof RequestOp.wp_GetRequestRange
+
 theorem wp_getPrevKV [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.getPrevKV.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.getPrevKV.wp_proof traceutil.Trace.wp_StepWithFunction context.wp_TODO mvcc.metricsTxnWrite.wp_Range
@@ -243,17 +268,57 @@ theorem wp_Put [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.Put.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.Put.wp_proof traceutil.wp_EnsureTrace proto.wp_Size wp_checkLease mvcc.store.wp_Write wp_checkAndGetPrevKV wp_put mvcc.metricsTxnWrite.wp_End
 
-theorem wp_checkPut [go_etcd_io.etcd.cache.v3.Assumptions] :
-    EtcdGrove.txn.checkPut.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.txn.checkPut.wp_proof wp_checkLease wp_checkAndGetPrevKV
+theorem wp_compareInt64 :
+    EtcdGrove.txn.compareInt64.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.compareInt64.wp_proof
+
+theorem wp_compareKV :
+    EtcdGrove.txn.compareKV.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.compareKV.wp_proof wp_compareInt64
+
+theorem wp_applyCompare [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.txn.applyCompare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.applyCompare.wp_proof context.wp_TODO wp_mkGteRange mvcc.metricsTxnWrite.wp_Range wp_compareKV
+
+theorem wp_applyCompares [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.txn.applyCompares.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.applyCompares.wp_proof wp_applyCompare
+
+theorem wp_compareToPath [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.txn.compareToPath.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.compareToPath.wp_proof wp_applyCompares
 
 theorem wp_checkRange :
     EtcdGrove.txn.checkRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.checkRange.wp_proof mvcc.metricsTxnWrite.wp_Rev mvcc.metricsTxnWrite.wp_FirstRev
 
+theorem wp_checkPut [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.txn.checkPut.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.checkPut.wp_proof wp_checkLease wp_checkAndGetPrevKV
+
+theorem wp_checkTxn [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.txn.checkTxn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.checkTxn.wp_proof wp_checkRange wp_checkPut
+
+theorem wp_newTxnResp :
+    EtcdGrove.txn.newTxnResp.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.newTxnResp.wp_proof
+
 theorem wp_executeRange [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.executeRange.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.txn.executeRange.wp_proof traceutil.wp_Get wp_rangeLimit wp_mkGteRange mvcc.metricsTxnWrite.wp_Range wp_filterRangeResults wp_sortRangeResults traceutil.Trace.wp_Step wp_asembleRangeResponse
+  EtcdGrove.txn.executeRange.wp_proof traceutil.wp_Get wp_rangeLimit wp_mkGteRange mvcc.metricsTxnWrite.wp_Range mvcc.txnReadWrite.wp_Range wp_filterRangeResults wp_sortRangeResults traceutil.Trace.wp_Step wp_asembleRangeResponse
+
+theorem wp_executeTxn [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.txn.executeTxn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.executeTxn.wp_proof traceutil.wp_Get traceutil.Trace.wp_StartSubTrace mvcc.metricsTxnWrite.wp_Rev mvcc.txnReadWrite.wp_Rev mvcc.metricsTxnWrite.wp_Changes mvcc.txnReadWrite.wp_Changes wp_executeRange traceutil.Trace.wp_StopSubTrace proto.wp_Size wp_getPrevKV wp_put wp_deleteRange
+
+theorem wp_txn [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.txn.txn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.txn.wp_proof wp_newTxnResp wp_executeTxn mvcc.metricsTxnWrite.wp_Rev mvcc.txnReadWrite.wp_Rev mvcc.metricsTxnWrite.wp_Changes mvcc.txnReadWrite.wp_Changes
+
+theorem wp_Txn [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdGrove.txn.Txn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.Txn.wp_proof traceutil.wp_EnsureTrace wp_IsTxnReadonly mvcc.store.wp_Read traceutil.Trace.wp_StepWithFunction wp_compareToPath traceutil.Trace.wp_AddField wp_checkTxn mvcc.metricsTxnWrite.wp_End traceutil.Trace.wp_Step mvcc.store.wp_Write mvcc.wp_NewReadOnlyTxnWrite wp_txn mvcc.txnReadWrite.wp_End
 
 theorem wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.Range.spec (GF := GF) (hG := hG) :=

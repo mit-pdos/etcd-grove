@@ -6,7 +6,7 @@ section of their own, in unit order.
 Unit 0 (translation and scaffolding) proved no function of the package; its `Link.lean` linked
 the trust-boundary axioms, and the read-only write transaction of mvcc (`Txn`'s read-only path)
 is printed at the end. Unit 1: `Put` and `DeleteRange` (`put.go`, `delete.go`). Unit 2: the range
-(`range.go`). The later units add `txn_runTxn`.
+(`range.go`). Unit 3: the transaction (`txn.go`), `txn_runTxn`.
 -/
 module
 
@@ -377,6 +377,193 @@ end unit2
 #print axioms Perennial.EtcdGrove.txn.srvRangeOk_rangeKvsOk
 #print axioms Perennial.EtcdGrove.mvcc.metricsTxnWrite.wp_Rev
 #print axioms Perennial.EtcdGrove.mvcc.metricsTxnWrite.wp_FirstRev
+
+/-! ## Unit 3: `Txn` (`txn.go`)
+
+Every function of `txn.go` (and `etcdserverpb.RequestOp.GetRequestRange`) has a `Spec`/`Proof`
+pair and a linked result (`Link.lean`).
+
+* **`Txn` at the sole writer** (`txn_srvRunTxn`, the spec `Txn.spec`): one of `checkTxn`'s errors,
+  nothing written; or the server's transaction `srvRunTxn` (`TxnRun.lean`: the comparisons'
+  verdicts, every one at the state after `log`, the chosen branch run at the next revision)
+  committed, `soleWriter` at `commitLog log chs`, the response's header revision `writeRev`.
+* **The client model's `runTxn`** (`txn_runTxn`): when every nested transaction's verdict is the
+  same at the state after `log` and at the state the operations before it left (`OpsStable`;
+  always without nested transactions, `opsStable_flat`), the committed state, the verdict and the
+  results are the client's `runTxn` at the sole writer's log. etcd evaluates every comparison
+  first (`compareToPath`); the client model evaluates a nested transaction's comparisons when it
+  runs (`issues/etcd-txn-nested-compare-snapshot.md`).
+* **Read-only requests make no revision** (`txn_readonly_no_revision`), **a failed check writes
+  nothing** (`txn_check_error_no_write`).
+* **The path** (`compareToPath_txnPath`), **serializable is not linearizable**
+  (`txn_serializable_iff`).
+-/
+
+section unit3
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
+variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+
+/-- **`Txn` at the sole writer** (`Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/Txn.lean`). -/
+theorem txn_srvRunTxn : Txn.spec (GF := GF) (hG := hG) := wp_Txn
+
+/-- **The server's transaction is the client model's `runTxn` at the sole writer's log**, when
+the nested verdicts are stable (`OpsStable`): one of `checkTxn`'s errors, nothing written; or
+the changes `pend` committed, whose state is `runTxn`'s, the response that of `runTxn`'s verdict
+and results, its header revision `writeRev log pend`, nothing for a read-only request. -/
+theorem txn_runTxn (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg rt : Loc)
+    (shared : Bool) (kv le : GoInterface) (skip : Bool) (s : Loc) (γ : mvcc.StoreNames)
+    (log : mvcc.Log) (t : TxnModel)
+    (hst : OpsStable (mvcc.stateAfter log) (W64 (log.length : Int)) (mvcc.stateAfter log)
+      (t.branch (txnOk (mvcc.stateAfter log) t))) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
+        isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ isTxnLessor le γ.leases ∗
+        txnRequestIs rt t ∗ context.isContext ctx cd ∗ mvcc.neverDone cd ∗
+        leasesKnown γ.leases (mvcc.stateAfter log) ∗ ⌜TxnPre log t⌝ }}
+      (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx)))
+        (Val #lg)) (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
+    {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
+        mvcc.storeReader s γ ∗
+        ((⌜resp = null ∧ trace = null ∧ err ≠ GoInterface.nil⌝ ∗ checkErrIs err ∗
+            soleWriter γ log) ∨
+         (⌜err = GoInterface.nil ∧ trace ≠ null⌝ ∗ ∃ pend : List mvcc.Change,
+            ⌜mvcc.stateAfter (mvcc.commitLog log pend) =
+                (runTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1 ∧
+              (txnReadonly t = true → pend = [])⌝ ∗
+            txnResponseIs skip resp (W64 (mvcc.writeRev log pend : Int)) t
+              (runTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
+              (runTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2 ∗
+            soleWriter γ (mvcc.commitLog log pend) ∗
+            leasesKnown γ.leases (runTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1)) }} := by
+  wp_start_folded as Hpre
+  iapply (wp_Txn ctx cd lg rt shared kv le skip s γ log t) $$ [Hpre]
+  · iframe Hpre Hpkg
+  inext
+  iintro %resp %trace %err ⟨Hrd, Hout⟩
+  iapply HΦ
+  iframe Hrd
+  icases Hout with (Herr | ⟨%Hok, #Hresp, Hsw, #Hknown⟩)
+  · ileft; iexact Herr
+  · iright
+    obtain ⟨h1, h2, h3⟩ := srvRunTxn_runTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t hst
+    have hs : mvcc.stateAfter (mvcc.commitLog log
+        (srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) =
+        (runTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1 := by
+      rw [stateAfter_commitLog, h2]
+    isplitl []; · ipureintro; exact ⟨Hok.1, Hok.2.1⟩
+    iexists (srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1
+    isplitl []; · ipureintro; exact ⟨hs, Hok.2.2⟩
+    rw [← h1, ← h3, ← hs]
+    iframe Hresp Hsw Hknown
+
+/-- **A read-only request makes no revision**: `Txn` of a read-only request (`IsTxnReadonly`) at
+the sole writer leaves it at `log`, the response's header revision `log`'s last. -/
+theorem txn_readonly_no_revision (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (lg rt : Loc) (shared : Bool) (kv le : GoInterface) (skip : Bool) (s : Loc)
+    (γ : mvcc.StoreNames) (log : mvcc.Log) (t : TxnModel) (hro : txnReadonly t = true) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
+        isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ isTxnLessor le γ.leases ∗
+        txnRequestIs rt t ∗ context.isContext ctx cd ∗ mvcc.neverDone cd ∗
+        leasesKnown γ.leases (mvcc.stateAfter log) ∗ ⌜TxnPre log t⌝ }}
+      (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx)))
+        (Val #lg)) (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
+    {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
+        mvcc.storeReader s γ ∗ soleWriter γ log ∗
+        ((⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ checkErrIs err) ∨
+         (⌜err = GoInterface.nil⌝ ∗
+            txnResponseIs skip resp (W64 ((log.length - 1 : Nat) : Int)) t
+              (srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
+              (srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2)) }} := by
+  wp_start_folded as Hpre
+  iapply (wp_Txn ctx cd lg rt shared kv le skip s γ log t) $$ [Hpre]
+  · iframe Hpre Hpkg
+  inext
+  iintro %resp %trace %err ⟨Hrd, Hout⟩
+  iapply HΦ
+  iframe Hrd
+  icases Hout with (⟨%Hn, #Herr, Hsw⟩ | ⟨%Hok, #Hresp, Hsw, -⟩)
+  · iframe Hsw
+    ileft
+    iframe Herr
+    ipureintro; exact ⟨Hn.1, Hn.2.2⟩
+  · have hch := Hok.2.2 hro
+    rw [hch, show mvcc.commitLog log [] = log from rfl,
+      show mvcc.writeRev log [] = log.length - 1 from rfl]
+    iframe Hsw
+    iright
+    isplitl []; · ipureintro; exact Hok.1
+    iexact Hresp
+
+/-- **A failed check writes nothing**: whatever `Txn` returns at the sole writer of `log`, an
+error leaves the sole writer at `log`, with no response. -/
+theorem txn_check_error_no_write (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (lg rt : Loc) (shared : Bool) (kv le : GoInterface) (skip : Bool) (s : Loc)
+    (γ : mvcc.StoreNames) (log : mvcc.Log) (t : TxnModel) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
+        isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ isTxnLessor le γ.leases ∗
+        txnRequestIs rt t ∗ context.isContext ctx cd ∗ mvcc.neverDone cd ∗
+        leasesKnown γ.leases (mvcc.stateAfter log) ∗ ⌜TxnPre log t⌝ }}
+      (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx)))
+        (Val #lg)) (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
+    {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
+        mvcc.storeReader s γ ∗ ∃ log' : mvcc.Log, soleWriter γ log' ∗
+          ⌜err ≠ GoInterface.nil → log' = log ∧ resp = null⌝ }} := by
+  wp_start_folded as Hpre
+  iapply (wp_Txn ctx cd lg rt shared kv le skip s γ log t) $$ [Hpre]
+  · iframe Hpre Hpkg
+  inext
+  iintro %resp %trace %err ⟨Hrd, Hout⟩
+  iapply HΦ
+  iframe Hrd
+  icases Hout with (⟨%Hn, -, Hsw⟩ | ⟨%Hok, -, Hsw, -⟩)
+  · iexists log
+    iframe Hsw
+    ipureintro; intro _; exact ⟨rfl, Hn.1⟩
+  · iexists _
+    iframe Hsw
+    ipureintro; intro h; exact absurd Hok.1 h
+
+/-- **`compareToPath` is `txnPath`** (`Spec/go_etcd_io/etcd/server/v3/etcdserver/txn/compareToPath.lean`):
+the verdicts of the transaction's comparisons and of its chosen nested transactions', in
+pre-order, all at the read state; its length is one plus the number of nested transactions
+(`txnPath_length`). -/
+theorem compareToPath_txnPath : compareToPath.spec (GF := GF) (hG := hG) := wp_compareToPath
+
+/-- **`IsTxnSerializable` is the client's "not linearizable"** (`TxnModel.linearizable`). -/
+theorem txn_serializable_iff (rt : Loc) (t : TxnModel) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
+        txnRequestIs rt t }}
+      (App (Val (@! txn.IsTxnSerializable)) (Val #rt))
+    {{ RET #(!t.linearizable); True }} := by
+  rw [← serializable_linearizable]
+  exact wp_IsTxnSerializable rt t
+
+/-- Without nested transactions, the server's transaction is the client's (`srvRunTxn_runTxn`). -/
+theorem srvRunTxn_runTxn_flat (r : w64) (s : List EtcdKv) (t : TxnModel)
+    (h : opsFlat (t.branch (txnOk s t))) :
+    (srvRunTxn r s t).1 = (runTxn r s t).1 ∧
+      mvcc.applyChanges r s (srvRunTxn r s t).2.1 = (runTxn r s t).2.1 ∧
+      (srvRunTxn r s t).2.2 = (runTxn r s t).2.2 :=
+  srvRunTxn_runTxn r s t (opsStable_flat s r s _ h)
+
+end unit3
+
+#print axioms Perennial.EtcdGrove.txn.txn_srvRunTxn
+#print axioms Perennial.EtcdGrove.txn.txn_runTxn
+#print axioms Perennial.EtcdGrove.txn.txn_readonly_no_revision
+#print axioms Perennial.EtcdGrove.txn.txn_check_error_no_write
+#print axioms Perennial.EtcdGrove.txn.compareToPath_txnPath
+#print axioms Perennial.EtcdGrove.txn.txn_serializable_iff
+#print axioms Perennial.EtcdGrove.txn.srvRunTxn_runTxn_flat
+#print axioms Perennial.EtcdGrove.txn.wp_txn
+#print axioms Perennial.EtcdGrove.txn.wp_executeTxn
+#print axioms Perennial.EtcdGrove.txn.wp_checkTxn
+#print axioms Perennial.EtcdGrove.txn.wp_newTxnResp
+#print axioms Perennial.EtcdGrove.txn.wp_IsTxnReadonly
+#print axioms Perennial.EtcdGrove.mvcc.metricsTxnWrite.wp_Changes
 
 /-! ## Unit 0: mvcc's read-only write transaction (`InvRoTxn.lean`), linked in mvcc's
 `Link.lean` -/

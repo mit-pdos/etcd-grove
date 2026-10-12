@@ -49,7 +49,13 @@ theorem txn.checkRange.wp_proof
     exact ⟨rfl, Or.inl (by simp_all)⟩
   · skip
     have hne : ¬ rv = W64 0 := by simpa using Hif
-    wp_apply (hRev mw s γ log rev) $$ [$Htx] as Htx
+    ihave Htx : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
+    · simp only [mvcc.isTxn]; iexact Htx
+    wp_apply +noauto (hRev mw s γ (.read log rev)) $$ [$Htx] as Htx
+    rw [show (mvcc.TxnKind.read log rev).beginRev = rev from rfl]
+    ihave Htx : mvcc.isTxnRead mw s γ log rev $$ [Htx]
+    · simp only [mvcc.isTxn]; iexact Htx
+    wp_auto
     wp_if_destruct
     · skip
       have hlt : sint.Z rev < sint.Z rv := by simpa using Hif

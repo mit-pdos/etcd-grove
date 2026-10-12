@@ -2908,6 +2908,36 @@ corresponding ones for `Put` (`putKv`), `DeleteRange` (the filter) and `Range`
   mvcc gains `metricsTxnWrite.Rev`/`FirstRev` for a read transaction (`checkRange`'s
   `ReadView`), additive.
 
+- **Unit 3 (`Txn`, 2026-10-12).** (1) **The server's run, not the client's**: `Txn` is specified
+  over `srvRunTxn` (`TxnRun.lean`), the client's `runOps` with every nested transaction's branch
+  chosen by its verdict at the read state (`compareToPath` evaluates every comparison first) and
+  the mvcc changes named (the write transaction's pending list); `txn_runTxn` relates it to the
+  client's `runTxn` under `OpsStable`. *Rejected:* stating `Txn` over `runTxn` (false for a nested
+  comparison on a key written earlier in the transaction: the client model is wrong there,
+  `issues/etcd-txn-nested-compare-snapshot.md`); changing the client model (leasing's proofs use
+  it). (2) **A context never canceled** instead of a panic: in the write path a range or a
+  `PrevKv` delete at a done context returns an error that `txn` turns into `lg.Panic`; mvcc's
+  `rangeCtx true` now also takes an `isContext` whose Done proposition never holds (`neverDone`:
+  a receive on its channel would give it), and `executeRange`/`deleteRange` take `nd` with no
+  context error. *Rejected:* a panic disjunct in `Txn`'s post (the result would hold "unless it
+  panics"); refining `rangeOutcome` itself (every mvcc proof). (3) **The run's premises as a pure
+  predicate on the run** (`OpsOk`, at each operation's state): a range's at its state
+  (`sortSmall` replaces unit 2's `sortOk` of the log, which a write transaction's pending log does
+  not give), an ignore-flag put's key present where it runs (the finding
+  `etcd-txn-delete-then-ignore-put.md`), weak in `Txn` (missing at the read state: `checkTxn`
+  fails) and strong in `executeTxn` (`opsOk_strong` with `checkTxn`'s `PathsIgnOk`). Ranges at
+  revision `0` only (the client's `txnOpOf`), so `checkRange` never fails in `Txn`'s scope.
+  (4) **Leases as a state invariant** (`leasesKnown`): `Txn` takes every lease of the committed
+  state known and returns it for the new one (a put names a checked lease or keeps the previous
+  key's); unit 1's per-call premise generalizes to a run. (5) **One transaction predicate for both
+  paths** (`txnWriteIs`: a `*metricsTxnWrite` write transaction or the read-only wrapper, the
+  latter with nothing pending and only ranges), and `executeRange` over `txnViewIs` (either kind
+  or the wrapper), so `executeTxn`, `txn` and `executeRange` have one proof each. (6) **Responses**
+  moved to `InvTxn.lean` and stated as the server answers (a range's `leaseZ`; `skip`:
+  header-only), the skeleton `newTxnResp` allocates owned only where `executeTxn` stores.
+  (7) `compareIs` states the operand's wrapper is not a typed `nil`; `checkTxn` returns `0` on an
+  error; `metricsTxnWrite.Rev` of either kind, `metricsTxnWrite.Changes` added (mvcc, additive).
+
 ## mvcc: the certificate carries the log, the token count is exact, a read is pinned by tokens
 
 2026-10-11, for the server's txn package, unit 0c (`notes/STATUS.md`, "Unit 0c"). The txn

@@ -27,12 +27,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 changes `pend`): the keys of the request's range at the state read deleted (`delChanges`: the
 client's filter), the response with their number, the transaction's revision after the deletes
 and (`PrevKv`) the deleted key-values, read-only; or, with `PrevKv`, the range read's context error
-(`ctx` done), nothing deleted. -/
+(`ctx` done; not at a context never canceled, `nd`), nothing deleted. -/
 abbrev txn.deleteRange.spec : Prop :=
-  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (mw s : Loc)
+  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (mw s : Loc)
     (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (puts deletes putSize : w64)
     (dr : Loc) (o : OpFull),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ context.isContext ctx cd ∗
+      (if nd then mvcc.neverDone cd else iprop(True)) ∗
       mvcc.isTxnWrite mw s γ ilog pend puts deletes putSize ∗ txn.deleteRangeRequestIs dr o ∗
       ⌜pend.length + (rangeIn (txn.pendState ilog pend) o).length < 2 ^ 63⌝ }}
     (App (App (App (Val (@! txn.deleteRange)) (Val #(GoInterface.ok ctx))) (Val #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface))) (Val #dr))
@@ -45,7 +46,7 @@ abbrev txn.deleteRange.spec : Prop :=
             Int))
           (rangeIn (txn.pendState ilog pend) o).length
           (if o.base.prevKV then rangeIn (txn.pendState ilog pend) o else [])) ∨
-      (⌜err ≠ GoInterface.nil ∧ o.base.prevKV = true ∧ resp = null⌝ ∗
+      (⌜err ≠ GoInterface.nil ∧ o.base.prevKV = true ∧ resp = null ∧ nd = false⌝ ∗
         mvcc.isTxnWrite mw s γ ilog pend puts deletes putSize) }}
 
 end spec

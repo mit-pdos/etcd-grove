@@ -1,11 +1,12 @@
 /-
-`metricsTxnWrite.Rev` (`metrics_txn.go`: promoted from the wrapped `TxnWrite`, here a read
-transaction's `txnReadWrite` around a `storeTxnRead`, down to `storeTxnCommon.Rev`). Lean-first
+`metricsTxnWrite.Rev` (`metrics_txn.go`: promoted from the wrapped `TxnWrite`: a read
+transaction's `txnReadWrite` around a `storeTxnRead`, down to `storeTxnCommon.Rev`, or a write
+transaction's `storeTxnWrite.Rev`). Lean-first
 (no Rocq counterpart); see `InvStore.lean`.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 
 @[expose] public section
 
@@ -23,13 +24,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `mw.Rev()` of a read transaction: the read transaction's revision, the last of its committed log. -/
+/-- `mw.Rev()` of a transaction of either kind: the revision it began at (`TxnKind.beginRev`: a
+read transaction's revision, a write transaction's committed log's last). -/
 abbrev mvcc.metricsTxnWrite.Rev.spec : Prop :=
-  ∀ (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64),
+  ∀ (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isTxnRead mw s γ log rev }}
+      mvcc.isTxn mw s γ kind }}
     (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Rev")) (Val #()))
-  {{ RET #(rev : w64); mvcc.isTxnRead mw s γ log rev }}
+  {{ RET #(kind.beginRev : w64); mvcc.isTxn mw s γ kind }}
 
 end spec
 

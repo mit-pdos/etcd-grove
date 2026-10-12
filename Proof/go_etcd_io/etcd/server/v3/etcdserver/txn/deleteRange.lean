@@ -32,8 +32,8 @@ theorem txn.deleteRange.wp_proof
     (hRange : mvcc.metricsTxnWrite.Range.spec (GF := GF) (hG := hG))
     (hDel : mvcc.metricsTxnWrite.DeleteRange.spec (GF := GF) (hG := hG)) :
     txn.deleteRange.spec (GF := GF) (hG := hG) := by
-  intro ctx cd mw s γ ilog pend puts deletes putSize dr o
-  wp_start as ⟨#Hctx, Htx, #Hdr, %Hbnd⟩
+  intro ctx cd nd mw s γ ilog pend puts deletes putSize dr o
+  wp_start as ⟨#Hctx, #Hnd, Htx, #Hdr, %Hbnd⟩
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   iunfold txn.deleteRangeRequestIs at Hdr
@@ -116,11 +116,13 @@ theorem txn.deleteRange.wp_proof
     iapply txn.kvsIs_nil
   · -- `PrevKv`: the range read first
     (try wp_auto)
-    ihave #Hctx' : mvcc.rangeCtx false ctx cd $$ []
-    · simp only [mvcc.rangeCtx, Bool.false_eq_true, ↓reduceIte]; iexact Hctx
-    wp_apply (hRange mw s γ (.write ilog pend puts deletes putSize) ctx cd false ksl endk k
+    ihave #Hctx' : mvcc.rangeCtx nd ctx cd $$ []
+    · cases nd
+      · simp only [mvcc.rangeCtx, Bool.false_eq_true, ↓reduceIte]; iexact Hctx
+      · simp only [mvcc.rangeCtx, ↓reduceIte]; iright; iframe Hctx Hnd
+    wp_apply (hRange mw s γ (.write ilog pend puts deletes putSize) ctx cd nd ksl endk k
         (txn.srvEnd o.base.rangeEnd).2 (zero_val RangeOptions)) $$ [$Htx $Hctx' $Hks $Hend]
-      as %rr %rerr ⟨-, Htx, Hout⟩
+      as %rr %rerr ⟨%Hrn', Htx, Hout⟩
     imod txn.rangeOutcome_sel rr rerr _ _ k _ (zero_val RangeOptions) Hok ⟨rfl, rfl, rfl, rfl⟩
       $$ Hout with Hout
     rw [hks, hE1, ← hK, txn.srvSel_srvEnd, hK]
@@ -133,7 +135,11 @@ theorem txn.deleteRange.wp_proof
         iapply HΦ
         iright
         isplitl []
-        · ipureintro; exact ⟨Hne, rfl, rfl⟩
+        · ipureintro
+          refine ⟨Hne, rfl, rfl, ?_⟩
+          cases nd
+          · rfl
+          · exact absurd Hrnull (Hrn' rfl)
         simp only [mvcc.isTxn]
         iexact Htx
     · subst Herr
