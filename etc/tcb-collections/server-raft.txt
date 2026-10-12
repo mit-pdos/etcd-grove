@@ -1,0 +1,17 @@
+# etcd's server: the raft wrapper (server/etcdserver/raft.go, `raftNode`'s methods and
+# `updateCommittedIndex`), the linked results of
+# Proof/go_etcd_io/etcd/server/v3/etcdserver/Link.lean. Its components (raft.Node, the WAL, the
+# transport, ...) are contracts in `isRaftNode` (InvRaftNode.lean), not axioms.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/server-raft.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots raftNode\.wp_
+roots \bwp_updateCommittedIndex$
+axiom proto.Clone.wp_proof
+axiom zap.Duration.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Logger.Fatal.wp_proof
+axiom zap.Logger.Warn.wp_proof
+axiom zap.String.wp_proof

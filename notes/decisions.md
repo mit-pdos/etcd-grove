@@ -3416,7 +3416,7 @@ convention), which would spare `End` its credit; kept `P`, the form `apply.Apply
 
 ## The server's raft wrapper: raft.Node as a contract, an SPSC stream to the apply side
 
-**2026-10-12 · plan** (`server/v3/etcdserver/raft.go`, ~450 Go lines; branch `server-raft`).
+**2026-10-12 · plan, carried out the same day** (`server/v3/etcdserver/raft.go`, ~450 Go lines; branch `server-raft`; `STATUS.md`, "etcd's server: the raft wrapper"). Two changes in the proof: the WAL's `Close` succeeds by the contract (else `onStop` panics in the loop's goroutine), and `start` case-splits `islead` rather than joining (the follower's select returns on `stopped`, which no join assertion reaches).
 Toward an end-to-end statement (a client driver against a slice of etcd: the raft wrapper, the
 apply thread, the applier chain, mvcc), the raft wrapper is the link between raft's `Ready` and
 the apply thread, whose `applyEntries` assumes its batch "consecutive from `f0`, with no gap
