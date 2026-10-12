@@ -23,6 +23,9 @@ generated); raft's functions it calls are linked in raft's `Link.lean`.
   `Put` wrote -- is safe: `{{ isPkgInit register }} Main() {{ RET #(); True }}`. Every ghost
   resource is allocated inside the proof (no storage registry is assumed: `register_Main`
   takes no `[RegStor GF]`).
+* **Adequacy** (`register_cluster_safe`, `Adequacy.lean`'s `register_adequate`): the same in
+  the operational semantics, with package initialization proved (`Init.lean`): every
+  execution of `initialize'(); Main()` from a fresh state has no stuck thread and no panic.
 -/
 module
 

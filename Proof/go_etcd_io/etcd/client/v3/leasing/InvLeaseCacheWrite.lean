@@ -488,6 +488,7 @@ theorem lcOwn_emap_revokes_acc (lc : Loc) (st : LeaseCacheSt) :
   iframe H1 H2 H3 H4
   iintro %rv H1 H2 H3 H4
   unfold emapOwn at *
+  dsimp only
   iframe
   iframe #
 

@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-11 (the register's cluster driver `Main` proved safe from package initialization, everything allocated in the proof; raft's `isLogger` was unsatisfiable, fixed, see "The register's cluster driver"; Perennial's panics and `recover` adopted (Perennial branch `panic`, not yet pinned: needs `7cea8cc26`), the STM's two panic axioms gone, `lockerMutex.Lock`/`Unlock` specified, four standard-library axioms of `client/v3/leasing` replaced by Perennial's specs, see "Panic and recover"; `client/v3/leasing` unit 5: the monitors, `NewKV` and `Close` proved, every leasing result unconditional, 66 of 67 functions verified; two findings reproduced (`waitRescind`'s `nil` without a delete lets a range delete through another client's lease; a session reset between `acquire` and `Add` leaves a stale entry), see "Unit 5: the monitors; the package"; `client/v3/leasing` units 3 and 4: `txn.go` and `kv.go` but the monitors specified and proved, nested transactions and owned responses in the contract, two new findings (a write of an uncached key applied twice, a failed acquisition ignores the get's options), see "Units 3 and 4"; `client/v3/leasing` units 1 and 2: translated, the protocol as a premise on etcd's history with `leased_value_stable`, the lease cache specified and proved, findings in `EvictRange` and `evalCmp`, see "client/v3/leasing: the protocol premise and the lease cache"; merged upstream's register example, `node.go`, raft from upstream etcd-io/raft and thread tokens into the Mutex/Election/STM line, Perennial `7c93f27aa`, see "Merge: the register, `node.go` and thread tokens"; `STM`: all of `stm.go` specified and proved, atomicity of the serializable levels, Perennial `9276bd1ed`: a map has fewer than `2^63` keys, two trust-boundary axioms for the STM's panic and `recover`, a new history law, the serializable snapshot broken after a retry (a finding, reproduced and fixed on a fork branch), see "STM"; `Election`: all of `election.go` specified and proved, election exclusion, only the leader proclaims, `Campaign` may return `nil` without its key (a finding), see "Election"; `Mutex`: mutual exclusion, Perennial `d240c1732`: `fmt.Sprintf` formats `%s`, `strings.HasPrefix`, see "Mutex: mutual exclusion"; the register example verified over raft: logically atomic `Put`/`Get`, raft proposals over a client log, see "The register example"; the cache's wait-group counter bounded by thread tokens, Perennial `105fb79f5`: the `WaitGroup.Add` overflow assumption reverted, `New` assumes fewer than `2^31 - 3` live threads, see "The wait-group counter and thread tokens"; `node.go` proved: `RestartNode`, `run`, `Propose`, `Step`, `Tick`, `Ready`, `Advance`, see "`node.go`: the concurrent `Node`"; groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-12 (a closed theorem about the register's driver in the operational semantics, `register_adequate`, from Perennial's adequacy; package initialization proved for raft, its subpackages, `context` and the register; the account of every axiom and `sorry` it rests on, see "Adequacy of the register's driver"; 2026-10-11: the register's cluster driver `Main` proved safe from package initialization, everything allocated in the proof; raft's `isLogger` was unsatisfiable, fixed, see "The register's cluster driver"; Perennial's panics and `recover` adopted (Perennial branch `panic`, not yet pinned: needs `7cea8cc26`), the STM's two panic axioms gone, `lockerMutex.Lock`/`Unlock` specified, four standard-library axioms of `client/v3/leasing` replaced by Perennial's specs, see "Panic and recover"; `client/v3/leasing` unit 5: the monitors, `NewKV` and `Close` proved, every leasing result unconditional, 66 of 67 functions verified; two findings reproduced (`waitRescind`'s `nil` without a delete lets a range delete through another client's lease; a session reset between `acquire` and `Add` leaves a stale entry), see "Unit 5: the monitors; the package"; `client/v3/leasing` units 3 and 4: `txn.go` and `kv.go` but the monitors specified and proved, nested transactions and owned responses in the contract, two new findings (a write of an uncached key applied twice, a failed acquisition ignores the get's options), see "Units 3 and 4"; `client/v3/leasing` units 1 and 2: translated, the protocol as a premise on etcd's history with `leased_value_stable`, the lease cache specified and proved, findings in `EvictRange` and `evalCmp`, see "client/v3/leasing: the protocol premise and the lease cache"; merged upstream's register example, `node.go`, raft from upstream etcd-io/raft and thread tokens into the Mutex/Election/STM line, Perennial `7c93f27aa`, see "Merge: the register, `node.go` and thread tokens"; `STM`: all of `stm.go` specified and proved, atomicity of the serializable levels, Perennial `9276bd1ed`: a map has fewer than `2^63` keys, two trust-boundary axioms for the STM's panic and `recover`, a new history law, the serializable snapshot broken after a retry (a finding, reproduced and fixed on a fork branch), see "STM"; `Election`: all of `election.go` specified and proved, election exclusion, only the leader proclaims, `Campaign` may return `nil` without its key (a finding), see "Election"; `Mutex`: mutual exclusion, Perennial `d240c1732`: `fmt.Sprintf` formats `%s`, `strings.HasPrefix`, see "Mutex: mutual exclusion"; the register example verified over raft: logically atomic `Put`/`Get`, raft proposals over a client log, see "The register example"; the cache's wait-group counter bounded by thread tokens, Perennial `105fb79f5`: the `WaitGroup.Add` overflow assumption reverted, `New` assumes fewer than `2^31 - 3` live threads, see "The wait-group counter and thread tokens"; `node.go` proved: `RestartNode`, `run`, `Propose`, `Step`, `Tick`, `Ready`, `Advance`, see "`node.go`: the concurrent `Node`"; groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
@@ -13,6 +13,112 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## Adequacy of the register's driver: the closed theorem and its trust base (2026-10-12)
+
+`register_adequate` (`Proof/github_com/mit_pdos/etcd_grove/examples/register/Adequacy.lean`,
+restated as `register_cluster_safe` in `Results.lean`) is a theorem about the operational
+semantics, with no Iris in its statement. Take `registerProgram`, which is
+`initialize'(); Main()` for the register package. Start it from any state with no package
+initialized (`IsInit σ`) and one live thread (`g.threads = 1`). Then for every real
+execution of any length `n` (`RealNsteps n`): if the main thread has finished, its value is
+`#()`; every thread is a value or can step; no thread has ended in a panic. Client B's check
+of its `Get` is one such panic, so it never fires.
+
+- **Proof.** Perennial's `goose_adequacy_nopanic` is used at the disk FFI, whose
+  initial-state conditions are trivial. The register's proofs are generic over the FFI.
+  - Bounds: `N = n + 1`. `T = n + 2` comes from `threads_le_steps`: one step forks at most
+    one thread. The WP uses neither receipts nor thread tokens, so neither bound costs
+    anything.
+  - Ghost state: a concrete bundle `registerGF` (`AllG` at slot 0, then invariants, credits,
+    heap, prophecies, package state, the disk heap) with its `GooseGpreS` instance.
+  - From `ownGoState ∅` to `ownInitializing getIsPkgInit`: `getIsPkgInit` is a lookup table
+    over the 29 packages the register reaches, transitively. Its `GetIsPkgInitWf` is proved
+    by `repeat' (first | exact True.intro | apply And.intro | rfl)`.
+  - Then `register.wp_initialize'` (`Init.lean`), then `register.wp_Main`.
+- **Initialization, proved.**
+  - raft (`Proof/go_etcd_io/raft/v3/Init.lean`): the initializer establishes
+    `isInitialized`, which until now was only assumed (`Base.lean`). That covers the error
+    variables (`errors.New`; `IsNewError` from Perennial's new `errors.wp_New_ptr`),
+    `globalRand`'s mutex (`init_Mutex`), `emptyState` and the two message tables. Nothing in
+    `isInitialized` was false.
+  - `quorum`, `tracker`, `confchange` and the register.
+  - Perennial's `context` (`Perennial/Proof/context_proof/context_init.lean`, new).
+  - Changed instances:
+    - Perennial's `io`: `isPkgInit` now gives `Discard ↦□ _`, because raft's initializer
+      loads it.
+    - etcd-grove's `os`: `isPkgInit` gives `Stderr ↦□ _`, for the same reason.
+- **Uncommitted Perennial changes** (the pin is unchanged; they are needed to build):
+  - `Proof/io.lean` (the `isPkgInit` above);
+  - `Proof/errors.lean` (`wp_New_ptr`);
+  - `Proof/context_proof/context_init.lean` (new);
+  - `Proof/math/big.lean` and `Proof/crypto/rand.lean` (`wp_initialize'`, `sorry`).
+- **The theorem's hypotheses.** Perennial's Go semantics is a parameter, as in every result:
+  - `GoGlobalContext`, `GoLocalContext`, `go.Semantics`;
+  - `register.Assumptions`, which includes every imported package's `Assumptions`: each Go
+    name stands for its Goose-translated body or for Perennial's trusted model (in
+    `TrustedCode`: `sync.Mutex`, `sync/atomic`, the runtime semaphores, `fmt.Sprintf`/`Printf`
+    (no formatting), `strings.Join`, `crypto/rand.Int`, `time.Sleep`, ...), plus the struct
+    layouts;
+  - two new classes of the same kind:
+    - `log.NewModel`: the name `log.New` stands for a model returning a fresh pointer.
+      Perennial translates `log` without `New`.
+    - `context.ErrorStringIsError`: `*errors.errorString` is in `error`'s type set, a
+      method-set fact. `methodSet` is uninterpreted, so `context`'s `isInit`, which asks for
+      `isTypedErr Canceled`, cannot be established otherwise.
+
+  No instance of `go.Semantics` has been constructed anywhere. The theorem is non-vacuous
+  only if these classes are jointly satisfiable, which is believed but not proved.
+- **`#print axioms register_cluster_safe`** lists 302 axioms. A Lean classifier
+  (`isProp` of each axiom's type) splits them as follows:
+  - **Lean's**: `propext`, `Quot.sound`, `Classical.choice`.
+  - **297 data axioms, no logical content.** These are Goose's declarations of what it does
+    not translate, all in `Code/`: opaque types (`reflect.Value`, `os.file`,
+    `sync.Map`, ...), their `underlying` and `zero_val`, constants, and 135 package-variable
+    initializers (`X.init : val`). They are 5 in `raftpb`, 53 in `math`, 25 in `os`, 17 each
+    in `time` and `math/big`, 7 each in `strconv` and `reflect`, 2 in `log`, 1 each in
+    `errors` and `crypto/rand`. Every type is inhabited, so they are consistent: read each
+    type as `Unit`.
+  - **One propositional axiom**: raft's `reflect.DeepEqual.wp_proof`, Go reflection on two
+    `ConfState`s (`ConfState.Equivalent`, reached from `RestartNode`).
+  - **`sorryAx`**, from 9 `sorry` declarations, all package initializers that cannot be
+    proved because they run opaque initializers:
+    - Perennial: `errors.wp_errorType_init` (the `reflectlite` initializer of
+      `errorType`), `time.wp_initialize'`, `math.wp_initialize'`, `log.wp_initialize'`,
+      `math.big.wp_initialize'`, `crypto.rand.wp_initialize'`;
+    - etcd-grove (`Proof/go_etcd_io/raft/v3/Init.lean`): `os.wp_initialize'`,
+      `strconv.wp_initialize'`, `raftpb.wp_initialize'` (gogoproto's registration and the
+      `fmt.Errorf` error variables that `raftpb.toml` does not translate).
+
+    `reflect.wp_initialize'` is also a `sorry` but is not reached, because `raftpb`'s
+    initializer is the only caller.
+- **A soundness caveat about trust-boundary axioms.** Axioms like
+  `reflect.DeepEqual.wp_proof` quantify over every semantics instance. The `Assumptions`
+  classes do not constrain `functions reflect.DeepEqual`, so the axiom asserts the spec for
+  every function table, including ones where `DeepEqual` returns a wrong answer. Together
+  with adequacy, a constructed model of `go.Semantics` with such a table would refute it.
+  The axiom is consistent only as long as no such model is built. The sound form is a
+  hypothesis class naming a trusted model, as `log.NewModel` does, with the spec proved from
+  it. The same applies to every `*.wp_proof` axiom in `etc/tcb-baseline.txt` and to
+  Perennial's spec axioms for names without `FuncUnfold` (`time.wp_Now`, `errors.wp_As`).
+- **Is raft's proof complete (outside reconfiguration and read-only requests)?** Judged by
+  this list, nearly, but not totally. Nothing about raft's algorithm or its Go code is
+  assumed: every raft function `Main` reaches is verified, and raft's package state is now
+  proved from its initializer. Two raft-repository items remain:
+  - `reflect.DeepEqual.wp_proof` (Go reflection, a standard-library function, with the
+    caveat above);
+  - `raftpb.wp_initialize'` (generated protobuf registration, outside raft's logic).
+
+  Everything else is the standard library (8 initializers whose variable initializers are
+  opaque, `log.New`'s model, the method-set fact, Perennial's trusted models) or Perennial's
+  framework: GooseLang's semantics and the Goose translator; `go.Semantics`, not shown
+  satisfiable; `AngelicExit`, under which global variables land at `globalAddr` and the
+  overflow `assume`s hold; a 64-bit platform. The statement is safety only: no stuck
+  thread, no panic, B reads A's write. It says nothing about liveness.
+- **Build.** A full `lake build` passes (2202 jobs). One unrelated proof had to be
+  repaired: `lcOwn_emap_revokes_acc` (`leasing/InvLeaseCacheWrite.lean`) needed a
+  `dsimp only` before its `iframe` (a projection of a literal record).
+- **TCB collection.** See the dated line in `etc/tcb-collections/register.txt`.
 
 ## The register's cluster driver: a closed program, safe from package initialization (2026-10-11)
 
