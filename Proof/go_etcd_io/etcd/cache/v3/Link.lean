@@ -171,7 +171,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-theorem store.wp_LatestRev [AllG GF] :
+theorem store.wp_LatestRev :
     store.LatestRev.spec (GF := GF) (hG := hG) :=
   store.LatestRev.wp_proof
 
@@ -271,31 +271,31 @@ theorem ringBuffer.wp_DescendLessOrEqual :
     ringBuffer.DescendLessOrEqual.spec (GF := GF) (hG := hG) :=
   ringBuffer.DescendLessOrEqual.wp_proof ringBuffer.wp_findLastIndexLessOrEqual ringBuffer.wp_at
 
-theorem store.wp_getSnapshot [AllG GF] :
+theorem store.wp_getSnapshot :
     store.getSnapshot.spec (GF := GF) (hG := hG) :=
   store.getSnapshot.wp_proof ringBuffer.wp_DescendLessOrEqual
 
-theorem wp_probeItemFromKey [AllG GF] :
+theorem wp_probeItemFromKey :
     probeItemFromKey.spec (GF := GF) (hG := hG) :=
   probeItemFromKey.wp_proof
 
-theorem wp_isPrefixScan [AllG GF] :
+theorem wp_isPrefixScan :
     isPrefixScan.spec (GF := GF) (hG := hG) :=
   isPrefixScan.wp_proof
 
-theorem snapshot.wp_Range [AllG GF] :
+theorem snapshot.wp_Range :
     snapshot.Range.spec (GF := GF) (hG := hG) :=
   snapshot.Range.wp_proof wp_probeItemFromKey wp_isPrefixScan btree.BTree.wp_Get btree.BTree.wp_AscendGreaterOrEqual btree.BTree.wp_AscendRange
 
-theorem store.wp_Get [AllG GF] :
+theorem store.wp_Get :
     store.Get.spec (GF := GF) (hG := hG) :=
   store.Get.wp_proof store.wp_getSnapshot snapshot.wp_Range
 
-theorem ResponseHeader.wp_GetRevision [AllG GF] :
+theorem ResponseHeader.wp_GetRevision :
     ResponseHeader.GetRevision.spec (GF := GF) (hG := hG) :=
   ResponseHeader.GetRevision.wp_proof
 
-theorem WatchResponse.wp_IsProgressNotify [AllG GF] :
+theorem WatchResponse.wp_IsProgressNotify :
     WatchResponse.IsProgressNotify.spec (GF := GF) (hG := hG) :=
   WatchResponse.IsProgressNotify.wp_proof ResponseHeader.wp_GetRevision
 
@@ -323,19 +323,19 @@ theorem Op.wp_IsProgressNotify :
     Op.IsProgressNotify.spec (GF := GF) (hG := hG) :=
   Op.IsProgressNotify.wp_proof
 
-theorem wp_validateRevisions [AllG GF] :
+theorem wp_validateRevisions :
     validateRevisions.spec (GF := GF) (hG := hG) :=
   validateRevisions.wp_proof WatchResponse.wp_IsProgressNotify
 
-theorem store.wp_applyProgressNotifyLocked [AllG GF] :
+theorem store.wp_applyProgressNotifyLocked :
     store.applyProgressNotifyLocked.spec (GF := GF) (hG := hG) :=
   store.applyProgressNotifyLocked.wp_proof
 
-theorem wp_newKVItem [AllG GF] :
+theorem wp_newKVItem :
     newKVItem.spec (GF := GF) (hG := hG) :=
   newKVItem.wp_proof
 
-theorem wp_newClonedSnapshot [AllG GF] :
+theorem wp_newClonedSnapshot :
     newClonedSnapshot.spec (GF := GF) (hG := hG) :=
   newClonedSnapshot.wp_proof btree.BTree.wp_Clone
 
@@ -347,11 +347,11 @@ theorem ringBuffer.wp_Append :
     ringBuffer.Append.spec (GF := GF) (hG := hG) :=
   ringBuffer.Append.wp_proof ringBuffer.wp_full
 
-theorem store.wp_applyEventsLocked [AllG GF] :
+theorem store.wp_applyEventsLocked :
     store.applyEventsLocked.spec (GF := GF) (hG := hG) :=
   store.applyEventsLocked.wp_proof btree.BTree.wp_Delete btree.BTree.wp_ReplaceOrInsert wp_newKVItem wp_newClonedSnapshot ringBuffer.wp_Append
 
-theorem store.wp_Apply [AllG GF] :
+theorem store.wp_Apply :
     store.Apply.spec (GF := GF) (hG := hG) :=
   store.Apply.wp_proof wp_validateRevisions WatchResponse.wp_IsProgressNotify store.wp_applyProgressNotifyLocked store.wp_applyEventsLocked
 
@@ -359,7 +359,7 @@ theorem wp_WithPrefix :
     WithPrefix.spec (GF := GF) (hG := hG) :=
   WithPrefix.wp_proof wp_getPrefix
 
-theorem wp_kvItemLess [AllG GF] :
+theorem wp_kvItemLess :
     kvItemLess.spec (GF := GF) (hG := hG) :=
   kvItemLess.wp_proof
 
@@ -367,7 +367,7 @@ theorem ringBuffer.wp_RebaseHistory :
     ringBuffer.RebaseHistory.spec (GF := GF) (hG := hG) :=
   ringBuffer.RebaseHistory.wp_proof
 
-theorem store.wp_Restore [AllG GF] :
+theorem store.wp_Restore :
     store.Restore.spec (GF := GF) (hG := hG) :=
   store.Restore.wp_proof btree.wp_New wp_kvItemLess wp_newKVItem btree.BTree.wp_ReplaceOrInsert ringBuffer.wp_RebaseHistory wp_newClonedSnapshot ringBuffer.wp_Append
 
@@ -463,7 +463,7 @@ theorem wp_WithWaitTimeout :
     WithWaitTimeout.spec (GF := GF) (hG := hG) :=
   WithWaitTimeout.wp_proof
 
-theorem wp_newStore [AllG GF] :
+theorem wp_newStore :
     newStore.spec (GF := GF) (hG := hG) :=
   newStore.wp_proof btree.wp_New wp_kvItemLess wp_newRingBuffer
 
@@ -490,275 +490,275 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-theorem Cache.wp_Close [AllG GF] :
+theorem Cache.wp_Close :
     Cache.Close.spec (GF := GF) (hG := hG) :=
   Cache.Close.wp_proof
 
-theorem ready.wp_waitForState [AllG GF] :
+theorem ready.wp_waitForState :
     ready.waitForState.spec (GF := GF) (hG := hG) :=
   ready.waitForState.wp_proof
 
-theorem ready.wp_WaitReady [AllG GF] :
+theorem ready.wp_WaitReady :
     ready.WaitReady.spec (GF := GF) (hG := hG) :=
   ready.WaitReady.wp_proof ready.wp_waitForState
 
-theorem Cache.wp_WaitReady [AllG GF] :
+theorem Cache.wp_WaitReady :
     Cache.WaitReady.spec (GF := GF) (hG := hG) :=
   Cache.WaitReady.wp_proof ready.wp_WaitReady
 
-theorem Cache.wp_validateRange [AllG GF] :
+theorem Cache.wp_validateRange :
     Cache.validateRange.spec (GF := GF) (hG := hG) :=
   Cache.validateRange.wp_proof wp_GetPrefixRangeEnd
 
-theorem wp_ExactKey [AllG GF] :
+theorem wp_ExactKey :
     ExactKey.spec (GF := GF) (hG := hG) :=
   ExactKey.wp_proof
 
-theorem wp_FromKey [AllG GF] :
+theorem wp_FromKey :
     FromKey.spec (GF := GF) (hG := hG) :=
   FromKey.wp_proof
 
-theorem wp_Range [AllG GF] :
+theorem wp_Range :
     Range.spec (GF := GF) (hG := hG) :=
   Range.wp_proof
 
-theorem wp_KeyPredForRange [AllG GF] :
+theorem wp_KeyPredForRange :
     KeyPredForRange.spec (GF := GF) (hG := hG) :=
   KeyPredForRange.wp_proof wp_ExactKey wp_FromKey wp_Range
 
-theorem Cache.wp_validateGet [AllG GF] :
+theorem Cache.wp_validateGet :
     Cache.validateGet.spec (GF := GF) (hG := hG) :=
   Cache.validateGet.wp_proof Op.wp_IsCountOnly Op.wp_IsPrevKV Op.wp_IsSortSet Op.wp_Limit Op.wp_MinModRev Op.wp_MaxModRev Op.wp_MinCreateRev Op.wp_MaxCreateRev Op.wp_RangeBytes Cache.wp_validateRange wp_KeyPredForRange
 
-theorem Cache.wp_serverRevision [AllG GF] :
+theorem Cache.wp_serverRevision :
     Cache.serverRevision.spec (GF := GF) (hG := hG) :=
   Cache.serverRevision.wp_proof wp_WithLimit wp_WithCountOnly
 
-theorem conditionalProgressRequestor.wp_add [AllG GF] :
+theorem conditionalProgressRequestor.wp_add :
     conditionalProgressRequestor.add.spec (GF := GF) (hG := hG) :=
   conditionalProgressRequestor.add.wp_proof
 
-theorem conditionalProgressRequestor.wp_remove [AllG GF] :
+theorem conditionalProgressRequestor.wp_remove :
     conditionalProgressRequestor.remove.spec (GF := GF) (hG := hG) :=
   conditionalProgressRequestor.remove.wp_proof
 
-theorem Cache.wp_waitTillRevision [AllG GF] :
+theorem Cache.wp_waitTillRevision :
     Cache.waitTillRevision.spec (GF := GF) (hG := hG) :=
   Cache.waitTillRevision.wp_proof store.wp_LatestRev conditionalProgressRequestor.wp_add conditionalProgressRequestor.wp_remove
 
-theorem Cache.wp_Get [AllG GF] :
+theorem Cache.wp_Get :
     Cache.Get.spec (GF := GF) (hG := hG) :=
   Cache.Get.wp_proof store.wp_LatestRev Cache.wp_WaitReady wp_OpGet Cache.wp_validateGet Op.wp_RangeBytes Op.wp_Rev Op.wp_IsSerializable Cache.wp_serverRevision Cache.wp_waitTillRevision store.wp_Get
 
-theorem ready.wp_Ready [AllG GF] :
+theorem ready.wp_Ready :
     ready.Ready.spec (GF := GF) (hG := hG) :=
   ready.Ready.wp_proof
 
-theorem Cache.wp_Ready [AllG GF] :
+theorem Cache.wp_Ready :
     Cache.Ready.spec (GF := GF) (hG := hG) :=
   Cache.Ready.wp_proof ready.wp_Ready
 
-theorem watcher.wp_enqueueResponse [AllG GF] :
+theorem watcher.wp_enqueueResponse :
     watcher.enqueueResponse.spec (GF := GF) (hG := hG) :=
   watcher.enqueueResponse.wp_proof WatchResponse.wp_IsProgressNotify
 
-theorem demux.wp_BroadcastProgress [AllG GF] :
+theorem demux.wp_BroadcastProgress :
     demux.BroadcastProgress.spec (GF := GF) (hG := hG) :=
   demux.BroadcastProgress.wp_proof watcher.wp_enqueueResponse
 
-theorem Cache.wp_RequestProgress [AllG GF] :
+theorem Cache.wp_RequestProgress :
     Cache.RequestProgress.spec (GF := GF) (hG := hG) :=
   Cache.RequestProgress.wp_proof demux.wp_BroadcastProgress
 
-theorem notifier.wp_wait [AllG GF] :
+theorem notifier.wp_wait :
     notifier.wait.spec (GF := GF) (hG := hG) :=
   notifier.wait.wp_proof
 
-theorem demux.wp_WaitForNextResync [AllG GF] :
+theorem demux.wp_WaitForNextResync :
     demux.WaitForNextResync.spec (GF := GF) (hG := hG) :=
   demux.WaitForNextResync.wp_proof notifier.wp_wait
 
-theorem Cache.wp_WaitForNextResync [AllG GF] :
+theorem Cache.wp_WaitForNextResync :
     Cache.WaitForNextResync.spec (GF := GF) (hG := hG) :=
   Cache.WaitForNextResync.wp_proof demux.wp_WaitForNextResync
 
-theorem Cache.wp_WaitForRevision [AllG GF] :
+theorem Cache.wp_WaitForRevision :
     Cache.WaitForRevision.spec (GF := GF) (hG := hG) :=
   Cache.WaitForRevision.wp_proof store.wp_LatestRev
 
-theorem Cache.wp_validateWatch [AllG GF] :
+theorem Cache.wp_validateWatch :
     Cache.validateWatch.spec (GF := GF) (hG := hG) :=
   Cache.validateWatch.wp_proof Op.wp_IsPrevKV Op.wp_IsFragment Op.wp_IsCreatedNotify Op.wp_IsFilterPut Op.wp_IsFilterDelete Op.wp_RangeBytes Cache.wp_validateRange wp_KeyPredForRange
 
-theorem wp_newWatcher [AllG GF] :
+theorem wp_newWatcher :
     newWatcher.spec (GF := GF) (hG := hG) :=
   newWatcher.wp_proof
 
-theorem demux.wp_Register [AllG GF] :
+theorem demux.wp_Register :
     demux.Register.spec (GF := GF) (hG := hG) :=
   demux.Register.wp_proof
 
-theorem demux.wp_BroadcastProgressTo [AllG GF] :
+theorem demux.wp_BroadcastProgressTo :
     demux.BroadcastProgressTo.spec (GF := GF) (hG := hG) :=
   demux.BroadcastProgressTo.wp_proof watcher.wp_enqueueResponse
 
-theorem watcher.wp_Stop [AllG GF] :
+theorem watcher.wp_Stop :
     watcher.Stop.spec (GF := GF) (hG := hG) :=
   watcher.Stop.wp_proof
 
-theorem demux.wp_Unregister [AllG GF] :
+theorem demux.wp_Unregister :
     demux.Unregister.spec (GF := GF) (hG := hG) :=
   demux.Unregister.wp_proof watcher.wp_Stop
 
-theorem Cache.wp_Watch [AllG GF] :
+theorem Cache.wp_Watch :
     Cache.Watch.spec (GF := GF) (hG := hG) :=
   Cache.Watch.wp_proof Cache.wp_WaitReady wp_OpWatch Op.wp_Rev Cache.wp_validateWatch wp_newWatcher demux.wp_Register Op.wp_IsProgressNotify demux.wp_BroadcastProgressTo demux.wp_Unregister
 
-theorem Cache.wp_applyStorage [AllG GF] :
+theorem Cache.wp_applyStorage :
     Cache.applyStorage.spec (GF := GF) (hG := hG) :=
   Cache.applyStorage.wp_proof store.wp_Apply
 
-theorem Cache.wp_get [AllG GF] :
+theorem Cache.wp_get :
     Cache.get.spec (GF := GF) (hG := hG) :=
   Cache.get.wp_proof wp_WithPrefix store.wp_Restore
 
-theorem demux.wp_purge [AllG GF] :
+theorem demux.wp_purge :
     demux.purge.spec (GF := GF) (hG := hG) :=
   demux.purge.wp_proof ringBuffer.wp_RebaseHistory watcher.wp_Stop
 
-theorem demux.wp_Init [AllG GF] :
+theorem demux.wp_Init :
     demux.Init.spec (GF := GF) (hG := hG) :=
   demux.Init.wp_proof demux.wp_purge
 
-theorem ready.wp_Set [AllG GF] :
+theorem ready.wp_Set :
     ready.Set.spec (GF := GF) (hG := hG) :=
   ready.Set.wp_proof
 
-theorem ready.wp_Reset [AllG GF] :
+theorem ready.wp_Reset :
     ready.Reset.spec (GF := GF) (hG := hG) :=
   ready.Reset.wp_proof
 
-theorem demux.wp_updateStoreLocked [AllG GF] :
+theorem demux.wp_updateStoreLocked :
     demux.updateStoreLocked.spec (GF := GF) (hG := hG) :=
   demux.updateStoreLocked.wp_proof WatchResponse.wp_IsProgressNotify ringBuffer.wp_full ringBuffer.wp_PeekOldest ringBuffer.wp_Append
 
-theorem demux.wp_broadcastProgressLocked [AllG GF] :
+theorem demux.wp_broadcastProgressLocked :
     demux.broadcastProgressLocked.spec (GF := GF) (hG := hG) :=
   demux.broadcastProgressLocked.wp_proof watcher.wp_enqueueResponse
 
-theorem demux.wp_broadcastEventsLocked [AllG GF] :
+theorem demux.wp_broadcastEventsLocked :
     demux.broadcastEventsLocked.spec (GF := GF) (hG := hG) :=
   demux.broadcastEventsLocked.wp_proof watcher.wp_enqueueResponse
 
-theorem demux.wp_broadcastLocked [AllG GF] :
+theorem demux.wp_broadcastLocked :
     demux.broadcastLocked.spec (GF := GF) (hG := hG) :=
   demux.broadcastLocked.wp_proof WatchResponse.wp_IsProgressNotify demux.wp_broadcastProgressLocked demux.wp_broadcastEventsLocked
 
-theorem demux.wp_Broadcast [AllG GF] :
+theorem demux.wp_Broadcast :
     demux.Broadcast.spec (GF := GF) (hG := hG) :=
   demux.Broadcast.wp_proof wp_validateRevisions demux.wp_updateStoreLocked demux.wp_broadcastLocked
 
-theorem Cache.wp_watchEvents [AllG GF] :
+theorem Cache.wp_watchEvents :
     Cache.watchEvents.spec (GF := GF) (hG := hG) :=
   Cache.watchEvents.wp_proof wp_WithPrefix wp_WithRev wp_WithProgressNotify wp_WithCreatedNotify ready.wp_Set WatchResponse.wp_Err ready.wp_Reset demux.wp_Broadcast
 
-theorem Cache.wp_watch [AllG GF] :
+theorem Cache.wp_watch :
     Cache.watch.spec (GF := GF) (hG := hG) :=
   Cache.watch.wp_proof demux.wp_Init wp_newWatcher demux.wp_Register Cache.wp_applyStorage Cache.wp_watchEvents demux.wp_Unregister
 
-theorem Cache.wp_getWatch [AllG GF] :
+theorem Cache.wp_getWatch :
     Cache.getWatch.spec (GF := GF) (hG := hG) :=
   Cache.getWatch.wp_proof Cache.wp_get Cache.wp_watch
 
-theorem wp_defaultConfig [AllG GF] :
+theorem wp_defaultConfig :
     defaultConfig.spec (GF := GF) (hG := hG) :=
   defaultConfig.wp_proof
 
-theorem Cache.wp_getWatchLoop [AllG GF] :
+theorem Cache.wp_getWatchLoop :
     Cache.getWatchLoop.spec (GF := GF) (hG := hG) :=
   Cache.getWatchLoop.wp_proof wp_defaultConfig Cache.wp_getWatch
 
-theorem wp_newNotifier [AllG GF] :
+theorem wp_newNotifier :
     newNotifier.spec (GF := GF) (hG := hG) :=
   newNotifier.wp_proof
 
-theorem wp_newDemux [AllG GF] :
+theorem wp_newDemux :
     newDemux.spec (GF := GF) (hG := hG) :=
   newDemux.wp_proof wp_newRingBuffer wp_newNotifier
 
-theorem watcher.wp_Compact [AllG GF] :
+theorem watcher.wp_Compact :
     watcher.Compact.spec (GF := GF) (hG := hG) :=
   watcher.Compact.wp_proof
 
-theorem demux.wp_resyncLaggingWatchers [AllG GF] :
+theorem demux.wp_resyncLaggingWatchers :
     demux.resyncLaggingWatchers.spec (GF := GF) (hG := hG) :=
   demux.resyncLaggingWatchers.wp_proof watcher.wp_Compact ringBuffer.wp_AscendGreaterOrEqual watcher.wp_enqueueResponse
 
-theorem notifier.wp_notify [AllG GF] :
+theorem notifier.wp_notify :
     notifier.notify.spec (GF := GF) (hG := hG) :=
   notifier.notify.wp_proof
 
-theorem demux.wp_resyncLoop [AllG GF] :
+theorem demux.wp_resyncLoop :
     demux.resyncLoop.spec (GF := GF) (hG := hG) :=
   demux.resyncLoop.wp_proof demux.wp_resyncLaggingWatchers notifier.wp_notify
 
-theorem wp_NewDemux [AllG GF] :
+theorem wp_NewDemux :
     NewDemux.spec (GF := GF) (hG := hG) :=
   NewDemux.wp_proof wp_newDemux demux.wp_resyncLoop
 
-theorem Prefix.wp_Match [AllG GF] :
+theorem Prefix.wp_Match :
     Prefix.Match.spec (GF := GF) (hG := hG) :=
   Prefix.Match.wp_proof
 
-theorem conditionalProgressRequestor.wp_run [AllG GF] :
+theorem conditionalProgressRequestor.wp_run :
     conditionalProgressRequestor.run.spec (GF := GF) (hG := hG) :=
   conditionalProgressRequestor.run.wp_proof
 
-theorem demux.wp_Compact [AllG GF] :
+theorem demux.wp_Compact :
     demux.Compact.spec (GF := GF) (hG := hG) :=
   demux.Compact.wp_proof demux.wp_purge
 
-theorem demux.wp_LatestRev [AllG GF] :
+theorem demux.wp_LatestRev :
     demux.LatestRev.spec (GF := GF) (hG := hG) :=
   demux.LatestRev.wp_proof
 
-theorem demux.wp_Purge [AllG GF] :
+theorem demux.wp_Purge :
     demux.Purge.spec (GF := GF) (hG := hG) :=
   demux.Purge.wp_proof demux.wp_purge
 
-theorem wp_newReady [AllG GF] :
+theorem wp_newReady :
     newReady.spec (GF := GF) (hG := hG) :=
   newReady.wp_proof
 
-theorem wp_newConditionalProgressRequestor [AllG GF] :
+theorem wp_newConditionalProgressRequestor :
     newConditionalProgressRequestor.spec (GF := GF) (hG := hG) :=
   newConditionalProgressRequestor.wp_proof
 
-theorem wp_newCache [AllG GF] :
+theorem wp_newCache :
     newCache.spec (GF := GF) (hG := hG) :=
   newCache.wp_proof wp_newStore wp_newReady wp_newConditionalProgressRequestor wp_NewDemux Cache.wp_getWatchLoop conditionalProgressRequestor.wp_run
 
-theorem ready.wp_WaitNotReady [AllG GF] :
+theorem ready.wp_WaitNotReady :
     ready.WaitNotReady.spec (GF := GF) (hG := hG) :=
   ready.WaitNotReady.wp_proof ready.wp_waitForState
 
-theorem realTimer.wp_Chan [AllG GF] :
+theorem realTimer.wp_Chan :
     realTimer.Chan.spec (GF := GF) (hG := hG) :=
   realTimer.Chan.wp_proof
 
-theorem realTimer.wp_Stop [AllG GF] :
+theorem realTimer.wp_Stop :
     realTimer.Stop.spec (GF := GF) (hG := hG) :=
   realTimer.Stop.wp_proof
 
-theorem realTimer.wp_Reset [AllG GF] :
+theorem realTimer.wp_Reset :
     realTimer.Reset.spec (GF := GF) (hG := hG) :=
   realTimer.Reset.wp_proof
 
-theorem realClock.wp_NewTimer [AllG GF] :
+theorem realClock.wp_NewTimer :
     realClock.NewTimer.spec (GF := GF) (hG := hG) :=
   realClock.NewTimer.wp_proof realTimer.wp_Chan realTimer.wp_Stop realTimer.wp_Reset
 
-theorem wp_New [AllG GF] :
+theorem wp_New :
     New.spec (GF := GF) (hG := hG) :=
   New.wp_proof wp_defaultConfig wp_newCache realClock.wp_NewTimer
 

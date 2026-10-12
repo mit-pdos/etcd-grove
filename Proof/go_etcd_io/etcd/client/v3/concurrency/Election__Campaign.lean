@@ -41,7 +41,7 @@ private theorem B_conv' {PROP : Type _} [BI PROP] (B : TxnBuild → PROP) (b b' 
 section lemmas
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- The state before a transaction has positive create revisions. -/
@@ -157,7 +157,7 @@ theorem campaignTxn_else (key val : GoString) (lease r : w64) (s : List EtcdKv)
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
@@ -196,7 +196,10 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
   case wf =>
     rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
     simp only [List.set_cons_succ, List.set_cons_zero]
-    exact .cons_string _ _ (.cons_other _ _ _ (by simp [go.string, go_etcd_io.etcd.client.v3.LeaseID.ty]) .nil)
+    exact .cons_string _ _ (.cons_other _ _ _ (by simp [go.string, go_etcd_io.etcd.client.v3.LeaseID.ty])
+      (by simp [_root_.Perennial.fmt.IsIntType, go.int, go.int64, go.int32, go.int16, go.int8,
+        go.uint, go.uint64, go.uint32, go.uint16, go.uint8, go_etcd_io.etcd.client.v3.LeaseID.ty])
+      .nil)
   rw [show sint.nat (W64 (0 + 1)) = 1 by rfl] at Hkey
   simp only [List.set_cons_succ, List.set_cons_zero] at Hkey
   have Hpk : pfx <+: key := _root_.Perennial.fmt.SprintfOut.str_x_prefix pfx _ _ Hkey
@@ -317,8 +320,9 @@ theorem Election.Campaign.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := 
   iintro HB
   (try wp_auto)
   ihave HB := B_conv' B _ ({ model := campaignTxn key pv id, cif := true, cthen := true, celse := true } : TxnBuild) (by rfl) $$ HB
-  wp_apply HCommit $$ %({ model := campaignTxn key pv id, cif := true, cthen := true, celse := true } : TxnBuild) %lo [$HB $Hlo] as %resp %err #Hres
+  wp_apply HCommit $$ %({ model := campaignTxn key pv id, cif := true, cthen := true, celse := true } : TxnBuild) %lo [$HB $Hlo] as %resp %err Hres
   · ipureintro; exact campaignTxn_under pfx key pv id Hpk
+  ihave #Hres := txnCommitResultTok_result _ _ _ _ _ $$ Hres
   iunfold txnCommitResult at Hres
   icases Hres with (%Hne | ⟨%Heq, %r, %s0, #Hresp, #Hr, %Hrr, #Hts⟩)
   · obtain ⟨e', rfl⟩ : ∃ e', err = GoInterface.ok e' := by

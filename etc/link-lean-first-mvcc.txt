@@ -1,0 +1,111 @@
+# The mvcc KV core's functions (all Lean-first: no Rocq counterpart), read by
+# `etc/gen-link.py --mvcc`: `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+# Revisions (revision.go), see Model.lean; their encoding as bucket keys, see RevBytes.lean
+# (encoding/binary's BigEndian is the trust boundary of the server's list, in Spec/encoding/binary/).
+Revision__GreaterThan:
+newBucketKey:
+NewRevBytes:
+isTombstone:
+IsTombstone: isTombstone
+binary_bigEndian__PutUint64:
+binary_bigEndian__Uint64:
+BucketKeyToBytes: binary_bigEndian__PutUint64
+RevToBytes: newBucketKey BucketKeyToBytes
+BytesToBucketKey: binary_bigEndian__Uint64 isTombstone
+BytesToRev: BytesToBucketKey
+# The key index and its generations (key_index.go), see Model.lean, Defs.lean.
+generation__isEmpty:
+generation__walk:
+keyIndex__Less:
+keyIndex__isEmpty: generation__isEmpty
+keyIndex__findGeneration:
+keyIndex__get: keyIndex__isEmpty keyIndex__findGeneration generation__isEmpty generation__walk
+keyIndex__put: Revision__GreaterThan
+keyIndex__tombstone: keyIndex__isEmpty generation__isEmpty keyIndex__put
+# The btree (k8s.io/utils/third_party/forked/golang/btree), proved and linked in its own
+# package (`@`, as in the cache's list).
+btree_New: @
+BTree__Get: @
+BTree__ReplaceOrInsert: @
+BTree__AscendGreaterOrEqual: @
+# The tree index (index.go), see InvIndex.lean, Hist.lean.
+newTreeIndex: btree_New keyIndex__Less
+treeIndex__keyIndex: BTree__Get
+treeIndex__unsafeGet: treeIndex__keyIndex keyIndex__get
+treeIndex__Get: treeIndex__unsafeGet
+treeIndex__Put: BTree__Get BTree__ReplaceOrInsert keyIndex__put
+treeIndex__Tombstone: BTree__Get keyIndex__tombstone
+treeIndex__KeyIndex: treeIndex__keyIndex
+treeIndex__Insert: BTree__ReplaceOrInsert
+# The range reads (unsafeVisit's visitors are the callers' closures), see Hist.lean, ReadLemmas.lean.
+treeIndex__unsafeVisit: BTree__AscendGreaterOrEqual keyIndex__Less
+treeIndex__Revisions: treeIndex__unsafeGet treeIndex__unsafeVisit keyIndex__get
+treeIndex__CountRevisions: treeIndex__unsafeGet treeIndex__unsafeVisit keyIndex__get
+treeIndex__Range: treeIndex__unsafeGet treeIndex__unsafeVisit keyIndex__get
+# The store's read transactions (kvstore_txn.go, metrics_txn.go), see InvStore.lean.
+newMetricsTxnRead:
+storeTxnCommon__FirstRev:
+storeTxnCommon__Rev:
+store__Read: newMetricsTxnRead
+storeTxnRead__End:
+# The read transaction's range (kvstore_txn.go): `Range` reads the index then the bucket; the
+# trace's `Step` and protobuf's `Unmarshal` are its trust boundary (axioms).
+sliceCapWithLimit:
+traceutil_Trace__Step:
+proto_Unmarshal:
+storeTxnCommon__rangeKeys: treeIndex__CountRevisions treeIndex__Range treeIndex__Revisions sliceCapWithLimit NewRevBytes RevToBytes traceutil_Trace__Step proto_Unmarshal
+storeTxnCommon__Range: storeTxnCommon__Rev storeTxnCommon__rangeKeys
+# The write transactions (kvstore_txn.go): `Write` takes the batch lock (the writer's
+# resources: the index writer's handle, the committed log's half, the revision budget),
+# `put`/`delete` write the bucket and the index and keep the change, `End` commits under
+# `s.revMu` (the batch transaction's write-back); protobuf's `Marshal` and zap's `Error`
+# are the trust boundary (axioms).
+newMetricsTxnWrite:
+proto_Marshal:
+zap_Error:
+zap_Logger__Error:
+store__Write: newMetricsTxnWrite
+storeTxnWrite__put: treeIndex__Get traceutil_Trace__Step NewRevBytes RevToBytes proto_Marshal treeIndex__Put zap_Error zap_Logger__Error
+storeTxnWrite__Put: storeTxnWrite__put
+storeTxnWrite__delete: NewRevBytes newBucketKey BucketKeyToBytes proto_Marshal treeIndex__Tombstone zap_Error zap_Logger__Error
+storeTxnWrite__deleteRange: treeIndex__Range storeTxnWrite__delete
+storeTxnWrite__DeleteRange: storeTxnWrite__deleteRange
+storeTxnWrite__Range: storeTxnCommon__rangeKeys
+storeTxnWrite__End:
+storeTxnWrite__Rev:
+storeTxnWrite__Changes:
+# The wrappers (metrics_txn.go, kv_view.go): `metricsTxnWrite` counts and forwards to the
+# promoted methods of `txnReadWrite` and `storeTxnRead` (unfolded in the proofs); `readView`
+# opens and closes a transaction around each read; `traceutil.TODO` is an axiom.
+traceutil_TODO:
+metricsTxnWrite__Range: storeTxnCommon__Range
+metricsTxnWrite__Put: storeTxnWrite__Put
+metricsTxnWrite__DeleteRange: storeTxnWrite__DeleteRange
+metricsTxnWrite__End: storeTxnRead__End storeTxnWrite__End
+readView__FirstRev: traceutil_TODO store__Read storeTxnCommon__FirstRev metricsTxnWrite__End
+readView__Rev: traceutil_TODO store__Read storeTxnCommon__Rev metricsTxnWrite__End
+readView__Range: traceutil_TODO store__Read metricsTxnWrite__Range metricsTxnWrite__End
+writeView__Put: traceutil_TODO store__Write metricsTxnWrite__Put metricsTxnWrite__End
+writeView__DeleteRange: traceutil_TODO store__Write metricsTxnWrite__DeleteRange metricsTxnWrite__End
+# The store's constructor (kvstore.go) on a fresh backend, see InvStore.lean: the ghost state
+# allocated (the index at the initial log `[[], []]`, the committed log, the revision budget), the
+# batch lock's resource deposited at the first `Unlock`, the locks initialized; zap's `NewNop`,
+# schedule's `NewFIFOScheduler`, `NewHashStorage`, schema's `UnsafeCreateMetaBucket` and
+# `restore` (the identity on a fresh backend) are the trust boundary (axioms).
+zap_NewNop:
+schedule_NewFIFOScheduler:
+NewHashStorage:
+schema_UnsafeCreateMetaBucket:
+store__restore:
+NewStore: zap_NewNop newTreeIndex schedule_NewFIFOScheduler NewHashStorage schema_UnsafeCreateMetaBucket store__restore
+# The read-only write transaction (kv.go), for the server's txn package, see InvRoTxn.lean: the
+# read transaction wrapped as a `TxnWrite`; its reads delegate (through the promoted methods),
+# `Changes` returns nil, `Put` and `DeleteRange` panic.
+NewReadOnlyTxnWrite:
+txnReadWrite__FirstRev: storeTxnCommon__FirstRev
+txnReadWrite__Rev: storeTxnCommon__Rev
+txnReadWrite__Range: metricsTxnWrite__Range
+txnReadWrite__End: metricsTxnWrite__End
+txnReadWrite__Changes:
+txnReadWrite__Put:
+txnReadWrite__DeleteRange:

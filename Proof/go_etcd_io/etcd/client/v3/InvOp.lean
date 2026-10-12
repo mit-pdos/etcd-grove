@@ -270,6 +270,12 @@ def withLeaseM (id : w64) (o : OpFull) : OpFull := { o with leaseID := id }
 /-- `WithMaxCreateRev(rev)` -/
 def withMaxCreateRevM (rev : w64) (o : OpFull) : OpFull :=
   { o with base := { o.base with maxCreateRev := rev } }
+/-- `WithMaxModRev(rev)` -/
+def withMaxModRevM (rev : w64) (o : OpFull) : OpFull :=
+  { o with base := { o.base with maxModRev := rev } }
+/-- `WithMinModRev(rev)` -/
+def withMinModRevM (rev : w64) (o : OpFull) : OpFull :=
+  { o with base := { o.base with minModRev := rev } }
 /-- `WithSort(target, order)`: a sort by key in ascending order is no sort (`SortNone`), since
 etcd returns keys in that order anyway. -/
 def withSortM (target order : w64) (o : OpFull) : OpFull :=
@@ -378,6 +384,32 @@ def optsAt (sl : GoSlice) (gs : List (OpFull → OpFull)) : IProp GF :=
 instance optsAt_persistent (sl : GoSlice) (gs : List (OpFull → OpFull)) :
     Persistent (optsAt (GF := GF) sl gs) := by
   unfold optsAt; infer_instance
+
+/-- **An `OpOption` closure that needs a resource** `R` (and gives it back): `f` changes an `Op`
+modelled by `o` into one modelled by `g o`. For a closure that writes a variable it captured
+(`WithSort(SortByKey, SortAscend)` rewrites its `order` to `SortNone`): a client calls an
+`OpOption` slice's closures one at a time, in the caller's goroutine, so `R` (the variable)
+passes from call to call; `optSpec` is the case without (`optSpec_res`).
+`client/v3/experimental/recipes`' addition (`WithFirstKey`). -/
+def optSpecRes (f : GoFunc) (g : OpFull → OpFull) (R : IProp GF) : IProp GF :=
+  iprop(□ ∀ (opp : Loc) (op : go_etcd_io.etcd.client.v3.Op) (o : OpFull),
+    {{ R ∗ opp ↦ op ∗ opFullAt op o }} (App (Val #f) (Val #opp))
+    {{ (op' : go_etcd_io.etcd.client.v3.Op), RET #(); R ∗ opp ↦ op' ∗ opFullAt op' (g o) }})
+
+instance optSpecRes_persistent (f : GoFunc) (g : OpFull → OpFull) (R : IProp GF) :
+    Persistent (optSpecRes f g R) := by
+  unfold optSpecRes; infer_instance
+
+/-- The `[]OpOption` slice `sl` (read-only) holds closures with the transformers `gs`, each needing
+the resource `R` (`optSpecRes`). -/
+def optsAtRes (sl : GoSlice) (gs : List (OpFull → OpFull)) (R : IProp GF) : IProp GF :=
+  iprop(∃ fs : List GoFunc, sl ↦*□ fs ∗ ⌜fs.length = gs.length⌝ ∗
+    □ ∀ (i : Nat) (f : GoFunc) (g : OpFull → OpFull), ⌜fs[i]? = some f⌝ -∗ ⌜gs[i]? = some g⌝ -∗
+      optSpecRes f g R)
+
+instance optsAtRes_persistent (sl : GoSlice) (gs : List (OpFull → OpFull)) (R : IProp GF) :
+    Persistent (optsAtRes sl gs R) := by
+  unfold optsAtRes; infer_instance
 
 end opdefs
 

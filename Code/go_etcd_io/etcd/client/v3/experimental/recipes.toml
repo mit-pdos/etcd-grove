@@ -1,0 +1,5 @@
+# go.etcd.io/etcd/client/v3/experimental/recipes: translated in full (every declaration, with
+# bodies): the key helpers (key.go, client.go, watch.go), the barrier and double barrier, the
+# queue and priority queue, the RWMutex.
+translate = ["*"]
+imports = ["*"]

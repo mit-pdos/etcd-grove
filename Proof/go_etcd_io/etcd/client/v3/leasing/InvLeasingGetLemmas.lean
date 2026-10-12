@@ -199,7 +199,7 @@ theorem leasePut_not_panics (lk : GoString) (id : w64) :
 section lemmas
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 theorem txnStates_wrote (pfx : GoString) (r : w64) (s s' : List EtcdKv) :

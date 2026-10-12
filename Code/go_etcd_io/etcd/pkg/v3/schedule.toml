@@ -1,0 +1,7 @@
+# Types and names only: function and method bodies are axiomatized (the type of
+# mvcc's store.fifoSched).
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

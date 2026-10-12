@@ -1,6 +1,59 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
-imports = ["!*"]
+# The KV core of etcd's mvcc store, with bodies: revisions and their encoding
+# (revision.go), the key index and its generations (key_index.go), the tree index
+# (index.go), the KV interfaces and views (kv.go, kv_view.go), the read and write
+# transactions (kvstore_txn.go) and their metrics wrappers (metrics_txn.go), and the
+# store type (kvstore.go). The rest of the package (restore, compaction, hashing, the
+# watchable store) is names only.
+translate = ["!*",
+  # revision.go
+  "revBytesLen", "markedRevBytesLen", "markBytePosition", "markTombstone",
+  "Revision.GreaterThan", "RevToBytes", "BytesToRev", "newBucketKey", "NewRevBytes",
+  "BucketKeyToBytes", "BytesToBucketKey", "isTombstone", "IsTombstone",
+  # key_index.go
+  "ErrRevisionNotFound", "keyIndex.put", "keyIndex.tombstone", "keyIndex.get",
+  "keyIndex.isEmpty", "keyIndex.findGeneration", "keyIndex.Less",
+  "generation.isEmpty", "generation.walk",
+  # index.go
+  "newTreeIndex", "treeIndex.Put", "treeIndex.Get", "treeIndex.unsafeGet",
+  "treeIndex.KeyIndex", "treeIndex.keyIndex", "treeIndex.unsafeVisit",
+  "treeIndex.Revisions", "treeIndex.CountRevisions", "treeIndex.Range",
+  "treeIndex.Tombstone", "treeIndex.Insert",
+  # kv.go
+  "txnReadWrite.DeleteRange", "txnReadWrite.Put", "txnReadWrite.Changes",
+  "NewReadOnlyTxnWrite", "ConcurrentReadTxMode", "SharedBufReadTxMode",
+  # kv_view.go
+  "readView.FirstRev", "readView.Rev", "readView.Range", "writeView.DeleteRange",
+  "writeView.Put",
+  # kvstore_txn.go
+  "store.Read", "storeTxnCommon.FirstRev", "storeTxnCommon.Rev", "storeTxnCommon.Range",
+  "storeTxnCommon.rangeKeys", "sliceCapWithLimit", "storeTxnRead.End", "store.Write",
+  "storeTxnWrite.Rev", "storeTxnWrite.Range", "storeTxnWrite.DeleteRange",
+  "storeTxnWrite.Put", "storeTxnWrite.End", "storeTxnWrite.put", "storeTxnWrite.deleteRange",
+  "storeTxnWrite.delete", "storeTxnWrite.Changes",
+  # metrics_txn.go
+  "newMetricsTxnRead", "newMetricsTxnWrite", "metricsTxnWrite.Range",
+  "metricsTxnWrite.DeleteRange", "metricsTxnWrite.Put", "metricsTxnWrite.End",
+  # kvstore.go
+  "ErrCompacted", "ErrFutureRev", "NewStore",
+  # the promoted methods of embedded fields (goose's MethodUnfold wrappers): treeIndex's
+  # RWMutex; storeTxnRead's and storeTxnWrite's storeTxnCommon; metricsTxnWrite's and
+  # txnReadWrite's embedded interfaces; store's ReadView and WriteView; BucketKey's Revision
+  "treeIndex.Lock", "treeIndex.Unlock", "treeIndex.RLock", "treeIndex.RUnlock",
+  "treeIndex.TryLock", "treeIndex.TryRLock", "treeIndex.RLocker",
+  "storeTxnRead.FirstRev", "storeTxnRead.Rev", "storeTxnRead.Range", "storeTxnRead.rangeKeys",
+  "storeTxnWrite.FirstRev", "storeTxnWrite.rangeKeys",
+  "metricsTxnWrite.FirstRev", "metricsTxnWrite.Rev", "metricsTxnWrite.Changes",
+  "txnReadWrite.FirstRev", "txnReadWrite.Rev", "txnReadWrite.Range", "txnReadWrite.End",
+  "store.FirstRev", "store.Rev", "store.Range", "store.DeleteRange", "store.Put",
+  "BucketKey.GreaterThan"]
+imports = ["!*", "bytes", "context", "encoding/binary", "errors", "fmt", "sync", "time",
+  "go.etcd.io/etcd/pkg/v3/schedule",
+  "github.com/prometheus/client_golang/prometheus",
+  "go.uber.org/zap", "google.golang.org/protobuf/proto",
+  "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/pkg/v3/traceutil",
+  "go.etcd.io/etcd/server/v3/lease", "go.etcd.io/etcd/server/v3/storage/backend",
+  "go.etcd.io/etcd/server/v3/storage/schema",
+  "k8s.io/utils/third_party/forked/golang/btree"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

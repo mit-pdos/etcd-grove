@@ -64,11 +64,13 @@ def ciKeyBytes : GoString := go!"consistent_index"
 /-- The bytes of the key under which its term is stored. -/
 def termKeyBytes : GoString := go!"term"
 
-/-- `schema`'s package facts: the `Meta` bucket and the two key names of `cindex.go`. -/
+/-- `schema`'s package facts: the `Meta` bucket and the two key names of `cindex.go`, and the
+`Key` bucket (the mvcc store's). -/
 abbrev schemaInit : IProp GF :=
   iprop((∃ b : GoInterface, globalAddr Meta ↦□ b) ∗
     (∃ s : GoSlice, globalAddr MetaConsistentIndexKeyName ↦□ s ∗ s ↦*□ ciKeyBytes) ∗
-    (∃ s : GoSlice, globalAddr MetaTermKeyName ↦□ s ∗ s ↦*□ termKeyBytes))
+    (∃ s : GoSlice, globalAddr MetaTermKeyName ↦□ s ∗ s ↦*□ termKeyBytes) ∗
+    (∃ b : GoInterface, globalAddr Key ↦□ b))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema :=
   define_is_pkg_init schemaInit

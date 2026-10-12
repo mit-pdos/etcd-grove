@@ -1941,6 +1941,279 @@ record.
 
 ---
 
+## mvcc: the log of changes as the model, the key index as a function of its events
+
+**2026-10-10 · accepted** (Lean-first; the plan discussed with the user: "start on the mvcc KV
+core, phase one")
+
+Goal: verify the KV core of etcd's `server/v3/storage/mvcc` (`revision.go`, `key_index.go`,
+`index.go`, `kv.go`, `kv_view.go`, `kvstore_txn.go`, `metrics_txn.go`) and, eventually, state its
+result in the client model's terms (`InvEtcd.lean`, `InvEtcdTxn.lean`), so that `etcdState`,
+`EtcdStep` and the history laws become theorems of the server. Restore, compaction, hashing and
+the watchable store are out of scope for this phase. `Proof/go_etcd_io/etcd/server/v3/storage/mvcc/`.
+
+**Decision: the model is a log of changes; everything else is a function of it.** `Model.lean`:
+`Log := List (List Change)`, revision `r`'s changes (`put key value lease` or `del key`) in
+sub-revision order; `stateAt log r` applies them with the client model's `putKv` (a new key is
+created at `r` with version 1, an existing one keeps its create revision and gets version + 1),
+a delete filtering the key out. The key index is `indexOf (evsOf log)`: the sorted
+`(key, KeyIndex)` list built event by event with `kiPut`/`kiTombstone` exactly as the code
+does, `kiGet`/`kiFindGen`/`genWalk` mirroring `get`/`findGeneration`/`walk`; the backend's key
+bucket is `bucketOf log` (the bytes of a change's revision, `revBytes`, mapped to the
+protobuf encoding `kvEncode` of what it wrote; `kvEncode` is opaque: `proto.Marshal`/`Unmarshal`
+are the trust boundary). The store's ghost state will be the committed log (a monotone list)
+and the in-flight write transaction's pending changes; the index and the bucket are determined,
+so the invariants are equations, and the model's main theorem (to prove next, `kiGet_indexOf`)
+says what the index answers of a key at a revision: the state's key-value there. *Rejected:*
+a relational invariant between the index's generations and the states (every proof would carry
+the generation structure); storing the key-value in a put change (then `LogWf` must say it is
+what `putKv` computes: the fold computes it instead).
+
+**Decision: the code-level specs are the model's functions, nothing more.** `keyIndex.put` is
+`kiPut` (precondition: a revision above `modified`, else the code panics), `get` is `kiGet`
+(`kiGetVal`: the 4-tuple with `ErrRevisionNotFound`), `findGeneration` returns `genPtr gs
+(kiFindGen ki rev)` (the address of a generation in the slice, or nil), `walk` returns
+`genWalk` for a closure deciding a predicate (`walkFnSpec`; `get`'s closure reads its `atRev`
+cell, made persistent), `tombstone` is `kiTombstone` or `ErrRevisionNotFound` if the last
+generation is empty (`kiLastEmpty`). The semantic content (what `kiGet` of the index built from
+a log means) is a pure theorem, separate from the code proofs. The pure lemmas the proofs need
+(`genWalk_eq_some`, `kiFindGenAux_{skip,tomb,found,next}`, `set_last`, ...) are in `Model.lean`.
+
+**Representation (`Defs.lean`).** `ownKi p gs ki dq`: the mutable fields `modified` and
+`generations` (slice `gs`) of a `*keyIndex`, at fraction `dq` (readers hold a fraction under the
+index's `RLock`); the key is a persistent `kiKey` (never written after `&keyIndex{key}`).
+`ownGens gs gens dq` is `∃ gvs, gs ↦*{dq} gvs ∗ cap ∗ ownGensL dq gvs gens`, `ownGensL`
+recursive on the two lists (as the btree's `ownNodes`): `ownGens_acc`/`ownGens_acc_z` borrow
+the `i`-th generation (its element points-to, as `&gs[i]`, and `ownGen` of its model) and give
+it back with a new value, the model list `set`; `ownGensL_app` appends. *Rejected:* an indexed
+big-sep `[∗list] i ↦ gv ∈ gvs, ownGen gv (gens.getD i _)` (`set` on it needs the two-list
+`bigSepL_lookup_acc_impl` dance).
+
+**Loads through a borrowed struct points-to.** Perennial's `wp_load`/`wp_auto` load a field
+through `l ↦{dq} v` (the generated `AccessStrict` instances) only for a literal fraction and a
+load at the head of the expression; a load of `g.revs` through `g ↦{dq} gv` with `dq` a variable
+(a reader), or nested under `let:`/`Convert` (the `len(g.revs) == 0` tests), finds no
+points-to. So the proofs split the borrowed generation into its field points-tos
+(`gen_split`, `rev_split`; `gen_combine`, `gen_combine'`, `rev_combine` to refold) and load from
+those, as the btree proofs do with `nodeFields`; and `wp_pures; wp_load` where `wp_auto`
+reports no progress on a full-fraction nested load (`keyIndex.put`).
+
+**Translation.** `Code/go_etcd_io/etcd/server/v3/storage/mvcc.toml` lists the KV core's functions
+with bodies, including the **promoted methods of embedded fields** (`treeIndex.Lock` from its
+`RWMutex`, `storeTxnRead.Range` from `storeTxnCommon`, `metricsTxnWrite.FirstRev` from the
+embedded interface, ...): goose emits their `MethodUnfold` wrappers only for names the filter
+translates. `store`'s typed points-to was axiomatized until its fields' packages were imported
+(`time`, `pkg/v3/schedule`, names only); prometheus (`metrics.go`'s counters and gauges) is
+translated names-only (`Code/github_com/prometheus/client_golang/prometheus.toml`), and its
+`Inc`/`Dec`/`Add` on the package's variables are package facts (`mvccInit`, `Base.lean`:
+metrics have no effect here), as are the three error variables. Two translator changes were
+needed, in `/shared/perennial-mvcc` (branch `lean`, on `7c93f27aa`; not yet pushed or pinned):
+`for i := range n` (Go 1.22: `kvstore_txn.go`'s `rangeKeys`), translated as the three-clause
+loop it stands for (`$range` evaluated once, a counter cell `$range_i`); and `float64(n)` of
+an integer (`metrics_txn.go`'s `End`), an uninterpreted function in `FloatOps`
+(`int64ToFloat64`, ...) with `Float64Semantics` rules. Until the Perennial pin moves,
+`etc/goose.py --check` with the pinned translator fails on mvcc.
+
+**Next.** The pure theorem `kiGet_indexOf`; `index.go` (`treeIndex` over the verified btree:
+`ownBTree` with `isItem p (k, p') := ⌜p = p'⌝ ∗ kiKey p k` and the mutable `ownKi`s beside it,
+under the index's `RWMutex` guard: `P q := ∃ elog, ghostVar γ.elog (q/2) elog ∗ ownTreeIndex
+(indexOf elog) q`); the revision encoding (`revBytes`, big-endian as the consistent index's);
+then the transactions: `revMu`'s fractional invariant (`currentRev`, the committed log's lower
+bound, the bucket's persistent entries), the batch lock's resources (the writer's halves, the
+pending changes), the backend contract (`ConcurrentReadTx`'s snapshot of the written-back
+bucket, the batch transaction's `UnsafeSeqPut`/`UnsafeRange`/`Unlock` as write-back), the
+lessor's `GetLease`/`Attach`/`Detach` contract; `NewStore` on a fresh backend (a ghost
+allocation first, `restore` later).
+
+### The transactions: the store's locks and the backend contract
+
+**2026-10-11 · proposed** (the read transactions first; the design for review, after
+`revision.go` was proved)
+
+What `kvstore.go`/`kvstore_txn.go` do with their three locks, and what each holds here:
+
+- **`s.mu` (RWMutex)** is read-locked by every transaction (`Read` and `Write` both take
+  `RLock`; the writers exclude each other through the batch transaction's lock) and
+  write-locked by `restore`, `Compact`'s barrier and `Close`, which are out of scope. Its
+  resource is `True`: the fields `restore` rewrites (`kvindex`, `currentRev`, ...) are
+  persistent (`↦□`) in `isStore`, as if the store were never restored or closed. A transaction
+  needs a reader slot of it (`sync.ownRWMutex`), as of the index's lock.
+- **`s.revMu` (RWMutex)** protects `currentRev` and `compactMainRev` and, with them, *which
+  revisions are in the backend*: `storeTxnWrite.End` takes it exclusively around `currentRev++`
+  **and** the batch transaction's `Unlock` (the write-back of the pending puts into the read
+  buffer), and `Read` takes it shared around `ConcurrentReadTx()` (the snapshot of the read
+  buffer) and the read of `currentRev`. So a reader's snapshot holds exactly the revisions
+  `≤ currentRev` it read. Its resource (`revMuInv s γ`): `∃ log, currentRev ↦ W64 (log.length - 1)
+  ∗ compactMainRev ↦ W64 (-1) ∗ idxCert γ log ∗ bucketView (bucketMap log)`, with `log` the
+  committed log (the index's certificate `idxCert γ log` says the index's history extends it;
+  the index may already hold the pending revision's events, which `reader_answer` shows do not
+  change answers at revisions `≤ currentRev`). `compactMainRev` stays `-1` (no compaction in
+  scope). `bucketView` is the backend's view of the `Key` bucket (below).
+- **The index's `RWMutex`** as before (`InvIndex.lean`).
+
+**The backend contract** (`InvStore.lean`, the shape of the consistent index's
+`InvCindex.lean`: linearizable reads of an abstract view at a mask, as the trust boundary of
+bbolt and the read buffer):
+
+- `bucketView m : IProp` is a parameter (the store instantiates it with a ghost map authority
+  whose fragments are persistent, as the bucket only grows: `bucketMap log` is monotone in
+  `log`), `m : GMap GoString GoString`, the `Key` bucket's written-back contents.
+- `keyReadSnap rt m`: a `ReadTx` over a **snapshot** `m` (persistent): `RLock`/`RUnlock`
+  return; `UnsafeRange(schema.Key, k, nil, 0)` returns `([k], [v])` with `v = m[k]` if `k ∈ m`,
+  else `([], [])` (read-only slices, `↦*□`).
+- `isKeyBackend b E bucketView`: `ConcurrentReadTx()` is a linearizable read of the view at
+  mask `E` (`readAU`, as `metaRangeSpec`) returning `keyReadSnap rt m` of the `m` read;
+  `ReadTx()` the same (the shared-buffer mode is also a snapshot while `s.revMu` is held
+  shared: the writer's write-back is under `revMu` exclusively; `rangeKeys` is used in both
+  modes); `BatchTx()` returns the batch transaction (its contract with the writes, later).
+- The entries' values are the opaque `kvEncode kv` (`Model.lean`); `proto.Unmarshal(v, p)` with
+  `v = kvEncode kv` fills `*p` with `kv`'s fields and returns `nil` (a trust-boundary axiom,
+  `Spec/google_golang_org/protobuf/proto/Unmarshal.lean`); `proto.Marshal` the converse (the
+  writers, later).
+
+**The read transaction.** `isTxnRead tr γ log rev` (what `store.Read` returns, through the
+`metricsTxnWrite{&txnReadWrite{tr}}` wrappers whose `Range`/`End` forward): the
+`storeTxnRead`'s fields (`s`, the `tx` of both `UnsafeReader` and `ReadTx` type: the same
+snapshot reader, `firstRev = -1`, `rev`, `trace`), the snapshot `keyReadSnap tx m` with
+`bucketMap log ⊆ m` (the snapshot may be later than the certified log: a writer's write-back
+between the reader's `ConcurrentReadTx()` and ... no: both are under `revMu`, so `m = bucketMap
+log` exactly; kept as `⊆` since only inclusion is used), `idxCert γ log` with
+`rev = log.length - 1`, and the reader slots of `s.mu` and the index (`idxReader`) held until
+`End`. `Range(ctx, key, end, ro)` for `ro.Rev ≤ rev` and not `CountOnly`/`FastKeysOnly`
+returns `RangeResult{KVs, Count, Rev = rev}` where `KVs` are fresh `*KeyValue`s of the
+model's answer (`rangeAnswers`, `rangeTaken` of `Hist.lean`, at `ro.Rev` or `rev` if
+`ro.Rev ≤ 0`): each key-value `kv` of the state at that revision in key order, limited and
+counted as `treeIndex.Revisions` says; the three `CountOnly`/`FastKeysOnly`/`ErrFutureRev`
+branches are the index's answers alone (`ErrCompacted` is unreachable with `compactMainRev =
+-1`). `ctx` is a `context.isContext` whose `Done()` may be ready: then `Range` returns a non-nil
+error and no result (the spec allows both outcomes, as etcd does).
+
+*Rejected:* the reader keeping `s.revMu` shared for the whole transaction (it does not: `Read`
+releases it before returning); a snapshot as a copy of the bucket's `GMap` in the reader
+(it is: `keyReadSnap` is exactly that, as a persistent spec, no ghost state).
+
+*Scope.* `Read` with both modes, `Range`/`FirstRev`/`Rev`/`End` of the read transaction and
+the wrappers, `readView.Range`/`Rev`/`FirstRev`; `Write`/`Put`/`DeleteRange`/`End` next, with
+the batch transaction's contract and the lessor's.
+### The write transactions: the batch lock's resources, the backend's write path, the lessor
+
+**2026-10-11 · adopted** (the write side specified at the checkpoint `628f69632`, the proofs
+finished the same day)
+
+What `store.Write`, `storeTxnWrite.put`/`delete`/`deleteRange`/`End` do, and what each holds:
+
+- **The batch transaction** (`backend.BatchTx`, names-only: the trust boundary of the backend's
+  write path) is the writers' lock: `Write` takes it (`LockInsideApply`) after `s.mu` shared, and
+  `End` releases it (`Unlock`). Its contract (`batchTxSpec bt View W Locked`, `InvStore.lean`):
+  `LockInsideApply()` gives `Locked []` and the lock's resource `W`; `UnsafeSeqPut(Key, k, v)`
+  under it appends `(k, v)` to the token's list; `Unlock()` with no puts takes `W` back and
+  leaves the bucket as it is, with puts it takes `W` and the bucket's full view `View 1 m` and
+  returns the view with the puts inserted in order (the write-back into the read buffer).
+  `isKeyBackend` now also gives `BatchTx()`. The token's predicate `Locked` is existential
+  (`isBatchTx`): the backend's own.
+- **The batch lock's resource** (`W := writerRes s γ`): the index writer's handle at the committed
+  log with no pending change (`idxWriter γ.idx ilog []`), half the committed-log ghost variable
+  `γ.clog` (the other half under `s.revMu`: `End` agrees them and updates both), half of
+  `currentRev` (`store.Write` reads `beginRev` under the batch lock alone, without `s.revMu`;
+  `End` joins the halves to increment it), the index's certificate of `ilog`, and the revision
+  budget: `ownTokAuth γ.revs ntok` with `ilog.length + ntok + 3 ≤ 2 ^ 63`. A write transaction
+  costs one `revToken γ` (`store.Write`'s precondition; `NewStore`, later, hands out
+  `2 ^ 63 - 5`: the initial log has length 2), which `End` returns to the authority when it commits, so `currentRev` never
+  overflows and the pending revision's index is below `2 ^ 63` (the index's own bound).
+- **`s.revMu`** (`revMuInv`) now holds its half of `currentRev` and of `γ.clog`; `End` with a
+  change takes it exclusively around `currentRev++` and the batch `Unlock` (the write-back),
+  as the code does, and releases it with the committed log one revision longer and the bucket
+  `bucketMap (ilog ++ [pend])` (`bucketMap_append`: the old entries then the pending puts).
+  Without a change `End` only unlocks (no revision is made: `commitLog`).
+- **The transaction** (`storeTxnWriteIs tw s γ ilog pend`): the `storeTxnWrite`'s fields
+  (`beginRev = ilog.length - 1`, `changes` the `*mvccpb.KeyValue`s written, `changesAre`: the
+  `i`-th holds `changeKv` of the `i`-th pending change), the batch transaction locked with the
+  pending puts (`Locked (pendPuts ilog pend)`: each change's revision bytes to its encoding),
+  the writer's resources with the pending changes in the index writer's handle, the revision
+  token and the transaction's reader slots. `put` and `delete` append a change: the index's
+  `Put`/`Tombstone` (the writer's `idxWriter_commit` discipline of `InvIndex.lean`), the batch
+  `UnsafeSeqPut` of `revBytes`/`kvEncode` (`proto.Marshal` is a trust-boundary axiom, the
+  converse of `Unmarshal`: `kvEncode kv` of the pointer's fields), the `changes` append
+  (`changesAre_snoc`). `put` reads the index first (`treeIndex.Get` by the writer: the specs of
+  `Get`/`Range` take an `IdxKnow`, the certificate or the writer's handle, `idxKnows`;
+  `changeKv_put` says the index's answer at the pending revision gives the create revision and
+  version the code computes). `deleteRange` ranges the index at `writeRev` (the pending
+  revision if it has a change, else the committed log's last) and deletes each key
+  (`delKeys`: present after the pending changes, `delKeys_present`; distinct, `delKeys_nodup`).
+- **The lessor** (`lease.Lessor`, names-only: the trust boundary): `GetLease(item)` returns some
+  id; `Attach(id, items)` of a *granted* lease (`leaseKnown γ id`, a persistent ghost fact of
+  `γ.leases` that `Grant`, out of scope, allocates) returns `nil`, so `put`'s panic on a failed
+  `Attach` is unreachable: `Put`'s precondition is `leaseID = NoLease ∨ leaseKnown γ leaseID`;
+  `Detach` returns anything (the code logs an error: `zap.Logger.Error`, an axiom, as
+  `zap.Error`). Leases have no liveness here (as in the client's transaction model).
+- **The wrappers**: `metricsTxnWrite.End` over a `TxnKind` (`isTxn`: a read or a write
+  transaction behind the wrapper; `txnEndPost`: nothing, or the certificate of `commitLog`),
+  so `readView` and `writeView` share it; `writeView.Put`/`DeleteRange` open a transaction with
+  a token and return with the certificate of the committed log (`ilog ++ [[.put k v l]]`, or
+  `commitLog ilog (delKeys ...)`) and the revision.
+
+**The writer's range read** (2026-10-11, later the same day · adopted): `storeTxnWrite.Range`
+ranges at `writeRev` and reads the bucket through the *batch* transaction, which sees its own
+pending puts. So (1) the bucket view is split: `revMuInv` holds `bucketView γ q.half`, the batch
+lock's resource `writerRes` the other half at the committed log (the two halves agree,
+`bucketView_halves`); `End` joins them for the write-back; (2) `batchTxSpec` gains an
+`UnsafeRange(Key, k, nil, 0)` triple under `Locked l ∗ View q m` answering from `m` with `l`
+inserted, and its `Unlock` with puts becomes `{{ Locked l ∗ View 1 m ∗ (View 1 m' -∗ W ∗ Q) }}
+Unlock() {{ Q }}` with `m'` the written-back map: the backend writes back, then releases the
+lock with `W` built from the new view (the old triple follows; needed because `W` now holds
+the view at the new committed log); (3) `rangeKeys`'s spec is stated over what it uses: the
+`storeTxnCommon` fields `s`, `tx`, `trace` at a fraction, an owned reader capability
+`keyReader rt m R` (`R` threaded through: `True` with a read transaction's snapshot,
+`Locked (pendPuts ilog pend) ∗ bucketView γ ½ (bucketMap ilog)` for the writer, reading
+`bucketMap (ilog ++ [pend])`), the index knowledge `idxKnows γ.idx kn` (the certificate or the
+writer's handle, as `Get`/`Range`/`Revisions`/`CountRevisions` now all take) and
+`0 ≤ rev < log.length` (all the proof needs; the read side's `rev = log.length - 1` implies it).
+`storeTxnWrite.Range`'s result is `rangeOutcome` at `ilog ++ [pend]` and `writeRev ilog pend`:
+the transaction reads its own pending revision when it has a change, else the committed log's
+last (an empty pending revision changes nothing).
+
+**The constructor on a fresh backend** (2026-10-11, later · adopted): `NewStore` is translated;
+`restore` (and what it calls) is not: on a fresh backend it is a trust-boundary axiom, the
+identity on the store's verified state (`currentRev = 1`, `compactMainRev = -1`, the empty
+bucket view, `s.revMu` fresh), returning `nil`; a backend with data is out of scope (the real
+`restore` rebuilds the index from the bucket). The fresh-backend assumption is a *premise*: the
+caller gives the empty bucket view `ghostMapAuth γb 1 ∅` (the backend's creator's fact), not
+something the store allocates — conjuring the view inside the store would let the proof assume
+any bucket contents. The backend contract is quantified over the store's location and names with
+that bucket name (`∀ s γ, γ.bucket = γb → isKeyBackend b (bucketView γ) (writerRes s γ)`: the
+batch lock's resource `writerRes s γ` is the store's choice, as a lock's resource is its
+client's), and the lessor's ghost name `γl` is the lessor's own (`isLessor le γl` over a
+`GName`; `leaseKnown γl id`). The batch lock starts empty: `LockOutsideApply()` gives `Locked []`
+and no resource, and `NewStore` deposits `writerRes` at its first no-puts `Unlock`; from then on
+`LockInsideApply` hands it out as before. `NewStore` allocates the rest of the ghost state (the
+log `[[], []]`, two empty revisions so `currentRev = 1`; the revision budget: `2 ^ 63 - 5`
+tokens) and returns `isStore`, the two views, every reader slot and the tokens. The configuration
+and the hash storage are not modelled (`NewHashStorage`, `schedule.NewFIFOScheduler`,
+`zap.NewNop`, `schema.UnsafeCreateMetaBucket` are axioms returning a value); the range deleter
+the lessor is given (a closure over `store.Write`) is opaque to it, and the lessor's later calls
+of it on lease expiry are outside the model.
+
+**`KeyIndex` and `Insert` under the history** (2026-10-11, later · adopted): the last two
+methods of `index.go` are used only by `restore` (on its private index, before any reader) and
+the tests, and `restore` mutates the key indexes it gets from `KeyIndex` outside the lock, which
+the live index's invariant (the key indexes owned by the lock) cannot express. They are
+specified under that invariant anyway, honestly narrower than their Go signatures: the history
+fixes the tree's keys and their indexes, so `KeyIndex` promises only what survives the lock's
+release (the pointer carries its key, `kiKey`, persistent; it is not `nil` when the reader's log
+gives the key an index, `kiOfKey … ≠ kiEmpty`, which later events keep; with the writer's
+knowledge the converse too) and `Insert` by the writer, with an owned key index equal to what
+its log gives the key, always replaces the key's entry (the premise `≠ kiEmpty` puts the key in
+the tree) and returns the old one, owned; the writer's log is unchanged. *Rejected:* making
+`isTreeIndex` parametric in the lock's resource so a private index could use them at the tree
+level with its key indexes owned: every index spec and proof and `InvStore` would change, for a
+client (`restore`) that is out of scope.
+
+*Rejected:* the whole `storeTxnWrite` points-to inside `storeTxnWriteIs` for the whole proof of
+`put`/`delete` (the code reads `tw.s` for the lessor after the change is made: the predicate is
+rebuilt at each return through a wand over `tw`'s points-to); `End` holding `s.revMu` for the
+whole write-back only (it also needs the batch lock's resource back, which `Unlock` returns
+through `W`).
+
 ## Leasing: the protocol as a premise on the history
 
 **2026-10-10 · proposed** (units 1 and 2 of `client/v3/leasing`; the premise's form, the holder's
@@ -2239,3 +2512,386 @@ callers use them directly, as the cache uses `bytes.wp_Compare`.
   that type; true of gRPC status errors, `rpctypes.EtcdError`s and context errors). *Rejected:*
   an `errors.As` spec without the tree (false for an error whose `As` method loops or panics).
 - **`status.FromError`** (grpc) stays an etcd-grove axiom.
+
+## Recipes: the client contracts reused, the queue's claim, two prefixes as one
+
+**2026-10-11 · implemented** (last bullet; `client/v3/experimental/recipes`, 778 lines: barrier, double barrier,
+queue, priority queue, RWMutex, the key helpers and `WaitEvents`; the plan, for review)
+
+The recipes are client code on `Session`, transactions and watches, the shape of concurrency and
+leasing, so the plan reuses their contracts and adds as little as possible.
+
+- **The client bundle.** `isEtcdRecipesClient client pfx`: the mutex client (`isEtcdKV`,
+  `isEtcdTxnKV`, `isEtcdDeleteKV`, `isEtcdRangeWatcher`) plus a `Put` contract (`isEtcdPutKV`,
+  mirroring `isEtcdDeleteKV`: the double barrier's `Put(key/ready, "")` is the first plain put a
+  verified client makes), asserted beside `isSession s γ client id` on the same client, as
+  `isMutex` does. The recipes take `*clientv3.Client` and `*concurrency.Session`; `Session.Client`
+  and `Session.Lease` are already specified.
+- **One prefix per recipe**: the barrier its key (a key is a range under itself), the queue
+  `keyPrefix`, the RWMutex `pfx/` (read and write keys under it), the double barrier `key/`
+  (waiters and ready). **The priority queue at the empty prefix**: `newSequentialKV` puts
+  `prefix/…` and compares `__prefix`, two disjoint prefixes, so its contracts are instantiated
+  at `""` (as leasing's), and the notes say the code touches only the two. *Rejected:* a
+  contract over a set of prefixes (new machinery for one recipe; generalize if a later package
+  needs it).
+- **The queue's linchpin is `deleteRevKey`**: a transaction `ModRevision(key) = rev; Delete(key)`
+  succeeds at most once per `(key, rev)` (`etcdState_modrev_det`: the record at a mod revision is
+  determined, and a deleted key's next record has a greater one), so an item is dequeued at most
+  once by any number of dequeuers. FIFO (the dequeued item has the least mod revision, or the
+  least key for the priority queue, among the items present at the claim) holds on both paths:
+  the get's single item (`WithFirstRev`, limit 1, `More` retried), or the first put event after
+  the get's revision when the get's items were all claimed by others.
+- **Exclusion for the RWMutex is the mutex's**: `lockedAt` with a role; a writer holds only after
+  every lower key (read or write) under `pfx/` is gone, a reader after every lower write key, so
+  writer/writer and writer/reader pairs are never both present at a revision after both acquired
+  (`lockedAt_exclusion`'s argument), under the same session-lease premise as `Mutex`.
+- **The double barrier promises a lower bound only**: `Enter` returns `nil` only if `count`
+  waiter keys were present at some revision at or before its return (the ready put's writer saw
+  them), and `Leave` only with the caller's key deleted. Reuse of a barrier across rounds is not
+  promised by the code (a late entrant can see a leaver's key gone) and is not claimed.
+- **The standard library, one Perennial batch**: `strings.Split` (a pure model), `errors.Is` on
+  leaf errors (as `errors.As`: `ErrKeyExists` is never wrapped), and the integer directives of
+  `Sprintf` (`%d`, `%v` of an integer, `%0Nd`: the decimal, zero-padded), in the model rather
+  than as a premise: zero-padding is why the priority queue's keys sort numerically, a fact
+  about Go's `fmt`, which the trusted models are for; it also makes `newUniqueKV`'s key
+  `prefix/<decimal>` rather than a prefix plus junk. `fmt.Sscanf` stays an etcd-grove axiom (one
+  caller). *Rejected:* the format as a hypothesis of every priority-queue theorem (nobody could
+  discharge it).
+- **Suspects, settled by Go reproductions before the Lean**: `waitEvents` returns `nil` when the
+  watch channel closes (client closed, compaction past the watched revision), and (1)
+  `Queue.Dequeue`/`PriorityQueue.Dequeue` then dereference `ev.Kv` (a nil-pointer panic, where an
+  error is due); (2) `Barrier.Wait` returns `nil`, reporting release while the barrier is held.
+  A nil dereference is stuck in GooseLang (a runtime panic is not a `Raise`), so if (1) is
+  confirmed the proofs as shipped take a premise on the watch channel (an event before the
+  close), stated on `WaitEvents`, and the bug gets a fix branch and an issue draft, as leasing's.
+  Misuse panics (`RemoteKV.Put` after `Delete`, `WaitEvents` with no event types, `Leave` without
+  `Enter`) become preconditions.
+- **Units**: 0 translation and scaffolding (`recipes.toml` in full, bodies for `WithFirstRev`,
+  `WithFirstKey`, `WithLastKey`, `WithMaxModRev`, `WithMinModRev`, `gen-link.py --recipes`, the
+  collection, the reproductions, the Perennial batch); 1 base, bundle, `key.go`, `client.go`,
+  `watch.go`; 2 barrier and the two queues; 3 RWMutex and double barrier; 4 results, baseline,
+  notes, issues. 2 and 3 in parallel after 1.
+
+### Unit 1: where the plan moved (2026-10-11)
+
+- **`context.TODO()`.** The recipes pass `context.TODO()` to every `KV` call; its context is
+  never done, its `Done()` is `nil`, so it is not an `isContext` (whose `Done` returns a
+  channel), and none of the existing client contracts covers such a call. The bundle takes the
+  contracts at `TODO()` (`isEtcdKVTodo`, `isEtcdTxnKVTodo`, `isEtcdDeleteKVTodo`,
+  `isEtcdPutKVTodo`: the same postconditions, no context premise), not `isEtcdMutexClient`'s;
+  `context.TODO` gets a spec and proof here (Perennial has none). *Rejected:* changing the
+  existing contracts' context premise (every caller rewritten).
+- **`WithFirstKey`.** `withTop(SortByKey, SortAscend)`'s `WithSort` closure writes the `order`
+  it captured: a persistent closure spec (`optSpec`) cannot hold of it (concurrent calls race),
+  hence `WithSort.spec`'s exclusion. The closures are called one at a time by the client, so
+  `optSpecRes f g R`/`optsAtRes` thread a resource (the variable) through the calls, and the
+  `TODO()` `Get` contract takes them (`optsAt_res` for the others). `WithFirstKey` is proved by
+  stepping into `withTop` and `WithSort`.
+- **`waitEvents`** returns an `*Event` with `eventAt` (what callers dereference), not `ev ≠ nil`:
+  nothing says a watch event pointer is non-nil, and a load needs only the points-to.
+- **`deleteRevKey`** takes `rev > 0` (for `rev = 0` on a missing key the comparison holds and the
+  transaction succeeds deleting nothing); its `false` says `revKeyGone`.
+- **At most once** is "the same revision" (`revKeyDeleted_same_rev`). "Dequeued at most once"
+  (unit 2) needs more: that a written revision is one transaction's (a token per written
+  revision in `txnCommitResult`), which the contract does not give.
+- **Unit 1b's specs** state what holds without a premise: the key under `kp ++ "/"`, created
+  fresh (`keyCreatedAt`). `newSequentialKV`'s order is not unconditional: a key under
+  `kp/` that is not a 16-digit decimal (`kp/5abc` parses as 5, so `kp/0000000000000006` sorts
+  below it) or a 17-digit successor (`9999999999999999 + 1`) breaks it; unit 1b states it under
+  a premise on the keys under the prefix (all made by `newSequentialKV`, fewer than `10^16`).
+- **`newUniqueEphemeralKey`** is proved now (one call), so three `sorry`s, not four.
+- **`gen-link.py --skip-unproved`** links what is proved from the full list.
+
+### Units 1b, 2 and 3: two decisions (2026-10-11, decided)
+
+- **A token per written revision in the commit contract.** "Dequeued at most once" (two
+  dequeuers never return the same item) needs that two successful writing commits never share a
+  revision: `revKeyDeleted_same_rev` gives "the same revision", and the contract gave each
+  commit a revision without ownership of it. The transaction contract (`txnCommitResult`, and
+  the `TODO()` variants) now yields an exclusive token for the revision a writing commit made
+  (`etcdRevToken r`, in the trust boundary with `etcdState`): true of etcd, where every
+  committed write is its own revision; as `etcdState_modrev_det` was, a law of the history the
+  model already assumes. *Rejected:* a ghost protocol over the recipe's own transactions
+  (another client's dequeue is not the recipe's code).
+- **The priority queue's order under a premise on the keys.** `newSequentialKV` parses the last
+  key's last path segment with `%d` and formats `%016d`, so its order holds only if every key
+  under `kp/` was made by it (`kp/%016d`) and fewer than `10^16` were allocated: a premise on
+  etcd's state under the prefix (`SeqKeysWf kp s`), stated on the theorems that need it (the
+  priority queue's "least key"), not an issue to file (the keys under a priority queue's prefix
+  are the recipe's by construction; the overflow is at `10^16` items). *Rejected:* an
+  unconditional order (false, above); a documentation issue (the package documents nothing of
+  its key format).
+- **Unit 1b: `fmt.Sscanf` is an etcd-grove axiom** (trust boundary, `Spec/fmt/Sscanf.lean`,
+  `Proof/fmt/Sscanf.lean`: `fmt.Sscanf.wp_proof`), for the one call shape
+  `Sscanf(s, "%d", &n)` with an `int` `n`: with `err = nil`, `n` holds `fmt.scanInt s` where
+  that is defined; with an error, `n` is unchanged; the count is unconstrained. `fmt.scanInt`
+  (pure): drop leading ASCII spaces, one optional sign (`+`/`-`), the longest run of decimal
+  digits, which must be non-empty and whose value must fit an `int64`; the rest is ignored
+  (`"5abc"` is `5`). Stated as "where defined", not "`err = nil` implies `scanInt s = some n`":
+  Go also skips a tab and the other Unicode spaces (`"\t5"` scans as `5`), which `scanInt`
+  does not model, and an axiom must not claim Go fails there. Checked against Go 1.27.1 on ten
+  inputs (parsed: `" 5"`, `"+5"`, `"-0007"`, `"5abc"`, `"0000000000000005"`,
+  `"-9223372036854775808"`; errors, `n` unchanged: `""`, `"+-5"`, `"\n5"`,
+  `"9223372036854775808"`). *Rejected:* a Perennial model of the scanner (one caller).
+- **Unit 1b: `clientErrIs`, a contract strengthening** (`InvEtcdTxn.lean`).
+  `errors.Is(err, ErrKeyExists)` (`newUniqueKV`, `newUniqueEphemeralKV`) needs, for the client's
+  own error (`putNewKV`'s third case: a gRPC status error, which has an `Is` method, so
+  `wp_Is_leaf` does not apply), the error tree `errors.wp_Is` takes. The transaction contract at
+  `context.TODO()` now gives it: `isEtcdTxnKVTodo`'s builder has a second `Commit` triple
+  (`txnCommitErrTodo`: `txnCommitResult` and, on an error, `clientErrIs err`), and
+  `clientErrIs err` is, for every target, an error tree `errorIsTree S M target` with `S err`
+  whose `Is` methods claim only targets of their own error's dynamic type (`M ii →
+  target = ok tii → tii.ty = ii.ty`). True of etcd's client errors: `(*status.Error).Is`
+  returns `true` only for a `*status.Error`; `rpctypes.EtcdError`, `errors.New` errors and the
+  context errors have no `Is`. The other `TODO()` contracts and `txnBuilderSpec` are unchanged
+  (a minimal edit, as unit 2's revision token is in `txnCommitResult`). `putNewKV`, `newKV`
+  and `newEphemeralKV` carry it in their third case; `newKey`'s spec is unchanged (its proof
+  drops it). The recipes' package facts record `ErrKeyExists` as an `errors.New` error
+  (`errNewLeaf`: a pointer error, a leaf without `Is`, `Base.lean`), so `errors.Is` of it is
+  `true` (`wp_Is_leaf`). Neither loop needs `Is`'s answer on a client error: `true` retries,
+  `false` returns the error.
+- **Unit 1b: `newSequentialKV` does not create its key.** The transaction compares only
+  `ModRevision(__kp) < g + 1`: a key `kp/%016d(n + 1)` that already exists (a key under `kp`
+  not made by `newSequentialKV`, or one made after the get by a writer that does not put
+  `__kp`) is overwritten. Unit 1's "created fresh" (`keyCreatedAt`) was false; the spec says
+  what was put (`seqKeyPutAt pfx kp key val g r`: the get's state `sg` at `g`, the key made
+  from it, `SeqNext`; the state at `r` is `putKv` of `__kp` then the key on the state at
+  `r - 1`, where `__kp` had mod revision `≤ g`), and takes `pfx <+: __kp` (the bookkeeping key
+  is under the contracts' prefix: the priority queue's are at `""`). Freshness is a corollary
+  under premises (`seqKeyPutAt_created`, below).
+- **Unit 1b: `SeqKeysWf`, exactly** (`InvRecipesSeq.lean`). `seqKey kp m = kp ++ "/" ++
+  padZeros 16 (decimalNat m)`; `SeqKeysBelow kp N s`: every key of `s` **with the prefix
+  `kp`** (not only `kp/`: `WithLastKey()` reads the prefix range of `kp`, and a key `kpz` sorts
+  above every `kp/…`) is `seqKey kp m` for some `m < N`; `SeqKeysWf kp = SeqKeysBelow kp
+  10^16`. The order theorem (`seqNext_order`, and `seqKeyPutAt_order` on the spec's result)
+  takes `kp ≠ []` and `SeqKeysBelow kp (10^16 - 1) sg` (the state at the get's revision) and
+  gives `m < 10^16` with `key = seqKey kp m`, every key with prefix `kp` in `sg` a `seqKey kp
+  m'` with `m' < m` and `go.GoStringLt` below `key`, and `m = 0` or `seqKey kp (m - 1)` in `sg`
+  (so `m` is one past the greatest; the new key keeps `SeqKeysWf`). The bound `10^16 - 1`
+  is the simplest that makes `m < 10^16`. Freshness (`seqKeyPutAt_created`) adds that every
+  key with prefix `kp` at `r - 1` was in `sg` (no key under `kp` appeared between the get and
+  the transaction: true if every writer under `kp` also puts `__kp`, which the comparison then
+  excludes) and gives `keyCreatedAt`'s facts at `r`. The priority queue's prefixes are
+  `q.key ++ %05d(pr)` (always five digits), so its priorities never share a range; two queues
+  whose keys are prefixes of each other (`q` and `q0`) can, which the premise excludes.
+- **Unit 2: the token's form** (decided above, settled here). `etcdRevToken (r : w64) : IProp GF`
+  and `etcdRevToken_excl : etcdRevToken r ∗ etcdRevToken r ⊢ False`, axioms in
+  `InvEtcdTxn.lean` beside the history laws (an opaque predicate of the server, as `etcdState`;
+  not timeless, nothing needs it). The builder's `Commit` under the prefix returns
+  `txnCommitResultTok` (`txnCommitResult`'s disjunction with `if txnWrote … then etcdRevToken r
+  else True` in the success case) rather than a token inside `txnCommitResult`: leasing's
+  `serverTxn` builds a `txnCommitResult` from its own commit (`txnCommitResultO`, no token) and the
+  six concurrency proofs keep it persistent (`txnCommitResultTok_result` drops the token). The
+  token only when the transaction wrote: etcd's `storeTxnWrite.End` advances the revision only if
+  the transaction changed something, which is the model's `txnWrote` (a delete of nothing does not
+  write). `putResult` carries it unconditionally (a put always writes). *Rejected:* a token in
+  `deleteResult` (no caller), in leasing's owned variant (out of scope); a token inside
+  `txnCommitResult` (non-persistent: every use rewritten, leasing's construction impossible).
+- **Unit 2: the get's `More` flag** in the `TODO()` get contract (`getRespMore`, beside
+  `kvGetResult` in `isEtcdKVTodo`'s postcondition; etcd's semantics: `More` iff a positive limit
+  cut the selection, none for count-only). The queues' wait path needs it (`More` false: the get
+  listed every item). *Rejected:* adding it to `getRespRange` (every cache, concurrency and leasing
+  pattern on it rewritten). Unit 1b's and unit 3's proofs that call a `TODO()` `Get` bind three
+  conjuncts (`⟨HR, #Hres, -⟩`), and their `Commit` calls take `Hres` (not `#Hres`) and
+  `txnCommitResultTok_result` (or unfold `txnCommitResultTok`); `putNewKV`'s `nil` has the token
+  as a fourth conjunct (`newUniqueKV`'s proof drops it).
+- **Unit 2: FIFO where it holds.** The plan's FIFO at the claim (`r - 1`) needs a history law the
+  model does not assume: that a key-value lives unchanged from its mod revision while present
+  (`EtcdModRevPersist`). Stated first as a hypothesis of `queue_fifo_before_claim` (the get path),
+  not an axiom: one result needs it, and the trust base stays the plan's; on 2026-10-11 the owner
+  promoted it to the history axiom `etcdState_modrev_persist` (`InvEtcdTxn.lean`, beside
+  `etcdState_modrev_det`: that law fixes the record per mod revision, this one keeps it there),
+  and the result is unconditional. `queue_fifo` is at the get's revision. The wait path is weaker (the watch contract does not promise that no
+  event is skipped). The priority queue's least key is at the get only: at the claim it is false
+  in etcd (a higher-priority `Enqueue` between the get and the claim; `STATUS.md`, Unit 2).
+  *Rejected at first:* a seventh history axiom for one result; *taken* once the owner judged the
+  law part of what the model should say of etcd's history.
+- **Unit 2: `pqueue_order`, for the merge with unit 1b.** With 1b's order premise and theorem
+  (`SeqKeysWf kp s`: every key under `kp ++ "/"` is `kp ++ "/" ++ padZeros 16 (decimal n)`, made by
+  `newSequentialKV`, fewer than `10^16`), the statement is: for the priority queue on `key`, if at
+  the get's revision `r0` of a get-path dequeue of `it` every key under `key ++ "/"` is
+  `key ++ "/" ++ padZeros 5 (decimal p) ++ "/" ++ padZeros 16 (decimal n)` for a `p : w16` and an
+  `n < 10^16` (what `Enqueue` writes, under `SeqKeysWf (key ++ "/" ++ padZeros 5 (decimal p))` for
+  each `p`), then `it`'s `(p, n)` is the least, lexicographically, among the items under
+  `key ++ "/"` in `s0`: the highest priority (the smallest `p`; five digits hold every `uint16`, so
+  key order is numeric order), then the earliest allocated. It composes `pqueue_min_key`'s get path
+  (`go.GoStringLe it.key w.key`) with the order of fixed-width decimals.
+- **Unit 3: `rwHeldAt`, exclusion under unmodified keys.** `rwHeldAt pfx role key c R`
+  (`InvRWMutex.lean`): `key` under `(pfx ++ role.name) ++ "/"`, `0 < c ≤ R`, and at `R` no key with
+  the role's blocking prefix (`pfx ++ "write"` for a reader, as `RLock`'s `waitOnLastRev(pfx +
+  "write")`, no slash; `pfx` for a writer) has a mod revision below `c` (`RWBlockFree`). Nothing
+  about the holder's own key at `R` (neither `RLock` nor `Lock` checks it after the wait; the
+  results are about keys present in a state, as `Mutex`'s). Exclusion (`rwHeldAt_write_exclusion`,
+  `rwHeldAt_read_write_exclusion`) is `lockedAt_excludes_earlier`'s argument with one more
+  premise, `keyUnmodified pfx k c` on both keys (a key-value of `k` with create revision `c` has
+  mod revision `c` in every state): `waitOnLastRev` filters by **mod** revision
+  (`WithMaxModRev(myRev - 1)`), `Mutex` by create revision, and `etcdState_create_persist` keeps
+  the earlier key present at the later holder's `R` with its create revision but says nothing of
+  its mod revision. A plain `Put` of a lock key by another client moves its mod revision past a
+  later holder's and makes it invisible (not a finding: the recipe only creates and deletes its
+  keys; a premise on other clients, as the session-lease one). *Rejected:* a new history law
+  (mod revisions of one incarnation only grow), which would remove the premise but add an axiom
+  for a misuse case.
+- **Unit 3: the double barrier's statement.** Both: `Enter`'s spec states what each path knows
+  (`enterReady`: the direct path's `waitersSeen` at its second get's revision; the waiting path's
+  `readyPut`, a write of `key/ready` at a revision at least the key's creation), with no premise
+  (`double_barrier_enter_ready`); `double_barrier_enter_count` adds the protocol's premise
+  `readyPutsCounted` (every write of `key/ready` at `z` is preceded by a state at some `R ≤ z` with
+  `count` waiters, which the direct path's fact discharges if only `Enter`s of barriers on `key`
+  for `count` write it) and concludes `waitersSeen` at a revision etcd has reached. "Waiters" are
+  the keys with the prefix `key ++ "/waiters"` (the code's get, no slash). `count > 0` is a
+  precondition of `NewDoubleBarrier`, carried by `isDoubleBarrier`. `Leave`'s `nil` is "the key
+  absent at some `r ≥ lo`, or its record's `KV` already nil" (`leaveResult`: `RemoteKV.Delete` on a
+  record it already deleted is a no-op, and the record cannot tell a failed delete from a
+  successful one); `Enter` and `Lock` return records with a `KV`, so `double_barrier_leave` and
+  `rwmutex_unlock_released` conclude absence. The recursion is Löb induction (`iloeb`).
+- **Unit 3: the key field.** `rwMyKey`/`dbMyKey m pfx (o : Option (Loc × RemoteKVSt))`: `none` is
+  a pointer the proof does not track (nil after `New*`, or the previous key when
+  `newUniqueEphemeralKey` fails), `some (ek, st)` the owned `*EphemeralKV` with its record and its
+  `KV`'s contracts. `ek.rev` (`Enter`) loads through the embedded struct's points-to.
+- **Implemented (2026-10-11, units 0 to 3 merged).** Every function of the package is specified
+  and proved (38 of 38), sorry-free. Deviations from the plan, each in its unit's bullet above or
+  in `STATUS.md`: the client's calls are at `context.TODO()` (contracts `*Todo`, not
+  `isContext`); `WithFirstKey()`'s options need a resource; `fmt.Sscanf` an etcd-grove axiom;
+  `clientErrIs` and the revision token (`etcdRevToken`, `etcdRevToken_excl`: two new axioms of the
+  trust base) and the get's `More` flag in the client contract, with `txnCommitErrTodo` returning
+  both the token and the error premise after the merge; `newSequentialKV` puts but does not create
+  its key (`seqKeyPutAt`), so `PriorityQueue.Enqueue`'s spec returns `seqKeyPutAt` (not
+  `keyCreatedAt`, as unit 2 had it); FIFO at the get's revision, at the claim only under the
+  hypothesis `EtcdModRevPersist` (since promoted to the axiom `etcdState_modrev_persist`), the
+  wait path
+  weaker (the watch may skip events); the priority queue's least key at the get only (not
+  linearizable); the RWMutex's exclusion under `keyUnmodified`; the double barrier's count under
+  `readyPutsCounted`. **`pqueue_order`** as drafted above, with `PQKeysWf key s0` (every key
+  under `key/` is `pqKey key p n = key/%05d(p)/%016d(n)`, `p < 10^5`, `n < 10^16`; `p < 10^5`
+  rather than `p : w16`, a weaker premise) and the item's key under `key/` from `dequeuedAt`;
+  `pqueue_enqueue_order` restates `seqKeyPutAt_order` on `Enqueue`'s result, and
+  `pqKeysWf_seqKeysWf` shows the dequeue's premise gives each priority's `SeqKeysWf` (the
+  enqueue's order takes the bound `10^16 - 1`, one less). No piece was missing.
+
+## One `AllG`: `HeapGS` provides the ghost-state instance
+
+Since Perennial `cb6a5921e` (2026-10-11) `AllG GF` is a singleton carried by `GooseGlobalGS`
+(`gooseAllG`), hence by `HeapGS`; `ThreadGS` and `ReceiptGS` no longer bundle their own.
+- **Section variables**: a section with `[hG : HeapGS hlc GF]` has no `[AllG GF]` (654 files
+  changed); only the generic ghost theory without `HeapGS` (`Proof/go_etcd_io/raft/v3/Protocol/`,
+  `Results.lean`) assumes `[AllG GF]`. *Why:* two instances in scope make the client's ghost
+  resources (`own`, `ghostVar`, `threadTok`) a different term from Perennial's, and the cache
+  proofs that take `threadTok` from `wp_fork_tok` or `dghostVar` from the broadcast idiom fail
+  to unify. *Rejected:* keeping `[AllG GF]` and living with the two instances, which worked
+  only while no Perennial lemma exposed ghost resources to clients.
+- **Fixing `GF`**: the `AllG` out-parameter used to fix `GF` for a bare ghost-state term;
+  `HeapGS`'s `GF` is not an out-parameter, so such a term needs `(GF := GF)` (porting guide,
+  "Section variables"). A theorem that does not mention `GF` but is declared under the
+  section's `[hG : HeapGS hlc GF]` (the register's `regStorIface_inj`) gets `GF` as a binder it
+  can never infer: write `(GF := GF)` at its uses, or declare it outside the section.
+
+
+## The server's txn: the two models meet, the sole writer as tokens
+
+**2026-10-11 · plan, unit 0 implemented** (`server/v3/etcdserver/txn`, 749 Go lines: the
+server's `Range`, `Put`, `DeleteRange`, `Txn` over the mvcc core; later units append)
+
+The txn package is where the mvcc model (the log of changes, `stateAt`) meets the client's
+transaction model (`runTxn`, `InvEtcdTxn.lean`): mvcc's `applyChange` is the client's `putKv`
+and a delete is its filter, so the server's `Txn` on a request denoting `t : TxnModel` is to
+produce `runTxn (W64 log.length) (stateAfter log) t` (the comparisons' verdict, the branch's
+results, the committed log); that theorem (`txn_runTxn`) is the package's result, with the
+corresponding ones for `Put` (`putKv`), `DeleteRange` (the filter) and `Range`
+(`rangeSel`/`rangeKvsOk`).
+- **The sole writer, as the revision tokens.** `Txn` reads (`checkTxn`, the comparisons) in a
+  read transaction, ends it, then opens the write transaction and re-reads; it is safe and
+  `runTxn` only if nothing commits in between. mvcc's `NewStore` hands out `2^63 - 5` revision
+  tokens and its writer's authority bounds the log by them, so a caller holding all the tokens
+  left for `log` (`ownToks γ.revs (2^63 - 3 - log.length)`) with `idxCert γ.idx log` pins every
+  later write transaction to `log`: `soleWriter γ log` (unit 0b's `SoleWriter.lean`). Every
+  spec takes `isKV kv s γ ∗ storeReader s γ ∗ soleWriter γ log` and returns `soleWriter γ
+  (commitLog log pend)`: the apply thread's situation (the lessor's range deleter writes outside
+  it).
+- **The requests as the client's values** (unit 0, `Requests.lean`): a range, put or delete
+  request denotes an `OpFull` (the fields `Op.toRangeRequest` sends; the others `newOp`'s), a
+  comparison a `CmpModel`, a `TxnRequest` a `TxnModel` (recursively through `RequestOp`'s
+  oneof); so the statements are in the client model's terms and `runTxn` applies as it is.
+  *Rejected:* a record of the protobuf fields (a second vocabulary). The range end denotes
+  mvcc's reading (`rangeEndOf`: `nil` the key alone, empty non-nil from the key on, which is
+  `mkGteRange("\x00")`); on decoded requests (protobuf-go decodes an empty `bytes` field as
+  `nil`) that is the client's `inRange`. A put denotes the server's total `putTxnOp` (the
+  ignore flags keep the value or lease whatever the request says), not the client's partial
+  `txnOpOf`. An empty oneof denotes nothing (`Txn` panics on it, `issues/etcd-txn-empty-requestop.md`).
+  The responses mirror `TxnOpResult` (`txnResponseIs`), recursively; a nested response's
+  header revision is `0`.
+- **The index answers the state** (unit 0b, pure): for a well-formed log, mvcc's
+  `rangeAnswers` are the keys of the state in the range with their revisions; `delKeys` is the
+  client's filter, `rangeTaken` its `rangeIn`.
+- **The lessor's `Lookup`** (unit 0, `Defs.lean`): `isTxnLessor` adds to mvcc's `isLessor` a
+  `Lookup` triple returning `nil` or a granted lease (`leaseKnown`), which `checkLease` hands to
+  mvcc's `Put`. Additive.
+- **Package facts of other packages** (unit 0, `Base.lean`): the txn code returns
+  `lease.ErrLeaseNotFound` and `etcdserver/errors.ErrKeyNotFound`, whose packages' facts are
+  mvcc's (`True`) and the server's (`ErrNoSpace` only); `txnInit` states them (each a fixed
+  non-nil error, true once the txn package and so its imports are initialized) rather than
+  changing those files.
+- **Contexts.** mvcc's `rangeOutcome` has an unconditional "context done" error disjunct, which
+  in `Txn`'s write path leads to `lg.Panic`; preferred: a never-done context gives no error (a
+  refinement of mvcc's spec, coordinated with the mvcc session); fallback: the result holds
+  "unless it panics". `traceutil.EnsureTrace` (unit 0's axiom) returns a context with the input's
+  deadline and `Done` (`{ cd with Values := vs }`): `context.WithValue` derives one that
+  delegates them to its parent; the values are left open (only `traceutil.Get` reads them).
+- **Sorting** (unit 0's axioms, `Spec/sort/`): `sort.Sort` over a `sort.Interface` given as
+  `Len`/`Less`/`Swap` triples on a model list (`sorterSpec`): a permutation sorted by a strict
+  weak order, at most `2^62` elements (Perennial's `slices.SortFunc` statement); `sort.Reverse`
+  flips `Less`. The five `kvSort*` sorters are proved against them. *Rejected:* proving Go's
+  pdqsort over `sort.Interface` (large, not etcd's).
+- **The rest of the trust boundary** (unit 0): traceutil (`Get`, `StepWithFunction` runs its
+  closure, its outcome a panic included; `AddField`, `Start/StopSubTrace` return), `proto.Size`
+  of a put request (its atomically written size cache in an invariant, so the request stays
+  persistent), `zap.Logger.Panic` (a panic outcome, `PanicV`), `zap.Int32`, the two metrics
+  functions. mvcc's read-only write transaction (`NewReadOnlyTxnWrite`, `txnReadWrite`) is
+  verified, not assumed (`InvRoTxn.lean`: its reads delegate, `Changes` is `nil`, `Put` and
+  `DeleteRange` panic).
+
+## mvcc: the certificate carries the log, the token count is exact, a read is pinned by tokens
+
+2026-10-11, for the server's txn package, unit 0c (`notes/STATUS.md`, "Unit 0c"). The txn
+package's sole writer (`txn/SoleWriter.lean`: the certificate of `log` and every revision token
+not spent) must pin the logs its write and read transactions see to `log`; unit 0b found four
+gaps in mvcc's specs. Each change is minimal and keeps every spec at least as strong.
+
+- **The certificate carries the log.** `IdxNames` gains `log`, a monotone list of the committed
+  log's revisions (`List Change` items); `idxCert γ log` adds its lower bound, the index writer
+  (`idxWriter`) half its authority (`idxLogAuth γ (1/2) ilog`), and `idxWriter_commit` appends
+  the pending revision (it takes the other half and gives it back). So two certificates are of
+  logs in prefix order (`idxCert_prefix`, `idxCert_agree_len`), and a committed log extends every
+  certificate (`idxWriter_cert_prefix`, `idxLogAuth_cert_prefix`). *Rejected:* the history's
+  commit marker carrying the revision's changes (`HistItem.commit cs`): `histOf` would be
+  injective with no new ghost, but `HistItem.commit` is a constant in some 200 places of
+  `Hist.lean` and the index proofs; the second list touches only the definitions, the
+  allocation and the three writer proofs that unfold `idxWriter` (one more conjunct framed).
+  (`Change`'s countability moved from `InvStore` to `InvIndex`.)
+- **The token count is exact.** `storeTxnWrite.End` with no change (`pend = []`) makes no
+  revision and leaves the authority's count, so it now returns the transaction's `revToken`
+  (`… ∗ if pend = [] then revToken γ else True`, also in `txnEndPost`, hence
+  `metricsTxnWrite.End`); `writeView.Put`/`DeleteRange` drop it. Without it each such `End`
+  lost a token for good and the sole writer's count (`ntok = 2^63 - 3 - log.length`) could not
+  be kept.
+- **`NewStore` returns `idxCert γ.idx [[], []]`** (its proof had it).
+- **A read is pinned by the caller's tokens and certificate.** The revision budget's authority
+  `ownTokAuth γ.revs ntok` is split in halves (`ownTokAuth_halves`, `ownTokAuthDfrac_split`):
+  one is the writer's, as before (`writerRes`, `storeTxnWriteIs`), the other is under `s.revMu`
+  (`revMuInv`, with `log.length + ntok + 3 ≤ 2^63` for the committed log); `revMuInv` also holds
+  the other half of the committed log's authority (`idxLogAuth`). `End` changes both under
+  `s.revMu` held exclusively (`currentRev++`). `store.Read` takes `ownToks γ.revs m` and
+  `idxCert γ.idx log₀` (new binders `m`, `log₀`) and returns them with
+  `⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2^63⌝` for the log read: the tokens bound it from above,
+  the certificate from below. With `m = 0` and `log₀ = []` (`ownToks_0`, `idxCert_nil`, ghost
+  updates; the `readView` proofs do this) it is the old spec. *Why the certificate too:* the
+  tokens alone give `log.length ≤ log₀.length`; without a lower bound read under `s.revMu` the
+  read log could be a strict prefix of the sole writer's (unit 0b's "read pin" proposal had only
+  the tokens). *Rejected:* a separate "committed length" monotone counter in `StoreNames`
+  (its lower bound would have to travel beside `idxCert`, and `End` and `NewStore` return it);
+  keeping the whole authority in `revMuInv` and borrowing it at `End` (the writer's pin,
+  `soleWriter_pins_write`, reads it inside `storeTxnWriteIs`).
+
+Spec changes: `store.Read` (two binders, pre and post), `storeTxnWrite.End` and
+`metricsTxnWrite.End` (`txnEndPost`) posts, `NewStore` post, `newTreeIndex` post (the other half
+of `idxLogAuth γ`). The `Link.lean` binders are unchanged (`gen-link.py --mvcc` reproduces it).

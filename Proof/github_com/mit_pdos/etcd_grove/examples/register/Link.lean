@@ -57,83 +57,83 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.register.Assumptions]
 
-theorem register.wp_NewStorage [AllG GF] [RegStor GF] :
+theorem register.wp_NewStorage [RegStor GF] :
     register.NewStorage.spec (GF := GF) (hG := hG) :=
   register.NewStorage.wp_proof wp_NewMemoryStorage
 
-theorem register.wp_encode [AllG GF] [RegStor GF] :
+theorem register.wp_encode [RegStor GF] :
     register.encode.spec (GF := GF) (hG := hG) :=
   register.encode.wp_proof
 
-theorem register.Register.wp_do [AllG GF] [RegStor GF] :
+theorem register.Register.wp_do [RegStor GF] :
     register.Register.do.spec (GF := GF) (hG := hG) :=
   register.Register.do.wp_proof register.wp_encode node.wp_Propose
 
-theorem register.Register.wp_Get [AllG GF] [RegStor GF] :
+theorem register.Register.wp_Get [RegStor GF] :
     register.Register.Get.spec (GF := GF) (hG := hG) :=
   register.Register.Get.wp_proof register.Register.wp_do
 
-theorem register.Register.wp_Put [AllG GF] [RegStor GF] :
+theorem register.Register.wp_Put [RegStor GF] :
     register.Register.Put.spec (GF := GF) (hG := hG) :=
   register.Register.Put.wp_proof register.Register.wp_do
 
-theorem register.wp_decode [AllG GF] [RegStor GF] :
+theorem register.wp_decode [RegStor GF] :
     register.decode.spec (GF := GF) (hG := hG) :=
   register.decode.wp_proof
 
-theorem register.Register.wp_apply [AllG GF] [RegStor GF] :
+theorem register.Register.wp_apply [RegStor GF] :
     register.Register.apply.spec (GF := GF) (hG := hG) :=
   register.Register.apply.wp_proof register.wp_decode
 
-theorem register.wp_fits [AllG GF] [RegStor GF] :
+theorem register.wp_fits [RegStor GF] :
     register.fits.spec (GF := GF) (hG := hG) :=
   register.fits.wp_proof
 
-theorem register.Register.wp_run [AllG GF] [RegStor GF] :
+theorem register.Register.wp_run [RegStor GF] :
     register.Register.run.spec (GF := GF) (hG := hG) :=
   register.Register.run.wp_proof register.wp_fits register.Register.wp_apply node.wp_Ready node.wp_Advance MemoryStorage.wp_Append
 
-theorem register.Storage.wp_InitialState [AllG GF] [RegStor GF] :
+theorem register.Storage.wp_InitialState [RegStor GF] :
     register.Storage.InitialState.spec (GF := GF) (hG := hG) :=
   register.Storage.InitialState.wp_proof
 
-theorem register.Storage.wp_Snapshot [AllG GF] [RegStor GF] :
+theorem register.Storage.wp_Snapshot [RegStor GF] :
     register.Storage.Snapshot.spec (GF := GF) (hG := hG) :=
   register.Storage.Snapshot.wp_proof MemoryStorage.wp_Snapshot
 
-theorem register.wp_New [AllG GF] [RegStor GF] :
+theorem register.wp_New [RegStor GF] :
     register.New.spec (GF := GF) (hG := hG) :=
   register.New.wp_proof register.Register.wp_run
 
-theorem register.wp_deliverable [AllG GF] :
+theorem register.wp_deliverable :
     register.deliverable.spec (GF := GF) (hG := hG) :=
   register.deliverable.wp_proof
 
-theorem register.wp_deliver [AllG GF] [StorageModel GF] :
+theorem register.wp_deliver [StorageModel GF] :
     register.deliver.spec (GF := GF) (hG := hG) :=
   register.deliver.wp_proof register.wp_deliverable node.wp_Step
 
-theorem register.wp_tick [AllG GF] [StorageModel GF] :
+theorem register.wp_tick [StorageModel GF] :
     register.tick.spec (GF := GF) (hG := hG) :=
   register.tick.wp_proof node.wp_Tick
 
-theorem register.quietLogger.wp_Debugf [AllG GF] :
+theorem register.quietLogger.wp_Debugf :
     register.quietLogger.Debugf.spec (GF := GF) (hG := hG) :=
   register.quietLogger.Debugf.wp_proof
 
-theorem register.quietLogger.wp_Errorf [AllG GF] :
+theorem register.quietLogger.wp_Errorf :
     register.quietLogger.Errorf.spec (GF := GF) (hG := hG) :=
   register.quietLogger.Errorf.wp_proof
 
-theorem register.quietLogger.wp_Infof [AllG GF] :
+theorem register.quietLogger.wp_Infof :
     register.quietLogger.Infof.spec (GF := GF) (hG := hG) :=
   register.quietLogger.Infof.wp_proof
 
-theorem register.quietLogger.wp_Warningf [AllG GF] :
+theorem register.quietLogger.wp_Warningf :
     register.quietLogger.Warningf.spec (GF := GF) (hG := hG) :=
   register.quietLogger.Warningf.wp_proof
 
-theorem register.wp_Main [AllG GF] :
+theorem register.wp_Main :
     register.Main.spec (GF := GF) (hG := hG) :=
   register.Main.wp_proof register.wp_NewStorage register.Storage.wp_InitialState register.Storage.wp_Snapshot register.wp_New register.Register.wp_Put register.Register.wp_Get register.wp_deliver register.wp_tick register.quietLogger.wp_Debugf register.quietLogger.wp_Errorf register.quietLogger.wp_Infof register.quietLogger.wp_Warningf wp_RestartNode
 

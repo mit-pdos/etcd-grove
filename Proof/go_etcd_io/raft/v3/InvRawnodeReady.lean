@@ -49,7 +49,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [AllG GF]
 
 /-- What `acceptReady` needs of the committed entries `ce` a `Ready` hands out
 (2026-10-10): they are the next ones after `applying`, up to at most `committed` -- its

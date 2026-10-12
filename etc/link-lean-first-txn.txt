@@ -1,0 +1,78 @@
+# The server's txn package (etcd's server/v3/etcdserver/txn; all Lean-first), read by
+# `etc/gen-link.py --txn`: `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+#
+# The trust boundary (axioms; unit 0): the callees the package's functions reach that have no
+# model elsewhere. Perennial-specified standard-library calls (bytes.Compare, fmt.Errorf,
+# time.Now/Since) and interface calls (mvcc's KV/TxnRead/TxnWrite, the lessor's Lookup) are not
+# listed.
+sort_Sort:
+sort_Reverse:
+traceutil_EnsureTrace:
+traceutil_Get:
+traceutil_TODO:
+traceutil_Trace__Step:
+traceutil_Trace__StepWithFunction:
+traceutil_Trace__AddField:
+traceutil_Trace__StartSubTrace:
+traceutil_Trace__StopSubTrace:
+proto_Size:
+zap_Error:
+zap_Int32:
+zap_Logger__Error:
+zap_Logger__Panic:
+context_TODO:
+txn_RangeSecObserve:
+txn_ApplySecObserve:
+# mvcc's read-only write transaction (`Txn`'s read-only path), proved and linked in mvcc's
+# Link.lean (`@`).
+mvcc_NewReadOnlyTxnWrite: @
+mvcc_txnReadWrite__FirstRev: @
+mvcc_txnReadWrite__Rev: @
+mvcc_txnReadWrite__Range: @
+mvcc_txnReadWrite__End: @
+mvcc_txnReadWrite__Changes: @
+mvcc_txnReadWrite__Put: @
+mvcc_txnReadWrite__DeleteRange: @
+#
+# The package's functions, for the next units (no spec yet), with their callees in Go order as a
+# first guess (uncomment as they are specified; `?` for specified but not proved):
+# mkGteRange:
+# deleteRange: mkGteRange
+# DeleteRange: traceutil_EnsureTrace deleteRange
+# checkLease:
+# getPrevKV: context_TODO traceutil_Trace__StepWithFunction
+# checkAndGetPrevKV: getPrevKV
+# checkPut: checkLease checkAndGetPrevKV
+# put: traceutil_Get traceutil_Trace__AddField
+# Put: traceutil_EnsureTrace proto_Size checkLease checkAndGetPrevKV put
+# IsDefaultOrdering:
+# HasRevisionFilters:
+# rangeLimit: IsDefaultOrdering HasRevisionFilters
+# pruneKVs:
+# filterRangeResults: pruneKVs
+# kvSort__Swap:
+# kvSort__Len:
+# kvSortByKey__Less:
+# kvSortByVersion__Less:
+# kvSortByCreate__Less:
+# kvSortByMod__Less:
+# kvSortByValue__Less:
+# sortRangeResults: IsDefaultOrdering zap_Int32 zap_Logger__Panic sort_Sort sort_Reverse
+# asembleRangeResponse:
+# checkRange:
+# executeRange: traceutil_Get rangeLimit mkGteRange filterRangeResults sortRangeResults traceutil_Trace__Step asembleRangeResponse
+# Range: traceutil_EnsureTrace txn_RangeSecObserve executeRange
+# Count: Range
+# compareInt64:
+# compareKV: compareInt64
+# applyCompare: context_TODO mkGteRange compareKV
+# applyCompares: applyCompare
+# compareToPath: applyCompares
+# etcdserverpb_RequestOp__GetRequestRange:
+# IsTxnSerializable: etcdserverpb_RequestOp__GetRequestRange
+# IsTxnReadonly: etcdserverpb_RequestOp__GetRequestRange
+# checkTxn: checkRange checkPut
+# newTxnResp:
+# executeTxn: traceutil_Get traceutil_Trace__StartSubTrace executeRange traceutil_Trace__StopSubTrace proto_Size getPrevKV put deleteRange
+# txn: newTxnResp executeTxn zap_Error zap_Logger__Panic zap_Logger__Error
+# Txn: traceutil_EnsureTrace IsTxnReadonly compareToPath traceutil_Trace__StepWithFunction traceutil_Trace__AddField checkTxn traceutil_Trace__Step mvcc_NewReadOnlyTxnWrite txn

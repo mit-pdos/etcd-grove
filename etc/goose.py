@@ -118,12 +118,12 @@ PROJECTS = [
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="0fc6f23b14641ad8ed21f6c03620c342831795d1",
+        rev="bc8b52a503191e8af023b209a1cc5b54e1025d6d",
         # go.etcd.io/raft/v3 is etcd's own raft dependency (etcd's go.mod), not the raft
         # above: its modules are EtcdDeps.Code.go_etcd_io.raft.v3* (the part below).
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=",
-                    "github.com/dustin/go-humanize=", "net/http=",
+                    "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
                     "go.etcd.io/raft/v3=EtcdDeps"],
         packages=[
             # with bodies (cache/v3.toml)
@@ -132,11 +132,17 @@ PROJECTS = [
             "go.etcd.io/etcd/client/v3/concurrency",
             # with bodies (client/v3/leasing.toml): the leasing KV and its lease cache
             "go.etcd.io/etcd/client/v3/leasing",
+            # with bodies (client/v3/experimental/recipes.toml): barrier, double barrier, queue,
+            # priority queue, RWMutex
+            "go.etcd.io/etcd/client/v3/experimental/recipes",
             # the server's consistent index, with bodies (cindex.toml), or some of them
             # (etcdserver.toml: the apply thread; storage/schema.toml: cindex.go)
             "go.etcd.io/etcd/server/v3/etcdserver/cindex",
             "go.etcd.io/etcd/server/v3/etcdserver",
             "go.etcd.io/etcd/server/v3/storage/schema",
+            # with bodies (etcdserver/txn.toml): the server's Range, Put, DeleteRange, Txn over
+            # the mvcc core
+            "go.etcd.io/etcd/server/v3/etcdserver/txn",
             # types and names only: what the server's types and the apply thread name
             "go.etcd.io/etcd/server/v3/storage",
             "go.etcd.io/etcd/server/v3/storage/backend",
@@ -158,6 +164,8 @@ PROJECTS = [
             "go.etcd.io/etcd/pkg/v3/notify",
             "go.etcd.io/etcd/pkg/v3/pbutil",
             "go.etcd.io/etcd/pkg/v3/traceutil",
+            # names only: the type of mvcc's store.fifoSched
+            "go.etcd.io/etcd/pkg/v3/schedule",
             "go.etcd.io/etcd/pkg/v3/wait",
             "go.etcd.io/etcd/client/pkg/v3/types",
             "go.etcd.io/etcd/client/pkg/v3/verify",
@@ -173,6 +181,8 @@ PROJECTS = [
             "go.uber.org/zap",
             "go.uber.org/zap/zapcore",
             "github.com/dustin/go-humanize",
+            # names only: the metrics mvcc's transactions and key index update
+            "github.com/prometheus/client_golang/prometheus",
             # a standard-library package Perennial does not translate: its names are here
             "net/http",
             # types and names only (their .toml)
@@ -198,6 +208,7 @@ PROJECTS = [
             # (and go.uber.org/zap, above)
         ],
         owned=[os.path.join("go_etcd_io", "etcd"), os.path.join("go_etcd_io", "bbolt"),
+               os.path.join("github_com", "prometheus"),
                "k8s_io", "google_golang_org", "go_uber_org", "go_opentelemetry_io",
                os.path.join("net", "http"), os.path.join("github_com", "dustin")],
         parts=[

@@ -28,7 +28,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [AllG GF]
 
 /-- What `stepWithWaitOption` is called with (see the file header). -/
 def stepArg (γ : NodeNames) (id : w64) (m : raftpb.Message) (wait : Bool) : IProp GF :=

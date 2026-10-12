@@ -23,7 +23,10 @@ usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --server > Proof/go_etcd_io/etcd/server/v3/etcdserver/Link.lean
        etc/gen-link.py --concurrency > Proof/go_etcd_io/etcd/client/v3/concurrency/Link.lean
        etc/gen-link.py --leasing > Proof/go_etcd_io/etcd/client/v3/leasing/Link.lean
+       etc/gen-link.py --recipes > Proof/go_etcd_io/etcd/client/v3/experimental/recipes/Link.lean
        etc/gen-link.py --register > Proof/github_com/mit_pdos/etcd_grove/examples/register/Link.lean
+       etc/gen-link.py --mvcc > Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link.lean
+       etc/gen-link.py --txn > Proof/go_etcd_io/etcd/server/v3/etcdserver/txn/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -42,8 +45,24 @@ their full names below `EtcdGrove`: the cache's Link links some of the same clie
 etcdserverpb and standard-library functions they call, from etc/link-lean-first-leasing.txt,
 under the leasing package's assumptions; as `--concurrency`, its results are in a namespace of
 their own (`leasing`), a clientv3 function's with the prefix `v3.`.
+`--recipes` links the proofs of `client/v3/experimental/recipes` (barrier, double barrier, queue,
+priority queue, RWMutex) and of the clientv3 and concurrency functions they call, from
+etc/link-lean-first-recipes.txt, under the recipes package's assumptions; as `--leasing`, its
+results are in a namespace of their own (`recipes`), a clientv3 function's with the prefix `v3.`
+and concurrency's with the prefix `concurrency.` (its specs' own namespace,
+`recipes.concurrency.Session.wp_Client`).
 A callee list `?` (`fn: ?`) marks a function specified but not proved yet (a later unit's): its
 spec is a hypothesis (`h_<fn>`, `section links_pending`) of every result that reaches it.
+`--mvcc` links the proofs of the KV core of etcd's `server/v3/storage/mvcc`
+(`Proof/go_etcd_io/etcd/server/v3/storage/mvcc/`), from etc/link-lean-first-mvcc.txt.
+`--txn` links the proofs of etcd's server `txn` package (`server/v3/etcdserver/txn`: `Range`,
+`Put`, `DeleteRange`, `Txn` over the mvcc core) and of the trust-boundary functions they call,
+from etc/link-lean-first-txn.txt, under the txn package's assumptions; as `--recipes`, its
+results are in a namespace of their own (`txn`: `txn.traceutil.wp_EnsureTrace`), and mvcc's
+functions are `@` callees, linked in mvcc's `Link.lean`.
+`--skip-unproved` (after the mode) leaves out the listed functions with no proof file yet (no
+spec, or no `Proof/` file: a later unit's) and every function that reaches one, and names them
+in the header: a package proved in units links what is done, from the full list.
 `--register` links the register example's proofs (`examples/register`), from
 etc/link-lean-first-register.txt; raft's functions it calls are `@` callees, linked in raft's
 `Link.lean`, and its specs' `[RegStor GF]` (the storage registry) is passed on.
@@ -52,6 +71,7 @@ import glob
 import os
 import re
 import sys
+import textwrap
 
 # The Lean-first links: (callee list, what the links open, the package assumptions they
 # are stated under, a description for the header, the module roots holding their specs).
@@ -77,6 +97,22 @@ LEAN_FIRST = {
                   "go_etcd_io.etcd.client.v3.leasing.Assumptions",
                   "The `client/v3/leasing` package's proofs (the lease cache) and the functions "
                   "they call", [""]),
+    # the mvcc KV core (etcd's server/v3/storage/mvcc)
+    "--mvcc": ("link-lean-first-mvcc.txt", "go_etcd_io.etcd.server.v3.storage.mvcc",
+               "go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions",
+               "The mvcc KV core's proofs (etcd's `server/v3/storage/mvcc`)", [""]),
+    # the server's txn package (etcd's server/v3/etcdserver/txn), over the mvcc core
+    "--txn": ("link-lean-first-txn.txt",
+              "go_etcd_io.etcd.server.v3.etcdserver.txn go_etcd_io.etcd.server.v3.storage.mvcc "
+              "go_etcd_io.etcd.api.v3",
+              "go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions",
+              "The server's `txn` package's proofs (etcd's `server/v3/etcdserver/txn`) and the "
+              "functions they call", [""]),
+    "--recipes": ("link-lean-first-recipes.txt",
+                  "go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3",
+                  "go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions",
+                  "The `client/v3/experimental/recipes` package's proofs and the functions they "
+                  "call", [""]),
     # the register example (examples/register): its proofs, over raft's (linked in raft's
     # `Link.lean`, the `@` callees) and the storage model `RegStor` gives
     "--register": ("link-lean-first-register.txt",
@@ -85,7 +121,8 @@ LEAN_FIRST = {
                    "The register example's proofs (`examples/register`)", [""]),
 }
 # The mode whose results are put in a namespace of their own (see the docstring).
-NAMESPACED = {"--concurrency": "concurrency", "--leasing": "leasing"}
+NAMESPACED = {"--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
+              "--txn": "txn"}
 mode = LEAN_FIRST.get(sys.argv[1])
 cache = mode is not None
 here = os.path.dirname(os.path.abspath(__file__))
@@ -158,6 +195,22 @@ with open(os.path.join(here, mode[0] if cache else "link-lean-first.txt")) as f:
         callees[fn] = cs.split()
 fns.sort()
 
+# `--skip-unproved`: leave out the functions with no proof file yet, and those reaching one
+skipped = set()
+if cache and "--skip-unproved" in sys.argv[2:]:
+    def proved(fn):
+        return fn in where and os.path.exists(
+            os.path.join(root, prefix[fn].rstrip("."), "Proof", *where[fn].split(".")) + ".lean")
+    skipped = {fn for fn in fns if not proved(fn)}
+    changed = True
+    while changed:
+        changed = False
+        for fn in fns:
+            if fn not in skipped and any(c in skipped for c in callees[fn]):
+                skipped.add(fn)
+                changed = True
+    fns = [fn for fn in fns if fn not in skipped]
+
 spec = {}
 for fn in fns:
     src = open(spec_file(fn)).read()
@@ -216,7 +269,10 @@ callees' results. All of them are Lean-first, listed with their callees in
 `etc/{listfile}`. Generated by `etc/gen-link.py {sys.argv[1]}` -- do not edit by
 hand.
 
-`#print axioms` on a result is its trust base.
+`#print axioms` on a result is its trust base.""" + ("\n\n" + textwrap.fill(
+        "Generated with `--skip-unproved`: not linked yet (no proof file, or reaching such a "
+        "function): " + ", ".join(f"`{fn}`" for fn in sorted(skipped)) + ".", 96,
+        break_on_hyphens=False) if skipped else "") + """
 -/""", "module", ""]
     out.extend(f"public import {proof_module(fn)}" for fn in fns
                if fn not in external and fn not in pending)
@@ -265,11 +321,22 @@ variable [package_sem : {assumptions}]
         allg = " [AllG GF]" if "[AllG GF]" in src and fn not in blocked else ""
         # the register's specs take its storage registry
         allg += " [RegStor GF]" if "[RegStor GF]" in src else ""
+        # mvcc's index specs use the btree through the cache's interface (its assumptions), and
+        # so does every result that links one of them
+        allg += " [go_etcd_io.etcd.cache.v3.Assumptions]" if fn in cache_assumptions else ""
         # ... or, stated over any raft storage model, that (the register's transport)
         if "[RegStor GF]" not in src and "[StorageModel GF]" in src:
             allg += " [StorageModel GF]"
         return (f"theorem {result(fn)}{allg} :\n    {specref(fn)}.spec (GF := GF) (hG := hG) :=\n"
                 f"  {body}\n")
+
+    cache_assumptions = set()
+    for fn in order:
+        if fn in external:
+            continue
+        if ("variable [go_etcd_io.etcd.cache.v3.Assumptions]" in open(spec_file(fn)).read()
+                or any(c in cache_assumptions for c in callees[fn])):
+            cache_assumptions.add(fn)
 
     # the results that reach a pending function, and the pending functions themselves: emitted
     # last, with the pending specs as hypotheses
@@ -304,7 +371,7 @@ its spec is a hypothesis (`h_<fn>`) of each of them. -/
 section links_pending
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF] [allG : AllG GF]
+variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : {assumptions}]
 {hyps}
@@ -359,13 +426,13 @@ generic = [fn for fn in order if fn not in haslc]
 special = [fn for fn in order if fn in haslc]
 assert all(c not in haslc for fn in generic for c in callees[fn])
 out.append("section links\n" + VARS.format(
-    heap="variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]\nvariable [AllG GF]"))
+    heap="variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]"))
 out.extend(emit(fn) for fn in generic)
 out.append("end links\n")
 out.append("""/-! The specs stated at `HeapGS HasLC.hasLC GF`: the ghost state holds an
 invariant (`raftCommitInv`), whose world is the heap's only at `.hasLC`. -/""")
 out.append("section links_hasLC\n" + VARS.format(
-    heap="variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]\nvariable [AllG GF]"))
+    heap="variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]"))
 out.extend(emit(fn) for fn in special)
 out.append("end links_hasLC\n\nend EtcdGrove\nend Perennial")
 print("\n".join(out))

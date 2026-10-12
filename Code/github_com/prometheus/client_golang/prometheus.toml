@@ -1,0 +1,7 @@
+# Types and names only: function and method bodies are axiomatized (the metrics mvcc's
+# transactions and key index update: Counter, Gauge).
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

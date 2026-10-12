@@ -111,7 +111,8 @@ axiom lessor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom cluster.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom NoLease [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def NoLease [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 0)
 
 axiom MaxLeaseTTL [FfiSyntax] [GoGlobalContext] : val
 

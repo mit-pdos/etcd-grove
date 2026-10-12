@@ -21,7 +21,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [AllG GF]
 
 /-- `rn.HasReady()` (`rawnode.go:453`): whether `Ready` would hand out anything -- a new
 `SoftState`, a new non-empty `HardState`, a snapshot, messages, unstable entries,

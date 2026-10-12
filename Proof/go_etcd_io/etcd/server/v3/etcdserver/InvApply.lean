@@ -105,7 +105,7 @@ def stOk (γ : ApplyNames) (s : ApplyState) : Prop :=
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [AllG GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- The invariant's part that depends on whether an entry's writes are in flight: if so,
@@ -380,7 +380,7 @@ batch lock, or code that applies nothing): it is processed. Sound only where no 
 happened, which is what the callers' contracts and code establish. -/
 theorem skip_done (γ : ApplyNames) (s : ApplyState) (i : w64) (hp : s.pending = false)
     (_hi : i = s.p + 1) (hlt : uint.Z s.p < uint.Z i) :
-    inv applyN (consInv γ) ⊢ applyThread γ s ={⊤}=∗ applyThread γ { s with p := i } := by
+    inv applyN (consInv (GF := GF) γ) ⊢ applyThread γ s ={⊤}=∗ applyThread γ { s with p := i } := by
   iintro #Hinv Hst
   iinv Hinv with Hi Hclose
   imod Hi with Hi
