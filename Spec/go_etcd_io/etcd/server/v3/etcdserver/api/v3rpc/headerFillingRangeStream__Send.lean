@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 nil) filled but for its revision, then the wrapped stream's `Send` (`streamSendOk st Ψ Ξ`: a
 contract whose precondition `Ψ` gets the chunk with its header filled). -/
 abbrev v3rpc.headerFillingRangeStream.Send.spec : Prop :=
-  ∀ (p st hp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (stv : GoInterface)
+  ∀ (p hp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (stv : GoInterface)
     (Ψ : Loc → IProp GF) (Ξ : Loc → GoInterface → IProp GF) (resp rr h : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       structFieldRef v3rpc.headerFillingRangeStream go!"KV_RangeStreamServer" p ↦□ stv ∗

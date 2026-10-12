@@ -91,6 +91,13 @@ def ctxCanceledPtr : IProp GF :=
   iprop(∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok e ∗
     ⌜_root_.Perennial.errors.IsPointerError e⌝)
 
+instance grpcErrMap_persistent : Persistent (grpcErrMap (GF := GF)) := by
+  unfold grpcErrMap; infer_instance
+instance sortNameMaps_persistent : Persistent (sortNameMaps (GF := GF)) := by
+  unfold sortNameMaps; infer_instance
+instance ctxCanceledPtr_persistent : Persistent (ctxCanceledPtr (GF := GF)) := by
+  unfold ctxCanceledPtr; infer_instance
+
 /-- The package's facts: the error map, the checks' errors, the sort-name maps and
 `context.Canceled`. -/
 abbrev v3rpcInit : IProp GF := iprop(grpcErrMap ∗ checkErrVars ∗ sortNameMaps ∗ ctxCanceledPtr)
