@@ -249,6 +249,7 @@ theorem stmMethods_ser
     icases Hpre with ⟨%pre, Hpre⟩
     wp_apply hReset (structFieldRef stmSerializable go!"stm" p) pfx $$ [$Hpkg $Hr $Hw] as ⟨Hr, Hw⟩
     iapply HΦ
+    simp only [STMSt.empty]
     iframe
     iframe #
     isplitl <;> ipureintro
