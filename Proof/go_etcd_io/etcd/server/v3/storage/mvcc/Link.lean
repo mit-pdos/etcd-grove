@@ -19,6 +19,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevToBytes
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Revision__GreaterThan
 public import Proof.encoding.binary.bigEndian__PutUint64
 public import Proof.encoding.binary.bigEndian__Uint64
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.eventBatch__add
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isEmpty
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__walk
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.isTombstone
@@ -36,6 +37,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newBucketKey
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnRead
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnWrite
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newTreeIndex
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherBatch
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherGroup
 public import Proof.google_golang_org.protobuf.proto.Marshal
 public import Proof.google_golang_org.protobuf.proto.Unmarshal
@@ -83,7 +85,10 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__RequestP
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__RequestProgressAll
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Rev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Watch
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherBatch__add
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__add
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__choose
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__chooseAll
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__contains
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__delete
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__size
@@ -198,6 +203,10 @@ theorem mvcc.Revision.wp_GreaterThan :
     mvcc.Revision.GreaterThan.spec (GF := GF) (hG := hG) :=
   mvcc.Revision.GreaterThan.wp_proof
 
+theorem mvcc.eventBatch.wp_add :
+    mvcc.eventBatch.add.spec (GF := GF) (hG := hG) :=
+  mvcc.eventBatch.add.wp_proof
+
 theorem mvcc.generation.wp_isEmpty :
     mvcc.generation.isEmpty.spec (GF := GF) (hG := hG) :=
   mvcc.generation.isEmpty.wp_proof
@@ -282,6 +291,18 @@ theorem mvcc.wp_newMetricsTxnRead :
     mvcc.newMetricsTxnRead.spec (GF := GF) (hG := hG) :=
   mvcc.newMetricsTxnRead.wp_proof
 
+theorem mvcc.watcherSet.wp_add :
+    mvcc.watcherSet.add.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherSet.add.wp_proof
+
+theorem mvcc.watcherSet.wp_union :
+    mvcc.watcherSet.union.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherSet.union.wp_proof mvcc.watcherSet.wp_add
+
+theorem mvcc.watcherBatch.wp_add :
+    mvcc.watcherBatch.add.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherBatch.add.wp_proof mvcc.eventBatch.wp_add
+
 theorem traceutil.wp_TODO :
     traceutil.TODO.spec (GF := GF) (hG := hG) :=
   traceutil.TODO.wp_proof
@@ -290,13 +311,13 @@ theorem mvcc.storeTxnCommon.wp_FirstRev :
     mvcc.storeTxnCommon.FirstRev.spec (GF := GF) (hG := hG) :=
   mvcc.storeTxnCommon.FirstRev.wp_proof
 
-theorem mvcc.watcherSet.wp_add :
-    mvcc.watcherSet.add.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherSet.add.wp_proof
-
 theorem mvcc.watcherSetByKey.wp_add :
     mvcc.watcherSetByKey.add.spec (GF := GF) (hG := hG) :=
   mvcc.watcherSetByKey.add.wp_proof mvcc.watcherSet.wp_add
+
+theorem mvcc.watcherGroup.wp_chooseAll :
+    mvcc.watcherGroup.chooseAll.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherGroup.chooseAll.wp_proof
 
 theorem mvcc.watcherSet.wp_delete :
     mvcc.watcherSet.delete.spec (GF := GF) (hG := hG) :=
@@ -309,10 +330,6 @@ theorem mvcc.watcherSetByKey.wp_delete :
 theorem mvcc.watcherGroup.wp_size :
     mvcc.watcherGroup.size.spec (GF := GF) (hG := hG) :=
   mvcc.watcherGroup.size.wp_proof
-
-theorem mvcc.watcherSet.wp_union :
-    mvcc.watcherSet.union.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherSet.union.wp_proof mvcc.watcherSet.wp_add
 
 end links
 
@@ -507,6 +524,14 @@ variable (h_adt_intervalTree__Intersects : adt.intervalTree.Intersects.spec (GF 
 variable (h_adt_intervalTree__Stab : adt.intervalTree.Stab.spec (GF := GF) (hG := hG))
 include h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab
 
+theorem mvcc.watcherGroup.wp_watcherSetByKey :
+    mvcc.watcherGroup.watcherSetByKey.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherGroup.watcherSetByKey.wp_proof adt.wp_NewStringAffinePoint h_adt_intervalTree__Stab mvcc.watcherSet.wp_union
+
+theorem mvcc.wp_newWatcherBatch :
+    mvcc.newWatcherBatch.spec (GF := GF) (hG := hG) :=
+  mvcc.newWatcherBatch.wp_proof (mvcc.watcherGroup.wp_watcherSetByKey h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab) mvcc.watcherBatch.wp_add
+
 theorem mvcc.wp_newWatcherGroup :
     mvcc.newWatcherGroup.spec (GF := GF) (hG := hG) :=
   mvcc.newWatcherGroup.wp_proof h_adt_NewIntervalTree
@@ -515,6 +540,10 @@ theorem mvcc.watcherGroup.wp_add :
     mvcc.watcherGroup.add.spec (GF := GF) (hG := hG) :=
   mvcc.watcherGroup.add.wp_proof mvcc.watcherSet.wp_add mvcc.watcherSetByKey.wp_add adt.wp_NewStringAffineInterval h_adt_intervalTree__Find h_adt_intervalTree__Insert
 
+theorem mvcc.watcherGroup.wp_choose :
+    mvcc.watcherGroup.choose.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherGroup.choose.wp_proof (mvcc.wp_newWatcherGroup h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab) (mvcc.watcherGroup.wp_add h_adt_NewIntervalTree h_adt_intervalTree__Delete h_adt_intervalTree__Find h_adt_intervalTree__Insert h_adt_intervalTree__Intersects h_adt_intervalTree__Stab) mvcc.watcherGroup.wp_chooseAll
+
 theorem mvcc.watcherGroup.wp_contains :
     mvcc.watcherGroup.contains.spec (GF := GF) (hG := hG) :=
   mvcc.watcherGroup.contains.wp_proof adt.wp_NewStringAffinePoint h_adt_intervalTree__Intersects
@@ -522,10 +551,6 @@ theorem mvcc.watcherGroup.wp_contains :
 theorem mvcc.watcherGroup.wp_delete :
     mvcc.watcherGroup.delete.spec (GF := GF) (hG := hG) :=
   mvcc.watcherGroup.delete.wp_proof mvcc.watcherSet.wp_delete mvcc.watcherSetByKey.wp_delete adt.wp_NewStringAffineInterval h_adt_intervalTree__Find h_adt_intervalTree__Delete
-
-theorem mvcc.watcherGroup.wp_watcherSetByKey :
-    mvcc.watcherGroup.watcherSetByKey.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherGroup.watcherSetByKey.wp_proof adt.wp_NewStringAffinePoint h_adt_intervalTree__Stab mvcc.watcherSet.wp_union
 
 end links_pending
 

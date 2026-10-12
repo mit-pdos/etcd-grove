@@ -30,7 +30,7 @@ theorem mvcc.watchStream.Close.wp_proof : mvcc.watchStream.Close.spec (GF := GF)
   iNamed Hws
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%g, #Hg, #HgS⟩⟩
+  icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%g, #Hg, #HgS⟩, -⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

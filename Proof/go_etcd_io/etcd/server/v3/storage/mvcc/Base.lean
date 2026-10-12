@@ -15,7 +15,8 @@ variables). `mvccInit` states what the KV core reads of them: the three error va
 a fixed non-nil error, and the prometheus counters and gauges of `metrics.go` the transactions
 and the key index update, each a fixed interface value whose `Inc`/`Dec`/`Add` return
 (`counterSpec`, `gaugeSpec`: metrics have no effect here); and the two configuration defaults
-`NewStore` reads (`defaultCompactionBatchLimit`, `defaultCompactionSleepInterval`), any values.
+`NewStore` reads (`defaultCompactionBatchLimit`, `defaultCompactionSleepInterval`), any values;
+the watch stream's errors and gauge, and the watcher group's `watchBatchMaxRevs` (1000).
 -/
 module
 
@@ -150,7 +151,9 @@ of `metrics.go` the KV core updates: the gauge `keysGauge` (the key index), the 
 `defaultCompactionSleepInterval` (`kvstore.go`) `NewStore` reads, read-only (only tests change
 them), their values unconstrained (the store's configuration is not modelled); and the watch
 stream's (`watcher.go`): the errors `ErrWatcherNotExist`, `ErrEmptyWatcherRange` and
-`ErrWatcherDuplicateID`, each a fixed non-nil error, and the gauge `watchStreamGauge`. -/
+`ErrWatcherDuplicateID`, each a fixed non-nil error, and the gauge `watchStreamGauge`; and the
+watcher group's (`watcher_group.go`): `watchBatchMaxRevs`, a `var` for tests only, read-only at
+its initial value `1000`. -/
 abbrev mvccInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok e) ∗
@@ -166,7 +169,8 @@ abbrev mvccInit : IProp GF :=
     (∃ e : GoInterfaceOk, globalAddr ErrWatcherNotExist ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrEmptyWatcherRange ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrWatcherDuplicateID ↦□ GoInterface.ok e) ∗
-    (∃ g : GoInterfaceOk, globalAddr watchStreamGauge ↦□ GoInterface.ok g ∗ gaugeSpec g))
+    (∃ g : GoInterfaceOk, globalAddr watchStreamGauge ↦□ GoInterface.ok g ∗ gaugeSpec g) ∗
+    globalAddr watchBatchMaxRevs ↦□ (W64 1000 : w64))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc :=
   define_is_pkg_init mvccInit

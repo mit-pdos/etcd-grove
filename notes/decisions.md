@@ -2027,6 +2027,54 @@ record.
   constants `clientv3.AutoWatchID`/`InvalidWatchID` are translated with their values (`Watch`
   and `progressAll` compare against them).
 
+### The watchable store's concurrency (unit 3)
+
+**2026-10-12 · adopted** (design; three parts: 3a the write path, 3b the sync machinery, 3c the
+theorem).
+- **The store's lock invariant** (`watchableStore.mu`, its own `RWMutex`, shadowing the
+  embedded store's `mu`): the synced and unsynced groups (unit 2's predicates), every
+  registered watcher's state (`ownStates`), the victim batches (`ownWatcherBatch` each, with
+  their watchers' states), and what unit 2's premises need: the three populations disjoint, a
+  victim flagged, an unsynced watcher at or below the committed revision and a synced one
+  above it — through a persistent lower bound of `currentRev` (`idxCert` of a committed log:
+  `revMu` owns the revision, and it only grows), not the revision itself; no compaction
+  (`compactMainRev = -1`, `isStore`) and no `restore`. A cancelled watcher (`ch = nil`) is in
+  no population; `cancelWatcher` is idempotent, which the stream's contract relies on.
+- **The guarantee as a channel protocol** (the cache's `InvWatcher` is the template): per
+  stream channel, an invariant owning the channel (`ownChan`), a ghost log of every response
+  sent (append-only; the senders are many — `notify` under the lock, `syncWatchers`, the victim
+  mover outside it, the progress calls under a read lock — all non-blocking `select`s, each
+  appending atomically with its send), and the consumer's received prefix, the in-flight
+  buffer being the difference. Per watcher, a "next revision" ghost kept with its state (so
+  with the lock, or with the victim mover while its batch is out): the responses sent for the
+  watcher, plus any batch still pending for it, carry exactly the range's changes from
+  `startRev` up to that revision, in revision order, each response's `Revision` at or above
+  its events (`notify` sends one revision's events and advances to `rev + 1`; `syncWatchers`
+  sends `[minRev, curRev]`'s, or up to `moreRev` under the cap; a victim's batch is resent
+  as is). Progress responses interleave with no events. The client's side is a receive lemma,
+  not a Go function (`wp_watch_receive`, as the cache's): receiving extends the prefix and
+  yields the response's fact; the theorem (3c) reads the prefix per watch id. Safety only:
+  nothing says a victim's batch is eventually sent (Iris proves no liveness).
+- **The filters** are pure predicates: `F f := ∃ p, □ ∀ e ev, {{ evIs e ev }} f(e) {{ b;
+  ⌜b = p ev⌝ }}` (etcd's `filterNoPut`/`filterNoDelete` are), and a watcher's delivered
+  events are the range's changes with no filter true. *Rejected:* unconstrained filters and a
+  theorem for unfiltered watches only.
+- **Start revisions are at least 0** (`watch` and the stream's `Watch`): the documented domain
+  (`0` is "now"). The code's behaviour on negatives is a remark: with no compaction, `-1` is
+  read as `0` (with a warning in `rangeEvents`), and `≤ -2` makes `chooseAll` cancel the
+  watcher with a compaction response at revision `-1` (`minRev < compactMainRev`), which the
+  gRPC layer does not prevent — to reproduce with a Go test if wanted as a finding.
+  *Rejected:* modelling the compaction-response path for an input nobody sends.
+- **Contract changes**: `storeTxnWrite.End` releases the changes' key-values (the wrapper
+  `watchableStoreTxnWrite.End` fixes a delete's `ModRevision` on them, then shares them with
+  the watchers for good, `evIs`; the inner `End` reads only the slice's length): the write
+  transaction's predicate is split so that `End` takes it without `changesAre`. `NewStore`'s
+  `ReadView`/`WriteView` become owned fields (`newWatchableStore` overwrites them).
+  `time.NewTicker`/`Ticker.Reset`/`Stop` are axioms with a bag channel, as `time.After`.
+  The `watchable` contract of the stream (unit 2) is instantiated with the store's
+  `WatchParams`: `IW` the registration, `WC` cancelled, `C` the channel's invariant, `F` the
+  filter predicate, `CR` the close right with the registered watchers.
+
 ## mvcc: the log of changes as the model, the key index as a function of its events
 
 **2026-10-10 · accepted** (Lean-first; the plan discussed with the user: "start on the mvcc KV
