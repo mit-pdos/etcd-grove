@@ -9,6 +9,7 @@ public import Spec.go_etcd_io.bbolt.internal.common.Page__Meta
 public import Spec.go_etcd_io.bbolt.DefaultLogger__Errorf
 public import Proof.go_etcd_io.bbolt.PageView
 public import Proof.go_etcd_io.bbolt.MmapSize
+public import Proof.go_etcd_io.bbolt.DBClose
 
 @[expose] public section
 
@@ -30,30 +31,6 @@ variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
 variable [os_fi : OsFileInfoAssumptions (GF := GF)]
 variable [linux : GOOSLinux]
 
-/-- The whole `mmapTok` (`mmaplock` write-locked) leaves no reader's token. -/
-theorem mmapTok_full_none (γ : GName) (M : GMap Nat Reader) :
-    mmapTok (GF := GF) γ 1 ∗ ([∗map] _k ↦ _r ∈ M, mmapTok (GF := GF) γ sync.rfrac) ⊢
-      ⌜M = ∅⌝ ∗ mmapTok (GF := GF) γ 1 := by
-  iintro ⟨H1, Hm⟩
-  by_cases h : M = ∅
-  · iframe; ipureintro; exact h
-  obtain ⟨k, r, hk⟩ : ∃ k r, M !! k = some r := by
-    refine Classical.byContradiction fun hc => h ((GMap.lookup_empty_iff M).1 fun k => ?_)
-    cases e : M !! k with
-    | none => rfl
-    | some r => exact absurd ⟨k, r, e⟩ hc
-  icases (BigSepM.bigSepM_lookup_acc (M := GMap Nat)
-    (Φ := fun (_ : Nat) (_ : Reader) => mmapTok (GF := GF) γ sync.rfrac)
-    (show Std.get? M k = some r from hk)).1 $$ Hm with ⟨Ht, -⟩
-  simp only [mmapTok]
-  ihave %Hv := ghostVar_valid_2 _ _ _ _ _ $$ H1 Ht
-  exfalso
-  have hp := (sync.rfrac).2
-  have h1 := Hv.1
-  generalize sync.rfrac = q at h1 hp
-  have h2 : (1 + q).val ≤ (1 : Qp).val := h1
-  rw [Qp.val_add, Qp.val_one] at h2
-  grind
 
 /-- A meta inside a region's bytes, lent out as one. -/
 theorem meta_acc (p : Loc) (q : DFrac) (bs : List w8) (off : Nat) (h : off + 64 ≤ bs.length)
