@@ -39,7 +39,8 @@ peak memory and exit status. Lake prints only a duration per job, after the fact
 and has no hook around the compiler; it runs `<sysroot>/bin/lean`, with the
 sysroot from `LEAN_SYSROOT` when `LAKE_OVERRIDE_LEAN` is set.
 
-**Decision:** `build-report.py build` makes `.lake/build-report/sysroot/`, symlinks
+**Decision:** `etc/timed-build.py` (until 2026-10-12 `build-report.py build`; the
+report now only reads what it records) makes `.lake/build-report/sysroot/`, symlinks
 to the real toolchain except `bin/lean`, a shim that runs the real `lean` under
 `wait4` and appends one JSON line per compile to `.lake/build-report/<build>.jsonl`;
 then it runs `lake build` with those two variables set. Lake's traces do not

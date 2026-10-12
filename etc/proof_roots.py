@@ -189,8 +189,8 @@ def check_built(prog, env):
     if r.returncode == 3 and stale:
         more = f", and {len(stale) - 5} more" if len(stale) > 5 else ""
         sys.exit(f"{prog}: the build is not up to date ({', '.join(stale[:5])}{more} "
-                 "and what imports them); run `lake build` (or `etc/build-report.py "
-                 "build`), then rerun")
+                 "and what imports them); run `lake build` (or `etc/timed-build.py`), "
+                 "then rerun")
     sys.exit(f"{prog}: `{' '.join(lake('build', '--no-build'))} <root modules>` failed "
              f"(exit {r.returncode}):\n" + "\n".join(out.splitlines()[-20:]))
 

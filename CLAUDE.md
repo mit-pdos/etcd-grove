@@ -200,9 +200,12 @@ without touching `.lake/packages/perennial`, which other worktrees share;
 
 `lake build` (needs the `elan` toolchain in `lean-toolchain`).
 
-`etc/build-report.py build [LAKE_ARGS…]` runs `lake build` and then reports on it:
+`etc/timed-build.py [LAKE_ARGS…]` is `lake build LAKE_ARGS` that also records each
+module compile's timing (`.lake/build-report/`); it leaves the same build behind and
+exits with Lake's status. Only the modules it compiles are timed: one a plain `lake
+build` compiled stays untimed until it changes. `etc/build-report.py` only reads:
+it reports on the latest recorded build (`--build ID` another, `--list` lists them):
 wall and CPU time, parallelism over time, the critical path (with Lake's idle time
 per step), the unlimited-cores bound, the slowest modules and where the CPU went.
-CI (`.github/workflows/lean.yml`) runs the build this way and puts the report on
-the run's summary page. `etc/build-report.py` alone reprints the latest report,
-`--list` lists the recorded builds (`.lake/build-report/`).
+CI (`.github/workflows/lean.yml`) builds with `etc/timed-build.py` and puts the
+report on the run's summary page.
