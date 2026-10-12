@@ -281,8 +281,8 @@ theorem dbOK_release (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ 
   obtain ⟨ha, hf, hp⟩ := hrs
   have h' := h
   obtain ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, hrd, hmv, hsl, hfl, hro, hrs, hwr⟩ := h'
-  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow⟩ := hcur
-  refine ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, ⟨cwf, cdisj, cin, ?_, ?_, ?_⟩, hrd, ?_, hsl, hfl,
+  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow, cagree⟩ := hcur
+  refine ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, ⟨cwf, cdisj, cin, ?_, ?_, ?_, cagree⟩, hrd, ?_, hsl, hfl,
     ?_, hrs, ?_⟩
   · intro id pg hid a hal
     exact calloc id pg hid a (by rw [← ha]; exact hal)
@@ -291,19 +291,28 @@ theorem dbOK_release (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ 
     refine ⟨h2, fun hfree => ?_, fun t pd' a ht hpp => ?_⟩
     · rcases hf _ hfree with h | ⟨t, pd, a, ht, hpp, _⟩
       · exact h3 h
-      · exact h4 t pd a ht hpp
+      · obtain ⟨⟨w, hw', _⟩, _⟩ := h4 t pd a ht hpp
+        rw [hw] at hw'; cases hw'
     · obtain ⟨pd, ht0, hpp0⟩ := hp t pd' _ ht hpp
       exact h4 t pd a ht0 hpp0
   · -- the freelist stays below the high-water mark: the freed pages were committed ones'
-    obtain ⟨b1, b2, b3, b4⟩ := cbelow
-    refine ⟨fun x hx => ?_, fun t pd' p ht hp' htx => ?_, fun _ t pd' p ht hp' => ?_, b4⟩
+    obtain ⟨b1, b2, b3, b4, b5, b6, b7⟩ := cbelow
+    refine ⟨fun x hx => ?_, fun t pd' p ht hp' htx => ?_, fun t pd' p ht hp' => ?_, b4, b5,
+      fun x hx => ?_, fun t pd' p ht hp' => ?_⟩
     · rcases hf x hx with h | ⟨t, pd, a, ht, hpp, _⟩
       · exact b1 x h
-      · exact b2 t pd (x, a) ht hpp (b3 hw t pd (x, a) ht hpp)
+      · rcases b3 t pd (x, a) ht hpp with h | ⟨w, hw', _⟩
+        · exact b2 t pd (x, a) ht hpp h
+        · rw [hw] at hw'; cases hw'
     · obtain ⟨pd, ht0, hpp0⟩ := hp t pd' p ht hp'
       exact b2 t pd p ht0 hpp0 htx
     · obtain ⟨pd, ht0, hpp0⟩ := hp t pd' p ht hp'
-      exact b3 hw t pd p ht0 hpp0
+      exact b3 t pd p ht0 hpp0
+    · rcases hf x hx with h | ⟨t, pd, a, ht, hpp, _⟩
+      · exact b6 x h
+      · exact b7 t pd (x, a) ht hpp
+    · obtain ⟨pd, ht0, hpp0⟩ := hp t pd' p ht hp'
+      exact b7 t pd p ht0 hpp0
   · intro k r hk
     obtain ⟨malloc, mfree⟩ := hmv k r hk
     have hR := reader_txid_ro σ v0 v1 h k r hk

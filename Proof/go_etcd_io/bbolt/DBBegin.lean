@@ -154,26 +154,62 @@ theorem span_of_pageAt (bs : List w8) (ps id : Nat) (pg : List w8) (hps : 16 ≤
     (h : pg = pageAt bs ps id) : 1 + pageOverflow pg = pageSpan bs ps id := by
   rw [h, pageOverflow_pageAt bs ps id hps]; rfl
 
+theorem pagesAgree_self {P : GMap Nat (List w8)} (h : pagesDisjoint P) : pagesAgree P P := by
+  intro i pi j pj s hi hj h1 h2 h3 h4
+  by_cases hne : i = j
+  · exact hne
+  · rcases h i pi j pj hi hj hne with h' | h' <;> omega
+
+theorem pagesAgree_symm {P Q : GMap Nat (List w8)} (h : pagesAgree P Q) : pagesAgree Q P :=
+  fun i pi j pj s hi hj h1 h2 h3 h4 => (h j pj i pi s hj hi h3 h4 h1 h2).symm
+
+theorem txid_succ_lt (a b : w64) (h : uint.Z a + 1 < 2 ^ 64) (hb : b = a + W64 1) :
+    uint.Z a < uint.Z b := by
+  subst hb; word
+
+/-- What a view of the current tree (a new reader's, or the writer's) sees: slots of the
+mapping, no meta page, none free, and pending only for the open writer, newer than the view,
+of a page allocated before it (`mvccView`). -/
+theorem newReader_sees (σ : DBState) (v0 v1 : internal.common.Meta) (q : Qp) (hps16 : 16 ≤ σ.ps)
+    (hcur : currentOK σ v0 v1) (s : Nat) (hs : (newReader σ v0 v1 q).sees s = true) :
+    s < σ.nslots ∧ 2 ≤ s ∧ W64 s ∉ σ.fl.free ∧
+    ∀ t pd a, σ.fl.pending !! t = some pd → (W64 s, a) ∈ pd.pairs →
+      uint.Z a ≤ uint.Z (newReader σ v0 v1 q).txid ∧ uint.Z (newReader σ v0 v1 q).txid < uint.Z t := by
+  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow, cagree⟩ := hcur
+  simp only [Reader.sees, decide_eq_true_eq] at hs
+  have hc := cfree s hs
+  obtain ⟨id, pg, hid, h1, h2⟩ := hs
+  have hspan := span_of_pageAt σ.bs σ.ps id pg hps16 (newReader_pages σ v0 v1 _ id pg hid)
+  have hin := cin id pg hid
+  refine ⟨by omega, hc.1, hc.2.1, fun t pd a ht hp => ?_⟩
+  obtain ⟨⟨w, hw, rfl⟩, ha⟩ := hc.2.2 t pd a ht hp
+  exact ⟨ha, txid_succ_lt _ _ cbelow.2.2.2.2.1 (by rw [(cbelow.2.2.2.1 w hw).2]; rfl)⟩
+
 theorem dbOK_addReader (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 v1)
     (hsize : σ.readers.size + 1 < Int.toNat sync.rwmutex.actualMaxReaders) :
     dbOK (σ.addReader (freshKey σ.readers) (newReader σ v0 v1 (beginQ σ))) v0 v1 := by
   obtain ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, hrd, hmv, hsl, hfl, hro, hrs, hwr⟩ := h
   have hk := freshKey_none σ.readers
   have hcur' := hcur
-  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow⟩ := hcur'
+  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow, ⟨va1, va2⟩⟩ := hcur'
   have hps16 : 16 ≤ σ.ps := by omega
   -- what the new reader sees: the current tree's slots
-  have hsees : ∀ s, (newReader σ v0 v1 (beginQ σ)).sees s = true →
-      s < σ.nslots ∧ 2 ≤ s ∧ W64 s ∉ σ.fl.free ∧
-      ∀ t pd a, σ.fl.pending !! t = some pd → (W64 s, a) ∉ pd.pairs := by
-    intro s hs
-    simp only [Reader.sees, decide_eq_true_eq] at hs
-    have hc := cfree s hs
-    obtain ⟨id, pg, hid, h1, h2⟩ := hs
-    have hspan := span_of_pageAt σ.bs σ.ps id pg hps16 (newReader_pages σ v0 v1 _ id pg hid)
-    have hin := cin id pg hid
-    exact ⟨by omega, hc⟩
-  refine ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, ?_, ?_, ?_, ?_, ?_, ?_, hwr⟩
+  have hsees := newReader_sees σ v0 v1 (beginQ σ) hps16 hcur
+  refine ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv,
+    ⟨cwf, cdisj, cin, calloc, cfree, cbelow, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_, hwr⟩
+  · -- the readers agree with the current tree (the new one is of it)
+    intro k' r' hk'
+    rw [DBState.addReader, GMap.lookup_insert_Some] at hk'
+    rcases hk' with ⟨_, rfl⟩ | ⟨_, hk'⟩
+    · exact ⟨Int.le_refl _, pagesAgree_self cdisj⟩
+    · exact va1 k' r' hk'
+  · -- and with the writer's view
+    intro w hw
+    refine ⟨(va2 w hw).1, fun k' r' hk' => ?_⟩
+    rw [DBState.addReader, GMap.lookup_insert_Some] at hk'
+    rcases hk' with ⟨_, rfl⟩ | ⟨_, hk'⟩
+    · exact pagesAgree_symm (va2 w hw).1
+    · exact (va2 w hw).2 k' r' hk'
   · -- the readers' facts
     intro k' r' hk'
     rw [DBState.addReader, GMap.lookup_insert_Some] at hk'
@@ -189,7 +225,7 @@ theorem dbOK_addReader (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK �
       have hs' : (newReader σ v0 v1 (beginQ σ)).sees s = true := by
         unfold Reader.sees; simp only [decide_eq_true_eq]; exact hs
       obtain ⟨_, h2, h3, h4⟩ := hsees s hs'
-      exact ⟨h2, h3, fun t pd a ht hin => absurd hin (h4 t pd a ht)⟩
+      exact ⟨h2, h3, h4⟩
     · exact hmv k' r' hk'
   · -- the slots
     intro s hs

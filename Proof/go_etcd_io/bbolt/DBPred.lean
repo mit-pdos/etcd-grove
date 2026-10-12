@@ -177,19 +177,38 @@ def metaIn (σ : DBState) (s : Nat) (v : internal.common.Meta) : Prop :=
 /-- The freelist's ids are below the high-water mark of the current meta `m`: the free ones,
 and the pending ones of committed transactions (`m`'s and before; the open writer's own, newer,
 may have been allocated above it). Without a writer every pending transaction is committed;
-the writer's view is of `m`. (bbolt never writes a freelist breaking this, but reads one from
-the file: `node.spill` panics on a page id at the high-water mark or above.) -/
+the writer's view is of `m`; every pending transaction is committed or the open writer's (its
+meta's txid, one past `m`'s, which does not wrap); the free and pending ids are below `2^62`
+(`canFree`'s bound on their number). (bbolt never writes a freelist breaking this, but reads
+one from the file: `node.spill` panics on a page id at the high-water mark or above.) -/
 def flBelow (σ : DBState) (m : internal.common.Meta) : Prop :=
   (∀ x ∈ σ.fl.free, uint.Z x < uint.Z m.pgid') ∧
   (∀ t pd p, σ.fl.pending !! t = some pd → p ∈ pd.pairs → uint.Z t ≤ uint.Z m.txid' →
     uint.Z p.1 < uint.Z m.pgid') ∧
-  (σ.wr = none → ∀ t pd p, σ.fl.pending !! t = some pd → p ∈ pd.pairs →
-    uint.Z t ≤ uint.Z m.txid') ∧
-  (∀ w, σ.wr = some w → w.hwm = uint.nat m.pgid')
+  (∀ t pd p, σ.fl.pending !! t = some pd → p ∈ pd.pairs →
+    uint.Z t ≤ uint.Z m.txid' ∨ ∃ w, σ.wr = some w ∧ t = w.txid + W64 1) ∧
+  (∀ w, σ.wr = some w → w.hwm = uint.nat m.pgid' ∧ w.txid = m.txid') ∧
+  uint.Z m.txid' + 1 < 2 ^ 64 ∧ (∀ x ∈ σ.fl.free, uint.Z x < 2 ^ 62) ∧
+  (∀ t pd p, σ.fl.pending !! t = some pd → p ∈ pd.pairs → uint.Z p.1 < 2 ^ 62)
+
+/-- Two views covering a slot see the same page there (bbolt writes only slots no view sees,
+so views agree where they overlap). -/
+def pagesAgree (P Q : GMap Nat (List w8)) : Prop :=
+  ∀ i pi j pj s, P !! i = some pi → Q !! j = some pj →
+    i ≤ s → s < i + (1 + pageOverflow pi) → j ≤ s → s < j + (1 + pageOverflow pj) → i = j
+
+/-- The current tree, the writer's view and the readers' views agree pairwise where it
+matters (`dbOK_free`: a page the writer frees has the allocation any reader seeing it saw);
+no reader is newer than the current tree's transaction `txid`. -/
+def viewsAgree (σ : DBState) (txid : w64) (cur : GMap Nat (List w8)) : Prop :=
+  (∀ k r, σ.readers !! k = some r → uint.Z r.txid ≤ uint.Z txid ∧ pagesAgree cur r.pages) ∧
+  ∀ w, σ.wr = some w → pagesAgree cur w.pages ∧
+    ∀ k r, σ.readers !! k = some r → pagesAgree w.pages r.pages
 
 /-- The current tree (of the meta `db.meta()` picks): well-formed, its pages disjoint, inside
 the mapping and below the high-water mark, allocated by its transaction or before, and none
-free or pending (a new reader sees it, `mvccOK`); the freelist below its high-water mark. -/
+free, and pending only for the open writer (which frees them; a new reader sees it, `mvccOK`);
+the freelist below its high-water mark; the views agree with it and among themselves. -/
 def currentOK (σ : DBState) (v0 v1 : internal.common.Meta) : Prop :=
   let m := if metaPick v0 v1 then v1 else v0
   let hwm := uint.nat m.pgid'
@@ -200,8 +219,9 @@ def currentOK (σ : DBState) (v0 v1 : internal.common.Meta) : Prop :=
   (∀ id pg, ps !! id = some pg → ∀ a, σ.fl.allocs !! W64 id = some a →
     uint.Z a ≤ uint.Z m.txid') ∧
   (∀ s, coversSlot ps s → 2 ≤ s ∧ W64 s ∉ σ.fl.free ∧
-    ∀ t pd a, σ.fl.pending !! t = some pd → (W64 s, a) ∉ pd.pairs) ∧
-  flBelow σ m
+    ∀ t pd a, σ.fl.pending !! t = some pd → (W64 s, a) ∈ pd.pairs →
+      (∃ w, σ.wr = some w ∧ t = w.txid + W64 1) ∧ uint.Z a ≤ uint.Z m.txid') ∧
+  flBelow σ m ∧ viewsAgree σ m.txid' ps
 
 /-- The database's facts: the mapping, the two metas (one valid), the current tree, the
 readers, the accounting. -/

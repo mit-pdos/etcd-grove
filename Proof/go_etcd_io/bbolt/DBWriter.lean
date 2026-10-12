@@ -42,24 +42,26 @@ theorem dbOK_addWriter (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK �
     dbOK (σ.addWriter txl (newReader σ v0 v1 (beginQ σ))) v0 v1 := by
   obtain ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, hrd, hmv, hsl, hfl, hro, hrs, hwr⟩ := h
   have hcur' := hcur
-  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow⟩ := hcur'
+  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow, ⟨va1, va2⟩⟩ := hcur'
   have hps16 : 16 ≤ σ.ps := by omega
-  have hsees : ∀ s, (newReader σ v0 v1 (beginQ σ)).sees s = true →
-      s < σ.nslots ∧ 2 ≤ s ∧ W64 s ∉ σ.fl.free ∧
-      ∀ t pd a, σ.fl.pending !! t = some pd → (W64 s, a) ∉ pd.pairs := by
-    intro s hs
-    simp only [Reader.sees, decide_eq_true_eq] at hs
-    have hc := cfree s hs
-    obtain ⟨id, pg, hid, h1, h2⟩ := hs
-    have hspan := span_of_pageAt σ.bs σ.ps id pg hps16 (newReader_pages σ v0 v1 _ id pg hid)
-    have hin := cin id pg hid
-    exact ⟨by omega, hc⟩
+  have hsees := newReader_sees σ v0 v1 (beginQ σ) hps16 hcur
   refine ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv,
-    ⟨cwf, cdisj, cin, calloc, cfree, cbelow.1, cbelow.2.1,
-      fun h => by simp [DBState.addWriter.proj_wr] at h,
-      fun w hw' => by
+    ⟨cwf, cdisj, cin, calloc,
+      fun s hs => ⟨(cfree s hs).1, (cfree s hs).2.1, fun t pd a ht hp => (by
+        obtain ⟨⟨w, hw', _⟩, _⟩ := (cfree s hs).2.2 t pd a ht hp
+        rw [hw] at hw'; cases hw')⟩,
+      ⟨cbelow.1, cbelow.2.1, fun t pd p ht hp => (by
+        rcases cbelow.2.2.1 t pd p ht hp with h | ⟨w, hw', _⟩
+        · exact Or.inl h
+        · rw [hw] at hw'; cases hw'),
+      fun w hw' => (by
         simp only [DBState.addWriter.proj_wr, Option.some.injEq] at hw'
-        subst hw'; rfl⟩, hrd, hmv, ?_, ?_, hro, hrs, ?_⟩
+        subst hw'; exact ⟨rfl, rfl⟩), cbelow.2.2.2.2⟩,
+      ⟨va1, fun w hw' => (by
+        simp only [DBState.addWriter.proj_wr, Option.some.injEq] at hw'
+        subst hw'
+        exact ⟨pagesAgree_self cdisj, fun k r hk => (va1 k r hk).2⟩)⟩⟩,
+    hrd, hmv, ?_, ?_, hro, hrs, ?_⟩
   · -- the slots
     intro s hs
     have H := hsl s hs
@@ -95,7 +97,7 @@ theorem dbOK_addWriter (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK �
     · have hs' : (newReader σ v0 v1 (beginQ σ)).sees s = true := by
         unfold Reader.sees; simp only [decide_eq_true_eq]; exact hs
       obtain ⟨_, h2, h3, h4⟩ := hsees s hs'
-      exact ⟨h2, h3, fun t pd a ht hin => absurd hin (h4 t pd a ht)⟩
+      exact ⟨h2, h3, h4⟩
 
 /-- What a new write transaction at `txl` holds (as `Tx.init` leaves it, writable): the
 transaction (`txInitOf`; managed off), its meta copy (the current one, its txid incremented),

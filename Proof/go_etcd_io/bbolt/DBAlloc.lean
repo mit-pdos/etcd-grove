@@ -74,14 +74,15 @@ theorem dbOK_allocate (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ
     (txid r : w64) (n : Nat) (hn : 0 < n) (hcan : σ.fl.canAllocate r n) :
     dbOK { σ with fl := σ.fl.allocate txid r n } v0 v1 := by
   obtain ⟨hps, hps2, hns, hsz, hdc, hm0, hm1, hv, hcur, hrd, hmv, hsl, hfl, hro, hrs, hwr⟩ := h
-  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow⟩ := hcur
-  obtain ⟨b1, b2, b3, b4⟩ := cbelow
+  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow, cagree⟩ := hcur
+  obtain ⟨b1, b2, b3, b4, b5, b6, b7⟩ := cbelow
   refine ⟨hps, hps2, hns, hsz, hdc, hm0, hm1, hv,
     ⟨cwf, cdisj, cin,
       allocs_allocate σ.fl txid r n hn hcan _ _ (fun s hs => (cfree s hs).2.1) calloc,
       fun s hs => ⟨(cfree s hs).1, fun hf => (cfree s hs).2.1 (free_allocate σ.fl txid r n _ hf),
         (cfree s hs).2.2⟩,
-      ⟨fun x hx => b1 x (free_allocate σ.fl txid r n x hx), b2, b3, b4⟩⟩,
+      ⟨fun x hx => b1 x (free_allocate σ.fl txid r n x hx), b2, b3, b4, b5,
+        fun x hx => b6 x (free_allocate σ.fl txid r n x hx), b7⟩, cagree⟩,
     hrd, fun k rd hk => mvccView_allocate σ txid r n hn hcan _ _ (hmv k rd hk), hsl, hfl, hro, hrs,
     ⟨hwr.1, fun w hw => ⟨(hwr.2 w hw).1,
       mvccView_allocate σ txid r n hn hcan _ _ (hwr.2 w hw).2⟩⟩⟩
@@ -102,8 +103,8 @@ theorem alloc_not_covered (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbO
 theorem alloc_below (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 v1)
     (w : Reader) (hw : σ.wr = some w) (r : w64) (n : Nat) (hn : 0 < n)
     (hcan : σ.fl.canAllocate r n) : uint.Z r + n ≤ w.hwm := by
-  obtain ⟨b1, -, -, b4⟩ := h.2.2.2.2.2.2.2.2.1.2.2.2.2.2
-  rw [b4 w hw]
+  obtain ⟨b1, -, -, b4, -⟩ := h.2.2.2.2.2.2.2.2.1.2.2.2.2.2.1
+  rw [(b4 w hw).1]
   have := hcan.1
   have hz : uint.Z (r + W64 ((n - 1 : Nat) : Int)) = uint.Z r + (n - 1 : Nat) := by word
   have hlast := b1 _ (hcan.2 (r + W64 ((n - 1 : Nat) : Int)) (by unfold inRun; omega))
