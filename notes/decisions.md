@@ -3005,3 +3005,84 @@ transaction's range is `storeTxnWrite.Range`'s, `TxnKind.readLog`/`readRev`), an
 `rangeCtx todo ctx cd` (an `isContext`, or `context.TODO()`'s value) with `todo = true → r ≠ null`
 in the post (`TxnRange.lean`); the old statements are the instances `kind := .read …`, `todo :=
 false`. `metricsTxnWrite.Range` links `storeTxnWrite.Range` too.
+
+## The server's apply: the hook through mvcc, the chain as triples, compaction out of the model
+
+**2026-10-12 · plan, unit 0 implemented** (`server/v3/etcdserver/apply`, ~1180 Go lines: the
+applier chain between the apply thread, whose contract `apply.Apply` it is, and the txn
+package; units A, 1, 2, 3 append). The plan: close the loop between the apply thread's proof
+(the entry's writes in one critical section of the batch lock, the hook first, or none) and the
+txn package's (what is written, by the client model), by proving `apply.Apply` over the txn
+results and making the server's `applierFor` a definition.
+
+- **Translation** (unit 0). The package with bodies (`metrics.go`'s gauge and `init` names
+  only), no Gooseable change: goose promotes the methods of an embedded *interface* field
+  (`applierV3Capped{applierV3}`, ...) as `MethodUnfold` wrappers through `MethodResolve
+  applierV3.ty` on the field, as it did for mvcc's `txnReadWrite`. The protobuf-go v2 messages
+  the package reads or builds are listed by name in `etcdserverpb.toml` (and `membershippb`); a
+  listed struct whose field names a type of a package not imported (`AuthRoleGetResponse.Perm`,
+  `authpb.Permission`) is emitted with a dangling reference (a goose gap: the import filter is
+  not consulted for listed structs), so `authpb` is imported names-only. `lease.Lease` and
+  `storage.BackendQuota` become translated structs (their packages import `sync`, `backend`):
+  the backend reads `l.ID`, the capped applier embeds a `BackendQuota` value.
+- **The apply package does not import the server's translation** (unit 0). The server's
+  proofs will import the apply package's (unit 3: `applierFor` a definition), so the apply
+  package's `Base` holds the instances of the packages it reaches (moved from the server's
+  `BaseApply.lean`, which imports it), and the raftpb vocabulary (`InvRaftpb.lean`) imports it
+  instead of `BaseApply`. The shared contracts it needs from the server move to the apply
+  package (`waitOk`, now with `IsRegistered`: `apply/Wait.lean`); `pbutil.MustUnmarshalMessage`'s
+  spec is stated over the message packages' assumptions, not the server's.
+- **The request is decoded, not encoded** (unit 0; the plan said `irrEncode : IRRModel → List
+  w8`, as mvcc's `kvEncode`). `irrDecode : List w8 → Option IRRModel` (opaque), and the decoder's
+  axiom takes `irrDecode bs = some rq`. *Why:* protobuf encodings are not canonical and the
+  model forgets the contents of the requests the package passes on unread (the auth requests:
+  presence only), so "the entry's data is `irrEncode rq` for some `rq`" fails of real entries,
+  where "it decodes to some `rq`" does not; a decoder is a function, so no injectivity is
+  assumed. The KV requests are the txn package's models (`OpFull`, `TxnModel`), so the apply
+  package's statements are in the client model's terms; `dispatchKind` is the first set field in
+  `dispatch`'s order (no "exactly one" premise).
+- **The components as contracts** (unit 0, `Contracts.lean`). Every names-only component the
+  package calls through an interface (the auth store, the lessor, the quota, the raft status,
+  the snapshot server, the consistent indexer, the wait) or a names-only struct pointer with
+  state (the alarm store, the cluster) is a persistent predicate of triples, the trust boundary;
+  every backend write among them has the hook's shape `csContract P f Pre Q Post` (`Pre`, the
+  hook's triple `{P ∗ Pre} f() {Q}`, the write `Q ={⊤}=∗ P ∗ Post`; the writer returns `Post ∨
+  Pre`). The lessor's `Revoke` deletes its keys through the store's writer: at the sole writer of
+  `log` it returns the sole writer of `log` with deletions committed. Pure names-only helpers
+  (semver, `types.ID.String`, `AlarmType.String`, zap, the txn package's loggers, the gauge's
+  `WithLabelValues`, `context.WithValue`, the quota's constructor and `Cost`) are axioms. The
+  gauge's `Inc`/`Dec` are the returned gauge's contract (mvcc's `gaugeSpec`), not axioms.
+  *Rejected:* the alarm store's methods as axioms (its writes need the hook's `P f`, which an
+  axiom would have to quantify over).
+- **semver** (unit 0): `MustParse` returns a version or panics (`PanicV`), by an opaque
+  `semverValid` of the string: the premise of a `ClusterVersionSet` entry, as Perennial's panics
+  are modelled (`Logger.Panic`).
+- **The context** (unit 0). The backend applier calls the txn package at `context.TODO()`, whose
+  `Done()` is `nil` and which Perennial's `isContext` does not describe; `EnsureTrace(TODO())` is
+  `WithValue(TODO(), ...)`, whose `Done` is its parent's. The plan's "`txnCtx` in the four entry
+  points' premise, the proofs change little" did not hold as stated: the context flows from
+  `Txn`/`Put`/... into `txn`, `executeTxn`, `put`, `executeRange`, `deleteRange` and
+  `traceutil.Get`, each taking an `isContext`. Done instead: `doneNil ctx` (a context whose
+  `Done()` returns `nil`) and `txnCtx ctx cd := doneNil ctx ∨ isContext ctx cd` (mvcc's
+  `TxnRange.lean`), the premise of every txn function that takes a context (a rename in their
+  specs, `Results.lean` too) and of the `EnsureTrace`/`Get` axioms (which return a `txnCtx`);
+  `rangeCtx true` takes `doneNil` in place of `TODO()`'s value; the two range reads choose their
+  `todo` from it (`txnCtx_rangeCtx`: never canceled if `doneNil`). At `TODO()`, `txnCtx_todo`;
+  `Txn`'s `neverDone` with the descriptor `neverCd`. *Rejected:* an `isContext` for
+  `WithValue(TODO())` in the axiom (Perennial's `isContext` needs a `Done` channel: unsound).
+- **Compaction is out of the model** (plan): mvcc's `isStore` fixes `compactMainRev = -1`;
+  `applierV3backend.Compaction` gets no spec and `dispatch`'s spec will take `dispatchKind rq ≠
+  compaction` (unit 2).
+- **The chain** (unit 0, `Chain.lean`, skeleton): `Chain` (`baseChain = auth (quota backend)`,
+  `alarmChain` by the alarms), the outcome relation `chainStep B c rq log o` over the backend's
+  relation `B` (corrupt, capped, auth reject before a write; quota may report `ErrNoSpace` after
+  one), and `applierSpec c a`, the layers' structs and inner appliers; the layers' method
+  triples are unit 1's.
+- **Links: reuse** (unit 0, `gen-link.py`). The trust report runs Lean once per group of part
+  roots; the apply package's roots reach `EtcdDeps` (raftpb, through `MustUnmarshalMessage`'s
+  spec) and import mvcc's `Link.lean` (through the txn package's), so they meet the server's
+  `Link.lean`, which defined `binary.bigEndian.wp_PutUint64`/`wp_Uint64` and `zap.wp_Error` as
+  mvcc's does. Rule: a callee whose result a Link this one imports already defines under the
+  same full name is imported, not redefined; the Links searched are the `@` callees' and a
+  mode's declared ones (`REUSES`: the server's imports mvcc's). The apply package's results are
+  in a namespace of their own (`apply`), as the txn package's.
