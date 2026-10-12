@@ -33,11 +33,11 @@ request decoded from the wire (protobuf-go decodes an empty `bytes` field as `ni
 non-nil `RangeEnd` (built in memory, never from the wire) denotes `[0]` where the code reads a
 point: unit 1's specs take the request off the wire.
 
-**What the check is for** (`intervalsOkCheckStmt`, stated, unit 1 proves it): a branch whose
-`intervalsOk` holds, run by the server (`txn.srvOps`), writes each key at most once (the
-txn package's `keys_nodup_iff_check` condition, hence `NoDupKeysPerRev`), provided it has no
-from-key delete (`noFromKeyDel`) and no nested transaction puts a key a later sibling nested
-transaction deletes (`siblingSafe`): `checkIntervals` checks a nested transaction's puts against
+**What the check is for** (`intervalsOkCheckStmt`, proved by unit 1): a branch that passes
+`checkRequestOp` (non-empty keys) and `checkIntervals` (`intervalsOk`), run by the server
+(`txn.srvOps`), writes each key at most once (the txn package's `keys_nodup_iff_check`
+condition, hence `NoDupKeysPerRev`), provided it has no from-key delete (`noFromKeyDel`) and no
+nested transaction puts a key a later sibling nested transaction deletes (`siblingSafe`): `checkIntervals` checks a nested transaction's puts against
 the deletes of its level and of the siblings *before* it, not after
 (`issues/etcd-txn-check-intervals-sibling.md`). Both gaps are the code's.
 -/
@@ -330,14 +330,26 @@ def ReqOp.siblingSafeL : List ReqOp → Prop
   | u :: us => (∀ v ∈ us, sibOk u v) ∧ ReqOp.siblingSafe u ∧ ReqOp.siblingSafeL us
 end
 
-/-- **`intervals_ok_check` (stated here, proved by unit 1)**: a branch `ops` that passes
-`checkIntervals` (`intervalsOk`), with no from-key delete and no later-sibling delete of a nested
-put, run by the server at any state (`txn.srvOps`, whatever its comparisons choose), has
-distinct put keys, none of them deleted: the condition of the txn package's
-`keys_nodup_iff_check` (with `DelsPresent`, which the run gives, `NoDupKeysPerRev` of the
-transaction's revision). Not a theorem yet: a `Prop` whose proof is unit 1's
-(`check_gives_nodup`). Without the two exclusions it is false (the two issues). -/
+/-- **What `checkIntervals` is for** (stated here; proved by unit 1, `CheckNodup.lean`:
+`intervalsOkCheckStmt_holds`, from `check_gives_nodup`): a branch `ops` that passes the gRPC
+layer's checks, `checkRequestOp` at some budget (`opsCheck n ops = none`: every put and delete key
+non-empty, at any depth) and `checkIntervals` (`intervalsOk`), with no from-key delete and no
+later-sibling delete of a nested put, run by the server at any state (`txn.srvOps`, whatever its
+comparisons choose), has distinct put keys, none of them deleted: the condition of the txn
+package's `keys_nodup_iff_check` (with `DelsPresent`, which the run gives, `NoDupKeysPerRev` of
+the transaction's revision). Without either exclusion it is false (the two issues). Unit 0
+stated it without `opsCheck` (`intervalsOkNoKeysStmt`), which is false too
+(`intervalsOkNoKeysStmt_false`): `checkIntervals`' affine order reads the empty key as +∞, so a
+put and a delete of `""` pass it; `kvServer.Txn` runs `checkTxnRequest` first. -/
 def intervalsOkCheckStmt : Prop :=
+  ∀ (n : Int) (ops : List ReqOp) (tops : List TxnOp) (s0 s : List EtcdKv) (r : w64),
+    ReqOp.toTxnOps ops = some tops → opsCheck n ops = none → ReqOp.noFromKeyDelL ops →
+    ReqOp.siblingSafeL ops → intervalsOk ops →
+    (txn.putKeysOf (txn.srvOps s0 r s tops).1).Nodup ∧
+      ∀ k ∈ txn.putKeysOf (txn.srvOps s0 r s tops).1, k ∉ txn.delKeysOf (txn.srvOps s0 r s tops).1
+
+/-- Unit 0's statement, without the keys checked: false (`intervalsOkNoKeysStmt_false`). -/
+def intervalsOkNoKeysStmt : Prop :=
   ∀ (ops : List ReqOp) (tops : List TxnOp) (s0 s : List EtcdKv) (r : w64),
     ReqOp.toTxnOps ops = some tops → ReqOp.noFromKeyDelL ops → ReqOp.siblingSafeL ops →
     intervalsOk ops →
