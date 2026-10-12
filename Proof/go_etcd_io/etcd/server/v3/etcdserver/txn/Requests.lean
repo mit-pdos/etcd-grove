@@ -183,7 +183,8 @@ instance deleteRangeRequestIs_persistent (d : Loc) (o : OpFull) :
 /-- The `*pb.Compare` `c` (not nil) denotes the comparison `cm`: the client's `compareAt`
 (the target, the operator, the key, the operand), with the range end as the server reads it
 (`rangeEndOf`). Comparisons with a target or an operator outside the protobuf's enumeration, or
-an operand of another target's type, denote nothing. -/
+an operand of another target's type, denote nothing; the operand's wrapper is not a typed `nil`
+(`compareKV` would read none: `tv != nil`; protobuf never decodes one). -/
 def compareIs (c : Loc) (cm : CmpModel) : IProp GF :=
   iprop(⌜c ≠ null⌝ ∗ ∃ (ksl esl : GoSlice) (e : GoString) (u : GoInterface),
     structFieldRef etcdserverpb.Compare go!"Result" c ↦□ cm.op.code ∗
@@ -191,7 +192,8 @@ def compareIs (c : Loc) (cm : CmpModel) : IProp GF :=
     structFieldRef etcdserverpb.Compare go!"Key" c ↦□ ksl ∗ ksl ↦*□ cm.key ∗
     structFieldRef etcdserverpb.Compare go!"RangeEnd" c ↦□ esl ∗ esl ↦*□ e ∗
     ⌜cm.rangeEnd = rangeEndOf esl e⌝ ∗
-    structFieldRef etcdserverpb.Compare go!"TargetUnion" c ↦□ u ∗ compareUnionAt u cm)
+    structFieldRef etcdserverpb.Compare go!"TargetUnion" c ↦□ u ∗ compareUnionAt u cm ∗
+    ⌜∀ (t : go.GoType) (w : Loc), u = interface.mkOk t #w → w ≠ null⌝)
 
 instance compareIs_persistent (c : Loc) (cm : CmpModel) :
     Persistent (compareIs (GF := GF) c cm) := by
