@@ -108,10 +108,12 @@ theorem Mergepgids.wp_proof : Mergepgids.spec (GF := GF) (hG := hG) := by
     $$ Hdst1 with ⟨HM, Hjunk⟩
   have h00 : sint.nat (W64 0) - sint.nat (W64 0) = 0 := rfl
   rw [h00, List.take_zero, List.drop_zero]
-  wp_if_destruct
-  ihave HI : mergeInv dst a b xs ys qa qb lead_ptr follow_ptr merged_ptr $$
-      [lead follow merged Ha Hb HM Hjunk]
-  · unfold mergeInv
+  -- `if b[0] < a[0] { lead, follow = b, a }`: the loop is proved once, after the join
+  wp_join iprop(mergeInv dst a b xs ys qa qb lead_ptr follow_ptr merged_ptr ∗
+      a_ptr ↦ a ∗ b_ptr ↦ b)
+    with [lead follow merged Ha Hb HM Hjunk a b] as ⟨HI, a, b⟩
+  · iframe a b
+    unfold mergeInv
     iexists b, a, W64 0, ys, xs, [], _, qb, qa
     iframe
     isplitl []
@@ -121,10 +123,8 @@ theorem Mergepgids.wp_proof : Mergepgids.spec (GF := GF) (hG := hG) := by
     · intro h; simp [h] at hyl
     · intro h; simp [h] at hxl
     · simpa using List.perm_append_comm
-  rotate_left
-  ihave HI : mergeInv dst a b xs ys qa qb lead_ptr follow_ptr merged_ptr $$
-      [lead follow merged Ha Hb HM Hjunk]
-  · unfold mergeInv
+  · iframe a b
+    unfold mergeInv
     iexists a, b, W64 0, xs, ys, [], _, qa, qb
     iframe
     isplitl []
@@ -133,143 +133,141 @@ theorem Mergepgids.wp_proof : Mergepgids.spec (GF := GF) (hG := hG) := by
     refine ⟨by decide, ?_, ?_, List.Pairwise.nil, Hsa, Hsb, by simp, by simp⟩
     · intro h; simp [h] at hxl
     · intro h; simp [h] at hyl
-  rotate_left
-  all_goals
-    wp_for HI
-    ihave %HLl := ownSlice_len _ _ _ $$ HL
-    ihave %HFl := ownSlice_len _ _ _ $$ HF
-    ihave %HMl := ownSlice_len _ _ _ $$ HM
-    ihave %HJl := ownSlice_len _ _ _ $$ Hjunk
-    ihave %HLwf := ownSlice_wf _ _ _ $$ HL
-    obtain ⟨Hk, Hls0, Hfs0, Hms, Hls, Hfs, Hle, Hperm⟩ := Hpure
-    have Hsum := Hperm.length_eq
-    simp only [List.length_append] at Hsum
-    rw [slice_prefix_len] at HMl
-    simp only [slice.slice] at HJl
-    obtain ⟨f0, hf0⟩ : ∃ f0, fs[0]? = some f0 := by
-      cases fs with
-      | nil => exact absurd rfl Hfs0
-      | cons f0 _ => exact ⟨f0, rfl⟩
-    have hh0 : fs.head? = some f0 := by rw [List.head?_eq_getElem?]; exact hf0
-    have hLpos : 0 < sint.Z L.len := by
-      cases ls with
-      | nil => exact absurd rfl Hls0
-      | cons _ _ => simp at HLl; word
-    have hFpos : 0 < sint.Z F.len := by
-      cases fs with
-      | nil => exact absurd rfl Hfs0
-      | cons _ _ => simp at HFl; word
-    have hc : decide (sint.Z (W64 0) < sint.Z L.len) = true := by
-      simp only [decide_eq_true_eq]; word
-    simp only [hc, eq_self, ↓reduceIte]
-    wp_auto
-    wp_apply sort.wp_Search L.len _ (fun i => decide (uint.Z f0 < uint.Z (ls.getD i.toNat 0)))
-      iprop(lead_ptr ↦ L ∗ follow_ptr ↦ F ∗ L ↦*{qL} ls ∗ F ↦*{qF} fs) $$ [lead follow HL HF]
-    · iframe
-      isplitl []
-      · ipureintro; word
-      isplitl []
-      · unfold sort.predImplements
-        iintro %i
-        wp_start as ⟨⟨lead, follow, HL, HF⟩, %Hb⟩
-        wp_auto
-        have hil : (sint.Z i).toNat < ls.length := by rw [HLl.1]; word
-        rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hb.1, Hb.2⟩)]
-        wp_apply wp_load_slice_index L (sint.Z i) ls qL ls[(sint.Z i).toNat] Hb.1 $$ [HL] as HL
-        · iframe; ipureintro; exact List.getElem?_eq_getElem hil
-        rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by decide, hFpos⟩)]
-        wp_apply wp_load_slice_index F (sint.Z (W64 0)) fs qF f0 (by decide) $$ [HF] as HF
-        · iframe; ipureintro; exact hf0
-        iapply HΦ
-        iframe
-        ipureintro
-        simp only [getD_of_lt _ hil]
-      · ipureintro
-        intro i j ⟨hi, hij, hj⟩ hfi
-        simp only [decide_eq_true_eq] at hfi ⊢
-        have hjl : j.toNat < ls.length := by rw [HLl.1]; word
-        rw [getD_of_lt _ (by omega)] at hfi
-        rw [getD_of_lt _ hjl]
-        exact Int.lt_of_lt_of_le hfi
-          (List.pairwise_iff_getElem.mp Hls _ _ (by omega) hjl (by omega))
-    iintro %n ⟨⟨lead, follow, HL, HF⟩, %Hn0, %Hfound, %Hoob, %Hgt⟩
-    have hnle : sint.Z n ≤ sint.Z L.len := by
-      refine Classical.byContradiction fun hcn => ?_
-      have := Hoob (fun j hj => Hgt j ⟨hj.1, by omega⟩)
-      omega
-    have hbelow : ∀ x ∈ ls.take (sint.nat n), uint.Z x ≤ uint.Z f0 := by
-      intro x hx
-      rw [List.mem_iff_getElem] at hx
-      obtain ⟨j, hj, rfl⟩ := hx
-      simp only [List.length_take] at hj
-      have h1 := Hgt (j : Int) ⟨by omega, by word⟩
-      simp only [decide_eq_false_iff_not, Int.not_lt, Int.toNat_natCast] at h1
-      rw [getD_of_lt _ (by omega)] at h1
-      simpa only [List.getElem_take] using h1
-    wp_auto
-    have hZ : sint.Z k + sint.Z L.len + sint.Z F.len = sint.Z a.len + sint.Z b.len := by
-      have := Hsum; rw [HMl.1, HLl.1, HFl.1, Hal.1, Hbl.1] at this; word
-    have hnlen : sint.nat n ≤ ls.length := by rw [HLl.1]; word
-    rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by decide, Hn0, by word⟩)]
-    icases (ownSlice_split_all n L qL ls ⟨Hn0, hnle⟩).1 $$ HL with ⟨HL1, HL2⟩
-    icases (ownSlice_split (k + n) dst _ junk k (a.len + b.len) ⟨Hk, by word, by word⟩).1 $$ Hjunk
-      with ⟨Hj1, Hj2⟩
-    wp_apply wp_slice_append_prefix dst k ms _ (slice.slice L w64 (W64 0) n) _ qL n
-      (slice_prefix_len L n) Hk (by word) $$ [HM Hj1 HL1] as ⟨HM, HL1⟩
-    · iframe
-    have Hstep := merge_step (sint.nat n) Hms Hls Hfs Hle hh0 hbelow
-    wp_if_destruct
-    · -- `break`: all of `lead` went to `merged`; append `follow`
-      have hnL : sint.nat n = ls.length := by rw [HLl.1]; word
-      rw [hnL, List.take_length, List.drop_length] at Hstep
-      rw [hnL, List.take_length, List.drop_length]
-      wp_for_post
-      have hNe : a.len + b.len = k + n + F.len := by word
-      rw [hNe]
-      wp_apply wp_slice_append_prefix dst (k + n) (ms ++ ls) _ F fs qF F.len rfl (by word)
-        (by word) $$ [HM Hj2 HF] as ⟨HM, HF⟩
-      · iframe
-      ihave HL := (ownSlice_split_all n L qL ls ⟨Hn0, hnle⟩).2 $$ [HL1 HL2]
-      · rw [hnL, List.take_length, List.drop_length]; iframe
-      ihave Hab := Hback $$ HL HF
-      ihave Hd := ownSlice_combine (k + n + F.len) dst _ (ms ++ ls ++ fs) _ (W64 0) dst.len
-        ⟨by simp only [List.length_append]; word, by decide, by word, by word⟩ $$ HM Hdst2
-      ihave Hd := ownSlice_trivial_slice_2 $$ Hd
-      ispecialize HΦ $$ %(ms ++ ls ++ fs)
-      have hd : sint.nat (k + n + F.len) = xs.length + ys.length := by
-        rw [← hNe, Hal.1, Hbl.1]; word
-      rw [hd]
+  wp_for HI
+  ihave %HLl := ownSlice_len _ _ _ $$ HL
+  ihave %HFl := ownSlice_len _ _ _ $$ HF
+  ihave %HMl := ownSlice_len _ _ _ $$ HM
+  ihave %HJl := ownSlice_len _ _ _ $$ Hjunk
+  ihave %HLwf := ownSlice_wf _ _ _ $$ HL
+  obtain ⟨Hk, Hls0, Hfs0, Hms, Hls, Hfs, Hle, Hperm⟩ := Hpure
+  have Hsum := Hperm.length_eq
+  simp only [List.length_append] at Hsum
+  rw [slice_prefix_len] at HMl
+  simp only [slice.slice] at HJl
+  obtain ⟨f0, hf0⟩ : ∃ f0, fs[0]? = some f0 := by
+    cases fs with
+    | nil => exact absurd rfl Hfs0
+    | cons f0 _ => exact ⟨f0, rfl⟩
+  have hh0 : fs.head? = some f0 := by rw [List.head?_eq_getElem?]; exact hf0
+  have hLpos : 0 < sint.Z L.len := by
+    cases ls with
+    | nil => exact absurd rfl Hls0
+    | cons _ _ => simp at HLl; word
+  have hFpos : 0 < sint.Z F.len := by
+    cases fs with
+    | nil => exact absurd rfl Hfs0
+    | cons _ _ => simp at HFl; word
+  have hc : decide (sint.Z (W64 0) < sint.Z L.len) = true := by
+    simp only [decide_eq_true_eq]; word
+  simp only [hc, eq_self, decide_true, ↓reduceIte]
+  wp_auto
+  wp_apply sort.wp_Search L.len _ (fun i => decide (uint.Z f0 < uint.Z (ls.getD i.toNat 0)))
+    iprop(lead_ptr ↦ L ∗ follow_ptr ↦ F ∗ L ↦*{qL} ls ∗ F ↦*{qF} fs) $$ [lead follow HL HF]
+  · iframe
+    isplitl []
+    · ipureintro; word
+    isplitl []
+    · unfold sort.predImplements
+      iintro %i
+      wp_start as ⟨⟨lead, follow, HL, HF⟩, %Hb⟩
+      wp_auto
+      have hil : (sint.Z i).toNat < ls.length := by rw [HLl.1]; word
+      rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hb.1, Hb.2⟩)]
+      wp_apply wp_load_slice_index L (sint.Z i) ls qL ls[(sint.Z i).toNat] Hb.1 $$ [HL] as HL
+      · iframe; ipureintro; exact List.getElem?_eq_getElem hil
+      rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by decide, hFpos⟩)]
+      wp_apply wp_load_slice_index F (sint.Z (W64 0)) fs qF f0 (by decide) $$ [HF] as HF
+      · iframe; ipureintro; exact hf0
       iapply HΦ
       iframe
       ipureintro
-      exact ⟨merge_done Hms Hls Hfs Hle hh0 (by simpa [hnL] using hbelow), Hperm⟩
-    · -- swap: `lead, follow = follow, lead[n:]`
-      have hnL : sint.nat n < ls.length := by rw [HLl.1]; word
-      rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn0, by word, by word⟩)]
-      wp_auto
-      wp_for_post
+      simp only [getD_of_lt _ hil]
+    · ipureintro
+      intro i j ⟨hi, hij, hj⟩ hfi
+      simp only [decide_eq_true_eq] at hfi ⊢
+      have hjl : j.toNat < ls.length := by rw [HLl.1]; word
+      rw [getD_of_lt _ (by omega)] at hfi
+      rw [getD_of_lt _ hjl]
+      exact Int.lt_of_lt_of_le hfi
+        (List.pairwise_iff_getElem.mp Hls _ _ (by omega) hjl (by omega))
+  iintro %n ⟨⟨lead, follow, HL, HF⟩, %Hn0, %Hfound, %Hoob, %Hgt⟩
+  have hnle : sint.Z n ≤ sint.Z L.len := by
+    refine Classical.byContradiction fun hcn => ?_
+    have := Hoob (fun j hj => Hgt j ⟨hj.1, by omega⟩)
+    omega
+  have hbelow : ∀ x ∈ ls.take (sint.nat n), uint.Z x ≤ uint.Z f0 := by
+    intro x hx
+    rw [List.mem_iff_getElem] at hx
+    obtain ⟨j, hj, rfl⟩ := hx
+    simp only [List.length_take] at hj
+    have h1 := Hgt (j : Int) ⟨by omega, by word⟩
+    simp only [decide_eq_false_iff_not, Int.not_lt, Int.toNat_natCast] at h1
+    rw [getD_of_lt _ (by omega)] at h1
+    simpa only [List.getElem_take] using h1
+  wp_auto
+  have hZ : sint.Z k + sint.Z L.len + sint.Z F.len = sint.Z a.len + sint.Z b.len := by
+    have := Hsum; rw [HMl.1, HLl.1, HFl.1, Hal.1, Hbl.1] at this; word
+  have hnlen : sint.nat n ≤ ls.length := by rw [HLl.1]; word
+  rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by decide, Hn0, by word⟩)]
+  icases (ownSlice_split_all n L qL ls ⟨Hn0, hnle⟩).1 $$ HL with ⟨HL1, HL2⟩
+  icases (ownSlice_split (k + n) dst _ junk k (a.len + b.len) ⟨Hk, by word, by word⟩).1 $$ Hjunk
+    with ⟨Hj1, Hj2⟩
+  wp_apply wp_slice_append_prefix dst k ms _ (slice.slice L w64 (W64 0) n) _ qL n
+    (slice_prefix_len L n) Hk (by word) $$ [HM Hj1 HL1] as ⟨HM, HL1⟩
+  · iframe
+  have Hstep := merge_step (sint.nat n) Hms Hls Hfs Hle hh0 hbelow
+  wp_if_destruct
+  · -- `break`: all of `lead` went to `merged`; append `follow`
+    have hnL : sint.nat n = ls.length := by rw [HLl.1]; word
+    rw [hnL, List.take_length, List.drop_length] at Hstep
+    rw [hnL, List.take_length, List.drop_length]
+    wp_for_post
+    have hNe : a.len + b.len = k + n + F.len := by word
+    rw [hNe]
+    wp_apply wp_slice_append_prefix dst (k + n) (ms ++ ls) _ F fs qF F.len rfl (by word)
+      (by word) $$ [HM Hj2 HF] as ⟨HM, HF⟩
+    · iframe
+    ihave HL := (ownSlice_split_all n L qL ls ⟨Hn0, hnle⟩).2 $$ [HL1 HL2]
+    · rw [hnL, List.take_length, List.drop_length]; iframe
+    ihave Hab := Hback $$ HL HF
+    ihave Hd := ownSlice_combine (k + n + F.len) dst _ (ms ++ ls ++ fs) _ (W64 0) dst.len
+      ⟨by simp only [List.length_append]; word, by decide, by word, by word⟩ $$ HM Hdst2
+    ihave Hd := ownSlice_trivial_slice_2 $$ Hd
+    ispecialize HΦ $$ %(ms ++ ls ++ fs)
+    have hd : sint.nat (k + n + F.len) = xs.length + ys.length := by
+      rw [← hNe, Hal.1, Hbl.1]; word
+    rw [hd]
+    iapply HΦ
+    iframe
+    ipureintro
+    exact ⟨merge_done Hms Hls Hfs Hle hh0 (by simpa [hnL] using hbelow), Hperm⟩
+  · -- swap: `lead, follow = follow, lead[n:]`
+    have hnL : sint.nat n < ls.length := by rw [HLl.1]; word
+    rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn0, by word, by word⟩)]
+    wp_auto
+    wp_for_post
+    iframe
+    unfold mergeInv
+    iexists F, slice.slice L w64 n L.len, k + n, fs, ls.drop (sint.nat n),
+      ms ++ ls.take (sint.nat n), _, qF, qL
+    iframe
+    isplitl [Hback HL1]
+    · iintro HF HL2
+      iapply Hback $$ [HL1 HL2] HF
+      iapply (ownSlice_split_all n L qL ls ⟨Hn0, hnle⟩).2
       iframe
-      unfold mergeInv
-      iexists F, slice.slice L w64 n L.len, k + n, fs, ls.drop (sint.nat n),
-        ms ++ ls.take (sint.nat n), _, qF, qL
-      iframe
-      isplitl [Hback HL1]
-      · iintro HF HL2
-        iapply Hback $$ [HL1 HL2] HF
-        iapply (ownSlice_split_all n L qL ls ⟨Hn0, hnle⟩).2
-        iframe
-      ipureintro
-      refine ⟨by word, Hfs0, ?_, Hstep.1, Hfs, (Hls.take_drop _).2.1, Hstep.2, ?_⟩
-      · intro h
-        have := congrArg List.length h
-        simp only [List.length_drop, List.length_nil] at this
-        omega
-      · refine List.Perm.trans ?_ Hperm
-        have e : ms ++ ls ++ fs = ms ++ (ls.take (sint.nat n) ++ ls.drop (sint.nat n)) ++ fs := by
-          rw [List.take_append_drop]
-        rw [e]
-        simp only [List.append_assoc]
-        exact List.Perm.append_left _ (List.Perm.append_left _ List.perm_append_comm)
+    ipureintro
+    refine ⟨by word, Hfs0, ?_, Hstep.1, Hfs, (Hls.take_drop _).2.1, Hstep.2, ?_⟩
+    · intro h
+      have := congrArg List.length h
+      simp only [List.length_drop, List.length_nil] at this
+      omega
+    · refine List.Perm.trans ?_ Hperm
+      have e : ms ++ ls ++ fs = ms ++ (ls.take (sint.nat n) ++ ls.drop (sint.nat n)) ++ fs := by
+        rw [List.take_append_drop]
+      rw [e]
+      simp only [List.append_assoc]
+      exact List.Perm.append_left _ (List.Perm.append_left _ List.perm_append_comm)
 
 end proof
 

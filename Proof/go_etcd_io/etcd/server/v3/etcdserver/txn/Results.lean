@@ -26,6 +26,11 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.HistoryLaws
 
 @[expose] public section
 
+-- `#print axioms` prints the axioms by their full names: shortening each name to the
+-- shortest unambiguous one in this environment took most of this module's build (25s of
+-- 31s for the server's `txn/Results.lean`).
+set_option pp.fullNames true
+
 set_option linter.unusedSectionVars false
 
 noncomputable section
@@ -122,12 +127,13 @@ on `log`'s state committed (no revision if nothing was deleted), the sole writer
 committed log; or, with `PrevKv`, the range read's context error, the sole writer back. Under the
 critical-section contract: `Post`. -/
 theorem deleteRange_soleWriter (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (lg : Loc) (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (dr : Loc) (o : OpFull)
+    (nd : Bool) (lg : Loc) (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (dr : Loc) (o : OpFull)
     (log : mvcc.Log) (P Pre Q Post : IProp GF) (f : val) (hlen : log.length + 4 ≤ 2 ^ 63)
     (hst : (mvcc.stateAfter log).length < 2 ^ 63) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
         isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ deleteRangeRequestIs dr o ∗
-        mvcc.txnCtx ctx cd ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
+        mvcc.txnCtx ctx cd ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
+        mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.DeleteRange))
         (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #kv)) (Val #dr))
     {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
@@ -140,8 +146,9 @@ theorem deleteRange_soleWriter (ctx : GoInterfaceOk) (cd : context.ContextDesc (
             soleWriter γ (mvcc.commitLog log (delChanges (mvcc.stateAfter log) o)) ∗
             ⌜mvcc.stateAfter (mvcc.commitLog log (delChanges (mvcc.stateAfter log) o)) =
               (applyTxnOp (W64 (log.length : Int)) (mvcc.stateAfter log) (.delete o)).1⌝) ∨
-         (⌜err ≠ GoInterface.nil ∧ o.base.prevKV = true ∧ resp = null⌝ ∗ soleWriter γ log)) }} :=
-  deleteRange_soleWriter_of wp_DeleteRange ctx cd lg kv s γ dr o log P Pre Q Post f hlen hst
+         (⌜err ≠ GoInterface.nil ∧ o.base.prevKV = true ∧ resp = null ∧ nd = false⌝ ∗
+           soleWriter γ log)) }} :=
+  deleteRange_soleWriter_of wp_DeleteRange ctx cd nd lg kv s γ dr o log P Pre Q Post f hlen hst
 
 end unit1
 
@@ -193,10 +200,13 @@ theorem range_rangeSel (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
           rangeResultClient resp err log rev o withTotal }} := by
   wp_start_folded as ⟨#Hkv, Hrd, Ht, #Hc, #Hr, #Hctx, %Hlg, %Hpre⟩
   ihave %Hset := rangeRequestIs_sortSet r o $$ Hr
-  iapply (wp_Range ctx cd lg kv s γ r o withTotal m log₀) $$ [Hrd Ht]
-  · iframe # ∗; ipureintro; exact ⟨Hlg, Hpre.1, Hpre.2.2⟩
+  iapply (wp_Range ctx cd false lg kv s γ r o withTotal m log₀) $$ [Hrd Ht]
+  · iframe # ∗
+    isplitr
+    · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+    ipureintro; exact ⟨Hlg, Hpre.1, Hpre.2.2⟩
   inext
-  iintro %resp %tr %err ⟨Hrd, Ht, %Htr, %log, %rev, #Hcert, %Hp, #Hres⟩
+  iintro %resp %tr %err ⟨Hrd, Ht, %Htr, %log, %rev, #Hcert, %Hp, #Hres, -⟩
   iapply HΦ
   iframe Hrd Ht
   isplitr
@@ -210,18 +220,21 @@ theorem range_rangeSel (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
 /-- **`Range` at the sole writer** reads its log exactly (`soleWriter_pins_read`): the response
 is `rangeResult` at `log`'s last revision. -/
 theorem range_soleWriter (log : mvcc.Log) (hlen : log.length + 3 ≤ 2 ^ 63)
-    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg : Loc)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc)
     (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (r : Loc) (o : OpFull) (withTotal : Bool) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
         isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗
-        rangeRequestIs r o ∗ mvcc.txnCtx ctx cd ∗ ⌜lg ≠ null⌝ ∗
+        rangeRequestIs r o ∗ mvcc.txnCtx ctx cd ∗
+        (if nd then mvcc.neverDone cd else iprop(True)) ∗ ⌜lg ≠ null⌝ ∗
         ⌜validSortTarget o ∧ sortOk o log⌝ }}
       (App (App (App (App (App (Val (@! txn.Range)) (Val #(GoInterface.ok ctx))) (Val #lg))
         (Val #kv)) (Val #r)) (Val #withTotal))
     {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
         mvcc.storeReader s γ ∗ soleWriter γ log ∗ ⌜trace ≠ null⌝ ∗
-        rangeResult resp err log (W64 ((log.length : Int) - 1)) o withTotal }} :=
-  range_soleWriter_of wp_Range log hlen ctx cd lg kv s γ r o withTotal
+        rangeResult resp err log (W64 ((log.length : Int) - 1)) o withTotal ∗
+        ⌜nd = true → err = GoInterface.nil ∨
+          sint.Z (W64 ((log.length : Int) - 1)) < sint.Z o.base.rev⌝ }} :=
+  range_soleWriter_of wp_Range log hlen ctx cd nd lg kv s γ r o withTotal
 
 /-- **`Count` at the sole writer**: the number of keys of the client's range (`rangeIn` of the
 count-only request `countOp`) in the state at the revision read, at the sole writer's log; or

@@ -33,7 +33,7 @@ abbrev apply.quotaApplierV3.LeaseGrant.spec : Prop :=
       (∃ g : LeaseGrantModel, apply.leaseGrantIs r g) ∗
       apply.mPre E (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) log Pre Q Post }}
     (App (Val (p @!! go.GoType.PointerType quotaApplierV3.ty @!! go!"LeaseGrant")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.mPost E (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) log Pre Post }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.mPost E (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) log Pre Post ∗ applyErrIs err }}
 
 end spec
 

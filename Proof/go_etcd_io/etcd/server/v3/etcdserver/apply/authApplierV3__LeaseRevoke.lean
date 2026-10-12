@@ -51,7 +51,7 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
   iunfold apply.leaseRevokeIs at Hr'
   icases Hr' with ⟨%Hrn, #HID⟩
   wp_auto
-  wp_apply (hLP st le E.γ E.P E.f _ info (DFrac.own 1) id) $$ [$Hst $Hle $Hinfo] as %err Hinfo
+  wp_apply (hLP st le E.γ E.P E.f _ info (DFrac.own 1) id) $$ [$Hst $Hle $Hinfo] as %err ⟨Hinfo, #HeI⟩
   cases err with
   | ok e' =>
     wp_auto
@@ -61,7 +61,7 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
     · simp only [apply.revokeOutcomeIs, apply.rejErrIs]
       isplitr
       · ipureintro; trivial
-      · ipureintro; simp
+      · iframe HeI; ipureintro; simp
     · iunfold apply.authInfoOwn; iexists info; iexact Hinfo
   | nil =>
   wp_auto

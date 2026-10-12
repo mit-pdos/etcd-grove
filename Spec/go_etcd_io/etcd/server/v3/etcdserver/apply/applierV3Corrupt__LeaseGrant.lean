@@ -33,7 +33,7 @@ abbrev apply.applierV3Corrupt.LeaseGrant.spec : Prop :=
       (∃ g : LeaseGrantModel, apply.leaseGrantIs r g) ∗
       apply.mPre E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) log Pre Q Post }}
     (App (Val (p @!! go.GoType.PointerType applierV3Corrupt.ty @!! go!"LeaseGrant")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.mPost E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) log Pre Post }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); apply.mPost E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) log Pre Post ∗ applyErrIs err }}
 
 end spec
 

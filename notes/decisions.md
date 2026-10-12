@@ -1146,7 +1146,9 @@ either take the batch lock (`P`, whose invariant `applierFor ua P f` asserts), r
 `f`, write (the caller's update `Q ={⊤}=∗ P ∗ Post`) and unlock, in one critical section, or
 write nothing. That is what etcd's design relies on, and the contracts state it; whether the
 applier keeps an entry's writes in one critical section is not verified here. The hook itself
-is verified (`getTxPostLockInsideApplyHook`). *Rejected:* axiomatizing "the applier advances
+is verified (`getTxPostLockInsideApplyHook`). (2026-10-12: the apply package proves
+`apply.Apply` against this contract plus the KV, and `applierFor` is its definition; only
+`applyConfChange` stays assumed: "The server's apply", unit 3.) *Rejected:* axiomatizing "the applier advances
 `ci`", which would leave the hook unverified; an opaque `entryNoop` receipt for the no-write
 outcome (dropped: an entry without data skips the applier, and that path is justified by the
 code itself).
@@ -3286,6 +3288,86 @@ results and making the server's `applierFor` a definition.
   (`issues/etcd-apply-lease-checkpoint-sections.md`): a premise, not a weaker contract.
 - **`auth.AuthStore` translated** (unit 1): `auth.toml` imports the packages its methods'
   signatures name; it was an axiomatized type whose generated instances are `sorry`.
+
+- **The uber-applier: persistent and thread-owned halves** (unit 2, `InvUber.lean`). `uberIs E p
+  opts` (fields written once, the options' contracts, the base chain) is persistent;
+  `uberOwn E p c` (the `applyV3` field and its chain) is the apply thread's, since
+  `restoreAlarms` rewrites it, also from inside the chain's `Apply` (an alarm request: `dispatch`
+  → `Alarm` → `restoreAlarms`), which is why `dispatch`'s `A`/`B` carry `applyV3 ↦` and the
+  chain's resources `chainRes c a` stay those of the applier `Apply` was called on. The chain
+  after `restoreAlarms` is existential (`alarmChain ns cr`: the alarm store's `Get` is any
+  slice). `applierFor ua E` takes the environment, not `P f`: the persistent and owned halves
+  must name the same store, which `P f` do not pin.
+- **`apply.Apply.spec` strengthened; the server keeps the old contract as an axiom until unit 3**
+  (unit 2). The new precondition's `rqOk x.log rq` depends on the log the earlier entries wrote,
+  so the server's loop can supply it only with the fold (`applyEntries_model`, unit 3); a
+  threaded `applyKV` with no claim about the next state cannot. The old statement is kept as
+  `apply.Apply_server.spec` with its axiom (renamed from `apply.Apply.wp_proof`; not derivable
+  from the new one, which has more premises), the server's `applierFor` axiom unchanged.
+  *Rejected:* deriving the old statement (impossible); putting `applyKV` in an invariant (the
+  call is not atomic).
+- **The cluster writes only with `shouldApplyV3`** (unit 2, `Contracts.lean` `cPre`/`cPost`): so
+  that `apply.Apply` without `v3`, which gets no hook triple from the server, can call the
+  cluster's methods and still return `Pre`. A strictly stronger restatement of the unit 1
+  triple (membership's `RaftCluster` saves to the backend `if shouldApplyV3`).
+- **`errors.Is`** (unit 2): the server's axiom (any error, any target) restated under the
+  `errors` package's assumptions and shared with `dispatch`, since Perennial's `errors.wp_Is`
+  (at `e4e126e46`) needs an error tree the components' errors do not have. On `lean` the
+  `errors.Is` spec now takes the tree (Perennial `e6ec34885`): the merge states `applyErrIs` of
+  the chain's and the contracts' errors (STATUS, unit 2, "Gap for the merge").
+- **The applier's errors, as `errors.Is` sees them** (the merge of unit 2 into `lean`): `lean`'s
+  `errors.Is` proof kept (under the `errors` package's assumptions, unit 2's generalization);
+  `applyErrIs` moved from the server's `InvApplier.lean` to the apply package's `Base.lean`
+  (with `errLeaf`, `errVarLeaf`, `applyErrIs_nil`/`_leaf`), so that `apply.resultErrOk` is the
+  server's `resultOk` and the apply package does not import the server. Where each error comes
+  from: the contracts assert it of the auth store's and the lessor's errors (a trust-boundary
+  fact, as `clientErrIs` for the client); the error variables the chain returns or compares
+  with (`ErrCorrupt`, `ErrNoSpace`, `ErrKeyNotFound`, `ErrLeaseNotFound`, `ErrFutureRev`,
+  `ErrCompacted`) are `errors.New` errors by the apply package's facts (`applyErrVars` in
+  `applyInit`, not in their packages' facts, which their proofs destructure by position); the
+  triples of the methods that leave the log carry `applyErrIs err`; a KV method's answer names
+  its error and `DispatchLemmas` derives `applyErrIs` from it (`putOutcomeIs_errIs`, ...,
+  `keep_errIs`). The range read's context error, which no tree describes (mvcc's
+  `fmt.Errorf("%w", ctx.Err())`), is excluded rather than described: `txn.Range`/`DeleteRange`
+  take `nd` (a context never done, as `executeRange`/`deleteRange` already did) and the backend
+  calls them at `context.TODO()` (`neverCd`). *Rejected:* a tree for the context error (would
+  need `fmt.Errorf`'s `%w` wrapper's tree and the context errors' types, for a branch that does
+  not run); `applyErrIs` in `kvPost` (every KV method's proof would change, for a fact its
+  answer already implies).
+
+- **The server bridge: `E` a parameter of `isServer`** (unit 3). The applier's environment `E`
+  (store, ghost names, `P`, `f`) must be the same in the persistent `apply.applierFor v.ua E`
+  (in `isServer`'s fields) and in the thread's `apply.applyKV E ua x`, and nothing in the heap
+  pins it (the hook `v.hook` is a value, not a field), so `isServer s γ ci TM E` takes it, its
+  fields pin `E.P = batchLockInv γ TM ∧ E.f = v.hook` by equations (a proof rewrites them where it
+  hands the hook's triple to `apply.Apply` or `applyConfChange`). The thread's resource is
+  `srvApplyKV s E x := ∃ ua, srvUberApplyAddr s ↦□ ua ∗ apply.applyKV E ua x`: the `ua` is the
+  field's, which `isServer` hides behind its `∃ v`; the two `↦□` agree. `applyConfChange`'s
+  contract (an axiom) named the old `applierFor ua P f` too: restated at `apply.applierFor ua E`
+  (and `HasLC.hasLC`, where `apply.applierFor` lives). *Rejected:* `E` existential in
+  `isServer` (the thread's `applyKV` could not name it); `E` built from parameters `(s, γ)` and
+  the hook (the hook is not in the heap, so no agreement).
+- **The fold as a relation** (unit 3). `apply.Apply`'s post is a relation (`applyStep`: the
+  auth store's, the quota's, the alarm store's answers are any), so what a batch does is a
+  relation too: `entryStep m v3 x x' out` (no data: `x' = x`, `skipped`; else the decoded
+  request's `applyStep`), `batchStep c m` (a normal entry by `entryStep` with `v3` iff above the
+  consistent index `c` the batch starts at; a conf change leaves the KV) and `entriesStep c ms`
+  their composition. `v3` is a function of `c` and the entry's index: in `apply`'s loop the
+  entry's test is against the current `ci`, which is the starting one or an earlier entry of
+  the batch (below this one), so `index > ci` iff `index > c`. `applyEntries` hands `apply` the
+  entries above the applied index, `unapplied ai ms` (a filter; `unapplied_eq_drop` is the code's
+  offset).
+- **`entriesOk` over every run** (unit 3). `rqOk x.log rq` depends on the log the earlier
+  entries committed, which the relation does not determine, so the premise cannot be "the
+  entry is fine at the state the batch reaches": `entriesOk c (m :: ms) x := (normal → entryOk x
+  m) ∧ ∀ x1, batchStep c m x x1 → entriesOk c ms x1`, i.e. at every state any run reaches the
+  entry in (the server does not choose the run). It is also asked of replayed entries (`v3 =
+  false`), at the state they meet: `apply.Apply.spec`'s premise does not depend on `v3`, so a
+  replayed entry's request must satisfy the txn package's premises (`rqOk`) although it is not
+  run (`apply_no_v3_no_write`): stronger than the code needs; weakening it is a change to
+  `apply.Apply.spec` (`rqOk` only if `v3`), left open. *Rejected:* `entryOk` in
+  `entriesFrom` (pure in `ms`, it cannot see the state); a premise on all reachable states of the
+  whole KV (stronger than needed, and not a property of the batch).
 
 ## mvcc: the batch lock runs the hook
 

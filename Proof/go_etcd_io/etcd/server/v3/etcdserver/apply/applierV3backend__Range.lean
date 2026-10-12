@@ -47,12 +47,14 @@ theorem apply.applierV3backend.Range.wp_proof
   iunfold apply.isApplyKV at Hkv
   icases Hkv with ⟨#Hkv, -⟩
   obtain ⟨hr, hk, hlen, hsort, hok⟩ := Hrq
-  wp_apply (txn.range_soleWriter_of hRange log hlen todoCtxVal mvcc.neverCd opts.Logger' opts.KV'
-      E.s E.γ r o true) $$ [$Hrd $Hsw]
-    as %resp %trace %err ⟨Hrd, Hsw, %Htr, Hout⟩
+  wp_apply (txn.range_soleWriter_of hRange log hlen todoCtxVal mvcc.neverCd true opts.Logger'
+      opts.KV' E.s E.γ r o true) $$ [$Hrd $Hsw]
+    as %resp %trace %err ⟨Hrd, Hsw, %Htr, Hout, %Hnd⟩
   · iframe #
     isplitr
     · iapply mvcc.txnCtx_todo
+    isplitr
+    · simp only [↓reduceIte]; iapply mvcc.neverDone_neverCd
     ipureintro; exact ⟨Hlg, hsort, hok⟩
   iapply HΦ
   iunfold apply.rangePost
@@ -63,6 +65,8 @@ theorem apply.applierV3backend.Range.wp_proof
     rw [hk]
   simp only [apply.rangeOutcomeIs, apply.Outcome.logAfter]
   iframe Hres Hout
+  isplitr
+  · ipureintro; exact Hnd rfl
   iunfold apply.kvOwn
   iframe
 

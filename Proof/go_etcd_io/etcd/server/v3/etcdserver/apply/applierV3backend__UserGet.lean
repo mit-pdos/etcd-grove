@@ -45,12 +45,14 @@ theorem apply.applierV3backend.UserGet.wp_proof
   iStructNamed Hopts
   wp_auto
   rw [Hai]
-  wp_apply HM $$ %r %Pre %Q %Post [$Hcs] as %resp %err ⟨HPP, Hhdr⟩
+  wp_apply HM $$ %r %Pre %Q %Post [$Hcs] as %resp %err ⟨HPP, Hhdr, #HeI⟩
   iunfold apply.kvOwn at Hkv
   icases Hkv with ⟨Hrd, Hsw, Hknown⟩
   wp_if_destruct
   · -- no response
     iapply HΦ
+    isplitl; rotate_left
+    · first | iexact HeI | iapply applyErrIs_nil
     iunfold apply.mPost
     iunfold apply.kvOwn
     iframe
@@ -60,6 +62,8 @@ theorem apply.applierV3backend.UserGet.wp_proof
     · exact absurd Hn Hif
     wp_apply (hHdr E p log) $$ [$Hpkg $Hb $Hrd $Hsw] as %h ⟨Hrd, Hsw, -⟩
     iapply HΦ
+    isplitl; rotate_left
+    · first | iexact HeI | iapply applyErrIs_nil
     iunfold apply.mPost
     iunfold apply.kvOwn
     iframe

@@ -244,9 +244,9 @@ theorem apply.newApplierV3Backend.wp_proof
     · iframe
       iframe #
     inext
-    iintro %resp %err Hkv
+    iintro %resp %err ⟨Hkv, #HeI⟩
     iapply HΦ'
-    iframe Hkv
+    iframe Hkv HeI
     simp only [apply.chainRes]
     ipureintro; trivial
   isplitr

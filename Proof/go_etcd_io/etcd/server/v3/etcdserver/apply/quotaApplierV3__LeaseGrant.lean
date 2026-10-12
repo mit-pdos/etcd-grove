@@ -36,11 +36,10 @@ theorem apply.quotaApplierV3.LeaseGrant.wp_proof :
   iunfold apply.isQuota at Hqc
   icases Hqc with ⟨%qi, %Hqi, #HAvail, -⟩
   subst Hqi
-  ihave #He : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors $$ []
-  · iPkgInit
-  ihave Hei : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ He
-  icases Hei with ⟨%eN, #HeN, %HeNp⟩
+  ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hai with ⟨-, -, #Hev⟩
+  icases applyErrVars_noSpace $$ Hev with ⟨%eN, #HeN, #HeI⟩
   iunfold apply.applierSpec at Hin
   icases Hin with ⟨%bi, %Hbi, #Ht⟩
   subst Hbi
@@ -53,7 +52,7 @@ theorem apply.quotaApplierV3.LeaseGrant.wp_proof :
   · ipureintro; exact Or.inr (Or.inr rfl)
   ihave Hres := apply.chainRes_quota_out c p (.ok bi) $$ Hf Hres
   wp_apply HResp $$ %go!"LeaseGrant" %r %log %Pre %Q %Post [] [HR Hkv Hres Hcs]
-    as %resp %err Hpost
+    as %resp %err ⟨Hpost, #HeI'⟩
   · ipureintro; simp [apply.respMethods]
   · simp only [apply.reqFacts, ↓reduceIte]
     iframe HR
@@ -66,6 +65,7 @@ theorem apply.quotaApplierV3.LeaseGrant.wp_proof :
   · iapply HΦ
     iunfold apply.mPost
     iframe
+    (try first | iexact HeI | iexact HeI')
 
 end proof
 

@@ -53,7 +53,7 @@ theorem apply.authApplierV3.Range.wp_proof :
   icases Ht with ⟨-, -, #HRangeI, -⟩
   wp_auto
   wp_apply HRange $$ %_ %info %(DFrac.own 1) %ksl %esl %k %e %DFrac.discard %DFrac.discard [Hinfo]
-    as %err ⟨Hinfo, -⟩
+    as %err ⟨Hinfo, -, -, #HeI⟩
   · iframe; iframe #
   cases err with
   | ok e' =>
@@ -69,7 +69,7 @@ theorem apply.authApplierV3.Range.wp_proof :
     isplitr
     · isplitr
       · ipureintro; trivial
-      · ipureintro; simp
+      · iframe HeI; ipureintro; simp
     iapply apply.chainRes_auth_in c p (.ok bi) $$ Happ [Hinfo] Hres
     iunfold apply.authInfoOwn
     iexists info; iexact Hinfo

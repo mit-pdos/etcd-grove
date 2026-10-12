@@ -49,6 +49,8 @@ theorem apply.applierV3backend.AuthStatus.wp_proof
   wp_alloc l as Hl
   wp_auto
   iapply HΦ
+  isplitl; rotate_left
+  · first | iexact HeI | iapply applyErrIs_nil
   iunfold apply.kvOwn
   iframe
 

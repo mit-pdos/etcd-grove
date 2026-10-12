@@ -140,12 +140,12 @@ theorem apply.newApplierV3Corrupt.wp_proof
         iunfold apply.mPre
         iframe
       inext
-      iintro %resp %err Hpost
+      iintro %resp %err ⟨Hpost, #HeI⟩
       iapply HΦ'
       iunfold apply.mPost at Hpost
       iunfold apply.mPost
       icases Hpost with ⟨Hkv, Hres, HPP⟩
-      iframe Hkv HPP
+      iframe HeI Hkv HPP
       iapply apply.chainRes_corrupt_in c p (.ok bi) $$ applierV3 Hres
   isplitr
   · -- `AuthEnable`, `AuthDisable`: the inner applier's (promoted)
@@ -167,12 +167,12 @@ theorem apply.newApplierV3Corrupt.wp_proof
       · iunfold apply.mPre
         iframe
       inext
-      iintro %resp %err Hpost
+      iintro %resp %err ⟨Hpost, #HeI⟩
       iapply HΦ'
       iunfold apply.mPost at Hpost
       iunfold apply.mPost
       icases Hpost with ⟨Hkv, Hres, HPP⟩
-      iframe Hkv HPP
+      iframe HeI Hkv HPP
       iapply apply.chainRes_corrupt_in c p (.ok bi) $$ applierV3 Hres
   isplitr
   · -- `AuthStatus`: the inner applier's (promoted)
@@ -187,9 +187,9 @@ theorem apply.newApplierV3Corrupt.wp_proof
     iapply HStatus $$ %log [Hkv Hres]
     · iframe
     inext
-    iintro %resp %err ⟨Hkv, Hres⟩
+    iintro %resp %err ⟨Hkv, Hres, #HeI⟩
     iapply HΦ'
-    iframe Hkv
+    iframe HeI Hkv
     iapply apply.chainRes_corrupt_in c p (.ok bi) $$ applierV3 Hres
   isplitr
   · -- the cluster's methods: the inner applier's (promoted)
@@ -204,19 +204,19 @@ theorem apply.newApplierV3Corrupt.wp_proof
       wp_call
       wp_auto
       icases Hpre with ⟨HR, Hm⟩
-      iunfold apply.mPre at Hm
+      iunfold apply.mPreV at Hm
       icases Hm with ⟨Hkv, Hres, Hcs⟩
       ihave Hres := apply.chainRes_corrupt_out c p (.ok bi) $$ applierV3 Hres
       iapply HCluster $$ %_ %r %v3 %log %Pre %Q %Post [] [HR Hkv Hres Hcs]
       · ipureintro; simp [apply.clusterMethods]
       · iframe HR
-        iunfold apply.mPre
+        iunfold apply.mPreV
         iframe
       inext
       iintro Hpost
       iapply HΦ'
-      iunfold apply.mPost at Hpost
-      iunfold apply.mPost
+      iunfold apply.mPostV at Hpost
+      iunfold apply.mPostV
       icases Hpost with ⟨Hkv, Hres, HPP⟩
       iframe Hkv HPP
       iapply apply.chainRes_corrupt_in c p (.ok bi) $$ applierV3 Hres

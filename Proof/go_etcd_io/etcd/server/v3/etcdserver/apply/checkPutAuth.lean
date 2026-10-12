@@ -39,36 +39,36 @@ theorem apply.checkPutAuth.wp_proof
   icases Hr with ⟨%Hrn, %ksl, %vsl, %k, %v, %lease, %pk, %iv, %il, #HK, #Hk, -, -, #HL, #HPK, -⟩
   wp_auto
   rw [Hsti]
-  wp_apply HPut $$ [$Hai $Hk] as %err ⟨Hai, -⟩
+  wp_apply HPut $$ [$Hai $Hk] as %err ⟨Hai, -, #HeI1⟩
   cases err with
   | ok e =>
     wp_auto
-    iapply HΦ; iexact Hai
+    iapply HΦ; iframe Hai; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
   | nil =>
   wp_auto
   rw [← Hsti]
-  wp_apply (hLP st le γ P f ai info dq lease) $$ [$Hst $Hle $Hai] as %err Hai
+  wp_apply (hLP st le γ P f ai info dq lease) $$ [$Hst $Hle $Hai] as %err ⟨Hai, #HeI2⟩
   cases err with
   | ok e =>
     wp_auto
-    iapply HΦ; iexact Hai
+    iapply HΦ; iframe Hai; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
   | nil =>
   wp_auto
   cases pk
   · wp_auto
-    iapply HΦ; iexact Hai
+    iapply HΦ; iframe Hai; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
   wp_auto
   ihave Hnil := ownSlice_nil (V := w8) (GF := GF) (DFrac.own 1)
   rw [Hsti]
-  wp_apply HRange $$ %ai %info %dq %ksl %slice.nil %k %([] : List w8) %DFrac.discard %(DFrac.own 1) [Hai Hnil] as %err ⟨Hai, -⟩
+  wp_apply HRange $$ %ai %info %dq %ksl %slice.nil %k %([] : List w8) %DFrac.discard %(DFrac.own 1) [Hai Hnil] as %err ⟨Hai, -, -, #HeI3⟩
   · iframe; iframe #
   cases err with
   | ok e =>
     wp_auto
-    iapply HΦ; iexact Hai
+    iapply HΦ; iframe Hai; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
   | nil =>
     wp_auto
-    iapply HΦ; iexact Hai
+    iapply HΦ; iframe Hai; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
 
 end proof
 

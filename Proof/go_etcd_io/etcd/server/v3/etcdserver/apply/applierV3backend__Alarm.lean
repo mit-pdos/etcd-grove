@@ -57,6 +57,8 @@ theorem apply.applierV3backend.Alarm.wp_proof
   · -- GET
     wp_apply HGet as %sl -
     iapply HΦ
+    isplitl; rotate_left
+    · first | iexact HeI | iapply applyErrIs_nil
     iunfold apply.mPost
     iframe
     iright
@@ -69,6 +71,8 @@ theorem apply.applierV3backend.Alarm.wp_proof
     wp_if_destruct
     · -- NONE: nothing
       iapply HΦ
+      isplitl; rotate_left
+      · first | iexact HeI | iapply applyErrIs_nil
       iunfold apply.mPost
       iframe
       iright
@@ -78,6 +82,8 @@ theorem apply.applierV3backend.Alarm.wp_proof
     wp_if_destruct
     · -- no alarm member
       iapply HΦ
+      isplitl; rotate_left
+      · first | iexact HeI | iapply applyErrIs_nil
       iunfold apply.mPost
       iframe
     icases Hm with (%Hn | #Hm)
@@ -107,6 +113,8 @@ theorem apply.applierV3backend.Alarm.wp_proof
     wp_auto
     wp_apply HInc
     iapply HΦ
+    isplitl; rotate_left
+    · first | iexact HeI | iapply applyErrIs_nil
     iunfold apply.mPost
     iframe
   wp_if_destruct
@@ -115,6 +123,8 @@ theorem apply.applierV3backend.Alarm.wp_proof
     wp_if_destruct
     · -- no alarm member
       iapply HΦ
+      isplitl; rotate_left
+      · first | iexact HeI | iapply applyErrIs_nil
       iunfold apply.mPost
       iframe
     icases Hm with (%Hn | #Hm)
@@ -144,10 +154,14 @@ theorem apply.applierV3backend.Alarm.wp_proof
     wp_auto
     wp_apply HDec
     iapply HΦ
+    isplitl; rotate_left
+    · first | iexact HeI | iapply applyErrIs_nil
     iunfold apply.mPost
     iframe
   · -- any other action
     iapply HΦ
+    isplitl; rotate_left
+    · first | iexact HeI | iapply applyErrIs_nil
     iunfold apply.mPost
     iframe
     iright

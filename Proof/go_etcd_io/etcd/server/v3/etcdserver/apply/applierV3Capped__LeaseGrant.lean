@@ -30,15 +30,15 @@ theorem apply.applierV3Capped.LeaseGrant.wp_proof :
     apply.applierV3Capped.LeaseGrant.spec (GF := GF) (hG := hG) := by
   intro E c inner p r log Pre Q Post
   wp_start as ⟨-, -, -, Hpre⟩
-  ihave #He : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors $$ []
-  · iPkgInit
-  ihave Hei : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ He
-  icases Hei with ⟨%eN, #HeN, %HeNp⟩
+  ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hai with ⟨-, -, #Hev⟩
+  icases applyErrVars_noSpace $$ Hev with ⟨%eN, #HeN, #HeI⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   wp_auto
   iapply HΦ
+  iframe HeI
   iunfold apply.mPost
   iframe Hkv Hres
   iright

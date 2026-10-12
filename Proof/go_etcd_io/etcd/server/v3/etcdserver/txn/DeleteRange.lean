@@ -34,8 +34,8 @@ theorem txn.DeleteRange.wp_proof
     (hdel : txn.deleteRange.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.DeleteRange.spec (GF := GF) (hG := hG) := by
-  intro ctx cd lg kv s γ dr o m log₀ P Pre Q Post f
-  wp_start as ⟨#Hkv, Hrd, Htok, Htoks, #Hc0, #Hdr, #Hctx, %Hbig, Hcs, #Hhook⟩
+  intro ctx cd nd lg kv s γ dr o m log₀ P Pre Q Post f
+  wp_start as ⟨#Hkv, Hrd, Htok, Htoks, #Hc0, #Hdr, #Hctx, #Hnd, %Hbig, Hcs, #Hhook⟩
   iunfold mvcc.csContract at Hcs
   icases Hcs with ⟨Hpre, #Htr, Hupd⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
@@ -78,10 +78,12 @@ theorem txn.DeleteRange.wp_proof
     have := List.length_filter_le (fun v => inRange o.key o.base.rangeEnd v.key) (mvcc.stateAfter ilog)
     have := Hbig ilog Hpin
     simp only [List.length_nil]; omega
-  wp_apply (hdel ctx' { cd with Values := vs } false mw s γ ilog [] (W64 0) (W64 0) (W64 0) dr o)
+  wp_apply (hdel ctx' { cd with Values := vs } nd mw s γ ilog [] (W64 0) (W64 0) (W64 0) dr o)
     $$ [$Hctx' $Htx $Hdr] as %resp %err Hout
-  · isplitr
-    · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+  · isplitl [Hnd]
+    · cases nd
+      · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+      · simp only [↓reduceIte, mvcc.neverDone] at *; iexact Hnd
     ipureintro; exact hb
   rw [txn.pendState_nil]
   simp only [List.nil_append]

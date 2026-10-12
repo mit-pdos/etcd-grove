@@ -8,10 +8,14 @@ It was an axiom for any `err` and `target`, which is false: Go's `Is` calls `err
 `Unwrap` methods (which may panic), and `err == target` panics for a `target` of a comparable
 type that holds a non-comparable value (`errors.Is(E{[]int{}}, E{[]int{}})` for
 `type E struct{ x any }`).
+
+Stated under the `errors` package's assumptions (2026-10-12, the apply package's unit 2; it was
+the server's): the server's `applyEntryNormal` and the apply package's `dispatch` (its deferred
+metrics: `errors.Is(ar.Err, mvcc.ErrCompacted)`) both use it.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
 
 @[expose] public section
 
@@ -27,7 +31,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [package_sem : _root_.Perennial.errors.Assumptions]
 
 /-- `errors.Is(err, target)`, for a `nil` or pointer `target` and an `err` of an error tree
 `S` (with the `Is` methods' meaning `M`), returns some boolean. -/

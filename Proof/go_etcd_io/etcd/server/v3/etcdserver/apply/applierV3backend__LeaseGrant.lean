@@ -47,13 +47,15 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
   wp_auto
   rw [Hli]
   wp_auto
-  wp_apply HGrant $$ [$Hcs] as %l %err ⟨HPP, Hl⟩
+  wp_apply HGrant $$ [$Hcs] as %l %err ⟨HPP, Hl, #HeI⟩
   icases Hl with (%Hne | ⟨%He, %id', #Hlease, -⟩)
   · cases err with
     | nil => exact absurd rfl Hne
     | ok ei =>
       wp_auto
       iapply HΦ
+      isplitl; rotate_left
+      · first | iexact HeI | iapply applyErrIs_nil
       iunfold apply.mPost
       iunfold apply.kvOwn
       iframe
@@ -67,6 +69,8 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
     wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh⟩
     · iexact Hb
     iapply HΦ
+    isplitl; rotate_left
+    · first | iexact HeI | iapply applyErrIs_nil
     iunfold apply.mPost
     iunfold apply.kvOwn
     iframe

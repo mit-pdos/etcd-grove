@@ -34,7 +34,7 @@ abbrev apply.checkTxnReqsPermission.spec : Prop :=
       reqs ↦*□ ps ∗ txn.requestOpsIs ps ops }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnReqsPermission))
       (Val #st)) (Val #ai)) (Val #le)) (Val #reqs))
-  {{ (err : GoInterface), RET #err; ai ↦{dq} info }}
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ applyErrIs err }}
 
 end spec
 

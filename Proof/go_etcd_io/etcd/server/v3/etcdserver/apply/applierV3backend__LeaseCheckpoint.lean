@@ -89,7 +89,7 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
     wp_auto
     rw [Hli]
     wp_auto
-    wp_apply HCk $$ [$Hcs] as %err HPP
+    wp_apply HCk $$ [$Hcs] as %err ⟨HPP, #HeI⟩
     cases err with
     | nil =>
       wp_auto
@@ -111,6 +111,8 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
       wp_auto
       wp_for_post
       iapply HΦ
+      isplitl; rotate_left
+      · first | iexact HeI | iapply applyErrIs_nil
       iunfold apply.mPost
       iunfold apply.kvOwn
       iframe
@@ -125,6 +127,8 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
     wp_alloc resp as Hresp
     wp_auto
     iapply HΦ
+    isplitl; rotate_left
+    · first | iexact HeI | iapply applyErrIs_nil
     iunfold apply.mPost
     iunfold apply.kvOwn
     iframe
