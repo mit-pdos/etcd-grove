@@ -31,9 +31,9 @@ abbrev apply.applierV3backend.DowngradeInfoSet.spec : Prop :=
   ∀ (E : AEnv GF) (p r : Loc) (v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
       (∃ dm : DowngradeModel, apply.downgradeInfoSetIs r dm) ∗
-      apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Q Post }}
+      apply.mPreV v3 E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Q Post }}
     (App (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"DowngradeInfoSet")) (Val #r)) (Val #v3))
-  {{ RET #(); apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post }}
+  {{ RET #(); apply.mPostV v3 E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post }}
 
 end spec
 

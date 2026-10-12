@@ -73,6 +73,29 @@ theorem csContract_pre (P : IProp GF) (f : val) (Pre Q Post : IProp GF) :
   iintro ⟨HPre, -, -⟩
   iexact HPre
 
+/-- **The contract of a write that happens only with `shouldApplyV3`** (`b`): the critical-section
+contract if `b`, else only `Pre` (no backend write: an entry already in the backend, replayed).
+The cluster's writers (`SetVersion`, `UpdateAttributes`, `SetDowngradeInfo`: `if shouldApplyV3 {
+c.be.MustSave...ToBackend(...) }`) and, through them, the appliers' cluster methods and
+`dispatch` take it (unit 2: `apply.Apply` without `v3` writes nothing). -/
+def cPre (b : Bool) (P : IProp GF) (f : val) (Pre Q Post : IProp GF) : IProp GF :=
+  if b then mvcc.csContract P f Pre Q Post else Pre
+
+/-- What a writer under `cPre b` returns: `Post ∨ Pre` (`b`), `Pre` (not `b`). -/
+def cPost (b : Bool) (Pre Post : IProp GF) : IProp GF :=
+  if b then iprop(Post ∨ Pre) else Pre
+
+theorem cPre_pre (b : Bool) (P : IProp GF) (f : val) (Pre Q Post : IProp GF) :
+    cPre b P f Pre Q Post ⊢ Pre := by
+  cases b
+  · simp only [cPre, Bool.false_eq_true, ↓reduceIte]; iintro H; iexact H
+  · simp only [cPre, ↓reduceIte]; exact csContract_pre P f Pre Q Post
+
+theorem cPost_of_pre (b : Bool) (Pre Post : IProp GF) : Pre ⊢ cPost b Pre Post := by
+  cases b
+  · simp only [cPost, Bool.false_eq_true, ↓reduceIte]; iintro H; iexact H
+  · simp only [cPost, ↓reduceIte]; iintro H; iright; iexact H
+
 /-! ## Responses -/
 
 /-- A response of type `T` returned by a component: `nil`, or a fresh one whose `Header` the
@@ -238,7 +261,8 @@ instance isAlarmStore_persistent (st : Loc) (P : IProp GF) (f : val) :
 /-- **The `*membership.RaftCluster` `c`** (trust boundary: `membership` is names-only):
 `Version` (a `*semver.Version`, maybe nil) and `ID` return; `SetVersion` (with a version not
 nil), `UpdateAttributes` and `SetDowngradeInfo` (which keeps the `DowngradeInfo` pointer) write
-the cluster's bucket under the batch lock (or not: `ApplyV2storeOnly`). -/
+the cluster's bucket under the batch lock only with `shouldApplyV3` (`cPre b`: the
+critical-section contract; without it, no write: `ApplyV2storeOnly`; unit 2). -/
 def isCluster (c : Loc) (P : IProp GF) (f : val) : IProp GF :=
   iprop(⌜c ≠ null⌝ ∗
     □ ({{ True }}
@@ -250,21 +274,21 @@ def isCluster (c : Loc) (P : IProp GF) (f : val) : IProp GF :=
           go!"ID")) (Val #()))
       {{ (id : w64), RET #id; True }}) ∗
     □ (∀ (v : Loc) (onSet : val) (b : Bool) (Pre Q Post : IProp GF),
-      {{ mvcc.csContract P f Pre Q Post ∗ ⌜v ≠ null⌝ }}
+      {{ cPre b P f Pre Q Post ∗ ⌜v ≠ null⌝ }}
         (App (App (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty
           @!! go!"SetVersion")) (Val #v)) (Val onSet)) (Val #b))
-      {{ RET #(); Post ∨ Pre }}) ∗
+      {{ RET #(); cPost b Pre Post }}) ∗
     □ (∀ (id : w64) (attr : etcdserver.api.membership.Attributes) (b : Bool)
         (Pre Q Post : IProp GF),
-      {{ mvcc.csContract P f Pre Q Post }}
+      {{ cPre b P f Pre Q Post }}
         (App (App (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty
           @!! go!"UpdateAttributes")) (Val #id)) (Val #attr)) (Val #b))
-      {{ RET #(); Post ∨ Pre }}) ∗
+      {{ RET #(); cPost b Pre Post }}) ∗
     □ (∀ (d : Loc) (di : etcdserver.version.DowngradeInfo) (b : Bool) (Pre Q Post : IProp GF),
-      {{ mvcc.csContract P f Pre Q Post ∗ d ↦ di }}
+      {{ cPre b P f Pre Q Post ∗ d ↦ di }}
         (App (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty @!!
           go!"SetDowngradeInfo")) (Val #d)) (Val #b))
-      {{ RET #(); Post ∨ Pre }}))
+      {{ RET #(); cPost b Pre Post }}))
 
 instance isCluster_persistent (c : Loc) (P : IProp GF) (f : val) :
     Persistent (isCluster c P f) := by

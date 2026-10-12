@@ -340,6 +340,17 @@ def mPost (E : AEnv GF) (c : Chain) (a : GoInterface) (log : mvcc.Log)
     (Pre Post : IProp GF) : IProp GF :=
   iprop(kvOwn E log ∗ chainRes c a ∗ (Post ∨ Pre))
 
+/-- The precondition of a method that writes only with `shouldApplyV3` (`v3`: the cluster's):
+`cPre v3`, the critical-section contract with `v3`, else `Pre` alone. -/
+def mPreV (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface) (log : mvcc.Log)
+    (Pre Q Post : IProp GF) : IProp GF :=
+  iprop(kvOwn E log ∗ chainRes c a ∗ cPre v3 E.P E.f Pre Q Post)
+
+/-- Its postcondition: `cPost v3` (`Post ∨ Pre` with `v3`, else `Pre`: no write). -/
+def mPostV (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface) (log : mvcc.Log)
+    (Pre Post : IProp GF) : IProp GF :=
+  iprop(kvOwn E log ∗ chainRes c a ∗ cPost v3 Pre Post)
+
 /-- The postcondition of a KV method on `rq`: an outcome of the chain, its answer `R`, the log
 it commits. -/
 def kvPost (E : AEnv GF) (c : Chain) (a : GoInterface) (rq : IRRModel) (log : mvcc.Log)
@@ -465,9 +476,9 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
           kvOwn E log ∗ chainRes c (.ok ai) }}) ∗
     □ (∀ (m : GoString) (r : Loc) (v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF),
       ⌜m ∈ clusterMethods⌝ -∗
-      {{ reqFacts m r ∗ mPre E c (.ok ai) log Pre Q Post }}
+      {{ reqFacts m r ∗ mPreV v3 E c (.ok ai) log Pre Q Post }}
         (App (App (Val #(methods ai.ty m ai.v)) (Val #r)) (Val #v3))
-      {{ RET #(); mPost E c (.ok ai) log Pre Post }}) ∗
+      {{ RET #(); mPostV v3 E c (.ok ai) log Pre Post }}) ∗
     -- `Apply`: the `applyFunc` under the chain's resources, or the auth layers' admin rejection
     □ (∀ (r : Loc) (rq : IRRModel) (skip v3 : Bool) (af : GoFunc) (A : IProp GF)
         (B : Loc → IProp GF),
