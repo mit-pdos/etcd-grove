@@ -172,9 +172,22 @@ def writerOK (σ : DBState) : Prop :=
 def metaIn (σ : DBState) (s : Nat) (v : internal.common.Meta) : Prop :=
   ((slotAt σ.bs σ.ps s).drop 16).take 64 = metaBytes v
 
+/-- The freelist's ids are below the high-water mark of the current meta `m`: the free ones,
+and the pending ones of committed transactions (`m`'s and before; the open writer's own, newer,
+may have been allocated above it). Without a writer every pending transaction is committed;
+the writer's view is of `m`. (bbolt never writes a freelist breaking this, but reads one from
+the file: `node.spill` panics on a page id at the high-water mark or above.) -/
+def flBelow (σ : DBState) (m : internal.common.Meta) : Prop :=
+  (∀ x ∈ σ.fl.free, uint.Z x < uint.Z m.pgid') ∧
+  (∀ t pd p, σ.fl.pending !! t = some pd → p ∈ pd.pairs → uint.Z t ≤ uint.Z m.txid' →
+    uint.Z p.1 < uint.Z m.pgid') ∧
+  (σ.wr = none → ∀ t pd p, σ.fl.pending !! t = some pd → p ∈ pd.pairs →
+    uint.Z t ≤ uint.Z m.txid') ∧
+  (∀ w, σ.wr = some w → w.hwm = uint.nat m.pgid')
+
 /-- The current tree (of the meta `db.meta()` picks): well-formed, its pages disjoint, inside
 the mapping and below the high-water mark, allocated by its transaction or before, and none
-free or pending (a new reader sees it, `mvccOK`). -/
+free or pending (a new reader sees it, `mvccOK`); the freelist below its high-water mark. -/
 def currentOK (σ : DBState) (v0 v1 : internal.common.Meta) : Prop :=
   let m := if metaPick v0 v1 then v1 else v0
   let hwm := uint.nat m.pgid'
@@ -185,7 +198,8 @@ def currentOK (σ : DBState) (v0 v1 : internal.common.Meta) : Prop :=
   (∀ id pg, ps !! id = some pg → ∀ a, σ.fl.allocs !! W64 id = some a →
     uint.Z a ≤ uint.Z m.txid') ∧
   (∀ s, coversSlot ps s → 2 ≤ s ∧ W64 s ∉ σ.fl.free ∧
-    ∀ t pd a, σ.fl.pending !! t = some pd → (W64 s, a) ∉ pd.pairs)
+    ∀ t pd a, σ.fl.pending !! t = some pd → (W64 s, a) ∉ pd.pairs) ∧
+  flBelow σ m
 
 /-- The database's facts: the mapping, the two metas (one valid), the current tree, the
 readers, the accounting. -/

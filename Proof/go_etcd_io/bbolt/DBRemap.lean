@@ -196,9 +196,9 @@ theorem dbOK_remap (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0
     unfold DBState.nslots DBState.remap; exact Nat.div_le_div_right (by simp only; omega)
   obtain ⟨hps, hps2, hn, hsz0, hdc, hm0, hm1, hv, hcur, hrd, hmv, hsl, hfl, hro, hrs, hwr⟩ := h
   have hps16 : 16 ≤ σ.ps := by omega
-  obtain ⟨cwf, cdisj, cin, calloc, cfree⟩ := hcur
+  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow⟩ := hcur
   refine ⟨hps, hps2, by omega, hsz', hd', hm0, hm1, hv,
-    ⟨cwf, cdisj, fun id pg hid => by have := cin id pg hid; simp only [DBState.remap.proj_bs, DBState.remap.proj_ps] at *; omega, calloc, cfree⟩,
+    ⟨cwf, cdisj, fun id pg hid => by have := cin id pg hid; simp only [DBState.remap.proj_bs, DBState.remap.proj_ps] at *; omega, calloc, cfree, cbelow⟩,
     fun k r hk => readerOK_remap σ d' sz' hsz r (hrd k r hk), hmv, ?_, hfl, hro, hrs,
     ⟨hwr.1, fun w hw => ⟨readerOK_remap σ d' sz' hsz w (hwr.2 w hw).1, (hwr.2 w hw).2⟩⟩⟩
   intro s hs

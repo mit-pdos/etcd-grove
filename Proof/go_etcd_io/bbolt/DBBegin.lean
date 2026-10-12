@@ -160,7 +160,7 @@ theorem dbOK_addReader (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK �
   obtain ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, hrd, hmv, hsl, hfl, hro, hrs, hwr⟩ := h
   have hk := freshKey_none σ.readers
   have hcur' := hcur
-  obtain ⟨cwf, cdisj, cin, calloc, cfree⟩ := hcur'
+  obtain ⟨cwf, cdisj, cin, calloc, cfree, cbelow⟩ := hcur'
   have hps16 : 16 ≤ σ.ps := by omega
   -- what the new reader sees: the current tree's slots
   have hsees : ∀ s, (newReader σ v0 v1 (beginQ σ)).sees s = true →

@@ -22,12 +22,12 @@ variable [ext : FfiSyntax]
 (`mv` to `mv'`), returning page `id`: either `count` free ids from `id` on, now allocated by
 `txid` (the high-water mark unchanged), or the ids from the high-water mark on, which moves
 up by `count` (the mapping possibly grown: `remap`). The page's slots are none the writer's
-view `w` covers, and the high-water mark stays below `2^48` bytes. -/
+view `w` covers, all below the high-water mark, which stays below `2^48` bytes. -/
 def allocOK (σ σ' : DBState) (w : Reader) (mv mv' : internal.common.Meta) (txid id : w64)
     (n : Nat) : Prop :=
   2 ≤ uint.Z id ∧ (∀ k < n, ¬ coversSlot w.pages (uint.nat id + k)) ∧
   mv' = { mv with pgid' := mv'.pgid' } ∧ uint.Z mv.pgid' ≤ uint.Z mv'.pgid' ∧
-  uint.Z mv'.pgid' * σ.ps < 2 ^ 48 ∧
+  uint.Z mv'.pgid' * σ.ps < 2 ^ 48 ∧ uint.Z id + n ≤ uint.Z mv'.pgid' ∧
   ((σ.fl.canAllocate id n ∧ σ' = { σ with fl := σ.fl.allocate txid id n } ∧ mv' = mv) ∨
    (id = mv.pgid' ∧ uint.Z mv'.pgid' = uint.Z mv.pgid' + n ∧
     (σ' = σ ∨ ∃ d' sz', σ.sz ≤ sz' ∧ σ' = σ.remap d' sz')))
