@@ -24,12 +24,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- `d.Seconds()`: some `float64` (the duration in seconds; floats are outside the model, so the
-value is any `val`); it returns. -/
+value is any `float64`, Perennial's 64-bit word: 2026-10-12, unit 2: a word, not any `val`, so that
+the code that binds it steps); it returns. -/
 abbrev time.Duration.Seconds.spec : Prop :=
   ∀ (d : _root_.Perennial.time.Duration),
   {{ isPkgInit (PROP := IProp GF) pkg_id.time }}
     (App (Val (d @!! _root_.Perennial.time.Duration.ty @!! go!"Seconds")) (Val #()))
-  {{ (f : val), RET f; True }}
+  {{ (f : w64), RET #f; True }}
 
 end spec
 

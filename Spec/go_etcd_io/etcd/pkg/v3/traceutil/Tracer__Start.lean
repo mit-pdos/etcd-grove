@@ -28,7 +28,8 @@ variable [package_sem : context.Assumptions]
 
 /-- `traceutil.Tracer.Start(ctx, name, opts...)` on the tracer the package variable holds: a
 context like `ctx` (the same deadline and `Done`, other values: otel's `ContextWithSpan` is a
-`context.WithValue`) and a span (`trace.isSpan`). -/
+`context.WithValue`), a context (`context.isContext`) if `ctx` is one (2026-10-12, unit 2: the
+request path's `WithTimeout`), and a span (`trace.isSpan`). -/
 abbrev traceutil.Tracer.Start.spec : Prop :=
   ∀ (tr ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (name : GoString)
     (opts : GoSlice),
@@ -37,7 +38,8 @@ abbrev traceutil.Tracer.Start.spec : Prop :=
     (App (App (App (Val #(methods tr.ty go!"Start" tr.v)) (Val #(GoInterface.ok ctx))) (Val #name))
       (Val #opts))
   {{ (ctx' : GoInterfaceOk) (sp : GoInterface), RET (PairV #(GoInterface.ok ctx') #sp);
-      (∃ vs : GMap GoInterface GoInterface, mvcc.txnCtx ctx' { cd with Values := vs }) ∗
+      (∃ vs : GMap GoInterface GoInterface, mvcc.txnCtx ctx' { cd with Values := vs } ∗
+        (context.isContext ctx cd -∗ context.isContext ctx' { cd with Values := vs })) ∗
       trace.isSpan sp }}
 
 end spec
