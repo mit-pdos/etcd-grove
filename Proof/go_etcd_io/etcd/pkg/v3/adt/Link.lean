@@ -16,6 +16,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.adt.NewIntervalTree
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Delete
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Find
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Insert
+public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__InsertAny
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Intersects
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Len
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Stab

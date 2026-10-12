@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.context
 public import GeneratedProof.go_etcd_io.etcd.api.v3.authpb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.membershippb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.mvccpb
@@ -22,7 +23,7 @@ open Iris Iris.BI
 noncomputable section
 namespace go_etcd_io.etcd.api.v3.etcdserverpb
 
-namespace WatchClient
+namespace UnimplementedKVServer
 section def_
 
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
@@ -30,16 +31,20 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-instance WatchClient_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.WatchClient :=
-  sorry -- axiomatized type
+instance UnimplementedKVServer_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.UnimplementedKVServer where
+  typedPointstoDef l v dq := iprop(
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
-instance WatchClient_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.WatchClient go_etcd_io.etcd.api.v3.etcdserverpb.WatchClient.underlying :=
-  sorry -- axiomatized type
+instance UnimplementedKVServer_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.UnimplementedKVServer go_etcd_io.etcd.api.v3.etcdserverpb.UnimplementedKVServer.underlying := by
+  solve_into_val_typed_struct
 
 end def_
-end WatchClient
+end UnimplementedKVServer
 
 namespace watchClient
 section def_
@@ -104,25 +109,6 @@ instance UnimplementedWatchServer_into_val_typed :
 end def_
 end UnimplementedWatchServer
 
-namespace LeaseClient
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance LeaseClient_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseClient :=
-  sorry -- axiomatized type
-
-instance LeaseClient_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseClient go_etcd_io.etcd.api.v3.etcdserverpb.LeaseClient.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end LeaseClient
-
 namespace leaseClient
 section def_
 
@@ -163,25 +149,6 @@ instance leaseClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcds
 end def_
 end leaseClient
 
-namespace LeaseServer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance LeaseServer_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer :=
-  sorry -- axiomatized type
-
-instance LeaseServer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer go_etcd_io.etcd.api.v3.etcdserverpb.LeaseServer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end LeaseServer
-
 namespace UnimplementedLeaseServer
 section def_
 
@@ -204,25 +171,6 @@ instance UnimplementedLeaseServer_into_val_typed :
 
 end def_
 end UnimplementedLeaseServer
-
-namespace ClusterClient
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance ClusterClient_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.ClusterClient :=
-  sorry -- axiomatized type
-
-instance ClusterClient_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.ClusterClient go_etcd_io.etcd.api.v3.etcdserverpb.ClusterClient.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end ClusterClient
 
 namespace clusterClient
 section def_
@@ -264,25 +212,6 @@ instance clusterClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etc
 end def_
 end clusterClient
 
-namespace ClusterServer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance ClusterServer_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.ClusterServer :=
-  sorry -- axiomatized type
-
-instance ClusterServer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.ClusterServer go_etcd_io.etcd.api.v3.etcdserverpb.ClusterServer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end ClusterServer
-
 namespace UnimplementedClusterServer
 section def_
 
@@ -305,25 +234,6 @@ instance UnimplementedClusterServer_into_val_typed :
 
 end def_
 end UnimplementedClusterServer
-
-namespace MaintenanceClient
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance MaintenanceClient_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceClient :=
-  sorry -- axiomatized type
-
-instance MaintenanceClient_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceClient go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceClient.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end MaintenanceClient
 
 namespace maintenanceClient
 section def_
@@ -365,25 +275,6 @@ instance maintenanceClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3
 end def_
 end maintenanceClient
 
-namespace MaintenanceServer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance MaintenanceServer_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceServer :=
-  sorry -- axiomatized type
-
-instance MaintenanceServer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceServer go_etcd_io.etcd.api.v3.etcdserverpb.MaintenanceServer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end MaintenanceServer
-
 namespace UnimplementedMaintenanceServer
 section def_
 
@@ -406,25 +297,6 @@ instance UnimplementedMaintenanceServer_into_val_typed :
 
 end def_
 end UnimplementedMaintenanceServer
-
-namespace AuthClient
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance AuthClient_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient :=
-  sorry -- axiomatized type
-
-instance AuthClient_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient go_etcd_io.etcd.api.v3.etcdserverpb.AuthClient.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end AuthClient
 
 namespace authClient
 section def_
@@ -465,25 +337,6 @@ instance authClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdse
 
 end def_
 end authClient
-
-namespace AuthServer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance AuthServer_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthServer :=
-  sorry -- axiomatized type
-
-instance AuthServer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.AuthServer go_etcd_io.etcd.api.v3.etcdserverpb.AuthServer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end AuthServer
 
 namespace UnimplementedAuthServer
 section def_

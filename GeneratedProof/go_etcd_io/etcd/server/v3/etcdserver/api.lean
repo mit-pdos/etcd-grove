@@ -2,6 +2,9 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.github_com.Masterminds.semver.v3
+public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.types
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.membership
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api
 
@@ -16,25 +19,6 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace go_etcd_io.etcd.server.v3.etcdserver.api
-
-namespace Cluster
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.Assumptions]
-
-instance Cluster_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.Cluster :=
-  sorry -- axiomatized type
-
-instance Cluster_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.Cluster go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Cluster
 
 end go_etcd_io.etcd.server.v3.etcdserver.api
 end

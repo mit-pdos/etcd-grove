@@ -54,7 +54,10 @@ func TestProbeSiblingPutThenDelete(t *testing.T) {
   (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Defs.lean`), what `checkIntervals`
   gives the txn package's `NoDupKeysPerRev` (`keys_nodup_iff_check`), is stated with the premise
   `ReqOp.siblingSafeL` (no nested put deleted by a later sibling), beside `noFromKeyDelL`
-  (`etcd-txn-delete-then-ignore-put`): it is false without it.
+  (`etcd-txn-delete-then-ignore-put`): it is false without it. Proved under both premises by
+  the request path's unit 1 (`v3rpc.check_gives_nodup`,
+  `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/CheckNodup.lean`), whose docstring names
+  this issue.
 - **Possible fixes**: check every nested transaction's puts against the level's final `dels`
   (a second pass over the collected puts after all unions), as the level's own puts are.
 - **Found**: 2026-10-12, the request path's unit 0 (stating `checkIntervals`'s semantics in

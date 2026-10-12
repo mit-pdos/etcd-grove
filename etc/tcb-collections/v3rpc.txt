@@ -5,6 +5,11 @@
 #
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
+# Unit 1 (2026-10-12): the package's proofs reach grpc's status errors and `errors.Is` at
+# `context.DeadlineExceeded` (an empty struct, which Perennial's `errors.wp_Is` does not take);
+# the txn package's `IsDefaultOrdering`/`HasRevisionFilters` and adt's intervals are proved, and
+# the interval tree's contract (pending) is a hypothesis of `checkIntervals` and `Txn`, not an axiom.
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/(Link|Results)\.lean$
+axiom errors.IsDeadlineExceeded.wp_proof
 axiom status.Error.wp_proof
 axiom status.Errorf.wp_proof

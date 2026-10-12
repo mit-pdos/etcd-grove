@@ -38,7 +38,12 @@
 - **How the proof handles it**: the request predicates give an empty oneof no denotation
   (`requestOpIs`, `Proof/go_etcd_io/etcd/server/v3/etcdserver/txn/Requests.lean`): a spec of
   `Txn` over `txnRequestIs rt t` covers only requests whose every op is a range, a put, a
-  delete or a non-nil nested transaction.
+  delete or a non-nil nested transaction. At the gRPC API the precondition holds:
+  `checkRequestOp` rejects an empty op (`ErrGRPCKeyNotFound`), and a transaction passing
+  `checkTxnRequest` has no empty op at any depth (`v3rpc.checkRequestOp_nonempty`,
+  `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Results.lean`, the request path's unit 1);
+  so the panic needs a caller of `EtcdServer.Txn` (or of the applier) other than the gRPC
+  handler.
 - **Possible fixes**: in `executeTxn`, read `tresp.Responses[i].Response` inside the cases that
   use it (or `continue` on a `nil` response); or document the precondition.
 - **Found**: 2026-10-11, writing the request denotations of the txn package (unit 0), confirmed
