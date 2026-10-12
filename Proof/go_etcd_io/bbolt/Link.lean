@@ -164,6 +164,7 @@ public import Proof.go_etcd_io.bbolt.node__root
 public import Proof.go_etcd_io.bbolt.node__size
 public import Proof.go_etcd_io.bbolt.node__sizeLessThan
 public import Proof.go_etcd_io.bbolt.node__splitIndex
+public import Proof.go_etcd_io.bbolt.node__splitTwo
 public import Proof.go_etcd_io.bbolt.node__write
 public import Proof.go_etcd_io.bbolt.nodes__Len
 public import Proof.go_etcd_io.bbolt.nodes__Less
@@ -892,6 +893,10 @@ theorem node.wp_sizeLessThan :
 theorem node.wp_splitIndex :
     EtcdGrove.bbolt.node.splitIndex.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.node.splitIndex.wp_proof EtcdGrove.bbolt.node.wp_pageElementSize EtcdGrove.bbolt.Inode.wp_Key EtcdGrove.bbolt.Inode.wp_Value
+
+theorem node.wp_splitTwo :
+    EtcdGrove.bbolt.node.splitTwo.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.node.splitTwo.wp_proof EtcdGrove.bbolt.node.wp_sizeLessThan EtcdGrove.bbolt.node.wp_splitIndex EtcdGrove.bbolt.TxStats.wp_IncSplit
 
 theorem nodes.wp_Len :
     EtcdGrove.bbolt.nodes.Len.spec (GF := GF) (hG := hG) :=

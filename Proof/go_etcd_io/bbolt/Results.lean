@@ -187,6 +187,7 @@ namespace bbolt
 #print axioms node.wp_removeChild
 #print axioms node.wp_sizeLessThan
 #print axioms node.wp_splitIndex
+#print axioms node.wp_splitTwo
 #print axioms nodes.wp_Len
 #print axioms nodes.wp_Less
 #print axioms nodes.wp_Swap

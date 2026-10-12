@@ -230,3 +230,4 @@ Bucket__CreateBucketIfNotExists: DB__Logger bbolt_cloneBytes Bucket__Cursor_w Cu
 node__dereference_w: Inode__Key Inode__Value Inode__SetKey Inode__SetValue common_Assert TxStats__IncNodeDeref
 Bucket__dereference: node__root node__dereference_w
 Tx__allocate: DB__Logger Meta__Txid DB__allocate Bucket__dereference DefaultLogger__Errorf Page__Id TxStats__IncPageCount TxStats__IncPageAlloc
+node__splitTwo: node__sizeLessThan node__splitIndex TxStats__IncSplit
