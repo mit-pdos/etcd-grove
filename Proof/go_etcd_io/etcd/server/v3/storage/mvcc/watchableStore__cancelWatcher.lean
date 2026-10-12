@@ -450,6 +450,7 @@ theorem mvcc.cancel_ghost (γ : mvcc.WsNames) (wa : Loc) (γw : mvcc.WatcherName
 theorem mvcc.watchableStore.cancelWatcher.wp_proof
     (hDel : mvcc.watcherGroup.delete.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.cancelWatcher.spec (GF := GF) (hG := hG) := by
+  have hDel := mvcc.watcherGroup.delete.spec_group hDel
   intro s st γ wa
   wp_start as ⟨#Hws, #HIW⟩
   simp only [mvcc.storeWatchParams]

@@ -34,12 +34,12 @@ theorem mvcc.watcherGroup.delete.wp_proof
     (hFind : adt.intervalTree.Find.spec (GF := GF) (hG := hG))
     (hDel : adt.intervalTree.Delete.spec (GF := GF) (hG := hG)) :
     mvcc.watcherGroup.delete.spec (GF := GF) (hG := hG) := by
-  intro wg W wa r fcs
+  intro wg W ws wa r fcs
   wp_start as ⟨Hg, #Hfix⟩
-  icases mvcc.ownWatcherGroup_member wg W wa r fcs $$ [Hg] with ⟨Hg, %Hwa⟩
+  icases mvcc.ownWatcherGroupAt_member wg W ws wa r fcs $$ [Hg] with ⟨Hg, %Hwa⟩
   · iframe Hg Hfix
-  iunfold mvcc.ownWatcherGroup at Hg
-  icases Hg with ⟨%km, %ws, %t, %KM, %L, Hg⟩
+  iunfold mvcc.ownWatcherGroupAt at Hg
+  icases Hg with ⟨%km, %t, %KM, %L, Hg⟩
   iNamed Hg
   ihave #Hfix' := Hfix
   iunfold mvcc.watcherFixed at Hfix'
@@ -55,7 +55,7 @@ theorem mvcc.watcherGroup.delete.wp_proof
       Bool.not_false]
     wp_auto
     iapply HΦ
-    iapply mvcc.ownWatcherGroup_intro wg W km ws t KM L HL
+    iapply mvcc.ownWatcherGroupAt_intro wg W km ws t KM L HL
     iframe Hwg Hfixed Hkm Hivt Hranges
     iunfold mvcc.ownWatcherSet; iexact Hws
   rw [HwaS]
@@ -87,7 +87,7 @@ theorem mvcc.watcherGroup.delete.wp_proof
     wp_apply hKDel $$ [$Hkm] as ⟨%KM', Hkm⟩
     · iframe Hfix; ipureintro; exact ⟨hend, Or.inr HwaS⟩
     iapply HΦ
-    iapply mvcc.ownWatcherGroup_intro wg (GMap.delete wa W) km ws t KM' L
+    iapply mvcc.ownWatcherGroupAt_intro wg (GMap.delete wa W) km ws t KM' L
       (mvcc.rangesOk_delete_key W L wa r HwaS hend HL)
     iframe Hwg Hws Hfixed' Hkm Hivt
     iapply mvcc.rangeSets_congr W _ L (fun z _ =>
@@ -153,7 +153,7 @@ theorem mvcc.watcherGroup.delete.wp_proof
       rw [_root_.decide_eq_true Hin]
       wp_auto
       iapply HΦ
-      iapply mvcc.ownWatcherGroup_intro wg (GMap.delete wa W) km ws t KM
+      iapply mvcc.ownWatcherGroupAt_intro wg (GMap.delete wa W) km ws t KM
         (L.eraseP fun z => decide (z.1 = (r.key, e)))
       · refine ⟨HL.1.sublist (List.eraseP_sublist), fun ivl => ?_⟩
         have hm : ivl ∈ (L.eraseP fun z => decide (z.1 = (r.key, e))).map Prod.fst ↔
@@ -177,7 +177,7 @@ theorem mvcc.watcherGroup.delete.wp_proof
       have H0 : GMap.size (mvcc.ivlMembers (GMap.delete wa W) z.1) ≠ 0 := by
         intro h; apply Hif; rw [h]; rfl
       rw [ne_eq, GMap.map_size_empty_iff, hz1, mvcc.ivlMembers_empty_iff, Classical.not_not] at H0
-      iapply mvcc.ownWatcherGroup_intro wg (GMap.delete wa W) km ws t KM L
+      iapply mvcc.ownWatcherGroupAt_intro wg (GMap.delete wa W) km ws t KM L
       · refine ⟨HL.1, fun ivl => ?_⟩
         by_cases hi : ivl = (r.key, e)
         · subst hi

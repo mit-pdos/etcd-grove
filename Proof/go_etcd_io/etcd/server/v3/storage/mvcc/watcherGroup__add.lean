@@ -34,10 +34,10 @@ theorem mvcc.watcherGroup.add.wp_proof
     (hFind : adt.intervalTree.Find.spec (GF := GF) (hG := hG))
     (hInsert : adt.intervalTree.Insert.spec (GF := GF) (hG := hG)) :
     mvcc.watcherGroup.add.spec (GF := GF) (hG := hG) := by
-  intro wg W wa r fcs
+  intro wg W ws wa r fcs
   wp_start as ⟨Hg, #Hfix, %Hwa⟩
-  iunfold mvcc.ownWatcherGroup at Hg
-  icases Hg with ⟨%km, %ws, %t, %KM, %L, Hg⟩
+  iunfold mvcc.ownWatcherGroupAt at Hg
+  icases Hg with ⟨%km, %t, %KM, %L, Hg⟩
   iNamed Hg
   ihave #Hfix' := Hfix
   iunfold mvcc.watcherFixed at Hfix'
@@ -72,7 +72,7 @@ theorem mvcc.watcherGroup.add.wp_proof
     iapply HΦ
     have Hsame : ∀ z ∈ L, mvcc.ivlMembers (<[wa := r]> W) z.1 = mvcc.ivlMembers W z.1 :=
       fun z _ => mvcc.ivlMembers_insert_ne W wa r z.1 Hwa (by rw [hend]; simp)
-    iapply mvcc.ownWatcherGroup_intro wg (<[wa := r]> W) km ws t KM' L
+    iapply mvcc.ownWatcherGroupAt_intro wg (<[wa := r]> W) km ws t KM' L
     · refine ⟨HL.1, fun ivl => ?_⟩
       rw [HL.2 ivl]
       constructor
@@ -116,7 +116,7 @@ theorem mvcc.watcherGroup.add.wp_proof
       wp_apply hSAdd $$ [$Hm0] as Hm0
       · ipureintro; rw [mvcc.ivlMembers, mvcc.membersBy_lookup, Hwa]
       iapply HΦ
-      iapply mvcc.ownWatcherGroup_intro wg (<[wa := r]> W) km ws t KM L
+      iapply mvcc.ownWatcherGroupAt_intro wg (<[wa := r]> W) km ws t KM L
       · refine mvcc.rangesOk_insert_range W L L wa r e Hwa hend HL.2 HL.1 (fun ivl => ?_)
         constructor
         · exact Or.inl
@@ -168,7 +168,7 @@ theorem mvcc.watcherGroup.add.wp_proof
       wp_apply hInsert $$ [$Hivt] as Hivt
       · ipureintro; exact Hnotin
       iapply HΦ
-      iapply mvcc.ownWatcherGroup_intro wg (<[wa := r]> W) km ws t KM
+      iapply mvcc.ownWatcherGroupAt_intro wg (<[wa := r]> W) km ws t KM
         (adt.ivtInsert ((r.key, e), interface.mkOk watcherSet.ty #mn) L)
       · refine mvcc.rangesOk_insert_range W L _ wa r e Hwa hend HL.2
           (adt.ivtInsert_sorted _ L HL.1 Hnotin) (fun ivl => ?_)

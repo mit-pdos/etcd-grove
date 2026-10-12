@@ -534,6 +534,7 @@ theorem mvcc.watchableStore.watch.wp_proof
     (hAdd : mvcc.watcherGroup.add.spec (GF := GF) (hG := hG))
     (hCancel : mvcc.watchableStore.cancelWatcher.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.watch.spec (GF := GF) (hG := hG) := by
+  have hAdd := mvcc.watcherGroup.add.spec_group hAdd
   intro s st γ key endk fcs k e fs startRev id ch L
   simp only [mvcc.storeWatchParams]
   wp_start as ⟨#Hws, #Hk, #He, #Hfcs, #Hfs, -, HCR, HR, %Hsr⟩

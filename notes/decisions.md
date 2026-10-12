@@ -2097,6 +2097,16 @@ theorem).
   `storeReader`, since `store.Rev` opens a read transaction), passed through the stream's
   `Rev`/`RequestProgress`/`RequestProgressAll`; `watch` and the stream's `Watch` take
   `0 ≤ startRev`.
+- **Refinements for 3b** (2026-10-12): the backend contract's range read (`keyRangeReadSpec`,
+  bbolt's cursor order: the bytes order, which `u64Be` makes the revisions' order) is a
+  strengthening of a premise (`isKeyBackend` is `NewStore`'s), so no proof changed; `store.Close`
+  is a trust-boundary axiom with a close-once right (`storeCloser`), as `restore`; tickers are
+  axioms faithful to Go (`Reset` and `NewTicker` need a positive duration), and `time.Since` is
+  assumed positive — the honest statement of a real hazard (`issues/
+  etcd-watch-sync-ticker-reset-zero.md`) rather than a total `Reset` that would be false;
+  the watcher group's all-watchers map is explicit (`ownWatcherGroupAt`) where a loop ranges
+  over it while deleting; the notified log is a prefix of the certified one (`σ.Lmu <+: C`),
+  which is all the sync machinery needs.
 - **The post-lock hook** (2026-10-12, the third merge with `lean`; "mvcc: the batch lock runs
   the hook"): the watchable store's write path takes the hook's resources exactly as the inner
   calls do, nothing of its own: `watchableStore.Write` takes `hookIs γ.st P f ∗ Pre ∗ □ {P ∗

@@ -306,9 +306,11 @@ theorem mvcc.NewStore.wp_proof
     simp only [named]
     iframe ReadView WriteView
     iframe #
-  iapply mvcc.storeReaders_of_slots «$r0_ptr» ti γ
-  iframe Hmus Hrevs Hird
-  iexact kvindex
+  isplitr [stopc]
+  · iapply mvcc.storeReaders_of_slots «$r0_ptr» ti γ
+    iframe Hmus Hrevs Hird
+    iexact kvindex
+  iunfold mvcc.storeCloser; iexists _; iexact stopc
 
 end proof
 

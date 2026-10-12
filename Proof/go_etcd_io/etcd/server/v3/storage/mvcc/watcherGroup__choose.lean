@@ -31,6 +31,7 @@ theorem mvcc.watcherGroup.choose.wp_proof
     (hAdd : mvcc.watcherGroup.add.spec (GF := GF) (hG := hG))
     (hAll : mvcc.watcherGroup.chooseAll.spec (GF := GF) (hG := hG)) :
     mvcc.watcherGroup.choose.spec (GF := GF) (hG := hG) := by
+  have hAdd := mvcc.watcherGroup.add.spec_group hAdd
   intro wg W ST maxWatchers curRev compactRev
   wp_start as ⟨Hg, HST, %Hdom, %Hst⟩
   icases mvcc.ownWatcherGroup_fixed wg W $$ Hg with ⟨Hg, #Hfixed⟩

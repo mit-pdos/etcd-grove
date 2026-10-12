@@ -120,6 +120,7 @@ adt_intervalTree__Insert: ?
 adt_intervalTree__Delete: ?
 adt_intervalTree__Intersects: ?
 adt_intervalTree__Stab: ?
+adt_ownIvt_split: ?
 # The watcher group (watcher_group.go): the sets and the group's structure over the tree's
 # contract, see InvWatchGroup.lean.
 watcherSet__add:
@@ -176,3 +177,23 @@ watchableStore__rev: traceutil_TODO store__Read storeTxnCommon__Rev metricsTxnWr
 watchableStore__progressIfSync: watchableStore__rev watcher__send
 watchableStore__progress: watchableStore__progressIfSync
 watchableStore__progressAll: watchableStore__progressIfSync
+# The sync machinery and the constructors (watchable_store.go), unit 3b: the bucket read by
+# revision range (the backend contract's range read), the watchers synced in batches, the
+# victims resent, the two loops (tickers, `time.Since` and `store.Close` are the trust
+# boundary: axioms, see InvWatchSync.lean, SyncModel.lean, BucketRange.lean).
+time_NewTicker:
+time_Ticker__Stop:
+time_Ticker__Reset:
+time_Since:
+store__Close:
+kvsToEvents: proto_Unmarshal isTombstone BytesToRev watcherGroup__contains
+rangeEvents: NewRevBytes RevToBytes kvsToEvents
+watchableStore__syncWatchers: watcherGroup__size watcherGroup__choose rangeEvents newWatcherBatch watcher__send watcherGroup__add watcherGroup__delete watchableStore__addVictim
+watchableStore__moveVictims: watcher__send watcherGroup__add
+watchableStore__syncWatchersLoop: time_NewTicker time_Ticker__Stop watcherGroup__size watchableStore__syncWatchers time_Since time_Ticker__Reset
+watchableStore__syncVictimsLoop: watchableStore__moveVictims
+ChanBufLen:
+newWatchableStore: zap_NewNop NewStore newWatcherGroup adt_ownIvt_split
+mvcc_New: newWatchableStore watchableStore__syncWatchersLoop watchableStore__syncVictimsLoop
+watchableStore__Close: store__Close
+watchableStore__NewWatchStream: watchableStore__watch watchableStore__progress watchableStore__progressAll watchableStore__rev

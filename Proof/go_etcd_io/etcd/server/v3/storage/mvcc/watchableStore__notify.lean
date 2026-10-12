@@ -633,7 +633,8 @@ theorem popFacts_victim (γ : WsNames) (σ : WsState) (k : Loc) (r : WatchRange)
     (st : WatcherSt) (evsw : List EvM) (d : Nat) (B : EventBatch) (h1 : (σ.Ws !! k).isSome = false)
     (h2 : (σ.Wu !! k).isSome = false) (h3 : σ.victimOf k = some B) :
     popFacts (GF := GF) γ σ k r lo st evsw d =
-      iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ d = sint.nat st.minRev⌝ ∗ evsWf γ r lo (evsw ++ B.evs) d) := by
+      iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ d = sint.nat st.minRev ∧ victimBatchOk lo st B⌝ ∗
+        evsWf γ r lo (evsw ++ B.evs) d) := by
   unfold popFacts; simp only [h1, h2, h3, Bool.false_eq_true, ↓reduceIte]
 
 /-- The lock's resources of a watcher after `notify`. -/
@@ -718,10 +719,45 @@ theorem memberRes_final (γ : WsNames) (σ : WsState) (ilog : Log) (pend : List 
       simp only [popFacts_victim γ _ k _ _ st _ _ B hw' hu' hv', Option.map_some,
         Option.getD_some]
       iintro ⟨-, ⟨%γw, %r, %fcs, %hM, #Hm, #Hf, #Hc, #Hfo, %Hsr, Ha, Hl, %Hmin, #Hwf⟩⟩
+      ihave %Hlo : ⌜B.evs ≠ [] → γw.lo ≤ N⌝ $$ []
+      · iunfold evsWf at Hwf
+        icases Hwf with ⟨%L, -, %HL⟩
+        ipureintro
+        intro hne'
+        refine Classical.byContradiction (fun hc => ?_)
+        have h0 : watchEvents L r γw.lo (N + 1) = [] := watchEvents_empty L r (by omega)
+        rw [← HL.1] at h0
+        exact hne' (List.append_eq_nil_iff.1 h0).2
       iexists γw, r, fcs
       iframe Hm Hf Hc Hfo Ha Hl Hwf
       ipureintro
-      refine ⟨hM, Hsr, rfl, Hmin.1, ?_⟩
+      have hvb : victimBatchOk γw.lo st B := by
+        obtain ⟨-, hBt⟩ := hrel.bv k B hb
+        obtain ⟨r0, st0, -, -, hmb⟩ := batchOf_some hBt
+        have hlen' : ilog.length < 2 ^ 63 := by omega
+        have hmin0 : sint.Z st0.minRev ≤ ilog.length := by
+          by_cases hc : sint.Z st0.minRev ≤ ilog.length
+          · exact hc
+          exfalso
+          have := memberBatch_none_of_gt r0 st0 ilog.length hlen' (by omega)
+            (evsOfRevM ilog.length (stateAfter ilog) pend) none
+            (evsOfRevM_modRev _ _ (stateAfter_sorted ilog) pend)
+          unfold memberBatch at hmb
+          rw [← hN, this] at hmb; cases hmb
+        have hnb := notify_batch ilog pend hne hlen' r0 st0 hmin0
+        rw [hN, hmb] at hnb
+        have hBeq : B = ⟨watchEvents (ilog ++ [pend]) r0 N (N + 1), W64 1, W64 0⟩ := by
+          by_cases h : watchEvents (ilog ++ [pend]) r0 N (N + 1) = []
+          · rw [if_pos h] at hnb; cases hnb
+          · rw [if_neg h] at hnb; exact Option.some.inj hnb
+        refine ⟨fun h => by rw [hBeq] at h; exact absurd rfl h, fun ev hev => ?_⟩
+        have hlo' := Hlo (List.ne_nil_of_mem hev)
+        rw [hBeq] at hev
+        have hm := watchEvents_next_modRev ilog pend hne r0 ev (by rw [hN]; exact hev)
+        have hz : sint.Z ev.kv.modRev = N := by rw [hm, hN]; word
+        rw [hz, Hmin.2]
+        omega
+      refine ⟨hM, Hsr, rfl, Hmin.1, ?_, hvb⟩
       have : sint.Z st.minRev = ((N + 1 : Nat) : Int) := by rw [Hmin.2]; push_cast; rfl
       have h2 : sint.nat st.minRev = (sint.Z st.minRev).toNat := rfl
       rw [h2, this]; rfl
@@ -842,6 +878,7 @@ theorem mvcc.watchableStore.notify.wp_proof
     (hDel : mvcc.watcherGroup.delete.spec (GF := GF) (hG := hG))
     (hAddV : mvcc.watchableStore.addVictim.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.notify.spec (GF := GF) (hG := hG) := by
+  have hDel := mvcc.watcherGroup.delete.spec_group hDel
   intro s st γ σ ilog pend evs dq es evm
   wp_start as ⟨#Hws, Hbody, %Hpre, #Hlb, Hevs, #HevIs, %Hevm⟩
   obtain ⟨hLmu, hbelow, hlen, hne⟩ := Hpre
@@ -849,7 +886,7 @@ theorem mvcc.watchableStore.notify.wp_proof
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%gW, #HgW, #HgWS⟩,
-    ⟨%gS, #HgS, #HgSS⟩, ⟨%gP, #HgP, #HgPS⟩⟩
+    ⟨%gS, #HgS, #HgSS⟩, ⟨%gP, #HgP, #HgPS⟩, -⟩
   iunfold mvcc.watchStoreBody at Hbody
   iNamed Hbody
   have hok_live : ∀ w, (σ.Ws !! w).isSome → (σ.ST !! w).isSome :=

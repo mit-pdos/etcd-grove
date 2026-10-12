@@ -796,6 +796,91 @@ theorem ownWatcherGroup_member (wg : Loc) (W : GMap Loc WatchRange) (w : Loc) (r
     · iframe Hw Hw'
     ipureintro; exact Or.inr (by rw [Hag.1])
 
+/-- The group with its all-watchers set at the map `ws` (the group's `watchers` field): `add` and
+`delete` keep the map (`syncWatchers` ranges over it while deleting from the group). -/
+def ownWatcherGroupAt (wg : Loc) (W : GMap Loc WatchRange) (ws : GoMap) (q : Qp := 1) :
+    IProp GF :=
+  iprop(∃ (km t : Loc) (KM : GMap GoString GoMap) (L : List adt.Entry),
+    "Hwg" ∷ typedPointsto wg
+      ({ keyWatchers' := km,
+         ranges' := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #t,
+         watchers' := ws } : watcherGroup) (DFrac.own q) ∗
+    "Hws" ∷ ownWatcherSet ws (domSet W) q ∗
+    "#Hfixed" ∷ ([∗map] w ↦ r ∈ W, ∃ fcs, watcherFixed w r fcs) ∗
+    "Hkm" ∷ ownKeyMap km KM W q ∗
+    "Hivt" ∷ adt.ownIvt t L q ∗
+    "%HL" ∷ ⌜RangesOk W L⌝ ∗
+    "Hranges" ∷ [∗list] z ∈ L, rangeSet W z q)
+
+/-- The group is the group at its set's map. -/
+theorem ownWatcherGroup_at (wg : Loc) (W : GMap Loc WatchRange) (q : Qp) :
+    ownWatcherGroup (GF := GF) wg W q ⊣⊢ ∃ ws : GoMap, ownWatcherGroupAt wg W ws q := by
+  unfold ownWatcherGroup ownWatcherGroupAt
+  constructor
+  · iintro H
+    icases H with ⟨%km, %ws, %t, %KM, %L, H⟩
+    iexists ws, km, t, KM, L
+    iexact H
+  · iintro H
+    icases H with ⟨%ws, %km, %t, %KM, %L, H⟩
+    iexists km, ws, t, KM, L
+    iexact H
+
+/-- The group at `ws`, its set lent: the rest, and the set. -/
+theorem ownWatcherGroupAt_set (wg : Loc) (W : GMap Loc WatchRange) (ws : GoMap) (q : Qp) :
+    ownWatcherGroupAt (GF := GF) wg W ws q ⊢
+      ownWatcherSet ws (domSet W) q ∗
+        (ownWatcherSet ws (domSet W) q -∗ ownWatcherGroupAt wg W ws q) := by
+  iintro H
+  unfold ownWatcherGroupAt
+  icases H with ⟨%km, %t, %KM, %L, H⟩
+  iNamed H
+  iframe Hws
+  iintro Hws
+  iexists km, t, KM, L
+  simp only [named]
+  iframe Hwg Hws Hfixed Hkm Hivt Hranges
+  ipureintro; exact HL
+
+/-- The group at `ws` from its parts. -/
+theorem ownWatcherGroupAt_intro (wg : Loc) (W : GMap Loc WatchRange) (km ws t : Loc)
+    (KM : GMap GoString GoMap) (L : List adt.Entry) (hL : RangesOk W L) :
+    wg ↦ ({ keyWatchers' := km,
+            ranges' := interface.mkOk
+              (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #t,
+            watchers' := ws } : watcherGroup) ∗
+      ownWatcherSet ws (domSet W) ∗ ([∗map] w ↦ r ∈ W, ∃ fcs, watcherFixed w r fcs) ∗
+      ownKeyMap km KM W ∗ adt.ownIvt t L 1 ∗ ([∗list] z ∈ L, rangeSet W z) ⊢
+    ownWatcherGroupAt (GF := GF) wg W ws := by
+  iintro ⟨Hwg, Hws, #Hfixed, Hkm, Hivt, Hranges⟩
+  unfold ownWatcherGroupAt
+  iexists km, t, KM, L
+  simp only [named]
+  iframe Hwg Hws Hfixed Hkm Hivt Hranges
+  ipureintro; exact hL
+
+/-- The members are distinct watchers (`ownWatcherGroup_member`, at the set's map). -/
+theorem ownWatcherGroupAt_member (wg : Loc) (W : GMap Loc WatchRange) (ws : GoMap) (w : Loc)
+    (r : WatchRange) (fcs : GoSlice) :
+    ownWatcherGroupAt (GF := GF) wg W ws ∗ watcherFixed w r fcs ⊢
+      ownWatcherGroupAt wg W ws ∗ ⌜W !! w = none ∨ W !! w = some r⌝ := by
+  iintro ⟨Hg, #Hw⟩
+  unfold ownWatcherGroupAt
+  icases Hg with ⟨%km, %t, %KM, %L, Hg⟩
+  iNamed Hg
+  isplitl [Hwg Hws Hkm Hivt Hranges]
+  · iexists km, t, KM, L
+    simp only [named]
+    iframe Hwg Hws Hfixed Hkm Hivt Hranges
+    ipureintro; exact HL
+  cases h : W !! w with
+  | none => ipureintro; exact Or.inl rfl
+  | some r' =>
+    icases (BigSepM.bigSepM_lookup_acc (m := W) h).1 $$ Hfixed with ⟨⟨%fcs', Hw'⟩, -⟩
+    icases watcherFixed_agree w r r' fcs fcs' $$ [Hw Hw'] with %Hag
+    · iframe Hw Hw'
+    ipureintro; exact Or.inr (by rw [Hag.1])
+
 end reprs
 
 end mvcc

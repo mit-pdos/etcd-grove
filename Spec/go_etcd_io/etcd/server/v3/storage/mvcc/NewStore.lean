@@ -38,7 +38,8 @@ views (owned: `newWatchableStore` overwrites them), all the reader slots of its 
   store.
 * The backend's batch lock has invariant `P` and runs the post-lock hook `f` (`isKeyBackend`'s
   `P f`, any); the store records them (`hookIs`, returned), for its writers.
-* A `nil` logger is replaced by `zap.NewNop()`'s; the configuration `cfg` is not modelled. -/
+* A `nil` logger is replaced by `zap.NewNop()`'s; the configuration `cfg` is not modelled.
+* The right to close the store once (`storeCloser`: its `stopc` field, owned). -/
 abbrev mvcc.NewStore.spec : Prop :=
   ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (γb γl : GName) (P : IProp GF) (f : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
@@ -58,7 +59,7 @@ abbrev mvcc.NewStore.spec : Prop :=
         mvcc.isWriteView wv s γ) ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
         mvcc.storeReader s γ) ∗
-      ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] }}
+      ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s }}
 
 end spec
 

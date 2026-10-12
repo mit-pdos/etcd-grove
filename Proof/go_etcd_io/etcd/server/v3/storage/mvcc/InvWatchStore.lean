@@ -45,6 +45,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchBatch
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStream
 public import Perennial.Golang.Theory.Chan
 public import Perennial.Golang.Theory.Chan.Idioms.Bag
+public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Perennial.Ghost.DGhostVar
 public import Perennial.Ghost.GhostMap
 
@@ -487,10 +488,18 @@ instance watcherChan_persistent (γ : WsNames) (w : Loc) (γw : WatcherNames) (c
 
 /-! ## The lock invariant -/
 
+/-- What the lock knows of a victim's batch `B` (the watcher's first revision `lo`, its state
+`st`): the first revision the batch left out, if any, is the watcher's `minRev` (`syncWatchers`
+sets it so), and its events are at or above `lo` and below `minRev` (the victims' loop resends
+them as of `minRev - 1`). -/
+def victimBatchOk (lo : Nat) (st : WatcherSt) (B : EventBatch) : Prop :=
+  (B.moreRev ≠ W64 0 → B.moreRev = st.minRev) ∧
+  ∀ ev ∈ B.evs, (lo : Int) ≤ sint.Z ev.kv.modRev ∧ sint.Z ev.kv.modRev < sint.Z st.minRev
+
 /-- What the lock knows of a live watcher's population: a synced one is delivered up to `d`, at
 or past its `minRev` (and the notified log: `WsOk.synced_d`); an unsynced one up to its
 `minRev`, at most the last revision of a committed log; a victim's batch completes its delivered
-events up to its `minRev`. -/
+events up to its `minRev` (`victimBatchOk`). -/
 def popFacts (γ : WsNames) (σ : WsState) (w : Loc) (r : WatchRange) (lo : Nat) (st : WatcherSt)
     (evsw : List EvM) (d : Nat) : IProp GF :=
   if (σ.Ws !! w).isSome then
@@ -499,7 +508,8 @@ def popFacts (γ : WsNames) (σ : WsState) (w : Loc) (r : WatchRange) (lo : Nat)
     iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ d = sint.nat st.minRev⌝ ∗ evsWf γ r lo evsw d ∗
       ∃ Lc : Log, idxCert γ.st.idx Lc ∗ ⌜sint.Z st.minRev < Lc.length⌝)
   else match σ.victimOf w with
-    | some B => iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ d = sint.nat st.minRev⌝ ∗
+    | some B => iprop(⌜(lo : Int) ≤ sint.Z st.minRev ∧ d = sint.nat st.minRev ∧
+          victimBatchOk lo st B⌝ ∗
         evsWf γ r lo (evsw ++ B.evs) d)
     | none => iprop(True)
 
@@ -565,8 +575,11 @@ one of `s.mu`'s. -/
 def watchReader (s st : Loc) (γ : WsNames) : IProp GF :=
   iprop(storeReader st γ.st ∗ sync.ownRWMutex (wsMuAddr s) (watchStoreInv s γ))
 
-/-- The stop channel (`stopc`, closed by `Close`: unit 3b's). -/
-def isStopChan (c : Loc) : IProp GF := iprop(∃ γc : ChanNames, isChan c γc Unit)
+/-- The stop channel (`stopc`): a channel nothing is sent on, closed once by `Close` (Perennial's
+broadcast idiom, `ownBroadcastChan`, nothing broadcast): a receive returns only once it is
+closed. -/
+def isStopChan (c : Loc) : IProp GF :=
+  iprop(∃ γc : ChanNames, ownBroadcastChan c γc iprop(True) Broadcast.Unknown)
 
 instance isStopChan_persistent (c : Loc) : Persistent (isStopChan (GF := GF) c) := by
   unfold isStopChan; infer_instance

@@ -22,6 +22,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevBytes
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketRange
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.SavedProp
 public import Perennial.Ghost.DGhostVar
@@ -128,12 +129,46 @@ def keyRangeSpec (rt : GoInterfaceOk) (m : Bucket) : IProp GF :=
         (Val #(slice.nil))) (Val #(W64 0)))
     {{ (ks vs : GoSlice), RET (PairV #ks #vs); key ↦*{dq} k ∗ keyVals ks vs m k }})
 
+/-- The slices `ks` and `vs` (read-only, of read-only slices) hold the keys and the values of the
+entries `l`, in order. -/
+def pairVals (ks vs : GoSlice) (l : List (GoString × GoString)) : IProp GF :=
+  iprop(∃ kss vss : List GoSlice, ks ↦*□ kss ∗ vs ↦*□ vss ∗
+    ⌜kss.length = l.length ∧ vss.length = l.length⌝ ∗
+    [∗list] i ↦ p ∈ l, ∃ ksl vsl : GoSlice, ⌜kss[i]? = some ksl ∧ vss[i]? = some vsl⌝ ∗
+      ksl ↦*□ p.1 ∗ vsl ↦*□ p.2)
+
+instance pairVals_persistent (ks vs : GoSlice) (l : List (GoString × GoString)) :
+    Persistent (pairVals (GF := GF) ks vs l) := by
+  unfold pairVals; infer_instance
+
+/-- What `UnsafeRange(Key, lo, hi, 0)` returns of the bucket `m` (`hi` not empty): the entries
+with a key in `[klo, khi)`, in key order (`bucketRange`; no limit). -/
+def rangeVals (ks vs : GoSlice) (m : Bucket) (klo khi : GoString) : IProp GF :=
+  pairVals ks vs (bucketRange m klo khi)
+
+instance rangeVals_persistent (ks vs : GoSlice) (m : Bucket) (klo khi : GoString) :
+    Persistent (rangeVals (GF := GF) ks vs m klo khi) := by
+  unfold rangeVals; infer_instance
+
+/-- `rt`'s `UnsafeRange(schema.Key, lo, hi, 0)`, for `lo` holding `klo` and `hi` holding a
+non-empty `khi`, reads the entries of the snapshot `m` with a key in `[klo, khi)`, in key order
+(bbolt's cursor from `klo` while below `khi`; the limit `0` is none). -/
+def keyRangeReadSpec (rt : GoInterfaceOk) (m : Bucket) : IProp GF :=
+  iprop(∀ (b : GoInterface) (lo hi : GoSlice) (klo khi : GoString) (dqlo dqhi : DFrac),
+    {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ lo ↦*{dqlo} klo ∗
+        hi ↦*{dqhi} khi ∗ ⌜khi ≠ []⌝ }}
+      (App (App (App (App (Val #(methods rt.ty go!"UnsafeRange" rt.v)) (Val #b)) (Val #lo))
+        (Val #hi)) (Val #(W64 0)))
+    {{ (ks vs : GoSlice), RET (PairV #ks #vs); lo ↦*{dqlo} klo ∗ hi ↦*{dqhi} khi ∗
+        rangeVals ks vs m klo khi }})
+
 /-- `rt` is a `ReadTx` over the snapshot `m` of the bucket (persistent): `RLock`/`RUnlock`
-return, and its reads are the snapshot's. -/
+return, and its reads are the snapshot's: a key's entry (`keyRangeSpec`) and a range of keys
+(`keyRangeReadSpec`). -/
 def keyReadSnap (rt : GoInterfaceOk) (m : Bucket) : IProp GF :=
   iprop(□ ({{ True }} (App (Val #(methods rt.ty go!"RLock" rt.v)) (Val #())) {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #())) {{ RET #(); True }}) ∗
-    □ keyRangeSpec rt m)
+    □ keyRangeSpec rt m ∗ □ keyRangeReadSpec rt m)
 
 instance keyReadSnap_persistent (rt : GoInterfaceOk) (m : Bucket) :
     Persistent (keyReadSnap (GF := GF) rt m) := by
@@ -159,7 +194,7 @@ theorem keyReadSnap_reader (rt : GoInterfaceOk) (m : Bucket) :
     keyReadSnap (GF := GF) rt m ⊢ keyReader rt m iprop(True) := by
   iintro #H
   iunfold keyReadSnap at H
-  icases H with ⟨-, -, #Hr⟩
+  icases H with ⟨-, -, #Hr, -⟩
   iunfold keyRangeSpec at Hr
   iunfold keyReader
   iintro %b %key %k %dq !> %Φ ⟨#HK, -, Hkey⟩ HΦ
@@ -576,6 +611,10 @@ def storeReader (s : Loc) (γ : StoreNames) : IProp GF :=
     "Hmu" ∷ sync.ownRWMutex (muAddr s) muInv ∗
     "HrevMu" ∷ sync.ownRWMutex (revMuAddr s) (revMuInv s γ) ∗
     "Hti" ∷ idxReader ti γ.idx)
+
+/-- The right to close the store (`store.Close`, which closes its `stopc`: once): the `stopc`
+field, owned (`NewStore` returns it; nothing else writes it). -/
+def storeCloser (s : Loc) : IProp GF := iprop(∃ c : GoChan, s.[store, go!"stopc"] ↦ c)
 
 /-! ## The read transaction -/
 
