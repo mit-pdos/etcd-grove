@@ -17,3 +17,6 @@ intervalTree__Stab: ?
 intervalTree__Len: ?
 # Added for the server's request path (v3rpc.checkIntervals, 2026-10-12), in the contract's style.
 intervalTree__Union: ?
+# Added for the request path's unit 1 (2026-10-12): `Insert` of any interval, present or not
+# (`checkIntervals` inserts the same range twice when a transaction deletes it twice).
+intervalTree__InsertAny: ?
