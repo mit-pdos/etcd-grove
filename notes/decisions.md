@@ -2074,6 +2074,29 @@ theorem).
   The `watchable` contract of the stream (unit 2) is instantiated with the store's
   `WatchParams`: `IW` the registration, `WC` cancelled, `C` the channel's invariant, `F` the
   filter predicate, `CR` the close right with the registered watchers.
+- **Refinements for 3a** (2026-10-12, after the second merge with `lean`): (1) **the
+  history carries the change.** `notify` sends a revision's events before the inner `End`
+  commits it (program order), and on the merged base the commit (`idxWriter_commit`) needs
+  `revMu`'s half of the committed log's authority (`idxLogAuth`), so no certificate of the
+  revision exists when its events go on the channel; the history's lower bound the writer
+  holds (`histShape ilog pend`, advanced at every `Put`/`Tombstone`) is persistent before the
+  commit but records keys, revisions and tombstones only. So `Ev` gains the change itself
+  (`change : Change`; `key`/`tomb` become projections): a history lower bound then determines
+  the log with its values, the response's fact is such a lower bound, and certificates
+  (lower bounds of the same list) are comparable with it without any lock — the watch
+  theorem is lock-free. *Rejected:* a ghost commit before `notify` (needs `revMu`'s half); a
+  separate watch-log ghost (a second list to thread through `writerRes`, both `End`s,
+  `NewStore` and `idxCert`); a theorem stated under a read lock only. (2) **The tree
+  contract gets a fraction** (`ownIvt t L q`): `progressIfSync` sends progress responses
+  under the store's *read* lock, so the lock's resource must be fractional, hence the groups,
+  hence the tree (reads at any fraction, `Insert`/`Delete` at one; unit 4 proves it that
+  way, as the B-tree's reads are). A fractional per-watcher "live" ghost (not an exclusive
+  token) says a registered watcher is not cancelled, which a sender needs against the
+  channel's "closed → all cancelled" clause. (3) **The `watchable` contract gains an owned
+  resource** `P.R` for `rev`/`progress`/`progressAll` (the store's: a reader slot,
+  `storeReader`, since `store.Rev` opens a read transaction), passed through the stream's
+  `Rev`/`RequestProgress`/`RequestProgressAll`; `watch` and the stream's `Watch` take
+  `0 ≤ startRev`.
 
 ## mvcc: the log of changes as the model, the key index as a function of its events
 
