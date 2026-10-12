@@ -343,7 +343,8 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                       iright; ileft
                       isplitr
                       · ipureintro; intro h; cases h
-                      ileft; icases HWR with ⟨HWR, -⟩; iexact HWR
+                      iframe
+                      try (ileft; icases HWR with ⟨HWR, -⟩; iexact HWR)
                     · rw [decide_eq_false hlp]
                       try wp_auto
                       wp_apply wp_slice_literal
@@ -356,7 +357,8 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                       iright; ileft
                       isplitr
                       · ipureintro; intro h; cases h
-                      ileft; icases HWR with ⟨HWR, -⟩; iexact HWR
+                      iframe
+                      try (ileft; icases HWR with ⟨HWR, -⟩; iexact HWR)
                   · rw [if_neg hty]
                     try wp_auto
                     wp_apply wp_slice_literal
@@ -369,7 +371,8 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                     iright; ileft
                     isplitr
                     · ipureintro; intro h; cases h
-                    ileft; icases HWR with ⟨HWR, -⟩; iexact HWR
+                    iframe
+                    try (ileft; icases HWR with ⟨HWR, -⟩; iexact HWR)
 
               · -- the mapping lost after the dereference
                 cases e with
@@ -396,7 +399,8 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                       iright; ileft
                       isplitr
                       · ipureintro; intro h; cases h
-                      iright; iexact HK
+                      iframe
+                      try (iright; iexact HK)
                     · rw [decide_eq_false hlp]
                       try wp_auto
                       wp_apply wp_slice_literal
@@ -409,7 +413,8 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                       iright; ileft
                       isplitr
                       · ipureintro; intro h; cases h
-                      iright; iexact HK
+                      iframe
+                      try (iright; iexact HK)
                   · rw [if_neg hty]
                     try wp_auto
                     wp_apply wp_slice_literal
@@ -422,7 +427,8 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                     iright; ileft
                     isplitr
                     · ipureintro; intro h; cases h
-                    iright; iexact HK
+                    iframe
+                    try (iright; iexact HK)
               · -- remapped
                 subst He
                 obtain ⟨Hbl, Hbc, Hbp, Hmsz, -⟩ := Hb
@@ -669,7 +675,8 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                   iright; ileft
                   isplitr
                   · ipureintro; intro h; cases h
-                  ileft; icases HWR with ⟨HWR, -⟩; iexact HWR
+                  iframe
+                  try (ileft; icases HWR with ⟨HWR, -⟩; iexact HWR)
                 · rw [decide_eq_false hlp]
                   try wp_auto
                   wp_apply wp_slice_literal
@@ -682,7 +689,8 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                   iright; ileft
                   isplitr
                   · ipureintro; intro h; cases h
-                  ileft; icases HWR with ⟨HWR, -⟩; iexact HWR
+                  iframe
+                  try (ileft; icases HWR with ⟨HWR, -⟩; iexact HWR)
               · rw [if_neg hty]
                 try wp_auto
                 wp_apply wp_slice_literal
@@ -695,7 +703,8 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                 iright; ileft
                 isplitr
                 · ipureintro; intro h; cases h
-                ileft; icases HWR with ⟨HWR, -⟩; iexact HWR
+                iframe
+                try (ileft; icases HWR with ⟨HWR, -⟩; iexact HWR)
 
           · -- the mapping lost after the dereference
             cases e with
@@ -722,7 +731,8 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                   iright; ileft
                   isplitr
                   · ipureintro; intro h; cases h
-                  iright; iexact HK
+                  iframe
+                  try (iright; iexact HK)
                 · rw [decide_eq_false hlp]
                   try wp_auto
                   wp_apply wp_slice_literal
@@ -735,7 +745,8 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                   iright; ileft
                   isplitr
                   · ipureintro; intro h; cases h
-                  iright; iexact HK
+                  iframe
+                  try (iright; iexact HK)
               · rw [if_neg hty]
                 try wp_auto
                 wp_apply wp_slice_literal
@@ -748,7 +759,8 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                 iright; ileft
                 isplitr
                 · ipureintro; intro h; cases h
-                iright; iexact HK
+                iframe
+                try (iright; iexact HK)
           · -- remapped
             subst He
             obtain ⟨Hbl, Hbc, Hbp, Hmsz, -⟩ := Hb

@@ -78,7 +78,7 @@ abbrev DB.allocate.spec : Prop :=
         pagesView σ.data σ.ps w.q w.pages ∗
         structFieldRef DB go!"freelist" dbl ↦{DFrac.own halfQ} I.iface ∗
         structFieldRef Tx go!"meta" σ.rwtx ↦ ml ∗ ml ↦ mv ∗ WR) ∨
-      (⌜err ≠ interface.nil⌝ ∗ (WR ∨ WR')) ∨
+      (⌜err ≠ interface.nil⌝ ∗ structFieldRef Tx go!"meta" σ.rwtx ↦ ml ∗ ml ↦ mv ∗ (WR ∨ WR')) ∨
       (⌜err = interface.nil⌝ ∗ ∃ (σ' : DBState) (mv' : internal.common.Meta) (id : w64),
         ⌜allocOK σ σ' w mv mv' txid id (uint.nat count)⌝ ∗ ownDB I dbl γ σ' ∗
         structFieldRef DB go!"data" dbl ↦{DFrac.own w.q} σ'.data ∗
