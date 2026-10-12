@@ -39,7 +39,7 @@ theorem apply.applierV3Capped.Txn.wp_proof
   · iPkgInit
   ihave Hei : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ He
-  icases Hei with ⟨%eN, #HeN⟩
+  icases Hei with ⟨%eN, #HeN, %HeNp⟩
   wp_auto
   iunfold apply.applierSpec at Hin
   icases Hin with ⟨%bi, %Hbi, #Ht⟩

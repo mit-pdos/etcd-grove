@@ -292,6 +292,21 @@ unit 1 bullets).
   (the backend's `Compaction`, `uber_applier.go`'s 6, `noSideEffect`), 486 of 684 lines verified;
   backend.go 31 of 32, auth.go 16/16, quota.go 4/4, capped.go 4/4, corrupt.go 8/8; etcd 557
   verified of 3599 functions, 5635 of 45570 lines (was 494, 5149)..
+### Merges of `origin/lean` (2026-10-12)
+
+Three merges of `origin/lean` into `lean` after unit 1 (`6af808b84`, `2228d1eda`, `d133c1c8b`,
+each built and gated): the scripts refusing a stale build and `timed-build.py`; the register's
+adequacy with Perennial `008979bd0` (baseline 82 axioms, 10 sorries: nine `wp_initialize'`
+stubs of Perennial's); the five standard-library axioms proved from Perennial `e6ec34885`
+(`bigEndian.Uint64/PutUint64`, `sort.Sort/Reverse`, `errors.Is`; baseline 77 axioms, 10
+sorries; the apply collection 35 → 32, server 26 → 23, mvcc 17 → 15, txn 22 → 19). The last
+one changed the server's `resultOk` to carry `applyErrIs err` (an error tree for `errors.Is`)
+and `errorsInit` to say `ErrNoSpace` is a pointer error; six of unit 1's proofs (`capped`/
+`quota` `Put`/`Txn`/`LeaseGrant`) destructured `errorsInit` with the old pattern and were
+fixed (`⟨%eN, #HeN, %HeNp⟩`). `apply.Apply`'s proof (unit 2) must produce `applyErrIs` of
+every error the chain returns. Builds against a Perennial pin not in `/shared/perennial-merge`
+use a worktree of it (`/shared/perennial-e6ec348`) and `.lake/manifest-e6ec348.json`.
+
 ## Standard-library axioms from Perennial (2026-10-12, branch `std-axioms-from-perennial`)
 
 Perennial branch `binary-sort-errors`, landed on its `lean` as `e6ec34885` and pinned here, proves

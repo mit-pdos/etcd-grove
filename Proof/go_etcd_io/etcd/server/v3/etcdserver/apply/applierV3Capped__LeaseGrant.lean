@@ -34,7 +34,7 @@ theorem apply.applierV3Capped.LeaseGrant.wp_proof :
   · iPkgInit
   ihave Hei : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ He
-  icases Hei with ⟨%eN, #HeN⟩
+  icases Hei with ⟨%eN, #HeN, %HeNp⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   wp_auto
