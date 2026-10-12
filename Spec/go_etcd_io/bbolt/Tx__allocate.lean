@@ -1,5 +1,5 @@
 module
-public import Proof.go_etcd_io.bbolt.WriteTxLemmas
+public import Proof.go_etcd_io.bbolt.WriteAlloc
 
 @[expose] public section
 
@@ -40,29 +40,31 @@ end defs
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [AllG GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
+variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
 
 /-- `tx.allocate(count)` of the write transaction at `txl` (`count` at least one page), the
-database's state an abstract resource `dbR W txl ρ` (the database whose writer is `txl`,
+database's state an abstract resource `dbWR I γ W txl ρ` (the database whose writer is `txl`,
 with the view `W`). If the allocation grows the mapping, the
 transaction is dereferenced (`Bucket.dereference.spec`, hence `derefReady`) and stands over a
 view at the new location `data'` (the same pages). If the remap fails after the
-transaction was dereferenced, the database is lost (an error, the transaction alone). -/
-abbrev Tx.allocate.wspec (R : Type) (dbR : WView → Loc → R → IProp GF) : Prop :=
-  ∀ (W : WView) (txl : Loc) (T : WTx) (ρ : R) (count : w64),
+transaction was dereferenced, the database is lost (an error, and nothing else). -/
+abbrev Tx.allocate.wspec : Prop :=
+  ∀ (I : FLImpl (GF := GF)) (γ : DBNames) (W : WView) (txl : Loc) (T : WTx) (ρ : DBState) (count : w64),
   0 < sint.Z count → sint.Z count ≤ 2 ^ 32 → sint.Z count * W.ps < 2 ^ 47 →
   uint.Z T.mv.pgid' * W.ps < 2 ^ 48 → W.hwm ≤ uint.nat T.mv.pgid' →
-  derefReady T (structFieldRef Tx go!"root" txl) → T.t.db' = W.dbl →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ dbR W txl ρ ∗ ownWriteTxG W txl T ∗
+  derefReady T (structFieldRef Tx go!"root" txl) → T.t.db' = W.dbl → W.data.locCar ≠ 0 →
+  (∀ bl B, T.bs !! bl = some B → B.bv.tx' = txl) → 16 ≤ W.ps →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ dbWR I γ W txl ρ ∗ ownWriteTxG W txl T ∗
       wView W }}
     (App (Val (txl @!! go.GoType.PointerType Tx.ty @!! go!"allocate")) (Val #count))
   {{ (p : Loc) (err : GoInterface), RET (PairV #p #err);
-      (∃ (ρ' : R) (data' : Loc) (T0 T' : WTx), dbR { W with data := data' } txl ρ' ∗
+      (∃ (ρ' : DBState) (data' : Loc) (T0 T' : WTx), dbWR I γ { W with data := data' } txl ρ' ∗
         ownWriteTxG { W with data := data' } txl T' ∗ wView { W with data := data' } ∗
         ⌜allocRes W T T0 T' count p err data'⌝) ∨
-      (⌜err ≠ interface.nil⌝ ∗ ∃ (T0 : WTx), ⌜T0 = T ∨ derefRel T T0⌝ ∗ ownWriteTxG W txl T0) }}
+      ⌜err ≠ interface.nil⌝ }}
 
 end spec
 

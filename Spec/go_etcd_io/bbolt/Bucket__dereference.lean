@@ -21,17 +21,20 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- `tx.root.dereference()` of the write transaction at `txl` (what `db.mmap` calls before it
 unmaps): every node the buckets' node trees reach gets heap copies of its bytes (`derefRel`),
 so that afterwards no byte the transaction keeps is in the view (`noView`, and
-`ownWriteTxG_reattach` moves it to the new mapping). The view's pages, which the bytes were
-lent from, are given back as they were. -/
+`ownWriteTxG_reattach` moves it to the new mapping). It needs only the buckets and the
+transaction's stats; the view's pages, which the bytes are lent from, are given back as they
+were. -/
 abbrev Bucket.dereference.spec : Prop :=
   ∀ (W : WView) (txl : Loc) (T : WTx),
   derefReady T (structFieldRef Tx go!"root" txl) → W.data.locCar ≠ 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownWriteTxG W txl T ∗
+  (∀ bl B, T.bs !! bl = some B → B.bv.tx' = txl) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗
+      ([∗map] bl ↦ B ∈ T.bs, bktOwn W bl B) ∗ structFieldRef Tx go!"stats" txl ↦ T.t.stats' ∗
       pagesView W.data W.ps W.q W.pages }}
     (App (Val (structFieldRef Tx go!"root" txl @!! go.GoType.PointerType Bucket.ty @!! go!"dereference"))
       (Val #()))
-  {{ RET #(); ∃ T', ⌜derefRel T T'⌝ ∗ ownWriteTxG W txl T' ∗
-      pagesView W.data W.ps W.q W.pages }}
+  {{ RET #(); ∃ T', ⌜derefRel T T'⌝ ∗ ([∗map] bl ↦ B ∈ T'.bs, bktOwn W bl B) ∗
+      structFieldRef Tx go!"stats" txl ↦ T'.t.stats' ∗ pagesView W.data W.ps W.q W.pages }}
 
 end spec
 
