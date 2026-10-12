@@ -27,7 +27,7 @@ theorem realTimer.Chan.wp_proof : realTimer.Chan.spec (GF := GF) (hG := hG) := b
   unfold isRealTimer
   icases Hr with ⟨%t, %ch, %γ, #Ht, #HT⟩
   unfold time.isTimer
-  icases HT with ⟨#HC, #Hbag⟩
+  icases HT with ⟨#HC, #Hbag, -⟩
   wp_auto
   iapply HΦ
   iexact Hbag

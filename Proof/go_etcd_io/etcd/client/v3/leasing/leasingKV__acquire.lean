@@ -263,11 +263,12 @@ theorem leasingKV.acquire.wp_proof
     (try wp_auto)
     ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
     · iPkgInit
+    obtain ⟨Htarget, Hce⟩ := Hce
     obtain ⟨Hleaf, Htyped⟩ := Hce e rfl
     ihave #Htree := errors.isErrorTree_leaf (GF := GF) e Hleaf Htyped
     wp_apply errors.wp_As (T' := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError)
         (T := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) (· = GoInterface.ok e)
-        (GoInterface.ok e) _ _ $$ [$Herrs $Htree $serverErr] as %b %v' Hse
+        (GoInterface.ok e) _ _ Htarget $$ [$Herrs $Htree $serverErr] as %b %v' Hse
     · ipureintro; rfl
     cases b
     · wp_auto
