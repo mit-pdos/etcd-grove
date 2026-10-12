@@ -30,7 +30,7 @@ abbrev Cursor.searchPage.spec : Prop :=
   pageFlags pg = branchPageFlag → branchWF pg pg.length V.hwm → 16 ≤ pg.length →
   (∀ i < pageCount pg, V.wfAt (W64 (branchPgid pg i))) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ cl ↦ cv ∗ cv.stack' ↦* es ∗
-      ownSliceCap elemRef cv.stack' (DFrac.own 1) ∗ bktCtx cv.bucket' V ∗ bktPages V q ∗
+      ownSliceCap elemRef cv.stack' (DFrac.own 1) ∗ bktCtx cv.bucket' V q ∗ bktPages V q ∗
       key ↦*{dk} kb }}
     (App (App (Val (cl @!! go.GoType.PointerType Cursor.ty @!! go!"searchPage")) (Val #key))
       (Val #rv.page'))
@@ -41,7 +41,7 @@ abbrev Cursor.searchPage.spec : Prop :=
         leafSeekAt lpg kb idx⌝ ∗
       cl ↦ cv' ∗ cv'.stack' ↦* (es.set (es.length - 1) { rv with index' := i } ++ path) ∗
       ownSliceCap elemRef cv'.stack' (DFrac.own 1) ∗
-      bktCtx cv.bucket' V ∗ bktPages V q ∗ key ↦*{dk} kb }}
+      bktCtx cv.bucket' V q ∗ bktPages V q ∗ key ↦*{dk} kb }}
 
 end spec
 

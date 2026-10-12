@@ -36,7 +36,7 @@ theorem Cursor.next.wp_proof
   ihave IH : iprop(∃ (cv : Cursor) (es : List elemRef),
       "c" ∷ c_ptr ↦ cl ∗ "%Hcp" ∷ ⌜cv.bucket' = bl ∧ cursorOK V es ∧ (es0 ≠ [] → es ≠ [])⌝ ∗
       "Hcl" ∷ cl ↦ cv ∗ "Hs" ∷ cv.stack' ↦* es ∗
-      "Hcap" ∷ ownSliceCap elemRef cv.stack' (DFrac.own 1) ∗ "Hctx" ∷ bktCtx bl V ∗
+      "Hcap" ∷ ownSliceCap elemRef cv.stack' (DFrac.own 1) ∗ "Hctx" ∷ bktCtx bl V q ∗
       "Hpgs" ∷ bktPages V q) $$ [c Hcl Hs Hcap Hctx Hpgs]
   · iexists cv, es0; iframe; ipureintro; exact ⟨Hb, Hcur, fun h => h⟩
   clear Hcur Hb

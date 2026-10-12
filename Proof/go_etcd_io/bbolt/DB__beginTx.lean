@@ -40,7 +40,7 @@ theorem DB.beginTx.wp_proof (hinit : Tx.init.spec (GF := GF) (hG := hG))
   have Hk := freshKey_none σ.readers
   imod ghost_map_insert (freshKey σ.readers) (newReader σ v0 v1 (beginQ σ)) Hk $$ Hrauth
     with ⟨Hrauth, Hkey⟩
-  obtain ⟨Hdata', Hps', Hdsz, Hm0, Hm1, Hopen, Hfile', Hfl', Hrw⟩ := Hdv
+  obtain ⟨Hdata', Hps', Hdsz, Hm0, Hm1, Hopen, Hfile', Hfl', Hrw, Hdbl⟩ := Hdv
   isimp only [dbPlain] at Hplain
   iNamed Hplain
   try wp_auto
@@ -106,13 +106,14 @@ theorem DB.beginTx.wp_proof (hinit : Tx.init.spec (GF := GF) (hG := hG))
       iexists fls
       iexists v0
       iexists v1
+      iexists dl
       have Hsz' := GMap.map_size_insert_None σ.readers (freshKey σ.readers)
         (newReader σ v0 v1 (beginQ σ)) Hk
       simp only [DBState.addReader.proj_data, DBState.addReader.proj_ps, DBState.addReader.proj_sz,
         DBState.addReader.proj_file, DBState.addReader.proj_fd, DBState.addReader.proj_bs,
         DBState.addReader.proj_readers, nslots_addReader, Hsz']
       isplitr
-      · ipureintro; exact ⟨Hdata', Hps', Hdsz, Hm0, Hm1, Hopen, Hfile', Hfl', Hrw⟩
+      · ipureintro; exact ⟨Hdata', Hps', Hdsz, Hm0, Hm1, Hopen, Hfile', Hfl', Hrw, Hdbl⟩
       isplitr
       · ipureintro; exact dbOK_addReader σ v0 v1 Hok hsize
       ihave Hplain : dbPlain dbl (DFrac.own 1) dv $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize Mlock logger path openFile file dataref datasz meta0 meta1 opened rwtx stats freelist batch ops readOnly]
@@ -132,6 +133,7 @@ theorem DB.beginTx.wp_proof (hinit : Tx.init.spec (GF := GF) (hG := hG))
       · iframe
       iframe
       iframe #
+      try (ipureintro; exact Hlog)
       done
     · simp only [ownReadTx]
       iexists (txInitOf (zero_val Tx) «$r0_ptr» dbl ml ibl map.nil map.nil map.nil)

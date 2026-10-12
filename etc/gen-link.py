@@ -25,6 +25,7 @@ usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --register > Proof/github_com/mit_pdos/etcd_grove/examples/register/Link.lean
        etc/gen-link.py --bbolt > Proof/go_etcd_io/bbolt/internal/common/Link.lean
        etc/gen-link.py --bbolt-root > Proof/go_etcd_io/bbolt/Link.lean
+       etc/gen-link.py --bbolt-freelist > Proof/go_etcd_io/bbolt/internal/freelist/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -83,6 +84,9 @@ LEAN_FIRST = {
     "--bbolt-root": ("link-lean-first-bbolt-root.txt", "go_etcd_io.bbolt",
                      "go_etcd_io.bbolt.Assumptions",
                      "bbolt's root package's proofs and the file model's axioms", [""]),
+    "--bbolt-freelist": ("link-lean-first-bbolt-freelist.txt", "go_etcd_io.bbolt.internal.freelist",
+                         "go_etcd_io.bbolt.internal.freelist.Assumptions",
+                         "bbolt's internal/freelist proofs", [""]),
 }
 # bbolt reaches `hash` only through `hash/fnv`, so its `Assumptions` lack `hash`'s, which the
 # meta checksum's specs (`Meta.Sum64`, ...) take: a Goose gap, an instance hypothesis until fixed
@@ -93,7 +97,8 @@ variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
 variable [AllG GF]
 """
 # The mode whose results are put in a namespace of their own (see the docstring).
-NAMESPACED = {"--concurrency": "concurrency", "--bbolt": "bbolt", "--bbolt-root": "bbolt"}
+NAMESPACED = {"--concurrency": "concurrency", "--bbolt": "bbolt", "--bbolt-root": "bbolt",
+              "--bbolt-freelist": "bbolt"}
 mode = LEAN_FIRST.get(sys.argv[1])
 cache = mode is not None
 here = os.path.dirname(os.path.abspath(__file__))
@@ -240,7 +245,7 @@ variable [go_gctx : GoGlobalContext]
 variable {{hlc : HasLC}} {{GF : BundledGFunctors}} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : {assumptions}]
-""" + (BBOLT_HASH if sys.argv[1] in ("--bbolt", "--bbolt-root") else ""))
+""" + (BBOLT_HASH if sys.argv[1] in ("--bbolt", "--bbolt-root", "--bbolt-freelist") else ""))
     def emit_cache(fn):
         # qualified in a namespaced mode: in `theorem DB.wp_munmap`, a bare `wp_munmap` would be
         # `DB.wp_munmap` itself

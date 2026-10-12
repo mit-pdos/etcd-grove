@@ -143,3 +143,10 @@ node__removeChild:
 node__root:
 node__dereference: Inode__Key Inode__Value Inode__SetKey Inode__SetValue common_Assert TxStats__IncNodeDeref
 nodes__Less: Inode__Key
+getDiscardLogger:
+DB__Logger: getDiscardLogger
+DB__Begin: DB__Logger DB__beginTx
+Tx__close: DB__removeTx
+Tx__nonPhysicalRollback: Tx__close
+Tx__Rollback: common_Assert Tx__nonPhysicalRollback
+DB__View: DB__Begin Tx__Rollback

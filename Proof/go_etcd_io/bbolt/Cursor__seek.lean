@@ -46,13 +46,13 @@ theorem Cursor.seek.wp_proof
   try wp_auto
   rw [Hb]
   unfold bktCtx
-  icases Hctx with ⟨%bv, %ib, %t, %dbl, %d1, %d2, %d3, %d4, Hbk, Hib, Ht, Hdata, Hps, %Hcx⟩
+  icases Hctx with ⟨%bv, %ib, %t, %dbl, Hbk, Hib, Ht, Hdata, Hps, %Hcx⟩
   wp_method_call
   try wp_auto
   wp_apply hRoot $$ [Hib] as Hib
   · iframe
   rw [Hcx.1]
-  ihave Hctx : bktCtx bl V $$ [Hbk Hib Ht Hdata Hps]
+  ihave Hctx : bktCtx bl V q $$ [Hbk Hib Ht Hdata Hps]
   · unfold bktCtx; iframe; ipureintro; exact Hcx
   try wp_auto
   wp_apply hsearch cl { cv with stack' := slice.slice cv.stack' elemRef (W64 0) (W64 0) } [] V q V.root

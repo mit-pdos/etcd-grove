@@ -14,6 +14,9 @@ way (`fieldsOK`). A reader's pages are the file's (`pagesOf`): the database neve
 slot a reader sees, which is bbolt's MVCC rule (`mvccOK`: such a slot is no meta page, not
 free, and pending only from a transaction newer than the reader).
 
+**The logger** is the default one (`discardLogger`, nil standing for it): a logger contract
+is later work, so `Begin` and the others never log.
+
 **The locks.** `mmaplock` (an RWMutex) protects the mapping against a remap: its invariant is
 a ghost token (`mmapTok`); each open reader holds a read lock, and its `mmapTok γ rfrac` is
 kept here (`Htoks`), so a writer holding the write lock (`mmapTok γ 1`) knows that no reader
@@ -30,7 +33,7 @@ public import Proof.go_etcd_io.bbolt.DBModel
 public import Proof.go_etcd_io.bbolt.FilePages
 public import Proof.go_etcd_io.bbolt.Tx__init
 public import Proof.os.FileModel
-public import Proof.go_etcd_io.bbolt.internal.freelist.Model
+public import Proof.go_etcd_io.bbolt.internal.freelist.Iface
 public import Perennial.Proof.sync_proof.mutex
 public import Perennial.Proof.sync_proof.rwmutex_guard
 public import Perennial.Ghost.GhostMap
@@ -163,22 +166,6 @@ def mmapTok (γ : GName) (q : Qp) : IProp GF := ghostVar γ q ()
 /-- `statlock`'s invariant: nothing (in sequential use the statistics are the database's). -/
 def statsInv (_q : Qp) : IProp GF := iprop(True)
 
-/-- `AddReadonlyTXID(tid)` through the freelist interface: `tid` is a read-only transaction. -/
-def FLImpl.AddReadonlySpec (I : FLImpl (GF := GF)) : Prop :=
-  ∀ (s : Loc) (σ : FLState) (tid : w64),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ ownFL I s σ }}
-      (App (Val #(methods I.ity go!"AddReadonlyTXID" I.iv)) (Val #tid))
-    {{ RET #(); ownFL I s { σ with readonly := σ.readonly ++ [tid] } }}
-
-/-- `RemoveReadonlyTXID(tid)` through the freelist interface: one `tid` is no longer a
-read-only transaction (the rest in some order: `shared`'s swaps the last one into its place). -/
-def FLImpl.RemoveReadonlySpec (I : FLImpl (GF := GF)) : Prop :=
-  ∀ (s : Loc) (σ : FLState) (tid : w64),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ ownFL I s σ }}
-      (App (Val #(methods I.ity go!"RemoveReadonlyTXID" I.iv)) (Val #tid))
-    {{ (ro : List w64), RET #(); ⌜ro.Perm (σ.readonly.erase tid)⌝ ∗
-        ownFL I s { σ with readonly := ro } }}
-
 /-- The ghost names of a database. -/
 structure DBNames where
   mmap : GName
@@ -187,11 +174,15 @@ structure DBNames where
 /-- The database at `dbl` (sequential use, no writer open), its freelist an implementation `I`
 of the freelist interface. -/
 def ownDB (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DBState) : IProp GF :=
-  iprop(∃ (dv : DB) (fls : Loc) (v0 v1 : internal.common.Meta),
+  iprop(∃ (dv : DB) (fls : Loc) (v0 v1 : internal.common.Meta) (dl : Loc),
     "%Hdv" ∷ ⌜dv.data' = σ.data ∧ dv.pageSize' = W64 σ.ps ∧ dv.datasz' = W64 σ.sz ∧
       dv.meta0' = σ.data +ₗ 16 ∧ dv.meta1' = σ.data +ₗ ((σ.ps + 16 : Nat) : Int) ∧
-      dv.opened' = true ∧ dv.file' = σ.file ∧ dv.freelist' = I.iface ∧ dv.rwtx' = null⌝ ∗
+      dv.opened' = true ∧ dv.file' = σ.file ∧ dv.freelist' = I.iface ∧ dv.rwtx' = null ∧
+      dbl ≠ null⌝ ∗
     "%Hok" ∷ ⌜dbOK σ v0 v1⌝ ∗
+    "#Hdl" ∷ (globalAddr discardLogger ↦□ dl : IProp GF) ∗
+    "%Hlog" ∷ ⌜dv.logger' = interface.nil ∨
+      dv.logger' = interface.mkOk (go.GoType.PointerType DefaultLogger.ty) #dl⌝ ∗
     "Hplain" ∷ dbPlain dbl (DFrac.own 1) dv ∗
     "Hdata" ∷ structFieldRef DB go!"data" dbl ↦{DFrac.own σ.frem} σ.data ∗
     "Hps" ∷ structFieldRef DB go!"pageSize" dbl ↦{DFrac.own σ.frem} W64 σ.ps ∗

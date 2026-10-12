@@ -51,7 +51,7 @@ theorem Cursor.prev.wp_proof
       "%Hi" ∷ ⌜cv.bucket' = bl ∧ -1 ≤ sint.Z i ∧ sint.Z i < es.length ∧
         (es ≠ [] → 0 ≤ sint.Z i)⌝ ∗
       "Hcl" ∷ cl ↦ cv ∗ "Hs" ∷ cv.stack' ↦* es.take (sint.Z i + 1).toNat ∗
-      "Hcap" ∷ ownSliceCap elemRef cv.stack' (DFrac.own 1) ∗ "Hctx" ∷ bktCtx bl V ∗
+      "Hcap" ∷ ownSliceCap elemRef cv.stack' (DFrac.own 1) ∗ "Hctx" ∷ bktCtx bl V q ∗
       "Hpgs" ∷ bktPages V q) $$ [i c Hcl Hs Hcap Hctx Hpgs]
   · iexists cv, _
     rw [Hi0.1, List.take_length]

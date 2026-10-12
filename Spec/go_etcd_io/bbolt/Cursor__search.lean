@@ -27,14 +27,14 @@ abbrev Cursor.search.spec : Prop :=
     (key : GoSlice) (kb : List w8) (dk : DFrac),
   V.ok → V.wfAt pid →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ cl ↦ cv ∗ cv.stack' ↦* es ∗
-      ownSliceCap elemRef cv.stack' (DFrac.own 1) ∗ bktCtx cv.bucket' V ∗ bktPages V q ∗
+      ownSliceCap elemRef cv.stack' (DFrac.own 1) ∗ bktCtx cv.bucket' V q ∗ bktPages V q ∗
       key ↦*{dk} kb }}
     (App (App (Val (cl @!! go.GoType.PointerType Cursor.ty @!! go!"search")) (Val #key)) (Val #pid))
   {{ (cv' : Cursor) (path : List elemRef) (pg : List w8) (idx : w64), RET #();
       ⌜cv'.bucket' = cv.bucket' ∧ stackOK V pid path ∧ stackLeaf V pid path pg idx ∧ leafOK pg ∧
         leafSeekAt pg kb idx⌝ ∗
       cl ↦ cv' ∗ cv'.stack' ↦* (es ++ path) ∗ ownSliceCap elemRef cv'.stack' (DFrac.own 1) ∗
-      bktCtx cv.bucket' V ∗ bktPages V q ∗ key ↦*{dk} kb }}
+      bktCtx cv.bucket' V q ∗ bktPages V q ∗ key ↦*{dk} kb }}
 
 end spec
 

@@ -41,7 +41,7 @@ theorem Cursor.last.wp_proof
   ihave IH : iprop(∃ (cv : Cursor) (es : List elemRef) (pid : w64) (r : elemRef) (pg : List w8),
       "c" ∷ c_ptr ↦ cl ∗ "%Hcp" ∷ ⌜cv.bucket' = bl ∧ curPath V V.root es pid r pg⌝ ∗
       "Hcl" ∷ cl ↦ cv ∗ "Hs" ∷ cv.stack' ↦* es ∗
-      "Hcap" ∷ ownSliceCap elemRef cv.stack' (DFrac.own 1) ∗ "Hctx" ∷ bktCtx bl V ∗
+      "Hcap" ∷ ownSliceCap elemRef cv.stack' (DFrac.own 1) ∗ "Hctx" ∷ bktCtx bl V q ∗
       "Hpgs" ∷ bktPages V q) $$ [c Hcl Hs Hcap Hctx Hpgs]
   · iexists cv, es, pid, r, pg; iframe; ipureintro; exact ⟨Hb, Hpath⟩
   clear Hpath Hb

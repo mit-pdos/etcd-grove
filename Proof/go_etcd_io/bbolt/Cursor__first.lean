@@ -52,13 +52,13 @@ theorem Cursor.first.wp_proof
   -- `c.bucket.RootPage()`
   rw [Hb]
   unfold bktCtx
-  icases Hctx with ⟨%bv, %ib, %t, %dbl, %d1, %d2, %d3, %d4, Hbk, Hib, Ht, Hdata, Hps, %Hcx⟩
+  icases Hctx with ⟨%bv, %ib, %t, %dbl, Hbk, Hib, Ht, Hdata, Hps, %Hcx⟩
   wp_method_call
   try wp_auto
   wp_apply hRoot $$ [Hib] as Hib
   · iframe
   rw [Hcx.1]
-  ihave Hctx : bktCtx bl V $$ [Hbk Hib Ht Hdata Hps]
+  ihave Hctx : bktCtx bl V q $$ [Hbk Hib Ht Hdata Hps]
   · unfold bktCtx; iframe; ipureintro; exact Hcx
   try wp_auto
   obtain ⟨p, pg, Hpa, Hlen, -, -, Hkind⟩ := wfAt_page V V.root Hok Hwf

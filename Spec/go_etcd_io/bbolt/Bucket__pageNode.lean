@@ -1,6 +1,7 @@
 module
 public import Proof.go_etcd_io.bbolt.Init
 public import Proof.go_etcd_io.bbolt.PageView
+public import Proof.go_etcd_io.bbolt.StructSplit
 public import Spec.go_etcd_io.bbolt.internal.common.InBucket__RootPage
 public import Spec.go_etcd_io.bbolt.internal.common.Page__FastCheck
 
@@ -34,11 +35,11 @@ abbrev Bucket.pageNode.spec : Prop :=
   bv.tx' = txl → bv.nodes' = map.nil → bv.rootNode' = null →
   (ib.root' = W64 0 → id = W64 0) → (ib.root' ≠ W64 0 → txPageOk t dbl data ps id pg) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ bl ↦{dqb} bv ∗ bv.InBucket' ↦{dqi} ib ∗
-      (if ib.root' = W64 0 then True else txl ↦{dqt} t ∗ structFieldRef DB go!"data" dbl ↦{dq} data ∗ structFieldRef DB go!"pageSize" dbl ↦{dq} ps ∗ bytesPointsto (data +ₗ uint.Z (id * ps)) q pg) }}
+      (if ib.root' = W64 0 then True else Tx_rest_stats txl dqt t ∗ structFieldRef DB go!"data" dbl ↦{dq} data ∗ structFieldRef DB go!"pageSize" dbl ↦{dq} ps ∗ bytesPointsto (data +ₗ uint.Z (id * ps)) q pg) }}
     (App (Val (bl @!! go.GoType.PointerType Bucket.ty @!! go!"pageNode")) (Val #id))
   {{ RET (PairV #(if ib.root' = W64 0 then bv.page' else data +ₗ uint.Z (id * ps)) #null);
       bl ↦{dqb} bv ∗ bv.InBucket' ↦{dqi} ib ∗
-      (if ib.root' = W64 0 then True else txl ↦{dqt} t ∗ structFieldRef DB go!"data" dbl ↦{dq} data ∗ structFieldRef DB go!"pageSize" dbl ↦{dq} ps ∗ bytesPointsto (data +ₗ uint.Z (id * ps)) q pg) }}
+      (if ib.root' = W64 0 then True else Tx_rest_stats txl dqt t ∗ structFieldRef DB go!"data" dbl ↦{dq} data ∗ structFieldRef DB go!"pageSize" dbl ↦{dq} ps ∗ bytesPointsto (data +ₗ uint.Z (id * ps)) q pg) }}
 
 end spec
 

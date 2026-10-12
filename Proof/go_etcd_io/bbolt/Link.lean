@@ -26,11 +26,14 @@ public import Proof.go_etcd_io.bbolt.Cursor__prev
 public import Proof.go_etcd_io.bbolt.Cursor__search
 public import Proof.go_etcd_io.bbolt.Cursor__searchPage
 public import Proof.go_etcd_io.bbolt.Cursor__seek
+public import Proof.go_etcd_io.bbolt.DB__Begin
 public import Proof.go_etcd_io.bbolt.DB__GoString
 public import Proof.go_etcd_io.bbolt.DB__Info
 public import Proof.go_etcd_io.bbolt.DB__IsReadOnly
+public import Proof.go_etcd_io.bbolt.DB__Logger
 public import Proof.go_etcd_io.bbolt.DB__Path
 public import Proof.go_etcd_io.bbolt.DB__String
+public import Proof.go_etcd_io.bbolt.DB__View
 public import Proof.go_etcd_io.bbolt.DB__beginTx
 public import Proof.go_etcd_io.bbolt.DB__growSize
 public import Proof.go_etcd_io.bbolt.DB__invalidate
@@ -71,10 +74,13 @@ public import Proof.go_etcd_io.bbolt.TxStats__add
 public import Proof.go_etcd_io.bbolt.Tx__DB
 public import Proof.go_etcd_io.bbolt.Tx__ID
 public import Proof.go_etcd_io.bbolt.Tx__OnCommit
+public import Proof.go_etcd_io.bbolt.Tx__Rollback
 public import Proof.go_etcd_io.bbolt.Tx__Size
 public import Proof.go_etcd_io.bbolt.Tx__Stats
 public import Proof.go_etcd_io.bbolt.Tx__Writable
+public import Proof.go_etcd_io.bbolt.Tx__close
 public import Proof.go_etcd_io.bbolt.Tx__init
+public import Proof.go_etcd_io.bbolt.Tx__nonPhysicalRollback
 public import Proof.go_etcd_io.bbolt.Tx__page
 public import Proof.go_etcd_io.bbolt.atomicAddDuration
 public import Proof.go_etcd_io.bbolt.atomicLoadDuration
@@ -85,6 +91,7 @@ public import Proof.go_etcd_io.bbolt.munmap
 public import Proof.go_etcd_io.bbolt.elemRef__count
 public import Proof.go_etcd_io.bbolt.elemRef__isLeaf
 public import Proof.io.fs.FileInfo__Size
+public import Proof.go_etcd_io.bbolt.getDiscardLogger
 public import Proof.go_etcd_io.bbolt.newBucket
 public import Proof.go_etcd_io.bbolt.node__childIndex
 public import Proof.go_etcd_io.bbolt.node__del
@@ -229,6 +236,34 @@ theorem Cursor.wp_searchPage :
     EtcdGrove.bbolt.Cursor.searchPage.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Cursor.searchPage.wp_proof EtcdGrove.bbolt.Page.wp_BranchPageElements EtcdGrove.bbolt.Page.wp_Count EtcdGrove.bbolt.branchPageElement.wp_Key EtcdGrove.bbolt.branchPageElement.wp_Pgid EtcdGrove.bbolt.Cursor.wp_search
 
+theorem wp_getDiscardLogger :
+    EtcdGrove.bbolt.getDiscardLogger.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.getDiscardLogger.wp_proof
+
+theorem DB.wp_Logger :
+    EtcdGrove.bbolt.DB.Logger.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.Logger.wp_proof EtcdGrove.bbolt.wp_getDiscardLogger
+
+theorem DB.wp_meta :
+    EtcdGrove.bbolt.DB.meta.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.meta.wp_proof EtcdGrove.bbolt.Meta.wp_Txid EtcdGrove.bbolt.Meta.wp_Validate
+
+theorem wp_newBucket :
+    EtcdGrove.bbolt.newBucket.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.newBucket.wp_proof
+
+theorem Tx.wp_init :
+    EtcdGrove.bbolt.Tx.init.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Tx.init.wp_proof EtcdGrove.bbolt.DB.wp_meta EtcdGrove.bbolt.Meta.wp_Copy EtcdGrove.bbolt.wp_newBucket EtcdGrove.bbolt.Meta.wp_RootBucket EtcdGrove.bbolt.Meta.wp_IncTxid
+
+theorem DB.wp_beginTx [AllG GF] :
+    EtcdGrove.bbolt.DB.beginTx.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.beginTx.wp_proof EtcdGrove.bbolt.Tx.wp_init EtcdGrove.bbolt.Meta.wp_Txid
+
+theorem DB.wp_Begin [AllG GF] :
+    EtcdGrove.bbolt.DB.Begin.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.Begin.wp_proof EtcdGrove.bbolt.DB.wp_Logger EtcdGrove.bbolt.DB.wp_beginTx
+
 theorem DB.wp_GoString :
     EtcdGrove.bbolt.DB.GoString.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.GoString.wp_proof
@@ -248,50 +283,6 @@ theorem DB.wp_Path :
 theorem DB.wp_String :
     EtcdGrove.bbolt.DB.String.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.String.wp_proof
-
-theorem DB.wp_meta :
-    EtcdGrove.bbolt.DB.meta.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DB.meta.wp_proof EtcdGrove.bbolt.Meta.wp_Txid EtcdGrove.bbolt.Meta.wp_Validate
-
-theorem wp_newBucket :
-    EtcdGrove.bbolt.newBucket.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.newBucket.wp_proof
-
-theorem Tx.wp_init :
-    EtcdGrove.bbolt.Tx.init.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Tx.init.wp_proof EtcdGrove.bbolt.DB.wp_meta EtcdGrove.bbolt.Meta.wp_Copy EtcdGrove.bbolt.wp_newBucket EtcdGrove.bbolt.Meta.wp_RootBucket EtcdGrove.bbolt.Meta.wp_IncTxid
-
-theorem DB.wp_beginTx [AllG GF] :
-    EtcdGrove.bbolt.DB.beginTx.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DB.beginTx.wp_proof EtcdGrove.bbolt.Tx.wp_init EtcdGrove.bbolt.Meta.wp_Txid
-
-theorem DB.wp_growSize :
-    EtcdGrove.bbolt.DB.growSize.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DB.growSize.wp_proof
-
-theorem DB.wp_invalidate :
-    EtcdGrove.bbolt.DB.invalidate.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DB.invalidate.wp_proof
-
-theorem DB.wp_mmapSize :
-    EtcdGrove.bbolt.DB.mmapSize.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DB.mmapSize.wp_proof
-
-theorem unix.wp_Munmap :
-    EtcdGrove.bbolt.unix.Munmap.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.unix.Munmap.wp_proof
-
-theorem wp_munmap :
-    EtcdGrove.bbolt.munmap.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.munmap.wp_proof EtcdGrove.bbolt.unix.wp_Munmap
-
-theorem DB.wp_munmap :
-    EtcdGrove.bbolt.DB.munmap.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DB.munmap.wp_proof EtcdGrove.bbolt.wp_munmap EtcdGrove.bbolt.DB.wp_invalidate
-
-theorem DB.wp_pageInBuffer :
-    EtcdGrove.bbolt.DB.pageInBuffer.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DB.pageInBuffer.wp_proof
 
 theorem TxStats.wp_GetPageCount :
     EtcdGrove.bbolt.TxStats.GetPageCount.spec (GF := GF) (hG := hG) :=
@@ -404,6 +395,50 @@ theorem TxStats.wp_add :
 theorem DB.wp_removeTx [AllG GF] :
     EtcdGrove.bbolt.DB.removeTx.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.removeTx.wp_proof EtcdGrove.bbolt.Meta.wp_Txid EtcdGrove.bbolt.TxStats.wp_add
+
+theorem Tx.wp_close [AllG GF] :
+    EtcdGrove.bbolt.Tx.close.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Tx.close.wp_proof EtcdGrove.bbolt.DB.wp_removeTx
+
+theorem Tx.wp_nonPhysicalRollback [AllG GF] :
+    EtcdGrove.bbolt.Tx.nonPhysicalRollback.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Tx.nonPhysicalRollback.wp_proof EtcdGrove.bbolt.Tx.wp_close
+
+theorem Tx.wp_Rollback [AllG GF] :
+    EtcdGrove.bbolt.Tx.Rollback.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Tx.Rollback.wp_proof EtcdGrove.bbolt.wp_Assert EtcdGrove.bbolt.Tx.wp_nonPhysicalRollback
+
+theorem DB.wp_View [AllG GF] :
+    EtcdGrove.bbolt.DB.View.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.View.wp_proof EtcdGrove.bbolt.DB.wp_Begin EtcdGrove.bbolt.Tx.wp_Rollback
+
+theorem DB.wp_growSize :
+    EtcdGrove.bbolt.DB.growSize.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.growSize.wp_proof
+
+theorem DB.wp_invalidate :
+    EtcdGrove.bbolt.DB.invalidate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.invalidate.wp_proof
+
+theorem DB.wp_mmapSize :
+    EtcdGrove.bbolt.DB.mmapSize.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.mmapSize.wp_proof
+
+theorem unix.wp_Munmap :
+    EtcdGrove.bbolt.unix.Munmap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.unix.Munmap.wp_proof
+
+theorem wp_munmap :
+    EtcdGrove.bbolt.munmap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.munmap.wp_proof EtcdGrove.bbolt.unix.wp_Munmap
+
+theorem DB.wp_munmap :
+    EtcdGrove.bbolt.DB.munmap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.munmap.wp_proof EtcdGrove.bbolt.wp_munmap EtcdGrove.bbolt.DB.wp_invalidate
+
+theorem DB.wp_pageInBuffer :
+    EtcdGrove.bbolt.DB.pageInBuffer.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.pageInBuffer.wp_proof
 
 theorem Options.wp_String :
     EtcdGrove.bbolt.Options.String.spec (GF := GF) (hG := hG) :=

@@ -193,13 +193,6 @@ def FLImpl.FreePageIdsSpec (I : FLImpl (GF := GF)) : Prop :=
       (App (Val #(methods I.ity go!"freePageIds" I.iv)) (Val #()))
     {{ (r : GoSlice), RET #r; r ↦* free ∗ (r ↦* free -∗ I.own s free) }}
 
-/-- `pendingPageIds()`: the `shared`'s pending map. -/
-def FLImpl.PendingPageIdsSpec (I : FLImpl (GF := GF)) : Prop :=
-  ∀ (s : Loc) (sv : shared) (dq : DFrac),
-    {{ I.hdl s ∗ s ↦{dq} sv }}
-      (App (Val #(methods I.ity go!"pendingPageIds" I.iv)) (Val #()))
-    {{ RET #sv.pending'; s ↦{dq} sv }}
-
 /-- `Init(ids)`: the free ids become `ids` (the new state well-formed), the cache rebuilt. -/
 def FLImpl.InitSpec (I : FLImpl (GF := GF)) : Prop :=
   ∀ (s : Loc) (σ : FLState) (ids : GoSlice) (xs : List w64),
@@ -238,7 +231,7 @@ def FLImpl.AllocateSpec (I : FLImpl (GF := GF)) : Prop :=
 
 /-- The specs of the methods `shared`'s methods call back through the interface. -/
 def FLImpl.Contract (I : FLImpl (GF := GF)) : Prop :=
-  I.FreeCountSpec ∧ I.FreePageIdsSpec ∧ I.PendingPageIdsSpec ∧ I.InitSpec ∧ I.MergeSpansSpec
+  I.FreeCountSpec ∧ I.FreePageIdsSpec ∧ I.InitSpec ∧ I.MergeSpansSpec
 
 end preds
 

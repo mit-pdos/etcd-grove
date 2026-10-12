@@ -5,9 +5,9 @@ A cursor's bucket has its pages in the mapping (`data`, page size `ps`, the page
 transaction sees, at the fraction `q`: `TxModel.lean`'s `pagesView`), or, for an inline bucket
 (root page id 0), one leaf page inside its parent's value (`ip`, bytes `ipg`). `BktView`
 records which, and `pageAt` is where page `pid` is and its bytes (what `Bucket.pageNode`
-returns, no node being materialized). `bktCtx bl V` is the rest of what the read path reads:
-the bucket, its `InBucket` header, its transaction and the database's `data` and `pageSize`
-fields (each at some fraction).
+returns, no node being materialized). `bktCtx bl V q` is the rest of what the read path reads:
+the bucket, its `InBucket` header, its transaction (but `stats`) and the database's `data` and
+`pageSize` fields (each at the fraction `q`).
 
 `stackOK V pid es`: the stack `es` is a path from page `pid` down: every element refers to a
 page (no node), the page at the element's place; a branch's index is one of its elements, and
@@ -20,6 +20,7 @@ public import Proof.go_etcd_io.bbolt.TxModel
 public import Proof.go_etcd_io.bbolt.KeyOrder
 public import Proof.go_etcd_io.bbolt.Init
 public import Proof.go_etcd_io.bbolt.PageView
+public import Proof.go_etcd_io.bbolt.StructSplit
 public import Spec.go_etcd_io.bbolt.Cursor__keyValue
 
 @[expose] public section
@@ -41,6 +42,8 @@ structure BktView where
   root : w64
   ip : Loc
   ipg : List w8
+  /-- The bucket's transaction. -/
+  tx : Loc
 
 /-- Page `pid` of the bucket: its location and bytes. -/
 def BktView.pageAt (V : BktView) (pid : w64) : Option (Loc × List w8) :=
@@ -392,19 +395,43 @@ def bktPages (V : BktView) (q : Qp) : IProp GF :=
   if V.root = W64 0 then bytesPointsto V.ip (DFrac.own q) V.ipg
   else pagesView V.data (uint.nat V.ps) q V.pages
 
-/-- What the read path reads of the bucket at `bl` besides its pages (see the module doc). -/
-def bktCtx (bl : Loc) (V : BktView) : IProp GF :=
-  iprop(∃ (bv : Bucket) (ib : internal.common.InBucket) (t : Tx) (dbl : Loc)
-      (d1 d2 d3 d4 : DFrac),
-    bl ↦{d1} bv ∗ bv.InBucket' ↦{d2} ib ∗ bv.tx' ↦{d3} t ∗
-    structFieldRef DB go!"data" dbl ↦{d4} V.data ∗ structFieldRef DB go!"pageSize" dbl ↦{d4} V.ps ∗
+/-- What the read path reads of the bucket at `bl` besides its pages (see the module doc), each
+at the fraction `q` (the cursor's, which its owner gets back whole): of the transaction, its
+fields but `stats`, which creating a cursor writes while other cursors may be open. -/
+def bktCtx (bl : Loc) (V : BktView) (q : Qp) : IProp GF :=
+  iprop(∃ (bv : Bucket) (ib : internal.common.InBucket) (t : Tx) (dbl : Loc),
+    bl ↦{DFrac.own q} bv ∗ bv.InBucket' ↦{DFrac.own q} ib ∗ Tx_rest_stats bv.tx' (DFrac.own q) t ∗
+    structFieldRef DB go!"data" dbl ↦{DFrac.own q} V.data ∗
+    structFieldRef DB go!"pageSize" dbl ↦{DFrac.own q} V.ps ∗
     ⌜ib.root' = V.root ∧ bv.nodes' = map.nil ∧ bv.rootNode' = null ∧ t.db' = dbl ∧
-      t.pages' = map.nil ∧ (V.root = W64 0 → bv.page' = V.ip) ∧ dbl ≠ null⌝)
+      t.pages' = map.nil ∧ (V.root = W64 0 → bv.page' = V.ip) ∧ dbl ≠ null ∧ bv.tx' = V.tx⌝)
+
+/-- The field `db` of a transaction's fields but `stats` (and back). -/
+theorem Tx_rest_stats_db (l : Loc) (dq : DFrac) (t : Tx) :
+    Tx_rest_stats (GF := GF) l dq t ⊢ structFieldRef Tx go!"db" l ↦{dq} t.db' ∗
+      (structFieldRef Tx go!"db" l ↦{dq} t.db' -∗ Tx_rest_stats l dq t) := by
+  unfold Tx_rest_stats
+  iintro ⟨Hw, Hm, Hdb, Hmeta, Hroot, Hpages, Hch, HWF, %Hn⟩
+  iframe Hdb
+  iintro Hdb
+  iframe
+  ipureintro; exact Hn
+
+/-- The field `writable` of a transaction's fields but `stats` (and back). -/
+theorem Tx_rest_stats_writable (l : Loc) (dq : DFrac) (t : Tx) :
+    Tx_rest_stats (GF := GF) l dq t ⊢ structFieldRef Tx go!"writable" l ↦{dq} t.writable' ∗
+      (structFieldRef Tx go!"writable" l ↦{dq} t.writable' -∗ Tx_rest_stats l dq t) := by
+  unfold Tx_rest_stats
+  iintro ⟨Hw, Hm, Hdb, Hmeta, Hroot, Hpages, Hch, HWF, %Hn⟩
+  iframe Hw
+  iintro Hw
+  iframe
+  ipureintro; exact Hn
 
 /-- A cursor at `cl` on the bucket at `bl`, with the stack `es`: what its methods own. -/
 def curI (cl bl : Loc) (V : BktView) (q : Qp) (es : List elemRef) : IProp GF :=
   iprop(∃ (cv : Cursor), ⌜cv.bucket' = bl⌝ ∗ cl ↦ cv ∗ cv.stack' ↦* es ∗
-    ownSliceCap elemRef cv.stack' (DFrac.own 1) ∗ bktCtx bl V ∗ bktPages V q)
+    ownSliceCap elemRef cv.stack' (DFrac.own 1) ∗ bktCtx bl V q ∗ bktPages V q)
 
 theorem uint_pid_ps (V : BktView) (pid : w64) (pg : List w8) (hok : V.ok)
     (h : V.pages !! uint.nat pid = some pg) :

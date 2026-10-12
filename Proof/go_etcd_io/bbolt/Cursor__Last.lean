@@ -42,15 +42,17 @@ theorem Cursor.Last.wp_proof
   unfold curI
   icases Hc with ⟨%cv, %Hb, Hcl, Hs, Hcap, Hctx, Hpgs⟩
   unfold bktCtx
-  icases Hctx with ⟨%bv, %ib, %t, %dbl, %d1, %d2, %d3, %d4, Hbk, Hib, Ht, Hdata, Hps, %Hcx⟩
+  icases Hctx with ⟨%bv, %ib, %t, %dbl, Hbk, Hib, Ht, Hdata, Hps, %Hcx⟩
   ihave %Hwfs := ownSlice_wf _ _ _ $$ Hs
+  icases Tx_rest_stats_db _ _ _ $$ Ht with ⟨Htdb, Ht⟩
   wp_auto
   rw [Hb]
   try wp_auto
-  have Hdn : t.db' ≠ null := by rw [Hcx.2.2.2.1]; exact Hcx.2.2.2.2.2.2
+  have Hdn : t.db' ≠ null := by rw [Hcx.2.2.2.1]; exact Hcx.2.2.2.2.2.2.1
   rw [decide_eq_false Hdn]
   try wp_auto
   wp_apply hAssert
+  ispecialize Ht $$ Htdb
   try wp_auto
   have h00 : sint.Z (W64 0) = 0 := rfl
   have hn0 : sint.nat (W64 0) = 0 := rfl
@@ -67,7 +69,7 @@ theorem Cursor.Last.wp_proof
   wp_apply hRoot $$ [Hib] as Hib
   · iframe
   rw [Hcx.1]
-  ihave Hctx : bktCtx bl V $$ [Hbk Hib Ht Hdata Hps]
+  ihave Hctx : bktCtx bl V q $$ [Hbk Hib Ht Hdata Hps]
   · unfold bktCtx; iframe; ipureintro; exact Hcx
   try wp_auto
   obtain ⟨p, pg, Hpa, Hlen, -, -, Hkind⟩ := wfAt_page V V.root Hok Hwf

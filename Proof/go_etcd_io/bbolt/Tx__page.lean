@@ -25,6 +25,8 @@ theorem Tx.page.wp_proof (hpage : DB.page.spec (GF := GF) (hG := hG))
   intro txl t dqt dbl data ps dq q id pg Hdb Hpages Hc Hlt Hlen Hid Hfl
   subst Hdb
   wp_start as ⟨Htx, Hd, Hps, Hpg⟩
+  unfold Tx_rest_stats
+  icases Htx with ⟨Hw, Hm, Hdbf, Hmeta, Hroot, Hpagesf, Hch, HWF, %Hn⟩
   wp_auto
   rw [Hpages, decide_eq_true rfl, Bool.not_true]
   try wp_auto
@@ -38,6 +40,8 @@ theorem Tx.page.wp_proof (hpage : DB.page.spec (GF := GF) (hG := hG))
   try wp_auto
   iapply HΦ
   iframe
+  isplitr
+  · ipureintro; exact Hn
   iapply (page_header_bytes (hG := hG) _ q pg Hlen Hcar).2
   iframe
 

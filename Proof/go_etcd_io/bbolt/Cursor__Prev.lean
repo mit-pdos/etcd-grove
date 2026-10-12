@@ -33,15 +33,17 @@ theorem Cursor.Prev.wp_proof
   unfold curI
   icases Hc with ⟨%cv, %Hb, Hcl, Hs, Hcap, Hctx, Hpgs⟩
   unfold bktCtx
-  icases Hctx with ⟨%bv, %ib, %t, %dbl, %d1, %d2, %d3, %d4, Hbk, Hib, Ht, Hdata, Hps, %Hcx⟩
+  icases Hctx with ⟨%bv, %ib, %t, %dbl, Hbk, Hib, Ht, Hdata, Hps, %Hcx⟩
+  icases Tx_rest_stats_db _ _ _ $$ Ht with ⟨Htdb, Htback⟩
   wp_auto
   rw [Hb]
   try wp_auto
-  have Hdn : t.db' ≠ null := by rw [Hcx.2.2.2.1]; exact Hcx.2.2.2.2.2.2
+  have Hdn : t.db' ≠ null := by rw [Hcx.2.2.2.1]; exact Hcx.2.2.2.2.2.2.1
   rw [decide_eq_false Hdn]
   try wp_auto
   wp_apply hAssert
-  ihave Hc : curI cl bl V q es $$ [Hcl Hs Hcap Hbk Hib Ht Hdata Hps Hpgs]
+  ispecialize Htback $$ Htdb
+  ihave Hc : curI cl bl V q es $$ [Hcl Hs Hcap Hbk Hib Htback Hdata Hps Hpgs]
   · unfold curI bktCtx; iexists cv; iframe; ipureintro; exact ⟨Hb, Hcx⟩
   try wp_auto
   wp_apply hprev cl bl V q es Hok Hwf Hcur $$ [Hc] as %es' %k %v %f ⟨%Hf, Hc⟩

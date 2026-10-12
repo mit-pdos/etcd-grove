@@ -31,7 +31,7 @@ theorem DB.removeTx.wp_proof (hTxid : Meta.Txid.spec (GF := GF) (hG := hG))
   iNamed Hdb
   simp only [ownReadTx]
   iNamed Htx
-  obtain ⟨Hdata', Hps', Hdsz, Hm0, Hm1, Hopen, Hfile', Hfl', Hrw⟩ := Hdv
+  obtain ⟨Hdata', Hps', Hdsz, Hm0, Hm1, Hopen, Hfile', Hfl', Hrw, Hdbl⟩ := Hdv
   obtain ⟨Htdb, Htw, Htp, _, _, _, _, _, _, Hmtx, _⟩ := Ht
   ihave %Hk := ghost_map_lookup $$ Hrauth Hkey
   imod ghost_map_delete $$ Hrauth Hkey with Hrauth
@@ -99,6 +99,7 @@ theorem DB.removeTx.wp_proof (hTxid : Meta.Txid.spec (GF := GF) (hG := hG))
       iexists fls
       iexists v0
       iexists v1
+      iexists dl
       have Hsz' := GMap.map_size_delete_Some σ.readers k r Hk
       have Hpos : 0 < σ.readers.size := by
         have := GMap.map_size_ne_0_lookup_2 σ.readers Hk; omega
@@ -112,7 +113,7 @@ theorem DB.removeTx.wp_proof (hTxid : Meta.Txid.spec (GF := GF) (hG := hG))
         DBState.removeReader.proj_bs, DBState.removeReader.proj_readers, Hsz', Hrep,
         List.replicate_succ]
       isplitr
-      · ipureintro; exact ⟨Hdata', Hps', Hdsz, Hm0, Hm1, Hopen, Hfile', Hfl', Hrw⟩
+      · ipureintro; exact ⟨Hdata', Hps', Hdsz, Hm0, Hm1, Hopen, Hfile', Hfl', Hrw, Hdbl⟩
       isplitr
       · ipureintro; exact dbOK_removeReader σ v0 v1 Hok k r Hk ro (Hmtx ▸ Hro)
       ihave Hplain : dbPlain dbl (DFrac.own 1) dv $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize Mlock logger path openFile file dataref datasz meta0 meta1 opened rwtx stats freelist batch ops readOnly]
@@ -129,6 +130,7 @@ theorem DB.removeTx.wp_proof (hTxid : Meta.Txid.spec (GF := GF) (hG := hG))
       rw [Hns]
       iframe
       iframe #
+      try (ipureintro; exact Hlog)
     · iframe
       ipureintro; exact ⟨Htdb, Htw⟩
 

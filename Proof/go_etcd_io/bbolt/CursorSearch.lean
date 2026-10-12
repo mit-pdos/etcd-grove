@@ -67,14 +67,14 @@ def searchI : IProp GF :=
     (key : GoSlice) (kb : List w8) (dk : DFrac),
   ⌜V.ok ∧ V.wfAt pid⌝ →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ cl ↦ cv ∗ cv.stack' ↦* es ∗
-      ownSliceCap elemRef cv.stack' (DFrac.own 1) ∗ bktCtx cv.bucket' V ∗ bktPages V q ∗
+      ownSliceCap elemRef cv.stack' (DFrac.own 1) ∗ bktCtx cv.bucket' V q ∗ bktPages V q ∗
       key ↦*{dk} kb }}
     (App (App (Val (cl @!! go.GoType.PointerType Cursor.ty @!! go!"search")) (Val #key)) (Val #pid))
   {{ (cv' : Cursor) (path : List elemRef) (pg : List w8) (idx : w64), RET #();
       ⌜cv'.bucket' = cv.bucket' ∧ stackOK V pid path ∧ stackLeaf V pid path pg idx ∧ leafOK pg ∧
         leafSeekAt pg kb idx⌝ ∗
       cl ↦ cv' ∗ cv'.stack' ↦* (es ++ path) ∗ ownSliceCap elemRef cv'.stack' (DFrac.own 1) ∗
-      bktCtx cv.bucket' V ∗ bktPages V q ∗ key ↦*{dk} kb }})
+      bktCtx cv.bucket' V q ∗ bktPages V q ∗ key ↦*{dk} kb }})
 
 /-- `Cursor.searchPage.spec`, as an Iris proposition. -/
 def searchPageI : IProp GF :=
@@ -84,7 +84,7 @@ def searchPageI : IProp GF :=
     pageFlags pg = branchPageFlag ∧ branchWF pg pg.length V.hwm ∧ 16 ≤ pg.length ∧
     (∀ i < pageCount pg, V.wfAt (W64 (branchPgid pg i)))⌝ →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ cl ↦ cv ∗ cv.stack' ↦* es ∗
-      ownSliceCap elemRef cv.stack' (DFrac.own 1) ∗ bktCtx cv.bucket' V ∗ bktPages V q ∗
+      ownSliceCap elemRef cv.stack' (DFrac.own 1) ∗ bktCtx cv.bucket' V q ∗ bktPages V q ∗
       key ↦*{dk} kb }}
     (App (App (Val (cl @!! go.GoType.PointerType Cursor.ty @!! go!"searchPage")) (Val #key))
       (Val #rv.page'))
@@ -95,7 +95,7 @@ def searchPageI : IProp GF :=
         leafSeekAt lpg kb idx⌝ ∗
       cl ↦ cv' ∗ cv'.stack' ↦* (es.set (es.length - 1) { rv with index' := i } ++ path) ∗
       ownSliceCap elemRef cv'.stack' (DFrac.own 1) ∗
-      bktCtx cv.bucket' V ∗ bktPages V q ∗ key ↦*{dk} kb }})
+      bktCtx cv.bucket' V q ∗ bktPages V q ∗ key ↦*{dk} kb }})
 
 set_option maxHeartbeats 400000 in
 /-- `searchPage`, given `search` for the children. -/
@@ -314,16 +314,16 @@ theorem search_loeb
   ihave #Hcom : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
   · iPkgInit
   unfold bktCtx
-  icases Hctx with ⟨%bv, %ib, %t, %dbl, %d1, %d2, %d3, %d4, Hb, Hib, Ht, Hdata, Hps, %Hcx⟩
-  obtain ⟨Hibr, Hnodes, Hrn, Htdb, Htp, Hbp, Hdn⟩ := Hcx
+  icases Hctx with ⟨%bv, %ib, %t, %dbl, Hb, Hib, Ht, Hdata, Hps, %Hcx⟩
+  obtain ⟨Hibr, Hnodes, Hrn, Htdb, Htp, Hbp, Hdn, Hbtx⟩ := Hcx
   icases bktPages_acc V q pid p pg Hok Hpa $$ Hpgs with ⟨Hpg, Hpgsback⟩
   -- what `pageNode` reads besides the bucket, and what it leaves out
   ihave ⟨Hin, Hout⟩ : (if ib.root' = W64 0 then True else
-        bv.tx' ↦{d3} t ∗ structFieldRef DB go!"data" dbl ↦{d4} V.data ∗
-        structFieldRef DB go!"pageSize" dbl ↦{d4} V.ps ∗
+        Tx_rest_stats bv.tx' (DFrac.own q) t ∗ structFieldRef DB go!"data" dbl ↦{DFrac.own q} V.data ∗
+        structFieldRef DB go!"pageSize" dbl ↦{DFrac.own q} V.ps ∗
         bytesPointsto (V.data +ₗ uint.Z (pid * V.ps)) (DFrac.own q) pg) ∗
-      (if ib.root' = W64 0 then bv.tx' ↦{d3} t ∗ structFieldRef DB go!"data" dbl ↦{d4} V.data ∗
-        structFieldRef DB go!"pageSize" dbl ↦{d4} V.ps ∗ bytesPointsto p (DFrac.own q) pg
+      (if ib.root' = W64 0 then Tx_rest_stats bv.tx' (DFrac.own q) t ∗ structFieldRef DB go!"data" dbl ↦{DFrac.own q} V.data ∗
+        structFieldRef DB go!"pageSize" dbl ↦{DFrac.own q} V.ps ∗ bytesPointsto p (DFrac.own q) pg
        else True) $$ [Ht Hdata Hps Hpg]
   · by_cases Hr : ib.root' = W64 0
     · rw [ite_eq_left_of_eq_true _ _ (eq_true Hr), ite_eq_left_of_eq_true _ _ (eq_true Hr)]
@@ -339,15 +339,15 @@ theorem search_loeb
     · rw [ite_eq_right_of_eq_false _ _ (eq_false Hr)]
       rw [Hibr] at Hr; rw [(Hfile Hr).1]
   wp_auto
-  wp_apply hpageNode cv.bucket' bv d1 ib d2 pid bv.tx' t d3 dbl V.data V.ps d4 (DFrac.own q) pg
+  wp_apply hpageNode cv.bucket' bv (DFrac.own q) ib (DFrac.own q) pid bv.tx' t (DFrac.own q) dbl V.data V.ps (DFrac.own q) (DFrac.own q) pg
       rfl Hnodes Hrn (fun h => (Hinl (Hibr ▸ h)).1)
       (fun h => ⟨Htdb, Htp, Hok.1, (Hfile (Hibr ▸ h)).2.2, Hlen, (Hfile (Hibr ▸ h)).2.1, by
         rcases Hkind with ⟨Hfl, _⟩ | ⟨Hfl, _⟩ <;> rw [Hfl] <;> unfold validPageFlags <;> decide⟩)
       $$ [Hb Hib Hin] as ⟨Hb, Hib, Hin⟩
   · iframe
   rw [Hp]
-  ihave ⟨Ht, Hdata, Hps, Hpg⟩ : bv.tx' ↦{d3} t ∗ structFieldRef DB go!"data" dbl ↦{d4} V.data ∗
-      structFieldRef DB go!"pageSize" dbl ↦{d4} V.ps ∗ bytesPointsto p (DFrac.own q) pg $$ [Hin Hout]
+  ihave ⟨Ht, Hdata, Hps, Hpg⟩ : Tx_rest_stats bv.tx' (DFrac.own q) t ∗ structFieldRef DB go!"data" dbl ↦{DFrac.own q} V.data ∗
+      structFieldRef DB go!"pageSize" dbl ↦{DFrac.own q} V.ps ∗ bytesPointsto p (DFrac.own q) pg $$ [Hin Hout]
   · by_cases Hr : ib.root' = W64 0
     · rw [ite_eq_left_of_eq_true _ _ (eq_true Hr), ite_eq_left_of_eq_true _ _ (eq_true Hr)]
       icases Hout with ⟨Ht, Hdata, Hps, Hpg⟩
@@ -357,11 +357,11 @@ theorem search_loeb
       rw [← (Hfile Hr).1]
       icases Hin with ⟨Ht, Hdata, Hps, Hpg⟩
       iframe
-  ihave Hctx : bktCtx cv.bucket' V $$ [Hb Hib Ht Hdata Hps]
+  ihave Hctx : bktCtx cv.bucket' V q $$ [Hb Hib Ht Hdata Hps]
   · unfold bktCtx
-    iexists bv, ib, t, dbl, d1, d2, d3, d4
+    iexists bv, ib, t, dbl
     iframe
-    ipureintro; exact ⟨Hibr, Hnodes, Hrn, Htdb, Htp, Hbp, Hdn⟩
+    ipureintro; exact ⟨Hibr, Hnodes, Hrn, Htdb, Htp, Hbp, Hdn, Hbtx⟩
   try wp_auto
   rw [decide_eq_false Hpn]
   icases (page_header_bytes (hG := hG) _ _ pg Hlen Hc).1 $$ Hpg with ⟨Hhd, Hrest⟩
