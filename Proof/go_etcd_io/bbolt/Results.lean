@@ -114,6 +114,10 @@ namespace bbolt
 #print axioms wp_mmap
 #print axioms DB.wp_mmap
 #print axioms DB.wp_allocate
+#print axioms syscall.wp_Flock
+#print axioms wp_funlock
+#print axioms os.File.wp_Close
+#print axioms DB.wp_close
 #print axioms os.File.wp_ReadAt
 #print axioms DB.wp_pageInBuffer
 #print axioms DB.wp_getPageSizeFromFirstMeta
@@ -138,9 +142,7 @@ namespace bbolt
 #print axioms Tx.wp_Stats
 #print axioms Tx.wp_Writable
 #print axioms wp_compareKeys
-#print axioms syscall.wp_Flock
 #print axioms wp_flock
-#print axioms wp_funlock
 #print axioms node.wp_childIndex
 #print axioms node.wp_del
 #print axioms node.wp_dereference
@@ -158,7 +160,6 @@ namespace bbolt
 #print axioms nodes.wp_Len
 #print axioms nodes.wp_Less
 #print axioms nodes.wp_Swap
-#print axioms os.File.wp_Close
 #print axioms os.File.wp_Name
 #print axioms os.wp_OpenFile
 
