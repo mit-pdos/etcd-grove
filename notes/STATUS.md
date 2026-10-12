@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-12 (the apply package's unit 1 on branch `apply-u1`: every function of `backend.go` (but `Compaction`), `quota.go`, `capped.go`, `corrupt.go`, `auth.go` specified and proved, the constructors packaging the layers into `applierSpec`, `chainStep` over `backendStep`, `chain_put`/`_deleteRange`/`_range`/`_txn`; `auth.AuthStore` translated as an interface; a finding (a lease checkpoint entry's several critical sections; fix branch `lease-checkpoint-one-section`); gates 82 axioms, 1 sorry, apply 35/0, apply 63 of 73 functions verified, etcd 557 of 3599, see "Unit 1: the layers"; the apply package's units 0 and A merged into `lean` (the context premise `txnCtx` and the hook premise `csContract ∗ hookIs` both on txn's write path; one `csContract`, mvcc's; `store.Rev` under the hook's `End`; the server's `Link` reuses mvcc's zap results; gates 82 axioms, 1 sorry, apply 17/0, txn 22/0, mvcc 17/0, server 26/0, etcd 494 verified of 3599 functions), see "Merge 0/A"; the apply package's unit A: the backend's post-lock hook in mvcc's contract (`hookIs`, `csContract`), threaded through `store.Write`/`End` and txn's `Put`/`DeleteRange`/`Txn`, see "Unit A: the hook through mvcc"; the server's apply package, unit 0 on branch `apply-u0`: translated with bodies, scaffolding, 12 trust-boundary axioms, the txn functions at `context.TODO()` (`txnCtx`), `store.Rev`, `gen-link.py --apply` and the reuse rule; gates 81 axioms, 1 sorry; a finding (the alarm gauge), see "The server's apply package"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
+**Last updated:** 2026-10-12 (the apply package's unit 1 on branch `apply-u1`: every function of `backend.go` (but `Compaction`), `quota.go`, `capped.go`, `corrupt.go`, `auth.go` specified and proved, the constructors packaging the layers into `applierSpec`, `chainStep` over `backendStep`, `chain_put`/`_deleteRange`/`_range`/`_txn`; `auth.AuthStore` translated as an interface; a finding (a lease checkpoint entry's several critical sections; fix branch `lease-checkpoint-one-section`); gates 82 axioms, 1 sorry, apply 35/0, apply 63 of 73 functions verified, etcd 557 of 3599, see "Unit 1: the layers"; the apply package's units 0 and A merged into `lean` (the context premise `txnCtx` and the hook premise `csContract ∗ hookIs` both on txn's write path; one `csContract`, mvcc's; `store.Rev` under the hook's `End`; the server's `Link` reuses mvcc's zap results; gates 82 axioms, 1 sorry, apply 17/0, txn 22/0, mvcc 17/0, server 26/0, etcd 494 verified of 3599 functions), see "Merge 0/A"; the apply package's unit A: the backend's post-lock hook in mvcc's contract (`hookIs`, `csContract`), threaded through `store.Write`/`End` and txn's `Put`/`DeleteRange`/`Txn`, see "Unit A: the hook through mvcc"; the server's apply package, unit 0 on branch `apply-u0`: translated with bodies, scaffolding, 12 trust-boundary axioms, the txn functions at `context.TODO()` (`txnCtx`), `store.Rev`, `gen-link.py --apply` and the reuse rule; gates 81 axioms, 1 sorry; a finding (the alarm gauge), see "The server's apply package; a closed theorem about the register's driver in the operational semantics, `register_adequate`, from Perennial's adequacy; package initialization proved for raft, its subpackages, `context` and the register; the account of every axiom and `sorry` it rests on, see "Adequacy of the register's driver"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
 as pinned), the requests and responses as the client model's values (`Requests.lean`), `isKV`,
 `isTxnLessor`, 13 trust-boundary axioms (`sort.Sort`/`Reverse`, traceutil, `proto.Size`,
 `zap.Logger.Panic`, ...), mvcc's read-only write transaction proved, `gen-link.py --txn`, a
@@ -292,6 +292,115 @@ unit 1 bullets).
   (the backend's `Compaction`, `uber_applier.go`'s 6, `noSideEffect`), 486 of 684 lines verified;
   backend.go 31 of 32, auth.go 16/16, quota.go 4/4, capped.go 4/4, corrupt.go 8/8; etcd 557
   verified of 3599 functions, 5635 of 45570 lines (was 494, 5149)..
+## Adequacy of the register's driver: the closed theorem and its trust base (2026-10-12)
+
+`register_adequate` (`Proof/github_com/mit_pdos/etcd_grove/examples/register/Adequacy.lean`,
+restated as `register_cluster_safe` in `Results.lean`) is a theorem about the operational
+semantics, with no Iris in its statement. Take `registerProgram`, which is
+`initialize'(); Main()` for the register package. Start it from any state with no package
+initialized (`IsInit σ`) and one live thread (`g.threads = 1`). Then for every real
+execution of any length `n` (`RealNsteps n`): if the main thread has finished, its value is
+`#()`; every thread is a value or can step; no thread has ended in a panic. Client B's check
+of its `Get` is one such panic, so it never fires.
+
+- **Proof.** Perennial's `goose_adequacy_nopanic` is used at the disk FFI, whose
+  initial-state conditions are trivial. The register's proofs are generic over the FFI.
+  - Bounds: `N = n + 1`. `T = n + 2` comes from `threads_le_steps`: one step forks at most
+    one thread. The WP uses neither receipts nor thread tokens, so neither bound costs
+    anything.
+  - Ghost state: a concrete bundle `registerGF` (`AllG` at slot 0, then invariants, credits,
+    heap, prophecies, package state, the disk heap) with its `GooseGpreS` instance.
+  - From `ownGoState ∅` to `ownInitializing getIsPkgInit`: `getIsPkgInit` is a lookup table
+    over the 29 packages the register reaches, transitively. Its `GetIsPkgInitWf` is proved
+    by `repeat' (first | exact True.intro | apply And.intro | rfl)`.
+  - Then `register.wp_initialize'` (`Init.lean`), then `register.wp_Main`.
+- **Initialization, proved.**
+  - raft (`Proof/go_etcd_io/raft/v3/Init.lean`): the initializer establishes
+    `isInitialized`, which until now was only assumed (`Base.lean`). That covers the error
+    variables (`errors.New`; `IsNewError` from Perennial's new `errors.wp_New_ptr`),
+    `globalRand`'s mutex (`init_Mutex`), `emptyState` and the two message tables. Nothing in
+    `isInitialized` was false.
+  - `quorum`, `tracker`, `confchange` and the register.
+  - Perennial's `context` (`Perennial/Proof/context_proof/context_init.lean`, new).
+  - Changed instances:
+    - Perennial's `io`: `isPkgInit` now gives `Discard ↦□ _`, because raft's initializer
+      loads it.
+    - etcd-grove's `os`: `isPkgInit` gives `Stderr ↦□ _`, for the same reason.
+- **Perennial**: branch `register-adequacy` (`15ef44029`, one commit on `lean`'s
+  `e4e126e46`, not pushed; the pin here is that commit): `Proof/io.lean` (the `isPkgInit`
+  above), `Proof/context_proof/context_init.lean` (new, with `wp_New_errorString`, `errors.New`
+  at its concrete type, which `isTypedErr` needs), and `Proof/math/big.lean`,
+  `Proof/crypto/rand.lean` (`wp_initialize'`, `sorry`, marked unprovable). raft's
+  `IsNewError` now comes from upstream's `errors.wp_New_ptr` (`IsPointerError`,
+  `isNewError_of_ptr`). Merged with `lean` (one `AllG`: `registerGF_allG` is
+  `GooseGpreS.goosePreGAllG`, no `[AllG GF]` next to `HeapGS`); full build 2514 jobs, axiom
+  account unchanged. **Push order**: Perennial `register-adequacy` first, then etcd-grove.
+- **The theorem's hypotheses.** Perennial's Go semantics is a parameter, as in every result:
+  - `GoGlobalContext`, `GoLocalContext`, `go.Semantics`;
+  - `register.Assumptions`, which includes every imported package's `Assumptions`: each Go
+    name stands for its Goose-translated body or for Perennial's trusted model (in
+    `TrustedCode`: `sync.Mutex`, `sync/atomic`, the runtime semaphores, `fmt.Sprintf`/`Printf`
+    (no formatting), `strings.Join`, `crypto/rand.Int`, `time.Sleep`, ...), plus the struct
+    layouts;
+  - two new classes of the same kind:
+    - `log.NewModel`: the name `log.New` stands for a model returning a fresh pointer.
+      Perennial translates `log` without `New`.
+    - `context.ErrorStringIsError`: `*errors.errorString` is in `error`'s type set, a
+      method-set fact. `methodSet` is uninterpreted, so `context`'s `isInit`, which asks for
+      `isTypedErr Canceled`, cannot be established otherwise.
+
+  No instance of `go.Semantics` has been constructed anywhere. The theorem is non-vacuous
+  only if these classes are jointly satisfiable, which is believed but not proved.
+- **`#print axioms register_cluster_safe`** lists 302 axioms. A Lean classifier
+  (`isProp` of each axiom's type) splits them as follows:
+  - **Lean's**: `propext`, `Quot.sound`, `Classical.choice`.
+  - **297 data axioms, no logical content.** These are Goose's declarations of what it does
+    not translate, all in `Code/`: opaque types (`reflect.Value`, `os.file`,
+    `sync.Map`, ...), their `underlying` and `zero_val`, constants, and 135 package-variable
+    initializers (`X.init : val`). They are 5 in `raftpb`, 53 in `math`, 25 in `os`, 17 each
+    in `time` and `math/big`, 7 each in `strconv` and `reflect`, 2 in `log`, 1 each in
+    `errors` and `crypto/rand`. Every type is inhabited, so they are consistent: read each
+    type as `Unit`.
+  - **One propositional axiom**: raft's `reflect.DeepEqual.wp_proof`, Go reflection on two
+    `ConfState`s (`ConfState.Equivalent`, reached from `RestartNode`).
+  - **`sorryAx`**, from 9 `sorry` declarations, all package initializers that cannot be
+    proved because they run opaque initializers:
+    - Perennial: `errors.wp_errorType_init` (the `reflectlite` initializer of
+      `errorType`), `time.wp_initialize'`, `math.wp_initialize'`, `log.wp_initialize'`,
+      `math.big.wp_initialize'`, `crypto.rand.wp_initialize'`;
+    - etcd-grove (`Proof/go_etcd_io/raft/v3/Init.lean`): `os.wp_initialize'`,
+      `strconv.wp_initialize'`, `raftpb.wp_initialize'` (gogoproto's registration and the
+      `fmt.Errorf` error variables that `raftpb.toml` does not translate).
+
+    `reflect.wp_initialize'` is also a `sorry` but is not reached, because `raftpb`'s
+    initializer is the only caller.
+- **A soundness caveat about trust-boundary axioms.** Axioms like
+  `reflect.DeepEqual.wp_proof` quantify over every semantics instance. The `Assumptions`
+  classes do not constrain `functions reflect.DeepEqual`, so the axiom asserts the spec for
+  every function table, including ones where `DeepEqual` returns a wrong answer. Together
+  with adequacy, a constructed model of `go.Semantics` with such a table would refute it.
+  The axiom is consistent only as long as no such model is built. The sound form is a
+  hypothesis class naming a trusted model, as `log.NewModel` does, with the spec proved from
+  it. The same applies to every `*.wp_proof` axiom in `etc/tcb-baseline.txt` and to
+  Perennial's spec axioms for names without `FuncUnfold` (`time.wp_Now`, `errors.wp_As`).
+- **Is raft's proof complete (outside reconfiguration and read-only requests)?** Judged by
+  this list, nearly, but not totally. Nothing about raft's algorithm or its Go code is
+  assumed: every raft function `Main` reaches is verified, and raft's package state is now
+  proved from its initializer. Two raft-repository items remain:
+  - `reflect.DeepEqual.wp_proof` (Go reflection, a standard-library function, with the
+    caveat above);
+  - `raftpb.wp_initialize'` (generated protobuf registration, outside raft's logic).
+
+  Everything else is the standard library (8 initializers whose variable initializers are
+  opaque, `log.New`'s model, the method-set fact, Perennial's trusted models) or Perennial's
+  framework: GooseLang's semantics and the Goose translator; `go.Semantics`, not shown
+  satisfiable; `AngelicExit`, under which global variables land at `globalAddr` and the
+  overflow `assume`s hold; a 64-bit platform. The statement is safety only: no stuck
+  thread, no panic, B reads A's write. It says nothing about liveness.
+- **Build.** A full `lake build` passes (2202 jobs). One unrelated proof had to be
+  repaired: `lcOwn_emap_revokes_acc` (`leasing/InvLeaseCacheWrite.lean`) needed a
+  `dsimp only` before its `iframe` (a projection of a literal record).
+- **TCB collection.** See the dated line in `etc/tcb-collections/register.txt`.
 
 ## Merge: lean into mvcc (2026-10-12)
 
