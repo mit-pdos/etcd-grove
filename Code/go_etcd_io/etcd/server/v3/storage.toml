@@ -1,6 +1,7 @@
 # Types and names only: function and method bodies are axiomatized.
+# `backend` for the struct `BackendQuota` (a field of the apply package's capped applier).
 translate = ["!*"]
-imports = ["!*"]
+imports = ["!*", "go.etcd.io/etcd/server/v3/storage/backend"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

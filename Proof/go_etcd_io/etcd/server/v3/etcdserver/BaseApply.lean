@@ -12,7 +12,11 @@ As there, these are assumptions about package initialization, not proved from
 `initialize'`. They are `True` (the packages are translated names-only or types-only).
 `etcdserver/errors`' (`ErrNoSpace`, which the entry applier compares the applier's error
 with) is in its own `errors/Base.lean` (2026-10-11: moved there, unchanged, for the server's
-txn package, which imports it without the apply thread's translation).
+txn package, which imports it without the apply thread's translation). The instances of the
+packages the server's `apply` package reaches (`apply` itself, `raftpb`, `pbutil`, `wait`,
+`auth`, `v3alarm`, `membership`, `storage`, `client/pkg/v3/types`) are in `apply/Base.lean`
+(2026-10-12: moved there, unchanged but for `apply`'s, which now states the package's facts,
+for the apply package, which must not import the server's translation).
 -/
 module
 
@@ -22,6 +26,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
 public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Base
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
 
 @[expose] public section
 
@@ -60,24 +65,6 @@ end github_com.dustin.go_humanize
 
 -- zap, zapcore, protoreflect and proto: `Proof/go_etcd_io/etcd/cache/v3/Base.lean` (clientv3
 -- imports them too).
-
-namespace go_etcd_io.etcd.client.pkg.v3.types
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.client.pkg.v3.types
-
-namespace go_etcd_io.etcd.pkg.v3.pbutil
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.pkg.v3.pbutil
 
 namespace go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
 
@@ -133,15 +120,6 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.server.v3.config
 
-namespace go_etcd_io.etcd.server.v3.etcdserver.api.membership
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.etcdserver.api.membership
-
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp :=
@@ -162,24 +140,6 @@ end go_etcd_io.etcd.server.v3.etcdserver.api.snap
 
 -- etcdserver/errors: its own `errors/Base.lean` (imported above; the server txn package needs it
 -- without the apply thread's translation).
-
-namespace go_etcd_io.etcd.server.v3.storage
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.storage
-
-namespace go_etcd_io.raft.v3.raftpb
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.raft.v3.raftpb
 
 namespace go_etcd_io.raft.v3
 
@@ -217,24 +177,6 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.pkg.v3.notify
 
-namespace go_etcd_io.etcd.pkg.v3.wait
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.pkg.v3.wait
-
-namespace go_etcd_io.etcd.server.v3.auth
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.auth
-
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats :=
@@ -244,15 +186,6 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
 
-namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm
-
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor :=
@@ -261,15 +194,6 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
   build_get_is_pkg_init_wf
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor
-
-namespace go_etcd_io.etcd.server.v3.etcdserver.apply
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.etcdserver.apply
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.read
 

@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.backend
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.storage
 
@@ -68,12 +69,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.Assumptions]
 
 instance BackendQuota_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.BackendQuota :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.BackendQuota where
+  typedPointstoDef l v dq := iprop(
+    "be" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendQuota go!"be" l) v.be' dq ∗
+    "maxBackendBytes" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendQuota go!"maxBackendBytes" l) v.maxBackendBytes' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance BackendQuota_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.BackendQuota go_etcd_io.etcd.server.v3.storage.BackendQuota.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.BackendQuota go_etcd_io.etcd.server.v3.storage.BackendQuota.underlying := by
+  solve_into_val_typed_struct
+
+instance BackendQuota_access_load_be (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.BackendQuota) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendQuota go!"be" l) v.be' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendQuota go!"be" l) v.be' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance BackendQuota_access_store_be (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.BackendQuota) (be' : go_etcd_io.etcd.server.v3.storage.backend.Backend) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendQuota go!"be" l) v.be' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendQuota go!"be" l) be' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with be' := be' } : go_etcd_io.etcd.server.v3.storage.BackendQuota) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance BackendQuota_access_load_maxBackendBytes (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.BackendQuota) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendQuota go!"maxBackendBytes" l) v.maxBackendBytes' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendQuota go!"maxBackendBytes" l) v.maxBackendBytes' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance BackendQuota_access_store_maxBackendBytes (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.BackendQuota) (maxBackendBytes' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendQuota go!"maxBackendBytes" l) v.maxBackendBytes' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendQuota go!"maxBackendBytes" l) maxBackendBytes' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with maxBackendBytes' := maxBackendBytes' } : go_etcd_io.etcd.server.v3.storage.BackendQuota) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end BackendQuota
