@@ -59,7 +59,9 @@ theorem txn.Range.wp_proof
     exact ⟨Hpre.1, txn.sortSmall_of_sortOk o log Hlog.1 _ (Hpre.2 log Hpin.1 Hpin.2)⟩
   ihave Htx' := (txn.txnViewIs_mw mw s γ (.read log rev)).1 $$ Htv
   simp only [mvcc.TxnKind.readLog, mvcc.TxnKind.readRev]
-  wp_apply (hEnd mw s γ (.read log rev)) $$ [$Htx'] as ⟨Hrd, -⟩
+  ihave Hep : mvcc.txnEndPre γ (.read log rev) $$ []
+  · simp only [mvcc.txnEndPre]; itrivial
+  wp_apply (hEnd mw s γ (.read log rev)) $$ [$Htx' $Hep] as ⟨Hrd, -⟩
   cases err <;> wp_auto
   all_goals
     wp_apply time.wp_Since as %d -

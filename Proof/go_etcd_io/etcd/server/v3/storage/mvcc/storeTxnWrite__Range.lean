@@ -87,7 +87,7 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     wp_call
     (try wp_auto)
     -- the bucket through the batch transaction (its own puts), the index by the writer
-    ihave #Hrdr := mvcc.batchTx_reader bt (mvcc.bucketView γ) (mvcc.writerRes s γ) Locked
+    ihave #Hrdr := mvcc.batchTx_reader bt (mvcc.bucketView γ) (mvcc.writerRes s γ) Locked Pw fw
       (mvcc.pendPuts ilog pend) (1 : Qp).half (mvcc.bucketMap ilog) $$ Hbt
     ihave HR : iprop(Locked (mvcc.pendPuts ilog pend) ∗
         mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap ilog)) $$ [Hlocked Hbv]
