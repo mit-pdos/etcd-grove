@@ -74,7 +74,8 @@ from `f0` (not 0), with no overflow past the last; each a normal entry or a (v1)
 def entriesFrom (f0 : w64) (ms : List EntryModel) : Prop :=
   0 < uint.Z f0 ∧ uint.Z f0 + ms.length < 2 ^ 64 ∧
   ∀ (n : Nat) (m : EntryModel), ms[n]? = some m →
-    uint.Z m.index = uint.Z f0 + n ∧ (m.typ = W32 0 ∨ m.typ = W32 1)
+    uint.Z m.index = uint.Z f0 + n ∧
+      (m.typ = W32 0 ∨ (m.typ = W32 1 ∧ isConfChangeEncoding m.data))
 
 /-- The apply thread's relation between the protocol's state `st` and the applied index `a`
 (`ep.appliedi`): out of flight, and processed through the larger of `ci` and `a`. It holds

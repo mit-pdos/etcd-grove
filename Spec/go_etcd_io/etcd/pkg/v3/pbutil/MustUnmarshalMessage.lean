@@ -22,11 +22,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `MustUnmarshalMessage(&cc, data)` unmarshals the bytes of a committed conf-change entry
-into `cc` (it panics on bad data, which a committed `EntryConfChange` does not have: its
-proposer marshalled it): `cc` holds some change, whose `Id` field holds some id. -/
+/-- `MustUnmarshalMessage(&cc, data)` unmarshals the bytes `bs` of a committed conf-change
+entry, the encoding of a `ConfChange` (`isConfChangeEncoding`: its proposer marshalled it), into
+`cc`: `cc` holds some change, whose `Id` field holds some id. (On other bytes it panics: the
+premise is the caller's, `entriesFrom`.) -/
 abbrev pbutil.MustUnmarshalMessage.spec : Prop :=
   ∀ (cc : Loc) (v : raftpb.ConfChange) (d : GoSlice) (bs : List w8) (dq : DFrac),
+  isConfChangeEncoding bs →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗ cc ↦ v ∗ d ↦*{dq} bs }}
     (App (App (Val (@! pbutil.MustUnmarshalMessage))
       (Val #(interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #cc))) (Val #d))

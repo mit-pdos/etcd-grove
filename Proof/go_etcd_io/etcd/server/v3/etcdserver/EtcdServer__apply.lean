@@ -230,7 +230,7 @@ theorem EtcdServer.apply.wp_proof
         simp only [uint.Z] at h1 h2 ⊢
         rw [BitVec.toNat_add]; simp; omega
       have hj1 : sint.Z (j + W64 1) = sint.Z j + 1 := by word
-      rcases hmtyp with h0 | h1
+      rcases hmtyp with h0 | ⟨h1, hcc⟩
       · -- a normal entry
         simp only [h0, decide_true]
         (try wp_auto)
@@ -288,7 +288,7 @@ theorem EtcdServer.apply.wp_proof
         iunfold entryAt at He2
         icases He2 with ⟨%Hnn, %pt, %pi, %pty, %d, #Ht, #Hpt, #Hi, #Hpi, #Hty, #Hpty, #Hd, #Hds⟩
         (try wp_auto)
-        wp_apply (hMU cc_ptr _ d m.data DFrac.discard) $$ [cc] as ⟨⟨%v', %cid, Hcc, #Hcid⟩, -⟩
+        wp_apply (hMU cc_ptr _ d m.data DFrac.discard hcc) $$ [cc] as ⟨⟨%v', %cid, Hcc, #Hcid⟩, -⟩
         · iframe cc Hds
         (try wp_auto)
         have hpre : (stLoaded γ st').pending = false ∧ m.index = (stLoaded γ st').p + 1 ∧
@@ -436,7 +436,7 @@ theorem EtcdServer.apply.wp_proof
       wp_apply hGTy $$ [He] as -
       · iframe He
       (try wp_auto)
-      rcases hmtyp with h0 | h1
+      rcases hmtyp with h0 | ⟨h1, hcc⟩
       · -- a normal entry
         (try simp only [h0, decide_true])
         (try wp_auto)
@@ -473,7 +473,7 @@ theorem EtcdServer.apply.wp_proof
         iunfold entryAt at He2
         icases He2 with ⟨%Hnn, %pt, %pi, %pty, %d, #Ht, #Hpt, #Hi, #Hpi, #Hty, #Hpty, #Hd, #Hds⟩
         (try wp_auto)
-        wp_apply (hMU cc_ptr _ d m.data DFrac.discard) $$ [cc] as ⟨⟨%v', %cid, Hcc, #Hcid⟩, -⟩
+        wp_apply (hMU cc_ptr _ d m.data DFrac.discard hcc) $$ [cc] as ⟨⟨%v', %cid, Hcc, #Hcid⟩, -⟩
         · iframe cc Hds
         (try wp_auto)
         wp_apply (hACC s cc_ptr ep v' csl false ci sv.ua (batchLockInv γ TM)
