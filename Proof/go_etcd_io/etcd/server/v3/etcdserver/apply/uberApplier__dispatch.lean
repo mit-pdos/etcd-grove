@@ -112,6 +112,16 @@ local macro "fin_kv" : tactic => `(tactic| (
   · first | iexact HeI | iapply applyErrIs_nil
   simp only [apply.dispatchAnswer, hk]))
 
+set_option hygiene false in
+/-- A case of the second `switch` at the join point (`R` of the `wp_join` below): `ar` (made
+read-only) and `op` as computed, then the postcondition of `dispatch` at `ar`. -/
+local macro "join_ar" : tactic => `(tactic| (
+  wp_join_done
+  persist_ar
+  imodintro
+  iexists _, _, _, _, _
+  iframe a r ar op H0 HeI))
+
 -- (the unused-variables linter walks the whole info tree of this long proof: 10-15s of
 -- the build of this module, which is on the build's critical path)
 set_option linter.unusedVariables false in
@@ -293,7 +303,20 @@ theorem apply.uberApplier.dispatch.wp_proof
   (try wp_auto)
   ihave Hc : iprop(mvcc.csContract E.P E.f Pre Q Post) $$ [Hc]
   · simp only [apply.cPre, ↓reduceIte]; iexact Hc
-  wp_if_destruct
+  -- the second `switch`: each case computes `ar` and `op` and establishes the postcondition
+  -- at `ar`; the `return` and the deferred metrics, after the join, are verified once (not
+  -- once per request kind)
+  wp_join iprop(|==> ∃ (resp : google_golang_org.protobuf.reflect.protoreflect.ProtoMessage)
+      (err : GoError) (physc : GoChan) (trace : Loc) (opS : GoString),
+      a_ptr ↦ p ∗ r_ptr ↦ r ∗ ar_ptr ↦ «$r0_ptr» ∗ op_ptr ↦ opS ∗
+      «$r0_ptr» ↦□ Result.mk resp err physc trace ∗ applyErrIs err ∗
+      (apply.chainRes c (GoInterface.ok ai) ∗
+        ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
+          structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
+          apply.kvOwn E (o.logAfter log) ∗ apply.cPost true Pre Post ∗
+          ⌜apply.dispatchStep c rq true log o ∧ apply.chainAfter rq true c c'⌝ ∗
+          apply.dispatchResult rq true log skip «$r0_ptr» o))
+    with [a r ar op «$r0» Hc Hres Ha Hkv]
   · -- Range
     have hl : lRa ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRa.2 h))
@@ -310,14 +333,11 @@ theorem apply.uberApplier.dispatch.wp_proof
     iunfold apply.rangePost at Hpost
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.rangeOutcomeIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      ihave HPP : iprop(Post ∨ Pre) $$ [Hc]
-      · iright; iapply apply.csContract_pre; iexact Hc
-      fin_kv
-      iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩
+    join_ar
+    ihave HPP : iprop(Post ∨ Pre) $$ [Hc]
+    · iright; iapply apply.csContract_pre; iexact Hc
+    fin_kv
+    iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩
   have zRange : rq.range = none := nRa.1 (by simpa using Hif)
   wp_if_destruct
   · -- Put
@@ -337,12 +357,9 @@ theorem apply.uberApplier.dispatch.wp_proof
     iunfold apply.kvPost at Hpost
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.putOutcomeIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      fin_kv
-      iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩
+    join_ar
+    fin_kv
+    iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩
   have zPut : rq.put = none := nPu.1 (by simpa using Hif)
   wp_if_destruct
   · -- DeleteRange
@@ -362,12 +379,9 @@ theorem apply.uberApplier.dispatch.wp_proof
     iunfold apply.kvPost at Hpost
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.deleteOutcomeIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      fin_kv
-      iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩
+    join_ar
+    fin_kv
+    iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩
   have zDeleteRange : rq.deleteRange = none := nDe.1 (by simpa using Hif)
   wp_if_destruct
   · -- Txn
@@ -387,12 +401,9 @@ theorem apply.uberApplier.dispatch.wp_proof
     iunfold apply.kvPost at Hpost
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.txnOutcomeIs_errIs _ _ _ _ _ _) $$ [$Hev $Hans]
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      fin_kv
-      iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩
+    join_ar
+    fin_kv
+    iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩
   have zTxn : rq.txn = none := nTx.1 (by simpa using Hif)
   wp_if_destruct
   · -- Compaction: out of the model (the premise `dispatchOk`)
@@ -416,12 +427,9 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe; iexists x; iframe HR
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      fin_same
-      itrivial
+    join_ar
+    fin_same
+    itrivial
   have zLeaseGrant : rq.leaseGrant = none := nLG.1 (by simpa using Hif)
   wp_if_destruct
   · -- LeaseRevoke
@@ -441,12 +449,9 @@ theorem apply.uberApplier.dispatch.wp_proof
     iunfold apply.kvPost at Hpost
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP⟩
     ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.revokeOutcomeIs_errIs _ _ _) $$ [$Hev $Hans]
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      fin_kv
-      iexists resp; iframe Hans; ipureintro; rfl
+    join_ar
+    fin_kv
+    iexists resp; iframe Hans; ipureintro; rfl
   have zLeaseRevoke : rq.leaseRevoke = none := nLR.1 (by simpa using Hif)
   wp_if_destruct
   · -- LeaseCheckpoint
@@ -463,12 +468,9 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe; iexists x; iframe HR; ipureintro; exact hok x hs
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      fin_same
-      itrivial
+    join_ar
+    fin_same
+    itrivial
   have zLeaseCheckpoint : rq.leaseCheckpoint = none := nLC.1 (by simpa using Hif)
   wp_if_destruct
   · -- Alarm: the uber-applier's (`restoreAlarms` on an `ACTIVATE` or `DEACTIVATE`)
@@ -482,30 +484,27 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      iframe Hres
-      iexists a', c', (Outcome.applied log false)
-      simp only [apply.Outcome.logAfter]
-      iframe Ha' Hs' Hkv
-      isplitl [HPP]
-      · simp only [apply.cPost, ↓reduceIte]; iexact HPP
-      isplitr
-      · ipureintro
-        refine ⟨by simp [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind, apply.Outcome.logAfter], ?_⟩
-        rcases hc' with ⟨h1, -⟩ | h2
-        · exact Or.inl h1
-        · exact Or.inr ⟨rfl, hk, h2⟩
-      simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
-      iframe %hn
-      iexists _
-      iframe H0
-      isplitl; rotate_left
-      · first | iexact HeI | iapply applyErrIs_nil
-      simp only [apply.dispatchAnswer, hk]
-      itrivial
+    join_ar
+    iframe Hres
+    iexists a', c', (Outcome.applied log false)
+    simp only [apply.Outcome.logAfter]
+    iframe Ha' Hs' Hkv
+    isplitl [HPP]
+    · simp only [apply.cPost, ↓reduceIte]; iexact HPP
+    isplitr
+    · ipureintro
+      refine ⟨by simp [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind, apply.Outcome.logAfter], ?_⟩
+      rcases hc' with ⟨h1, -⟩ | h2
+      · exact Or.inl h1
+      · exact Or.inr ⟨rfl, hk, h2⟩
+    simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
+    iframe %hn
+    iexists _
+    iframe H0
+    isplitl; rotate_left
+    · first | iexact HeI | iapply applyErrIs_nil
+    simp only [apply.dispatchAnswer, hk]
+    itrivial
   have zAlarm : rq.alarm = none := nAl.1 (by simpa using Hif)
   wp_if_destruct
   · -- Authenticate
@@ -522,12 +521,9 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe; iexists x; iframe HR
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      fin_same
-      itrivial
+    join_ar
+    fin_same
+    itrivial
   have zAuthenticate : rq.authenticate = none := nAu.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthEnable
@@ -543,12 +539,9 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      fin_same
-      itrivial
+    join_ar
+    fin_same
+    itrivial
   have zAuthEnable : rq.authEnable = false := nAE.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthDisable
@@ -564,12 +557,9 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      fin_same
-      itrivial
+    join_ar
+    fin_same
+    itrivial
   have zAuthDisable : rq.authDisable = false := nAD.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthStatus
@@ -581,14 +571,11 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .authStatus := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, hs]
     wp_apply HStatus $$ %log [Hkv Hres] as %resp %err ⟨Hkv, Hres, #HeI⟩
     · iframe
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      ihave HPP : iprop(Post ∨ Pre) $$ [Hc]
-      · iright; iapply apply.csContract_pre; iexact Hc
-      fin_same
-      itrivial
+    join_ar
+    ihave HPP : iprop(Post ∨ Pre) $$ [Hc]
+    · iright; iapply apply.csContract_pre; iexact Hc
+    fin_same
+    itrivial
   have zAuthStatus : rq.authStatus = false := nAS.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserAdd
@@ -607,12 +594,9 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      fin_same
-      itrivial
+    join_ar
+    fin_same
+    itrivial
   have zAuthUserAdd : rq.authUserAdd = false := nUA.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserDelete
@@ -631,12 +615,9 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      fin_same
-      itrivial
+    join_ar
+    fin_same
+    itrivial
   have zAuthUserDelete : rq.authUserDelete = false := nUD.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserChangePassword
@@ -655,12 +636,9 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      fin_same
-      itrivial
+    join_ar
+    fin_same
+    itrivial
   have zAuthUserChangePassword : rq.authUserChangePassword = false := nUC.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserGrantRole
@@ -679,12 +657,9 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      fin_same
-      itrivial
+    join_ar
+    fin_same
+    itrivial
   have zAuthUserGrantRole : rq.authUserGrantRole = false := nUGR.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserGet
@@ -701,12 +676,9 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe; iexists x; iframe HR
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      fin_same
-      itrivial
+    join_ar
+    fin_same
+    itrivial
   have zAuthUserGet : rq.authUserGet = none := nUG.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserRevokeRole
@@ -725,12 +697,9 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      fin_same
-      itrivial
+    join_ar
+    fin_same
+    itrivial
   have zAuthUserRevokeRole : rq.authUserRevokeRole = false := nURR.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthRoleAdd
@@ -749,12 +718,9 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      fin_same
-      itrivial
+    join_ar
+    fin_same
+    itrivial
   have zAuthRoleAdd : rq.authRoleAdd = false := nRA.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthRoleGrantPermission
@@ -773,12 +739,9 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      fin_same
-      itrivial
+    join_ar
+    fin_same
+    itrivial
   have zAuthRoleGrantPermission : rq.authRoleGrantPermission = false := nRGP.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthRoleGet
@@ -795,12 +758,9 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe; iexists x; iframe HR
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      fin_same
-      itrivial
+    join_ar
+    fin_same
+    itrivial
   have zAuthRoleGet : rq.authRoleGet = none := nRG.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthRoleRevokePermission
@@ -819,12 +779,9 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      fin_same
-      itrivial
+    join_ar
+    fin_same
+    itrivial
   have zAuthRoleRevokePermission : rq.authRoleRevokePermission = false := nRRP.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthRoleDelete
@@ -843,12 +800,9 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      fin_same
-      itrivial
+    join_ar
+    fin_same
+    itrivial
   have zAuthRoleDelete : rq.authRoleDelete = false := nRD.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthUserList
@@ -867,12 +821,9 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      fin_same
-      itrivial
+    join_ar
+    fin_same
+    itrivial
   have zAuthUserList : rq.authUserList = false := nUL.1 (by simpa using Hif)
   wp_if_destruct
   · -- AuthRoleList
@@ -891,16 +842,22 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe
     iunfold apply.mPost at Hpost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
-    persist_ar
-    dtail
-    all_goals
-      iapply HΦ
-      fin_same
-      itrivial
+    join_ar
+    fin_same
+    itrivial
   have zAuthRoleList : rq.authRoleList = false := nRL.1 (by simpa using Hif)
   -- `default`: `lg.Panic`: no field set, ruled out by the premise `dispatchOk`
   exfalso
   exact Hok.2.2 (by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, zAuthUserGrantRole, zAuthUserGet, zAuthUserRevokeRole, zAuthRoleAdd, zAuthRoleGrantPermission, zAuthRoleGet, zAuthRoleRevokePermission, zAuthRoleDelete, zAuthUserList, zAuthRoleList])
+  -- after the join: `return ar` and the deferred metrics
+  iintro Hj
+  imod Hj with ⟨%resp, %err, %physc, %trace, %opS, a, r, ar, op, #H0, #HeI, Hpost⟩
+  ihave #H0' := H0
+  iStructNamed H0'
+  dtail
+  all_goals
+    iapply HΦ
+    iexact Hpost
 
 end proof
 
