@@ -99,6 +99,8 @@ variable [AllG GF]
 # the root package's proofs also take `os.FileInfo`'s assumptions (an alias Perennial's `os`
 # keeps opaque, `Proof/os/FileInfoAlias.lean`)
 BBOLT_ROOT = """variable [os_fi : OsFileInfoAssumptions (GF := GF)]
+-- the platform (`Proof/runtime/GOOS.lean`)
+variable [linux : GOOSLinux]
 """
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--concurrency": "concurrency", "--bbolt": "bbolt", "--bbolt-root": "bbolt",

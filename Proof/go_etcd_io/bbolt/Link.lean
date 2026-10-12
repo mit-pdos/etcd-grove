@@ -36,6 +36,7 @@ public import Proof.go_etcd_io.bbolt.DB__String
 public import Proof.go_etcd_io.bbolt.DB__View
 public import Proof.go_etcd_io.bbolt.DB__beginTx
 public import Proof.go_etcd_io.bbolt.DB__fileSize
+public import Proof.go_etcd_io.bbolt.DB__grow
 public import Proof.go_etcd_io.bbolt.DB__growSize
 public import Proof.go_etcd_io.bbolt.DB__invalidate
 public import Proof.go_etcd_io.bbolt.DB__meta
@@ -152,6 +153,8 @@ variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
 -- the ghost state of the database's predicates (`DBPred.lean`)
 variable [AllG GF]
 variable [os_fi : OsFileInfoAssumptions (GF := GF)]
+-- the platform (`Proof/runtime/GOOS.lean`)
+variable [linux : GOOSLinux]
 
 theorem BucketStats.wp_Add :
     EtcdGrove.bbolt.BucketStats.Add.spec (GF := GF) (hG := hG) :=
@@ -429,9 +432,33 @@ theorem DB.wp_fileSize :
     EtcdGrove.bbolt.DB.fileSize.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.fileSize.wp_proof EtcdGrove.bbolt.os.File.wp_Stat EtcdGrove.bbolt.fs.FileInfo.wp_Size
 
+theorem wp_header :
+    EtcdGrove.bbolt.header.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.header.wp_proof
+
+theorem log.Logger.wp_Output :
+    EtcdGrove.bbolt.log.Logger.Output.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.log.Logger.Output.wp_proof
+
+theorem DefaultLogger.wp_Errorf :
+    EtcdGrove.bbolt.DefaultLogger.Errorf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DefaultLogger.Errorf.wp_proof EtcdGrove.bbolt.wp_header EtcdGrove.bbolt.log.Logger.wp_Output
+
 theorem DB.wp_growSize :
     EtcdGrove.bbolt.DB.growSize.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.growSize.wp_proof
+
+theorem os.File.wp_Truncate :
+    EtcdGrove.bbolt.os.File.Truncate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.os.File.Truncate.wp_proof
+
+theorem os.File.wp_Sync :
+    EtcdGrove.bbolt.os.File.Sync.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.os.File.Sync.wp_proof
+
+theorem DB.wp_grow :
+    EtcdGrove.bbolt.DB.grow.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.grow.wp_proof EtcdGrove.bbolt.DB.wp_Logger EtcdGrove.bbolt.DB.wp_fileSize EtcdGrove.bbolt.DefaultLogger.wp_Errorf EtcdGrove.bbolt.DB.wp_growSize EtcdGrove.bbolt.os.File.wp_Truncate EtcdGrove.bbolt.os.File.wp_Sync
 
 theorem DB.wp_invalidate :
     EtcdGrove.bbolt.DB.invalidate.spec (GF := GF) (hG := hG) :=
@@ -456,18 +483,6 @@ theorem DB.wp_munmap :
 theorem DB.wp_pageInBuffer :
     EtcdGrove.bbolt.DB.pageInBuffer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.pageInBuffer.wp_proof
-
-theorem wp_header :
-    EtcdGrove.bbolt.header.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.header.wp_proof
-
-theorem log.Logger.wp_Output :
-    EtcdGrove.bbolt.log.Logger.Output.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.log.Logger.Output.wp_proof
-
-theorem DefaultLogger.wp_Errorf :
-    EtcdGrove.bbolt.DefaultLogger.Errorf.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DefaultLogger.Errorf.wp_proof EtcdGrove.bbolt.wp_header EtcdGrove.bbolt.log.Logger.wp_Output
 
 theorem Options.wp_String :
     EtcdGrove.bbolt.Options.String.spec (GF := GF) (hG := hG) :=
@@ -608,14 +623,6 @@ theorem os.File.wp_Name :
 theorem os.File.wp_ReadAt :
     EtcdGrove.bbolt.os.File.ReadAt.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.os.File.ReadAt.wp_proof
-
-theorem os.File.wp_Sync :
-    EtcdGrove.bbolt.os.File.Sync.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.os.File.Sync.wp_proof
-
-theorem os.File.wp_Truncate :
-    EtcdGrove.bbolt.os.File.Truncate.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.os.File.Truncate.wp_proof
 
 theorem os.File.wp_WriteAt :
     EtcdGrove.bbolt.os.File.WriteAt.spec (GF := GF) (hG := hG) :=

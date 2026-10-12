@@ -154,3 +154,4 @@ DB__fileSize: os_File__Stat fs_FileInfo__Size
 log_Logger__Output:
 header:
 DefaultLogger__Errorf: header log_Logger__Output
+DB__grow: DB__Logger DB__fileSize DefaultLogger__Errorf DB__growSize os_File__Truncate os_File__Sync
