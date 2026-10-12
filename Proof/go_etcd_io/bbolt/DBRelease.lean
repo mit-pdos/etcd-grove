@@ -111,7 +111,7 @@ theorem release_relSafe (R : List w64) (σ : FLState) (txid : w64)
     exact ⟨pd', ht.1, hp⟩
 
 /-- The pairs `releaseRange` keeps of an entry are some of its pairs. -/
-theorem rrKeep_pairs (b e : w64) (pd : Pending) (p : w64 × w64) (h : p ∈ (rrKeep b e pd).pairs) :
+theorem rrKeep_pairs_sub (b e : w64) (pd : Pending) (p : w64 × w64) (h : p ∈ (rrKeep b e pd).pairs) :
     p ∈ pd.pairs := by
   unfold rrKeep Pending.pairs at h
   simp only at h
@@ -151,7 +151,7 @@ theorem releaseRange_relSafe (R : List w64) (σ : FLState) (b e : w64)
     · rw [GMap.lookup_filter, ofilter_some, GMap.lookup_fmap, Option.map_eq_some_iff] at ht
       obtain ⟨⟨pd0, h0, rfl⟩, _⟩ := ht
       rw [GMap.lookup_filter, ofilter_some] at h0
-      exact ⟨pd0, h0.1, rrKeep_pairs b e pd0 p hp⟩
+      exact ⟨pd0, h0.1, rrKeep_pairs_sub b e pd0 p hp⟩
 
 /-- The fold of `ReleasePendingPages` over the sorted read-only transactions `l` still to visit:
 every reader visited is below `acc.2`, and those to visit are at least `acc.2 - 1`. -/
