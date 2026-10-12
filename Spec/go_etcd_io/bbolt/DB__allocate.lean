@@ -54,7 +54,8 @@ changed; after it, the mapping is lost and with it the database (only `WR'` rema
 abbrev DB.allocate.spec : Prop :=
   ∀ (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DBState) (w : Reader) (ml : Loc)
     (mv : internal.common.Meta) (WR WR' : IProp GF) (txid count : w64),
-  I.AllocateSpec → σ.wr = some w → 0 < sint.Z count → sint.Z count * σ.ps < 2 ^ 47 →
+  I.AllocateSpec → σ.wr = some w → 0 < sint.Z count → sint.Z count ≤ 2 ^ 32 →
+  sint.Z count * σ.ps < 2 ^ 47 →
   uint.Z mv.pgid' * σ.ps < 2 ^ 48 → w.hwm ≤ uint.nat mv.pgid' →
   (σ.rwtx ≠ null →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ WR ∗
