@@ -46,6 +46,7 @@ theorem txn.Range.wp_proof
   wp_apply (hEnsure ctx cd lg _ _) $$ [$Hctx] as %ctx' %t ⟨%Ht, %vs, #Hctx'⟩
   wp_apply time.wp_Now as %now -
   wp_apply (hRead s γ _ t m log₀) $$ [$Hs $Hrd $Htoks $Hc0] as %mw ⟨%log, %rev, Htx, Htoks, %Hpin⟩
+  · ipureintro; exact Ht
   icases isTxnRead_pure mw s γ log rev $$ Htx with ⟨Htx, %Hlog⟩
   icases isTxnRead_cert mw s γ log rev $$ Htx with ⟨Htx, #Hcert⟩
   ihave Htx : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]

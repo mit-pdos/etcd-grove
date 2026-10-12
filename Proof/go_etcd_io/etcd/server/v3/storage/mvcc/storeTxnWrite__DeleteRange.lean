@@ -91,7 +91,7 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
       simp only [named]
       iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
       iframe #
-      ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+      ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
       ipureintro
       refine ⟨rfl, ?_⟩
       rw [hrev]; unfold mvcc.writeRev; rw [if_neg hpne]
@@ -110,7 +110,7 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
       simp only [named]
       iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
       iframe #
-      ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+      ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
       ipureintro
       refine ⟨rfl, ?_⟩
       unfold mvcc.writeRev; rw [if_pos hp]; congr 1
@@ -127,7 +127,7 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
     simp only [named]
     iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
     iframe #
-    ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+    ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
     ipureintro
     refine ⟨rfl, ?_⟩
     rw [hrev]; unfold mvcc.writeRev

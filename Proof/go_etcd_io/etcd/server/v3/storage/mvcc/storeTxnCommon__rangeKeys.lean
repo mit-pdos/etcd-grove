@@ -43,7 +43,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG))
     (hUnm : proto.Unmarshal.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnCommon.rangeKeys.spec (GF := GF) (hG := hG) := by
-  intro txc s trace ti rt dq m R γ kn log rev ctx cd todo key endk k e ro
+  intro txc s trace ti rt dq m R γ kn log rev ctx cd todo key endk k e ro Htrnn
   wp_start as ⟨#Hs, HsT, HtxcT, HtraceT, #Hrdr, HRr, %HsubT, Hkn, %Hklog, %HneT, %Hrv, #Hidx0, Hti0,
     #Hctx, #Hkey, #Hend⟩
   iunfold mvcc.isStore at Hs
@@ -114,6 +114,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
         rw [Hklog]
         (try wp_auto)
         wp_apply (hStep trace _ _)
+        · ipureintro; exact Htrnn
         (try wp_auto)
         wp_alloc r as Hr
         ihave %Hrnn := typedPointsto_not_null _ _ _ $$ Hr
@@ -146,6 +147,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
           rw [Hklog] at Htotal
           (try wp_auto)
           wp_apply (hStep trace _ _)
+          · ipureintro; exact Htrnn
           (try wp_auto)
           generalize hT : mvcc.rangeTaken log (decide (endk = slice.nil)) k e
             (mvcc.rangeRev rev ro.Rev') ro.Limit' = taken at *
@@ -389,6 +391,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
           rw [Hklog] at Htotal
           (try wp_auto)
           wp_apply (hStep trace _ _)
+          · ipureintro; exact Htrnn
           (try wp_auto)
           generalize hT : mvcc.rangeTaken log (decide (endk = slice.nil)) k e
             (mvcc.rangeRev rev ro.Rev') ro.Limit' = taken at *
@@ -736,6 +739,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
               rw [Nat.sub_self, List.replicate_zero, List.append_nil]
               (try wp_auto)
               wp_apply (hStep trace _ _)
+              · ipureintro; exact Htrnn
               (try wp_auto)
               wp_alloc r as Hr
               ihave %Hrnn := typedPointsto_not_null _ _ _ $$ Hr

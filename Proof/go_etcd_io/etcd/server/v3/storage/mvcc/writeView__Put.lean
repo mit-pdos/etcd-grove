@@ -41,10 +41,11 @@ theorem mvcc.writeView.Put.wp_proof
   · iPkgInit
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply hTODO as %t -
+  wp_apply hTODO as %t %Ht
   (try wp_auto)
   -- `wv.kv.Write(trace)`
   wp_apply (hWrite s γ t) $$ [$Hs $Hrd $Htok] as %mw ⟨%ilog, Htx⟩
+  · ipureintro; exact Ht
   (try wp_auto)
   -- `tw.Put(key, value, lease)`
   wp_apply (hPut mw s γ ilog [] (W64 0) (W64 0) (W64 0) key value k v leaseID)
