@@ -1,7 +1,7 @@
 /-
 Package initialization instances for etcd's backend (`server/v3/storage/backend`, translated
 with bodies: `Code/go_etcd_io/etcd/server/v3/storage/backend.toml`) and the packages it imports
-that no lower proof module provides: bbolt and its `errors` (names and types only), `encoding/hex`
+that no lower proof module provides: bbolt and its `errors` (names and types only; bbolt imports `time` and its `internal/common`, whose instance is `Proof/go_etcd_io/bbolt/internal/common/Init.lean`), `encoding/hex`
 (a standard-library package Perennial does not translate: names only, here),
 `client/pkg/v3/verify` and prometheus's `client_golang/prometheus` (names only). The others are
 the cache's (`cache/v3/Base.lean`: `zap`) and Perennial's (`bytes`, `errors`, `fmt`, `math`,
@@ -28,6 +28,7 @@ public import Perennial.Proof.sort
 public import Perennial.Proof.sync
 public import Perennial.Proof.sync.atomic
 public import Perennial.Proof.time
+public import Proof.go_etcd_io.bbolt.internal.common.Init
 
 @[expose] public section
 

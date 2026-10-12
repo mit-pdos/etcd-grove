@@ -3607,3 +3607,111 @@ after the applied index, as raft hands them over". Its proof is what discharges 
 - **Ticks**: node.go's `Tick` spends a term-budget credit; the wrapper ticks without bound. The
   contract's `Tick` takes a resource `T` the caller supplies, and `start` takes `□ |==> T`: the
   gap a composition with node.go must close (a bound on a run's ticks).
+
+## The backend: the buffers, bbolt as a key-value contract, the locks and the views
+
+**2026-10-12 · the buffers adopted (unit 1); the rest proposed (units 2–3)** (`server/v3/storage/
+backend`, ~1500 Go lines, translated with bodies but for the snapshot, the hash, defragmentation
+and `verify.go`; branch `worktree-backend`; `STATUS.md`, "The backend"). bbolt is the trust
+boundary: it is not merged here (its proof, branch `bbolt`, needs Perennial work not yet landed),
+and its specs there are physical (pages, cursors as stacks, no contents), so the backend is
+proved over a key-value contract of bbolt, stated here as axioms, which the bbolt proof is to
+discharge.
+
+### The buffers (`tx_buffer.go`, unit 1)
+
+- **Entries as lists, the read buffer canonical.** A bucket buffer holds a list of entries
+  `(key, value)` in the order they were added (`Model.lean`); keys compare as `bytes.Compare`
+  (`go.GoStringLt`). The read buffer's buckets are *canonical*: strictly increasing keys
+  (`entsSorted`), the form `canon l` (the stable sort by key of `l`, then the last entry of each
+  key: `sort.Stable` then `dedupe`'s loop) gives. `merge` and `writeback` produce `canon` of the
+  old entries followed by the new ones in every branch (`canon_of_sorted`,
+  `canon_append_perm`: a non-stable `sort.Sort` of entries with distinct keys does not change the
+  canonical form). *Rejected:* a finite map per bucket (`Range`'s binary search and the
+  dedupe-or-not branches are about the list).
+- **The write-back's assumption is a premise.** `writeback` sorts a non-sequential bucket with
+  `sort.Sort` "assume no duplicate keys", and `merge` does not deduplicate when the read buffer's
+  entry was empty: two puts of one key in one session are written back as two entries, and
+  `Range` returns the older (`issues/etcd-backend-duplicate-put-stale-read.md`, reproduced). The
+  write buffer's well-formedness (`WBuf.Wf`) is what `put` (distinct keys in a bucket written by
+  `put`) and `putSeq` (keys increasing: its `verify.Verify` check, proved to pass) keep, as
+  premises on the key put.
+- **Slices read-only for good, every slot.** The buffers keep the key and value slices they are
+  given and hand them to readers (`Range`, `CopyUsed`), so an entry's slices are `↦*□`
+  (`entsIn`); every slot, stale or in use, has its slices so (`slotsRO`), since `merge` reads the
+  first slot of an empty source buffer. A buffer's layout (`BBPhys`: its slice and slots) is
+  explicit in `bbAt bb dq p es` so that readers holding fractions (the read buffer is under an
+  `RWMutex`) agree on it; `ownBB` is the writable buffer, with a free slot and a length bound
+  (`bufBound = 2^60` entries, so `3/2` growth does not overflow).
+- **`sort.Stable` is an axiom** (`Spec/sort/Stable.lean`): Perennial translates it but proves only
+  `sort.Sort`; its result is Lean's stable `List.mergeSort` (a stable sort by a strict weak order
+  is determined). `verify.Assert` (`CopyUsed`'s) is an axiom for a true condition.
+
+### bbolt as a key-value contract (proposed)
+
+The backend's view of bbolt, `Proof/.../backend/InvBbolt.lean`: predicates are axioms (as the
+btree's `ownBTree` was, "store: btree as the trust boundary"), the functions' specs are
+`Spec/go_etcd_io/bbolt/<T>__<M>_kv.lean` (`bbolt.<T>.<M>.kvspec`, the suffix as the bbolt branch's
+`_w` variants, so the files do not collide with its specs), each an `axiom` in
+`Proof/go_etcd_io/bbolt/<T>__<M>_kv.lean`, stated from the Go documentation:
+
+- **Data**: a database is its top-level buckets' contents, `Data := GMap GoString (GMap
+  GoString GoString)` (no nested buckets: etcd has none); a bucket's cursor order is its
+  sorted entry list. `ownDB db γ D`: the open database with committed data `D` (exclusive; the
+  batch lock holds it). `bolt.Open` gives it for the data the file holds (`fileHolds path D`, a
+  premise: what a fresh or restored file contains is the caller's assumption).
+- **Read transactions**: `Begin(false)` snapshots `D`: `ownRTx tx q D` (fractional: readers of
+  one batch interval share it; `Rollback` needs all of it), and `rtxStats tx` (exclusive: what
+  `Bucket()`, `Cursor()` and `ForEach` mutate, the transaction's statistics: the backend calls
+  them under `txMu`). The slices a read returns point into the memory map, valid only while the
+  transaction is open (bbolt's documentation): `rtxBytes tx s b` (persistent) gives `s ↦*{dq} b`
+  only together with a fraction of `ownRTx` (`rtxBytes_acc`). *Rejected:* `↦*□` results (false
+  after `Rollback` unmaps a remapped file; and the bbolt branch's specs tie them to page
+  fractions).
+- **The write transaction**: `Begin(true)` (one writer: `wrTok γ`, given back by `Commit`) gives
+  `ownWTx tx γ D S`: begun at `D`, contents `S` now. `Bucket`, `CreateBucketIfNotExists`,
+  `DeleteBucket` (returning the variable `ErrBucketNotFound`'s value when absent), `Put` (key
+  `1..MaxKeySize` bytes, value at most `MaxValueSize`: `nil`; bbolt copies the key and keeps the
+  value, `↦*□`), `Delete`, a cursor over `S`'s bucket and `ForEach`; `Commit` makes `S` the
+  committed data or returns an error (the backend then calls `lg.Fatal`, which never returns). A
+  bucket handle's `FillPercent` field (the backend writes `0.9`) is owned by the transaction.
+- **Getters**: `Tx.Size`, `Tx.DB`, `Tx.Stats`, `DB.Stats`, `DB.Info` (the backend's metrics)
+  return some value.
+
+### The locks and the views (proposed)
+
+- **Two views.** The batch transaction's state `S` (bbolt's writer contents) is the lock
+  holder's (`batchLocked γ st`, a record: `S`, the write buffer, whether the session wrote); the
+  readers' view `V` (the bbolt read snapshot of the batch interval overlaid with the read buffer)
+  is a ghost variable `γ.view`: half the client's (`bView γ q V`, `q/2` of it), a quarter under the
+  batch lock, a quarter under `readTx.mu` (fractional, for `RLock`). Readers agree with the
+  client's fraction; changing `V` needs all of it: the batch lock's `Unlock` after a session that
+  wrote takes the client's whole half (`bView γ 1 V`) and gives back `bView γ 1 V'` with `V'` the
+  session's `S` after the commit's hook if it committed. So no reader runs during an `Unlock`
+  (mvcc's `s.revMu`, held exclusively by the store's `End` around `Unlock`, is this): `Unlock`'s
+  two critical sections (the write-back, then the commit when a delete is pending) are not atomic
+  for an unsynchronized reader, and the read-buffer cache of `ConcurrentReadTx` goes stale across
+  them (`issues/etcd-backend-read-buffer-cache-stale-after-commit.md`, reproduced).
+- **When the lock is free, `V ≈ S`** (equal on every key, an absent bucket as an empty one): the
+  write buffer's leftover puts (the hook's, buffered after the write-back) precede every later
+  put in the chronological order the write-back preserves, and every session with a delete
+  commits at its `Unlock`. This is the batch lock's invariant, with the writer's physical state
+  (`batchTx.tx`, `pending < batchLimit`, `pendingDeleteOperations = 0`, the write buffer, bbolt's
+  `ownDB`).
+- **The hooks are the client's**: the pre-commit hook (`Hooks.OnPreCommitUnsafe`, run by every
+  commit, even a `ForceCommit` with nothing pending) is specified by a relation `H` on the data
+  and the buckets it may change (the server's: `Meta`), proved by its owner over the batch
+  transaction's own specs. The views are of the other buckets: the backend's own goroutine
+  (`run`) commits, and so runs the hook, with no client to hand it a view, and the read-buffer
+  cache goes stale on the hook's buckets at any commit (the second reproduction of the issue
+  above). Reads of the hook's buckets promise what the hook's relation gives, no more. The post-lock hook (`txPostLockInsideApplyHook`) is a triple the client gives
+  `SetTxPostLockInsideApplyHook`.
+- **Readers.** `readTx.mu` (guarded `RWMutex`) holds the read buffer, the interval's bbolt
+  transaction's share and the interval's `WaitGroup` adder (Perennial's join idiom: a
+  `ConcurrentReadTx` adds one and gets the `Done` permission with a fraction of `ownRTx`;
+  `unsafeCommit`'s goroutine `Wait`s for them, then `Rollback`s). `Add` needs the counter below
+  `2^31 - 1`: readers spend a token (`rdTok γ`, `2^31 - 2` of them at creation, given back by
+  `RUnlock`), as mvcc pins its readers. `txMu` (one for the backend's life, shared by every
+  interval) holds each interval's buckets map and `rtxStats`, in a ghost map of the intervals.
+  The cache (`txReadBufferCache`, its own mutex) holds a persistent copy and its version, valid
+  for the current version outside `Unlock`.
