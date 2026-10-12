@@ -54,8 +54,29 @@ theorem arrayImpl.freeCountSpec (h : array.FreeCount.spec (GF := GF) (hG := hG))
 theorem arrayImpl.freePageIdsSpec (h : array.freePageIds.spec (GF := GF) (hG := hG)) (a : Loc) :
     (arrayImpl (GF := GF) a).FreePageIdsSpec := fun s free => h a s free
 
+theorem arrayImpl.initSpecW (h : array.Init.spec (GF := GF) (hG := hG)) (a : Loc) :
+    (arrayImpl (GF := GF) a).InitSpecW := fun s σ ids xs Hwf _ => h a s σ ids xs Hwf
+
 theorem arrayImpl.initSpec (h : array.Init.spec (GF := GF) (hG := hG)) (a : Loc) :
-    (arrayImpl (GF := GF) a).InitSpec := fun s σ ids xs Hwf => h a s σ ids xs Hwf
+    (arrayImpl (GF := GF) a).InitSpec := by
+  intro s σ ids xs Hwf
+  rw [arrayImpl.ity, arrayImpl.iv]
+  iintro %Φ ⟨#Hpkg, #Hhdl, Hsh, Hown, Hids, Hcap⟩ HΦ
+  ihave Hsh := ownShared_w _ _ _ $$ Hsh
+  iapply (h a s σ ids xs Hwf.wfw) $$ [Hsh Hown Hids Hcap]
+  · iframe
+    isplitl []
+    · iexact Hpkg
+    isplitl []
+    · iExactEq Hhdl; rfl
+    try (iExactEq Hown; rfl)
+  inext
+  iintro ⟨Hsh, Hown⟩
+  ihave Hsh := (ownSharedW_wf _ _ _ Hwf) $$ Hsh
+  iapply HΦ
+  iframe
+  try (iExactEq Hsh; rfl)
+  try (iExactEq Hown; rfl)
 
 theorem arrayImpl.mergeSpansSpec (h : array.mergeSpans.spec (GF := GF) (hG := hG)) (a : Loc) :
     (arrayImpl (GF := GF) a).MergeSpansSpec :=
@@ -272,19 +293,24 @@ theorem arrayImpl.releasePending (h : shared.ReleasePendingPages.spec (GF := GF)
 
 theorem arrayImpl.read (h : shared.Read.spec (GF := GF) (hG := hG)) (hI : array.Init.spec (GF := GF) (hG := hG)) (a : Loc) :
     (arrayImpl (GF := GF) a).ReadSpec := by
-  intro s σ p pv dq c xs dq2 Hnn Hfl0 Hov Hnd Hxs Hlen
+  intro s σ p pv dq c xs dq2 Hnn Hfl0 Hov Hnd Hxs Hlen Hemp
   rw [arrayImpl.ity, arrayImpl.iv]
   wp_start as ⟨Hfl, Hp, Hcc, Hsl⟩
   iunfold ownFL at Hfl
   icases Hfl with ⟨#Hhdl, Hsh, Hown⟩
+  icases ownShared_wf _ _ _ $$ Hsh with ⟨Hsh, %Hwf⟩
+  ihave Hsh := ownShared_w _ _ _ $$ Hsh
   ihave #Hh : arrayHdl (GF := GF) a s $$ [Hhdl]
   · iExactEq Hhdl; rfl
   iunfold arrayHdl at Hh
   wp_auto
-  wp_apply (h (arrayImpl a) s σ p pv dq c xs dq2 (arrayImpl.initSpec hI a) Hnn Hfl0 Hov Hnd Hxs Hlen)
+  wp_apply (h (arrayImpl a) s σ p pv dq c xs dq2 (arrayImpl.initSpecW hI a) Hnn Hfl0 Hov Hnd
+      (fun x hx => (Hxs x hx).1) Hlen (Hemp.imp id (fun h0 x hx => by rw [h0] at hx; cases hx)))
     $$ [Hsh Hown Hp Hcc Hsl] as %fr ⟨%Hfr, Hsh, Hown, Hp, Hcc, Hsl⟩
   · iframe
     iexact Hhdl
+  icases ownSharedW_wfw _ _ _ $$ Hsh with ⟨Hsh, %Hwfw⟩
+  ihave Hsh := (ownSharedW_wf _ _ _ (Hwfw.wf (fun x hx => (Hxs x (Hfr.2.mem_iff.1 hx)).2))) $$ Hsh
   iapply HΦ
   unfold ownFL
   iframe Hhdl
@@ -296,17 +322,19 @@ theorem arrayImpl.read (h : shared.Read.spec (GF := GF) (hG := hG)) (hI : array.
 
 theorem arrayImpl.reload (h : shared.Reload.spec (GF := GF) (hG := hG)) (hI : array.Init.spec (GF := GF) (hG := hG)) (hFPI : array.freePageIds.spec (GF := GF) (hG := hG)) (a : Loc) :
     (arrayImpl (GF := GF) a).ReloadSpec := by
-  intro s σ p pv dq c xs dq2 Hnn Hfl0 Hov Hnd Hxs Hlen
+  intro s σ p pv dq c xs dq2 Hnn Hfl0 Hov Hnd Hxs Hlen Hemp
   rw [arrayImpl.ity, arrayImpl.iv]
   wp_start as ⟨Hfl, Hp, Hcc, Hsl⟩
   iunfold ownFL at Hfl
   icases Hfl with ⟨#Hhdl, Hsh, Hown⟩
+  ihave Hsh := ownShared_w _ _ _ $$ Hsh
   ihave #Hh : arrayHdl (GF := GF) a s $$ [Hhdl]
   · iExactEq Hhdl; rfl
   iunfold arrayHdl at Hh
   wp_auto
-  wp_apply (h (arrayImpl a) s σ p pv dq c xs dq2 (arrayImpl.initSpec hI a)
-    (arrayImpl.freePageIdsSpec hFPI a) Hnn Hfl0 Hov Hnd Hxs Hlen)
+  wp_apply (h (arrayImpl a) s σ p pv dq c xs dq2 (arrayImpl.initSpecW hI a)
+    (arrayImpl.freePageIdsSpec hFPI a) Hnn Hfl0 Hov Hnd Hxs Hlen
+    (Hemp.imp id (fun h0 x hx => by rw [h0] at hx; cases hx)))
     $$ [Hsh Hown Hp Hcc Hsl] as %fr ⟨%Hfr, Hsh, Hown, Hp, Hcc, Hsl⟩
   · iframe
     iexact Hhdl
@@ -321,16 +349,18 @@ theorem arrayImpl.reload (h : shared.Reload.spec (GF := GF) (hG := hG)) (hI : ar
 
 theorem arrayImpl.noSyncReload (h : shared.NoSyncReload.spec (GF := GF) (hG := hG)) (hI : array.Init.spec (GF := GF) (hG := hG)) (a : Loc) :
     (arrayImpl (GF := GF) a).NoSyncReloadSpec := by
-  intro s σ pg xs dq Hinc Hge Hlen
+  intro s σ pg xs dq Hinc Hge Hlen Hemp
   rw [arrayImpl.ity, arrayImpl.iv]
   wp_start as ⟨Hfl, Hpg⟩
   iunfold ownFL at Hfl
   icases Hfl with ⟨#Hhdl, Hsh, Hown⟩
+  ihave Hsh := ownShared_w _ _ _ $$ Hsh
   ihave #Hh : arrayHdl (GF := GF) a s $$ [Hhdl]
   · iExactEq Hhdl; rfl
   iunfold arrayHdl at Hh
   wp_auto
-  wp_apply (h (arrayImpl a) s σ pg xs dq iprop(pg ↦*{dq} xs) (arrayImpl.initSpec hI a) Hinc Hge Hlen)
+  wp_apply (h (arrayImpl a) s σ pg xs dq iprop(pg ↦*{dq} xs) (arrayImpl.initSpecW hI a) Hinc Hge Hlen
+      (Hemp.imp id (fun h0 x hx => by rw [h0] at hx; cases hx)))
     $$ [Hsh Hown Hpg] as ⟨Hsh, Hown, Hpg⟩
   · iframe
     isplitl []
@@ -363,12 +393,13 @@ theorem arrayImpl.ifaceFreeCount (h : array.FreeCount.spec (GF := GF) (hG := hG)
 
 theorem arrayImpl.ifaceInit (h : array.Init.spec (GF := GF) (hG := hG)) (a : Loc) :
     (arrayImpl (GF := GF) a).IfaceInitSpec := by
-  intro s σ ids xs Hwf
+  intro s σ ids xs Hwf _
   rw [arrayImpl.ity, arrayImpl.iv]
   iintro %Φ ⟨#Hpkg, Hfl, Hids, Hcap⟩ HΦ
   iunfold ownFL at Hfl
   icases Hfl with ⟨#Hhdl, Hsh, Hown⟩
-  iapply (h a s σ ids xs Hwf) $$ [Hsh Hown Hids Hcap]
+  ihave Hsh := ownShared_w _ _ _ $$ Hsh
+  iapply (h a s σ ids xs Hwf.wfw) $$ [Hsh Hown Hids Hcap]
   · iframe
     isplitl []
     · iexact Hpkg
@@ -377,6 +408,7 @@ theorem arrayImpl.ifaceInit (h : array.Init.spec (GF := GF) (hG := hG)) (a : Loc
     iExactEq Hown; rfl
   inext
   iintro ⟨Hsh, Hown⟩
+  ihave Hsh := (ownSharedW_wf _ _ _ Hwf) $$ Hsh
   iapply HΦ
   unfold ownFL
   iframe Hhdl

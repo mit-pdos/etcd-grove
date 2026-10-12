@@ -93,3 +93,42 @@ they are proved on the database's side.
 `node.splitTwo` and `rebalance` convert between integers and `float64`, which Perennial does
 not model: `FloatConv.lean` adds the conversions as uninterpreted functions, as a typeclass
 of step facts taken as a hypothesis (to move into Perennial with its next batch).
+
+## The spill and `Commit` (design, 2026-10-12)
+
+What `Commit` must re-establish is `dbOK` of the state with the new meta current: its tree
+`treeStrict` (now with `treeKeys`, `TreeKeys.lean`), its pages disjoint, none free or pending,
+the readers' views untouched. Three things the clean invariant does not state are needed:
+
+- **Keys** (`treeKeys`; the transaction's side `bktKeys`, `WriteTxShape.lean`). `node.spill`
+  re-keys a child's entry in its parent with `put(n.key, firstKey, ...)`: if the entry's key is
+  not `n.key`, `put` inserts a second entry and the first keeps pointing at the freed page (a
+  later reuse of that page corrupts the tree). The parent's page stays sorted only if every
+  child's keys are within its entry's bounds (a B+tree's invariant, which `Put` keeps because
+  the cursor routes a key by the branches' keys). `rebalance` asserts a node's parent has two
+  children (branches have two entries) and sorts children by their first key (they are not
+  empty); its merges join siblings of one kind.
+- **Nested buckets** (`bktNested`): an opened child bucket is its parent's entry (root, and its
+  header while it has not changed).
+- **Disjointness**, as ghost page tokens (`txShape`): one exclusive token per page id, each with
+  one position of the logical tree (a node's own page, an unmaterialized child's subtree, an
+  unopened nested bucket's tree, an opened bucket's tree but its own opened children). Spill
+  assembles a written subtree from a fresh page (its token from the authority, the id being
+  new) and its children's separately held trees, so `viewUnique` holds by separation; freed
+  pages' tokens go to a stash, so the new tree shares no page with the pending ones.
+
+**Layers.** `txShape γ W T` is a second conjunct next to `ownWriteTx` (the existing proofs of
+`ownWriteTx` stay as they are); each write operation's spec gains it: materialization
+(`Bucket.node`, `Cursor.node`) splits a position's tokens, `openBucket` moves an entry's tree
+to the child, `Put`/`Delete` keep the keys (the cursor's search gives the routing facts),
+`CreateBucket` adds an inline entry (no pages). Then: `rebalance` (keeps `txShape`, frees
+merged pages), the spill (`node.spill`, `Bucket.spill`: from `txShape` to a written tree,
+`wtree`), and `Commit`'s database side (`commitFreelist`, `grow`, `Tx.write`: dirty slots, no
+view covers them, written through `db.ops.writeAt`, which `ownDB` now states is the file's
+`WriteAt`; `writeMeta`; `dbOK` of the committed state).
+
+**Safety finding** (to state as a precondition): if `writeMeta`'s write reaches the file (a
+short write after the meta's 80 bytes, then an error, or `fdatasync` failing after it), `Commit`
+calls `rollback()`, which reloads the freelist from `db.meta()`: the new meta, valid and newer.
+`Reload` then makes the pages this transaction freed free (its pending entry was rolled back),
+while open readers may still see them; the next writer can overwrite them under a reader.

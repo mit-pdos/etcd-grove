@@ -222,7 +222,7 @@ theorem bktClean_addChild (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hv : vi
   have hwfc := hcwf hnone
   obtain ⟨hlen, hpid, -, hkind⟩ := treeWF_page _ _ _ pg hwfc hpg
   have hgood := hv.2.2.2.2.1 _ pg hpg
-  have huniq := hv.2.2.2.2.2
+  have huniq := hv.2.2.2.2.2.1
   have hcid : W64 (pageId pg : Int) = w.pgid := by rw [hpid]; unfold uint.nat; word
   have hcself : treeHas W.pages (uint.nat w.pgid) (uint.nat w.pgid) := treeHas_self _ _ pg hpg
   have hpos : pagePosAt B nl i w.pgid := ⟨rp, w, hrp, hbr, hw, rfl, hnone⟩
@@ -636,7 +636,7 @@ theorem bktClean_addRoot (W : WView) (hwm : Nat) (bl : Loc) (B : BRec) (hv : vie
         · exact Or.inr ⟨a, hwm, b⟩
   have hmemlt : ∀ a d, treeHas W.pages a d → d < 2 ^ 64 := by
     intro a d h; have := view_id_lt W hv d (treeHas_mem _ _ _ h); omega
-  have huniq := hv.2.2.2.2.2
+  have huniq := hv.2.2.2.2.2.1
   -- positions of the new bucket: the new node's children
   have hposB' : ∀ x j c', pagePosAt (nodeAdded B B.ib.root' null l (readNRec bl null p pg s src') cs') x j c' →
       x = l ∧ pageFlags pg = branchPageFlag ∧ B.ib.root' ≠ W64 0 ∧ j < pageCount pg ∧

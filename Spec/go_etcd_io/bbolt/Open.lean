@@ -1,6 +1,7 @@
 module
 public import Proof.go_etcd_io.bbolt.DBOpen
 public import Spec.go_etcd_io.bbolt.DB__getPageSizeFromSecondMeta
+public import Spec.go_etcd_io.bbolt.DB__init
 
 @[expose] public section
 
@@ -24,6 +25,10 @@ def pageSizeOK (bs : List w8) (ps : Nat) : Prop :=
   ∀ i < 15, 1024 * 2 ^ i + 1024 < bs.length → metaValid (metaAt (probeAt bs (1024 * 2 ^ i)) 16) →
     uint.Z (metaAt (probeAt bs (1024 * 2 ^ i)) 16).pageSize' = ps
 
+/-- The database file once `Open` has opened `bs`: a fresh database (`init`'s) if it is
+empty, otherwise `bs`. -/
+def openBytes (bs : List w8) (ps : Nat) : List w8 := if bs = [] then initBytes ps else bs
+
 end defs
 
 section spec
@@ -34,10 +39,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
 
-/-- `bbolt.Open(path, mode, options)` of an existing well-formed file `bs` of pages of `ps`
-bytes (sequential use; options: no logger, the `array` freelist, the file's page size, no
-`OpenFile`, read-write, `NoFreelistSync` and `Mlock` off): the database, open (no transaction),
-or an error and the file as it was. -/
+/-- `bbolt.Open(path, mode, options)` of a file `bs`, empty (`init` writes a fresh database of
+pages of `ps` bytes, `80 ≤ ps < 2^32`) or an existing well-formed one of pages of `ps` bytes
+(sequential use; options: no logger, the `array` freelist, the page size `ps`, no `OpenFile`,
+read-write, `NoFreelistSync` and `Mlock` off): the database of the file `openBytes bs ps`, open
+(no transaction), or an error and the file, as it was if it was not empty (a failed `init` may
+have written some bytes). -/
 abbrev Open.spec : Prop :=
   ∀ (path : GoString) (mode : w32) (ol : Loc) (ov : Options) (dq : DFrac) (bs : List w8)
     (ps : Nat),
@@ -46,14 +53,14 @@ abbrev Open.spec : Prop :=
   ov.FreelistType' ≠ go!"hashmap" → ov.NoFreelistSync' = false → ov.Mlock' = false →
   ov.PageSize' = W64 (ps : Int) → 0 ≤ sint.Z ov.InitialMmapSize' →
   sint.Z ov.InitialMmapSize' < 2 ^ 62 →
-  bs ≠ [] → fileWF bs ps → pageSizeOK bs ps →
+  80 ≤ ps → ps < 2 ^ 32 → (bs = [] ∨ (fileWF bs ps ∧ pageSizeOK bs ps)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ol ↦{dq} ov ∗ fsFile path (some bs) }}
     (App (App (App (Val #(functions Open [])) (Val #path)) (Val #mode)) (Val #ol))
   {{ (dbl : Loc) (err : GoInterface), RET (PairV #dbl #err); ol ↦{dq} ov ∗
       ((⌜err = interface.nil⌝ ∗ ∃ (a : Loc) (γ : DBNames) (σ : DBState),
-          ⌜σ.file ≠ null ∧ σ.bs = bs ∧ σ.ps = ps ∧ σ.readers = ∅ ∧ σ.wr = none ∧ σ.rwtx = null⌝ ∗
+          ⌜σ.file ≠ null ∧ σ.bs = openBytes bs ps ∧ σ.ps = ps ∧ σ.readers = ∅ ∧ σ.wr = none ∧ σ.rwtx = null⌝ ∗
           ownDB (arrayImpl a) dbl γ σ) ∨
-       (⌜err ≠ interface.nil⌝ ∗ fsFile path (some bs))) }}
+       (⌜err ≠ interface.nil⌝ ∗ ∃ bs', ⌜bs ≠ [] → bs' = bs⌝ ∗ fsFile path (some bs'))) }}
 
 end spec
 

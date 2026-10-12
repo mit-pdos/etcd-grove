@@ -11,11 +11,12 @@ bbolt maintains (it writes no other tree) but the shape of a page does not imply
   branch (a writer materializes one node per page and frees each spilled page once).
 
 `treeStrict pages hwm root` is the tree rooted at `root` well-formed and strict. A spill must
-re-establish it for the tree it writes.
+re-establish it for the tree it writes, and the B+tree's keys (`treeKeys`).
 -/
 module
 
 public import Proof.go_etcd_io.bbolt.FilePages
+public import Proof.go_etcd_io.bbolt.TreeKeys
 
 @[expose] public section
 
@@ -39,20 +40,26 @@ def pageGood (pg : List w8) : Prop :=
   (pageFlags pg = branchPageFlag → ∀ i < pageCount pg, 0 < branchKsize pg i)
 
 /-- No page is shared: the subtrees of a branch's children are disjoint and do not contain the
-branch. -/
+branch, and so are a leaf's nested buckets' trees. -/
 def viewUnique (pages : GMap Nat (List w8)) : Prop :=
-  ∀ id pg, pages !! id = some pg → pageFlags pg = branchPageFlag →
+  (∀ id pg, pages !! id = some pg → pageFlags pg = branchPageFlag →
     (∀ i j, i < pageCount pg → j < pageCount pg → i ≠ j → ∀ d,
       treeHas pages (branchPgid pg i) d → ¬ treeHas pages (branchPgid pg j) d) ∧
-    (∀ i < pageCount pg, ¬ treeHas pages (branchPgid pg i) id)
+    (∀ i < pageCount pg, ¬ treeHas pages (branchPgid pg i) id)) ∧
+  ∀ id pg, pages !! id = some pg → pageFlags pg = leafPageFlag →
+    (∀ i j, i < pageCount pg → j < pageCount pg → i ≠ j → leafFlags pg i % 2 = bucketLeafFlag →
+      leafFlags pg j % 2 = bucketLeafFlag → ∀ d, bucketHas pages (leafValue pg i) d →
+        ¬ bucketHas pages (leafValue pg j) d) ∧
+    (∀ i < pageCount pg, leafFlags pg i % 2 = bucketLeafFlag → ¬ bucketHas pages (leafValue pg i) id)
 
 /-- Every page good and none shared. -/
 def pagesStrict (pages : GMap Nat (List w8)) : Prop :=
   (∀ id pg, pages !! id = some pg → pageGood pg) ∧ viewUnique pages
 
-/-- The tree rooted at `root` (high-water mark `hwm`) in `pages`: well-formed and strict. -/
+/-- The tree rooted at `root` (high-water mark `hwm`) in `pages`: well-formed and strict, its
+keys a B+tree's (`treeKeys`, `TreeKeys.lean`). -/
 def treeStrict (pages : GMap Nat (List w8)) (hwm root : Nat) : Prop :=
-  treeWF pages hwm root ∧ pagesStrict pages
+  treeWF pages hwm root ∧ pagesStrict pages ∧ treeKeys pages root none none
 
 end bbolt
 end EtcdGrove

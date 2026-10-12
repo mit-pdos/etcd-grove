@@ -25,11 +25,11 @@ theorem shared.Read.wp_proof (hIs : Page.IsFreelistPage.spec (GF := GF) (hG := h
     (hIds : Page.FreelistPageIds.spec (GF := GF) (hG := hG))
     (hSort : sort.Sort.spec (GF := GF) (hG := hG)) :
     shared.Read.spec (GF := GF) (hG := hG) := by
-  intro I s σ p pv dq c xs dq2 hInit Hnn Hfl Hov Hnd Hxs Hlen
+  intro I s σ p pv dq c xs dq2 hInit Hnn Hfl Hov Hnd Hxs Hlen Hemp
   wp_start as ⟨#Hhdl, Hsh, Hown, Hp, Hcc, Hsl⟩
   ihave #Hc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
   · iPkgInit
-  icases ownShared_wf _ _ _ $$ Hsh with ⟨Hsh, %Hwf⟩
+  icases ownSharedW_wfw _ _ _ $$ Hsh with ⟨Hsh, %Hwf⟩
   wp_auto
   wp_apply (hIs p pv dq) $$ [Hp] as Hp
   · iexact Hp
@@ -55,23 +55,22 @@ theorem shared.Read.wp_proof (hIs : Page.IsFreelistPage.spec (GF := GF) (hG := h
     wp_method_call
     wp_call
     try wp_auto
-    unfold ownShared ownSharedC
+    unfold ownSharedW ownSharedC
     icases Hsh with ⟨%sv, %c', Hsh, %Hok⟩
     iNamed Hsh
     try wp_auto
     rw [Hiface]
     unfold FLImpl.iface
     try wp_auto
-    ihave Hsh : ownShared s I.iface σ $$ [Hs Hro Hro_cap Hallocs Hcache Hpending Hpds]
-    · unfold ownShared ownSharedC
+    ihave Hsh : ownSharedW s I.iface σ $$ [Hs Hro Hro_cap Hallocs Hcache Hpending Hpds]
+    · unfold ownSharedW ownSharedC
       iexists sv, c'
       iframe
       ipureintro; exact ⟨Hiface, Hok⟩
-    have Hwf' : ({ σ with free := [] } : FLState).WF := by
-      have := reload_WF (xs := []) Hwf (by simp [PgidsIncr]) (by simp) (by simpa using Hlen)
-      simpa using this
+    have Hwf' : ({ σ with free := [] } : FLState).WFw :=
+      Hwf.with_free (by simp [PgidsIncr]) (by simp) (by simpa using Hlen)
     wp_bind (App (Val #(methods I.ity go!"Init" I.iv)) _)
-    iapply (hInit s σ _ [] Hwf') $$ [Hsh Hown Hsl0 Hslc]
+    iapply (hInit s σ _ [] Hwf' (Or.inr (Hemp.resolve_left (by simp)))) $$ [Hsh Hown Hsl0 Hslc]
     · iframe
       isplitl []
       · iexact Hpkg
@@ -84,7 +83,7 @@ theorem shared.Read.wp_proof (hIs : Page.IsFreelistPage.spec (GF := GF) (hG := h
     iframe
     isplitr
     · ipureintro; exact ⟨by simp [PgidsIncr], List.Perm.refl _⟩
-    iunfold ownShared, ownSharedC at Hsh
+    iunfold ownSharedW, ownSharedC at Hsh
     iExactEq Hsh; rfl
   · simp only [Hz, ite_false] at Hxl ⊢
     try isimp only [Hz, ite_false] at Hsl
@@ -111,26 +110,28 @@ theorem shared.Read.wp_proof (hIs : Page.IsFreelistPage.spec (GF := GF) (hG := h
     wp_method_call
     wp_call
     try wp_auto
-    unfold ownShared ownSharedC
+    unfold ownSharedW ownSharedC
     icases Hsh with ⟨%sv, %c', Hsh, %Hok⟩
     iNamed Hsh
     try wp_auto
     rw [Hiface]
     unfold FLImpl.iface
     try wp_auto
-    ihave Hsh : ownShared s I.iface σ $$ [Hs Hro Hro_cap Hallocs Hcache Hpending Hpds]
-    · unfold ownShared ownSharedC
+    ihave Hsh : ownSharedW s I.iface σ $$ [Hs Hro Hro_cap Hallocs Hcache Hpending Hpds]
+    · unfold ownSharedW ownSharedC
       iexists sv, c'
       iframe
       ipureintro; exact ⟨Hiface, Hok⟩
     have Hinc : PgidsIncr ys := pgidsIncr_of_sorted_nodup Hys.1 (Hys.2.nodup_iff.2 Hnd)
-    have Hwf' : ({ σ with free := ys } : FLState).WF := by
-      have := reload_WF (xs := ys) Hwf Hinc
-        (fun x hx => (Hxs x (Hys.2.mem_iff.1 hx)).1) (by rw [Hys.2.length_eq]; exact Hlen)
-      rwa [List.filter_eq_self.2 (fun x hx => by
-        simpa using (Hxs x (Hys.2.mem_iff.1 hx)).2)] at this
+    have Hwf' : ({ σ with free := ys } : FLState).WFw :=
+      Hwf.with_free Hinc (fun x hx => Hxs x (Hys.2.mem_iff.1 hx))
+        (by rw [Hys.2.length_eq]; exact Hlen)
+    have Hyne : ys ≠ [] := by
+      intro h; subst h
+      have h0 : xs.length = 0 := by have := Hys.2.length_eq; simpa using this.symm
+      apply Hz; rw [h0] at hxl; word
     wp_bind (App (Val #(methods I.ity go!"Init" I.iv)) _)
-    iapply (hInit s σ _ ys Hwf') $$ [Hsh Hown Hcp Hcpc]
+    iapply (hInit s σ _ ys Hwf' (Or.inl Hyne)) $$ [Hsh Hown Hcp Hcpc]
     · iframe
       isplitl []
       · iexact Hpkg
@@ -145,7 +146,7 @@ theorem shared.Read.wp_proof (hIs : Page.IsFreelistPage.spec (GF := GF) (hG := h
     iframe
     isplitr
     · ipureintro; exact ⟨Hinc, Hys.2⟩
-    iunfold ownShared, ownSharedC at Hsh
+    iunfold ownSharedW, ownSharedC at Hsh
     iExactEq Hsh; rfl
 
 end proof

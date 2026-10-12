@@ -23,16 +23,15 @@ variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 theorem shared.Reload.wp_proof (hRead : shared.Read.spec (GF := GF) (hG := hG))
     (hNSR : shared.NoSyncReload.spec (GF := GF) (hG := hG)) :
     shared.Reload.spec (GF := GF) (hG := hG) := by
-  intro I s σ p pv dq c xs dq2 hInit hFPI Hnn Hfl Hov Hnd Hxs Hlen
+  intro I s σ p pv dq c xs dq2 hInit hFPI Hnn Hfl Hov Hnd Hxs Hlen Hemp
   wp_start as ⟨#Hhdl, Hsh, Hown, Hp, Hcc, Hsl⟩
   wp_auto
-  wp_apply (hRead I s σ p pv dq c xs dq2 hInit Hnn Hfl Hov Hnd Hxs Hlen)
+  wp_apply (hRead I s σ p pv dq c xs dq2 hInit Hnn Hfl Hov Hnd Hxs Hlen Hemp)
     $$ [Hsh Hown Hp Hcc Hsl] as %fr ⟨%Hfr, Hsh, Hown, Hp, Hcc, Hsl⟩
   · iframe
     try iexact Hhdl
   try wp_auto
-  icases ownShared_wf _ _ _ $$ Hsh with ⟨Hsh, %Hwf'⟩
-  iunfold ownShared, ownSharedC at Hsh
+  iunfold ownSharedW, ownSharedC at Hsh
   icases Hsh with ⟨%sv, %c', Hsh, %Hok⟩
   iNamed Hsh
   wp_method_call
@@ -45,17 +44,21 @@ theorem shared.Reload.wp_proof (hRead : shared.Read.spec (GF := GF) (hG := hG))
   iapply (hFPI s fr) $$ Hown
   inext
   iintro %r ⟨Hr, Hback⟩
-  ihave Hsh : ownShared s I.iface { σ with free := fr } $$ [Hs Hro Hro_cap Hallocs Hcache Hpending Hpds]
-  · unfold ownShared ownSharedC
+  ihave Hsh : ownSharedW s I.iface { σ with free := fr } $$ [Hs Hro Hro_cap Hallocs Hcache Hpending Hpds]
+  · unfold ownSharedW ownSharedC
     iexists sv, c'
     iframe
     ipureintro; exact ⟨Hiface, Hok⟩
   try wp_auto
-  have Hnp : ∀ x ∈ fr, x ∉ σ.pendingIds := fun x hx => (Hxs x (Hfr.2.mem_iff.1 hx)).2
-  have Hfilt : fr.filter (fun x => decide (x ∉ σ.pendingIds)) = fr :=
-    List.filter_eq_self.2 (fun x hx => by simpa using Hnp x hx)
+  have Hemp' : fr.filter (fun x => decide (x ∉ ({ σ with free := fr } : FLState).pendingIds)) ≠ [] ∨
+      ∀ x ∈ ({ σ with free := fr } : FLState).free, x ∈ ({ σ with free := fr } : FLState).pendingIds := by
+    by_cases h : fr.filter (fun x => decide (x ∉ ({ σ with free := fr } : FLState).pendingIds)) = []
+    · right; intro x hx
+      have := List.filter_eq_nil_iff.1 h x hx
+      simpa using this
+    · exact Or.inl h
   wp_apply (hNSR I s { σ with free := fr } r fr (DFrac.own 1) iprop(True) hInit Hfr.1
-    (fun x hx => (Hxs x (Hfr.2.mem_iff.1 hx)).1) (by rw [Hfr.2.length_eq]; exact Hlen))
+    (fun x hx => Hxs x (Hfr.2.mem_iff.1 hx)) (by rw [Hfr.2.length_eq]; exact Hlen) Hemp')
     $$ [Hsh Hr Hback] as ⟨Hsh, Hown, -⟩
   · iframe
     isplitl []
@@ -64,15 +67,14 @@ theorem shared.Reload.wp_proof (hRead : shared.Read.spec (GF := GF) (hG := hG))
     ihave Hown := Hback $$ Hr
     iframe
   try wp_auto
-  have Hfilt' : fr.filter (fun x => !decide (x ∈ ({ σ with free := fr } : FLState).pendingIds)) = fr :=
-    List.filter_eq_self.2 (fun x hx => by
-      have : x ∉ ({ σ with free := fr } : FLState).pendingIds := Hnp x hx
-      simpa using this)
-  rw [Hfilt']
   iapply HΦ
   iframe
   isplitr
-  · ipureintro; exact Hfr
+  · ipureintro
+    refine ⟨Hfr.1.filter _, ?_⟩
+    have e : (fun x => !decide (x ∈ ({ σ with free := fr } : FLState).pendingIds)) =
+        (fun x => decide (x ∉ σ.pendingIds)) := by funext x; simp; rfl
+    rw [e]; exact Hfr.2.filter _
   iExactEq Hsh; rfl
 
 end proof

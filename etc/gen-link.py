@@ -176,14 +176,21 @@ fns.sort()
 
 spec = {}
 # a second spec of a function (`<T>.<M>.wspec`, proved by `<T>.<M>.wp_wproof`: the writer's
-# view of a function a reader also calls) is linked as `<T>.wp_<M>_w`
+# view of a function a reader also calls) is linked as `<T>.wp_<M>_w`; a third
+# (`<T>.<M>.sspec`, `<T>.<M>.wp_sproof`: bbolt's writer with its shape, `WriteTxShape.lean`)
+# as `<T>.wp_<M>_s`
 wspec = set()
+sspec = set()
 for fn in fns:
     src = open(spec_file(fn)).read()
     m = re.search(r"^abbrev ([\w.«»']+)\.spec\b", src, re.M)
     if m is None:
         m = re.search(r"^abbrev ([\w.«»']+)\.wspec\b", src, re.M)
-        wspec.add(fn)
+        if m is not None:
+            wspec.add(fn)
+        else:
+            m = re.search(r"^abbrev ([\w.«»']+)\.sspec\b", src, re.M)
+            sspec.add(fn)
     # the namespaces below `EtcdGrove` the spec is declared in (`btree` for the btree's)
     nss = re.findall(r"^namespace (\S+)", src, re.M)
     inner = nss[nss.index("EtcdGrove") + 1:] if "EtcdGrove" in nss else []
@@ -207,7 +214,7 @@ def result(fn):
             parts = parts[1:]
         elif where[fn].split(".")[:-1] == ["go_etcd_io", "etcd", "client", "v3"]:
             parts = ["v3"] + parts
-    suffix = "_w" if fn in wspec else ""
+    suffix = "_w" if fn in wspec else "_s" if fn in sspec else ""
     return ".".join(parts[:-1] + [f"wp_{last}{suffix}"])
 
 
@@ -269,7 +276,8 @@ variable [package_sem : {assumptions}]
         # `DB.wp_munmap` itself
         args = " ".join((f"EtcdGrove.{nsd}.{result(c)}" if nsd else result(c))
                         for c in callees[fn])
-        sp, pf = ("wspec", "wp_wproof") if fn in wspec else ("spec", "wp_proof")
+        sp, pf = (("wspec", "wp_wproof") if fn in wspec else ("sspec", "wp_sproof") if fn in sspec
+                  else ("spec", "wp_proof"))
         body = f"{specref(fn)}.{pf}" + (f" {args}" if args else "")
         # the specs with ghost state (the store's) take `[AllG GF]`
         src = open(spec_file(fn)).read()

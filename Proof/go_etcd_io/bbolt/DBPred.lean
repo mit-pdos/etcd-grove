@@ -275,6 +275,8 @@ def ownDB (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DBState) : IP
       dbl ≠ null⌝ ∗
     "%Hok" ∷ ⌜dbOK σ v0 v1⌝ ∗
     "%Hdr" ∷ ⌜dv.dataref' = slice.mk σ.data (W64 σ.sz) (W64 σ.sz)⌝ ∗
+    "%Hops" ∷ ⌜dv.ops'.writeAt' =
+      methods _root_.Perennial.os.File.ty.PointerType go!"WriteAt" #σ.file⌝ ∗
     "#Hdl" ∷ (globalAddr discardLogger ↦□ dl : IProp GF) ∗
     "#Hdlok" ∷ defaultLoggerOK dl ∗
     "%Hlog" ∷ ⌜dv.logger' = interface.nil ∨

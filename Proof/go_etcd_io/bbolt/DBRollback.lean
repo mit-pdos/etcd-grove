@@ -268,6 +268,8 @@ theorem ownDB_rollback (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : 
   · ipureintro; exact hok'
   isplitr
   · ipureintro; exact Hdr
+  isplitr
+  · ipureintro; exact Hops
   iframe
   iframe #
   try (ipureintro; exact Hlog)

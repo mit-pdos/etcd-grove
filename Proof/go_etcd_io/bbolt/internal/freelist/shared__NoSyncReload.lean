@@ -20,9 +20,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
 theorem shared.NoSyncReload.wp_proof : shared.NoSyncReload.spec (GF := GF) (hG := hG) := by
-  intro I s σ pg xs dq Q hInit Hinc Hge Hlen
+  intro I s σ pg xs dq Q hInit Hinc Hge Hlen Hemp
   wp_start as ⟨#Hhdl, Hsh, Hpg, Hback⟩
-  unfold ownShared ownSharedC
+  unfold ownSharedW ownSharedC
   icases Hsh with ⟨%sv, %c, Hsh, %Hok⟩
   iNamed Hsh
   ihave %Hdom := BigSepM2.bigSepM2_lookup_iff $$ Hpds
@@ -184,14 +184,14 @@ theorem shared.NoSyncReload.wp_proof : shared.NoSyncReload.spec (GF := GF) (hG :
   unfold FLImpl.iface
   try wp_auto
   icases Hback $$ Hpg with ⟨Hown, HQ⟩
-  ihave Hsh : ownShared s I.iface σ $$ [Hs Hro Hro_cap Hallocs Hcache Hpending Hpds]
-  · unfold ownShared ownSharedC
+  ihave Hsh : ownSharedW s I.iface σ $$ [Hs Hro Hro_cap Hallocs Hcache Hpending Hpds]
+  · unfold ownSharedW ownSharedC
     iexists sv, c
     iframe
     ipureintro; exact ⟨Hiface, Hok⟩
-  have Hwf' := reload_WF Hok.2 Hinc Hge Hlen
+  have Hwf' := reload_WF_w Hok.2 Hinc Hge Hlen
   wp_bind (App (Val #(methods I.ity go!"Init" I.iv)) (Val #al))
-  iapply (hInit s σ al _ Hwf') $$ [Hsh Hown Ha Hacap]
+  iapply (hInit s σ al _ Hwf'.wfw Hemp) $$ [Hsh Hown Ha Hacap]
   · iframe
     isplitl []
     · iexact Hpkg
@@ -201,7 +201,7 @@ theorem shared.NoSyncReload.wp_proof : shared.NoSyncReload.spec (GF := GF) (hG :
   try wp_auto
   iapply HΦ
   iframe
-  iunfold ownShared, ownSharedC at Hsh
+  ihave Hsh := (ownSharedW_wf _ _ _ Hwf') $$ Hsh
   iExactEq Hsh; rfl
 
 end proof

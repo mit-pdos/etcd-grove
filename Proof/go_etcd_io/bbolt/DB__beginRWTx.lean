@@ -54,6 +54,8 @@ theorem DB.beginRWTx.wp_proof (hinit : Tx.init.spec (GF := GF) (hG := hG)) :
     · ipureintro; exact Hok
     isplitr
     · ipureintro; exact Hdr
+    isplitr
+    · ipureintro; exact Hops
     iframe
     iframe #
     try (ipureintro; exact Hlog)
@@ -125,6 +127,8 @@ theorem DB.beginRWTx.wp_proof (hinit : Tx.init.spec (GF := GF) (hG := hG)) :
     · ipureintro; exact hok2
     isplitr
     · ipureintro; exact Hdr
+    isplitr
+    · ipureintro; exact Hops
     ihave Hplain : dbPlain dbl (DFrac.own 1) { dv with rwtx' := «$r0_ptr» } $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize path openFile file dataref datasz meta0 meta1 opened rwtx stats batch ops readOnly]
     · simp only [dbPlain]
       try simp only

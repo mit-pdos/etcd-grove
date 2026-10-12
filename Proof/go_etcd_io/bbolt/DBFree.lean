@@ -275,6 +275,8 @@ theorem ownDB_free (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DBSt
   · ipureintro; exact hok'
   isplitr
   · ipureintro; exact Hdr
+  isplitr
+  · ipureintro; exact Hops
   iframe
   iframe #
   try (ipureintro; exact Hlog)

@@ -147,6 +147,8 @@ theorem Tx.close.wp_wproof (hadd : TxStats.add.spec (GF := GF) (hG := hG)) :
       · ipureintro; exact hok' v0 v1 Hok
       isplitr
       · ipureintro; exact Hdr
+      isplitr
+      · ipureintro; exact Hops
       ihave Hplain : dbPlain W.dbl (DFrac.own 1) { dv with rwtx' := null } $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize path openFile file dataref datasz meta0 meta1 opened rwtx stats batch ops readOnly]
       · simp only [dbPlain]
         try simp only

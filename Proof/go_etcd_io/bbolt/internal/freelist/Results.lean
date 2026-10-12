@@ -16,6 +16,7 @@ namespace bbolt
 
 #print axioms wp_newShared
 #print axioms wp_NewArrayFreelist
+#print axioms wp_NewHashMapFreelist
 #print axioms array.wp_Allocate
 #print axioms array.wp_FreeCount
 #print axioms shared.wp_pendingPageIds
@@ -24,7 +25,20 @@ namespace bbolt
 #print axioms array.wp_Init
 #print axioms sort.wp_Sort
 #print axioms array.wp_mergeSpans
+#print axioms hashMap.wp_delSpan
 #print axioms hashMap.wp_addSpan
+#print axioms hashMap.wp_Allocate
+#print axioms hashMap.wp_hashmapFreeCountSlow
+#print axioms hashMap.wp_FreeCount
+#print axioms sort.wp_SliceIsSorted
+#print axioms hashMap.wp_freePageIds
+#print axioms hashMap.wp_Init
+#print axioms hashMap.wp_idsFromBackwardMap
+#print axioms hashMap.wp_idsFromForwardMap
+#print axioms hashMap.wp_idsFromFreemaps
+#print axioms reflect.wp_DeepEqual
+#print axioms hashMap.wp_mergeWithExistingSpan
+#print axioms hashMap.wp_mergeSpans
 #print axioms shared.wp_AddReadonlyTXID
 #print axioms shared.wp_PendingCount
 #print axioms shared.wp_Copyall

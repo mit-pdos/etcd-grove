@@ -370,12 +370,14 @@ def FLImpl.CountSpec (I : FLImpl (GF := GF)) : Prop :=
       (App (Val #(methods I.ity go!"Count" I.iv)) (Val #()))
     {{ RET #(W64 ((σ.free.length + σ.pendingCount : Nat) : Int)); ownFL I s σ }}
 
-/-- `Read(p)`: the free ids become the ids of the freelist page `p`, sorted. -/
+/-- `Read(p)`: the free ids become the ids of the freelist page `p`, sorted. An empty page
+needs no free ids before (`hashMap.Init` of no ids keeps the old cache). -/
 def FLImpl.ReadSpec (I : FLImpl (GF := GF)) : Prop :=
   ∀ (s : Loc) (σ : FLState) (p : Loc) (pv : go_etcd_io.bbolt.internal.common.Page) (dq : DFrac)
     (c : w64) (xs : List w64) (dq2 : DFrac),
     p.locCar ≠ 0 → pv.flags' = W16 16 → (fpOverflow pv → 0 ≤ sint.Z c) →
     xs.Nodup → (∀ x ∈ xs, 2 ≤ uint.Z x ∧ x ∉ σ.pendingIds) → xs.length + σ.pendingCount < 2 ^ 63 →
+    (xs ≠ [] ∨ σ.free = []) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ ownFL I s σ ∗
         p ↦{dq} pv ∗ fpCountCell p pv dq c ∗ fpIdsSlice p pv c ↦*{dq2} xs }}
       (App (Val #(methods I.ity go!"Read" I.iv)) (Val #p))
@@ -383,23 +385,31 @@ def FLImpl.ReadSpec (I : FLImpl (GF := GF)) : Prop :=
         ownFL I s { σ with free := free' } ∗
         p ↦{dq} pv ∗ fpCountCell p pv dq c ∗ fpIdsSlice p pv c ↦*{dq2} xs }}
 
-/-- `Reload(p)`: as `Read(p)` (no page id is pending). -/
+/-- `Reload(p)`: the free ids become the ids of the freelist page `p` that are not pending,
+sorted. The page may hold pending ids (bbolt writes the free and the pending ids into it;
+`Commit`'s rollback reloads it while an older transaction's pending entry survives). An empty
+page needs no free ids before (`hashMap.Init` of no ids keeps the old cache). -/
 def FLImpl.ReloadSpec (I : FLImpl (GF := GF)) : Prop :=
   ∀ (s : Loc) (σ : FLState) (p : Loc) (pv : go_etcd_io.bbolt.internal.common.Page) (dq : DFrac)
     (c : w64) (xs : List w64) (dq2 : DFrac),
     p.locCar ≠ 0 → pv.flags' = W16 16 → (fpOverflow pv → 0 ≤ sint.Z c) →
-    xs.Nodup → (∀ x ∈ xs, 2 ≤ uint.Z x ∧ x ∉ σ.pendingIds) → xs.length + σ.pendingCount < 2 ^ 63 →
+    xs.Nodup → (∀ x ∈ xs, 2 ≤ uint.Z x) → xs.length + σ.pendingCount < 2 ^ 63 →
+    (xs ≠ [] ∨ σ.free = []) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ ownFL I s σ ∗
         p ↦{dq} pv ∗ fpCountCell p pv dq c ∗ fpIdsSlice p pv c ↦*{dq2} xs }}
       (App (Val #(methods I.ity go!"Reload" I.iv)) (Val #p))
-    {{ (free' : List w64), RET #(); ⌜PgidsIncr free' ∧ free'.Perm xs⌝ ∗
+    {{ (free' : List w64), RET #();
+        ⌜PgidsIncr free' ∧ free'.Perm (xs.filter (fun x => decide (x ∉ σ.pendingIds)))⌝ ∗
         ownFL I s { σ with free := free' } ∗
         p ↦{dq} pv ∗ fpCountCell p pv dq c ∗ fpIdsSlice p pv c ↦*{dq2} xs }}
 
-/-- `NoSyncReload(pgIds)`: the free ids become the increasing ids `pgIds` but the pending ones. -/
+/-- `NoSyncReload(pgIds)`: the free ids become the increasing ids `pgIds` but the pending ones.
+If none is left, there must be no free ids before (`hashMap.Init` of no ids keeps the old
+cache). -/
 def FLImpl.NoSyncReloadSpec (I : FLImpl (GF := GF)) : Prop :=
   ∀ (s : Loc) (σ : FLState) (pg : GoSlice) (xs : List w64) (dq : DFrac),
     PgidsIncr xs → (∀ x ∈ xs, 2 ≤ uint.Z x) → xs.length + σ.pendingCount < 2 ^ 63 →
+    (xs.filter (fun x => decide (x ∉ σ.pendingIds)) ≠ [] ∨ σ.free = []) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ ownFL I s σ ∗
         pg ↦*{dq} xs }}
       (App (Val #(methods I.ity go!"NoSyncReload" I.iv)) (Val #pg))
@@ -427,10 +437,11 @@ def FLImpl.WriteSpec (I : FLImpl (GF := GF)) : Prop :=
         slice.mk (p +ₗ 16) (W64 (old.length : Int)) (W64 (old.length : Int)) ↦*
           (if 65535 ≤ σ.allIds.length then W64 (σ.allIds.length : Int) :: out else out) }}
 
-/-- `Init(ids)`: the free ids become `ids` (the new state well-formed; the slice is kept). -/
+/-- `Init(ids)`: the free ids become `ids` (the new state well-formed; the slice is kept). Of no
+ids, there must be no free ids before (`hashMap.Init` of no ids keeps the old cache). -/
 def FLImpl.IfaceInitSpec (I : FLImpl (GF := GF)) : Prop :=
   ∀ (s : Loc) (σ : FLState) (ids : GoSlice) (xs : List w64),
-    ({ σ with free := xs } : FLState).WF →
+    ({ σ with free := xs } : FLState).WF → (xs ≠ [] ∨ σ.free = []) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ ownFL I s σ ∗
         ids ↦* xs ∗ ownSliceCap w64 ids (DFrac.own 1) }}
       (App (Val #(methods I.ity go!"Init" I.iv)) (Val #ids))

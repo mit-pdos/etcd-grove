@@ -41,3 +41,17 @@ shared__releaseRange:
 txIDx__Len:
 txIDx__Less:
 txIDx__Swap:
+sort_SliceIsSorted:
+reflect_DeepEqualPgidSet:
+NewHashMapFreelist: newShared
+hashMap__delSpan:
+hashMap__mergeWithExistingSpan: hashMap__delSpan hashMap__addSpan
+hashMap__hashmapFreeCountSlow:
+hashMap__FreeCount: common_Verify hashMap__hashmapFreeCountSlow
+hashMap__freePageIds: hashMap__FreeCount sort_Sort
+hashMap__idsFromFreemaps:
+hashMap__idsFromForwardMap:
+hashMap__idsFromBackwardMap:
+hashMap__mergeSpans: sort_Sort common_Verify hashMap__idsFromFreemaps hashMap__idsFromForwardMap hashMap__idsFromBackwardMap reflect_DeepEqualPgidSet hashMap__mergeWithExistingSpan
+hashMap__Init: sort_SliceIsSorted hashMap__addSpan shared__reindex hashMap__freePageIds
+hashMap__Allocate: hashMap__delSpan hashMap__addSpan

@@ -114,7 +114,7 @@ theorem DB.loadFreelist.wp_proof (hNF : newFreelist.spec (GF := GF) (hG := hG))
     wp_apply hR s FLState.empty _ (pageOf pg) dqp (flPageCount pg) (flIds pg) dqp hcar
       (flpage_flags pg hfl) (flpage_cnt pg hfit hlen) hnd
       (fun x hx => ⟨h2 x hx, by simp [FLState.pendingIds, FLState.empty]⟩)
-      (flpage_len pg hfit hlen) $$ [Hfl Hpv Hcnt Hids] as %free ⟨%hfree, Hfl, Hpv, Hcnt, Hids⟩
+      (flpage_len pg hfit hlen) (Or.inr rfl) $$ [Hfl Hpv Hcnt Hids] as %free ⟨%hfree, Hfl, Hpv, Hcnt, Hids⟩
     · iframe
     ihave Hpg := (flpage_bytes _ dqp pg hcar hfit hlen).2 $$ [Hpv Hcnt Hids Hrest]
     · iframe

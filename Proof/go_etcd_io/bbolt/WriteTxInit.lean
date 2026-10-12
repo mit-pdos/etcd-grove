@@ -79,7 +79,7 @@ theorem ownWriteTx_init (dbl txl : Loc) (w : Reader) (data : Loc) (ps : Nat) (v0
     · simp only [ite_true]; itrivial
     iapply BigSepM.bigSepM_empty.2; iempintro
   ipureintro
-  refine ⟨hlg, ⟨hdata, hps.1, hps.2, hbound, hstrict.2⟩, ?_⟩
+  refine ⟨hlg, ⟨hdata, hps.1, hps.2, hbound, hstrict.2.1⟩, ?_⟩
   refine ⟨by simp [txInitOf], by simp [txInitOf], hdbl, rfl, by rw [txMetaOf_pgid]; exact hhwm, by rw [txMetaOf_pgid]; simp [wViewOf, hhwmw],
     by rw [GMap.lookup_singleton]; rfl, ?_⟩
   intro bl B hB

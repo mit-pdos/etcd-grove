@@ -46,6 +46,8 @@ theorem ownDB_logger (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DB
   · ipureintro; exact Hok
   isplitr
   · ipureintro; exact Hdr
+  isplitr
+  · ipureintro; exact Hops
   iframe
   iframe #
   try (ipureintro; exact Hlog)

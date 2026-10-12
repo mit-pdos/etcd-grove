@@ -32,7 +32,7 @@ theorem array.Init.wp_proof (hRI : shared.reindex.spec (GF := GF) (hG := hG))
   wp_call
   unfold arrayHdl
   wp_auto
-  unfold ownShared
+  unfold ownSharedW
   icases Hs with ⟨%sv, %c, Hs, %Hok⟩
   have hF : (arrayImpl (GF := GF) a).FreePageIdsSpec := fun s free => hFPI a s free
   wp_bind (App (Val #(methods (go.GoType.PointerType shared.ty) go!"reindex" #s)) (Val #()))

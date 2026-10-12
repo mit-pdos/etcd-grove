@@ -264,6 +264,8 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
               · ipureintro; exact Hok
               isplitr
               · ipureintro; exact Hdr
+              isplitr
+              · ipureintro; exact Hops
               ihave Hplain : dbPlain dbl (DFrac.own 1) dv $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize path openFile file dataref datasz meta0 meta1 opened rwtx stats batch ops readOnly]
               · simp only [dbPlain]; rw [Hrw]; iframe
               rw [Hfl']
@@ -507,6 +509,8 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                     rcases b with ⟨bp, bl, bc⟩
                     simp only at Hbl Hbc ⊢
                     rw [Hbl, Hbc]
+                  isplitr
+                  · ipureintro; exact Hops
                   ihave Hplain : dbPlain dbl (DFrac.own 1) { dv with dataref' := b, data' := b.ptr, datasz' := sz, meta0' := b.ptr +ₗ 16, meta1' := b.ptr +ₗ (uint.Z (W64 (σ.ps : Int)) + 16) } $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize path openFile file dataref datasz meta0 meta1 opened rwtx stats batch ops readOnly]
                   · simp only [dbPlain]; rw [Hrw, Hfile']; iframe
                   rw [Hfl']
@@ -559,6 +563,8 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                 · ipureintro; exact Hok
                 isplitr
                 · ipureintro; exact Hdr
+                isplitr
+                · ipureintro; exact Hops
                 ihave Hplain : dbPlain dbl (DFrac.own 1) dv $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize path openFile file dataref datasz meta0 meta1 opened rwtx stats batch ops readOnly]
                 · simp only [dbPlain]; rw [Hrw]; iframe
                 rw [Hfl']
@@ -596,6 +602,8 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
               · ipureintro; exact Hok
               isplitr
               · ipureintro; exact Hdr
+              isplitr
+              · ipureintro; exact Hops
               ihave Hplain : dbPlain dbl (DFrac.own 1) dv $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize path openFile file dataref datasz meta0 meta1 opened rwtx stats batch ops readOnly]
               · simp only [dbPlain]; rw [Hrw]; iframe
               rw [Hfl']
@@ -839,6 +847,8 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
                 rcases b with ⟨bp, bl, bc⟩
                 simp only at Hbl Hbc ⊢
                 rw [Hbl, Hbc]
+              isplitr
+              · ipureintro; exact Hops
               ihave Hplain : dbPlain dbl (DFrac.own 1) { dv with dataref' := b, data' := b.ptr, datasz' := sz, meta0' := b.ptr +ₗ 16, meta1' := b.ptr +ₗ (uint.Z (W64 (σ.ps : Int)) + 16) } $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize path openFile file dataref datasz meta0 meta1 opened rwtx stats batch ops readOnly]
               · simp only [dbPlain]; rw [Hrw, Hfile']; iframe
               rw [Hfl']
@@ -891,6 +901,8 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
             · ipureintro; exact Hok
             isplitr
             · ipureintro; exact Hdr
+            isplitr
+            · ipureintro; exact Hops
             ihave Hplain : dbPlain dbl (DFrac.own 1) dv $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize path openFile file dataref datasz meta0 meta1 opened rwtx stats batch ops readOnly]
             · simp only [dbPlain]; rw [Hrw]; iframe
             rw [Hfl']
@@ -933,6 +945,8 @@ theorem DB.allocate.wp_proof (hGet : sync.Pool.Get.spec (GF := GF) (hG := hG))
         · ipureintro; exact dbOK_allocate σ v0 v1 Hok txid r _ (by omega) Hcan
         isplitr
         · ipureintro; exact Hdr
+        isplitr
+        · ipureintro; exact Hops
         rw [hsn, Hfl']
         try simp only [FLImpl.iface, interface.mkOk]
         iframe

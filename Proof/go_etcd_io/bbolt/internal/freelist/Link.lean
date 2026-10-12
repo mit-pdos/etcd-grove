@@ -9,13 +9,26 @@ hand.
 module
 
 public import Proof.go_etcd_io.bbolt.internal.freelist.NewArrayFreelist
+public import Proof.go_etcd_io.bbolt.internal.freelist.NewHashMapFreelist
 public import Proof.go_etcd_io.bbolt.internal.freelist.array__Allocate
 public import Proof.go_etcd_io.bbolt.internal.freelist.array__FreeCount
 public import Proof.go_etcd_io.bbolt.internal.freelist.array__Init
 public import Proof.go_etcd_io.bbolt.internal.freelist.array__freePageIds
 public import Proof.go_etcd_io.bbolt.internal.freelist.array__mergeSpans
+public import Proof.go_etcd_io.bbolt.internal.freelist.hashMap__Allocate
+public import Proof.go_etcd_io.bbolt.internal.freelist.hashMap__FreeCount
+public import Proof.go_etcd_io.bbolt.internal.freelist.hashMap__Init
 public import Proof.go_etcd_io.bbolt.internal.freelist.hashMap__addSpan
+public import Proof.go_etcd_io.bbolt.internal.freelist.hashMap__delSpan
+public import Proof.go_etcd_io.bbolt.internal.freelist.hashMap__freePageIds
+public import Proof.go_etcd_io.bbolt.internal.freelist.hashMap__hashmapFreeCountSlow
+public import Proof.go_etcd_io.bbolt.internal.freelist.hashMap__idsFromBackwardMap
+public import Proof.go_etcd_io.bbolt.internal.freelist.hashMap__idsFromForwardMap
+public import Proof.go_etcd_io.bbolt.internal.freelist.hashMap__idsFromFreemaps
+public import Proof.go_etcd_io.bbolt.internal.freelist.hashMap__mergeSpans
+public import Proof.go_etcd_io.bbolt.internal.freelist.hashMap__mergeWithExistingSpan
 public import Proof.go_etcd_io.bbolt.internal.freelist.newShared
+public import Proof.reflect.DeepEqualPgidSet
 public import Proof.go_etcd_io.bbolt.internal.freelist.shared__AddReadonlyTXID
 public import Proof.go_etcd_io.bbolt.internal.freelist.shared__Copyall
 public import Proof.go_etcd_io.bbolt.internal.freelist.shared__Count
@@ -34,6 +47,7 @@ public import Proof.go_etcd_io.bbolt.internal.freelist.shared__pendingPageIds
 public import Proof.go_etcd_io.bbolt.internal.freelist.shared__reindex
 public import Proof.go_etcd_io.bbolt.internal.freelist.shared__release
 public import Proof.go_etcd_io.bbolt.internal.freelist.shared__releaseRange
+public import Proof.sort.SliceIsSorted
 public import Proof.sort.Sort
 public import Proof.go_etcd_io.bbolt.internal.freelist.txIDx__Len
 public import Proof.go_etcd_io.bbolt.internal.freelist.txIDx__Less
@@ -70,6 +84,10 @@ theorem wp_NewArrayFreelist :
     EtcdGrove.bbolt.NewArrayFreelist.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.NewArrayFreelist.wp_proof EtcdGrove.bbolt.wp_newShared
 
+theorem wp_NewHashMapFreelist :
+    EtcdGrove.bbolt.NewHashMapFreelist.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.NewHashMapFreelist.wp_proof EtcdGrove.bbolt.wp_newShared
+
 theorem array.wp_Allocate :
     EtcdGrove.bbolt.array.Allocate.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.array.Allocate.wp_proof
@@ -102,9 +120,61 @@ theorem array.wp_mergeSpans :
     EtcdGrove.bbolt.array.mergeSpans.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.array.mergeSpans.wp_proof EtcdGrove.bbolt.sort.wp_Sort EtcdGrove.bbolt.wp_Verify EtcdGrove.bbolt.Pgids.wp_Merge
 
+theorem hashMap.wp_delSpan :
+    EtcdGrove.bbolt.hashMap.delSpan.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.hashMap.delSpan.wp_proof
+
 theorem hashMap.wp_addSpan :
     EtcdGrove.bbolt.hashMap.addSpan.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.hashMap.addSpan.wp_proof
+
+theorem hashMap.wp_Allocate :
+    EtcdGrove.bbolt.hashMap.Allocate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.hashMap.Allocate.wp_proof EtcdGrove.bbolt.hashMap.wp_delSpan EtcdGrove.bbolt.hashMap.wp_addSpan
+
+theorem hashMap.wp_hashmapFreeCountSlow :
+    EtcdGrove.bbolt.hashMap.hashmapFreeCountSlow.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.hashMap.hashmapFreeCountSlow.wp_proof
+
+theorem hashMap.wp_FreeCount :
+    EtcdGrove.bbolt.hashMap.FreeCount.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.hashMap.FreeCount.wp_proof EtcdGrove.bbolt.wp_Verify EtcdGrove.bbolt.hashMap.wp_hashmapFreeCountSlow
+
+theorem sort.wp_SliceIsSorted :
+    EtcdGrove.bbolt.sort.SliceIsSorted.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.sort.SliceIsSorted.wp_proof
+
+theorem hashMap.wp_freePageIds :
+    EtcdGrove.bbolt.hashMap.freePageIds.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.hashMap.freePageIds.wp_proof EtcdGrove.bbolt.hashMap.wp_FreeCount EtcdGrove.bbolt.sort.wp_Sort
+
+theorem hashMap.wp_Init :
+    EtcdGrove.bbolt.hashMap.Init.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.hashMap.Init.wp_proof EtcdGrove.bbolt.sort.wp_SliceIsSorted EtcdGrove.bbolt.hashMap.wp_addSpan EtcdGrove.bbolt.shared.wp_reindex EtcdGrove.bbolt.hashMap.wp_freePageIds
+
+theorem hashMap.wp_idsFromBackwardMap :
+    EtcdGrove.bbolt.hashMap.idsFromBackwardMap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.hashMap.idsFromBackwardMap.wp_proof
+
+theorem hashMap.wp_idsFromForwardMap :
+    EtcdGrove.bbolt.hashMap.idsFromForwardMap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.hashMap.idsFromForwardMap.wp_proof
+
+theorem hashMap.wp_idsFromFreemaps :
+    EtcdGrove.bbolt.hashMap.idsFromFreemaps.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.hashMap.idsFromFreemaps.wp_proof
+
+theorem reflect.wp_DeepEqual :
+    EtcdGrove.bbolt.reflect.DeepEqual.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.reflect.DeepEqual.wp_proof
+
+theorem hashMap.wp_mergeWithExistingSpan :
+    EtcdGrove.bbolt.hashMap.mergeWithExistingSpan.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.hashMap.mergeWithExistingSpan.wp_proof EtcdGrove.bbolt.hashMap.wp_delSpan EtcdGrove.bbolt.hashMap.wp_addSpan
+
+theorem hashMap.wp_mergeSpans :
+    EtcdGrove.bbolt.hashMap.mergeSpans.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.hashMap.mergeSpans.wp_proof EtcdGrove.bbolt.sort.wp_Sort EtcdGrove.bbolt.wp_Verify EtcdGrove.bbolt.hashMap.wp_idsFromFreemaps EtcdGrove.bbolt.hashMap.wp_idsFromForwardMap EtcdGrove.bbolt.hashMap.wp_idsFromBackwardMap EtcdGrove.bbolt.reflect.wp_DeepEqual EtcdGrove.bbolt.hashMap.wp_mergeWithExistingSpan
 
 theorem shared.wp_AddReadonlyTXID :
     EtcdGrove.bbolt.shared.AddReadonlyTXID.spec (GF := GF) (hG := hG) :=

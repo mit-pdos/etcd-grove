@@ -118,6 +118,8 @@ theorem DB.removeTx.wp_proof (hTxid : Meta.Txid.spec (GF := GF) (hG := hG))
       · ipureintro; exact dbOK_removeReader σ v0 v1 Hok k r Hk ro (Hmtx ▸ Hro)
       isplitr
       · ipureintro; exact Hdr
+      isplitr
+      · ipureintro; exact Hops
       ihave Hplain : dbPlain dbl (DFrac.own 1) dv $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize path openFile file dataref datasz meta0 meta1 opened rwtx stats batch ops readOnly]
       · simp only [dbPlain]
         rw [Hopen]
