@@ -167,6 +167,10 @@ namespace bbolt
 #print axioms DB.wp_init
 #print axioms wp_newFreelist
 #print axioms DB.wp_loadFreelist
+#print axioms os.wp_OpenFile
+#print axioms os.File.wp_Name
+#print axioms wp_flock
+#print axioms wp_Open
 #print axioms Options.wp_String
 #print axioms TxStats.wp_Sub
 #print axioms Stats.wp_Sub
@@ -184,7 +188,6 @@ namespace bbolt
 #print axioms Tx.wp_Writable
 #print axioms Tx.wp_allocate_w
 #print axioms wp_compareKeys
-#print axioms wp_flock
 #print axioms node.wp_childIndex
 #print axioms node.wp_dereference
 #print axioms node.wp_minKeys
@@ -198,8 +201,6 @@ namespace bbolt
 #print axioms nodes.wp_Len
 #print axioms nodes.wp_Less
 #print axioms nodes.wp_Swap
-#print axioms os.File.wp_Name
-#print axioms os.wp_OpenFile
 
 end bbolt
 end EtcdGrove

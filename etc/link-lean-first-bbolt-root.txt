@@ -239,3 +239,4 @@ Tx__Rollback_w: common_Assert Tx__nonPhysicalRollback_w
 newFreelist: freelist_NewArrayFreelist
 DB__loadFreelist: newFreelist DB__hasSyncedFreelist DB__meta Meta__Freelist DB__page
 freelist_NewArrayFreelist: @
+Open: getDiscardLogger DB__Logger os_OpenFile os_File__Name flock os_File__Stat fs_FileInfo__Size DB__getPageSize DB__mmap DB__loadFreelist DB__hasSyncedFreelist DB__close DefaultLogger__Errorf
