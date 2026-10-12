@@ -56,10 +56,13 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
 
 /-- The database of the writer `txl` with the view `W`, its state `σ` (the resource
-`Tx.allocate.wspec` threads). -/
-def dbWR (I : FLImpl (GF := GF)) (γ : DBNames) (W : WView) (txl : Loc) (σ : DBState) : IProp GF :=
+`Tx.allocate.wspec` threads); `txid` is the writer's meta's (`tx.meta.Txid()`: `Tx.init` sets
+it to its view's plus one). -/
+def dbWR (I : FLImpl (GF := GF)) (γ : DBNames) (W : WView) (txl : Loc) (txid : w64)
+    (σ : DBState) : IProp GF :=
   iprop(ownDB I W.dbl γ σ ∗ ⌜I.AllocateSpec ∧ σ.rwtx = txl ∧ σ.data = W.data ∧ σ.ps = W.ps ∧
-    W.fli = I.iface ∧ ∃ w, σ.wr = some w ∧ w.pages = W.pages ∧ w.q = W.q ∧ w.hwm = W.hwm⌝)
+    W.fli = I.iface ∧ ∃ w, σ.wr = some w ∧ w.pages = W.pages ∧ w.q = W.q ∧ w.hwm = W.hwm ∧
+      txid = w.txid + W64 1 ∧ uint.Z w.txid + 1 < 2 ^ 64⌝)
 
 /-- Buckets keeping no byte of the view stand over any view. -/
 theorem bs_reattach (W W' : WView) (bs : GMap Loc BRec)

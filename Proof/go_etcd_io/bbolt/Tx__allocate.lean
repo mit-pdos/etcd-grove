@@ -46,7 +46,7 @@ theorem Tx.allocate.wp_wproof
   · iPkgInit
   isimp only [dbWR] at HR
   icases HR with ⟨Hown, %Hf⟩
-  obtain ⟨HAS, Hrw, Hdata, Hps, Hfli, w, Hw, Hwp, Hwq, Hwh⟩ := Hf
+  obtain ⟨HAS, Hrw, Hdata, Hps, Hfli, w, Hw, Hwp, Hwq, Hwh, Htxw, Htxb⟩ := Hf
   icases ownDB_logger I W.dbl γ σ $$ Hown with ⟨%lg, %dl, #Hlg2, #Hdl2, #Hdlok, %Hlgf, Hown⟩
   unfold ownWriteTxG
   icases HG with ⟨Hrest, Hm, Hpm, Hbufs, Hbs⟩
@@ -119,7 +119,7 @@ theorem Tx.allocate.wp_wproof
     iexists σ, W.data, T, T
     rw [show ({ W with data := W.data } : WView) = W from rfl]
     isplitl [Hown]
-    · unfold dbWR; iframe; ipureintro; exact ⟨HAS, Hrw, Hdata, Hps, Hfli, w, Hw, Hwp, Hwq, Hwh⟩
+    · unfold dbWR; iframe; ipureintro; exact ⟨HAS, Hrw, Hdata, Hps, Hfli, w, Hw, Hwp, Hwq, Hwh, Htxw, Htxb⟩
     isplitl [Hwritable Hmanaged Hdbf Hmetaf Hpages Hstats Hch Hwf Hm Hpm Hbufs Hbs]
     · unfold TxW_rest_root; rw [Hdb]; iframe; ipureintro; exact Htxn
     isplitl [Hdatav Hpv Hfliv]
@@ -177,7 +177,7 @@ theorem Tx.allocate.wp_wproof
       iexists σ', σ'.data, T, (allocT T st2 mv'.pgid' id p (freshPage id (uint.nat count) W.ps))
       isplitl [Hown]
       · unfold dbWR; iframe; ipureintro
-        exact ⟨HAS, Hk1.trans Hrw, rfl, Hk3.trans Hps, Hfli, w, Hk2.trans Hw, Hwp, Hwq, Hwh⟩
+        exact ⟨HAS, Hk1.trans Hrw, rfl, Hk3.trans Hps, Hfli, w, Hk2.trans Hw, Hwp, Hwq, Hwh, Htxw, Htxb⟩
       have HWd : ({ W with data := σ'.data } : WView) = W := by rw [Hsd, Hdata]
       rw [HWd]
       isplitl [Hwritable Hmanaged Hdbf Hmetaf Hpages Hstats Hch Hwf Hm Hpm Hbufs Hpg Hbs]
@@ -213,7 +213,7 @@ theorem Tx.allocate.wp_wproof
       iexists σ', σ'.data, T0, (allocT T0 st2 mv'.pgid' id p (freshPage id (uint.nat count) W.ps))
       isplitl [Hown]
       · unfold dbWR; iframe; ipureintro
-        exact ⟨HAS, Hk1.trans Hrw, rfl, Hk3.trans Hps, Hfli, w, Hk2.trans Hw, Hwp, Hwq, Hwh⟩
+        exact ⟨HAS, Hk1.trans Hrw, rfl, Hk3.trans Hps, Hfli, w, Hk2.trans Hw, Hwp, Hwq, Hwh, Htxw, Htxb⟩
       have Hrel2 := Hrel
       obtain ⟨Hrt, Hrmv, Hrpm, Hrbufs, -, -⟩ := Hrel2
       ihave Hbs := bs_reattach W { W with data := σ'.data } T0.bs (noView_of_derefRel T T0 Hrel) $$ Hbs

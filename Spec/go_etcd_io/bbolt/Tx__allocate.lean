@@ -46,8 +46,8 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
 
 /-- `tx.allocate(count)` of the write transaction at `txl` (`count` at least one page), the
-database's state an abstract resource `dbWR I γ W txl ρ` (the database whose writer is `txl`,
-with the view `W`). If the allocation grows the mapping, the
+database's state an abstract resource `dbWR I γ W txl T.mv.txid' ρ` (the database whose writer
+is `txl`, with the view `W`). If the allocation grows the mapping, the
 transaction is dereferenced (`Bucket.dereference.spec`, hence `derefReady`) and stands over a
 view at the new location `data'` (the same pages). If the remap fails after the
 transaction was dereferenced, the database is lost (an error, and nothing else). -/
@@ -57,11 +57,11 @@ abbrev Tx.allocate.wspec : Prop :=
   uint.Z T.mv.pgid' * W.ps < 2 ^ 48 → W.hwm ≤ uint.nat T.mv.pgid' →
   derefReady T (structFieldRef Tx go!"root" txl) → T.t.db' = W.dbl → W.data.locCar ≠ 0 →
   (∀ bl B, T.bs !! bl = some B → B.bv.tx' = txl) → 16 ≤ W.ps →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ dbWR I γ W txl ρ ∗ ownWriteTxG W txl T ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ dbWR I γ W txl T.mv.txid' ρ ∗ ownWriteTxG W txl T ∗
       wView W }}
     (App (Val (txl @!! go.GoType.PointerType Tx.ty @!! go!"allocate")) (Val #count))
   {{ (p : Loc) (err : GoInterface), RET (PairV #p #err);
-      (∃ (ρ' : DBState) (data' : Loc) (T0 T' : WTx), dbWR I γ { W with data := data' } txl ρ' ∗
+      (∃ (ρ' : DBState) (data' : Loc) (T0 T' : WTx), dbWR I γ { W with data := data' } txl T.mv.txid' ρ' ∗
         ownWriteTxG { W with data := data' } txl T' ∗ wView { W with data := data' } ∗
         ⌜allocRes W T T0 T' count p err data'⌝) ∨
       ⌜err ≠ interface.nil⌝ }}
