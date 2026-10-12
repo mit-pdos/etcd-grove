@@ -31,13 +31,15 @@ backend writes (`ApplyV2storeOnly`), each above is applied (`ApplyBoth`), and af
 `ci` is skipped. **The KV** (the apply package's unit 3): the apply thread's applier state goes
 from `x` to `x'` by `entriesStep c ms x x'` (`c` the consistent index the batch starts at: each
 normal entry applied by `apply.Apply`, with `v3` iff above `c`), under `entriesOk c ms x` (each
-normal entry's premise at every state the batch can reach it in). -/
+normal entry's premise at every state the batch can reach it in). **The wait** (unit 2 of the
+request path): `batchWaitOk` (each normal entry's id claimed for its data; each conf change's id,
+`ccIdOf`, no KV request's registration), so every `Trigger` meets the registry's contract. -/
 abbrev EtcdServer.apply.spec : Prop :=
-  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
     (rac : GoChan) (st : ApplyState) (a at0 : w64) (x : apply.ApplyKV),
   ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → entriesOk (ciEff γ st.k) ms x →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfStateAddr ep ↦ cs ∗
       srvLgReader s ∗ srvApplyKV s E x }}
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"apply"))

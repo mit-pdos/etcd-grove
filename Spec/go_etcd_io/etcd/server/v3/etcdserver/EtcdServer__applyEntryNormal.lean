@@ -32,13 +32,18 @@ entry at or below `ci`, replayed): nothing is written to the backend and the sta
 unchanged. **The KV** (the apply package's unit 3): the apply thread's applier state
 `srvApplyKV s E x`, with the entry's premise `entryOk x m` (its data decode to a request with an
 id, neither a compaction nor empty, satisfying the txn package's premises at `x.log`), goes to
-`x'` by `entryStep m v3 x x' out` (no data: nothing; else `apply.Apply`'s `applyStep`). -/
+`x'` by `entryStep m v3 x x' out` (no data: nothing; else `apply.Apply`'s `applyStep`). **The wait** (the request path's unit 2,
+2026-10-12): the server's wait is the registry (`waitInv`, in `isServer`, with the request path's
+names `ρ`); the entry is normal (`m.typ = 0`) and its id was claimed for its data
+(`entryWaitOk`), so the result handed to `Trigger(id, ar)` is the registered proposer's
+expectation (`resultΨ`: this request's `applyStep`, `applyResultIs`, and the certificate of the
+log after). -/
 abbrev EtcdServer.applyEntryNormal.spec : Prop :=
-  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (e : Loc) (m : EntryModel) (st : ApplyState) (v3 : Bool) (x : apply.ApplyKV),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ ∗ entryWaitOk ρ E m ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
       srvLgReader s ∗ srvApplyKV s E x ∗
-      ⌜st.pending = false ∧ entryOk x m⌝ ∗
+      ⌜st.pending = false ∧ entryOk x m ∧ m.typ = W32 0⌝ ∗
       (if v3 then iprop(ciApplying ci m.index m.term ∗
           ⌜m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
             uint.Z (ciEff γ st.k) < uint.Z m.index⌝)

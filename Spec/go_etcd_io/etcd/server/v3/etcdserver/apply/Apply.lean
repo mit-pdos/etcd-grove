@@ -29,7 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **The applier's contract, with what an entry does to the KV.** `apply.Apply(lg, e, ua, w, v3)`
 decodes the entry `e`'s request `rq` (the premise: its data decode, `irrDecode`), computes its id
-(`irrId rq = some id`: an id, or a header's) and, if it must (a waiter, `w.IsRegistered(id)`, or
+(`irrId rq = some id`: an id, or a header's) and, if it must (a waiter, `w.IsRegistered(id)`, with
+the reader's resource `RD` of the wait, `waitOk`, given back; or
 side effects, `noSideEffect`), applies it through the `UberApplier` `ua` (`applierFor ua E`), whose
 backend's batch lock has invariant `E.P` and runs the post-lock hook `E.f`.
 * **The server's protocol** (as before unit 2): for `v3` (`ApplyBoth`) the entry's writes to the
@@ -48,9 +49,9 @@ backend's batch lock has invariant `E.P` and runs the post-lock hook `E.f`.
   without `v3`, nothing), the result `applyResultIs`. -/
 abbrev apply.Apply.spec : Prop :=
   ∀ (lg e : Loc) (m : EntryModel) (ua w : GoInterface) (v3 : Bool) (E : AEnv GF)
-    (Pre Q Post : IProp GF) (x : apply.ApplyKV) (rq : IRRModel) (id : w64),
+    (Pre Q Post : IProp GF) (x : apply.ApplyKV) (rq : IRRModel) (id : w64) (RD : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.applierFor ua E ∗ waitOk w ∗ ⌜lg ≠ null⌝ ∗ entryAt e m ∗
+      apply.applierFor ua E ∗ waitOk w RD ∗ RD ∗ ⌜lg ≠ null⌝ ∗ entryAt e m ∗
       (if v3 then iprop(□ ({{ E.P ∗ Pre }} (App (Val E.f) (Val #())) {{ RET #(); Q }}) ∗
           (Q ={⊤}=∗ E.P ∗ Post))
        else iprop(True)) ∗ Pre ∗
@@ -59,7 +60,7 @@ abbrev apply.Apply.spec : Prop :=
         apply.dispatchOk rq⌝ }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
-  {{ (ar : Loc) (id' : w64), RET (PairV #ar #id');
+  {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗
       (if v3 then iprop(Post ∨ Pre) else Pre) ∗ apply.resultErrOk ar ∗ ⌜id' = id⌝ ∗
       ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), apply.applyKV E ua x' ∗
         ⌜apply.applyStep rq v3 x x' out⌝ ∗ apply.applyResultIs rq v3 x.log ar out }}

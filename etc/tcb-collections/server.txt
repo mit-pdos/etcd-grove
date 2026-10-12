@@ -1,6 +1,9 @@
 # etcd's server (the consistent index, the apply thread): every linked result of
 # Proof/go_etcd_io/etcd/server/v3/etcdserver/Link.lean and the results Results.lean prints
-# (the apply loop's end-to-end result, over the apply package's `apply.Apply`).
+# (the apply loop's end-to-end result, over the apply package's `apply.Apply`; since the request
+# path's unit 2, 2026-10-12: the proposal path, pkg/wait and pkg/idutil, whose new axioms are
+# the context's Value at StartTimeKey and errors.Is at the context errors, and which reach
+# trace.SpanFromContext (mvcc's) and context.WithValue (the apply package's): 40 -> 44).
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/server.txt [--check [--update]]
 #
@@ -15,6 +18,9 @@ axiom attribute.Int.wp_proof
 axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
 axiom config.ServerConfig.ReqTimeout.wp_proof
+axiom context.ValueStartTime.wp_proof
+axiom context.WithValue.wp_proof
+axiom errors.IsCtxErr.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom isConnectedSince.wp_proof
 axiom isConnectedToQuorumSince.wp_proof
@@ -27,6 +33,7 @@ axiom storage.BackendQuota.Cost.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Time.After.wp_proof
+axiom trace.SpanFromContext.wp_proof
 axiom trace.WithAttributes.wp_proof
 axiom traceutil.Trace.GetStartTime.wp_proof
 axiom traceutil.Trace.InsertStep.wp_proof

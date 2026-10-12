@@ -30,6 +30,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftpb
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Wait
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 public import Perennial.Proof.errors
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Defs
@@ -224,8 +225,8 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
--- `waitOk w` (the `wait.Wait`'s `Trigger` and `IsRegistered`): `apply/Wait.lean` (2026-10-12,
--- shared with the apply package).
+-- The server's wait: `waitInv` (`InvRequest.lean`, the registry's contract, in `srvFieldsAt`);
+-- the apply thread's reader of it, `waitOk` (`apply/Wait.lean`, in `srvApplyKV`).
 
 /-- `l` is a `lease.Lessor` whose `Promote` returns (in memory: no backend writes). -/
 def lessorOk (l : GoInterface) : IProp GF :=
@@ -304,9 +305,9 @@ predicate is (Perennial's channel specs are), and the apply package's. -/
 is the apply package's uber-applier in the environment `E` (`apply.applierFor`), whose batch
 lock has the protocol's invariant `batchLockInv γ TM` and runs the post-lock hook `v.hook`. -/
 def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (v : SrvFields) : IProp GF :=
+    (E : apply.AEnv GF) (ρ : ReqNames) (v : SrvFields) : IProp GF :=
   iprop(srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
-      srvWAddr s ↦□ v.w ∗ waitOk v.w ∗
+      srvWAddr s ↦□ v.w ∗ waitInv v.w ρ E ∗
       srvUberApplyAddr s ↦□ v.ua ∗ apply.applierFor v.ua E ∗
       ⌜E.P = batchLockInv γ TM ∧ E.f = v.hook⌝ ∗
       hookSpec γ ci TM v.hook ∗
@@ -319,25 +320,62 @@ def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
       isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore)
 
 instance srvFieldsAt_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (v : SrvFields) : Persistent (srvFieldsAt s γ ci TM E v) := by
+    (E : apply.AEnv GF) (ρ : ReqNames) (v : SrvFields) :
+    Persistent (srvFieldsAt s γ ci TM E ρ v) := by
   unfold srvFieldsAt; infer_instance
 
 /-- The apply thread's view of the server `s` (persistent): `s.consistIndex` (with the
 protocol, `isServerCI`), the fields `applyEntryNormal` and `apply` read (the applier's in the
 environment `E`), and the atomics. -/
 def isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) : IProp GF :=
-  iprop(isServerCI s γ ci ∗ (∃ v : SrvFields, srvFieldsAt s γ ci TM E v) ∗ srvAtomics s)
+    (E : apply.AEnv GF) (ρ : ReqNames) : IProp GF :=
+  iprop(isServerCI s γ ci ∗ (∃ v : SrvFields, srvFieldsAt s γ ci TM E ρ v) ∗ srvAtomics s)
 
 instance isServer_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) : Persistent (isServer s γ ci TM E) := by
+    (E : apply.AEnv GF) (ρ : ReqNames) : Persistent (isServer s γ ci TM E ρ) := by
   unfold isServer; infer_instance
 
 /-- **The apply thread's applier state** at `x` (not persistent): the server's `uberApply`'s
 (`apply.applyKV`: its current chain `x.chain`, the KV's resources at the committed log
 `x.log`). -/
 def srvApplyKV (s : Loc) (E : apply.AEnv GF) (x : apply.ApplyKV) : IProp GF :=
-  iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦□ ua ∗ apply.applyKV E ua x)
+  iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦□ ua ∗ apply.applyKV E ua x ∗
+    ∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗ waitOk w RD ∗ RD)
+
+/-- `wait.New`'s contract gives the apply package's `waitOk` (the `IsRegistered` triple). -/
+theorem isWait_waitOk (w : GoInterface) (γi : IdNames) (γw : GName)
+    (R : w64 → (GoInterface → IProp GF) → IProp GF) (RD : IProp GF) :
+    isWait w γi γw R RD ⊢ waitOk w RD := by
+  iintro H
+  iunfold isWait at H
+  icases H with ⟨%wi, %Hw, -, -, #HI⟩
+  iunfold waitOk
+  iexists wi
+  iframe HI
+  ipureintro; exact Hw
+
+/-- The certificate of the KV's log, from the apply thread's applier state. -/
+theorem applyKV_idxCert (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyKV) :
+    apply.applyKV E ua x ⊢ apply.applyKV E ua x ∗ mvcc.idxCert E.γ.idx x.log := by
+  iintro H
+  ihave #Hc : iprop(mvcc.idxCert E.γ.idx x.log) $$ [H]
+  · iunfold apply.applyKV at H
+    icases H with ⟨%p, -, -, Hk⟩
+    iunfold apply.kvOwn at Hk
+    icases Hk with ⟨-, Hsw, -⟩
+    iunfold txn.soleWriter at Hsw
+    icases Hsw with ⟨#Hc, -⟩
+    iexact Hc
+  iframe H Hc
+
+/-- Two claims of one id agree on the data. -/
+theorem idClaim_agree' (γi : IdNames) (id : w64) (d1 d2 : List w8) :
+    ⊢ idClaim (GF := GF) γi id d1 -∗ idClaim γi id d2 -∗ ⌜d1 = d2⌝ := by
+  iintro H1 H2
+  iunfold idClaim at H1 H2
+  icombine H1 H2 gives %Hag
+  ipureintro
+  exact Option.some.inj Hag.2
 
 end defs_lc
 

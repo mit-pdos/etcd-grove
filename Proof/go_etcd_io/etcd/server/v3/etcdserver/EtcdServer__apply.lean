@@ -73,8 +73,8 @@ theorem EtcdServer.apply.wp_proof
     (hId : raftpb.ConfChange.GetId.spec (GF := GF) (hG := hG))
     (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG)) :
     EtcdServer.apply.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM E b es ents ms f0 ep cs rac st a at0 x hne hfrom hok hEok
-  wp_start as ⟨#Hsrv, #Hes, #Hents, Hst, Hbe, Happ, Hcs, Hlr, HKV⟩
+  intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x hne hfrom hok hEok
+  wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hents, Hst, Hbe, Happ, Hcs, Hlr, HKV⟩
   ihave #Hsrv0 := Hsrv
   iunfold isServer at Hsrv
   icases Hsrv with ⟨#Hsci, ⟨%sv, #Hfl⟩, #Hat⟩
@@ -154,6 +154,10 @@ theorem EtcdServer.apply.wp_proof
     ihave #He := Hent $$ %(sint.nat j) %e %m %He_lookup %Hm_lookup
     obtain ⟨hmidx, hmtyp⟩ := Hms (sint.nat j) m Hm_lookup
     obtain ⟨hOk1, hOkRest⟩ := entriesOk_drop (ciEff γ st.k) ms xj (sint.nat j) m Hxs.2 Hm_lookup
+    ihave #Hewo : iprop(entryWaitOk ρ E m) $$ []
+    · iunfold batchWaitOk at Hbw
+      iapply Hbw
+      ipureintro; exact List.mem_of_getElem? Hm_lookup
     have hjs : sint.nat (j + W64 1) = sint.nat j + 1 := by
       show (sint.Z (j + W64 1)).toNat = (sint.Z j).toNat + 1
       have : sint.Z (j + W64 1) = sint.Z j + 1 := by word
@@ -245,12 +249,12 @@ theorem EtcdServer.apply.wp_proof
       · -- a normal entry
         simp only [h0, _root_.decide_true]
         (try wp_auto)
-        wp_apply (hAEN s γ ci TM E b e m (stLoaded γ st') true xj) $$ [Hst Hbe Happ Hlr HKV]
+        wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') true xj) $$ [Hst Hbe Happ Hlr HKV]
           as ⟨Hbe, Hlr, ⟨%x1, %out1, HKV, %Hstep1⟩, Hpost⟩
         · rw [ite_eq_left rfl]
-          iframe Hsrv0 He Hst Hbe Happ Hlr HKV
+          iframe Hsrv0 Hewo He Hst Hbe Happ Hlr HKV
           ipureintro
-          refine ⟨⟨hlp ▸ hpend', hOk1 h0⟩, ?_⟩
+          refine ⟨⟨hlp ▸ hpend', hOk1 h0, h0⟩, ?_⟩
           rw [hlpp, hlc]
           refine ⟨hip, by omega, hgt⟩
         have hb1 : batchStep (ciEff γ st.k) m xj x1 := by
@@ -305,8 +309,14 @@ theorem EtcdServer.apply.wp_proof
         iunfold entryAt at He2
         icases He2 with ⟨%Hnn, %pt, %pi, %pty, %d, #Ht, #Hpt, #Hi, #Hpi, #Hty, #Hpty, #Hd, #Hds⟩
         (try wp_auto)
-        wp_apply (hMU.1 cc_ptr _ d m.data DFrac.discard hcc) $$ [cc] as ⟨⟨%v', %cid, Hcc, #Hcid⟩, -⟩
+        wp_apply (hMU.1 cc_ptr _ d m.data DFrac.discard hcc) $$ [cc] as ⟨⟨%v', Hcc, #Hcid⟩, -⟩
         · iframe cc Hds
+        ihave #Hccf : iprop(□ ∀ Ψ, reqWaitR ρ.ids E (ccIdOf m.data) Ψ -∗ False) $$ []
+        · have he : entryWaitOk ρ E m =
+              iprop(□ ∀ Ψ, reqWaitR ρ.ids E (ccIdOf m.data) Ψ -∗ False) := by
+            unfold entryWaitOk; rw [ite_eq_right (by rw [h1]; decide)]
+          rw [he]
+          iexact Hewo
         (try wp_auto)
         have hpre : (stLoaded γ st').pending = false ∧ m.index = (stLoaded γ st').p + 1 ∧
             uint.Z (stLoaded γ st').p < uint.Z m.index ∧
@@ -377,7 +387,7 @@ theorem EtcdServer.apply.wp_proof
         (try wp_auto)
         rcases sb with _ | _ <;> (
         (try wp_auto)
-        wp_apply (hId cc_ptr v'' (DFrac.own 1) cid) $$ [Hcc] as Hcc
+        wp_apply (hId cc_ptr v'' (DFrac.own 1) (ccIdOf m.data)) $$ [Hcc] as Hcc
         · rw [hIdEq]; iframe Hcc Hcid
         (try wp_auto)
         wp_apply hMem as %msl -
@@ -385,11 +395,18 @@ theorem EtcdServer.apply.wp_proof
         wp_alloc rsp as Hrsp
         (try wp_auto)
         ihave #Hwok2 := Hwok
-        iunfold waitOk at Hwok2
-        icases Hwok2 with ⟨%wi, %hw, #Htrig, -⟩
+        iunfold waitInv at Hwok2
+        icases Hwok2 with ⟨%RD0, Hwok2⟩
+        iunfold isWait at Hwok2
+        icases Hwok2 with ⟨%wi, %hw, -, #Htrig, -⟩
         simp only [hw]
         (try wp_auto)
         wp_apply Htrig
+        · iright
+          iunfold waitTrig
+          iintro %Ψ HR
+          iexfalso
+          iapply Hccf $$ HR
         (try wp_auto)
         wp_apply hGI $$ [He] as -
         · iframe He
@@ -460,11 +477,11 @@ theorem EtcdServer.apply.wp_proof
       · -- a normal entry
         (try simp only [h0, _root_.decide_true])
         (try wp_auto)
-        wp_apply (hAEN s γ ci TM E b e m (stLoaded γ st') false xj) $$ [Hst Hbe Hlr HKV]
+        wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') false xj) $$ [Hst Hbe Hlr HKV]
           as ⟨Hbe, Hlr, ⟨%x1, %out1, HKV, %Hstep1⟩, Hst⟩
         · simp only [Bool.false_eq_true, ↓reduceIte]
-          iframe Hsrv0 He Hst Hbe Hlr HKV
-          ipureintro; exact ⟨⟨hpend'', hOk1 h0⟩, trivial⟩
+          iframe Hsrv0 Hewo He Hst Hbe Hlr HKV
+          ipureintro; exact ⟨⟨hpend'', hOk1 h0, h0⟩, trivial⟩
         have hb1 : batchStep (ciEff γ st.k) m xj x1 := by
           unfold batchStep; rw [ite_eq_left h0]
           refine ⟨out1, ?_⟩
@@ -499,8 +516,14 @@ theorem EtcdServer.apply.wp_proof
         iunfold entryAt at He2
         icases He2 with ⟨%Hnn, %pt, %pi, %pty, %d, #Ht, #Hpt, #Hi, #Hpi, #Hty, #Hpty, #Hd, #Hds⟩
         (try wp_auto)
-        wp_apply (hMU.1 cc_ptr _ d m.data DFrac.discard hcc) $$ [cc] as ⟨⟨%v', %cid, Hcc, #Hcid⟩, -⟩
+        wp_apply (hMU.1 cc_ptr _ d m.data DFrac.discard hcc) $$ [cc] as ⟨⟨%v', Hcc, #Hcid⟩, -⟩
         · iframe cc Hds
+        ihave #Hccf : iprop(□ ∀ Ψ, reqWaitR ρ.ids E (ccIdOf m.data) Ψ -∗ False) $$ []
+        · have he : entryWaitOk ρ E m =
+              iprop(□ ∀ Ψ, reqWaitR ρ.ids E (ccIdOf m.data) Ψ -∗ False) := by
+            unfold entryWaitOk; rw [ite_eq_right (by rw [h1]; decide)]
+          rw [he]
+          iexact Hewo
         (try wp_auto)
         wp_apply (hACC s cc_ptr ep v' csl false ci sv.ua E
           iprop(True) iprop(True) iprop(True) iprop(True) m.index m.term) $$ [Hcc Hcs]
@@ -519,7 +542,7 @@ theorem EtcdServer.apply.wp_proof
         (try wp_auto)
         rcases sb with _ | _ <;> (
         (try wp_auto)
-        wp_apply (hId cc_ptr v'' (DFrac.own 1) cid) $$ [Hcc] as Hcc
+        wp_apply (hId cc_ptr v'' (DFrac.own 1) (ccIdOf m.data)) $$ [Hcc] as Hcc
         · rw [hIdEq]; iframe Hcc Hcid
         (try wp_auto)
         wp_apply hMem as %msl -
@@ -527,11 +550,18 @@ theorem EtcdServer.apply.wp_proof
         wp_alloc rsp as Hrsp
         (try wp_auto)
         ihave #Hwok2 := Hwok
-        iunfold waitOk at Hwok2
-        icases Hwok2 with ⟨%wi, %hw, #Htrig, -⟩
+        iunfold waitInv at Hwok2
+        icases Hwok2 with ⟨%RD0, Hwok2⟩
+        iunfold isWait at Hwok2
+        icases Hwok2 with ⟨%wi, %hw, -, #Htrig, -⟩
         simp only [hw]
         (try wp_auto)
         wp_apply Htrig
+        · iright
+          iunfold waitTrig
+          iintro %Ψ HR
+          iexfalso
+          iapply Hccf $$ HR
         (try wp_auto)
         wp_apply hGI $$ [He] as -
         · iframe He

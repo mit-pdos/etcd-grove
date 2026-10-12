@@ -74,8 +74,8 @@ theorem EtcdServer.applyEntries.wp_proof
     (hApply : EtcdServer.apply.spec (GF := GF) (hG := hG))
     (hStop : EtcdServer.stopWithDelay.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyEntries.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM E b ep ap es ents ms f0 rac st ai at0 a t cs x Hms Hai1 Hok hEok
-  wp_start as ⟨#Hsrv, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV⟩
+  intro s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x Hms Hai1 Hok hEok
+  wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hesl
   iunfold entriesAt at Hentsat
   icases Hentsat with ⟨%Hlen2, #Hent⟩
@@ -165,11 +165,18 @@ theorem EtcdServer.applyEntries.wp_proof
     have hun : unapplied ai ms = ms.drop k := by
       rw [unapplied_eq_drop ai ms (uint.Z f0) (fun n m h => (Hfrom.2.2 n m h).1), hkdef, hoff]
     rw [hun] at hEok
-    wp_apply hApply s γ ci TM E b (slice.slice es Loc off es.len) (ents.drop k) (ms.drop k)
+    ihave #Hbw' : iprop(batchWaitOk ρ E (ms.drop k)) $$ []
+    · iunfold batchWaitOk at Hbw
+      iunfold batchWaitOk
+      imodintro
+      iintro %m %hm
+      iapply Hbw
+      ipureintro; exact List.mem_of_mem_drop hm
+    wp_apply hApply s γ ci TM E ρ b (slice.slice es Loc off es.len) (ents.drop k) (ms.drop k)
       (ai + 1) ep cs rac st a t x hne' hfrom' hok' hEok $$ [Hst Hbe Happ Hcs Hlr HKV]
       as %appt %appi %stop ⟨%st', %a', %at', %csl, Hst, Hbe, Happ, Hcs, Hlr, ⟨%x', HKV, %Hx'⟩,
         %Hpost⟩
-    · iframe Hsrv Hsub Hentsd Hst Hbe Happ Hcs Hlr HKV
+    · iframe Hsrv Hbw' Hsub Hentsd Hst Hbe Happ Hcs Hlr HKV
     obtain ⟨hli, -, hok2, -⟩ := Hpost
     -- the postcondition, whether or not the server stops
     have hlast : ms.getLast? = (ms.drop k).getLast? := by

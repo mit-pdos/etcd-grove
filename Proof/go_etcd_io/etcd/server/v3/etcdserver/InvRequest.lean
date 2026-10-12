@@ -22,25 +22,19 @@ sequence of committed client data, all occurrences), each deposited, each claime
 (`idClaim`): unit 4 states the loops with it. Discharging the contract is retargeting the
 verified raft to v3.7 (`notes/STATUS.md`, "Retargeting raft to upstream").
 
-**Unique ids** (`idGen`, `idFresh`, `idClaim`): `idutil.Generator.Next` returns `prefix |
-lowbit(suffix, 48)` for an atomically incremented `suffix`: `2 ^ 48` consecutive calls return
-distinct ids. `idGen γi g` hands out `2 ^ 48 - 1` credits (`idCred`), `Next` consumes one and
-returns an id nobody holds (`idFresh γi id`: the right to claim the id for a request's data,
-`idClaim γi id d` (persistent, agreeing), and the id's slot in the wait registry, `idSlot`).
-The ids of other members' requests (other generators, other prefixes) are claimed in the same
-map: that the members' prefixes (`uint16(memberID)`) differ is a premise of the raft contract's
-apply side (`issues/etcd-request-id-member-prefix.md`).
+**Unique ids** (`idGen`, `idFresh`, `idClaim`: `pkg/v3/idutil/Defs.lean`, moved there in unit
+2): `Next` returns an id nobody holds, which the proposer claims for its request's data. The ids
+of other members' requests (other generators, other prefixes) are claimed in the same map: that
+the members' prefixes (`uint16(memberID)`) differ is a premise of the raft contract's apply side
+(`issues/etcd-request-id-member-prefix.md`).
 
-**The wait registry** (`isWait w γi R`, the contract `wait.list`'s proof establishes, unit 2):
-`Register(id)` with the id's slot and an expectation `Ψ` satisfying the registration condition
-`R id Ψ` (persistent) returns a channel the proposer receives `Ψ`'s value from (`waitRecv`: a
-handoff channel, buffer 1, sent once then closed, `cache/v3/Handoff.lean`); `Trigger(id, x)`
-needs `Ψ x` for every `Ψ` registered under `id` by `R` (`waitTrig`), or, from the proposer
-giving up (`x = nil`), its consumer token; `IsRegistered(id)` returns a boolean. The server's
-condition (`reqWaitR`): `Ψ` is `resultΨ E rq` for the request `rq` the id was claimed for
-(`idClaim γi id d`, `irrDecode d = some rq`). So the apply thread, applying an entry whose data
-`d'` decode to a request with id `id`, learns from `idClaim` (the entry's, from the raft
-contract, and the registration's) that `d' = d`, and proves `resultΨ E rq` of its result.
+**The wait registry** (`isWait w γi γw R RD`: `pkg/v3/wait/Defs.lean`, `wait.New`'s contract
+since unit 2). The server's registration condition (`reqWaitR`): `Ψ` is `resultΨ E rq` for the
+request `rq` the id was claimed for (`idClaim γi id d`, `irrDecode d = some rq`). So the apply
+thread, applying an entry whose data `d'` decode to a request with id `id`, learns from
+`idClaim` (the entry's, `entryWaitOk`, from the raft contract, and the registration's) that `d' =
+d`, and proves `resultΨ E rq` of its result. A conf change's id (`ccIdOf`) is no KV request's
+(`entryWaitOk` of a conf-change entry: unit 4 discharges it with typed claims).
 
 **The result a proposer expects** (`resultΨ E rq x`): `x` is the `*apply.Result` of applying
 `rq` (with `v3`) at some KV state `y`, to `y'` (`apply.applyStep`, `apply.applyResultIs`), with
@@ -57,8 +51,9 @@ out): unit 4 ties the two lower bounds to the consistent-index protocol and to r
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
-public import Proof.go_etcd_io.etcd.cache.v3.Handoff
+public import Proof.go_etcd_io.etcd.pkg.v3.wait.Defs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftpb
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.MonoList
@@ -162,66 +157,6 @@ instance srvCommittedLb_persistent (γ : ServerRaftNames) (cs : List (List w8)) 
     Persistent (srvCommittedLb (GF := GF) γ cs) := by
   unfold srvCommittedLb; infer_instance
 
-/-! ## Unique ids (`pkg/idutil`) -/
-
-/-- The id generator's ghost names: the credits (`Auth Nat`), and two ghost maps keyed by id:
-the data an id was claimed for (`none` until claimed), and the id's wait slot. -/
-structure IdNames where
-  cred : GName
-  issued : GName
-  slot : GName
-
-/-- `n` id credits (one per `Next`). -/
-def idCred (γi : IdNames) (n : Nat) : IProp GF := own γi.cred (◯ n : Auth Nat)
-
-/-- The right to claim the id `id` for a request's data. -/
-def idUnclaimed (γi : IdNames) (id : w64) : IProp GF :=
-  id ↪[γi.issued] (none : Option (List w8))
-
-/-- The id `id` was claimed for the data `d` (persistent; agreeing). -/
-def idClaim (γi : IdNames) (id : w64) (d : List w8) : IProp GF :=
-  id ↪[γi.issued]□ (some d)
-
-instance idClaim_persistent (γi : IdNames) (id : w64) (d : List w8) :
-    Persistent (idClaim (GF := GF) γi id d) := by
-  unfold idClaim; infer_instance
-
-/-- The id's slot in the wait registry (exclusive): `Register(id)` takes it. -/
-def idSlot (γi : IdNames) (id : w64) : IProp GF :=
-  id ↪[γi.slot] ()
-
-/-- **An id nobody holds** (what `Next` returns): its claim and its wait slot. -/
-def idFresh (γi : IdNames) (id : w64) : IProp GF :=
-  iprop(idUnclaimed γi id ∗ idSlot γi id)
-
-/-- `id` is among the first `k` ids of the generator with prefix `pfx` and initial suffix
-`s0`: `pfx | lowbit(s0 + j, 48)` for `1 ≤ j ≤ k`. -/
-def idIssued (pfx s0 : w64) (k : Nat) (id : w64) : Prop :=
-  ∃ j : Nat, 1 ≤ j ∧ j ≤ k ∧ id = pfx ||| ((s0 + W64 (j : Int)) &&& W64 (2 ^ 48 - 1))
-
-def idN : Namespace := nroot .@ "idutil"
-
-/-- **The generator `g`** (persistent): its `prefix` field fixed, its `suffix` an atomic in an
-invariant with the credits' authority (`2 ^ 48 - 1` less the `k` ids issued) and the issued
-ids' ghost maps (the ids issued, `idIssued`, and only those, are in both maps). `NewGenerator`
-establishes it with `idCred γi (2 ^ 48 - 1)`; `Next` consumes a credit and returns an
-`idFresh` id (unit 2). The bound is the premise that a process issues fewer than `2 ^ 48`
-request ids (the 48-bit suffix wraps after `2 ^ 48`). -/
-def idGen (γi : IdNames) (g : Loc) : IProp GF :=
-  iprop(∃ (pfx s0 : w64), ⌜g ≠ null⌝ ∗
-    structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" g ↦□ pfx ∗
-    ⌜uint.Z s0 < 2 ^ 48⌝ ∗
-    inv idN iprop(∃ (k : Nat) (I : GMap w64 (Option (List w8))) (S : GMap w64 Unit),
-      sync.atomic.ownUint64
-        (structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"suffix" g) (DFrac.own 1)
-        (s0 + W64 (k : Int)) ∗
-      own γi.cred (● (2 ^ 48 - 1 - k) : Auth Nat) ∗ ⌜k ≤ 2 ^ 48 - 1⌝ ∗
-      ghostMapAuth γi.issued 1 I ∗ ghostMapAuth γi.slot 1 S ∗
-      ⌜∀ id, ((I !! id).isSome ↔ idIssued pfx s0 k id) ∧ ((S !! id).isSome ↔ idIssued pfx s0 k id)⌝))
-
-instance idGen_persistent (γi : IdNames) (g : Loc) : Persistent (idGen (GF := GF) γi g) := by
-  unfold idGen; infer_instance
-
 end ghost
 
 /-! ## The wait registry (`pkg/wait`) -/
@@ -232,54 +167,28 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- What the registered channel carries: the expectation's value, or `nil` from the proposer
-giving up (`Trigger(id, nil)`, with its consumer token, which it then no longer has). -/
-def waitVal (γh : HandoffNames) (Ψ : GoInterface → IProp GF) (x : GoInterface) : IProp GF :=
-  iprop(Ψ x ∨ (⌜x = GoInterface.nil⌝ ∗ handoffConsumer γh false))
+/-- The request path's ghost names: the raft contract's, the ids', and the wait's registered
+ids' (`isWait`'s `γw`). -/
+structure ReqNames where
+  raft : ServerRaftNames
+  ids : IdNames
+  wait : GName
 
-/-- **The proposer's receive right** on the channel `ch` `Register(id)` returned, for `Ψ`: a
-handoff channel of `waitVal`, and its consumer token (nothing taken yet). -/
-def waitRecv (γh : HandoffNames) (ch : Loc) (Ψ : GoInterface → IProp GF) : IProp GF :=
-  iprop(isHandoff (V := GoInterface) γh ch (waitVal γh Ψ) iprop(True) iprop(True) ∗
-    handoffConsumer γh false)
-
-/-- **What `Trigger(id, x)` takes from anyone but the proposer**: `Ψ x` for every expectation
-registered under `id` (by the registration condition `R`). Trivial if nothing is registered
-(another member's request, or a registration already triggered: then nothing is sent). -/
-def waitTrig (R : w64 → (GoInterface → IProp GF) → IProp GF) (id : w64) (x : GoInterface) :
-    IProp GF :=
-  iprop(∀ Ψ, R id Ψ -∗ Ψ x)
-
-/-- **The `wait.Wait` `w`** (persistent: the contract `wait.list`'s methods meet, unit 2),
-with the registration condition `R` (persistent). -/
-def isWait (w : GoInterface) (γi : IdNames) (R : w64 → (GoInterface → IProp GF) → IProp GF) :
-    IProp GF :=
-  iprop(∃ wi : GoInterfaceOk, ⌜w = GoInterface.ok wi⌝ ∗
-    □ (∀ (id : w64) (Ψ : GoInterface → IProp GF),
-      {{ idSlot γi id ∗ □ R id Ψ }}
-        (App (Val #(methods wi.ty go!"Register" wi.v)) (Val #id))
-      {{ (ch : Loc), RET #ch; ∃ γh, waitRecv γh ch Ψ }}) ∗
-    □ (∀ (id : w64) (x : GoInterface),
-      {{ (∃ γh, ⌜x = GoInterface.nil⌝ ∗ handoffConsumer γh false) ∨ waitTrig R id x }}
-        (App (App (Val #(methods wi.ty go!"Trigger" wi.v)) (Val #id)) (Val #x))
-      {{ RET #(); True }}) ∗
-    □ (∀ id : w64,
-      {{ True }} (App (Val #(methods wi.ty go!"IsRegistered" wi.v)) (Val #id))
-      {{ (b : Bool), RET #b; True }}))
-
-instance isWait_persistent (w : GoInterface) (γi : IdNames)
-    (R : w64 → (GoInterface → IProp GF) → IProp GF) : Persistent (isWait (GF := GF) w γi R) := by
-  unfold isWait; infer_instance
-
-/-- **The result the proposer of `rq` expects** (persistent): the `*apply.Result` of applying
-`rq` with `v3` at some KV state `y`, to `y'`, with mvcc's certificate of the log after. -/
-def resultΨ (E : apply.AEnv GF) (rq : apply.IRRModel) (x : GoInterface) : IProp GF :=
-  iprop(∃ ar : Loc,
-    ⌜x = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar ∧
-      ar ≠ null⌝ ∗
+/-- **The result `ar` of applying `rq`** (persistent if its parts are): a non-nil `*apply.Result`
+of applying `rq` (with `v3`) at some KV state `y`, to `y'` (`apply.applyStep`,
+`apply.applyResultIs`), with mvcc's certificate of the log after. -/
+def resultIs (E : apply.AEnv GF) (rq : apply.IRRModel) (ar : Loc) : IProp GF :=
+  iprop(⌜ar ≠ null⌝ ∗
     ∃ (y y' : apply.ApplyKV) (out : apply.ApplyOut),
       ⌜apply.applyStep rq true y y' out⌝ ∗ apply.applyResultIs rq true y.log ar out ∗
       mvcc.idxCert E.γ.idx y'.log)
+
+/-- **The result the proposer of `rq` expects**: the `*apply.Result` `ar` (as an interface
+value) with `resultIs E rq ar`. -/
+def resultΨ (E : apply.AEnv GF) (rq : apply.IRRModel) (x : GoInterface) : IProp GF :=
+  iprop(∃ ar : Loc,
+    ⌜x = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar⌝ ∗
+    resultIs E rq ar)
 
 /-- **The server's registration condition**: the expectation of a registered id is
 `resultΨ E rq` for the request `rq` its data decode to, the id claimed for those data. -/
@@ -292,11 +201,40 @@ instance reqWaitR_persistent (γi : IdNames) (E : apply.AEnv GF) (id : w64)
     (Ψ : GoInterface → IProp GF) : Persistent (reqWaitR γi E id Ψ) := by
   unfold reqWaitR; infer_instance
 
-/-- **The server's wait** `s.w` (persistent): a `wait.Wait` with the server's registration
-condition. Unit 2 replaces the apply package's `waitOk` (which `srvFieldsAt` still states) with
-it. -/
-def waitInv (w : GoInterface) (γi : IdNames) (E : apply.AEnv GF) : IProp GF :=
-  isWait w γi (reqWaitR γi E)
+/-- **The server's wait** `s.w` (persistent): a `wait.Wait` (`wait.New`'s contract) with the
+server's registration condition, the ids `ρ.ids`, the registered ids' map `ρ.wait`, and some
+reader's resource (the apply thread's `srvApplyKV` holds `IsRegistered`'s, as the apply package's
+`waitOk`). Replaces the apply package's `waitOk` in `srvFieldsAt` (unit 2). -/
+def waitInv (w : GoInterface) (ρ : ReqNames) (E : apply.AEnv GF) : IProp GF :=
+  iprop(∃ RD : IProp GF, isWait w ρ.ids ρ.wait (reqWaitR ρ.ids E) RD)
+
+instance waitInv_persistent (w : GoInterface) (ρ : ReqNames) (E : apply.AEnv GF) :
+    Persistent (waitInv (GF := GF) w ρ E) := by
+  unfold waitInv; infer_instance
+
+/-- **What the apply thread knows of a committed entry's id** (persistent; the raft contract's
+apply side, `batchCommitted`, gives the first half; unit 4): a normal entry's data, if they
+decode to a request with an id, were claimed under that id; a conf change's id (`ccIdOf`) is no
+KV request's registration (the conf change's proposer claimed it for the conf change: typed
+claims, unit 4). -/
+def entryWaitOk (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel) : IProp GF :=
+  if m.typ = W32 0 then
+    iprop(∀ (rq : apply.IRRModel) (id : w64),
+      ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
+        idClaim ρ.ids id m.data)
+  else iprop(□ ∀ Ψ, reqWaitR ρ.ids E (ccIdOf m.data) Ψ -∗ False)
+
+instance entryWaitOk_persistent (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel) :
+    Persistent (entryWaitOk (GF := GF) ρ E m) := by
+  unfold entryWaitOk; split <;> infer_instance
+
+/-- `entryWaitOk` of every entry of a batch (persistent). -/
+def batchWaitOk (ρ : ReqNames) (E : apply.AEnv GF) (ms : List EntryModel) : IProp GF :=
+  iprop(□ ∀ m, ⌜m ∈ ms⌝ -∗ entryWaitOk ρ E m)
+
+instance batchWaitOk_persistent (ρ : ReqNames) (E : apply.AEnv GF) (ms : List EntryModel) :
+    Persistent (batchWaitOk (GF := GF) ρ E ms) := by
+  unfold batchWaitOk; infer_instance
 
 /-! ## The raft contract -/
 

@@ -45,6 +45,10 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
+-- `InvServer`'s high-priority `TypeRepr` of `EtcdServer`: without it `NewKVServer` finds
+-- `TypeRepr` through `EtcdServer`'s `IntoValTyped`, which reaches the `sorry` instances of its
+-- axiomatized field types (`InvRequest` imported it through `InvApplier` before unit 2).
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
 
 @[expose] public section

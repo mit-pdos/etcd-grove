@@ -2,7 +2,8 @@
 `errors.Is(err, context.DeadlineExceeded)`: `errors.Is` at the one target `errors.wp_Is` does
 not take, `context.DeadlineExceeded`, which holds `deadlineExceededError{}` (an empty struct, not
 a pointer). Lean-first (no Rocq counterpart); `togRPCError`'s (2026-10-12, the request path's
-unit 1), and `parseProposeCtxErr`'s.
+unit 1). `parseProposeCtxErr`'s `errors.Is` is `errors.IsCtxErr`: its error is a context's (no
+error tree), this one's an applier's (an error tree, no context type).
 
 Go's `Is` finds the target's type comparable by reflection (an empty struct is) and compares the
 target with each error of `err`'s tree (`==`): two interfaces of different dynamic types are

@@ -1,6 +1,9 @@
-# Types and names only: function and method bodies are axiomatized.
+# Types and names only: function and method bodies are axiomatized. The packages the
+# `Transporter` interface's method set names are imported (2026-10-12, the request path's
+# unit 2: the server's `parseProposeCtxErr` loads `s.r.transport`, which needs the interface).
 translate = ["!*"]
-imports = ["!*"]
+imports = ["!*", "net/http", "go.etcd.io/raft/v3/raftpb", "go.etcd.io/etcd/server/v3/etcdserver/api/snap",
+  "go.etcd.io/etcd/client/pkg/v3/types", "time"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

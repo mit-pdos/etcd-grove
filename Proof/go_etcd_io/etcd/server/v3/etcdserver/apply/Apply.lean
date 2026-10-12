@@ -53,6 +53,7 @@ local macro "call_tail" : tactic => `(tactic| (
     | some _ => rfl
   ihave ⟨#Hok, Hres⟩ := apply.applyResultIs_resultErrOk rq v3 x.log ar out $$ Hres
   iapply HΦ
+  iframe HRD
   isplitl [HPP]
   · iapply cPost_if; iexact HPP
   iframe Hok
@@ -71,8 +72,8 @@ theorem apply.Apply.wp_proof
     (hNSE : apply.noSideEffect.spec (GF := GF) (hG := hG))
     (hUA : apply.uberApplier.Apply.spec (GF := GF) (hG := hG)) :
     apply.Apply.spec (GF := GF) (hG := hG) := by
-  intro lg e m ua w v3 E Pre Q Post x rq id
-  wp_start as ⟨#Hfor, #Hwok, %Hlg, #He, Hhook, HPre, Hkv, %Hprem⟩
+  intro lg e m ua w v3 E Pre Q Post x rq id RD
+  wp_start as ⟨#Hfor, #Hwok, HRD, %Hlg, #He, Hhook, HPre, Hkv, %Hprem⟩
   obtain ⟨Hdec, Hid, Hrq, Hdk⟩ := Hprem
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -126,9 +127,9 @@ theorem apply.Apply.wp_proof
     subst this
     iexact id
   iunfold waitOk at Hwok
-  icases Hwok with ⟨%wi, %Hwi, -, #HIsReg⟩
+  icases Hwok with ⟨%wi, %Hwi, #HIsReg⟩
   subst Hwi
-  wp_apply HIsReg as %need -
+  wp_apply HIsReg $$ [$HRD] as %need HRD
   wp_join (Q := fun v => iprop(⌜v = #(!need && !decide (lt = null))⌝)) at (if: _ then _ else _)
   · cases need
     · wp_auto
@@ -178,6 +179,7 @@ theorem apply.Apply.wp_proof
       call_tail
     · wp_auto
       iapply HΦ
+      iframe HRD
       isplitl [Hcs]
       · iapply cPost_if; iapply apply.cPost_of_pre; iapply apply.cPre_pre; iexact Hcs
       isplitr
