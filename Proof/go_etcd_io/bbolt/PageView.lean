@@ -156,6 +156,30 @@ theorem branchElemBytes_of (pg : List w8) (i : Nat) (h : elemOff i + 16 ≤ pg.l
     leBytes_leAt pg _ 8 (by omega)]
   rw [List.append_assoc, bytesAt_append pg (elemOff i + 4) 4 8, bytesAt_append pg (elemOff i) 4 12]
 
+/-- The meta of 64 bytes (any 64 bytes are one: its fields are integers). -/
+def metaOf (l : List w8) : Meta :=
+  Meta.mk (W32 (leAt l 0 4)) (W32 (leAt l 4 4)) (W32 (leAt l 8 4)) (W32 (leAt l 12 4))
+    (InBucket.mk (W64 (leAt l 16 8)) (W64 (leAt l 24 8))) (W64 (leAt l 32 8)) (W64 (leAt l 40 8))
+    (W64 (leAt l 48 8)) (W64 (leAt l 56 8))
+
+/-- A meta's bytes are the first 64 of the bytes it is read from. -/
+theorem metaBytes_metaOf (l : List w8) (h : 64 ≤ l.length) : metaBytes (metaOf l) = l.take 64 := by
+  unfold metaBytes inBucketBytes metaOf
+  simp only
+  rw [toNat_W32 _ (leAt_lt l 0 4), toNat_W32 _ (leAt_lt l 4 4), toNat_W32 _ (leAt_lt l 8 4),
+    toNat_W32 _ (leAt_lt l 12 4), toNat_W64 _ (leAt_lt l 16 8), toNat_W64 _ (leAt_lt l 24 8),
+    toNat_W64 _ (leAt_lt l 32 8), toNat_W64 _ (leAt_lt l 40 8), toNat_W64 _ (leAt_lt l 48 8),
+    toNat_W64 _ (leAt_lt l 56 8)]
+  rw [leBytes_leAt l 0 4 (by omega), leBytes_leAt l 4 4 (by omega), leBytes_leAt l 8 4 (by omega),
+    leBytes_leAt l 12 4 (by omega), leBytes_leAt l 16 8 (by omega), leBytes_leAt l 24 8 (by omega),
+    leBytes_leAt l 32 8 (by omega), leBytes_leAt l 40 8 (by omega), leBytes_leAt l 48 8 (by omega),
+    leBytes_leAt l 56 8 (by omega)]
+  simp only [List.append_assoc]
+  rw [bytesAt_append l 48 8 8, bytesAt_append l 40 8 16, bytesAt_append l 32 8 24,
+    bytesAt_append l 24 8 32, bytesAt_append l 16 8 40, bytesAt_append l 12 4 48,
+    bytesAt_append l 8 4 52, bytesAt_append l 4 4 56, bytesAt_append l 0 4 60]
+  simp [bytesAt]
+
 end header
 
 section view

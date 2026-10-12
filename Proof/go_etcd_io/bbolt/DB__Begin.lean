@@ -30,6 +30,7 @@ theorem DB.Begin.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   wp_start as Hdb
   icases ownDB_logger I dbl γ σ $$ Hdb with ⟨%lg, %dl, #Hlg, #Hdl, #Hdlok, %Hl, Hdb⟩
   obtain ⟨Hlg', Hdbl⟩ := Hl
+  try wp_auto
   wp_apply wp_with_defer as %defer Hdefer
   try wp_auto
   wp_apply hLogger dbl DFrac.discard lg dl Hdbl $$ [Hlg Hdl] as -
