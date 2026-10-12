@@ -72,8 +72,10 @@ theorem raftNode.processMessages.wp_proof
     rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by word, by word⟩)]
     wp_apply wp_load_slice_index sl (sint.Z k) msL DFrac.discard m (by word) $$ [] as -
     · iframe Hsl; ipureintro; exact hm
-    ihave #Hm := (BigSepL.bigSepL_lookup (Φ := fun _ m => rnMsgOk E m) hm) $$ Hall
+    ihave #HmOk := (BigSepL.bigSepL_lookup (Φ := fun _ m => rnMsgOk E m) hm) $$ Hall
+    ihave #Hm := HmOk
     iunfold rnMsgOk at Hm
+
     icases Hm with ⟨%to, %ty, #Hmat, #HM⟩
     wp_apply wp_GetTo m to ty $$ [$Hrpb $Hmat]
     iunfold isRNIDRemoved at Hidri
@@ -92,20 +94,194 @@ theorem raftNode.processMessages.wp_proof
     · -- `MsgAppResp`: only the last one
       cases b
       rotate_left
-      · wp_for_post
+      · wp_auto
+        wp_for_post
         iframe HΦ
         iexists k - W64 1, out, outL, true
         iframe
         ipureintro; constructor <;> word
       wp_auto
       wp_apply wp_GetType m to _ $$ [$Hrpb $Hmat]
-      wp_if_destruct
-      · exact absurd Hif (by decide)
       wp_apply wp_GetType m to _ $$ [$Hrpb $Hmat]
+      wp_apply wp_slice_literal (l := [m])
+      isplitr
+      · ipureintro; rfl
+      iintro %msl ⟨Hmsl, -⟩
+      wp_apply wp_slice_append out outL _ [m] (DFrac.own 1) $$ [$Hout $Hcap $Hmsl]
+        as %out' ⟨Hout, Hcap, -⟩
+      wp_for_post
+      iframe HΦ
+      iexists k - W64 1, out', outL ++ [m], _
+      iframe r ms i messages Hout Hcap sentAppResp
+      isplitl [Houtok]
+
+      · iapply BigSepL.bigSepL_snoc.2
+        iframe Houtok HmOk
+      ipureintro; constructor <;> word
+    · wp_apply wp_GetType m to ty $$ [$Hrpb $Hmat]
       wp_if_destruct
-      · exact absurd Hif (by decide)
-      done
-    · done
+      · -- `MsgSnap`: to `msgSnapC` if it has room, then `continue`
+        iunfold isRNMsgSnapC at Hmsci
+        icases Hmsci with ⟨%γc, #Hbag⟩
+        ihave #Hbagch := is_bag_is_chan γc msc (rnMsgOk E) $$ Hbag
+        rw [isChanBag_unseal]
+        iunfold isChanBagDef at Hbag
+        icases Hbag with ⟨#Hch, #Hinv⟩
+        wp_apply_core chan.wp_select_nonblocking
+        isplit
+        · iapply BigAndL.bigAndL_cons.2
+          isplit
+          · simp only [chan.nonblockingClausePre]
+            iexists Loc, inferInstance, inferInstance, inferInstance, inferInstance, msc, γc, m
+            isplitr
+            · ipureintro; exact ⟨rfl, rfl⟩
+            isplitr
+            · iexact Hbagch
+            unfold nonblockingSendAu nonblockingSendAuInner
+            isplit
+            · iinv Hinv with Hi Hclose
+              iapply fupd_mask_intro Std.LawfulSet.empty_subset
+              iintro Hmask
+              inext
+              unfold chanBagInv
+              icases Hi with ⟨%s, Hoc, Hi⟩
+              iexists s
+              iframe Hoc
+              cases s with
+              | RcvPending =>
+                dsimp only
+                iintro Hoc
+                imod Hmask with -
+                imod Hclose $$ [Hoc] with -
+                · inext; iexists .SndCommit m; iframe Hoc; dsimp only; iexact HmOk
+                imodintro
+                wp_auto
+                wp_for_post
+                iframe HΦ
+                iexists k - W64 1, out, outL, _
+                iframe
+                ipureintro; constructor <;> word
+              | Buffered buff =>
+                dsimp only
+                iintro Hoc
+                imod Hmask with -
+                imod Hclose $$ [Hoc Hi] with -
+                · inext; iexists .Buffered (buff ++ [m]); iframe Hoc; dsimp only
+                  iapply BigSepL.bigSepL_snoc.2; iframe Hi HmOk
+                imodintro
+                wp_auto
+                wp_for_post
+                iframe HΦ
+                iexists k - W64 1, out, outL, _
+                iframe
+                ipureintro; constructor <;> word
+              | Closed d =>
+                dsimp only
+                iexfalso; iexact Hi
+              | _ => dsimp only; itrivial
+            · itrivial
+          iapply BigAndL.bigAndL_nil.2
+          itrivial
+        · -- `default`: dropped
+          wp_auto
+          wp_for_post
+          iframe HΦ
+          iexists k - W64 1, out, outL, _
+          iframe
+          ipureintro; constructor <;> word
+
+      wp_apply wp_GetType m to ty $$ [$Hrpb $Hmat]
+      wp_if_destruct
+      · -- `MsgHeartbeat`: the timeout detector
+        wp_apply wp_GetTo m to _ $$ [$Hrpb $Hmat]
+        iunfold isRNTimeoutDetector at Htdi
+        icases Htdi with ⟨%Htdnn, #HReset, #HObs⟩
+        ispecialize HObs $$ %to
+        wp_apply HObs as %ok %d -
+        cases ok
+        · -- late: the warning and the counter
+          wp_auto
+          ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
+          · iPkgInit
+          ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
+          · iPkgInit
+          wp_apply wp_GetTo m to _ $$ [$Hrpb $Hmat]
+          wp_apply wp_slice_literal
+          isplitr
+          · ipureintro; rfl
+          iintro %asl ⟨Hasl, -⟩
+          wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ (DFrac.own 1)
+            (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (_root_.Perennial.fmt.IntArgValue.uint64 to)
+              _root_.Perennial.fmt.ArgsWf.nil) $$ [$Hfmt $Hasl] as %str -
+          wp_apply wp_String _ _ $$ [$Hzap] as %f0 -
+          wp_apply wp_Duration _ _ $$ [$Hzap] as %f1 -
+          wp_apply wp_Duration _ _ $$ [$Hzap] as %f2 -
+          wp_apply wp_Duration _ _ $$ [$Hzap] as %f3 -
+          wp_apply wp_slice_literal
+          isplitr
+          · ipureintro; rfl
+          iintro %fsl -
+          wp_auto
+          wp_apply wp_Warn lg _ _ $$ [$Hzap]
+          · ipureintro; exact Hlgnn
+          ihave Hsi : (srvInit : IProp GF) $$ []
+          · iapply isPkgInit_access $$ Hpkg
+          iunfold srvInit at Hsi
+          icases Hsi with ⟨-, -, -, -, ⟨%c, #Hc, #Hcs⟩⟩
+          iunfold go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec at Hcs
+          icases Hcs with ⟨#HInc, -⟩
+          wp_auto
+          wp_apply HInc
+          wp_apply wp_slice_literal (l := [m])
+          isplitr
+          · ipureintro; rfl
+          iintro %msl ⟨Hmsl, -⟩
+          wp_apply wp_slice_append out outL _ [m] (DFrac.own 1) $$ [$Hout $Hcap $Hmsl]
+            as %out' ⟨Hout, Hcap, -⟩
+          wp_for_post
+          iframe HΦ
+          iexists k - W64 1, out', outL ++ [m], _
+          iframe r ms i messages Hout Hcap sentAppResp
+          isplitl [Houtok]
+          · iapply BigSepL.bigSepL_snoc.2
+            iframe Houtok HmOk
+          ipureintro; constructor <;> word
+
+
+        · wp_auto
+
+          wp_apply wp_slice_literal (l := [m])
+          isplitr
+          · ipureintro; rfl
+          iintro %msl ⟨Hmsl, -⟩
+          wp_apply wp_slice_append out outL _ [m] (DFrac.own 1) $$ [$Hout $Hcap $Hmsl]
+            as %out' ⟨Hout, Hcap, -⟩
+          wp_for_post
+          iframe HΦ
+          iexists k - W64 1, out', outL ++ [m], _
+          iframe r ms i messages Hout Hcap sentAppResp
+          isplitl [Houtok]
+          · iapply BigSepL.bigSepL_snoc.2
+            iframe Houtok HmOk
+          ipureintro; constructor <;> word
+
+
+      wp_apply wp_slice_literal (l := [m])
+      isplitr
+      · ipureintro; rfl
+      iintro %msl ⟨Hmsl, -⟩
+      wp_apply wp_slice_append out outL _ [m] (DFrac.own 1) $$ [$Hout $Hcap $Hmsl]
+        as %out' ⟨Hout, Hcap, -⟩
+      wp_for_post
+      iframe HΦ
+      iexists k - W64 1, out', outL ++ [m], _
+      iframe r ms i messages Hout Hcap sentAppResp
+      isplitl [Houtok]
+      · iapply BigSepL.bigSepL_snoc.2
+        iframe Houtok HmOk
+      ipureintro; constructor <;> word
+
+
   · iapply HΦ
     iexists outL
     iframe Hout Houtok
@@ -113,4 +289,4 @@ theorem raftNode.processMessages.wp_proof
 end proof
 
 end EtcdGrove
-end Pere
+end Perennial

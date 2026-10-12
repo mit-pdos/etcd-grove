@@ -227,7 +227,9 @@ instance isRNMemStor_persistent (γ : RNNames) (ms : Loc) :
   unfold isRNMemStor; infer_instance
 
 /-- **The WAL `st`** (`serverstorage.Storage`, trust boundary: names-only): `Save` of a hard
-state and entries, and `Close`, return some error. -/
+state and entries returns some error (on which the loop exits the process, `lg.Fatal`);
+`Close` succeeds (otherwise `onStop` panics in the loop's goroutine, which crashes etcd: the
+contract assumes it does not). -/
 def isRNWal (st : GoInterface) : IProp GF :=
   iprop(∃ si : GoInterfaceOk, ⌜st = GoInterface.ok si⌝ ∗
     □ (∀ (hp : Loc) (hs : HardStateModel) (sl : GoSlice) (esL : List Loc)
@@ -236,7 +238,7 @@ def isRNWal (st : GoInterface) : IProp GF :=
         (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
       {{ (err : GoInterface), RET #err; True }}) ∗
     □ ({{ True }} (App (Val #(methods si.ty go!"Close" si.v)) (Val #()))
-      {{ (err : GoInterface), RET #err; True }}))
+      {{ RET #(GoInterface.nil); True }}))
 
 instance isRNWal_persistent (st : GoInterface) : Persistent (isRNWal (GF := GF) st) := by
   unfold isRNWal; infer_instance

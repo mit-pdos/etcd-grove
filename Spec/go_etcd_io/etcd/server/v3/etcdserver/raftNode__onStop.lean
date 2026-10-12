@@ -22,13 +22,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `r.onStop()`: stops the node, the ticker and the transport, closes the WAL (a panic if that
-fails) and then `done`. -/
+/-- `r.onStop()`: stops the node, the ticker and the transport, closes the WAL (which succeeds,
+by its contract: else `lg.Panic`) and then `done`. -/
 abbrev raftNode.onStop.spec : Prop :=
   ∀ (E : RNEnv GF) (γ : RNNames) (r : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗ rnDoneTok γ r }}
     (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"onStop")) (Val #()))
-  {{ (v : val), RET v; ⌜v = #() ∨ ∃ p : val, v = PanicV p⌝ }}
+  {{ RET #(); True }}
 
 end spec
 

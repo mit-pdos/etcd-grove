@@ -4,8 +4,6 @@ Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/raftNode__onStop.lean`. Lean
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.raftNode__onStop
-public import Spec.go_uber_org.zap.Error
-public import Spec.go_uber_org.zap.Logger__Panic
 
 @[expose] public section
 
@@ -25,9 +23,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-theorem raftNode.onStop.wp_proof
-    (wp_Error : zap.Error.spec (GF := GF) (hG := hG))
-    (wp_Panic : zap.Logger.Panic.spec (GF := GF) (hG := hG)) :
+theorem raftNode.onStop.wp_proof :
     raftNode.onStop.spec (GF := GF) (hG := hG) := by
   intro E γ r
   wp_start as ⟨#Hr, Hdone⟩
@@ -58,29 +54,13 @@ theorem raftNode.onStop.wp_proof
   wp_apply HStop
   wp_apply HtkStop
   wp_apply HTrStop
-  wp_apply HClose as %err -
-  rcases err with ei | _
-  · -- `lg.Panic`
-    wp_auto
-    wp_apply wp_Error $$ [$Hzap] as %f -
-    wp_apply wp_slice_literal
-    try (isplitr; (ipureintro; rfl))
-    try iintro %_ ⟨_, -⟩
-    try wp_auto
-    wp_apply wp_Panic lg $$ [$Hzap] as %v %Hv
-    · ipureintro; exact Hlgnn
-    subst Hv
-    wp_auto
-    iapply HΦ
-    ipureintro; right; exact ⟨_, rfl⟩
-  · -- closed: close `done`
-    wp_auto
-    wp_apply wp_broadcast_chan_close dnc γ.done iprop(True) $$ [$Hbc]
-    · imodintro; itrivial
-    iintro -
-    wp_auto
-    iapply HΦ
-    ipureintro; left; rfl
+  wp_apply HClose
+  wp_apply wp_broadcast_chan_close dnc γ.done iprop(True) $$ [$Hbc]
+  · imodintro; itrivial
+  iintro -
+  wp_auto
+  iapply HΦ
+  itrivial
 
 end proof
 
