@@ -106,7 +106,7 @@ theorem mvcc.watchableStore.syncVictimsLoop.wp_proof
   iNamed HP
   wp_auto
   ihave HP : mvcc.watchStoreBody s γ sync.rfrac σ $$
-      [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hmem]
+      [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem]
   · iunfold mvcc.watchStoreBody; simp only [named]; iframe; iframe #; ipureintro; exact ⟨Hvlen, Hok⟩
   wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HP] as Hmur
   · iframe #; inext; iunfold mvcc.watchStoreInv; iexists σ; iexact HP

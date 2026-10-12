@@ -321,6 +321,7 @@ theorem body_cancel (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) 
       ([∗map] w ↦ st ∈ GMap.delete wa σ.ST, watcherOwn w st) ∗
       watcherOwn wa { st with ch := null } ∗
       ([∗map] w ↦ st ∈ σ.Wo, watcherOwn w st (1 : Qp).half) ∗ ghostMapAuth γ.wmeta 1 σ.M ∗
+      watchBudget γ 1 σ.M ∗
       ([∗map] w ↦ _γw ∈ σ.M, ∃ (r : WatchRange) (fcs : GoSlice), watcherFixed w r fcs) ∗
       ([∗map] w ↦ st ∈ GMap.delete wa σ.ST, memberRes γ 1 σ w st) ∗
       watcherMeta γ wa γw ∗ watcherFixed wa r fcs ∗ cancelled γw ∗
@@ -341,11 +342,11 @@ theorem body_cancel (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) 
   have hST : σ'.ST = <[wa := { st with ch := null }]> σ.ST := by rw [hσ']; rfl
   have hWo : σ'.Wo = σ.Wo := by rw [hσ']; rfl
   iintro ⟨Hσ, Hwlog, #Hcert, Hsynced, Hunsynced, Hvf, Hvs, Hvcap, %Hvlen, Hvbs, Hst, Hwa, Hwo,
-    Hmeta, #Hmfix, Hmem, #Hm, #Hf, #Hc, #Hout⟩
+    Hmeta, Hwt, #Hmfix, Hmem, #Hm, #Hf, #Hc, #Hout⟩
   unfold watchStoreBody
   rw [hL, hWs', hWu', hvs, hvbs, hVB, hST, hWo, hM]
   simp only [named]
-  iframe Hσ Hwlog Hcert Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hwo Hmeta Hmfix
+  iframe Hσ Hwlog Hcert Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hwo Hmeta Hwt Hmfix
   isplitr
   · ipureintro; exact Hvlen
   isplitl [Hst Hwa]
@@ -504,7 +505,7 @@ theorem mvcc.watchableStore.cancelWatcher.wp_proof
     have hv0 : σ.victimOf wa = none := Hok.wu_v wa (by rw [hwu]; rfl)
     imod ghostVar_update (mvcc.cancelState σ wa st0 σ.Ws (GMap.delete wa σ.Wu) σ.VB) γ.wst σ
       $$ Hσ with Hσ
-    ihave HP : mvcc.watchStoreInv s γ 1 $$ [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hmem Hmin Hvic Hcomp Hres Hchf]
+    ihave HP : mvcc.watchStoreInv s γ 1 $$ [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem Hmin Hvic Hcomp Hres Hchf]
     · iunfold mvcc.watchStoreInv
       iexists _
       iapply mvcc.body_cancel s γ σ _ Hok wa st0 hst hlive σ.Ws (GMap.delete wa σ.Wu) σ.VB
@@ -515,7 +516,7 @@ theorem mvcc.watchableStore.cancelWatcher.wp_proof
           · subst h; simp only [ite_true]; exact hv0
           · simp only [h, ite_false]; rfl)
         Hok.v_one rfl γw r' fcs' hm
-      iframe Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hmem
+      iframe Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem
       iframe #
       isplitr
       · ipureintro; exact Hvlen
@@ -555,7 +556,7 @@ theorem mvcc.watchableStore.cancelWatcher.wp_proof
       have hv0 : σ.victimOf wa = none := Hok.ws_v wa (by rw [hws]; rfl)
       imod ghostVar_update (mvcc.cancelState σ wa st0 (GMap.delete wa σ.Ws) σ.Wu σ.VB) γ.wst σ
         $$ Hσ with Hσ
-      ihave HP : mvcc.watchStoreInv s γ 1 $$ [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hmem Hmin Hvic Hcomp Hres Hchf]
+      ihave HP : mvcc.watchStoreInv s γ 1 $$ [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem Hmin Hvic Hcomp Hres Hchf]
       · iunfold mvcc.watchStoreInv
         iexists _
         iapply mvcc.body_cancel s γ σ _ Hok wa st0 hst hlive (GMap.delete wa σ.Ws) σ.Wu σ.VB
@@ -566,7 +567,7 @@ theorem mvcc.watchableStore.cancelWatcher.wp_proof
             · subst h; simp only [ite_true]; exact hv0
             · simp only [h, ite_false]; rfl)
           Hok.v_one rfl γw r' fcs' hm
-        iframe Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hmem
+        iframe Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem
         iframe #
         isplitr
         · ipureintro; exact Hvlen
@@ -616,7 +617,7 @@ theorem mvcc.watchableStore.cancelWatcher.wp_proof
           rw [Hif]
           iframe
         icases Hown with ⟨Hst, Hwo⟩
-        ihave HP : mvcc.watchStoreInv s γ 1 $$ [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hmem]
+        ihave HP : mvcc.watchStoreInv s γ 1 $$ [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem]
         · iunfold mvcc.watchStoreInv
           iexists σ
           iunfold mvcc.watchStoreBody
@@ -750,7 +751,7 @@ theorem mvcc.watchableStore.cancelWatcher.wp_proof
           rw [mvcc.zip_set_right _ _ _ _ _ Hwb]
           imod ghostVar_update (mvcc.cancelState σ wa st1 σ.Ws σ.Wu
             (σ.VB.set (sint.nat n) (GMap.delete wa B))) γ.wst σ $$ Hσ with Hσ
-          ihave HP : mvcc.watchStoreInv s γ 1 $$ [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hmem Hmin1 Hvic1 Hcomp1 Hres1 Hchf1]
+          ihave HP : mvcc.watchStoreInv s γ 1 $$ [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem Hmin1 Hvic1 Hcomp1 Hres1 Hchf1]
           · iunfold mvcc.watchStoreInv
             iexists _
             iapply mvcc.body_cancel s γ σ _ Hok wa st1 hst hlive σ.Ws σ.Wu
@@ -758,7 +759,7 @@ theorem mvcc.watchableStore.cancelWatcher.wp_proof
               (fun w => by by_cases h : w = wa <;> simp [h, hws])
               (fun w => by by_cases h : w = wa <;> simp [h, hwu])
               hV hone rfl γw r' fcs' hm
-            iframe Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hmem
+            iframe Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem
             iframe #
             isplitr
             · ipureintro; rw [List.length_set]; exact Hvlen
@@ -769,7 +770,7 @@ theorem mvcc.watchableStore.cancelWatcher.wp_proof
           iexists γw
           iframe #
       · -- not found (the victim is out with the mover): retry
-        ihave HP : mvcc.watchStoreInv s γ 1 $$ [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hmem]
+        ihave HP : mvcc.watchStoreInv s γ 1 $$ [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem]
         · iunfold mvcc.watchStoreInv
           iexists σ
           iunfold mvcc.watchStoreBody

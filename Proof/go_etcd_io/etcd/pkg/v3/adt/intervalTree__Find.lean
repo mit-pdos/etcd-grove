@@ -31,9 +31,9 @@ theorem adt.intervalTree.Find.wp_proof
   obtain ⟨hTL, -, hsorted, -⟩ := Hp
   subst hTL
   wp_auto
-  wp_apply h_find t tv q T b e hsorted $$ [Hr Hs Hn] as %n ⟨Hr, Hs, %p, %Tz, Hz, Hw, %HTz⟩
+  wp_apply h_find t tv q T b e $$ [Hr Hs Hn] as %n ⟨Hr, Hs, %p, %Tz, Hz, Hw, %HTz⟩
   · iframe
-  cases hf : T.inorder.find? (fun z => decide (z.1 = (b, e))) with
+  cases hf : T.findE (b, e) with
   | none =>
     rw [hf] at HTz
     subst HTz
@@ -41,9 +41,9 @@ theorem adt.intervalTree.Find.wp_proof
     subst Hn
     wp_auto
     iapply HΦ
-    dsimp only
+    iright
     isplitl []
-    · ipureintro; rfl
+    · ipureintro; exact ⟨rfl, adt.findE_none _ T hsorted hf⟩
     iapply Hback
     iframe
     iapply Hw
@@ -51,7 +51,7 @@ theorem adt.intervalTree.Find.wp_proof
   | some z =>
     rw [hf] at HTz
     obtain ⟨c, l, r, rfl⟩ := HTz
-    have hz1 : z.1 = (b, e) := by simpa using List.find?_some hf
+    obtain ⟨hzm, hz1⟩ := adt.findE_some _ T z hf
     obtain ⟨⟨zb, ze⟩, zv⟩ := z
     simp only [Prod.mk.injEq] at hz1
     obtain ⟨rfl, rfl⟩ := hz1
@@ -61,6 +61,10 @@ theorem adt.intervalTree.Find.wp_proof
     · exfalso; first | exact Hn.1 ‹_› | exact Hn.1 rfl
     ihave %Hivn := typedPointsto_not_null _ _ _ $$ Hiv
     iapply HΦ
+    ileft
+    iexists ((zb, ze), zv)
+    isplitl []
+    · ipureintro; exact ⟨hzm, rfl⟩
     isplitl []
     · ipureintro; exact Hivn
     iframe Hiv

@@ -806,12 +806,12 @@ theorem body_take (s : Loc) (γ : WsNames) (σ : WsState) (hok : WsOk σ) (vnil 
       ownSliceCap GoMap vnil (DFrac.own 1) ∗
       ([∗map] w ↦ st ∈ σ.ST, watcherOwn w st) ∗
       ([∗map] w ↦ st ∈ σ.Wo, watcherOwn w st (1 : Qp).half) ∗ ghostMapAuth γ.wmeta 1 σ.M ∗
-      ([∗map] w ↦ _γw ∈ σ.M, ∃ (r : WatchRange) (fcs : GoSlice), watcherFixed w r fcs) ∗
+      watchBudget γ 1 σ.M ∗ ([∗map] w ↦ _γw ∈ σ.M, ∃ (r : WatchRange) (fcs : GoSlice), watcherFixed w r fcs) ∗
       ([∗map] w ↦ st ∈ σ.ST, memberRes γ 1 σ w st) ∗
       ([∗map] w ↦ st ∈ σ.Wo, outRes γ σ w st) ⊢
     watchStoreBody s γ 1 (takeState σ vnil) ∗
       [∗list] x ∈ σ.vbs.zip σ.VB, [∗map] w ↦ b ∈ x.2, outW γ w b := by
-  iintro ⟨Hσ, Hwlog, #Hcert, Hsy, Hun, Hvf, Hvs, Hvcap, Hst, Hwo, Hmeta, #Hmfix, Hmem, #Hout⟩
+  iintro ⟨Hσ, Hwlog, #Hcert, Hsy, Hun, Hvf, Hvs, Hvcap, Hst, Hwo, Hmeta, Hwt, #Hmfix, Hmem, #Hout⟩
   let p : Loc → WatcherSt → Bool := fun w _ => (σ.victimOf w).isSome
   icases (mv_bigSepM_split _ p σ.ST).1 $$ Hst with ⟨HstV, HstN⟩
   icases (mv_bigSepM_split _ p σ.ST).1 $$ Hmem with ⟨HmV, HmN⟩
@@ -837,7 +837,7 @@ theorem body_take (s : Loc) (γ : WsNames) (σ : WsState) (hok : WsOk σ) (vnil 
   · unfold watchStoreBody
     dsimp only [takeState]
     simp only [named]
-    iframe Hσ Hwlog Hcert Hsy Hun Hvf Hvs Hvcap Hmeta Hmfix
+    iframe Hσ Hwlog Hcert Hsy Hun Hvf Hvs Hvcap Hmeta Hwt Hmfix
     isplitr
     · ipureintro; rfl
     isplitr
@@ -916,7 +916,7 @@ theorem body_readd (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) (
       ([∗list] x ∈ σ.vbs.zip σ.VB, ownWatcherBatch x.1 x.2) ∗
       ([∗map] k ↦ v ∈ σ.ST, watcherOwn k v) ∗ watcherOwn w { st with victim := false } ∗
       ([∗map] k ↦ v ∈ GMap.delete w σ.Wo, watcherOwn k v (1 : Qp).half) ∗
-      ghostMapAuth γ.wmeta 1 σ.M ∗
+      ghostMapAuth γ.wmeta 1 σ.M ∗ watchBudget γ 1 σ.M ∗
       ([∗map] k ↦ _γw ∈ σ.M, ∃ (r : WatchRange) (fcs : GoSlice), watcherFixed k r fcs) ∗
       ([∗map] k ↦ v ∈ σ.ST, memberRes γ 1 σ k v) ∗ ([∗map] k ↦ v ∈ σ.Wo, outRes γ σ k v) ∗
       watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherChan γ w γw st.ch ∗ filtersOk fcs ∗
@@ -941,12 +941,12 @@ theorem body_readd (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) (
   have evbs : σ'.vbs = σ.vbs := by rw [hσ']; rfl
   have eVB : σ'.VB = σ.VB := by rw [hσ']; rfl
   have evo : ∀ k, σ'.victimOf k = σ.victimOf k := by intro k; rw [hσ']; rfl
-  iintro ⟨Hσ, Hwlog, #Hcert, Hsy, Hun, Hvf, Hvs, Hvcap, %Hvlen, Hvbs, Hst, Hw, Hwo, Hmeta, #Hmfix,
+  iintro ⟨Hσ, Hwlog, #Hcert, Hsy, Hun, Hvf, Hvs, Hvcap, %Hvlen, Hvbs, Hst, Hw, Hwo, Hmeta, Hwt, #Hmfix,
     Hmem, #Hout, #Hm, #Hf, #Hc, #Hfo, Hev, Hl, #Hwf, Hcrt⟩
   unfold watchStoreBody
   rw [eL, eWs, eWu, eST, eWo, eM, evs, evbs, eVB]
   simp only [named]
-  iframe Hσ Hwlog Hcert Hsy Hun Hvf Hvs Hvcap Hvbs Hwo Hmeta Hmfix
+  iframe Hσ Hwlog Hcert Hsy Hun Hvf Hvs Hvcap Hvbs Hwo Hmeta Hwt Hmfix
   isplitr
   · ipureintro; exact Hvlen
   isplitl [Hst Hw]
@@ -1059,7 +1059,7 @@ theorem body_append (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) 
       ([∗list] x ∈ σ.vbs.zip σ.VB, ownWatcherBatch x.1 x.2) ∗
       ([∗map] k ↦ v ∈ σ.ST, watcherOwn k v) ∗
       ([∗map] k ↦ v ∈ σ.Wo, watcherOwn k v (1 : Qp).half) ∗
-      ghostMapAuth γ.wmeta 1 σ.M ∗
+      ghostMapAuth γ.wmeta 1 σ.M ∗ watchBudget γ 1 σ.M ∗
       ([∗map] k ↦ _γw ∈ σ.M, ∃ (r : WatchRange) (fcs : GoSlice), watcherFixed k r fcs) ∗
       ([∗map] k ↦ v ∈ σ.ST, memberRes γ 1 σ k v) ∗ ([∗map] k ↦ v ∈ σ.Wo, outRes γ σ k v) ∗
       nvm ↦$ GMap.fmap NvEnt.eb NV ∗
@@ -1097,7 +1097,7 @@ theorem body_append (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) 
     cases hn : NV !! k with
     | none => cases σ.Wo !! k <;> simp [Option.filter]
     | some x => rw [hNV k x hn]; simp [Option.filter]
-  iintro ⟨Hσ, Hwlog, #Hcert, Hsy, Hun, Hvf, Hvs, Hvcap, %Hvlen, Hvbs, Hst, Hwo, Hmeta, #Hmfix,
+  iintro ⟨Hσ, Hwlog, #Hcert, Hsy, Hun, Hvf, Hvs, Hvcap, %Hvlen, Hvbs, Hst, Hwo, Hmeta, Hwt, #Hmfix,
     Hmem, #Hout, Hnvm, Hnvb, Hnv⟩
   icases (mv_bigSepM_split _ (fun w _ => (NV !! w).isSome) σ.Wo).1 $$ Hwo with ⟨HwoN, HwoR⟩
   ihave HwoN' : [∗map] k ↦ v ∈ GMap.fmap NvEnt.st NV, watcherOwn (GF := GF) k v (1 : Qp).half $$ [HwoN]
@@ -1127,7 +1127,7 @@ theorem body_append (s : Loc) (γ : WsNames) (σ σ' : WsState) (hok : WsOk σ) 
   unfold watchStoreBody
   rw [eL, eWs, eWu, eST, eWo, eM, evs, evbs, eVB]
   simp only [named]
-  iframe Hσ Hwlog Hcert Hsy Hun Hvf Hvs Hvcap Hmeta Hmfix
+  iframe Hσ Hwlog Hcert Hsy Hun Hvf Hvs Hvcap Hmeta Hwt Hmfix
   isplitr
   · ipureintro; simp [Hvlen]
   isplitl [Hvbs Hnvm Hnvb]

@@ -3,7 +3,7 @@ The pure model of the interval tree's red-black tree (`pkg/v3/adt`): the tree as
 (`RbT`: the sentinel is the leaf), its in-order list, the red-black invariant (`RbOk`), the
 subtrees' `max` augmentation (`RbT.maxEnd`, `nodeMax`), the rotations, and the reads' descents
 as pure functions mirroring the Go code (`findE`, `intersects`, `visitL`) with their
-correctness over the in-order list (`findE_eq`, `intersects_iff`, `visit_stab`). Lean-first; see
+correctness over the in-order list (`findE_some`/`findE_none`, `intersects_iff`, `visit_stab`). Lean-first; see
 `notes/decisions.md`, "The watchable store: the plan, the interval tree's contract".
 -/
 module
@@ -133,6 +133,10 @@ theorem ivlLt_begin_le {x y : IvlS} (h : ivlLt x y) : ¬ affLt y.1 x.1 := by
 theorem ivlLt_ne {x y : IvlS} (h : ivlLt x y) : x ≠ y := by
   rintro rfl; exact ivlLt_irrefl x h
 
+/-- `≤` of the tree's order (as `¬ >`) puts the begins in order. -/
+theorem ivlLe_begin_le {x y : IvlS} (h : ¬ ivlLt y x) : ¬ affLt y.1 x.1 :=
+  fun h' => h ((ivlLt_iff y x).2 (Or.inl h'))
+
 /-! ## Overlap -/
 
 /-- `Interval.Compare`'s `0`: the query `x` overlaps `y`. -/
@@ -182,17 +186,46 @@ theorem stab_eq_nil_iff (q : IvlS) (A : List Entry) :
 
 /-! ## Sorted trees -/
 
-/-- Entries sorted by the tree's order (strictly: distinct intervals). -/
-def IvSorted (L : List Entry) : Prop := L.Pairwise fun a b => ivlLt a.1 b.1
+/-- Entries sorted by the tree's order, non-strictly: equal intervals are allowed (`Insert`
+puts a new one after the equal ones), none is above a later one. -/
+def IvSorted (L : List Entry) : Prop := L.Pairwise fun a b => ¬ ivlLt b.1 a.1
 
 theorem ivSorted_node {c : RbColor} {l : RbT Entry} {e : Entry} {r : RbT Entry}
     (h : IvSorted (RbT.node c l e r).inorder) :
-    IvSorted l.inorder ∧ IvSorted r.inorder ∧ (∀ z ∈ l.inorder, ivlLt z.1 e.1) ∧
-      (∀ z ∈ r.inorder, ivlLt e.1 z.1) := by
+    IvSorted l.inorder ∧ IvSorted r.inorder ∧ (∀ z ∈ l.inorder, ¬ ivlLt e.1 z.1) ∧
+      (∀ z ∈ r.inorder, ¬ ivlLt z.1 e.1) := by
   unfold IvSorted at *
   rw [RbT.inorder_node, List.pairwise_append, List.pairwise_cons] at h
   obtain ⟨hl, ⟨he, hr⟩, hlr⟩ := h
   exact ⟨hl, hr, fun z hz => hlr z hz e List.mem_cons_self, he⟩
+
+/-- `Insert` keeps the entries sorted (equal intervals allowed: no premise). -/
+theorem ivtInsert_ivSorted (z : Entry) (L : List Entry) (hs : IvSorted L) :
+    IvSorted (ivtInsert z L) := by
+  unfold IvSorted at *
+  induction L with
+  | nil => exact List.pairwise_singleton _ _
+  | cons w ws ih =>
+    rw [List.pairwise_cons] at hs
+    unfold ivtInsert
+    split
+    · rename_i h
+      refine List.Pairwise.cons ?_ (List.Pairwise.cons hs.1 hs.2)
+      intro y hy
+      rcases List.mem_cons.1 hy with rfl | hy
+      · exact ivlLt_asymm h
+      · exact ivlLt_asymm (ivlLt_of_lt_of_le h (hs.1 y hy))
+    · rename_i h
+      refine List.Pairwise.cons ?_ (ih hs.2)
+      intro y hy
+      rcases (mem_ivtInsert z y ws).1 hy with rfl | hy
+      · exact h
+      · exact hs.1 y hy
+
+/-- Strictly sorted entries are sorted. -/
+theorem ivSorted_of_strict (L : List Entry) (h : L.Pairwise fun a b => ivlLt a.1 b.1) :
+    IvSorted L :=
+  h.imp ivlLt_asymm
 
 /-! ## The `max` augmentation -/
 
@@ -291,66 +324,69 @@ def RbT.findE (k : IvlS) : RbT Entry → Option Entry
     else if affCmp k.1 e.1.1 = 0 then (if affCmp k.2 e.1.2 < 0 then l.findE k else r.findE k)
     else r.findE k
 
-theorem find?_none_of_lt (k : IvlS) (A : List Entry) (h : ∀ z ∈ A, ivlLt z.1 k ∨ ivlLt k z.1) :
-    A.find? (fun z => decide (z.1 = k)) = none := by
-  rw [List.find?_eq_none]
-  intro z hz
-  rcases h z hz with h' | h'
-  · simpa using ivlLt_ne h'
-  · simpa using (ivlLt_ne h').symm
+/-- `find`'s step at a node: the node's interval, or below it and on to the left, or above it
+and on to the right. -/
+theorem findE_node (k : IvlS) (c : RbColor) (l : RbT Entry) (e : Entry) (r : RbT Entry) :
+    (k = e.1 ∧ (RbT.node c l e r).findE k = some e) ∨
+    (ivlLt k e.1 ∧ (RbT.node c l e r).findE k = l.findE k) ∨
+    (ivlLt e.1 k ∧ (RbT.node c l e r).findE k = r.findE k) := by
+  have hsw1 := affCmp_swap k.1 e.1.1
+  have hsw2 := affCmp_swap k.2 e.1.2
+  simp only [RbT.findE]
+  unfold ivlLt
+  by_cases h1 : affCmp k.1 e.1.1 = 0 ∧ affCmp k.2 e.1.2 = 0
+  · exact Or.inl ⟨Prod.ext ((affCmp_eq_zero_iff _ _).1 h1.1) ((affCmp_eq_zero_iff _ _).1 h1.2),
+      ite_eq_left_of_eq_true _ _ (eq_true h1)⟩
+  rw [ite_eq_right_of_eq_false _ _ (eq_false h1)]
+  by_cases h2 : affCmp k.1 e.1.1 < 0
+  · exact Or.inr (Or.inl ⟨Or.inl h2, ite_eq_left_of_eq_true _ _ (eq_true h2)⟩)
+  rw [ite_eq_right_of_eq_false _ _ (eq_false h2)]
+  by_cases h3 : affCmp k.1 e.1.1 = 0
+  · rw [ite_eq_left_of_eq_true _ _ (eq_true h3)]
+    by_cases h4 : affCmp k.2 e.1.2 < 0
+    · exact Or.inr (Or.inl ⟨Or.inr ⟨h3, h4⟩, ite_eq_left_of_eq_true _ _ (eq_true h4)⟩)
+    · rw [ite_eq_right_of_eq_false _ _ (eq_false h4)]
+      have : affCmp k.2 e.1.2 ≠ 0 := fun h => h1 ⟨h3, h⟩
+      exact Or.inr (Or.inr ⟨Or.inr ⟨by omega, by omega⟩, rfl⟩)
+  · rw [ite_eq_right_of_eq_false _ _ (eq_false h3)]
+    exact Or.inr (Or.inr ⟨Or.inl (by omega), rfl⟩)
 
-/-- **`find` finds the entry with the interval** in a sorted tree. -/
-theorem findE_eq (k : IvlS) : ∀ (t : RbT Entry), IvSorted t.inorder →
-    t.findE k = t.inorder.find? (fun z => decide (z.1 = k))
-  | .leaf, _ => rfl
-  | .node c l e r, hs => by
+/-- **What `find` finds is an entry with the interval** (with equal intervals, the topmost on
+the descent's path, not necessarily the first in order). -/
+theorem findE_some (k : IvlS) : ∀ (t : RbT Entry) (z : Entry), t.findE k = some z →
+    z ∈ t.inorder ∧ z.1 = k
+  | .leaf, _, h => by cases h
+  | .node c l e r, z, h => by
+    rcases findE_node k c l e r with ⟨hk, he⟩ | ⟨-, he⟩ | ⟨-, he⟩ <;> rw [he] at h
+    · obtain rfl := Option.some.inj h
+      exact ⟨by simp, hk.symm⟩
+    · obtain ⟨h1, h2⟩ := findE_some k l z h
+      exact ⟨by simp [h1], h2⟩
+    · obtain ⟨h1, h2⟩ := findE_some k r z h
+      exact ⟨by simp [h1], h2⟩
+
+/-- **`find` finds an entry whenever there is one with the interval**, in a sorted tree. -/
+theorem findE_none (k : IvlS) : ∀ (t : RbT Entry), IvSorted t.inorder → t.findE k = none →
+    k ∉ t.inorder.map Prod.fst
+  | .leaf, _, _ => by simp
+  | .node c l e r, hs, h => by
     obtain ⟨hl, hr, hle, her⟩ := ivSorted_node hs
-    have ihl := findE_eq k l hl
-    have ihr := findE_eq k r hr
-    -- the three cases of the order
-    have hhere : k = e.1 → (RbT.node c l e r).inorder.find? (fun z => decide (z.1 = k)) =
-        some e := by
-      rintro rfl
-      rw [RbT.inorder_node, List.find?_append,
-        find?_none_of_lt _ _ (fun z hz => Or.inl (hle z hz))]
-      simp
-    have hleft : ivlLt k e.1 → (RbT.node c l e r).inorder.find? (fun z => decide (z.1 = k)) =
-        l.inorder.find? (fun z => decide (z.1 = k)) := by
-      intro hk
-      rw [RbT.inorder_node, List.find?_append]
-      have : (e :: r.inorder).find? (fun z => decide (z.1 = k)) = none :=
-        find?_none_of_lt _ _ (fun z hz => by
-          rcases List.mem_cons.1 hz with rfl | hz
-          · exact Or.inr hk
-          · exact Or.inr (ivlLt_trans hk (her z hz)))
-      rw [this]; cases l.inorder.find? _ <;> rfl
-    have hright : ivlLt e.1 k → (RbT.node c l e r).inorder.find? (fun z => decide (z.1 = k)) =
-        r.inorder.find? (fun z => decide (z.1 = k)) := by
-      intro hk
-      rw [RbT.inorder_node, List.find?_append,
-        find?_none_of_lt _ _ (fun z hz => Or.inl (ivlLt_trans (hle z hz) hk))]
-      simp only [Option.none_or]
-      rw [List.find?_cons]
-      have : ¬ e.1 = k := ivlLt_ne hk
-      simp [this]
-    unfold RbT.findE
-    have hsw1 := affCmp_swap k.1 e.1.1
-    have hsw2 := affCmp_swap k.2 e.1.2
-    by_cases h1 : affCmp k.1 e.1.1 = 0 ∧ affCmp k.2 e.1.2 = 0
-    · rw [ite_eq_left_of_eq_true _ _ (eq_true h1), hhere]
-      exact Prod.ext ((affCmp_eq_zero_iff _ _).1 h1.1) ((affCmp_eq_zero_iff _ _).1 h1.2)
-    rw [ite_eq_right_of_eq_false _ _ (eq_false h1)]
-    by_cases h2 : affCmp k.1 e.1.1 < 0
-    · rw [ite_eq_left_of_eq_true _ _ (eq_true h2), ihl, hleft (Or.inl h2)]
-    rw [ite_eq_right_of_eq_false _ _ (eq_false h2)]
-    by_cases h3 : affCmp k.1 e.1.1 = 0
-    · rw [ite_eq_left_of_eq_true _ _ (eq_true h3)]
-      by_cases h4 : affCmp k.2 e.1.2 < 0
-      · rw [ite_eq_left_of_eq_true _ _ (eq_true h4), ihl, hleft (Or.inr ⟨h3, h4⟩)]
-      · rw [ite_eq_right_of_eq_false _ _ (eq_false h4), ihr, hright (Or.inr ⟨by omega, by
-          have : affCmp k.2 e.1.2 ≠ 0 := fun h => h1 ⟨h3, h⟩
-          omega⟩)]
-    · rw [ite_eq_right_of_eq_false _ _ (eq_false h3), ihr, hright (Or.inl (by omega))]
+    intro hk
+    rw [RbT.inorder_node, List.map_append, List.mem_append, List.map_cons, List.mem_cons] at hk
+    rcases findE_node k c l e r with ⟨-, he⟩ | ⟨hlt, he⟩ | ⟨hgt, he⟩ <;> rw [he] at h
+    · cases h
+    · rcases hk with hk | hk | hk
+      · exact findE_none k l hl h hk
+      · exact ivlLt_ne hlt hk
+      · obtain ⟨z, hz, hzk⟩ := List.mem_map.1 hk
+        rw [← hzk] at hlt
+        exact her z hz hlt
+    · rcases hk with hk | hk | hk
+      · obtain ⟨z, hz, hzk⟩ := List.mem_map.1 hk
+        rw [← hzk] at hgt
+        exact hle z hz hgt
+      · exact ivlLt_ne hgt hk.symm
+      · exact findE_none k r hr h hk
 
 /-! ## `Intersects` -/
 
@@ -411,10 +447,9 @@ theorem intersects_iff (q : IvlS) : ∀ (t : RbT Entry), IvSorted t.inorder →
             by_cases ha : affLt q.1 z0.1.1
             · exact ⟨ha, fun hb => hn0 ⟨fun _ => hb, hq0⟩⟩
             · exact absurd ⟨fun h => absurd h ha, hq0⟩ hn0
-          have hz0e' : ivlLt z0.1 e.1 := hle z0 hz0
           rw [stab_eq_nil_iff]
           intro z hz
-          have hb : ¬ affLt z.1.1 z0.1.1 := ivlLt_begin_le (ivlLt_trans hz0e' (her z hz))
+          have hb : ¬ affLt z.1.1 z0.1.1 := ivlLe_begin_le (ivlLe_trans (hle z0 hz0) (her z hz))
           exact no_ovl_of_left (affLt_of_lt_of_le hleft.1 hb) (affLe_trans hleft.2 hb)
       · rw [ite_eq_right_of_eq_false _ _ (eq_false hgt), ihr, hlnone m hm hgt]
         simp
@@ -452,7 +487,7 @@ theorem visit_stab (q : IvlS) (hq : q.1 = go!"" ∨ affLt q.1 q.2) : ∀ (t : Rb
       have : stab q r.inorder = [] := by
         rw [stab_eq_nil_iff]
         intro z hz
-        have hb : ¬ affLt z.1.1 e.1.1 := ivlLt_begin_le (her z hz)
+        have hb : ¬ affLt z.1.1 e.1.1 := ivlLe_begin_le (her z hz)
         exact no_ovl_of_left (affLt_of_lt_of_le hn.1 hb) (affLe_trans hn.2 hb)
       rw [this]; simp
     by_cases hpos : ivlCmp q e.1 > 0

@@ -137,7 +137,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
   ihave Hnilc : ownSliceCap (GF := GF) GoMap slice.nil (DFrac.own 1) $$ []
   · iapply ownSliceCap_nil
   icases mvcc.body_take s γ σ Hok slice.nil $$
-    [$Hσ $Hwlog $Hcert $Hsynced $Hunsynced $Hvf $Hnil $Hnilc $Hst $Hwo $Hmeta $Hmfix $Hmem $Hout]
+    [$Hσ $Hwlog $Hcert $Hsynced $Hunsynced $Hvf $Hnil $Hnilc $Hst $Hwo $Hmeta $Hwt $Hmfix $Hmem $Hout]
     with ⟨Hbody, Hmov⟩
   ihave Hmov2 := (BigSepL.bigSepL_sep_eqv (Φ := fun _ x => mvcc.ownWatcherBatch (GF := GF) x.1 x.2)
     (Ψ := fun _ x => iprop([∗map] w ↦ b ∈ x.2, mvcc.outW (GF := GF) γ w b))
@@ -406,7 +406,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
       icases HcertQ with ⟨-, -, %H, -⟩
       ipureintro; exact H.2.1
     wp_auto
-    ihave Hbody : mvcc.watchStoreBody s γ 1 σ1 $$ [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta
+    ihave Hbody : mvcc.watchStoreBody s γ 1 σ1 $$ [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt
         Hmem]
     · iunfold mvcc.watchStoreBody; simp only [named]; iframe; iframe #; ipureintro; exact ⟨Hvlen, Hok⟩
     wp_func_lits
@@ -526,6 +526,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
         ihave #Hm0 := Hm
         iunfold mvcc.watcherMeta at Hm0
         ihave %hM := ghost_map_lookup $$ HmetaB Hm0
+        icases mvcc.watchBudget_bound _ _ _ $$ HwtB with ⟨HwtB, %HMb⟩
         obtain ⟨-, -, hWs0, hWu0, -, -⟩ := HokB.out Hwo
         have hCne : 1 ≤ C.length := List.length_pos_iff.2 HneQ
         have hcur : sint.Z (W64 ((C.length : Int) - 1)) = (C.length : Int) - 1 := by word
@@ -538,7 +539,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
           imod ghostVar_update (mvcc.readdState σ' key r { stw with victim := false } false
             (evsw, sint.nat stw.minRev)) γ.wst σ' $$ Hσ with Hσ
           wp_apply (hAdd (mvcc.unsyncedAddr s) σ'.Wu key r fcs) $$ [$HunsyncedB $Hf] as HunsyncedB
-          · ipureintro; exact hWu0
+          · ipureintro; exact ⟨hWu0, by have := HokB.wu_size; omega⟩
           (try wp_auto)
           have hd : false = true → max γw.lo σ'.Lmu.length ≤ sint.nat stw.minRev := fun h => by cases h
           ihave Hcrt : (if false = true then iprop(True) else
@@ -549,9 +550,9 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
 
           ihave Hbody := mvcc.body_readd s γ σ' _ HokB key stw Hwo r false γw hM fcs evsw hlo hsr hd rfl $$
             [Hσ HwlogB HsyncedB HunsyncedB HvfB HvsB HvcapB HvbsB HstB HminRev Hvict Hcomp Hres Hchf HwoB
-             HmetaB HmemB Hev Hl Hcrt]
+             HmetaB HwtB HmemB Hev Hl Hcrt]
           · simp only [List.append_nil, Bool.false_eq_true, ↓reduceIte]
-            iframe Hσ HwlogB HsyncedB HunsyncedB HvfB HvsB HvcapB HvbsB HstB HwoB HmetaB HmemB Hev Hl Hcrt
+            iframe Hσ HwlogB HsyncedB HunsyncedB HvfB HvsB HvcapB HvbsB HstB HwoB HmetaB HwtB HmemB Hev Hl Hcrt
             iframe #
             isplitr
             · ipureintro; exact HvlenB
@@ -579,7 +580,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
           wp_apply HgSD
           (try wp_auto)
           wp_apply (hAdd (mvcc.syncedAddr s) σ'.Ws key r fcs) $$ [$HsyncedB $Hf] as HsyncedB
-          · ipureintro; exact hWs0
+          · ipureintro; exact ⟨hWs0, by have := HokB.ws_size; omega⟩
           (try wp_auto)
           have hd : true = true → max γw.lo σ'.Lmu.length ≤ sint.nat stw.minRev := fun _ => by omega
           ihave Hcrt : (if true = true then iprop(True) else
@@ -589,9 +590,9 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
 
           ihave Hbody := mvcc.body_readd s γ σ' _ HokB key stw Hwo r true γw hM fcs evsw hlo hsr hd rfl $$
             [Hσ HwlogB HsyncedB HunsyncedB HvfB HvsB HvcapB HvbsB HstB HminRev Hvict Hcomp Hres Hchf HwoB
-             HmetaB HmemB Hev Hl Hcrt]
+             HmetaB HwtB HmemB Hev Hl Hcrt]
           · simp only [List.append_nil, Bool.false_eq_true, ↓reduceIte]
-            iframe Hσ HwlogB HsyncedB HunsyncedB HvfB HvsB HvcapB HvbsB HstB HwoB HmetaB HmemB Hev Hl Hcrt
+            iframe Hσ HwlogB HsyncedB HunsyncedB HvfB HvsB HvcapB HvbsB HstB HwoB HmetaB HwtB HmemB Hev Hl Hcrt
             iframe #
             isplitr
             · ipureintro; exact HvlenB
@@ -678,8 +679,8 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
       (try wp_auto)
       imod ghostVar_update (mvcc.appendState σ2 NV vs' nvv) γ.wst σ2 $$ Hσ with Hσ
       ihave Hbody := mvcc.body_append s γ σ2 _ Hok NV vs' nvv HNV2 rfl $$
-        [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hmem Hnvm Hnvb Hnvr]
-      · iframe Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hmem Hnvm Hnvr
+        [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem Hnvm Hnvb Hnvr]
+      · iframe Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem Hnvm Hnvr
         iframe #
         isplitr
         · ipureintro; exact Hvlen

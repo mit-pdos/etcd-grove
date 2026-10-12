@@ -76,15 +76,22 @@ theorem mvcc.newWatchableStore.wp_proof
   imod ghostVar_alloc (GF := GF) ([[], []] : mvcc.Log) with ⟨%γwl, Hwl⟩
   icases (mvcc.ghostVar_halves_nw γwl _).1 $$ Hwl with ⟨Hwl1, Hwl2⟩
   imod ghostVar_alloc (GF := GF) mvcc.wsInit with ⟨%γwst, Hwst⟩
-  let γ : mvcc.WsNames := ⟨γs, γm, γwl, γwst⟩
+  imod ownTokAuth_alloc (GF := GF) with ⟨%γt, Hta⟩
+  imod ownTokAuth_add (2 ^ 63 - 3) γt 0 $$ Hta with ⟨Hta, Htw⟩
+  let γ : mvcc.WsNames := ⟨γs, γm, γwl, γwst, γt⟩
+  ihave Hwt : mvcc.watchBudget γ 1 (∅ : GMap Loc mvcc.WatcherNames) $$ [Hta]
+  · iunfold mvcc.watchBudget
+    iexists 0 + (2 ^ 63 - 3)
+    iframe Hta
+    ipureintro; rw [GMap.map_size_empty]; omega
   ihave Hsy := Hgs $$ %(mvcc.syncedAddr «$r0_ptr») synced
   ihave Hun := Hgu $$ %(mvcc.unsyncedAddr «$r0_ptr») unsynced
-  ihave Hbody : mvcc.watchStoreInv «$r0_ptr» γ 1 $$ [Hwst Hwl1 Hsy Hun victims Hmeta]
+  ihave Hbody : mvcc.watchStoreInv «$r0_ptr» γ 1 $$ [Hwst Hwl1 Hsy Hun victims Hmeta Hwt]
   · iunfold mvcc.watchStoreInv
     iexists mvcc.wsInit
     iunfold mvcc.watchStoreBody
     simp only [named, mvcc.wsInit]
-    iframe Hwst Hsy Hun victims Hmeta
+    iframe Hwst Hsy Hun victims Hmeta Hwt
     isplitl [Hwl1]
     · iexact Hwl1
     isplitr
@@ -130,11 +137,13 @@ theorem mvcc.newWatchableStore.wp_proof
     iunfold mvcc.isStopChan
     iexists γstc; iexact Hstop0
   iframe HhookP Hsclose wg
-  isplitr [Hmus Hreaders Hstop]
+  isplitr [Hmus Hreaders Hstop Htw]
   · iunfold mvcc.watchWriter
     iframe Hcert Hwl2
     have hb : mvcc.wBudget [[], []] = 2 ^ 63 - 5 := by unfold mvcc.wBudget; rfl
     rw [hb]; iexact Htoks
+  isplitl [Htw]
+  · iunfold mvcc.watchToks; iexact Htw
   isplitr [Hstop]
   · iapply mvcc.watchReaders_of «$r0_ptr» st γ
     iframe Hreaders Hmus

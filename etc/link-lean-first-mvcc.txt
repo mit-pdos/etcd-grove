@@ -116,7 +116,7 @@ adt_NewStringAffineInterval: @
 adt_NewStringAffinePoint: @
 adt_NewIntervalTree: @
 adt_intervalTree__Find: @
-adt_intervalTree__Insert: ?
+adt_intervalTree__Insert: @
 adt_intervalTree__Delete: ?
 adt_intervalTree__Intersects: @
 adt_intervalTree__Stab: @

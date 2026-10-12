@@ -33,7 +33,7 @@ abbrev mvcc.watchableStore.watch.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isWatchableStore s st γ ∗
       key ↦*□ k ∗ endk ↦*□ e ∗ fcs ↦*□ fs ∗ ([∗list] f ∈ fs, P.F f) ∗ P.C ch ∗ P.CR ch L ∗
-      P.R ∗ ⌜0 ≤ sint.Z startRev⌝ }}
+      P.R ∗ P.T ∗ ⌜0 ≤ sint.Z startRev⌝ }}
     (App (App (App (App (App (App
       (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"watch")) (Val #key))
       (Val #endk)) (Val #startRev)) (Val #id)) (Val #ch)) (Val #fcs))

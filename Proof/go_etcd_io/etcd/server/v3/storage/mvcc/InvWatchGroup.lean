@@ -278,6 +278,46 @@ theorem mem_eraseP_fst {α : Type} (L : List (adt.IvlS × α)) (hnd : (L.map Pro
         · exact Or.inl rfl
         · exact Or.inr ⟨h1, h2⟩
 
+/-- The entry with an interval, in entries with distinct intervals. -/
+theorem find?_fst_unique {α : Type} (L : List (adt.IvlS × α)) (hnd : (L.map Prod.fst).Nodup)
+    (ivl : adt.IvlS) (z : adt.IvlS × α) (hz : z ∈ L) (hz1 : z.1 = ivl) :
+    L.find? (fun y => decide (y.1 = ivl)) = some z := by
+  induction L with
+  | nil => cases hz
+  | cons y ys ih =>
+    simp only [List.map_cons, List.nodup_cons] at hnd
+    by_cases hy : y.1 = ivl
+    · rw [List.find?_cons_of_pos (by simpa using hy)]
+      rcases List.mem_cons.1 hz with rfl | hz
+      · rfl
+      · exact absurd (hy ▸ hz1 ▸ List.mem_map_of_mem hz) hnd.1
+    · rw [List.find?_cons_of_neg (by simpa using hy)]
+      rcases List.mem_cons.1 hz with rfl | hz
+      · exact absurd hz1 hy
+      · exact ih hnd.2 hz
+
+/-- Erasing the entry at the index of an interval is erasing the entry with it, in entries
+with distinct intervals. -/
+theorem eraseIdx_eq_eraseP_fst {α : Type} (L : List (adt.IvlS × α))
+    (hnd : (L.map Prod.fst).Nodup) (ivl : adt.IvlS) (i : Nat) (z : adt.IvlS × α)
+    (hz : L[i]? = some z) (hz1 : z.1 = ivl) :
+    L.eraseIdx i = L.eraseP (fun y => decide (y.1 = ivl)) := by
+  induction L generalizing i with
+  | nil => cases hz
+  | cons y ys ih =>
+    simp only [List.map_cons, List.nodup_cons] at hnd
+    cases i with
+    | zero =>
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at hz
+      subst hz
+      rw [List.eraseIdx_cons_zero, List.eraseP_cons_of_pos (by simpa using hz1)]
+    | succ k =>
+      simp only [List.getElem?_cons_succ] at hz
+      have hy : y.1 ≠ ivl := by
+        intro hy
+        exact hnd.1 (hy ▸ hz1 ▸ List.mem_map_of_mem (List.mem_of_getElem? hz))
+      rw [List.eraseIdx_cons_succ, List.eraseP_cons_of_neg (by simpa using hy), ih hnd.2 k hz]
+
 theorem sorted_nodup {α : Type} (L : List (adt.IvlS × α))
     (hs : L.Pairwise (fun a b => adt.ivlLt a.1 b.1)) : (L.map Prod.fst).Nodup := by
   rw [List.Nodup, List.pairwise_map]
@@ -330,6 +370,13 @@ def RangesOk (W : GMap Loc WatchRange) (L : List adt.Entry) : Prop :=
   L.Pairwise (fun a b => adt.ivlLt a.1 b.1) ∧
   ∀ ivl, ivl ∈ L.map Prod.fst ↔ ∃ w r e, W !! w = some r ∧ r.end? = some e ∧ ivl = (r.key, e)
 
+/-- **One entry per interval**: the group's tree has the entry `z` of an interval as the first
+(the only) one with it. -/
+theorem rangesOk_find_unique (W : GMap Loc WatchRange) (L : List adt.Entry) (hL : RangesOk W L)
+    (z : adt.Entry) (ivl : adt.IvlS) (hz : z ∈ L) (hz1 : z.1 = ivl) :
+    L.find? (fun y => decide (y.1 = ivl)) = some z :=
+  find?_fst_unique L (sorted_nodup L hL.1) ivl z hz hz1
+
 /-- Two entries at different indices of distinct entries have different intervals. -/
 theorem entries_ne {α : Type} (L : List (adt.IvlS × α)) (hnd : (L.map Prod.fst).Nodup)
     {i k : Nat} {y z : adt.IvlS × α} (hy : L[k]? = some y) (hz : L[i]? = some z) (hki : k ≠ i) :
@@ -338,6 +385,43 @@ theorem entries_ne {α : Type} (L : List (adt.IvlS × α)) (hnd : (L.map Prod.fs
   have hy' : (L.map Prod.fst)[k]? = some z.1 := by rw [List.getElem?_map, hy]; simp [h]
   have hz' : (L.map Prod.fst)[i]? = some z.1 := by rw [List.getElem?_map, hz]; rfl
   exact hki (list_nodup_getElem?_inj _ hnd k i z.1 hy' hz')
+
+/-- **The tree has at most as many entries as the group has members**: each entry's interval
+is some member's range, and distinct entries have distinct intervals (the group keeps one
+entry per interval: `RangesOk`'s order is strict). -/
+theorem rangesOk_length_le (W : GMap Loc WatchRange) (L : List adt.Entry) (hL : RangesOk W L) :
+    L.length ≤ GMap.size W := by
+  classical
+  have hnd := sorted_nodup L hL.1
+  let f : adt.IvlS → Loc := fun ivl =>
+    if h : ∃ w r e, W !! w = some r ∧ r.end? = some e ∧ ivl = (r.key, e) then h.choose else null
+  have hf : ∀ ivl ∈ L.map Prod.fst,
+      ∃ r e, W !! f ivl = some r ∧ r.end? = some e ∧ ivl = (r.key, e) := by
+    intro ivl hivl
+    have h := (hL.2 ivl).1 hivl
+    simp only [f, h]
+    exact h.choose_spec
+  have hinj : ∀ x ∈ L.map Prod.fst, ∀ y ∈ L.map Prod.fst, f x = f y → x = y := by
+    intro x hx y hy hxy
+    obtain ⟨r, e, hr, he, rfl⟩ := hf x hx
+    obtain ⟨r', e', hr', he', rfl⟩ := hf y hy
+    rw [hxy, hr'] at hr
+    cases hr
+    rw [he'] at he
+    cases he
+    rfl
+  have hsub : (L.map Prod.fst).map f ⊆ W.domList := by
+    intro w hw
+    obtain ⟨ivl, hivl, rfl⟩ := List.mem_map.1 hw
+    obtain ⟨r, e, hr, -⟩ := hf ivl hivl
+    rw [GMap.mem_dom_list, hr]; rfl
+  have hnd' : ((L.map Prod.fst).map f).Nodup := by
+    rw [List.Nodup, List.pairwise_map]
+    exact List.Pairwise.imp_of_mem (fun hx hy hne heq => hne (hinj _ hx _ hy heq)) hnd
+  have hle := (List.subperm_of_subset hnd' hsub).length_le
+  rw [List.length_map, List.length_map] at hle
+  rw [GMap.size_eq_dom_list_length]
+  exact hle
 
 /-- Adding a single-key member leaves the tree's entries as they are. -/
 theorem rangesOk_insert_key (W : GMap Loc WatchRange) (L : List adt.Entry) (wa : Loc)

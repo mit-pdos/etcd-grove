@@ -35,8 +35,9 @@ watcher).
 of the read side): the notified log `Lmu` (its certificate; half of `γ.wlog`, whose other half
 is the sole writer's, `watchWriter`), the two groups, the victim batches, every watcher's state
 (the cancelled ones included: `cancelWatcher` reads `wa.ch`) and half of the states of the
-victims out with the mover, the meta map's authority, and per live watcher its ghosts and the
-facts of its population (`memberRes`).
+victims out with the mover, the meta map's authority with the watcher budget (`watchBudget`:
+the watchers with names and the unspent watch tokens below `2 ^ 63 - 3`), and per live watcher
+its ghosts and the facts of its population (`memberRes`).
 -/
 module
 
@@ -212,6 +213,8 @@ structure WsNames where
   wmeta : GName
   wlog : GName
   wst : GName
+  /-- the watcher budget (`watchBudget`): a registration costs one token (`watchTok`) -/
+  wt : GName
 
 /-! ## Channel states (as the cache's `InvWatcher`) -/
 
@@ -348,6 +351,22 @@ def WsState.syncedBelow (σ : WsState) (N : Nat) : Prop :=
 /-- Every synced watcher is delivered at least up to `N` and its first revision. -/
 def WsState.syncedAbove (σ : WsState) (N : Nat) : Prop :=
   ∀ w γw ed, (σ.Ws !! w).isSome → σ.M !! w = some γw → σ.E !! w = some ed → max γw.lo N ≤ ed.2
+
+/-- A map whose keys are another's has at most as many entries. -/
+theorem gmap_size_le_of_dom {V V' : Type} (m1 : GMap Loc V) (m2 : GMap Loc V')
+    (h : ∀ k, (m1 !! k).isSome → (m2 !! k).isSome) : GMap.size m1 ≤ GMap.size m2 := by
+  rw [GMap.size_eq_dom_list_length, GMap.size_eq_dom_list_length]
+  refine (List.subperm_of_subset (GMap.nodup_dom_list m1) (fun k hk => ?_)).length_le
+  rw [GMap.mem_dom_list] at hk ⊢
+  exact h k hk
+
+/-- The synced watchers have names. -/
+theorem WsOk.ws_size {σ : WsState} (h : WsOk σ) : GMap.size σ.Ws ≤ GMap.size σ.M :=
+  gmap_size_le_of_dom _ _ fun w hw => h.st_m w (h.live_st w (Or.inl hw))
+
+/-- The unsynced watchers have names. -/
+theorem WsOk.wu_size {σ : WsState} (h : WsOk σ) : GMap.size σ.Wu ≤ GMap.size σ.M :=
+  gmap_size_le_of_dom _ _ fun w hw => h.st_m w (h.live_st w (Or.inr (Or.inl hw)))
 
 section reprs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -559,6 +578,47 @@ instance outRes_persistent (γ : WsNames) (σ : WsState) (w : Loc) (st : Watcher
     Persistent (outRes (GF := GF) γ σ w st) := by
   unfold outRes; infer_instance
 
+/-- A watch token: the right to register one watcher (`watch`, the stream's `Watch`). `New` hands
+out `2 ^ 63 - 3` of them: with the budget the lock keeps (`watchBudget`), the watchers with
+names stay below `2 ^ 63 - 3`, so a watcher group's interval tree never reaches `2 ^ 63 - 1`
+entries (`intervalTree.Insert`'s bound: the tree's count must not wrap). -/
+def watchTok (γ : WsNames) : IProp GF := ownToks γ.wt 1
+
+/-- `k` watch tokens. -/
+def watchToks (γ : WsNames) (k : Nat) : IProp GF := ownToks γ.wt k
+
+/-- The watcher budget at the fraction `q`, for the watchers with names `M` (every registered
+watcher, cancelled or not: `M` only grows): the unspent tokens `n` (the authority's count), with
+`M.size + n + 3 ≤ 2 ^ 63`. A registration spends a token and names a watcher; a cancel refunds
+nothing. -/
+def watchBudget (γ : WsNames) (q : Qp) (M : GMap Loc WatcherNames) : IProp GF :=
+  iprop(∃ n : Nat, ownTokAuthDfrac γ.wt (DFrac.own q) n ∗ ⌜GMap.size M + n + 3 ≤ 2 ^ 63⌝)
+
+/-- The budget's bound on the watchers with names. -/
+theorem watchBudget_bound (γ : WsNames) (q : Qp) (M : GMap Loc WatcherNames) :
+    watchBudget (GF := GF) γ q M ⊢ watchBudget γ q M ∗ ⌜GMap.size M + 3 ≤ 2 ^ 63⌝ := by
+  unfold watchBudget
+  iintro ⟨%n, Ha, %hb⟩
+  isplitl [Ha]
+  · iexists n; iframe Ha; ipureintro; exact hb
+  ipureintro; omega
+
+/-- **A registration spends a token**: the budget of the watchers with names `M` and a watch
+token make the budget of `M` with one more watcher named. -/
+theorem watchBudget_spend (γ : WsNames) (M : GMap Loc WatcherNames) (w : Loc)
+    (γw : WatcherNames) (hM : M !! w = none) :
+    watchBudget (GF := GF) γ 1 M ∗ watchTok γ ⊢ |==> watchBudget γ 1 (<[w := γw]> M) := by
+  unfold watchBudget
+  iintro ⟨⟨%n, Ha, %hb⟩, Ht⟩
+  iunfold watchTok at Ht
+  icombine Ha Ht gives %hn
+  imod (ownTokAuth_sub 1 γ.wt n) $$ Ha Ht with Ha
+  imodintro
+  iexists n - 1
+  iframe Ha
+  ipureintro
+  rw [GMap.map_size_insert_None _ _ _ hM]; omega
+
 /-- The lock invariant at the state `σ` and the fraction `q`. -/
 def watchStoreBody (s : Loc) (γ : WsNames) (q : Qp) (σ : WsState) : IProp GF :=
   iprop("Hσ" ∷ ghostVar γ.wst q σ ∗
@@ -574,6 +634,7 @@ def watchStoreBody (s : Loc) (γ : WsNames) (q : Qp) (σ : WsState) : IProp GF :
     "Hst" ∷ ([∗map] w ↦ st ∈ σ.ST, watcherOwn w st q) ∗
     "Hwo" ∷ ([∗map] w ↦ st ∈ σ.Wo, watcherOwn w st q.half) ∗
     "Hmeta" ∷ ghostMapAuth γ.wmeta q σ.M ∗
+    "Hwt" ∷ watchBudget γ q σ.M ∗
     "#Hmfix" ∷ ([∗map] w ↦ _γw ∈ σ.M, ∃ (r : WatchRange) (fcs : GoSlice), watcherFixed w r fcs) ∗
     "Hmem" ∷ ([∗map] w ↦ st ∈ σ.ST, memberRes γ q σ w st) ∗
     "#Hout" ∷ ([∗map] w ↦ st ∈ σ.Wo, outRes γ σ w st) ∗
@@ -623,7 +684,8 @@ instance isWatchableStore_persistent (s st : Loc) (γ : WsNames) :
 /-- The store's choices for the stream's contract (`isWatchable`): a watcher of the store
 (`IW`), cancelled (`WC`), nothing of the channel (`C`: the close right has its invariant),
 filters deciding predicates (`F`), the close right (`CR`: the channel, its invariant, the
-stream's half of the registered watchers) and the reader slots (`R`). -/
+stream's half of the registered watchers), the reader slots (`R`) and a watch token (`T`: a
+registration's cost, `watchTok`). -/
 def storeWatchParams (s st : Loc) (γ : WsNames) : WatchParams GF where
   IW w := iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice),
     watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ ⌜0 ≤ sint.Z r.startRev⌝)
@@ -633,6 +695,7 @@ def storeWatchParams (s st : Loc) (γ : WsNames) : WatchParams GF where
   CR ch L := iprop(∃ γc : WatchChanNames, isChan ch γc.ch WatchResponse ∗
     inv watchN (watchChanInv γ ch γc) ∗ ghostVar γc.regl (1 : Qp).half L)
   R := watchReader s st γ
+  T := watchTok γ
   IW_pers _ := by infer_instance
   WC_pers _ := by infer_instance
   C_pers _ := by infer_instance

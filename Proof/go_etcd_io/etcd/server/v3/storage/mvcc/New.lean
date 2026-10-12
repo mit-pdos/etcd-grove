@@ -48,7 +48,7 @@ theorem mvcc.New.wp_proof
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
-  wp_apply hNew $$ [$Hbk $Hbv $Hlessor] as %s ⟨%st, %γ, %Hγ, #Hws, #Hhook, Hww, Hreaders,
+  wp_apply hNew $$ [$Hbk $Hbv $Hlessor] as %s ⟨%st, %γ, %Hγ, #Hws, #Hhook, Hww, Htw, Hreaders,
     ⟨%stc, #Hstc, Hstop⟩, Hsclose, Hwg⟩
   (try wp_auto)
   imod sync.init_WaitGroup mvcc.wsWgWGN (mvcc.wsWgAddr s) $$ Hwg with ⟨%γwg, #HisWg, Hctr, Hwaiters⟩
@@ -83,7 +83,7 @@ theorem mvcc.New.wp_proof
   (try wp_auto)
   iapply HΦ
   iexists st, γ
-  iframe Hws Hhook Hww Hreaders
+  iframe Hws Hhook Hww Htw Hreaders
   isplitr
   · ipureintro; exact Hγ
   iunfold mvcc.wsCloser

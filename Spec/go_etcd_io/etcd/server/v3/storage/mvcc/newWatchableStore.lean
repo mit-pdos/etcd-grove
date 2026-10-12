@@ -27,7 +27,7 @@ a watchable store (`isWatchableStore`: the inner store with its read view pointe
 watchable store, the lock's guard with its invariant at the initial log `[[], []]`, no watcher,
 the victims' wake-up channel, the stop channel), the post-lock hook recorded, the sole writer at
 the initial log (`watchWriter`: the certificate, every revision token and its half of the
-notified log), every reader slot of the two stores' locks (`watchReader`), the right to close the
+notified log), every watch token (`watchToks`: a registration costs one), every reader slot of the two stores' locks (`watchReader`), the right to close the
 stop channel (`stopCloser`) and the inner store (`storeCloser`), and the zero wait group (for
 `New`). The lessor's `SetRangeDeleter` takes the deleter closure as an opaque value (its later
 calls of it are outside the model, as in `NewStore`). -/
@@ -41,6 +41,7 @@ abbrev mvcc.newWatchableStore.spec : Prop :=
       (Val #b)) (Val #le)) (Val #cfg))
   {{ (s : Loc), RET #s; ∃ (st : Loc) (γ : mvcc.WsNames), ⌜γ.st.bucket = γb ∧ γ.st.leases = γl⌝ ∗
       mvcc.isWatchableStore s st γ ∗ mvcc.hookIs γ.st P f ∗ mvcc.watchWriter γ [[], []] ∗
+      mvcc.watchToks γ (2 ^ 63 - 3) ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
         mvcc.watchReader s st γ) ∗
       (∃ stc : Loc, s.[watchableStore, go!"stopc"] ↦□ stc ∗ mvcc.stopCloser stc) ∗

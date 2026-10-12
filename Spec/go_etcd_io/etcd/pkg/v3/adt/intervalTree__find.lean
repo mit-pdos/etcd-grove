@@ -24,11 +24,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
 /-- `t.find(ivl)` (internal, `Find`'s and `Delete`'s), over the tree struct's `root` and
-`sentinel` fields and the nodes from the root, at a fraction `q`, in a sorted tree: the node
-`n` whose entry has the interval (as its subtree, given back by a wand), or the sentinel. -/
+`sentinel` fields and the nodes from the root, at a fraction `q`: the node `n` that `find`'s
+descent stops at (as its subtree, given back by a wand), `findE`: a node whose entry has the
+interval (the topmost on the path: with equal intervals, not necessarily the first in order),
+or the sentinel. -/
 abbrev adt.intervalTree.find.spec : Prop :=
   ∀ (t : Loc) (tv : intervalTree) (q : Qp) (T : adt.RbT adt.Entry) (b e : GoString),
-  adt.IvSorted T.inorder →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗
       t.[intervalTree, go!"root"] ↦{DFrac.own q} tv.root' ∗
       t.[intervalTree, go!"sentinel"] ↦{DFrac.own q} tv.sentinel' ∗
@@ -40,7 +41,7 @@ abbrev adt.intervalTree.find.spec : Prop :=
       t.[intervalTree, go!"sentinel"] ↦{DFrac.own q} tv.sentinel' ∗
       ∃ (p : Loc) (Tz : adt.RbT adt.Entry), adt.ownNode tv.sentinel' q p n Tz ∗
         (adt.ownNode tv.sentinel' q p n Tz -∗ adt.ownNode tv.sentinel' q tv.sentinel' tv.root' T) ∗
-        ⌜match T.inorder.find? (fun z => decide (z.1 = (b, e))) with
+        ⌜match T.findE (b, e) with
           | none => Tz = .leaf
           | some z => ∃ c l r, Tz = .node c l z r⌝ }}
 

@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF := GF) (hG := hG)) :
     mvcc.watchStream.Watch.spec (GF := GF) (hG := hG) := by
   intro ws wa P γ ctx cd id key endk fcs k e fs startRev
-  wp_start as ⟨Hws, #Hctx, #Hk, #He, #Hfcs, #Hfs, HPR, %Hsr⟩
+  wp_start as ⟨Hws, #Hctx, #Hk, #He, #Hfcs, #Hfs, HPR, HPT, %Hsr⟩
   iunfold mvcc.isWatchStream at Hws
   iNamed Hws
   ihave Hmi : (mvccInit : IProp GF) $$ []
@@ -154,7 +154,7 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
     simp only [Option.isSome_none]
     wp_auto
     all_goals
-      wp_apply Hwatch $$ [$HCR $HPR] as %w %c ⟨%hwnn, #HIW, #Hcspec, HCR, HPR⟩
+      wp_apply Hwatch $$ [$HCR $HPR $HPT] as %w %c ⟨%hwnn, #HIW, #Hcspec, HCR, HPR⟩
       · iframe #
         try (ipureintro; exact Hsr)
       wp_apply hspan $$ [$Hctx] as %sp #Hsp

@@ -226,7 +226,7 @@ theorem mvcc.watch_close_body (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) 
       ([∗list] x ∈ σ.vbs.zip σ.VB, mvcc.ownWatcherBatch x.1 x.2) ∗
       ([∗map] w' ↦ st ∈ σ.ST, mvcc.watcherOwn w' st) ∗ mvcc.watcherOwn w st0 ∗
       ([∗map] w' ↦ st ∈ σ.Wo, mvcc.watcherOwn w' st (1 : Qp).half) ∗
-      ghostMapAuth γ.wmeta 1 (<[w := γw]> σ.M) ∗
+      ghostMapAuth γ.wmeta 1 (<[w := γw]> σ.M) ∗ mvcc.watchBudget γ 1 (<[w := γw]> σ.M) ∗
       □ ([∗map] w' ↦ _γw ∈ σ.M, ∃ (r' : mvcc.WatchRange) (fcs' : GoSlice),
         mvcc.watcherFixed w' r' fcs') ∗
       mvcc.watcherFixed w r fcs ∗
@@ -238,7 +238,7 @@ theorem mvcc.watch_close_body (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) 
     |==> mvcc.watchStoreBody s γ 1 (σ.addW b w r st0 γw) := by
   obtain ⟨hST, hWo, hl, hWs, hWu, hv, hE⟩ := hok.fresh hM
   iintro ⟨Hσ, Hwlog, #Hcert, Hsy, Hun, Hvf, Hvs, Hvcap, %Hvlen, Hvbs, Hst, Hst0, Hwo, Hmeta,
-    #Hmfix, #Hfixed, Hmem, #Hout, #Hmw, #Hwc, #Hfo, He, Hl, #HC⟩
+    Hwt, #Hmfix, #Hfixed, Hmem, #Hout, #Hmw, #Hwc, #Hfo, He, Hl, #HC⟩
   imod ghostVar_update (σ.addW b w r st0 γw) γ.wst σ $$ Hσ with Hσ
   imodintro
   iunfold mvcc.watchStoreBody
@@ -251,7 +251,7 @@ theorem mvcc.watch_close_body (s : Loc) (γ : mvcc.WsNames) (σ : mvcc.WsState) 
   · iunfold mvcc.idxCert at HC
     icases HC with ⟨H, -⟩
     iexact H
-  iframe Hσ Hwlog Hvf Hvs Hvcap Hvbs Hwo Hmeta
+  iframe Hσ Hwlog Hvf Hvs Hvcap Hvbs Hwo Hmeta Hwt
   iframe #
   isplitl [Hsy]
   · cases b <;> iexact Hsy
@@ -549,7 +549,7 @@ theorem mvcc.watchableStore.watch.wp_proof
   have hAdd := mvcc.watcherGroup.add.spec_group hAdd
   intro s st γ key endk fcs k e fs startRev id ch L
   simp only [mvcc.storeWatchParams]
-  wp_start as ⟨#Hws, #Hk, #He, #Hfcs, #Hfs, -, HCR, HR, %Hsr⟩
+  wp_start as ⟨#Hws, #Hk, #He, #Hfcs, #Hfs, -, HCR, HR, Htok, %Hsr⟩
   ihave #HwsAll : mvcc.isWatchableStore s st γ $$ []
   · iexact Hws
   iunfold mvcc.isWatchableStore at Hws
@@ -575,6 +575,7 @@ theorem mvcc.watchableStore.watch.wp_proof
   icases HP with ⟨%σ, HP⟩
   iunfold mvcc.watchStoreBody at HP
   iNamed HP
+  icases mvcc.watchBudget_bound _ _ _ $$ Hwt with ⟨Hwt, %HMb⟩
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HrevMuR] as ⟨Hrl, HQ⟩
   wp_auto_lc 2
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv st γ.st sync.rfrac)) $$ Hlc1 HQ with HQ
@@ -617,6 +618,8 @@ theorem mvcc.watchableStore.watch.wp_proof
       ipureintro; exact hn
   imod mvcc.watch_register γ σ.M w ch key r fcs lo C L $$ [$Hlc2 $Hmeta $Hmfix $HCR $HcertQ $key $Hfix]
     with ⟨%γw, ⟨%hM, %hlo⟩, Hmeta, #Hmw, #Hfixed, #Hwc, HCR, He, Hl⟩
+  -- the registration's token spent
+  imod mvcc.watchBudget_spend γ σ.M w γw hM $$ [$Hwt $Htok] with Hwt
   have hCne : 1 ≤ C.length := List.length_pos_iff.2 HneQ
   have hcur : sint.Z (W64 ((C.length : Int) - 1)) = (C.length : Int) - 1 := by word
   wp_auto
@@ -635,7 +638,7 @@ theorem mvcc.watchableStore.watch.wp_proof
         rw [show sint.nat startRev = (sint.Z startRev).toNat from rfl]; omega
       obtain ⟨hST, hWo, hl, hWs, hWu, hv, hE⟩ := Hok.fresh hM
       wp_apply hAdd $$ [$Hsynced] as Hsynced
-      · iframe Hfixed; ipureintro; exact hWs
+      · iframe Hfixed; ipureintro; exact ⟨hWs, by have := Hok.ws_size; omega⟩
       (try wp_auto)
       wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ] as HrevMuR
       · inext
@@ -661,10 +664,10 @@ theorem mvcc.watchableStore.watch.wp_proof
               rw [hlo, hlomax, show sint.nat startRev = (sint.Z startRev).toNat from rfl]; omega)
           (fun _ => by rw [hlo, hlomax]; omega) (fun h => by cases h)
         $$ [Hσ Hwlog Hunsynced Hsynced Hvf Hvs Hvcap Hvbs Hst minRev victim compacted restore ch
-          Hwo Hmeta Hmem He Hl]
+          Hwo Hmeta Hwt Hmem He Hl]
         with Hbody
       · simp only [↓reduceIte]
-        iframe Hσ Hwlog Hunsynced Hsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hmem He Hl
+        iframe Hσ Hwlog Hunsynced Hsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem He Hl
         iframe #
         iunfold mvcc.watcherOwn
         iframe minRev victim compacted restore ch
@@ -722,7 +725,7 @@ theorem mvcc.watchableStore.watch.wp_proof
         rw [show sint.nat startRev = (sint.Z startRev).toNat from rfl]; omega
       obtain ⟨hST, hWo, hl, hWs, hWu, hv, hE⟩ := Hok.fresh hM
       wp_apply hAdd $$ [$Hsynced] as Hsynced
-      · iframe Hfixed; ipureintro; exact hWs
+      · iframe Hfixed; ipureintro; exact ⟨hWs, by have := Hok.ws_size; omega⟩
       (try wp_auto)
       wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ] as HrevMuR
       · inext
@@ -748,10 +751,10 @@ theorem mvcc.watchableStore.watch.wp_proof
               rw [hlo, hlomax, show sint.nat startRev = (sint.Z startRev).toNat from rfl]; omega)
           (fun _ => by rw [hlo, hlomax]; omega) (fun h => by cases h)
         $$ [Hσ Hwlog Hunsynced Hsynced Hvf Hvs Hvcap Hvbs Hst minRev victim compacted restore ch
-          Hwo Hmeta Hmem He Hl]
+          Hwo Hmeta Hwt Hmem He Hl]
         with Hbody
       · simp only [↓reduceIte]
-        iframe Hσ Hwlog Hunsynced Hsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hmem He Hl
+        iframe Hσ Hwlog Hunsynced Hsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem He Hl
         iframe #
         iunfold mvcc.watcherOwn
         iframe minRev victim compacted restore ch
@@ -819,7 +822,7 @@ theorem mvcc.watchableStore.watch.wp_proof
           omega
         obtain ⟨hST, hWo, hl, hWs, hWu, hv, hE⟩ := Hok.fresh hM
         wp_apply hAdd $$ [$Hsynced] as Hsynced
-        · iframe Hfixed; ipureintro; exact hWs
+        · iframe Hfixed; ipureintro; exact ⟨hWs, by have := Hok.ws_size; omega⟩
         (try wp_auto)
         wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ] as HrevMuR
         · inext
@@ -845,10 +848,10 @@ theorem mvcc.watchableStore.watch.wp_proof
                 rw [hlo, hlomax, show sint.nat startRev = (sint.Z startRev).toNat from rfl]; omega)
             (fun _ => by rw [hlo, hlomax]; omega) (fun h => by cases h)
           $$ [Hσ Hwlog Hunsynced Hsynced Hvf Hvs Hvcap Hvbs Hst minRev victim compacted restore ch
-            Hwo Hmeta Hmem He Hl]
+            Hwo Hmeta Hwt Hmem He Hl]
           with Hbody
         · simp only [↓reduceIte]
-          iframe Hσ Hwlog Hunsynced Hsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hmem He Hl
+          iframe Hσ Hwlog Hunsynced Hsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem He Hl
           iframe #
           iunfold mvcc.watcherOwn
           iframe minRev victim compacted restore ch
@@ -907,7 +910,7 @@ theorem mvcc.watchableStore.watch.wp_proof
       wp_apply HgsI
       (try wp_auto)
       wp_apply hAdd $$ [$Hunsynced] as Hunsynced
-      · iframe Hfixed; ipureintro; exact hWu
+      · iframe Hfixed; ipureintro; exact ⟨hWu, by have := Hok.wu_size; omega⟩
       (try wp_auto)
       wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ] as HrevMuR
       · inext
@@ -933,10 +936,10 @@ theorem mvcc.watchableStore.watch.wp_proof
               rw [hlo, hlo', show sint.nat startRev = (sint.Z startRev).toNat from rfl]; omega)
           (fun h => by cases h) (fun _ => by show sint.Z startRev < _; omega)
         $$ [Hσ Hwlog Hunsynced Hsynced Hvf Hvs Hvcap Hvbs Hst minRev victim compacted restore ch
-          Hwo Hmeta Hmem He Hl]
+          Hwo Hmeta Hwt Hmem He Hl]
         with Hbody
       · simp only [Bool.false_eq_true, ↓reduceIte]
-        iframe Hσ Hwlog Hunsynced Hsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hmem He Hl
+        iframe Hσ Hwlog Hunsynced Hsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem He Hl
         iframe #
         iunfold mvcc.watcherOwn
         iframe minRev victim compacted restore ch

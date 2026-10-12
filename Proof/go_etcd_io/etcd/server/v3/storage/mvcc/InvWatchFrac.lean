@@ -365,6 +365,17 @@ theorem memberRes_fractional (γ : WsNames) (σ : WsState) (w : Loc) (st : Watch
     obtain ⟨rfl, rfl⟩ := Hag
     simp_all
 
+/-- The watcher budget is fractional: two parts agree on the unspent tokens. -/
+theorem watchBudget_fractional (γ : WsNames) (M : GMap Loc WatcherNames) :
+    Fractional (fun q => watchBudget (GF := GF) γ q M) := by
+  unfold watchBudget
+  refine wFractional_exists _ (fun n => wFractional_sep ?_ (wFractional_pure _)) ?_
+  · exact { fractional := fun p q => ownTokAuthDfrac_split γ.wt (DFrac.own p) (DFrac.own q) n }
+  · intro n1 n2 q1 q2
+    iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
+    icombine H1 H2 gives %H
+    ipureintro; exact H.2
+
 theorem watchStoreBody_fractional (hsplit : adt.ownIvt_split.spec (GF := GF) (hG := hG))
     (s : Loc) (γ : WsNames) (σ : WsState) :
     Fractional (fun q => watchStoreBody (GF := GF) s γ q σ) := by
@@ -380,9 +391,10 @@ theorem watchStoreBody_fractional (hsplit : adt.ownIvt_split.spec (GF := GF) (hG
       (wFractional_bigSepL _ _ (fun x => ownWatcherBatch_fractional x.1 x.2)) (wFractional_sep
       (wFractional_bigSepM _ _ (fun w st => watcherOwn_fractional w st)) (wFractional_sep
       (wFractional_bigSepM _ _ (fun w st => wFractional_half (watcherOwn_fractional w st)))
-      (wFractional_sep (ghostMapAuth_fractional _ _) (wFractional_sep (wFractional_persistent _)
+      (wFractional_sep (ghostMapAuth_fractional _ _) (wFractional_sep (watchBudget_fractional _ _)
+      (wFractional_sep (wFractional_persistent _)
       (wFractional_sep (wFractional_bigSepM _ _ (fun w st => memberRes_fractional γ σ w st))
-      (wFractional_sep (wFractional_persistent _) (wFractional_pure _))))))))))))))))
+      (wFractional_sep (wFractional_persistent _) (wFractional_pure _)))))))))))))))))
 
 /-- **The lock invariant is fractional** (through the tree's pending fractionality): two parts
 agree on the state through `γ.wst`. -/

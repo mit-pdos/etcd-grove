@@ -35,7 +35,7 @@ theorem mvcc.watcherGroup.add.wp_proof
     (hInsert : adt.intervalTree.Insert.spec (GF := GF) (hG := hG)) :
     mvcc.watcherGroup.add.spec (GF := GF) (hG := hG) := by
   intro wg W ws wa r fcs
-  wp_start as ⟨Hg, #Hfix, %Hwa⟩
+  wp_start as ⟨Hg, #Hfix, %Hwa, %Hsz⟩
   iunfold mvcc.ownWatcherGroupAt at Hg
   icases Hg with ⟨%km, %t, %KM, %L, Hg⟩
   iNamed Hg
@@ -96,11 +96,8 @@ theorem mvcc.watcherGroup.add.wp_proof
     wp_apply hIvl r.key e
     wp_apply hFind $$ [$Hivt] as %p Hp
     have Hnd := mvcc.sorted_nodup L HL.1
-    cases hf : L.find? (fun z => decide (z.1 = (r.key, e))) with
-    | some z =>
-      icases Hp with ⟨%Hpn, Hp, Hback⟩
-      have hzL : z ∈ L := List.mem_of_find?_eq_some hf
-      have hz1 : z.1 = (r.key, e) := by simpa using List.find?_some hf
+    icases Hp with (⟨%z, %Hz, %Hpn, Hp, Hback⟩ | ⟨%Hpn, Hivt⟩)
+    · obtain ⟨hzL, hz1⟩ := Hz
       obtain ⟨i, hi⟩ := List.getElem?_of_mem hzL
       icases (BigSepL.bigSepL_lookup_acc_impl hi) $$ Hranges with ⟨Hz, Hranges⟩
       iunfold mvcc.rangeSet at Hz
@@ -143,14 +140,7 @@ theorem mvcc.watcherGroup.add.wp_proof
         rw [hz1]; exact mvcc.ivlMembers_insert_eq W wa r e Hwa hend
       rw [hz']
       iexact Hm0
-    | none =>
-      icases Hp with ⟨%Hpn, Hivt⟩
-      subst Hpn
-      have Hnotin : (r.key, e) ∉ L.map Prod.fst := by
-        intro hm
-        obtain ⟨z, hz, hz1⟩ := List.mem_map.1 hm
-        have := List.find?_eq_none.1 hf z hz
-        simp [hz1] at this
+    · obtain ⟨rfl, Hnotin⟩ := Hpn
       have Hemp : mvcc.ivlMembers W (r.key, e) = ∅ := by
         rw [mvcc.ivlMembers_empty_iff, ← HL.2]; exact Hnotin
       rw [_root_.decide_eq_true rfl, Bool.not_true]
@@ -165,7 +155,7 @@ theorem mvcc.watcherGroup.add.wp_proof
       wp_apply hSAdd $$ [$Hmn] as Hmn
       · ipureintro; rfl
       wp_apply hInsert $$ [$Hivt] as Hivt
-      · ipureintro; exact Hnotin
+      · ipureintro; have := mvcc.rangesOk_length_le W L HL; omega
       iapply HΦ
       iapply mvcc.ownWatcherGroupAt_intro wg (<[wa := r]> W) km ws t KM
         (adt.ivtInsert ((r.key, e), interface.mkOk watcherSet.ty #mn) L)

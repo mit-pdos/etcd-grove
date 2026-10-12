@@ -1995,6 +1995,21 @@ record.
   the heap, so its spec takes `L.length + 1 < 2^63`, which the watcher group proves from its
   map's size bound (every interval has a member: `RangesOk`). `RbOk` is kept although no spec
   uses it: it is what makes the fixups provable in 4b/4c.
+- **The watcher budget** (2026-10-12, 4b): the group cannot bound its size (Perennial's maps
+  are bounded only at `len`, by assumption), so the bound is a resource, as the revision
+  budget: `New` returns `2^63 - 3` watcher tokens, the stream's `Watch` spends one per watcher
+  (`WatchParams.T`), the lock invariant keeps `live + unspent + 3 ≤ 2^63`; a cancel refunds
+  nothing (a client that creates `2^63 - 3` watchers runs out, the truth about the program).
+  *Rejected:* an axiom "a tree holds fewer than `2^63` entries", like Perennial's map
+  assumption (smallest change, one more model assumption).
+- **Duplicates in the tree** (2026-10-12, 4b; asked by the request path's session:
+  `v3rpc.checkIntervals` inserts the same range twice, a legal request): the tree's invariant
+  is non-strict (equal intervals in insertion order among equals, as the code's descent goes
+  right of an equal), `Insert` takes no distinctness premise (so it is their `InsertAny`), and
+  `Find`/`Delete` promise *some* entry with the interval (the code's `find` returns the topmost
+  duplicate; which one `Delete` removes is not determined) — the watcher group, with one
+  interval per range, recovers `find?`/`eraseP` by uniqueness. Their `Union` spec must also take
+  the fraction and the count bound.
 
 ### The watcher group and the stream (unit 2)
 

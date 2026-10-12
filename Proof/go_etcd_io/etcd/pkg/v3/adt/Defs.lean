@@ -91,8 +91,8 @@ def ownSentinel (s : Loc) (q : Qp) : IProp GF :=
   iprop(∃ v : intervalNode, s ↦{DFrac.own q} v)
 
 include sem package_sem in
-/-- **The tree at `t` (a `*intervalTree`) holds the entries `L`** (distinct intervals, in the
-tree's order), at the fraction `q` (the reads, `Find`/`Intersects`/`Stab`/`Len`, at any
+/-- **The tree at `t` (a `*intervalTree`) holds the entries `L`** (in the tree's order; equal
+intervals allowed, in insertion order among equals: `IvSorted`), at the fraction `q` (the reads, `Find`/`Intersects`/`Stab`/`Len`, at any
 fraction; `Insert`/`Delete` at `1`: the watchable store reads its groups under its lock's read
 side): the tree struct, the sentinel, and the nodes from the root (whose parent is the
 sentinel) holding a red-black tree `T` whose in-order list is `L`, with the entry count (below

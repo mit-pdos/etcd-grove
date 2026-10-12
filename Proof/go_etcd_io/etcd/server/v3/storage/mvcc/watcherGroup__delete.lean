@@ -102,17 +102,11 @@ theorem mvcc.watcherGroup.delete.wp_proof
     wp_apply hFind $$ [$Hivt] as %p Hp
     have Hnd := mvcc.sorted_nodup L HL.1
     have Hin : (r.key, e) ∈ L.map Prod.fst := (HL.2 _).2 ⟨wa, r, e, HwaS, hend, rfl⟩
-    obtain ⟨z, hf⟩ : ∃ z, L.find? (fun z => decide (z.1 = (r.key, e))) = some z := by
-      cases h : L.find? (fun z => decide (z.1 = (r.key, e))) with
-      | some z => exact ⟨z, rfl⟩
-      | none =>
-        exfalso
-        obtain ⟨z, hz, hz1⟩ := List.mem_map.1 Hin
-        have := List.find?_eq_none.1 h z hz
-        simp [hz1] at this
-    rw [hf]
-    icases Hp with ⟨%Hpn, Hp, Hback⟩
-    have hz1 : z.1 = (r.key, e) := by simpa using List.find?_some hf
+    icases Hp with (⟨%z, %Hz, %Hpn, Hp, Hback⟩ | ⟨%Hpn, -⟩)
+    rotate_left
+    · exact absurd Hin Hpn.2
+    obtain ⟨hzL, hz1⟩ := Hz
+    have hf := mvcc.rangesOk_find_unique W L HL z (r.key, e) hzL hz1
     have Hperm := mvcc.perm_eraseP_of_find? L _ z hf
     icases (BigSepL.bigSepL_perm Hperm).1 $$ Hranges with Hranges
     icases BigSepL.bigSepL_cons.1 $$ Hranges with ⟨Hz, Hrest⟩
@@ -148,8 +142,11 @@ theorem mvcc.watcherGroup.delete.wp_proof
     · -- the interval's set is empty now: it goes from the tree
       have H0 : GMap.size (mvcc.ivlMembers (GMap.delete wa W) z.1) = 0 := by word
       rw [GMap.map_size_empty_iff, hz1, mvcc.ivlMembers_empty_iff] at H0
-      wp_apply hDel $$ [$Hivt] as Hivt
+      wp_apply hDel $$ [$Hivt] as ⟨%L', %HL', Hivt⟩
       rw [_root_.decide_eq_true Hin]
+      simp only [Hin, ↓reduceIte] at HL'
+      obtain ⟨i, z', hi, hz'1, rfl⟩ := HL'
+      rw [mvcc.eraseIdx_eq_eraseP_fst L Hnd _ i z' hi hz'1]
       wp_auto
       iapply HΦ
       iapply mvcc.ownWatcherGroupAt_intro wg (GMap.delete wa W) km ws t KM

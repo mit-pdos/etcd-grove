@@ -120,12 +120,13 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   icases HP with ⟨%σ, HP⟩
   iunfold mvcc.watchStoreBody at HP
   iNamed HP
+  icases mvcc.watchBudget_bound _ _ _ $$ Hwt with ⟨Hwt, %HMb⟩
   icombine HgS HgS' gives %HgEq
   wp_apply (hSize (mvcc.unsyncedAddr s) σ.Wu 1) $$ [$Hunsynced] as ⟨Hunsynced, %HszWu⟩
   wp_if_destruct
   · -- no unsynced watcher
     ihave HP : mvcc.watchStoreBody s γ 1 σ $$ [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo
-        Hmeta Hmem]
+        Hmeta Hwt Hmem]
     · iunfold mvcc.watchStoreBody; simp only [named]; iframe; iframe #; ipureintro; exact ⟨Hvlen, Hok⟩
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl HP]
     · inext; iunfold mvcc.watchStoreInv; iexists σ; iexact HP
@@ -167,7 +168,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     $$ [$Hunsynced Hstu] as %g %minRev ⟨Hstu, Hch⟩
   · iunfold mvcc.ownStates; iframe Hstu
     ipureintro
-    refine ⟨fun w hw => ?_, fun w st hw => ?_⟩
+    refine ⟨⟨fun w hw => ?_, fun w st hw => ?_⟩, by have := Hok.wu_size; omega⟩
     · rw [hSTu, if_pos hw]; exact Hok.live_st w (Or.inr (Or.inl hw))
     · rw [hSTu] at hw
       split at hw
@@ -394,7 +395,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
         Bool.not_false]
       wp_auto
       wp_apply (hAddG (mvcc.syncedAddr s) v.Ws key r' fcs) $$ [$Hsynced $Hfx] as Hsynced
-      · ipureintro; exact hvWs
+      · ipureintro; exact ⟨hvWs, by have := Hl.ok.ws_size; simp only [mvcc.SyncVars.st] at this; omega⟩
       (try wp_auto)
       wp_apply (mvcc.sw_wp_unsynced_delete hDel self s ws v.Wu W' m' key r' fcs hm')
         $$ [$Hun $Hm $Hfx] as %b ⟨Hun, Hm⟩
@@ -558,7 +559,8 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
           rw [decide_eq_true hmr0]
           wp_auto
           wp_apply (hAddG (mvcc.syncedAddr s) v.Ws key r' fcs) $$ [$Hsynced $Hfx] as Hsynced
-          · ipureintro; exact hvWs
+          · ipureintro
+            exact ⟨hvWs, by have := Hl.ok.ws_size; simp only [mvcc.SyncVars.st] at this; omega⟩
           (try wp_auto)
           wp_apply (mvcc.sw_wp_unsynced_delete hDel self s ws v.Wu W' m' key r' fcs hm')
             $$ [$Hun $Hm $Hfx] as %b ⟨Hun, Hm⟩
@@ -867,10 +869,10 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
       rw [this]; exact Hl.ok.v_one
   imod ghostVar_update σf γ.wst σ $$ Hσ with Hσ
   ihave HPf : mvcc.watchStoreBody s γ 1 σf $$ [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo
-      Hmeta Hmem]
+      Hmeta Hwt Hmem]
   · iunfold mvcc.watchStoreBody
     simp only [named]
-    iframe Hσ Hwlog Hcert Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hmfix
+    iframe Hσ Hwlog Hcert Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmfix
     isplitr
     · ipureintro; exact hlen'
     isplitl [Hmem]

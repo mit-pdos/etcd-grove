@@ -46,9 +46,9 @@ theorem mvcc.isWatchable_store
   isplitr
   · ipureintro; rfl
   isplitr
-  · iintro !> %key %endk %fcs %k %e %fs %startRev %id %ch %L !> %Φ ⟨#Hk, #He, #Hf, #Hfs, #HC, HCR, HR, %Hsr⟩ HΦ
-    iapply (hWatch s st γ key endk fcs k e fs startRev id ch L) $$ [HCR HR] HΦ
-    iframe Hpkg Hws Hk He Hf Hfs HC HCR HR
+  · iintro !> %key %endk %fcs %k %e %fs %startRev %id %ch %L !> %Φ ⟨#Hk, #He, #Hf, #Hfs, #HC, HCR, HR, HT, %Hsr⟩ HΦ
+    iapply (hWatch s st γ key endk fcs k e fs startRev id ch L) $$ [HCR HR HT] HΦ
+    iframe Hpkg Hws Hk He Hf Hfs HC HCR HR HT
     ipureintro; exact Hsr
   isplitr
   · iintro !> %w !> %Φ ⟨#HIW, HR⟩ HΦ

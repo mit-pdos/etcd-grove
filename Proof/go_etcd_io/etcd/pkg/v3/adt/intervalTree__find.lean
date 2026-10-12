@@ -26,20 +26,20 @@ theorem adt.intervalTree.find.wp_proof
     (h_StringAffineComparable_Compare :
       adt.StringAffineComparable.Compare.spec (GF := GF) (hG := hG)) :
     adt.intervalTree.find.spec (GF := GF) (hG := hG) := by
-  intro t tv q T b e hs
+  intro t tv q T b e
   wp_start as ⟨Hr, Hs, Hn⟩
   wp_auto
   ihave HI : (∃ (x p : Loc) (Tx : adt.RbT adt.Entry),
       "x" ∷ x_ptr ↦ x ∗ "Hx" ∷ adt.ownNode tv.sentinel' q p x Tx ∗
       "Hw" ∷ (adt.ownNode tv.sentinel' q p x Tx -∗
         adt.ownNode tv.sentinel' q tv.sentinel' tv.root' T) ∗
-      "%Hinv" ∷ ⌜adt.IvSorted Tx.inorder ∧ Tx.findE (b, e) = T.findE (b, e)⌝ : IProp GF)
+      "%Hinv" ∷ ⌜Tx.findE (b, e) = T.findE (b, e)⌝ : IProp GF)
       $$ [x Hn]
   · iexists tv.root', tv.sentinel', T
     iframe
     isplitl []
     · iintro H; iexact H
-    ipureintro; exact ⟨hs, rfl⟩
+    ipureintro; rfl
   wp_for HI
   cases Tx with
   | leaf =>
@@ -59,9 +59,7 @@ theorem adt.intervalTree.find.wp_proof
     isplitl [Hw]
     · iintro -; iapply Hw; ipureintro; trivial
     ipureintro
-    have h := Hinv.2
-    rw [adt.findE_eq _ _ hs] at h
-    rw [← h]; rfl
+    rw [← Hinv]; rfl
   | node c l z r =>
     icases adt.ownNode_node_open _ _ _ _ c l z r $$ Hx with
       ⟨%lp, %rp, %Hn, Hiv, Hmx, Hl, Hr', Hp, Hc, Hnl, Hnr⟩
@@ -75,8 +73,7 @@ theorem adt.intervalTree.find.wp_proof
     have hw0 : ∀ a c, W64 (adt.affCmp a c) = W64 0 ↔ adt.affCmp a c = 0 := by
       intro a c; have := adt.affCmp_bounds a c; constructor <;> intro h <;> word
     have h0 : sint.Z (W64 0) = 0 := rfl
-    obtain ⟨hsl, hsr, -, -⟩ := adt.ivSorted_node Hinv.1
-    have hfe := Hinv.2
+    have hfe := Hinv
     -- the node, repacked
     ihave Hpack : (x.[intervalNode, go!"iv"].[IntervalValue, go!"Ivl"].[Interval, go!"Begin"] ↦{DFrac.own q}
           interface.mkOk StringAffineComparable.ty #z.1.1 ∗
@@ -111,9 +108,8 @@ theorem adt.intervalTree.find.wp_proof
         (split <;> (try split) <;> (try split) <;> (try split)) <;>
         first | rfl | (exfalso; omega)
     have hfound : adt.affCmp b z.1.1 = 0 → adt.affCmp e z.1.2 = 0 →
-        T.inorder.find? (fun y => decide (y.1 = (b, e))) = some z := by
+        T.findE (b, e) = some z := by
       intro h1 h2
-      rw [← adt.findE_eq _ _ hs]
       exact (hcases _ rfl).1 ⟨h1, h2⟩
     have hleft : (adt.affCmp b z.1.1 < 0 ∨ (adt.affCmp b z.1.1 = 0 ∧ adt.affCmp e z.1.2 < 0)) →
         l.findE (b, e) = T.findE (b, e) := fun h => ((hcases _ rfl).2.1 h).symm
@@ -151,7 +147,7 @@ theorem adt.intervalTree.find.wp_proof
             · iintro Hnl
               iapply Hw
               iapply Hpack $$ [Hb He Hv Hmx Hl Hr' Hp Hc] Hnl Hnr; iframe
-            ipureintro; exact ⟨hsl, hleft (Or.inr ⟨hb0, Hif⟩)⟩
+            ipureintro; exact (hleft (Or.inr ⟨hb0, Hif⟩))
           · -- right
             simp only [hz, h0] at Hif
             wp_for_post
@@ -162,7 +158,7 @@ theorem adt.intervalTree.find.wp_proof
             · iintro Hnr
               iapply Hw
               iapply Hpack $$ [Hb He Hv Hmx Hl Hr' Hp Hc] Hnl Hnr; iframe
-            ipureintro; exact ⟨hsr, hright (Or.inr ⟨hb0, by omega⟩)⟩
+            ipureintro; exact (hright (Or.inr ⟨hb0, by omega⟩))
         · exfalso; first | exact Hif ((hw0 _ _).2 hb0) | (simp only [hz, h0] at Hif; omega)
     · have hb0 : adt.affCmp b z.1.1 ≠ 0 := fun h => Hif ((hw0 _ _).2 h)
       wp_if_destruct
@@ -176,7 +172,7 @@ theorem adt.intervalTree.find.wp_proof
         · iintro Hnl
           iapply Hw
           iapply Hpack $$ [Hb He Hv Hmx Hl Hr' Hp Hc] Hnl Hnr; iframe
-        ipureintro; exact ⟨hsl, hleft (Or.inl Hif)⟩
+        ipureintro; exact (hleft (Or.inl Hif))
       · simp only [hz, h0] at Hif
         wp_if_destruct
         · exfalso; exact hb0 ((hw0 _ _).1 Hif)
@@ -189,7 +185,7 @@ theorem adt.intervalTree.find.wp_proof
         · iintro Hnr
           iapply Hw
           iapply Hpack $$ [Hb He Hv Hmx Hl Hr' Hp Hc] Hnl Hnr; iframe
-        ipureintro; exact ⟨hsr, hright (Or.inl (by omega))⟩
+        ipureintro; exact (hright (Or.inl (by omega)))
 
 end proof
 

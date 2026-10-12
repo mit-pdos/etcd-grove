@@ -17,7 +17,15 @@ intervalTree__Visit: intervalNode__visit
 intervalTree__Stab: intervalTree__Visit
 # The tree's ownership at fractions: splitting/combining with agreement (NodeLemmas.lean).
 ownIvt_split:
-# The writes (unit 4b: Insert with the fixups and rotations; 4c: Delete): specified, not
-# proved yet; hypotheses of every result that reaches them.
-intervalTree__Insert: ?
+# The writes: Insert (unit 4b: the descent, a red node, the fixup under CLRS's invariant with
+# the rotations and the maxima recomputed, TreeInsert.lean, Ctx.lean); Delete (unit 4c):
+# specified, not proved yet, a hypothesis of every result that reaches it.
+intervalNode__color:
+intervalTree__createIntervalNode:
+intervalNode__updateMax: StringAffineComparable__Compare
+intervalTree__replaceParent: intervalNode__updateMax
+intervalTree__rotateLeft: intervalNode__updateMax intervalTree__replaceParent
+intervalTree__rotateRight: intervalNode__updateMax intervalTree__replaceParent
+intervalTree__insertFixup: intervalNode__color intervalTree__rotateLeft intervalTree__rotateRight
+intervalTree__Insert: intervalTree__createIntervalNode StringAffineComparable__Compare intervalNode__updateMax intervalTree__insertFixup
 intervalTree__Delete: ?

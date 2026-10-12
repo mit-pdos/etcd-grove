@@ -113,7 +113,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     · iunfold mvcc.ownWatcherSet; iexact Hwset
     ihave Hsynced := Hgback $$ Hwg Hwset
     ihave HP : mvcc.watchStoreBody s γ sync.rfrac σ $$
-        [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hmem]
+        [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem]
     · iunfold mvcc.watchStoreBody; simp only [named]; iframe; iframe #; ipureintro; exact ⟨Hvlen, Hok⟩
     cases hsy : (σ.Ws !! u).isSome
     · simp only [Option.isSome_map, hsy]
@@ -240,7 +240,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     ihave Hst := Hst $$ [Hmin Hvic Hcomp Hres Hch]
     · iunfold mvcc.watcherOwn; iframe
     ihave HP : mvcc.watchStoreBody s γ sync.rfrac σ $$
-        [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hmem]
+        [Hσ Hwlog Hsynced Hunsynced Hvf Hvs Hvcap Hvbs Hst Hwo Hmeta Hwt Hmem]
     · iunfold mvcc.watchStoreBody; simp only [named]; iframe; iframe #; ipureintro; exact ⟨Hvlen, Hok⟩
     (try wp_auto)
     unfold forMapPostcondition

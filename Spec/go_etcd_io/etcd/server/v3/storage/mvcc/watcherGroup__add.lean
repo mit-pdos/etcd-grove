@@ -27,7 +27,8 @@ abbrev mvcc.watcherGroup.add.spec : Prop :=
   ∀ (wg : Loc) (W : GMap Loc mvcc.WatchRange) (ws : GoMap) (wa : Loc) (r : mvcc.WatchRange)
     (fcs : GoSlice),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.ownWatcherGroupAt wg W ws ∗ mvcc.watcherFixed wa r fcs ∗ ⌜W !! wa = none⌝ }}
+      mvcc.ownWatcherGroupAt wg W ws ∗ mvcc.watcherFixed wa r fcs ∗ ⌜W !! wa = none⌝ ∗
+      ⌜GMap.size W + 1 < 2 ^ 63⌝ }}
     (App (Val (wg @!! go.GoType.PointerType watcherGroup.ty @!! go!"add")) (Val #wa))
   {{ RET #(); mvcc.ownWatcherGroupAt wg (<[wa := r]> W) ws }}
 
@@ -35,14 +36,15 @@ abbrev mvcc.watcherGroup.add.spec : Prop :=
 theorem mvcc.watcherGroup.add.spec_group (h : mvcc.watcherGroup.add.spec (GF := GF) (hG := hG)) :
     ∀ (wg : Loc) (W : GMap Loc mvcc.WatchRange) (wa : Loc) (r : mvcc.WatchRange) (fcs : GoSlice),
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-        mvcc.ownWatcherGroup wg W ∗ mvcc.watcherFixed wa r fcs ∗ ⌜W !! wa = none⌝ }}
+        mvcc.ownWatcherGroup wg W ∗ mvcc.watcherFixed wa r fcs ∗ ⌜W !! wa = none⌝ ∗
+        ⌜GMap.size W + 1 < 2 ^ 63⌝ }}
       (App (Val (wg @!! go.GoType.PointerType watcherGroup.ty @!! go!"add")) (Val #wa))
     {{ RET #(); mvcc.ownWatcherGroup wg (<[wa := r]> W) }} := by
   intro wg W wa r fcs
-  iintro %Φ ⟨#Hpkg, Hg, #Hf, %Hwa⟩ HΦ
+  iintro %Φ ⟨#Hpkg, Hg, #Hf, %Hwa, %Hsz⟩ HΦ
   icases (mvcc.ownWatcherGroup_at wg W 1).1 $$ Hg with ⟨%ws, Hg⟩
   iapply h wg W ws wa r fcs $$ [Hg] [HΦ]
-  · iframe Hpkg Hg Hf; ipureintro; exact Hwa
+  · iframe Hpkg Hg Hf; ipureintro; exact ⟨Hwa, Hsz⟩
   inext
   iintro Hg
   iapply HΦ

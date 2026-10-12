@@ -23,7 +23,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `New(lg, b, le, cfg)` on a fresh backend (`newWatchableStore`'s premises): the watchable store
 as a `WatchableKV`, its two loops started (`s.wg.Add(2)`, each with a reader slot and a done
-token), with what `newWatchableStore` gives but those two slots, and the right to close it
+token), with what `newWatchableStore` gives (every watch token among it) but those two slots, and the right to close it
 (`wsCloser`: the stop channel's close, the wait for the loops, the inner store's close). -/
 abbrev mvcc.New.spec : Prop :=
   ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (γb γl : GName) (P : IProp GF) (f : val),
@@ -36,6 +36,7 @@ abbrev mvcc.New.spec : Prop :=
   {{ (s : Loc), RET #(interface.mkOk (go.GoType.PointerType watchableStore.ty) #s);
       ∃ (st : Loc) (γ : mvcc.WsNames), ⌜γ.st.bucket = γb ∧ γ.st.leases = γl⌝ ∗
         mvcc.isWatchableStore s st γ ∗ mvcc.hookIs γ.st P f ∗ mvcc.watchWriter γ [[], []] ∗
+        mvcc.watchToks γ (2 ^ 63 - 3) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (),
           mvcc.watchReader s st γ) ∗
         mvcc.wsCloser s st }}

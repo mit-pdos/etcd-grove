@@ -1,7 +1,6 @@
 /-
 `intervalTree.Insert` (`interval_tree.go`). Lean-first (no Rocq counterpart); see `Model.lean`, `Defs.lean`.
-Pending: the interval tree's contract, proved in unit 4 (the tree's proof); until then a
-hypothesis of every result that reaches it (`?` in `etc/link-lean-first-adt.txt`).
+Proved in unit 4b (`Proof/.../adt/intervalTree__Insert.lean`).
 -/
 module
 
@@ -23,10 +22,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
-/-- `t.Insert(ivl, v)` of an interval not in the tree: the entry inserted in the tree's order. The whole tree (fraction `1`). -/
+/-- `t.Insert(ivl, v)`, the tree below `2^63 - 1` entries (the count's bound: `ownIvt` keeps
+`count` below `2^63`, which `count++` cannot check): the entry inserted in the tree's order,
+after the entries with an equal interval if any (the tree allows them: the server inserts the
+same interval twice). The whole tree (fraction `1`). -/
 abbrev adt.intervalTree.Insert.spec : Prop :=
   ∀ (t : Loc) (L : List adt.Entry) (b e : GoString) (v : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ adt.ownIvt t L 1 ∗ ⌜(b, e) ∉ L.map Prod.fst⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ adt.ownIvt t L 1 ∗
+      ⌜L.length + 1 < 2 ^ 63⌝ }}
     (App (App (Val (t @!! go.GoType.PointerType intervalTree.ty @!! go!"Insert"))
       (Val #(adt.affIvl b e))) (Val #v))
   {{ RET #(); adt.ownIvt t (adt.ivtInsert ((b, e), v) L) 1 }}
