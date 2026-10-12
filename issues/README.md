@@ -50,6 +50,7 @@ the tests; the issues and pull requests are filed by hand from them. A finding t
 | [etcd-txn-delete-then-ignore-put](etcd-txn-delete-then-ignore-put.md) | bug (a committed entry panics every member, and again on every restart) | `txn-delete-then-ignore-put` (d9ba0e03c) | txn (unit 3), 2026-10-12 |
 | [etcd-range-sort-none-limit](etcd-range-sort-none-limit.md) | bug | `range-sort-none-limit` (7362d4129) | txn (unit 2), 2026-10-11 |
 | [etcd-range-keys-only-lease](etcd-range-keys-only-lease.md) | bug (regression in v3.7, 7624a8a2e) | `range-keys-only-lease` (01e522548) | txn (unit 2), 2026-10-11 |
+| [etcd-apply-lease-checkpoint-sections](etcd-apply-lease-checkpoint-sections.md) | bug | `lease-checkpoint-one-section` (2a163496c) | apply (unit 1), 2026-10-12 |
 
 Findings without a draft yet (`notes/STATUS.md`, the leasing sections): `gatherOps` appending
 into the caller's nested `OpTxn` slice (a race only for callers who reuse the slice; assessed,
@@ -68,9 +69,5 @@ the verified code; found 2026-10-12 while fixing `etcd-range-sort-none-limit`; n
 alarm gauge counts an alarm activated twice twice (`AlarmStore.Activate` returns the existing
 member) and stays at 1 after it is disarmed (a wrong metric; reproduced; found 2026-10-12, apply
 unit 0; not filed).
-[etcd-apply-lease-checkpoint-sections](etcd-apply-lease-checkpoint-sections.md): a lease checkpoint
-entry with several checkpoints writes the backend in one critical section per checkpoint, so a
-backend commit between two persists the entry's consistent index with part of its writes (a
-remaining TTL lost across a crash; reproduced; found 2026-10-12, apply unit 1; not filed).
 Leads not yet assessed: the gRPC proxy's cache (`server/proxy/grpcproxy/cache/store.go`) builds
 its intervals as `checkIntervals` did, so a cached from-key range may never be invalidated.
