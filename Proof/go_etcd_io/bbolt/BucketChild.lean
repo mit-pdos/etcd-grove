@@ -292,6 +292,7 @@ theorem child_build (cl ibl : Loc) (V : BktView) (v : List w8) (qc : Qp) (hq1 : 
     iframe Htx Hpg
     iapply (value_inbucket (hG := hG) ibl _ v h16 hc).2
     iframe
+    try iexact Hib
 
 end lemmas
 

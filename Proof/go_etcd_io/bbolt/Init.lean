@@ -3,7 +3,8 @@ Package initialization of `go.etcd.io/bbolt` and of the packages it imports that
 gives no initialization predicate (`syscall`, `golang.org/x/sys/unix`, `encoding/hex`, `reflect`,
 bbolt's `internal/freelist`; `os`, `hash/fnv` and bbolt's `errors` are in
 `internal/common`'s `Init`): being initialized says nothing beyond the imports'
-initialization (no proof uses a package variable yet).
+initialization, but for bbolt's: its `discardLogger` holds a default logger over a set-up
+`log.Logger` (`bboltRootInit`, as `internal/common`'s `Init` says of bbolt's `errors`).
 -/
 module
 
@@ -14,6 +15,7 @@ public import Perennial.Proof.sync.atomic
 public import Perennial.Proof.bytes
 public import Perennial.Proof.log
 public import Perennial.Proof.math
+public import Proof.log.LogModel
 
 @[expose] public section
 
@@ -58,12 +60,40 @@ instance freelist_get_isPkgInit_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist :=
   build_get_is_pkg_init_wf
 
+end init
+
+section root
+open go_etcd_io.bbolt
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.bbolt.Assumptions]
+
+/-- The default logger at `dl`: a `DefaultLogger` (not debugging) over a set-up `log.Logger`,
+persistently. -/
+def defaultLoggerOK (dl : Loc) : IProp GF :=
+  iprop(∃ (ll : Loc), (dl ↦□ DefaultLogger.mk ll false : IProp GF) ∗ isLog ll)
+
+instance defaultLoggerOK_persistent (dl : Loc) : Persistent (defaultLoggerOK (GF := GF) dl) := by
+  unfold defaultLoggerOK; infer_instance
+
+/-- bbolt's package variables: `discardLogger`, a default logger. -/
+def bboltRootInit : IProp GF :=
+  iprop(∃ (dl : Loc), (globalAddr discardLogger ↦□ dl : IProp GF) ∗ defaultLoggerOK dl)
+
 instance root_isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.bbolt :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init bboltRootInit
 instance root_get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.bbolt :=
   build_get_is_pkg_init_wf
 
-end init
+/-- bbolt's default logger, from its package's initialization. -/
+theorem bboltRoot_access :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ⊢
+      iprop(∃ (dl : Loc), (globalAddr discardLogger ↦□ dl : IProp GF) ∗ defaultLoggerOK dl) := by
+  with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.go_etcd_io.bbolt
+
+end root
 
 end bbolt
 end EtcdGrove

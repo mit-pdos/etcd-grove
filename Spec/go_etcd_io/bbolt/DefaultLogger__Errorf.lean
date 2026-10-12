@@ -19,14 +19,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- The default logger at `dl`: a `DefaultLogger` (not debugging) over a set-up `log.Logger`,
-persistently. -/
-def defaultLoggerOK (dl : Loc) : IProp GF :=
-  iprop(∃ (ll : Loc), (dl ↦□ DefaultLogger.mk ll false : IProp GF) ∗ isLog ll)
-
-instance defaultLoggerOK_persistent (dl : Loc) : Persistent (defaultLoggerOK (GF := GF) dl) := by
-  unfold defaultLoggerOK; infer_instance
-
 /-- `l.Errorf(format, v...)` of the default logger: logs, returns. -/
 abbrev DefaultLogger.Errorf.spec : Prop :=
   ∀ (dl : Loc) (f : GoString) (v : GoSlice),
