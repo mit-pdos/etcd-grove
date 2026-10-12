@@ -67,6 +67,7 @@ protobuf's `Unmarshal` are the trust boundary (two axioms). -/
 #print axioms Perennial.EtcdGrove.mvcc.readView.wp_FirstRev
 #print axioms Perennial.EtcdGrove.mvcc.readView.wp_Rev
 #print axioms Perennial.EtcdGrove.mvcc.readView.wp_Range
+#print axioms Perennial.EtcdGrove.mvcc.store.wp_Rev
 
 /-! The write transactions (`kvstore_txn.go`, `metrics_txn.go`, `kv_view.go`): `Write` opens one
 under the batch lock, `Put`/`DeleteRange` append to the pending revision (the index's answers,
