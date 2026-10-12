@@ -27,10 +27,19 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__isLeader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__setAppliedIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__setTerm
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__stopWithDelay
+public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.HardState__GetCommit
+public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.HardState__GetTerm
+public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.HardState__GetVote
+public import EtcdDeps.Proof.go_etcd_io.raft.v3.IsEmptyHardState
+public import EtcdDeps.Proof.go_etcd_io.raft.v3.IsEmptySnap
+public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.Message__GetTo
+public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.NewConsistentIndex
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Notifier__Notify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Members
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ElectionTimeout
+public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
+public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Apply
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentApplyingIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentIndex
@@ -41,15 +50,29 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex_
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__UnsafeSave
 public import Proof.errors.Is
 public import Proof.github_com.dustin.go_humanize.Bytes
+public import EtcdDeps.Proof.go_etcd_io.raft.v3.isHardStateEqual
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage
+public import Proof.google_golang_org.protobuf.proto.Clone
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__ReadState
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__advanceTicks
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__apply
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__getLatestTickTs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__onStop
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__processMessages
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__start
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__stop
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__tick
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.ReadConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndexForce
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeUpdateConsistentIndex
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Verify
+public import Proof.go_uber_org.zap.Duration
 public import Proof.go_uber_org.zap.Int
 public import Proof.go_uber_org.zap.Logger__Debug
+public import Proof.go_uber_org.zap.Logger__Fatal
 public import Proof.go_uber_org.zap.Logger__Warn
 public import Proof.go_uber_org.zap.Stringer
 public import Proof.go_uber_org.zap.Uint64
@@ -207,6 +230,46 @@ theorem EtcdServer.wp_getTxPostLockInsideApplyHook :
     EtcdServer.getTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG) :=
   EtcdServer.getTxPostLockInsideApplyHook.wp_proof consistentIndex.wp_ConsistentApplyingIndex consistentIndex.wp_UnsafeConsistentIndex consistentIndex.wp_SetConsistentIndex
 
+theorem raftpb.HardState.wp_GetCommit :
+    raftpb.HardState.GetCommit.spec (GF := GF) (hG := hG) :=
+  raftpb.HardState.GetCommit.wp_proof
+
+theorem raftpb.HardState.wp_GetTerm :
+    raftpb.HardState.GetTerm.spec (GF := GF) (hG := hG) :=
+  raftpb.HardState.GetTerm.wp_proof
+
+theorem raftpb.HardState.wp_GetVote :
+    raftpb.HardState.GetVote.spec (GF := GF) (hG := hG) :=
+  raftpb.HardState.GetVote.wp_proof
+
+theorem wp_isHardStateEqual :
+    isHardStateEqual.spec (GF := GF) (hG := hG) :=
+  isHardStateEqual.wp_proof raftpb.HardState.wp_GetTerm raftpb.HardState.wp_GetVote raftpb.HardState.wp_GetCommit
+
+theorem wp_IsEmptyHardState :
+    IsEmptyHardState.spec (GF := GF) (hG := hG) :=
+  IsEmptyHardState.wp_proof wp_isHardStateEqual
+
+theorem raftpb.Snapshot.wp_GetMetadata :
+    raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG) :=
+  raftpb.Snapshot.GetMetadata.wp_proof
+
+theorem raftpb.SnapshotMetadata.wp_GetIndex :
+    raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG) :=
+  raftpb.SnapshotMetadata.GetIndex.wp_proof
+
+theorem wp_IsEmptySnap :
+    IsEmptySnap.spec (GF := GF) (hG := hG) :=
+  IsEmptySnap.wp_proof raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
+
+theorem raftpb.Message.wp_GetTo :
+    raftpb.Message.GetTo.spec (GF := GF) (hG := hG) :=
+  raftpb.Message.GetTo.wp_proof
+
+theorem raftpb.Message.wp_GetType :
+    raftpb.Message.GetType.spec (GF := GF) (hG := hG) :=
+  raftpb.Message.GetType.wp_proof
+
 theorem wp_NewConsistentIndex :
     NewConsistentIndex.spec (GF := GF) (hG := hG) :=
   NewConsistentIndex.wp_proof
@@ -230,6 +293,18 @@ theorem schema.wp_UnsafeUpdateConsistentIndex :
 theorem consistentIndex.wp_UnsafeSave :
     consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG) :=
   consistentIndex.UnsafeSave.wp_proof schema.wp_UnsafeUpdateConsistentIndex
+
+theorem proto.wp_Clone :
+    proto.Clone.spec (GF := GF) (hG := hG) :=
+  proto.Clone.wp_proof
+
+theorem zap.wp_Duration :
+    zap.Duration.spec (GF := GF) (hG := hG) :=
+  zap.Duration.wp_proof
+
+theorem zap.Logger.wp_Fatal :
+    zap.Logger.Fatal.spec (GF := GF) (hG := hG) :=
+  zap.Logger.Fatal.wp_proof
 
 theorem schema.wp_UnsafeUpdateConsistentIndexForce :
     schema.UnsafeUpdateConsistentIndexForce.spec (GF := GF) (hG := hG) :=
@@ -261,6 +336,46 @@ theorem EtcdServer.wp_apply :
 theorem EtcdServer.wp_applyEntries :
     EtcdServer.applyEntries.spec (GF := GF) (hG := hG) :=
   EtcdServer.applyEntries.wp_proof raftpb.Entry.wp_GetIndex EtcdServer.wp_apply EtcdServer.wp_stopWithDelay
+
+theorem raftNode.wp_ReadState :
+    raftNode.ReadState.spec (GF := GF) (hG := hG) :=
+  raftNode.ReadState.wp_proof
+
+theorem raftNode.wp_tick :
+    raftNode.tick.spec (GF := GF) (hG := hG) :=
+  raftNode.tick.wp_proof
+
+theorem raftNode.wp_advanceTicks :
+    raftNode.advanceTicks.spec (GF := GF) (hG := hG) :=
+  raftNode.advanceTicks.wp_proof raftNode.wp_tick
+
+theorem raftNode.wp_apply :
+    raftNode.apply.spec (GF := GF) (hG := hG) :=
+  raftNode.apply.wp_proof
+
+theorem raftNode.wp_getLatestTickTs :
+    raftNode.getLatestTickTs.spec (GF := GF) (hG := hG) :=
+  raftNode.getLatestTickTs.wp_proof
+
+theorem raftNode.wp_onStop :
+    raftNode.onStop.spec (GF := GF) (hG := hG) :=
+  raftNode.onStop.wp_proof
+
+theorem raftNode.wp_processMessages :
+    raftNode.processMessages.spec (GF := GF) (hG := hG) :=
+  raftNode.processMessages.wp_proof raftpb.Message.wp_GetTo raftpb.Message.wp_GetType zap.wp_String zap.wp_Duration zap.Logger.wp_Warn
+
+theorem wp_updateCommittedIndex :
+    updateCommittedIndex.spec (GF := GF) (hG := hG) :=
+  updateCommittedIndex.wp_proof raftpb.Entry.wp_GetIndex
+
+theorem raftNode.wp_start :
+    raftNode.start.spec (GF := GF) (hG := hG) :=
+  raftNode.start.wp_proof raftNode.wp_tick raftNode.wp_processMessages wp_updateCommittedIndex raftNode.wp_onStop wp_IsEmptySnap wp_IsEmptyHardState raftpb.HardState.wp_GetCommit raftpb.Entry.wp_GetType proto.wp_Clone zap.wp_Error zap.Logger.wp_Fatal
+
+theorem raftNode.wp_stop :
+    raftNode.stop.spec (GF := GF) (hG := hG) :=
+  raftNode.stop.wp_proof
 
 end links_hasLC
 

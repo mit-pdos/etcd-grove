@@ -62,3 +62,29 @@ EtcdServer__setTerm:
 EtcdServer__applyEntries: Entry__GetIndex EtcdServer__apply EtcdServer__stopWithDelay
 EtcdServer__applyEntryNormal: Entry__GetIndex Entry__GetTerm consistentIndex__ConsistentIndex consistentIndex__SetConsistentIndex Notifier__Notify EtcdServer__isLeader ServerConfig__ElectionTimeout apply_Apply errors_Is AlarmStore__Get EtcdServer__Logger zap_String zap_Int64 zap_Error go_humanize_Bytes zap_Logger__Warn EtcdServer__GoAttach
 EtcdServer__apply: zap_Logger__Debug zap_Int zap_Uint64 zap_Stringer consistentIndex__ConsistentIndex consistentIndex__SetConsistentApplyingIndex consistentIndex__SetConsistentIndex Entry__GetIndex Entry__GetTerm Entry__GetType EtcdServer__applyEntryNormal EtcdServer__setAppliedIndex EtcdServer__setTerm pbutil_MustUnmarshalMessage EtcdServer__applyConfChange ConfChange__GetId RaftCluster__Members
+# The raft wrapper (server/etcdserver/raft.go), see InvRaftNode.lean: raft v3.7's helpers and
+# getters it calls, its trust boundary (zap's Duration and Fatal, proto.Clone: names-only), and
+# raftNode's methods (raft.Node, the WAL, the transport, ... are contracts in isRaftNode).
+HardState__GetTerm:
+HardState__GetVote:
+HardState__GetCommit:
+Message__GetTo:
+Message__GetType:
+Snapshot__GetMetadata:
+SnapshotMetadata__GetIndex:
+isHardStateEqual: HardState__GetTerm HardState__GetVote HardState__GetCommit
+IsEmptyHardState: isHardStateEqual
+IsEmptySnap: Snapshot__GetMetadata SnapshotMetadata__GetIndex
+zap_Duration:
+zap_Logger__Fatal:
+proto_Clone:
+updateCommittedIndex: Entry__GetIndex
+raftNode__tick:
+raftNode__advanceTicks: raftNode__tick
+raftNode__getLatestTickTs:
+raftNode__ReadState:
+raftNode__apply:
+raftNode__onStop:
+raftNode__stop:
+raftNode__processMessages: Message__GetTo Message__GetType zap_String zap_Duration zap_Logger__Warn
+raftNode__start: raftNode__tick raftNode__processMessages updateCommittedIndex raftNode__onStop IsEmptySnap IsEmptyHardState HardState__GetCommit Entry__GetType proto_Clone zap_Error zap_Logger__Fatal
