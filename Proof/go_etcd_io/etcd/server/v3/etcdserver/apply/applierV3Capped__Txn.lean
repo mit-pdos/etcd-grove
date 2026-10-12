@@ -35,11 +35,10 @@ theorem apply.applierV3Capped.Txn.wp_proof
   wp_start as ⟨Hc, #Hin, Hpre⟩
   iunfold apply.cappedIs at Hc
   ipersist Hc
-  ihave #He : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors $$ []
-  · iPkgInit
-  ihave Hei : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ He
-  icases Hei with ⟨%eN, #HeN, %HeNp⟩
+  ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hai with ⟨-, -, #Hev⟩
+  icases applyErrVars_noSpace $$ Hev with ⟨%eN, #HeN, #HeI⟩
   wp_auto
   iunfold apply.applierSpec at Hin
   icases Hin with ⟨%bi, %Hbi, #Ht⟩

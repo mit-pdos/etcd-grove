@@ -56,7 +56,7 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
   have hk : apply.authChecks (dispatchKind rq) = true := by rw [Hk.2.1]; rfl
   wp_auto
   wp_apply HDel $$ %_ %info %(DFrac.own 1) %ksl %esl %k %e %DFrac.discard %DFrac.discard [Hinfo]
-    as %err ⟨Hinfo, -⟩
+    as %err ⟨Hinfo, -, -, #HeI⟩
   · iframe; iframe #
   cases err with
   | ok e' =>
@@ -67,7 +67,7 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
     · simp only [apply.deleteOutcomeIs, apply.rejErrIs]
       isplitr
       · ipureintro; trivial
-      · ipureintro; simp
+      · iframe HeI; ipureintro; simp
     · iunfold apply.authInfoOwn; iexists info; iexact Hinfo
   | nil =>
   wp_auto
@@ -84,7 +84,7 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
     iunfold apply.authInfoOwn; iexists info; iexact Hinfo
   wp_auto
   wp_apply HRange $$ %_ %info %(DFrac.own 1) %ksl %esl %k %e %DFrac.discard %DFrac.discard [Hinfo]
-    as %err ⟨Hinfo, -⟩
+    as %err ⟨Hinfo, -, -, #HeI⟩
   · iframe; iframe #
   cases err with
   | ok e' =>
@@ -95,7 +95,7 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
     · simp only [apply.deleteOutcomeIs, apply.rejErrIs]
       isplitr
       · ipureintro; trivial
-      · ipureintro; simp
+      · iframe HeI; ipureintro; simp
     · iunfold apply.authInfoOwn; iexists info; iexact Hinfo
   | nil =>
   wp_auto

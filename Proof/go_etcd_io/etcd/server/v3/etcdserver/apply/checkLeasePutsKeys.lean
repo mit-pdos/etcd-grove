@@ -34,11 +34,11 @@ theorem apply.checkLeasePutsKeys.wp_proof :
   iunfold apply.leaseIs at Hl
   icases Hl with ⟨%Hln, -, -, #HKeys⟩
   wp_auto
-  wp_apply HAdmin $$ [$Hai] as %err Hai
+  wp_apply HAdmin $$ [$Hai] as %err ⟨Hai, #HeI1⟩
   cases err with
   | nil =>
     wp_auto
-    iapply HΦ; iexact Hai
+    iapply HΦ; iframe Hai; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
   | ok e =>
   wp_auto
   wp_apply HKeys as %sl ⟨%ks, Hks⟩
@@ -63,7 +63,7 @@ theorem apply.checkLeasePutsKeys.wp_proof :
     wp_apply wp_load_slice_index sl (sint.Z n) _ _ kx Hn.1 $$ [Hks] as Hks
     · iframe; ipureintro; exact Hkx
     wp_apply wp_string_to_bytes kx as %bsl ⟨Hb, -⟩
-    wp_apply HPut $$ [$Hai $Hb] as %err ⟨Hai, -⟩
+    wp_apply HPut $$ [$Hai $Hb] as %err ⟨Hai, -, #HeI2⟩
     cases err with
     | nil =>
       wp_auto
@@ -75,8 +75,8 @@ theorem apply.checkLeasePutsKeys.wp_proof :
     | ok e' =>
       wp_auto
       wp_for_post
-      iapply HΦ; iexact Hai
-  iapply HΦ; iexact Hai
+      iapply HΦ; iframe Hai; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
+  iapply HΦ; iframe Hai; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
 
 end proof
 

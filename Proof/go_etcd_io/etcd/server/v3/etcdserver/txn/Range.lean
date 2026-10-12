@@ -37,8 +37,8 @@ theorem txn.Range.wp_proof
     (hExec : txn.executeRange.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.Range.spec (GF := GF) (hG := hG) := by
-  intro ctx cd lg kv s γ r o withTotal m log₀
-  wp_start as ⟨#Hkv, Hrd, Htoks, #Hc0, #Hr, #Hctx, %Hlg, %Hpre⟩
+  intro ctx cd nd lg kv s γ r o withTotal m log₀
+  wp_start as ⟨#Hkv, Hrd, Htoks, #Hc0, #Hr, #Hctx, #Hnd, %Hlg, %Hpre⟩
   iunfold txn.isKV at Hkv
   icases Hkv with ⟨%Hkv, #Hs⟩
   subst Hkv
@@ -52,10 +52,12 @@ theorem txn.Range.wp_proof
   ihave Htx : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
   ihave Htv := (txn.txnViewIs_mw mw s γ (.read log rev)).2 $$ Htx
-  wp_apply (hExec ctx' _ false lg s γ _ (.read log rev) false r o withTotal)
-    $$ [$Htv $Hctx' $Hr] as %resp %err ⟨Htv, #Hres, -⟩
-  · isplitr
-    · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+  wp_apply (hExec ctx' _ nd lg s γ _ (.read log rev) false r o withTotal)
+    $$ [$Htv $Hctx' $Hr] as %resp %err ⟨Htv, #Hres, %Hnd'⟩
+  · isplitl [Hnd]
+    · cases nd
+      · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+      · simp only [↓reduceIte, mvcc.neverDone] at *; iexact Hnd
     ipureintro
     exact ⟨Hpre.1, txn.sortSmall_of_sortOk o log Hlog.1 _ (Hpre.2 log Hpin.1 Hpin.2)⟩
   ihave Htx' := (txn.txnViewIs_mw mw s γ (.read log rev)).1 $$ Htv
@@ -74,7 +76,7 @@ theorem txn.Range.wp_proof
     iexists log, rev
     iframe Hcert Hres
     ipureintro
-    exact ⟨Hpin.1, Hpin.2, Hlog.2.1, Hlog.2.2⟩
+    exact ⟨⟨Hpin.1, Hpin.2, Hlog.2.1, Hlog.2.2⟩, Hnd'⟩
 
 end proof
 

@@ -50,17 +50,19 @@ theorem apply.authApplierV3.RoleGet.wp_proof :
   iunfold apply.applierTriples at Ht
   icases Ht with ⟨-, -, -, -, -, #HResp, -⟩
   wp_auto
-  wp_apply HAdmin $$ [$Hinfo] as %err Hinfo
+  wp_apply HAdmin $$ [$Hinfo] as %err ⟨Hinfo, #HeI⟩
   cases err with
   | nil =>
     wp_auto
-    wp_apply HResp $$ %go!"RoleGet" %r %log %Pre %Q %Post [] [Hkv Hres Hcs] as %resp %err' Hpost
+    wp_apply HResp $$ %go!"RoleGet" %r %log %Pre %Q %Post [] [Hkv Hres Hcs] as %resp %err' ⟨Hpost, #HeI'⟩
     · ipureintro; simp [apply.respMethods]
     · simp [apply.reqFacts]
       iunfold apply.mPre
       iframe
       iexists _; iexact Hr
     iapply HΦ
+    isplitl; rotate_left
+    · first | iexact HeI' | iexact HeI | iapply applyErrIs_nil
     iunfold apply.mPost at Hpost
     iunfold apply.mPost
     icases Hpost with ⟨Hkv, Hres, HPP⟩
@@ -75,6 +77,8 @@ theorem apply.authApplierV3.RoleGet.wp_proof :
       wp_alloc resp as Hresp
       wp_auto
       iapply HΦ
+      isplitl; rotate_left
+      · first | iexact HeI' | iexact HeI | iapply applyErrIs_nil
       ihave HPre := apply.csContract_pre _ _ _ _ _ $$ Hcs
       iunfold apply.mPost
       iframe Hkv
@@ -83,13 +87,15 @@ theorem apply.authApplierV3.RoleGet.wp_proof :
         iunfold apply.authInfoOwn; iexists _; iexact Hinfo
       iright; iexact HPre
     wp_auto
-    wp_apply HResp $$ %go!"RoleGet" %r %log %Pre %Q %Post [] [Hkv Hres Hcs] as %resp %err' Hpost
+    wp_apply HResp $$ %go!"RoleGet" %r %log %Pre %Q %Post [] [Hkv Hres Hcs] as %resp %err' ⟨Hpost, #HeI'⟩
     · ipureintro; simp [apply.respMethods]
     · simp [apply.reqFacts]
       iunfold apply.mPre
       iframe
       iexists _; iexact Hr
     iapply HΦ
+    isplitl; rotate_left
+    · first | iexact HeI' | iexact HeI | iapply applyErrIs_nil
     iunfold apply.mPost at Hpost
     iunfold apply.mPost
     icases Hpost with ⟨Hkv, Hres, HPP⟩

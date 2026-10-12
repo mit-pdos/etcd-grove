@@ -47,6 +47,104 @@ namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
+namespace EtcdGrove
+
+section errIs
+variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+
+/-- **An `errors.New` error, as `errors.Is` sees it**: a pointer error (an `*errorString`,
+`errors.IsPointerError`: Go's `==` on it is Lean's equality), a leaf of an error tree without an
+`Is` method (`*errorString` has only `Error`; the model's method sets are uninterpreted, so this
+is stated, not derived; as the recipes' `errNewLeaf`). -/
+def errLeaf (e : GoInterfaceOk) : Prop :=
+  _root_.Perennial.errors.IsPointerError e ∧ _root_.Perennial.errors.isLeafError e ∧
+    methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool])
+
+end errIs
+
+section errIsIProp
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- **An error the applier returns, as `errors.Is` sees it** (persistent): for any target, the
+error is in an error tree (`errors.errorIsTree`: the specs of its `Is` and `Unwrap` methods, if
+it has them, which return without panicking), whose errors of the target's type hold pointers
+if the target does (`errors.TreeTyped`, Go's typing). What `errors.Is(ar.Err, ErrNoSpace)`
+(the server's `applyEntryNormal`) and `errors.Is(ar.Err, mvcc.ErrCompacted)` (`dispatch`'s
+metrics) need of it (`errors.wp_Is`). As `clientErrIs` for the client's errors. Defined here,
+in the apply package's `Base` (moved from the server's `InvApplier.lean`, 2026-10-12, the merge
+of the apply package's unit 2), so that the apply package states it and the server reads
+it (`apply.resultErrOk`). `nil` has it (`applyErrIs_nil`), and so has an `errors.New` error
+(`applyErrIs_leaf`). -/
+def applyErrIs (err : GoInterface) : IProp GF :=
+  iprop(□ ∀ target : GoInterface, ∃ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop),
+    _root_.Perennial.errors.errorIsTree (GF := GF) S M target ∗
+    ⌜S err ∧ _root_.Perennial.errors.TreeTyped S target⌝)
+
+instance applyErrIs_persistent (err : GoInterface) :
+    Persistent (applyErrIs (GF := GF) err) := by
+  unfold applyErrIs; infer_instance
+
+/-- `nil` is in the empty tree. -/
+theorem applyErrIs_nil : ⊢ applyErrIs (GF := GF) GoInterface.nil := by
+  iunfold applyErrIs
+  iintro !> %target
+  iexists (· = GoInterface.nil), (fun _ => False)
+  isplitl
+  · iintro !> %ii %h
+    cases h
+  ipureintro
+  refine ⟨rfl, ?_⟩
+  intro ii tii h
+  cases h
+
+/-- An `errors.New` error is a one-error tree. -/
+theorem applyErrIs_leaf [_root_.Perennial.errors.Assumptions] (e : GoInterfaceOk) (h : errLeaf e) :
+    ⊢ applyErrIs (GF := GF) (GoInterface.ok e) := by
+  iunfold applyErrIs
+  iintro !> %target
+  iexists (· = GoInterface.ok e), (fun _ => False)
+  isplitl
+  · iapply _root_.Perennial.errors.errorIsTree_leaf e (fun _ => False) target h.2.1 h.2.2
+  ipureintro
+  exact ⟨rfl, _root_.Perennial.errors.treeTyped_pointer e target h.1⟩
+
+/-- **The error variable `g` holds an `errors.New` error** (persistent; a package fact). -/
+def errVarLeaf (g : GoString) : IProp GF :=
+  iprop(∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗ ⌜errLeaf e⌝)
+
+instance errVarLeaf_persistent (g : GoString) : Persistent (errVarLeaf (GF := GF) g) := by
+  unfold errVarLeaf; infer_instance
+
+/-- The error the variable `g` holds (as the txn package's `errVarIs` states it) is one
+`errors.Is` can take, if `g` holds an `errors.New` error. -/
+theorem errVar_applyErrIs [_root_.Perennial.errors.Assumptions] (g : GoString) (err : GoInterface) :
+    errVarLeaf (GF := GF) g ⊢
+      (∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗ ⌜err = GoInterface.ok e⌝) -∗
+      applyErrIs err := by
+  iunfold errVarLeaf
+  iintro ⟨%e, #He, %hl⟩ ⟨%e', #He', %heq⟩
+  icombine He He' gives %h
+  subst heq
+  cases h
+  iapply applyErrIs_leaf e hl
+
+/-- The variable `g`'s error, one `errors.Is` can take. -/
+theorem errVarLeaf_get [_root_.Perennial.errors.Assumptions] (g : GoString) :
+    errVarLeaf (GF := GF) g ⊢
+      ∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗ applyErrIs (GoInterface.ok e) := by
+  iunfold errVarLeaf
+  iintro ⟨%e, #He, %hl⟩
+  iexists e
+  iframe He
+  iapply applyErrIs_leaf e hl
+
+end errIsIProp
+
+end EtcdGrove
+
 section init
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -165,13 +263,32 @@ end go_etcd_io.raft.v3.raftpb
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.apply
 
+/-- **The error variables the applier returns, or compares its result's error with, hold
+`errors.New` errors** (`EtcdGrove.errVarLeaf`: leaves of an error tree, pointer errors): its own
+wrappers' `ErrCorrupt` and `ErrNoSpace` (`etcdserver/errors`), the txn package's checks'
+`ErrKeyNotFound` (`etcdserver/errors`) and `lease.ErrLeaseNotFound`, mvcc's `ErrFutureRev` and
+`ErrCompacted` (the range check's; `ErrCompacted` the target of `dispatch`'s `errors.Is`). An
+assumption about the initialization of those packages (each `var X = errors.New(...)`), stated
+here rather than in their packages' facts (which state each a fixed non-nil error, and which
+their proofs destructure by position), as the txn package states its foreign errors; what
+`apply.Apply`'s result needs to be one `errors.Is` can take (`applyErrIs`). -/
+abbrev applyErrVars : IProp GF :=
+  iprop(EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrKeyNotFound ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted)
+
 /-- The apply package's facts: its gauge `alarms` holds a fixed `*prometheus.GaugeVec` (whose
 `WithLabelValues` is the trust boundary, `Spec/github_com/prometheus/client_golang/prometheus/
-GaugeVec__WithLabelValues.lean`), and `etcdserver/errors.ErrCorrupt` a fixed non-nil error. -/
+GaugeVec__WithLabelValues.lean`), `etcdserver/errors.ErrCorrupt` a fixed non-nil error, and the
+error variables it returns `errors.New` errors (`applyErrVars`). -/
 abbrev applyInit : IProp GF :=
   iprop((∃ gv : Loc, globalAddr alarms ↦□ gv) ∗
     (∃ e : GoInterfaceOk,
-      globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt ↦□ GoInterface.ok e))
+      globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt ↦□ GoInterface.ok e) ∗
+    applyErrVars)
 
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply :=
@@ -183,5 +300,33 @@ instance get_isPkgInit_wf_inst :
 end go_etcd_io.etcd.server.v3.etcdserver.apply
 
 end init
+
+namespace EtcdGrove
+
+section errVars
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics] [_root_.Perennial.errors.Assumptions]
+
+/-- `ErrCorrupt`'s error, one `errors.Is` can take (`applyErrVars`). -/
+theorem applyErrVars_corrupt :
+    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      ∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCorrupt ↦□
+        GoInterface.ok e ∗ applyErrIs (GoInterface.ok e) := by
+  iintro ⟨H, -⟩
+  iapply errVarLeaf_get $$ H
+
+/-- `ErrNoSpace`'s error, one `errors.Is` can take (`applyErrVars`). -/
+theorem applyErrVars_noSpace :
+    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      ∃ e : GoInterfaceOk, globalAddr go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace ↦□
+        GoInterface.ok e ∗ applyErrIs (GoInterface.ok e) := by
+  iintro ⟨-, H, -⟩
+  iapply errVarLeaf_get $$ H
+
+end errVars
+
+end EtcdGrove
 
 end Perennial

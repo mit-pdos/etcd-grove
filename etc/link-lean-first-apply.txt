@@ -25,6 +25,9 @@ context_WithValue:
 storage_NewBackendQuota:
 storage_BackendQuota__Cost:
 context_TODO:
+# `errors.Is` (`dispatch`'s deferred metrics, on any error): the server's axiom, stated under the
+# errors package's assumptions since unit 2 (Spec/errors/Is.lean).
+errors_Is:
 # The txn package's functions and mvcc's the apply proofs call (`@`: linked in their Link.lean):
 # the backend applier's KV methods, `dispatch`'s metrics, `newHeader`'s `KV.Rev()`.
 txn_Put: @
@@ -34,9 +37,7 @@ txn_Txn: @
 txn_ApplySecObserve: @
 mvcc_store__Rev: @
 #
-# The package's functions (units 1 and 2), with a first guess of their callees; `errors.Is`
-# (`dispatch`'s deferred metrics) is the server's axiom, stated under the server's
-# assumptions: unit 2 restates it (or uses Perennial's `errors.wp_Is`).
+# The package's functions (units 1 and 2).
 # Unit 1: backend.go (applierV3backend; `Compaction` has no spec: compaction is out of the model).
 newApplierV3Backend: applierV3backend__Apply applierV3backend__Put applierV3backend__DeleteRange applierV3backend__Range applierV3backend__Txn applierV3backend__LeaseRevoke applierV3backend__LeaseGrant applierV3backend__LeaseCheckpoint applierV3backend__Alarm applierV3backend__Authenticate applierV3backend__UserAdd applierV3backend__UserDelete applierV3backend__UserChangePassword applierV3backend__UserGrantRole applierV3backend__UserGet applierV3backend__UserRevokeRole applierV3backend__RoleAdd applierV3backend__RoleGrantPermission applierV3backend__RoleGet applierV3backend__RoleRevokePermission applierV3backend__RoleDelete applierV3backend__UserList applierV3backend__RoleList applierV3backend__AuthEnable applierV3backend__AuthDisable applierV3backend__AuthStatus applierV3backend__ClusterVersionSet applierV3backend__ClusterMemberAttrSet applierV3backend__DowngradeInfoSet
 applierV3backend__Apply:
@@ -104,12 +105,13 @@ authApplierV3__UserGet:
 authApplierV3__RoleGet:
 authApplierV3__Apply: needAdminPermission
 newAuthApplierV3: authApplierV3__Apply authApplierV3__Put authApplierV3__Range authApplierV3__DeleteRange authApplierV3__Txn authApplierV3__LeaseRevoke authApplierV3__UserGet authApplierV3__RoleGet
-# Unit 2: uber_applier.go, apply.go.
-# newApplierV3: newApplierV3Backend newQuotaApplierV3 newAuthApplierV3
-# uberApplier__restoreAlarms: newApplierV3Capped newApplierV3Corrupt
-# NewUberApplier: newApplierV3 uberApplier__restoreAlarms
-# uberApplier__Alarm: uberApplier__restoreAlarms
-# uberApplier__dispatch: txn_ApplySecObserve txn_WarnOfExpensiveRequest txn_WarnOfFailedRequest zap_Stringer zap_Logger__Panic uberApplier__Alarm
-# uberApplier__Apply:
-# noSideEffect:
-# Apply: pbutil_MustUnmarshalMessage zap_Stringer zap_Logger__Debug zap_Logger__Panic noSideEffect
+# Unit 2: uber_applier.go, apply.go (`dispatch`'s `default` panic and `Compaction` are ruled
+# out by the premise `dispatchOk`: no zap.Panic/Stringer, no Compaction callee).
+noSideEffect:
+newApplierV3: newApplierV3Backend newQuotaApplierV3 newAuthApplierV3
+uberApplier__restoreAlarms: newApplierV3Capped newApplierV3Corrupt
+NewUberApplier: newApplierV3 uberApplier__restoreAlarms
+uberApplier__Alarm: uberApplier__restoreAlarms
+uberApplier__dispatch: errors_Is txn_ApplySecObserve txn_WarnOfExpensiveRequest txn_WarnOfFailedRequest uberApplier__Alarm
+uberApplier__Apply: uberApplier__dispatch
+Apply: pbutil_MustUnmarshalMessage zap_Stringer zap_Logger__Debug noSideEffect uberApplier__Apply

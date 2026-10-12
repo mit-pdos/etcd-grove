@@ -106,7 +106,7 @@ theorem apply.authApplierV3.Apply.wp_proof
     · ileft; iexact HB
     · iright; iframe; ipureintro; first | rfl | (rw [hna] at h; exact h)
   wp_auto
-  wp_apply HAdmin $$ [$Hinfo] as %err Hinfo
+  wp_apply HAdmin $$ [$Hinfo] as %err ⟨Hinfo, #HeI⟩
   cases err with
   | nil =>
     wp_auto
@@ -157,7 +157,9 @@ theorem apply.authApplierV3.Apply.wp_proof
     · ipureintro; exact Harn
     iexists _
     iframe Har
-    ipureintro; simp
+    isplitr
+    · ipureintro; simp
+    iexact HeI
 
 end proof
 

@@ -37,11 +37,10 @@ theorem apply.quotaApplierV3.Put.wp_proof :
   iunfold apply.isQuota at Hqc
   icases Hqc with ⟨%qi, %Hqi, #HAvail, -⟩
   subst Hqi
-  ihave #He : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors $$ []
-  · iPkgInit
-  ihave Hei : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
-  · iapply isPkgInit_access $$ He
-  icases Hei with ⟨%eN, #HeN, %HeNp⟩
+  ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hai with ⟨-, -, #Hev⟩
+  icases applyErrVars_noSpace $$ Hev with ⟨%eN, #HeN, #HeI⟩
   iunfold apply.applierSpec at Hin
   icases Hin with ⟨%bi, %Hbi, #Ht⟩
   subst Hbi

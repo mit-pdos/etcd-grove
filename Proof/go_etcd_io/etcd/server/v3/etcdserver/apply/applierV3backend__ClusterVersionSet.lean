@@ -40,7 +40,7 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
     apply.applierV3backend.ClusterVersionSet.spec (GF := GF) (hG := hG) := by
   intro E p r v3 log Pre Q Post
   wp_start as ⟨#Hb, ⟨%ver, #Hr, %Hvalid⟩, Hpre⟩
-  iunfold apply.mPre at Hpre
+  iunfold apply.mPreV at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
@@ -66,7 +66,7 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
   wp_if_destruct
   · -- no previous version
     iapply HΦ
-    iunfold apply.mPost
+    iunfold apply.mPostV
     iframe
   wp_apply hLT as %b -
   · ipureintro; exact ⟨Hnv, Hif⟩
@@ -74,7 +74,7 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
   wp_if_destruct
   · -- not a downgrade
     iapply HΦ
-    iunfold apply.mPost
+    iunfold apply.mPostV
     iframe
   -- a downgrade: logged, a snapshot forced
   wp_if_destruct
@@ -95,7 +95,7 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
   rw [Hsi]
   wp_apply HFS
   iapply HΦ
-  iunfold apply.mPost
+  iunfold apply.mPostV
   iframe
 
 end proof
