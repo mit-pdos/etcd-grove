@@ -70,8 +70,30 @@ abbrev checkErrVars : IProp GF :=
     errVarSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCDuplicateKey ∗
     errVarSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCKeyNotFound)
 
-/-- The package's facts: the error map and the checks' errors. -/
-abbrev v3rpcInit : IProp GF := iprop(grpcErrMap ∗ checkErrVars)
+/-- **The protobuf enumerations' name maps** `checkRangeRequest` looks the sort order and target
+up in (`etcdserverpb.RangeRequest_SortOrder_name`, `RangeRequest_SortTarget_name`: generated
+`map[int32]string` literals, names only here): fixed maps whose keys are the enumerations'
+values, `NONE`, `ASCEND`, `DESCEND` (`0` to `2`) and `KEY`, `VERSION`, `CREATE`, `MOD`, `VALUE`
+(`0` to `4`). Stated here rather than in `etcdserverpb`'s facts (the cache's). -/
+def sortNameMaps : IProp GF :=
+  iprop((∃ (mp : Loc) (M : GMap w32 GoString),
+      globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder_name ↦□ mp ∗
+      mp ↦$□ M ∗ ⌜∀ k : w32, (M !! k).isSome = true ↔ 0 ≤ sint.Z k ∧ sint.Z k ≤ 2⌝) ∗
+    (∃ (mp : Loc) (M : GMap w32 GoString),
+      globalAddr go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortTarget_name ↦□ mp ∗
+      mp ↦$□ M ∗ ⌜∀ k : w32, (M !! k).isSome = true ↔ 0 ≤ sint.Z k ∧ sint.Z k ≤ 4⌝))
+
+/-- **`context.Canceled` is a pointer error** (`errors.New("context canceled")`, Perennial's
+`context.wp_initialize'`, whose package fact keeps only that it is a typed error): what
+`errors.Is(err, context.Canceled)` (`togRPCError`) needs of its target (`errors.wp_Is`).
+Stated here, an assumption about `context`'s initialization as the rest. -/
+def ctxCanceledPtr : IProp GF :=
+  iprop(∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok e ∗
+    ⌜_root_.Perennial.errors.IsPointerError e⌝)
+
+/-- The package's facts: the error map, the checks' errors, the sort-name maps and
+`context.Canceled`. -/
+abbrev v3rpcInit : IProp GF := iprop(grpcErrMap ∗ checkErrVars ∗ sortNameMaps ∗ ctxCanceledPtr)
 
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc :=
