@@ -38,7 +38,7 @@ theorem mvcc.metricsTxnWrite.Changes.wp_proof
   (try wp_auto)
   iapply HΦ
   isplitl []
-  · ipureintro; rw [← Hps]; exact Hlen.1.symm
+  · ipureintro; rw [← Hps]; exact ⟨Hlen.1.symm, Hlen.2⟩
   iunfold mvcc.isTxnWrite
   iexists tw, ranges
   iframe

@@ -35,7 +35,7 @@ mvcc_txnReadWrite__Put: @
 mvcc_txnReadWrite__DeleteRange: @
 # mvcc's functions the txn proofs call (`@`: linked in mvcc's Link.lean): the store's `Write`
 # and `Read`, and the transaction's `Range`, `Put`, `DeleteRange`, `End` (units 1 and 2), `Rev`,
-# `FirstRev` (unit 2) (the `KV`, `TxnRead`/`TxnWrite` and `ReadView` interface values, whose
+# `FirstRev` (unit 2), `Changes` (unit 3) (the `KV`, `TxnRead`/`TxnWrite` and `ReadView` interface values, whose
 # dynamic types are `*store` and `*metricsTxnWrite`).
 mvcc_store__Write: @
 mvcc_store__Read: @
@@ -45,6 +45,7 @@ mvcc_metricsTxnWrite__DeleteRange: @
 mvcc_metricsTxnWrite__End: @
 mvcc_metricsTxnWrite__Rev: @
 mvcc_metricsTxnWrite__FirstRev: @
+mvcc_metricsTxnWrite__Changes: @
 #
 # Unit 1: put.go and delete.go (`mkGteRange`, of delete.go, is also `executeRange`'s).
 mkGteRange:
@@ -77,18 +78,18 @@ executeRange: traceutil_Get rangeLimit mkGteRange mvcc_metricsTxnWrite__Range mv
 txn_Range: traceutil_EnsureTrace txn_RangeSecObserve mvcc_store__Read executeRange mvcc_metricsTxnWrite__End
 txn_Count: txn_Range
 #
-# The package's functions, for the next units (no spec yet), with their callees in Go order as a
-# first guess (uncomment as they are specified; `?` for specified but not proved):
-# compareInt64:
-# compareKV: compareInt64
-# applyCompare: context_TODO mkGteRange compareKV
-# applyCompares: applyCompare
-# compareToPath: applyCompares
-# etcdserverpb_RequestOp__GetRequestRange:
-# IsTxnSerializable: etcdserverpb_RequestOp__GetRequestRange
-# IsTxnReadonly: etcdserverpb_RequestOp__GetRequestRange
-# checkTxn: checkRange checkPut
-# newTxnResp:
-# executeTxn: traceutil_Get traceutil_Trace__StartSubTrace executeRange traceutil_Trace__StopSubTrace proto_Size getPrevKV put deleteRange
-# txn: newTxnResp executeTxn zap_Error zap_Logger__Panic zap_Logger__Error
-# Txn: traceutil_EnsureTrace IsTxnReadonly compareToPath traceutil_Trace__StepWithFunction traceutil_Trace__AddField checkTxn traceutil_Trace__Step mvcc_NewReadOnlyTxnWrite txn
+# Unit 3: txn.go (and etcdserverpb's RequestOp.GetRequestRange, which IsTxnReadonly and
+# IsTxnSerializable call).
+txn_compareInt64:
+compareKV: txn_compareInt64
+applyCompare: context_TODO mkGteRange mvcc_metricsTxnWrite__Range compareKV
+applyCompares: applyCompare
+compareToPath: applyCompares
+etcdserverpb_RequestOp__GetRequestRange:
+IsTxnSerializable: etcdserverpb_RequestOp__GetRequestRange
+IsTxnReadonly: etcdserverpb_RequestOp__GetRequestRange
+checkTxn: checkRange checkPut
+newTxnResp:
+executeTxn: traceutil_Get traceutil_Trace__StartSubTrace mvcc_metricsTxnWrite__Rev mvcc_txnReadWrite__Rev mvcc_metricsTxnWrite__Changes mvcc_txnReadWrite__Changes executeRange traceutil_Trace__StopSubTrace proto_Size getPrevKV put deleteRange
+txn: newTxnResp executeTxn mvcc_metricsTxnWrite__Rev mvcc_txnReadWrite__Rev mvcc_metricsTxnWrite__Changes mvcc_txnReadWrite__Changes
+Txn: traceutil_EnsureTrace IsTxnReadonly mvcc_store__Read traceutil_Trace__StepWithFunction compareToPath traceutil_Trace__AddField checkTxn mvcc_metricsTxnWrite__End traceutil_Trace__Step mvcc_store__Write mvcc_NewReadOnlyTxnWrite txn mvcc_txnReadWrite__End

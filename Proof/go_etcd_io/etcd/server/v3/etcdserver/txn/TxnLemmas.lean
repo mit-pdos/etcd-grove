@@ -482,7 +482,7 @@ theorem wp_txnWrite_Changes (hCh : mvcc.metricsTxnWrite.Changes.spec (GF := GF) 
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         txnWriteIs (GoInterface.ok twi) s γ ro ilog pend }}
       (App (Val #(methods twi.ty go!"Changes" twi.v)) (Val #()))
-    {{ (chs : GoSlice), RET #chs; ⌜sint.nat chs.len = pend.length⌝ ∗
+    {{ (chs : GoSlice), RET #chs; ⌜sint.nat chs.len = pend.length ∧ 0 ≤ sint.Z chs.len⌝ ∗
         txnWriteIs (GoInterface.ok twi) s γ ro ilog pend }} := by
   wp_start_folded as ⟨Htw⟩
   iunfold txnWriteIs at Htw
@@ -529,7 +529,7 @@ theorem wp_txnWrite_Changes (hCh : mvcc.metricsTxnWrite.Changes.spec (GF := GF) 
     iintro -
     iapply HΦ
     isplitl []
-    · ipureintro; rfl
+    · ipureintro; exact ⟨rfl, by decide⟩
     iunfold txnWriteIs
     iexists _
     isplitl

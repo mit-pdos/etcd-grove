@@ -31,7 +31,7 @@ abbrev mvcc.metricsTxnWrite.Changes.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isTxnWrite mw s γ ilog pend puts deletes putSize }}
     (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Changes")) (Val #()))
-  {{ (chs : GoSlice), RET #chs; ⌜sint.nat chs.len = pend.length⌝ ∗
+  {{ (chs : GoSlice), RET #chs; ⌜sint.nat chs.len = pend.length ∧ 0 ≤ sint.Z chs.len⌝ ∗
       mvcc.isTxnWrite mw s γ ilog pend puts deletes putSize }}
 
 end spec
