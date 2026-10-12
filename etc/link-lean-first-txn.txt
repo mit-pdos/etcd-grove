@@ -33,14 +33,20 @@ mvcc_txnReadWrite__End: @
 mvcc_txnReadWrite__Changes: @
 mvcc_txnReadWrite__Put: @
 mvcc_txnReadWrite__DeleteRange: @
-# mvcc's write transaction as `Put` and `DeleteRange` use it (unit 1), linked in mvcc's Link.lean.
+# mvcc's functions the txn proofs call (`@`: linked in mvcc's Link.lean): the store's `Write`
+# and `Read`, and the transaction's `Range`, `Put`, `DeleteRange`, `End` (units 1 and 2), `Rev`,
+# `FirstRev` (unit 2) (the `KV`, `TxnRead`/`TxnWrite` and `ReadView` interface values, whose
+# dynamic types are `*store` and `*metricsTxnWrite`).
 mvcc_store__Write: @
+mvcc_store__Read: @
 mvcc_metricsTxnWrite__Range: @
 mvcc_metricsTxnWrite__Put: @
 mvcc_metricsTxnWrite__DeleteRange: @
 mvcc_metricsTxnWrite__End: @
+mvcc_metricsTxnWrite__Rev: @
+mvcc_metricsTxnWrite__FirstRev: @
 #
-# Unit 1: put.go and delete.go.
+# Unit 1: put.go and delete.go (`mkGteRange`, of delete.go, is also `executeRange`'s).
 mkGteRange:
 deleteRange: mkGteRange mvcc_metricsTxnWrite__Range mvcc_metricsTxnWrite__DeleteRange
 DeleteRange: traceutil_EnsureTrace mvcc_store__Write deleteRange mvcc_metricsTxnWrite__End
@@ -51,26 +57,28 @@ checkPut: checkLease checkAndGetPrevKV
 put: traceutil_Get mvcc_metricsTxnWrite__Put traceutil_Trace__AddField
 Put: traceutil_EnsureTrace proto_Size checkLease mvcc_store__Write checkAndGetPrevKV put mvcc_metricsTxnWrite__End
 #
+# Unit 2: range.go.
+IsDefaultOrdering:
+HasRevisionFilters:
+rangeLimit: IsDefaultOrdering HasRevisionFilters
+pruneKVs:
+filterRangeResults: pruneKVs
+kvSort__Swap:
+kvSort__Len:
+kvSortByKey__Less:
+kvSortByVersion__Less:
+kvSortByCreate__Less:
+kvSortByMod__Less:
+kvSortByValue__Less:
+sortRangeResults: IsDefaultOrdering sort_Sort sort_Reverse kvSort__Len kvSort__Swap kvSortByKey__Less kvSortByVersion__Less kvSortByCreate__Less kvSortByMod__Less kvSortByValue__Less
+asembleRangeResponse:
+checkRange: mvcc_metricsTxnWrite__Rev mvcc_metricsTxnWrite__FirstRev
+executeRange: traceutil_Get rangeLimit mkGteRange mvcc_metricsTxnWrite__Range filterRangeResults sortRangeResults traceutil_Trace__Step asembleRangeResponse
+txn_Range: traceutil_EnsureTrace txn_RangeSecObserve mvcc_store__Read executeRange mvcc_metricsTxnWrite__End
+txn_Count: txn_Range
+#
 # The package's functions, for the next units (no spec yet), with their callees in Go order as a
 # first guess (uncomment as they are specified; `?` for specified but not proved):
-# IsDefaultOrdering:
-# HasRevisionFilters:
-# rangeLimit: IsDefaultOrdering HasRevisionFilters
-# pruneKVs:
-# filterRangeResults: pruneKVs
-# kvSort__Swap:
-# kvSort__Len:
-# kvSortByKey__Less:
-# kvSortByVersion__Less:
-# kvSortByCreate__Less:
-# kvSortByMod__Less:
-# kvSortByValue__Less:
-# sortRangeResults: IsDefaultOrdering zap_Int32 zap_Logger__Panic sort_Sort sort_Reverse
-# asembleRangeResponse:
-# checkRange:
-# executeRange: traceutil_Get rangeLimit mkGteRange filterRangeResults sortRangeResults traceutil_Trace__Step asembleRangeResponse
-# Range: traceutil_EnsureTrace txn_RangeSecObserve executeRange
-# Count: Range
 # compareInt64:
 # compareKV: compareInt64
 # applyCompare: context_TODO mkGteRange compareKV

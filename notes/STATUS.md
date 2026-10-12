@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-11 (the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
+**Last updated:** 2026-10-12 (the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
 as pinned), the requests and responses as the client model's values (`Requests.lean`), `isKV`,
 `isTxnLessor`, 13 trust-boundary axioms (`sort.Sort`/`Reverse`, traceutil, `proto.Size`,
 `zap.Logger.Panic`, ...), mvcc's read-only write transaction proved, `gen-link.py --txn`, a
@@ -358,6 +358,132 @@ importing only its callees' specs, linked (`etc/link-lean-first-txn.txt`, `Link.
   functions verified (18.8%; 2 assumed, 30 translated), 110 of 653 lines (16.8%); mvcc unchanged
   (62 of 155, 661 lines); etcd 444 verified of 3599 functions (was 435), 4483 of 45570 lines (was
   4373).
+
+### Unit 2: Range (2026-10-11)
+
+Branch `txn-u2` (worktree `/shared/etcd-grove-txn2`, off `lean` at `5e3fc3803`), sorry-free;
+Perennial `e4e126e46` (`--packages=.lake/manifest-merge.json`). Every function of `range.go`
+(18) and `mkGteRange` (`delete.go`) specified (`Spec/.../txn/`) and proved (`Proof/.../txn/`),
+linked (`etc/link-lean-first-txn.txt`, `Link.lean`). Decisions: `decisions.md`, the txn entry's
+"Unit 2" bullet.
+
+- **The model** (`RangeModel.lean`, pure, standard axioms only): the server's range as the code
+  computes it: `rangeLimitOf` (`rangeLimit`), `fastKeysOnly`/`kvRead` (mvcc's `FastKeysOnly`
+  read: no value and lease `0`), `srvPre` (the state's key-values in the range, at most the limit
+  read with, as read, filtered by `kvFilterOk`; none if count-only), `srvSorted` (a permutation
+  of `srvPre` sorted by `kvLeBy target`, ascending or descending, when `effSortOrder` is `1`/`2`:
+  `sort.Sort` is not stable, ties in any order; `srvPre` itself otherwise), `srvTrunc`/`srvMore`
+  (the first `limit`, `More`), `respKv` (keys-only drops the value), `srvRangeOk o s kvs more`,
+  `srvCount` (count-only: the range's size; else `totalOf` of mvcc's limit and `withTotal`).
+  The comparators `kvLtBy` (`kvLtBy_swo`: strict weak orders; `kvLtBy_false_iff`: not-less is the
+  client's `kvLeBy`); `sub_neg_iff` (Go's `(a - b) < 0` is `a < b` on non-negative values: no
+  overflow). **The bridge** `srvRangeOk_rangeKvsOk`: `srvRangeOk` gives the client's
+  `rangeKvsOk o (rangeSel s o)` up to `leaseZ (fastKeysOnly o)`, and `More` is the client's below
+  `MaxInt64`, unless `cutEarly o`. The sort's premises: `validSortTarget` (else `lg.Panic`),
+  `sortOk o log` (a sorting request reads a log of at most `2^62` changes, `LogSmall`;
+  `stateAt_small`: then at most `2^62` keys, revisions and versions in `[0, 2^62]`).
+- **The heap** (`InvRange.lean`): `kvAt` (mvcc's owned `kvPtrIs true`; `kvPtrIs_false`: a fast
+  read's is `kvAt` of `kvRead true`), `kvsAt` (a list of (pointer, key-value)), `kvsOwnAt`,
+  `rangeResultIs rr rev count vs` (the `*RangeResult`, its key-values owned), `rangeResult`
+  (`executeRange`/`Range`'s three outcomes: `ErrFutureRev`, a context error on a full read
+  (mvcc's `rangeOutcome`, kept), or the response with `srvRangeOk` of `stateAt log (rangeRev rev
+  o.base.rev)` and `srvCount`), `checkRangeErr`. `RangeLemmas.lean`: mvcc's read to the model
+  (`rangeKvs_kvsAt`, `taken_stateAt`, `total_stateAt`, `srvPre_small`, `isTxnRead_pure`/`_cert`),
+  `rangeResultClient`, `rangeResult_client`.
+- **The specs** (one line each): `kvSort.Len` (`len(s.kvs)`); `kvSort.Swap` (the slice's `i`-th
+  and `j`-th pointers exchanged); `kvSortBy{Key,Version,Create,Mod,Value}.Less` (`kvLtBy t` of the
+  two owned key-values; the integer targets need `kvOk`); `IsDefaultOrdering` (`order = 0 ∨
+  (target = 0 ∧ order = 1)` on the `int32`s); `HasRevisionFilters` (`hasRevFilters o`);
+  `rangeLimit` (`rangeLimitOf o`); `mkGteRange` (`srvEnd (rangeEndOf sl e) = (decide (sl' = nil),
+  e')`: `[]byte{0}` becomes a non-`nil` empty slice); `pruneKVs` (with an `isPrunable` closure
+  deciding `P` of an owned key-value: the key-values `P` rejects, in order; the pruned ones and
+  the slice's tail no longer owned); `filterRangeResults` (`filter (kvFilterOk o)`);
+  `sortRangeResults` (`srvSorted o vs vs'`, premises `validSortTarget` and, when sorting, at most
+  `2^62` key-values with `kvOk`); `asembleRangeResponse` (`rangeResponseIs resp rev ((srvTrunc o
+  vs).map (respKv o)) (srvMore o vs) count`, the result's key-values persisted into the
+  response); `checkRange` (on a read transaction: `checkRangeErr rev o err`: `nil` for revision
+  `0` or in `[-1, rev]`, `ErrFutureRev` above, `ErrCompacted` below `-1`); `executeRange` (on
+  `isTxnRead mw s γ log rev`, premises `validSortTarget o ∧ sortOk o log`: `rangeResult`);
+  `Range` (`store.Read` with the caller's `ownToks m` and `idxCert log₀`, premise `sortOk` on
+  every log the read may see: `rangeResult` at the log read, `log₀ <+: log`, `log.length + m + 3
+  ≤ 2^63`, the trace non-`nil`); `Count` (the count-only `countOp`: `rangeIn` length of the state
+  read, or `ErrFutureRev` and `0`). mvcc: `metricsTxnWrite.Rev`/`FirstRev` of a read
+  transaction (`rev`, `-1`), additive (`etc/link-lean-first-mvcc.txt`).
+- **Results** (`Results.lean`, `#print axioms`: no `sorryAx`): `range_rangeSel` (`Range` with
+  `rangeResultClient`: the client's `rangeKvsOk` of `rangeSel`, premise `¬ cutEarly o`);
+  `range_soleWriter` (at `soleWriter γ log`, `log.length + 3 ≤ 2^63`: the read is at `log`,
+  revision `log.length - 1`, `soleWriter` returned); `count_result` (`Count` at the sole writer).
+- **Where the server and the client model differ** (both in `issues/`, with Go tests):
+  `etcd-range-sort-none-limit.md` (a non-key target with `SortOrder: NONE` and a positive limit:
+  only the first `limit + 1` keys are sorted, a wrong result reachable with `etcdctl get
+  --sort-by=VERSION --limit=1`; `cutEarly`), `etcd-range-keys-only-lease.md` (keys-only ranges
+  have lease `0` unless sorted by value, since 7624a8a2e; `leaseZ`). The client's `rangeKvsOk`
+  already allows any order of ties, so a non-stable sort is no difference. The comparators'
+  subtraction cannot overflow on a small log (`sub_neg_iff`, `kvOk`): not a finding.
+- **For the merge with unit 1**: `mkGteRange`'s spec and proof (with `wp_slice_literal_nn`) are
+  here; if unit 1 has its own, keep one and adapt `executeRange`'s call (one `wp_apply`). The
+  `metricsTxnWrite.Range` call in `executeRange` is in one place for unit 1's `isTxn`
+  generalization. `etc/gen-link.py`: an `@` callee whose result takes the cache's assumptions
+  (mvcc's `metricsTxnWrite.Range`, through the btree) now passes them on (`[go_etcd_io.etcd.
+  cache.v3.Assumptions]` on `wp_executeRange`, `wp_Range`, `wp_Count`); the cache's link list
+  names its `Range` `v3_Range` (the txn package's `Range` made the bare name ambiguous), its
+  `Link.lean` regenerated (one import moved).
+- **Gates**: `lake build` clean (2550 jobs); `gen-link.py --txn`, `--mvcc` and every other mode
+  reproduce their `Link.lean`; `tcb-report.py --check`: 69 axioms, 1 sorry (baseline unchanged);
+  `--collection txn.txt --check --update`: 19 axioms, 0 sorries (was 17: mvcc's
+  `binary.bigEndian.PutUint64` and `proto.Unmarshal`, reached through `store.Read`/`Range`; no
+  axiom added); every other collection unchanged (mvcc 13/0, server 26/0, cache 10/0, ...);
+  `ETCD_SRC=/shared/etcd goose.py --check --perennial /shared/perennial-merge` up to date;
+  `verified-code.py --reuse`: txn 19 of 48 functions verified (range.go 18/18, 164 lines; delete.go
+  1/3), 170 of 653 lines; etcd 454 of 3599 functions, 4543 of 45570 lines (was 435, 4373).
+
+### Merge of units 1 and 2 (2026-10-12)
+
+`txn-u1` (unit 1, with the stray `issues/recipes-pqueue-dequeue-order.md` commit `8eb95dacb`)
+fast-forwarded `lean` (`b3c219f87`), then `txn-u2` (unit 2) merged into it. Conflicts and their
+resolutions:
+
+- **`mkGteRange`** (`Spec/.../txn/mkGteRange.lean`, `Proof/.../txn/mkGteRange.lean`): both units
+  specified and proved it. Unit 1's spec is kept, being the stronger: the result holds `[]` and
+  is not `nil` for `[0]`, and is `rangeEnd` itself otherwise; unit 2's (`srvEnd (rangeEndOf sl e)
+  = (decide (sl' = nil), e')`) follows from it by unit 1's `srvEnd_mkGte` (`Write.lean`). With
+  unit 2's proof went its copy of `wp_slice_literal_nn` (it was in unit 2's `mkGteRange.lean`);
+  the one left is unit 1's, in `Write.lean`.
+- **`executeRange`'s proof** (the one proof changed): its `mkGteRange` call now gets the slice's
+  `ownSlice_len` first (a `nil` slice holds `[]`), then `srvEnd_mkGte` for unit 2's equation,
+  generalizing the result's contents to `e'` (the rest of the proof unchanged); its
+  `metricsTxnWrite.Range` call is unit 1's generalized spec at `kind := .read log rev`, `todo :=
+  false` (`rangeCtx false ctx cd` from `isContext`, as `readView.Range`). One unused `simp`
+  argument (`hcoB`) dropped.
+- **`etc/gen-link.py`**: both units added the same rule (an `@` callee whose result in its own
+  package's `Link.lean` takes the cache's assumptions passes them on); unit 1's version kept (the
+  `theorem` anchored at a line start), one comment for both. Every mode (`--cache`,
+  `--concurrency`, `--server`, `--register`, `--leasing`, `--recipes`, `--mvcc`, `--txn`)
+  reproduces its `Link.lean`; the cache's `v3_Range` rename (unit 2) merged cleanly.
+- **`etc/link-lean-first-txn.txt`**: one list of mvcc's `@` callees (`store.Write`/`Read`,
+  `metricsTxnWrite.Range`/`Put`/`DeleteRange`/`End`/`Rev`/`FirstRev`), then unit 1's functions
+  (one `mkGteRange`), then unit 2's; txn and mvcc `Link.lean` regenerated
+  (`etc/link-lean-first-mvcc.txt` merged cleanly: unit 1's `storeTxnWrite__Range` callee and unit
+  2's `Rev`/`FirstRev`).
+- **`Results.lean`**: unit 1's section, then unit 2's (`section unit2`, the opens of both), each
+  with its `#print axioms`; unit 0's mvcc prints last. **Notes**: this section's units in order;
+  `decisions.md` both bullets (unit 1's first); `issues/README.md` merged cleanly.
+
+The issues from the txn work, now all in `issues/`: `etcd-txn-empty-requestop` (`Txn` panics on
+a `RequestOp` with an empty oneof; unit 0), `etcd-range-sort-none-limit` (a sort by a non-key
+target with order `NONE` and a limit is cut short by the limit; unit 2),
+`etcd-range-keys-only-lease` (keys-only ranges drop the lease unless sorted by value; unit 2).
+
+Gates (Perennial `e4e126e46`, `--packages=.lake/manifest-merge.json`): `lake build` clean (2568
+jobs), no `sorry`, no new axiom; `gen-link.py` reproduces every mode; `tcb-report.py --check`:
+69 axioms, 1 sorry (baseline unchanged); `--collection txn.txt --check --update`: 20 axioms, 0
+sorries (unit 1's list exactly, the union of both units': unit 2's 19 and `proto.Marshal`);
+every other collection unchanged (mvcc 13/0, server 26/0, concurrency 12/1, recipes 11/0, cache
+10/0, leasing 8/0, raft 1/0, register 1/0, btree 0/0); `ETCD_SRC=/shared/etcd goose.py --check
+--perennial /shared/perennial-merge` up to date; `verified-code.py --reuse`: txn 27 of 48
+functions verified (56.2%; `range.go` 18/18, `put.go` 6/6, `delete.go` 3/3; 2 assumed, 12
+translated), 274 of 653 lines (42.0%); mvcc unchanged (62 of 155, 661 lines); etcd 462 of 3599
+functions, 4647 of 45570 lines (was 435, 4373 before the units).
 
 ## Merge: mvcc into lean (2026-10-11)
 

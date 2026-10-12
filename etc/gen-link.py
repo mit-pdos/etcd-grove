@@ -333,8 +333,9 @@ variable [package_sem : {assumptions}]
     cache_assumptions = set()
     for fn in order:
         if fn in external:
-            # an `@` callee's result takes them if its own package's `Link.lean` says so (mvcc's
-            # write path, which reaches the index's btree)
+            # an `@` callee whose result (in its own package's `Link.lean`) takes the cache's
+            # assumptions (mvcc's range read and write path, through the index's btree): so does
+            # every result linking it
             link = os.path.join(root, prefix[fn].rstrip("."), "Proof",
                                 *where[fn].split(".")[:-1], "Link.lean")
             if os.path.exists(link) and re.search(

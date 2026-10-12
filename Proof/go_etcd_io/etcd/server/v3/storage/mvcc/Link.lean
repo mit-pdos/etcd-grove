@@ -31,8 +31,10 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__put
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__tombstone
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__DeleteRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__FirstRev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Put
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Range
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Rev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newBucketKey
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnRead
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnWrite
@@ -229,6 +231,10 @@ theorem zap.Logger.wp_Error :
     zap.Logger.Error.spec (GF := GF) (hG := hG) :=
   zap.Logger.Error.wp_proof
 
+theorem mvcc.storeTxnCommon.wp_FirstRev :
+    mvcc.storeTxnCommon.FirstRev.spec (GF := GF) (hG := hG) :=
+  mvcc.storeTxnCommon.FirstRev.wp_proof
+
 theorem traceutil.Trace.wp_Step :
     traceutil.Trace.Step.spec (GF := GF) (hG := hG) :=
   traceutil.Trace.Step.wp_proof
@@ -252,10 +258,6 @@ theorem mvcc.wp_newMetricsTxnRead :
 theorem traceutil.wp_TODO :
     traceutil.TODO.spec (GF := GF) (hG := hG) :=
   traceutil.TODO.wp_proof
-
-theorem mvcc.storeTxnCommon.wp_FirstRev :
-    mvcc.storeTxnCommon.FirstRev.spec (GF := GF) (hG := hG) :=
-  mvcc.storeTxnCommon.FirstRev.wp_proof
 
 end links
 
@@ -312,6 +314,10 @@ theorem mvcc.metricsTxnWrite.wp_End :
     mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG) :=
   mvcc.metricsTxnWrite.End.wp_proof mvcc.storeTxnRead.wp_End mvcc.storeTxnWrite.wp_End
 
+theorem mvcc.metricsTxnWrite.wp_FirstRev :
+    mvcc.metricsTxnWrite.FirstRev.spec (GF := GF) (hG := hG) :=
+  mvcc.metricsTxnWrite.FirstRev.wp_proof mvcc.storeTxnCommon.wp_FirstRev
+
 theorem mvcc.treeIndex.wp_Get [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.treeIndex.Get.spec (GF := GF) (hG := hG) :=
   mvcc.treeIndex.Get.wp_proof mvcc.treeIndex.wp_unsafeGet
@@ -355,6 +361,10 @@ theorem mvcc.storeTxnWrite.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
 theorem mvcc.metricsTxnWrite.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.metricsTxnWrite.Range.spec (GF := GF) (hG := hG) :=
   mvcc.metricsTxnWrite.Range.wp_proof mvcc.storeTxnCommon.wp_Range mvcc.storeTxnWrite.wp_Range
+
+theorem mvcc.metricsTxnWrite.wp_Rev :
+    mvcc.metricsTxnWrite.Rev.spec (GF := GF) (hG := hG) :=
+  mvcc.metricsTxnWrite.Rev.wp_proof mvcc.storeTxnCommon.wp_Rev
 
 theorem mvcc.wp_newMetricsTxnWrite :
     mvcc.newMetricsTxnWrite.spec (GF := GF) (hG := hG) :=
