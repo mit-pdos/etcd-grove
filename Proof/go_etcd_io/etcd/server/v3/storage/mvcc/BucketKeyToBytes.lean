@@ -51,7 +51,7 @@ theorem mvcc.BucketKeyToBytes.wp_proof
     ⟨by decide, by rw [hlenZ, h8z]; omega⟩
   simp only [Hb8, _root_.and_self, ite_true]
   wp_apply wp_store_slice_index (V := w8) (t := go.byte) s _ _ (W8 95) $$ [$Hs] as Hs
-  · ipureintro; simp [u64Be_length, h8z, h8z']; omega
+  · ipureintro; simp [u64Be_length, h8z']; omega
   (try wp_auto)
   (try simp only [show (sint.Z (W64 8)).toNat = 8 by decide])
   rw [mvcc.enc_step1 _ bs (by omega)]
@@ -112,7 +112,7 @@ theorem mvcc.BucketKeyToBytes.wp_proof
           ⟨by decide, by rw [Hif]; decide⟩
         simp only [Hb17, _root_.and_self, ite_true]
         wp_apply wp_store_slice_index (V := w8) (t := go.byte) s _ _ (W8 116) $$ [$Hs] as Hs
-        · ipureintro; simp [mvcc.revBytes_false_length, h17z, h17z']
+        · ipureintro; simp [mvcc.revBytes_false_length, h17z']
         (try wp_auto)
         iapply HΦ
         (try simp only [show (sint.Z (W64 17)).toNat = 17 by decide])

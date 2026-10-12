@@ -53,6 +53,7 @@ structure StoreNames where
   `currentRev` never overflows -/
   revs : GName
 
+set_option linter.unusedVariables false in
 /-- `s.mu`'s resource: nothing (see the module docstring); it takes the semantics' instances
 (unused) so that the lock lemmas' own are determined at its uses. -/
 def muInv [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

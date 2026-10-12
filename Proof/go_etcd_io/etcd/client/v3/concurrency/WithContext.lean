@@ -37,7 +37,7 @@ theorem WithContext.wp_proof : WithContext.spec (GF := GF) (hG := hG) := by
   wp_start as ⟨Hp, -⟩
   wp_auto
   iapply HΦ
-  simp only [withLeaseSM, withContextM, SessionOpts.val]
+  simp only [withContextM, SessionOpts.val]
   iexact Hp
 
 end proof

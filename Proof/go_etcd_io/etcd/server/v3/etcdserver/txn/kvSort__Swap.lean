@@ -36,7 +36,7 @@ theorem txn.kvSort.Swap.wp_proof : txn.kvSort.Swap.spec (GF := GF) (hG := hG) :=
     have := Hl.1; refine ⟨hi0, ?_⟩; word
   have Hbj : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z sl.len := by
     have := Hl.1; refine ⟨hj0, ?_⟩; word
-  simp only [Hbi, Hbj, _root_.and_self, ite_true]
+  simp only [Hbi, _root_.and_self, ite_true]
   wp_apply wp_load_slice_index sl (sint.Z i) ps (DFrac.own 1) a hi0 $$ [Hs] as Hs
   · iframe; ipureintro; exact ha
   simp only [Hbj, _root_.and_self, ite_true]

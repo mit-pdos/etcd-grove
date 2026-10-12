@@ -161,7 +161,7 @@ private theorem wp_stepLeader_hbresp
     (wp_raft_sendAppend : raft.sendAppend.spec (GF := GF) (hG := hG))
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (Hty : m.Type' = MsgHeartbeatResp) (Hlead : s.role = .leader) (Hself : m.From' ≠ id) :
+    (Hty : m.Type' = MsgHeartbeatResp) (_Hlead : s.role = .leader) (Hself : m.From' ≠ id) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s ∗
         m.Context' ↦*□ ([] : List w8) }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #m))
@@ -299,7 +299,7 @@ private theorem wp_stepLeader_appresp
     (wp_Progress_CanBumpCommit : tracker.Progress.CanBumpCommit.spec (GF := GF) (hG := hG))
     (wp_Inflights_FreeLE : tracker.Inflights.FreeLE.spec (GF := GF) (hG := hG))
     (wp_raftLog_findConflictByTerm : raftLog.findConflictByTerm.spec (GF := GF) (hG := hG))
-    (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG))
+    (_wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG))
     (wp_raftLog_firstIndex : raftLog.firstIndex.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
     (Hty : m.Type' = MsgAppResp) (Hlead : s.role = .leader) (Hid : id ∈ cfg)

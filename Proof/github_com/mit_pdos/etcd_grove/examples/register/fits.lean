@@ -44,7 +44,7 @@ theorem fits.wp_proof : fits.spec (GF := GF) (hG := hG) := by
   have Hpos : 0 < sint.Z sl.len := by
     have := (List.getElem?_eq_some_iff.mp He0).1; obtain ⟨h1, h2⟩ := Hlen; word
   wp_if_destruct
-  · rw [if_pos (by word)]
+  · rw [ite_eq_left (by word)]
     icases ownSlice_elem_acc (sint.Z (W64 0)) e0 sl dq es (by word) (by simpa using He0) $$ Hs
       with ⟨He, Hsback⟩
     icases (AccessStrict.access_strict

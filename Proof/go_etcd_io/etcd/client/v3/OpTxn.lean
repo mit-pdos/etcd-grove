@@ -18,7 +18,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3
 private theorem set_replicate {A : Type} (cvs : List A) (z c : A) (k : Nat) (hk : 0 < k) :
     (cvs ++ List.replicate k z).set cvs.length c = (cvs ++ [c]) ++ List.replicate (k - 1) z := by
   obtain ⟨k', rfl⟩ : ∃ k', k = k' + 1 := ⟨k - 1, by omega⟩
-  simp [List.replicate_succ, List.set_append]
+  simp [List.replicate_succ]
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -86,7 +86,7 @@ theorem OpTxn.wp_proof (wp_Clone : Cmp.Clone.spec (GF := GF) (hG := hG)) :
       iexists ksl, esl', u
       iframe #
     (try wp_auto)
-    rw [if_pos (show 0 ≤ sint.Z n ∧ sint.Z n < sint.Z sl0.len from ⟨Hn.1, by word⟩)]
+    rw [ite_eq_left (show 0 ≤ sint.Z n ∧ sint.Z n < sint.Z sl0.len from ⟨Hn.1, by word⟩)]
     wp_apply wp_store_slice_index $$ [$Hs0] as Hs0
     · ipureintro
       constructor

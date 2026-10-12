@@ -106,7 +106,7 @@ theorem raft.tickHeartbeat.wp_proof
         imodintro
         iintro %Hc
         simp [MsgSnap] at Hc
-      simp only [hP, ↓reduceIte]
+      simp only [hP]
       iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, -, Herr⟩
       icases Herr with (%Herr | ⟨%Hc', -⟩)
       · subst Herr

@@ -8,6 +8,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvTxn
 @[expose] public section
 
 set_option linter.unusedSectionVars false
+set_option linter.iris.dupNamespace false
 
 noncomputable section
 

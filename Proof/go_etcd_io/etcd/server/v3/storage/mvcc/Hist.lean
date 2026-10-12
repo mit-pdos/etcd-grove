@@ -395,7 +395,7 @@ theorem kiGet_fold_below (k : GoString) : ∀ (es : List Ev) (ki : KeyIndex) (b 
     have hes' : EvsFrom e.rev.main.toNat es :=
       ⟨fun x hx => hsorted.1 x hx, fun x hx => hes.lt x (List.mem_cons_of_mem _ hx), hsorted.2⟩
     by_cases hk : e.key = k
-    · rw [if_pos hk]
+    · rw [ite_eq_left hk]
       have hrevs' : ∀ x ∈ kiRevs (kiApply ki e), x.main.toNat ≤ e.rev.main.toNat := by
         intro x hx
         rcases kiApply_revs hwf e x hx with hx | hx
@@ -404,7 +404,7 @@ theorem kiGet_fold_below (k : GoString) : ∀ (es : List Ev) (ki : KeyIndex) (b 
       rw [kiGet_fold_below k es (kiApply ki e) e.rev.main.toNat (kiApply_wf hwf e) hrevs' hlt hes' r
         (by omega)]
       exact kiGet_kiApply_below hwf hb hrevs e hge hlt hr
-    · rw [if_neg hk]
+    · rw [ite_eq_right hk]
       exact kiGet_fold_below k es ki e.rev.main.toNat hwf
         (fun x hx => Nat.le_trans (hrevs x hx) hge) hlt hes' r (by omega)
 
@@ -578,7 +578,7 @@ theorem kiLastEmpty_false_of_del (ilog : Log) (pend : List Change) (k : GoString
   rw [kiGet_top hlink.wf habove] at htop
   unfold kiLastEmpty
   by_cases he : ((kiOfKey (evsOf (ilog ++ [pend])) k).gens.getLastD Gen.empty).revs = []
-  · rw [if_pos he] at htop
+  · rw [ite_eq_left he] at htop
     rw [KvMatch_none_left htop] at hpresent
     simp at hpresent
   · simp only [he, decide_false]
@@ -596,12 +596,12 @@ theorem btFind_sorted_eq_find? {V : Type} (keyf : V → GoString) (less : V → 
     unfold btFind
     rw [List.find?_cons]
     by_cases h1 : less w x
-    · rw [if_pos h1, btFind_sorted_eq_find? keyf less hless ws hs.2 x]
+    · rw [ite_eq_left h1, btFind_sorted_eq_find? keyf less hless ws hs.2 x]
       have : keyf w ≠ keyf x := fun e => goStringLt_irrefl _ (e ▸ (hless _ _).1 h1)
       simp [this]
-    · rw [if_neg h1]
+    · rw [ite_eq_right h1]
       by_cases h2 : less x w
-      · rw [if_pos h2]
+      · rw [ite_eq_left h2]
         have : keyf w ≠ keyf x := fun e => goStringLt_irrefl _ (e ▸ (hless _ _).1 h2)
         simp only [this, decide_false]
         rw [List.find?_eq_none.2]
@@ -611,7 +611,7 @@ theorem btFind_sorted_eq_find? {V : Type} (keyf : V → GoString) (less : V → 
         have := hs.1 (keyf y) (List.mem_map_of_mem hy)
         rw [e] at this
         exact goStringLt_irrefl _ (goStringLt_trans ((hless _ _).1 h2) this)
-      · rw [if_neg h2]
+      · rw [ite_eq_right h2]
         have : keyf w = keyf x :=
           goStringLt_eq_of_not_lt (fun h => h1 ((hless _ _).2 h)) (fun h => h2 ((hless _ _).2 h))
         simp [this]
@@ -751,7 +751,7 @@ theorem btInsert_set_entry : ∀ (L : List IdxEntry), L.Pairwise entryLess → �
     unfold btInsert
     have h1 : ¬ entryLess w z' := by unfold entryLess; rw [hk]; exact goStringLt_irrefl _
     have h2 : ¬ entryLess z' w := by unfold entryLess; rw [hk]; exact goStringLt_irrefl _
-    rw [if_neg h1, if_neg h2]
+    rw [ite_eq_right h1, ite_eq_right h2]
     rfl
   | w :: ws, hs, i + 1, z, z', h, hk => by
     simp only [List.getElem?_cons_succ] at h
@@ -760,7 +760,7 @@ theorem btInsert_set_entry : ∀ (L : List IdxEntry), L.Pairwise entryLess → �
     have hw : entryLess w z := hs.1 z hz
     unfold btInsert
     have h1 : entryLess w z' := by unfold entryLess at *; rw [hk]; exact hw
-    rw [if_pos h1, btInsert_set_entry ws hs.2 i z z' h hk]
+    rw [ite_eq_left h1, btInsert_set_entry ws hs.2 i z z' h hk]
     rfl
 
 theorem itemsOfEntries_set (L : List IdxEntry) (i : Nat) (z z' : IdxEntry) (h : L[i]? = some z)
@@ -1221,7 +1221,7 @@ theorem entryAnswers_take_succ (G : List IdxEntry) (atRev : w64) (i : Nat) (z : 
     entryAnswers (G.take (i + 1)) atRev =
       entryAnswers (G.take i) atRev ++ ((kiGet z.2.2 atRev).map fun r => (z.2.1, r)).toList := by
   unfold entryAnswers
-  rw [List.take_succ, hz, List.filterMap_append]
+  rw [List.take_add_one, hz, List.filterMap_append]
   cases hg : kiGet z.2.2 atRev <;> simp [hg]
 
 theorem entryAnswers_prefix (G : List IdxEntry) (atRev : w64) (i : Nat) :

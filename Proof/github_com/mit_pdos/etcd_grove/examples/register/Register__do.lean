@@ -125,8 +125,8 @@ theorem Register.do.wp_proof
     iexact Hres
   | nil =>
     wp_auto
-    rw [if_neg (by simp only [decide_eq_true_eq]; intro h; cases go.intoVal_inj (V := Bool) h),
-      if_pos (by simp)]
+    rw [ite_eq_right (by simp only [decide_eq_true_eq]; intro h; cases go.intoVal_inj (V := Bool) h),
+      ite_eq_left (by simp)]
     wp_auto_lc 2
     wp_apply +noauto wp_handoff_receive (t := go.string) γh ch (waitP γr d) iprop(True) iprop(False)
       false $$ [$Hho $Hcons] as %v %ok ⟨Hcons, Hgot⟩

@@ -35,6 +35,7 @@ public import Perennial.Proof.strings
 
 set_option linter.iris.style.nameCheck false
 set_option linter.unusedSectionVars false
+set_option linter.iris.dupNamespace false
 
 noncomputable section
 

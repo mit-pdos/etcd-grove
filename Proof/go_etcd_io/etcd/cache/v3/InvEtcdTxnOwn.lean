@@ -175,12 +175,12 @@ theorem leavesL_leaves (os : List OpFull) : OpT.leavesL (os.map OpT.leaf) = os :
 mutual
 /-- Every operation is under the empty prefix (every key is). -/
 theorem TxnOp.under_nil : ∀ op : TxnOp, op.Under []
-  | .get o => fun k _ => List.nil_prefix
-  | .put k _ _ => List.nil_prefix
-  | .delete o => fun k _ => List.nil_prefix
-  | .putKeep k _ => List.nil_prefix
-  | .putIgnVal k _ => List.nil_prefix
-  | .txn cs ts es => ⟨fun _ _ k _ => List.nil_prefix, TxnOp.underL_nil ts, TxnOp.underL_nil es⟩
+  | .get _ => fun _ _ => List.nil_prefix
+  | .put _ _ _ => List.nil_prefix
+  | .delete _ => fun _ _ => List.nil_prefix
+  | .putKeep _ _ => List.nil_prefix
+  | .putIgnVal _ _ => List.nil_prefix
+  | .txn _ ts es => ⟨fun _ _ _ _ => List.nil_prefix, TxnOp.underL_nil ts, TxnOp.underL_nil es⟩
 
 theorem TxnOp.underL_nil : ∀ ops : List TxnOp, TxnOp.UnderL [] ops
   | [] => trivial
@@ -189,7 +189,7 @@ end
 
 /-- Every transaction is under the empty prefix: the leasing KV's contracts are at prefix `[]`. -/
 theorem TxnModel.under_nil (t : TxnModel) : t.Under [] :=
-  ⟨fun _ _ k _ => List.nil_prefix, fun op _ => TxnOp.under_nil op, fun op _ => TxnOp.under_nil op⟩
+  ⟨fun _ _ _ _ => List.nil_prefix, fun op _ => TxnOp.under_nil op, fun op _ => TxnOp.under_nil op⟩
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

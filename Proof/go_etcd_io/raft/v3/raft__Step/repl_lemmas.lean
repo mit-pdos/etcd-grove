@@ -83,7 +83,7 @@ theorem step_handle_app (cfg : GSet w64) (id : w64) (ps : PState) (t : NState)
     refine step_eq cfg id _ _ _ _
       (Step.appStale (absMsg .app m ents) ps rfl Hto Hfid Hterm Hnl Hlt) ?_
     rw [toPState_sendMsgs', Ht]
-    simp only [appResp, Htm, Hc, absMsg, absMsgFrom]
+    simp only [appResp, Htm, absMsg, absMsgFrom]
   · -- accept
     have Hm : PlogMatches ps.base ps.log (entryID.mk m.LogTerm' m.Index') := by
       refine Classical.byContradiction fun Hn => ?_

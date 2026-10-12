@@ -356,7 +356,7 @@ theorem demuxBC_cert (C : DemuxCert GF) (cap : Nat) (c : DemuxCore) (r : RespMod
   · have hst : (updResp cap c r).stream = c.stream := by simp [updResp, hpn]
     have hmx : (updResp cap c r).maxRev = r.hdrRev := by simp [updResp, hpn]
     rw [hst, hmx]
-    unfold respCert; rw [if_pos hpn]
+    unfold respCert; rw [ite_eq_left hpn]
     iintro ⟨#Hc, -, %Hle, #Hp⟩
     isplitr
     · ipureintro
@@ -368,7 +368,7 @@ theorem demuxBC_cert (C : DemuxCert GF) (cap : Nat) (c : DemuxCore) (r : RespMod
     · have hst : (updResp cap c r).stream = c.stream := by simp [updResp, hpn', he]
       have hmx : (updResp cap c r).maxRev = c.maxRev := by simp [updResp, hpn', he]
       rw [hst, hmx]
-      unfold respCert; rw [if_neg hpn, if_pos he]
+      unfold respCert; rw [ite_eq_right hpn, ite_eq_left he]
       iintro ⟨#Hc, #Hp, -⟩
       isplitr
       · ipureintro
@@ -384,7 +384,7 @@ theorem demuxBC_cert (C : DemuxCert GF) (cap : Nat) (c : DemuxCore) (r : RespMod
       have hmx : (updResp cap c r).maxRev = e.rev := by simp [updResp, hpn', he, updCore, he']
       obtain ⟨b, hb, hbr⟩ := splitBatches_last_rev r.events e he'
       rw [hst, hmx]
-      unfold respCert; rw [if_neg hpn, if_neg he]
+      unfold respCert; rw [ite_eq_right hpn, ite_eq_right he]
       iintro ⟨#Hc, -, #Hr⟩
       ihave %Habove := demuxBC_certChain_above C c.lastRev _ $$ Hr
       ihave #Hps := certChain_prog (C := C) c.lastRev _ $$ Hr
