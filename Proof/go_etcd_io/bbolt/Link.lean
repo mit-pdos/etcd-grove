@@ -122,6 +122,7 @@ public import Proof.go_etcd_io.bbolt.Tx__ForEach
 public import Proof.go_etcd_io.bbolt.Tx__ID
 public import Proof.go_etcd_io.bbolt.Tx__OnCommit
 public import Proof.go_etcd_io.bbolt.Tx__Rollback
+public import Proof.go_etcd_io.bbolt.Tx__Rollback_w
 public import Proof.go_etcd_io.bbolt.Tx__Size
 public import Proof.go_etcd_io.bbolt.Tx__Stats
 public import Proof.go_etcd_io.bbolt.Tx__Writable
@@ -130,6 +131,7 @@ public import Proof.go_etcd_io.bbolt.Tx__close
 public import Proof.go_etcd_io.bbolt.Tx__close_w
 public import Proof.go_etcd_io.bbolt.Tx__init
 public import Proof.go_etcd_io.bbolt.Tx__nonPhysicalRollback
+public import Proof.go_etcd_io.bbolt.Tx__nonPhysicalRollback_w
 public import Proof.go_etcd_io.bbolt.Tx__page
 public import Proof.go_etcd_io.bbolt.Tx__page_w
 public import Proof.go_etcd_io.bbolt.atomicAddDuration
@@ -845,6 +847,18 @@ theorem Tx.wp_OnCommit :
     EtcdGrove.bbolt.Tx.OnCommit.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Tx.OnCommit.wp_proof
 
+theorem Tx.wp_close_w [AllG GF] :
+    EtcdGrove.bbolt.Tx.close.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Tx.close.wp_wproof EtcdGrove.bbolt.TxStats.wp_add
+
+theorem Tx.wp_nonPhysicalRollback_w [AllG GF] :
+    EtcdGrove.bbolt.Tx.nonPhysicalRollback.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Tx.nonPhysicalRollback.wp_wproof EtcdGrove.bbolt.Meta.wp_Txid EtcdGrove.bbolt.Tx.wp_close_w
+
+theorem Tx.wp_Rollback_w [AllG GF] :
+    EtcdGrove.bbolt.Tx.Rollback.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Tx.Rollback.wp_wproof EtcdGrove.bbolt.wp_Assert EtcdGrove.bbolt.Tx.wp_nonPhysicalRollback_w
+
 theorem Tx.wp_Size :
     EtcdGrove.bbolt.Tx.Size.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Tx.Size.wp_proof EtcdGrove.bbolt.Meta.wp_Pgid
@@ -860,10 +874,6 @@ theorem Tx.wp_Writable :
 theorem Tx.wp_allocate_w [AllG GF] :
     EtcdGrove.bbolt.Tx.allocate.wspec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Tx.allocate.wp_wproof EtcdGrove.bbolt.DB.wp_Logger EtcdGrove.bbolt.Meta.wp_Txid EtcdGrove.bbolt.DB.wp_allocate EtcdGrove.bbolt.Bucket.wp_dereference EtcdGrove.bbolt.DefaultLogger.wp_Errorf EtcdGrove.bbolt.Page.wp_Id EtcdGrove.bbolt.TxStats.wp_IncPageCount EtcdGrove.bbolt.TxStats.wp_IncPageAlloc
-
-theorem Tx.wp_close_w [AllG GF] :
-    EtcdGrove.bbolt.Tx.close.wspec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Tx.close.wp_wproof EtcdGrove.bbolt.TxStats.wp_add
 
 theorem wp_compareKeys :
     EtcdGrove.bbolt.compareKeys.spec (GF := GF) (hG := hG) :=

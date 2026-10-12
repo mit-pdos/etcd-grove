@@ -234,3 +234,5 @@ node__splitTwo: node__sizeLessThan node__splitIndex TxStats__IncSplit
 DB__getPageSizeFromSecondMeta: os_File__Stat fs_FileInfo__Size os_File__ReadAt DB__pageInBuffer Page__Meta Meta__Validate Meta__PageSize
 DB__getPageSize: DB__getPageSizeFromFirstMeta DB__getPageSizeFromSecondMeta
 Tx__close_w: TxStats__add
+Tx__nonPhysicalRollback_w: Meta__Txid Tx__close_w
+Tx__Rollback_w: common_Assert Tx__nonPhysicalRollback_w

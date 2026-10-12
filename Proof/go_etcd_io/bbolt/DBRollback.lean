@@ -237,6 +237,41 @@ theorem wend_give (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 
   · iapply Hcarve.2; iframe
   · iapply (pointsto_split _ _ _ _).2; iframe
 
+open Iris.ProofMode in
+/-- The writer `w` rolls back its freelist: the database's freelist lent to `Rollback` (which
+does not panic), and the database with it rolled back given back. -/
+theorem ownDB_rollback (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DBState)
+    (w : Reader) (hw : σ.wr = some w) :
+    ownDB I dbl γ σ ⊢ ∃ (fls : Loc),
+      ⌜σ.fl.canRollback (w.txid + W64 1)⌝ ∗ ownFL I fls σ.fl ∗
+      (ownFL I fls (σ.fl.rollback (w.txid + W64 1)) -∗
+        ownDB I dbl γ { σ with fl := σ.fl.rollback (w.txid + W64 1) }) := by
+  iintro Hdb
+  isimp only [ownDB] at Hdb
+  iNamed Hdb
+  isimp only [ownFL] at Hfl
+  icases Hfl with ⟨#Hh, Hsh, Ho⟩
+  ihave Hsh := ownShared_wf _ _ _ $$ Hsh
+  icases Hsh with ⟨Hsh, %hwf⟩
+  obtain ⟨hcan, hok'⟩ := dbOK_rollbackW σ v0 v1 Hok hwf w hw
+  iexists fls
+  isplitr
+  · ipureintro; exact hcan
+  isplitl [Hsh Ho]
+  · simp only [ownFL]; iframe; iframe #
+  iintro Hfl'
+  simp only [ownDB]
+  iexists dv, fls, v0, v1, dl
+  isplitr
+  · ipureintro; exact Hdv
+  isplitr
+  · ipureintro; exact hok'
+  isplitr
+  · ipureintro; exact Hdr
+  iframe
+  iframe #
+  try (ipureintro; exact Hlog)
+
 end rollback
 
 end bbolt
