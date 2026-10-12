@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-12 (the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
+**Last updated:** 2026-10-12 (the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
 as pinned), the requests and responses as the client model's values (`Requests.lean`), `isKV`,
 `isTxnLessor`, 13 trust-boundary axioms (`sort.Sort`/`Reverse`, traceutil, `proto.Size`,
 `zap.Logger.Panic`, ...), mvcc's read-only write transaction proved, `gen-link.py --txn`, a
@@ -653,6 +653,75 @@ Gates: `lake build --packages=.lake/manifest-merge.json` of `HistoryLaws` and `R
 `sorry`, `#print axioms` standard only (`propext`, `Classical.choice`, `Quot.sound`). The
 `tcb-report.py --collection txn.txt --check` not run (`.lake/tcb.json` not current; the merge runs
 it); no new axiom.
+
+### Merge 3/4 (2026-10-12)
+
+`txn-u3` (unit 3, six commits) merged into `lean` (`e099df5ea`), then `txn-u4` (unit 4)
+(`2175453f0`). Conflicts in the notes only (this section's "Unit 3" and "Unit 4" subsections,
+`decisions.md`'s two bullets, both kept in unit order); `Results.lean` merged cleanly (unit 3's
+section, then unit 4's `section unit4` and its `public import ...txn.HistoryLaws`). Unit 3's
+changes (the responses moved to `InvTxn.lean`, `executeRange`/`deleteRange` generalized, mvcc's
+`TxnRange.lean`) touch nothing `HistoryLaws.lean` uses (`Lemmas.lean` and mvcc's model): no
+proof changed.
+
+Gates (Perennial `e4e126e46`, `--packages=.lake/manifest-merge.json`): `lake build` clean (2600
+jobs), no `sorry` of this repository's, `HistoryLaws`' results on the standard axioms only;
+`gen-link.py --txn` and `--mvcc` reproduce their `Link.lean`; `ETCD_SRC=/shared/etcd goose.py
+--check --perennial /shared/perennial-merge` up to date; `tcb-report.py --check`: 69 axioms, 1
+sorry (baseline unchanged); every collection unchanged (txn 20/0, mvcc 13/0, server 26/0,
+concurrency 12/1, recipes 11/0, cache 10/0, leasing 8/0, raft 1/0, register 1/0, btree 0/0);
+`verified-code.py --reuse`: txn 39 of 48 functions verified (81.2%), 570 of 653 lines (87.3%);
+etcd 474 of 3599 functions (13.2%), 4943 of 45570 lines (10.8%), as after unit 3 (unit 4 is pure).
+
+### The whole package (2026-10-12)
+
+**Verified**: every function of `txn.go`, `put.go`, `range.go` and `delete.go` that Goose
+translates with a body (39: `txn.go` 12, `range.go` 18, `put.go` 6, `delete.go` 3), and
+`etcdserverpb.RequestOp.GetRequestRange`, sorry-free; `metrics.go`'s two observers are assumed,
+`util.go` names-only. mvcc gained the read-only write transaction (`txnReadWrite`,
+`NewReadOnlyTxnWrite`) and `metricsTxnWrite.Rev`/`FirstRev`/`Changes`.
+
+**Exported results** (`Results.lean`, each with `#print axioms`): unit 1 `put_putKv`,
+`deleteRange_filter`, `put_put`, `deleteRange_deleteRange`, `put_checkPut`, `put_soleWriter`,
+`deleteRange_soleWriter`; unit 2 `range_rangeSel`, `range_soleWriter`, `count_result`,
+`srvRangeOk_rangeKvsOk`; unit 3 `txn_srvRunTxn`, `txn_runTxn`, `txn_readonly_no_revision`,
+`txn_check_error_no_write`, `compareToPath_txnPath`, `txn_serializable_iff`,
+`srvRunTxn_runTxn_flat`; unit 4 (pure) `stateAt_revs`, `stateAt_create_persist`,
+`stateAt_modrev_persist`, `stateAt_modrev_det`, `stateAtPfx_agree` and the `stateAtPfx_*`
+versions, `stateAt_of_prefix`, `LogOk.snoc`, `NoDupKeysPerRev.snoc`(`_iff`),
+`keys_nodup_iff_check`, `sel_keys_nodup`; unit 0 mvcc's `txnReadWrite.wp_*`.
+
+**The premises of the results**, in one list: the sole writer (`soleWriter γ log`: every
+revision token is the apply thread's); the context `context.TODO()` or an `isContext` that is
+never done (`neverDone`); no compaction (mvcc's `isStore` fixes `compactMainRev = -1`); leases as
+the lessor's `Lookup` says (`isTxnLessor`), and for `Txn` every lease of the state known
+(`leasesKnown`); `LogOk` (the log well formed, its length and every revision's change count below
+`2^63`); for a range a valid sort target (`validSortTarget`), a small sorted selection
+(`sortSmall`; `LogSmall` of the log for `Range`), well-formed key-values (`kvOk`), not
+`cutEarly`; a `DeleteRange` of fewer than `2^63` keys; `NoDupKeysPerRev` (a revision writes a key
+at most once), which a commit keeps exactly when the transaction passes etcd's `checkIntervals`;
+`DelsPresent` (a commit's deletes name present keys, for `LogOk.snoc`); `OpsStable` for `txn_runTxn` with nested transactions
+(every nested verdict the same before and after the operations preceding it); `TxnPre` (the
+log's room for the commit, `OpsOk` of the chosen branch: ranges at revision `0`, ignore-flag
+puts whose key exists where they run).
+
+**Open ends**: the client model's `applyTxnOp (.txn …)` (`cache/v3/InvEtcdTxn.lean`) is wrong for
+nested transactions (it evaluates a nested comparison after the operations before it; etcd
+before the transaction), kept because leasing's proofs use it (`txn_runTxn` carries the
+agreement as `OpsStable`); traceutil's `EnsureTrace` axiom needs an `isContext`, so `Txn` is not
+stated at the literal `context.TODO()` (the apply package needs `EnsureTrace` of `TODO()` or a
+`neverDone` descriptor for it); the server's `Link.lean` and mvcc's both define
+`binary.bigEndian.wp_PutUint64`, a clash once the apply package links both; mvcc's
+`traceutil.Trace.Step` axiom claims a return on a `nil` trace (Go dereferences it), harmless while
+every trace passed is non-nil.
+
+**Issues found** (`issues/`, all in `issues/README.md`): `etcd-txn-empty-requestop` (`Txn`
+panics on a `RequestOp` with an empty oneof; unit 0), `etcd-range-sort-none-limit` (a sort by a
+non-key target with order `NONE` and a limit is cut by the limit; unit 2),
+`etcd-range-keys-only-lease` (keys-only ranges drop the lease unless sorted by value; unit 2),
+`etcd-txn-delete-then-ignore-put` (a from-key delete then an ignore-flag put of a deleted key
+panics in the apply loop; unit 3), `etcd-txn-nested-compare-snapshot` (nested comparisons see the
+state before the transaction, undocumented; unit 3).
 
 ## Merge: mvcc into lean (2026-10-11)
 
