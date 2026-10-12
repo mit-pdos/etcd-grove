@@ -178,6 +178,7 @@ namespace bbolt
 #print axioms Tx.wp_Stats
 #print axioms Tx.wp_Writable
 #print axioms Tx.wp_allocate_w
+#print axioms Tx.wp_close_w
 #print axioms wp_compareKeys
 #print axioms wp_flock
 #print axioms node.wp_childIndex

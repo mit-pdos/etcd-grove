@@ -179,7 +179,8 @@ def metaIn (σ : DBState) (s : Nat) (v : internal.common.Meta) : Prop :=
 and the pending ones of committed transactions (`m`'s and before; the open writer's own, newer,
 may have been allocated above it). Without a writer every pending transaction is committed;
 the writer's view is of `m`; every pending transaction is committed or the open writer's (its
-meta's txid, one past `m`'s, which does not wrap); the free and pending ids are below `2^62`
+meta's txid, one past `m`'s, which does not wrap; its pages allocated before its view, so its
+`Rollback` does not panic); the free and pending ids are below `2^62`
 (`canFree`'s bound on their number). (bbolt never writes a freelist breaking this, but reads
 one from the file: `node.spill` panics on a page id at the high-water mark or above.) -/
 def flBelow (σ : DBState) (m : internal.common.Meta) : Prop :=
@@ -187,7 +188,7 @@ def flBelow (σ : DBState) (m : internal.common.Meta) : Prop :=
   (∀ t pd p, σ.fl.pending !! t = some pd → p ∈ pd.pairs → uint.Z t ≤ uint.Z m.txid' →
     uint.Z p.1 < uint.Z m.pgid') ∧
   (∀ t pd p, σ.fl.pending !! t = some pd → p ∈ pd.pairs →
-    uint.Z t ≤ uint.Z m.txid' ∨ ∃ w, σ.wr = some w ∧ t = w.txid + W64 1) ∧
+    uint.Z t ≤ uint.Z m.txid' ∨ ∃ w, σ.wr = some w ∧ t = w.txid + W64 1 ∧ uint.Z p.2 ≤ uint.Z w.txid) ∧
   (∀ w, σ.wr = some w → w.hwm = uint.nat m.pgid' ∧ w.txid = m.txid') ∧
   uint.Z m.txid' + 1 < 2 ^ 64 ∧ (∀ x ∈ σ.fl.free, uint.Z x < 2 ^ 62) ∧
   (∀ t pd p, σ.fl.pending !! t = some pd → p ∈ pd.pairs → uint.Z p.1 < 2 ^ 62)

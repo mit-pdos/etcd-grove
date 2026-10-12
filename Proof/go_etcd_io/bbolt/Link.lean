@@ -127,6 +127,7 @@ public import Proof.go_etcd_io.bbolt.Tx__Stats
 public import Proof.go_etcd_io.bbolt.Tx__Writable
 public import Proof.go_etcd_io.bbolt.Tx__allocate
 public import Proof.go_etcd_io.bbolt.Tx__close
+public import Proof.go_etcd_io.bbolt.Tx__close_w
 public import Proof.go_etcd_io.bbolt.Tx__init
 public import Proof.go_etcd_io.bbolt.Tx__nonPhysicalRollback
 public import Proof.go_etcd_io.bbolt.Tx__page
@@ -859,6 +860,10 @@ theorem Tx.wp_Writable :
 theorem Tx.wp_allocate_w [AllG GF] :
     EtcdGrove.bbolt.Tx.allocate.wspec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Tx.allocate.wp_wproof EtcdGrove.bbolt.DB.wp_Logger EtcdGrove.bbolt.Meta.wp_Txid EtcdGrove.bbolt.DB.wp_allocate EtcdGrove.bbolt.Bucket.wp_dereference EtcdGrove.bbolt.DefaultLogger.wp_Errorf EtcdGrove.bbolt.Page.wp_Id EtcdGrove.bbolt.TxStats.wp_IncPageCount EtcdGrove.bbolt.TxStats.wp_IncPageAlloc
+
+theorem Tx.wp_close_w [AllG GF] :
+    EtcdGrove.bbolt.Tx.close.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Tx.close.wp_wproof EtcdGrove.bbolt.TxStats.wp_add
 
 theorem wp_compareKeys :
     EtcdGrove.bbolt.compareKeys.spec (GF := GF) (hG := hG) :=

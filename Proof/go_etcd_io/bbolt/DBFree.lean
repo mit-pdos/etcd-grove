@@ -183,7 +183,7 @@ theorem dbOK_free (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 
       obtain ⟨t, pd, ht, hxi⟩ := hp
       obtain ⟨a, ha⟩ := mem_pairs_of_mem_ids pd _ (hl t pd ht) hxi
       have hlt := (hm.2.2 t pd a ht ha).2
-      rcases b3 t pd _ ht ha with hle | ⟨w', hw', rfl⟩
+      rcases b3 t pd _ ht ha with hle | ⟨w', hw', rfl, -⟩
       · omega
       · obtain rfl := Option.some.inj (hw.symm.trans hw')
         exact hnew pd (by rw [htx]; exact ht) _ hx hxi
@@ -217,9 +217,9 @@ theorem dbOK_free (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 
       · exact b2 t pd p ht0 hp0 hle
       · omega
     · rcases freePages_pairs σ.fl _ _ _ (fun pd h => hl _ pd h) t pd' _ ht hp with
-        ⟨pd, ht0, hp0⟩ | ⟨rfl, _, _⟩
+        ⟨pd, ht0, hp0⟩ | ⟨rfl, _, hal⟩
       · exact b3 t pd p ht0 hp0
-      · exact Or.inr ⟨w, hw, htx⟩
+      · rw [hal]; exact Or.inr ⟨w, hw, htx, ha0⟩
     · rcases freePages_pairs σ.fl _ _ _ (fun pd h => hl _ pd h) t pd' _ ht hp with
         ⟨pd, ht0, hp0⟩ | ⟨_, hr, _⟩
       · exact b7 t pd p ht0 hp0
