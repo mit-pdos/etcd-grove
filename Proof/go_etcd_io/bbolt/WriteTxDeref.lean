@@ -8,7 +8,7 @@ children lists, and the buckets in the bucket caches) to the heap.
 
 - `derefReady T rl`: what `dereference` of the root bucket `rl` needs: every bucket
   reachable from it through the bucket caches; in each bucket, the root node's parent chain ends
-  (`topOf`), the children lists below the top form a tree (`kidsTree`: each node listed once),
+  (`upPath`, its nodes distinct), the children lists below the top form a tree (`kidsTree`: each node listed once),
   each node of it holds its entries' bytes (`derefOK`); each cached child bucket is one of the
   transaction's.
 - `derefRel T T'`: what it does: the same buckets and their structs; the nodes of the trees
@@ -42,11 +42,11 @@ inductive kidsTree (ns : GMap Loc NRec) : Loc → List Loc → Prop
       ns !! l = some r → List.Forall₂ (kidsTree ns) r.cs subs → (l :: subs.flatten).Nodup →
       kidsTree ns l (l :: subs.flatten)
 
-/-- `t` is the last node of the parent chain from `l` (`node.root`). -/
-inductive topOf (ns : GMap Loc NRec) : Loc → Loc → Prop
-  | self (l : Loc) (r : NRec) : ns !! l = some r → r.nv.parent' = null → topOf ns l l
-  | up (l : Loc) (r : NRec) (t : Loc) : ns !! l = some r → r.nv.parent' ≠ null →
-      topOf ns r.nv.parent' t → topOf ns l t
+/-- The parent chain from `l` is the nodes `p`, the last `t` (`node.root`). -/
+inductive upPath (ns : GMap Loc NRec) : Loc → List Loc → Loc → Prop
+  | self (l : Loc) (r : NRec) : ns !! l = some r → r.nv.parent' = null → upPath ns l [l] l
+  | up (l : Loc) (r : NRec) (p : List Loc) (t : Loc) : ns !! l = some r → r.nv.parent' ≠ null →
+      upPath ns r.nv.parent' p t → upPath ns l (l :: p) t
 
 /-- The node (record `r`) of the bucket `bl` holds what `node.dereference` needs (`derefPre`). -/
 def derefOK (bl : Loc) (r : NRec) : Prop :=
@@ -56,7 +56,7 @@ def derefOK (bl : Loc) (r : NRec) : Prop :=
 
 /-- The live nodes of the bucket `B`: those of its root node's tree. -/
 def liveNodes (B : BRec) (S : List Loc) : Prop :=
-  ∃ top, topOf B.ns B.bv.rootNode' top ∧ kidsTree B.ns top S
+  ∃ p top, upPath B.ns B.bv.rootNode' p top ∧ p.Nodup ∧ kidsTree B.ns top S
 
 /-- The bucket `bl` is the bucket `rl` or cached under one reachable from it. -/
 inductive bktReach (T : WTx) (rl : Loc) : Loc → Prop
@@ -78,7 +78,7 @@ def ownFresh (w : WEntry) : WEntry := { w with ks := Src.own (DFrac.own 1), vs :
 /-- The node `r'` is `r` dereferenced (see the module doc). -/
 def derefNode (r r' : NRec) : Prop :=
   r'.nv = { r.nv with inodes' := r'.nv.inodes', key' := r'.nv.key' } ∧ r'.ws = r.ws.map ownFresh ∧
-  r'.cs = r.cs ∧ r'.key = r.key ∧ (r.nv.key' = slice.nil ↔ r'.nv.key' = slice.nil) ∧
+  r'.cs = r.cs ∧ r'.key = r.key ∧ (r.nv.key' = slice.nil → r'.nv.key' = slice.nil) ∧
   r'.ksrc = Src.own (DFrac.own 1)
 
 /-- An inline page in the view is stale after a remap. -/
