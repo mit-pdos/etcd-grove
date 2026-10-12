@@ -181,9 +181,8 @@ variable [go_gctx : GoGlobalContext]
 
 /-- The register's program: the package's initialization, then `Main()`. -/
 def registerProgram [GoSemanticsFunctions] : Expr :=
-  App (Rec BAnon BAnon
-      (App (Val (@! github_com.mit_pdos.etcd_grove.examples.register.Main)) (Val #())))
-    (App (Val github_com.mit_pdos.etcd_grove.examples.register.initialize') (Val #()))
+  github_com.mit_pdos.etcd_grove.examples.register.initialize' #() ;;
+  (@! github_com.mit_pdos.etcd_grove.examples.register.Main) #()
 
 /-- **The register's cluster driver is safe.** Every real execution of `registerProgram`
 (the register package's initialization, then `Main()`) from a fresh state -- no package
