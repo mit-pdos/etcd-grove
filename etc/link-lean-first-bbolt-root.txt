@@ -145,11 +145,9 @@ node__dereference: Inode__Key Inode__Value Inode__SetKey Inode__SetValue common_
 nodes__Less: Inode__Key
 getDiscardLogger:
 DB__Logger: getDiscardLogger
-DB__Begin: DB__Logger DB__beginTx
 Tx__close: DB__removeTx
 Tx__nonPhysicalRollback: Tx__close
 Tx__Rollback: common_Assert Tx__nonPhysicalRollback
-DB__View: DB__Begin Tx__Rollback
 DB__fileSize: os_File__Stat fs_FileInfo__Size
 log_Logger__Output:
 header:
@@ -170,3 +168,5 @@ Bucket__Bucket: Bucket__Cursor Cursor__seek Bucket__openBucket
 Tx__Bucket: Bucket__Bucket
 Tx__ForEach: Bucket__ForEach Bucket__Bucket
 DB__beginRWTx: Tx__init
+DB__Begin: DB__Logger DB__beginRWTx DB__beginTx
+DB__View: DB__Begin Tx__Rollback

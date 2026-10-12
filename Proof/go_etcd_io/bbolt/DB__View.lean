@@ -28,8 +28,11 @@ theorem DB.View.wp_proof (hBegin : DB.Begin.spec (GF := GF) (hG := hG))
   wp_start as ⟨Hdb, HP⟩
   wp_apply wp_with_defer as %defer Hdefer
   try wp_auto
-  wp_apply hBegin I dbl γ σ hAdd hsize $$ [Hdb] as %txl ⟨%k, %r, %Hk, Hdb, Hrtx⟩
+  have hB := hBegin I dbl γ σ false ⟨hAdd, hsize⟩
+  simp only [Bool.false_eq_true, ↓reduceIte] at hB
+  wp_apply hB $$ [Hdb] as %txl %err0 ⟨%Herr0, %k, %r, %Hk, Hdb, Hrtx⟩
   · iframe
+  subst Herr0
   try wp_auto
   -- `t.managed = true`
   simp only [ownReadTx]

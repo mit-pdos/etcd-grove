@@ -326,13 +326,17 @@ theorem Tx.wp_init :
     EtcdGrove.bbolt.Tx.init.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Tx.init.wp_proof EtcdGrove.bbolt.DB.wp_meta EtcdGrove.bbolt.Meta.wp_Copy EtcdGrove.bbolt.wp_newBucket EtcdGrove.bbolt.Meta.wp_RootBucket EtcdGrove.bbolt.Meta.wp_IncTxid
 
+theorem DB.wp_beginRWTx [AllG GF] :
+    EtcdGrove.bbolt.DB.beginRWTx.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.beginRWTx.wp_proof EtcdGrove.bbolt.Tx.wp_init
+
 theorem DB.wp_beginTx [AllG GF] :
     EtcdGrove.bbolt.DB.beginTx.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.beginTx.wp_proof EtcdGrove.bbolt.Tx.wp_init EtcdGrove.bbolt.Meta.wp_Txid
 
 theorem DB.wp_Begin [AllG GF] :
     EtcdGrove.bbolt.DB.Begin.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DB.Begin.wp_proof EtcdGrove.bbolt.DB.wp_Logger EtcdGrove.bbolt.DB.wp_beginTx
+  EtcdGrove.bbolt.DB.Begin.wp_proof EtcdGrove.bbolt.DB.wp_Logger EtcdGrove.bbolt.DB.wp_beginRWTx EtcdGrove.bbolt.DB.wp_beginTx
 
 theorem DB.wp_GoString :
     EtcdGrove.bbolt.DB.GoString.spec (GF := GF) (hG := hG) :=
@@ -477,10 +481,6 @@ theorem Tx.wp_Rollback [AllG GF] :
 theorem DB.wp_View [AllG GF] :
     EtcdGrove.bbolt.DB.View.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.View.wp_proof EtcdGrove.bbolt.DB.wp_Begin EtcdGrove.bbolt.Tx.wp_Rollback
-
-theorem DB.wp_beginRWTx [AllG GF] :
-    EtcdGrove.bbolt.DB.beginRWTx.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DB.beginRWTx.wp_proof EtcdGrove.bbolt.Tx.wp_init
 
 theorem os.File.wp_Stat :
     EtcdGrove.bbolt.os.File.Stat.spec (GF := GF) (hG := hG) :=

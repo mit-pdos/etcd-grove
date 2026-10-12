@@ -56,6 +56,7 @@ namespace bbolt
 #print axioms DB.wp_Logger
 #print axioms DB.wp_meta
 #print axioms Tx.wp_init
+#print axioms DB.wp_beginRWTx
 #print axioms DB.wp_beginTx
 #print axioms DB.wp_Begin
 #print axioms DB.wp_GoString
@@ -94,7 +95,6 @@ namespace bbolt
 #print axioms Tx.wp_nonPhysicalRollback
 #print axioms Tx.wp_Rollback
 #print axioms DB.wp_View
-#print axioms DB.wp_beginRWTx
 #print axioms os.File.wp_Stat
 #print axioms fs.FileInfo.wp_Size
 #print axioms DB.wp_fileSize

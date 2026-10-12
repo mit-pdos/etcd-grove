@@ -1,6 +1,7 @@
 module
 public import Spec.go_etcd_io.bbolt.DB__Begin
 public import Spec.go_etcd_io.bbolt.DB__beginTx
+public import Spec.go_etcd_io.bbolt.DB__beginRWTx
 public import Spec.go_etcd_io.bbolt.DB__Logger
 
 @[expose] public section
@@ -22,9 +23,10 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
 
 theorem DB.Begin.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
+    (hbeginRW : DB.beginRWTx.spec (GF := GF) (hG := hG))
     (hbegin : DB.beginTx.spec (GF := GF) (hG := hG)) :
     DB.Begin.spec (GF := GF) (hG := hG) := by
-  intro I dbl γ σ hAdd hsize
+  intro I dbl γ σ w hpre
   wp_start as Hdb
   icases ownDB_logger I dbl γ σ $$ Hdb with ⟨%lg, %dl, Hlg, #Hdl, #Hdlok, %Hl, Hback⟩
   obtain ⟨Hlg', Hdbl⟩ := Hl
@@ -37,10 +39,21 @@ theorem DB.Begin.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   rw [Hd]
   try wp_auto
   ihave Hdb := Hback $$ Hlg
-  wp_apply hbegin I dbl γ σ hAdd hsize $$ [Hdb] as %txl Hpost
-  · iframe
-  try wp_auto
-  iapply HΦ; iframe
+  cases w with
+  | true =>
+    obtain ⟨hRel, hw, hrng⟩ := hpre
+    try wp_auto
+    wp_apply hbeginRW I dbl γ σ hRel hw hrng $$ [Hdb] as %txl %err Hpost
+    · iframe
+    try wp_auto
+    iapply HΦ; simp only [↓reduceIte]; iframe
+  | false =>
+    obtain ⟨hAdd, hsize⟩ := hpre
+    try wp_auto
+    wp_apply hbegin I dbl γ σ hAdd hsize $$ [Hdb] as %txl Hpost
+    · iframe
+    try wp_auto
+    iapply HΦ; simp only [Bool.false_eq_true, ↓reduceIte]; iframe
 
 end proof
 
