@@ -70,7 +70,7 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
          first | (simp at Hif) | exact absurd Hif (by decide)
        (try wp_auto)
        have hwr : (W64 ((mvcc.writeRev ilog pend : Nat) : Int) : w64) = W64 (ilog.length : Int) := by
-         unfold mvcc.writeRev; rw [if_neg hpend]
+         unfold mvcc.writeRev; rw [ite_eq_right hpend]
        rw [hrev, ← hwr])
     | (have hpend : pend = [] := by
          apply List.length_eq_zero_iff.1
@@ -78,7 +78,7 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
          first | (rw [hcl, hpZ, h0Z] at h; omega) | (simp only [hcl, hpZ, h0Z] at h; omega)
        have hwr : (W64 ((mvcc.writeRev ilog pend : Nat) : Int) : w64) =
            W64 ((ilog.length : Int) - 1) := by
-         unfold mvcc.writeRev; rw [if_pos hpend]; congr 1; omega
+         unfold mvcc.writeRev; rw [ite_eq_left hpend]; congr 1; omega
        (try wp_auto)
        rw [← hwr])
   -- `tw.rangeKeys(ctx, key, end, rev, ro)`: the promoted method, `storeTxnCommon`'s
@@ -87,7 +87,7 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     wp_call
     (try wp_auto)
     -- the bucket through the batch transaction (its own puts), the index by the writer
-    ihave #Hrdr := mvcc.batchTx_reader bt (mvcc.bucketView γ) (mvcc.writerRes s γ) Locked
+    ihave #Hrdr := mvcc.batchTx_reader bt (mvcc.bucketView γ) (mvcc.writerRes s γ) Locked Pw fw
       (mvcc.pendPuts ilog pend) (1 : Qp).half (mvcc.bucketMap ilog) $$ Hbt
     ihave HR : iprop(Locked (mvcc.pendPuts ilog pend) ∗
         mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap ilog)) $$ [Hlocked Hbv]
@@ -98,7 +98,7 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
         ((mvcc.pendPuts ilog pend).foldl (fun m p => GMap.insert p.1 p.2 m) (mvcc.bucketMap ilog))
         iprop(Locked (mvcc.pendPuts ilog pend) ∗ mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap ilog))
         γ (.writer ilog pend) (ilog ++ [pend]) (W64 ((mvcc.writeRev ilog pend : Nat) : Int))
-        ctx cd todo key endk k e ro)
+        ctx cd todo key endk k e ro (by assumption))
       $$ [$Hs $Cs $Ctx $Ctrace $Hrdr $HR $Hkn $Hidx $Hti $Hctx $Hkey $Hend]
       as %r %err ⟨%Htodo, Cs, Ctx, Ctrace, ⟨Hlocked, Hbv⟩, Hw, Hti, Hout⟩
     · ipureintro
@@ -128,7 +128,7 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     simp only [named]
     iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
     iframe #
-    ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+    ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
 
 end proof
 

@@ -38,21 +38,21 @@ theorem mvcc.sliceCapWithLimit.wp_proof : mvcc.sliceCapWithLimit.spec (GF := GF)
   · -- `limit <= 0`: the length
     (try wp_auto)
     rw [show mvcc.capWithLimit limit vs.length = vs.length by
-      unfold mvcc.capWithLimit; rw [if_pos (Or.inl (by rwa [h0z] at Hif))], hlenW]
+      unfold mvcc.capWithLimit; rw [ite_eq_left (Or.inl (by rwa [h0z] at Hif))], hlenW]
     iapply HΦ $$ Hs
   · (try wp_auto)
     wp_if_destruct
     · -- `limit > len(s)`: the length
       (try wp_auto)
       rw [show mvcc.capWithLimit limit vs.length = vs.length by
-        unfold mvcc.capWithLimit; rw [if_pos (Or.inr (by rw [hlenZ]; exact Hif))], hlenW]
+        unfold mvcc.capWithLimit; rw [ite_eq_left (Or.inr (by rw [hlenZ]; exact Hif))], hlenW]
       iapply HΦ $$ Hs
     · -- the limit
       (try wp_auto)
       have hpos : ¬ sint.Z limit ≤ 0 := by
         have := ‹¬ sint.Z limit ≤ sint.Z (W64 0)›; rwa [h0z] at this
       rw [show mvcc.capWithLimit limit vs.length = (sint.Z limit).toNat by
-        unfold mvcc.capWithLimit; rw [if_neg]; rw [hlenZ]; omega, hW limit (by omega)]
+        unfold mvcc.capWithLimit; rw [ite_eq_right]; rw [hlenZ]; omega, hW limit (by omega)]
       iapply HΦ $$ Hs
 
 end proof

@@ -35,9 +35,9 @@ private theorem wp_min_u64 (a b : w64) :
     {{ RET #(w64Min a b); True }} := by
   wp_start
   wp_if_destruct
-  · rw [show w64Min a b = a from if_pos Hif]
+  · rw [show w64Min a b = a from ite_eq_left Hif]
     iapply HΦ; itrivial
-  · rw [show w64Min a b = b from if_neg Hif]
+  · rw [show w64Min a b = b from ite_eq_right Hif]
     iapply HΦ; itrivial
 
 /-- `r.send(pb.Message{To: to, Type: pb.MsgAppResp, Index: idx, ...})`: `SendOk`'s
@@ -148,7 +148,7 @@ theorem raft.handleAppendEntries.wp_proof
           (entryID.mk m.LogTerm' m.Index') := by
         intro Hc
         unfold plogMaybeAppend at Hpm
-        rw [if_pos Hc] at Hpm
+        rw [ite_eq_left Hc] at Hpm
         cases Hpm
       wp_auto
       wp_apply raft.wp_load_id $$ Hphys as Hphys

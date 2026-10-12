@@ -412,7 +412,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     exfalso
     revert h
     not_net
-  simp only [HnP, ↓reduceIte]
+  simp only [HnP]
   iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, -, -⟩
   obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by not_net) (by not_net)
   obtain ⟨Ht1, -, Ht3, -⟩ := Htm (by not_net)
@@ -530,7 +530,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
       isplitr
       · ipureintro
         intro Hc
-        simp [Hty', MsgProp, MsgStorageApplyResp] at Hc
+        simp [MsgProp, MsgStorageApplyResp] at Hc
       · imodintro
         iintro %ty %Hty2 _
         try rw [Hty'] at Hty2
@@ -542,10 +542,10 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
       iframe Hctx
       ipureintro
       refine ⟨Hctxne, fun Hc => ?_⟩
-      simp [Hty', MsgProp, MsgHeartbeatResp] at Hc
+      simp [MsgProp, MsgHeartbeatResp] at Hc
     · imodintro
       iintro %Hc
-      simp [Hty', MsgProp, MsgSnap] at Hc
+      simp [MsgProp, MsgSnap] at Hc
   iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, %Hloc, %_, %_, %_, -⟩
   obtain ⟨Hfr, Hap⟩ := Hloc (.inl Hty')
   have Hap' := Hap (fun Hc => by rw [Hty'] at Hc; simp [MsgProp, MsgStorageApplyResp] at Hc)

@@ -1,6 +1,6 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
-imports = ["!*"]
+# `Notifier.Notify` with its body (the apply thread calls it); the rest names only.
+translate = ["!*", "Notifier.Notify"]
+imports = ["!*", "sync"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

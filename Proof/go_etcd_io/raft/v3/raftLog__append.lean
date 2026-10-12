@@ -159,7 +159,7 @@ theorem raftLog.append.wp_proof
     -- the new state
     have Hm : (uint.Z e0.Index' - uint.Z (unstableOf lv ls).offset).toNat =
         (uint.Z e0.Index' - uint.Z ls.prev.index' - 1 - (ls.sents.length : Int)).toNat := by
-      simp only [unstableOf]
+      simp only
       omega
     rw [Hm]
     have Hsplit := truncateAppend_split ls.prev ls.sents ls.uents e0 ents'
@@ -228,7 +228,7 @@ theorem raftLog.append.wp_proof
     -- `logTruncInprogress`, and the persistence invariant survives
     -- (`persist_prefix_truncate`)
     have Hip2 : uv'.offsetInProgress' = logTruncInprogress ls e0.Index' := by
-      simp only [Hoip', truncOffsetInProgress, logTruncInprogress, w64Min, unstableOf]
+      simp only [Hoip', truncOffsetInProgress, logTruncInprogress, w64Min]
       repeat' split
       all_goals first | rfl | (exfalso; omega) | (apply uint_Z_inj.1; omega)
     have Hk' : (uint.Z (logTruncInprogress ls e0.Index') - uint.Z uv'.offset').toNat

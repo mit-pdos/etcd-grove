@@ -125,7 +125,7 @@ theorem Register.run.wp_proof
     wp_apply wp_load_slice_index rdv'.CommittedEntries' (sint.Z k) _ DFrac.discard en Hk.1 $$ [Hce] as -
     · iframe Hce; ipureintro; exact Hen
     have Htk : ce.take (sint.nat k + 1) = ce.take (sint.nat k) ++ [en] := by
-      rw [List.take_succ, Hen]; rfl
+      rw [List.take_add_one, Hen]; rfl
     ihave #Hc1 := isCommitted_mono γp.node.raft (ds ++ ce.take (sint.nat k) ++ [en]) (ds ++ ce)
       (by rw [List.append_assoc, ← Htk]; exact List.prefix_append_right_inj _ |>.mpr (List.take_prefix _ _))
       $$ Hcomm

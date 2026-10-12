@@ -23,12 +23,16 @@ generated); raft's functions it calls are linked in raft's `Link.lean`.
   `Put` wrote -- is safe: `{{ isPkgInit register }} Main() {{ RET #(); True }}`. Every ghost
   resource is allocated inside the proof (no storage registry is assumed: `register_Main`
   takes no `[RegStor GF]`).
+* **Adequacy** (`register_cluster_safe`, `Adequacy.lean`'s `register_adequate`): the same in
+  the operational semantics, with package initialization proved (`Init.lean`): every
+  execution of `initialize'(); Main()` from a fresh state has no stuck thread and no panic.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.RegStorageInstance
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Alloc
+public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Adequacy
 
 @[expose] public section
 
@@ -115,6 +119,29 @@ theorem register_Main : register.Main.spec (GF := GF) (hG := hG) :=
 
 end main
 
+/-! The closed theorem (`Adequacy.lean`), restated. -/
+section adequacy
+attribute [local instance] disk_op disk_model disk_semantics disk_interp
+variable [go_gctx : GoGlobalContext]
+
+/-- **The register's cluster driver is safe, in the operational semantics**
+(`register_adequate`): every real execution of the register package's initialization
+followed by `Main()`, from a fresh state with one thread, of any length, has no stuck
+thread, no thread ended in a panic, and the main thread's result, if any, is `#()`. -/
+theorem register_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.register.Assumptions]
+    [hErr : context.ErrorStringIsError] [hDE : context.DeadlineExceededIsError] [hLog : log.NewModel]
+    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (Hthreads : g.threads = 1)
+    (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNsteps n ([registerProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
+    (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
+    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+    (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+  register_adequate σ g Hlctx Hinit Hthreads n κs t2 σ2 Hsteps
+
+end adequacy
+
 #print axioms register_Put
 #print axioms register_Get
 #print axioms register_New
@@ -125,6 +152,8 @@ end main
 #print axioms regStorInv_alloc
 #print axioms regInv_alloc
 #print axioms register_Main
+#print axioms register_adequate
+#print axioms register_cluster_safe
 
 end EtcdGrove
 end Perennial

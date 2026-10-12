@@ -41,7 +41,7 @@ theorem WithSerializable.wp_proof : WithSerializable.spec (GF := GF) (hG := hG) 
   · ipureintro; simp_all
   isplitl []
   · ipureintro; simp_all
-  · iapply opSortAt_of _ o _ (by simp [withSerializableM]) (by simp [withSerializableM]) (by simp [withSerializableM]) $$ Hs
+  · iapply opSortAt_of _ o _ (by simp) (by simp) (by simp) $$ Hs
 
 end proof
 

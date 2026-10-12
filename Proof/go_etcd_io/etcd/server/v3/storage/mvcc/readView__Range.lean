@@ -41,12 +41,13 @@ theorem mvcc.readView.Range.wp_proof
   · iPkgInit
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply hTODO as %t -
+  wp_apply hTODO as %t %Ht
   (try wp_auto)
   -- `rv.kv.Read(ConcurrentReadTxMode, trace)`: the store's
   imod ownToks_0 (GF := GF) γ.revs with Hnone
   imod mvcc.idxCert_nil (GF := GF) γ.idx with #Hc0
   wp_apply (hRead s γ _ t 0 []) $$ [$Hs $Hrd $Hnone $Hc0] as %mw ⟨%log, %rev, Htx, -, -⟩
+  · ipureintro; exact Ht
   (try wp_auto)
   -- `tr.Range(...)`: `metricsTxnWrite.Range`
   ihave Htx : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
@@ -70,7 +71,9 @@ theorem mvcc.readView.Range.wp_proof
     iframe #
   ihave Htx' : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
-  wp_apply (hEnd mw s γ (.read log rev)) $$ [$Htx'] as ⟨Hrd, -⟩
+  ihave Hep : mvcc.txnEndPre γ (.read log rev) $$ []
+  · simp only [mvcc.txnEndPre]; itrivial
+  wp_apply (hEnd mw s γ (.read log rev)) $$ [$Htx' $Hep] as ⟨Hrd, -⟩
   (try wp_auto)
   iapply HΦ
   iframe Hrd

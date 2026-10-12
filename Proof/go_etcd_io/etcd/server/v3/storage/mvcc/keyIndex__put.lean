@@ -176,8 +176,8 @@ theorem mvcc.keyIndex.put.wp_proof
     iframe Hcap
     isplitr
     · ipureintro
-      simp only [mvcc.genPut, mvcc.revVal_mk]
-      exact ⟨by rw [Hfields.1], by rw [if_pos hrevs]; rfl⟩
+      simp only [mvcc.genPut]
+      exact ⟨by rw [Hfields.1], by rw [ite_eq_left hrevs]; rfl⟩
     simp only [mvcc.genPut, List.map_append, List.map_cons, List.map_nil, mvcc.revVal_mk]
     iexact Hrevs
   · -- another revision of a live key
@@ -208,8 +208,8 @@ theorem mvcc.keyIndex.put.wp_proof
     iframe Hcap
     isplitr
     · ipureintro
-      simp only [mvcc.genPut, mvcc.revVal_mk]
-      exact ⟨by rw [Hfields.1], by rw [if_neg hrevs]; exact Hfields.2⟩
+      simp only [mvcc.genPut]
+      exact ⟨by rw [Hfields.1], by rw [ite_eq_right hrevs]; exact Hfields.2⟩
     simp only [mvcc.genPut, List.map_append, List.map_cons, List.map_nil, mvcc.revVal_mk]
     iexact Hrevs
 

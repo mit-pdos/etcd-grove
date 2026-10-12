@@ -46,7 +46,7 @@ theorem WithMinModRev.wp_proof : WithMinModRev.spec (GF := GF) (hG := hG) := by
   · ipureintro; simp_all
   isplitl []
   · ipureintro; simp_all
-  · iapply opSortAt_of _ o _ (by simp [withMinModRevM]) (by simp [withMinModRevM]) (by simp [withMinModRevM]) $$ Hs
+  · iapply opSortAt_of _ o _ (by simp) (by simp) (by simp) $$ Hs
 
 end proof
 

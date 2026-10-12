@@ -108,7 +108,7 @@ theorem mvcc.NewStore.wp_proof
     (hMeta : schema.UnsafeCreateMetaBucket.spec (GF := GF) (hG := hG))
     (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG)) :
     mvcc.NewStore.spec (GF := GF) (hG := hG) := by
-  intro lg b le cfg γb γl
+  intro lg b le cfg γb γl P f
   wp_start as ⟨Hbk, Hbv, #Hlessor⟩
   -- package facts: the configuration defaults, the `Key` bucket, zap, schedule, schema
   ihave Hmi : (mvccInit : IProp GF) $$ []
@@ -172,8 +172,16 @@ theorem mvcc.NewStore.wp_proof
   imod ownTokAuth_add (2 ^ 63 - 5) γr 0 $$ Hauth with ⟨Hauth, Htoks⟩
   rw [Nat.zero_add]
   icases (mvcc.ownTokAuth_halves γr _).1 $$ Hauth with ⟨Hauth, HauthR⟩
-  obtain ⟨γ, hγi, hγb, hγc, hγl, hγr⟩ : ∃ γ : mvcc.StoreNames, γ.idx = γi ∧ γ.bucket = γb ∧
-      γ.clog = γc ∧ γ.leases = γl ∧ γ.revs = γr := ⟨⟨γi, γb, γc, γl, γr⟩, rfl, rfl, rfl, rfl, rfl⟩
+  -- the post-lock hook's names: the lock's invariant and the hook, read-only
+  imod (saved_prop_alloc (GF := GF) P DFrac.discard DFrac.valid_discard) with ⟨%γh, #Hh⟩
+  imod (dghostVar_alloc (GF := GF) f) with ⟨%γhf, Hhf⟩
+  imod (dghostVar_persist (GF := GF) γhf 1 f) $$ Hhf with #Hhf
+  obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf⟩ : ∃ γ : mvcc.StoreNames, γ.idx = γi ∧
+      γ.bucket = γb ∧ γ.clog = γc ∧ γ.leases = γl ∧ γ.revs = γr ∧ γ.hook = γh ∧
+      γ.hookFn = γhf :=
+    ⟨⟨γi, γb, γc, γl, γr, γh, γhf⟩, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  ihave #Hhook : mvcc.hookIs γ P f $$ []
+  · iunfold mvcc.hookIs; rw [hγh, hγhf]; iframe Hh Hhf
   rw [← hγi, ← hγc, ← hγr]
   ihave Hbv : mvcc.bucketView γ 1 (∅ : mvcc.Bucket) $$ [Hbv]
   · iunfold mvcc.bucketView; rw [hγb]; iexact Hbv
@@ -190,10 +198,10 @@ theorem mvcc.NewStore.wp_proof
   ipersist Rkv
   ipersist Wkv
   -- `tx := s.b.BatchTx()`: the backend's contract at the store's names
-  ihave #Hbk1 : mvcc.isKeyBackend b (mvcc.bucketView γ) (mvcc.writerRes «$r0_ptr» γ) $$ [Hbk]
+  ihave #Hbk1 : mvcc.isKeyBackend b (mvcc.bucketView γ) (mvcc.writerRes «$r0_ptr» γ) P f $$ [Hbk]
   · iapply Hbk $$ %«$r0_ptr» %γ
     ipureintro; exact hγb
-  ihave #Hbk0 : mvcc.isKeyBackend b (mvcc.bucketView γ) (mvcc.writerRes «$r0_ptr» γ) $$ []
+  ihave #Hbk0 : mvcc.isKeyBackend b (mvcc.bucketView γ) (mvcc.writerRes «$r0_ptr» γ) P f $$ []
   · iexact Hbk1
   iunfold mvcc.isKeyBackend at Hbk1
   icases Hbk1 with ⟨%bi, %Hbi, -, -, #HB, #HForce⟩
@@ -212,7 +220,7 @@ theorem mvcc.NewStore.wp_proof
   iapply HLockOut
   · itrivial
   inext
-  iintro Hlocked
+  iintro ⟨Hlocked, HP⟩
   (try wp_auto)
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #bK))
   iapply HCreate $$ %([] : mvcc.Puts) %bK [Hlocked]
@@ -220,7 +228,17 @@ theorem mvcc.NewStore.wp_proof
   inext
   iintro Hlocked
   (try wp_auto)
-  wp_apply hMeta
+  wp_bind (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.UnsafeCreateMetaBucket)) (Val #(GoInterface.ok bt)))
+  iapply (hMeta bt (Locked [])) $$ [Hlocked]
+  · iframe Hlocked
+    isplitr
+    · iPkgInit
+    imodintro
+    iintro %b'
+    ihave Hc := HCreate $$ %([] : mvcc.Puts) %b'
+    iexact Hc
+  inext
+  iintro Hlocked
   (try wp_auto)
   -- `tx.Unlock()`: the batch lock's resource deposited (half of `currentRev`, half the
   -- committed log, half the bucket's view, the index writer, the revision budget)
@@ -240,8 +258,8 @@ theorem mvcc.NewStore.wp_proof
     ipureintro
     exact ⟨by simp, by simp⟩
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
-  iapply HUnlock0 $$ [Hlocked HW]
-  · iframe Hlocked HW
+  iapply HUnlock0 $$ [Hlocked HW HP]
+  · iframe Hlocked HW HP
   inext
   iintro -
   (try wp_auto)
@@ -257,7 +275,7 @@ theorem mvcc.NewStore.wp_proof
   (try wp_auto)
   -- `s.restore()` on the fresh backend: nothing changes (`err == nil`)
   wp_apply hRestore $$ %«$r0_ptr» %γ %(GoInterface.ok bi) %(GoInterface.ok li) %ti %lg'
-      %(1 : Qp).half [$Hbv2 $HcurB $compactMainRev $revMu] as ⟨Hbv2, HcurB, compactMainRev, revMu⟩
+      %(1 : Qp).half %P %f [$Hbv2 $HcurB $compactMainRev $revMu] as ⟨Hbv2, HcurB, compactMainRev, revMu⟩
   · iframe #; ipureintro; exact Hlgnn
   (try wp_auto)
   ipersist compactMainRev
@@ -283,7 +301,7 @@ theorem mvcc.NewStore.wp_proof
   · rw [hγl]; iexact Hlessor0
   ihave #Hs : mvcc.isStore «$r0_ptr» γ $$ []
   · iunfold mvcc.isStore
-    iexists (GoInterface.ok bi), (GoInterface.ok li), ti, lg'
+    iexists (GoInterface.ok bi), (GoInterface.ok li), ti, lg', P, f
     simp only [named]
     iframe #
     ipureintro; exact Hlgnn
@@ -292,7 +310,7 @@ theorem mvcc.NewStore.wp_proof
   iexists γ
   isplitr
   · ipureintro; exact ⟨hγb, hγl⟩
-  iframe Hs Htoks Hcert
+  iframe Hs Hhook Htoks Hcert
   isplitr
   · iexists rv, wv
     iunfold mvcc.isReadView

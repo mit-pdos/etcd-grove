@@ -43,7 +43,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG))
     (hUnm : proto.Unmarshal.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnCommon.rangeKeys.spec (GF := GF) (hG := hG) := by
-  intro txc s trace ti rt dq m R γ kn log rev ctx cd todo key endk k e ro
+  intro txc s trace ti rt dq m R γ kn log rev ctx cd todo key endk k e ro Htrnn
   wp_start as ⟨#Hs, HsT, HtxcT, HtraceT, #Hrdr, HRr, %HsubT, Hkn, %Hklog, %HneT, %Hrv, #Hidx0, Hti0,
     #Hctx, #Hkey, #Hend⟩
   iunfold mvcc.isStore at Hs
@@ -87,11 +87,11 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
     wp_join iprop(rev_ptr ↦ mvcc.rangeRev rev ro.Rev' ∗ curRev_ptr ↦ rev) with [rev curRev]
       as ⟨Hrevp, curRev⟩
     · have hRR : mvcc.rangeRev rev ro.Rev' = rev := by
-        unfold mvcc.rangeRev; rw [if_pos (by omega)]
+        unfold mvcc.rangeRev; rw [ite_eq_left (by omega)]
       rw [hRR]
       iframe rev curRev
     · have hRR : mvcc.rangeRev rev ro.Rev' = ro.Rev' := by
-        unfold mvcc.rangeRev; rw [if_neg (by omega)]
+        unfold mvcc.rangeRev; rw [ite_eq_right (by omega)]
       rw [hRR]
       iframe rev curRev
     have hR0 : 0 ≤ sint.Z (mvcc.rangeRev rev ro.Rev') := by
@@ -113,6 +113,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
       rw [Hklog]
       (try wp_auto)
       wp_apply (hStep trace _ _)
+      · ipureintro; exact Htrnn
       (try wp_auto)
       wp_alloc r as Hr
       ihave %Hrnn := typedPointsto_not_null _ _ _ $$ Hr
@@ -145,6 +146,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
         rw [Hklog] at Htotal
         (try wp_auto)
         wp_apply (hStep trace _ _)
+        · ipureintro; exact Htrnn
         (try wp_auto)
         generalize hT : mvcc.rangeTaken log (decide (endk = slice.nil)) k e
           (mvcc.rangeRev rev ro.Rev') ro.Limit' = taken at *
@@ -322,7 +324,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
             iframe Hri Hi Hkvs
             isplitl []
             · ipureintro; exact ⟨by omega, by simp [Hbnd.2]⟩
-            rw [List.take_succ, ha, Option.toList_some,
+            rw [List.take_add_one, ha, Option.toList_some,
               List.zip_append (by rw [Hbnd.2, List.length_take_of_le (by omega)])]
             iapply BigSepL.bigSepL_append.2
             isplitl [Hps]
@@ -388,6 +390,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
         rw [Hklog] at Htotal
         (try wp_auto)
         wp_apply (hStep trace _ _)
+        · ipureintro; exact Htrnn
         (try wp_auto)
         generalize hT : mvcc.rangeTaken log (decide (endk = slice.nil)) k e
           (mvcc.rangeRev rev ro.Rev') ro.Limit' = taken at *
@@ -708,7 +711,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
               · ipureintro; exact mvcc.revBytes_false_length _
               isplitl []
               · ipureintro; exact ⟨by omega, by simp [Hbnd.2]⟩
-              rw [List.take_succ, ha, Option.toList_some,
+              rw [List.take_add_one, ha, Option.toList_some,
                 List.zip_append (by rw [Hbnd.2, List.length_take_of_le (by omega)])]
               iapply BigSepL.bigSepL_append.2
               isplitl [Hps]
@@ -735,6 +738,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
             rw [Nat.sub_self, List.replicate_zero, List.append_nil]
             (try wp_auto)
             wp_apply (hStep trace _ _)
+            · ipureintro; exact Htrnn
             (try wp_auto)
             wp_alloc r as Hr
             ihave %Hrnn := typedPointsto_not_null _ _ _ $$ Hr

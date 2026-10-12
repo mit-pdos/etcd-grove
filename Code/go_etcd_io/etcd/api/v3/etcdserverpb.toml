@@ -6,10 +6,14 @@
 # oneof wrappers), the transaction's response (`TxnResponse`, `ResponseOp` and its oneof wrappers,
 # `PutResponse`, `DeleteRangeResponse`) and `LeaseRevokeResponse`; for `Mutex`, `ResponseOp.GetResponseRange`;
 # for client/v3/leasing, the header's, the comparison's and the response's getters; for the
-# server's apply thread, `AlarmType_NOSPACE` (an axiomatized constant is an opaque `val`, which a
-# `let` cannot bind without knowing it is not a panic); for the server's txn package, the requests
+# server's apply thread, `AlarmType_NOSPACE` and (for `AlarmStore.Get`) `AlarmType_NONE` (an
+# axiomatized constant is an opaque `val`, which a `let` cannot bind without knowing it is not a
+# panic, nor a comparison decide); for the server's txn package, the requests
 # (`TxnRequest`, `RequestOp` and its oneof wrappers, `RangeRequest`, `PutRequest`,
-# `DeleteRangeRequest`), the range's sort constants and `RequestOp.GetRequestRange`.
+# `DeleteRangeRequest`), the range's sort constants and `RequestOp.GetRequestRange`; for the
+# server's apply package, the raft request (`InternalRaftRequest`, its `RequestHeader`, the
+# `InternalRaftStringer` the logs wrap it in), the requests it reads and the responses it builds
+# (compaction, lease, alarm, auth), the alarm actions and types.
 translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetKey", "RangeResponse", "WatchResponse",
   "Compare", "Compare_Version", "Compare_CreateRevision", "Compare_ModRevision", "Compare_Value",
   "Compare_Lease", "Compare_EQUAL", "Compare_GREATER", "Compare_LESS", "Compare_NOT_EQUAL",
@@ -21,13 +25,27 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   "ResponseHeader.GetClusterId", "ResponseHeader.GetMemberId", "ResponseHeader.GetRaftTerm",
   "ResponseHeader.GetLeaderId", "Compare.GetRangeEnd", "Compare.GetResult", "Compare.GetTarget",
   "Compare.GetTargetUnion", "ResponseOp.GetResponseTxn", "ResponseOp.GetResponsePut",
-  "ResponseOp.GetResponseDeleteRange", "ResponseOp.GetResponse", "AlarmType_NOSPACE",
+  "ResponseOp.GetResponseDeleteRange", "ResponseOp.GetResponse", "AlarmType_NOSPACE", "AlarmType_NONE",
   "TxnRequest", "RequestOp", "RequestOp_RequestRange", "RequestOp_RequestPut",
   "RequestOp_RequestDeleteRange", "RequestOp_RequestTxn", "RequestOp.GetRequestRange",
   "RangeRequest", "PutRequest", "DeleteRangeRequest",
   "RangeRequest_NONE", "RangeRequest_ASCEND", "RangeRequest_DESCEND", "RangeRequest_KEY",
-  "RangeRequest_VERSION", "RangeRequest_CREATE", "RangeRequest_MOD", "RangeRequest_VALUE"]
-imports = ["!*", "go.etcd.io/etcd/api/v3/mvccpb", "google.golang.org/protobuf/runtime/protoimpl"]
+  "RangeRequest_VERSION", "RangeRequest_CREATE", "RangeRequest_MOD", "RangeRequest_VALUE",
+  "InternalRaftRequest", "RequestHeader", "InternalRaftStringer", "InternalAuthenticateRequest",
+  "CompactionRequest", "CompactionResponse",
+  "LeaseGrantRequest", "LeaseGrantResponse", "LeaseRevokeRequest", "LeaseCheckpointRequest",
+  "LeaseCheckpoint", "LeaseCheckpointResponse",
+  "AlarmRequest", "AlarmResponse", "AlarmMember", "AlarmRequest_GET", "AlarmRequest_ACTIVATE",
+  "AlarmRequest_DEACTIVATE", "AlarmType_NONE", "AlarmType_CORRUPT",
+  "AuthEnableResponse", "AuthDisableResponse", "AuthStatusResponse", "AuthenticateResponse",
+  "AuthUserAddResponse", "AuthUserDeleteResponse", "AuthUserChangePasswordResponse",
+  "AuthUserGrantRoleResponse", "AuthUserGetRequest", "AuthUserGetResponse",
+  "AuthUserRevokeRoleResponse", "AuthRoleAddResponse", "AuthRoleGrantPermissionResponse",
+  "AuthRoleGetRequest", "AuthRoleGetResponse", "AuthRoleRevokePermissionResponse",
+  "AuthRoleDeleteResponse", "AuthUserListResponse", "AuthRoleListResponse"]
+imports = ["!*", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/membershippb",
+  "go.etcd.io/etcd/api/v3/authpb",
+  "google.golang.org/protobuf/runtime/protoimpl"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

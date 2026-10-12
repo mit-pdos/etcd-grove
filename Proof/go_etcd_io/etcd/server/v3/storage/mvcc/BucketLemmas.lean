@@ -29,7 +29,7 @@ theorem W64_toNat (x : w64) : W64 (x.toNat : Int) = x := by
 theorem W64_inj_of_lt {a b : Nat} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64) (h : W64 a = W64 b) :
     a = b := by
   first
-  | (unfold W64 at h; have := congrArg BitVec.toNat h; simp [BitVec.toNat_ofInt] at this; omega)
+  | (unfold W64 at h; have := congrArg BitVec.toNat h; simp at this; omega)
   | (have := congrArg BitVec.toNat h; simp [W64] at this; omega)
 
 /-! ## The map built from the bucket's entries -/
@@ -461,7 +461,7 @@ theorem rangeAt_keys_sublist (idx : IndexM) (k e : GoString) (atRev : w64) :
     · rw [List.filterMap_cons, List.map_cons]
       cases kiGet z.2 atRev with
       | none => exact ih.cons _
-      | some r => simp only [Option.map_some, List.map_cons]; exact ih.cons₂ _
+      | some r => simp only [Option.map_some, List.map_cons]; exact ih.cons_cons _
     · rw [List.map_cons]; exact ih.cons _
 
 /-- The keys to delete are distinct (the index's keys are sorted). -/

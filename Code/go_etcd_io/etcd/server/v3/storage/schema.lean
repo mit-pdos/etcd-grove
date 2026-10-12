@@ -439,6 +439,20 @@ noncomputable def UnsafeSetStorageVersion [FfiSyntax] [GoGlobalContext] : GoStri
 noncomputable def UnsafeClearStorageVersion [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.UnsafeClearStorageVersion"
 
+/-- UnsafeCreateMetaBucket creates the `meta` bucket (if it does not exist yet).
+
+    go: cindex.go:25:6 -/
+noncomputable def UnsafeCreateMetaBucket.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "tx"
+  (App (Val exceptionDo)
+  (Let "tx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty))) (Var "tx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr Meta))) (Val #())))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty go!"UnsafeCreateBucket"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty))) (Var "tx"))) (Var "$a0"))))))))
+
 /-- UnsafeReadConsistentIndex loads consistent index & term from given transaction.
     returns 0,0 if the data are not found.
     Term is persisted since v3.5.
@@ -1116,6 +1130,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   membershipBackend_instance : membershipBackend.TypeAssumptions
   migrationPlan_instance : migrationPlan.TypeAssumptions
   migrationStep_instance : migrationStep.TypeAssumptions
+  UnsafeCreateMetaBucket_unfold : FuncUnfold UnsafeCreateMetaBucket [] UnsafeCreateMetaBucket.impl
   UnsafeReadConsistentIndex_unfold : FuncUnfold UnsafeReadConsistentIndex [] UnsafeReadConsistentIndex.impl
   ReadConsistentIndex_unfold : FuncUnfold ReadConsistentIndex [] ReadConsistentIndex.impl
   UnsafeUpdateConsistentIndexForce_unfold : FuncUnfold UnsafeUpdateConsistentIndexForce [] UnsafeUpdateConsistentIndexForce.impl
@@ -1140,6 +1155,7 @@ attribute [instance] Assumptions.action_instance
   Assumptions.membershipBackend_instance
   Assumptions.migrationPlan_instance
   Assumptions.migrationStep_instance
+  Assumptions.UnsafeCreateMetaBucket_unfold
   Assumptions.UnsafeReadConsistentIndex_unfold
   Assumptions.ReadConsistentIndex_unfold
   Assumptions.UnsafeUpdateConsistentIndexForce_unfold

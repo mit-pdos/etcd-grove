@@ -1,6 +1,7 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
-imports = ["!*"]
+# `AlarmStore.Get` with its body (the apply thread calls it); the rest names only. The
+# types are translated, so the packages of their fields are imported.
+translate = ["!*", "AlarmStore.Get"]
+imports = ["!*", "sync", "go.uber.org/zap", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/server/v3/storage/schema", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/client/pkg/v3/types"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

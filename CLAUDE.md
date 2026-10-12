@@ -21,6 +21,16 @@ is specific to the Lean port.
 
 Before you finish, update `notes/STATUS.md` if anything moved.
 
+## Branches
+
+Delete a branch once its work is merged into `lean` (or wherever it was merged): the
+local branch (`git branch -d <branch>`, which refuses one that is not merged), its remote
+copy if it was pushed (`git push origin --delete <branch>`), and its worktree if it had
+one (`git worktree remove <path>`). The same in a dependency's checkout (Perennial's
+branches, under `.lake/packages/perennial` or a separate clone) once they have landed. A
+session's own worktree branch goes when the worktree does, at the end of the session.
+Delete only branches you created; leave other people's, merged or not.
+
 ## Layout
 
 Files are laid out by kind, then by the Go package path (as in Perennial; module

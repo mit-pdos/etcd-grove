@@ -2,11 +2,12 @@
 `traceutil.Get`: the trust boundary (`pkg/v3/traceutil` is names-only). Lean-first.
 
 `Get(ctx)` returns the trace `ctx` carries (`ctx.Value(TraceKey{})`) if it is a non-nil
-`*Trace`, else `TODO()` (a new empty trace): a trace, not nil.
+`*Trace`, else `TODO()` (a new empty trace): a trace, not nil. The context is a `txnCtx`
+(2026-10-12: an `isContext`, or one whose `Done()` is `nil`, as `context.TODO()`'s).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.traceutil
 public import Perennial.Proof.context
 
@@ -32,7 +33,7 @@ variable [package_sem : context.Assumptions]
 abbrev traceutil.Get.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗
-      context.isContext ctx cd }}
+      mvcc.txnCtx ctx cd }}
     (App (Val (@! traceutil.Get)) (Val #(GoInterface.ok ctx)))
   {{ (t : Loc), RET #t; ⌜t ≠ null⌝ }}
 

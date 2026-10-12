@@ -40,8 +40,10 @@ theorem txn.Put.wp_proof
     (hput : txn.put.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.Put.spec (GF := GF) (hG := hG) := by
-  intro ctx cd lg le kv s γ p o m log₀
-  wp_start as ⟨#Hkv, Hrd, Htok, Htoks, #Hc0, #Hle, #Hp, #Hctx, #Hlprem⟩
+  intro ctx cd lg le kv s γ p o m log₀ P Pre Q Post f
+  wp_start as ⟨#Hkv, Hrd, Htok, Htoks, #Hc0, #Hle, #Hp, #Hctx, #Hlprem, Hcs, #Hhook⟩
+  iunfold mvcc.csContract at Hcs
+  icases Hcs with ⟨Hpre, #Htr, Hupd⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   ihave #Hpr : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
@@ -81,7 +83,7 @@ theorem txn.Put.wp_proof
     isplitl []
     · ipureintro; exact Ht
     ileft
-    iframe He Htok
+    iframe He Htok Hpre
     ipureintro; exact ⟨Hne, rfl⟩
   subst Herr
   (try wp_auto)
@@ -90,7 +92,10 @@ theorem txn.Put.wp_proof
   icases Hkv with ⟨%Hkv, #Hs⟩
   subst Hkv
   (try wp_auto)
-  wp_apply (hWrite s γ t) $$ [$Hs $Hrd $Htok] as %mw ⟨%ilog, Htx⟩
+  wp_apply (hWrite s γ t P Pre Q f) $$ [$Hs $Hrd $Htok $Hhook $Hpre $Htr] as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
+  · ipureintro; exact Ht
+  -- the caller's update (the writes are the model's): the lock's invariant back for `End`
+  imod Hupd $$ HQ with ⟨HP, HPost⟩
   (try wp_auto)
   -- the pin of the transaction's committed log
   ihave ⟨%Hpin, Htoks, -, Htx⟩ := txn.isTxnWrite_pinned γ log₀ ilog [] mw s (W64 0) (W64 0) (W64 0) m
@@ -113,7 +118,8 @@ theorem txn.Put.wp_proof
     icases He' with ⟨%e, -, %Hee⟩
     subst Hee
     (try wp_auto)
-    wp_apply (hEnd mw s γ _) $$ [$Htx] as ⟨Hrd, Hpost⟩
+    wp_apply (hEnd mw s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost⟩
+    · iapply mvcc.txnEndPre_write; iframe Hhook HP
     simp only [mvcc.txnEndPost, mvcc.commitLog, ↓reduceIte]
     icases Hpost with ⟨#Hc, Htok⟩
     (try wp_auto)
@@ -125,6 +131,7 @@ theorem txn.Put.wp_proof
     iexists ilog
     isplitl []
     · ipureintro; exact ⟨Hpin, Hfx.1⟩
+    iframe HPost
     ileft
     iframe He Htok Hc
     ipureintro; exact ⟨Hn.1, Hn.2.1, rfl⟩
@@ -148,7 +155,8 @@ theorem txn.Put.wp_proof
   ihave Htx : mvcc.isTxn mw s γ (.write ilog
       [txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))] puts' (W64 0) putSize') $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
-  wp_apply (hEnd mw s γ _) $$ [$Htx] as ⟨Hrd, Hpost⟩
+  wp_apply (hEnd mw s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost⟩
+  · iapply mvcc.txnEndPre_write; iframe Hhook HP
   simp only [mvcc.txnEndPost, mvcc.commitLog, List.cons_ne_nil, ↓reduceIte]
   icases Hpost with ⟨#Hc, -⟩
   (try wp_auto)
@@ -160,6 +168,7 @@ theorem txn.Put.wp_proof
   iexists ilog
   isplitl []
   · ipureintro; exact ⟨Hpin, Hfx.1⟩
+  iframe HPost
   iright
   iframe Hresp Hc Hlok2
   ipureintro; rfl

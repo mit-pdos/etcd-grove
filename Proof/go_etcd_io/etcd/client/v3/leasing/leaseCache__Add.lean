@@ -66,7 +66,7 @@ theorem leaseCache.Add.wp_proof (hget : leaseKey.get.spec (GF := GF) (hG := hG))
       wp_if_destruct
       · simp only [Hif, _root_.or_true, decide_true, ↓reduceIte]
         iframe
-      · simp only [Hif, _root_.or_false, decide_false, ↓reduceIte]
+      · simp only [Hif, _root_.or_false, decide_false]
         iframe
   unfold leaseCacheReady
   ihave %Hle := monoNatLbOwn_valid $$ Hrd Hready

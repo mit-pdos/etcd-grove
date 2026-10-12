@@ -9,10 +9,13 @@ etcd's `go.mod`), not the fork `EtcdRaft/` translates: its messages are protobuf
 zero value). As in `Cache/InvStore.lean`, a message is described through its fields only
 (`entryAt`, persistent), never a whole-message points-to (whose instances contain the opaque
 `state : impl.MessageState`).
+
+It imports the apply package's `Base` (raftpb's instance), not the server's `BaseApply`: the
+apply package reads entries too (`apply.Apply`) and must not import the server's translation.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
 
 @[expose] public section
 
@@ -24,6 +27,11 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+
+/-- The bytes `bs` are the protobuf encoding of some `raftpb.ConfChange` (what etcd proposes
+as an `EntryConfChange`'s data: `cc.Marshal()` in `configure`); opaque, as the encoding is
+(`mvcc.kvEncode`). `pbutil.MustUnmarshalMessage` panics on any other bytes. -/
+opaque isConfChangeEncoding : List w8 → Prop
 
 /-- A raft entry as the apply thread uses it. -/
 structure EntryModel where

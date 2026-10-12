@@ -77,9 +77,13 @@ variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 /-- **An error etcd's client returns** (a gRPC status error, an `rpctypes.EtcdError`, a context
 error): a leaf of an error tree, without `Unwrap` or `As` methods (`errors.isLeafError`), whose
 value, if its dynamic type is `rpctypes.EtcdError`, is an `EtcdError` (Go's typing, which the model
-lacks: `errors.AsTypeTyped`). What `errors.As(err, &serverErr)` needs (`leasingKV.acquire`,
-`errors.wp_As`). -/
+lacks: `errors.AsTypeTyped`); and `rpctypes.EtcdError` implements `error` (its method set has
+`Error() string`, `func (e EtcdError) Error() string`: `errors.AsTarget`, a method-set fact, which
+the model also lacks, since method sets are uninterpreted). What `errors.As(err, &serverErr)`
+needs (`leasingKV.acquire`, `errors.wp_As`: Go's `As` panics for a target whose element type is
+neither an interface nor implements `error`). -/
 def clientErr (err : GoInterface) : Prop :=
+  errors.AsTarget v3rpc.rpctypes.EtcdError.ty ∧
   ∀ ii, err = GoInterface.ok ii → errors.isLeafError ii ∧
     errors.AsTypeTyped v3rpc.rpctypes.EtcdError v3rpc.rpctypes.EtcdError.ty ii
 
@@ -175,12 +179,12 @@ theorem leavesL_leaves (os : List OpFull) : OpT.leavesL (os.map OpT.leaf) = os :
 mutual
 /-- Every operation is under the empty prefix (every key is). -/
 theorem TxnOp.under_nil : ∀ op : TxnOp, op.Under []
-  | .get o => fun k _ => List.nil_prefix
-  | .put k _ _ => List.nil_prefix
-  | .delete o => fun k _ => List.nil_prefix
-  | .putKeep k _ => List.nil_prefix
-  | .putIgnVal k _ => List.nil_prefix
-  | .txn cs ts es => ⟨fun _ _ k _ => List.nil_prefix, TxnOp.underL_nil ts, TxnOp.underL_nil es⟩
+  | .get _ => fun _ _ => List.nil_prefix
+  | .put _ _ _ => List.nil_prefix
+  | .delete _ => fun _ _ => List.nil_prefix
+  | .putKeep _ _ => List.nil_prefix
+  | .putIgnVal _ _ => List.nil_prefix
+  | .txn _ ts es => ⟨fun _ _ _ _ => List.nil_prefix, TxnOp.underL_nil ts, TxnOp.underL_nil es⟩
 
 theorem TxnOp.underL_nil : ∀ ops : List TxnOp, TxnOp.UnderL [] ops
   | [] => trivial
@@ -189,7 +193,7 @@ end
 
 /-- Every transaction is under the empty prefix: the leasing KV's contracts are at prefix `[]`. -/
 theorem TxnModel.under_nil (t : TxnModel) : t.Under [] :=
-  ⟨fun _ _ k _ => List.nil_prefix, fun op _ => TxnOp.under_nil op, fun op _ => TxnOp.under_nil op⟩
+  ⟨fun _ _ _ _ => List.nil_prefix, fun op _ => TxnOp.under_nil op, fun op _ => TxnOp.under_nil op⟩
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

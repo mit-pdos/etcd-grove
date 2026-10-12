@@ -1146,7 +1146,9 @@ either take the batch lock (`P`, whose invariant `applierFor ua P f` asserts), r
 `f`, write (the caller's update `Q ={⊤}=∗ P ∗ Post`) and unlock, in one critical section, or
 write nothing. That is what etcd's design relies on, and the contracts state it; whether the
 applier keeps an entry's writes in one critical section is not verified here. The hook itself
-is verified (`getTxPostLockInsideApplyHook`). *Rejected:* axiomatizing "the applier advances
+is verified (`getTxPostLockInsideApplyHook`). (2026-10-12: the apply package proves
+`apply.Apply` against this contract plus the KV, and `applierFor` is its definition; only
+`applyConfChange` stays assumed: "The server's apply", unit 3.) *Rejected:* axiomatizing "the applier advances
 `ci`", which would leave the hook unverified; an opaque `entryNoop` receipt for the no-write
 outcome (dropped: an entry without data skips the applier, and that path is justified by the
 code itself).
@@ -3183,3 +3185,231 @@ transaction's range is `storeTxnWrite.Range`'s, `TxnKind.readLog`/`readRev`), an
 `rangeCtx todo ctx cd` (an `isContext`, or `context.TODO()`'s value) with `todo = true → r ≠ null`
 in the post (`TxnRange.lean`); the old statements are the instances `kind := .read …`, `todo :=
 false`. `metricsTxnWrite.Range` links `storeTxnWrite.Range` too.
+
+## The server's apply: the hook through mvcc, the chain as triples, compaction out of the model
+
+**2026-10-12 · plan, unit 0 implemented** (`server/v3/etcdserver/apply`, ~1180 Go lines: the
+applier chain between the apply thread, whose contract `apply.Apply` it is, and the txn
+package; units A, 1, 2, 3 append). The plan: close the loop between the apply thread's proof
+(the entry's writes in one critical section of the batch lock, the hook first, or none) and the
+txn package's (what is written, by the client model), by proving `apply.Apply` over the txn
+results and making the server's `applierFor` a definition.
+
+- **Translation** (unit 0). The package with bodies (`metrics.go`'s gauge and `init` names
+  only), no Gooseable change: goose promotes the methods of an embedded *interface* field
+  (`applierV3Capped{applierV3}`, ...) as `MethodUnfold` wrappers through `MethodResolve
+  applierV3.ty` on the field, as it did for mvcc's `txnReadWrite`. The protobuf-go v2 messages
+  the package reads or builds are listed by name in `etcdserverpb.toml` (and `membershippb`); a
+  listed struct whose field names a type of a package not imported (`AuthRoleGetResponse.Perm`,
+  `authpb.Permission`) is emitted with a dangling reference (a goose gap: the import filter is
+  not consulted for listed structs), so `authpb` is imported names-only. `lease.Lease` and
+  `storage.BackendQuota` become translated structs (their packages import `sync`, `backend`):
+  the backend reads `l.ID`, the capped applier embeds a `BackendQuota` value.
+- **The apply package does not import the server's translation** (unit 0). The server's
+  proofs will import the apply package's (unit 3: `applierFor` a definition), so the apply
+  package's `Base` holds the instances of the packages it reaches (moved from the server's
+  `BaseApply.lean`, which imports it), and the raftpb vocabulary (`InvRaftpb.lean`) imports it
+  instead of `BaseApply`. The shared contracts it needs from the server move to the apply
+  package (`waitOk`, now with `IsRegistered`: `apply/Wait.lean`); `pbutil.MustUnmarshalMessage`'s
+  spec is stated over the message packages' assumptions, not the server's.
+- **The request is decoded, not encoded** (unit 0; the plan said `irrEncode : IRRModel → List
+  w8`, as mvcc's `kvEncode`). `irrDecode : List w8 → Option IRRModel` (opaque), and the decoder's
+  axiom takes `irrDecode bs = some rq`. *Why:* protobuf encodings are not canonical and the
+  model forgets the contents of the requests the package passes on unread (the auth requests:
+  presence only), so "the entry's data is `irrEncode rq` for some `rq`" fails of real entries,
+  where "it decodes to some `rq`" does not; a decoder is a function, so no injectivity is
+  assumed. The KV requests are the txn package's models (`OpFull`, `TxnModel`), so the apply
+  package's statements are in the client model's terms; `dispatchKind` is the first set field in
+  `dispatch`'s order (no "exactly one" premise).
+- **The components as contracts** (unit 0, `Contracts.lean`). Every names-only component the
+  package calls through an interface (the auth store, the lessor, the quota, the raft status,
+  the snapshot server, the consistent indexer, the wait) or a names-only struct pointer with
+  state (the alarm store, the cluster) is a persistent predicate of triples, the trust boundary;
+  every backend write among them has the hook's shape `csContract P f Pre Q Post` (`Pre`, the
+  hook's triple `{P ∗ Pre} f() {Q}`, the write `Q ={⊤}=∗ P ∗ Post`; the writer returns `Post ∨
+  Pre`). The lessor's `Revoke` deletes its keys through the store's writer: at the sole writer of
+  `log` it returns the sole writer of `log` with deletions committed. Pure names-only helpers
+  (semver, `types.ID.String`, `AlarmType.String`, zap, the txn package's loggers, the gauge's
+  `WithLabelValues`, `context.WithValue`, the quota's constructor and `Cost`) are axioms. The
+  gauge's `Inc`/`Dec` are the returned gauge's contract (mvcc's `gaugeSpec`), not axioms.
+  *Rejected:* the alarm store's methods as axioms (its writes need the hook's `P f`, which an
+  axiom would have to quantify over).
+- **semver** (unit 0): `MustParse` returns a version or panics (`PanicV`), by an opaque
+  `semverValid` of the string: the premise of a `ClusterVersionSet` entry, as Perennial's panics
+  are modelled (`Logger.Panic`).
+- **The context** (unit 0). The backend applier calls the txn package at `context.TODO()`, whose
+  `Done()` is `nil` and which Perennial's `isContext` does not describe; `EnsureTrace(TODO())` is
+  `WithValue(TODO(), ...)`, whose `Done` is its parent's. The plan's "`txnCtx` in the four entry
+  points' premise, the proofs change little" did not hold as stated: the context flows from
+  `Txn`/`Put`/... into `txn`, `executeTxn`, `put`, `executeRange`, `deleteRange` and
+  `traceutil.Get`, each taking an `isContext`. Done instead: `doneNil ctx` (a context whose
+  `Done()` returns `nil`) and `txnCtx ctx cd := doneNil ctx ∨ isContext ctx cd` (mvcc's
+  `TxnRange.lean`), the premise of every txn function that takes a context (a rename in their
+  specs, `Results.lean` too) and of the `EnsureTrace`/`Get` axioms (which return a `txnCtx`);
+  `rangeCtx true` takes `doneNil` in place of `TODO()`'s value; the two range reads choose their
+  `todo` from it (`txnCtx_rangeCtx`: never canceled if `doneNil`). At `TODO()`, `txnCtx_todo`;
+  `Txn`'s `neverDone` with the descriptor `neverCd`. *Rejected:* an `isContext` for
+  `WithValue(TODO())` in the axiom (Perennial's `isContext` needs a `Done` channel: unsound).
+- **Compaction is out of the model** (plan): mvcc's `isStore` fixes `compactMainRev = -1`;
+  `applierV3backend.Compaction` gets no spec and `dispatch`'s spec will take `dispatchKind rq ≠
+  compaction` (unit 2).
+- **The chain** (unit 0, `Chain.lean`, skeleton): `Chain` (`baseChain = auth (quota backend)`,
+  `alarmChain` by the alarms), the outcome relation `chainStep B c rq log o` over the backend's
+  relation `B` (corrupt, capped, auth reject before a write; quota may report `ErrNoSpace` after
+  one), and `applierSpec c a`, the layers' structs and inner appliers; the layers' method
+  triples are unit 1's.
+- **Links: reuse** (unit 0, `gen-link.py`). The trust report runs Lean once per group of part
+  roots; the apply package's roots reach `EtcdDeps` (raftpb, through `MustUnmarshalMessage`'s
+  spec) and import mvcc's `Link.lean` (through the txn package's), so they meet the server's
+  `Link.lean`, which defined `binary.bigEndian.wp_PutUint64`/`wp_Uint64` and `zap.wp_Error` as
+  mvcc's does. Rule: a callee whose result a Link this one imports already defines under the
+  same full name is imported, not redefined; the Links searched are the `@` callees' and a
+  mode's declared ones (`REUSES`: the server's imports mvcc's). The apply package's results are
+  in a namespace of their own (`apply`), as the txn package's.
+
+- **The layers' triples** (unit 1, `Chain.lean`). `applierSpec E c a` is not recursive in its
+  shape: it is the method triples of `a` as the chain `c` runs them (`applierTriples`), stated
+  with `chainStep backendStep c` and `chainRes c`, which recurse on `c`; each layer's methods are
+  `Spec/`+`Proof/` files over `applierSpec E c inner`, and the constructors prove the triples
+  (promoted methods through the inner's). The environment `E : AEnv` (store, ghost names, the
+  batch lock's `P f`) is a record. Every method takes and returns the apply thread's
+  `kvOwn E log` (reader slots, sole writer, leases known: `newHeader`'s `store.Rev` needs the
+  first two), so `dispatch` (unit 2) threads one resource. The KV methods and `LeaseRevoke` are
+  stated for the request `rq` `dispatch` passes on (`dispatchKind rq`), so that unit 2's outcome
+  is `chainStep`'s; their answers keep the txn package's response predicates at the exact model
+  values. A writing method returns `Post ∨ Pre`, not "`Post` iff applied": a put whose ignore
+  flag finds no key took the lock (`Post`) and wrote nothing; a read-only `Txn` is applied with
+  `Pre`.
+- **The auth layer's mutex** (unit 1): `aa.mu`'s resource is `authInfo`; `Apply` locks it and
+  hands `authInfo` to the `applyFunc` through `chainRes`. *Rejected:* `authInfo` thread-owned
+  with a trivial lock resource (`Apply` and unit 2's uber-applier would carry `chainRes`).
+- **A lease checkpoint request with one checkpoint** (unit 1): the lessor persists each
+  checkpoint in its own critical section, which the critical-section contract cannot express
+  (`issues/etcd-apply-lease-checkpoint-sections.md`): a premise, not a weaker contract.
+- **`auth.AuthStore` translated** (unit 1): `auth.toml` imports the packages its methods'
+  signatures name; it was an axiomatized type whose generated instances are `sorry`.
+
+- **The uber-applier: persistent and thread-owned halves** (unit 2, `InvUber.lean`). `uberIs E p
+  opts` (fields written once, the options' contracts, the base chain) is persistent;
+  `uberOwn E p c` (the `applyV3` field and its chain) is the apply thread's, since
+  `restoreAlarms` rewrites it, also from inside the chain's `Apply` (an alarm request: `dispatch`
+  → `Alarm` → `restoreAlarms`), which is why `dispatch`'s `A`/`B` carry `applyV3 ↦` and the
+  chain's resources `chainRes c a` stay those of the applier `Apply` was called on. The chain
+  after `restoreAlarms` is existential (`alarmChain ns cr`: the alarm store's `Get` is any
+  slice). `applierFor ua E` takes the environment, not `P f`: the persistent and owned halves
+  must name the same store, which `P f` do not pin.
+- **`apply.Apply.spec` strengthened; the server keeps the old contract as an axiom until unit 3**
+  (unit 2). The new precondition's `rqOk x.log rq` depends on the log the earlier entries wrote,
+  so the server's loop can supply it only with the fold (`applyEntries_model`, unit 3); a
+  threaded `applyKV` with no claim about the next state cannot. The old statement is kept as
+  `apply.Apply_server.spec` with its axiom (renamed from `apply.Apply.wp_proof`; not derivable
+  from the new one, which has more premises), the server's `applierFor` axiom unchanged.
+  *Rejected:* deriving the old statement (impossible); putting `applyKV` in an invariant (the
+  call is not atomic).
+- **The cluster writes only with `shouldApplyV3`** (unit 2, `Contracts.lean` `cPre`/`cPost`): so
+  that `apply.Apply` without `v3`, which gets no hook triple from the server, can call the
+  cluster's methods and still return `Pre`. A strictly stronger restatement of the unit 1
+  triple (membership's `RaftCluster` saves to the backend `if shouldApplyV3`).
+- **`errors.Is`** (unit 2): the server's axiom (any error, any target) restated under the
+  `errors` package's assumptions and shared with `dispatch`, since Perennial's `errors.wp_Is`
+  (at `e4e126e46`) needs an error tree the components' errors do not have. On `lean` the
+  `errors.Is` spec now takes the tree (Perennial `e6ec34885`): the merge states `applyErrIs` of
+  the chain's and the contracts' errors (STATUS, unit 2, "Gap for the merge").
+- **The applier's errors, as `errors.Is` sees them** (the merge of unit 2 into `lean`): `lean`'s
+  `errors.Is` proof kept (under the `errors` package's assumptions, unit 2's generalization);
+  `applyErrIs` moved from the server's `InvApplier.lean` to the apply package's `Base.lean`
+  (with `errLeaf`, `errVarLeaf`, `applyErrIs_nil`/`_leaf`), so that `apply.resultErrOk` is the
+  server's `resultOk` and the apply package does not import the server. Where each error comes
+  from: the contracts assert it of the auth store's and the lessor's errors (a trust-boundary
+  fact, as `clientErrIs` for the client); the error variables the chain returns or compares
+  with (`ErrCorrupt`, `ErrNoSpace`, `ErrKeyNotFound`, `ErrLeaseNotFound`, `ErrFutureRev`,
+  `ErrCompacted`) are `errors.New` errors by the apply package's facts (`applyErrVars` in
+  `applyInit`, not in their packages' facts, which their proofs destructure by position); the
+  triples of the methods that leave the log carry `applyErrIs err`; a KV method's answer names
+  its error and `DispatchLemmas` derives `applyErrIs` from it (`putOutcomeIs_errIs`, ...,
+  `keep_errIs`). The range read's context error, which no tree describes (mvcc's
+  `fmt.Errorf("%w", ctx.Err())`), is excluded rather than described: `txn.Range`/`DeleteRange`
+  take `nd` (a context never done, as `executeRange`/`deleteRange` already did) and the backend
+  calls them at `context.TODO()` (`neverCd`). *Rejected:* a tree for the context error (would
+  need `fmt.Errorf`'s `%w` wrapper's tree and the context errors' types, for a branch that does
+  not run); `applyErrIs` in `kvPost` (every KV method's proof would change, for a fact its
+  answer already implies).
+
+- **The server bridge: `E` a parameter of `isServer`** (unit 3). The applier's environment `E`
+  (store, ghost names, `P`, `f`) must be the same in the persistent `apply.applierFor v.ua E`
+  (in `isServer`'s fields) and in the thread's `apply.applyKV E ua x`, and nothing in the heap
+  pins it (the hook `v.hook` is a value, not a field), so `isServer s γ ci TM E` takes it, its
+  fields pin `E.P = batchLockInv γ TM ∧ E.f = v.hook` by equations (a proof rewrites them where it
+  hands the hook's triple to `apply.Apply` or `applyConfChange`). The thread's resource is
+  `srvApplyKV s E x := ∃ ua, srvUberApplyAddr s ↦□ ua ∗ apply.applyKV E ua x`: the `ua` is the
+  field's, which `isServer` hides behind its `∃ v`; the two `↦□` agree. `applyConfChange`'s
+  contract (an axiom) named the old `applierFor ua P f` too: restated at `apply.applierFor ua E`
+  (and `HasLC.hasLC`, where `apply.applierFor` lives). *Rejected:* `E` existential in
+  `isServer` (the thread's `applyKV` could not name it); `E` built from parameters `(s, γ)` and
+  the hook (the hook is not in the heap, so no agreement).
+- **The fold as a relation** (unit 3). `apply.Apply`'s post is a relation (`applyStep`: the
+  auth store's, the quota's, the alarm store's answers are any), so what a batch does is a
+  relation too: `entryStep m v3 x x' out` (no data: `x' = x`, `skipped`; else the decoded
+  request's `applyStep`), `batchStep c m` (a normal entry by `entryStep` with `v3` iff above the
+  consistent index `c` the batch starts at; a conf change leaves the KV) and `entriesStep c ms`
+  their composition. `v3` is a function of `c` and the entry's index: in `apply`'s loop the
+  entry's test is against the current `ci`, which is the starting one or an earlier entry of
+  the batch (below this one), so `index > ci` iff `index > c`. `applyEntries` hands `apply` the
+  entries above the applied index, `unapplied ai ms` (a filter; `unapplied_eq_drop` is the code's
+  offset).
+- **`entriesOk` over every run** (unit 3). `rqOk x.log rq` depends on the log the earlier
+  entries committed, which the relation does not determine, so the premise cannot be "the
+  entry is fine at the state the batch reaches": `entriesOk c (m :: ms) x := (normal → entryOk x
+  m) ∧ ∀ x1, batchStep c m x x1 → entriesOk c ms x1`, i.e. at every state any run reaches the
+  entry in (the server does not choose the run). It is also asked of replayed entries (`v3 =
+  false`), at the state they meet: `apply.Apply.spec`'s premise does not depend on `v3`, so a
+  replayed entry's request must satisfy the txn package's premises (`rqOk`) although it is not
+  run (`apply_no_v3_no_write`): stronger than the code needs; weakening it is a change to
+  `apply.Apply.spec` (`rqOk` only if `v3`), left open. *Rejected:* `entryOk` in
+  `entriesFrom` (pure in `ms`, it cannot see the state); a premise on all reachable states of the
+  whole KV (stronger than needed, and not a property of the batch).
+
+## mvcc: the batch lock runs the hook
+
+**2026-10-12 · adopted** (the server's apply package, unit A; plan: the apply package's
+"The hook through mvcc"; `notes/STATUS.md`, "Unit A: the hook through mvcc")
+
+The real backend's `batchTx.LockInsideApply` runs the server's `txPostLockInsideApplyHook`
+under the lock (`backend/batch_tx.go`). The server's protocol (`apply.Apply.spec`,
+`InvApplier.lean`: `hook_set_au` is the hook's triple, `writes_done` the caller's update)
+assumes the applier's writes happen in one critical section that runs the hook first; mvcc's
+backend contract had `LockInsideApply : {True} … {Locked [] ∗ W}`, no hook, so the server
+could not be proved of the real write path. The contract now carries it, in the shape of
+`apply.Apply.spec`:
+
+- **The backend** (`batchTxSpec bt View W Locked P f`, `isBatchTx … P f`, `isKeyBackend b View
+  W P f`): the lock's invariant is `W ∗ P` (`W` the store's resource, from `NewStore`'s first
+  `Unlock`; `P` the backend's from its creation); `LockInsideApply : ∀ Pre Q, {Pre ∗ □ {P ∗ Pre}
+  f() {Q}} … {Locked [] ∗ W ∗ Q}` (the hook `f : val`, called `App (Val f) (Val #())`, runs on
+  the caller's `Pre` under the lock); both `Unlock` triples take `P` back;
+  `LockOutsideApply : {True} … {Locked [] ∗ P}` (no hook: the hook is nil when `NewStore` runs,
+  the server sets it later, `server.go:412`; `P` is handed out so that `NewStore`'s `Unlock` can
+  return it).
+- **The store records `P f`**: `StoreNames` gains `hook` (a saved proposition of `P`,
+  discarded) and `hookFn` (a `dghostVar` of `f`, discarded; `val` is countable); `hookIs γ P f`
+  (persistent) is both. `isStore s γ` holds `∃ P f, hookIs γ P f ∗ isKeyBackend b … P f`, so its
+  arity is unchanged and no spec that ignores the hook changed. `NewStore` takes the backend's
+  contract at any `P f` and returns `hookIs γ P f`. Two views agree (`hookIs_agree`: `f = f'`,
+  `▷ (P ≡ P')`); `hookIs_agree_lc` spends a later credit for `□ (P -∗ P') ∗ □ (P' -∗ P)` now
+  (`store.Write` and `storeTxnWrite.End` take one from their first pure steps).
+- **The write path**: `store.Write` takes `hookIs γ P f ∗ Pre ∗ □ {P ∗ Pre} f() {Q}` and returns
+  `Q` beside `isTxnWrite`; `storeTxnWrite.End` takes `hookIs γ P f ∗ P`; `metricsTxnWrite.End`
+  takes `txnEndPre γ kind` (`True` for a read, `∃ P f, hookIs γ P f ∗ P` for a write;
+  `txnEndPre_write`). `csContract P f Pre Q Post := Pre ∗ □ {P ∗ Pre} f() {Q} ∗ (Q ={⊤}=∗ P ∗
+  Post)` (the three conjuncts of `apply.Apply.spec`) is what a writing call takes:
+  `writeView.Put`/`DeleteRange` and txn's `Put`/`DeleteRange`/`Txn` return `Post` iff they opened a
+  write transaction, else `Pre` (`Put`'s lease check, `Txn`'s failed check or read-only request).
+  The caller's update is applied right after `Write` (ghost: the writes are the caller's model,
+  `writes_done`), before `End`.
+- **The no-hook instance**: `P := True`, `f` a no-op, `Q = Post = Pre` (`csContract_noHook`).
+  The results (mvcc's, txn's sole-writer corollaries) are stated at any `P f Pre Q Post`.
+
+*Rejected:* `P f` as parameters of `isStore` (some 40 spec files would change for nothing);
+the hook's effect folded into `W` (the hook needs the caller's `Pre`, which is per call: it has
+to be in the lock's triple). *Considered:* `Unlock` taking `▷ P` (Perennial's `Mutex.Unlock`
+convention), which would spare `End` its credit; kept `P`, the form `apply.Apply.spec` uses.

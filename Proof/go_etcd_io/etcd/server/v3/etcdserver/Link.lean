@@ -14,11 +14,14 @@ public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
 public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.Entry__GetType
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__GoAttach
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Lead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__apply
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyConfChange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntries
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntryNormal
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getLead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getTxPostLockInsideApplyHook
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__isLeader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__setAppliedIndex
@@ -28,9 +31,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.NewConsistentInd
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Notifier__Notify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Members
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ElectionTimeout
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Apply
-public import Proof.encoding.binary.bigEndian__PutUint64
-public import Proof.encoding.binary.bigEndian__Uint64
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentApplyingIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__SetBackend
@@ -47,14 +47,13 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsist
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndexForce
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeUpdateConsistentIndex
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Verify
-public import Proof.go_uber_org.zap.Error
 public import Proof.go_uber_org.zap.Int
-public import Proof.go_uber_org.zap.Int64
 public import Proof.go_uber_org.zap.Logger__Debug
 public import Proof.go_uber_org.zap.Logger__Warn
-public import Proof.go_uber_org.zap.String
 public import Proof.go_uber_org.zap.Stringer
 public import Proof.go_uber_org.zap.Uint64
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Link
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link
 
 @[expose] public section
 
@@ -96,9 +95,21 @@ theorem EtcdServer.wp_GoAttach :
     EtcdServer.GoAttach.spec (GF := GF) (hG := hG) :=
   EtcdServer.GoAttach.wp_proof
 
+theorem EtcdServer.wp_getLead :
+    EtcdServer.getLead.spec (GF := GF) (hG := hG) :=
+  EtcdServer.getLead.wp_proof
+
+theorem EtcdServer.wp_Lead :
+    EtcdServer.Lead.spec (GF := GF) (hG := hG) :=
+  EtcdServer.Lead.wp_proof EtcdServer.wp_getLead
+
 theorem EtcdServer.wp_Logger :
     EtcdServer.Logger.spec (GF := GF) (hG := hG) :=
   EtcdServer.Logger.wp_proof
+
+theorem EtcdServer.wp_MemberID :
+    EtcdServer.MemberID.spec (GF := GF) (hG := hG) :=
+  EtcdServer.MemberID.wp_proof
 
 theorem zap.Logger.wp_Debug :
     zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
@@ -120,10 +131,6 @@ theorem consistentIndex.wp_SetConsistentIndex :
     consistentIndex.SetConsistentIndex.spec (GF := GF) (hG := hG) :=
   consistentIndex.SetConsistentIndex.wp_proof
 
-theorem binary.bigEndian.wp_Uint64 :
-    binary.bigEndian.Uint64.spec (GF := GF) (hG := hG) :=
-  binary.bigEndian.Uint64.wp_proof
-
 theorem schema.wp_UnsafeReadConsistentIndex :
     schema.UnsafeReadConsistentIndex.spec (GF := GF) (hG := hG) :=
   schema.UnsafeReadConsistentIndex.wp_proof binary.bigEndian.wp_Uint64
@@ -140,37 +147,17 @@ theorem consistentIndex.wp_SetConsistentApplyingIndex :
     consistentIndex.SetConsistentApplyingIndex.spec (GF := GF) (hG := hG) :=
   consistentIndex.SetConsistentApplyingIndex.wp_proof
 
-theorem notify.Notifier.wp_Notify :
-    notify.Notifier.Notify.spec (GF := GF) (hG := hG) :=
-  notify.Notifier.Notify.wp_proof
-
 theorem EtcdServer.wp_isLeader :
     EtcdServer.isLeader.spec (GF := GF) (hG := hG) :=
-  EtcdServer.isLeader.wp_proof
+  EtcdServer.isLeader.wp_proof EtcdServer.wp_MemberID EtcdServer.wp_Lead
 
 theorem config.ServerConfig.wp_ElectionTimeout :
     config.ServerConfig.ElectionTimeout.spec (GF := GF) (hG := hG) :=
   config.ServerConfig.ElectionTimeout.wp_proof
 
-theorem apply.wp_Apply :
-    apply.Apply.spec (GF := GF) (hG := hG) :=
-  apply.Apply.wp_proof
-
 theorem errors.wp_Is :
     errors.Is.spec (GF := GF) (hG := hG) :=
   errors.Is.wp_proof
-
-theorem zap.wp_String :
-    zap.String.spec (GF := GF) (hG := hG) :=
-  zap.String.wp_proof
-
-theorem zap.wp_Int64 :
-    zap.Int64.spec (GF := GF) (hG := hG) :=
-  zap.Int64.wp_proof
-
-theorem zap.wp_Error :
-    zap.Error.spec (GF := GF) (hG := hG) :=
-  zap.Error.wp_proof
 
 theorem go_humanize.wp_Bytes :
     go_humanize.Bytes.spec (GF := GF) (hG := hG) :=
@@ -179,10 +166,6 @@ theorem go_humanize.wp_Bytes :
 theorem zap.Logger.wp_Warn :
     zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
   zap.Logger.Warn.wp_proof
-
-theorem EtcdServer.wp_applyEntryNormal :
-    EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG) :=
-  EtcdServer.applyEntryNormal.wp_proof raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentIndex notify.Notifier.wp_Notify EtcdServer.wp_isLeader config.ServerConfig.wp_ElectionTimeout apply.wp_Apply errors.wp_Is v3alarm.AlarmStore.wp_Get EtcdServer.wp_Logger zap.wp_String zap.wp_Int64 zap.wp_Error go_humanize.wp_Bytes zap.Logger.wp_Warn EtcdServer.wp_GoAttach
 
 theorem EtcdServer.wp_setAppliedIndex :
     EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) :=
@@ -196,25 +179,13 @@ theorem pbutil.wp_MustUnmarshalMessage :
     pbutil.MustUnmarshalMessage.spec (GF := GF) (hG := hG) :=
   pbutil.MustUnmarshalMessage.wp_proof
 
-theorem EtcdServer.wp_applyConfChange :
-    EtcdServer.applyConfChange.spec (GF := GF) (hG := hG) :=
-  EtcdServer.applyConfChange.wp_proof
-
 theorem membership.RaftCluster.wp_Members :
     membership.RaftCluster.Members.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.Members.wp_proof
 
-theorem EtcdServer.wp_apply :
-    EtcdServer.apply.spec (GF := GF) (hG := hG) :=
-  EtcdServer.apply.wp_proof zap.Logger.wp_Debug zap.wp_Int' zap.wp_Uint64 zap.wp_Stringer consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentApplyingIndex consistentIndex.wp_SetConsistentIndex raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm raftpb.Entry.wp_GetType EtcdServer.wp_applyEntryNormal EtcdServer.wp_setAppliedIndex EtcdServer.wp_setTerm pbutil.wp_MustUnmarshalMessage EtcdServer.wp_applyConfChange raftpb.ConfChange.wp_GetId membership.RaftCluster.wp_Members
-
 theorem EtcdServer.wp_stopWithDelay :
     EtcdServer.stopWithDelay.spec (GF := GF) (hG := hG) :=
   EtcdServer.stopWithDelay.wp_proof
-
-theorem EtcdServer.wp_applyEntries :
-    EtcdServer.applyEntries.spec (GF := GF) (hG := hG) :=
-  EtcdServer.applyEntries.wp_proof raftpb.Entry.wp_GetIndex EtcdServer.wp_apply EtcdServer.wp_stopWithDelay
 
 theorem consistentIndex.wp_ConsistentApplyingIndex :
     consistentIndex.ConsistentApplyingIndex.spec (GF := GF) (hG := hG) :=
@@ -231,10 +202,6 @@ theorem EtcdServer.wp_getTxPostLockInsideApplyHook :
 theorem wp_NewConsistentIndex :
     NewConsistentIndex.spec (GF := GF) (hG := hG) :=
   NewConsistentIndex.wp_proof
-
-theorem binary.bigEndian.wp_PutUint64 :
-    binary.bigEndian.PutUint64.spec (GF := GF) (hG := hG) :=
-  binary.bigEndian.PutUint64.wp_proof
 
 theorem consistentIndex.wp_SetBackend :
     consistentIndex.SetBackend.spec (GF := GF) (hG := hG) :=
@@ -261,6 +228,37 @@ theorem schema.wp_UnsafeUpdateConsistentIndexForce :
   schema.UnsafeUpdateConsistentIndexForce.wp_proof schema.wp_unsafeUpdateConsistentIndex
 
 end links
+
+/-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
+`context` (Perennial states them there: their invariants need later credits). -/
+section links_hasLC
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+theorem notify.Notifier.wp_Notify :
+    notify.Notifier.Notify.spec (GF := GF) (hG := hG) :=
+  notify.Notifier.Notify.wp_proof
+
+theorem EtcdServer.wp_applyEntryNormal :
+    EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG) :=
+  EtcdServer.applyEntryNormal.wp_proof raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentIndex notify.Notifier.wp_Notify EtcdServer.wp_isLeader config.ServerConfig.wp_ElectionTimeout apply.wp_Apply errors.wp_Is v3alarm.AlarmStore.wp_Get EtcdServer.wp_Logger zap.wp_String zap.wp_Int64 zap.wp_Error go_humanize.wp_Bytes zap.Logger.wp_Warn EtcdServer.wp_GoAttach
+
+theorem EtcdServer.wp_applyConfChange :
+    EtcdServer.applyConfChange.spec (GF := GF) (hG := hG) :=
+  EtcdServer.applyConfChange.wp_proof
+
+theorem EtcdServer.wp_apply :
+    EtcdServer.apply.spec (GF := GF) (hG := hG) :=
+  EtcdServer.apply.wp_proof zap.Logger.wp_Debug zap.wp_Int' zap.wp_Uint64 zap.wp_Stringer consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentApplyingIndex consistentIndex.wp_SetConsistentIndex raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm raftpb.Entry.wp_GetType EtcdServer.wp_applyEntryNormal EtcdServer.wp_setAppliedIndex EtcdServer.wp_setTerm pbutil.wp_MustUnmarshalMessage EtcdServer.wp_applyConfChange raftpb.ConfChange.wp_GetId membership.RaftCluster.wp_Members
+
+theorem EtcdServer.wp_applyEntries :
+    EtcdServer.applyEntries.spec (GF := GF) (hG := hG) :=
+  EtcdServer.applyEntries.wp_proof raftpb.Entry.wp_GetIndex EtcdServer.wp_apply EtcdServer.wp_stopWithDelay
+
+end links_hasLC
 
 end EtcdGrove
 end Perennial

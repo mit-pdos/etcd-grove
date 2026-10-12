@@ -207,8 +207,8 @@ theorem occStep_prefix (L : List (List w8)) (o : Option (List w8)) : L <+: occSt
   | none => exact List.prefix_refl _
   | some d =>
     by_cases h : d ∈ L
-    · simp only [occStep, h, if_true]; exact List.prefix_refl _
-    · simp only [occStep, h, if_false]; exact List.prefix_append _ _
+    · simp only [occStep, h, ite_true]; exact List.prefix_refl _
+    · simp only [occStep, h, ite_false]; exact List.prefix_append _ _
 
 theorem foldl_occStep_prefix (L : List (List w8)) (b : List (Option (List w8))) :
     L <+: b.foldl occStep L := by
@@ -236,7 +236,7 @@ theorem mem_foldl_occStep (L : List (List w8)) (b : List (Option (List w8))) (d 
     | none => simp [occStep]
     | some d' =>
       by_cases h : d' ∈ L
-      · simp only [occStep, h, if_true]
+      · simp only [occStep, h, ite_true]
         constructor
         · rintro (h1 | h1)
           · exact .inl h1
@@ -245,7 +245,7 @@ theorem mem_foldl_occStep (L : List (List w8)) (b : List (Option (List w8))) (d 
           · exact .inl h1
           · cases h1; exact .inl h
           · exact .inr h1
-      · simp only [occStep, h, if_false, List.mem_append, List.mem_singleton]
+      · simp only [occStep, h, ite_false, List.mem_append, List.mem_singleton]
         constructor
         · rintro ((h1 | h1) | h1)
           · exact .inl h1
@@ -271,8 +271,8 @@ theorem nodup_foldl_occStep (L : List (List w8)) (b : List (Option (List w8))) :
     | none => exact hL
     | some d =>
       by_cases h : d ∈ L
-      · simp only [occStep, h, if_true]; exact hL
-      · simp only [occStep, h, if_false]
+      · simp only [occStep, h, ite_true]; exact hL
+      · simp only [occStep, h, ite_false]
         exact List.nodup_append.mpr ⟨hL, List.nodup_cons.mpr ⟨by simp, List.nodup_nil⟩,
           fun a ha b hb => by
             simp only [List.mem_singleton] at hb; subst hb; intro e; subst e; exact h ha⟩

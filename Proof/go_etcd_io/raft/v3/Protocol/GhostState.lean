@@ -203,7 +203,7 @@ def TermsOk (terms : GMap w64 TermRec) (s : PState) : Prop :=
 /-- A leader owns the term log of its term, whose recorded base and initial log are the
 leader's base and a prefix of its log, and holds a fragment of it for every entry it has
 created since (`leadFrags`). -/
-def leadLogOwn (γ : RaftNames) (s : PState) (terms : GMap w64 TermRec) : IProp GF :=
+def leadLogOwn (_γ : RaftNames) (s : PState) (terms : GMap w64 TermRec) : IProp GF :=
   match s.role with
   | .leader =>
       iprop(∃ γt, ∃ (M : GMap w64 (raftpb.Entry × w64)), ∃ l0,

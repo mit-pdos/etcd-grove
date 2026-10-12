@@ -62,7 +62,7 @@ theorem splitAux_noSep (c : w8) (r field : GoString) (h : c ∉ r) :
     have : ¬ ([c] ≠ [] ∧ [c] <+: a :: r) := by
       rintro ⟨-, hp⟩
       simp at hp; exact hac hp.symm
-    rw [if_neg this, ih (field ++ [a]) hr]
+    rw [ite_eq_right this, ih (field ++ [a]) hr]
     simp
 
 theorem splitAux_getLast (c : w8) (d : GoString) (hd : c ∉ d) :
@@ -72,21 +72,21 @@ theorem splitAux_getLast (c : w8) (d : GoString) (hd : c ∉ d) :
   induction x with
   | nil =>
     intro field
-    rw [List.nil_append, _root_.Perennial.strings.splitAux, if_pos (by simp)]
+    rw [List.nil_append, _root_.Perennial.strings.splitAux, ite_eq_left (by simp)]
     simp [splitAux_noSep c d [] hd]
   | cons a x ih =>
     intro field
     rw [List.cons_append, _root_.Perennial.strings.splitAux]
     by_cases hac : a = c
     · subst hac
-      rw [if_pos (by simp)]
+      rw [ite_eq_left (by simp)]
       simp only [List.drop_succ_cons, List.drop_zero, List.length_singleton]
       rw [List.getLast?_cons, ih []]
       rfl
     · have : ¬ ([c] ≠ [] ∧ [c] <+: a :: (x ++ c :: d)) := by
         rintro ⟨-, hp⟩
         simp at hp; exact hac hp.symm
-      rw [if_neg this]
+      rw [ite_eq_right this]
       exact ih _
 
 /-- The last `/`-field of `x/d`, for `d` without `/`, is `d`. -/
@@ -159,7 +159,7 @@ theorem scanInt_fixedDigits (k n : Nat) (hk : 0 < k) (hn : n < 2 ^ 63) :
   have hlt : n % 10 ^ (k + 1) < 2 ^ 63 := Nat.lt_of_le_of_lt (Nat.mod_le _ _) hn
   unfold fmt.scanInt
   simp only [hdrop, hhead, Option.some.injEq, h45, h43, _root_.or_self, ↓reduceIte, htake, hval]
-  rw [if_pos ⟨hne, by omega, by omega⟩]
+  rw [ite_eq_left ⟨hne, by omega, by omega⟩]
 
 /-! ## The sequential keys -/
 

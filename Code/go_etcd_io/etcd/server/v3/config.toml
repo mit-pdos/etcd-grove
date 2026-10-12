@@ -1,7 +1,7 @@
 # Types and names only: function and method bodies are axiomatized.
 # ServerConfig is a struct (the apply thread reads its fields), so the packages of
 # its field types are imported.
-translate = ["!*", "ServerConfig"]
+translate = ["!*", "ServerConfig", "ServerConfig.ElectionTimeout"]
 imports = ["!*", "time", "go.uber.org/zap", "go.etcd.io/bbolt", "go.etcd.io/etcd/client/pkg/v3/transport", "go.etcd.io/etcd/client/pkg/v3/types", "go.etcd.io/etcd/pkg/v3/featuregate", "go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery", "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"]
 
 # translate the definitions of all type declarations goose supports

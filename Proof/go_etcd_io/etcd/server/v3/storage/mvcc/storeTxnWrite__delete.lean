@@ -72,7 +72,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   iunfold mvcc.isLessor at HlessorS
   icases HlessorS with ⟨%li, %Hli, #HGetL, #HAttach, #HDetach, -⟩
   subst Hli
-  ihave #Hbt0 : mvcc.batchTxSpec bt (mvcc.bucketView γ) (mvcc.writerRes s γ) Locked $$ []
+  ihave #Hbt0 : mvcc.batchTxSpec bt (mvcc.bucketView γ) (mvcc.writerRes s γ) Locked Pw fw $$ []
   · iexact Hbt
   iunfold mvcc.batchTxSpec at Hbt
   icases Hbt with ⟨-, #HSeqPut, -, -, -⟩
@@ -170,7 +170,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
       isplitl []
       · iexact Hnil
       iexact Hkv
-    ipureintro; exact Hne
+    ipureintro; exact ⟨Hne, Htrnn⟩
   -- `item := lease.LeaseItem{Key: string(key)}`; `leaseID := tw.s.le.GetLease(item)`
   wp_apply (wp_bytes_to_string key k DFrac.discard) $$ [$Hkey] as -
   (try wp_auto)

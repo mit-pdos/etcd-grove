@@ -24,8 +24,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF) (hG := hG) := by
-  intro tw s γ ilog pend
-  wp_start as Htw
+  intro tw s γ ilog pend P f
+  wp_start as ⟨Htw, #HhookC, HP⟩
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw
   ihave #Hs0 : mvcc.isStore s γ $$ []
@@ -48,7 +48,10 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     · intro h
       rw [h] at h1
       exact List.length_eq_zero_iff.1 (by rw [← Hps, h1]; rfl)
-  (try wp_auto)
+  wp_auto_lc 1
+  -- the caller's invariant is the store's
+  imod mvcc.hookIs_agree_lc ⊤ γ P Pw f fw $$ [$Hlc1 $HhookC $Hhook] with ⟨-, #HPPw, -⟩
+  ihave HP := HPPw $$ HP
   -- `len(tw.changes) != 0`
   wp_if_destruct
   · -- no change: the lock is released, nothing committed
@@ -63,7 +66,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       iframe #
       ipureintro; exact ⟨Hbudget, Hne⟩
     rw [mvcc.pendPuts_nil]
-    wp_apply HUnlock0 $$ [$Hlocked $HW]
+    wp_apply HUnlock0 $$ [$Hlocked $HW $HP]
     (try wp_auto)
     wp_if_destruct
     rotate_left
@@ -81,7 +84,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       iframe Hmu HrevMu Hti
       iframe #
     unfold mvcc.commitLog
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     try rw [if_pos rfl]
     iframe Hcert Htok
 
@@ -133,7 +136,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     -- (half the new view), the other half kept for `s.revMu`
     ihave #HUnlock' := HUnlock $$ %(mvcc.pendPuts ilog pend) %(mvcc.bucketMap ilog)
       %(mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap (ilog ++ [pend])))
-    wp_apply HUnlock' $$ [$Hlocked $Hview Htoks Hw Hclog Hcur] as Hbucket
+    wp_apply HUnlock' $$ [$Hlocked $Hview $HP Htoks Hw Hclog Hcur] as Hbucket
     · rw [← mvcc.bucketMap_append ilog pend Hne]
       iintro Hv
       icases (mvcc.bucketView_halves γ 1 _).1 $$ Hv with ⟨Hv1, Hv2⟩
@@ -172,8 +175,8 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
         iframe Hmu HrevMu Hti
         iframe #
       unfold mvcc.commitLog
-      rw [if_neg hne']
-      try rw [if_neg hne']
+      rw [ite_eq_right hne']
+      try rw [ite_eq_right hne']
       iframe Hcert'
 end proof
 

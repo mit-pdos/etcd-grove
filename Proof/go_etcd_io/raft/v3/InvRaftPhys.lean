@@ -1797,7 +1797,7 @@ theorem ownRaftPhys_msgsAA (r : Loc) (id : w64) (s : NState) :
     iexists as1, as2 ++ [a]
     isplitr
     · ipureintro
-      simp only [absList, List.filterMap_append, List.append_assoc] at Ho ⊢
+      simp only [absList, List.filterMap_append] at Ho ⊢
       simpa [List.append_assoc] using Ho.append_right (List.filterMap _root_.id [a])
     isplitr
     · iexact H1

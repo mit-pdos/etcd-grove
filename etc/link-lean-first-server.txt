@@ -25,18 +25,27 @@ Entry__GetIndex:
 Entry__GetTerm:
 Entry__GetType:
 ConfChange__GetId:
-# The apply thread's trust boundary (`axiom … .wp_proof`), see InvApplier.lean: the applier
-# and the membership change's contracts, and names-only callees (zap, the alarm store, ...).
-apply_Apply:
+# The applier (`apply.Apply`): proved in the apply package (`--apply`), linked in its
+# `Link.lean` (`@`; since the apply package's unit 3, 2026-10-12).
+apply_Apply: @
+# The apply thread's trust boundary (`axiom … .wp_proof`), see InvApplier.lean: the
+# membership change's contract, and names-only callees (zap, the alarm store, ...).
 EtcdServer__applyConfChange:
 pbutil_MustUnmarshalMessage:
-EtcdServer__isLeader:
-EtcdServer__Logger:
 EtcdServer__GoAttach:
 EtcdServer__stopWithDelay:
+# The apply thread's small callees, with bodies (proved): the server's leader test and
+# logger (server.go), the notifier (pkg/notify), the election timeout (server/config), the
+# alarm store's Get (api/v3alarm).
+EtcdServer__MemberID:
+EtcdServer__getLead:
+EtcdServer__Lead: EtcdServer__getLead
+EtcdServer__isLeader: EtcdServer__MemberID EtcdServer__Lead
+EtcdServer__Logger:
 Notifier__Notify:
 ServerConfig__ElectionTimeout:
 AlarmStore__Get:
+# (the trust boundary, continued)
 RaftCluster__Members:
 errors_Is:
 go_humanize_Bytes:

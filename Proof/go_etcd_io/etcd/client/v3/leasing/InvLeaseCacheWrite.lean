@@ -253,14 +253,14 @@ theorem evictRange_none (st : LeaseCacheSt) (key e : GoString) (t : time.Time)
     (h : ¬ ∃ k ent, st.entries !! k = some ent ∧ leaseInRange k key e = true) :
     st.evictRange key e t = st := by
   unfold LeaseCacheSt.evictRange
-  rw [if_neg h]
+  rw [ite_eq_right h]
 
 theorem evictRange_present (st : LeaseCacheSt) (key e : GoString) (t : time.Time)
     (h : ∃ k ent, st.entries !! k = some ent ∧ leaseInRange k key e = true) (en : LeaseEntry)
     (hk : st.entries !! key = some en) :
     st.evictRange key e t = lcFreeze st key en (GMap.insert key t st.revokes) := by
   unfold LeaseCacheSt.evictRange
-  rw [if_pos h]
+  rw [ite_eq_left h]
   simp [LeaseCacheSt.removeEntry, lcFreeze, hk]
 
 theorem evictRange_absent (st : LeaseCacheSt) (key e : GoString) (t : time.Time)
@@ -268,7 +268,7 @@ theorem evictRange_absent (st : LeaseCacheSt) (key e : GoString) (t : time.Time)
     (hk : st.entries !! key = none) :
     st.evictRange key e t = { st with revokes := GMap.insert key t st.revokes } := by
   unfold LeaseCacheSt.evictRange
-  rw [if_pos h]
+  rw [ite_eq_left h]
   simp [LeaseCacheSt.removeEntry, hk]
 
 /-- The state after `key`'s eviction at `t` (its entry frozen if any, its revocation time `t`). -/

@@ -5,8 +5,9 @@ initialization instances for `go.etcd.io/raft/v3` and the packages it imports.
 This replaces Perennial's `Perennial.Proof.go_etcd_io.raft.v3_proof.base` (the port of
 upstream's `base.v`), which must not be imported alongside it: `IsPkgInit` has one
 instance per package, and etcd-grove's raft instance is stronger.
-Everything here is an assumption about package initialization: nothing proves it from
-the packages' `initialize'` functions.
+The `wp_initialize'` of each of these packages, which establishes these predicates from
+its initializer, is in `Init.lean` (2026-10-12; `raftpb`'s, `os`'s, `reflect`'s and
+`strconv`'s are `sorry`: their initializers are only partly translated).
 
 Lean notes: see Perennial's `base.lean` for the instances that live in other Perennial
 files (`strings`, `math`, `bytes`, `log`, `io`, `errors`).
@@ -91,8 +92,11 @@ instance confchange_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raft.v3.confchange :=
   build_get_is_pkg_init_wf
 
+/-- `os`, names-only: its initialization is not modelled (its variables' initializers are
+opaque, `Init.lean`), so this is what that initialization is assumed to give: `Stderr`
+holds a fixed `*File`, which raft's initializer loads (`defaultLogger`). -/
 instance os_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.os :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init iprop(∃ f : Loc, typedPointsto (globalAddr os.Stderr) f DFrac.discard)
 instance os_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.os :=
   build_get_is_pkg_init_wf
 

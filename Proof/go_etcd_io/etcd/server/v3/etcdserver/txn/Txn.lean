@@ -55,8 +55,10 @@ theorem txn.Txn.wp_proof
     (htxn : txn.txn.spec (GF := GF) (hG := hG))
     (hRoEnd : mvcc.txnReadWrite.End.spec (GF := GF) (hG := hG)) :
     txn.Txn.spec (GF := GF) (hG := hG) := by
-  intro ctx cd lg rt shared kv le skip s γ log t
-  wp_start as ⟨#Hkv, Hrd, Hsw, #Hle, #Hrt, #Hctx, #Hnd, #Hknown, %Hpre⟩
+  intro ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f
+  wp_start as ⟨#Hkv, Hrd, Hsw, #Hle, #Hrt, #Hctx, #Hnd, #Hknown, %Hpre, Hcs, #Hhook⟩
+  iunfold mvcc.csContract at Hcs
+  icases Hcs with ⟨HPre, #Htr, Hupd⟩
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   iunfold txn.isKV at Hkv
@@ -72,7 +74,7 @@ theorem txn.Txn.wp_proof
       (try simp only [SharedBufReadTxMode, ConcurrentReadTxMode]) <;> wp_auto <;>
       (isplitl []; · itrivial) <;> iexists _ <;> iframe
   have hlen3 : log.length + 3 ≤ 2 ^ 63 := by have := Hpre.1; omega
-  wp_apply (txn.soleWriter_Read hRead s γ md tr log hlen3) $$ [$Hs $Hrd $Hsw] as %mw ⟨%rev, Htx, Hsw⟩
+  wp_apply (txn.soleWriter_Read hRead s γ md tr log hlen3 Htr) $$ [$Hs $Hrd $Hsw] as %mw ⟨%rev, Htx, Hsw⟩
   -- `compareToPath` in the trace's step
   wp_apply (hStepF tr _ _ slice.nil
       (fun x => iprop(⌜x = #()⌝ ∗ ∃ sl : GoSlice, txnPath_ptr ↦ sl ∗
@@ -112,15 +114,18 @@ theorem txn.Txn.wp_proof
       wp_auto
       ihave Htx : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
       · simp only [mvcc.isTxn]; iexact Htx
-      wp_apply (hEnd mw s γ (.read log rev)) $$ [$Htx] as ⟨Hrd, -⟩
+      ihave Hep : mvcc.txnEndPre γ (.read log rev) $$ []
+      · simp only [mvcc.txnEndPre]; itrivial
+      wp_apply (hEnd mw s γ (.read log rev)) $$ [$Htx $Hep] as ⟨Hrd, -⟩
       iapply HΦ
       iframe Hrd
       ileft
-      iframe Hce Hsw
+      iframe Hce Hsw HPre
       ipureintro; exact ⟨rfl, rfl, Hne⟩
   obtain ⟨rfl, -, Hign⟩ := Hok
   wp_auto
   wp_apply (hStep tr _ _)
+  · ipureintro; exact Htr
   have hoks := opsOk_strong _ _ _ _ Hpre.2.1 Hign
   have hlen4 : log.length + 4 ≤ 2 ^ 63 := Hpre.1
   ihave #Hnd' : mvcc.neverDone { cd with Values := vs } $$ []
@@ -170,15 +175,24 @@ theorem txn.Txn.wp_proof
     · ipureintro; simp [Htr]
     simp only [mvcc.commitLog, ↓reduceIte]
     iframe Hsw Hresp
-    iexact Hknown
+    isplitl []
+    · iexact Hknown
+    simp only [hro, ↓reduceIte]
+    iexact HPre
   · -- a write: the read ends, the write transaction opens at the sole writer's log
     have hro : txnReadonly t = false := by simpa using hw
     wp_auto
     ihave Htx : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
     · simp only [mvcc.isTxn]; iexact Htx
-    wp_apply (hEnd mw s γ (.read log rev)) $$ [$Htx] as ⟨Hrd, -⟩
+    ihave Hep : mvcc.txnEndPre γ (.read log rev) $$ []
+    · simp only [mvcc.txnEndPre]; itrivial
+    wp_apply (hEnd mw s γ (.read log rev)) $$ [$Htx $Hep] as ⟨Hrd, -⟩
     icases soleWriter_split γ log hlen4 $$ Hsw with ⟨Htok, Hsw⟩
-    wp_apply (hWrite s γ tr) $$ [$Hs $Hrd $Htok] as %mw' ⟨%ilog, Htx⟩
+    wp_apply (hWrite s γ tr P Pre Q f) $$ [$Hs $Hrd $Htok $Hhook $HPre $Htr]
+      as %mw' ⟨⟨%ilog, Htx⟩, HQ⟩
+    · ipureintro; exact Htr
+    -- the caller's update (the writes are the model's): the lock's invariant back for `End`
+    imod Hupd $$ HQ with ⟨HP, HPost⟩
     iunfold soleWriterOpen at Hsw
     icases Hsw with ⟨#Hc, Htoks⟩
     ihave ⟨%Hpin, Htoks, -, Htx⟩ := isTxnWrite_pinned γ log ilog [] mw' s (W64 0) (W64 0) (W64 0)
@@ -200,7 +214,8 @@ theorem txn.Txn.wp_proof
     obtain ⟨hkis, -, -, -, -⟩ := Hk
     obtain ⟨p1, p2, p3, rfl⟩ := hkis
     ihave Htx := (txnViewIs_mw mw' s γ _).1 $$ Hv
-    wp_apply (hEnd mw' s γ _) $$ [$Htx] as ⟨Hrd, Hpost⟩
+    wp_apply (hEnd mw' s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost⟩
+    · iapply mvcc.txnEndPre_write; iframe Hhook HP
     ihave Hsw := soleWriter_close_end γ log _ p1 p2 p3 hlen4 $$ [Htoks Hpost]
     · iframe Hpost; iunfold soleWriterOpen; iframe Hc Htoks
     ihave #Hresp2 := Hresp
@@ -226,6 +241,8 @@ theorem txn.Txn.wp_proof
     rw [stateAfter_commitLog]
     simp only [srvRunTxn]
     iframe Hresp Hsw Hk2
+    simp only [hro, Bool.false_eq_true, ↓reduceIte]
+    iexact HPost
 
 end proof
 

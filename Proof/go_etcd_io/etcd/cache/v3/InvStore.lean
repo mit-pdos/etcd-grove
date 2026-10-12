@@ -403,7 +403,7 @@ theorem applyEvents_latestRev_mem (cap : Nat) :
       rw [applyEvents, applyEventsSnaps]
       split
       · rename_i m hb
-        simp only [hb, List.map_cons, List.mem_cons]
+        simp only [List.map_cons, List.mem_cons]
         rcases ih _ (h ▸ dropWhile_length_lt e es) _ rfl
           { latestRev := e.rev, latest := m, history := ringAppend cap st.history (e.rev, m) }
           with h1 | h1
