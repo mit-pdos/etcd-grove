@@ -158,7 +158,7 @@ what `beginRWTx` hands the writer (its object graph's predicate is the write age
   `Rollback`, `release`, `releaseRange`, `ReleasePendingPages`: Perennial's map range does
   allow deleting), the interface contract (`Iface.lean`, `ArrayIface.lean`), `hashMap.addSpan`;
   `sort.Sort` an axiom.
-- the root package (178, `--bbolt-root`): statistics, accessors, `mmap`/`munmap`,
+- the root package (181, `--bbolt-root`): statistics, accessors, `mmap`/`munmap`,
   `mmapSize`, `db.page`, `db.meta`, `Tx.page`, `Tx.init`, `beginTx`, `beginRWTx` (the
   freelist's pending pages no reader sees released), `removeTx`, `Begin` (both kinds),
   `Tx.close`/`Rollback` (read), `View`, the logger (`DB.Logger`, the default logger's
@@ -181,6 +181,11 @@ what `beginRWTx` hands the writer (its object graph's predicate is the write age
   `CreateBucket`, `CreateBucketIfNotExists`, `Bucket.dereference`, `node.dereference`,
   `Tx.allocate`, `node.splitTwo` (`WriteSplit.lean`); `DBFree.lean`: the writer frees a page
   of its view (`dbOK_free`, `ownDB_free`, for `node.free`: `Free` does not panic, MVCC kept).
+  A writer `Begin` returns is `ownWriteTx` (`ownWriteTx_begin`, from `beginRWTx`'s `wtxOK`: the
+  current tree is `treeStrict`, now a `currentOK` fact). Its `Rollback` (`Tx.Rollback.wspec`,
+  `nonPhysicalRollback`, `close`; `DBRollback.lean`: the freelist's `Rollback` does not panic,
+  the writer's pending pages having been allocated before its view, and the writer's view is
+  given back): a writer's life without `Commit` is verified.
 - the errors bbolt compares with its error variables are well-formed (`Proof/os/ErrWF.lean`:
   an error holds a pointer of a pointer type or is a `syscall.Errno`, so comparing it with
   another does not panic; `ErrShape.lean`: `errors.New`, `fmt.Errorf` return pointers):
@@ -210,11 +215,13 @@ type is a map, as `len` does (`hashMap`'s `pidSet` was stuck); `io`'s initializa
 `Assumptions` should include the types it reaches through others (`hash.Hash64`);
 `runtime.GOOS` constants, the `os.FileInfo` alias; moving `SliceWithin` into Perennial.
 
-**Next.** `node.split`, `node.spill`, `Bucket.spill`, `node.free` (over `ownDB_free`),
+**TCB.** `etc/tcb-baseline.txt` has bbolt's model axioms (`--check --update`, 2026-10-12).
+
+**Next.** `Open` (a well-formed file's predicate; its error paths' `close` of a partly built
+database); `node.split`, `node.spill`, `Bucket.spill`, `node.free` (over `ownDB_free`),
 the rebalance, `DeleteBucket` (`Bucket.free`); the hashMap freelist (now that `delete` on
-`pidSet` steps); `Commit` (freelist write, page writes, `writeMeta`, `grow`), the writer's
-`Rollback`/`close`; `Open` (`loadFreelist`, a well-formed file's predicate to establish `dbOK`); `Batch`; `etc/tcb-report.py --check --update`
-for the new axioms (CI fails its check until then).
+`pidSet` steps); `Commit` (freelist write, page writes, `writeMeta`, `grow`; the written tree
+`treeStrict`); `Batch`.
 
 ## `node.go` groundwork: abandoning a `Ready`, pre-vote off, the messages' terms (2026-10-10)
 
