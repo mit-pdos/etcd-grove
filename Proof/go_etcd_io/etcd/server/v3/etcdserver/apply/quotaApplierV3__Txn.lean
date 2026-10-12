@@ -76,7 +76,7 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
     exact ⟨_, Hst, Or.inl rfl⟩
 
   · -- `err == nil`: the inner applied the put
-    ihave %Hap := apply.txnOutcomeIs_nil log t skip resp oc $$ HR
+    ihave %Hap := apply.txnAnswerIs_nil log t skip resp oc $$ HR
     obtain ⟨log', rfl⟩ := Hap
     wp_auto
     cases ok
@@ -89,9 +89,9 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
       · ipureintro
         simp only [apply.chainStep, hq, ↓reduceIte]
         exact ⟨_, Hst, Or.inr ⟨log', rfl, rfl⟩⟩
-      simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, apply.Outcome.logAfter, ↓reduceIte]
-      icases HR with ⟨Hresp, -⟩
-      iframe Hresp Hkv HPP Hres
+      simp only [apply.txnAnswerIs, apply.txnOutcomeIs, apply.noSpaceErrIs, apply.Outcome.logAfter, ↓reduceIte]
+      icases HR with ⟨⟨Hresp, -⟩, Hhdr⟩
+      iframe Hresp Hhdr Hkv HPP Hres
       iunfold txn.errVarIs
       iexists eN
       iframe HeN

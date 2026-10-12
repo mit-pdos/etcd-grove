@@ -472,6 +472,16 @@ def txnReadonly (t : TxnModel) : Bool := (t.thenOps ++ t.elseOps).all opIsGet
 /-- **`IsTxnSerializable`**: every operation of both branches is a serializable get. -/
 def txnSerializable (t : TxnModel) : Bool := (t.thenOps ++ t.elseOps).all opIsSerGet
 
+/-- **The gets of a transaction are within the model** (pure; the premise of `Txn` at a reader,
+the server's read-only transaction: 2026-10-12, the request path's unit 3b): every get of either
+branch reads the transaction's revision (`0`: the model's gets in a transaction are the client's
+`txnOpOf`), its sort is not cut early by a limit (`cutEarly`,
+`issues/etcd-range-sort-none-limit.md`), and its sort target is valid (what the gRPC layer's
+`checkRangeRequest` checks). The apply thread's `Txn` has the same premises through `TxnPre`. -/
+def txnGetsOk (t : TxnModel) : Prop :=
+  ∀ o : OpFull, TxnOp.get o ∈ t.thenOps ++ t.elseOps →
+    o.base.rev = W64 0 ∧ ¬ cutEarly o ∧ validSortTarget o
+
 theorem opIsSerGet_linearizable (op : TxnOp) : opIsSerGet op = !op.linearizable := by
   cases op <;> simp [opIsSerGet, TxnOp.linearizable]
 

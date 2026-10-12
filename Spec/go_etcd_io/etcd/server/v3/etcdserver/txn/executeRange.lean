@@ -44,7 +44,7 @@ abbrev txn.executeRange.spec : Prop :=
       (Val #tw)) (Val #r)) (Val #withTotal))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       txn.txnViewIs tw s γ kind ro ∗ txn.rangeResult resp err kind.readLog kind.readRev o withTotal ∗
-      ⌜nd = true → err = GoInterface.nil ∨ sint.Z kind.readRev < sint.Z o.base.rev⌝ }}
+      txn.rangeHdr resp err ∗ ⌜nd = true → err = GoInterface.nil ∨ sint.Z kind.readRev < sint.Z o.base.rev⌝ }}
 
 end spec
 

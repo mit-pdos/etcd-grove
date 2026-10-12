@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 header filled (`kvOut`). -/
 abbrev v3rpc.kvServer.Range.spec : Prop :=
   ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid n : w64) (ctx : GoInterface) (r : Loc) (o : OpFull),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ v3rpc.kvServerIs p s A cid mid n ∗ A.call ctx ∗ txn.rangeRequestIs r o }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ v3rpc.kvServerIs p s A cid mid n ∗ A.call ctx ∗ txn.rangeRequestIs r o ∗ ⌜A.pre (.range o)⌝ }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.kvServer.ty @!! go!"Range")) (Val #ctx))
       (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

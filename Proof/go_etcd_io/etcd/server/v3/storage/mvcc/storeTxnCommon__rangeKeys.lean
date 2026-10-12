@@ -13,6 +13,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.RevToBytes
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Trace__Step
 public import Spec.google_golang_org.protobuf.proto.Unmarshal
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Errorf
 
 @[expose] public section
 
@@ -615,7 +616,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                 · ipureintro; rfl
                 iintro %asl ⟨Hasl, -⟩
                 (try wp_auto)
-                wp_apply fmt.wp_Errorf $$ [$Hasl] as %e' -
+                wp_apply mvcc.wp_Errorf_errorfIs $$ [$Hasl] as %e' #He'
                 (try wp_auto)
                 wp_for_post
                 (try wp_auto)
@@ -631,7 +632,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                 · ipureintro; exact ⟨hco, hfk⟩
                 isplitl []
                 · ipureintro; rfl
-                ipureintro; intro h; cases h
+                iexact He'
               · iframe
             · iframe
             · iintro ⟨HΦ, HsT, HtxcT, HtraceT, HRr, Hkn, tr, ro, curRev, Hend0, key, ctx, Hti0, Hrevscap,

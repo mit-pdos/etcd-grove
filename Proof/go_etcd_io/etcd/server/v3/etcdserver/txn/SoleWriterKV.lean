@@ -213,12 +213,16 @@ theorem range_soleWriter_of (hRange : Range.spec (GF := GF) (hG := hG)) (log : m
   icases Hsw with ⟨#Hc, Ht, %Hl2⟩
   iapply (hRange ctx cd nd lg kv s γ r o withTotal (soleBudget log) log) $$ [Hrd Ht]
   · iframe # ∗
+    isplitr
+    · ipureintro; exact Hlg
+    isplitr
+    · ipureintro; exact Hpre.1
+    iintro !> %log' %h -
     ipureintro
-    refine ⟨Hlg, Hpre.1, fun log' h1 h2 => ?_⟩
-    rw [soleWriter_pins_read log log' hlen ⟨h1, h2⟩]
+    rw [soleWriter_pins_read log log' hlen ⟨h.1, h.2⟩]
     exact Hpre.2
   inext
-  iintro %resp %tr %err ⟨Hrd, Ht, %Htr, %log', %rev, -, %Hp, #Hres, %Hnd'⟩
+  iintro %resp %tr %err ⟨Hrd, Ht, %Htr, %log', %rev, -, %Hp, #Hres, -, %Hnd'⟩
   have heq := soleWriter_pins_read log log' hlen ⟨Hp.1, Hp.2.1⟩
   subst heq
   obtain ⟨-, -, -, hrev⟩ := Hp

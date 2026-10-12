@@ -17,6 +17,7 @@ public import Spec.google_golang_org.protobuf.proto.Size
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.getPrevKV
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.put
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.deleteRange
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Errorf
 
 @[expose] public section
 
@@ -157,6 +158,29 @@ theorem txn.responseOpIs_txn_et (skip : Bool) (s0 : List EtcdKv) (p w r h : Loc)
   isplitl []; · ipureintro; exact Hhn
   cases cs.all (cmpHolds s0) <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> iexact Hops
 
+/-- A range of a transaction (revision `0`) at a context that may be done: the response, or
+the context's error (`fmt.Errorf`'s, `mvcc.errorfIs`). -/
+theorem txn.rangeResult_txn_or_err_et (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64)
+    (o : OpFull) (hrev0 : o.base.rev = W64 0) (h0 : 0 ≤ sint.Z rev)
+    (hset : o.base.sortSet = decide (o.sortOrder ≠ W64 0 ∨ o.sortTarget ≠ W64 0))
+    (hcut : ¬ cutEarly o) :
+    rangeResult (GF := GF) resp err log rev o true ⊢
+      (⌜err = GoInterface.nil⌝ ∗
+        ∃ (kvs : List EtcdKv) (more : Bool),
+          rangeResponseIs resp rev kvs more
+            (W64 ((rangeIn (mvcc.stateAt log (sint.nat rev)) o).length : Int)) ∗
+          ⌜∃ kvs', rangeKvsOk o (rangeSel (mvcc.stateAt log (sint.nat rev)) o) kvs' ∧
+            kvs = kvs'.map (leaseZ (fastKeysOnly o))⌝) ∨ mvcc.errorfIs err := by
+  iintro #H
+  ihave #H2 := H
+  iunfold rangeResult at H2
+  icases H2 with (⟨%Hf, -⟩ | ⟨-, #He⟩ | ⟨%Hok, -⟩)
+  · have h00 : sint.Z (W64 0 : w64) = 0 := by decide
+    rw [hrev0, h00] at Hf; omega
+  · iright; iexact He
+  · ileft
+    iapply rangeResult_txn resp err log rev o hrev0 h0 hset hcut (Or.inl Hok.2) $$ H
+
 instance txn.ite_persistent_et (b : Bool) (P Q : IProp GF) [Persistent P] [Persistent Q] :
     Persistent (if b then P else Q) := by
   cases b <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> infer_instance
@@ -175,7 +199,7 @@ theorem txn.executeTxn.wp_proof
     (hPut : txn.put.spec (GF := GF) (hG := hG))
     (hDel : txn.deleteRange.spec (GF := GF) (hG := hG)) :
     txn.executeTxn.spec (GF := GF) (hG := hG) := by
-  intro ctx cd lg s γ tw ro ilog pend rt t pl rest tresp skip
+  intro ctx cd nd lg s γ tw ro ilog pend rt t pl rest tresp skip
   iloeb as IH generalizing %pend %rt %t %pl %rest %tresp
   wp_start as ⟨Htw, #Hctx, #Hnd, #Hrt, #Hpl, Hskel, #Hleases, #Hknown, %Hpre⟩
   ihave %Htwok := txn.txnWriteIs_ok tw s γ ro ilog pend $$ Htw
@@ -237,8 +261,8 @@ theorem txn.executeTxn.wp_proof
       "Hskel" ∷ opsSkel s0 (rps.drop (sint.nat n)) (ops.drop (sint.nat n)) ∗
       "#Hdone" ∷ responseOpsIs skip (rps.take (sint.nat n)) (ops.take (sint.nat n))
         (srvOps s0 r st (ops.take (sint.nat n))).2 ∗
-      "#Hknown" ∷ leasesKnown γ.leases
-        (mvcc.applyChanges r st (srvOps s0 r st (ops.take (sint.nat n))).1) ∗
+      "#Hknown" ∷ (if ro then iprop(True) else leasesKnown γ.leases
+        (mvcc.applyChanges r st (srvOps s0 r st (ops.take (sint.nat n))).1)) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ ops.length⌝) $$ [i iv req txns txnPath err Htw Hskel]
   · iexists W64 0, _, _, pl, ok, GoInterface.nil
     simp only [show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.drop_zero, srvOps_nil,
@@ -306,15 +330,19 @@ theorem txn.executeTxn.wp_proof
       wp_auto
       wp_apply (hStart trace _) $$ []
       · ipureintro; exact Htrace
-      wp_join iprop(∃ (rr0 : Loc) (e1 : GoInterface), resp_ptr ↦ rr0 ∗ err_ptr ↦ e1 ∗
+      wp_join (Q := fun v => iprop(
+          (⌜v = executeVal⌝ ∗ ∃ (rr0 : Loc) (e1 : GoInterface), resp_ptr ↦ rr0 ∗ err_ptr ↦ e1 ∗
           txnWrite_ptr ↦ GoInterface.ok twi ∗ ctx_ptr ↦ GoInterface.ok ctx ∗ lg_ptr ↦ lg ∗
           tv_ptr ↦ w' ∗
           txnWriteIs (GoInterface.ok twi) s γ ro ilog (pend ++ (srvOps s0 r st (ops.take (sint.nat n))).1) ∗
           ∃ rev : w64, if skip then rangeResponseIs rr0 rev [] false (W64 0)
             else ∃ (kvs : List EtcdKv) (more : Bool),
               rangeResponseIs rr0 rev kvs more (W64 ((rangeIn stn o).length : Int)) ∗
-              ⌜∃ kvs', rangeKvsOk o (rangeSel stn o) kvs' ∧ kvs = kvs'.map (leaseZ (fastKeysOnly o))⌝)
-        with [resp err txnWrite ctx lg tv Htw] as ⟨%rr0, %e1, resp, err, txnWrite, ctx, lg, tv, Htw, %rev1, Hrr0⟩
+              ⌜∃ kvs', rangeKvsOk o (rangeSel stn o) kvs' ∧ kvs = kvs'.map (leaseZ (fastKeysOnly o))⌝) ∨
+          (∃ e' : GoInterface, ⌜v = returnVal (PairV #(W64 0) #e')⌝ ∗ ⌜nd = false⌝ ∗
+            mvcc.errorfIs e' ∗ ∃ pend' : List mvcc.Change,
+              txnWriteIs (GoInterface.ok twi) s γ ro ilog pend')))
+        with [resp err txnWrite ctx lg tv Htw]
       · -- the range, at the transaction's state
         icases txnWriteIs_kind _ s γ ro ilog _ $$ Htw with ⟨%kind, Hv, %Hk⟩
         obtain ⟨hkis, hkok, hkst, hne, hlen⟩ := Hk
@@ -324,17 +352,48 @@ theorem txn.executeTxn.wp_proof
         have hRR : mvcc.rangeRev kind.readRev o.base.rev = kind.readRev := by
           unfold mvcc.rangeRev; rw [hget.1]; simp
         ihave %Hset := rangeRequestIs_sortSet rr o $$ Hrr
-        wp_apply (hExec ctx cd true lg s γ (GoInterface.ok twi) kind ro rr o true)
-          $$ [$Hv $Hctx $Hrr] as %resp %err ⟨Hv, #Hres, %Hnd'⟩
-        · isplitl []
-          · simp only [↓reduceIte]; iexact Hnd
-          ipureintro
+        wp_apply (hExec ctx cd nd lg s γ (GoInterface.ok twi) kind ro rr o true)
+          $$ [$Hv $Hctx $Hnd $Hrr] as %resp %err ⟨Hv, #Hres, -, %Hnd'⟩
+        · ipureintro
           refine ⟨hget.2.1, ?_⟩
           rw [hRR]; unfold kindState at hkst'; rw [hkst']; exact hget.2.2.2
-        icases rangeResult_txn resp err _ _ o hget.1 hkok.2.1 Hset hget.2.2.1 (Hnd' rfl) $$ Hres
-          with ⟨%Herr, %kvs, %more, #Hresp, %Hkvs⟩
+        icases txn.rangeResult_txn_or_err_et resp err _ _ o hget.1 hkok.2.1 Hset hget.2.2.1 $$ Hres
+          with (⟨%Herr, %kvs, %more, #Hresp, %Hkvs⟩ | #He)
+        rotate_left
+        · -- the context done: `fmt.Errorf`'s error, returned
+          ihave %Hen := mvcc.errorfIs_ne_nil err $$ He
+          have hndf : nd = false := by
+            cases nd
+            · rfl
+            · exfalso
+              rcases Hnd' rfl with h | h
+              · exact Hen h
+              · have h00 : sint.Z (W64 0 : w64) = 0 := by decide
+                rw [hget.1, h00] at h; have := hkok.2.1; omega
+          ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
+          · iPkgInit
+          iunfold mvcc.errorfIs at He
+          icases He with ⟨%x, %Hx, -⟩
+          subst Hx
+          wp_auto
+          wp_apply wp_slice_literal
+          isplitr
+          · ipureintro; rfl
+          iintro %asl ⟨Hasl, -⟩
+          wp_auto
+          wp_apply mvcc.wp_Errorf_errorfIs $$ [$Hfmt $Hasl] as %e' #He'
+          iright
+          iexists e'
+          isplitr
+          · ipureintro; rfl
+          isplitr
+          · ipureintro; exact hndf
+          iframe He'
+          iexists _
+          iapply txnWriteIs_of_view _ s γ ro ilog _ kind hkis $$ Hv
         subst Herr
         wp_auto
+        ileft
         isplitl []; · ipureintro; rfl
         iexists resp, GoInterface.nil
         iframe resp err txnWrite ctx lg tv
@@ -363,6 +422,7 @@ theorem txn.executeTxn.wp_proof
         ipersist RCount
         ipersist HRevision
         imodintro
+        ileft
         isplitl []; · itrivial
         iexists «$r0_ptr», e
         iframe resp err txnWrite ctx lg tv Htw
@@ -375,6 +435,21 @@ theorem txn.executeTxn.wp_proof
         isplitl []; · ipureintro; exact Hhn
         isplitl []; · iapply ownSlice_nil
         iapply kvsIs_nil
+      iintro (⟨%Hv0, %rr0, %e1, resp, err, txnWrite, ctx, lg, tv, Htw, %rev1, Hrr0⟩ | ⟨%e', %Hv0, %Hndf, #He', %pend', Htw⟩)
+      rotate_left
+      · -- the context error, returned
+        subst Hv0
+        wp_auto
+        wp_for_post
+        iapply HΦ
+        iright
+        iframe He'
+        isplitr
+        · ipureintro; exact Hndf
+        iexists pend'
+        iexact Htw
+      subst Hv0
+      wp_auto
       ipersist Hw
       icases Hrr0 with #Hrr0
       wp_apply (hStop trace _) $$ []
@@ -417,8 +492,14 @@ theorem txn.executeTxn.wp_proof
       have hro : ro = false := by
         cases ro
         · rfl
-        · have := Hpre.2.2 rfl _ hmem; simp [txn.opIsGet] at this
+        · have := Hpre.2.2.1 rfl _ hmem; simp [txn.opIsGet] at this
       subst hro
+      have hnd : nd = true := by
+        cases nd
+        · exact absurd (Hpre.2.2.2 rfl) (by simp)
+        · rfl
+      subst hnd
+      try simp only [Bool.false_eq_true, ↓reduceIte]
       icases txnWriteIs_kind _ s γ false ilog _ $$ Htw with ⟨%kind, Hv, %Hk⟩
       obtain ⟨hkis, hkok, hkst, hne, hlen⟩ := Hk
       unfold KindIs at hkis
@@ -496,6 +577,17 @@ theorem txn.executeTxn.wp_proof
       icases Hp with ⟨%Hpn, %w, %r0, #Hpw, #Hwr, %Hr0n, %h0, %sl0, %ps0, #Hh0, %Hh0n, #Hrev0, #Hsucc0,
         #Hrsp0, #Hps0, Hsk0⟩
       icases requestOpIs_txn rq cs ts es $$ Hrq with ⟨%Hrqn, %w', %rq', #Hrqw, #Hw'rq, #Hrq'⟩
+      have hro : ro = false := by
+        cases ro
+        · rfl
+        · have := Hpre.2.2.1 rfl _ hmem; simp [txn.opIsGet] at this
+      subst hro
+      have hnd : nd = true := by
+        cases nd
+        · exact absurd (Hpre.2.2.2 rfl) (by simp)
+        · rfl
+      subst hnd
+      try simp only [Bool.false_eq_true, ↓reduceIte]
       wp_auto
       have hps : pendState ilog (pend ++ (srvOps s0 r st (ops.take (sint.nat n))).1) = stn := by
         rw [pendState_append, hr, hst, hstn]
@@ -519,7 +611,7 @@ theorem txn.executeTxn.wp_proof
       wp_apply IH $$ %(pend ++ (srvOps s0 r st (ops.take (sint.nat n))).1) %rq'
           %({ cmps := cs, thenOps := ts, elseOps := es } : TxnModel) %(slice.slice plv Bool (W64 1) plv.len)
           %(opsPath s0 (List.drop (sint.nat n + 1) ops) ++ rest) %r0 [Htw Hrsk]
-        as %napp %nerr ⟨%Hres, Htw, #Hresps, #Hknown'⟩
+        as %napp %nerr Hres
       · iframe Htw Hrsk Hctx Hnd Hrq' Hsub
         rw [hps]
         iframe Hknown
@@ -529,9 +621,13 @@ theorem txn.executeTxn.wp_proof
           apply opsLeases_mem s0 ops _ hmem
           rw [txn.opLeases_txn_et]; exact hl
         ipureintro
-        refine ⟨hokT, ?_, ?_⟩
+        refine ⟨hokT, ?_, ?_, ?_⟩
         · simp only [List.length_append, TxnModel.branch, txnOk] at hbnd ⊢; omega
-        · intro hro; have := Hpre.2.2 hro _ hmem; simp [txn.opIsGet] at this
+        · intro hro; cases hro
+        · intro h; cases h
+      icases Hres with (⟨%Hres, Htw, #Hresps, #Hknown'⟩ | ⟨%Hc, -⟩)
+      rotate_left
+      · cases Hc
       obtain ⟨rfl, rfl⟩ := Hres
       have hTl : (txnPath s0 { cmps := cs, thenOps := ts, elseOps := es }).length =
           nestedCount s0 { cmps := cs, thenOps := ts, elseOps := es } + 1 := hTlen
@@ -605,8 +701,14 @@ theorem txn.executeTxn.wp_proof
       have hro : ro = false := by
         cases ro
         · rfl
-        · have := Hpre.2.2 rfl _ hmem; rw [txn.opIsGet_put_et] at this; cases this
+        · have := Hpre.2.2.1 rfl _ hmem; rw [txn.opIsGet_put_et] at this; cases this
       subst hro
+      have hnd : nd = true := by
+        cases nd
+        · exact absurd (Hpre.2.2.2 rfl) (by simp)
+        · rfl
+      subst hnd
+      try simp only [Bool.false_eq_true, ↓reduceIte]
       ihave #Hpr2 := Hpr
       iunfold txn.putRequestIs at Hpr2
       icases Hpr2 with ⟨%Hprn, %ksl, %vsl, %k, %v0, %lease, %pk, %iv0, %il, #Hk, #Hks, -, -, -, -, -, -, -, %Ho⟩
@@ -699,6 +801,7 @@ theorem txn.executeTxn.wp_proof
     rw [hnlen, List.take_length, List.drop_length] at *
     rw [show rps.take ops.length = rps by rw [← Hrl, List.take_length]]
     iapply HΦ
+    ileft
     isplitl []
     · ipureintro; refine ⟨rfl, ?_⟩
       unfold nestedCount; rw [hok, hops]

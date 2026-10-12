@@ -345,13 +345,16 @@ variable [sem : go.Semantics]
 
 /-- **The `*read.Read` `r`** (persistent; the contract until unit 4 proves `read/read.go`):
 `LinearizableReadNotify(ctx)` returns `nil` only once the applied index has reached the
-committed index the caller knew of (`readIndexOk`), or an error. -/
+committed index the caller knew of (`readIndexOk`), or an error the gRPC layer can take
+(`applyErrIs`: the read loop's `ErrStopped`, `ErrLeaderChanged`, ..., `errors.New` errors, or
+the context's `Canceled`/`DeadlineExceeded`; 2026-10-12, unit 3b, as `raftPropose`). -/
 def isRead (r : Loc) (γr : ReadNames) : IProp GF :=
   iprop(□ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (c : w64),
     {{ mvcc.txnCtx ctx cd ∗ committedAtLeast γr c }}
       (App (Val (r @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.read.Read.ty @!!
         go!"LinearizableReadNotify")) (Val #(GoInterface.ok ctx)))
-    {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ -∗ readIndexOk γr c }}))
+    {{ (err : GoInterface), RET #err; applyErrIs err ∗
+        (⌜err = GoInterface.nil⌝ -∗ readIndexOk γr c) }}))
 
 instance isRead_persistent (r : Loc) (γr : ReadNames) : Persistent (isRead (GF := GF) r γr) := by
   unfold isRead; infer_instance

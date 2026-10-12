@@ -64,7 +64,7 @@ theorem txn.executeRange_core
       (App (App (App (App (App (Val (@! txn.executeRange)) (Val #(GoInterface.ok ctx))) (Val #lg))
         (Val #(interface.mkOk tyX vX))) (Val #r)) (Val #withTotal))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        V ∗ txn.rangeResult resp err kind.readLog kind.readRev o withTotal ∗
+        V ∗ txn.rangeResult resp err kind.readLog kind.readRev o withTotal ∗ txn.rangeHdr resp err ∗
         ⌜nd = true → err = GoInterface.nil ∨ sint.Z kind.readRev < sint.Z o.base.rev⌝ }} := by
   obtain ⟨hok, h0rev, hrevlt⟩ := hkind
   generalize hlog : kind.readLog = log at *
@@ -98,33 +98,39 @@ theorem txn.executeRange_core
     simp only [fastKeysOnly, rangeOpOf, ne_eq, sext32_eq target 4 (by omega) (by omega)]
     cases ko <;> simp
   iunfold mvcc.rangeOutcome at Hout
-  icases Hout with (⟨%Hfut, ⟨%ef, #Hef, %Herr⟩, Hrr⟩ | ⟨%Hle, %Hflags, %Hrrnull, %Herr⟩ | ⟨%Hle, %Herr, Hres⟩)
+  icases Hout with (⟨%Hfut, ⟨%ef, #Hef, %Herr⟩, Hrr⟩ | ⟨%Hle, %Hflags, %Hrrnull, #Herrf⟩ | ⟨%Hle, %Herr, Hres⟩)
   · simp only at Hfut
     subst Herr
     wp_auto
     iapply HΦ
     iframe Htx
-    isplitl
+    isplitl []
     · iunfold txn.rangeResult
       ileft
       iframe Hef
       ipureintro
       exact ⟨⟨by rw [hrevo]; exact Hfut, rfl⟩, rfl⟩
+    isplitl []
+    · iunfold txn.rangeHdr; iintro %h; cases h
     · ipureintro; intro _; exact Or.inr (by rw [hrevo]; exact Hfut)
   · simp only at Hle Hflags
     subst Hrrnull
+    ihave %Herr := mvcc.errorfIs_ne_nil err $$ Herrf
     cases err with
     | nil => exact absurd rfl Herr
     | ok ei =>
       wp_auto
       iapply HΦ
       iframe Htx
-      isplitl
+      isplitl []
       · iunfold txn.rangeResult
         iright; ileft
+        iframe Herrf
         ipureintro
         exact ⟨by rw [hrevo]; exact Hle, by rw [hco]; exact Hflags.1, by rw [hfast]; exact Hflags.2,
-          rfl, Herr⟩
+          rfl⟩
+      isplitl []
+      · iunfold txn.rangeHdr; iintro %h; cases h
       · ipureintro; intro hnd; exact absurd rfl (Hrn (Htd hnd))
   · simp only at Hle
     subst Herr
@@ -212,12 +218,12 @@ theorem txn.executeRange_core
     · ipureintro; exact ⟨Hpre.1, hsmall⟩
     wp_apply (hStep t)
     · ipureintro; exact Ht
-    wp_apply (hAsm rr r o rev cnt vs') $$ [$Hrr $Hr] as %resp #Hresp
+    wp_apply (hAsm rr r o rev cnt vs') $$ [$Hrr $Hr] as %resp ⟨#Hresp, Hhdr⟩
     wp_apply (hStep t)
     · ipureintro; exact Ht
     iapply HΦ
     iframe Htx
-    isplitl
+    isplitr [Hhdr]
     · iunfold txn.rangeResult
       iright; iright
       isplitr
@@ -227,6 +233,10 @@ theorem txn.executeRange_core
       iframe Hresp
       ipureintro
       exact ⟨vs', Hsorted, rfl, rfl⟩
+    isplitl [Hhdr]
+    · iunfold txn.rangeHdr
+      iintro -
+      iexact Hhdr
     · ipureintro; intro _; exact Or.inl rfl
 
 theorem txn.executeRange.wp_proof
@@ -254,9 +264,9 @@ theorem txn.executeRange.wp_proof
     · iframe Htx Hctx Hnd Hr Hpkg
       ipureintro; exact Hpre
     inext
-    iintro %resp %err ⟨Htx, #Hres, %Hnd'⟩
+    iintro %resp %err ⟨Htx, #Hres, Hhdr, %Hnd'⟩
     iapply HΦ
-    iframe Hres
+    iframe Hres Hhdr
     isplitl
     · iapply (txn.txnViewIs_mw mw s γ kind).2 $$ Htx
     · ipureintro; exact Hnd'
@@ -273,9 +283,9 @@ theorem txn.executeRange.wp_proof
     · iframe Hro Hctx Hnd Hr Hpkg
       ipureintro; exact Hpre
     inext
-    iintro %resp %err ⟨Hro, #Hres, %Hnd'⟩
+    iintro %resp %err ⟨Hro, #Hres, Hhdr, %Hnd'⟩
     iapply HΦ
-    iframe Hres
+    iframe Hres Hhdr
     isplitl
     · iapply (txn.txnViewIs_ro trw s γ log rev).2 $$ Hro
     · ipureintro; exact Hnd'

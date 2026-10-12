@@ -376,9 +376,10 @@ theorem rangeResult_txn (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev :
     · exact h
     · rw [hrev0, h00] at h; omega
   unfold rangeResult
-  iintro (⟨%H, -⟩ | %H | ⟨%H, %kvs, %more, #Hresp, %Hok⟩)
+  iintro (⟨%H, -⟩ | ⟨%H, #He⟩ | ⟨%H, %kvs, %more, #Hresp, %Hok⟩)
   · rw [hrev0, h00] at H; omega
-  · exact absurd herr' H.2.2.2.2
+  · ihave %Hne := mvcc.errorfIs_ne_nil err $$ He
+    exact absurd herr' Hne
   · rw [hRR] at Hok
     rw [hRR]
     obtain ⟨kvs', h1, h2, -⟩ := srvRangeOk_rangeKvsOk o _ kvs more hset Hok hcut

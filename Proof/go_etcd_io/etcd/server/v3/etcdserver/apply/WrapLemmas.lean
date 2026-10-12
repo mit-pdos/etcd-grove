@@ -101,6 +101,16 @@ theorem txnOutcomeIs_nil (log : mvcc.Log) (t : TxnModel) (skip : Bool) (resp : L
     · iintro -; ipureintro; exact ⟨log', rfl⟩
     · iintro ⟨-, H⟩; iexfalso; iapply errVarIs_nil $$ H
 
+/-- `txnOutcomeIs_nil` of the answer with its header. -/
+theorem txnAnswerIs_nil (log : mvcc.Log) (t : TxnModel) (skip : Bool) (resp : Loc)
+    (oc : Outcome) :
+    txnAnswerIs (GF := GF) log t skip resp GoInterface.nil oc ⊢
+      ⌜∃ log', oc = .applied log' false⌝ := by
+  rcases oc with k | ⟨log', ns⟩ <;> simp only [txnAnswerIs]
+  · iapply txnOutcomeIs_nil
+  · iintro ⟨H, -⟩
+    iapply txnOutcomeIs_nil $$ H
+
 end lemmas
 
 end apply

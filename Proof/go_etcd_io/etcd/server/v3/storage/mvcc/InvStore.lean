@@ -663,10 +663,33 @@ def rangeKvs (full : Bool) (kvs : GoSlice) (st : List EtcdKv)
 is not positive. -/
 def rangeRev (rev optRev : w64) : w64 := if sint.Z optRev ≤ 0 then rev else optRev
 
+/-- **An error `fmt.Errorf` returned** (persistent), as Perennial's model of `fmt.Errorf` makes
+it: `errors.New` of the format (`Perennial/TrustedCode/fmt.lean`: the arguments, `%w` included,
+are ignored), an `*errors.errorString` whose `Error()` returns. Go's `fmt.Errorf` with `%w`
+returns a `*fmt.wrapError` instead, which `errors.Is` sees through to the wrapped error: the
+model does not (2026-10-12, the request path's unit 3b: `rangeKeys`' context error, and the txn
+package's `executeTxn` wrapping it, reach the gRPC layer; `notes/STATUS.md`, "Unit 3b"). -/
+def errorfIs (err : GoInterface) : IProp GF :=
+  iprop(∃ x : Loc,
+    ⌜err = interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x⌝ ∗
+    □ ∀ Φ : val → IProp GF, ▷ (∀ str : GoString, Φ #str) -∗
+      WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
+        go!"Error" #x)) (Val #())) {{ Φ }})
+
+omit package_sem in
+instance errorfIs_persistent (err : GoInterface) : Persistent (errorfIs (GF := GF) err) := by
+  unfold errorfIs; infer_instance
+
+omit package_sem in
+theorem errorfIs_ne_nil (err : GoInterface) : errorfIs (GF := GF) err ⊢ ⌜err ≠ GoInterface.nil⌝ := by
+  iunfold errorfIs
+  iintro ⟨%x, %h, -⟩
+  ipureintro; subst h; intro h; cases h
+
 /-- What `rangeKeys(ctx, key, end, rev, ro)` returns (`r`, `err`) of the committed log `log`
 at the transaction's revision `rev`, for `[k, e)` (`endNil`: no end key):
 * a future revision (`ro.Rev > rev`): `ErrFutureRev` and a count of `-1`;
-* the context done (a full read only): no result and an error;
+* the context done (a full read only): no result and `fmt.Errorf`'s error (`errorfIs`);
 * else the answer at `rangeRev rev ro.Rev`: the count alone (`CountOnly`), or the key-values
   of the index's answers (at most the limit), keys and revisions only (`FastKeysOnly`) or the
   state's key-values from the bucket, with the index's count. -/
@@ -677,7 +700,7 @@ def rangeOutcome (r : Loc) (err : GoInterface) (log : Log) (rev : w64) (endNil :
       (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
       r ↦ ({ KVs' := slice.nil, Rev' := rev, Count' := W64 (-1) } : RangeResult)) ∨
     (⌜sint.Z ro.Rev' ≤ sint.Z rev⌝ ∗ ⌜ro.CountOnly' = false ∧ ro.FastKeysOnly' = false⌝ ∗
-      ⌜r = null⌝ ∗ ⌜err ≠ GoInterface.nil⌝) ∨
+      ⌜r = null⌝ ∗ errorfIs err) ∨
     (⌜sint.Z ro.Rev' ≤ sint.Z rev⌝ ∗ ⌜err = GoInterface.nil⌝ ∗
       if ro.CountOnly' then
         r ↦ ({

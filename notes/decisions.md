@@ -3597,6 +3597,35 @@ gRPC checks discharge the txn package's request premises.
   linked `EtcdServer.Put`/`DeleteRange` with the other three as premises. `KV().Rev()` stays in
   `kvGetOk` (3b): `header.fill` never calls it on these answers (their revision is not `0`).
 
+**2026-10-12 · unit 3b implemented** (the read side and `Txn`; the server's contract discharged):
+
+- **`txn.Txn`: two triples by caller** (unit 3b, `Spec/.../txn/Txn.lean`). The apply thread's
+  (`specSole`: the sole writer, a never-done context) and the server's read-only transactions'
+  (`specRead`: a reader's slots and tokens, a certificate, any context), `Txn.spec := specSole ∧
+  specRead`, proved together; `executeTxn`/`txn.txn` take a never-done flag (`false` only for
+  read-only runs) and a context-error outcome. *Rejected:* a premise that the request's context is
+  never done (false of gRPC contexts); a separate spec file per caller (one Hoare triple per Go
+  function: the conjunction is one spec).
+- **The context error through Perennial's `fmt.Errorf`** (unit 3b). Perennial models
+  `fmt.Errorf` as `errors.New(format)` (no `%w`): the read side's context error is an
+  `*errors.errorString` leaf (`mvcc.errorfIs`, in mvcc's `rangeOutcome` and txn's `rangeResult`),
+  and `applyErrIs` of it needs only that `*errorString` has no `Is`/`As`/`Unwrap` (a method-set
+  fact, a package-fact premise in `srvErrVars`). *Rejected:* modelling the wrap in etcd-grove (it
+  is Perennial's trusted model; the gap is recorded: Go's `togRPCError` maps the wrapped context
+  error to `ErrGRPCCanceled`, the model's to `codes.Unknown`, and the handlers' specs say only
+  "an error"); a trust-boundary axiom for the error.
+- **Request premises in the handlers' contract** (unit 3b, `KVAns.pre`). The server's read-only
+  `Txn` is within the txn package's model only for gets at revision `0` whose sort is not cut
+  early (`txnInModel`): a pure premise per request, which `A.call ctx` (per context) could not
+  carry. *Rejected:* `call` taking the request (a resource per request was not needed).
+- **The store stays small, a premise of the readers** (`storeSmall`, unit 3b): the sort's bound
+  (`LogSmall`) of every certified log; `txn.Range`'s sort premise is asked of certified logs only.
+  The apply thread has the same premise per entry (`rangeOk`, `TxnPre`). *Rejected:* a premise on
+  every log (vacuous for sorted reads).
+- **`srvKVAns` concrete** (unit 3b): 3a's `A0` replaced by the read side's names (`γr`, `c`); every
+  call resource comes back with every answer but a write's id credit; `revR` is the store's reader
+  slots (`KV().Rev()` is `store.Rev`), which `fill` never needs on the server's answers.
+
 ## The server's raft wrapper: raft.Node as a contract, an SPSC stream to the apply side
 
 **2026-10-12 · plan, carried out the same day** (`server/v3/etcdserver/raft.go`, ~450 Go lines; branch `server-raft`; `STATUS.md`, "etcd's server: the raft wrapper"). Two changes in the proof: the WAL's `Close` succeeds by the contract (else `onStop` panics in the loop's goroutine), and `start` case-splits `islead` rather than joining (the follower's select returns on `stopped`, which no join assertion reaches).
