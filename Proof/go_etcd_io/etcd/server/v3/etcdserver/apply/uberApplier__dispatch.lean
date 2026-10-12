@@ -399,7 +399,7 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe
     iunfold apply.kvPost at Hpost
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP⟩
-    ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.txnOutcomeIs_errIs _ _ _ _ _ _) $$ [$Hev $Hans]
+    ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.txnAnswerIs_errIs _ _ _ _ _ _) $$ [$Hev $Hans]
     join_ar
     fin_kv
     iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩
