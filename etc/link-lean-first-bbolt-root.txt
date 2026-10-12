@@ -177,3 +177,8 @@ funlock: os_File__Fd syscall_Flock
 flock: os_File__Fd syscall_Flock
 Meta__Freelist: @
 DB__hasSyncedFreelist: DB__meta Meta__Freelist
+sync_Pool__Get:
+Page__SetOverflow: @
+Page__SetId: @
+Meta__SetPgid: @
+DB__allocate: sync_Pool__Get Page__SetOverflow Page__SetId Page__Id Meta__Pgid Meta__SetPgid DB__mmapSize DB__growSize DB__Logger DefaultLogger__Errorf DB__mmap

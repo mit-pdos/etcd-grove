@@ -44,6 +44,7 @@ public import Proof.go_etcd_io.bbolt.DB__Logger
 public import Proof.go_etcd_io.bbolt.DB__Path
 public import Proof.go_etcd_io.bbolt.DB__String
 public import Proof.go_etcd_io.bbolt.DB__View
+public import Proof.go_etcd_io.bbolt.DB__allocate
 public import Proof.go_etcd_io.bbolt.DB__beginRWTx
 public import Proof.go_etcd_io.bbolt.DB__beginTx
 public import Proof.go_etcd_io.bbolt.DB__fileSize
@@ -143,6 +144,7 @@ public import Proof.os.File__Sync
 public import Proof.os.File__Truncate
 public import Proof.os.File__WriteAt
 public import Proof.os.OpenFile
+public import Proof.sync.Pool__Get
 public import Proof.syscall.Fdatasync
 public import Proof.syscall.Flock
 public import Proof.golang_org.x.sys.unix.Madvise
@@ -487,17 +489,17 @@ theorem DB.wp_View [AllG GF] :
     EtcdGrove.bbolt.DB.View.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.View.wp_proof EtcdGrove.bbolt.DB.wp_Begin EtcdGrove.bbolt.Tx.wp_Rollback
 
-theorem os.File.wp_Stat :
-    EtcdGrove.bbolt.os.File.Stat.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.os.File.Stat.wp_proof
+theorem sync.Pool.wp_Get :
+    EtcdGrove.bbolt.sync.Pool.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.sync.Pool.Get.wp_proof
 
-theorem fs.FileInfo.wp_Size :
-    EtcdGrove.bbolt.fs.FileInfo.Size.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.fs.FileInfo.Size.wp_proof
+theorem DB.wp_mmapSize :
+    EtcdGrove.bbolt.DB.mmapSize.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.mmapSize.wp_proof
 
-theorem DB.wp_fileSize :
-    EtcdGrove.bbolt.DB.fileSize.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DB.fileSize.wp_proof EtcdGrove.bbolt.os.File.wp_Stat EtcdGrove.bbolt.fs.FileInfo.wp_Size
+theorem DB.wp_growSize :
+    EtcdGrove.bbolt.DB.growSize.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.growSize.wp_proof
 
 theorem wp_header :
     EtcdGrove.bbolt.header.spec (GF := GF) (hG := hG) :=
@@ -511,33 +513,17 @@ theorem DefaultLogger.wp_Errorf :
     EtcdGrove.bbolt.DefaultLogger.Errorf.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DefaultLogger.Errorf.wp_proof EtcdGrove.bbolt.wp_header EtcdGrove.bbolt.log.Logger.wp_Output
 
-theorem DB.wp_growSize :
-    EtcdGrove.bbolt.DB.growSize.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DB.growSize.wp_proof
+theorem os.File.wp_Stat :
+    EtcdGrove.bbolt.os.File.Stat.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.os.File.Stat.wp_proof
 
-theorem os.File.wp_Truncate :
-    EtcdGrove.bbolt.os.File.Truncate.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.os.File.Truncate.wp_proof
+theorem fs.FileInfo.wp_Size :
+    EtcdGrove.bbolt.fs.FileInfo.Size.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.fs.FileInfo.Size.wp_proof
 
-theorem os.File.wp_Sync :
-    EtcdGrove.bbolt.os.File.Sync.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.os.File.Sync.wp_proof
-
-theorem DB.wp_grow :
-    EtcdGrove.bbolt.DB.grow.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DB.grow.wp_proof EtcdGrove.bbolt.DB.wp_Logger EtcdGrove.bbolt.DB.wp_fileSize EtcdGrove.bbolt.DefaultLogger.wp_Errorf EtcdGrove.bbolt.DB.wp_growSize EtcdGrove.bbolt.os.File.wp_Truncate EtcdGrove.bbolt.os.File.wp_Sync
-
-theorem DB.wp_hasSyncedFreelist :
-    EtcdGrove.bbolt.DB.hasSyncedFreelist.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DB.hasSyncedFreelist.wp_proof EtcdGrove.bbolt.DB.wp_meta EtcdGrove.bbolt.Meta.wp_Freelist
-
-theorem DB.wp_invalidate :
-    EtcdGrove.bbolt.DB.invalidate.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DB.invalidate.wp_proof
-
-theorem DB.wp_mmapSize :
-    EtcdGrove.bbolt.DB.mmapSize.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DB.mmapSize.wp_proof
+theorem DB.wp_fileSize :
+    EtcdGrove.bbolt.DB.fileSize.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.fileSize.wp_proof EtcdGrove.bbolt.os.File.wp_Stat EtcdGrove.bbolt.fs.FileInfo.wp_Size
 
 theorem unix.wp_Munmap :
     EtcdGrove.bbolt.unix.Munmap.spec (GF := GF) (hG := hG) :=
@@ -546,6 +532,10 @@ theorem unix.wp_Munmap :
 theorem wp_munmap :
     EtcdGrove.bbolt.munmap.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.munmap.wp_proof EtcdGrove.bbolt.unix.wp_Munmap
+
+theorem DB.wp_invalidate :
+    EtcdGrove.bbolt.DB.invalidate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.invalidate.wp_proof
 
 theorem DB.wp_munmap :
     EtcdGrove.bbolt.DB.munmap.spec (GF := GF) (hG := hG) :=
@@ -570,6 +560,26 @@ theorem wp_mmap :
 theorem DB.wp_mmap [AllG GF] :
     EtcdGrove.bbolt.DB.mmap.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.mmap.wp_proof EtcdGrove.bbolt.DB.wp_Logger EtcdGrove.bbolt.DB.wp_fileSize EtcdGrove.bbolt.DB.wp_mmapSize EtcdGrove.bbolt.DB.wp_munmap EtcdGrove.bbolt.wp_mmap EtcdGrove.bbolt.DB.wp_page EtcdGrove.bbolt.Page.wp_Meta EtcdGrove.bbolt.Meta.wp_Validate EtcdGrove.bbolt.DefaultLogger.wp_Errorf
+
+theorem DB.wp_allocate [AllG GF] :
+    EtcdGrove.bbolt.DB.allocate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.allocate.wp_proof EtcdGrove.bbolt.sync.Pool.wp_Get EtcdGrove.bbolt.Page.wp_SetOverflow EtcdGrove.bbolt.Page.wp_SetId EtcdGrove.bbolt.Page.wp_Id EtcdGrove.bbolt.Meta.wp_Pgid EtcdGrove.bbolt.Meta.wp_SetPgid EtcdGrove.bbolt.DB.wp_mmapSize EtcdGrove.bbolt.DB.wp_growSize EtcdGrove.bbolt.DB.wp_Logger EtcdGrove.bbolt.DefaultLogger.wp_Errorf EtcdGrove.bbolt.DB.wp_mmap
+
+theorem os.File.wp_Truncate :
+    EtcdGrove.bbolt.os.File.Truncate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.os.File.Truncate.wp_proof
+
+theorem os.File.wp_Sync :
+    EtcdGrove.bbolt.os.File.Sync.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.os.File.Sync.wp_proof
+
+theorem DB.wp_grow :
+    EtcdGrove.bbolt.DB.grow.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.grow.wp_proof EtcdGrove.bbolt.DB.wp_Logger EtcdGrove.bbolt.DB.wp_fileSize EtcdGrove.bbolt.DefaultLogger.wp_Errorf EtcdGrove.bbolt.DB.wp_growSize EtcdGrove.bbolt.os.File.wp_Truncate EtcdGrove.bbolt.os.File.wp_Sync
+
+theorem DB.wp_hasSyncedFreelist :
+    EtcdGrove.bbolt.DB.hasSyncedFreelist.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.hasSyncedFreelist.wp_proof EtcdGrove.bbolt.DB.wp_meta EtcdGrove.bbolt.Meta.wp_Freelist
 
 theorem DB.wp_pageInBuffer :
     EtcdGrove.bbolt.DB.pageInBuffer.spec (GF := GF) (hG := hG) :=
