@@ -8,11 +8,8 @@ axiom EtcdStep
 axiom applierFor
 axiom applierFor_persistent
 axiom apply.Apply.wp_proof
-axiom binary.bigEndian.PutUint64.wp_proof
-axiom binary.bigEndian.Uint64.wp_proof
 axiom config.ServerConfig.ElectionTimeout.wp_proof
 axiom context.WithValue.wp_proof
-axiom errors.Is.wp_proof
 axiom etcdReachedAt
 axiom etcdReachedAt_timeless
 axiom etcdRevToken
@@ -46,8 +43,6 @@ axiom schema.UnsafeCreateMetaBucket.wp_proof
 axiom semver.MustParse.wp_proof
 axiom semver.Version.LessThan.wp_proof
 axiom semver.Version.String.wp_proof
-axiom sort.Reverse.wp_proof
-axiom sort.Sort.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
 axiom storage.BackendQuota.Cost.wp_proof

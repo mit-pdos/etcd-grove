@@ -21,6 +21,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftpb
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Wait
+public import Perennial.Proof.errors
 
 @[expose] public section
 
@@ -164,11 +165,26 @@ instance entriesAt_persistent (ents : List Loc) (ms : List EntryModel) :
     Persistent (entriesAt (GF := GF) ents ms) := by
   unfold entriesAt; infer_instance
 
-/-- `ar` is an `*apply.Result` whose `Err` can be read (nil: no result). -/
+/-- **An error the applier returns, as `errors.Is` sees it** (persistent): for any target, the
+error is in an error tree (`errors.errorIsTree`: the specs of its `Is` and `Unwrap` methods, if
+it has them, which return without panicking), whose errors of the target's type hold pointers
+if the target does (`errors.TreeTyped`, Go's typing). What `errors.Is(ar.Err, ErrNoSpace)`
+needs of it (`errors.wp_Is`, `applyEntryNormal`). As `clientErrIs` for the client's errors. -/
+def applyErrIs (err : GoInterface) : IProp GF :=
+  iprop(□ ∀ target : GoInterface, ∃ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop),
+    _root_.Perennial.errors.errorIsTree (GF := GF) S M target ∗
+    ⌜S err ∧ _root_.Perennial.errors.TreeTyped S target⌝)
+
+instance applyErrIs_persistent (err : GoInterface) :
+    Persistent (applyErrIs (GF := GF) err) := by
+  unfold applyErrIs; infer_instance
+
+/-- `ar` is an `*apply.Result` whose `Err` can be read (nil: no result), an error as
+`errors.Is` sees it (`applyErrIs`). -/
 def resultOk (ar : Loc) : IProp GF :=
   iprop(⌜ar = null⌝ ∨
     ∃ err : GoInterface, structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result
-      go!"Err" ar ↦□ err)
+      go!"Err" ar ↦□ err ∗ applyErrIs err)
 
 instance resultOk_persistent (ar : Loc) : Persistent (resultOk (GF := GF) ar) := by
   unfold resultOk; infer_instance

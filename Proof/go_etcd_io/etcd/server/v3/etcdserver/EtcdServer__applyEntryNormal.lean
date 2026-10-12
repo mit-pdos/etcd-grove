@@ -271,13 +271,17 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       · (try wp_auto)
         tail_any
       iunfold resultOk at Har
-      icases Har with (%Hnull | ⟨%err, #Herr⟩)
+      icases Har with (%Hnull | ⟨%err, #Herr, #HerrIs⟩)
       · exact absurd Hnull Hif
       ihave Hei : (go_etcd_io.etcd.server.v3.etcdserver.errors.errorsInit : IProp GF) $$ []
       · iapply isPkgInit_access $$ Perrs
-      icases Hei with ⟨%ens, #Hens⟩
+      icases Hei with ⟨%ens, #Hens, %Hensp⟩
       (try wp_auto)
-      wp_apply hIs err (GoInterface.ok ens) as %isns -
+      iunfold applyErrIs at HerrIs
+      ihave ⟨%S, %M, #Htree, %HS⟩ := HerrIs $$ %(GoInterface.ok ens)
+      wp_apply hIs S M err (GoInterface.ok ens) (fun tii h => by cases h; exact Hensp) HS.2
+        $$ [$Htree] as %isns -
+      · ipureintro; exact HS.1
       iunfold waitOk at Hwok
       icases Hwok with ⟨%wi, %Hwi, #HTrig, -⟩
       cases isns
