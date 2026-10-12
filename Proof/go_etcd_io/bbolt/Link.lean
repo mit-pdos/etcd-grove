@@ -12,6 +12,7 @@ public import Proof.go_etcd_io.bbolt.BucketStats__Add
 public import Proof.go_etcd_io.bbolt.Bucket__Bucket
 public import Proof.go_etcd_io.bbolt.Bucket__Bucket_w
 public import Proof.go_etcd_io.bbolt.Bucket__CreateBucket
+public import Proof.go_etcd_io.bbolt.Bucket__CreateBucketIfNotExists
 public import Proof.go_etcd_io.bbolt.Bucket__Cursor
 public import Proof.go_etcd_io.bbolt.Bucket__Cursor_w
 public import Proof.go_etcd_io.bbolt.Bucket__Delete
@@ -365,6 +366,10 @@ theorem node.wp_put :
 theorem Bucket.wp_CreateBucket :
     EtcdGrove.bbolt.Bucket.CreateBucket.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Bucket.CreateBucket.wp_proof EtcdGrove.bbolt.DB.wp_Logger EtcdGrove.bbolt.wp_cloneBytes EtcdGrove.bbolt.Bucket.wp_Cursor_w EtcdGrove.bbolt.Cursor.wp_seek_w EtcdGrove.bbolt.Bucket.wp_write EtcdGrove.bbolt.Cursor.wp_node EtcdGrove.bbolt.node.wp_put EtcdGrove.bbolt.Bucket.wp_Bucket_w
+
+theorem Bucket.wp_CreateBucketIfNotExists :
+    EtcdGrove.bbolt.Bucket.CreateBucketIfNotExists.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Bucket.CreateBucketIfNotExists.wp_proof EtcdGrove.bbolt.DB.wp_Logger EtcdGrove.bbolt.wp_cloneBytes EtcdGrove.bbolt.Bucket.wp_Cursor_w EtcdGrove.bbolt.Cursor.wp_seek_w EtcdGrove.bbolt.Bucket.wp_write EtcdGrove.bbolt.Cursor.wp_node EtcdGrove.bbolt.node.wp_put EtcdGrove.bbolt.Bucket.wp_Bucket_w EtcdGrove.bbolt.Bucket.wp_openBucket_w
 
 theorem Bucket.wp_Writable_w :
     EtcdGrove.bbolt.Bucket.Writable.wspec (GF := GF) (hG := hG) :=

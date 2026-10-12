@@ -57,6 +57,7 @@ namespace bbolt
 #print axioms Cursor.wp_node
 #print axioms node.wp_put
 #print axioms Bucket.wp_CreateBucket
+#print axioms Bucket.wp_CreateBucketIfNotExists
 #print axioms Bucket.wp_Writable_w
 #print axioms node.wp_del
 #print axioms Bucket.wp_Delete
