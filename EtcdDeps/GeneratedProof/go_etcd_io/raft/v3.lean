@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.context
 public import EtcdDeps.GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import Perennial.Golang.Theory
 public import EtcdDeps.Code.go_etcd_io.raft.v3
@@ -553,25 +554,6 @@ instance Ready_access_store_MustSync (l : Loc) (v : go_etcd_io.raft.v3.Ready) (M
 
 end def_
 end Ready
-
-namespace Node
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
-
-instance Node_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.raft.v3.Node :=
-  sorry -- axiomatized type
-
-instance Node_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.Node go_etcd_io.raft.v3.Node.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Node
 
 namespace Peer
 section def_
