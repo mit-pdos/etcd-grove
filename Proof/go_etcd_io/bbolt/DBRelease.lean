@@ -8,9 +8,13 @@ in `σ` or is a safe pending pair of `σ`, every pending pair of `σ'` was one o
 allocations are the same. `release(minid - 1)` and `releaseRange(b, e)` over a gap between
 consecutive readers are `relSafe`, so `ReleasePendingPages` is (`releasePending_relSafe`).
 
-The readers' txids must be in `[1, 2^64 - 2]`: with a reader of txid 0, `ReleasePendingPages`
-calls `releaseRange(0, 0 - 1)`, which wraps to the whole range and frees pages that reader may
-see (a txid-0 reader exists when the database fell back to meta page 0 at open).
+The readers' txids must be in `[1, 2^64 - 2]`. With a reader of txid 0, `ReleasePendingPages`
+calls `releaseRange(0, 0 - 1)`: the end wraps to `2^64 - 1`, so the range covers every
+transaction, the reader's included. It frees nothing of an entry whose `lastReleaseBegin` is 0
+(a new entry's), so a page that reader sees is freed only if an earlier `releaseRange` already
+looked at its entry; a txid-0 reader exists only in a database that fell back to meta page 0
+(txid 0: at most one commit since `init`). Whether that can happen is open; the proof does not
+need to decide it.
 -/
 module
 
