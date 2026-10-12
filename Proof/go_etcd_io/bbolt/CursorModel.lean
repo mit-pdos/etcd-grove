@@ -33,6 +33,9 @@ namespace bbolt
 
 open Iris Iris.BI go_etcd_io.bbolt
 
+section view
+variable [ext : FfiSyntax]
+
 /-- Where a bucket's pages are (see the module doc). -/
 structure BktView where
   data : Loc
@@ -44,6 +47,10 @@ structure BktView where
   ipg : List w8
   /-- The bucket's transaction. -/
   tx : Loc
+  /-- The bucket's value, its transaction's, and its `InBucket` header's sequence. -/
+  bkt : Bucket
+  txv : Tx
+  seq : w64
 
 /-- Page `pid` of the bucket: its location and bytes. -/
 def BktView.pageAt (V : BktView) (pid : w64) : Option (Loc × List w8) :=
@@ -134,6 +141,8 @@ def leafSeekAt (pg kb : List w8) (idx : w64) : Prop :=
   0 ≤ sint.Z idx ∧ sint.Z idx ≤ pageCount pg ∧
   (∀ k, 0 ≤ k → k < sint.Z idx → leafGE pg kb k = false) ∧
   (sint.Z idx < pageCount pg → leafGE pg kb (sint.Z idx) = true)
+
+end view
 
 section stacks
 variable [ext : FfiSyntax]
@@ -404,7 +413,8 @@ def bktCtx (bl : Loc) (V : BktView) (q : Qp) : IProp GF :=
     structFieldRef DB go!"data" dbl ↦{DFrac.own q} V.data ∗
     structFieldRef DB go!"pageSize" dbl ↦{DFrac.own q} V.ps ∗
     ⌜ib.root' = V.root ∧ bv.nodes' = map.nil ∧ bv.rootNode' = null ∧ t.db' = dbl ∧
-      t.pages' = map.nil ∧ (V.root = W64 0 → bv.page' = V.ip) ∧ dbl ≠ null ∧ bv.tx' = V.tx⌝)
+      t.pages' = map.nil ∧ (V.root = W64 0 → bv.page' = V.ip) ∧ dbl ≠ null ∧ bv.tx' = V.tx ∧
+      bv = V.bkt ∧ t = V.txv ∧ ib.sequence' = V.seq⌝)
 
 /-- The field `db` of a transaction's fields but `stats` (and back). -/
 theorem Tx_rest_stats_db (l : Loc) (dq : DFrac) (t : Tx) :

@@ -165,7 +165,7 @@ theorem dbOK_addReader (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK �
   -- what the new reader sees: the current tree's slots
   have hsees : ∀ s, (newReader σ v0 v1 (beginQ σ)).sees s = true →
       s < σ.nslots ∧ 2 ≤ s ∧ W64 s ∉ σ.fl.free ∧
-      ∀ t pd, σ.fl.pending !! t = some pd → W64 s ∉ pd.ids := by
+      ∀ t pd a, σ.fl.pending !! t = some pd → (W64 s, a) ∉ pd.pairs := by
     intro s hs
     simp only [Reader.sees, decide_eq_true_eq] at hs
     have hc := cfree s hs
@@ -189,7 +189,7 @@ theorem dbOK_addReader (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK �
       have hs' : (newReader σ v0 v1 (beginQ σ)).sees s = true := by
         unfold Reader.sees; simp only [decide_eq_true_eq]; exact hs
       obtain ⟨_, h2, h3, h4⟩ := hsees s hs'
-      exact ⟨h2, h3, fun t pd i ht hin => absurd (List.mem_of_getElem? hin) (h4 t pd ht)⟩
+      exact ⟨h2, h3, fun t pd a ht hin => absurd hin (h4 t pd a ht)⟩
     · exact hmv k' r' hk'
   · -- the slots
     intro s hs

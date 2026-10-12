@@ -155,3 +155,18 @@ log_Logger__Output:
 header:
 DefaultLogger__Errorf: header log_Logger__Output
 DB__grow: DB__Logger DB__fileSize DefaultLogger__Errorf DB__growSize os_File__Truncate os_File__Sync
+InBucket__InSequence: @
+Bucket__Cursor: TxStats__IncCursorCount
+Tx__Cursor: Bucket__Cursor
+Bucket__Get: Bucket__Cursor Cursor__seek
+Bucket__Tx:
+Bucket__Root: InBucket__RootPage
+Bucket__Writable:
+Bucket__Sequence: InBucket__InSequence
+Bucket__ForEach: Bucket__Cursor Cursor__First Cursor__Next
+Bucket__ForEachBucket: Bucket__Cursor Cursor__first Cursor__next
+Bucket__openBucket: newBucket bbolt_cloneBytes InBucket__RootPage
+Bucket__Bucket: Bucket__Cursor Cursor__seek Bucket__openBucket
+Tx__Bucket: Bucket__Bucket
+Tx__ForEach: Bucket__ForEach Bucket__Bucket
+DB__beginRWTx: Tx__init

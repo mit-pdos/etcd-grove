@@ -29,13 +29,14 @@ def newBucketOf (txl : Loc) (bm nm : GoMap) : Bucket :=
 proj_simps newBucketOf
 
 /-- `newBucket(tx)`: a bucket of `tx`; for a writable transaction its two caches are new empty
-maps, otherwise nil. -/
+maps, otherwise nil. It reads only the transaction's field `writable`. -/
 abbrev newBucket.spec : Prop :=
-  ∀ (txl : Loc) (t : Tx) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ txl ↦{dq} t }}
+  ∀ (txl : Loc) (w : Bool) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗
+      structFieldRef Tx go!"writable" txl ↦{dq} w }}
     (App (Val #(functions newBucket [])) (Val #txl))
-  {{ (bm nm : GoMap), RET #(newBucketOf txl bm nm); txl ↦{dq} t ∗
-      (if t.writable' then bm ↦$ (∅ : GMap GoString Loc) ∗ nm ↦$ (∅ : GMap w64 Loc)
+  {{ (bm nm : GoMap), RET #(newBucketOf txl bm nm); structFieldRef Tx go!"writable" txl ↦{dq} w ∗
+      (if w then bm ↦$ (∅ : GMap GoString Loc) ∗ nm ↦$ (∅ : GMap w64 Loc)
        else ⌜bm = map.nil ∧ nm = map.nil⌝) }}
 
 end spec

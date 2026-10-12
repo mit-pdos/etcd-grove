@@ -1,5 +1,6 @@
 module
 public import Spec.go_etcd_io.bbolt.Tx__init
+public import Proof.go_etcd_io.bbolt.StructSplit
 public import Spec.go_etcd_io.bbolt.internal.common.Meta__Copy
 public import Spec.go_etcd_io.bbolt.internal.common.Meta__RootBucket
 public import Spec.go_etcd_io.bbolt.internal.common.Meta__IncTxid
@@ -24,6 +25,21 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 -- `hash.Hash64`'s type, which `Meta.Validate`'s spec takes: bbolt reaches `hash` only through
 -- `hash/fnv`, so its `Assumptions` do not include `hash`'s
 variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
+
+/-- The field `writable` of a transaction (and back). -/
+theorem Tx_writable_acc (l : Loc) (dq : DFrac) (t : Tx) :
+    (l ↦{dq} t : IProp GF) ⊢ structFieldRef Tx go!"writable" l ↦{dq} t.writable' ∗
+      (structFieldRef Tx go!"writable" l ↦{dq} t.writable' -∗ l ↦{dq} t) := by
+  iintro Ht
+  icases (Tx_split_stats l dq t).1 $$ Ht with ⟨Hs, Hr⟩
+  unfold Tx_rest_stats
+  icases Hr with ⟨Hw, Hm, Hdb, Hmeta, Hroot, Hpages, Hch, HWF, %Hn⟩
+  iframe Hw
+  iintro Hw
+  iapply (Tx_split_stats l dq t).2
+  unfold Tx_rest_stats
+  iframe
+  ipureintro; exact Hn
 
 theorem Tx.init.wp_proof (hmeta : DB.meta.spec (GF := GF) (hG := hG))
     (hCopy : Meta.Copy.spec (GF := GF) (hG := hG))
@@ -51,8 +67,10 @@ theorem Tx.init.wp_proof (hmeta : DB.meta.spec (GF := GF) (hG := hG))
   ihave ⟨H0, H1⟩ := Hmback $$ Hm
   try wp_auto
   try simp only
-  wp_apply hnewBucket txl _ (DFrac.own 1) $$ [Ht] as %bm %nm ⟨Ht, Hmaps⟩
+  icases Tx_writable_acc _ _ _ $$ Ht with ⟨Htw, Htback⟩
+  wp_apply hnewBucket txl _ (DFrac.own 1) $$ [Htw] as %bm %nm ⟨Htw, Hmaps⟩
   · iframe
+  ihave Ht := Htback $$ Htw
   try wp_auto
   try simp only
   wp_apply hRootBucket _

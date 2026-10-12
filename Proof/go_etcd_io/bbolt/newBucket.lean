@@ -19,10 +19,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 theorem newBucket.wp_proof : newBucket.spec (GF := GF) (hG := hG) := by
-  intro txl t dq
+  intro txl w dq
   wp_start as Ht
   wp_auto
-  cases Hif : t.writable'
+  cases Hif : w
   rotate_left
   · try wp_auto
     wp_apply (wp_map_make1 (K := GoString) (V := Loc)) as %bm Hbm
