@@ -3416,7 +3416,7 @@ convention), which would spare `End` its credit; kept `P`, the form `apply.Apply
 
 ## The request path: raft as a contract, the wait registry, the checks as the premises' discharge
 
-**2026-10-12 · plan, unit 0 implemented** (the gRPC KV handlers `server/etcdserver/api/v3rpc/
+**2026-10-12 · plan, units 0 and 2 implemented** (the gRPC KV handlers `server/etcdserver/api/v3rpc/
 key.go` → `EtcdServer.Range`/`Put`/`DeleteRange`/`Txn` (`v3_server.go`) → the proposal and its
 wait → the apply loop; units 1 (the checks, the handlers), 2 (the wait, the ids, the proposal),
 3 (the read side), 4 (the loops, optional) append). Goal: a client request's response is the
@@ -3478,3 +3478,36 @@ gRPC checks discharge the txn package's request premises.
   the server's construction (not translated) or by units 2 and 4. `trace.isSpan` gains
   `AddEvent`/`RecordError`; `context.WithValue` takes `traceutil.StartTimeKey` and returns a
   context of the parent's descriptor.
+
+**2026-10-12 · unit 2 implemented** (the wait, the ids, the proposal path, the apply side):
+
+- **The handoff channel, with the registration's record** (unit 2). `Register(id)` returns, with
+  the handoff channel, a persistent record `waitRegd γw id t` (a ghost map of every id ever
+  registered to the channel's consumer-token name `t`), and `Trigger(id, nil)` takes the
+  proposer's consumer token with that record: the shard's entry for `id` then names the same
+  token, so the `nil` carries the proposer's own token (a receive of it would meet the token the
+  proposer kept: impossible). The channel is never closed without a send (`Wc = False`), so the
+  proposer's receive yields a value satisfying `Ψ`. *Rejected:* unit 0's `Trigger` premise
+  `∃ γh, x = nil ∗ handoffConsumer γh false` (nothing ties `γh` to the channel registered
+  under `id`); a registration token kept in the wait's state per id (the slot is consumed by
+  `Register`, and the record must survive the deletion).
+- **The id claim mints raft's fresh token** (unit 2, `srvMintInv`). `Propose` with `fresh` wants
+  a token nobody had for the data; the data decode to a request carrying the fresh id, so a
+  mint invariant (raft's fresh-token authority, every token of data claimed under their id)
+  lets the proposer mint it when it claims the id for the data (`srv_claim_mint`). The update
+  deposited is the trivial one (`Q = True`, the client log's other half in `srvCLogInv`): the
+  server does not linearize at raft's commit, its result comes through the wait.
+  *Rejected:* `Q` carrying the result (the apply thread, not raft's commit, computes it).
+- **`waitOk` stays in the apply package, as `IsRegistered` with a reader's resource**
+  (unit 2). `pkg/wait`'s `IsRegistered` read-locks a shard's `RWMutex`, which needs a reader slot
+  (Perennial bounds readers), so `waitOk w RD` is `{RD} IsRegistered(id) {RD}` and
+  `apply.Apply` threads `RD`; the apply thread's `srvApplyKV` holds `waitOk w RD ∗ RD` (from
+  `isWait_waitOk`), and the server's fields hold `waitInv` for `Trigger`. *Rejected:* `waitInv ⊢
+  waitOk` with `waitOk`'s `{True} Trigger {True}` (not implied: `Trigger` needs `waitTrig`);
+  `waitOk` as a parameter predicate of the apply package (more churn for the same content).
+- **Typed facts for the trust boundary, not new contracts** (unit 2): the context's `Value` at
+  `StartTimeKey` and `errors.Is` at the context errors are axioms (Perennial specifies neither);
+  `time.Duration.Seconds` returns a word, `pbutil`'s conf-change id is `ccIdOf bs`,
+  `WithValue`/`Tracer.Start` keep `isContext` (restatements). Three translations completed
+  (raft's `Node` and `None`, rafthttp's `Transporter`, otel's `Tracer`: imports and a constant
+  only) rather than axiomatizing loads of axiomatized types.
