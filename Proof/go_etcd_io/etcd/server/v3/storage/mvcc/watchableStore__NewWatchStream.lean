@@ -129,7 +129,7 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
     · have hrm : mvcc.regMap ([] : List Loc) = ∅ := rfl
       rw [hrm]; iexact Hreg
     isplitr
-    · ipureintro; exact List.nodup_nil
+    · ipureintro; exact ⟨List.nodup_nil, by simp⟩
     iapply BigSepL.bigSepL_nil.2; itrivial
   -- the stream's lock
   imod token_alloc (GF := GF) with ⟨%γo, Htok⟩

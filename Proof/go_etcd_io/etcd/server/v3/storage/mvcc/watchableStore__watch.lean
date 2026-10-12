@@ -497,7 +497,7 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
     · have hrm : mvcc.regMap (w :: L) = (mvcc.regMap L).insert w () := rfl
       rw [hrm]; iexact Hreg
     isplitr
-    · ipureintro; exact List.nodup_cons.2 ⟨HwL, Hnd⟩
+    · ipureintro; exact ⟨List.nodup_cons.2 ⟨HwL, Hnd.1⟩, fun x hx => List.mem_cons_of_mem _ (Hnd.2 x hx)⟩
     iapply BigSepL.bigSepL_cons.2
     iframe Hws
     iunfold mvcc.chanWatcher
@@ -510,7 +510,19 @@ theorem mvcc.watch_register (γ : mvcc.WsNames) (M : GMap Loc mvcc.WatcherNames)
     isplitr
     · ipureintro; exact ⟨rfl, by rw [Hsent']; rfl⟩
     isplitr
-    · imodintro; iapply BigSepL.bigSepL_nil.2; itrivial
+    · imodintro
+      isplitr
+      · iapply BigSepL.bigSepL_nil.2; itrivial
+      iunfold mvcc.delivsCut
+      iintro !> %k %hk
+      simp only [List.length_nil, Nat.le_zero] at hk
+      subst hk
+      iexists lo
+      iunfold mvcc.evsWf
+      iexists C
+      iframe Hlb
+      ipureintro
+      exact ⟨(mvcc.watchEvents_empty _ _ (Nat.le_refl _)).symm, Or.inr (Nat.le_refl _)⟩
     isplitr
     · iunfold mvcc.evsWf
       iexists C

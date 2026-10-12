@@ -26,7 +26,7 @@ it); the channel's names and the first revision `lo` the watcher watches from.
 the log of every response sent (`RespM`, with the watcher sent for as ghost data), the consumer's
 received prefix (half of `recv`, the other half the consumer's: `watchConsumer`), the values in
 flight, the list of registered watchers (half of `regl`, the other half the stream's close right
-`CR`, which the close deposits) and, per registered watcher, its deliveries: the segments of its delivered events, each
+`CR`, which the close deposits; every response sent is for one of them) and, per registered watcher, its deliveries: the segments of its delivered events, each
 filtered by some predicate its filters implement (sent unless all its events were filtered
 out), and whether it is live (an open channel) or cancelled (a closed channel has no live
 watcher).
@@ -439,11 +439,25 @@ instance evsWf_persistent (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List
     Persistent (evsWf (GF := GF) γ r lo evs d) := by
   unfold evsWf; infer_instance
 
+/-- Every prefix of the deliveries `D` ends at a revision (persistent): its events, concatenated,
+are the range's of the revisions `[lo, d')` of a log the index's history has, for some `d'` (a
+delivery is the events of whole revisions: `notify` sends one revision's, `syncWatchers` those
+of `[minRev, maxRev)` or up to `moreRev`), so a client that received a prefix of the deliveries
+knows up to which revision it has every event. -/
+def delivsCut (γ : WsNames) (r : WatchRange) (lo : Nat) (D : List Deliv) : IProp GF :=
+  iprop(□ ∀ k : Nat, ⌜k ≤ D.length⌝ -∗
+    ∃ d' : Nat, evsWf γ r lo ((D.take k).map Prod.fst).flatten d')
+
+instance delivsCut_persistent (γ : WsNames) (r : WatchRange) (lo : Nat) (D : List Deliv) :
+    Persistent (delivsCut (GF := GF) γ r lo D) := by
+  unfold delivsCut; infer_instance
+
 /-- A registered watcher's part of its channel's invariant (`closed`: the channel's state is
 closed; `sent`: the responses sent on it): half its delivered events, its deliveries (their
 events, in order, are the delivered ones; the sent ones are the responses sent for it, in
-order; each filtered by predicates its filters implement), what they are of the log, and its
-live half, or cancelled (a closed channel has no live watcher). -/
+order; each filtered by predicates its filters implement; each prefix of them ending at a
+revision, `delivsCut`), what they are of the log, and its live half, or cancelled (a closed
+channel has no live watcher). -/
 def chanWatcher (γ : WsNames) (γc : WatchChanNames) (closed : Bool) (sent : List RespM)
     (w : Loc) : IProp GF :=
   iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice) (evsw : List EvM)
@@ -452,7 +466,8 @@ def chanWatcher (γ : WsNames) (γc : WatchChanNames) (closed : Bool) (sent : Li
     monoListAuthOwn γw.evs (1 : Qp).half evsw ∗
     ⌜(D.map Prod.fst).flatten = evsw ∧
       (sent.filter (fun x => decide (x.w = w))).map RespM.evs = (D.filter Deliv.sent).map Prod.snd⌝ ∗
-    □ ([∗list] dl ∈ D, ∃ fs, filtersImpl fcs fs ∗ ⌜dl.2 = filtered fs dl.1⌝) ∗
+    □ (([∗list] dl ∈ D, ∃ fs, filtersImpl fcs fs ∗ ⌜dl.2 = filtered fs dl.1⌝) ∗
+      delivsCut γ r γw.lo D) ∗
     evsWf γ r γw.lo evsw d ∗
     ((⌜closed = false⌝ ∗ dghostVar γw.live (DFrac.own (1 : Qp).half) true) ∨ cancelled γw))
 
@@ -469,7 +484,7 @@ def watchChanInv (γ : WsNames) (ch : Loc) (γc : WatchChanNames) : IProp GF :=
     "Hregl" ∷ ghostVar γc.regl (1 : Qp).half L ∗
     "Hcl" ∷ (if chanIsClosed s then ghostVar γc.regl (1 : Qp).half L else iprop(True)) ∗
     "Hreg" ∷ ghostMapAuth γc.reg 1 (regMap L) ∗
-    "%Hnd" ∷ ⌜L.Nodup⌝ ∗
+    "%Hnd" ∷ ⌜L.Nodup ∧ ∀ x ∈ sent, x.w ∈ L⌝ ∗
     "Hws" ∷ [∗list] w ∈ L, chanWatcher γ γc (chanIsClosed s) sent w)
 
 /-- The consumer's view: it has received `received`. -/

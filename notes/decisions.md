@@ -2107,6 +2107,16 @@ theorem).
   the watcher group's all-watchers map is explicit (`ownWatcherGroupAt`) where a loop ranges
   over it while deleting; the notified log is a prefix of the certified one (`σ.Lmu <+: C`),
   which is all the sync machinery needs.
+- **3c, the theorem's form** (2026-10-12): the guarantee is a persistent fact the receive
+  lemma yields per response (`watchRecvOk`), not a statement over the whole channel history:
+  the client holds only its received prefix and the channel's invariant, and each receive
+  extends the fact; the theorems relate it to any certificate of the committed log (the history
+  lower bounds are comparable), so a client that also reads the store gets the delivered events
+  as the committed log's. The deliveries' revision cuts (`delivsCut`) are in the invariant
+  because a received prefix of the flattened events must end at a revision boundary to be
+  stated as `watchEvents … lo d`. *Rejected:* a theorem over `sent` (the sender's view: the
+  client never holds it); per-delivery bounds in `Deliv` itself (every 3a/3b proof building a
+  delivery would change; the cut as a separate persistent clause touched three).
 - **The post-lock hook** (2026-10-12, the third merge with `lean`; "mvcc: the batch lock runs
   the hook"): the watchable store's write path takes the hook's resources exactly as the inner
   calls do, nothing of its own: `watchableStore.Write` takes `hookIs γ.st P f ∗ Pre ∗ □ {P ∗

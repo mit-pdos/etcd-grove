@@ -90,6 +90,23 @@ theorem chanWatcher_other (γ : WsNames) (γc : WatchChanNames) (closed : Bool) 
   unfold chanWatcher
   rw [hf]
 
+/-- The deliveries' prefixes still end at revisions after one more delivery, given the new
+events' bound. -/
+theorem delivsCut_snoc (γ : WsNames) (r : WatchRange) (lo : Nat) (D : List Deliv) (dl : Deliv)
+    (evs : List EvM) (d : Nat) (h : ((D ++ [dl]).map Prod.fst).flatten = evs) :
+    delivsCut (GF := GF) γ r lo D ∗ evsWf γ r lo evs d ⊢ delivsCut γ r lo (D ++ [dl]) := by
+  iintro ⟨#Hc, #Hwf⟩
+  iunfold delivsCut at Hc
+  iunfold delivsCut
+  iintro !> %k %hk
+  by_cases hk' : k ≤ D.length
+  · rw [List.take_append_of_le_length hk']
+    iapply Hc $$ %k %hk'
+  · have hk2 : (D ++ [dl]).length ≤ k := by simp at hk ⊢; omega
+    rw [List.take_of_length_le hk2, h]
+    iexists d
+    iexact Hwf
+
 /-- The delivery of `evm` (kept: `kept`) to `w`'s entry: the events delivered grow, the
 response (if sent) is `w`'s. -/
 theorem chanWatcher_deliver (γ : WsNames) (γc : WatchChanNames) (closed : Bool)
@@ -139,12 +156,15 @@ theorem chanWatcher_deliver (γ : WsNames) (γc : WatchChanNames) (closed : Bool
       refine ⟨by simp [HD1], ?_⟩
       rw [hfilt, hDf]
       simp [Deliv.sent, hre, HD2]
+    icases HDf with ⟨#HDf, #HDc⟩
     iintro !>
-    iapply BigSepL.bigSepL_snoc.2
-    iframe HDf
-    iexists fs
-    iframe Hfi
-    ipureintro; rfl
+    isplitl
+    · iapply BigSepL.bigSepL_snoc.2
+      iframe HDf
+      iexists fs
+      iframe Hfi
+      ipureintro; rfl
+    iapply delivsCut_snoc γ r γw.lo D ([], []) evsw' d' (by simp [HD1]) $$ [$HDc $Hwf]
   · simp only [hevm, ↓reduceIte]
     icases Hevs with ⟨Hmine, #Hwf2⟩
     imod monoList_halves_app γw.evs evsw evsw' evm $$ Hmine Ha with ⟨%Heq, Hmine, Ha⟩
@@ -162,12 +182,15 @@ theorem chanWatcher_deliver (γ : WsNames) (γc : WatchChanNames) (closed : Bool
       rw [hfilt, hDf, List.map_append, HD2, List.map_append]
       congr 1
       split <;> simp [hre]
+    icases HDf with ⟨#HDf, #HDc⟩
     iintro !>
-    iapply BigSepL.bigSepL_snoc.2
-    iframe HDf
-    iexists fs
-    iframe Hfi
-    ipureintro; exact hk
+    isplitl
+    · iapply BigSepL.bigSepL_snoc.2
+      iframe HDf
+      iexists fs
+      iframe Hfi
+      ipureintro; exact hk
+    iapply delivsCut_snoc γ r γw.lo D (evm, kept) (evsw ++ evm) d (by simp [HD1]) $$ [$HDc $Hwf2]
 
 /-- An event's key-value's mod revision, read-only. -/
 theorem evIs_modRev (e : Loc) (ev : EvM) :
@@ -576,7 +599,7 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
     have hds : Deliv.sent (evm, mvcc.filtered fs evm) = false := by
       simp [Deliv.sent, hA.1, hA.2]
     imod mvcc.entries_deliver γ γw.wc (mvcc.chanIsClosed s) sent L w γw r fcs fs evsw d evm
-      (mvcc.filtered fs evm) ⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision'⟩ Hnd Hwl rfl rfl rfl
+      (mvcc.filtered fs evm) ⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision'⟩ Hnd.1 Hwl rfl rfl rfl
       $$ Hmeta Hfix Hfi Hevs Hws with ⟨Hevs, Hws⟩
     have hsent : sent ++ (if Deliv.sent (evm, mvcc.filtered fs evm) then
         [(⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision'⟩ : mvcc.RespM)] else []) = sent := by
@@ -671,7 +694,7 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
                 intro hne
                 exact Hid (fun h => hne (by rw [h]; rfl))
               imod mvcc.entries_deliver γ γw.wc _ sent L w γw r fcs fs evsw d evm
-                (mvcc.filtered fs evm) ⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision'⟩ Hnd Hwl
+                (mvcc.filtered fs evm) ⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision'⟩ Hnd.1 Hwl
                 rfl rfl rfl $$ Hmeta Hfix Hfi Hevs Hws with ⟨Hevs, Hws⟩
               have hs2 : sent ++ (if Deliv.sent (evm, mvcc.filtered fs evm) then
                   [(⟨w, wr.WatchID', mvcc.filtered fs evm, wr.Revision'⟩ : mvcc.RespM)] else []) =
@@ -709,7 +732,11 @@ theorem mvcc.watcher.send.wp_proof (hVerify : verify.Verify.spec (GF := GF) (hG 
                 isplitl [Hreg]
                 · iexact Hreg
                 isplitr
-                · ipureintro; exact Hnd
+                · ipureintro
+                  refine ⟨Hnd.1, fun x hx => ?_⟩
+                  rcases List.mem_append.1 hx with h | h
+                  · exact Hnd.2 x h
+                  · simp only [List.mem_singleton] at h; subst h; exact Hwl
                 iapply mvcc.chanWatchers_congr γ γw.wc (by simp [mvcc.chanIsClosed]) $$ Hws
               imodintro
               wp_auto

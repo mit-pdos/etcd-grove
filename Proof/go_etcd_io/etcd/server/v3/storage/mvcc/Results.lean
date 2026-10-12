@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LogLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchRecv
 
 @[expose] public section
 
@@ -109,3 +110,15 @@ view of the hook agrees with the store's (`hookIs_agree_lc`, a later credit spen
 reader's range answer is its certified log's. -/
 #print axioms Perennial.EtcdGrove.mvcc.kiGet_indexOf
 #print axioms Perennial.EtcdGrove.mvcc.reader_range
+
+/-! The watch guarantee (unit 3c, `WatchRecv.lean`): the client's receive on a stream's channel
+(`wp_watch_receive`, a lemma about the Go receive, not a function of the package) yields, per
+watcher, what it knows of the responses received for it (`watchRecvOk`); against any certified
+log reaching their bound, their events are the filtered segments of the range's changes from the
+watcher's first revision on, in revision order (`watchRecvOk_cert`), exactly those changes for a
+watcher with no filters (`watchGuarantee_unfiltered`), each response's revision at or above its
+events' and a response with events carrying the watcher's id (`watchRecvOk_revs`). -/
+#print axioms Perennial.EtcdGrove.mvcc.wp_watch_receive
+#print axioms Perennial.EtcdGrove.mvcc.watchRecvOk_cert
+#print axioms Perennial.EtcdGrove.mvcc.watchGuarantee_unfiltered
+#print axioms Perennial.EtcdGrove.mvcc.watchRecvOk_revs
