@@ -118,6 +118,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     wp_apply HGetL $$ %({ Key' := k } : go_etcd_io.etcd.server.v3.lease.LeaseItem) as %oldL -
     (try wp_auto)
     wp_apply (hStep trace _ _)
+    · ipureintro; exact Htrnn
     (try wp_auto)
     have hkvm' : mvcc.changeKv (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)
         (pend ++ [.put k v leaseID]) pend.length =
@@ -145,6 +146,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     (try wp_auto)
     -- `if err != nil { Fatal }`: not taken (resolved by `wp_auto`)
     wp_apply (hStep trace _ _)
+    · ipureintro; exact Htrnn
     (try wp_auto)
     -- `tw.tx.UnsafeSeqPut(schema.Key, ibytes, d)`
     wp_apply HSeqPut $$ %(mvcc.pendPuts ilog pend) %bK %ib' %d %_ %_ %(DFrac.own 1) %(DFrac.own 1)
@@ -164,6 +166,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     wp_apply wp_slice_append $$ [$Hchs $Hcap $Hlit] as %chs' ⟨Hchs, Hcap, -⟩
     (try wp_auto)
     wp_apply (hStep trace _ _)
+    · ipureintro; exact Htrnn
     (try wp_auto)
     -- the transaction with the put, for every lease outcome (a wand: the lease code still reads
     -- `tw.s` through `tw`'s points-to)
@@ -196,11 +199,12 @@ theorem mvcc.storeTxnWrite.put.wp_proof
         iexists value
         iframe Hval
         iexact Hkv
-      ipureintro; exact Hne
+      ipureintro; exact ⟨Hne, Htrnn⟩
     -- `if oldLease == leaseID { trace.Step; return }`
     wp_if_destruct
     · (try wp_auto)
       wp_apply (hStep trace _ _)
+      · ipureintro; exact Htrnn
       (try wp_auto)
       iapply HΦ; iapply Hpack; iexact Htw
     (try wp_auto)
@@ -211,6 +215,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
       wp_if_destruct
       · (try wp_auto)
         wp_apply (hStep trace _ _)
+        · ipureintro; exact Htrnn
         (try wp_auto)
         iapply HΦ; iapply Hpack; iexact Htw
       · (try wp_auto)
@@ -228,6 +233,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
         (try wp_auto)
         -- `if err != nil { panic }`: not taken (resolved by `wp_auto`)
         wp_apply (hStep trace _ _)
+        · ipureintro; exact Htrnn
         (try wp_auto)
         iapply HΦ; iapply Hpack; iexact Htw
     · (try wp_auto)
@@ -249,6 +255,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
         wp_if_destruct
         · (try wp_auto)
           wp_apply (hStep trace _ _)
+          · ipureintro; exact Htrnn
           (try wp_auto)
           iapply HΦ; iapply Hpack; iexact Htw
         · (try wp_auto)
@@ -266,6 +273,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
           (try wp_auto)
           -- `if err != nil { panic }`: not taken (resolved by `wp_auto`)
           wp_apply (hStep trace _ _)
+          · ipureintro; exact Htrnn
           (try wp_auto)
           iapply HΦ; iapply Hpack; iexact Htw
       | ok e =>
@@ -284,6 +292,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
         wp_if_destruct
         · (try wp_auto)
           wp_apply (hStep trace _ _)
+          · ipureintro; exact Htrnn
           (try wp_auto)
           iapply HΦ; iapply Hpack; iexact Htw
         · (try wp_auto)
@@ -301,6 +310,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
           (try wp_auto)
           -- `if err != nil { panic }`: not taken (resolved by `wp_auto`)
           wp_apply (hStep trace _ _)
+          · ipureintro; exact Htrnn
           (try wp_auto)
           iapply HΦ; iapply Hpack; iexact Htw
   | none =>
@@ -333,6 +343,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     (try wp_auto)
     -- `if err != nil { Fatal }`: not taken (resolved by `wp_auto`)
     wp_apply (hStep trace _ _)
+    · ipureintro; exact Htrnn
     (try wp_auto)
     -- `tw.tx.UnsafeSeqPut(schema.Key, ibytes, d)`
     wp_apply HSeqPut $$ %(mvcc.pendPuts ilog pend) %bK %ib' %d %_ %_ %(DFrac.own 1) %(DFrac.own 1)
@@ -352,6 +363,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     wp_apply wp_slice_append $$ [$Hchs $Hcap $Hlit] as %chs' ⟨Hchs, Hcap, -⟩
     (try wp_auto)
     wp_apply (hStep trace _ _)
+    · ipureintro; exact Htrnn
     (try wp_auto)
     -- the transaction with the put, for every lease outcome (a wand: the lease code still reads
     -- `tw.s` through `tw`'s points-to)
@@ -384,11 +396,12 @@ theorem mvcc.storeTxnWrite.put.wp_proof
         iexists value
         iframe Hval
         iexact Hkv
-      ipureintro; exact Hne
+      ipureintro; exact ⟨Hne, Htrnn⟩
     -- `if oldLease == leaseID { trace.Step; return }`
     wp_if_destruct
     · (try wp_auto)
       wp_apply (hStep trace _ _)
+      · ipureintro; exact Htrnn
       (try wp_auto)
       iapply HΦ; iapply Hpack; iexact Htw
     (try wp_auto)
@@ -397,6 +410,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     wp_if_destruct
     · (try wp_auto)
       wp_apply (hStep trace _ _)
+      · ipureintro; exact Htrnn
       (try wp_auto)
       iapply HΦ; iapply Hpack; iexact Htw
     · (try wp_auto)
@@ -414,6 +428,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
       (try wp_auto)
       -- `if err != nil { panic }`: not taken (resolved by `wp_auto`)
       wp_apply (hStep trace _ _)
+      · ipureintro; exact Htrnn
       (try wp_auto)
       iapply HΦ; iapply Hpack; iexact Htw
 

@@ -194,10 +194,19 @@ namespace go_etcd_io.raft.v3
 section raft_init
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 variable [context.ErrorStringIsError] [log.NewModel]
+
+/-- What `errors.wp_New_ptr` says of its error is what `IsNewError` asks. -/
+theorem isNewError_of_ptr {ii : GoInterfaceOk} (h : errors.IsPointerError ii) :
+    IsNewError (interface.ok ii) := by
+  obtain ⟨T, l, h1, h2⟩ := h
+  obtain ⟨ty, v⟩ := ii
+  simp only at h1 h2
+  subst h1 h2
+  exact ⟨T, l, rfl⟩
 
 theorem os_isPkgInit_Stderr :
     isPkgInit (PROP := IProp GF) pkg_id.os ⊢
@@ -261,7 +270,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   iapply wp_fupd
   repeat (first
     | (wp_apply log.wp_New as %_ _)
-    | (wp_apply errors.wp_New_ptr as %_ #_)
+    | (wp_apply errors.wp_New_ptr as %_ ⟨%_, #_⟩)
     | wp_auto)
   iStructNamed «$r0»
   imod sync.init_Mutex iprop(True) ⊤ («$r0_ptr».[lockedRand, go!"mu"]) $$ mu [] with #Hmu
@@ -290,7 +299,8 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   rw [show (⟨W64 0, W64 0, W64 0⟩ : raftpb.HardState) = zero_val raftpb.HardState from rfl]
   iframe HES HEPD HGR HEmpty HEC HEU HESU HESP HESL HisLocal HisResp Hmu
   ipureintro
-  exact ⟨nofun, nofun, ⟨_, _, rfl⟩, nofun, nofun, ⟨_, _, rfl⟩, ⟨_, _, rfl⟩, nofun⟩
+  exact ⟨nofun, nofun, isNewError_of_ptr (by assumption), nofun, nofun,
+    isNewError_of_ptr (by assumption), isNewError_of_ptr (by assumption), nofun⟩
 
 end raft_init
 

@@ -35,7 +35,7 @@ theorem mvcc.storeTxnWrite.Rev.wp_proof : mvcc.storeTxnWrite.Rev.spec (GF := GF)
   simp only [named]
   iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
   iframe #
-  ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+  ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
 
 end proof
 

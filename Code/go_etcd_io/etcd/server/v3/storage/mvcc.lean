@@ -594,6 +594,18 @@ noncomputable def newWatcherBatch [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def newWatcherGroup [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.newWatcherGroup"
 
+/-- go: hash.go:128:6 -/
+noncomputable def NewHashStorage.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "lg"
+  (Lam "s"
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType store.ty)))) (Var "s"))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType hashStorage.ty) HashStorage.ty))) (App (Val (GoInstruction (GoAlloc hashStorage.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (Val (GoInstruction (CompositeLiteral hashStorage.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"store")) (ElementExpression (go.GoType.PointerType store.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v1")))]))))))))))))
+
 /-- go: index.go:45:6 -/
 noncomputable def newTreeIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "lg"
@@ -8122,6 +8134,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   watcherSet_instance : watcherSet.TypeAssumptions
   watcherSetByKey_instance : watcherSetByKey.TypeAssumptions
   watcherGroup_instance : watcherGroup.TypeAssumptions
+  NewHashStorage_unfold : FuncUnfold NewHashStorage [] NewHashStorage.impl
   newTreeIndex_unfold : FuncUnfold newTreeIndex [] newTreeIndex.impl
   NewReadOnlyTxnWrite_unfold : FuncUnfold NewReadOnlyTxnWrite [] NewReadOnlyTxnWrite.impl
   NewStore_unfold : FuncUnfold NewStore [] NewStore.impl
@@ -8212,6 +8225,7 @@ attribute [instance] Assumptions.kvHasher_instance
   Assumptions.watcherSet_instance
   Assumptions.watcherSetByKey_instance
   Assumptions.watcherGroup_instance
+  Assumptions.NewHashStorage_unfold
   Assumptions.newTreeIndex_unfold
   Assumptions.NewReadOnlyTxnWrite_unfold
   Assumptions.NewStore_unfold

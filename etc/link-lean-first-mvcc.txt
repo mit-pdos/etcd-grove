@@ -81,7 +81,7 @@ storeTxnWrite__Rev:
 storeTxnWrite__Changes:
 # The wrappers (metrics_txn.go, kv_view.go): `metricsTxnWrite` counts and forwards to the
 # promoted methods of `txnReadWrite` and `storeTxnRead` (unfolded in the proofs); `readView`
-# opens and closes a transaction around each read; `traceutil.TODO` is an axiom.
+# opens and closes a transaction around each read; `traceutil.TODO` is proved (a fresh trace).
 traceutil_TODO:
 metricsTxnWrite__Range: storeTxnCommon__Range storeTxnWrite__Range
 metricsTxnWrite__Put: storeTxnWrite__Put
@@ -98,8 +98,9 @@ writeView__DeleteRange: traceutil_TODO store__Write metricsTxnWrite__DeleteRange
 # The store's constructor (kvstore.go) on a fresh backend, see InvStore.lean: the ghost state
 # allocated (the index at the initial log `[[], []]`, the committed log, the revision budget), the
 # batch lock's resource deposited at the first `Unlock`, the locks initialized; zap's `NewNop`,
-# schedule's `NewFIFOScheduler`, `NewHashStorage`, schema's `UnsafeCreateMetaBucket` and
-# `restore` (the identity on a fresh backend) are the trust boundary (axioms).
+# schedule's `NewFIFOScheduler` and `restore` (the identity on a fresh backend) are the trust
+# boundary (axioms); `NewHashStorage` and schema's `UnsafeCreateMetaBucket` (over the batch
+# transaction's `UnsafeCreateBucket` triple) are proved.
 zap_NewNop:
 schedule_NewFIFOScheduler:
 NewHashStorage:

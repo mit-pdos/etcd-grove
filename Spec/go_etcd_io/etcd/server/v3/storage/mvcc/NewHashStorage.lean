@@ -1,5 +1,5 @@
 /-
-`NewHashStorage` (`hash.go`): the trust boundary (names-only). Lean-first (no Rocq counterpart).
+`NewHashStorage` (`hash.go`). Lean-first (no Rocq counterpart).
 -/
 module
 

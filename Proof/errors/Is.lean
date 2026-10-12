@@ -1,5 +1,6 @@
 /-
-The trust boundary: `errors.Is` (Perennial does not translate `errors.Is` (it uses `internal/reflectlite`)).
+`errors.Is` (`Spec/errors/Is.lean`): Perennial's `errors.wp_Is`, which rests on the axiom
+`errors.wp_reflectliteComparable` (the model of `reflectlite.TypeOf(target).Comparable()`).
 -/
 module
 
@@ -21,7 +22,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-axiom errors.Is.wp_proof : errors.Is.spec (GF := GF) (hG := hG)
+open Iris.ProofMode in
+theorem errors.Is.wp_proof : errors.Is.spec (GF := GF) (hG := hG) := by
+  intro S M err target htarget htyped
+  iintro %Φ ⟨#Hinit, #Htree, %HS⟩ HΦ
+  iapply _root_.Perennial.errors.wp_Is S M err target htarget htyped $$ [] 
+  · iframe #; ipureintro; exact HS
+  inext
+  iintro %b -
+  iapply HΦ
+  itrivial
 
 end proof
 

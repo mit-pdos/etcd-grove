@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-12 (a closed theorem about the register's driver in the operational semantics, `register_adequate`, from Perennial's adequacy; package initialization proved for raft, its subpackages, `context` and the register; the account of every axiom and `sorry` it rests on, see "Adequacy of the register's driver"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
+**Last updated:** 2026-10-12 (small etcd axioms replaced by proofs on branch `etcd-small-axioms`: `NewHashStorage`, `UnsafeCreateMetaBucket`, `traceutil.TODO`, `Notifier.Notify`, `ServerConfig.ElectionTimeout`, `AlarmStore.Get`, `EtcdServer.Logger`/`isLeader` (with `MemberID`/`Lead`/`getLead`); `Trace.Step` requires a non-nil trace; `MustUnmarshalMessage`'s axiom made true (an encoding premise); gates on the branch 62 axioms, 1 sorry (57 axioms, 10 sorries once merged into `lean` with the standard-library axioms and the register's adequacy), etcd 505 verified of 3599 functions, 5202 of 45570 lines, see "Small etcd axioms"; a closed theorem about the register's driver in the operational semantics, `register_adequate`, from Perennial's adequacy; package initialization proved for raft, its subpackages, `context` and the register; the account of every axiom and `sorry` it rests on, see "Adequacy of the register's driver"; five standard-library axioms of etcd-grove proved from Perennial `e6ec34885` (pinned): `binary.bigEndian.{Uint64,PutUint64}`, `sort.Sort`, `sort.Reverse`, `errors.Is` (whose axiom was false as stated, now restated with Perennial's premises), see "Standard-library axioms from Perennial"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
 as pinned), the requests and responses as the client model's values (`Requests.lean`), `isKV`,
 `isTxnLessor`, 13 trust-boundary axioms (`sort.Sort`/`Reverse`, traceutil, `proto.Size`,
 `zap.Logger.Panic`, ...), mvcc's read-only write transaction proved, `gen-link.py --txn`, a
@@ -18,6 +18,44 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## Standard-library axioms from Perennial (2026-10-12, branch `std-axioms-from-perennial`)
+
+Perennial branch `binary-sort-errors`, landed on its `lean` as `e6ec34885` and pinned here, proves
+five functions etcd-grove trusted as its own axioms; their `wp_proof`s are now theorems that
+apply Perennial's results.
+
+- `binary.bigEndian.Uint64`/`PutUint64` (`Proof/encoding/binary/`): Perennial now translates
+  `BigEndian` and `bigEndian`'s methods and proves `encoding.binary.wp_BigEndian_{Uint64,PutUint64,
+  Uint32,PutUint32}` (big-endian is little-endian reversed, as `u64Be`/`beToU64`). `bigEndian` has
+  no fields, so loading the global reads no memory and the specs need no `isPkgInit`. Specs
+  unchanged.
+- `sort.Sort`, `sort.Reverse` (`Proof/sort/`): Perennial translates `Sort`, `Reverse` and the
+  `sort.Interface` pdqsort of `zsortinterface.go` and proves `sort.wp_Sort`/`wp_Reverse` over its
+  sorter `sort.isSorter` (the `slices` pdqsort proof adapted, its pure lemmas reused; no axiom or
+  `sorry`). `sorterSpec` gives `isSorter` for the order `lt a b = true` (`sorterSpec_isSorter`,
+  `isSorter_sorterSpec`, in `Spec/sort/Sort.lean`). The statements are unchanged; the two specs are
+  now stated with `[sort.Assumptions]` in context (sort's code), which callers have through their
+  package's `Assumptions`.
+- `errors.Is` (`Proof/errors/Is.lean`): the axiom (`Is` returns some boolean, for any `err`,
+  `target`) was **false**: Go's `Is` calls `err`'s `Is`/`Unwrap` methods, which may panic, and
+  `err == target` panics for a target of a comparable type holding a non-comparable value
+  (`errors.Is(E{[]int{}}, E{[]int{}})` for `type E struct{ x any }`, checked with `go run`).
+  Perennial's own `errors.wp_Is` axiom was false for the same reason; it is now a theorem
+  (Perennial translates `is`, models `Is` as Go's with `reflectlite.TypeOf(target).Comparable()`
+  replaced by `reflectliteComparable`, whose spec is the one new axiom
+  `errors.wp_reflectliteComparable`: `true` for a pointer type), for a `nil` or pointer target and
+  an error tree whose errors of the target's type hold pointers (`errors.TreeTyped`). The spec here
+  is now that (`errorIsTree S M target ∗ ⌜S err⌝`, the two premises). The callers get it from
+  strengthened, true-of-Go facts: `resultOk` (the `apply.Apply` axiom's result) carries
+  `applyErrIs` for `ar.Err`; `errorsInit` (a package-initialization assumption) says `ErrNoSpace`
+  is a pointer error; `clientErrIs` adds `TreeTyped`; `newUniqueKV`/`newUniqueEphemeralKV` pass
+  the new premises of `wp_Is`/`wp_Is_leaf`.
+- Not done: `errors.As` stays Perennial's axiom `wp_As` (false as stated for a `*T` target with
+  `T` neither an interface type nor implementing `error`, documented there): `As` uses reflection
+  throughout, so no small faithful model exists.
+
+Gates: `lake build` clean (2691 jobs) at the pin; `etc/goose.py --check` up to date; `etc/tcb-report.py --check`: 65 axioms and 1 sorry (were 70 and 1), the collections mvcc (-2), server (-3) and txn (-3) updated.
 
 ## Adequacy of the register's driver: the closed theorem and its trust base (2026-10-12)
 
@@ -277,6 +315,60 @@ hypotheses.
   `wp_wand_r`. Baselines unchanged (58 axioms, 1 sorry; mvcc 17); verified-code: mvcc 74 of 155
   functions (7 conditional on the tree's contract), 823 of 2073 lines; `watcher_group.go` 9 + 7
   conditional of 16, `watcher.go` all 7. Unit 2 is complete; unit 3 follows.
+
+## Small etcd axioms (2026-10-12)
+
+Branch `etcd-small-axioms` (worktree `/shared/etcd-grove-small`, off `lean` at `436f363c4`,
+`origin/lean` merged at `bcf23ae1d`). Trust-boundary axioms on small etcd functions replaced by
+proofs: 70 axioms to 62 (1 sorry, unchanged); etcd 505 verified of 3599 functions, 5202 of 45570
+lines (11 functions, about 51 lines, more).
+
+- **Translated** (bodies added to the names-only packages): `mvcc.NewHashStorage`,
+  `schema.UnsafeCreateMetaBucket`, `traceutil.TODO` (and the trace types: `traceutil.toml` imports
+  `time`, `zap`), `notify.Notifier.Notify`, `config.ServerConfig.ElectionTimeout`,
+  `v3alarm.AlarmStore.Get` (and `etcdserverpb.AlarmType_NONE`, an opaque `val` otherwise),
+  `EtcdServer.Logger`/`isLeader`/`MemberID`/`Lead`/`getLead`, `pbutil.MustUnmarshalMessage`
+  (still an axiom). Goose takes all of them as pinned.
+- **Proved, spec unchanged**: `NewHashStorage`, `TODO` (post strengthened: not nil).
+- **Proved, premise added** (each caller discharges it): `UnsafeCreateMetaBucket` takes the batch
+  transaction's `UnsafeCreateBucket` triple (any `P`; `NewStore` passes `batchTxSpec`'s);
+  `ElectionTimeout` the two `Cfg` fields read-only; `isLeader` `s.memberID` read-only and the
+  atomic `s.lead` in an invariant (`srvLeadInv`); `AlarmStore.Get` takes `aty : w32` and
+  `isAlarmStore a` (`v3alarm/Defs.lean`: `a.mu` over the owned map of owned sets);
+  `Notify` takes `isNotifier n` (`notify/Defs.lean`: the `RWMutex` writer guard over the
+  cache's broadcast-channel idiom, its broadcast `True`); `Logger` takes `s.lg ↦□ l` and a
+  reader slot of `s.lgMu` (`srvLgReader`, not persistent: Perennial's `RWMutex` bounds readers),
+  given back. The server's `isServer`/`srvFieldsAt` carry all the persistent facts (a premise of
+  the roots, which nothing constructs); `srvLgReader s` is threaded through `applyEntryNormal`,
+  `apply`, `applyEntries` (pre and post). `Notify` closes a channel, so `isServer` and those
+  three specs moved to `HeapGS HasLC.hasLC` (the Link's `links_hasLC` section).
+- **`AlarmStore`'s struct** has a field of an axiomatized type (`schema.AlarmBackend`), whose
+  generated instances are `sorry`: the proof gives `TypeRepr AlarmStore` from its
+  `TypeAssumptions` (as `InvServer.lean` does), so no result reaches them.
+- **`Trace.Step` required a non-nil trace** (it said any `t`, `nil` included, but `Step` reads
+  `t.stepDisabled`): `store.Read`/`store.Write` take `trace ≠ null`, `storeTxnReadIs`/
+  `storeTxnWriteIs` record it (`%Htrnn`, last), `rangeKeys` takes it as a premise; readView/writeView
+  have it from `TODO`, the txn package from `EnsureTrace`/`Get`.
+- **`MustUnmarshalMessage`'s axiom was false of the code**: it returned on any bytes, the code
+  panics unless `proto.Unmarshal` succeeds. It now takes `isConfChangeEncoding bs` (opaque,
+  `InvRaftpb.lean`), which `entriesFrom` states of every conf-change entry. Still an axiom: the
+  `proto.Unmarshal` axiom is about `mvccpb.KeyValue` only, and a second spec of the same Go function
+  would not fit the one-spec-per-function layout.
+- **Left as axioms**: `GoAttach` (its spec takes any `f` and forks it: unprovable without a spec
+  of `f`, whose closure calls the untranslated `raftRequest`; also a `wgMu` reader slot and the
+  `stopping` channel); `stopWithDelay` (Perennial has `time.wp_After`, but the `select`s on
+  `s.done`/`s.errorc` need those channels' protocols, which nothing models); `verify.Verify`
+  (Perennial has no `os.Getenv`); `membership.RaftCluster.Members` (`Member.Clone`'s deep copy and
+  `sort.Sort`); `schedule.NewFIFOScheduler` (forks `f.run`, a loop over a cond and channels).
+- **traceutil**: only `TODO` proved. `Step`/`StepWithFunction`/`AddField`/`StartSubTrace`/
+  `StopSubTrace` append to the trace's slices, a non-atomic update that needs exclusive ownership
+  of the `*Trace` (an invariant cannot cover an `append`). But the traces the txn package steps
+  come from `traceutil.Get(ctx)`/`EnsureTrace`, i.e. from `ctx.Value(TraceKey{})`, and the same
+  trace is also in the mvcc transaction (`kv.Read(mode, trace)`): an ownership predicate would
+  have to come out of those axioms, and two calls of `Get` on one context would hand out two
+  copies of an exclusive resource (unsound) unless the context's values are modelled. Perennial's
+  `isContext` specifies `Value` only for `&cancelCtxKey` and has no `WithValue`, so `Get` and
+  `EnsureTrace` stay axioms and so do the five methods.
 
 ## The server's txn package (`server/v3/etcdserver/txn`)
 

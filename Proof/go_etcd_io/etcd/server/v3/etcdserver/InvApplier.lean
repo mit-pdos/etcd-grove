@@ -20,6 +20,9 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftpb
+public import Perennial.Proof.errors
+public import Proof.go_etcd_io.etcd.pkg.v3.notify.Defs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Defs
 
 @[expose] public section
 
@@ -49,6 +52,13 @@ abbrev srvQuotaAddr (s : Loc) : Loc :=
 abbrev srvAppliedIndexAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"appliedIndex" s
 abbrev srvTermAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"term" s
 abbrev srvClusterFieldAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"cluster" s
+abbrev srvLgMuAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"lgMu" s
+abbrev srvMemberIDAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"memberID" s
+abbrev srvLeadAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"lead" s
+abbrev cfgElectionTicksAddr (c : Loc) : Loc :=
+  structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ElectionTicks" c
+abbrev cfgTickMsAddr (c : Loc) : Loc :=
+  structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"TickMs" c
 
 abbrev epConfStateAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"confState" ep
 abbrev epAppliedTAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"appliedt" ep
@@ -65,7 +75,8 @@ from `f0` (not 0), with no overflow past the last; each a normal entry or a (v1)
 def entriesFrom (f0 : w64) (ms : List EntryModel) : Prop :=
   0 < uint.Z f0 ∧ uint.Z f0 + ms.length < 2 ^ 64 ∧
   ∀ (n : Nat) (m : EntryModel), ms[n]? = some m →
-    uint.Z m.index = uint.Z f0 + n ∧ (m.typ = W32 0 ∨ m.typ = W32 1)
+    uint.Z m.index = uint.Z f0 + n ∧
+      (m.typ = W32 0 ∨ (m.typ = W32 1 ∧ isConfChangeEncoding m.data))
 
 /-- The apply thread's relation between the protocol's state `st` and the applied index `a`
 (`ep.appliedi`): out of flight, and processed through the larger of `ci` and `a`. It holds
@@ -115,6 +126,21 @@ def lessorOk (l : GoInterface) : IProp GF :=
 instance lessorOk_persistent (l : GoInterface) : Persistent (lessorOk (GF := GF) l) := by
   unfold lessorOk; infer_instance
 
+/-- The server's atomic `s.lead` (the leader's id, which raft's goroutine stores; the apply
+thread loads it in `isLeader`). -/
+def srvLeadInv (s : Loc) : IProp GF :=
+  iprop(inv srvN (∃ v : w64, sync.atomic.ownUint64 (srvLeadAddr s) (DFrac.own 1) v))
+
+instance srvLeadInv_persistent (s : Loc) : Persistent (srvLeadInv (GF := GF) s) := by
+  unfold srvLeadInv; infer_instance
+
+/-- A reader slot of the server's logger lock `s.lgMu` (a `*sync.RWMutex` that is only ever
+read-locked, around reading `s.lg`, which never changes: its invariant is `True`): Perennial's
+`RWMutex` admits a bounded number of readers, so `RLock` needs a token, which the apply thread
+holds (`Logger`). Not persistent. -/
+def srvLgReader (s : Loc) : IProp GF :=
+  iprop(∃ mu : Loc, srvLgMuAddr s ↦□ mu ∗ sync.ownRWMutex mu (fun _ => iprop(True)))
+
 /-- The values of the server's fields the apply thread reads, and the post-lock hook. -/
 structure SrvFields where
   lg : Loc
@@ -126,6 +152,63 @@ structure SrvFields where
   alarmStore : Loc
   cluster : Loc
   quota : w64
+  lgMu : Loc
+  memberID : w64
+  electionTicks : w64
+  tickMs : w64
+
+/-- The server's two atomics the apply thread stores (read by other goroutines). -/
+def srvAtomics (s : Loc) : IProp GF :=
+  iprop(inv srvN (∃ v : w64, sync.atomic.ownUint64 (srvAppliedIndexAddr s) (DFrac.own 1) v) ∗
+    inv srvN (∃ v : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) v))
+
+instance srvAtomics_persistent (s : Loc) : Persistent (srvAtomics (GF := GF) s) := by
+  unfold srvAtomics; infer_instance
+
+/-- The entries `ents` are modelled by `ms` (persistent). -/
+def entriesAt (ents : List Loc) (ms : List EntryModel) : IProp GF :=
+  iprop(⌜ents.length = ms.length⌝ ∗
+    □ (∀ (n : Nat) (e : Loc) (m : EntryModel), ⌜ents[n]? = some e⌝ -∗ ⌜ms[n]? = some m⌝ -∗
+      entryAt e m))
+
+instance entriesAt_persistent (ents : List Loc) (ms : List EntryModel) :
+    Persistent (entriesAt (GF := GF) ents ms) := by
+  unfold entriesAt; infer_instance
+
+/-- **An error the applier returns, as `errors.Is` sees it** (persistent): for any target, the
+error is in an error tree (`errors.errorIsTree`: the specs of its `Is` and `Unwrap` methods, if
+it has them, which return without panicking), whose errors of the target's type hold pointers
+if the target does (`errors.TreeTyped`, Go's typing). What `errors.Is(ar.Err, ErrNoSpace)`
+needs of it (`errors.wp_Is`, `applyEntryNormal`). As `clientErrIs` for the client's errors. -/
+def applyErrIs (err : GoInterface) : IProp GF :=
+  iprop(□ ∀ target : GoInterface, ∃ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop),
+    _root_.Perennial.errors.errorIsTree (GF := GF) S M target ∗
+    ⌜S err ∧ _root_.Perennial.errors.TreeTyped S target⌝)
+
+instance applyErrIs_persistent (err : GoInterface) :
+    Persistent (applyErrIs (GF := GF) err) := by
+  unfold applyErrIs; infer_instance
+
+/-- `ar` is an `*apply.Result` whose `Err` can be read (nil: no result), an error as
+`errors.Is` sees it (`applyErrIs`). -/
+def resultOk (ar : Loc) : IProp GF :=
+  iprop(⌜ar = null⌝ ∨
+    ∃ err : GoInterface, structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result
+      go!"Err" ar ↦□ err ∗ applyErrIs err)
+
+instance resultOk_persistent (ar : Loc) : Persistent (resultOk (GF := GF) ar) := by
+  unfold resultOk; infer_instance
+
+end defs
+
+section defs_lc
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-! At `HeapGS HasLC.hasLC GF` (later credits), as the notifier `s.firstCommitInTerm`'s
+predicate is (Perennial's channel specs are). -/
 
 /-- The server `s`'s fields hold `v`, with their contracts; the backend's applier `uberApply`
 runs the post-lock hook `v.hook` under a batch lock with the protocol's invariant
@@ -138,19 +221,15 @@ def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
       hookSpec γ ci TM v.hook ∗
       srvLessorAddr s ↦□ v.lessor ∗ lessorOk v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
-      srvClusterAddr s ↦□ v.cluster ∗ srvQuotaAddr s ↦□ v.quota)
+      srvClusterAddr s ↦□ v.cluster ∗ srvQuotaAddr s ↦□ v.quota ∗
+      srvLgMuAddr s ↦□ v.lgMu ∗ srvMemberIDAddr s ↦□ v.memberID ∗ srvLeadInv s ∗
+      cfgElectionTicksAddr (srvCfgAddr s) ↦□ v.electionTicks ∗
+      cfgTickMsAddr (srvCfgAddr s) ↦□ v.tickMs ∗
+      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore)
 
 instance srvFieldsAt_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (v : SrvFields) : Persistent (srvFieldsAt s γ ci TM v) := by
   unfold srvFieldsAt; infer_instance
-
-/-- The server's two atomics the apply thread stores (read by other goroutines). -/
-def srvAtomics (s : Loc) : IProp GF :=
-  iprop(inv srvN (∃ v : w64, sync.atomic.ownUint64 (srvAppliedIndexAddr s) (DFrac.own 1) v) ∗
-    inv srvN (∃ v : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) v))
-
-instance srvAtomics_persistent (s : Loc) : Persistent (srvAtomics (GF := GF) s) := by
-  unfold srvAtomics; infer_instance
 
 /-- The apply thread's view of the server `s` (persistent): `s.consistIndex` (with the
 protocol, `isServerCI`), the fields `applyEntryNormal` and `apply` read, and the atomics. -/
@@ -161,26 +240,7 @@ instance isServer_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
     Persistent (isServer s γ ci TM) := by
   unfold isServer; infer_instance
 
-/-- The entries `ents` are modelled by `ms` (persistent). -/
-def entriesAt (ents : List Loc) (ms : List EntryModel) : IProp GF :=
-  iprop(⌜ents.length = ms.length⌝ ∗
-    □ (∀ (n : Nat) (e : Loc) (m : EntryModel), ⌜ents[n]? = some e⌝ -∗ ⌜ms[n]? = some m⌝ -∗
-      entryAt e m))
-
-instance entriesAt_persistent (ents : List Loc) (ms : List EntryModel) :
-    Persistent (entriesAt (GF := GF) ents ms) := by
-  unfold entriesAt; infer_instance
-
-/-- `ar` is an `*apply.Result` whose `Err` can be read (nil: no result). -/
-def resultOk (ar : Loc) : IProp GF :=
-  iprop(⌜ar = null⌝ ∨
-    ∃ err : GoInterface, structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result
-      go!"Err" ar ↦□ err)
-
-instance resultOk_persistent (ar : Loc) : Persistent (resultOk (GF := GF) ar) := by
-  unfold resultOk; infer_instance
-
-end defs
+end defs_lc
 
 end EtcdGrove
 end Perennial

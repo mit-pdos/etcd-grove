@@ -108,7 +108,9 @@ def registerGF : BundledGFunctors := fun i =>
   | 10 => ⟨constOF MetaUR, inferInstance⟩
   | _ => ⟨constOF Unit, inferInstance⟩
 
-instance registerGF_allG : AllG registerGF := ⟨⟨0, rfl⟩⟩
+/-- The universal camera at slot 0 (not an instance: under a `HeapGS` the `AllG` is the one
+it carries, `GooseGlobalGS.gooseAllG`). -/
+def registerGF_allG : AllG registerGF := ⟨⟨0, rfl⟩⟩
 
 instance registerGF_gooseGpreS : GooseGpreS disk_model registerGF where
   goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
@@ -116,8 +118,7 @@ instance registerGF_gooseGpreS : GooseGpreS disk_model registerGF where
   goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
   goosePreGFfi := (⟨⟨⟨⟨8, rfl⟩⟩, ⟨⟨9, rfl⟩⟩, ⟨10, rfl⟩⟩⟩ : DiskPreG registerGF)
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
-  goose_preG_receipt := ⟨registerGF_allG⟩
-  goose_preG_thread := ⟨registerGF_allG⟩
+  goosePreGAllG := registerGF_allG
 
 /-! ## Package initialization's starting point -/
 
@@ -180,9 +181,8 @@ variable [go_gctx : GoGlobalContext]
 
 /-- The register's program: the package's initialization, then `Main()`. -/
 def registerProgram [GoSemanticsFunctions] : Expr :=
-  App (Rec BAnon BAnon
-      (App (Val (@! github_com.mit_pdos.etcd_grove.examples.register.Main)) (Val #())))
-    (App (Val github_com.mit_pdos.etcd_grove.examples.register.initialize') (Val #()))
+  github_com.mit_pdos.etcd_grove.examples.register.initialize' #() ;;
+  (@! github_com.mit_pdos.etcd_grove.examples.register.Main) #()
 
 /-- **The register's cluster driver is safe.** Every real execution of `registerProgram`
 (the register package's initialization, then `Main()`) from a fresh state -- no package

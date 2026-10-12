@@ -1,7 +1,7 @@
 /-
-`binary.BigEndian.PutUint64(b, v)`, of Go's `encoding/binary`: the trust boundary, as
-`Spec/binary_bigEndian__Uint64.lean`. Lean-first (no Rocq counterpart); see
-`InvCindex.lean`.
+`binary.BigEndian.PutUint64(b, v)`, of Go's `encoding/binary`, stated as Perennial's
+`encoding.binary.wp_BigEndian_PutUint64` (which proves it; Perennial translates `bigEndian`).
+Lean-first (no Rocq counterpart); see `InvCindex.lean`.
 -/
 module
 

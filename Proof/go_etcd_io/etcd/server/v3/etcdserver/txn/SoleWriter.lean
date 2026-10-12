@@ -213,7 +213,7 @@ open go_etcd_io.etcd.server.v3.storage.mvcc in
 tokens and certificate, with `soleWriter_pins_read`. -/
 theorem soleWriter_Read (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG))
     (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (log : Log)
-    (hlen : log.length + 3 ≤ 2 ^ 63) :
+    (hlen : log.length + 3 ≤ 2 ^ 63) (htr : trace ≠ null) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log }}
       (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Read")) (Val #mode)) (Val #trace))
@@ -224,6 +224,7 @@ theorem soleWriter_Read (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG))
   icases Hsw with ⟨#Hc, Ht⟩
   iapply (hRead s γ mode trace (soleBudget log) log) $$ [Hrd Ht]
   · iframe # ∗
+    ipureintro; exact htr
   inext
   iintro %mw ⟨%log', %rev, Htx, Ht, %Hp⟩
   have heq := soleWriter_pins_read log log' hlen Hp

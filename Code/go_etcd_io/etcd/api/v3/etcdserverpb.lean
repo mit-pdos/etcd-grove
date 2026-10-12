@@ -1087,7 +1087,9 @@ axiom file_etcdserver_proto_rawDesc [FfiSyntax] [GoGlobalContext] : val
 
 axiom file_raft_internal_proto_rawDesc [FfiSyntax] [GoGlobalContext] : val
 
-axiom AlarmType_NONE [FfiSyntax] [GoGlobalContext] : val
+/-- default, used to query if any alarm is active -/
+@[reducible] noncomputable def AlarmType_NONE [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 0)
 
 /-- space quota is exhausted -/
 @[reducible] noncomputable def AlarmType_NOSPACE [FfiSyntax] [GoGlobalContext] : val :=
