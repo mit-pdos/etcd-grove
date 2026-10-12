@@ -19,8 +19,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
-/-- `t.Rollback(txid)`: `FLState.rollback`. Not proved: it deletes map entries while ranging over the map (allowed in Go, stuck in
-the GooseLang map model, whose range body runs under a read of the map). -/
+/-- `t.Rollback(txid)`: `FLState.rollback`. -/
 abbrev shared.Rollback.spec : Prop :=
   ∀ (s : Loc) (iface : GoInterface) (σ : FLState) (txid : w64), σ.canRollback txid →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ ownShared s iface σ }}

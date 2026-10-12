@@ -19,14 +19,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
-/-- `t.release(txid)`: `FLState.release` (up to order). Not proved: it deletes map entries while ranging over the map (allowed in Go, stuck in
-the GooseLang map model, whose range body runs under a read of the map). -/
+/-- `t.release(txid)`: `FLState.release` (up to order). -/
 abbrev shared.release.spec : Prop :=
-  ∀ (I : FLImpl (GF := GF)) (s : Loc) (σ : FLState) (txid : w64), I.MergeSpansSpec →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ I.hdl s ∗ ownShared s I.iface σ ∗ I.own s σ.free }}
+  ∀ (I : FLImpl (GF := GF)) (s : Loc) (sv : shared) (c : GMap w64 Unit) (σ : FLState) (txid : w64),
+  I.MergeSpansSpec →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ I.hdl s ∗ ownSharedC s sv I.iface σ c ∗ ⌜cacheOK c σ ∧ σ.WF⌝ ∗ I.own s σ.free }}
     (App (Val (s @!! go.GoType.PointerType shared.ty @!! go!"release")) (Val #txid))
-  {{ (σ' : FLState), RET #(); ⌜σ'.equiv (σ.release txid)⌝ ∗
-      ownShared s I.iface σ' ∗ I.own s σ'.free }}
+  {{ (σ' : FLState), RET #(); ⌜σ'.equiv (σ.release txid) ∧ σ'.readonly = σ.readonly⌝ ∗
+      ownSharedC s sv I.iface σ' c ∗ ⌜cacheOK c σ' ∧ σ'.WF⌝ ∗ I.own s σ'.free }}
 
 end spec
 

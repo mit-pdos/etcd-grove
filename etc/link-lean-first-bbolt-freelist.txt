@@ -1,8 +1,6 @@
 # bbolt's internal/freelist (Lean-first), for `etc/gen-link.py` (a `--bbolt-freelist` mode):
 # `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`; `@`: linked in internal/common's
-# Link; `sort_Sort:` is an axiom (`Proof/sort/Sort.lean`). Not listed (specs only, not proved:
-# they delete map entries inside a range over the map): shared__Rollback, shared__release,
-# shared__releaseRange, shared__ReleasePendingPages.
+# Link; `sort_Sort:` is an axiom (`Proof/sort/Sort.lean`).
 Page__FreelistPageIds: @
 Page__Id: @
 Page__IsFreelistPage: @
@@ -20,6 +18,7 @@ array__FreeCount:
 array__Init: shared__reindex array__freePageIds
 array__freePageIds:
 array__mergeSpans: sort_Sort common_Verify Pgids__Merge
+hashMap__addSpan:
 newShared:
 shared__AddReadonlyTXID:
 shared__Copyall: shared__PendingCount shared__pendingPageIds sort_Sort common_Mergepgids
@@ -30,11 +29,15 @@ shared__Freed:
 shared__NoSyncReload:
 shared__PendingCount:
 shared__Read: Page__IsFreelistPage Page__FreelistPageIds sort_Sort
+shared__ReleasePendingPages: shared__release shared__releaseRange sort_Sort
 shared__Reload: shared__Read shared__NoSyncReload
 shared__RemoveReadonlyTXID:
+shared__Rollback:
 shared__Write: shared__Count shared__Copyall Page__SetFlags Page__SetCount common_UnsafeAdd
 shared__pendingPageIds:
 shared__reindex: shared__pendingPageIds
+shared__release:
+shared__releaseRange:
 txIDx__Len:
 txIDx__Less:
 txIDx__Swap:

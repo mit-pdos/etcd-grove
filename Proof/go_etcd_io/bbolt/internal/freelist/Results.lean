@@ -1,8 +1,6 @@
 /-
 The proved results of bbolt's `internal/freelist` (`Link.lean`, every proof linked to its
-callees' proofs): the array freelist and `shared`'s methods but the four that delete from a
-map while ranging over it (`Rollback`, `release`, `releaseRange`, `ReleasePendingPages`:
-specs only; Perennial's map range does not allow it). `sort.Sort` is a trust-boundary axiom.
+callees' proofs): the array freelist and `shared`'s methods, and `hashMap.addSpan`. `sort.Sort` is a trust-boundary axiom.
 
 `#print axioms` on a result is its trust base (`sorryAx` is unfinished work).
 -/
@@ -26,6 +24,7 @@ namespace bbolt
 #print axioms array.wp_Init
 #print axioms sort.wp_Sort
 #print axioms array.wp_mergeSpans
+#print axioms hashMap.wp_addSpan
 #print axioms shared.wp_AddReadonlyTXID
 #print axioms shared.wp_PendingCount
 #print axioms shared.wp_Copyall
@@ -35,8 +34,12 @@ namespace bbolt
 #print axioms shared.wp_Freed
 #print axioms shared.wp_NoSyncReload
 #print axioms shared.wp_Read
+#print axioms shared.wp_release
+#print axioms shared.wp_releaseRange
+#print axioms shared.wp_ReleasePendingPages
 #print axioms shared.wp_Reload
 #print axioms shared.wp_RemoveReadonlyTXID
+#print axioms shared.wp_Rollback
 #print axioms shared.wp_Write
 #print axioms txIDx.wp_Len
 #print axioms txIDx.wp_Less

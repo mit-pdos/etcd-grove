@@ -14,6 +14,7 @@ public import Proof.go_etcd_io.bbolt.internal.freelist.array__FreeCount
 public import Proof.go_etcd_io.bbolt.internal.freelist.array__Init
 public import Proof.go_etcd_io.bbolt.internal.freelist.array__freePageIds
 public import Proof.go_etcd_io.bbolt.internal.freelist.array__mergeSpans
+public import Proof.go_etcd_io.bbolt.internal.freelist.hashMap__addSpan
 public import Proof.go_etcd_io.bbolt.internal.freelist.newShared
 public import Proof.go_etcd_io.bbolt.internal.freelist.shared__AddReadonlyTXID
 public import Proof.go_etcd_io.bbolt.internal.freelist.shared__Copyall
@@ -24,11 +25,15 @@ public import Proof.go_etcd_io.bbolt.internal.freelist.shared__Freed
 public import Proof.go_etcd_io.bbolt.internal.freelist.shared__NoSyncReload
 public import Proof.go_etcd_io.bbolt.internal.freelist.shared__PendingCount
 public import Proof.go_etcd_io.bbolt.internal.freelist.shared__Read
+public import Proof.go_etcd_io.bbolt.internal.freelist.shared__ReleasePendingPages
 public import Proof.go_etcd_io.bbolt.internal.freelist.shared__Reload
 public import Proof.go_etcd_io.bbolt.internal.freelist.shared__RemoveReadonlyTXID
+public import Proof.go_etcd_io.bbolt.internal.freelist.shared__Rollback
 public import Proof.go_etcd_io.bbolt.internal.freelist.shared__Write
 public import Proof.go_etcd_io.bbolt.internal.freelist.shared__pendingPageIds
 public import Proof.go_etcd_io.bbolt.internal.freelist.shared__reindex
+public import Proof.go_etcd_io.bbolt.internal.freelist.shared__release
+public import Proof.go_etcd_io.bbolt.internal.freelist.shared__releaseRange
 public import Proof.sort.Sort
 public import Proof.go_etcd_io.bbolt.internal.freelist.txIDx__Len
 public import Proof.go_etcd_io.bbolt.internal.freelist.txIDx__Less
@@ -97,6 +102,10 @@ theorem array.wp_mergeSpans :
     EtcdGrove.bbolt.array.mergeSpans.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.array.mergeSpans.wp_proof EtcdGrove.bbolt.sort.wp_Sort EtcdGrove.bbolt.wp_Verify EtcdGrove.bbolt.Pgids.wp_Merge
 
+theorem hashMap.wp_addSpan :
+    EtcdGrove.bbolt.hashMap.addSpan.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.hashMap.addSpan.wp_proof
+
 theorem shared.wp_AddReadonlyTXID :
     EtcdGrove.bbolt.shared.AddReadonlyTXID.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.shared.AddReadonlyTXID.wp_proof
@@ -133,6 +142,18 @@ theorem shared.wp_Read :
     EtcdGrove.bbolt.shared.Read.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.shared.Read.wp_proof EtcdGrove.bbolt.Page.wp_IsFreelistPage EtcdGrove.bbolt.Page.wp_FreelistPageIds EtcdGrove.bbolt.sort.wp_Sort
 
+theorem shared.wp_release :
+    EtcdGrove.bbolt.shared.release.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.shared.release.wp_proof
+
+theorem shared.wp_releaseRange :
+    EtcdGrove.bbolt.shared.releaseRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.shared.releaseRange.wp_proof
+
+theorem shared.wp_ReleasePendingPages :
+    EtcdGrove.bbolt.shared.ReleasePendingPages.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.shared.ReleasePendingPages.wp_proof EtcdGrove.bbolt.shared.wp_release EtcdGrove.bbolt.shared.wp_releaseRange EtcdGrove.bbolt.sort.wp_Sort
+
 theorem shared.wp_Reload :
     EtcdGrove.bbolt.shared.Reload.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.shared.Reload.wp_proof EtcdGrove.bbolt.shared.wp_Read EtcdGrove.bbolt.shared.wp_NoSyncReload
@@ -140,6 +161,10 @@ theorem shared.wp_Reload :
 theorem shared.wp_RemoveReadonlyTXID :
     EtcdGrove.bbolt.shared.RemoveReadonlyTXID.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.shared.RemoveReadonlyTXID.wp_proof
+
+theorem shared.wp_Rollback :
+    EtcdGrove.bbolt.shared.Rollback.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.shared.Rollback.wp_proof
 
 theorem shared.wp_Write :
     EtcdGrove.bbolt.shared.Write.spec (GF := GF) (hG := hG) :=

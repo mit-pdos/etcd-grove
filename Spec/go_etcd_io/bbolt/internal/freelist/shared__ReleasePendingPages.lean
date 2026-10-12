@@ -19,8 +19,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.freelist.Assumptions]
 
-/-- `t.ReleasePendingPages()`: `FLState.releasePending` (up to order). Not proved: through
-`release` and `releaseRange`. -/
+/-- `t.ReleasePendingPages()`: `FLState.releasePending` (up to order). -/
 abbrev shared.ReleasePendingPages.spec : Prop :=
   ∀ (I : FLImpl (GF := GF)) (s : Loc) (σ : FLState), I.MergeSpansSpec →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.freelist ∗ I.hdl s ∗ ownShared s I.iface σ ∗ I.own s σ.free }}
