@@ -76,6 +76,10 @@ namespace bbolt
 #print axioms Bucket.wp_SetSequence
 #print axioms Bucket.wp_Tx
 #print axioms Bucket.wp_Writable
+#print axioms node.wp_root
+#print axioms TxStats.wp_IncNodeDeref
+#print axioms node.wp_dereference_w
+#print axioms Bucket.wp_dereference
 #print axioms Cursor.wp_Bucket
 #print axioms Cursor.wp_last
 #print axioms Cursor.wp_prev
@@ -112,7 +116,6 @@ namespace bbolt
 #print axioms TxStats.wp_GetCursorCount
 #print axioms TxStats.wp_GetNodeCount
 #print axioms TxStats.wp_GetNodeDeref
-#print axioms TxStats.wp_IncNodeDeref
 #print axioms TxStats.wp_GetRebalance
 #print axioms TxStats.wp_IncRebalance
 #print axioms wp_atomicLoadDuration
@@ -172,6 +175,7 @@ namespace bbolt
 #print axioms Tx.wp_Size
 #print axioms Tx.wp_Stats
 #print axioms Tx.wp_Writable
+#print axioms Tx.wp_allocate_w
 #print axioms wp_compareKeys
 #print axioms wp_flock
 #print axioms node.wp_childIndex
@@ -181,7 +185,6 @@ namespace bbolt
 #print axioms node.wp_nextSibling
 #print axioms node.wp_prevSibling
 #print axioms node.wp_removeChild
-#print axioms node.wp_root
 #print axioms node.wp_sizeLessThan
 #print axioms node.wp_splitIndex
 #print axioms nodes.wp_Len

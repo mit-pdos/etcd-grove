@@ -27,6 +27,7 @@ public import Proof.go_etcd_io.bbolt.Bucket__SetSequence
 public import Proof.go_etcd_io.bbolt.Bucket__Tx
 public import Proof.go_etcd_io.bbolt.Bucket__Writable
 public import Proof.go_etcd_io.bbolt.Bucket__Writable_w
+public import Proof.go_etcd_io.bbolt.Bucket__dereference
 public import Proof.go_etcd_io.bbolt.Bucket__node
 public import Proof.go_etcd_io.bbolt.Bucket__openBucket
 public import Proof.go_etcd_io.bbolt.Bucket__openBucket_w
@@ -122,6 +123,7 @@ public import Proof.go_etcd_io.bbolt.Tx__Rollback
 public import Proof.go_etcd_io.bbolt.Tx__Size
 public import Proof.go_etcd_io.bbolt.Tx__Stats
 public import Proof.go_etcd_io.bbolt.Tx__Writable
+public import Proof.go_etcd_io.bbolt.Tx__allocate
 public import Proof.go_etcd_io.bbolt.Tx__close
 public import Proof.go_etcd_io.bbolt.Tx__init
 public import Proof.go_etcd_io.bbolt.Tx__nonPhysicalRollback
@@ -149,6 +151,7 @@ public import Proof.go_etcd_io.bbolt.node__childAt
 public import Proof.go_etcd_io.bbolt.node__childIndex
 public import Proof.go_etcd_io.bbolt.node__del
 public import Proof.go_etcd_io.bbolt.node__dereference
+public import Proof.go_etcd_io.bbolt.node__dereference_w
 public import Proof.go_etcd_io.bbolt.node__minKeys
 public import Proof.go_etcd_io.bbolt.node__nextSibling
 public import Proof.go_etcd_io.bbolt.node__numChildren
@@ -443,6 +446,22 @@ theorem Bucket.wp_Writable :
     EtcdGrove.bbolt.Bucket.Writable.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Bucket.Writable.wp_proof
 
+theorem node.wp_root :
+    EtcdGrove.bbolt.node.root.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.node.root.wp_proof
+
+theorem TxStats.wp_IncNodeDeref :
+    EtcdGrove.bbolt.TxStats.IncNodeDeref.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.TxStats.IncNodeDeref.wp_proof
+
+theorem node.wp_dereference_w :
+    EtcdGrove.bbolt.node.dereference.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.node.dereference.wp_wproof EtcdGrove.bbolt.Inode.wp_Key EtcdGrove.bbolt.Inode.wp_Value EtcdGrove.bbolt.Inode.wp_SetKey EtcdGrove.bbolt.Inode.wp_SetValue EtcdGrove.bbolt.wp_Assert EtcdGrove.bbolt.TxStats.wp_IncNodeDeref
+
+theorem Bucket.wp_dereference :
+    EtcdGrove.bbolt.Bucket.dereference.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Bucket.dereference.wp_proof EtcdGrove.bbolt.node.wp_root EtcdGrove.bbolt.node.wp_dereference_w
+
 theorem Cursor.wp_Bucket :
     EtcdGrove.bbolt.Cursor.Bucket.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Cursor.Bucket.wp_proof
@@ -586,10 +605,6 @@ theorem TxStats.wp_GetNodeCount :
 theorem TxStats.wp_GetNodeDeref :
     EtcdGrove.bbolt.TxStats.GetNodeDeref.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.TxStats.GetNodeDeref.wp_proof
-
-theorem TxStats.wp_IncNodeDeref :
-    EtcdGrove.bbolt.TxStats.IncNodeDeref.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.TxStats.IncNodeDeref.wp_proof
 
 theorem TxStats.wp_GetRebalance :
     EtcdGrove.bbolt.TxStats.GetRebalance.spec (GF := GF) (hG := hG) :=
@@ -827,6 +842,10 @@ theorem Tx.wp_Writable :
     EtcdGrove.bbolt.Tx.Writable.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Tx.Writable.wp_proof
 
+theorem Tx.wp_allocate_w [AllG GF] :
+    EtcdGrove.bbolt.Tx.allocate.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Tx.allocate.wp_wproof EtcdGrove.bbolt.DB.wp_Logger EtcdGrove.bbolt.Meta.wp_Txid EtcdGrove.bbolt.DB.wp_allocate EtcdGrove.bbolt.Bucket.wp_dereference EtcdGrove.bbolt.DefaultLogger.wp_Errorf EtcdGrove.bbolt.Page.wp_Id EtcdGrove.bbolt.TxStats.wp_IncPageCount EtcdGrove.bbolt.TxStats.wp_IncPageAlloc
+
 theorem wp_compareKeys :
     EtcdGrove.bbolt.compareKeys.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.compareKeys.wp_proof
@@ -862,10 +881,6 @@ theorem node.wp_prevSibling :
 theorem node.wp_removeChild :
     EtcdGrove.bbolt.node.removeChild.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.node.removeChild.wp_proof
-
-theorem node.wp_root :
-    EtcdGrove.bbolt.node.root.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.node.root.wp_proof
 
 theorem node.wp_sizeLessThan :
     EtcdGrove.bbolt.node.sizeLessThan.spec (GF := GF) (hG := hG) :=
