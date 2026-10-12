@@ -38,6 +38,7 @@ public import Proof.go_etcd_io.bbolt.internal.freelist.Iface
 public import Perennial.Proof.sync_proof.mutex
 public import Perennial.Proof.sync_proof.rwmutex_guard
 public import Perennial.Ghost.GhostMap
+public import Proof.sync.PoolModel
 
 @[expose] public section
 
@@ -207,6 +208,12 @@ def mapTail (data : Loc) (bs : List w8) (sz ps : Nat) : IProp GF :=
   bytesPointsto (data +ₗ (((min sz bs.length / ps) * ps : Nat) : Int)) (DFrac.own halfQ)
     ((bs.take sz).drop ((min sz bs.length / ps) * ps))
 
+/-- What the page pool holds: zeroed byte slices of a page (`Tx.write` zeroes a page before
+putting it back; `New` makes one). -/
+def pageBuf (ps : Nat) (v : GoInterface) : IProp GF :=
+  iprop(∃ (s : GoSlice), ⌜v = interface.mkOk (go.GoType.SliceType go.byte) #s⌝ ∗
+    s ↦* List.replicate ps (W8 0))
+
 /-- `mmaplock`'s invariant: a ghost token. -/
 def mmapTok (γ : GName) (q : Qp) : IProp GF := ghostVar γ q ()
 
@@ -236,6 +243,7 @@ def ownDB (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DBState) : IP
     "Hflf" ∷ structFieldRef DB go!"freelist" dbl ↦{DFrac.own (flfQ σ.rwtx)} dv.freelist' ∗
     "Hdata" ∷ structFieldRef DB go!"data" dbl ↦{DFrac.own σ.frem} σ.data ∗
     "#Hps" ∷ structFieldRef DB go!"pageSize" dbl ↦□ W64 σ.ps ∗
+    "#Hpool" ∷ isPool (structFieldRef DB go!"pagePool" dbl) (pageBuf σ.ps) ∗
     "#Hfile" ∷ osFile σ.file σ.fd ∗
     "Hbytes" ∷ fileBytes σ.fd σ.bs ∗
     "Hmap" ∷ fileMap σ.fd (some (σ.data, σ.sz)) ∗
