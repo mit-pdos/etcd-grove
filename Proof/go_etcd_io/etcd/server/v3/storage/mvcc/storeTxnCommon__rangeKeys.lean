@@ -560,11 +560,29 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                     Hrp revBytes Hrb Hrbcap Hkvs Hps] []
               · cases todo
                 case true =>
-                  -- `context.TODO()`: `Done()` is `nil`, the case never fires
-                  iright
                   simp only [mvcc.rangeDone, ↓reduceIte]
-                  icases Hdone with %Hnil
-                  iapply chan.nilClausePre_recv Unit dch _ Hnil
+                  icases Hdone with (%Hnil | ⟨⟨%γd, #Hdone⟩, #Hnd⟩)
+                  · -- `context.TODO()`: `Done()` is `nil`, the case never fires
+                    iright
+                    iapply chan.nilClausePre_recv Unit dch _ Hnil
+                  -- a context never canceled: the case never fires (it would give `PDone`)
+                  ileft
+                  iintro ⟨HΦ, HsT, HtxcT, HtraceT, HRr, Hkn, tr, ro, curRev, Hend0, key, ctx, Hti0,
+                    Hrevscap, revpairs, total, Hkvscap, kvs, Hi, Hgo, Hrp, revBytes, Hrb, Hrbcap, Hkvs,
+                    Hps⟩
+                  simp only [chan.nonblockingAltClausePre]
+                  iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, dch, γd
+                  isplitr
+                  · ipureintro; rfl
+                  isplitr
+                  · iapply context.isContextDone_is_chan $$ Hdone
+                  iapply context.isContextDone_nonblocking_receive _ _ _ _ _ $$ Hdone
+                  isplit
+                  · iintro ⟨#Hp, -⟩
+                    iexfalso
+                    iunfold mvcc.neverDone at Hnd
+                    iapply Hnd $$ Hp
+                  · iframe
                 ileft
                 simp only [mvcc.rangeDone, mvcc.rangeCtx, Bool.false_eq_true, ↓reduceIte]
                 icases Hdone with ⟨%γd, #Hdone⟩

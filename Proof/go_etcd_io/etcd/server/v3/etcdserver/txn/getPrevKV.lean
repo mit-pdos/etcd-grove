@@ -76,7 +76,7 @@ theorem txn.getPrevKV.wp_proof
         wp_auto
         wp_apply hTODO
         ihave #Hctx : mvcc.rangeCtx true todoCtxVal txn.todoCd $$ []
-        · simp only [mvcc.rangeCtx, ↓reduceIte]; itrivial
+        · simp only [mvcc.rangeCtx, ↓reduceIte]; ileft; itrivial
         wp_apply (hRange mw s γ kind todoCtxVal txn.todoCd true ksl slice.nil k []
             (zero_val RangeOptions)) $$ [$Htx $Hctx $Hks $Hnil] as %r %rerr ⟨%Hrn, Htx, Hout⟩
         ihave ⟨%Hok, Htx⟩ := txn.isTxn_kindOk mw s γ kind $$ Htx
