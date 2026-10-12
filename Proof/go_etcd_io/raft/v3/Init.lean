@@ -39,12 +39,12 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 namespace log
 
-/-- A model of `log.New(out, prefix, flag)`: a new `*Logger`. The `Logger`'s contents are
-those of a zero `Logger` (`Logger` is an opaque type in Perennial's `log`); raft only stores
-the pointer (in `DefaultLogger`, whose methods the register's `quietLogger` replaces). -/
+/-- A model of `log.New(out, prefix, flag)`: a fresh pointer. `Logger` is an opaque type in
+Perennial's `log` (no layout, so no typed allocation), and raft only stores the pointer (in
+`DefaultLogger`, whose methods the register's `quietLogger` replaces), so the model
+allocates an untyped cell: what Go returns is a fresh, non-`nil` `*Logger`. -/
 def New.model [FfiSyntax] [GoGlobalContext] : val :=
-  λ: "out" "prefix" "flag",
-    App (Val (GoInstruction (GoAlloc log.Logger.ty))) (Val #(zero_val log.Logger))
+  λ: "out" "prefix" "flag", Alloc (Val #())
 
 /-- The name `log.New` stands for `New.model`: an assumption about the semantics, like the
 `FuncUnfold` fields of a package's `Assumptions` (Perennial translates `log` without
@@ -66,7 +66,7 @@ theorem wp_New (out : GoInterface) (pfx : GoString) (flag : w64) :
       (App (App (App (Val (@! log.New)) (Val #out)) (Val #pfx)) (Val #flag))
     {{ (l : Loc), RET #l; True }} := by
   wp_start
-  wp_alloc l as Hl
+  wp_apply (wp_alloc_untyped _ (isPanic_intoVal _)) as %l Hl
   iapply HΦ
   itrivial
 
