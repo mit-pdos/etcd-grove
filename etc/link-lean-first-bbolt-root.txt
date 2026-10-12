@@ -153,6 +153,8 @@ log_Logger__Output:
 header:
 DefaultLogger__Errorf: header log_Logger__Output
 DB__grow: DB__Logger DB__fileSize DefaultLogger__Errorf DB__growSize os_File__Truncate os_File__Sync
+Page__Meta: @
+DB__mmap: DB__Logger DB__fileSize DB__mmapSize DB__munmap bbolt_mmap DB__page Page__Meta Meta__Validate DefaultLogger__Errorf
 InBucket__InSequence: @
 Bucket__Cursor: TxStats__IncCursorCount
 Tx__Cursor: Bucket__Cursor
@@ -170,3 +172,8 @@ Tx__ForEach: Bucket__ForEach Bucket__Bucket
 DB__beginRWTx: Tx__init
 DB__Begin: DB__Logger DB__beginRWTx DB__beginTx
 DB__View: DB__Begin Tx__Rollback
+fdatasync: os_File__Fd syscall_Fdatasync
+funlock: os_File__Fd syscall_Flock
+flock: os_File__Fd syscall_Flock
+Meta__Freelist: @
+DB__hasSyncedFreelist: DB__meta Meta__Freelist

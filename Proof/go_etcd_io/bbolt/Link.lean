@@ -49,8 +49,10 @@ public import Proof.go_etcd_io.bbolt.DB__beginTx
 public import Proof.go_etcd_io.bbolt.DB__fileSize
 public import Proof.go_etcd_io.bbolt.DB__grow
 public import Proof.go_etcd_io.bbolt.DB__growSize
+public import Proof.go_etcd_io.bbolt.DB__hasSyncedFreelist
 public import Proof.go_etcd_io.bbolt.DB__invalidate
 public import Proof.go_etcd_io.bbolt.DB__meta
+public import Proof.go_etcd_io.bbolt.DB__mmap
 public import Proof.go_etcd_io.bbolt.DB__mmapSize
 public import Proof.go_etcd_io.bbolt.DB__munmap
 public import Proof.go_etcd_io.bbolt.DB__page
@@ -107,7 +109,10 @@ public import Proof.go_etcd_io.bbolt.mmap
 public import Proof.go_etcd_io.bbolt.munmap
 public import Proof.go_etcd_io.bbolt.elemRef__count
 public import Proof.go_etcd_io.bbolt.elemRef__isLeaf
+public import Proof.go_etcd_io.bbolt.fdatasync
+public import Proof.go_etcd_io.bbolt.flock
 public import Proof.io.fs.FileInfo__Size
+public import Proof.go_etcd_io.bbolt.funlock
 public import Proof.go_etcd_io.bbolt.getDiscardLogger
 public import Proof.go_etcd_io.bbolt.header
 public import Proof.log.Logger__Output
@@ -522,6 +527,10 @@ theorem DB.wp_grow :
     EtcdGrove.bbolt.DB.grow.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.grow.wp_proof EtcdGrove.bbolt.DB.wp_Logger EtcdGrove.bbolt.DB.wp_fileSize EtcdGrove.bbolt.DefaultLogger.wp_Errorf EtcdGrove.bbolt.DB.wp_growSize EtcdGrove.bbolt.os.File.wp_Truncate EtcdGrove.bbolt.os.File.wp_Sync
 
+theorem DB.wp_hasSyncedFreelist :
+    EtcdGrove.bbolt.DB.hasSyncedFreelist.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.hasSyncedFreelist.wp_proof EtcdGrove.bbolt.DB.wp_meta EtcdGrove.bbolt.Meta.wp_Freelist
+
 theorem DB.wp_invalidate :
     EtcdGrove.bbolt.DB.invalidate.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.invalidate.wp_proof
@@ -541,6 +550,26 @@ theorem wp_munmap :
 theorem DB.wp_munmap :
     EtcdGrove.bbolt.DB.munmap.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.munmap.wp_proof EtcdGrove.bbolt.wp_munmap EtcdGrove.bbolt.DB.wp_invalidate
+
+theorem os.File.wp_Fd :
+    EtcdGrove.bbolt.os.File.Fd.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.os.File.Fd.wp_proof
+
+theorem unix.wp_Mmap :
+    EtcdGrove.bbolt.unix.Mmap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.unix.Mmap.wp_proof
+
+theorem unix.wp_Madvise :
+    EtcdGrove.bbolt.unix.Madvise.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.unix.Madvise.wp_proof
+
+theorem wp_mmap :
+    EtcdGrove.bbolt.mmap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.mmap.wp_proof EtcdGrove.bbolt.os.File.wp_Fd EtcdGrove.bbolt.unix.wp_Mmap EtcdGrove.bbolt.unix.wp_Madvise
+
+theorem DB.wp_mmap [AllG GF] :
+    EtcdGrove.bbolt.DB.mmap.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DB.mmap.wp_proof EtcdGrove.bbolt.DB.wp_Logger EtcdGrove.bbolt.DB.wp_fileSize EtcdGrove.bbolt.DB.wp_mmapSize EtcdGrove.bbolt.DB.wp_munmap EtcdGrove.bbolt.wp_mmap EtcdGrove.bbolt.DB.wp_page EtcdGrove.bbolt.Page.wp_Meta EtcdGrove.bbolt.Meta.wp_Validate EtcdGrove.bbolt.DefaultLogger.wp_Errorf
 
 theorem DB.wp_pageInBuffer :
     EtcdGrove.bbolt.DB.pageInBuffer.spec (GF := GF) (hG := hG) :=
@@ -598,21 +627,25 @@ theorem wp_compareKeys :
     EtcdGrove.bbolt.compareKeys.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.compareKeys.wp_proof
 
-theorem os.File.wp_Fd :
-    EtcdGrove.bbolt.os.File.Fd.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.os.File.Fd.wp_proof
+theorem syscall.wp_Fdatasync :
+    EtcdGrove.bbolt.syscall.Fdatasync.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.syscall.Fdatasync.wp_proof
 
-theorem unix.wp_Mmap :
-    EtcdGrove.bbolt.unix.Mmap.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.unix.Mmap.wp_proof
+theorem wp_fdatasync :
+    EtcdGrove.bbolt.fdatasync.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.fdatasync.wp_proof EtcdGrove.bbolt.os.File.wp_Fd EtcdGrove.bbolt.syscall.wp_Fdatasync
 
-theorem unix.wp_Madvise :
-    EtcdGrove.bbolt.unix.Madvise.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.unix.Madvise.wp_proof
+theorem syscall.wp_Flock :
+    EtcdGrove.bbolt.syscall.Flock.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.syscall.Flock.wp_proof
 
-theorem wp_mmap :
-    EtcdGrove.bbolt.mmap.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.mmap.wp_proof EtcdGrove.bbolt.os.File.wp_Fd EtcdGrove.bbolt.unix.wp_Mmap EtcdGrove.bbolt.unix.wp_Madvise
+theorem wp_flock :
+    EtcdGrove.bbolt.flock.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.flock.wp_proof EtcdGrove.bbolt.os.File.wp_Fd EtcdGrove.bbolt.syscall.wp_Flock
+
+theorem wp_funlock :
+    EtcdGrove.bbolt.funlock.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.funlock.wp_proof EtcdGrove.bbolt.os.File.wp_Fd EtcdGrove.bbolt.syscall.wp_Flock
 
 theorem node.wp_childIndex :
     EtcdGrove.bbolt.node.childIndex.spec (GF := GF) (hG := hG) :=
@@ -701,14 +734,6 @@ theorem os.File.wp_WriteAt :
 theorem os.wp_OpenFile :
     EtcdGrove.bbolt.os.OpenFile.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.os.OpenFile.wp_proof
-
-theorem syscall.wp_Fdatasync :
-    EtcdGrove.bbolt.syscall.Fdatasync.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.syscall.Fdatasync.wp_proof
-
-theorem syscall.wp_Flock :
-    EtcdGrove.bbolt.syscall.Flock.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.syscall.Flock.wp_proof
 
 end links
 

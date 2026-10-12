@@ -105,11 +105,17 @@ namespace bbolt
 #print axioms os.File.wp_Truncate
 #print axioms os.File.wp_Sync
 #print axioms DB.wp_grow
+#print axioms DB.wp_hasSyncedFreelist
 #print axioms DB.wp_invalidate
 #print axioms DB.wp_mmapSize
 #print axioms unix.wp_Munmap
 #print axioms wp_munmap
 #print axioms DB.wp_munmap
+#print axioms os.File.wp_Fd
+#print axioms unix.wp_Mmap
+#print axioms unix.wp_Madvise
+#print axioms wp_mmap
+#print axioms DB.wp_mmap
 #print axioms DB.wp_pageInBuffer
 #print axioms Options.wp_String
 #print axioms TxStats.wp_Sub
@@ -124,10 +130,11 @@ namespace bbolt
 #print axioms Tx.wp_Stats
 #print axioms Tx.wp_Writable
 #print axioms wp_compareKeys
-#print axioms os.File.wp_Fd
-#print axioms unix.wp_Mmap
-#print axioms unix.wp_Madvise
-#print axioms wp_mmap
+#print axioms syscall.wp_Fdatasync
+#print axioms wp_fdatasync
+#print axioms syscall.wp_Flock
+#print axioms wp_flock
+#print axioms wp_funlock
 #print axioms node.wp_childIndex
 #print axioms node.wp_del
 #print axioms node.wp_dereference
@@ -150,8 +157,6 @@ namespace bbolt
 #print axioms os.File.wp_ReadAt
 #print axioms os.File.wp_WriteAt
 #print axioms os.wp_OpenFile
-#print axioms syscall.wp_Fdatasync
-#print axioms syscall.wp_Flock
 
 end bbolt
 end EtcdGrove
