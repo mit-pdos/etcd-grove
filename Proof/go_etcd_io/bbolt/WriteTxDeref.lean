@@ -64,10 +64,10 @@ inductive bktReach (T : WTx) (rl : Loc) : Loc → Prop
   | child (bl : Loc) (B : BRec) (name : GoString) (c : Loc) : bktReach T rl bl →
       T.bs !! bl = some B → B.bm !! name = some c → bktReach T rl c
 
-/-- What `dereference` of the root bucket `rl` needs (see the module doc): every bucket is
+/-- What `dereference` of the root bucket `rl` needs (see the module doc): the root is a bucket, every bucket is
 reachable from it. -/
 def derefReady (T : WTx) (rl : Loc) : Prop :=
-  (∀ bl, (T.bs !! bl).isSome → bktReach T rl bl) ∧
+  (T.bs !! rl).isSome ∧ (∀ bl, (T.bs !! bl).isSome → bktReach T rl bl) ∧
   (∃ dep : Loc → Nat, ∀ bl B name c, T.bs !! bl = some B → B.bm !! name = some c → dep c < dep bl) ∧
   ∀ bl B, T.bs !! bl = some B →
     (B.bv.rootNode' = null ∨ ∃ S, liveNodes B S ∧ ∀ l ∈ S, ∃ r, B.ns !! l = some r ∧ derefOK bl r) ∧
