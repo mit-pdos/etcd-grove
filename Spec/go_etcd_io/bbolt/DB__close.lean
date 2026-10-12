@@ -36,7 +36,7 @@ abbrev DB.close.spec : Prop :=
       structFieldRef DB go!"path" dbl ↦ p ∗
       (⌜f = null ∧ dr = slice.nil⌝ ∨
        (⌜f ≠ null⌝ ∗ fileBytes fd bs ∗
-        ((⌜dr = slice.nil⌝ ∗ fileMap fd none) ∨
+        ((⌜dr = slice.nil⌝ ∗ ∃ (m : Option (Loc × Nat)), fileMap fd m) ∨
          (⌜dr.ptr ≠ null ∧ dr.len = W64 n ∧ dr.cap = W64 n⌝ ∗
           fileMap fd (some (dr.ptr, n)) ∗ mapRange (some (dr.ptr, n)) bs 0 n)) ∗
         osFile f fd ∗ filePath fd path)) }}

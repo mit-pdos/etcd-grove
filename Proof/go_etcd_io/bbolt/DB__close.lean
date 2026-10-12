@@ -44,19 +44,22 @@ theorem DB.close.wp_proof (hmunmap : DB.munmap.spec (GF := GF) (hG := hG))
     iapply HΦ
     iframe
     ileft; ipureintro; rfl
-  ihave Hmu : ((⌜dr = slice.nil⌝ ∗ (fileBytes fd bs ∗ fileMap fd none)) ∨
+  ihave Hmu : ((⌜dr = slice.nil⌝ ∗ (fileBytes fd bs ∗ ∃ (m : Option (Loc × Nat)), fileMap fd m)) ∨
       (⌜dr.ptr ≠ null ∧ dr.len = W64 n ∧ dr.cap = W64 n⌝ ∗ fileBytes fd bs ∗
         fileMap fd (some (dr.ptr, n)) ∗ mapRange (some (dr.ptr, n)) bs 0 n)) $$ [Hbytes Hmap]
   · icases Hmap with (⟨%Hn, Hfm⟩ | ⟨%Hc, Hfm, Hr⟩)
     · ileft; iframe; ipureintro; exact Hn
     · iright; iframe; ipureintro; exact Hc
   wp_auto
-  wp_apply hmunmap dbl dr dp ds m0 m1 fd bs n iprop(fileBytes fd bs ∗ fileMap fd none)
+  wp_apply hmunmap dbl dr dp ds m0 m1 fd bs n
+    iprop(fileBytes fd bs ∗ ∃ (m : Option (Loc × Nat)), fileMap fd m)
     $$ [Hm0 Hm1 Hdr Hdp Hds Hmu] as ⟨Hdr, Hdp, Hds, Hm0, Hm1, Hmu⟩
   · iframe
-  ihave HBM : (fileBytes fd bs ∗ fileMap fd none : IProp GF) $$ [Hmu]
-  · icases Hmu with (⟨-, HB⟩ | HB) <;> iexact HB
-  icases HBM with ⟨Hbytes, Hmap⟩
+  ihave HBM : (fileBytes fd bs ∗ ∃ (m : Option (Loc × Nat)), fileMap fd m : IProp GF) $$ [Hmu]
+  · icases Hmu with (⟨-, HB⟩ | ⟨HB, HM⟩)
+    · iexact HB
+    · iframe; try (iexists _; iexact HM)
+  icases HBM with ⟨Hbytes, %mm, Hmap⟩
   try wp_auto
   rw [decide_eq_false hf]
   ihave Hs : ((zero_val GoSlice : GoSlice) ↦* ([] : List GoInterface)) $$ []
@@ -71,7 +74,7 @@ theorem DB.close.wp_proof (hmunmap : DB.munmap.spec (GF := GF) (hG := hG))
     try wp_auto
     rcases He1 with rfl | ⟨x, rfl⟩
     · try wp_auto
-      wp_apply hClose f fd bs path $$ [Hof Hbytes Hfp Hmap] as %e2 Hfs
+      wp_apply hClose f fd bs path mm $$ [Hof Hbytes Hfp Hmap] as %e2 Hfs
       · iframe; iframe #
       try wp_auto
       cases e2 with
@@ -134,7 +137,7 @@ theorem DB.close.wp_proof (hmunmap : DB.munmap.spec (GF := GF) (hG := hG))
       iintro %sl2 ⟨Hsl2, -⟩
       wp_apply wp_slice_append $$ [$Hs $Hc $Hsl2] as %es' ⟨Hs, Hc, -⟩
       try wp_auto
-      wp_apply hClose f fd bs path $$ [Hof Hbytes Hfp Hmap] as %e2 Hfs
+      wp_apply hClose f fd bs path mm $$ [Hof Hbytes Hfp Hmap] as %e2 Hfs
       · iframe; iframe #
       try wp_auto
       cases e2 with
@@ -186,7 +189,7 @@ theorem DB.close.wp_proof (hmunmap : DB.munmap.spec (GF := GF) (hG := hG))
              iframe)
   · -- read-only
     try wp_auto
-    wp_apply hClose f fd bs path $$ [Hof Hbytes Hfp Hmap] as %e2 Hfs
+    wp_apply hClose f fd bs path mm $$ [Hof Hbytes Hfp Hmap] as %e2 Hfs
     · iframe; iframe #
     try wp_auto
     cases e2 with

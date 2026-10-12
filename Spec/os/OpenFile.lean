@@ -25,8 +25,8 @@ abbrev os.OpenFile.spec : Prop :=
   {{ fsFile (GF := GF) path o }}
     (App (App (App (Val #(functions _root_.Perennial.os.OpenFile [])) (Val #path)) (Val flag)) (Val perm))
   {{ (f : Loc) (err : GoInterface), RET (PairV #f #err);
-      (⌜err ≠ interface.nil⌝ ∗ fsFile path o) ∨
-      (⌜err = interface.nil⌝ ∗ ∃ (fd : w64) (bs : List w8),
+      (⌜err ≠ interface.nil ∧ f = null⌝ ∗ fsFile path o) ∨
+      (⌜err = interface.nil ∧ f ≠ null⌝ ∗ ∃ (fd : w64) (bs : List w8),
         ⌜o = some bs ∨ (o = none ∧ bs = [])⌝ ∗ osFile f fd ∗ fileBytes fd bs ∗
         filePath fd path ∗ fileMap fd none) }}
 
