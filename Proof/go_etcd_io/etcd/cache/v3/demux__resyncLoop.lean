@@ -46,7 +46,7 @@ theorem demux.resyncLoop.wp_proof
   ipersist timer
   ihave #Ht' := Ht
   iunfold time.isTimer at Ht'
-  icases Ht' with ⟨#HC, #Hbag⟩
+  icases Ht' with ⟨#HC, #Hbag, -⟩
   try wp_auto
   wp_for
   wp_apply +noauto HDone as %ch1 %γ1 #Hdone

@@ -104,11 +104,15 @@ theorem ringBuffer.Append.wp_proof
   wp_if_destruct
   · -- full: the oldest item is overwritten, `tail` moves on
     try dsimp only at *
+    rw [if_neg (show ¬ sint.Z rb.buffer'.len = 0 by omega)]
+    wp_auto
     rw [ite_eq_left (by omega)]
     wp_apply wp_store_slice_index rb.buffer' (sint.Z rb.head') ents
       ({ revision' := revOf v, item' := item } : entry T') $$ [Hbuf] as Hbuf
     · iframe Hbuf; ipureintro; omega
     try dsimp only at *
+    rw [if_neg (show ¬ sint.Z rb.buffer'.len = 0 by omega)]
+    wp_auto
     iapply HΦ
     have Hlen' : (ringAppend items.length items v).length = items.length := by
       simp only [ringAppend, Nat.lt_irrefl, ite_false, List.length_append, List.length_tail,
@@ -150,6 +154,8 @@ theorem ringBuffer.Append.wp_proof
       ({ revision' := revOf v, item' := item } : entry T') $$ [Hbuf] as Hbuf
     · iframe Hbuf; ipureintro; omega
     try dsimp only at *
+    rw [if_neg (show ¬ sint.Z rb.buffer'.len = 0 by omega)]
+    wp_auto
     iapply HΦ
     have Hlt : items.length < cap := by omega
     have Hlen' : (ringAppend cap items v).length = items.length + 1 := by

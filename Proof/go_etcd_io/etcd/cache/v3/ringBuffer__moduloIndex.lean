@@ -33,6 +33,8 @@ theorem ringBuffer.moduloIndex.wp_proof :
   intro T' _ _ T _ r rb dq index
   wp_start as ⟨Hr, %Hidx⟩
   wp_auto
+  rw [if_neg (show ¬ sint.Z rb.buffer'.len = 0 by omega)]
+  wp_auto
   rw [srem_add_len index rb.buffer'.len _ rfl Hidx.1 Hidx.2.1 Hidx.2.2]
   iapply HΦ $$ Hr
 
