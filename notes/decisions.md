@@ -3286,6 +3286,33 @@ results and making the server's `applierFor` a definition.
 - **`auth.AuthStore` translated** (unit 1): `auth.toml` imports the packages its methods'
   signatures name; it was an axiomatized type whose generated instances are `sorry`.
 
+- **The uber-applier: persistent and thread-owned halves** (unit 2, `InvUber.lean`). `uberIs E p
+  opts` (fields written once, the options' contracts, the base chain) is persistent;
+  `uberOwn E p c` (the `applyV3` field and its chain) is the apply thread's, since
+  `restoreAlarms` rewrites it, also from inside the chain's `Apply` (an alarm request: `dispatch`
+  → `Alarm` → `restoreAlarms`), which is why `dispatch`'s `A`/`B` carry `applyV3 ↦` and the
+  chain's resources `chainRes c a` stay those of the applier `Apply` was called on. The chain
+  after `restoreAlarms` is existential (`alarmChain ns cr`: the alarm store's `Get` is any
+  slice). `applierFor ua E` takes the environment, not `P f`: the persistent and owned halves
+  must name the same store, which `P f` do not pin.
+- **`apply.Apply.spec` strengthened; the server keeps the old contract as an axiom until unit 3**
+  (unit 2). The new precondition's `rqOk x.log rq` depends on the log the earlier entries wrote,
+  so the server's loop can supply it only with the fold (`applyEntries_model`, unit 3); a
+  threaded `applyKV` with no claim about the next state cannot. The old statement is kept as
+  `apply.Apply_server.spec` with its axiom (renamed from `apply.Apply.wp_proof`; not derivable
+  from the new one, which has more premises), the server's `applierFor` axiom unchanged.
+  *Rejected:* deriving the old statement (impossible); putting `applyKV` in an invariant (the
+  call is not atomic).
+- **The cluster writes only with `shouldApplyV3`** (unit 2, `Contracts.lean` `cPre`/`cPost`): so
+  that `apply.Apply` without `v3`, which gets no hook triple from the server, can call the
+  cluster's methods and still return `Pre`. A strictly stronger restatement of the unit 1
+  triple (membership's `RaftCluster` saves to the backend `if shouldApplyV3`).
+- **`errors.Is`** (unit 2): the server's axiom (any error, any target) restated under the
+  `errors` package's assumptions and shared with `dispatch`, since Perennial's `errors.wp_Is`
+  (at `e4e126e46`) needs an error tree the components' errors do not have. On `lean` the
+  `errors.Is` spec now takes the tree (Perennial `e6ec34885`): the merge states `applyErrIs` of
+  the chain's and the contracts' errors (STATUS, unit 2, "Gap for the merge").
+
 ## mvcc: the batch lock runs the hook
 
 **2026-10-12 · adopted** (the server's apply package, unit A; plan: the apply package's

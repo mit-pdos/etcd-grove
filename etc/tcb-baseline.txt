@@ -7,7 +7,7 @@ axiom EtcdServer.stopWithDelay.wp_proof
 axiom EtcdStep
 axiom applierFor
 axiom applierFor_persistent
-axiom apply.Apply.wp_proof
+axiom apply.Apply_server.wp_proof
 axiom binary.bigEndian.PutUint64.wp_proof
 axiom binary.bigEndian.Uint64.wp_proof
 axiom config.ServerConfig.ElectionTimeout.wp_proof

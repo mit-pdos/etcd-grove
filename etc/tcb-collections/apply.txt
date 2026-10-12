@@ -8,6 +8,7 @@
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/(Link|Results)\.lean$
 axiom binary.bigEndian.PutUint64.wp_proof
 axiom context.WithValue.wp_proof
+axiom errors.Is.wp_proof
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom pbutil.MustUnmarshalMessage.wp_proof
 axiom prometheus.GaugeVec.WithLabelValues.wp_proof
@@ -29,6 +30,7 @@ axiom traceutil.Trace.StartSubTrace.wp_proof
 axiom traceutil.Trace.Step.wp_proof
 axiom traceutil.Trace.StepWithFunction.wp_proof
 axiom traceutil.Trace.StopSubTrace.wp_proof
+axiom txn.ApplySecObserve.wp_proof
 axiom txn.RangeSecObserve.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
