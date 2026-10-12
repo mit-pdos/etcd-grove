@@ -53,13 +53,13 @@ theorem apply.applierV3backend.Authenticate.wp_proof
   rw [Hcii]
   wp_apply HCI as %ci -
   wp_apply (hWV context.backgroundCtxVal
-      ⟨go_etcd_io.etcd.server.v3.auth.AuthenticateParamIndex.ty, _⟩ _) as %c1 %Hc1
+      ⟨go_etcd_io.etcd.server.v3.auth.AuthenticateParamIndex.ty, _⟩ _) as %c1 ⟨%Hc1, -⟩
   · ipureintro; exact Or.inl rfl
   rcases c1 with c1i | _
   case nil => exact absurd rfl Hc1
   wp_apply (hWV c1i
-      ⟨go_etcd_io.etcd.server.v3.auth.AuthenticateParamSimpleTokenPrefix.ty, _⟩ _) as %c2 -
-  · ipureintro; exact Or.inr rfl
+      ⟨go_etcd_io.etcd.server.v3.auth.AuthenticateParamSimpleTokenPrefix.ty, _⟩ _) as %c2 ⟨-, -⟩
+  · ipureintro; exact Or.inr (Or.inl rfl)
   rw [Hai]
   wp_apply HM $$ %c2 %am.name %am.password %Pre %Q %Post [$Hcs] as %resp %err ⟨HPP, Hhdr, #HeI⟩
   iunfold apply.kvOwn at Hkv
