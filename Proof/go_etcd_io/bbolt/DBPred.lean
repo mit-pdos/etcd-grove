@@ -139,11 +139,12 @@ whole. -/
 def fieldsOK (σ : DBState) : Prop :=
   fracSum σ.frem (wQ σ.wr (fun _ => true) (readersQ σ.readers (fun _ => true))) 1
 
-/-- A reader's pages are the file's, inside the mapping, and form its well-formed tree. -/
+/-- A reader's pages are the file's, inside the mapping and below its high-water mark, and
+form its well-formed tree. -/
 def readerOK (σ : DBState) (r : Reader) : Prop :=
   treeWF r.pages r.hwm r.root ∧ pagesDisjoint r.pages ∧
   (∀ id pg, r.pages !! id = some pg →
-    pageAt σ.bs σ.ps id = pg ∧ id + pageSpan σ.bs σ.ps id ≤ σ.nslots)
+    pageAt σ.bs σ.ps id = pg ∧ id + pageSpan σ.bs σ.ps id ≤ min σ.nslots r.hwm)
 
 /-- bbolt's MVCC rule, for a view of transaction `txid` (a reader's, or the writer's) of the
 pages `pages`: they were allocated by `txid` or before (`allocs`); a slot they cover is no meta
@@ -172,15 +173,15 @@ def metaIn (σ : DBState) (s : Nat) (v : internal.common.Meta) : Prop :=
   ((slotAt σ.bs σ.ps s).drop 16).take 64 = metaBytes v
 
 /-- The current tree (of the meta `db.meta()` picks): well-formed, its pages disjoint, inside
-the mapping, allocated by its transaction or before, and none free or pending (a new reader
-sees it, `mvccOK`). -/
+the mapping and below the high-water mark, allocated by its transaction or before, and none
+free or pending (a new reader sees it, `mvccOK`). -/
 def currentOK (σ : DBState) (v0 v1 : internal.common.Meta) : Prop :=
   let m := if metaPick v0 v1 then v1 else v0
   let hwm := uint.nat m.pgid'
   let root := uint.nat m.root'.root'
   let ps := treePages (filePages σ.bs σ.ps hwm) root
   treeWF ps hwm root ∧ pagesDisjoint ps ∧
-  (∀ id pg, ps !! id = some pg → id + pageSpan σ.bs σ.ps id ≤ σ.nslots) ∧
+  (∀ id pg, ps !! id = some pg → id + pageSpan σ.bs σ.ps id ≤ min σ.nslots hwm) ∧
   (∀ id pg, ps !! id = some pg → ∀ a, σ.fl.allocs !! W64 id = some a →
     uint.Z a ≤ uint.Z m.txid') ∧
   (∀ s, coversSlot ps s → 2 ≤ s ∧ W64 s ∉ σ.fl.free ∧

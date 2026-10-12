@@ -87,7 +87,7 @@ theorem end_give (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 v
   obtain ⟨_, rdisj, rin⟩ := hrd k r hk
   have Hcarve := slots_carve (GF := GF) σ.data σ.bs σ.ps (σ.removeReader k r ro).rem σ.rem r.q
     σ.nslots r.pages (by omega) (nslots_mul_le σ)
-    (fun id pg hid => ⟨(rin id pg hid).1.symm, (rin id pg hid).2⟩) rdisj
+    (fun id pg hid => ⟨(rin id pg hid).1.symm, by have := (rin id pg hid).2; omega⟩) rdisj
     (fun s _ hc => by
       show (if r.sees s then σ.rem s + r.q else σ.rem s) = σ.rem s + r.q
       rw [show r.sees s = true by unfold Reader.sees; simp only [decide_eq_true_eq]; exact hc]

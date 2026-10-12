@@ -115,7 +115,7 @@ theorem remap_gather (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ 
   have hro := writer_readerOK σ v0 v1 h w hw
   have hps16 : 16 ≤ σ.ps := by have := h.1; omega
   have Hc := slots_carve (GF := GF) σ.data σ.bs σ.ps (fun _ => halfQ) σ.rem w.q σ.nslots w.pages
-    hps16 (nslots_mul_le σ) (fun id pg hid => ⟨(hro.2.2 id pg hid).1.symm, (hro.2.2 id pg hid).2⟩)
+    hps16 (nslots_mul_le σ) (fun id pg hid => ⟨(hro.2.2 id pg hid).1.symm, by have := (hro.2.2 id pg hid).2; omega⟩)
     hro.2.1
     (fun s hs hc => by
       have := (slot_half σ v0 v1 h hr w hw s hs).1
@@ -185,7 +185,7 @@ theorem readerOK_remap (σ : DBState) (d' : Loc) (sz' : Nat) (hsz : σ.sz ≤ sz
   have hmono : σ.nslots ≤ (σ.remap d' sz').nslots := by
     unfold DBState.nslots DBState.remap; exact Nat.div_le_div_right (by simp only; omega)
   obtain ⟨wf, disj, hin⟩ := h
-  exact ⟨wf, disj, fun id pg hid => ⟨(hin id pg hid).1, Nat.le_trans (hin id pg hid).2 hmono⟩⟩
+  exact ⟨wf, disj, fun id pg hid => ⟨(hin id pg hid).1, by have := (hin id pg hid).2; simp only [DBState.remap.proj_bs, DBState.remap.proj_ps] at *; omega⟩⟩
 
 /-- A remap to a mapping no smaller (below `MaxMapSize`, at a non-null address) keeps the
 database's facts. -/
@@ -198,7 +198,7 @@ theorem dbOK_remap (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0
   have hps16 : 16 ≤ σ.ps := by omega
   obtain ⟨cwf, cdisj, cin, calloc, cfree⟩ := hcur
   refine ⟨hps, hps2, by omega, hsz', hd', hm0, hm1, hv,
-    ⟨cwf, cdisj, fun id pg hid => Nat.le_trans (cin id pg hid) hmono, calloc, cfree⟩,
+    ⟨cwf, cdisj, fun id pg hid => by have := cin id pg hid; simp only [DBState.remap.proj_bs, DBState.remap.proj_ps] at *; omega, calloc, cfree⟩,
     fun k r hk => readerOK_remap σ d' sz' hsz r (hrd k r hk), hmv, ?_, hfl, hro, hrs,
     ⟨hwr.1, fun w hw => ⟨readerOK_remap σ d' sz' hsz w (hwr.2 w hw).1, (hwr.2 w hw).2⟩⟩⟩
   intro s hs

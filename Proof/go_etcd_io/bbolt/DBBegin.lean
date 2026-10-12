@@ -330,7 +330,7 @@ theorem begin_carve (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v
   have Hcarve := slots_carve (GF := GF) σ.data σ.bs σ.ps σ.rem
     (σ.addReader k (newReader σ v0 v1 (beginQ σ))).rem (beginQ σ) σ.nslots
     (newReader σ v0 v1 (beginQ σ)).pages (by omega) (nslots_mul_le σ)
-    (fun id pg hid => ⟨newReader_pages σ v0 v1 _ id pg hid, cin id pg hid⟩) cdisj
+    (fun id pg hid => ⟨newReader_pages σ v0 v1 _ id pg hid, by have := cin id pg hid; omega⟩) cdisj
     (fun s hs hc => by
       show σ.rem s = (if (newReader σ v0 v1 (beginQ σ)).sees s then
         qsub (σ.rem s) (newReader σ v0 v1 (beginQ σ)).q else σ.rem s) + beginQ σ
