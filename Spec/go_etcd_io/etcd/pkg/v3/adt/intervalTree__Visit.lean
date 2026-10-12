@@ -26,14 +26,14 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 /-- `t.Visit(ivl, ivv)` for a query that is not empty-and-finite (`b = ""` or `b < e`), at a
 fraction `q` of the tree: calls the visitor on (pointers to) the `IntervalValue`s of exactly the
 entries overlapping the query, in the tree's order; the visitor keeps each pointer's points-to
-(recorded in `I`) and goes on (`ivVisitorOk`). The pointers are lent: the tree is given back by
+(recorded in `I`) and goes on (`ivVisitorOk`), told it is called on those entries in order. The pointers are lent: the tree is given back by
 the wand. -/
 abbrev adt.intervalTree.Visit.spec : Prop :=
   ∀ (t : Loc) (L : List adt.Entry) (b e : GoString) (q : Qp) (ivv : GoFunc)
     (I : List (Loc × adt.Entry) → IProp GF),
   (b = go!"" ∨ adt.affLt b e) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ adt.ownIvt t L q ∗
-      adt.ivVisitorOk q ivv I ∗ I [] }}
+      adt.ivVisitorOk q (adt.stab (b, e) L) ivv I ∗ I [] }}
     (App (App (Val (t @!! go.GoType.PointerType intervalTree.ty @!! go!"Visit"))
       (Val #(adt.affIvl b e))) (Val #ivv))
   {{ (ps : List Loc), RET #(); ⌜ps.length = (adt.stab (b, e) L).length⌝ ∗

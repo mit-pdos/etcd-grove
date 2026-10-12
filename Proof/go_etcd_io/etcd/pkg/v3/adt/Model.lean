@@ -253,6 +253,13 @@ theorem length_ivtInsert (z : Entry) (L : List Entry) :
     (ivtInsert z L).length = L.length + 1 := by
   rw [(ivtInsert_perm z L).length_eq, List.length_cons]
 
+/-- `Union`'s inserts, one by one: the count grows by the number inserted. -/
+theorem length_foldl_ivtInsert (zs L : List Entry) :
+    (zs.foldl (fun acc z => ivtInsert z acc) L).length = L.length + zs.length := by
+  induction zs generalizing L with
+  | nil => rfl
+  | cons z zs ih => rw [List.foldl_cons, ih, length_ivtInsert, List.length_cons]; omega
+
 /-- `Insert` keeps the entries sorted (by their intervals, strictly), given that the new
 interval is not in the tree. -/
 theorem ivtInsert_sorted (z : Entry) (L : List Entry)

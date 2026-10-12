@@ -2015,6 +2015,17 @@ record.
   the fraction and the count bound. Done at the merge (2026-10-12): `Union` takes `L.length + L'.length < 2^63`,
   which `checkIntervals` gets from a premise on the request (`delCount`, the deletes at every depth,
   in `txnReqWire`): nested transactions may share structure in memory, so no slice length bounds it.
+- **The visitor's position** (2026-10-12, 4d; the third correction found by the tree's proof).
+  `Visit`'s closure protocol (`ivVisitorOk q ivv I`: the visitor takes `I acc` and the lent pair,
+  gives `I (acc ++ [(p, z)])`) held for any `acc`, so a visitor could not know how many entries it
+  had seen; `Union`'s visitor calls `Insert`, whose count-bound premise needs that number below
+  the other tree's size. The protocol now names the entries the visitor will see, `S` (`Visit`
+  passes `stab (b, e) L`), and each call carries `⌜acc.map Prod.snd ++ [z] <+: S⌝`; the
+  internal `visit` takes `S` with the premise that `acc` and its subtree's stabbed entries are a
+  prefix of it. *Rejected:* a count bound as a premise of `Union` on the *sum* only, with the
+  closure's invariant carrying the bound (it cannot: the invariant is over `acc`, whose length
+  the old protocol did not relate to `L'`); an `ownIvt t L q` with the bound `L.length <
+  2^63 - (something)` (changes every spec). No client of `Visit` but `Stab` and `Union`.
 - **The hole's frames have locations** (2026-10-12, 4c). 4b's `ownCtx t s C n p mh` quantified
   the frames' nodes existentially: enough for `Insert` (the fixup only moves up, by reading
   `parent`), not for `Delete`, which reads a node back after a helper has walked up through

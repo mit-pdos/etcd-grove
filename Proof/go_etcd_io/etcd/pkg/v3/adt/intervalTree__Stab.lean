@@ -61,7 +61,7 @@ theorem adt.intervalTree.Stab.wp_proof
       imodintro
       iintro %pv %z %acc %Φ'
       imodintro
-      iintro ⟨HIa, Hpv⟩ HΦ'
+      iintro ⟨%_, HIa, Hpv⟩ HΦ'
       icases HIa with ⟨%sl, Hivs, Hsl, Hcap, Hacc⟩
       wp_auto
       wp_apply wp_slice_literal (l := [pv])

@@ -151,28 +151,33 @@ theorem ownNodeH_fill (s : Loc) (q : Qp) (qv : IvlS) : ∀ (p n : Loc) (T : RbT 
 /-! ## The visitors -/
 
 /-- A node visitor (`visit`'s `nv`) that keeps the `iv` field of each node it is given, records
-it in `I`, and goes on (returns `true`). -/
-def nodeVisitorOk (q : Qp) (nv : GoFunc) (I : List (Loc × Entry) → IProp GF) : IProp GF :=
+it in `I`, and goes on (returns `true`). It is called on the entries of `S` in order (the entries
+visited so far and the new one are a prefix of `S`): what bounds the number of calls (`Union`'s
+inserts). -/
+def nodeVisitorOk (q : Qp) (S : List Entry) (nv : GoFunc) (I : List (Loc × Entry) → IProp GF) :
+    IProp GF :=
   iprop(□ ∀ (n : Loc) (z : Entry) (acc : List (Loc × Entry)),
-    {{ I acc ∗ n.[intervalNode, go!"iv"] ↦{DFrac.own q}
+    {{ ⌜acc.map Prod.snd ++ [z] <+: S⌝ ∗ I acc ∗ n.[intervalNode, go!"iv"] ↦{DFrac.own q}
         ({ Ivl' := affIvl z.1.1 z.1.2, Val' := z.2 } : IntervalValue) }}
       (App (Val #nv) (Val #n))
     {{ RET #true; I (acc ++ [(n, z)]) }})
 
-instance nodeVisitorOk_persistent (q : Qp) (nv : GoFunc) (I : List (Loc × Entry) → IProp GF) :
-    Persistent (nodeVisitorOk q nv I) := by
+instance nodeVisitorOk_persistent (q : Qp) (S : List Entry) (nv : GoFunc)
+    (I : List (Loc × Entry) → IProp GF) : Persistent (nodeVisitorOk q S nv I) := by
   unfold nodeVisitorOk; infer_instance
 
 /-- An interval-value visitor (`Visit`'s `ivv`) that keeps each `IntervalValue` pointer it is
-given, records it in `I`, and goes on. -/
-def ivVisitorOk (q : Qp) (ivv : GoFunc) (I : List (Loc × Entry) → IProp GF) : IProp GF :=
+given, records it in `I`, and goes on; called on the entries of `S` in order, as
+`nodeVisitorOk`. -/
+def ivVisitorOk (q : Qp) (S : List Entry) (ivv : GoFunc) (I : List (Loc × Entry) → IProp GF) :
+    IProp GF :=
   iprop(□ ∀ (pv : Loc) (z : Entry) (acc : List (Loc × Entry)),
-    {{ I acc ∗ pv ↦{DFrac.own q} ({ Ivl' := affIvl z.1.1 z.1.2, Val' := z.2 } : IntervalValue) }}
+    {{ ⌜acc.map Prod.snd ++ [z] <+: S⌝ ∗ I acc ∗ pv ↦{DFrac.own q} ({ Ivl' := affIvl z.1.1 z.1.2, Val' := z.2 } : IntervalValue) }}
       (App (Val #ivv) (Val #pv))
     {{ RET #true; I (acc ++ [(pv, z)]) }})
 
-instance ivVisitorOk_persistent (q : Qp) (ivv : GoFunc) (I : List (Loc × Entry) → IProp GF) :
-    Persistent (ivVisitorOk q ivv I) := by
+instance ivVisitorOk_persistent (q : Qp) (S : List Entry) (ivv : GoFunc)
+    (I : List (Loc × Entry) → IProp GF) : Persistent (ivVisitorOk q S ivv I) := by
   unfold ivVisitorOk; infer_instance
 
 end holes

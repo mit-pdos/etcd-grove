@@ -34,15 +34,15 @@ theorem adt.intervalTree.Visit.wp_proof
   simp only [recv_eq_func_mk]
   let I' : List (Loc × adt.Entry) → IProp GF :=
     fun acc => I (acc.map fun x => (x.1.[intervalNode, go!"iv"], x.2))
-  wp_apply (h_visit tv.sentinel' q tv.sentinel' tv.root' T ivl_ptr (DFrac.own 1) b e _ I' []
-    hsorted hq) $$ [Hn ivl HI] as ⟨%ns, Hn, ivl, HI⟩
+  wp_apply (h_visit tv.sentinel' q tv.sentinel' tv.root' T ivl_ptr (DFrac.own 1) b e _ (adt.stab (b, e) T.inorder) I' []
+    hsorted hq (by simp)) $$ [Hn ivl HI] as ⟨%ns, Hn, ivl, HI⟩
   · iframe Hn ivl
     isplitr [HI]
     · iunfold adt.nodeVisitorOk
       imodintro
       iintro %n %z %acc %Φ'
       imodintro
-      iintro ⟨HIa, Hivn⟩ HΦ'
+      iintro ⟨%hpre, HIa, Hivn⟩ HΦ'
       wp_auto
       ihave Hivv' := Hivv
       iunfold adt.ivVisitorOk at Hivv'
@@ -52,6 +52,8 @@ theorem adt.intervalTree.Visit.wp_proof
       wp_bind (App (Val #ivv) (Val #(n.[intervalNode, go!"iv"])))
       iapply Hivv' $$ [HIa Hivn]
       · iframe
+        ipureintro
+        simpa [List.map_map, Function.comp_def] using hpre
       inext
       iintro HIa
       wp_auto

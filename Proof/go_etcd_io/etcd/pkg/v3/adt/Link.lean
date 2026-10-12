@@ -24,6 +24,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Insert
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Intersects
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Len
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Stab
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Union
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Visit
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__createIntervalNode
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__deleteFixup
@@ -33,7 +34,6 @@ public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__replaceParent
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__rotateLeft
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.intervalTree__rotateRight
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.ownIvt_split
-public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Union
 
 @[expose] public section
 
@@ -146,6 +146,10 @@ theorem adt.intervalTree.wp_Visit :
 theorem adt.intervalTree.wp_Stab :
     adt.intervalTree.Stab.spec (GF := GF) (hG := hG) :=
   adt.intervalTree.Stab.wp_proof adt.intervalTree.wp_Visit
+
+theorem adt.intervalTree.wp_Union :
+    adt.intervalTree.Union.spec (GF := GF) (hG := hG) :=
+  adt.intervalTree.Union.wp_proof adt.intervalTree.wp_Visit adt.intervalTree.wp_Insert
 
 theorem adt.wp_ownIvt_split :
     adt.ownIvt_split.spec (GF := GF) (hG := hG) :=

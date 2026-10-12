@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 theorem adt.intervalNode.visit.wp_proof
     (h_Interval_Compare : adt.Interval.Compare.spec (GF := GF) (hG := hG)) :
     adt.intervalNode.visit.spec (GF := GF) (hG := hG) := by
-  intro s q p x Tx ivp dq b e nv I acc hs hq
+  intro s q p x Tx ivp dq b e nv S I acc hs hq hS
   induction Tx generalizing p x acc with
   | leaf =>
     wp_start as ⟨Hx, Hiv, #Hnv, HI⟩
@@ -62,13 +62,17 @@ theorem adt.intervalNode.visit.wp_proof
     have hvr := adt.visit_stab (b, e) hq r hsr
     unfold adt.RbT.visitL at hvis
     rw [hvl, hvr] at hvis
+    have hS' := hS
+    rw [adt.stab_node] at hS'
+    have hSl : acc.map Prod.snd ++ adt.stab (b, e) l.inorder <+: S :=
+      (List.prefix_append _ _).trans (by simpa only [List.append_assoc] using hS')
     by_cases hneg : adt.ivlCmp (b, e) z.1 < 0
     · -- left only
       have hne : ¬ adt.ivlCmp (b, e) z.1 = 0 := by omega
       simp only [hneg, ↓reduceIte, hne] at hvis
       have hr0 : adt.stab (b, e) r.inorder = [] := by simpa using hvis
       wp_if_destruct
-      · wp_apply (ihl x lp acc hsl) $$ [$Hnl $Hivp $HI $Hnv] as ⟨%nsl, Hnl, Hivp, HI⟩
+      · wp_apply (ihl x lp acc hsl hSl) $$ [$Hnl $Hivp $HI $Hnv] as ⟨%nsl, Hnl, Hivp, HI⟩
         iapply HΦ
         iexists nsl
         rw [adt.stab_node, hr0]
@@ -105,9 +109,13 @@ theorem adt.intervalNode.visit.wp_proof
         wp_if_destruct
         · -- both subtrees
           have hm := hmw.1 Hif
-          wp_apply (ihl x lp acc hsl) $$ [$Hnl $Hivp $HI $Hnv] as ⟨%nsl, Hnl, Hivp, HI⟩
-          wp_apply (ihr x rp _ hsr) $$ [$Hnr $Hivp $HI $Hnv] as ⟨%nsr, Hnr, Hivp, HI⟩
+          wp_apply (ihl x lp acc hsl hSl) $$ [$Hnl $Hivp $HI $Hnv] as ⟨%nsl, Hnl, Hivp, HI⟩
           ihave %hl1 := adt.ownNodeH_length _ _ _ _ _ _ _ $$ Hnl
+          have hSr : (acc ++ nsl.zip (adt.stab (b, e) l.inorder)).map Prod.snd ++
+              adt.stab (b, e) r.inorder <+: S := by
+            rw [List.map_append, List.map_snd_zip (by omega)]
+            simpa only [hne, ↓reduceIte, List.append_nil, List.append_assoc] using hS'
+          wp_apply (ihr x rp _ hsr hSr) $$ [$Hnr $Hivp $HI $Hnv] as ⟨%nsr, Hnr, Hivp, HI⟩
           iapply HΦ
           iexists nsl ++ nsr
           rw [adt.stab_node]
@@ -143,13 +151,23 @@ theorem adt.intervalNode.visit.wp_proof
     have hz0 : adt.ivlCmp (b, e) z.1 = 0 := by omega
     wp_if_destruct
     · exfalso; apply hpos; simpa [hz _ hvb.1 hvb.2, h0] using Hif
-    wp_apply (ihl x lp acc hsl) $$ [$Hnl $Hivp $HI $Hnv] as ⟨%nsl, Hnl, Hivp, HI⟩
+    wp_apply (ihl x lp acc hsl hSl) $$ [$Hnl $Hivp $HI $Hnv] as ⟨%nsl, Hnl, Hivp, HI⟩
+    ihave %hl1 := adt.ownNodeH_length _ _ _ _ _ _ _ $$ Hnl
+    have hSz : (acc ++ nsl.zip (adt.stab (b, e) l.inorder)).map Prod.snd ++ [z] <+: S := by
+      rw [List.map_append, List.map_snd_zip (by omega)]
+      exact (List.prefix_append _ _).trans
+        (by simpa only [hz0, ↓reduceIte, List.append_assoc, List.singleton_append] using hS')
+    have hSr : ((acc ++ nsl.zip (adt.stab (b, e) l.inorder)) ++ [(x, z)]).map Prod.snd ++
+        adt.stab (b, e) r.inorder <+: S := by
+      rw [List.map_append, List.map_append, List.map_snd_zip (by omega)]
+      simpa only [hz0, ↓reduceIte, List.append_assoc, List.map_cons, List.map_nil,
+        List.singleton_append, List.cons_append, List.nil_append] using hS'
     ihave Hnv' := Hnv
     iunfold adt.nodeVisitorOk at Hnv'
     wp_apply Hnv' $$ %x %z %(acc ++ nsl.zip (adt.stab (b, e) l.inorder)) [HI Hiv] as HI
     · iframe
-    wp_apply (ihr x rp _ hsr) $$ [$Hnr $Hivp $HI $Hnv] as ⟨%nsr, Hnr, Hivp, HI⟩
-    ihave %hl1 := adt.ownNodeH_length _ _ _ _ _ _ _ $$ Hnl
+      ipureintro; exact hSz
+    wp_apply (ihr x rp _ hsr hSr) $$ [$Hnr $Hivp $HI $Hnv] as ⟨%nsr, Hnr, Hivp, HI⟩
     iapply HΦ
     iexists nsl ++ [x] ++ nsr
     rw [adt.stab_node]

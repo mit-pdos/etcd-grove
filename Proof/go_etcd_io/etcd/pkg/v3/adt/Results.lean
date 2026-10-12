@@ -27,6 +27,9 @@ set_option pp.fullNames true
 #print axioms Perennial.EtcdGrove.adt.ivtInsert_ivSorted
 #print axioms Perennial.EtcdGrove.adt.mem_ivtInsert
 
+/-! `Union`'s count bound (`Model.lean`): the inserts, one by one, add their number. -/
+#print axioms Perennial.EtcdGrove.adt.length_foldl_ivtInsert
+
 /-! The tree model's lemmas the reads rest on (`Tree.lean`): `find`'s, `Intersects`'s and
 `visit`'s descents are correct over the in-order list, and the rotations keep it. -/
 #print axioms Perennial.EtcdGrove.adt.findE_some

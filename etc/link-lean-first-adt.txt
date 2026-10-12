@@ -33,6 +33,7 @@ intervalNode__min:
 intervalNode__successor: intervalNode__min
 intervalTree__deleteFixup: intervalNode__color intervalTree__rotateLeft intervalTree__rotateRight
 intervalTree__Delete: intervalTree__find intervalNode__successor intervalNode__updateMax intervalNode__color intervalTree__deleteFixup
-# Added for the server's request path (v3rpc.checkIntervals, 2026-10-12), in the contract's style:
-# specified, proved in the tree's unit 4d (`Visit` with a closure inserting into the other tree).
-intervalTree__Union: ?
+# Added for the server's request path (v3rpc.checkIntervals, 2026-10-12), in the contract's style;
+# proved in unit 4d (`Visit` with a closure inserting into the other tree; the visitor protocol
+# tells the visitor its position among the stabbed entries, for `Insert`'s count bound).
+intervalTree__Union: intervalTree__Visit intervalTree__Insert
