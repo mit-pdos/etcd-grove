@@ -526,7 +526,8 @@ def storeTxnReadIs (tr s : Loc) (rt : GoInterfaceOk) (trace : Loc) (γ : StoreNa
     "%Hsub" ∷ ⌜GMap.Subseteq (bucketMap log) m⌝ ∗
     "#Hcert" ∷ idxCert γ.idx log ∗
     "%Hne" ∷ ⌜log ≠ []⌝ ∗
-    "%Hrev" ∷ ⌜rev = W64 ((log.length : Int) - 1)⌝)
+    "%Hrev" ∷ ⌜rev = W64 ((log.length : Int) - 1)⌝ ∗
+    "%Htrnn" ∷ ⌜trace ≠ null⌝)
 
 instance storeTxnReadIs_persistent (tr s : Loc) (rt : GoInterfaceOk) (trace : Loc) (γ : StoreNames)
     (log : Log) (rev : w64) : Persistent (storeTxnReadIs (GF := GF) tr s rt trace γ log rev) := by
@@ -682,7 +683,8 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Cha
     "%Hne" ∷ ⌜ilog ≠ []⌝ ∗
     "Hmu" ∷ sync.ownRWMutexRLocked (muAddr s) muInv ∗
     "HrevMu" ∷ sync.ownRWMutex (revMuAddr s) (revMuInv s γ) ∗
-    "Hti" ∷ idxReader ti γ.idx)
+    "Hti" ∷ idxReader ti γ.idx ∗
+    "%Htrnn" ∷ ⌜trace ≠ null⌝)
 
 /-- The write transaction `store.Write` returns, as the caller sees it: the `metricsTxnWrite`
 wrapper at `mw` (its counters `puts`, `deletes`, `putSize`) around the `storeTxnWrite`. -/

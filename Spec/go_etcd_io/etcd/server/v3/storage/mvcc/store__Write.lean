@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 abbrev mvcc.store.Write.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ }}
+      mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗ ⌜trace ≠ null⌝ }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Write")) (Val #trace))
   {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
       ∃ ilog : mvcc.Log, mvcc.isTxnWrite mw s γ ilog [] (W64 0) (W64 0) (W64 0) }}

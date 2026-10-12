@@ -35,6 +35,7 @@ abbrev mvcc.storeTxnCommon.rangeKeys.spec : Prop :=
     (γ : mvcc.StoreNames) (kn : mvcc.IdxKnow) (log : mvcc.Log) (rev : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool)
     (key endk : GoSlice) (k e : GoString) (ro : RangeOptions),
+  trace ≠ null →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗
       txc.[storeTxnCommon, go!"s"] ↦{dq} s ∗

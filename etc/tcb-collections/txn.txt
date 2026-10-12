@@ -11,7 +11,6 @@ axiom proto.Size.wp_proof
 axiom proto.Unmarshal.wp_proof
 axiom traceutil.EnsureTrace.wp_proof
 axiom traceutil.Get.wp_proof
-axiom traceutil.TODO.wp_proof
 axiom traceutil.Trace.AddField.wp_proof
 axiom traceutil.Trace.StartSubTrace.wp_proof
 axiom traceutil.Trace.Step.wp_proof

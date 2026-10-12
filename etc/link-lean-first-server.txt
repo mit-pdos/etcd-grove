@@ -30,13 +30,20 @@ ConfChange__GetId:
 apply_Apply:
 EtcdServer__applyConfChange:
 pbutil_MustUnmarshalMessage:
-EtcdServer__isLeader:
-EtcdServer__Logger:
 EtcdServer__GoAttach:
 EtcdServer__stopWithDelay:
+# The apply thread's small callees, with bodies (proved): the server's leader test and
+# logger (server.go), the notifier (pkg/notify), the election timeout (server/config), the
+# alarm store's Get (api/v3alarm).
+EtcdServer__MemberID:
+EtcdServer__getLead:
+EtcdServer__Lead: EtcdServer__getLead
+EtcdServer__isLeader: EtcdServer__MemberID EtcdServer__Lead
+EtcdServer__Logger:
 Notifier__Notify:
 ServerConfig__ElectionTimeout:
 AlarmStore__Get:
+# (the trust boundary, continued)
 RaftCluster__Members:
 errors_Is:
 go_humanize_Bytes:

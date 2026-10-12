@@ -21,10 +21,10 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `t.Step(msg, fields...)` returns (any `t`, `nil` included: tracing has no effect here). -/
+/-- `t.Step(msg, fields...)` (a trace not nil: `Step` reads `t.stepDisabled`) returns. -/
 abbrev traceutil.Trace.Step.spec : Prop :=
   ∀ (t : Loc) (msg : GoString) (fields : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ ⌜t ≠ null⌝ }}
     (App (App (Val (t @!! go.GoType.PointerType traceutil.Trace.ty @!! go!"Step")) (Val #msg))
       (Val #fields))
   {{ RET #(); True }}

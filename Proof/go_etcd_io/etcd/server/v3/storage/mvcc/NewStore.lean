@@ -220,7 +220,17 @@ theorem mvcc.NewStore.wp_proof
   inext
   iintro Hlocked
   (try wp_auto)
-  wp_apply hMeta
+  wp_bind (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.UnsafeCreateMetaBucket)) (Val #(GoInterface.ok bt)))
+  iapply (hMeta bt (Locked [])) $$ [Hlocked]
+  · iframe Hlocked
+    isplitr
+    · iPkgInit
+    imodintro
+    iintro %b'
+    ihave Hc := HCreate $$ %([] : mvcc.Puts) %b'
+    iexact Hc
+  inext
+  iintro Hlocked
   (try wp_auto)
   -- `tx.Unlock()`: the batch lock's resource deposited (half of `currentRev`, half the
   -- committed log, half the bucket's view, the index writer, the revision budget)

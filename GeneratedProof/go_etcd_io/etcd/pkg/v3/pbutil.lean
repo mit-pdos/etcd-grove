@@ -2,6 +2,8 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.fmt
+public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.pkg.v3.pbutil
 

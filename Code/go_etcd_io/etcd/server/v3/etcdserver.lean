@@ -579,6 +579,26 @@ noncomputable def NewRaftLoggerZap [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def NewRaftLoggerFromZapCore [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.NewRaftLoggerFromZapCore"
 
+/-- go: server.go:447:22 -/
+noncomputable def EtcdServer.Logger.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))
+  (Let "l" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "l")))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"lgMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "l") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"lgMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Val #()))))))))
+
 /-- go: server.go:1180:22 -/
 noncomputable def EtcdServer.applyEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
@@ -671,6 +691,15 @@ noncomputable def EtcdServer.applyEntries.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (Val #()))))))))))))
 
+/-- go: server.go:1233:22 -/
+noncomputable def EtcdServer.isLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #())) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"Lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #())))))))))
+
 /-- go: server.go:1684:22 -/
 noncomputable def EtcdServer.setAppliedIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
@@ -698,6 +727,33 @@ noncomputable def EtcdServer.setTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "v"))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Uint64.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Var "$a0"))))))))))
+
+/-- go: server.go:1704:22 -/
+noncomputable def EtcdServer.getLead.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (App (Val doReturn)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Uint64.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Val #())))))))
+
+/-- go: server.go:1728:22 -/
+noncomputable def EtcdServer.MemberID.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"memberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))))))))
+
+/-- go: server.go:1732:22 -/
+noncomputable def EtcdServer.Lead.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (App (Val doReturn)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"getLead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #())))))))
 
 /-- toApply takes entries received from Raft (after it has been committed) and
     applies them to the current state of the EtcdServer.
@@ -2230,10 +2286,15 @@ class EtcdServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_forceDiskSnapshot : ∀ (x : EtcdServer) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"forceDiskSnapshot") (PairV #x #y) (Val #(({ x with forceDiskSnapshot' := y } : EtcdServer)))
   get_corruptionChecker : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"corruptionChecker") #x (Val #(x.corruptionChecker'))
   set_corruptionChecker : ∀ (x : EtcdServer) (y : CorruptionChecker), go.IsGoStepPureDetTagged under (StructFieldSet EtcdServer.underlying go!"corruptionChecker") (PairV #x #y) (Val #(({ x with corruptionChecker' := y } : EtcdServer)))
+  ptr_Lead_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Lead" EtcdServer.Lead.impl
+  ptr_Logger_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Logger" EtcdServer.Logger.impl
+  ptr_MemberID_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"MemberID" EtcdServer.MemberID.impl
   ptr_apply_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"apply" EtcdServer.apply.impl
   ptr_applyEntries_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"applyEntries" EtcdServer.applyEntries.impl
   ptr_applyEntryNormal_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"applyEntryNormal" EtcdServer.applyEntryNormal.impl
+  ptr_getLead_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"getLead" EtcdServer.getLead.impl
   ptr_getTxPostLockInsideApplyHook_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"getTxPostLockInsideApplyHook" EtcdServer.getTxPostLockInsideApplyHook.impl
+  ptr_isLeader_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"isLeader" EtcdServer.isLeader.impl
   ptr_setAppliedIndex_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"setAppliedIndex" EtcdServer.setAppliedIndex.impl
   ptr_setTerm_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"setTerm" EtcdServer.setTerm.impl
 
@@ -2333,10 +2394,15 @@ attribute [instance] EtcdServer.TypeAssumptions.type_repr
   EtcdServer.TypeAssumptions.set_forceDiskSnapshot
   EtcdServer.TypeAssumptions.get_corruptionChecker
   EtcdServer.TypeAssumptions.set_corruptionChecker
+  EtcdServer.TypeAssumptions.ptr_Lead_unfold
+  EtcdServer.TypeAssumptions.ptr_Logger_unfold
+  EtcdServer.TypeAssumptions.ptr_MemberID_unfold
   EtcdServer.TypeAssumptions.ptr_apply_unfold
   EtcdServer.TypeAssumptions.ptr_applyEntries_unfold
   EtcdServer.TypeAssumptions.ptr_applyEntryNormal_unfold
+  EtcdServer.TypeAssumptions.ptr_getLead_unfold
   EtcdServer.TypeAssumptions.ptr_getTxPostLockInsideApplyHook_unfold
+  EtcdServer.TypeAssumptions.ptr_isLeader_unfold
   EtcdServer.TypeAssumptions.ptr_setAppliedIndex_unfold
   EtcdServer.TypeAssumptions.ptr_setTerm_unfold
 

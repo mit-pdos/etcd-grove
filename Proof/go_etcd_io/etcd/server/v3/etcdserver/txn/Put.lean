@@ -91,6 +91,7 @@ theorem txn.Put.wp_proof
   subst Hkv
   (try wp_auto)
   wp_apply (hWrite s γ t) $$ [$Hs $Hrd $Htok] as %mw ⟨%ilog, Htx⟩
+  · ipureintro; exact Ht
   (try wp_auto)
   -- the pin of the transaction's committed log
   ihave ⟨%Hpin, Htoks, -, Htx⟩ := txn.isTxnWrite_pinned γ log₀ ilog [] mw s (W64 0) (W64 0) (W64 0) m
