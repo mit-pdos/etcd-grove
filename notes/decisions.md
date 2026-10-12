@@ -2849,6 +2849,37 @@ corresponding ones for `Put` (`putKv`), `DeleteRange` (the filter) and `Range`
   functions. mvcc's read-only write transaction (`NewReadOnlyTxnWrite`, `txnReadWrite`) is
   verified, not assumed (`InvRoTxn.lean`: its reads delegate, `Changes` is `nil`, `Put` and
   `DeleteRange` panic).
+- **Unit 2 (Range, 2026-10-11).** The server's range is specified as the code computes it, not as
+  the client model's `rangeKvsOk` (`RangeModel.lean`: `srvPre` the key-values read, at most the
+  limit mvcc read with, as read, filtered; `srvSorted` a permutation sorted by the target when
+  `effSortOrder` is `1`/`2` (Go's `sort.Sort` is not stable: ties in any order), unchanged
+  otherwise; `srvTrunc`/`srvMore`/`respKv` the assembly), and bridged to the client's
+  (`srvRangeOk_rangeKvsOk`, `range_rangeSel`) where they agree: the server and the client model
+  differ on two points, both etcd findings, and the bridge says so instead of the spec hiding
+  them: a fast keys-only read zeroes the lease (`leaseZ`; `issues/etcd-range-keys-only-lease.md`),
+  and a sort by a non-key target with order `NONE` and a positive limit is cut early (premise
+  `¬ cutEarly o`; `issues/etcd-range-sort-none-limit.md`). Changes to the plan: (1) **the sort's
+  premise is a small log** (`sortOk o log`: a request that sorts reads a log of at most `2^62`
+  changes, `LogSmall`): `sort.Sort`'s axiom wants at most `2^62` elements, which nothing bounds
+  in the model (locations are unbounded), and the comparators' `(a - b) < 0` is the signed order
+  only for values less than `2^63` apart: revisions are below the log's length, but a version
+  counts puts, which `LogOk` does not bound below `2^63` (a revision may put a key many times);
+  both follow from `LogSmall` (`stateAt_small`: at most `2^62` keys, revisions and versions in
+  `[0, 2^62]`). `Range`'s general spec quantifies it over the logs its read may see (between the
+  caller's certificate and its tokens), which the sole writer reduces to its log
+  (`range_soleWriter`). *Rejected:* a premise on the selection's length alone (the versions
+  would still need one). (2) **The sort target is a premise** (`validSortTarget`: one of the
+  protobuf's; else `lg.Panic`, which the gRPC layer's `checkRangeRequest` rules out); the panic
+  branch is unreachable, `zap.Int32`/`Logger.Panic` are not callees of the proof. (3) The
+  sorters' list is of (pointer, key-value) pairs (`kvsAt`, owned key-values; `Swap` permutes the
+  pointers, `Less` reads two elements). (4) `executeRange`'s result names the state read
+  (`stateAt log (rangeRev rev o.base.rev)`) and mvcc's three outcomes (`rangeResult`: a future
+  revision, a context error on a full read, the response); the context error stays (mvcc's
+  `rangeOutcome` has it unconditionally). (5) `mkGteRange` (`delete.go`) is specified and proved
+  here (`executeRange` calls it; unit 1's `deleteRange` too): the empty literal `[]byte{}` is
+  shown non-`nil` by a variant of Perennial's `wp_slice_literal` (`wp_slice_literal_nn`). (6)
+  mvcc gains `metricsTxnWrite.Rev`/`FirstRev` for a read transaction (`checkRange`'s
+  `ReadView`), additive.
 
 ## mvcc: the certificate carries the log, the token count is exact, a read is pinned by tokens
 

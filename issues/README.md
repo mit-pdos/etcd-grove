@@ -53,3 +53,8 @@ not filed).
 [etcd-txn-empty-requestop](etcd-txn-empty-requestop.md): the server's `txn.Txn` panics on a
 `RequestOp` with an empty oneof, which the gRPC layer rejects (an unstated precondition; found
 2026-10-11, txn unit 0; not filed).
+[etcd-range-sort-none-limit](etcd-range-sort-none-limit.md): a range sorted by a non-key target
+with `SortOrder: NONE` and a limit sorts only the first `limit + 1` keys of the range (a wrong
+result; found 2026-10-11, txn unit 2; not filed).
+[etcd-range-keys-only-lease](etcd-range-keys-only-lease.md): keys-only ranges return lease `0`
+unless sorted by value (since 7624a8a2e; found 2026-10-11, txn unit 2; not filed).
