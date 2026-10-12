@@ -35,6 +35,7 @@ public import Perennial.Proof.sync
 public import Perennial.Proof.time
 public import Perennial.Proof.context
 public import Perennial.Proof.errors
+public import Perennial.Proof.log
 
 @[expose] public section
 
@@ -201,7 +202,8 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.pkg.v3.pbutil
 
--- `pkg/v3/wait` (names only: the `Wait` interface)
+-- `pkg/v3/wait` (the `Wait` interface; with bodies since the request path, 2026-10-12: its
+-- package has no variable the code reads)
 namespace go_etcd_io.etcd.pkg.v3.wait
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait :=

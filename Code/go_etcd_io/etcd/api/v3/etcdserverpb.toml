@@ -42,10 +42,19 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   "AuthUserGrantRoleResponse", "AuthUserGetRequest", "AuthUserGetResponse",
   "AuthUserRevokeRoleResponse", "AuthRoleAddResponse", "AuthRoleGrantPermissionResponse",
   "AuthRoleGetRequest", "AuthRoleGetResponse", "AuthRoleRevokePermissionResponse",
-  "AuthRoleDeleteResponse", "AuthUserListResponse", "AuthRoleListResponse"]
+  "AuthRoleDeleteResponse", "AuthUserListResponse", "AuthRoleListResponse",
+  # the server's RaftKV interface names the stream of RangeStream (an alias of a generic grpc
+  # interface: an untranslated alias is emitted without the `.ty` its users name)
+  "KV_RangeStreamServer",
+  # the getters the request path calls (the trace span's attributes, tracing.go's first*)
+  "RangeRequest.GetKey", "RangeRequest.GetRangeEnd", "RangeRequest.GetRevision",
+  "RangeRequest.GetLimit", "RangeRequest.GetCountOnly", "RangeRequest.GetKeysOnly",
+  "PutRequest.GetKey", "PutRequest.GetLease", "DeleteRangeRequest.GetKey",
+  "DeleteRangeRequest.GetRangeEnd", "TxnRequest.GetCompare", "TxnRequest.GetSuccess",
+  "TxnRequest.GetFailure", "RequestOp.GetRequest"]
 imports = ["!*", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/membershippb",
   "go.etcd.io/etcd/api/v3/authpb",
-  "google.golang.org/protobuf/runtime/protoimpl"]
+  "google.golang.org/protobuf/runtime/protoimpl", "google.golang.org/grpc"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

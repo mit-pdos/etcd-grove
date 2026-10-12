@@ -155,7 +155,7 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
       · iframe #
       wp_apply hspan $$ [$Hctx] as %sp #Hsp
       iunfold trace.isSpan at Hsp
-      icases Hsp with ⟨%si, %hsi, #HEnd⟩
+      icases Hsp with ⟨%si, %hsi, #HEnd, -⟩
       subst hsi
       ipersist c
       ipersist span

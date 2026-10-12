@@ -148,6 +148,11 @@ PROJECTS = [
             # with bodies (etcdserver/apply.toml): the applier chain, between the apply thread
             # and the txn package (metrics.go names only)
             "go.etcd.io/etcd/server/v3/etcdserver/apply",
+            # with bodies (etcdserver/api/v3rpc.toml): the gRPC KV service's handlers, the
+            # request checks, the response header, togRPCError (the request path)
+            "go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc",
+            # names only, with the two features the request path reads
+            "go.etcd.io/etcd/server/v3/features",
             # types and names only: what the server's types and the apply thread name
             "go.etcd.io/etcd/server/v3/storage",
             "go.etcd.io/etcd/server/v3/storage/backend",
@@ -177,6 +182,8 @@ PROJECTS = [
             "go.etcd.io/etcd/pkg/v3/traceutil",
             # names only: the type of mvcc's store.fifoSched
             "go.etcd.io/etcd/pkg/v3/schedule",
+            # with bodies (pkg/v3/wait.toml, pkg/v3/idutil.toml): the wait registry and the
+            # request id generator of the request path
             "go.etcd.io/etcd/pkg/v3/wait",
             "go.etcd.io/etcd/client/pkg/v3/types",
             "go.etcd.io/etcd/client/pkg/v3/verify",

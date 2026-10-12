@@ -64,3 +64,68 @@ EtcdServer__setTerm:
 EtcdServer__applyEntries: Entry__GetIndex EtcdServer__apply EtcdServer__stopWithDelay
 EtcdServer__applyEntryNormal: Entry__GetIndex Entry__GetTerm consistentIndex__ConsistentIndex consistentIndex__SetConsistentIndex Notifier__Notify EtcdServer__isLeader ServerConfig__ElectionTimeout apply_Apply errors_Is AlarmStore__Get EtcdServer__Logger zap_String zap_Int64 zap_Error go_humanize_Bytes zap_Logger__Warn EtcdServer__GoAttach
 EtcdServer__apply: zap_Logger__Debug zap_Int zap_Uint64 zap_Stringer consistentIndex__ConsistentIndex consistentIndex__SetConsistentApplyingIndex consistentIndex__SetConsistentIndex Entry__GetIndex Entry__GetTerm Entry__GetType EtcdServer__applyEntryNormal EtcdServer__setAppliedIndex EtcdServer__setTerm pbutil_MustUnmarshalMessage EtcdServer__applyConfChange ConfChange__GetId RaftCluster__Members
+#
+# The request path (v3_server.go; plan: notes/decisions.md, "The request path"; unit 0,
+# 2026-10-12). The trust boundary (axioms): otel's tracer, spans and attributes, the metrics'
+# histogram, strconv and time's names-only helpers, traceutil's trace bookkeeping, the txn
+# package's read-only loggers, the transport queries of parseProposeCtxErr, the configuration's
+# request timeout, the cluster's id, and proto.Marshal of an InternalRaftRequest. The components
+# the path calls through fields (the raft node, the wait, the id generator, the read loop, the
+# auth store, the feature gate) are contracts (InvRequest.lean), not axioms.
+traceutil_Tracer__Start:
+trace_WithAttributes:
+attribute_String:
+attribute_Int64:
+attribute_Bool:
+attribute_Int:
+strconv_FormatBool:
+time_Duration__Seconds:
+time_Time__After:
+prometheus_HistogramVec__WithLabelValues:
+traceutil_Trace__LogIfLong:
+traceutil_Trace__GetStartTime:
+traceutil_Trace__SetStartTime:
+traceutil_Trace__InsertStep:
+txn_WarnOfExpensiveReadOnlyRangeRequest:
+txn_WarnOfExpensiveReadOnlyTxnRequest:
+etcdserver_isConnectedSince:
+etcdserver_isConnectedToQuorumSince:
+config_ServerConfig__ReqTimeout:
+membership_RaftCluster__ID:
+proto_MarshalIRR:
+# The request path's functions (units 2 and 3), with a first guess of their callees.
+# EtcdServer__KV:
+# EtcdServer__AuthStore:
+# EtcdServer__Cluster:
+# EtcdServer__getAppliedIndex:
+# EtcdServer__getCommittedIndex:
+# EtcdServer__getTerm:
+# EtcdServer__Term: EtcdServer__getTerm
+# EtcdServer__Leader: EtcdServer__getLead
+# EtcdServer__FeatureEnabled:
+# EtcdServer__LinearizableReadNotify:
+# EtcdServer__newHeader: membership_RaftCluster__ID EtcdServer__MemberID EtcdServer__KV EtcdServer__Term EtcdServer__Leader
+# EtcdServer__AuthInfoFromCtx: EtcdServer__AuthStore
+# isPriorityRequest:
+# exceedsRequestLimit: isPriorityRequest
+# getRequestType:
+# firstCompareKey: Compare__GetKey
+# firstOpKey: RequestOp__GetRequest PutRequest__GetKey RangeRequest__GetKey DeleteRangeRequest__GetKey
+# firstOpType: RequestOp__GetRequest
+# firstOpLease: RequestOp__GetRequest PutRequest__GetLease
+# EtcdServer__parseProposeCtxErr: errors_Is time_Time__After EtcdServer__getLead EtcdServer__MemberID membership_RaftCluster__Members etcdserver_isConnectedToQuorumSince etcdserver_isConnectedSince
+# EtcdServer__processInternalRaftRequestOnce: EtcdServer__getAppliedIndex EtcdServer__getCommittedIndex EtcdServer__FeatureEnabled exceedsRequestLimit idutil_Generator__Next EtcdServer__AuthInfoFromCtx getRequestType proto_MarshalIRR wait_list__Register config_ServerConfig__ReqTimeout trace_SpanFromContext EtcdServer__parseProposeCtxErr wait_list__Trigger strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues
+# EtcdServer__raftRequest: EtcdServer__processInternalRaftRequestOnce trace_SpanFromContext traceutil_Trace__GetStartTime traceutil_Trace__SetStartTime traceutil_Trace__InsertStep traceutil_Trace__LogIfLong
+# EtcdServer__doSerialize: traceutil_Get EtcdServer__AuthInfoFromCtx traceutil_Trace__Step
+# EtcdServer__Put: traceutil_Tracer__Start trace_WithAttributes attribute_String context_WithValue EtcdServer__raftRequest
+# EtcdServer__DeleteRange: traceutil_Tracer__Start trace_WithAttributes attribute_String EtcdServer__raftRequest
+# EtcdServer__Txn: txn_IsTxnReadonly traceutil_Tracer__Start trace_WithAttributes firstCompareKey firstOpKey firstOpType firstOpLease attribute_String attribute_Int64 attribute_Int attribute_Bool traceutil_EnsureTrace txn_IsTxnSerializable EtcdServer__LinearizableReadNotify traceutil_Trace__Step apply_CheckTxnAuth txn_WarnOfExpensiveReadOnlyTxnRequest traceutil_Trace__LogIfLong strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues txn_Txn EtcdServer__doSerialize context_WithValue EtcdServer__raftRequest
+# EtcdServer__Range: traceutil_Tracer__Start trace_WithAttributes attribute_String attribute_Int64 attribute_Bool traceutil_EnsureTrace txn_WarnOfExpensiveReadOnlyRangeRequest traceutil_Trace__AddField traceutil_Trace__LogIfLong strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues EtcdServer__LinearizableReadNotify traceutil_Trace__Step txn_Range EtcdServer__doSerialize
+# pkg/idutil and pkg/wait, with bodies (unit 2).
+# idutil_lowbit:
+# idutil_NewGenerator: idutil_lowbit
+# idutil_Generator__Next: idutil_lowbit
+# wait_New:
+# wait_list__Register:
+# wait_list__Trigger:
+# wait_list__IsRegistered:

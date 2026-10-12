@@ -5,6 +5,7 @@ public import Perennial.Proof.ProofPrelude
 public import GeneratedProof.go_etcd_io.etcd.api.v3.authpb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.membershippb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.mvccpb
+public import GeneratedProof.google_golang_org.grpc
 public import GeneratedProof.google_golang_org.protobuf.runtime.protoimpl
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.api.v3.etcdserverpb
@@ -21,6 +22,25 @@ open Iris Iris.BI
 noncomputable section
 namespace go_etcd_io.etcd.api.v3.etcdserverpb
 
+namespace WatchClient
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
+
+instance WatchClient_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.WatchClient :=
+  sorry -- axiomatized type
+
+instance WatchClient_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.WatchClient go_etcd_io.etcd.api.v3.etcdserverpb.WatchClient.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end WatchClient
+
 namespace watchClient
 section def_
 
@@ -30,34 +50,36 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 instance watchClient_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.watchClient :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.watchClient where
+  typedPointstoDef l v dq := iprop(
+    "cc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.watchClient go!"cc" l) v.cc' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance watchClient_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.watchClient go_etcd_io.etcd.api.v3.etcdserverpb.watchClient.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.watchClient go_etcd_io.etcd.api.v3.etcdserverpb.watchClient.underlying := by
+  solve_into_val_typed_struct
+
+instance watchClient_access_load_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.watchClient) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.watchClient go!"cc" l) v.cc' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.watchClient go!"cc" l) v.cc' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance watchClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.watchClient) (cc' : google_golang_org.grpc.ClientConnInterface) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.watchClient go!"cc" l) v.cc' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.watchClient go!"cc" l) cc' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cc' := cc' } : go_etcd_io.etcd.api.v3.etcdserverpb.watchClient) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end watchClient
-
-namespace WatchServer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance WatchServer_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.WatchServer :=
-  sorry -- axiomatized type
-
-instance WatchServer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.WatchServer go_etcd_io.etcd.api.v3.etcdserverpb.WatchServer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end WatchServer
 
 namespace UnimplementedWatchServer
 section def_
@@ -110,12 +132,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 instance leaseClient_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient where
+  typedPointstoDef l v dq := iprop(
+    "cc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient go!"cc" l) v.cc' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance leaseClient_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient.underlying := by
+  solve_into_val_typed_struct
+
+instance leaseClient_access_load_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient go!"cc" l) v.cc' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient go!"cc" l) v.cc' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance leaseClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient) (cc' : google_golang_org.grpc.ClientConnInterface) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient go!"cc" l) v.cc' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient go!"cc" l) cc' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cc' := cc' } : go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end leaseClient
@@ -190,12 +233,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 instance clusterClient_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient where
+  typedPointstoDef l v dq := iprop(
+    "cc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient go!"cc" l) v.cc' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance clusterClient_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient.underlying := by
+  solve_into_val_typed_struct
+
+instance clusterClient_access_load_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient go!"cc" l) v.cc' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient go!"cc" l) v.cc' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance clusterClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient) (cc' : google_golang_org.grpc.ClientConnInterface) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient go!"cc" l) v.cc' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient go!"cc" l) cc' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cc' := cc' } : go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end clusterClient
@@ -270,12 +334,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 instance maintenanceClient_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient where
+  typedPointstoDef l v dq := iprop(
+    "cc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient go!"cc" l) v.cc' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance maintenanceClient_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient.underlying := by
+  solve_into_val_typed_struct
+
+instance maintenanceClient_access_load_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient go!"cc" l) v.cc' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient go!"cc" l) v.cc' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance maintenanceClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient) (cc' : google_golang_org.grpc.ClientConnInterface) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient go!"cc" l) v.cc' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient go!"cc" l) cc' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cc' := cc' } : go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end maintenanceClient
@@ -350,12 +435,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 instance authClient_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.authClient :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.authClient where
+  typedPointstoDef l v dq := iprop(
+    "cc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.authClient go!"cc" l) v.cc' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance authClient_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.authClient go_etcd_io.etcd.api.v3.etcdserverpb.authClient.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.authClient go_etcd_io.etcd.api.v3.etcdserverpb.authClient.underlying := by
+  solve_into_val_typed_struct
+
+instance authClient_access_load_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.authClient) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.authClient go!"cc" l) v.cc' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.authClient go!"cc" l) v.cc' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance authClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.authClient) (cc' : google_golang_org.grpc.ClientConnInterface) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.authClient go!"cc" l) v.cc' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.authClient go!"cc" l) cc' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cc' := cc' } : go_etcd_io.etcd.api.v3.etcdserverpb.authClient) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end authClient

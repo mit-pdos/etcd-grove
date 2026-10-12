@@ -9,7 +9,9 @@ mvcc translation got bodies and `storage/mvcc`'s instance needed prometheus's). 
 by a script from the translation's `PkgInfo` imports.
 
 As there, these are assumptions about package initialization, not proved from
-`initialize'`. They are `True` (the packages are translated names-only or types-only).
+`initialize'`. They are `True` (the packages are translated names-only or types-only), but the
+server's own (`srvInit`, 2026-10-12: the request path's metrics, `traceutil.Tracer` and error
+variables).
 `etcdserver/errors`' (`ErrNoSpace`, which the entry applier compares the applier's error
 with) is in its own `errors/Base.lean` (2026-10-11: moved there, unchanged, for the server's
 txn package, which imports it without the apply thread's translation). The instances of the
@@ -204,10 +206,66 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.server.v3.etcdserver.read
 
+-- `server/v3/features` (names only, with the two feature constants the request path reads)
+namespace go_etcd_io.etcd.server.v3.features
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.server.v3.features
+
+-- `strconv` (Perennial's translation, names only: `FormatBool`, the request path's metrics
+-- labels; no variable read). Raft's `Base.lean` states the same instance for raft's proofs,
+-- which no module imports with the server's.
+namespace strconv
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.strconv :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.strconv :=
+  build_get_is_pkg_init_wf
+
+end strconv
+
 namespace go_etcd_io.etcd.server.v3.etcdserver
 
+/-- **The error variables the request path returns** (`v3_server.go`, `server.go`'s
+`parseProposeCtxErr`) hold `errors.New` errors (`EtcdGrove.errVarLeaf`): `etcdserver/errors`'
+`ErrTooManyRequests` (the request limit), `ErrRequestTooLarge` (`MaxRequestBytes`),
+`ErrStopped` (the server stopped while a proposal waited), `ErrCanceled`, `ErrTimeout`,
+`ErrTimeoutDueToLeaderFail`, `ErrTimeoutDueToConnectionLost` (a proposal's context done), and
+`auth.ErrAuthOldRevision` (`doSerialize`'s stale token). An assumption about those packages'
+initialization (each `var X = errors.New(...)`), stated here rather than in their packages'
+facts, as the apply package's `applyErrVars`. -/
+abbrev srvErrVars : IProp GF :=
+  iprop(EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTooManyRequests ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrRequestTooLarge ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrStopped ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrCanceled ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeout ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToLeaderFail ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeoutDueToConnectionLost ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.auth.ErrAuthOldRevision)
+
+/-- **The server package's facts** (2026-10-12, the request path; `True` until then): the
+metrics `metrics.go` declares and the request path updates (`requestDurationSec`, a
+`*prometheus.HistogramVec`, whose `WithLabelValues` is the trust boundary; `proposalsFailed`, a
+`Counter`, and `proposalsPending`, a `Gauge`, with mvcc's `counterSpec`/`gaugeSpec` as their
+contracts), `traceutil.Tracer` (a fixed tracer, stated here rather than in `traceutil`'s facts:
+its `Start` is the trust boundary, `Spec/go_etcd_io/etcd/pkg/v3/traceutil/Tracer__Start.lean`),
+and the error variables (`srvErrVars`). -/
+abbrev srvInit : IProp GF :=
+  iprop((∃ hv : Loc, globalAddr requestDurationSec ↦□ hv) ∗
+    (∃ c : GoInterfaceOk, globalAddr proposalsFailed ↦□ GoInterface.ok c ∗
+      go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c) ∗
+    (∃ g : GoInterfaceOk, globalAddr proposalsPending ↦□ GoInterface.ok g ∗
+      go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec g) ∗
+    (∃ tr : GoInterfaceOk, globalAddr go_etcd_io.etcd.pkg.v3.traceutil.Tracer ↦□ GoInterface.ok tr) ∗
+    srvErrVars)
+
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init srvInit
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver :=
   build_get_is_pkg_init_wf
 

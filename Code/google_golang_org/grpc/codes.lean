@@ -31,7 +31,8 @@ attribute [irreducible] Code.ty
 
 axiom Canceled [FfiSyntax] [GoGlobalContext] : val
 
-axiom Unknown [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Unknown [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 2)
 
 axiom InvalidArgument [FfiSyntax] [GoGlobalContext] : val
 

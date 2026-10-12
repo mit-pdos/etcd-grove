@@ -31,6 +31,11 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.NewConsistentInd
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Notifier__Notify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Members
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ElectionTimeout
+public import Proof.go_opentelemetry_io.otel.attribute.Bool
+public import Proof.go_opentelemetry_io.otel.attribute.Int
+public import Proof.go_opentelemetry_io.otel.attribute.Int64
+public import Proof.go_opentelemetry_io.otel.attribute.String
+public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ReqTimeout
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentApplyingIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__SetBackend
@@ -39,13 +44,29 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex_
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__UnsafeConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__UnsafeSave
 public import Proof.errors.Is
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isConnectedSince
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isConnectedToQuorumSince
 public import Proof.github_com.dustin.go_humanize.Bytes
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__ID
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage
+public import Proof.github_com.prometheus.client_golang.prometheus.HistogramVec__WithLabelValues
+public import Proof.google_golang_org.protobuf.proto.MarshalIRR
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.ReadConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndexForce
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeUpdateConsistentIndex
+public import Proof.strconv.FormatBool
+public import Proof.time.Duration__Seconds
+public import Proof.time.Time__After
+public import Proof.go_opentelemetry_io.otel.trace.WithAttributes
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__GetStartTime
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__InsertStep
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__LogIfLong
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__SetStartTime
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Tracer__Start
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveReadOnlyRangeRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveReadOnlyTxnRequest
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Verify
 public import Proof.go_uber_org.zap.Int
 public import Proof.go_uber_org.zap.Logger__Debug
@@ -203,6 +224,26 @@ theorem wp_NewConsistentIndex :
     NewConsistentIndex.spec (GF := GF) (hG := hG) :=
   NewConsistentIndex.wp_proof
 
+theorem «attribute».wp_Bool :
+    «attribute».Bool.spec (GF := GF) (hG := hG) :=
+  «attribute».Bool.wp_proof
+
+theorem «attribute».wp_Int :
+    «attribute».Int.spec (GF := GF) (hG := hG) :=
+  «attribute».Int.wp_proof
+
+theorem «attribute».wp_Int64 :
+    «attribute».Int64.spec (GF := GF) (hG := hG) :=
+  «attribute».Int64.wp_proof
+
+theorem «attribute».wp_String :
+    «attribute».String.spec (GF := GF) (hG := hG) :=
+  «attribute».String.wp_proof
+
+theorem config.ServerConfig.wp_ReqTimeout :
+    config.ServerConfig.ReqTimeout.spec (GF := GF) (hG := hG) :=
+  config.ServerConfig.ReqTimeout.wp_proof
+
 theorem consistentIndex.wp_SetBackend :
     consistentIndex.SetBackend.spec (GF := GF) (hG := hG) :=
   consistentIndex.SetBackend.wp_proof consistentIndex.wp_SetConsistentIndex
@@ -223,9 +264,69 @@ theorem consistentIndex.wp_UnsafeSave :
     consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG) :=
   consistentIndex.UnsafeSave.wp_proof schema.wp_UnsafeUpdateConsistentIndex
 
+theorem wp_isConnectedSince :
+    isConnectedSince.spec (GF := GF) (hG := hG) :=
+  isConnectedSince.wp_proof
+
+theorem wp_isConnectedToQuorumSince :
+    isConnectedToQuorumSince.spec (GF := GF) (hG := hG) :=
+  isConnectedToQuorumSince.wp_proof
+
+theorem membership.RaftCluster.wp_ID :
+    membership.RaftCluster.ID.spec (GF := GF) (hG := hG) :=
+  membership.RaftCluster.ID.wp_proof
+
+theorem prometheus.HistogramVec.wp_WithLabelValues :
+    prometheus.HistogramVec.WithLabelValues.spec (GF := GF) (hG := hG) :=
+  prometheus.HistogramVec.WithLabelValues.wp_proof
+
+theorem proto.wp_MarshalIRR :
+    proto.MarshalIRR.spec (GF := GF) (hG := hG) :=
+  proto.MarshalIRR.wp_proof
+
 theorem schema.wp_UnsafeUpdateConsistentIndexForce :
     schema.UnsafeUpdateConsistentIndexForce.spec (GF := GF) (hG := hG) :=
   schema.UnsafeUpdateConsistentIndexForce.wp_proof schema.wp_unsafeUpdateConsistentIndex
+
+theorem strconv.wp_FormatBool :
+    strconv.FormatBool.spec (GF := GF) (hG := hG) :=
+  strconv.FormatBool.wp_proof
+
+theorem time.Duration.wp_Seconds :
+    time.Duration.Seconds.spec (GF := GF) (hG := hG) :=
+  time.Duration.Seconds.wp_proof
+
+theorem time.Time.wp_After :
+    time.Time.After.spec (GF := GF) (hG := hG) :=
+  time.Time.After.wp_proof
+
+theorem trace.wp_WithAttributes :
+    trace.WithAttributes.spec (GF := GF) (hG := hG) :=
+  trace.WithAttributes.wp_proof
+
+theorem traceutil.Trace.wp_GetStartTime :
+    traceutil.Trace.GetStartTime.spec (GF := GF) (hG := hG) :=
+  traceutil.Trace.GetStartTime.wp_proof
+
+theorem traceutil.Trace.wp_InsertStep :
+    traceutil.Trace.InsertStep.spec (GF := GF) (hG := hG) :=
+  traceutil.Trace.InsertStep.wp_proof
+
+theorem traceutil.Trace.wp_LogIfLong :
+    traceutil.Trace.LogIfLong.spec (GF := GF) (hG := hG) :=
+  traceutil.Trace.LogIfLong.wp_proof
+
+theorem traceutil.Trace.wp_SetStartTime :
+    traceutil.Trace.SetStartTime.spec (GF := GF) (hG := hG) :=
+  traceutil.Trace.SetStartTime.wp_proof
+
+theorem txn.wp_WarnOfExpensiveReadOnlyRangeRequest :
+    txn.WarnOfExpensiveReadOnlyRangeRequest.spec (GF := GF) (hG := hG) :=
+  txn.WarnOfExpensiveReadOnlyRangeRequest.wp_proof
+
+theorem txn.wp_WarnOfExpensiveReadOnlyTxnRequest :
+    txn.WarnOfExpensiveReadOnlyTxnRequest.spec (GF := GF) (hG := hG) :=
+  txn.WarnOfExpensiveReadOnlyTxnRequest.wp_proof
 
 end links
 
@@ -257,6 +358,10 @@ theorem EtcdServer.wp_apply :
 theorem EtcdServer.wp_applyEntries :
     EtcdServer.applyEntries.spec (GF := GF) (hG := hG) :=
   EtcdServer.applyEntries.wp_proof raftpb.Entry.wp_GetIndex EtcdServer.wp_apply EtcdServer.wp_stopWithDelay
+
+theorem traceutil.Tracer.wp_Start :
+    traceutil.Tracer.Start.spec (GF := GF) (hG := hG) :=
+  traceutil.Tracer.Start.wp_proof
 
 end links_hasLC
 
