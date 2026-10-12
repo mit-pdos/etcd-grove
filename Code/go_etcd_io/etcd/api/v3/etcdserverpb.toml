@@ -52,8 +52,9 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   "PutRequest.GetKey", "PutRequest.GetLease", "DeleteRangeRequest.GetKey",
   "DeleteRangeRequest.GetRangeEnd", "TxnRequest.GetCompare", "TxnRequest.GetSuccess",
   "TxnRequest.GetFailure", "RequestOp.GetRequest",
-  # the gRPC KV service's interface (`v3rpc.NewKVServer` converts its `*kvServer` to it)
-  "KVServer"]
+  # the gRPC KV service's interface (`v3rpc.NewKVServer` converts its `*kvServer` to it) and the
+  # stream's chunk (`v3rpc.headerFillingRangeStream.Send` reads its `RangeResponse`)
+  "KVServer", "RangeStreamResponse"]
 imports = ["!*", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/membershippb",
   "go.etcd.io/etcd/api/v3/authpb",
   "google.golang.org/protobuf/runtime/protoimpl", "google.golang.org/grpc", "context"]

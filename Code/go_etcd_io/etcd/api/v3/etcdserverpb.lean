@@ -967,8 +967,6 @@ axiom AuthRoleGrantPermissionRequest.underlying [FfiSyntax] [GoGlobalContext] : 
 
 axiom AuthRoleRevokePermissionRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom RangeStreamResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 @[reducible] def KV_RangeStreamClient.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
   (_root_.Perennial.google_golang_org.grpc.ServerStreamingClient.ty RangeStreamResponse.ty)
 
@@ -6679,18 +6677,54 @@ attribute [instance] AuthRoleRevokePermissionResponse.TypeAssumptions.type_repr
   AuthRoleRevokePermissionResponse.TypeAssumptions.get_sizeCache
   AuthRoleRevokePermissionResponse.TypeAssumptions.set_sizeCache
 
-axiom RangeStreamResponse : Type
-axiom RangeStreamResponse.zero_val : ZeroVal RangeStreamResponse
-attribute [instance] RangeStreamResponse.zero_val
+structure RangeStreamResponse [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  RangeResponse' : Loc
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance RangeStreamResponse.zero_val [FfiSyntax] : ZeroVal RangeStreamResponse :=
+  ⟨RangeStreamResponse.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def RangeStreamResponse.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"RangeResponse" (go.GoType.PointerType RangeResponse.ty)),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def RangeStreamResponse.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  RangeStreamResponse.fieldsUnsealed
+
+instance equals_unfold_RangeStreamResponse [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold RangeStreamResponse.fields RangeStreamResponse.fieldsUnsealed :=
+  ⟨by unfold RangeStreamResponse.fields; rfl⟩
+
+@[reducible] def RangeStreamResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType RangeStreamResponse.fields)
 
 class RangeStreamResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RangeStreamResponse.underlying RangeStreamResponse
   underlying : go.UnderlyingDirectedEq RangeStreamResponse.ty RangeStreamResponse.underlying
-  isUnderlying : go.IsUnderlying RangeStreamResponse.underlying RangeStreamResponse.underlying
+  get_state : ∀ (x : RangeStreamResponse), go.IsGoStepPureDetTagged under (StructFieldGet RangeStreamResponse.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : RangeStreamResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet RangeStreamResponse.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : RangeStreamResponse)))
+  get_RangeResponse : ∀ (x : RangeStreamResponse), go.IsGoStepPureDetTagged under (StructFieldGet RangeStreamResponse.underlying go!"RangeResponse") #x (Val #(x.RangeResponse'))
+  set_RangeResponse : ∀ (x : RangeStreamResponse) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet RangeStreamResponse.underlying go!"RangeResponse") (PairV #x #y) (Val #(({ x with RangeResponse' := y } : RangeStreamResponse)))
+  get_unknownFields : ∀ (x : RangeStreamResponse), go.IsGoStepPureDetTagged under (StructFieldGet RangeStreamResponse.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : RangeStreamResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RangeStreamResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : RangeStreamResponse)))
+  get_sizeCache : ∀ (x : RangeStreamResponse), go.IsGoStepPureDetTagged under (StructFieldGet RangeStreamResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : RangeStreamResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet RangeStreamResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : RangeStreamResponse)))
 
 attribute [instance] RangeStreamResponse.TypeAssumptions.type_repr
   RangeStreamResponse.TypeAssumptions.underlying
-  RangeStreamResponse.TypeAssumptions.isUnderlying
+  RangeStreamResponse.TypeAssumptions.get_state
+  RangeStreamResponse.TypeAssumptions.set_state
+  RangeStreamResponse.TypeAssumptions.get_RangeResponse
+  RangeStreamResponse.TypeAssumptions.set_RangeResponse
+  RangeStreamResponse.TypeAssumptions.get_unknownFields
+  RangeStreamResponse.TypeAssumptions.set_unknownFields
+  RangeStreamResponse.TypeAssumptions.get_sizeCache
+  RangeStreamResponse.TypeAssumptions.set_sizeCache
 
 abbrev KVClient [FfiSyntax] : Type := GoInterface
 
