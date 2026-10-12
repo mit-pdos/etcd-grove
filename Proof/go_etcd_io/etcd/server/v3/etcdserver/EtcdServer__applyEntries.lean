@@ -23,7 +23,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.cindex go_
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
@@ -53,7 +53,7 @@ end proof
 section proof2
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
@@ -75,7 +75,7 @@ theorem EtcdServer.applyEntries.wp_proof
     (hStop : EtcdServer.stopWithDelay.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyEntries.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM b ep ap es ents ms f0 rac st ai at0 a t cs Hms Hai1 Hok
-  wp_start as ⟨#Hsrv, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ⟩
+  wp_start as ⟨#Hsrv, #Hes, #Hrac, #Hesl, #Hentsat, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hesl
   iunfold entriesAt at Hentsat
   icases Hentsat with ⟨%Hlen2, #Hent⟩
@@ -163,9 +163,9 @@ theorem EtcdServer.applyEntries.wp_proof
       · ipureintro; exact Hlen2
       iexact Hent
     wp_apply hApply s γ ci TM b (slice.slice es Loc off es.len) (ents.drop k) (ms.drop k) (ai + 1)
-      ep cs rac st a t hne' hfrom' hok' $$ [Hst Hbe Happ Hcs]
-      as %appt %appi %stop ⟨%st', %a', %at', %csl, Hst, Hbe, Happ, Hcs, %Hpost⟩
-    · iframe Hsrv Hsub Hentsd Hst Hbe Happ Hcs
+      ep cs rac st a t hne' hfrom' hok' $$ [Hst Hbe Happ Hcs Hlr]
+      as %appt %appi %stop ⟨%st', %a', %at', %csl, Hst, Hbe, Happ, Hcs, Hlr, %Hpost⟩
+    · iframe Hsrv Hsub Hentsd Hst Hbe Happ Hcs Hlr
     obtain ⟨hli, -, hok2, -⟩ := Hpost
     -- the postcondition, whether or not the server stops
     have hlast : ms.getLast? = (ms.drop k).getLast? := by

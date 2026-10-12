@@ -20,6 +20,8 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftpb
+public import Proof.go_etcd_io.etcd.pkg.v3.notify.Defs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Defs
 
 @[expose] public section
 
@@ -49,6 +51,13 @@ abbrev srvQuotaAddr (s : Loc) : Loc :=
 abbrev srvAppliedIndexAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"appliedIndex" s
 abbrev srvTermAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"term" s
 abbrev srvClusterFieldAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"cluster" s
+abbrev srvLgMuAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"lgMu" s
+abbrev srvMemberIDAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"memberID" s
+abbrev srvLeadAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"lead" s
+abbrev cfgElectionTicksAddr (c : Loc) : Loc :=
+  structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ElectionTicks" c
+abbrev cfgTickMsAddr (c : Loc) : Loc :=
+  structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"TickMs" c
 
 abbrev epConfStateAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"confState" ep
 abbrev epAppliedTAddr (ep : Loc) : Loc := structFieldRef etcdProgress go!"appliedt" ep
@@ -115,6 +124,21 @@ def lessorOk (l : GoInterface) : IProp GF :=
 instance lessorOk_persistent (l : GoInterface) : Persistent (lessorOk (GF := GF) l) := by
   unfold lessorOk; infer_instance
 
+/-- The server's atomic `s.lead` (the leader's id, which raft's goroutine stores; the apply
+thread loads it in `isLeader`). -/
+def srvLeadInv (s : Loc) : IProp GF :=
+  iprop(inv srvN (∃ v : w64, sync.atomic.ownUint64 (srvLeadAddr s) (DFrac.own 1) v))
+
+instance srvLeadInv_persistent (s : Loc) : Persistent (srvLeadInv (GF := GF) s) := by
+  unfold srvLeadInv; infer_instance
+
+/-- A reader slot of the server's logger lock `s.lgMu` (a `*sync.RWMutex` that is only ever
+read-locked, around reading `s.lg`, which never changes: its invariant is `True`): Perennial's
+`RWMutex` admits a bounded number of readers, so `RLock` needs a token, which the apply thread
+holds (`Logger`). Not persistent. -/
+def srvLgReader (s : Loc) : IProp GF :=
+  iprop(∃ mu : Loc, srvLgMuAddr s ↦□ mu ∗ sync.ownRWMutex mu (fun _ => iprop(True)))
+
 /-- The values of the server's fields the apply thread reads, and the post-lock hook. -/
 structure SrvFields where
   lg : Loc
@@ -126,23 +150,10 @@ structure SrvFields where
   alarmStore : Loc
   cluster : Loc
   quota : w64
-
-/-- The server `s`'s fields hold `v`, with their contracts; the backend's applier `uberApply`
-runs the post-lock hook `v.hook` under a batch lock with the protocol's invariant
-`batchLockInv γ TM`. -/
-def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (v : SrvFields) : IProp GF :=
-  iprop(srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
-      srvWAddr s ↦□ v.w ∗ waitOk v.w ∗
-      srvUberApplyAddr s ↦□ v.ua ∗ applierFor v.ua (batchLockInv γ TM) v.hook ∗
-      hookSpec γ ci TM v.hook ∗
-      srvLessorAddr s ↦□ v.lessor ∗ lessorOk v.lessor ∗
-      srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
-      srvClusterAddr s ↦□ v.cluster ∗ srvQuotaAddr s ↦□ v.quota)
-
-instance srvFieldsAt_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (v : SrvFields) : Persistent (srvFieldsAt s γ ci TM v) := by
-  unfold srvFieldsAt; infer_instance
+  lgMu : Loc
+  memberID : w64
+  electionTicks : w64
+  tickMs : w64
 
 /-- The server's two atomics the apply thread stores (read by other goroutines). -/
 def srvAtomics (s : Loc) : IProp GF :=
@@ -151,15 +162,6 @@ def srvAtomics (s : Loc) : IProp GF :=
 
 instance srvAtomics_persistent (s : Loc) : Persistent (srvAtomics (GF := GF) s) := by
   unfold srvAtomics; infer_instance
-
-/-- The apply thread's view of the server `s` (persistent): `s.consistIndex` (with the
-protocol, `isServerCI`), the fields `applyEntryNormal` and `apply` read, and the atomics. -/
-def isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) : IProp GF :=
-  iprop(isServerCI s γ ci ∗ (∃ v : SrvFields, srvFieldsAt s γ ci TM v) ∗ srvAtomics s)
-
-instance isServer_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) :
-    Persistent (isServer s γ ci TM) := by
-  unfold isServer; infer_instance
 
 /-- The entries `ents` are modelled by `ms` (persistent). -/
 def entriesAt (ents : List Loc) (ms : List EntryModel) : IProp GF :=
@@ -181,6 +183,47 @@ instance resultOk_persistent (ar : Loc) : Persistent (resultOk (GF := GF) ar) :=
   unfold resultOk; infer_instance
 
 end defs
+
+section defs_lc
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-! At `HeapGS HasLC.hasLC GF` (later credits), as the notifier `s.firstCommitInTerm`'s
+predicate is (Perennial's channel specs are). -/
+
+/-- The server `s`'s fields hold `v`, with their contracts; the backend's applier `uberApply`
+runs the post-lock hook `v.hook` under a batch lock with the protocol's invariant
+`batchLockInv γ TM`. -/
+def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (v : SrvFields) : IProp GF :=
+  iprop(srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
+      srvWAddr s ↦□ v.w ∗ waitOk v.w ∗
+      srvUberApplyAddr s ↦□ v.ua ∗ applierFor v.ua (batchLockInv γ TM) v.hook ∗
+      hookSpec γ ci TM v.hook ∗
+      srvLessorAddr s ↦□ v.lessor ∗ lessorOk v.lessor ∗
+      srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
+      srvClusterAddr s ↦□ v.cluster ∗ srvQuotaAddr s ↦□ v.quota ∗
+      srvLgMuAddr s ↦□ v.lgMu ∗ srvMemberIDAddr s ↦□ v.memberID ∗ srvLeadInv s ∗
+      cfgElectionTicksAddr (srvCfgAddr s) ↦□ v.electionTicks ∗
+      cfgTickMsAddr (srvCfgAddr s) ↦□ v.tickMs ∗
+      isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore)
+
+instance srvFieldsAt_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (v : SrvFields) : Persistent (srvFieldsAt s γ ci TM v) := by
+  unfold srvFieldsAt; infer_instance
+
+/-- The apply thread's view of the server `s` (persistent): `s.consistIndex` (with the
+protocol, `isServerCI`), the fields `applyEntryNormal` and `apply` read, and the atomics. -/
+def isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) : IProp GF :=
+  iprop(isServerCI s γ ci ∗ (∃ v : SrvFields, srvFieldsAt s γ ci TM v) ∗ srvAtomics s)
+
+instance isServer_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) :
+    Persistent (isServer s γ ci TM) := by
+  unfold isServer; infer_instance
+
+end defs_lc
 
 end EtcdGrove
 end Perennial

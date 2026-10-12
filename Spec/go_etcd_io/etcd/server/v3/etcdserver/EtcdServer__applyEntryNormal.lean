@@ -19,7 +19,7 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.se
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
@@ -34,6 +34,7 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (b : GoInterface)
     (e : Loc) (m : EntryModel) (st : ApplyState) (v3 : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
+      srvLgReader s ∗
       ⌜st.pending = false⌝ ∗
       (if v3 then iprop(ciApplying ci m.index m.term ∗
           ⌜m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
@@ -41,7 +42,7 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
        else iprop(True)) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
       (Val #e)) (Val #v3))
-  {{ RET #(); applyBackend γ ci b ∗
+  {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗
       (if v3 then iprop(ciApplying ci m.index m.term ∗
           ∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩)
        else applyThread γ st) }}

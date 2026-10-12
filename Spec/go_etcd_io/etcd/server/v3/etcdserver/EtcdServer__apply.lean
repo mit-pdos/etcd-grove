@@ -18,7 +18,7 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.se
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
@@ -35,14 +35,15 @@ abbrev EtcdServer.apply.spec : Prop :=
     (rac : GoChan) (st : ApplyState) (a at0 : w64),
   ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
-      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfStateAddr ep ↦ cs }}
+      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfStateAddr ep ↦ cs ∗
+      srvLgReader s }}
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"apply"))
       (Val #es)) (Val #ep)) (Val #rac))
   {{ (appliedt appliedi : w64) (shouldStop : Bool),
       RET (PairV (PairV #appliedt #appliedi) #shouldStop);
       ∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
         applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
-        epConfStateAddr ep ↦ csl ∗
+        epConfStateAddr ep ↦ csl ∗ srvLgReader s ∗
         ⌜(ms.getLast?).map EntryModel.index = some appliedi ∧
           (ms.getLast?).map EntryModel.term = some appliedt ∧
           loopOk γ st' appliedi ∧

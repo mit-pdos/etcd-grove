@@ -37,7 +37,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.cindex go_
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
@@ -76,7 +76,7 @@ local macro "tail_skip" : tactic => `(tactic| (
   iintro Hst
   (try wp_auto)
   iapply HΦ
-  iframe Hbe
+  iframe Hbe Hlr
   (try simp only [↓reduceIte])
   iframe Happ
   iexists st.eff
@@ -100,7 +100,7 @@ local macro "tail_done" : tactic => `(tactic| (
   rw [decide_eq_false (by unfold ciEff; rw [ite_eq_right hi0]; exact Int.lt_irrefl _)]
   (try wp_auto)
   iapply HΦ
-  iframe Hbe
+  iframe Hbe Hlr
   (try simp only [↓reduceIte])
   iframe Happ
   iexists m.index
@@ -137,12 +137,13 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     (hGA : EtcdServer.GoAttach.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM b e m st v3
-  wp_start as ⟨#Hsrv, #He, Hst, Hbe, %Hp, Hv3⟩
+  wp_start as ⟨#Hsrv, #He, Hst, Hbe, Hlr, %Hp, Hv3⟩
   wp_apply wp_with_defer as %defer defer
   iunfold isServer at Hsrv
   icases Hsrv with ⟨#Hsci, ⟨%fv, #Hfv⟩, #Hat⟩
   iunfold srvFieldsAt at Hfv
-  icases Hfv with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, #Hua, #Happl, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl, #Hq⟩
+  icases Hfv with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, #Hua, #Happl, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl, #Hq,
+    #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
   ihave #He' := He
   iunfold entryAt at He'
   icases He' with ⟨%Hnn, %pt, %pi, %pty, %d, #Hft, #Hpt, #Hfi, #Hpi, #Hfty, #Hpty, #Hfd, #Hds⟩
@@ -175,13 +176,16 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     wp_if_destruct
     · -- no data
       wp_apply hN fv.firstCommit
-      wp_apply hL s as %ldr -
+      · iexact Hnot
+      wp_apply hL s fv.memberID as %ldr -
+      · iframe Hmid Hlead
       cases ldr
       · (try wp_auto)
         iapply HΦ
-        iframe Hbe Hst
+        iframe Hbe Hst Hlr
       · (try wp_auto)
-        wp_apply hE (srvCfgAddr s) as %dur -
+        wp_apply hE (srvCfgAddr s) fv.electionTicks fv.tickMs as %dur -
+        · iframe Het Htm
         rw [Hli]
         (try wp_auto)
         (try dsimp only)
@@ -189,7 +193,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         wp_apply HP
         (try wp_auto)
         iapply HΦ
-        iframe Hbe Hst
+        iframe Hbe Hst Hlr
     · -- data: the applier, with nothing to write (`ApplyV2storeOnly`)
       wp_apply hA fv.lg e m fv.ua fv.w false (batchLockInv γ TM) iprop(True) iprop(True)
         iprop(True) fv.hook $$ [] as %ar %id ⟨-, #Har⟩
@@ -198,7 +202,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         isplitl <;> itrivial
       (try wp_auto)
       iapply HΦ
-      iframe Hbe Hst
+      iframe Hbe Hst Hlr
   · -- the entry `i = p + 1`, above `ci`
     simp only [↓reduceIte]
     icases Hv3 with ⟨Happ, %Hv3⟩
@@ -208,7 +212,9 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     wp_if_destruct
     · -- no data: processed with no writes
       wp_apply hN fv.firstCommit
-      wp_apply hL s as %ldr -
+      · iexact Hnot
+      wp_apply hL s fv.memberID as %ldr -
+      · iframe Hmid Hlead
       iunfold isServerCI at Hsci
       icases Hsci with ⟨#Hcif, #Hci, #Hinv⟩
       imod skip_done γ st m.index Hp hi hlt $$ Hinv Hst with Hst
@@ -216,7 +222,8 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       · (try wp_auto)
         tail_skip
       · (try wp_auto)
-        wp_apply hE (srvCfgAddr s) as %dur -
+        wp_apply hE (srvCfgAddr s) fv.electionTicks fv.tickMs as %dur -
+        · iframe Het Htm
         rw [Hli]
         (try wp_auto)
         (try dsimp only)
@@ -294,6 +301,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       · -- `ErrNoSpace`: raise the alarm unless it is raised already
         (try wp_auto)
         wp_apply hAG fv.alarmStore _ as %sl -
+        · iexact Halm
         wp_if_destruct
         · -- raised already: hand the result to the waiter
           rw [Hwi]
@@ -304,7 +312,8 @@ theorem EtcdServer.applyEntryNormal.wp_proof
           wp_apply HT
           (try wp_auto)
           tail_any
-        · wp_apply hLg s as %lg %Hlg0
+        · wp_apply hLg s fv.lg $$ [Hlr] as ⟨%Hlg0, Hlr⟩
+          · iframe Hlg Hlr; ipureintro; exact Hlgnn
           (try wp_auto)
           wp_apply hZI _ _ as %f1 -
           wp_apply hHB _ as %qs -
@@ -317,7 +326,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
           · ipureintro; rfl
           iintro %fsl ⟨-, -⟩
           (try wp_auto)
-          wp_apply hW lg _ _ $$ []
+          wp_apply hW fv.lg _ _ $$ []
           · ipureintro; exact Hlg0
           (try wp_auto)
           wp_apply hGA s _
