@@ -951,10 +951,12 @@ verified of 3599, 3712 lines). `Results.lean` restates 33 results with `#print a
   `recipes-barrier-wait-closed-watch.md`, fix branch `recipes-closed-watch-channel`): on a closed
   watch channel `Queue.Dequeue`/`PriorityQueue.Dequeue` panic on a nil `ev.Kv`, and
   `Barrier.Wait` (and `DoubleBarrier.Enter`) report release while held.
-- **Design note, not a bug report**: the priority queue is not linearizable: an `Enqueue` of a
+- **Design note, and a documentation issue**: the priority queue is not linearizable: an `Enqueue` of a
   higher priority between a `Dequeue`'s get and its claim is not seen, so `Dequeue` can return a
   lower-priority item while a higher-priority one is present (unit 2, "Weaker than planned");
-  its order holds at the get's revision.
+  its order holds at the get's revision. Its comment ("returns Enqueue()'d items in FIFO order",
+  copied from the queue) is recorded as a documentation issue,
+  `issues/recipes-pqueue-dequeue-order.md`.
 
 ## Perennial `cb6a5921e`: one `AllG` (2026-10-11)
 

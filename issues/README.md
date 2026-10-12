@@ -45,6 +45,7 @@ the tests; the issues and pull requests are filed by hand from them. A finding t
 | [leasing-update-stale](leasing-update-stale.md) | bug | `leasing-update-stale` (d97e455c2) | `leasing` (units 3–5) |
 | [recipes-dequeue-closed-watch](recipes-dequeue-closed-watch.md) | bug | `recipes-closed-watch-channel` (0aa6c6af8) | recipes, 2026-10-11 |
 | [recipes-barrier-wait-closed-watch](recipes-barrier-wait-closed-watch.md) | bug | `recipes-closed-watch-channel` (0aa6c6af8) | recipes, 2026-10-11 |
+| [recipes-pqueue-dequeue-order](recipes-pqueue-dequeue-order.md) | documentation | none | recipes (unit 2), 2026-10-11 |
 | [raft-zero-max-size-per-msg](raft-zero-max-size-per-msg.md) | bug | none (etcd-io/raft; the format of the list above) | `raft` |
 
 Findings without a draft yet (`notes/STATUS.md`, the leasing sections): `gatherOps` appending
