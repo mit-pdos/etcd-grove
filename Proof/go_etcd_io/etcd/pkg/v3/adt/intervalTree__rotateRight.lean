@@ -26,7 +26,7 @@ theorem adt.intervalTree.rotateRight.wp_proof
     (h_updateMax : adt.intervalNode.updateMax.spec (GF := GF) (hG := hG))
     (h_replaceParent : adt.intervalTree.replaceParent.spec (GF := GF) (hG := hG)) :
     adt.intervalTree.rotateRight.spec (GF := GF) (hG := hG) := by
-  intro t s dq C x p y ap bp dp cx cy a b d xe ye hx hy
+  intro t s dq C ls x p y ap bp dp cx cy a b d xe ye hx hy
   wp_start as ⟨Hs, HC, Hxiv, Hxmx, Hxl, Hxr, Hxp, Hxc, Hyiv, Hymx, Hyl, Hyr, Hyp, Hyc, Ha, Hb, Hd⟩
   wp_auto
   rw [_root_.decide_eq_false hy.1]
@@ -56,18 +56,18 @@ theorem adt.intervalTree.rotateRight.wp_proof
   -- `x`'s max over its new children
   icases adt.ownNode_childMax _ _ _ b $$ Hb with ⟨Hbm, Hbback⟩
   icases adt.ownNode_childMax _ _ _ d $$ Hd with ⟨Hdm, Hdback⟩
-  wp_apply h_updateMax t s C x p bp dp xe (adt.nodeMax (.node cy a ye b) xe d) b.maxEnd d.maxEnd
+  wp_apply h_updateMax t s C ls x p bp dp xe (adt.nodeMax (.node cy a ye b) xe d) b.maxEnd d.maxEnd
     hx.1 $$ [HC Hxiv Hxmx Hxl Hxr Hxp Hbm Hdm] as ⟨HC, Hxiv, Hxmx, Hxl, Hxr, Hxp, Hbm, Hdm⟩
   · iframe
   ihave Hb := Hbback $$ Hbm
   ihave Hd := Hdback $$ Hdm
   -- `y` in `x`'s place
-  wp_apply h_replaceParent t s dq C x p y x _ (adt.nodeMax a ye b) hx.1 hy.1
+  wp_apply h_replaceParent t s dq C ls x p y x _ (adt.nodeMax a ye b) hx.1 hy.1
     $$ [Hs HC Hxp Hyp Hymx] as ⟨Hs, HC, Hxp, Hyp, Hymx⟩
   · iframe
   -- `x` under `y`, `y`'s max
   icases adt.ownNode_childMax _ _ _ a $$ Ha with ⟨Ham, Haback⟩
-  wp_apply h_updateMax t s C y p ap x ye (adt.nodeMax a ye b) a.maxEnd
+  wp_apply h_updateMax t s C ls y p ap x ye (adt.nodeMax a ye b) a.maxEnd
     (some (adt.nodeMaxO b.maxEnd xe d.maxEnd)) hy.1
     $$ [HC Hyiv Hymx Hyl Hyr Hyp Hxmx Ham] as ⟨HC, Hyiv, Hymx, Hyl, Hyr, Hyp, Ham, Hxm⟩
   · rw [adt.childMax_some]; iframe; ipureintro; exact hx.1
@@ -77,11 +77,6 @@ theorem adt.intervalTree.rotateRight.wp_proof
   iapply HΦ
   simp only [adt.nodeMax_eq, adt.maxEnd_node]
   iframe
-  iapply adt.ownNode_node_close
-  iexists bp, dp
-  simp only [adt.nodeMax_eq]
-  iframe
-  ipureintro; exact hx
 
 end proof
 

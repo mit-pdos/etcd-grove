@@ -5,6 +5,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__createIntervalNode
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.StringAffineComparable__Compare
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalNode__updateMax
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__insertFixup
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.CtxSpecs
 
 @[expose] public section
 
@@ -123,7 +124,7 @@ theorem adt.intervalTree.Insert.wp_proof
         ihave Hyiv := Hyivb $$ [Hyb Hye Hyv]
         · iframe
         icases adt.ownNode_childMax _ _ _ r $$ Hrn with ⟨Hrm, Hrback⟩
-        wp_apply h_updateMax t tv.sentinel' C' y yp z rp ye
+        wp_apply adt.updateMax_ctx h_updateMax t tv.sentinel' C' y yp z rp ye
             (adt.nodeMaxO RbT.leaf.maxEnd ye r.maxEnd) (some e) r.maxEnd Hyn.1
           $$ [HC Hyiv Hymx Hyl Hyr Hyp Hzmx Hrm] as ⟨HC, Hyiv, Hymx, Hyl, Hyr, Hyp, Hzm, Hrm⟩
         · rw [adt.childMax_some]; iframe; ipureintro; exact Hzs
@@ -167,7 +168,7 @@ theorem adt.intervalTree.Insert.wp_proof
         ihave Hyiv := Hyivb $$ [Hyb Hye Hyv]
         · iframe
         icases adt.ownNode_childMax _ _ _ l $$ Hln with ⟨Hlm, Hlback⟩
-        wp_apply h_updateMax t tv.sentinel' C' y yp lp z ye
+        wp_apply adt.updateMax_ctx h_updateMax t tv.sentinel' C' y yp lp z ye
             (adt.nodeMaxO l.maxEnd ye RbT.leaf.maxEnd) l.maxEnd (some e) Hyn.1
           $$ [HC Hyiv Hymx Hyl Hyr Hyp Hzmx Hlm] as ⟨HC, Hyiv, Hymx, Hyl, Hyr, Hyp, Hlm, Hzm⟩
         · rw [adt.childMax_some]; iframe; ipureintro; exact Hzs

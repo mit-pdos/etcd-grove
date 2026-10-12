@@ -8,6 +8,7 @@ module
 
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.TreeInsert
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.TreeDelete
 
 @[expose] public section
 
@@ -46,3 +47,22 @@ at its exit. -/
 #print axioms Perennial.EtcdGrove.adt.RbCtx.fix_black_RL
 #print axioms Perennial.EtcdGrove.adt.RbCtx.fix_black_LR
 #print axioms Perennial.EtcdGrove.adt.RbCtx.fix_black_RR
+
+/-! The delete's model (`TreeDelete.lean`, unit 4c): the splice of a node with at most one child
+and the two-children case (the successor's entry copied) remove the found entry at its index,
+the splice establishes `deleteFixup`'s loop invariant (or leaves a red-black tree), each case
+of the loop keeps it, and blackening `x` at the exit gives a red-black tree. -/
+#print axioms Perennial.EtcdGrove.adt.RbCtx.del_inorder_one
+#print axioms Perennial.EtcdGrove.adt.RbCtx.del_inorder_two
+#print axioms Perennial.EtcdGrove.adt.RbCtx.rb_entry
+#print axioms Perennial.EtcdGrove.adt.RbCtx.del_start
+#print axioms Perennial.EtcdGrove.adt.RbCtx.delInv_exit
+#print axioms Perennial.EtcdGrove.adt.RbCtx.del_case1_L
+#print axioms Perennial.EtcdGrove.adt.RbCtx.del_case2_L
+#print axioms Perennial.EtcdGrove.adt.RbCtx.del_case3_L
+#print axioms Perennial.EtcdGrove.adt.RbCtx.del_case4_L
+#print axioms Perennial.EtcdGrove.adt.RbCtx.del_case1_R
+#print axioms Perennial.EtcdGrove.adt.RbCtx.del_case2_R
+#print axioms Perennial.EtcdGrove.adt.RbCtx.del_case3_R
+#print axioms Perennial.EtcdGrove.adt.RbCtx.del_case4_R
+#print axioms Perennial.EtcdGrove.adt.maxEnd_plug

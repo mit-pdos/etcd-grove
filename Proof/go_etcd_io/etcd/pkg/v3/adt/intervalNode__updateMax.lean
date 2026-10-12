@@ -25,34 +25,34 @@ theorem adt.intervalNode.updateMax.wp_proof
     (h_StringAffineComparable_Compare :
       adt.StringAffineComparable.Compare.spec (GF := GF) (hG := hG)) :
     adt.intervalNode.updateMax.spec (GF := GF) (hG := hG) := by
-  intro t s C x p lp rp e m0 ml mr hxs
+  intro t s C ls x p lp rp e m0 ml mr hxs
   wp_start as ⟨HC, Hiv, Hmx, Hl, Hr, Hp, Hml, Hmr⟩
   wp_auto
   ihave HI : (∃ y : Loc, "x" ∷ x_ptr ↦ y ∗ "HJ" ∷
-      ((⌜y = s⌝ ∗ (adt.ownCtx t s C x p (some (adt.nodeMaxO ml e mr)) ∗
+      ((⌜y = s⌝ ∗ (adt.ownCtxAt t s C ls x p (some (adt.nodeMaxO ml e mr)) ∗
         x.[intervalNode, go!"iv"] ↦
           ({ Ivl' := adt.affIvl e.1.1 e.1.2, Val' := e.2 } : IntervalValue) ∗
         x.[intervalNode, go!"max"] ↦ adt.maxW (adt.nodeMaxO ml e mr) ∗
         x.[intervalNode, go!"left"] ↦ lp ∗ x.[intervalNode, go!"right"] ↦ rp ∗
         x.[intervalNode, go!"parent"] ↦ p ∗
         adt.childMax s lp ml ∗ adt.childMax s rp mr)) ∨
-      (∃ (C' : adt.RbCtx adt.Entry) (p' lp' rp' : Loc) (e' : adt.Entry) (m0' : GoString)
-          (ml' mr' : Option GoString),
-        ⌜y ≠ s⌝ ∗ adt.ownCtx t s C' y p' (some m0') ∗
+      (∃ (C' : adt.RbCtx adt.Entry) (ls' : List (Loc × Loc)) (p' lp' rp' : Loc) (e' : adt.Entry)
+          (m0' : GoString) (ml' mr' : Option GoString),
+        ⌜y ≠ s⌝ ∗ adt.ownCtxAt t s C' ls' y p' (some m0') ∗
         y.[intervalNode, go!"iv"] ↦
           ({ Ivl' := adt.affIvl e'.1.1 e'.1.2, Val' := e'.2 } : IntervalValue) ∗
         y.[intervalNode, go!"max"] ↦ adt.maxW m0' ∗
         y.[intervalNode, go!"left"] ↦ lp' ∗ y.[intervalNode, go!"right"] ↦ rp' ∗
         y.[intervalNode, go!"parent"] ↦ p' ∗
         adt.childMax s lp' ml' ∗ adt.childMax s rp' mr' ∗
-        (adt.ownCtx t s C' y p' (some (adt.nodeMaxO ml' e' mr')) ∗
+        (adt.ownCtxAt t s C' ls' y p' (some (adt.nodeMaxO ml' e' mr')) ∗
           y.[intervalNode, go!"iv"] ↦
             ({ Ivl' := adt.affIvl e'.1.1 e'.1.2, Val' := e'.2 } : IntervalValue) ∗
           y.[intervalNode, go!"max"] ↦ adt.maxW (adt.nodeMaxO ml' e' mr') ∗
           y.[intervalNode, go!"left"] ↦ lp' ∗ y.[intervalNode, go!"right"] ↦ rp' ∗
           y.[intervalNode, go!"parent"] ↦ p' ∗
           adt.childMax s lp' ml' ∗ adt.childMax s rp' mr' -∗
-          (adt.ownCtx t s C x p (some (adt.nodeMaxO ml e mr)) ∗
+          (adt.ownCtxAt t s C ls x p (some (adt.nodeMaxO ml e mr)) ∗
             x.[intervalNode, go!"iv"] ↦
               ({ Ivl' := adt.affIvl e.1.1 e.1.2, Val' := e.2 } : IntervalValue) ∗
             x.[intervalNode, go!"max"] ↦ adt.maxW (adt.nodeMaxO ml e mr) ∗
@@ -63,7 +63,7 @@ theorem adt.intervalNode.updateMax.wp_proof
   · iexists x
     iframe x
     iright
-    iexists C, p, lp, rp, e, m0, ml, mr
+    iexists C, ls, p, lp, rp, e, m0, ml, mr
     iframe
     isplitl []
     · ipureintro; exact hxs
@@ -72,7 +72,7 @@ theorem adt.intervalNode.updateMax.wp_proof
   have hvb : decide ((#false : val) = #true) = false :=
     decide_eq_false (fun h => Bool.false_ne_true (go.intoVal_inj h))
   have hvt : decide ((#true : val) = #true) = true := decide_eq_true rfl
-  icases HJ with (⟨%Hy, HR⟩ | ⟨%C', %p', %lp', %rp', %e', %m0', %ml', %mr', %Hy, HC, Hiv, Hmx,
+  icases HJ with (⟨%Hy, HR⟩ | ⟨%C', %ls', %p', %lp', %rp', %e', %m0', %ml', %mr', %Hy, HC, Hiv, Hmx,
     Hl, Hr, Hp, Hml, Hmr, Hw⟩)
   · rw [Hy]
     simp only [decide_true, Bool.not_true, hvb, Bool.false_eq_true, ↓reduceIte]
@@ -168,22 +168,26 @@ theorem adt.intervalNode.updateMax.wp_proof
     iframe HΦ sentinel
     iexists p'
     iframe x
-    ihave %Hpar := adt.ownCtx_parent _ _ _ _ _ _ $$ HC
+    ihave %Hpar := adt.ownCtxAt_parent _ _ _ _ _ _ _ $$ HC
     cases C' with
     | top =>
       ileft
       isplitl []
       · ipureintro; exact Hpar.1 rfl
       iapply Hw
-      ihave HC := adt.ownCtx_top_any _ _ _ _ _ (some (adt.nodeMaxO ml' e' mr')) $$ HC
+      ihave HC := adt.ownCtxAt_top_any _ _ _ _ _ _ (some (adt.nodeMaxO ml' e' mr')) $$ HC
       unfold adt.nodeMaxO
       iframe
     | inL c C'' pe r =>
-      rw [adt.ownCtx_inL]
-      icases HC with ⟨%pp, %rp2, %Hpn, Hpiv, Hpmx, Hpl, Hpr, Hpp, Hpc, Hnr, HC⟩
+      cases ls' with
+      | nil => iexfalso; iapply adt.ownCtxAt_inL_nil $$ HC
+      | cons f ls'' =>
+      obtain ⟨pp, rp2⟩ := f
+      icases (adt.ownCtxAt_inL _ _ _ _ _ _ _ _ _ _ _ _).1 $$ HC with
+        ⟨%Hpn, Hpiv, Hpmx, Hpl, Hpr, Hpp, Hpc, Hnr, HC⟩
       icases adt.ownNode_childMax _ _ _ r $$ Hnr with ⟨Hrm, Hrback⟩
       iright
-      iexists C'', pp, y, rp2, pe, adt.nodeMaxO (some m0') pe r.maxEnd,
+      iexists C'', ls'', pp, y, rp2, pe, adt.nodeMaxO (some m0') pe r.maxEnd,
         some (adt.nodeMaxO ml' e' mr'), r.maxEnd
       simp only [adt.maxW, adt.childMax_some]
       iframe HC Hpiv Hpmx Hpl Hpr Hpp Hrm
@@ -194,17 +198,24 @@ theorem adt.intervalNode.updateMax.wp_proof
       iintro ⟨HC, Hpiv, Hpmx, Hpl, Hpr, Hpp, ⟨-, Hmx⟩, Hrm⟩
       ihave Hnr := Hrback $$ Hrm
       iapply Hw
-      rw [adt.ownCtx_inL]
-      simp only [adt.maxW]
+      ihave HC := (adt.ownCtxAt_inL _ _ _ _ _ _ _ _ _ y p' (some (adt.nodeMaxO ml' e' mr'))).2
+        $$ [HC Hpiv Hpmx Hpl Hpr Hpp Hpc Hnr]
+      · simp only [adt.maxW]
+        unfold adt.nodeMaxO
+        iframe
+        ipureintro; exact Hpn
       unfold adt.nodeMaxO
       iframe
-      ipureintro; exact Hpn
     | inR c l pe C'' =>
-      rw [adt.ownCtx_inR]
-      icases HC with ⟨%pp, %lp2, %Hpn, Hpiv, Hpmx, Hpl, Hpr, Hpp, Hpc, Hnl, HC⟩
+      cases ls' with
+      | nil => iexfalso; iapply adt.ownCtxAt_inR_nil $$ HC
+      | cons f ls'' =>
+      obtain ⟨pp, lp2⟩ := f
+      icases (adt.ownCtxAt_inR _ _ _ _ _ _ _ _ _ _ _ _).1 $$ HC with
+        ⟨%Hpn, Hpiv, Hpmx, Hpl, Hpr, Hpp, Hpc, Hnl, HC⟩
       icases adt.ownNode_childMax _ _ _ l $$ Hnl with ⟨Hlm, Hlback⟩
       iright
-      iexists C'', pp, lp2, y, pe, adt.nodeMaxO l.maxEnd pe (some m0'), l.maxEnd,
+      iexists C'', ls'', pp, lp2, y, pe, adt.nodeMaxO l.maxEnd pe (some m0'), l.maxEnd,
         some (adt.nodeMaxO ml' e' mr')
       simp only [adt.maxW, adt.childMax_some]
       iframe HC Hpiv Hpmx Hpl Hpr Hpp Hlm
@@ -215,11 +226,14 @@ theorem adt.intervalNode.updateMax.wp_proof
       iintro ⟨HC, Hpiv, Hpmx, Hpl, Hpr, Hpp, Hlm, ⟨-, Hmx⟩⟩
       ihave Hnl := Hlback $$ Hlm
       iapply Hw
-      rw [adt.ownCtx_inR]
-      simp only [adt.maxW]
+      ihave HC := (adt.ownCtxAt_inR _ _ _ _ _ _ _ _ _ y p' (some (adt.nodeMaxO ml' e' mr'))).2
+        $$ [HC Hpiv Hpmx Hpl Hpr Hpp Hpc Hnl]
+      · simp only [adt.maxW]
+        unfold adt.nodeMaxO
+        iframe
+        ipureintro; exact Hpn
       unfold adt.nodeMaxO
       iframe
-      ipureintro; exact Hpn
 
 end proof
 

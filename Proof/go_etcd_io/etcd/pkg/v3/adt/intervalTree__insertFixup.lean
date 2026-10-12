@@ -4,6 +4,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__insertFixup
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalNode__color
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__rotateLeft
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__rotateRight
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.CtxSpecs
 
 @[expose] public section
 
@@ -140,7 +141,7 @@ theorem adt.intervalTree.insertFixup.wp_proof
           ihave Hz := adt.ownNode_node_close s 1 p z .red l ze r $$
             [Hziv Hzmx Hzl Hzr Hzp Hzc Hzln Hzrn]
           · iexists lp, rp; iframe; ipureintro; exact Hzn
-          wp_apply h_rotateRight t s dq CG g gp p z s1p up .red .black (.node .red l ze r) s1 u
+          wp_apply adt.rotateRight_ctx h_rotateRight t s dq CG g gp p z s1p up .red .black (.node .red l ze r) s1 u
             ge pe Hgn Hpn
             $$ [Hs HC Hgiv Hgmx Hgl Hgr Hgp Hgc Hpiv Hpmx Hpl Hpr Hpp Hpc Hz Hs1 Hu]
             as ⟨Hs, HC, Hpiv, Hpmx, Hpl, Hpr, Hpp, Hpc, Hz, Hg⟩
@@ -214,7 +215,7 @@ theorem adt.intervalTree.insertFixup.wp_proof
             iexists gp, up
             simp only [adt.nodeMax_eq, adt.maxEnd_node]
             iframe; ipureintro; exact Hgn
-          wp_apply h_rotateRight t s dq (.inR cg u ge CG) p g z lp rp s1p .red .red l r s1 pe ze
+          wp_apply adt.rotateRight_ctx h_rotateRight t s dq (.inR cg u ge CG) p g z lp rp s1p .red .red l r s1 pe ze
             Hpn Hzn
             $$ [Hs HCP Hpiv Hpmx Hpl Hpr Hpp Hpc Hziv Hzmx Hzl Hzr Hzp Hzc Hzln Hzrn Hs1]
             as ⟨Hs, HCP, Hziv, Hzmx, Hzl, Hzr, Hzp, Hzc, Hzln, Hp⟩
@@ -228,7 +229,7 @@ theorem adt.intervalTree.insertFixup.wp_proof
           ihave Hp := adt.ownNode_node_close s 1 z p .red r pe s1 $$
             [Hpiv Hpmx Hpl Hpr Hpp Hpc Hrn Hs1]
           · iexists rp', s1p'; iframe; ipureintro; exact Hpn'
-          wp_apply h_rotateLeft t s dq CG g gp' z up' lp p .red .black u l (.node .red r pe s1)
+          wp_apply adt.rotateLeft_ctx h_rotateLeft t s dq CG g gp' z up' lp p .red .black u l (.node .red r pe s1)
             ge ze Hgn' Hzn
             $$ [Hs HC Hgiv Hgmx Hgl Hgr Hgp Hgc Hziv Hzmx Hzl Hzr Hzp Hzc Hu Hzln Hp]
             as ⟨Hs, HC, Hziv, Hzmx, Hzl, Hzr, Hzp, Hzc, Hg, Hp⟩
@@ -306,7 +307,7 @@ theorem adt.intervalTree.insertFixup.wp_proof
             iexists gp, up
             simp only [adt.nodeMax_eq, adt.maxEnd_node]
             iframe; ipureintro; exact Hgn
-          wp_apply h_rotateLeft t s dq (.inL cg CG ge u) p g z s1p lp rp .red .red s1 l r pe ze
+          wp_apply adt.rotateLeft_ctx h_rotateLeft t s dq (.inL cg CG ge u) p g z s1p lp rp .red .red s1 l r pe ze
             Hpn Hzn
             $$ [Hs HCP Hpiv Hpmx Hpl Hpr Hpp Hpc Hziv Hzmx Hzl Hzr Hzp Hzc Hzln Hzrn Hs1]
             as ⟨Hs, HCP, Hziv, Hzmx, Hzl, Hzr, Hzp, Hzc, Hp, Hzrn⟩
@@ -320,7 +321,7 @@ theorem adt.intervalTree.insertFixup.wp_proof
           ihave Hp := adt.ownNode_node_close s 1 z p .red s1 pe l $$
             [Hpiv Hpmx Hpl Hpr Hpp Hpc Hs1 Hln]
           · iexists s1p', lp'; iframe; ipureintro; exact Hpn'
-          wp_apply h_rotateRight t s dq CG g gp' z p rp up' .red .black (.node .red s1 pe l) r u
+          wp_apply adt.rotateRight_ctx h_rotateRight t s dq CG g gp' z p rp up' .red .black (.node .red s1 pe l) r u
             ge ze Hgn' Hzn
             $$ [Hs HC Hgiv Hgmx Hgl Hgr Hgp Hgc Hziv Hzmx Hzl Hzr Hzp Hzc Hp Hzrn Hu]
             as ⟨Hs, HC, Hziv, Hzmx, Hzl, Hzr, Hzp, Hzc, Hp, Hg⟩
@@ -393,7 +394,7 @@ theorem adt.intervalTree.insertFixup.wp_proof
           ihave Hz := adt.ownNode_node_close s 1 p z .red l ze r $$
             [Hziv Hzmx Hzl Hzr Hzp Hzc Hzln Hzrn]
           · iexists lp, rp; iframe; ipureintro; exact Hzn
-          wp_apply h_rotateLeft t s dq CG g gp p up s1p z .red .black u s1 (.node .red l ze r)
+          wp_apply adt.rotateLeft_ctx h_rotateLeft t s dq CG g gp p up s1p z .red .black u s1 (.node .red l ze r)
             ge pe Hgn Hpn
             $$ [Hs HC Hgiv Hgmx Hgl Hgr Hgp Hgc Hpiv Hpmx Hpl Hpr Hpp Hpc Hu Hs1 Hz]
             as ⟨Hs, HC, Hpiv, Hpmx, Hpl, Hpr, Hpp, Hpc, Hg, Hz⟩

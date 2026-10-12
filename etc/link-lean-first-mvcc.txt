@@ -109,15 +109,14 @@ NewHashStorage:
 schema_UnsafeCreateMetaBucket:
 store__restore:
 NewStore: zap_NewNop newTreeIndex schedule_NewFIFOScheduler NewHashStorage schema_UnsafeCreateMetaBucket store__restore
-# The interval tree's (pkg/v3/adt, see Proof/go_etcd_io/etcd/pkg/v3/adt/): its proved
-# comparisons (linked in its own Link.lean) and its pending contract (unit 4 proves it; until
-# then hypotheses of every result that reaches them).
+# The interval tree's (pkg/v3/adt, see Proof/go_etcd_io/etcd/pkg/v3/adt/): its comparisons
+# and its contract, all proved and linked in its own Link.lean (unit 4).
 adt_NewStringAffineInterval: @
 adt_NewStringAffinePoint: @
 adt_NewIntervalTree: @
 adt_intervalTree__Find: @
 adt_intervalTree__Insert: @
-adt_intervalTree__Delete: ?
+adt_intervalTree__Delete: @
 adt_intervalTree__Intersects: @
 adt_intervalTree__Stab: @
 adt_ownIvt_split: @

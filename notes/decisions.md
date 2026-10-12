@@ -2010,6 +2010,22 @@ record.
   duplicate; which one `Delete` removes is not determined) — the watcher group, with one
   interval per range, recovers `find?`/`eraseP` by uniqueness. Their `Union` spec must also take
   the fraction and the count bound.
+- **The hole's frames have locations** (2026-10-12, 4c). 4b's `ownCtx t s C n p mh` quantified
+  the frames' nodes existentially: enough for `Insert` (the fixup only moves up, by reading
+  `parent`), not for `Delete`, which reads a node back after a helper has walked up through
+  its frame (`z` after `y.parent.updateMax`, to write `z.iv = y.iv`; `x.parent` after
+  `rotateLeft(x.parent)` in the fixup's case 1 and `rotateRight(w)` in case 3). The helpers'
+  specs now index the path by its frames' locations (`ownPathAt … ls …`, `ownCtxAt`, kept by
+  `updateMax`, `replaceParent` and the rotations; the rotations also give the rotated-down
+  node's fields back explicitly), and `find` returns the node under its path rather than
+  behind a wand; the existential forms are derived lemmas, so 4b's proofs stand. *Rejected:*
+  re-finding `z` by a second descent (not what the code does) and a separate predicate for
+  `Delete` only (two hole predicates to keep in step). **The sentinel as `x`**: CLRS's `x`
+  may be the sentinel (the spliced node had no child), whose `parent` the splice writes and
+  whose colour the fixup's exit writes; `sentAt s x p` (`∃ v, s ↦ v ∗ ⌜x = s → v.parent = p⌝`)
+  carries the one field the fixup reads, and `ownSentinel`'s existential absorbs the rest.
+  `successor`'s walk up the parents (a node without a right child) is never reached by
+  `Delete` (two children) and is not specified.
 
 ### The watcher group and the stream (unit 2)
 

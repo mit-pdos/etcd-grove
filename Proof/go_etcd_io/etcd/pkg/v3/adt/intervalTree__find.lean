@@ -29,17 +29,19 @@ theorem adt.intervalTree.find.wp_proof
   intro t tv q T b e
   wp_start as ⟨Hr, Hs, Hn⟩
   wp_auto
-  ihave HI : (∃ (x p : Loc) (Tx : adt.RbT adt.Entry),
+  ihave HI : (∃ (x p : Loc) (C : adt.RbCtx adt.Entry) (ls : List (Loc × Loc))
+      (Tx : adt.RbT adt.Entry),
       "x" ∷ x_ptr ↦ x ∗ "Hx" ∷ adt.ownNode tv.sentinel' q p x Tx ∗
-      "Hw" ∷ (adt.ownNode tv.sentinel' q p x Tx -∗
-        adt.ownNode tv.sentinel' q tv.sentinel' tv.root' T) ∗
-      "%Hinv" ∷ ⌜Tx.findE (b, e) = T.findE (b, e)⌝ : IProp GF)
+      "Hw" ∷ adt.ownPathAt tv.sentinel' q C ls x p Tx.maxEnd ∗
+      "%Hinv" ∷ ⌜Tx.findE (b, e) = T.findE (b, e) ∧ adt.topAt C ls x p = (tv.root', tv.sentinel') ∧
+        C.plug Tx = T⌝ : IProp GF)
       $$ [x Hn]
-  · iexists tv.root', tv.sentinel', T
+  · iexists tv.root', tv.sentinel', .top, [], T
     iframe
+    rw [adt.ownPathAt_top]
     isplitl []
-    · iintro H; iexact H
-    ipureintro; rfl
+    · ipureintro; trivial
+    ipureintro; exact ⟨rfl, rfl, rfl⟩
   wp_for HI
   cases Tx with
   | leaf =>
@@ -52,14 +54,14 @@ theorem adt.intervalTree.find.wp_proof
     wp_auto
     iapply HΦ
     iframe Hr Hs
-    iexists p, .leaf
+    iexists p, C, ls, .leaf
     rw [adt.ownNode_leaf]
+    iframe Hw
     isplitl []
     · ipureintro; rfl
-    isplitl [Hw]
-    · iintro -; iapply Hw; ipureintro; trivial
     ipureintro
-    rw [← Hinv]; rfl
+    refine ⟨Hinv.2.1, Hinv.2.2, ?_⟩
+    rw [← Hinv.1]; rfl
   | node c l z r =>
     icases adt.ownNode_node_open _ _ _ _ c l z r $$ Hx with
       ⟨%lp, %rp, %Hn, Hiv, Hmx, Hl, Hr', Hp, Hc, Hnl, Hnr⟩
@@ -73,27 +75,8 @@ theorem adt.intervalTree.find.wp_proof
     have hw0 : ∀ a c, W64 (adt.affCmp a c) = W64 0 ↔ adt.affCmp a c = 0 := by
       intro a c; have := adt.affCmp_bounds a c; constructor <;> intro h <;> word
     have h0 : sint.Z (W64 0) = 0 := rfl
-    have hfe := Hinv
-    -- the node, repacked
-    ihave Hpack : (x.[intervalNode, go!"iv"].[IntervalValue, go!"Ivl"].[Interval, go!"Begin"] ↦{DFrac.own q}
-          interface.mkOk StringAffineComparable.ty #z.1.1 ∗
-        x.[intervalNode, go!"iv"].[IntervalValue, go!"Ivl"].[Interval, go!"End"] ↦{DFrac.own q}
-          interface.mkOk StringAffineComparable.ty #z.1.2 ∗
-        x.[intervalNode, go!"iv"].[IntervalValue, go!"Val"] ↦{DFrac.own q} z.2 ∗
-        x.[intervalNode, go!"max"] ↦{DFrac.own q} adt.maxW (adt.nodeMax l z r) ∗
-        x.[intervalNode, go!"left"] ↦{DFrac.own q} lp ∗
-        x.[intervalNode, go!"right"] ↦{DFrac.own q} rp ∗
-        x.[intervalNode, go!"parent"] ↦{DFrac.own q} p ∗
-        x.[intervalNode, go!"c"] ↦{DFrac.own q} adt.colorW c -∗
-        adt.ownNode tv.sentinel' q x lp l -∗ adt.ownNode tv.sentinel' q x rp r -∗
-        adt.ownNode tv.sentinel' q p x (.node c l z r)) $$ [Hivb]
-    · iintro ⟨Hb, He, Hv, Hmx, Hl, Hr', Hp, Hc⟩ Hnl Hnr
-      iapply adt.ownNode_node_close
-      iexists lp, rp
-      iframe Hmx Hl Hr' Hp Hc Hnl Hnr
-      isplitl []
-      · ipureintro; exact Hn
-      iapply Hivb; iframe
+    have hfe := Hinv.1
+    obtain ⟨-, Htop, Hplug⟩ := Hinv
     -- the descent's three outcomes
     have hcases : ∀ X : Option adt.Entry, X = T.findE (b, e) →
         (adt.affCmp b z.1.1 = 0 ∧ adt.affCmp e z.1.2 = 0 → X = some z) ∧
@@ -124,12 +107,17 @@ theorem adt.intervalTree.find.wp_proof
         wp_for_post
         iapply HΦ
         iframe Hr Hs
-        iexists p, .node c l z r
-        isplitl [Hpack Hb He Hv Hmx Hl Hr' Hp Hc Hnl Hnr]
-        · iapply Hpack $$ [Hb He Hv Hmx Hl Hr' Hp Hc] Hnl Hnr; iframe
-        isplitl [Hw]
-        · iexact Hw
+        iexists p, C, ls, .node c l z r
+        iframe Hw
+        ihave Hiv := Hivb $$ [Hb He Hv]
+        · iframe
+        isplitl [Hiv Hmx Hl Hr' Hp Hc Hnl Hnr]
+        · iapply adt.ownNode_node_close
+          iexists lp, rp
+          iframe
+          ipureintro; exact Hn
         ipureintro
+        refine ⟨Htop, Hplug, ?_⟩
         rw [hfound hb0 he0]
         exact ⟨c, l, r, rfl⟩
       · have he0 : adt.affCmp e z.1.2 ≠ 0 := fun h => Hif ((hw0 _ _).2 h)
@@ -141,24 +129,28 @@ theorem adt.intervalTree.find.wp_proof
             simp only [hz, h0] at Hif
             wp_for_post
             iframe
-            iexists lp, x, l
+            iexists lp, x, .inL c C z r, (p, rp) :: ls, l
             iframe
-            isplitl [Hpack Hb He Hv Hmx Hl Hr' Hp Hc Hnr Hw]
-            · iintro Hnl
-              iapply Hw
-              iapply Hpack $$ [Hb He Hv Hmx Hl Hr' Hp Hc] Hnl Hnr; iframe
-            ipureintro; exact (hleft (Or.inr ⟨hb0, Hif⟩))
+            ihave Hiv := Hivb $$ [Hb He Hv]
+            · iframe
+            ihave Hw := adt.ownPathAt_push_inL _ q C ls x p c l z r lp rp Hn $$
+              [Hw Hiv Hmx Hl Hr' Hp Hc Hnr]
+            · iframe
+            iframe
+            ipureintro; exact ⟨hleft (Or.inr ⟨hb0, Hif⟩), Htop, Hplug⟩
           · -- right
             simp only [hz, h0] at Hif
             wp_for_post
             iframe
-            iexists rp, x, r
+            iexists rp, x, .inR c l z C, (p, lp) :: ls, r
             iframe
-            isplitl [Hpack Hb He Hv Hmx Hl Hr' Hp Hc Hnl Hw]
-            · iintro Hnr
-              iapply Hw
-              iapply Hpack $$ [Hb He Hv Hmx Hl Hr' Hp Hc] Hnl Hnr; iframe
-            ipureintro; exact (hright (Or.inr ⟨hb0, by omega⟩))
+            ihave Hiv := Hivb $$ [Hb He Hv]
+            · iframe
+            ihave Hw := adt.ownPathAt_push_inR _ q C ls x p c l z r lp rp Hn $$
+              [Hw Hiv Hmx Hl Hr' Hp Hc Hnl]
+            · iframe
+            iframe
+            ipureintro; exact ⟨hright (Or.inr ⟨hb0, by omega⟩), Htop, Hplug⟩
         · exfalso; first | exact Hif ((hw0 _ _).2 hb0) | (simp only [hz, h0] at Hif; omega)
     · have hb0 : adt.affCmp b z.1.1 ≠ 0 := fun h => Hif ((hw0 _ _).2 h)
       wp_if_destruct
@@ -166,26 +158,30 @@ theorem adt.intervalTree.find.wp_proof
         simp only [hz, h0] at Hif
         wp_for_post
         iframe
-        iexists lp, x, l
+        iexists lp, x, .inL c C z r, (p, rp) :: ls, l
         iframe
-        isplitl [Hpack Hb He Hv Hmx Hl Hr' Hp Hc Hnr Hw]
-        · iintro Hnl
-          iapply Hw
-          iapply Hpack $$ [Hb He Hv Hmx Hl Hr' Hp Hc] Hnl Hnr; iframe
-        ipureintro; exact (hleft (Or.inl Hif))
+        ihave Hiv := Hivb $$ [Hb He Hv]
+        · iframe
+        ihave Hw := adt.ownPathAt_push_inL _ q C ls x p c l z r lp rp Hn $$
+          [Hw Hiv Hmx Hl Hr' Hp Hc Hnr]
+        · iframe
+        iframe
+        ipureintro; exact ⟨hleft (Or.inl Hif), Htop, Hplug⟩
       · simp only [hz, h0] at Hif
         wp_if_destruct
         · exfalso; exact hb0 ((hw0 _ _).1 Hif)
         -- right
         wp_for_post
         iframe
-        iexists rp, x, r
+        iexists rp, x, .inR c l z C, (p, lp) :: ls, r
         iframe
-        isplitl [Hpack Hb He Hv Hmx Hl Hr' Hp Hc Hnl Hw]
-        · iintro Hnr
-          iapply Hw
-          iapply Hpack $$ [Hb He Hv Hmx Hl Hr' Hp Hc] Hnl Hnr; iframe
-        ipureintro; exact (hright (Or.inl (by omega)))
+        ihave Hiv := Hivb $$ [Hb He Hv]
+        · iframe
+        ihave Hw := adt.ownPathAt_push_inR _ q C ls x p c l z r lp rp Hn $$
+          [Hw Hiv Hmx Hl Hr' Hp Hc Hnl]
+        · iframe
+        iframe
+        ipureintro; exact ⟨hright (Or.inl (by omega)), Htop, Hplug⟩
 
 end proof
 

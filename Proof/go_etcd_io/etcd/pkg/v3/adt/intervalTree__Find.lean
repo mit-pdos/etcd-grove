@@ -31,8 +31,9 @@ theorem adt.intervalTree.Find.wp_proof
   obtain ⟨hTL, -, hsorted, -⟩ := Hp
   subst hTL
   wp_auto
-  wp_apply h_find t tv q T b e $$ [Hr Hs Hn] as %n ⟨Hr, Hs, %p, %Tz, Hz, Hw, %HTz⟩
+  wp_apply h_find t tv q T b e $$ [Hr Hs Hn] as %n ⟨Hr, Hs, %p, %C, %ls, %Tz, Hw, Hz, %HTz⟩
   · iframe
+  obtain ⟨Htop, Hplug, HTz⟩ := HTz
   cases hf : T.findE (b, e) with
   | none =>
     rw [hf] at HTz
@@ -46,8 +47,9 @@ theorem adt.intervalTree.Find.wp_proof
     · ipureintro; exact ⟨rfl, adt.findE_none _ T hsorted hf⟩
     iapply Hback
     iframe
-    iapply Hw
-    iapply adt.ownNode_leaf_close
+    rw [← Hplug]
+    iapply adt.ownPathAt_plug' _ _ _ _ _ _ _ _ _ Htop
+    iframe
   | some z =>
     rw [hf] at HTz
     obtain ⟨c, l, r, rfl⟩ := HTz
@@ -71,7 +73,9 @@ theorem adt.intervalTree.Find.wp_proof
     iintro Hiv
     iapply Hback
     iframe
-    iapply Hw
+    rw [← Hplug]
+    iapply adt.ownPathAt_plug' _ _ _ _ _ _ _ _ _ Htop
+    iframe
     iapply adt.ownNode_node_close
     iexists lp, rp
     iframe

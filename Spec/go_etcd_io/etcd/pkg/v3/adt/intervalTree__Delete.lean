@@ -1,7 +1,6 @@
 /-
-`intervalTree.Delete` (`interval_tree.go`). Lean-first (no Rocq counterpart); see `Model.lean`, `Defs.lean`.
-Pending: the interval tree's contract, proved in unit 4 (the tree's proof); until then a
-hypothesis of every result that reaches it (`?` in `etc/link-lean-first-adt.txt`).
+`intervalTree.Delete` (`interval_tree.go`). Lean-first (no Rocq counterpart); see `Model.lean`,
+`Defs.lean`, `TreeDelete.lean`. Proved in unit 4c (`intervalTree__Delete.lean`).
 -/
 module
 

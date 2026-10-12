@@ -1,11 +1,10 @@
 /-
-`intervalTree.Len` (`interval_tree.go`). Lean-first (no Rocq counterpart); see `Model.lean`, `Defs.lean`.
-Pending: the interval tree's contract, proved in unit 4 (the tree's proof); until then a
-hypothesis of every result that reaches it (`?` in `etc/link-lean-first-adt.txt`).
+`intervalTree.find` (`interval_tree.go`). Lean-first (no Rocq counterpart); see `Tree.lean`,
+`CtxAt.lean`.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.pkg.v3.adt.Defs
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.CtxAt
 
 @[expose] public section
 
@@ -25,7 +24,8 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.adt.Assumptions]
 
 /-- `t.find(ivl)` (internal, `Find`'s and `Delete`'s), over the tree struct's `root` and
 `sentinel` fields and the nodes from the root, at a fraction `q`: the node `n` that `find`'s
-descent stops at (as its subtree, given back by a wand), `findE`: a node whose entry has the
+descent stops at, as its subtree `Tz` under the path `C` from the root (`ownPathAt`, its frames'
+locations `ls`: `Delete` changes the tree around `n`), `findE`: a node whose entry has the
 interval (the topmost on the path: with equal intervals, not necessarily the first in order),
 or the sentinel. -/
 abbrev adt.intervalTree.find.spec : Prop :=
@@ -39,9 +39,10 @@ abbrev adt.intervalTree.find.spec : Prop :=
   {{ (n : Loc), RET #n;
       t.[intervalTree, go!"root"] ↦{DFrac.own q} tv.root' ∗
       t.[intervalTree, go!"sentinel"] ↦{DFrac.own q} tv.sentinel' ∗
-      ∃ (p : Loc) (Tz : adt.RbT adt.Entry), adt.ownNode tv.sentinel' q p n Tz ∗
-        (adt.ownNode tv.sentinel' q p n Tz -∗ adt.ownNode tv.sentinel' q tv.sentinel' tv.root' T) ∗
-        ⌜match T.findE (b, e) with
+      ∃ (p : Loc) (C : adt.RbCtx adt.Entry) (ls : List (Loc × Loc)) (Tz : adt.RbT adt.Entry),
+        adt.ownPathAt tv.sentinel' q C ls n p Tz.maxEnd ∗ adt.ownNode tv.sentinel' q p n Tz ∗
+        ⌜adt.topAt C ls n p = (tv.root', tv.sentinel') ∧ C.plug Tz = T ∧
+          match T.findE (b, e) with
           | none => Tz = .leaf
           | some z => ∃ c l r, Tz = .node c l z r⌝ }}
 

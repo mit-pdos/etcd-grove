@@ -146,7 +146,6 @@ public import Proof.go_uber_org.zap.Logger__Error
 public import Proof.go_uber_org.zap.Logger__Panic
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_uber_org.zap.String
-public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Delete
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Link
 
@@ -386,6 +385,10 @@ theorem mvcc.watcherSetByKey.wp_delete :
     mvcc.watcherSetByKey.delete.spec (GF := GF) (hG := hG) :=
   mvcc.watcherSetByKey.delete.wp_proof
 
+theorem mvcc.watcherGroup.wp_delete :
+    mvcc.watcherGroup.delete.spec (GF := GF) (hG := hG) :=
+  mvcc.watcherGroup.delete.wp_proof mvcc.watcherSet.wp_delete mvcc.watcherSetByKey.wp_delete adt.wp_NewStringAffineInterval adt.intervalTree.wp_Find adt.intervalTree.wp_Delete
+
 theorem mvcc.wp_newMetricsTxnRead :
     mvcc.newMetricsTxnRead.spec (GF := GF) (hG := hG) :=
   mvcc.newMetricsTxnRead.wp_proof
@@ -545,6 +548,10 @@ theorem mvcc.watchableStore.wp_addVictim :
     mvcc.watchableStore.addVictim.spec (GF := GF) (hG := hG) :=
   mvcc.watchableStore.addVictim.wp_proof
 
+theorem mvcc.watchableStore.wp_syncWatchers :
+    mvcc.watchableStore.syncWatchers.spec (GF := GF) (hG := hG) :=
+  mvcc.watchableStore.syncWatchers.wp_proof mvcc.watcherGroup.wp_size mvcc.watcherGroup.wp_choose mvcc.wp_rangeEvents mvcc.wp_newWatcherBatch mvcc.watcher.wp_send mvcc.watcherGroup.wp_add mvcc.watcherGroup.wp_delete mvcc.watchableStore.wp_addVictim
+
 theorem time.wp_Since :
     time.Since.spec (GF := GF) (hG := hG) :=
   time.Since.wp_proof
@@ -553,6 +560,10 @@ theorem time.Ticker.wp_Reset :
     time.Ticker.Reset.spec (GF := GF) (hG := hG) :=
   time.Ticker.Reset.wp_proof
 
+theorem mvcc.watchableStore.wp_syncWatchersLoop :
+    mvcc.watchableStore.syncWatchersLoop.spec (GF := GF) (hG := hG) :=
+  mvcc.watchableStore.syncWatchersLoop.wp_proof time.wp_NewTicker time.Ticker.wp_Stop mvcc.watcherGroup.wp_size mvcc.watchableStore.wp_syncWatchers time.wp_Since time.Ticker.wp_Reset
+
 theorem mvcc.watchableStore.wp_moveVictims :
     mvcc.watchableStore.moveVictims.spec (GF := GF) (hG := hG) :=
   mvcc.watchableStore.moveVictims.wp_proof mvcc.watcher.wp_send mvcc.watcherGroup.wp_add
@@ -560,6 +571,10 @@ theorem mvcc.watchableStore.wp_moveVictims :
 theorem mvcc.watchableStore.wp_syncVictimsLoop :
     mvcc.watchableStore.syncVictimsLoop.spec (GF := GF) (hG := hG) :=
   mvcc.watchableStore.syncVictimsLoop.wp_proof mvcc.watchableStore.wp_moveVictims
+
+theorem mvcc.wp_New [go_etcd_io.etcd.cache.v3.Assumptions] :
+    mvcc.New.spec (GF := GF) (hG := hG) :=
+  mvcc.New.wp_proof mvcc.wp_newWatchableStore mvcc.watchableStore.wp_syncWatchersLoop mvcc.watchableStore.wp_syncVictimsLoop
 
 theorem mvcc.wp_newMetricsTxnWrite :
     mvcc.newMetricsTxnWrite.spec (GF := GF) (hG := hG) :=
@@ -661,9 +676,25 @@ theorem mvcc.watchStream.wp_Watch :
     mvcc.watchStream.Watch.spec (GF := GF) (hG := hG) :=
   mvcc.watchStream.Watch.wp_proof trace.wp_SpanFromContext
 
+theorem mvcc.watchableStore.wp_notify :
+    mvcc.watchableStore.notify.spec (GF := GF) (hG := hG) :=
+  mvcc.watchableStore.notify.wp_proof mvcc.wp_newWatcherBatch mvcc.watcher.wp_send mvcc.watcherGroup.wp_delete mvcc.watchableStore.wp_addVictim
+
+theorem mvcc.watchableStoreTxnWrite.wp_End :
+    mvcc.watchableStoreTxnWrite.End.spec (GF := GF) (hG := hG) :=
+  mvcc.watchableStoreTxnWrite.End.wp_proof mvcc.metricsTxnWrite.wp_Changes mvcc.metricsTxnWrite.wp_End mvcc.storeTxnWrite.wp_Rev mvcc.watchableStore.wp_notify
+
 theorem mvcc.watchableStore.wp_Close :
     mvcc.watchableStore.Close.spec (GF := GF) (hG := hG) :=
   mvcc.watchableStore.Close.wp_proof mvcc.store.wp_Close
+
+theorem mvcc.watchableStore.wp_cancelWatcher :
+    mvcc.watchableStore.cancelWatcher.spec (GF := GF) (hG := hG) :=
+  mvcc.watchableStore.cancelWatcher.wp_proof mvcc.watcherGroup.wp_delete
+
+theorem mvcc.watchableStore.wp_watch :
+    mvcc.watchableStore.watch.spec (GF := GF) (hG := hG) :=
+  mvcc.watchableStore.watch.wp_proof mvcc.watcherGroup.wp_add mvcc.watchableStore.wp_cancelWatcher
 
 theorem mvcc.watchableStore.wp_rev :
     mvcc.watchableStore.rev.spec (GF := GF) (hG := hG) :=
@@ -681,6 +712,10 @@ theorem mvcc.watchableStore.wp_progressAll :
     mvcc.watchableStore.progressAll.spec (GF := GF) (hG := hG) :=
   mvcc.watchableStore.progressAll.wp_proof mvcc.watchableStore.wp_progressIfSync
 
+theorem mvcc.watchableStore.wp_NewWatchStream :
+    mvcc.watchableStore.NewWatchStream.spec (GF := GF) (hG := hG) :=
+  mvcc.watchableStore.NewWatchStream.wp_proof mvcc.watchableStore.wp_watch mvcc.watchableStore.wp_progress mvcc.watchableStore.wp_progressAll mvcc.watchableStore.wp_rev
+
 theorem mvcc.watchableStore.wp_Write :
     mvcc.watchableStore.Write.spec (GF := GF) (hG := hG) :=
   mvcc.watchableStore.Write.wp_proof mvcc.store.wp_Write
@@ -694,55 +729,6 @@ theorem mvcc.writeView.wp_Put [go_etcd_io.etcd.cache.v3.Assumptions] :
   mvcc.writeView.Put.wp_proof traceutil.wp_TODO mvcc.store.wp_Write mvcc.metricsTxnWrite.wp_Put mvcc.metricsTxnWrite.wp_End
 
 end links_hasLC
-
-/-! The results that reach a function specified but not proved yet (a later unit's):
-its spec is a hypothesis (`h_<fn>`) of each of them. -/
-section links_pending
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-variable (h_adt_intervalTree__Delete : adt.intervalTree.Delete.spec (GF := GF) (hG := hG))
-include h_adt_intervalTree__Delete
-
-theorem mvcc.watcherGroup.wp_delete :
-    mvcc.watcherGroup.delete.spec (GF := GF) (hG := hG) :=
-  mvcc.watcherGroup.delete.wp_proof mvcc.watcherSet.wp_delete mvcc.watcherSetByKey.wp_delete adt.wp_NewStringAffineInterval adt.intervalTree.wp_Find h_adt_intervalTree__Delete
-
-theorem mvcc.watchableStore.wp_syncWatchers :
-    mvcc.watchableStore.syncWatchers.spec (GF := GF) (hG := hG) :=
-  mvcc.watchableStore.syncWatchers.wp_proof mvcc.watcherGroup.wp_size mvcc.watcherGroup.wp_choose mvcc.wp_rangeEvents mvcc.wp_newWatcherBatch mvcc.watcher.wp_send mvcc.watcherGroup.wp_add (mvcc.watcherGroup.wp_delete h_adt_intervalTree__Delete) mvcc.watchableStore.wp_addVictim
-
-theorem mvcc.watchableStore.wp_syncWatchersLoop :
-    mvcc.watchableStore.syncWatchersLoop.spec (GF := GF) (hG := hG) :=
-  mvcc.watchableStore.syncWatchersLoop.wp_proof time.wp_NewTicker time.Ticker.wp_Stop mvcc.watcherGroup.wp_size (mvcc.watchableStore.wp_syncWatchers h_adt_intervalTree__Delete) time.wp_Since time.Ticker.wp_Reset
-
-theorem mvcc.wp_New [go_etcd_io.etcd.cache.v3.Assumptions] :
-    mvcc.New.spec (GF := GF) (hG := hG) :=
-  mvcc.New.wp_proof mvcc.wp_newWatchableStore (mvcc.watchableStore.wp_syncWatchersLoop h_adt_intervalTree__Delete) mvcc.watchableStore.wp_syncVictimsLoop
-
-theorem mvcc.watchableStore.wp_notify :
-    mvcc.watchableStore.notify.spec (GF := GF) (hG := hG) :=
-  mvcc.watchableStore.notify.wp_proof mvcc.wp_newWatcherBatch mvcc.watcher.wp_send (mvcc.watcherGroup.wp_delete h_adt_intervalTree__Delete) mvcc.watchableStore.wp_addVictim
-
-theorem mvcc.watchableStoreTxnWrite.wp_End :
-    mvcc.watchableStoreTxnWrite.End.spec (GF := GF) (hG := hG) :=
-  mvcc.watchableStoreTxnWrite.End.wp_proof mvcc.metricsTxnWrite.wp_Changes mvcc.metricsTxnWrite.wp_End mvcc.storeTxnWrite.wp_Rev (mvcc.watchableStore.wp_notify h_adt_intervalTree__Delete)
-
-theorem mvcc.watchableStore.wp_cancelWatcher :
-    mvcc.watchableStore.cancelWatcher.spec (GF := GF) (hG := hG) :=
-  mvcc.watchableStore.cancelWatcher.wp_proof (mvcc.watcherGroup.wp_delete h_adt_intervalTree__Delete)
-
-theorem mvcc.watchableStore.wp_watch :
-    mvcc.watchableStore.watch.spec (GF := GF) (hG := hG) :=
-  mvcc.watchableStore.watch.wp_proof mvcc.watcherGroup.wp_add (mvcc.watchableStore.wp_cancelWatcher h_adt_intervalTree__Delete)
-
-theorem mvcc.watchableStore.wp_NewWatchStream :
-    mvcc.watchableStore.NewWatchStream.spec (GF := GF) (hG := hG) :=
-  mvcc.watchableStore.NewWatchStream.wp_proof (mvcc.watchableStore.wp_watch h_adt_intervalTree__Delete) mvcc.watchableStore.wp_progress mvcc.watchableStore.wp_progressAll mvcc.watchableStore.wp_rev
-
-end links_pending
 
 end EtcdGrove
 end Perennial
