@@ -75,7 +75,6 @@ public import Proof.go_etcd_io.etcd.client.v3.WithRev
 public import Proof.go_etcd_io.etcd.client.v3.WithSort
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
 public import Proof.go_etcd_io.etcd.client.v3.leasing.closeAll
-public import Proof.go_etcd_io.etcd.client.v3.leasing.compareInt64
 public import Proof.go_etcd_io.etcd.client.v3.leasing.copyGetResponseMetadataOnly
 public import Proof.go_etcd_io.etcd.client.v3.leasing.copyHeader
 public import Proof.go_etcd_io.etcd.client.v3.leasing.copyKeyValue
@@ -128,6 +127,7 @@ public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__revokeRange
 public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__tryModifyOp
 public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__waitRescind
 public import Proof.go_etcd_io.etcd.client.v3.leasing.leasingKV__waitSession
+public import Proof.go_etcd_io.etcd.client.v3.leasing.compareInt64
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64orLeaseID
 public import Proof.google_golang_org.protobuf.proto.Clone
@@ -497,10 +497,6 @@ theorem wp_closeAll :
     EtcdGrove.leasing.closeAll.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.closeAll.wp_proof
 
-theorem wp_compareInt64 :
-    EtcdGrove.leasing.compareInt64.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.leasing.compareInt64.wp_proof
-
 theorem wp_copyHeader :
     EtcdGrove.leasing.copyHeader.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.copyHeader.wp_proof ResponseHeader.wp_GetClusterId ResponseHeader.wp_GetMemberId ResponseHeader.wp_GetRevision ResponseHeader.wp_GetRaftTerm ResponseHeader.wp_GetLeaderId
@@ -512,6 +508,10 @@ theorem wp_copyGetResponseMetadataOnly :
 theorem wp_copyKeyValue :
     EtcdGrove.leasing.copyKeyValue.spec (GF := GF) (hG := hG) :=
   EtcdGrove.leasing.copyKeyValue.wp_proof
+
+theorem wp_compareInt64 :
+    EtcdGrove.leasing.compareInt64.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.leasing.compareInt64.wp_proof
 
 theorem wp_evalCmp :
     EtcdGrove.leasing.evalCmp.spec (GF := GF) (hG := hG) :=

@@ -5,6 +5,7 @@ Lean-first; see `InvRange.lean`, `RangeModel.lean`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvRange
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 
 @[expose] public section
 
@@ -34,7 +35,7 @@ abbrev txn.Count.spec : Prop :=
     (m : Nat) (log₀ : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
       txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
-      key ↦*□ k ∗ rangeEnd ↦*□ e ∗ context.isContext ctx cd ∗ ⌜lg ≠ null⌝ }}
+      key ↦*□ k ∗ rangeEnd ↦*□ e ∗ mvcc.txnCtx ctx cd ∗ ⌜lg ≠ null⌝ }}
     (App (App (App (App (App (App (Val (@! txn.Count)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #kv)) (Val #key)) (Val #rangeEnd)) (Val #revision))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);

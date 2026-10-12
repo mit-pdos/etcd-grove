@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-12 (`origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
+**Last updated:** 2026-10-12 (the server's apply package, unit 0 on branch `apply-u0`: translated with bodies, scaffolding, 12 trust-boundary axioms, the txn functions at `context.TODO()` (`txnCtx`), `store.Rev`, `gen-link.py --apply` and the reuse rule; gates 81 axioms, 1 sorry; a finding (the alarm gauge), see "The server's apply package"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
 as pinned), the requests and responses as the client model's values (`Requests.lean`), `isKV`,
 `isTxnLessor`, 13 trust-boundary axioms (`sort.Sort`/`Reverse`, traceutil, `proto.Size`,
 `zap.Logger.Panic`, ...), mvcc's read-only write transaction proved, `gen-link.py --txn`, a
@@ -18,6 +18,108 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## The server's apply package (`server/v3/etcdserver/apply`)
+
+Plan: `decisions.md`, "The server's apply: the hook through mvcc, the chain as triples, compaction
+out of the model" (units 0 and A in parallel, then 1, 2, 3).
+
+### Unit 0: translation and scaffolding (2026-10-12)
+
+Branch `apply-u0` (worktree `/shared/etcd-grove-apply0`, off `lean` at `436f363c4`; Perennial
+`e4e126e46` as a path dependency, `.lake/manifest-merge.json`).
+- **Translation**: `apply.toml` translates everything but `metrics.go` (`alarms`, `init`: names
+  only); the pin (`bc8b52a50`) translates as is: goose promotes the methods of the wrappers'
+  embedded `applierV3` *interface* as `MethodUnfold` wrappers (`applierV3Capped.Range` is
+  `MethodResolve applierV3.ty "Range"` on the field), the gap the plan expected does not exist.
+  `etcdserverpb.toml` adds `InternalRaftRequest`, `RequestHeader`, `InternalRaftStringer`, the
+  requests read and responses built (compaction, lease, alarm, auth), the alarm actions and
+  types; `membershippb.toml` (the three cluster requests, `Member`, `RaftAttributes`,
+  `Attributes`); names-only `authpb` (a goose gap: a struct listed by name whose field names a
+  type of a package not imported, `AuthRoleGetResponse.Perm`, is emitted with a dangling
+  reference), `semver/v3`, `etcdserver/api`, `etcdserver/version`; `lease.Lease` and
+  `storage.BackendQuota` become translated structs (`lease.toml` imports `sync`,
+  `storage.toml` `backend`). `etc/goose.py` lists the new packages (`github.com/Masterminds/
+  semver=` root). The other names-only packages (`types`, `wait`, `pbutil`, `auth`, `v3alarm`,
+  `membership`, `storage`, `traceutil`, `lease`) existed.
+- **Base** (`apply/Base.lean`): `applyInit` (`alarms` holds a `*GaugeVec`; `ErrCorrupt` a fixed
+  non-nil error) and the instances of the packages the apply package reaches, moved from the
+  server's `BaseApply.lean` (which imports it): the apply package must not import the server's
+  translation (unit 3 imports the other way). `InvRaftpb.lean` imports it instead of
+  `BaseApply`; the cache's `Base` gains `membershippb`'s and `authpb`'s instances.
+- **Scaffolding**: `InvRequest.lean` (`IRRModel`, `HeaderModel`, `irrDecode` (opaque; a decoder,
+  not the plan's encoder: decisions), `irrId`, `dispatchKind`, `noSideEffect`,
+  `needAdminPermission`, `semverValid`, `internalRaftRequestIs p rq`, persistent, the KV four
+  as the txn package's `rangeRequestIs`/`putRequestIs`/`deleteRangeRequestIs`/`txnRequestIs`);
+  `Contracts.lean` (`csContract P f Pre Q Post`, `isAuthStore`, `isApplyLessor` over
+  `isTxnLessor` with `Grant`/`Revoke` (at the sole writer: deletions committed)/`Checkpoint`/
+  `Lookup` (`leaseIs`: `ID`, `TTL()`, `Keys()`), `isAlarmStore`, `isCluster`, `isRaftStatus`,
+  `isSnapshotServer`, `isConsistentIndexer`, `isQuota`, `isApplyKV` (txn's `isKV` and the
+  store's `ReadView`)); `Wait.lean` (`waitOk`, moved from the server's `InvApplier.lean`, with
+  `IsRegistered`; two server proofs take the new conjunct); `Chain.lean` (`Chain`, `baseChain`,
+  `alarmChain`, `Outcome`, `chainStep` over the backend's relation, `applierSpec` with the
+  layers' structs only: the method triples are unit 1's). `csContract` is defined here in the
+  `apply` namespace; unit A's (mvcc/txn) should replace it at the merge.
+- **Axioms** (12 new, each `Spec/`+`Proof/`): `semver.MustParse` (a version, or a panic, by
+  `semverValid`), `semver.Version.LessThan`/`String` (non-nil versions), `types.ID.String`,
+  `etcdserverpb.AlarmType.String` (through the field's address), `zap.Logger.Info`,
+  `txn.WarnOfExpensiveRequest`/`WarnOfFailedRequest` (return), `prometheus.GaugeVec.
+  WithLabelValues` (a gauge with mvcc's `gaugeSpec`: `Inc`/`Dec` are its contract),
+  `context.WithValue` (Perennial translates `context` without its body; restricted to the auth
+  store's two key types), `storage.NewBackendQuota` (an `isQuota`), `storage.BackendQuota.Cost`
+  (the capped applier's, on the three request types). `pbutil.MustUnmarshalMessage` is
+  generalized to a case per message type (`ConfChange` verbatim; `InternalRaftRequest`:
+  `{p ↦ x ∗ d ↦* bs ∗ ⌜irrDecode bs = some rq⌝} … {internalRaftRequestIs p rq ∗ d ↦* bs}`),
+  stated over raftpb's and etcdserverpb's assumptions; the server's `EtcdServer.apply` takes
+  `hMU.1`. Not axioms: `time.Now`/`Since` (Perennial's), `context.Background` (Perennial's),
+  the components (contracts). `errors.Is` (`dispatch`'s metrics) is the server's axiom, stated
+  under the server's assumptions: unit 2 restates it or uses Perennial's `errors.wp_Is`.
+- **The context** (`txnCtx`): the plan's "the proofs change little" assumed only the four entry
+  points take the context; it flows to `txn`, `executeTxn`, `put`, `executeRange`,
+  `deleteRange`, `traceutil.Get`. mvcc's `TxnRange.lean` gains `doneNil ctx` (`Done()` is `nil`:
+  `context.TODO()`'s, `doneNil_todo`, and `WithValue`'s over it), `txnCtx ctx cd := doneNil ctx
+  ∨ isContext ctx cd` (`txnCtx_todo`), `neverCd` (`neverDone_neverCd`, for `Txn` at `TODO()`)
+  and `txnCtx_rangeCtx`; `rangeCtx true` takes `doneNil` in place of `TODO()`'s value. Every
+  txn spec with a context (and `Results.lean`) says `mvcc.txnCtx ctx cd` for `context.isContext
+  ctx cd`; `EnsureTrace`'s and `Get`'s axioms take and return a `txnCtx`. Proof changes:
+  `executeRange`, `deleteRange` (the range read's `todo` from `txnCtx_rangeCtx`, 3 lines each),
+  `applyCompare`, `getPrevKV` (one line). Unit A touches `deleteRange`, `put`, `txn`,
+  `executeTxn`, `Put`, `DeleteRange`, `Txn` specs for the hook: their context lines are one-word
+  changes.
+- **`mvcc.store.Rev`** specified and proved (`store__Rev.lean`): the store's `ReadView`'s
+  `Rev`, with the caller's tokens and certificate passed to `store.Read` (`log₀ <+: log`, `v =
+  len log - 1`); in mvcc's link list and `Results.lean`.
+- **Links**: `gen-link.py --apply` (namespace `apply`), `etc/link-lean-first-apply.txt` (the
+  axioms; the txn package's `Put`/`DeleteRange`/`Range`/`Txn`/`ApplySecObserve` and mvcc's
+  `store.Rev` as `@`; the package's 72 functions commented out with a first guess of their
+  callees), `apply/Link.lean`, `apply/Results.lean` (skeleton), `etc/tcb-collections/apply.txt`.
+  **Reuse rule**: a callee whose result a Link this one imports already defines (same full name)
+  is imported, not redefined; searched: the `@` callees' Links and `REUSES` (the server's
+  imports mvcc's). The server's Link drops `binary.bigEndian.wp_PutUint64`/`wp_Uint64` and
+  `zap.wp_Error` and imports mvcc's Link; the trust report groups the server's Link with the
+  apply package's (`61 root theorems in [server Link, apply Link, apply Results]`), which import
+  mvcc's. `--leasing` did not reproduce on `lean` (txn's `compareInt64` made the bare name
+  ambiguous): its list says `leasing_compareInt64` (its Link: one theorem moved).
+- **A finding** (`issues/etcd-apply-alarm-gauge-reactivate.md`, reproduced): `Alarm` increments
+  the alarm gauge for an alarm already active (`AlarmStore.Activate` returns the existing
+  member): the gauge reads 2 for one alarm and 1 after it is disarmed. The plan's suspects:
+  (1) `Apply` panics on `ID == 0` with no header: a precondition (pre-3.0 entries), `irrId`;
+  (2) `dispatch`'s `Panic` default: every proposal site sets one field (`grep` of
+  `InternalRaftRequest{` in `server/`), only a crafted WAL entry reaches it; (3)-(6) as the
+  plan says, for units 1-2.
+- **Notes on this repository**: `Proof.go_etcd_io.etcd.client.v3.leasing.InvLeaseCacheWrite`
+  failed once in a full build (an `iframe` not seeing through a literal record's projection)
+  and passed on the rebuild: a flaky elaboration, as `InvSTMRun` before.
+- **Gates**: full `lake build` passes (2645 jobs); `ETCD_SRC=/shared/etcd etc/goose.py --check
+  --perennial /shared/perennial-merge` passes; `gen-link.py` reproduces every Lean-first Link
+  (`--cache/--server/--concurrency/--leasing/--recipes/--register/--mvcc/--txn/--apply`);
+  `etc/tcb-report.py --check --update`: 81 axioms, 1 sorry (was 69, 1: the 12 above); every
+  collection unchanged (server 26, mvcc 13, txn 20, cache 10, concurrency 12/1, recipes 11,
+  leasing 8, btree 0, raft 1, register 1); apply 17 axioms, 0 sorries;
+  `etc/verified-code.py --reuse --package go.etcd.io/etcd/server/v3/etcdserver/apply`: 73
+  functions, 684 lines, 0 verified, 1 assumed (`Apply`, the server's axiom), 71 translated,
+  1 not translated (`metrics.go`'s `init`); etcd 474 verified of 3599, 4943 of 45570 lines
+  (unchanged: `store.Rev` is a promoted method, not a Go function).
 
 ## Merge: lean into mvcc (2026-10-12)
 

@@ -41,7 +41,7 @@ abbrev txn.Txn.spec : Prop :=
     (kv le : GoInterface) (skip : Bool) (s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log)
     (t : TxnModel),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ txn.soleWriter γ log ∗
-      txn.isTxnLessor le γ.leases ∗ txn.txnRequestIs rt t ∗ context.isContext ctx cd ∗
+      txn.isTxnLessor le γ.leases ∗ txn.txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗
       mvcc.neverDone cd ∗ txn.leasesKnown γ.leases (mvcc.stateAfter log) ∗ ⌜txn.TxnPre log t⌝ }}
     (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))

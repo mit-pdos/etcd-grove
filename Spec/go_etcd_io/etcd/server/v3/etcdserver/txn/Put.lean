@@ -37,7 +37,7 @@ abbrev txn.Put.spec : Prop :=
     (s : Loc) (γ : mvcc.StoreNames) (p : Loc) (o : OpFull) (m : Nat) (log₀ : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗
       ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗ txn.isTxnLessor le γ.leases ∗
-      txn.putRequestIs p o ∗ context.isContext ctx cd ∗
+      txn.putRequestIs p o ∗ mvcc.txnCtx ctx cd ∗
       □ (∀ ilog : mvcc.Log, ⌜txn.Pinned log₀ m ilog ∧ o.ignoreLease = true⌝ -∗
         txn.leaseOk γ.leases (txn.putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter ilog)))) }}
     (App (App (App (App (App (Val (@! txn.Put)) (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #le))

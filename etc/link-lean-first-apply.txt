@@ -1,0 +1,114 @@
+# The server's apply package (etcd's server/v3/etcdserver/apply; all Lean-first), read by
+# `etc/gen-link.py --apply`: `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+#
+# The trust boundary (axioms; unit 0): the callees the package's functions reach that have no
+# model elsewhere. Perennial-specified standard-library calls (time.Now/Since,
+# context.Background, sync.Mutex) and interface calls (the auth store, the lessor, the quota,
+# the raft status, the snapshot server, the consistent indexer, the wait: Contracts.lean; the
+# alarm store's and the cluster's methods, names-only struct pointers: Contracts.lean too) are
+# not listed.
+pbutil_MustUnmarshalMessage:
+MustParse:
+Version__LessThan:
+Version__String:
+types_ID__String:
+etcdserverpb_AlarmType__String:
+zap_Logger__Debug:
+zap_Logger__Info:
+zap_Logger__Panic:
+zap_String:
+zap_Stringer:
+txn_WarnOfExpensiveRequest:
+txn_WarnOfFailedRequest:
+prometheus_GaugeVec__WithLabelValues:
+context_WithValue:
+storage_NewBackendQuota:
+storage_BackendQuota__Cost:
+# The txn package's functions and mvcc's the apply proofs call (`@`: linked in their Link.lean):
+# the backend applier's KV methods, `dispatch`'s metrics, `newHeader`'s `KV.Rev()`.
+txn_Put: @
+txn_DeleteRange: @
+txn_Range: @
+txn_Txn: @
+txn_ApplySecObserve: @
+mvcc_store__Rev: @
+#
+# The package's functions (units 1 and 2), with a first guess of their callees; `errors.Is`
+# (`dispatch`'s deferred metrics) is the server's axiom, stated under the server's
+# assumptions: unit 2 restates it (or uses Perennial's `errors.wp_Is`).
+# Unit 1: backend.go (applierV3backend; `Compaction` has no spec: compaction is out of the model).
+# newApplierV3Backend:
+# applierV3backend__Apply:
+# applierV3backend__newHeader: mvcc_store__Rev
+# applierV3backend__Put: txn_Put
+# applierV3backend__DeleteRange: txn_DeleteRange
+# applierV3backend__Range: txn_Range
+# applierV3backend__Txn: txn_Txn
+# applierV3backend__LeaseGrant: applierV3backend__newHeader
+# applierV3backend__LeaseRevoke: applierV3backend__newHeader
+# applierV3backend__LeaseCheckpoint: applierV3backend__newHeader
+# applierV3backend__Alarm: types_ID__String etcdserverpb_AlarmType__String prometheus_GaugeVec__WithLabelValues
+# applierV3backend__AuthEnable: applierV3backend__newHeader
+# applierV3backend__AuthDisable: applierV3backend__newHeader
+# applierV3backend__AuthStatus: applierV3backend__newHeader
+# applierV3backend__Authenticate: context_WithValue applierV3backend__newHeader
+# applierV3backend__UserAdd: applierV3backend__newHeader
+# applierV3backend__UserDelete: applierV3backend__newHeader
+# applierV3backend__UserChangePassword: applierV3backend__newHeader
+# applierV3backend__UserGrantRole: applierV3backend__newHeader
+# applierV3backend__UserGet: applierV3backend__newHeader
+# applierV3backend__UserRevokeRole: applierV3backend__newHeader
+# applierV3backend__RoleAdd: applierV3backend__newHeader
+# applierV3backend__RoleGrantPermission: applierV3backend__newHeader
+# applierV3backend__RoleGet: applierV3backend__newHeader
+# applierV3backend__RoleRevokePermission: applierV3backend__newHeader
+# applierV3backend__RoleDelete: applierV3backend__newHeader
+# applierV3backend__UserList: applierV3backend__newHeader
+# applierV3backend__RoleList: applierV3backend__newHeader
+# applierV3backend__ClusterVersionSet: MustParse Version__LessThan Version__String zap_String zap_Logger__Info
+# applierV3backend__ClusterMemberAttrSet:
+# applierV3backend__DowngradeInfoSet:
+# Unit 1: quota.go, capped.go, corrupt.go.
+# newQuotaApplierV3: storage_NewBackendQuota
+# quotaApplierV3__Put:
+# quotaApplierV3__Txn:
+# quotaApplierV3__LeaseGrant:
+# newApplierV3Capped:
+# applierV3Capped__Put:
+# applierV3Capped__Txn: storage_BackendQuota__Cost
+# applierV3Capped__LeaseGrant:
+# newApplierV3Corrupt:
+# applierV3Corrupt__Put:
+# applierV3Corrupt__Range:
+# applierV3Corrupt__DeleteRange:
+# applierV3Corrupt__Txn:
+# applierV3Corrupt__Compaction:
+# applierV3Corrupt__LeaseGrant:
+# applierV3Corrupt__LeaseRevoke:
+# Unit 1: auth.go (`checkTxnPermission` and `checkTxnReqsPermission` are mutually recursive:
+# one proof by the request's nesting depth).
+# newAuthApplierV3:
+# needAdminPermission:
+# authApplierV3__Apply: needAdminPermission
+# checkLeasePutsKeys:
+# checkLeasePuts: checkLeasePutsKeys
+# checkPutAuth: checkLeasePuts
+# checkTxnReqsPermission: checkPutAuth
+# checkTxnPermission: checkTxnReqsPermission
+# CheckTxnAuth: checkTxnPermission
+# authApplierV3__Put: checkPutAuth
+# authApplierV3__Range:
+# authApplierV3__DeleteRange:
+# authApplierV3__Txn: CheckTxnAuth
+# authApplierV3__LeaseRevoke: checkLeasePuts
+# authApplierV3__UserGet:
+# authApplierV3__RoleGet:
+# Unit 2: uber_applier.go, apply.go.
+# newApplierV3: newApplierV3Backend newQuotaApplierV3 newAuthApplierV3
+# uberApplier__restoreAlarms: newApplierV3Capped newApplierV3Corrupt
+# NewUberApplier: newApplierV3 uberApplier__restoreAlarms
+# uberApplier__Alarm: uberApplier__restoreAlarms
+# uberApplier__dispatch: txn_ApplySecObserve txn_WarnOfExpensiveRequest txn_WarnOfFailedRequest zap_Stringer zap_Logger__Panic uberApplier__Alarm
+# uberApplier__Apply:
+# noSideEffect:
+# Apply: pbutil_MustUnmarshalMessage zap_Stringer zap_Logger__Debug zap_Logger__Panic noSideEffect

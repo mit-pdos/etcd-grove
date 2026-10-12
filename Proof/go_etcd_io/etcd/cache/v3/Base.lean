@@ -76,6 +76,21 @@ instance mvccpb_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.mvccpb :=
   build_get_is_pkg_init_wf
 
+-- `etcdserverpb` names `membershippb`'s and `authpb`'s messages (2026-10-12: the server's apply
+-- package's requests): types and names only, `True` as the others
+instance membershippb_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.membershippb :=
+  define_is_pkg_init iprop(True)
+instance membershippb_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.membershippb :=
+  build_get_is_pkg_init_wf
+
+instance authpb_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.authpb :=
+  define_is_pkg_init iprop(True)
+instance authpb_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.authpb :=
+  build_get_is_pkg_init_wf
+
 instance etcdserverpb_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb :=
   define_is_pkg_init iprop(True)

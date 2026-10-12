@@ -64,5 +64,9 @@ comparisons are evaluated before the outer transaction's operations run (undocum
 non-key target with `SortOrder: NONE` and returns duplicated and missing keys, since each chunk is
 sorted by the target but the next chunk starts after the chunk's last key (a wrong result, outside
 the verified code; found 2026-10-12 while fixing `etcd-range-sort-none-limit`; not filed).
+[etcd-apply-alarm-gauge-reactivate](etcd-apply-alarm-gauge-reactivate.md): the apply package's
+alarm gauge counts an alarm activated twice twice (`AlarmStore.Activate` returns the existing
+member) and stays at 1 after it is disarmed (a wrong metric; reproduced; found 2026-10-12, apply
+unit 0; not filed).
 Leads not yet assessed: the gRPC proxy's cache (`server/proxy/grpcproxy/cache/store.go`) builds
 its intervals as `checkIntervals` did, so a cached from-key range may never be invalidated.
