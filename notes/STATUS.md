@@ -258,6 +258,17 @@ the results in `v3rpc/Results.lean`.
 - **A premise**: `checkIntervals`' deletes are as off the wire (`reqOpsWire`, `txnReqWire`: a
   `RangeEnd` is `nil` or not empty, as protobuf-go decodes it), unit 0's announced premise: the
   code reads an empty non-`nil` range end as a point, the model (as mvcc) as no upper bound.
+- **Where the plan (and unit 0) was wrong**: `intervalsOkCheckStmt` needs the key check (false
+  without it, above); `errors.Is(err, context.DeadlineExceeded)` is not Perennial's (`wp_Is` takes
+  pointer targets: an axiom), and `context.Canceled`'s pointer error is not in `context`'s package
+  fact (a v3rpc fact); `newHeader` and `NewKVServer` go through two names-only interfaces
+  (`api.Cluster`, `pb.KVServer`: translated), and `Send` through an untranslated message
+  (`RangeStreamResponse`: translated); `header.fill` writes the response header, so the apply
+  side must hand the header's id fields over owned (`hdrW`: not in the txn package's response
+  predicates); `checkIntervals` needs `Insert` of a present interval (`InsertAny`) and the
+  wire premise on range ends; `store.Rev` is not called on any success path (the header's `rev()`
+  runs only for a `0` revision), so the handlers take the KV's `Rev()` as a contract (`A.revR`),
+  not `store.Rev`'s spec.
 - **Gates**: full build clean (3003 jobs; no `sorry` of ours); every `gen-link.py` mode reproduces;
   `goose.py --check` up to date; `tcb-report.py --check`: 89 axioms (88 + `errors.IsDeadlineExceeded`),
   9 sorries (the register's), baseline updated; collections all match, `v3rpc` updated to 3 axioms
