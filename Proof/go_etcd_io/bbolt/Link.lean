@@ -11,6 +11,7 @@ module
 public import Proof.go_etcd_io.bbolt.BucketStats__Add
 public import Proof.go_etcd_io.bbolt.Bucket__Bucket
 public import Proof.go_etcd_io.bbolt.Bucket__Bucket_w
+public import Proof.go_etcd_io.bbolt.Bucket__CreateBucket
 public import Proof.go_etcd_io.bbolt.Bucket__Cursor
 public import Proof.go_etcd_io.bbolt.Bucket__Cursor_w
 public import Proof.go_etcd_io.bbolt.Bucket__Delete
@@ -30,6 +31,7 @@ public import Proof.go_etcd_io.bbolt.Bucket__openBucket
 public import Proof.go_etcd_io.bbolt.Bucket__openBucket_w
 public import Proof.go_etcd_io.bbolt.Bucket__pageNode
 public import Proof.go_etcd_io.bbolt.Bucket__pageNode_w
+public import Proof.go_etcd_io.bbolt.Bucket__write
 public import Proof.go_etcd_io.bbolt.Cursor__Bucket
 public import Proof.go_etcd_io.bbolt.Cursor__First
 public import Proof.go_etcd_io.bbolt.Cursor__Last
@@ -320,9 +322,21 @@ theorem DB.wp_Logger :
     EtcdGrove.bbolt.DB.Logger.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.Logger.wp_proof EtcdGrove.bbolt.wp_getDiscardLogger
 
-theorem Bucket.wp_Writable_w :
-    EtcdGrove.bbolt.Bucket.Writable.wspec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Bucket.Writable.wp_wproof
+theorem node.wp_pageElementSize :
+    EtcdGrove.bbolt.node.pageElementSize.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.node.pageElementSize.wp_proof
+
+theorem node.wp_size :
+    EtcdGrove.bbolt.node.size.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.node.size.wp_proof EtcdGrove.bbolt.node.wp_pageElementSize EtcdGrove.bbolt.Inode.wp_Key EtcdGrove.bbolt.Inode.wp_Value
+
+theorem node.wp_write :
+    EtcdGrove.bbolt.node.write.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.node.write.wp_proof EtcdGrove.bbolt.wp_Assert EtcdGrove.bbolt.Page.wp_Count EtcdGrove.bbolt.Page.wp_Flags EtcdGrove.bbolt.Page.wp_SetFlags EtcdGrove.bbolt.Page.wp_SetCount EtcdGrove.bbolt.wp_WriteInodeToPage
+
+theorem Bucket.wp_write :
+    EtcdGrove.bbolt.Bucket.write.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Bucket.write.wp_proof EtcdGrove.bbolt.node.wp_size EtcdGrove.bbolt.node.wp_write
 
 theorem node.wp_read :
     EtcdGrove.bbolt.node.read.spec (GF := GF) (hG := hG) :=
@@ -343,6 +357,18 @@ theorem node.wp_childAt :
 theorem Cursor.wp_node :
     EtcdGrove.bbolt.Cursor.node.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Cursor.node.wp_proof EtcdGrove.bbolt.wp_Assert EtcdGrove.bbolt.elemRef.wp_isLeaf_w EtcdGrove.bbolt.Page.wp_Id EtcdGrove.bbolt.Bucket.wp_node EtcdGrove.bbolt.node.wp_childAt
+
+theorem node.wp_put :
+    EtcdGrove.bbolt.node.put.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.node.put.wp_proof EtcdGrove.bbolt.Meta.wp_Pgid EtcdGrove.bbolt.Inode.wp_Key EtcdGrove.bbolt.Inode.wp_SetFlags EtcdGrove.bbolt.Inode.wp_SetKey EtcdGrove.bbolt.Inode.wp_SetValue EtcdGrove.bbolt.Inode.wp_SetPgid EtcdGrove.bbolt.wp_Assert
+
+theorem Bucket.wp_CreateBucket :
+    EtcdGrove.bbolt.Bucket.CreateBucket.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Bucket.CreateBucket.wp_proof EtcdGrove.bbolt.DB.wp_Logger EtcdGrove.bbolt.wp_cloneBytes EtcdGrove.bbolt.Bucket.wp_Cursor_w EtcdGrove.bbolt.Cursor.wp_seek_w EtcdGrove.bbolt.Bucket.wp_write EtcdGrove.bbolt.Cursor.wp_node EtcdGrove.bbolt.node.wp_put EtcdGrove.bbolt.Bucket.wp_Bucket_w
+
+theorem Bucket.wp_Writable_w :
+    EtcdGrove.bbolt.Bucket.Writable.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Bucket.Writable.wp_wproof
 
 theorem node.wp_del :
     EtcdGrove.bbolt.node.del.spec (GF := GF) (hG := hG) :=
@@ -387,10 +413,6 @@ theorem Bucket.wp_Get :
 theorem Bucket.wp_NextSequence :
     EtcdGrove.bbolt.Bucket.NextSequence.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Bucket.NextSequence.wp_proof EtcdGrove.bbolt.Bucket.wp_Writable_w EtcdGrove.bbolt.InBucket.wp_RootPage EtcdGrove.bbolt.Bucket.wp_node EtcdGrove.bbolt.InBucket.wp_IncSequence EtcdGrove.bbolt.InBucket.wp_InSequence
-
-theorem node.wp_put :
-    EtcdGrove.bbolt.node.put.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.node.put.wp_proof EtcdGrove.bbolt.Meta.wp_Pgid EtcdGrove.bbolt.Inode.wp_Key EtcdGrove.bbolt.Inode.wp_SetFlags EtcdGrove.bbolt.Inode.wp_SetKey EtcdGrove.bbolt.Inode.wp_SetValue EtcdGrove.bbolt.Inode.wp_SetPgid EtcdGrove.bbolt.wp_Assert
 
 theorem Bucket.wp_Put :
     EtcdGrove.bbolt.Bucket.Put.spec (GF := GF) (hG := hG) :=
@@ -828,10 +850,6 @@ theorem node.wp_nextSibling :
     EtcdGrove.bbolt.node.nextSibling.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.node.nextSibling.wp_proof EtcdGrove.bbolt.node.wp_childIndex EtcdGrove.bbolt.node.wp_numChildren EtcdGrove.bbolt.node.wp_childAt
 
-theorem node.wp_pageElementSize :
-    EtcdGrove.bbolt.node.pageElementSize.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.node.pageElementSize.wp_proof
-
 theorem node.wp_prevSibling :
     EtcdGrove.bbolt.node.prevSibling.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.node.prevSibling.wp_proof EtcdGrove.bbolt.node.wp_childIndex EtcdGrove.bbolt.node.wp_childAt
@@ -844,10 +862,6 @@ theorem node.wp_root :
     EtcdGrove.bbolt.node.root.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.node.root.wp_proof
 
-theorem node.wp_size :
-    EtcdGrove.bbolt.node.size.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.node.size.wp_proof EtcdGrove.bbolt.node.wp_pageElementSize EtcdGrove.bbolt.Inode.wp_Key EtcdGrove.bbolt.Inode.wp_Value
-
 theorem node.wp_sizeLessThan :
     EtcdGrove.bbolt.node.sizeLessThan.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.node.sizeLessThan.wp_proof EtcdGrove.bbolt.node.wp_pageElementSize EtcdGrove.bbolt.Inode.wp_Key EtcdGrove.bbolt.Inode.wp_Value
@@ -855,10 +869,6 @@ theorem node.wp_sizeLessThan :
 theorem node.wp_splitIndex :
     EtcdGrove.bbolt.node.splitIndex.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.node.splitIndex.wp_proof EtcdGrove.bbolt.node.wp_pageElementSize EtcdGrove.bbolt.Inode.wp_Key EtcdGrove.bbolt.Inode.wp_Value
-
-theorem node.wp_write :
-    EtcdGrove.bbolt.node.write.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.node.write.wp_proof EtcdGrove.bbolt.wp_Assert EtcdGrove.bbolt.Page.wp_Count EtcdGrove.bbolt.Page.wp_Flags EtcdGrove.bbolt.Page.wp_SetFlags EtcdGrove.bbolt.Page.wp_SetCount EtcdGrove.bbolt.wp_WriteInodeToPage
 
 theorem nodes.wp_Len :
     EtcdGrove.bbolt.nodes.Len.spec (GF := GF) (hG := hG) :=
