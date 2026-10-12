@@ -211,6 +211,16 @@ theorem applyEntries_rejected_no_write (c : w64) (m : EntryModel) (y y' : apply.
     (hr : out = .rejected ∨ ∃ k sk, out = .dispatched (.rejected k) sk) : y'.log = y.log :=
   entryStep_rejected_no_write m _ y y' out h hr
 
+/-! ## The request path (`v3_server.go`; units 2 and 3 of the request path, pending)
+
+Planned (`notes/decisions.md`, "The request path"): `put_applied` (a `(resp, nil)` return of
+`EtcdServer.Put` is the outcome `apply.apply_kv` gives the request at the log the entry met,
+with `idxCert` of the log after), `put_err` (the error cases; on a timeout the proposal may
+still be applied), the same for `DeleteRange` and a writing `Txn`; `range_serializable`,
+`range_linearizable` (with `readIndexOk`), `txn_readonly`. Their vocabulary is
+`InvRequest.lean`; the trust boundary they add is linked in `Link.lean` (the raft contract, the
+wait registry and the read loop are contracts, not axioms). -/
+
 #print axioms Perennial.EtcdGrove.applyEntries_model
 #print axioms Perennial.EtcdGrove.applyEntries_trace
 #print axioms Perennial.EtcdGrove.applyEntries_kv

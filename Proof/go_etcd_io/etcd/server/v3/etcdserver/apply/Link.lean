@@ -166,10 +166,6 @@ theorem prometheus.GaugeVec.wp_WithLabelValues :
     EtcdGrove.prometheus.GaugeVec.WithLabelValues.spec (GF := GF) (hG := hG) :=
   EtcdGrove.prometheus.GaugeVec.WithLabelValues.wp_proof
 
-theorem context.wp_WithValue :
-    EtcdGrove.context.WithValue.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.context.WithValue.wp_proof
-
 theorem semver.Version.wp_LessThan :
     EtcdGrove.semver.Version.LessThan.spec (GF := GF) (hG := hG) :=
   EtcdGrove.semver.Version.LessThan.wp_proof
@@ -332,6 +328,10 @@ theorem applierV3backend.wp_LeaseCheckpoint :
 theorem applierV3backend.wp_Alarm :
     EtcdGrove.apply.applierV3backend.Alarm.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.Alarm.wp_proof types.ID.wp_String etcdserverpb.AlarmType.wp_String prometheus.GaugeVec.wp_WithLabelValues
+
+theorem context.wp_WithValue :
+    EtcdGrove.context.WithValue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.context.WithValue.wp_proof
 
 theorem applierV3backend.wp_Authenticate :
     EtcdGrove.apply.applierV3backend.Authenticate.spec (GF := GF) (hG := hG) :=

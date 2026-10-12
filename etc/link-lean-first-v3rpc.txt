@@ -1,0 +1,41 @@
+# The gRPC KV service (etcd's server/v3/etcdserver/api/v3rpc; all Lean-first), read by
+# `etc/gen-link.py --v3rpc`: `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+# Plan: notes/decisions.md, "The request path" (unit 0, 2026-10-12).
+#
+# The trust boundary (axioms): grpc's status errors (`togRPCError`'s fallback, the stream
+# check's `Unimplemented`). `errors.Is` is Perennial's (proved, the server's spec file).
+# The error map and the checks' rpctypes errors are the package's facts (Base.lean), not axioms.
+status_Error:
+status_Errorf:
+errors_Is:
+# The functions of other packages the handlers and checks call (`@`: linked in their Link.lean):
+# the server's (the header's member id; the request path's EtcdServer.Range/Put/DeleteRange/Txn
+# join when units 2 and 3 prove them), the txn package's stream-check predicates, the interval
+# tree's intervals (its tree's contract is pending in the adt Link: `checkIntervals` will take
+# NewIntervalTree, Insert, Intersects, Union as hypotheses until the mvcc session proves them).
+EtcdServer__MemberID: @
+txn_IsDefaultOrdering: @
+txn_HasRevisionFilters: @
+adt_NewStringAffineInterval: @
+adt_NewStringAffinePoint: @
+#
+# The package's functions (unit 1), with a first guess of their callees.
+# checkRangeRequest:
+# checkPutRequest:
+# checkDeleteRequest:
+# checkRangeStreamRequest: checkRangeRequest txn_IsDefaultOrdering txn_HasRevisionFilters status_Errorf
+# checkTxnRequest: checkRequestOp
+# checkRequestOp: checkRangeRequest checkPutRequest checkDeleteRequest checkTxnRequest
+# checkIntervals: adt_NewIntervalTree adt_NewStringAffineInterval adt_NewStringAffinePoint adt_intervalTree__Insert adt_intervalTree__Intersects adt_intervalTree__Union
+# togRPCError: errors_Is status_Error
+# newHeader: EtcdServer__Cluster membership_RaftCluster__ID EtcdServer__MemberID
+# header__fillWithoutRevision: EtcdServer__Term EtcdServer__Leader
+# header__fill: header__fillWithoutRevision EtcdServer__KV
+# NewKVServer: newHeader
+# kvServer__Range: checkRangeRequest EtcdServer__Range togRPCError header__fill
+# kvServer__Put: checkPutRequest EtcdServer__Put togRPCError header__fill
+# kvServer__DeleteRange: checkDeleteRequest EtcdServer__DeleteRange togRPCError header__fill
+# kvServer__Txn: checkTxnRequest checkIntervals EtcdServer__Txn togRPCError header__fill
+# kvServer__RangeStream: checkRangeStreamRequest togRPCError
+# kvServer__Compact: togRPCError header__fill
+# headerFillingRangeStream__Send: header__fillWithoutRevision

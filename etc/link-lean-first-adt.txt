@@ -15,3 +15,5 @@ intervalTree__Find: ?
 intervalTree__Intersects: ?
 intervalTree__Stab: ?
 intervalTree__Len: ?
+# Added for the server's request path (v3rpc.checkIntervals, 2026-10-12), in the contract's style.
+intervalTree__Union: ?
