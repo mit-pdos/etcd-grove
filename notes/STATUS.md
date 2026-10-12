@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-12 (`origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
+**Last updated:** 2026-10-12 (five standard-library axioms of etcd-grove proved from Perennial `e6ec34885` (pinned): `binary.bigEndian.{Uint64,PutUint64}`, `sort.Sort`, `sort.Reverse`, `errors.Is` (whose axiom was false as stated, now restated with Perennial's premises), see "Standard-library axioms from Perennial"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
 as pinned), the requests and responses as the client model's values (`Requests.lean`), `isKV`,
 `isTxnLessor`, 13 trust-boundary axioms (`sort.Sort`/`Reverse`, traceutil, `proto.Size`,
 `zap.Logger.Panic`, ...), mvcc's read-only write transaction proved, `gen-link.py --txn`, a
@@ -18,6 +18,44 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## Standard-library axioms from Perennial (2026-10-12, branch `std-axioms-from-perennial`)
+
+Perennial branch `binary-sort-errors`, landed on its `lean` as `e6ec34885` and pinned here, proves
+five functions etcd-grove trusted as its own axioms; their `wp_proof`s are now theorems that
+apply Perennial's results.
+
+- `binary.bigEndian.Uint64`/`PutUint64` (`Proof/encoding/binary/`): Perennial now translates
+  `BigEndian` and `bigEndian`'s methods and proves `encoding.binary.wp_BigEndian_{Uint64,PutUint64,
+  Uint32,PutUint32}` (big-endian is little-endian reversed, as `u64Be`/`beToU64`). `bigEndian` has
+  no fields, so loading the global reads no memory and the specs need no `isPkgInit`. Specs
+  unchanged.
+- `sort.Sort`, `sort.Reverse` (`Proof/sort/`): Perennial translates `Sort`, `Reverse` and the
+  `sort.Interface` pdqsort of `zsortinterface.go` and proves `sort.wp_Sort`/`wp_Reverse` over its
+  sorter `sort.isSorter` (the `slices` pdqsort proof adapted, its pure lemmas reused; no axiom or
+  `sorry`). `sorterSpec` gives `isSorter` for the order `lt a b = true` (`sorterSpec_isSorter`,
+  `isSorter_sorterSpec`, in `Spec/sort/Sort.lean`). The statements are unchanged; the two specs are
+  now stated with `[sort.Assumptions]` in context (sort's code), which callers have through their
+  package's `Assumptions`.
+- `errors.Is` (`Proof/errors/Is.lean`): the axiom (`Is` returns some boolean, for any `err`,
+  `target`) was **false**: Go's `Is` calls `err`'s `Is`/`Unwrap` methods, which may panic, and
+  `err == target` panics for a target of a comparable type holding a non-comparable value
+  (`errors.Is(E{[]int{}}, E{[]int{}})` for `type E struct{ x any }`, checked with `go run`).
+  Perennial's own `errors.wp_Is` axiom was false for the same reason; it is now a theorem
+  (Perennial translates `is`, models `Is` as Go's with `reflectlite.TypeOf(target).Comparable()`
+  replaced by `reflectliteComparable`, whose spec is the one new axiom
+  `errors.wp_reflectliteComparable`: `true` for a pointer type), for a `nil` or pointer target and
+  an error tree whose errors of the target's type hold pointers (`errors.TreeTyped`). The spec here
+  is now that (`errorIsTree S M target ∗ ⌜S err⌝`, the two premises). The callers get it from
+  strengthened, true-of-Go facts: `resultOk` (the `apply.Apply` axiom's result) carries
+  `applyErrIs` for `ar.Err`; `errorsInit` (a package-initialization assumption) says `ErrNoSpace`
+  is a pointer error; `clientErrIs` adds `TreeTyped`; `newUniqueKV`/`newUniqueEphemeralKV` pass
+  the new premises of `wp_Is`/`wp_Is_leaf`.
+- Not done: `errors.As` stays Perennial's axiom `wp_As` (false as stated for a `*T` target with
+  `T` neither an interface type nor implementing `error`, documented there): `As` uses reflection
+  throughout, so no small faithful model exists.
+
+Gates: `lake build` clean (2691 jobs) at the pin; `etc/goose.py --check` up to date; `etc/tcb-report.py --check`: 65 axioms and 1 sorry (were 70 and 1), the collections mvcc (-2), server (-3) and txn (-3) updated.
 
 ## Merge: lean into mvcc (2026-10-12)
 
