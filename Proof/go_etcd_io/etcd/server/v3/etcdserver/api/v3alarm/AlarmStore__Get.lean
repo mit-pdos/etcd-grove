@@ -23,6 +23,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Assumptions]
 
+/-- `TypeRepr` of `AlarmStore` straight from its `TypeAssumptions` (as `InvServer.lean` does
+for the server's structs): otherwise the `StructFieldRef` step finds it through the struct's
+`IntoValTyped`, built from its fields', and `be`'s type (`schema.AlarmBackend`, axiomatized) has
+`sorry` instances. -/
+instance (priority := high) alarmStore_typeRepr : TypeRepr v3alarm.AlarmStore.ty v3alarm.AlarmStore :=
+  go.type_repr_underlying (u := v3alarm.AlarmStore.underlying)
+instance (priority := high) alarmStore_typeRepr_u :
+    TypeRepr v3alarm.AlarmStore.underlying v3alarm.AlarmStore :=
+  go.type_repr_underlying (u := v3alarm.AlarmStore.underlying)
+
 /-- What `Get` accumulates in its result `ret`: some owned slice. -/
 def alarmRet (ret : Loc) : IProp GF :=
   iprop(∃ (sl : GoSlice) (l : List Loc), ret ↦ sl ∗ sl ↦* l ∗
