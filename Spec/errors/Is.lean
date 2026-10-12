@@ -1,5 +1,13 @@
 /-
-`errors.Is`: the trust boundary (Perennial does not translate `errors.Is` (it uses `internal/reflectlite`)). Lean-first (no Rocq counterpart).
+`errors.Is`, stated as (a weakening of the postcondition of) Perennial's `errors.wp_Is`, which
+proves it: for a `nil` or pointer `target`, and an `err` in an error tree (`errors.errorIsTree`)
+whose errors of `target`'s type hold pointers (`errors.TreeTyped`). Lean-first (no Rocq
+counterpart).
+
+It was an axiom for any `err` and `target`, which is false: Go's `Is` calls `err`'s `Is` and
+`Unwrap` methods (which may panic), and `err == target` panics for a `target` of a comparable
+type that holds a non-comparable value (`errors.Is(E{[]int{}}, E{[]int{}})` for
+`type E struct{ x any }`).
 -/
 module
 
@@ -21,10 +29,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `errors.Is(err, target)` returns some boolean. -/
+/-- `errors.Is(err, target)`, for a `nil` or pointer `target` and an `err` of an error tree
+`S` (with the `Is` methods' meaning `M`), returns some boolean. -/
 abbrev errors.Is.spec : Prop :=
-  ∀ (err target : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.errors }}
+  ∀ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop) (err target : GoInterface),
+  (∀ tii, target = GoInterface.ok tii → _root_.Perennial.errors.IsPointerError tii) →
+  _root_.Perennial.errors.TreeTyped S target →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗
+      _root_.Perennial.errors.errorIsTree (GF := GF) S M target ∗ ⌜S err⌝ }}
     (App (App (Val (@! _root_.Perennial.errors.Is)) (Val #err)) (Val #target))
   {{ (b : Bool), RET #b; True }}
 
