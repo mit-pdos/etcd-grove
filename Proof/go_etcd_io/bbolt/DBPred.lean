@@ -99,6 +99,8 @@ structure DBState where
   of the freelist and no holder of a read lock. -/
   rwtx : Loc
   wr : Option Reader
+  /-- The file's path (`Close` gives the file back to the file system under it). -/
+  path : GoString
 
 /-- The number of whole slots the mapping holds of the file. -/
 def DBState.nslots (σ : DBState) : Nat := min σ.sz σ.bs.length / σ.ps
@@ -262,6 +264,7 @@ def ownDB (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DBState) : IP
     "#Hps" ∷ structFieldRef DB go!"pageSize" dbl ↦□ W64 σ.ps ∗
     "#Hpool" ∷ isPool (structFieldRef DB go!"pagePool" dbl) (pageBuf σ.ps) ∗
     "#Hfile" ∷ osFile σ.file σ.fd ∗
+    "Hfp" ∷ filePath σ.fd σ.path ∗
     "Hbytes" ∷ fileBytes σ.fd σ.bs ∗
     "Hmap" ∷ fileMap σ.fd (some (σ.data, σ.sz)) ∗
     "Hslots" ∷ slotsView σ.data σ.bs σ.ps σ.rem (List.range σ.nslots) ∗
