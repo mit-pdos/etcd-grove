@@ -1,0 +1,4 @@
+# Types and names only: function and method bodies are axiomatized (etcdserverpb's
+# `AuthRoleGetResponse` names `authpb.Permission`).
+translate = ["!*"]
+imports = ["!*"]

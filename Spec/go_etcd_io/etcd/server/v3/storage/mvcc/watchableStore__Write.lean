@@ -23,15 +23,19 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `s.Write(trace)` opens a write transaction of the inner store (`store.Write`) for the sole
 writer at its committed log `L` (one of its revision tokens; its tokens and certificate pin the
-transaction's committed log to `L`) and wraps it with the store, for `End` to notify. -/
+transaction's committed log to `L`) and wraps it with the store, for `End` to notify. As
+`store.Write`, the inner `LockInsideApply` runs the store's post-lock hook `f` (invariant `P`,
+`hookIs`) on the caller's `Pre`: its `Q` is the caller's. -/
 abbrev mvcc.watchableStore.Write.spec : Prop :=
-  ∀ (s st : Loc) (γ : mvcc.WsNames) (trace : Loc) (L : mvcc.Log),
+  ∀ (s st : Loc) (γ : mvcc.WsNames) (trace : Loc) (L : mvcc.Log) (P Pre Q : IProp GF)
+    (f : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isWatchableStore s st γ ∗ mvcc.storeReader st γ.st ∗ mvcc.watchWriter γ L ∗
-      ⌜L.length + 4 ≤ 2 ^ 63⌝ }}
+      ⌜L.length + 4 ≤ 2 ^ 63⌝ ∗
+      mvcc.hookIs γ.st P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"Write")) (Val #trace))
   {{ (tw : Loc), RET #(interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw);
-      mvcc.isWatchTxnWrite tw s st γ L [] (W64 0) (W64 0) (W64 0) }}
+      mvcc.isWatchTxnWrite tw s st γ L [] (W64 0) (W64 0) (W64 0) ∗ Q }}
 
 end spec
 

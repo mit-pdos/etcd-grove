@@ -288,7 +288,7 @@ theorem EtcdServer.apply.wp_proof
         iunfold entryAt at He2
         icases He2 with ⟨%Hnn, %pt, %pi, %pty, %d, #Ht, #Hpt, #Hi, #Hpi, #Hty, #Hpty, #Hd, #Hds⟩
         (try wp_auto)
-        wp_apply (hMU cc_ptr _ d m.data DFrac.discard) $$ [cc] as ⟨⟨%v', %cid, Hcc, #Hcid⟩, -⟩
+        wp_apply (hMU.1 cc_ptr _ d m.data DFrac.discard) $$ [cc] as ⟨⟨%v', %cid, Hcc, #Hcid⟩, -⟩
         · iframe cc Hds
         (try wp_auto)
         have hpre : (stLoaded γ st').pending = false ∧ m.index = (stLoaded γ st').p + 1 ∧
@@ -368,7 +368,7 @@ theorem EtcdServer.apply.wp_proof
         (try wp_auto)
         ihave #Hwok2 := Hwok
         iunfold waitOk at Hwok2
-        icases Hwok2 with ⟨%wi, %hw, #Htrig⟩
+        icases Hwok2 with ⟨%wi, %hw, #Htrig, -⟩
         simp only [hw]
         (try wp_auto)
         wp_apply Htrig
@@ -472,7 +472,7 @@ theorem EtcdServer.apply.wp_proof
         iunfold entryAt at He2
         icases He2 with ⟨%Hnn, %pt, %pi, %pty, %d, #Ht, #Hpt, #Hi, #Hpi, #Hty, #Hpty, #Hd, #Hds⟩
         (try wp_auto)
-        wp_apply (hMU cc_ptr _ d m.data DFrac.discard) $$ [cc] as ⟨⟨%v', %cid, Hcc, #Hcid⟩, -⟩
+        wp_apply (hMU.1 cc_ptr _ d m.data DFrac.discard) $$ [cc] as ⟨⟨%v', %cid, Hcc, #Hcid⟩, -⟩
         · iframe cc Hds
         (try wp_auto)
         wp_apply (hACC s cc_ptr ep v' csl false ci sv.ua (batchLockInv γ TM)
@@ -501,7 +501,7 @@ theorem EtcdServer.apply.wp_proof
         (try wp_auto)
         ihave #Hwok2 := Hwok
         iunfold waitOk at Hwok2
-        icases Hwok2 with ⟨%wi, %hw, #Htrig⟩
+        icases Hwok2 with ⟨%wi, %hw, #Htrig, -⟩
         simp only [hw]
         (try wp_auto)
         wp_apply Htrig

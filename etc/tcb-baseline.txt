@@ -11,6 +11,7 @@ axiom apply.Apply.wp_proof
 axiom binary.bigEndian.PutUint64.wp_proof
 axiom binary.bigEndian.Uint64.wp_proof
 axiom config.ServerConfig.ElectionTimeout.wp_proof
+axiom context.WithValue.wp_proof
 axiom errors.Is.wp_proof
 axiom etcdReachedAt
 axiom etcdReachedAt_timeless
@@ -25,6 +26,7 @@ axiom etcdState_revs
 axiom etcdStep_compose
 axiom etcdStep_delete_present
 axiom etcdStep_transfer
+axiom etcdserverpb.AlarmType.String.wp_proof
 axiom fmt.Sscanf.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom membership.RaftCluster.Members.wp_proof
@@ -32,6 +34,7 @@ axiom mvcc.NewHashStorage.wp_proof
 axiom mvcc.store.restore.wp_proof
 axiom notify.Notifier.Notify.wp_proof
 axiom pbutil.MustUnmarshalMessage.wp_proof
+axiom prometheus.GaugeVec.WithLabelValues.wp_proof
 axiom proto.Clone.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.Size.wp_proof
@@ -40,10 +43,15 @@ axiom reflect.DeepEqual.wp_proof
 axiom rpctypes.Error.wp_proof
 axiom schedule.NewFIFOScheduler.wp_proof
 axiom schema.UnsafeCreateMetaBucket.wp_proof
+axiom semver.MustParse.wp_proof
+axiom semver.Version.LessThan.wp_proof
+axiom semver.Version.String.wp_proof
 axiom sort.Reverse.wp_proof
 axiom sort.Sort.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
+axiom storage.BackendQuota.Cost.wp_proof
+axiom storage.NewBackendQuota.wp_proof
 axiom trace.SpanFromContext.wp_proof
 axiom traceutil.EnsureTrace.wp_proof
 axiom traceutil.Get.wp_proof
@@ -55,6 +63,9 @@ axiom traceutil.Trace.StepWithFunction.wp_proof
 axiom traceutil.Trace.StopSubTrace.wp_proof
 axiom txn.ApplySecObserve.wp_proof
 axiom txn.RangeSecObserve.wp_proof
+axiom txn.WarnOfExpensiveRequest.wp_proof
+axiom txn.WarnOfFailedRequest.wp_proof
+axiom types.ID.String.wp_proof
 axiom v3alarm.AlarmStore.Get.wp_proof
 axiom verify.Verify.wp_proof
 axiom zap.Error.wp_proof
@@ -63,6 +74,7 @@ axiom zap.Int32.wp_proof
 axiom zap.Int64.wp_proof
 axiom zap.Logger.Debug.wp_proof
 axiom zap.Logger.Error.wp_proof
+axiom zap.Logger.Info.wp_proof
 axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.Warn.wp_proof
 axiom zap.NewNop.wp_proof

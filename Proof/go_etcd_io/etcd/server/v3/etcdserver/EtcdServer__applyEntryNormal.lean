@@ -279,7 +279,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       (try wp_auto)
       wp_apply hIs err (GoInterface.ok ens) as %isns -
       iunfold waitOk at Hwok
-      icases Hwok with ⟨%wi, %Hwi, #HTrig⟩
+      icases Hwok with ⟨%wi, %Hwi, #HTrig, -⟩
       cases isns
       · -- not `ErrNoSpace`: hand the result to the waiter
         (try wp_auto)

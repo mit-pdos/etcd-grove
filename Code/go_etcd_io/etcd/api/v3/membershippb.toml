@@ -1,0 +1,9 @@
+# Types and names only: function and method bodies are axiomatized.
+# For the server's apply package, the requests it reads (protobuf-go v2 messages are listed by
+# name: translate_types never translates a struct with a field of another package's alias type).
+translate = ["!*", "ClusterVersionSetRequest", "ClusterMemberAttrSetRequest",
+  "DowngradeInfoSetRequest", "Member", "RaftAttributes", "Attributes"]
+imports = ["!*", "google.golang.org/protobuf/runtime/protoimpl"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

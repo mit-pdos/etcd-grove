@@ -29,8 +29,6 @@ public import Proof.go_etcd_io.etcd.pkg.v3.notify.Notifier__Notify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Members
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ElectionTimeout
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Apply
-public import Proof.encoding.binary.bigEndian__PutUint64
-public import Proof.encoding.binary.bigEndian__Uint64
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentApplyingIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__SetBackend
@@ -46,15 +44,12 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadConsisten
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndexForce
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeUpdateConsistentIndex
-public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Verify
-public import Proof.go_uber_org.zap.Error
 public import Proof.go_uber_org.zap.Int
-public import Proof.go_uber_org.zap.Int64
 public import Proof.go_uber_org.zap.Logger__Debug
 public import Proof.go_uber_org.zap.Logger__Warn
-public import Proof.go_uber_org.zap.String
 public import Proof.go_uber_org.zap.Stringer
 public import Proof.go_uber_org.zap.Uint64
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link
 
 @[expose] public section
 
@@ -120,10 +115,6 @@ theorem consistentIndex.wp_SetConsistentIndex :
     consistentIndex.SetConsistentIndex.spec (GF := GF) (hG := hG) :=
   consistentIndex.SetConsistentIndex.wp_proof
 
-theorem binary.bigEndian.wp_Uint64 :
-    binary.bigEndian.Uint64.spec (GF := GF) (hG := hG) :=
-  binary.bigEndian.Uint64.wp_proof
-
 theorem schema.wp_UnsafeReadConsistentIndex :
     schema.UnsafeReadConsistentIndex.spec (GF := GF) (hG := hG) :=
   schema.UnsafeReadConsistentIndex.wp_proof binary.bigEndian.wp_Uint64
@@ -159,18 +150,6 @@ theorem apply.wp_Apply :
 theorem errors.wp_Is :
     errors.Is.spec (GF := GF) (hG := hG) :=
   errors.Is.wp_proof
-
-theorem zap.wp_String :
-    zap.String.spec (GF := GF) (hG := hG) :=
-  zap.String.wp_proof
-
-theorem zap.wp_Int64 :
-    zap.Int64.spec (GF := GF) (hG := hG) :=
-  zap.Int64.wp_proof
-
-theorem zap.wp_Error :
-    zap.Error.spec (GF := GF) (hG := hG) :=
-  zap.Error.wp_proof
 
 theorem go_humanize.wp_Bytes :
     go_humanize.Bytes.spec (GF := GF) (hG := hG) :=
@@ -232,17 +211,9 @@ theorem wp_NewConsistentIndex :
     NewConsistentIndex.spec (GF := GF) (hG := hG) :=
   NewConsistentIndex.wp_proof
 
-theorem binary.bigEndian.wp_PutUint64 :
-    binary.bigEndian.PutUint64.spec (GF := GF) (hG := hG) :=
-  binary.bigEndian.PutUint64.wp_proof
-
 theorem consistentIndex.wp_SetBackend :
     consistentIndex.SetBackend.spec (GF := GF) (hG := hG) :=
   consistentIndex.SetBackend.wp_proof consistentIndex.wp_SetConsistentIndex
-
-theorem verify.wp_Verify :
-    verify.Verify.spec (GF := GF) (hG := hG) :=
-  verify.Verify.wp_proof
 
 theorem schema.wp_unsafeUpdateConsistentIndex :
     schema.unsafeUpdateConsistentIndex.spec (GF := GF) (hG := hG) :=

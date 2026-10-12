@@ -2,6 +2,8 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.go_etcd_io.etcd.api.v3.authpb
+public import GeneratedProof.go_etcd_io.etcd.api.v3.membershippb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.mvccpb
 public import GeneratedProof.google_golang_org.protobuf.runtime.protoimpl
 public import Perennial.Golang.Theory
@@ -11,6 +13,8 @@ public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb.chunk2
 public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb.chunk3
 public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb.chunk4
 public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb.chunk5
+public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb.chunk6
+public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb.chunk7
 
 @[expose] public section
 

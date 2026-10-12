@@ -67,6 +67,7 @@ protobuf's `Unmarshal` are the trust boundary (two axioms). -/
 #print axioms Perennial.EtcdGrove.mvcc.readView.wp_FirstRev
 #print axioms Perennial.EtcdGrove.mvcc.readView.wp_Rev
 #print axioms Perennial.EtcdGrove.mvcc.readView.wp_Range
+#print axioms Perennial.EtcdGrove.mvcc.store.wp_Rev
 
 /-! The write transactions (`kvstore_txn.go`, `metrics_txn.go`, `kv_view.go`): `Write` opens one
 under the batch lock, `Put`/`DeleteRange` append to the pending revision (the index's answers,
@@ -93,6 +94,16 @@ batch lock's resource deposited at its first `Unlock`, the locks initialized; za
 schedule's `NewFIFOScheduler`, `NewHashStorage`, schema's `UnsafeCreateMetaBucket` and `restore`
 (the identity on a fresh backend) are the trust boundary (axioms). -/
 #print axioms Perennial.EtcdGrove.mvcc.wp_NewStore
+
+/-! The post-lock hook (2026-10-12, apply unit A): the backend's batch lock has invariant `P`
+and runs the hook `f` right after `LockInsideApply` (`batchTxSpec`); `NewStore` records them
+(`hookIs`), `store.Write` runs the hook on the caller's `Pre` by the caller's triple and returns
+its `Q`, `End` takes `P` back, `writeView.Put`/`DeleteRange` take the critical-section contract
+(`csContract`) and return `Post`. The results above are stated at any `P f`; the statements
+before the hook are the instance `P := True`, `f` a no-op (`csContract_noHook`). A caller's
+view of the hook agrees with the store's (`hookIs_agree_lc`, a later credit spent). -/
+#print axioms Perennial.EtcdGrove.mvcc.csContract_noHook
+#print axioms Perennial.EtcdGrove.mvcc.hookIs_agree_lc
 
 /-! The model: what the index answers of a key at a revision is the state's key-value, and a
 reader's range answer is its certified log's. -/

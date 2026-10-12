@@ -35,7 +35,9 @@ theorem mvcc.txnReadWrite.End.wp_proof
   ihave Htx' : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
   ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ $$ Htx'
-  wp_apply (hEnd mw s γ (.read log rev)) $$ [$Hpkg $Htx'] as ⟨Hrd, -⟩
+  ihave Hep : mvcc.txnEndPre γ (.read log rev) $$ []
+  · simp only [mvcc.txnEndPre]; itrivial
+  wp_apply (hEnd mw s γ (.read log rev)) $$ [$Hpkg $Htx' $Hep] as ⟨Hrd, -⟩
   (try wp_auto)
   iapply HΦ
   iexact Hrd

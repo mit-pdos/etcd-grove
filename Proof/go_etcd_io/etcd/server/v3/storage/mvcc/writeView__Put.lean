@@ -33,10 +33,12 @@ theorem mvcc.writeView.Put.wp_proof
     (hPut : mvcc.metricsTxnWrite.Put.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     mvcc.writeView.Put.spec (GF := GF) (hG := hG) := by
-  intro wv s γ key value k v leaseID
-  wp_start as ⟨#Hwv, Hrd, Htok, #Hkey, #Hval, Hlease⟩
+  intro wv s γ P Pre Q Post f key value k v leaseID
+  wp_start as ⟨#Hwv, Hrd, Htok, #Hhook, Hcs, #Hkey, #Hval, Hlease⟩
   iunfold mvcc.isWriteView at Hwv
   iNamed Hwv
+  iunfold mvcc.csContract at Hcs
+  icases Hcs with ⟨Hpre, #Htr, Hupd⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   wp_apply wp_with_defer as %defer defer
@@ -44,7 +46,7 @@ theorem mvcc.writeView.Put.wp_proof
   wp_apply hTODO as %t -
   (try wp_auto)
   -- `wv.kv.Write(trace)`
-  wp_apply (hWrite s γ t) $$ [$Hs $Hrd $Htok] as %mw ⟨%ilog, Htx⟩
+  wp_apply (hWrite s γ t P Pre Q f) $$ [$Hs $Hrd $Htok $Hhook $Hpre $Htr] as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
   (try wp_auto)
   -- `tw.Put(key, value, lease)`
   wp_apply (hPut mw s γ ilog [] (W64 0) (W64 0) (W64 0) key value k v leaseID)
@@ -57,10 +59,13 @@ theorem mvcc.writeView.Put.wp_proof
       (W64 0 + (key.len + value.len))) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
   ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ $$ Htx'
-  wp_apply (hEnd mw s γ _) $$ [$Htx'] as ⟨Hrd, Hcert⟩
+  -- the caller's update: the lock's invariant back for `Unlock`
+  imod Hupd $$ HQ with ⟨HP, HPost⟩
+  wp_apply (hEnd mw s γ _) $$ [$Htx' Hhook HP] as ⟨Hrd, Hcert⟩
   (try wp_auto)
+  · iapply mvcc.txnEndPre_write; iframe Hhook HP
   iapply HΦ
-  iframe Hrd
+  iframe Hrd HPost
   iexists ilog
   simp only [mvcc.txnEndPost, mvcc.commitLog, List.cons_ne_self, ↓reduceIte]
   icases Hcert with ⟨Hcert, -⟩

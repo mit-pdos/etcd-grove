@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-12 (mvcc: the watchable store, unit 3a: the write path proved (`Write`, the wrapper's `End` sealing the revision in the history before `notify`, `notify`, `addVictim`, `watch`, `cancelWatcher`, `send`, `rev`, the progress calls) over the lock invariant and the channel protocol; the history carries the change; the tree contract at a fraction (`ownIvt_split` pending); `storeTxnWriteIs` split; `verify.Verify` axiom, see "The watchable store"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
+**Last updated:** 2026-10-12 (`lean` merged into `mvcc` (the apply package, units 0 and A; the batch lock runs the post-lock hook: `storeTxnWriteCore` carries `hookIs`, the watchable `Write`/`End` take the hook's resources as the inner ones), see "Merge: lean into mvcc, the hook (2026-10-12)"; mvcc: the watchable store, unit 3a: the write path proved (`Write`, the wrapper's `End` sealing the revision in the history before `notify`, `notify`, `addVictim`, `watch`, `cancelWatcher`, `send`, `rev`, the progress calls) over the lock invariant and the channel protocol; the history carries the change; the tree contract at a fraction (`ownIvt_split` pending); `storeTxnWriteIs` split; `verify.Verify` axiom, see "The watchable store"; the apply package's units 0 and A merged into `lean` (the context premise `txnCtx` and the hook premise `csContract ∗ hookIs` both on txn's write path; one `csContract`, mvcc's; `store.Rev` under the hook's `End`; the server's `Link` reuses mvcc's zap results; gates 82 axioms, 1 sorry, apply 17/0, txn 22/0, mvcc 17/0, server 26/0, etcd 494 verified of 3599 functions), see "Merge 0/A"; the apply package's unit A: the backend's post-lock hook in mvcc's contract (`hookIs`, `csContract`), threaded through `store.Write`/`End` and txn's `Put`/`DeleteRange`/`Txn`, see "Unit A: the hook through mvcc"; the server's apply package, unit 0 on branch `apply-u0`: translated with bodies, scaffolding, 12 trust-boundary axioms, the txn functions at `context.TODO()` (`txnCtx`), `store.Rev`, `gen-link.py --apply` and the reuse rule; gates 81 axioms, 1 sorry; a finding (the alarm gauge), see "The server's apply package"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
 as pinned), the requests and responses as the client model's values (`Requests.lean`), `isKV`,
 `isTxnLessor`, 13 trust-boundary axioms (`sort.Sort`/`Reverse`, traceutil, `proto.Size`,
 `zap.Logger.Panic`, ...), mvcc's read-only write transaction proved, `gen-link.py --txn`, a
@@ -18,6 +18,220 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## The server's apply package (`server/v3/etcdserver/apply`)
+
+Plan: `decisions.md`, "The server's apply: the hook through mvcc, the chain as triples, compaction
+out of the model" (units 0 and A in parallel, then 1, 2, 3).
+
+### Unit 0: translation and scaffolding (2026-10-12)
+
+Branch `apply-u0` (worktree `/shared/etcd-grove-apply0`, off `lean` at `436f363c4`; Perennial
+`e4e126e46` as a path dependency, `.lake/manifest-merge.json`).
+- **Translation**: `apply.toml` translates everything but `metrics.go` (`alarms`, `init`: names
+  only); the pin (`bc8b52a50`) translates as is: goose promotes the methods of the wrappers'
+  embedded `applierV3` *interface* as `MethodUnfold` wrappers (`applierV3Capped.Range` is
+  `MethodResolve applierV3.ty "Range"` on the field), the gap the plan expected does not exist.
+  `etcdserverpb.toml` adds `InternalRaftRequest`, `RequestHeader`, `InternalRaftStringer`, the
+  requests read and responses built (compaction, lease, alarm, auth), the alarm actions and
+  types; `membershippb.toml` (the three cluster requests, `Member`, `RaftAttributes`,
+  `Attributes`); names-only `authpb` (a goose gap: a struct listed by name whose field names a
+  type of a package not imported, `AuthRoleGetResponse.Perm`, is emitted with a dangling
+  reference), `semver/v3`, `etcdserver/api`, `etcdserver/version`; `lease.Lease` and
+  `storage.BackendQuota` become translated structs (`lease.toml` imports `sync`,
+  `storage.toml` `backend`). `etc/goose.py` lists the new packages (`github.com/Masterminds/
+  semver=` root). The other names-only packages (`types`, `wait`, `pbutil`, `auth`, `v3alarm`,
+  `membership`, `storage`, `traceutil`, `lease`) existed.
+- **Base** (`apply/Base.lean`): `applyInit` (`alarms` holds a `*GaugeVec`; `ErrCorrupt` a fixed
+  non-nil error) and the instances of the packages the apply package reaches, moved from the
+  server's `BaseApply.lean` (which imports it): the apply package must not import the server's
+  translation (unit 3 imports the other way). `InvRaftpb.lean` imports it instead of
+  `BaseApply`; the cache's `Base` gains `membershippb`'s and `authpb`'s instances.
+- **Scaffolding**: `InvRequest.lean` (`IRRModel`, `HeaderModel`, `irrDecode` (opaque; a decoder,
+  not the plan's encoder: decisions), `irrId`, `dispatchKind`, `noSideEffect`,
+  `needAdminPermission`, `semverValid`, `internalRaftRequestIs p rq`, persistent, the KV four
+  as the txn package's `rangeRequestIs`/`putRequestIs`/`deleteRangeRequestIs`/`txnRequestIs`);
+  `Contracts.lean` (`csContract P f Pre Q Post`, `isAuthStore`, `isApplyLessor` over
+  `isTxnLessor` with `Grant`/`Revoke` (at the sole writer: deletions committed)/`Checkpoint`/
+  `Lookup` (`leaseIs`: `ID`, `TTL()`, `Keys()`), `isAlarmStore`, `isCluster`, `isRaftStatus`,
+  `isSnapshotServer`, `isConsistentIndexer`, `isQuota`, `isApplyKV` (txn's `isKV` and the
+  store's `ReadView`)); `Wait.lean` (`waitOk`, moved from the server's `InvApplier.lean`, with
+  `IsRegistered`; two server proofs take the new conjunct); `Chain.lean` (`Chain`, `baseChain`,
+  `alarmChain`, `Outcome`, `chainStep` over the backend's relation, `applierSpec` with the
+  layers' structs only: the method triples are unit 1's). `csContract` is defined here in the
+  `apply` namespace; unit A's (mvcc/txn) should replace it at the merge.
+- **Axioms** (12 new, each `Spec/`+`Proof/`): `semver.MustParse` (a version, or a panic, by
+  `semverValid`), `semver.Version.LessThan`/`String` (non-nil versions), `types.ID.String`,
+  `etcdserverpb.AlarmType.String` (through the field's address), `zap.Logger.Info`,
+  `txn.WarnOfExpensiveRequest`/`WarnOfFailedRequest` (return), `prometheus.GaugeVec.
+  WithLabelValues` (a gauge with mvcc's `gaugeSpec`: `Inc`/`Dec` are its contract),
+  `context.WithValue` (Perennial translates `context` without its body; restricted to the auth
+  store's two key types), `storage.NewBackendQuota` (an `isQuota`), `storage.BackendQuota.Cost`
+  (the capped applier's, on the three request types). `pbutil.MustUnmarshalMessage` is
+  generalized to a case per message type (`ConfChange` verbatim; `InternalRaftRequest`:
+  `{p ↦ x ∗ d ↦* bs ∗ ⌜irrDecode bs = some rq⌝} … {internalRaftRequestIs p rq ∗ d ↦* bs}`),
+  stated over raftpb's and etcdserverpb's assumptions; the server's `EtcdServer.apply` takes
+  `hMU.1`. Not axioms: `time.Now`/`Since` (Perennial's), `context.Background` (Perennial's),
+  the components (contracts). `errors.Is` (`dispatch`'s metrics) is the server's axiom, stated
+  under the server's assumptions: unit 2 restates it or uses Perennial's `errors.wp_Is`.
+- **The context** (`txnCtx`): the plan's "the proofs change little" assumed only the four entry
+  points take the context; it flows to `txn`, `executeTxn`, `put`, `executeRange`,
+  `deleteRange`, `traceutil.Get`. mvcc's `TxnRange.lean` gains `doneNil ctx` (`Done()` is `nil`:
+  `context.TODO()`'s, `doneNil_todo`, and `WithValue`'s over it), `txnCtx ctx cd := doneNil ctx
+  ∨ isContext ctx cd` (`txnCtx_todo`), `neverCd` (`neverDone_neverCd`, for `Txn` at `TODO()`)
+  and `txnCtx_rangeCtx`; `rangeCtx true` takes `doneNil` in place of `TODO()`'s value. Every
+  txn spec with a context (and `Results.lean`) says `mvcc.txnCtx ctx cd` for `context.isContext
+  ctx cd`; `EnsureTrace`'s and `Get`'s axioms take and return a `txnCtx`. Proof changes:
+  `executeRange`, `deleteRange` (the range read's `todo` from `txnCtx_rangeCtx`, 3 lines each),
+  `applyCompare`, `getPrevKV` (one line). Unit A touches `deleteRange`, `put`, `txn`,
+  `executeTxn`, `Put`, `DeleteRange`, `Txn` specs for the hook: their context lines are one-word
+  changes.
+- **`mvcc.store.Rev`** specified and proved (`store__Rev.lean`): the store's `ReadView`'s
+  `Rev`, with the caller's tokens and certificate passed to `store.Read` (`log₀ <+: log`, `v =
+  len log - 1`); in mvcc's link list and `Results.lean`.
+- **Links**: `gen-link.py --apply` (namespace `apply`), `etc/link-lean-first-apply.txt` (the
+  axioms; the txn package's `Put`/`DeleteRange`/`Range`/`Txn`/`ApplySecObserve` and mvcc's
+  `store.Rev` as `@`; the package's 72 functions commented out with a first guess of their
+  callees), `apply/Link.lean`, `apply/Results.lean` (skeleton), `etc/tcb-collections/apply.txt`.
+  **Reuse rule**: a callee whose result a Link this one imports already defines (same full name)
+  is imported, not redefined; searched: the `@` callees' Links and `REUSES` (the server's
+  imports mvcc's). The server's Link drops `binary.bigEndian.wp_PutUint64`/`wp_Uint64` and
+  `zap.wp_Error` and imports mvcc's Link; the trust report groups the server's Link with the
+  apply package's (`61 root theorems in [server Link, apply Link, apply Results]`), which import
+  mvcc's. `--leasing` did not reproduce on `lean` (txn's `compareInt64` made the bare name
+  ambiguous): its list says `leasing_compareInt64` (its Link: one theorem moved).
+- **A finding** (`issues/etcd-apply-alarm-gauge-reactivate.md`, reproduced): `Alarm` increments
+  the alarm gauge for an alarm already active (`AlarmStore.Activate` returns the existing
+  member): the gauge reads 2 for one alarm and 1 after it is disarmed. The plan's suspects:
+  (1) `Apply` panics on `ID == 0` with no header: a precondition (pre-3.0 entries), `irrId`;
+  (2) `dispatch`'s `Panic` default: every proposal site sets one field (`grep` of
+  `InternalRaftRequest{` in `server/`), only a crafted WAL entry reaches it; (3)-(6) as the
+  plan says, for units 1-2.
+- **Notes on this repository**: `Proof.go_etcd_io.etcd.client.v3.leasing.InvLeaseCacheWrite`
+  failed once in a full build (an `iframe` not seeing through a literal record's projection)
+  and passed on the rebuild: a flaky elaboration, as `InvSTMRun` before.
+- **Gates**: full `lake build` passes (2645 jobs); `ETCD_SRC=/shared/etcd etc/goose.py --check
+  --perennial /shared/perennial-merge` passes; `gen-link.py` reproduces every Lean-first Link
+  (`--cache/--server/--concurrency/--leasing/--recipes/--register/--mvcc/--txn/--apply`);
+  `etc/tcb-report.py --check --update`: 81 axioms, 1 sorry (was 69, 1: the 12 above); every
+  collection unchanged (server 26, mvcc 13, txn 20, cache 10, concurrency 12/1, recipes 11,
+  leasing 8, btree 0, raft 1, register 1); apply 17 axioms, 0 sorries;
+  `etc/verified-code.py --reuse --package go.etcd.io/etcd/server/v3/etcdserver/apply`: 73
+  functions, 684 lines, 0 verified, 1 assumed (`Apply`, the server's axiom), 71 translated,
+  1 not translated (`metrics.go`'s `init`); etcd 474 verified of 3599, 4943 of 45570 lines
+  (unchanged: `store.Rev` is a promoted method, not a Go function).
+
+### Unit A: the hook through mvcc (2026-10-12)
+
+Branch `apply-uA` (worktree `/shared/etcd-grove-applyA`, off `lean` at `436f363c4`), in
+parallel with unit 0. The backend's post-lock hook is in mvcc's contract and threaded through
+the write path, in the shape of the server's `apply.Apply.spec`, so that the applier's contract
+can be proved of the real write path (decisions.md, "mvcc: the batch lock runs the hook").
+
+- **mvcc** (`InvStore.lean`): `batchTxSpec … Locked P f`/`isBatchTx … P f`/`isKeyBackend b View W
+  P f`: `LockInsideApply : ∀ Pre Q, {Pre ∗ □ {P ∗ Pre} f() {Q}} … {Locked [] ∗ W ∗ Q}`, both
+  `Unlock`s take `∗ P`, `LockOutsideApply` returns `Locked [] ∗ P`. `StoreNames.hook`/`hookFn`,
+  `hookIs γ P f` (saved proposition and read-only ghost variable; `hookIs_agree`,
+  `hookIs_agree_lc`), `isStore` holds `∃ P f, hookIs γ P f ∗ isKeyBackend … P f` (arity
+  unchanged), `storeTxnWriteIs` the same `∃ Pw fw`. `csContract P f Pre Q Post`,
+  `csContract_noHook`, `txnEndPre`/`txnEndPre_write`. Specs changed: `NewStore` (any `P f` in,
+  `hookIs γ P f` out), `store.restore` (`isKeyBackend … P f`), `store.Write` (`hookIs ∗ Pre ∗ □
+  {P ∗ Pre} f() {Q}` in, `Q` out), `storeTxnWrite.End` (`hookIs γ P f ∗ P` in),
+  `metricsTxnWrite.End` (`txnEndPre γ kind` in), `writeView.Put`/`DeleteRange` (`hookIs ∗
+  csContract` in, `Post` out). The read path is unchanged (its callers of `metricsTxnWrite.End`
+  give `txnEndPre` of a read, `True`).
+- **txn**: `Put` (`Pre` if the lease check fails, else `Post`), `DeleteRange` (`Post`), `Txn`
+  (`Pre` on a failed check, `if txnReadonly t then Pre else Post` on success) take `csContract P
+  f Pre Q Post ∗ hookIs γ P f`; the rest of their statements is unchanged. `put`/`deleteRange`/
+  `txn`/`executeTxn` (inside an open transaction) are unchanged. The sole-writer results
+  (`put_soleWriter`, `deleteRange_soleWriter`, `txn_runTxn`, `txn_readonly_no_revision`,
+  `txn_check_error_no_write`) are restated at any `P f Pre Q Post`; the old statements are the
+  instance `csContract_noHook`.
+- **What the server bridge (unit 3) does with it**: `applierFor ua P f` becomes a definition
+  whose store is `isStore s γ ∗ hookIs γ P f` (the backend's `P f` the server's `batchLockInv γ
+  TM` and hook); the applier's KV calls pass the apply thread's `Pre`, hook triple
+  (`hook_set_au`) and update (`writes_done`) to txn as one `csContract`, and get `Post` (a
+  write) or `Pre` (no lock) back, exactly `apply.Apply.spec`'s `Post ∨ Pre`.
+- Gates: full build clean (2600 jobs, no new `sorry`); `gen-link.py --mvcc/--txn/--server`
+  reproduce (no Link change); `tcb-report.py --check`: baseline unchanged (69 axioms, 1 sorry;
+  no new axiom), every collection unchanged (mvcc 13/0, txn 20/0, server 26/0, ...); `goose.py`
+  untouched. (The base's first full build here once failed in
+  `leasing/InvLeaseCacheWrite.lean:485`, an unsolved goal; the rebuild passed it unchanged:
+  nondeterministic, not this unit's.)
+- **Plan corrections**: `LockOutsideApply` cannot keep `{True} … {Locked []}`: `NewStore`'s first
+  `Unlock` (now taking `P`) needs `P`, so it hands `P` out (the lock's invariant from the
+  backend's creation). `StoreNames` gets two names (`hook`, `hookFn`), not one. The `P` agreement
+  is under a later (saved propositions): `store.Write` and `End` spend a later credit.
+  `writeView.Put`/`DeleteRange` open write transactions too and take `csContract`.
+
+### Merge 0/A (2026-10-12)
+
+`apply-u0` then `apply-uA` merged into `lean` (`--no-ff`). `lean` was at `d059a80ad`, not the
+units' base `436f363c4`: the `mvcc` branch (the watchable store, units 1a to 2, and `zap.Logger.
+Panic`/the key index's total specs) had been merged into it, so the merge also met mvcc's new
+work. Perennial `e4e126e46` and the etcd pin `bc8b52a50` unchanged.
+- **Conflicts** (all resolved by keeping both sides): `etc/tcb-baseline.txt` (the union: unit
+  0's twelve and `lean`'s `trace.SpanFromContext`), `notes/STATUS.md` (one apply section, "Unit
+  0" then "Unit A"), `notes/decisions.md` (both entries); txn's specs `DeleteRange`, `Txn` and
+  `Results.lean`'s five sole-writer results (unit 0's `mvcc.txnCtx ctx cd` in place of
+  `context.isContext ctx cd`, with unit A's `csContract P f Pre Q Post ∗ hookIs γ P f`; `Put`
+  merged without conflict, both premises). No statement weakened.
+- **`csContract` deduplicated**: unit 0's copy in `apply/Contracts.lean` (the same definition)
+  removed; `Contracts.lean` imports mvcc's `InvStore` and uses `mvcc.csContract`;
+  `csContract_pre` kept, of `mvcc.csContract`.
+- **Fixes from the merge**: `store.Rev` (unit 0) calls `metricsTxnWrite.End`, which unit A gave
+  the premise `txnEndPre γ kind`: of a read, `True` (as `readView.FirstRev`); `Rev` is read-only,
+  no hook. The server's `Link.lean` regenerated: `lean`'s mvcc `Link` now links `zap.String`/
+  `Int64` (the key index's callees), so by unit 0's reuse rule the server's imports them from
+  mvcc's instead of redefining them (the build failed on the duplicates). No other proof changed.
+- **Gates**: full build clean (2728 jobs); `gen-link.py` `--apply/--mvcc/--txn/--server/
+  --leasing` (and `--adt/--cache/--recipes/--concurrency/--register`, `gen-btree-link.py`)
+  reproduce; `etc/goose.py --check --perennial /shared/perennial-merge` (`ETCD_SRC=/shared/etcd`)
+  passes; `etc/tcb-report.py --check`: 82 axioms, 1 sorry (the textual union: `lean`'s 70 and
+  unit 0's 12; no `--update`); every collection matches (apply 17/0, txn 22/0, mvcc 17/0, server
+  26/0, cache 10/0, concurrency 12/1, recipes 11/0, leasing 8/0, adt 0, btree 0, raft 1,
+  register 1). Verified code: apply 73 functions, 0 verified, 1 assumed (`Apply`), 71
+  translated, 684 lines (681 translated); etcd 494 verified of 3599 functions, 5149 of 45570
+  lines (unchanged: `store.Rev` is a promoted method).
+
+## Merge: lean into mvcc, the hook (2026-10-12)
+
+Local `lean` (`504afa17e`: the server's `apply` package, units 0 and A, and its change to mvcc's
+backend contract, the batch lock runs the server's post-lock hook: decisions.md, "mvcc: the
+batch lock runs the hook") merged into `mvcc` (base `124ab0346`; ours since: unit 3a). The
+Perennial and etcd pins did not move.
+- **Conflicts** (16 files; `InvStore.lean`, `etc/gen-link.py`, `etc/goose.py`, the link lists,
+  the baselines, `decisions.md` merged without one), all resolved by keeping both sides:
+  `storeTxnWrite.End` (spec and proof): over our `storeTxnWriteCore … chs ps sealed` and with
+  their `hookIs γ P f ∗ P`, `P` agreeing with the core's through `hookIs_agree_lc` (their
+  proof's step); `metricsTxnWrite.End` (spec and proof): our `isTxnEnd` and their `txnEndPre`;
+  `NewStore`'s proof: their `Hhook` framed, our owned views split off (`isplitl [ReadView
+  WriteView]`); `writeView.Put`/`DeleteRange`, txn's `Put`/`DeleteRange`/`Txn`/`Range`,
+  `readView.Rev`/`FirstRev`/`Range`, `txnReadWrite.End`: our `isTxn_toEnd` then their
+  `txnEndPre` (a read's `True`, a write's `txnEndPre_write` from the `csContract`'s update);
+  `notes/STATUS.md`'s header.
+- **Semantic resolution in `InvStore.lean`** (merged textually): `storeTxnWriteCore` gains their
+  `∃ Pw fw`, `"#Hhook" ∷ hookIs γ Pw fw` and `batchTxSpec … Locked Pw fw` (as their
+  `storeTxnWriteIs`); `_split`/`_join`/`_seal`/`_wf` carry them. `isTxnWriteCore`/`isTxnEnd`
+  carry the hook through the core; `isStore` is theirs (`Ph fh`).
+- **Our watchable specs follow the inner ones**: `watchableStore.Write` takes `hookIs γ.st P f ∗
+  Pre ∗ □ {P ∗ Pre} f() {Q}` and returns `Q` beside `isWatchTxnWrite` (the hook recorded by the
+  inner transaction); `watchableStoreTxnWrite.End` takes `hookIs γ.st P f ∗ P`, handed to both
+  inner `End` calls (`txnEndPre_write`). `watchWriter_pins` destructures the two new
+  existentials. decisions.md, "The watchable store's concurrency (unit 3)", "The post-lock
+  hook".
+- **The build needed** (beyond the conflicts): `store.Rev` (theirs, new) and our
+  `watchableStore.rev` each one line for the other side's `End` premise (`isTxn_toEnd`;
+  `txnEndPre` of a read). 2754 jobs.
+- **Link.lean**: every mode regenerated; only the server's changed: the reuse rule imports
+  `verify.wp_Verify` from mvcc's `Link` (our `watcher.send` links it) instead of defining it.
+- **Checked**: `etc/goose.py --check` passes with no regeneration; `etc/tcb-report.py --check`
+  matches the textual union (82 axioms, 1 sorry: ours 70, theirs 82, `verify.Verify` in both);
+  every collection matches unchanged (adt 0/0, apply 17/0, btree 0/0, cache 10/0, concurrency
+  12/1, leasing 8/0, mvcc 18/0, raft 1/0, recipes 11/0, register 1/0, server 26/0, txn 22/0).
+  Verified code: etcd 501 of 3599 functions (5229 of 45570 lines); mvcc 85 of 155 (11
+  unfinished: over the interval tree's pending specs), 909 of 2073 lines; adt 4 of 42; txn 39 of 48,
+  570 of 653 lines; apply 0 of 73 (1 assumed).
 
 ## Merge: lean into mvcc (2026-10-12)
 
@@ -232,6 +446,7 @@ hypotheses.
   contract), 909 of 2073 lines. Next: 3b (`syncWatchers`, `moveVictims`, the loops,
   `rangeEvents`/`kvsToEvents`, `New`/`newWatchableStore`/`Close`/`NewWatchStream`), after the
   merge of `lean`'s hook change (the batch lock runs the server's post-lock hook).
+
 
 ## The server's txn package (`server/v3/etcdserver/txn`)
 

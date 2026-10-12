@@ -5,6 +5,7 @@ public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
 public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.backend
+public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.lease
@@ -30,12 +31,152 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
 instance Lease_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.lease.Lease :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.lease.Lease where
+  typedPointstoDef l v dq := iprop(
+    "ID" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"ID" l) v.ID' dq ∗
+    "ttl" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"ttl" l) v.ttl' dq ∗
+    "remainingTTL" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"remainingTTL" l) v.remainingTTL' dq ∗
+    "expiryMu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"expiryMu" l) v.expiryMu' dq ∗
+    "expiry" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"expiry" l) v.expiry' dq ∗
+    "mu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"mu" l) v.mu' dq ∗
+    "itemSet" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"itemSet" l) v.itemSet' dq ∗
+    "revokec" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"revokec" l) v.revokec' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance Lease_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.lease.Lease go_etcd_io.etcd.server.v3.lease.Lease.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.lease.Lease go_etcd_io.etcd.server.v3.lease.Lease.underlying := by
+  solve_into_val_typed_struct
+
+instance Lease_access_load_ID (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.Lease) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"ID" l) v.ID' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"ID" l) v.ID' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Lease_access_store_ID (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.Lease) (ID' : go_etcd_io.etcd.server.v3.lease.LeaseID) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"ID" l) v.ID' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"ID" l) ID' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ID' := ID' } : go_etcd_io.etcd.server.v3.lease.Lease) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Lease_access_load_ttl (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.Lease) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"ttl" l) v.ttl' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"ttl" l) v.ttl' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Lease_access_store_ttl (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.Lease) (ttl' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"ttl" l) v.ttl' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"ttl" l) ttl' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ttl' := ttl' } : go_etcd_io.etcd.server.v3.lease.Lease) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Lease_access_load_remainingTTL (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.Lease) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"remainingTTL" l) v.remainingTTL' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"remainingTTL" l) v.remainingTTL' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Lease_access_store_remainingTTL (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.Lease) (remainingTTL' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"remainingTTL" l) v.remainingTTL' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"remainingTTL" l) remainingTTL' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with remainingTTL' := remainingTTL' } : go_etcd_io.etcd.server.v3.lease.Lease) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Lease_access_load_expiryMu (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.Lease) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"expiryMu" l) v.expiryMu' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"expiryMu" l) v.expiryMu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Lease_access_store_expiryMu (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.Lease) (expiryMu' : sync.RWMutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"expiryMu" l) v.expiryMu' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"expiryMu" l) expiryMu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with expiryMu' := expiryMu' } : go_etcd_io.etcd.server.v3.lease.Lease) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Lease_access_load_expiry (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.Lease) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"expiry" l) v.expiry' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"expiry" l) v.expiry' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Lease_access_store_expiry (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.Lease) (expiry' : time.Time) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"expiry" l) v.expiry' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"expiry" l) expiry' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with expiry' := expiry' } : go_etcd_io.etcd.server.v3.lease.Lease) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Lease_access_load_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.Lease) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Lease_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.Lease) (mu' : sync.RWMutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : go_etcd_io.etcd.server.v3.lease.Lease) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Lease_access_load_itemSet (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.Lease) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"itemSet" l) v.itemSet' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"itemSet" l) v.itemSet' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Lease_access_store_itemSet (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.Lease) (itemSet' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"itemSet" l) v.itemSet' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"itemSet" l) itemSet' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with itemSet' := itemSet' } : go_etcd_io.etcd.server.v3.lease.Lease) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Lease_access_load_revokec (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.Lease) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"revokec" l) v.revokec' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"revokec" l) v.revokec' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Lease_access_store_revokec (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.Lease) (revokec' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"revokec" l) v.revokec' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.Lease go!"revokec" l) revokec' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with revokec' := revokec' } : go_etcd_io.etcd.server.v3.lease.Lease) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Lease

@@ -93,6 +93,9 @@ metricsTxnWrite__FirstRev: storeTxnCommon__FirstRev
 readView__FirstRev: traceutil_TODO store__Read storeTxnCommon__FirstRev metricsTxnWrite__End
 readView__Rev: traceutil_TODO store__Read storeTxnCommon__Rev metricsTxnWrite__End
 readView__Range: traceutil_TODO store__Read metricsTxnWrite__Range metricsTxnWrite__End
+# `store.Rev`, the store's `ReadView`'s (the apply package's `newHeader`): `readView.Rev` with the
+# caller's tokens and certificate
+store__Rev: traceutil_TODO store__Read storeTxnCommon__Rev metricsTxnWrite__End
 writeView__Put: traceutil_TODO store__Write metricsTxnWrite__Put metricsTxnWrite__End
 writeView__DeleteRange: traceutil_TODO store__Write metricsTxnWrite__DeleteRange metricsTxnWrite__End
 # The store's constructor (kvstore.go) on a fresh backend, see InvStore.lean: the ghost state

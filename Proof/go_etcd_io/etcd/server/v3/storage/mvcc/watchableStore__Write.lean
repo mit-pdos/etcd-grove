@@ -32,7 +32,7 @@ theorem mvcc.watchWriter_pins (γ : mvcc.StoreNames) (L ilog : mvcc.Log) (pend :
       mvcc.storeTxnWriteIs tw s γ ilog pend ⊢ ⌜ilog = L⌝ := by
   iintro ⟨#Hmycert, Hmine, H⟩
   unfold mvcc.storeTxnWriteIs
-  icases H with ⟨%trace, %ti, %bt, %Locked, %chs, %ps, %ntok, H⟩
+  icases H with ⟨%trace, %ti, %bt, %Locked, %chs, %ps, %ntok, %Pw, %fw, H⟩
   iNamed H
   unfold mvcc.revToken
   icombine Hmine Htok as Hall
@@ -45,8 +45,8 @@ theorem mvcc.watchWriter_pins (γ : mvcc.StoreNames) (L ilog : mvcc.Log) (pend :
 
 theorem mvcc.watchableStore.Write.wp_proof (hWrite : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.Write.spec (GF := GF) (hG := hG) := by
-  intro s st γ trace L
-  wp_start as ⟨#Hws, Hrd, Hww, %Hlen⟩
+  intro s st γ trace L P Pre Q f
+  wp_start as ⟨#Hws, Hrd, Hww, %Hlen, #Hhook, Hpre, #Htr⟩
   ihave #Hws0 : mvcc.isWatchableStore s st γ $$ []
   · iexact Hws
   iunfold mvcc.isWatchableStore at Hws
@@ -57,7 +57,7 @@ theorem mvcc.watchableStore.Write.wp_proof (hWrite : mvcc.store.Write.spec (GF :
   rw [hb]
   icases (ownToks_add 1 (mvcc.wBudget L - 1) γ.st.revs).1 $$ Htoks with ⟨Htoks, H1⟩
   (try wp_auto)
-  wp_apply (hWrite st γ.st trace) $$ [$Hs $Hrd H1] as %mw ⟨%ilog, Htx⟩
+  wp_apply (hWrite st γ.st trace P Pre Q f) $$ [$Hs $Hrd H1 $Hhook $Hpre $Htr] as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
   · unfold mvcc.revToken; iexact H1
   iunfold mvcc.isTxnWrite at Htx
   iNamed Htx
@@ -71,6 +71,7 @@ theorem mvcc.watchableStore.Write.wp_proof (hWrite : mvcc.store.Write.spec (GF :
   wp_alloc wtw as Hwtw
   (try wp_auto)
   iapply HΦ
+  iframe HQ
   iunfold mvcc.isWatchTxnWrite
   iexists mw
   simp only [named]
