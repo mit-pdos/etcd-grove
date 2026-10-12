@@ -483,12 +483,10 @@ theorem lcOwn_emap_revokes_acc (lc : Loc) (st : LeaseCacheSt) :
       (∀ rv, structFieldRef leaseCache go!"entries" lc ↦ st.emap -∗ emapOwn st (DFrac.own 1) -∗
         structFieldRef leaseCache go!"revokes" lc ↦ st.rmap -∗ st.rmap ↦$ rv -∗
         lcOwn lc { st with revokes := rv } (DFrac.own 1)) := by
-  unfold lcOwn
+  simp only [lcOwn, emapOwn, LeaseCacheSt.lis]
   iintro ⟨H1, H2, H3, H4, H5, #H6, Hents, #H8⟩
   iframe H1 H2 H3 H4
   iintro %rv H1 H2 H3 H4
-  unfold emapOwn at *
-  dsimp only
   iframe
   iframe #
 

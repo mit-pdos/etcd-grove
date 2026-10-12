@@ -1,24 +1,18 @@
 #!/usr/bin/env python3
-"""Run `lake build` and report how long it took, how parallel it was, and why.
+"""Report how long a recorded build took, how parallel it was, and why.
 
-    ./etc/build-report.py build [LAKE_ARGS...]  # build, then print the report
-    ./etc/build-report.py                       # the latest recorded build again
+    ./etc/build-report.py                       # the latest recorded build
     ./etc/build-report.py --list                # the builds recorded
     ./etc/build-report.py --build ID
     ./etc/build-report.py --format markdown     # for a CI job summary
     ./etc/build-report.py --selftest
 
-`build` runs `lake build LAKE_ARGS` with Lake pointed at a copy of the Lean
-toolchain (`.lake/build-report/sysroot`, symlinks to the real one) whose
-`bin/lean` is a shim back into this script. The shim runs the real `lean` and
-records, for every module compile (of any package, Perennial's too), when it
-started and ended, its CPU time, peak memory and exit status, in
-`.lake/build-report/<build>.jsonl`. Lake does not hash the `lean` path into
-its traces, so a build under the shim rebuilds exactly what a plain
-`lake build` would. The command exits with Lake's status, and prints the
-report pass or fail. Dependencies are the imports Lake writes to each
-module's `.setup.json` (read when the report is made, so a report on an old
-build uses the current imports).
+It only reads: the builds are those `etc/timed-build.py` ran and recorded,
+one `.lake/build-report/<build>.jsonl` each (every module compile's start,
+end, CPU time, peak memory and exit status); a plain `lake build` records
+nothing. Dependencies are the imports Lake writes to each module's
+`.setup.json` (read when the report is made, so a report on an old build uses
+the current imports).
 
 The report has five parts:
 
@@ -48,13 +42,8 @@ Standard library only.
 import argparse
 import json
 import os
-import shlex
-import shutil
-import signal
-import subprocess
 import sys
 import textwrap
-import time
 from collections import defaultdict
 
 DEFAULT_DIR = os.path.join(".lake", "build-report")
@@ -63,110 +52,6 @@ BLOCKS = " ▁▂▃▄▅▆▇█"
 
 # Module-name components to group CPU time by (after the package name).
 GROUP_DEPTH = 3
-
-
-# --- recording -------------------------------------------------------------
-
-
-def wrap(real_lean, log, args):
-    """Run the real `lean` on `args`; if it compiles a module, record it.
-
-    Lake also runs `lean --githash` and the like; only invocations with a
-    `.lean` source are recorded.
-    """
-    src = next((a for a in args if a.endswith(".lean")), None)
-    start = time.time()
-    pid = os.fork()
-    if pid == 0:
-        try:
-            os.execv(real_lean, [real_lean] + args)
-        finally:
-            os._exit(127)
-    # Lake's Ctrl-C reaches the real lean too; let it decide, and report it.
-    signal.signal(signal.SIGINT, signal.SIG_IGN)
-    while True:
-        try:
-            _pid, status, ru = os.wait4(pid, 0)
-            break
-        except InterruptedError:
-            continue
-    end = time.time()
-    code = os.waitstatus_to_exitcode(status)
-    if src is not None:
-        setup = None
-        if "--setup" in args and args.index("--setup") + 1 < len(args):
-            setup = args[args.index("--setup") + 1]
-        record = {
-            "file": src,
-            "setup": setup,
-            "start": start,
-            "end": end,
-            "user": ru.ru_utime,
-            "sys": ru.ru_stime,
-            "maxrss_kb": ru.ru_maxrss,
-            "status": code,
-        }
-        # One short O_APPEND write per line: concurrent shims don't interleave.
-        with open(log, "a") as f:
-            f.write(json.dumps(record) + "\n")
-    return code if code >= 0 else 128 - code
-
-
-def real_sysroot():
-    """The Lean toolchain `lean` resolves to here (via elan and lean-toolchain)."""
-    out = subprocess.run(
-        ["lean", "--print-prefix"], capture_output=True, text=True, check=True
-    )
-    return out.stdout.strip()
-
-
-def make_sysroot(root, real, log):
-    """A copy of the toolchain at `root`, all symlinks except a `bin/lean` shim."""
-    shutil.rmtree(root, ignore_errors=True)
-    os.makedirs(os.path.join(root, "bin"))
-    for name in os.listdir(real):
-        if name != "bin":
-            os.symlink(os.path.join(real, name), os.path.join(root, name))
-    for name in os.listdir(os.path.join(real, "bin")):
-        if name != "lean":
-            os.symlink(os.path.join(real, "bin", name), os.path.join(root, "bin", name))
-    shim = os.path.join(root, "bin", "lean")
-    cmd = [
-        sys.executable,
-        "-I",
-        os.path.abspath(__file__),
-        "--wrap",
-        os.path.join(real, "bin", "lean"),
-        os.path.abspath(log),
-    ]
-    with open(shim, "w") as f:
-        f.write(f'#!/bin/sh\nexec {shlex.join(cmd)} "$@"\n')
-    os.chmod(shim, 0o755)
-
-
-def run_build(outdir, lake_args):
-    """Run `lake build lake_args` under the shim; (build id, lake's exit status)."""
-    os.makedirs(outdir, exist_ok=True)
-    start = time.time()
-    build = time.strftime("%Y%m%d-%H%M%S", time.localtime(start)) + f"-{os.getpid()}"
-    log = os.path.join(outdir, build + ".jsonl")
-    with open(log, "w") as f:
-        meta = {
-            "build": build,
-            "start": start,
-            "args": lake_args,
-            "cores": os.cpu_count(),
-        }
-        f.write(json.dumps({"meta": meta}) + "\n")
-    root = os.path.join(outdir, "sysroot")
-    make_sysroot(root, real_sysroot(), log)
-    env = dict(
-        os.environ, LAKE_OVERRIDE_LEAN="true", LEAN_SYSROOT=os.path.abspath(root)
-    )
-    status = subprocess.call(["lake", "build"] + lake_args, env=env)
-    with open(log, "a") as f:
-        f.write(json.dumps({"done": {"end": time.time(), "status": status}}) + "\n")
-    return build, status
 
 
 # --- reading a build -------------------------------------------------------
@@ -713,7 +598,7 @@ class Report:
 
 
 def selftest():
-    """Check the recording and the analysis against small worked examples."""
+    """Check the analysis against small worked examples."""
     import tempfile
 
     failures, checks = [], []
@@ -839,35 +724,6 @@ def selftest():
             "durations", [dur(4.25), dur(784), dur(8760)] == ["4.2s", "13m04s", "2h26m"]
         )
 
-        # The shim: a fake `lean` that compiles only when given a .lean file.
-        fake = os.path.join(tmp, "lean")
-        with open(fake, "w") as f:
-            f.write('#!/bin/sh\ncase "$*" in *--fail*) exit 3;; esac\necho out\n')
-        os.chmod(fake, 0o755)
-        wlog = os.path.join(tmp, "w.jsonl")
-        script = os.path.abspath(__file__)
-
-        def shim(*args):
-            return subprocess.run(
-                [sys.executable, "-I", script, "--wrap", fake, wlog, *args],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-
-        p = shim("--githash")
-        check("shim passes stdout through", p.stdout == "out\n")
-        check("shim records nothing for non-compiles", not os.path.exists(wlog))
-        shim("M.lean", "--setup", "M.setup.json", "--json")
-        p = shim("N.lean", "--fail")
-        check("shim passes the exit status through", p.returncode == 3)
-        with open(wlog) as f:
-            recs = [json.loads(line) for line in f]
-        check(
-            "shim records compiles",
-            [(r["file"], r["setup"], r["status"]) for r in recs]
-            == [("M.lean", "M.setup.json", 0), ("N.lean", None, 3)],
-        )
     print(f"{len(checks) - len(failures)}/{len(checks)} passed")
     return 1 if failures else 0
 
@@ -877,15 +733,11 @@ def selftest():
 
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
-    # The shim: --wrap REAL_LEAN LOG ARGS..., everything after passed to lean.
-    if argv[:1] == ["--wrap"]:
-        return wrap(argv[1], argv[2], argv[3:])
-
+    if argv[:1] == ["build"]:
+        sys.exit("build-report: it only reads recorded builds; "
+                 "`etc/timed-build.py [LAKE_ARGS...]` builds and records one")
     p = argparse.ArgumentParser(
-        description="Run `lake build` and report on its timing, or report on a "
-        "recorded build.",
-        epilog="`build [LAKE_ARGS...]` runs `lake build LAKE_ARGS` first and "
-        "exits with its status.",
+        description="Report on the timing of a build recorded by etc/timed-build.py.",
     )
     p.add_argument(
         "--dir",
@@ -907,19 +759,10 @@ def main(argv=None):
     )
     p.add_argument("--width", type=int, default=60, help="chart columns (default 60)")
     p.add_argument("--selftest", action="store_true", help="run the tests and exit")
-    # Everything from `build` on is Lake's.
-    lake_args = None
-    if "build" in argv:
-        i = argv.index("build")
-        argv, lake_args = argv[:i], argv[i + 1 :]
     args = p.parse_args(argv)
 
     if args.selftest:
         return selftest()
-    status = 0
-    if lake_args is not None:
-        args.build, status = run_build(args.dir, lake_args)
-        print()
     builds = list_builds(args.dir)
     if args.list:
         for build, path in builds:
@@ -935,17 +778,17 @@ def main(argv=None):
         args.build = builds[0][0]
     if args.build not in paths:
         print(f"build-report: no build recorded in {args.dir}", file=sys.stderr)
-        return status
+        return 1
     build = load_build(paths[args.build])
     if build is None:
         print(f"build-report: build {args.build} compiled nothing; nothing to report")
-        return status
+        return 0
     report = Report(build, top=args.top, columns=args.width)
     sys.stdout.write(report.markdown() if args.format == "markdown" else report.text())
     if args.markdown_to:
         with open(args.markdown_to, "a") as f:
             f.write(report.markdown())
-    return status
+    return 0
 
 
 if __name__ == "__main__":

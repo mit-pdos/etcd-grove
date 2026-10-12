@@ -84,12 +84,14 @@ report.
 
 ## Trust base
 
-`etc/tcb-report.py` reports what the proof rests on (needs `lake build`): the
-`sorry`s and axioms the results depend on, the exported results (linked results no
-other proof uses), and the definitions their statements are written in terms of. Run
-it when you need the report; don't commit its output (`-o` writes a file), which goes
-stale as the proof changes. `etc/tcb-report.py --check` exits 1 if this repository's
-axioms or `sorry`s differ from `etc/tcb-baseline.txt`; when you add or remove one on
+`etc/tcb-report.py` reports what the proof rests on (needs an up-to-date `lake
+build`): the `sorry`s and axioms the results depend on, the exported results (linked
+results no other proof uses), and the definitions their statements are written in
+terms of. Run it when you need the report; don't commit its output (`-o` writes a
+file), which goes stale as the proof changes. It never builds, nor does
+`etc/verified-code.py`: both exit, asking for `lake build`, when `lake build
+--no-build` finds the root modules out of date. `etc/tcb-report.py --check` exits 1 if
+this repository's axioms or `sorry`s differ from `etc/tcb-baseline.txt`; when you add or remove one on
 purpose, rerun with `--check --update`.
 
 For some of the results only: `--roots PATTERN...` (regular expressions searched in a
@@ -104,9 +106,9 @@ by adding a collection for it.
 ## How much is verified
 
 `etc/verified-code.py` accounts for how much of the translated Go code is verified
-(needs `lake build` and `go`): every Go function is verified, unfinished, assumed,
-translated or not translated, counted in functions and Go code lines, per project, per
-module, per package and per file. It takes the projects from `etc/goose.py` (with the
+(needs an up-to-date `lake build`, and `go`): every Go function is verified,
+unfinished, assumed, translated or not translated, counted in functions and Go code
+lines, per project, per module, per package and per file. It takes the projects from `etc/goose.py` (with the
 Go modules counted, `counted_modules`) and reads the Go sources of the translated
 projects (in `.lake/go-src/<project>`, cloned or fetched at the pinned revision), the
 translations in `Code/`, and this repository's proofs (the linked results of every
@@ -198,9 +200,12 @@ without touching `.lake/packages/perennial`, which other worktrees share;
 
 `lake build` (needs the `elan` toolchain in `lean-toolchain`).
 
-`etc/build-report.py build [LAKE_ARGS…]` runs `lake build` and then reports on it:
+`etc/timed-build.py [LAKE_ARGS…]` is `lake build LAKE_ARGS` that also records each
+module compile's timing (`.lake/build-report/`); it leaves the same build behind and
+exits with Lake's status. Only the modules it compiles are timed: one a plain `lake
+build` compiled stays untimed until it changes. `etc/build-report.py` only reads:
+it reports on the latest recorded build (`--build ID` another, `--list` lists them):
 wall and CPU time, parallelism over time, the critical path (with Lake's idle time
 per step), the unlimited-cores bound, the slowest modules and where the CPU went.
-CI (`.github/workflows/lean.yml`) runs the build this way and puts the report on
-the run's summary page. `etc/build-report.py` alone reprints the latest report,
-`--list` lists the recorded builds (`.lake/build-report/`).
+CI (`.github/workflows/lean.yml`) builds with `etc/timed-build.py` and puts the
+report on the run's summary page.
