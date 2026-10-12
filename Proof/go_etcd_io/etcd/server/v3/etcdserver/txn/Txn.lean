@@ -74,7 +74,7 @@ theorem txn.Txn.wp_proof
       (try simp only [SharedBufReadTxMode, ConcurrentReadTxMode]) <;> wp_auto <;>
       (isplitl []; · itrivial) <;> iexists _ <;> iframe
   have hlen3 : log.length + 3 ≤ 2 ^ 63 := by have := Hpre.1; omega
-  wp_apply (txn.soleWriter_Read hRead s γ md tr log hlen3) $$ [$Hs $Hrd $Hsw] as %mw ⟨%rev, Htx, Hsw⟩
+  wp_apply (txn.soleWriter_Read hRead s γ md tr log hlen3 Htr) $$ [$Hs $Hrd $Hsw] as %mw ⟨%rev, Htx, Hsw⟩
   -- `compareToPath` in the trace's step
   wp_apply (hStepF tr _ _ slice.nil
       (fun x => iprop(⌜x = #()⌝ ∗ ∃ sl : GoSlice, txnPath_ptr ↦ sl ∗
@@ -125,6 +125,7 @@ theorem txn.Txn.wp_proof
   obtain ⟨rfl, -, Hign⟩ := Hok
   wp_auto
   wp_apply (hStep tr _ _)
+  · ipureintro; exact Htr
   have hoks := opsOk_strong _ _ _ _ Hpre.2.1 Hign
   have hlen4 : log.length + 4 ≤ 2 ^ 63 := Hpre.1
   ihave #Hnd' : mvcc.neverDone { cd with Values := vs } $$ []
@@ -189,6 +190,7 @@ theorem txn.Txn.wp_proof
     icases soleWriter_split γ log hlen4 $$ Hsw with ⟨Htok, Hsw⟩
     wp_apply (hWrite s γ tr P Pre Q f) $$ [$Hs $Hrd $Htok $Hhook $HPre $Htr]
       as %mw' ⟨⟨%ilog, Htx⟩, HQ⟩
+    · ipureintro; exact Htr
     -- the caller's update (the writes are the model's): the lock's invariant back for `End`
     imod Hupd $$ HQ with ⟨HP, HPost⟩
     iunfold soleWriterOpen at Hsw

@@ -143,7 +143,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
       simp only [named]
       iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
       iframe #
-      ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+      ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
     · -- the loop: `for _, key := range keys { tw.delete(key) }`
       have hpres := mvcc.delKeys_present ilog pend (decide (endk = slice.nil)) k e hwfL hlenL hcsL Hne
       have hnodup := mvcc.delKeys_nodup ilog pend (decide (endk = slice.nil)) k e
@@ -155,7 +155,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
         simp only [named]
         iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
         iframe #
-        ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+        ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
       (try wp_auto)
       ihave IH : (∃ (j : Nat) (kv0 : GoSlice),
           "Hri" ∷ i_ptr ↦ (W64 (j : Int) : w64) ∗
@@ -301,7 +301,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
       simp only [named]
       iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
       iframe #
-      ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+      ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
     · -- the loop: `for _, key := range keys { tw.delete(key) }`
       have hpres := mvcc.delKeys_present ilog pend (decide (endk = slice.nil)) k e hwfL hlenL hcsL Hne
       have hnodup := mvcc.delKeys_nodup ilog pend (decide (endk = slice.nil)) k e
@@ -313,7 +313,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
         simp only [named]
         iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
         iframe #
-        ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+        ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
       (try wp_auto)
       ihave IH : (∃ (j : Nat) (kv0 : GoSlice),
           "Hri" ∷ i_ptr ↦ (W64 (j : Int) : w64) ∗

@@ -64,6 +64,7 @@ theorem txn.DeleteRange.wp_proof
   subst Hkv
   (try wp_auto)
   wp_apply (hWrite s γ t P Pre Q f) $$ [$Hs $Hrd $Htok $Hhook $Hpre $Htr] as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
+  · ipureintro; exact Ht
   -- the caller's update (the writes are the model's): the lock's invariant back for `End`
   imod Hupd $$ HQ with ⟨HP, HPost⟩
   (try wp_auto)

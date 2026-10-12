@@ -2,6 +2,8 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.go_uber_org.zap
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.pkg.v3.traceutil
 
@@ -129,12 +131,135 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
 instance Trace_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.traceutil.Trace :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.traceutil.Trace where
+  typedPointstoDef l v dq := iprop(
+    "operation" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"operation" l) v.operation' dq ∗
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"lg" l) v.lg' dq ∗
+    "fields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"fields" l) v.fields' dq ∗
+    "startTime" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"startTime" l) v.startTime' dq ∗
+    "steps" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"steps" l) v.steps' dq ∗
+    "stepDisabled" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"stepDisabled" l) v.stepDisabled' dq ∗
+    "isEmpty" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"isEmpty" l) v.isEmpty' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance Trace_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.traceutil.Trace go_etcd_io.etcd.pkg.v3.traceutil.Trace.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.traceutil.Trace go_etcd_io.etcd.pkg.v3.traceutil.Trace.underlying := by
+  solve_into_val_typed_struct
+
+instance Trace_access_load_operation (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"operation" l) v.operation' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"operation" l) v.operation' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Trace_access_store_operation (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (operation' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"operation" l) v.operation' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"operation" l) operation' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with operation' := operation' } : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Trace_access_load_lg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Trace_access_store_lg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Trace_access_load_fields (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"fields" l) v.fields' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"fields" l) v.fields' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Trace_access_store_fields (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (fields' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"fields" l) v.fields' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"fields" l) fields' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fields' := fields' } : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Trace_access_load_startTime (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"startTime" l) v.startTime' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"startTime" l) v.startTime' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Trace_access_store_startTime (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (startTime' : time.Time) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"startTime" l) v.startTime' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"startTime" l) startTime' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with startTime' := startTime' } : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Trace_access_load_steps (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"steps" l) v.steps' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"steps" l) v.steps' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Trace_access_store_steps (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (steps' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"steps" l) v.steps' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"steps" l) steps' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with steps' := steps' } : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Trace_access_load_stepDisabled (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"stepDisabled" l) v.stepDisabled' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"stepDisabled" l) v.stepDisabled' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Trace_access_store_stepDisabled (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (stepDisabled' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"stepDisabled" l) v.stepDisabled' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"stepDisabled" l) stepDisabled' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stepDisabled' := stepDisabled' } : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Trace_access_load_isEmpty (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"isEmpty" l) v.isEmpty' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"isEmpty" l) v.isEmpty' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Trace_access_store_isEmpty (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (isEmpty' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"isEmpty" l) v.isEmpty' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"isEmpty" l) isEmpty' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with isEmpty' := isEmpty' } : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Trace
@@ -148,12 +273,101 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
 instance step_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.traceutil.step :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.traceutil.step where
+  typedPointstoDef l v dq := iprop(
+    "time" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"time" l) v.time' dq ∗
+    "msg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"msg" l) v.msg' dq ∗
+    "fields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"fields" l) v.fields' dq ∗
+    "isSubTraceStart" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"isSubTraceStart" l) v.isSubTraceStart' dq ∗
+    "isSubTraceEnd" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"isSubTraceEnd" l) v.isSubTraceEnd' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance step_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.traceutil.step go_etcd_io.etcd.pkg.v3.traceutil.step.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.traceutil.step go_etcd_io.etcd.pkg.v3.traceutil.step.underlying := by
+  solve_into_val_typed_struct
+
+instance step_access_load_time (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"time" l) v.time' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"time" l) v.time' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance step_access_store_time (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (time' : time.Time) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"time" l) v.time' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"time" l) time' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with time' := time' } : go_etcd_io.etcd.pkg.v3.traceutil.step) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance step_access_load_msg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"msg" l) v.msg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"msg" l) v.msg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance step_access_store_msg (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (msg' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"msg" l) v.msg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"msg" l) msg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with msg' := msg' } : go_etcd_io.etcd.pkg.v3.traceutil.step) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance step_access_load_fields (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"fields" l) v.fields' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"fields" l) v.fields' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance step_access_store_fields (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (fields' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"fields" l) v.fields' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"fields" l) fields' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fields' := fields' } : go_etcd_io.etcd.pkg.v3.traceutil.step) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance step_access_load_isSubTraceStart (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"isSubTraceStart" l) v.isSubTraceStart' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"isSubTraceStart" l) v.isSubTraceStart' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance step_access_store_isSubTraceStart (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (isSubTraceStart' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"isSubTraceStart" l) v.isSubTraceStart' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"isSubTraceStart" l) isSubTraceStart' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with isSubTraceStart' := isSubTraceStart' } : go_etcd_io.etcd.pkg.v3.traceutil.step) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance step_access_load_isSubTraceEnd (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"isSubTraceEnd" l) v.isSubTraceEnd' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"isSubTraceEnd" l) v.isSubTraceEnd' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance step_access_store_isSubTraceEnd (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (isSubTraceEnd' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"isSubTraceEnd" l) v.isSubTraceEnd' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"isSubTraceEnd" l) isSubTraceEnd' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with isSubTraceEnd' := isSubTraceEnd' } : go_etcd_io.etcd.pkg.v3.traceutil.step) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end step

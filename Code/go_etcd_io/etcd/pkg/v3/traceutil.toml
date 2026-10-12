@@ -1,6 +1,6 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
-imports = ["!*"]
+# `TODO` with its body, and the types; the rest names only.
+translate = ["!*", "TODO", "Trace", "step", "Field"]
+imports = ["!*", "time", "go.uber.org/zap"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

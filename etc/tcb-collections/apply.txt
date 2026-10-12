@@ -20,7 +20,6 @@ axiom storage.BackendQuota.Cost.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom traceutil.EnsureTrace.wp_proof
 axiom traceutil.Get.wp_proof
-axiom traceutil.TODO.wp_proof
 axiom traceutil.Trace.AddField.wp_proof
 axiom traceutil.Trace.StartSubTrace.wp_proof
 axiom traceutil.Trace.Step.wp_proof

@@ -98,7 +98,7 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
         ((mvcc.pendPuts ilog pend).foldl (fun m p => GMap.insert p.1 p.2 m) (mvcc.bucketMap ilog))
         iprop(Locked (mvcc.pendPuts ilog pend) ∗ mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap ilog))
         γ (.writer ilog pend) (ilog ++ [pend]) (W64 ((mvcc.writeRev ilog pend : Nat) : Int))
-        ctx cd todo key endk k e ro)
+        ctx cd todo key endk k e ro (by assumption))
       $$ [$Hs $Cs $Ctx $Ctrace $Hrdr $HR $Hkn $Hidx $Hti $Hctx $Hkey $Hend]
       as %r %err ⟨%Htodo, Cs, Ctx, Ctrace, ⟨Hlocked, Hbv⟩, Hw, Hti, Hout⟩
     · ipureintro
@@ -128,7 +128,7 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     simp only [named]
     iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
     iframe #
-    ipureintro; exact ⟨Hbudget, Hps, Hne⟩
+    ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
 
 end proof
 

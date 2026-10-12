@@ -37,7 +37,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.cindex
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
@@ -74,7 +74,7 @@ theorem EtcdServer.apply.wp_proof
     (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG)) :
     EtcdServer.apply.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM b es ents ms f0 ep cs rac st a at0 hne hfrom hok
-  wp_start as ⟨#Hsrv, #Hes, #Hents, Hst, Hbe, Happ, Hcs⟩
+  wp_start as ⟨#Hsrv, #Hes, #Hents, Hst, Hbe, Happ, Hcs, Hlr⟩
   ihave #Hsrv0 := Hsrv
   iunfold isServer at Hsrv
   icases Hsrv with ⟨#Hsci, ⟨%sv, #Hfl⟩, #Hat⟩
@@ -83,7 +83,7 @@ theorem EtcdServer.apply.wp_proof
   icases Hsci' with ⟨#Hcif, #Hci, #Hinv⟩
   iunfold srvFieldsAt at Hfl
   icases Hfl with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, #Hua, #Happlier, #Hhook, #Hls, #Hlok, #Hfc, #Hals,
-    #Hcl, #Hq⟩
+    #Hcl, #Hq, #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave %Hesl := ownSlice_len _ _ _ $$ Hes
@@ -116,11 +116,11 @@ theorem EtcdServer.apply.wp_proof
       "cnt" ∷ i_ptr ↦ j ∗ "iv" ∷ ivp ↦ ivv ∗ "shouldStop" ∷ shouldStop_ptr ↦ sb ∗
       "appliedi" ∷ appliedi_ptr ↦ ai ∗ "appliedt" ∷ appliedt_ptr ↦ at' ∗
       "Hst" ∷ applyThread γ st' ∗ "Hbe" ∷ applyBackend γ ci b ∗ "Happ" ∷ ciApplying ci a' t' ∗
-      "Hcs" ∷ epConfStateAddr ep ↦ csl ∗
+      "Hcs" ∷ epConfStateAddr ep ↦ csl ∗ "Hlr" ∷ srvLgReader s ∗
       "Hphi" ∷ (∀ (appliedt appliedi : w64) (shouldStop : Bool),
         (∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
           applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
-          epConfStateAddr ep ↦ csl ∗
+          epConfStateAddr ep ↦ csl ∗ srvLgReader s ∗
           ⌜(ms.getLast?).map EntryModel.index = some appliedi ∧
             (ms.getLast?).map EntryModel.term = some appliedt ∧
             loopOk γ st' appliedi ∧
@@ -133,7 +133,7 @@ theorem EtcdServer.apply.wp_proof
           else max (uint.Z (ciEff γ st.k)) (uint.Z f0 - 1 + sint.Z j))⌝ ∗
       "%Hlast" ∷ ⌜∀ m : EntryModel, 0 < sint.nat j → ms[sint.nat j - 1]? = some m →
         m.index = ai ∧ m.term = at'⌝ : IProp GF)
-    $$ [cnt iv shouldStop appliedi appliedt Hst Hbe Happ Hcs HΦ]
+    $$ [cnt iv shouldStop appliedi appliedt Hst Hbe Happ Hcs Hlr HΦ]
   · iexists (W64 0), st, a, at0, cs, false, (W64 0), (W64 0), (W64 0)
     simp only [named]
     iframe
@@ -168,7 +168,7 @@ theorem EtcdServer.apply.wp_proof
     ihave #Hrpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
     · iPkgInit
     wp_apply_core (wp_ci_get hCI γ ci b st' Hstj.1) $$ [Hst Hbe]
-      [cnt iv shouldStop appliedi appliedt Happ Hcs Hphi e]
+      [cnt iv shouldStop appliedi appliedt Happ Hcs Hlr Hphi e]
     · iframe Hcipkg Hci Hinv Hst Hbe
     iintro ⟨Hst, Hbe⟩
     obtain ⟨hlp, hlpp, hlpe, hlc⟩ := stLoaded_facts γ st'
@@ -230,14 +230,14 @@ theorem EtcdServer.apply.wp_proof
         simp only [uint.Z] at h1 h2 ⊢
         rw [BitVec.toNat_add]; simp; omega
       have hj1 : sint.Z (j + W64 1) = sint.Z j + 1 := by word
-      rcases hmtyp with h0 | h1
+      rcases hmtyp with h0 | ⟨h1, hcc⟩
       · -- a normal entry
         simp only [h0, decide_true]
         (try wp_auto)
-        wp_apply (hAEN s γ ci TM b e m (stLoaded γ st') true) $$ [Hst Hbe Happ]
-          as ⟨Hbe, Hpost⟩
+        wp_apply (hAEN s γ ci TM b e m (stLoaded γ st') true) $$ [Hst Hbe Happ Hlr]
+          as ⟨Hbe, Hlr, Hpost⟩
         · rw [ite_eq_left rfl]
-          iframe Hsrv0 He Hst Hbe Happ
+          iframe Hsrv0 He Hst Hbe Happ Hlr
           ipureintro
           refine ⟨hlp ▸ hpend', ?_⟩
           rw [hlpp, hlc]
@@ -288,7 +288,7 @@ theorem EtcdServer.apply.wp_proof
         iunfold entryAt at He2
         icases He2 with ⟨%Hnn, %pt, %pi, %pty, %d, #Ht, #Hpt, #Hi, #Hpi, #Hty, #Hpty, #Hd, #Hds⟩
         (try wp_auto)
-        wp_apply (hMU.1 cc_ptr _ d m.data DFrac.discard) $$ [cc] as ⟨⟨%v', %cid, Hcc, #Hcid⟩, -⟩
+        wp_apply (hMU.1 cc_ptr _ d m.data DFrac.discard hcc) $$ [cc] as ⟨⟨%v', %cid, Hcc, #Hcid⟩, -⟩
         · iframe cc Hds
         (try wp_auto)
         have hpre : (stLoaded γ st').pending = false ∧ m.index = (stLoaded γ st').p + 1 ∧
@@ -436,13 +436,14 @@ theorem EtcdServer.apply.wp_proof
       wp_apply hGTy $$ [He] as -
       · iframe He
       (try wp_auto)
-      rcases hmtyp with h0 | h1
+      rcases hmtyp with h0 | ⟨h1, hcc⟩
       · -- a normal entry
         (try simp only [h0, decide_true])
         (try wp_auto)
-        wp_apply (hAEN s γ ci TM b e m (stLoaded γ st') false) $$ [Hst Hbe] as ⟨Hbe, Hst⟩
+        wp_apply (hAEN s γ ci TM b e m (stLoaded γ st') false) $$ [Hst Hbe Hlr]
+          as ⟨Hbe, Hlr, Hst⟩
         · simp only [Bool.false_eq_true, ↓reduceIte]
-          iframe Hsrv0 He Hst Hbe
+          iframe Hsrv0 He Hst Hbe Hlr
           ipureintro; exact ⟨hpend'', trivial⟩
         (try simp only [Bool.false_eq_true, ↓reduceIte])
         (try wp_auto)
@@ -472,7 +473,7 @@ theorem EtcdServer.apply.wp_proof
         iunfold entryAt at He2
         icases He2 with ⟨%Hnn, %pt, %pi, %pty, %d, #Ht, #Hpt, #Hi, #Hpi, #Hty, #Hpty, #Hd, #Hds⟩
         (try wp_auto)
-        wp_apply (hMU.1 cc_ptr _ d m.data DFrac.discard) $$ [cc] as ⟨⟨%v', %cid, Hcc, #Hcid⟩, -⟩
+        wp_apply (hMU.1 cc_ptr _ d m.data DFrac.discard hcc) $$ [cc] as ⟨⟨%v', %cid, Hcc, #Hcid⟩, -⟩
         · iframe cc Hds
         (try wp_auto)
         wp_apply (hACC s cc_ptr ep v' csl false ci sv.ua (batchLockInv γ TM)

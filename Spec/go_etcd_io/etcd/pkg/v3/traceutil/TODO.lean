@@ -1,5 +1,5 @@
 /-
-`traceutil.TODO`: the trust boundary (`pkg/v3/traceutil` is names-only). Lean-first.
+`traceutil.TODO` (`trace.go`). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -21,11 +21,11 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `traceutil.TODO()` returns a trace (an empty one, used where no trace is wanted). -/
+/-- `traceutil.TODO()` returns a trace, not nil (an empty one, used where no trace is wanted). -/
 abbrev traceutil.TODO.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil }}
     (App (Val (@! traceutil.TODO)) (Val #()))
-  {{ (t : Loc), RET #t; True }}
+  {{ (t : Loc), RET #t; ⌜t ≠ null⌝ }}
 
 end spec
 

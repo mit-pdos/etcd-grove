@@ -170,7 +170,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
       isplitl []
       · iexact Hnil
       iexact Hkv
-    ipureintro; exact Hne
+    ipureintro; exact ⟨Hne, Htrnn⟩
   -- `item := lease.LeaseItem{Key: string(key)}`; `leaseID := tw.s.le.GetLease(item)`
   wp_apply (wp_bytes_to_string key k DFrac.discard) $$ [$Hkey] as -
   (try wp_auto)

@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF) (hG := hG)) :
     mvcc.store.Write.spec (GF := GF) (hG := hG) := by
   intro s γ trace P Pre Q f
-  wp_start as ⟨#Hs, Hrd, Htok, #HhookC, Hpre, #Htriple⟩
+  wp_start as ⟨#Hs, Hrd, Htok, %Htrnn, #HhookC, Hpre, #Htriple⟩
   ihave #Hs0 : mvcc.isStore s γ $$ []
   · iexact Hs
   iunfold mvcc.isStore at Hs
@@ -94,7 +94,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   · iunfold mvcc.changesAre
     iapply BigSepL.bigSepL_nil_intro
     iempintro
-  ipureintro; exact Hne
+  ipureintro; exact ⟨Hne, Htrnn⟩
 
 end proof
 
