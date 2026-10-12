@@ -1,0 +1,6 @@
+# Names only: the errors bbolt returns (the backend compares with ErrBucketNotFound).
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

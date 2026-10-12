@@ -1,8 +1,9 @@
 /-
 Package initialization instances for etcd's consistent index (`server/v3/etcdserver/cindex`)
-and the packages it imports: `storage/schema` (partly translated: its `cindex.go`),
-`storage/backend` and `client/pkg/v3/verify` (names and types only). The standard-library
-ones (`sync`, `sync/atomic`, `encoding/binary`) are Perennial's.
+and the packages it imports: `storage/schema` (partly translated: its `cindex.go`). The
+backend's and `client/pkg/v3/verify`'s are in `storage/backend/Base.lean` (2026-10-12: moved
+there when the backend got bodies). The standard-library ones (`sync`, `sync/atomic`,
+`encoding/binary`) are Perennial's.
 
 As in `Cache/Base.lean`, the package facts are assumptions about package initialization,
 not proved from `initialize'` (schema's initializer runs the axiomatized initializers of
@@ -18,6 +19,7 @@ public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.sync
 public import Perennial.Proof.sync.atomic
 public import Perennial.Proof.encoding.binary
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
 
 @[expose] public section
 
@@ -35,26 +37,6 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-namespace go_etcd_io.etcd.server.v3.storage.backend
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.storage.backend
-
-namespace go_etcd_io.etcd.client.pkg.v3.verify
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.verify :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.verify :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.client.pkg.v3.verify
 
 namespace go_etcd_io.etcd.server.v3.storage.schema
 

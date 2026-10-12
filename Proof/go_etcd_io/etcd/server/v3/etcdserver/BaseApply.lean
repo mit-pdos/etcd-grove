@@ -2,7 +2,7 @@
 Package initialization instances for the packages the apply thread's translation
 (`server/v3/etcdserver`, `EtcdCache/Code/go_etcd_io/etcd/server/v3/etcdserver.lean`) reaches,
 beyond those of `Cache/Base.lean` (protobuf, `etcdserverpb`, ...), `Server/Base.lean`
-(`cindex`, `schema`, `backend`, `verify`) and mvcc's `Base.lean` (`storage/mvcc`, with the
+(`cindex`, `schema`; `backend`, `verify`, bbolt in `storage/backend/Base.lean`) and mvcc's `Base.lean` (`storage/mvcc`, with the
 facts of its initializer the KV core's proofs use, `pkg/v3/traceutil`, `server/v3/lease`,
 `pkg/v3/schedule`, prometheus; 2026-10-10: the three were here too, as `True`, until the
 mvcc translation got bodies and `storage/mvcc`'s instance needed prometheus's). Generated
@@ -76,15 +76,6 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_opentelemet
   build_get_is_pkg_init_wf
 
 end go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
-
-namespace go_etcd_io.bbolt
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.bbolt :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.bbolt :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.bbolt
 
 namespace go_etcd_io.etcd.client.pkg.v3.transport
 
