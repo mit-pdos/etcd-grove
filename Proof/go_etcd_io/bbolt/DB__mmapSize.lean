@@ -1,6 +1,7 @@
 module
 public import Spec.go_etcd_io.bbolt.DB__mmapSize
 public import Perennial.Proof.errors
+public import Proof.go_etcd_io.bbolt.ErrShape
 public import Proof.go_etcd_io.bbolt.Words
 
 @[expose] public section
@@ -97,13 +98,13 @@ theorem DB.mmapSize.wp_proof : DB.mmapSize.spec (GF := GF) (hG := hG) := by
         exact Hn.2.2 (15 + j) (by omega) (by omega))]
     rw [Hnone]
     wp_if_destruct
-    · wp_apply errors.wp_New as %e _
+    · wp_apply wp_New_ptr as %e ⟨%He, -⟩
       ispecialize HΦ $$ %(W64 0) %(GoInterface.ok e)
       iapply HΦ
       iframe
       ipureintro
       rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
-      intro h; cases h
+      exact ⟨fun h => (by cases h), He⟩
     · try wp_auto
       have HS : 2 ^ 30 < sint.Z size := Hn.2.2 30 (by omega) (by omega)
       have HM : sint.Z size ≤ 281474976710655 := by word

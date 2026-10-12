@@ -33,7 +33,8 @@ abbrev DB.fileSize.spec : Prop :=
   {{ (sz : w64) (err : GoInterface), RET (PairV #sz #err);
       structFieldRef DB go!"file" dbl ↦{dq} f ∗ structFieldRef DB go!"pageSize" dbl ↦{dqs} ps ∗
       fileBytes fd bs ∗
-      ⌜err = interface.nil → sz = W64 bs.length ∧ 2 * uint.Z ps ≤ bs.length⌝ }}
+      ⌜(err = interface.nil → sz = W64 bs.length ∧ 2 * uint.Z ps ≤ bs.length) ∧
+        (err = interface.nil ∨ IsNewErr err)⌝ }}
 
 end spec
 

@@ -27,7 +27,8 @@ abbrev unix.Mmap.spec : Prop :=
     (App (App (App (App (App (Val #(functions _root_.Perennial.golang_org.x.sys.unix.Mmap [])) (Val #fd)) (Val #(W64 0))) (Val #n)) (Val #(W64 1))) (Val #flags))
   {{ (b : GoSlice) (err : GoInterface), RET (PairV #b #err);
       fileBytes fd bs ∗
-      ((⌜err ≠ interface.nil⌝ ∗ fileMap fd none) ∨
+      ((⌜err ≠ interface.nil ∧ ∃ (e : w64), err = interface.mkOk _root_.Perennial.syscall.Errno.ty #e⌝ ∗
+        fileMap fd none) ∨
        (⌜err = interface.nil ∧ b.len = n ∧ b.cap = n ∧ b.ptr.locCar ≠ 0⌝ ∗
         fileMap fd (some (b.ptr, sint.nat n)) ∗
         mapRange (some (b.ptr, sint.nat n)) bs 0 (sint.nat n))) }}

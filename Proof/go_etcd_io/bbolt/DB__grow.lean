@@ -64,7 +64,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     iframe
     ipureintro; exact ⟨Or.inl rfl, fun h => by cases h⟩
   | nil =>
-    obtain ⟨Hfs1, Hfs2⟩ := Hfs rfl
+    obtain ⟨Hfs1, Hfs2⟩ := Hfs.1 rfl
     subst Hfs1
     try wp_auto
     wp_if_destruct

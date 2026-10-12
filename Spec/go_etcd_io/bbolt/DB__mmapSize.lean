@@ -42,7 +42,7 @@ abbrev DB.mmapSize.spec : Prop :=
   {{ (r : w64) (err : GoInterface), RET (PairV #r #err); structFieldRef DB go!"pageSize" dbl ↦{dq} ps ∗
       ⌜match mmapSizeOf (sint.Z size) (sint.Z ps) with
        | some s => err = interface.nil ∧ sint.Z r = s
-       | none => err ≠ interface.nil⌝ }}
+       | none => err ≠ interface.nil ∧ IsNewErr err⌝ }}
 
 end spec
 

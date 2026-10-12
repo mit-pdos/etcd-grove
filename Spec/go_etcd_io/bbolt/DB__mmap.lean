@@ -3,6 +3,7 @@ public import Proof.go_etcd_io.bbolt.DBPred
 public import Spec.go_etcd_io.bbolt.DB__mmapSize
 public import Proof.os.FileInfoAlias
 public import Proof.runtime.GOOS
+public import Proof.go_etcd_io.bbolt.ErrShape
 public import Spec.go_etcd_io.bbolt.getDiscardLogger
 public import Spec.go_etcd_io.bbolt.internal.common.Meta__Validate
 
@@ -79,13 +80,13 @@ abbrev DB.mmap.spec : Prop :=
       structFieldRef DB go!"Mlock" dbl ↦□ false ∗ structFieldRef DB go!"rwtx" dbl ↦{dq} rw ∗
       structFieldRef DB go!"MmapFlags" dbl ↦{dq} mf ∗ fileBytes fd bs ∗
       sync.ownRWMutex (structFieldRef DB go!"mmaplock" dbl) (mmapTok γ) ∗
-      ((⌜err ≠ interface.nil⌝ ∗ WR ∗
+      ((⌜err ≠ interface.nil ∧ errWF err⌝ ∗ WR ∗
           (⌜M = ∅⌝ -∗ WR' -∗
             structFieldRef DB go!"data" dbl ↦ dp ∗ mapRange m bs 0 n ∗ K) ∗
           structFieldRef DB go!"dataref" dbl ↦ dr ∗ structFieldRef DB go!"datasz" dbl ↦ ds ∗
           structFieldRef DB go!"meta0" dbl ↦ m0 ∗ structFieldRef DB go!"meta1" dbl ↦ m1 ∗
           fileMap fd m) ∨
-       (⌜err ≠ interface.nil⌝ ∗ K ∗ ∃ (dp' : Loc) (ds' : w64) (m0' m1' : Loc)
+       (⌜err ≠ interface.nil ∧ errWF err⌝ ∗ K ∗ ∃ (dp' : Loc) (ds' : w64) (m0' m1' : Loc)
           (m' : Option (Loc × Nat)) (n' : Nat),
           structFieldRef DB go!"dataref" dbl ↦ slice.nil ∗ structFieldRef DB go!"data" dbl ↦ dp' ∗
           structFieldRef DB go!"datasz" dbl ↦ ds' ∗

@@ -2,6 +2,7 @@ module
 public import Spec.go_etcd_io.bbolt.DB__fileSize
 public import Spec.os.File__Stat
 public import Spec.io.fs.FileInfo__Size
+public import Proof.go_etcd_io.bbolt.ErrShape
 
 @[expose] public section
 
@@ -40,11 +41,11 @@ theorem DB.fileSize.wp_proof (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
       isplitr
       · ipureintro; rfl
       iintro %sl ⟨Hsl, -⟩
-      wp_apply fmt.wp_Errorf $$ [$Hsl] as %e2 _
+      wp_apply wp_Errorf_ptr _ _ _ $$ [$Hsl] as %e2 %He2
       try wp_auto
       ispecialize HΦ $$ %(W64 0) %(GoInterface.ok e2)
       iapply HΦ; iframe
-      ipureintro; intro h; cases h
+      ipureintro; exact ⟨fun h => (by cases h), Or.inr He2⟩
   · subst Herr
     try wp_auto
     wp_apply hSize fi bs.length $$ [Hfi]
@@ -56,17 +57,16 @@ theorem DB.fileSize.wp_proof (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
       isplitr
       · ipureintro; rfl
       iintro %sl ⟨Hsl, -⟩
-      wp_apply fmt.wp_Errorf $$ [$Hsl] as %e2 _
+      wp_apply wp_Errorf_ptr _ _ _ $$ [$Hsl] as %e2 %He2
       try wp_auto
       ispecialize HΦ $$ %(W64 0) %(GoInterface.ok e2)
       iapply HΦ; iframe
-      ipureintro; intro h; cases h
+      ipureintro; exact ⟨fun h => (by cases h), Or.inr He2⟩
     · try wp_auto
       ispecialize HΦ $$ %(W64 bs.length) %GoInterface.nil
       iapply HΦ; iframe
-      ipureintro; intro _
-      refine ⟨rfl, ?_⟩
-      word
+      ipureintro
+      exact ⟨fun _ => ⟨rfl, by word⟩, Or.inl rfl⟩
 
 end proof
 

@@ -123,6 +123,16 @@ theorem writer_not_covered_above (σ : DBState) (v0 v1 : internal.common.Meta)
   have hspan := span_of_pageAt σ.bs σ.ps id pg hps16 hin.1.symm
   omega
 
+/-- The writer's high-water mark is above its root, which is no meta page. -/
+theorem writer_hwm_ge2 (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 v1)
+    (w : Reader) (hw : σ.wr = some w) : 2 ≤ w.hwm := by
+  have hro := writer_readerOK σ v0 v1 h w hw
+  have hmv := (h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2 w hw).2
+  match hro.1 with
+  | .page _ pg hlt hpg _ _ =>
+    have := (hmv.2 w.root (covers_self w.pages w.root pg hpg)).1
+    omega
+
 end alloc
 
 end bbolt

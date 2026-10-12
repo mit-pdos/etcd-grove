@@ -1,6 +1,7 @@
 module
 public import Proof.go_etcd_io.bbolt.Init
 public import Proof.os.FileModel
+public import Proof.go_etcd_io.bbolt.ErrShape
 
 @[expose] public section
 
@@ -34,7 +35,7 @@ abbrev mmap.spec : Prop :=
     (App (App (Val #(functions mmap [])) (Val #dbl)) (Val #sz))
   {{ (err : GoInterface), RET #err;
       structFieldRef DB go!"file" dbl ↦{dq} f ∗ structFieldRef DB go!"MmapFlags" dbl ↦{dq} fl ∗ fileBytes fd bs ∗
-      ((⌜err ≠ interface.nil⌝ ∗ structFieldRef DB go!"dataref" dbl ↦ dr ∗ structFieldRef DB go!"data" dbl ↦ dp ∗
+      ((⌜err ≠ interface.nil ∧ errWF err⌝ ∗ structFieldRef DB go!"dataref" dbl ↦ dr ∗ structFieldRef DB go!"data" dbl ↦ dp ∗
           structFieldRef DB go!"datasz" dbl ↦ ds ∗
           (fileMap fd none ∨ ∃ (p : Loc), fileMap fd (some (p, sint.nat sz)) ∗
             mapRange (some (p, sint.nat sz)) bs 0 (sint.nat sz))) ∨

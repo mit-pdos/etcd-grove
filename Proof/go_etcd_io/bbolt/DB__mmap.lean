@@ -8,6 +8,7 @@ public import Spec.go_etcd_io.bbolt.DB__page
 public import Spec.go_etcd_io.bbolt.internal.common.Page__Meta
 public import Spec.go_etcd_io.bbolt.DefaultLogger__Errorf
 public import Proof.go_etcd_io.bbolt.PageView
+public import Proof.go_etcd_io.bbolt.MmapSize
 
 @[expose] public section
 
@@ -53,34 +54,6 @@ theorem mmapTok_full_none (γ : GName) (M : GMap Nat Reader) :
   have h2 : (1 + q).val ≤ (1 : Qp).val := h1
   rw [Qp.val_add, Qp.val_one] at h2
   grind
-
-/-- `mmapSizeOf` maps at least what it is asked to, and something. -/
-theorem mmapSizeOf_ge (size ps s : Int) (h0 : 0 ≤ size) (hps : 0 < ps)
-    (h : mmapSizeOf size ps = some s) : size ≤ s ∧ 0 < s := by
-  unfold mmapSizeOf at h
-  split at h
-  · rename_i i hi
-    injection h with h; subst h
-    have := List.find?_some hi
-    simp only [decide_eq_true_eq] at this
-    exact ⟨this, Int.pow_pos (by decide)⟩
-  · rename_i hnone
-    have h30 : ¬ size ≤ 2 ^ (15 + 15) := by
-      have := List.find?_eq_none.1 hnone 15 (List.mem_range.2 (by decide))
-      simpa using this
-    split at h
-    · cases h
-    · rename_i hmax
-      injection h with h; subst h
-      try dsimp only
-      generalize hs1 : (if size % 1073741824 > 0 then size + 1073741824 - size % 1073741824
-        else size) = s1
-      have hs1ge : size ≤ s1 := by rw [← hs1]; split <;> omega
-      have hlt := Int.lt_ediv_add_one_mul_self s1 hps
-      generalize (s1 / ps + 1) * ps = q at hlt ⊢
-      constructor
-      · rw [Int.le_min]; refine ⟨?_, by omega⟩; split <;> omega
-      · rw [Int.lt_min]; refine ⟨?_, by decide⟩; split <;> omega
 
 /-- A meta inside a region's bytes, lent out as one. -/
 theorem meta_acc (p : Loc) (q : DFrac) (bs : List w8) (off : Nat) (h : off + 64 ≤ bs.length)
@@ -168,9 +141,9 @@ theorem DB.mmap.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     · ipureintro; rfl
     ileft
     iframe
-    ipureintro; intro h; cases h
+    ipureintro; exact ⟨fun h => (by cases h), errWF_newErr _ (Hfs.2.resolve_left (fun h => by cases h))⟩
   | nil =>
-    obtain ⟨Hfs1, Hfs2⟩ := Hfs rfl
+    obtain ⟨Hfs1, Hfs2⟩ := Hfs.1 rfl
     subst Hfs1
     try wp_auto
     have Hbz : sint.Z (W64 (bs.length : Int)) = bs.length := by word
@@ -191,7 +164,7 @@ theorem DB.mmap.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     | none =>
       rw [hms] at Hr
       cases err2 with
-      | nil => exact absurd rfl Hr
+      | nil => exact absurd rfl Hr.1
       | ok ei =>
         try wp_auto
         wp_apply wp_slice_literal
@@ -210,7 +183,7 @@ theorem DB.mmap.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         · ipureintro; rfl
         ileft
         iframe
-        ipureintro; intro h; cases h
+        ipureintro; exact ⟨fun h => (by cases h), errWF_newErr _ Hr.2⟩
     | some s =>
       rw [hms] at Hr
       obtain ⟨rfl, Hrs⟩ := Hr
@@ -255,7 +228,7 @@ theorem DB.mmap.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       icases Hres with (⟨%Herr, Hdrf, Hdata, Hds, Hmapx⟩ | ⟨%b, %Hb, Hdrf, Hdata, Hds, Hmap, Hrange⟩)
       · -- `mmap` failed: the mapping is gone (or lost)
         cases err3 with
-        | nil => exact absurd rfl Herr
+        | nil => exact absurd rfl Herr.1
         | ok ei =>
           try wp_auto
           wp_apply wp_slice_literal
@@ -274,7 +247,7 @@ theorem DB.mmap.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           · ipureintro; rfl
           iright; ileft
           isplitr
-          · ipureintro; intro h; cases h
+          · ipureintro; exact ⟨fun h => (by cases h), Herr.2⟩
           iframe
           icases Hmapx with (Hmapn | ⟨%p, Hmapp, Hrp⟩)
           · iexists none, 0
@@ -414,7 +387,7 @@ theorem DB.mmap.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
             · ipureintro; rfl
             iright; ileft
             isplitr
-            · ipureintro; intro h; cases h
+            · ipureintro; exact ⟨fun h => (by cases h), errWF_newErr _ (He0.2.resolve_left (fun h => by cases h))⟩
             iframe
             iexists 0
             simp only [mapRange]

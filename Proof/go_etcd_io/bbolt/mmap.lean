@@ -4,6 +4,7 @@ public import Spec.os.File__Fd
 public import Spec.golang_org.x.sys.unix.Mmap
 public import Spec.golang_org.x.sys.unix.Madvise
 public import Perennial.Proof.fmt
+public import Proof.go_etcd_io.bbolt.ErrShape
 public import Proof.go_etcd_io.bbolt.internal.common.Bytes
 
 @[expose] public section
@@ -40,7 +41,7 @@ theorem mmap.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
   · iframe
   icases Hres with (⟨%Herr, Hmap⟩ | ⟨%Hok, Hmap, Hrange⟩)
   · cases err with
-    | nil => exact absurd rfl Herr
+    | nil => exact absurd rfl Herr.1
     | ok ei =>
       try wp_auto
       ispecialize HΦ $$ %(GoInterface.ok ei)
@@ -48,7 +49,9 @@ theorem mmap.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
       iframe
       ileft
       iframe
-      ipureintro; exact Herr
+      ipureintro
+      obtain ⟨Hne, e, He⟩ := Herr
+      exact ⟨Hne, He ▸ errWF_errno e⟩
   · obtain ⟨rfl, Hbl, Hbc, Hbp⟩ := Hok
     try wp_auto
     wp_apply hMadvise b (W64 1) as %err2 %Herr2
@@ -87,7 +90,7 @@ theorem mmap.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
         isplitr
         · ipureintro; rfl
         iintro %sl ⟨Hsl, -⟩
-        wp_apply fmt.wp_Errorf $$ [$Hsl] as %e2 _
+        wp_apply wp_Errorf_ptr _ _ _ $$ [$Hsl] as %e2 %He2
         try wp_auto
         ispecialize HΦ $$ %(GoInterface.ok e2)
         iapply HΦ
@@ -95,7 +98,7 @@ theorem mmap.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
         ileft
         iframe
         isplitr
-        · ipureintro; intro h; cases h
+        · ipureintro; exact ⟨fun h => (by cases h), errWF_newErr _ He2⟩
         · iright; iexists b.ptr; iframe
 
 end proof
