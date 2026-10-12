@@ -9,6 +9,11 @@ public import Proof.k8s_io.utils.third_party.forked.golang.btree.Fractional
 
 @[expose] public section
 
+-- `#print axioms` prints the axioms by their full names: shortening each name to the
+-- shortest unambiguous one in this environment took most of this module's build (25s of
+-- 31s for the server's `txn/Results.lean`).
+set_option pp.fullNames true
+
 #print axioms Perennial.EtcdGrove.btree.wp_empty
 #print axioms Perennial.EtcdGrove.btree.items.wp_find
 #print axioms Perennial.EtcdGrove.btree.node.wp_iterate

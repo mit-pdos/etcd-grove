@@ -92,14 +92,6 @@ def ConfChangeV2.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] ConfChangeV2.ty
 
-axiom SnapshotMetadata.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom Snapshot.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom Message.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom HardState.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom ConfState.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom ConfChangeSingle.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -123,15 +115,18 @@ axiom MsgProp [FfiSyntax] [GoGlobalContext] : val
 
 axiom MsgApp [FfiSyntax] [GoGlobalContext] : val
 
-axiom MsgAppResp [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def MsgAppResp [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 4)
 
 axiom MsgVote [FfiSyntax] [GoGlobalContext] : val
 
 axiom MsgVoteResp [FfiSyntax] [GoGlobalContext] : val
 
-axiom MsgSnap [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def MsgSnap [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 7)
 
-axiom MsgHeartbeat [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def MsgHeartbeat [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 8)
 
 axiom MsgHeartbeatResp [FfiSyntax] [GoGlobalContext] : val
 
@@ -188,7 +183,8 @@ axiom ConfChangeAddLearnerNode [FfiSyntax] [GoGlobalContext] : val
 @[reducible] noncomputable def EntryType_EntryConfChangeV2 [FfiSyntax] [GoGlobalContext] : val :=
   #(W32 2)
 
-axiom MessageType_MsgHup [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def MessageType_MsgHup [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 0)
 
 axiom MessageType_MsgBeat [FfiSyntax] [GoGlobalContext] : val
 
@@ -196,15 +192,18 @@ axiom MessageType_MsgProp [FfiSyntax] [GoGlobalContext] : val
 
 axiom MessageType_MsgApp [FfiSyntax] [GoGlobalContext] : val
 
-axiom MessageType_MsgAppResp [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def MessageType_MsgAppResp [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 4)
 
 axiom MessageType_MsgVote [FfiSyntax] [GoGlobalContext] : val
 
 axiom MessageType_MsgVoteResp [FfiSyntax] [GoGlobalContext] : val
 
-axiom MessageType_MsgSnap [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def MessageType_MsgSnap [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 7)
 
-axiom MessageType_MsgHeartbeat [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def MessageType_MsgHeartbeat [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 8)
 
 axiom MessageType_MsgHeartbeatResp [FfiSyntax] [GoGlobalContext] : val
 
@@ -405,6 +404,111 @@ noncomputable def Entry.GetData.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))))
 
+/-- go: raft.pb.go:457:28 -/
+noncomputable def SnapshotMetadata.GetIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType SnapshotMetadata.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType SnapshotMetadata.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SnapshotMetadata.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType SnapshotMetadata.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef SnapshotMetadata.ty go!"Index"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SnapshotMetadata.ty)))) (Var "x")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.uint64)))) (Val UntypedNil))))) (Val #false)))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef SnapshotMetadata.ty go!"Index"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SnapshotMetadata.ty)))) (Var "x"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- go: raft.pb.go:516:20 -/
+noncomputable def Snapshot.GetMetadata.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Snapshot.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType SnapshotMetadata.ty)))) (Val UntypedNil)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Snapshot.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Snapshot.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Snapshot.ty)))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SnapshotMetadata.ty)))) (App (Val (GoInstruction (StructFieldRef Snapshot.ty go!"Metadata"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Snapshot.ty)))) (Var "x")))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- go: raft.pb.go:595:19 -/
+noncomputable def Message.GetType.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Message.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val MessageType_MsgHup))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Message.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Message.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Message.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType MessageType.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType MessageType.ty)))) (App (Val (GoInstruction (StructFieldRef Message.ty go!"Type"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Message.ty)))) (Var "x")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType MessageType.ty)))) (Val UntypedNil))))) (Val #false)))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad MessageType.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType MessageType.ty)))) (App (Val (GoInstruction (StructFieldRef Message.ty go!"Type"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Message.ty)))) (Var "x"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- go: raft.pb.go:602:19 -/
+noncomputable def Message.GetTo.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Message.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Message.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Message.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Message.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef Message.ty go!"To"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Message.ty)))) (Var "x")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.uint64)))) (Val UntypedNil))))) (Val #false)))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef Message.ty go!"To"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Message.ty)))) (Var "x"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- go: raft.pb.go:732:21 -/
+noncomputable def HardState.GetTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType HardState.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType HardState.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType HardState.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType HardState.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef HardState.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType HardState.ty)))) (Var "x")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.uint64)))) (Val UntypedNil))))) (Val #false)))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef HardState.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType HardState.ty)))) (Var "x"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- go: raft.pb.go:739:21 -/
+noncomputable def HardState.GetVote.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType HardState.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType HardState.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType HardState.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType HardState.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef HardState.ty go!"Vote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType HardState.ty)))) (Var "x")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.uint64)))) (Val UntypedNil))))) (Val #false)))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef HardState.ty go!"Vote"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType HardState.ty)))) (Var "x"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- go: raft.pb.go:746:21 -/
+noncomputable def HardState.GetCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType HardState.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType HardState.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType HardState.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType HardState.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef HardState.ty go!"Commit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType HardState.ty)))) (Var "x")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.uint64)))) (Val UntypedNil))))) (Val #false)))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef HardState.ty go!"Commit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType HardState.ty)))) (Var "x"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
 /-- go: raft.pb.go:902:22 -/
 noncomputable def ConfChange.GetId.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
@@ -593,57 +697,323 @@ attribute [instance] Entry.TypeAssumptions.type_repr
   Entry.TypeAssumptions.ptr_GetTerm_unfold
   Entry.TypeAssumptions.ptr_GetType_unfold
 
-axiom SnapshotMetadata : Type
-axiom SnapshotMetadata.zero_val : ZeroVal SnapshotMetadata
-attribute [instance] SnapshotMetadata.zero_val
+structure SnapshotMetadata [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  ConfState' : Loc
+  Index' : Loc
+  Term' : Loc
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance SnapshotMetadata.zero_val [FfiSyntax] : ZeroVal SnapshotMetadata :=
+  ⟨SnapshotMetadata.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def SnapshotMetadata.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"ConfState" (go.GoType.PointerType ConfState.ty)),
+(go.field_decl.FieldDecl go!"Index" (go.GoType.PointerType go.uint64)),
+(go.field_decl.FieldDecl go!"Term" (go.GoType.PointerType go.uint64)),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def SnapshotMetadata.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  SnapshotMetadata.fieldsUnsealed
+
+instance equals_unfold_SnapshotMetadata [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold SnapshotMetadata.fields SnapshotMetadata.fieldsUnsealed :=
+  ⟨by unfold SnapshotMetadata.fields; rfl⟩
+
+@[reducible] def SnapshotMetadata.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType SnapshotMetadata.fields)
 
 class SnapshotMetadata.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SnapshotMetadata.underlying SnapshotMetadata
   underlying : go.UnderlyingDirectedEq SnapshotMetadata.ty SnapshotMetadata.underlying
-  isUnderlying : go.IsUnderlying SnapshotMetadata.underlying SnapshotMetadata.underlying
+  get_state : ∀ (x : SnapshotMetadata), go.IsGoStepPureDetTagged under (StructFieldGet SnapshotMetadata.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : SnapshotMetadata) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet SnapshotMetadata.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : SnapshotMetadata)))
+  get_ConfState : ∀ (x : SnapshotMetadata), go.IsGoStepPureDetTagged under (StructFieldGet SnapshotMetadata.underlying go!"ConfState") #x (Val #(x.ConfState'))
+  set_ConfState : ∀ (x : SnapshotMetadata) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet SnapshotMetadata.underlying go!"ConfState") (PairV #x #y) (Val #(({ x with ConfState' := y } : SnapshotMetadata)))
+  get_Index : ∀ (x : SnapshotMetadata), go.IsGoStepPureDetTagged under (StructFieldGet SnapshotMetadata.underlying go!"Index") #x (Val #(x.Index'))
+  set_Index : ∀ (x : SnapshotMetadata) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet SnapshotMetadata.underlying go!"Index") (PairV #x #y) (Val #(({ x with Index' := y } : SnapshotMetadata)))
+  get_Term : ∀ (x : SnapshotMetadata), go.IsGoStepPureDetTagged under (StructFieldGet SnapshotMetadata.underlying go!"Term") #x (Val #(x.Term'))
+  set_Term : ∀ (x : SnapshotMetadata) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet SnapshotMetadata.underlying go!"Term") (PairV #x #y) (Val #(({ x with Term' := y } : SnapshotMetadata)))
+  get_unknownFields : ∀ (x : SnapshotMetadata), go.IsGoStepPureDetTagged under (StructFieldGet SnapshotMetadata.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : SnapshotMetadata) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet SnapshotMetadata.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : SnapshotMetadata)))
+  get_sizeCache : ∀ (x : SnapshotMetadata), go.IsGoStepPureDetTagged under (StructFieldGet SnapshotMetadata.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : SnapshotMetadata) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet SnapshotMetadata.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : SnapshotMetadata)))
+  ptr_GetIndex_unfold : MethodUnfold (go.GoType.PointerType SnapshotMetadata.ty) go!"GetIndex" SnapshotMetadata.GetIndex.impl
 
 attribute [instance] SnapshotMetadata.TypeAssumptions.type_repr
   SnapshotMetadata.TypeAssumptions.underlying
-  SnapshotMetadata.TypeAssumptions.isUnderlying
+  SnapshotMetadata.TypeAssumptions.get_state
+  SnapshotMetadata.TypeAssumptions.set_state
+  SnapshotMetadata.TypeAssumptions.get_ConfState
+  SnapshotMetadata.TypeAssumptions.set_ConfState
+  SnapshotMetadata.TypeAssumptions.get_Index
+  SnapshotMetadata.TypeAssumptions.set_Index
+  SnapshotMetadata.TypeAssumptions.get_Term
+  SnapshotMetadata.TypeAssumptions.set_Term
+  SnapshotMetadata.TypeAssumptions.get_unknownFields
+  SnapshotMetadata.TypeAssumptions.set_unknownFields
+  SnapshotMetadata.TypeAssumptions.get_sizeCache
+  SnapshotMetadata.TypeAssumptions.set_sizeCache
+  SnapshotMetadata.TypeAssumptions.ptr_GetIndex_unfold
 
-axiom Snapshot : Type
-axiom Snapshot.zero_val : ZeroVal Snapshot
-attribute [instance] Snapshot.zero_val
+structure Snapshot [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Data' : GoSlice
+  Metadata' : Loc
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance Snapshot.zero_val [FfiSyntax] : ZeroVal Snapshot :=
+  ⟨Snapshot.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def Snapshot.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Data" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"Metadata" (go.GoType.PointerType SnapshotMetadata.ty)),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def Snapshot.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  Snapshot.fieldsUnsealed
+
+instance equals_unfold_Snapshot [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold Snapshot.fields Snapshot.fieldsUnsealed :=
+  ⟨by unfold Snapshot.fields; rfl⟩
+
+@[reducible] def Snapshot.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType Snapshot.fields)
 
 class Snapshot.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Snapshot.underlying Snapshot
   underlying : go.UnderlyingDirectedEq Snapshot.ty Snapshot.underlying
-  isUnderlying : go.IsUnderlying Snapshot.underlying Snapshot.underlying
+  get_state : ∀ (x : Snapshot), go.IsGoStepPureDetTagged under (StructFieldGet Snapshot.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : Snapshot) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet Snapshot.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Snapshot)))
+  get_Data : ∀ (x : Snapshot), go.IsGoStepPureDetTagged under (StructFieldGet Snapshot.underlying go!"Data") #x (Val #(x.Data'))
+  set_Data : ∀ (x : Snapshot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Snapshot.underlying go!"Data") (PairV #x #y) (Val #(({ x with Data' := y } : Snapshot)))
+  get_Metadata : ∀ (x : Snapshot), go.IsGoStepPureDetTagged under (StructFieldGet Snapshot.underlying go!"Metadata") #x (Val #(x.Metadata'))
+  set_Metadata : ∀ (x : Snapshot) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Snapshot.underlying go!"Metadata") (PairV #x #y) (Val #(({ x with Metadata' := y } : Snapshot)))
+  get_unknownFields : ∀ (x : Snapshot), go.IsGoStepPureDetTagged under (StructFieldGet Snapshot.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : Snapshot) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Snapshot.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Snapshot)))
+  get_sizeCache : ∀ (x : Snapshot), go.IsGoStepPureDetTagged under (StructFieldGet Snapshot.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : Snapshot) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Snapshot.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Snapshot)))
+  ptr_GetMetadata_unfold : MethodUnfold (go.GoType.PointerType Snapshot.ty) go!"GetMetadata" Snapshot.GetMetadata.impl
 
 attribute [instance] Snapshot.TypeAssumptions.type_repr
   Snapshot.TypeAssumptions.underlying
-  Snapshot.TypeAssumptions.isUnderlying
+  Snapshot.TypeAssumptions.get_state
+  Snapshot.TypeAssumptions.set_state
+  Snapshot.TypeAssumptions.get_Data
+  Snapshot.TypeAssumptions.set_Data
+  Snapshot.TypeAssumptions.get_Metadata
+  Snapshot.TypeAssumptions.set_Metadata
+  Snapshot.TypeAssumptions.get_unknownFields
+  Snapshot.TypeAssumptions.set_unknownFields
+  Snapshot.TypeAssumptions.get_sizeCache
+  Snapshot.TypeAssumptions.set_sizeCache
+  Snapshot.TypeAssumptions.ptr_GetMetadata_unfold
 
-axiom Message : Type
-axiom Message.zero_val : ZeroVal Message
-attribute [instance] Message.zero_val
+structure Message [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Type' : Loc
+  To' : Loc
+  From' : Loc
+  Term' : Loc
+  LogTerm' : Loc
+  Index' : Loc
+  Entries' : GoSlice
+  Commit' : Loc
+  Vote' : Loc
+  Snapshot' : Loc
+  Reject' : Loc
+  RejectHint' : Loc
+  Context' : GoSlice
+  Responses' : GoSlice
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance Message.zero_val [FfiSyntax] : ZeroVal Message :=
+  ⟨Message.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def Message.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Type" (go.GoType.PointerType MessageType.ty)),
+(go.field_decl.FieldDecl go!"To" (go.GoType.PointerType go.uint64)),
+(go.field_decl.FieldDecl go!"From" (go.GoType.PointerType go.uint64)),
+(go.field_decl.FieldDecl go!"Term" (go.GoType.PointerType go.uint64)),
+(go.field_decl.FieldDecl go!"LogTerm" (go.GoType.PointerType go.uint64)),
+(go.field_decl.FieldDecl go!"Index" (go.GoType.PointerType go.uint64)),
+(go.field_decl.FieldDecl go!"Entries" (go.GoType.SliceType (go.GoType.PointerType Entry.ty))),
+(go.field_decl.FieldDecl go!"Commit" (go.GoType.PointerType go.uint64)),
+(go.field_decl.FieldDecl go!"Vote" (go.GoType.PointerType go.uint64)),
+(go.field_decl.FieldDecl go!"Snapshot" (go.GoType.PointerType Snapshot.ty)),
+(go.field_decl.FieldDecl go!"Reject" (go.GoType.PointerType go.bool)),
+(go.field_decl.FieldDecl go!"RejectHint" (go.GoType.PointerType go.uint64)),
+(go.field_decl.FieldDecl go!"Context" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"Responses" (go.GoType.SliceType (go.GoType.PointerType Message.ty))),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def Message.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  Message.fieldsUnsealed
+
+instance equals_unfold_Message [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold Message.fields Message.fieldsUnsealed :=
+  ⟨by unfold Message.fields; rfl⟩
+
+@[reducible] def Message.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType Message.fields)
 
 class Message.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Message.underlying Message
   underlying : go.UnderlyingDirectedEq Message.ty Message.underlying
-  isUnderlying : go.IsUnderlying Message.underlying Message.underlying
+  get_state : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : Message) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : Message)))
+  get_Type : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"Type") #x (Val #(x.Type'))
+  set_Type : ∀ (x : Message) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : Message)))
+  get_To : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"To") #x (Val #(x.To'))
+  set_To : ∀ (x : Message) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"To") (PairV #x #y) (Val #(({ x with To' := y } : Message)))
+  get_From : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"From") #x (Val #(x.From'))
+  set_From : ∀ (x : Message) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"From") (PairV #x #y) (Val #(({ x with From' := y } : Message)))
+  get_Term : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"Term") #x (Val #(x.Term'))
+  set_Term : ∀ (x : Message) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"Term") (PairV #x #y) (Val #(({ x with Term' := y } : Message)))
+  get_LogTerm : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"LogTerm") #x (Val #(x.LogTerm'))
+  set_LogTerm : ∀ (x : Message) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"LogTerm") (PairV #x #y) (Val #(({ x with LogTerm' := y } : Message)))
+  get_Index : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"Index") #x (Val #(x.Index'))
+  set_Index : ∀ (x : Message) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"Index") (PairV #x #y) (Val #(({ x with Index' := y } : Message)))
+  get_Entries : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"Entries") #x (Val #(x.Entries'))
+  set_Entries : ∀ (x : Message) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"Entries") (PairV #x #y) (Val #(({ x with Entries' := y } : Message)))
+  get_Commit : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"Commit") #x (Val #(x.Commit'))
+  set_Commit : ∀ (x : Message) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"Commit") (PairV #x #y) (Val #(({ x with Commit' := y } : Message)))
+  get_Vote : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"Vote") #x (Val #(x.Vote'))
+  set_Vote : ∀ (x : Message) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"Vote") (PairV #x #y) (Val #(({ x with Vote' := y } : Message)))
+  get_Snapshot : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"Snapshot") #x (Val #(x.Snapshot'))
+  set_Snapshot : ∀ (x : Message) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"Snapshot") (PairV #x #y) (Val #(({ x with Snapshot' := y } : Message)))
+  get_Reject : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"Reject") #x (Val #(x.Reject'))
+  set_Reject : ∀ (x : Message) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"Reject") (PairV #x #y) (Val #(({ x with Reject' := y } : Message)))
+  get_RejectHint : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"RejectHint") #x (Val #(x.RejectHint'))
+  set_RejectHint : ∀ (x : Message) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"RejectHint") (PairV #x #y) (Val #(({ x with RejectHint' := y } : Message)))
+  get_Context : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"Context") #x (Val #(x.Context'))
+  set_Context : ∀ (x : Message) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"Context") (PairV #x #y) (Val #(({ x with Context' := y } : Message)))
+  get_Responses : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"Responses") #x (Val #(x.Responses'))
+  set_Responses : ∀ (x : Message) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"Responses") (PairV #x #y) (Val #(({ x with Responses' := y } : Message)))
+  get_unknownFields : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : Message) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : Message)))
+  get_sizeCache : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : Message) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Message)))
+  ptr_GetTo_unfold : MethodUnfold (go.GoType.PointerType Message.ty) go!"GetTo" Message.GetTo.impl
+  ptr_GetType_unfold : MethodUnfold (go.GoType.PointerType Message.ty) go!"GetType" Message.GetType.impl
 
 attribute [instance] Message.TypeAssumptions.type_repr
   Message.TypeAssumptions.underlying
-  Message.TypeAssumptions.isUnderlying
+  Message.TypeAssumptions.get_state
+  Message.TypeAssumptions.set_state
+  Message.TypeAssumptions.get_Type
+  Message.TypeAssumptions.set_Type
+  Message.TypeAssumptions.get_To
+  Message.TypeAssumptions.set_To
+  Message.TypeAssumptions.get_From
+  Message.TypeAssumptions.set_From
+  Message.TypeAssumptions.get_Term
+  Message.TypeAssumptions.set_Term
+  Message.TypeAssumptions.get_LogTerm
+  Message.TypeAssumptions.set_LogTerm
+  Message.TypeAssumptions.get_Index
+  Message.TypeAssumptions.set_Index
+  Message.TypeAssumptions.get_Entries
+  Message.TypeAssumptions.set_Entries
+  Message.TypeAssumptions.get_Commit
+  Message.TypeAssumptions.set_Commit
+  Message.TypeAssumptions.get_Vote
+  Message.TypeAssumptions.set_Vote
+  Message.TypeAssumptions.get_Snapshot
+  Message.TypeAssumptions.set_Snapshot
+  Message.TypeAssumptions.get_Reject
+  Message.TypeAssumptions.set_Reject
+  Message.TypeAssumptions.get_RejectHint
+  Message.TypeAssumptions.set_RejectHint
+  Message.TypeAssumptions.get_Context
+  Message.TypeAssumptions.set_Context
+  Message.TypeAssumptions.get_Responses
+  Message.TypeAssumptions.set_Responses
+  Message.TypeAssumptions.get_unknownFields
+  Message.TypeAssumptions.set_unknownFields
+  Message.TypeAssumptions.get_sizeCache
+  Message.TypeAssumptions.set_sizeCache
+  Message.TypeAssumptions.ptr_GetTo_unfold
+  Message.TypeAssumptions.ptr_GetType_unfold
 
-axiom HardState : Type
-axiom HardState.zero_val : ZeroVal HardState
-attribute [instance] HardState.zero_val
+structure HardState [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Term' : Loc
+  Vote' : Loc
+  Commit' : Loc
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance HardState.zero_val [FfiSyntax] : ZeroVal HardState :=
+  ⟨HardState.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def HardState.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Term" (go.GoType.PointerType go.uint64)),
+(go.field_decl.FieldDecl go!"Vote" (go.GoType.PointerType go.uint64)),
+(go.field_decl.FieldDecl go!"Commit" (go.GoType.PointerType go.uint64)),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def HardState.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  HardState.fieldsUnsealed
+
+instance equals_unfold_HardState [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold HardState.fields HardState.fieldsUnsealed :=
+  ⟨by unfold HardState.fields; rfl⟩
+
+@[reducible] def HardState.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType HardState.fields)
 
 class HardState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HardState.underlying HardState
   underlying : go.UnderlyingDirectedEq HardState.ty HardState.underlying
-  isUnderlying : go.IsUnderlying HardState.underlying HardState.underlying
+  get_state : ∀ (x : HardState), go.IsGoStepPureDetTagged under (StructFieldGet HardState.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : HardState) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet HardState.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : HardState)))
+  get_Term : ∀ (x : HardState), go.IsGoStepPureDetTagged under (StructFieldGet HardState.underlying go!"Term") #x (Val #(x.Term'))
+  set_Term : ∀ (x : HardState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet HardState.underlying go!"Term") (PairV #x #y) (Val #(({ x with Term' := y } : HardState)))
+  get_Vote : ∀ (x : HardState), go.IsGoStepPureDetTagged under (StructFieldGet HardState.underlying go!"Vote") #x (Val #(x.Vote'))
+  set_Vote : ∀ (x : HardState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet HardState.underlying go!"Vote") (PairV #x #y) (Val #(({ x with Vote' := y } : HardState)))
+  get_Commit : ∀ (x : HardState), go.IsGoStepPureDetTagged under (StructFieldGet HardState.underlying go!"Commit") #x (Val #(x.Commit'))
+  set_Commit : ∀ (x : HardState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet HardState.underlying go!"Commit") (PairV #x #y) (Val #(({ x with Commit' := y } : HardState)))
+  get_unknownFields : ∀ (x : HardState), go.IsGoStepPureDetTagged under (StructFieldGet HardState.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : HardState) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet HardState.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : HardState)))
+  get_sizeCache : ∀ (x : HardState), go.IsGoStepPureDetTagged under (StructFieldGet HardState.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : HardState) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet HardState.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : HardState)))
+  ptr_GetCommit_unfold : MethodUnfold (go.GoType.PointerType HardState.ty) go!"GetCommit" HardState.GetCommit.impl
+  ptr_GetTerm_unfold : MethodUnfold (go.GoType.PointerType HardState.ty) go!"GetTerm" HardState.GetTerm.impl
+  ptr_GetVote_unfold : MethodUnfold (go.GoType.PointerType HardState.ty) go!"GetVote" HardState.GetVote.impl
 
 attribute [instance] HardState.TypeAssumptions.type_repr
   HardState.TypeAssumptions.underlying
-  HardState.TypeAssumptions.isUnderlying
+  HardState.TypeAssumptions.get_state
+  HardState.TypeAssumptions.set_state
+  HardState.TypeAssumptions.get_Term
+  HardState.TypeAssumptions.set_Term
+  HardState.TypeAssumptions.get_Vote
+  HardState.TypeAssumptions.set_Vote
+  HardState.TypeAssumptions.get_Commit
+  HardState.TypeAssumptions.set_Commit
+  HardState.TypeAssumptions.get_unknownFields
+  HardState.TypeAssumptions.set_unknownFields
+  HardState.TypeAssumptions.get_sizeCache
+  HardState.TypeAssumptions.set_sizeCache
+  HardState.TypeAssumptions.ptr_GetCommit_unfold
+  HardState.TypeAssumptions.ptr_GetTerm_unfold
+  HardState.TypeAssumptions.ptr_GetVote_unfold
 
 axiom ConfState : Type
 axiom ConfState.zero_val : ZeroVal ConfState

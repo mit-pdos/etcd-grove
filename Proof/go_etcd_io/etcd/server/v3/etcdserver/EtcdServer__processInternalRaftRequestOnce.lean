@@ -374,8 +374,8 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
   · iframe #
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨⟨%hist, #Hhist⟩, ⟨%pfc, #Hpfc, #Hpfcs⟩, ⟨%ppc, #Hppc, #Hppcs⟩, -,
-    ⟨#HTMR, #HRTL, #HStop, -⟩⟩
+  icases Hinit with ⟨-, ⟨⟨%hist, #Hhist⟩, ⟨%pfc, #Hpfc, #Hpfcs⟩, ⟨%ppc, #Hppc, #Hppcs⟩, -,
+    ⟨#HTMR, #HRTL, #HStop, -⟩⟩⟩
   iunfold errVarLeaf at HTMR HRTL HStop
   icases HTMR with ⟨%eTMR, #HeTMR, %-⟩
   icases HRTL with ⟨%eRTL, #HeRTL, %-⟩

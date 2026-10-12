@@ -77,12 +77,14 @@ axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
 axiom types.ID.String.wp_proof
 axiom verify.Verify.wp_proof
+axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof
 axiom zap.Int'.wp_proof
 axiom zap.Int32.wp_proof
 axiom zap.Int64.wp_proof
 axiom zap.Logger.Debug.wp_proof
 axiom zap.Logger.Error.wp_proof
+axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Info.wp_proof
 axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.Warn.wp_proof

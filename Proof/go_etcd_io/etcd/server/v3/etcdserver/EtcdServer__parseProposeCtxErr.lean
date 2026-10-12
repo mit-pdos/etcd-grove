@@ -96,7 +96,7 @@ theorem EtcdServer.parseProposeCtxErr.wp_proof
   icases HDeadlineExceeded with ⟨%eD, #HeD, %-⟩
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨-, -, -, -, ⟨-, -, -, #HCan, #HTO, #HTOLF, #HTOCL, -⟩⟩
+  icases Hinit with ⟨-, ⟨-, -, -, -, ⟨-, -, -, #HCan, #HTO, #HTOLF, #HTOCL, -⟩⟩⟩
   iunfold errVarLeaf at HCan HTO HTOLF HTOCL
   icases HCan with ⟨%eCan, #HeCan, %-⟩
   icases HTO with ⟨%eTO, #HeTO, %-⟩

@@ -1,9 +1,16 @@
 # The apply thread's handling of the consistent index (server.go), with bodies: the
 # backend's post-lock hook, the apply loop and the entry applier, and the types they
-# use; and the request path's KV entry points (v3_server.go: Range, Put, DeleteRange,
+# use; the raft wrapper (raft.go): the Ready loop and its helpers; and the request path's
+# KV entry points (v3_server.go: Range, Put, DeleteRange,
 # Txn, the proposal and its wait, the serialized read) with what they call. The rest of
 # the package is names only.
 translate = ["!*", "EtcdServer.Logger", "EtcdServer.isLeader", "EtcdServer.MemberID", "EtcdServer.Lead", "EtcdServer.getLead", "EtcdServer.getTxPostLockInsideApplyHook", "EtcdServer.apply", "EtcdServer.applyEntryNormal", "EtcdServer.applyEntries", "EtcdServer.setAppliedIndex", "EtcdServer.setTerm", "EtcdServer", "raftNode", "raftNodeConfig", "etcdProgress", "toApply",
+  # the raft wrapper (raft.go): the Ready loop and its helpers
+  "raftReadyHandler", "raftNode.tick", "raftNode.getLatestTickTs", "raftNode.start",
+  "updateCommittedIndex", "raftNode.processMessages", "raftNode.apply", "raftNode.stop",
+  "raftNode.onStop", "raftNode.advanceTicks", "raftNode.ReadState", "maxInFlightMsgSnap",
+  "raftNode.Ready", "raftNode.Advance", "raftNode.Tick", "raftNode.Stop",
+  "raftNodeConfig.Ready", "raftNodeConfig.Advance", "raftNodeConfig.Tick", "raftNodeConfig.Stop",
   # the request path (v3_server.go, tracing.go, util.go, interface.go, server.go): the KV
   # entry points, the proposal and its wait, the serialized read, and what they call
   "EtcdServer.Range", "EtcdServer.Put", "EtcdServer.DeleteRange", "EtcdServer.Txn",

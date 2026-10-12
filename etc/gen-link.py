@@ -189,6 +189,12 @@ for mroot in (mode[4] if cache else [""]):
                 rel = os.path.relpath(os.path.join(dp, f), spec_dir)[:-len(".lean")]
                 *pkg, stem = rel.split(os.sep)
                 qual = pkg[-1] + "_" + stem
+                if qual in where and where[qual] == ".".join(pkg + [stem]) and prefix[qual] == "":
+                    # the same Go function in a later root (the server's `EtcdDeps`: etcd's
+                    # raft v3.7, whose Go path is the verified raft's; no module imports both):
+                    # the later root's spec is the one this mode links
+                    prefix[qual] = prefix[stem] = mroot + "."
+                    continue
                 assert qual not in where, f"two specs for {qual}"
                 where[qual] = ".".join(pkg + [stem])
                 prefix[qual] = mroot + "." if mroot else ""

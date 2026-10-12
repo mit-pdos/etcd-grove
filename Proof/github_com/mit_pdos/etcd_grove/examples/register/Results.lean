@@ -36,6 +36,11 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Adequacy
 
 @[expose] public section
 
+-- `#print axioms` prints the axioms by their full names: shortening each name to the
+-- shortest unambiguous one in this environment took most of this module's build (25s of
+-- 31s for the server's `txn/Results.lean`).
+set_option pp.fullNames true
+
 set_option linter.unusedSectionVars false
 
 noncomputable section
