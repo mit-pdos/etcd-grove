@@ -116,7 +116,9 @@ theorem DB.beginTx.wp_proof (hinit : Tx.init.spec (GF := GF) (hG := hG))
       · ipureintro; exact ⟨Hdata', Hps', Hdsz, Hm0, Hm1, Hopen, Hfile', Hfl', Hrw, Hdbl⟩
       isplitr
       · ipureintro; exact dbOK_addReader σ v0 v1 Hok hsize
-      ihave Hplain : dbPlain dbl (DFrac.own 1) dv $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize Mlock path openFile file dataref datasz meta0 meta1 opened rwtx stats batch ops readOnly]
+      isplitr
+      · ipureintro; exact Hdr
+      ihave Hplain : dbPlain dbl (DFrac.own 1) dv $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize path openFile file dataref datasz meta0 meta1 opened rwtx stats batch ops readOnly]
       · simp only [dbPlain]
         rw [Hopen]
         iframe

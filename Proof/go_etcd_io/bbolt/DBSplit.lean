@@ -34,7 +34,6 @@ def dbPlain (dbl : Loc) (dq : DFrac) (dv : DB) : IProp GF :=
     "MaxBatchDelay" ∷ structFieldRef DB go!"MaxBatchDelay" dbl ↦{dq} dv.MaxBatchDelay' ∗
     "AllocSize" ∷ structFieldRef DB go!"AllocSize" dbl ↦{dq} dv.AllocSize' ∗
     "MaxSize" ∷ structFieldRef DB go!"MaxSize" dbl ↦{dq} dv.MaxSize' ∗
-    "Mlock" ∷ structFieldRef DB go!"Mlock" dbl ↦{dq} dv.Mlock' ∗
     "path" ∷ structFieldRef DB go!"path" dbl ↦{dq} dv.path' ∗
     "openFile" ∷ structFieldRef DB go!"openFile" dbl ↦{dq} dv.openFile' ∗
     "file" ∷ structFieldRef DB go!"file" dbl ↦{dq} dv.file' ∗
@@ -68,6 +67,7 @@ theorem DB_split (dbl : Loc) (dq : DFrac) (dv : DB) :
       structFieldRef DB go!"pageSize" dbl ↦{dq} dv.pageSize' ∗
       structFieldRef DB go!"logger" dbl ↦{dq} dv.logger' ∗
       structFieldRef DB go!"freelist" dbl ↦{dq} dv.freelist' ∗
+      structFieldRef DB go!"Mlock" dbl ↦{dq} dv.Mlock' ∗
       dbSync dbl dq dv ∗ dbPlain dbl dq dv ∗ ⌜dbl ≠ null⌝ := by
   rw [typedPointsto_unseal_eq]
   simp only [TypedPointsto.typedPointstoDef, dbSync, dbPlain]
@@ -76,7 +76,7 @@ theorem DB_split (dbl : Loc) (dq : DFrac) (dv : DB) :
     iNamed H
     iframe
     ipureintro; exact Hn
-  · iintro ⟨Hd, Hp, Hl, Hf, Hs, Hr, %Hn⟩
+  · iintro ⟨Hd, Hp, Hl, Hf, Hm, Hs, Hr, %Hn⟩
     iNamed Hs
     iNamed Hr
     iframe

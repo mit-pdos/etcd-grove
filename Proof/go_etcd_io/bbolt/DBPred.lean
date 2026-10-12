@@ -249,12 +249,14 @@ def ownDB (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DBState) : IP
       dv.opened' = true ∧ dv.file' = σ.file ∧ dv.freelist' = I.iface ∧ dv.rwtx' = σ.rwtx ∧
       dbl ≠ null⌝ ∗
     "%Hok" ∷ ⌜dbOK σ v0 v1⌝ ∗
+    "%Hdr" ∷ ⌜dv.dataref' = slice.mk σ.data (W64 σ.sz) (W64 σ.sz)⌝ ∗
     "#Hdl" ∷ (globalAddr discardLogger ↦□ dl : IProp GF) ∗
     "#Hdlok" ∷ defaultLoggerOK dl ∗
     "%Hlog" ∷ ⌜dv.logger' = interface.nil ∨
       dv.logger' = interface.mkOk (go.GoType.PointerType DefaultLogger.ty) #dl⌝ ∗
     "Hplain" ∷ dbPlain dbl (DFrac.own 1) dv ∗
     "#Hlogger" ∷ structFieldRef DB go!"logger" dbl ↦□ dv.logger' ∗
+    "#HMlock" ∷ structFieldRef DB go!"Mlock" dbl ↦□ false ∗
     "Hflf" ∷ structFieldRef DB go!"freelist" dbl ↦{DFrac.own (flfQ σ.rwtx)} dv.freelist' ∗
     "Hdata" ∷ structFieldRef DB go!"data" dbl ↦{DFrac.own σ.frem} σ.data ∗
     "#Hps" ∷ structFieldRef DB go!"pageSize" dbl ↦□ W64 σ.ps ∗
