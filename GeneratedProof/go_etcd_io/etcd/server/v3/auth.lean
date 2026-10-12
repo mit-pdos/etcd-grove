@@ -2,6 +2,9 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.context
+public import GeneratedProof.go_etcd_io.etcd.api.v3.authpb
+public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.auth
 
@@ -238,101 +241,6 @@ instance AuthenticateParamSimpleTokenPrefix_into_val_typed :
 end def_
 end AuthenticateParamSimpleTokenPrefix
 
-namespace AuthStore
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
-
-instance AuthStore_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.AuthStore :=
-  sorry -- axiomatized type
-
-instance AuthStore_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.AuthStore go_etcd_io.etcd.server.v3.auth.AuthStore.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end AuthStore
-
-namespace TokenProvider
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
-
-instance TokenProvider_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.TokenProvider :=
-  sorry -- axiomatized type
-
-instance TokenProvider_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.TokenProvider go_etcd_io.etcd.server.v3.auth.TokenProvider.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end TokenProvider
-
-namespace AuthBackend
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
-
-instance AuthBackend_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.AuthBackend :=
-  sorry -- axiomatized type
-
-instance AuthBackend_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.AuthBackend go_etcd_io.etcd.server.v3.auth.AuthBackend.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end AuthBackend
-
-namespace UnsafeAuthReader
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
-
-instance UnsafeAuthReader_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.UnsafeAuthReader :=
-  sorry -- axiomatized type
-
-instance UnsafeAuthReader_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.UnsafeAuthReader go_etcd_io.etcd.server.v3.auth.UnsafeAuthReader.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end UnsafeAuthReader
-
-namespace UnsafeAuthWriter
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
-
-instance UnsafeAuthWriter_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.UnsafeAuthWriter :=
-  sorry -- axiomatized type
-
-instance UnsafeAuthWriter_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.UnsafeAuthWriter go_etcd_io.etcd.server.v3.auth.UnsafeAuthWriter.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end UnsafeAuthWriter
-
 namespace authStore
 section def_
 
@@ -351,25 +259,6 @@ instance authStore_into_val_typed :
 
 end def_
 end authStore
-
-namespace permSlice
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.auth.Assumptions]
-
-instance permSlice_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.auth.permSlice :=
-  sorry -- axiomatized type
-
-instance permSlice_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.auth.permSlice go_etcd_io.etcd.server.v3.auth.permSlice.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end permSlice
 
 end go_etcd_io.etcd.server.v3.auth
 end
