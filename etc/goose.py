@@ -140,6 +140,8 @@ PROJECTS = [
             "go.etcd.io/etcd/server/v3/etcdserver/cindex",
             "go.etcd.io/etcd/server/v3/etcdserver",
             "go.etcd.io/etcd/server/v3/storage/schema",
+            # with bodies (pkg/v3/adt.toml): the interval tree of mvcc's watcher groups
+            "go.etcd.io/etcd/pkg/v3/adt",
             # with bodies (etcdserver/txn.toml): the server's Range, Put, DeleteRange, Txn over
             # the mvcc core
             "go.etcd.io/etcd/server/v3/etcdserver/txn",
@@ -176,6 +178,13 @@ PROJECTS = [
             # bbolt's page-id helpers, with bodies (bbolt/internal/common.toml)
             "go.etcd.io/bbolt/internal/common",
             "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc",
+            # names only: what mvcc's watchStream.Watch calls (SpanFromContext, Span.End)
+            "go.opentelemetry.io/otel/trace",
+            # types only: the interfaces trace.Span embeds and the types of its methods' parameters
+            # (so that Goose translates Span as an interface)
+            "go.opentelemetry.io/otel/trace/embedded",
+            "go.opentelemetry.io/otel/codes",
+            "go.opentelemetry.io/otel/attribute",
             "google.golang.org/protobuf/proto",
             "google.golang.org/protobuf/reflect/protoreflect",
             "go.uber.org/zap",

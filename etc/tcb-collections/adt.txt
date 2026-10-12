@@ -1,0 +1,8 @@
+# The interval tree (etcd's pkg/v3/adt): every linked result of
+# Proof/go_etcd_io/etcd/pkg/v3/adt/Link.lean (the comparisons; the tree's contract is pending).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/adt.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/go_etcd_io/etcd/pkg/v3/adt/Link\.lean$

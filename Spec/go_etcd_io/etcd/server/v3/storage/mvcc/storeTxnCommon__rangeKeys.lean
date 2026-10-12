@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 
 @[expose] public section
 
@@ -28,12 +28,13 @@ bucket holds for them. What it uses of the `storeTxnCommon` at `txc`: its fields
 `m` holding `log`'s, with the reader's own resource `R` (given back); of the index: what the
 transaction knows of it (`idxKnows`: a committed log's certificate for a read transaction,
 the writer's handle for a write transaction, with its pending revision; given back), and
-`curRev` a revision of `log`. -/
+`curRev` a revision of `log`. The context is an `isContext` or `context.TODO()`'s (`rangeCtx`,
+`TxnRange.lean`), which is never done: at it, the result is not `nil` (no context error). -/
 abbrev mvcc.storeTxnCommon.rangeKeys.spec : Prop :=
   ∀ (txc s trace ti : Loc) (rt : GoInterfaceOk) (dq : DFrac) (m : mvcc.Bucket) (R : IProp GF)
     (γ : mvcc.StoreNames) (kn : mvcc.IdxKnow) (log : mvcc.Log) (rev : w64)
-    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key endk : GoSlice) (k e : GoString)
-    (ro : RangeOptions),
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool)
+    (key endk : GoSlice) (k e : GoString) (ro : RangeOptions),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗
       txc.[storeTxnCommon, go!"s"] ↦{dq} s ∗
@@ -43,10 +44,11 @@ abbrev mvcc.storeTxnCommon.rangeKeys.spec : Prop :=
       mvcc.idxKnows γ.idx kn ∗ ⌜kn.log = log⌝ ∗ ⌜log ≠ []⌝ ∗
       ⌜0 ≤ sint.Z rev ∧ sint.Z rev < log.length⌝ ∗
       s.[store, go!"kvindex"] ↦□ (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
-      mvcc.idxReader ti γ.idx ∗ context.isContext ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e }}
+      mvcc.idxReader ti γ.idx ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e }}
     (App (App (App (App (App (Val (txc @!! go.GoType.PointerType storeTxnCommon.ty @!!
       go!"rangeKeys")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #endk)) (Val #rev)) (Val #ro))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
+      ⌜todo = true → r ≠ null⌝ ∗
       txc.[storeTxnCommon, go!"s"] ↦{dq} s ∗
       txc.[storeTxnCommon, go!"tx"] ↦{dq} (GoInterface.ok rt : GoInterface) ∗
       txc.[storeTxnCommon, go!"trace"] ↦{dq} trace ∗

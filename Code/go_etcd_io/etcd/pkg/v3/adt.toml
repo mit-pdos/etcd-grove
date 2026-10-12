@@ -1,0 +1,24 @@
+# etcd's interval tree (interval_tree.go), with bodies: the red-black interval tree the
+# mvcc watchable store keeps its range watchers in, and the comparables of its
+# intervals. Left out: intervalTree.MaxHeight (floating point: math.Log2, math.Floor),
+# rbcolor.String and visitedInterval.String (fmt), intervalTree.visitLevel (debugging).
+translate = ["!*",
+  "black", "red",
+  "Interval.Compare",
+  "intervalNode.color", "intervalNode.height", "intervalNode.min", "intervalNode.successor",
+  "intervalNode.updateMax", "intervalNode.visit",
+  "NewIntervalTree",
+  "intervalTree.Delete", "intervalTree.deleteFixup", "intervalTree.createIntervalNode",
+  "intervalTree.Insert", "intervalTree.insertFixup", "intervalTree.rotateLeft",
+  "intervalTree.rotateRight", "intervalTree.replaceParent", "intervalTree.Len",
+  "intervalTree.Height", "intervalTree.Visit", "intervalTree.find", "intervalTree.Find",
+  "intervalTree.Intersects", "intervalTree.Contains", "intervalTree.Stab",
+  "intervalTree.Union",
+  "StringComparable.Compare", "NewStringInterval", "NewStringPoint",
+  "StringAffineComparable.Compare", "NewStringAffineInterval", "NewStringAffinePoint",
+  "NewInt64Interval", "newInt64EmptyInterval", "NewInt64Point", "Int64Comparable.Compare",
+  "BytesAffineComparable.Compare", "NewBytesAffineInterval", "NewBytesAffinePoint"]
+imports = ["!*", "bytes", "fmt", "math", "strings"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

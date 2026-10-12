@@ -47,16 +47,11 @@ transaction (`TxnOp.txn`, recursively). An empty oneof (`Request == nil`) denote
 such requests). A range in a transaction is a `TxnOp.get` whatever its `Revision`: the model's
 get reads the transaction's state; a range at another revision is the specs' premise.
 
-**Responses** (`rangeResponseIs`, `putResponseIs`, `deleteRangeResponseIs`, `txnResponseIs`):
-the header (not nil) and its revision, and the fields the server sets, read-only; the key-values
-as `kvIs` (the server's own copy of the cache's `kvValAt`, without the cache's assumptions).
-`txnResponseIs resp rev ok ops rs` mirrors `TxnOpResult`: the `Responses` are, in order, the
-responses of the chosen branch's operations `ops` with results `rs` (`responseOpIs`): a range's
-key-values are its selection sorted and limited (`rangeKvsOk`), with its count; a put's and a
-delete's headers and previous key-values are any (`PrevKv` is outside `TxnOpResult`); a delete
-has its count; a nested transaction its own outcome and results, with a header of revision `0`
-(only the outer response's revision is set). A range answered header-only
-(`skipRangeExecution`) is not described here.
+**Responses** (`rangeResponseIs`, `putResponseIs`, `deleteRangeResponseIs`): the header (not
+nil) and its revision, and the fields the server sets, read-only; the key-values as `kvIs` (the
+server's own copy of the cache's `kvValAt`, without the cache's assumptions). A transaction's
+response (`txnResponseIs`, mirroring `TxnOpResult`) is in `InvTxn.lean` (unit 3: it names the
+server's range model, `RangeModel.lean`, which imports this file).
 -/
 module
 
@@ -188,7 +183,8 @@ instance deleteRangeRequestIs_persistent (d : Loc) (o : OpFull) :
 /-- The `*pb.Compare` `c` (not nil) denotes the comparison `cm`: the client's `compareAt`
 (the target, the operator, the key, the operand), with the range end as the server reads it
 (`rangeEndOf`). Comparisons with a target or an operator outside the protobuf's enumeration, or
-an operand of another target's type, denote nothing. -/
+an operand of another target's type, denote nothing; the operand's wrapper is not a typed `nil`
+(`compareKV` would read none: `tv != nil`; protobuf never decodes one). -/
 def compareIs (c : Loc) (cm : CmpModel) : IProp GF :=
   iprop(⌜c ≠ null⌝ ∗ ∃ (ksl esl : GoSlice) (e : GoString) (u : GoInterface),
     structFieldRef etcdserverpb.Compare go!"Result" c ↦□ cm.op.code ∗
@@ -196,7 +192,8 @@ def compareIs (c : Loc) (cm : CmpModel) : IProp GF :=
     structFieldRef etcdserverpb.Compare go!"Key" c ↦□ ksl ∗ ksl ↦*□ cm.key ∗
     structFieldRef etcdserverpb.Compare go!"RangeEnd" c ↦□ esl ∗ esl ↦*□ e ∗
     ⌜cm.rangeEnd = rangeEndOf esl e⌝ ∗
-    structFieldRef etcdserverpb.Compare go!"TargetUnion" c ↦□ u ∗ compareUnionAt u cm)
+    structFieldRef etcdserverpb.Compare go!"TargetUnion" c ↦□ u ∗ compareUnionAt u cm ∗
+    ⌜∀ (t : go.GoType) (w : Loc), u = interface.mkOk t #w → w ≠ null⌝)
 
 instance compareIs_persistent (c : Loc) (cm : CmpModel) :
     Persistent (compareIs (GF := GF) c cm) := by
@@ -353,93 +350,6 @@ def deleteRangeResponseIs (resp : Loc) (rev : w64) (n : Nat) (prevs : List EtcdK
 instance deleteRangeResponseIs_persistent (resp : Loc) (rev : w64) (n : Nat)
     (prevs : List EtcdKv) : Persistent (deleteRangeResponseIs (GF := GF) resp rev n prevs) := by
   unfold deleteRangeResponseIs; infer_instance
-
-mutual
-/-- **The `*pb.ResponseOp` `p` is the response of the operation `op` with result `res`**
-(read-only): not nil, its `Response` oneof the wrapper of the operation's kind, holding a
-non-nil response: a range's key-values are its selection sorted and limited as requested
-(`rangeKvsOk`), its count the result's; a put's response any (`PrevKv` is outside the model);
-a delete's count the result's; a nested transaction's outcome and results the result's,
-recursively (its fields as `txnRespFieldsIs`'s), with header revision `0`. -/
-def responseOpIs (p : Loc) : TxnOp → TxnOpResult → IProp GF
-  | .txn _ ts es, .txn ok rs => iprop(□ (⌜p ≠ null⌝ ∗ ∃ (w r : Loc),
-      structFieldRef etcdserverpb.ResponseOp go!"Response" p ↦□
-        (interface.mkOk (go.GoType.PointerType etcdserverpb.ResponseOp_ResponseTxn.ty) #w :
-          GoInterface) ∗
-      structFieldRef etcdserverpb.ResponseOp_ResponseTxn go!"ResponseTxn" w ↦□ r ∗
-      ⌜r ≠ null⌝ ∗ ∃ (h : Loc) (sl : GoSlice) (ps : List Loc),
-      structFieldRef etcdserverpb.TxnResponse go!"Header" r ↦□ h ∗ ⌜h ≠ null⌝ ∗
-      structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦□ (W64 0 : w64) ∗
-      structFieldRef etcdserverpb.TxnResponse go!"Succeeded" r ↦□ ok ∗
-      structFieldRef etcdserverpb.TxnResponse go!"Responses" r ↦□ sl ∗ sl ↦*□ ps ∗
-      match ok with
-      | true => responseOpsIs ps ts rs
-      | false => responseOpsIs ps es rs))
-  | op, res => iprop(□ (⌜p ≠ null⌝ ∗ ∃ (u : GoInterface) (w r : Loc),
-      structFieldRef etcdserverpb.ResponseOp go!"Response" p ↦□ u ∗
-      match op, res with
-      | .get o, .range sel n => iprop(
-          ⌜u = interface.mkOk (go.GoType.PointerType etcdserverpb.ResponseOp_ResponseRange.ty)
-            #w⌝ ∗
-          structFieldRef etcdserverpb.ResponseOp_ResponseRange go!"ResponseRange" w ↦□ r ∗
-          ∃ (rev : w64) (kvs : List EtcdKv) (more : Bool),
-            rangeResponseIs r rev kvs more (W64 (n : Int)) ∗ ⌜rangeKvsOk o sel kvs⌝)
-      | .put _ _ _, .put | .putKeep _ _, .put | .putIgnVal _ _, .put => iprop(
-          ⌜u = interface.mkOk (go.GoType.PointerType etcdserverpb.ResponseOp_ResponsePut.ty)
-            #w⌝ ∗
-          structFieldRef etcdserverpb.ResponseOp_ResponsePut go!"ResponsePut" w ↦□ r ∗
-          ∃ (rev : w64) (prev : Option EtcdKv), putResponseIs r rev prev)
-      | .delete _, .delete n => iprop(
-          ⌜u = interface.mkOk
-            (go.GoType.PointerType etcdserverpb.ResponseOp_ResponseDeleteRange.ty) #w⌝ ∗
-          structFieldRef etcdserverpb.ResponseOp_ResponseDeleteRange go!"ResponseDeleteRange" w
-            ↦□ r ∗
-          ∃ (rev : w64) (prevs : List EtcdKv), deleteRangeResponseIs r rev n prevs)
-      | _, _ => iprop(False)))
-
-/-- The `*pb.ResponseOp`s `ps` are, in order, the responses of `ops` with results `rs`. -/
-def responseOpsIs : List Loc → List TxnOp → List TxnOpResult → IProp GF
-  | [], [], [] => iprop(True)
-  | p :: ps, op :: ops, res :: rs => iprop(responseOpIs p op res ∗ responseOpsIs ps ops rs)
-  | _, _, _ => iprop(False)
-
-end
-
-/-- The fields of the `*pb.TxnResponse` `resp` (read-only): header revision `rev`,
-`Succeeded` is `ok`, and its `Responses` are those of the chosen branch's `ops` with results
-`rs`. -/
-def txnRespFieldsIs (resp : Loc) (rev : w64) (ok : Bool) (ops : List TxnOp)
-    (rs : List TxnOpResult) : IProp GF :=
-  iprop(∃ (h : Loc) (sl : GoSlice) (ps : List Loc),
-    structFieldRef etcdserverpb.TxnResponse go!"Header" resp ↦□ h ∗ ⌜h ≠ null⌝ ∗
-    structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦□ rev ∗
-    structFieldRef etcdserverpb.TxnResponse go!"Succeeded" resp ↦□ ok ∗
-    structFieldRef etcdserverpb.TxnResponse go!"Responses" resp ↦□ sl ∗ sl ↦*□ ps ∗
-    responseOpsIs ps ops rs)
-instance responseOpIs_persistent (p : Loc) (op : TxnOp) (res : TxnOpResult) :
-    Persistent (responseOpIs (GF := GF) p op res) := by
-  cases op <;> cases res <;> unfold responseOpIs <;> infer_instance
-
-instance responseOpsIs_persistent (ps : List Loc) (ops : List TxnOp) (rs : List TxnOpResult) :
-    Persistent (responseOpsIs (GF := GF) ps ops rs) := by
-  induction ops generalizing ps rs with
-  | nil => cases ps <;> cases rs <;> unfold responseOpsIs <;> infer_instance
-  | cons op ops ih => cases ps <;> cases rs <;> unfold responseOpsIs <;> infer_instance
-
-instance txnRespFieldsIs_persistent (resp : Loc) (rev : w64) (ok : Bool) (ops : List TxnOp)
-    (rs : List TxnOpResult) : Persistent (txnRespFieldsIs (GF := GF) resp rev ok ops rs) := by
-  unfold txnRespFieldsIs; infer_instance
-
-/-- **The `*pb.TxnResponse` `resp`** of the transaction `t` (not nil, read-only): header
-revision `rev`, `Succeeded` is `ok`, and its responses are those of the branch `ok` chooses
-with results `rs` (`TxnOpResult`, as `runTxn`'s). -/
-def txnResponseIs (resp : Loc) (rev : w64) (t : TxnModel) (ok : Bool) (rs : List TxnOpResult) :
-    IProp GF :=
-  iprop(⌜resp ≠ null⌝ ∗ txnRespFieldsIs resp rev ok (t.branch ok) rs)
-
-instance txnResponseIs_persistent (resp : Loc) (rev : w64) (t : TxnModel) (ok : Bool)
-    (rs : List TxnOpResult) : Persistent (txnResponseIs (GF := GF) resp rev t ok rs) := by
-  unfold txnResponseIs; infer_instance
 
 end defs
 

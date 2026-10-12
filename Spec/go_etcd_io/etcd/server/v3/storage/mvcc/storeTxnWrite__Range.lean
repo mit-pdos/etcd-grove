@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 
 @[expose] public section
 
@@ -26,16 +26,17 @@ changes. It is `rangeKeys` at the transaction's revision (`writeRev`: the pendin
 has a change, else the committed log's last) of the committed log with the pending revision
 appended (`ilog ++ [pend]`; with no change the empty revision changes nothing), read from the
 index by the writer and from the bucket through the batch transaction, which sees its own
-puts. -/
+puts. At `context.TODO()` (`todo`), no context error. -/
 abbrev mvcc.storeTxnWrite.Range.spec : Prop :=
   ∀ (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
-    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (key endk : GoSlice) (k e : GoString)
-    (ro : RangeOptions),
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool)
+    (key endk : GoSlice) (k e : GoString) (ro : RangeOptions),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.storeTxnWriteIs tw s γ ilog pend ∗ context.isContext ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e }}
+      mvcc.storeTxnWriteIs tw s γ ilog pend ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e }}
     (App (App (App (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"Range"))
       (Val #(GoInterface.ok ctx))) (Val #key)) (Val #endk)) (Val #ro))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
+      ⌜todo = true → r ≠ null⌝ ∗
       mvcc.storeTxnWriteIs tw s γ ilog pend ∗
       mvcc.rangeOutcome r err (ilog ++ [pend]) (W64 ((mvcc.writeRev ilog pend : Nat) : Int))
         (decide (endk = slice.nil)) k e ro }}

@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.storeTxnWrite.Range.wp_proof
     (hKeys : mvcc.storeTxnCommon.rangeKeys.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.Range.spec (GF := GF) (hG := hG) := by
-  intro tw s γ ilog pend ctx cd key endk k e ro
+  intro tw s γ ilog pend ctx cd todo key endk k e ro
   wp_start as ⟨Htw, #Hctx, #Hkey, #Hend⟩
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw
@@ -98,9 +98,9 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
         ((mvcc.pendPuts ilog pend).foldl (fun m p => GMap.insert p.1 p.2 m) (mvcc.bucketMap ilog))
         iprop(Locked (mvcc.pendPuts ilog pend) ∗ mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap ilog))
         γ (.writer ilog pend) (ilog ++ [pend]) (W64 ((mvcc.writeRev ilog pend : Nat) : Int))
-        ctx cd key endk k e ro)
+        ctx cd todo key endk k e ro)
       $$ [$Hs $Cs $Ctx $Ctrace $Hrdr $HR $Hkn $Hidx $Hti $Hctx $Hkey $Hend]
-      as %r %err ⟨Cs, Ctx, Ctrace, ⟨Hlocked, Hbv⟩, Hw, Hti, Hout⟩
+      as %r %err ⟨%Htodo, Cs, Ctx, Ctrace, ⟨Hlocked, Hbv⟩, Hw, Hti, Hout⟩
     · ipureintro
       refine ⟨?_, rfl, by simp, ?_⟩
       · rw [mvcc.bucketMap_append ilog pend Hne]; exact fun _ _ h => h
@@ -120,6 +120,8 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
       simp only [TypedPointsto.typedPointstoDef]
       iframe
     iapply HΦ
+    isplitl []
+    · ipureintro; exact Htodo
     iframe Hout
     iunfold mvcc.storeTxnWriteIs
     iexists trace, ti, bt, Locked, chs, ps, ntok
