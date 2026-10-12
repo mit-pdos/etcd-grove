@@ -21,6 +21,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.RangeLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.SoleWriter
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.SoleWriterKV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.HistoryLaws
 
 @[expose] public section
@@ -113,66 +114,8 @@ theorem put_soleWriter (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
             soleWriter γ (log ++ [[putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) ∗
             leaseOk γ.leases (putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter log))) ∗ Post ∗
             ⌜mvcc.stateAfter (log ++ [[putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) =
-              (applyTxnOp (W64 (log.length : Int)) (mvcc.stateAfter log) (putTxnOp o)).1⌝)) }} := by
-  wp_start_folded as ⟨#Hkv, Hrd, Hsw, #Hle, #Hp, #Hctx, #Hl, Hcs, #Hhook⟩
-  icases soleWriter_split γ log hlen $$ Hsw with ⟨Htok, Hsw⟩
-  iunfold soleWriterOpen at Hsw
-  icases Hsw with ⟨#Hc, Htoks⟩
-  iapply (wp_Put ctx cd lg le kv s γ p o (soleBudget log - 1) log P Pre Q Post f)
-    $$ [Hrd Htok Htoks Hcs]
-  · iframe # ∗
-    imodintro
-    iintro %ilog %Hpi
-    obtain ⟨Hpin, Hil⟩ := Hpi
-    rw [pinned_sole log ilog hlen Hpin]
-    iapply Hl
-    ipureintro; exact Hil
-  inext
-  iintro %resp %trace %err ⟨Hrd, Htoks, %Ht, Hout⟩
-  ihave Hsw : soleWriterOpen γ log $$ [Htoks]
-  · iunfold soleWriterOpen; iframe # ∗
-  iapply HΦ
-  iframe Hrd
-  isplitl []
-  · ipureintro; exact Ht
-  icases Hout with (⟨%Hn, #He, Htok, HPre⟩ | ⟨%ilog, %Hpi, HPost, Hout⟩)
-  · -- the lease not found
-    ileft
-    isplitl []
-    · ipureintro; exact Hn
-    iframe He HPre
-    have h := soleWriter_close (GF := GF) γ log [] hlen
-    simp only [mvcc.commitLog, ↓reduceIte] at h
-    iapply h
-    iframe Hsw Htok Hc
-  have hil := pinned_sole log ilog hlen Hpi.1
-  subst hil
-  icases Hout with (⟨%Hn, #He, Htok, -⟩ | ⟨%Herr, #Hresp, #Hc', #Hlok⟩)
-  · -- the previous key-value missing
-    iright; ileft
-    isplitl []
-    · ipureintro; exact Hn
-    iframe He HPost
-    have h := soleWriter_close (GF := GF) γ ilog [] hlen
-    simp only [mvcc.commitLog, ↓reduceIte] at h
-    iapply h
-    iframe Hsw Htok Hc
-  · -- the put committed
-    iright; iright
-    isplitl []
-    · ipureintro; exact Herr
-    iframe Hresp Hlok HPost
-    isplitl [Hsw]
-    · have hc : mvcc.commitLog ilog [putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))] =
-          ilog ++ [[putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))]] := by
-        unfold mvcc.commitLog; simp
-      rw [← hc]
-      iapply soleWriter_close γ ilog _ hlen $$ [Hsw]
-      rw [hc]
-      iframe Hsw Hc'
-      simp only [List.cons_ne_nil, ↓reduceIte]
-      itrivial
-    ipureintro; exact stateAfter_put ilog o
+              (applyTxnOp (W64 (log.length : Int)) (mvcc.stateAfter log) (putTxnOp o)).1⌝)) }} :=
+  put_soleWriter_of wp_Put ctx cd lg le kv s γ p o log P Pre Q Post f hlen
 
 /-- **`DeleteRange` at the sole writer of `log`** (fewer than `2 ^ 63` keys): the client's delete
 on `log`'s state committed (no revision if nothing was deleted), the sole writer at the
@@ -197,47 +140,8 @@ theorem deleteRange_soleWriter (ctx : GoInterfaceOk) (cd : context.ContextDesc (
             soleWriter γ (mvcc.commitLog log (delChanges (mvcc.stateAfter log) o)) ∗
             ⌜mvcc.stateAfter (mvcc.commitLog log (delChanges (mvcc.stateAfter log) o)) =
               (applyTxnOp (W64 (log.length : Int)) (mvcc.stateAfter log) (.delete o)).1⌝) ∨
-         (⌜err ≠ GoInterface.nil ∧ o.base.prevKV = true ∧ resp = null⌝ ∗ soleWriter γ log)) }} := by
-  wp_start_folded as ⟨#Hkv, Hrd, Hsw, #Hdr, #Hctx, Hcs, #Hhook⟩
-  icases soleWriter_split γ log hlen $$ Hsw with ⟨Htok, Hsw⟩
-  iunfold soleWriterOpen at Hsw
-  icases Hsw with ⟨#Hc, Htoks⟩
-  iapply (wp_DeleteRange ctx cd lg kv s γ dr o (soleBudget log - 1) log P Pre Q Post f)
-    $$ [Hrd Htok Htoks Hcs]
-  · iframe # ∗
-    ipureintro
-    intro ilog hp
-    rw [pinned_sole log ilog hlen hp]
-    exact hst
-  inext
-  iintro %resp %trace %err ⟨Hrd, Htoks, %Ht, HPost, %ilog, %Hpi, Hout⟩
-  have hil := pinned_sole log ilog hlen Hpi.1
-  subst hil
-  ihave Hsw : soleWriterOpen γ ilog $$ [Htoks]
-  · iunfold soleWriterOpen; iframe # ∗
-  iapply HΦ
-  iframe Hrd
-  isplitl []
-  · ipureintro; exact Ht
-  iframe HPost
-  icases Hout with (⟨%Herr, #Hresp, #Hc', Htok⟩ | ⟨%Hn, Htok, -⟩)
-  · -- deleted
-    ileft
-    isplitl []
-    · ipureintro; exact Herr
-    iframe Hresp
-    isplitl [Hsw Htok]
-    · iapply soleWriter_close γ ilog _ hlen
-      iframe Hsw Hc' Htok
-    ipureintro; exact stateAfter_commit_delete ilog o
-  · -- the context error
-    iright
-    isplitl []
-    · ipureintro; exact Hn
-    have h := soleWriter_close (GF := GF) γ ilog [] hlen
-    simp only [mvcc.commitLog, ↓reduceIte] at h
-    iapply h
-    iframe Hsw Htok Hc
+         (⌜err ≠ GoInterface.nil ∧ o.base.prevKV = true ∧ resp = null⌝ ∗ soleWriter γ log)) }} :=
+  deleteRange_soleWriter_of wp_DeleteRange ctx cd lg kv s γ dr o log P Pre Q Post f hlen hst
 
 end unit1
 
@@ -316,27 +220,8 @@ theorem range_soleWriter (log : mvcc.Log) (hlen : log.length + 3 ≤ 2 ^ 63)
         (Val #kv)) (Val #r)) (Val #withTotal))
     {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
         mvcc.storeReader s γ ∗ soleWriter γ log ∗ ⌜trace ≠ null⌝ ∗
-        rangeResult resp err log (W64 ((log.length : Int) - 1)) o withTotal }} := by
-  wp_start_folded as ⟨#Hkv, Hrd, Hsw, #Hr, #Hctx, %Hlg, %Hpre⟩
-  iunfold soleWriter at Hsw
-  icases Hsw with ⟨#Hc, Ht⟩
-  iapply (wp_Range ctx cd lg kv s γ r o withTotal (soleBudget log) log) $$ [Hrd Ht]
-  · iframe # ∗
-    ipureintro
-    refine ⟨Hlg, Hpre.1, fun log' h1 h2 => ?_⟩
-    rw [soleWriter_pins_read log log' hlen ⟨h1, h2⟩]
-    exact Hpre.2
-  inext
-  iintro %resp %tr %err ⟨Hrd, Ht, %Htr, %log', %rev, -, %Hp, #Hres⟩
-  have heq := soleWriter_pins_read log log' hlen ⟨Hp.1, Hp.2.1⟩
-  subst heq
-  obtain ⟨-, -, -, hrev⟩ := Hp
-  subst hrev
-  iapply HΦ
-  iframe Hrd Hres
-  isplitl
-  · iunfold soleWriter; iframe Hc Ht
-  · ipureintro; exact Htr
+        rangeResult resp err log (W64 ((log.length : Int) - 1)) o withTotal }} :=
+  range_soleWriter_of wp_Range log hlen ctx cd lg kv s γ r o withTotal
 
 /-- **`Count` at the sole writer**: the number of keys of the client's range (`rangeIn` of the
 count-only request `countOp`) in the state at the revision read, at the sole writer's log; or

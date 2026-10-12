@@ -1,6 +1,10 @@
 # Types and names only: function and method bodies are axiomatized.
+# AuthStore is an interface (the server's apply package calls its methods, and its value is a
+# field of `ApplierOptions` and of the auth applier), so the packages its methods' signatures
+# name are imported (`Authenticate`'s context and the requests and responses, `Recover`'s
+# backend: `AuthBackend`'s users and roles).
 translate = ["!*"]
-imports = ["!*"]
+imports = ["!*", "context", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
