@@ -35,7 +35,7 @@ abbrev txn.txn.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg s : Loc)
     (γ : mvcc.StoreNames) (tw : GoInterface) (ro : Bool) (ilog : mvcc.Log) (rt : Loc)
     (t : TxnModel) (pl : GoSlice) (skip : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.txnWriteIs tw s γ ro ilog [] ∗ context.isContext ctx cd ∗ mvcc.neverDone cd ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.txnWriteIs tw s γ ro ilog [] ∗ mvcc.txnCtx ctx cd ∗ mvcc.neverDone cd ∗
       txn.txnRequestIs rt t ∗ pl ↦*□ txn.txnPath (mvcc.stateAfter ilog) t ∗
       txn.leasesOk γ.leases (txn.opsLeases (mvcc.stateAfter ilog)
         (t.branch (txn.txnOk (mvcc.stateAfter ilog) t))) ∗

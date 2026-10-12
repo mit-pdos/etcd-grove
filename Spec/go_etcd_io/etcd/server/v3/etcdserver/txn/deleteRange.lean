@@ -32,7 +32,7 @@ abbrev txn.deleteRange.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (mw s : Loc)
     (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (puts deletes putSize : w64)
     (dr : Loc) (o : OpFull),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ context.isContext ctx cd ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ mvcc.txnCtx ctx cd ∗
       (if nd then mvcc.neverDone cd else iprop(True)) ∗
       mvcc.isTxnWrite mw s γ ilog pend puts deletes putSize ∗ txn.deleteRangeRequestIs dr o ∗
       ⌜pend.length + (rangeIn (txn.pendState ilog pend) o).length < 2 ^ 63⌝ }}

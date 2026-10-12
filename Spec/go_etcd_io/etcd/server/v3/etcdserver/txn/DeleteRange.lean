@@ -37,7 +37,7 @@ abbrev txn.DeleteRange.spec : Prop :=
     (s : Loc) (γ : mvcc.StoreNames) (dr : Loc) (o : OpFull) (m : Nat) (log₀ : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗
       ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗ txn.deleteRangeRequestIs dr o ∗
-      context.isContext ctx cd ∗
+      mvcc.txnCtx ctx cd ∗
       ⌜∀ ilog : mvcc.Log, txn.Pinned log₀ m ilog → (mvcc.stateAfter ilog).length < 2 ^ 63⌝ }}
     (App (App (App (App (Val (@! txn.DeleteRange)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #kv)) (Val #dr))

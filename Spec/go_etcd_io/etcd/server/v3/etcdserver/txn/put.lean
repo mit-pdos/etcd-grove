@@ -33,7 +33,7 @@ abbrev txn.put.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (mw s : Loc)
     (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (puts deletes putSize : w64)
     (p : Loc) (o : OpFull) (prev : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ context.isContext ctx cd ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ mvcc.txnCtx ctx cd ∗
       mvcc.isTxnWrite mw s γ ilog pend puts deletes putSize ∗ txn.putRequestIs p o ∗
       (if txn.readsPrev o then txn.prevKvIs prev (txn.pendState ilog pend) o.key
         else ⌜prev = null⌝) ∗

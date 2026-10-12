@@ -84,7 +84,7 @@ theorem put_soleWriter (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
     (hlen : log.length + 4 ≤ 2 ^ 63) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
         isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ isTxnLessor le γ.leases ∗
-        putRequestIs p o ∗ context.isContext ctx cd ∗
+        putRequestIs p o ∗ mvcc.txnCtx ctx cd ∗
         □ (⌜o.ignoreLease = true⌝ -∗
           leaseOk γ.leases (putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter log)))) }}
       (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.Put))
@@ -170,7 +170,7 @@ theorem deleteRange_soleWriter (ctx : GoInterfaceOk) (cd : context.ContextDesc (
     (log : mvcc.Log) (hlen : log.length + 4 ≤ 2 ^ 63) (hst : (mvcc.stateAfter log).length < 2 ^ 63) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
         isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ deleteRangeRequestIs dr o ∗
-        context.isContext ctx cd }}
+        mvcc.txnCtx ctx cd }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.DeleteRange))
         (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #kv)) (Val #dr))
     {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
@@ -260,7 +260,7 @@ theorem range_rangeSel (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
     (m : Nat) (log₀ : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
         isKV kv s γ ∗ mvcc.storeReader s γ ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
-        rangeRequestIs r o ∗ context.isContext ctx cd ∗ ⌜lg ≠ null⌝ ∗
+        rangeRequestIs r o ∗ mvcc.txnCtx ctx cd ∗ ⌜lg ≠ null⌝ ∗
         ⌜validSortTarget o ∧ ¬ cutEarly o ∧
           ∀ log : mvcc.Log, log₀ <+: log → log.length + m + 3 ≤ 2 ^ 63 → sortOk o log⌝ }}
       (App (App (App (App (App (Val (@! txn.Range)) (Val #(GoInterface.ok ctx))) (Val #lg))
@@ -294,7 +294,7 @@ theorem range_soleWriter (log : mvcc.Log) (hlen : log.length + 3 ≤ 2 ^ 63)
     (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (r : Loc) (o : OpFull) (withTotal : Bool) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
         isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗
-        rangeRequestIs r o ∗ context.isContext ctx cd ∗ ⌜lg ≠ null⌝ ∗
+        rangeRequestIs r o ∗ mvcc.txnCtx ctx cd ∗ ⌜lg ≠ null⌝ ∗
         ⌜validSortTarget o ∧ sortOk o log⌝ }}
       (App (App (App (App (App (Val (@! txn.Range)) (Val #(GoInterface.ok ctx))) (Val #lg))
         (Val #kv)) (Val #r)) (Val #withTotal))
@@ -330,7 +330,7 @@ theorem count_result (log : mvcc.Log) (hlen : log.length + 3 ≤ 2 ^ 63)
     (s : Loc) (γ : mvcc.StoreNames) (key rangeEnd : GoSlice) (k e : GoString) (revision : w64) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
         isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗
-        key ↦*□ k ∗ rangeEnd ↦*□ e ∗ context.isContext ctx cd ∗ ⌜lg ≠ null⌝ }}
+        key ↦*□ k ∗ rangeEnd ↦*□ e ∗ mvcc.txnCtx ctx cd ∗ ⌜lg ≠ null⌝ }}
       (App (App (App (App (App (App (Val (@! txn.Count)) (Val #(GoInterface.ok ctx))) (Val #lg))
         (Val #kv)) (Val #key)) (Val #rangeEnd)) (Val #revision))
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
@@ -422,7 +422,7 @@ theorem txn_runTxn (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (
       (t.branch (txnOk (mvcc.stateAfter log) t))) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
         isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ isTxnLessor le γ.leases ∗
-        txnRequestIs rt t ∗ context.isContext ctx cd ∗ mvcc.neverDone cd ∗
+        txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗ mvcc.neverDone cd ∗
         leasesKnown γ.leases (mvcc.stateAfter log) ∗ ⌜TxnPre log t⌝ }}
       (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx)))
         (Val #lg)) (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
@@ -467,7 +467,7 @@ theorem txn_readonly_no_revision (ctx : GoInterfaceOk) (cd : context.ContextDesc
     (γ : mvcc.StoreNames) (log : mvcc.Log) (t : TxnModel) (hro : txnReadonly t = true) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
         isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ isTxnLessor le γ.leases ∗
-        txnRequestIs rt t ∗ context.isContext ctx cd ∗ mvcc.neverDone cd ∗
+        txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗ mvcc.neverDone cd ∗
         leasesKnown γ.leases (mvcc.stateAfter log) ∗ ⌜TxnPre log t⌝ }}
       (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx)))
         (Val #lg)) (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
@@ -505,7 +505,7 @@ theorem txn_check_error_no_write (ctx : GoInterfaceOk) (cd : context.ContextDesc
     (γ : mvcc.StoreNames) (log : mvcc.Log) (t : TxnModel) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
         isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ isTxnLessor le γ.leases ∗
-        txnRequestIs rt t ∗ context.isContext ctx cd ∗ mvcc.neverDone cd ∗
+        txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗ mvcc.neverDone cd ∗
         leasesKnown γ.leases (mvcc.stateAfter log) ∗ ⌜TxnPre log t⌝ }}
       (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx)))
         (Val #lg)) (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))

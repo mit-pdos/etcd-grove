@@ -58,7 +58,7 @@ theorem txn.applyCompare.wp_proof
   ihave Htx : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
   ihave #Hctx : mvcc.rangeCtx true todoCtxVal txn.todoCd $$ []
-  · simp only [mvcc.rangeCtx, ↓reduceIte]; ileft; itrivial
+  · simp only [mvcc.rangeCtx, ↓reduceIte]; ileft; iapply mvcc.doneNil_todo
   wp_apply (hRange mw s γ (.read log rev) todoCtxVal txn.todoCd true ksl esl' cm.key e'
       (zero_val go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions)) $$ [$Htx $Hctx $Hks $Hes']
     as %rr %err ⟨%Hrn, Htx, Hout⟩
