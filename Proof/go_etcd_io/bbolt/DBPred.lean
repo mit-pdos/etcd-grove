@@ -219,6 +219,7 @@ def ownDB (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DBState) : IP
     "%Hlog" ∷ ⌜dv.logger' = interface.nil ∨
       dv.logger' = interface.mkOk (go.GoType.PointerType DefaultLogger.ty) #dl⌝ ∗
     "Hplain" ∷ dbPlain dbl (DFrac.own 1) dv ∗
+    "#Hlogger" ∷ structFieldRef DB go!"logger" dbl ↦□ dv.logger' ∗
     "Hdata" ∷ structFieldRef DB go!"data" dbl ↦{DFrac.own σ.frem} σ.data ∗
     "Hps" ∷ structFieldRef DB go!"pageSize" dbl ↦{DFrac.own σ.frem} W64 σ.ps ∗
     "#Hfile" ∷ osFile σ.file σ.fd ∗

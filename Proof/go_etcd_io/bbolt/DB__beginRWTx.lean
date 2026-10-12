@@ -44,7 +44,7 @@ theorem DB.beginRWTx.wp_proof (hinit : Tx.init.spec (GF := GF) (hG := hG)) :
     ileft
     isplitr
     · ipureintro; obtain ⟨t, p, rfl⟩ := Hne; exact fun h => by cases h
-    ihave Hplain : dbPlain dbl (DFrac.own 1) dv $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize Mlock logger path openFile file dataref datasz meta0 meta1 opened rwtx stats freelist batch ops readOnly]
+    ihave Hplain : dbPlain dbl (DFrac.own 1) dv $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize Mlock path openFile file dataref datasz meta0 meta1 opened rwtx stats freelist batch ops readOnly]
     · simp only [dbPlain]; rw [hro]; iframe
     try simp only [ownDB]
     iexists dv, fls, v0, v1, dl
@@ -119,7 +119,7 @@ theorem DB.beginRWTx.wp_proof (hinit : Tx.init.spec (GF := GF) (hG := hG)) :
       exact ⟨Hdata', Hps', Hdsz, Hm0, Hm1, Hopen, Hfile', Hfl', rfl, Hdbl⟩
     isplitr
     · ipureintro; exact hok2
-    ihave Hplain : dbPlain dbl (DFrac.own 1) { dv with rwtx' := «$r0_ptr» } $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize Mlock logger path openFile file dataref datasz meta0 meta1 opened rwtx stats freelist batch ops readOnly]
+    ihave Hplain : dbPlain dbl (DFrac.own 1) { dv with rwtx' := «$r0_ptr» } $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize Mlock path openFile file dataref datasz meta0 meta1 opened rwtx stats freelist batch ops readOnly]
     · simp only [dbPlain]
       try simp only
       rw [Hopen, Hfl', hro]; simp only [FLImpl.iface, interface.mkOk]; iframe

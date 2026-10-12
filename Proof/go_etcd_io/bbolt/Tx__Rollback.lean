@@ -28,8 +28,7 @@ theorem Tx.Rollback.wp_proof (hAssert : Assert.spec (GF := GF) (hG := hG))
     Tx.Rollback.spec (GF := GF) (hG := hG) := by
   intro I dbl γ σ txl k r hRem
   wp_start as ⟨Hdb, Hrtx⟩
-  icases ownDB_logger I dbl γ σ $$ Hdb with ⟨%lg, %dl, Hlg, #Hdl, #Hdlok, %Hl, Hback⟩
-  ihave Hdb := Hback $$ Hlg
+  icases ownDB_logger I dbl γ σ $$ Hdb with ⟨%lg, %dl, #Hlg, #Hdl, #Hdlok, %Hl, Hdb⟩
   have Hdbl := Hl.2
   simp only [ownReadTx]
   iNamed Hrtx

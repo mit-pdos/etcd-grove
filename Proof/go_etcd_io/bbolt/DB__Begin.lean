@@ -28,17 +28,16 @@ theorem DB.Begin.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     DB.Begin.spec (GF := GF) (hG := hG) := by
   intro I dbl γ σ w hpre
   wp_start as Hdb
-  icases ownDB_logger I dbl γ σ $$ Hdb with ⟨%lg, %dl, Hlg, #Hdl, #Hdlok, %Hl, Hback⟩
+  icases ownDB_logger I dbl γ σ $$ Hdb with ⟨%lg, %dl, #Hlg, #Hdl, #Hdlok, %Hl, Hdb⟩
   obtain ⟨Hlg', Hdbl⟩ := Hl
   wp_apply wp_with_defer as %defer Hdefer
   try wp_auto
-  wp_apply hLogger dbl (DFrac.own 1) lg dl Hdbl $$ [Hlg Hdl] as Hlg
-  · iframe; iexact Hdl
+  wp_apply hLogger dbl DFrac.discard lg dl Hdbl $$ [Hlg Hdl] as -
+  · iframe; iframe #
   have Hd : (if lg = interface.nil then discardIface dl else lg) = discardIface dl := by
     rcases Hlg' with rfl | rfl <;> simp [discardIface, interface.mkOk]
   rw [Hd]
   try wp_auto
-  ihave Hdb := Hback $$ Hlg
   cases w with
   | true =>
     obtain ⟨hRel, hw, hrng⟩ := hpre

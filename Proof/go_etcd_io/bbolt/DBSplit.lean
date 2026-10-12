@@ -19,8 +19,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- The fields of a `DB` other than the ones read transactions share (`data`, `pageSize`) and
-the synchronization ones (`dbSync`). -/
+/-- The fields of a `DB` other than the ones read transactions share (`data`, `pageSize`), the
+logger (never written after `Open`: persistent in `ownDB`) and the synchronization ones
+(`dbSync`). -/
 def dbPlain (dbl : Loc) (dq : DFrac) (dv : DB) : IProp GF :=
   iprop("StrictMode" ∷ structFieldRef DB go!"StrictMode" dbl ↦{dq} dv.StrictMode' ∗
     "NoSync" ∷ structFieldRef DB go!"NoSync" dbl ↦{dq} dv.NoSync' ∗
@@ -34,7 +35,6 @@ def dbPlain (dbl : Loc) (dq : DFrac) (dv : DB) : IProp GF :=
     "AllocSize" ∷ structFieldRef DB go!"AllocSize" dbl ↦{dq} dv.AllocSize' ∗
     "MaxSize" ∷ structFieldRef DB go!"MaxSize" dbl ↦{dq} dv.MaxSize' ∗
     "Mlock" ∷ structFieldRef DB go!"Mlock" dbl ↦{dq} dv.Mlock' ∗
-    "logger" ∷ structFieldRef DB go!"logger" dbl ↦{dq} dv.logger' ∗
     "path" ∷ structFieldRef DB go!"path" dbl ↦{dq} dv.path' ∗
     "openFile" ∷ structFieldRef DB go!"openFile" dbl ↦{dq} dv.openFile' ∗
     "file" ∷ structFieldRef DB go!"file" dbl ↦{dq} dv.file' ∗
@@ -61,11 +61,13 @@ def dbSync (dbl : Loc) (dq : DFrac) (dv : DB) : IProp GF :=
     "mmaplock" ∷ structFieldRef DB go!"mmaplock" dbl ↦{dq} dv.mmaplock' ∗
     "statlock" ∷ structFieldRef DB go!"statlock" dbl ↦{dq} dv.statlock')
 
-/-- A `DB` is its fields: those read transactions share, the synchronization ones, the rest. -/
+/-- A `DB` is its fields: those read transactions share, the logger, the synchronization ones,
+the rest. -/
 theorem DB_split (dbl : Loc) (dq : DFrac) (dv : DB) :
     (dbl ↦{dq} dv : IProp GF) ⊣⊢
       structFieldRef DB go!"data" dbl ↦{dq} dv.data' ∗
       structFieldRef DB go!"pageSize" dbl ↦{dq} dv.pageSize' ∗
+      structFieldRef DB go!"logger" dbl ↦{dq} dv.logger' ∗
       dbSync dbl dq dv ∗ dbPlain dbl dq dv ∗ ⌜dbl ≠ null⌝ := by
   rw [typedPointsto_unseal_eq]
   simp only [TypedPointsto.typedPointstoDef, dbSync, dbPlain]
@@ -74,7 +76,7 @@ theorem DB_split (dbl : Loc) (dq : DFrac) (dv : DB) :
     iNamed H
     iframe
     ipureintro; exact Hn
-  · iintro ⟨Hd, Hp, Hs, Hr, %Hn⟩
+  · iintro ⟨Hd, Hp, Hl, Hs, Hr, %Hn⟩
     iNamed Hs
     iNamed Hr
     iframe

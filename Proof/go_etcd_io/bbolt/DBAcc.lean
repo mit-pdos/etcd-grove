@@ -25,26 +25,20 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
 
-/-- The database's logger (nil or the default one), lent out of `ownDB`. -/
+/-- The database's logger (nil or the default one): persistent facts of `ownDB`. -/
 theorem ownDB_logger (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DBState) :
     ownDB I dbl γ σ ⊢ ∃ (lg : GoInterface) (dl : Loc),
-      structFieldRef DB go!"logger" dbl ↦ lg ∗ (globalAddr discardLogger ↦□ dl : IProp GF) ∗
+      structFieldRef DB go!"logger" dbl ↦□ lg ∗ (globalAddr discardLogger ↦□ dl : IProp GF) ∗
       defaultLoggerOK dl ∗
-      ⌜(lg = interface.nil ∨ lg = discardIface dl) ∧ dbl ≠ null⌝ ∗
-      (structFieldRef DB go!"logger" dbl ↦ lg -∗ ownDB I dbl γ σ) := by
+      ⌜(lg = interface.nil ∨ lg = discardIface dl) ∧ dbl ≠ null⌝ ∗ ownDB I dbl γ σ := by
   iintro Hdb
-  simp only [ownDB]
+  isimp only [ownDB] at Hdb
   iNamed Hdb
-  isimp only [dbPlain] at Hplain
-  iNamed Hplain
   iexists dv.logger', dl
-  iframe logger
   iframe #
   isplitr
   · ipureintro; exact ⟨Hlog, Hdv.2.2.2.2.2.2.2.2.2⟩
-  iintro logger
-  ihave Hplain : dbPlain dbl (DFrac.own 1) dv $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize Mlock logger path openFile file dataref datasz meta0 meta1 opened rwtx stats freelist batch ops readOnly]
-  · simp only [dbPlain]; iframe
+  simp only [ownDB]
   iexists dv, fls, v0, v1, dl
   isplitr
   · ipureintro; exact Hdv

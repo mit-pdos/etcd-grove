@@ -116,7 +116,7 @@ theorem DB.removeTx.wp_proof (hTxid : Meta.Txid.spec (GF := GF) (hG := hG))
       · ipureintro; exact ⟨Hdata', Hps', Hdsz, Hm0, Hm1, Hopen, Hfile', Hfl', Hrw, Hdbl⟩
       isplitr
       · ipureintro; exact dbOK_removeReader σ v0 v1 Hok k r Hk ro (Hmtx ▸ Hro)
-      ihave Hplain : dbPlain dbl (DFrac.own 1) dv $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize Mlock logger path openFile file dataref datasz meta0 meta1 opened rwtx stats freelist batch ops readOnly]
+      ihave Hplain : dbPlain dbl (DFrac.own 1) dv $$ [StrictMode NoSync NoFreelistSync FreelistType NoGrowSync PreLoadFreelist MmapFlags MaxBatchSize MaxBatchDelay AllocSize MaxSize Mlock path openFile file dataref datasz meta0 meta1 opened rwtx stats freelist batch ops readOnly]
       · simp only [dbPlain]
         rw [Hopen, Hfl']
         simp only [FLImpl.iface, interface.mkOk]
