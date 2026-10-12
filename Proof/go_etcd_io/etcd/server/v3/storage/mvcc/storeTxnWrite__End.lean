@@ -84,7 +84,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       iframe Hmu HrevMu Hti
       iframe #
     unfold mvcc.commitLog
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     try rw [if_pos rfl]
     iframe Hcert Htok
 
@@ -175,8 +175,8 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
         iframe Hmu HrevMu Hti
         iframe #
       unfold mvcc.commitLog
-      rw [if_neg hne']
-      try rw [if_neg hne']
+      rw [ite_eq_right hne']
+      try rw [ite_eq_right hne']
       iframe Hcert'
 end proof
 

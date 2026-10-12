@@ -355,8 +355,7 @@ theorem txn.effSortOrder_srv (k re : GoString) (rev limit : w64) (order target :
     sext32_eq order 1 (by omega) (by omega)]
   have hz : (W64 (sint.Z target) = 0#64) ↔ target = 0#32 := sext32_eq target 0 (by omega) (by omega)
   by_cases ho : order = 0#32 <;> by_cases ht : target = 0#32 <;>
-    simp [ho, ht, hz, show (W32 0 : w32) = 0#32 from rfl, show (W64 0 : w64) = 0#64 from rfl,
-      show (W32 1 : w32) = 1#32 from rfl, show (W64 1 : w64) = 1#64 from rfl] <;> rfl
+    simp [ho, ht, hz] <;> rfl
 
 theorem txn.swo_flip {E : Type} {R : E → E → Prop} (h : slices.StrictWeakOrder R) :
     slices.StrictWeakOrder (fun a b => R b a) where
@@ -400,10 +399,10 @@ theorem txn.sortRangeResults.wp_proof
       wp_auto
       isplitl []
       · ipureintro; trivial
-      iexists (W32 1); iframe; ipureintro; exact (if_pos ⟨Hif, trivial⟩).symm
+      iexists (W32 1); iframe; ipureintro; exact (ite_eq_left ⟨Hif, trivial⟩).symm
     · isplitl []
       · ipureintro; trivial
-      iexists order; iframe; ipureintro; exact (if_neg (fun h => Hif h.2)).symm
+      iexists order; iframe; ipureintro; exact (ite_eq_right (fun h => Hif h.2)).symm
   wp_apply hIsDef
   have Heff : o.effSortOrder =
       if so = W32 0 ∨ (target = W32 0 ∧ so = W32 1) then W64 0 else W64 (sint.Z so) := by
@@ -506,7 +505,7 @@ theorem txn.sortRangeResults.wp_proof
 
     -- the sort
     have Hsorts : ¬(so = W32 0 ∨ target = W32 0 ∧ so = W32 1) := by assumption
-    have Heffs : o.effSortOrder = W64 (sint.Z so) := by rw [Heff, if_neg Hsorts]
+    have Heffs : o.effSortOrder = W64 (sint.Z so) := by rw [Heff, ite_eq_right Hsorts]
     have Hpre : (o.effSortOrder = W64 1 ∨ o.effSortOrder = W64 2) →
         l.length ≤ 2 ^ 62 ∧ ∀ y ∈ l, txn.kvOk y.2 := by
       intro h
@@ -585,7 +584,7 @@ theorem txn.sortRangeResults.wp_proof
           iframe
         ipureintro
         exact ⟨List.Perm.refl _, fun h => absurd h he1, fun h => absurd h he2, fun _ _ => rfl⟩
-  · have Heff0 : o.effSortOrder = W64 0 := by rw [Heff, if_pos Hif]
+  · have Heff0 : o.effSortOrder = W64 0 := by rw [Heff, ite_eq_left Hif]
     iapply HΦ
     iexists vs
     isplitl

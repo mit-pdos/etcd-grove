@@ -70,7 +70,7 @@ theorem leasingKV.revokeLeaseKvs.wp_proof
     icases Hv with ⟨%ksl, %vsl, #HK, #Hks, #HC, -, -, -, -, #HL⟩
     wp_auto
     have Htake : kvs.take (sint.nat n + 1) = kvs.take (sint.nat n) ++ [v] :=
-      by rw [List.take_succ, Hvi]; rfl
+      by rw [List.take_add_one, Hvi]; rfl
     wp_join iprop(maxLeaseRev_ptr ↦ maxCreateRev (kvs.take (sint.nat n + 1)))
       with [maxLeaseRev rev] as maxLeaseRev
     · rw [Htake, maxCreateRev_snoc, ite_eq_left (by assumption)]; iexact maxLeaseRev

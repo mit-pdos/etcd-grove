@@ -66,7 +66,7 @@ theorem demux.Init.wp_proof (wp_purge : demux.purge.spec (GF := GF) (hG := hG)) 
     have Hh : c.history = [] := by
       have := Hinv.hist_suffix; rw [Hs] at this; exact List.eq_nil_of_suffix_nil this
     have Hc : (initCore c m).1 = { DemuxCore.init with minRev := m, base := sint.Z m - 1 } := by
-      rw [initCore, if_neg Hm0, if_pos Hif]; cases c; simp_all [DemuxCore.init]
+      rw [initCore, ite_eq_right Hm0, ite_eq_left Hif]; cases c; simp_all [DemuxCore.init]
     have Hc' : { c with minRev := m, base := sint.Z m - 1 } = { DemuxCore.init with minRev := m, base := sint.Z m - 1 } := by
       cases c; simp_all [DemuxCore.init]
     have Hinv'' : DemuxInv cap { c with minRev := m, base := sint.Z m - 1 } := by
@@ -100,7 +100,7 @@ theorem demux.Init.wp_proof (wp_purge : demux.purge.spec (GF := GF) (hG := hG)) 
     wp_apply wp_purge $$ [$Hl] as ⟨%views', Hl⟩
     · ipureintro; exact Hinv
     have Hc : (initCore c m).1 = { DemuxCore.init with minRev := m, base := sint.Z m - 1 } := by
-      rw [initCore, if_neg Hm0, if_neg Hmin0, if_pos Hif]
+      rw [initCore, ite_eq_right Hm0, ite_eq_right Hmin0, ite_eq_left Hif]
     have Hinv'' := demuxInit_inv_reset Hinv m
     iNamed Hl
     wp_auto
@@ -126,7 +126,7 @@ theorem demux.Init.wp_proof (wp_purge : demux.purge.spec (GF := GF) (hG := hG)) 
   wp_if_destruct
   · -- `minRev == d.maxRev + 1`: nothing
     have Hc : (initCore c (c.maxRev + W64 1)).1 = c := by
-      rw [initCore, if_neg Hm0, if_neg Hmin0, if_neg Hmax0, if_pos rfl]
+      rw [initCore, ite_eq_right Hm0, ite_eq_right Hmin0, ite_eq_right Hmax0, ite_eq_left rfl]
     ihave Hl : demuxLocked d γd cap C c c.stream.length regs views $$
       [Hregs Hviews HminRev HmaxRev HactF HlagF Hact Hlag Hhist Hres]
     · unfold demuxLocked; iexists actP, lagP; simp only [named]; iframe; iframe #; ipureintro; exact ⟨Hok, Hstart⟩
@@ -146,7 +146,7 @@ theorem demux.Init.wp_proof (wp_purge : demux.purge.spec (GF := GF) (hG := hG)) 
   wp_apply wp_purge $$ [$Hl] as ⟨%views', Hl⟩
   · ipureintro; exact Hinv
   have Hc : (initCore c m).1 = { DemuxCore.init with minRev := m, base := sint.Z m - 1 } := by
-    rw [initCore, if_neg Hm0, if_neg Hmin0, if_neg Hmax0, if_neg Hne]
+    rw [initCore, ite_eq_right Hm0, ite_eq_right Hmin0, ite_eq_right Hmax0, ite_eq_right Hne]
   have Hinv'' := demuxInit_inv_reset Hinv m
   iNamed Hl
   wp_auto

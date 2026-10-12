@@ -7,7 +7,7 @@ which the loop never changes), so the loop invariant needs no `f`. The two `wp_w
 joins are `wp_join`. `own_tracker_cfg_size` is the pure `ownTracker_cfg_size`;
 `elements_split` is `perm_id_cons`; `own_raft_phys_send_perm` is inlined as
 `ownRaftPhys_outbox`. The slice range is a `doFor` over an index, as in Rocq.
-`wp_raft_poll` is unused, as in Rocq (the postulates include `POLL`).
+`_wp_raft_poll` is unused, as in Rocq (the postulates include `POLL`).
 -/
 module
 
@@ -122,7 +122,7 @@ private theorem ownTracker_cfg_size (cfg : GSet w64) (tv : tracker.ProgressTrack
 theorem raft.campaign.wp_proof
     (wp_raft_becomeCandidate : raft.becomeCandidate.spec (GF := GF) (hG := hG))
     (wp_raft_becomePreCandidate : raft.becomePreCandidate.spec (GF := GF) (hG := hG))
-    (wp_raft_poll : raft.poll.spec (GF := GF) (hG := hG))
+    (_wp_raft_poll : raft.poll.spec (GF := GF) (hG := hG))
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
     (wp_voteRespMsgType : voteRespMsgType.spec (GF := GF) (hG := hG))
     (wp_raft_promotable : raft.promotable.spec (GF := GF) (hG := hG))
@@ -313,8 +313,8 @@ theorem raft.campaign.wp_proof
             -- with pre-vote off, an election's: at the node's term (2026-10-10)
             fun Hpf => by
               cases pre
-              · simp [campRoleState, becomeCandidate, resetTo, sendMsgs, vrespW32, vreqW32,
-                  MsgVoteResp, MsgVote, MsgPreVoteResp]
+              · simp [campRoleState, becomeCandidate, resetTo, sendMsgs, vrespW32, 
+                  MsgVoteResp, MsgPreVoteResp]
               · simp [campRoleState, becomePrecandidate, sendMsgs, Hpvpre rfl] at Hpf,
             by cases pre <;> rfl⟩)
         $$ [$Hphys]
@@ -366,8 +366,8 @@ theorem raft.campaign.wp_proof
             fun h => absurd h Hyid,
             fun Hpf => by
               cases pre
-              · simp [campRoleState, becomeCandidate, resetTo, sendMsgs, vrespW32, vreqW32,
-                  MsgVoteResp, MsgVote, MsgPreVoteResp]
+              · simp [campRoleState, becomeCandidate, resetTo, sendMsgs, vreqW32,
+                  MsgVote, MsgPreVoteResp]
               · simp [campRoleState, becomePrecandidate, sendMsgs, Hpvpre rfl] at Hpf,
             by cases pre <;> rfl⟩)
         $$ [$Hphys]

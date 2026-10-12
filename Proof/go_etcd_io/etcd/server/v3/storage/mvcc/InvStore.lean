@@ -60,6 +60,7 @@ structure StoreNames where
   /-- the post-lock hook's function value `f` (`dghostVar`, read-only) -/
   hookFn : GName
 
+set_option linter.unusedVariables false in
 /-- `s.mu`'s resource: nothing (see the module docstring); it takes the semantics' instances
 (unused) so that the lock lemmas' own are determined at its uses. -/
 def muInv [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

@@ -179,8 +179,8 @@ variable {GF : BundledGFunctors}
 is present with `lv`'s create revision and in `(e.rev, b]` of which the holder committed nothing,
 `key`'s record `e.acq`. -/
 theorem cached_get_stable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi]
-    [FfiSemantics ext ffi] [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC GF]
-    [sem : go.Semantics]
+    [FfiSemantics ext ffi] [GoGlobalContext] [HeapGS HasLC.hasLC GF]
+    [go.Semantics]
     (pfx key : GoString) (h : LeasingHist) (e : LeaseEntry) (b : w64) (sb : List EtcdKv)
     (hk : LeasingDataKey pfx key) (hrev : sint.Z e.rev ≤ sint.Z b)
     (hw : ∀ z : Int, sint.Z e.rev < z → z ≤ sint.Z b → h.writer z ≠ e.lease) :

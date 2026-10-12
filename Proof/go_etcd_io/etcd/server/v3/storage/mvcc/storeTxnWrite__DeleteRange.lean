@@ -94,7 +94,7 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
       ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
       ipureintro
       refine ⟨rfl, ?_⟩
-      rw [hrev]; unfold mvcc.writeRev; rw [if_neg hpne]
+      rw [hrev]; unfold mvcc.writeRev; rw [ite_eq_right hpne]
     · -- no change: the committed log's last revision
       have hp : pend = [] := by
         have hc : ¬ sint.Z (W64 0 : w64) < sint.Z chs.len := by
@@ -113,7 +113,7 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
       ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
       ipureintro
       refine ⟨rfl, ?_⟩
-      unfold mvcc.writeRev; rw [if_pos hp]; congr 1
+      unfold mvcc.writeRev; rw [ite_eq_left hp]; congr 1
       have := List.length_pos_iff.2 Hne
       omega
   · -- `n != 0`: the pending revision
@@ -131,7 +131,7 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
     ipureintro
     refine ⟨rfl, ?_⟩
     rw [hrev]; unfold mvcc.writeRev
-    rw [if_neg (by simp [hks])]
+    rw [ite_eq_right (by simp [hks])]
 
 end proof
 

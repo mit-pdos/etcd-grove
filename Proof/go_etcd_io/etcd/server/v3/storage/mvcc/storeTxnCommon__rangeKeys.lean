@@ -87,13 +87,13 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
     wp_if_destruct <;> (try wp_auto) <;>
       (first
         | (have hRR : mvcc.rangeRev rev ro.Rev' = rev := by
-             unfold mvcc.rangeRev; rw [if_pos (by omega)]
+             unfold mvcc.rangeRev; rw [ite_eq_left (by omega)]
            ihave Hrevp : rev_ptr ↦ mvcc.rangeRev rev ro.Rev' $$ [rev]
            · rw [hRR]; iexact rev
            have hR0 : 0 ≤ sint.Z (mvcc.rangeRev rev ro.Rev') := by rw [hRR]; omega
            have hRlt : sint.Z (mvcc.rangeRev rev ro.Rev') < log.length := by rw [hRR]; omega)
         | (have hRR : mvcc.rangeRev rev ro.Rev' = ro.Rev' := by
-             unfold mvcc.rangeRev; rw [if_neg (by omega)]
+             unfold mvcc.rangeRev; rw [ite_eq_right (by omega)]
            ihave Hrevp : rev_ptr ↦ mvcc.rangeRev rev ro.Rev' $$ [rev]
            · rw [hRR]; iexact rev
            have hR0 : 0 ≤ sint.Z (mvcc.rangeRev rev ro.Rev') := by rw [hRR]; omega
@@ -325,7 +325,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
               iframe Hri Hi Hkvs
               isplitl []
               · ipureintro; exact ⟨by omega, by simp [Hbnd.2]⟩
-              rw [List.take_succ, ha, Option.toList_some,
+              rw [List.take_add_one, ha, Option.toList_some,
                 List.zip_append (by rw [Hbnd.2, List.length_take_of_le (by omega)])]
               iapply BigSepL.bigSepL_append.2
               isplitl [Hps]
@@ -712,7 +712,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                 · ipureintro; exact mvcc.revBytes_false_length _
                 isplitl []
                 · ipureintro; exact ⟨by omega, by simp [Hbnd.2]⟩
-                rw [List.take_succ, ha, Option.toList_some,
+                rw [List.take_add_one, ha, Option.toList_some,
                   List.zip_append (by rw [Hbnd.2, List.length_take_of_le (by omega)])]
                 iapply BigSepL.bigSepL_append.2
                 isplitl [Hps]

@@ -56,7 +56,7 @@ theorem WithSort.wp_proof : WithSort.spec (GF := GF) (hG := hG) := by
     · ipureintro; simp_all
     unfold opSortAt
     simp only [↓reduceIte]
-    rw [if_neg (show ¬ (True ∧ order = W64 1) by simpa using Hns)]
+    rw [ite_eq_right (show ¬ (True ∧ order = W64 1) by simpa using Hns)]
     iexact «$r0»
   · ipersist «$r0»
     ihave %Hnn := typedPointsto_not_null _ _ _ $$ «$r0»
@@ -72,7 +72,7 @@ theorem WithSort.wp_proof : WithSort.spec (GF := GF) (hG := hG) := by
     isplitl []
     · ipureintro; simp_all
     unfold opSortAt
-    simp only [↓reduceIte, if_neg Hns]
+    simp only [↓reduceIte, ite_eq_right Hns]
     iexact «$r0»
 
 end proof

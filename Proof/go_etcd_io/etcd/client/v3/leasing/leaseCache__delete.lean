@@ -65,7 +65,7 @@ theorem leaseCache.delete.wp_proof (hcopy : copyHeader.spec (GF := GF) (hG := hG
       iframe #
       iapply Hback
       unfold LeaseEntry.del
-      rw [if_pos Hif, entryOwn_def, respOwn_def]
+      rw [ite_eq_left Hif, entryOwn_def, respOwn_def]
       simp only [List.map_nil]
       iframe
       iframe #
@@ -81,7 +81,7 @@ theorem leaseCache.delete.wp_proof (hcopy : copyHeader.spec (GF := GF) (hG := hG
       iempintro
     · iapply HΦ
       iexists null
-      have hdel : ∀ h', e.del h' hm = e := fun h' => by unfold LeaseEntry.del; rw [if_neg Hif]
+      have hdel : ∀ h', e.del h' hm = e := fun h' => by unfold LeaseEntry.del; rw [ite_eq_right Hif]
       iapply lcOwn_modify_intro lc st key (fun e => e.del null hm) e _ hk (fun e => by
         unfold LeaseEntry.del; split <;> rfl)
       iframe

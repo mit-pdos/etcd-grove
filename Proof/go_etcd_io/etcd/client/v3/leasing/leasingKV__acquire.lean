@@ -85,7 +85,7 @@ theorem leasingKV.acquire.wp_proof
     simp only [intoVal_eq_iff, Bool.false_eq_true, decide_False_any, decide_True_any,
       ite_true, ite_false]
     wp_auto
-    rw [if_neg (by simp)]
+    rw [ite_eq_right (by simp)]
     icases Herr0 with ⟨#HPD, #Hclosed⟩
     ihave #HErrD := HErr $$ %Broadcast.Done
     wp_apply HErrD $$ [$Hclosed] as %err2 %Herr2
@@ -95,8 +95,8 @@ theorem leasingKV.acquire.wp_proof
     ipureintro; exact ⟨Herr2, rfl⟩
   | nil =>
   try wp_auto
-  simp only [intoVal_eq_iff, Bool.false_eq_true, decide_False_any, decide_True_any,
-    ite_true, ite_false]
+  simp only [intoVal_eq_iff, decide_True_any,
+    ite_true]
   wp_auto
   wp_apply hWS lkv γ pfx ctx cs $$ [$Hpkg $Hlkv $Hrd $Hctx] as %err1 ⟨Hrd, Hws⟩
   icases Hws with (%Hne1 | ⟨%Heq1, Hready⟩)
@@ -284,7 +284,7 @@ theorem leasingKV.acquire.wp_proof
         (try wp_auto)
         by_cases hc : c = W32 14
         · subst hc
-          simp only [decide_eq_self_any, Bool.not_true]
+          simp only
           wp_auto
           wp_for_post
           iframe
@@ -428,7 +428,7 @@ theorem leasingKV.acquire.wp_proof
       isplitr
       · ipureintro; exact Hrr
       by_cases hl : c.kv.lease = id2
-      · simp only [hl, decide_eq_self_any, decide_True_any, ↓reduceIte]
+      · simp only [hl, decide_True_any, ↓reduceIte]
         have hk := keyGet_kvs (pfx ++ key) s _ Hwf Hok1
         cases hkv : kvOf s (pfx ++ key) with
         | none => rw [hkv] at hk; simp at hk

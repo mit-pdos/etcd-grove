@@ -91,9 +91,9 @@ theorem getD_dropLast_append_lt {α : Type} (l : List α) (x d : α) (i : Nat)
     (hi : i < l.length - 1) : (l.dropLast ++ [x]).getD i d = l.getD i d := by
   rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD,
     List.getElem?_append_left (by rw [List.length_dropLast]; exact hi), List.getElem?_dropLast,
-    if_pos hi]
+    ite_eq_left hi]
 
-theorem getD_dropLast_append_last {α : Type} (l : List α) (x d : α) (h : l ≠ []) :
+theorem getD_dropLast_append_last {α : Type} (l : List α) (x d : α) (_h : l ≠ []) :
     (l.dropLast ++ [x]).getD (l.length - 1) d = x := by
   rw [List.getD_eq_getElem?_getD,
     List.getElem?_append_right (by rw [List.length_dropLast]; exact Nat.le_refl _),
@@ -115,7 +115,7 @@ theorem getD_append_last {α : Type} (l : List α) (x d : α) :
   rw [List.getD_eq_getElem?_getD, List.getElem?_append_right (Nat.le_refl _), Nat.sub_self]
   rfl
 
-theorem getLastD_eq_getD {α : Type} (l : List α) (d : α) (h : l ≠ []) :
+theorem getLastD_eq_getD {α : Type} (l : List α) (d : α) (_h : l ≠ []) :
     l.getLastD d = l.getD (l.length - 1) d := by
   rw [List.getD_eq_getElem?_getD, List.getLastD_eq_getLast?, List.getLast?_eq_getElem?]
 
@@ -225,8 +225,8 @@ theorem kiFindGen_kiPut {ki : KeyIndex} (hwf : KiWf ki) {rev : Rev} (habove : Ki
     simp only [he, hne', ↓reduceIte]
     have hfirst := habove _ (kiRevs_mem (getLastD_mem _ _ hne) (headD_mem he))
     by_cases hr : sint.Z rev.main ≤ sint.Z r
-    · rw [if_pos hr, if_pos (by omega)]
-    · rw [if_neg hr]
+    · rw [ite_eq_left hr, ite_eq_left (by omega)]
+    · rw [ite_eq_right hr]
 
 /-- `get` after `put`, at or above the new revision: the new revision, its generation's create
 revision (the new revision if the generation was empty) and version + 1. -/
@@ -238,7 +238,7 @@ theorem kiGet_kiPut_above {ki : KeyIndex} (hwf : KiWf ki) {rev : Rev} (habove : 
   have hne := hwf.ne
   have hpos := hwf.len_pos
   unfold kiGet
-  rw [kiFindGen_kiPut hwf habove, if_pos hr]
+  rw [kiFindGen_kiPut hwf habove, ite_eq_left hr]
   simp only
   rw [kiPut_gens_of_ne hne, getD_dropLast_append_last _ _ _ hne]
   simp only [genPut_revs, List.append_eq_nil_iff, List.cons_ne_self, and_false, ↓reduceIte]
@@ -305,7 +305,7 @@ theorem genGet_kiPut_gens {ki : KeyIndex} (hne : ki.gens ≠ []) {rev : Rev} {r 
 /-- `get` after `put`, strictly below the new revision's main: unchanged. -/
 theorem kiGet_kiPut_below {ki : KeyIndex} (hwf : KiWf ki) {rev : Rev} (habove : KiAbove ki rev)
     {r : w64} (hr : sint.Z r < sint.Z rev.main) : kiGet (kiPut ki rev) r = kiGet ki r := by
-  rw [kiGet_eq, kiGet_eq, kiFindGen_kiPut hwf habove, if_neg (by omega)]
+  rw [kiGet_eq, kiGet_eq, kiFindGen_kiPut hwf habove, ite_eq_right (by omega)]
   cases h : kiFindGen ki r with
   | none => rfl
   | some gi =>
@@ -363,11 +363,11 @@ theorem kiFindGen_kiTombstone {ki : KeyIndex} (hwf : KiWf ki) {rev : Rev} (_habo
 
 theorem kiGet_kiTombstone_above {ki : KeyIndex} (hwf : KiWf ki) {rev : Rev} (habove : KiAbove ki rev)
     {r : w64} (hr : sint.Z rev.main ≤ sint.Z r) : kiGet (kiTombstone ki rev) r = none := by
-  rw [kiGet_eq, kiFindGen_kiTombstone hwf habove, if_pos hr]; rfl
+  rw [kiGet_eq, kiFindGen_kiTombstone hwf habove, ite_eq_left hr]; rfl
 
 theorem kiGet_kiTombstone_below {ki : KeyIndex} (hwf : KiWf ki) {rev : Rev} (habove : KiAbove ki rev)
     {r : w64} (hr : sint.Z r < sint.Z rev.main) : kiGet (kiTombstone ki rev) r = kiGet ki r := by
-  rw [kiGet_eq, kiGet_eq, kiFindGen_kiTombstone hwf habove, if_neg (by omega)]
+  rw [kiGet_eq, kiGet_eq, kiFindGen_kiTombstone hwf habove, ite_eq_right (by omega)]
   cases h : kiFindGen ki r with
   | none => rfl
   | some gi =>

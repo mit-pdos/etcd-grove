@@ -114,7 +114,7 @@ theorem leasingX_session (lkv : Loc) (γ : LeasingNames) (st : LeaseCacheSt) (q 
     by_cases h : x.1 = null
     · simp only [h, ↓reduceIte]; itrivial
     · simp only [h, ↓reduceIte]
-      iapply (monoNatLbOwn_le 1 (by simp [sessN, h])) $$ Hlb
+      iapply (monoNatLbOwn_le 1 (by simp)) $$ Hlb
   iintro Hs
   iexists x
   iframe

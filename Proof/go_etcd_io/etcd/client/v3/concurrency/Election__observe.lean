@@ -509,7 +509,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
         icases Hp with ⟨%v', #Hv'kv, %Hv'k, %s', #Hs', %Hv's⟩
         have Hne : r.events ≠ [] := by intro h; rw [h] at He; simp at He
         iunfold watchHdrOwn at Hhdr
-        rw [if_neg Hne]
+        rw [ite_eq_right Hne]
         icases Hhdr with ⟨%Hhn, Hf⟩
         ihave #Hv'kv' := Hv'kv
         iunfold kvValAt at Hv'kv'
@@ -904,7 +904,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
       ipureintro
       exact ⟨HL, ⟨Hord.1, Int.le_trans Hc.2 Hcc'⟩, HRl0⟩
     · simp
-      rw [if_neg (fun h => Bool.false_ne_true (go.IntoValInj.intoVal_inj h))]
+      rw [ite_eq_right (fun h => Bool.false_ne_true (go.IntoValInj.intoVal_inj h))]
       (try wp_auto)
       wp_apply Hcancel'
       · imodintro; itrivial

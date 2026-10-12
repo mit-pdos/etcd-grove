@@ -817,7 +817,7 @@ theorem prop_collect (γ : RaftNames) (E : CoPset) (d : List w8) (γp : GName ×
     have h1 : firstOcc (ods.take (m + 1)) = firstOcc (ods.take m) ++ [d] := by
       rw [Htk, firstOcc_snoc]
       show (if d ∈ firstOcc (ods.take m) then _ else _) = _
-      rw [if_neg Hfirst]
+      rw [ite_eq_right Hfirst]
     rw [← h1]
     have h2 : ods.take (m + 1) <+: odsP := (List.take_prefix _ _).trans Hop
     obtain ⟨r, hr⟩ := h2

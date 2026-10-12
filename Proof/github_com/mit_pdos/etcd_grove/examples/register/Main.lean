@@ -131,7 +131,7 @@ theorem drop_cons_of_getElem? (l : List w64) (n : Nat) (x : w64) (h : l[n]? = so
 
 theorem take_succ_of_getElem? (l : List w64) (n : Nat) (x : w64) (h : l[n]? = some x) :
     l.take (n + 1) = l.take n ++ [x] := by
-  rw [List.take_succ, h]; rfl
+  rw [List.take_add_one, h]; rfl
 
 /-- The configuration `Main` starts node `id` with, on the storage `st`. -/
 abbrev nodeConfig (id : w64) (st : Loc) : Config :=
@@ -437,7 +437,7 @@ theorem Main.wp_proof
       icases Hpeer with ⟨%γn', %n', %Hgn', #HisNode'⟩
       obtain ⟨-, Hb', Hn'⟩ := Hgn'
       have Hnn : n' = n := by
-        simp only [interface.mkOk, interface.mk, GoInterface.ok.injEq] at Hn'
+        simp only [interface.mkOk, GoInterface.ok.injEq] at Hn'
         injection Hn' with _ h
         exact (go.intoVal_inj (V := Loc) h).symm
       subst Hnn
