@@ -1,0 +1,8 @@
+# The server's apply package (etcd's server/v3/etcdserver/apply): every linked result of
+# Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Link.lean and the results Results.lean prints.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/apply.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/(Link|Results)\.lean$
