@@ -43,9 +43,9 @@ theorem dbOK_removeReader (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbO
   · intro k' r' hk'
     rw [DBState.removeReader.proj_readers, GMap.lookup_delete_Some] at hk'
     exact hrd k' r' hk'.2
-  · intro k' r' s hk' hs
+  · intro k' r' hk'
     rw [DBState.removeReader.proj_readers, GMap.lookup_delete_Some] at hk'
-    exact hmv k' r' s hk'.2 hs
+    exact hmv k' r' hk'.2
   · intro s hs
     have H := hsl s hs
     rw [readersQ_delete _ _ k r hk, wQ_step] at H

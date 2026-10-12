@@ -160,7 +160,7 @@ theorem dbOK_addReader (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK �
   obtain ⟨hps, hps2, hn, hsz, hdc, hm0, hm1, hv, hcur, hrd, hmv, hsl, hfl, hro, hrs, hwr⟩ := h
   have hk := freshKey_none σ.readers
   have hcur' := hcur
-  obtain ⟨cwf, cdisj, cin, cfree⟩ := hcur'
+  obtain ⟨cwf, cdisj, cin, calloc, cfree⟩ := hcur'
   have hps16 : 16 ≤ σ.ps := by omega
   -- what the new reader sees: the current tree's slots
   have hsees : ∀ s, (newReader σ v0 v1 (beginQ σ)).sees s = true →
@@ -182,12 +182,15 @@ theorem dbOK_addReader (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK �
         ⟨(newReader_pages σ v0 v1 _ id pg hid).symm, cin id pg hid⟩⟩
     · exact hrd k' r' hk'
   · -- MVCC
-    intro k' r' s hk' hs
+    intro k' r' hk'
     rw [DBState.addReader, GMap.lookup_insert_Some] at hk'
     rcases hk' with ⟨_, rfl⟩ | ⟨_, hk'⟩
-    · obtain ⟨_, h2, h3, h4⟩ := hsees s hs
-      exact ⟨h2, h3, fun t pd ht hin => absurd hin (h4 t pd ht)⟩
-    · exact hmv k' r' s hk' hs
+    · refine ⟨fun id pg hid a ha => calloc id pg hid a ha, fun s hs => ?_⟩
+      have hs' : (newReader σ v0 v1 (beginQ σ)).sees s = true := by
+        unfold Reader.sees; simp only [decide_eq_true_eq]; exact hs
+      obtain ⟨_, h2, h3, h4⟩ := hsees s hs'
+      exact ⟨h2, h3, fun t pd i ht hin => absurd (List.mem_of_getElem? hin) (h4 t pd ht)⟩
+    · exact hmv k' r' hk'
   · -- the slots
     intro s hs
     show fracSum (if (newReader σ v0 v1 (beginQ σ)).sees s then
@@ -244,7 +247,9 @@ theorem rem_meta (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 v
   rw [readersQ_none _ _ (fun k r hk => by
     cases hr : r.sees s
     · rfl
-    · exact absurd (hmv k r s hk hr).1 (by omega))] at this
+    · have hc : coversSlot r.pages s := by
+        unfold Reader.sees at hr; simpa using hr
+      exact absurd ((hmv k r hk).2 s hc).1 (by omega))] at this
   cases hw : σ.wr with
   | none => rw [hw] at this; exact this
   | some w =>
@@ -252,7 +257,9 @@ theorem rem_meta (σ : DBState) (v0 v1 : internal.common.Meta) (h : dbOK σ v0 v
     unfold wQ at this
     cases hws : w.sees s
     · simp only [hws, Bool.false_eq_true, ↓reduceIte] at this; exact this
-    · exact absurd ((hwr.2 w hw).2 s hws).1 (by omega)
+    · have hc : coversSlot w.pages s := by
+        unfold Reader.sees at hws; simpa using hws
+      exact absurd (((hwr.2 w hw).2).2 s hc).1 (by omega)
 
 open Iris.ProofMode in
 /-- The two metas, taken out of the database's slots (and given back). -/

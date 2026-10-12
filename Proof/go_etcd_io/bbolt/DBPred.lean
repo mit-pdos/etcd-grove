@@ -143,27 +143,35 @@ def readerOK (σ : DBState) (r : Reader) : Prop :=
   (∀ id pg, r.pages !! id = some pg →
     pageAt σ.bs σ.ps id = pg ∧ id + pageSpan σ.bs σ.ps id ≤ σ.nslots)
 
-/-- bbolt's MVCC rule: a slot a reader sees is no meta page, not free, and pending only from a
-transaction newer than the reader (which freed it after the reader began). -/
+/-- bbolt's MVCC rule, for a view of transaction `txid` (a reader's, or the writer's) of the
+pages `pages`: they were allocated by `txid` or before (`allocs`); a slot they cover is no meta
+page, not free, and pending only from a transaction newer than `txid` that freed a page
+allocated by `txid` or before. So a page allocated and freed between two views is seen by
+neither (`releaseRange` frees it), and one freed before every view is seen by none
+(`release`). -/
+def mvccView (σ : DBState) (txid : w64) (pages : GMap Nat (List w8)) : Prop :=
+  (∀ id pg, pages !! id = some pg → ∀ a, σ.fl.allocs !! W64 id = some a → uint.Z a ≤ uint.Z txid) ∧
+  ∀ s, coversSlot pages s → 2 ≤ s ∧ W64 s ∉ σ.fl.free ∧
+    ∀ t pd i, σ.fl.pending !! t = some pd → pd.ids[i]? = some (W64 s) →
+      uint.Z (pd.alloctx.getD i 0) ≤ uint.Z txid ∧ uint.Z txid < uint.Z t
+
+/-- Every reader's view keeps the MVCC rule. -/
 def mvccOK (σ : DBState) : Prop :=
-  ∀ k r s, σ.readers !! k = some r → r.sees s →
-    2 ≤ s ∧ W64 s ∉ σ.fl.free ∧
-    ∀ t pd, σ.fl.pending !! t = some pd → W64 s ∈ pd.ids → uint.Z r.txid < uint.Z t
+  ∀ k r, σ.readers !! k = some r → mvccView σ r.txid r.pages
 
 /-- The writer: its view is a reader's (`readerOK`, MVCC: the pages it frees go pending for
 its own transaction, newer than its view), and it exists exactly when `rwtx` is set. -/
 def writerOK (σ : DBState) : Prop :=
   (σ.wr = none ↔ σ.rwtx = null) ∧
-  ∀ w, σ.wr = some w → readerOK σ w ∧ ∀ s, w.sees s →
-    2 ≤ s ∧ W64 s ∉ σ.fl.free ∧
-    ∀ t pd, σ.fl.pending !! t = some pd → W64 s ∈ pd.ids → uint.Z w.txid < uint.Z t
+  ∀ w, σ.wr = some w → readerOK σ w ∧ mvccView σ w.txid w.pages
 
 /-- The meta in slot `s`'s bytes after the page header. -/
 def metaIn (σ : DBState) (s : Nat) (v : internal.common.Meta) : Prop :=
   ((slotAt σ.bs σ.ps s).drop 16).take 64 = metaBytes v
 
 /-- The current tree (of the meta `db.meta()` picks): well-formed, its pages disjoint, inside
-the mapping, and none free or pending (a new reader sees it, `mvccOK`). -/
+the mapping, allocated by its transaction or before, and none free or pending (a new reader
+sees it, `mvccOK`). -/
 def currentOK (σ : DBState) (v0 v1 : internal.common.Meta) : Prop :=
   let m := if metaPick v0 v1 then v1 else v0
   let hwm := uint.nat m.pgid'
@@ -171,6 +179,8 @@ def currentOK (σ : DBState) (v0 v1 : internal.common.Meta) : Prop :=
   let ps := treePages (filePages σ.bs σ.ps hwm) root
   treeWF ps hwm root ∧ pagesDisjoint ps ∧
   (∀ id pg, ps !! id = some pg → id + pageSpan σ.bs σ.ps id ≤ σ.nslots) ∧
+  (∀ id pg, ps !! id = some pg → ∀ a, σ.fl.allocs !! W64 id = some a →
+    uint.Z a ≤ uint.Z m.txid') ∧
   (∀ s, coversSlot ps s → 2 ≤ s ∧ W64 s ∉ σ.fl.free ∧
     ∀ t pd, σ.fl.pending !! t = some pd → W64 s ∉ pd.ids)
 
