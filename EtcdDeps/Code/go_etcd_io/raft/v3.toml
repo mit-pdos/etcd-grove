@@ -2,7 +2,7 @@
 # names only, for the types of the server's fields (raft.Node, raft.MemoryStorage, ...), but
 # the helpers the server's raft wrapper calls (raft.go's Ready loop) and what they read.
 translate = ["!*", "IsEmptySnap", "IsEmptyHardState", "isHardStateEqual", "emptyState", "None", "StateLeader", "StateType", "SoftState", "Ready", "ReadState"]
-imports = ["!*", "go.etcd.io/raft/v3/raftpb"]
+imports = ["!*", "context", "go.etcd.io/raft/v3/raftpb"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

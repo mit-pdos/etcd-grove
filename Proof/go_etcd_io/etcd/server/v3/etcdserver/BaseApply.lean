@@ -143,8 +143,20 @@ end go_etcd_io.etcd.server.v3.etcdserver.api.snap
 
 namespace go_etcd_io.raft.v3
 
+/-- raft v3.7's package facts (2026-10-12, for the raft wrapper's `IsEmptyHardState`): its
+`emptyState` holds for good a pointer to a `HardState` with every field absent
+(`emptyState = &pb.HardState{}`). -/
+def raftInit : IProp GF :=
+  iprop(∃ e : Loc, globalAddr emptyState ↦□ e ∗ ⌜e ≠ null⌝ ∗
+    structFieldRef raftpb.HardState go!"Term" e ↦□ (null : Loc) ∗
+    structFieldRef raftpb.HardState go!"Vote" e ↦□ (null : Loc) ∗
+    structFieldRef raftpb.HardState go!"Commit" e ↦□ (null : Loc))
+
+instance raftInit_persistent : Persistent (raftInit (GF := GF)) := by
+  unfold raftInit; infer_instance
+
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init raftInit
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
   build_get_is_pkg_init_wf
 
@@ -206,8 +218,33 @@ end go_etcd_io.etcd.server.v3.etcdserver.read
 
 namespace go_etcd_io.etcd.server.v3.etcdserver
 
+/-- A prometheus `Gauge` as the raft wrapper uses it: `Set(x)` returns. -/
+def gaugeSetSpec (g : GoInterfaceOk) : IProp GF :=
+  iprop(□ (∀ x : w64, {{ True }} (App (Val #(methods g.ty go!"Set" g.v)) (Val #x))
+    {{ RET #(); True }}))
+
+instance gaugeSetSpec_persistent (g : GoInterfaceOk) :
+    Persistent (gaugeSetSpec (GF := GF) g) := by
+  unfold gaugeSetSpec; infer_instance
+
+/-- The server's package facts (2026-10-12, for the raft wrapper, `raft.go`): the metrics of
+`metrics.go` the `Ready` loop updates each hold a fixed gauge (`hasLeader`, `isLeader`,
+`proposalsCommitted`: `Set`) or counter (`leaderChanges`, `heartbeatSendFailures`: `Inc`, mvcc's
+`counterSpec`). -/
+def srvInit : IProp GF :=
+  iprop((∃ g : GoInterfaceOk, globalAddr hasLeader ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
+    (∃ g : GoInterfaceOk, globalAddr isLeader ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
+    (∃ g : GoInterfaceOk, globalAddr proposalsCommitted ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
+    (∃ c : GoInterfaceOk, globalAddr leaderChanges ↦□ GoInterface.ok c ∗
+      go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c) ∗
+    (∃ c : GoInterfaceOk, globalAddr heartbeatSendFailures ↦□ GoInterface.ok c ∗
+      go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c))
+
+instance srvInit_persistent : Persistent (srvInit (GF := GF)) := by
+  unfold srvInit go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec; infer_instance
+
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init srvInit
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver :=
   build_get_is_pkg_init_wf
 
