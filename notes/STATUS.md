@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-12 (bbolt: the read path verified in sequential use, see "bbolt"; the register example verified over raft: logically atomic `Put`/`Get`, raft proposals over a client log, see "The register example"; the cache's wait-group counter bounded by thread tokens, Perennial `105fb79f5`: the `WaitGroup.Add` overflow assumption reverted, `New` assumes fewer than `2^31 - 3` live threads, see "The wait-group counter and thread tokens"; `node.go` proved: `RestartNode`, `run`, `Propose`, `Step`, `Tick`, `Ready`, `Advance`, see "`node.go`: the concurrent `Node`"; groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
+**Last updated:** 2026-10-12 (bbolt: the read path and the writer's beginning verified in sequential use, Goose's named-results-with-defer fix (Perennial `f553888`), see "bbolt"; the register example verified over raft: logically atomic `Put`/`Get`, raft proposals over a client log, see "The register example"; the cache's wait-group counter bounded by thread tokens, Perennial `105fb79f5`: the `WaitGroup.Add` overflow assumption reverted, `New` assumes fewer than `2^31 - 3` live threads, see "The wait-group counter and thread tokens"; `node.go` proved: `RestartNode`, `run`, `Propose`, `Step`, `Tick`, `Ready`, `Advance`, see "`node.go`: the concurrent `Node`"; groundwork for `node.go`: a computed `Ready` can be abandoned, Perennial's `wp_slice_append_undo`; pre-vote out of scope at the RawNode level; `Ready`'s messages carry terms at most the node's, see "`node.go` groundwork"; `RawNode.Ready` split into `readyWithoutAccept` and `acceptReady`, for `node.go`; the storage contract has a pending append, for `node.go`; `MemoryStorage.Append` and `NewMemoryStorage` proved; merged upstream's RawNode work into the cache-as-shipped and concurrency line, Perennial `7d0b56b07`, see "Merge: upstream's RawNode work"; `RawNode.Step` takes a `MsgApp` between `Ready` and `Advance`; the `Advance` gap closed; Perennial `f52ce33dc`: Goose with Go 1.22 loop variables, range over arrays, `fallthrough`, `break` in `switch`/`select`, local types; the raft retarget to upstream parked, see "Retargeting raft to upstream"; the TCB and verified-code scripts generic, `--roots`/collections; Perennial `79adaac01`: models of `fmt.Sprintf`, `strings.Join`, `crypto/rand.Int`, three raft axioms gone; Perennial `7d0b56b07`: Goose with per-iteration loop variables, `break` out of `select`, see "Perennial `7d0b56b07`"; merged `cache-as-shipped` into the concurrency work, see "Merge: the cache as shipped and client/v3/concurrency"; the cache as shipped: the verified code is upstream main plus the one real fix, the store has shared writers, Perennial `9092f8eaa`: `WaitGroup.Add`'s overflow a model assumption, see "The cache as shipped"; `client/v3/concurrency`: the transaction and lease model, `Session` proved; the cache sorry-free: Perennial `3ae7dc6a4`, see "Sorry-free"; the cache's linearizability as a model fact, `etcdReached`; merged with upstream's server work: the consistent index and the apply thread, the raft predicate refactors and client-facing RawNode specs; Perennial `8c33774d0`: Goose without `-lean`; the whole cache package specified and proved)
 
 Porting the Rocq Raft proof (`new/proof/go_etcd_io/raft/election_proof/`) of
 branch `worktree-agent-a22b3746ec9c86178` at `857d09190` (the RawNode branch: it merges
@@ -109,9 +109,9 @@ concurrently); `newRaft` returns `s.gh = {}`.
 
 Not checked: `etc/tcb-report.py --check` (needs a full build; the disk is short).
 
-## bbolt: the read path verified, sequential use (2026-10-12)
+## bbolt: the read path and the writer's beginning verified, sequential use (2026-10-12)
 
-**Branch.** etcd-grove branch `bbolt`, pinned to Perennial branch `goose-bbolt` (`ec19aee`,
+**Branch.** etcd-grove branch `bbolt`, pinned to Perennial branch `goose-bbolt` (`f553888`,
 not merged into Perennial's `lean`; builds here use `.lake/perennial-dev`). Merging needs
 Perennial's branch merged first and the repository rebuilt against it.
 
@@ -119,49 +119,78 @@ Perennial's branch merged first and the repository rebuilt against it.
 cells, gc's sizes and layouts, real array and struct allocation, `unsafe.Add`/`unsafe.Slice`;
 the file and the memory map are `Proof/os/FileModel.lean` (axioms for the `os`, `syscall`,
 `unix` functions bbolt calls). No crash semantics. The plan: `notes/bbolt-proof-plan.md`.
+Linux (`Proof/runtime/GOOS.lean`, an assumption class), `Mlock` off.
+
+**Goose fix** (Perennial `f553888`): a `return` in a function with named results and a
+`defer` did not assign the named results, so a deferred closure saw stale values and its
+assignments were lost (`DB.mmap` skipped its rollback `munmap`; `safelyCall`'s recovered
+error was dropped). Such a function now allocates its results around `with_defer:`, a
+`return` stores into them, and it returns them after the deferred calls (13 bbolt functions
+retranslated, nothing else in this repository or Perennial's translations changed; semantics
+tests `testNamedResultDefer`, `testNamedResultShadowed`).
 
 **The database predicate** (`Proof/go_etcd_io/bbolt/DBPred.lean`), sequential use (one
-goroutine uses the database; any number of read transactions open; no writer yet): `ownDB`
-holds the DB's fields, the file and mapping, every mapped slot at the fraction no reader
-holds (`FilePages`, `SlotsCarve`), the freelist (`ownFL` of an implementation of the
-freelist interface), `metalock`, `mmaplock`'s unused read handles and each reader's ghost
-token (so a writer's write lock will know no reader is open), and a ghost map of the
-readers; `dbOK` says the metas are valid, the current tree is well-formed, a reader's pages
-are the file's, and bbolt's MVCC rule (a slot a reader sees is no meta, not free, pending
-only from a newer transaction). `ownReadTx` holds a reader's pages at its fraction. The
-logger is the default one (a logger contract is later work).
+goroutine uses the database; any number of read transactions open; at most one writer):
+`ownDB` holds the DB's fields (the logger and `pageSize`, never written after `Open`,
+persistent; `data` shared with the transactions at fractions; `freelist` shared with the
+writer), the file and mapping, every mapped slot at the fraction no transaction holds
+(`FilePages`, `SlotsCarve`) and the tail after the whole slots (`mapTail`, for a remap's
+`munmap`), the freelist (`ownFL` of an implementation of the freelist interface), the page
+pool (`isPool` of zeroed page buffers), `metalock`, `rwlock` (held while a writer is open),
+`mmaplock`'s unused read handles and each reader's ghost token (so the write lock knows no
+reader is open), and a ghost map of the readers. `dbOK`: the metas (one valid), the current
+tree (well-formed, inside the mapping, its pages ending below the high-water mark), the
+readers' and the writer's views the file's, bbolt's MVCC rule (a slot a view covers is no
+meta, not free, pending only from a newer transaction), the accounting of the fractions,
+and the freelist below the high-water mark (`flBelow`). `ownReadTx`: a reader; `wtxInit`:
+what `beginRWTx` hands the writer (its object graph's predicate is the write agent's work,
+`WriteTxPred.lean`, in progress).
 
 **Proved** (no `sorry`; each package's `Results.lean` prints its axioms):
 - `internal/common` (117 results, `gen-link.py --bbolt`): all but `Meta.Print`,
   `Page.hexdump` (an `io.Writer`) and `CopyFile` (filesystem); `hash/fnv`, `os.Getenv`/
   `Setenv`/`Unsetenv`, `strings.ToLower` are trust-boundary axioms.
-- `internal/freelist` (25, `--bbolt-freelist`): the array freelist, `shared`'s methods, the
-  interface contract (`Iface.lean`, `ArrayIface.lean`); `sort.Sort` an axiom. Specs only:
-  `Rollback`, `release`, `releaseRange`, `ReleasePendingPages` (they delete from a map while
-  ranging over it: Perennial's map range does not allow it); `hashMap` not done.
-- the root package (116, `--bbolt-root`): statistics, accessors, `mmap`/`munmap`,
-  `mmapSize`, `db.page`, `db.meta`, `Tx.page`, `Tx.init`, `beginTx`, `removeTx`,
-  `Begin(false)`, `Tx.close`/`Rollback` (read), `View`, the cursor read path (`search`
-  through `First`/`Last`/`Next`/`Prev`/`Seek`), `node.go` but the graph-shaped parts
-  (`read`, `write`, `put`, `del`, `dereference`, ...).
+- `internal/freelist` (30, `--bbolt-freelist`): the array freelist, all of `shared` (also
+  `Rollback`, `release`, `releaseRange`, `ReleasePendingPages`: Perennial's map range does
+  allow deleting), the interface contract (`Iface.lean`, `ArrayIface.lean`), `hashMap.addSpan`;
+  `sort.Sort` an axiom.
+- the root package (135, `--bbolt-root`): statistics, accessors, `mmap`/`munmap`,
+  `mmapSize`, `db.page`, `db.meta`, `Tx.page`, `Tx.init`, `beginTx`, `beginRWTx` (the
+  freelist's pending pages no reader sees released), `removeTx`, `Begin` (both kinds),
+  `Tx.close`/`Rollback` (read), `View`, the logger (`DB.Logger`, the default logger's
+  `Errorf`; `log.Logger.Output` an axiom), `fileSize`, `grow`, the cursor read path, the
+  bucket read API (`Bucket.Get`, `Tx.Bucket`, `ForEach`, ...), `node.go` but the
+  graph-shaped parts. `sync.Pool` (`Proof/sync/PoolModel.lean`) and `os.FileInfo`
+  (`Proof/os/FileInfoAlias.lean`) are trust-boundary models.
+- pure, for the write path: a remap's cells (`DBRemap.lean`: `remap_gather`,
+  `remap_carve`, `dbOK_remap`), a freelist allocation (`DBAlloc.lean`); specs written for
+  `db.mmap` (open and remap, a writer dereferenced first; its proof running) and
+  `db.allocate`.
 
 **Safety findings** (preconditions that rule out a reachable panic or a false spec):
 `Rollback` inside `View` panics (`managed`); an empty branch page would make the cursor read
 garbage (branches need an element); `mmapSize` overflows for a page size of 2^32 or more;
 `node.put` needs `pgId < meta.pgid` and non-empty keys; `node.write` fewer than 65535
-inodes; more than 2^30 - 1 open readers overflow `mmaplock`.
+inodes (with a page size above about 1 MiB a leaf of that many fits one page:
+`Options.PageSize`); more than 2^30 - 1 open readers overflow `mmaplock`;
+`recursivelyInspect` dereferences nil when `seek` misses; `openBucket` needs an inline
+bucket's value longer than 16 bytes; `grow` needs the file no longer than the mapping. The
+file must be well-formed: a nested bucket inside an inline one, a page shared by two
+parents (freed twice), an empty first key (`node.read`), a freelist id at the high-water
+mark or above (`node.spill` panics), a page running past the high-water mark. A failed
+remap (the `mmap` system call) leaves `db.data` nil: the next `Begin` dereferences it.
 
-**Perennial gaps** (batch for `goose-bbolt`): float conversions (`uintptr`/`float64`/`int`:
-`node.splitTwo`, `rebalance`); pointer to `uintptr` (`openBucket`'s alignment test);
-deleting from a map inside a range over it (the freelist's release); a package's
-`Assumptions` should include the types it reaches through others (`hash.Hash64`, taken as
-an instance hypothesis now); `runtime.GOOS`, `os.FileInfo`, `unix.Mlock`, `log`/`fmt` specs.
+**Perennial gaps** (batch for `goose-bbolt`): float conversions (`node.splitTwo`,
+`rebalance`; `FloatConv.lean` a class meanwhile); `delete`/`clear` on a named map type
+(`hashMap`'s `pidSet`: `delete_map`, `wp_mapDelete` take a literal `go.MapType`); a
+package's `Assumptions` should include the types it reaches through others (`hash.Hash64`);
+`runtime.GOOS` constants, the `os.FileInfo` alias; moving `SliceWithin` into Perennial.
 
-**Next.** The bucket read API (`Bucket.Get`, `Tx.Bucket`, `ForEach`: running); the write
-path (`beginRWTx`, the node/bucket graph, `Put`/`Delete`/`CreateBucket`, `Commit`: spill,
-freelist write, page writes through `WriteAt`, `writeMeta`, `allocate`/`grow`/remap);
-`Open`/`init`/`close`; `Batch`; `etc/tcb-report.py --check --update` for the new axioms (CI
-fails its check until then).
+**Next.** `db.mmap`'s proof (running), `db.allocate`, the write agent's `Tx.allocate`; the
+writer's object graph (`WriteTxPred.lean`, the write agent: bucket/node graph, `Put`,
+`Delete`, spill); `Commit` (freelist write, page writes, `writeMeta`, `grow`), the writer's
+`Rollback`/`close`; `Open`/`init`/`close`; `Batch`; `etc/tcb-report.py --check --update`
+for the new axioms (CI fails its check until then).
 
 ## `node.go` groundwork: abandoning a `Ready`, pre-vote off, the messages' terms (2026-10-10)
 
