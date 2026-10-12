@@ -23,13 +23,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `ti.unsafeGet(key, atRev)` (under the lock, on the tree at any fraction, every key index
-with a revision): the key's revision, create revision and version at `atRev`, or
+with a revision, a non-nil logger): the key's revision, create revision and version at `atRev`, or
 `ErrRevisionNotFound` (`kiGetVal` of the key's index, the empty one if the key has none). -/
 abbrev mvcc.treeIndex.unsafeGet.spec : Prop :=
   ∀ (ti t lg : Loc) (L : List mvcc.IdxEntry) (q : Qp) (key : GoSlice) (k : GoString)
     (atRev : w64) (e : GoInterfaceOk),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      ti.[treeIndex, go!"tree"] ↦□ t ∗ ti.[treeIndex, go!"lg"] ↦□ lg ∗ mvcc.ownTree t L q ∗
+      ti.[treeIndex, go!"tree"] ↦□ t ∗ ti.[treeIndex, go!"lg"] ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+      mvcc.ownTree t L q ∗
       ⌜∀ z ∈ L, mvcc.kiIsEmpty z.2.2 = false⌝ ∗ key ↦*□ k ∗
       globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e }}
     (App (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"unsafeGet")) (Val #key))

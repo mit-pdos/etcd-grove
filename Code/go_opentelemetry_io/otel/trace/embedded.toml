@@ -1,0 +1,8 @@
+# Types only: the interfaces `trace.Span` (and `Tracer`, `TracerProvider`) embed, so that Goose
+# translates `trace.Span` as an interface instead of axiomatizing it (mvcc's watchStream.Watch
+# stores a span in a local variable).
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

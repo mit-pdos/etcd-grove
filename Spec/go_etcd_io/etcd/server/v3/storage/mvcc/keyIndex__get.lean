@@ -21,17 +21,20 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `ki.get(lg, atRev)` on a key index that is not empty (else the code panics): the key's
-revision, create revision and version at `atRev`, or `ErrRevisionNotFound` (`kiGet`,
-`kiGetVal`). A read, at any fraction. -/
+/-- `ki.get(lg, atRev)` (a non-nil logger): if the key index is empty (`isEmpty`), `lg.Panic`
+panics with its message; else the key's revision, create revision and version at `atRev`, or
+`ErrRevisionNotFound` (`kiGet`, `kiGetVal`). A read, at any fraction. -/
 abbrev mvcc.keyIndex.get.spec : Prop :=
-  ∀ (p : Loc) (gs : GoSlice) (ki : mvcc.KeyIndex) (dq : DFrac) (lg : Loc) (atRev : w64)
-    (e : GoInterfaceOk),
+  ∀ (p : Loc) (gs : GoSlice) (ki : mvcc.KeyIndex) (k : GoString) (dq : DFrac) (lg : Loc)
+    (atRev : w64) (e : GoInterfaceOk),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      ⌜mvcc.kiIsEmpty ki = false⌝ ∗ mvcc.ownKi p gs ki dq ∗
+      ⌜lg ≠ null⌝ ∗ mvcc.kiKey p k ∗ mvcc.ownKi p gs ki dq ∗
       globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e }}
     (App (App (Val (p @!! go.GoType.PointerType keyIndex.ty @!! go!"get")) (Val #lg)) (Val #atRev))
-  {{ RET (mvcc.kiGetVal ki atRev (GoInterface.ok e)); mvcc.ownKi p gs ki dq }}
+  {{ (r : val), RET r;
+      if mvcc.kiIsEmpty ki then
+        ⌜r = PanicV #(go!"'get' got an unexpected empty keyIndex")⌝ ∗ mvcc.ownKi p gs ki dq
+      else ⌜r = mvcc.kiGetVal ki atRev (GoInterface.ok e)⌝ ∗ mvcc.ownKi p gs ki dq }}
 
 end spec
 

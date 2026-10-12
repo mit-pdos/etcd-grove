@@ -107,7 +107,7 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
   icases Hres with ⟨%Hok, #Hitemw⟩
   subst Hok
   iunfold mvcc.kiItemIs at Hitemw
-  icases Hitemw with ⟨%Hiw, -⟩
+  icases Hitemw with ⟨%Hiw, #HzKey⟩
   rw [hf] at Hidx
   simp only [Option.map_some] at Hidx
   obtain ⟨i, hi, hk⟩ := mvcc.find?_entry_getElem? L k z hf
@@ -131,14 +131,14 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
   icases Hz with ⟨%Hzn, %gs, Hki⟩
   simp only at Hiw
   rw [Hiw]
-  wp_apply (hTomb z.1 gs z.2.2 lg rev.Main' rev.Sub' _) $$ [$Hki $Herr] as %err Hpost
-  · ipureintro
-    refine ⟨hne.2, hne.1, ?_⟩
+  have Hlt : mvcc.Rev.lt z.2.2.modified ⟨rev.Main', rev.Sub'⟩ := by
     rw [hrevm, hrevs, hz, mvcc.kiOfKey_eq_kiFold]
     exact mvcc.kiFold_modified_lt k _ _ _ (mvcc.Rev.lt_zero_of_pos _ _ Hilog (by omega))
       (mvcc.evsOf_rev_lt ilog pend (by omega) Hplen)
-  rw [hlast]
-  simp only [Bool.false_eq_true, ↓reduceIte]
+  wp_apply (hTomb z.1 gs z.2.2 z.2.1 lg rev.Main' rev.Sub' _) $$ [$HzKey $Hki $Herr] as %err Hpost
+  · ipureintro; exact ⟨Hlgnn, hne.2⟩
+  rw [hne.1, hlast]
+  simp only [Hlt, Bool.false_eq_true, ↓reduceIte]
   icases Hpost with ⟨%Herr', %gs', Hki⟩
   subst Herr'
   (try wp_auto)

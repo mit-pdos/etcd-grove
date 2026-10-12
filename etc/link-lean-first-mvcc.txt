@@ -16,12 +16,17 @@ BytesToRev: BytesToBucketKey
 # The key index and its generations (key_index.go), see Model.lean, Defs.lean.
 generation__isEmpty:
 generation__walk:
+# zap's field constructors and `Logger.Panic` (the key index's panics) are the trust boundary
+# (axioms; `Logger.Fatal` has one too, which no verified function reaches).
+zap_Int64:
+zap_String:
+zap_Logger__Panic:
 keyIndex__Less:
 keyIndex__isEmpty: generation__isEmpty
 keyIndex__findGeneration:
-keyIndex__get: keyIndex__isEmpty keyIndex__findGeneration generation__isEmpty generation__walk
-keyIndex__put: Revision__GreaterThan
-keyIndex__tombstone: keyIndex__isEmpty generation__isEmpty keyIndex__put
+keyIndex__get: keyIndex__isEmpty zap_String zap_Logger__Panic keyIndex__findGeneration generation__isEmpty generation__walk
+keyIndex__put: Revision__GreaterThan zap_Int64 zap_Logger__Panic
+keyIndex__tombstone: keyIndex__isEmpty generation__isEmpty zap_String zap_Logger__Panic keyIndex__put
 # The btree (k8s.io/utils/third_party/forked/golang/btree), proved and linked in its own
 # package (`@`, as in the cache's list).
 btree_New: @
@@ -101,6 +106,46 @@ NewHashStorage:
 schema_UnsafeCreateMetaBucket:
 store__restore:
 NewStore: zap_NewNop newTreeIndex schedule_NewFIFOScheduler NewHashStorage schema_UnsafeCreateMetaBucket store__restore
+# The interval tree's (pkg/v3/adt, see Proof/go_etcd_io/etcd/pkg/v3/adt/): its proved
+# comparisons (linked in its own Link.lean) and its pending contract (unit 4 proves it; until
+# then hypotheses of every result that reaches them).
+adt_NewStringAffineInterval: @
+adt_NewStringAffinePoint: @
+adt_NewIntervalTree: ?
+adt_intervalTree__Find: ?
+adt_intervalTree__Insert: ?
+adt_intervalTree__Delete: ?
+adt_intervalTree__Intersects: ?
+adt_intervalTree__Stab: ?
+# The watcher group (watcher_group.go): the sets and the group's structure over the tree's
+# contract, see InvWatchGroup.lean.
+watcherSet__add:
+watcherSet__delete:
+watcherSet__union: watcherSet__add
+watcherSetByKey__add: watcherSet__add
+watcherSetByKey__delete:
+newWatcherGroup: adt_NewIntervalTree
+watcherGroup__add: watcherSet__add watcherSetByKey__add adt_NewStringAffineInterval adt_intervalTree__Find adt_intervalTree__Insert
+watcherGroup__contains: adt_NewStringAffinePoint adt_intervalTree__Intersects
+watcherGroup__size:
+watcherGroup__delete: watcherSet__delete watcherSetByKey__delete adt_NewStringAffineInterval adt_intervalTree__Find adt_intervalTree__Delete
+watcherGroup__watcherSetByKey: adt_NewStringAffinePoint adt_intervalTree__Stab watcherSet__union
+# The batches and the choice of watchers to sync (watcher_group.go), see InvWatchBatch.lean.
+eventBatch__add:
+watcherBatch__add: eventBatch__add
+newWatcherBatch: watcherGroup__watcherSetByKey watcherBatch__add
+watcherGroup__chooseAll:
+watcherGroup__choose: newWatcherGroup watcherGroup__add watcherGroup__chooseAll
+# The client's watch stream (watcher.go) over the `watchable` contract, see InvWatchStream.lean;
+# opentelemetry's `SpanFromContext` is the trust boundary (an axiom).
+trace_SpanFromContext:
+watchStream__Watch: trace_SpanFromContext
+watchStream__Chan:
+watchStream__Cancel:
+watchStream__Close:
+watchStream__Rev:
+watchStream__RequestProgress:
+watchStream__RequestProgressAll:
 # The read-only write transaction (kv.go), for the server's txn package, see InvRoTxn.lean: the
 # read transaction wrapped as a `TxnWrite`; its reads delegate (through the promoted methods),
 # `Changes` returns nil, `Put` and `DeleteRange` panic.

@@ -1,0 +1,7 @@
+# Types only: the types of `trace.Span`'s method parameters, so that Goose translates
+# `trace.Span` as an interface (mvcc's watchStream.Watch stores a span in a local variable).
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
