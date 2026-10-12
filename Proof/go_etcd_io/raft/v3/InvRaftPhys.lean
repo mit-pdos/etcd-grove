@@ -263,6 +263,7 @@ theorem raftOwn_logger (l : Loc) (v : raft) :
     ⊢ raftOwn (GF := GF) l v -∗ l.[raft, go!"logger"] ↦□ v.logger' := by
   iintro H; unfold raftOwn; iNamed H; iexact H_logger
 
+set_option hygiene false in
 /-- Take field `f` out of `raftOwn` and put back any value: a load or a store. -/
 local macro "raftOwn_access " f:ident : tactic =>
   `(tactic| (constructor
@@ -273,8 +274,12 @@ local macro "raftOwn_access " f:ident : tactic =>
              · iexact $f:ident
              iintro $f:ident
              simp only [named]
-             iframe
-             try iframe #))
+             iframe H_id H_Term H_Vote H_readStates H_raftLog H_maxMsgSize H_maxUncommittedSize
+                H_trk H_state H_isLearner H_msgs H_msgsAfterAppend H_lead H_leadTransferee
+                H_pendingConfIndex H_disableConfChangeValidation H_uncommittedSize H_readOnly
+                H_electionElapsed H_heartbeatElapsed H_checkQuorum H_preVote H_heartbeatTimeout
+                H_electionTimeout H_randomizedElectionTimeout H_disableProposalForwarding
+                H_stepDownOnRemoval H_tick H_step H_logger H_pendingReadIndexMessages H_traceLogger))
 
 theorem raftOwn_access_load_Term (l : Loc) (v : raft) :
     AccessStrict (PROP := IProp GF) (l.[raft, go!"Term"] ↦ v.Term') (l.[raft, go!"Term"] ↦ v.Term')
@@ -1438,8 +1443,12 @@ local macro "split_field_proof " f:ident : tactic =>
              iframe $f:ident
              iintro %x $f:ident
              simp only [named]
-             iframe
-             try iframe #))
+             iframe H_id H_Term H_Vote H_readStates H_raftLog H_maxMsgSize H_maxUncommittedSize
+                H_trk H_state H_isLearner H_msgs H_msgsAfterAppend H_lead H_leadTransferee
+                H_pendingConfIndex H_disableConfChangeValidation H_uncommittedSize H_readOnly
+                H_electionElapsed H_heartbeatElapsed H_checkQuorum H_preVote H_heartbeatTimeout
+                H_electionTimeout H_randomizedElectionTimeout H_disableProposalForwarding
+                H_stepDownOnRemoval H_tick H_step H_logger H_pendingReadIndexMessages H_traceLogger))
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
