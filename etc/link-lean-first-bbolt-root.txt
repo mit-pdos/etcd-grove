@@ -151,3 +151,6 @@ Tx__nonPhysicalRollback: Tx__close
 Tx__Rollback: common_Assert Tx__nonPhysicalRollback
 DB__View: DB__Begin Tx__Rollback
 DB__fileSize: os_File__Stat fs_FileInfo__Size
+log_Logger__Output:
+header:
+DefaultLogger__Errorf: header log_Logger__Output

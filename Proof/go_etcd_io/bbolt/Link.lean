@@ -44,6 +44,7 @@ public import Proof.go_etcd_io.bbolt.DB__munmap
 public import Proof.go_etcd_io.bbolt.DB__page
 public import Proof.go_etcd_io.bbolt.DB__pageInBuffer
 public import Proof.go_etcd_io.bbolt.DB__removeTx
+public import Proof.go_etcd_io.bbolt.DefaultLogger__Errorf
 public import Proof.go_etcd_io.bbolt.Options__String
 public import Proof.go_etcd_io.bbolt.Stats__Sub
 public import Proof.go_etcd_io.bbolt.TxStats__GetCursorCount
@@ -93,6 +94,8 @@ public import Proof.go_etcd_io.bbolt.elemRef__count
 public import Proof.go_etcd_io.bbolt.elemRef__isLeaf
 public import Proof.io.fs.FileInfo__Size
 public import Proof.go_etcd_io.bbolt.getDiscardLogger
+public import Proof.go_etcd_io.bbolt.header
+public import Proof.log.Logger__Output
 public import Proof.go_etcd_io.bbolt.newBucket
 public import Proof.go_etcd_io.bbolt.node__childIndex
 public import Proof.go_etcd_io.bbolt.node__del
@@ -148,7 +151,6 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
 -- the ghost state of the database's predicates (`DBPred.lean`)
 variable [AllG GF]
--- `os.FileInfo`, an alias Perennial's `os` keeps opaque (`Proof/os/FileInfoAlias.lean`)
 variable [os_fi : OsFileInfoAssumptions (GF := GF)]
 
 theorem BucketStats.wp_Add :
@@ -454,6 +456,18 @@ theorem DB.wp_munmap :
 theorem DB.wp_pageInBuffer :
     EtcdGrove.bbolt.DB.pageInBuffer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.DB.pageInBuffer.wp_proof
+
+theorem wp_header :
+    EtcdGrove.bbolt.header.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.header.wp_proof
+
+theorem log.Logger.wp_Output :
+    EtcdGrove.bbolt.log.Logger.Output.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.log.Logger.Output.wp_proof
+
+theorem DefaultLogger.wp_Errorf :
+    EtcdGrove.bbolt.DefaultLogger.Errorf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.DefaultLogger.Errorf.wp_proof EtcdGrove.bbolt.wp_header EtcdGrove.bbolt.log.Logger.wp_Output
 
 theorem Options.wp_String :
     EtcdGrove.bbolt.Options.String.spec (GF := GF) (hG := hG) :=

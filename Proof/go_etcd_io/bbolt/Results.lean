@@ -93,6 +93,9 @@ namespace bbolt
 #print axioms wp_munmap
 #print axioms DB.wp_munmap
 #print axioms DB.wp_pageInBuffer
+#print axioms wp_header
+#print axioms log.Logger.wp_Output
+#print axioms DefaultLogger.wp_Errorf
 #print axioms Options.wp_String
 #print axioms TxStats.wp_Sub
 #print axioms Stats.wp_Sub

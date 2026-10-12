@@ -29,6 +29,7 @@ variable [hash_sem : _root_.Perennial.hash.Hash64.TypeAssumptions]
 theorem ownDB_logger (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DBState) :
     ownDB I dbl γ σ ⊢ ∃ (lg : GoInterface) (dl : Loc),
       structFieldRef DB go!"logger" dbl ↦ lg ∗ (globalAddr discardLogger ↦□ dl : IProp GF) ∗
+      defaultLoggerOK dl ∗
       ⌜(lg = interface.nil ∨ lg = discardIface dl) ∧ dbl ≠ null⌝ ∗
       (structFieldRef DB go!"logger" dbl ↦ lg -∗ ownDB I dbl γ σ) := by
   iintro Hdb

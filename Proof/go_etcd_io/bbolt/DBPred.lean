@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.bbolt.DBSplit
 public import Proof.go_etcd_io.bbolt.DBModel
 public import Proof.go_etcd_io.bbolt.FilePages
 public import Proof.go_etcd_io.bbolt.Tx__init
+public import Spec.go_etcd_io.bbolt.DefaultLogger__Errorf
 public import Proof.os.FileModel
 public import Proof.go_etcd_io.bbolt.internal.freelist.Iface
 public import Perennial.Proof.sync_proof.mutex
@@ -152,8 +153,8 @@ neither (`releaseRange` frees it), and one freed before every view is seen by no
 def mvccView (σ : DBState) (txid : w64) (pages : GMap Nat (List w8)) : Prop :=
   (∀ id pg, pages !! id = some pg → ∀ a, σ.fl.allocs !! W64 id = some a → uint.Z a ≤ uint.Z txid) ∧
   ∀ s, coversSlot pages s → 2 ≤ s ∧ W64 s ∉ σ.fl.free ∧
-    ∀ t pd i, σ.fl.pending !! t = some pd → pd.ids[i]? = some (W64 s) →
-      uint.Z (pd.alloctx.getD i 0) ≤ uint.Z txid ∧ uint.Z txid < uint.Z t
+    ∀ t pd a, σ.fl.pending !! t = some pd → (W64 s, a) ∈ pd.pairs →
+      uint.Z a ≤ uint.Z txid ∧ uint.Z txid < uint.Z t
 
 /-- Every reader's view keeps the MVCC rule. -/
 def mvccOK (σ : DBState) : Prop :=
@@ -182,7 +183,7 @@ def currentOK (σ : DBState) (v0 v1 : internal.common.Meta) : Prop :=
   (∀ id pg, ps !! id = some pg → ∀ a, σ.fl.allocs !! W64 id = some a →
     uint.Z a ≤ uint.Z m.txid') ∧
   (∀ s, coversSlot ps s → 2 ≤ s ∧ W64 s ∉ σ.fl.free ∧
-    ∀ t pd, σ.fl.pending !! t = some pd → W64 s ∉ pd.ids)
+    ∀ t pd a, σ.fl.pending !! t = some pd → (W64 s, a) ∉ pd.pairs)
 
 /-- The database's facts: the mapping, the two metas (one valid), the current tree, the
 readers, the accounting. -/
@@ -214,6 +215,7 @@ def ownDB (I : FLImpl (GF := GF)) (dbl : Loc) (γ : DBNames) (σ : DBState) : IP
       dbl ≠ null⌝ ∗
     "%Hok" ∷ ⌜dbOK σ v0 v1⌝ ∗
     "#Hdl" ∷ (globalAddr discardLogger ↦□ dl : IProp GF) ∗
+    "#Hdlok" ∷ defaultLoggerOK dl ∗
     "%Hlog" ∷ ⌜dv.logger' = interface.nil ∨
       dv.logger' = interface.mkOk (go.GoType.PointerType DefaultLogger.ty) #dl⌝ ∗
     "Hplain" ∷ dbPlain dbl (DFrac.own 1) dv ∗

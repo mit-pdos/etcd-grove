@@ -19,7 +19,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 theorem DB.growSize.wp_proof : DB.growSize.spec (GF := GF) (hG := hG) := by
-  intro dbl d dq mmapSize growSize
+  intro dbl a dq mmapSize growSize
   wp_start as Hl
   wp_auto
   wp_if_destruct

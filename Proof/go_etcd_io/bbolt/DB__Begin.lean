@@ -26,7 +26,7 @@ theorem DB.Begin.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     DB.Begin.spec (GF := GF) (hG := hG) := by
   intro I dbl γ σ hAdd hsize
   wp_start as Hdb
-  icases ownDB_logger I dbl γ σ $$ Hdb with ⟨%lg, %dl, Hlg, #Hdl, %Hl, Hback⟩
+  icases ownDB_logger I dbl γ σ $$ Hdb with ⟨%lg, %dl, Hlg, #Hdl, #Hdlok, %Hl, Hback⟩
   obtain ⟨Hlg', Hdbl⟩ := Hl
   wp_apply wp_with_defer as %defer Hdefer
   try wp_auto

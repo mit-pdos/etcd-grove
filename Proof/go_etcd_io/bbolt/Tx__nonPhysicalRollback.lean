@@ -26,7 +26,7 @@ theorem Tx.nonPhysicalRollback.wp_proof (hclose : Tx.close.spec (GF := GF) (hG :
     Tx.nonPhysicalRollback.spec (GF := GF) (hG := hG) := by
   intro I dbl γ σ txl k r m hRem
   wp_start as ⟨Hdb, Hrtx⟩
-  icases ownDB_logger I dbl γ σ $$ Hdb with ⟨%lg, %dl, Hlg, #Hdl, %Hl, Hback⟩
+  icases ownDB_logger I dbl γ σ $$ Hdb with ⟨%lg, %dl, Hlg, #Hdl, #Hdlok, %Hl, Hback⟩
   ihave Hdb := Hback $$ Hlg
   have Hdbl := Hl.2
   simp only [ownReadTx]

@@ -21,11 +21,12 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- `db.growSize(mmapSize, growSize)`: `mmapSize` up to the allocation size, else `growSize`
 plus the allocation size. -/
 abbrev DB.growSize.spec : Prop :=
-  ∀ (dbl : Loc) (d : DB) (dq : DFrac) (mmapSize growSize : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ dbl ↦{dq} d }}
+  ∀ (dbl : Loc) (a : w64) (dq : DFrac) (mmapSize growSize : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗
+      structFieldRef DB go!"AllocSize" dbl ↦{dq} a }}
     (App (App (Val (dbl @!! go.GoType.PointerType DB.ty @!! go!"growSize")) (Val #mmapSize)) (Val #growSize))
-  {{ RET #(if sint.Z mmapSize ≤ sint.Z d.AllocSize' then mmapSize else growSize + d.AllocSize');
-      dbl ↦{dq} d }}
+  {{ RET #(if sint.Z mmapSize ≤ sint.Z a then mmapSize else growSize + a);
+      structFieldRef DB go!"AllocSize" dbl ↦{dq} a }}
 
 end spec
 
