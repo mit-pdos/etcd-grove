@@ -62,7 +62,8 @@ theorem v3rpc.kvServer.Txn.wp_proof
   iunfold v3rpc.kvServerIs at Hsrv'
   icases Hsrv' with ⟨%Hpn, #Hhdr, #Hkv, #Hn, #HKV⟩
   iunfold v3rpc.raftKV at HKV
-  icases HKV with ⟨-, -, -, #HTxn, -, -, -, -⟩
+  icases HKV with ⟨-, -, -, #HTxn, -⟩
+  iunfold v3rpc.kvTxnOk at HTxn
   ihave #Hr' := Hr
   iunfold v3rpc.txnReqIs at Hr'
   icases Hr' with ⟨%Hrn, %csl, %ssl, %fsl, %cps, %sps, %fps, -, -, -, #Hs, #Hssl, #Hss, #Hf, #Hfsl, #Hfs⟩
