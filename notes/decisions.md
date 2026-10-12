@@ -3331,3 +3331,51 @@ could not be proved of the real write path. The contract now carries it, in the 
 the hook's effect folded into `W` (the hook needs the caller's `Pre`, which is per call: it has
 to be in the lock's triple). *Considered:* `Unlock` taking `▷ P` (Perennial's `Mutex.Unlock`
 convention), which would spare `End` its credit; kept `P`, the form `apply.Apply.spec` uses.
+
+## The server's raft wrapper: raft.Node as a contract, an SPSC stream to the apply side
+
+**2026-10-12 · plan** (`server/v3/etcdserver/raft.go`, ~450 Go lines; branch `server-raft`).
+Toward an end-to-end statement (a client driver against a slice of etcd: the raft wrapper, the
+apply thread, the applier chain, mvcc), the raft wrapper is the link between raft's `Ready` and
+the apply thread, whose `applyEntries` assumes its batch "consecutive from `f0`, with no gap
+after the applied index, as raft hands them over". Its proof is what discharges that premise.
+
+- **Translation.** `etcdserver.toml` lists `raftNode`'s methods, `updateCommittedIndex`,
+  `raftReadyHandler` and the promoted `raft.Node` methods (`raftNode.Ready`/`Advance`/`Tick`/
+  `Stop`, through `raftNodeConfig`; goose emits their `MethodUnfold` wrappers only when listed);
+  v3.7's raft gets `IsEmptySnap`, `IsEmptyHardState`, `isHardStateEqual` and `emptyState` (its
+  initializer, which was an axiom), `SoftState`, `ReadState`; raftpb gets `Message`, `Snapshot`,
+  `SnapshotMetadata`, `HardState` as structs with the getters the wrapper reads.
+- **`raft.Node` is a contract shaped like node.go's verified specs** (`InvNode.lean`): `Ready()`
+  is a handshake channel whose payload is the node's half of the delivered log `d`, its record,
+  and the `Ready`'s data (the committed entries `ce`, with `C (d ++ ce)` for the contract's
+  persistent "committed" predicate `C`; the entries to append with their append right; the
+  messages, each `M m`; no snapshot and no read states, as node.go guarantees); `Advance()`
+  takes the driver's busy token and the append receipt. The v3.7 raft is not the verified one
+  (protobuf-go v2, `STATUS.md`, "Retargeting raft to upstream"), so the contract is stated in the
+  server's terms (`EntryModel`, the v3.7 types), to be discharged by node.go's specs once raft is
+  retargeted. *Rejected:* stating the contract over node.go's own predicates (no module imports
+  both raft translations).
+- **`applyc` is an SPSC channel** (Perennial's `isSpsc`), and the delivered log after each
+  payload is a persistent mono-list `cum` (element `k`: the log forwarded after `k` payloads): the
+  payload at position `i` carries `cum[i] = F`, `cum[i+1] = F ++ ce` and the batch's entries
+  `ce`. The loop owns the producer half and the mono-list's authority (`cum`'s last is the
+  node's delivered log); the apply side owns the consumer half and `cum[|received|]`, so it
+  learns the batch extends exactly what it got. *Rejected:* a handshake with a record half (as
+  node.go's `rof`): `applyc` has no return path and a handshake's receiver obligation `Q` is
+  fixed before the value is known, so the loop could not recover its half.
+- **The other components are contracts** (persistent predicates of triples): the WAL
+  (`serverstorage.Storage.Save`), the `MemoryStorage`'s `Append` (append right to receipt), the
+  transport (`Send` of messages each `M m`, `Stop`), the timeout detector, the ready handler's
+  four closures, the gauges and counters, the ticker (its `C` a bag channel or nil, as
+  `newRaftNode` makes it when `heartbeat == 0`), `proto.Clone` of a nil `*Snapshot` (a case added
+  to its axiom). `notifyc`, `raftAdvancedC`, `msgSnapC`, `stopped` are bag channels of `True`
+  payloads (or of `M m` for `msgSnapC`); `done` a broadcast channel. `latestTickTs` is under
+  `tickMu` (Perennial's guarded `RWMutex`: `tick` writes through the persistent guard).
+- **Out of the model, by the contract**: snapshots (`rd.Snapshot` nil: the `SaveSnap`/`Sync`/
+  `ApplySnapshot`/`Release` branch is dead), read states (the linearizable-read path: nil, so the
+  `readStateC` branch is dead; needed later for linearizable `Range`). Conf changes are not
+  excluded: the loop's scan and the follower's second `notifyc` send are verified as written.
+- **Ticks**: node.go's `Tick` spends a term-budget credit; the wrapper ticks without bound. The
+  contract's `Tick` takes a resource `T` the caller supplies, and `start` takes `□ |==> T`: the
+  gap a composition with node.go must close (a bound on a run's ticks).
