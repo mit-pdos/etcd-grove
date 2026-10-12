@@ -49,6 +49,38 @@ theorem putOutcomeIs_nil (log : mvcc.Log) (o : OpFull) (resp : Loc) (oc : Outcom
     · iintro -; ipureintro; exact ⟨log', rfl⟩
     · iintro ⟨-, H⟩; iexfalso; iapply errVarIs_nil $$ H
 
+/-- A delete's answer with a `nil` error: applied, without the quota's `ErrNoSpace`. -/
+theorem deleteOutcomeIs_nil (log : mvcc.Log) (o : OpFull) (resp : Loc) (oc : Outcome) :
+    deleteOutcomeIs (GF := GF) log o resp GoInterface.nil oc ⊢
+      ⌜∃ log', oc = .applied log' false⌝ := by
+  rcases oc with k | ⟨log', ns⟩
+  · cases k <;> simp only [deleteOutcomeIs, rejErrIs]
+    · iintro ⟨-, H⟩; iexfalso; iapply errVarIs_nil $$ H
+    · iintro ⟨-, H⟩; iexfalso; iapply errVarIs_nil $$ H
+    · iintro ⟨-, %H, -⟩; exact absurd rfl H
+    · iintro ⟨-, H⟩; iexfalso; iexact H
+  · cases ns <;> simp only [deleteOutcomeIs, noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
+    · iintro -; ipureintro; exact ⟨log', rfl⟩
+    · iintro ⟨-, H⟩; iexfalso; iapply errVarIs_nil $$ H
+
+/-- `deleteOutcomeIs_nil` of the answer with its header. -/
+theorem deleteAnswerIs_nil (log : mvcc.Log) (o : OpFull) (resp : Loc) (oc : Outcome) :
+    deleteAnswerIs (GF := GF) log o resp GoInterface.nil oc ⊢
+      ⌜∃ log', oc = .applied log' false⌝ := by
+  rcases oc with k | ⟨log', ns⟩ <;> simp only [deleteAnswerIs]
+  · iapply deleteOutcomeIs_nil
+  · iintro ⟨H, -⟩
+    iapply deleteOutcomeIs_nil $$ H
+
+/-- `putOutcomeIs_nil` of the answer with its header. -/
+theorem putAnswerIs_nil (log : mvcc.Log) (o : OpFull) (resp : Loc) (oc : Outcome) :
+    putAnswerIs (GF := GF) log o resp GoInterface.nil oc ⊢
+      ⌜∃ log', oc = .applied log' false⌝ := by
+  rcases oc with k | ⟨log', ns⟩ <;> simp only [putAnswerIs]
+  · iapply putOutcomeIs_nil
+  · iintro ⟨H, -⟩
+    iapply putOutcomeIs_nil $$ H
+
 /-- A transaction's answer with a `nil` error: applied, without the quota's `ErrNoSpace`. -/
 theorem txnOutcomeIs_nil (log : mvcc.Log) (t : TxnModel) (skip : Bool) (resp : Loc)
     (oc : Outcome) :

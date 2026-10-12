@@ -38,6 +38,7 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
   icases Hpre with ⟨%Hrq, #Hr, ⟨Hrd, Hsw, Hknown⟩, Hres, Hcs⟩
+  icases txn.soleWriter_len' _ _ $$ Hsw with ⟨%Hl2, Hsw⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
@@ -57,7 +58,7 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
     simp only [↓reduceIte]; iapply mvcc.neverDone_neverCd
   iapply HΦ
   iunfold apply.kvPost
-  icases Hout with (⟨%Herr, #Hresp, Hsw, %Hst⟩ | ⟨%Herr, Hsw⟩)
+  icases Hout with (⟨%Herr, #Hresp, Hhdr, Hsw, %Hst⟩ | ⟨%Herr, Hsw⟩)
   · -- the delete committed
     iexists (.applied (mvcc.commitLog log (txn.delChanges (mvcc.stateAfter log) o)) false)
     isplitr
@@ -65,11 +66,11 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
       unfold apply.chainStep apply.backendStep
       rw [hk]
       exact ⟨o, hdel, Or.inl rfl⟩
-    simp only [apply.deleteOutcomeIs, apply.noSpaceErrIs, apply.Outcome.logAfter,
-      Bool.false_eq_true, ↓reduceIte]
-    iframe Hres Hresp
+    simp only [apply.deleteAnswerIs, apply.deleteOutcomeIs, apply.noSpaceErrIs, apply.Outcome.logAfter,
+      Bool.false_eq_true, ↓reduceIte, apply.appliedHdr]
+    iframe Hres Hresp Hhdr
     isplitl []
-    · ipureintro; exact Herr
+    · ipureintro; exact ⟨Herr, Hl2, hlen⟩
     isplitl [Hrd Hsw Hknown]
     · iunfold apply.kvOwn
       iframe Hrd Hsw

@@ -86,6 +86,11 @@ theorem txn.put.wp_proof
       iapply HΦ
       isplitl [Htx]
       · iexists _, _; iexact Htx
+      isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
+      rotate_left
+      · iunfold txn.respHdrOwn; iexists _; iframe RHeader
+        isplitr; · ipureintro; exact Hhn
+        iexists _, _, _, _; iframe
       iunfold txn.putResponseIs
       isplitl []
       · ipureintro; exact Hrn
@@ -125,6 +130,11 @@ theorem txn.put.wp_proof
       iapply HΦ
       isplitl [Htx]
       · iexists _, _; iexact Htx
+      isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
+      rotate_left
+      · iunfold txn.respHdrOwn; iexists _; iframe RHeader
+        isplitr; · ipureintro; exact Hhn
+        iexists _, _, _, _; iframe
       iunfold txn.putResponseIs
       isplitl []
       · ipureintro; exact Hrn
@@ -157,6 +167,11 @@ theorem txn.put.wp_proof
       iapply HΦ
       isplitl [Htx]
       · iexists _, _; iexact Htx
+      isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
+      rotate_left
+      · iunfold txn.respHdrOwn; iexists _; iframe RHeader
+        isplitr; · ipureintro; exact Hhn
+        iexists _, _, _, _; iframe
       iunfold txn.putResponseIs
       isplitl []
       · ipureintro; exact Hrn
@@ -212,6 +227,11 @@ theorem txn.put.wp_proof
       iapply HΦ
       isplitl [Htx]
       · iexists _, _; iexact Htx
+      isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
+      rotate_left
+      · iunfold txn.respHdrOwn; iexists _; iframe RHeader
+        isplitr; · ipureintro; exact Hhn
+        iexists _, _, _, _; iframe
       iunfold txn.putResponseIs
       isplitl []
       · ipureintro; exact Hrn
@@ -267,6 +287,11 @@ theorem txn.put.wp_proof
       iapply HΦ
       isplitl [Htx]
       · iexists _, _; iexact Htx
+      isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
+      rotate_left
+      · iunfold txn.respHdrOwn; iexists _; iframe RHeader
+        isplitr; · ipureintro; exact Hhn
+        iexists _, _, _, _; iframe
       iunfold txn.putResponseIs
       isplitl []
       · ipureintro; exact Hrn
@@ -327,6 +352,11 @@ theorem txn.put.wp_proof
       iapply HΦ
       isplitl [Htx]
       · iexists _, _; iexact Htx
+      isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
+      rotate_left
+      · iunfold txn.respHdrOwn; iexists _; iframe RHeader
+        isplitr; · ipureintro; exact Hhn
+        iexists _, _, _, _; iframe
       iunfold txn.putResponseIs
       isplitl []
       · ipureintro; exact Hrn
@@ -382,6 +412,11 @@ theorem txn.put.wp_proof
       iapply HΦ
       isplitl [Htx]
       · iexists _, _; iexact Htx
+      isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
+      rotate_left
+      · iunfold txn.respHdrOwn; iexists _; iframe RHeader
+        isplitr; · ipureintro; exact Hhn
+        iexists _, _, _, _; iframe
       iunfold txn.putResponseIs
       isplitl []
       · ipureintro; exact Hrn
@@ -442,6 +477,11 @@ theorem txn.put.wp_proof
       iapply HΦ
       isplitl [Htx]
       · iexists _, _; iexact Htx
+      isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
+      rotate_left
+      · iunfold txn.respHdrOwn; iexists _; iframe RHeader
+        isplitr; · ipureintro; exact Hhn
+        iexists _, _, _, _; iframe
       iunfold txn.putResponseIs
       isplitl []
       · ipureintro; exact Hrn
@@ -502,6 +542,11 @@ theorem txn.put.wp_proof
       iapply HΦ
       isplitl [Htx]
       · iexists _, _; iexact Htx
+      isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
+      rotate_left
+      · iunfold txn.respHdrOwn; iexists _; iframe RHeader
+        isplitr; · ipureintro; exact Hhn
+        iexists _, _, _, _; iframe
       iunfold txn.putResponseIs
       isplitl []
       · ipureintro; exact Hrn
@@ -567,6 +612,11 @@ theorem txn.put.wp_proof
       iapply HΦ
       isplitl [Htx]
       · iexists _, _; iexact Htx
+      isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
+      rotate_left
+      · iunfold txn.respHdrOwn; iexists _; iframe RHeader
+        isplitr; · ipureintro; exact Hhn
+        iexists _, _, _, _; iframe
       iunfold txn.putResponseIs
       isplitl []
       · ipureintro; exact Hrn

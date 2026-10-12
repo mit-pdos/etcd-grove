@@ -447,7 +447,7 @@ theorem txn.executeTxn.wp_proof
         ipureintro
         rw [hps]; simp only [List.length_append] at hbnd ⊢; omega
       rw [hps]
-      icases Hout with (⟨%Herr, ⟨%deletes', Htx⟩, #Hdresp⟩ | ⟨%Hc, -⟩)
+      icases Hout with (⟨%Herr, ⟨%deletes', Htx⟩, #Hdresp, -⟩ | ⟨%Hc, -⟩)
       rotate_left
       · exact Hc.elim
       subst Herr
@@ -649,7 +649,7 @@ theorem txn.executeTxn.wp_proof
         iframe Hknown
         iapply leasesOk_sub γ.leases _ _ (opsLeases_mem s0 ops _ hmem) $$ Hleases
       wp_apply (hPut ctx cd mw s γ ilog _ puts deletes putSize pr o pv)
-        $$ [$Hctx $Htx $Hpr Hpv] as %presp ⟨⟨%puts', %putSize', Htx⟩, #Hpresp⟩
+        $$ [$Hctx $Htx $Hpr Hpv] as %presp ⟨⟨%puts', %putSize', Htx⟩, #Hpresp, -⟩
       · rw [hps]
         iframe Hpv Hlo
         ipureintro

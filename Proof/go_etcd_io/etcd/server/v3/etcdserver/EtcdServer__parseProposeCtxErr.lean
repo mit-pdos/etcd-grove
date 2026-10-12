@@ -36,7 +36,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 set_option hygiene false in
 local macro "ppce_exit" : tactic => `(tactic| (
-  iapply HΦ; iunfold srvLeadTimeReader; iframe Hrd; ipureintro; simp))
+  iapply HΦ; iunfold srvLeadTimeReader; iframe Hrd; isplitr; · ipureintro; simp
+  first | iexact HaTOLF | iexact HaTOCL | iexact HaTO | iexact HaCan))
 
 set_option hygiene false in
 /-- After the leader-failure test: the leader's connectivity. -/
@@ -73,7 +74,7 @@ theorem EtcdServer.parseProposeCtxErr.wp_proof
     (hC : isConnectedSince.spec (GF := GF) (hG := hG)) :
     EtcdServer.parseProposeCtxErr.spec (GF := GF) (hG := hG) := by
   intro s E ρ err start Herr
-  wp_start as ⟨#Hsrv, Hrd⟩
+  wp_start as ⟨#Hsrv, Hrd, #Herrv⟩
   iunfold isServerReq at Hsrv
   icases Hsrv with ⟨%v, #Hv⟩
   iunfold srvReqFieldsAt at Hv
@@ -97,21 +98,25 @@ theorem EtcdServer.parseProposeCtxErr.wp_proof
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, ⟨-, -, -, -, ⟨-, -, -, #HCan, #HTO, #HTOLF, #HTOCL, -⟩⟩⟩
-  iunfold errVarLeaf at HCan HTO HTOLF HTOCL
-  icases HCan with ⟨%eCan, #HeCan, %-⟩
-  icases HTO with ⟨%eTO, #HeTO, %-⟩
-  icases HTOLF with ⟨%eTOLF, #HeTOLF, %-⟩
-  icases HTOCL with ⟨%eTOCL, #HeTOCL, %-⟩
+  ihave ⟨%eCan, #HeCan, #HaCan⟩ := errVarLeaf_get _ $$ HCan
+  ihave ⟨%eTO, #HeTO, #HaTO⟩ := errVarLeaf_get _ $$ HTO
+  ihave ⟨%eTOLF, #HeTOLF, #HaTOLF⟩ := errVarLeaf_get _ $$ HTOLF
+  ihave ⟨%eTOCL, #HeTOCL, #HaTOCL⟩ := errVarLeaf_get _ $$ HTOCL
   wp_auto
-  wp_apply hIs err _ Herr $$ [] as %b1 -
+  wp_apply hIs err eC Herr $$ [] as %b1 %Hb1
   · iframe #
   cases b1
   · (try wp_auto)
-    wp_apply hIs err _ Herr $$ [] as %b2 -
+    wp_apply hIs err eD Herr $$ [] as %b2 %Hb2
     · iframe #
     cases b2
-    · (try wp_auto)
-      iapply HΦ; iframe Hrd; ipureintro; exact context.isTypedErr_ne_nil Herr
+    · -- the `default` branch: `err` is `Canceled`'s or `DeadlineExceeded`'s, so one `Is` held
+      iexfalso
+      icases Herrv with (#H | #H)
+      · icombine H HeC gives %h
+        exact absurd (Hb1 h) (by simp)
+      · icombine H HeD gives %h
+        exact absurd (Hb2 h) (by simp)
     · (try wp_auto)
       iunfold srvLeadTimeReader at Hrd
       wp_apply sync.RWMutex.wp_RLock _ _ $$ [Hrd] as ⟨Hrl, HP⟩
@@ -137,7 +142,8 @@ theorem EtcdServer.parseProposeCtxErr.wp_proof
           ppce_exit
   · rw [decide_eq_true rfl]
     (try wp_auto)
-    iapply HΦ; iframe Hrd; ipureintro; simp
+    iapply HΦ; iframe Hrd; isplitr; · ipureintro; simp
+    iexact HaCan
 
 end proof
 

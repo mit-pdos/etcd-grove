@@ -194,7 +194,7 @@ theorem txn.Txn.wp_proof
     -- the caller's update (the writes are the model's): the lock's invariant back for `End`
     imod Hupd $$ HQ with ⟨HP, HPost⟩
     iunfold soleWriterOpen at Hsw
-    icases Hsw with ⟨#Hc, Htoks⟩
+    icases Hsw with ⟨#Hc, Htoks, %Hl2⟩
     ihave ⟨%Hpin, Htoks, -, Htx⟩ := isTxnWrite_pinned γ log ilog [] mw' s (W64 0) (W64 0) (W64 0)
       (soleBudget log - 1) $$ [$Htoks $Hc $Htx]
     have hil := pinned_sole log ilog hlen4 Hpin
@@ -217,7 +217,7 @@ theorem txn.Txn.wp_proof
     wp_apply (hEnd mw' s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost⟩
     · iapply mvcc.txnEndPre_write; iframe Hhook HP
     ihave Hsw := soleWriter_close_end γ log _ p1 p2 p3 hlen4 $$ [Htoks Hpost]
-    · iframe Hpost; iunfold soleWriterOpen; iframe Hc Htoks
+    · iframe Hpost; iunfold soleWriterOpen; iframe Hc Htoks; ipureintro; exact Hl2
     ihave #Hresp2 := Hresp
     iunfold txnResponseIs at Hresp2
     icases Hresp2 with ⟨%Hrn, #Hf⟩

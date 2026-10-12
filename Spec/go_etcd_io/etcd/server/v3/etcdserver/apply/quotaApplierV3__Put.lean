@@ -34,7 +34,7 @@ abbrev apply.quotaApplierV3.Put.spec : Prop :=
       apply.putPre E (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) r rq o log Pre Q Post }}
     (App (Val (p @!! go.GoType.PointerType quotaApplierV3.ty @!! go!"Put")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      apply.kvPost E (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) rq log (apply.putOutcomeIs log o resp err) Pre Post }}
+      apply.kvPost E (.quota c) (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #p) rq log (apply.putAnswerIs log o resp err) Pre Post }}
 
 end spec
 

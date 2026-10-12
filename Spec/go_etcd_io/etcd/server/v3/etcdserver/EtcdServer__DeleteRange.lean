@@ -23,7 +23,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`s.DeleteRange(ctx, r)`** (as `Put`): success, the apply package's answer to the delete
-(`deleteOutcomeIs`, no error) of the request the proposed data decode to (`rq'`, whose delete is
+(`deleteOutcomeIs`, no error: applied; the response header's id fields owned, `appliedHdr`) of the request the proposed data decode to (`rq'`, whose delete is
 `op'`: `op` itself unless the range end is `[0]`, the model's ambiguity, `irrWireOf`), at the log
 the entry met, with mvcc's certificate of the log after. -/
 abbrev EtcdServer.DeleteRange.spec : Prop :=
@@ -39,9 +39,11 @@ abbrev EtcdServer.DeleteRange.spec : Prop :=
           (x x' : apply.ApplyKV) (o : apply.Outcome) (skip : Bool),
           ⌜irrWireOf (apply.withHeader (irrDeleteRange op) hm) rq' ∧ rq'.deleteRange = some op' ∧
             (irrNoZeroEnd (irrDeleteRange op) → op' = op) ∧
-            apply.applyStep rq' true x x' (.dispatched o skip)⌝ ∗
-          apply.deleteOutcomeIs x.log op' resp GoInterface.nil o ∗ mvcc.idxCert E.γ.idx x'.log) ∨
-       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗
+            apply.applyStep rq' true x x' (.dispatched o skip) ∧ ∃ log', o = .applied log' false⌝ ∗
+          apply.deleteOutcomeIs x.log op' resp GoInterface.nil o ∗
+          apply.appliedHdr x.log (structFieldRef etcdserverpb.DeleteRangeResponse go!"Header" resp) ∗
+          mvcc.idxCert E.γ.idx x'.log) ∨
+       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
          ((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
             ⌜irrWireOf (apply.withHeader (irrDeleteRange op) hm) rq'⌝ ∗ appliedErr E rq' err) ∨
           srvMaybeDeposited ρ (irrDeleteRange op)))) }}

@@ -123,8 +123,11 @@ proto_MarshalIRR:
 # `Value` at `traceutil.StartTimeKey` (Perennial's `isContext` specifies `Value` only at
 # `&cancelCtxKey`), and `errors.Is` of a context's error against `context.Canceled` /
 # `DeadlineExceeded` (no error tree for a context's `Err`; `DeadlineExceeded` is not a pointer).
+# And (unit 3a) a done context's `Err()` is `Canceled` or `DeadlineExceeded` (Go's contract of
+# `Context.Err`; Perennial's `isContext` says only "a typed error").
 context_ValueStartTime:
 errors_IsCtxErr:
+context_ErrDone:
 # (reused from the Links that define them: mvcc's span, the apply package's `WithValue`)
 trace_SpanFromContext:
 context_WithValue:
@@ -154,7 +157,7 @@ EtcdServer__FeatureEnabled:
 EtcdServer__AuthStore:
 EtcdServer__AuthInfoFromCtx: EtcdServer__AuthStore
 EtcdServer__parseProposeCtxErr: errors_IsCtxErr time_Time__After EtcdServer__getLead EtcdServer__MemberID RaftCluster__Members etcdserver_isConnectedToQuorumSince etcdserver_isConnectedSince
-EtcdServer__processInternalRaftRequestOnce: EtcdServer__getAppliedIndex EtcdServer__getCommittedIndex EtcdServer__FeatureEnabled exceedsRequestLimit idutil_Generator__Next EtcdServer__AuthInfoFromCtx getRequestType proto_MarshalIRR config_ServerConfig__ReqTimeout trace_SpanFromContext EtcdServer__parseProposeCtxErr strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues
+EtcdServer__processInternalRaftRequestOnce: EtcdServer__getAppliedIndex EtcdServer__getCommittedIndex EtcdServer__FeatureEnabled exceedsRequestLimit idutil_Generator__Next EtcdServer__AuthInfoFromCtx getRequestType proto_MarshalIRR config_ServerConfig__ReqTimeout trace_SpanFromContext EtcdServer__parseProposeCtxErr context_ErrDone strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues
 EtcdServer__raftRequest: EtcdServer__processInternalRaftRequestOnce trace_SpanFromContext context_ValueStartTime traceutil_Trace__GetStartTime traceutil_Trace__SetStartTime traceutil_Trace__InsertStep traceutil_Trace__LogIfLong
 EtcdServer__Put: EtcdServer__raftRequest PutRequest__GetKey traceutil_Tracer__Start trace_WithAttributes attribute_String context_WithValue
 EtcdServer__DeleteRange: EtcdServer__raftRequest DeleteRangeRequest__GetKey DeleteRangeRequest__GetRangeEnd traceutil_Tracer__Start trace_WithAttributes attribute_String

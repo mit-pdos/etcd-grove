@@ -44,7 +44,7 @@ theorem apply.applierV3Capped.Put.wp_proof :
   isplitr
   · ipureintro
     simp only [apply.chainStep, apply.cappedRejects, Hk.2.1, ↓reduceIte]
-  simp only [apply.putOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
+  simp only [apply.putAnswerIs, apply.putOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
   iframe Hkv Hres
   isplitl []
   · isplitl []

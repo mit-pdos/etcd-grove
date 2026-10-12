@@ -240,7 +240,10 @@ instance batchWaitOk_persistent (ρ : ReqNames) (E : apply.AEnv GF) (ms : List E
 
 /-- **The server's raft node `n`** (persistent; the `Node` field of the server's `raftNode`):
 its `Propose(ctx, data)`, from any goroutine, at any context, with `data`'s slice read-only, is
-the verified `node.Propose`'s statement over the server's ghost names (see the file header). -/
+the verified `node.Propose`'s statement over the server's ghost names (see the file header), and
+its error is `nil` or one the gRPC layer can take (`applyErrIs`: raft's `ErrStopped`,
+`ErrProposalDropped`, `errors.New` errors, or the context's `Canceled`/`DeadlineExceeded`;
+2026-10-12, unit 3a). -/
 def raftPropose (γ : ServerRaftNames) (n : GoInterface) : IProp GF :=
   iprop(∃ ni : GoInterfaceOk, ⌜n = GoInterface.ok ni⌝ ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (data_sl : GoSlice)
@@ -248,7 +251,7 @@ def raftPropose (γ : ServerRaftNames) (n : GoInterface) : IProp GF :=
       {{ mvcc.txnCtx ctx cd ∗ data_sl ↦*□ data ∗ srvPropArg γ data Q fresh }}
         (App (App (Val #(methods ni.ty go!"Propose" ni.v)) (Val #(GoInterface.ok ctx)))
           (Val #data_sl))
-      {{ (err : GoInterface), RET #err; srvPropRes γ data Q fresh }}))
+      {{ (err : GoInterface), RET #err; srvPropRes γ data Q fresh ∗ applyErrIs err }}))
 
 instance raftPropose_persistent (γ : ServerRaftNames) (n : GoInterface) :
     Persistent (raftPropose (GF := GF) γ n) := by
@@ -364,15 +367,15 @@ def authInfoOpt (a : Loc) : IProp GF :=
   iprop(⌜a = null⌝ ∨ ∃ user rev, authInfoIs a user rev)
 
 /-- **The auth store's request side** (persistent; trust boundary: `auth` is names-only):
-`AuthInfoFromCtx(ctx)` returns an auth info (or `nil`) and an error; `AuthInfoFromTLS(ctx)` an
-auth info (or `nil`). The permission checks and `Revision` are the apply package's
+`AuthInfoFromCtx(ctx)` returns an auth info (or `nil`) and an error (`nil`, or one the gRPC layer
+can take: `applyErrIs`; 2026-10-12, unit 3a); `AuthInfoFromTLS(ctx)` an auth info (or `nil`). The permission checks and `Revision` are the apply package's
 `isAuthStore`. -/
 def isReqAuth (st : GoInterface) : IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
       {{ mvcc.txnCtx ctx cd }}
         (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
-      {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); authInfoOpt a }}) ∗
+      {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); authInfoOpt a ∗ applyErrIs err }}) ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
       {{ mvcc.txnCtx ctx cd }}
         (App (Val #(methods ai.ty go!"AuthInfoFromTLS" ai.v)) (Val #(GoInterface.ok ctx)))
