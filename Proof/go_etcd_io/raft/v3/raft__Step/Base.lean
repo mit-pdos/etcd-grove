@@ -56,6 +56,7 @@ macro "w32_ne" : tactic =>
       Perennial.EtcdGrove.MsgHeartbeat, Perennial.EtcdGrove.MsgHeartbeatResp,
       Perennial.EtcdGrove.MsgPreVote, Perennial.EtcdGrove.MsgPreVoteResp,
       Perennial.EtcdGrove.MsgStorageAppendResp, Perennial.EtcdGrove.MsgStorageApplyResp,
+      Perennial.EtcdGrove.MsgReadIndex, Perennial.EtcdGrove.MsgReadIndexResp,
       ne_eq]; word))
 
 section base
@@ -158,17 +159,23 @@ theorem stepdown_frame' {m : raftpb.Message} {s s1 s' : NState} {l : w64}
 times, and that message is `isMessage`. -/
 theorem ghost_step_recv (γ : RaftNames) (cfg : GSet w64) (id : w64)
     (ps ps' : PState) (a : Msg) (recv : List Msg)
-    (Hcfg : γ.reCfg = cfg) (Hrecv : ∀ m' ∈ recv, m' = a) (Hstep : Step cfg id ps recv ps') :
+    (Hcfg : γ.reCfg = cfg) (Hrecv : ∀ m' ∈ recv, m' = a) (Hstep : Step cfg id ps recv ps')
+    (Hna : a.ty ≠ .readIndex) :
     ⊢ isMessage (GF := GF) γ a -∗ ownRaftGhost γ id ps ={⊤}=∗ ownRaftGhost γ id ps' := by
   subst Hcfg
   iintro #Hm Hg
+  have Hcnt : rdCount recv = 0 := by
+    unfold rdCount; rw [List.countP_eq_zero]
+    intro x hx; rw [Hrecv x hx]; simp [Hna]
+  imod rdCred_zero_upd (GF := GF) γ with Hz
   ihave Hall : ([∗list] m ∈ recv, isMessage (GF := GF) γ m) $$ []
   · iapply (BigSepL.bigSepL_intro (P := iprop(□ isMessage (GF := GF) γ a))
       (fun k x hx => by
         rw [Hrecv x (List.mem_of_getElem? hx)]
         exact intuitionistically_elim))
     iexact Hm
-  iapply ownRaftGhost_step γ id ps recv ps' Hstep $$ Hall Hg
+  iapply ownRaftGhost_step γ id ps recv ps' Hstep $$ Hall [Hz] Hg
+  rw [Hcnt]; iexact Hz
 
 /-- A branch's postcondition, delivered: the ghost step, then `Φ`. -/
 theorem finish_branch (γ : RaftNames) (cfg : GSet w64) (r : Loc) (id : w64)
@@ -177,7 +184,7 @@ theorem finish_branch (γ : RaftNames) (cfg : GSet w64) (r : Loc) (id : w64)
     (Hcfg : γ.reCfg = cfg) (Hwf' : NStateWf s') (Hrecv : ∀ m' ∈ recv, m' = a)
     (Hstep : Step cfg id (toPState s) recv (toPState s'))
     (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s')
-    (Hresp : RespStep m s s') :
+    (Hresp : RespStep m s s') (Hna : a.ty ≠ .readIndex := by simp [absMsg, absMsgFrom]) :
     ⊢ isMessage γ a -∗
       ownRaftGhost γ id (toPState s) -∗
       ownRaftPhys cfg r id s' -∗
@@ -186,7 +193,7 @@ theorem finish_branch (γ : RaftNames) (cfg : GSet w64) (r : Loc) (id : w64)
       stepPost γ cfg r id s m Φ -∗
       |={⊤}=> Φ #err := by
   iintro #Hm Hghost Hphys Herr HΦ
-  imod ghost_step_recv γ cfg id _ _ a recv Hcfg Hrecv Hstep $$ Hm Hghost with Hghost
+  imod ghost_step_recv γ cfg id _ _ a recv Hcfg Hrecv Hstep Hna $$ Hm Hghost with Hghost
   imodintro
   unfold stepPost
   iapply HΦ $$ %err %s' %(toPState s')

@@ -123,14 +123,19 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     exact ⟨Hwf, .refl _, rfl, keep_frame rfl rfl rfl rfl rfl⟩
   · -- Leader: `bcastHeartbeat`
     simp only [stepFuncOf]
-    wp_apply _P.stepLeader cfg r id s m [] (.inr (.inl Hty)) Hrole Hcfg
+    wp_apply _P.stepLeader cfg r id s m [] [] (.inr (.inl Hty)) Hrole Hcfg
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
           rcases Hc with Hc | ⟨Hc, -⟩ <;> exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by exfalso; rw [Hty] at Hc; rcases Hc with Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys] as %err %s' %dropped ⟨Hphys, %Hres, Herrn, -⟩
     · isplitl []
+      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+      isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     obtain ⟨rfl, Hwf', Hstep, Hl, Ht, Hpv, Hg⟩ :=

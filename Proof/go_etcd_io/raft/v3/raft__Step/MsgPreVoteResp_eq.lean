@@ -106,15 +106,20 @@ local macro "prevote_resp_dispatch" : tactic =>
       exact ⟨Hwf1, ⟨[], fun _ h => absurd h List.not_mem_nil, Hst⟩, rfl, Hresp, Hft⟩
     · -- Leader: no arm
       simp only [stepFuncOf]
-      wp_apply _P.stepLeader cfg r id s m [] (.inr (.inr (.inr (.inr (.inr (.inr (.inr Hty)))))))
+      wp_apply _P.stepLeader cfg r id s m [] [] (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))))
           Hrole Hcfg
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by
             exfalso; rw [Hty] at Hc
             rcases Hc with Hc | ⟨Hc, -⟩ <;> exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+          (fun Hc => by exfalso; rw [Hty] at Hc; rcases Hc with Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
+          (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+          (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         $$ [Hphys] as %err %s' %dropped ⟨Hphys, %Hres, Herrn, -⟩
       · iframe Hphys
+        isplitl []
+        · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
         isplitl []
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)

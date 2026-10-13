@@ -52,7 +52,7 @@ open Iris Iris.BI go_etcd_io.raft.v3
 def stepMsgTypes : List w32 :=
   [MsgHup, MsgVote, MsgVoteResp, MsgApp, MsgAppResp, MsgHeartbeat,
    MsgHeartbeatResp, MsgBeat, MsgProp, MsgSnap, MsgPreVote, MsgPreVoteResp,
-   MsgStorageAppendResp, MsgStorageApplyResp]
+   MsgStorageAppendResp, MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp]
 
 def StepMsg [FfiSyntax] (m : raftpb.Message) : Prop :=
   m.Type' ∈ stepMsgTypes
@@ -336,6 +336,13 @@ abbrev raft.Step.spec : Prop :=
      -- (`NGhost.unst`): `RawNode.Advance` steps it only after `acceptReady` reset the flag
      s.gh.unst = false) →
   (m.Type' = MsgStorageApplyResp → m.Term' = W64 0) →
+  -- Read-index (2026-10-13): a request is unstamped (`Term = 0`; a local one from
+  -- `ReadIndex`, a forwarded one from a follower), and not in a single-voter
+  -- configuration (`IsSingleton`'s immediate answer is out of scope); a response is a
+  -- leader's, from another node.
+  (m.Type' = MsgReadIndex → m.Term' = W64 0 ∧ 1 < GMap.size cfg) →
+  (m.Type' = MsgReadIndexResp →
+     m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) →
   -- The one place the two layers meet. `s` is the physical abstract state
   -- `ownRaftPhys` is indexed by, `ps` the protocol state the ghost state is about,
   -- and `NStateRel` (`Defs.lean`) connects them: `ps` is `s`'s protocol fields,
@@ -372,12 +379,13 @@ abbrev raft.Step.spec : Prop :=
          "#Hmsg" ∷ □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗
                             ⌜ty ≠ .snap⌝ -∗
                             isMessage γ (absMsg ty m ents ctx))) ∗
-      -- the `Context`: not the leader-transfer marker (out of scope), and empty on a
-      -- heartbeat response (no read-index requests in scope: `bcastHeartbeat` sends
-      -- `nil` and `handleHeartbeat` echoes it)
+      -- the `Context`: not the leader-transfer marker (out of scope). (Until 2026-10-13
+      -- also empty on a heartbeat response; a read-index position is now what
+      -- `isMessage` says it is.)
       "#Hctx" ∷ (m.Context' ↦*□ ctx ∗
-                 ⌜ctx ≠ campaignTransfer⌝ ∗
-                 ⌜m.Type' = MsgHeartbeatResp → ctx = []⌝) ∗
+                 ⌜ctx ≠ campaignTransfer⌝) ∗
+      -- (2026-10-13) a read-index request carries a read credit (`rdOwn`)
+      "Hcred" ∷ rdCred γ (if m.Type' = MsgReadIndex then 1 else 0) ∗
       -- A `MsgSnap`'s snapshot (2026-10-02): what `m.Snapshot` points to, read-only,
       -- and the list behind its `ConfState.Voters`; under the fixed-voter-set scope
       -- `SnapScope` (`Spec/raft__restore.lean`): the voters are `cfg`'s, `cfg` is

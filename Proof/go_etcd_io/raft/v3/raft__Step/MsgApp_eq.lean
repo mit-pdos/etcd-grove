@@ -150,15 +150,20 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (by simp [toPState, Hrole, proleRole]) Hconf Happ Hfid
   · -- Leader: `stepLeader` has no arm for it; nothing changes
     simp only [stepFuncOf]
-    wp_apply _P.stepLeader cfg r id s m [] (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))
+    wp_apply _P.stepLeader cfg r id s m [] [] (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))
         Hrole Hcfg
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
           rcases Hc with Hc | ⟨Hc, -⟩ <;> exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by exfalso; rw [Hty] at Hc; rcases Hc with Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys] as %err %s' %dropped ⟨Hphys, %Hres, Herrn, -⟩
     · isplitl []
+      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+      isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     obtain ⟨rfl, rfl⟩ := leaderStepResult_app_hb _ _ _ _ _ _ _ (.inl Hty) Hres

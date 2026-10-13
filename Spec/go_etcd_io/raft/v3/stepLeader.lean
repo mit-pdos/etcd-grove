@@ -278,8 +278,9 @@ abbrev stepLeader.spec : Prop :=
   -- leader's term nonzero (`committedEntryInCurrentTerm`), a request not at a single voter
   -- (`IsSingleton`'s immediate, unconfirmed answer is out of scope) and with entries, and a
   -- heartbeat response's context a position sent (eight bytes)
-  RdOk cfg s.rd →
-  s.term ≠ W64 0 →
+  -- (2026-10-13: only for the three types whose paths read them)
+  (m.Type' = MsgHeartbeatResp ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgReadIndex →
+   RdOk cfg s.rd ∧ s.term ≠ W64 0) →
   (m.Type' = MsgReadIndex → 1 < GMap.size cfg ∧ ents ≠ []) →
   (m.Type' = MsgHeartbeatResp →
    (ctx = [] ∨ 8 ≤ ctx.length) ∧

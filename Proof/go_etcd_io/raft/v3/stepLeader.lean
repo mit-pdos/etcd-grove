@@ -1263,7 +1263,7 @@ theorem stepLeader.wp_proof
     (wp_raft_responseToReadIndexReq : raft.responseToReadIndexReq.spec (GF := GF) (hG := hG))
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG)) :
     stepLeader.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s m ents ctx Hty Hlead Hid Hfrom0 Hself Hprop Hrd Hnz Hri Hhr
+  intro cfg r id s m ents ctx Hty Hlead Hid Hfrom0 Hself Hprop Hrdnz Hri Hhr
   iintro %Φ ⟨#Hinit, Hphys, Hctx, Hents, Hrents⟩ HΦ
   by_cases Hp : m.Type' = MsgProp
   · obtain ⟨Hne, Hnorm, Hsmall, Hnz⟩ := Hprop Hp
@@ -1309,7 +1309,7 @@ theorem stepLeader.wp_proof
     obtain ⟨Hclen, Hcb⟩ := Hhr Hty
     iapply wp_stepLeader_hbresp cfg wp_raft_sendAppend wp_raftLog_lastIndex wp_readOnly_recvAck
       wp_readOnly_maybeAdvance wp_raft_responseToReadIndexReq wp_raft_send r id s m ents ctx Hty
-      (Hself (Or.inl Hty)) Hid Hrd Hclen Hcb $$ [Hphys] HΦ'
+      (Hself (Or.inl Hty)) Hid (Hrdnz (Or.inl Hty)).1 Hclen Hcb $$ [Hphys] HΦ'
     iframe
     iframe Hinit Hc
   · iapply wp_stepLeader_appresp cfg wp_raft_sendAppend wp_raft_maybeSendAppend
@@ -1317,7 +1317,8 @@ theorem stepLeader.wp_proof
       wp_Progress_MaybeUpdate wp_Progress_MaybeDecrTo wp_Progress_BecomeProbe
       wp_Progress_BecomeReplicate wp_Progress_CanBumpCommit wp_Inflights_FreeLE
       wp_raftLog_findConflictByTerm wp_raftLog_lastIndex wp_raftLog_firstIndex
-      r id s m Hty Hlead Hid (Hfrom0 Hty) (fun Hr => Hself (Or.inr ⟨Hty, Hr⟩)) Hnz ents ctx
+      r id s m Hty Hlead Hid (Hfrom0 Hty) (fun Hr => Hself (Or.inr ⟨Hty, Hr⟩))
+      (Hrdnz (Or.inr (Or.inl Hty))).2 ents ctx
       $$ [Hphys] HΦ'
     iframe
     iexact Hinit
@@ -1335,7 +1336,7 @@ theorem stepLeader.wp_proof
     ihave #Hes := Hrents $$ %Hty
     iapply wp_stepLeader_readindex cfg wp_ProgressTracker_IsSingleton
       wp_raft_committedEntryInCurrentTerm wp_sendMsgReadIndexResponse r id s m ents ctx Hty Hlead
-      Hnz Hsz $$ [Hphys] HΦ'
+      (Hrdnz (Or.inr (Or.inr Hty))).2 Hsz $$ [Hphys] HΦ'
     iframe
     iframe Hinit Hes
 
