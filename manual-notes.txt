@@ -4,7 +4,7 @@ interesting things
 - adequacy example for raft library gave confidence before full Qed
 - time receipts for overflow: seems not to be really used yet....
 - thread receipts
-- go interface semantics turns out to expose itab
+- go interface semantics turns out to expose itab (go-itab-reinterpret-assert.md)
 - ai-driven adversarial development for trustworthy semantics; our hand-written semantics had lots of bugs
 - custom go compiler rewriter to resolve eval order underspecification and non-locality.
 
