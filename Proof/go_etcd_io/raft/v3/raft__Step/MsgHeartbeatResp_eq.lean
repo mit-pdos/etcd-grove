@@ -92,10 +92,14 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
     · isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc
-        first | (rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
+        first | (rcases Hc with Hc | Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
+      isplitl []
+      · iintro %Hc; exfalso; rw [Hty] at Hc
+        rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
       isplitl []
       · iapply Hsnap0
       · iintro %Hc; exfalso; rw [Hty] at Hc

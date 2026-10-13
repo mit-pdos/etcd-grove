@@ -51,7 +51,8 @@ local macro "prevote_resp_dispatch" : tactic =>
     · -- Follower: no arm
       simp only [stepFuncOf]
       wp_apply _P.stepFollower cfg r id s m [] (zero_val _) [] []
-          (.inr (.inr (.inr (.inr (.inr (.inr Hty))))))
+          (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
+          (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -59,7 +60,10 @@ local macro "prevote_resp_dispatch" : tactic =>
       · iframe Hphys
         isplitl []
         · iintro %Hc; exfalso; rw [Hty] at Hc
-          first | (rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
+          first | (rcases Hc with Hc | Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
+        isplitl []
+        · iintro %Hc; exfalso; rw [Hty] at Hc
+          rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
         isplitl []
         · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
         · iintro %Hc; exfalso; rw [Hty] at Hc
@@ -78,7 +82,7 @@ local macro "prevote_resp_dispatch" : tactic =>
       -- ignored
       simp only [stepFuncOf]
       wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) [] []
-          (.inr (.inr (.inr (.inr (.inr (.inr Hty))))))
+          (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
           (fun Hc => by
             exfalso; rw [Hty] at Hc
             rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
@@ -136,7 +140,7 @@ local macro "prevote_resp_dispatch" : tactic =>
     · -- PreCandidate: the pre-vote tally
       simp only [stepFuncOf]
       wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) [] []
-          (.inr (.inr (.inr (.inr (.inr (.inr Hty))))))
+          (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
           (fun Hc => by
             exfalso; rw [Hty] at Hc
             rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
@@ -247,14 +251,18 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
   rw [show ({ becomeFollower s m.Term' (W64 0) with prvals := pvs } : NState).stepfn =
     functions stepFollower [] from rfl]
   wp_apply _P.stepFollower cfg r id _ m [] (zero_val _) [] []
-      (.inr (.inr (.inr (.inr (.inr (.inr Hty))))))
+      (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
+      (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
     $$ [$Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
   · isplitl []
     · iintro %Hc; exfalso; rw [Hty] at Hc
-      first | (rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
+      first | (rcases Hc with Hc | Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
+    isplitl []
+    · iintro %Hc; exfalso; rw [Hty] at Hc
+      rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
     isplitl []
     · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     · iintro %Hc; exfalso; rw [Hty] at Hc

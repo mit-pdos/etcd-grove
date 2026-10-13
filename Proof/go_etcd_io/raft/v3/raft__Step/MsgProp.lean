@@ -148,12 +148,16 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     ipersist Hents
     wp_apply _P.stepFollower cfg r id s m ents (zero_val _) [] ctx
         (.inr (.inl Hty))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ => ⟨Hfrom, Hterm, Hlok Hrole⟩)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys Hcap] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
     · isplitl []
       · iintro _; iexact Hctx
+      isplitl []
+      · iintro %Hc; exfalso; rw [Hty] at Hc
+        rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
       isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
       · iintro _
