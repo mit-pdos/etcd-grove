@@ -3337,3 +3337,27 @@ append a second conf change before the first is applied), like `ReadOnlyOption =
   see without the old points-tos).
 - **No `Advance`-ordering premise yet**: for an unchanged configuration the order is harmless
   (issue file), and `ownRawNode` does not record applied entries; documented on the specs.
+
+---
+
+## Reconfiguration stage L: learners in the `Progress` record, the voter set as the index
+
+**2026-10-13 · accepted**
+
+- **The flag is in the record** (`Progress.learner`), and `ownTracker` relates it to the index:
+  a tracked id is a learner exactly when it is outside `cfg` (`LearnerFlags`), so the learner
+  set needs no index of its own -- it is `domSet s.progress \ cfg`. The price is that every
+  give-back of a borrowed `Progress` carries `⌜p'.learner = p.learner⌝` (the methods' records are
+  record updates, so it is `rfl`, or a `@[simp]` lemma for the branching ones).
+  *Rejected*: a per-id flag map in `Trk` (a second index to keep in step with `peers`); an
+  `ownProgress` indexed by the expected flag (the same premise on every give-back, plus a
+  signature change everywhere).
+- **A non-follower is a voter, in `ownRaftPhys`** (`Hvoter`), not in the ghost state: only
+  `raft.wp_store_state` changes the role, and all its callers already know `id ∈ cfg`. So
+  `raft.Step`, `stepCandidate`, `stepLeader` and `applyConfChange` no longer take it.
+  *Rejected*: a `RoleOk`-style conjunct in `ownRaftGhost` (82 sites build or open it).
+- **`RawNode` keeps its voter scope for now**: a learner node needs the configuration in
+  `RNState` (part 3), because `node.run` looks the node up in its progress map around
+  `applyConfChange`, and `NetFrame` says nothing about the progress map's domain. The
+  `RawNode`/`node` `ApplyConfChange` premise is `CCNoop` (a no-op whatever the learners) until
+  then.
