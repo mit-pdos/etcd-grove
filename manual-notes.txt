@@ -1,7 +1,13 @@
-TODO:
-- Enforce a discipline where possible to fold pieces of closely-related state that are passed into Iris predicates into a record, rather than separate arguments. Concretely, the private own_inflights should have NOT have a separate buf argument. There should be a record for the whole thing. The purpose of following this discipline is to make incremental changes easier, since we could add/remove fields to records more easily than changing the number of arguments being passed into predicates.
-- (build and) verify a simple state machine app on top of raft to validate the specs
-- verify https://github.com/etcd-io/etcd/tree/main/cache
-- verify, as a high-level goal, the etcd run function (https://github.com/etcd-io/etcd/blob/f061acd0902d489041448cdd19d71a345d27b9f5/server/etcdserver/server.go#L751)
-- one level lower and more specific, verify code related to the consistent index bugs https://github.com/etcd-io/etcd/blob/f061acd0902d489041448cdd19d71a345d27b9f5/server/etcdserver/server.go#L978 and hooks updating consistentIndex like https://github.com/etcd-io/etcd/blob/f061acd0902d489041448cdd19d71a345d27b9f5/server/etcdserver/server.go#L2448
-- wp_auto made sense back when humans were writing proofs by hand. Make a better proof library that optimizes for proof build runtime and for token efficiency. E.g., maybe it's efficient to have an agent manually wp_apply everything.
+interesting things
+- verify raft by "refining" in two steps, Go -> low-level protocol -> abstract protocol, with the main protocol reasoning.
+- btree (done in 2.5hrs, $140 of tokens, ~1 prompt) seemed to compose with txn
+- adequacy example for raft library gave confidence before full Qed
+- time receipts for overflow: seems not to be really used yet....
+- thread receipts
+- go interface semantics turns out to expose itab
+- ai-driven adversarial development for trustworthy semantics; our hand-written semantics had lots of bugs
+- custom go compiler rewriter to resolve eval order underspecification and non-locality.
+
+- byte memory? strings and interfaces are exposed to be heap allocated.
+- unsafe memory semantics?
+- memory-mapped file semantics?
