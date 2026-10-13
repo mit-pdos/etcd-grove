@@ -25,13 +25,30 @@ operation, and every minted `(i, s)` has `s` at most replica `i`'s last sequence
 So a new sequence number mints a token nobody had, and a datum with a token is the one
 minted at its key.
 
+A read (2026-10-13, `Read`) mints its context the same way, from the same sequence numbers:
+`regInv` also holds the authority of raft's read-context registry (`reReads`), each of whose
+contexts is minted (`MintOk`'s third clause), so a new sequence number gives a context the
+registry does not have (`readReq_alloc`), and a `ReadState`'s context with a minted key is
+the one minted there (`reg_read_minted`).
+
+## Lower bounds on the history
+
+`regLb γr L` (persistent): the register's history (its client log) has the prefix `L`: `L`
+is the client data of a committed log (`firstOcc` of its entries' data). Every committed
+log is a prefix of raft's, whose client data is the history, so `L` is a prefix of the
+history; and conversely the history now is such an `L` (`regLb_current`). `Read` takes
+one at its call and returns the value after a longer one (`readP`).
+
 ## A replica
 
 Its lock protects the next sequence number, with the credits for it (`opCred`: a
 replica has `2^64 - 1` operations), and the waiters: each a handoff channel whose
 producer token the lock holds, for the operation minted at `(id, seq)`, on which the
 replica's applier sends the value after the operation, with where the operation's entry
-first is in a committed log (`waitP`). The applier's own state -- the value, the
+first is in a committed log (`waitP`); and (2026-10-13) the reads waiting for their
+answer (`readsOwn`): each a handoff channel for the read context minted at `(id, seq)`,
+created knowing a committed log `Lc` (`readReq`), on which the applier sends the value
+after a committed log extending `Lc` (`readP`). The applier's own state -- the value, the
 applied-encodings table, and the committed prefix it applied (`runOwn`) -- is the `run`
 goroutine's alone (only `apply` touches those fields, holding the lock for the waiters).
 
@@ -175,11 +192,13 @@ theorem regN_raftN : (↑regN : CoPset) ⊆ ⊤ \ ↑raftN :=
 theorem raftN_regN : (↑raftN : CoPset) ⊆ ⊤ \ ↑regN :=
   mask_ndot_ne' nroot "raft_commit" "register" (by decide)
 
-/-- The minting discipline (see the file header). -/
-def MintOk (M : GMap (List w8) Unit) (S : GMap w64 w64) (Mi : GMap (w64 × w64) (List w8)) :
-    Prop :=
+/-- The minting discipline (see the file header): the fresh-data tokens `M` and
+(2026-10-13) the read contexts `R` are minted. -/
+def MintOk [FfiSyntax] (M : GMap (List w8) Unit) (R : GMap (List w8) (List raftpb.Entry))
+    (S : GMap w64 w64) (Mi : GMap (w64 × w64) (List w8)) : Prop :=
   (∀ d, M !! d = some () → ∃ k, opKey d = some k ∧ Mi !! k = some d) ∧
-  (∀ i s d, Mi !! (i, s) = some d → ∃ n, S !! i = some n ∧ uint.Z s ≤ uint.Z n)
+  (∀ i s d, Mi !! (i, s) = some d → ∃ n, S !! i = some n ∧ uint.Z s ≤ uint.Z n) ∧
+  (∀ c Lc, R !! c = some Lc → ∃ k, opKey c = some k ∧ Mi !! k = some c)
 
 /-- The ticket of a replica's operation credits (`Auth Nat`). -/
 structure RepNames [FfiSyntax] where
@@ -199,11 +218,12 @@ def regVal (γr : RegNames) (x : List w8) : IProp GF :=
   ghostVar γr.val (1 : Qp).half x
 
 def regInvBody (γr : RegNames) : IProp GF :=
-  iprop(∃ (L : List (List w8)) (M : GMap (List w8) Unit) (S : GMap w64 w64)
-      (Mi : GMap (w64 × w64) (List w8)),
+  iprop(∃ (L : List (List w8)) (M : GMap (List w8) Unit) (R : GMap (List w8) (List raftpb.Entry))
+      (S : GMap w64 w64) (Mi : GMap (w64 × w64) (List w8)),
     cLog γr.raft L ∗ ghostVar γr.val (1 : Qp).half (regFold L) ∗
-    ghostMapAuth γr.raft.reFresh 1 M ∗ ghostMapAuth γr.seq 1 S ∗ ghostMapAuth γr.mint 1 Mi ∗
-    ⌜MintOk M S Mi⌝)
+    ghostMapAuth γr.raft.reFresh 1 M ∗ ghostMapAuth γr.raft.reReads 1 R ∗
+    ghostMapAuth γr.seq 1 S ∗ ghostMapAuth γr.mint 1 Mi ∗
+    ⌜MintOk M R S Mi⌝)
 
 /-- See the file header. -/
 def regInv (γr : RegNames) : IProp GF := inv regN (regInvBody γr)
@@ -226,6 +246,56 @@ instance waitP_persistent (γr : RegNames) (d v : List w8) :
     Persistent (waitP (GF := GF) γr d v) := by
   unfold waitP; infer_instance
 
+/-- A lower bound on the register's history (see the file header; persistent). -/
+def regLb (γr : RegNames) (L : List (List w8)) : IProp GF :=
+  iprop(∃ (l : List raftpb.Entry) (ods : List (Option (List w8))),
+    isCommitted γr.raft l ∗ ([∗list] e;o ∈ l;ods, entDataIs γr.raft e o) ∗ ⌜L = firstOcc ods⌝)
+
+instance regLb_persistent (γr : RegNames) (L : List (List w8)) :
+    Persistent (regLb (GF := GF) γr L) := by
+  unfold regLb; infer_instance
+
+/-- What a read waiting with the lower bound `L0` learns with the value `v`: `v` is the
+register's value after a history extending `L0`. -/
+def readP (γr : RegNames) (L0 : List (List w8)) (v : List w8) : IProp GF :=
+  iprop(∃ L, regLb γr L ∗ ⌜L0 <+: L ∧ v = regFold L⌝)
+
+instance readP_persistent (γr : RegNames) (L0 : List (List w8)) (v : List w8) :
+    Persistent (readP (GF := GF) γr L0 v) := by
+  unfold readP; infer_instance
+
+/-- A read's entry in the lock's invariant: the context `c` minted at `(id, s)`, created
+knowing the committed log `Lc` (with its entries' data `odsc`), and the producer of its
+handoff channel. -/
+def readWaiterOk (γr : RegNames) (id s : w64) (ch : Loc) : IProp GF :=
+  iprop(∃ (c : List w8) (Lc : List raftpb.Entry) (odsc : List (Option (List w8)))
+      (γh : HandoffNames),
+    (id, s) ↪[γr.mint]□ c ∗ readReq γr.raft c Lc ∗
+    ([∗list] e;o ∈ Lc;odsc, entDataIs γr.raft e o) ∗
+    isHandoff γh ch (readP γr (firstOcc odsc)) iprop(True) iprop(False) ∗
+    handoffProducer γh false)
+
+/-- A replica's waiting reads (the lock's), each of a sequence number at most `ns`. -/
+def readsOwn (γr : RegNames) (id : w64) (r : Loc) (ns : w64) : IProp GF :=
+  iprop(∃ (mR : Loc) (Rd : GMap w64 Loc),
+    "HmR" ∷ r.[RRegister, go!"reads"] ↦ mR ∗
+    "HRd" ∷ mR ↦$ Rd ∗
+    "%HRdom" ∷ ⌜∀ s ch, Rd !! s = some ch → uint.Z s ≤ uint.Z ns⌝ ∗
+    "Hreads" ∷ [∗map] s ↦ ch ∈ Rd, readWaiterOk γr id s ch)
+
+theorem readsOwn_mono (γr : RegNames) (id : w64) (r : Loc) (ns ns' : w64)
+    (h : uint.Z ns ≤ uint.Z ns') :
+    readsOwn (GF := GF) γr id r ns ⊢ readsOwn γr id r ns' := by
+  iintro H
+  unfold readsOwn
+  iNamed H
+  iexists mR, Rd
+  iframe HmR HRd Hreads
+  ipureintro
+  intro s ch Hs
+  have := HRdom s ch Hs
+  omega
+
 /-- A replica's operation credits. -/
 def opCred (γp : RepNames) (n : Nat) : IProp GF := own γp.cred (◯ n : Auth Nat)
 
@@ -245,7 +315,8 @@ def lockInv (γr : RegNames) (γp : RepNames) (id : w64) (r : Loc) : IProp GF :=
     "Hcred" ∷ own γp.cred (● c : Auth Nat) ∗
     "%Hc" ∷ ⌜uint.Z ns + (c : Int) < 2 ^ 64⌝ ∗
     "%HWdom" ∷ ⌜∀ s ch, W !! s = some ch → uint.Z s ≤ uint.Z ns⌝ ∗
-    "Hwaiters" ∷ [∗map] s ↦ ch ∈ W, waiterOk γr id s ch)
+    "Hwaiters" ∷ ([∗map] s ↦ ch ∈ W, waiterOk γr id s ch) ∗
+    "Hrds" ∷ readsOwn γr id r ns)
 
 /-- Replica `id` at `r`, on node `n`, with the storage `st` (persistent). -/
 def isReplica (γr : RegNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc) : IProp GF :=

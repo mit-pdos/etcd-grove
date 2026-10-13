@@ -4,10 +4,11 @@
 
 From what package initialization provides (`isPkgInit` of the register's package, which
 holds its dependencies', raft's among them), `Main` is safe: it does not panic -- in
-particular client B's check that its `Get` returns the value client A put -- and has no
-undefined behavior. Everything else (raft's ghost state for the cluster, the term budget
-and the tick credits, the storages' and the register's invariants, the operation credits,
-the clients' invariant) is allocated in the proof, from nothing. No storage registry is
+particular client B's check that its `Get` returns the value client A put; B then reads by
+read index (`Read`, unchecked) -- and has no undefined behavior. Everything else (raft's
+ghost state for the cluster, the term budget and the tick credits, the storages' and the
+register's invariants, the operation and read credits, the clients' invariant) is
+allocated in the proof, from nothing. No storage registry is
 assumed either: the proof allocates one and instantiates the register's specs at it.
 -/
 module

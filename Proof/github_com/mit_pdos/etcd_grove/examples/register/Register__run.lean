@@ -6,6 +6,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.Register__run
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.Register__apply
+public import Spec.github_com.mit_pdos.etcd_grove.examples.register.Register__answer
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.fits
 public import Spec.go_etcd_io.raft.v3.node__Ready
 public import Spec.go_etcd_io.raft.v3.node__Advance
@@ -33,6 +34,7 @@ variable [RegStor GF]
 theorem Register.run.wp_proof
     (wp_fits : register.fits.spec (GF := GF) (hG := hG))
     (wp_apply : register.Register.apply.spec (GF := GF) (hG := hG))
+    (wp_answer : register.Register.answer.spec (GF := GF) (hG := hG))
     (wp_node_Ready : node.Ready.spec (GF := GF) (hG := hG))
     (wp_node_Advance : node.Advance.spec (GF := GF) (hG := hG))
     (wp_MemoryStorage_Append : MemoryStorage.Append.spec (GF := GF) (hG := hG)) :
@@ -46,15 +48,27 @@ theorem Register.run.wp_proof
   · iPkgInit
   wp_auto
   wp_apply wp_node_Ready γp.node id n $$ [$HisNode] as %ch #Hch
-  ihave IH : iprop(∃ (ds : List raftpb.Entry) (rdv : Ready),
-      "Hrd" ∷ rd_ptr ↦ rdv ∗ "Hdrv" ∷ nodeDriver γp.node id n ds ∗ "Hrun" ∷ runOwn γr r ds)
-    $$ [rd Hdrv Hrun]
-  · iexists [], _
+  ihave IH : iprop(∃ (ds : List raftpb.Entry) (rdv : Ready) (pv : GoSlice) (ps : List ReadState)
+      (a : w64),
+      "Hrd" ∷ rd_ptr ↦ rdv ∗ "Hdrv" ∷ nodeDriver γp.node id n ds ∗ "Hrun" ∷ runOwn γr r ds ∗
+      "pending" ∷ pending_ptr ↦ pv ∗ "Hpv" ∷ pv ↦* ps ∗
+      "Hpcap" ∷ ownSliceCap ReadState pv (DFrac.own 1) ∗
+      "Hps" ∷ ([∗list] s ∈ ps, readStateOk γr.raft s) ∗
+      "applied" ∷ applied_ptr ↦ a ∗ "%Ha" ∷ ⌜uint.Z a ≤ (ds.length : Int)⌝)
+    $$ [rd Hdrv Hrun pending applied]
+  · iexists [], _, _, [], _
     iframe
+    isplitl []
+    · iapply ownSlice_nil
+    isplitl []
+    · iapply ownSliceCap_nil
+    isplitl []
+    · iapply (BigSepL.bigSepL_nil).2; iempintro
+    ipureintro; simp; rfl
   wp_for IH
   wp_apply node_ready_receive γp.node id n ch ds $$ [$Hch $Hdrv] as %rdv' ⟨%ce, %es, %msgs, Hdata, Hbusy⟩
   unfold readyData
-  icases Hdata with ⟨#Hce, #Hcomm, #Hes, Happ, Hms, Hmsok, Hcr, -, %Hsnap⟩
+  icases Hdata with ⟨#Hce, #Hcomm, #Hes, Happ, Hms, Hmsok, Hcr, ⟨%sts, #Hsts, #Hstsok⟩, %Hsnap⟩
   wp_apply wp_fits rdv'.Entries' es DFrac.discard $$ [$Hes] as %b ⟨-, %Hfit⟩
   cases b
   · -- a log past `maxIndex`: the replica stops
@@ -106,16 +120,25 @@ theorem Register.run.wp_proof
   · iframe
   iintro !> -
   wp_auto
+  -- the read states, noted
+  wp_apply wp_slice_append $$ [$Hpv $Hpcap $Hsts] as %pv' ⟨Hpv, Hpcap, -⟩
+  ihave Hps : iprop([∗list] s ∈ ps ++ sts, readStateOk γr.raft s) $$ [Hps]
+  · iapply (BigSepL.bigSepL_append (Φ := fun _ s => readStateOk (GF := GF) γr.raft s)).2
+    iframe Hps
+    rw [← Hraft]
+    iexact Hstsok
   -- applying the committed entries, in order
   ihave %Hcelen := ownSlice_len $$ Hce
-  ihave IHa : iprop(∃ (k : w64) (ev : raftpb.Entry),
+  ihave IHa : iprop(∃ (k : w64) (ev : raftpb.Entry) (a' : w64),
       "i" ∷ i_ptr ↦ k ∗ "e" ∷ e_ptr ↦ ev ∗ "Hrun" ∷ runOwn γr r (ds ++ ce.take (sint.nat k)) ∗
-      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (ce.length : Int)⌝) $$ [i e Hrun]
-  · iexists W64 0, _
-    iframe i e
+      "applied" ∷ applied_ptr ↦ a' ∗
+      "%Ha" ∷ ⌜uint.Z a' ≤ ((ds ++ ce.take (sint.nat k)).length : Int)⌝ ∗
+      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (ce.length : Int)⌝) $$ [i e Hrun applied]
+  · iexists W64 0, _, a
+    iframe i e applied
     simp only [show sint.nat (W64 0) = 0 by rfl, List.take_zero, List.append_nil]
     iframe Hrun
-    ipureintro; constructor <;> word
+    ipureintro; constructor; exact Ha; constructor <;> word
   wp_for IHa
   wp_if_destruct
   · have Hlt : sint.nat k < ce.length := by word
@@ -133,17 +156,26 @@ theorem Register.run.wp_proof
     wp_apply wp_apply γr γp r id n st (ds ++ ce.take (sint.nat k)) en $$ [$Hpkg $Hrep $Hrun $Hc1] as Hrun
     wp_for_post
     iframe
-    iexists k + W64 1, en
+    iexists k + W64 1, en, a' + W64 1
     rw [show sint.nat (k + W64 1) = sint.nat k + 1 by word, Htk, List.append_assoc]
     iframe
-    ipureintro; constructor <;> word
+    ipureintro
+    have Hl : ((ds ++ (ce.take (sint.nat k) ++ [en])).length : Int) =
+        ((ds ++ ce.take (sint.nat k)).length : Int) + 1 := by simp; omega
+    refine ⟨?_, ?_⟩
+    · rw [Hl]; word
+    · constructor <;> word
   · have Hfull : sint.nat k = ce.length := by word
-    rw [Hfull, List.take_of_length_le (by omega)]
+    rw [Hfull, List.take_of_length_le (by omega)] at Ha ⊢
+    -- the reads whose index is applied, answered
+    wp_apply wp_answer γr γp r id n st (ds ++ ce) pv' (ps ++ sts) (DFrac.own 1) a' Ha
+      $$ [$Hpkg $Hrep $Hrun $Hpv $Hps] as %rest ⟨Hrun, %ps', Hrest, Hcap, Hps'⟩
     wp_apply wp_node_Advance γp.node id n (ds ++ ce) es $$ [$Hraftinit $Hbusy $Hrcpt] as Hdrv
     wp_for_post
     iframe
-    iexists ds ++ ce, rdv'
+    iexists ds ++ ce, rdv', rest, ps', a'
     iframe
+    ipureintro; exact Ha
 
 end proof
 

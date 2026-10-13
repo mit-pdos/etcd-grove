@@ -1,7 +1,10 @@
 // Package register is a minimal replicated application on raft: a string-valued
 // register with Put and Get, replicated by a raft Node. It is an example for
 // verification: every operation, Get included, goes through the raft log, so each one
-// takes effect at the point its entry is committed.
+// takes effect at the point its entry is committed. Read is a linearizable read that does
+// not go through the log: it asks raft for a read index (Node.ReadIndex, raft's
+// ReadOnlySafe read-only queries) and answers once the replica has applied the log up to
+// it.
 package register
 
 import (
@@ -14,13 +17,14 @@ import (
 )
 
 const (
-	opPut = 1
-	opGet = 2
+	opPut  = 1
+	opGet  = 2
+	opRead = 3
 )
 
 // encode is an operation as a log entry: the proposing replica (8 bytes, little-endian),
 // its sequence number there (8 bytes), the kind (1 byte), then the value (the rest;
-// empty for a Get).
+// empty for a Get). A read's context (Read) is encoded the same way, of kind opRead.
 func encode(replica, seq uint64, kind byte, val string) []byte {
 	b := make([]byte, 17, 17+len(val))
 	binary.LittleEndian.PutUint64(b, replica)
@@ -71,8 +75,9 @@ func (s *Storage) Snapshot() (pb.Snapshot, error) {
 }
 
 // Register is one replica: its id, the raft node, its storage, the register's value
-// as of the last applied entry, the operations applied (by their encoding), and the
-// operations of this replica waiting for theirs (by sequence number).
+// as of the last applied entry, the operations applied (by their encoding), the
+// operations of this replica waiting for theirs and its reads waiting for their answer
+// (both by sequence number).
 type Register struct {
 	id      uint64
 	node    raft.Node
@@ -83,12 +88,14 @@ type Register struct {
 	nextSeq uint64
 	applied map[string]bool
 	waiters map[uint64]chan string
+	reads   map[uint64]chan string
 }
 
 // New starts replica id on a running node and its storage; send delivers the node's
 // messages to the other replicas.
 func New(id uint64, node raft.Node, storage *Storage, send func([]pb.Message)) *Register {
-	r := &Register{id: id, node: node, storage: storage, applied: make(map[string]bool), waiters: make(map[uint64]chan string)}
+	r := &Register{id: id, node: node, storage: storage, applied: make(map[string]bool),
+		waiters: make(map[uint64]chan string), reads: make(map[uint64]chan string)}
 	go r.run(send)
 	return r
 }
@@ -102,10 +109,14 @@ func fits(es []pb.Entry) bool {
 	return len(es) == 0 || (uint64(len(es)) <= maxIndex && es[0].Index <= maxIndex-uint64(len(es)))
 }
 
-// run handles the node's Readys: persist the entries, send the messages, apply the
-// committed entries in order, then Advance. A log that would outgrow maxIndex stops the
-// replica (2^61 entries: it does not happen).
+// run handles the node's Readys: persist the entries, send the messages, note the read
+// states, apply the committed entries in order, answer the reads whose index is applied,
+// then Advance. A log that would outgrow maxIndex stops the replica (2^61 entries: it does
+// not happen). The applied index is the number of entries applied: the log starts empty,
+// at index 1, and the register takes no snapshots.
 func (r *Register) run(send func([]pb.Message)) {
+	var pending []raft.ReadState
+	var applied uint64
 	for rd := range r.node.Ready() {
 		if !fits(rd.Entries) {
 			for {
@@ -113,11 +124,43 @@ func (r *Register) run(send func([]pb.Message)) {
 		}
 		r.storage.Append(rd.Entries)
 		send(rd.Messages)
+		pending = append(pending, rd.ReadStates...)
 		for _, e := range rd.CommittedEntries {
 			r.apply(e)
+			applied++
 		}
+		pending = r.answer(pending, applied)
 		r.node.Advance()
 	}
+}
+
+// answer answers the pending reads whose index is at most applied with the current value
+// (that of the log up to applied), and returns the others. A read state that is not one
+// of this replica's reads waiting for its answer is dropped (raft hands out a node's read
+// states only to that node, so a read's context is always its own replica's).
+func (r *Register) answer(pending []raft.ReadState, applied uint64) []raft.ReadState {
+	var rest []raft.ReadState
+	for _, rs := range pending {
+		if applied < rs.Index {
+			rest = append(rest, rs)
+			continue
+		}
+		replica, seq, kind, _, ok := decode(rs.RequestCtx)
+		if !ok || replica != r.id || kind != opRead {
+			continue
+		}
+		r.mu.Lock()
+		ch, found := r.reads[seq]
+		if found {
+			delete(r.reads, seq)
+		}
+		v := r.value
+		r.mu.Unlock()
+		if found {
+			ch <- v
+		}
+	}
+	return rest
 }
 
 // apply runs one committed entry: a Put sets the value; either kind answers its
@@ -180,4 +223,20 @@ func (r *Register) Put(val string) {
 // Get returns the register's value.
 func (r *Register) Get() string {
 	return r.do(opGet, "")
+}
+
+// Read returns the register's value, by a read index rather than through the log: a
+// fresh context (the replica and a new sequence number, like an operation's), the read
+// index raft confirms for it with a quorum (Node.ReadIndex), and the value once the
+// replica has applied the log that far. A request raft drops (no leader known) is not
+// retried: Read then waits forever.
+func (r *Register) Read() string {
+	r.mu.Lock()
+	r.nextSeq++
+	seq := r.nextSeq
+	ch := make(chan string, 1)
+	r.reads[seq] = ch
+	r.mu.Unlock()
+	r.node.ReadIndex(context.Background(), encode(r.id, seq, opRead, ""))
+	return <-ch
 }

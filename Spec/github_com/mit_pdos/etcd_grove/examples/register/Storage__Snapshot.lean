@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`(*Storage).Snapshot()` (register.go:64): the `MemoryStorage`'s snapshot, but
+`(*Storage).Snapshot()` (register.go:69): the `MemoryStorage`'s snapshot, but
 `ErrSnapshotTemporarilyUnavailable` for an empty one -- what raft's `Storage` contract asks
 (a non-empty snapshot or that error).
 -/

@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`(*Register).Get()` (register.go:164), logically atomic:
+`(*Register).Get()` (register.go:224), logically atomic:
 `<<∀ x, regVal γr x>> Get <<regVal γr x, RET x>>`. One operation credit.
 -/
 module

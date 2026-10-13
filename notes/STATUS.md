@@ -66,10 +66,46 @@ The design is in decisions.md, "Read-index: ..." (its last section); in short:
 - **Trust base.** Unchanged: 70 axioms, 10 `sorry`s (`etc/tcb-report.py --check`).
 - **No Go bug found** on this path (the pinned `readOnly` keys requests by position, so
   etcd-io/raft#392 does not apply).
-- **Next.** The register reads through `node.ReadIndex` (`Read()`, a lower-bound spec: a
-  logically atomic one needs prophecy, the linearization point being in the past when the
-  `ReadState` comes back) -- in progress.
+- **The register uses it.** `Register.Read()` reads through `node.ReadIndex` (a lower-bound
+  spec: a logically atomic one needs prophecy, the linearization point being in the past when
+  the `ReadState` comes back), and the register's transport now carries read-index traffic;
+  see "The register's linearizable reads by read index (2026-10-13)".
 
+## The register's linearizable reads by read index (2026-10-13)
+
+The register (`examples/register`) has a third operation, `Read()`, a linearizable read by
+raft's read index (`Node.ReadIndex`, `ReadOnlySafe`) rather than through the log; `Get`
+(through the log, logically atomic) is unchanged. Verified, sorry- and axiom-free beyond
+the register's existing trust base (`etc/tcb-report.py --check`: 70 axioms, 10 sorries,
+unchanged; the register collection 1 axiom, 9 sorries, unchanged).
+
+* **Go.** `Read` mints a context `encode(id, seq, opRead, "")` (the replica's sequence
+  numbers, shared with operations), waits in `r.reads[seq]`, calls `ReadIndex` once (an
+  error means the node stopped; a request raft drops for lack of a leader leaves `Read`
+  waiting: partial correctness, like `do`). `run` keeps the `Ready`s' read states pending
+  and counts the applied entries (the applied index: the log starts empty, no snapshots);
+  after applying a `Ready`'s entries, `answer` hands each pending read of index at most the
+  applied index the current value. The transport (`deliverable`) now passes `MsgReadIndex`
+  (unstamped), `MsgReadIndexResp`, and contexts on heartbeats and their responses (only
+  there), and `deliver` passes each message's read credit on to `Step`. `Main`'s client B
+  also reads by read index on replica 3 (unchecked). Tests: `TestRead` (Reads after Puts on
+  every replica, over `deliver`), `TestDeliverable`.
+* **Spec** (`Spec/.../Register__Read.lean`): with lower bounds on the register's history:
+  `regLb γr L` (the client data, `firstOcc`, of some committed log; persistent). For
+  `1 < size reCfg`: `{{ isRegister γr γp r ∗ opCred γp 1 ∗ rdCred γr.raft 1 ∗ regLb γr L0 }}
+  r.Read() {{ x; ∃ L, regLb γr L ∗ ⌜L0 <+: L ∧ x = regFold L⌝ }}`; `regLb_current`: the
+  history now is a lower bound, at the client's value. Not logically atomic (the
+  linearization point is in the past when the read state comes back: it would need
+  prophecy).
+* **Proof.** `regInv` holds raft's read-context registry authority (`reReads`) and
+  `MintOk` says every registered context is minted (`reg_mint_read`, `reg_read_minted`;
+  the pure step `mintOk_step` shared with `reg_mint`). A read registers its context with
+  the committed log of the caller's `regLb` (`readReq`); `answer` identifies a read state's
+  context with the waiter's by the mint, and `readOk_prefix` gives that log as a prefix of
+  the applied one (`entDataIs_list_prefix`, `firstOcc` monotone). The lock's invariant has
+  the waiting reads (`readsOwn`); `deliver` takes `1 < size reCfg` (for a forwarded
+  `MsgReadIndex`); a heartbeat's context is eight bytes by `isMessage`, so not the
+  leader-transfer marker (`hb_ctx_ok`). No raft file changed.
 
 ## `MemoryStorage`: the rest of the storage (2026-10-12)
 

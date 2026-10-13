@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`New(id, node, storage, send)` (register.go:89): replica `id` on its running node (the
+`New(id, node, storage, send)` (register.go:96): replica `id` on its running node (the
 driver's token at the empty committed log) and its storage; it starts `run`. The replica's
 seq token (`id ↪[γr.seq] 0`, from the cluster's allocation) gives it `2^64 - 1` operation
 credits.

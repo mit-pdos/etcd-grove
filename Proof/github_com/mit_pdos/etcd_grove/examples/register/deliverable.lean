@@ -27,18 +27,36 @@ theorem deliverable.wp_proof : deliverable.spec (GF := GF) (hG := hG) := by
   intro m
   wp_start
   simp only [raftpb.MsgHeartbeatResp, raftpb.MsgHeartbeat, raftpb.MsgVoteResp, raftpb.MsgVote,
-    raftpb.MsgAppResp, raftpb.MsgApp]
-  have Hcases : (m.Type' ≠ W32 2 ∧ m.Type' ≠ W32 9 ∧ m.Type' ≠ W32 8 ∧ m.Type' ≠ W32 6 ∧
-       m.Type' ≠ W32 5 ∧ m.Type' ≠ W32 4 ∧ m.Type' ≠ W32 3) ∨
-      m.Type' = W32 2 ∨ m.Type' = W32 9 ∨ m.Type' = W32 8 ∨ m.Type' = W32 6 ∨
-      m.Type' = W32 5 ∨ m.Type' = W32 4 ∨ m.Type' = W32 3 := by
-    by_cases h2 : m.Type' = W32 2 <;> by_cases h9 : m.Type' = W32 9 <;>
-    by_cases h8 : m.Type' = W32 8 <;> by_cases h6 : m.Type' = W32 6 <;>
-    by_cases h5 : m.Type' = W32 5 <;> by_cases h4 : m.Type' = W32 4 <;>
-    by_cases h3 : m.Type' = W32 3 <;> simp_all
-  rcases Hcases with ⟨h2, h9, h8, h6, h5, h4, h3⟩ | Ht | Ht | Ht | Ht | Ht | Ht | Ht
+    raftpb.MsgAppResp, raftpb.MsgApp, raftpb.MsgReadIndex, raftpb.MsgReadIndexResp]
+  have Hcases : (m.Type' ≠ W32 2 ∧ m.Type' ≠ W32 15 ∧ m.Type' ≠ W32 16 ∧ m.Type' ≠ W32 9 ∧
+       m.Type' ≠ W32 8 ∧ m.Type' ≠ W32 6 ∧ m.Type' ≠ W32 5 ∧ m.Type' ≠ W32 4 ∧
+       m.Type' ≠ W32 3) ∨
+      m.Type' = W32 2 ∨ m.Type' = W32 15 ∨ m.Type' = W32 16 ∨ m.Type' = W32 9 ∨
+      m.Type' = W32 8 ∨ m.Type' = W32 6 ∨ m.Type' = W32 5 ∨ m.Type' = W32 4 ∨
+      m.Type' = W32 3 := by
+    by_cases h2 : m.Type' = W32 2
+    · exact .inr (.inl h2)
+    by_cases h15 : m.Type' = W32 15
+    · exact .inr (.inr (.inl h15))
+    by_cases h16 : m.Type' = W32 16
+    · exact .inr (.inr (.inr (.inl h16)))
+    by_cases h9 : m.Type' = W32 9
+    · exact .inr (.inr (.inr (.inr (.inl h9))))
+    by_cases h8 : m.Type' = W32 8
+    · exact .inr (.inr (.inr (.inr (.inr (.inl h8)))))
+    by_cases h6 : m.Type' = W32 6
+    · exact .inr (.inr (.inr (.inr (.inr (.inr (.inl h6))))))
+    by_cases h5 : m.Type' = W32 5
+    · exact .inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl h5)))))))
+    by_cases h4 : m.Type' = W32 4
+    · exact .inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl h4))))))))
+    by_cases h3 : m.Type' = W32 3
+    · exact .inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr h3))))))))
+    exact .inl ⟨h2, h15, h16, h9, h8, h6, h5, h4, h3⟩
+  rcases Hcases with ⟨h2, h15, h16, h9, h8, h6, h5, h4, h3⟩ | Ht | Ht | Ht | Ht | Ht | Ht | Ht |
+    Ht | Ht
   · wp_auto
-    repeat (simp only [h2, h9, h8, h6, h5, h4, h3, decide_false]; wp_auto)
+    repeat (simp only [h2, h15, h16, h9, h8, h6, h5, h4, h3, decide_false]; wp_auto)
     iapply HΦ
     ipureintro; intro h; cases h
   all_goals (wp_auto; simp only [Ht]; wp_auto)
@@ -51,7 +69,7 @@ theorem deliverable.wp_proof : deliverable.spec (GF := GF) (hG := hG) := by
   all_goals (iapply HΦ; ipureintro; intro h)
   all_goals (first | (cases h; done) | skip)
   all_goals (unfold Deliverable regNetTypes; simp_all [MsgProp, MsgApp, MsgAppResp, MsgVote,
-    MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp])
+    MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp])
   all_goals done
 
 end proof

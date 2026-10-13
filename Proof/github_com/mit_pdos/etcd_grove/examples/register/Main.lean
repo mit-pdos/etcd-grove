@@ -14,6 +14,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.register.Storage__Sna
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.New
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.Register__Put
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.Register__Get
+public import Spec.github_com.mit_pdos.etcd_grove.examples.register.Register__Read
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.deliver
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.tick
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.quietLogger__Debugf
@@ -117,6 +118,27 @@ def clusterIds : List w64 := [W64 1, W64 2, W64 3]
 
 theorem clusterIds_nodup : clusterIds.Nodup := by decide
 
+theorem constMap_lookup_isSome {V : Type} (l : List w64) (v : V) (k : w64) :
+    (constMap l v !! k).isSome ↔ k ∈ l := by
+  induction l with
+  | nil =>
+    simp only [List.not_mem_nil, iff_false]
+    rw [show ((constMap [] v : GMap w64 V) !! k) = none from rfl]
+    simp
+  | cons k' l IH =>
+    show (GMap.insert k' v (constMap l v) !! k).isSome ↔ _
+    by_cases h : k' = k
+    · subst h; rw [GMap.lookup_insert_eq]; simp
+    · rw [GMap.lookup_insert_ne _ _ h, IH]
+      simp [List.mem_cons, Ne.symm h]
+
+/-- The cluster has more than one voter (what `Node.ReadIndex` asks). -/
+theorem clusterIds_size : 1 < GMap.size (GMap.listToSet clusterIds) := by
+  rw [GMap.size_eq_length _ clusterIds clusterIds_nodup]
+  · decide
+  intro k
+  rw [listToSet_constMap, constMap_lookup_isSome]
+
 theorem take_drop_ne (l : List w64) (hnd : l.Nodup) (n : Nat) (x y : w64)
     (hx : x ∈ l.take n) (hy : y ∈ l.drop n) : x ≠ y := by
   rw [← List.take_append_drop n l, List.nodup_append] at hnd
@@ -180,6 +202,7 @@ theorem Main.wp_proof
     (wp_New : ∀ [RegStor GF], register.New.spec (GF := GF) (hG := hG))
     (wp_Put : ∀ [RegStor GF], register.Register.Put.spec (GF := GF) (hG := hG))
     (wp_Get : ∀ [RegStor GF], register.Register.Get.spec (GF := GF) (hG := hG))
+    (wp_Read : ∀ [RegStor GF], register.Register.Read.spec (GF := GF) (hG := hG))
     (wp_deliver : ∀ [RegStor GF], register.deliver.spec (GF := GF) (hG := hG))
     (wp_tick : ∀ [RegStor GF], register.tick.spec (GF := GF) (hG := hG))
     (wp_Debugf : quietLogger.Debugf.spec (GF := GF) (hG := hG))
@@ -214,7 +237,7 @@ theorem Main.wp_proof
     with ⟨%bud, #Hbinv, Hcred, #Hlb0⟩
   imod propDataInv_alloc (GF := GF) γ ⊤ $$ HreSl with #Hpd
   -- the register's invariant, the client's half of the value, the sequence-number tokens
-  imod regInv_alloc (GF := GF) ⊤ γ (constMap clusterIds (W64 0)) $$ HcL Hfresh
+  imod regInv_alloc (GF := GF) ⊤ γ (constMap clusterIds (W64 0)) $$ HcL Hfresh HrdA
     with ⟨%γr, %Hγr, #Hreg, Hval, Hseqs⟩
   -- the clients' invariant
   imod ghostVar_alloc (GF := GF) false with ⟨%γf, Hf⟩
@@ -422,7 +445,8 @@ theorem Main.wp_proof
         iintro ⟨Hmsl, #Hok, Hcr⟩ HΦ'
         rw [Hr, Hb]
         wp_auto
-        wp_apply (wp_deliver γr.raft bud mP M msl ms) $$ [$Hmsl $Hcr]
+        wp_apply (wp_deliver γr.raft bud mP M msl ms (by rw [Hcfg]; exact clusterIds_size))
+          $$ [$Hmsl $Hcr]
         · iframe #
         iapply HΦ'
         itrivial
@@ -497,10 +521,14 @@ theorem Main.wp_proof
       rw [Hk3']
       simp only [show clusterIds.take 3 = [W64 1, W64 2, W64 3] from rfl]
       ihave ⟨⟨%r1, %γp1, %HR1, #Hreg1, Hop1⟩, Hregs⟩ := (BigSepL.bigSepL_cons).1 $$ Hregs
-      ihave ⟨⟨%r2, %γp2, %HR2, #Hreg2, Hop2⟩, -⟩ := (BigSepL.bigSepL_cons).1 $$ Hregs
+      ihave ⟨⟨%r2, %γp2, %HR2, #Hreg2, Hop2⟩, Hregs⟩ := (BigSepL.bigSepL_cons).1 $$ Hregs
+      ihave ⟨⟨%r3, %γp3, %HR3, #Hreg3, Hop3⟩, -⟩ := (BigSepL.bigSepL_cons).1 $$ Hregs
       rw [show (2 : Nat) ^ 64 - 1 = 1 + (2 ^ 64 - 2) by decide]
       icases (opCred_split γp1 1 _).1 $$ Hop1 with ⟨Hop1, -⟩
       icases (opCred_split γp2 1 _).1 $$ Hop2 with ⟨Hop2, -⟩
+      icases (opCred_split γp3 1 _).1 $$ Hop3 with ⟨Hop3, -⟩
+      rw [show (2 : Nat) ^ 64 - 2 = 1 + (2 ^ 64 - 3) by decide]
+      icases (rdCred_split γr.raft 1 _).1 $$ HrdC with ⟨HrdC, -⟩
       imod ownMap_persist mR _ R $$ HmR with #HmR
       ipersist regs
       wp_apply chan.wp_make2 (V := Bool) (W64 1) as %ch %γc ⟨#Hch, %Hcap, Hoc⟩
@@ -540,6 +568,18 @@ theorem Main.wp_proof
       · iframe Hop2 Hau Hreg2
       subst Hx
       wp_auto
+      -- B's read by read index on replica 3, from the empty history's lower bound
+      wp_apply wp_map_lookup1 go.uint64 _ mR R (W64 3) DFrac.discard $$ HmR as -
+      simp only [HR3, Option.getD_some]
+      wp_apply (wp_Read γr γp3 r3 [] (by rw [Hcfg]; exact clusterIds_size)) $$ [Hop3 HrdC]
+        as %y -
+      · iframe Hop3 HrdC Hreg3
+        unfold regLb
+        iexists [], []
+        iframe Hc0
+        isplitl
+        · iapply BigSepL2.bigSepL2_nil.2; itrivial
+        ipureintro; rfl
       iapply HΦ
       itrivial
 

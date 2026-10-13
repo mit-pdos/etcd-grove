@@ -26,18 +26,28 @@ func (quietLogger) Panic(v ...interface{})                   { panic("raft: pani
 func (quietLogger) Panicf(format string, v ...interface{})   { panic(format) }
 
 // deliverable says whether the transport passes m on: a message of a type a node of the
-// cluster sends its peers (a proposal forwarded to the leader, or a replication or
-// election message: pre-vote and snapshots are off), from a node to another, of a term
-// (but a proposal, which carries none), and with no context (nil: the cluster uses neither
-// read-only queries nor leader transfer, its two uses). raft sends nothing else, but
-// what it promises of a Ready's messages does not say so.
+// cluster sends its peers (a proposal or a read-index request forwarded to the leader,
+// unstamped; a replication, election or read-index message: pre-vote and snapshots are
+// off), from a node to another, of a term (but the forwarded ones, which carry none), and
+// with no context but on a heartbeat or its response, where it is the leader's read-index
+// position (the cluster never transfers leadership, the context's other use). raft sends
+// nothing else, but what it promises of a Ready's messages does not say so.
 func deliverable(m pb.Message) bool {
 	switch m.Type {
 	case pb.MsgProp:
-	case pb.MsgApp, pb.MsgAppResp, pb.MsgVote, pb.MsgVoteResp, pb.MsgHeartbeat, pb.MsgHeartbeatResp:
+	case pb.MsgReadIndex:
+		if m.Term != 0 {
+			return false
+		}
+	case pb.MsgApp, pb.MsgAppResp, pb.MsgVote, pb.MsgVoteResp, pb.MsgReadIndexResp:
 		if m.Term == 0 {
 			return false
 		}
+	case pb.MsgHeartbeat, pb.MsgHeartbeatResp:
+		if m.Term == 0 {
+			return false
+		}
+		return m.From != 0 && m.From != m.To
 	default:
 		return false
 	}
@@ -78,7 +88,10 @@ func tick(nd raft.Node) {
 
 // Main runs a cluster of three replicas connected in process: client A puts "hello" on
 // replica 1 and then tells client B, which gets the value on replica 2; since A's Put
-// completed before B's Get began and nobody else puts, B sees "hello".
+// completed before B's Get began and nobody else puts, B sees "hello". B then reads by
+// read index on replica 3 (Read), which goes through the transport's read-index messages
+// and heartbeat contexts; its value is "hello" as well, but Main does not check it: Read's
+// specification states its value with lower bounds on the register's history.
 func Main() {
 	voters := []uint64{1, 2, 3}
 	peers := make(map[uint64]raft.Node)
@@ -114,4 +127,5 @@ func Main() {
 	if regs[2].Get() != "hello" {
 		panic("register: a Get after a Put did not see its value")
 	}
+	regs[3].Read()
 }

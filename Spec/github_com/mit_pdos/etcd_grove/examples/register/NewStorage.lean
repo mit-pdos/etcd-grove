@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`NewStorage(voters)` (register.go:51): a new storage, registered (`regStorRec`), holding the
+`NewStorage(voters)` (register.go:55): a new storage, registered (`regStorRec`), holding the
 voters (read-only) and a new `MemoryStorage` (at `memStorEmpty`).
 -/
 module

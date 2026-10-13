@@ -29,18 +29,21 @@ variable [StorageModel GF]
 theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG))
     (wp_node_Step : node.Step.spec (GF := GF) (hG := hG)) :
     deliver.spec (GF := GF) (hG := hG) := by
-  intro γ bud peers P msl ms
-  -- the read credits: a deliverable message carries none (`stepP_deliverable`)
-  wp_start as ⟨#Hpeers, #HP, Hms, #Hmsok, -⟩
+  intro γ bud peers P msl ms Hcfg
+  wp_start as ⟨#Hpeers, #HP, Hms, #Hmsok, Hcr⟩
   ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   wp_auto
   ihave %Hmslen := ownSlice_len $$ Hms
   ihave IH : iprop(∃ (k : w64) (mv : raftpb.Message),
       "i" ∷ i_ptr ↦ k ∗ "m" ∷ m_ptr ↦ mv ∗ "Hms" ∷ msl ↦* ms ∗
-      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (ms.length : Int)⌝) $$ [i m Hms]
+      "Hcr" ∷ ([∗list] m ∈ ms.drop (sint.nat k),
+        rdCred γ (if m.Type' = MsgReadIndex then 1 else 0)) ∗
+      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (ms.length : Int)⌝) $$ [i m Hms Hcr]
   · iexists W64 0, _
     iframe i m Hms
+    simp only [show sint.nat (W64 0) = 0 from rfl, List.drop_zero]
+    iframe Hcr
     ipureintro; constructor <;> word
   wp_for IH
   wp_if_destruct
@@ -52,12 +55,21 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
     · iframe Hms; ipureintro; exact Hmm
     ihave ⟨#Hmok, #Hmlb⟩ := BigSepL.bigSepL_lookup (Φ := fun _ m =>
       iprop(isRaftMsg (GF := GF) γ m ∗ termLB bud m.Term')) Hmm $$ Hmsok
+    -- the message's read credit
+    have Hdrop : ms.drop (sint.nat k) = mm :: ms.drop (sint.nat k + 1) := by
+      rw [List.drop_eq_getElem_cons Hlt]
+      rw [List.getElem?_eq_getElem Hlt] at Hmm
+      rw [Option.some.inj Hmm]
+    have Hk1 : sint.nat (k + W64 1) = sint.nat k + 1 := by word
+    rw [Hdrop]
+    icases Hcr with ⟨Hc1, Hcr⟩
     wp_apply wp_deliverable mm as %b %Hb
     cases b
     · wp_auto
       wp_for_post
       iframe
       iexists k + W64 1, mm
+      rw [Hk1]
       iframe
       ipureintro; constructor <;> word
     have Hd := Hb rfl
@@ -70,6 +82,7 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
       wp_for_post
       iframe
       iexists k + W64 1, mm
+      rw [Hk1]
       iframe
       ipureintro; constructor <;> word
     | some nd =>
@@ -78,7 +91,8 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
       unfold peerOk
       icases Hpeer with ⟨%γn, %n, %Hnd, #HisNode⟩
       obtain ⟨Hr, Hbud, rfl⟩ := Hnd
-      icases raftMsg_deliverable γ mm Hd $$ Hmok with ⟨%ty, %ents, %Hty, #Hents, #Hmsg⟩
+      icases raftMsg_deliverable γ mm Hd $$ Hmok with
+        ⟨%ty, %ents, %ctx, ⟨%Hty, %Hct, %Hnil⟩, #Hents, #Hctx, #Hmsg⟩
       try simp only [Option.isSome_some, Option.getD_some, _root_.decide_true, Bool.not_true]
       wp_auto
       subst Hr Hbud
@@ -90,11 +104,13 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
         · iapply ownSliceCap_nil
       rw [List.nil_append]
       wp_apply context.wp_Background
-      imod stepP_deliverable γn mm.To' mm ty ents s' Hd rfl Hty $$ Hmsg Hmlb Hs Hcap with Hstep
+      imod stepP_deliverable γn mm.To' mm ty ents ctx s' Hd rfl Hty Hct Hnil Hcfg
+        $$ Hmsg Hctx Hmlb Hs Hcap Hc1 with Hstep
       wp_apply wp_node_Step γn mm.To' n _ $$ [$Hraftinit $HisNode $Hstep] as %err -
       wp_for_post
       iframe
       iexists k + W64 1, _
+      rw [Hk1]
       iframe
       ipureintro; constructor <;> word
   · iapply HΦ; itrivial
