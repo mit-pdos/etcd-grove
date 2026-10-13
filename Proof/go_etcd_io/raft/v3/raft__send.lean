@@ -112,6 +112,7 @@ local macro "finish_none" : tactic => `(tactic| (
   iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
   rfl))
 
+set_option linter.unusedSimpArgs false in
 theorem raft.send.wp_proof
     (wp_traceSendMessage : traceSendMessage.spec (GF := GF) (hG := hG)) :
     raft.send.spec (GF := GF) (hG := hG) := by
@@ -119,17 +120,25 @@ theorem raft.send.wp_proof
   wp_start as H
   iNamed H
   wp_auto
-  -- `From` unset: `send` fills it in with `r.id`; already `r.id` (2026-10-06): nothing
-  -- is written. Either way `m` is then `m` with `From := id`.
-  wp_join iprop(r_ptr ↦ r ∗ m_ptr ↦ { m with From' := id } ∗ ownRaftPhys cfg r id s)
+  -- `From` unset: `send` fills it in with `r.id`; already set (`r.id`, 2026-10-06, or a
+  -- forwarded read request's requester, 2026-10-12): nothing is written. Either way `m`
+  -- is then `m` with `From := src`, and `src = id` unless `m` is a `MsgReadIndex`.
+  obtain ⟨src, Hsrc_eq⟩ : ∃ src, src = if m.From' = W64 0 then id else m.From' := ⟨_, rfl⟩
+  have Hsrc : m.Type' ≠ MsgReadIndex → id = src := by
+    intro Hne
+    rcases Hfrom with Hf | Hf | Hf
+    · rw [Hsrc_eq, ite_eq_left Hf]
+    · rw [Hsrc_eq, Hf]; split <;> simp_all
+    · exact absurd Hf Hne
+  wp_join iprop(r_ptr ↦ r ∗ m_ptr ↦ { m with From' := src } ∗ ownRaftPhys cfg r id s)
     with [r m Hphys] as ⟨r, m, Hphys⟩
   · wp_apply raft.wp_load_id $$ Hphys as Hphys
+    rw [show src = id by rw [Hsrc_eq, ite_eq_left (by simpa using Hif)]]
     iframe
     ipureintro; rfl
-  · have Hmeq : { m with From' := id } = m := by
-      rcases Hfrom with Hf | Hf
-      · exact absurd Hf Hif
-      · cases m; simp only at Hf; subst Hf; rfl
+  · have Hmeq : { m with From' := src } = m := by
+      have Hne : m.From' ≠ W64 0 := by simpa using Hif
+      rw [Hsrc_eq, ite_eq_right Hne]
     rw [Hmeq]
     iframe
   unfold SendOk at Hok
@@ -137,6 +146,47 @@ theorem raft.send.wp_proof
     ⟨ty, Hlty, Hty, Hmterm, Hself, rfl⟩ |
     (⟨HSnap, Hmterm, Hself⟩ | ⟨Hty, Hmterm, Hself, rfl⟩) | ⟨HAR, Hmterm, Hself2, rfl⟩ |
     (⟨HProp, Hmterm, Hself, rfl⟩ | ⟨HRI, Hmterm, Hself, rfl⟩)
+  rotate_right
+  · -- (e') a forwarded `MsgReadIndex` (2026-10-12): as a proposal, from `src`
+    obtain ⟨mty, mto, mfrom, mterm, mlt, midx, ments, mcommit, mvote, msnap, mrej, mrh, mctx,
+      mresp⟩ := m
+    simp only [MsgReadIndex] at HRI Hmterm Hself Hsrc_eq ⊢
+    subst HRI Hmterm
+    rw [← Hsrc_eq]
+    wp_auto
+    wp_apply raft.wp_load_id $$ Hphys as Hphys
+    rw [decide_eq_false Hself]
+    wp_auto
+    send_tail ownRaftPhys_msgs
+    ihave Hphys := Hback $$ %q' %_ %(some (absMsg .readIndex _ ents ctx)) Hf Hq Hq_cap [] []
+    · unfold msgAbs
+      iright; ileft
+      iexists .readIndex, ents, ctx
+      iframe Hents Hctx
+      ipureintro
+      exact ⟨rfl, by decide, rfl⟩
+    · ipureintro; out_term
+    iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
+    rfl
+  -- every other message has `From = id` once queued
+  all_goals
+    first
+      | (have Hs := Hsrc (by
+            intro h
+            first
+              | (rcases Hvoty with h' | h' | h' | h' <;> rw [h'] at h <;> simp [MsgReadIndex, MsgProp, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp,
+                  MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap] at h)
+              | (rcases Hlty with h' | h' | h' | h' <;> rw [h'] at h <;> simp [MsgReadIndex, MsgProp, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp,
+                  MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap] at h)
+              | (rw [h, show mtypeOf MsgReadIndex = some .readIndex from rfl] at Hty
+                 exact absurd Hty (by simp))
+              | (rw [h] at HSnap; simp [MsgReadIndex, MsgProp, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp,
+                  MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap] at HSnap)
+              | (rw [h] at HAR; simp [MsgReadIndex, MsgProp, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp,
+                  MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap] at HAR)
+              | (rw [h] at HProp; simp [MsgReadIndex, MsgProp, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp,
+                  MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap] at HProp))
+         subst Hs)
   · -- (a) a vote message: `Term` is kept. `MsgVote` goes onto `r.msgs`, `MsgVoteResp`
     -- onto `r.msgsAfterAppend`; either way the abstract outbox grows by exactly that
     -- message -- up to permutation, since a `MsgVote` lands in front of whatever
@@ -290,26 +340,6 @@ theorem raft.send.wp_proof
     · unfold msgAbs
       iright; ileft
       iexists .propose, ents, ctx
-      iframe Hents Hctx
-      ipureintro
-      exact ⟨rfl, by decide, rfl⟩
-    · ipureintro; out_term
-    iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
-    rfl
-  · -- (e') a forwarded `MsgReadIndex` (2026-10-12): as a proposal
-    obtain ⟨mty, mto, mfrom, mterm, mlt, midx, ments, mcommit, mvote, msnap, mrej, mrh, mctx,
-      mresp⟩ := m
-    simp only [MsgReadIndex] at HRI Hmterm Hself ⊢
-    subst HRI Hmterm
-    wp_auto
-    wp_apply raft.wp_load_id $$ Hphys as Hphys
-    rw [decide_eq_false Hself]
-    wp_auto
-    send_tail ownRaftPhys_msgs
-    ihave Hphys := Hback $$ %q' %_ %(some (absMsg .readIndex _ ents ctx)) Hf Hq Hq_cap [] []
-    · unfold msgAbs
-      iright; ileft
-      iexists .readIndex, ents, ctx
       iframe Hents Hctx
       ipureintro
       exact ⟨rfl, by decide, rfl⟩
