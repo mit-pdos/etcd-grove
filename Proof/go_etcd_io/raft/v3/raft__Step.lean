@@ -43,6 +43,7 @@ public import Proof.go_etcd_io.raft.v3.raft__Step.MsgPreVoteResp
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgStorageAppendResp
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgStorageApplyResp
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgReadIndex
+public import Proof.go_etcd_io.raft.v3.raft__Step.MsgReadIndexResp
 
 @[expose] public section
 
@@ -431,7 +432,25 @@ private theorem dispatch_ReadIndexResp (P : raft.Step.Postulates (GF := GF) (hG 
       ▷ stepPost γ cfg r id s m Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
         {{ v, |={⊤}=> Φ v }} := by
-  sorry
+  obtain ⟨Hto, Hterm, -, Hfid⟩ := Hm
+  iintro #Hinit Hphys Hghost #Hents #Hctxp #Hm HΦ
+  -- a response carries its request's entry
+  have He_lem : ⊢ isMessage (GF := GF) γ (absMsg .readIndexResp m ents ctx) -∗
+      ⌜∃ e, ents = [e]⌝ := by
+    unfold isMessage
+    simp only [absMsg, absMsgFrom]
+    iintro ⟨%e, %c, %He, -⟩
+    ipureintro
+    try simp only [Msg.mkV] at He
+    exact ⟨e, He⟩
+  ihave %He := He_lem $$ Hm
+  obtain ⟨e, rfl⟩ := He
+  wp_apply (wp_Step_MsgReadIndexResp P cfg r id s m e ctx Hty Hto Hterm Hfid Hin Hwf)
+    $$ [$Hphys $Hents] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
+  obtain ⟨recv, Hrecv, Hstep⟩ := Hst
+  iapply finish_branch γ cfg r id s s' m _ recv err Φ Hcfg Hwf' Hrecv Hstep
+    (fun _ => Hfr) (fun _ => Htm) (by resp_other) $$ Hm Hghost Hphys [] HΦ
+  ileft; ipureintro; exact Herr
 
 /-- The top-level dispatch: the one triple for `Step`, and **the one place in this
 development where ghost state is updated**. Each branch lemma hands back a pure `Step`
