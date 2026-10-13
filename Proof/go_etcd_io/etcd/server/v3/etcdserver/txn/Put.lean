@@ -89,10 +89,11 @@ theorem txn.Put.wp_proof
   (try wp_auto)
   -- `kv.Write(trace)`: the store's
   iunfold txn.isKV at Hkv
-  icases Hkv with ⟨%Hkv, #Hs⟩
+  icases Hkv with ⟨%Hkv, #Hs, %Hkb⟩
   subst Hkv
   (try wp_auto)
-  wp_apply (hWrite s γ t P Pre Q f) $$ [$Hs $Hrd $Htok $Hhook $Hpre $Htr] as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
+  ihave Hwt := txn.storeWT_none (GF := GF) γ Hkb
+  wp_apply (hWrite s γ t P Pre Q f) $$ [$Hs $Hrd $Htok $Hwt $Hhook $Hpre $Htr] as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
   · ipureintro; exact Ht
   -- the caller's update (the writes are the model's): the lock's invariant back for `End`
   imod Hupd $$ HQ with ⟨HP, HPost⟩
@@ -150,7 +151,7 @@ theorem txn.Put.wp_proof
   have hp := hput ctx' { cd with Values := vs } mw s γ ilog [] (W64 0) (W64 0) (W64 0) p o prev
   simp only [txn.pendState_nil, List.nil_append, List.length_nil] at hp
   wp_apply hp $$ [$Hctx' $Htx $Hp $Hprev $Hlok2] as %resp ⟨⟨%puts', %putSize', Htx⟩, #Hresp, Hhdr⟩
-  · ipureintro; exact ⟨Hn, by omega⟩
+  · ipureintro; exact ⟨Hn, by have := mvcc.putMax_ge γ; omega⟩
   (try wp_auto)
   -- the deferred `txnWrite.End()`: the put committed
   ihave Htx : mvcc.isTxn mw s γ (.write ilog

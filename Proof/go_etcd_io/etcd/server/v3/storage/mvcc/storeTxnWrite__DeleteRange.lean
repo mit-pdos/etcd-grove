@@ -29,6 +29,7 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
     mvcc.storeTxnWrite.DeleteRange.spec (GF := GF) (hG := hG) := by
   intro tw s γ ilog pend key endk k e
   wp_start as ⟨Htw, #Hkey, #Hend, %Hb⟩
+  have hpm := mvcc.putMax_le γ
   (try wp_auto)
   wp_apply (hdel tw s γ ilog pend key endk k e) $$ [$Htw $Hkey $Hend] as Htw
   · ipureintro; exact Hb
@@ -85,11 +86,11 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
         simp at hc
       (try wp_auto)
       iapply HΦ
-      isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres]
+      isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres]
       iunfold mvcc.storeTxnWriteIs
       iexists trace, ti, bt, Locked, chs, ps, ntok
       simp only [named]
-      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres
+      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
       iframe #
       ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
       ipureintro
@@ -104,11 +105,11 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
         omega
       (try wp_auto)
       iapply HΦ
-      isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres]
+      isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres]
       iunfold mvcc.storeTxnWriteIs
       iexists trace, ti, bt, Locked, chs, ps, ntok
       simp only [named]
-      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres
+      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
       iframe #
       ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
       ipureintro
@@ -121,11 +122,11 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
       intro h; subst h; exact Hif rfl
     (try wp_auto)
     iapply HΦ
-    isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres]
+    isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres]
     iunfold mvcc.storeTxnWriteIs
     iexists trace, ti, bt, Locked, chs, ps, ntok
     simp only [named]
-    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres
+    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
     iframe #
     ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
     ipureintro

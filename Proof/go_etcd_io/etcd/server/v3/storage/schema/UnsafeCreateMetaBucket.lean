@@ -26,19 +26,19 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
 theorem schema.UnsafeCreateMetaBucket.wp_proof :
     schema.UnsafeCreateMetaBucket.spec (GF := GF) (hG := hG) := by
-  intro tx P
+  intro tx P Q
   wp_start as ⟨HP, #HC⟩
   ihave Hsi : (schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hsi with ⟨⟨%mb, #Hmb⟩, -, -, -⟩
+  icases Hsi with ⟨⟨%mb, #Hmb, -⟩, -, -, -⟩
   wp_auto
   wp_bind (App (Val #(methods tx.ty _ tx.v)) (Val #mb))
   iapply HC $$ %mb [HP]
-  · iexact HP
+  · iframe HP Hmb
   inext
-  iintro HP
+  iintro HQ
   wp_auto
-  iapply HΦ $$ HP
+  iapply HΦ $$ HQ
 
 end proof
 

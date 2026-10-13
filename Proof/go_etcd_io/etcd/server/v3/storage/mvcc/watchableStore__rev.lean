@@ -69,7 +69,7 @@ theorem mvcc.watchableStore.rev.wp_proof
   (try wp_auto)
   wp_apply (hRev (mvcc.txCommon tr) rev) $$ [$HrevT]
   (try wp_auto)
-  ihave Htx : mvcc.isTxnRead mw st γ.st log rev $$ [Hmw Htrw Hmu HrevMu Hti]
+  ihave Htx : mvcc.isTxnRead mw st γ.st log rev $$ [Hmw Htrw Hrd Hmu HrevMu Hti]
   · iunfold mvcc.isTxnRead
     iexists trw, tr, trace, ti, rt, ranges
     iframe

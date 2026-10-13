@@ -131,11 +131,11 @@ instance barrierCtx_persistent (ctx : GoInterfaceOk) (cd : context.ContextDesc (
     Persistent (barrierCtx (GF := GF) ctx cd) := by
   unfold barrierCtx; infer_instance
 
-/-- **What the compaction job at `rev` needs** (persistent): the store and its stop channel, a
-lower bound `rev` of the compaction revision (`Compact` set it), a certified log with revision
-`rev`. -/
+/-- **What the compaction job at `rev` needs** (persistent): the store and its stop channel, its
+backend supporting the compaction (`storeCmp`), a lower bound `rev` of the compaction revision
+(`Compact` set it), a certified log with revision `rev`. -/
 def compactJobPre (s : Loc) (γ : StoreNames) (rev : w64) : IProp GF :=
-  iprop(isStore s γ ∗ storeStop s ∗ crevLb γ.idx (sint.Z rev) ∗
+  iprop(isStore s γ ∗ storeStop s ∗ ⌜storeCmp γ⌝ ∗ crevLb γ.idx (sint.Z rev) ∗
     ∃ log : Log, idxCert γ.idx log ∗ ⌜0 ≤ sint.Z rev ∧ sint.Z rev < log.length⌝)
 
 instance compactJobPre_persistent (s : Loc) (γ : StoreNames) (rev : w64) :

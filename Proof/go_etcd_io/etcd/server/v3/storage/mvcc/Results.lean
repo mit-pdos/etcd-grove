@@ -1,13 +1,17 @@
 /-
 The trust base of every result of the mvcc KV core so far: `#print axioms` of each theorem
-of `Link.lean`, and of the model's main theorem (`LogLemmas.lean`). Built with the rest; read
-its output to check it.
+of `Link.lean`, and of the model's main theorem (`LogLemmas.lean`); and the backend bridge
+(`BackendBridge.lean`), linked with the backend's results (`mvcc_backend_bridge`). Built with
+the rest; read its output to check it.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LogLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchRecv
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.StoreBackend
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Link
 
 @[expose] public section
 
@@ -174,3 +178,139 @@ kept (`kiGet_avail`, `named_not_del`: under `NoDelPutAt`,
 #print axioms Perennial.EtcdGrove.mvcc.store.wp_compact
 #print axioms Perennial.EtcdGrove.mvcc.store.wp_Compact
 #print axioms Perennial.EtcdGrove.mvcc.store.wp_compactLockfree
+/-! ## The backend meets mvcc (units 4 and 5, `BackendBridge.lean`, `StoreBackend.lean`)
+
+mvcc's contract of its backend (`isKeyBackendG`) holds of the proved backend (`isBackend`, its
+results linked: `backend/Link.lean`, resting on bbolt's key-value contract), for mvcc's
+parameters (`bridgeParams`) and a post-lock hook set for good; the range read of the `Key`
+bucket rests on the premise `keySized` (fewer than `2^62` entries; the order half of the
+safe-range discipline is the backend's invariant). The store is generic in its backend's
+instance (`StoreNames.kb`): `NewStore` over the real backend (`mvcc_NewStore_backend`) makes a
+store of the real instance, over which every store result holds (`store.Write` restated:
+`mvcc_store_Write_backend`, its write token the backend's write-back budget). The layers above
+mvcc (txn and up) keep mvcc's assumed backend (`txn.isKV` carries `γ.kb = none`):
+`notes/STATUS.md`, "Unit 5". -/
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode
+
+section bridge
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+/-- **The bridge, linked**: `mvcc.isKeyBackendG_of_backend` with the backend's results
+(`backend/Link.lean`) and schema's `bucket` methods' (mvcc's `Link.lean`). -/
+theorem mvcc_backend_bridge {P : backend.BParams} (hP : mvcc.bridgeParams P)
+    (γ : backend.BNames) (W Pk : IProp GF) (b : Loc) (f : GoFunc)
+    (hf : f ≠ func.nil) (Del : GoString → IProp GF) (Cmp : Prop) (hC : ¬ Cmp) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      backend.isBackend γ P W Pk b ∗ backend.plHookRO γ f ∗ mvcc.keySized γ P b ⊢
+      mvcc.isKeyBackendG
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
+        (mvcc.bkView γ) (mvcc.bkRTx γ P b) (backend.wbTok γ) mvcc.keyPutOk Del W W iprop(True) Cmp
+        Pk #f :=
+  mvcc.isKeyBackendG_of_backend backend.backend.wp_ConcurrentReadTx backend.backend.wp_ReadTx
+    backend.backend.wp_BatchTx backend.backend.wp_ForceCommit backend.backend.wp_Size
+    backend.backend.wp_SizeInUse backend.concurrentReadTx.wp_RLock
+    backend.concurrentReadTx.wp_RUnlock backend.concurrentReadTx.wp_UnsafeRange
+    backend.readTx.wp_RLock backend.readTx.wp_RUnlock backend.readTx.wp_UnsafeRange
+    backend.batchTxBuffered.wp_LockInsideApply backend.batchTxBuffered.wp_LockOutsideApply
+    backend.batchTxBuffered.wp_UnsafeSeqPut backend.batchTxBuffered.wp_Unlock
+    backend.batchTxBuffered.wp_UnsafeRange backend.batchTxBuffered.wp_UnsafeCreateBucket
+    schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
+    hP γ W Pk b f hf Del Cmp hC
+
+end bridge
+
+section store
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
+
+/-- **`NewStore` over the real backend, linked** (`mvcc.NewStore_backend` with `NewStore`'s
+proof and the backend's results). -/
+theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
+    (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
+    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF)
+    (f : GoFunc) (hf : f ≠ func.nil) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit') :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+        backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ backend.plHookRO d.γB f ∗
+        mvcc.keySized d.γB d.P d.be ∗
+        mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.lateReg d.gx ∗
+        backend.wbTok d.γB ∗ backend.wbTok d.γB ∗
+        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+          mvcc.bkRTx d.γB d.P d.be) ∗
+        mvcc.isLessor le γl }}
+      (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
+        (Val #(interface.mkOk
+          (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
+        (Val #le)) (Val #cfg))
+    {{ (s : Loc), RET #s; ∃ γ : mvcc.StoreNames,
+        ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = some d⌝ ∗
+        mvcc.isStore s γ ∗ mvcc.hookIs γ Pk #f ∗
+        (∃ rv wv : Loc,
+          s.[go_etcd_io.etcd.server.v3.storage.mvcc.store, go!"ReadView"] ↦
+            (interface.mkOk (go.GoType.PointerType
+              go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty) #rv : GoInterface) ∗
+          mvcc.isReadView rv s γ ∗
+          s.[go_etcd_io.etcd.server.v3.storage.mvcc.store, go!"WriteView"] ↦
+            (interface.mkOk (go.GoType.PointerType
+              go_etcd_io.etcd.server.v3.storage.mvcc.writeView.ty) #wv : GoInterface) ∗
+          mvcc.isWriteView wv s γ) ∗
+        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+          mvcc.storeReaderC s γ) ∗
+        ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s ∗
+        mvcc.storeStop s ∗ mvcc.compactRight γ (-1) }} :=
+  mvcc.NewStore_backend mvcc.wp_NewStore backend.backend.wp_ConcurrentReadTx
+    backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
+    backend.backend.wp_Size backend.backend.wp_SizeInUse
+    backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock
+    backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock
+    backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply
+    backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut
+    backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
+    backend.batchTxBuffered.wp_UnsafeCreateBucket schema.bucket.wp_ID schema.bucket.wp_Name
+    schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f hf hcfg
+
+/-- **`store.Write` over the real backend, linked**. -/
+theorem mvcc_store_Write_backend (s : Loc) (γ : mvcc.StoreNames) (d : mvcc.KBReal)
+    (hk : γ.kb = some d) (trace : Loc) (P Pre Q : IProp GF) (f : val) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+        mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗ backend.wbTok d.γB ∗
+        ⌜trace ≠ null⌝ ∗ mvcc.hookIs γ P f ∗ Pre ∗
+        □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
+      (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.store.ty @!!
+        go!"Write")) (Val #trace))
+    {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite.ty) #mw);
+        (∃ ilog : mvcc.Log, mvcc.isTxnWrite mw s γ ilog [] (W64 0) (W64 0) (W64 0)) ∗ Q }} :=
+  mvcc.store_Write_backend mvcc.store.wp_Write s γ d hk trace P Pre Q f
+
+end store
+
+end EtcdGrove
+end Perennial
+
+#print axioms Perennial.EtcdGrove.mvcc_backend_bridge
+#print axioms Perennial.EtcdGrove.mvcc_NewStore_backend
+#print axioms Perennial.EtcdGrove.mvcc_store_Write_backend
+#print axioms Perennial.EtcdGrove.schema.bucket.wp_ID
+#print axioms Perennial.EtcdGrove.schema.bucket.wp_Name
+#print axioms Perennial.EtcdGrove.schema.bucket.wp_IsSafeRangeBucket
+#print axioms Perennial.EtcdGrove.schema.bucket.wp_String
+/-! The pure core of the range read: a safe `Key` bucket's range in a readers' state is the
+bucket's range. -/
+#print axioms Perennial.EtcdGrove.mvcc.rtRange_safe

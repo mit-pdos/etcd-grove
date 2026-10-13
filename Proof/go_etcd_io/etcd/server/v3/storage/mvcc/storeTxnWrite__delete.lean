@@ -42,7 +42,8 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
     mvcc.storeTxnWrite.delete.spec (GF := GF) (hG := hG) := by
   intro tw s γ ilog pend key k
   wp_start as ⟨Htw, #Hkey, %Hpre⟩
-  obtain ⟨Hpresent, Hb⟩ := Hpre
+  obtain ⟨Hpresent, Hbm⟩ := Hpre
+  have Hb : pend.length + 1 < 2 ^ 63 := Nat.lt_of_lt_of_le Hbm (mvcc.kbPutMax_le _)
   simp only [go_etcd_io.etcd.server.v3.lease.NoLease]
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw
@@ -61,7 +62,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   · iPkgInit
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hsch
-  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG⟩⟩
+  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
@@ -72,10 +73,10 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   iunfold mvcc.isLessor at HlessorS
   icases HlessorS with ⟨%li, %Hli, #HGetL, #HAttach, #HDetach, -⟩
   subst Hli
-  ihave #Hbt0 : mvcc.batchTxSpec bt (mvcc.bucketView γ) (mvcc.delKey γ) (mvcc.writerRes s γ) _ Locked
-      Pw fw $$ []
+  ihave #Hbt0 : mvcc.batchTxSpecG bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
+      (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) _ (mvcc.storeCmp γ) Locked Pw fw $$ []
   · iexact Hbt
-  iunfold mvcc.batchTxSpec at Hbt
+  iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨-, #HSeqPut, -, -, -⟩
   -- the writer's log
   ihave %Hwf := mvcc.idxWriter_wf γ.idx ilog pend $$ Hw
@@ -121,8 +122,18 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   (try wp_auto)
   -- `if err != nil { Fatal }`: not taken (`err` is `nil`: resolved by `wp_auto`)
   -- `tw.tx.UnsafeSeqPut(schema.Key, ibytes, d)`
-  ihave #HSeqPut' := HSeqPut $$ %(mvcc.pendPuts ilog pend) %bK %ib' %d %_ %_ %(DFrac.own 1) %(DFrac.own 1)
-  wp_apply HSeqPut' $$ [$HKeyG $Hlocked $Hib $Hd] as ⟨Hlocked, Hib, Hd⟩
+  -- the backend keeps the key and the value: read-only for good
+  ipersist Hib
+  ipersist Hd
+  ihave #HSeqPut' := HSeqPut $$ %(mvcc.pendPuts ilog pend) %(1 : Qp).half %(mvcc.bucketMap ilog)
+    %bK %ib' %d %_ %_
+  -- (by hand: `wp_apply` loses the context here)
+  wp_bind (App (App (App (Val #(methods bt.ty go!"UnsafeSeqPut" bt.v)) _) _) _)
+  iapply HSeqPut' $$ [Hlocked Hbv]
+  · iframe Hlocked Hbv HKeyG Hib Hd
+    ipureintro; exact mvcc.storePutOk_next γ ilog pend true _ (by omega) Hcs Hbm
+  inext
+  iintro ⟨Hlocked, Hbv⟩
   (try wp_auto)
   -- `err = tw.s.kvindex.Tombstone(key, idxRev.Revision)`
   wp_apply (hTomb ti γ.idx ilog pend key k _) $$ [$HtiS $Hw $Hkey] as Hw
@@ -147,14 +158,14 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
         tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
         changes' := chs' } : storeTxnWrite) -∗
       mvcc.storeTxnWriteIs tw s γ ilog (pend ++ [.del k]) : IProp GF)
-      $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres Hkv]
+      $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hkv]
   · iintro Htw
     iunfold mvcc.storeTxnWriteIs
     iexists trace, ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
     simp only [named]
     rw [mvcc.pendPuts_append ilog pend (.del k) _ hkvm']
     simp only [mvcc.revOf, mvcc.Change.isDel]
-    iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres
+    iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
     iframe #
     isplitl []
     · ipureintro; exact Hbudget

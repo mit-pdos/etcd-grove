@@ -37,9 +37,21 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- The `mvcc.KV` `kv` is the store at `s` (with ghost names `γ`). -/
+/-- The `mvcc.KV` `kv` is the store at `s` (with ghost names `γ`), over mvcc's assumed backend
+contract (`γ.kb = none`: 2026-10-13, unit 5; the txn package and the layers above it are not
+yet stated over the real backend, whose writes spend write-back tokens and bound a
+transaction's changes by `2 ^ 56`: `notes/STATUS.md`, "Unit 5"). -/
 def isKV (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) : IProp GF :=
-  iprop(⌜kv = interface.mkOk (go.GoType.PointerType store.ty) #s⌝ ∗ mvcc.isStore s γ)
+  iprop(⌜kv = interface.mkOk (go.GoType.PointerType store.ty) #s⌝ ∗ mvcc.isStore s γ ∗
+    ⌜γ.kb = none⌝)
+
+/-- Over mvcc's assumed backend a write token is free. -/
+theorem storeWT_none (γ : mvcc.StoreNames) (h : γ.kb = none) : ⊢ mvcc.storeWT (GF := GF) γ := by
+  unfold mvcc.storeWT mvcc.kbWT; rw [h]; iintro; itrivial
+
+/-- Over mvcc's assumed backend a transaction's changes are bounded by `2 ^ 63` only. -/
+theorem putMax_none (γ : mvcc.StoreNames) (h : γ.kb = none) : mvcc.putMax γ = 2 ^ 63 := by
+  unfold mvcc.putMax mvcc.kbPutMax; rw [h]
 
 instance isKV_persistent (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) :
     Persistent (isKV (GF := GF) kv s γ) := by

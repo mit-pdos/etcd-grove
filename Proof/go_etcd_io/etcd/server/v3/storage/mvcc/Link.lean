@@ -73,6 +73,10 @@ public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Scheduler__Schedule
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.job__Do
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.job__Name
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeCreateMetaBucket
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.bucket__ID
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.bucket__IsSafeRangeBucket
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.bucket__Name
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.bucket__String
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.sliceCapWithLimit
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__FirstRev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__Range
@@ -485,6 +489,22 @@ theorem mvcc.wp_newMetricsTxnRead :
 theorem traceutil.wp_TODO :
     traceutil.TODO.spec (GF := GF) (hG := hG) :=
   traceutil.TODO.wp_proof
+
+theorem schema.bucket.wp_ID :
+    schema.bucket.ID.spec (GF := GF) (hG := hG) :=
+  schema.bucket.ID.wp_proof
+
+theorem schema.bucket.wp_IsSafeRangeBucket :
+    schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG) :=
+  schema.bucket.IsSafeRangeBucket.wp_proof
+
+theorem schema.bucket.wp_Name :
+    schema.bucket.Name.spec (GF := GF) (hG := hG) :=
+  schema.bucket.Name.wp_proof
+
+theorem schema.bucket.wp_String :
+    schema.bucket.String.spec (GF := GF) (hG := hG) :=
+  schema.bucket.String.wp_proof schema.bucket.wp_Name
 
 theorem mvcc.store.wp_checkPrevCompactionCompleted :
     mvcc.store.checkPrevCompactionCompleted.spec (GF := GF) (hG := hG) :=

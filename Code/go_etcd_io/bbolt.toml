@@ -1,6 +1,10 @@
 # Types and names only: function and method bodies are axiomatized.
 translate = ["!*"]
-imports = ["!*"]
+# time and internal/common: the types of TxStats' and Bucket's fields, so that they are
+# translated as structs (the backend reads tx.Stats()'s fields and writes a bucket's
+# FillPercent). Options stays axiomatized: its OpenFile field's type names os.FileMode, an alias
+# Perennial axiomatizes.
+imports = ["!*", "time", "go.etcd.io/bbolt/internal/common"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

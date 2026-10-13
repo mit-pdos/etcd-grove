@@ -716,7 +716,7 @@ theorem mvcc.watchableStore.watch.wp_proof
       iunfold mvcc.storeReader
       iexists ti
       simp only [named]
-      iframe HmuR HrevMuR HtiR
+      iframe HmuR HrevMuR HtiR HrtR
       iframe #
     · rw [decide_eq_false h2]
       wp_auto
@@ -803,7 +803,7 @@ theorem mvcc.watchableStore.watch.wp_proof
       iunfold mvcc.storeReader
       iexists ti
       simp only [named]
-      iframe HmuR HrevMuR HtiR
+      iframe HmuR HrevMuR HtiR HrtR
       iframe #
   · rw [decide_eq_false hs]
     wp_auto
@@ -900,7 +900,7 @@ theorem mvcc.watchableStore.watch.wp_proof
         iunfold mvcc.storeReader
         iexists ti
         simp only [named]
-        iframe HmuR HrevMuR HtiR
+        iframe HmuR HrevMuR HtiR HrtR
         iframe #
     · rw [decide_eq_false h0]
       wp_auto
@@ -988,7 +988,7 @@ theorem mvcc.watchableStore.watch.wp_proof
       iunfold mvcc.storeReader
       iexists ti
       simp only [named]
-      iframe HmuR HrevMuR HtiR
+      iframe HmuR HrevMuR HtiR HrtR
       iframe #
 
 end proof

@@ -73,6 +73,20 @@ unit 0; not filed).
 [etcd-apply-authstatus-metric-label](etcd-apply-authstatus-metric-label.md): `dispatch` does not
 set `op` for `AuthStatus`, whose apply latency is recorded under `op="unknown"` (a wrong metric
 label; found 2026-10-12, apply unit 2; not filed).
+[etcd-backend-duplicate-put-stale-read](etcd-backend-duplicate-put-stale-read.md): two puts of one
+key in one batch session leave both in the backend's read buffer, and `ReadTx` returns the older
+value (an unstated precondition of `UnsafePut`; reproduced; no etcd caller known to break it;
+found 2026-10-12, backend unit 1; not filed).
+[etcd-backend-read-buffer-cache-stale-after-commit](etcd-backend-read-buffer-cache-stale-after-commit.md):
+`ConcurrentReadTx`'s buffer cache is keyed by a version a commit does not change, so after a
+commit it can serve a deleted key (a reader in `Unlock`'s window) or an old value of a key the
+pre-commit hook rewrote (deterministic); no wrong mvcc result known (reproduced twice; found
+2026-10-12, backend unit 2; not filed).
+[etcd-backend-put-value-too-large-fatal](etcd-backend-put-value-too-large-fatal.md): a put whose
+encoded `KeyValue` exceeds bbolt's `MaxValueSize` (`2^31 - 2` bytes) makes the backend's
+`unsafePut` call `lg.Fatal` (an unstated precondition of `UnsafePut`/`UnsafeSeqPut` and of mvcc's
+`Put`; unreachable with the default request limit; found 2026-10-13, the backend bridge; not
+filed).
 [etcd-compaction-negative-batch-limit](etcd-compaction-negative-batch-limit.md): a negative
 `CompactionBatchLimit` (an unvalidated flag; `NewStore` defaults only `0`) makes every compaction
 job loop forever, force-committing every interval, its channel never closed (reproduced; found
@@ -81,5 +95,10 @@ job loop forever, force-committing every interval, its channel never closed (rep
 that deletes a key and puts it again deletes the key's live value from the bucket, and the next
 read of the key calls `lg.Fatal` (reproduced through mvcc's API; etcd's gRPC `checkIntervals`
 rejects such a transaction; found 2026-10-13, mvcc compaction unit 5a; not filed).
+
+[go-itab-reinterpret-assert](go-itab-reinterpret-assert.md): in Go itself, a type assertion
+on an `I1` value read through a `*I2` (two named interfaces with the same methods) panics with
+"main.I2 is main.T, not main.T", since the runtime compares itabs (found 2026-10-13, Perennial's
+byte-memory review, round 3; unclear what in Go should change; not filed).
 Leads not yet assessed: the gRPC proxy's cache (`server/proxy/grpcproxy/cache/store.go`) builds
 its intervals as `checkIntervals` did, so a cached from-key range may never be invalidated.

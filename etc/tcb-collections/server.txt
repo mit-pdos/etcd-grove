@@ -8,6 +8,7 @@
 # The request path's unit 4b (2026-10-13): the apply loop's applyAll reaches backend's
 # VerifyBackendConsistency and the names-only snapshot, compactRaftLog, createMergedSnapshotMessage
 # and sendMergedSnap contracts: 61 -> 66.
+# Merged with the backend's unit 5 (mvcc's StoreNames names bbolt's four opaque predicates): 70.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/server.txt [--check [--update]]
 #
@@ -26,6 +27,10 @@ axiom attribute.Int.wp_proof
 axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
 axiom backend.VerifyBackendConsistency.wp_proof
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.txLive
 axiom config.ServerConfig.ReqTimeout.wp_proof
 axiom context.ErrDone.wp_proof
 axiom context.ValueStartTime.wp_proof

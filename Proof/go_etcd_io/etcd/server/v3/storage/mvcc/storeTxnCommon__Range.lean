@@ -29,7 +29,10 @@ theorem mvcc.storeTxnCommon.Range.wp_proof (hRev : mvcc.storeTxnCommon.Rev.spec 
     (hKeys : mvcc.storeTxnCommon.rangeKeys.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnCommon.Range.spec (GF := GF) (hG := hG) := by
   intro tr s trace ti rt γ log rev ctx cd todo key endk k e ro
-  wp_start as ⟨#Hs, #Htr, #Hidx, Hti, #Hctx, #Hkey, #Hend, Hmu⟩
+  wp_start as ⟨#Hs, #Htr, Hrd, #Hidx, Hti, #Hctx, #Hkey, #Hend, Hmu⟩
+  iunfold mvcc.txReader at Hrd
+  icases Hrd with ⟨%m, %Rd, %Tok, Hrd⟩
+  iNamed Hrd
   ihave #Htr0 : mvcc.storeTxnReadIs tr s rt trace γ log rev $$ []
   · iexact Htr
   iunfold mvcc.storeTxnReadIs at Htr
@@ -38,7 +41,7 @@ theorem mvcc.storeTxnCommon.Range.wp_proof (hRev : mvcc.storeTxnCommon.Rev.spec 
   wp_apply (hRev (mvcc.txCommon tr) rev) $$ [$HrevT]
   (try wp_auto)
   -- what `rangeKeys` uses: the snapshot as a reader, the certificate as the index's knowledge
-  ihave #Hrdr := mvcc.keyReadSnap_reader rt m $$ HsnapT
+  ihave #Hrdr := mvcc.keyReadLocked_reader (mvcc.storeRT γ) false rt m Rd Tok $$ Hsnap
   ihave #Hcert0 : mvcc.idxCert γ.idx log $$ []
   · iexact HcertT
   iunfold mvcc.idxCert at HcertT
@@ -52,19 +55,23 @@ theorem mvcc.storeTxnCommon.Range.wp_proof (hRev : mvcc.storeTxnCommon.Rev.spec 
   ihave Hkn : mvcc.idxKnows γ.idx (.cert log) $$ []
   · rw [mvcc.idxKnows_cert]; iexact Hcert0
   icases mvcc.muHeld_cmp s γ (-1) $$ Hmu with ⟨Hcmp, Hcu, %Hcb, Hmub⟩
-  wp_apply (hKeys (mvcc.txCommon tr) s trace ti rt DFrac.discard m iprop(True) γ (.cert log) log rev
+  wp_apply (hKeys (mvcc.txCommon tr) s trace ti rt DFrac.discard m Tok γ (.cert log) log rev
       ctx cd todo key endk k e ro _ _ (-1) (by assumption))
-    $$ [$Hs $HsT $HtxcT $HtraceT $Hrdr $Hkn $Hidx $Hti $Hctx $Hkey $Hend $Hcmp $Hcu]
-    as %r %err ⟨%Htodo, -, -, -, -, -, Hti, Hcmp, Hcu, Hout⟩
-  · isplitl []
-    · itrivial
-    ipureintro; exact ⟨rfl, HneT, hrv, by decide, by decide⟩
+    $$ [$Hs $HsT $HtxcT $HtraceT $Hrdr $Htok $Hkn $Hidx $Hti $Hctx $Hkey $Hend $Hcmp $Hcu]
+    as %r %err ⟨%Htodo, -, -, -, Htok, -, Hti, Hcmp, Hcu, Hout⟩
+  · ipureintro; exact ⟨Hsub, rfl, HneT, hrv, by decide, by decide⟩
   ihave Hmu := Hmub $$ Hcmp Hcu
   ihave Hout := mvcc.rangeOutcomeC_neg _ _ _ _ _ _ _ _ hrv.1 $$ Hout
   (try wp_auto)
   iapply HΦ
   iframe Hti Hout Hmu
-  ipureintro; exact Htodo
+  isplitl []
+  · ipureintro; exact Htodo
+  iunfold mvcc.txReader
+  iexists m, Rd, Tok
+  simp only [named]
+  iframe Htok Hsnap
+  ipureintro; exact Hsub
 
 end proof
 

@@ -219,7 +219,6 @@ theorem soleWriter_read_shape (γ : mvcc.StoreNames) (log log' : Log) (tr s : Lo
   unfold soleWriter
   iintro ⟨#Hc, -, -⟩ H
   unfold storeTxnReadIs
-  icases H with ⟨%m, H⟩
   iNamed H
   iapply idxCert_logShape $$ Hc Hcert
 

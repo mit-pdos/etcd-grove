@@ -39,7 +39,7 @@ abbrev txn.put.spec : Prop :=
         else ⌜prev = null⌝) ∗
       ⌜txn.needsPrev o = true → (mvcc.findKey o.key (txn.pendState ilog pend)).isSome⌝ ∗
       txn.leaseOk γ.leases (txn.putLeaseOf o (mvcc.findKey o.key (txn.pendState ilog pend))) ∗
-      ⌜pend.length + 1 < 2 ^ 63⌝ }}
+      ⌜pend.length + 1 < mvcc.putMax γ⌝ }}
     (App (App (App (App (Val (@! txn.put)) (Val #(GoInterface.ok ctx))) (Val #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface))) (Val #p))
       (Val #prev))
   {{ (resp : Loc), RET #resp;

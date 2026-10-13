@@ -32,6 +32,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
     mvcc.storeTxnWrite.deleteRange.spec (GF := GF) (hG := hG) := by
   intro tw s γ ilog pend key endk k e
   wp_start as ⟨Htw, #Hkey, #Hend, %Hb⟩
+  have hpm := mvcc.putMax_le γ
   generalize hks : mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e = ks at *
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw
@@ -50,7 +51,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
   · iPkgInit
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hsch
-  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG⟩⟩
+  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
@@ -61,10 +62,10 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
   iunfold mvcc.isLessor at HlessorS
   icases HlessorS with ⟨%li, %Hli, #HGetL, #HAttach, #HDetach, -⟩
   subst Hli
-  ihave #Hbt0 : mvcc.batchTxSpec bt (mvcc.bucketView γ) (mvcc.delKey γ) (mvcc.writerRes s γ) _ Locked
-      Pw fw $$ []
+  ihave #Hbt0 : mvcc.batchTxSpecG bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
+      (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) _ (mvcc.storeCmp γ) Locked Pw fw $$ []
   · iexact Hbt
-  iunfold mvcc.batchTxSpec at Hbt
+  iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨-, #HSeqPut, -, -, -⟩
   -- the writer's log
   ihave %Hwf := mvcc.idxWriter_wf γ.idx ilog pend $$ Hw
@@ -144,7 +145,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
       iunfold mvcc.storeTxnWriteIs
       iexists trace, ti, bt, Locked, chs, ps, ntok
       simp only [named]
-      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres
+      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
       iframe #
       ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
     · -- the loop: `for _, key := range keys { tw.delete(key) }`
@@ -152,11 +153,11 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
       have hnodup := mvcc.delKeys_nodup ilog pend (decide (endk = slice.nil)) k e
       rw [hks] at hpres hnodup
       ihave Htx : mvcc.storeTxnWriteIs tw s γ ilog pend
-          $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres]
+          $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres]
       · iunfold mvcc.storeTxnWriteIs
         iexists trace, ti, bt, Locked, chs, ps, ntok
         simp only [named]
-        iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres
+        iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
         iframe #
         ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
       (try wp_auto)
@@ -304,7 +305,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
       iunfold mvcc.storeTxnWriteIs
       iexists trace, ti, bt, Locked, chs, ps, ntok
       simp only [named]
-      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres
+      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
       iframe #
       ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
     · -- the loop: `for _, key := range keys { tw.delete(key) }`
@@ -312,11 +313,11 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
       have hnodup := mvcc.delKeys_nodup ilog pend (decide (endk = slice.nil)) k e
       rw [hks] at hpres hnodup
       ihave Htx : mvcc.storeTxnWriteIs tw s γ ilog pend
-          $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres]
+          $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres]
       · iunfold mvcc.storeTxnWriteIs
         iexists trace, ti, bt, Locked, chs, ps, ntok
         simp only [named]
-        iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres
+        iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
         iframe #
         ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
       (try wp_auto)

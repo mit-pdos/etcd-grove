@@ -62,7 +62,7 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   icombine Htoks Hmine gives %Hle
   -- the caller's certificate is below the committed log
   ihave %Hpre := mono_list_auth_lb_valid γ.idx.log _ _ _ $$ Hlog Hl0
-  iunfold mvcc.isKeyBackendD at Hbk
+  iunfold mvcc.isKeyBackendG at Hbk
   icases Hbk with ⟨%bi, %Hbi, #HC, #HR, -⟩
   subst Hbi
   (try wp_auto)
@@ -71,20 +71,22 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   all_goals
     first
       | (ihave HCq := HC $$ %sync.rfrac.half %(mvcc.bucketMap log)
-         wp_apply HCq $$ [$Hbucket] as %rt ⟨Hbucket, %m', #Hsnap, #Hthin⟩)
+         wp_apply HCq $$ [$Hbucket $HrtR] as %rt ⟨Hbucket, Hsnap⟩)
       | (ihave HRq := HR $$ %sync.rfrac.half %(mvcc.bucketMap log)
-         wp_apply HRq $$ [$Hbucket] as %rt ⟨Hbucket, %m', #Hsnap, #Hthin⟩)
+         wp_apply HRq $$ [$Hbucket $HrtR] as %rt ⟨Hbucket, Hsnap⟩)
   all_goals
+    (try wp_auto)
+    icases Hsnap with ⟨%L, HL, #Hsnap⟩
+    iunfold mvcc.keyReadSnap at Hsnap
+    -- `tx.RLock()`, with the view (`s.revMu`'s, held)
+    wp_bind (App (Val #(methods rt.ty go!"RLock" rt.v)) _)
+    iapply Hsnap $$ %sync.rfrac.half [HL Hbucket]
+    · iframe HL Hbucket
+    inext
+    iintro ⟨Hbucket, %m', %Rd, %Tok, Htok, #Hsnap0, #Hthin⟩
     -- the snapshot misses no key: the store is not compacted
     icases mvcc.snapThin_crev γ _ _ _ $$ [$HcrevM $Hthin] with ⟨HcrevM, %Hm'⟩
     subst Hm'
-    (try wp_auto)
-    ihave #Hsnap0 : mvcc.keyReadSnap rt (mvcc.bucketMap log) $$ []
-    · iexact Hsnap
-    iunfold mvcc.keyReadSnap at Hsnap
-    icases Hsnap with ⟨#HRL, #HRU, #Hrange, -⟩
-    -- `tx.RLock()`
-    wp_apply HRL
     (try wp_auto)
     -- `s.revMu.RUnlock()`
     wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrevl Hrev Hbucket Hclog Hcert Htoks Hlog Hcmp Hcrev]
@@ -130,12 +132,17 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     · iexact Hs0
     isplitl []
     · iunfold mvcc.storeTxnReadIs
-      iexists (mvcc.bucketMap log)
       simp only [named]
       iframe #
-      isplitl []
-      · ipureintro; exact fun _ _ h => h
       ipureintro; first | exact ⟨Hne, trivial, Htrnn⟩ | exact ⟨Hne, Htrnn⟩
+    isplitl [Htok]
+    · iunfold mvcc.txReader
+      iexists (mvcc.bucketMap log), Rd, Tok
+      simp only [named]
+      iframe Htok
+      isplitr
+      · iapply mvcc.keyReadLocked_weaken $$ Hsnap0
+      ipureintro; exact fun _ _ h => h
     iexact HidxR
 
 end proof

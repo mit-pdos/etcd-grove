@@ -23,9 +23,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `s.checkPrevCompactionCompleted()`: some boolean (the meta keys read through a `ReadTx`
 with no view, `metaReadTx`; racy with the job, which writes `finishedCompactRev`: the result only
-decides whether the next compaction's hash is stored, which the model ignores). -/
+decides whether the next compaction's hash is stored, which the model ignores). Of a store whose
+backend supports the compaction (`storeCmp`: the real backend's model promises nothing of the
+`Meta` bucket, its hook's). -/
 abbrev mvcc.store.checkPrevCompactionCompleted.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames),
+  mvcc.storeCmp γ →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isStore s γ }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"checkPrevCompactionCompleted")) (Val #()))
   {{ (b : Bool), RET #b; True }}

@@ -483,7 +483,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
           · iPkgInit
           ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
           · iapply isPkgInit_access $$ Hsch
-          icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG⟩⟩
+          icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩⟩
           ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
           · iPkgInit
           ihave #HD := mvcc.rangeCtx_Done todo ctx cd $$ Hctx
@@ -705,7 +705,8 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
               -- `tr.tx.UnsafeRange(schema.Key, revBytes, nil, 0)`
               iunfold mvcc.keyReader at Hrdr
               ihave HR := Hrdr $$ %bK %rb' %(mvcc.revBytes a.2.1 false) %(DFrac.own 1)
-              wp_apply HR $$ [$HKeyG $HRr $Hrb] as %ks %vs ⟨HRr, Hrb, #Hkv⟩
+              wp_apply HR $$ [$HKeyG $HRr $Hrb] as %ks %vs Hout
+              icases Hout with ⟨%Rd, %T, HT, HTback, #Hrc, Hrb, #Hkv⟩
               iunfold mvcc.keyVals at Hkv
               rw [hlookm]
               icases Hkv with ⟨%ksl, %vsl, #Hks, #Hksl, #Hvs, #Hvsl⟩
@@ -730,8 +731,12 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
               · ipureintro; rfl
               (try wp_auto)
               irename «$r0» => Hkvp
-              wp_apply (hUnm vsl kv «$r0_ptr» _ DFrac.discard) $$ [$Hvsl $Hkvp]
-                as ⟨-, %ks', %vs', %st, %uf, %sc, Hp, #Hks', #Hvs'⟩
+              iunfold mvcc.rdCap at Hrc
+              icases Hrc $$ %vsl %(mvcc.kvEncode kv) Hvsl HT with ⟨%dqv, Hvb, Hvback⟩
+              wp_apply (hUnm vsl kv «$r0_ptr» _ dqv) $$ [$Hvb $Hkvp]
+                as ⟨Hvb, %ks', %vs', %st, %uf, %sc, Hp, #Hks', #Hvs'⟩
+              ihave HT := Hvback $$ Hvb
+              ihave HRr := HTback $$ HT
               (try wp_auto)
               -- `kvs[i] = kv`
               have Hbkv : 0 ≤ sint.Z (W64 (i : Int)) ∧ sint.Z (W64 (i : Int)) < sint.Z kvs.len := by

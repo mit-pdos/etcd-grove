@@ -23,7 +23,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `s.updateCompactRev(rev)`, with `s.mu` held exclusively (`muInvAt s γ 1 c`: its part of
 `compactMainRev` and of the revision's authority, at the compaction revision `c`) and the
-compaction right at `c`, under the critical-section contract of the batch lock (`csContract`:
+compaction right at `c`, the store's backend supporting the compaction (`storeCmp`), under the
+critical-section contract of the batch lock (`csContract`:
 `SetScheduledCompact`'s `LockInsideApply` runs the post-lock hook):
 * `rev > c`, `rev` a revision of the committed log: under `s.revMu`, `compactMainRev = rev` (both
   locks' halves, the authority with the right's), `scheduledCompactRev = rev` written, `nil`, the
@@ -35,6 +36,7 @@ compaction right at `c`, under the critical-section contract of the batch lock (
 abbrev mvcc.store.updateCompactRev.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (rev : w64) (c : Int) (P : IProp GF) (f : val)
     (Pre Q Post : IProp GF),
+  mvcc.storeCmp γ →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeStop s ∗ mvcc.muInvAt s γ 1 c ∗ mvcc.compactRight γ c ∗
       mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post }}

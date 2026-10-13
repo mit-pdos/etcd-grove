@@ -33,16 +33,14 @@ theorem mvcc.rangeEvents.wp_proof
     (hRevTo : mvcc.RevToBytes.spec (GF := GF) (hG := hG))
     (hKvs : mvcc.kvsToEvents.spec (GF := GF) (hG := hG)) :
     mvcc.rangeEvents.spec (GF := GF) (hG := hG) := by
-  intro lg b γ Wr P f q log minRev maxRev g W
-  wp_start as ⟨#Hbk, #Hfrz, Hview, #Hcert, Hg, %Hrng⟩
+  intro lg b γ Wr P f q log minRev maxRev g W RT WT Wi Dep Cmp PutOk
+  wp_start as ⟨#Hbk, Hrt, #Hfrz, Hview, #Hcert, Hg, %Hrng⟩
   ihave %Hwf : ⌜mvcc.LogWf' log ∧ log.length < 2 ^ 63 ∧ ∀ cs ∈ log, cs.length < 2 ^ 63⌝ $$ [Hcert]
   · iunfold mvcc.idxCert at Hcert
     icases Hcert with ⟨-, -, %H, -⟩
     ipureintro; exact H
-  iunfold mvcc.isKeyBackend at Hbk
-  icases Hbk with ⟨%Dep, #Hbk⟩
-  iunfold mvcc.isKeyBackendD at Hbk
-  icases Hbk with ⟨%bi, %Hbi, -, #HR, -⟩
+  iunfold mvcc.isKeyBackendG at Hbk
+  icases Hbk with ⟨%bi, %Hbi, -, #HR, -, -⟩
   subst Hbi
   wp_auto
   have hneg : ¬ sint.Z minRev < sint.Z (W64 0) := by
@@ -58,23 +56,31 @@ theorem mvcc.rangeEvents.wp_proof
   (try wp_auto)
   simp only [List.drop_of_length_le (show (List.replicate 17 (W8 0)).length ≤ 17 by simp),
     List.append_nil, mvcc.revOf]
-  wp_apply HR $$ [$Hview] as %rt ⟨Hview, %m', #Hsnap, #Hthin⟩
+  wp_apply HR $$ [$Hview $Hrt] as %rt ⟨Hview, Hsnap⟩
+  icases Hsnap with ⟨%L, HL, #Hsnap⟩
+  iunfold mvcc.keyReadSnap at Hsnap
+  (try wp_auto)
+  wp_bind (App (Val #(methods rt.ty go!"RLock" rt.v)) _)
+  iapply Hsnap $$ %q [HL Hview]
+  · iframe HL Hview
+  inext
+  iintro ⟨Hview, %m', %Rd, %Tok, Htok, #Hlk, #Hthin⟩
+  -- the snapshot misses no key: the store is not compacted
   imod mvcc.snapThin_frozen γ _ _ $$ Hfrz Hthin with %Hm'
   subst Hm'
-  iunfold mvcc.keyReadSnap at Hsnap
-  icases Hsnap with ⟨#HRL, #HRU, -, #Hrange, -⟩
-  (try wp_auto)
-  wp_apply HRL
+  ihave #Hrange := mvcc.keyReadLocked_range _ _ _ _ _ $$ Hlk
+  iunfold mvcc.keyReadLocked at Hlk
+  icases Hlk with ⟨#HRU, -, -, #Hrc⟩
   (try wp_auto)
   ihave #Hsch : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
   · iPkgInit
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hsch
-  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG⟩⟩
+  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩⟩
   iunfold mvcc.keyRangeReadSpec at Hrange
   ihave HRg := Hrange $$ %bK %mn' %mx'
   (try wp_auto)
-  wp_apply HRg $$ [$HKeyG $Hmn $Hmx] as %ks %vs ⟨Hmn, Hmx, #Hkv⟩
+  wp_apply HRg $$ [$HKeyG $Htok $Hmn $Hmx] as %ks %vs ⟨Htok, Hmn, Hmx, #Hkv⟩
   · ipureintro; simp [mvcc.revBytes]
   (try wp_auto)
   obtain ⟨hwf, hlen, hcs⟩ := Hwf
@@ -89,11 +95,16 @@ theorem mvcc.rangeEvents.wp_proof
     exact this
   iunfold mvcc.rangeVals at Hkv
   rw [hbr]
-  wp_apply (hKvs lg g W ks vs (mvcc.logEnts log (sint.nat minRev) (sint.nat maxRev))) $$ [$Hg $Hkv]
-    as %evs ⟨Hg, %ps, Hevs, Hcap, %Hps, Hdone⟩
+  wp_apply (hKvs lg g W ks vs (mvcc.logEnts log (sint.nat minRev) (sint.nat maxRev)) Rd Tok)
+    $$ [$Hg $Hkv $Hrc $Htok] as %evs ⟨Hg, Htok, %ps, Hevs, Hcap, %Hps, Hdone⟩
   · ipureintro; exact mvcc.logEnts_bounds log hlen hcs _ _ hhi
   (try wp_auto)
-  wp_apply HRU
+  -- (by hand: `wp_apply` aborts here)
+  wp_bind (App (Val #(methods rt.ty _ rt.v)) (Val #()))
+  iapply HRU $$ [Htok]
+  · iexact Htok
+  inext
+  iintro Hrt
   (try wp_auto)
   have hev : mvcc.entsEvents W (mvcc.logEnts log (sint.nat minRev) (sint.nat maxRev)) =
       (mvcc.logEvents log (sint.nat minRev) (sint.nat maxRev)).filter

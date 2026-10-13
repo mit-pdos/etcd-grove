@@ -74,30 +74,33 @@ theorem mvcc.slot_take (Q : IProp GF) :
   iapply BigSepL.bigSepL_cons.2
   iframe H1 Hs
 
-/-- The store's reader handles from the reader slots of its two locks and its index's. -/
+/-- The store's reader handles (of a store that may be compacted) from the reader slots of its
+two locks and its index's, and the backend's reader tokens. -/
 theorem mvcc.storeReaders_of_slots (s ti : Loc) (γ : mvcc.StoreNames) : ∀ (n : Nat),
     s.[store, go!"kvindex"] ↦□
         (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
       ([∗list] _x ∈ List.replicate n (), sync.ownRWMutex (mvcc.muAddr s) (mvcc.muInv (GF := GF) s γ)) ∗
       ([∗list] _x ∈ List.replicate n (), sync.ownRWMutex (mvcc.revMuAddr s) (mvcc.revMuInv s γ)) ∗
-      ([∗list] _x ∈ List.replicate n (), mvcc.idxReader ti γ.idx) ⊢
+      ([∗list] _x ∈ List.replicate n (), mvcc.idxReader ti γ.idx) ∗
+      ([∗list] _x ∈ List.replicate n (), mvcc.storeRT γ) ⊢
       [∗list] _x ∈ List.replicate n (), mvcc.storeReaderC s γ
   | 0 => by rw [List.replicate_zero]; iintro _; iapply BigSepL.bigSepL_nil_intro; iempintro
   | n + 1 => by
     rw [List.replicate_succ]
-    iintro ⟨#Hidx, Hm, Hr, Hi⟩
+    iintro ⟨#Hidx, Hm, Hr, Hi, Ht⟩
     icases BigSepL.bigSepL_cons.1 $$ Hm with ⟨Hm1, Hm⟩
     icases BigSepL.bigSepL_cons.1 $$ Hr with ⟨Hr1, Hr⟩
     icases BigSepL.bigSepL_cons.1 $$ Hi with ⟨Hi1, Hi⟩
+    icases BigSepL.bigSepL_cons.1 $$ Ht with ⟨Ht1, Ht⟩
     iapply BigSepL.bigSepL_cons.2
-    isplitl [Hm1 Hr1 Hi1]
+    isplitl [Hm1 Hr1 Hi1 Ht1]
     · iunfold mvcc.storeReaderC
       iexists ti
       simp only [named]
-      iframe Hm1 Hr1 Hi1
+      iframe Hm1 Hr1 Hi1 Ht1
       iexact Hidx
     · iapply mvcc.storeReaders_of_slots s ti γ n
-      iframe Hm Hr Hi
+      iframe Hm Hr Hi Ht
       iexact Hidx
 
 theorem mvcc.NewStore.wp_proof
@@ -108,8 +111,8 @@ theorem mvcc.NewStore.wp_proof
     (hMeta : schema.UnsafeCreateMetaBucket.spec (GF := GF) (hG := hG))
     (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG)) :
     mvcc.NewStore.spec (GF := GF) (hG := hG) := by
-  intro lg b le cfg γb γl P f Hcfg0
-  wp_start as ⟨Hbk, Hbv, #Hlessor⟩
+  intro lg b le cfg kb γb γl P f Hcfg0
+  wp_start as ⟨Hbk, Hbv, Hrg, Hwt1, Hwt2, Hrts, #Hlessor⟩
   -- package facts: the configuration defaults, the `Key` bucket, zap, schedule, schema
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -118,7 +121,7 @@ theorem mvcc.NewStore.wp_proof
   · iPkgInit
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hsch
-  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG⟩⟩
+  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Hsched : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule $$ []
@@ -187,10 +190,11 @@ theorem mvcc.NewStore.wp_proof
   -- compaction's: the meta keys' record (nothing written), the finished compactions' counter
   imod ghostVar_alloc (GF := GF) ((none, none) : Option w64 × Option w64) with ⟨%γm, Hmeta⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γfin, Hfin, -⟩
-  obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγm, hγfin, hγs⟩ : ∃ γ : mvcc.StoreNames,
+  obtain ⟨γ, hγi, hγb, hγc, hγl, hγr, hγh, hγhf, hγk, hγm, hγfin, hγs⟩ : ∃ γ : mvcc.StoreNames,
       γ.idx = γi ∧ γ.bucket = γb ∧ γ.clog = γc ∧ γ.leases = γl ∧ γ.revs = γr ∧ γ.hook = γh ∧
-      γ.hookFn = γhf ∧ γ.cmeta = γm ∧ γ.fin = γfin ∧ γ.sch = γs :=
-    ⟨⟨γi, γb, γc, γl, γr, γh, γhf, γm, γfin, γs⟩, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+      γ.hookFn = γhf ∧ γ.kb = kb ∧ γ.cmeta = γm ∧ γ.fin = γfin ∧ γ.sch = γs :=
+    ⟨⟨γi, γb, γc, γl, γr, γh, γhf, kb, γm, γfin, γs⟩, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl,
+      rfl, rfl⟩
   ihave #Hhook : mvcc.hookIs γ P f $$ []
   · iunfold mvcc.hookIs; rw [hγh, hγhf]; iframe Hh Hhf
   ihave Hcres : mvcc.compactRes γ $$ [Hmeta Hfin]
@@ -205,7 +209,8 @@ theorem mvcc.NewStore.wp_proof
   · rw [hγs]; iexact HisSched
   rw [← hγi, ← hγc, ← hγr]
   ihave Hbv : mvcc.bucketView γ 1 (∅ : mvcc.Bucket) $$ [Hbv]
-  · iunfold mvcc.bucketView; rw [hγb]; iexact Hbv
+  · iunfold mvcc.bucketView; rw [hγb, hγk]; iexact Hbv
+  rw [← hγk]
   icases (mvcc.bucketView_halves γ 1 _).1 $$ Hbv with ⟨Hbv1, Hbv2⟩
   -- the compaction revision's authority: half the compaction right's, a quarter for each lock
   icases (mvcc.crevUB_split γ.idx (1 : Qp).half (1 : Qp).half (-1)).1 $$ [Hcu] with ⟨Hright, Hcu⟩
@@ -230,56 +235,59 @@ theorem mvcc.NewStore.wp_proof
   ipersist stopc
   ipersist hashes
   -- `tx := s.b.BatchTx()`: the backend's contract at the store's names
-  ihave #Hbk1 : mvcc.isKeyBackend b (mvcc.bucketView γ) (mvcc.delKey γ) (mvcc.writerRes «$r0_ptr» γ)
-      P f $$ [Hbk]
+  ihave #Hbk1 : mvcc.storeBackend b «$r0_ptr» γ P f $$ [Hbk]
   · iapply Hbk $$ %«$r0_ptr» %γ
-    ipureintro; exact hγb
-  ihave #Hbk0 : mvcc.isKeyBackend b (mvcc.bucketView γ) (mvcc.delKey γ) (mvcc.writerRes «$r0_ptr» γ)
-      P f $$ []
-  · iexact Hbk1
-  iunfold mvcc.isKeyBackend at Hbk1
-  icases Hbk1 with ⟨%Dep, #HbkD⟩
-  ihave #HbkD0 := HbkD
-  iunfold mvcc.isKeyBackendD at HbkD
-  icases HbkD with ⟨%bi, %Hbi, -, -, #HB, #HForce, -⟩
+    ipureintro; exact ⟨hγb, rfl⟩
+  iunfold mvcc.storeBackend at Hbk1
+  icases Hbk1 with ⟨%Dep, #Hbk1⟩
+  ihave #Hbk0 := Hbk1
+  iunfold mvcc.isKeyBackendG at Hbk1
+  icases Hbk1 with ⟨%bi, %Hbi, -, -, #HB, #HForce, -⟩
   subst Hbi
   (try wp_auto)
   wp_apply HB as %bt #Hbt
   (try wp_auto)
-  iunfold mvcc.isBatchTx at Hbt
-  icases Hbt with ⟨%Locked, #Hbt⟩
-  iunfold mvcc.batchTxSpec at Hbt
-  icases Hbt with ⟨-, -, #HUnlock0, -, -, #HLockOut, #HCreate, -⟩
+  iunfold mvcc.isBatchTxG at Hbt
+  icases Hbt with ⟨%Locked, %LockedO, -, #Hinit⟩
+  iunfold mvcc.batchTxInitSpec at Hinit
+  icases Hinit with ⟨#HLockOut, #HCreate, #HUnlock0⟩
   -- `tx.LockOutsideApply()`, the buckets created
   -- (`wp_apply` of the batch transaction's triples, whose token `Locked` is a variable from
   -- an existential, fails with an unknown free variable here: bind and apply)
+  icases mvcc.slot_take _ $$ Hrts with ⟨Hrt1, Hrts⟩
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
-  iapply HLockOut
-  · itrivial
+  iapply HLockOut $$ [Hrt1 Hwt1]
+  · iframe Hrt1 Hwt1
   inext
-  iintro ⟨Hlocked, HP⟩
+  iintro ⟨Hlocked, HWi, HP, Hrt1⟩
   (try wp_auto)
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #bK))
-  iapply HCreate $$ %([] : mvcc.Puts) %bK [Hlocked]
-  · iexact Hlocked
+  iapply HCreate $$ %0 %bK [Hlocked]
+  · iframe Hlocked
+    isplitr
+    · ipureintro; omega
+    ileft; iexact HKeyG
   inext
   iintro Hlocked
   (try wp_auto)
   wp_bind (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.UnsafeCreateMetaBucket)) (Val #(GoInterface.ok bt)))
-  iapply (hMeta bt (Locked [])) $$ [Hlocked]
+  iapply (hMeta bt (LockedO (0 + 1)) (LockedO (0 + 1 + 1))) $$ [Hlocked]
   · iframe Hlocked
     isplitr
     · iPkgInit
     imodintro
-    iintro %b'
-    ihave Hc := HCreate $$ %([] : mvcc.Puts) %b'
-    iexact Hc
+    iintro %b' !> %Φ' ⟨Hl, #HM⟩ HΦ'
+    iapply HCreate $$ %(0 + 1) %b' %Φ' [Hl] HΦ'
+    iframe Hl
+    isplitr
+    · ipureintro; omega
+    iright; iexact HM
   inext
   iintro Hlocked
   (try wp_auto)
   -- `tx.Unlock()`: the batch lock's resource deposited (half of `currentRev`, half the
   -- committed log, half the bucket's view, the index writer, the revision budget, compaction's
-  -- part); the deposit witness
+  -- part), registered in the backend's late-bound slot; the deposit witness
   have hsplit := mvcc.own_half_half (1 : Qp)
   ihave Hcur2 : («$r0_ptr».[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half • DFrac.own (1 : Qp).half}
       (W64 1 : w64) : IProp GF) $$ [currentRev]
@@ -295,14 +303,16 @@ theorem mvcc.NewStore.wp_proof
     iframe #
     ipureintro
     exact ⟨by simp, by simp⟩
+  imod mvcc.storeW_register «$r0_ptr» γ $$ [$HWi $Hrg $HW] with ⟨HW, #Hregd⟩
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
-  iapply HUnlock0 $$ [Hlocked HW HP]
+  iapply HUnlock0 $$ %(0 + 1 + 1) [Hlocked HW HP]
   · iframe Hlocked HW HP
   inext
   iintro #Hdep
   (try wp_auto)
   -- `s.b.ForceCommit()`
-  wp_apply HForce
+  wp_apply HForce $$ [$Hrt1 $Hwt2] as Hrt1
+  ispecialize Hrts $$ Hrt1
   (try wp_auto)
   -- `s.mu.Lock()`: the lock initialized with half `compactMainRev` and a quarter of the
   -- compaction revision's authority at `-1`, one slot taken
@@ -338,7 +348,8 @@ theorem mvcc.NewStore.wp_proof
     iframe HcmpM HcmpB
   -- `s.restore()` on the fresh backend: nothing changes (`err == nil`)
   wp_apply hRestore $$ %«$r0_ptr» %γ %(GoInterface.ok bi) %(GoInterface.ok li) %ti %lg'
-      %(1 : Qp).half %P %f [$Hbv2 $HcurB $HcmpF $revMu] as ⟨Hbv2, HcurB, HcmpF, revMu⟩
+      %(1 : Qp).half %P %f %_ %_ %_ %_ %_ %_ %_ [$Hbv2 $HcurB $HcmpF $revMu]
+      as ⟨Hbv2, HcurB, HcmpF, revMu⟩
   · iframe #; ipureintro; exact Hlgnn
   (try wp_auto)
   ihave HcmpF2 : («$r0_ptr».[store, go!"compactMainRev"] ↦{DFrac.own (1 : Qp).half •
@@ -382,7 +393,7 @@ theorem mvcc.NewStore.wp_proof
   iapply HΦ
   iexists γ
   isplitr
-  · ipureintro; exact ⟨hγb, hγl⟩
+  · ipureintro; exact ⟨hγb, hγl, rfl⟩
   iframe Hs Hhook Htoks Hcert
   isplitl [ReadView WriteView]
   · iexists rv, wv
@@ -391,9 +402,9 @@ theorem mvcc.NewStore.wp_proof
     simp only [named]
     iframe ReadView WriteView
     iframe #
-  isplitl [Hmus Hrevs Hird]
+  isplitl [Hmus Hrevs Hird Hrts]
   · iapply mvcc.storeReaders_of_slots «$r0_ptr» ti γ
-    iframe Hmus Hrevs Hird
+    iframe Hmus Hrevs Hird Hrts
     iexact kvindex
   isplitl [Hstop]
   · iunfold mvcc.storeCloser; iexists stopc; iframe stopc

@@ -1,12 +1,13 @@
 /-
 Package initialization instances for etcd's mvcc store (`server/v3/storage/mvcc`) and the
 packages it imports that no other proof module provides: `pkg/v3/traceutil`, `server/v3/lease`,
-`pkg/v3/schedule`, prometheus's `client_golang/prometheus`, `go-humanize` (moved here from the
-server's `BaseApply.lean` on 2026-10-13: the compaction job calls `humanize.Bytes`) and
-opentelemetry's `otel/trace` with the packages of the types its `Span` names (`trace/embedded`,
-`codes`, `attribute`) (all names and types only, but `schedule`'s jobs: `NewJob`, `job.Do`). The others are the interval tree's (`pkg/v3/adt/Base.lean`), the
+`pkg/v3/schedule`, `go-humanize` (moved here from the server's `BaseApply.lean` on 2026-10-13: the
+compaction job calls `humanize.Bytes`) and opentelemetry's `otel/trace` with the packages of the
+types its `Span` names (`trace/embedded`, `codes`, `attribute`) (all names and types only, but
+`schedule`'s jobs: `NewJob`, `job.Do`). The others are the interval tree's (`pkg/v3/adt/Base.lean`), the
 cache's (`cache/v3/Base.lean`: `zap`, `proto`, `mvccpb`, `client/v3`), the server's
-(`etcdserver/Base.lean`: `backend`, `schema`, `client/pkg/v3/verify`), the btree's
+(`etcdserver/Base.lean`: `schema`), the backend's (`storage/backend/Base.lean`: `backend`,
+`client/pkg/v3/verify`, prometheus's `client_golang/prometheus`), the btree's
 (`btree/Init.lean`) and Perennial's (`sync`, `bytes`, `context`, `errors`, `fmt`, `time`,
 `encoding/binary`, `math`, `strings`).
 
@@ -75,19 +76,6 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
   build_get_is_pkg_init_wf
 
 end go_etcd_io.etcd.pkg.v3.schedule
-
-namespace github_com.prometheus.client_golang.prometheus
-
-set_option linter.iris.dupNamespace false in
-instance isPkgInit_inst :
-    IsPkgInit (IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus :=
-  define_is_pkg_init iprop(True)
-set_option linter.iris.dupNamespace false in
-instance get_isPkgInit_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus :=
-  build_get_is_pkg_init_wf
-
-end github_com.prometheus.client_golang.prometheus
 
 namespace github_com.dustin.go_humanize
 

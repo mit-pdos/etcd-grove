@@ -90,8 +90,9 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     ihave #Hnodel : iprop(□ (∀ k, mvcc.delKey γ k ={⊤}=∗ False)) $$ []
     · iintro !> %k Hd
       iapply mvcc.crevFrozen_noDel γ k $$ Hfrz Hd
-    ihave #Hrdr := mvcc.batchTx_reader bt (mvcc.bucketView γ) (mvcc.delKey γ) (mvcc.writerRes s γ) _
-      Locked Pw fw (mvcc.pendPuts ilog pend) (1 : Qp).half (mvcc.bucketMap ilog) $$ [Hbt Hnodel]
+    ihave #Hrdr := mvcc.batchTx_reader bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
+      (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) _ (mvcc.storeCmp γ) Locked Pw fw
+      (mvcc.pendPuts ilog pend) (1 : Qp).half (mvcc.bucketMap ilog) $$ [Hbt Hnodel]
     · iframe Hbt Hnodel
     ihave HR : iprop(Locked (mvcc.pendPuts ilog pend) ∗
         mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap ilog)) $$ [Hlocked Hbv]
@@ -133,7 +134,7 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     iunfold mvcc.storeTxnWriteIs
     iexists trace, ti, bt, Locked, chs, ps, ntok
     simp only [named]
-    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres
+    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
     iframe #
     ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
 

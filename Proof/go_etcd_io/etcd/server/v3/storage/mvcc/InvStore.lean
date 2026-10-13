@@ -4,15 +4,25 @@ trust boundary of bbolt and the read buffer), the store's locks and what they ho
 transaction. Lean-first; `notes/decisions.md`, "The transactions: the store's locks and the
 backend contract".
 
-**The backend.** `keyReadSnap rt m` says `rt` is a `ReadTx` over a snapshot `m` of the bucket
-(`UnsafeRange(schema.Key, k, nil, 0)` returns `k`'s entry of `m`, read-only, or nothing);
-`isKeyBackend b View` that `b`'s `ConcurrentReadTx()`/`ReadTx()` return one of the bucket the
-caller's `View q m` holds (the store's ghost map authority at the caller's fraction).
+**The backend.** `keyReadSnap View RT Del rng rt m L` says `rt` is a `ReadTx` over a snapshot `m` of the
+bucket (its `RLock` gives a token under which `UnsafeRange(schema.Key, k, nil, 0)` returns `k`'s
+entry of `m`, or nothing: `keyReadLocked`; but for keys compaction may have deleted, `Del`:
+`snapThin`); `isKeyBackend b View Del` that `b`'s
+`ConcurrentReadTx()`/`ReadTx()` return one of the bucket the caller's `View q m` holds (the
+store's ghost map authority at the caller's fraction). `isKeyBackendG` is the general contract,
+with the backend's tokens and conditions (`BackendBridge.lean` proves it of the backend);
+`isKeyBackend`, mvcc's assumed backend's, its instance without them. The compaction's own calls
+(2026-10-13, unit 5a: the deletions, the limited range, the `Meta` bucket's compaction keys, the
+safe-range-delete lock) are in the contract under the condition `Cmp`, the backend supporting
+mvcc's compaction: true of mvcc's assumed backend; of the real backend not (its model forbids
+deletions from the safe-range `Key` bucket: `notes/decisions.md`, "The compaction over the real
+backend").
 
-**The locks.** `s.mu` (every transaction holds it shared; exclusively only by what is out of
-scope) holds nothing. `s.revMu` holds `currentRev` (the committed log's last revision),
-`compactMainRev` (`-1`, no compaction), the index's certificate of the committed log and the
-bucket's authority: a reader's snapshot, taken under it, is the committed log's bucket. It also
+**The locks.** `s.mu` (every transaction holds it shared; exclusively only `store.Compact`)
+holds half of `compactMainRev` and a quarter of the compaction revision's authority (`muInv`).
+`s.revMu` holds `currentRev` (the committed log's last revision), the other half of
+`compactMainRev` and another quarter (`revMuInv`), the index's certificate of the committed log
+and the bucket's authority: a reader's snapshot, taken under it, is the committed log's bucket. It also
 holds half the revision budget's authority and half the committed log's (`idxLogAuth`; the
 writer holds the other halves), so a reader knows its log is above every certificate and leaves
 room for the tokens it holds (`store.Read`).
@@ -28,6 +38,8 @@ public import Perennial.Ghost.SavedProp
 public import Perennial.Ghost.DGhostVar
 public import Perennial.Proof.TokSet
 public import Perennial.Proof.context
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevOrder
 public import Perennial.Golang.Theory.Chan
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Defs
@@ -47,7 +59,33 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
 /-- The `Key` bucket's written-back contents: a revision's bytes to the encoded key-value. -/
 abbrev Bucket := GMap GoString GoString
 
-/-- The ghost names of a store: its index's and its bucket's. -/
+/-- The `Key` bucket's name. -/
+abbrev keyName : GoString := go_etcd_io.etcd.server.v3.storage.schema.keyName
+
+/-- **The real backend's instance** (2026-10-13, unit 5): the store over etcd's backend
+(`storage/backend`, proved over bbolt's key-value contract; `BackendBridge.lean`), named by data:
+the backend's ghost names `γB`, its parameters but the fixed ones (the clients' bucket table
+`BT`, the hook's bound `hookMax`, the batch limit `limit`: the hook's buckets are all but `Key`,
+the safe-range bucket is `Key`), the backend's location `be`, and the name `gx` of the batch
+lock's late-bound resource (`lateW`: the store registers its own at `NewStore`'s first
+`Unlock`). -/
+structure KBReal where
+  γB : backend.BNames
+  BT : GMap GoString w64
+  hookMax : Nat
+  limit : w64
+  be : Loc
+  gx : GName
+
+/-- The backend's parameters of a real instance: the hook's buckets all but `Key`, `Key` the one
+safe-range bucket. -/
+def KBReal.P (d : KBReal) : backend.BParams :=
+  { BT := d.BT, HB := fun n => decide (n ≠ keyName), SB := fun n => decide (n = keyName),
+    hookMax := d.hookMax, limit := d.limit }
+
+/-- The ghost names of a store: its index's and its bucket's, and its backend's instance (`kb`:
+`none`, mvcc's assumed backend contract over the store's own ghost map `bucket`; `some d`, the
+real backend). -/
 structure StoreNames where
   idx : IdxNames
   bucket : GName
@@ -63,6 +101,8 @@ structure StoreNames where
   hook : GName
   /-- the post-lock hook's function value `f` (`dghostVar`, read-only) -/
   hookFn : GName
+  /-- the backend's instance: `none`, mvcc's assumed contract; `some d`, the real backend -/
+  kb : Option KBReal
   /-- the meta keys `scheduledCompactRev` and `finishedCompactRev` as the store wrote them
   (`metaCompact`, a ghost variable in the batch lock's resource) -/
   cmeta : GName
@@ -71,6 +111,42 @@ structure StoreNames where
   fin : GName
   /-- the compaction scheduler's names (`schedule.isScheduler`) -/
   sch : schedule.SchedNames
+
+instance idxNames_countable : Pos.Countable IdxNames :=
+  countableOfLeftInverse (fun x : IdxNames => (x.hist, x.nev, x.log, x.crev))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2⟩) (fun _ => rfl)
+
+instance schedNames_countable : Pos.Countable schedule.SchedNames :=
+  countableOfLeftInverse (fun x : schedule.SchedNames => (x.run, x.jobs)) (fun p => ⟨p.1, p.2⟩)
+    (fun _ => rfl)
+
+instance dbNames_countable : Pos.Countable backend.DBNames :=
+  countableOfLeftInverse (fun x : backend.DBNames => (x.db, x.wr)) (fun p => ⟨p.1, p.2⟩)
+    (fun _ => rfl)
+
+instance bNames_countable : Pos.Countable backend.BNames :=
+  countableOfLeftInverse
+    (fun x : backend.BNames => (x.db, x.view, x.rd, x.hist, x.cached, x.cur, x.hook, x.opn, x.wb,
+      x.rdt, x.txa, x.txb, x.rvs, x.cvw, x.wbc, x.used, x.cls, x.sdn, x.stk))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1,
+      p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1,
+      p.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
+      p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
+      p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
+      p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2⟩)
+    (fun _ => rfl)
+
+instance kbReal_countable : Pos.Countable KBReal :=
+  countableOfLeftInverse (fun x : KBReal => (x.γB, x.BT, x.hookMax, x.limit, x.be, x.gx))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2⟩) (fun _ => rfl)
+
+instance storeNames_countable : Pos.Countable StoreNames :=
+  countableOfLeftInverse
+    (fun x : StoreNames => (x.idx, x.bucket, x.clog, x.leases, x.revs, x.hook, x.hookFn, x.kb,
+      x.cmeta, x.fin, x.sch))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1,
+      p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2⟩)
+    (fun _ => rfl)
 
 section addrs
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
@@ -105,58 +181,79 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-! ## The backend's contract -/
 
+/-- **A read capability** (persistent): a slice `s` a read returned as holding `b` (`Rd s b`)
+can be read while the reader's token `Tok` is held, at some fraction, the token lent out
+meanwhile. The slices of a real backend are bbolt's, valid only while its read transaction
+lives (until the reader's `RUnlock`, or while the batch transaction's lock is held): what the
+backend's `rdB rtx` with `crtSnap_read`/`rtHeld_read`, and the batch transaction's `UnsafeRange`
+capability under `batchLocked`, give. -/
+def rdCap (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) : IProp GF :=
+  iprop(□ ∀ (s : GoSlice) (b : GoString), Rd s b -∗ Tok -∗
+    ∃ dq : DFrac, s ↦*{dq} b ∗ (s ↦*{dq} b -∗ Tok))
+
+instance rdCap_persistent (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) :
+    Persistent (rdCap Rd Tok) := by
+  unfold rdCap; infer_instance
+
 /-- What `UnsafeRange(Key, k, nil, 0)` returns of the bucket `m`: the key and its value if `m`
-has `k` (read-only slices), else no key and no value. -/
-def keyVals (ks vs : GoSlice) (m : Bucket) (k : GoString) : IProp GF :=
+has `k` (read-only outer slices, the inner ones readable through `Rd`), else no key and no
+value. -/
+def keyVals (Rd : GoSlice → GoString → IProp GF) (ks vs : GoSlice) (m : Bucket) (k : GoString) :
+    IProp GF :=
   match m.lookup k with
-  | some v => iprop(∃ (ksl vsl : GoSlice), ks ↦*□ [ksl] ∗ ksl ↦*□ k ∗ vs ↦*□ [vsl] ∗ vsl ↦*□ v)
+  | some v => iprop(∃ (ksl vsl : GoSlice), ks ↦*□ [ksl] ∗ □ Rd ksl k ∗ vs ↦*□ [vsl] ∗ □ Rd vsl v)
   | none => iprop(ks ↦*□ ([] : List GoSlice) ∗ vs ↦*□ ([] : List GoSlice))
 
-instance keyVals_persistent (ks vs : GoSlice) (m : Bucket) (k : GoString) :
-    Persistent (keyVals (GF := GF) ks vs m k) := by
+instance keyVals_persistent (Rd : GoSlice → GoString → IProp GF) (ks vs : GoSlice) (m : Bucket)
+    (k : GoString) : Persistent (keyVals Rd ks vs m k) := by
   unfold keyVals; split <;> infer_instance
 
-/-- `rt`'s `UnsafeRange(schema.Key, key, nil, 0)`, for `key` holding `k`, reads `k`'s entry of
-the snapshot `m`. -/
-def keyRangeSpec (rt : GoInterfaceOk) (m : Bucket) : IProp GF :=
+/-- `rt`'s `UnsafeRange(schema.Key, key, nil, 0)`, for `key` holding `k`, under the reader's
+token `Tok`, reads `k`'s entry of the snapshot `m` (its slices readable through `Rd`). -/
+def keyRangeSpec (rt : GoInterfaceOk) (m : Bucket) (Rd : GoSlice → GoString → IProp GF)
+    (Tok : IProp GF) : IProp GF :=
   iprop(∀ (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac),
-    {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ key ↦*{dq} k }}
+    {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ Tok ∗ key ↦*{dq} k }}
       (App (App (App (App (Val #(methods rt.ty go!"UnsafeRange" rt.v)) (Val #b)) (Val #key))
         (Val #(slice.nil))) (Val #(W64 0)))
-    {{ (ks vs : GoSlice), RET (PairV #ks #vs); key ↦*{dq} k ∗ keyVals ks vs m k }})
+    {{ (ks vs : GoSlice), RET (PairV #ks #vs); Tok ∗ key ↦*{dq} k ∗ keyVals Rd ks vs m k }})
 
-/-- The slices `ks` and `vs` (read-only, of read-only slices) hold the keys and the values of the
-entries `l`, in order. -/
-def pairVals (ks vs : GoSlice) (l : List (GoString × GoString)) : IProp GF :=
+/-- The slices `ks` and `vs` (read-only, of slices readable through `Rd`) hold the keys and the
+values of the entries `l`, in order. -/
+def pairVals (Rd : GoSlice → GoString → IProp GF) (ks vs : GoSlice)
+    (l : List (GoString × GoString)) : IProp GF :=
   iprop(∃ kss vss : List GoSlice, ks ↦*□ kss ∗ vs ↦*□ vss ∗
     ⌜kss.length = l.length ∧ vss.length = l.length⌝ ∗
     [∗list] i ↦ p ∈ l, ∃ ksl vsl : GoSlice, ⌜kss[i]? = some ksl ∧ vss[i]? = some vsl⌝ ∗
-      ksl ↦*□ p.1 ∗ vsl ↦*□ p.2)
+      □ Rd ksl p.1 ∗ □ Rd vsl p.2)
 
-instance pairVals_persistent (ks vs : GoSlice) (l : List (GoString × GoString)) :
-    Persistent (pairVals (GF := GF) ks vs l) := by
+instance pairVals_persistent (Rd : GoSlice → GoString → IProp GF) (ks vs : GoSlice)
+    (l : List (GoString × GoString)) : Persistent (pairVals Rd ks vs l) := by
   unfold pairVals; infer_instance
 
 /-- What `UnsafeRange(Key, lo, hi, 0)` returns of the bucket `m` (`hi` not empty): the entries
 with a key in `[klo, khi)`, in key order (`bucketRange`; no limit). -/
-def rangeVals (ks vs : GoSlice) (m : Bucket) (klo khi : GoString) : IProp GF :=
-  pairVals ks vs (bucketRange m klo khi)
+def rangeVals (Rd : GoSlice → GoString → IProp GF) (ks vs : GoSlice) (m : Bucket)
+    (klo khi : GoString) : IProp GF :=
+  pairVals Rd ks vs (bucketRange m klo khi)
 
-instance rangeVals_persistent (ks vs : GoSlice) (m : Bucket) (klo khi : GoString) :
-    Persistent (rangeVals (GF := GF) ks vs m klo khi) := by
+instance rangeVals_persistent (Rd : GoSlice → GoString → IProp GF) (ks vs : GoSlice) (m : Bucket)
+    (klo khi : GoString) : Persistent (rangeVals Rd ks vs m klo khi) := by
   unfold rangeVals; infer_instance
 
 /-- `rt`'s `UnsafeRange(schema.Key, lo, hi, 0)`, for `lo` holding `klo` and `hi` holding a
-non-empty `khi`, reads the entries of the snapshot `m` with a key in `[klo, khi)`, in key order
-(bbolt's cursor from `klo` while below `khi`; the limit `0` is none). -/
-def keyRangeReadSpec (rt : GoInterfaceOk) (m : Bucket) : IProp GF :=
+non-empty `khi`, under the reader's token `Tok`, reads the entries of the snapshot `m` with a
+key in `[klo, khi)`, in key order (bbolt's cursor from `klo` while below `khi`; the limit `0` is
+none). -/
+def keyRangeReadSpec (rt : GoInterfaceOk) (m : Bucket) (Rd : GoSlice → GoString → IProp GF)
+    (Tok : IProp GF) : IProp GF :=
   iprop(∀ (b : GoInterface) (lo hi : GoSlice) (klo khi : GoString) (dqlo dqhi : DFrac),
-    {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ lo ↦*{dqlo} klo ∗
+    {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ Tok ∗ lo ↦*{dqlo} klo ∗
         hi ↦*{dqhi} khi ∗ ⌜khi ≠ []⌝ }}
       (App (App (App (App (Val #(methods rt.ty go!"UnsafeRange" rt.v)) (Val #b)) (Val #lo))
         (Val #hi)) (Val #(W64 0)))
-    {{ (ks vs : GoSlice), RET (PairV #ks #vs); lo ↦*{dqlo} klo ∗ hi ↦*{dqhi} khi ∗
-        rangeVals ks vs m klo khi }})
+    {{ (ks vs : GoSlice), RET (PairV #ks #vs); Tok ∗ lo ↦*{dqlo} klo ∗ hi ↦*{dqhi} khi ∗
+        rangeVals Rd ks vs m klo khi }})
 
 /-- The bytes of `schema.ScheduledCompactKeyName` (`"scheduledCompactRev"`). -/
 def schedKeyBytes : GoString := go!"scheduledCompactRev"
@@ -183,25 +280,6 @@ def metaReadSpec (rt : GoInterfaceOk) : IProp GF :=
           ∃ (ksl vsl : GoSlice) (v : GoString), ks ↦*□ [ksl] ∗ ksl ↦*□ kn ∗ vs ↦*□ [vsl] ∗
             vsl ↦*□ v ∗ ⌜metaRevVal v⌝) }})
 
-/-- `rt` is a `ReadTx` over the snapshot `m` of the bucket (persistent): `RLock`/`RUnlock`
-return, and its reads are the snapshot's: a key's entry (`keyRangeSpec`) and a range of keys
-(`keyRangeReadSpec`); and its reads of the `Meta` bucket's compaction keys (`metaReadSpec`). -/
-def keyReadSnap (rt : GoInterfaceOk) (m : Bucket) : IProp GF :=
-  iprop(□ ({{ True }} (App (Val #(methods rt.ty go!"RLock" rt.v)) (Val #())) {{ RET #(); True }}) ∗
-    □ ({{ True }} (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #())) {{ RET #(); True }}) ∗
-    □ keyRangeSpec rt m ∗ □ keyRangeReadSpec rt m ∗ □ metaReadSpec rt)
-
-/-- A `ReadTx` as the compaction's `checkPrevCompactionCompleted` uses it, with no view of the
-bucket (it holds neither of the store's locks that hold the view): `RLock`/`RUnlock` return, and
-its reads of the `Meta` bucket's compaction keys (`metaReadSpec`). -/
-def metaReadTx (rt : GoInterfaceOk) : IProp GF :=
-  iprop(□ ({{ True }} (App (Val #(methods rt.ty go!"RLock" rt.v)) (Val #())) {{ RET #(); True }}) ∗
-    □ ({{ True }} (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #())) {{ RET #(); True }}) ∗
-    □ metaReadSpec rt)
-
-instance metaReadTx_persistent (rt : GoInterfaceOk) : Persistent (metaReadTx (GF := GF) rt) := by
-  unfold metaReadTx; infer_instance
-
 /-- A snapshot `m'` of the bucket `m` with some of the keys compaction may delete missing
 (`Del`, the store's: `delKey`): the backend's reads after the compaction's `UnsafeDelete`s
 (committed or written back) do not see them. -/
@@ -212,6 +290,16 @@ def snapThin (m m' : Bucket) (Del : GoString → IProp GF) : IProp GF :=
 instance snapThin_persistent (m m' : Bucket) (Del : GoString → IProp GF) :
     Persistent (snapThin m m' Del) := by
   unfold snapThin; infer_instance
+
+/-- A snapshot with no key missing is thinned (the real backend's snapshots). -/
+theorem snapThin_refl (m : Bucket) (Del : GoString → IProp GF) : ⊢ snapThin (GF := GF) m m Del := by
+  iunfold snapThin
+  isplitl
+  · ipureintro; intro k v h; exact h
+  iintro !> %k %v %h
+  exfalso
+  obtain ⟨h1, h2⟩ := h
+  rw [h1] at h2; cases h2
 
 /-- With no key deletable, a thinned snapshot is the bucket. -/
 theorem snapThin_eq (m m' : Bucket) (Del : GoString → IProp GF) :
@@ -240,40 +328,110 @@ theorem snapThin_eq (m m' : Bucket) (Del : GoString → IProp GF) :
     | some v => rw [Hsub k v hm'] at hm; cases hm
   | some v => rw [Hall' k v hm]
 
-instance keyReadSnap_persistent (rt : GoInterfaceOk) (m : Bucket) :
-    Persistent (keyReadSnap (GF := GF) rt m) := by
+/-- A `ReadTx` as the compaction's `checkPrevCompactionCompleted` uses it, with no view of the
+bucket (it holds neither of the store's locks that hold the view): `RLock`/`RUnlock` return, and
+its reads of the `Meta` bucket's compaction keys (`metaReadSpec`). -/
+def metaReadTx (rt : GoInterfaceOk) : IProp GF :=
+  iprop(□ ({{ True }} (App (Val #(methods rt.ty go!"RLock" rt.v)) (Val #())) {{ RET #(); True }}) ∗
+    □ ({{ True }} (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #())) {{ RET #(); True }}) ∗
+    □ metaReadSpec rt)
+
+instance metaReadTx_persistent (rt : GoInterfaceOk) : Persistent (metaReadTx (GF := GF) rt) := by
+  unfold metaReadTx; infer_instance
+
+/-- `rt` locked, over the snapshot `m` of the bucket (persistent), with `Tok` the reader's
+token from its `RLock` to its `RUnlock`: `RUnlock` takes `Tok` and gives back the reader's
+budget token `RT` (`isKeyBackendG`), and under `Tok` its reads are the snapshot's: a key's
+entry (`keyRangeSpec`) and, if `rng`, a range of keys (`keyRangeReadSpec`), their slices readable
+through `Rd` while `Tok` is held (`rdCap`). (`rng` is false for a `ConcurrentReadTx`, whose range
+of a safe-range bucket can return a key twice over a stale cached read buffer: 2026-10-13, unit 5,
+`issues/etcd-backend-read-buffer-cache-stale-after-commit.md`.) -/
+def keyReadLocked (RT : IProp GF) (rng : Bool) (rt : GoInterfaceOk) (m : Bucket)
+    (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) : IProp GF :=
+  iprop(□ ({{ Tok }} (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #())) {{ RET #(); RT }}) ∗
+    □ keyRangeSpec rt m Rd Tok ∗ (if rng then □ keyRangeReadSpec rt m Rd Tok else iprop(True)) ∗
+    rdCap Rd Tok)
+
+instance keyReadLocked_persistent (RT : IProp GF) (rng : Bool) (rt : GoInterfaceOk) (m : Bucket)
+    (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) :
+    Persistent (keyReadLocked RT rng rt m Rd Tok) := by
+  unfold keyReadLocked; cases rng <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> infer_instance
+
+/-- A locked snapshot with its range read has it. -/
+theorem keyReadLocked_range (RT : IProp GF) (rt : GoInterfaceOk) (m : Bucket)
+    (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) :
+    keyReadLocked (GF := GF) RT true rt m Rd Tok ⊢ □ keyRangeReadSpec rt m Rd Tok := by
+  unfold keyReadLocked
+  simp only [↓reduceIte]
+  iintro ⟨-, -, #H, -⟩
+  iexact H
+
+/-- A locked snapshot with its range read is one without. -/
+theorem keyReadLocked_weaken (RT : IProp GF) (rng : Bool) (rt : GoInterfaceOk) (m : Bucket)
+    (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) :
+    keyReadLocked (GF := GF) RT rng rt m Rd Tok ⊢ keyReadLocked RT false rt m Rd Tok := by
+  unfold keyReadLocked
+  iintro ⟨#H1, #H2, -, #H4⟩
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  iframe H1 H2 H4
+
+/-- `rt` is a `ReadTx` over the snapshot `m` of the bucket the caller's view holds
+(persistent), with `L` the right to lock it: `RLock`, with the caller's view `View q m` (any
+fraction; the caller keeps it), turns `L` into the reader's token `Tok`, over which `rt` is
+locked (`keyReadLocked`: the slices' predicate `Rd` and the token are chosen by the lock, for a
+shared read transaction reads the bbolt transaction of the interval its `RLock` finds). A
+concurrent read transaction's `RLock` does nothing (`L = Tok`, the view unused); the shared
+one's takes its read lock, the view tying what it reads to `m` (2026-10-13, the backend bridge:
+the shared transaction's state is the one at its `RLock`, not at `ReadTx()`). What it reads is
+`m` but for some keys compaction may have deleted (`snapThin m m' Del`: 2026-10-13, unit 5a; the
+real backend's snapshots are exact). -/
+def keyReadSnap (View : Qp → Bucket → IProp GF) (RT : IProp GF) (Del : GoString → IProp GF)
+    (rng : Bool) (rt : GoInterfaceOk) (m : Bucket) (L : IProp GF) : IProp GF :=
+  iprop(□ (∀ q : Qp, {{ L ∗ View q m }} (App (Val #(methods rt.ty go!"RLock" rt.v)) (Val #()))
+    {{ RET #(); View q m ∗ ∃ (m' : Bucket) (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF),
+        Tok ∗ keyReadLocked RT rng rt m' Rd Tok ∗ snapThin m m' Del }}))
+
+instance keyReadSnap_persistent (View : Qp → Bucket → IProp GF) (RT : IProp GF)
+    (Del : GoString → IProp GF) (rng : Bool) (rt : GoInterfaceOk) (m : Bucket) (L : IProp GF) :
+    Persistent (keyReadSnap View RT Del rng rt m L) := by
   unfold keyReadSnap; infer_instance
 
 /-- A reader of the bucket `m` through `rt` (what `rangeKeys` needs of its `tx`): `rt`'s
 `UnsafeRange(schema.Key, key, nil, 0)`, for `key` holding `k`, reads `k`'s entry of `m`, with
-the owned resource `R` it needs (nothing for a read transaction's snapshot; the batch
-transaction's lock token and the bucket's view for a write transaction's). -/
+the owned resource `R` it needs (a read transaction's token; the batch transaction's lock token
+and the bucket's view for a write transaction's). The slices it returns are readable through
+some `Rd` while a token `T` is held, which the call gives for `R` (`T -∗ R`: the batch
+transaction's state at the read, for its lock token). -/
 def keyReader (rt : GoInterfaceOk) (m : Bucket) (R : IProp GF) : IProp GF :=
   iprop(∀ (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac),
     {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ R ∗ key ↦*{dq} k }}
       (App (App (App (App (Val #(methods rt.ty go!"UnsafeRange" rt.v)) (Val #b)) (Val #key))
         (Val #(slice.nil))) (Val #(W64 0)))
-    {{ (ks vs : GoSlice), RET (PairV #ks #vs); R ∗ key ↦*{dq} k ∗ keyVals ks vs m k }})
+    {{ (ks vs : GoSlice), RET (PairV #ks #vs); ∃ (Rd : GoSlice → GoString → IProp GF)
+        (T : IProp GF), T ∗ (T -∗ R) ∗ rdCap Rd T ∗ key ↦*{dq} k ∗ keyVals Rd ks vs m k }})
 
 instance keyReader_persistent (rt : GoInterfaceOk) (m : Bucket) (R : IProp GF) :
     Persistent (keyReader (GF := GF) rt m R) := by
   unfold keyReader; infer_instance
 
-/-- A snapshot is a reader, with nothing owned. -/
-theorem keyReadSnap_reader (rt : GoInterfaceOk) (m : Bucket) :
-    keyReadSnap (GF := GF) rt m ⊢ keyReader rt m iprop(True) := by
+/-- A locked snapshot is a reader, its token owned. -/
+theorem keyReadLocked_reader (RT : IProp GF) (rng : Bool) (rt : GoInterfaceOk) (m : Bucket)
+    (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) :
+    keyReadLocked (GF := GF) RT rng rt m Rd Tok ⊢ keyReader rt m Tok := by
   iintro #H
-  iunfold keyReadSnap at H
-  icases H with ⟨-, -, #Hr, -⟩
+  iunfold keyReadLocked at H
+  icases H with ⟨-, #Hr, -, #Hcap⟩
   iunfold keyRangeSpec at Hr
   iunfold keyReader
-  iintro %b %key %k %dq !> %Φ ⟨#HK, -, Hkey⟩ HΦ
-  iapply Hr $$ %b %key %k %dq %Φ [Hkey]
-  · iframe Hkey; iexact HK
+  iintro %b %key %k %dq !> %Φ ⟨#HK, HT, Hkey⟩ HΦ
+  iapply Hr $$ %b %key %k %dq %Φ [HT Hkey]
+  · iframe HT Hkey; iexact HK
   inext
-  iintro %ks %vs ⟨Hkey, #Hkv⟩
+  iintro %ks %vs ⟨HT, Hkey, #Hkv⟩
   iapply HΦ
-  iframe Hkey Hkv
+  iexists Rd, Tok
+  iframe HT Hkey Hkv Hcap
+  iintro H; iexact H
 
 /-- What a reader of the index knows makes its log well formed and bounded (kept). -/
 theorem idxKnows_wf (γ : IdxNames) (kn : IdxKnow) :
@@ -363,47 +521,56 @@ abbrev Puts := List (GoString × GoString)
 
 /-- The batch transaction `bt` (`backend.BatchTx`, names-only: the trust boundary of the
 backend's write path), as the write transaction uses it, with `Locked l` its lock's token
-holding the puts `l` since the lock was taken: `LockInsideApply()` takes the lock (no puts
-yet) and gives the lock's resource `W` (what the store keeps under it); `UnsafeSeqPut(
-schema.Key, k, v)` under it adds a put; `Unlock()` takes the resource back and, with no puts,
-leaves the bucket as it is, else writes the puts back into the bucket, whose view `View 1 m`
-the caller holds (`storeTxnWrite.End` holds it, half under `s.revMu`, half in `W`), in order,
-then releases the lock with `W` made of the updated view (a wand: `W` holds part of the view);
-`UnsafeRange(schema.Key, k, nil, 0)` under the lock reads the bucket the caller holds a view
-of with the puts so far (the batch transaction sees its own puts), but for a key compaction
-may have deleted (`Del k`: `keyValsD`).
-
-`NewStore`'s calls on a fresh backend: `LockOutsideApply()` takes the lock with no puts and
-*no* resource: the backend's batch lock holds `W` from `NewStore`'s first `Unlock()` on (the
-no-puts `Unlock` triple, which takes `W`, deposits it there and returns the **deposit
-witness** `Dep`, persistent, the backend's; `NewStore` builds `W` before);
-`LockInsideApply` is the writers' lock, taken after that. `UnsafeCreateBucket(b)` under the
-lock leaves the puts as they are (it does not touch the `Key` bucket's entries).
+holding the puts `l` since the lock was taken, `RT` a client's token it is lent (the reader's
+budget token of `isKeyBackendG`: the backend open while the lock is taken), `WT` a write
+session's token (the backend's write-back budget: every `Unlock` may write back), and `PutOk` a
+condition of the puts (the backend's bounds and order): `LockInsideApply()` takes the lock (no
+puts yet), for a session's token, and gives the lock's resource `W` (what the store keeps under
+it); `UnsafeSeqPut(schema.Key, k, v)` under it adds a put (its key and value slices read-only
+for good: the backend's write buffer and bbolt keep them), for a put meeting the condition
+`PutOk m l k v` over the bucket `m` the caller holds a view of (the real backend's: the key above
+every key of the bucket and of the session's puts, 2026-10-13, unit 5); `Unlock()` takes the
+resource back
+and, with no puts, leaves the bucket as it is, else writes the puts back into the bucket, whose
+view `View 1 m` the caller holds (`storeTxnWrite.End` holds it, half under `s.revMu`, half in
+`W`), in order, then releases the lock with `W` made of the updated view (a wand: `W` holds part
+of the view); `UnsafeRange(schema.Key, k, nil, 0)` under the lock reads the bucket the caller
+holds a view of with the puts so far (the batch transaction sees its own puts), its slices
+readable through some `Rd` under a token `T` the lock token is lent as until the next call (the
+backend's `batchLocked` at the session's state, whose bbolt transaction the slices are of), but
+for a key compaction may have deleted (`Del k`: no key and no value).
 
 **Compaction** (2026-10-13, unit 5a; `notes/decisions.md`, "mvcc: compaction"):
-`LockOutsideApply()` with the deposit witness gives `W` (the compaction job's lock, after
-`NewStore`); `UnsafeDelete(schema.Key, k)` of a key compaction may delete (`Del k`, the store's
-choice: `delKey`) leaves the token as it is (the logical bucket the view holds is not changed:
-the deletion shows only in what later reads may miss, `snapThin`); `UnsafeRange(schema.Key,
-lo, hi, limit)` with a positive limit reads the first `limit` entries in `[klo, khi)`, in key
-order, of the bucket with the puts so far, some keys compaction may delete missing;
-`UnsafePut(schema.Meta, k, v)` at a compaction key (`metaCompactKey`) of a value the store
-writes there (`metaRevVal`) leaves the token as it is (the store's record of the meta keys is
-its own, `metaCompact`). -/
-def batchTxSpec (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (Del : GoString → IProp GF)
-    (W Dep : IProp GF) (Locked : Puts → IProp GF) (P : IProp GF) (f : val) : IProp GF :=
+`LockOutsideApply()` with the deposit witness `Dep` (`batchTxInitSpec`'s first `Unlock` returns
+it) gives `W` (the compaction job's lock, after `NewStore`). Where the backend supports mvcc's
+compaction (`Cmp`): `UnsafeDelete(schema.Key, k)` of a key compaction may delete (`Del k`, the
+store's choice: `delKey`) leaves the token as it is (the logical bucket the view holds is not
+changed: the deletion shows only in what later reads may miss, `snapThin`);
+`UnsafeRange(schema.Key, lo, hi, limit)` with a positive limit reads the first `limit` entries in
+`[klo, khi)`, in key order, of the bucket with the puts so far, some keys compaction may delete
+missing (read-only slices); `UnsafePut(schema.Meta, k, v)` at a compaction key
+(`metaCompactKey`) of a value the store writes there (`metaRevVal`) leaves the token as it is
+(the store's record of the meta keys is its own, `metaCompact`).
+
+The store's instance over mvcc's assumed backend (`batchTxSpec`) has no tokens (`RT = WT =
+True`), no condition and `Cmp`: the backend's bridge (`BackendBridge.lean`) proves the general
+one with the backend's, `Cmp` false (2026-10-13, unit 4; the merge with the compaction). -/
+def batchTxSpecG (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT : IProp GF)
+    (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
+    (W Dep : IProp GF) (Cmp : Prop) (Locked : Puts → IProp GF) (P : IProp GF) (f : val) :
+    IProp GF :=
   iprop(□ (∀ (Pre Q : IProp GF),
-      {{ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
+      {{ Pre ∗ RT ∗ WT ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
         (App (Val #(methods bt.ty go!"LockInsideApply" bt.v)) (Val #()))
-      {{ RET #(); Locked [] ∗ W ∗ Q }}) ∗
-    □ (∀ (l : Puts) (b : GoInterface) (key val : GoSlice) (k v : GoString) (dq dq' : DFrac),
-      {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ Locked l ∗
-          key ↦*{dq} k ∗ val ↦*{dq'} v }}
+      {{ RET #(); Locked [] ∗ W ∗ Q ∗ RT }}) ∗
+    □ (∀ (l : Puts) (q : Qp) (m : Bucket) (b : GoInterface) (key val : GoSlice) (k v : GoString),
+      {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ Locked l ∗ View q m ∗
+          key ↦*□ k ∗ val ↦*□ v ∗ ⌜PutOk m l k v⌝ }}
         (App (App (App (Val #(methods bt.ty go!"UnsafeSeqPut" bt.v)) (Val #b)) (Val #key))
           (Val #val))
-      {{ RET #(); Locked (l ++ [(k, v)]) ∗ key ↦*{dq} k ∗ val ↦*{dq'} v }}) ∗
+      {{ RET #(); Locked (l ++ [(k, v)]) ∗ View q m }}) ∗
     □ ({{ Locked [] ∗ W ∗ P }} (App (Val #(methods bt.ty go!"Unlock" bt.v)) (Val #()))
-      {{ RET #(); □ Dep }}) ∗
+      {{ RET #(); True }}) ∗
     □ (∀ (l : Puts) (m : Bucket) (Q : IProp GF),
       {{ Locked l ∗ View 1 m ∗ (View 1 (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) -∗ W ∗ Q) ∗
           P }}
@@ -415,23 +582,19 @@ def batchTxSpec (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (Del : 
           key ↦*{dq} k }}
         (App (App (App (App (Val #(methods bt.ty go!"UnsafeRange" bt.v)) (Val #b)) (Val #key))
           (Val #(slice.nil))) (Val #(W64 0)))
-      {{ (ks vs : GoSlice), RET (PairV #ks #vs); Locked l ∗ View q m ∗ key ↦*{dq} k ∗
-          (keyVals ks vs (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) k ∨
+      {{ (ks vs : GoSlice), RET (PairV #ks #vs); ∃ (Rd : GoSlice → GoString → IProp GF)
+          (T : IProp GF), T ∗ (T -∗ Locked l) ∗ rdCap Rd T ∗ View q m ∗ key ↦*{dq} k ∗
+          (keyVals Rd ks vs (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) k ∨
             (Del k ∗ ks ↦*□ ([] : List GoSlice) ∗ vs ↦*□ ([] : List GoSlice))) }}) ∗
-    □ ({{ True }} (App (Val #(methods bt.ty go!"LockOutsideApply" bt.v)) (Val #()))
-      {{ RET #(); Locked [] ∗ P }}) ∗
-    □ (∀ (l : Puts) (b : GoInterface),
-      {{ Locked l }} (App (Val #(methods bt.ty go!"UnsafeCreateBucket" bt.v)) (Val #b))
-      {{ RET #(); Locked l }}) ∗
-    □ ({{ Dep }} (App (Val #(methods bt.ty go!"LockOutsideApply" bt.v)) (Val #()))
-      {{ RET #(); Locked [] ∗ W ∗ P }}) ∗
-    □ (∀ (l : Puts) (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac),
+    □ ({{ Dep ∗ RT ∗ WT }} (App (Val #(methods bt.ty go!"LockOutsideApply" bt.v)) (Val #()))
+      {{ RET #(); Locked [] ∗ W ∗ P ∗ RT }}) ∗
+    □ (⌜Cmp⌝ -∗ ∀ (l : Puts) (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac),
       {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ Locked l ∗ Del k ∗
           key ↦*{dq} k }}
         (App (App (Val #(methods bt.ty go!"UnsafeDelete" bt.v)) (Val #b)) (Val #key))
       {{ RET #(); Locked l ∗ key ↦*{dq} k }}) ∗
-    □ (∀ (l : Puts) (q : Qp) (m : Bucket) (b : GoInterface) (lo hi : GoSlice) (klo khi : GoString)
-        (limit : w64) (dqlo dqhi : DFrac),
+    □ (⌜Cmp⌝ -∗ ∀ (l : Puts) (q : Qp) (m : Bucket) (b : GoInterface) (lo hi : GoSlice)
+        (klo khi : GoString) (limit : w64) (dqlo dqhi : DFrac),
       ⌜0 < sint.Z limit ∧ khi ≠ []⌝ →
       {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ Locked l ∗ View q m ∗
           lo ↦*{dqlo} klo ∗ hi ↦*{dqhi} khi }}
@@ -440,8 +603,10 @@ def batchTxSpec (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (Del : 
       {{ (ks vs : GoSlice), RET (PairV #ks #vs); Locked l ∗ View q m ∗ lo ↦*{dqlo} klo ∗
           hi ↦*{dqhi} khi ∗
           ∃ m' : Bucket, snapThin (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) m' Del ∗
-            pairVals ks vs ((bucketRange m' klo khi).take (sint.Z limit).toNat) }}) ∗
-    □ (∀ (l : Puts) (b : GoInterface) (key val : GoSlice) (k v : GoString) (dq dq' : DFrac),
+            pairVals (fun s b => iprop(s ↦*□ b)) ks vs
+              ((bucketRange m' klo khi).take (sint.Z limit).toNat) }}) ∗
+    □ (⌜Cmp⌝ -∗ ∀ (l : Puts) (b : GoInterface) (key val : GoSlice) (k v : GoString)
+        (dq dq' : DFrac),
       ⌜metaCompactKey k ∧ metaRevVal v⌝ →
       {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Meta ↦□ b ∗ Locked l ∗
           key ↦*{dq} k ∗ val ↦*{dq'} v }}
@@ -449,25 +614,96 @@ def batchTxSpec (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (Del : 
           (Val #val))
       {{ RET #(); Locked l ∗ key ↦*{dq} k ∗ val ↦*{dq'} v }}))
 
+instance batchTxSpecG_persistent (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
+    (RT WT : IProp GF) (PutOk : Bucket → Puts → GoString → GoString → Prop)
+    (Del : GoString → IProp GF) (W Dep : IProp GF) (Cmp : Prop) (Locked : Puts → IProp GF)
+    (P : IProp GF) (f : val) :
+    Persistent (batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P f) := by
+  unfold batchTxSpecG; infer_instance
+
+/-- `NewStore`'s calls on a fresh backend's batch transaction `bt`, with `LockedO n` the lock's
+token after `n` buckets created: `LockOutsideApply()` takes the lock, for a session's token
+`WT` (the client's token `RT` lent), with the lock's initial resource `Wi` only (`True` for
+mvcc's assumed backend; the real backend's late-bound resource `lateW`, not yet registered,
+2026-10-13, unit 5): the backend's batch lock holds `W` from `NewStore`'s first `Unlock()` on
+(the triple takes `W` and deposits it there, returning the deposit witness `Dep`, persistent,
+which the compaction job's `LockOutsideApply` needs: `True` of the real backend, whose lock
+holds the late-bound `W` from its creation; `NewStore` builds `W` before, from `Wi`);
+`LockInsideApply` is the writers' lock, taken after that. `UnsafeCreateBucket(b)`
+under the lock, of schema's `Key` or `Meta` bucket, creates it (not touching the `Key` bucket's
+entries), at most twice (the backend's bound on a session's operations; `NewStore` creates
+two). -/
+def batchTxInitSpec (bt : GoInterfaceOk) (RT WT : IProp GF) (W Wi Dep : IProp GF)
+    (LockedO : Nat → IProp GF) (P : IProp GF) : IProp GF :=
+  iprop(□ ({{ RT ∗ WT }} (App (Val #(methods bt.ty go!"LockOutsideApply" bt.v)) (Val #()))
+      {{ RET #(); LockedO 0 ∗ Wi ∗ P ∗ RT }}) ∗
+    □ (∀ (n : Nat) (b : GoInterface),
+      {{ LockedO n ∗ ⌜n < 2⌝ ∗ (globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∨
+          globalAddr go_etcd_io.etcd.server.v3.storage.schema.Meta ↦□ b) }}
+        (App (Val #(methods bt.ty go!"UnsafeCreateBucket" bt.v)) (Val #b))
+      {{ RET #(); LockedO (n + 1) }}) ∗
+    □ (∀ n : Nat,
+      {{ LockedO n ∗ W ∗ P }} (App (Val #(methods bt.ty go!"Unlock" bt.v)) (Val #()))
+      {{ RET #(); □ Dep }}))
+
+instance batchTxInitSpec_persistent (bt : GoInterfaceOk) (RT WT : IProp GF) (W Wi Dep : IProp GF)
+    (LockedO : Nat → IProp GF) (P : IProp GF) :
+    Persistent (batchTxInitSpec bt RT WT W Wi Dep LockedO P) := by
+  unfold batchTxInitSpec; infer_instance
+
+/-- `bt` is a batch transaction (its lock tokens' predicates are its own). -/
+def isBatchTxG (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT : IProp GF)
+    (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
+    (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (f : val) : IProp GF :=
+  iprop(∃ (Locked : Puts → IProp GF) (LockedO : Nat → IProp GF),
+    batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P f ∗
+      batchTxInitSpec bt RT WT W Wi Dep LockedO P)
+
+instance isBatchTxG_persistent (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
+    (RT WT : IProp GF) (PutOk : Bucket → Puts → GoString → GoString → Prop)
+    (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (f : val) :
+    Persistent (isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P f) := by
+  unfold isBatchTxG; infer_instance
+
+/-- No condition on the puts (mvcc's assumed backend). -/
+def noPutCond : Bucket → Puts → GoString → GoString → Prop := fun _ _ _ _ => True
+
+/-- **The real backend's condition on a put** (`BackendBridge.lean`): at most `2^56` puts in a
+session (the backend's bound on a session's operations), a key of `1..MaxKeySize` bytes above
+every key of the bucket `m` and of the session's puts `l` (the safe-range discipline of the
+`Key` bucket, and `UnsafeSeqPut`'s order check). (No bound on the value: bbolt refuses one above
+`MaxValueSize` and the backend's `lg.Fatal` exits:
+`issues/etcd-backend-put-value-too-large-fatal.md`.) -/
+def keyPutOk (m : Bucket) (l : Puts) (k _v : GoString) : Prop :=
+  l.length < 2 ^ 56 ∧ 0 < k.length ∧ k.length ≤ backend.maxKeySize ∧
+    (∀ k' v', m.lookup k' = some v' → go.GoStringLt k' k) ∧ ∀ p ∈ l, go.GoStringLt p.1 k
+
+/-- The store's batch transaction contract over mvcc's assumed backend: no tokens, no condition
+on the puts, the compaction's calls. -/
+def batchTxSpec (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (Del : GoString → IProp GF)
+    (W Dep : IProp GF) (Locked : Puts → IProp GF) (P : IProp GF) (f : val) : IProp GF :=
+  batchTxSpecG bt View iprop(True) iprop(True) noPutCond Del W Dep True Locked P f
+
 instance batchTxSpec_persistent (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
     (Del : GoString → IProp GF) (W Dep : IProp GF) (Locked : Puts → IProp GF) (P : IProp GF)
     (f : val) : Persistent (batchTxSpec bt View Del W Dep Locked P f) := by
   unfold batchTxSpec; infer_instance
 
-/-- `bt` is a batch transaction (its lock token's predicate is its own). -/
+/-- `bt` is a batch transaction (mvcc's assumed backend). -/
 def isBatchTx (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (Del : GoString → IProp GF)
     (W Dep : IProp GF) (P : IProp GF) (f : val) : IProp GF :=
-  iprop(∃ Locked : Puts → IProp GF, batchTxSpec bt View Del W Dep Locked P f)
+  isBatchTxG bt View iprop(True) iprop(True) noPutCond Del W iprop(True) Dep True P f
 
 /-- The batch transaction under its lock is a reader of its own puts over the view, when no key
 is deletable (`□ (Del k ={⊤}=∗ False)`: no compaction). -/
-theorem batchTx_reader (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
-    (Del : GoString → IProp GF) (W Dep : IProp GF) (Locked : Puts → IProp GF) (P : IProp GF)
-    (f : val) (l : Puts) (q : Qp) (m : Bucket) :
-    batchTxSpec bt View Del W Dep Locked P f ∗ □ (∀ k, Del k ={⊤}=∗ False) ⊢
+theorem batchTx_reader (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT : IProp GF)
+    (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
+    (W Dep : IProp GF) (Cmp : Prop) (Locked : Puts → IProp GF) (P : IProp GF) (f : val)
+    (l : Puts) (q : Qp) (m : Bucket) :
+    batchTxSpecG bt View RT WT PutOk Del W Dep Cmp Locked P f ∗ □ (∀ k, Del k ={⊤}=∗ False) ⊢
       keyReader bt (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) iprop(Locked l ∗ View q m) := by
   iintro ⟨#H, #Hno⟩
-  iunfold batchTxSpec at H
+  iunfold batchTxSpecG at H
   icases H with ⟨-, -, -, -, #Hr, -⟩
   iunfold keyReader
   iintro %b %key %k %dq !> %Φ ⟨#HK, ⟨Hl, Hv⟩, Hkey⟩ HΦ
@@ -475,77 +711,107 @@ theorem batchTx_reader (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
   iapply Hr $$ %l %q %m %b %key %k %dq [Hl Hv Hkey]
   · iframe Hl Hv Hkey; iexact HK
   inext
-  iintro %ks %vs ⟨Hl, Hv, Hkey, Hkv⟩
+  iintro %ks %vs ⟨%Rd, %T, HT, Hback, #Hcap, Hv, Hkey, Hkv⟩
   icases Hkv with (#Hkv | ⟨Hd, -⟩)
-  · imodintro
-    iapply HΦ
-    iframe Hl Hv Hkey Hkv
+  rotate_left
   · ispecialize Hno $$ %k Hd
     imod Hno with %Hf
     exact Hf.elim
+  imodintro
+  iapply HΦ
+  iexists Rd, iprop(T ∗ View q m)
+  iframe HT Hv Hkey Hkv
+  isplitl [Hback]
+  · iintro ⟨HT, Hv⟩
+    ihave Hl := Hback $$ HT
+    iframe Hl Hv
+  iunfold rdCap at Hcap
+  iunfold rdCap
+  iintro !> %s %bs HRd ⟨HT, Hv⟩
+  icases Hcap $$ %s %bs HRd HT with ⟨%dq', Hs, Hb⟩
+  iexists dq'
+  iframe Hs
+  iintro Hs
+  ihave HT := Hb $$ Hs
+  iframe HT Hv
+
+/-- The store's batch transaction under its lock is a reader of its own puts over the view. -/
+theorem batchTxSpec_reader (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
+    (Del : GoString → IProp GF) (W Dep : IProp GF) (Locked : Puts → IProp GF) (P : IProp GF)
+    (f : val) (l : Puts) (q : Qp) (m : Bucket) :
+    batchTxSpec bt View Del W Dep Locked P f ∗ □ (∀ k, Del k ={⊤}=∗ False) ⊢
+      keyReader bt (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) iprop(Locked l ∗ View q m) := by
+  unfold batchTxSpec
+  exact batchTx_reader bt View _ _ _ Del W Dep _ Locked P f l q m
 
 instance isBatchTx_persistent (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
     (Del : GoString → IProp GF) (W Dep : IProp GF) (P : IProp GF) (f : val) :
     Persistent (isBatchTx bt View Del W Dep P f) := by
   unfold isBatchTx; infer_instance
 
-/-- `b` is a `Backend`, with the batch lock's deposit witness `Dep` (persistent, the backend's:
-the no-puts `Unlock` that deposits `W` returns it): `ConcurrentReadTx()` and `ReadTx()` return
-a snapshot reader of the bucket the caller holds as `View q m` (any fraction `q`), which the
-caller keeps, but for some keys compaction may have deleted (`snapThin`, `Del`); `BatchTx()` is
-a batch transaction over the view, its lock holding `W`; `ForceCommit()` returns (the commit to
-disk has no effect on the view); and the compaction job's calls, with no effect on the model:
-`LockForSafeRangeDelete()`/`UnlockForSafeRangeDelete()` (the defragmentation's exclusion) and
-`Size()`/`SizeInUse()` (some number); and `ReadTx()` with no view, for the reads of the `Meta`
-bucket's compaction keys alone (`metaReadTx`: `checkPrevCompactionCompleted`). -/
-def isKeyBackendD (b : GoInterface) (View : Qp → Bucket → IProp GF) (Del : GoString → IProp GF)
-    (W Dep : IProp GF) (P : IProp GF) (f : val) : IProp GF :=
+/-- `b` is a `Backend` whose `ConcurrentReadTx()` and `ReadTx()`, for a reader's token `RT`
+(the backend's readers are bounded: a slot of its read lock and of its `txMu`, a budget token,
+and the backend open; given back by the reader's `RUnlock`), return a snapshot reader of the
+bucket the caller holds as `View q m` (any fraction `q`), which the caller keeps, with the right
+`L` to lock it (`keyReadSnap`: its `RLock` gives the reader's token, its `RUnlock` takes it),
+and whose `BatchTx()` is a batch transaction over the view, its lock holding `W`;
+`ForceCommit()`, for a session's token `WT` (`RT` lent), returns (the commit to disk has no
+effect on the view); `Size()`/`SizeInUse()` return some number. The snapshots may miss keys
+compaction may have deleted (`Del`, `snapThin`), and the batch transaction's lock, after
+`NewStore`'s first `Unlock`, holds `W` with the deposit witness `Dep` (persistent, its own).
+Where the backend supports mvcc's compaction (`Cmp`): the job's calls, with no effect on the
+model, `LockForSafeRangeDelete()`/`UnlockForSafeRangeDelete()` (the defragmentation's exclusion)
+and `ReadTx()` with no view, for the reads of the `Meta` bucket's compaction keys alone
+(`metaReadTx`: `checkPrevCompactionCompleted`). The instance of mvcc's assumed backend
+(`isKeyBackend`) has no tokens, no condition on the puts (`batchTxSpecG`'s `PutOk`) and `Cmp`;
+`BackendBridge.lean` proves the general one of the backend, `Cmp` false (2026-10-13, unit 4; the
+merge with the compaction, unit 5a). -/
+def isKeyBackendG (b : GoInterface) (View : Qp → Bucket → IProp GF) (RT WT : IProp GF)
+    (PutOk : Bucket → Puts → GoString → GoString → Prop) (Del : GoString → IProp GF)
+    (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (f : val) : IProp GF :=
   iprop(∃ bi : GoInterfaceOk, ⌜b = GoInterface.ok bi⌝ ∗
     □ (∀ (q : Qp) (m : Bucket),
-      {{ View q m }} (App (Val #(methods bi.ty go!"ConcurrentReadTx" bi.v)) (Val #()))
+      {{ View q m ∗ RT }} (App (Val #(methods bi.ty go!"ConcurrentReadTx" bi.v)) (Val #()))
       {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); View q m ∗
-          ∃ m' : Bucket, keyReadSnap rt m' ∗ snapThin m m' Del }}) ∗
+          ∃ L : IProp GF, L ∗ keyReadSnap View RT Del false rt m L }}) ∗
     □ (∀ (q : Qp) (m : Bucket),
-      {{ View q m }} (App (Val #(methods bi.ty go!"ReadTx" bi.v)) (Val #()))
+      {{ View q m ∗ RT }} (App (Val #(methods bi.ty go!"ReadTx" bi.v)) (Val #()))
       {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); View q m ∗
-          ∃ m' : Bucket, keyReadSnap rt m' ∗ snapThin m m' Del }}) ∗
+          ∃ L : IProp GF, L ∗ keyReadSnap View RT Del true rt m L }}) ∗
     □ ({{ True }} (App (Val #(methods bi.ty go!"BatchTx" bi.v)) (Val #()))
-      {{ (bt : GoInterfaceOk), RET #(GoInterface.ok bt); isBatchTx bt View Del W Dep P f }}) ∗
-    □ ({{ True }} (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
-      {{ RET #(); True }}) ∗
-    □ ({{ True }} (App (Val #(methods bi.ty go!"LockForSafeRangeDelete" bi.v)) (Val #()))
-      {{ RET #(); True }}) ∗
-    □ ({{ True }} (App (Val #(methods bi.ty go!"UnlockForSafeRangeDelete" bi.v)) (Val #()))
-      {{ RET #(); True }}) ∗
+      {{ (bt : GoInterfaceOk), RET #(GoInterface.ok bt);
+          isBatchTxG bt View RT WT PutOk Del W Wi Dep Cmp P f }}) ∗
+    □ ({{ RT ∗ WT }} (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
+      {{ RET #(); RT }}) ∗
     □ ({{ True }} (App (Val #(methods bi.ty go!"Size" bi.v)) (Val #()))
       {{ (n : w64), RET #n; True }}) ∗
     □ ({{ True }} (App (Val #(methods bi.ty go!"SizeInUse" bi.v)) (Val #()))
       {{ (n : w64), RET #n; True }}) ∗
-    □ ({{ True }} (App (Val #(methods bi.ty go!"ReadTx" bi.v)) (Val #()))
-      {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); metaReadTx rt }}))
+    □ (⌜Cmp⌝ -∗
+      □ ({{ True }} (App (Val #(methods bi.ty go!"LockForSafeRangeDelete" bi.v)) (Val #()))
+        {{ RET #(); True }}) ∗
+      □ ({{ True }} (App (Val #(methods bi.ty go!"UnlockForSafeRangeDelete" bi.v)) (Val #()))
+        {{ RET #(); True }}) ∗
+      □ ({{ True }} (App (Val #(methods bi.ty go!"ReadTx" bi.v)) (Val #()))
+        {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); metaReadTx rt }})))
 
-instance isKeyBackendD_persistent (b : GoInterface) (View : Qp → Bucket → IProp GF)
-    (Del : GoString → IProp GF) (W Dep : IProp GF) (P : IProp GF) (f : val) :
-    Persistent (isKeyBackendD b View Del W Dep P f) := by
-  unfold isKeyBackendD; infer_instance
+instance isKeyBackendG_persistent (b : GoInterface) (View : Qp → Bucket → IProp GF)
+    (RT WT : IProp GF) (PutOk : Bucket → Puts → GoString → GoString → Prop)
+    (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF) (f : val) :
+    Persistent (isKeyBackendG b View RT WT PutOk Del W Wi Dep Cmp P f) := by
+  unfold isKeyBackendG; infer_instance
 
-/-- `b` is a `Backend` (`isKeyBackendD`, its deposit witness its own). -/
+/-- mvcc's assumed backend contract: no tokens, no condition on the puts, nothing in the lock
+before `NewStore`'s first `Unlock`, the compaction's calls (its deposit witness its own). -/
 def isKeyBackend (b : GoInterface) (View : Qp → Bucket → IProp GF) (Del : GoString → IProp GF)
     (W : IProp GF) (P : IProp GF) (f : val) : IProp GF :=
-  iprop(∃ Dep : IProp GF, isKeyBackendD b View Del W Dep P f)
+  iprop(∃ Dep : IProp GF,
+    isKeyBackendG b View iprop(True) iprop(True) noPutCond Del W iprop(True) Dep True P f)
 
 instance isKeyBackend_persistent (b : GoInterface) (View : Qp → Bucket → IProp GF)
     (Del : GoString → IProp GF) (W : IProp GF) (P : IProp GF) (f : val) :
     Persistent (isKeyBackend b View Del W P f) := by
   unfold isKeyBackend; infer_instance
-
-theorem isKeyBackendD_ex (b : GoInterface) (View : Qp → Bucket → IProp GF)
-    (Del : GoString → IProp GF) (W Dep : IProp GF) (P : IProp GF) (f : val) :
-    isKeyBackendD b View Del W Dep P f ⊢ isKeyBackend b View Del W P f := by
-  iintro #H
-  iunfold isKeyBackend
-  iexists Dep
-  iexact H
 
 /-! ## The lessor -/
 
@@ -588,17 +854,186 @@ def isLessor (le : GoInterface) (γl : GName) : IProp GF :=
 instance isLessor_persistent (le : GoInterface) (γl : GName) : Persistent (isLessor (GF := GF) le γl) := by
   unfold isLessor; infer_instance
 
-/-- The store's view of the bucket: the ghost map's authority at fraction `q`. -/
-def bucketView (γ : StoreNames) (q : Qp) (m : Bucket) : IProp GF :=
-  ghostMapAuth γ.bucket q m
+/-- Halving distributes over a sum of fractions. -/
+theorem qp_half_add (q1 q2 : Qp) : (q1 + q2).half = q1.half + q2.half := by
+  apply Subtype.ext
+  show (q1.val + q2.val) / 2 = q1.val / 2 + q2.val / 2
+  grind
+
+/-! ## The backend instances (2026-10-13, unit 5)
+
+The store is over one of two backends, named by its `StoreNames.kb`: mvcc's assumed contract
+(`none`: the view is the store's own ghost map, no tokens, no condition on the puts, `W` the
+writer's resource itself) or the real backend (`some d`: the backend's clients' view of the `Key`
+bucket, a reader's slot of the backend and a share of it open, a write-back's budget, the
+safe-range condition on the puts, and the batch lock's late-bound resource `lateW`). -/
+
+/-- The readers' view `vd` of the backend is the `Key` bucket `m`, and nothing else. -/
+def keyView (vd : backend.VData) (m : Bucket) : Prop :=
+  ∀ n k, vd.lookup (n, k) = if n = keyName then m.lookup k else none
+
+/-- One `keyView` per view. -/
+theorem keyView_inj {vd : backend.VData} {m m' : Bucket} (h : keyView vd m) (h' : keyView vd m') :
+    m = m' := by
+  apply GMap.ext
+  intro k
+  have a := h keyName k
+  have b := h' keyName k
+  simp only [↓reduceIte] at a b
+  rw [← a, ← b]
+
+/-- mvcc's view of the `Key` bucket over the real backend, at fraction `q`: the backend's
+clients' view (`bView`) of it. -/
+def bkView (γB : backend.BNames) (q : Qp) (m : Bucket) : IProp GF :=
+  iprop(∃ vd : backend.VData, backend.bView γB q vd ∗ ⌜keyView vd m⌝)
+
+/-- The view of the bucket in the instance `kb` (`γb` the store's ghost map, for `none`). -/
+def kbView (kb : Option KBReal) (γb : GName) (q : Qp) (m : Bucket) : IProp GF :=
+  match kb with
+  | none => ghostMapAuth γb q m
+  | some d => bkView d.γB q m
+
+/-- A reader's token in the instance `kb`: for the real backend, a reader's slot of it and a
+share of it open (given back at the reader's `RUnlock`). -/
+def kbRT (kb : Option KBReal) : IProp GF :=
+  match kb with
+  | none => iprop(True)
+  | some d => iprop(backend.rdTok d.γB d.P d.be ∗ ∃ q : Qp, backend.bOpen d.γB q)
+
+/-- A write session's token in the instance `kb`: for the real backend, a write-back's budget
+(every `Unlock` may increment the read buffer's version, a `uint64`: `backend.wbTok`). -/
+def kbWT (kb : Option KBReal) : IProp GF :=
+  match kb with
+  | none => iprop(True)
+  | some d => backend.wbTok d.γB
+
+/-- The condition on a put in the instance `kb`. -/
+def kbPutOk (kb : Option KBReal) : Bucket → Puts → GoString → GoString → Prop :=
+  match kb with
+  | none => noPutCond
+  | some _ => keyPutOk
+
+/-- The bound on a write transaction's changes in the instance `kb` (`2^63`; `2^56` for the
+real backend: its bound on a session's puts). -/
+def kbPutMax (kb : Option KBReal) : Nat :=
+  match kb with
+  | none => 2 ^ 63
+  | some _ => 2 ^ 56
+
+theorem kbPutMax_le (kb : Option KBReal) : kbPutMax kb ≤ 2 ^ 63 := by
+  cases kb <;> simp [kbPutMax]
+
+/-- The store's view of the bucket (`kbView` of its instance). -/
+def bucketView (γ : StoreNames) (q : Qp) (m : Bucket) : IProp GF := kbView γ.kb γ.bucket q m
+
+/-- The store's reader token (`kbRT`). -/
+abbrev storeRT (γ : StoreNames) : IProp GF := kbRT γ.kb
+
+/-- The store's write token (`kbWT`): `store.Write` spends one. -/
+abbrev storeWT (γ : StoreNames) : IProp GF := kbWT γ.kb
+
+/-- The store's condition on its backend's puts (`kbPutOk`). -/
+abbrev storePutOk (γ : StoreNames) : Bucket → Puts → GoString → GoString → Prop := kbPutOk γ.kb
+
+/-- The store's bound on a write transaction's changes (`kbPutMax`). -/
+abbrev putMax (γ : StoreNames) : Nat := kbPutMax γ.kb
+
+theorem putMax_le (γ : StoreNames) : putMax γ ≤ 2 ^ 63 := kbPutMax_le γ.kb
+
+theorem putMax_ge (γ : StoreNames) : 2 ^ 56 ≤ putMax γ := by
+  unfold putMax kbPutMax; cases γ.kb <;> simp
+
+/-- Whether the backend of the instance `kb` supports mvcc's compaction (`isKeyBackendG`'s
+`Cmp`): mvcc's assumed backend does; the real backend does not yet (its model forbids deleting
+from the safe-range `Key` bucket, and an `Unlock` that changes what readers see needs the
+clients' whole view, which the compaction job, under the batch lock alone, does not hold;
+`notes/decisions.md`, "The compaction over the real backend"). -/
+def kbCmp (kb : Option KBReal) : Prop := kb = none
+
+/-- The store's backend supports compaction (`kbCmp`). -/
+abbrev storeCmp (γ : StoreNames) : Prop := kbCmp γ.kb
+
+/-- The pending puts are at most the pending changes. -/
+theorem pendPuts_length_le (ilog : Log) (pend : List Change) :
+    (pendPuts ilog pend).length ≤ pend.length := by
+  unfold pendPuts bucketOfRev
+  exact Nat.le_trans (List.length_filterMap_le ..) (by simp)
+
+/-- **The store's next put meets its backend's condition**: the key of the pending revision at
+the next position, above the bucket's keys and the pending puts' (`RevOrder.lean`). -/
+theorem storePutOk_next (γ : StoreNames) (ilog : Log) (pend : List Change) (t : Bool)
+    (d : GoString) (hlen : ilog.length < 2 ^ 63) (hcs : ∀ cs ∈ ilog, cs.length < 2 ^ 63)
+    (hp : pend.length + 1 < putMax γ) :
+    storePutOk γ (bucketMap ilog) (pendPuts ilog pend)
+      (revBytes ⟨W64 ilog.length, W64 pend.length⟩ t) d := by
+  unfold storePutOk kbPutOk
+  unfold putMax kbPutMax at hp
+  cases hkb : γ.kb with
+  | none => trivial
+  | some _ =>
+    rw [hkb] at hp
+    simp only at hp ⊢
+    have hk := RevOrder.revBytes_keyOk ⟨W64 ilog.length, W64 pend.length⟩ t
+    refine ⟨by have := pendPuts_length_le ilog pend; omega, hk.1, hk.2, ?_, ?_⟩
+    · intro k' v' h
+      exact RevOrder.bucketMap_lt_next ilog pend t hlen hcs h
+    · intro p hp'
+      exact RevOrder.pendPuts_lt_next ilog pend t (by omega) hp'
+
+instance bucketView_fractional (γ : StoreNames) (m : Bucket) :
+    Fractional (fun q => bucketView (GF := GF) γ q m) where
+  fractional q1 q2 := by
+    unfold bucketView kbView
+    cases γ.kb with
+    | none =>
+      exact (ghostMapAuth_fractional (GF := GF) γ.bucket m).fractional q1 q2
+    | some d =>
+      have hv := fun vd : backend.VData =>
+        (ghostVar_fractional (GF := GF) d.γB.view vd).fractional q1.half q2.half
+      have hc := (ghostVar_fractional (GF := GF) d.γB.cvw ()).fractional q1.half q2.half
+      simp only
+      unfold bkView backend.bView
+      rw [qp_half_add]
+      constructor
+      · iintro ⟨%vd, ⟨Hv, Hc⟩, %Hk⟩
+        icases (hv vd).1 $$ Hv with ⟨Hv1, Hv2⟩
+        icases hc.1 $$ Hc with ⟨Hc1, Hc2⟩
+        isplitl [Hv1 Hc1]
+        · iexists vd; iframe; ipureintro; exact Hk
+        · iexists vd; iframe; ipureintro; exact Hk
+      · iintro ⟨⟨%vd1, ⟨Hv1, Hc1⟩, %Hk1⟩, ⟨%vd2, ⟨Hv2, Hc2⟩, %Hk2⟩⟩
+        ihave %Heq := ghostVar_agree d.γB.view vd1 _ vd2 _ $$ Hv1 Hv2
+        subst Heq
+        iexists vd1
+        isplitl [Hv1 Hv2 Hc1 Hc2]
+        · isplitl [Hv1 Hv2]
+          · iapply (hv vd1).2; iframe
+          · iapply hc.2; iframe
+        ipureintro; exact Hk1
 
 /-- The view as two halves (`s.revMu`'s and the batch lock's). -/
 theorem bucketView_halves (γ : StoreNames) (q : Qp) (m : Bucket) :
     bucketView (GF := GF) γ q m ⊣⊢ bucketView γ q.half m ∗ bucketView γ q.half m := by
-  unfold bucketView
-  have h := (ghostMapAuth_fractional (GF := GF) γ.bucket m).fractional q.half q.half
+  have h := (bucketView_fractional (GF := GF) γ m).fractional q.half q.half
   rw [Qp.half_add_half] at h
   exact h
+
+/-- Two parts of the view agree on the bucket. -/
+theorem bucketView_agree (γ : StoreNames) (q1 q2 : Qp) (m1 m2 : Bucket) :
+    bucketView (GF := GF) γ q1 m1 ∗ bucketView γ q2 m2 ⊢ ⌜m1 = m2⌝ := by
+  unfold bucketView kbView
+  cases γ.kb with
+  | none =>
+    simp only
+    iintro ⟨H1, H2⟩
+    iapply ghostMapAuth_agree $$ H1 H2
+  | some d =>
+    simp only
+    unfold bkView backend.bView
+    iintro ⟨⟨%vd1, ⟨Hv1, -⟩, %Hk1⟩, ⟨%vd2, ⟨Hv2, -⟩, %Hk2⟩⟩
+    ihave %Heq := ghostVar_agree d.γB.view vd1 _ vd2 _ $$ Hv1 Hv2
+    subst Heq
+    ipureintro; exact keyView_inj Hk1 Hk2
 
 /-- A revision token: the right to open one write transaction (`store.Write`). The store's
 `NewStore` hands out `2 ^ 63 - 5` of them: with the budget `writerRes` keeps, the revision
@@ -793,6 +1228,8 @@ def compactRes (γ : StoreNames) : IProp GF :=
 
 /-! ## The locks -/
 
+/-! ## The locks -/
+
 
 /-- The batch lock's resource for the store (`W` of `isKeyBackend`): the index writer's handle
 at the committed log `ilog` with no pending change, half the committed-log ghost variable (the
@@ -813,6 +1250,105 @@ def writerRes (s : Loc) (γ : StoreNames) : IProp GF :=
     "#Hcert" ∷ idxCert γ.idx ilog ∗
     "%Hne" ∷ ⌜ilog ≠ []⌝ ∗
     "Hcres" ∷ compactRes γ)
+
+/-! ### The batch lock's resource, late-bound (the real backend)
+
+The backend's batch lock holds its client's resource `W` from the backend's creation, but the
+store's `writerRes s γ` names the store's location and ghost names, which `NewStore` makes. So
+the real backend is made with `W := lateW gx`: a registration slot, unset (half of `gx` at
+`none`, the other half the backend's creator's: `lateReg gx`), then set by `NewStore`'s first
+`Unlock` to the store's `(s, γ)` for good, with its `writerRes s γ` (`storeW_register`). -/
+
+/-- The real backend's late-bound lock resource: unset, or set for good to a store `(s, γ)` with
+its writer's resource. -/
+def lateW (gx : GName) : IProp GF :=
+  iprop(dghostVar gx (DFrac.own (1 : Qp).half) (none : Option (Loc × StoreNames)) ∨
+    ∃ (s : Loc) (γ : StoreNames), dghostVar gx DFrac.discard (some (s, γ)) ∗ writerRes s γ)
+
+/-- The right to register the store (the backend's creator's half of `gx`, unset). -/
+def lateReg (gx : GName) : IProp GF :=
+  dghostVar gx (DFrac.own (1 : Qp).half) (none : Option (Loc × StoreNames))
+
+/-- The store's lock resource in its backend (`writerRes` itself for mvcc's assumed backend). -/
+def storeW (s : Loc) (γ : StoreNames) : IProp GF :=
+  match γ.kb with
+  | none => writerRes s γ
+  | some d => lateW d.gx
+
+/-- The lock's resource before `NewStore`'s first `Unlock` (`lateW` for the real backend). -/
+def kbWi (kb : Option KBReal) : IProp GF :=
+  match kb with
+  | none => iprop(True)
+  | some d => lateW d.gx
+
+/-- The store `(s, γ)` is the one registered in its backend (persistent). -/
+def storeRegd (s : Loc) (γ : StoreNames) : IProp GF :=
+  match γ.kb with
+  | none => iprop(True)
+  | some d => dghostVar d.gx DFrac.discard (some (s, γ))
+
+instance storeRegd_persistent (s : Loc) (γ : StoreNames) :
+    Persistent (storeRegd (GF := GF) s γ) := by
+  unfold storeRegd; cases γ.kb <;> simp only <;> infer_instance
+
+/-- The right to register a store in the instance `kb`. -/
+def kbRegRight (kb : Option KBReal) : IProp GF :=
+  match kb with
+  | none => iprop(True)
+  | some d => lateReg d.gx
+
+/-- The registered store's lock resource is its writer's resource. -/
+theorem storeW_get (s : Loc) (γ : StoreNames) :
+    storeRegd (GF := GF) s γ ∗ storeW s γ ⊢ writerRes s γ := by
+  unfold storeRegd storeW
+  cases γ.kb with
+  | none => simp only; iintro ⟨-, H⟩; iexact H
+  | some d =>
+    simp only
+    unfold lateW
+    iintro ⟨#Hr, (H | ⟨%s', %γ', #Hr', H⟩)⟩
+    · ihave %Hc := dghostVar_agree d.gx _ _ _ _ $$ Hr H
+      cases Hc
+    · ihave %Hc := dghostVar_agree d.gx _ _ _ _ $$ Hr Hr'
+      cases Hc
+      iexact H
+
+/-- The registered store's writer's resource is its lock resource. -/
+theorem storeW_put (s : Loc) (γ : StoreNames) :
+    storeRegd (GF := GF) s γ ∗ writerRes s γ ⊢ storeW s γ := by
+  unfold storeRegd storeW
+  cases γ.kb with
+  | none => simp only; iintro ⟨-, H⟩; iexact H
+  | some d =>
+    simp only
+    unfold lateW
+    iintro ⟨#Hr, H⟩
+    iright
+    iexists s, γ
+    iframe Hr H
+
+/-- **The registration** (`NewStore`'s first `Unlock`): the lock's initial resource and the
+right to register, with the store's writer's resource, make the store's lock resource, the store
+registered. -/
+theorem storeW_register (s : Loc) (γ : StoreNames) :
+    kbWi (GF := GF) γ.kb ∗ kbRegRight γ.kb ∗ writerRes s γ ==∗ storeW s γ ∗ storeRegd s γ := by
+  unfold kbWi kbRegRight storeW storeRegd
+  cases hk : γ.kb with
+  | none => simp only; iintro ⟨-, -, H⟩; imodintro; iframe H
+  | some d =>
+    simp only
+    unfold lateW lateReg
+    iintro ⟨(H1 | ⟨%s', %γ', #Hr', -⟩), H2, HW⟩
+    · imod dghostVar_update_halves (some (s, γ)) d.gx _ _ $$ H1 H2 with ⟨H1, -⟩
+      imod dghostVar_persist d.gx _ _ $$ H1 with #H
+      imodintro
+      isplitl [HW]
+      · iright
+        iexists s, γ
+        iframe H HW
+      iexact H
+    · ihave %Hc := dghostVar_agree d.gx _ _ _ _ $$ Hr' H2
+      cases Hc
 
 /-- `s.revMu`'s resource at fraction `q`: the committed log `log`'s last revision in
 `currentRev` (half of it: the writer holds the other half under the batch lock), half the
@@ -838,12 +1374,6 @@ def revMuInv (s : Loc) (γ : StoreNames) (q : Qp) : IProp GF :=
     "Hcrev" ∷ crevUB γ.idx q.half.half c ∗
     "%Hc" ∷ ⌜-1 ≤ c ∧ c < log.length⌝)
 
-/-- Halving distributes over a sum of fractions. -/
-theorem qp_half_add (q1 q2 : Qp) : (q1 + q2).half = q1.half + q2.half := by
-  apply Subtype.ext
-  show (q1.val + q2.val) / 2 = q1.val / 2 + q2.val / 2
-  grind
-
 /-- `s.revMu`'s resource is fractional (for `sync.init_RWMutex`): the halves of `currentRev`,
 of the ghost log and of the bucket's view split, and two parts agree on the log. -/
 instance revMuInv_fractional (s : Loc) (γ : StoreNames) : Fractional (revMuInv (GF := GF) s γ) where
@@ -853,22 +1383,22 @@ instance revMuInv_fractional (s : Loc) (γ : StoreNames) : Fractional (revMuInv 
           s.[store, go!"currentRev"] ↦{DFrac.own q2.half} v :=
       fun v => (typedPointsto_dfractional (GF := GF) _ v).dfractional (DFrac.own q1.half)
         (DFrac.own q2.half)
+    have hclog := fun (log : Log) =>
+      (ghostVar_fractional (GF := GF) γ.clog log).fractional q1.half q2.half
+    have hbv := fun (m : Bucket) =>
+      (bucketView_fractional (GF := GF) γ m).fractional q1.half q2.half
+    have htk : ∀ n : Nat, ownTokAuthDfrac (GF := GF) γ.revs (DFrac.own (q1.half + q2.half)) n ⊣⊢
+        ownTokAuthDfrac γ.revs (DFrac.own q1.half) n ∗ ownTokAuthDfrac γ.revs (DFrac.own q2.half) n :=
+      fun n => ownTokAuthDfrac_split (GF := GF) γ.revs (DFrac.own q1.half) (DFrac.own q2.half) n
+    have hlg := fun (log : Log) =>
+      (monoListAuthOwn_fractional (GF := GF) γ.idx.log log).fractional q1.half q2.half
     have hcmp : ∀ v : w64, (s.[store, go!"compactMainRev"] ↦{DFrac.own (q1.half + q2.half)} v :
         IProp GF) ⊣⊢ s.[store, go!"compactMainRev"] ↦{DFrac.own q1.half} v ∗
           s.[store, go!"compactMainRev"] ↦{DFrac.own q2.half} v :=
       fun v => (typedPointsto_dfractional (GF := GF) _ v).dfractional (DFrac.own q1.half)
         (DFrac.own q2.half)
     have hcrev := fun (c : Int) => crevUB_split (GF := GF) γ.idx q1.half.half q2.half.half c
-    have hclog := fun (log : Log) =>
-      (ghostVar_fractional (GF := GF) γ.clog log).fractional q1.half q2.half
-    have hbv := fun (m : Bucket) =>
-      (ghostMapAuth_fractional (GF := GF) γ.bucket m).fractional q1.half q2.half
-    have htk : ∀ n : Nat, ownTokAuthDfrac (GF := GF) γ.revs (DFrac.own (q1.half + q2.half)) n ⊣⊢
-        ownTokAuthDfrac γ.revs (DFrac.own q1.half) n ∗ ownTokAuthDfrac γ.revs (DFrac.own q2.half) n :=
-      fun n => ownTokAuthDfrac_split (GF := GF) γ.revs (DFrac.own q1.half) (DFrac.own q2.half) n
-    have hlg := fun (log : Log) =>
-      (monoListAuthOwn_fractional (GF := GF) γ.idx.log log).fractional q1.half q2.half
-    unfold revMuInv bucketView
+    unfold revMuInv
     rw [qp_half_add, qp_half_add]
     refine ⟨?_, ?_⟩
     · iintro H
@@ -1025,21 +1555,23 @@ theorem muHeld_cmp (s : Loc) (γ : StoreNames) (c : Int) :
   iframe #
   ipureintro; exact HcM
 
-/-- A store (persistent): its backend (with the batch lock's deposit witness: `NewStore`'s
-first `Unlock` deposited the batch lock's resource), index, lessor, logger, and the two locks'
-guards; and what compaction uses: the configuration (a positive `CompactionBatchLimit`: the
-job's loop needs it to end, `issues/etcd-compaction-negative-batch-limit.md`), the scheduler,
-the stop channel's field (its channel: `storeStop`; `Close` closes it: `storeCloser`), the
-hash storage. The fields `restore` and
-`Close` change are fixed here (out of scope). `compactMainRev` is under the two locks
+/-- A store (persistent): its backend (of its instance `γ.kb`, registered; with the batch lock's
+deposit witness: `NewStore`'s first `Unlock` deposited the batch lock's resource), index,
+lessor, logger, and the two locks' guards; and what compaction uses: the configuration (a
+positive `CompactionBatchLimit`: the job's loop needs it to end,
+`issues/etcd-compaction-negative-batch-limit.md`), the scheduler, the stop channel's field (its
+channel: `storeStop`; `Close` closes it: `storeCloser`), the hash storage. The fields `restore`
+and `Close` change are fixed here (out of scope). `compactMainRev` is under the two locks
 (`muInv`, `revMuInv`). -/
 def isStore (s : Loc) (γ : StoreNames) : IProp GF :=
   iprop(∃ (b le : GoInterface) (ti lg : Loc) (Ph : IProp GF) (fh : val) (Dep : IProp GF)
       (scfg : StoreConfig) (ssched : GoInterface) (sstop shs : Loc),
     "#Hb" ∷ s.[store, go!"b"] ↦□ b ∗
     "#Hhook" ∷ hookIs γ Ph fh ∗
-    "#Hbk" ∷ isKeyBackendD b (bucketView γ) (delKey γ) (writerRes s γ) Dep Ph fh ∗
+    "#Hbk" ∷ isKeyBackendG b (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
+      (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) Ph fh ∗
     "#Hdep" ∷ □ Dep ∗
+    "#Hreg" ∷ storeRegd s γ ∗
     "#Hle" ∷ s.[store, go!"le"] ↦□ le ∗
     "#Hlessor" ∷ isLessor le γ.leases ∗
     "#Hidx" ∷ s.[store, go!"kvindex"] ↦□
@@ -1057,25 +1589,39 @@ def isStore (s : Loc) (γ : StoreNames) : IProp GF :=
     "#Hhashes" ∷ s.[store, go!"hashes"] ↦□
       (interface.mkOk (go.GoType.PointerType hashStorage.ty) #shs : GoInterface))
 
+/-- **The store's backend contract** (what `NewStore` takes, for every store of the instance):
+`isKeyBackendG` at the store's view, tokens and put condition of its instance, its deletable keys
+(`delKey`), its lock resource (`storeW`, initially `kbWi`), whether it supports the compaction
+(`storeCmp`), the batch lock's invariant `P` and post-lock hook `f`, with some deposit witness. -/
+def storeBackend (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF) (f : val) :
+    IProp GF :=
+  iprop(∃ Dep : IProp GF, isKeyBackendG b (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ)
+    (delKey γ) (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) P f)
+
+instance storeBackend_persistent (b : GoInterface) (s : Loc) (γ : StoreNames) (P : IProp GF)
+    (f : val) : Persistent (storeBackend (GF := GF) b s γ P f) := by
+  unfold storeBackend; infer_instance
+
 set_option synthInstance.maxSize 4096 in
 set_option synthInstance.maxHeartbeats 400000 in
 instance isStore_persistent (s : Loc) (γ : StoreNames) : Persistent (isStore (GF := GF) s γ) := by
   unfold isStore; infer_instance
 
 /-- A transaction's tokens, for a store that may be compacted: a reader slot of each of `s.mu`,
-`s.revMu` and the index's lock. -/
+`s.revMu` and the index's lock, and a reader's token of the backend (`storeRT`). -/
 def storeReaderC (s : Loc) (γ : StoreNames) : IProp GF :=
   iprop(∃ ti : Loc,
     "#Hidx" ∷ s.[store, go!"kvindex"] ↦□
       (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
     "Hmu" ∷ sync.ownRWMutex (muAddr s) (muInv s γ) ∗
     "HrevMu" ∷ sync.ownRWMutex (revMuAddr s) (revMuInv s γ) ∗
-    "Hti" ∷ idxReader ti γ.idx)
+    "Hti" ∷ idxReader ti γ.idx ∗
+    "Hrt" ∷ storeRT γ)
 
-/-- A transaction's tokens (a reader slot of each of `s.mu`, `s.revMu` and the index's lock),
-**for a store that is never compacted** (`crevFrozen`): the readers the transactions' specs
-take (`store.Read`, `store.Write`; the txn, apply, request path and watchable store use them).
--/
+/-- A transaction's tokens (a reader slot of each of `s.mu`, `s.revMu` and the index's lock, and
+a reader's token of the backend), **for a store that is never compacted** (`crevFrozen`): the
+readers the transactions' specs take (`store.Read`, `store.Write`; the txn, apply, request path
+and watchable store use them). -/
 def storeReader (s : Loc) (γ : StoreNames) : IProp GF :=
   iprop(∃ ti : Loc,
     "#Hidx" ∷ s.[store, go!"kvindex"] ↦□
@@ -1083,6 +1629,7 @@ def storeReader (s : Loc) (γ : StoreNames) : IProp GF :=
     "Hmu" ∷ sync.ownRWMutex (muAddr s) (muInv s γ) ∗
     "HrevMu" ∷ sync.ownRWMutex (revMuAddr s) (revMuInv s γ) ∗
     "Hti" ∷ idxReader ti γ.idx ∗
+    "Hrt" ∷ storeRT γ ∗
     "#Hfrz" ∷ crevFrozen γ)
 
 /-- A reader of a never-compacted store from a reader. -/
@@ -1094,7 +1641,7 @@ theorem storeReader_of (s : Loc) (γ : StoreNames) :
   iNamed H
   iunfold storeReader
   iexists ti
-  iframe Hmu HrevMu Hti
+  iframe Hmu HrevMu Hti Hrt
   iframe #
 
 /-- Readers of a never-compacted store from readers. -/
@@ -1121,31 +1668,37 @@ theorem storeReader_toC (s : Loc) (γ : StoreNames) :
   iframe Hfrz
   iunfold storeReaderC
   iexists ti
-  iframe Hmu HrevMu Hti
+  iframe Hmu HrevMu Hti Hrt
   iframe #
 
 /-! ## The read transaction -/
 
 /-- The `storeTxnRead` of a read transaction at revision `rev` of the committed log `log`
-(its fields, read-only): its reader `rt` (as `UnsafeReader` and as `ReadTx`) is a snapshot of
-a bucket holding `log`'s, `firstRev` is `-1` (the store is never compacted: `crevFrozen`), `rev`
-is `log`'s last revision. -/
+(its fields, read-only): its reader `rt` (as `UnsafeReader` and as `ReadTx`; a snapshot of a
+bucket holding `log`'s, `txReader`), `firstRev` is `-1` (the store is never compacted:
+`crevFrozen`), `rev` is `log`'s last revision. -/
 def storeTxnReadIs (tr s : Loc) (rt : GoInterfaceOk) (trace : Loc) (γ : StoreNames) (log : Log)
     (rev : w64) : IProp GF :=
-  iprop(∃ m : Bucket,
-    "#Hs" ∷ (txCommon tr).[storeTxnCommon, go!"s"] ↦□ s ∗
+  iprop("#Hs" ∷ (txCommon tr).[storeTxnCommon, go!"s"] ↦□ s ∗
     "#Htxc" ∷ (txCommon tr).[storeTxnCommon, go!"tx"] ↦□ (GoInterface.ok rt : GoInterface) ∗
     "#HfirstRev" ∷ (txCommon tr).[storeTxnCommon, go!"firstRev"] ↦□ (W64 (-1) : w64) ∗
     "#Hrev" ∷ (txCommon tr).[storeTxnCommon, go!"rev"] ↦□ rev ∗
     "#Htrace" ∷ (txCommon tr).[storeTxnCommon, go!"trace"] ↦□ trace ∗
     "#Htx" ∷ tr.[storeTxnRead, go!"tx"] ↦□ (GoInterface.ok rt : GoInterface) ∗
-    "#Hsnap" ∷ keyReadSnap rt m ∗
-    "%Hsub" ∷ ⌜GMap.Subseteq (bucketMap log) m⌝ ∗
     "#Hcert" ∷ idxCert γ.idx log ∗
     "%Hne" ∷ ⌜log ≠ []⌝ ∗
     "%Hrev" ∷ ⌜rev = W64 ((log.length : Int) - 1)⌝ ∗
     "%Htrnn" ∷ ⌜trace ≠ null⌝ ∗
     "#Hfrz" ∷ crevFrozen γ)
+
+/-- A read transaction's reader `rt`, locked: a snapshot of a bucket holding `log`'s, with the
+reader's token (from its `RLock` to the transaction's `End`, which `RUnlock`s it, getting the
+store's reader token back). -/
+def txReader (γ : StoreNames) (rt : GoInterfaceOk) (log : Log) : IProp GF :=
+  iprop(∃ (m : Bucket) (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF),
+    "#Hsnap" ∷ keyReadLocked (storeRT γ) false rt m Rd Tok ∗
+    "Htok" ∷ Tok ∗
+    "%Hsub" ∷ ⌜GMap.Subseteq (bucketMap log) m⌝)
 
 instance storeTxnReadIs_persistent (tr s : Loc) (rt : GoInterfaceOk) (trace : Loc) (γ : StoreNames)
     (log : Log) (rev : w64) : Persistent (storeTxnReadIs (GF := GF) tr s rt trace γ log rev) := by
@@ -1153,7 +1706,8 @@ instance storeTxnReadIs_persistent (tr s : Loc) (rt : GoInterfaceOk) (trace : Lo
 
 /-- The read transaction `store.Read` returns, as the caller sees it: the `metricsTxnWrite`
 wrapper at `mw` (its counters), around the `txnReadWrite` wrapper around the `storeTxnRead`,
-with the transaction's tokens (`s.mu` held shared until `End`). -/
+with the transaction's tokens (`s.mu` held shared until `End`) and its reader's
+(`txReader`). -/
 def isTxnRead (mw s : Loc) (γ : StoreNames) (log : Log) (rev : w64) : IProp GF :=
   iprop(∃ (trw tr trace ti : Loc) (rt : GoInterfaceOk) (ranges : w64),
     "Hmw" ∷ mw ↦ ({
@@ -1163,6 +1717,7 @@ def isTxnRead (mw s : Loc) (γ : StoreNames) (log : Log) (rev : w64) : IProp GF 
       (interface.mkOk (go.GoType.PointerType storeTxnRead.ty) #tr : GoInterface) ∗
     "#Hs" ∷ isStore s γ ∗
     "#Htr" ∷ storeTxnReadIs tr s rt trace γ log rev ∗
+    "Hrd" ∷ txReader γ rt log ∗
     "#Hidx" ∷ s.[store, go!"kvindex"] ↦□
       (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
     "Hmu" ∷ muHeld s γ (-1) ∗
@@ -1346,7 +1901,10 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Cha
     "#Hidx" ∷ s.[store, go!"kvindex"] ↦□
       (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
     "#Hhook" ∷ hookIs γ Pw fw ∗
-    "#Hbt" ∷ batchTxSpec bt (bucketView γ) (delKey γ) (writerRes s γ) Dep Locked Pw fw ∗
+    "#Hbt" ∷ batchTxSpecG bt (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
+      (storeW s γ) Dep (storeCmp γ) Locked Pw fw ∗
+    "#Hreg" ∷ storeRegd s γ ∗
+    "Hrt" ∷ storeRT γ ∗
     "Hlocked" ∷ Locked (pendPuts ilog pend) ∗
     "Hw" ∷ idxWriter γ.idx ilog pend ∗
     "Hclog" ∷ ghostVar γ.clog (1 : Qp).half ilog ∗
@@ -1385,7 +1943,10 @@ def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List C
     "#Hidx" ∷ s.[store, go!"kvindex"] ↦□
       (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
     "#Hhook" ∷ hookIs γ Pw fw ∗
-    "#Hbt" ∷ batchTxSpec bt (bucketView γ) (delKey γ) (writerRes s γ) Dep Locked Pw fw ∗
+    "#Hbt" ∷ batchTxSpecG bt (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
+      (storeW s γ) Dep (storeCmp γ) Locked Pw fw ∗
+    "#Hreg" ∷ storeRegd s γ ∗
+    "Hrt" ∷ storeRT γ ∗
     "Hlocked" ∷ Locked (pendPuts ilog pend) ∗
     "Hw" ∷ idxWriterB γ.idx ilog pend sealed ∗
     "Hclog" ∷ ghostVar γ.clog (1 : Qp).half ilog ∗
@@ -1415,7 +1976,7 @@ theorem storeTxnWriteIs_split (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend 
   iunfold storeTxnWriteCore
   iexists trace, ti, bt, Locked, ntok, Pw, fw, Dep
   simp only [named, idxWriterB_false]
-  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres
+  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
   iframe #
   ipureintro; exact ⟨Hbudget, ⟨Hps, Hlen.1, Hlen.2⟩, Hne, Htrnn⟩
 
@@ -1430,7 +1991,7 @@ theorem storeTxnWriteIs_join (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend :
   iunfold storeTxnWriteIs
   iexists trace, ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
   simp only [named]
-  iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres
+  iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
   iframe #
   ipureintro; exact ⟨Hbudget, Hps.1, Hne, Htrnn⟩
 
@@ -1451,7 +2012,7 @@ theorem storeTxnWriteCore_seal (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend
   iunfold storeTxnWriteCore
   iexists trace, ti, bt, Locked, ntok, Pw, fw, Dep
   simp only [named, idxWriterB_true]
-  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres
+  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
   iframe #
   ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
 
@@ -1471,7 +2032,7 @@ theorem storeTxnWriteCore_wf (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend :
   · iunfold storeTxnWriteCore
     iexists trace, ti, bt, Locked, ntok, Pw, fw, Dep
     simp only [named]
-    iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres
+    iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
     iframe #
     ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
   ipureintro; exact ⟨Hwf, Hps.1, Hps.2.1, Hps.2.2, Hne⟩

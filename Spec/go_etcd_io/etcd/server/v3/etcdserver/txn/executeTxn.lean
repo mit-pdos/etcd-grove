@@ -50,7 +50,7 @@ abbrev txn.executeTxn.spec : Prop :=
           (t.branch (txn.txnOk (mvcc.stateAfter ilog) t)) ∧
         pend.length + (txn.srvOps (mvcc.stateAfter ilog) (W64 (ilog.length : Int))
           (txn.pendState ilog pend) (t.branch (txn.txnOk (mvcc.stateAfter ilog) t))).1.length <
-          2 ^ 63 ∧
+          mvcc.putMax γ ∧
         (ro = true → ∀ op ∈ t.branch (txn.txnOk (mvcc.stateAfter ilog) t), txn.opIsGet op = true) ∧
         (nd = false → ro = true)⌝ }}
     (App (App (App (App (App (App (App (Val (@! txn.executeTxn)) (Val #(GoInterface.ok ctx)))

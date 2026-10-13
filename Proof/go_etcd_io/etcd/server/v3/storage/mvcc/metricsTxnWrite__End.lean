@@ -66,7 +66,7 @@ theorem mvcc.metricsTxnWrite.End.wp_proof
       -- the deferred `tw.TxnWrite.End()`: `txnReadWrite`'s promoted `End`, `storeTxnRead.End`
       rw [method_unfold (t := go.GoType.PointerType txnReadWrite.ty) (m := go!"End")]; wp_call
       (try wp_auto)
-      wp_apply (hEnd tr s trace ti rt γ log rev) $$ [$Hs $Htr $Hidx $Hmu $HrevMu $Hti] as Hrd
+      wp_apply (hEnd tr s trace ti rt γ log rev) $$ [$Hs $Htr $Hrd $Hidx $Hmu $HrevMu $Hti] as Hrd
       (try wp_auto)
       iapply HΦ
       iframe Hrd

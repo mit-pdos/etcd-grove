@@ -28,6 +28,7 @@ theorem mvcc.metricsTxnWrite.Put.wp_proof (hPut : mvcc.storeTxnWrite.Put.spec (G
     mvcc.metricsTxnWrite.Put.spec (GF := GF) (hG := hG) := by
   intro mw s γ ilog pend puts deletes putSize key value k v leaseID
   wp_start as ⟨Htx, #Hkey, #Hval, Hlease, %Hb⟩
+  have hpm := mvcc.putMax_le γ
   iunfold mvcc.isTxnWrite at Htx
   iNamed Htx
   (try wp_auto)
