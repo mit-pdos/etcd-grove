@@ -193,8 +193,9 @@ def txnReadOk (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (t : TxnModel) (re
 /-- **A successful writing `Txn` of `t`** (as `Put`'s and `DeleteRange`'s): the request the
 proposed data decode to (`rq'`, whose transaction `t'` is `t` unless a range end is `[0]`,
 `irrWireOf`) was dispatched by the apply thread at the KV state `x` to `x'` and applied
-(`applied l false`), possibly with header-only ranges (`skip`: `SkipRangeExecution`, the apply
-thread's `IsRegistered` being "some boolean" in the wait's contract), the response the
+(`applied l false`), possibly with header-only ranges (`skip`: `SkipRangeExecution`; the apply
+loops call `IsRegistered` knowing nothing of the id's registration, so the model admits it; at a
+known registration `request_delivered` excludes it unless the registration is gone), the response the
 transaction's (`txnOutcomeIs` at `x.log`), the header's id fields owned (`appliedHdr`), mvcc's
 certificate of the log after. -/
 def txnAppliedOk (E : apply.AEnv GF) (t : TxnModel) (resp : Loc) : IProp GF :=

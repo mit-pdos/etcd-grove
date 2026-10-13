@@ -226,6 +226,8 @@ structure ApplyCtx (GF : BundledGFunctors) where
   ai₀ : w64
   c₀ : w64
   x₀ : apply.ApplyKV
+  /-- the server's wait's registered ids (`ρ.wait`: the apply thread's `IsRegistered`) -/
+  γw : GName
 
 /-- **The apply thread's resources at the log `A`** (see the file header; the one place the
 chain's resource is defined: `run`'s loop invariant and its jobs' `Prev`/`Post`). -/
@@ -233,7 +235,7 @@ def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
   iprop(∃ (st : ApplyState) (ai at' a t : w64) (cs : Loc) (x : apply.ApplyKV),
     epAppliedIAddr C.ep ↦ ai ∗ epAppliedTAddr C.ep ↦ at' ∗ epConfStateAddr C.ep ↦ cs ∗
     srvSnapState C.s C.ep ∗ applyThread C.γ st ∗ applyBackend C.γ C.ci C.b ∗ ciApplying C.ci a t ∗
-    srvLgReader C.s ∗ srvBemuReader C.s ∗ srvWgReader C.s ∗ srvApplyKV C.s C.E x ∗
+    srvLgReader C.s ∗ srvBemuReader C.s ∗ srvWgReader C.s ∗ srvApplyKV C.s C.E C.γw x ∗
     srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗
     ⌜loopOk C.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff C.γ st.k) C.c₀ ai ∧
       entriesStep C.c₀ A C.x₀ x⌝)
@@ -317,10 +319,10 @@ instance srvRunFieldsAt_persistent (s : Loc) (γr : ReadNames) (γg : GoNames)
 `x₀`, the protocol at `st₀` with the consistent index `c₀`), but `ep`, which `run` makes: what
 `applyRes []` is once `ep` is built. -/
 def applyStart (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : apply.AEnv GF)
-    (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) : IProp GF :=
+    (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) (γw : GName) : IProp GF :=
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
-    ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReader s ∗ srvWgReader s ∗ srvApplyKV s E x₀ ∗
+    ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReader s ∗ srvWgReader s ∗ srvApplyKV s E γw x₀ ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ srvForceSnapAddr s ↦ f)
 
 /-- **What `run` needs** (see `Spec/.../EtcdServer__run.lean`; named conjuncts): the apply
@@ -344,7 +346,7 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗
     "Hdc" ∷ ownBroadcastChan v.done γd iprop(True) .Pending ∗
     "Hclose" ∷ token γg.close ∗
-    "Hstart" ∷ applyStart s γ ci b E γr ai₀ c₀ x₀ ∗
+    "Hstart" ∷ applyStart s γ ci b E γr ai₀ c₀ x₀ ρ.wait ∗
     "Hlr" ∷ srvLgReader s ∗
     "HWB" ∷ txn.storeWTs E.γ N)
 

@@ -209,6 +209,3 @@ sorry mvcc.store.compactBarrier.wp_proof
 sorry mvcc.store.compactLockfree.wp_proof
 sorry mvcc.store.scheduleCompaction.wp_proof
 sorry mvcc.store.updateCompactRev.wp_proof
-sorry schedule.NewJob.wp_proof
-sorry schedule.job.Do.wp_proof
-sorry schedule.job.Name.wp_proof

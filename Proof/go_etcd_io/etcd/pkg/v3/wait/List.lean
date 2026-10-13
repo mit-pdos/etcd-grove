@@ -5,22 +5,26 @@ counterpart); the contract `New` establishes from them is `isWait` (`wait/Defs.l
 
 **The shards.** A `list` holds a slice `e` of 64 `listElement`s (written once, by `New`), each a
 `sync.RWMutex` `l` over a map `m` (`id ↦ chan any`; the field itself written once, by `New`, so
-read-only outside the lock). A shard's lock invariant (fractional, as Perennial's `RWMutex` needs)
-is a `q`-fraction of the map and `q/2` of a ghost map authority `γs` mirroring it
-(`waitShardP`); the other half of the authority, with the resources of each registered id, is the
-shard's invariant (`waitShardInv`): the id's element of `γs`, its channel's handoff
-(`isHandoff γh ch (waitVal γh Ψ) True True`) with the producer's token, the registration
-condition `□ R id Ψ`, and the record `waitRegd γw id γh.takenName`. A writer (`Register`,
-`Trigger`), holding the lock (the whole authority half), opens the invariant for a ghost step that
-moves the resources in or out.
+read-only outside the lock). The `k`-th shard has two ghost maps, named in the wait's ghost map
+`γw` (`k ↪[γw]□ (γs, γr)`, persistent: what pins a reader's and a writer's view of the shard to
+the same names). A shard's lock invariant (fractional, as Perennial's `RWMutex` needs) is a
+`q`-fraction of the map and `q/2` of the ghost map authority `γs` mirroring it (`waitShardP`); the
+other half of the authority, with the resources of each live id, is the shard's invariant
+(`waitShardInv`): the id's element of `γs`, its channel's handoff (`isHandoff γh ch (waitVal γh Ψ)
+True True`) with the producer's token, the registration condition `□ R id Ψ`, and its element of
+`γr`. A writer (`Register`, `Trigger`), holding the lock (the whole authority half), opens the
+invariant for a ghost step that moves the resources in or out.
 
-**The registered ids** (`waitRegInv`): the ghost map `γw` of every id ever registered (to its
-channel's consumer token's name), each with the id's slot (`idSlot γi id`), kept forever. So a
-caller of `Register(id)` holding the slot finds `id` in no shard (a shard's entry records it in
-`γw`, whose invariant holds the slot): the `log.Panicf("dup id")` branch is unreachable.
+**The registrations** (`γr`, the request path's unit 4d): every id ever registered in the shard,
+to its channel's consumer token's name and its registration's flag's `g`; the invariant holds,
+for each, the id's slot (`idSlot γi id`, kept forever: so a caller of `Register(id)` holding the
+slot finds `id` nowhere, and the `log.Panicf("dup id")` branch is unreachable) and its flag by the
+live map (`waitRegStateO`): exclusive while the id is live, discarded once a `Trigger` took it out
+(`waitShard_take`). So a reader who sees `id` absent from the live map and knows it registered
+gets the discarded flag (`waitShard_gone`): the registration is gone (`waitGone`).
 
-**The reader** (`waitListReader`): one reader slot (`sync.ownRWMutex`) of each shard's lock, for
-`IsRegistered`.
+**The reader** (`waitListReader`): one reader slot (`sync.ownRWMutex`) of each shard's lock, with
+the shard's names and invariant, for `IsRegistered`.
 -/
 module
 
@@ -39,7 +43,6 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.pkg.v3
 
 def waitShardN : Namespace := nroot .@ "wait_shard"
-def waitRegN : Namespace := nroot .@ "wait_reg"
 
 theorem wait_qp_half_add (q1 q2 : Qp) : (q1 + q2).half = q1.half + q2.half := by
   apply Subtype.ext
@@ -121,61 +124,78 @@ instance waitShardP_fractional (mref : Loc) (γs : GName) :
       · iapply (hm M1).2; iframe
       · iapply (hg M1).2; iframe
 
-/-- **A registered id's resources**, in its shard's invariant: the channel `ch`'s handoff (for the
-expectation `Ψ` the registration condition allows), its producer's token (nothing sent yet), and
-the record of the registration with the channel's consumer token's name. -/
-def waitEntry (γw : GName) (R : w64 → (GoInterface → IProp GF) → IProp GF) (id : w64)
+/-- **A registered id's resources**, in its shard's invariant (live map's part): the channel
+`ch`'s handoff (for the expectation `Ψ` the registration condition allows), its producer's token
+(nothing sent yet), and `id`'s element of the shard's record `γr` (the channel's consumer token's
+name and the registration's flag's). -/
+def waitEntry (γr : GName) (R : w64 → (GoInterface → IProp GF) → IProp GF) (id : w64)
     (ch : Loc) : IProp GF :=
-  iprop(∃ (γh : HandoffNames) (Ψ : GoInterface → IProp GF),
+  iprop(∃ (γh : HandoffNames) (Ψ : GoInterface → IProp GF) (g : GName),
     isHandoff (V := GoInterface) γh ch (waitVal γh Ψ) iprop(True) iprop(False) ∗
-    handoffProducer γh false ∗ □ R id Ψ ∗ waitRegd γw id γh.takenName)
+    handoffProducer γh false ∗ □ R id Ψ ∗ id ↪[γr]□ (γh.takenName, g))
 
-/-- **A shard's invariant** (ghost map `γs`): the other half of the authority, and each
-registered id's element and resources. -/
-def waitShardInv (γw : GName) (R : w64 → (GoInterface → IProp GF) → IProp GF) (γs : GName) :
-    IProp GF :=
-  iprop(∃ M : GMap w64 Loc, ghostMapAuth γs (1 : Qp).half M ∗
-    [∗map] id ↦ ch ∈ M, id ↪[γs] ch ∗ waitEntry γw R id ch)
+/-- A registration's flag `g` by whether its id is in the live map (`o`, its lookup): exclusive
+while live, discarded once gone. -/
+def waitRegStateO (o : Option Loc) (g : GName) : IProp GF :=
+  match o with
+  | some _ => dghostVar g (DFrac.own 1) ()
+  | none => dghostVar g DFrac.discard ()
 
-/-- **The registered ids' invariant**: every id ever registered (`γw`), with its slot. -/
-def waitRegInv (γi : IdNames) (γw : GName) : IProp GF :=
-  iprop(∃ G : GMap w64 GName, ghostMapAuth γw 1 G ∗ [∗map] id ↦ _t ∈ G, idSlot γi id)
+theorem waitRegStateO_some (c : Loc) (g : GName) :
+    waitRegStateO (GF := GF) (some c) g = dghostVar g (DFrac.own 1) () := rfl
 
-instance waitRegInv_timeless (γi : IdNames) (γw : GName) :
-    Timeless (waitRegInv (GF := GF) γi γw) := by
-  unfold waitRegInv idSlot; infer_instance
+theorem waitRegStateO_none (g : GName) :
+    waitRegStateO (GF := GF) none g = dghostVar g DFrac.discard () := rfl
 
-/-- **Shard `ea`** (persistent): its map field, its lock's writer guard, its invariant. -/
-def waitShard (γw : GName) (R : w64 → (GoInterface → IProp GF) → IProp GF) (ea : Loc) :
-    IProp GF :=
-  iprop(∃ (mref : Loc) (γs : GName), waitShardMap ea ↦□ mref ∗
+/-- The registrations' part of a shard's invariant (`G`: every id ever registered in the shard,
+to its consumer token's and flag's names): each id's slot, and its flag by the live map `M`. -/
+def waitRegs (γi : IdNames) (M : GMap w64 Loc) (G : GMap w64 (GName × GName)) : IProp GF :=
+  iprop([∗map] id ↦ tg ∈ G, idSlot γi id ∗ waitRegStateO (M !! id) tg.2)
+
+/-- **A shard's invariant** (ghost maps `γs`, the live registrations mirroring the Go map, and
+`γr`, every registration ever made in the shard): the other half of `γs`'s authority, each live
+id's element and resources, `γr`'s authority and each registration's slot and flag. -/
+def waitShardInv (γi : IdNames) (R : w64 → (GoInterface → IProp GF) → IProp GF)
+    (γs γr : GName) : IProp GF :=
+  iprop(∃ (M : GMap w64 Loc) (G : GMap w64 (GName × GName)), ghostMapAuth γs (1 : Qp).half M ∗
+    ([∗map] id ↦ ch ∈ M, id ↪[γs] ch ∗ waitEntry γr R id ch) ∗
+    ghostMapAuth γr 1 G ∗ waitRegs γi M G)
+
+/-- **Shard `ea`, the `k`-th** (persistent): its names in the wait's ghost map `γw`, its map
+field, its lock's writer guard, its invariant. -/
+def waitShard (γi : IdNames) (γw : GName) (R : w64 → (GoInterface → IProp GF) → IProp GF)
+    (ea : Loc) (k : w64) : IProp GF :=
+  iprop(∃ (mref : Loc) (γs γr : GName), k ↪[γw]□ (γs, γr) ∗ waitShardMap ea ↦□ mref ∗
     sync.isRWMutexGuard (waitShardLock ea) (waitShardP mref γs) ∗
-    inv waitShardN (waitShardInv γw R γs))
+    inv waitShardN (waitShardInv γi R γs γr))
 
-instance waitShard_persistent (γw : GName) (R : w64 → (GoInterface → IProp GF) → IProp GF)
-    (ea : Loc) : Persistent (waitShard (GF := GF) γw R ea) := by
+instance waitShard_persistent (γi : IdNames) (γw : GName)
+    (R : w64 → (GoInterface → IProp GF) → IProp GF) (ea : Loc) (k : w64) :
+    Persistent (waitShard (GF := GF) γi γw R ea k) := by
   unfold waitShard; infer_instance
 
-/-- **The `*list` `l`** (persistent): its 64 shards and the registered ids' invariant. -/
+/-- **The `*list` `l`** (persistent): its 64 shards. -/
 def waitList (l : Loc) (γi : IdNames) (γw : GName)
     (R : w64 → (GoInterface → IProp GF) → IProp GF) : IProp GF :=
   iprop(∃ sl : GoSlice, structFieldRef wait.list' go!"e" l ↦□ sl ∗ ⌜sint.Z sl.len = 64⌝ ∗
-    inv waitRegN (waitRegInv γi γw) ∗
-    □ (∀ i : Nat, ⌜i < 64⌝ -∗ waitShard γw R (waitShardAddr sl i)))
+    □ (∀ i : Nat, ⌜i < 64⌝ -∗ waitShard γi γw R (waitShardAddr sl i) (W64 i)))
 
 instance waitList_persistent (l : Loc) (γi : IdNames) (γw : GName)
     (R : w64 → (GoInterface → IProp GF) → IProp GF) : Persistent (waitList (GF := GF) l γi γw R) := by
   unfold waitList; infer_instance
 
-/-- A reader slot of shard `ea`'s lock. -/
-def waitShardReader (ea : Loc) : IProp GF :=
-  iprop(∃ (mref : Loc) (γs : GName), waitShardMap ea ↦□ mref ∗
-    sync.ownRWMutex (waitShardLock ea) (waitShardP mref γs))
+/-- A reader slot of shard `ea`'s lock, the `k`-th, with the shard's names and invariant. -/
+def waitShardReader (γi : IdNames) (γw : GName) (R : w64 → (GoInterface → IProp GF) → IProp GF)
+    (ea : Loc) (k : w64) : IProp GF :=
+  iprop(∃ (mref : Loc) (γs γr : GName), k ↪[γw]□ (γs, γr) ∗ waitShardMap ea ↦□ mref ∗
+    sync.ownRWMutex (waitShardLock ea) (waitShardP mref γs) ∗
+    inv waitShardN (waitShardInv γi R γs γr))
 
 /-- **The reader's resource** of the `*list` `l`: a reader slot of each shard's lock. -/
-def waitListReader (l : Loc) : IProp GF :=
+def waitListReader (l : Loc) (γi : IdNames) (γw : GName)
+    (R : w64 → (GoInterface → IProp GF) → IProp GF) : IProp GF :=
   iprop(∃ sl : GoSlice, structFieldRef wait.list' go!"e" l ↦□ sl ∗ ⌜sint.Z sl.len = 64⌝ ∗
-    [∗list] i ↦ _u ∈ List.replicate 64 (), waitShardReader (waitShardAddr sl i))
+    [∗list] i ↦ _u ∈ List.replicate 64 (), waitShardReader γi γw R (waitShardAddr sl i) (W64 i))
 
 /-! ## Ghost steps -/
 
@@ -187,17 +207,35 @@ theorem waitAuth_halves (γs : GName) (M : GMap w64 Loc) :
   rw [Qp.half_add_half] at h
   exact h
 
-/-- Taking `id`'s entry (if any) out of its shard, the writer holding the lock's half. -/
-theorem waitShard_take (γw : GName) (R : w64 → (GoInterface → IProp GF) → IProp GF)
-    (γs : GName) (id : w64) (M : GMap w64 Loc) :
-    ⊢ inv waitShardN (waitShardInv γw R γs) -∗ £ 1 -∗ ghostMapAuth γs (1 : Qp).half M ={⊤}=∗
+/-- The registrations' flags depend only on the live map's lookups at their ids. -/
+theorem waitRegs_congr (γi : IdNames) (M M' : GMap w64 Loc) (G : GMap w64 (GName × GName))
+    (h : ∀ k v, G !! k = some v → M' !! k = M !! k) :
+    ([∗map] id ↦ tg ∈ G, idSlot (GF := GF) γi id ∗ waitRegStateO (M !! id) tg.2) ⊢
+      [∗map] id ↦ tg ∈ G, idSlot γi id ∗ waitRegStateO (M' !! id) tg.2 := by
+  refine BigSepM.bigSepM_mono (fun {k v} hk => ?_)
+  rw [h k v (by simpa [gmap_get?_eq] using hk)]
+
+/-- Two slots of the same id: impossible. -/
+theorem waitSlot_absurd (γi : IdNames) (id : w64) :
+    ⊢ idSlot (GF := GF) γi id -∗ idSlot γi id -∗ False := by
+  iintro Hs Hs'
+  iunfold idSlot at Hs Hs'
+  ihave %Hv := ghostMapElem_valid_2 _ _ _ _ _ _ $$ Hs Hs'
+  exfalso
+  exact absurd (DFrac.valid_op_own Hv.1) (by simp)
+
+/-- Taking `id`'s entry (if any) out of its shard, the writer holding the lock's half: its
+registration's flag is discarded (gone). -/
+theorem waitShard_take (γi : IdNames) (R : w64 → (GoInterface → IProp GF) → IProp GF)
+    (γs γr : GName) (id : w64) (M : GMap w64 Loc) :
+    ⊢ inv waitShardN (waitShardInv γi R γs γr) -∗ £ 1 -∗ ghostMapAuth γs (1 : Qp).half M ={⊤}=∗
       ghostMapAuth γs (1 : Qp).half (GMap.delete id M) ∗
-      (match M !! id with | some ch => waitEntry γw R id ch | none => iprop(True)) := by
+      (match M !! id with | some ch => waitEntry γr R id ch | none => iprop(True)) := by
   iintro #Hinv Hlc Hg
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑waitShardN) $$ Hlc Hi with Hi
   iunfold waitShardInv at Hi
-  icases Hi with ⟨%M', Hg', Hm⟩
+  icases Hi with ⟨%M', %G, Hg', Hm, Hgr, Hregs⟩
   ihave %Heq := ghostMapAuth_agree γs _ _ M M' $$ Hg Hg'
   subst Heq
   cases h : M !! id with
@@ -207,120 +245,164 @@ theorem waitShard_take (γw : GName) (R : w64 → (GoInterface → IProp GF) →
       · subst e; simp [GMap.lookup_delete_iff, h]
       · simp [GMap.lookup_delete_iff, e]
     rw [hd]
-    imod Hclose $$ [Hg' Hm] with -
-    · inext; iunfold waitShardInv; iexists M; iframe
+    imod Hclose $$ [Hg' Hm Hgr Hregs] with -
+    · inext; iunfold waitShardInv; iexists M, G; iframe
     imodintro; iframe
   | some ch =>
     icases (BigSepM.bigSepM_delete (PROP := IProp GF)
-      (Φ := fun id ch => iprop(id ↪[γs] ch ∗ waitEntry γw R id ch)) (m := M) h).1 $$ Hm
+      (Φ := fun id ch => iprop(id ↪[γs] ch ∗ waitEntry γr R id ch)) (m := M) h).1 $$ Hm
       with ⟨⟨Hel, Hent⟩, Hm⟩
+    iunfold waitEntry at Hent
+    icases Hent with ⟨%γh, %Ψ, %g, #Hh, Hp, #HR, #Hr⟩
+    ihave %HG := ghost_map_lookup $$ Hgr Hr
+    iunfold waitRegs at Hregs
+    icases (BigSepM.bigSepM_delete (PROP := IProp GF)
+      (Φ := fun id (tg : GName × GName) => iprop(idSlot (GF := GF) γi id ∗
+        waitRegStateO (GF := GF) (M !! id) tg.2)) (m := G) HG).1 $$ Hregs
+      with ⟨⟨Hs, Hst⟩, Hregs⟩
+    rw [h, waitRegStateO_some]
+    imod dghostVar_persist $$ Hst with #Hst
     ihave Hga := (waitAuth_halves γs M).2 $$ [Hg Hg']
     · iframe
     imod ghost_map_delete $$ Hga Hel with Hga
     icases (waitAuth_halves γs _).1 $$ Hga with ⟨Hg, Hg'⟩
-    imod Hclose $$ [Hg' Hm] with -
-    · inext; iunfold waitShardInv; iexists _; iframe Hg'; iexact Hm
-    imodintro; iframe
-
-/-- A registered id's record, from its shard: `M !! id = some ch`. -/
-theorem waitShard_regd (γw : GName) (R : w64 → (GoInterface → IProp GF) → IProp GF)
-    (γs : GName) (id : w64) (M : GMap w64 Loc) (ch : Loc) (h : M !! id = some ch) :
-    ⊢ inv waitShardN (waitShardInv γw R γs) -∗ £ 1 -∗ ghostMapAuth γs (1 : Qp).half M ={⊤}=∗
-      ghostMapAuth γs (1 : Qp).half M ∗ ∃ t, waitRegd γw id t := by
-  iintro #Hinv Hlc Hg
-  iinv Hinv with Hi Hclose
-  imod lc_fupd_elim_later (E := ⊤ \ ↑waitShardN) $$ Hlc Hi with Hi
-  iunfold waitShardInv at Hi
-  icases Hi with ⟨%M', Hg', Hm⟩
-  ihave %Heq := ghostMapAuth_agree γs _ _ M M' $$ Hg Hg'
-  subst Heq
-  icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF)
-      (Φ := fun id ch => iprop(id ↪[γs] ch ∗ waitEntry γw R id ch)) (m := M) h).1 $$ Hm
-    with ⟨⟨Hel, Hent⟩, Hm⟩
-  iunfold waitEntry at Hent
-  icases Hent with ⟨%γh, %Ψ, #Hh, Hp, #HR, #Hr⟩
-  imod Hclose $$ [Hg' Hm Hel Hp] with -
-  · inext; iunfold waitShardInv; iexists M; iframe Hg'
-    iapply Hm
-    iframe Hel
+    imod Hclose $$ [Hg' Hm Hgr Hregs Hs] with -
+    · inext; iunfold waitShardInv; iexists _, G; iframe Hg' Hgr; iframe Hm
+      iunfold waitRegs
+      iapply (BigSepM.bigSepM_delete (PROP := IProp GF)
+        (Φ := fun k (tg : GName × GName) => iprop(idSlot (GF := GF) γi k ∗
+          waitRegStateO (GF := GF) ((GMap.delete id M) !! k) tg.2)) (m := G) HG).2
+      isplitl [Hs]
+      · iframe Hs
+        rw [GMap.lookup_delete, waitRegStateO_none]
+        iexact Hst
+      iapply (waitRegs_congr γi M (GMap.delete id M) (GMap.delete id G) (fun k v hk => by
+        have hne : id ≠ k := by
+          intro e; subst e; simp at hk
+        exact GMap.lookup_delete_ne M hne))
+      iexact Hregs
+    imodintro
+    iframe Hg
     iunfold waitEntry
-    iexists γh, Ψ
+    iexists γh, Ψ, g
     iframe Hp
     iframe #
-  imodintro
-  iframe Hg
-  iexists γh.takenName
-  iexact Hr
 
-/-- The slot of a registered id is the invariant's: no one else holds it. -/
-theorem waitReg_absurd (γi : IdNames) (γw : GName) (id : w64) (t : GName) :
-    ⊢ inv waitRegN (waitRegInv (GF := GF) γi γw) -∗ waitRegd γw id t -∗ idSlot γi id ={⊤}=∗
-      False := by
-  iintro #Hinv #Hr Hs
-  iinv Hinv with Hi Hclose
-  icases Hi with >Hi
-  iunfold waitRegInv at Hi
-  icases Hi with ⟨%G, Hg, Hm⟩
-  iunfold waitRegd at Hr
-  ihave %Hl := ghost_map_lookup $$ Hg Hr
-  icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF)
-      (Φ := fun id (_ : GName) => idSlot (GF := GF) γi id) (m := G) Hl).1 $$ Hm with ⟨Hs', -⟩
-  iunfold idSlot at Hs Hs'
-  ihave %Hv := ghostMapElem_valid_2 _ _ _ _ _ _ $$ Hs Hs'
-  exfalso
-  exact absurd (DFrac.valid_op_own Hv.1) (by simp)
-
-/-- Registering `id` (its slot) with the consumer token named `t`. -/
-theorem waitReg_insert (γi : IdNames) (γw : GName) (id : w64) (t : GName) :
-    ⊢ inv waitRegN (waitRegInv (GF := GF) γi γw) -∗ idSlot γi id ={⊤}=∗ waitRegd γw id t := by
-  iintro #Hinv Hs
-  iinv Hinv with Hi Hclose
-  icases Hi with >Hi
-  iunfold waitRegInv at Hi
-  icases Hi with ⟨%G, Hg, Hm⟩
-  cases h : G !! id with
-  | some t' =>
-    icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF)
-        (Φ := fun id (_ : GName) => idSlot (GF := GF) γi id) (m := G) h).1 $$ Hm with ⟨Hs', -⟩
-    iunfold idSlot at Hs Hs'
-    ihave %Hv := ghostMapElem_valid_2 _ _ _ _ _ _ $$ Hs Hs'
-    exfalso
-    exact absurd (DFrac.valid_op_own Hv.1) (by simp)
-  | none =>
-    imod ghost_map_insert_persist id t h $$ Hg with ⟨Hg, #Hr⟩
-    imod Hclose $$ [Hg Hm Hs] with -
-    · inext; iunfold waitRegInv; iexists _; iframe Hg
-      iapply (BigSepM.bigSepM_insert (PROP := IProp GF)
-        (Φ := fun id (_ : GName) => idSlot (GF := GF) γi id) (m := G) (x := t) h).2
-      iframe
-    imodintro
-    iunfold waitRegd
-    iexact Hr
-
-/-- Adding `id`'s entry to its shard (not registered there), the writer holding the lock's
-half. -/
-theorem waitShard_put (γw : GName) (R : w64 → (GoInterface → IProp GF) → IProp GF)
-    (γs : GName) (id : w64) (M : GMap w64 Loc) (ch : Loc) (h : M !! id = none) :
-    ⊢ inv waitShardN (waitShardInv γw R γs) -∗ £ 1 -∗ ghostMapAuth γs (1 : Qp).half M -∗
-      waitEntry γw R id ch ={⊤}=∗ ghostMapAuth γs (1 : Qp).half (<[id := ch]> M) := by
-  iintro #Hinv Hlc Hg Hent
+/-- An id live in its shard holds its slot in the registrations: a second slot is impossible
+(`Register`'s `log.Panicf("dup id")`). -/
+theorem waitShard_dup (γi : IdNames) (R : w64 → (GoInterface → IProp GF) → IProp GF)
+    (γs γr : GName) (id : w64) (M : GMap w64 Loc) (ch : Loc) (h : M !! id = some ch) :
+    ⊢ inv waitShardN (waitShardInv γi R γs γr) -∗ £ 1 -∗ ghostMapAuth γs (1 : Qp).half M -∗
+      idSlot γi id ={⊤}=∗ False := by
+  iintro #Hinv Hlc Hg Hs
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later (E := ⊤ \ ↑waitShardN) $$ Hlc Hi with Hi
   iunfold waitShardInv at Hi
-  icases Hi with ⟨%M', Hg', Hm⟩
+  icases Hi with ⟨%M', %G, Hg', Hm, Hgr, Hregs⟩
   ihave %Heq := ghostMapAuth_agree γs _ _ M M' $$ Hg Hg'
   subst Heq
-  ihave Hga := (waitAuth_halves γs M).2 $$ [Hg Hg']
-  · iframe
-  imod ghost_map_insert id ch h $$ Hga with ⟨Hga, Hel⟩
-  icases (waitAuth_halves γs _).1 $$ Hga with ⟨Hg, Hg'⟩
-  imod Hclose $$ [Hg' Hm Hel Hent] with -
-  · inext; iunfold waitShardInv; iexists _; iframe Hg'
-    iapply (BigSepM.bigSepM_insert (PROP := IProp GF)
-      (Φ := fun id ch => iprop(id ↪[γs] ch ∗ waitEntry γw R id ch)) (m := M) (x := ch) h).2
-    iframe
+  icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF)
+    (Φ := fun id ch => iprop(id ↪[γs] ch ∗ waitEntry γr R id ch)) (m := M) h).1 $$ Hm
+    with ⟨⟨-, Hent⟩, -⟩
+  iunfold waitEntry at Hent
+  icases Hent with ⟨%γh, %Ψ, %g, -, -, -, #Hr⟩
+  ihave %HG := ghost_map_lookup $$ Hgr Hr
+  iunfold waitRegs at Hregs
+  icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF)
+    (Φ := fun id (tg : GName × GName) => iprop(idSlot (GF := GF) γi id ∗
+      waitRegStateO (GF := GF) (M !! id) tg.2)) (m := G) HG).1 $$ Hregs with ⟨⟨Hs', -⟩, -⟩
+  iexfalso
+  iapply waitSlot_absurd γi id $$ Hs Hs'
+
+/-- **Registering** `id` (not live in its shard; its slot) with the channel `ch`'s handoff: the
+id's live entry and its registration record, with a fresh flag (live). -/
+theorem waitShard_register (γi : IdNames) (R : w64 → (GoInterface → IProp GF) → IProp GF)
+    (γs γr : GName) (id : w64) (M : GMap w64 Loc) (ch : Loc) (h : M !! id = none)
+    (γh : HandoffNames) (Ψ : GoInterface → IProp GF) :
+    ⊢ inv waitShardN (waitShardInv γi R γs γr) -∗ £ 1 -∗ ghostMapAuth γs (1 : Qp).half M -∗
+      idSlot γi id -∗
+      isHandoff (V := GoInterface) γh ch (waitVal γh Ψ) iprop(True) iprop(False) -∗
+      handoffProducer γh false -∗ □ R id Ψ ={⊤}=∗
+      ghostMapAuth γs (1 : Qp).half (<[id := ch]> M) ∗ ∃ g : GName, id ↪[γr]□ (γh.takenName, g) := by
+  iintro #Hinv Hlc Hg Hs #Hh Hp #HR
+  iinv Hinv with Hi Hclose
+  imod lc_fupd_elim_later (E := ⊤ \ ↑waitShardN) $$ Hlc Hi with Hi
+  iunfold waitShardInv at Hi
+  icases Hi with ⟨%M', %G, Hg', Hm, Hgr, Hregs⟩
+  ihave %Heq := ghostMapAuth_agree γs _ _ M M' $$ Hg Hg'
+  subst Heq
+  iunfold waitRegs at Hregs
+  cases hG : G !! id with
+  | some tg =>
+    icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF)
+      (Φ := fun id (tg : GName × GName) => iprop(idSlot (GF := GF) γi id ∗
+        waitRegStateO (GF := GF) (M !! id) tg.2)) (m := G) hG).1 $$ Hregs with ⟨⟨Hs', -⟩, -⟩
+    iexfalso
+    iapply waitSlot_absurd γi id $$ Hs Hs'
+  | none =>
+    imod dghostVar_alloc (GF := GF) () with ⟨%g, Hflag⟩
+    imod ghost_map_insert_persist id (γh.takenName, g) hG $$ Hgr with ⟨Hgr, #Hr⟩
+    ihave Hga := (waitAuth_halves γs M).2 $$ [Hg Hg']
+    · iframe
+    imod ghost_map_insert id ch h $$ Hga with ⟨Hga, Hel⟩
+    icases (waitAuth_halves γs _).1 $$ Hga with ⟨Hg, Hg'⟩
+    imod Hclose $$ [Hg' Hm Hgr Hregs Hel Hp Hs Hflag] with -
+    · inext; iunfold waitShardInv; iexists _, _; iframe Hg' Hgr
+      isplitl [Hm Hel Hp]
+      · iapply (BigSepM.bigSepM_insert (PROP := IProp GF)
+          (Φ := fun id ch => iprop(id ↪[γs] ch ∗ waitEntry γr R id ch)) (m := M) (x := ch) h).2
+        iframe Hm Hel
+        iunfold waitEntry
+        iexists γh, Ψ, g
+        iframe Hp
+        iframe #
+      iunfold waitRegs
+      iapply (BigSepM.bigSepM_insert (PROP := IProp GF)
+        (Φ := fun k (tg : GName × GName) => iprop(idSlot (GF := GF) γi k ∗
+          waitRegStateO (GF := GF) ((<[id := ch]> M) !! k) tg.2)) (m := G)
+        (x := (γh.takenName, g)) hG).2
+      isplitl [Hs Hflag]
+      · iframe Hs
+        rw [GMap.lookup_insert, waitRegStateO_some]
+        iexact Hflag
+      iapply (waitRegs_congr γi M (<[id := ch]> M) G (fun k v hk => by
+        have hne : id ≠ k := by
+          intro e; subst e; rw [hG] at hk; cases hk
+        exact GMap.lookup_insert_ne M ch hne))
+      iexact Hregs
+    imodintro
+    iframe Hg
+    iexists g
+    iexact Hr
+
+/-- **A registration not live is gone**: `id` (registered in the shard, `γr`'s element) not in
+the live map `M` (as a reader sees it, any fraction of `γs`'s authority) has its flag discarded. -/
+theorem waitShard_gone (γi : IdNames) (R : w64 → (GoInterface → IProp GF) → IProp GF)
+    (γs γr : GName) (id : w64) (M : GMap w64 Loc) (q : Qp) (t g : GName) (h : M !! id = none) :
+    ⊢ inv waitShardN (waitShardInv γi R γs γr) -∗ £ 1 -∗ ghostMapAuth γs q M -∗
+      id ↪[γr]□ (t, g) ={⊤}=∗ ghostMapAuth γs q M ∗ dghostVar g DFrac.discard () := by
+  iintro #Hinv Hlc Hg #Hr
+  iinv Hinv with Hi Hclose
+  imod lc_fupd_elim_later (E := ⊤ \ ↑waitShardN) $$ Hlc Hi with Hi
+  iunfold waitShardInv at Hi
+  icases Hi with ⟨%M', %G, Hg', Hm, Hgr, Hregs⟩
+  ihave %Heq := ghostMapAuth_agree γs _ _ M M' $$ Hg Hg'
+  subst Heq
+  ihave %HG := ghost_map_lookup $$ Hgr Hr
+  iunfold waitRegs at Hregs
+  icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF)
+    (Φ := fun id (tg : GName × GName) => iprop(idSlot (GF := GF) γi id ∗
+      waitRegStateO (GF := GF) (M !! id) tg.2)) (m := G) HG).1 $$ Hregs with ⟨⟨Hs, Hst⟩, Hregs⟩
+  rw [h, waitRegStateO_none]
+  icases Hst with #Hst
+  imod Hclose $$ [Hg' Hm Hgr Hregs Hs] with -
+  · inext; iunfold waitShardInv; iexists M, G; iframe Hg' Hm Hgr
+    iunfold waitRegs
+    iapply Hregs
+    iframe Hs
+    iexact Hst
   imodintro
-  iexact Hg
+  iframe Hg Hst
 
 end defs
 

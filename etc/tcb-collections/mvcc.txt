@@ -1,5 +1,7 @@
 # The mvcc KV core (etcd's server/v3/storage/mvcc): every linked result of
 # Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link.lean.
+# The request path's unit 4d (2026-10-13): pkg/schedule's NewJob, job.Do, job.Name proved (agreed
+# with the mvcc session): 22 -> 19 sorries.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/mvcc.txt [--check [--update]]
 #
@@ -55,6 +57,3 @@ sorry mvcc.store.compactBarrier.wp_proof
 sorry mvcc.store.compactLockfree.wp_proof
 sorry mvcc.store.scheduleCompaction.wp_proof
 sorry mvcc.store.updateCompactRev.wp_proof
-sorry schedule.NewJob.wp_proof
-sorry schedule.job.Do.wp_proof
-sorry schedule.job.Name.wp_proof

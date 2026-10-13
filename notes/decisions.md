@@ -4504,3 +4504,55 @@ that contract from the real backend's, and proves the hook in `hookFnSpec`'s sha
   and the struct are not translated), and the backend's constructor, which would take its
   `hooksSpec`, is not proved; so `server_kv_backend` (generic in the hooks' resource `Pk`) holds
   at `Pk := batchLockInv γA (metaTM γB P)` with the hook's contract still the creator's premise.
+
+---
+
+## The request path, closed: delivery, the premises kept, and why
+
+**2026-10-13 · adopted (the request path's unit 4d)** (`notes/STATUS.md`, "Unit 4d: the
+wrap-up", "The request path: results and premises")
+
+**Delivery: the wait registry's ghost state tells live from gone.** `IsRegistered` was "some
+boolean", so the apply thread's skip of a side-effect-free entry (and `SkipRangeExecution` of a
+transaction) said nothing about the waiter. Each shard now records every registration it ever had
+(`γr`: id ↦ the consumer token's name and a flag), with the flag exclusive while the id is in the
+live map and discarded once a `Trigger` takes it out; a reader who knows the registration
+(`waitRegd`) and does not find the id gets the discarded flag (`waitGone`). The shards' names are
+recorded in the wait's ghost map (`k ↦□ (γs, γr)`): without that pin a reader's slot and a
+writer's shard view, each an existential, could not be shown to name the same maps. The clause is
+optional in the caller's knowledge (`ot : Option GName`), so the apply loops, which do not learn
+the registration (the raft contract's claims are made before `Register`), keep the old triple
+(`none`), and `request_delivered` states the delivery at a known registration (`some t`).
+*Rejected:* a persistent "absent" fact without the registration in the precondition (false of a
+later registration of the id); a value-changing persistent element (`id ↪□ (t, live)`: persistent
+elements do not change; the flag is a separate one-shot ghost variable); carrying the registration
+through the raft contract now (it would change the claims, `idClaim`'s value, for a result the
+loops do not need yet: the retargeting of raft to v3.7 is where the contract changes).
+
+**`storeSmall` stays a physical premise.** The write budget (`2^64 ≤ N` tokens, one per applied
+entry) bounds entries, not changes: one entry's `Txn` carries up to `--max-txn-ops` changes per
+nesting level, so no bound below `2^62` changes follows. An etcd store with `2^62` changes does
+not exist (revisions are `int64`, each change costs bbolt bytes); the discharge would be a change
+counter in mvcc's store invariant bounded by the revision. Not done: it touches mvcc's invariant
+(the mvcc session's) for a bound no execution reaches.
+
+**The `%w` limitation stays documented, not redesigned.** Perennial `a54e1999f`'s `fmt.Errorf` is
+`errors.New(format)`: no `*fmt.wrapError`, no `Unwrap`. A faithful axiom (`Errorf` with `%w`
+returns an error whose `Unwrap` is the argument) would contradict the model's body, whose result's
+method set has no `Unwrap`; so the canceled read's error stays an `*errorString` leaf in the model
+(`codes.Unknown` in the model, `codes.Canceled` in Go; no stated result names the code). The fix
+is Perennial's (its model building `wrapError`), a follow-up there.
+
+**`raftRequestAlarm` stays a contract.** The id credit is available (`□ |==> idCred`) and
+`isServerReq` could ride in `applyRes`, but `raftRequest` holds a reader slot of `leadTimeMu` for
+`parseProposeCtxErr`, and Perennial's `RWMutex` lends a bounded number of slots, each kept for the
+reader's lifetime; the apply thread spawns an unbounded number of alarm goroutines (one per
+NOSPACE entry until the alarm applies), none of which returns its slot. A persistent read
+permission in Perennial's `RWMutex`, or a bound on the alarm goroutines, would let it be proved.
+
+**The construction premise is planned, not proved.** `isServerBuilt`'s clauses map to `NewServer`
+and `bootstrap` (STATUS's table): most from existing results (`server_kv_backend`, the
+consistent index, `NewUberApplier`, `NewGenerator`, `NewNotifier`) and ghost allocation, four
+needing contracts of names-only constructors (lessor, alarm store, auth store, transport,
+compactor, stats, cluster version), three premises no `NewServer` proof can discharge (the raft
+contract, the id budget, `storeSmall`).

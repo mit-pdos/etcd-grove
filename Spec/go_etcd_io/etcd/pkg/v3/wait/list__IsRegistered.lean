@@ -20,12 +20,16 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `l.IsRegistered(id)`, with the reader's slots (read-locking the id's shard): some boolean. -/
+/-- `l.IsRegistered(id)`, with the reader's slots (read-locking the id's shard): a boolean; to a
+caller that knows `id` was registered (`ot = some t`, `waitRegd`), `false` means the registration
+is gone (`waitGone`). -/
 abbrev wait.list.IsRegistered.spec : Prop :=
-  ∀ (l : Loc) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait ∗ waitListReader l }}
+  ∀ (l : Loc) (γi : IdNames) (γw : GName) (R : w64 → (GoInterface → IProp GF) → IProp GF)
+    (id : w64) (ot : Option GName),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait ∗ waitListReader l γi γw R ∗
+      waitRegdOpt γw id ot }}
     (App (Val (l @!! go.GoType.PointerType wait.list'.ty @!! go!"IsRegistered")) (Val #id))
-  {{ (b : Bool), RET #b; waitListReader l }}
+  {{ (b : Bool), RET #b; waitListReader l γi γw R ∗ (⌜b = true⌝ ∨ waitGoneOpt γw id ot) }}
 
 end spec
 
