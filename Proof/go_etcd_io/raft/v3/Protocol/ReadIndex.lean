@@ -36,16 +36,6 @@ variable {GF : BundledGFunctors} [AllG GF]
 
 /-! ### Read contexts -/
 
-/-- The read context `c` was created knowing the committed log `Lc`. -/
-def readReq (γ : RaftNames) (c : List w8) (Lc : List raftpb.Entry) : IProp GF :=
-  iprop(c ↪[γ.reReads]□ Lc ∗ isCommitted γ Lc)
-
-instance readReq_persistent (γ : RaftNames) (c : List w8) (Lc : List raftpb.Entry) :
-    Persistent (readReq (GF := GF) γ c Lc) := by
-  unfold readReq; infer_instance
-instance readReq_timeless (γ : RaftNames) (c : List w8) (Lc : List raftpb.Entry) :
-    Timeless (readReq (GF := GF) γ c Lc) := by
-  unfold readReq; infer_instance
 
 theorem readReq_agree (γ : RaftNames) (c : List w8) (L1 L2 : List raftpb.Entry) :
     ⊢ readReq (GF := GF) γ c L1 -∗ readReq γ c L2 -∗ ⌜L1 = L2⌝ := by
@@ -67,17 +57,6 @@ theorem readReq_alloc (γ : RaftNames) (R : GMap (List w8) (List raftpb.Entry)) 
   unfold readReq
   iframe Hel Hc
 
-/-- What a `ReadState{Index: i, RequestCtx: c}` promises: the log `c` was created with is no
-longer than `i`. -/
-def readOk (γ : RaftNames) (c : List w8) (i : w64) : IProp GF :=
-  iprop(∃ Lc, readReq γ c Lc ∗ ⌜(Lc.length : Int) ≤ uint.Z i⌝)
-
-instance readOk_persistent (γ : RaftNames) (c : List w8) (i : w64) :
-    Persistent (readOk (GF := GF) γ c i) := by
-  unfold readOk; infer_instance
-instance readOk_timeless (γ : RaftNames) (c : List w8) (i : w64) :
-    Timeless (readOk (GF := GF) γ c i) := by
-  unfold readOk; infer_instance
 
 /-- A client's reading of `readOk`: any committed log at least `i` long extends `Lc`. -/
 theorem readOk_prefix (γ : RaftNames) (c : List w8) (i : w64) (Lc D : List raftpb.Entry) :
@@ -100,28 +79,6 @@ theorem readOk_prefix (γ : RaftNames) (c : List w8) (i : w64) (Lc D : List raft
 
 /-! ### Request records -/
 
-/-- A leader's record of a request: its context and read index, and whether it was doomed
-at arrival (the term and quorum of the acknowledgements that doomed it). -/
-abbrev RqRec := (List w8 × w64) × Option (w64 × GSet w64)
-
-/-- A quorum `q` acknowledged at a term `t'` above `T` (each a real acknowledgement, at a
-nonzero index). -/
-def doomed (γ : RaftNames) (T t' : w64) (q : GSet w64) : IProp GF :=
-  iprop(⌜uint.Z T < uint.Z t' ∧ IsQuorum γ.reCfg q⌝ ∗
-    [∗map] v ↦ _u ∈ toMap q, ∃ i', ⌜0 < uint.Z i'⌝ ∗ isAcked γ v t' i')
-
-instance doomed_persistent (γ : RaftNames) (T t' : w64) (q : GSet w64) :
-    Persistent (doomed (GF := GF) γ T t' q) := by
-  unfold doomed; infer_instance
-
-def rqRecOk (γ : RaftNames) (T : w64) (r : RqRec) : IProp GF :=
-  match r.2 with
-  | none => readOk γ r.1.1 r.1.2
-  | some p => doomed γ T p.1 p.2
-
-instance rqRecOk_persistent (γ : RaftNames) (T : w64) (r : RqRec) :
-    Persistent (rqRecOk (GF := GF) γ T r) := by
-  unfold rqRecOk; split <;> infer_instance
 
 /-- A record whose doom quorum (if any) misses every member of a quorum `Q` is not
 doomed. -/

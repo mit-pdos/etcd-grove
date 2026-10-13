@@ -433,6 +433,9 @@ def entData (γ : RaftNames) (e : raftpb.Entry) : IProp GF :=
 instance isPropData_persistent (γ : RaftNames) (sl : GoSlice) (d : List w8) :
     Persistent (isPropData (GF := GF) γ sl d) := by
   unfold isPropData; infer_instance
+instance isPropData_timeless (γ : RaftNames) (sl : GoSlice) (d : List w8) :
+    Timeless (isPropData (GF := GF) γ sl d) := by
+  unfold isPropData; infer_instance
 instance deposited_persistent (γ : RaftNames) (d : List w8) :
     Persistent (deposited (GF := GF) γ d) := by
   unfold deposited; infer_instance

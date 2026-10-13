@@ -46,6 +46,79 @@ section ghost
 variable [FfiSyntax]
 variable {GF : BundledGFunctors} [AllG GF]
 
+/-! ### Read-index (2026-10-12; see `Protocol/ReadIndex.lean`) -/
+
+/-- The read context `c` was created knowing the committed log `Lc`. -/
+def readReq (γ : RaftNames) (c : List w8) (Lc : List raftpb.Entry) : IProp GF :=
+  iprop(c ↪[γ.reReads]□ Lc ∗ isCommitted γ Lc)
+
+instance readReq_persistent (γ : RaftNames) (c : List w8) (Lc : List raftpb.Entry) :
+    Persistent (readReq (GF := GF) γ c Lc) := by
+  unfold readReq; infer_instance
+
+/-- What a `ReadState{Index: i, RequestCtx: c}` promises: the log `c` was created with is no
+longer than `i`. -/
+def readOk (γ : RaftNames) (c : List w8) (i : w64) : IProp GF :=
+  iprop(∃ Lc, readReq γ c Lc ∗ ⌜(Lc.length : Int) ≤ uint.Z i⌝)
+
+instance readOk_persistent (γ : RaftNames) (c : List w8) (i : w64) :
+    Persistent (readOk (GF := GF) γ c i) := by
+  unfold readOk; infer_instance
+
+/-- A leader's record of a request: its context and read index, and whether it was doomed
+at arrival (the term and quorum of the acknowledgements that doomed it). -/
+abbrev RqRec := (List w8 × w64) × Option (w64 × GSet w64)
+
+/-- A quorum `q` acknowledged at a term `t'` above `T` (each a real acknowledgement, at a
+nonzero index). -/
+def doomed (γ : RaftNames) (T t' : w64) (q : GSet w64) : IProp GF :=
+  iprop(⌜uint.Z T < uint.Z t' ∧ IsQuorum γ.reCfg q⌝ ∗
+    [∗map] v ↦ _u ∈ toMap q, ∃ i', ⌜0 < uint.Z i'⌝ ∗ isAcked γ v t' i')
+
+instance doomed_persistent (γ : RaftNames) (T t' : w64) (q : GSet w64) :
+    Persistent (doomed (GF := GF) γ T t' q) := by
+  unfold doomed; infer_instance
+
+def rqRecOk (γ : RaftNames) (T : w64) (r : RqRec) : IProp GF :=
+  match r.2 with
+  | none => readOk γ r.1.1 r.1.2
+  | some p => doomed γ T p.1 p.2
+
+instance rqRecOk_persistent (γ : RaftNames) (T : w64) (r : RqRec) :
+    Persistent (rqRecOk (GF := GF) γ T r) := by
+  unfold rqRecOk; split <;> infer_instance
+
+instance readReq_timeless (γ : RaftNames) (c : List w8) (Lc : List raftpb.Entry) :
+    Timeless (readReq (GF := GF) γ c Lc) := by
+  unfold readReq; infer_instance
+instance readOk_timeless (γ : RaftNames) (c : List w8) (i : w64) :
+    Timeless (readOk (GF := GF) γ c i) := by
+  unfold readOk; infer_instance
+
+instance doomed_timeless (γ : RaftNames) (T t' : w64) (q : GSet w64) :
+    Timeless (doomed (GF := GF) γ T t' q) := by
+  unfold doomed; infer_instance
+
+instance rqRecOk_timeless (γ : RaftNames) (T : w64) (r : RqRec) :
+    Timeless (rqRecOk (GF := GF) γ T r) := by
+  unfold rqRecOk; split <;> infer_instance
+
+/-- The registry of the read requests the leader `L` of `T` recorded, at least `recs`. -/
+def rqLb (γ : RaftNames) (L T : w64) (recs : List RqRec) : IProp GF :=
+  iprop(∃ γl γq, ⌜γ.reRdq !! L = some γl⌝ ∗ T ↪[γl]□ γq ∗ monoListLbOwn γq recs)
+
+instance rqLb_persistent (γ : RaftNames) (L T : w64) (recs : List RqRec) :
+    Persistent (rqLb (GF := GF) γ L T recs) := by
+  unfold rqLb; infer_instance
+instance rqLb_timeless (γ : RaftNames) (L T : w64) (recs : List RqRec) :
+    Timeless (rqLb (GF := GF) γ L T recs) := by
+  unfold rqLb; infer_instance
+
+/-- A follower `v`'s acknowledgement of the first `q` of the leader's records: none of them
+is doomed by a quorum containing `v`. -/
+def HbAckOk (v : w64) (q : Nat) (recs : List RqRec) : Prop :=
+  q ≤ recs.length ∧ ∀ r ∈ recs.take q, ∀ t' qq, r.2 = some (t', qq) → v ∉ qq
+
 /-! ### Messages -/
 
 def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
@@ -80,7 +153,11 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
          isCommitted γ (Fl.take (uint.Z m.commit).toNat)) ∗
       -- `Commit ≤ pr.Match`, which the receiver acknowledged
       (∃ i, ⌜uint.Z m.commit ≤ uint.Z i⌝ ∗ isAcked γ m.dst m.term i) ∗
-      ⌜m.src ≠ W64 0⌝)
+      ⌜m.src ≠ W64 0⌝ ∗
+      -- (2026-10-12) a read-index position: the leader's registry up to it
+      (⌜m.ctx = []⌝ ∨ ∃ (q : w64) (recs : List RqRec),
+         ⌜m.ctx = u64Le q ∧ uint.nat q ≤ recs.length⌝ ∗ rqLb γ m.src m.term recs ∗
+         [∗list] r ∈ recs, rqRecOk γ m.term r))
   | .snap =>
       -- the leader's, of a committed prefix ending in a real entry
       iprop(isLeader γ m.src m.term ∗
@@ -100,6 +177,15 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
       iprop(⌜m.term = W64 0 ∧ m.entries ≠ [] ∧ (∀ e ∈ m.entries, e.Type' = W32 0) ∧
           (m.entries.length : Int) < 2 ^ 61⌝ ∗
         [∗list] e ∈ m.entries, entData γ e)
+  -- (2026-10-12) read-index: a heartbeat response's position, acknowledged; a request's
+  -- context, created; a response's read index, at least its context's log
+  | .heartbeatResp =>
+      iprop(⌜m.ctx = []⌝ ∨ ∃ (q : w64) (recs : List RqRec),
+        ⌜m.ctx = u64Le q ∧ HbAckOk m.src (uint.nat q) recs⌝ ∗ rqLb γ m.dst m.term recs)
+  | .readIndex =>
+      iprop(∃ e c Lc, ⌜m.entries = [e]⌝ ∗ isPropData γ e.Data' c ∗ readReq γ c Lc)
+  | .readIndexResp =>
+      iprop(∃ e c, ⌜m.entries = [e]⌝ ∗ isPropData γ e.Data' c ∗ readOk γ c m.index)
   | _ => iprop(True)
 
 instance isMessage_persistent (γ : RaftNames) (m : Msg) :
@@ -113,8 +199,7 @@ instance isMessage_timeless (γ : RaftNames) (m : Msg) :
 /-- The message types that carry nothing. -/
 def MsgFree (ty : MsgType) : Bool :=
   match ty with
-  | .heartbeatResp | .preVote
-  | .preVoteResp | .readIndex | .readIndexResp => true
+  | .preVote | .preVoteResp => true
   | _ => false
 
 theorem isMessage_free (γ : RaftNames) (m : Msg) :
@@ -938,6 +1023,123 @@ theorem lcmOwn_bound_keep (γ : RaftNames) (id : w64) (s : PState) (n : w64) :
   have h4 : (c : Int) ≤ uint.nat s.commit := by exact_mod_cast Hcle
   omega
 
+/-! ### The read-index ghost state of a node (2026-10-12, notes/decisions.md, "Read-index")
+
+`rdOwn γ id s` is about `s.rd`, the read state the protocol reads off the node:
+- `reRdq`'s map `term ↦ γq` of the registries of the terms it led (keys as `TermsOk`'s);
+- while it leads, the registry of its term: the records (`RqRec`) of every request it
+  queued in the term, each with its `rqRecOk`; the queue is the registry's tail past
+  `confirmed`, each request's index and context its record's; every acknowledgement in
+  `acks` is a position its voter acknowledged (`HbAckOk`); and the credits the requests
+  brought, as many as records (which bounds the positions);
+- a non-leader's read-only object is the fresh one;
+- each `ReadState` read at least its context's log (`readOk`);
+- each pending request a created context and a credit;
+- one credit per `MsgReadIndex` in the outbox;
+- the credits' invariant. -/
+
+def rdCredN : Namespace := nroot .@ "raft_read_credits"
+
+/-- `n` read credits. -/
+def rdCred (γ : RaftNames) (n : Nat) : IProp GF :=
+  own γ.reRdCred (◯ n : Auth Nat)
+
+/-- The credits handed out are fewer than `2^64 - 1`. -/
+def rdCredInv (γ : RaftNames) : IProp GF :=
+  inv rdCredN iprop(∃ B : Nat, own γ.reRdCred (● B : Auth Nat) ∗ ⌜B < 2 ^ 64 - 1⌝)
+
+instance rdCredInv_persistent (γ : RaftNames) : Persistent (rdCredInv (GF := GF) γ) := by
+  unfold rdCredInv; infer_instance
+
+theorem rdCred_split (γ : RaftNames) (a b : Nat) :
+    rdCred (GF := GF) γ (a + b) ⊣⊢ rdCred γ a ∗ rdCred γ b := by
+  unfold rdCred
+  rw [show (◯ (a + b) : Auth Nat) = (◯ a) • (◯ b) from Auth.frag_op]
+  exact own_op γ.reRdCred _ _
+
+/-- How many read-index requests a list of messages holds. -/
+def rdCount (ms : List Msg) : Nat := ms.countP (fun m => decide (m.ty = .readIndex))
+
+def rdLead (γ : RaftNames) (s : PState) (rqm : GMap w64 GName) : IProp GF :=
+  match s.role with
+  | .leader => iprop(∃ γq, ∃ (recs : List RqRec), ⌜rqm !! s.term = some γq⌝ ∗
+      monoListAuthOwn γq 1 recs ∗
+      ([∗list] r ∈ recs, rqRecOk γ s.term r) ∗
+      ⌜recs.length = uint.nat s.rd.ro.confirmed + s.rd.ro.pending.length⌝ ∗
+      ([∗list] k ↦ q ∈ s.rd.ro.pending, ∃ r e,
+         ⌜recs[uint.nat s.rd.ro.confirmed + k]? = some r ∧ q.index = r.1.2 ∧ q.ents = [e]⌝ ∗
+         isPropData γ e.Data' r.1.1) ∗
+      ⌜∀ v a, s.rd.ro.acks !! v = some a → HbAckOk v (uint.nat a) recs⌝ ∗
+      rdCred γ recs.length)
+  | _ => iprop(⌜s.rd.ro = ⟨[], ∅, W64 0⟩⌝)
+
+instance rdLead_timeless (γ : RaftNames) (s : PState) (rqm : GMap w64 GName) :
+    Timeless (rdLead (GF := GF) γ s rqm) := by
+  unfold rdLead rdCred; split <;> infer_instance
+
+theorem rdLead_nl (γ : RaftNames) (s : PState) (rqm : GMap w64 GName) (h : s.role ≠ .leader) :
+    rdLead (GF := GF) γ s rqm = iprop(⌜s.rd.ro = ⟨[], ∅, W64 0⟩⌝) := by
+  unfold rdLead; split
+  · contradiction
+  · rfl
+
+def rdOwn (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
+  iprop(∃ γl, ∃ (rqm : GMap w64 GName), ⌜γ.reRdq !! id = some γl⌝ ∗
+    ghostMapAuth γl 1 rqm ∗ ([∗map] t ↦ γq ∈ rqm, t ↪[γl]□ γq) ∗
+    ⌜LcmOk rqm s⌝ ∗ rdLead γ s rqm ∗
+    ([∗list] st ∈ s.rd.states, ∃ c, isPropData γ st.RequestCtx' c ∗ readOk γ c st.Index') ∗
+    ([∗list] p ∈ s.rd.pend, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ isPropData γ e.Data' c ∗ readReq γ c Lc) ∗
+    rdCred γ (s.rd.pend.length + rdCount s.outbox) ∗
+    rdCredInv γ)
+
+/-- Across a step that touches no read state: a leader stays one only within its term and
+read state, a non-leader's read-only object is the fresh one, a leader leaves its term only
+for a higher one, the `ReadState`s and pending requests are kept, and the outbox holds no
+more read-index requests. -/
+theorem rdOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
+    (s'.role = .leader → s.role = .leader ∧ s'.term = s.term ∧ s'.rd = s.rd) →
+    (s'.role ≠ .leader →
+       s'.rd.ro = ⟨[], ∅, W64 0⟩ ∨ (s.role ≠ .leader ∧ s'.rd.ro = s.rd.ro)) →
+    (s'.role ≠ .leader → s.role = .leader → uint.Z s.term < uint.Z s'.term) →
+    uint.Z s.term ≤ uint.Z s'.term →
+    s'.rd.states = s.rd.states → s'.rd.pend = s.rd.pend →
+    rdCount s'.outbox ≤ rdCount s.outbox →
+    rdOwn (GF := GF) γ id s ⊢ rdOwn γ id s' := by
+  intro Hlead Hnl Hdown Hle Hst Hpd Hcnt
+  unfold rdOwn
+  iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv⟩
+  iexists γl, rqm
+  iframe Ha Hf Hinv
+  isplitr; · ipureintro; exact Hγl
+  isplitr
+  · ipureintro
+    intro t Ht
+    rcases Hok t Ht with Hlt | ⟨rfl, Hr⟩
+    · left; omega
+    · by_cases Hr' : s'.role = .leader
+      · obtain ⟨-, Hte, -⟩ := Hlead Hr'; right; exact ⟨Hte.symm, Hr'⟩
+      · left; exact Hdown Hr' Hr
+  isplitl [Hl]
+  · by_cases Hr' : s'.role = .leader
+    · obtain ⟨Hr, Hte, Hrd⟩ := Hlead Hr'
+      unfold rdLead; rw [Hr, Hr', Hte, Hrd]
+      iexact Hl
+    · rw [rdLead_nl γ s' rqm Hr']
+      rcases Hnl Hr' with H | ⟨Hr, H⟩
+      · ipureintro; exact H
+      · rw [rdLead_nl γ s rqm Hr]
+        icases Hl with %H0
+        ipureintro; rw [H]; exact H0
+  rw [Hst, Hpd]
+  iframe Hst0 Hpd0
+  ihave Hcr := (rdCred_split γ (s.rd.pend.length + rdCount s'.outbox)
+    (rdCount s.outbox - rdCount s'.outbox)).1 $$ [Hcr]
+  · rw [show s.rd.pend.length + rdCount s'.outbox + (rdCount s.outbox - rdCount s'.outbox)
+      = s.rd.pend.length + rdCount s.outbox by omega]
+    iexact Hcr
+  icases Hcr with ⟨Hcr, -⟩
+  iexact Hcr
+
 /-- The terms a node has won: as `TermsOk`. -/
 def WinsOk (wins : GMap w64 (GSet w64)) (s : PState) : Prop :=
   ∀ t, (wins !! t).isSome →
@@ -1013,7 +1215,9 @@ def ownRaftGhost (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
     "#Hvrecs" ∷ ([∗map] t ↦ c ∈ voted, voteJust γ id t c) ∗
     "%Hrole_ok" ∷ ⌜RoleOk id s⌝ ∗
     -- 2026-10-12 (read-index): the commit lower bounds of the terms it led
-    "Hlcm"     ∷ lcmOwn γ id s)
+    "Hlcm"     ∷ lcmOwn γ id s ∗
+    -- 2026-10-12: the read-index ghost state
+    "Hrd"      ∷ rdOwn γ id s)
 
 -- Not `Timeless` since 2026-10-05: `ownLogGhost` holds the invariant `raftCommitInv`.
 
@@ -1033,10 +1237,11 @@ theorem ownRaftGhost_intro (γ : RaftNames) (id : w64) (s : PState) (γv : GName
       ([∗map] t ↦ c ∈ voted, voteJust γ id t c) -∗
       ⌜RoleOk id s⌝ -∗
       lcmOwn γ id s -∗
+      rdOwn γ id s -∗
       ownRaftGhost γ id s := by
   intro Hname Hidnz
   unfold ownRaftGhost
-  iintro H1 %H2 #H3 #H4 #H5 #H6 H7 %H8 %H9 #H10 %H11 H12
+  iintro H1 %H2 #H3 #H4 #H5 #H6 H7 %H8 %H9 #H10 %H11 H12 H13
   iexists γv, voted, kl
   isplitr; · ipureintro; exact Hname
   isplitr; · ipureintro; exact Hidnz
@@ -1051,7 +1256,8 @@ theorem ownRaftGhost_intro (γ : RaftNames) (id : w64) (s : PState) (γv : GName
   isplitr; · ipureintro; exact H9
   isplitr; · iexact H10
   isplitr; · ipureintro; exact H11
-  iexact H12
+  isplitl [H12]; · iexact H12
+  iexact H13
 
 /-- A non-leader does not record itself as leader. -/
 theorem ownRaftGhost_lead_ok (γ : RaftNames) (id : w64) (s : PState) :

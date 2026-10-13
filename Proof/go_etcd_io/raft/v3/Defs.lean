@@ -309,19 +309,6 @@ predicates"). They live here and not in `InvTracker.lean` because `NState.prvals
 below is a map of `Progress`, and `InvTracker.lean` builds on this file -- the same
 reason `LogState` is here. -/
 
-/-- Go's `min`/`max` builtins on `uint64`, exactly as Goose's `minⁱᵐᵖˡ`/`maxⁱᵐᵖˡ`
-compute them: `min x y = if x < y then x else y`, `max x y = if x > y then x else y`
-(and Goose renders `x > y` as `y < x`). Stated with `decide`, the form of the
-framework's `wp_max2_uint64`. (Moved here from `InvTracker.lean` with the `Progress`
-methods.) -/
-def w64Min (x y : w64) : w64 := if uint.Z x < uint.Z y then x else y
-def w64Max (x y : w64) : w64 := if uint.Z y < uint.Z x then x else y
-
-theorem w64Min_spec (x y : w64) : uint.Z (w64Min x y) = min (uint.Z x) (uint.Z y) := by
-  unfold w64Min; split <;> omega
-
-theorem w64Max_spec (x y : w64) : uint.Z (w64Max x y) = max (uint.Z x) (uint.Z y) := by
-  unfold w64Max; split <;> omega
 
 /-- An `Inflights` window, as its methods' callers see it: how many messages and bytes
 are in flight, and the two limits. The ring buffer (`start`, `buffer` and its

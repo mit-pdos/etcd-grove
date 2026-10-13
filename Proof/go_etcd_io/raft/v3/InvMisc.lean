@@ -49,49 +49,6 @@ or pending request. -/
 def RdScope (rd : RdState) : Prop :=
   rd.states = [] ∧ rd.ro.pending = [] ∧ rd.pend = []
 
-/-- The position a heartbeat context encodes: `confirmedReads + len unconfirmedReads`
-(wrapping, as the `uint64` sum does). -/
-def readonlyPosition (r : ReadOnly) : w64 :=
-  r.confirmed + W64 r.pending.length
-
-/-- `addRequest`: append to the queue. -/
-def readonlyAdd (r : ReadOnly) (q : ReadReq) : ReadOnly :=
-  { r with pending := r.pending ++ [q] }
-
-/-- `recvAck from ctx`, `ctx` as the bytes it holds: nothing for an empty context, else
-the voter's ack becomes the larger of its old one (`0` if none) and the first eight
-bytes read little-endian. -/
-def readonlyRecvAck (r : ReadOnly) (src : w64) (ctx : List w8) : ReadOnly :=
-  if ctx = [] then r
-  else { r with acks := <[src := w64Max ((r.acks !! src).getD (W64 0))
-                                         (leToU64 (ctx.take 8))]> r.acks }
-
-/-- `maybeAdvance`, given `N`, the quorum index of the voters' acks
-(`CommittedIndex`): nothing when `N` is not past `confirmed`; else the first
-`N - confirmed` requests leave the queue, `confirmed` becomes `N` and the removed
-requests are returned. -/
-def readonlyAdvance (r : ReadOnly) (N : w64) : ReadOnly × List ReadReq :=
-  if uint.Z N ≤ uint.Z r.confirmed then (r, [])
-  else
-    let k := uint.nat (N - r.confirmed)
-    ({ r with pending := r.pending.drop k, confirmed := N }, r.pending.take k)
-
-/-- The context `heartbeatCtx` returns (2026-10-12): none for an empty queue, else the
-position, little-endian. -/
-def hbCtx (r : ReadOnly) : List w8 :=
-  if r.pending = [] then [] else u64Le (readonlyPosition r)
-
-/-- `sendMsgReadIndexResponse` on the read-only object (`ReadOnlySafe`): the request is
-queued, then the leader acknowledges the new position itself. -/
-def readonlyArrive (r : ReadOnly) (id : w64) (q : ReadReq) : ReadOnly :=
-  readonlyRecvAck (readonlyAdd r q) id (hbCtx (readonlyAdd r q))
-
-/-- `releasePendingReadIndexMessages` on the read-only object: each pending request
-arrives, read at the commit index `c`, in order. -/
-def readonlyRelease (r : ReadOnly) (id c : w64)
-    (pend : List (raftpb.Message × List raftpb.Entry)) : ReadOnly :=
-  pend.foldl (fun r p => readonlyArrive r id ⟨c, p.1.From', p.2⟩) r
-
 end records
 
 section proof
