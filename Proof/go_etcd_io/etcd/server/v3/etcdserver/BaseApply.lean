@@ -340,11 +340,20 @@ abbrev srvRaftInit : IProp GF :=
 instance srvRaftInit_persistent : Persistent (srvRaftInit (GF := GF)) := by
   unfold srvRaftInit go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec; infer_instance
 
-/-- **The server package's facts**: the raft wrapper's (`srvRaftInit`) and the request path's
-(`srvReqInit`), merged 2026-10-12. Both are abbreviations, so `icases` sees through them: a
-proof destructs `srvInit` as `⟨⟨raft wrapper's⟩, ⟨request path's⟩⟩`. -/
+/-- The apply loop's part of the server's package facts (2026-10-13, the request path's unit 4b,
+`applyAll`): the metric `proposalsApplied` holds a fixed gauge (`Set`), and `schema.AllBuckets`
+(the buckets `VerifyBackendConsistency` checks; stated here rather than in `schema`'s facts, as
+`srvErrVars` states other packages' errors) some slice. -/
+abbrev srvApplyLoopInit : IProp GF :=
+  iprop((∃ g : GoInterfaceOk, globalAddr proposalsApplied ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
+    (∃ sl : GoSlice, globalAddr go_etcd_io.etcd.server.v3.storage.schema.AllBuckets ↦□ sl))
+
+/-- **The server package's facts**: the raft wrapper's (`srvRaftInit`), the request path's
+(`srvReqInit`), merged 2026-10-12, and the apply loop's (`srvApplyLoopInit`, 2026-10-13). All are
+abbreviations, so `icases` sees through them: a proof destructs `srvInit` as `⟨⟨raft wrapper's⟩,
+⟨request path's⟩, ⟨apply loop's⟩⟩`. -/
 abbrev srvInit : IProp GF :=
-  iprop(srvRaftInit ∗ srvReqInit)
+  iprop(srvRaftInit ∗ srvReqInit ∗ srvApplyLoopInit)
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver :=
   define_is_pkg_init srvInit

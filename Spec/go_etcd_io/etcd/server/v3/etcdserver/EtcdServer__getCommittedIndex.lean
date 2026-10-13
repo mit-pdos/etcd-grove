@@ -1,5 +1,5 @@
 /-
-`s.getCommittedIndex()` (`server.go`): the committed index's atomic. Lean-first (no Rocq
+`s.getCommittedIndex()` (`server.go`): the committed index's atomic, a lower bound of the ghost committed index. Lean-first (no Rocq
 counterpart).
 -/
 module
@@ -22,13 +22,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `s.getCommittedIndex()`, any goroutine: some index (the atomic, in its invariant). -/
+/-- `s.getCommittedIndex()`, any goroutine: an index the cluster's committed index has reached
+(`committedAtLeast`; the committed index's invariant, the request path's unit 4b). -/
 abbrev EtcdServer.getCommittedIndex.spec : Prop :=
-  ∀ (s : Loc),
+  ∀ (s : Loc) (γr : ReadNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvAtomicU64 (structFieldRef EtcdServer go!"committedIndex" s) }}
+      srvCommittedInv s γr }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"getCommittedIndex")) (Val #()))
-  {{ (v : w64), RET #v; True }}
+  {{ (v : w64), RET #v; committedAtLeast γr v }}
 
 end spec
 

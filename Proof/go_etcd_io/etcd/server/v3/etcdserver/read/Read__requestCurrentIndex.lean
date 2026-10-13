@@ -146,8 +146,8 @@ theorem read.Read.requestCurrentIndex.wp_proof
   wp_apply HRT as %d -
   wp_apply time.wp_NewTimer as %et %etc %γet #Het
   wp_apply time.wp_NewTimer as %rt %rtc %γrt #Hrt
-  iunfold srvChanOk at HFC
-  wp_apply HFC as %fc0 #Hfc0
+  iunfold srvChanOkR at HFC
+  wp_apply HFC $$ [$HLR] as %fc0 ⟨#Hfc0, HLR⟩
   ihave #Het' := Het
   iunfold time.isTimer at Het'
   icases Het' with ⟨#HetC, #HetB, -⟩
@@ -278,7 +278,7 @@ theorem read.Read.requestCurrentIndex.wp_proof
     iapply broadcast_chan_receive _ _ _ _ _ $$ Hfc'
     iintro ⟨-, -⟩
     wp_auto
-    wp_apply HFC as %fcn #Hfcn
+    wp_apply HFC $$ [$HLR] as %fcn ⟨#Hfcn, HLR⟩
     (try wp_auto)
     wp_apply hI lg _ _ $$ []
     · iframe #; ipureintro; exact Hlg

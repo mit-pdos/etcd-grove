@@ -79,7 +79,7 @@ theorem EtcdServer.parseProposeCtxErr.wp_proof
   icases Hsrv with ⟨%v, #Hv⟩
   iunfold srvReqFieldsAt at Hv
   icases Hv with ⟨-, -, -, -, -, -, -, -, -, #Het, #Htm, -, -, -, -, #Hmid, #Hlead, #Hcl, #Htr,
-    -, -, -, -, -⟩
+    -, -, -, -⟩
   ihave #Perrors : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
   · iPkgInit
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
@@ -97,7 +97,7 @@ theorem EtcdServer.parseProposeCtxErr.wp_proof
   icases HDeadlineExceeded with ⟨%eD, #HeD, %-⟩
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨-, ⟨-, -, -, -, ⟨-, -, -, #HCan, #HTO, #HTOLF, #HTOCL, -⟩⟩⟩
+  icases Hinit with ⟨-, ⟨-, -, -, -, ⟨-, -, -, #HCan, #HTO, #HTOLF, #HTOCL, -⟩⟩, -⟩
   ihave ⟨%eCan, #HeCan, #HaCan⟩ := errVarLeaf_get _ $$ HCan
   ihave ⟨%eTO, #HeTO, #HaTO⟩ := errVarLeaf_get _ $$ HTO
   ihave ⟨%eTOLF, #HeTOLF, #HaTOLF⟩ := errVarLeaf_get _ $$ HTOLF

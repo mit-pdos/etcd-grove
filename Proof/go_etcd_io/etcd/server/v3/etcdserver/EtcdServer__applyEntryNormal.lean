@@ -162,7 +162,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     (hW : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (hGA : EtcdServer.GoAttach.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ b e m st v3 x
+  intro s γ ci TM E ρ b e m st v3 x γr
   wp_start as ⟨#Hsrv, #Hewo, #He, Hst, Hbe, Hlr, HKV, %Hpo, Hv3⟩
   obtain ⟨Hp, Hok, Htyp⟩ := Hpo
   wp_apply wp_with_defer as %defer defer

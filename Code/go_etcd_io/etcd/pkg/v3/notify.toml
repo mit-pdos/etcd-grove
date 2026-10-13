@@ -1,5 +1,6 @@
-# `Notifier.Notify` with its body (the apply thread calls it); the rest names only.
-translate = ["!*", "Notifier.Notify"]
+# `Notifier.Notify` with its body (the apply thread calls it); `NewNotifier` and
+# `Notifier.Receive` (the read loop's channels, the request path's unit 4b).
+translate = ["!*", "Notifier", "Notifier.Notify", "NewNotifier", "Notifier.Receive"]
 imports = ["!*", "sync"]
 
 # translate the definitions of all type declarations goose supports

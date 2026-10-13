@@ -1,10 +1,11 @@
 # The server's wait registry (wait.go), with bodies: New, the sharded list's Register,
-# Trigger and IsRegistered, and waitWithResponse. wait_time.go (WaitTime, the applied
-# index's waiters) is names only.
+# Trigger and IsRegistered, and waitWithResponse; wait_time.go (WaitTime, the applied
+# index's waiters: the request path's unit 4b).
 translate = ["!*", "defaultListElementLength", "Wait", "list", "listElement", "New",
   "list.Register", "list.Trigger", "list.IsRegistered",
   "waitWithResponse", "NewWithResponse", "waitWithResponse.Register",
-  "waitWithResponse.Trigger", "waitWithResponse.IsRegistered"]
+  "waitWithResponse.Trigger", "waitWithResponse.IsRegistered",
+  "WaitTime", "closec", "init", "timeList", "NewTimeList", "timeList.Wait", "timeList.Trigger"]
 imports = ["!*", "log", "sync"]
 
 # translate the definitions of all type declarations goose supports

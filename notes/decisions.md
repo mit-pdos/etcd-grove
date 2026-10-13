@@ -3977,3 +3977,46 @@ needs a ghost name anyway; the slot as an existential in `isRead` (a slot of a d
 predicate than the read invariant's cannot be ruled out); `context.DeadlineExceeded` kept out of
 `applyErrIs` (the loop returns a done context's `Err()`: `applyErrIs`' typing clause now holds for the
 targets `errors.wp_Is` takes, pointer targets, `ptrTarget`, which a struct error meets).
+
+## The applied index: a certified log per index
+
+(2026-10-13, the request path's unit 4b.) Unit 4a's read loop proves that a linearizable read
+waits until the applied index reaches an index `ci₀ ≥ c`, `c` a lower bound of the committed
+index the reader knew of (`readIndexOk γr c`). That says nothing about *which* state the read
+sees until the ghost applied index (`γr.applied`) is tied to what the apply thread applied.
+
+**The deposit is at `setAppliedIndex`.** The apply thread is the only writer of
+`s.appliedIndex`; `apply` calls `setAppliedIndex(e.Index)` right after each entry (after
+`applyEntryNormal` or `applyConfChange`). Its spec takes the apply thread's half of the mono-nat
+authority (`srvAppliedOwn γr v`, `v < v'`) and mvcc's certificate of the KV log `L` it left
+(`idxCert E.γ.idx L`, from `srvApplyKV`), and, at the atomic store, raises both halves to `v'`
+and inserts `v' ↦ L` into a ghost map `γr.logs` as a persistent element (`appliedLogAt γr v' L`).
+So the index a reader can learn about (`appliedAtLeast`) and the log are published by one atomic
+step; no separate "applied" event is needed. A conf change leaves the KV, so its index gets the
+log before it. Indices are fresh because the invariant keeps every key at most the current index
+and the apply thread's next index is larger (`apply`'s entries are consecutive from `ai + 1`).
+
+**The invariant holds only the current index's log.** `srvAppliedInv` holds the atomic at `v`,
+the other half of the authority, the map's authority (keys `≤ v`), and `appliedLogAt γr v L` with
+`idxCert L` for the current `v` only. A reader with `readIndexOk γr c` (an index `ci₀ ≥ c` was
+reached) opens it and takes the *current* `v ≥ ci₀` and its log (`readIndexOk_log`): `c ≤ v`, so
+`v` itself serves as the read's `ci₀`. Keeping every index's certificate would be the same facts
+(all persistent) with more bookkeeping, and nothing needs an older one: the read only needs some
+index at least `c` whose log it extends.
+
+**The prefix statement comes from `txn.Range`'s `log₀`.** `txn.Range`/`txn.Txn` take a
+certificate of a lower-bound log `log₀` and return a log `log` with `log₀ <+: log`. The server's
+`Range`/`Txn` passed the reader's own `log₀` (of `NewStore`'s two revisions); in the linearizable
+branch they now pass the longer of it and the applied log `L₀` (`idxCert_prefix`: two certified
+logs are prefix-ordered; `readIndexOk_logR`), so the answer's `log` extends `L₀`:
+`readLogOk γr c log` (the read index and `∃ ci₀ L₀, c ≤ ci₀ ∗ appliedLogAt γr ci₀ L₀ ∗ L₀ <+:
+log`), in `rangeReadOk`/`txnReadOk` and the handlers' answers. With `applied_log_at` (the deposit,
+and `appliedLogAt_agree`), `range_linearizable` reads: a linearizable read at `c` returns the state
+of a log extending the one applied through some index `ci₀ ≥ c`, which is exactly the apply
+thread's log after the entry at `ci₀`.
+
+**The proposer does not need the names.** The proposer's view (`srvReqFieldsAt`) reads both
+indices only for the request limit's gap, so it holds the two invariants at *some* read names
+(`srvIndexInvs s E := ∃ γr, srvAppliedInv s E γr ∗ srvCommittedInv s γr`) instead of threading
+`γr` through `isServerReq` and every request-path spec; the reader's view (`srvReadFieldsAt s E γr`)
+and the apply thread's (`isServer … γr`, `srvAtomics s E γr`) hold them at the read loop's names.

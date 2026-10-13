@@ -30,6 +30,39 @@ attribute [irreducible] Notifier.ty
 noncomputable def NewNotifier [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/notify.NewNotifier"
 
+/-- NewNotifier returns new notifier
+
+    go: notify.go:29:6 -/
+noncomputable def NewNotifier.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoAlloc Notifier.ty))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral Notifier.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"channel")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v0")))])))))))
+
+/-- Receive returns channel that can be used to wait for notification.
+    Consumers will be informed by closing the channel.
+
+    go: notify.go:37:20 -/
+noncomputable def Notifier.Receive.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam BAnon
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Notifier.ty)))) (Var "n"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef Notifier.ty go!"channel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Notifier.ty)))) (Var "n"))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef Notifier.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Notifier.ty)))) (Var "n"))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef Notifier.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Notifier.ty)))) (Var "n")))) (Val #())))))))))
+
 /-- Notify closes the channel passed to consumers and creates new channel to used
     for next notification.
 
@@ -108,6 +141,7 @@ class Notifier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   get_channel : ∀ (x : Notifier), go.IsGoStepPureDetTagged under (StructFieldGet Notifier.underlying go!"channel") #x (Val #(x.channel'))
   set_channel : ∀ (x : Notifier) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Notifier.underlying go!"channel") (PairV #x #y) (Val #(({ x with channel' := y } : Notifier)))
   ptr_Notify_unfold : MethodUnfold (go.GoType.PointerType Notifier.ty) go!"Notify" Notifier.Notify.impl
+  ptr_Receive_unfold : MethodUnfold (go.GoType.PointerType Notifier.ty) go!"Receive" Notifier.Receive.impl
 
 attribute [instance] Notifier.TypeAssumptions.type_repr
   Notifier.TypeAssumptions.underlying
@@ -116,12 +150,15 @@ attribute [instance] Notifier.TypeAssumptions.type_repr
   Notifier.TypeAssumptions.get_channel
   Notifier.TypeAssumptions.set_channel
   Notifier.TypeAssumptions.ptr_Notify_unfold
+  Notifier.TypeAssumptions.ptr_Receive_unfold
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Notifier_instance : Notifier.TypeAssumptions
+  NewNotifier_unfold : FuncUnfold NewNotifier [] NewNotifier.impl
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
 
 attribute [instance] Assumptions.Notifier_instance
+  Assumptions.NewNotifier_unfold
   Assumptions.import_sync_Assumption
 
 end go_etcd_io.etcd.pkg.v3.notify

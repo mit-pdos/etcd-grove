@@ -16,26 +16,40 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest__GetR
 public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
 public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.Entry__GetType
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AppliedIndex
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__ApplyWait
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthInfoFromCtx
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__AuthStore
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Backend
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Cluster
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__CommittedIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__DeleteRange
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Done
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__FeatureEnabled
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__FirstCommitInTermNotify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__GoAttach
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__KV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Lead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Leader
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaderChanged
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LinearizableReadNotify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Logger
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__NextRequestID
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Range
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RequestTimeout
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Stopping
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Term
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Txn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__apply
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyAll
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyConfChange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntries
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applyEntryNormal
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__applySnapshot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__compactRaftLog
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__createMergedSnapshotMessage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__doSerialize
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getAppliedIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__getCommittedIndex
@@ -47,8 +61,13 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__newHeader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__parseProposeCtxErr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__processInternalRaftRequestOnce
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__raftRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__sendMergedSnap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__setAppliedIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__setTerm
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__shouldSnapshotToDisk
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__shouldSnapshotToMemory
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__snapshot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__snapshotIfNeededAndCompactRaftLog
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__stopWithDelay
 public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.HardState__GetCommit
 public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.HardState__GetTerm
@@ -58,7 +77,9 @@ public import EtcdDeps.Proof.go_etcd_io.raft.v3.IsEmptySnap
 public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.Message__GetTo
 public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.NewConsistentIndex
+public import Proof.go_etcd_io.etcd.pkg.v3.notify.NewNotifier
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Notifier__Notify
+public import Proof.go_etcd_io.etcd.pkg.v3.notify.Notifier__Receive
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest__GetKey
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest__GetLease
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Members
@@ -79,6 +100,7 @@ public import Proof.go_opentelemetry_io.otel.attribute.Bool
 public import Proof.go_opentelemetry_io.otel.attribute.Int
 public import Proof.go_opentelemetry_io.otel.attribute.Int64
 public import Proof.go_opentelemetry_io.otel.attribute.String
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ReqTimeout
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentApplyingIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentIndex
@@ -110,6 +132,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage
 public import Proof.github_com.prometheus.client_golang.prometheus.HistogramVec__WithLabelValues
 public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.google_golang_org.protobuf.proto.MarshalIRR
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__ReadIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__ReadState
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__advanceTicks
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__apply
@@ -140,10 +163,13 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveReadOnlyTxnRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.New
+public import Proof.go_etcd_io.etcd.pkg.v3.wait.NewTimeList
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.NewWithResponse
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.list__IsRegistered
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.list__Register
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.list__Trigger
+public import Proof.go_etcd_io.etcd.pkg.v3.wait.timeList__Trigger
+public import Proof.go_etcd_io.etcd.pkg.v3.wait.timeList__Wait
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.waitWithResponse__Register
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.waitWithResponse__Trigger
 public import Proof.go_uber_org.zap.Logger__Debug
@@ -418,9 +444,25 @@ theorem pbutil.wp_MustUnmarshalMessage :
     pbutil.MustUnmarshalMessage.spec (GF := GF) (hG := hG) :=
   pbutil.MustUnmarshalMessage.wp_proof
 
+theorem raftpb.Snapshot.wp_GetMetadata :
+    raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG) :=
+  raftpb.Snapshot.GetMetadata.wp_proof
+
+theorem raftpb.SnapshotMetadata.wp_GetIndex :
+    raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG) :=
+  raftpb.SnapshotMetadata.GetIndex.wp_proof
+
+theorem wp_IsEmptySnap :
+    IsEmptySnap.spec (GF := GF) (hG := hG) :=
+  IsEmptySnap.wp_proof raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
+
 theorem EtcdServer.wp_stopWithDelay :
     EtcdServer.stopWithDelay.spec (GF := GF) (hG := hG) :=
   EtcdServer.stopWithDelay.wp_proof
+
+theorem backend.wp_VerifyBackendConsistency :
+    backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG) :=
+  backend.VerifyBackendConsistency.wp_proof
 
 theorem consistentIndex.wp_ConsistentApplyingIndex :
     consistentIndex.ConsistentApplyingIndex.spec (GF := GF) (hG := hG) :=
@@ -457,18 +499,6 @@ theorem wp_isHardStateEqual :
 theorem wp_IsEmptyHardState :
     IsEmptyHardState.spec (GF := GF) (hG := hG) :=
   IsEmptyHardState.wp_proof wp_isHardStateEqual
-
-theorem raftpb.Snapshot.wp_GetMetadata :
-    raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG) :=
-  raftpb.Snapshot.GetMetadata.wp_proof
-
-theorem raftpb.SnapshotMetadata.wp_GetIndex :
-    raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG) :=
-  raftpb.SnapshotMetadata.GetIndex.wp_proof
-
-theorem wp_IsEmptySnap :
-    IsEmptySnap.spec (GF := GF) (hG := hG) :=
-  IsEmptySnap.wp_proof raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
 
 theorem raftpb.Message.wp_GetTo :
     raftpb.Message.GetTo.spec (GF := GF) (hG := hG) :=
@@ -525,6 +555,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+theorem EtcdServer.wp_getAppliedIndex :
+    EtcdServer.getAppliedIndex.spec (GF := GF) (hG := hG) :=
+  EtcdServer.getAppliedIndex.wp_proof
+
+theorem EtcdServer.wp_AppliedIndex :
+    EtcdServer.AppliedIndex.spec (GF := GF) (hG := hG) :=
+  EtcdServer.AppliedIndex.wp_proof EtcdServer.wp_getAppliedIndex
+
+theorem EtcdServer.wp_ApplyWait :
+    EtcdServer.ApplyWait.spec (GF := GF) (hG := hG) :=
+  EtcdServer.ApplyWait.wp_proof
+
 theorem EtcdServer.wp_AuthStore :
     EtcdServer.AuthStore.spec (GF := GF) (hG := hG) :=
   EtcdServer.AuthStore.wp_proof
@@ -533,17 +575,21 @@ theorem EtcdServer.wp_AuthInfoFromCtx :
     EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG) :=
   EtcdServer.AuthInfoFromCtx.wp_proof EtcdServer.wp_AuthStore
 
+theorem EtcdServer.wp_Backend :
+    EtcdServer.Backend.spec (GF := GF) (hG := hG) :=
+  EtcdServer.Backend.wp_proof
+
 theorem EtcdServer.wp_Cluster :
     EtcdServer.Cluster.spec (GF := GF) (hG := hG) :=
   EtcdServer.Cluster.wp_proof
 
-theorem EtcdServer.wp_getAppliedIndex :
-    EtcdServer.getAppliedIndex.spec (GF := GF) (hG := hG) :=
-  EtcdServer.getAppliedIndex.wp_proof
-
 theorem EtcdServer.wp_getCommittedIndex :
     EtcdServer.getCommittedIndex.spec (GF := GF) (hG := hG) :=
   EtcdServer.getCommittedIndex.wp_proof
+
+theorem EtcdServer.wp_CommittedIndex :
+    EtcdServer.CommittedIndex.spec (GF := GF) (hG := hG) :=
+  EtcdServer.CommittedIndex.wp_proof EtcdServer.wp_getCommittedIndex
 
 theorem EtcdServer.wp_FeatureEnabled :
     EtcdServer.FeatureEnabled.spec (GF := GF) (hG := hG) :=
@@ -593,6 +639,18 @@ theorem EtcdServer.wp_DeleteRange :
     EtcdServer.DeleteRange.spec (GF := GF) (hG := hG) :=
   EtcdServer.DeleteRange.wp_proof EtcdServer.wp_raftRequest DeleteRangeRequest.wp_GetKey DeleteRangeRequest.wp_GetRangeEnd traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_String
 
+theorem EtcdServer.wp_Done :
+    EtcdServer.Done.spec (GF := GF) (hG := hG) :=
+  EtcdServer.Done.wp_proof
+
+theorem notify.Notifier.wp_Receive :
+    notify.Notifier.Receive.spec (GF := GF) (hG := hG) :=
+  notify.Notifier.Receive.wp_proof
+
+theorem EtcdServer.wp_FirstCommitInTermNotify :
+    EtcdServer.FirstCommitInTermNotify.spec (GF := GF) (hG := hG) :=
+  EtcdServer.FirstCommitInTermNotify.wp_proof notify.Notifier.wp_Receive
+
 theorem EtcdServer.wp_KV :
     EtcdServer.KV.spec (GF := GF) (hG := hG) :=
   EtcdServer.KV.wp_proof
@@ -601,9 +659,17 @@ theorem EtcdServer.wp_Leader :
     EtcdServer.Leader.spec (GF := GF) (hG := hG) :=
   EtcdServer.Leader.wp_proof EtcdServer.wp_getLead
 
+theorem EtcdServer.wp_LeaderChanged :
+    EtcdServer.LeaderChanged.spec (GF := GF) (hG := hG) :=
+  EtcdServer.LeaderChanged.wp_proof notify.Notifier.wp_Receive
+
 theorem EtcdServer.wp_LinearizableReadNotify :
     EtcdServer.LinearizableReadNotify.spec (GF := GF) (hG := hG) :=
   EtcdServer.LinearizableReadNotify.wp_proof
+
+theorem EtcdServer.wp_NextRequestID :
+    EtcdServer.NextRequestID.spec (GF := GF) (hG := hG) :=
+  EtcdServer.NextRequestID.wp_proof idutil.Generator.wp_Next
 
 theorem context.wp_WithValue :
     context.WithValue.spec (GF := GF) (hG := hG) :=
@@ -628,6 +694,14 @@ theorem EtcdServer.wp_doSerialize :
 theorem EtcdServer.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.Range.spec (GF := GF) (hG := hG) :=
   EtcdServer.Range.wp_proof traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_String «attribute».wp_Int64 «attribute».wp_Bool RangeRequest.wp_GetKey RangeRequest.wp_GetRangeEnd RangeRequest.wp_GetRevision RangeRequest.wp_GetLimit RangeRequest.wp_GetCountOnly RangeRequest.wp_GetKeysOnly EtcdServer.wp_Logger traceutil.wp_EnsureTrace txn.wp_WarnOfExpensiveReadOnlyRangeRequest traceutil.Trace.wp_AddField traceutil.Trace.wp_LogIfLong strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues traceutil.Trace.wp_Step EtcdServer.wp_KV txn.wp_Range EtcdServer.wp_doSerialize
+
+theorem EtcdServer.wp_RequestTimeout :
+    EtcdServer.RequestTimeout.spec (GF := GF) (hG := hG) :=
+  EtcdServer.RequestTimeout.wp_proof config.ServerConfig.wp_ReqTimeout
+
+theorem EtcdServer.wp_Stopping :
+    EtcdServer.Stopping.spec (GF := GF) (hG := hG) :=
+  EtcdServer.Stopping.wp_proof
 
 theorem EtcdServer.wp_getTerm :
     EtcdServer.getTerm.spec (GF := GF) (hG := hG) :=
@@ -673,13 +747,57 @@ theorem EtcdServer.wp_apply :
     EtcdServer.apply.spec (GF := GF) (hG := hG) :=
   EtcdServer.apply.wp_proof zap.Logger.wp_Debug zap.wp_Int' zap.wp_Uint64 zap.wp_Stringer consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentApplyingIndex consistentIndex.wp_SetConsistentIndex raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm raftpb.Entry.wp_GetType EtcdServer.wp_applyEntryNormal EtcdServer.wp_setAppliedIndex EtcdServer.wp_setTerm pbutil.wp_MustUnmarshalMessage EtcdServer.wp_applyConfChange raftpb.ConfChange.wp_GetId membership.RaftCluster.wp_Members
 
+theorem EtcdServer.wp_applySnapshot :
+    EtcdServer.applySnapshot.spec (GF := GF) (hG := hG) :=
+  EtcdServer.applySnapshot.wp_proof wp_IsEmptySnap
+
 theorem EtcdServer.wp_applyEntries :
     EtcdServer.applyEntries.spec (GF := GF) (hG := hG) :=
   EtcdServer.applyEntries.wp_proof raftpb.Entry.wp_GetIndex EtcdServer.wp_apply EtcdServer.wp_stopWithDelay
 
+theorem EtcdServer.wp_shouldSnapshotToDisk :
+    EtcdServer.shouldSnapshotToDisk.spec (GF := GF) (hG := hG) :=
+  EtcdServer.shouldSnapshotToDisk.wp_proof
+
+theorem EtcdServer.wp_shouldSnapshotToMemory :
+    EtcdServer.shouldSnapshotToMemory.spec (GF := GF) (hG := hG) :=
+  EtcdServer.shouldSnapshotToMemory.wp_proof
+
+theorem EtcdServer.wp_snapshot :
+    EtcdServer.snapshot.spec (GF := GF) (hG := hG) :=
+  EtcdServer.snapshot.wp_proof
+
+theorem EtcdServer.wp_compactRaftLog :
+    EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG) :=
+  EtcdServer.compactRaftLog.wp_proof
+
+theorem EtcdServer.wp_snapshotIfNeededAndCompactRaftLog :
+    EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG) :=
+  EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof EtcdServer.wp_shouldSnapshotToDisk EtcdServer.wp_shouldSnapshotToMemory EtcdServer.wp_snapshot EtcdServer.wp_compactRaftLog
+
+theorem EtcdServer.wp_createMergedSnapshotMessage :
+    EtcdServer.createMergedSnapshotMessage.spec (GF := GF) (hG := hG) :=
+  EtcdServer.createMergedSnapshotMessage.wp_proof
+
+theorem EtcdServer.wp_sendMergedSnap :
+    EtcdServer.sendMergedSnap.spec (GF := GF) (hG := hG) :=
+  EtcdServer.sendMergedSnap.wp_proof
+
+theorem EtcdServer.wp_applyAll :
+    EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
+  EtcdServer.applyAll.wp_proof EtcdServer.wp_applySnapshot EtcdServer.wp_applyEntries EtcdServer.wp_Backend EtcdServer.wp_Logger backend.wp_VerifyBackendConsistency EtcdServer.wp_snapshotIfNeededAndCompactRaftLog EtcdServer.wp_createMergedSnapshotMessage EtcdServer.wp_sendMergedSnap
+
 theorem EtcdServer.wp_newHeader :
     EtcdServer.newHeader.spec (GF := GF) (hG := hG) :=
   EtcdServer.newHeader.wp_proof membership.RaftCluster.wp_ID EtcdServer.wp_MemberID EtcdServer.wp_KV mvcc.store.wp_Rev EtcdServer.wp_Term EtcdServer.wp_Leader
+
+theorem notify.wp_NewNotifier :
+    notify.NewNotifier.spec (GF := GF) (hG := hG) :=
+  notify.NewNotifier.wp_proof
+
+theorem raftNode.wp_ReadIndex :
+    raftNode.ReadIndex.spec (GF := GF) (hG := hG) :=
+  raftNode.ReadIndex.wp_proof
 
 theorem raftNode.wp_ReadState :
     raftNode.ReadState.spec (GF := GF) (hG := hG) :=
@@ -715,7 +833,7 @@ theorem wp_updateCommittedIndex :
 
 theorem raftNode.wp_start :
     raftNode.start.spec (GF := GF) (hG := hG) :=
-  raftNode.start.wp_proof raftNode.wp_tick raftNode.wp_processMessages wp_updateCommittedIndex raftNode.wp_onStop wp_IsEmptySnap wp_IsEmptyHardState raftpb.HardState.wp_GetCommit raftpb.Entry.wp_GetType proto.wp_Clone zap.wp_Error zap.Logger.wp_Fatal
+  raftNode.start.wp_proof raftNode.wp_tick raftNode.wp_processMessages wp_updateCommittedIndex raftNode.wp_onStop wp_IsEmptySnap wp_IsEmptyHardState raftpb.HardState.wp_GetCommit raftpb.Entry.wp_GetType proto.wp_Clone zap.wp_Error zap.Logger.wp_Fatal zap.wp_Duration zap.Logger.wp_Warn
 
 theorem raftNode.wp_stop :
     raftNode.stop.spec (GF := GF) (hG := hG) :=
@@ -737,9 +855,21 @@ theorem wait.wp_New :
     wait.New.spec (GF := GF) (hG := hG) :=
   wait.New.wp_proof wait.list.wp_Register wait.list.wp_Trigger wait.list.wp_IsRegistered
 
+theorem wait.wp_NewTimeList :
+    wait.NewTimeList.spec (GF := GF) (hG := hG) :=
+  wait.NewTimeList.wp_proof
+
 theorem wait.wp_NewWithResponse :
     wait.NewWithResponse.spec (GF := GF) (hG := hG) :=
   wait.NewWithResponse.wp_proof
+
+theorem wait.timeList.wp_Trigger :
+    wait.timeList.Trigger.spec (GF := GF) (hG := hG) :=
+  wait.timeList.Trigger.wp_proof
+
+theorem wait.timeList.wp_Wait :
+    wait.timeList.Wait.spec (GF := GF) (hG := hG) :=
+  wait.timeList.Wait.wp_proof
 
 theorem wait.waitWithResponse.wp_Register :
     wait.waitWithResponse.Register.spec (GF := GF) (hG := hG) :=

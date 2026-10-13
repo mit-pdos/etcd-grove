@@ -55,7 +55,7 @@ theorem EtcdServer.doSerialize.wp_proof
   icases Hsrv with ⟨%v, #Hv⟩
   iunfold srvReqFieldsAt at Hv
   icases Hv with ⟨-, -, -, -, -, -, -, -, #Hcca, -, -,
-    #Has, #Hras, -, -, -, -, -, -, -, -, -, -, -⟩
+    #Has, #Hras, -, -, -, -, -, -, -, -, -, -⟩
   iunfold isServerRead at Hrd
   icases Hrd with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAt at Hw
@@ -113,7 +113,7 @@ theorem EtcdServer.doSerialize.wp_proof
       icombine Has Has2 gives %Heq
       iunfold apply.isAuthStore at Hauth
       icases Hauth with ⟨%ai0, %Hst, -, -, -, -, -, -, #HRev, -⟩
-      icases Hinit with ⟨-, ⟨-, -, -, -, ⟨-, -, -, -, -, -, -, #HOld, -⟩⟩⟩
+      icases Hinit with ⟨-, ⟨-, -, -, -, ⟨-, -, -, -, -, -, -, #HOld, -⟩⟩, -⟩
       ihave ⟨%eOld, #HeOld, #HaOld⟩ := errVarLeaf_get _ $$ HOld
       rw [Heq, Hst]
       wp_auto

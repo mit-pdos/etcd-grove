@@ -15,6 +15,11 @@ token (the other `1/2` of a pending broadcast channel is in its invariant); `Not
 whole token out under the write lock, installs the new channel, and closes the old one after
 unlocking with it. `isNotifier n` (persistent) is the mutex's writer guard
 (`isRWMutexGuard`): any number of `Notify` callers, with no reader slot.
+
+**A reader** (`notifyReader n`, 2026-10-13, the request path's unit 4b): `Receive` read-locks the
+mutex, so each caller holds a reader slot (`sync.ownRWMutex`; Perennial's `RWMutex` admits a
+bounded number of readers); `NewNotifier` returns them with the writer guard. `Receive` returns
+the current channel, a broadcast channel with no content (`notifyChan`).
 -/
 module
 
@@ -131,6 +136,18 @@ def isNotifier (n : Loc) : IProp GF :=
 
 instance isNotifier_persistent (n : Loc) : Persistent (isNotifier (GF := GF) n) := by
   unfold isNotifier; infer_instance
+
+/-- **A reader slot of `n.mu`** (not persistent; `Receive`'s). -/
+def notifyReader (n : Loc) : IProp GF :=
+  iprop(∃ γ : GName, sync.ownRWMutex (notifyMuAddr n) (notifyLockInv (hG := hG) n γ))
+
+/-- **A channel `Receive` returned** (persistent): closed (by a later `Notify`), never sent on, with
+no content (Perennial's broadcast idiom, a receiver's view). -/
+def notifyChan (ch : Loc) : IProp GF :=
+  iprop(∃ γ : ChanNames, ownBroadcastChan ch γ iprop(True) .Unknown)
+
+instance notifyChan_persistent (ch : Loc) : Persistent (notifyChan (GF := GF) ch) := by
+  unfold notifyChan; infer_instance
 
 end defs
 

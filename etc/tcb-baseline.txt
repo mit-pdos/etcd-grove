@@ -1,12 +1,17 @@
 # This repository's part of the proofs' trust base (etc/tcb-report.py --check --update).
 axiom EtcdServer.GoAttach.wp_proof
 axiom EtcdServer.applyConfChange.wp_proof
+axiom EtcdServer.compactRaftLog.wp_proof
+axiom EtcdServer.createMergedSnapshotMessage.wp_proof
+axiom EtcdServer.sendMergedSnap.wp_proof
+axiom EtcdServer.snapshot.wp_proof
 axiom EtcdServer.stopWithDelay.wp_proof
 axiom EtcdStep
 axiom attribute.Bool.wp_proof
 axiom attribute.Int.wp_proof
 axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
+axiom backend.VerifyBackendConsistency.wp_proof
 axiom config.ServerConfig.ReqTimeout.wp_proof
 axiom context.Err.wp_proof
 axiom context.ErrDone.wp_proof
