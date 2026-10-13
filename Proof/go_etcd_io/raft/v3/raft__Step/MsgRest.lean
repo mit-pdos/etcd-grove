@@ -48,10 +48,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
 
-theorem followerStepResult_forget (id : w64) (s : NState) (m : raftpb.Message)
+theorem followerStepResult_forget (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
     (cl : List w8) (Hty : m.Type' = MsgForgetLeader)
-    (H : FollowerStepResult id s m ents sv dropped s' cl) :
+    (H : FollowerStepResult cfg id s m ents sv dropped s' cl) :
     dropped = false ∧ s' = { s with lead := W64 0 } := by
   unfold FollowerStepResult at H
   simp only [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp,
@@ -59,11 +59,11 @@ theorem followerStepResult_forget (id : w64) (s : NState) (m : raftpb.Message)
     MsgForgetLeader, W32] at H
   simpa using H
 
-theorem followerStepResult_rnoop (id : w64) (s : NState) (m : raftpb.Message)
+theorem followerStepResult_rnoop (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
     (cl : List w8)
     (Hty : m.Type' = MsgTransferLeader ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus)
-    (H : FollowerStepResult id s m ents sv dropped s' cl) : dropped = false ∧ s' = s := by
+    (H : FollowerStepResult cfg id s m ents sv dropped s' cl) : dropped = false ∧ s' = s := by
   unfold FollowerStepResult at H
   rcases Hty with h | h | h <;>
   simp only [h, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp,
@@ -71,11 +71,11 @@ theorem followerStepResult_rnoop (id : w64) (s : NState) (m : raftpb.Message)
     MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, W32] at H <;>
   simpa using H
 
-theorem followerStepResult_timeout (id : w64) (s : NState) (m : raftpb.Message)
+theorem followerStepResult_timeout (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
     (cl : List w8) (Hty : m.Type' = MsgTimeoutNow)
-    (H : FollowerStepResult id s m ents sv dropped s' cl) :
-    dropped = false ∧ HupOk (domSet s.progress) id s s' := by
+    (H : FollowerStepResult cfg id s m ents sv dropped s' cl) :
+    dropped = false ∧ HupOk cfg id s s' := by
   unfold FollowerStepResult at H
   simp only [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp,
     MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
@@ -165,7 +165,7 @@ local macro "local_follower" : tactic => `(tactic| (
     · iapply Hsnap0
     · ity_other
   first
-    | (obtain ⟨rfl, rfl⟩ := followerStepResult_forget _ _ _ _ _ _ _ _ Hty Hres
+    | (obtain ⟨rfl, rfl⟩ := followerStepResult_forget _ _ _ _ _ _ _ _ _ Hty Hres
        simp only [Bool.false_eq_true, ↓reduceIte]
        icases Herrn with %Herrn
        subst Herrn
@@ -177,7 +177,7 @@ local macro "local_follower" : tactic => `(tactic| (
          TermStep.of_term rfl (fun _ => Int.le_refl _)⟩
        rw [toPState_forget s Hrole (Hfv Hrole)]
        exact Step.abandon _ (by rw [toPState_role, Hrole]; decide))
-    | (obtain ⟨rfl, Hs1⟩ := followerStepResult_rnoop _ _ _ _ _ _ _ _ (by simp [Hty]) Hres
+    | (obtain ⟨rfl, Hs1⟩ := followerStepResult_rnoop _ _ _ _ _ _ _ _ _ (by simp [Hty]) Hres
        subst s1
        simp only [Bool.false_eq_true, ↓reduceIte]
        icases Herrn with %Herrn
@@ -253,7 +253,7 @@ local macro "transfer_follower " h:term : tactic => `(tactic| (
     isplitl []
     · iapply Hsnap0
     · ity_other
-  obtain ⟨rfl, Hs1⟩ := followerStepResult_rnoop _ _ _ _ _ _ _ _ (by simp [Hty]) Hres
+  obtain ⟨rfl, Hs1⟩ := followerStepResult_rnoop _ _ _ _ _ _ _ _ _ (by simp [Hty]) Hres
   subst s1
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Herrn with %Herrn
@@ -281,7 +281,7 @@ local macro "timeout_follower" : tactic => `(tactic| (
     · iapply Hsnap0
     · ity_other
   obtain ⟨rfl, Hwf1, Hst1, Hl1, Ht1, Ht2, Hpv1, Hg1⟩ :=
-    followerStepResult_timeout _ _ _ _ _ _ _ _ Hty Hres
+    followerStepResult_timeout _ _ _ _ _ _ _ _ _ Hty Hres
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Herrn with %Herrn
   subst Herrn
@@ -289,7 +289,6 @@ local macro "timeout_follower" : tactic => `(tactic| (
   iapply HΦ $$ %interface.nil %s1
   iframe Hphys
   ipureintro
-  rw [Hdom] at Hst1
   exact ⟨Hwf1, ⟨[], fun _ h => absurd h List.not_mem_nil, Hst1⟩, rfl, NetFrame.of_logst Hl1 Hpv1 Hg1,
     ⟨Ht1, fun h => absurd h (by rw [Hty]; w32_ne), fun _ _ h => absurd Hty h,
      fun _ => by rw [Hl1]; exact Int.le_refl _,
@@ -431,7 +430,7 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
       isplitl []
       · iapply Hsnap0
       · ity_other
-    obtain ⟨rfl, Hs1⟩ := followerStepResult_rnoop _ _ _ _ _ _ _ _ (by simp [Hty]) Hres
+    obtain ⟨rfl, Hs1⟩ := followerStepResult_rnoop _ _ _ _ _ _ _ _ _ (by simp [Hty]) Hres
     subst s1
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
@@ -504,7 +503,6 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   have Hsnap0 : ∀ (P : IProp GF), ⊢ (⌜m.Type' = MsgSnap⌝ -∗ P : IProp GF) := fun P => by
     iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
   wp_start as Hphys
-  icases ownRaftPhys_progress_dom cfg r id s $$ Hphys with ⟨%Hdom, Hphys⟩
   wp_auto
   wp_apply _P.traceReceiveMessage
   by_cases Hz : m.Term' = W64 0
@@ -551,7 +549,7 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · iapply Hsnap0
       · ity_other
     obtain ⟨rfl, Hwf1, Hst1, Hl1, Ht1, Ht2, Hpv1, Hg1⟩ :=
-      followerStepResult_timeout _ _ _ _ _ _ _ _ Hty Hres
+      followerStepResult_timeout _ _ _ _ _ _ _ _ _ Hty Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn
@@ -562,9 +560,6 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     have Hfr := stepdown_frame (m := m) (s := s)
       (s' := { becomeFollower s m.Term' (W64 0) with prvals := pvs })
       (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt) rfl rfl rfl rfl rfl
-    have Hdom1 : domSet ({ becomeFollower s m.Term' (W64 0) with prvals := pvs } : NState).progress
-        = cfg := Hdom
-    rw [Hdom1] at Hst1
     refine ⟨Hwf1, ⟨[stepdownMsg id m] ++ [], by simp,
       .trans _ _ _ _ _ (stepdown_rest cfg id s m pvs Hgt) Hst1⟩, rfl,
       Hfr.1.trans (NetFrame.of_logst Hl1 Hpv1 Hg1), ?_⟩

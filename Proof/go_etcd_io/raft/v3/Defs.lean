@@ -342,8 +342,9 @@ inductive PRState where
   | probe | replicate | snapshot
   deriving DecidableEq, Inhabited
 
-/-- A `Progress`, without `IsLearner` (no learners are in scope: the abstraction
-function below is undefined on one) and with the state an inductive. `paused` is
+/-- A `Progress`, with the state an inductive. `learner` is `IsLearner` (since 2026-10-13,
+reconfiguration stage L; until then the abstraction function below was undefined on a
+learner). `paused` is
 `MsgAppFlowPaused`; `infl` is the window `Inflights` points at. `RecentActive` is not in
 it: no spec states it (checkQuorum, which reads it, is out of scope; `maybeSendSnapshot`
 reads the Go field and case-splits on it). Until 2026-10-08 it was a field. -/
@@ -355,6 +356,7 @@ structure Progress where
   pendingSnapshot : w64
   paused : Bool
   infl : Inflights
+  learner : Bool
 
 /-- The tracker, as `ownTracker` is indexed by it: the vote tally, the progress map (id
 to `*Progress` -- physical state, like `NState.log`, because callers hold a raw
@@ -409,17 +411,17 @@ variable [FfiSyntax]
 def inflightsAbs (iv : tracker.Inflights) : Inflights :=
   ⟨sint.Z iv.count', sint.Z iv.size', uint.Z iv.bytes', uint.Z iv.maxBytes'⟩
 
-/-- `none` on a learner and on a state outside the three: what the two pure conjuncts
-of `ownProgress` used to rule out. -/
+/-- `none` on a state outside the three: what the pure conjunct of `ownProgress` rules
+out. (Until 2026-10-13 also `none` on a learner.) -/
 def progressAbs (pv : tracker.Progress) (i : Inflights) : Option Progress :=
-  if pv.IsLearner' then none else
   (prstateOfW64 pv.State').map fun st =>
-    ⟨pv.Match', pv.Next', pv.sentCommit', st, pv.PendingSnapshot', pv.MsgAppFlowPaused', i⟩
+    ⟨pv.Match', pv.Next', pv.sentCommit', st, pv.PendingSnapshot', pv.MsgAppFlowPaused', i,
+      pv.IsLearner'⟩
 
 /-- What `progressAbs pv i = some p` says, field by field. -/
 theorem progressAbs_Some (pv : tracker.Progress) (i : Inflights) (p : Progress) :
     progressAbs pv i = some p ↔
-    pv.IsLearner' = false ∧
+    pv.IsLearner' = p.learner ∧
     pv.State' = prstateW64 p.state ∧
     pv.Match' = p.matched ∧
     pv.Next' = p.next ∧
@@ -428,20 +430,17 @@ theorem progressAbs_Some (pv : tracker.Progress) (i : Inflights) (p : Progress) 
     pv.MsgAppFlowPaused' = p.paused ∧
     i = p.infl := by
   unfold progressAbs
-  obtain ⟨m, n, sc, st, ps, pa, inf⟩ := p
-  cases hl : pv.IsLearner'
-  · simp only [Bool.false_eq_true, ↓reduceIte, true_and]
-    rw [← prstateOfW64_Some]
-    cases hs : prstateOfW64 pv.State' with
-    | none => simp
-    | some st' =>
-      simp only [Option.map_some, Option.some.injEq, Progress.mk.injEq]
-      constructor
-      · rintro ⟨h1, h2, h3, h4, h5, h6, h7⟩
-        exact ⟨h4 ▸ rfl, h1, h2, h3, h5, h6, h7⟩
-      · rintro ⟨h4, h1, h2, h3, h5, h6, h7⟩
-        exact ⟨h1, h2, h3, h4, h5, h6, h7⟩
-  · simp
+  obtain ⟨m, n, sc, st, ps, pa, inf, l⟩ := p
+  rw [← prstateOfW64_Some]
+  cases hs : prstateOfW64 pv.State' with
+  | none => simp
+  | some st' =>
+    simp only [Option.map_some, Option.some.injEq, Progress.mk.injEq]
+    constructor
+    · rintro ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩
+      exact ⟨h8, h4 ▸ rfl, h1, h2, h3, h5, h6, h7⟩
+    · rintro ⟨h8, h4, h1, h2, h3, h5, h6, h7⟩
+      exact ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩
 
 end abs
 
@@ -548,6 +547,21 @@ def progressMaybeDecrTo (p : Progress) (rejected matchHint : w64) : Bool × Prog
     (true, { p with next := nx, sentCommit := w64Min p.sentCommit (nx - W64 1),
                     paused := false })
   else (false, p)
+
+/-! The `Progress` methods keep `IsLearner` (2026-10-13): what a give-back to the tracker
+needs (`ownTracker_lookup`). -/
+
+@[simp] theorem progressSentEntries_learner (p : Progress) (e b : w64) :
+    (progressSentEntries p e b).learner = p.learner := by
+  unfold progressSentEntries; split <;> (try split) <;> rfl
+
+@[simp] theorem progressMaybeUpdate_learner (p : Progress) (n : w64) :
+    (progressMaybeUpdate p n).learner = p.learner := by
+  unfold progressMaybeUpdate; split <;> rfl
+
+@[simp] theorem progressMaybeDecrTo_learner (p : Progress) (a b : w64) :
+    (progressMaybeDecrTo p a b).2.learner = p.learner := by
+  unfold progressMaybeDecrTo; split <;> (try split) <;> rfl
 
 section logstate
 variable [FfiSyntax]
@@ -701,6 +715,17 @@ structure NState [FfiSyntax] where
   `reset` clears it, `becomeLeader` sets it, `stepLeader`'s proposal loop moves it.
   Invisible to the protocol (`toPState`). -/
   pci : w64 := W64 0
+  /-- `r.isLearner` (2026-10-13, reconfiguration stage L; until then a scope conjunct pinned
+  it to `false`): what `switchToConfig` last stored, `ok && pr.IsLearner` for the node's own
+  `Progress`. Read only by `switchToConfig` itself, right after the store. Invisible to the
+  protocol (`toPState`). -/
+  isLearner : Bool := false
+
+/-- What `switchToConfig` stores in `r.isLearner` (2026-10-13): `ok && pr.IsLearner` for the
+node's own `Progress` in the new progress map `prs` -- tracked, and outside the voters `cfg`
+(`LearnerFlags`). -/
+def learnerOf (cfg : GSet w64) (prs : GMap w64 Loc) (id : w64) : Bool :=
+  decide (id ∈ domSet prs ∧ id ∉ cfg)
 
 section phys_state
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]

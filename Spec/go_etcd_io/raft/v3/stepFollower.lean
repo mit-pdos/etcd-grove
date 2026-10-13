@@ -79,7 +79,7 @@ def readForward (id lead : w64) (m : raftpb.Message) (ents : List raftpb.Entry)
 /-- What `stepFollower` does with `m`, by type. `dropped` is whether it returned
 `ErrProposalDropped` (the postcondition then says `err` is that global's value;
 otherwise `err = nil`). -/
-def FollowerStepResult (id : w64) (s : NState) (m : raftpb.Message)
+def FollowerStepResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
     (cl : List w8 := []) : Prop :=
   if m.Type' = MsgVoteResp then dropped = false ∧ s' = s
@@ -108,12 +108,12 @@ def FollowerStepResult (id : w64) (s : NState) (m : raftpb.Message)
   -- (2026-10-13) `ForgetLeader` clears the leader (the read-only option is `Safe`);
   -- a leader-transfer request is forwarded to the leader, or dropped without one, and
   -- carries nothing the model sees; the local reports have no arm; `MsgTimeoutNow`
-  -- campaigns (`hup(campaignTransfer)`), with the voters `domSet s.progress` (`= cfg`,
-  -- `ownRaftPhys_progress_dom`)
+  -- campaigns (`hup(campaignTransfer)`), with the voters `cfg` (until 2026-10-13 written
+  -- `domSet s.progress`, equal to it before learners were tracked)
   else if m.Type' = MsgForgetLeader then dropped = false ∧ s' = { s with lead := W64 0 }
   else if m.Type' = MsgTransferLeader ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus then
     dropped = false ∧ s' = s
-  else if m.Type' = MsgTimeoutNow then dropped = false ∧ HupOk (domSet s.progress) id s s'
+  else if m.Type' = MsgTimeoutNow then dropped = false ∧ HupOk cfg id s s'
   else False
 
 end results
@@ -196,7 +196,7 @@ abbrev stepFollower.spec : Prop :=
     (App (App (Val #(functions stepFollower [])) (Val #r)) (Val #m))
   {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
       ownRaftPhys cfg r id s' ∗
-      ⌜FollowerStepResult id s m ents sv dropped s' cl⌝ ∗
+      ⌜FollowerStepResult cfg id s m ents sv dropped s' cl⌝ ∗
       (if dropped then globalAddr ErrProposalDropped ↦□ err
        else ⌜err = interface.nil⌝) }}
 

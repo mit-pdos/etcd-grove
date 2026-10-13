@@ -118,7 +118,7 @@ private theorem ownTracker_cfg_size (cfg : GSet w64) (tv : tracker.ProgressTrack
   unfold ownTracker
   iNamed Hown
   ipureintro
-  exact Hcfg_size
+  exact cfg_size_le cfg _ Hprs_dom Hcfg_size
 
 theorem raft.campaign.wp_proof
     (wp_raft_becomeCandidate : raft.becomeCandidate.spec (GF := GF) (hG := hG))
@@ -156,7 +156,7 @@ theorem raft.campaign.wp_proof
       "term" ∷ term_ptr ↦ (s.term + W64 1) ∗
       "voteMsg" ∷ voteMsg_ptr ↦ vreqW32 (decide (t = campaignPreElection)) ∗
       "r" ∷ r_ptr ↦ r ∗ "t" ∷ t_ptr ↦ t) with [Hphys term voteMsg r t]
-  · wp_apply wp_raft_becomePreCandidate _ _ _ _ Hrole $$ [$Hphys] as Hphys
+  · wp_apply wp_raft_becomePreCandidate _ _ _ _ Hrole Hid_cfg $$ [$Hphys] as Hphys
     rw [show raftpb.MsgPreVote = #MsgPreVote from rfl]
     wp_auto
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
@@ -165,7 +165,7 @@ theorem raft.campaign.wp_proof
     iexists s.prvals
     simp only [campaignPreElection, decide_true, campRoleState, vreqW32, ↓reduceIte]
     iframe
-  · wp_apply wp_raft_becomeCandidate _ _ _ _ Hrole Hnowrap $$ [$Hphys] as %pvs Hphys
+  · wp_apply wp_raft_becomeCandidate _ _ _ _ Hrole Hnowrap Hid_cfg $$ [$Hphys] as %pvs Hphys
     rw [show raftpb.MsgVote = #MsgVote from rfl]
     wp_auto
     wp_apply raft.wp_load_Term $$ Hphys as Hphys

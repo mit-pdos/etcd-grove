@@ -51,7 +51,7 @@ theorem raft.handleSnapshot.wp_proof
   wp_auto
   wp_apply wp_raft_restore _ _ _ _ sv voters Hrole Hvotes Hin Hscope $$ [$Hphys $Hvoters]
     as %b %s1 ⟨Hphys, %Hres⟩
-  rcases Hres with ⟨Hst, rfl, rfl⟩ | ⟨Hlt, Hm, rfl, rfl⟩ | ⟨Hlt, Hnm, rfl, prs, pvs, rfl⟩
+  rcases Hres with ⟨Hst, rfl, rfl⟩ | ⟨Hlt, Hm, rfl, rfl⟩ | ⟨Hlt, Hnm, rfl, prs, pvs, il, rfl⟩
   · -- obsolete: acknowledge the commit index
     wp_auto
     wp_apply raft.wp_load_id $$ Hphys as Hphys
@@ -140,7 +140,7 @@ theorem raft.handleSnapshot.wp_proof
     iapply HΦ
     iframe Hphys
     ipureintro
-    exact Or.inr (Or.inr ⟨Hlt, Hnm, prs, pvs, rfl⟩)
+    exact Or.inr (Or.inr ⟨Hlt, Hnm, prs, pvs, il, rfl⟩)
 
 end proof
 

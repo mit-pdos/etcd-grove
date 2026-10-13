@@ -104,7 +104,7 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     · iintro %Hc; exfalso; rw [Hty] at Hc
       rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
-  obtain ⟨rfl, rfl⟩ := followerStepResult_heartbeat _ _ _ _ _ _ _ _ Hty Hres
+  obtain ⟨rfl, rfl⟩ := followerStepResult_heartbeat _ _ _ _ _ _ _ _ _ Hty Hres
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Herrn with %Herrn
   subst Herrn

@@ -202,7 +202,7 @@ theorem raft.restore.wp_proof
         (by simp only [snapId]; omega) $$ [$Hlog $Hvoters] as Hlog
     ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_snap (by simp [logRestore]))
     -- the tracker replaced by the empty one, the log used meanwhile
-    icases ownRaftPhys_retrack _ ∅ $$ Hphys with ⟨%tv, Htrkf, Htrk, Hlf, Hlog, Hback⟩
+    icases ownRaftPhys_retrack _ ∅ _ _ _ (by intro h; exact absurd Hrole h) $$ Hphys with ⟨%tv, Htrkf, Htrk, Hlf, Hlog, Hback⟩
     icases ownTracker_size $$ Htrk with ⟨%Hcfg_size, Htrk⟩
     icases ownTracker_maxinflight $$ Htrk with ⟨%Hmi, -⟩
     wp_auto
@@ -231,15 +231,9 @@ theorem raft.restore.wp_proof
       rw [GMap.elem_of_list_to_set, Hperm.mem_iff, GMap.elem_of_elements]
     have Hcsz : (GMap.size cfg : Int) ≤ 2 ^ 62 := Hcfg_size
     ipersist Hprsm
-    ihave Hcfg : ownConfig cfg cfgv prsm prs $$ [Hvref Hprogs]
-    · unfold ownConfig
-      iexists vref, vm
-      simp only [named]
-      iframe Hvref Hprsm Hprogs
-      ipureintro
-      rw [← Hcfgeq]
-      exact ⟨Hcfgarr, Hcfgl, Hcfgln, Hcfgal, Hvm, Hprs, Hcfgeq ▸ Hcsz⟩
-    wp_apply (raft.switchToConfig.spec_nonleader wp_raft_switchToConfig) _ _ _ _ _ cfgv prsm prs (by simp [Hrole]) $$ [$Hphys $Hcfg]
+    ihave Hcfg := ownConfig_voters (GF := GF) cfg cfgv prsm prs vref vm
+      Hcfgarr Hcfgl Hcfgln Hcfgal (Hcfgeq ▸ Hvm) (Hcfgeq ▸ Hprs) Hcsz $$ Hvref Hprsm Hprogs
+    wp_apply (raft.switchToConfig.spec_nonleader wp_raft_switchToConfig) _ _ _ _ _ cfgv prsm prs (by simp [Hrole]) (Hcfgeq ▸ Hprs) $$ [$Hphys $Hcfg]
       as %cs2 %xs2 %pvs1 ⟨Hphys, Hcs2v, %Hxs2, %Hcs2l⟩
     obtain ⟨Hc2a, Hc2b, Hc2c, Hc2al⟩ := Hcs2l
     have Hperm2 : voters ≡ₚ xs2 := Hperm.trans Hxs2.symm
@@ -260,7 +254,7 @@ theorem raft.restore.wp_proof
     iapply HΦ $$ %true %_
     iframe Hphys
     ipureintro
-    refine .inr (.inr ⟨by simp only [snapId]; omega, Hm, rfl, prs, pvs1, ?_⟩)
+    refine .inr (.inr ⟨by simp only [snapId]; omega, Hm, rfl, prs, pvs1, false, ?_⟩)
     obtain ⟨⟩ := s
     simp only at Hvotes
     subst Hvotes

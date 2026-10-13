@@ -107,7 +107,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         · iframe Hsv Hvs
       · iintro %Hc; exfalso; rw [Hty] at Hc
         rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
-    obtain ⟨rfl, Hhs⟩ := followerStepResult_snap _ _ _ _ _ _ _ Hty Hres
+    obtain ⟨rfl, Hhs⟩ := followerStepResult_snap _ _ _ _ _ _ _ _ Hty Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn

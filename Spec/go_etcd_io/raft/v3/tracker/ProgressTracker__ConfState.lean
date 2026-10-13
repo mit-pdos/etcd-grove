@@ -25,9 +25,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `p.ConfState()` is the `ConfState` of the active configuration: the voters (some
-permutation of `cfg`; really sorted), and -- since `ownTracker` is a simple
-configuration with no learners -- empty `VotersOutgoing`, `Learners` and
-`LearnersNext`. Only `Voters` is handed back with its elements; for the others their
+permutation of `cfg`; really sorted), the learners (the tracked ids outside `cfg`; since
+2026-10-13, reconfiguration stage L -- until then empty), and -- since `ownTracker` is a
+simple configuration -- empty `VotersOutgoing` and `LearnersNext`. For those two the
 length is all any caller needs. -/
 abbrev tracker.ProgressTracker.ConfState.spec : Prop :=
   ∀ (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk),
@@ -35,11 +35,11 @@ abbrev tracker.ProgressTracker.ConfState.spec : Prop :=
       ownTracker cfg tv t }}
     (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"ConfState"))
       (Val #()))
-  {{ (cs : raftpb.ConfState) (xs : List w64), RET #cs;
+  {{ (cs : raftpb.ConfState) (xs ls : List w64), RET #cs;
       trk ↦ tv ∗ ownTracker cfg tv t ∗
-      cs.Voters' ↦* xs ∗ ⌜xs ≡ₚ elements cfg⌝ ∗
-      ⌜cs.VotersOutgoing'.len = W64 0 ∧
-        cs.Learners'.len = W64 0 ∧
+      cs.Voters' ↦* xs ∗ cs.Learners' ↦* ls ∗
+      ⌜xs ≡ₚ elements cfg ∧ ls ≡ₚ elements (domSet t.prs \ cfg) ∧
+        cs.VotersOutgoing'.len = W64 0 ∧
         cs.LearnersNext'.len = W64 0 ∧
         cs.AutoLeave' = false⌝ }}
 

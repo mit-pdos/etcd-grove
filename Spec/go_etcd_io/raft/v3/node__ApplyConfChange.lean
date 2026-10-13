@@ -41,7 +41,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 abbrev node.ApplyConfChange.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (c : GoInterface) (o : CCMsg),
-  ccApplyM (ccV2Of o).1 (ccV2Of o).2 (cfgState γ.raft.reCfg) = some (cfgState γ.raft.reCfg) →
+  CCNoop γ.raft.reCfg (ccV2Of o).1 (ccV2Of o).2 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
       ownCCI c DFrac.discard (some o) }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ApplyConfChange")) (Val #c))

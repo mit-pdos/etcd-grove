@@ -33,7 +33,7 @@ messages `ReplOk` allows, and `Match` does not move. -/
 abbrev raft.sendAppend.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (to : w64),
   to ≠ id →
-  to ∈ cfg →
+  to ∈ domSet s.progress →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"sendAppend")) (Val #to))

@@ -34,10 +34,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 namespace StepProof
 
 /-- `MsgBeat`, `MsgAppResp` and `MsgHeartbeatResp` reach no arm of `stepFollower`. -/
-theorem followerStepResult_noop (id : w64) (s : NState) (m : raftpb.Message)
+theorem followerStepResult_noop (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
     (Hty : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp)
-    (H : FollowerStepResult id s m ents sv dropped s') : dropped = false ∧ s' = s := by
+    (H : FollowerStepResult cfg id s m ents sv dropped s') : dropped = false ∧ s' = s := by
   unfold FollowerStepResult at H
   rcases Hty with h | h | h <;>
     simp [h, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,

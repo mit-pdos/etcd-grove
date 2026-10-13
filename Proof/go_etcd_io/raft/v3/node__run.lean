@@ -388,13 +388,13 @@ theorem node.run.wp_proof
     ihave Hphys := Htb $$ %tv Htrkf Htrk
     ihave Hrn := Hback $$ Hphys
     have Hb : (s.progress !! id).isSome = true := by
-      have := (GMap.elem_of_dom s.progress id).1 (by rw [Hdom]; exact Hin)
+      have := (GMap.elem_of_dom s.progress id).1 ((GMap.elem_of_subseteq _ _).1 Hdom _ Hin)
       obtain ⟨v, hv⟩ := this; rw [hv]; rfl
     rw [Hb]
     try wp_auto
     -- `cs := r.applyConfChange(cc)`
     wp_apply wp_rn_raft_applyConfChange wp_raft_applyConfChange γ.raft nv.rn' id rs r cc ccs Hn
-      $$ [$Hrn $Hrnraft $Hccs] as %cs %xs ⟨Hrn, Hvoters, %Hcs⟩
+      $$ [$Hrn $Hrnraft $Hccs] as %cs %xs %ls ⟨Hrn, Hvoters, Hls, %Hcs⟩
     -- `_, okAfter := r.trk.Progress[r.id]`: still a voter
     icases ownRawNode_borrow_in γ.raft nv.rn' id rs r $$ Hrn Hrnraft
       with ⟨%s2, %Hin2, Hphys, Hback⟩
@@ -406,10 +406,11 @@ theorem node.run.wp_proof
     ihave Hphys := Htb $$ %tv2 Htrkf Htrk
     ihave Hrn := Hback $$ Hphys
     have Hb2 : (s2.progress !! id).isSome = true := by
-      have := (GMap.elem_of_dom s2.progress id).1 (by rw [Hdom2]; exact Hin2)
+      have := (GMap.elem_of_dom s2.progress id).1 ((GMap.elem_of_subseteq _ _).1 Hdom2 _ Hin2)
       obtain ⟨v, hv⟩ := this; rw [hv]; rfl
     rw [Hb2]
     imod ownSlice_persist $$ Hvoters with #Hvoters
+    imod ownSlice_persist $$ Hls with #Hls
     wp_auto_lc 3
     -- `select { case n.confstatec <- cs: case <-n.done: }`
     wp_apply_core chan.wp_select_blocking
@@ -425,8 +426,8 @@ theorem node.run.wp_proof
       iapply handshake_send_au γ.confstatec nv.confstatec' _ (confstateP γ) iprop(True)
         $$ [$Hlc1 $Hlc2 $Hlc3] Hconfstatec []
       · unfold confstateP
-        iexists xs
-        iframe Hvoters
+        iexists xs, ls
+        iframe Hvoters Hls
         ipureintro; exact Hcs
       inext
       iintro -

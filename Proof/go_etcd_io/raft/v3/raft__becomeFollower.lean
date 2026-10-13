@@ -31,7 +31,7 @@ private theorem wp_store_state_follower (cfg : GSet w64) (r : Loc) (id : w64) (s
       (App (Val (GoInstruction (GoStore StateType.ty)))
         (Val (PairV #(r.[raft, go!"state"]) go_etcd_io.raft.v3.StateFollower)))
     {{ RET #(); ownRaftPhys cfg r id { s with role := .follower } }} :=
-  raft.wp_store_state (cfg := cfg) r id s .follower
+  raft.wp_store_state (cfg := cfg) r id s .follower (fun h => absurd rfl h)
 
 theorem raft.becomeFollower.wp_proof
     (wp_raft_reset : raft.reset.spec (GF := GF) (hG := hG))

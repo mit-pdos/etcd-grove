@@ -93,7 +93,7 @@ abbrev confchange.Restore.spec : Prop :=
         cfgv.AutoLeave' = false⌝ ∗
       vref ↦$ vm ∗ ⌜domSet vm = GMap.listToSet voters⌝ ∗
       prsm ↦$ prs ∗ ⌜domSet prs = GMap.listToSet voters⌝ ∗
-      ([∗map] _k ↦ pr ∈ prs, ∃ p, ownProgress pr p) }}
+      ([∗map] _k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗ ⌜p.learner = false⌝) }}
 
 end spec
 

@@ -57,13 +57,16 @@ theorem tracker.ProgressTracker.QuorumActive.wp_proof
     tracker.ProgressTracker.QuorumActive.spec (GF := GF) (hG := hG) := by
   intro cfg trk tv t
   wp_start as ⟨Htrk, Hown⟩
+  icases ownTracker_flags cfg tv t $$ Hown with ⟨%Hfl, Hown⟩
   wp_auto
   wp_apply wp_map_make1 (K := w64) (V := Bool) as %vref Hvm
+  -- (since 2026-10-13 the learners are visited too, and skipped: the map's domain is the
+  -- voters visited, within `cfg`)
   wp_apply wp_ProgressTracker_Visit cfg _ tv t _
-      (fun D pvsx => iprop(∃ (vm : GMap w64 Bool),
+      (fun _ pvsx => iprop(∃ (vm : GMap w64 Bool),
         "votes" ∷ votes_ptr ↦ vref ∗
         "Hvm" ∷ vref ↦$ vm ∗
-        "%Hdom" ∷ ⌜domSet vm = D⌝ ∗
+        "%Hdom" ∷ ⌜domSet vm ⊆ cfg⌝ ∗
         "%Hpvs" ∷ ⌜pvsx = t.peers⌝))
     $$ [$Htrk $Hown votes Hvm]
   · isplitl [votes Hvm]
@@ -71,7 +74,7 @@ theorem tracker.ProgressTracker.QuorumActive.wp_proof
       simp only [named]
       iframe votes Hvm
       ipureintro
-      constructor <;> first | exact GMap.dom_empty | trivial
+      exact ⟨by rw [GMap.dom_empty]; exact GMap.empty_subseteq _, trivial⟩
     imodintro
     unfold visitClosure
     iintro %i %pr %tv0 %pvs0 %p %D
@@ -80,26 +83,49 @@ theorem tracker.ProgressTracker.QuorumActive.wp_proof
     iunfold ownProgress at Hpr
     iNamed Hpr
     have Habs' := (progressAbs_Some _ _ _).1 Habs
+    have Hpl : p.learner = decide (i ∉ cfg) := Hfl i p (Hpvs ▸ Hpvi)
     wp_auto
-    rw [Habs'.1]
-    wp_auto
-    wp_apply wp_mapInsert $$ [$Hvm] as Hvm
-    ihave Hpr := ownProgress_intro pr pv p $$ Hpv Hinfl []
-    · ipureintro; exact Habs
-    ihave Htrk := Hback $$ Hpr
-    rw [GMap.insert_id pvs0 i p Hpvi]
-    iapply HΦ
-    iexists tv0, pvs0
-    iframe Htrkf Htrk
-    iexists (<[i := pv.RecentActive']> vm)
-    simp only [named]
-    iframe votes Hvm
-    ipureintro
-    exact ⟨by rw [GMap.dom_insert, Hdom], Hpvs⟩
+    by_cases Hic : i ∈ cfg
+    · have Hb : pv.IsLearner' = false := by
+        rw [Habs'.1, Hpl]; exact decide_eq_false (fun h => h Hic)
+      rw [Hb]
+      wp_auto
+      wp_apply wp_mapInsert $$ [$Hvm] as Hvm
+      ihave Hpr := ownProgress_intro pr pv p $$ Hpv Hinfl []
+      · ipureintro; exact Habs
+      ihave Htrk := Hback $$ %p Hpr %rfl
+      rw [GMap.insert_id pvs0 i p Hpvi]
+      iapply HΦ
+      iexists tv0, pvs0
+      iframe Htrkf Htrk
+      iexists (<[i := pv.RecentActive']> vm)
+      simp only [named]
+      iframe votes Hvm
+      ipureintro
+      refine ⟨?_, Hpvs⟩
+      rw [GMap.dom_insert, GMap.union_subseteq]
+      exact ⟨(GMap.singleton_subseteq_l _ _).2 Hic, Hdom⟩
+    · have Hb : pv.IsLearner' = true := by
+        rw [Habs'.1, Hpl]; exact decide_eq_true Hic
+      rw [Hb]
+      wp_auto
+      ihave Hpr := ownProgress_intro pr pv p $$ Hpv Hinfl []
+      · ipureintro; exact Habs
+      ihave Htrk := Hback $$ %p Hpr %rfl
+      rw [GMap.insert_id pvs0 i p Hpvi]
+      iapply HΦ
+      iexists tv0, pvs0
+      iframe Htrkf Htrk
+      iexists vm
+      simp only [named]
+      iframe votes Hvm
+      ipureintro
+      exact ⟨Hdom, Hpvs⟩
   iintro ⟨%tvfin, %pvsfin, Htrk, Hown, HI⟩
   iNamed HI
   subst Hpvs
   iNamed Hown
+  have Hcfg_size' := cfg_size_le cfg _ Hprs_dom Hcfg_size
   wp_auto
   wp_method_call
   wp_call
@@ -140,8 +166,7 @@ theorem tracker.ProgressTracker.QuorumActive.wp_proof
     rw [GMap.elem_of_subseteq]
     intro x hx
     rw [elem_of_granted] at hx
-    rw [← Hdom, GMap.elem_of_dom]
-    exact ⟨_, hx⟩
+    exact (GMap.elem_of_subseteq _ _).1 Hdom _ ((GMap.elem_of_dom _ _).2 ⟨_, hx⟩)
   rcases Hr1 with rfl | rfl | rfl
   · rw [decide_eq_true rfl]
     wp_auto

@@ -101,7 +101,8 @@ it is defined, `InvTracker.lean`):
   tracker back, rather than being lent one `ownProgress` and handing that back.
   `bcastAppend`'s closure re-enters the tracker through `maybeSendAppend`'s own
   `r.trk.Progress[to]` lookup, so one `Progress` is not enough;
-- it is told `i ∈ cfg`, which is what makes that lookup hit;
+- it is told `i ∈ cfg`, which is what makes that lookup hit (since 2026-10-13, with
+  learners tracked, `i ∈ domSet prs`: a voter or a learner);
 - the tracker *value* may change across the call, so this postcondition is existential
   in it. `ownRaftPhys` hides the struct value, so a closure that calls back into the
   raft struct cannot promise to return the field at the value it was handed.
@@ -119,7 +120,7 @@ abbrev tracker.ProgressTracker.Visit.spec : Prop :=
     (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"Visit"))
       (Val #f))
   {{ RET #(); ∃ tv' pvs', trk ↦ tv' ∗ ownTracker cfg tv' ⟨t.votes, t.prs, pvs'⟩ ∗
-      I cfg pvs' }}
+      I (domSet t.prs) pvs' }}
 
 end spec
 

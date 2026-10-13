@@ -27,7 +27,7 @@ theorem raft.becomeCandidate.wp_proof
     (wp_raft_reset : raft.reset.spec (GF := GF) (hG := hG))
     (wp_traceBecomeCandidate : traceBecomeCandidate.spec (GF := GF) (hG := hG)) :
     raft.becomeCandidate.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s Hrole Hnw
+  intro cfg r id s Hrole Hnw Hcfg
   wp_start as Hphys
   wp_auto
   -- `becomeCandidate` panics on a leader; by assumption we are not one.
@@ -49,7 +49,7 @@ theorem raft.becomeCandidate.wp_proof
   wp_apply raft.wp_load_id $$ Hphys as Hphys
   wp_apply raft.wp_store_Vote $$ Hphys as Hphys
   rw [show (go_etcd_io.raft.v3.StateCandidate : val) = #(stateW64 .candidate) from rfl]
-  wp_apply raft.wp_store_state (ro := .candidate) $$ Hphys as Hphys
+  wp_apply raft.wp_store_state (ro := .candidate) (Hro := fun _ => Hcfg) $$ Hphys as Hphys
   wp_apply raft.wp_load_id $$ Hphys as Hphys
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
   wp_raft_log

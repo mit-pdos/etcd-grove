@@ -71,8 +71,7 @@ theorem tracker.ProgressTracker.Visit.wp_proof
   wp_auto
   -- `n := len(p.Progress)`
   wp_apply wp_ProgressMap_len $$ Hprs as -
-  have Hsz62 : (GMap.size prs : Int) ≤ 2 ^ 62 := by
-    rw [← Hprs_dom, GMap.size_dom] at Hcfg_size; exact Hcfg_size
+  have Hsz62 : (GMap.size prs : Int) ≤ 2 ^ 62 := Hcfg_size
   have Hsz : (GMap.size prs : Int) < 2 ^ 63 := by omega
   wp_join iprop(∃ (sl : GoSlice) (xs : List w64),
       "n" ∷ n_ptr ↦ W64 (GMap.size prs) ∗
@@ -180,14 +179,15 @@ theorem tracker.ProgressTracker.Visit.wp_proof
   ihave %Hys_len := ownSlice_len _ _ _ $$ Hsl
   have Hys_size : ys.length = GMap.size prs := by
     rw [← Hperm.length_eq, List.length_reverse, Hklen]
-  have Hyc : ∀ y, y ∈ ys → y ∈ cfg := by
+  have Hyc : ∀ y, y ∈ ys → y ∈ domSet prs := by
     intro y Hy
-    rw [← Hprs_dom, GMap.elem_of_dom']
+    rw [GMap.elem_of_dom']
     exact Hys_dom y Hy
-  -- `ids` enumerates exactly the voters: what makes `I`'s visited set end at `cfg`
-  have Hysc : GMap.listToSet ys = cfg := by
+  -- `ids` enumerates exactly the tracked ids: what makes `I`'s visited set end at
+  -- `domSet prs`
+  have Hysc : GMap.listToSet ys = domSet prs := by
     apply GMap.set_eq; intro y
-    rw [GMap.elem_of_list_to_set, ← Hprs_dom, GMap.elem_of_dom', ← Hperm.mem_iff,
+    rw [GMap.elem_of_list_to_set, GMap.elem_of_dom', ← Hperm.mem_iff,
       List.mem_reverse]
     exact Hkset y
   -- re-seal the tracker: the closure is lent all of it
@@ -216,7 +216,7 @@ theorem tracker.ProgressTracker.Visit.wp_proof
   · -- another id to visit: `f(id, p.Progress[id])`
     obtain ⟨y, Hy⟩ : ∃ y, ys[(sint.Z j).toNat]? = some y :=
       ⟨_, List.getElem?_eq_getElem (by word)⟩
-    have Hycfg : y ∈ cfg := Hyc y (List.mem_of_getElem? Hy)
+    have Hycfg : y ∈ domSet prs := Hyc y (List.mem_of_getElem? Hy)
     rw [ite_eq_left (by word)]
     wp_apply wp_load_slice_index (V := w64) (t := go.uint64) sl (sint.Z j) ys (DFrac.own 1) y
       (by word) $$ [Hsl] as Hsl
@@ -225,7 +225,7 @@ theorem tracker.ProgressTracker.Visit.wp_proof
     -- the map itself is `prs` at every one of them
     icases ownTracker_progress_map cfg tvc _ $$ Hown with ⟨#Hprsc, %Hdomc, Hown⟩
     obtain ⟨prc, Hprc⟩ : ∃ prc, prs !! y = some prc := by
-      rw [← Hprs_dom, GMap.elem_of_dom] at Hycfg; exact Hycfg
+      rw [GMap.elem_of_dom] at Hycfg; exact Hycfg
     wp_apply wp_map_lookup1 $$ Hprsc as -
     rw [Hprc, Option.getD_some]
     icases ownTracker_maxinflight cfg tvc _ $$ Hown with ⟨%HmaxIc, Hown⟩

@@ -31,12 +31,13 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `raft.wp_store_state` at the value the Go code stores. -/
-private theorem wp_store_state_leader (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) :
+private theorem wp_store_state_leader (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
+    (Hcfg : id ∈ cfg) :
     {{ ownRaftPhys (GF := GF) cfg r id s }}
       (App (Val (GoInstruction (GoStore StateType.ty)))
         (Val (PairV #(r.[raft, go!"state"]) go_etcd_io.raft.v3.StateLeader)))
     {{ RET #(); ownRaftPhys cfg r id { s with role := .leader } }} :=
-  raft.wp_store_state (cfg := cfg) r id s .leader
+  raft.wp_store_state (cfg := cfg) r id s .leader (fun _ => Hcfg)
 
 theorem raft.becomeLeader.wp_proof
     (wp_raft_reset : raft.reset.spec (GF := GF) (hG := hG))
@@ -63,7 +64,7 @@ theorem raft.becomeLeader.wp_proof
   wp_apply raft.wp_store_tick (Hf := .inr rfl) $$ Hphys as Hphys
   wp_apply raft.wp_load_id $$ Hphys as Hphys
   wp_apply raft.wp_store_lead $$ Hphys as Hphys
-  wp_apply wp_store_state_leader $$ Hphys as Hphys
+  wp_apply wp_store_state_leader _ _ _ _ Hcfg $$ Hphys as Hphys
   -- the state is now `becomeLeaderPre` up to the order of the record updates
   ihave Hphys : ownRaftPhys cfg r id { becomeLeaderPre id s with prvals := pvs } $$ [Hphys]
   · iapply ownRaftPhys_eq cfg r id _ _ ?_ $$ Hphys
@@ -89,7 +90,7 @@ theorem raft.becomeLeader.wp_proof
     ipureintro
     obtain ⟨h1, h2, h3, h4, h5, h6, h8, h9⟩ := (progressAbs_Some _ _ _).1 Habs
     exact (progressAbs_Some _ _ _).2 ⟨h1, h2, h3, h4, h5, h6, h8, h9⟩
-  ihave Htrk := Hprback $$ %_ Hpr
+  ihave Htrk := Hprback $$ %_ Hpr %rfl
   ihave Hphys := Hback $$ %_ %_ Htrkf Htrk
   -- `r.pendingConfIndex = r.raftLog.lastIndex()`
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys

@@ -54,19 +54,20 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev RawNode.ApplyConfChange.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (c : GoInterface) (o : CCMsg)
     (dq : DFrac),
-  ccApplyM (ccV2Of o).1 (ccV2Of o).2 (cfgState γ.reCfg) = some (cfgState γ.reCfg) →
+  CCNoop γ.reCfg (ccV2Of o).1 (ccV2Of o).2 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       "Hc" ∷ ownCCI c dq (some o) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"ApplyConfChange")) (Val #c))
-  {{ (csp : Loc) (cs : raftpb.ConfState) (xs : List w64), RET #csp;
+  {{ (csp : Loc) (cs : raftpb.ConfState) (xs ls : List w64), RET #csp;
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       "Hc" ∷ ownCCI c dq (some o) ∗
       "Hcs" ∷ csp ↦ cs ∗
       "Hvoters" ∷ cs.Voters' ↦* xs ∗
+      "Hlearners" ∷ cs.Learners' ↦* ls ∗
       "%Hxs" ∷ ⌜xs ≡ₚ elements γ.reCfg⌝ ∗
+      "%Hls" ∷ ⌜∀ k ∈ ls, k ∉ γ.reCfg⌝ ∗
       "%Hcs0" ∷ ⌜cs.VotersOutgoing'.len = W64 0 ∧
-        cs.Learners'.len = W64 0 ∧
         cs.LearnersNext'.len = W64 0 ∧
         cs.AutoLeave' = false⌝ }}
 

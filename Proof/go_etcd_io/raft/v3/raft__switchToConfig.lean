@@ -61,10 +61,10 @@ theorem raft.switchToConfig.wp_proof
     iframe
   ihave Htrk := ownTracker_reconfigV cfg tv0 s.votes cfgv prsm prs pvs Hmi $$ Hvotes Hnew
   ihave Hphys := Hback $$ %_ %prs %pvs Htrkf Htrk
-  -- from here on the state is `s1`
-  generalize Hs1 : ({ s with progress := prs, prvals := pvs } : NState) = s1
-  have Hrole1 : s1.role = s.role := by rw [← Hs1]
-  have Hprs1 : s1.progress = prs := by rw [← Hs1]
+  -- from here on the state is `s0`, and `s1` once `r.isLearner` is stored
+  generalize Hs0 : ({ s with progress := prs, prvals := pvs } : NState) = s0
+  have Hrole0 : s0.role = s.role := by rw [← Hs0]
+  have Hprs0 : s0.progress = prs := by rw [← Hs0]
   -- the log line: `r.id`, `r.trk.Config`
   wp_apply raft.wp_load_id $$ Hphys as Hphys
   icases ownRaftPhys_tracker_same cfg r id _ $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hback⟩
@@ -74,12 +74,13 @@ theorem raft.switchToConfig.wp_proof
   -- `cs := r.trk.ConfState()`
   icases ownRaftPhys_tracker_same cfg r id _ $$ Hphys with ⟨%tv2, Htrkf, Htrk, Hback⟩
   wp_apply wp_ProgressTracker_ConfState $$ [$Htrkf $Htrk]
-    as %cs %xs ⟨Htrkf, Htrk, Hcs, %Hxs, %Hcs0⟩
+    as %cs %xs %ls ⟨Htrkf, Htrk, Hcs, Hls, %Hcs0⟩
   ihave Hphys := Hback $$ %tv2 Htrkf Htrk
   -- `pr, ok := r.trk.Progress[r.id]`
   wp_apply raft.wp_load_id $$ Hphys as Hphys
   icases ownRaftPhys_tracker_same cfg r id _ $$ Hphys with ⟨%tv3, Htrkf, Htrk, Hback⟩
   icases ownTracker_progress_map cfg _ _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
+  icases ownTracker_flags cfg _ _ $$ Htrk with ⟨%Hfl, Htrk⟩
   wp_auto
   wp_apply wp_map_lookup2 $$ Hprs as -
   dsimp only
@@ -87,16 +88,16 @@ theorem raft.switchToConfig.wp_proof
   · ------------------------------------------------------------------
     -- a leader that stays a voter
     obtain ⟨Hin, -⟩ := Hlead Hl
-    have Hl1 : s1.role = .leader := by rw [Hrole1]; exact Hl
-    have Hst : stateW64 s1.role = W64 2 := by rw [Hl1]; rfl
-    obtain ⟨pr, Hlk⟩ : ∃ pr, s1.progress !! id = some pr := by
-      rw [← GMap.elem_of_dom, Hdom]; exact Hin
+    obtain ⟨pr, Hlk⟩ : ∃ pr, s0.progress !! id = some pr := by
+      rw [← GMap.elem_of_dom]; exact (GMap.elem_of_subseteq _ _).1 Hdom _ Hin
     rw [Hlk]
     simp only [Option.getD_some, Option.isSome_some]
     wp_auto
-    icases ownTracker_lookup_same cfg _ _ id pr Hlk $$ Htrk with ⟨%p, -, Hpr, Hprback⟩
+    icases ownTracker_lookup_same cfg _ _ id pr Hlk $$ Htrk with ⟨%p, %Hpv, Hpr, Hprback⟩
     iNamed Hpr
-    have Hnolearner := ((progressAbs_Some _ _ _).1 Habs).1
+    have Hnolearner : pv.IsLearner' = false := by
+      rw [((progressAbs_Some _ _ _).1 Habs).1, Hfl id p Hpv]
+      exact decide_eq_false (fun h => h Hin)
     wp_auto
     rw [Hnolearner]
     ihave Htrk := Hprback $$ [Hpv Hinfl]
@@ -104,13 +105,23 @@ theorem raft.switchToConfig.wp_proof
       ipureintro; exact Habs
     ihave Hphys := Hback $$ %tv3 Htrkf Htrk
     wp_apply raft.wp_store_isLearner $$ Hphys as Hphys
+    have HL : learnerOf cfg prs id = false := decide_eq_false (fun h => h.2 Hin)
+    ihave Hphys := ownRaftPhys_eq cfg r id _ { s0 with isLearner := learnerOf cfg prs id }
+      (by rw [HL]) $$ Hphys
     wp_apply raft.wp_load_isLearner $$ Hphys as Hphys
+    generalize Hs1 : ({ s0 with isLearner := learnerOf cfg prs id } : NState) = s1
+    have Hs1l : s1.isLearner = false := by rw [← Hs1]; exact HL
+    rw [Hs1l]
+    have Hrole1 : s1.role = s.role := by rw [← Hs1, ← Hs0]
+    have Hl1 : s1.role = .leader := by rw [Hrole1]; exact Hl
+    have Hst : stateW64 s1.role = W64 2 := by rw [Hl1]; rfl
+    wp_auto
     wp_apply raft.wp_load_state $$ Hphys as Hphys
     rw [Hst]
     ihave %Hxlen := ownSlice_len $$ Hcs
     have Hxne : xs.length ≠ 0 := by
       intro h
-      have : id ∈ xs := Hxs.mem_iff.2 ((GMap.elem_of_elements cfg id).2 Hin)
+      have : id ∈ xs := Hcs0.1.mem_iff.2 ((GMap.elem_of_elements cfg id).2 Hin)
       rw [List.length_eq_zero_iff] at h; rw [h] at this; simp at this
     wp_auto
     rw [decide_eq_false (show ¬ (cs.Voters'.len = W64 0) by
@@ -162,7 +173,7 @@ theorem raft.switchToConfig.wp_proof
           iintro %i %pr0 %tv0' %pvs0 %p0 %D
           wp_start as ⟨%Hicfg, %Hpri, %Hpvi, %HmaxI, Htrkf, Hpr, Hback0, HI⟩
           iNamed HI
-          ihave Htrk := Hback0 $$ Hpr
+          ihave Htrk := Hback0 $$ %p0 Hpr %rfl
           ihave Hphys := Hrest $$ Htrkf Htrk
           wp_auto
           wp_apply raft.wp_load_id $$ Hphys as Hphys
@@ -192,7 +203,7 @@ theorem raft.switchToConfig.wp_proof
           · -- a peer: `maybeSendAppend(id, false)`
             rw [decide_eq_false Hii]
             wp_auto
-            wp_apply wp_raft_maybeSendAppend _ _ _ _ i false Hii Hicfg $$ [$Hphys]
+            wp_apply wp_raft_maybeSendAppend _ _ _ _ i false Hii (by exact Hicfg) $$ [$Hphys]
               as %b' %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
             try wp_auto
             icases ownRaftPhys_tracker_prvals $$ Hphys with ⟨%tv1', Htrkf, Htrk, Hrest⟩
@@ -285,27 +296,34 @@ theorem raft.switchToConfig.wp_proof
                 ipureintro; exact Hkeep))
     iNamed HR2
     wp_auto
-    iapply HΦ $$ %cs %xs %s'
-    iframe Hphys Hcs
+    iapply HΦ $$ %cs %xs %ls %s'
+    iframe Hphys Hcs Hls
     ipureintro
-    refine ⟨Hxs, Hcs0, ?_⟩
+    subst Hs0 Hs1
+    refine ⟨Hcs0, ?_⟩
     unfold SwitchOk
     rw [if_pos Hl1]
     exact Hs'
   · ------------------------------------------------------------------
     -- a non-leader: done
-    have Hns : stateW64 s1.role ≠ W64 2 := by
-      rw [Hrole1]
+    have Hns : stateW64 s0.role ≠ W64 2 := by
+      rw [Hrole0]
       cases h : s.role <;> simp_all [stateW64, StateFollower, StateCandidate, StatePreCandidate]
-    have HSw : SwitchOk cfg id s1 s1 := by
-      unfold SwitchOk; rw [if_neg (by rw [Hrole1]; exact Hl)]
-    cases Hlk : s1.progress !! id with
+    have HSw : SwitchOk cfg id { s0 with isLearner := learnerOf cfg prs id }
+        { s0 with isLearner := learnerOf cfg prs id } := by
+      unfold SwitchOk; rw [if_neg (by show s0.role ≠ _; rw [Hrole0]; exact Hl)]
+    cases Hlk : s0.progress !! id with
     | some pr =>
       simp only [Option.getD_some, Option.isSome_some]
       wp_auto
-      icases ownTracker_lookup_same cfg _ _ id pr Hlk $$ Htrk with ⟨%p, -, Hpr, Hprback⟩
+      icases ownTracker_lookup_same cfg _ _ id pr Hlk $$ Htrk with ⟨%p, %Hpv, Hpr, Hprback⟩
       iNamed Hpr
-      have Hnolearner := ((progressAbs_Some _ _ _).1 Habs).1
+      have Hnolearner : pv.IsLearner' = learnerOf cfg prs id := by
+        rw [((progressAbs_Some _ _ _).1 Habs).1, Hfl id p Hpv]
+        unfold learnerOf
+        have : id ∈ domSet prs := by
+          rw [← Hprs0, GMap.elem_of_dom]; exact ⟨pr, Hlk⟩
+        simp [this]
       wp_auto
       rw [Hnolearner]
       ihave Htrk := Hprback $$ [Hpv Hinfl]
@@ -314,30 +332,62 @@ theorem raft.switchToConfig.wp_proof
       ihave Hphys := Hback $$ %tv3 Htrkf Htrk
       wp_apply raft.wp_store_isLearner $$ Hphys as Hphys
       wp_apply raft.wp_load_isLearner $$ Hphys as Hphys
-      wp_apply raft.wp_load_state $$ Hphys as Hphys
-      rw [decide_eq_false Hns]
-      wp_auto
-      iapply HΦ $$ %cs %xs %s1
-      iframe
-      ipureintro
-      exact ⟨Hxs, Hcs0, HSw⟩
+      try dsimp only
+      cases HL : learnerOf cfg prs id
+      · wp_auto
+        wp_apply raft.wp_load_state $$ Hphys as Hphys
+        try dsimp only
+        rw [decide_eq_false Hns]
+        wp_auto
+        iapply HΦ $$ %cs %xs %ls %_
+        rw [HL] at HSw
+        iframe
+        ipureintro
+        subst Hs0
+        exact ⟨Hcs0, HSw⟩
+      · wp_auto
+        wp_apply raft.wp_load_state $$ Hphys as Hphys
+        try dsimp only
+        rw [decide_eq_false Hns]
+        wp_auto
+        wp_apply raft.wp_load_state $$ Hphys as Hphys
+        try dsimp only
+        rw [decide_eq_false Hns]
+        wp_auto
+        iapply HΦ $$ %cs %xs %ls %_
+        rw [HL] at HSw
+        iframe
+        ipureintro
+        subst Hs0
+        exact ⟨Hcs0, HSw⟩
     | none =>
       simp only [Option.getD_none, Option.isSome_none]
       wp_auto
       ihave Hphys := Hback $$ %tv3 Htrkf Htrk
       wp_apply raft.wp_store_isLearner $$ Hphys as Hphys
+      have HL : learnerOf cfg prs id = false := by
+        unfold learnerOf
+        have : id ∉ domSet prs := by
+          rw [← Hprs0, GMap.not_elem_of_dom]; exact Hlk
+        simp [this]
+      rw [HL] at HSw
       -- `!ok` is `true`: the `||` does not load `r.isLearner`, and `r.state` is loaded by
       -- both `if`s
       wp_apply raft.wp_load_state $$ Hphys as Hphys
+      try dsimp only
       rw [decide_eq_false Hns]
       wp_auto
       wp_apply raft.wp_load_state $$ Hphys as Hphys
+      try dsimp only
       rw [decide_eq_false Hns]
       wp_auto
-      iapply HΦ $$ %cs %xs %s1
+      iapply HΦ $$ %cs %xs %ls %_
       iframe
       ipureintro
-      exact ⟨Hxs, Hcs0, HSw⟩
+      subst Hs0
+      refine ⟨Hcs0, ?_⟩
+      rw [HL]
+      exact HSw
 
 end proof
 

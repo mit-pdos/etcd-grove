@@ -36,6 +36,7 @@ theorem tracker.ProgressTracker.VoterNodes.wp_proof
   wp_auto
   wp_apply (quorum.JointConfig.IDs.spec_tracker wp_JointConfig_IDs) $$ [$Htrk $Hown] as %mref %idm ⟨Htrk, Hown, Hidm, %Hdomidm⟩
   iNamed Hown
+  have Hcfg_size' := cfg_size_le cfg _ Hprs_dom Hcfg_size
   ihave Hown := ownTracker_intro cfg tv t.votes t.prs t.peers voters_ref voters
     learners learnersNext Hprs_dom Hvoters_arr Hautoleave Hvoters_dom Hno_learners Hcfg_size
     HmaxInfl $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext

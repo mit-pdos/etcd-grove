@@ -45,10 +45,10 @@ local macro "mtype_simp" : tactic =>
       or_false, false_or, false_and, and_false, ↓reduceIte, Bool.false_eq_true] at *)
 
 /-- `stepFollower` has no `MsgPreVoteResp` arm. -/
-theorem followerStepResult_prevoteresp (id : w64) (s : NState) (m : raftpb.Message)
+theorem followerStepResult_prevoteresp (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState) :
     m.Type' = MsgPreVoteResp →
-    FollowerStepResult id s m ents sv dropped s' → dropped = false ∧ s' = s := by
+    FollowerStepResult cfg id s m ents sv dropped s' → dropped = false ∧ s' = s := by
   intro Hty H
   unfold FollowerStepResult at H
   rw [Hty] at H

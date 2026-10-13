@@ -107,7 +107,7 @@ theorem wp_Step_Resp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
       · iintro %Hc; exfalso; rw [Hty] at Hc
         rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
-    obtain ⟨rfl, Hs1⟩ := followerStepResult_noop _ _ _ _ _ _ _ Hty3 Hres
+    obtain ⟨rfl, Hs1⟩ := followerStepResult_noop _ _ _ _ _ _ _ _ Hty3 Hres
     rw [Hs1]
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn

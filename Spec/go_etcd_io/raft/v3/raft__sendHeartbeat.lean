@@ -37,7 +37,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
     r.send(pb.Message{To: to, Type: pb.MsgHeartbeat, Commit: commit, Context: ctx})
     pr.SentCommit(commit)
 
-`to ∈ cfg` makes the lookup hit (otherwise `pr` is nil and `pr.Match` faults);
+`to ∈ domSet s.progress` (a voter or a learner; `to ∈ cfg` until 2026-10-13) makes the
+lookup hit (otherwise `pr` is nil and `pr.Match` faults);
 `to ≠ id` rules out `send`'s self-addressed `Panicf`.
 
 The outbox grows by one `heartbeat` to `to` at the current term whose `Commit` is
@@ -51,7 +52,7 @@ abbrev raft.sendHeartbeat.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (to : w64) (ctx : GoSlice)
     (cl : List w8),
   to ≠ id →
-  to ∈ cfg →
+  to ∈ domSet s.progress →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       "#Hctx" ∷ ctx ↦*□ cl }}

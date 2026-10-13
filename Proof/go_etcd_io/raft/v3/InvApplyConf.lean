@@ -36,15 +36,18 @@ open Iris Iris.BI go_etcd_io.raft.v3
 section model
 variable [FfiSyntax]
 
-/-- Every voter of `cfg` tracked, as a non-learner. -/
-def cfgFlags (cfg : GSet w64) : GMap w64 Bool := GMap.fmap (fun _ => false) cfg
+/-- The voters `cfg` tracked as non-learners and the learners `lrn` as learners (since
+2026-10-13, reconfiguration stage L; until then voters only). -/
+def cfgFlags (cfg lrn : GSet w64) : GMap w64 Bool :=
+  GMap.fmap (fun _ => false) cfg ∪ GMap.fmap (fun _ => true) lrn
 
-/-- The configuration `cfg` as a `Config`: voters only. -/
-def cfgM (cfg : GSet w64) : CfgM :=
-  { incoming := cfg, outgoing := ∅, learners := ∅, learnersNext := ∅, autoLeave := false }
+/-- The configuration with voters `cfg` and learners `lrn` as a `Config`. -/
+def cfgM (cfg lrn : GSet w64) : CfgM :=
+  { incoming := cfg, outgoing := ∅, learners := lrn, learnersNext := ∅, autoLeave := false }
 
-/-- What `confchange` sees of a node whose configuration is `cfg` (`ownTracker`). -/
-def cfgState (cfg : GSet w64) : CCState := { cfg := cfgM cfg, prs := cfgFlags cfg }
+/-- What `confchange` sees of a node whose configuration is `cfg` with the learners `lrn`
+(`ownTracker`: `lrn` is the tracked ids outside `cfg`). -/
+def cfgState (cfg lrn : GSet w64) : CCState := { cfg := cfgM cfg lrn, prs := cfgFlags cfg lrn }
 
 /-- What `ConfChangeI.AsV2()` makes of a change: a `ConfChange` is one change with
 transition `Auto` (`ConfChange.AsV2`'s spec); a `ConfChangeV2` is itself. -/
@@ -63,19 +66,56 @@ def ccApplyM (t : raftpb.ConfChangeTransition) (ccs : List raftpb.ConfChangeSing
     | some (_, false) => simpleM ccs s
     | none => none
 
-theorem cfgFlags_mem (cfg : GSet w64) (k : w64) : k ∈ cfgFlags cfg ↔ k ∈ cfg := by
-  simp [cfgFlags, GMap.mem_iff, GMap.lookup_fmap]
+/-- A change that leaves every configuration with the voters `cfg` as it is, whatever its
+learners (2026-10-13): the scope of `RawNode.ApplyConfChange`, whose state does not say
+which learners the node tracks. -/
+def CCNoop (cfg : GSet w64) (t : raftpb.ConfChangeTransition)
+    (ccs : List raftpb.ConfChangeSingle) : Prop :=
+  ∀ lrn : GSet w64, (∀ k, k ∈ lrn → k ∉ cfg) →
+    ccApplyM t ccs (cfgState cfg lrn) = some (cfgState cfg lrn)
 
-theorem cfgInv_cfgState (cfg : GSet w64) : CfgInv (cfgState cfg) := by
+theorem cfgFlags_lookup (cfg lrn : GSet w64) (k : w64) :
+    cfgFlags cfg lrn !! k =
+      if k ∈ cfg then some false else if k ∈ lrn then some true else none := by
+  simp only [cfgFlags, GMap.lookup_union, GMap.lookup_fmap]
+  cases h1 : cfg !! k with
+  | some u =>
+    have hk : k ∈ cfg := (GMap.elem_of_gset _ _).2 (by cases u; exact h1)
+    simp [hk]
+  | none =>
+    have hk : k ∉ cfg := fun h => by rw [GMap.elem_of_gset, h1] at h; cases h
+    cases h2 : lrn !! k with
+    | some u =>
+      have hl : k ∈ lrn := (GMap.elem_of_gset _ _).2 (by cases u; exact h2)
+      simp [hk, hl]
+    | none =>
+      have hl : k ∉ lrn := fun h => by rw [GMap.elem_of_gset, h2] at h; cases h
+      simp [hk, hl]
+
+theorem cfgFlags_mem (cfg lrn : GSet w64) (k : w64) :
+    k ∈ cfgFlags cfg lrn ↔ k ∈ cfg ∨ k ∈ lrn := by
+  rw [GMap.mem_iff, cfgFlags_lookup]
+  by_cases h1 : k ∈ cfg
+  · simp [h1]
+  · by_cases h2 : k ∈ lrn <;> simp [h1, h2]
+
+theorem cfgInv_cfgState (cfg lrn : GSet w64) (Hd : ∀ k, k ∈ lrn → k ∉ cfg) :
+    CfgInv (cfgState cfg lrn) := by
   refine ⟨fun k hk => ?_, fun k hk => ?_, fun k hk => ?_, fun _ => ⟨rfl, rfl⟩⟩
-  · rcases hk with hk | hk | hk | hk
-    · exact (cfgFlags_mem cfg k).2 hk
-    all_goals simp [cfgState, cfgM, GMap.mem_iff] at hk
-  · simp [cfgState, cfgM, GMap.mem_iff] at hk
-  · simp [cfgState, cfgM, GMap.mem_iff] at hk
+  · show k ∈ cfgFlags cfg lrn
+    rw [cfgFlags_mem]
+    rcases hk with hk | hk | hk | hk
+    · exact .inl hk
+    · exact absurd hk (GMap.not_elem_of_empty _)
+    · exact .inr hk
+    · exact absurd hk (GMap.not_elem_of_empty _)
+  · exact absurd hk (GMap.not_elem_of_empty _)
+  · refine ⟨GMap.not_elem_of_empty _, Hd k hk, ?_⟩
+    show cfgFlags cfg lrn !! k = some true
+    rw [cfgFlags_lookup, if_neg (Hd k hk), if_pos (show k ∈ lrn from hk)]
 
-theorem clearAutoLeave_cfgState (cfg : GSet w64) :
-    clearAutoLeave (cfgState cfg) = cfgState cfg := rfl
+theorem clearAutoLeave_cfgState (cfg lrn : GSet w64) :
+    clearAutoLeave (cfgState cfg lrn) = cfgState cfg lrn := rfl
 
 theorem applyOne_outgoing (c : raftpb.ConfChangeSingle) (s s' : CCState)
     (h : applyOne c s = some s') : s'.cfg.outgoing = s.cfg.outgoing := by
@@ -131,17 +171,17 @@ theorem applyM_outgoing (ccs : List raftpb.ConfChangeSingle) (s s' : CCState)
 
 /-- A change whose model answer is the configuration it started from is a `Simple` one:
 `LeaveJoint` fails on a non-joint configuration, and `EnterJoint` answers a joint one. -/
-theorem ccApplyM_noop (cfg : GSet w64) (t : raftpb.ConfChangeTransition)
-    (ccs : List raftpb.ConfChangeSingle)
-    (H : ccApplyM t ccs (cfgState cfg) = some (cfgState cfg)) :
+theorem ccApplyM_noop (cfg lrn : GSet w64) (Hd : ∀ k, k ∈ lrn → k ∉ cfg)
+    (t : raftpb.ConfChangeTransition) (ccs : List raftpb.ConfChangeSingle)
+    (H : ccApplyM t ccs (cfgState cfg lrn) = some (cfgState cfg lrn)) :
     ¬ (t = W32 0 ∧ ccs = []) ∧ (∃ al, enterJointOf t ccs.length = some (al, false)) ∧
-      simpleM ccs (cfgState cfg) = some (cfgState cfg) := by
+      simpleM ccs (cfgState cfg lrn) = some (cfgState cfg lrn) := by
   unfold ccApplyM at H
   by_cases Hl : t = W32 0 ∧ ccs = []
   · rw [if_pos Hl] at H
     unfold leaveJointM at H
-    rw [if_neg (fun h => h (cfgInv_cfgState cfg)),
-      if_pos (show (cfgState cfg).cfg.outgoing = ∅ from rfl)] at H
+    rw [if_neg (fun h => h (cfgInv_cfgState cfg lrn Hd)),
+      if_pos (show (cfgState cfg lrn).cfg.outgoing = ∅ from rfl)] at H
     cases H
   rw [if_neg Hl] at H
   refine ⟨Hl, ?_⟩
@@ -153,8 +193,8 @@ theorem ccApplyM_noop (cfg : GSet w64) (t : raftpb.ConfChangeTransition)
   · exfalso
     simp only at H
     unfold enterJointM at H
-    rw [if_neg (fun h => h (cfgInv_cfgState cfg)), if_neg (fun h => h rfl)] at H
-    by_cases Hin : (cfgState cfg).cfg.incoming = ∅
+    rw [if_neg (fun h => h (cfgInv_cfgState cfg lrn Hd)), if_neg (fun h => h rfl)] at H
+    by_cases Hin : (cfgState cfg lrn).cfg.incoming = ∅
     · rw [if_pos Hin] at H; cases H
     rw [if_neg Hin] at H
     revert H
@@ -167,7 +207,7 @@ theorem ccApplyM_noop (cfg : GSet w64) (t : raftpb.ConfChangeTransition)
       split at H
       · simp only [Option.some.injEq] at H
         have Hout := applyM_outgoing ccs _ s1 Happ
-        have h2 : s1.cfg.outgoing = (cfgState cfg).cfg.outgoing := by rw [← H]
+        have h2 : s1.cfg.outgoing = (cfgState cfg lrn).cfg.outgoing := by rw [← H]
         rw [h2] at Hout
         exact Hin Hout.symm
       · cases H
@@ -175,24 +215,24 @@ theorem ccApplyM_noop (cfg : GSet w64) (t : raftpb.ConfChangeTransition)
 /-- A single change with `NodeId = 0` and transition `Auto` (what `ConfChange.AsV2` makes of
 any `ConfChange` with `NodeId = 0`) leaves a non-empty configuration as it is:
 `Changer.apply` skips it. -/
-theorem ccApplyM_single_noop (cfg : GSet w64) (c : raftpb.ConfChangeSingle)
-    (Hc : c.NodeId' = W64 0) (Hne : cfg ≠ ∅) :
-    ccApplyM (W32 0) [c] (cfgState cfg) = some (cfgState cfg) := by
-  have Happ : applyM [c] (cfgState cfg) = some (cfgState cfg) := by
+theorem ccApplyM_single_noop (cfg lrn : GSet w64) (Hd : ∀ k, k ∈ lrn → k ∉ cfg)
+    (c : raftpb.ConfChangeSingle) (Hc : c.NodeId' = W64 0) (Hne : cfg ≠ ∅) :
+    ccApplyM (W32 0) [c] (cfgState cfg lrn) = some (cfgState cfg lrn) := by
+  have Happ : applyM [c] (cfgState cfg lrn) = some (cfgState cfg lrn) := by
     simp only [applyM, applyAll, applyOne, Hc, ↓reduceIte, Option.bind_some]
     rw [if_neg (by exact Hne)]
   have Hsd : ¬ SymdiffTooBig cfg cfg := by
     unfold SymdiffTooBig symdiffN
     rw [GMap.map_difference_diag, GMap.map_size_empty]
     decide
-  have Hs : simpleM [c] (cfgState cfg) = some (cfgState cfg) := by
+  have Hs : simpleM [c] (cfgState cfg lrn) = some (cfgState cfg lrn) := by
     unfold simpleM
-    rw [clearAutoLeave_cfgState, if_neg (fun h => h (cfgInv_cfgState cfg)),
+    rw [clearAutoLeave_cfgState, if_neg (fun h => h (cfgInv_cfgState cfg lrn Hd)),
       if_neg (fun h => h rfl), Happ]
     simp only
-    rw [if_neg (show ¬ SymdiffTooBig (cfgState cfg).cfg.incoming (cfgState cfg).cfg.incoming
-      from Hsd)]
-    simp [checkedM, cfgInv_cfgState]
+    rw [if_neg (show ¬ SymdiffTooBig (cfgState cfg lrn).cfg.incoming
+      (cfgState cfg lrn).cfg.incoming from Hsd)]
+    simp [checkedM, cfgInv_cfgState cfg lrn Hd]
   unfold ccApplyM
   rw [if_neg (by simp)]
   have He : enterJointOf (W32 0) [c].length = some (false, false) := by
@@ -200,10 +240,10 @@ theorem ccApplyM_single_noop (cfg : GSet w64) (c : raftpb.ConfChangeSingle)
   rw [He]
   exact Hs
 
-/-- A `ConfChange` with `NodeId = 0`. -/
+/-- A `ConfChange` with `NodeId = 0`, whatever the learners. -/
 theorem ccApplyM_v1_noop (cfg : GSet w64) (m : CCV1M) (H : m.nodeId = W64 0) (Hne : cfg ≠ ∅) :
-    ccApplyM (ccV2Of (.v1 m)).1 (ccV2Of (.v1 m)).2 (cfgState cfg) = some (cfgState cfg) :=
-  ccApplyM_single_noop cfg _ H Hne
+    CCNoop cfg (ccV2Of (.v1 m)).1 (ccV2Of (.v1 m)).2 :=
+  fun lrn Hd => ccApplyM_single_noop cfg lrn Hd _ H Hne
 
 end model
 
@@ -228,27 +268,31 @@ theorem domSet_gset (s : GSet w64) : domSet s = s := by
   simp only [domSet, GMap.lookup_fmap]
   cases s !! k <;> rfl
 
-/-- The node's tracker as the `Changer` reads it: the configuration `cfgM cfg`, the
-progress map (read-only) and the `Progress` objects with their values `pvs`, every one a
-non-learner; the inflight rings set apart, and the tally. The old objects and voter map are
-garbage once `switchToConfig` has installed the new ones; their rings go to the copies
-(`ownResult_noop_transfer`). -/
+/-- The node's tracker as the `Changer` reads it: the configuration `cfgM cfg lrn` (`lrn` the
+learners, the tracked ids outside `cfg`), the progress map (read-only) and the `Progress`
+objects with their values `pvs`; the inflight rings set apart, and the tally. The old
+objects and voter map are garbage once `switchToConfig` has installed the new ones; their
+rings go to the copies (`ownResult_noop_transfer`). -/
 theorem ownTracker_toCC (cfg : GSet w64) (tv : tracker.ProgressTracker) (t : Trk) :
     ownTracker (GF := GF) cfg tv t ⊢ ∃ (pvs : GMap w64 tracker.Progress),
-      ownTrackerCC tv (DFrac.own 1) DFrac.discard (DFrac.own 1) (cfgM cfg) t.prs pvs ∗
+      ownTrackerCC tv (DFrac.own 1) DFrac.discard (DFrac.own 1)
+        (cfgM cfg (domSet t.prs \ cfg)) t.prs pvs ∗
       ([∗map] k ↦ pv ∈ pvs, progRAt t.peers k pv) ∗
       tv.Votes' ↦$ t.votes ∗
-      ⌜flagsOf pvs = cfgFlags cfg⌝ ∗
+      ⌜flagsOf pvs = cfgFlags cfg (domSet t.prs \ cfg)⌝ ∗
       ⌜0 ≤ sint.Z tv.MaxInflight' ∧ sint.Z tv.MaxInflight' < 2 ^ 62⌝ ∗
-      ⌜(GMap.size cfg : Int) ≤ 2 ^ 62⌝ := by
+      ⌜cfg ⊆ domSet t.prs ∧ (GMap.size t.prs : Int) ≤ 2 ^ 62⌝ := by
   iintro Hown
   iunfold ownTracker at Hown
   icases Hown with ⟨%voters_ref, %voters, %learners, %learnersNext, Hown⟩
   iNamed Hown
-  obtain ⟨rfl, rfl⟩ := Hno_learners
+  obtain ⟨Hldom, Hlnx, Hfl⟩ := Hno_learners
+  subst Hlnx
+  have Hlrn : learners = domSet t.prs \ cfg := by rw [← Hldom, domSet_gset]
   -- the values of the `Progress` objects, and their rings apart
   ihave H : ([∗map] k ↦ pr;p ∈ t.prs;t.peers, ∃ pv : tracker.Progress,
-      (pr ↦ pv ∗ (⌜pv.IsLearner' = false⌝ ∗ (emp ∗ progRAt (GF := GF) t.peers k pv)) : IProp GF))
+      (pr ↦ pv ∗ (⌜pv.IsLearner' = decide (k ∉ cfg)⌝ ∗ (emp ∗ progRAt (GF := GF) t.peers k pv)) :
+        IProp GF))
       $$ [Hprogs]
   · iapply (BigSepM2.bigSepM2_mono (fun {k pr p} _ hp => ?_)) $$ Hprogs
     iintro Hp
@@ -257,7 +301,7 @@ theorem ownTracker_toCC (cfg : GSet w64) (tv : tracker.ProgressTracker) (t : Trk
     iexists pv
     iframe Hpv
     isplitr
-    · ipureintro; exact ((progressAbs_Some _ _ _).1 Habs).1
+    · ipureintro; exact ((progressAbs_Some _ _ _).1 Habs).1.trans (Hfl k p hp)
     isplitr
     · iempintro
     unfold progRAt
@@ -267,7 +311,8 @@ theorem ownTracker_toCC (cfg : GSet w64) (tv : tracker.ProgressTracker) (t : Trk
   ihave %Hdom0 := BigSepM2.bigSepM2_lookup_iff $$ H
   have Hdom0' : ∀ k, (t.prs !! k).isSome ↔ (t.peers !! k).isSome := Hdom0
   icases (BigSepM2.bigSepM2_sepM (Φ1 := fun k pr => iprop(∃ pv : tracker.Progress,
-      (pr ↦ pv ∗ (⌜pv.IsLearner' = false⌝ ∗ (emp ∗ progRAt (GF := GF) t.peers k pv)) : IProp GF)))
+      (pr ↦ pv ∗ (⌜pv.IsLearner' = decide (k ∉ cfg)⌝ ∗ (emp ∗ progRAt (GF := GF) t.peers k pv)) :
+        IProp GF)))
     (Φ2 := fun (_ : w64) (_ : Progress) => (emp : IProp GF)) Hdom0).1 $$ [H] with ⟨H, -⟩
   · iapply (BigSepM2.bigSepM2_mono (fun {k pr p} _ _ => ?_)) $$ H
     iintro H; iframe H
@@ -287,82 +332,82 @@ theorem ownTracker_toCC (cfg : GSet w64) (tv : tracker.ProgressTracker) (t : Trk
     isplitl [Hvoters Hlearners HlearnersNext]
     · have Hv : voters = cfg := by rw [← Hvoters_dom, domSet_gset]
       subst Hv
-      iapply ownCfgCC_intro tv.Config' (DFrac.own 1) (cfgM voters) voters_ref map.nil
-        Hvoters_arr Hautoleave $$ [Hvoters] [] [Hlearners] [HlearnersNext]
+      subst Hlrn
+      iapply ownCfgCC_intro tv.Config' (DFrac.own 1) (cfgM voters (domSet t.prs \ voters))
+        voters_ref map.nil Hvoters_arr Hautoleave $$ [Hvoters] [] [Hlearners] [HlearnersNext]
       · simp only [cfgM]; iexact Hvoters
       · simp only [cfgM]; iapply ownIdsetC_nil
       · simp only [cfgM]; iexact Hlearners
       · simp only [cfgM]; iexact HlearnersNext
     · iexact Hprs
   ipureintro
-  refine ⟨?_, HmaxInfl, Hcfg_size⟩
+  refine ⟨?_, HmaxInfl, Hprs_dom, Hcfg_size⟩
   apply GMap.map_eq; intro k
-  rw [flagsOf_lookup']
-  simp only [cfgFlags, GMap.lookup_fmap]
-  have Hk : (pvs !! k).isSome ↔ (cfg !! k).isSome := by
-    rw [← Hdom' k]
-    exact mem_of_domSet_eq (a := t.prs) (b := cfg) (by rw [Hprs_dom, domSet_gset]) k
+  rw [flagsOf_lookup', cfgFlags_lookup]
   cases hpv : pvs !! k with
   | none =>
-    rw [hpv] at Hk
-    cases hc : cfg !! k with
-    | none => rfl
-    | some _ => rw [hc] at Hk; simp at Hk
+    have hk : k ∉ domSet t.prs := by
+      rw [GMap.elem_of_dom']
+      intro h
+      have := (Hdom' k).1 h
+      rw [hpv] at this; cases this
+    have hc : k ∉ cfg := fun h => hk ((GMap.elem_of_subseteq _ _).1 Hprs_dom _ h)
+    have hl : k ∉ domSet t.prs \ cfg := fun h => hk ((GMap.elem_of_difference _ _ _).1 h).1
+    simp [hc, hl]
   | some pv =>
-    rw [hpv] at Hk
     obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1 ((Hdom' k).2 (by rw [hpv]; rfl))
     have Hl0 := Hlf k pr pv hpr hpv
-    obtain ⟨u, hc⟩ := Option.isSome_iff_exists.1 (Hk.1 rfl)
-    rw [hc]
-    simp [Hl0]
+    have hk : k ∈ domSet t.prs := (GMap.elem_of_dom _ _).2 ⟨pr, hpr⟩
+    simp only [Option.map_some]
+    rw [Hl0]
+    by_cases hc : k ∈ cfg
+    · simp [hc]
+    · have hl : k ∈ domSet t.prs \ cfg := (GMap.elem_of_difference _ _ _).2 ⟨hk, hc⟩
+      simp [hc, hl]
 
 /-- What `Simple`'s result is, once the old objects' rings are moved to it: each new object
 an `ownProgress` (`Q`), its record the old one or one with `Match = 0`. -/
 private def newPrQ (peers : GMap w64 Progress) (k : w64) (pv : tracker.Progress) : IProp GF :=
   iprop(∃ p, ownInflights pv.Inflights' p.infl ∗
-    ⌜pv.IsLearner' = false → progressAbs pv p.infl = some p ∧
+    ⌜progressAbs pv p.infl = some p ∧
       (uint.Z p.matched = 0 ∨ ∃ p0, peers !! k = some p0 ∧ p0.matched = p.matched)⌝)
 
-/-- `Simple`'s result for an unchanged configuration (`cfgState cfg`), with the old objects'
-inflight rings moved to the new ones (`ownNewPr_transfer`): the configuration and progress
-map `switchToConfig` takes (`ownConfigV`, the progress map made read-only), each new `Match`
-the old one or `0` (`MatchKept`). -/
-theorem ownResult_noop_transfer (cfg : GSet w64) (chg : confchange.Changer)
+/-- `Simple`'s result for an unchanged configuration (`cfgState cfg lrn`), with the old
+objects' inflight rings moved to the new ones (`ownNewPr_transfer`): the configuration and
+progress map `switchToConfig` takes (`ownConfigV`, the progress map made read-only), each new
+`Match` the old one or `0` (`MatchKept`). -/
+theorem ownResult_noop_transfer (cfg lrn : GSet w64) (Hd : ∀ k, k ∈ lrn → k ∉ cfg)
+    (chg : confchange.Changer)
     (base : GMap w64 tracker.Progress) (peers : GMap w64 Progress) (cfgv : tracker.Config)
-    (trk : Loc) (Hsz : (GMap.size cfg : Int) ≤ 2 ^ 62) :
-    ownCfgCC (GF := GF) cfgv (DFrac.own 1) (cfgM cfg) ∗
-      ownPrsW chg base trk (cfgFlags cfg) ∗
+    (trk : Loc) (Hsz : (GMap.size (cfg ∪ lrn) : Int) ≤ 2 ^ 62) :
+    ownCfgCC (GF := GF) cfgv (DFrac.own 1) (cfgM cfg lrn) ∗
+      ownPrsW chg base trk (cfgFlags cfg lrn) ∗
       ([∗map] k ↦ pv ∈ base, progRAt peers k pv) ⊢
       |==> ∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress),
-        ownConfigV cfg cfgv trk prs pvs ∗ ⌜MatchKept peers pvs⌝ := by
+        ownConfigV cfg cfgv trk prs pvs ∗ ⌜MatchKept peers pvs⌝ ∗
+        ⌜domSet prs = cfg ∪ lrn⌝ := by
   iintro ⟨Hc, Hw, HR⟩
   icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal⟩
-  icases ownIdsetC_nil_of _ _ (cfgM cfg).outgoing rfl $$ Hout with %Hvout
-  icases ownIdsetC_nil_of _ _ (cfgM cfg).learners rfl $$ Hl with %Hl
-  icases ownIdsetC_nil_of _ _ (cfgM cfg).learnersNext rfl $$ Hln with %Hln
+  icases ownIdsetC_nil_of _ _ (cfgM cfg lrn).outgoing rfl $$ Hout with %Hvout
+  icases ownIdsetC_nil_of _ _ (cfgM cfg lrn).learnersNext rfl $$ Hln with %Hln
   subst Hvout
   unfold ownPrsW
   icases Hw with ⟨%prs, %pvs, Htrk, Hprs, %Hflags, Hnew⟩
   -- the rings, to the new objects
   ihave HQ := ownNewPr_transfer chg base (fun k pv => progRAt (GF := GF) peers k pv)
       (fun k pv => newPrQ (GF := GF) peers k pv) ?_ ?_ pvs $$ [$HR $Hnew]
-  · -- a copy
+  · -- a copy (`IsLearner` possibly changed)
     intro k pv0 pv _ h1
     unfold progRAt newPrQ
     iintro ⟨%p, %Hp, Hinfl, %Habs⟩
-    iexists p
+    iexists { p with learner := pv.IsLearner' }
     have Hinf : pv.Inflights' = pv0.Inflights' := by rw [h1]
     rw [Hinf]
     iframe Hinfl
     ipureintro
-    intro Hl
-    have Hl0 := ((progressAbs_Some _ _ _).1 Habs).1
-    have h2 : ({ pv0 with IsLearner' := false } : tracker.Progress) = pv0 := by
-      cases pv0; simp only at Hl0; subst Hl0; rfl
-    have Heq : pv = pv0 := by
-      rw [h1]; rw [Hl]; exact h2
-    subst Heq
-    exact ⟨Habs, .inr ⟨p, Hp, rfl⟩⟩
+    obtain ⟨_, h2, h3, h4, h5, h6, h7, h8⟩ := (progressAbs_Some _ _ _).1 Habs
+    refine ⟨(progressAbs_Some _ _ _).2 ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, h8⟩, .inr ⟨p, Hp, rfl⟩⟩ <;>
+      (rw [h1]; assumption)
   · -- a fresh one
     intro k pv Hf
     unfold newPrQ
@@ -372,24 +417,26 @@ theorem ownResult_noop_transfer (cfg : GSet w64) (chg : confchange.Changer)
     isplitl [Hinfl]
     · simp only [progressOf]; iexact Hinfl
     ipureintro
-    intro Hl
     obtain ⟨Hm, -, -, Hst, -, -, -⟩ := Hf
-    refine ⟨(progressAbs_Some _ _ _).2 ⟨Hl, Hst, rfl, rfl, rfl, rfl, rfl, rfl⟩, .inl ?_⟩
+    refine ⟨(progressAbs_Some _ _ _).2 ⟨rfl, Hst, rfl, rfl, rfl, rfl, rfl, rfl⟩, .inl ?_⟩
     simp only [progressOf, Hm]; rfl
-  -- every new object a non-learner, the domain `cfg`
+  -- each new object a learner exactly outside `cfg`, the domain `cfg ∪ lrn`
   ihave %Hdom0 := BigSepM2.bigSepM2_lookup_iff $$ Hprs
   have Hdom : ∀ k, (prs !! k).isSome ↔ (pvs !! k).isSome := Hdom0
-  have Hlf : ∀ k pv, pvs !! k = some pv → pv.IsLearner' = false := by
+  have Hlf : ∀ k pv, pvs !! k = some pv → pv.IsLearner' = decide (k ∉ cfg) := by
     intro k pv h
     have h' := flagsOf_lookup pvs k pv h
-    rw [Hflags] at h'
-    simp only [cfgFlags, GMap.lookup_fmap] at h'
-    cases hc : cfg !! k with
-    | none => rw [hc] at h'; cases h'
-    | some _ => rw [hc] at h'; simp at h'; exact h'
-  have Hpdom : domSet prs = cfg := by
+    rw [Hflags, cfgFlags_lookup] at h'
+    by_cases hc : k ∈ cfg
+    · rw [if_pos hc] at h'; rw [← Option.some.inj h']; simp [hc]
+    · rw [if_neg hc] at h'
+      by_cases hl : k ∈ lrn
+      · rw [if_pos hl] at h'; rw [← Option.some.inj h']; simp [hc]
+      · rw [if_neg hl] at h'; cases h'
+  have Hpdom : domSet prs = cfg ∪ lrn := by
     apply GMap.set_eq; intro k
-    rw [GMap.elem_of_dom', GMap.mem_iff, Hdom k, ← flagsOf_mem, Hflags, cfgFlags_mem]
+    rw [GMap.elem_of_dom', GMap.mem_iff, Hdom k, ← flagsOf_mem, Hflags, cfgFlags_mem,
+      GMap.elem_of_union]
   -- the objects, as `ownProgress`es with their records
   ihave HQ2 := (BigSepM2.bigSepM2_sepM (Φ1 := fun (_ : w64) (_ : Loc) => (emp : IProp GF))
     (Φ2 := fun k pv => newPrQ (GF := GF) peers k pv) (m1 := prs) (m2 := pvs) Hdom0).2 $$ [HQ]
@@ -399,44 +446,62 @@ theorem ownResult_noop_transfer (cfg : GSet w64) (chg : confchange.Changer)
     · iexact HQ
   ihave H := BigSepM2.bigSepM2_sep_eqv.2 $$ [$Hprs $HQ2]
   ihave H : ([∗map] k ↦ pr;pv ∈ prs;pvs, ((∃ p, ownProgress pr p ∗
-      ⌜uint.Z p.matched = 0 ∨ ∃ p0, peers !! k = some p0 ∧ p0.matched = p.matched⌝) ∗ emp :
+      ⌜(uint.Z p.matched = 0 ∨ ∃ p0, peers !! k = some p0 ∧ p0.matched = p.matched) ∧
+        p.learner = decide (k ∉ cfg)⌝) ∗ emp :
         IProp GF)) $$ [H]
   · iapply (BigSepM2.bigSepM2_mono (fun {k pr pv} _ hpv => ?_)) $$ H
     iintro ⟨Hp, -, HQ⟩
     unfold newPrQ
     icases HQ with ⟨%p, Hinfl, %Hp⟩
-    obtain ⟨Habs, Hm⟩ := Hp (Hlf k pv hpv)
+    obtain ⟨Habs, Hm⟩ := Hp
     isplitl
     · iexists p
       isplitl
       · iapply ownProgress_intro _ _ p $$ Hp Hinfl
         ipureintro; exact Habs
-      · ipureintro; exact Hm
+      · ipureintro
+        exact ⟨Hm, ((progressAbs_Some _ _ _).1 Habs).1.symm.trans (Hlf k pv hpv)⟩
     · iempintro
   icases (BigSepM2.bigSepM2_sepM (Φ1 := fun k pr => iprop(∃ p, ownProgress (GF := GF) pr p ∗
-      ⌜uint.Z p.matched = 0 ∨ ∃ p0, peers !! k = some p0 ∧ p0.matched = p.matched⌝))
+      ⌜(uint.Z p.matched = 0 ∨ ∃ p0, peers !! k = some p0 ∧ p0.matched = p.matched) ∧
+        p.learner = decide (k ∉ cfg)⌝))
     (Φ2 := fun (_ : w64) (_ : tracker.Progress) => (emp : IProp GF)) (m1 := prs) (m2 := pvs)
     Hdom0).1 $$ H with ⟨H, -⟩
   icases bigSepM_exist_sepM2 prs _ $$ H with ⟨%ps, H⟩
   ihave %Hdom2 := BigSepM2.bigSepM2_lookup_iff $$ H
   icases BigSepM2.bigSepM2_sep_eqv.1 $$ H with ⟨Hprogs, Hmk⟩
   ihave %Hmk := BigSepM2.bigSepM2_pure_intro $$ Hmk
-  ihave Hin := (show (vin ↦$ (cfgM cfg).incoming : IProp GF) ⊢ vin ↦$ cfg from .rfl) $$ Hin
+  ihave Hin := (show (vin ↦$ (cfgM cfg lrn).incoming : IProp GF) ⊢ vin ↦$ cfg from .rfl) $$ Hin
+  ihave Hl := (show ownIdsetC (GF := GF) cfgv.Learners' (DFrac.own 1) (cfgM cfg lrn).learners ⊢
+    ownIdsetC cfgv.Learners' (DFrac.own 1) lrn from .rfl) $$ Hl
   have Hdom2' : ∀ k, (prs !! k).isSome ↔ (ps !! k).isSome := Hdom2
   imod ownMap_persist $$ Htrk with #Htrk
   imodintro
   iexists prs, ps
   isplitl
   · unfold ownConfigV
-    iexists vin, cfg
+    iexists vin, cfg, lrn
     simp only [named]
-    iframe Hin Htrk Hprogs
+    iframe Hin Htrk Hprogs Hl
     ipureintro
-    exact ⟨Harr, Hl, Hln, Hal, domSet_gset cfg, Hpdom, Hsz⟩
+    refine ⟨Harr, Hln, Hal, domSet_gset cfg, ?_, ⟨?_, rfl, ?_⟩, ?_⟩
+    · rw [Hpdom]; exact GMap.union_subseteq_l _ _
+    · apply GMap.set_eq; intro k
+      rw [domSet_gset, Hpdom, GMap.elem_of_difference, GMap.elem_of_union]
+      constructor
+      · intro h; exact ⟨.inr h, Hd k h⟩
+      · rintro ⟨h | h, h'⟩
+        · exact absurd h h'
+        · exact h
+    · intro k p hp
+      obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1 ((Hdom2' k).2 (by rw [hp]; rfl))
+      exact (Hmk k pr p hpr hp).2
+    · rw [← GMap.size_dom, Hpdom]; exact Hsz
   · ipureintro
+    refine ⟨?_, Hpdom⟩
     intro k p' hp'
     obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1 ((Hdom2' k).2 (by rw [hp']; rfl))
-    exact Hmk k pr p' hpr hp'
+    exact (Hmk k pr p' hpr hp').1
 
 end heap
 

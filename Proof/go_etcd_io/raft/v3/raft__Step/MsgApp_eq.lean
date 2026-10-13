@@ -110,7 +110,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
       · iintro %_; iframe Hents Hcap
-    obtain ⟨rfl, Happ⟩ := followerStepResult_app _ _ _ _ _ _ _ Hty Hres
+    obtain ⟨rfl, Happ⟩ := followerStepResult_app _ _ _ _ _ _ _ _ Hty Hres
     have Hwf1 : NStateWf { s with lead := m.From' } := Hwf
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn

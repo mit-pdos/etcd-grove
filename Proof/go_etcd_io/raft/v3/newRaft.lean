@@ -100,7 +100,7 @@ theorem newRaft.wp_proof
   let ls0 : LogState := ⟨σ.prev, σ.ents, [], σ.prev.index', σ.prev.index', none, ip, σ.prev.index', [], σ.ents,
     W64 0, cv'.MaxCommittedSizePerReady', interface.ok si⟩
   let s0 : NState := ⟨W64 0, W64 0, W64 0, .follower, ∅, [], func.nil, false, ∅, l, ls0, ∅,
-    cv.PreVote', {}, {}, W64 0, W64 0⟩
+    cv.PreVote', {}, {}, W64 0, W64 0, false⟩
   ihave Htrk0 := ownTracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi $$ Hv0 Hvotes Hprs0
   ihave Hmisc : ownRaftMisc (GF := GF) slice.nil ro slice.nil ({} : RdState) $$ [Hro]
   · unfold ownRaftMisc
@@ -127,20 +127,16 @@ theorem newRaft.wp_proof
     (by show 0 < sint.Z cv'.ElectionTick'; rw [HpET]; omega) (by rw [HpLg, Hlok]) rfl
     (fun h => absurd h (by simp only [s0]; decide)) (fun _ h => absurd h List.not_mem_nil)
     (fun _ h => absurd h List.not_mem_nil) (Nat.zero_le _) (fun h => absurd h Bool.false_ne_true)
+    (fun h => absurd rfl h)
     $$ «$r0» Hlg0 Htrk0 HL Hnil1 Hcap1 Hnil2 Hcap2 Hmisc Hob
   -- the configuration `Restore` built, as `switchToConfig` installs it
   ipersist Hprsm
   ihave %Hvlen := ownSlice_len $$ Hvoters
   have Hcsz : (GMap.size (GMap.listToSet voters) : Int) ≤ 2 ^ 62 := by
     rw [GMap.size_list_to_set _ Hvnd]; exact Hvlen62
-  ihave Hcfg : ownConfig (GF := GF) (GMap.listToSet voters) cfgv prsm prs $$ [Hvref Hprogs]
-  · unfold ownConfig
-    iexists vref, vm
-    simp only [named]
-    iframe Hvref Hprsm Hprogs
-    ipureintro
-    exact ⟨Hcfgarr, Hcfgl, Hcfgln, Hcfgal, Hvm, Hprs, Hcsz⟩
-  wp_apply (raft.switchToConfig.spec_nonleader wp_raft_switchToConfig) _ _ _ _ s0 cfgv prsm prs (by simp only [s0]; decide) $$ [$Hphys $Hcfg]
+  ihave Hcfg := ownConfig_voters (GF := GF) (GMap.listToSet voters) cfgv prsm prs vref vm
+    Hcfgarr Hcfgl Hcfgln Hcfgal Hvm Hprs Hcsz $$ Hvref Hprsm Hprogs
+  wp_apply (raft.switchToConfig.spec_nonleader wp_raft_switchToConfig) _ _ _ _ s0 cfgv prsm prs (by simp only [s0]) Hprs $$ [$Hphys $Hcfg]
     as %cs2 %xs2 %pvs1 ⟨Hphys, Hcs2v, %Hxs2, %Hcs2l⟩
   obtain ⟨Hc2a, Hc2b, Hc2c, Hc2al⟩ := Hcs2l
   have Hperm : voters ≡ₚ xs2 := by

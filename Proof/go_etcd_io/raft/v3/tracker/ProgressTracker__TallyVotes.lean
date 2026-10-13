@@ -44,8 +44,10 @@ theorem tracker.ProgressTracker.TallyVotes.wp_proof
   -- on every iteration, so they must be existentially quantified *inside*
   -- the invariant -- the same trap `raft.campaign` documents for
   -- `slice.for_range`.
-  let Pgr : w64 → Prop := fun k => votes !! k = some true
-  let Prj : w64 → Prop := fun k => votes !! k = some false
+  -- (since 2026-10-13 the learners are tracked too, and skipped: the counters count the
+  -- voters only)
+  let Pgr : w64 → Prop := fun k => k ∈ cfg ∧ votes !! k = some true
+  let Prj : w64 → Prop := fun k => k ∈ cfg ∧ votes !! k = some false
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply wp_map_for_range (fun (keys : List w64) (i : Int) => iprop(∃ (prv : Loc) (idv : w64),
@@ -80,19 +82,41 @@ theorem tracker.ProgressTracker.TallyVotes.wp_proof
     have Htake : keys.take (i + 1).toNat = keys.take i.toNat ++ [key] := by
       rw [show (i + 1).toNat = i.toNat + 1 by omega]
       rw [List.take_add_one, Hkey]; rfl
-    have Hszprs : GMap.size prs = GMap.size cfg := by rw [← Hprs_dom, GMap.size_dom]
-    -- the counters are bounded by `size cfg`, which is what lets `word` see
+    -- the counters are bounded by `size prs`, which is what lets `word` see
     -- that `granted + 1` does not wrap
-    have HgB : nsat Pgr (keys.take i.toNat) ≤ GMap.size cfg := by
+    have HgB : nsat Pgr (keys.take i.toNat) ≤ GMap.size prs := by
       refine Nat.le_trans (nsat_le _ _) ?_
       rw [List.length_take]; omega
-    have HrB : nsat Prj (keys.take i.toNat) ≤ GMap.size cfg := by
+    have HrB : nsat Prj (keys.take i.toNat) ≤ GMap.size prs := by
       refine Nat.le_trans (nsat_le _ _) ?_
       rw [List.length_take]; omega
     wp_auto
-    -- `if pr.IsLearner { continue }`: no voter is a learner, and without
-    -- `Hnolearner` the `if` scrutinee is not a literal and `wp_auto` parks.
-    rw [Hnolearner]
+    -- `if pr.IsLearner { continue }`: a learner is the tracked id outside `cfg`
+    -- (`LearnerFlags`), and without the rewrite the `if` scrutinee is not a literal and
+    -- `wp_auto` parks.
+    rw [Hnolearner, Hno_learners.2.2 key pk Hpvk]
+    by_cases Hkc : key ∈ cfg
+    rotate_left
+    · -- a learner: `continue`, both counters unchanged
+      have HPg : ¬ Pgr key := fun h => Hkc h.1
+      have HPr : ¬ Prj key := fun h => Hkc h.1
+      rw [decide_eq_true Hkc]
+      wp_auto
+      ihave Hprogs := Hback $$ [Hpv Hinfl]
+      · unfold ownProgress
+        iexists pv
+        iframe Hpv Hinfl
+        ipureintro; exact Habs
+      unfold forMapPostcondition
+      ileft
+      isplitr
+      · ipureintro; rfl
+      iexists prl, key
+      rw [Htake, nsat_snoc, nsat_snoc]
+      simp only [HPg, HPr, ↓reduceIte, Nat.add_zero]
+      iframe
+      ipureintro; omega
+    rw [decide_eq_false (fun h => h Hkc)]
     wp_auto
     wp_apply wp_map_lookup2 $$ Hvotes as Hvotes
     ihave Hprogs := Hback $$ [Hpv Hinfl]
@@ -106,8 +130,8 @@ theorem tracker.ProgressTracker.TallyVotes.wp_proof
       cases b with
       | true =>
         -- granted
-        have HPg : Pgr key := Hvk
-        have HPr : ¬ Prj key := by simp only [Prj, Hvk]; decide
+        have HPg : Pgr key := ⟨Hkc, Hvk⟩
+        have HPr : ¬ Prj key := by simp only [Prj, Hvk]; simp
         simp only [Option.isSome_some, decide_true, Option.getD_some]
         wp_auto
         iright; ileft
@@ -122,8 +146,8 @@ theorem tracker.ProgressTracker.TallyVotes.wp_proof
         ipureintro; omega
       | false =>
         -- rejected
-        have HPg : ¬ Pgr key := by simp only [Pgr, Hvk]; decide
-        have HPr : Prj key := Hvk
+        have HPg : ¬ Pgr key := by simp only [Pgr, Hvk]; simp
+        have HPr : Prj key := ⟨Hkc, Hvk⟩
         simp only [Option.isSome_some, decide_true, Option.getD_some]
         wp_auto
         iright; ileft
@@ -138,8 +162,8 @@ theorem tracker.ProgressTracker.TallyVotes.wp_proof
         ipureintro; omega
     | none =>
       -- this voter has not answered: `continue`, both counters unchanged
-      have HPg : ¬ Pgr key := by simp only [Pgr, Hvk]; decide
-      have HPr : ¬ Prj key := by simp only [Prj, Hvk]; decide
+      have HPg : ¬ Pgr key := by simp only [Pgr, Hvk]; simp
+      have HPr : ¬ Prj key := by simp only [Prj, Hvk]; simp
       simp only [Option.isSome_none]
       wp_auto
       ileft

@@ -99,7 +99,7 @@ theorem raft.bcastAppend.wp_proof
     iintro %i %pr %tv0 %pvs0 %p %D
     wp_start as ⟨%Hicfg, %Hpri, %Hpvi, %HmaxI, Htrkf, Hpr, Hback, HI⟩
     iNamed HI
-    ihave Htrk := Hback $$ Hpr
+    ihave Htrk := Hback $$ %p Hpr %rfl
     ihave Hphys := Hrest $$ Htrkf Htrk
     wp_auto
     wp_apply raft.wp_load_id $$ Hphys as Hphys
@@ -128,7 +128,7 @@ theorem raft.bcastAppend.wp_proof
     · -- a peer: `sendAppend` may add `App`s and change `Progress`es
       rw [decide_eq_false Hii]
       wp_auto
-      wp_apply wp_raft_sendAppend _ _ _ _ i Hii Hicfg $$ [$Hphys]
+      wp_apply wp_raft_sendAppend _ _ _ _ i Hii (by exact Hicfg) $$ [$Hphys]
         as %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
       try wp_auto
       icases ownRaftPhys_tracker_prvals $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hrest⟩

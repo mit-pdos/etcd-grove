@@ -54,7 +54,7 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
   wp_apply wp_MajorityConfig_Slice _ voters $$ [Hvoters] as %sl0 %xs0 ⟨Hvoters, Hsl0, -, %Hxs0⟩
   · isplitl
     · unfold ownIdsetOpt; iright; iexact Hvoters
-    · ipureintro; rw [← GMap.size_dom, Hvoters_dom]; exact Hcfg_size
+    · ipureintro; rw [← GMap.size_dom, Hvoters_dom]; exact cfg_size_le cfg _ Hprs_dom Hcfg_size
   ihave Hvf := Hcback $$ Hc0
   -- element 1, the nil outgoing config
   icases array_acc _ (sint.Z (W64 1)) _ _ _ map.nil (by decide) (by rw [Hvoters_arr]; rfl)
@@ -77,43 +77,50 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
   rw [Harr]
   ihave Htrk := Htrkback $$ Hvf
   wp_auto
-  obtain ⟨rfl, rfl⟩ := Hno_learners
-  icases ownIdsetC_empty_nil _ _ $$ Hlearners with %HL
+  obtain ⟨Hldom, Hlnx, Hfl⟩ := Hno_learners
+  subst Hlnx
   icases ownIdsetC_empty_nil _ _ $$ HlearnersNext with %HLN
-  wp_apply wp_MajorityConfig_Slice tv.Config'.Learners' ∅ $$ [] as %sl2 %xs2 ⟨-, Hsl2, -, %Hxs2⟩
+  icases ownIdsetC_split _ _ _ $$ Hlearners with ⟨Hlq, %Hlc⟩
+  wp_apply wp_MajorityConfig_Slice tv.Config'.Learners' learners $$ [Hlq]
+    as %sl2 %xs2 ⟨Hlo, Hsl2, -, %Hxs2⟩
   · isplitl
-    · unfold ownIdsetOpt; ileft; ipureintro; exact ⟨HL, rfl⟩
-    · ipureintro; simp [GMap.size_empty]
+    · unfold ownIdsetOpt; iapply ownIdsetQ_elim _ _ _ $$ Hlq
+    · ipureintro
+      have Hl2 : domSet learners = domSet prs \ cfg := Hldom
+      have Hc2 : (GMap.size prs : Int) ≤ 2 ^ 62 := Hcfg_size
+      rw [← GMap.size_dom, Hl2]
+      have h := GMap.subseteq_size (GMap.difference_subseteq (domSet prs) cfg)
+      rw [GMap.size_dom] at h
+      omega
+  ihave Hlq : ownIdsetQ (GF := GF) tv.Config'.Learners' (DFrac.own 1) learners $$ [Hlo]
+  · unfold ownIdsetQ; iunfold ownIdsetOpt at Hlo; iexact Hlo
   wp_apply wp_MajorityConfig_Slice tv.Config'.LearnersNext' ∅ $$ []
     as %sl3 %xs3 ⟨-, Hsl3, -, %Hxs3⟩
   · isplitl
     · unfold ownIdsetOpt; ileft; ipureintro; exact ⟨HLN, rfl⟩
     · ipureintro; simp [GMap.size_empty]
-  ihave Hlearners : ownIdsetC (GF := GF) tv.Config'.Learners' (DFrac.own 1) ∅ $$ []
-  · unfold ownIdsetC; ileft; ipureintro; exact ⟨HL, rfl⟩
+  ihave Hlearners := ownIdsetC_join _ _ _ Hlc $$ Hlq
   ihave HlearnersNext : ownIdsetC (GF := GF) tv.Config'.LearnersNext' (DFrac.own 1) ∅ $$ []
   · unfold ownIdsetC; ileft; ipureintro; exact ⟨HLN, rfl⟩
   obtain rfl := perm_elements_empty xs1 Hxs1
-  obtain rfl := perm_elements_empty xs2 Hxs2
   obtain rfl := perm_elements_empty xs3 Hxs3
   ihave %Hl1 := ownSlice_len $$ Hsl1
-  ihave %Hl2 := ownSlice_len $$ Hsl2
   ihave %Hl3 := ownSlice_len $$ Hsl3
   ihave Hvoters : iprop(⌜voters_ref = map.nil ∧ voters = ∅⌝ ∨ voters_ref ↦$ voters) $$ [Hvoters]
   · unfold ownIdsetOpt; iexact Hvoters
   icases Hvoters with (⟨%Hvn, %Hve⟩ | Hvoters)
   · exact absurd Hvn Hvoters_nn
   iapply HΦ
-  iframe Htrk Hsl0
+  iframe Htrk Hsl0 Hsl2
   isplitl [Hvotes Hprogs Hvoters Hlearners HlearnersNext]
   · iapply ownTracker_intro (Hprs_dom := Hprs_dom) (Hvoters_arr := Hvoters_arr)
-      (Hautoleave := Hautoleave) (Hvoters_dom := Hvoters_dom) (Hno_learners := ⟨rfl, rfl⟩)
+      (Hautoleave := Hautoleave) (Hvoters_dom := Hvoters_dom)
+      (Hno_learners := ⟨Hldom, rfl, Hfl⟩)
       (Hcfg_size := Hcfg_size) (HmaxInfl := HmaxInfl) $$ Hvotes Hprs Hprogs Hvoters Hlearners
       HlearnersNext
   ipureintro
-  refine ⟨Hvoters_dom ▸ Hxs0, ?_, ?_, ?_, Hautoleave⟩
+  refine ⟨Hvoters_dom ▸ Hxs0, Hldom ▸ Hxs2, ?_, ?_, Hautoleave⟩
   · simp at Hl1; word
-  · simp at Hl2; word
   · simp at Hl3; word
 
 end proof

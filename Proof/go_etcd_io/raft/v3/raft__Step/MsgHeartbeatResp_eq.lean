@@ -109,7 +109,7 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
       · iapply Hsnap0
       · iintro %Hc; exfalso; rw [Hty] at Hc
         rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
-    obtain ⟨rfl, Hs1⟩ := followerStepResult_noop _ _ _ _ _ _ _ Hty3 Hres
+    obtain ⟨rfl, Hs1⟩ := followerStepResult_noop _ _ _ _ _ _ _ _ Hty3 Hres
     rw [Hs1]
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn

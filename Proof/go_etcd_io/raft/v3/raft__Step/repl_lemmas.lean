@@ -209,21 +209,21 @@ theorem nstateWf_heartbeatResult (id : w64) (t : NState) (m : raftpb.Message)
 
 /-! ## Taking the `stepX` results apart, by type -/
 
-theorem followerStepResult_app (id : w64) (s : NState) (m : raftpb.Message)
+theorem followerStepResult_app (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState) :
     m.Type' = MsgApp →
-    FollowerStepResult id s m ents sv dropped s' →
+    FollowerStepResult cfg id s m ents sv dropped s' →
     dropped = false ∧ HandleAppResult id { s with lead := m.From' } m ents s' := by
   intro Hty H
   unfold FollowerStepResult at H
   simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
     MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
 
-theorem followerStepResult_heartbeat (id : w64) (s : NState) (m : raftpb.Message)
+theorem followerStepResult_heartbeat (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
     (cl : List w8) :
     m.Type' = MsgHeartbeat →
-    FollowerStepResult id s m ents sv dropped s' cl →
+    FollowerStepResult cfg id s m ents sv dropped s' cl →
     dropped = false ∧ s' = heartbeatResult id { s with lead := m.From' } m cl := by
   intro Hty H
   unfold FollowerStepResult at H
@@ -304,7 +304,7 @@ theorem step_handle_snap (cfg : GSet w64) (id : w64) (ps : PState) (t : NState)
     have := congrArg PState.role Ht
     simp [toPState, h, proleRole, padoptLeader] at this
   unfold HandleSnapResult at Hres
-  rcases Hres with ⟨Hle, rfl⟩ | ⟨Hlt, Hm, rfl⟩ | ⟨Hlt, Hnm, prs, pvs, rfl⟩
+  rcases Hres with ⟨Hle, rfl⟩ | ⟨Hlt, Hm, rfl⟩ | ⟨Hlt, Hnm, prs, pvs, il, rfl⟩
   · -- obsolete
     rw [Hc] at Hle
     refine step_eq cfg id _ _ _ _
@@ -326,7 +326,8 @@ theorem step_handle_snap (cfg : GSet w64) (id : w64) (ps : PState) (t : NState)
       (Step.snapRestore (absSnap m sv voters) ps rfl Hto Hfid Hterm Hnl Hperm Hin Hlt Hnm) ?_
     rw [toPState_sendMsgs']
     have Hs : toPState
-        { t with progress := prs, prvals := pvs, logst := logRestore t.logst (snapId sv) } =
+        { t with progress := prs, prvals := pvs, logst := logRestore t.logst (snapId sv),
+                 isLearner := il } =
         { toPState t with
             base := snapId sv
             log := ([] : List raftpb.Entry)
@@ -351,12 +352,12 @@ theorem nstateWf_handle_snap (id : w64) (t : NState) (m : raftpb.Message)
     NStateWf t → HandleSnapResult id t m sv s' → NStateWf s' := by
   intro Hwf Hres
   unfold HandleSnapResult at Hres
-  rcases Hres with ⟨-, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, -, _, _, rfl⟩ <;> exact Hwf
+  rcases Hres with ⟨-, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, -, _, _, _, rfl⟩ <;> exact Hwf
 
-theorem followerStepResult_snap (id : w64) (s : NState) (m : raftpb.Message)
+theorem followerStepResult_snap (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState) :
     m.Type' = MsgSnap →
-    FollowerStepResult id s m ents sv dropped s' →
+    FollowerStepResult cfg id s m ents sv dropped s' →
     dropped = false ∧ HandleSnapResult id { s with lead := m.From' } m sv s' := by
   intro Hty H
   unfold FollowerStepResult at H

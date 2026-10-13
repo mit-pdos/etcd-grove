@@ -55,8 +55,9 @@ def HandleSnapResult (id : w64) (s : NState) (m : raftpb.Message)
   ∨
   (uint.Z ls.committed < uint.Z sid.index' ∧
    ¬ PlogMatches ls.prev es sid ∧
-   ∃ prs pvs,
-     s' = sendMsgs { s with progress := prs, prvals := pvs, logst := logRestore ls sid }
+   ∃ prs pvs il,
+     s' = sendMsgs { s with progress := prs, prvals := pvs, logst := logRestore ls sid,
+                            isLearner := il }
             [appResp id s dst false sid.index' (W64 0) (W64 0)])
 
 end results

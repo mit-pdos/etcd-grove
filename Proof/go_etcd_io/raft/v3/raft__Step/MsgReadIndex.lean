@@ -33,10 +33,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
 
-theorem followerStepResult_readIndex (id : w64) (s : NState) (m : raftpb.Message)
+theorem followerStepResult_readIndex (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
     (cl : List w8) (Hty : m.Type' = MsgReadIndex)
-    (H : FollowerStepResult id s m ents sv dropped s' cl) :
+    (H : FollowerStepResult cfg id s m ents sv dropped s' cl) :
     dropped = false ∧
     (if s.lead = W64 0 then s' = s else s' = sendMsgs s [readForward id s.lead m ents cl]) := by
   unfold FollowerStepResult at H
@@ -115,7 +115,7 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · iapply Hsnap0
       · iintro %Hc; exfalso; rw [Hty] at Hc
         rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
-    obtain ⟨rfl, Hs1⟩ := followerStepResult_readIndex _ _ _ _ _ _ _ _ Hty Hres
+    obtain ⟨rfl, Hs1⟩ := followerStepResult_readIndex _ _ _ _ _ _ _ _ _ Hty Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn

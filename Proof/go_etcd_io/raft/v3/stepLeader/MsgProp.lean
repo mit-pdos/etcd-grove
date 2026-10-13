@@ -51,7 +51,7 @@ private theorem ownTracker_voters (tv : tracker.ProgressTracker) (t : Trk) :
   isplitr
   · ipureintro; exact Hvoters_dom
   isplitr
-  · ipureintro; exact Hcfg_size
+  · ipureintro; exact cfg_size_le cfg _ Hprs_dom Hcfg_size
   iframe Hvoters
   iintro %voters' %Hd Hv
   iapply ownTracker_intro cfg tv t.votes t.prs t.peers voters_ref voters' learners learnersNext
@@ -147,7 +147,7 @@ theorem wp_stepLeader_prop
   wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ s.progress
     id _ $$ Hprs with -
   obtain ⟨pr, Hlk⟩ : ∃ pr, s.progress !! id = some pr := by
-    rw [← GMap.elem_of_dom, Hdom]; exact Hid
+    rw [← GMap.elem_of_dom]; exact (GMap.elem_of_subseteq _ _).1 Hdom _ Hid
   obtain ⟨p, Hpvs⟩ : ∃ p, s.prvals !! id = some p := by
     rw [← GMap.elem_of_dom, Hpdom, GMap.elem_of_dom]; exact ⟨pr, Hlk⟩
   icases ownRaftPhys_pr cfg r id s id pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩

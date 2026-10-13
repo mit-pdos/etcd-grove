@@ -113,7 +113,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     isplitl []
     · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     · iintro %_; iframe Hents Hcap
-  obtain ⟨rfl, Happ⟩ := followerStepResult_app _ _ _ _ _ _ _ Hty Hres
+  obtain ⟨rfl, Happ⟩ := followerStepResult_app _ _ _ _ _ _ _ _ Hty Hres
   have Hwf1 : NStateWf
       { ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) with
           lead := m.From' } := ⟨rfl, rfl⟩

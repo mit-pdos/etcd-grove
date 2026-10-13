@@ -162,7 +162,7 @@ theorem raft.maybeSendSnapshot.wp_proof
     -- the new value
     icases ownRaftPhys_pr_upd cfg r id s to pr pp $$ Hphys %Hprto %Hpl with ⟨Hpr, Hback⟩
     wp_apply wp_Progress_BecomeSnapshot $$ [$Hpr] as Hpr
-    ihave Hphys := Hback $$ %(progressBecomeSnapshot pp snap.Metadata'.Index') Hpr
+    ihave Hphys := Hback $$ %(progressBecomeSnapshot pp snap.Metadata'.Index') Hpr %rfl
     wp_apply raft.wp_load_id $$ Hphys as Hphys
     wp_raft_log
     -- `send_ok`'s `MsgSnap` clause, with no entries. `Snapshot:

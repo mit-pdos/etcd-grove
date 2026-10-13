@@ -58,6 +58,7 @@ theorem quorum.JointConfig.VoteResult.wp_proof
   iunfold ownTracker at Hown
   icases Hown with ⟨%voters_ref, %voters, %learners, %learnersNext, Hown⟩
   iNamed Hown
+  have Hcfg_size' := cfg_size_le cfg _ Hprs_dom Hcfg_size
   wp_auto
   wp_method_call
   wp_call

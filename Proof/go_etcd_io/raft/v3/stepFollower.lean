@@ -396,7 +396,6 @@ theorem stepFollower.wp_proof
     wp_apply raft.wp_load_id $$ Hphys as Hphys
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
     wp_raft_log
-    icases ownRaftPhys_progress_dom cfg r id s $$ Hphys with ⟨%Hdom, Hphys⟩
     wp_apply wp_raft_hup cfg r id s _ Hnw
         (fun h => by simp [campaignTransfer, campaignPreElection] at h) Hwf
       $$ [$Hphys] as %s' ⟨Hphys, %Hwf', %Hst, %Hfr⟩
@@ -409,7 +408,6 @@ theorem stepFollower.wp_proof
         MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
         MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, W32]
     simp
-    rw [Hdom]
     exact ⟨Hwf', Hst, Hfr⟩
   · -- `MsgUnreachable` (2026-10-13): no arm
     rw [Hty]

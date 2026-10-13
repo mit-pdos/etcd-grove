@@ -243,8 +243,8 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         ihave Hphys := Hback $$ %tv Htrkf Htrk
         have Hid : id ∈ domSet s.prvals := by
           have h1 : domSet s.prvals = domSet s.progress := Hpd
-          have h2 : domSet s.progress = cfg := Hprd
-          rw [h1, h2]; exact Hcfg
+          have h2 : cfg ⊆ domSet s.progress := Hprd
+          rw [h1]; exact (GMap.elem_of_subseteq _ _).1 h2 _ Hcfg
         -- the log's `Hnowrap`: `Step.win`'s no-wrap premise
         icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hback⟩
         icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hlnw, Hlog⟩

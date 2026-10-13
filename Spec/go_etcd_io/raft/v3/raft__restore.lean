@@ -73,7 +73,8 @@ def RestoreResult (s : NState) (sv : raftpb.Snapshot) (b : Bool) (s' : NState) :
   ∨
   (uint.Z ls.committed < uint.Z sid.index' ∧
    ¬ PlogMatches ls.prev es sid ∧ b = true ∧
-   ∃ prs pvs, s' = { s with progress := prs, prvals := pvs, logst := logRestore ls sid })
+   ∃ prs pvs il, s' = { s with progress := prs, prvals := pvs, logst := logRestore ls sid,
+                               isLearner := il })
 
 end results
 

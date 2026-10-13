@@ -481,12 +481,14 @@ def tickInv (γ : NodeNames) : IProp GF :=
 leave the configuration unchanged (`ccApplyM`, the scope of `raft.applyConfChange`). -/
 def confcP (γ : NodeNames) (v : raftpb.ConfChangeV2) : IProp GF :=
   iprop(∃ ccs : List raftpb.ConfChangeSingle, v.Changes' ↦*□ ccs ∗
-    ⌜ccApplyM v.Transition' ccs (cfgState γ.raft.reCfg) = some (cfgState γ.raft.reCfg)⌝)
+    ⌜CCNoop γ.raft.reCfg v.Transition' ccs⌝)
 
-/-- The `ConfState` on `confstatec`: the voters, read-only, and nothing else. -/
+/-- The `ConfState` on `confstatec`: the voters and the learners (none of them a voter;
+since 2026-10-13), read-only, and nothing else. -/
 def confstateP (γ : NodeNames) (cs : raftpb.ConfState) : IProp GF :=
-  iprop(∃ xs : List w64, cs.Voters' ↦*□ xs ∗ ⌜xs ≡ₚ elements γ.raft.reCfg ∧
-    cs.VotersOutgoing'.len = W64 0 ∧ cs.Learners'.len = W64 0 ∧
+  iprop(∃ xs ls : List w64, cs.Voters' ↦*□ xs ∗ cs.Learners' ↦*□ ls ∗
+    ⌜xs ≡ₚ elements γ.raft.reCfg ∧ (∀ k ∈ ls, k ∉ γ.raft.reCfg) ∧
+    cs.VotersOutgoing'.len = W64 0 ∧
     cs.LearnersNext'.len = W64 0 ∧ cs.AutoLeave' = false⌝)
 
 /-- See the file header. -/

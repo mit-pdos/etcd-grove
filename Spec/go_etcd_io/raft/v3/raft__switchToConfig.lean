@@ -72,8 +72,9 @@ leader, and `stepDownOnRemoval`, are not covered), and each new `Match` is `0` o
 (`MatchKept`, what `Step.reMatch` takes); then `maybeCommit`, `bcastAppend` or the `Visit` of
 `maybeSendAppend`, and the `leadTransferee` check over `Voters.IDs()` (`LeaderSwitch`).
 
-`r.isLearner` ends up `false`: it is `ok && pr.IsLearner`, and every `Progress` in
-`ownTracker` has `IsLearner = false`. -/
+`r.isLearner` ends up `learnerOf cfg prs id`: it is `ok && pr.IsLearner`, and a tracked
+`Progress` is a learner's exactly outside `cfg` (`LearnerFlags`; since 2026-10-13, until
+then `false`). The `ConfState` has the learners too (the tracked ids outside `cfg`). -/
 abbrev raft.switchToConfig.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (tv0 : tracker.ProgressTracker)
     (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (pvs : GMap w64 Progress),
@@ -88,50 +89,67 @@ abbrev raft.switchToConfig.spec : Prop :=
       "Hnew" ∷ ownConfigV cfg cfgv prsm prs pvs }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"switchToConfig"))
       (Val #cfgv)) (Val #prsm))
-  {{ (cs : raftpb.ConfState) (xs : List w64) (s' : NState), RET #cs;
+  {{ (cs : raftpb.ConfState) (xs ls : List w64) (s' : NState), RET #cs;
       ownRaftPhys cfg r id s' ∗
-      cs.Voters' ↦* xs ∗ ⌜xs ≡ₚ elements cfg⌝ ∗
-      ⌜cs.VotersOutgoing'.len = W64 0 ∧
-        cs.Learners'.len = W64 0 ∧
+      cs.Voters' ↦* xs ∗ cs.Learners' ↦* ls ∗
+      ⌜xs ≡ₚ elements cfg ∧ ls ≡ₚ elements (domSet prs \ cfg) ∧
+        cs.VotersOutgoing'.len = W64 0 ∧
         cs.LearnersNext'.len = W64 0 ∧
         cs.AutoLeave' = false⌝ ∗
-      ⌜SwitchOk cfg id { s with progress := prs, prvals := pvs } s'⌝ }}
+      ⌜SwitchOk cfg id { s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id }
+        s'⌝ }}
 
 /-- The statement until 2026-10-13: at a non-leader, from the struct sealed at any
 configuration `cfg0` and the new configuration as `confchange.Restore` builds it
-(`ownConfig`). What `newRaft` and `restore` call. -/
+(`ownConfig`), with no learners (`domSet prs = cfg`). What `newRaft` and `restore` call. -/
 theorem raft.switchToConfig.spec_nonleader
     (H : raft.switchToConfig.spec (GF := GF) (hG := hG))
     (cfg0 cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
-    (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (Hrole : s.role ≠ .leader) :
+    (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (Hrole : s.role = .follower)
+    (Hdom : domSet prs = cfg) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg0 r id s ∗
         ownConfig cfg cfgv prsm prs }}
       (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"switchToConfig"))
         (Val #cfgv)) (Val #prsm))
     {{ (cs : raftpb.ConfState) (xs : List w64)
         (pvs : GMap w64 Progress), RET #cs;
-        ownRaftPhys cfg r id { s with progress := prs, prvals := pvs } ∗
+        ownRaftPhys cfg r id { s with progress := prs, prvals := pvs, isLearner := false } ∗
         cs.Voters' ↦* xs ∗ ⌜xs ≡ₚ elements cfg⌝ ∗
         ⌜cs.VotersOutgoing'.len = W64 0 ∧
           cs.Learners'.len = W64 0 ∧
           cs.LearnersNext'.len = W64 0 ∧
           cs.AutoLeave' = false⌝ }} := by
   iintro %Φ ⟨#Hpkg, Hphys, Hcfg⟩ HΦ
-  icases ownRaftPhys_reconfig cfg0 cfg r id s $$ Hphys with ⟨%tv, Htrkf, Hold, Hback⟩
+  icases ownRaftPhys_reconfig cfg0 cfg r id s (fun h => absurd Hrole h) $$ Hphys with ⟨%tv, Htrkf, Hold, Hback⟩
   icases ownTracker_votes $$ Hold with ⟨Hvotes, %Hmi⟩
   icases ownConfig_values $$ Hcfg with ⟨%pvs, Hcfg⟩
-  iapply H cfg r id s tv cfgv prsm prs pvs (fun h => absurd h Hrole)
+  iapply H cfg r id s tv cfgv prsm prs pvs (fun h => absurd (Hrole.symm.trans h) (by decide))
     $$ [$Hpkg $Htrkf $Hback $Hvotes $Hcfg]
   · ipureintro; exact Hmi
   inext
-  iintro %cs %xs %s' ⟨Hphys, Hcs, %Hxs, %Hcs0, %Hsw⟩
+  iintro %cs %xs %ls %s' ⟨Hphys, Hcs, Hls, %Hcs0, %Hsw⟩
   unfold SwitchOk at Hsw
-  rw [if_neg (by exact Hrole)] at Hsw
+  rw [if_neg (by rw [Hrole]; decide)] at Hsw
   subst Hsw
+  have HL : learnerOf cfg prs id = false := by
+    unfold learnerOf; rw [Hdom]; simp
+  have Hls0 : ls = [] := by
+    have h := Hcs0.2.1.length_eq
+    rw [Hdom, GMap.length_elements] at h
+    have h2 : cfg \ cfg = (∅ : GSet w64) := by
+      apply GMap.set_eq; intro k
+      rw [GMap.elem_of_difference]
+      exact ⟨fun h => absurd h.1 h.2, fun h => absurd h (GMap.not_elem_of_empty _)⟩
+    rw [h2, GMap.size_empty] at h
+    exact List.eq_nil_of_length_eq_zero h
+  subst Hls0
+  ihave %Hll := ownSlice_len $$ Hls
   iapply HΦ $$ %cs %xs %pvs
+  rw [HL]
   iframe Hphys Hcs
   ipureintro
-  exact ⟨Hxs, Hcs0⟩
+  refine ⟨Hcs0.1, Hcs0.2.2.1, ?_, Hcs0.2.2.2⟩
+  simp at Hll; word
 
 end spec
 

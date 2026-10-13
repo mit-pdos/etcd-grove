@@ -32,6 +32,8 @@ abbrev raft.becomeCandidate.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
   s.role ≠ .leader →
   uint.Z s.term + 1 < 2 ^ 64 →
+  -- (2026-10-13) only a voter campaigns (`ownRaftPhys`'s `Hvoter`)
+  id ∈ cfg →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomeCandidate")) (Val #()))
   {{ (pvs : GMap w64 Progress), RET #();

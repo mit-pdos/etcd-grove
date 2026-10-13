@@ -45,13 +45,14 @@ and term pinned.)
 
 The premises. `to ≠ id` is what `send_ok`'s `MsgApp` clause needs (`send` panics on a
 self-addressed `MsgApp`); `bcastAppend`'s closure tests `id == r.id` and returns first.
-`to ∈ cfg` is what makes `r.trk.Progress[to]` hit: a miss returns the zero `*Progress`,
-i.e. `null`, and the `pr.IsPaused()` that follows would dereference it. `Visit` only
-enumerates voters, so `bcastAppend` has it. -/
+`to ∈ domSet s.progress` is what makes `r.trk.Progress[to]` hit: a miss returns the zero
+`*Progress`, i.e. `null`, and the `pr.IsPaused()` that follows would dereference it. `Visit`
+only enumerates tracked ids, so `bcastAppend` has it. (Until 2026-10-13 `to ∈ cfg`, when
+the tracked ids were the voters; now learners are tracked too.) -/
 abbrev raft.maybeSendAppend.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (to : w64) (sendIfEmpty : Bool),
   to ≠ id →
-  to ∈ cfg →
+  to ∈ domSet s.progress →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeSendAppend"))

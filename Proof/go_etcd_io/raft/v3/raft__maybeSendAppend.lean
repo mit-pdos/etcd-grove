@@ -121,7 +121,7 @@ local macro "msa_send" : tactic => `(tactic| (
     fun H1 H2 => Hwin H1 (fun Heq => by rw [Heq] at Hlen; simp at Hlen; omega)
   wp_apply wp_Progress_SentEntries pr p _ _ Hnosnap Hwin2 $$ [Hpa] as Hpa
   · iframe
-  ihave Hphys := Hpback $$ %_ Hpa
+  ihave Hphys := Hpback $$ %_ Hpa %(progressSentEntries_learner _ _ _)
   -- `pr.SentCommit(r.raftLog.committed)`: the argument first, then `pr` once more, at
   -- the value `SentEntries` left
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
@@ -134,7 +134,7 @@ local macro "msa_send" : tactic => `(tactic| (
     $$ Hphys %Hlk %(GMap.lookup_insert_eq _ _ _) with ⟨Hpa, Hpback⟩
   wp_apply wp_Progress_SentCommit $$ [Hpa] as Hpa
   · iframe
-  ihave Hphys := Hpback $$ %_ Hpa
+  ihave Hphys := Hpback $$ %_ Hpa %rfl
   iapply HΦ $$ %true
     %([Msg.mk MsgType.app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0)
         es_e] : List Msg)
@@ -197,7 +197,8 @@ about it survives the calls in between because the state records its value
 `raftLog` call and each read of `r.raftLog.committed` takes the log out with
 `ownRaftPhys_log_same` and puts it back.
 
-- `pr := r.trk.Progress[to]` hits because `to ∈ cfg`.
+- `pr := r.trk.Progress[to]` hits because `to ∈ domSet s.progress` (a voter or, since
+  2026-10-13, a learner).
 - `pr.IsPaused()`: on `true`, return `false` having sent nothing; on `false`,
   `p.state ≠ .snapshot`, which is `SentEntries`'s first premise.
 - `r.raftLog.term(pr.Next-1)`: on an error, `maybeSendSnapshot`; on `nil`, the iff gives
@@ -226,7 +227,7 @@ theorem raft.maybeSendAppend.wp_proof
   icases ownTracker_prvals_dom cfg _ _ $$ Htrk with ⟨%Hpdom, Htrk⟩
   dsimp only at Hdom Hpdom
   obtain ⟨pr, Hlk⟩ : ∃ pr, s.progress !! to = some pr := by
-    rw [← GMap.elem_of_dom, Hdom]; exact Hcfg
+    rw [← GMap.elem_of_dom]; exact Hcfg
   obtain ⟨p, Hpvs⟩ : ∃ p, s.prvals !! to = some p := by
     rw [← GMap.elem_of_dom, Hpdom, GMap.elem_of_dom, Hlk]; exact ⟨_, rfl⟩
   wp_auto

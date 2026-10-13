@@ -739,13 +739,14 @@ theorem wp_rn_raft_applyConfChange
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG))
     (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (cc : raftpb.ConfChangeV2)
     (ccs : List raftpb.ConfChangeSingle)
-    (Hn : ccApplyM cc.Transition' ccs (cfgState γ.reCfg) = some (cfgState γ.reCfg)) :
+    (Hn : CCNoop γ.reCfg cc.Transition' ccs) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗ cc.Changes' ↦*□ ccs }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"applyConfChange")) (Val #cc))
-    {{ (cs : raftpb.ConfState) (xs : List w64), RET #cs;
-        ownRawNode γ rn id rs ∗ cs.Voters' ↦* xs ∗ ⌜xs ≡ₚ elements γ.reCfg ∧
-          cs.VotersOutgoing'.len = W64 0 ∧ cs.Learners'.len = W64 0 ∧
+    {{ (cs : raftpb.ConfState) (xs ls : List w64), RET #cs;
+        ownRawNode γ rn id rs ∗ cs.Voters' ↦* xs ∗ cs.Learners' ↦* ls ∗
+          ⌜xs ≡ₚ elements γ.reCfg ∧ (∀ k ∈ ls, k ∉ γ.reCfg) ∧
+          cs.VotersOutgoing'.len = W64 0 ∧
           cs.LearnersNext'.len = W64 0 ∧ cs.AutoLeave' = false⌝ }} := by
   iintro %Φ ⟨#Hpkg, Hrn, #Hr, #Hccs⟩ HΦ
   iNamed Hrn
@@ -753,16 +754,19 @@ theorem wp_rn_raft_applyConfChange
   icombine Hr Hr' gives %Heq
   subst Heq
   iapply wp_fupd
-  wp_apply +noauto wp_raft_applyConfChange γ.reCfg rnv.raft' id s cc ccs DFrac.discard Hin Hn
-    $$ [$Hphys $Hccs] as %cs %xs %s' ⟨Hphys, -, Hvoters, %Hxs, %Hcs0, %Hok⟩
+  wp_apply +noauto wp_raft_applyConfChange γ.reCfg rnv.raft' id s cc ccs DFrac.discard
+      (Hn _ (fun k hk => ((GMap.elem_of_difference _ _ _).1 hk).2))
+    $$ [$Hphys $Hccs] as %cs %xs %ls %s' ⟨Hphys, -, Hvoters, Hls, %Hcs0, %Hok⟩
   imod rawNode_applyCC_reseal γ rn id rs s s' ps rnv sv steps Hrel Hin Hasync Hdlen Hunp Hsnap
     Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hok
     $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs with Hrn
   try wp_auto
   imodintro
-  iapply HΦ $$ %cs %xs
-  iframe Hrn Hvoters
-  ipureintro; exact ⟨Hxs, Hcs0⟩
+  iapply HΦ $$ %cs %xs %ls
+  iframe Hrn Hvoters Hls
+  ipureintro
+  exact ⟨Hcs0.1, fun k hk => ((GMap.elem_of_difference _ _ _).1
+    ((GMap.elem_of_elements _ _).1 (Hcs0.2.1.mem_iff.1 hk))).2, Hcs0.2.2⟩
 
 /-- The struct out of the node with the node's membership (`ownRawNode_borrow`'s and
 `Hin`): for `_, ok := r.trk.Progress[r.id]`, which finds the node. -/

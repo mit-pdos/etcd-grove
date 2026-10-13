@@ -25,7 +25,7 @@ variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 def ApplyCCOk (cfg : GSet w64) (id : w64) (s s' : NState) : Prop :=
   ∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress),
     (s.role = .leader → MatchKept s.prvals pvs) ∧
-    SwitchOk cfg id { s with progress := prs, prvals := pvs } s'
+    SwitchOk cfg id { s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id } s'
 
 /-- The protocol reading of `ApplyCCOk`: one `Step` that receives nothing (at a leader
 `Step.reMatch`, then `Step.commit` if `maybeCommit` moved the commit index, then
@@ -41,14 +41,14 @@ theorem applyCCOk_step (cfg : GSet w64) (id : w64) (s s' : NState) (H : ApplyCCO
   obtain ⟨prs, pvs, Hmk, Hsw⟩ := H
   unfold SwitchOk at Hsw
   by_cases Hl : s.role = .leader
-  · rw [if_pos (show ({ s with progress := prs, prvals := pvs } : NState).role = .leader from Hl)]
+  · rw [if_pos (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id } : NState).role = .leader from Hl)]
       at Hsw
     obtain ⟨c, ms, pvs2, lt', Hc, Hms, Hmm, rfl⟩ := Hsw
     have Hpl : (toPState s).role = .leader := by simp [toPState, Hl, proleRole]
     -- the new `Progress` values
     have H1 : Step cfg id (toPState s) []
-        (toPState { s with progress := prs, prvals := pvs }) := by
-      have e : toPState { s with progress := prs, prvals := pvs } =
+        (toPState { s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id }) := by
+      have e : toPState { s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id } =
           { toPState s with matched := prvalsMatch pvs } := by simp [toPState, Hl]
       rw [e]
       refine .reMatch _ _ Hpl (fun v i hv => ?_)
@@ -63,7 +63,7 @@ theorem applyCCOk_step (cfg : GSet w64) (id : w64) (s s' : NState) (H : ApplyCCO
         · exact .inl h0
         · right
           simp [toPState, Hl, prvalsMatch, GMap.lookup_fmap', hp0, hm]
-    generalize Hs1 : ({ s with progress := prs, prvals := pvs } : NState) = s1 at H1 Hc Hms Hmm
+    generalize Hs1 : ({ s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id } : NState) = s1 at H1 Hc Hms Hmm
     have Hl1 : s1.role = .leader := by rw [← Hs1]; exact Hl
     have Hpl1 : (toPState s1).role = .leader := by simp [toPState, Hl1, proleRole]
     -- the commit
@@ -94,10 +94,10 @@ theorem applyCCOk_step (cfg : GSet w64) (id : w64) (s s' : NState) (H : ApplyCCO
     rcases Hc with rfl | ⟨Hlt, -⟩
     · exact Int.le_refl _
     · simp only [toPState] at Hlt; simp only [sendMsgs]; omega
-  · rw [if_neg (show ¬ ({ s with progress := prs, prvals := pvs } : NState).role = .leader
+  · rw [if_neg (show ¬ ({ s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id } : NState).role = .leader
       from Hl)] at Hsw
     subst Hsw
-    have e : toPState { s with progress := prs, prvals := pvs } = toPState s := by
+    have e : toPState { s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id } = toPState s := by
       simp [toPState, Hl]
     rw [e]
     exact ⟨.refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩
@@ -116,13 +116,15 @@ index, runs `LeaveJoint`, `EnterJoint` or `Simple` as `cc` says (panicking on an
 and installs the result (`switchToConfig`), returning the new `ConfState`.
 
 **Scope: a change that leaves the configuration unchanged** -- its model answer is the
-state it started from, `ccApplyM cc.Transition ccs (cfgState cfg) = some (cfgState cfg)`
+state it started from, `ccApplyM cc.Transition ccs (cfgState cfg lrn) = some (cfgState cfg lrn)`
+for the node's learners `lrn = domSet s.progress \ cfg` (since 2026-10-13, stage L)
 (e.g. a change with `NodeId = 0`, `ccApplyM_single_noop`; only `Simple` can answer that,
 `ccApplyM_noop`). `ownRaftPhys` stays at `cfg`. Even so the Go code installs new
 `Progress` objects (`checkAndCopy`'s copies, or fresh ones for a peer removed and re-added
 in one change, whose `Match` is `0`), and at a leader commits and sends appends: the result
-is `ApplyCCOk`, a protocol `Step` that receives nothing (`applyCCOk_step`). `id ∈ cfg` is
-the node's scope (a voter), which a leader's `maybeCommit` needs.
+is `ApplyCCOk`, a protocol `Step` that receives nothing (`applyCCOk_step`). (Until
+2026-10-13 it took `id ∈ cfg`, which a leader's `maybeCommit` needs; a leader is a voter by
+`ownRaftPhys` now, and a learner may call this.)
 
 The order in which an application must call this relative to `Advance`
 (`issues/raft-advance-before-applyconfchange.md`) is `RawNode.ApplyConfChange`'s
@@ -130,18 +132,18 @@ concern; for an unchanged configuration it does not matter. -/
 abbrev raft.applyConfChange.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (cc : raftpb.ConfChangeV2)
     (ccs : List raftpb.ConfChangeSingle) (dq : DFrac),
-  id ∈ cfg →
-  ccApplyM cc.Transition' ccs (cfgState cfg) = some (cfgState cfg) →
+  ccApplyM cc.Transition' ccs (cfgState cfg (domSet s.progress \ cfg)) =
+    some (cfgState cfg (domSet s.progress \ cfg)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       "Hccs" ∷ cc.Changes' ↦*{dq} ccs }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"applyConfChange")) (Val #cc))
-  {{ (cs : raftpb.ConfState) (xs : List w64) (s' : NState), RET #cs;
+  {{ (cs : raftpb.ConfState) (xs ls : List w64) (s' : NState), RET #cs;
       ownRaftPhys cfg r id s' ∗
       cc.Changes' ↦*{dq} ccs ∗
-      cs.Voters' ↦* xs ∗ ⌜xs ≡ₚ elements cfg⌝ ∗
-      ⌜cs.VotersOutgoing'.len = W64 0 ∧
-        cs.Learners'.len = W64 0 ∧
+      cs.Voters' ↦* xs ∗ cs.Learners' ↦* ls ∗
+      ⌜xs ≡ₚ elements cfg ∧ ls ≡ₚ elements (domSet s.progress \ cfg) ∧
+        cs.VotersOutgoing'.len = W64 0 ∧
         cs.LearnersNext'.len = W64 0 ∧
         cs.AutoLeave' = false⌝ ∗
       ⌜ApplyCCOk cfg id s s'⌝ }}

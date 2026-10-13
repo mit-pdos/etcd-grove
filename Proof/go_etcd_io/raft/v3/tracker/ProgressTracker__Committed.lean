@@ -63,7 +63,7 @@ theorem tracker.ProgressTracker.Committed.wp_proof
   wp_apply wp_JointConfig_CommittedIndex _ _ voters_ref voters _ _ (pvsAcked pvs)
       $$ [$Hidx $HP $Hvf $Hvoters] as %N ⟨Hvf, ⟨%voters', %Hdom, Hvoters⟩, HP, %Hemp, %Hq⟩
   · ipureintro
-    exact ⟨by rw [Hvoters_dom]; exact Hcfg_size, Hvoters_arr⟩
+    exact ⟨by rw [Hvoters_dom]; exact cfg_size_le cfg _ Hprs_dom Hcfg_size, Hvoters_arr⟩
   ihave Hcfgf := Hback2 $$ Hvf
   ihave Htrk := Hback1 $$ Hcfgf
   -- the map is the tracker's: its contents agree with `Hprs`

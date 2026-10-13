@@ -176,7 +176,7 @@ theorem raft.reset.wp_proof
   icases ownRaftPhys_tracker_prvals $$ Hphys with ⟨%tv1, Htrkf, Htrk, HI⟩
   icases ownTracker_prvals_dom $$ Htrk with ⟨%Hpdom, Htrk⟩
   icases ownTracker_progress_map $$ Htrk with ⟨-, %Hprdom, Htrk⟩
-  have Hdomcfg : domSet s.prvals = cfg := by rw [← Hprdom, ← Hpdom]; rfl
+  have Hdomcfg : domSet s.prvals = domSet s.progress := Hpdom
   wp_apply wp_ProgressTracker_Visit cfg _ tv1
       ⟨(resetTo0 s term).votes, (resetTo0 s term).progress, (resetTo0 s term).prvals⟩ _
       (fun D pvsx => iprop(r_ptr ↦ r ∗
@@ -199,7 +199,7 @@ theorem raft.reset.wp_proof
     wp_start as ⟨%Hicfg, %Hpri, %Hpvi, %HmaxI, Htrkf, Hpr, Hprback, r, %Hinv0, HI⟩
     dsimp only
     have Hpri' : (resetTo0 s term).progress !! i = some pr := Hpri
-    ihave Htrk := Hprback $$ Hpr
+    ihave Htrk := Hprback $$ %p Hpr %rfl
     ihave Hphys := HI $$ Htrkf Htrk
     wp_auto
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
@@ -216,8 +216,8 @@ theorem raft.reset.wp_proof
     icases ownTracker_lookup cfg tv2
       ⟨(resetTo0 s term).votes, (resetTo0 s term).progress, <[i := p]> pvs0⟩ i pr Hpri $$ Htrk
       with ⟨%p1, %Hpv1, Hpr, Hprback⟩
-    -- Keep `Hnolearner`: `ownProgress`'s `progressAbs` says `pv.IsLearner' = false`,
-    -- and the closure has to hand it back.
+    -- Keep `Hnolearner`: `ownProgress`'s `progressAbs` says `pv.IsLearner' = p1.learner`,
+    -- which the wand needs back.
     iunfold ownProgress at Hpr
     icases Hpr with ⟨%pv1, Hpr⟩
     iNamed Hpr
@@ -227,11 +227,14 @@ theorem raft.reset.wp_proof
     wp_apply wp_tracker_NewInflights _ _ HmaxI2 as %ifl Hifl
     -- the `Progress` literal has no `State` field, so `State` is the zero value
     -- `StateProbe`; `IsLearner` is copied across
-    ihave Htrk := Hprback $$ [Hpv Hifl]
+    ihave Htrk := Hprback $$ %(progressOf
+        { Match' := W64 0, Next' := li + W64 1, sentCommit' := 0, State' := 0,
+          PendingSnapshot' := 0, RecentActive' := false, MsgAppFlowPaused' := false,
+          Inflights' := ifl, IsLearner' := pv1.IsLearner' } .probe _) [Hpv Hifl] %Hnolearner
     · iapply ownProgress_of pr
         { Match' := W64 0, Next' := li + W64 1, sentCommit' := 0, State' := 0,
           PendingSnapshot' := 0, RecentActive' := false, MsgAppFlowPaused' := false,
-          Inflights' := ifl, IsLearner' := pv1.IsLearner' } .probe _ Hnolearner rfl $$ Hpv Hifl
+          Inflights' := ifl, IsLearner' := pv1.IsLearner' } .probe _ rfl $$ Hpv Hifl
     ihave Hphys := HI $$ Htrkf [Htrk]
     · iapply ownTracker_cast _ _ _ _ ?_ $$ Htrk
       rfl
@@ -257,8 +260,9 @@ theorem raft.reset.wp_proof
       iNamed Hpr
       have Habs2 := (progressAbs_Some _ _ _).1 Habs
       wp_auto
-      ihave Htrk := Hprback $$ [Hpv Hinfl]
-      · iapply ownProgress_of pr { pv2 with Match' := li2 } p2.state _ Habs2.1 Habs2.2.1
+      ihave Htrk := Hprback $$ %(progressOf { pv2 with Match' := li2 } p2.state _)
+          [Hpv Hinfl] %Habs2.1
+      · iapply ownProgress_of pr { pv2 with Match' := li2 } p2.state _ Habs2.2.1
           $$ Hpv Hinfl
       ihave Hphys := HI $$ Htrkf [Htrk]
       · iapply ownTracker_cast _ _ _ _ ?_ $$ Htrk

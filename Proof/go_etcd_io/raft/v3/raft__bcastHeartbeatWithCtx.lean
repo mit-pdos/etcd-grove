@@ -85,7 +85,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
     iintro %i %pr %tv0 %pvs0 %p %D
     wp_start as ⟨%Hicfg, %Hpri, %Hpvi, %HmaxI, Htrkf, Hpr, Hback, HI⟩
     iNamed HI
-    ihave Htrk := Hback $$ Hpr
+    ihave Htrk := Hback $$ %p Hpr %rfl
     ihave Hphys := Hrest $$ Htrkf Htrk
     wp_auto
     wp_apply raft.wp_load_id $$ Hphys as Hphys
@@ -116,7 +116,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
     · -- a peer: one heartbeat
       rw [decide_eq_false Hii]
       wp_auto
-      wp_apply wp_raft_sendHeartbeat _ _ _ _ i ctx cl Hii Hicfg $$ [$Hphys]
+      wp_apply wp_raft_sendHeartbeat _ _ _ _ i ctx cl Hii (by exact Hicfg) $$ [$Hphys]
         as %c %pvs' ⟨Hphys, %Hc1, %Hc2, %Hmm'⟩
       · iexact Hctx
       try wp_auto

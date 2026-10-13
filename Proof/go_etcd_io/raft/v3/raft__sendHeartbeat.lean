@@ -23,7 +23,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The lookup hits (`to ∈ cfg`; same steps as `maybeSendAppend`). `pr.Match` is read
+/-- The lookup hits (`to ∈ domSet s.progress`; same steps as `maybeSendAppend`). `pr.Match` is read
 with `pr` borrowed by its key (`ownRaftPhys_pr`), `r.raftLog.committed` through the
 log's record (`ownRaftLog_struct`), `min` by `wp_min2_uint64`. `send` changes only the
 outbox, so `pr` is still at `p` for `SentCommit`, which writes only `sentCommit`
@@ -39,7 +39,7 @@ theorem raft.sendHeartbeat.wp_proof
   icases ownTracker_progress_map $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
   icases ownTracker_prvals_dom $$ Htrk with ⟨%Hpdom, Htrk⟩
   dsimp only at Hdom Hpdom
-  obtain ⟨pr, Hlk⟩ := (GMap.elem_of_dom _ _).1 (Hdom ▸ Hcfg)
+  obtain ⟨pr, Hlk⟩ := (GMap.elem_of_dom _ _).1 Hcfg
   obtain ⟨p, Hpvs⟩ := (GMap.elem_of_dom _ _).1 (Hpdom ▸ (GMap.elem_of_dom_2 _ _ _ Hlk))
   wp_auto
   ihave Hphys := Hback $$ Htrkf Htrk
@@ -78,7 +78,7 @@ theorem raft.sendHeartbeat.wp_proof
       exact (by decide : W32 8 ≠ W32 7)
   icases ownRaftPhys_pr_upd _ _ _ _ _ _ p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
   wp_apply wp_Progress_SentCommit $$ [$Hpa] as Hpa
-  ihave Hphys := Hpback $$ Hpa
+  ihave Hphys := Hpback $$ %_ Hpa %rfl
   iapply HΦ $$ %c %_
   iframe Hphys
   obtain ⟨Hlv1, -⟩ := Hlv
