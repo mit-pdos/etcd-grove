@@ -41,7 +41,8 @@ namespace StepProof
 address itself. -/
 theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) :
+    (ents : List raftpb.Entry)
+    (Hlrd : s.role = .leader → RdOk cfg s.rd ∧ s.term ≠ W64 0) :
     m.Type' = MsgAppResp →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -76,7 +77,8 @@ theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · iapply wp_Step_Resp_lt _P cfg r id s m ents .appResp (.inl Hty) Hterm Hlt Hwf
         $$ [$Hpkg $Hphys] HΦ
     · have Hteq : m.Term' = s.term := by word
-      wp_apply (wp_Step_MsgAppResp_eq _P cfg r id s m ents Hty Hto Hterm Hteq Hfnz Hrej Hcfg Hwf)
+      wp_apply (wp_Step_MsgAppResp_eq _P cfg r id s m ents Hlrd Hty Hto Hterm Hteq Hfnz Hrej Hcfg
+        Hwf)
         $$ [$Hpkg $Hphys] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
       iapply HΦ $$ %err %s'
       iframe Hphys

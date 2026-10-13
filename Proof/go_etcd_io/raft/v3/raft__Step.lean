@@ -147,8 +147,8 @@ private theorem not_leader_of_msg (γ : RaftNames) (id : w64) (s : NState)
 
 /-- A heartbeat is the sender's as a leader of its term (`isMessage`). -/
 private theorem isMessage_heartbeat_isLeader (γ : RaftNames) (m : raftpb.Message)
-    (ents : List raftpb.Entry) :
-    isMessage (GF := GF) γ (absMsg .heartbeat m ents) ⊢ isLeader γ m.From' m.Term' := by
+    (ents : List raftpb.Entry) (ctx : List w8 := []) :
+    isMessage (GF := GF) γ (absMsg .heartbeat m ents ctx) ⊢ isLeader γ m.From' m.Term' := by
   unfold isMessage absMsg absMsgFrom
   iintro ⟨H, -⟩
   iexact H
@@ -178,25 +178,23 @@ private theorem dispatch_Heartbeat (P : raft.Step.Postulates (GF := GF) (hG := h
         {{ v, |={⊤}=> Φ v }} := by
   obtain ⟨Hto, Hterm, Hfnz, Hfid⟩ := Hm
   iintro #Hinit Hphys Hghost #Hents #Hctxp #Hmc HΦ
-  ihave #Hm : isMessage γ (absMsg .heartbeat m ents) $$ []
-  · rw [← isMessage_absMsg_ctx γ _ m ents ctx]; iexact Hmc
   have Hcl_lem : ⊢ ownRaftGhost (GF := GF) γ id (toPState s) -∗
-      isMessage γ (absMsg .heartbeat m ents) -∗
+      isMessage γ (absMsg .heartbeat m ents ctx) -∗
       ⌜uint.Z s.term ≤ uint.Z m.Term' →
        uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)⌝ := by
     iintro Hg #Hm
     by_cases Hle : uint.Z s.term ≤ uint.Z m.Term'
     · -- a leader receiving a heartbeat of its own term: the sender is a second leader
       -- of the term, which `isLeader_unique` excludes
-      ihave #Hl2 := isMessage_heartbeat_isLeader γ m ents $$ Hm
+      ihave #Hl2 := isMessage_heartbeat_isLeader γ m ents ctx $$ Hm
       ihave %Hnl := not_leader_of_msg γ id s m Hfid $$ Hg Hl2
-      ihave %Hc := heartbeat_commit_le_last γ id (toPState s) (absMsg .heartbeat m ents) rfl
+      ihave %Hc := heartbeat_commit_le_last γ id (toPState s) (absMsg .heartbeat m ents ctx) rfl
         Hto Hle (fun Heq Hr => Hnl Heq ((proleRole_leader _).1 Hr)) $$ Hg Hm
       ipureintro
       exact fun _ => Hc
     · ipureintro
       exact fun h => absurd h Hle
-  ihave %Hcl := Hcl_lem $$ Hghost Hm
+  ihave %Hcl := Hcl_lem $$ Hghost Hmc
   ihave %Hfv0 := ownRaftGhost_follower_votes γ id (toPState s) $$ Hghost
   have Hfv : s.role = .follower → s.votes = ∅ := followerVotesOk_phys s Hfv0
   wp_apply (wp_Step_MsgHeartbeat P cfg r id s m ents ctx Hty Hto Hterm Hfnz Hfid Hin Hwf Hcl Hfv)
@@ -223,7 +221,16 @@ private theorem dispatch_AppResp (P : raft.Step.Postulates (GF := GF) (hG := hG)
         {{ v, |={⊤}=> Φ v }} := by
   obtain ⟨Hto, Hterm, Hfnz, Hrej⟩ := Hm
   iintro #Hinit Hphys Hghost #Hents #Hm HΦ
-  wp_apply (wp_Step_MsgAppResp P cfg r id s m ents Hty Hto Hterm Hfnz Hrej Hin Hwf)
+  -- (2026-10-13) the read-only facts a commit's release needs, from the ghost state
+  have Hlrd_lem : ⊢ ownRaftGhost (GF := GF) γ id (toPState s) -∗
+      ⌜s.role = .leader → RdOk cfg s.rd ∧ s.term ≠ W64 0⌝ := by
+    iintro Hg
+    by_cases hl : s.role = .leader
+    · ihave %H1 := ghost_rdOk γ id s hl $$ Hg
+      ipureintro; intro _; rw [← Hcfg]; exact H1
+    · ipureintro; exact fun h => absurd h hl
+  ihave %Hlrd := Hlrd_lem $$ Hghost
+  wp_apply (wp_Step_MsgAppResp P cfg r id s m ents Hlrd Hty Hto Hterm Hfnz Hrej Hin Hwf)
     $$ [$Hphys $Hents] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hresp, %Hfr, %Htm⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
   iapply finish_branch γ cfg r id s s' m _ recv err Φ Hcfg Hwf' Hrecv Hstep
@@ -250,11 +257,12 @@ private theorem dispatch_HeartbeatResp (P : raft.Step.Postulates (GF := GF) (hG 
   iintro #Hinit Hphys Hghost #Hents #Hctx0 #Hm HΦ
   -- (2026-10-13) the read-only facts `stepLeader`'s read path needs, from the ghost state
   have Hlrd_lem : ⊢ ownRaftGhost (GF := GF) γ id (toPState s) -∗
+      isMessage γ (absMsg .heartbeatResp m ents ctx) -∗
       ⌜s.role = .leader → m.Term' = s.term →
         (RdOk cfg s.rd ∧ s.term ≠ W64 0) ∧ (ctx = [] ∨ 8 ≤ ctx.length) ∧
         (ctx ≠ [] → uint.Z (leToU64 (ctx.take 8))
                       ≤ uint.Z s.rd.ro.confirmed + (s.rd.ro.pending.length : Int))⌝ := by
-    iintro Hg
+    iintro Hg #Hm
     by_cases hl : s.role = .leader
     · by_cases ht : m.Term' = s.term
       · ihave %H1 := ghost_rdOk γ id s hl $$ Hg
@@ -265,13 +273,13 @@ private theorem dispatch_HeartbeatResp (P : raft.Step.Postulates (GF := GF) (hG 
         exact ⟨H1, H2⟩
       · ipureintro; exact fun _ h => absurd h ht
     · ipureintro; exact fun h => absurd h hl
-  ihave %Hlrd := Hlrd_lem $$ Hghost
+  ihave %Hlrd := Hlrd_lem $$ Hghost Hm
   wp_apply (wp_Step_MsgHeartbeatResp P cfg r id s m ents ctx Hlrd Hty Hto Hterm Hfnz Hfid Hin Hwf)
     $$ [$Hphys $Hents $Hctx0] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
   obtain ⟨c, recv, Hc, Hrecv, Hstep⟩ := Hst
   ihave #Hmc : isMessage γ (absMsg .heartbeatResp m ents c) $$ []
   · rcases Hc with rfl | rfl
-    · unfold isMessage; simp only [absMsg, absMsgFrom]; ileft; ipureintro; rfl
+    · unfold isMessage; simp only [absMsg, absMsgFrom]; ileft; ipureintro; trivial
     · iexact Hm
   iapply finish_branch γ cfg r id s s' m _ recv err Φ Hcfg Hwf' Hrecv Hstep
     (fun _ => Hfr) (fun _ => Htm) (by resp_other) $$ Hmc Hghost Hphys
@@ -329,9 +337,46 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
   -- the frame and the term step are not claimed for a snapshot
   iapply finish_branch γ cfg r id s s' m _ recv err Φ Hcfg Hwf' Hrecv Hstep
-    (fun h => absurd Hty h) (fun h => absurd Hty h) (by resp_other) $$ Hm Hghost Hphys
+    (fun h => absurd Hty h) (fun h => absurd Hty h) (by resp_other)
+    (by simp [absSnap, absSnapFrom]) $$ Hm Hghost Hphys
     [] HΦ
   ileft; ipureintro; exact Herr
+
+/-- `MsgReadIndex` (2026-10-13): a local or forwarded request, `Term = 0`. -/
+private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := hG))
+    (γ : RaftNames) (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
+    (m : raftpb.Message) (ents : List raftpb.Entry) (ctx : List w8) (Φ : val → IProp GF)
+    (Hcfg : γ.reCfg = cfg) (Hin : id ∈ cfg) (Hwf : NStateWf s)
+    (Hty : m.Type' = MsgReadIndex) (Hm : m.Term' = W64 0 ∧ 1 < GMap.size cfg) :
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
+      ownRaftPhys cfg r id s -∗
+      ownRaftGhost γ id (toPState s) -∗
+      m.Entries' ↦*□ ents -∗
+      m.Context' ↦*□ ctx -∗
+      isMessage γ (absMsg .readIndex m ents ctx) -∗
+      rdCred γ 1 -∗
+      ▷ stepPost γ cfg r id s m Φ -∗
+      WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
+        {{ v, |={⊤}=> Φ v }} := by
+  sorry
+
+/-- `MsgReadIndexResp` (2026-10-13): a leader's answer to a forwarded request. -/
+private theorem dispatch_ReadIndexResp (P : raft.Step.Postulates (GF := GF) (hG := hG))
+    (γ : RaftNames) (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
+    (m : raftpb.Message) (ents : List raftpb.Entry) (ctx : List w8) (Φ : val → IProp GF)
+    (Hcfg : γ.reCfg = cfg) (Hin : id ∈ cfg) (Hwf : NStateWf s)
+    (Hty : m.Type' = MsgReadIndexResp)
+    (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) :
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
+      ownRaftPhys cfg r id s -∗
+      ownRaftGhost γ id (toPState s) -∗
+      m.Entries' ↦*□ ents -∗
+      m.Context' ↦*□ ctx -∗
+      isMessage γ (absMsg .readIndexResp m ents ctx) -∗
+      ▷ stepPost γ cfg r id s m Φ -∗
+      WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
+        {{ v, |={⊤}=> Φ v }} := by
+  sorry
 
 /-- The top-level dispatch: the one triple for `Step`, and **the one place in this
 development where ghost state is updated**. Each branch lemma hands back a pure `Step`
@@ -368,9 +413,9 @@ theorem raft.Step.wp_proof
      wp_raftLog_isUpToDate, wp_raftLog_stableTo, wp_raft_appliedTo,
      wp_raft_reduceUncommittedSize, wp_entsSize, wp_payloadsSize⟩
   intro cfg γ r id s ps m ents ctx Hcfg Hsm Hin Hhup Hvote Hvoteresp Hprevote Hprevoteresp
-    Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hrel
+    Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hri Hrir Hrel
   obtain ⟨rfl, Hwf⟩ := Hrel
-  iintro %Φ ⟨#Hinit, Hphys, Hghost, Hm, ⟨#Hctxp, %Hctr, %Hctx0⟩, #Hsnap⟩ HΦ
+  iintro %Φ ⟨#Hinit, Hphys, Hghost, Hm, ⟨#Hctxp, %Hctr⟩, Hcred, #Hsnap⟩ HΦ
   icases Hm with ⟨Hents, Hcap, %Hpents, %Happly, #Hmsg0⟩
   iapply wp_fupd
   by_cases Hty : m.Type' = MsgProp
@@ -413,7 +458,8 @@ theorem raft.Step.wp_proof
           .trans _ _ _ _ _ (.propose (absMsg .propose m ents ctx) _ ents rfl rfl Hrl Hnorm0 Hnw)
             Hstep⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst'
-    imod ghost_step_recv γ cfg id _ _ _ recv Hcfg Hrecv Hstep $$ Hm' Hghost with Hghost
+    imod ghost_step_recv γ cfg id _ _ _ recv Hcfg Hrecv Hstep (by simp [absMsg, absMsgFrom])
+      $$ Hm' Hghost with Hghost
     imodintro
     iapply HΦ $$ %err %s' %(toPState s')
     iframe Hphys Hghost
@@ -509,10 +555,11 @@ theorem raft.Step.wp_proof
   · imodintro
     iintro %ty %Hty'
     iapply Hmsg0 $$ %ty %Hty' %(fun h => Hns (mtypeOf_Snap _ (h ▸ Hty')))
-  ihave #Hmsg : (□ ∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗ isMessage γ (absMsg ty m ents)) $$ []
+  ihave #Hmsg : (□ ∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗ ⌜ty ≠ .heartbeat ∧ ty ≠ .heartbeatResp⌝ -∗
+      isMessage γ (absMsg ty m ents)) $$ []
   · imodintro
-    iintro %ty %Hty'
-    rw [← isMessage_absMsg_ctx γ ty m ents ctx]
+    iintro %ty %Hty' %Hhb'
+    rw [← isMessage_absMsg_ctx γ ty m ents ctx Hhb']
     iapply Hmsgc $$ %ty %Hty'
   iclear Hsnap Hmsg0
   by_cases Hty : m.Type' = MsgHup
@@ -526,7 +573,7 @@ theorem raft.Step.wp_proof
   by_cases Hty : m.Type' = MsgVote
   · -- MsgVote: answer the vote request, stepping down first if needed.
     obtain ⟨Hto, Hterm, Hfnz⟩ := Hvote Hty
-    ihave #Hm' := Hmsg $$ %MsgType.vote %(by rw [Hty]; exact mtypeOf_MsgVote)
+    ihave #Hm' := Hmsg $$ %MsgType.vote %(by rw [Hty]; exact mtypeOf_MsgVote) %(And.intro (by decide) (by decide))
     ihave #Hctx' : (∃ (ctx : List w8), m.Context' ↦*□ ctx ∗ ⌜ctx ≠ campaignTransfer⌝) $$ []
     · iexists ctx
       iframe Hctxp
@@ -540,7 +587,7 @@ theorem raft.Step.wp_proof
   by_cases Hty : m.Type' = MsgVoteResp
   · -- MsgVoteResp: tally the vote, possibly winning or losing.
     obtain ⟨Hto, Hterm⟩ := Hvoteresp Hty
-    ihave #Hm' := Hmsg $$ %MsgType.voteResp %(by rw [Hty]; exact mtypeOf_MsgVoteResp)
+    ihave #Hm' := Hmsg $$ %MsgType.voteResp %(by rw [Hty]; exact mtypeOf_MsgVoteResp) %(And.intro (by decide) (by decide))
     wp_apply (wp_Step_MsgVoteResp P cfg r id s m ents Hty Hto Hterm Hin Hwf) $$ [$Hphys]
       as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hresp, %Hfr, %Htm⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
@@ -564,7 +611,7 @@ theorem raft.Step.wp_proof
   · -- MsgPreVoteResp (2026-10-04): a pre-candidate's tally, or a step-down on a
     -- rejection of a higher term.
     obtain ⟨Hto, Hterm, -, Hnw⟩ := Hprevoteresp Hty
-    ihave #Hm' := Hmsg $$ %MsgType.preVoteResp %(by rw [Hty]; exact mtypeOf_MsgPreVoteResp)
+    ihave #Hm' := Hmsg $$ %MsgType.preVoteResp %(by rw [Hty]; exact mtypeOf_MsgPreVoteResp) %(And.intro (by decide) (by decide))
     wp_apply (wp_Step_MsgPreVoteResp P cfg r id s m ents Hty Hto Hterm Hnw Hin Hwf)
       $$ [$Hphys] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hresp, %Hfr, %Htm⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
@@ -573,12 +620,12 @@ theorem raft.Step.wp_proof
     ileft; ipureintro; exact Herr
   by_cases Hty : m.Type' = MsgApp
   · -- MsgApp: `dispatch_App`.
-    ihave #Hm' := Hmsg $$ %MsgType.app %(by rw [Hty]; exact mtypeOf_MsgApp)
+    ihave #Hm' := Hmsg $$ %MsgType.app %(by rw [Hty]; exact mtypeOf_MsgApp) %(And.intro (by decide) (by decide))
     iapply dispatch_App P γ cfg r id s m ents Φ Hcfg Hin Hwf Hty (Happ Hty)
       $$ Hinit Hphys Hghost Hents Hcap Hm' HΦ
   by_cases Hty : m.Type' = MsgAppResp
   · -- MsgAppResp: `dispatch_AppResp`.
-    ihave #Hm' := Hmsg $$ %MsgType.appResp %(by rw [Hty]; exact mtypeOf_MsgAppResp)
+    ihave #Hm' := Hmsg $$ %MsgType.appResp %(by rw [Hty]; exact mtypeOf_MsgAppResp) %(And.intro (by decide) (by decide))
     iapply dispatch_AppResp P γ cfg r id s m ents Φ Hcfg Hin Hwf Hty (Happresp Hty)
       $$ Hinit Hphys Hghost Hents Hm' HΦ
   by_cases Hty : m.Type' = MsgHeartbeat
@@ -596,10 +643,21 @@ theorem raft.Step.wp_proof
   · -- MsgBeat: `dispatch_Beat`.
     iapply dispatch_Beat P γ cfg r id s m Φ Hcfg Hin Hwf Hty (Hbeat Hty)
       $$ Hinit Hphys Hghost HΦ
-  -- none of the fourteen (the two storage acknowledgements were handled above)
+  by_cases Hty : m.Type' = MsgReadIndex
+  · -- MsgReadIndex (2026-10-13): `dispatch_ReadIndex`, with the request's credit.
+    ihave #Hm' := Hmsgc $$ %MsgType.readIndex %(by rw [Hty]; rfl)
+    rw [if_pos Hty]
+    iapply dispatch_ReadIndex P γ cfg r id s m ents ctx Φ Hcfg Hin Hwf Hty (Hri Hty)
+      $$ Hinit Hphys Hghost Hents Hctxp Hm' Hcred HΦ
+  by_cases Hty : m.Type' = MsgReadIndexResp
+  · -- MsgReadIndexResp (2026-10-13): `dispatch_ReadIndexResp`.
+    ihave #Hm' := Hmsgc $$ %MsgType.readIndexResp %(by rw [Hty]; rfl)
+    iapply dispatch_ReadIndexResp P γ cfg r id s m ents ctx Φ Hcfg Hin Hwf Hty (Hrir Hty)
+      $$ Hinit Hphys Hghost Hents Hctxp Hm' HΦ
+  -- none of the sixteen (the two storage acknowledgements were handled above)
   exfalso
   simp only [StepMsg, stepMsgTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at Hsm
-  rcases Hsm with h | h | h | h | h | h | h | h | h | h | h | h | h | h <;> contradiction
+  rcases Hsm with h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h <;> contradiction
 
 end dispatch
 

@@ -40,7 +40,8 @@ default arm runs `r.step(m)`. `stepFollower` and `stepCandidate` have no arm for
 `Step.appResp`/`Step.commit`/`Step.sendApps` (`leader_appresp_step`). -/
 theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) :
+    (ents : List raftpb.Entry)
+    (Hlrd : s.role = .leader → RdOk cfg s.rd ∧ s.term ≠ W64 0) :
     m.Type' = MsgAppResp →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -142,15 +143,20 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       keep_frame rfl rfl rfl rfl rfl⟩
   · -- Leader: the replication path
     simp only [stepFuncOf]
-    wp_apply _P.stepLeader cfg r id s m [] (.inr (.inr (.inr (.inl Hty)))) Hrole Hcfg
+    wp_apply _P.stepLeader cfg r id s m [] [] (.inr (.inr (.inr (.inl Hty)))) Hrole Hcfg
         (fun _ => Hfnz)
         (fun Hc => by
           rcases Hc with Hc | ⟨-, Hc⟩
           · exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
           · exact Hrej Hc)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun _ => Hlrd Hrole)
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys] as %err %s' %dropped ⟨Hphys, %Hres, Herrn, -⟩
     · isplitl []
+      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+      isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     obtain ⟨rfl, Hwf', ⟨recv, Hrecv, Hstep⟩, Hft⟩ :=
