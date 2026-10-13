@@ -7,3 +7,15 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/read/(Link|Results)\.lean$
+axiom context.ErrDone.wp_proof
+axiom context.WithTimeoutBackground.wp_proof
+axiom strconv.FormatUint.wp_proof
+axiom traceutil.EnsureTrace.wp_proof
+axiom traceutil.Trace.AddField.wp_proof
+axiom traceutil.Trace.LogAllStepsIfLong.wp_proof
+axiom traceutil.Trace.Step.wp_proof
+axiom zap.Duration.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Logger.Info.wp_proof
+axiom zap.Logger.Warn.wp_proof
+axiom zap.Uint64.wp_proof
