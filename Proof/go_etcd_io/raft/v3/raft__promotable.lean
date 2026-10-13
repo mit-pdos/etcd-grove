@@ -37,64 +37,68 @@ is a voter, which by the tracker's domain fact is whether it is in the progress 
   is never evaluated. Result `false`.
 
 `r.id` and `r.raftLog` are read with their field lemmas; the map `r.trk.Progress` is
-read off the tracker object that `ownRaftPhys_tracker_same` hands out, and the log's
-method runs on what `ownRaftPhys_log_same` hands out. Nothing is written to `r`. -/
+read off the tracker object that `ownRaftPhysC_tracker_same` hands out, and the log's
+method runs on what `ownRaftPhysC_log_same` hands out. Nothing is written to `r`. -/
 theorem raft.promotable.wp_proof
     (wp_raftLog_hasNextOrInProgressSnapshot :
       raftLog.hasNextOrInProgressSnapshot.spec (GF := GF) (hG := hG)) :
     raft.promotable.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s
+  intro c r id s
   wp_start as Hphys
   wp_auto
-  wp_apply raft.wp_load_id $$ Hphys as Hphys
-  icases ownRaftPhys_tracker_same cfg r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-  icases ownTracker_flags cfg tv _ $$ Htrk with ⟨%Hfl, Htrk⟩
+  wp_apply raft.wp_load_idC $$ Hphys as Hphys
+  icases ownRaftPhysC_tracker_same c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
+  icases ownTrackerC_pure c tv _ $$ Htrk with ⟨%Hpure, Htrk⟩
+  obtain ⟨Hinv, Hdom, Hfl, -, -⟩ := Hpure
+  dsimp only at Hinv Hdom Hfl
+  icases ownTrackerC_progress_map c tv _ $$ Htrk with ⟨#Hprs, -, Htrk⟩
   wp_auto
-  by_cases Hin : id ∈ cfg
-  · -- a voter: its `Progress` is in the map and is not a learner's
-    wp_apply wp_tracker_progress_lookup cfg tv _ id Hin $$ Htrk
-      as %pr ⟨%Hlk, %p, %Hpv, Hpr, Hprback⟩
+  cases Hlk : s.progress !! id with
+  | some pr =>
+    wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ s.progress
+      id _ $$ Hprs with -
+    rw [Hlk]
+    simp only [Option.getD_some]
+    icases ownTrackerC_lookup c tv _ id pr Hlk $$ Htrk with ⟨%p, %Hpv, Hpr, Hprback⟩
     iNamed Hpr
-    have Hnolearner : pv.IsLearner' = false := by
-      rw [((progressAbs_Some _ _ _).1 Habs).1, Hfl id p Hpv]
-      exact decide_eq_false (fun h => h Hin)
     ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hpv
-    -- `wp_auto` already reduced `pr != nil` to `!decide (pr = null)`
     simp only [decide_eq_false Hnn, Bool.not_false]
     wp_auto
-    rw [Hnolearner]
-    wp_auto
-    ihave Htrk := Hprback $$ %p [Hpv Hinfl] %rfl
-    · iapply ownProgress_intro $$ Hpv Hinfl %Habs
-    -- written back at the values it was read at
-    simp only [GMap.insert_id s.prvals id p Hpv]
-    ihave Hphys := Hback $$ Htrkf Htrk
-    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-    icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hback⟩
-    wp_apply wp_raftLog_hasNextOrInProgressSnapshot $$ [$Hlog] as %hb ⟨Hlog, %Hhb⟩
-    subst hb
-    ihave Hphys := Hback $$ Hlog
-    iapply HΦ
-    iframe Hphys
-    ipureintro
-    cases s.logst.snap <;> simp [Hin]
-  · icases ownTracker_progress_map cfg tv _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
-    cases Hlk : s.progress !! id with
-    | some pr =>
-      -- a learner (2026-10-13): `!pr.IsLearner` short-circuits to false
-      wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ s.progress
-        id _ $$ Hprs with -
-      rw [Hlk]
-      simp only [Option.getD_some]
-      icases ownTracker_lookup cfg tv _ id pr Hlk $$ Htrk with ⟨%p, %Hpv, Hpr, Hprback⟩
-      iNamed Hpr
-      have Hl : pv.IsLearner' = true := by
-        rw [((progressAbs_Some _ _ _).1 Habs).1, Hfl id p Hpv]
-        exact decide_eq_true Hin
-      ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hpv
-      simp only [decide_eq_false Hnn, Bool.not_false]
+    have Hl : pv.IsLearner' = decide (id ∈ c.learners) := by
+      rw [((progressAbs_Some _ _ _).1 Habs).1, Hfl id p Hpv]
+    have Htr : id ∈ c.ids := by
+      rw [← Hdom, GMap.elem_of_dom]; exact ⟨pr, Hlk⟩
+    by_cases Hin : id ∈ c.voters
+    · -- a voter: not a learner (`CfgInv`)
+      have Hnl : id ∉ c.learners := by
+        intro h
+        obtain ⟨h1, h2, -⟩ := Hinv.2.2.1 id h
+        unfold CfgM.voters at Hin
+        rcases (GMap.elem_of_union _ _ _).1 Hin with h' | h'
+        · exact h2 h'
+        · exact h1 h'
+      rw [Hl, decide_eq_false Hnl]
       wp_auto
-      rw [Hl]
+      ihave Htrk := Hprback $$ %p [Hpv Hinfl] %rfl
+      · iapply ownProgress_intro $$ Hpv Hinfl %Habs
+      simp only [GMap.insert_id s.prvals id p Hpv]
+      ihave Hphys := Hback $$ Htrkf Htrk
+      wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+      icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hback⟩
+      wp_apply wp_raftLog_hasNextOrInProgressSnapshot $$ [$Hlog] as %hb ⟨Hlog, %Hhb⟩
+      subst hb
+      ihave Hphys := Hback $$ Hlog
+      iapply HΦ
+      iframe Hphys
+      ipureintro
+      cases s.logst.snap <;> simp [Hin]
+    · -- a learner (2026-10-13): `!pr.IsLearner` short-circuits to false
+      have Hlr : id ∈ c.learners := by
+        unfold CfgM.ids at Htr
+        rcases (GMap.elem_of_union _ _ _).1 Htr with h' | h'
+        · exact absurd h' Hin
+        · exact h'
+      rw [Hl, decide_eq_true Hlr]
       wp_auto
       ihave Htrk := Hprback $$ %p [Hpv Hinfl] %rfl
       · iapply ownProgress_intro $$ Hpv Hinfl %Habs
@@ -104,10 +108,15 @@ theorem raft.promotable.wp_proof
       iframe Hphys
       ipureintro
       simp [Hin]
-    | none =>
+  | none =>
     -- not tracked: the lookup misses, `pr == nil` short-circuits to false
     have Hnone : s.progress !! id = none := Hlk
-    -- the progress map is read-only, so it stays in the persistent context
+    have Hin : id ∉ c.voters := by
+      intro h
+      have h2 : id ∈ domSet s.progress := by rw [Hdom]; exact voters_sub_ids c |> fun hs => (GMap.elem_of_subseteq _ _).1 hs _ h
+      rw [GMap.elem_of_dom] at h2
+      obtain ⟨x, hx⟩ := h2
+      rw [Hnone] at hx; cases hx
     wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ s.progress
       id _ $$ Hprs with -
     rw [Hnone]

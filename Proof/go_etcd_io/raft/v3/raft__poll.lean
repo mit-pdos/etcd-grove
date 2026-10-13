@@ -30,7 +30,7 @@ same tail.
 
 `RecordVote` and `TallyVotes` are methods of the embedded tracker, so
 they take `&r.trk` and the tracker's own predicate:
-`ownRaftPhys_tracker` hands out exactly that, and takes it back at
+`ownRaftPhysC_tracker` hands out exactly that, and takes it back at
 the new tally. -/
 theorem raft.poll.wp_proof
     (wp_ProgressTracker_RecordVote :
@@ -38,17 +38,17 @@ theorem raft.poll.wp_proof
     (wp_ProgressTracker_TallyVotes :
       tracker.ProgressTracker.TallyVotes.spec (GF := GF) (hG := hG)) :
     raft.poll.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s src t v Hcfg_ne
+  intro c r id s src t v
   wp_start as Hphys
   wp_auto
   cases v <;> wp_auto
   all_goals
-    wp_apply raft.wp_load_id $$ Hphys as Hphys
-    wp_apply raft.wp_load_Term $$ Hphys as Hphys
-    wp_raft_log
-    icases ownRaftPhys_tracker cfg r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
+    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+    wp_raft_logC
+    icases ownRaftPhysC_tracker c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
     wp_apply wp_ProgressTracker_RecordVote $$ [$Htrkf $Htrk] as ⟨Htrkf, Htrk⟩
-    wp_apply (tracker.ProgressTracker.TallyVotes.spec_simple wp_ProgressTracker_TallyVotes) _ _ _ _ Hcfg_ne $$ [$Htrkf $Htrk]
+    wp_apply wp_ProgressTracker_TallyVotes _ _ _ _ $$ [$Htrkf $Htrk]
       as %g %rj %res ⟨Htrkf, Htrk, %Hres, %Hwon, %Hlost⟩
     ihave Hphys := Hback $$ %tv %(recordVote s.votes src _) Htrkf Htrk
     iapply HΦ

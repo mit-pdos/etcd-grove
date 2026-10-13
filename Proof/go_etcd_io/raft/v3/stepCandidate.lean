@@ -114,7 +114,7 @@ theorem stepCandidate.wp_proof
     rw [Hmc (by rw [Hrole]; decide)]
     wp_auto
     have Hcfg_ne : cfg ≠ ∅ := fun h => GMap.not_elem_of_empty id (h ▸ Hcfg)
-    wp_apply wp_raft_poll _ _ _ _ _ _ _ Hcfg_ne $$ [$Hphys]
+    wp_apply (raft.poll.spec_simple wp_raft_poll) _ _ _ _ _ _ _ Hcfg_ne $$ [$Hphys]
       as %g %rj0 %res ⟨Hphys, %Hres, %Hwon, %Hlost⟩
     -- the `Infof` that follows reads `r.id`, `r.Term` and `r.logger`
     wp_apply raft.wp_load_id $$ Hphys as Hphys
@@ -305,7 +305,7 @@ theorem stepCandidate.wp_proof
       rw [Hmp Hrole]
       wp_auto
       have Hcfg_ne : cfg ≠ ∅ := fun h => GMap.not_elem_of_empty id (h ▸ Hcfg)
-      wp_apply wp_raft_poll _ _ _ _ _ _ _ Hcfg_ne $$ [$Hphys]
+      wp_apply (raft.poll.spec_simple wp_raft_poll) _ _ _ _ _ _ _ Hcfg_ne $$ [$Hphys]
         as %g %rj0 %res ⟨Hphys, %Hres, %Hwon, %Hlost⟩
       wp_apply raft.wp_load_id $$ Hphys as Hphys
       wp_raft_log

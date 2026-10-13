@@ -57,9 +57,9 @@ entries are fetched only when the window has room, so a non-empty `ents` in
 /-- `r.send(pb.Message{To: to, Type: pb.MsgApp, Index: .., LogTerm: .., Entries: ..,
 Commit: ..})`: `SendOk`'s second clause. -/
 private theorem wp_send_app (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (dst idx lt cm : w64) (sl : GoSlice)
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (dst idx lt cm : w64) (sl : GoSlice)
     (es : List raftpb.Entry) (Hdst : dst ≠ id) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysC c r id s ∗
         sl ↦*□ es }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send"))
         (Val #({ Type' := W32 3, To' := dst, From' := 0, Term' := 0,
@@ -67,10 +67,10 @@ private theorem wp_send_app (wp_raft_send : raft.send.spec (GF := GF) (hG := hG)
                  Commit' := cm, Vote' := 0, Snapshot' := null, Reject' := false,
                  RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil } :
                 raftpb.Message)))
-    {{ RET #(); ownRaftPhys cfg r id (sendMsgs s
+    {{ RET #(); ownRaftPhysC c r id (sendMsgs s
           [Msg.mk .app id dst s.term false idx lt cm (W64 0) es]) }} := by
   iintro %Φ ⟨#Hpkg, Hphys, #Hes⟩ HΦ
-  wp_apply (raft.send.spec_simple wp_raft_send) cfg r id s _ es [] [Msg.mk .app id dst s.term false idx lt cm (W64 0) es]
+  wp_apply wp_raft_send c r id s _ es [] [Msg.mk .app id dst s.term false idx lt cm (W64 0) es]
       (Or.inl rfl)
       (Or.inr (Or.inl ⟨.app, Or.inl rfl, rfl, rfl, Hdst, rfl⟩)) $$ [$Hphys] as Hphys
   · isplitr
@@ -90,9 +90,9 @@ local macro "msa_fetch" : tactic => `(tactic| (
   ihave Hphys := Hpback $$ [Hpv Hinfl]
   · iapply ownProgress_intro $$ Hpv Hinfl
     ipureintro; exact Habs
-  wp_apply raft.wp_load_maxMsgSize $$ Hphys as %mms Hphys
-  wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-  icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
+  wp_apply raft.wp_load_maxMsgSizeC $$ Hphys as %mms Hphys
+  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+  icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
   wp_apply wp_raftLog_entries _ s.logst _ _ Hlo $$ [Hlog]
     as %sl_e %es_e ⟨Hlog, #Hents, %Hin, %Hpre⟩
   · iframe
@@ -104,19 +104,19 @@ set_option hygiene false in
 `return true`. -/
 local macro "msa_send" : tactic => `(tactic| (
   -- the literal reads `r.raftLog.committed` through the log's record
-  wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-  icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
+  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+  icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
   icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lvc, Hl, %Hlvc, Hlb⟩
   wp_auto
   ihave Hlog := Hlb $$ Hl
   ihave Hphys := Hlogback $$ Hlog
-  wp_apply wp_send_app wp_raft_send cfg r id s _ _ _ _ _ es_e Hto $$ [Hphys]
+  wp_apply wp_send_app wp_raft_send c r id s _ _ _ _ _ es_e Hto $$ [Hphys]
     as Hphys
   · iframe # ∗
   wp_apply wp_payloadsSize $$ [] as %psz ⟨-, -⟩
   · iframe # ∗
   -- `pr.SentEntries(...)`: `send` changed only the outbox, so `pr` is still at `p`
-  icases ownRaftPhys_pr_upd cfg r id _ to pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
+  icases ownRaftPhysC_pr_upd c r id _ to pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
   have Hwin2 : p.state = .replicate → 0 < sint.Z sl_e.len → inflightsFull p.infl = false :=
     fun H1 H2 => Hwin H1 (fun Heq => by rw [Heq] at Hlen; simp at Hlen; omega)
   wp_apply wp_Progress_SentEntries pr p _ _ Hnosnap Hwin2 $$ [Hpa] as Hpa
@@ -124,13 +124,13 @@ local macro "msa_send" : tactic => `(tactic| (
   ihave Hphys := Hpback $$ %_ Hpa %(progressSentEntries_learner _ _ _)
   -- `pr.SentCommit(r.raftLog.committed)`: the argument first, then `pr` once more, at
   -- the value `SentEntries` left
-  wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-  icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hlogback⟩
+  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+  icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hlogback⟩
   icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lvc2, Hl, %Hlvc2, Hlb⟩
   wp_auto
   ihave Hlog := Hlb $$ Hl
   ihave Hphys := Hlogback $$ Hlog
-  icases ownRaftPhys_pr_upd cfg r id _ to pr (progressSentEntries p sl_e.len psz)
+  icases ownRaftPhysC_pr_upd c r id _ to pr (progressSentEntries p sl_e.len psz)
     $$ Hphys %Hlk %(GMap.lookup_insert_eq _ _ _) with ⟨Hpa, Hpback⟩
   wp_apply wp_Progress_SentCommit $$ [Hpa] as Hpa
   · iframe
@@ -141,7 +141,7 @@ local macro "msa_send" : tactic => `(tactic| (
     %(<[to := progressSentCommit (progressSentEntries p sl_e.len psz) lvc2.committed']>
         (<[to := progressSentEntries p sl_e.len psz]> s.prvals))
   isplitl
-  · iapply ownRaftPhys_eq cfg r id _ _ ?_ $$ Hphys
+  · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
     rfl
   ipureintro
   constructor
@@ -173,10 +173,10 @@ local macro "msa_tail" : tactic => `(tactic| (
   · cases sendIfEmpty
     · -- no entries, and the caller does not want an empty append
       wp_auto
-      ihave Hphys := ownRaftPhys_send_nil cfg r id s $$ Hphys
+      ihave Hphys := ownRaftPhysC_send_nil c r id s $$ Hphys
       iapply HΦ $$ %false %([] : List Msg) %s.prvals
       isplitl
-      · iapply ownRaftPhys_eq cfg r id _ _ ?_ $$ Hphys
+      · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
         cases s; rfl
       ipureintro
       exact ⟨fun _ h => (nomatch h), rfl⟩
@@ -190,12 +190,12 @@ local macro "msa_tail" : tactic => `(tactic| (
 what this proof learned about it before the send (not `StateSnapshot`; a non-full window
 in `StateReplicate`) -- and `ents`, which `raftLog.entries` hands out read-only and for
 good (`payloadsSize` reads it after the send). Neither is lent: `pr` is borrowed out of
-the struct for each stretch of the body that touches it (`ownRaftPhys_pr` and its
+the struct for each stretch of the body that touches it (`ownRaftPhysC_pr` and its
 variants) and given back before the next access to the struct, and what the proof knows
 about it survives the calls in between because the state records its value
 (`NState.prvals`, `s.prvals !! to = some p`) and `send` changes only the outbox. Each
 `raftLog` call and each read of `r.raftLog.committed` takes the log out with
-`ownRaftPhys_log_same` and puts it back.
+`ownRaftPhysC_log_same` and puts it back.
 
 - `pr := r.trk.Progress[to]` hits because `to ∈ domSet s.progress` (a voter or, since
   2026-10-13, a learner).
@@ -218,13 +218,13 @@ theorem raft.maybeSendAppend.wp_proof
     (wp_raft_maybeSendSnapshot : raft.maybeSendSnapshot.spec (GF := GF) (hG := hG))
     (wp_payloadsSize : payloadsSize.spec (GF := GF) (hG := hG)) :
     raft.maybeSendAppend.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s to sendIfEmpty Hto Hcfg
+  intro c r id s to sendIfEmpty Hto Hcfg
   wp_start as Hpre
   iNamed Hpre
   -- `r.trk.Progress` is read through the tracker field
-  icases ownRaftPhys_tracker_same cfg r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-  icases ownTracker_progress_map cfg _ _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
-  icases ownTracker_prvals_dom cfg _ _ $$ Htrk with ⟨%Hpdom, Htrk⟩
+  icases ownRaftPhysC_tracker_same c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
+  icases ownTrackerC_progress_map c _ _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
+  icases ownTrackerC_prvals_dom c _ _ $$ Htrk with ⟨%Hpdom, Htrk⟩
   dsimp only at Hdom Hpdom
   obtain ⟨pr, Hlk⟩ : ∃ pr, s.progress !! to = some pr := by
     rw [← GMap.elem_of_dom]; exact Hcfg
@@ -236,17 +236,17 @@ theorem raft.maybeSendAppend.wp_proof
   rw [Hlk]
   dsimp only [Option.getD_some]
   -- `pr.IsPaused()` and `prevIndex := pr.Next - 1`, on `pr` borrowed
-  icases ownRaftPhys_pr cfg r id s to pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
+  icases ownRaftPhysC_pr c r id s to pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
   wp_apply wp_Progress_IsPaused $$ [$Hpa] as Hpa
   cases Hpaused : progressIsPaused p
   case true =>
     -- paused: nothing is sent, `false`
     wp_auto
     ihave Hphys := Hpback $$ Hpa
-    ihave Hphys := ownRaftPhys_send_nil cfg r id s $$ Hphys
+    ihave Hphys := ownRaftPhysC_send_nil c r id s $$ Hphys
     iapply HΦ $$ %false %([] : List Msg) %s.prvals
     isplitl
-    · iapply ownRaftPhys_eq cfg r id _ _ ?_ $$ Hphys
+    · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
       cases s; rfl
     ipureintro
 
@@ -262,9 +262,9 @@ theorem raft.maybeSendAppend.wp_proof
   ihave Hphys := Hpback $$ [Hpv Hinfl]
   · iapply ownProgress_intro $$ Hpv Hinfl
     ipureintro; exact Habs
-  wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
   -- `r.raftLog.term(pr.Next - 1)`
-  icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
+  icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
   icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hnw, Hlog⟩
   icases ownRaftLog_wf _ _ $$ Hlog with ⟨%Hlwf, Hlog⟩
   wp_apply wp_raftLog_term _ s.logst _ $$ [$Hlog] as %pterm %err ⟨Hlog, %Herr, %Hterm_at, -⟩
@@ -273,7 +273,7 @@ theorem raft.maybeSendAppend.wp_proof
   | ok eok =>
     -- the log no longer has `pr.Next - 1`: fall back to a snapshot
     wp_auto
-    wp_apply (raft.maybeSendSnapshot.spec_simple wp_raft_maybeSendSnapshot) cfg r id s to pr Hto Hlk $$ [$Hphys]
+    wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk $$ [$Hphys]
       as %b %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
     iapply HΦ
     iframe
@@ -287,7 +287,7 @@ theorem raft.maybeSendAppend.wp_proof
   have Hlo : uint.Z s.logst.prev.index' + 1 ≤ uint.Z p.next := by word
   wp_auto
   -- `pr.State`, `pr.Inflights.Full()`, `pr.Next`: borrow `pr` again
-  icases ownRaftPhys_pr cfg r id s to pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
+  icases ownRaftPhysC_pr c r id s to pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
   iNamed Hpa
   obtain ⟨-, Hst, -, Hnx, -⟩ := (progressAbs_Some _ _ _).1 Habs
   wp_auto
@@ -314,10 +314,10 @@ theorem raft.maybeSendAppend.wp_proof
       cases sendIfEmpty
       · -- no entries, and the caller does not want an empty append
         wp_auto
-        ihave Hphys := ownRaftPhys_send_nil cfg r id s $$ Hphys
+        ihave Hphys := ownRaftPhysC_send_nil c r id s $$ Hphys
         iapply HΦ $$ %false %([] : List Msg) %s.prvals
         isplitl
-        · iapply ownRaftPhys_eq cfg r id _ _ ?_ $$ Hphys
+        · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
           cases s; rfl
         ipureintro
         exact ⟨fun _ h => (nomatch h), rfl⟩

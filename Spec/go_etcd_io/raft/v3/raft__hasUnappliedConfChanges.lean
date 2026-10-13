@@ -41,18 +41,44 @@ it was stated on an unrelated `l : Loc` with no ownership of `r` at all; main's
 notes/false-statements.md). `r.logger` is also read, but only on the `Panicf` path,
 which is dead. -/
 abbrev raft.hasUnappliedConfChanges.spec : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
   -- no snapshot pending: `applied` is then at or above the compaction boundary, so
   -- `scan`'s range starts inside the log. With one pending `applied` may lie below the
   -- snapshot's index and `scan` would return `ErrCompacted` into the `Panicf` -- the
   -- reason `hup` tests `promotable` (which checks `hasNextOrInProgressSnapshot`)
   -- first. Added 2026-10-02.
   s.logst.snap = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysC c r id s }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"hasUnappliedConfChanges"))
+      (Val #()))
+  {{ (b : Bool), RET #b; ownRaftPhysC c r id s ∗
+      ⌜b = true ↔ ∃ e ∈ unappliedEnts s.logst, IsConfEnt e⌝ }}
+
+/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
+derived from `raft.hasUnappliedConfChanges.spec` by `raft.hasUnappliedConfChanges.spec_simple`. -/
+abbrev raft.hasUnappliedConfChanges.specS : Prop :=
+  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
+  s.logst.snap = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"hasUnappliedConfChanges"))
       (Val #()))
   {{ (b : Bool), RET #b; ownRaftPhys cfg r id s ∗
       ⌜b = true ↔ ∃ e ∈ unappliedEnts s.logst, IsConfEnt e⌝ }}
+
+open Iris.ProofMode in
+theorem raft.hasUnappliedConfChanges.spec_simple
+    (H : raft.hasUnappliedConfChanges.spec (GF := GF) (hG := hG)) :
+    raft.hasUnappliedConfChanges.specS (GF := GF) (hG := hG) := by
+  intro cfg r id s Hsn
+  iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
+  ihave Hphys := ownRaftPhys_toC' $$ Hphys
+  iapply H _ r id s Hsn $$ [$Hpkg $Hphys]
+  inext
+  iintro %b ⟨Hphys, %Hb⟩
+  ihave Hphys := ownRaftPhysC_toS $$ Hphys
+  iapply HΦ
+  iframe Hphys
+  ipureintro; exact Hb
 
 end spec
 

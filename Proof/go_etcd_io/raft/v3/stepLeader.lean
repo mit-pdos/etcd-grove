@@ -1238,7 +1238,7 @@ private theorem wp_stepLeader_appresp
         "%Hmm4" ∷ ⌜prvalsMatch pvs4 = prvalsMatch pvs3⌝ ∗
         "m" ∷ m_ptr ↦ m ∗ "r" ∷ r_ptr ↦ r ∗ "pr" ∷ pr_ptr ↦ pr) at next
       with [Hphys m r pr] as HJ
-    · wp_apply wp_raft_maybeCommit cfg r id { s with prvals := pvs3 } Hlead Hid $$ [$Hphys]
+    · wp_apply (raft.maybeCommit.spec_simple wp_raft_maybeCommit) cfg r id { s with prvals := pvs3 } Hlead Hid $$ [$Hphys]
         as %b %N ⟨Hphys, %HN⟩
       cases b <;> simp only [Bool.false_eq_true, ↓reduceIte]
       · -- not committed: `r.id != m.From && pr.CanBumpCommit(r.raftLog.committed)`
@@ -1357,7 +1357,7 @@ private theorem wp_stepLeader_appresp
         ipureintro
         exact ⟨fun _ h => absurd h List.not_mem_nil, rfl⟩
       wp_for IH
-      wp_apply wp_raft_maybeSendAppend cfg r id _ m.From' false (Ne.symm Hsame)
+      wp_apply (raft.maybeSendAppend.spec_simple wp_raft_maybeSendAppend) cfg r id _ m.From' false (Ne.symm Hsame)
           (by show m.From' ∈ domSet s2.progress; rw [Hs2p]; exact Hfcfg) $$ [$Hphys]
         as %b %ms'' %pvs'' ⟨Hphys, %Hms'', %Hmm''⟩
       have Hms3 : ReplSends id sc (ms' ++ ms'') :=

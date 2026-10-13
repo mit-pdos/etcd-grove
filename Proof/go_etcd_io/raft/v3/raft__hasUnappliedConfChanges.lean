@@ -28,10 +28,10 @@ location, the log (taken out and put back around the one load) the field, whose 
 the log's state pins for `applied`/`committed`. Works on `Hphys`. -/
 local macro "read_field" : tactic => `(tactic| (
   wp_bind (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Val _))
-  iapply Perennial.EtcdGrove.raft.wp_load_raftLog $$ Hphys
+  iapply Perennial.EtcdGrove.raft.wp_load_raftLogC $$ Hphys
   inext
   iintro Hphys
-  icases Perennial.EtcdGrove.ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hback⟩
+  icases Perennial.EtcdGrove.ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hback⟩
   icases Perennial.EtcdGrove.ownRaftLog_struct _ _ $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
   wp_auto
   ihave Hlog := Hlb $$ Hl
@@ -61,7 +61,7 @@ local macro "read_field" : tactic => `(tactic| (
     return found
 
 - No loan: the log is inside `ownRaftPhys`, so each read of `r.raftLog.f` loads the
-  location through the struct and then takes the log out (`ownRaftPhys_log_same`) just
+  location through the struct and then takes the log out (`ownRaftPhysC_log_same`) just
   for the field load (`ownRaftLog_struct`); `read_field` above. The log's state pins
   `applied`/`committed`, so every read sees the values the facts (read once up front)
   are about.
@@ -77,7 +77,7 @@ local macro "read_field" : tactic => `(tactic| (
   the `Panicf` is dead. (Until 2026-10-13 the log had no conf-change entry, the
   callback's `found = true` branch was dead, and `scan` always returned `nil`.)
 
-Lean notes: `wp_apply raft.wp_load_raftLog` does not find the first loads of
+Lean notes: `wp_apply raft.wp_load_raftLogC` does not find the first loads of
 `r.raftLog` in this function, so `read_field` binds the load with `wp_bind` and
 `iapply`s the lemma. The `ents[i].Type` field loads go through a *fractional* element
 points-to, which the generated `AccessStrict` instances do not reach, so the element is
@@ -86,14 +86,14 @@ construct's counter and the body's `i` share a Go name; the body's is renamed `i
 theorem raft.hasUnappliedConfChanges.wp_proof
     (wp_raftLog_scan : raftLog.scan.spec (GF := GF) (hG := hG)) :
     raft.hasUnappliedConfChanges.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s Hsn
+  intro c r id s Hsn
   wp_start as Hphys
   ihave #Hinit := isInitialized_access $$ Hpkg
   iNamed Hinit
   icases ErrBreak with ⟨%eb, #Heb, %Hebf⟩
   obtain ⟨Hebnz, Hebnew⟩ := Hebf
   -- the log's facts, read once: `applied`/`committed` inside the log
-  icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hback⟩
+  icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hback⟩
   icases ownRaftLog_pure _ _
       (uint.Z s.logst.prev.index' ≤ uint.Z s.logst.applied ∧
        uint.Z s.logst.applied ≤ uint.Z s.logst.committed ∧
@@ -125,12 +125,12 @@ theorem raft.hasUnappliedConfChanges.wp_proof
   read_field
   read_field
   wp_bind (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftLog.ty)))) (Val _))
-  iapply raft.wp_load_raftLog $$ Hphys
+  iapply raft.wp_load_raftLogC $$ Hphys
   inext
   iintro Hphys
   wp_pures
   -- `scan` is specified on `ownRaftLog`
-  icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hback⟩
+  icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hback⟩
   have Hrange : uint.Z s.logst.prev.index' + 1 ≤ uint.Z (s.logst.applied + W64 1) ∧
       uint.Z (s.logst.applied + W64 1) ≤ uint.Z (s.logst.committed + W64 1) ∧
       uint.Z (s.logst.committed + W64 1) ≤ uint.Z s.logst.prev.index'

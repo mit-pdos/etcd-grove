@@ -41,7 +41,7 @@ theorem raft.tickElection.wp_proof
   wp_apply raft.wp_load_electionElapsed $$ Hphys as %v Hphys
   wp_apply raft.wp_store_electionElapsed $$ Hphys as Hphys
   -- `r.promotable() && r.pastElectionTimeout()`
-  wp_apply wp_promotable cfg r id s $$ [$Hphys] as %b ⟨Hphys, -⟩
+  wp_apply (raft.promotable.spec_simple wp_promotable) cfg r id s $$ [$Hphys] as %b ⟨Hphys, -⟩
   wp_if_destruct
   all_goals try (
     wp_apply wp_pastElectionTimeout cfg r id s $$ [$Hphys] as %b2 Hphys

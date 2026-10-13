@@ -41,7 +41,7 @@ theorem raft.becomeCandidate.wp_proof
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
   -- `reset`'s state is left to the frame (in Rocq, giving it explicitly ran for 24
   -- minutes before failing, 2026-09-22)
-  wp_apply wp_raft_reset cfg r id { s with stepfn := functions stepCandidate [] }
+  wp_apply (raft.reset.spec_simple wp_raft_reset) cfg r id { s with stepfn := functions stepCandidate [] }
     (s.term + W64 1) (by word) $$ [$Hphys] as %pvs ⟨Hphys, -⟩
   -- `Match` is irrelevant for a non-leader (`toPState`)
   -- `r.tick`, `r.Vote := r.id`, `r.state := StateCandidate`

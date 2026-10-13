@@ -28,7 +28,7 @@ theorem raft.sendAppend.wp_proof
   intro cfg r id s to Hto Hcfg
   wp_start as Hphys
   wp_auto
-  wp_apply wp_raft_maybeSendAppend cfg r id s to true Hto Hcfg $$ [$Hphys]
+  wp_apply (raft.maybeSendAppend.spec_simple wp_raft_maybeSendAppend) cfg r id s to true Hto Hcfg $$ [$Hphys]
     as %b %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
   iapply HΦ
   iframe

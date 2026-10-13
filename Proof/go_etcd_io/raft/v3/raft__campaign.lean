@@ -139,7 +139,7 @@ theorem raft.campaign.wp_proof
   wp_auto
   -- `promotable` is only logged: `id ∈ cfg`, but a pending snapshot makes
   -- it false. The two arms are joined.
-  wp_apply wp_raft_promotable $$ [$Hphys] as %b ⟨Hphys, %Hb⟩
+  wp_apply (raft.promotable.spec_simple wp_raft_promotable) $$ [$Hphys] as %b ⟨Hphys, %Hb⟩
   wp_join at next with [Hphys r]
   · cases b
     · wp_auto
@@ -156,7 +156,7 @@ theorem raft.campaign.wp_proof
       "term" ∷ term_ptr ↦ (s.term + W64 1) ∗
       "voteMsg" ∷ voteMsg_ptr ↦ vreqW32 (decide (t = campaignPreElection)) ∗
       "r" ∷ r_ptr ↦ r ∗ "t" ∷ t_ptr ↦ t) with [Hphys term voteMsg r t]
-  · wp_apply wp_raft_becomePreCandidate _ _ _ _ Hrole Hid_cfg $$ [$Hphys] as Hphys
+  · wp_apply (raft.becomePreCandidate.spec_simple wp_raft_becomePreCandidate) _ _ _ _ Hrole Hid_cfg $$ [$Hphys] as Hphys
     rw [show raftpb.MsgPreVote = #MsgPreVote from rfl]
     wp_auto
     wp_apply raft.wp_load_Term $$ Hphys as Hphys

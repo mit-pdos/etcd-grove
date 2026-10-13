@@ -29,6 +29,19 @@ def CommitOk (cfg : GSet w64) (ps : PState) (n : w64) : Prop :=
   plogTermAt ps.base ps.log n = some ps.term ∧
   IsQuorum cfg (ackedBy ps n)
 
+/-- `CommitOk` at a joint configuration (2026-10-13, reconfiguration stage A2): the premises
+of `StepC.commit` other than the role, a joint quorum (`JQuorum`) acknowledging `n`. -/
+def CommitOkC (c : CfgM) (ps : PState) (n : w64) : Prop :=
+  uint.Z ps.commit < uint.Z n ∧
+  uint.Z n ≤ plogLastIndexZ ps.base ps.log ∧
+  plogTermAt ps.base ps.log n = some ps.term ∧
+  JQuorum c (ackedBy ps n)
+
+/-- At a simple configuration with voters, `CommitOkC` is `CommitOk`. -/
+theorem CommitOkC.simple {cfg lrn : GSet w64} {ps : PState} {n : w64} (hne : cfg ≠ ∅)
+    (h : CommitOkC (CfgM.simple cfg lrn) ps n) : CommitOk cfg ps n :=
+  ⟨h.1, h.2.1, h.2.2.1, (JQuorum_of_out (c := CfgM.simple cfg lrn) hne rfl _).1 h.2.2.2⟩
+
 end commit_ok
 
 section spec
@@ -54,8 +67,26 @@ that is `Step.commit`. The quorum is stated over `toPState s`'s `matched`, which
 `Progress` `Match` values only for a leader -- hence `s.role = .leader`; the go code
 says "This can only be called in StateLeader". `id ∈ cfg` makes the voter set
 non-empty, which is what makes `Committed()` a quorum index (for an empty configuration
-it is `MaxUint64`). On `false` nothing changes. -/
+it is `MaxUint64`). On `false` nothing changes.
+
+At any configuration since 2026-10-13 (reconfiguration stage A2): `CommitOkC`, a joint quorum
+of the two voter halves, with no premise on the voters (an empty half has committed
+everything, `MajQ`). The old statement (`id ∈ cfg`, `CommitOk cfg`) is
+`raft.maybeCommit.specS`. -/
 abbrev raft.maybeCommit.spec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  s.role = .leader →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysC c r id s }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeCommit")) (Val #()))
+  {{ (b : Bool) (N : w64), RET #b;
+      ownRaftPhysC c r id
+        (if b then { s with logst := { s.logst with committed := N } } else s) ∗
+      ⌜b = true → CommitOkC c (toPState s) N⌝ }}
+
+/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
+derived from `raft.maybeCommit.spec` by `raft.maybeCommit.spec_simple`. -/
+abbrev raft.maybeCommit.specS : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
   s.role = .leader →
   id ∈ cfg →
@@ -66,6 +97,24 @@ abbrev raft.maybeCommit.spec : Prop :=
       ownRaftPhys cfg r id
         (if b then { s with logst := { s.logst with committed := N } } else s) ∗
       ⌜b = true → CommitOk cfg (toPState s) N⌝ }}
+
+open Iris.ProofMode in
+theorem raft.maybeCommit.spec_simple
+    (H : raft.maybeCommit.spec (GF := GF) (hG := hG)) :
+    raft.maybeCommit.specS (GF := GF) (hG := hG) := by
+  intro cfg r id s Hlead Hid
+  have Hne : cfg ≠ ∅ := by
+    intro h; rw [h] at Hid; exact GMap.not_elem_of_empty _ Hid
+  iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
+  ihave Hphys := ownRaftPhys_toC' $$ Hphys
+  iapply H _ r id s Hlead $$ [$Hpkg $Hphys]
+  inext
+  iintro %b %N ⟨Hphys, %Hok⟩
+  ihave Hphys := ownRaftPhysC_toS $$ Hphys
+  iapply HΦ
+  iframe Hphys
+  ipureintro
+  exact fun hb => (Hok hb).simple Hne
 
 end spec
 

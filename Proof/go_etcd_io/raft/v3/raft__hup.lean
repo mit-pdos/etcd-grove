@@ -73,13 +73,13 @@ theorem raft.hup.wp_proof
       cases h : s.role <;> simp_all [stateW64] <;> decide
     rw [decide_eq_false Hnl]
     wp_auto
-    wp_apply wp_raft_promotable $$ [$Hphys] as %b ⟨Hphys, %Hb⟩
+    wp_apply (raft.promotable.spec_simple wp_raft_promotable) $$ [$Hphys] as %b ⟨Hphys, %Hb⟩
     cases b with
     | true =>
       -- a voter, so it may campaign
       obtain ⟨Hin, Hsn⟩ := of_decide_eq_true Hb.symm
       wp_auto
-      wp_apply wp_raft_hasUnappliedConfChanges _ _ _ _ Hsn $$ [$Hphys] as %hc ⟨Hphys, -⟩
+      wp_apply (raft.hasUnappliedConfChanges.spec_simple wp_raft_hasUnappliedConfChanges) _ _ _ _ Hsn $$ [$Hphys] as %hc ⟨Hphys, -⟩
       cases hc with
       | true =>
         -- (2026-10-13) a conf-change entry committed but not applied: log and return,

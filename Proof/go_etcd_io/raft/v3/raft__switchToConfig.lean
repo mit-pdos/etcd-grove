@@ -129,7 +129,7 @@ theorem raft.switchToConfig.wp_proof
       rw [Hxlen.1, h]; rfl)]
     wp_auto
     -- `if r.maybeCommit() { r.bcastAppend() } else { r.trk.Visit(...maybeSendAppend...) }`
-    wp_apply wp_raft_maybeCommit cfg r id s1 Hl1 Hin $$ [$Hphys] as %b %N ⟨Hphys, %HN⟩
+    wp_apply (raft.maybeCommit.spec_simple wp_raft_maybeCommit) cfg r id s1 Hl1 Hin $$ [$Hphys] as %b %N ⟨Hphys, %HN⟩
     -- after the broadcast, the state is `s2` with sends `ms` and values `pvs2`
     wp_join iprop(∃ (ms : List Msg) (pvs2 : GMap w64 Progress),
         "Hphys" ∷ ownRaftPhys cfg r id
@@ -203,7 +203,7 @@ theorem raft.switchToConfig.wp_proof
           · -- a peer: `maybeSendAppend(id, false)`
             rw [decide_eq_false Hii]
             wp_auto
-            wp_apply wp_raft_maybeSendAppend _ _ _ _ i false Hii (by exact Hicfg) $$ [$Hphys]
+            wp_apply (raft.maybeSendAppend.spec_simple wp_raft_maybeSendAppend) _ _ _ _ i false Hii (by exact Hicfg) $$ [$Hphys]
               as %b' %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
             try wp_auto
             icases ownRaftPhys_tracker_prvals $$ Hphys with ⟨%tv1', Htrkf, Htrk, Hrest⟩

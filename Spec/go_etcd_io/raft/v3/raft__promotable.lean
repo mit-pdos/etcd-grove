@@ -55,12 +55,37 @@ The statement is correct as written; do not weaken it. The proof is a case split
 `Progress` and the call returns `false`; absent, the lookup yields `nil` and the `&&`
 short-circuits. -/
 abbrev raft.promotable.spec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysC c r id s }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"promotable")) (Val #()))
+  {{ (b : Bool), RET #b;
+      ownRaftPhysC c r id s ∗
+      ⌜b = decide (id ∈ c.voters ∧ s.logst.snap = none)⌝ }}
+
+/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
+derived from `raft.promotable.spec` by `raft.promotable.spec_simple`. -/
+abbrev raft.promotable.specS : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"promotable")) (Val #()))
   {{ (b : Bool), RET #b;
       ownRaftPhys cfg r id s ∗
       ⌜b = decide (id ∈ cfg ∧ s.logst.snap = none)⌝ }}
+
+open Iris.ProofMode in
+theorem raft.promotable.spec_simple
+    (H : raft.promotable.spec (GF := GF) (hG := hG)) :
+    raft.promotable.specS (GF := GF) (hG := hG) := by
+  intro cfg r id s
+  iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
+  ihave Hphys := ownRaftPhys_toC' $$ Hphys
+  iapply H _ r id s $$ [$Hpkg $Hphys]
+  inext
+  iintro %b ⟨Hphys, %Hb⟩
+  ihave Hphys := ownRaftPhysC_toS $$ Hphys
+  iapply HΦ
+  iframe Hphys
+  ipureintro; rw [Hb, CfgM.voters_simple]
 
 end spec
 

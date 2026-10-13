@@ -43,7 +43,7 @@ theorem raft.becomeFollower.wp_proof
   -- `r.step := stepFollower`
   wp_apply raft.wp_store_step $$ Hphys as Hphys
   -- `reset`'s state is left to the frame
-  wp_apply wp_raft_reset cfg r id { s with stepfn := functions stepFollower [] } term Hle
+  wp_apply (raft.reset.spec_simple wp_raft_reset) cfg r id { s with stepfn := functions stepFollower [] } term Hle
     $$ [$Hphys] as %pvs ⟨Hphys, -⟩
   -- `Match` is irrelevant for a non-leader (`toPState`)
   -- `r.tick`, `r.lead := lead`, `r.state := StateFollower`

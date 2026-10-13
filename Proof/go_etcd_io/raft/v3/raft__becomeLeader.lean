@@ -58,7 +58,7 @@ theorem raft.becomeLeader.wp_proof
   -- `r.step := stepLeader`, then `reset` at the unchanged term, so the vote survives
   wp_apply raft.wp_store_step $$ Hphys as Hphys
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
-  wp_apply wp_raft_reset cfg r id { s with stepfn := functions stepLeader [] } s.term
+  wp_apply (raft.reset.spec_simple wp_raft_reset) cfg r id { s with stepfn := functions stepLeader [] } s.term
     (Int.le_refl _) $$ [$Hphys] as %pvs ⟨Hphys, %Hmr⟩
   -- `r.tick`, `r.lead := r.id`, `r.state := StateLeader`
   wp_apply raft.wp_store_tick (Hf := .inr rfl) $$ Hphys as Hphys
