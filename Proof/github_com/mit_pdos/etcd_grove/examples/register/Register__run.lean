@@ -54,7 +54,7 @@ theorem Register.run.wp_proof
   wp_for IH
   wp_apply node_ready_receive γp.node id n ch ds $$ [$Hch $Hdrv] as %rdv' ⟨%ce, %es, %msgs, Hdata, Hbusy⟩
   unfold readyData
-  icases Hdata with ⟨#Hce, #Hcomm, #Hes, Happ, Hms, Hmsok, %Hsnap⟩
+  icases Hdata with ⟨#Hce, #Hcomm, #Hes, Happ, Hms, Hmsok, -, %Hsnap⟩
   wp_apply wp_fits rdv'.Entries' es DFrac.discard $$ [$Hes] as %b ⟨-, %Hfit⟩
   cases b
   · -- a log past `maxIndex`: the replica stops

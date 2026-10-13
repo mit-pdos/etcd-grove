@@ -259,7 +259,8 @@ theorem stepFollower.wp_proof
       · ipureintro; rfl
       iintro %sl ⟨Hsl, -⟩
       wp_auto
-      wp_apply wp_slice_append (V := ReadState) _ _ _ _ _ $$ [$HreadStates $HreadStates_cap $Hsl]
+      wp_apply wp_slice_append_persistent (V := ReadState) _ _ _ _ _
+        $$ [$HreadStates $HreadStates_cap $Hsl]
         as %rs' ⟨Hrs', Hcap', -⟩
       ihave Hmisc : ownRaftMisc (GF := GF) rs' ro pr
           { s.rd with states := s.rd.states ++ [ReadState.mk m.Index' e.Data'] }

@@ -48,7 +48,8 @@ local macro "local_case" : tactic => `(tactic| (
   isplitr
   · ipureintro; rfl
   iintro %sl_ptr ⟨Hsl, -⟩
-  wp_apply wp_slice_append (V := ReadState) $$ [HreadStates HreadStates_cap Hsl]
+  wp_apply wp_slice_append_persistent (V := ReadState) _ _ _ _ _
+      $$ [HreadStates HreadStates_cap Hsl]
     as %rs' ⟨HreadStates, HreadStates_cap, -⟩
   · iframe
   wp_auto
