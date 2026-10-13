@@ -30,7 +30,8 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
     (wp_node_Step : node.Step.spec (GF := GF) (hG := hG)) :
     deliver.spec (GF := GF) (hG := hG) := by
   intro γ bud peers P msl ms
-  wp_start as ⟨#Hpeers, #HP, Hms, #Hmsok⟩
+  -- the read credits: a deliverable message carries none (`stepP_deliverable`)
+  wp_start as ⟨#Hpeers, #HP, Hms, #Hmsok, -⟩
   ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   wp_auto

@@ -52,7 +52,9 @@ The `Ready` it returns:
   (`appendRight`, 2026-10-10: the storage's hand-out law, `InvStorage.lean`), which an
   implementation's `Append` turns into the receipt `ownRawNode_appended` takes back --
   on the application's goroutine, while the node keeps reading the storage;
-- `Messages`: the application's slice, to send; each message is `isRaftMsg`;
+- `Messages`: the application's slice, to send; each message is `isRaftMsg`, and
+  (2026-10-13) comes with its read credit (`rdCred`: one for a `MsgReadIndex`, none
+  otherwise), which the transport passes to the receiver's `Step`;
 - `Snapshot` empty (no snapshot pending);
 - `ReadStates`: `sts`, read-only (2026-10-13), each `readStateOk`: its context a slice
   proposed (`isPropData`), and its index at least the length of the committed log the
@@ -81,6 +83,8 @@ abbrev RawNode.Ready.spec : Prop :=
       "Hmsgs" ∷ rd.Messages' ↦* ms ∗
       "Hmsgs_cap" ∷ ownSliceCap raftpb.Message rd.Messages' (DFrac.own 1) ∗
       "#Hmsgs_ok" ∷ ([∗list] m ∈ ms, isRaftMsg γ m) ∗
+      -- each message's read credit (2026-10-13)
+      "Hmsgs_cred" ∷ ([∗list] m ∈ ms, rdCred γ (if m.Type' = MsgReadIndex then 1 else 0)) ∗
       -- every message is of a term at most the node's at the call (2026-10-10)
       "%Hmsgs_term" ∷ ⌜∀ m ∈ ms, uint.Z m.Term' ≤ uint.Z rs.term⌝ ∗
       "%Hsnapz" ∷ ⌜rd.Snapshot' = zero_val raftpb.Snapshot⌝ ∗

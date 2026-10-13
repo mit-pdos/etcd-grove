@@ -39,10 +39,25 @@ sends later still carries them. `acceptReady` takes the model step `Step.takeRea
 is that an empty `rd.ReadStates` means the node has no `ReadState` (`Hrdrs`): true of a
 fresh `Ready` (the slice is the node's when non-empty) and of an idle node (`HasReady`
 is `false` only when `r.readStates` is empty, `ownRawNodeIdle`).
+
+**Read credits (2026-10-13).** Each `MsgReadIndex` in the abstract outbox carries a read
+credit (`ownRaftGhost`'s `rdOwn`), and `Ready` hands each one out with its message, for the
+transport to pass to the receiver's `Step`. The credits come out of the ghost state with
+the drain of the abstract outbox (`ownRaftGhost_drain`), which `ownRawNodeReady_handout`
+takes -- where the `Ready` is handed out (`node.go`: in the atomic update of `readyc <- rd`)
+-- rather than `acceptReady`: `ownRawNodeReady … true`'s ghost state is at the drained
+outbox, while the struct's queues are emptied only by `acceptReady`. So
+`ownRawNodeReady` records, of the outbox `readyWithoutAccept` found, that its messages were
+legitimately sent (`Hout`, which `acceptReady` needs of the self-addressed responses it
+queues) and that the messages handed out hold at most as many `MsgReadIndex`s as it had
+credits for (`Hrdc`: `rdCountM ms ≤ rdCount ps.outbox`, from `outboxRel`: a physical
+message is a `MsgReadIndex` iff its abstraction is a `readIndex`, `msgAbs_rdCount`).
 -/
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRawnode
+-- `ownRaftGhost_drain` (2026-10-13)
+public import Proof.go_etcd_io.raft.v3.Protocol.Refinement
 
 @[expose] public section
 
@@ -149,6 +164,92 @@ def ownRaftPhysReady (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (msl : G
         ownRaftLog s.log ls' -∗
         ownRaftPhys cfg r id { s with outbox := o, logst := ls', gh := g, rd := rd' }))
 
+/-! ### Read credits (see the file header) -/
+
+/-- The number of `MsgReadIndex`s among physical messages. -/
+def rdCountM (ms : List raftpb.Message) : Nat :=
+  ms.countP (fun m => decide (m.Type' = MsgReadIndex))
+
+theorem rdCountM_cons (m : raftpb.Message) (ms : List raftpb.Message) :
+    rdCountM (m :: ms) = (if m.Type' = MsgReadIndex then 1 else 0) + rdCountM ms := by
+  unfold rdCountM
+  rw [List.countP_cons]
+  by_cases h : m.Type' = MsgReadIndex <;> simp [h, Nat.add_comm]
+
+theorem mtypeOf_MsgReadIndex : mtypeOf MsgReadIndex = some .readIndex := rfl
+
+/-- Only `MsgReadIndex` is abstracted as a `readIndex`. -/
+theorem mtypeOf_readIndex (t : w32) (H : mtypeOf t = some .readIndex) : t = MsgReadIndex := by
+  unfold mtypeOf at H
+  split at H <;> simp_all
+  rename_i h
+  exact uint_Z_inj.1 (by rw [h]; rfl)
+
+/-- A queued message contributes a read-index request to the abstract outbox iff it is a
+`MsgReadIndex`. -/
+theorem msgAbs_rdCount (m : raftpb.Message) (a : Option Msg) :
+    msgAbs (GF := GF) m a ⊢ ⌜rdCount a.toList = if m.Type' = MsgReadIndex then 1 else 0⌝ := by
+  iintro H
+  unfold msgAbs
+  icases H with (%H | ⟨%ty, %ents, %ctx, %H, -, -⟩ | ⟨%sv, %voters, %H, -, -⟩)
+  · obtain ⟨Hn, rfl⟩ := H
+    have Hne : m.Type' ≠ MsgReadIndex := (mtypeOf_None_ne _ Hn).2.2.2.2.2.2.2.2.1
+    ipureintro
+    simp [rdCount, Hne]
+  · obtain ⟨H1, -, rfl⟩ := H
+    ipureintro
+    simp only [Option.toList_some, rdCount_singleton, absMsg, absMsgFrom]
+    by_cases hty : ty = .readIndex
+    · subst hty
+      simp [mtypeOf_readIndex _ H1]
+    · have Hne : m.Type' ≠ MsgReadIndex := by
+        intro h
+        rw [h, mtypeOf_MsgReadIndex] at H1
+        cases H1
+        exact hty rfl
+      simp [hty, Hne]
+  · obtain ⟨H1, rfl⟩ := H
+    have Hne : m.Type' ≠ MsgReadIndex := by
+      intro h
+      rw [h, mtypeOf_MsgReadIndex] at H1
+      cases H1
+    ipureintro
+    simp [rdCount, absSnap, absSnapFrom, Hne]
+
+theorem msgsAbs_rdCount (ms : List raftpb.Message) (as_ : List (Option Msg)) :
+    ([∗list] _k ↦ m;a ∈ ms;as_, msgAbs (GF := GF) m a) ⊢
+      ⌜rdCountM ms = rdCount (absList as_)⌝ := by
+  induction ms generalizing as_ with
+  | nil =>
+    iintro H
+    ihave %Hl := BigSepL2.bigSepL2_length $$ H
+    cases as_ with
+    | nil => ipureintro; rfl
+    | cons _ _ => simp at Hl
+  | cons m ms IH =>
+    iintro H
+    icases (BigSepL2.bigSepL2_cons_inv_left).1 $$ H with ⟨%a, %as', %Has, Hm, H⟩
+    subst Has
+    ihave %H1 := msgAbs_rdCount m a $$ Hm
+    ihave %H2 := IH as' $$ H
+    ipureintro
+    have Hab : absList (a :: as') = a.toList ++ absList as' := by cases a <;> rfl
+    rw [Hab, rdCount_append, H1, ← H2, rdCountM_cons]
+
+/-- `rdCountM ms` credits are one per `MsgReadIndex` of `ms`. -/
+theorem rdCred_msgs (γ : RaftNames) (ms : List raftpb.Message) :
+    rdCred (GF := GF) γ (rdCountM ms) ⊢
+      [∗list] m ∈ ms, rdCred γ (if m.Type' = MsgReadIndex then 1 else 0) := by
+  induction ms with
+  | nil => iintro _; iempintro
+  | cons m ms IH =>
+    iintro H
+    rw [rdCountM_cons]
+    icases (rdCred_split γ _ _).1 $$ H with ⟨H1, H2⟩
+    isplitl [H1]
+    · iexact H1
+    · iapply IH $$ H2
+
 /-- The node between `readyWithoutAccept` and `acceptReady` (see the file header): the
 conjuncts of `ownRawNode γ rn id rs` at a state `s` with an empty queue and nothing
 unpersisted (`Ready`'s premises), the struct open without the outbox's contents
@@ -157,13 +258,17 @@ read-only, no snapshot, the read states (if none, the node has none: `Hrdrs`), t
 committed entries `ce` extending
 `rs.delivered` (`isCommitted`) and the next ones after `applying` (`CeOk`), with their
 slice's capacity, and the entries `es` handed out (`nextUnstable`). `ms` are the messages
-handed out in `rd.Messages`, which `ownRawNodeReady_abandon` takes back (2026-10-10). -/
+handed out in `rd.Messages`, which `ownRawNodeReady_abandon` takes back (2026-10-10). Since
+2026-10-13 (read credits, see the file header): once handed out (`h`), the ghost state is
+at the drained outbox; the outbox's messages were legitimately sent (`Hout`), and `ms`
+holds at most as many `MsgReadIndex`s as it has requests (`Hrdc`). -/
 def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
     (ce es : List raftpb.Entry) (ms : List raftpb.Message) (h : Bool := false) : IProp GF :=
   iprop(∃ (s : NState) (ps : PState) (rnv : RawNode) (sv : SoftState),
   "Hrn" ∷ rawNodeOwn rn rnv ∗
   "Hphys" ∷ ownRaftPhysReady γ.reCfg rnv.raft' id s rd.Messages' ms h ∗
-  "Hghost" ∷ ownRaftGhost γ id ps ∗
+  "Hghost" ∷ ownRaftGhost γ id (if h then { ps with outbox := [] } else ps) ∗
+  "#Hout" ∷ ([∗list] x ∈ ps.outbox, isMessage γ x) ∗
   "%Hrel" ∷ ⌜NStateRel s ps⌝ ∗
   "%Hin" ∷ ⌜id ∈ γ.reCfg⌝ ∗
   "%Hasync" ∷ ⌜rnv.asyncStorageWrites' = false⌝ ∗
@@ -188,7 +293,8 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   "#Hce" ∷ rd.CommittedEntries' ↦*□ ce ∗
   "Hce_cap" ∷ ownSliceCap raftpb.Entry rd.CommittedEntries' (DFrac.own 1) ∗
   "%Hceok" ∷ ⌜CeOk s.logst ce⌝ ∗
-  "%Hes" ∷ ⌜es = nextUnstable s.logst⌝)
+  "%Hes" ∷ ⌜es = nextUnstable s.logst⌝ ∗
+  "%Hrdc" ∷ ⌜rdCountM ms ≤ rdCount ps.outbox⌝)
 
 /-- Abandoning a computed `Ready` (2026-10-10; see the file header): with the messages it
 handed out given back, the node is as before `readyWithoutAccept` (which changed nothing:
@@ -262,11 +368,14 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
 /-- The storage's hand-out for the entries a computed `Ready` hands out (2026-10-10): the
 right to append them, ahead of `acceptReady` (`ownRaftLog_handout`). `node.go` runs it in
 the atomic update of `readyc <- rd`, giving the right to the application with the `Ready`;
-`acceptReady` takes the node after it. -/
+`acceptReady` takes the node after it. Since 2026-10-13 also the drain of the abstract
+outbox (`Step.drain`, `ownRaftGhost_drain`), handing out with each message its read credit
+(one for a `MsgReadIndex`). -/
 theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (rd : Ready) (ce es : List raftpb.Entry) (ms : List raftpb.Message) :
     ⊢ ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms false ==∗
-      ownRawNodeReady γ rn id rs rd ce es ms true ∗ appendRight rs.storage es := by
+      ownRawNodeReady γ rn id rs rd ce es ms true ∗ appendRight rs.storage es ∗
+      [∗list] m ∈ ms, rdCred γ (if m.Type' = MsgReadIndex then 1 else 0) := by
   iintro H
   iunfold ownRawNodeReady at H
   icases H with ⟨%s, %ps, %rnv, %sv, H⟩
@@ -276,12 +385,17 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   iNamed Hphys
   simp only [Bool.false_eq_true, ↓reduceIte]
   imod ownRaftLog_handout _ _ Hunp Hsnap $$ Hlog with ⟨Hlog, Happ⟩
+  imod ownRaftGhost_drain γ id ps [] List.nil_subperm $$ Hghost with ⟨Hghost, Hcr⟩
+  rw [show rdCount ps.outbox - rdCount ([] : List Msg) =
+      rdCountM ms + (rdCount ps.outbox - rdCountM ms) by
+    rw [show rdCount ([] : List Msg) = 0 from rfl]; omega]
+  icases (rdCred_split γ _ _).1 $$ Hcr with ⟨Hcr, -⟩
   imodintro
-  isplitr [Happ]
+  isplitr [Happ Hcr]
   · iunfold ownRawNodeReady
     iexists s, ps, rnv, sv
-    simp only [named]
-    iframe Hrn Hghost Hsoft Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft Hrdrs Hce Hce_cap
+    simp only [named, ↓reduceIte]
+    iframe Hrn Hghost Hout Hsoft Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft Hrdrs Hce Hce_cap
     isplitl
     · iunfold ownRaftPhysReady
       iexists rsl, sl1, sl2, ms1, ms2
@@ -292,8 +406,10 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
       exact ⟨HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hmslen⟩
     ipureintro
     exact ⟨Hrel, Hin, Hasync, Hdlen, Hunp, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
-      Hrs_clb, Hrdz, Hceok, Hes⟩
-  rw [Hes, ← Hstor]; iexact Happ
+      Hrs_clb, Hrdz, Hceok, Hes, Hrdc⟩
+  isplitl [Happ]
+  · rw [Hes, ← Hstor]; iexact Happ
+  iapply rdCred_msgs γ ms $$ Hcr
 
 /-! ## A node with nothing new to hand out (2026-10-10)
 
@@ -420,6 +536,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   icases ownRaftPhys_view γ.reCfg rnv.raft' id s $$ Hphys with
     ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
   iNamed Hv
+  ihave #Hout := ownRaftGhost_outbox _ _ _ $$ Hghost
   ihave #Hrdrs : iprop(∃ sts : List ReadState, rd.ReadStates' ↦*□ sts ∗
       ⌜sts = [] → s.rd.states = []⌝) $$ []
   · iexists sts
@@ -427,8 +544,8 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     ipureintro; intro _; exact Hidle.2.2
   iunfold ownRawNodeReady
   iexists s, ps, rnv, sv
-  simp only [named]
-  iframe Hrn Hghost Hsoft Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft Hrdrs Hce Hce_cap
+  simp only [named, Bool.false_eq_true, ↓reduceIte]
+  iframe Hrn Hghost Hout Hsoft Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft Hrdrs Hce Hce_cap
   isplitl
   · iunfold ownRaftPhysReady
     iexists rss, sl1, sl2, ms1, ms2
@@ -454,7 +571,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       %Hrd' Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob %H1 %H2 %H3 %H4 Hl
   ipureintro
   refine ⟨Hrel, Hin, Hasync, Hdlen, Hunp0 ▸ Hunp.symm, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst, Hrs_clb, Hrdz,
-    fun e He => ?_, Hidle.2.1.symm⟩
+    fun e He => ?_, Hidle.2.1.symm, Nat.zero_le _⟩
   obtain ⟨H1, H2⟩ := Hce_ok e He
   have Hne : ce ≠ [] := by intro h; subst h; simp at He
   have : 0 < ce.length := List.length_pos_iff.2 Hne
@@ -471,6 +588,32 @@ theorem ownRaftGhost_readStates (γ : RaftNames) (id : w64) (ps : PState) :
   iunfold rdOwn at Hrd
   icases Hrd with ⟨%γl, %rqm, -, -, -, -, -, #Hst0, -⟩
   iexact Hst0
+
+/-- **A client's reading of a `ReadState`** (2026-10-13): the client that created the read
+context `c` and registered its slice (`isPropData γ rctx c`, as it passed it to
+`ReadIndex`) and finds `st`'s `RequestCtx` to be that slice learns `readOk γ c st.Index'`:
+its read was created knowing a committed log no longer than the index. (By bytes rather
+than by slice: `node_readState_data`.) -/
+theorem readStateOk_readOk (γ : RaftNames) (st : ReadState) (c : List w8) :
+    ⊢ readStateOk (GF := GF) γ st -∗ isPropData γ st.RequestCtx' c -∗ readOk γ c st.Index' := by
+  iintro #Hst #Hpd
+  iunfold readStateOk at Hst
+  icases Hst with ⟨%c', #Hpd', #Hok⟩
+  unfold isPropData
+  icases ghostMapElem_agree _ _ _ _ _ _ $$ Hpd Hpd' with %Heq
+  subst Heq
+  iexact Hok
+
+/-- ... and with `readOk_prefix`: every committed log at least `st.Index'` long extends the
+committed log `Lc` the read was created knowing (`readReq γ c Lc`), so applying the log up
+to an index of at least `st.Index'` reads a state at least as new as the request. -/
+theorem readStateOk_prefix (γ : RaftNames) (st : ReadState) (c : List w8)
+    (Lc D : List raftpb.Entry) (Hle : uint.Z st.Index' ≤ (D.length : Int)) :
+    ⊢ readStateOk (GF := GF) γ st -∗ isPropData γ st.RequestCtx' c -∗ readReq γ c Lc -∗
+      isCommitted γ D -∗ ⌜Lc <+: D⌝ := by
+  iintro #Hst #Hpd #Hrq #HD
+  ihave #Hok := readStateOk_readOk γ st c $$ Hst Hpd
+  iapply readOk_prefix γ c st.Index' Lc D Hle $$ Hok Hrq HD
 
 /-- The physical `ReadState`s are the protocol state's. -/
 theorem toPState_rd_states (s : NState) : (toPState s).rd.states = s.rd.states := by

@@ -30,7 +30,8 @@ grows by `ce`, `unpersisted` is `es`, the local messages for `Advance` are queue
 (`steps`, opaque); the lower bounds `outlb` and `unst` are reset (2026-10-10: nothing
 is queued, and every unstable entry is handed out). The right to append `es` to the
 node's storage is handed out before the call, since 2026-10-10 (`ownRawNodeReady_handout`:
-the node comes in at `ownRawNodeReady … true`). It sets `r.readStates` to `nil` (2026-10-13; the
+the node comes in at `ownRawNodeReady … true`), and so are (2026-10-13) the messages' read
+credits, with the drain of the abstract outbox. It sets `r.readStates` to `nil` (2026-10-13; the
 `ReadState`s and their facts were handed out by `readyWithoutAccept`), a model step
 (`Step.takeReads`) the node's state hides. `acceptReady` does not read `rd.Messages`,
 which the application may already hold (`ms`, what `readyWithoutAccept` handed out there, is only an index of

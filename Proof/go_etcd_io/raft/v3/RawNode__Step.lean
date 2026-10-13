@@ -44,7 +44,11 @@ local macro "not_net" : tactic => `(tactic| (intro h; first | exact h.elim |
   (rw [h] at Hty; simp [netStepTypes,
   MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgHup,
   MsgPreVote, MsgPreVoteResp, MsgSnap, MsgBeat, MsgProp, MsgStorageAppendResp,
-  MsgStorageApplyResp] at Hty)))
+  MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp] at Hty)))
+
+/-- Two message types are different. -/
+local macro "ty_ne" : tactic => `(tactic| (simp [MsgApp, MsgAppResp, MsgVote, MsgVoteResp,
+  MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp]))
 
 /-- The two guards, each an early return or on (`all_goals` over the paths that go on),
 then `raft.Step`. -/
@@ -54,11 +58,14 @@ theorem RawNode.Step.wp_proof
     (wp_IsLocalMsgTarget : IsLocalMsgTarget.spec (GF := GF) (hG := hG))
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Step.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs m ents ctx Hok
-  obtain ⟨Hty, Hto, Hterm, Hfrom, Hself, Hrej⟩ := Hok
+  intro γ rn id rs m ents ctx Hok Hsing
+  obtain ⟨Hty, Hnri, Hri, Hself, Hrej⟩ := Hok
+  have Hnr : ∀ {t : w32}, m.Type' = t → t ≠ MsgReadIndex →
+      m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 :=
+    fun h ht => Hnri (h ▸ ht)
   have Hty0 : 0 ≤ sint.Z m.Type' := by
     simp only [netStepTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at Hty
-    rcases Hty with h | h | h | h | h | h <;> rw [h] <;> decide
+    rcases Hty with h | h | h | h | h | h | h | h <;> rw [h] <;> decide
   wp_start as H
   iNamed H
   iNamed Hrn
@@ -89,7 +96,7 @@ theorem RawNode.Step.wp_proof
       have Hsm : StepMsg m := by
         simp only [StepMsg, stepMsgTypes]
         simp only [netStepTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at Hty
-        rcases Hty with h | h | h | h | h | h <;> simp [h]
+        rcases Hty with h | h | h | h | h | h | h | h <;> simp [h]
       have P1 : m.Type' = MsgHup → m.Term' = W64 0 ∧ uint.Z s.term + 1 < 2 ^ 64 := by not_net
       have P2 : m.Type' = MsgPreVote → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
           m.From' ≠ id ∧ (s.term = W64 0 → plogUpToDate s.logst.prev
@@ -110,13 +117,20 @@ theorem RawNode.Step.wp_proof
         not_net
       have P8 : m.Type' = MsgStorageApplyResp → m.Term' = W64 0 := by not_net
       wp_apply wp_raft_Step γ.reCfg γ _ id s ps m ents ctx rfl Hsm Hin P1
-        (fun _ => ⟨Hto, Hterm, Hfrom⟩) (fun _ => ⟨Hto, Hterm⟩) P2 P3
-        (fun h => ⟨Hto, Hterm, Hfrom, Hself (.inl h)⟩)
-        (fun h => ⟨Hto, Hterm, Hfrom, Hself (.inr (.inl h))⟩)
-        (fun h => ⟨Hto, Hterm, Hfrom, Hrej h⟩)
-        (fun h => ⟨Hto, Hterm, Hfrom, Hself (.inr (.inr h))⟩)
-        P4 P5 P6 P7 P8 Hrel
-        $$ [$Hphys $Hghost Hents_cap]
+        (fun h => Hnr h (by ty_ne))
+        (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1⟩) P2 P3
+        (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
+          Hself (.inl h)⟩)
+        (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
+          Hself (.inr (.inl h))⟩)
+        (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
+          Hrej h⟩)
+        (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
+          Hself (.inr (.inr (.inl h)))⟩)
+        P4 P5 P6 P7 P8 (fun h => ⟨Hri h, Hsing h⟩)
+        (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
+          Hself (.inr (.inr (.inr h)))⟩) Hrel
+        $$ [$Hphys $Hghost Hents_cap Hcred]
       · simp only [HnP, ↓reduceIte, named]
         isplitl [Hents_cap]
         · isplitr
@@ -133,6 +147,8 @@ theorem RawNode.Step.wp_proof
         isplitr
         · iframe Hctx
           ipureintro; exact Hctx_ok
+        isplitl [Hcred]
+        · iexact Hcred
         imodintro
         iintro %h
         exfalso

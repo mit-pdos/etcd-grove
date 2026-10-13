@@ -432,6 +432,18 @@ theorem RawNode.readyWithoutAccept.wp_proof
     · exact List.mem_append_right _ (List.mem_filter.1 Hm).1
   iunfold outboxRel at Houtbox
   icases Houtbox with ⟨%as1, %as2, %Hperm, #Hb1, #Hb2⟩
+  -- the `MsgReadIndex`s handed out: at most the outbox's read-index requests (2026-10-13)
+  ihave %Hc1 := msgsAbs_rdCount ms1 as1 $$ Hb1
+  ihave %Hc2 := msgsAbs_rdCount ms2 as2 $$ Hb2
+  have Hrdc : rdCountM (ms1 ++ nonself id ms2) ≤ rdCount s.outbox := by
+    have Hp : rdCount s.outbox = rdCount (absList as1 ++ absList as2) := by
+      unfold rdCount; exact Hperm.countP_eq _
+    have Hnf : rdCountM (nonself id ms2) ≤ rdCountM ms2 := by
+      unfold rdCountM nonself; exact List.filter_sublist.countP_le
+    rw [Hp, rdCount_append, ← Hc1, ← Hc2]
+    unfold rdCountM at Hnf ⊢
+    rw [List.countP_append]
+    omega
   obtain ⟨Hps, Hwfs⟩ := Hrel
   subst Hps
   have Hin_out : ∀ a ∈ as1 ++ as2, ∀ x, a = some x → x ∈ s.outbox := by
@@ -470,13 +482,14 @@ theorem RawNode.readyWithoutAccept.wp_proof
   isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hce_cap]
   · unfold ownRawNodeReady
     iexists s, toPState s, rnv, sv
-    simp only [named]
-    iframe Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hdeliv' Hstrecs Hrdsoft Hrdrs' Hce Hce_cap
+    simp only [named, Bool.false_eq_true, ↓reduceIte]
+    iframe Hrn Hphys Hghost Hout Hsoft Hsteps Hsteps_cap Hdeliv' Hstrecs Hrdsoft Hrdrs' Hce
+      Hce_cap
     ipureintro
     exact ⟨⟨rfl, Hwfs⟩, Hin, Hasync, Hdlen, HunpS, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
       Hrs_clb,
       ceOk_of_prefix s.logst ce Hidx ⟨by have := Hwf2.2 Hsnap; omega, Hwf1.2.2⟩ (by omega) Hcepre,
-      trivial⟩
+      trivial, Hrdc⟩
   isplitr
   · iexact Hce
   isplitr

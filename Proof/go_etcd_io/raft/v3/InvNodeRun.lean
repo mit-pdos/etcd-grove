@@ -207,7 +207,7 @@ theorem ownRawNodeReady_lead (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   iunfold ownRawNodeReady
   iexists s, ps, rnv, sv
   simp only [named]
-  iframe Hrn Hghost Hsoft Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft Hrdrs Hce Hce_cap
+  iframe Hrn Hghost Hout Hsoft Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft Hrdrs Hce Hce_cap
   isplitl
   · iunfold ownRaftPhysReady
     iexists rsl, sl1, sl2, ms1, ms2
@@ -218,7 +218,7 @@ theorem ownRawNodeReady_lead (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     exact ⟨HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hmslen⟩
   ipureintro
   exact ⟨Hrel, Hin, Hasync, Hdlen, Hunp, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst, Hrs_clb,
-    Hrdz, Hceok, Hes⟩
+    Hrdz, Hceok, Hes, Hrdc⟩
 
 /-! ## Abandoning a `Ready`, keeping it armed -/
 
@@ -335,25 +335,34 @@ local macro "not_net" : tactic => `(tactic| (intro h; first | exact h.elim |
   (rw [h] at Hty; simp [netStepTypes,
   MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgHup,
   MsgPreVote, MsgPreVoteResp, MsgSnap, MsgBeat, MsgProp, MsgStorageAppendResp,
-  MsgStorageApplyResp] at Hty)))
+  MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp] at Hty)))
+
+/-- Two message types are different. -/
+local macro "ty_ne" : tactic => `(tactic| (simp [MsgApp, MsgAppResp, MsgVote, MsgVoteResp,
+  MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp]))
 
 /-- `r.Step(m)` on a message from the network, `r` the node's raft struct: the tail of
 `RawNode.Step` (its guards are `run`'s own code). -/
 theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (ctx : List w8) (Hok : NetMsgOk id m) :
+    (ents : List raftpb.Entry) (ctx : List w8) (Hok : NetMsgOk id m)
+    (Hsing : m.Type' = MsgReadIndex → 1 < GMap.size γ.reCfg) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗
         m.Entries' ↦*□ ents ∗ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) ∗
         m.Context' ↦*□ ctx ∗
-        ⌜ctx ≠ campaignTransfer ∧ (m.Type' = MsgHeartbeatResp → ctx = [])⌝ ∗
-        □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗ isMessage γ (absMsg ty m ents ctx)) }}
+        ⌜ctx ≠ campaignTransfer⌝ ∗
+        □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗ isMessage γ (absMsg ty m ents ctx)) ∗
+        rdCred γ (if m.Type' = MsgReadIndex then 1 else 0) }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (t : w64), RET #err;
         ownRawNode γ rn id { rs with term := t } ∗
         ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ max (uint.Z rs.term) (uint.Z m.Term')⌝ }} := by
-  obtain ⟨Hty, Hto, Hterm, Hfrom, Hself, Hrej⟩ := Hok
-  iintro %Φ ⟨#Hpkg, Hrn, #Hr, #Hents, Hents_cap, #Hctx, %Hctx_ok, #Hmsg⟩ HΦ
+  obtain ⟨Hty, Hnri, Hri, Hself, Hrej⟩ := Hok
+  have Hnr : ∀ {t : w32}, m.Type' = t → t ≠ MsgReadIndex →
+      m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 :=
+    fun h ht => Hnri (h ▸ ht)
+  iintro %Φ ⟨#Hpkg, Hrn, #Hr, #Hents, Hents_cap, #Hctx, %Hctx_ok, #Hmsg, Hcred⟩ HΦ
   iNamed Hrn
   ihave #Hr' := rawNodeOwn_raft rn rnv $$ Hrn
   icombine Hr Hr' gives %Heq
@@ -362,7 +371,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   have Hsm : StepMsg m := by
     simp only [StepMsg, stepMsgTypes]
     simp only [netStepTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at Hty
-    rcases Hty with h | h | h | h | h | h <;> simp [h]
+    rcases Hty with h | h | h | h | h | h | h | h <;> simp [h]
   have P1 : m.Type' = MsgHup → m.Term' = W64 0 ∧ uint.Z s.term + 1 < 2 ^ 64 := by not_net
   have P2 : m.Type' = MsgPreVote → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
       m.From' ≠ id ∧ (s.term = W64 0 → plogUpToDate s.logst.prev
@@ -383,13 +392,20 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     not_net
   have P8 : m.Type' = MsgStorageApplyResp → m.Term' = W64 0 := by not_net
   wp_apply wp_raft_Step γ.reCfg γ _ id s ps m ents ctx rfl Hsm Hin P1
-    (fun _ => ⟨Hto, Hterm, Hfrom⟩) (fun _ => ⟨Hto, Hterm⟩) P2 P3
-    (fun h => ⟨Hto, Hterm, Hfrom, Hself (.inl h)⟩)
-    (fun h => ⟨Hto, Hterm, Hfrom, Hself (.inr (.inl h))⟩)
-    (fun h => ⟨Hto, Hterm, Hfrom, Hrej h⟩)
-    (fun h => ⟨Hto, Hterm, Hfrom, Hself (.inr (.inr h))⟩)
-    P4 P5 P6 P7 P8 Hrel
-    $$ [$Hphys $Hghost Hents_cap]
+    (fun h => Hnr h (by ty_ne))
+    (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1⟩) P2 P3
+    (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
+      Hself (.inl h)⟩)
+    (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
+      Hself (.inr (.inl h))⟩)
+    (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
+      Hrej h⟩)
+    (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
+      Hself (.inr (.inr (.inl h)))⟩)
+    P4 P5 P6 P7 P8 (fun h => ⟨Hri h, Hsing h⟩)
+    (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
+      Hself (.inr (.inr (.inr h)))⟩) Hrel
+    $$ [$Hphys $Hghost Hents_cap Hcred]
   · simp only [HnP, ↓reduceIte, named]
     isplitl [Hents_cap]
     · isplitr
@@ -406,6 +422,8 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     isplitr
     · iframe Hctx
       ipureintro; exact Hctx_ok
+    isplitl [Hcred]
+    · iexact Hcred
     imodintro
     iintro %h
     exfalso
@@ -444,7 +462,8 @@ set_option hygiene false in
 (`Hty'` in context). -/
 local macro "msg_ne'" : tactic => `(tactic| (intro Hc; rw [Hty'] at Hc; simp [MsgHup, MsgVote,
   MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp,
-  MsgSnap, MsgBeat, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp] at Hc))
+  MsgSnap, MsgBeat, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgReadIndex,
+  MsgReadIndexResp] at Hc))
 
 /-- A proposal's abstraction is legitimately sent, from the node's: `isMessage` of a
 proposal reads only its term and entries, not its sender (2026-10-10). -/
@@ -504,6 +523,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
   ihave %Hpm := isMessage_propose_pure γ m ents $$ Hm
   obtain ⟨Hterm, Hne, Hnorm, Hlen⟩ := Hpm
   have Hty' : ({ m with From' := id } : raftpb.Message).Type' = MsgProp := Hty
+  imod rdCred_zero_upd (GF := GF) γ with Hcr
   wp_apply wp_raft_Step γ.reCfg γ _ id s ps ({ m with From' := id }) ents ctx rfl
     (by simp only [StepMsg, stepMsgTypes]; rw [Hty']; simp [MsgProp]) Hin
     (by msg_ne') (by msg_ne')
@@ -512,8 +532,8 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     (by msg_ne') (by msg_ne')
     (by msg_ne') (by msg_ne')
     (by msg_ne')
-    (fun _ => ⟨Hterm, .inr rfl⟩) (by msg_ne') (by msg_ne') Hrel
-    $$ [$Hphys $Hghost Hes Hcap]
+    (fun _ => ⟨Hterm, .inr rfl⟩) (by msg_ne') (by msg_ne') (by msg_ne') (by msg_ne') Hrel
+    $$ [$Hphys $Hghost Hes Hcap Hcr]
   · rw [Hty']
     simp only [ite_true]
     isplitl [Hes Hcap]
@@ -541,8 +561,9 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     · isplitr
       · iexact Hctx
       ipureintro
-      refine ⟨Hctxne, fun Hc => ?_⟩
-      simp [Hty', MsgProp, MsgHeartbeatResp] at Hc
+      exact Hctxne
+    isplitl [Hcr]
+    · simp [MsgProp, MsgReadIndex]; iexact Hcr
     · imodintro
       iintro %Hc
       simp [Hty', MsgProp, MsgSnap] at Hc

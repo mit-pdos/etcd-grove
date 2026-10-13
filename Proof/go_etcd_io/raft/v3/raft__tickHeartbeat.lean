@@ -22,7 +22,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- A premise of `Step` about another message type: `MsgBeat` is not it. -/
 local macro "msg_ne" : tactic => `(tactic| (intro Hc; simp [MsgHup, MsgVote, MsgVoteResp,
   MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp, MsgSnap,
-  MsgBeat, MsgProp, MsgStorageAppendResp, MsgStorageApplyResp] at Hc))
+  MsgBeat, MsgProp, MsgStorageAppendResp, MsgStorageApplyResp, MsgReadIndex,
+  MsgReadIndexResp] at Hc))
 
 /-- The two counters, the election-timeout reset (`checkQuorum` and leader transfer are
 off), then for a leader past the heartbeat timeout `raft.Step` of a `MsgBeat`. -/
@@ -77,12 +78,13 @@ theorem raft.tickHeartbeat.wp_proof
       wp_apply raft.wp_load_id $$ Hphys as Hphys
       try wp_auto
       have hP : (W32 1 : w32) ≠ MsgProp := by simp [MsgProp]
+      imod rdCred_zero_upd (GF := GF) γ with Hcr
       wp_apply wp_raft_Step cfg γ r id s ps _ [] [] Hcfg
         (by simp [StepMsg, stepMsgTypes, MsgBeat]) Hin
         (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
         (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (fun _ => rfl) (by msg_ne)
-        (by msg_ne) (by msg_ne) Hrel
-        $$ [$Hphys $Hghost]
+        (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) Hrel
+        $$ [$Hphys $Hghost Hcr]
       · simp only [hP, ↓reduceIte, named]
         isplitr
         · isplitr
@@ -101,7 +103,9 @@ theorem raft.tickHeartbeat.wp_proof
         · isplitr
           · iapply ownSlice_nil
           ipureintro
-          exact ⟨by simp [campaignTransfer], fun Hc => by simp [MsgHeartbeatResp] at Hc⟩
+          simp [campaignTransfer]
+        isplitl [Hcr]
+        · rw [if_neg (by msg_ne)]; iexact Hcr
         imodintro
         iintro %Hc
         simp [MsgSnap] at Hc

@@ -276,11 +276,14 @@ instance isRegister_persistent (γr : RegNames) (γp : RepNames) (r : Loc) :
   unfold isRegister; infer_instance
 
 /-- The `send` callback (`func([]pb.Message)`): it takes the messages of a `Ready`, with
-what the node's `Ready` says of them (persistent). Delivering them to the peers'
-`Node.Step` (copying a proposal's entries, which `Step` takes owned) is the transport's. -/
+what the node's `Ready` says of them (persistent) and (2026-10-13) each one's read credit
+(one for a `MsgReadIndex`). Delivering them to the peers' `Node.Step` (copying a
+proposal's entries, which `Step` takes owned; passing a message's credit on) is the
+transport's. -/
 def sendSpec (f : GoFunc) (γn : NodeNames) : IProp GF :=
   iprop(□ ∀ (msl : GoSlice) (ms : List raftpb.Message),
-    {{ msl ↦* ms ∗ [∗list] m ∈ ms, isRaftMsg γn.raft m ∗ termLB γn.bud m.Term' }}
+    {{ msl ↦* ms ∗ ([∗list] m ∈ ms, isRaftMsg γn.raft m ∗ termLB γn.bud m.Term') ∗
+        [∗list] m ∈ ms, rdCred γn.raft (if m.Type' = MsgReadIndex then 1 else 0) }}
       (App (Val #f) (Val #msl))
     {{ RET #(); True }})
 

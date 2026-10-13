@@ -26,7 +26,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- A premise of `Step` about another message type: `MsgHup` (`W32 0`) is not it. -/
 local macro "msg_ne" : tactic => `(tactic| (intro Hc; simp [MsgHup, MsgVote, MsgVoteResp,
   MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp, MsgSnap,
-  MsgBeat, MsgProp, MsgStorageAppendResp, MsgStorageApplyResp] at Hc))
+  MsgBeat, MsgProp, MsgStorageAppendResp, MsgStorageApplyResp, MsgReadIndex,
+  MsgReadIndexResp] at Hc))
 
 /-- `Step` on the literal message `pb.Message{Type: MsgHup}`; its `NetFrame` and
 `TermStep` keep `ownRawNode` but for the term (`stepsOk_mono_le`). -/
@@ -38,13 +39,14 @@ theorem RawNode.Campaign.wp_proof
   iNamed H
   iNamed Hrn
   wp_auto
+  imod rdCred_zero_upd (GF := GF) γ with Hcr
   wp_apply wp_raft_Step γ.reCfg γ _ id s ps _ [] [] rfl
     (by simp [StepMsg, stepMsgTypes, MsgHup]) Hin
     (fun _ => ⟨rfl, by rw [← Htrm]; exact Hterm⟩)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
-    (by msg_ne) Hrel
-    $$ [$Hphys $Hghost]
+    (by msg_ne) (by msg_ne) (by msg_ne) Hrel
+    $$ [$Hphys $Hghost Hcr]
   · -- the message: no entries, no `Context`, no snapshot
     have hP : (W32 0 : w32) ≠ MsgProp := by simp [MsgProp]
     simp only [hP, ↓reduceIte, named]
@@ -65,7 +67,9 @@ theorem RawNode.Campaign.wp_proof
     · isplitr
       · iapply ownSlice_nil
       ipureintro
-      exact ⟨by simp [campaignTransfer], fun Hc => by simp [MsgHeartbeatResp] at Hc⟩
+      simp [campaignTransfer]
+    isplitl [Hcr]
+    · rw [if_neg (by msg_ne)]; iexact Hcr
     imodintro
     iintro %Hc
     simp [MsgSnap] at Hc
