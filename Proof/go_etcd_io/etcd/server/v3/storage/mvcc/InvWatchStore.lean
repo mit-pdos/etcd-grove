@@ -651,14 +651,7 @@ one of `s.mu`'s. -/
 def watchReader (s st : Loc) (γ : WsNames) : IProp GF :=
   iprop(storeReader st γ.st ∗ sync.ownRWMutex (wsMuAddr s) (watchStoreInv s γ))
 
-/-- The stop channel (`stopc`): a channel nothing is sent on, closed once by `Close` (Perennial's
-broadcast idiom, `ownBroadcastChan`, nothing broadcast): a receive returns only once it is
-closed. -/
-def isStopChan (c : Loc) : IProp GF :=
-  iprop(∃ γc : ChanNames, ownBroadcastChan c γc iprop(True) Broadcast.Unknown)
-
-instance isStopChan_persistent (c : Loc) : Persistent (isStopChan (GF := GF) c) := by
-  unfold isStopChan; infer_instance
+-- `isStopChan`: `InvStore.lean` (2026-10-13: the store's stop channel uses it too).
 
 /-- **The watchable store** `s` over the store `st` (persistent): the inner store and its read
 view (`newWatchableStore` points it at `s`: unit 3b; `rev()` reads through it), the lock's guard, the victims' wake-up

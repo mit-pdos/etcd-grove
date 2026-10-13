@@ -38,13 +38,24 @@ views (owned: `newWatchableStore` overwrites them), all the reader slots of its 
   store.
 * The backend's batch lock has invariant `P` and runs the post-lock hook `f` (`isKeyBackend`'s
   `P f`, any); the store records them (`hookIs`, returned), for its writers.
-* A `nil` logger is replaced by `zap.NewNop()`'s; the configuration `cfg` is not modelled.
-* The right to close the store once (`storeCloser`: its `stopc` field, owned). -/
+* A `nil` logger is replaced by `zap.NewNop()`'s; of the configuration `cfg`, a zero
+  `CompactionBatchLimit` is replaced by the default (1000): a negative one is excluded by the
+  premise `0 ≤ cfg.CompactionBatchLimit` (`NewStore` keeps it, and the compaction job would
+  loop forever: `issues/etcd-compaction-negative-batch-limit.md`), so `isStore`'s limit is
+  positive.
+* The store's stop channel (`storeStop`) and the right to close the store once (`storeCloser`:
+  the channel's close).
+* Compaction (2026-10-13, unit 5a): the store starts at the compaction revision `-1`; the
+  compaction right (`compactRight γ (-1)`, which `store.Compact` takes) is returned, and the
+  reader slots are those of a store that may be compacted (`storeReaderC`): a caller that
+  never compacts gives the right up (`compactRight_freeze`) and has the readers its
+  transactions take (`storeReader_of`). -/
 abbrev mvcc.NewStore.spec : Prop :=
   ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (γb γl : GName) (P : IProp GF) (f : val),
+  0 ≤ sint.Z cfg.CompactionBatchLimit' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb⌝ →
-        mvcc.isKeyBackend b (mvcc.bucketView γ) (mvcc.writerRes s γ) P f) ∗
+        mvcc.isKeyBackend b (mvcc.bucketView γ) (mvcc.delKey γ) (mvcc.writerRes s γ) P f) ∗
       ghostMapAuth γb 1 (∅ : mvcc.Bucket) ∗ mvcc.isLessor le γl }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
       (Val #b)) (Val #le)) (Val #cfg))
@@ -58,8 +69,9 @@ abbrev mvcc.NewStore.spec : Prop :=
           (interface.mkOk (go.GoType.PointerType writeView.ty) #wv : GoInterface) ∗
         mvcc.isWriteView wv s γ) ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-        mvcc.storeReader s γ) ∗
-      ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s }}
+        mvcc.storeReaderC s γ) ∗
+      ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s ∗
+      mvcc.storeStop s ∗ mvcc.compactRight γ (-1) }}
 
 end spec
 

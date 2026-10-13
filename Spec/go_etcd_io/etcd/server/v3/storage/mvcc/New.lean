@@ -27,9 +27,10 @@ token), with what `newWatchableStore` gives (every watch token among it) but tho
 (`wsCloser`: the stop channel's close, the wait for the loops, the inner store's close). -/
 abbrev mvcc.New.spec : Prop :=
   ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (γb γl : GName) (P : IProp GF) (f : val),
+  0 ≤ sint.Z cfg.CompactionBatchLimit' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       (∀ (s : Loc) (γ : mvcc.StoreNames), ⌜γ.bucket = γb⌝ →
-        mvcc.isKeyBackend b (mvcc.bucketView γ) (mvcc.writerRes s γ) P f) ∗
+        mvcc.isKeyBackend b (mvcc.bucketView γ) (mvcc.delKey γ) (mvcc.writerRes s γ) P f) ∗
       ghostMapAuth γb 1 (∅ : mvcc.Bucket) ∗ mvcc.isLessor le γl }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.New)) (Val #lg))
       (Val #b)) (Val #le)) (Val #cfg))

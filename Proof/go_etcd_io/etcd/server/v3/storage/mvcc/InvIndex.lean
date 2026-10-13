@@ -26,6 +26,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Hist
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Compact
 public import Proof.go_etcd_io.etcd.cache.v3.InvBtree
 public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.MonoNat
@@ -493,24 +494,152 @@ theorem ownTree_entry (t : Loc) (L : List IdxEntry) (q : Qp) (z : IdxEntry) (hz 
 
 /-- The ghost names of a tree index: its history, its number of events, and the committed log
 (a monotone list of the revisions' changes: the history records the events, not the values, so
-the certificate carries the log itself through this one). -/
+the certificate carries the log itself through this one); and the store's compaction revision
+(`crev`, a monotone counter of `crevN c`: its authority is split between the store's two locks
+and the compaction right, `InvStore.lean`; the index's lock keeps a lower bound of every key's
+compaction level, `idxLockInv`). -/
 structure IdxNames where
   hist : GName
   nev : GName
   log : GName
+  crev : GName
 
 /-- The writer's log, well formed and bounded: `ilog` committed, `pend` pending. -/
 def IdxWf (ilog : Log) (pend : List Change) : Prop :=
   LogWf' (ilog ++ [pend]) ∧ ilog.length + 1 < 2 ^ 63 ∧ pend.length < 2 ^ 63 ∧
     ∀ cs ∈ ilog, cs.length < 2 ^ 63
 
-/-- The `RWMutex`'s resource at fraction `q` (see the module docstring). -/
+/-- Part `q` of the compaction revision's authority, at `c` (`-1`: none): whoever holds a part
+knows the compaction revision is `c` (the store's locks and the compaction right hold the
+parts). -/
+def crevUB (γ : IdxNames) (q : Qp) (c : Int) : IProp GF := monoNatAuthOwn γ.crev q (crevN c)
+
+/-- A lower bound `c` of the compaction revision (persistent). -/
+def crevLb (γ : IdxNames) (c : Int) : IProp GF := monoNatLbOwn γ.crev (crevN c)
+
+instance crevLb_persistent (γ : IdxNames) (c : Int) : Persistent (crevLb (GF := GF) γ c) := by
+  unfold crevLb; infer_instance
+
+/-- A part of the authority bounds every lower bound. -/
+theorem crevUB_lb (γ : IdxNames) (q : Qp) (c c' : Int) (hc : -1 ≤ c) (hc' : -1 ≤ c') :
+    ⊢ crevUB (GF := GF) γ q c -∗ crevLb γ c' -∗ ⌜c' ≤ c⌝ := by
+  unfold crevUB crevLb
+  iintro Ha Hl
+  ihave %h := monoNatLbOwn_valid γ.crev q _ _ $$ Ha Hl
+  ipureintro; exact crevN_le hc' hc h.2
+
+/-- A key's index of any events is well formed (its fold from `kiEmpty`). -/
+theorem kiOfKey_KiWf_inv (evs : List Ev) (k : GoString) : KiWf (kiOfKey evs k) := by
+  unfold kiOfKey
+  generalize evs.filter (fun ev => decide (ev.key = k)) = es
+  suffices h : ∀ (es : List Ev) (ki : KeyIndex), KiWf ki → KiWf (es.foldl kiApply ki) from
+    h es kiEmpty KiWf.kiEmpty
+  intro es
+  induction es with
+  | nil => intro ki h; exact h
+  | cons e es ih => intro ki h; exact ih _ (kiApply_wf h e)
+
+/-- A compacted key index has a generation if it had one. -/
+theorem kiCompact_gens_ne (c : w64) (ki : KeyIndex) (h : ki.gens ≠ []) :
+    (kiCompact c ki).gens ≠ [] := by
+  have hlt := compactGenIdx_lt c ki.gens h
+  unfold kiCompact
+  simp only
+  intro he
+  have := congrArg List.length he
+  rw [List.length_drop, List.length_set] at this
+  simp at this
+  omega
+
+/-- The writer's log is bounded. -/
+theorem IdxWf.logB {ilog : Log} {pend : List Change} (h : IdxWf ilog pend) : LogB (ilog ++ [pend]) := by
+  obtain ⟨-, hlen, hp, hcs⟩ := h
+  refine ⟨by simp; omega, fun cs hc => ?_⟩
+  rcases List.mem_append.1 hc with hc | hc
+  · exact hcs cs hc
+  · rw [List.mem_singleton] at hc; rw [hc]; exact hp
+
+/-- A key's index of the events is `isEmpty` exactly when it is the empty one. -/
+theorem kiOfKey_isEmpty_iff (evs : List Ev) (k : GoString) :
+    kiIsEmpty (kiOfKey evs k) = true ↔ kiOfKey evs k = kiEmpty := by
+  constructor
+  · intro h
+    rcases KiHead.kiOfKey evs k with he | he
+    · exact he
+    · rw [(kiIsEmpty_false_of_head he).1] at h; cases h
+  · intro h; rw [h]; rfl
+
+/-- With no compaction (every level `-1`), the index is the uncompacted one, key by key. -/
+theorem IdxCRep.get_neg (log : Log) (hb : LogB log) {idx : IndexM}
+    (h : IdxCRep (-1) (evsOf log) idx) (k : GoString) :
+    idxGet idx k = idxGet (indexOf (evsOf log)) k := by
+  obtain ⟨c, h0, h1, h2⟩ := h.2 k
+  have hc : c = -1 := by omega
+  subst hc
+  rw [h2]
+  unfold kiCompactO
+  rw [kiCompact_neg log hb k]
+  by_cases he : kiIsEmpty (kiOfKey (evsOf log) k) = true
+  · simp only [he, ↓reduceIte]
+    exact ((idxGet_indexOf_eq_none_iff _ k).2 ((kiOfKey_isEmpty_iff _ k).1 he)).symm
+  · simp only [he, Bool.false_eq_true, ↓reduceIte]
+    have hne : kiOfKey (evsOf log) k ≠ kiEmpty := fun e => he ((kiOfKey_isEmpty_iff _ k).2 e)
+    cases hg : idxGet (indexOf (evsOf log)) k with
+    | none => exact absurd ((idxGet_indexOf_eq_none_iff _ k).1 hg) hne
+    | some ki =>
+      have := (indexOf_rep (evsOf log)).2 k
+      rw [hg] at this
+      simp only [Option.getD_some] at this
+      rw [this]
+
+/-- **A reader's answer under compaction** (pure): `reader_answer` through the lock's compacted
+index, at a revision at or above every level. -/
+theorem reader_answerC (log₀ ilog : Log) (pend : List Change) (L : List IdxEntry) (cmax : Int)
+    (hcmp : histOf log₀ <+: histShape ilog pend ∨ histShape ilog pend <+: histOf log₀)
+    (hcount : (evsOf log₀).length ≤ (evsOf (ilog ++ [pend])).length)
+    (hwf0 : IdxWf ilog pend) (hwf : LogWf' log₀) (hcs : ∀ cs ∈ log₀, cs.length < 2 ^ 63)
+    (HLL : IdxCRep cmax (evsOf (ilog ++ [pend])) (idxOfEntries L))
+    (k : GoString) (r : Nat) (hr : r < log₀.length) (hlen0 : log₀.length < 2 ^ 63) (hc : cmax ≤ r) :
+    kiGet ((idxGet (idxOfEntries L) k).getD kiEmpty) (W64 r) =
+      kiGet (kiOfKey (evsOf log₀) k) (W64 r) := by
+  have hz : cmax ≤ sint.Z (W64 r) := by
+    have : sint.Z (W64 r) = r := by word
+    omega
+  have := IdxCRep.kiAt (ilog ++ [pend]) hwf0.logB HLL (W64 r) hz k
+  unfold kiAt at this
+  rw [this]
+  exact reader_answer log₀ ilog pend hcmp hcount (by have := hwf0.2.1; omega) hwf hcs k r hr
+
+/-- **A reader's range answers under compaction** (pure): `rangeAnswers_entries` through the
+lock's compacted index, at a revision at or above every level. -/
+theorem rangeAnswers_entriesC (log₀ ilog : Log) (pend : List Change) (L : List IdxEntry) (cmax : Int)
+    (hcmp : histOf log₀ <+: histShape ilog pend ∨ histShape ilog pend <+: histOf log₀)
+    (hcount : (evsOf log₀).length ≤ (evsOf (ilog ++ [pend])).length)
+    (hwf0 : IdxWf ilog pend) (hwf : LogWf' log₀) (hcs : ∀ cs ∈ log₀, cs.length < 2 ^ 63)
+    (HLL : IdxCRep cmax (evsOf (ilog ++ [pend])) (idxOfEntries L))
+    (k e : GoString) (r : Nat) (hr : r < log₀.length) (hlen0 : log₀.length < 2 ^ 63) (hc : cmax ≤ r) :
+    rangeAnswers log₀ false k e (W64 r) = entryAnswers (rangeEntries L k e) (W64 r) := by
+  have hz : cmax ≤ sint.Z (W64 r) := by
+    have : sint.Z (W64 r) = r := by word
+    omega
+  unfold rangeAnswers
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  rw [← reader_range log₀ ilog pend hcmp hcount (by have := hwf0.2.1; omega) hwf hcs k e r hr,
+    ← IdxCRep.rangeAt (ilog ++ [pend]) hwf0.logB HLL (W64 r) hz, rangeAt_entries]
+
+/-- The `RWMutex`'s resource at fraction `q` (see the module docstring): the tree holds the
+events of `ilog ++ [pend]`, each key's index compacted at a level of its own, at most `cmax`, a
+lower bound of the compaction revision (`IdxCRep`, `Compact.lean`; the compaction job compacts
+key by key under the lock), below the length of a lower bound of the committed log (so below
+every writer's next revision). -/
 def idxLockInv (t : Loc) (γ : IdxNames) (q : Qp) : IProp GF :=
-  iprop(∃ (ilog : Log) (pend : List Change) (L : List IdxEntry),
+  iprop(∃ (ilog : Log) (pend : List Change) (L : List IdxEntry) (cmax : Int),
     "#Hhist" ∷ monoListLbOwn γ.hist (histShape ilog pend) ∗
     "Hnev" ∷ monoNatAuthOwn γ.nev q (evsOf (ilog ++ [pend])).length ∗
     "Htree" ∷ ownTree t L q ∗
-    "%HL" ∷ ⌜idxOfEntries L = indexOf (evsOf (ilog ++ [pend]))⌝ ∗
+    "#Hcrev" ∷ crevLb γ cmax ∗
+    "#Hcl" ∷ (∃ log₀ : Log, monoListLbOwn γ.log log₀ ∗ ⌜cmax < log₀.length⌝) ∗
+    "%HL" ∷ ⌜IdxCRep cmax (evsOf (ilog ++ [pend])) (idxOfEntries L) ∧ -1 ≤ cmax⌝ ∗
     "%Hwf" ∷ ⌜IdxWf ilog pend⌝)
 
 instance idxLockInv_fractional (t : Loc) (γ : IdxNames) :
@@ -524,12 +653,14 @@ instance idxLockInv_fractional (t : Loc) (γ : IdxNames) :
       icases (hnat _).1 $$ Hnev with ⟨Hn1, Hn2⟩
       icases (ownTree_fractional t L).fractional q1 q2 |>.1 $$ Htree with ⟨Ht1, Ht2⟩
       isplitl [Hn1 Ht1]
-      · iexists ilog, pend, L; simp only [named]; iframe Hn1 Ht1; iframe #; ipureintro; exact ⟨HL, Hwf⟩
-      · iexists ilog, pend, L; simp only [named]; iframe Hn2 Ht2; iframe #; ipureintro; exact ⟨HL, Hwf⟩
+      · iexists ilog, pend, L, cmax; simp only [named]; iframe Hn1 Ht1; iframe #; ipureintro
+        exact ⟨HL, Hwf⟩
+      · iexists ilog, pend, L, cmax; simp only [named]; iframe Hn2 Ht2; iframe #; ipureintro
+        exact ⟨HL, Hwf⟩
     · iintro ⟨H1, H2⟩
       unfold idxLockInv
-      icases H1 with ⟨%ilog1, %pend1, %L1, H1⟩
-      icases H2 with ⟨%ilog2, %pend2, %L2, H2⟩
+      icases H1 with ⟨%ilog1, %pend1, %L1, %cmax1, H1⟩
+      icases H2 with ⟨%ilog2, %pend2, %L2, %cmax2, H2⟩
       iNamedSuffix H1 "1"
       iNamedSuffix H2 "2"
       generalize hn1 : (evsOf (ilog1 ++ [pend1])).length = n1 at *
@@ -539,13 +670,17 @@ instance idxLockInv_fractional (t : Loc) (γ : IdxNames) :
       subst Hn
       icases ownTree_combine t L1 L2 q1 q2 $$ Htree1 Htree2 with ⟨%HL, Htree⟩
       subst HL
-      iexists ilog1, pend1, L1
+      iexists ilog1, pend1, L1, cmax1
       simp only [named]
       iframe Htree
       isplitl []
       · iexact Hhist1
       isplitl [Hnev1 Hnev2]
       · rw [hn1]; iapply (hnat n1).2; iframe
+      isplitl []
+      · iexact Hcrev1
+      isplitl []
+      · iexact Hcl1
       ipureintro; exact ⟨HL1, Hwf1⟩
 
 end reprs

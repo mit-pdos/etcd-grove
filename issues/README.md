@@ -73,5 +73,13 @@ unit 0; not filed).
 [etcd-apply-authstatus-metric-label](etcd-apply-authstatus-metric-label.md): `dispatch` does not
 set `op` for `AuthStatus`, whose apply latency is recorded under `op="unknown"` (a wrong metric
 label; found 2026-10-12, apply unit 2; not filed).
+[etcd-compaction-negative-batch-limit](etcd-compaction-negative-batch-limit.md): a negative
+`CompactionBatchLimit` (an unvalidated flag; `NewStore` defaults only `0`) makes every compaction
+job loop forever, force-committing every interval, its channel never closed (reproduced; found
+2026-10-13, mvcc compaction unit 5a; not filed).
+[etcd-compaction-delete-then-put](etcd-compaction-delete-then-put.md): compacting at a revision
+that deletes a key and puts it again deletes the key's live value from the bucket, and the next
+read of the key calls `lg.Fatal` (reproduced through mvcc's API; etcd's gRPC `checkIntervals`
+rejects such a transaction; found 2026-10-13, mvcc compaction unit 5a; not filed).
 Leads not yet assessed: the gRPC proxy's cache (`server/proxy/grpcproxy/cache/store.go`) builds
 its intervals as `checkIntervals` did, so a cached from-key range may never be invalidated.

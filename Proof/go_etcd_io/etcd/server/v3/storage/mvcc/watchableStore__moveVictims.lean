@@ -395,7 +395,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
     wp_auto_lc 2
     imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv st γ.st sync.rfrac)) $$ Hlc1 HQ with HQ
     iunfold mvcc.revMuInv at HQ
-    icases HQ with ⟨%C, %ntok, HQ⟩
+    icases HQ with ⟨%C, %ntok, %cQ, HQ⟩
     iNamedSuffix HQ "Q"
     iunfold mvcc.watchStoreBody at HP
     iNamed HP
@@ -617,14 +617,14 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
     iNamed HQ
     obtain ⟨-, HLC, HPS'⟩ := Hq
     wp_auto
-    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ]
+    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ]
     · inext
       iunfold mvcc.revMuInv
-      iexists C, ntok
+      iexists C, ntok, cQ
       simp only [named]
-      iframe HrevQ HclogQ HbucketQ HtoksQ HlogQ
+      iframe HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ
       iframe #
-      ipureintro; exact ⟨HneQ, HbudgetQ⟩
+      ipureintro; exact ⟨HneQ, HbudgetQ, HcQ⟩
     iintro HrevMuR
     wp_auto
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hbody]

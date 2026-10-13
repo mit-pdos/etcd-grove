@@ -22,7 +22,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `tr.Range(ctx, key, end, ro)` is `rangeKeys` at the transaction's revision (at
-`context.TODO()`, `todo`, no context error). -/
+`context.TODO()`, `todo`, no context error), of a store not compacted (the transaction's hold
+of `s.mu`, `muHeld` at `-1`, given back). -/
 abbrev mvcc.storeTxnCommon.Range.spec : Prop :=
   ∀ (tr s trace ti : Loc) (rt : GoInterfaceOk) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool)
@@ -30,12 +31,13 @@ abbrev mvcc.storeTxnCommon.Range.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeTxnReadIs tr s rt trace γ log rev ∗
       s.[store, go!"kvindex"] ↦□ (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
-      mvcc.idxReader ti γ.idx ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e }}
+      mvcc.idxReader ti γ.idx ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e ∗
+      mvcc.muHeld s γ (-1) }}
     (App (App (App (App (Val (mvcc.txCommon tr @!! go.GoType.PointerType storeTxnCommon.ty @!!
       go!"Range")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #endk)) (Val #ro))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
       ⌜todo = true → r ≠ null⌝ ∗
-      mvcc.idxReader ti γ.idx ∗
+      mvcc.idxReader ti γ.idx ∗ mvcc.muHeld s γ (-1) ∗
       mvcc.rangeOutcome r err log rev (decide (endk = slice.nil)) k e ro }}
 
 end spec

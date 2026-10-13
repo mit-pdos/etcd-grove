@@ -100,7 +100,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpKey
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpLease
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpType
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.getRequestType
-public import Proof.github_com.dustin.go_humanize.Bytes
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.Generator__Next
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.NewGenerator
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.lowbit
@@ -147,11 +146,8 @@ public import Proof.go_etcd_io.etcd.pkg.v3.wait.list__Register
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.list__Trigger
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.waitWithResponse__Register
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.waitWithResponse__Trigger
-public import Proof.go_uber_org.zap.Duration
-public import Proof.go_uber_org.zap.Int
 public import Proof.go_uber_org.zap.Logger__Debug
 public import Proof.go_uber_org.zap.Logger__Fatal
-public import Proof.go_uber_org.zap.Logger__Warn
 public import Proof.go_uber_org.zap.Stringer
 public import Proof.go_uber_org.zap.Uint64
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Link
@@ -370,10 +366,6 @@ theorem zap.Logger.wp_Debug :
     zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
   zap.Logger.Debug.wp_proof
 
-theorem zap.wp_Int' :
-    zap.Int'.spec (GF := GF) (hG := hG) :=
-  zap.Int'.wp_proof
-
 theorem zap.wp_Uint64 :
     zap.Uint64.spec (GF := GF) (hG := hG) :=
   zap.Uint64.wp_proof
@@ -413,14 +405,6 @@ theorem config.ServerConfig.wp_ElectionTimeout :
 theorem errors.wp_Is :
     errors.Is.spec (GF := GF) (hG := hG) :=
   errors.Is.wp_proof
-
-theorem go_humanize.wp_Bytes :
-    go_humanize.Bytes.spec (GF := GF) (hG := hG) :=
-  go_humanize.Bytes.wp_proof
-
-theorem zap.Logger.wp_Warn :
-    zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
-  zap.Logger.Warn.wp_proof
 
 theorem EtcdServer.wp_setAppliedIndex :
     EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) :=
@@ -521,10 +505,6 @@ theorem idutil.wp_NewGenerator :
 theorem proto.wp_Clone :
     proto.Clone.spec (GF := GF) (hG := hG) :=
   proto.Clone.wp_proof
-
-theorem zap.wp_Duration :
-    zap.Duration.spec (GF := GF) (hG := hG) :=
-  zap.Duration.wp_proof
 
 theorem zap.Logger.wp_Fatal :
     zap.Logger.Fatal.spec (GF := GF) (hG := hG) :=

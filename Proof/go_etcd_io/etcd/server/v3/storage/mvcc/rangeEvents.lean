@@ -34,13 +34,15 @@ theorem mvcc.rangeEvents.wp_proof
     (hKvs : mvcc.kvsToEvents.spec (GF := GF) (hG := hG)) :
     mvcc.rangeEvents.spec (GF := GF) (hG := hG) := by
   intro lg b γ Wr P f q log minRev maxRev g W
-  wp_start as ⟨#Hbk, Hview, #Hcert, Hg, %Hrng⟩
+  wp_start as ⟨#Hbk, #Hfrz, Hview, #Hcert, Hg, %Hrng⟩
   ihave %Hwf : ⌜mvcc.LogWf' log ∧ log.length < 2 ^ 63 ∧ ∀ cs ∈ log, cs.length < 2 ^ 63⌝ $$ [Hcert]
   · iunfold mvcc.idxCert at Hcert
     icases Hcert with ⟨-, -, %H, -⟩
     ipureintro; exact H
   iunfold mvcc.isKeyBackend at Hbk
-  icases Hbk with ⟨%bi, %Hbi, -, #HR, -, -⟩
+  icases Hbk with ⟨%Dep, #Hbk⟩
+  iunfold mvcc.isKeyBackendD at Hbk
+  icases Hbk with ⟨%bi, %Hbi, -, #HR, -⟩
   subst Hbi
   wp_auto
   have hneg : ¬ sint.Z minRev < sint.Z (W64 0) := by
@@ -56,9 +58,11 @@ theorem mvcc.rangeEvents.wp_proof
   (try wp_auto)
   simp only [List.drop_of_length_le (show (List.replicate 17 (W8 0)).length ≤ 17 by simp),
     List.append_nil, mvcc.revOf]
-  wp_apply HR $$ [$Hview] as %rt ⟨Hview, #Hsnap⟩
+  wp_apply HR $$ [$Hview] as %rt ⟨Hview, %m', #Hsnap, #Hthin⟩
+  imod mvcc.snapThin_frozen γ _ _ $$ Hfrz Hthin with %Hm'
+  subst Hm'
   iunfold mvcc.keyReadSnap at Hsnap
-  icases Hsnap with ⟨#HRL, #HRU, -, #Hrange⟩
+  icases Hsnap with ⟨#HRL, #HRU, -, #Hrange, -⟩
   (try wp_auto)
   wp_apply HRL
   (try wp_auto)

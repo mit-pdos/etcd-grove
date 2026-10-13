@@ -134,9 +134,7 @@ def wsWaiter (s : Loc) : IProp GF :=
     sync.isWaitGroup (wsWgAddr s) γwg wsWgWGN ∗ inv wsWgN (wsWgInv γwg γd) ∗
     sync.ownWaitGroupWaiters γwg 0)
 
-/-- The right to close the stop channel `c` (once). -/
-def stopCloser (c : Loc) : IProp GF :=
-  iprop(∃ γc : ChanNames, ownBroadcastChan c γc iprop(True) Broadcast.Pending)
+-- `stopCloser`: `InvStore.lean` (2026-10-13: the store's stop channel uses it too).
 
 /-- **The right to close the watchable store** `s` over the store `st` (`Close`, once): the stop
 channel's close, the wait for the loops, and the inner store's close. -/

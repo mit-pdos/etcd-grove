@@ -56,14 +56,7 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net.http :=
 
 end net.http
 
-namespace github_com.dustin.go_humanize
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.github_com.dustin.go_humanize :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.github_com.dustin.go_humanize :=
-  build_get_is_pkg_init_wf
-
-end github_com.dustin.go_humanize
+-- `go-humanize`: mvcc's `Base.lean` (2026-10-13: mvcc's compaction calls `humanize.Bytes`).
 
 -- zap, zapcore, protoreflect and proto: `Proof/go_etcd_io/etcd/cache/v3/Base.lean` (clientv3
 -- imports them too).

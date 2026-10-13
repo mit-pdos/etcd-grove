@@ -127,3 +127,50 @@ events' and a response with events carrying the watcher's id (`watchRecvOk_revs`
 #print axioms Perennial.EtcdGrove.mvcc.watchRecvOk_cert
 #print axioms Perennial.EtcdGrove.mvcc.watchGuarantee_unfiltered
 #print axioms Perennial.EtcdGrove.mvcc.watchRecvOk_revs
+
+/-! Compaction (unit 5a, 2026-10-13, `Compact.lean`): the pure model's theorems — a compacted
+key index answers as the uncompacted one at or above the compaction revision
+(`kiGet_kiCompact`), one compaction empties has no answer there (`kiGet_of_kiCompact_empty`),
+compactions compose (`kiCompact_kiCompact`, `kiCompact_kiCompact_le`), compaction at `-1`
+changes nothing (`kiCompact_neg`), compaction commutes with the writer's next event
+(`kiCompactO_step`, `IdxCRep.step`), the compacted index answers as the uncompacted one
+(`IdxCRep.kiAt`, `IdxCRep.rangeAt`), and what a read at or above the compaction revision names is
+kept (`kiGet_avail`, `named_not_del`: under `NoDelPutAt`,
+`issues/etcd-compaction-delete-then-put.md`). The compaction functions' results above
+(`store.wp_Compact`, ...) rest on their pending proofs (`sorry`: units 5b/5c). -/
+#print axioms Perennial.EtcdGrove.mvcc.kiGet_kiCompact
+#print axioms Perennial.EtcdGrove.mvcc.kiGet_of_kiCompact_empty
+#print axioms Perennial.EtcdGrove.mvcc.kiCompact_kiCompact
+#print axioms Perennial.EtcdGrove.mvcc.kiCompact_kiCompact_le
+#print axioms Perennial.EtcdGrove.mvcc.kiCompact_neg
+#print axioms Perennial.EtcdGrove.mvcc.kiCompactO_step
+#print axioms Perennial.EtcdGrove.mvcc.IdxCRep.step
+#print axioms Perennial.EtcdGrove.mvcc.IdxCRep.kiAt
+#print axioms Perennial.EtcdGrove.mvcc.IdxCRep.rangeAt
+#print axioms Perennial.EtcdGrove.mvcc.kiGet_avail
+#print axioms Perennial.EtcdGrove.mvcc.named_not_del
+#print axioms Perennial.EtcdGrove.mvcc.KeyDel_prefix
+#print axioms Perennial.EtcdGrove.mvcc.kiAvail_kiCompact
+
+/-! The compaction functions' results (unit 5a): specified, their proofs pending (`sorry`). -/
+#print axioms Perennial.EtcdGrove.mvcc.wp_UnsafeSetFinishedCompact
+#print axioms Perennial.EtcdGrove.mvcc.wp_SetFinishedCompact
+#print axioms Perennial.EtcdGrove.mvcc.wp_UnsafeSetScheduledCompact
+#print axioms Perennial.EtcdGrove.mvcc.wp_SetScheduledCompact
+#print axioms Perennial.EtcdGrove.mvcc.wp_UnsafeReadFinishedCompact
+#print axioms Perennial.EtcdGrove.mvcc.wp_UnsafeReadScheduledCompact
+#print axioms Perennial.EtcdGrove.mvcc.keyIndex.wp_doCompact
+#print axioms Perennial.EtcdGrove.mvcc.keyIndex.wp_compact
+#print axioms Perennial.EtcdGrove.mvcc.keyIndex.wp_keep
+#print axioms Perennial.EtcdGrove.mvcc.store.wp_checkPrevCompactionCompleted
+#print axioms Perennial.EtcdGrove.mvcc.treeIndex.wp_Compact
+#print axioms Perennial.EtcdGrove.mvcc.treeIndex.wp_Keep
+#print axioms Perennial.EtcdGrove.schedule.wp_NewJob
+#print axioms Perennial.EtcdGrove.schedule.job.wp_Do
+#print axioms Perennial.EtcdGrove.schedule.job.wp_Name
+#print axioms Perennial.EtcdGrove.mvcc.store.wp_compactBarrier
+#print axioms Perennial.EtcdGrove.mvcc.store.wp_updateCompactRev
+#print axioms Perennial.EtcdGrove.mvcc.store.wp_scheduleCompaction
+#print axioms Perennial.EtcdGrove.mvcc.store.wp_compact
+#print axioms Perennial.EtcdGrove.mvcc.store.wp_Compact
+#print axioms Perennial.EtcdGrove.mvcc.store.wp_compactLockfree

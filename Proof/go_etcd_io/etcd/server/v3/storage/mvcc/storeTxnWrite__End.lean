@@ -59,23 +59,25 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     subst hnil
     ihave Hw := mvcc.idxWriterB_nil γ.idx ilog sealed $$ Hw
     (try wp_auto)
-    ihave HW : mvcc.writerRes s γ $$ [Htoks Hw Hclog Hcur Hbv]
+    ihave HW : mvcc.writerRes s γ $$ [Htoks Hw Hclog Hcur Hbv Hcres]
     · iunfold mvcc.writerRes
       iexists ilog, ntok
       simp only [named]
-      iframe Htoks Hw Hclog Hcur Hbv
+      iframe Htoks Hw Hclog Hcur Hbv Hcres
       iframe #
       ipureintro; exact ⟨Hbudget, Hne⟩
     rw [mvcc.pendPuts_nil]
-    wp_apply HUnlock0 $$ [$Hlocked $HW $HP]
+    wp_apply HUnlock0 $$ [$Hlocked $HW $HP] as #Hdep
     (try wp_auto)
     wp_if_destruct
     rotate_left
     · exfalso
       exact Hif (hpend.1 rfl)
     (try wp_auto)
-    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu] as Hmu
-    · inext; iunfold mvcc.muInv; itrivial
+    iunfold mvcc.muHeld at Hmu
+    icases Hmu with ⟨Hmu, Hmua⟩
+    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu Hmua] as Hmu
+    · inext; iunfold mvcc.muInv; iexists -1; iexact Hmua
     (try wp_auto)
     iapply HΦ
     isplitl [Hmu HrevMu Hti]
@@ -96,8 +98,9 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     wp_auto_lc 1
     imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv s γ 1)) $$ Hlc1 HP with HP
     iunfold mvcc.revMuInv at HP
-    icases HP with ⟨%log, %ntokL, HP⟩
+    icases HP with ⟨%log, %ntokL, %cL, HP⟩
     iNamedSuffix HP "L"
+    obtain ⟨HcL1, HcL2⟩ := HcL
     -- the committed log is the writer's
     ihave %Hlog := ghostVar_agree γ.clog _ _ _ _ $$ HclogL Hclog
     subst log
@@ -137,7 +140,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     -- (half the new view), the other half kept for `s.revMu`
     ihave #HUnlock' := HUnlock $$ %(mvcc.pendPuts ilog pend) %(mvcc.bucketMap ilog)
       %(mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap (ilog ++ [pend])))
-    wp_apply HUnlock' $$ [$Hlocked $Hview $HP Htoks Hw Hclog Hcur] as Hbucket
+    wp_apply HUnlock' $$ [$Hlocked $Hview $HP Htoks Hw Hclog Hcur Hcres] as Hbucket
     · rw [← mvcc.bucketMap_append ilog pend Hne]
       iintro Hv
       icases (mvcc.bucketView_halves γ 1 _).1 $$ Hv with ⟨Hv1, Hv2⟩
@@ -145,7 +148,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       iunfold mvcc.writerRes
       iexists (ilog ++ [pend]), n
       simp only [named]
-      iframe Htoks Hw Hclog Hcur Hv1
+      iframe Htoks Hw Hclog Hcur Hv1 Hcres
       iframe #
       ipureintro
       exact ⟨by simp; omega, by simp⟩
@@ -155,18 +158,21 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     · exfalso
       exact hne' (hpend.2 Hif)
     · (try wp_auto)
-      wp_apply sync.RWMutex.wp_Unlock $$ [$Hlk HcurL HclogL Hbucket HtoksL HlogL] as HrevMu
+      wp_apply sync.RWMutex.wp_Unlock $$ [$Hlk HcurL HclogL Hbucket HtoksL HlogL HcmpL HcrevL]
+        as HrevMu
       · inext
         iunfold mvcc.revMuInv
-        iexists (ilog ++ [pend]), n
+        iexists (ilog ++ [pend]), n, cL
         simp only [named]
-        iframe HcurL HclogL Hbucket HtoksL HlogL
+        iframe HcurL HclogL Hbucket HtoksL HlogL HcmpL HcrevL
         iframe #
         ipureintro; simp; omega
       (try wp_auto)
       -- `tw.s.mu.RUnlock()`
-      wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu] as Hmu
-      · inext; iunfold mvcc.muInv; itrivial
+      iunfold mvcc.muHeld at Hmu
+      icases Hmu with ⟨Hmu, Hmua⟩
+      wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu Hmua] as Hmu
+      · inext; iunfold mvcc.muInv; iexists -1; iexact Hmua
       (try wp_auto)
       iapply HΦ
       isplitl [Hmu HrevMu Hti]

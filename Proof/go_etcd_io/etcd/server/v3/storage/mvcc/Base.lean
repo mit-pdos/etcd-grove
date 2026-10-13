@@ -1,9 +1,10 @@
 /-
 Package initialization instances for etcd's mvcc store (`server/v3/storage/mvcc`) and the
 packages it imports that no other proof module provides: `pkg/v3/traceutil`, `server/v3/lease`,
-`pkg/v3/schedule`, prometheus's `client_golang/prometheus` and opentelemetry's `otel/trace` with
-the packages of the types its `Span` names (`trace/embedded`, `codes`, `attribute`) (all names and
-types only). The others are the interval tree's (`pkg/v3/adt/Base.lean`), the
+`pkg/v3/schedule`, prometheus's `client_golang/prometheus`, `go-humanize` (moved here from the
+server's `BaseApply.lean` on 2026-10-13: the compaction job calls `humanize.Bytes`) and
+opentelemetry's `otel/trace` with the packages of the types its `Span` names (`trace/embedded`,
+`codes`, `attribute`) (all names and types only, but `schedule`'s jobs: `NewJob`, `job.Do`). The others are the interval tree's (`pkg/v3/adt/Base.lean`), the
 cache's (`cache/v3/Base.lean`: `zap`, `proto`, `mvccpb`, `client/v3`), the server's
 (`etcdserver/Base.lean`: `backend`, `schema`, `client/pkg/v3/verify`), the btree's
 (`btree/Init.lean`) and Perennial's (`sync`, `bytes`, `context`, `errors`, `fmt`, `time`,
@@ -88,6 +89,15 @@ instance get_isPkgInit_wf_inst :
 
 end github_com.prometheus.client_golang.prometheus
 
+namespace github_com.dustin.go_humanize
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.github_com.dustin.go_humanize :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.github_com.dustin.go_humanize :=
+  build_get_is_pkg_init_wf
+
+end github_com.dustin.go_humanize
+
 namespace go_opentelemetry_io.otel.trace.embedded
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_opentelemetry_io.otel.trace.embedded :=
@@ -145,6 +155,13 @@ def gaugeSpec (g : GoInterfaceOk) : IProp GF :=
 instance gaugeSpec_persistent (g : GoInterfaceOk) : Persistent (gaugeSpec (GF := GF) g) := by
   unfold gaugeSpec; infer_instance
 
+/-- A prometheus `Histogram`'s `Observe(x)` returns (the compaction's timings). -/
+def histSpec (h : GoInterfaceOk) : IProp GF :=
+  iprop(□ (∀ x : w64, {{ True }} (App (Val #(methods h.ty go!"Observe" h.v)) (Val #x)) {{ RET #(); True }}))
+
+instance histSpec_persistent (h : GoInterfaceOk) : Persistent (histSpec (GF := GF) h) := by
+  unfold histSpec; infer_instance
+
 /-- A prometheus `Gauge`'s `Set(x)` returns (the watchable store's `slowWatcherGauge`). -/
 def gaugeSetSpec (g : GoInterfaceOk) : IProp GF :=
   iprop(□ (∀ x : w64, {{ True }} (App (Val #(methods g.ty go!"Set" g.v)) (Val #x)) {{ RET #(); True }}))
@@ -158,14 +175,21 @@ of `metrics.go` the KV core updates: the gauge `keysGauge` (the key index), the 
 `txnCounter`, `rangeCounter`, `putCounter`, `deleteCounter` and the gauge `totalPutSizeGauge`
 (the transactions' `End`); and the variables `defaultCompactionBatchLimit` and
 `defaultCompactionSleepInterval` (`kvstore.go`) `NewStore` reads, read-only (only tests change
-them), their values unconstrained (the store's configuration is not modelled); and the watch
+them), the batch limit's its initial value `1000` (the compaction job's loop needs a positive
+limit), the interval's unconstrained; and the watch
 stream's (`watcher.go`): the errors `ErrWatcherNotExist`, `ErrEmptyWatcherRange` and
 `ErrWatcherDuplicateID`, each a fixed non-nil error, and the gauge `watchStreamGauge`; and the
 watcher group's (`watcher_group.go`): `watchBatchMaxRevs`, a `var` for tests only, read-only at
 its initial value `1000`; and the watchable store's (`watchable_store.go`, `metrics.go`): the
 gauges `watcherGauge`, `slowWatcherGauge` and `pendingEventsGauge`, the `var`s `chanBufLen`
 (`128`), `maxWatchersPerSync` (`512`) and `watchResyncPeriod` (`100 * time.Millisecond`), for
-tests only, read-only at their initial values, and `slowWatcherGauge`'s `Set` (`syncWatchers`). -/
+tests only, read-only at their initial values, and `slowWatcherGauge`'s `Set` (`syncWatchers`);
+and compaction's (2026-10-13, unit 5a): the two `Meta` key names it reads and writes
+(`schema.ScheduledCompactKeyName`, `schema.FinishedCompactKeyName`: the bytes of
+`"scheduledCompactRev"` and `"finishedCompactRev"`, read-only; `schema` is names-only for them,
+and its own facts are the consistent index's), and the compaction metrics (`metrics.go`: the
+histograms `indexCompactionPauseMs`, `dbCompactionPauseMs`, `dbCompactionTotalMs`, whose
+`Observe` returns, the counter `dbCompactionKeysCounter` and the gauge `dbCompactionLast`). -/
 abbrev mvccInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok e) ∗
@@ -176,7 +200,7 @@ abbrev mvccInit : IProp GF :=
     (∃ c : GoInterfaceOk, globalAddr putCounter ↦□ GoInterface.ok c ∗ counterSpec c) ∗
     (∃ c : GoInterfaceOk, globalAddr deleteCounter ↦□ GoInterface.ok c ∗ counterSpec c) ∗
     (∃ g : GoInterfaceOk, globalAddr totalPutSizeGauge ↦□ GoInterface.ok g ∗ gaugeSpec g) ∗
-    (∃ n : w64, globalAddr defaultCompactionBatchLimit ↦□ n) ∗
+    globalAddr defaultCompactionBatchLimit ↦□ (W64 1000 : w64) ∗
     (∃ d : w64, globalAddr defaultCompactionSleepInterval ↦□ d) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrWatcherNotExist ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrEmptyWatcherRange ↦□ GoInterface.ok e) ∗
@@ -189,7 +213,16 @@ abbrev mvccInit : IProp GF :=
     globalAddr chanBufLen ↦□ (W64 128 : w64) ∗
     globalAddr maxWatchersPerSync ↦□ (W64 512 : w64) ∗
     globalAddr watchResyncPeriod ↦□ (W64 100000000 : w64) ∗
-    (∃ g : GoInterfaceOk, globalAddr slowWatcherGauge ↦□ GoInterface.ok g ∗ gaugeSetSpec g))
+    (∃ g : GoInterfaceOk, globalAddr slowWatcherGauge ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
+    (∃ s : GoSlice, globalAddr go_etcd_io.etcd.server.v3.storage.schema.ScheduledCompactKeyName ↦□ s ∗
+      s ↦*□ (go!"scheduledCompactRev" : GoString)) ∗
+    (∃ s : GoSlice, globalAddr go_etcd_io.etcd.server.v3.storage.schema.FinishedCompactKeyName ↦□ s ∗
+      s ↦*□ (go!"finishedCompactRev" : GoString)) ∗
+    (∃ h : GoInterfaceOk, globalAddr indexCompactionPauseMs ↦□ GoInterface.ok h ∗ histSpec h) ∗
+    (∃ h : GoInterfaceOk, globalAddr dbCompactionPauseMs ↦□ GoInterface.ok h ∗ histSpec h) ∗
+    (∃ h : GoInterfaceOk, globalAddr dbCompactionTotalMs ↦□ GoInterface.ok h ∗ histSpec h) ∗
+    (∃ c : GoInterfaceOk, globalAddr dbCompactionKeysCounter ↦□ GoInterface.ok c ∗ counterSpec c) ∗
+    (∃ g : GoInterfaceOk, globalAddr dbCompactionLast ↦□ GoInterface.ok g ∗ gaugeSetSpec g))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc :=
   define_is_pkg_init mvccInit

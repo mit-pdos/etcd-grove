@@ -26,12 +26,14 @@ caller's view of it at a fraction, `bucketMap log` of the committed log `log`, w
 certificate makes well formed), for `0 ≤ minRev ≤ maxRev ≤ log.length` (the `minRev < 0` warning
 is dead), the group `g` as the `contains` interface: a fresh slice of fresh events, read-only for
 good, the events of the revisions `[minRev, maxRev)` of `log` whose key some member of `g` covers,
-in revision order. -/
+in revision order. The store is not compacted (`crevFrozen`): its snapshot misses no event
+(compaction is out of the watchable store's model). -/
 abbrev mvcc.rangeEvents.spec : Prop :=
   ∀ (lg : Loc) (b : GoInterface) (γ : mvcc.StoreNames) (Wr P : IProp GF) (f : val) (q : Qp)
     (log : mvcc.Log) (minRev maxRev : w64) (g : Loc) (W : GMap Loc mvcc.WatchRange),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isKeyBackend b (mvcc.bucketView γ) Wr P f ∗ mvcc.bucketView γ q (mvcc.bucketMap log) ∗
+      mvcc.isKeyBackend b (mvcc.bucketView γ) (mvcc.delKey γ) Wr P f ∗ mvcc.crevFrozen γ ∗
+      mvcc.bucketView γ q (mvcc.bucketMap log) ∗
       mvcc.idxCert γ.idx log ∗ mvcc.ownWatcherGroup g W ∗
       ⌜0 ≤ sint.Z minRev ∧ sint.Z minRev ≤ sint.Z maxRev ∧ sint.Z maxRev ≤ log.length⌝ }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.rangeEvents)) (Val #lg))

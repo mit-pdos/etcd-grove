@@ -3807,3 +3807,137 @@ of `applyErrIs` (targets restricted to pointer errors), not a merge. So the requ
 facts for a canceled read rest on Perennial's model, which Perennial documents as not modeling
 `%w` (`Perennial/TrustedCode/fmt.lean`): the known gap, `notes/STATUS.md`, "Merge of
 `origin/lean` (Perennial `a54e1999f`)".
+
+---
+
+## mvcc: compaction — the compaction revision under revMu, the index compacted per key, the bucket minus a kept set
+
+**2026-10-13 · unit 5a implemented (the specs, the model, the contracts; the proofs of the
+compaction functions are units 5b/5c)** (`notes/STATUS.md`, "The store's compaction")
+
+The store's compaction (`kvstore.go`'s `Compact`, `updateCompactRev`, `compact`,
+`compactBarrier`, `checkPrevCompactionCompleted`, `compactLockfree`; `kvstore_compaction.go`'s
+job `scheduleCompaction`; `store.go`'s meta keys; `index.go`'s `Compact`/`Keep`; `key_index.go`'s
+`compact`/`keep`/`doCompact`, not `since`) was out of every model (`compactMainRev` fixed at
+`-1`). What unit 5a fixed, with the user's design as the starting point and the corrections the
+code forced:
+
+- **`compactMainRev` under both locks, half each.** The plan read `rangeKeys`' load of
+  `s.compactMainRev` as racy (no lock). It is not: a transaction holds `s.mu` shared for its whole
+  life (`Read`/`Write` to `End`), and `updateCompactRev` writes the field holding `s.mu` exclusively
+  (in `Compact`; in `compactLockfree`, under `restore`'s) and `s.revMu` exclusively; the watchable
+  store's `syncWatchers` reads it under `s.revMu` shared. So `muInv s γ q` (new: `s.mu`'s resource
+  was `True`) and `revMuInv` each hold half the field's points-to and a quarter of the compaction
+  revision's authority (`crevUB`, a monotone counter of `crevN c = c + 1`, in the index's names:
+  `IdxNames.crev`, so the index's lock can hold lower bounds), with `-1 ≤ c ≤ currentRev` (`muInv`
+  via a certified log). The other half of the authority is the **compaction right**
+  (`compactRight γ c`): `Compact`, holding both locks, gathers it all and updates field and
+  counter; its holder knows the revision exactly. A transaction keeps its part of `muInv`
+  (`muHeld s γ c`: the reader's token and `muInvAt s γ rfrac c`) and lends it to `rangeKeys` and
+  the index's reads (`muHeld_cmp`, `muHeld_crev`). Lower bounds (`crevLb`, persistent) are what
+  the job and the index carry. *Rejected:* an Iris invariant around the field opened at the load and
+  the store (a GooseLang store is two steps; the invariant would re-derive `s.mu`'s exclusion);
+  the field under `s.revMu` alone (`rangeKeys` does not hold it); a fractional `ghostVar` for the
+  exact value plus a separate monotone counter (one counter, fractional, gives both: parts agree,
+  lower bounds persist).
+- **The store's existing statements are of a store never compacted** (`crevFrozen γ`: the
+  compaction right at `-1` given up into an invariant, `compactRight_freeze`). The txn, apply,
+  request-path and server packages' statements say a read at a revision answers the state there;
+  of a compacted store that is false (`ErrCompacted`), and their models have no such outcome. So
+  `storeReader` (the readers `store.Read`/`Write` take) carries `crevFrozen`, `isTxnRead`'s
+  `storeTxnReadIs` and `storeTxnWriteIs` hold it, `Read`/`Write` find the revision `-1` by it
+  (`crevFrozen_agree`), the read transaction's `firstRev` stays `-1`, and `rangeOutcome` (the
+  `Range` specs') keeps no compacted case: no statement of another package changed (only
+  definitions: `storeReader`). `NewStore` returns the compaction right and readers of a store that
+  may be compacted (`storeReaderC`); `newWatchableStore` freezes (the watchable store's compaction
+  branch, `syncWatchers`' compaction response, stays unmodelled, as the plan said: as a frozen
+  store, not a premise per watcher), `storeReaders_of` turns the readers. A compacting client (the
+  server's apply thread, which calls `Compact`: next) holds the right instead, and needs the
+  compaction-aware forms of `Read`/`Write`/`Range` (later: `rangeKeys` is already general).
+  *Rejected:* `Compact` needing nothing of the caller (the plan's): then no other package's
+  statement stays true without a premise on every reader; an `ErrCompacted` disjunct in
+  `rangeOutcome` guarded by a lower bound (unsound: the revision can be higher than the bound);
+  reader slots each carrying a fraction of the right (compaction would need every reader back:
+  the watchable store's loops keep two forever).
+- **`rangeKeys` is general** (`rangeOutcomeC r err log rev c`: a read below `c`, after the
+  future-revision check, is `ErrCompacted` with `{KVs: nil, Count: -1, Rev: 0}`, else
+  `rangeOutcome`); its spec takes the field's part and the authority's part (given back). The
+  read and write `Range`s call it at `-1` and convert (`rangeOutcomeC_neg`).
+- **The index: each key compacted at a level of its own** (`idxLockInv`: `IdxCRep cmax evs L`,
+  `Compact.lean`: every key's index is its events' compacted at some `-1 ≤ c ≤ cmax`, absent if
+  that empties it; `crevLb γ cmax` and a committed log's lower bound longer than `cmax`). The job
+  compacts key by key under the lock (`treeIndex.Compact`), so a level per key. Readers present a
+  part of the authority at `c ≤ atRev` (`crevUB`: new premise of `Get`/`Range`/`Revisions`/
+  `CountRevisions`, given back; `KeyIndex`/`Insert`, `restore`'s, at `-1`); writers need nothing
+  new (their revision is above `cmax` by the committed-log bound and `idxLogAuth`). The pure
+  theorems (`Compact.lean`): `kiGet_kiCompact` (a compacted key index answers as the
+  uncompacted one at or above the level), `kiGet_of_kiCompact_empty`, `kiCompact_kiCompact`/`_le`
+  (compactions compose: the job's pass over a key a writer or an earlier pass changed),
+  `kiCompact_neg`, `kiCompactO_step` (compaction commutes with the writer's next event,
+  `IdxCRep.step`), `IdxCRep.kiAt`/`rangeAt`; checked against `key_index.go`: `doCompact` walks the
+  generations while not the last and the tombstone's main is below `atRev` (strictly), then the
+  walk keeps the last revision at or below `atRev`; `compact` cuts that generation there and drops
+  the earlier ones, `modified` and each generation's `created`/`ver` unchanged (so `ver` is no
+  longer the revisions' count: the version computed from the end, as `get` does, is unchanged);
+  `keep` (the hash's) takes back a tombstone ending a generation that is not the last
+  (`kiKeep`), which `compact` keeps in `available` (the asymmetry the code documents).
+- **The bucket: deletions invisible to the logical view; reads may miss what compaction may
+  delete.** The plan had the bucket view be `bucketMap log` minus a deleted set. The job deletes
+  under the batch lock alone (no `s.revMu`), and half the view is `s.revMu`'s (a reader's snapshot
+  is taken under it): the job cannot update the view. So the view stays `bucketMap log` (grows
+  only); the backend contract's reads (`ConcurrentReadTx`/`ReadTx`'s snapshots, `snapThin`; the
+  batch transaction's point read and its limited range) may miss keys the store's `Del` says
+  compaction may delete (`delKey γ k`: a revision's bytes with main at most a lower bound `c` of
+  the compaction revision and not kept by compaction at `c` of a certified log, `KeyDel`), and
+  `UnsafeDelete(Key, k)` requires `Del k`. A frozen store deletes nothing (`crevUB_noDel`,
+  `crevFrozen_noDel`, `snapThin_crev`, `snapThin_frozen`): `Read`, the write transaction's
+  `Range` and `rangeEvents` get exact snapshots. The plan's "kept set covers what a read at or
+  above the compaction revision names" is `named_not_del` — **false** when the compaction
+  revision deletes a key and puts it again (`doCompact` keeps the tombstone and drops the put, the
+  key's live revision: `issues/etcd-compaction-delete-then-put.md`, reproduced): its premise
+  `NoDelPutAt` is the compacted store's readers', not the compaction's.
+- **The backend contract** (`InvStore.lean`): `isKeyBackendD b View Del W Dep P f` (and
+  `isKeyBackend`, its `Dep` hidden; `isStore` keeps the `D` form with `□ Dep`): `Del` the
+  deletable keys (the store's choice, as `W`); `Dep` the **deposit witness** the no-puts `Unlock`
+  returns: with it `LockOutsideApply` gives `W` (the job's lock; `NewStore`'s first lock, before
+  the deposit, still gets none — honest, where returning `W` there would duplicate it); the batch
+  transaction's `UnsafeDelete`, its limited `UnsafeRange(Key, lo, hi, limit)` (`limit > 0`: the
+  first `limit` entries in `[klo, khi)` of the bucket with the puts, thinned), its
+  `UnsafePut(Meta, k, v)` at the two compaction keys of a value the store writes there
+  (`metaRevVal`); the snapshot's reads of those keys (`metaReadSpec`: nothing, or some value the
+  store wrote), and `ReadTx()` with no view for them alone (`metaReadTx`:
+  `checkPrevCompactionCompleted` holds neither lock); `LockForSafeRangeDelete`/`Unlock…`,
+  `Size`/`SizeInUse` with no effect. The token `Locked` stays a list of puts (the plan's list of
+  ops is not needed: deletions do not change the logical view, meta puts are not in it). The
+  meta keys' own view (`metaCompact γ q sched fin`, not the consistent index's `MetaCI`) is the
+  store's record in the batch lock's resource (`compactRes`, with the finished compactions'
+  counter whose lower bounds are `compactedAt γ rev`); reads of the keys return any value the
+  store wrote (racy with the job; the result only decides whether the hash is stored).
+- **The channel `Compact` returns** (`compactChan ch Q`, Perennial's broadcast idiom: closed once,
+  a receive gives `□ Q`). For the job: `Q = compactDone s γ rev` = `compactedAt γ rev`, or the
+  store stopped (`storeStopped`: `stopc` closed, the job's loop received it, `scheduleCompaction`
+  failed and the barrier at `context.TODO()` closes), or a context closed (the job's context
+  cancelled: the barrier closes later, from another job, with no evidence of either). For
+  `ErrCompacted`'s barrier: `Q = True`. *Rejected:* `compactedAt` alone (false of the two
+  interrupted paths).
+- **The scheduler** (`pkg/schedule`: `NewJob`, `job.Do`/`Name` translated; `fifo` names-only):
+  the shape agreed with the session verifying the server (which will strengthen it in place
+  with the FIFO order): `isScheduler f γ` (persistent; `NewFIFOScheduler` returns it), the run
+  token `schedRunning γ` (exclusive, the scheduler's goroutine's: every `Do` receives it and
+  returns it, no overlap), `jobIs γ j Pre Post` (persistent: `∀ ctx cd, {schedRunning γ ∗ Pre ∗
+  isContext ctx cd} j.Do(ctx) {schedRunning γ ∗ Post}`, the context maybe cancelled), the axiom
+  `{isScheduler f γ ∗ jobIs γ j Pre Post ∗ Pre} f.Schedule(j) {True}` (no run token:
+  `compactBarrier` schedules from inside a job), and `γ.jobs`, a monotone list of the scheduled
+  jobs' postconditions' names, for the order (unused yet). `NewJob` makes `jobIs` from the
+  closure's triple (`jobFnSpec`).
+- **Trust boundary, no effect**: the hasher (`newKVHasher`, `kvHasher.WriteKeyValue`/`Hash`,
+  `hashStorage.Store`: crc32 has no Perennial model; `kvHasher` is an axiomatized type, so the
+  job's proof will rest on its generated instances' `sorry`: a trap for 5b, `notes/STATUS.md`),
+  zap's `Uint32` (new), the compaction metrics (`histSpec`'s `Observe`, in `mvccInit`), the two
+  meta key names' bytes (in `mvccInit`: `schema` is names-only for them and its own facts are the
+  consistent index's).
+- **The configuration**: `isStore` holds the configuration with `0 < CompactionBatchLimit` (the
+  job's loop ends when a batch is short of the limit; the backend reads a non-positive limit as
+  none); `NewStore` takes `0 ≤ cfg.CompactionBatchLimit` (a zero limit is defaulted: `mvccInit`
+  fixes `defaultCompactionBatchLimit = 1000`), the premise that the code's unvalidated flag needs
+  (`issues/etcd-compaction-negative-batch-limit.md`, reproduced).

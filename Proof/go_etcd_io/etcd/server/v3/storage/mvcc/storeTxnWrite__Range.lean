@@ -87,24 +87,31 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     wp_call
     (try wp_auto)
     -- the bucket through the batch transaction (its own puts), the index by the writer
-    ihave #Hrdr := mvcc.batchTx_reader bt (mvcc.bucketView γ) (mvcc.writerRes s γ) Locked Pw fw
-      (mvcc.pendPuts ilog pend) (1 : Qp).half (mvcc.bucketMap ilog) $$ Hbt
+    ihave #Hnodel : iprop(□ (∀ k, mvcc.delKey γ k ={⊤}=∗ False)) $$ []
+    · iintro !> %k Hd
+      iapply mvcc.crevFrozen_noDel γ k $$ Hfrz Hd
+    ihave #Hrdr := mvcc.batchTx_reader bt (mvcc.bucketView γ) (mvcc.delKey γ) (mvcc.writerRes s γ) _
+      Locked Pw fw (mvcc.pendPuts ilog pend) (1 : Qp).half (mvcc.bucketMap ilog) $$ [Hbt Hnodel]
+    · iframe Hbt Hnodel
     ihave HR : iprop(Locked (mvcc.pendPuts ilog pend) ∗
         mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap ilog)) $$ [Hlocked Hbv]
     · iframe Hlocked Hbv
     ihave Hkn : mvcc.idxKnows γ.idx (.writer ilog pend) $$ [Hw]
     · rw [mvcc.idxKnows_writer]; iexact Hw
+    icases mvcc.muHeld_cmp s γ (-1) $$ Hmu with ⟨Hcmp, Hcu, %Hcb, Hmub⟩
     wp_apply (hKeys (mvcc.txCommonW tw) s trace ti bt (DFrac.own 1)
         ((mvcc.pendPuts ilog pend).foldl (fun m p => GMap.insert p.1 p.2 m) (mvcc.bucketMap ilog))
         iprop(Locked (mvcc.pendPuts ilog pend) ∗ mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap ilog))
         γ (.writer ilog pend) (ilog ++ [pend]) (W64 ((mvcc.writeRev ilog pend : Nat) : Int))
-        ctx cd todo key endk k e ro (by assumption))
-      $$ [$Hs $Cs $Ctx $Ctrace $Hrdr $HR $Hkn $Hidx $Hti $Hctx $Hkey $Hend]
-      as %r %err ⟨%Htodo, Cs, Ctx, Ctrace, ⟨Hlocked, Hbv⟩, Hw, Hti, Hout⟩
+        ctx cd todo key endk k e ro _ _ (-1) (by assumption))
+      $$ [$Hs $Cs $Ctx $Ctrace $Hrdr $HR $Hkn $Hidx $Hti $Hctx $Hkey $Hend $Hcmp $Hcu]
+      as %r %err ⟨%Htodo, Cs, Ctx, Ctrace, ⟨Hlocked, Hbv⟩, Hw, Hti, Hcmp, Hcu, Hout⟩
     · ipureintro
-      refine ⟨?_, rfl, by simp, ?_⟩
+      refine ⟨?_, rfl, by simp, ?_, by decide, by decide⟩
       · rw [mvcc.bucketMap_append ilog pend Hne]; exact fun _ _ h => h
       · rw [hwrZ]; have := mvcc.writeRev_lt ilog pend Hne; omega
+    ihave Hmu := Hmub $$ Hcmp Hcu
+    ihave Hout := mvcc.rangeOutcomeC_neg _ _ _ _ _ _ _ _ (by rw [hwrZ]; omega) $$ Hout
     rw [mvcc.idxKnows_writer]
     (try wp_auto)
     -- the transaction back: the `storeTxnCommon`, then the `storeTxnWrite`
@@ -126,7 +133,7 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     iunfold mvcc.storeTxnWriteIs
     iexists trace, ti, bt, Locked, chs, ps, ntok
     simp only [named]
-    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
+    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres
     iframe #
     ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
 

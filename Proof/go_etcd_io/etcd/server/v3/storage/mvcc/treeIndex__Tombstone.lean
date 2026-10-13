@@ -62,8 +62,13 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.idxLockInv t γ 1)) $$ Hlc1 HP with HP
   iunfold mvcc.idxLockInv at HP
-  icases HP with ⟨%ilog', %pend', %L, HP⟩
+  icases HP with ⟨%ilog', %pend', %L, %cmax, HP⟩
   iNamedSuffix HP "L"
+  -- every compaction level is below the writer's revision
+  icases HclL with ⟨%log₀, #Hl0, %Hc0⟩
+  ihave %Hl0pre := mono_list_auth_lb_valid γ.log _ _ _ $$ Hlauth Hl0
+  have hcmax : cmax < ilog.length := by
+    have := Hl0pre.2.length_le; omega
   ihave %Hpre := mono_list_auth_lb_valid γ.hist 1 _ _ $$ Hauth HhistL
   ihave %Hcnt := monoNatLbOwn_valid γ.nev 1 _ _ $$ HnevL Hwlb
   have hevs : mvcc.evsOf (ilog' ++ [pend']) = mvcc.evsOf (ilog ++ [pend]) := by
@@ -82,9 +87,12 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
   have hrevm : rev.Main' = W64 ilog.length := congrArg mvcc.Rev.main Hrev
   have hrevs : rev.Sub' = W64 pend.length := congrArg mvcc.Rev.sub Hrev
   have hwf'' : mvcc.IdxWf ilog (pend ++ [.del k]) := ⟨Hwf', Hlen, by simp; omega, Hcs⟩
-  have hidxnew : mvcc.indexOf (mvcc.evsOf (ilog ++ [pend ++ [.del k]])) =
-      mvcc.idxTombstone (mvcc.idxOfEntries L) k ⟨W64 ilog.length, W64 pend.length⟩ := by
-    rw [mvcc.evsOf_append_change, mvcc.indexOf_append_ev, ← HLL, mvcc.evOfChange_del]; rfl
+  have hidxnew : mvcc.IdxCRep cmax (mvcc.evsOf (ilog ++ [pend ++ [.del k]]))
+      (mvcc.idxTombstone (mvcc.idxOfEntries L) k ⟨W64 ilog.length, W64 pend.length⟩) := by
+    have := mvcc.IdxCRep.step ilog pend (.del k) hwf''.logB hcmax HLL.1
+    rw [mvcc.evOfChange_del] at this
+    exact this
+  have hb0 : mvcc.LogB (ilog ++ [pend]) := mvcc.IdxWf.logB ⟨Hwf, Hlen, Hplen, Hcs⟩
   have hcount : (mvcc.evsOf (ilog ++ [pend ++ [.del k]])).length =
       (mvcc.evsOf (ilog ++ [pend])).length + 1 := by
     rw [mvcc.evsOf_append_change, List.length_append, List.length_singleton]
@@ -97,11 +105,11 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
     | none =>
       exfalso
       rw [hf] at Hidx
-      have := (mvcc.indexOf_rep (mvcc.evsOf (ilog ++ [pend]))).2 k
-      rw [← HLL, Hidx] at this
-      simp only [Option.map_none, Option.getD_none] at this
-      rw [← this] at hlast
-      exact absurd hlast (by rw [mvcc.kiLastEmpty_kiEmpty]; decide)
+      simp only [Option.map_none] at Hidx
+      obtain ⟨c0, hc00, hc01, he⟩ := mvcc.IdxCRep.get_none HLL.1 Hidx
+      have := mvcc.kiCompact_empty_lastEmpty _ hb0 k c0 hc00 (by omega) he
+      rw [this] at hlast
+      exact absurd hlast (by decide)
     | some z => exact ⟨z, rfl, by rw [Hfind, hf]; rfl⟩
   rw [hwz]
   icases Hres with ⟨%Hok, #Hitemw⟩
@@ -111,13 +119,13 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
   rw [hf] at Hidx
   simp only [Option.map_some] at Hidx
   obtain ⟨i, hi, hk⟩ := mvcc.find?_entry_getElem? L k z hf
-  have hz : z.2.2 = mvcc.kiOfKey (mvcc.evsOf (ilog ++ [pend])) k := by
-    have := (mvcc.indexOf_rep (mvcc.evsOf (ilog ++ [pend]))).2 k
-    rw [← HLL, Hidx] at this
-    exact this
-  rw [← hz] at hlast
-  have hne := mvcc.kiIsEmpty_false_of_head (mvcc.indexOf_head' _ (z.2.1, z.2.2)
-    (by rw [← HLL]; unfold mvcc.idxOfEntries; exact List.mem_map_of_mem (List.mem_of_getElem? hi)))
+  obtain ⟨cz, hcz0, hcz1, hz, hne0⟩ := mvcc.IdxCRep.get_some HLL.1 Hidx
+  have hlast : mvcc.kiLastEmpty z.2.2 = false := by
+    rw [hz, mvcc.kiCompact_lastEmpty _ hb0 k cz hcz0 (by omega)]; exact hlast
+  have hne : mvcc.kiIsEmpty z.2.2 = false ∧ z.2.2.gens ≠ [] :=
+    ⟨hne0, by
+      rw [hz]
+      exact mvcc.kiCompact_gens_ne _ _ (mvcc.kiOfKey_KiWf_inv _ _).ne⟩
   -- the ghost steps
   imod monoListAuthOwn_update_app [mvcc.HistItem.ev (mvcc.evOfChange ilog.length pend.length (.del k))]
     $$ Hauth with ⟨Hauth, #Hlb'⟩
@@ -132,7 +140,7 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
   simp only at Hiw
   rw [Hiw]
   have Hlt : mvcc.Rev.lt z.2.2.modified ⟨rev.Main', rev.Sub'⟩ := by
-    rw [hrevm, hrevs, hz, mvcc.kiOfKey_eq_kiFold]
+    rw [hrevm, hrevs, hz, mvcc.kiCompact_modified, mvcc.kiOfKey_eq_kiFold]
     exact mvcc.kiFold_modified_lt k _ _ _ (mvcc.Rev.lt_zero_of_pos _ _ Hilog (by omega))
       (mvcc.evsOf_rev_lt ilog pend (by omega) Hplen)
   wp_apply (hTomb z.1 gs z.2.2 z.2.1 lg rev.Main' rev.Sub' _) $$ [$HzKey $Hki $Herr] as %err Hpost
@@ -152,7 +160,7 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
   · inext
     iunfold mvcc.idxLockInv
     iexists ilog, pend ++ [.del k],
-      L.set i (z.1, z.2.1, mvcc.kiTombstone z.2.2 ⟨W64 ilog.length, W64 pend.length⟩)
+      L.set i (z.1, z.2.1, mvcc.kiTombstone z.2.2 ⟨W64 ilog.length, W64 pend.length⟩), cmax
     simp only [named]
     rw [← mvcc.histShape_ev, hcount]
     iframe HnevL
@@ -171,10 +179,15 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
       iexists gs'
       rw [← hrevm, ← hrevs]
       iexact Hki
+    isplitl []
+    · iexact HcrevL
+    isplitl []
+    · iexists log₀; iframe Hl0; ipureintro; exact Hc0
     ipureintro
-    refine ⟨?_, hwf''⟩
-    rw [hidxnew, ← mvcc.btInsert_idx_set L Hsorted i z (List.getElem?_eq_some_iff.1 hi), hk]
-    simp only [mvcc.idxTombstone, Hidx, hlast, Bool.false_eq_true, ↓reduceIte]
+    refine ⟨⟨?_, HLL.2⟩, hwf''⟩
+    rw [← mvcc.btInsert_idx_set L Hsorted i z (List.getElem?_eq_some_iff.1 hi), hk]
+    simp only [mvcc.idxTombstone, Hidx, hlast, Bool.false_eq_true, ↓reduceIte] at hidxnew
+    exact hidxnew
   (try wp_auto)
   iapply HΦ
   iunfold mvcc.idxWriter

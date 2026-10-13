@@ -29,8 +29,8 @@ theorem mvcc.treeIndex.Insert.wp_proof
     mvcc.treeIndex.Insert.spec (GF := GF) (hG := hG) := by
   have wp_ROI : btree.BTree.ReplaceOrInsert.modelSpec (GF := GF) (hG := hG) :=
     btree.BTree.ReplaceOrInsert.modelSpec_of wp_ROI
-  intro ti γ ilog pend ki k gs m
-  wp_start as ⟨#Hti, Hw, %Hn, #Hkey, Hki, %Hm⟩
+  intro ti γ ilog pend ki k gs m q
+  wp_start as ⟨#Hti, Hw, Hcu, %Hn, #Hkey, Hki, %Hm⟩
   obtain ⟨Hm, Hne⟩ := Hm
   iunfold mvcc.isTreeIndex at Hti
   iNamed Hti
@@ -52,8 +52,11 @@ theorem mvcc.treeIndex.Insert.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.idxLockInv t γ 1)) $$ Hlc1 HP with HP
   iunfold mvcc.idxLockInv at HP
-  icases HP with ⟨%ilog', %pend', %L, HP⟩
+  icases HP with ⟨%ilog', %pend', %L, %cmax, HP⟩
   iNamedSuffix HP "L"
+  ihave %Hcle := mvcc.crevUB_lb γ q (-1) cmax (by decide) HLL.2 $$ Hcu HcrevL
+  have HLLn : mvcc.IdxCRep (-1) (mvcc.evsOf (ilog' ++ [pend'])) (mvcc.idxOfEntries L) := by
+    have h := HLL.1; rwa [show cmax = -1 by have := HLL.2; omega] at h
   -- the lock's events are the writer's
   ihave %Hpre := mono_list_auth_lb_valid γ.hist 1 _ _ $$ Hauth HhistL
   ihave %Hcnt := monoNatLbOwn_valid γ.nev 1 _ _ $$ HnevL Hwlb
@@ -62,7 +65,7 @@ theorem mvcc.treeIndex.Insert.wp_proof
   icases HtreeL with ⟨%Hsorted, Ht, Hkis⟩
   -- the key is in the tree, with the index `m`
   have Hidx := mvcc.idxGet_entries L Hsorted k
-  rw [HLL, hevs] at Hidx
+  rw [mvcc.IdxCRep.get_neg (ilog' ++ [pend']) HwfL.logB HLLn k, hevs] at Hidx
   obtain ⟨z, hf⟩ : ∃ z, L.find? (fun z => decide (z.2.1 = k)) = some z := by
     cases hf : L.find? (fun z => decide (z.2.1 = k)) with
     | none =>
@@ -113,7 +116,7 @@ theorem mvcc.treeIndex.Insert.wp_proof
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HnevL Ht Hback Hki]
   · inext
     iunfold mvcc.idxLockInv
-    iexists ilog', pend', btInsert mvcc.entryLess (ki, k, m) L
+    iexists ilog', pend', btInsert mvcc.entryLess (ki, k, m) L, cmax
     simp only [named]
     iframe HnevL
     isplitl []
@@ -131,11 +134,17 @@ theorem mvcc.treeIndex.Insert.wp_proof
       · ipureintro; exact Hn
       iexists gs
       iexact Hki
+    isplitl []
+    · iexact HcrevL
+    isplitl []
+    · iexact HclL
     ipureintro
     refine ⟨?_, HwfL⟩
-    rw [hset, hidx, HLL]
+    rw [hset, hidx]
+    exact HLL
   (try wp_auto)
   iapply HΦ
+  iframe Hcu
   isplitl [Hauth Hlauth]
   · iunfold mvcc.idxWriter
     iframe Hauth Hlauth

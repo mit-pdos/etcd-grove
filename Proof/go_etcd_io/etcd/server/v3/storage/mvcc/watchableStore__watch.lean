@@ -580,7 +580,7 @@ theorem mvcc.watchableStore.watch.wp_proof
   wp_auto_lc 2
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv st γ.st sync.rfrac)) $$ Hlc1 HQ with HQ
   iunfold mvcc.revMuInv at HQ
-  icases HQ with ⟨%C, %ntok, HQ⟩
+  icases HQ with ⟨%C, %ntok, %cQ, HQ⟩
   iNamedSuffix HQ "Q"
   icases persistent_entails_right (typedPointsto_not_null _ _ _) $$ «$r0» with ⟨%Hwnn, «$r0»⟩
   iStructNamed «$r0»
@@ -640,14 +640,14 @@ theorem mvcc.watchableStore.watch.wp_proof
       wp_apply hAdd $$ [$Hsynced] as Hsynced
       · iframe Hfixed; ipureintro; exact ⟨hWs, by have := Hok.ws_size; omega⟩
       (try wp_auto)
-      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ] as HrevMuR
+      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ] as HrevMuR
       · inext
         iunfold mvcc.revMuInv
-        iexists C, ntok
+        iexists C, ntok, cQ
         simp only [named]
         iframe
         iframe #
-        ipureintro; exact ⟨HneQ, HbudgetQ⟩
+        ipureintro; exact ⟨HneQ, HbudgetQ, HcQ⟩
       (try wp_auto)
       -- the lock invariant with the new unsynced watcher
       ihave %Hchnn : ⌜ch ≠ null⌝ $$ []
@@ -727,14 +727,14 @@ theorem mvcc.watchableStore.watch.wp_proof
       wp_apply hAdd $$ [$Hsynced] as Hsynced
       · iframe Hfixed; ipureintro; exact ⟨hWs, by have := Hok.ws_size; omega⟩
       (try wp_auto)
-      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ] as HrevMuR
+      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ] as HrevMuR
       · inext
         iunfold mvcc.revMuInv
-        iexists C, ntok
+        iexists C, ntok, cQ
         simp only [named]
         iframe
         iframe #
-        ipureintro; exact ⟨HneQ, HbudgetQ⟩
+        ipureintro; exact ⟨HneQ, HbudgetQ, HcQ⟩
       (try wp_auto)
       -- the lock invariant with the new unsynced watcher
       ihave %Hchnn : ⌜ch ≠ null⌝ $$ []
@@ -824,14 +824,14 @@ theorem mvcc.watchableStore.watch.wp_proof
         wp_apply hAdd $$ [$Hsynced] as Hsynced
         · iframe Hfixed; ipureintro; exact ⟨hWs, by have := Hok.ws_size; omega⟩
         (try wp_auto)
-        wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ] as HrevMuR
+        wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ] as HrevMuR
         · inext
           iunfold mvcc.revMuInv
-          iexists C, ntok
+          iexists C, ntok, cQ
           simp only [named]
           iframe
           iframe #
-          ipureintro; exact ⟨HneQ, HbudgetQ⟩
+          ipureintro; exact ⟨HneQ, HbudgetQ, HcQ⟩
         (try wp_auto)
         -- the lock invariant with the new unsynced watcher
         ihave %Hchnn : ⌜ch ≠ null⌝ $$ []
@@ -912,14 +912,14 @@ theorem mvcc.watchableStore.watch.wp_proof
       wp_apply hAdd $$ [$Hunsynced] as Hunsynced
       · iframe Hfixed; ipureintro; exact ⟨hWu, by have := Hok.wu_size; omega⟩
       (try wp_auto)
-      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ] as HrevMuR
+      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ] as HrevMuR
       · inext
         iunfold mvcc.revMuInv
-        iexists C, ntok
+        iexists C, ntok, cQ
         simp only [named]
         iframe
         iframe #
-        ipureintro; exact ⟨HneQ, HbudgetQ⟩
+        ipureintro; exact ⟨HneQ, HbudgetQ, HcQ⟩
       (try wp_auto)
       -- the lock invariant with the new unsynced watcher
       ihave %Hchnn : ⌜ch ≠ null⌝ $$ []

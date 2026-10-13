@@ -31,7 +31,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   ihave #Hs0 : mvcc.isStore s γ $$ []
   · iexact Hs
   iunfold mvcc.isStore at Hs
-  icases Hs with ⟨%b, %le, %ti, %lg, %P0, %f0, Hs⟩
+  icases Hs with ⟨%b, %le, %ti, %lg, %P0, %f0, %Dep, Hs⟩
   iNamed Hs
   iunfold mvcc.storeReader at Hrd
   icases Hrd with ⟨%ti2, Hrd⟩
@@ -46,11 +46,26 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
     iframe Hpre
     iapply HP0P
     iexact HP0
-  -- `s.mu.RLock()`
-  wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HmuR] as ⟨Hmul, -⟩
-  (try wp_auto)
+  -- `s.mu.RLock()`: its part of `s.mu`'s resource, at a compaction revision the frozen fact
+  -- says is `-1`
+  wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HmuR] as ⟨Hmul, HmuP⟩
+  wp_auto_lc 1
+  imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.muInv s γ sync.rfrac)) $$ Hlc1 HmuP with HmuP
+  iunfold mvcc.muInv at HmuP
+  icases HmuP with ⟨%cm, HmuP⟩
+  iunfold mvcc.muInvAt at HmuP
+  iNamed HmuP
+  imod mvcc.crevFrozen_agree γ _ cm HcM $$ HfrzR HcrevM with ⟨HcrevM, %Hcm1⟩
+  subst Hcm1
+  ihave Hmuh : mvcc.muHeld s γ (-1) $$ [Hmul HcmpM HcrevM]
+  · iunfold mvcc.muHeld
+    iframe Hmul
+    iunfold mvcc.muInvAt
+    iframe HcmpM HcrevM
+    iframe #
+    ipureintro; decide
   -- `tx := s.b.BatchTx()`
-  iunfold mvcc.isKeyBackend at Hbk
+  iunfold mvcc.isKeyBackendD at Hbk
   icases Hbk with ⟨%bi, %Hbi, #HC, #HR, #HB, -⟩
   subst Hbi
   (try wp_auto)
@@ -58,7 +73,8 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   (try wp_auto)
   iunfold mvcc.isBatchTx at Hbt
   icases Hbt with ⟨%Locked, #Hbt⟩
-  ihave #Hbt0 : mvcc.batchTxSpec bt (mvcc.bucketView γ) (mvcc.writerRes s γ) Locked P0 f $$ []
+  ihave #Hbt0 : mvcc.batchTxSpec bt (mvcc.bucketView γ) (mvcc.delKey γ) (mvcc.writerRes s γ) Dep
+      Locked P0 f $$ []
   · iexact Hbt
   iunfold mvcc.batchTxSpec at Hbt
   icases Hbt with ⟨#HLock, -, -, -, -⟩
@@ -81,10 +97,10 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   iexists «$r0_ptr», W64 0
   iframe Hmw
   iunfold mvcc.storeTxnWriteIs
-  iexists trace, ti2, bt, Locked, chs, [], ntok, P0, f
+  iexists trace, ti2, bt, Locked, chs, [], ntok, P0, f, Dep
   simp only [named, mvcc.pendPuts_nil]
   simp only [List.replicate_zero]
-  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmul HrevMuR HtiR
+  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmuh HrevMuR HtiR Hcres
   iframe #
   isplitl []
   · ipureintro; exact Hbudget

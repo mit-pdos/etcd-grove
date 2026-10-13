@@ -27,7 +27,7 @@ buckets): the identity on the store's verified state, returning `nil`. With an e
 bucket (`bucketView γ q ∅`), `restore` reads nothing, so the index (`isTreeIndex ti γ.idx`)
 is not touched; `restoreIntoIndex` sends `currentRev = 1` through its channel (stored into
 `currentRev` under `s.revMu`, the value it holds); no finished or scheduled compaction is
-found (`compactMainRev` stays `-1`, no compaction runs) and no lease is attached; `s.revMu`
+found (`compactMainRev` stays `-1`, no compaction runs: `compactLockfree` is not called) and no lease is attached; `s.revMu`
 is locked and unlocked fresh (it is back at its zero value). The store of `1` into
 `currentRev` is modelled as no write: `NewStore` holds only half of `currentRev` here (the
 batch lock holds the other half since `NewStore`'s first `tx.Unlock()`, as the writers'
@@ -38,7 +38,7 @@ abbrev mvcc.store.restore.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (b le : GoInterface) (ti lg : Loc) (q : Qp) (P : IProp GF)
     (f : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      s.[store, go!"b"] ↦□ b ∗ mvcc.isKeyBackend b (mvcc.bucketView γ) (mvcc.writerRes s γ) P f ∗
+      s.[store, go!"b"] ↦□ b ∗ mvcc.isKeyBackend b (mvcc.bucketView γ) (mvcc.delKey γ) (mvcc.writerRes s γ) P f ∗
       mvcc.bucketView γ q ∅ ∗
       s.[store, go!"kvindex"] ↦□
         (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗

@@ -104,7 +104,7 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%gS, #HgS, #HgSS⟩,
-    ⟨%gP, #HgP, #HgPS⟩, -, #HmaxW, -, ⟨%gS', #HgS', #HgSet⟩⟩
+    ⟨%gP, #HgP, #HgPS⟩, -, #HmaxW, -, ⟨%gS', #HgS', #HgSet⟩, -⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold mvcc.watchReader at HR
@@ -147,8 +147,10 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   wp_auto_lc 2
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.revMuInv st γ.st sync.rfrac)) $$ Hlc1 HQ with HQ
   iunfold mvcc.revMuInv at HQ
-  icases HQ with ⟨%C, %ntok, HQ⟩
+  icases HQ with ⟨%C, %ntok, %cQ, HQ⟩
   iNamedSuffix HQ "Q"
+  imod mvcc.crevFrozen_agree γ.st _ cQ HcQ.1 $$ HfrzR HcrevQ with ⟨HcrevQ, %HcQ1⟩
+  subst HcQ1
   icases persistent_entails_right (mvcc.idxLogAuth_cert_prefix _ _ _ _) $$ [$HlogQ $Hcert]
     with ⟨%HpC, HlogQ, -⟩
   wp_auto
@@ -238,8 +240,9 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     icases HcertQ with ⟨-, -, %H, -⟩
     ipureintro; exact H
   have hcur1 : sint.Z (W64 ((C.length : Int) - 1) + W64 1) = (C.length : Int) := by word
+  ihave #HbkS' := mvcc.isKeyBackendD_ex _ _ _ _ _ _ _ $$ HbkS
   wp_apply (hRange _ _ γ.st _ _ _ _ C minRev (W64 ((C.length : Int) - 1) + W64 1) g W')
-    $$ [$HbkS $HbucketQ $HcertQ $Hg] as %evs ⟨HbucketQ, Hg, %ps, Hevs, Hevcap, %Hpslen, #HevIs⟩
+    $$ [$HbkS' $HfrzR $HbucketQ $HcertQ $Hg] as %evs ⟨HbucketQ, Hg, %ps, Hevs, Hevcap, %Hpslen, #HevIs⟩
   · ipureintro; rw [hcur1]; omega
   have hnat1 : sint.nat (W64 ((C.length : Int) - 1) + W64 1) = C.length := by
     show (sint.Z _).toNat = _; rw [hcur1]; simp
@@ -834,14 +837,15 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
   wp_apply (hSize (mvcc.unsyncedAddr s) v.Wu 1) $$ [$Hunsynced] as ⟨Hunsynced, -⟩
   (try wp_auto)
   -- the deferred `s.store.revMu.RUnlock()`
-  wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ] as HrevMuR
+  wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ]
+    as HrevMuR
   · inext
     iunfold mvcc.revMuInv
-    iexists C, ntok
+    iexists C, ntok, -1
     simp only [named]
     iframe
     iframe #
-    ipureintro; exact ⟨HneQ, HbudgetQ⟩
+    ipureintro; exact ⟨HneQ, HbudgetQ, HcQ⟩
   (try wp_auto)
   -- the lock's final state
   subst hvbs' hVB'

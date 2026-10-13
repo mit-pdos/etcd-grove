@@ -85,11 +85,11 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
         simp at hc
       (try wp_auto)
       iapply HΦ
-      isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti]
+      isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres]
       iunfold mvcc.storeTxnWriteIs
       iexists trace, ti, bt, Locked, chs, ps, ntok
       simp only [named]
-      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
+      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres
       iframe #
       ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
       ipureintro
@@ -104,11 +104,11 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
         omega
       (try wp_auto)
       iapply HΦ
-      isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti]
+      isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres]
       iunfold mvcc.storeTxnWriteIs
       iexists trace, ti, bt, Locked, chs, ps, ntok
       simp only [named]
-      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
+      iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres
       iframe #
       ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
       ipureintro
@@ -121,11 +121,11 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
       intro h; subst h; exact Hif rfl
     (try wp_auto)
     iapply HΦ
-    isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti]
+    isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres]
     iunfold mvcc.storeTxnWriteIs
     iexists trace, ti, bt, Locked, chs, ps, ntok
     simp only [named]
-    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
+    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hcres
     iframe #
     ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
     ipureintro
