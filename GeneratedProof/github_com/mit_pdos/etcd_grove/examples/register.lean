@@ -122,6 +122,7 @@ instance Register_typed_pointsto :
     "nextSeq" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"nextSeq" l) v.nextSeq' dq ∗
     "applied" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"applied" l) v.applied' dq ∗
     "waiters" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"waiters" l) v.waiters' dq ∗
+    "reads" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"reads" l) v.reads' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -256,6 +257,22 @@ instance Register_access_store_waiters (l : Loc) (v : github_com.mit_pdos.etcd_g
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"waiters" l) v.waiters' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"waiters" l) waiters' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with waiters' := waiters' } : github_com.mit_pdos.etcd_grove.examples.register.Register) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance Register_access_load_reads (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Register) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"reads" l) v.reads' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"reads" l) v.reads' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance Register_access_store_reads (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.register.Register) (reads' : GoMap) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"reads" l) v.reads' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.register.Register go!"reads" l) reads' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reads' := reads' } : github_com.mit_pdos.etcd_grove.examples.register.Register) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

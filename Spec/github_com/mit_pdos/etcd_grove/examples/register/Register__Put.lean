@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`(*Register).Put(val)` (register.go:159), logically atomic:
+`(*Register).Put(val)` (register.go:219), logically atomic:
 `<<∀ x, regVal γr x>> Put val <<regVal γr val>>`, in Iris's form: the client's atomic update
 (at `regMask`: not raft's commit invariant nor the register's). One operation credit.
 -/

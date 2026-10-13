@@ -4,9 +4,9 @@
 legitimately sent, `isRaftMsg`, and of a term within the budget, `termLB`: what `Ready`
 gives with them) and a read-only peer table whose node at each id is that id's (`peerOk`),
 it steps each deliverable message into its target, which takes it (`Node.Step`'s `stepP`).
-(2026-10-13) It takes each message's read credit (`Ready`'s), as a transport must; a
-deliverable message is not a `MsgReadIndex` (`deliverable` does not deliver the read-index
-messages), so it has none to pass on and drops the others' with their messages.
+(2026-10-13) It takes each message's read credit (`Ready`'s) and passes a delivered
+message's on to `Step`, dropping the others' with their messages; a read-index request is
+stepped only in a configuration of more than one voter (`Node.Step`'s premise).
 -/
 module
 
@@ -34,6 +34,7 @@ variable [StorageModel GF]
 abbrev deliver.spec : Prop :=
   ∀ (γ : RaftNames) (bud : BudgetNames) (peers : Loc) (P : GMap w64 GoInterface)
     (msl : GoSlice) (ms : List raftpb.Message),
+  1 < GMap.size γ.reCfg →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.register ∗ peers ↦${DFrac.discard} P ∗ ([∗map] id ↦ nd ∈ P, peerOk γ bud id nd) ∗
       msl ↦* ms ∗ ([∗list] m ∈ ms, isRaftMsg γ m ∗ termLB bud m.Term') ∗
       [∗list] m ∈ ms, rdCred γ (if m.Type' = MsgReadIndex then 1 else 0) }}

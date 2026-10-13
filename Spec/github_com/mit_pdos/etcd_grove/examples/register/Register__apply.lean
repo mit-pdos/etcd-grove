@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`(*Register).apply(e)` (register.go:112): one committed entry, after the committed prefix
+`(*Register).apply(e)` (register.go:172): one committed entry, after the committed prefix
 `ap` the replica applied (`runOwn`); a waiter of the entry's operation, if this replica
 proposed it and the entry is the operation's first, gets the value after it (`waitP`).
 -/

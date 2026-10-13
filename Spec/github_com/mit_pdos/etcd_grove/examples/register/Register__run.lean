@@ -1,9 +1,10 @@
 /- Lean-first (no Rocq counterpart).
 
-`(*Register).run(send)` (register.go:97): the replica's driver of its node: append each
+`(*Register).run(send)` (register.go:117): the replica's driver of its node: append each
 `Ready`'s entries to the storage, send its messages (`send`, a callback, gets what a
-transport needs: each message legitimately sent, of a term within the budget), apply its
-committed entries, `Advance`.
+transport needs: each message legitimately sent, of a term within the budget, and its
+read credit), note its read states, apply its committed entries (counting them: the
+applied index), answer the reads whose index is applied (`answer`), `Advance`.
 -/
 module
 

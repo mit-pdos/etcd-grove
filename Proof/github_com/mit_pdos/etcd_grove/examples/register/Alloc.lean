@@ -10,7 +10,8 @@ What a cluster's set-up gives the replicas' `NewStorage` and `New`:
   `RegStor` instance).
 * `regInv_alloc`: the register's invariant over raft's client log, from what raft's
   allocation (`ownRaftGhost_alloc`, `Protocol/Facts.lean`) hands the client -- its half of
-  the empty client log and the authority of the fresh-data tokens -- with the client's half
+  the empty client log, the authority of the fresh-data tokens and (2026-10-13) that of
+  the read contexts -- with the client's half
   of the value (empty) and the replicas' sequence-number tokens at `S0` (for `New`, each
   at 0: `S0 = gsetToGmap (W64 0) ids`).
 -/
@@ -56,24 +57,26 @@ theorem regStorInv_alloc (E : CoPset) :
 client's share of raft's allocation, the invariant, the client's half of the value and the
 sequence-number tokens of `S0` (`New` takes `id ↪[γr.seq] 0`). -/
 theorem regInv_alloc (E : CoPset) (γ : RaftNames) (S0 : GMap w64 w64) :
-    ⊢ cLog (GF := GF) γ [] -∗ ghostMapAuth γ.reFresh 1 (∅ : GMap (List w8) Unit) ={E}=∗
+    ⊢ cLog (GF := GF) γ [] -∗ ghostMapAuth γ.reFresh 1 (∅ : GMap (List w8) Unit) -∗
+      ghostMapAuth γ.reReads 1 (∅ : GMap (List w8) (List raftpb.Entry)) ={E}=∗
       ∃ γr : RegNames, ⌜γr.raft = γ⌝ ∗ regInv γr ∗ regVal γr [] ∗
         [∗map] id ↦ s ∈ S0, id ↪[γr.seq] s := by
-  iintro Hcl HM
+  iintro Hcl HM HR
   imod ghostVar_alloc (GF := GF) ([] : List w8) with ⟨%γv, Hv⟩
   icases ghostVar_halves γv ([] : List w8) $$ Hv with ⟨Hv1, Hv2⟩
   imod ghost_map_alloc (GF := GF) S0 with ⟨%γs, HS, Hels⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64 × w64) (V := List w8) with ⟨%γm, HMi⟩
-  imod inv_alloc regN E (regInvBody (GF := GF) ⟨γ, γv, γs, γm⟩) $$ [Hcl Hv1 HM HS HMi] with #Hinv
+  imod inv_alloc regN E (regInvBody (GF := GF) ⟨γ, γv, γs, γm⟩) $$ [Hcl Hv1 HM HR HS HMi] with #Hinv
   · inext
     unfold regInvBody
-    iexists [], ∅, _, ∅
+    iexists [], ∅, ∅, _, ∅
     simp only [show regFold [] = ([] : List w8) from rfl]
-    iframe Hcl Hv1 HM HS HMi
+    iframe Hcl Hv1 HM HR HS HMi
     ipureintro
-    constructor
+    refine ⟨?_, ?_, ?_⟩
     · intro d h; simp at h
     · intro i s d h; simp at h
+    · intro c Lc h; simp at h
   imodintro
   iexists ⟨γ, γv, γs, γm⟩
   isplitr

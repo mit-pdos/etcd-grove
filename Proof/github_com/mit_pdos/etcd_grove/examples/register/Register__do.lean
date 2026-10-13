@@ -56,11 +56,12 @@ theorem Register.do.wp_proof
     | none => rfl
     | some ch' => have := HWdom _ _ h; word
   wp_apply wp_mapInsert go.uint64 mW W (ns + W64 1) ch $$ [$HW] as HW
-  wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters Hprod]
+  ihave Hrds := readsOwn_mono γr id r ns (ns + W64 1) (by word) $$ Hrds
+  wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters Hprod Hrds]
   · inext
     unfold lockInv
     iexists ns + W64 1, mW, W.insert (ns + W64 1) ch, c - 1
-    iframe Hns HmW HW Hseq Hcred
+    iframe Hns HmW HW Hseq Hcred Hrds
     isplitr
     · ipureintro; word
     isplitr
