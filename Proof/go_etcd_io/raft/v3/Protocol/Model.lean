@@ -223,6 +223,12 @@ theorem readonlyPosition_le (r : ReadOnly) :
     word
   omega
 
+/-- A heartbeat context a leader may send (2026-10-13): none, or a position its queue
+reaches (unwrapped). `bcastHeartbeat`'s `hbCtx` is one (`hbCtx_ok`), and so is any
+position a release passed (`releasePendingReadIndexMessages` broadcasts after each). -/
+def HbCtxOk (r : ReadOnly) (ctx : List w8) : Prop :=
+  ctx = [] ∨ ∃ q, ctx = u64Le q ∧ uint.nat q ≤ uint.nat r.confirmed + r.pending.length
+
 /-- `addRequest`: append to the queue. -/
 def readonlyAdd (r : ReadOnly) (q : ReadReq) : ReadOnly :=
   { r with pending := r.pending ++ [q] }
@@ -269,6 +275,12 @@ theorem readonlyRecvAck_eq (r : ReadOnly) (src q : w64) :
   have hne : u64Le q ≠ [] := by intro h; rw [h] at hl; simp at hl
   unfold readonlyRecvAck
   simp only [hne, ↓reduceIte, List.take_of_length_le (Nat.le_of_eq hl), u64Le_to_word]
+
+theorem hbCtx_ok (r : ReadOnly) : HbCtxOk r (hbCtx r) := by
+  unfold hbCtx HbCtxOk
+  split
+  · left; rfl
+  · right; exact ⟨_, rfl, readonlyPosition_le r⟩
 
 /-- What an arrival does: the request queued, the leader's ack raised to the new
 position. -/
@@ -1690,7 +1702,7 @@ inductive Step : PState → List Msg → PState → Prop where
   | beat (s : PState) (ms : List Msg) :
       s.role = .leader →
       (∀ m ∈ ms, HeartbeatOk id s m) →
-      (∀ m ∈ ms, m.ctx = hbCtx s.rd.ro) →
+      (∀ m ∈ ms, HbCtxOk s.rd.ro m.ctx) →
       Step s [] (psendMsgs s ms)
   /-- `stepLeader`'s `MsgAppResp`, accepting: `pr.MaybeUpdate(m.Index)` raises the
   sender's `Match`. A *rejecting* `appResp` changes no protocol state (`MaybeDecrTo`

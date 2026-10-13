@@ -1373,35 +1373,44 @@ theorem rdOwn_takePend (γ : RaftNames) (id : w64) (s : PState) :
     iexact Hc2
   iexact Hinv
 
-/-- A leader's heartbeat context is empty or a position its registry reaches. -/
-theorem rdOwn_hbCtx (γ : RaftNames) (id : w64) (s : PState) (Hr : s.role = .leader) :
+/-- A leader's registry, at least up to the end of its queue. -/
+theorem rdOwn_regLb (γ : RaftNames) (id : w64) (s : PState) (Hr : s.role = .leader) :
     ⊢ rdOwn (GF := GF) γ id s -∗
-      (⌜hbCtx s.rd.ro = []⌝ ∨ ∃ (q : w64) (recs : List RqRec),
-         ⌜hbCtx s.rd.ro = u64Le q ∧ uint.nat q ≤ recs.length⌝ ∗ rqLb γ id s.term recs ∗
-         [∗list] r ∈ recs, rqRecOk γ s.term r) := by
+      ∃ (recs : List RqRec), ⌜recs.length = uint.nat s.rd.ro.confirmed + s.rd.ro.pending.length⌝ ∗
+        rqLb γ id s.term recs ∗ [∗list] r ∈ recs, rqRecOk γ s.term r := by
   unfold rdOwn
   iintro ⟨%γl, %rqm, %Hγl, -, #Hf, -, Hl, -⟩
   unfold rdLead
   rw [Hr]
   icases Hl with ⟨%γq, %recs, %Hq, Ha, #Hrs, %Hlen, -⟩
-  by_cases hp : s.rd.ro.pending = []
-  · ileft; ipureintro; simp [hbCtx, hp]
+  iexists recs
+  ihave #Hlb := monoListLbOwn_get $$ Ha
+  ihave #Ht := BigSepM.bigSepM_lookup (Φ := fun t γq => iprop(t ↪[γl]□ γq)) Hq $$ Hf
+  isplitr; · ipureintro; exact Hlen
+  isplitr
+  · unfold rqLb
+    iexists γl, γq
+    isplitr
+    · ipureintro; exact Hγl
+    iframe Ht Hlb
+  · iexact Hrs
+
+/-- What a heartbeat of an allowed context carries. -/
+theorem hbCtx_isMessage (γ : RaftNames) (id T : w64) (r : ReadOnly) (ctx : List w8)
+    (recs : List RqRec) :
+    HbCtxOk r ctx → recs.length = uint.nat r.confirmed + r.pending.length →
+    ⊢ rqLb (GF := GF) γ id T recs -∗ ([∗list] x ∈ recs, rqRecOk γ T x) -∗
+      (⌜ctx = []⌝ ∨ ∃ (q : w64) (recs : List RqRec),
+         ⌜ctx = u64Le q ∧ uint.nat q ≤ recs.length⌝ ∗ rqLb γ id T recs ∗
+         [∗list] x ∈ recs, rqRecOk γ T x) := by
+  intro Hc Hlen
+  iintro #Hlb #Hrs
+  rcases Hc with H0 | ⟨q, Hq, Hle⟩
+  · ileft; ipureintro; exact H0
   · iright
-    iexists readonlyPosition s.rd.ro, recs
-    ihave #Hlb := monoListLbOwn_get $$ Ha
-    ihave #Ht := BigSepM.bigSepM_lookup (Φ := fun t γq => iprop(t ↪[γl]□ γq)) Hq $$ Hf
-    isplitr
-    · ipureintro
-      refine ⟨by simp [hbCtx, hp], ?_⟩
-      have := readonlyPosition_le s.rd.ro
-      omega
-    isplitr
-    · unfold rqLb
-      iexists γl, γq
-      isplitr
-      · ipureintro; exact Hγl
-      iframe Ht Hlb
-    · iexact Hrs
+    iexists q, recs
+    iframe Hlb Hrs
+    ipureintro; exact ⟨Hq, by omega⟩
 
 /-- The terms a node has won: as `TermsOk`. -/
 def WinsOk (wins : GMap w64 (GSet w64)) (s : PState) : Prop :=

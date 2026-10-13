@@ -878,7 +878,7 @@ the `Match` it is bounded by. -/
 theorem ownRaftGhost_step_beat (γ : RaftNames) (id : w64) (s : PState) (ms : List Msg) :
     s.role = .leader →
     (∀ m ∈ ms, HeartbeatOk id s m) →
-    (∀ m ∈ ms, m.ctx = hbCtx s.rd.ro) →
+    (∀ m ∈ ms, HbCtxOk s.rd.ro m.ctx) →
     ⊢ ownRaftGhost (GF := GF) γ id s ==∗ ownRaftGhost γ id (psendMsgs s ms) := by
   intro Hrole Hms Hctx
   have Hcnt : rdCount ms = 0 := by
@@ -888,7 +888,7 @@ theorem ownRaftGhost_step_beat (γ : RaftNames) (id : w64) (s : PState) (ms : Li
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γv, %voted, %kl, H⟩
   iNamed H
-  ihave #Hhb := rdOwn_hbCtx γ id s Hrole $$ Hrd
+  ihave ⟨%recsH, %HrecsH, #HlbH, #HrsH⟩ := rdOwn_regLb γ id s Hrole $$ Hrd
   ihave #Hmatched := ownLogGhost_matched $$ Hlg
   ihave #Hl : isLeader γ id s.term $$ []
   · unfold leaderWit; rw [Hrole]; iexact Hlead
@@ -935,8 +935,8 @@ theorem ownRaftGhost_step_beat (γ : RaftNames) (id : w64) (s : PState) (ms : Li
         · unfold isAcked; ileft; ipureintro; rfl
     isplitr
     · ipureintro; exact Hidnz
-    · rw [Hctx m (List.mem_of_getElem? Hk)]
-      iexact Hhb
+    · iapply hbCtx_isMessage γ id s.term s.rd.ro m.ctx recsH (Hctx m (List.mem_of_getElem? Hk))
+        HrecsH $$ HlbH HrsH
   · iapply tally_eq γ id s (psendMsgs s _) rfl rfl $$ Htally
   · iapply leaderWit_eq γ id s (psendMsgs s _) rfl rfl $$ Hlead
   · iapply ownLogGhost_mono γ id s (psendMsgs s _) kl rfl rfl rfl (fun h => ⟨h, rfl, rfl⟩) (fun h => ⟨h, rfl⟩) (fun h => h) rfl (fun h => h) $$ Hlg

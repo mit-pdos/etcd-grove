@@ -320,7 +320,7 @@ def netP (γ : NodeNames) (id : w64) (m : raftpb.Message) : IProp GF :=
     ∃ (ents : List raftpb.Entry) (ctx : List w8),
       m.Entries' ↦*□ ents ∗ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) ∗
       m.Context' ↦*□ ctx ∗ ⌜ctx ≠ campaignTransfer ∧ (m.Type' = MsgHeartbeatResp → ctx = [])⌝ ∗
-      □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗ isMessage γ.raft (absMsg ty m ents)) ∗
+      □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗ isMessage γ.raft (absMsg ty m ents ctx)) ∗
       termLB γ.bud m.Term')
 
 /-- What `Node.Step` takes (2026-10-10): a message from the network for the receive
