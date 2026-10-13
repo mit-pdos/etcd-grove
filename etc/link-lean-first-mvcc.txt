@@ -221,6 +221,9 @@ zap_Int:
 zap_Uint32:
 go_humanize_Bytes:
 schedule_Scheduler__Schedule:
+# (the request path's unit 4c: the scheduler's `Stop`, an axiom, for the server's `run`, which
+# reuses these entries with `@`)
+schedule_Scheduler__Stop:
 schedule_NewJob:
 schedule_job__Do:
 schedule_job__Name:

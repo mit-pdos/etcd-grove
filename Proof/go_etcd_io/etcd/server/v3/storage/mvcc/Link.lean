@@ -70,6 +70,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.readView__Rev
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.NewFIFOScheduler
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.NewJob
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Scheduler__Schedule
+public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Scheduler__Stop
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.job__Do
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.job__Name
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeCreateMetaBucket
@@ -744,6 +745,10 @@ theorem schedule.wp_NewJob :
 theorem schedule.Scheduler.wp_Schedule :
     schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG) :=
   schedule.Scheduler.Schedule.wp_proof
+
+theorem schedule.Scheduler.wp_Stop :
+    schedule.Scheduler.Stop.spec (GF := GF) (hG := hG) :=
+  schedule.Scheduler.Stop.wp_proof
 
 theorem schedule.job.wp_Do :
     schedule.job.Do.spec (GF := GF) (hG := hG) :=

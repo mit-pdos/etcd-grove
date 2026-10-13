@@ -26,10 +26,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 close `done`, and a tick's resource as often as the ticker fires (see `decisions.md`, "The
 server's raft wrapper": the ticks are unbounded). The goroutine hands each `Ready`'s committed
 entries to `applyc` (`rnApP`), saves and appends its entries, sends its messages, and advances
-the node; it stops (`onStop`) on `stopped`. -/
+the node; it stops (`onStop`) on `stopped`. The loop owns the ready handler's resource `R` (its
+`updateCommittedIndex` closure's: the committed index's writer half, 2026-10-13, the request path's
+unit 4c). -/
 abbrev raftNode.start.spec : Prop :=
-  ∀ (E : RNEnv GF) (γ : RNNames) (r rh : Loc) (L : List EntryModel),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗ isReadyHandler rh ∗ rnLoopTok γ L ∗ rnDoneTok γ r ∗
+  ∀ (E : RNEnv GF) (γ : RNNames) (r rh : Loc) (L : List EntryModel) (R : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗ isReadyHandler rh R ∗ R ∗ rnLoopTok γ L ∗ rnDoneTok γ r ∗
       □ (|==> E.T) }}
     (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"start")) (Val #rh))
   {{ RET #(); True }}

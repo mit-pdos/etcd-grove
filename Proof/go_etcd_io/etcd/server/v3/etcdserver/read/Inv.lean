@@ -35,6 +35,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.read
 public import Perennial.Golang.Theory.Chan.Idioms.Idioms
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopChan
 public import Perennial.Proof.time
 public import Perennial.Proof.encoding.binary
 
@@ -171,14 +172,23 @@ def srvChanOkR (si : GoInterfaceOk) (m : GoString) (LR : IProp GF) : IProp GF :=
   iprop(□ {{ LR }} (App (Val #(methods si.ty m si.v)) (Val #()))
     {{ (ch : Loc), RET #ch; bcastChan ch iprop(True) ∗ LR }})
 
+/-- The method `m` of the server value `si` returns a buffered channel closed once, never sent on,
+with no content (`stopChan`: the `stopping` channel, `make(chan struct{}, 1)`; 2026-10-13, the
+request path's unit 4c: a broadcast channel, `bcastChan`, until then, which Perennial allocates only
+unbuffered). -/
+def srvStopOk (si : GoInterfaceOk) (m : GoString) : IProp GF :=
+  iprop(□ {{ True }} (App (Val #(methods si.ty m si.v)) (Val #()))
+    {{ (ch : Loc), RET #ch; stopChan ch }})
+
 /-- **The server's `Done()`** (persistent; what `LinearizableReadNotify` needs of the server). -/
 def srvDoneOk (srv : GoInterface) : IProp GF :=
   iprop(∃ si : GoInterfaceOk, ⌜srv = GoInterface.ok si⌝ ∗ srvChanOk si go!"Done")
 
 /-- **The `server` interface value `srv`** (persistent; unit 4b discharges it for `*EtcdServer`):
 * `Done()`, `Stopping()`, `LeaderChanged()`, `FirstCommitInTermNotify()`: channels closed, never
-  sent on, with no content (`bcastChan`); the last two with the caller's resource `LR` (given
-  back: they read-lock a notifier; 2026-10-13, unit 4b);
+  sent on, with no content (`bcastChan`; `Stopping()`'s buffered, `stopChan`: 2026-10-13, unit 4c);
+  the last two with the caller's resource `LR` (given back: they read-lock a notifier; 2026-10-13,
+  unit 4b);
 * `Logger()`: a non-nil `*zap.Logger`, for the caller's resource `LR` (the server's `lgMu` reader
   slot: `EtcdServer.Logger` read-locks it; and the two notifiers' reader slots), given back;
 * `AppliedIndex()`: an index the applied index has reached (`appliedAtLeast`);
@@ -190,7 +200,7 @@ def srvDoneOk (srv : GoInterface) : IProp GF :=
 * `RequestTimeout()`: some duration. -/
 def isReadServer (srv : GoInterface) (γr : ReadNames) (LR NR : IProp GF) : IProp GF :=
   iprop(srvDoneOk srv ∗ ∃ si : GoInterfaceOk, ⌜srv = GoInterface.ok si⌝ ∗
-    srvChanOk si go!"Stopping" ∗ srvChanOkR si go!"LeaderChanged" LR ∗
+    srvStopOk si go!"Stopping" ∗ srvChanOkR si go!"LeaderChanged" LR ∗
     srvChanOkR si go!"FirstCommitInTermNotify" LR ∗
     □ ({{ LR }} (App (Val #(methods si.ty go!"Logger" si.v)) (Val #()))
       {{ (l : Loc), RET #l; ⌜l ≠ null⌝ ∗ LR }}) ∗
@@ -209,6 +219,9 @@ instance srvChanOk_persistent (si : GoInterfaceOk) (m : GoString) :
 instance srvChanOkR_persistent (si : GoInterfaceOk) (m : GoString) (LR : IProp GF) :
     Persistent (srvChanOkR (GF := GF) si m LR) := by
   unfold srvChanOkR; infer_instance
+instance srvStopOk_persistent (si : GoInterfaceOk) (m : GoString) :
+    Persistent (srvStopOk (GF := GF) si m) := by
+  unfold srvStopOk; infer_instance
 instance srvDoneOk_persistent (srv : GoInterface) : Persistent (srvDoneOk (GF := GF) srv) := by
   unfold srvDoneOk; infer_instance
 instance isReadServer_persistent (srv : GoInterface) (γr : ReadNames) (LR NR : IProp GF) :

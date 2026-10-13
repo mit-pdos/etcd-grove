@@ -172,6 +172,9 @@ PROJECTS = [
             "go.etcd.io/etcd/server/v3/etcdserver/api",
             "go.etcd.io/etcd/server/v3/etcdserver/version",
             "go.etcd.io/etcd/api/v3/membershippb",
+            # names only: the version strings the server's `start` logs (the request path's
+            # unit 4c)
+            "go.etcd.io/etcd/api/v3/version",
             "go.etcd.io/etcd/api/v3/authpb",
             "github.com/Masterminds/semver/v3",
             "go.etcd.io/etcd/server/v3/etcdserver/errors",

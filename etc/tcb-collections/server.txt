@@ -12,16 +12,29 @@
 # and sendMergedSnap contracts: 61 -> 66.
 # Merged with the backend's unit 5 (mvcc's StoreNames names bbolt's four opaque predicates): 70.
 # Merged with the backend's unit 6 (2026-10-13): the union.
+# The request path's unit 4c (2026-10-13): run, start, Start (the FIFO scheduler's contract, the
+# names-only monitors, raftRequestAlarm): 93 axioms and mvcc's schedule.NewJob sorry before the
+# merge; merged with the backend's unit 6: the union, 141 axioms and that sorry.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/server.txt [--check [--update]]
 #
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/(Link|Results)\.lean$
-axiom EtcdServer.GoAttach.wp_proof
+axiom EtcdServer.Cleanup.wp_proof
+axiom EtcdServer.adjustTicks.wp_proof
 axiom EtcdServer.applyConfChange.wp_proof
 axiom EtcdServer.compactRaftLog.wp_proof
 axiom EtcdServer.createMergedSnapshotMessage.wp_proof
+axiom EtcdServer.monitorClusterVersions.wp_proof
+axiom EtcdServer.monitorCompactHash.wp_proof
+axiom EtcdServer.monitorDowngrade.wp_proof
+axiom EtcdServer.monitorKVHash.wp_proof
+axiom EtcdServer.monitorStorageVersion.wp_proof
+axiom EtcdServer.publishV3.wp_proof
+axiom EtcdServer.purgeFile.wp_proof
+axiom EtcdServer.raftRequestAlarm.wp_proof
+axiom EtcdServer.revokeExpiredLeases.wp_proof
 axiom EtcdServer.sendMergedSnap.wp_proof
 axiom EtcdServer.snapshot.wp_proof
 axiom EtcdServer.stopWithDelay.wp_proof
@@ -80,6 +93,7 @@ axiom bbolt.Tx.Stats_kv.wp_proof
 axiom config.ServerConfig.ReqTimeout.wp_proof
 axiom context.ErrDone.wp_proof
 axiom context.ValueStartTime.wp_proof
+axiom context.WithTimeoutBackground.wp_proof
 axiom context.WithValue.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom go_humanize.Bytes.wp_proof
@@ -87,8 +101,10 @@ axiom isConnectedSince.wp_proof
 axiom isConnectedToQuorumSince.wp_proof
 axiom membership.RaftCluster.ID.wp_proof
 axiom membership.RaftCluster.Members.wp_proof
+axiom monitorFileDescriptor.wp_proof
 axiom mvcc.store.restore.wp_proof
 axiom pbutil.MustUnmarshalMessage.wp_proof
+axiom prometheus.GaugeVec.With.wp_proof
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof
 axiom proto.Clone.wp_proof
 axiom proto.Marshal.wp_proof
@@ -96,9 +112,13 @@ axiom proto.MarshalIRR.wp_proof
 axiom proto.Size.wp_proof
 axiom proto.Unmarshal.wp_proof
 axiom schedule.NewFIFOScheduler.wp_proof
+axiom schedule.Scheduler.Schedule.wp_proof
+axiom schedule.Scheduler.Stop.wp_proof
+axiom semver.Version.String.wp_proof
 axiom sort.Stable.wp_proof
 axiom storage.BackendQuota.Cost.wp_proof
 axiom strconv.FormatBool.wp_proof
+axiom strconv.FormatUint.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Time.After.wp_proof
 axiom trace.SpanFromContext.wp_proof
@@ -108,6 +128,7 @@ axiom traceutil.Get.wp_proof
 axiom traceutil.Trace.AddField.wp_proof
 axiom traceutil.Trace.GetStartTime.wp_proof
 axiom traceutil.Trace.InsertStep.wp_proof
+axiom traceutil.Trace.LogAllStepsIfLong.wp_proof
 axiom traceutil.Trace.LogIfLong.wp_proof
 axiom traceutil.Trace.SetStartTime.wp_proof
 axiom traceutil.Trace.StartSubTrace.wp_proof
@@ -121,8 +142,11 @@ axiom txn.WarnOfExpensiveReadOnlyRangeRequest.wp_proof
 axiom txn.WarnOfExpensiveReadOnlyTxnRequest.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
+axiom types.ID.String.wp_proof
+axiom v2stats.ServerStats.BecomeLeader.wp_proof
 axiom verify.Assert.wp_proof
 axiom verify.Verify.wp_proof
+axiom version.Cluster.wp_proof
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof
 axiom zap.Int'.wp_proof
@@ -130,6 +154,7 @@ axiom zap.Int64.wp_proof
 axiom zap.Logger.Debug.wp_proof
 axiom zap.Logger.Error.wp_proof
 axiom zap.Logger.Fatal.wp_proof
+axiom zap.Logger.Info.wp_proof
 axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.Warn.wp_proof
 axiom zap.NewNop.wp_proof
@@ -137,3 +162,4 @@ axiom zap.Stack.wp_proof
 axiom zap.String.wp_proof
 axiom zap.Stringer.wp_proof
 axiom zap.Uint64.wp_proof
+sorry schedule.NewJob.wp_proof

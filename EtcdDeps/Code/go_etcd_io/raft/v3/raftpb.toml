@@ -14,6 +14,7 @@ translate = ["!*",
   "MessageType_MsgHup", "MessageType_MsgAppResp", "MessageType_MsgSnap", "MessageType_MsgHeartbeat",
   "MsgAppResp", "MsgSnap", "MsgHeartbeat",
   "Snapshot", "Snapshot.GetMetadata", "SnapshotMetadata", "SnapshotMetadata.GetIndex",
+  "SnapshotMetadata.GetTerm",
   "HardState", "HardState.GetTerm", "HardState.GetVote", "HardState.GetCommit"]
 imports = ["!*", "google.golang.org/protobuf/runtime/protoimpl"]
 
