@@ -12,7 +12,9 @@ the cache's (`cache/v3/Base.lean`: `zap`) and Perennial's (`bytes`, `errors`, `f
 instance's well-formedness needs those of every package it imports.
 
 As in those, the package facts are assumptions about package initialization, not proved from
-`initialize'`; they are `True`.
+`initialize'`; they are `True`, but for bbolt's `errors` (`bboltErrorsInit`: `ErrBucketNotFound`,
+an `errors.New` error) and the backend's (`backendInit`: the commit's prometheus histograms),
+2026-10-12, the backend's unit 2.
 -/
 module
 
@@ -67,8 +69,17 @@ end go_etcd_io.bbolt
 
 namespace go_etcd_io.bbolt.errors
 
+/-- bbolt's `errors` package facts: `ErrBucketNotFound` (`errors.New("bucket not found")`, which
+`DeleteBucket` returns and the backend compares with `errors.Is`) is a fixed `errors.New` error: a
+pointer error, a leaf of an error tree, with no `Is` method (`*errorString` has only `Error`;
+the model's method sets are uninterpreted, so this is stated, as `apply`'s `errLeaf`). -/
+abbrev bboltErrorsInit : IProp GF :=
+  iprop(∃ e : GoInterfaceOk, globalAddr ErrBucketNotFound ↦□ GoInterface.ok e ∗
+    ⌜_root_.Perennial.errors.IsPointerError e ∧ _root_.Perennial.errors.isLeafError e ∧
+      methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool])⌝)
+
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.bbolt.errors :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init bboltErrorsInit
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.bbolt.errors :=
   build_get_is_pkg_init_wf
 
@@ -99,8 +110,25 @@ end github_com.prometheus.client_golang.prometheus
 
 namespace go_etcd_io.etcd.server.v3.storage.backend
 
+/-- A prometheus `Histogram` as the backend uses it: `Observe(x)` returns (metrics have no effect
+the model sees). -/
+def histSpec (h : GoInterfaceOk) : IProp GF :=
+  iprop(□ (∀ x : w64, {{ True }} (App (Val #(methods h.ty go!"Observe" h.v)) (Val #x))
+    {{ RET #(); True }}))
+
+instance histSpec_persistent (h : GoInterfaceOk) : Persistent (histSpec (GF := GF) h) := by
+  unfold histSpec; infer_instance
+
+/-- The backend's package facts: the commit's histograms of `metrics.go` (`rebalanceSec`,
+`spillSec`, `writeSec`, `commitSec`), each a fixed interface value whose `Observe` returns. -/
+abbrev backendInit : IProp GF :=
+  iprop((∃ h : GoInterfaceOk, globalAddr rebalanceSec ↦□ GoInterface.ok h ∗ histSpec h) ∗
+    (∃ h : GoInterfaceOk, globalAddr spillSec ↦□ GoInterface.ok h ∗ histSpec h) ∗
+    (∃ h : GoInterfaceOk, globalAddr writeSec ↦□ GoInterface.ok h ∗ histSpec h) ∗
+    (∃ h : GoInterfaceOk, globalAddr commitSec ↦□ GoInterface.ok h ∗ histSpec h))
+
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init backendInit
 instance get_isPkgInit_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend :=
   build_get_is_pkg_init_wf

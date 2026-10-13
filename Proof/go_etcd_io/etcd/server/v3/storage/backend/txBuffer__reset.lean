@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- The loop's invariant: before the `i`-th key, the buckets map is `P'` with entries `B'`; the
 keys visited are as `bksReset B` has them, the others as they were. -/
-def resetInv (txb : Loc) (m : GoMap) (P : BksPhys) (B : GMap w64 (List Ent)) (txb_ptr k_ptr v_ptr : Loc)
+def backend.resetInv (txb : Loc) (m : GoMap) (P : BksPhys) (B : GMap w64 (List Ent)) (txb_ptr k_ptr v_ptr : Loc)
     (keys : List w64) (i : Nat) (m' : GMap w64 Loc) : IProp GF :=
   iprop(∃ (P' : BksPhys) (B' : GMap w64 (List Ent)) (kv : w64) (vv : Loc),
     "%Hm'" ∷ ⌜m' = P'.fmap Prod.fst⌝ ∗
@@ -38,7 +38,7 @@ def resetInv (txb : Loc) (m : GoMap) (P : BksPhys) (B : GMap w64 (List Ent)) (tx
     "%Hdone" ∷ ⌜∀ j, j ∈ keys.take i → B' !! j = bksReset B !! j⌝ ∗
     "%Hrest" ∷ ⌜∀ j, j ∉ keys.take i → B' !! j = B !! j ∧ P' !! j = P !! j⌝)
 
-theorem bksReset_lookup (B : GMap w64 (List Ent)) (j : w64) :
+theorem backend.bksReset_lookup (B : GMap w64 (List Ent)) (j : w64) :
     bksReset B !! j = ((B !! j).filter (fun es => !es.isEmpty)).map (fun _ => []) := by
   simp [bksReset, GMap.lookup_fmap, GMap.lookup_filter]
 

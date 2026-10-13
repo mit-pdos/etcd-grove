@@ -72,5 +72,14 @@ unit 0; not filed).
 [etcd-apply-authstatus-metric-label](etcd-apply-authstatus-metric-label.md): `dispatch` does not
 set `op` for `AuthStatus`, whose apply latency is recorded under `op="unknown"` (a wrong metric
 label; found 2026-10-12, apply unit 2; not filed).
+[etcd-backend-duplicate-put-stale-read](etcd-backend-duplicate-put-stale-read.md): two puts of one
+key in one batch session leave both in the backend's read buffer, and `ReadTx` returns the older
+value (an unstated precondition of `UnsafePut`; reproduced; no etcd caller known to break it;
+found 2026-10-12, backend unit 1; not filed).
+[etcd-backend-read-buffer-cache-stale-after-commit](etcd-backend-read-buffer-cache-stale-after-commit.md):
+`ConcurrentReadTx`'s buffer cache is keyed by a version a commit does not change, so after a
+commit it can serve a deleted key (a reader in `Unlock`'s window) or an old value of a key the
+pre-commit hook rewrote (deterministic); no wrong mvcc result known (reproduced twice; found
+2026-10-12, backend unit 2; not filed).
 Leads not yet assessed: the gRPC proxy's cache (`server/proxy/grpcproxy/cache/store.go`) builds
 its intervals as `checkIntervals` did, so a cached from-key range may never be invalidated.

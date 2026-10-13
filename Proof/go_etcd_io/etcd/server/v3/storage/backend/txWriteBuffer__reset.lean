@@ -19,13 +19,13 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend backend
 
-theorem WBuf.reset_seq_lookup (W : WBuf) (id : w64) :
+theorem backend.WBuf.reset_seq_lookup (W : WBuf) (id : w64) :
     W.reset.seq !! id =
       ((W.seq !! id).filter (fun _ => decide (id ∈ bksReset W.bks))).map (fun _ => true) := by
   simp [WBuf.reset]
 
 /-- The loop's invariant after one more key. -/
-theorem reset_step {W : WBuf} {m' m'' : GMap w64 Bool} {pre : List w64} {key : w64}
+theorem backend.reset_step {W : WBuf} {m' m'' : GMap w64 Bool} {pre : List w64} {key : w64}
     (Hm' : ∀ id, m' !! id = if id ∈ pre then W.reset.seq !! id else W.seq !! id)
     (Hkey : m'' !! key = W.reset.seq !! key) (Hne : ∀ id, id ≠ key → m'' !! id = m' !! id) :
     ∀ id, m'' !! id = if id ∈ pre ++ [key] then W.reset.seq !! id else W.seq !! id := by

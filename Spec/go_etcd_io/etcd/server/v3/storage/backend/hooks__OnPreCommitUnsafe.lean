@@ -28,7 +28,7 @@ abbrev backend.hooks.OnPreCommitUnsafe.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (WR : IProp GF) (b t : Loc) (h : hooks) (st : BSess),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ hookFnSpec γ P WR b t h.onPreCommitUnsafe' ∗ batchLocked γ P b st ∗ WR }}
     (App (Val (h @!! hooks.ty @!! go!"OnPreCommitUnsafe"))
-      (Val #(interface.mk (go.GoType.PointerType batchTxBuffered.ty) #t)))
+      (Val #(interface.mkOk (go.GoType.PointerType batchTxBuffered.ty) #t)))
   {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ WR ∗ ⌜hookStep P st st'⌝ }}
 
 end spec

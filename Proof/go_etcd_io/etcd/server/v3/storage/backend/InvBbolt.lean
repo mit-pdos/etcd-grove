@@ -7,7 +7,8 @@ the views".
 **Data.** A database is its top-level buckets' contents (`Data`, etcd has no nested buckets);
 a bucket's cursor order is its sorted entry list (`bktEnts`).
 
-**Predicates** (axioms, as the btree's `ownBTree` was before the btree was verified):
+**Predicates** (axioms, as the btree's `ownBTree` was before the btree was verified; all timeless,
+as ownership of or knowledge about bbolt's memory is):
 - `ownDB db γ D`: the open database `db`, committed data `D` (exclusive); `wrTok γ`: the right
   to begin the write transaction; `isDB db`: `db` is an open database (persistent).
 - `txLive tx q`: the transaction `tx` is open (fractional): the memory its reads point into is
@@ -98,10 +99,39 @@ axiom fileHolds (path : GoString) (D : Data) : IProp GF
 @[instance] axiom txDB_persistent (tx db : Loc) : Persistent (txDB (GF := GF) tx db)
 @[instance] axiom txLive_fractional (tx : Loc) : Fractional (txLive (GF := GF) tx)
 
+/-- A read transaction's statistics are exclusive. -/
+axiom rtxStats_excl (tx : Loc) : rtxStats (GF := GF) tx ∗ rtxStats tx ⊢ False
+
+/-! Every predicate is timeless: each is ownership of, or knowledge about, bbolt's memory (pages,
+the memory map, the transaction's fields), as a points-to is. -/
+@[instance] axiom ownDB_timeless (db : Loc) (γ : DBNames) (D : Data) :
+  Timeless (ownDB (GF := GF) db γ D)
+@[instance] axiom wrTok_timeless (γ : DBNames) : Timeless (wrTok (GF := GF) γ)
+@[instance] axiom isDB_timeless (db : Loc) : Timeless (isDB (GF := GF) db)
+@[instance] axiom txLive_timeless (tx : Loc) (q : Qp) : Timeless (txLive (GF := GF) tx q)
+@[instance] axiom txBytes_timeless (tx : Loc) (s : GoSlice) (b : GoString) :
+  Timeless (txBytes (GF := GF) tx s b)
+@[instance] axiom rtxSnap_timeless (tx : Loc) (D : Data) : Timeless (rtxSnap (GF := GF) tx D)
+@[instance] axiom rtxStats_timeless (tx : Loc) : Timeless (rtxStats (GF := GF) tx)
+@[instance] axiom rBkt_timeless (tx b : Loc) (es : List Ent) : Timeless (rBkt (GF := GF) tx b es)
+@[instance] axiom ownWTx_timeless (tx : Loc) (γ : DBNames) (D S : Data) :
+  Timeless (ownWTx (GF := GF) tx γ D S)
+@[instance] axiom wBkt_timeless (tx b : Loc) (n : GoString) : Timeless (wBkt (GF := GF) tx b n)
+@[instance] axiom ownCur_timeless (tx c : Loc) (es : List Ent) (pos : Option Nat) :
+  Timeless (ownCur (GF := GF) tx c es pos)
+@[instance] axiom txDone_timeless (tx : Loc) : Timeless (txDone (GF := GF) tx)
+@[instance] axiom txDB_timeless (tx db : Loc) : Timeless (txDB (GF := GF) tx db)
+@[instance] axiom fileHolds_timeless (path : GoString) (D : Data) :
+  Timeless (fileHolds (GF := GF) path D)
+
 /-- A transaction's slice is read while the transaction is open. -/
 axiom txBytes_acc (tx : Loc) (s : GoSlice) (b : GoString) (q : Qp) :
   txBytes (GF := GF) tx s b ∗ txLive tx q ⊢
     ∃ dq : DFrac, s ↦*{dq} b ∗ (s ↦*{dq} b -∗ txLive tx q)
+
+/-- An open transaction is a non-nil `*Tx` (`DB.Begin` returns one with a nil error; the
+backend's `t.tx != nil` and `readTx.tx != nil` checks rely on it). -/
+axiom txLive_nonnull (tx : Loc) (q : Qp) : txLive (GF := GF) tx q ⊢ ⌜tx ≠ Loc.null⌝
 
 /-- The write transaction is open. -/
 axiom ownWTx_live (tx : Loc) (γ : DBNames) (D S : Data) :

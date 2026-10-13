@@ -28,7 +28,7 @@ abbrev backend.backend.BatchTx.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (WR : IProp GF) (b : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P WR b }}
     (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"BatchTx")) (Val #()))
-  {{ (t : Loc), RET #(interface.mk (go.GoType.PointerType batchTxBuffered.ty) #t);
+  {{ (t : Loc), RET #(interface.mkOk (go.GoType.PointerType batchTxBuffered.ty) #t);
       bF go!"batchTx" b ↦□ t }}
 
 end spec

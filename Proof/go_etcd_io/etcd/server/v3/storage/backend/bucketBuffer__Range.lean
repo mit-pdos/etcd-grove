@@ -25,12 +25,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- `Range`'s search predicate on the entries: the `i`-th key is not below `key`. -/
-def rangePred (es : List Ent) (key : GoString) (i : Int) : Bool :=
+def backend.rangePred (es : List Ent) (key : GoString) (i : Int) : Bool :=
   match es[i.toNat]? with
   | some e => !decide (strLt e.1 key)
   | none => true
 
-theorem rangePred_mono (es : List Ent) (key : GoString) (hs : entsSorted es) :
+theorem backend.rangePred_mono (es : List Ent) (key : GoString) (hs : entsSorted es) :
     sort.IsMonoPred (rangePred es key) es.length := by
   intro i j ⟨hi, hij, hj⟩ hfi
   have hil : i.toNat < es.length := by omega
@@ -45,13 +45,13 @@ theorem rangePred_mono (es : List Ent) (key : GoString) (hs : entsSorted es) :
     List.pairwise_iff_getElem.mp hs _ _ hil hjl (by omega)
   exact strLt_trans hlt hj'
 
-theorem slicesAre_length (ss : List GoSlice) (bs : List GoString) :
+theorem backend.slicesAre_length (ss : List GoSlice) (bs : List GoString) :
     slicesAre (GF := GF) ss bs ⊢ ⌜ss.length = bs.length⌝ := by
   unfold slicesAre; iintro ⟨%H, _⟩; ipureintro; exact H
 
 /-- `Range`'s results at the exit of its loop: the first `m` entries from `idx`, all below
 `endKey`, and the loop stopped at the end, at an entry not below `endKey`, or at `limit`. -/
-theorem range_finish (L : List Ent) (eb : GoString) (m lim : Nat) (ks vs : GoSlice)
+theorem backend.range_finish (L : List Ent) (eb : GoString) (m lim : Nat) (ks vs : GoSlice)
     (kl vl : List GoSlice)
     (hall : ∀ (k : Nat) (x : Ent), k < m → L[k]? = some x → decide (strLt x.1 eb) = true)
     (hle : m ≤ lim)

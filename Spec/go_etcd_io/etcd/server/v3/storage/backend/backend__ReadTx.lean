@@ -28,7 +28,7 @@ abbrev backend.backend.ReadTx.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (WR : IProp GF) (b : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P WR b }}
     (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"ReadTx")) (Val #()))
-  {{ (rt : Loc), RET #(interface.mk (go.GoType.PointerType readTx.ty) #rt);
+  {{ (rt : Loc), RET #(interface.mkOk (go.GoType.PointerType readTx.ty) #rt);
       bF go!"readTx" b ↦□ rt }}
 
 end spec

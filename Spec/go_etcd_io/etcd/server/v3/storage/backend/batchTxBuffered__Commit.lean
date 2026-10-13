@@ -3,6 +3,8 @@
 resource); the readers' view unchanged.
 Lean-first (no Rocq counterpart); see `InvBackend.lean` and `notes/decisions.md`, "The backend:
 the buffers, bbolt as a key-value contract, the locks and the views".
+(2026-10-12: a write-back's budget token pays for the commit: a commit leaves the hook's
+puts in the write buffer, and the token budget bounds how many accumulate before a write-back.)
 -/
 module
 
@@ -28,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 resource); the readers' view unchanged. -/
 abbrev backend.batchTxBuffered.Commit.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (WR : IProp GF) (b : Loc) (t : Loc) (qo : Qp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P WR b ∗ bF go!"batchTx" b ↦□ t ∗ bOpen γ qo }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P WR b ∗ bF go!"batchTx" b ↦□ t ∗ bOpen γ qo ∗ wbTok γ }}
     (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"Commit")) (Val #()))
   {{ RET #(); bOpen γ qo }}
 

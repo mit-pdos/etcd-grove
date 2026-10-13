@@ -32,7 +32,7 @@ abbrev backend.backend.ConcurrentReadTx.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (WR : IProp GF) (b : Loc) (q qo : Qp) (vd : VData),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P WR b ∗ rdTok γ P b ∗ bView γ q vd ∗ bOpen γ qo }}
     (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"ConcurrentReadTx")) (Val #()))
-  {{ (crt rtx : Loc) (rv : RView), RET #(interface.mk (go.GoType.PointerType concurrentReadTx.ty) #crt);
+  {{ (crt rtx : Loc) (rv : RView), RET #(interface.mkOk (go.GoType.PointerType concurrentReadTx.ty) #crt);
       crtSnap γ P b crt rtx rv ∗ ⌜vData P rv = vd⌝ ∗ (crTok γ b -∗ rdTok γ P b) ∗ bView γ q vd ∗
       bOpen γ qo }}
 

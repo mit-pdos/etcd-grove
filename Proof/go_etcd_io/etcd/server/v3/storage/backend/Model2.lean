@@ -16,9 +16,11 @@ contents `S`, while no delete is pending, are the committed data with the read b
 write buffer over it. `agreeOff HB f g`: the two views agree except on the hook's buckets `HB`.
 
 **The batch transaction's state** (`BSess`): committed data `C`, writer contents `S`, read and
-write buffers, `pending` and `pendingDeleteOperations`. `sessWf` holds always; `freeOk` when the
-lock is free (no delete pending, `pending` below the limit, the write buffer empty but for the
-hook's buckets: the leftovers of the last commit's hook).
+write buffers, `pending` and `pendingDeleteOperations`, and bbolt's write transaction `tx` (only a
+commit changes it: the slices a range of the writer returns are valid while it is the same).
+`sessWf` holds always; `freeOk` when the lock is free (no delete pending, `pending` below the
+limit, the write buffer empty but for the hook's buckets: the leftovers of the last commit's
+hook).
 -/
 module
 
@@ -48,7 +50,7 @@ structure BParams where
 buffers do not overflow (`bufBound`), the hook's puts few. -/
 def BParams.Wf (P : BParams) : Prop :=
   (∀ n1 n2 i, P.BT.lookup n1 = some i → P.BT.lookup n2 = some i → n1 = n2) ∧
-  0 < sint.Z P.limit ∧ sint.Z P.limit ≤ 2 ^ 57 ∧ P.hookMax ≤ 2 ^ 57
+  0 < sint.Z P.limit ∧ sint.Z P.limit ≤ 2 ^ 57 ∧ P.hookMax ≤ 2 ^ 16
 
 /-- A bucket of the table. -/
 def BParams.has (P : BParams) (bi : BucketInfo) : Prop := P.BT.lookup bi.name = some bi.id
@@ -67,6 +69,16 @@ def ovB (BT : GMap GoString w64) (B : GMap w64 (List Ent)) (base : VFun) : VFun 
 def agreeOff (HB : GoString → Bool) (f g : VFun) : Prop :=
   ∀ n, HB n = false → ∀ k, f n k = g n k
 
+/-- The batch lock's ghost counters of a state (`bgOk`): `k` paid commits and `c` commits since
+the last write-back, `p0` the pending count at the last write-back, `e` the hook's leftovers moved
+into the read buffer since the last commit. Ghost data: the session's operations and the hook keep
+them; only the batch transaction's own `Unlock` and commit change them. -/
+structure BCnt where
+  k : Nat
+  c : Nat
+  p0 : Nat
+  e : Nat
+
 /-- The batch transaction's state. -/
 structure BSess where
   C : Data
@@ -75,6 +87,8 @@ structure BSess where
   W : WBuf
   pend : w64
   ndel : w64
+  tx : Loc
+  cnt : BCnt
 
 /-- What the readers see of a state: the committed data with the read buffer over it. -/
 def viewOf (P : BParams) (st : BSess) : VFun := ovB P.BT st.R.bks (dget st.C)
@@ -152,8 +166,7 @@ def idsOk (P : BParams) (B : GMap w64 (List Ent)) : Prop :=
 def sessWf (P : BParams) (st : BSess) : Prop :=
   st.W.Wf ∧ st.R.Wf ∧ idsOk P st.W.bks ∧ idsOk P st.R.bks ∧
   0 ≤ sint.Z st.pend ∧ sint.Z st.pend < 2 ^ 58 ∧ 0 ≤ sint.Z st.ndel ∧
-  (∀ i, (bkOf st.R.bks i).length ≤ sint.nat st.pend + P.hookMax ∧
-    (bkOf st.W.bks i).length ≤ sint.nat st.pend + P.hookMax) ∧
+  sint.Z st.ndel ≤ sint.Z st.pend ∧
   (st.pend = W64 0 → ∀ i, bkOf st.R.bks i = []) ∧
   (st.ndel = W64 0 → agreeOff P.HB (dget st.S) (ovB P.BT st.W.bks (viewOf P st)))
 
@@ -161,6 +174,24 @@ def sessWf (P : BParams) (st : BSess) : Prop :=
 def freeOk (P : BParams) (st : BSess) : Prop :=
   sessWf P st ∧ sint.Z st.pend < sint.Z P.limit ∧ st.ndel = W64 0 ∧
   ∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []
+
+/-- The buffers' sizes, bounded through the batch lock's ghost counters (`st.cnt`, and `n` the
+write-back tokens out, `w` the write-backs so far, `u` the write-back after which the `run`
+goroutine's last unpaid commit came: at most one unpaid commit after each write-back). A commit
+does not write the write buffer back: the hook's puts stay in it (at most `hookMax` a commit,
+`c` of them since the last write-back); its other entries since the last write-back are puts
+(`pend - p0`). `free`: the lock is free (every session's puts written back: `p0 = pend`; a
+pending operation means a write-back since `run`'s last unpaid commit). -/
+def bgOk (P : BParams) (st : BSess) (free : Bool) (n w u : Nat) : Prop :=
+  uint.Z st.R.ver + n + st.cnt.k < 2 ^ 40 ∧ u ≤ w ∧
+  st.cnt.c ≤ st.cnt.k + 1 + (if u = w then 1 else 0) ∧
+  st.cnt.p0 ≤ sint.nat st.pend ∧ (st.cnt.e = 0 ∨ st.cnt.c = 0) ∧
+  st.cnt.e ≤ P.hookMax * (2 ^ 40 + 2) ∧
+  (∀ i, (bkOf st.W.bks i).length ≤ sint.nat st.pend - st.cnt.p0 + P.hookMax * st.cnt.c ∧
+    (bkOf st.R.bks i).length ≤ st.cnt.p0 + st.cnt.e) ∧
+  (∀ nm i, P.BT.lookup nm = some i → P.HB nm = false →
+    (bkOf st.W.bks i).length ≤ sint.nat st.pend - st.cnt.p0) ∧
+  (free = true → st.cnt.p0 = sint.nat st.pend ∧ (st.pend ≠ W64 0 → u < w))
 
 end backend
 end EtcdGrove
@@ -200,12 +231,14 @@ def BSess.delBucket (st : BSess) (bi : BucketInfo) : BSess :=
 
 /-- One run of the pre-commit hook, from `st` to `st'`: the committed data and the read buffer
 untouched, the writer's contents changed only in the hook's buckets, the write buffer's
-other buckets untouched, at most `hookMax` operations more. -/
+other buckets untouched, at most `hookMax` operations more, bbolt's write transaction and the
+batch lock's ghost counters unchanged (the hook only calls the batch transaction's operations,
+which keep them). -/
 def hookStep (P : BParams) (st st' : BSess) : Prop :=
   st'.C = st.C ∧ st'.R = st.R ∧ sData P st'.S = sData P st.S ∧
   (∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st'.W.bks i = bkOf st.W.bks i) ∧
   sint.Z st.pend ≤ sint.Z st'.pend ∧ sint.Z st'.pend ≤ sint.Z st.pend + P.hookMax ∧
-  sint.Z st.ndel ≤ sint.Z st'.ndel
+  sint.Z st.ndel ≤ sint.Z st'.ndel ∧ st'.tx = st.tx ∧ st'.cnt = st.cnt
 
 /-! ## Ranges -/
 

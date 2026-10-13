@@ -3715,3 +3715,49 @@ btree's `ownBTree` was, "store: btree as the trust boundary"), the functions' sp
   interval) holds each interval's buckets map and `rtxStats`, in a ghost map of the intervals.
   The cache (`txReadBufferCache`, its own mutex) holds a persistent copy and its version, valid
   for the current version outside `Unlock`.
+
+### The backend's proofs: what changed from the plan (2026-10-13 · adopted)
+
+Units 2 and 3 carried the plan out (`STATUS.md`, "The backend"); the proofs changed it here:
+
+- **The view is a finite map.** `γ.view` holds `vData P (C, R)` (the readers' lookups off the
+  hook's buckets as a `GMap`), not the pair: the `run` goroutine's commits move entries from the
+  read buffer into bbolt without a client, and leave `vData` unchanged. A second ghost variable
+  `γ.rvs` (halves: the batch lock, `readTx.mu`) holds the pair itself and whether an `Unlock`'s
+  window is open, so the batch side knows its `C`, `R` are the readers'. The commit flips the
+  window flag off while the hook runs (readers are locked out), so a hook sees an ordinary
+  `batchLocked`.
+- **`Unlock` takes the client's resource up front** (`∃ vd, bView γ 1 vd ∗ WR ∗ (bView γ 1
+  (sData P S) -∗ Q)`): the commit's hook needs `WR` before the new view exists. The other case
+  (`freeOk`: the session wrote nothing the readers see) needs only `WR`.
+- **The write buffer's bound.** The hook's puts stay in the write buffer across commits (a commit
+  does not write back), and `pending` restarts at 0, so a `pending`-based bound fails after
+  repeated commits. The batch state carries ghost counters (`BCnt`: commits since the last
+  write-back and others, data so the hook cannot change them); a client's `Commit`/
+  `ForceCommit` costs a `wbTok`; the commit inside an `Unlock` is free; the `run` goroutine's
+  commit is unpaid but happens at most once per write-back (`γ.used`, `γ.wbc`); the budget stays
+  below `2^40`, `hookMax ≤ 2^16`, so the bound `pend + (k + 1) · hookMax` is far below `bufBound`.
+  The hook's own puts must meet `UnsafePut`'s no-duplicate premise: etcd's consistent-index hook
+  re-puts the same keys at every commit, so two commits with no write-back between violate it.
+  In Go this is harmless (the second commit's reset drops the read buffer's emptied bucket, and
+  the next write-back deduplicates it: `issues/etcd-backend-duplicate-put-stale-read.md`), but a
+  proof of the server's hook against this contract has to avoid it or the premise must weaken.
+- **The bbolt contract gained** Timeless instances for its predicates, `rtxStats_excl` and
+  `txLive_nonnull` (a live transaction is not nil: `t.tx != nil` decides the code's branches).
+- **The intervals.** Each interval's buckets map is exchanged, at fractions, against `txMu`'s
+  token (`intvInv`); its `WaitGroup` protocol has an authority for the readers' budget (the
+  `int32` counter's bound), a finished state and a per-interval token, so the rollback goroutine's
+  `Wait` gets the whole transaction back.
+- **The cache** has poison marks for the window (a reader cannot mark a state while the clients'
+  half of the view is deposited; `bView` also holds half of `γ.cvw` for this).
+- **Stopping.** `bOpen` carries a close right (`γ.cls`); `Close` deposits it with the clients'
+  half of `γ.opn` in a stop invariant over two broadcast channels (`isStopChans`, at
+  `HasLC.hasLC`: Perennial's broadcast channels need later credits, so `Close`'s and `run`'s specs
+  are stated there and `isBackend` stays generic); `run`, woken by `stopc`, gathers the whole open
+  token for `CommitAndStop`, which leaves the persistent `bStopped`.
+- **The lock checks** (`verify.go`'s `ValidateCalled*`) are axioms that return: a deployment
+  assumption (`ETCD_VERIFY` lock checks off), stated in their Spec files.
+- **Not proved**: `New`/`NewDefaultBackend`/`newBackend` (bbolt's `Options` is an axiomatized type:
+  Perennial's `os.FileMode` alias), so the invariants' allocation is assumed by whoever creates
+  `isBackend`; `batchTx.Commit`/`CommitAndStop` (dead: `batchTxBuffered` overrides them);
+  `UnsafeForEach` (three functions), the snapshot, the hash and defragmentation.
