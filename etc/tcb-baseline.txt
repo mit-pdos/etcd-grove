@@ -1,8 +1,18 @@
 # This repository's part of the proofs' trust base (etc/tcb-report.py --check --update).
-axiom EtcdServer.GoAttach.wp_proof
+axiom EtcdServer.Cleanup.wp_proof
+axiom EtcdServer.adjustTicks.wp_proof
 axiom EtcdServer.applyConfChange.wp_proof
 axiom EtcdServer.compactRaftLog.wp_proof
 axiom EtcdServer.createMergedSnapshotMessage.wp_proof
+axiom EtcdServer.monitorClusterVersions.wp_proof
+axiom EtcdServer.monitorCompactHash.wp_proof
+axiom EtcdServer.monitorDowngrade.wp_proof
+axiom EtcdServer.monitorKVHash.wp_proof
+axiom EtcdServer.monitorStorageVersion.wp_proof
+axiom EtcdServer.publishV3.wp_proof
+axiom EtcdServer.purgeFile.wp_proof
+axiom EtcdServer.raftRequestAlarm.wp_proof
+axiom EtcdServer.revokeExpiredLeases.wp_proof
 axiom EtcdServer.sendMergedSnap.wp_proof
 axiom EtcdServer.snapshot.wp_proof
 axiom EtcdServer.stopWithDelay.wp_proof
@@ -94,6 +104,7 @@ axiom isConnectedSince.wp_proof
 axiom isConnectedToQuorumSince.wp_proof
 axiom membership.RaftCluster.ID.wp_proof
 axiom membership.RaftCluster.Members.wp_proof
+axiom monitorFileDescriptor.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
 axiom mvcc.kvHasher.Hash.wp_proof
 axiom mvcc.kvHasher.WriteKeyValue.wp_proof
@@ -101,6 +112,7 @@ axiom mvcc.newKVHasher.wp_proof
 axiom mvcc.store.Close.wp_proof
 axiom mvcc.store.restore.wp_proof
 axiom pbutil.MustUnmarshalMessage.wp_proof
+axiom prometheus.GaugeVec.With.wp_proof
 axiom prometheus.GaugeVec.WithLabelValues.wp_proof
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof
 axiom proto.Clone.wp_proof
@@ -112,6 +124,7 @@ axiom reflect.DeepEqual.wp_proof
 axiom rpctypes.Error.wp_proof
 axiom schedule.NewFIFOScheduler.wp_proof
 axiom schedule.Scheduler.Schedule.wp_proof
+axiom schedule.Scheduler.Stop.wp_proof
 axiom semver.MustParse.wp_proof
 axiom semver.Version.LessThan.wp_proof
 axiom semver.Version.String.wp_proof
@@ -152,8 +165,10 @@ axiom txn.WarnOfExpensiveReadOnlyTxnRequest.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
 axiom types.ID.String.wp_proof
+axiom v2stats.ServerStats.BecomeLeader.wp_proof
 axiom verify.Assert.wp_proof
 axiom verify.Verify.wp_proof
+axiom version.Cluster.wp_proof
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof
 axiom zap.Int'.wp_proof

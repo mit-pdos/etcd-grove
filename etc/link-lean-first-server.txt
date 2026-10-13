@@ -258,3 +258,28 @@ schedule_NewJob:
 schedule_Scheduler__Schedule:
 schedule_Scheduler__Stop:
 EtcdServer__run: EtcdServer__applyAll EtcdServer__Logger SnapshotMetadata__GetIndex SnapshotMetadata__GetTerm schedule_NewFIFOScheduler EtcdServer__getLead EtcdServer__setLead EtcdServer__isLeader Notifier__Notify v2stats_ServerStats__BecomeLeader EtcdServer__getCommittedIndex EtcdServer__setCommittedIndex raftNode__start raftNode__apply schedule_NewJob schedule_Scheduler__Schedule EtcdServer__revokeExpiredLeases zap_Error zap_Logger__Warn schedule_Scheduler__Stop raftNode__stop EtcdServer__Cleanup
+# The server's `start` and `Start` (server.go; the request path's unit 4c, see InvStart.lean):
+# `start` with its body (the registries, the channels, the context, the read loop's `*Read`, the
+# leader-change notifier, `GoAttach`'s protocol, `go s.run()`); `Start` with its body (`start`,
+# then ten goroutines through `GoAttach`: the read loop, verified, and nine names-only monitors);
+# the trust boundary (`axiom … .wp_proof`): the monitors, `version.Cluster`, prometheus'
+# `GaugeVec.With`; `ClusterVersion()` is a contract of the construction premise
+# (`clusterVersionOk`). The read package's `NewRead` and `LinearizableReadLoop` are its Link's.
+zap_Logger__Info:
+types_ID__String:
+Version__String:
+version_Cluster:
+prometheus_GaugeVec__With:
+EtcdServer__adjustTicks:
+EtcdServer__publishV3:
+EtcdServer__purgeFile:
+monitorFileDescriptor:
+EtcdServer__monitorClusterVersions:
+EtcdServer__monitorStorageVersion:
+EtcdServer__monitorKVHash:
+EtcdServer__monitorCompactHash:
+EtcdServer__monitorDowngrade:
+read_NewRead: @
+read_Read__LinearizableReadLoop: @
+EtcdServer__start: EtcdServer__Logger zap_Logger__Info zap_String zap_Uint64 wait_New wait_NewTimeList wait_timeList__Wait wait_timeList__Trigger read_NewRead NewNotifier EtcdServer__MemberID EtcdServer__Cluster membership_RaftCluster__ID types_ID__String Version__String version_Cluster prometheus_GaugeVec__With EtcdServer__run EtcdServer__ApplyWait EtcdServer__Done EtcdServer__Stopping EtcdServer__LeaderChanged EtcdServer__FirstCommitInTermNotify EtcdServer__NextRequestID EtcdServer__RequestTimeout EtcdServer__AppliedIndex raftNode__ReadState raftNode__ReadIndex
+EtcdServer__Start: EtcdServer__start EtcdServer__GoAttach EtcdServer__Logger EtcdServer__adjustTicks EtcdServer__publishV3 config_ServerConfig__ReqTimeout EtcdServer__purgeFile monitorFileDescriptor EtcdServer__monitorClusterVersions EtcdServer__monitorStorageVersion read_Read__LinearizableReadLoop EtcdServer__monitorKVHash EtcdServer__monitorCompactHash EtcdServer__monitorDowngrade

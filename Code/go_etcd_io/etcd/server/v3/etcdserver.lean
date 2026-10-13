@@ -248,9 +248,11 @@ axiom maxSizePerMsg [FfiSyntax] [GoGlobalContext] : val
 
 axiom maxInflightMsgs [FfiSyntax] [GoGlobalContext] : val
 
-axiom DefaultSnapshotCount [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def DefaultSnapshotCount [FfiSyntax] [GoGlobalContext] : val :=
+  #(10000 : Int)
 
-axiom DefaultSnapshotCatchUpEntries [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def DefaultSnapshotCatchUpEntries [FfiSyntax] [GoGlobalContext] : val :=
+  #(W64 5000)
 
 axiom StoreClusterPrefix [FfiSyntax] [GoGlobalContext] : val
 
