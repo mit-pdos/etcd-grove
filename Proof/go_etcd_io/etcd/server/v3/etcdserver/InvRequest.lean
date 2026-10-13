@@ -438,6 +438,13 @@ instance srvCommittedInv_persistent (s : Loc) (γr : ReadNames) :
 def srvCommittedOwn (γr : ReadNames) (v : w64) : IProp GF :=
   monoNatAuthOwn γr.committed (1 : Qp).half (uint.nat v)
 
+/-- The committed index's writer half, if the caller holds it (`some v`): what
+`getCommittedIndex` may take, to learn the index is exactly `v` (2026-10-13, the request path's
+unit 4c: the ready handler's `updateCommittedIndex` reads it before raising it). -/
+def srvCommittedOwnOpt (γr : ReadNames) : Option w64 → IProp GF
+  | none => iprop(True)
+  | some v => srvCommittedOwn γr v
+
 /-- **The applied and committed indices' invariants, at some names** (persistent): the proposer's
 view (`srvReqFieldsAt`: it reads both indices only for the request limit's gap, so it needs no
 particular names). -/

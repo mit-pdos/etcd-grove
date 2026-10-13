@@ -168,11 +168,12 @@ theorem read.Read.requestCurrentIndex.wp_proof
     · simp only [named]; iexact Hfc0
   wp_for HI
   wp_apply (lc := 2) HRS as %rsc #Hrsc
-  iunfold srvChanOk at HStopping
+  iunfold srvStopOk at HStopping
   wp_apply HStopping as %stc #Hstc
   ihave #Hfcc := Hfc
   ihave #Hlcnc := Hlcn
-  iunfold bcastChan at Hstc Hlcnc Hfcc
+  iunfold stopChan at Hstc
+  iunfold bcastChan at Hlcnc Hfcc
   icases Hstc with ⟨%γst, #Hstc⟩
   icases Hlcnc with ⟨%γlc, #Hlcn'⟩
   icases Hfcc with ⟨%γfc, #Hfc'⟩
@@ -341,8 +342,8 @@ theorem read.Read.requestCurrentIndex.wp_proof
     isplitr
     · ipureintro; rfl
     isplitr
-    · iapply ownBroadcastChan_is_chan $$ Hstc
-    iapply broadcast_chan_receive _ _ _ _ _ $$ Hstc
+    · iapply ownStopChan_is_chan $$ Hstc
+    iapply stop_chan_receive _ _ _ _ _ $$ Hstc
     iintro ⟨-, -⟩
     wp_auto
     rci_ret_err HaStop
