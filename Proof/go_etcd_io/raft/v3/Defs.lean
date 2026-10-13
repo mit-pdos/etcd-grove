@@ -659,6 +659,38 @@ structure NGhost where
   unst : Bool := false
 deriving DecidableEq
 
+/-! ### The read-index state (2026-10-12; the records moved from `InvMisc.lean`)
+
+A queued read-index request and the read-only object, as `InvMisc.lean`'s `ownReadOnly`
+sees them. -/
+
+structure ReadReq [FfiSyntax] where
+  index : w64
+  src : w64
+  ents : List raftpb.Entry
+
+/-- The read-only object. `pending`: `unconfirmedReads`, oldest first.
+`acks`: each voter's acknowledged *position* -- the largest context (as a number) the
+voter echoed in a heartbeat response; the context of a heartbeat is
+`confirmed + length pending` at the time it was sent (`readonlyPosition`).
+`confirmed`: `confirmedReads`, the number of requests ever removed from the front of
+`pending`. The `option` (`ReadOnlySafe` or `ReadOnlyLeaseBased`) is not in it: no spec
+states it (`stepLeader` reads the field and case-splits on the value; until
+2026-10-08 a `safe` field recorded it). -/
+structure ReadOnly [FfiSyntax] where
+  pending : List ReadReq
+  acks : GMap w64 w64
+  confirmed : w64
+
+/-- The physical read-index state (2026-10-12): `r.readStates` (as the Goose values),
+`r.readOnly` (as `ReadOnly`), and `r.pendingReadIndexMessages`, each with the entries
+its slice holds. -/
+structure RdState [FfiSyntax] where
+  states : List ReadState := []
+  ro : ReadOnly := ⟨[], ∅, W64 0⟩
+  pend : List (raftpb.Message × List raftpb.Entry) := []
+
+
 structure NState [FfiSyntax] where
   term : w64
   vote : w64
@@ -685,6 +717,8 @@ structure NState [FfiSyntax] where
   prevote : Bool
   /-- ghost lower bounds for `node.go` (2026-10-10), see `NGhost` -/
   gh : NGhost := {}
+  /-- the read-index state (2026-10-12), see `RdState` -/
+  rd : RdState := {}
 
 section phys_state
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
@@ -714,9 +748,13 @@ def sendMsgs (s : NState) (ms : List Msg) : NState :=
 
 /-- `reset(term)`: clears `Vote` only when the term actually changes, always clears
 `lead` and the tally. -/
-def resetTo (s : NState) (term : w64) : NState :=
+def resetTo0 (s : NState) (term : w64) : NState :=
   { s with term := term, vote := if term = s.term then s.vote else W64 0, lead := W64 0,
            votes := ∅ }
+
+/-- (2026-10-12) and the fresh `readOnly` object `reset` installs last. -/
+def resetTo (s : NState) (term : w64) : NState :=
+  { resetTo0 s term with rd := { s.rd with ro := ⟨[], ∅, W64 0⟩ } }
 
 def becomeFollower (s : NState) (term lead : w64) : NState :=
   { resetTo s term with lead := lead, role := .follower, stepfn := stepFuncOf .follower,
@@ -886,7 +924,7 @@ theorem toPState_becomeLeader (id : w64) (s : NState) (pvs : GMap w64 Progress) 
         [pselfAck id (pwinState id (toPState s) (prvalsMatch pvs))] := by
   have Hw : toPState { becomeLeaderLog id s with prvals := pvs } =
       pwinState id (toPState s) (prvalsMatch pvs) := by
-    simp only [becomeLeaderLog, becomeLeaderPre, resetTo, toPState, pwinState, pappend,
+    simp only [becomeLeaderLog, becomeLeaderPre, resetTo, resetTo0, toPState, pwinState, pappend,
       pbecomeLeader, logAppend, leaderEntry_toPState, List.append_assoc, ite_true]
     rfl
   rw [← Hw]

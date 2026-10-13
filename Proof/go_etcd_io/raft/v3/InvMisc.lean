@@ -41,26 +41,13 @@ compares with `r.id`) and the request's entries (`req.Entries[0].Data` is the co
 of a local read, and a forwarded request's response carries `req.Entries` whole). The
 message's other fields are never read after queueing. The entries are held read-only,
 like a queued message's (`msgAbs`). -/
-structure ReadReq [FfiSyntax] where
-  index : w64
-  src : w64
-  ents : List raftpb.Entry
-
-/-- The read-only object. `pending`: `unconfirmedReads`, oldest first.
-`acks`: each voter's acknowledged *position* -- the largest context (as a number) the
-voter echoed in a heartbeat response; the context of a heartbeat is
-`confirmed + length pending` at the time it was sent (`readonlyPosition`).
-`confirmed`: `confirmedReads`, the number of requests ever removed from the front of
-`pending`. The `option` (`ReadOnlySafe` or `ReadOnlyLeaseBased`) is not in it: no spec
-states it (`stepLeader` reads the field and case-splits on the value; until
-2026-10-08 a `safe` field recorded it). -/
-structure ReadOnly [FfiSyntax] where
-  pending : List ReadReq
-  acks : GMap w64 w64
-  confirmed : w64
-
 section records
 variable [FfiSyntax]
+
+/-- The read-index scope of the election and replication proofs: no `ReadState`, no queued
+or pending request. -/
+def RdScope (rd : RdState) : Prop :=
+  rd.states = [] ∧ rd.ro.pending = [] ∧ rd.pend = []
 
 /-- The position a heartbeat context encodes: `confirmedReads + len unconfirmedReads`
 (wrapping, as the `uint64` sum does). -/
@@ -144,29 +131,22 @@ def ownReadOnly (ro : Loc) (r : ReadOnly) : IProp GF :=
   "Hucr_cap" ∷ ownSliceCap Loc rov.unconfirmedReads' (DFrac.own 1) ∗
   "Hreqs" ∷ ([∗list] _k ↦ p;q ∈ ptrs;r.pending, ownReadreq p q))
 
-/-- Full ownership of the three fields election neither reads nor writes and
-everything hanging off them: the `readStates` slice, the `readOnly` object, and the
-`pendingReadIndexMessages` slice. The `readStates` contents are existential -- nothing
-in scope reads them -- and the two read-index queues are empty (phase-1 scope,
-2026-10-01); the ownership is real, so nothing else in the development can claim the
-same heap. -/
-def ownRaftMisc (readStates : GoSlice) (ro : Loc) (pendingReadIndex : GoSlice) : IProp GF :=
-  iprop(∃ (rr : ReadOnly),
-  -- Scope (phase 1): no read-index requests, so no `ReadState` is ever produced --
-  -- `Ready` hands out `r.readStates` only when it is non-empty (2026-10-05, pinned for
-  -- `Ready`/`HasReady`; until then the list was existential).
-  "HreadStates" ∷ readStates ↦* ([] : List ReadState) ∗
+/-- Full ownership of the three read-index fields and everything hanging off them: the
+`readStates` slice, the `readOnly` object, and the `pendingReadIndexMessages` slice, at
+the physical read state `rd` (2026-10-12; until then existential, with the two queues
+empty). -/
+def ownRaftMisc (readStates : GoSlice) (ro : Loc) (pendingReadIndex : GoSlice)
+    (rd : RdState) : IProp GF :=
+  iprop(
+  "HreadStates" ∷ readStates ↦* rd.states ∗
   "HreadStates_cap" ∷ ownSliceCap ReadState readStates (DFrac.own 1) ∗
-  "Hro_obj" ∷ ownReadOnly ro rr ∗
-  -- Scope (phase 1): no read-index requests -- which is what makes `heartbeatCtx`
-  -- return `nil`. Phase 3 lifts this conjunct (and only this one) when `stepLeader`
-  -- starts queueing `MsgReadIndex`.
-  "%Hro_pending" ∷ ⌜rr.pending = []⌝ ∗
-  -- Scope (phase 1): no read-index requests, so no `MsgReadIndex` is pending -- which
-  -- is what makes `releasePendingReadIndexMessages` a no-op. The empty list is in the
-  -- points-to, as for `Hucr` above.
-  "Hpri" ∷ pendingReadIndex ↦* ([] : List raftpb.Message) ∗
-  "Hpri_cap" ∷ ownSliceCap raftpb.Message pendingReadIndex (DFrac.own 1))
+  "Hro_obj" ∷ ownReadOnly ro rd.ro ∗
+  "Hpri" ∷ pendingReadIndex ↦* rd.pend.map Prod.fst ∗
+  "Hpri_cap" ∷ ownSliceCap raftpb.Message pendingReadIndex (DFrac.own 1) ∗
+  "#Hpri_ents" ∷ ([∗list] p ∈ rd.pend, p.1.Entries' ↦*□ p.2) ∗
+  -- Scope (until read-index is in, 2026-10-12): no `ReadState`, no queued or pending
+  -- read-index request
+  "%Hrd_scope" ∷ ⌜RdScope rd⌝)
 
 /-- `reset` replaces `r.readOnly` with `newReadOnly(r.readOnly.option)`, so it reads
 the old object's `option` field; it reaches the object through `ownRaftPhys_readOnly`

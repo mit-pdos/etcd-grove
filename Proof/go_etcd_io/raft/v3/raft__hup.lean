@@ -90,7 +90,7 @@ theorem raft.hup.wp_proof
         step_campaignState cfg _ _ _ _ _ Hrl Hin Hnowrap Hpeers, ?_⟩
       unfold campaignState
       refine ⟨by split <;> rfl, ?_⟩
-      split <;> simp only [sendMsgs, becomePrecandidate, becomeCandidate, resetTo] <;>
+      split <;> simp only [sendMsgs, becomePrecandidate, becomeCandidate, resetTo, resetTo0] <;>
         refine ⟨?_, ?_, ?_, ?_⟩ <;> first | exact True.intro | rfl | word
     | false =>
       -- unpromotable: log and return, having done nothing

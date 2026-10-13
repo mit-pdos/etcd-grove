@@ -91,7 +91,7 @@ theorem prevoteRespResult_frame (id : w64) (s : NState) (src : w64) (reject won 
     unfold prevoteRespResult
     split
     · refine ⟨rfl, ?_, rfl, rfl⟩
-      simp only [campaignState, sendMsgs, becomeCandidate, resetTo, Bool.false_eq_true,
+      simp only [campaignState, sendMsgs, becomeCandidate, resetTo, resetTo0, Bool.false_eq_true,
         ↓reduceIte]
       word
     · split
@@ -115,7 +115,7 @@ theorem prevoteRespResult_resp (id : w64) (s : NState) (src : w64) (reject won l
   unfold prevoteRespResult
   split
   · refine ⟨.inr ⟨Hp, ?_⟩, fun h => ?_⟩
-    · simp only [campaignState, sendMsgs, becomeCandidate, resetTo, Bool.false_eq_true,
+    · simp only [campaignState, sendMsgs, becomeCandidate, resetTo, resetTo0, Bool.false_eq_true,
         ↓reduceIte]
       word
     · simp [campaignState, sendMsgs, becomeCandidate] at h

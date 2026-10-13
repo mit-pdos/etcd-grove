@@ -261,11 +261,12 @@ private theorem wp_stepLeader_hbresp
       exact ⟨fun _ h => absurd h List.not_mem_nil, Hmm1⟩
   iNamed HR
   -- `if r.readOnly.option != ReadOnlySafe || len(m.Context) == 0 { return nil }`
-  icases ownRaftPhys_readOnly cfg r id _ $$ Hphys with ⟨%ro, %rr, %Hpend, Hrof, Hro, Hback⟩
-  icases ownReadOnly_option ro rr $$ Hro with ⟨%o, Hopt, Hroback⟩
+  icases ownRaftPhys_readOnly cfg r id _ $$ Hphys with ⟨%ro, %Hpend, Hrof, Hro, Hback⟩
+  icases ownReadOnly_option ro _ $$ Hro with ⟨%o, Hopt, Hroback⟩
   wp_auto
   ihave Hro := Hroback $$ Hopt
-  ihave Hphys := Hback $$ %ro %rr %Hpend Hrof Hro
+  ihave Hphys := Hback $$ %ro %_ %Hpend Hrof Hro
+  ihave Hphys := ownRaftPhys_eq cfg r id _ { sendMsgs s ms with prvals := pvs } rfl $$ Hphys
   ihave %Hcl := ownSlice_len _ _ _ $$ Hctx
   have Hcz : m.Context'.len = W64 0 := by simp only [List.length_nil] at Hcl; word
   ihave HΦ : iprop(Φ #interface.nil) $$ [HΦ Hphys]

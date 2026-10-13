@@ -99,22 +99,24 @@ theorem newRaft.wp_proof
   let ls0 : LogState := ⟨σ.prev, σ.ents, [], σ.prev.index', σ.prev.index', none, ip, σ.prev.index', [], σ.ents,
     W64 0, cv'.MaxCommittedSizePerReady', interface.ok si⟩
   let s0 : NState := ⟨W64 0, W64 0, W64 0, .follower, ∅, [], func.nil, false, ∅, l, ls0, ∅,
-    cv.PreVote', {}⟩
+    cv.PreVote', {}, {}⟩
   ihave Htrk0 := ownTracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi $$ Hv0 Hvotes Hprs0
-  ihave Hmisc : ownRaftMisc (GF := GF) slice.nil ro slice.nil $$ [Hro]
+  ihave Hmisc : ownRaftMisc (GF := GF) slice.nil ro slice.nil ({} : RdState) $$ [Hro]
   · unfold ownRaftMisc
-    iexists _
     simp only [named]
-    iframe Hro
     isplitr
     · iapply ownSlice_nil
     isplitr
     · iapply ownSliceCap_nil
+    isplitl [Hro]
+    · iexact Hro
     isplitr
-    · ipureintro; rfl
+    · rw [List.map_nil]; iapply ownSlice_nil
     isplitr
-    · iapply ownSlice_nil
-    iapply ownSliceCap_nil
+    · iapply ownSliceCap_nil
+    isplitr
+    · iapply (BigSepL.bigSepL_nil).2; iempintro
+    ipureintro; exact ⟨rfl, rfl, rfl⟩
   ihave Hnil1 := ownSlice_nil (V := raftpb.Message) (GF := GF) (DFrac.own 1)
   ihave Hnil2 := ownSlice_nil (V := raftpb.Message) (GF := GF) (DFrac.own 1)
   ihave Hcap1 := ownSliceCap_nil (V := raftpb.Message) (GF := GF)

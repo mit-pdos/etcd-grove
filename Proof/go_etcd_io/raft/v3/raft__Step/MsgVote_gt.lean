@@ -130,7 +130,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     ⟨_, rfl⟩
   ihave Hphys := ownRaftPhys_eq cfg r id _ s1 Hs1.symm $$ Hphys
   have Hv1 : s1.vote = W64 0 := by
-    subst Hs1; simp [becomeFollower, resetTo, Hne]
+    subst Hs1; simp [becomeFollower, resetTo, resetTo0, Hne]
   have Hl1 : s1.lead = W64 0 := by subst Hs1; rfl
   have Ht1 : s1.term = m.Term' := by subst Hs1; rfl
   have Hwf1 : NStateWf s1 := by subst Hs1; exact ⟨rfl, rfl⟩

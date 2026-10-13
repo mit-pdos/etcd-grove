@@ -168,7 +168,7 @@ theorem raft.reset.wp_proof
   icases ownRaftPhys_tracker $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
   wp_apply wp_ProgressTracker_ResetVotes $$ [$Htrkf $Htrk] as %votesRef ⟨Htrkf, Htrk⟩
   ihave Hphys := Hback $$ Htrkf Htrk
-  ihave Hphys := ownRaftPhys_eq cfg r id _ (resetTo s term) (by cases s; rfl) $$ Hphys
+  ihave Hphys := ownRaftPhys_eq cfg r id _ (resetTo0 s term) (by cases s; rfl) $$ Hphys
   try wp_auto
   -- `Visit` owns the tracker field and lends it to the closure together with one
   -- `Progress`. The caller invariant is the rest of the struct -- the wand of
@@ -178,12 +178,12 @@ theorem raft.reset.wp_proof
   icases ownTracker_progress_map $$ Htrk with ⟨-, %Hprdom, Htrk⟩
   have Hdomcfg : domSet s.prvals = cfg := by rw [← Hprdom, ← Hpdom]; rfl
   wp_apply wp_ProgressTracker_Visit cfg _ tv1
-      ⟨(resetTo s term).votes, (resetTo s term).progress, (resetTo s term).prvals⟩ _
+      ⟨(resetTo0 s term).votes, (resetTo0 s term).progress, (resetTo0 s term).prvals⟩ _
       (fun D pvsx => iprop(r_ptr ↦ r ∗
         ⌜ResetInv id (logLast s.logst) s.prvals pvsx D⌝ ∗
         (∀ tvx pvsx', r.[raft, go!"trk"] ↦ tvx -∗
-          ownTracker cfg tvx ⟨(resetTo s term).votes, (resetTo s term).progress, pvsx'⟩ -∗
-          ownRaftPhys cfg r id { resetTo s term with prvals := pvsx' })))
+          ownTracker cfg tvx ⟨(resetTo0 s term).votes, (resetTo0 s term).progress, pvsx'⟩ -∗
+          ownRaftPhys cfg r id { resetTo0 s term with prvals := pvsx' })))
     $$ [$Htrkf $Htrk $r $HI]
     as ⟨%tvfin, %pvsfin, Htrkf, Htrk, r, %Hinv, HI⟩
   · isplitr
@@ -198,7 +198,7 @@ theorem raft.reset.wp_proof
     iintro %i %pr %tv0 %pvs0 %p %D
     wp_start as ⟨%Hicfg, %Hpri, %Hpvi, %HmaxI, Htrkf, Hpr, Hprback, r, %Hinv0, HI⟩
     dsimp only
-    have Hpri' : (resetTo s term).progress !! i = some pr := Hpri
+    have Hpri' : (resetTo0 s term).progress !! i = some pr := Hpri
     ihave Htrk := Hprback $$ Hpr
     ihave Hphys := HI $$ Htrkf Htrk
     wp_auto
@@ -210,11 +210,11 @@ theorem raft.reset.wp_proof
     -- `pr.IsLearner` and the store through `pr`
     icases ownRaftPhys_tracker_prvals $$ Hphys with ⟨%tv2, Htrkf, Htrk, HI⟩
     ihave Htrk := ownTracker_cast cfg tv2 _
-      ⟨(resetTo s term).votes, (resetTo s term).progress, <[i := p]> pvs0⟩ ?_ $$ Htrk
+      ⟨(resetTo0 s term).votes, (resetTo0 s term).progress, <[i := p]> pvs0⟩ ?_ $$ Htrk
     · rfl
     icases ownTracker_maxinflight $$ Htrk with ⟨%HmaxI2, Htrk⟩
     icases ownTracker_lookup cfg tv2
-      ⟨(resetTo s term).votes, (resetTo s term).progress, <[i := p]> pvs0⟩ i pr Hpri $$ Htrk
+      ⟨(resetTo0 s term).votes, (resetTo0 s term).progress, <[i := p]> pvs0⟩ i pr Hpri $$ Htrk
       with ⟨%p1, %Hpv1, Hpr, Hprback⟩
     -- Keep `Hnolearner`: `ownProgress`'s `progressAbs` says `pv.IsLearner' = false`,
     -- and the closure has to hand it back.
@@ -248,9 +248,9 @@ theorem raft.reset.wp_proof
       -- `pr.Match = lastIndex()`: borrow `pr` once more
       icases ownRaftPhys_tracker_prvals $$ Hphys with ⟨%tv3, Htrkf, Htrk, HI⟩
       ihave Htrk := ownTracker_cast cfg tv3 _
-        ⟨(resetTo s term).votes, (resetTo s term).progress, _⟩ ?_ $$ Htrk
+        ⟨(resetTo0 s term).votes, (resetTo0 s term).progress, _⟩ ?_ $$ Htrk
       · rfl
-      icases ownTracker_lookup cfg tv3 ⟨(resetTo s term).votes, (resetTo s term).progress, _⟩ i pr
+      icases ownTracker_lookup cfg tv3 ⟨(resetTo0 s term).votes, (resetTo0 s term).progress, _⟩ i pr
         Hpri' $$ Htrk with ⟨%p2, %Hpv2, Hpr, Hprback⟩
       iunfold ownProgress at Hpr
       icases Hpr with ⟨%pv2, Hpr⟩
@@ -265,7 +265,7 @@ theorem raft.reset.wp_proof
         rfl
       icases ownRaftPhys_tracker_prvals $$ Hphys with ⟨%tv3, Htrkf, Htrk, HI⟩
       ihave Htrk := ownTracker_cast cfg tv3 _
-        ⟨(resetTo s term).votes, (resetTo s term).progress, _⟩ ?_ $$ Htrk
+        ⟨(resetTo0 s term).votes, (resetTo0 s term).progress, _⟩ ?_ $$ Htrk
       · rfl
       iapply HΦ
       iexists tv3, _
@@ -285,7 +285,7 @@ theorem raft.reset.wp_proof
       wp_auto
       icases ownRaftPhys_tracker_prvals $$ Hphys with ⟨%tv3, Htrkf, Htrk, HI⟩
       ihave Htrk := ownTracker_cast cfg tv3 _
-        ⟨(resetTo s term).votes, (resetTo s term).progress, _⟩ ?_ $$ Htrk
+        ⟨(resetTo0 s term).votes, (resetTo0 s term).progress, _⟩ ?_ $$ Htrk
       · rfl
       iapply HΦ
       iexists tv3, _
@@ -309,7 +309,7 @@ theorem raft.reset.wp_proof
   wp_apply raft.wp_store_pendingConfIndex $$ Hphys as Hphys
   wp_apply raft.wp_store_uncommittedSize $$ Hphys as Hphys
   -- `r.readOnly = newReadOnly(r.readOnly.option)`
-  icases ownRaftPhys_readOnly $$ Hphys with ⟨%ro, %rr, %Hpend, Hrof, Hro, Hback⟩
+  icases ownRaftPhys_readOnly $$ Hphys with ⟨%ro, %Hpend, Hrof, Hro, Hback⟩
   icases ownReadOnly_option $$ Hro with ⟨%o, Hopt, Hroback⟩
   wp_auto
   ihave Hro := Hroback $$ Hopt

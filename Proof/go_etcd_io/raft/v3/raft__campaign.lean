@@ -308,12 +308,12 @@ theorem raft.campaign.wp_proof
             -- self-addressed: no entries, no context, and at the node's term (an
             -- election's, raised by `becomeCandidate`) or one later (a pre-election's)
             fun _ => ⟨rfl, rfl, by
-              cases pre <;> simp [campRoleState, becomeCandidate, becomePrecandidate, resetTo,
+              cases pre <;> simp [campRoleState, becomeCandidate, becomePrecandidate, resetTo, resetTo0,
                 sendMsgs, vrespW32, MsgPreVoteResp, MsgVoteResp] <;> word⟩,
             -- with pre-vote off, an election's: at the node's term (2026-10-10)
             fun Hpf => by
               cases pre
-              · simp [campRoleState, becomeCandidate, resetTo, sendMsgs, vrespW32, vreqW32,
+              · simp [campRoleState, becomeCandidate, resetTo, resetTo0, sendMsgs, vrespW32, vreqW32,
                   MsgVoteResp, MsgVote, MsgPreVoteResp]
               · simp [campRoleState, becomePrecandidate, sendMsgs, Hpvpre rfl] at Hpf,
             by cases pre <;> rfl⟩)
@@ -371,7 +371,7 @@ theorem raft.campaign.wp_proof
             fun h => absurd h Hyid,
             fun Hpf => by
               cases pre
-              · simp [campRoleState, becomeCandidate, resetTo, sendMsgs, vrespW32, vreqW32,
+              · simp [campRoleState, becomeCandidate, resetTo, resetTo0, sendMsgs, vrespW32, vreqW32,
                   MsgVoteResp, MsgVote, MsgPreVoteResp]
               · simp [campRoleState, becomePrecandidate, sendMsgs, Hpvpre rfl] at Hpf,
             by cases pre <;> rfl⟩)
