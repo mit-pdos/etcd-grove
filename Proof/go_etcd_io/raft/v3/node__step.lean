@@ -49,13 +49,7 @@ theorem node.step.wp_proof
     unfold stepArg
     ileft
     isplitr
-    · ipureintro
-      have h := Hok.1
-      simp only [netStepTypes, List.mem_cons, List.not_mem_nil, or_false] at h
-      intro he
-      rw [he] at h
-      rcases h with h | h | h | h | h | h | h | h <;> simp [MsgProp, MsgApp, MsgAppResp, MsgVote,
-        MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp] at h
+    · ipureintro; exact netStepTypes_ne_prop Hok.1
     unfold netP
     iframe Hnet
     ipureintro; exact Hok

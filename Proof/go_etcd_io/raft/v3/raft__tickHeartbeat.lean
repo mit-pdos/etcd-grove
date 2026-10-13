@@ -148,7 +148,7 @@ theorem raft.tickHeartbeat.wp_proof
       iapply HΦ $$ %s' %ps'
       iframe Hphys Hghost
       ipureintro
-      obtain ⟨Ht1, -, Ht3, Hi⟩ := Htm (by msg_ne)
+      obtain ⟨Ht1, -, Ht3, Hi, -⟩ := Htm (by msg_ne)
       have Ht3 := Ht3 (by msg_ne) (by msg_ne) (by msg_ne)
       have H0 : uint.Z (0 : w64) = 0 := rfl
       simp only [H0] at Ht3

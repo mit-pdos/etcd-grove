@@ -35,29 +35,29 @@ theorem node.ReadIndex.wp_proof
   iintro %esl ⟨Hes, Hcap⟩
   imod ownSlice_persist _ _ _ $$ Hes with #Hes
   imod termLB_zero (GF := GF) γ.bud with #Hlb
+  imod tickCred_zero (GF := GF) γ.bud with Hz
   wp_auto
   have hR : (W32 15 : w32) = MsgReadIndex := rfl
-  wp_apply wp_node_step γ id n _ $$ [Hcap Hcred]
+  wp_apply wp_node_step γ id n _ $$ [Hcap Hcred Hz]
   · iframe Hnode
     unfold stepP
     ileft
     unfold netP
     isplitr
     · ipureintro
-      refine ⟨by simp [netStepTypes, MsgReadIndex], fun h => absurd hR h, fun _ => rfl,
-        fun h => ?_, fun h => ?_⟩
+      refine ⟨by simp [netStepTypes, MsgReadIndex], fun h => absurd (.inl hR) h, fun _ => rfl,
+        fun h => ?_, fun h => ?_, fun h => ?_⟩
       · exfalso
         rcases h with h | h | h | h <;>
           simp [MsgApp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp] at h
       · exfalso; simp [MsgAppResp] at h
+      · exfalso; simp [MsgTransferLeader] at h
     iexists [({ (zero_val raftpb.Entry) with Data' := rctx } : raftpb.Entry)], []
     iframe Hes Hcap
     isplitr
     · iapply ownSlice_nil
     isplitr
-    · ipureintro
-      refine ⟨fun Hc => ?_, fun _ => Hsing⟩
-      unfold campaignTransfer at Hc; simp at Hc
+    · ipureintro; exact fun _ => Hsing
     isplitr
     · imodintro
       iintro %ty %Hty
@@ -71,7 +71,10 @@ theorem node.ReadIndex.wp_proof
     isplitr
     · iExactEq Hlb; rfl
     rw [if_pos hR]
-    iexact Hcred
+    isplitl [Hcred]
+    · iexact Hcred
+    rw [if_neg (show (W32 15 : w32) ≠ MsgTimeoutNow by simp [MsgTimeoutNow])]
+    iexact Hz
   iintro %err -
   wp_auto
   iapply HΦ

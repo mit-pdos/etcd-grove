@@ -139,11 +139,15 @@ public import Proof.go_etcd_io.raft.v3.newNode
 public import Proof.go_etcd_io.raft.v3.newRaft
 public import Proof.go_etcd_io.raft.v3.newReadOnly
 public import Proof.go_etcd_io.raft.v3.node__Advance
+public import Proof.go_etcd_io.raft.v3.node__ForgetLeader
 public import Proof.go_etcd_io.raft.v3.node__Propose
 public import Proof.go_etcd_io.raft.v3.node__ReadIndex
 public import Proof.go_etcd_io.raft.v3.node__Ready
+public import Proof.go_etcd_io.raft.v3.node__ReportSnapshot
+public import Proof.go_etcd_io.raft.v3.node__ReportUnreachable
 public import Proof.go_etcd_io.raft.v3.node__Step
 public import Proof.go_etcd_io.raft.v3.node__Tick
+public import Proof.go_etcd_io.raft.v3.node__TransferLeadership
 public import Proof.go_etcd_io.raft.v3.node__run
 public import Proof.go_etcd_io.raft.v3.node__step
 public import Proof.go_etcd_io.raft.v3.node__stepWait
@@ -1283,6 +1287,14 @@ theorem node.wp_stepWithWaitOption :
     node.stepWithWaitOption.spec (GF := GF) (hG := hG) :=
   node.stepWithWaitOption.wp_proof
 
+theorem node.wp_step :
+    node.step.spec (GF := GF) (hG := hG) :=
+  node.step.wp_proof node.wp_stepWithWaitOption
+
+theorem node.wp_ForgetLeader :
+    node.ForgetLeader.spec (GF := GF) (hG := hG) :=
+  node.ForgetLeader.wp_proof node.wp_step
+
 theorem node.wp_stepWait :
     node.stepWait.spec (GF := GF) (hG := hG) :=
   node.stepWait.wp_proof node.wp_stepWithWaitOption
@@ -1290,10 +1302,6 @@ theorem node.wp_stepWait :
 theorem node.wp_Propose :
     node.Propose.spec (GF := GF) (hG := hG) :=
   node.Propose.wp_proof node.wp_stepWait
-
-theorem node.wp_step :
-    node.step.spec (GF := GF) (hG := hG) :=
-  node.step.wp_proof node.wp_stepWithWaitOption
 
 theorem node.wp_ReadIndex :
     node.ReadIndex.spec (GF := GF) (hG := hG) :=
@@ -1303,6 +1311,14 @@ theorem node.wp_Ready :
     node.Ready.spec (GF := GF) (hG := hG) :=
   node.Ready.wp_proof
 
+theorem node.wp_ReportSnapshot :
+    node.ReportSnapshot.spec (GF := GF) (hG := hG) :=
+  node.ReportSnapshot.wp_proof
+
+theorem node.wp_ReportUnreachable :
+    node.ReportUnreachable.spec (GF := GF) (hG := hG) :=
+  node.ReportUnreachable.wp_proof
+
 theorem node.wp_Step :
     node.Step.spec (GF := GF) (hG := hG) :=
   node.Step.wp_proof wp_IsLocalMsg wp_IsLocalMsgTarget node.wp_step
@@ -1310,6 +1326,10 @@ theorem node.wp_Step :
 theorem node.wp_Tick :
     node.Tick.spec (GF := GF) (hG := hG) :=
   node.Tick.wp_proof
+
+theorem node.wp_TransferLeadership :
+    node.TransferLeadership.spec (GF := GF) (hG := hG) :=
+  node.TransferLeadership.wp_proof
 
 end links_hasLC
 

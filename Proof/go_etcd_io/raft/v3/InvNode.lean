@@ -245,6 +245,49 @@ theorem budget_spend (bud : BudgetNames) (t : w64) (E : CoPset) (HE : ↑budgetN
   iapply monoNatLbOwn_le $$ HMlb
   exact Nat.le_max_right _ _
 
+/-- (2026-10-13) A step of a message of term `t2` at a node of term `t1`, with a tick credit
+if `P` (a `MsgTimeoutNow`, which campaigns one term past both): neither term is the last
+one, and the bound covers the larger, one more if `P`. -/
+theorem budget_step (bud : BudgetNames) (t1 t2 : w64) (P : Prop) [Decidable P] (E : CoPset)
+    (HE : ↑budgetN ⊆ E) :
+    ⊢ inv budgetN (budgetInv (GF := GF) bud) -∗ termLB bud t1 -∗ termLB bud t2 -∗
+      tickCred bud (if P then 1 else 0) ={E}=∗
+      ⌜uint.Z t1 + 1 < 2 ^ 64 ∧ uint.Z t2 + 1 < 2 ^ 64⌝ ∗
+      ∃ tb : w64, termLB bud tb ∗
+        ⌜max (uint.Z t1) (uint.Z t2) + (if P then 1 else 0) ≤ uint.Z tb⌝ := by
+  iintro #Hinv #Hl1 #Hl2 Hcr
+  imod termLB_bound bud t1 E HE $$ Hinv Hl1 with %Hb1
+  imod termLB_bound bud t2 E HE $$ Hinv Hl2 with %Hb2
+  have Hmx : ∃ tm : w64, uint.Z tm = max (uint.Z t1) (uint.Z t2) ∧
+      (tm = t1 ∨ tm = t2) := by
+    rcases Int.le_total (uint.Z t1) (uint.Z t2) with h | h
+    · exact ⟨t2, by rw [Int.max_eq_right h], .inr rfl⟩
+    · exact ⟨t1, by rw [Int.max_eq_left h], .inl rfl⟩
+  obtain ⟨tm, Htm, Htm'⟩ := Hmx
+  ihave #Hlm : termLB bud tm $$ []
+  · rcases Htm' with rfl | rfl
+    · iexact Hl1
+    · iexact Hl2
+  by_cases hP : P
+  · simp only [hP, ↓reduceIte]
+    imod budget_spend bud tm E HE $$ Hinv Hcr Hlm with ⟨%Hb, #Hl⟩
+    imodintro
+    isplitr
+    · ipureintro; omega
+    iexists tm + W64 1
+    iframe Hl
+    ipureintro
+    have : uint.Z (tm + W64 1) = uint.Z tm + 1 := by word
+    omega
+  · simp only [hP, ↓reduceIte]
+    imodintro
+    isplitr
+    · ipureintro; omega
+    iexists tm
+    iframe Hlm
+    ipureintro
+    omega
+
 end budget
 
 /-! ## The node's ghost names and channel payloads -/
@@ -296,12 +339,13 @@ instance propDataInv_timeless (γ : RaftNames) : Timeless (propDataInv (GF := GF
   unfold propDataInv; infer_instance
 
 /-- A proposal forwarded by a peer (2026-10-10), as `Node.Step` takes it: its batch owned
-(`appendEntry` stamps it; a transport delivers a copy), its context, and what it carries
-as a protocol message (each entry's data, `entData`, so its update was deposited). -/
+(`appendEntry` stamps it; a transport delivers a copy), its context (until 2026-10-13 not
+the leader-transfer marker), and what it carries as a protocol message (each entry's data,
+`entData`, so its update was deposited). -/
 def fwdP (γ : NodeNames) (m : raftpb.Message) : IProp GF :=
   iprop(⌜m.Type' = MsgProp⌝ ∗ ∃ (ents : List raftpb.Entry) (ctx : List w8),
     m.Entries' ↦* ents ∗ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) ∗
-    m.Context' ↦*□ ctx ∗ ⌜ctx ≠ campaignTransfer⌝ ∗
+    m.Context' ↦*□ ctx ∗
     isMessage γ.raft (absMsg .propose m ents))
 
 /-- A proposal on `propc`: the message `Propose` builds, with its one-entry batch owned,
@@ -320,17 +364,74 @@ def propP (γ : NodeNames) (pm : msgWithResult) : IProp GF :=
 /-- A message from the network on `recvc`, for node `id`: what `RawNode.Step` takes
 (`NetMsgOk`, its entries read-only with their capacity, its context, its abstraction sent;
 since 2026-10-13 a read-index request only with more than one voter, and with its read
-credit) and a term within the budget. Also (2026-10-13) a local read-index request
-(`node.ReadIndex`), which goes through `step` too. -/
+credit) and a term within the budget. Also (2026-10-13) the local messages that go through
+`recvc` too: a read-index request (`node.ReadIndex`), a transfer request
+(`TransferLeadership`), `ForgetLeader` and the reports (`ReportUnreachable`,
+`ReportSnapshot`). Since 2026-10-13 a `MsgTimeoutNow` too, with one tick credit
+(`tickCred`): it makes the node campaign at once, one term past its own or the message's,
+which the budget must cover as it covers a tick's campaign (`budget_spend`), so whoever
+delivers it pays like a tick; and the context may be the leader-transfer marker (a
+transfer campaign's vote request). -/
 def netP (γ : NodeNames) (id : w64) (m : raftpb.Message) : IProp GF :=
   iprop(⌜NetMsgOk id m⌝ ∗
     ∃ (ents : List raftpb.Entry) (ctx : List w8),
       m.Entries' ↦*□ ents ∗ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) ∗
       m.Context' ↦*□ ctx ∗
-      ⌜ctx ≠ campaignTransfer ∧ (m.Type' = MsgReadIndex → 1 < GMap.size γ.raft.reCfg)⌝ ∗
+      ⌜m.Type' = MsgReadIndex → 1 < GMap.size γ.raft.reCfg⌝ ∗
       □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗ isMessage γ.raft (absMsg ty m ents ctx)) ∗
       termLB γ.bud m.Term' ∗
-      rdCred γ.raft (if m.Type' = MsgReadIndex then 1 else 0))
+      rdCred γ.raft (if m.Type' = MsgReadIndex then 1 else 0) ∗
+      tickCred γ.bud (if m.Type' = MsgTimeoutNow then 1 else 0))
+
+/-- (2026-10-13) A local message on `recvc` with no entries, no context and no term (a
+transfer request, `ForgetLeader`'s, a report): no credit (but empty ones), no protocol
+fact. -/
+theorem netP_local (γ : NodeNames) (id : w64) (m : raftpb.Message)
+    (Hty : m.Type' = MsgTransferLeader ∨ m.Type' = MsgForgetLeader ∨ m.Type' = MsgUnreachable ∨
+      m.Type' = MsgSnapStatus)
+    (Ht : m.Term' = W64 0) (He : m.Entries' = slice.nil) (Hc : m.Context' = slice.nil) :
+    ⊢ termLB (GF := GF) γ.bud (W64 0) -∗ rdCred γ.raft 0 -∗ tickCred γ.bud 0 -∗
+      netP γ id m := by
+  have Hun : UnstampedType m.Type' := by
+    rcases Hty with h | h | h | h <;> simp [UnstampedType, h]
+  have Hnr : m.Type' ≠ MsgReadIndex := by
+    rcases Hty with h | h | h | h <;> rw [h] <;>
+      simp [MsgReadIndex, MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus]
+  have Hnt : m.Type' ≠ MsgTimeoutNow := by
+    rcases Hty with h | h | h | h <;> rw [h] <;>
+      simp [MsgTimeoutNow, MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus]
+  have Hmt : mtypeOf m.Type' = none := by
+    rcases Hty with h | h | h | h <;> rw [h] <;> rfl
+  have Hok : NetMsgOk id m := by
+    refine ⟨?_, fun h => absurd Hun h, fun _ => Ht, fun h => ?_, fun h => ?_, fun _ => ⟨He, Hc⟩⟩
+    · rcases Hty with h | h | h | h <;> rw [h] <;> simp [netStepTypes]
+    · exfalso
+      rcases Hty with h' | h' | h' | h' <;> rw [h'] at h <;>
+        simp [MsgApp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgTransferLeader,
+          MsgForgetLeader, MsgUnreachable, MsgSnapStatus] at h
+    · exfalso
+      rcases Hty with h' | h' | h' | h' <;> rw [h'] at h <;>
+        simp [MsgAppResp, MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus] at h
+  iintro #Hlb Hcr Htc
+  unfold netP
+  isplitr
+  · ipureintro; exact Hok
+  iexists [], []
+  rw [He, Hc, Ht, if_neg Hnr, if_neg Hnt]
+  isplitr
+  · iapply ownSlice_nil
+  isplitr
+  · iapply ownSliceCap_nil
+  isplitr
+  · iapply ownSlice_nil
+  isplitr
+  · ipureintro; intro h; exact absurd h Hnr
+  isplitr
+  · imodintro
+    iintro %ty %Hty'
+    rw [Hmt] at Hty'
+    cases Hty'
+  iframe Hlb Hcr Htc
 
 /-- What `Node.Step` takes (2026-10-10): a message from the network for the receive
 channel (`netP`), or a proposal forwarded by a peer (`fwdP`). -/

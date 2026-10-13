@@ -31,10 +31,7 @@ private theorem stepP_type (γ : NodeNames) (id : w64) (m : raftpb.Message) :
   · iunfold netP at Hnet
     icases Hnet with ⟨%Hok, Hnet⟩
     isplitr
-    · ipureintro
-      have h := Hok.1
-      simp only [netStepTypes, List.mem_cons, List.not_mem_nil, or_false] at h
-      rcases h with h | h | h | h | h | h | h | h <;> rw [h] <;> decide
+    · ipureintro; exact netStepTypes_nonneg Hok.1
     ileft
     unfold netP
     iframe Hnet

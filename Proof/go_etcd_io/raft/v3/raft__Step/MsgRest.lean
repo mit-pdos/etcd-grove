@@ -292,7 +292,8 @@ local macro "timeout_follower" : tactic => `(tactic| (
   rw [Hdom] at Hst1
   exact ⟨Hwf1, ⟨[], fun _ h => absurd h List.not_mem_nil, Hst1⟩, rfl, NetFrame.of_logst Hl1 Hpv1 Hg1,
     ⟨Ht1, fun h => absurd h (by rw [Hty]; w32_ne), fun _ _ h => absurd Hty h,
-     fun _ => by rw [Hl1]; exact Int.le_refl _⟩⟩))
+     fun _ => by rw [Hl1]; exact Int.le_refl _,
+     fun _ => by have := Int.le_max_left (uint.Z s.term) (uint.Z m.Term'); omega⟩⟩))
 
 /-- `MsgForgetLeader`, `MsgUnreachable`, `MsgSnapStatus`: local (`Term = 0`). -/
 theorem wp_Step_MsgLocal (_P : raft.Step.Postulates (GF := GF) (hG := hG))
@@ -568,8 +569,12 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       .trans _ _ _ _ _ (stepdown_rest cfg id s m pvs Hgt) Hst1⟩, rfl,
       Hfr.1.trans (NetFrame.of_logst Hl1 Hpv1 Hg1), ?_⟩
     refine ⟨Int.le_trans (Int.le_of_lt Hgt) Ht1, fun h => absurd h (by rw [Hty]; w32_ne),
-      fun _ _ h => absurd Hty h, fun _ => ?_⟩
-    rw [Hl1]; exact Int.le_refl _
+      fun _ _ h => absurd Hty h, fun _ => ?_, fun _ => ?_⟩
+    · rw [Hl1]; exact Int.le_refl _
+    · have := Int.le_max_right (uint.Z s.term) (uint.Z m.Term')
+      have h2 : uint.Z ({ becomeFollower s m.Term' (W64 0) with prvals := pvs } : NState).term
+          = uint.Z m.Term' := rfl
+      omega
   rw [decide_eq_false Hgt]
   wp_auto
   wp_apply raft.wp_load_Term $$ Hphys as Hphys

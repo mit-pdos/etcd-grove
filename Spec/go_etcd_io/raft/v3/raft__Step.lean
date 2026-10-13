@@ -160,13 +160,16 @@ theorem NetFrame.of_logst [FfiSyntax] {s s' : NState} (h : s'.logst = s.logst)
 up (a campaign); by any other message (but a `MsgPreVoteResp` or (2026-10-13) a
 `MsgTimeoutNow`, which may also campaign) at most to the message's term. And
 `offsetInProgress` does not move back but by a `MsgApp`, whose append may truncate the
-in-progress entries. -/
+in-progress entries. And (2026-10-13, for `node.go`'s term budget) a `MsgTimeoutNow` at most
+one past the larger of the node's and the message's term: a step-down to the message's
+term, then a campaign. -/
 def TermStep [FfiSyntax] (m : raftpb.Message) (s s' : NState) : Prop :=
   uint.Z s.term ≤ uint.Z s'.term ∧
   (m.Type' = MsgHup → uint.Z s'.term ≤ uint.Z s.term + 1) ∧
   (m.Type' ≠ MsgHup → m.Type' ≠ MsgPreVoteResp → m.Type' ≠ MsgTimeoutNow →
      uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term')) ∧
-  (m.Type' ≠ MsgApp → uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress)
+  (m.Type' ≠ MsgApp → uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress) ∧
+  (m.Type' = MsgTimeoutNow → uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') + 1)
 
 /-- A step that keeps the term. -/
 theorem TermStep.of_term [FfiSyntax] {m : raftpb.Message} {s s' : NState}
@@ -174,7 +177,8 @@ theorem TermStep.of_term [FfiSyntax] {m : raftpb.Message} {s s' : NState}
     (hi : m.Type' ≠ MsgApp → uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress) :
     TermStep m s s' := by
   unfold TermStep; rw [h]
-  exact ⟨Int.le_refl _, fun _ => by omega, fun _ _ _ => Int.le_max_left _ _, hi⟩
+  exact ⟨Int.le_refl _, fun _ => by omega, fun _ _ _ => Int.le_max_left _ _, hi,
+    fun _ => by have := Int.le_max_left (uint.Z s.term) (uint.Z m.Term'); omega⟩
 
 theorem TermStep.refl [FfiSyntax] (m : raftpb.Message) (s : NState) : TermStep m s s :=
   TermStep.of_term rfl (fun _ => Int.le_refl _)
@@ -186,7 +190,8 @@ theorem TermStep.of_le [FfiSyntax] {m : raftpb.Message} {s s' : NState}
     (h2 : uint.Z s'.term ≤ uint.Z m.Term')
     (hi : m.Type' ≠ MsgApp → uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress) :
     TermStep m s s' :=
-  ⟨h1, fun h => absurd h hup, fun _ _ _ => Int.le_trans h2 (Int.le_max_right _ _), hi⟩
+  ⟨h1, fun h => absurd h hup, fun _ _ _ => Int.le_trans h2 (Int.le_max_right _ _), hi,
+   fun _ => by have := Int.le_max_right (uint.Z s.term) (uint.Z m.Term'); omega⟩
 
 /-- A local step's frame keeps the term and does not move `offsetInProgress` back. -/
 theorem TermStep.of_local [FfiSyntax] {m : raftpb.Message} {s s' : NState}

@@ -1,12 +1,14 @@
 /- Lean-first (no Rocq counterpart).
 
-`deliver(peers, ms)` (cluster.go): the transport. For the messages of a `Ready` (each
+`deliver(peers, tr, ms)` (cluster.go): the transport. For the messages of a `Ready` (each
 legitimately sent, `isRaftMsg`, and of a term within the budget, `termLB`: what `Ready`
 gives with them) and a read-only peer table whose node at each id is that id's (`peerOk`),
 it steps each deliverable message into its target, which takes it (`Node.Step`'s `stepP`).
 (2026-10-13) It takes each message's read credit (`Ready`'s) and passes a delivered
 message's on to `Step`, dropping the others' with their messages; a read-index request is
-stepped only in a configuration of more than one voter (`Node.Step`'s premise).
+stepped only in a configuration of more than one voter (`Node.Step`'s premise). And
+(2026-10-13) a `MsgTimeoutNow` is stepped only with a tick credit taken from the transfer
+budget `tr` (`isTransfers`, `transfers.take`).
 -/
 module
 
@@ -32,14 +34,15 @@ variable [StorageModel GF]
 
 /-- See the file header. -/
 abbrev deliver.spec : Prop :=
-  ∀ (γ : RaftNames) (bud : BudgetNames) (peers : Loc) (P : GMap w64 GoInterface)
+  ∀ (γ : RaftNames) (bud : BudgetNames) (peers tr : Loc) (P : GMap w64 GoInterface)
     (msl : GoSlice) (ms : List raftpb.Message),
   1 < GMap.size γ.reCfg →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.register ∗ peers ↦${DFrac.discard} P ∗ ([∗map] id ↦ nd ∈ P, peerOk γ bud id nd) ∗
+      isTransfers bud tr ∗
       msl ↦* ms ∗ ([∗list] m ∈ ms, isRaftMsg γ m ∗ termLB bud m.Term') ∗
       [∗list] m ∈ ms, rdCred γ (if m.Type' = MsgReadIndex then 1 else 0) }}
-    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.register.deliver))
-      (Val #peers)) (Val #msl))
+    (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.register.deliver))
+      (Val #peers)) (Val #tr)) (Val #msl))
   {{ RET #(); True }}
 
 end spec

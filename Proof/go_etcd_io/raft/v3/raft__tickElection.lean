@@ -89,7 +89,7 @@ theorem raft.tickElection.wp_proof
       iapply HΦ $$ %s' %ps'
       iframe Hphys Hghost
       ipureintro
-      obtain ⟨Ht1, Ht2, -, Hi⟩ := Htm (by msg_ne)
+      obtain ⟨Ht1, Ht2, -, Hi, -⟩ := Htm (by msg_ne)
       exact ⟨Hrel', Href, Hfr (by msg_ne) (by msg_ne), Ht1, Ht2 rfl, Hi (by msg_ne)⟩
     · exfalso; revert Hc'; msg_ne)
   -- no campaign: nothing changed

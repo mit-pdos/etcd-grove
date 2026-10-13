@@ -124,3 +124,9 @@ RawNode__ForgetLeader: raft__Step
 RawNode__ReportUnreachable: raft__Step
 RawNode__ReportSnapshot: raft__Step
 RawNode__TransferLeader: raft__Step
+# The node layer of leader transfer, ForgetLeader and the local reports (2026-10-13): each
+# goes onto recvc (netP), directly or through step.
+node__TransferLeadership:
+node__ForgetLeader: node__step
+node__ReportUnreachable:
+node__ReportSnapshot:

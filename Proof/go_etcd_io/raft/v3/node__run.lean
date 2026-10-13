@@ -232,10 +232,8 @@ theorem node.run.wp_proof
         [propEntry data_sl] rfl $$ [$Hrn $Hrnraft $Hes $Hcap $Hm]
         as %err Hrn
       · iexists []
-        isplitr
-        · rw [show (propMsg esl).Context' = slice.nil from rfl]
-          iapply ownSlice_nil
-        · ipureintro; intro Hc; unfold campaignTransfer at Hc; simp at Hc
+        rw [show (propMsg esl).Context' = slice.nil from rfl]
+        iapply ownSlice_nil
       ihave %Hrnn := isChan_not_null $$ [Hho]
       · unfold isHandoff
         icases Hho with ⟨$, -⟩
@@ -259,7 +257,7 @@ theorem node.run.wp_proof
       iframe Hrn Hrest
     · -- a proposal forwarded by a peer (2026-10-10): no result channel
       iunfold fwdP at Hfwd
-      icases Hfwd with ⟨%Hty, %ents, %ctx, Hes, Hcap, #Hctx, %Hctxne, #Hm⟩
+      icases Hfwd with ⟨%Hty, %ents, %ctx, Hes, Hcap, #Hctx, #Hm⟩
       wp_auto
       ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid
       iunfold runHead at Hhead
@@ -268,7 +266,6 @@ theorem node.run.wp_proof
         $$ [$Hrn $Hrnraft $Hes $Hcap $Hm] as %err Hrn
       · iexists ctx
         iframe Hctx
-        ipureintro; exact Hctxne
       rw [Hres]
       wp_if_destruct
       rotate_left
@@ -299,12 +296,9 @@ theorem node.run.wp_proof
     inext
     iintro %m Hnet
     iunfold netP at Hnet
-    icases Hnet with ⟨%Hok, %ents, %ctx, #Hents, Hents_cap, #Hctx, %Hctx_ok, #Hmsg, #Hlbm,
-      Hcred⟩
-    have Hty0 : 0 ≤ sint.Z m.Type' := by
-      have h := Hok.1
-      simp only [netStepTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at h
-      rcases h with h | h | h | h | h | h | h | h <;> rw [h] <;> decide
+    icases Hnet with ⟨%Hok, %ents, %ctx, #Hents, Hents_cap, #Hctx, %Hsing, #Hmsg, #Hlbm,
+      Hcred, Htc⟩
+    have Hty0 : 0 ≤ sint.Z m.Type' := netStepTypes_nonneg Hok.1
     wp_auto
     ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid
     iunfold runHead at Hhead
@@ -339,14 +333,14 @@ theorem node.run.wp_proof
     all_goals (
       try wp_auto
       icases headRest_termLB γ nv rs ac rc' rdv' $$ Hrest with ⟨#Hlb', Hrest⟩
-      wp_apply wp_rn_raft_Step_net wp_raft_Step γ.raft nv.rn' id rs r m ents ctx Hok Hctx_ok.2
-        $$ [Hrn Hents_cap Hcred] as %err %t ⟨Hrn, %Ht⟩
+      -- the budget covers the step: a `MsgTimeoutNow` spends its tick credit
+      imod budget_step γ.bud rs.term m.Term' (m.Type' = MsgTimeoutNow) ⊤ (by solve_ndisj)
+        $$ Hbud Hlb' Hlbm Htc with ⟨%Hbnd, %tb, #Hlbtb, %Htb⟩
+      wp_apply wp_rn_raft_Step_net wp_raft_Step γ.raft nv.rn' id rs r m ents ctx Hok Hsing
+        (fun _ => Hbnd) $$ [Hrn Hents_cap Hcred] as %err %t ⟨Hrn, %Ht⟩
       · iframe Hrn Hents_cap Hrnraft Hents Hctx Hmsg Hcred
-        ipureintro; exact Hctx_ok.1
       ihave #Hlbt : termLB γ.bud t $$ []
-      · rcases Int.le_total (uint.Z rs.term) (uint.Z m.Term') with h | h
-        · iapply termLB_le γ.bud m.Term' t (by omega) $$ Hlbm
-        · iapply termLB_le γ.bud rs.term t (by omega) $$ Hlb'
+      · iapply termLB_le γ.bud tb t (Int.le_trans Ht.2 Htb) $$ Hlbtb
       ihave Hrest := headRest_term γ nv rs ac rc' rdv' t $$ Hrest Hlbt
       try wp_auto
       wp_for_post

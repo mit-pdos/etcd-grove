@@ -90,7 +90,8 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iframe Hphys
     ipureintro
     exact ⟨Hwf', Hstep, rfl, NetFrame.of_logst Hl Hpv' Hg', Ht1, fun _ => Ht2,
-      fun h _ _ => absurd Hty h, fun _ => by rw [Hl]; exact Int.le_refl _⟩
+      fun h _ _ => absurd Hty h, fun _ => by rw [Hl]; exact Int.le_refl _,
+      fun h => absurd (Hty.symm.trans h) (by w32_ne)⟩
 
 end StepProof
 

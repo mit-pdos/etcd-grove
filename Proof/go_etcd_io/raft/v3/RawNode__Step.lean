@@ -36,7 +36,7 @@ local macro "early_return" e:term : tactic => `(tactic| (
   · iapply ownRawNode_intro γ rn id { rs with term := rs.term } s ps rnv sv steps Hrel Hin
       Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
       $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs
-  ipureintro; constructor <;> omega))
+  ipureintro; refine ⟨Int.le_refl _, ?_⟩; split <;> omega))
 
 set_option hygiene false in
 /-- A premise of `raft.Step` about a type `RawNode.Step` does not take: vacuous. -/
@@ -46,9 +46,10 @@ local macro "not_net" : tactic => `(tactic| (intro h; first | exact h.elim |
   MsgPreVote, MsgPreVoteResp, MsgSnap, MsgBeat, MsgProp, MsgStorageAppendResp,
   MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hty)))
 
-/-- Two message types are different. -/
-local macro "ty_ne" : tactic => `(tactic| (simp [MsgApp, MsgAppResp, MsgVote, MsgVoteResp,
-  MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp]))
+/-- A stamped type is not one of the unstamped ones. -/
+local macro "ty_ne" : tactic => `(tactic| (simp [UnstampedType, MsgApp, MsgAppResp, MsgVote,
+  MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp,
+  MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader]))
 
 /-- The two guards, each an early return or on (`all_goals` over the paths that go on),
 then `raft.Step`. -/
@@ -58,14 +59,13 @@ theorem RawNode.Step.wp_proof
     (wp_IsLocalMsgTarget : IsLocalMsgTarget.spec (GF := GF) (hG := hG))
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Step.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs m ents ctx Hok Hsing
-  obtain ⟨Hty, Hnri, Hri, Hself, Hrej⟩ := Hok
-  have Hnr : ∀ {t : w32}, m.Type' = t → t ≠ MsgReadIndex →
+  intro γ rn id rs m ents ctx Hok Hsing Htn
+  have Hok0 := Hok
+  obtain ⟨Hty, Hnri, Hri, Hself, Hrej, -⟩ := Hok0
+  have Hnr : ∀ {t : w32}, m.Type' = t → ¬ UnstampedType t →
       m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 :=
     fun h ht => Hnri (h ▸ ht)
-  have Hty0 : 0 ≤ sint.Z m.Type' := by
-    simp only [netStepTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at Hty
-    rcases Hty with h | h | h | h | h | h | h | h <;> rw [h] <;> decide
+  have Hty0 : 0 ≤ sint.Z m.Type' := netStepTypes_nonneg Hty
   wp_start as H
   iNamed H
   iNamed Hrn
@@ -93,10 +93,8 @@ theorem RawNode.Step.wp_proof
   all_goals (
       try wp_auto
       have HnP : m.Type' ≠ MsgProp := by not_net
-      have Hsm : StepMsg m := by
-        simp only [StepMsg, stepMsgTypes]
-        simp only [netStepTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at Hty
-        rcases Hty with h | h | h | h | h | h | h | h <;> simp [h]
+      have Hsm : StepMsg m := netStepTypes_stepMsg Hty
+      have Hrest : RestMsgOk s m := Hok.restMsgOk (by rw [← Htrm]; exact Htn)
       have P1 : m.Type' = MsgHup → m.Term' = W64 0 ∧ uint.Z s.term + 1 < 2 ^ 64 := by not_net
       have P2 : m.Type' = MsgPreVote → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
           m.From' ≠ id ∧ (s.term = W64 0 → plogUpToDate s.logst.prev
@@ -127,9 +125,9 @@ theorem RawNode.Step.wp_proof
           Hrej h⟩)
         (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
           Hself (.inr (.inr (.inl h)))⟩)
-        P4 P5 P6 P7 P8 (fun h => ⟨Hri h, Hsing h⟩)
+        P4 P5 P6 P7 P8 (fun h => ⟨Hri (.inl h), Hsing h⟩)
         (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
-          Hself (.inr (.inr (.inr h)))⟩) (RestMsgOk.of_ne ⟨by not_net, by not_net, by not_net, by not_net, by not_net⟩) Hrel
+          Hself (.inr (.inr (.inr h)))⟩) Hrest Hrel
         $$ [$Hphys $Hghost Hents_cap Hcred]
       · simp only [HnP, ↓reduceIte, named]
         isplitl [Hents_cap]
@@ -156,8 +154,12 @@ theorem RawNode.Step.wp_proof
       simp only [HnP, ↓reduceIte]
       iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, -, -⟩
       obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by not_net) (by not_net)
-      obtain ⟨Ht1, -, Ht3, -⟩ := Htm (by not_net)
-      have Ht3 := Ht3 (by not_net) (by not_net) (by not_net)
+      obtain ⟨Ht1, -, Ht3, -, Ht5⟩ := Htm (by not_net)
+      have Ht3 : uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') +
+          (if m.Type' = MsgTimeoutNow then 1 else 0) := by
+        by_cases h : m.Type' = MsgTimeoutNow
+        · rw [if_pos h]; exact Ht5 h
+        · rw [if_neg h]; have := Ht3 (by not_net) (by not_net) h; omega
       have Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed := by
         obtain ⟨recv, Hst⟩ := Href
         have H := Step.commit_mono Hst

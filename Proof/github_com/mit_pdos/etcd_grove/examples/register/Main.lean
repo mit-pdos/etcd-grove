@@ -15,6 +15,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.register.New
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.Register__Put
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.Register__Get
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.Register__Read
+public import Spec.github_com.mit_pdos.etcd_grove.examples.register.Register__TransferLeadership
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.deliver
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.tick
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.quietLogger__Debugf
@@ -203,6 +204,8 @@ theorem Main.wp_proof
     (wp_Put : ∀ [RegStor GF], register.Register.Put.spec (GF := GF) (hG := hG))
     (wp_Get : ∀ [RegStor GF], register.Register.Get.spec (GF := GF) (hG := hG))
     (wp_Read : ∀ [RegStor GF], register.Register.Read.spec (GF := GF) (hG := hG))
+    (wp_TransferLeadership : ∀ [RegStor GF],
+      register.Register.TransferLeadership.spec (GF := GF) (hG := hG))
     (wp_deliver : ∀ [RegStor GF], register.deliver.spec (GF := GF) (hG := hG))
     (wp_tick : ∀ [RegStor GF], register.tick.spec (GF := GF) (hG := hG))
     (wp_Debugf : quietLogger.Debugf.spec (GF := GF) (hG := hG))
@@ -233,8 +236,9 @@ theorem Main.wp_proof
   imod ownRaftGhost_alloc (GF := GF) ⊤ (GMap.listToSet clusterIds) (GMap.listToSet clusterIds)
     (by rw [GMap.elem_of_list_to_set]; decide)
     with ⟨%γ, %Hcfg, #Hcinv, #Hc0, Hghosts, ⟨HcL, Hfresh, HreSl⟩, ⟨HrdA, HrdC, #HrdI⟩⟩
-  imod budget_alloc (GF := GF) (3 * ticksN) (by unfold ticksN; omega) ⊤
+  imod budget_alloc (GF := GF) (3 * ticksN + timeoutsN) (by unfold ticksN timeoutsN; omega) ⊤
     with ⟨%bud, #Hbinv, Hcred, #Hlb0⟩
+  icases (tickCred_split bud (3 * ticksN) timeoutsN).1 $$ Hcred with ⟨Hcred, Htcred⟩
   imod propDataInv_alloc (GF := GF) γ ⊤ $$ HreSl with #Hpd
   -- the register's invariant, the client's half of the value, the sequence-number tokens
   imod regInv_alloc (GF := GF) ⊤ γ (constMap clusterIds (W64 0)) $$ HcL Hfresh HrdA
@@ -387,6 +391,21 @@ theorem Main.wp_proof
     simp only [show clusterIds.take 3 = clusterIds from rfl, show clusterIds.drop 3 = [] from rfl]
     imod ownMap_persist mP _ M $$ HmP with #HmP
     ipersist peers
+    -- the transport's transfer budget (2026-10-13): `timeouts` tick credits under its lock
+    icases typedPointsto_split _ _ _ $$ «$r0» with Htrs
+    try simp only [TypedPointsto.typedPointstoDef]
+    icases Htrs with ⟨mu, left, -⟩
+    imod sync.init_Mutex (transfersInv bud «$r0_ptr») ⊤ («$r0_ptr».[RTransfers, go!"mu"])
+      $$ mu [left Htcred] with #Htr
+    · inext
+      unfold transfersInv
+      iexists W64 1048576
+      iframe left
+      rw [show uint.nat (W64 1048576) = timeoutsN from rfl]
+      iexact Htcred
+    ihave #Htr' : isTransfers bud «$r0_ptr» $$ []
+    · unfold isTransfers; iexact Htr
+    ipersist tr
     wp_apply wp_map_make1 (K := w64) (V := Loc) as %mR HmR
     ihave IH2 : iprop(∃ (k : w64) (idv : w64) (R : GMap w64 Loc),
         "i" ∷ i_ptr ↦ k ∗ "id" ∷ id_ptr ↦ idv ∗ "HmR" ∷ mR ↦$ R ∗ "HmS" ∷ mS ↦$ S ∗
@@ -445,7 +464,8 @@ theorem Main.wp_proof
         iintro ⟨Hmsl, #Hok, Hcr⟩ HΦ'
         rw [Hr, Hb]
         wp_auto
-        wp_apply (wp_deliver γr.raft bud mP M msl ms (by rw [Hcfg]; exact clusterIds_size))
+        wp_apply (wp_deliver γr.raft bud mP «$r0_ptr» M msl ms
+            (by rw [Hcfg]; exact clusterIds_size))
           $$ [$Hmsl $Hcr]
         · iframe #
         iapply HΦ'
@@ -580,6 +600,20 @@ theorem Main.wp_proof
         isplitl
         · iapply BigSepL2.bigSepL2_nil.2; itrivial
         ipureintro; rfl
+      -- B asks every replica to hand the leadership over to replica 3 (2026-10-13)
+      try wp_auto
+      wp_apply wp_map_lookup1 go.uint64 _ mR R (W64 1) DFrac.discard $$ HmR as -
+      simp only [HR1, Option.getD_some]
+      wp_apply (wp_TransferLeadership γr γp1 r1 (W64 3)) $$ [$Hreg1]
+      try wp_auto
+      wp_apply wp_map_lookup1 go.uint64 _ mR R (W64 2) DFrac.discard $$ HmR as -
+      simp only [HR2, Option.getD_some]
+      wp_apply (wp_TransferLeadership γr γp2 r2 (W64 3)) $$ [$Hreg2]
+      try wp_auto
+      wp_apply wp_map_lookup1 go.uint64 _ mR R (W64 3) DFrac.discard $$ HmR as -
+      simp only [HR3, Option.getD_some]
+      wp_apply (wp_TransferLeadership γr γp3 r3 (W64 3)) $$ [$Hreg3]
+      try wp_auto
       iapply HΦ
       itrivial
 

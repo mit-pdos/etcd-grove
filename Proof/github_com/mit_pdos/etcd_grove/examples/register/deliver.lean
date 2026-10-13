@@ -5,6 +5,7 @@ Rocq counterpart).
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.deliver
+public import Spec.github_com.mit_pdos.etcd_grove.examples.register.transfers__take
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.deliverable
 public import Spec.go_etcd_io.raft.v3.node__Step
 
@@ -27,10 +28,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.register.Assumpt
 variable [StorageModel GF]
 
 theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG))
+    (wp_take : transfers.take.spec (GF := GF) (hG := hG))
     (wp_node_Step : node.Step.spec (GF := GF) (hG := hG)) :
     deliver.spec (GF := GF) (hG := hG) := by
-  intro γ bud peers P msl ms Hcfg
-  wp_start as ⟨#Hpeers, #HP, Hms, #Hmsok, Hcr⟩
+  intro γ bud peers tr P msl ms Hcfg
+  wp_start as ⟨#Hpeers, #HP, #Htr, Hms, #Hmsok, Hcr⟩
   ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   wp_auto
@@ -92,27 +94,70 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
       icases Hpeer with ⟨%γn, %n, %Hnd, #HisNode⟩
       obtain ⟨Hr, Hbud, rfl⟩ := Hnd
       icases raftMsg_deliverable γ mm Hd $$ Hmok with
-        ⟨%ty, %ents, %ctx, ⟨%Hty, %Hct, %Hnil⟩, #Hents, #Hctx, #Hmsg⟩
+        ⟨%ents, %ctx, %Hnil, #Hents, #Hctx, #Hmsg⟩
       try simp only [Option.isSome_some, Option.getD_some, _root_.decide_true, Bool.not_true]
       wp_auto
       subst Hr Hbud
-      wp_apply wp_slice_append slice.nil ([] : List raftpb.Entry) mm.Entries' ents DFrac.discard
-        $$ [Hents] as %s' ⟨Hs, Hcap, -⟩
-      · iframe Hents
-        isplitl
-        · iapply ownSlice_nil
-        · iapply ownSliceCap_nil
-      rw [List.nil_append]
-      wp_apply context.wp_Background
-      imod stepP_deliverable γn mm.To' mm ty ents ctx s' Hd rfl Hty Hct Hnil Hcfg
-        $$ Hmsg Hctx Hmlb Hs Hcap Hc1 with Hstep
-      wp_apply wp_node_Step γn mm.To' n _ $$ [$Hraftinit $HisNode $Hstep] as %err -
-      wp_for_post
-      iframe
-      iexists k + W64 1, _
-      rw [Hk1]
-      iframe
-      ipureintro; constructor <;> word
+      -- a `MsgTimeoutNow`: a tick credit from the transfer budget, or dropped
+      by_cases Htn : mm.Type' = W32 14
+      · rw [decide_eq_true Htn]
+        wp_auto
+        wp_apply wp_take γn.bud tr $$ [$Htr] as %b Hb
+        cases b
+        · wp_auto
+          wp_for_post
+          iframe
+          iexists k + W64 1, mm
+          rw [Hk1]
+          iframe
+          ipureintro; constructor <;> word
+        wp_auto
+        ihave Htc : tickCred γn.bud (if mm.Type' = MsgTimeoutNow then 1 else 0) $$ [Hb]
+        · have Htn' : mm.Type' = MsgTimeoutNow := Htn
+          rw [if_pos Htn']
+          simp only [↓reduceIte]
+          iexact Hb
+        wp_apply wp_slice_append slice.nil ([] : List raftpb.Entry) mm.Entries' ents DFrac.discard
+          $$ [Hents] as %s' ⟨Hs, Hcap, -⟩
+        · iframe Hents
+          isplitl
+          · iapply ownSlice_nil
+          · iapply ownSliceCap_nil
+        rw [List.nil_append]
+        wp_apply context.wp_Background
+        imod stepP_deliverable γn mm.To' mm ents ctx s' Hd rfl Hnil Hcfg
+          $$ Hmsg Hctx Hmlb Hs Hcap Hc1 Htc with Hstep
+        wp_apply wp_node_Step γn mm.To' n _ $$ [$Hraftinit $HisNode $Hstep] as %err -
+        wp_for_post
+        iframe
+        iexists k + W64 1, _
+        rw [Hk1]
+        iframe
+        ipureintro; constructor <;> word
+      · rw [decide_eq_false Htn]
+        wp_auto
+        imod tickCred_zero (GF := GF) γn.bud with Htc0
+        ihave Htc : tickCred γn.bud (if mm.Type' = MsgTimeoutNow then 1 else 0) $$ [Htc0]
+        · have Htn' : ¬ mm.Type' = MsgTimeoutNow := Htn
+          rw [if_neg Htn']
+          iexact Htc0
+        wp_apply wp_slice_append slice.nil ([] : List raftpb.Entry) mm.Entries' ents DFrac.discard
+          $$ [Hents] as %s' ⟨Hs, Hcap, -⟩
+        · iframe Hents
+          isplitl
+          · iapply ownSlice_nil
+          · iapply ownSliceCap_nil
+        rw [List.nil_append]
+        wp_apply context.wp_Background
+        imod stepP_deliverable γn mm.To' mm ents ctx s' Hd rfl Hnil Hcfg
+          $$ Hmsg Hctx Hmlb Hs Hcap Hc1 Htc with Hstep
+        wp_apply wp_node_Step γn mm.To' n _ $$ [$Hraftinit $HisNode $Hstep] as %err -
+        wp_for_post
+        iframe
+        iexists k + W64 1, _
+        rw [Hk1]
+        iframe
+        ipureintro; constructor <;> word
   · iapply HΦ; itrivial
 
 end proof

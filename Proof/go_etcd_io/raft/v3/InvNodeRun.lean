@@ -337,41 +337,42 @@ local macro "not_net" : tactic => `(tactic| (intro h; first | exact h.elim |
   MsgPreVote, MsgPreVoteResp, MsgSnap, MsgBeat, MsgProp, MsgStorageAppendResp,
   MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hty)))
 
-/-- Two message types are different. -/
-local macro "ty_ne" : tactic => `(tactic| (simp [MsgApp, MsgAppResp, MsgVote, MsgVoteResp,
-  MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp]))
+/-- A stamped type is not one of the unstamped ones. -/
+local macro "ty_ne" : tactic => `(tactic| (simp [UnstampedType, MsgApp, MsgAppResp, MsgVote,
+  MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp,
+  MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader]))
 
 /-- `r.Step(m)` on a message from the network, `r` the node's raft struct: the tail of
 `RawNode.Step` (its guards are `run`'s own code). -/
 theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (m : raftpb.Message)
     (ents : List raftpb.Entry) (ctx : List w8) (Hok : NetMsgOk id m)
-    (Hsing : m.Type' = MsgReadIndex → 1 < GMap.size γ.reCfg) :
+    (Hsing : m.Type' = MsgReadIndex → 1 < GMap.size γ.reCfg)
+    (Htn : m.Type' = MsgTimeoutNow → uint.Z rs.term + 1 < 2 ^ 64 ∧ uint.Z m.Term' + 1 < 2 ^ 64) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗
         m.Entries' ↦*□ ents ∗ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) ∗
         m.Context' ↦*□ ctx ∗
-        ⌜ctx ≠ campaignTransfer⌝ ∗
         □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗ isMessage γ (absMsg ty m ents ctx)) ∗
         rdCred γ (if m.Type' = MsgReadIndex then 1 else 0) }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (t : w64), RET #err;
         ownRawNode γ rn id { rs with term := t } ∗
-        ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ max (uint.Z rs.term) (uint.Z m.Term')⌝ }} := by
-  obtain ⟨Hty, Hnri, Hri, Hself, Hrej⟩ := Hok
-  have Hnr : ∀ {t : w32}, m.Type' = t → t ≠ MsgReadIndex →
+        ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ max (uint.Z rs.term) (uint.Z m.Term') +
+          (if m.Type' = MsgTimeoutNow then 1 else 0)⌝ }} := by
+  have Hok0 := Hok
+  obtain ⟨Hty, Hnri, Hri, Hself, Hrej, -⟩ := Hok0
+  have Hnr : ∀ {t : w32}, m.Type' = t → ¬ UnstampedType t →
       m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 :=
     fun h ht => Hnri (h ▸ ht)
-  iintro %Φ ⟨#Hpkg, Hrn, #Hr, #Hents, Hents_cap, #Hctx, %Hctx_ok, #Hmsg, Hcred⟩ HΦ
+  iintro %Φ ⟨#Hpkg, Hrn, #Hr, #Hents, Hents_cap, #Hctx, #Hmsg, Hcred⟩ HΦ
   iNamed Hrn
   ihave #Hr' := rawNodeOwn_raft rn rnv $$ Hrn
   icombine Hr Hr' gives %Heq
   subst Heq
   have HnP : m.Type' ≠ MsgProp := by not_net
-  have Hsm : StepMsg m := by
-    simp only [StepMsg, stepMsgTypes]
-    simp only [netStepTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at Hty
-    rcases Hty with h | h | h | h | h | h | h | h <;> simp [h]
+  have Hsm : StepMsg m := netStepTypes_stepMsg Hty
+  have Hrest : RestMsgOk s m := Hok.restMsgOk (by rw [← Htrm]; exact Htn)
   have P1 : m.Type' = MsgHup → m.Term' = W64 0 ∧ uint.Z s.term + 1 < 2 ^ 64 := by not_net
   have P2 : m.Type' = MsgPreVote → m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧
       m.From' ≠ id ∧ (s.term = W64 0 → plogUpToDate s.logst.prev
@@ -402,9 +403,9 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
       Hrej h⟩)
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
       Hself (.inr (.inr (.inl h)))⟩)
-    P4 P5 P6 P7 P8 (fun h => ⟨Hri h, Hsing h⟩)
+    P4 P5 P6 P7 P8 (fun h => ⟨Hri (.inl h), Hsing h⟩)
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
-      Hself (.inr (.inr (.inr h)))⟩) (RestMsgOk.of_ne ⟨by not_net, by not_net, by not_net, by not_net, by not_net⟩) Hrel
+      Hself (.inr (.inr (.inr h)))⟩) Hrest Hrel
     $$ [$Hphys $Hghost Hents_cap Hcred]
   · simp only [HnP, ↓reduceIte, named]
     isplitl [Hents_cap]
@@ -431,8 +432,12 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   simp only [HnP, ↓reduceIte]
   iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, -, -⟩
   obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by not_net) (by not_net)
-  obtain ⟨Ht1, -, Ht3, -⟩ := Htm (by not_net)
-  have Ht3 := Ht3 (by not_net) (by not_net) (by not_net)
+  obtain ⟨Ht1, -, Ht3, -, Ht5⟩ := Htm (by not_net)
+  have Ht3 : uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') +
+      (if m.Type' = MsgTimeoutNow then 1 else 0) := by
+    by_cases h : m.Type' = MsgTimeoutNow
+    · rw [if_pos h]; exact Ht5 h
+    · rw [if_neg h]; have := Ht3 (by not_net) (by not_net) h; omega
   have Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed := by
     obtain ⟨recv, Hst⟩ := Href
     have H := Step.commit_mono Hst
@@ -509,11 +514,11 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
         ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗
         m.Entries' ↦* ents ∗ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) ∗
         isMessage γ (absMsg .propose m ents) ∗
-        (∃ ctx : List w8, m.Context' ↦*□ ctx ∗ ⌜ctx ≠ campaignTransfer⌝) }}
+        (∃ ctx : List w8, m.Context' ↦*□ ctx) }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step"))
         (Val #({ m with From' := id })))
     {{ (err : GoInterface), RET #err; ownRawNode γ rn id rs }} := by
-  iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hes, Hcap, #Hm, ⟨%ctx, #Hctx, %Hctxne⟩⟩ HΦ
+  iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hes, Hcap, #Hm, ⟨%ctx, #Hctx⟩⟩ HΦ
   iNamed Hrn
   ihave #Hr' := rawNodeOwn_raft rn rnv $$ Hrn
   icombine Hr Hr' gives %Heq

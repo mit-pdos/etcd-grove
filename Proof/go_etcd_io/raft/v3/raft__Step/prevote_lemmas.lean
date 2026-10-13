@@ -102,8 +102,9 @@ theorem prevoteRespResult_frame (id : w64) (s : NState) (src : w64) (reject won 
       · exact ⟨rfl, Int.le_refl _, rfl, rfl⟩
   obtain ⟨Hl, Ht, Hpv, Hg⟩ := H
   refine ⟨NetFrame.of_logst Hl Hpv Hg, Ht, fun h => ?_, fun _ h => absurd Hty h,
-    fun _ => by rw [Hl]; exact Int.le_refl _⟩
-  rw [Hty] at h; exact absurd h (by w32_ne)
+    fun _ => by rw [Hl]; exact Int.le_refl _, fun h => ?_⟩
+  · rw [Hty] at h; exact absurd h (by w32_ne)
+  · rw [Hty] at h; exact absurd h (by w32_ne)
 
 /-- A pre-candidate's tally, for `RespStep`: a win campaigns -- a candidate one term up
 (the term does not wrap) -- a loss steps down at the same term, and otherwise it stays a

@@ -99,7 +99,8 @@ func TestRead(t *testing.T) {
 		})
 		storages[id] = st
 	}
-	send := func(ms []pb.Message) { deliver(peers, ms) }
+	tr := &transfers{left: timeouts}
+	send := func(ms []pb.Message) { deliver(peers, tr, ms) }
 	stop := make(chan struct{})
 	defer func() {
 		close(stop)
@@ -151,7 +152,14 @@ func TestDeliverable(t *testing.T) {
 		{pb.Message{Type: pb.MsgReadIndexResp, From: 1, To: 2, Term: 3}, true},
 		{pb.Message{Type: pb.MsgHeartbeat, From: 1, To: 2, Term: 3, Context: hb}, true},
 		{pb.Message{Type: pb.MsgHeartbeatResp, From: 2, To: 1, Term: 3, Context: hb}, true},
-		{pb.Message{Type: pb.MsgVote, From: 2, To: 1, Term: 3, Context: []byte("CampaignTransfer")}, false},
+		{pb.Message{Type: pb.MsgVote, From: 2, To: 1, Term: 3, Context: []byte("CampaignTransfer")}, true},
+		{pb.Message{Type: pb.MsgVote, From: 2, To: 1}, false},
+		{pb.Message{Type: pb.MsgTimeoutNow, From: 1, To: 2, Term: 3}, true},
+		{pb.Message{Type: pb.MsgTimeoutNow, From: 1, To: 2}, false},
+		{pb.Message{Type: pb.MsgTimeoutNow, From: 1, To: 2, Term: 3, Context: hb}, false},
+		{pb.Message{Type: pb.MsgTimeoutNow, From: 1, To: 2, Term: 3, Entries: []pb.Entry{}}, false},
+		{pb.Message{Type: pb.MsgTimeoutNow, From: 2, To: 2, Term: 3}, false},
+		{pb.Message{Type: pb.MsgTransferLeader, From: 3, To: 1, Term: 3}, false},
 		{pb.Message{Type: pb.MsgApp, From: 1, To: 2, Term: 3}, true},
 		{pb.Message{Type: pb.MsgApp, From: 1, To: 1, Term: 3}, false},
 	}
@@ -159,5 +167,91 @@ func TestDeliverable(t *testing.T) {
 		if got := deliverable(c.m); got != c.want {
 			t.Errorf("case %d: deliverable = %v, want %v", i, got, c.want)
 		}
+	}
+}
+
+func TestTransfersTake(t *testing.T) {
+	tr := &transfers{left: 2}
+	if !tr.take() || !tr.take() {
+		t.Fatal("take failed with timeouts left")
+	}
+	if tr.take() {
+		t.Fatal("take succeeded with none left")
+	}
+}
+
+// TestTransfer hands the leadership around a cluster connected by the register's own
+// transport (deliver), which must pass MsgTimeoutNow and the transfer's vote requests, and
+// checks that the operations go on working under each new leader.
+func TestTransfer(t *testing.T) {
+	voters := []uint64{1, 2, 3}
+	peers := make(map[uint64]raft.Node)
+	storages := make(map[uint64]*Storage)
+	for _, id := range voters {
+		st := NewStorage(voters)
+		peers[id] = raft.RestartNode(&raft.Config{
+			ID:              id,
+			ElectionTick:    10,
+			HeartbeatTick:   1,
+			Storage:         st,
+			MaxSizePerMsg:   1 << 20,
+			MaxInflightMsgs: 256,
+			Logger:          quietLogger{},
+		})
+		storages[id] = st
+	}
+	tr := &transfers{left: timeouts}
+	send := func(ms []pb.Message) { deliver(peers, tr, ms) }
+	stop := make(chan struct{})
+	defer func() {
+		close(stop)
+		for _, nd := range peers {
+			nd.Stop()
+		}
+	}()
+	regs := make(map[uint64]*Register)
+	for _, id := range voters {
+		regs[id] = New(id, peers[id], storages[id], send)
+		go func(nd raft.Node) {
+			tk := time.NewTicker(5 * time.Millisecond)
+			defer tk.Stop()
+			for {
+				select {
+				case <-tk.C:
+					nd.Tick()
+				case <-stop:
+					return
+				}
+			}
+		}(peers[id])
+	}
+	regs[1].Put("a")
+	for i, to := range []uint64{1, 2, 3, 1} {
+		// the leader acts on the request; the followers' forwarded requests are dropped
+		deadline := time.Now().Add(10 * time.Second)
+		for peers[to].Status().Lead != to || peers[to].Status().RaftState != raft.StateLeader {
+			if time.Now().After(deadline) {
+				t.Fatalf("transfer %d: replica %d did not become the leader", i, to)
+			}
+			for _, id := range voters {
+				regs[id].TransferLeadership(to)
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+		val := string(rune('b' + i))
+		regs[to].Put(val)
+		// a Get first (a proposal dropped for want of a leader is retried), so that the
+		// replica knows the new leader by the time it asks for a read index
+		for _, id := range voters {
+			if v := regs[id].Get(); v != val {
+				t.Fatalf("transfer %d, replica %d: Get = %q, want %q", i, id, v, val)
+			}
+			if v := regs[id].Read(); v != val {
+				t.Fatalf("transfer %d, replica %d: Read = %q, want %q", i, id, v, val)
+			}
+		}
+	}
+	if tr.left == timeouts {
+		t.Fatal("no MsgTimeoutNow went through the transport")
 	}
 }

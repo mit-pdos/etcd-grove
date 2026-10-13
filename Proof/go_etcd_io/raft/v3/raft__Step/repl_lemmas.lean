@@ -198,8 +198,9 @@ theorem app_frame {id : w64} {m : raftpb.Message} {ents : List raftpb.Entry}
     NetFrame s s' ∧ TermStep m s s' := by
   obtain ⟨Hf, Ht⟩ := frame_handle_app id t m ents s' Hres
   refine ⟨Hft.trans Hf, by rw [Ht]; exact H1, fun h => ?_, fun _ _ _ => by rw [Ht]; exact H2,
-    fun h => absurd Happ h⟩
-  rw [Happ] at h; exact absurd h (by w32_ne)
+    fun h => absurd Happ h, fun h => ?_⟩
+  · rw [Happ] at h; exact absurd h (by w32_ne)
+  · rw [Happ] at h; exact absurd h (by w32_ne)
 
 theorem nstateWf_heartbeatResult (id : w64) (t : NState) (m : raftpb.Message)
     (cl : List w8 := []) :

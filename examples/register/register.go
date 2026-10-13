@@ -201,8 +201,10 @@ func (r *Register) apply(e pb.Entry) {
 	}
 }
 
-// do proposes one operation and waits until it is applied; a dropped proposal (no
-// leader known) is proposed again.
+// do proposes one operation and waits until it is applied; a proposal this node drops (no
+// leader known, or this node a leader transferring its leadership) is proposed again. One
+// the leader it is forwarded to drops (a leader transferring its leadership) is not: do then
+// waits forever (partial correctness, like Read).
 func (r *Register) do(kind byte, val string) string {
 	r.mu.Lock()
 	r.nextSeq++
@@ -223,6 +225,14 @@ func (r *Register) Put(val string) {
 // Get returns the register's value.
 func (r *Register) Get() string {
 	return r.do(opGet, "")
+}
+
+// TransferLeadership asks raft to hand the leadership over to replica to: if this replica is
+// the leader, it makes to campaign once its log is caught up (a follower forwards the
+// request to its leader, which the transport drops: deliverable). Nothing is promised of
+// the outcome, and the register's operations are correct whoever leads.
+func (r *Register) TransferLeadership(to uint64) {
+	r.node.TransferLeadership(context.Background(), r.id, to)
 }
 
 // Read returns the register's value, by a read index rather than through the log: a

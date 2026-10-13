@@ -8,6 +8,7 @@ MemoryStorage__Snapshot: @
 MemoryStorage__Append: @
 node__Propose: @
 node__ReadIndex: @
+node__TransferLeadership: @
 node__Ready: @
 node__Advance: @
 RestartNode: @
@@ -25,6 +26,7 @@ Register__do: encode node__Propose
 Register__Put: Register__do
 Register__Get: Register__do
 Register__Read: encode node__ReadIndex
+Register__TransferLeadership: node__TransferLeadership
 Register__answer: decode
 Register__run: fits Register__apply Register__answer node__Ready node__Advance MemoryStorage__Append
 register_New: Register__run
@@ -34,6 +36,7 @@ register_quietLogger__Errorf:
 register_quietLogger__Infof:
 register_quietLogger__Warningf:
 register_deliverable:
-register_deliver: register_deliverable node__Step
+register_transfers__take:
+register_deliver: register_deliverable register_transfers__take node__Step
 register_tick: node__Tick
-register_Main: NewStorage Storage__InitialState Storage__Snapshot register_New Register__Put Register__Get Register__Read register_deliver register_tick register_quietLogger__Debugf register_quietLogger__Errorf register_quietLogger__Infof register_quietLogger__Warningf RestartNode
+register_Main: NewStorage Storage__InitialState Storage__Snapshot register_New Register__Put Register__Get Register__Read Register__TransferLeadership register_deliver register_tick register_quietLogger__Debugf register_quietLogger__Errorf register_quietLogger__Infof register_quietLogger__Warningf RestartNode
