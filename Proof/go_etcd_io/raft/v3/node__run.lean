@@ -299,11 +299,12 @@ theorem node.run.wp_proof
     inext
     iintro %m Hnet
     iunfold netP at Hnet
-    icases Hnet with ⟨%Hok, %ents, %ctx, #Hents, Hents_cap, #Hctx, %Hctx_ok, #Hmsg, #Hlbm⟩
+    icases Hnet with ⟨%Hok, %ents, %ctx, #Hents, Hents_cap, #Hctx, %Hctx_ok, #Hmsg, #Hlbm,
+      Hcred⟩
     have Hty0 : 0 ≤ sint.Z m.Type' := by
       have h := Hok.1
       simp only [netStepTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at h
-      rcases h with h | h | h | h | h | h <;> rw [h] <;> decide
+      rcases h with h | h | h | h | h | h | h | h <;> rw [h] <;> decide
     wp_auto
     ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid
     iunfold runHead at Hhead
@@ -338,10 +339,10 @@ theorem node.run.wp_proof
     all_goals (
       try wp_auto
       icases headRest_termLB γ nv rs ac rc' rdv' $$ Hrest with ⟨#Hlb', Hrest⟩
-      wp_apply wp_rn_raft_Step_net wp_raft_Step γ.raft nv.rn' id rs r m ents ctx Hok
-        $$ [Hrn Hents_cap] as %err %t ⟨Hrn, %Ht⟩
-      · iframe Hrn Hents_cap Hrnraft Hents Hctx Hmsg
-        ipureintro; exact Hctx_ok
+      wp_apply wp_rn_raft_Step_net wp_raft_Step γ.raft nv.rn' id rs r m ents ctx Hok Hctx_ok.2
+        $$ [Hrn Hents_cap Hcred] as %err %t ⟨Hrn, %Ht⟩
+      · iframe Hrn Hents_cap Hrnraft Hents Hctx Hmsg Hcred
+        ipureintro; exact Hctx_ok.1
       ihave #Hlbt : termLB γ.bud t $$ []
       · rcases Int.le_total (uint.Z rs.term) (uint.Z m.Term') with h | h
         · iapply termLB_le γ.bud m.Term' t (by omega) $$ Hlbm
@@ -466,18 +467,18 @@ theorem node.run.wp_proof
     iapply handshake_send_au_upd (t := Ready.ty) γ.readyc nv.readyc' rdv' (readyP γ) iprop(True) _
       $$ [$Hlc1 $Hlc2 $Hlc3] Hreadyc
     -- the append right goes with the `Ready`, and `rof` records it
-    imod ownRawNodeReady_handout γ.raft nv.rn' id rs rdv' ce es ms $$ Hrn with ⟨Hrn, Happ⟩
+    imod ownRawNodeReady_handout γ.raft nv.rn' id rs rdv' ce es ms $$ Hrn with ⟨Hrn, Happ, Hcr⟩
     iunfold rofFull at Hrof
     icases Hrof with ⟨%x, Hr1, Hr2⟩
     imod dghostVar_update_halves (rs.delivered, ce, es) γ.rof x x $$ Hr1 Hr2 with ⟨Hr1, Hr2⟩
     ihave Hmt := readyMsgs_termLB γ rs.term ms Hfacts.1 $$ Hmsgs_ok Hlb'
     imodintro
-    isplitl [Hdlv Hr1 Happ Hmsgs Hmt]
+    isplitl [Hdlv Hr1 Happ Hmsgs Hmt Hcr]
     · unfold readyP
       iexists rs.delivered, ce, es, ms
       iframe Hdlv Hr1
       unfold readyData
-      iframe Hce Hcommitted Hents Hmsgs Hmt Hrsts
+      iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Hrsts
       isplitl [Happ]
       · rw [← Hstor]
         iexact Happ

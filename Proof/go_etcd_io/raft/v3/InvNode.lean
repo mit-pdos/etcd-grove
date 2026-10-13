@@ -186,6 +186,11 @@ theorem budget_alloc (N : Nat) (HN : N < 2 ^ 64 - 1) (E : CoPset) :
   iExactEq HMlb
   rfl
 
+/-- Term `0` is within the budget (2026-10-13: a local read-index request's). -/
+theorem termLB_zero (bud : BudgetNames) : ⊢ |==> termLB (GF := GF) bud (W64 0) := by
+  unfold termLB
+  exact monoNatLbOwn_0 bud.bound
+
 /-- A term at most the budget's bound is not the last one. -/
 theorem termLB_bound (bud : BudgetNames) (t : w64) (E : CoPset) (HE : ↑budgetN ⊆ E) :
     ⊢ inv budgetN (budgetInv (GF := GF) bud) -∗ termLB bud t ={E}=∗ ⌜uint.Z t < 2 ^ 64 - 1⌝ := by
@@ -313,15 +318,19 @@ def propP (γ : NodeNames) (pm : msgWithResult) : IProp GF :=
     (⌜pm.result' = zero_val GoChan⌝ ∗ fwdP γ pm.m'))
 
 /-- A message from the network on `recvc`, for node `id`: what `RawNode.Step` takes
-(`NetMsgOk`, its entries read-only with their capacity, its context, its abstraction sent)
-and a term within the budget. -/
+(`NetMsgOk`, its entries read-only with their capacity, its context, its abstraction sent;
+since 2026-10-13 a read-index request only with more than one voter, and with its read
+credit) and a term within the budget. Also (2026-10-13) a local read-index request
+(`node.ReadIndex`), which goes through `step` too. -/
 def netP (γ : NodeNames) (id : w64) (m : raftpb.Message) : IProp GF :=
   iprop(⌜NetMsgOk id m⌝ ∗
     ∃ (ents : List raftpb.Entry) (ctx : List w8),
       m.Entries' ↦*□ ents ∗ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) ∗
-      m.Context' ↦*□ ctx ∗ ⌜ctx ≠ campaignTransfer ∧ (m.Type' = MsgHeartbeatResp → ctx = [])⌝ ∗
+      m.Context' ↦*□ ctx ∗
+      ⌜ctx ≠ campaignTransfer ∧ (m.Type' = MsgReadIndex → 1 < GMap.size γ.raft.reCfg)⌝ ∗
       □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗ isMessage γ.raft (absMsg ty m ents ctx)) ∗
-      termLB γ.bud m.Term')
+      termLB γ.bud m.Term' ∗
+      rdCred γ.raft (if m.Type' = MsgReadIndex then 1 else 0))
 
 /-- What `Node.Step` takes (2026-10-10): a message from the network for the receive
 channel (`netP`), or a proposal forwarded by a peer (`fwdP`). -/
@@ -331,7 +340,8 @@ def stepP (γ : NodeNames) (id : w64) (m : raftpb.Message) : IProp GF :=
 /-- What a `Ready` gives the driver, after the committed log `d` handed out before it: the
 committed entries `ce` to apply next (`isCommitted` of `d ++ ce`), the entries `es` to
 append with the right to (`appendRight`), the messages to send (each legitimately sent,
-of a term within the budget), no snapshot, and (2026-10-13) the read states, read-only,
+of a term within the budget, and (2026-10-13) with its read credit, one for a
+`MsgReadIndex`, for the receiver's `Step`), no snapshot, and (2026-10-13) the read states, read-only,
 each `readStateOk`: its context a proposed slice (`isPropData`) whose read was created
 knowing a committed log of length at most its index (`readOk`). -/
 def readyData (γ : NodeNames) (rd : Ready) (d ce es : List raftpb.Entry)
@@ -339,6 +349,7 @@ def readyData (γ : NodeNames) (rd : Ready) (d ce es : List raftpb.Entry)
   iprop(rd.CommittedEntries' ↦*□ ce ∗ isCommitted γ.raft (d ++ ce) ∗
     rd.Entries' ↦*□ es ∗ appendRight γ.stor es ∗
     rd.Messages' ↦* ms ∗ ([∗list] m ∈ ms, isRaftMsg γ.raft m ∗ termLB γ.bud m.Term') ∗
+    ([∗list] m ∈ ms, rdCred γ.raft (if m.Type' = MsgReadIndex then 1 else 0)) ∗
     (∃ sts : List ReadState, rd.ReadStates' ↦*□ sts ∗ [∗list] st ∈ sts, readStateOk γ.raft st) ∗
     ⌜rd.Snapshot' = zero_val raftpb.Snapshot⌝)
 
@@ -641,6 +652,31 @@ theorem node_propose_ghost (γ : NodeNames) (id : w64) (n : Loc) (data_sl : GoSl
     simp only []
     iframe Hpd Hdep
     ipureintro; exact ⟨Hz, rfl⟩
+
+/-- A read context's slice, recorded (2026-10-13): what `Node.ReadIndex` takes of it
+(`isPropData`). -/
+theorem node_read_register (γ : NodeNames) (id : w64) (n : Loc) (rctx : GoSlice) (c : List w8)
+    (E : CoPset) (HE : ↑propDataN ⊆ E) :
+    ⊢ isNode γ id n -∗ rctx ↦*□ c ={E}=∗ isPropData γ.raft rctx c := by
+  iintro #Hnode #Hc
+  open_node Hnode
+  iapply propData_register γ.raft rctx c E HE $$ Hpdinv Hc
+
+/-- A `ReadState`'s context, read through the heap (2026-10-13): the bytes `c` its slice
+holds, and `readOk` of them. A client that compares them with its own context's (its
+`readReq γ c Lc`) learns `readOk` of its read (`readOk_prefix`). -/
+theorem node_readState_data (γ : NodeNames) (id : w64) (n : Loc) (st : ReadState) (E : CoPset)
+    (HE : ↑propDataN ⊆ E) :
+    ⊢ isNode γ id n -∗ readStateOk γ.raft st ={E}=∗
+      ∃ c, st.RequestCtx' ↦*□ c ∗ readOk γ.raft c st.Index' := by
+  iintro #Hnode #Hst
+  iunfold readStateOk at Hst
+  icases Hst with ⟨%c, #Hpd, #Hok⟩
+  open_node Hnode
+  imod propData_heap γ.raft st.RequestCtx' c E HE $$ Hpdinv Hpd with #Hsl
+  imodintro
+  iexists c
+  iframe Hsl Hok
 
 /-- The data of a committed log's entries. -/
 theorem node_committed_data (γ : NodeNames) (id : w64) (n : Loc) (l : List raftpb.Entry)

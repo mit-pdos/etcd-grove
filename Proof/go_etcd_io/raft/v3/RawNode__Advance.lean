@@ -153,8 +153,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- A premise of `Step` about another message type: the type is not it. -/
 local macro "msg_ne" : tactic => `(tactic| (intro Hc; simp [MsgHup, MsgVote, MsgVoteResp,
   MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp, MsgSnap,
-  MsgBeat, MsgProp, MsgStorageAppendResp, MsgStorageApplyResp, appendAckMsg,
-  applyAckMsg] at Hc))
+  MsgBeat, MsgProp, MsgStorageAppendResp, MsgStorageApplyResp, MsgReadIndex,
+  MsgReadIndexResp, appendAckMsg, applyAckMsg] at Hc))
 
 set_option hygiene false in
 /-- A premise of `Step` about a type a self-addressed response (`Hty`: one of the three
@@ -167,7 +167,7 @@ local macro "not_self" : tactic => `(tactic| (
      rcases Hty with Hty | Hty | Hty <;> rw [Hty] at Hc <;>
        simp [MsgHup, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat,
          MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgBeat, MsgProp, MsgStorageAppendResp,
-         MsgStorageApplyResp] at Hc)))
+         MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp] at Hc)))
 
 /-- The node's id is nonzero (the ghost state's `Hidnz`): a self-addressed response's
 `From`. -/
@@ -206,6 +206,7 @@ private theorem wp_step_pending
          s'.logst.prev = s.logst.prev ∧ s'.logst.stored = s.logst.stored ∧
          s'.logst.storage = s.logst.storage ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh⌝ }} := by
   iintro %Φ ⟨#Hinit, Hphys, Hghost, #Hp, Hown, #Hstr⟩ HΦ
+  imod rdCred_zero_upd (GF := GF) γ with Hcr
   cases p with
   | self pv t =>
     unfold pendingRel
@@ -220,7 +221,7 @@ private theorem wp_step_pending
       (fun _ => ⟨Hto, Hnz, Hfnz, Hnw _ _ rfl⟩) (by not_self) (by not_self)
       (fun h => ⟨Hto, Hnz, Hfnz, fun Hr => by rw [Hrj h] at Hr; cases Hr⟩)
       (by not_self) (by not_self) (by not_self) (by not_self) (by not_self) (by not_self)
-      Hrel $$ [$Hinit $Hphys $Hghost]
+      (by not_self) (by not_self) Hrel $$ [$Hinit $Hphys $Hghost Hcr]
     · have hP : m.Type' ≠ MsgProp := by not_self
       simp only [hP, ↓reduceIte, named]
       rw [Hen, Hcn]
@@ -240,7 +241,9 @@ private theorem wp_step_pending
       · isplitr
         · iapply ownSlice_nil
         ipureintro
-        exact ⟨by simp [campaignTransfer], by simp⟩
+        simp [campaignTransfer]
+      isplitl [Hcr]
+      · rw [if_neg (by not_self)]; iexact Hcr
       imodintro
       iintro %Hc
       exfalso
@@ -278,8 +281,8 @@ private theorem wp_step_pending
       (by simp [StepMsg, stepMsgTypes, appendAckMsg]) Hin
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
-      (fun _ => ⟨rfl, Hle, fun _ _ => Hsok, Hghoff⟩) (by msg_ne) Hrel
-      $$ [$Hinit $Hphys $Hghost]
+      (fun _ => ⟨rfl, Hle, fun _ _ => Hsok, Hghoff⟩) (by msg_ne) (by msg_ne) (by msg_ne) Hrel
+      $$ [$Hinit $Hphys $Hghost Hcr]
     · have hP : (appendAckMsg id t e).Type' ≠ MsgProp := by msg_ne
       simp only [hP, ↓reduceIte, named]
       have Hty0 : mtypeOf (appendAckMsg id t e).Type' = none := rfl
@@ -301,7 +304,9 @@ private theorem wp_step_pending
       · isplitr
         · iapply ownSlice_nil
         ipureintro
-        exact ⟨by simp [campaignTransfer], by simp⟩
+        simp [campaignTransfer]
+      isplitl [Hcr]
+      · simp [MsgStorageAppendResp, MsgReadIndex]; iexact Hcr
       imodintro
       iintro %Hc
       exfalso
@@ -325,7 +330,8 @@ private theorem wp_step_pending
       (by simp [StepMsg, stepMsgTypes, applyAckMsg]) Hin
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
-      (by msg_ne) (fun _ => rfl) Hrel $$ [$Hinit $Hphys $Hghost Hown]
+      (by msg_ne) (fun _ => rfl) (by msg_ne) (by msg_ne) Hrel
+      $$ [$Hinit $Hphys $Hghost Hown Hcr]
     · have hP : (applyAckMsg id sl).Type' ≠ MsgProp := by msg_ne
       simp only [hP, ↓reduceIte, named]
       have Hty0 : mtypeOf (applyAckMsg id sl).Type' = none := rfl
@@ -347,7 +353,9 @@ private theorem wp_step_pending
       · isplitr
         · iapply ownSlice_nil
         ipureintro
-        exact ⟨by simp [campaignTransfer], by simp⟩
+        simp [campaignTransfer]
+      isplitl [Hcr]
+      · simp [MsgStorageApplyResp, MsgReadIndex]; iexact Hcr
       imodintro
       iintro %Hc
       exfalso

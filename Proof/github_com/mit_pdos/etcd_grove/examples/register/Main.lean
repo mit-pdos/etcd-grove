@@ -419,10 +419,10 @@ theorem Main.wp_proof
         imodintro
         iintro %msl %ms %Φ'
         imodintro
-        iintro ⟨Hmsl, #Hok⟩ HΦ'
+        iintro ⟨Hmsl, #Hok, Hcr⟩ HΦ'
         rw [Hr, Hb]
         wp_auto
-        wp_apply (wp_deliver γr.raft bud mP M msl ms) $$ [$Hmsl]
+        wp_apply (wp_deliver γr.raft bud mP M msl ms) $$ [$Hmsl $Hcr]
         · iframe #
         iapply HΦ'
         itrivial

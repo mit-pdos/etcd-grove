@@ -54,8 +54,8 @@ theorem node.step.wp_proof
       simp only [netStepTypes, List.mem_cons, List.not_mem_nil, or_false] at h
       intro he
       rw [he] at h
-      rcases h with h | h | h | h | h | h <;> simp [MsgProp, MsgApp, MsgAppResp, MsgVote,
-        MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp] at h
+      rcases h with h | h | h | h | h | h | h | h <;> simp [MsgProp, MsgApp, MsgAppResp, MsgVote,
+        MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp] at h
     unfold netP
     iframe Hnet
     ipureintro; exact Hok

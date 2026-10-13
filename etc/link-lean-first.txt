@@ -85,3 +85,6 @@ node__Step: IsLocalMsg IsLocalMsgTarget node__step
 node__Ready:
 node__Advance:
 node__Tick:
+# The read-index requests (rawnode.go, node.go), Lean-first (2026-10-13).
+RawNode__ReadIndex: raft__Step
+node__ReadIndex: node__step

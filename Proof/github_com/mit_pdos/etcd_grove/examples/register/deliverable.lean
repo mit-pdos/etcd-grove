@@ -50,7 +50,7 @@ theorem deliverable.wp_proof : deliverable.spec (GF := GF) (hG := hG) := by
       (try simp only [Bool.not_true, Bool.not_false]); wp_auto) | (wp_if_destruct <;> try wp_auto))
   all_goals (iapply HΦ; ipureintro; intro h)
   all_goals (first | (cases h; done) | skip)
-  all_goals (unfold Deliverable netStepTypes; simp_all [MsgProp, MsgApp, MsgAppResp, MsgVote,
+  all_goals (unfold Deliverable regNetTypes; simp_all [MsgProp, MsgApp, MsgAppResp, MsgVote,
     MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp])
   all_goals done
 

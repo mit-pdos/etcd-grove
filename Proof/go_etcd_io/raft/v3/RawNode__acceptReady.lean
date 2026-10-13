@@ -361,8 +361,9 @@ theorem RawNode.acceptReady.wp_proof
   · iExactEq Hlog
     rfl
   subst Hes
-  -- ghost facts, read before anything moves
-  ihave #Hout := ownRaftGhost_outbox _ _ _ $$ Hghost
+  -- ghost facts, read before anything moves; the ghost state is at the drained outbox
+  -- (`ownRawNodeReady_handout`, 2026-10-13), the outbox's messages' facts in `Hout`
+  simp only [↓reduceIte]
   icases ownRaftGhost_storedRecs_keep _ _ _ $$ Hghost with ⟨Hghost, #Hlr⟩
   icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hwf1, Hlog⟩
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hwf2, Hlog⟩
@@ -627,12 +628,9 @@ theorem RawNode.acceptReady.wp_proof
         logAcceptUnstable s.logst := rfl
     rw [Hla]
     iexact Hlog
-  -- the ghost state: `Step.drain`
-  have Hdrain : Step γ.reCfg id ps [] { ps with outbox := [] } :=
-    Step.drain ps [] List.nil_subperm
-  imod ownRaftGhost_step_0 _ _ _ _ Hdrain $$ Hghost with Hghost
-  -- and `Step.takeReads` (2026-10-13): the `ReadState`s were handed out, with their
-  -- facts, by `readyWithoutAccept`
+  -- the ghost state: `Step.drain` was taken by `ownRawNodeReady_handout` (2026-10-13); now
+  -- `Step.takeReads` (2026-10-13): the `ReadState`s were handed out, with their facts, by
+  -- `readyWithoutAccept`
   have Htake : Step γ.reCfg id { ps with outbox := [] } []
       { ps with outbox := [], rd := { ps.rd with states := [] } } :=
     Step.takeReads _
