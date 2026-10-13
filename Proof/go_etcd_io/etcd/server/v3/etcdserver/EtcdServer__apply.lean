@@ -75,7 +75,7 @@ theorem EtcdServer.apply.wp_proof
     (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG)) :
     EtcdServer.apply.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr hne hfrom hok hEok
-  wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hents, Hst, Hbe, Happ, Hcs, Hlr, HKV, Hao⟩
+  wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hents, Hst, Hbe, Happ, Hcs, Hlr, Hgr, HKV, Hao⟩
   ihave #Hsrv0 := Hsrv
   iunfold isServer at Hsrv
   icases Hsrv with ⟨#Hsci, ⟨%sv, #Hfl⟩, #Hat⟩
@@ -120,7 +120,7 @@ theorem EtcdServer.apply.wp_proof
       "cnt" ∷ i_ptr ↦ j ∗ "iv" ∷ ivp ↦ ivv ∗ "shouldStop" ∷ shouldStop_ptr ↦ sb ∗
       "appliedi" ∷ appliedi_ptr ↦ ai ∗ "appliedt" ∷ appliedt_ptr ↦ at' ∗
       "Hst" ∷ applyThread γ st' ∗ "Hbe" ∷ applyBackend γ ci b ∗ "Happ" ∷ ciApplying ci a' t' ∗
-      "Hcs" ∷ epConfStateAddr ep ↦ csl ∗ "Hlr" ∷ srvLgReader s ∗
+      "Hcs" ∷ epConfStateAddr ep ↦ csl ∗ "Hlr" ∷ srvLgReader s ∗ "Hgr" ∷ srvGoRes s ∗
       "HKV" ∷ srvApplyKV s E xj ∗
       "Hao" ∷ srvAppliedOwn γr aw ∗
       "#Hlog" ∷ □ (⌜0 < sint.Z j⌝ -∗ appliedLogAt γr aw xj.log) ∗
@@ -129,7 +129,7 @@ theorem EtcdServer.apply.wp_proof
       "Hphi" ∷ (∀ (appliedt appliedi : w64) (shouldStop : Bool),
         (∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
           applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
-          epConfStateAddr ep ↦ csl ∗ srvLgReader s ∗ srvAppliedOwn γr appliedi ∗
+          epConfStateAddr ep ↦ csl ∗ srvLgReader s ∗ srvGoRes s ∗ srvAppliedOwn γr appliedi ∗
           (∃ x' : apply.ApplyKV, srvApplyKV s E x' ∗ ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗
             appliedLogAt γr appliedi x'.log) ∗
           ⌜(ms.getLast?).map EntryModel.index = some appliedi ∧
@@ -145,7 +145,7 @@ theorem EtcdServer.apply.wp_proof
       "%Hlast" ∷ ⌜∀ m : EntryModel, 0 < sint.nat j → ms[sint.nat j - 1]? = some m →
         m.index = ai ∧ m.term = at'⌝ ∗
       "%Haw" ∷ ⌜uint.Z aw = uint.Z f0 - 1 + sint.Z j⌝ : IProp GF)
-    $$ [cnt iv shouldStop appliedi appliedt Hst Hbe Happ Hcs Hlr HKV Hao HΦ]
+    $$ [cnt iv shouldStop appliedi appliedt Hst Hbe Happ Hcs Hlr Hgr HKV Hao HΦ]
   · iexists (W64 0), st, a, at0, cs, false, (W64 0), (W64 0), (W64 0), x, f0 - 1
     simp only [named]
     iframe
@@ -193,7 +193,7 @@ theorem EtcdServer.apply.wp_proof
     ihave #Hrpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
     · iPkgInit
     wp_apply_core (wp_ci_get hCI γ ci b st' Hstj.1) $$ [Hst Hbe]
-      [cnt iv shouldStop appliedi appliedt Happ Hcs Hlr HKV Hao Hphi e]
+      [cnt iv shouldStop appliedi appliedt Happ Hcs Hlr Hgr HKV Hao Hphi e]
     · iframe Hcipkg Hci Hinv Hst Hbe
     iintro ⟨Hst, Hbe⟩
     obtain ⟨hlp, hlpp, hlpe, hlc⟩ := stLoaded_facts γ st'
@@ -259,10 +259,10 @@ theorem EtcdServer.apply.wp_proof
       · -- a normal entry
         simp only [h0, _root_.decide_true]
         (try wp_auto)
-        wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') true xj) $$ [Hst Hbe Happ Hlr HKV]
-          as ⟨Hbe, Hlr, ⟨%x1, %out1, HKV, %Hstep1⟩, Hpost⟩
+        wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') true xj) $$ [Hst Hbe Happ Hlr Hgr HKV]
+          as ⟨Hbe, Hlr, Hgr, ⟨%x1, %out1, HKV, %Hstep1⟩, Hpost⟩
         · rw [ite_eq_left rfl]
-          iframe Hsrv0 Hewo He Hst Hbe Happ Hlr HKV
+          iframe Hsrv0 Hewo He Hst Hbe Happ Hlr Hgr HKV
           ipureintro
           refine ⟨⟨hlp ▸ hpend', hOk1 h0, h0⟩, ?_⟩
           rw [hlpp, hlc]
@@ -499,10 +499,10 @@ theorem EtcdServer.apply.wp_proof
       · -- a normal entry
         (try simp only [h0, _root_.decide_true])
         (try wp_auto)
-        wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') false xj) $$ [Hst Hbe Hlr HKV]
-          as ⟨Hbe, Hlr, ⟨%x1, %out1, HKV, %Hstep1⟩, Hst⟩
+        wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') false xj) $$ [Hst Hbe Hlr Hgr HKV]
+          as ⟨Hbe, Hlr, Hgr, ⟨%x1, %out1, HKV, %Hstep1⟩, Hst⟩
         · simp only [Bool.false_eq_true, ↓reduceIte]
-          iframe Hsrv0 Hewo He Hst Hbe Hlr HKV
+          iframe Hsrv0 Hewo He Hst Hbe Hlr Hgr HKV
           ipureintro; exact ⟨⟨hpend'', hOk1 h0, h0⟩, trivial⟩
         have hb1 : batchStep (ciEff γ st.k) m xj x1 := by
           unfold batchStep; rw [ite_eq_left h0]
@@ -634,7 +634,7 @@ theorem EtcdServer.apply.wp_proof
     iapply Hphi
     iexists st', a', t', csl
     rw [hjn, List.take_of_length_le (Nat.le_refl _)] at Hxs
-    iframe Hst Hbe Happ Hcs Hlr Hao
+    iframe Hst Hbe Happ Hcs Hlr Hgr Hao
     isplitl [HKV]
     · iexists xj; iframe HKV Hlogf; ipureintro; exact Hxs.1
     ipureintro

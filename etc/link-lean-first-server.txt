@@ -32,7 +32,6 @@ apply_Apply: @
 # membership change's contract, and names-only callees (zap, the alarm store, ...).
 EtcdServer__applyConfChange:
 pbutil_MustUnmarshalMessage:
-EtcdServer__GoAttach:
 EtcdServer__stopWithDelay:
 # The apply thread's small callees, with bodies (proved): the server's leader test and
 # logger (server.go), the notifier (pkg/notify), the election timeout (server/config), the
@@ -62,7 +61,11 @@ EtcdServer__getTxPostLockInsideApplyHook: consistentIndex__ConsistentApplyingInd
 EtcdServer__setAppliedIndex:
 EtcdServer__setTerm:
 EtcdServer__applyEntries: Entry__GetIndex EtcdServer__apply EtcdServer__stopWithDelay
-EtcdServer__applyEntryNormal: Entry__GetIndex Entry__GetTerm consistentIndex__ConsistentIndex consistentIndex__SetConsistentIndex Notifier__Notify EtcdServer__isLeader ServerConfig__ElectionTimeout apply_Apply errors_Is AlarmStore__Get EtcdServer__Logger zap_String zap_Int64 zap_Error go_humanize_Bytes zap_Logger__Warn EtcdServer__GoAttach
+# GoAttach (server.go; the request path's unit 4c: with its body, over Perennial's WaitGroup and
+# RWMutex, InvGoAttach.lean; the apply thread's alarm goroutine's proposal is the contract
+# EtcdServer.raftRequestAlarm, AlarmContract.lean)
+EtcdServer__GoAttach: EtcdServer__Logger zap_Logger__Warn
+EtcdServer__applyEntryNormal: Entry__GetIndex Entry__GetTerm consistentIndex__ConsistentIndex consistentIndex__SetConsistentIndex Notifier__Notify EtcdServer__isLeader ServerConfig__ElectionTimeout apply_Apply errors_Is AlarmStore__Get EtcdServer__Logger zap_String zap_Int64 zap_Error go_humanize_Bytes zap_Logger__Warn EtcdServer__GoAttach EtcdServer__MemberID
 EtcdServer__apply: zap_Logger__Debug zap_Int zap_Uint64 zap_Stringer consistentIndex__ConsistentIndex consistentIndex__SetConsistentApplyingIndex consistentIndex__SetConsistentIndex Entry__GetIndex Entry__GetTerm Entry__GetType EtcdServer__applyEntryNormal EtcdServer__setAppliedIndex EtcdServer__setTerm pbutil_MustUnmarshalMessage EtcdServer__applyConfChange ConfChange__GetId RaftCluster__Members
 # The raft wrapper (server/etcdserver/raft.go), see InvRaftNode.lean: raft v3.7's helpers and
 # getters it calls, its trust boundary (zap's Duration and Fatal, proto.Clone: names-only), and

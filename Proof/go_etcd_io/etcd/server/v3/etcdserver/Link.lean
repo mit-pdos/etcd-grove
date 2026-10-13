@@ -304,17 +304,13 @@ theorem «attribute».wp_String :
     «attribute».String.spec (GF := GF) (hG := hG) :=
   «attribute».String.wp_proof
 
-theorem EtcdServer.wp_GoAttach :
-    EtcdServer.GoAttach.spec (GF := GF) (hG := hG) :=
-  EtcdServer.GoAttach.wp_proof
+theorem EtcdServer.wp_Logger :
+    EtcdServer.Logger.spec (GF := GF) (hG := hG) :=
+  EtcdServer.Logger.wp_proof
 
 theorem EtcdServer.wp_Lead :
     EtcdServer.Lead.spec (GF := GF) (hG := hG) :=
   EtcdServer.Lead.wp_proof EtcdServer.wp_getLead
-
-theorem EtcdServer.wp_Logger :
-    EtcdServer.Logger.spec (GF := GF) (hG := hG) :=
-  EtcdServer.Logger.wp_proof
 
 theorem PutRequest.wp_GetKey :
     PutRequest.GetKey.spec (GF := GF) (hG := hG) :=
@@ -651,6 +647,10 @@ theorem EtcdServer.wp_FirstCommitInTermNotify :
     EtcdServer.FirstCommitInTermNotify.spec (GF := GF) (hG := hG) :=
   EtcdServer.FirstCommitInTermNotify.wp_proof notify.Notifier.wp_Receive
 
+theorem EtcdServer.wp_GoAttach :
+    EtcdServer.GoAttach.spec (GF := GF) (hG := hG) :=
+  EtcdServer.GoAttach.wp_proof EtcdServer.wp_Logger zap.Logger.wp_Warn
+
 theorem EtcdServer.wp_KV :
     EtcdServer.KV.spec (GF := GF) (hG := hG) :=
   EtcdServer.KV.wp_proof
@@ -737,7 +737,7 @@ theorem notify.Notifier.wp_Notify :
 
 theorem EtcdServer.wp_applyEntryNormal :
     EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG) :=
-  EtcdServer.applyEntryNormal.wp_proof raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentIndex notify.Notifier.wp_Notify EtcdServer.wp_isLeader config.ServerConfig.wp_ElectionTimeout apply.wp_Apply errors.wp_Is v3alarm.AlarmStore.wp_Get EtcdServer.wp_Logger zap.wp_String zap.wp_Int64 zap.wp_Error go_humanize.wp_Bytes zap.Logger.wp_Warn EtcdServer.wp_GoAttach
+  EtcdServer.applyEntryNormal.wp_proof raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentIndex notify.Notifier.wp_Notify EtcdServer.wp_isLeader config.ServerConfig.wp_ElectionTimeout apply.wp_Apply errors.wp_Is v3alarm.AlarmStore.wp_Get EtcdServer.wp_Logger zap.wp_String zap.wp_Int64 zap.wp_Error go_humanize.wp_Bytes zap.Logger.wp_Warn EtcdServer.wp_GoAttach EtcdServer.wp_MemberID
 
 theorem EtcdServer.wp_applyConfChange :
     EtcdServer.applyConfChange.spec (GF := GF) (hG := hG) :=
