@@ -50,7 +50,7 @@ IsResponseMsg: isMsgInArray
 RawNode__Step: IsResponseMsg IsLocalMsg IsLocalMsgTarget raft__Step
 raft__pastElectionTimeout:
 raft__tickElection: raft__promotable raft__pastElectionTimeout raft__Step
-raft__tickHeartbeat: raft__Step
+raft__tickHeartbeat: raft__Step raft__abortLeaderTransfer
 RawNode__Tick: raft__tickElection raft__tickHeartbeat
 raft__softState:
 raft__hardState:
