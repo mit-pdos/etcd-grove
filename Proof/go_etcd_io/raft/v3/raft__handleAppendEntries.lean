@@ -45,14 +45,14 @@ private theorem wp_min_u64 (a b : w64) :
 private theorem wp_send_appResp (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (dst idx hintterm hint : w64)
     (rej : Bool) (Hdst : dst ≠ id) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysC c r id s }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send"))
         (Val #({ Type' := W32 4, To' := dst, From' := 0, Term' := 0,
                  LogTerm' := hintterm, Index' := idx, Entries' := slice.nil,
                  Commit' := 0, Vote' := 0, Snapshot' := null, Reject' := rej,
                  RejectHint' := hint, Context' := slice.nil, Responses' := slice.nil } :
                 raftpb.Message)))
-    {{ RET #(); ownRaftPhysC c r id (sendMsgs s [appResp id s dst rej idx hintterm hint]) }} := by
+    {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s [appResp id s dst rej idx hintterm hint]) }} := by
   iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
   wp_apply wp_raft_send c r id s _ [] [] [appResp id s dst rej idx hintterm hint] (Or.inl rfl)
       (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun h => absurd h Hdst, rfl⟩)))) $$ [$Hphys]
@@ -143,7 +143,7 @@ theorem raft.handleAppendEntries.wp_proof
       -- rejected: `a.prev` does not match
       rw [Hpm] at Hma
       obtain ⟨rfl, rfl, rfl⟩ := Hma
-      ihave Hphys : ownRaftPhysC c r id s $$ [Hphys]
+      ihave Hphys : ownRaftPhysCV c c.voters r id s $$ [Hphys]
       · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
         cases s; rfl
       have Hnm : ¬ PlogMatches s.logst.prev (s.logst.sents ++ s.logst.uents)

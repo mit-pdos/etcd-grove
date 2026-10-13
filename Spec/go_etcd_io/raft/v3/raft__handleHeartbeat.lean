@@ -72,10 +72,10 @@ abbrev raft.handleHeartbeat.spec : Prop :=
   uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) →
   m.From' ≠ id →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhysC c r id s ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "#Hctx" ∷ m.Context' ↦*□ cl }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleHeartbeat")) (Val #m))
-  {{ RET #(); ownRaftPhysC c r id (heartbeatResult id s m cl) }}
+  {{ RET #(); ownRaftPhysCV c c.voters r id (heartbeatResult id s m cl) }}
 
 /-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
 derived from `raft.handleHeartbeat.spec` by `raft.handleHeartbeat.spec_simple`. -/

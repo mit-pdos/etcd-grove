@@ -33,10 +33,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `raft.wp_store_stateC` at the value the Go code stores. -/
 private theorem wp_store_state_leader (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (Hcfg : id ∈ c.voters) :
-    {{ ownRaftPhysC (GF := GF) c r id s }}
+    {{ ownRaftPhysCV (GF := GF) c c.voters r id s }}
       (App (Val (GoInstruction (GoStore StateType.ty)))
         (Val (PairV #(r.[raft, go!"state"]) go_etcd_io.raft.v3.StateLeader)))
-    {{ RET #(); ownRaftPhysC c r id { s with role := .leader } }} :=
+    {{ RET #(); ownRaftPhysCV c c.voters r id { s with role := .leader } }} :=
   raft.wp_store_stateC c r id s .leader (fun _ => Hcfg)
 
 theorem raft.becomeLeader.wp_proof
@@ -69,7 +69,7 @@ theorem raft.becomeLeader.wp_proof
   wp_apply raft.wp_store_leadC $$ Hphys as Hphys
   wp_apply wp_store_state_leader _ _ _ _ Hcfg $$ Hphys as Hphys
   -- the state is now `becomeLeaderPre` up to the order of the record updates
-  ihave Hphys : ownRaftPhysC c r id { becomeLeaderPre id s with prvals := pvs } $$ [Hphys]
+  ihave Hphys : ownRaftPhysCV c c.voters r id { becomeLeaderPre id s with prvals := pvs } $$ [Hphys]
   · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
     rfl
   generalize hs1 : ({ becomeLeaderPre id s with prvals := pvs } : NState) = s1
@@ -127,7 +127,7 @@ theorem raft.becomeLeader.wp_proof
   simp only [↓reduceIte]
   wp_auto
   -- `appendEntry` appended the stamped empty entry: that is `becomeLeader` (`Defs.lean`)
-  ihave Hphys : ownRaftPhysC c r id
+  ihave Hphys : ownRaftPhysCV c c.voters r id
       { becomeLeader id s with
         prvals := <[id := progressBecomeReplicate p0]> pvs }
       $$ [Hphys]

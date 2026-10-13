@@ -56,15 +56,15 @@ abbrev raft.responseToReadIndexReq.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (req : raftpb.Message) (idx : w64)
     (e : raftpb.Entry) (es : List raftpb.Entry),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhysC c r id s ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "#Hents" ∷ req.Entries' ↦*□ (e :: es) }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"responseToReadIndexReq"))
       (Val #req)) (Val #idx))
   {{ (resp : raftpb.Message), RET #resp;
       if req.From' = W64 0 ∨ req.From' = id then
-        ownRaftPhysC c r id (addReadState s idx e.Data') ∗ ⌜resp.To' = W64 0⌝
+        ownRaftPhysCV c c.voters r id (addReadState s idx e.Data') ∗ ⌜resp.To' = W64 0⌝
       else
-        ownRaftPhysC c r id s ∗ ⌜resp = readIndexRespMsg req idx⌝ }}
+        ownRaftPhysCV c c.voters r id s ∗ ⌜resp = readIndexRespMsg req idx⌝ }}
 
 /-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
 derived from `raft.responseToReadIndexReq.spec` by `raft.responseToReadIndexReq.spec_simple`. -/

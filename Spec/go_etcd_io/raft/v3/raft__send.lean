@@ -197,7 +197,7 @@ abbrev raft.send.spec : Prop :=
   (m.From' = W64 0 ∨ m.From' = id ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader) →
   SendOk id s m ents ctx out →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhysC c r id s ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "#Hents" ∷ m.Entries' ↦*□ ents ∗
       "#Hctx" ∷ m.Context' ↦*□ ctx ∗
       "#Hsnap" ∷ □ (⌜m.Type' = MsgSnap⌝ -∗
@@ -206,7 +206,7 @@ abbrev raft.send.spec : Prop :=
                       m.Snapshot' ↦□ sv ∗
                       sv.Metadata'.ConfState'.Voters' ↦*□ voters) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #m))
-  {{ RET #(); ownRaftPhysC c r id (sendMsgs s out) }}
+  {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s out) }}
 
 /-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
 derived from `raft.send.spec` by `raft.send.spec_simple`. -/

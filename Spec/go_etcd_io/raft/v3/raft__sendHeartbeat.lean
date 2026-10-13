@@ -54,12 +54,12 @@ abbrev raft.sendHeartbeat.spec : Prop :=
   to ≠ id →
   to ∈ domSet s.progress →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhysC c r id s ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "#Hctx" ∷ ctx ↦*□ cl }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"sendHeartbeat"))
       (Val #to)) (Val #ctx))
   {{ (cm : w64) (pvs : GMap w64 Progress), RET #();
-      ownRaftPhysC c r id
+      ownRaftPhysCV c c.voters r id
         { sendMsgs s [Msg.mkV .heartbeat id to s.term false
                         (W64 0) (W64 0) cm (W64 0) [] [] cl] with prvals := pvs } ∗
       ⌜uint.Z cm ≤ uint.Z s.logst.committed⌝ ∗

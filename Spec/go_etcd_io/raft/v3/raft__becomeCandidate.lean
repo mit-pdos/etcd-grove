@@ -34,10 +34,10 @@ abbrev raft.becomeCandidate.spec : Prop :=
   uint.Z s.term + 1 < 2 ^ 64 →
   -- (2026-10-13) only a voter campaigns (`ownRaftPhys`'s `Hvoter`)
   id ∈ c.voters →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysC c r id s }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomeCandidate")) (Val #()))
   {{ (pvs : GMap w64 Progress), RET #();
-      ownRaftPhysC c r id { becomeCandidate id s with prvals := pvs } }}
+      ownRaftPhysCV c c.voters r id { becomeCandidate id s with prvals := pvs } }}
 
 /-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
 derived from `raft.becomeCandidate.spec` by `raft.becomeCandidate.spec_simple`. -/

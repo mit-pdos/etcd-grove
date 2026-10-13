@@ -77,10 +77,10 @@ abbrev raft.maybeCommit.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
   s.role = .leader →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhysC c r id s }}
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeCommit")) (Val #()))
   {{ (b : Bool) (N : w64), RET #b;
-      ownRaftPhysC c r id
+      ownRaftPhysCV c c.voters r id
         (if b then { s with logst := { s.logst with committed := N } } else s) ∗
       ⌜b = true → CommitOkC c (toPState s) N⌝ }}
 

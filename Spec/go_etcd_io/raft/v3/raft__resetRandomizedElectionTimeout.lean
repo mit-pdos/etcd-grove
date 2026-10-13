@@ -33,10 +33,10 @@ the triple is false at `electionTimeout ≤ 0`. Raft establishes it in `Config.v
 `HelectionTimeout`; `reset` passes it through. Added 2026-09-20. -/
 abbrev raft.resetRandomizedElectionTimeout.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysC c r id s }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"resetRandomizedElectionTimeout"))
       (Val #()))
-  {{ RET #(); ownRaftPhysC c r id s }}
+  {{ RET #(); ownRaftPhysCV c c.voters r id s }}
 
 /-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
 derived from `raft.resetRandomizedElectionTimeout.spec` by `raft.resetRandomizedElectionTimeout.spec_simple`. -/

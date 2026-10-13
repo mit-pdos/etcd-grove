@@ -27,10 +27,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 `go_etcd_io.raft.v3.StateFollower` (`#(W64 0)`), which `wp_apply` does not unify with
 `#(stateW64 .follower)` by itself. -/
 private theorem wp_store_state_follower (c : CfgM) (r : Loc) (id : w64) (s : NState) :
-    {{ ownRaftPhysC (GF := GF) c r id s }}
+    {{ ownRaftPhysCV (GF := GF) c c.voters r id s }}
       (App (Val (GoInstruction (GoStore StateType.ty)))
         (Val (PairV #(r.[raft, go!"state"]) go_etcd_io.raft.v3.StateFollower)))
-    {{ RET #(); ownRaftPhysC c r id { s with role := .follower } }} :=
+    {{ RET #(); ownRaftPhysCV c c.voters r id { s with role := .follower } }} :=
   raft.wp_store_stateC (c := c) r id s .follower (fun h => absurd rfl h)
 
 theorem raft.becomeFollower.wp_proof

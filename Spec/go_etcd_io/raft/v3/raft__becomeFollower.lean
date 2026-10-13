@@ -27,11 +27,11 @@ move back (`raft.reset.spec`, 2026-10-10). -/
 abbrev raft.becomeFollower.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (term lead : w64),
   uint.Z s.term ≤ uint.Z term →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysC c r id s }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomeFollower"))
       (Val #term)) (Val #lead))
   {{ (pvs : GMap w64 Progress), RET #();
-      ownRaftPhysC c r id { becomeFollower s term lead with prvals := pvs } }}
+      ownRaftPhysCV c c.voters r id { becomeFollower s term lead with prvals := pvs } }}
 
 /-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
 derived from `raft.becomeFollower.spec` by `raft.becomeFollower.spec_simple`. -/

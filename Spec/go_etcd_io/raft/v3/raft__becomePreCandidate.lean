@@ -35,10 +35,10 @@ abbrev raft.becomePreCandidate.spec : Prop :=
   s.role ≠ .leader →
   -- (2026-10-13) only a voter campaigns (`ownRaftPhys`'s `Hvoter`)
   id ∈ c.voters →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysC c r id s }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomePreCandidate"))
       (Val #()))
-  {{ RET #(); ownRaftPhysC c r id (becomePrecandidate s) }}
+  {{ RET #(); ownRaftPhysCV c c.voters r id (becomePrecandidate s) }}
 
 /-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
 derived from `raft.becomePreCandidate.spec` by `raft.becomePreCandidate.spec_simple`. -/

@@ -53,10 +53,10 @@ abbrev releasePendingReadIndexMessages.spec : Prop :=
      plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) s.logst.committed
        = some s.term) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhysC c r id s }}
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
     (App (Val #(functions releasePendingReadIndexMessages [])) (Val #r))
   {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
-      ownRaftPhysC c r id
+      ownRaftPhysCV c c.voters r id
         { sendMsgs (releasedState id s) ms with prvals := pvs } ∗
       ⌜∀ m' ∈ ms, HeartbeatOk id (toPState s) m' ∧
          ∃ k, 0 < k ∧ k ≤ s.rd.pend.length ∧

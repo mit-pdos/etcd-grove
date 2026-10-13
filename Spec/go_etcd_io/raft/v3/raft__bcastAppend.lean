@@ -36,10 +36,10 @@ model demanded one per peer, which would have made this claim false -- the same 
 `wp_raft__appendEmptyEntry` then, after a Go method that does not exist). -/
 abbrev raft.bcastAppend.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysC c r id s }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"bcastAppend")) (Val #()))
   {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
-      ownRaftPhysC c r id { sendMsgs s ms with prvals := pvs } ∗
+      ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗
       ⌜ReplSends id s ms⌝ ∗
       ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
 

@@ -139,12 +139,12 @@ abbrev raft.handleAppendEntries.spec : Prop :=
   -- a self-addressed rejection would not be steppable (`AAMsgOk`)
   m.From' ≠ id →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhysC c r id s ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "#Hents" ∷ m.Entries' ↦*□ ents ∗
       "Hcap" ∷ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleAppendEntries")) (Val #m))
   {{ (s' : NState), RET #();
-      ownRaftPhysC c r id s' ∗ ⌜HandleAppResult id s m ents s'⌝ }}
+      ownRaftPhysCV c c.voters r id s' ∗ ⌜HandleAppResult id s m ents s'⌝ }}
 
 /-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
 derived from `raft.handleAppendEntries.spec` by `raft.handleAppendEntries.spec_simple`. -/

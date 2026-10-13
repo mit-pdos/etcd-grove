@@ -34,10 +34,10 @@ one). -/
 abbrev raft.reset.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (term : w64),
   uint.Z s.term ≤ uint.Z term →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysC c r id s }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"reset")) (Val #term))
   {{ (pvs : GMap w64 Progress), RET #();
-      ownRaftPhysC c r id { resetTo s term with prvals := pvs } ∗
+      ownRaftPhysCV c c.voters r id { resetTo s term with prvals := pvs } ∗
       -- every peer's `Match` is `0`, the node's own `lastIndex()` (`resetMatched`,
       -- `Defs.lean`): the Visit closure writes a fresh `Progress{Match: 0, ...}` and then
       -- `pr.Match = lastIndex()` for `r.id`. `becomeLeader` needs it (`Step.win`'s

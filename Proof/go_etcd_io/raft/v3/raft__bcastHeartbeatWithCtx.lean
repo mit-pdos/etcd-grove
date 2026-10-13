@@ -66,7 +66,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
         "%Hmm" ∷ ⌜prvalsMatch pvsx = prvalsMatch s.prvals⌝ ∗
         "Hrest" ∷ (∀ tvx pvsx', r.[raft, go!"trk"] ↦ tvx -∗
             ownTrackerC c tvx ⟨s.votes, s.progress, pvsx'⟩ -∗
-            ownRaftPhysC c r id { sendMsgs s ms with prvals := pvsx' })))
+            ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvsx' })))
     $$ [$Htrkf $Htrk r ctx Hrest]
   · isplitl [r ctx Hrest]
     · iexists []

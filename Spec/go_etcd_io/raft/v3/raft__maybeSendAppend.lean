@@ -54,11 +54,11 @@ abbrev raft.maybeSendAppend.spec : Prop :=
   to ≠ id →
   to ∈ domSet s.progress →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhysC c r id s }}
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeSendAppend"))
       (Val #to)) (Val #sendIfEmpty))
   {{ (b : Bool) (ms : List Msg) (pvs : GMap w64 Progress), RET #b;
-      ownRaftPhysC c r id { sendMsgs s ms with prvals := pvs } ∗
+      ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗
       ⌜ReplSends id s ms⌝ ∗
       -- `SentEntries`, `SentCommit`, `BecomeSnapshot` leave `Match` alone
       ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}

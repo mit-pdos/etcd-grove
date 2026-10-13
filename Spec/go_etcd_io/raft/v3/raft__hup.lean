@@ -79,10 +79,10 @@ abbrev raft.hup.spec : Prop :=
   (t = campaignPreElection → s.prevote = true) →
   -- `r.step` matches the role; kept by the call
   NStateWf s →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysC c r id s }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"hup")) (Val #t))
   {{ (s' : NState), RET #();
-      ownRaftPhysC c r id s' ∗ ⌜HupOkC c id s s'⌝ }}
+      ownRaftPhysCV c c.voters r id s' ∗ ⌜HupOkC c id s s'⌝ }}
 
 /-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
 derived from `raft.hup.spec` by `raft.hup.spec_simple`. -/

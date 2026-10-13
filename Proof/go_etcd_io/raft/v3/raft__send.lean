@@ -131,7 +131,7 @@ theorem raft.send.wp_proof
     · rw [Hsrc_eq, Hf]; split <;> simp_all
     · exact absurd Hf Hne
     · exact absurd Hf Hne2
-  wp_join iprop(r_ptr ↦ r ∗ m_ptr ↦ { m with From' := src } ∗ ownRaftPhysC c r id s)
+  wp_join iprop(r_ptr ↦ r ∗ m_ptr ↦ { m with From' := src } ∗ ownRaftPhysCV c c.voters r id s)
     with [r m Hphys] as ⟨r, m, Hphys⟩
   · wp_apply raft.wp_load_idC $$ Hphys as Hphys
     rw [show src = id by rw [Hsrc_eq, ite_eq_left (by simpa using Hif)]]

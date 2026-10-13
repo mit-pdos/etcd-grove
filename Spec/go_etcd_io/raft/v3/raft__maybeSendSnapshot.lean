@@ -67,11 +67,11 @@ abbrev raft.maybeSendSnapshot.spec : Prop :=
   to ≠ id →
   s.progress !! to = some pr →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhysC c r id s }}
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"maybeSendSnapshot"))
       (Val #to)) (Val #pr))
   {{ (b : Bool) (ms : List Msg) (pvs : GMap w64 Progress), RET #b;
-      ownRaftPhysC c r id { sendMsgs s ms with prvals := pvs } ∗
+      ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗
       ⌜ReplSends id s ms⌝ ∗
       -- `BecomeSnapshot` does not move `Match`
       ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}

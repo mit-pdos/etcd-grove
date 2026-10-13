@@ -50,7 +50,7 @@ struct with a tracker-shaped hole", the wand of `ownRaftPhysC_tracker_prvals`:
     ∃ ms, r_ptr ↦ r ∗ ⌜ReplSends id s ms⌝ ∗ ⌜prvalsMatch pvsx = prvalsMatch s.prvals⌝ ∗
           (∀ tvx pvsx, r.[trk] ↦ tvx -∗
                   ownTrackerC c tvx ⟨s.votes, s.progress, pvsx⟩ -∗
-                  ownRaftPhysC c r id { sendMsgs s ms with prvals := pvsx })
+                  ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvsx })
 
 quantified over the `Progress` values because `sendAppend` changes them
 (`NState.prvals`), and over the field value because `ownRaftPhys` hides it: after
@@ -80,7 +80,7 @@ theorem raft.bcastAppend.wp_proof
         "%Hmm" ∷ ⌜prvalsMatch pvsx = prvalsMatch s.prvals⌝ ∗
         "Hrest" ∷ (∀ tvx pvsx', r.[raft, go!"trk"] ↦ tvx -∗
             ownTrackerC c tvx ⟨s.votes, s.progress, pvsx'⟩ -∗
-            ownRaftPhysC c r id { sendMsgs s ms with prvals := pvsx' })))
+            ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvsx' })))
     $$ [$Htrkf $Htrk r Hrest]
   · isplitl [r Hrest]
     · iexists []

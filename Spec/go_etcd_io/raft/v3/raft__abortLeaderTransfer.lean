@@ -23,9 +23,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 until then `ownRaftPhys` pinned it to zero). -/
 abbrev raft.abortLeaderTransfer.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysC c r id s }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"abortLeaderTransfer")) (Val #()))
-  {{ RET #(); ownRaftPhysC c r id { s with lt := W64 0 } }}
+  {{ RET #(); ownRaftPhysCV c c.voters r id { s with lt := W64 0 } }}
 
 /-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
 derived from `raft.abortLeaderTransfer.spec` by `raft.abortLeaderTransfer.spec_simple`. -/

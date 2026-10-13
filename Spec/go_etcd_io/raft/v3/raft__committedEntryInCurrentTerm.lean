@@ -33,11 +33,11 @@ abbrev raft.committedEntryInCurrentTerm.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
   s.term ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhysC c r id s }}
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"committedEntryInCurrentTerm"))
       (Val #()))
   {{ (b : Bool), RET #b;
-      ownRaftPhysC c r id s ∗
+      ownRaftPhysCV c c.voters r id s ∗
       ⌜b = true ↔ plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) s.logst.committed
                     = some s.term⌝ }}
 

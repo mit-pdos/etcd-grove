@@ -59,7 +59,7 @@ Commit: ..})`: `SendOk`'s second clause. -/
 private theorem wp_send_app (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (dst idx lt cm : w64) (sl : GoSlice)
     (es : List raftpb.Entry) (Hdst : dst ≠ id) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysC c r id s ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         sl ↦*□ es }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send"))
         (Val #({ Type' := W32 3, To' := dst, From' := 0, Term' := 0,
@@ -67,7 +67,7 @@ private theorem wp_send_app (wp_raft_send : raft.send.spec (GF := GF) (hG := hG)
                  Commit' := cm, Vote' := 0, Snapshot' := null, Reject' := false,
                  RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil } :
                 raftpb.Message)))
-    {{ RET #(); ownRaftPhysC c r id (sendMsgs s
+    {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s
           [Msg.mk .app id dst s.term false idx lt cm (W64 0) es]) }} := by
   iintro %Φ ⟨#Hpkg, Hphys, #Hes⟩ HΦ
   wp_apply wp_raft_send c r id s _ es [] [Msg.mk .app id dst s.term false idx lt cm (W64 0) es]

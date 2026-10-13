@@ -36,12 +36,12 @@ empty half wins every vote, which `MajQ` says. The statement at a simple configu
 (`cfg ≠ ∅`, `IsQuorum cfg`) is `raft.poll.specS`. -/
 abbrev raft.poll.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (src : w64) (t : w32) (v : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysC c r id s }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"poll"))
       (Val #src)) (Val #t)) (Val #v))
   {{ (g rj : w64) (res : w8), RET (PairV (PairV #g #rj) #res);
       let votes' := recordVote s.votes src v
-      iprop(ownRaftPhysC c r id { s with votes := votes' } ∗
+      iprop(ownRaftPhysCV c c.voters r id { s with votes := votes' } ∗
       ⌜res = VoteWon ∨ res = VoteLost ∨ res = VotePending⌝ ∗
       ⌜res = VoteWon ↔ JQuorum c (granted votes')⌝ ∗
       -- see InvTracker.lean: `VoteLost` is "cannot still win", not "a majority

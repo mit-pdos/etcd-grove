@@ -127,7 +127,6 @@ theorem raft.campaign.wp_proof
   -- whence the premise.
   have Hno_wrap : s.term + W64 1 ≠ W64 0 := by word
   wp_start as Hphys
-  rw [hV]
   wp_auto
   -- `promotable` is only logged: `id ∈ cfg`, but a pending snapshot makes
   -- it false. The two arms are joined.
@@ -143,7 +142,7 @@ theorem raft.campaign.wp_proof
   -- the role transition: `becomePreCandidate` and `Term + 1`, or
   -- `becomeCandidate` and the new `Term`; joined at the state each leaves
   wp_join iprop(∃ (pvs : GMap w64 Progress),
-      "Hphys" ∷ ownRaftPhysC c r id
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id
         { campRoleState id s (decide (t = campaignPreElection)) with prvals := pvs } ∗
       "term" ∷ term_ptr ↦ (s.term + W64 1) ∗
       "voteMsg" ∷ voteMsg_ptr ↦ vreqW32 (decide (t = campaignPreElection)) ∗
@@ -183,11 +182,10 @@ theorem raft.campaign.wp_proof
   -- change it, and the struct is re-sealed right after.
   icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
   wp_apply (quorum.JointConfig.IDs.spec_trackerC wp_JointConfig_IDs) $$ [$Htrkf $Htrk] as %mref ⟨Htrkf, Hown, Hidm⟩
-  rw [hV]
   obtain ⟨idm, hidm⟩ : ∃ idm, cfg = idm := ⟨_, rfl⟩
   have Hdomidm : domSet idm = cfg := by rw [← hidm]; exact domSet_gset cfg
   ihave Hidm : mref ↦$ idm $$ [Hidm]
-  · rw [← hidm]; iexact Hidm
+  · rw [← hidm, ← hV]; iexact Hidm
   -- `ownTracker` pins the voter set's cardinality: `campaign` runs
   -- `make([]uint64, 0, len(idMap))` and `wp_slice_make3` needs `0 ≤ cap`.
   -- (Rocq's `own_tracker_cfg_size`; here the tracker is opened and re-sealed.)
@@ -265,7 +263,7 @@ theorem raft.campaign.wp_proof
       "i" ∷ i_ptr ↦ n ∗
       "id" ∷ id_ptr ↦ x ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (xs.length : Int)⌝ ∗
-      "Hphys" ∷ ownRaftPhysC c r id
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id
         (sendMsgs { campRoleState id s pre with prvals := pvs }
           ((xs.take (sint.Z n).toNat).map (campMsg pre id (s.term + W64 1)
             (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t))))) $$ [i id Hphys]
@@ -329,7 +327,7 @@ theorem raft.campaign.wp_proof
         iapply send_no_snap
         cases pre <;> simp [vrespW32, MsgSnap, MsgVoteResp, MsgPreVoteResp]
       iintro Hphys
-      ihave Hphys : ownRaftPhysC c r y
+      ihave Hphys : ownRaftPhysCV c c.voters r y
           (sendMsgs { campRoleState y s pre with prvals := pvs }
             ((xs.take (sint.Z (n + W64 1)).toNat).map (campMsg pre y (s.term + W64 1)
               (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t)))) $$ [Hphys]
@@ -393,7 +391,7 @@ theorem raft.campaign.wp_proof
         iapply send_no_snap
         cases pre <;> simp [vreqW32, MsgSnap, MsgVote, MsgPreVote]
       iintro Hphys
-      ihave Hphys : ownRaftPhysC c r id
+      ihave Hphys : ownRaftPhysCV c c.voters r id
           (sendMsgs { campRoleState id s pre with prvals := pvs }
             ((xs.take (sint.Z (n + W64 1)).toNat).map (campMsg pre id (s.term + W64 1)
               (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t)))) $$ [Hphys]
@@ -412,7 +410,7 @@ theorem raft.campaign.wp_proof
     rw [Hfull, List.take_length]
     iapply HΦ $$ %(elements (cfg \ {[id]})) %pvs
     isplitr
-    · ipureintro; rfl
+    · ipureintro; rw [hV]
     have Hmem : ∀ z, z ∈ xs ↔ z ∈ cfg := by
       intro z
       rw [← Hxs.mem_iff, Hkeys_perm.mem_iff, GMap.elem_of_elements]

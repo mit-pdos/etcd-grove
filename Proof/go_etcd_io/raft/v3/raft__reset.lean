@@ -147,7 +147,7 @@ theorem raft.reset.wp_proof
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   -- Two arms: `r.Term != term` writes `Term` and `Vote`; otherwise nothing is written
   -- and the vote survives.
-  wp_join iprop(r_ptr ↦ r ∗ term_ptr ↦ term ∗ ownRaftPhysC c r id
+  wp_join iprop(r_ptr ↦ r ∗ term_ptr ↦ term ∗ ownRaftPhysCV c c.voters r id
       { s with term := term, vote := if term = s.term then s.vote else W64 0 })
     with [r term Hphys] as ⟨r, term, Hphys⟩
   · wp_apply raft.wp_store_TermC (Hle := Hle) $$ Hphys as Hphys
@@ -183,7 +183,7 @@ theorem raft.reset.wp_proof
         ⌜ResetInv id (logLast s.logst) s.prvals pvsx D⌝ ∗
         (∀ tvx pvsx', r.[raft, go!"trk"] ↦ tvx -∗
           ownTrackerC c tvx ⟨(resetTo0 s term).votes, (resetTo0 s term).progress, pvsx'⟩ -∗
-          ownRaftPhysC c r id { resetTo0 s term with prvals := pvsx' })))
+          ownRaftPhysCV c c.voters r id { resetTo0 s term with prvals := pvsx' })))
     $$ [$Htrkf $Htrk $r $HI]
     as ⟨%tvfin, %pvsfin, Htrkf, Htrk, r, %Hinv, HI⟩
   · isplitr

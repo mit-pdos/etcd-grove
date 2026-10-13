@@ -28,8 +28,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- Returning without sending: the state the caller expects. -/
 private theorem ownRaftPhys_nosend (c : CfgM) (r : Loc) (id : w64) (s : NState) :
-    ⊢ ownRaftPhysC (GF := GF) c r id { s with prvals := s.prvals } -∗
-      ownRaftPhysC c r id { sendMsgs s [] with prvals := s.prvals } := by
+    ⊢ ownRaftPhysCV (GF := GF) c c.voters r id { s with prvals := s.prvals } -∗
+      ownRaftPhysCV c c.voters r id { sendMsgs s [] with prvals := s.prvals } := by
   iintro H
   iapply ownRaftPhysC_eq c r id _ _ (by cases s; simp [sendMsgs]) $$ H
 
@@ -109,7 +109,7 @@ theorem raft.maybeSendSnapshot.wp_proof
   ihave Htrk := Htrkback $$ Hpr
   ihave Hphys := Hback $$ %tv Htrkf Htrk
   -- nothing below writes a `Progress` until `BecomeSnapshot`
-  ihave Hphys : ownRaftPhysC (GF := GF) c r id { s with prvals := s.prvals } $$ [Hphys]
+  ihave Hphys : ownRaftPhysCV (GF := GF) c c.voters r id { s with prvals := s.prvals } $$ [Hphys]
   · iapply ownRaftPhysC_eq c r id _ _ (by cases s; rfl) $$ Hphys
   cases Hra : pv.RecentActive' <;> wp_auto
   · -- not recently active: log and return `false`

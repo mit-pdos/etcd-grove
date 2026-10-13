@@ -145,7 +145,7 @@ theorem releasePendingReadIndexMessages.wp_proof
       "i" ∷ i_ptr ↦ n ∗
       "m" ∷ m_ptr ↦ mv ∗
       "Hpri" ∷ pr ↦* s.rd.pend.map Prod.fst ∗
-      "Hphys" ∷ ownRaftPhysC c r id
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id
         { sendMsgs (relState id s (sint.nat n)) ms with prvals := pvs } ∗
       "%Hms" ∷ ⌜∀ m' ∈ ms, HeartbeatOk id (toPState s) m' ∧
          ∃ k, 0 < k ∧ k ≤ sint.nat n ∧

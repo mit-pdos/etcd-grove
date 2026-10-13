@@ -152,7 +152,7 @@ abbrev raft.appendEntry.spec : Prop :=
   -- a leader's term (2026-10-10): the self-acknowledgement is stamped with it, and
   -- `RawNode.Advance` steps it, which needs a nonzero term (`AAMsgOk`)
   s.term ≠ W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysC c r id s ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
       es ↦* ents }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
   {{ (accepted : Bool), RET #accepted;
@@ -161,7 +161,7 @@ abbrev raft.appendEntry.spec : Prop :=
       -- stamped on both paths: the loop runs before the budget check
       es ↦* ents.mapIdx (stamp s.term (logLast s.logst)) ∗
       if accepted then
-        ownRaftPhysC c r id
+        ownRaftPhysCV c c.voters r id
           (sendMsgs
             { s with logst :=
                 logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }
@@ -170,7 +170,7 @@ abbrev raft.appendEntry.spec : Prop :=
                   logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }])
       else
         -- dropped: `Warningf` and `return false`, nothing written
-        ownRaftPhysC c r id s }}
+        ownRaftPhysCV c c.voters r id s }}
 
 /-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
 derived from `raft.appendEntry.spec` by `raft.appendEntry.spec_simple`. -/

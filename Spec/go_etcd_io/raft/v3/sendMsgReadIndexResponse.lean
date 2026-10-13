@@ -56,11 +56,11 @@ abbrev sendMsgReadIndexResponse.spec : Prop :=
     (ents : List raftpb.Entry),
   s.role = .leader →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhysC c r id s ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "#Hents" ∷ m.Entries' ↦*□ ents }}
     (App (App (Val #(functions sendMsgReadIndexResponse [])) (Val #r)) (Val #m))
   {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
-      ownRaftPhysC c r id { sendMsgs (arriveState id s m ents) ms with prvals := pvs } ∗
+      ownRaftPhysCV c c.voters r id { sendMsgs (arriveState id s m ents) ms with prvals := pvs } ∗
       ⌜∀ m' ∈ ms, HeartbeatOk id (toPState s) m' ∧
          m'.ctx = hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents))⌝ ∗
       ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}

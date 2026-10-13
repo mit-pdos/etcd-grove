@@ -57,7 +57,7 @@ abbrev raft.campaign.spec : Prop :=
   -- next term, which `ownRaftPhys` allows only then (`OutTermOk`); `hup` is called with
   -- `campaignPreElection` exactly when `r.preVote`
   (t = campaignPreElection → s.prevote = true) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysC c r id s }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"campaign")) (Val #t))
   {{ (peers : List w64) (pvs : GMap w64 Progress), RET #();
       ⌜peers ≡ₚ elements (c.voters \ {[id]})⌝ ∗
@@ -65,7 +65,7 @@ abbrev raft.campaign.spec : Prop :=
       -- (`Index: last.index, LogTerm: last.term`) -- the log's last entry id, the same
       -- for every peer: nothing in the loop changes the log -- and (2026-10-13) for a
       -- leader transfer's campaign the marker as its `Context` (`transferCtx`)
-      ownRaftPhysC c r id
+      ownRaftPhysCV c c.voters r id
         { campaignState id s (decide (t = campaignPreElection)) peers (transferCtx t)
             with prvals := pvs } }}
 

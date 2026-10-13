@@ -56,10 +56,10 @@ The statement is correct as written; do not weaken it. The proof is a case split
 short-circuits. -/
 abbrev raft.promotable.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysC c r id s }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"promotable")) (Val #()))
   {{ (b : Bool), RET #b;
-      ownRaftPhysC c r id s ∗
+      ownRaftPhysCV c c.voters r id s ∗
       ⌜b = decide (id ∈ c.voters ∧ s.logst.snap = none)⌝ }}
 
 /-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,

@@ -37,10 +37,10 @@ abbrev raft.becomeLeader.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
   s.role ≠ .follower →
   s.term ≠ W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysC c r id s }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomeLeader")) (Val #()))
   {{ (pvs : GMap w64 Progress), RET #();
-      ownRaftPhysC c r id { becomeLeader id s with prvals := pvs } ∗
+      ownRaftPhysCV c c.voters r id { becomeLeader id s with prvals := pvs } ∗
       -- `Match` is what `reset` left: `BecomeReplicate` and the `RecentActive` store do
       -- not move it, and `appendEntry` does not touch a `Progress`
       ⌜prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals⌝ }}

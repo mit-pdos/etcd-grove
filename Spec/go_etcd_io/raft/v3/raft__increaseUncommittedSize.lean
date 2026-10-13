@@ -62,12 +62,12 @@ abbrev raft.increaseUncommittedSize.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
     (ents : List raftpb.Entry) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhysC c r id s ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hes" ∷ es ↦*{dq} ents }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"increaseUncommittedSize"))
       (Val #es))
   {{ (ok : Bool), RET #ok;
-      ownRaftPhysC c r id s ∗ es ↦*{dq} ents ∗
+      ownRaftPhysCV c c.voters r id s ∗ es ↦*{dq} ents ∗
       -- an all-empty batch is never rejected
       ⌜(∀ e ∈ ents, sint.Z e.Data'.len = 0) → ok = true⌝ }}
 

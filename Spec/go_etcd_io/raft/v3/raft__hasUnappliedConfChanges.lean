@@ -48,10 +48,10 @@ abbrev raft.hasUnappliedConfChanges.spec : Prop :=
   -- reason `hup` tests `promotable` (which checks `hasNextOrInProgressSnapshot`)
   -- first. Added 2026-10-02.
   s.logst.snap = none →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysC c r id s }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"hasUnappliedConfChanges"))
       (Val #()))
-  {{ (b : Bool), RET #b; ownRaftPhysC c r id s ∗
+  {{ (b : Bool), RET #b; ownRaftPhysCV c c.voters r id s ∗
       ⌜b = true ↔ ∃ e ∈ unappliedEnts s.logst, IsConfEnt e⌝ }}
 
 /-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,

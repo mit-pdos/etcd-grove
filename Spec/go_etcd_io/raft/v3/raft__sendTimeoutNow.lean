@@ -26,9 +26,9 @@ oneself): the leader-transfer target, which `ownRaftPhys` keeps `≠ id`. -/
 abbrev raft.sendTimeoutNow.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64),
   to ≠ id →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysC c r id s }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"sendTimeoutNow")) (Val #to))
-  {{ RET #(); ownRaftPhysC c r id s }}
+  {{ RET #(); ownRaftPhysCV c c.voters r id s }}
 
 /-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
 derived from `raft.sendTimeoutNow.spec` by `raft.sendTimeoutNow.spec_simple`. -/

@@ -41,10 +41,10 @@ abbrev raft.bcastHeartbeat.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
   s.role = .leader →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhysC c r id s }}
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"bcastHeartbeat")) (Val #()))
   {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
-      ownRaftPhysC c r id { sendMsgs s ms with prvals := pvs } ∗
+      ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗
       -- each with the read-only object's context (2026-10-12; `nil` without a request)
       ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = hbCtx s.rd.ro⌝ ∗
       ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
