@@ -30,7 +30,7 @@ theorem raftNode.tick.wp_proof : raftNode.tick.spec (GF := GF) (hG := hG) := by
   iunfold isRaftNode at Hr
   iNamed Hr
   iunfold isRaftNodeIfc at Hni
-  icases Hni with ⟨%ni, %Hnieq, #HReady, #HAdv, #HTick, #HStop⟩
+  icases Hni with ⟨%ni, %Hnieq, #HReady, #HAdv, #HTick, #HStop, #HRI⟩
   subst Hnieq
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

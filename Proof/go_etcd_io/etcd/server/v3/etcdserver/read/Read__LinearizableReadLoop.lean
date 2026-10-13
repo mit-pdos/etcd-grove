@@ -77,7 +77,8 @@ theorem read.Read.LinearizableReadLoop.wp_proof
   iunfold isReadServer at Hsrv
   icases Hsrv with ⟨-, %si, %Hsi, #HStopping, #HLC, -, #HLg, #HAI, #HAW, -, -⟩
   subst Hsi
-  iunfold srvChanOk at HStopping HLC
+  iunfold srvChanOk at HStopping
+  iunfold srvChanOkR at HLC
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Ptu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
@@ -86,7 +87,7 @@ theorem read.Read.LinearizableReadLoop.wp_proof
   · iPkgInit
   wp_auto
   wp_for
-  wp_apply (lc := 3) HLC as %lcn #Hlcn
+  wp_apply (lc := 3) HLC $$ [$HLR] as %lcn ⟨#Hlcn, HLR⟩
   wp_apply HStopping as %stc #Hstc
   ihave #Hlcnc := Hlcn
   ihave #Hstcc := Hstc
@@ -182,7 +183,7 @@ theorem read.Read.LinearizableReadLoop.wp_proof
     · iframe #; ipureintro; exact Ht
     (try wp_auto)
     wp_if_destruct
-    · wp_apply HAW $$ %ci as %awc #Hawc
+    · wp_apply HAW $$ %ci as %awc ⟨%Qaw, #Hawc, #Hawq⟩
       wp_apply HStopping as %stc2 #Hstc2
       iunfold bcastChan at Hawc Hstc2
       icases Hawc with ⟨%γaw, #Hawc⟩
@@ -197,7 +198,8 @@ theorem read.Read.LinearizableReadLoop.wp_proof
         isplitr
         · iapply ownBroadcastChan_is_chan $$ Hawc
         iapply broadcast_chan_receive _ _ _ _ _ $$ Hawc
-        iintro ⟨#Hai', -⟩
+        iintro ⟨#HQaw, -⟩
+        ihave #Hai' := Hawq $$ HQaw
         have Hle' : uint.Z ci ≤ uint.Z ci := Int.le_refl _
         loop_tail
       iapply BigAndL.bigAndL_cons.2

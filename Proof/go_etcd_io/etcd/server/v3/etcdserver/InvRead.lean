@@ -12,7 +12,10 @@ txn package's `checkTxn`), the auth store (`apply.isAuthStore`: `IsRangePermitte
 `CheckTxnAuth`'s checks, `Revision`), the logger (`lg`, not nil), the configuration's
 `WarningApplyDuration`, the term's atomic (`Term`), a certificate of a log of `NewStore`'s two
 revisions (`idxCert`: every read is of a log at least that long, so a read's revision is not
-`0`), and **the store stays small** (`storeSmall`: every certified log has at most `2 ^ 62`
+`0`), the read loop's server fields (2026-10-13, the request path's unit 4b: the applied and
+committed indices' invariants, `srvAppliedInv`/`srvCommittedInv`; the applied index's waiters
+`applyWait`, a `WaitTime` for `appliedAtLeast γr`, `isWaitTime`; the notifiers `leaderChanged` and
+`firstCommitInTerm`; the `stopping` channel, closed, never sent on), and **the store stays small** (`storeSmall`: every certified log has at most `2 ^ 62`
 changes, `txn.LogSmall`, the sort's premise; a premise, as the apply thread's `rangeOk`/`TxnPre`
 of its entries).
 
@@ -37,6 +40,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Contracts
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvTxn
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
+public import Proof.go_etcd_io.etcd.pkg.v3.wait.TimeList
 
 @[expose] public section
 
@@ -50,6 +54,15 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
+
+section addrs
+variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+
+abbrev srvApplyWaitAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"applyWait" s
+abbrev srvLeaderChangedAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"leaderChanged" s
+abbrev srvStoppingAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"stopping" s
+
+end addrs
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -75,6 +88,10 @@ structure ReadFields where
   lg : Loc
   wad : w64
   rv : Loc
+  aw : GoInterface
+  lc : Loc
+  fc : Loc
+  stopping : Loc
 
 /-- **The server `s` as a reader sees it** at the fields' values `v` (persistent; see the file
 header). -/
@@ -91,7 +108,11 @@ def srvReadFieldsAt (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v : ReadFie
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
     storeSmall E.γ ∗
-    (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗ ⌜2 ≤ log₀.length⌝))
+    (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗ ⌜2 ≤ log₀.length⌝) ∗
+    srvAppliedInv s E γr ∗ srvCommittedInv s γr ∗
+    srvApplyWaitAddr s ↦□ v.aw ∗ isWaitTime v.aw (appliedAtLeast γr) ∗
+    srvLeaderChangedAddr s ↦□ v.lc ∗ srvFirstCommitAddr s ↦□ v.fc ∗
+    srvStoppingAddr s ↦□ v.stopping ∗ srvDoneChan v.stopping)
 
 instance srvReadFieldsAt_persistent (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     (v : ReadFields) : Persistent (srvReadFieldsAt s E γr v) := by
@@ -109,6 +130,13 @@ instance isServerRead_persistent (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
 request path's unit 4a: `LinearizableReadNotify` read-locks it). -/
 def srvReadReader (s : Loc) (γr : ReadNames) : IProp GF :=
   iprop(∃ rd : Loc, srvReadAddr s ↦□ rd ∗ readReader rd γr)
+
+/-- **The read loop's server resource** `LR` (2026-10-13, the request path's unit 4b): the
+`Logger()`'s reader slot of `s.lgMu`, and a reader slot of each notifier the read loop receives
+from (`LeaderChanged()`, `FirstCommitInTermNotify()`: `Receive` read-locks it). -/
+def srvReadLR (s : Loc) : IProp GF :=
+  iprop(srvLgReader s ∗ (∃ n : Loc, srvLeaderChangedAddr s ↦□ n ∗ notifyReader n) ∗
+    (∃ n : Loc, srvFirstCommitAddr s ↦□ n ∗ notifyReader n))
 
 /-- **A read call's resources** (see the file header): the store's reader slots, a reader slot
 of `s.lgMu`, the committed index `c` the caller knew of, and (2026-10-13, unit 4a) a reader slot

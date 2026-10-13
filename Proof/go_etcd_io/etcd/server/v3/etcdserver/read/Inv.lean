@@ -162,30 +162,41 @@ def srvChanOk (si : GoInterfaceOk) (m : GoString) : IProp GF :=
   iprop(□ {{ True }} (App (Val #(methods si.ty m si.v)) (Val #()))
     {{ (ch : Loc), RET #ch; bcastChan ch iprop(True) }})
 
+/-- The method `m` of the server value `si`, with the caller's resource `LR` (given back), returns
+a channel that is closed, never sent on, with no content (the leader-change and first-commit
+channels: `notify.Notifier.Receive` read-locks the notifier, so the caller holds a reader slot;
+2026-10-13, the request path's unit 4b). -/
+def srvChanOkR (si : GoInterfaceOk) (m : GoString) (LR : IProp GF) : IProp GF :=
+  iprop(□ {{ LR }} (App (Val #(methods si.ty m si.v)) (Val #()))
+    {{ (ch : Loc), RET #ch; bcastChan ch iprop(True) ∗ LR }})
+
 /-- **The server's `Done()`** (persistent; what `LinearizableReadNotify` needs of the server). -/
 def srvDoneOk (srv : GoInterface) : IProp GF :=
   iprop(∃ si : GoInterfaceOk, ⌜srv = GoInterface.ok si⌝ ∗ srvChanOk si go!"Done")
 
 /-- **The `server` interface value `srv`** (persistent; unit 4b discharges it for `*EtcdServer`):
 * `Done()`, `Stopping()`, `LeaderChanged()`, `FirstCommitInTermNotify()`: channels closed, never
-  sent on, with no content (`bcastChan`);
+  sent on, with no content (`bcastChan`); the last two with the caller's resource `LR` (given
+  back: they read-lock a notifier; 2026-10-13, unit 4b);
 * `Logger()`: a non-nil `*zap.Logger`, for the caller's resource `LR` (the server's `lgMu` reader
-  slot: `EtcdServer.Logger` read-locks it), given back;
+  slot: `EtcdServer.Logger` read-locks it; and the two notifiers' reader slots), given back;
 * `AppliedIndex()`: an index the applied index has reached (`appliedAtLeast`);
-* `ApplyWait(d)`: a channel closed once the applied index has reached `d`;
+* `ApplyWait(d)`: a channel closed once the applied index has reached `d`: its close tells some `Q`
+  from which `appliedAtLeast γr d` follows (2026-10-13, unit 4b: `WaitTime.Wait` returns the
+  package's `closec`, closed with nothing, when `d` was already triggered);
 * `NextRequestID()`: some id, for a resource `NR` (the id generator's credit: the id budget, the
   server's premise; the loop asks for one per `ReadIndex` request, unboundedly);
 * `RequestTimeout()`: some duration. -/
 def isReadServer (srv : GoInterface) (γr : ReadNames) (LR NR : IProp GF) : IProp GF :=
   iprop(srvDoneOk srv ∗ ∃ si : GoInterfaceOk, ⌜srv = GoInterface.ok si⌝ ∗
-    srvChanOk si go!"Stopping" ∗ srvChanOk si go!"LeaderChanged" ∗
-    srvChanOk si go!"FirstCommitInTermNotify" ∗
+    srvChanOk si go!"Stopping" ∗ srvChanOkR si go!"LeaderChanged" LR ∗
+    srvChanOkR si go!"FirstCommitInTermNotify" LR ∗
     □ ({{ LR }} (App (Val #(methods si.ty go!"Logger" si.v)) (Val #()))
       {{ (l : Loc), RET #l; ⌜l ≠ null⌝ ∗ LR }}) ∗
     □ ({{ True }} (App (Val #(methods si.ty go!"AppliedIndex" si.v)) (Val #()))
       {{ (i : w64), RET #i; appliedAtLeast γr i }}) ∗
     □ (∀ d : w64, {{ True }} (App (Val #(methods si.ty go!"ApplyWait" si.v)) (Val #d))
-      {{ (ch : Loc), RET #ch; bcastChan ch (appliedAtLeast γr d) }}) ∗
+      {{ (ch : Loc), RET #ch; ∃ Q : IProp GF, bcastChan ch Q ∗ □ (Q -∗ appliedAtLeast γr d) }}) ∗
     □ ({{ NR }} (App (Val #(methods si.ty go!"NextRequestID" si.v)) (Val #()))
       {{ (id : w64), RET #id; True }}) ∗
     □ ({{ True }} (App (Val #(methods si.ty go!"RequestTimeout" si.v)) (Val #()))
@@ -194,6 +205,9 @@ def isReadServer (srv : GoInterface) (γr : ReadNames) (LR NR : IProp GF) : IPro
 instance srvChanOk_persistent (si : GoInterfaceOk) (m : GoString) :
     Persistent (srvChanOk (GF := GF) si m) := by
   unfold srvChanOk; infer_instance
+instance srvChanOkR_persistent (si : GoInterfaceOk) (m : GoString) (LR : IProp GF) :
+    Persistent (srvChanOkR (GF := GF) si m LR) := by
+  unfold srvChanOkR; infer_instance
 instance srvDoneOk_persistent (srv : GoInterface) : Persistent (srvDoneOk (GF := GF) srv) := by
   unfold srvDoneOk; infer_instance
 instance isReadServer_persistent (srv : GoInterface) (γr : ReadNames) (LR NR : IProp GF) :

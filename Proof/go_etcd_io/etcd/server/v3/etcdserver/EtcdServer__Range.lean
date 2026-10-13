@@ -320,7 +320,7 @@ theorem EtcdServer.Range.wp_proof
   icases Hrd' with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAt at Hw
   icases Hw with ⟨#Hread, #HisRead, #Hkvf, #HisKV, #Hrvf, #Hrv, #Hlef, #Hle, #Hauf, #Hau, #Hlgf,
-    %Hlgn, #Hwad, #Hterm, #Hsmall, ⟨%log₀, #Hc0, %Hl0⟩⟩
+    %Hlgn, #Hwad, #Hterm, #Hsmall, ⟨%log₀, #Hc0, %Hl0⟩, #Hainv, -⟩
   iunfold srvRdCall at Hcall
   icases Hcall with ⟨Hsr, Hlr, #Hcal, Hrr⟩
   ihave Hinit : (srvInit : IProp GF) $$ []
