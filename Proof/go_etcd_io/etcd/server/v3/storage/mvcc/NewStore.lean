@@ -151,7 +151,13 @@ theorem mvcc.NewStore.wp_proof
   wp_apply hNewIdx $$ [] as %ti ⟨%γi, #Hti, Hiw, Hil, Hcu, -, Hird⟩
   · ipureintro; exact Hlgnn
   (try wp_auto)
-  wp_apply hFifo as %sc ⟨%γs, #HisSched⟩
+  wp_apply hFifo $$ [] as %sc ⟨%γs, %n₀, %p₀, #HisFifo, Hstop, -, -⟩
+  · ipureintro; exact Hlgnn
+  -- the store never stops its scheduler: its untracked jobs need `schedLive` (2026-10-13, the
+  -- request path's unit 4c's FIFO contract)
+  imod schedule.schedLive_of_stopTok γs $$ Hstop with #Hlive
+  ihave #HisSched : schedule.isScheduler sc γs $$ []
+  · iunfold schedule.isScheduler; iframe HisFifo Hlive
   (try wp_auto)
   wp_apply chan.wp_make1 (V := Unit) as %stopc %γstop ⟨#Hstc, %Hstcap, Hstown⟩
   (try wp_auto)

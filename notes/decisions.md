@@ -4411,3 +4411,48 @@ foresee, and how it is resolved:
   `mvcc_NewStore_backend` with the sole writer and the write supply, the creator's resources
   (including `keySized` and `N + 2` write-back tokens) as its premises, since neither the
   backend's constructor nor the server's is proved.
+
+## The server's goroutines: the FIFO scheduler as a chain of saved postconditions, the construction premise
+
+(2026-10-13, the request path's unit 4c.) `run` receives each batch of committed entries from the
+raft wrapper and schedules its `applyAll` as a job on a FIFO scheduler (`pkg/schedule`); the jobs
+run one after another in a worker goroutine, each with the apply thread's resources the previous
+job left. `start` sets the fields the goroutines share and starts `run`; `Start` attaches the
+other goroutines through `GoAttach`.
+
+**The scheduler is a trust-boundary contract with a queue of saved postconditions.** The
+scheduler's code is names-only (mvcc's compaction uses it too), so its contract is one axiom,
+`Scheduler.Schedule`. What `run` needs is FIFO: the job for a batch runs after the jobs scheduled
+before it, and gets what they left. The contract keeps a ghost queue (`schedQueue γ Ps`, a mono
+list of saved-proposition names): a tracked `Schedule` names the previous job's `Post` (`Prev`,
+the queue's last saved proposition) and appends its own `Post`; the job runs with `Prev` and must
+return `Post`. So the scheduler never needs to know what the resources are, and `run` threads the
+apply thread's state (`applyRes C A`, the one definition of that bundle) as `Prev := applyRes C
+A`, `Post := applyRes C (A ++ ce)` without holding it between iterations (the loop invariant holds
+the queue). An untracked `Schedule` (`Prev = Post = True`, while the scheduler is live) covers
+mvcc's compaction, whose jobs carry everything in `Pre`. The alternative, a scheduler proved in
+Lean over its list and condition variable, is work in the scheduler's own package; the contract is
+what its proof would show. The worker's thread token comes with the run token (`schedRunning`),
+so a job may call `GoAttach` (the alarm goroutine).
+
+**`start`'s premise is one named predicate, `isServerBuilt`.** Every result about the running
+server (`range_linearizable`, `txn_applied`, the v3rpc end-to-end results) took `isServerReq`/
+`isServerRead` as premises; `start` now produces them, so they are conditional on what `NewServer`
+hands to `start` alone. The premise is stated as the views minus the fields `start` sets
+(`srvFieldsBuilt`, `srvReqBuilt`, `srvReadBuilt`, `srvRunBuilt`, `srvApplyAllBuilt`, `applyBuilt`),
+plus the ghost state and contracts `NewServer` must set up, each a named conjunct, so a `NewServer`
+proof (or a later unit adding a resource, as the backend's write budget did) slots in at one place.
+The read names `γr` are the premise's, not `start`'s: the raft node's contract (`isRaftNode`,
+`NewServer`'s) is stated over them (`Er.γr`, the read registrations). The names-only methods
+`start` and `run` call on the server's collaborators are contracts in the premise where they need
+ghost state (`clusterVersionOk`: `nil` then non-`nil` for good; `rnSnapOnce`: the snapshot `run`
+starts from, once) and axioms where they need none (the monitors, `Cleanup`).
+
+**`stopping` gets its own idiom, not Perennial's broadcast.** It is `make(chan struct{}, 1)`,
+closed once by `run`'s shutdown, never sent on; Perennial's broadcast idiom allocates only
+unbuffered channels. `StopChan.lean` restates the idiom for `Buffered []` (the invariant's two
+states: open, with the closer's flag at half; closed, with `□ Q` and the flag discarded), with the
+receives and the close. `GoAttach` needs more than a receiver's view: under `wgMu`'s read lock it
+must know the channel is open (so its `wg.Add(1)` cannot race `run`'s `wg.Wait()`), which a
+fraction of the closer's flag in the lock's resource gives (`wgMuP`), the writer collecting all of
+it to close.

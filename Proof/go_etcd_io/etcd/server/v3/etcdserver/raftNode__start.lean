@@ -54,8 +54,8 @@ theorem raftNode.start.wp_proof
     (wp_Duration : zap.Duration.spec (GF := GF) (hG := hG))
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     raftNode.start.spec (GF := GF) (hG := hG) := by
-  intro E γ r rh L
-  wp_start as ⟨#Hr, #Hrh, Htok, Hdone, #HT⟩
+  intro E γ r rh L R
+  wp_start as ⟨#Hr, #Hrh, HR, Htok, Hdone, #HT⟩
   ihave #Hr' := Hr
   iunfold isRaftNode at Hr'
   iNamed Hr'
@@ -95,11 +95,11 @@ theorem raftNode.start.wp_proof
   icases Hclcs with ⟨#HlcInc, -⟩
   wp_auto
   ipersist internalTimeout
-  wp_apply wp_fork $$ [Htok Hdone r rh]
+  wp_apply wp_fork $$ [Htok Hdone r rh HR]
   · -- the goroutine
     wp_apply wp_with_defer as %defer defer
     ihave HI : iprop(∃ (L' : List EntryModel) (b : Bool),
-        "islead" ∷ islead_ptr ↦ b ∗ "Htok" ∷ rnLoopTok γ L') $$ [islead Htok]
+        "islead" ∷ islead_ptr ↦ b ∗ "Htok" ∷ rnLoopTok γ L' ∗ "HR" ∷ R) $$ [islead Htok HR]
     · iexists L, false
       iframe
     wp_for HI
@@ -336,7 +336,14 @@ theorem raftNode.start.wp_proof
       ipersist ap
       ihave #Hapf := ap
       iStructNamed Hapf
-      wp_apply wp_updateCommittedIndex ap_ptr rh rd.CommittedEntries' ceL ce $$ [$Hpkg $entries $Hce $Hcea $snapshot $Hrh0]
+      -- (`wp_bind` then `iapply`: `wp_apply` fails silently here, framing the generic `R`)
+      wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex))
+        (Val #ap_ptr)) (Val #rh))
+      iapply (wp_updateCommittedIndex ap_ptr rh rd.CommittedEntries' ceL ce R) $$ [HR]
+      · iframe HR; iframe #
+      inext
+      iintro HR
+      wp_auto
       -- `cum` extended with the batch, then `applyc <- ap` (or `<-r.stopped`)
       imod cum_extend γ.cum cums L' ce sent.length Hcums.1 Hcums.2 $$ Hauth with ⟨Hauth, #Hcn, #Hcn1⟩
       wp_apply_core chan.wp_select_blocking_nil

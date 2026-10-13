@@ -226,15 +226,6 @@ variable [sem : go.Semantics]
 -- The server's wait: `waitInv` (`InvRequest.lean`, the registry's contract, in `srvFieldsAt`);
 -- the apply thread's reader of it, `waitOk` (`apply/Wait.lean`, in `srvApplyKV`).
 
-/-- `l` is a `lease.Lessor` whose `Promote` returns (in memory: no backend writes). -/
-def lessorOk (l : GoInterface) : IProp GF :=
-  iprop(∃ li : GoInterfaceOk, ⌜l = GoInterface.ok li⌝ ∗
-    □ (∀ d : w64,
-      {{ True }} (App (Val #(methods li.ty go!"Promote" li.v)) (Val #d)) {{ RET #(); True }}))
-
-instance lessorOk_persistent (l : GoInterface) : Persistent (lessorOk (GF := GF) l) := by
-  unfold lessorOk; infer_instance
-
 /-- The server's atomic `s.lead` (the leader's id, which raft's goroutine stores; the apply
 thread loads it in `isLeader`). -/
 def srvLeadInv (s : Loc) : IProp GF :=
@@ -301,6 +292,22 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-! At `HeapGS HasLC.hasLC GF` (later credits), as the notifier `s.firstCommitInTerm`'s
 predicate is (Perennial's channel specs are), and the apply package's. -/
+
+/-- `l` is a `lease.Lessor` whose `Promote` returns (in memory: no backend writes); and
+(2026-10-13, the request path's unit 4c: the server's `run`) whose `Demote` returns and whose
+`ExpiredLeasesC` returns a channel of slices of expired leases, with no logical content (`run`
+passes them to the names-only `revokeExpiredLeases`). A trust-boundary contract (the lessor is
+names-only). -/
+def lessorOk (l : GoInterface) : IProp GF :=
+  iprop(∃ li : GoInterfaceOk, ⌜l = GoInterface.ok li⌝ ∗
+    □ (∀ d : w64,
+      {{ True }} (App (Val #(methods li.ty go!"Promote" li.v)) (Val #d)) {{ RET #(); True }}) ∗
+    □ ({{ True }} (App (Val #(methods li.ty go!"Demote" li.v)) (Val #())) {{ RET #(); True }}) ∗
+    □ ({{ True }} (App (Val #(methods li.ty go!"ExpiredLeasesC" li.v)) (Val #()))
+      {{ (c : GoChan), RET #c; ∃ γc : ChanNames, isChanBag γc c (V := GoSlice) (fun _ => iprop(True)) }}))
+
+instance lessorOk_persistent (l : GoInterface) : Persistent (lessorOk (GF := GF) l) := by
+  unfold lessorOk; infer_instance
 
 /-- The server `s`'s fields hold `v`, with their contracts; the backend's applier `uberApply`
 is the apply package's uber-applier in the environment `E` (`apply.applierFor`), whose batch

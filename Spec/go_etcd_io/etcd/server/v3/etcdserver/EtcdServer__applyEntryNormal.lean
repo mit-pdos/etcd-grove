@@ -6,6 +6,7 @@ consistent index after it. Lean-first (no Rocq counterpart); see `InvApplier.lea
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvGoAttach
 
 @[expose] public section
 
@@ -44,7 +45,7 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
     (b : GoInterface) (e : Loc) (m : EntryModel) (st : ApplyState) (v3 : Bool) (x : apply.ApplyKV)
     (γr : ReadNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
-      srvLgReader s ∗ srvApplyKV s E x ∗ mvcc.storeWT E.γ ∗
+      srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E x ∗ mvcc.storeWT E.γ ∗
       ⌜st.pending = false ∧ entryOk x m ∧ m.typ = W32 0⌝ ∗
       (if v3 then iprop(ciApplying ci m.index m.term ∗
           ⌜m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
@@ -52,7 +53,7 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
        else iprop(True)) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
       (Val #e)) (Val #v3))
-  {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗
+  {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗
       (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKV s E x' ∗
         ⌜entryStep m v3 x x' out⌝) ∗
       (if v3 then iprop(ciApplying ci m.index m.term ∗

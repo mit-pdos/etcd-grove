@@ -34,7 +34,8 @@ theorem IsEmptySnap.wp_proof
   · iPkgInit
   wp_auto
   wp_apply wp_GetMetadata $$ [$Hpb]
-  wp_apply wp_GetIndex $$ [$Hpb]
+  wp_apply wp_GetIndex null (W64 0) $$ [$Hpb]
+  · ileft; ipureintro; exact ⟨rfl, rfl⟩
   iapply HΦ
   itrivial
 

@@ -27,8 +27,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem updateCommittedIndex.wp_proof
     (hGI : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG)) :
     updateCommittedIndex.spec (GF := GF) (hG := hG) := by
-  intro ap rh es ceL ce
-  wp_start as ⟨#Hes, #Hsl, #Hents, #Hsnap, #Hrh⟩
+  intro ap rh es ceL ce R
+  wp_start as ⟨#Hes, #Hsl, #Hents, #Hsnap, #Hrh, HR⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
   iunfold entriesAt at Hents
   icases Hents with ⟨%Hlen2, #Hent⟩
@@ -71,11 +71,16 @@ theorem updateCommittedIndex.wp_proof
   icases Hrh with ⟨%gl, %ul, %uls, %uci, #Hgl, #Hul, #Huls, #Huci, #Hglt, #Hult, #Hulst, #Hucit⟩
   wp_if_destruct
   · iapply HΦ
-    itrivial
+    iexact HR
   · ispecialize Hucit $$ %ci
-    wp_apply Hucit
-    iapply HΦ
-    itrivial
+    -- (`wp_bind` then `iapply`: a `wp_apply` of the hypothesis triple inside `exceptionDo` can
+    -- close the goal with a synthetic `sorry`)
+    wp_bind (App (Val #uci) (Val #ci))
+    iapply Hucit $$ HR
+    inext
+    iintro HR
+    wp_auto
+    iapply HΦ $$ HR
 
 end proof
 

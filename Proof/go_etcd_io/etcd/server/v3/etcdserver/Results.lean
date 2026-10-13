@@ -644,6 +644,66 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
 end backend
 
 #print axioms Perennial.EtcdGrove.server_kv_backend
+
+section goroutines
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **The server's apply loop** (`run`, the request path's unit 4c; `Spec/go_etcd_io/etcd/server/
+v3/etcdserver/EtcdServer__run.lean`): from `isServerRun` (`start`'s), it applies every batch raft
+commits through the FIFO scheduler, the apply thread's resources chained from job to job, and
+shuts down. -/
+theorem server_run : EtcdServer.run.spec (GF := GF) (hG := hG) := EtcdServer.wp_run
+
+/-- **The server's `start`** (the request path's unit 4c; `Spec/.../EtcdServer__start.lean`): from
+the construction premise `isServerBuilt` alone, the server's views and `run` started. -/
+theorem server_start : EtcdServer.start.spec (GF := GF) (hG := hG) := EtcdServer.wp_start
+
+/-- **The server's `Start`** (the request path's unit 4c; `Spec/.../EtcdServer__Start.lean`):
+`start`, then the read loop and nine names-only monitors through `GoAttach`. -/
+theorem server_Start : EtcdServer.Start.spec (GF := GF) (hG := hG) := EtcdServer.wp_Start
+
+/-- **`start` gives the request path's views** (the request path's unit 4c): from the construction
+premise, `start` returns the views `range_linearizable`, `txn_applied` and the v3rpc results take
+(`isServerReq`, `isServerRead`), the read loop's `server` contract over them (`read_server`), and
+the read loop's lock's reader slots (`srvRdCall`'s `srvReadReader`): those results are conditional
+on `isServerBuilt` alone (and each call's own resources). -/
+theorem start_gives_views (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
+    (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat)
+    (hN : 2 ^ 64 ≤ N) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerBuilt s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N }}
+      (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"start")) (Val #()))
+    {{ RET #(); ∃ γw : GName, isServerReq s E { ρ with wait := γw } ∗ isServerRead s E γr ∗
+        isReadServer (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s) γr (srvReadLR s)
+          (idCred ρ.ids 1) ∗
+        [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+          srvReadReader s γr }} := by
+  iintro %Φ ⟨#Hpkg, Hb⟩ HΦ
+  iapply (server_start s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N hN) $$ [Hb]
+  · iframe Hpkg Hb
+  inext
+  iintro ⟨%γw, #Hreq, #Hrd, Hst⟩
+  iunfold srvStarted at Hst
+  iNamed Hst
+  ihave #Hrs := read_server s E { ρ with wait := γw } γr $$ [$Hpkg $Hreq $Hrd]
+  iapply HΦ
+  iexists γw
+  iframe Hreq Hrd Hrs Hrds
+
+/-- **The FIFO scheduler's contract** (`schedule.Scheduler.Schedule`, the trust boundary; the request
+path's unit 4c): a job scheduled with a tracked chain runs after every job scheduled before it on
+the same scheduler, its `Prev` the previous job's `Post` (`schedPre`/`schedPost`, the queue of saved
+postconditions); untracked, it runs with its own `Pre` while the scheduler is live. -/
+theorem scheduler_fifo : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG) :=
+  schedule.Scheduler.wp_Schedule
+
+end goroutines
+
 #print axioms Perennial.EtcdGrove.applyEntries_model
 #print axioms Perennial.EtcdGrove.applyAll_model
 #print axioms Perennial.EtcdGrove.applied_log_at
@@ -672,3 +732,8 @@ end backend
 
 end EtcdGrove
 end Perennial
+#print axioms Perennial.EtcdGrove.server_run
+#print axioms Perennial.EtcdGrove.server_start
+#print axioms Perennial.EtcdGrove.server_Start
+#print axioms Perennial.EtcdGrove.start_gives_views
+#print axioms Perennial.EtcdGrove.scheduler_fifo

@@ -419,6 +419,21 @@ noncomputable def SnapshotMetadata.GetIndex.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val doExecute)
   (Val #()))))))))
 
+/-- go: raft.pb.go:464:28 -/
+noncomputable def SnapshotMetadata.GetTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType SnapshotMetadata.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType SnapshotMetadata.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SnapshotMetadata.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType SnapshotMetadata.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef SnapshotMetadata.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SnapshotMetadata.ty)))) (Var "x")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.uint64)))) (Val UntypedNil))))) (Val #false)))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.uint64)))) (App (Val (GoInstruction (StructFieldRef SnapshotMetadata.ty go!"Term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SnapshotMetadata.ty)))) (Var "x"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
 /-- go: raft.pb.go:516:20 -/
 noncomputable def Snapshot.GetMetadata.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "x"
@@ -743,6 +758,7 @@ class SnapshotMetadata.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   get_sizeCache : ∀ (x : SnapshotMetadata), go.IsGoStepPureDetTagged under (StructFieldGet SnapshotMetadata.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : SnapshotMetadata) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet SnapshotMetadata.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : SnapshotMetadata)))
   ptr_GetIndex_unfold : MethodUnfold (go.GoType.PointerType SnapshotMetadata.ty) go!"GetIndex" SnapshotMetadata.GetIndex.impl
+  ptr_GetTerm_unfold : MethodUnfold (go.GoType.PointerType SnapshotMetadata.ty) go!"GetTerm" SnapshotMetadata.GetTerm.impl
 
 attribute [instance] SnapshotMetadata.TypeAssumptions.type_repr
   SnapshotMetadata.TypeAssumptions.underlying
@@ -759,6 +775,7 @@ attribute [instance] SnapshotMetadata.TypeAssumptions.type_repr
   SnapshotMetadata.TypeAssumptions.get_sizeCache
   SnapshotMetadata.TypeAssumptions.set_sizeCache
   SnapshotMetadata.TypeAssumptions.ptr_GetIndex_unfold
+  SnapshotMetadata.TypeAssumptions.ptr_GetTerm_unfold
 
 structure Snapshot [FfiSyntax] where
   mk ::
