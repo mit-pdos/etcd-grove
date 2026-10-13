@@ -104,3 +104,7 @@ stepLeader: raft__bcastHeartbeat raft__sendAppend raft__maybeSendAppend raft__bc
 # for MsgTimeoutNow's campaignTransfer.
 raft__sendTimeoutNow: raft__send
 stepFollower: raft__handleAppendEntries raft__handleHeartbeat raft__handleSnapshot raft__send raft__hup
+RawNode__ForgetLeader: raft__Step
+RawNode__ReportUnreachable: raft__Step
+RawNode__ReportSnapshot: raft__Step
+RawNode__TransferLeader: raft__Step
