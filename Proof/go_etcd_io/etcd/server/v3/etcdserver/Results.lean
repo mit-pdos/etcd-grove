@@ -327,6 +327,76 @@ theorem put_applied : EtcdServer.Put.spec (GF := GF) (hG := hG) :=
 theorem deleteRange_applied : EtcdServer.DeleteRange.spec (GF := GF) (hG := hG) :=
   EtcdServer.wp_DeleteRange
 
+/-- **`request_delivered`** (the request path's unit 4d; linked `applyEntryNormal` at a known
+registration): the apply thread, applying the normal entry `m` whose data decode to the request
+`rq` with id `id`, where `id` was registered with the consumer token `t` (`waitRegd`, what the
+proposer's `Register` returned), applies it in full (`out.waived = false`: neither skipped as
+side-effect-free nor its ranges skipped, `SkipRangeExecution`) unless that registration is gone
+(`waitGone`: a `Trigger(id, _)` took it out of the registry before the apply thread's
+`IsRegistered`, the proposer's own `Trigger(id, nil)` on giving up, or a `Trigger` with a result
+from an earlier application of the same id). With `request_handoff`: a proposer still waiting
+(its consumer token unspent) receives the result of its entry's full application, unless its
+context ended first. -/
+theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+    (E : apply.AEnv GF) (ρ : ReqNames) (b : GoInterface) (e : Loc) (m : EntryModel)
+    (st : ApplyState) (v3 : Bool) (x : apply.ApplyKV) (γr : ReadNames) (rq : apply.IRRModel)
+    (id : w64) (t : GName) (hne : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
+    (hid : apply.irrId rq = some id) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServer s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ waitRegd ρ.wait id t ∗ entryAt e m ∗
+        applyThread γ st ∗ applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗
+        srvApplyKV s E ρ.wait x ∗ mvcc.storeWT E.γ ∗
+        ⌜st.pending = false ∧ entryOk x m ∧ m.typ = W32 0⌝ ∗
+        (if v3 then iprop(ciApplying ci m.index m.term ∗
+            ⌜m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
+              uint.Z (ciEff γ st.k) < uint.Z m.index⌝)
+         else iprop(True)) }}
+      (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
+        (Val #e)) (Val #v3))
+    {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗
+        (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKV s E ρ.wait x' ∗
+          ⌜entryStep m v3 x x' out⌝ ∗ (⌜out.waived = false⌝ ∨ waitGone ρ.wait id t)) ∗
+        (if v3 then iprop(ciApplying ci m.index m.term ∗
+            ∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩)
+         else applyThread γ st) }} := by
+  iintro %Φ ⟨#Hpkg, #Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, %Hpo, Hv3⟩ HΦ
+  iapply (EtcdServer.wp_applyEntryNormal s γ ci TM E ρ b e m st v3 x γr (some t))
+    $$ [Hst Hbe Hlr Hgr HKV Hwt Hv3]
+  · iframe Hst Hbe Hlr Hgr HKV Hwt Hv3
+    iframe #
+    isplitr
+    · iunfold entryRegd
+      imodintro
+      iintro %rq' %id' %h
+      have : rq' = rq := by rw [hdec] at h; exact (Option.some.inj h.1).symm
+      subst this
+      have : id' = id := by rw [hid] at h; exact (Option.some.inj h.2).symm
+      subst this
+      iunfold waitRegdOpt
+      iexact Hreg
+    ipureintro; exact Hpo
+  inext
+  iintro ⟨Hbe, Hlr, Hgr, ⟨%x', %out, HKV, %Hstep, #Hdel⟩, Hpost⟩
+  iapply HΦ
+  iframe Hbe Hlr Hgr Hpost
+  iexists x', out
+  iframe HKV
+  isplitr
+  · ipureintro; exact Hstep
+  iunfold entryDelivered at Hdel
+  icases Hdel with (%Hw | ⟨%rq', %id', %h, #Hg⟩)
+  · ileft; ipureintro
+    rcases Hw with h | h
+    · exact absurd h hne
+    · exact h
+  · iright
+    have : rq' = rq := by rw [hdec] at h; exact (Option.some.inj h.1).symm
+    subst this
+    have : id' = id := by rw [hid] at h; exact (Option.some.inj h.2).symm
+    subst this
+    iunfold waitGoneOpt at Hg
+    iexact Hg
+
 /-- **The wait registry** (`pkg/wait`'s `New`, linked). -/
 theorem wait_new : wait.New.spec (GF := GF) (hG := hG) :=
   wait.wp_New
@@ -394,9 +464,11 @@ context's).
 transaction at a certified log (`txnReadOk`, both serializability modes: after the read index
 unless every get is serializable), the id credit back. **`txn_applied`** (at a writing request):
 the apply thread's application of the request the proposed data decode to (`txnAppliedOk`),
-possibly with header-only ranges (`SkipRangeExecution`: the wait's `IsRegistered` is "some
-boolean" in its contract, so the model admits the run of a transaction whose waiter had timed
-out, the plan's suspect 2, here for a waiter that did not), or the apply's or the proposal's
+possibly with header-only ranges (`SkipRangeExecution`: the apply loops call the wait's
+`IsRegistered` knowing nothing of the id's registration, so the model admits the run of a
+transaction whose waiter had timed out, the plan's suspect 2, here for a waiter that did not;
+`request_delivered` excludes it at a known registration, unless that registration is gone), or
+the apply's or the proposal's
 error. **`txn_applied_model`** (pure): through the uber-applier's chain the outcome is `alarmTxn`
 (the txn package's `txnModel` or a layer's rejection), the log after the outcome's. -/
 
@@ -769,6 +841,7 @@ end goroutines
 #print axioms Perennial.EtcdGrove.EtcdServer.wp_apply
 #print axioms Perennial.EtcdGrove.EtcdServer.wp_applyEntryNormal
 #print axioms Perennial.EtcdGrove.request_handoff
+#print axioms Perennial.EtcdGrove.request_delivered
 #print axioms Perennial.EtcdGrove.put_applied
 #print axioms Perennial.EtcdGrove.deleteRange_applied
 #print axioms Perennial.EtcdGrove.put_applied_model

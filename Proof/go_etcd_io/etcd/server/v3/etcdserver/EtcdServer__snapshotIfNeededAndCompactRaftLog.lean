@@ -36,7 +36,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
     (hS : EtcdServer.snapshot.spec (GF := GF) (hG := hG))
     (hC : EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG) := by
-  intro s E γ ci b γr ep st ai at' cs a t x hok
+  intro s E γw γ ci b γr ep st ai at' cs a t x hok
   wp_start as ⟨#Hsa, Hss, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV⟩
   iunfold isServerApplyAll at Hsa
   icases Hsa with ⟨%wt, %msc, %sc, -, -, -, -, #Hsc⟩
@@ -60,7 +60,7 @@ theorem EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proof
     ipureintro; exact ⟨hok, rfl⟩
   all_goals (
     (try wp_auto)
-    wp_apply hS s E γ ci b ep st ai at' cs a t x _ hok $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV]
+    wp_apply hS s E γw γ ci b ep st ai at' cs a t x _ hok $$ [Hd Hm Hf Hai Hat Hcs Hst Hbe Happ Hlr HKV]
       as ⟨%st', Hss, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, %hst'⟩
     · iframe #
       iframe Hai Hat Hcs Hst Hbe Happ Hlr HKV

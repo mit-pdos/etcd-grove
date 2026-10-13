@@ -15,6 +15,8 @@
 # The request path's unit 4c (2026-10-13): run, start, Start (the FIFO scheduler's contract, the
 # names-only monitors, raftRequestAlarm): 93 axioms and mvcc's schedule.NewJob sorry before the
 # merge; merged with the backend's unit 6: the union, 141 axioms and that sorry.
+# The request path's unit 4d (2026-10-13): schedule.NewJob proved (its sorry gone: 141 axioms,
+# 0 sorries); request_delivered adds no axiom.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/server.txt [--check [--update]]
 #
@@ -162,4 +164,3 @@ axiom zap.Stack.wp_proof
 axiom zap.String.wp_proof
 axiom zap.Stringer.wp_proof
 axiom zap.Uint64.wp_proof
-sorry schedule.NewJob.wp_proof

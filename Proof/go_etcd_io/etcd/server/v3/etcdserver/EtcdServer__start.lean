@@ -347,7 +347,7 @@ theorem EtcdServer.start.wp_proof
   iunfold applyBuilt at Happ
   icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hlo, Hbe, Hca, Halg, Hbm, ⟨%ua, #Hua, Hkv⟩, Hao, #Hlog,
     Hfs⟩
-  ihave Hstart : applyStart s γ ci b E γr ai₀ c₀ x₀ $$ [Hth Hbe Hca Halg Hbm Hkv Hao Hfs Hwg1 HRD]
+  ihave Hstart : applyStart s γ ci b E γr ai₀ c₀ x₀ γw $$ [Hth Hbe Hca Halg Hbm Hkv Hao Hfs Hwg1 HRD]
   · iunfold applyStart
     iexists st₀, a, t, f
     iframe Hth Hbe Hca Halg Hbm Hao Hfs Hwg1 Hlog

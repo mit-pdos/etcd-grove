@@ -31,7 +31,7 @@ and, after it, `ci` and the processed-through index are both `i` (the post-lock 
 if the entry had writes; else the deferred update does, outside the lock). Without `v3` (an
 entry at or below `ci`, replayed): nothing is written to the backend and the state is
 unchanged. **The KV** (the apply package's unit 3): the apply thread's applier state
-`srvApplyKV s E x`, with the entry's premise `entryOk x m` (its data decode to a request with an
+`srvApplyKV s E ρ.wait x`, with the entry's premise `entryOk x m` (its data decode to a request with an
 id, neither a compaction nor empty, satisfying the txn package's premises at `x.log`), goes to
 `x'` by `entryStep m v3 x x' out` (no data: nothing; else `apply.Apply`'s `applyStep`). **The wait** (the request path's unit 2,
 2026-10-12): the server's wait is the registry (`waitInv`, in `isServer`, with the request path's
@@ -39,13 +39,16 @@ names `ρ`); the entry is normal (`m.typ = 0`) and its id was claimed for its da
 (`entryWaitOk`), so the result handed to `Trigger(id, ar)` is the registered proposer's
 expectation (`resultΨ`: this request's `applyStep`, `applyResultIs`, and the certificate of the
 log after). It spends one write token of the store (`mvcc.storeWT E.γ`, `apply.Apply`'s;
-2026-10-13, unit 6). -/
+2026-10-13, unit 6). **The delivery** (the request path's unit 4d): to a caller that knows the
+entry's id was registered (`entryRegd ρ.wait m (some t)`), the entry is applied in full (its
+outcome not waived for want of a waiter) unless that registration is gone (`entryDelivered`:
+a `Trigger` took it out first); the apply loops know nothing (`none`). -/
 abbrev EtcdServer.applyEntryNormal.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (e : Loc) (m : EntryModel) (st : ApplyState) (v3 : Bool) (x : apply.ApplyKV)
-    (γr : ReadNames),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
-      srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E x ∗ mvcc.storeWT E.γ ∗
+    (γr : ReadNames) (ot : Option GName),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryRegd ρ.wait m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
+      srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗ mvcc.storeWT E.γ ∗
       ⌜st.pending = false ∧ entryOk x m ∧ m.typ = W32 0⌝ ∗
       (if v3 then iprop(ciApplying ci m.index m.term ∗
           ⌜m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
@@ -54,8 +57,8 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntryNormal"))
       (Val #e)) (Val #v3))
   {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗
-      (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKV s E x' ∗
-        ⌜entryStep m v3 x x' out⌝) ∗
+      (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKV s E ρ.wait x' ∗
+        ⌜entryStep m v3 x x' out⌝ ∗ entryDelivered ρ.wait m ot out) ∗
       (if v3 then iprop(ciApplying ci m.index m.term ∗
           ∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩)
        else applyThread γ st) }}
