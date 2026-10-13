@@ -3258,3 +3258,22 @@ moves it, an arrival moves it into the leader's stash, and the stash bounds the 
 `Ready` hands out each queued `MsgReadIndex`'s credit with it; the transport passes it
 to `Step`. *Rejected*: a no-wrap premise on `Step` (no client could discharge it); a
 credit per node (a forwarded request's destination is not known when it is paid).
+
+**As built (2026-10-13), replacing "Where the facts live" above.** The facts went *into*
+`isMessage` after all (a heartbeat's registry prefix, a heartbeat response's `HbAckOk`, a
+request's `readReq`, a response's `readOk`): the transport and `Step` already carry
+`isMessage` of every message, and a second predicate beside it would have doubled every
+message invariant. The read state is protocol state (`PState.rd`, with `toPState` reading a
+non-leader's read-only object as the fresh one `reset` installs), so each read path is a
+`Step` rule refined once (`Refinement.lean`), and the ghost state is one more conjunct of
+`ownRaftGhost` (`rdOwn`: the per-term registries `reRdq`, the leader's records and acks,
+the `ReadState`s' and pending requests' facts, the outbox's credits). A context's bytes are
+`isPropData` (the proposed-slice registry, read through `propDataInv`) rather than a heap
+points-to, so the facts stay persistent. `Step.beat` takes any context a leader may send
+(`HbCtxOk`: none, or a position up to its queue's end, unwrapped) rather than exactly the
+current one, because a release broadcasts after each request and the spec collapses those
+heartbeats. `stepLeader`'s read premises (`RdOk`, a nonzero term) are conditional on the
+three types that read them, so the other branches discharge them by type.
+*Rejected*: making `RdOk` a field of `ownRaftPhys` (it is a fact about the ghost records,
+which the physical predicate does not see); a logically atomic `Read` for the register (the
+linearization point is in the past when the `ReadState` arrives: it would need prophecy).
