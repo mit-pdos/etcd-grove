@@ -210,18 +210,21 @@ end msgs
 section msgs_ghost
 variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF]
 
-/-- What a message carries as a protocol message does not depend on its `Context`
-(2026-10-12): the branches that do not echo it work at the abstraction with none. -/
+/-- What a message other than a heartbeat or its response carries as a protocol message
+does not depend on its `Context` (2026-10-12; a heartbeat's is a read-index position): the
+branches that do not echo it work at the abstraction with none. -/
 theorem isMessage_absMsg_ctx (γ : RaftNames) (ty : MsgType) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (ctx : List w8) :
+    (ents : List raftpb.Entry) (ctx : List w8)
+    (hty : ty ≠ .heartbeat ∧ ty ≠ .heartbeatResp) :
     isMessage (GF := GF) γ (absMsg ty m ents ctx) = isMessage γ (absMsg ty m ents) := by
-  unfold isMessage absMsg absMsgFrom
-  rfl
+  obtain ⟨h1, h2⟩ := hty
+  cases ty <;> first | contradiction | rfl
 
 theorem isMessage_ctx_intro (γ : RaftNames) (ty : MsgType) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (ctx : List w8) :
+    (ents : List raftpb.Entry) (ctx : List w8)
+    (hty : ty ≠ .heartbeat ∧ ty ≠ .heartbeatResp) :
     isMessage (GF := GF) γ (absMsg ty m ents) ⊢ isMessage γ (absMsg ty m ents ctx) := by
-  rw [isMessage_absMsg_ctx]; exact .rfl
+  rw [isMessage_absMsg_ctx γ ty m ents ctx hty]
 
 end msgs_ghost
 
