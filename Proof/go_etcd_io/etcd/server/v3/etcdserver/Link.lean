@@ -139,16 +139,38 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpKey
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpLease
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpType
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.getRequestType
+public import Proof.container.heap.Fix
+public import Proof.container.heap.Push
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.Generator__Next
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.NewGenerator
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.lowbit
 public import EtcdDeps.Proof.go_etcd_io.raft.v3.isHardStateEqual
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isPriorityRequest
+public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__RegisterOrUpdate
+public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Len
+public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Less
+public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Push
+public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Swap
+public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__TTL
+public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__forever
+public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__getRemainingTTL
+public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__persistTo
+public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__refresh
+public import Proof.go_etcd_io.etcd.server.v3.lease.NewLease
+public import Proof.go_etcd_io.etcd.server.v3.lease.greaterOrEqual
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Attach
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Checkpoint
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Demote
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Detach
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__ExpiredLeasesC
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__GetLease
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Grant
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Lookup
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Promote
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__SetRangeDeleter
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__isPrimary
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__scheduleCheckpointIfNeeded
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__shouldPersistCheckpoints
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__ID
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.monitorFileDescriptor
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage
@@ -166,6 +188,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__processMessag
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__start
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__stop
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__tick
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafePutLease
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafeSaveConfStateToBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.ReadConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadConsistentIndex
@@ -192,6 +215,7 @@ public import Proof.go_etcd_io.etcd.client.pkg.v3.types.ID__String
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__BecomeLeader
 public import Proof.go_etcd_io.etcd.api.v3.version.Cluster
+public import Proof.go_etcd_io.etcd.api.v3.version.LessThan
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.New
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.NewTimeList
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.NewWithResponse
@@ -580,13 +604,85 @@ theorem consistentIndex.wp_UnsafeSave :
     consistentIndex.UnsafeSave.spec (GF := GF) (hG := hG) :=
   consistentIndex.UnsafeSave.wp_proof schema.wp_UnsafeUpdateConsistentIndex
 
+theorem heap.wp_Fix :
+    heap.Fix.spec (GF := GF) (hG := hG) :=
+  heap.Fix.wp_proof
+
+theorem heap.wp_Push :
+    heap.Push.spec (GF := GF) (hG := hG) :=
+  heap.Push.wp_proof
+
 theorem idutil.wp_NewGenerator :
     idutil.NewGenerator.spec (GF := GF) (hG := hG) :=
   idutil.NewGenerator.wp_proof idutil.wp_lowbit
 
+theorem lease.LeaseQueue.wp_Len :
+    lease.LeaseQueue.Len.spec (GF := GF) (hG := hG) :=
+  lease.LeaseQueue.Len.wp_proof
+
+theorem lease.LeaseQueue.wp_Less :
+    lease.LeaseQueue.Less.spec (GF := GF) (hG := hG) :=
+  lease.LeaseQueue.Less.wp_proof
+
+theorem lease.LeaseQueue.wp_Swap :
+    lease.LeaseQueue.Swap.spec (GF := GF) (hG := hG) :=
+  lease.LeaseQueue.Swap.wp_proof
+
+theorem lease.LeaseQueue.wp_Push :
+    lease.LeaseQueue.Push.spec (GF := GF) (hG := hG) :=
+  lease.LeaseQueue.Push.wp_proof
+
+theorem lease.LeaseExpiredNotifier.wp_RegisterOrUpdate :
+    lease.LeaseExpiredNotifier.RegisterOrUpdate.spec (GF := GF) (hG := hG) :=
+  lease.LeaseExpiredNotifier.RegisterOrUpdate.wp_proof lease.LeaseQueue.wp_Len lease.LeaseQueue.wp_Less lease.LeaseQueue.wp_Swap lease.LeaseQueue.wp_Push heap.wp_Fix heap.wp_Push
+
+theorem lease.Lease.wp_TTL :
+    lease.Lease.TTL.spec (GF := GF) (hG := hG) :=
+  lease.Lease.TTL.wp_proof
+
+theorem lease.Lease.wp_forever :
+    lease.Lease.forever.spec (GF := GF) (hG := hG) :=
+  lease.Lease.forever.wp_proof
+
+theorem lease.Lease.wp_getRemainingTTL :
+    lease.Lease.getRemainingTTL.spec (GF := GF) (hG := hG) :=
+  lease.Lease.getRemainingTTL.wp_proof
+
+theorem schema.wp_MustUnsafePutLease :
+    schema.MustUnsafePutLease.spec (GF := GF) (hG := hG) :=
+  schema.MustUnsafePutLease.wp_proof
+
+theorem lease.Lease.wp_refresh :
+    lease.Lease.refresh.spec (GF := GF) (hG := hG) :=
+  lease.Lease.refresh.wp_proof lease.Lease.wp_getRemainingTTL
+
+theorem version.wp_LessThan :
+    version.LessThan.spec (GF := GF) (hG := hG) :=
+  version.LessThan.wp_proof
+
+theorem lease.wp_greaterOrEqual :
+    lease.greaterOrEqual.spec (GF := GF) (hG := hG) :=
+  lease.greaterOrEqual.wp_proof version.wp_LessThan
+
 theorem lease.lessor.wp_Attach :
     lease.lessor.Attach.spec (GF := GF) (hG := hG) :=
   lease.lessor.Attach.wp_proof
+
+theorem lease.lessor.wp_shouldPersistCheckpoints :
+    lease.lessor.shouldPersistCheckpoints.spec (GF := GF) (hG := hG) :=
+  lease.lessor.shouldPersistCheckpoints.wp_proof lease.wp_greaterOrEqual
+
+theorem lease.lessor.wp_isPrimary :
+    lease.lessor.isPrimary.spec (GF := GF) (hG := hG) :=
+  lease.lessor.isPrimary.wp_proof
+
+theorem lease.lessor.wp_scheduleCheckpointIfNeeded :
+    lease.lessor.scheduleCheckpointIfNeeded.spec (GF := GF) (hG := hG) :=
+  lease.lessor.scheduleCheckpointIfNeeded.wp_proof
+
+theorem lease.lessor.wp_Demote :
+    lease.lessor.Demote.spec (GF := GF) (hG := hG) :=
+  lease.lessor.Demote.wp_proof
 
 theorem lease.lessor.wp_Detach :
     lease.lessor.Detach.spec (GF := GF) (hG := hG) :=
@@ -599,6 +695,10 @@ theorem lease.lessor.wp_GetLease :
 theorem lease.lessor.wp_Lookup :
     lease.lessor.Lookup.spec (GF := GF) (hG := hG) :=
   lease.lessor.Lookup.wp_proof
+
+theorem lease.lessor.wp_Promote :
+    lease.lessor.Promote.spec (GF := GF) (hG := hG) :=
+  lease.lessor.Promote.wp_proof
 
 theorem lease.lessor.wp_SetRangeDeleter :
     lease.lessor.SetRangeDeleter.spec (GF := GF) (hG := hG) :=
@@ -1010,6 +1110,26 @@ theorem EtcdServer.wp_Txn [go_etcd_io.etcd.cache.v3.Assumptions] :
 theorem EtcdServer.wp_newHeader :
     EtcdServer.newHeader.spec (GF := GF) (hG := hG) :=
   EtcdServer.newHeader.wp_proof membership.RaftCluster.wp_ID EtcdServer.wp_MemberID EtcdServer.wp_KV mvcc.store.wp_Rev EtcdServer.wp_Term EtcdServer.wp_Leader
+
+theorem lease.Lease.wp_persistTo :
+    lease.Lease.persistTo.spec (GF := GF) (hG := hG) :=
+  lease.Lease.persistTo.wp_proof schema.wp_MustUnsafePutLease
+
+theorem lease.wp_NewLease :
+    lease.NewLease.spec (GF := GF) (hG := hG) :=
+  lease.NewLease.wp_proof
+
+theorem lease.lessor.wp_Checkpoint :
+    lease.lessor.Checkpoint.spec (GF := GF) (hG := hG) :=
+  lease.lessor.Checkpoint.wp_proof lease.lessor.wp_shouldPersistCheckpoints lease.Lease.wp_persistTo lease.lessor.wp_isPrimary lease.lessor.wp_scheduleCheckpointIfNeeded
+
+theorem lease.lessor.wp_ExpiredLeasesC :
+    lease.lessor.ExpiredLeasesC.spec (GF := GF) (hG := hG) :=
+  lease.lessor.ExpiredLeasesC.wp_proof
+
+theorem lease.lessor.wp_Grant :
+    lease.lessor.Grant.spec (GF := GF) (hG := hG) :=
+  lease.lessor.Grant.wp_proof lease.wp_NewLease lease.lessor.wp_isPrimary lease.Lease.wp_refresh lease.Lease.wp_forever lease.Lease.wp_persistTo lease.LeaseExpiredNotifier.wp_RegisterOrUpdate lease.lessor.wp_scheduleCheckpointIfNeeded
 
 theorem raftNode.wp_advanceTicks :
     raftNode.advanceTicks.spec (GF := GF) (hG := hG) :=

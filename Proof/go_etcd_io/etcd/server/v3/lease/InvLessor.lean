@@ -54,6 +54,14 @@ abbrev lF (f : GoString) (lp : Loc) : Loc :=
 abbrev lsF (f : GoString) (l : Loc) : Loc :=
   structFieldRef go_etcd_io.etcd.server.v3.lease.Lease f l
 
+/-- `&it.<f>` (a `*LeaseWithTime`) -/
+abbrev lwF (f : GoString) (p : Loc) : Loc :=
+  structFieldRef go_etcd_io.etcd.server.v3.lease.LeaseWithTime f p
+
+/-- `&n.<f>` (a `*LeaseExpiredNotifier`) -/
+abbrev nF (f : GoString) (p : Loc) : Loc :=
+  structFieldRef go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier f p
+
 /-- The lessor `lp` as a `Lessor` interface value. -/
 abbrev lessorIface (lp : Loc) : GoInterface :=
   interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty) #lp
@@ -121,9 +129,72 @@ def lessorPin (γl : GName) (lp : Loc) : IProp GF :=
 instance lessorPin_persistent (γl : GName) (lp : Loc) : Persistent (lessorPin (GF := GF) γl lp) := by
   unfold lessorPin; infer_instance
 
+/-! ### The lessor's apply-side state (2026-10-13, unit 9)
+
+`Grant`, `Checkpoint` (and `Promote`, `Demote`, the expiry loop) touch more of the lessor
+under `le.mu`: the primary's channel `demotec`, the expiry notifier (a map from lease id to the
+queue's item, and a heap of the items by expiry time), the checkpoint heap, the checkpointer, and
+of each lease its `remainingTTL` and the lessor's half of its `expiry` (the other half is
+`l.expiryMu`'s: `refresh`/`forever` write it holding both locks, `Grant` and the expiry loop read
+it under `le.mu` alone, `Remaining` under `l.expiryMu` alone). -/
+
+/-- Swap the elements at `i` and `j` (`h.Swap(i, j)`; unchanged out of range). -/
+def listSwap {α : Type} (xs : List α) (i j : Nat) : List α :=
+  match xs[i]?, xs[j]? with
+  | some a, some b => (xs.set i b).set j a
+  | _, _ => xs
+
+/-- A queue item `&LeaseWithTime` at `p`, at share `q`: its `id` (read-only), its `time`, and
+its `index` `k` (its position in its queue). -/
+def lwtAt (p : Loc) (id : w64) (k : w64) (q : Qp) : IProp GF :=
+  iprop(lwF go!"id" p ↦□ id ∗ (∃ t : _root_.Perennial.time.Time, lwF go!"time" p ↦{DFrac.own q} t) ∗
+    lwF go!"index" p ↦{DFrac.own q} k)
+
+/-- A `LeaseQueue` value `s` holding the items `xs` (pointer, lease id), at share `q`, each
+item's `index` its position (what `heap.Fix(&q, old.index)` needs), with the slice's capacity
+(`append`). -/
+def queueAt (s : GoSlice) (xs : List (Loc × w64)) (q : Qp) : IProp GF :=
+  iprop(s ↦*{DFrac.own q} (xs.map Prod.fst) ∗ ownSliceCap Loc s (DFrac.own q) ∗
+    [∗list] k ↦ x ∈ xs, lwtAt x.1 x.2 (W64 k) q)
+
+/-- **The expiry notifier** at `np` (`LeaseExpiredNotifier`), at share `q`: its map `m` (lease id
+to item) holds exactly the items of its queue, each under its own id, no item twice. -/
+def notifierAt (np : Loc) (q : Qp) : IProp GF :=
+  iprop(∃ (mp : Loc) (s : GoSlice) (M : GMap w64 Loc) (xs : List (Loc × w64)),
+    nF go!"m" np ↦{DFrac.own q} mp ∗ mp ↦${DFrac.own q} M ∗ nF go!"queue" np ↦{DFrac.own q} s ∗
+    queueAt s xs q ∗
+    ⌜(xs.map Prod.fst).Nodup ∧ ∀ (id : w64) (p : Loc), M.lookup id = some p ↔ (p, id) ∈ xs⌝)
+
+/-- What `l.expiryMu` guards at `q`: half of `l.expiry` at `q` (the other half is the lessor's,
+in `leaseMeta`). -/
+def leaseExpiry (l : Loc) (q : Qp) : IProp GF :=
+  iprop(∃ e : _root_.Perennial.time.Time, lsF go!"expiry" l ↦{DFrac.own q.half} e)
+
+/-- **A granted lease's state** (`l`, of id `id`) under `le.mu`, at `q`: its `ID` and `ttl`
+(read-only once granted), its `revokec` (read-only), its `remainingTTL` and the lessor's half
+of `expiry`; its `expiryMu` guards the other half. -/
+def leaseMeta (id : w64) (l : Loc) (q : Qp) : IProp GF :=
+  iprop(lsF go!"ID" l ↦□ id ∗ (∃ t : w64, lsF go!"ttl" l ↦□ t) ∗
+    (∃ c : GoChan, lsF go!"revokec" l ↦□ c) ∗
+    (∃ r : w64, lsF go!"remainingTTL" l ↦{DFrac.own q} r) ∗
+    (∃ e : _root_.Perennial.time.Time, lsF go!"expiry" l ↦{DFrac.own q.half} e) ∗
+    sync.isRWMutexGuard (lsF go!"expiryMu" l) (leaseExpiry l))
+
+/-- **The lessor's apply-side fields** under `le.mu` at `q`, for its lease map `M`: `demotec`,
+the expiry notifier, the checkpoint heap (a queue of fresh items, any ids), the checkpointer
+`cp`, and every granted lease's `leaseMeta`. -/
+def lessorExtra (lp : Loc) (M : GMap w64 Loc) (q : Qp) : IProp GF :=
+  iprop(∃ (dc : GoChan) (np : Loc) (h : GoSlice) (hx : List (Loc × w64)) (cp : GoFunc),
+    lF go!"demotec" lp ↦{DFrac.own q} dc ∗
+    lF go!"leaseExpiredNotifier" lp ↦{DFrac.own q} np ∗ notifierAt np q ∗
+    lF go!"leaseCheckpointHeap" lp ↦{DFrac.own q} h ∗ queueAt h hx q ∗
+    lF go!"cp" lp ↦{DFrac.own q} cp ∗
+    [∗map] id ↦ l ∈ M, leaseMeta id l q)
+
 /-- **What `le.mu` guards** at fraction `q`: the lease map `M` (whose domain is the live set
 `L`; the lessor's share of it, `q/2`, and of the ghost map's authority), the item map, the range
-deleter; every lease of the map `isLeaseObj`. -/
+deleter; every lease of the map `isLeaseObj`; and (2026-10-13, unit 9) the apply-side fields
+(`lessorExtra`). -/
 def lessorMu (lp : Loc) (γl : GName) (q : Qp) : IProp GF :=
   iprop(∃ (lm im : Loc) (M : GMap w64 Loc) (I : GMap LeaseItem w64) (rd : GoFunc)
       (L : List w64),
@@ -132,7 +203,7 @@ def lessorMu (lp : Loc) (γl : GName) (q : Qp) : IProp GF :=
     lF go!"rd" lp ↦{DFrac.own q} rd ∗
     ghostMapAuth γl q (lessorGhost lp L) ∗ leaseFrag γl q.half L ∗
     ⌜∀ id : w64, id ∈ L ↔ (M.lookup id).isSome⌝ ∗
-    [∗map] _id ↦ l ∈ M, isLeaseObj l)
+    ([∗map] _id ↦ l ∈ M, isLeaseObj l) ∗ lessorExtra lp M q)
 
 /-- **The lessor** at `lp` with ghost map `γl` (persistent): pinned, its lock's guard. -/
 def lessorInv (lp : Loc) (γl : GName) : IProp GF :=
@@ -141,6 +212,43 @@ def lessorInv (lp : Loc) (γl : GName) : IProp GF :=
 instance lessorInv_persistent (lp : Loc) (γl : GName) :
     Persistent (lessorInv (GF := GF) lp γl) := by
   unfold lessorInv; infer_instance
+
+/-- The lessor's `cluster` `cl` (2026-10-13, unit 9): not nil, its `Version()` returns `nil` or
+a read-only version (the server's `RaftCluster`, names-only: a contract). -/
+def clusterOk (cl : GoInterface) : IProp GF :=
+  iprop(∃ ci : GoInterfaceOk, ⌜cl = GoInterface.ok ci⌝ ∗
+    □ ({{ True }} (App (Val #(methods ci.ty go!"Version" ci.v)) (Val #()))
+      {{ (v : Loc), RET #v;
+        ⌜v = null⌝ ∨ ∃ ver : github_com.Masterminds.semver.v3.Version, v ↦□ ver }}))
+
+instance clusterOk_persistent (cl : GoInterface) : Persistent (clusterOk (GF := GF) cl) := by
+  unfold clusterOk; infer_instance
+
+/-- **The lessor's configuration** (2026-10-13, unit 9; persistent): the fields `newLessor` sets
+and nothing writes after (`minLeaseTTL`, `checkpointPersist`, `cluster` with its contract,
+`checkpointInterval`, `lg`, `leaseRevokeRate`). -/
+def lessorCfg (lp : Loc) : IProp GF :=
+  iprop(∃ (mt : w64) (cpp : Bool) (cl : GoInterface) (ci : _root_.Perennial.time.Duration)
+      (lg : Loc) (rr : w64),
+    lF go!"minLeaseTTL" lp ↦□ mt ∗ lF go!"checkpointPersist" lp ↦□ cpp ∗
+    lF go!"cluster" lp ↦□ cl ∗ clusterOk cl ∗
+    lF go!"checkpointInterval" lp ↦□ ci ∗ lF go!"lg" lp ↦□ lg ∗
+    lF go!"leaseRevokeRate" lp ↦□ rr)
+
+set_option synthInstance.maxHeartbeats 200000 in
+set_option synthInstance.maxSize 1024 in
+instance lessorCfg_persistent (lp : Loc) : Persistent (lessorCfg (GF := GF) lp) := by
+  unfold lessorCfg; infer_instance
+
+/-- `err` is one of the lessor's error variables `Grant` returns (`ErrLeaseNotFound`,
+`ErrLeaseExists`, `ErrLeaseTTLTooLarge`: `leaseErrVar` of the package's facts). -/
+def lessorErrIs (err : GoInterface) : IProp GF :=
+  iprop(∃ (g : GoString) (e : GoInterfaceOk),
+    ⌜g = ErrLeaseNotFound ∨ g = ErrLeaseExists ∨ g = ErrLeaseTTLTooLarge⌝ ∗
+    globalAddr g ↦□ GoInterface.ok e ∗ ⌜err = GoInterface.ok e⌝)
+
+instance lessorErrIs_persistent (err : GoInterface) : Persistent (lessorErrIs (GF := GF) err) := by
+  unfold lessorErrIs; infer_instance
 
 /-- A reader slot of the lessor's lock (`GetLease`, `Lookup`). -/
 def lessorRd (lp : Loc) (γl : GName) : IProp GF :=

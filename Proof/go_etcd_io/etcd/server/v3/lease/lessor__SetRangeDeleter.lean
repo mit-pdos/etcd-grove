@@ -35,9 +35,9 @@ theorem lease.lessor.SetRangeDeleter.wp_proof : lease.lessor.SetRangeDeleter.spe
   wp_apply wp_with_defer as %defer defer
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HR⟩
   iunfold lessorMu at HR
-  icases HR with ⟨%lm, %im, %M, %I, %rd0, %L, Hlm, HM, Him, HI, Hrd, Ha, Hg, %HL, #Hls⟩
+  icases HR with ⟨%lm, %im, %M, %I, %rd0, %L, Hlm, HM, Him, HI, Hrd, Ha, Hg, %HL, #Hls, Hx⟩
   wp_auto
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrd Ha Hg]
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrd Ha Hg Hx]
   · inext
     iunfold lessorMu
     iexists lm, im, M, I, rd, L

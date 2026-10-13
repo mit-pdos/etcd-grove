@@ -34,11 +34,13 @@ theorem lease.lessor.Attach.wp_proof : lease.lessor.Attach.spec (GF := GF) (hG :
   · iPkgInit
   ihave Hli : (leaseInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hli with ⟨%e, #He⟩
+  icases Hli with ⟨Hl0, -⟩
+  iunfold leaseErrVar at Hl0
+  icases Hl0 with ⟨%e, #He, -⟩
   wp_apply wp_with_defer as %defer defer
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HR⟩
   iunfold lessorMu at HR
-  icases HR with ⟨%lm, %im, %M, %I, %rd0, %L, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hls⟩
+  icases HR with ⟨%lm, %im, %M, %I, %rd0, %L, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hls, Hx⟩
   wp_auto
   ihave %Hag := leaseFrag_agree γl _ _ _ _ $$ [$Hown $Hg]
   subst Hag
@@ -47,7 +49,7 @@ theorem lease.lessor.Attach.wp_proof : lease.lessor.Attach.spec (GF := GF) (hG :
   | none =>
     simp only [Option.getD_none]
     wp_auto
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg]
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx]
     · inext
       iunfold lessorMu
       iexists lm, im, M, I, rd0, L0
@@ -99,7 +101,7 @@ theorem lease.lessor.Attach.wp_proof : lease.lessor.Attach.spec (GF := GF) (hG :
         iunfold leaseItems
         iexists sm, S'
         iframe
-      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg]
+      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx]
       · inext
         iunfold lessorMu
         iexists lm, im, M, I', rd0, L0

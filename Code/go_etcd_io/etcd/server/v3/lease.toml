@@ -1,14 +1,32 @@
 # Types and names only, except the lessor's methods the KV store calls (`GetLease`, `Attach`,
-# `Detach`, `Lookup`, `SetRangeDeleter`; lessor.go), with bodies.
+# `Detach`, `Lookup`, `SetRangeDeleter`; lessor.go, unit 8 of the backend) and those the apply
+# thread calls (`Grant`, `Revoke`, `Checkpoint`, `Demote`, `ExpiredLeasesC`, with their callees in
+# lessor.go, lease.go and lease_queue.go; unit 9), with bodies.
+# Names only: `Promote` (float arithmetic, a float-to-integer conversion, `sort.Sort` of the
+# leases), `scheduleCheckpointIfNeeded` (`int64(d.Seconds())`, a float-to-integer conversion,
+# which Perennial's semantics does not step) and the rest (renewal, recovery, the expiry loop).
 # Lessor is an interface (the apply thread calls its Promote), so the packages its methods'
 # signatures name are imported (Checkpointer's context and request type, Recover's backend).
 # `sync` for the struct `Lease` (its locks), whose `ID` the server's apply package reads;
-# `zap` and `semver` for the struct `lessor` (its logger, its cluster's version).
-translate = ["!*", "Lessor", "NoLease", "ErrLeaseNotFound", "lessor.GetLease", "lessor.Attach",
-  "lessor.Detach", "lessor.Lookup", "lessor.SetRangeDeleter"]
-imports = ["!*", "context", "sync", "time", "errors", "go.etcd.io/etcd/api/v3/etcdserverpb",
-  "go.etcd.io/etcd/server/v3/storage/backend", "go.uber.org/zap",
-  "github.com/Masterminds/semver/v3"]
+# `zap` and `semver` for the struct `lessor` (its logger, its cluster's version); `container/heap`
+# (names only) for the expiry notifier's queue; `leasepb` and `schema` for `persistTo` and
+# `Revoke`'s writes; `version` for `shouldPersistCheckpoints`; prometheus for the metrics.
+translate = ["!*", "Lessor", "NoLease", "MaxLeaseTTL", "forever", "ErrLeaseNotFound",
+  "ErrLeaseExists", "ErrLeaseTTLTooLarge",
+  "lessor.GetLease", "lessor.Attach", "lessor.Detach", "lessor.Lookup", "lessor.SetRangeDeleter",
+  "lessor.isPrimary", "lessor.Grant", "lessor.Revoke", "lessor.Checkpoint",
+  "lessor.shouldPersistCheckpoints", "greaterOrEqual", "lessor.Demote", "lessor.ExpiredLeasesC",
+  "lessor.clearScheduledLeasesCheckpoints", "lessor.clearLeaseExpiredNotifier",
+  "NewLease", "Lease.persistTo", "Lease.TTL", "Lease.getRemainingTTL", "Lease.refresh",
+  "Lease.forever", "Lease.Keys",
+  "LeaseQueue.Len", "LeaseQueue.Less", "LeaseQueue.Swap", "LeaseQueue.Push", "LeaseQueue.Pop",
+  "newLeaseExpiredNotifier", "LeaseExpiredNotifier.RegisterOrUpdate"]
+imports = ["!*", "container/heap", "context", "sort", "sync", "time", "errors",
+  "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/version",
+  "go.etcd.io/etcd/server/v3/lease/leasepb",
+  "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/server/v3/storage/schema",
+  "go.uber.org/zap", "github.com/Masterminds/semver/v3",
+  "github.com/prometheus/client_golang/prometheus"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

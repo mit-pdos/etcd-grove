@@ -124,7 +124,7 @@ PROJECTS = [
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=",
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
-                    "encoding/hex=",
+                    "encoding/hex=", "container/heap=",
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=EtcdDeps"],
         packages=[
             # with bodies (cache/v3.toml)
@@ -180,6 +180,8 @@ PROJECTS = [
             "go.etcd.io/etcd/server/v3/etcdserver/errors",
             "go.etcd.io/etcd/server/v3/etcdserver/read",
             "go.etcd.io/etcd/server/v3/lease",
+            # types only: the lease's protobuf message (the lessor's persistTo, Revoke)
+            "go.etcd.io/etcd/server/v3/lease/leasepb",
             "go.etcd.io/etcd/server/v3/auth",
             "go.etcd.io/etcd/pkg/v3/contention",
             "go.etcd.io/etcd/pkg/v3/idutil",
@@ -220,6 +222,8 @@ PROJECTS = [
             # (encoding/hex: the backend's putSeq check formats keys with it)
             "net/http",
             "encoding/hex",
+            # (container/heap: the lessor's expiry notifier pushes and fixes its queue)
+            "container/heap",
             # types and names only (their .toml)
             "go.etcd.io/etcd/client/v3",
             "go.etcd.io/etcd/api/v3/etcdserverpb",
@@ -246,7 +250,8 @@ PROJECTS = [
                os.path.join("github_com", "prometheus"),
                os.path.join("github_com", "Masterminds"),
                "k8s_io", "google_golang_org", "go_uber_org", "go_opentelemetry_io",
-               os.path.join("net", "http"), os.path.join("encoding", "hex"), os.path.join("github_com", "dustin")],
+               os.path.join("net", "http"), os.path.join("encoding", "hex"),
+               os.path.join("container", "heap"), os.path.join("github_com", "dustin")],
         parts=[
             # etcd's own raft dependency (go.etcd.io/raft/v3 in etcd's go.mod), whose
             # raftpb is protobuf-go v2: not the gogoproto etcd-raft above, but the same

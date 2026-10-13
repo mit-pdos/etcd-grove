@@ -1,0 +1,9 @@
+# Names only (a standard-library package Perennial does not translate): the lessor's expiry
+# notifier pushes and fixes its queue with `heap.Push` and `heap.Fix`, whose specs are the trust
+# boundary (`Spec/container/heap/`). `sort` for the interface `heap.Interface` embeds
+# (`sort.Interface`).
+translate = ["!*"]
+imports = ["!*", "sort"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

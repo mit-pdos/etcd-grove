@@ -4609,6 +4609,72 @@ that contract from the real backend's, and proves the hook in `hookFnSpec`'s sha
   the store's keys that its deletions rely on, stated as its contract. The apply level's
   `Lookup {{ True }}` (with `leaseIs`) is left as it was: the proved `Lookup` needs a reader slot.
 
+### The lessor's apply-side methods (unit 9, 2026-10-13 · adopted)
+
+- **More of the lessor under `le.mu`, its statements unchanged** (`lessorExtra lp M q`, a new last
+  conjunct of `lessorMu`): `demotec`, the expiry notifier (`notifierAt`: its map holds exactly the
+  queue's items, each under its own id, each item's `index` its position: what `heap.Fix(&q,
+  old.index)` needs to stay in range), the checkpoint heap (a queue of items), `cp`, and every
+  granted lease's `leaseMeta` (`ID`, `ttl`, `revokec` read-only; `remainingTTL`; the lessor's half
+  of `expiry`). **`expiry` in two halves**: `refresh`/`forever` write it holding `le.mu` and
+  `l.expiryMu`, `Grant` reads it under `le.mu` alone (`&LeaseWithTime{time: l.expiry}`),
+  `Remaining` under `l.expiryMu` alone; `l.expiryMu` guards the other half (`leaseExpiry`).
+  *Rejected:* `expiry` whole under `expiryMu` (`Grant`'s read would be unprovable).
+- **The read-only configuration and the backend as separate persistent facts**, not in
+  `lessorInv` (whose statement unit 8's specs, mvcc's and the txn package's use through
+  `lessorRdOf`/`lessorUser`): `lessorCfg lp` (`minLeaseTTL`, `checkpointPersist`, `cluster` with
+  its `Version()` contract, `checkpointInterval`, `lg`, `leaseRevokeRate`) and `lessorBackend lp P
+  f`: `le.b` read-only and a **contract on the backend for the `Lease` bucket**
+  (`leaseBackend b P f`: `BatchTx()` returns a transaction whose `LockInsideApply()`, under the
+  batch lock's `mvcc.csContract P f Pre Q Post`, gives a token `Lk Post` that `UnsafePut` into
+  `schema.Lease`'s bucket keeps and `Unlock()` turns into `Post`), as mvcc's `isKeyBackend` was
+  for the store before `BackendBridge.lean`: not yet proved of the real backend. `le.b` read-only
+  leaves `Recover` (which replaces it) out. *Rejected:* `lessorInv` parametrized by the backend
+  contract (every unit-8 statement and, through `lessorRdOf`, mvcc's and the txn package's would
+  change); the backend pinned in the lessor's ghost map (no simpler, and `Recover` breaks it
+  too).
+- **`container/heap` as the trust boundary, the notifier proved over it**: `heap.Push` and
+  `heap.Fix` (names only: a standard-library package Perennial does not translate) are axioms
+  over a generic `heap.heapIface h R E` (`Len` the length, `Less`/`Swap` called only in range,
+  `Swap` the list swap, `Push` appends): the contents end a permutation (the heap order is not
+  tracked). `&q` (a `*LeaseQueue`) meets it (`queue_heapIface`, from the proved `Len`, `Less`,
+  `Swap`, `Push`), and `RegisterOrUpdate` is proved over it (the map/queue invariant through the
+  permutation; an item the caller owns is not in the queue, `queue_item_fresh`). *Rejected:*
+  `RegisterOrUpdate` itself an axiom.
+- **What stays at the trust boundary** (axioms, each the function's documented behavior over the
+  resources it touches): `schema.MustUnsafePutLease` (`proto.Marshal`; a put into `Lease`),
+  `version.LessThan` (names-only `api/v3/version`), `scheduleCheckpointIfNeeded`
+  (`int64(le.checkpointInterval.Seconds())`: Perennial's semantics has no float-to-integer
+  conversion), `Promote` (float arithmetic, `time.Duration(rateDelay)`, `sort.Sort` by
+  `Remaining()`, which read-locks each lease's `expiryMu`: a reader slot the invariant does not
+  keep) and `Demote` (translated, not proved: `close(le.demotec)` needs the channel's close right,
+  which a fractional lock invariant at any later-credit level cannot hold as is). The metrics are
+  package facts (`leaseInit`: counters and a histogram whose `Inc`/`Observe` return).
+- **The apply package's contract, derived where proved**: `apply.isApplyLessor`'s `Grant` returns
+  a `leaseTTLIs` lease (its `ID` and `TTL()`: `Keys()` read-locks the lease's `mu`, a reader slot a
+  grant does not hand out, and the apply package does not call it on a granted lease; was
+  `leaseIs`); `apply.isApplyLessor_of_lessorInv` derives the contract of the real lessor from
+  `lessorInv`, `lessorCfg`, `lessorBackend` and the contract's `Revoke` and `Lookup` clauses (the
+  premises). The server's `lessorOk` is derived whole (`lessorOk_of_lessorInv`). Neither is yet
+  used by the server's construction premise (`srvFieldsAt`/`isServerBuilt` still state
+  `lessorOk`/`isApplyLessor`): the lessor's constructor is not proved.
+- **`Revoke` is not proved** (translated): (1) it reads `le.rd` after unlocking `le.mu` (a data
+  race with `SetRangeDeleter`/`Recover`: `issues/etcd-lessor-revoke-rd-unlocked.md`), so it needs a
+  share of `rd` outside the lock, which unit 8's `SetRangeDeleter` spec (any caller) does not
+  leave; (2) `le.rd()` is the store's write closure: its contract (`NewStore`'s closure over
+  `store.Write`, under the sole-writer discipline) would have to be recorded by `SetRangeDeleter`;
+  (3) `l.Keys()` read-locks the lease's `mu` (a reader slot per lease for the owner); (4) its
+  `UnsafeDeleteLease` runs under the store transaction's batch lock, through `le.b` (the backend
+  being the store's); (5) its postcondition (the state's leases still live after deleting `l`'s
+  keys) needs the coupling of each lease's item set with the store's keys, kept by mvcc's
+  `put`/`delete` through `Attach`/`Detach`; and `close(l.revokec)` a close right. Each is a
+  design change across mvcc's and the txn package's statements; left as the contract's premise.
+- **Noted for the expiry loop** (not proved): `revokeExpiredLeases` mutates the notifier
+  (`Unregister`, `RegisterOrUpdate`) under `le.mu.RLock()`; safe in Go only because the loop's
+  goroutine is the one reader that touches the notifier. A proof needs the notifier out of the
+  fractional lock invariant (e.g. an invariant exchanging it for the write lock's or the loop's
+  token).
+
 ---
 
 ## The request path, closed: delivery, the premises kept, and why

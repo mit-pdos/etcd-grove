@@ -36,6 +36,37 @@ lease_lessor__Lookup:
 lease_lessor__Attach:
 lease_lessor__Detach:
 lease_lessor__SetRangeDeleter:
+# The lessor's apply-side methods (the backend's unit 9, 2026-10-13), see lease/InvLessor.lean and
+# lease/LessorBackend.lean: `Grant`, `Checkpoint` and their callees, `ExpiredLeasesC`; the apply
+# package's and the server's lessor contracts are derived from them (apply/LessorDerive.lean,
+# LessorOk.lean). The trust boundary: container/heap's Push and Fix (names only), api/v3/version's
+# LessThan, schema's MustUnsafePutLease (protobuf's Marshal), and the lessor's
+# scheduleCheckpointIfNeeded and Promote (float-to-integer conversions) and Demote (the close of
+# demotec).
+heap_Push:
+heap_Fix:
+version_LessThan:
+schema_MustUnsafePutLease:
+lease_LeaseQueue__Len:
+lease_LeaseQueue__Less:
+lease_LeaseQueue__Swap:
+lease_LeaseQueue__Push:
+lease_LeaseExpiredNotifier__RegisterOrUpdate: lease_LeaseQueue__Len lease_LeaseQueue__Less lease_LeaseQueue__Swap lease_LeaseQueue__Push heap_Fix heap_Push
+lease_NewLease:
+lease_Lease__getRemainingTTL:
+lease_Lease__TTL:
+lease_Lease__refresh: lease_Lease__getRemainingTTL
+lease_Lease__forever:
+lease_Lease__persistTo: schema_MustUnsafePutLease
+lease_lessor__isPrimary:
+lease_greaterOrEqual: version_LessThan
+lease_lessor__shouldPersistCheckpoints: lease_greaterOrEqual
+lease_lessor__scheduleCheckpointIfNeeded:
+lease_lessor__Grant: lease_NewLease lease_lessor__isPrimary lease_Lease__refresh lease_Lease__forever lease_Lease__persistTo lease_LeaseExpiredNotifier__RegisterOrUpdate lease_lessor__scheduleCheckpointIfNeeded
+lease_lessor__Checkpoint: lease_lessor__shouldPersistCheckpoints lease_Lease__persistTo lease_lessor__isPrimary lease_lessor__scheduleCheckpointIfNeeded
+lease_lessor__ExpiredLeasesC:
+lease_lessor__Promote:
+lease_lessor__Demote:
 schema_bucket__ID:
 schema_bucket__Name:
 schema_bucket__IsSafeRangeBucket:

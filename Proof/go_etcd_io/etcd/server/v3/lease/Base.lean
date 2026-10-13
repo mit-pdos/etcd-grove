@@ -8,8 +8,18 @@ backend's (`storage/backend/Base.lean`) and Perennial's (`sync`, `time`, `contex
 lessor's KV-facing methods are translated with bodies).
 
 As in those, the package facts are assumptions about package initialization, not proved from
-`initialize'`: `leaseInit` states what the proved methods read, the error variable
-`ErrLeaseNotFound` (`errors.New("lease not found")`), a fixed non-nil error.
+`initialize'`: `leaseInit` states what the proved methods read: the error variables
+`ErrLeaseNotFound`, `ErrLeaseExists`, `ErrLeaseTTLTooLarge` (`errors.New(...)`: each a fixed
+leaf pointer error whose `Error()` returns, `leaseErrVar`, the shape of the apply package's
+`errVarLeaf`; 2026-10-13, unit 9: before, `ErrLeaseNotFound` was only a fixed value), the
+variable `forever` (`time.Time{}`, read-only), and the metrics (`metrics.go`: `leaseGranted` and
+`leaseRevoked` counters whose `Inc` returns, the histogram `leaseTotalTTLs` whose `Observe`
+returns; metrics have no effect the model sees).
+
+Unit 9 adds the instances of the packages the lessor's apply-side methods import:
+`api/v3/version` (moved here from the server's `BaseApply.lean`: its `Version`, and now `V3_6`,
+fixed read-only values), `lease/leasepb` (types only) and `container/heap` (names only: a
+standard-library package Perennial does not translate).
 -/
 module
 
@@ -21,6 +31,14 @@ public import Perennial.Proof.sync
 public import Perennial.Proof.time
 public import Perennial.Proof.context
 public import Perennial.Proof.errors
+public import Perennial.Proof.sort
+public import Code.go_etcd_io.etcd.api.v3.version
+public import GeneratedProof.go_etcd_io.etcd.api.v3.version
+public import Code.go_etcd_io.etcd.server.v3.lease.leasepb
+public import GeneratedProof.go_etcd_io.etcd.server.v3.lease.leasepb
+public import Code.container.heap
+public import GeneratedProof.container.heap
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
 
 @[expose] public section
 
@@ -49,11 +67,75 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.github_com.Mas
 
 end github_com.Masterminds.semver.v3
 
+namespace go_etcd_io.etcd.api.v3.version
+
+/-- `api/v3/version` (names-only): the package variables `Version` (the request path's unit 4c:
+the server's `start` logs it; moved here from the server's `BaseApply.lean`, 2026-10-13) and
+`V3_6` (the lessor's `shouldPersistCheckpoints` compares the cluster's version with it) hold
+fixed read-only values. -/
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.version :=
+  define_is_pkg_init iprop((∃ v : GoString, globalAddr go_etcd_io.etcd.api.v3.version.Version ↦□ v) ∗
+    (∃ v : github_com.Masterminds.semver.v3.Version,
+      globalAddr go_etcd_io.etcd.api.v3.version.V3_6 ↦□ v))
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.version :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.api.v3.version
+
+-- `server/v3/lease/leasepb` (types only: the lease's protobuf message)
+namespace go_etcd_io.etcd.server.v3.lease.leasepb
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.server.v3.lease.leasepb
+
+-- `container/heap` (names only)
+namespace container.heap
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.container.heap :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.container.heap :=
+  build_get_is_pkg_init_wf
+
+end container.heap
+
 namespace go_etcd_io.etcd.server.v3.lease
 
-/-- The lessor package's facts: `ErrLeaseNotFound` holds a fixed non-nil error. -/
+/-- The error variable `g` holds an `errors.New` error: a leaf pointer error without an `Is`
+method whose `Error()` returns (the shape of the apply package's `errVarLeaf`, which the lease
+package cannot import). -/
+def leaseErrVar (g : GoString) : IProp GF :=
+  iprop(∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗
+    ⌜_root_.Perennial.errors.IsPointerError e ∧ _root_.Perennial.errors.isLeafError e ∧
+      methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool])⌝ ∗
+    {{ True }} (App (Val #(methods e.ty go!"Error" e.v)) (Val #()))
+      {{ (msg : GoString), RET #msg; True }})
+
+instance leaseErrVar_persistent (g : GoString) : Persistent (leaseErrVar (GF := GF) g) := by
+  unfold leaseErrVar; infer_instance
+
+/-- A prometheus `Counter`: `Inc()` returns (metrics have no effect the model sees). -/
+def counterSpec (c : GoInterfaceOk) : IProp GF :=
+  iprop(□ ({{ True }} (App (Val #(methods c.ty go!"Inc" c.v)) (Val #())) {{ RET #(); True }}))
+
+instance counterSpec_persistent (c : GoInterfaceOk) : Persistent (counterSpec (GF := GF) c) := by
+  unfold counterSpec; infer_instance
+
+/-- The lessor package's facts: the error variables `ErrLeaseNotFound`, `ErrLeaseExists`,
+`ErrLeaseTTLTooLarge` (`leaseErrVar`), `forever` (the zero `time.Time`), the counters
+`leaseGranted`, `leaseRevoked` and the histogram `leaseTotalTTLs`. -/
 abbrev leaseInit : IProp GF :=
-  iprop(∃ e : GoInterfaceOk, globalAddr ErrLeaseNotFound ↦□ GoInterface.ok e)
+  iprop(leaseErrVar ErrLeaseNotFound ∗ leaseErrVar ErrLeaseExists ∗
+    leaseErrVar ErrLeaseTTLTooLarge ∗
+    globalAddr forever ↦□ (zero_val _root_.Perennial.time.Time) ∗
+    (∃ c : GoInterfaceOk, globalAddr leaseGranted ↦□ GoInterface.ok c ∗ counterSpec c) ∗
+    (∃ c : GoInterfaceOk, globalAddr leaseRevoked ↦□ GoInterface.ok c ∗ counterSpec c) ∗
+    (∃ h : GoInterfaceOk, globalAddr leaseTotalTTLs ↦□ GoInterface.ok h ∗
+      go_etcd_io.etcd.server.v3.storage.backend.histSpec h))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease :=
   define_is_pkg_init leaseInit

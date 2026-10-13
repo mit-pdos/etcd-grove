@@ -100,8 +100,13 @@ axiom fmt.Printf.wp_proof
 axiom fmt.SprintfNamed.wp_proof
 axiom fmt.Sscanf.wp_proof
 axiom go_humanize.Bytes.wp_proof
+axiom heap.Fix.wp_proof
+axiom heap.Push.wp_proof
 axiom isConnectedSince.wp_proof
 axiom isConnectedToQuorumSince.wp_proof
+axiom lease.lessor.Demote.wp_proof
+axiom lease.lessor.Promote.wp_proof
+axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
 axiom membership.RaftCluster.ID.wp_proof
 axiom membership.RaftCluster.Members.wp_proof
 axiom monitorFileDescriptor.wp_proof
@@ -125,6 +130,7 @@ axiom rpctypes.Error.wp_proof
 axiom schedule.NewFIFOScheduler.wp_proof
 axiom schedule.Scheduler.Schedule.wp_proof
 axiom schedule.Scheduler.Stop.wp_proof
+axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom semver.MustParse.wp_proof
 axiom semver.Version.LessThan.wp_proof
@@ -171,6 +177,7 @@ axiom v2stats.ServerStats.BecomeLeader.wp_proof
 axiom verify.Assert.wp_proof
 axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
+axiom version.LessThan.wp_proof
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof
 axiom zap.Int'.wp_proof

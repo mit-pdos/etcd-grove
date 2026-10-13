@@ -72,8 +72,8 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
       iunfold apply.kvOwn
       iframe
   · subst He
-    iunfold apply.leaseIs at Hlease
-    icases Hlease with ⟨%Hln, #HlID, #HTTL, -⟩
+    iunfold apply.leaseTTLIs at Hlease
+    icases Hlease with ⟨%Hln, #HlID, #HTTL⟩
     iStructNamed «$r0»
     wp_auto
     wp_apply HTTL as %t -

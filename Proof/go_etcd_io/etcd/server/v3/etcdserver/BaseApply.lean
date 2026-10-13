@@ -176,16 +176,8 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.pkg.v3.notify
 
-namespace go_etcd_io.etcd.api.v3.version
-
-/-- `api/v3/version` (names-only; the request path's unit 4c: the server's `start` logs its
-`Version`): the package variable `Version` holds some string. -/
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.version :=
-  define_is_pkg_init iprop(∃ v : GoString, globalAddr go_etcd_io.etcd.api.v3.version.Version ↦□ v)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.version :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.api.v3.version
+-- `api/v3/version`: `server/v3/lease/Base.lean` (2026-10-13, unit 9: the lessor's
+-- `shouldPersistCheckpoints` reads its `V3_6`)
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
 

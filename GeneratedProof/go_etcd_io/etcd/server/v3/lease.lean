@@ -2,12 +2,18 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.container.heap
 public import Perennial.GeneratedProof.context
 public import Perennial.GeneratedProof.errors
 public import GeneratedProof.github_com.Masterminds.semver.v3
+public import GeneratedProof.github_com.prometheus.client_golang.prometheus
 public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
+public import GeneratedProof.go_etcd_io.etcd.api.v3.version
+public import GeneratedProof.go_etcd_io.etcd.server.v3.lease.leasepb
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.backend
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.schema
 public import GeneratedProof.go_uber_org.zap
+public import Perennial.GeneratedProof.sort
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory

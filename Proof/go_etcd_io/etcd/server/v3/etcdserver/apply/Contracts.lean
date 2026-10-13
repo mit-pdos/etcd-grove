@@ -202,6 +202,18 @@ def leaseIs (l : Loc) (id : w64) : IProp GF :=
 instance leaseIs_persistent (l : Loc) (id : w64) : Persistent (leaseIs (GF := GF) l id) := by
   unfold leaseIs; infer_instance
 
+/-- The `*lease.Lease` `l` (not nil) a grant returns: its `ID`, and its `TTL()` returns (2026-10-13,
+unit 9: `Grant` is proved, `lease.lessor.Grant.spec`; its lease's `Keys()` read-locks the lease's
+`mu`, a reader slot the grant does not give, and the apply package does not call it on a
+granted lease). -/
+def leaseTTLIs (l : Loc) (id : w64) : IProp GF :=
+  iprop(⌜l ≠ null⌝ ∗ structFieldRef lease.Lease go!"ID" l ↦□ id ∗
+    □ ({{ True }} (App (Val (l @!! go.GoType.PointerType lease.Lease.ty @!! go!"TTL")) (Val #()))
+      {{ (t : w64), RET #t; True }}))
+
+instance leaseTTLIs_persistent (l : Loc) (id : w64) : Persistent (leaseTTLIs (GF := GF) l id) := by
+  unfold leaseTTLIs; infer_instance
+
 /-- **The `lease.Lessor` `le`** as the apply package uses it (trust boundary: `lease` is
 names-only): the txn package's `isTxnLessor`, its writes under the batch lock (`P`, `f`); a
 revocation deletes the lease's keys through the store `γ`'s writer, one revision, under the
@@ -212,7 +224,11 @@ The live set (2026-10-13, unit 8 of the backend: the lessor's `GetLease`, `Attac
 lease owner's half (`lease.leaseOwn γ.leases L`); a grant only adds to the live set (a granted
 lease in it), a revocation removes the lease and, deleting its keys (`l.Keys()`, the lease's item
 set, which the store's puts and deletes keep through `Attach`/`Detach`), keeps every lease of the
-state live (`txn.leasesKnown`). Still assumed (the lessor's other methods are not proved). -/
+state live (`txn.leasesKnown`). Still assumed (the lessor's other methods are not proved).
+2026-10-13, unit 9: `Grant` and `Checkpoint` are proved (`lease.lessor.Grant.spec`,
+`lease.lessor.Checkpoint.spec`) and their clauses derived of the real lessor
+(`lease.isApplyLessor_of_lessorInv`, with this contract's `Revoke` and `Lookup` clauses as its
+premises); a granted lease is `leaseTTLIs` (no `Keys()`). -/
 def isApplyLessor (le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) :
     IProp GF :=
   iprop(txn.isTxnLessor le γ.leases ∗ ∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
@@ -222,7 +238,7 @@ def isApplyLessor (le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : 
       {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); (Post ∨ Pre) ∗
           (∃ L' : List w64, lease.leaseOwn γ.leases L' ∗ ⌜∀ x ∈ L, x ∈ L'⌝ ∗
             (⌜err ≠ GoInterface.nil⌝ ∨
-              (⌜err = GoInterface.nil⌝ ∗ ∃ id' : w64, leaseIs l id' ∗ ⌜id' ∈ L'⌝))) ∗
+              (⌜err = GoInterface.nil⌝ ∗ ∃ id' : w64, leaseTTLIs l id' ∗ ⌜id' ∈ L'⌝))) ∗
           applyErrIs err }}) ∗
     □ (∀ (id : w64) (log : mvcc.Log) (L : List w64) (Pre Q Post : IProp GF),
       {{ mvcc.csContract P f Pre Q Post ∗ txn.soleWriter γ log ∗ mvcc.storeWT γ ∗

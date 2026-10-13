@@ -47,6 +47,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CindexBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.HooksBackend
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorContract
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LessorOk
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.LessorDerive
 
 @[expose] public section
 
@@ -862,8 +864,47 @@ theorem lessor_txn_contract (lp : Loc) (γl : GName) :
   lease.isTxnLessor_of_lessorInv lease.lessor.wp_GetLease lease.lessor.wp_Attach
     lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup lp γl
 
+/-- **The server's lessor contract, of the real lessor** (unit 9, 2026-10-13): the lessor at `lp`
+(`lease.lessorInv`, its configuration, its `expiredC`) meets `lessorOk`: `ExpiredLeasesC` proved,
+`Promote` and `Demote` the trust boundary (`lease.lessor.Promote.wp_proof`,
+`lease.lessor.Demote.wp_proof`). -/
+theorem lessor_server_contract (lp : Loc) (γl : GName) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lease.lessorInv lp γl ∗
+      lease.lessorCfg lp ∗ lease.lessorExpiredC lp ⊢ lessorOk (lease.lessorIface lp) :=
+  lessorOk_of_lessorInv lease.lessor.wp_Promote lease.lessor.wp_Demote
+    lease.lessor.wp_ExpiredLeasesC lp γl
+
+/-- **The apply package's lessor contract, of the real lessor** (unit 9, 2026-10-13): the lessor
+at `lp` (`lease.lessorInv`, its configuration, its backend's contract for the `Lease` bucket,
+`lease.lessorBackend`) meets `apply.isApplyLessor`'s `isTxnLessor`, `Grant` and `Checkpoint`
+clauses, from their proofs; its `Revoke` and `Lookup` clauses are the premises
+(`apply.isApplyLessor_of_lessorInv`). -/
+theorem lessor_apply_contract (lp : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
+      lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗ lease.lessorBackend lp P f ∗
+      □ (∀ (id : w64) (log : mvcc.Log) (L : List w64) (Pre Q Post : IProp GF),
+        {{ mvcc.csContract P f Pre Q Post ∗ txn.soleWriter γ log ∗ mvcc.storeWT γ ∗
+            lease.leaseOwn γ.leases L ∗ txn.leasesKnown L (mvcc.stateAfter log) }}
+          (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty @!!
+            go!"Revoke")) (Val #id))
+        {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗
+            (∃ (pend : List mvcc.Change) (L' : List w64), ⌜∀ c ∈ pend, c.isDel = true⌝ ∗
+              txn.soleWriter γ (mvcc.commitLog log pend) ∗ lease.leaseOwn γ.leases L' ∗
+              txn.leasesKnown L' (mvcc.stateAfter (mvcc.commitLog log pend))) ∗
+            applyErrIs err }}) ∗
+      □ (∀ id : w64,
+        {{ True }} (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty
+          @!! go!"Lookup")) (Val #id))
+        {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ EtcdGrove.apply.leaseIs l id }}) ⊢
+      EtcdGrove.apply.isApplyLessor (lease.lessorIface lp) γ P f :=
+  EtcdGrove.apply.isApplyLessor_of_lessorInv lease.lessor.wp_GetLease lease.lessor.wp_Attach
+    lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup
+    lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lp γ P f
+
 end backend
 
+#print axioms Perennial.EtcdGrove.lessor_server_contract
+#print axioms Perennial.EtcdGrove.lessor_apply_contract
 #print axioms Perennial.EtcdGrove.lessor_txn_contract
 #print axioms Perennial.EtcdGrove.server_kv_backend
 
