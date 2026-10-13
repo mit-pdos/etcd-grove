@@ -265,7 +265,7 @@ theorem leaderStepResult_app_hb (cfg : GSet w64) (id : w64) (s : NState)
   obtain ⟨rfl, Hres⟩ := H
   refine ⟨rfl, ?_⟩
   unfold LeaderNonpropResult at Hres
-  rcases Hres with ⟨-, rfl⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩
+  rcases Hres with ⟨-, rfl⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩
   · rfl
   all_goals exfalso; rcases Hty with h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne)
 

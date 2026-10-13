@@ -229,6 +229,14 @@ position a release passed (`releasePendingReadIndexMessages` broadcasts after ea
 def HbCtxOk (r : ReadOnly) (ctx : List w8) : Prop :=
   ctx = [] ∨ ∃ q, ctx = u64Le q ∧ uint.nat q ≤ uint.nat r.confirmed + r.pending.length
 
+theorem HbCtxOk_mono (r r' : ReadOnly) (ctx : List w8) :
+    r'.confirmed = r.confirmed → r.pending.length ≤ r'.pending.length →
+    HbCtxOk r ctx → HbCtxOk r' ctx := by
+  intro hc hl h
+  rcases h with h | ⟨q, hq, hle⟩
+  · left; exact h
+  · right; exact ⟨q, hq, by rw [hc]; omega⟩
+
 /-- `addRequest`: append to the queue. -/
 def readonlyAdd (r : ReadOnly) (q : ReadReq) : ReadOnly :=
   { r with pending := r.pending ++ [q] }
@@ -282,6 +290,11 @@ theorem hbCtx_ok (r : ReadOnly) : HbCtxOk r (hbCtx r) := by
   · left; rfl
   · right; exact ⟨_, rfl, readonlyPosition_le r⟩
 
+theorem readonlyRelease_append (r : ReadOnly) (id c : w64)
+    (l1 l2 : List (raftpb.Message × List raftpb.Entry)) :
+    readonlyRelease r id c (l1 ++ l2) = readonlyRelease (readonlyRelease r id c l1) id c l2 := by
+  unfold readonlyRelease; exact List.foldl_append
+
 /-- What an arrival does: the request queued, the leader's ack raised to the new
 position. -/
 theorem readonlyArrive_eq (r : ReadOnly) (id : w64) (q : ReadReq) :
@@ -296,6 +309,36 @@ theorem readonlyArrive_eq (r : ReadOnly) (id : w64) (q : ReadReq) :
   unfold readonlyArrive readonlyRecvAck hbCtx readonlyAdd readonlyPosition
   simp only [List.append_eq_nil_iff, List.cons_ne_self, and_false, ↓reduceIte, hne,
     List.take_of_length_le (Nat.le_of_eq hl), u64Le_to_word]
+
+theorem readonlyRelease_shape (r : ReadOnly) (id c : w64)
+    (l : List (raftpb.Message × List raftpb.Entry)) :
+    (readonlyRelease r id c l).confirmed = r.confirmed ∧
+    (readonlyRelease r id c l).pending.length = r.pending.length + l.length := by
+  induction l generalizing r with
+  | nil => exact ⟨rfl, rfl⟩
+  | cons p l ih =>
+    unfold readonlyRelease at ih ⊢
+    rw [List.foldl_cons]
+    obtain ⟨h1, h2⟩ := ih (readonlyArrive r id ⟨c, p.1.From', p.2⟩)
+    have ha := readonlyArrive_eq r id ⟨c, p.1.From', p.2⟩
+    refine ⟨by rw [h1, ha], ?_⟩
+    rw [h2, ha]
+    simp only [List.length_append, List.length_cons, List.length_nil]
+    omega
+
+/-- A heartbeat a release sent after `k` of the pending requests is allowed after all of
+them. -/
+theorem HbCtxOk_release (r : ReadOnly) (id c : w64) (l : List (raftpb.Message × List raftpb.Entry))
+    (k : Nat) :
+    HbCtxOk (readonlyRelease r id c l) (hbCtx (readonlyRelease r id c (l.take k))) := by
+  have h := hbCtx_ok (readonlyRelease r id c (l.take k))
+  have e : readonlyRelease r id c l =
+      readonlyRelease (readonlyRelease r id c (l.take k)) id c (l.drop k) := by
+    rw [← readonlyRelease_append, List.take_append_drop]
+  rw [e]
+  apply HbCtxOk_mono _ _ _ (readonlyRelease_shape _ id c _).1 ?_ h
+  rw [(readonlyRelease_shape _ id c (l.drop k)).2]
+  omega
 
 end readonly_fns
 

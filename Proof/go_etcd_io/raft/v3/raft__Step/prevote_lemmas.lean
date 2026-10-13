@@ -68,7 +68,7 @@ theorem leaderStepResult_prevoteresp (cfg : GSet w64) (id : w64) (s : NState)
   refine ⟨rfl, ?_⟩
   unfold LeaderNonpropResult at Hres
   rw [Hty] at Hres
-  rcases Hres with ⟨-, Hres⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩
+  rcases Hres with ⟨-, Hres⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩
   · exact Hres
   all_goals exact absurd Hc (by w32_ne)
 

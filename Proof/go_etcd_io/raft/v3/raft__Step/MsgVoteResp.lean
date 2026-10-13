@@ -324,7 +324,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         obtain ⟨rfl, Hres⟩ := Hres
         unfold LeaderNonpropResult at Hres
         have Heq : s1 = s := by
-          rcases Hres with ⟨-, h⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ <;>
+          rcases Hres with ⟨-, h⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ <;>
             first | exact h | (exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         subst s1
         simp only [Bool.false_eq_true, ↓reduceIte]

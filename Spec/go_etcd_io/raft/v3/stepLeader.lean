@@ -178,7 +178,8 @@ def LeaderNonpropResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Mes
   (m.Type' = MsgBeat ∧
    ∃ (ms : List Msg) (pvs : GMap w64 Progress),
      s' = { sendMsgs s ms with prvals := pvs } ∧
-     (∀ m' ∈ ms, HeartbeatOk id (toPState s) m') ∧
+     -- (2026-10-13) with the read-only object's context
+     (∀ m' ∈ ms, HeartbeatOk id (toPState s) m' ∧ HbCtxOk s.rd.ro m'.ctx) ∧
      prvalsMatch pvs = prvalsMatch s.prvals) ∨
   (m.Type' = MsgHeartbeatResp ∧
    ∃ (ms : List Msg) (pvs : GMap w64 Progress),

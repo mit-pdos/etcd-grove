@@ -241,7 +241,8 @@ private theorem wp_stepLeader_beat
   iapply HΦ
   iframe Hphys
   ipureintro
-  exact ⟨rfl, Or.inr (Or.inl ⟨Hty, ms, pvs, rfl, fun m' h => (Hms m' h).1, Hmm⟩)⟩
+  exact ⟨rfl, Or.inr (Or.inl ⟨Hty, ms, pvs, rfl,
+    fun m' h => ⟨(Hms m' h).1, by rw [(Hms m' h).2]; exact hbCtx_ok _⟩, Hmm⟩)⟩
 
 /-- **`MsgHeartbeatResp`** -/
 private theorem wp_stepLeader_hbresp
