@@ -44,7 +44,7 @@ local macro "not_net" : tactic => `(tactic| (intro h; first | exact h.elim |
   (rw [h] at Hty; simp [netStepTypes,
   MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgHup,
   MsgPreVote, MsgPreVoteResp, MsgSnap, MsgBeat, MsgProp, MsgStorageAppendResp,
-  MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp] at Hty)))
+  MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hty)))
 
 /-- Two message types are different. -/
 local macro "ty_ne" : tactic => `(tactic| (simp [MsgApp, MsgAppResp, MsgVote, MsgVoteResp,
@@ -129,7 +129,7 @@ theorem RawNode.Step.wp_proof
           Hself (.inr (.inr (.inl h)))⟩)
         P4 P5 P6 P7 P8 (fun h => ⟨Hri h, Hsing h⟩)
         (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
-          Hself (.inr (.inr (.inr h)))⟩) Hrel
+          Hself (.inr (.inr (.inr h)))⟩) (RestMsgOk.of_ne ⟨by not_net, by not_net, by not_net, by not_net, by not_net⟩) Hrel
         $$ [$Hphys $Hghost Hents_cap Hcred]
       · simp only [HnP, ↓reduceIte, named]
         isplitl [Hents_cap]
@@ -145,8 +145,7 @@ theorem RawNode.Step.wp_proof
           iintro %ty %Hty' _
           iapply Hmsg $$ %ty %Hty'
         isplitr
-        · iframe Hctx
-          ipureintro; exact Hctx_ok
+        · iexact Hctx
         isplitl [Hcred]
         · iexact Hcred
         imodintro
@@ -158,7 +157,7 @@ theorem RawNode.Step.wp_proof
       iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, -, -⟩
       obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by not_net) (by not_net)
       obtain ⟨Ht1, -, Ht3, -⟩ := Htm (by not_net)
-      have Ht3 := Ht3 (by not_net) (by not_net)
+      have Ht3 := Ht3 (by not_net) (by not_net) (by not_net)
       have Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed := by
         obtain ⟨recv, Hst⟩ := Href
         have H := Step.commit_mono Hst

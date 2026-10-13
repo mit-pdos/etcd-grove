@@ -335,7 +335,7 @@ local macro "not_net" : tactic => `(tactic| (intro h; first | exact h.elim |
   (rw [h] at Hty; simp [netStepTypes,
   MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgHup,
   MsgPreVote, MsgPreVoteResp, MsgSnap, MsgBeat, MsgProp, MsgStorageAppendResp,
-  MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp] at Hty)))
+  MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hty)))
 
 /-- Two message types are different. -/
 local macro "ty_ne" : tactic => `(tactic| (simp [MsgApp, MsgAppResp, MsgVote, MsgVoteResp,
@@ -404,7 +404,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
       Hself (.inr (.inr (.inl h)))⟩)
     P4 P5 P6 P7 P8 (fun h => ⟨Hri h, Hsing h⟩)
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
-      Hself (.inr (.inr (.inr h)))⟩) Hrel
+      Hself (.inr (.inr (.inr h)))⟩) (RestMsgOk.of_ne ⟨by not_net, by not_net, by not_net, by not_net, by not_net⟩) Hrel
     $$ [$Hphys $Hghost Hents_cap Hcred]
   · simp only [HnP, ↓reduceIte, named]
     isplitl [Hents_cap]
@@ -420,8 +420,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
       iintro %ty %Hty' _
       iapply Hmsg $$ %ty %Hty'
     isplitr
-    · iframe Hctx
-      ipureintro; exact Hctx_ok
+    · iexact Hctx
     isplitl [Hcred]
     · iexact Hcred
     imodintro
@@ -433,7 +432,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, -, -⟩
   obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by not_net) (by not_net)
   obtain ⟨Ht1, -, Ht3, -⟩ := Htm (by not_net)
-  have Ht3 := Ht3 (by not_net) (by not_net)
+  have Ht3 := Ht3 (by not_net) (by not_net) (by not_net)
   have Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed := by
     obtain ⟨recv, Hst⟩ := Href
     have H := Step.commit_mono Hst
@@ -455,7 +454,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
 /-- A premise of `Step` about another message type: `MsgProp` (`W32 2`) is not it. -/
 local macro "msg_ne" : tactic => `(tactic| (intro Hc; simp [MsgHup, MsgVote, MsgVoteResp,
   MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp, MsgSnap,
-  MsgBeat, MsgStorageAppendResp, MsgStorageApplyResp, propMsg, MsgProp] at Hc))
+  MsgBeat, MsgStorageAppendResp, MsgStorageApplyResp, propMsg, MsgProp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hc))
 
 set_option hygiene false in
 /-- A premise of `Step` about another message type, for a message of type `MsgProp`
@@ -463,7 +462,7 @@ set_option hygiene false in
 local macro "msg_ne'" : tactic => `(tactic| (intro Hc; rw [Hty'] at Hc; simp [MsgHup, MsgVote,
   MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp,
   MsgSnap, MsgBeat, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgReadIndex,
-  MsgReadIndexResp] at Hc))
+  MsgReadIndexResp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hc))
 
 /-- A proposal's abstraction is legitimately sent, from the node's: `isMessage` of a
 proposal reads only its term and entries, not its sender (2026-10-10). -/
@@ -532,7 +531,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     (by msg_ne') (by msg_ne')
     (by msg_ne') (by msg_ne')
     (by msg_ne')
-    (fun _ => ⟨Hterm, .inr rfl⟩) (by msg_ne') (by msg_ne') (by msg_ne') (by msg_ne') Hrel
+    (fun _ => ⟨Hterm, .inr rfl⟩) (by msg_ne') (by msg_ne') (by msg_ne') (by msg_ne') (RestMsgOk.of_ne ⟨by msg_ne', by msg_ne', by msg_ne', by msg_ne', by msg_ne'⟩) Hrel
     $$ [$Hphys $Hghost Hes Hcap Hcr]
   · rw [Hty']
     simp only [ite_true]
@@ -558,10 +557,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
         iapply isMessage_ctx_intro _ .propose _ _ _ ⟨nofun, nofun⟩
         iexact Hm'
     isplitr
-    · isplitr
-      · iexact Hctx
-      ipureintro
-      exact Hctxne
+    · iexact Hctx
     isplitl [Hcr]
     · simp [MsgProp, MsgReadIndex]; iexact Hcr
     · imodintro

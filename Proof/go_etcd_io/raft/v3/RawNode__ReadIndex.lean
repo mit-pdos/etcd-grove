@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- A premise of `Step` about another message type: `MsgReadIndex` (`W32 15`) is not it. -/
 local macro "msg_ne" : tactic => `(tactic| (intro Hc; simp [MsgHup, MsgVote, MsgVoteResp,
   MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp, MsgSnap,
-  MsgBeat, MsgProp, MsgStorageAppendResp, MsgStorageApplyResp, MsgReadIndexResp] at Hc))
+  MsgBeat, MsgProp, MsgStorageAppendResp, MsgStorageApplyResp, MsgReadIndexResp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hc))
 
 /-- `Step` on the literal message `pb.Message{Type: MsgReadIndex, Entries: []pb.Entry{{Data:
 rctx}}}`: its abstraction is the client's request (`isPropData`, `readReq`), and it carries
@@ -54,7 +54,7 @@ theorem RawNode.ReadIndex.wp_proof
     (by simp [StepMsg, stepMsgTypes, MsgReadIndex]) Hin
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
-    (by msg_ne) (by msg_ne) (fun _ => ⟨rfl, Hsing⟩) (by msg_ne) Hrel
+    (by msg_ne) (by msg_ne) (fun _ => ⟨rfl, Hsing⟩) (by msg_ne) (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hrel
     $$ [$Hphys $Hghost Hcap Hcred]
   · -- the message: its one-entry batch, read-only; `Context` nil; the client's request
     simp only [hP, ↓reduceIte, named]
@@ -77,10 +77,7 @@ theorem RawNode.ReadIndex.wp_proof
       · ipureintro; rfl
       iframe Hpd Hrq
     isplitr
-    · isplitr
-      · iapply ownSlice_nil
-      ipureintro
-      intro Hc; unfold campaignTransfer at Hc; simp at Hc
+    · iapply ownSlice_nil
     isplitl [Hcred]
     · rw [if_pos hR]; iexact Hcred
     imodintro
@@ -93,7 +90,7 @@ theorem RawNode.ReadIndex.wp_proof
   wp_auto
   obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by msg_ne) (by msg_ne)
   obtain ⟨Ht1, -, Ht3, -⟩ := Htm (by msg_ne)
-  have Ht3 := Ht3 (by msg_ne) (by msg_ne)
+  have Ht3 := Ht3 (by msg_ne) (by msg_ne) (by msg_ne)
   have H0 : uint.Z (0 : w64) = 0 := rfl
   simp only [H0] at Ht3
   -- the term does not move: the message's is `0`

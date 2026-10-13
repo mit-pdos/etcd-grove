@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 local macro "msg_ne" : tactic => `(tactic| (intro Hc; simp [MsgHup, MsgVote, MsgVoteResp,
   MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp, MsgSnap,
   MsgBeat, MsgProp, MsgStorageAppendResp, MsgStorageApplyResp, MsgReadIndex,
-  MsgReadIndexResp] at Hc))
+  MsgReadIndexResp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hc))
 
 /-- `electionElapsed++`, then possibly the campaign: `raft.Step` of a `MsgHup`. -/
 theorem raft.tickElection.wp_proof
@@ -58,7 +58,7 @@ theorem raft.tickElection.wp_proof
       (fun _ => ⟨rfl, Hterm⟩)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
-      (by msg_ne) (by msg_ne) (by msg_ne) Hrel
+      (by msg_ne) (by msg_ne) (by msg_ne) (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hrel
       $$ [$Hphys $Hghost Hcr]
     · simp only [hP, ↓reduceIte, named]
       isplitr
@@ -75,10 +75,7 @@ theorem raft.tickElection.wp_proof
         rw [show mtypeOf (W32 0) = none from rfl] at Hty
         cases Hty
       isplitr
-      · isplitr
-        · iapply ownSlice_nil
-        ipureintro
-        simp [campaignTransfer]
+      · iapply ownSlice_nil
       isplitl [Hcr]
       · rw [if_neg (by msg_ne)]; iexact Hcr
       imodintro

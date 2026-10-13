@@ -154,7 +154,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 local macro "msg_ne" : tactic => `(tactic| (intro Hc; simp [MsgHup, MsgVote, MsgVoteResp,
   MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp, MsgSnap,
   MsgBeat, MsgProp, MsgStorageAppendResp, MsgStorageApplyResp, MsgReadIndex,
-  MsgReadIndexResp, appendAckMsg, applyAckMsg] at Hc))
+  MsgReadIndexResp, appendAckMsg, applyAckMsg, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hc))
 
 set_option hygiene false in
 /-- A premise of `Step` about a type a self-addressed response (`Hty`: one of the three
@@ -167,7 +167,7 @@ local macro "not_self" : tactic => `(tactic| (
      rcases Hty with Hty | Hty | Hty <;> rw [Hty] at Hc <;>
        simp [MsgHup, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat,
          MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgBeat, MsgProp, MsgStorageAppendResp,
-         MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp] at Hc)))
+         MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hc)))
 
 /-- The node's id is nonzero (the ghost state's `Hidnz`): a self-addressed response's
 `From`. -/
@@ -221,7 +221,7 @@ private theorem wp_step_pending
       (fun _ => ⟨Hto, Hnz, Hfnz, Hnw _ _ rfl⟩) (by not_self) (by not_self)
       (fun h => ⟨Hto, Hnz, Hfnz, fun Hr => by rw [Hrj h] at Hr; cases Hr⟩)
       (by not_self) (by not_self) (by not_self) (by not_self) (by not_self) (by not_self)
-      (by not_self) (by not_self) Hrel $$ [$Hinit $Hphys $Hghost Hcr]
+      (by not_self) (by not_self) (RestMsgOk.of_ne ⟨by not_self, by not_self, by not_self, by not_self, by not_self⟩) Hrel $$ [$Hinit $Hphys $Hghost Hcr]
     · have hP : m.Type' ≠ MsgProp := by not_self
       simp only [hP, ↓reduceIte, named]
       rw [Hen, Hcn]
@@ -238,10 +238,7 @@ private theorem wp_step_pending
         iintro %ty %Hty' %_
         iapply Hmsg $$ %ty %Hty'
       isplitr
-      · isplitr
-        · iapply ownSlice_nil
-        ipureintro
-        simp [campaignTransfer]
+      · iapply ownSlice_nil
       isplitl [Hcr]
       · rw [if_neg (by not_self)]; iexact Hcr
       imodintro
@@ -263,7 +260,7 @@ private theorem wp_step_pending
       · -- a vote or append response
         have hnpv : m.Type' ≠ MsgPreVoteResp := by
           intro h; simp [h] at hpv
-        refine ⟨Htm.2.2.1 (by not_self) hnpv, fun Hlt => Hresp.1 ?_ Hlt⟩
+        refine ⟨Htm.2.2.1 (by not_self) hnpv (by not_self), fun Hlt => Hresp.1 ?_ Hlt⟩
         rcases Hty with h | h | h
         · exact .inr h
         · exact .inl h
@@ -281,7 +278,7 @@ private theorem wp_step_pending
       (by simp [StepMsg, stepMsgTypes, appendAckMsg]) Hin
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
-      (fun _ => ⟨rfl, Hle, fun _ _ => Hsok, Hghoff⟩) (by msg_ne) (by msg_ne) (by msg_ne) Hrel
+      (fun _ => ⟨rfl, Hle, fun _ _ => Hsok, Hghoff⟩) (by msg_ne) (by msg_ne) (by msg_ne) (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hrel
       $$ [$Hinit $Hphys $Hghost Hcr]
     · have hP : (appendAckMsg id t e).Type' ≠ MsgProp := by msg_ne
       simp only [hP, ↓reduceIte, named]
@@ -301,10 +298,7 @@ private theorem wp_step_pending
         rw [Hty0] at Hty
         cases Hty
       isplitr
-      · isplitr
-        · iapply ownSlice_nil
-        ipureintro
-        simp [campaignTransfer]
+      · iapply ownSlice_nil
       isplitl [Hcr]
       · simp [MsgStorageAppendResp, MsgReadIndex]; iexact Hcr
       imodintro
@@ -330,7 +324,7 @@ private theorem wp_step_pending
       (by simp [StepMsg, stepMsgTypes, applyAckMsg]) Hin
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
-      (by msg_ne) (fun _ => rfl) (by msg_ne) (by msg_ne) Hrel
+      (by msg_ne) (fun _ => rfl) (by msg_ne) (by msg_ne) (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hrel
       $$ [$Hinit $Hphys $Hghost Hown Hcr]
     · have hP : (applyAckMsg id sl).Type' ≠ MsgProp := by msg_ne
       simp only [hP, ↓reduceIte, named]
@@ -350,10 +344,7 @@ private theorem wp_step_pending
         rw [Hty0] at Hty
         cases Hty
       isplitr
-      · isplitr
-        · iapply ownSlice_nil
-        ipureintro
-        simp [campaignTransfer]
+      · iapply ownSlice_nil
       isplitl [Hcr]
       · simp [MsgStorageApplyResp, MsgReadIndex]; iexact Hcr
       imodintro

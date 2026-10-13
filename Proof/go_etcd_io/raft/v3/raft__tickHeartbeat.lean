@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 local macro "msg_ne" : tactic => `(tactic| (intro Hc; simp [MsgHup, MsgVote, MsgVoteResp,
   MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp, MsgSnap,
   MsgBeat, MsgProp, MsgStorageAppendResp, MsgStorageApplyResp, MsgReadIndex,
-  MsgReadIndexResp] at Hc))
+  MsgReadIndexResp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hc))
 
 /-- The two counters; past the election timeout the counter is reset (`checkQuorum` is
 off) and (2026-10-13) a leader's leader transfer is aborted (`abortLeaderTransfer`, which
@@ -117,7 +117,7 @@ theorem raft.tickHeartbeat.wp_proof
       (by simp [StepMsg, stepMsgTypes, MsgBeat]) Hin
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (fun _ => rfl) (by msg_ne)
-      (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) Hrel1
+      (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hrel1
       $$ [$Hphys $Hghost Hcr]
     · simp only [hP, ↓reduceIte, named]
       isplitr
@@ -134,10 +134,7 @@ theorem raft.tickHeartbeat.wp_proof
         rw [show mtypeOf (W32 1) = none from rfl] at Hty
         cases Hty
       isplitr
-      · isplitr
-        · iapply ownSlice_nil
-        ipureintro
-        simp [campaignTransfer]
+      · iapply ownSlice_nil
       isplitl [Hcr]
       · rw [if_neg (by msg_ne)]; iexact Hcr
       imodintro
@@ -152,7 +149,7 @@ theorem raft.tickHeartbeat.wp_proof
       iframe Hphys Hghost
       ipureintro
       obtain ⟨Ht1, -, Ht3, Hi⟩ := Htm (by msg_ne)
-      have Ht3 := Ht3 (by msg_ne) (by msg_ne)
+      have Ht3 := Ht3 (by msg_ne) (by msg_ne) (by msg_ne)
       have H0 : uint.Z (0 : w64) = 0 := rfl
       simp only [H0] at Ht3
       exact ⟨Hrel', Href, Htr _ ⟨Hfr (by msg_ne) (by msg_ne), Ht1,
