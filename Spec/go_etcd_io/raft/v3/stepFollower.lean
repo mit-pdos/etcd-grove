@@ -174,7 +174,7 @@ abbrev stepFollower.spec : Prop :=
   -- `raft.Step`'s premise), to another node; `MsgTimeoutNow` campaigns: the term does not
   -- wrap and `r.step` agrees with the role (`hup`'s premises)
   (m.Type' = MsgTransferLeader ∨ m.Type' = MsgTimeoutNow →
-     (m.Type' = MsgTransferLeader → (m.Term' = W64 0 ∨ s.lead = W64 0) ∧ s.lead ≠ id ∧
+     (m.Type' = MsgTransferLeader → (s.lead = W64 0 ∨ (m.Term' = W64 0 ∧ s.lead ≠ id)) ∧
         m.Entries' = slice.nil ∧ m.Context' = slice.nil) ∧
      (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ NStateWf s)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗

@@ -55,7 +55,7 @@ theorem wp_Step_MsgVote_le (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhys cfg r id s ∗
         -- the message's `Context` is readable and is not the leader-transfer marker:
         -- leader transfer is out of scope
-        "#Hctx" ∷ (∃ (ctx : List w8), m.Context' ↦*□ ctx ∗ ⌜ctx ≠ campaignTransfer⌝) }}
+        "#Hctx" ∷ (∃ (ctx : List w8), m.Context' ↦*□ ctx) }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhys cfg r id s' ∗

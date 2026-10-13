@@ -164,7 +164,10 @@ theorem leader_beat_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Me
   obtain ⟨rfl, Hres⟩ := H
   refine ⟨rfl, ?_⟩
   unfold LeaderNonpropResult at Hres
-  rcases Hres with ⟨Hc, -⟩ | ⟨-, ms, pvs, rfl, Hok, Hpm⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩
+  rcases Hres with ⟨Hc, -⟩ | ⟨-, ms, pvs, rfl, Hok, Hpm⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc6, -⟩
+  rotate_right
+  · exfalso
+    rcases Hc6 with h6 | h6 | h6 | h6 | h6 <;> rw [Hty] at h6 <;> exact absurd h6 (by w32_ne)
   · exfalso; rw [Hty] at Hc
     rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne)
   · refine ⟨Hwf, ?_, rfl, rfl, rfl, rfl⟩
@@ -191,7 +194,10 @@ theorem leader_hbresp_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.
   obtain ⟨rfl, Hres⟩ := H
   refine ⟨rfl, ?_⟩
   unfold LeaderNonpropResult at Hres
-  rcases Hres with ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨-, ms, pvs, Hok, Hpm, Hrd⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩
+  rcases Hres with ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨-, ms, pvs, Hok, Hpm, Hrd⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc6, -⟩
+  rotate_right
+  · exfalso
+    rcases Hc6 with h6 | h6 | h6 | h6 | h6 <;> rw [Hty] at h6 <;> exact absurd h6 (by w32_ne)
   all_goals try (exfalso; rw [Hty] at Hc; first
     | exact absurd Hc (by w32_ne)
     | (rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne)))
@@ -248,7 +254,10 @@ theorem leader_appresp_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb
   obtain ⟨rfl, Hres⟩ := H
   refine ⟨rfl, ?_⟩
   unfold LeaderNonpropResult at Hres
-  rcases Hres with ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨-, Hres⟩
+  rcases Hres with ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨-, Hres⟩ | ⟨Hc6, -⟩
+  rotate_right
+  · exfalso
+    rcases Hc6 with h6 | h6 | h6 | h6 | h6 <;> rw [Hty] at h6 <;> exact absurd h6 (by w32_ne)
   · exfalso; rw [Hty] at Hc
     rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne)
   · exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)

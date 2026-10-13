@@ -67,7 +67,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhys cfg r id s ∗
         -- the message's `Context` is readable and is not the leader-transfer marker:
         -- leader transfer is out of scope
-        "#Hctx" ∷ (∃ (ctx : List w8), m.Context' ↦*□ ctx ∗ ⌜ctx ≠ campaignTransfer⌝) }}
+        "#Hctx" ∷ (∃ (ctx : List w8), m.Context' ↦*□ ctx) }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhys cfg r id s' ∗
@@ -95,145 +95,151 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_auto
   -- `force` is false (not a leader transfer) and `inLease` is false (no check-quorum),
   -- so the lease check does not drop the message
-  icases Hctx with ⟨%ctx, Hctx_sl, %Hctx_ne⟩
+  icases Hctx with ⟨%ctx, Hctx_sl⟩
   wp_apply wp_string_to_bytes as %ct_sl ⟨ct_sl, -⟩
   wp_apply bytes.wp_Equal _ _ DFrac.discard (DFrac.own 1) ctx (go!"CampaignTransfer") $$ [$Hctx_sl $ct_sl]
     as ⟨-, -⟩
   wp_apply raft.wp_load_checkQuorum $$ Hphys as Hphys
-  have Hctx_ne' : ctx ≠ go!"CampaignTransfer" := Hctx_ne
-  rw [decide_eq_false Hctx_ne']
+  -- `force` (2026-10-13): a leader transfer's vote request or not; either way
+  -- `!force && inLease` is false, `inLease` being false without check-quorum
+  by_cases Hforce : ctx = go!"CampaignTransfer"
+  rw [decide_eq_true Hforce]
   try wp_auto
-  -- neither MsgPreVote nor MsgPreVoteResp, so we fall through to the step-down
-  ty_ne 17
+  rotate_left
+  rw [decide_eq_false Hforce]
   try wp_auto
-  ty_ne 18
-  try wp_auto
-  wp_apply raft.wp_load_id $$ Hphys as Hphys
-  wp_apply raft.wp_load_Term $$ Hphys as Hphys
-  wp_raft_log
-  -- a `MsgVote` is not from a leader, so no leader is adopted
-  ty_ne 3
-  try wp_auto
-  ty_ne 8
-  try wp_auto
-  ty_ne 7
-  try wp_auto
-  wp_apply _P.becomeFollower cfg r id s m.Term' (W64 0) (Int.le_of_lt Hgt0) $$ [$Hphys] as %pvs Hphys
-  -- the type switch: not MsgHup / MsgStorageAppendResp / MsgStorageApplyResp, not
-  -- MsgPreVote, but MsgVote
-  rw [Hty]
-  try wp_auto
-  -- Stepping down to a strictly greater term cleared both `Vote` and `lead`, so
-  -- `canVote` holds
-  have Hne : m.Term' ≠ s.term := by intro Heq; rw [Heq] at Hgt0; omega
-  obtain ⟨s1, Hs1⟩ : ∃ s1, s1 = { becomeFollower s m.Term' (W64 0) with prvals := pvs } :=
-    ⟨_, rfl⟩
-  ihave Hphys := ownRaftPhys_eq cfg r id _ s1 Hs1.symm $$ Hphys
-  have Hv1 : s1.vote = W64 0 := by
-    subst Hs1; simp [becomeFollower, resetTo, resetTo0, Hne]
-  have Hl1 : s1.lead = W64 0 := by subst Hs1; rfl
-  have Ht1 : s1.term = m.Term' := by subst Hs1; rfl
-  have Hwf1 : NStateWf s1 := by subst Hs1; exact ⟨rfl, rfl⟩
-  have Hps1 : toPState s1 = pbecomeFollower (toPState s) m.Term' (W64 0) := by
-    subst Hs1
-    exact (toPState_prvals_nl (becomeFollower s m.Term' (W64 0)) pvs
-      (by simp [becomeFollower])).trans (toPState_becomeFollower _ _ _)
-  wp_apply raft.wp_load_Vote $$ Hphys as Hphys
-  rw [Hv1, decide_eq_false (fun h : W64 0 = m.From' => Hfnz h.symm)]
-  try wp_auto
-  wp_apply raft.wp_load_Vote $$ Hphys as Hphys
-  rw [Hv1]
-  try wp_auto
-  wp_apply raft.wp_load_lead $$ Hphys as Hphys
-  rw [Hl1]
-  try wp_auto
-  -- the two log calls, each on the log taken out of `Hphys` and put back
-  wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-  icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog1, Hback⟩
-  wp_apply _P.lastEntryID $$ [$Hlog1] as %lastID ⟨Hlog1, -⟩
-  ihave Hphys := Hback $$ Hlog1
-  try wp_auto
-  wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-  icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog1, Hback⟩
-  wp_apply _P.isUpToDate $$ [$Hlog1] as %uptodate ⟨Hlog1, %Hutd⟩
-  ihave Hphys := Hback $$ Hlog1
-  cases uptodate
-  all_goals try wp_auto
   all_goals
+    -- neither MsgPreVote nor MsgPreVoteResp, so we fall through to the step-down
+    ty_ne 17
+    try wp_auto
+    ty_ne 18
+    try wp_auto
     wp_apply raft.wp_load_id $$ Hphys as Hphys
-    wp_apply raft.wp_load_Vote $$ Hphys as Hphys
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
     wp_raft_log
-  · -- the candidate's log is behind: decline, without recording a vote
-    wp_apply raft.wp_load_Term $$ Hphys as Hphys
-    wp_apply _P.voteRespMsgType m.Type' MsgVoteResp (.inl ⟨Hty, rfl⟩)
+    -- a `MsgVote` is not from a leader, so no leader is adopted
+    ty_ne 3
     try wp_auto
-    let resp : raftpb.Message :=
-      { Type' := MsgVoteResp, To' := m.From', From' := 0, Term' := s1.term, LogTerm' := 0,
-        Index' := 0, Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := null,
-        Reject' := true, RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil }
-    have Hok : SendOk id s1 resp [] [] [Msg.plain .voteResp id m.From' s1.term true] :=
-      Or.inl ⟨.voteResp, Or.inr (Or.inl rfl), rfl, by show s1.term ≠ W64 0; rw [Ht1]; exact Hterm,
-        fun Hc => by
-          exfalso; change MsgVoteResp = _ ∨ MsgVoteResp = _ at Hc
-          rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
-        fun _ => ⟨rfl, rfl, by show uint.Z s1.term ≤ _; split <;> omega⟩,
-        fun _ => ⟨Int.le_refl _, (by w32_ne : MsgVoteResp ≠ MsgPreVoteResp)⟩, rfl⟩
-    wp_apply _P.send cfg r id s1 resp [] [] _ (.inl rfl) Hok $$ [$Hphys] as Hphys
-    · isplitr
-      · iapply ownSlice_nil
-      isplitr
-      · iapply ownSlice_nil
-      · iapply send_no_snap
-        exact (by w32_ne : MsgVoteResp ≠ MsgSnap)
-    iapply HΦ $$ %interface.nil %_
-    iframe Hphys
-    ipureintro
-    refine ⟨nstateWf_sendMsgs _ _ Hwf1, ⟨[absMsg .vote m ents] ++ [absMsg .vote m ents], ?_, ?_⟩,
-      rfl, stepdown_frame' (by rw [Hty]; w32_ne) Hgt0 Hs1 rfl rfl⟩
-    · intro m' Hm'; simpa using Hm'
-    · rw [toPState_sendMsgs, Hps1, Ht1]
-      exact step_stepdown_then_reject cfg id (toPState s) (absMsg .vote m ents) rfl Hto Hgt0
-  · -- the candidate's log is up to date: grant the vote
-    wp_apply _P.voteRespMsgType m.Type' MsgVoteResp (.inl ⟨Hty, rfl⟩)
+    ty_ne 8
     try wp_auto
-    let resp : raftpb.Message :=
-      { Type' := MsgVoteResp, To' := m.From', From' := 0, Term' := m.Term', LogTerm' := 0,
-        Index' := 0, Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := null,
-        Reject' := false, RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil }
-    have Hok : SendOk id s1 resp [] [] [Msg.plain .voteResp id m.From' m.Term' false] :=
-      Or.inl ⟨.voteResp, Or.inr (Or.inl rfl), rfl, Hterm,
-        fun Hc => by
-          exfalso; change MsgVoteResp = _ ∨ MsgVoteResp = _ at Hc
-          rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
-        fun _ => ⟨rfl, rfl, by show uint.Z m.Term' ≤ _; rw [Ht1]; split <;> omega⟩,
-        fun _ => ⟨by show uint.Z m.Term' ≤ _; rw [Ht1]; exact Int.le_refl _, (by w32_ne : MsgVoteResp ≠ MsgPreVoteResp)⟩, rfl⟩
-    -- `send` the granted vote response, then record the vote
-    wp_apply _P.send cfg r id s1 resp [] [] _ (.inl rfl) Hok $$ [$Hphys] as Hphys
-    · isplitr
-      · iapply ownSlice_nil
-      isplitr
-      · iapply ownSlice_nil
-      · iapply send_no_snap
-        exact (by w32_ne : MsgVoteResp ≠ MsgSnap)
-    -- `m.Type = MsgVote`, so the vote is recorded: `r.Vote := m.From`
+    ty_ne 7
+    try wp_auto
+    wp_apply _P.becomeFollower cfg r id s m.Term' (W64 0) (Int.le_of_lt Hgt0) $$ [$Hphys] as %pvs Hphys
+    -- the type switch: not MsgHup / MsgStorageAppendResp / MsgStorageApplyResp, not
+    -- MsgPreVote, but MsgVote
     rw [Hty]
     try wp_auto
-    wp_apply raft.wp_store_electionElapsed $$ Hphys as Hphys
-    wp_apply raft.wp_store_Vote $$ Hphys as Hphys
-    iapply HΦ $$ %interface.nil %_
-    iframe Hphys
-    ipureintro
-    refine ⟨Hwf1, ⟨[absMsg .vote m ents] ++ [absMsg .vote m ents], ?_, ?_⟩, rfl,
-      stepdown_frame' (by rw [Hty]; w32_ne) Hgt0 Hs1 rfl rfl⟩
-    · intro m' Hm'; simpa using Hm'
-    · have H : Step cfg id (toPState s) ([absMsg .vote m ents] ++ [absMsg .vote m ents])
-          (psendMsgs { pbecomeFollower (toPState s) m.Term' (W64 0) with vote := m.From' }
-            [Msg.plain .voteResp id m.From' m.Term' false]) :=
-        step_stepdown_then_vote cfg id (toPState s) (absMsg .vote m ents) rfl Hto Hfnz
-        Hgt0 (by subst Hs1; exact Hutd.symm)
-      rw [← Hps1] at H
-      exact H
+    -- Stepping down to a strictly greater term cleared both `Vote` and `lead`, so
+    -- `canVote` holds
+    have Hne : m.Term' ≠ s.term := by intro Heq; rw [Heq] at Hgt0; omega
+    obtain ⟨s1, Hs1⟩ : ∃ s1, s1 = { becomeFollower s m.Term' (W64 0) with prvals := pvs } :=
+      ⟨_, rfl⟩
+    ihave Hphys := ownRaftPhys_eq cfg r id _ s1 Hs1.symm $$ Hphys
+    have Hv1 : s1.vote = W64 0 := by
+      subst Hs1; simp [becomeFollower, resetTo, resetTo0, Hne]
+    have Hl1 : s1.lead = W64 0 := by subst Hs1; rfl
+    have Ht1 : s1.term = m.Term' := by subst Hs1; rfl
+    have Hwf1 : NStateWf s1 := by subst Hs1; exact ⟨rfl, rfl⟩
+    have Hps1 : toPState s1 = pbecomeFollower (toPState s) m.Term' (W64 0) := by
+      subst Hs1
+      exact (toPState_prvals_nl (becomeFollower s m.Term' (W64 0)) pvs
+        (by simp [becomeFollower])).trans (toPState_becomeFollower _ _ _)
+    wp_apply raft.wp_load_Vote $$ Hphys as Hphys
+    rw [Hv1, decide_eq_false (fun h : W64 0 = m.From' => Hfnz h.symm)]
+    try wp_auto
+    wp_apply raft.wp_load_Vote $$ Hphys as Hphys
+    rw [Hv1]
+    try wp_auto
+    wp_apply raft.wp_load_lead $$ Hphys as Hphys
+    rw [Hl1]
+    try wp_auto
+    -- the two log calls, each on the log taken out of `Hphys` and put back
+    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog1, Hback⟩
+    wp_apply _P.lastEntryID $$ [$Hlog1] as %lastID ⟨Hlog1, -⟩
+    ihave Hphys := Hback $$ Hlog1
+    try wp_auto
+    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog1, Hback⟩
+    wp_apply _P.isUpToDate $$ [$Hlog1] as %uptodate ⟨Hlog1, %Hutd⟩
+    ihave Hphys := Hback $$ Hlog1
+    cases uptodate
+    all_goals try wp_auto
+    all_goals
+      wp_apply raft.wp_load_id $$ Hphys as Hphys
+      wp_apply raft.wp_load_Vote $$ Hphys as Hphys
+      wp_apply raft.wp_load_Term $$ Hphys as Hphys
+      wp_raft_log
+    · -- the candidate's log is behind: decline, without recording a vote
+      wp_apply raft.wp_load_Term $$ Hphys as Hphys
+      wp_apply _P.voteRespMsgType m.Type' MsgVoteResp (.inl ⟨Hty, rfl⟩)
+      try wp_auto
+      let resp : raftpb.Message :=
+        { Type' := MsgVoteResp, To' := m.From', From' := 0, Term' := s1.term, LogTerm' := 0,
+          Index' := 0, Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := null,
+          Reject' := true, RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil }
+      have Hok : SendOk id s1 resp [] [] [Msg.plain .voteResp id m.From' s1.term true] :=
+        Or.inl ⟨.voteResp, Or.inr (Or.inl rfl), rfl, by show s1.term ≠ W64 0; rw [Ht1]; exact Hterm,
+          fun Hc => by
+            exfalso; change MsgVoteResp = _ ∨ MsgVoteResp = _ at Hc
+            rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
+          fun _ => ⟨rfl, rfl, by show uint.Z s1.term ≤ _; split <;> omega⟩,
+          fun _ => ⟨Int.le_refl _, (by w32_ne : MsgVoteResp ≠ MsgPreVoteResp)⟩, rfl⟩
+      wp_apply _P.send cfg r id s1 resp [] [] _ (.inl rfl) Hok $$ [$Hphys] as Hphys
+      · isplitr
+        · iapply ownSlice_nil
+        isplitr
+        · iapply ownSlice_nil
+        · iapply send_no_snap
+          exact (by w32_ne : MsgVoteResp ≠ MsgSnap)
+      iapply HΦ $$ %interface.nil %_
+      iframe Hphys
+      ipureintro
+      refine ⟨nstateWf_sendMsgs _ _ Hwf1, ⟨[absMsg .vote m ents] ++ [absMsg .vote m ents], ?_, ?_⟩,
+        rfl, stepdown_frame' (by rw [Hty]; w32_ne) Hgt0 Hs1 rfl rfl⟩
+      · intro m' Hm'; simpa using Hm'
+      · rw [toPState_sendMsgs, Hps1, Ht1]
+        exact step_stepdown_then_reject cfg id (toPState s) (absMsg .vote m ents) rfl Hto Hgt0
+    · -- the candidate's log is up to date: grant the vote
+      wp_apply _P.voteRespMsgType m.Type' MsgVoteResp (.inl ⟨Hty, rfl⟩)
+      try wp_auto
+      let resp : raftpb.Message :=
+        { Type' := MsgVoteResp, To' := m.From', From' := 0, Term' := m.Term', LogTerm' := 0,
+          Index' := 0, Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := null,
+          Reject' := false, RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil }
+      have Hok : SendOk id s1 resp [] [] [Msg.plain .voteResp id m.From' m.Term' false] :=
+        Or.inl ⟨.voteResp, Or.inr (Or.inl rfl), rfl, Hterm,
+          fun Hc => by
+            exfalso; change MsgVoteResp = _ ∨ MsgVoteResp = _ at Hc
+            rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
+          fun _ => ⟨rfl, rfl, by show uint.Z m.Term' ≤ _; rw [Ht1]; split <;> omega⟩,
+          fun _ => ⟨by show uint.Z m.Term' ≤ _; rw [Ht1]; exact Int.le_refl _, (by w32_ne : MsgVoteResp ≠ MsgPreVoteResp)⟩, rfl⟩
+      -- `send` the granted vote response, then record the vote
+      wp_apply _P.send cfg r id s1 resp [] [] _ (.inl rfl) Hok $$ [$Hphys] as Hphys
+      · isplitr
+        · iapply ownSlice_nil
+        isplitr
+        · iapply ownSlice_nil
+        · iapply send_no_snap
+          exact (by w32_ne : MsgVoteResp ≠ MsgSnap)
+      -- `m.Type = MsgVote`, so the vote is recorded: `r.Vote := m.From`
+      rw [Hty]
+      try wp_auto
+      wp_apply raft.wp_store_electionElapsed $$ Hphys as Hphys
+      wp_apply raft.wp_store_Vote $$ Hphys as Hphys
+      iapply HΦ $$ %interface.nil %_
+      iframe Hphys
+      ipureintro
+      refine ⟨Hwf1, ⟨[absMsg .vote m ents] ++ [absMsg .vote m ents], ?_, ?_⟩, rfl,
+        stepdown_frame' (by rw [Hty]; w32_ne) Hgt0 Hs1 rfl rfl⟩
+      · intro m' Hm'; simpa using Hm'
+      · have H : Step cfg id (toPState s) ([absMsg .vote m ents] ++ [absMsg .vote m ents])
+            (psendMsgs { pbecomeFollower (toPState s) m.Term' (W64 0) with vote := m.From' }
+              [Msg.plain .voteResp id m.From' m.Term' false]) :=
+          step_stepdown_then_vote cfg id (toPState s) (absMsg .vote m ents) rfl Hto Hfnz
+          Hgt0 (by subst Hs1; exact Hutd.symm)
+        rw [← Hps1] at H
+        exact H
 
 end StepProof
 

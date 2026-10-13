@@ -197,7 +197,7 @@ theorem app_frame {id : w64} {m : raftpb.Message} {ents : List raftpb.Entry}
     (H2 : uint.Z t.term ≤ max (uint.Z s.term) (uint.Z m.Term')) :
     NetFrame s s' ∧ TermStep m s s' := by
   obtain ⟨Hf, Ht⟩ := frame_handle_app id t m ents s' Hres
-  refine ⟨Hft.trans Hf, by rw [Ht]; exact H1, fun h => ?_, fun _ _ => by rw [Ht]; exact H2,
+  refine ⟨Hft.trans Hf, by rw [Ht]; exact H1, fun h => ?_, fun _ _ _ => by rw [Ht]; exact H2,
     fun h => absurd Happ h⟩
   rw [Happ] at h; exact absurd h (by w32_ne)
 
@@ -267,7 +267,11 @@ theorem leaderStepResult_app_hb (cfg : GSet w64) (id : w64) (s : NState)
   obtain ⟨rfl, Hres⟩ := H
   refine ⟨rfl, ?_⟩
   unfold LeaderNonpropResult at Hres
-  rcases Hres with ⟨-, rfl⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩
+  rcases Hres with ⟨-, rfl⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc6, -⟩
+  rotate_right
+  · exfalso
+    rcases Hty with h' | h' <;> rcases Hc6 with h6 | h6 | h6 | h6 | h6 <;>
+      rw [h'] at h6 <;> exact absurd h6 (by w32_ne)
   · rfl
   all_goals exfalso; rcases Hty with h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne)
 

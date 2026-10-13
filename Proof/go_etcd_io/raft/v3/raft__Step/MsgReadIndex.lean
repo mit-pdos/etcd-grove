@@ -105,6 +105,7 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
       $$ [$Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
     · isplitl []
       · iintro _; iexact Hctx
@@ -203,7 +204,10 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     rw [ite_eq_right (by rw [Hty]; w32_ne)] at Hres
     obtain ⟨rfl, Hres⟩ := Hres
     unfold LeaderNonpropResult at Hres
-    rcases Hres with ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨-, Hri⟩ | ⟨Hc, -⟩
+    rcases Hres with ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨-, Hri⟩ | ⟨Hc, -⟩ | ⟨Hc6, -⟩
+    rotate_right
+    · exfalso
+      rcases Hc6 with h6 | h6 | h6 | h6 | h6 <;> rw [Hty] at h6 <;> exact absurd h6 (by w32_ne)
     all_goals try (exfalso; rw [Hty] at Hc; first
       | exact absurd Hc (by w32_ne)
       | (rcases Hc with Hc | Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne)))

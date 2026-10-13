@@ -343,7 +343,7 @@ theorem stepFollower.wp_proof
   · -- `MsgTransferLeader` (2026-10-13): forwarded to the leader, if any; it is outside
     -- the model (`mtypeOf` is `none`), so nothing is queued abstractly
     obtain ⟨Htl, -⟩ := Hrest (Or.inl Hty)
-    obtain ⟨Hterm0, Hlid, Hents0, Hctx0⟩ := Htl Hty
+    obtain ⟨Hterm0, Hents0, Hctx0⟩ := Htl Hty
     rw [Hty]
     simp only [MsgTransferLeader]
     wp_auto
@@ -365,7 +365,7 @@ theorem stepFollower.wp_proof
     · rw [decide_eq_false Hlead]
       wp_auto
       wp_apply raft.wp_load_lead $$ Hphys as Hphys
-      have Hterm0' : m.Term' = W64 0 := Hterm0.resolve_right Hlead
+      obtain ⟨Hterm0', Hlid⟩ := Hterm0.resolve_left Hlead
       wp_apply wp_raft_send _ _ _ _ { m with To' := s.lead } [] [] []
           (Or.inr (Or.inr (Or.inr Hty)))
           (Or.inr (Or.inr (Or.inl (Or.inr ⟨by rw [Hty]; rfl, Hterm0', fun h => Hlid h, rfl⟩))))
