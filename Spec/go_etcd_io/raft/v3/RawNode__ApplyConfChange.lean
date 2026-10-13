@@ -33,11 +33,35 @@ entries the application has applied). The spec of a configuration-changing
 
 Returned: a fresh `*ConfState` holding the voters (`cfg`'s, in some order) and the learners
 (none of them a voter).
--/
+
+**Any change, detached (2026-10-13, reconfiguration stage A2).** The premise is now `CCApplies`:
+for every learner set the node may track, the change is carried out (`ccApplyM` answers: no
+`confchange` error, no undefined transition, `issues/raft-unknown-transition-panic.md`), leaves
+the node a voter of either half (a removed or demoted leader would step down only with
+`Config.StepDownOnRemoval`, which the node's client-facing state does not record; a removed
+candidate would stay one) and tracks at most `2^62` ids. A shrinking change (`CCShrink`, the
+scope above, which implies `CCApplies` at a voter) keeps `ownRawNode γ` as before. Any other
+change -- adding a learner, changing the voters, entering or leaving a joint configuration --
+returns `ownRawNodeC c'.cfg rn id s'` (`InvRawnodeC.lean`): the node's memory at the new
+configuration, with no ghost state and no `γ` -- the protocol is proved at a fixed voter set
+only, and nothing says `γ.reCfg` is the new voters -- with the `ConfState` of `c'` (all four
+lists, `AutoLeave`) and what `applyConfChange` did (`ApplyCCOkC`).
+
+**The order of `ApplyConfChange` and `Advance`**, again: for a configuration-changing entry an
+application must call `ApplyConfChange` *before* the `Advance` of the `Ready` that handed the
+entry out. It is not a premise: neither `ownRawNode` nor `ownRawNodeC` records which
+conf-change entries the configuration in use reflects (it would need the decoded entries'
+history), so no predicate here can state it; the guarantee lost without it is the protocol's
+(two entries committed at one index; and, by the same route, a removed candidate that goes on
+to win would panic in `becomeLeader` on its missing `Progress`), which the detached predicate
+does not claim anyway. -/
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRawnode
 public import Proof.go_etcd_io.raft.v3.InvApplyConf
+public import Proof.go_etcd_io.raft.v3.InvRawnodeC
+-- `ApplyCCOkC`
+public import Spec.go_etcd_io.raft.v3.raft__applyConfChange
 
 @[expose] public section
 
@@ -60,22 +84,33 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev RawNode.ApplyConfChange.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (c : GoInterface) (o : CCMsg)
     (dq : DFrac),
-  CCShrink γ.reCfg (ccV2Of o).1 (ccV2Of o).2 →
+  CCApplies γ.reCfg id (ccV2Of o).1 (ccV2Of o).2 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       "Hc" ∷ ownCCI c dq (some o) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"ApplyConfChange")) (Val #c))
   {{ (csp : Loc) (cs : raftpb.ConfState) (xs ls : List w64), RET #csp;
-      "Hrn" ∷ ownRawNode γ rn id rs ∗
       "Hc" ∷ ownCCI c dq (some o) ∗
       "Hcs" ∷ csp ↦ cs ∗
       "Hvoters" ∷ cs.Voters' ↦* xs ∗
       "Hlearners" ∷ cs.Learners' ↦* ls ∗
-      "%Hxs" ∷ ⌜xs ≡ₚ elements γ.reCfg⌝ ∗
-      "%Hls" ∷ ⌜∀ k ∈ ls, k ∉ γ.reCfg⌝ ∗
-      "%Hcs0" ∷ ⌜cs.VotersOutgoing'.len = W64 0 ∧
-        cs.LearnersNext'.len = W64 0 ∧
-        cs.AutoLeave' = false⌝ }}
+      "Hres" ∷ (
+        -- a shrinking change: the node stays where it was
+        (⌜CCShrink γ.reCfg (ccV2Of o).1 (ccV2Of o).2⌝ ∗
+          ownRawNode γ rn id rs ∗
+          ⌜xs ≡ₚ elements γ.reCfg ∧ (∀ k ∈ ls, k ∉ γ.reCfg) ∧
+            cs.VotersOutgoing'.len = W64 0 ∧ cs.LearnersNext'.len = W64 0 ∧
+            cs.AutoLeave' = false⌝) ∨
+        -- any other: detached, at the new configuration
+        (⌜¬ CCShrink γ.reCfg (ccV2Of o).1 (ccV2Of o).2⌝ ∗
+          ∃ (lrn : GSet w64) (c' : CCState) (s s' : NState) (os lns : List w64),
+            ownRawNodeC c'.cfg rn id s' ∗
+            cs.VotersOutgoing' ↦* os ∗ cs.LearnersNext' ↦* lns ∗
+            ⌜(∀ k ∈ lrn, k ∉ γ.reCfg) ∧
+              ccApplyM (ccV2Of o).1 (ccV2Of o).2 (cfgState γ.reCfg lrn) = some c' ∧
+              xs ≡ₚ elements c'.cfg.incoming ∧ os ≡ₚ elements c'.cfg.outgoing ∧
+              ls ≡ₚ elements c'.cfg.learners ∧ lns ≡ₚ elements c'.cfg.learnersNext ∧
+              cs.AutoLeave' = c'.cfg.autoLeave ∧ ApplyCCOkC c'.cfg id s s'⌝)) }}
 
 end spec
 
