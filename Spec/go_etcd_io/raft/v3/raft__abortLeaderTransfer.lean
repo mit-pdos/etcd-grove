@@ -19,13 +19,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `abortLeaderTransfer` clears `leadTransferee`, which `ownRaftPhys` requires to be
-zero anyway. -/
+/-- `abortLeaderTransfer` clears `leadTransferee` (`NState.lt`, tracked since 2026-10-13;
+until then `ownRaftPhys` pinned it to zero). -/
 abbrev raft.abortLeaderTransfer.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"abortLeaderTransfer")) (Val #()))
-  {{ RET #(); ownRaftPhys cfg r id s }}
+  {{ RET #(); ownRaftPhys cfg r id { s with lt := W64 0 } }}
 
 end spec
 

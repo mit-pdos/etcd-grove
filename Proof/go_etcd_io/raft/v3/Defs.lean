@@ -97,6 +97,12 @@ def MsgReadIndexResp : w32 := W32 16
 def MsgPreVote : w32 := W32 17
 def MsgPreVoteResp : w32 := W32 18
 def MsgStorageAppendResp : w32 := W32 20
+-- (2026-10-13) the local reports, leader transfer and `ForgetLeader`
+def MsgUnreachable : w32 := W32 10
+def MsgSnapStatus : w32 := W32 11
+def MsgTransferLeader : w32 := W32 13
+def MsgTimeoutNow : w32 := W32 14
+def MsgForgetLeader : w32 := W32 23
 
 def StateFollower : w64 := W64 0
 def StateCandidate : w64 := W64 1
@@ -679,6 +685,11 @@ structure NState [FfiSyntax] where
   gh : NGhost := {}
   /-- the read-index state (2026-10-12), see `RdState` -/
   rd : RdState := {}
+  /-- `r.leadTransferee` (2026-10-13): the leader-transfer target, `0` for none. Only a
+  leader's `MsgTransferLeader` sets it (to another node: `ownRaftPhys` keeps it `≠ id`);
+  `reset` (every `becomeX` but `becomePreCandidate`) and `abortLeaderTransfer` clear it.
+  Invisible to the protocol (`toPState`). -/
+  lt : w64 := W64 0
 
 section phys_state
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
@@ -710,7 +721,7 @@ def sendMsgs (s : NState) (ms : List Msg) : NState :=
 `lead` and the tally. -/
 def resetTo0 (s : NState) (term : w64) : NState :=
   { s with term := term, vote := if term = s.term then s.vote else W64 0, lead := W64 0,
-           votes := ∅ }
+           votes := ∅, lt := W64 0 }
 
 /-- (2026-10-12) and the fresh `readOnly` object `reset` installs last. -/
 def resetTo (s : NState) (term : w64) : NState :=
