@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 theorem schema.UnsafeReadConsistentIndex.wp_proof
     (hU : binary.bigEndian.Uint64.spec (GF := GF) (hG := hG)) :
     schema.UnsafeReadConsistentIndex.spec (GF := GF) (hG := hG) := by
-  intro r E View
+  intro r E View Acc
   wp_start as #Hrd
   ihave Hsi : (schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -40,11 +40,11 @@ theorem schema.UnsafeReadConsistentIndex.wp_proof
   wp_bind (App (App (App (App (Val #(methods r.ty go!"UnsafeRange" r.v)) (Val #mb)) (Val #ck))
     (Val #(slice.nil))) (Val #(W64 0)))
   iapply Hri $$ %mb %ck %_ Hmb Hckb
-  unfold readCIAU
+  unfold readCIAUA
   iapply readAU_wand $$ HΦ
   iintro %m Hm %ks %vs #Hvs
   wp_auto
-  unfold metaVals
+  unfold metaValsA
   by_cases h0 : m.1 = W64 0
   · simp only [h0, ↓reduceIte]
     ihave %Hlen := ownSlice_len _ _ _ $$ Hvs
@@ -53,7 +53,9 @@ theorem schema.UnsafeReadConsistentIndex.wp_proof
     · iexact Hm
     · exact absurd hl Hif
   · simp only [h0, ↓reduceIte]
-    icases Hvs with ⟨%s, #Hvs, #Hs⟩
+    icases Hvs with ⟨%s, #Hvs, #Hcap⟩
+    icases Hm with ⟨HA, Hm⟩
+    icases Hcap $$ HA with ⟨%dq, Hs, HAback⟩
     ihave %Hlen := ownSlice_len _ _ _ $$ Hvs
     have hl : vs.len = W64 1 := by simp only [List.length_singleton] at Hlen; word
     wp_if_destruct
@@ -61,7 +63,9 @@ theorem schema.UnsafeReadConsistentIndex.wp_proof
     rw [ite_eq_left_of_eq_true _ _ (eq_true (by rw [hl]; decide))]
     wp_apply wp_load_slice_index vs (sint.Z (W64 0)) [s] DFrac.discard s (by decide) $$ [Hvs] as _
     · iframe Hvs; ipureintro; rfl
-    wp_apply wp_beUint64 hU s m.fst DFrac.discard $$ [$Hs] as _
+    wp_apply wp_beUint64 hU s m.fst dq $$ [$Hs] as Hs
+    ihave HA := HAback $$ Hs
+    ihave Hm := Hm $$ HA
     wp_bind (App (App (App (App (Val #(methods r.ty go!"UnsafeRange" r.v)) (Val #mb)) (Val #tk))
       (Val #(slice.nil))) (Val #(W64 0)))
     iapply Hrt $$ %mb %tk %_ Hmb Htkb
@@ -76,7 +80,9 @@ theorem schema.UnsafeReadConsistentIndex.wp_proof
       · rw [← h1]; iexact Hm'
       · exact absurd hl' Hif
     · simp only [h1, ↓reduceIte]
-      icases Hts with ⟨%s', #Hts, #Hs'⟩
+      icases Hts with ⟨%s', #Hts, #Hcap'⟩
+      icases Hm' with ⟨HA', Hm'⟩
+      icases Hcap' $$ HA' with ⟨%dq', Hs', HAback'⟩
       ihave %Hlen' := ownSlice_len _ _ _ $$ Hts
       have hl' : ts.len = W64 1 := by simp only [List.length_singleton] at Hlen'; word
       wp_if_destruct
@@ -84,8 +90,9 @@ theorem schema.UnsafeReadConsistentIndex.wp_proof
       rw [ite_eq_left_of_eq_true _ _ (eq_true (by rw [hl']; decide))]
       wp_apply wp_load_slice_index ts (sint.Z (W64 0)) [s'] DFrac.discard s' (by decide) $$ [Hts] as _
       · iframe Hts; ipureintro; rfl
-      wp_apply wp_beUint64 hU s' m'.snd DFrac.discard $$ [$Hs'] as _
-      iexact Hm'
+      wp_apply wp_beUint64 hU s' m'.snd dq' $$ [$Hs'] as Hs'
+      ihave HA' := HAback' $$ Hs'
+      iapply Hm' $$ HA'
 
 end proof
 

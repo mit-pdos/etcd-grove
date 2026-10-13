@@ -163,7 +163,32 @@ theorem vData_free (P : BParams) (st : BSess) (hst : sessWf P st) (hn : st.ndel 
 
 /-- A free state changed nothing the readers see. -/
 theorem viewSame_of_freeOk {P : BParams} {st : BSess} (h : freeOk P st) : viewSame P st :=
-  ⟨vData_free P st h.1 h.2.2.1 h.2.2.2, h.2.2.2⟩
+  ⟨vData_free P st h.1 h.2.2.1 h.2.2.2.1, h.2.2.2.1⟩
+
+/-- A read buffer's empty (or absent) bucket is gone after its reset. -/
+theorem RBuf.reset_lookup_none {R : RBuf} {i : w64} (h : bkOf R.bks i = []) :
+    R.reset.bks.lookup i = none := by
+  unfold RBuf.reset bksReset
+  show ((R.bks.filter (fun _ es => !es.isEmpty)).fmap (fun _ => ([] : List Ent))).lookup i = none
+  rw [show ((R.bks.filter (fun _ es => !es.isEmpty)).fmap (fun _ => ([] : List Ent))).lookup i =
+    ((R.bks.lookup i).filter (fun es => !es.isEmpty)).map (fun _ => []) from rfl]
+  unfold bkOf at h
+  cases hl : R.bks.lookup i with
+  | none => rfl
+  | some es => rw [hl] at h; simp at h; subst h; rfl
+
+/-- After the commit's reset of the read buffer, out of the hook's window, a write-buffer bucket
+may still repeat a key only where the read buffer has none. -/
+theorem wfR_reset {W : WBuf} {st : BSess} (h : W.WfR (wbDupOk st)) (cnt' : BCnt) :
+    W.WfR (wbDupOk { st with R := st.R.reset, cnt := cnt' }) := by
+  apply h.mono
+  intro i hi
+  left
+  show st.R.reset.bks.lookup i = none
+  rcases hi with hi | ⟨-, hi⟩
+  · have : bkOf st.R.bks i = [] := by unfold bkOf; rw [hi]; rfl
+    exact RBuf.reset_lookup_none this
+  · exact RBuf.reset_lookup_none hi
 
 theorem idsOk_bksReset {P : BParams} {B : GMap w64 (List Ent)} (h : idsOk P B) :
     idsOk P (bksReset B) := by
@@ -176,6 +201,57 @@ theorem idsOk_bksReset {P : BParams} {B : GMap w64 (List Ent)} (h : idsOk P B) :
 
 theorem hookStep_refl (P : BParams) (st : BSess) : hookStep P st st :=
   ⟨rfl, rfl, rfl, fun _ _ _ _ => rfl, Int.le_refl _, by omega, Int.le_refl _, rfl, rfl⟩
+
+/-- A free state leaves room for a commit's hook. -/
+theorem room_of_freeOk {P : BParams} {st : BSess} (hP : P.Wf) (h : freeOk P st) :
+    sint.Z st.pend + P.hookMax < 2 ^ 58 := by
+  have h1 := h.2.1
+  have h2 := hP.2.2.1
+  have h3 := hP.2.2.2.1
+  omega
+
+/-! ## The hook's window -/
+
+/-- The state with the hook's window flag set to `x` (the commit opens it for its hook). -/
+def BSess.setHw (st : BSess) (x : Bool) : BSess := { st with cnt := { st.cnt with hw := x } }
+
+section setHw_proj
+variable (st : BSess) (x : Bool)
+theorem setHw_C : (st.setHw x).C = st.C := rfl
+theorem setHw_S : (st.setHw x).S = st.S := rfl
+theorem setHw_R : (st.setHw x).R = st.R := rfl
+theorem setHw_W : (st.setHw x).W = st.W := rfl
+theorem setHw_pend : (st.setHw x).pend = st.pend := rfl
+theorem setHw_ndel : (st.setHw x).ndel = st.ndel := rfl
+theorem setHw_tx : (st.setHw x).tx = st.tx := rfl
+theorem setHw_hw : (st.setHw x).cnt.hw = x := rfl
+end setHw_proj
+
+/-- Opening the hook's window keeps the state's facts (it only allows more). -/
+theorem sessWf_setHw {P : BParams} {st : BSess} (h : sessWf P st) : sessWf P (st.setHw true) := by
+  obtain ⟨hWf, rest⟩ := h
+  refine ⟨hWf.mono (fun i hi => ?_), rest⟩
+  rcases hi with hi | ⟨-, hi⟩
+  · exact Or.inl hi
+  · exact Or.inr ⟨rfl, hi⟩
+
+theorem bgOk_setHw {P : BParams} {st : BSess} {free : Bool} {n w u : Nat} (x : Bool)
+    (h : bgOk P st free n w u) : bgOk P (st.setHw x) free n w u := h
+
+/-- The hook's window, at a commit (every put written back: `p0 = pend`): the write buffer
+holds only the hook's leftovers, `hookMax` a commit since the last write-back, and the read
+buffer is empty after a commit until the next write-back. -/
+theorem hookWin_of {P : BParams} {st : BSess} {n w u : Nat} (hb : bgOk P st false n w u)
+    (hp0 : st.cnt.p0 = sint.nat st.pend) :
+    ∀ i, bkOf st.W.bks i = [] ∨ bkOf st.R.bks i = [] := by
+  obtain ⟨-, -, -, -, ⟨-, hc⟩, -, h7, -, -⟩ := hb
+  intro i
+  rcases hc with hc | hc
+  · left
+    have := (h7 i).1
+    rw [hc, hp0, Nat.mul_zero] at this
+    exact List.eq_nil_of_length_eq_zero (by omega)
+  · right; exact hc i
 
 /-! ## The commit -/
 
@@ -200,7 +276,7 @@ end commitSt_proj
 /-- The views and the free lock's facts after a commit from `st` (where the hook ran into
 `st'`), the write buffer empty off the hook's buckets and every put written back before. -/
 theorem commit_final {P : BParams} {st st' : BSess} {C' : Data} {tx' : Loc} {cnt' : BCnt}
-    (hP : P.Wf) (hst : sessWf P st)
+    (hP : P.Wf) (hst : sessWf P st) (hcnt : cnt'.hw = false)
     (hW : ∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = [])
     (hs : hookStep P st st') (hst' : sessWf P st')
     (hC' : C' = st'.S ∨ (st'.pend = W64 0 ∧ C' = st'.C)) :
@@ -249,13 +325,13 @@ theorem commit_final {P : BParams} {st st' : BSess} {C' : Data} {tx' : Loc} {cnt
         rcases hC' with rfl | ⟨_, rfl⟩
         · exact ⟨vc, hc⟩
         · exact (hsf'.2 n i hn hsb).2 kc vc hc
-    refine ⟨h1, RBuf.reset_wf h2, h3, idsOk_bksReset h4, by simp [commitSt], by simp [commitSt],
+    refine ⟨wfR_reset h1 cnt', RBuf.reset_wf h2, h3, idsOk_bksReset h4, by simp [commitSt], by simp [commitSt],
       by simp [commitSt], by simp [commitSt], fun _ i => bkOf_bksResetC _ i, fun _ => ?_, hsafe⟩
     show agreeOff P.HB (dget st'.S) (ovB P.BT st'.W.bks (ovB P.BT (bksReset st'.R.bks) (dget C')))
     rw [ovB_empty P.BT _ _ (bkOf_bksResetC st'.R.bks)]
     refine agreeOff_trans ?_ (agreeOff_symm (agreeOff_ovB_nonHB P st'.W.bks _ hW'))
     exact agreeOff_trans (sData_agree P _ _ hsS) (agreeOff_symm hCS)
-  refine ⟨hsw, ⟨hsw, ?_, rfl, hW'⟩, hv⟩
+  refine ⟨hsw, ⟨hsw, ?_, rfl, hW', hcnt⟩, hv⟩
   have := hP.2.1
   simp only [commitSt]
   exact this
@@ -269,11 +345,12 @@ theorem commit_bgOk {P : BParams} {st st' : BSess} {C' : Data} {tx' : Loc} {n w 
     (hb' : bgOk P st' false n w u) (n' w' u' : Nat)
     (hbud : uint.Z st.R.ver + n' + k' < 2 ^ 40) (huw : u' ≤ w')
     (hc : st.cnt.c + 1 ≤ k' + 1 + (if u' = w' then 1 else 0)) :
-    bgOk P (commitSt st' C' tx' ⟨k', st.cnt.c + 1, 0, 0⟩) true n' w' u' := by
+    bgOk P (commitSt st' C' tx' ⟨k', st.cnt.c + 1, 0, 0, false⟩) true n' w' u' := by
   obtain ⟨hsC, hsR, hsS, hsW, hsp1, hsp2, hsn, hstx, hscnt⟩ := hs
   obtain ⟨-, -, -, h4, -, -, h7, -, -⟩ := hb'
   have hp := hst.2.2.2.2.1
-  refine ⟨?_, huw, hc, by simp [commitSt], Or.inl rfl, Nat.zero_le _, ?_, ?_, ?_⟩
+  refine ⟨?_, huw, hc, by simp [commitSt],
+    ⟨Or.inl rfl, Or.inr (fun i => bkOf_bksResetC _ i)⟩, Nat.zero_le _, ?_, ?_, ?_⟩
   · show uint.Z (bksReset st'.R.bks, st'.R.ver).2 + n' + k' < 2 ^ 40
     rw [hsR]; exact hbud
   · intro i

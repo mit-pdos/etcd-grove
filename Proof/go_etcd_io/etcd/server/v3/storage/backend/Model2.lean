@@ -40,11 +40,17 @@ namespace backend
 /-- The backend's parameters: the clients' buckets (name to id), the buckets the pre-commit hook
 writes, the safe-range buckets (`SB`: put to in increasing key order and never deleted from, so
 a range read of bbolt's entries then the read buffer's is the bucket's range; schema's `Key`),
-how many entries one run of the hook puts at most, and the configuration's batch limit. -/
+how many entries one run of the hook puts at most, and the configuration's batch limit; and the
+hook's own keys (`HK`, bucket name and key, counted only in a hook's bucket: `BParams.hk`): their
+values in the writer's contents are tracked by a ghost variable whose other half is the client's
+(`hkOwn`), so only its holder (the hook, through the hooks' resource) changes them, and a session
+that does not hold it leaves them as they were (etcd's consistent index and term, which only the
+pre-commit hook writes). -/
 structure BParams where
   BT : GMap GoString w64
   HB : GoString → Bool
   SB : GoString → Bool
+  HK : GoString → GoString → Bool
   hookMax : Nat
   limit : w64
 
@@ -54,6 +60,9 @@ def BParams.Wf (P : BParams) : Prop :=
   (∀ n1 n2 i, P.BT.lookup n1 = some i → P.BT.lookup n2 = some i → n1 = n2) ∧
   0 < sint.Z P.limit ∧ sint.Z P.limit ≤ 2 ^ 57 ∧ P.hookMax ≤ 2 ^ 16 ∧
   ∀ n, P.SB n = true → P.HB n = false
+
+/-- A hook's own key: in a hook's bucket, and one of `HK`. -/
+def BParams.hk (P : BParams) (n k : GoString) : Bool := P.HB n && P.HK n k
 
 /-- A bucket of the table. -/
 def BParams.has (P : BParams) (bi : BucketInfo) : Prop := P.BT.lookup bi.name = some bi.id
@@ -81,6 +90,9 @@ structure BCnt where
   c : Nat
   p0 : Nat
   e : Nat
+  /-- the hook's window: the pre-commit hook is running (the commit then resets the read buffer,
+  dropping its emptied buckets) -/
+  hw : Bool
 
 /-- The batch transaction's state. -/
 structure BSess where
@@ -186,9 +198,17 @@ def safeSt (P : BParams) (st : BSess) : Prop :=
       e ∈ bkOf st.W.bks i → strLt kc e.1) ∧
     (∀ (kc vc : GoString), (bktOf st.C n).lookup kc = some vc → ∃ vs, (bktOf st.S n).lookup kc = some vs)
 
+/-- Where a bucket written by `put` may repeat a key (`WBuf.WfR`): the read buffer has no such
+bucket (the write-back then deduplicates it), or, in the hook's window, its read-buffer bucket
+is empty (the commit's reset that follows drops it). In Go the consistent-index hook re-puts its
+keys at every commit, and two commits with no write-back between leave both puts in the write
+buffer: `issues/etcd-backend-duplicate-put-stale-read.md`, where this is harmless. -/
+def wbDupOk (st : BSess) (id : w64) : Prop :=
+  st.R.bks.lookup id = none ∨ (st.cnt.hw = true ∧ bkOf st.R.bks id = [])
+
 /-- The state's facts at any time. -/
 def sessWf (P : BParams) (st : BSess) : Prop :=
-  st.W.Wf ∧ st.R.Wf ∧ idsOk P st.W.bks ∧ idsOk P st.R.bks ∧
+  st.W.WfR (wbDupOk st) ∧ st.R.Wf ∧ idsOk P st.W.bks ∧ idsOk P st.R.bks ∧
   0 ≤ sint.Z st.pend ∧ sint.Z st.pend < 2 ^ 58 ∧ 0 ≤ sint.Z st.ndel ∧
   sint.Z st.ndel ≤ sint.Z st.pend ∧
   (st.pend = W64 0 → ∀ i, bkOf st.R.bks i = []) ∧
@@ -198,7 +218,7 @@ def sessWf (P : BParams) (st : BSess) : Prop :=
 /-- The state's facts when the batch lock is free. -/
 def freeOk (P : BParams) (st : BSess) : Prop :=
   sessWf P st ∧ sint.Z st.pend < sint.Z P.limit ∧ st.ndel = W64 0 ∧
-  ∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []
+  (∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []) ∧ st.cnt.hw = false
 
 /-- The session changed nothing the readers see: the writer's contents read, off the hook's
 buckets, as the readers' view, and the write buffer is empty off them (so the write-back leaves
@@ -211,7 +231,8 @@ def viewSame (P : BParams) (st : BSess) : Prop :=
 
 /-- The buffers' sizes, bounded through the batch lock's ghost counters (`st.cnt`, and `n` the
 write-back tokens out, `w` the write-backs so far, `u` the write-back after which the `run`
-goroutine's last unpaid commit came: at most one unpaid commit after each write-back). A commit
+goroutine's last unpaid commit came: at most one unpaid commit after each write-back; after a
+commit, until the next write-back, the read buffer is empty). A commit
 does not write the write buffer back: the hook's puts stay in it (at most `hookMax` a commit,
 `c` of them since the last write-back); its other entries since the last write-back are puts
 (`pend - p0`). `free`: the lock is free (every session's puts written back: `p0 = pend`; a
@@ -219,7 +240,8 @@ pending operation means a write-back since `run`'s last unpaid commit). -/
 def bgOk (P : BParams) (st : BSess) (free : Bool) (n w u : Nat) : Prop :=
   uint.Z st.R.ver + n + st.cnt.k < 2 ^ 40 ∧ u ≤ w ∧
   st.cnt.c ≤ st.cnt.k + 1 + (if u = w then 1 else 0) ∧
-  st.cnt.p0 ≤ sint.nat st.pend ∧ (st.cnt.e = 0 ∨ st.cnt.c = 0) ∧
+  st.cnt.p0 ≤ sint.nat st.pend ∧
+  ((st.cnt.e = 0 ∨ st.cnt.c = 0) ∧ (st.cnt.c = 0 ∨ ∀ i, bkOf st.R.bks i = [])) ∧
   st.cnt.e ≤ P.hookMax * (2 ^ 40 + 2) ∧
   (∀ i, (bkOf st.W.bks i).length ≤ sint.nat st.pend - st.cnt.p0 + P.hookMax * st.cnt.c ∧
     (bkOf st.R.bks i).length ≤ st.cnt.p0 + st.cnt.e) ∧
@@ -270,6 +292,53 @@ def hookStep (P : BParams) (st st' : BSess) : Prop :=
   (∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st'.W.bks i = bkOf st.W.bks i) ∧
   sint.Z st.pend ≤ sint.Z st'.pend ∧ sint.Z st'.pend ≤ sint.Z st.pend + P.hookMax ∧
   sint.Z st.ndel ≤ sint.Z st'.ndel ∧ st'.tx = st.tx ∧ st'.cnt = st.cnt
+
+/-- What the pre-commit hook may count on when it runs (`hooksSpec`): the hook's window is open,
+there is room for its operations, and every bucket of the write buffer is empty or has an empty
+read-buffer bucket (a commit right after a write-back finds the write buffer empty; one after
+another commit, the read buffer: so a hook may re-put its keys, `wbDupOk`). -/
+def hookPre (P : BParams) (st : BSess) : Prop :=
+  st.cnt.hw = true ∧ sint.Z st.pend + P.hookMax < 2 ^ 58 ∧
+  ∀ i, bkOf st.W.bks i = [] ∨ bkOf st.R.bks i = []
+
+/-- The keys of bbolt's data (bucket name, key). -/
+def dKeys (D : Data) : List (GoString × GoString) :=
+  D.toList.flatMap (fun nm => nm.2.toList.map (fun kv => (nm.1, kv.1)))
+
+theorem dget_isSome_mem (D : Data) (n k : GoString) (h : (dget D n k).isSome) :
+    (n, k) ∈ dKeys D := by
+  unfold dget at h
+  obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 h
+  obtain ⟨m, hm, hk⟩ := Option.bind_eq_some_iff.1 hv
+  unfold dKeys
+  rw [List.mem_flatMap]
+  refine ⟨(n, m), (GMap.mem_toList _ _ _).2 hm, ?_⟩
+  rw [List.mem_map]
+  exact ⟨(k, v), (GMap.mem_toList _ _ _).2 hk, rfl⟩
+
+/-- The writer's contents on the hook's own keys (`BParams.hk`), as a finite map: the value of
+the ghost variable `γ.hkd` (half the batch lock's, half the client's `hkOwn`). -/
+def hkData (P : BParams) (S : Data) : GMap (GoString × GoString) GoString :=
+  ⟨fun nk => if P.hk nk.1 nk.2 then dget S nk.1 nk.2 else none,
+   ⟨dKeys S, fun nk h => by
+      split at h
+      · exact dget_isSome_mem S nk.1 nk.2 h
+      · simp at h⟩⟩
+
+theorem hkData_lookup (P : BParams) (S : Data) (n k : GoString) :
+    (hkData P S).lookup (n, k) = if P.hk n k then dget S n k else none := rfl
+
+/-- Two contents that agree on the hook's own keys have one `hkData`. -/
+theorem hkData_eq {P : BParams} {S S' : Data}
+    (h : ∀ n k, P.hk n k = true → dget S' n k = dget S n k) : hkData P S' = hkData P S := by
+  apply GMap.ext
+  intro nk
+  show (if P.hk nk.1 nk.2 then dget S' nk.1 nk.2 else none) =
+    (if P.hk nk.1 nk.2 then dget S nk.1 nk.2 else none)
+  cases hh : P.hk nk.1 nk.2
+  · rfl
+  · simp only [↓reduceIte]
+    exact h _ _ hh
 
 /-! ## Ranges -/
 

@@ -32,7 +32,7 @@ theorem backend.batchTxBuffered.UnsafePut.wp_proof
     (hBuf : backend.txWriteBuffer.put.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG) := by
   intro γ P W Pk b t st bk bi key value kb vb Hhas Hk0 Hk1 Hnot Hp Hsb
-  wp_start as ⟨#Hb, #Ht, Hl, #Hbk, #Hkey, #Hval⟩
+  wp_start as ⟨#Hb, #Ht, Hl, #Hbk, #Hkey, #Hval, Hhkp⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
   · iframe #
@@ -51,13 +51,15 @@ theorem backend.batchTxBuffered.UnsafePut.wp_proof
   icases Hw with ⟨Htxf, Hpend, Hwtx⟩
   ihave %Hbb := batchGhostAt_bound γ P st false HP Hwf $$ Hg
   have Hlen : (bkOf st.W.bks bi.id).length < bufBound := by have := Hbb bi.id; omega
+  imod batchGhost_step_put γ P (st := st) (st' := (st.put bi kb vb false)) rfl rfl rfl
+    (pend_succ_nat Hwf Hp) (fun i => put_W_le st bi kb vb false i) bi.name kb
+    (hkData_put_other st bi kb vb false) $$ Hg Hhkp with ⟨Hg, Hhkp⟩
   wp_apply (hBuf (wbOf t) st.W bk bi key value kb vb Hlen) $$ [$HW] as HW
   · iframe #
   iapply HΦ
+  iframe Hhkp
   iexists t, db
   iframe Ht' Hown
-  ihave Hg := batchGhost_step γ P (st := st) (st' := (st.put bi kb vb false)) rfl rfl rfl
-    (pend_succ_nat Hwf Hp) (fun i => put_W_le st bi kb vb false i) $$ Hg
   iframe Hg
   isplitl
   · iexists hk

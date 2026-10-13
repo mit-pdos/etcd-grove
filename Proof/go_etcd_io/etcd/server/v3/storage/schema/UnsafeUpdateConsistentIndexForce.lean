@@ -28,13 +28,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 theorem schema.UnsafeUpdateConsistentIndexForce.wp_proof
     (hu : schema.unsafeUpdateConsistentIndex.spec (GF := GF) (hG := hG)) :
     schema.UnsafeUpdateConsistentIndexForce.spec (GF := GF) (hG := hG) := by
-  intro tx TM m index term
-  wp_start as ⟨#Hw, HTM⟩
+  intro tx TM PTi PTt m index term
+  wp_start as ⟨#Hw, HTM, HPi, HPt⟩
   wp_auto
   wp_bind (App (App (App (App (Val (@! schema.unsafeUpdateConsistentIndex)) (Val #(GoInterface.ok tx)))
       (Val #index)) (Val #term)) (Val #true))
-  iapply (hu tx TM m index term true) $$ [HTM]
-  · iframe Hpkg Hw HTM
+  iapply (hu tx TM PTi PTt m index term true) $$ [HTM HPi HPt]
+  · iframe Hpkg Hw HTM HPi HPt
     ipureintro; intro h; cases h
   inext
   iintro HTM

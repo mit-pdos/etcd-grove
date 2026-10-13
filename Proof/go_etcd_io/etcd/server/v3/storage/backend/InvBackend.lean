@@ -86,6 +86,9 @@ structure BNames where
   cls : GName
   sdn : GName
   stk : GName
+  /-- `ghostVar`: the writer's contents on the hook's own keys (`hkData`), half the batch
+  lock's, half the client's (`hkOwn`) -/
+  hkd : GName
 
 section phys
 variable [FfiSyntax]
@@ -219,6 +222,21 @@ theorem plHook_persist (γ : BNames) (f : GoFunc) : plHook (GF := GF) γ f ⊢ |
 
 /-- One write-back's budget (an `Unlock` costs one). -/
 def wbTok (γ : BNames) : IProp GF := ownToks γ.wb 1
+
+/-- The client's half of the hook's own keys: the writer's contents hold `d` there
+(`hkData`). Only its holder can put a hook's own key (`UnsafePut`), and it agrees with every
+state of the batch lock. -/
+def hkOwn (γ : BNames) (d : GMap (GoString × GoString) GoString) : IProp GF :=
+  ghostVar γ.hkd (1 : Qp).half d
+
+instance hkOwn_timeless (γ : BNames) (d : GMap (GoString × GoString) GoString) :
+    Timeless (hkOwn (GF := GF) γ d) := by
+  unfold hkOwn; infer_instance
+
+/-- What a put of key `k` in bucket `n` needs and gives of the hook's own keys, the writer's
+contents being `S`: the client's half if `k` is a hook's own key, else nothing. -/
+def hkPut (γ : BNames) (P : BParams) (n k : GoString) (S : Data) : IProp GF :=
+  if P.hk n k then hkOwn γ (hkData P S) else iprop(True)
 
 /-! ## The history of the read side, and the cache's marks -/
 
@@ -453,14 +471,16 @@ the readers' state `γ.rvs` at `(C, R)` (so the batch side's `C` and `R` are the
 with no `Unlock` window open (an `Unlock`'s commit closes it for its hook's run), the write-back budget's authority (`n` tokens out), the count of write-backs
 `w` (monotone) and half of `γ.used` (the `run` goroutine has the other half), a quarter of the
 open token (the `run` goroutine has another quarter, the clients' `bOpen` the half: so the
-batch lock is never held in a stopped backend), with the bounds of `bgOk` over the state's
-counters (`free`: the lock is free). -/
+batch lock is never held in a stopped backend), half of the hook's own keys `γ.hkd` at the
+writer's contents (`hkData`), with the bounds of `bgOk` over the state's counters (`free`: the
+lock is free). -/
 def batchGhostAt (γ : BNames) (P : BParams) (st : BSess) (free : Bool) : IProp GF :=
   iprop(ghostVar γ.view (1 : Qp).half.half (vData P (st.C, st.R)) ∗
     ∃ (n w u : Nat), ghostVar γ.rvs (1 : Qp).half (((st.C, st.R) : RView), false) ∗
       ownTokAuth γ.wb n ∗
       monoNatAuthOwn γ.wbc 1 w ∗ ghostVar γ.used (1 : Qp).half u ∗
-      dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗ ⌜bgOk P st free n w u⌝)
+      dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
+      ghostVar γ.hkd (1 : Qp).half (hkData P st.S) ∗ ⌜bgOk P st free n w u⌝)
 
 /-- The batch lock's ghost share, held. -/
 abbrev batchGhost (γ : BNames) (P : BParams) (st : BSess) : IProp GF := batchGhostAt γ P st false
@@ -483,12 +503,14 @@ def batchLocked (γ : BNames) (P : BParams) (b : Loc) (st : BSess) : IProp GF :=
   iprop(∃ (t db : Loc), bF go!"batchTx" b ↦□ t ∗ batchLockedAt γ P b t db st)
 
 /-- A `Hooks` value: nil, or one whose `OnPreCommitUnsafe(tx)`, on the batch transaction `t`
-held in a state `st`, with the hooks' resource `Pk`, makes a hook step (`hookStep`). -/
+held in a state `st` in the hook's window (`hookPre`: room for its operations, and it may re-put
+a key of a bucket whose read-buffer bucket is empty), with the hooks' resource `Pk`, makes a
+hook step (`hookStep`). -/
 def hooksSpec (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc) (h : GoInterface) :
     IProp GF :=
   iprop(⌜h = GoInterface.nil⌝ ∨ ∃ ho : GoInterfaceOk, ⌜h = GoInterface.ok ho⌝ ∗
     □ ∀ st : BSess,
-      {{ batchLocked γ P b st ∗ Pk }}
+      {{ batchLocked γ P b st ∗ Pk ∗ ⌜hookPre P st⌝ }}
         (App (Val #(methods ho.ty go!"OnPreCommitUnsafe" ho.v))
           (Val #(interface.mkOk (go.GoType.PointerType batchTxBuffered.ty) #t)))
       {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ ⌜hookStep P st st'⌝ }})
@@ -496,7 +518,7 @@ def hooksSpec (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc) (h : GoInt
 /-- A `HookFunc` with the same contract (what `NewHooks` wraps). -/
 def hookFnSpec (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc) (f : GoFunc) : IProp GF :=
   iprop(□ ∀ st : BSess,
-    {{ batchLocked γ P b st ∗ Pk }}
+    {{ batchLocked γ P b st ∗ Pk ∗ ⌜hookPre P st⌝ }}
       (App (Val #f) (Val #(interface.mkOk (go.GoType.PointerType batchTxBuffered.ty) #t)))
     {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ ⌜hookStep P st st'⌝ }})
 

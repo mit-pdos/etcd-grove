@@ -39,6 +39,14 @@ of a `ReadTx` (`RLock`/`RUnlock` too), `isMetaBackend b E View` that of a `Backe
 are definitions: a client supplies the triples with its backend, as raft's clients do with
 `Storage`. A stored value is the 8-byte big-endian encoding of a non-zero `uint64`; an absent
 key reads as 0 (`schema` never stores 0).
+
+**Slices read under a resource** (2026-10-13, unit 7): a read's value slice is readable with
+`Acc m` (`metaValsA`): the real batch transaction's slices are bbolt's, valid while its lock is
+held (`Acc := TM`, the lock holder's meta keys: `metaWriter`); a `ReadTx`'s are the assumed
+contract's, `Acc := True`. **Puts with tokens**: `metaWriter tx TM PTi PTt`'s puts of the index and
+of the term each spend a token (`PTi`, `PTt`): the real backend's pre-commit hook may put at most
+`hookMax` entries, so the hook's batch transaction hands out one token per key
+(`CindexBackend.lean`); the puts store non-zero values only.
 -/
 module
 
@@ -165,43 +173,49 @@ def ciApplying (ci : Loc) (a t : w64) : IProp GF :=
 /-! ## The backend's contracts -/
 
 /-- `vs` is what `UnsafeRange` returns for a meta key holding `x` (0: absent): no value, or
-the one value, the encoding of `x`. -/
-def metaVals (vs : GoSlice) (x : w64) : IProp GF :=
+the one value, the encoding of `x`, readable while `Acc` is held (a fraction of it, given back
+with `Acc`). -/
+def metaValsA (Acc : IProp GF) (vs : GoSlice) (x : w64) : IProp GF :=
   if x = W64 0 then iprop(vs ↦*□ ([] : List GoSlice))
-  else iprop(∃ s : GoSlice, vs ↦*□ [s] ∗ s ↦*□ u64Be x)
+  else iprop(∃ s : GoSlice, vs ↦*□ [s] ∗
+    □ (Acc -∗ ∃ dq : DFrac, s ↦*{dq} u64Be x ∗ (s ↦*{dq} u64Be x -∗ Acc)))
 
-instance metaVals_persistent (vs : GoSlice) (x : w64) : Persistent (metaVals (GF := GF) vs x) := by
-  unfold metaVals; split <;> infer_instance
+instance metaValsA_persistent (Acc : IProp GF) (vs : GoSlice) (x : w64) :
+    Persistent (metaValsA Acc vs x) := by
+  unfold metaValsA; split <;> infer_instance
 
 /-- A linearizable read of the view `View` at mask `E`, continuing with `Ψ` of what it read. -/
 def readAU (E : CoPset) (View : MetaCI → IProp GF) (Ψ : MetaCI → IProp GF) : IProp GF :=
   iprop(|={⊤,E}=> ∃ m : MetaCI, View m ∗ (View m ={E,⊤}=∗ Ψ m))
 
 /-- `UnsafeRange` of the reader `r` on a meta key (bucket `Meta`, the key's name, no end key,
-no limit) reads `sel m` of the view. -/
+no limit) reads `sel m` of the view, its value readable with `Acc m`. -/
 def metaRangeSpec (r : GoInterfaceOk) (keyName : GoString) (sel : MetaCI → w64) (E : CoPset)
-    (View : MetaCI → IProp GF) : IProp GF :=
+    (View : MetaCI → IProp GF) (Acc : MetaCI → IProp GF) : IProp GF :=
   iprop(∀ (b : GoInterface) (key : GoSlice) (Φ : val → IProp GF),
     globalAddr schema.Meta ↦□ b -∗ key ↦*□ keyName -∗
-    readAU E View (fun m => iprop(∀ (ks vs : GoSlice), metaVals vs (sel m) -∗ Φ (PairV #ks #vs))) -∗
+    readAU E View (fun m => iprop(∀ (ks vs : GoSlice), metaValsA (Acc m) vs (sel m) -∗
+      Φ (PairV #ks #vs))) -∗
     WP (App (App (App (App (Val #(methods r.ty go!"UnsafeRange" r.v)) (Val #b)) (Val #key))
           (Val #(slice.nil))) (Val #(W64 0))) {{ Φ }})
 
-/-- `r` is an `UnsafeReader` whose meta keys are a linearizable view `View` (persistent). -/
-def metaReader (r : GoInterfaceOk) (E : CoPset) (View : MetaCI → IProp GF) : IProp GF :=
-  iprop(□ metaRangeSpec r schema.ciKeyBytes Prod.fst E View ∗
-    □ metaRangeSpec r schema.termKeyBytes Prod.snd E View)
+/-- `r` is an `UnsafeReader` whose meta keys are a linearizable view `View`, its values readable
+with `Acc` (persistent). -/
+def metaReader (r : GoInterfaceOk) (E : CoPset) (View : MetaCI → IProp GF)
+    (Acc : MetaCI → IProp GF) : IProp GF :=
+  iprop(□ metaRangeSpec r schema.ciKeyBytes Prod.fst E View Acc ∗
+    □ metaRangeSpec r schema.termKeyBytes Prod.snd E View Acc)
 
-instance metaReader_persistent (r : GoInterfaceOk) (E : CoPset) (View : MetaCI → IProp GF) :
-    Persistent (metaReader r E View) := by
+instance metaReader_persistent (r : GoInterfaceOk) (E : CoPset) (View : MetaCI → IProp GF)
+    (Acc : MetaCI → IProp GF) : Persistent (metaReader r E View Acc) := by
   unfold metaReader; infer_instance
 
 /-- `rt` is a `ReadTx` whose meta keys are the view `View`: `RLock`/`RUnlock` return, and its
-reads are `metaReader`'s. -/
+reads are `metaReader`'s (with nothing to hold for the values). -/
 def metaReadTx (rt : GoInterfaceOk) (E : CoPset) (View : MetaCI → IProp GF) : IProp GF :=
   iprop(□ ({{ True }} (App (Val #(methods rt.ty go!"RLock" rt.v)) (Val #())) {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #())) {{ RET #(); True }}) ∗
-    metaReader rt E View)
+    metaReader rt E View (fun _ => iprop(True)))
 
 instance metaReadTx_persistent (rt : GoInterfaceOk) (E : CoPset) (View : MetaCI → IProp GF) :
     Persistent (metaReadTx rt E View) := by
@@ -218,23 +232,25 @@ instance isMetaBackend_persistent (b : GoInterface) (E : CoPset) (View : MetaCI 
   unfold isMetaBackend; infer_instance
 
 /-- `UnsafePut` of the batch transaction `tx` on a meta key: the key's stored value becomes the
-encoding of `x` (`upd m x`); the transaction keeps the value slice. -/
+encoding of `x` (`upd m x`), not 0; the transaction keeps the value slice; a put token `PT`. -/
 def metaPutSpec (tx : GoInterfaceOk) (keyName : GoString) (upd : MetaCI → w64 → MetaCI)
-    (TM : MetaCI → IProp GF) : IProp GF :=
+    (TM : MetaCI → IProp GF) (PT : IProp GF) : IProp GF :=
   iprop(∀ (b : GoInterface) (key val : GoSlice) (m : MetaCI) (x : w64),
-    {{ globalAddr schema.Meta ↦□ b ∗ key ↦*□ keyName ∗ val ↦* u64Be x ∗ TM m }}
+    {{ globalAddr schema.Meta ↦□ b ∗ key ↦*□ keyName ∗ val ↦* u64Be x ∗ TM m ∗ PT ∗
+        ⌜x ≠ W64 0⌝ }}
       (App (App (App (Val #(methods tx.ty go!"UnsafePut" tx.v)) (Val #b)) (Val #key)) (Val #val))
     {{ RET #(); TM (upd m x) }})
 
 /-- `tx` is a batch transaction (`UnsafeReadWriter`) whose meta keys are `TM m`, owned by the
-holder of its lock: it reads them (`metaReader` at mask `⊤`) and writes them. -/
-def metaWriter (tx : GoInterfaceOk) (TM : MetaCI → IProp GF) : IProp GF :=
-  iprop(metaReader tx ⊤ TM ∗
-    □ metaPutSpec tx schema.ciKeyBytes (fun m x => (x, m.2)) TM ∗
-    □ metaPutSpec tx schema.termKeyBytes (fun m x => (m.1, x)) TM)
+holder of its lock: it reads them (`metaReader` at mask `⊤`, the values readable while `TM m` is
+held) and writes them (the index's put spends `PTi`, the term's `PTt`). -/
+def metaWriter (tx : GoInterfaceOk) (TM : MetaCI → IProp GF) (PTi PTt : IProp GF) : IProp GF :=
+  iprop(metaReader tx ⊤ TM TM ∗
+    □ metaPutSpec tx schema.ciKeyBytes (fun m x => (x, m.2)) TM PTi ∗
+    □ metaPutSpec tx schema.termKeyBytes (fun m x => (m.1, x)) TM PTt)
 
-instance metaWriter_persistent (tx : GoInterfaceOk) (TM : MetaCI → IProp GF) :
-    Persistent (metaWriter tx TM) := by
+instance metaWriter_persistent (tx : GoInterfaceOk) (TM : MetaCI → IProp GF) (PTi PTt : IProp GF) :
+    Persistent (metaWriter tx TM PTi PTt) := by
   unfold metaWriter; infer_instance
 
 /-- The two reads of `schema.UnsafeReadConsistentIndex` (the index; then, if it is not 0, the
@@ -242,6 +258,15 @@ term), continuing with `Ψ` of the pair it returns. -/
 def readCIAU (E : CoPset) (View : MetaCI → IProp GF) (Ψ : MetaCI → IProp GF) : IProp GF :=
   readAU E View (fun m =>
     if m.1 = W64 0 then Ψ (W64 0, W64 0) else readAU E View (fun m' => Ψ (m.1, m'.2)))
+
+/-- `readCIAU` with the values readable under `Acc`: after each read of a non-zero value, the
+continuation lends `Acc` of the state it read to the value's decoding. -/
+def readCIAUA (E : CoPset) (View : MetaCI → IProp GF) (Acc : MetaCI → IProp GF)
+    (Ψ : MetaCI → IProp GF) : IProp GF :=
+  readAU E View (fun m =>
+    if m.1 = W64 0 then Ψ (W64 0, W64 0)
+    else iprop(Acc m ∗ (Acc m -∗ readAU E View (fun m' =>
+      if m'.2 = W64 0 then Ψ (m.1, m'.2) else iprop(Acc m' ∗ (Acc m' -∗ Ψ (m.1, m'.2)))))))
 
 /-- A read's continuation can be weakened. -/
 theorem readAU_wand (E : CoPset) (View : MetaCI → IProp GF) (Ψ Ψ' : MetaCI → IProp GF) :
@@ -271,6 +296,54 @@ theorem readCIAU_wand (E : CoPset) (View : MetaCI → IProp GF) (Ψ Ψ' : MetaCI
     iapply readAU_wand $$ Hm
     iintro %m' Hm'
     iapply HΨ $$ Hm'
+
+/-- With nothing to hold for the values, `readCIAU` is `readCIAUA`. -/
+theorem readCIAU_A (E : CoPset) (View : MetaCI → IProp GF) (Ψ : MetaCI → IProp GF) :
+    readCIAU E View Ψ ⊢ readCIAUA E View (fun _ => iprop(True)) Ψ := by
+  unfold readCIAU readCIAUA
+  iintro HAU
+  iapply readAU_wand $$ HAU
+  iintro %m Hm
+  by_cases h : m.1 = W64 0
+  · simp only [h, ↓reduceIte]
+    iexact Hm
+  · simp only [h, ↓reduceIte]
+    isplitr
+    · itrivial
+    iintro -
+    iapply readAU_wand $$ Hm
+    iintro %m' Hm'
+    by_cases h' : m'.2 = W64 0
+    · simp only [h', ↓reduceIte]
+      iexact Hm'
+    · simp only [h', ↓reduceIte]
+      isplitr
+      · itrivial
+      iintro -
+      iexact Hm'
+
+/-- A continuation that may need `A` back, given `A`. -/
+theorem acc_ite (c : Prop) [Decidable c] (A Ψ : IProp GF) :
+    ⊢ A -∗ (A -∗ Ψ) -∗ if c then Ψ else iprop(A ∗ (A -∗ Ψ)) := by
+  iintro HA HΨ
+  split
+  · iapply HΨ $$ HA
+  · iframe HA HΨ
+
+/-- Persistent values are readable with anything. -/
+theorem metaValsA_of_ro (Acc : IProp GF) (vs : GoSlice) (x : w64) (s : GoSlice)
+    (hx : x ≠ W64 0) :
+    vs ↦*□ [s] ∗ s ↦*□ u64Be x ⊢ metaValsA (GF := GF) Acc vs x := by
+  unfold metaValsA
+  simp only [hx, ↓reduceIte]
+  iintro ⟨#Hvs, #Hs⟩
+  iexists s
+  iframe Hvs
+  iintro !> HA
+  iexists DFrac.discard
+  iframe Hs
+  iintro -
+  iexact HA
 
 end defs
 

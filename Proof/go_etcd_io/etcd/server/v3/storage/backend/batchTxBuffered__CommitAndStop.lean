@@ -37,7 +37,7 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof
   intro γ P W Pk b t
   wp_start as ⟨#Hb, #Ht, Ho, Hq⟩
   icases isBackend_b γ P W Pk b $$ Hb with
-    ⟨%t2, %rt, %db1, %lg2, #Ht2, #Hrt, #-, %-, #Hmi, #-, #-, #Hrg, #-, #-, #Hci, %-⟩
+    ⟨%t2, %rt, %db1, %lg2, #Ht2, #Hrt, #-, %-, #Hmi, #-, #-, #Hrg, #-, #-, #Hci, %HP⟩
   wp_auto
   wp_method_call
   wp_call
@@ -48,7 +48,8 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof
   · iframe #
     isplitr
     · ipureintro
-      exact ⟨Hfo.2, Hfo.1.2.2.2, fun _ => vData_free P st Hfo.1.1 Hfo.1.2.2.1 Hfo.1.2.2.2⟩
+      exact ⟨room_of_freeOk HP Hfo.1, Hfo.2, Hfo.1.2.2.2.1,
+        fun _ => vData_free P st Hfo.1.1 Hfo.1.2.2.1 Hfo.1.2.2.2.1⟩
     unfold payIn
     simp only [↓reduceIte]
     isplitl [Ho]

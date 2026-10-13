@@ -169,11 +169,14 @@ theorem backend.txWriteBuffer.writeback.wp_proof
     have hBRk : BR !! key = R.bks !! key := by rw [HBR key]; simp [hnot]
     wp_auto
     wp_apply wp_map_lookup2 $$ HmR as HmR
-    have hwf := HWf key es hWk
-    unfold wbBucketOk at hwf
+    have hwf0 := HWf key es hWk
     cases hMR : MR' !! key with
     | none =>
       have hRk : R.bks !! key = none := by rw [← hBRk]; exact bksOwn_none HdomR' hMR
+      -- a bucket the read buffer lacks may repeat a key: `dedupe` canonicalizes it anyway
+      have hwf : wbBucketOk (W.seq !! key) es ∨ W.seq !! key = some false :=
+        hwf0.imp_right And.left
+      unfold wbBucketOk at hwf
       simp only [Option.isSome_none, Bool.false_eq_true, decide_false, Bool.not_false]
       wp_auto
       wp_apply wp_mapDelete $$ HmW as HmW
@@ -183,7 +186,8 @@ theorem backend.txWriteBuffer.writeback.wp_proof
         have := Hbound key; unfold bkOf at this; rw [hWk, hRk] at this; simpa using this
       rcases hseq : W.seq !! key with _ | ⟨_ | _⟩
       all_goals simp only [hseq, Option.isSome_none, Option.isSome_some, Bool.false_eq_true,
-        decide_false, _root_.decide_true, ↓reduceIte, reduceCtorEq] at hwf ⊢
+        decide_false, _root_.decide_true, ↓reduceIte, reduceCtorEq, Option.some.injEq,
+        Bool.true_eq_false, _root_.or_false] at hwf ⊢
       all_goals wp_auto
       all_goals first
         | wp_apply (hDedupe wbv es) $$ [$Hwb] as Hwb
@@ -227,6 +231,9 @@ theorem backend.txWriteBuffer.writeback.wp_proof
     | some rbv =>
       obtain ⟨res, hBRr⟩ := bksOwn_some HdomR' hMR
       have hRk : R.bks !! key = some res := by rw [← hBRk]; exact hBRr
+      have hwf : wbBucketOk (W.seq !! key) es :=
+        hwf0.resolve_right (fun h => by rw [h.2] at hRk; cases hRk)
+      unfold wbBucketOk at hwf
       have hRs : entsSorted res := HRf key res hRk
       have hlen : res.length + es.length < bufBound := by
         have := Hbound key; unfold bkOf at this; rw [hWk, hRk] at this; simpa using this
@@ -319,7 +326,7 @@ theorem backend.txWriteBuffer.writeback.wp_proof
           by_cases he : id = key
           · subst he
             rw [GMap.lookup_insert, wbMerge_lookup_some hWk]
-            simp only [List.mem_append, List.mem_singleton, or_true, ↓reduceIte, bkOf, hRk,
+            simp only [List.mem_append, List.mem_singleton, _root_.or_true, ↓reduceIte, bkOf, hRk,
               Option.getD_some]
             rw [canon_append_perm hperm hnd]
           · rw [GMap.lookup_insert_ne _ _ (Ne.symm he), HBR id]

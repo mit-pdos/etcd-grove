@@ -49,7 +49,8 @@ theorem backend.batchTxBuffered.UnsafeCreateBucket.wp_proof
   iexists t, db
   iframe Ht' Hown
   ihave Hg := batchGhost_step γ P (st := st) (st' := (st.create bi)) rfl rfl rfl
-    (pend_succ_nat Hwf Hp) (fun i => by simp [BSess.del, BSess.create, BSess.delBucket]) $$ Hg
+    (pend_succ_nat Hwf Hp) (fun i => by simp [BSess.del, BSess.create, BSess.delBucket])
+    (hkData_create st bi) $$ Hg
   iframe Hg
   isplitl
   · iexists hk

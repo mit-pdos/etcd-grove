@@ -78,9 +78,13 @@ structure KBReal where
   gx : GName
 
 /-- The backend's parameters of a real instance: the hook's buckets all but `Key`, `Key` the one
-safe-range bucket. -/
+safe-range bucket, the hook's own keys the consistent index's two in `Meta` (2026-10-13, unit 7:
+only the server's pre-commit hook writes them). -/
 def KBReal.P (d : KBReal) : backend.BParams :=
   { BT := d.BT, HB := fun n => decide (n ≠ keyName), SB := fun n => decide (n = keyName),
+    HK := fun n k => decide (n = go_etcd_io.etcd.server.v3.storage.schema.metaName ∧
+      (k = go_etcd_io.etcd.server.v3.storage.schema.ciKeyBytes ∨
+        k = go_etcd_io.etcd.server.v3.storage.schema.termKeyBytes)),
     hookMax := d.hookMax, limit := d.limit }
 
 /-- The ghost names of a store: its index's and its bucket's, and its backend's instance (`kb`:
@@ -126,14 +130,14 @@ instance dbNames_countable : Pos.Countable backend.DBNames :=
 
 instance bNames_countable : Pos.Countable backend.BNames :=
   countableOfLeftInverse
-    (fun x : backend.BNames => (x.db, x.view, x.rd, x.hist, x.cached, x.cur, x.hook, x.opn, x.wb,
+    (fun x : backend.BNames => (x.hkd, x.db, x.view, x.rd, x.hist, x.cached, x.cur, x.hook, x.opn, x.wb,
       x.rdt, x.txa, x.txb, x.rvs, x.cvw, x.wbc, x.used, x.cls, x.sdn, x.stk))
-    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1,
-      p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1,
-      p.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
-      p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
-      p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
-      p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2⟩)
+    (fun p => ⟨p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.1,
+      p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.1,
+      p.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
+      p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
+      p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1,
+      p.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2, p.1⟩)
     (fun _ => rfl)
 
 instance kbReal_countable : Pos.Countable KBReal :=

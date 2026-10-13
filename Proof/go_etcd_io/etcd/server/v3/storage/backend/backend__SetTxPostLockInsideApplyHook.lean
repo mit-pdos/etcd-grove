@@ -38,7 +38,7 @@ theorem backend.backend.SetTxPostLockInsideApplyHook.wp_proof
   unfold bOpen
   icases Ho with ⟨Ho, Hcls⟩
   icases isBackend_b γ P W Pk b $$ Hb with
-    ⟨%t, %rt, %db1, %lg2, #Ht, #-⟩
+    ⟨%t, %rt, %db1, %lg2, #Ht, #-, #-, %-, #-, #-, #-, #-, #-, #-, #-, %HP⟩
   wp_apply wp_with_defer as %defer defer
   try wp_auto
   wp_method_call
@@ -53,7 +53,7 @@ theorem backend.backend.SetTxPostLockInsideApplyHook.wp_proof
   unfold plHook plHookAt
   imod dghostVar_update_halves hook γ.hook f hk $$ Hpl Hhk with ⟨Hpl, Hhk⟩
   wp_auto
-  wp_apply (hUnlock γ P W Pk b t st iprop(True)) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hg Htok HWv HWR]
+  wp_apply (hUnlock γ P W Pk b t st iprop(True) Hfo.1.2.2.2.2 (room_of_freeOk HP Hfo.1)) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hg Htok HWv HWR]
   · iframe #
     unfold batchLocked batchLockedAt batchPhys
     iframe Htok

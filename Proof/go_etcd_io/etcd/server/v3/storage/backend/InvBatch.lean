@@ -154,19 +154,66 @@ theorem wp_commitsAdd (b : Loc) (v : w64) :
 
 /-- A session's operation (one more pending operation, at most one more entry per bucket of the
 write buffer, the committed data, the read buffer and the counters unchanged) keeps the batch
-lock's ghost share. -/
+lock's ghost share; one that leaves the hook's own keys, without the client's half of them. -/
 theorem batchGhost_step (γ : BNames) (P : BParams) {st st' : BSess} (hC : st'.C = st.C)
     (hR : st'.R = st.R) (hc : st'.cnt = st.cnt) (hp : sint.nat st'.pend = sint.nat st.pend + 1)
-    (hW : ∀ i, (bkOf st'.W.bks i).length ≤ (bkOf st.W.bks i).length + 1) :
+    (hW : ∀ i, (bkOf st'.W.bks i).length ≤ (bkOf st.W.bks i).length + 1)
+    (hS : hkData P st'.S = hkData P st.S) :
     batchGhost (GF := GF) γ P st ⊢ batchGhost γ P st' := by
   unfold batchGhost batchGhostAt
-  rw [hC, hR]
-  iintro ⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, %Hok⟩
+  rw [hC, hR, hS]
+  iintro ⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, %Hok⟩
   iframe Hv
   iexists n, w, u
   iframe
   ipureintro
   exact bgOk_step Hok hR hc hp hW
+
+/-- A put of key `k` in bucket `n` (as `batchGhost_step`): with the client's half of the hook's
+own keys if `k` is one (`hkPut`), both halves updated to the new contents; else they are
+unchanged. -/
+theorem batchGhost_step_put (γ : BNames) (P : BParams) {st st' : BSess} (hC : st'.C = st.C)
+    (hR : st'.R = st.R) (hc : st'.cnt = st.cnt) (hp : sint.nat st'.pend = sint.nat st.pend + 1)
+    (hW : ∀ i, (bkOf st'.W.bks i).length ≤ (bkOf st.W.bks i).length + 1) (n k : GoString)
+    (hS : P.hk n k = false → hkData P st'.S = hkData P st.S) :
+    ⊢ batchGhost (GF := GF) γ P st -∗ hkPut γ P n k st.S ==∗
+      batchGhost γ P st' ∗ hkPut γ P n k st'.S := by
+  unfold hkPut
+  cases hk : P.hk n k
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    iintro Hg -
+    ihave Hg := batchGhost_step γ P hC hR hc hp hW (hS hk) $$ Hg
+    imodintro
+    iframe Hg
+  · simp only [↓reduceIte]
+    unfold batchGhost batchGhostAt hkOwn
+    rw [hC, hR]
+    iintro ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, %Hok⟩ Hc
+    imod ghostVar_update_halves (hkData P st'.S) γ.hkd _ _ $$ Hk Hc with ⟨Hk, Hc⟩
+    imodintro
+    isplitl [Hv Hr Ha Hm Hu Ho Hk]
+    · iframe Hv
+      iexists n0, w, u
+      iframe
+      ipureintro
+      exact bgOk_step Hok hR hc hp hW
+    · iexact Hc
+
+/-- The client's half of the hook's own keys agrees with the batch lock's state. -/
+theorem batchLocked_hk (γ : BNames) (P : BParams) (b : Loc) (st : BSess)
+    (d : GMap (GoString × GoString) GoString) :
+    batchLocked (GF := GF) γ P b st ∗ hkOwn γ d ⊢
+      batchLocked γ P b st ∗ hkOwn γ d ∗ ⌜d = hkData P st.S⌝ := by
+  unfold batchLocked batchLockedAt batchGhost batchGhostAt hkOwn
+  iintro ⟨⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, %Hok⟩, %Hwf⟩, Hc⟩
+  icombine Hc Hk gives %Heq
+  iframe Hc
+  isplitl
+  · iexists t, db
+    iframe
+    iframe #
+    ipureintro; exact ⟨Hok, Hwf⟩
+  · ipureintro; exact Heq.2
 
 /-- The batch lock's ghost share bounds the buffers' buckets. -/
 theorem batchGhostAt_bound (γ : BNames) (P : BParams) (st : BSess) (free : Bool) (hP : P.Wf)
@@ -174,7 +221,7 @@ theorem batchGhostAt_bound (γ : BNames) (P : BParams) (st : BSess) (free : Bool
     batchGhostAt (GF := GF) γ P st free ⊢
       ⌜∀ i, (bkOf st.R.bks i).length + (bkOf st.W.bks i).length < bufBound⌝ := by
   unfold batchGhostAt
-  iintro ⟨-, %n, %w, %u, -, -, -, -, -, %Hok⟩
+  iintro ⟨-, %n, %w, %u, -, -, -, -, -, -, %Hok⟩
   ipureintro
   exact bgOk_bufBound hP hst Hok
 
@@ -182,7 +229,7 @@ theorem batchGhostAt_bound (γ : BNames) (P : BParams) (st : BSess) (free : Bool
 theorem batchGhostAt_p0 (γ : BNames) (P : BParams) (st : BSess) :
     batchGhostAt (GF := GF) γ P st true ⊢ ⌜st.cnt.p0 = sint.nat st.pend⌝ := by
   unfold batchGhostAt
-  iintro ⟨-, %n, %w, %u, -, -, -, -, -, %Hok⟩
+  iintro ⟨-, %n, %w, %u, -, -, -, -, -, -, %Hok⟩
   ipureintro
   exact (Hok.2.2.2.2.2.2.2.2 rfl).1
 
@@ -190,7 +237,7 @@ theorem batchGhostAt_p0 (γ : BNames) (P : BParams) (st : BSess) :
 theorem batchGhostAt_take (γ : BNames) (P : BParams) (st : BSess) :
     batchGhostAt (GF := GF) γ P st true ⊢ batchGhost γ P st := by
   unfold batchGhost batchGhostAt
-  iintro ⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, %Hok⟩
+  iintro ⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, %Hok⟩
   iframe Hv
   iexists n, w, u
   iframe
@@ -238,7 +285,8 @@ def batchGhostW (γ : BNames) (P : BParams) (st : BSess) (win : Bool) : IProp GF
   iprop(ghostVar γ.view (1 : Qp).half.half (vData P (st.C, st.R)) ∗
     ∃ (n w u : Nat), ghostVar γ.rvs (1 : Qp).half (((st.C, st.R) : RView), win) ∗
       ownTokAuth γ.wb n ∗ monoNatAuthOwn γ.wbc 1 w ∗ ghostVar γ.used (1 : Qp).half u ∗
-      dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗ ⌜bgOk P st false n w u⌝)
+      dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
+      ghostVar γ.hkd (1 : Qp).half (hkData P st.S) ∗ ⌜bgOk P st false n w u⌝)
 
 /-- The batch lock held in state `st`, with the window flag `win`. -/
 def batchLockedW (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (win : Bool) : IProp GF :=
