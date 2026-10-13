@@ -193,8 +193,6 @@ theorem mvcc.NewStore.wp_proof
   ipersist le
   ipersist kvindex
   ipersist lg
-  ipersist ReadView
-  ipersist WriteView
   ipersist Rkv
   ipersist Wkv
   -- `tx := s.b.BatchTx()`: the backend's contract at the store's names
@@ -311,15 +309,18 @@ theorem mvcc.NewStore.wp_proof
   isplitr
   · ipureintro; exact ⟨hγb, hγl⟩
   iframe Hs Hhook Htoks Hcert
-  isplitr
+  isplitl [ReadView WriteView]
   · iexists rv, wv
     iunfold mvcc.isReadView
     iunfold mvcc.isWriteView
     simp only [named]
+    iframe ReadView WriteView
     iframe #
-  iapply mvcc.storeReaders_of_slots «$r0_ptr» ti γ
-  iframe Hmus Hrevs Hird
-  iexact kvindex
+  isplitr [stopc]
+  · iapply mvcc.storeReaders_of_slots «$r0_ptr» ti γ
+    iframe Hmus Hrevs Hird
+    iexact kvindex
+  iunfold mvcc.storeCloser; iexists _; iexact stopc
 
 end proof
 

@@ -44,7 +44,7 @@ theorem apply.applierV3Corrupt.DeleteRange.wp_proof :
   isplitr
   · ipureintro
     simp only [apply.chainStep, apply.corruptRejects, Hk.2.1, ↓reduceIte]
-  simp only [apply.deleteOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
+  simp only [apply.deleteAnswerIs, apply.deleteOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
   iframe Hkv Hres
   isplitl []
   · isplitl []

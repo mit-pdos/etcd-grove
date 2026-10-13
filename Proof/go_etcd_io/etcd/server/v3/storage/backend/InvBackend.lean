@@ -48,9 +48,7 @@ public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.DGhostVar
 public import Perennial.Ghost.MonoNat
 public import Perennial.Proof.TokSet
-public import Perennial.Proof.sync_proof.rwmutex_guard
-public import Perennial.Proof.sync_proof.waitgroup
-public import Perennial.Proof.sync_proof.mutex
+public import Perennial.Proof.sync
 
 @[expose] public section
 

@@ -189,6 +189,14 @@ theorem traceutil.Trace.wp_StopSubTrace :
     EtcdGrove.traceutil.Trace.StopSubTrace.spec (GF := GF) (hG := hG) :=
   EtcdGrove.traceutil.Trace.StopSubTrace.wp_proof
 
+theorem zap.wp_Error :
+    EtcdGrove.zap.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Error.wp_proof
+
+theorem zap.Logger.wp_Error :
+    EtcdGrove.zap.Logger.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.Error.wp_proof
+
 theorem traceutil.wp_TODO :
     EtcdGrove.traceutil.TODO.spec (GF := GF) (hG := hG) :=
   EtcdGrove.traceutil.TODO.wp_proof
@@ -201,17 +209,9 @@ theorem wp_RangeSecObserve :
     EtcdGrove.txn.RangeSecObserve.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.RangeSecObserve.wp_proof
 
-theorem zap.wp_Error :
-    EtcdGrove.zap.Error.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Error.wp_proof
-
 theorem zap.wp_Int32 :
     EtcdGrove.zap.Int32.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Int32.wp_proof
-
-theorem zap.Logger.wp_Error :
-    EtcdGrove.zap.Logger.Error.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Error.wp_proof
 
 theorem zap.Logger.wp_Panic :
     EtcdGrove.zap.Logger.Panic.spec (GF := GF) (hG := hG) :=
@@ -314,7 +314,7 @@ theorem wp_executeTxn [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem wp_txn [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.txn.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.txn.txn.wp_proof wp_newTxnResp wp_executeTxn mvcc.metricsTxnWrite.wp_Rev mvcc.txnReadWrite.wp_Rev mvcc.metricsTxnWrite.wp_Changes mvcc.txnReadWrite.wp_Changes
+  EtcdGrove.txn.txn.wp_proof wp_newTxnResp wp_executeTxn mvcc.metricsTxnWrite.wp_Rev mvcc.txnReadWrite.wp_Rev mvcc.metricsTxnWrite.wp_Changes mvcc.txnReadWrite.wp_Changes zap.wp_Error zap.Logger.wp_Error
 
 theorem wp_Txn [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.Txn.spec (GF := GF) (hG := hG) :=

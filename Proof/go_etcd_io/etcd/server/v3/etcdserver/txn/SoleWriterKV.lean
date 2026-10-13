@@ -58,6 +58,7 @@ theorem put_soleWriter_of (hPut : Put.spec (GF := GF) (hG := hG)) (ctx : GoInter
          (⌜err = GoInterface.nil⌝ ∗
             putResponseIs resp (W64 (log.length : Int))
               (if o.base.prevKV then mvcc.findKey o.key (mvcc.stateAfter log) else none) ∗
+            respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"Header" resp) ∗
             soleWriter γ (log ++ [[putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) ∗
             leaseOk γ.leases (putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter log))) ∗ Post ∗
             ⌜mvcc.stateAfter (log ++ [[putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) =
@@ -65,7 +66,7 @@ theorem put_soleWriter_of (hPut : Put.spec (GF := GF) (hG := hG)) (ctx : GoInter
   wp_start_folded as ⟨#Hkv, Hrd, Hsw, #Hle, #Hp, #Hctx, #Hl, Hcs, #Hhook⟩
   icases soleWriter_split γ log hlen $$ Hsw with ⟨Htok, Hsw⟩
   iunfold soleWriterOpen at Hsw
-  icases Hsw with ⟨#Hc, Htoks⟩
+  icases Hsw with ⟨#Hc, Htoks, %Hl2⟩
   iapply (hPut ctx cd lg le kv s γ p o (soleBudget log - 1) log P Pre Q Post f)
     $$ [Hrd Htok Htoks Hcs]
   · iframe # ∗
@@ -78,7 +79,7 @@ theorem put_soleWriter_of (hPut : Put.spec (GF := GF) (hG := hG)) (ctx : GoInter
   inext
   iintro %resp %trace %err ⟨Hrd, Htoks, %Ht, Hout⟩
   ihave Hsw : soleWriterOpen γ log $$ [Htoks]
-  · iunfold soleWriterOpen; iframe # ∗
+  · iunfold soleWriterOpen; iframe # ∗; ipureintro; exact Hl2
   iapply HΦ
   iframe Hrd
   isplitl []
@@ -95,7 +96,7 @@ theorem put_soleWriter_of (hPut : Put.spec (GF := GF) (hG := hG)) (ctx : GoInter
     iframe Hsw Htok Hc
   have hil := pinned_sole log ilog hlen Hpi.1
   subst hil
-  icases Hout with (⟨%Hn, #He, Htok, -⟩ | ⟨%Herr, #Hresp, #Hc', #Hlok⟩)
+  icases Hout with (⟨%Hn, #He, Htok, -⟩ | ⟨%Herr, #Hresp, Hhdr, #Hc', #Hlok⟩)
   · -- the previous key-value missing
     iright; ileft
     isplitl []
@@ -109,7 +110,7 @@ theorem put_soleWriter_of (hPut : Put.spec (GF := GF) (hG := hG)) (ctx : GoInter
     iright; iright
     isplitl []
     · ipureintro; exact Herr
-    iframe Hresp Hlok HPost
+    iframe Hresp Hhdr Hlok HPost
     isplitl [Hsw]
     · have hc : mvcc.commitLog ilog [putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))] =
           ilog ++ [[putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))]] := by
@@ -143,6 +144,7 @@ theorem deleteRange_soleWriter_of (hDel : DeleteRange.spec (GF := GF) (hG := hG)
               (W64 ((mvcc.writeRev log (delChanges (mvcc.stateAfter log) o) : Nat) : Int))
               (rangeIn (mvcc.stateAfter log) o).length
               (if o.base.prevKV then rangeIn (mvcc.stateAfter log) o else []) ∗
+            respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"Header" resp) ∗
             soleWriter γ (mvcc.commitLog log (delChanges (mvcc.stateAfter log) o)) ∗
             ⌜mvcc.stateAfter (mvcc.commitLog log (delChanges (mvcc.stateAfter log) o)) =
               (applyTxnOp (W64 (log.length : Int)) (mvcc.stateAfter log) (.delete o)).1⌝) ∨
@@ -151,7 +153,7 @@ theorem deleteRange_soleWriter_of (hDel : DeleteRange.spec (GF := GF) (hG := hG)
   wp_start_folded as ⟨#Hkv, Hrd, Hsw, #Hdr, #Hctx, #Hnd, Hcs, #Hhook⟩
   icases soleWriter_split γ log hlen $$ Hsw with ⟨Htok, Hsw⟩
   iunfold soleWriterOpen at Hsw
-  icases Hsw with ⟨#Hc, Htoks⟩
+  icases Hsw with ⟨#Hc, Htoks, %Hl2⟩
   iapply (hDel ctx cd nd lg kv s γ dr o (soleBudget log - 1) log P Pre Q Post f)
     $$ [Hrd Htok Htoks Hcs]
   · iframe # ∗
@@ -164,18 +166,18 @@ theorem deleteRange_soleWriter_of (hDel : DeleteRange.spec (GF := GF) (hG := hG)
   have hil := pinned_sole log ilog hlen Hpi.1
   subst hil
   ihave Hsw : soleWriterOpen γ ilog $$ [Htoks]
-  · iunfold soleWriterOpen; iframe # ∗
+  · iunfold soleWriterOpen; iframe # ∗; ipureintro; exact Hl2
   iapply HΦ
   iframe Hrd
   isplitl []
   · ipureintro; exact Ht
   iframe HPost
-  icases Hout with (⟨%Herr, #Hresp, #Hc', Htok⟩ | ⟨%Hn, Htok, -⟩)
+  icases Hout with (⟨%Herr, #Hresp, Hhdr, #Hc', Htok⟩ | ⟨%Hn, Htok, -⟩)
   · -- deleted
     ileft
     isplitl []
     · ipureintro; exact Herr
-    iframe Hresp
+    iframe Hresp Hhdr
     isplitl [Hsw Htok]
     · iapply soleWriter_close γ ilog _ hlen
       iframe Hsw Hc' Htok
@@ -208,15 +210,19 @@ theorem range_soleWriter_of (hRange : Range.spec (GF := GF) (hG := hG)) (log : m
           sint.Z (W64 ((log.length : Int) - 1)) < sint.Z o.base.rev⌝ }} := by
   wp_start_folded as ⟨#Hkv, Hrd, Hsw, #Hr, #Hctx, #Hnd, %Hlg, %Hpre⟩
   iunfold soleWriter at Hsw
-  icases Hsw with ⟨#Hc, Ht⟩
+  icases Hsw with ⟨#Hc, Ht, %Hl2⟩
   iapply (hRange ctx cd nd lg kv s γ r o withTotal (soleBudget log) log) $$ [Hrd Ht]
   · iframe # ∗
+    isplitr
+    · ipureintro; exact Hlg
+    isplitr
+    · ipureintro; exact Hpre.1
+    iintro !> %log' %h -
     ipureintro
-    refine ⟨Hlg, Hpre.1, fun log' h1 h2 => ?_⟩
-    rw [soleWriter_pins_read log log' hlen ⟨h1, h2⟩]
+    rw [soleWriter_pins_read log log' hlen ⟨h.1, h.2⟩]
     exact Hpre.2
   inext
-  iintro %resp %tr %err ⟨Hrd, Ht, %Htr, %log', %rev, -, %Hp, #Hres, %Hnd'⟩
+  iintro %resp %tr %err ⟨Hrd, Ht, %Htr, %log', %rev, -, %Hp, #Hres, -, %Hnd'⟩
   have heq := soleWriter_pins_read log log' hlen ⟨Hp.1, Hp.2.1⟩
   subst heq
   obtain ⟨-, -, -, hrev⟩ := Hp
@@ -224,7 +230,7 @@ theorem range_soleWriter_of (hRange : Range.spec (GF := GF) (hG := hG)) (log : m
   iapply HΦ
   iframe Hrd Hres
   isplitl
-  · iunfold soleWriter; iframe Hc Ht
+  · iunfold soleWriter; iframe Hc Ht; ipureintro; exact Hl2
   · ipureintro; exact ⟨Htr, Hnd'⟩
 
 end sole

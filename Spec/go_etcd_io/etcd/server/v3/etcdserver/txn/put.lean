@@ -47,7 +47,8 @@ abbrev txn.put.spec : Prop :=
         (pend ++ [txn.putChangeOf o (mvcc.findKey o.key (txn.pendState ilog pend))]) puts' deletes
         putSize') ∗
       txn.putResponseIs resp (W64 (ilog.length : Int))
-        (if o.base.prevKV then mvcc.findKey o.key (txn.pendState ilog pend) else none) }}
+        (if o.base.prevKV then mvcc.findKey o.key (txn.pendState ilog pend) else none) ∗
+      txn.respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"Header" resp) }}
 
 end spec
 

@@ -17,13 +17,13 @@ txn_IsDefaultOrdering: @
 txn_HasRevisionFilters: @
 adt_NewStringAffineInterval: @
 adt_NewStringAffinePoint: @
-# The interval tree's contract, pending in the adt Link (the mvcc session's: unit 4 of the
-# watchable store proves it): hypotheses of `checkIntervals` and of what reaches it (`Txn`).
-# `InsertAny` is `Insert` without its newness premise (unit 1: the same range deleted twice).
-adt_NewIntervalTree: ?
-adt_intervalTree__InsertAny: ?
-adt_intervalTree__Intersects: ?
-adt_intervalTree__Union: ?
+# The interval tree's functions `checkIntervals` calls, all proved in the adt Link (the mvcc
+# session's watchable store, unit 4; `Union` in 4d). `Insert` takes any interval, present or
+# not (unit 1: the same range deleted twice; it was `InsertAny`).
+adt_NewIntervalTree: @
+adt_intervalTree__Insert: @
+adt_intervalTree__Intersects: @
+adt_intervalTree__Union: @
 #
 # The package's functions (unit 1). The server's methods the handlers and the header call
 # (`Range`, `Put`, `DeleteRange`, `Txn`, `KV().Rev()`, `Cluster().ID()`, `MemberID`, `Term`,
@@ -35,7 +35,7 @@ checkDeleteRequest:
 checkRangeStreamRequest: checkRangeRequest txn_IsDefaultOrdering txn_HasRevisionFilters status_Errorf
 checkTxnRequest: checkRangeRequest checkPutRequest checkDeleteRequest
 checkRequestOp: checkRangeRequest checkPutRequest checkDeleteRequest checkTxnRequest
-checkIntervals: adt_NewIntervalTree adt_NewStringAffineInterval adt_NewStringAffinePoint adt_intervalTree__InsertAny adt_intervalTree__Intersects adt_intervalTree__Union
+checkIntervals: adt_NewIntervalTree adt_NewStringAffineInterval adt_NewStringAffinePoint adt_intervalTree__Insert adt_intervalTree__Intersects adt_intervalTree__Union
 togRPCError: errors_Is errors_IsDeadlineExceeded status_Error
 newHeader:
 header__fillWithoutRevision:

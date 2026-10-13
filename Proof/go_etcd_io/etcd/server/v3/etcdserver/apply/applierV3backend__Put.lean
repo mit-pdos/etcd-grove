@@ -38,6 +38,7 @@ theorem apply.applierV3backend.Put.wp_proof
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
   icases Hpre with ⟨%Hrq, #Hr, ⟨Hrd, Hsw, #Hknown⟩, Hres, Hcs⟩
+  icases txn.soleWriter_len' _ _ $$ Hsw with ⟨%Hl2, Hsw⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
@@ -60,7 +61,7 @@ theorem apply.applierV3backend.Put.wp_proof
   iunfold apply.kvPost
   obtain ⟨hput, hk, -⟩ := Hrq
   icases Hout with (⟨%Hn, #He, Hsw, HPre⟩ | ⟨%Hn, #He, Hsw, HPost⟩ |
-    ⟨%Herr, #Hresp, Hsw, #Hlok, HPost, -⟩)
+    ⟨%Herr, #Hresp, Hhdr, Hsw, #Hlok, HPost, -⟩)
   · -- the lease not found
     iexists (.rejected .backend)
     isplitr
@@ -68,7 +69,7 @@ theorem apply.applierV3backend.Put.wp_proof
       unfold apply.chainStep apply.backendStep
       rw [hk]
       exact ⟨o, hput, Or.inl ⟨Hn.1, rfl⟩⟩
-    simp only [apply.putOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
+    simp only [apply.putAnswerIs, apply.putOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
     iframe Hres
     isplitl []
     · isplitl []
@@ -84,7 +85,7 @@ theorem apply.applierV3backend.Put.wp_proof
       unfold apply.chainStep apply.backendStep
       rw [hk]
       exact ⟨o, hput, Or.inr (Or.inl ⟨Hn.1, Hn.2.1, rfl⟩)⟩
-    simp only [apply.putOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
+    simp only [apply.putAnswerIs, apply.putOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
     iframe Hres
     isplitl []
     · isplitl []
@@ -100,11 +101,11 @@ theorem apply.applierV3backend.Put.wp_proof
       unfold apply.chainStep apply.backendStep
       rw [hk]
       exact ⟨o, hput, Or.inr (Or.inr rfl)⟩
-    simp only [apply.putOutcomeIs, apply.noSpaceErrIs, apply.Outcome.logAfter, Bool.false_eq_true,
-      ↓reduceIte]
-    iframe Hres Hresp
+    simp only [apply.putAnswerIs, apply.putOutcomeIs, apply.noSpaceErrIs, apply.Outcome.logAfter, Bool.false_eq_true,
+      ↓reduceIte, apply.appliedHdr]
+    iframe Hres Hresp Hhdr
     isplitl []
-    · ipureintro; exact Herr
+    · ipureintro; exact ⟨Herr, Hl2, hlen⟩
     isplitl [Hrd Hsw]
     · iunfold apply.kvOwn
       iframe Hrd Hsw

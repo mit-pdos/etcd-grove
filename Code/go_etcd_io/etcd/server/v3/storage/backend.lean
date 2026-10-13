@@ -2841,6 +2841,8 @@ noncomputable def bucketBuffer.add.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
+  (Let "$l0" (App (Val (GoInstruction (StructFieldRef kv.ty go!"key"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType kv.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType kv.ty)))) (App (Val (GoInstruction (StructFieldRef bucketBuffer.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bucketBuffer.ty)))) (Var "bb")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef bucketBuffer.ty go!"used"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bucketBuffer.ty)))) (Var "bb")))))))
+  (Let "$l1" (App (Val (GoInstruction (StructFieldRef kv.ty go!"val"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType kv.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType kv.ty)))) (App (Val (GoInstruction (StructFieldRef bucketBuffer.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bucketBuffer.ty)))) (Var "bb")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef bucketBuffer.ty go!"used"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bucketBuffer.ty)))) (Var "bb")))))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "k"))
   (Let "$r1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "v"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2867,9 +2869,9 @@ noncomputable def bucketBuffer.add.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef bucketBuffer.ty go!"used"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bucketBuffer.ty)))) (Var "bb"))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef bucketBuffer.ty go!"used"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bucketBuffer.ty)))) (Var "bb")))) (Val #(W64 1))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (StructFieldRef kv.ty go!"val"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType kv.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType kv.ty)))) (App (Val (GoInstruction (StructFieldRef bucketBuffer.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bucketBuffer.ty)))) (Var "bb")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef bucketBuffer.ty go!"used"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bucketBuffer.ty)))) (Var "bb"))))))) (Var "$r1")))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$l1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (StructFieldRef kv.ty go!"key"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType kv.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType kv.ty)))) (App (Val (GoInstruction (StructFieldRef bucketBuffer.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bucketBuffer.ty)))) (Var "bb")))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef bucketBuffer.ty go!"used"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bucketBuffer.ty)))) (Var "bb"))))))) (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$l0") (Var "$r0")))))))))))))))))
 
 /-- merge merges data from bbsrc into bb.
 
@@ -3002,13 +3004,15 @@ noncomputable def bucketBuffer.Swap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
+  (Let "$l0" (App (Val (GoInstruction (IndexRef (go.GoType.SliceType kv.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType kv.ty)))) (App (Val (GoInstruction (StructFieldRef bucketBuffer.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bucketBuffer.ty)))) (Var "bb")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))
+  (Let "$l1" (App (Val (GoInstruction (IndexRef (go.GoType.SliceType kv.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType kv.ty)))) (App (Val (GoInstruction (StructFieldRef bucketBuffer.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bucketBuffer.ty)))) (Var "bb")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad kv.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType kv.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType kv.ty)))) (App (Val (GoInstruction (StructFieldRef bucketBuffer.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bucketBuffer.ty)))) (Var "bb")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))
   (Let "$r1" (App (Val (GoInstruction (GoLoad kv.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType kv.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType kv.ty)))) (App (Val (GoInstruction (StructFieldRef bucketBuffer.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bucketBuffer.ty)))) (Var "bb")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore kv.ty))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType kv.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType kv.ty)))) (App (Val (GoInstruction (StructFieldRef bucketBuffer.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bucketBuffer.ty)))) (Var "bb")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))) (Var "$r1"))))))
+  (App (Val (GoInstruction (GoStore kv.ty))) (Pair (Var "$l1") (Var "$r1"))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore kv.ty))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType kv.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType kv.ty)))) (App (Val (GoInstruction (StructFieldRef bucketBuffer.ty go!"buf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bucketBuffer.ty)))) (Var "bb")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoStore kv.ty))) (Pair (Var "$l0") (Var "$r0")))))))))))))))))
 
 /-- go: tx_buffer.go:250:25 -/
 noncomputable def bucketBuffer.CopyUsed.impl [FfiSyntax] [GoGlobalContext] : val :=

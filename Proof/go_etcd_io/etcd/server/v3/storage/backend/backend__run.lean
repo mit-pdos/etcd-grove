@@ -143,7 +143,8 @@ theorem backend.backend.run.wp_proof
     wp_apply (hCS γ P WR b t) $$ [$Hhalf $Hq] as #Hbs
     · iframe #
     wp_for_post
-    wp_apply (_root_.Perennial.time.Timer.wp_Stop tm tch γt) $$ [$Htm] as %bb -
+    wp_apply (_root_.Perennial.time.Timer.wp_Stop tm) $$ [] as %bb -
+    · ileft; iexists tch, γt; iexact Htm
     wp_apply (wp_broadcast_chan_close (ty := go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))
       dc γdc iprop(True)) $$ [$Hdcp] as -
     · imodintro

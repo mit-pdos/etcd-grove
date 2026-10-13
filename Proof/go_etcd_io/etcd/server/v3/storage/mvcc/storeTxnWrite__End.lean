@@ -24,10 +24,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF) (hG := hG) := by
-  intro tw s γ ilog pend P f
+  intro tw s γ ilog pend chs ps sealed P f
   wp_start as ⟨Htw, #HhookC, HP⟩
-  iunfold mvcc.storeTxnWriteIs at Htw
+  iunfold mvcc.storeTxnWriteCore at Htw
   iNamed Htw
+  obtain ⟨Hps, Hlen⟩ := Hps
   ihave #Hs0 : mvcc.isStore s γ $$ []
   · iexact Hs
   iunfold mvcc.isStore at Hs
@@ -37,7 +38,6 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
   subst Hti_eq'
   iunfold mvcc.batchTxSpec at Hbt
   icases Hbt with ⟨-, -, #HUnlock0, #HUnlock, -⟩
-  ihave %Hlen := ownSlice_len chs (DFrac.own 1) ps $$ Hchs
   have hsplit := mvcc.own_half_half (1 : Qp)
   have hpend : pend = [] ↔ chs.len = 0 := by
     obtain ⟨h1, h2⟩ := Hlen
@@ -57,6 +57,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
   · -- no change: the lock is released, nothing committed
     have hnil : pend = [] := hpend.2 Hif
     subst hnil
+    ihave Hw := mvcc.idxWriterB_nil γ.idx ilog sealed $$ Hw
     (try wp_auto)
     ihave HW : mvcc.writerRes s γ $$ [Htoks Hw Hclog Hcur Hbv]
     · iunfold mvcc.writerRes
@@ -119,7 +120,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     imod ownTokAuth_delete_S γ.revs n $$ Htoks Htok with Htoks
     icases (mvcc.ownTokAuth_halves γ.revs n).1 $$ Htoks with ⟨HtoksL, Htoks⟩
     imod ghostVar_update_halves (ilog ++ [pend]) γ.clog _ _ $$ HclogL Hclog with ⟨HclogL, Hclog⟩
-    imod mvcc.idxWriter_commit γ.idx ilog pend (by omega) $$ Hw HlogL with ⟨Hw, HlogL, #Hcert'⟩
+    imod mvcc.idxWriterB_commit γ.idx ilog pend sealed (by omega) $$ Hw HlogL with ⟨Hw, HlogL, #Hcert'⟩
     have hrev : (W64 ((ilog.length : Int) - 1) : w64) + W64 1 =
         W64 (((ilog ++ [pend]).length : Int) - 1) := by
       rw [← mvcc.W64_add_one]; simp

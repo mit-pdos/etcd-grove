@@ -4,7 +4,7 @@
 module
 
 public import Spec.slices.Sort
-public import Perennial.Proof.slices_proof.sort
+public import Perennial.Proof.slices
 
 @[expose] public section
 

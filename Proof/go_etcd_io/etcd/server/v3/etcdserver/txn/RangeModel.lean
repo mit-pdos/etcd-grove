@@ -38,7 +38,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Lemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Requests
-public import Perennial.Proof.slices_proof.pdqSort.sort_basics
+public import Perennial.Proof.slices.SortBasics
 
 @[expose] public section
 

@@ -95,7 +95,7 @@ theorem validateErrorString_holds : validateErrorString (GF := GF) (hG := hG) :=
   iintro ⟨#Hpkg, #Hval⟩
   ihave Hci : (cacheInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hci with ⟨-, -, -, -, #HKR⟩
+  icases Hci with ⟨-, -, -, -, #HKR, -⟩
   unfold validateResult
   split
   · icases Hval with ⟨-, %e', %He', #HS⟩

@@ -22,6 +22,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevBytes
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketRange
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.SavedProp
 public import Perennial.Ghost.DGhostVar
@@ -129,12 +130,46 @@ def keyRangeSpec (rt : GoInterfaceOk) (m : Bucket) : IProp GF :=
         (Val #(slice.nil))) (Val #(W64 0)))
     {{ (ks vs : GoSlice), RET (PairV #ks #vs); key ↦*{dq} k ∗ keyVals ks vs m k }})
 
+/-- The slices `ks` and `vs` (read-only, of read-only slices) hold the keys and the values of the
+entries `l`, in order. -/
+def pairVals (ks vs : GoSlice) (l : List (GoString × GoString)) : IProp GF :=
+  iprop(∃ kss vss : List GoSlice, ks ↦*□ kss ∗ vs ↦*□ vss ∗
+    ⌜kss.length = l.length ∧ vss.length = l.length⌝ ∗
+    [∗list] i ↦ p ∈ l, ∃ ksl vsl : GoSlice, ⌜kss[i]? = some ksl ∧ vss[i]? = some vsl⌝ ∗
+      ksl ↦*□ p.1 ∗ vsl ↦*□ p.2)
+
+instance pairVals_persistent (ks vs : GoSlice) (l : List (GoString × GoString)) :
+    Persistent (pairVals (GF := GF) ks vs l) := by
+  unfold pairVals; infer_instance
+
+/-- What `UnsafeRange(Key, lo, hi, 0)` returns of the bucket `m` (`hi` not empty): the entries
+with a key in `[klo, khi)`, in key order (`bucketRange`; no limit). -/
+def rangeVals (ks vs : GoSlice) (m : Bucket) (klo khi : GoString) : IProp GF :=
+  pairVals ks vs (bucketRange m klo khi)
+
+instance rangeVals_persistent (ks vs : GoSlice) (m : Bucket) (klo khi : GoString) :
+    Persistent (rangeVals (GF := GF) ks vs m klo khi) := by
+  unfold rangeVals; infer_instance
+
+/-- `rt`'s `UnsafeRange(schema.Key, lo, hi, 0)`, for `lo` holding `klo` and `hi` holding a
+non-empty `khi`, reads the entries of the snapshot `m` with a key in `[klo, khi)`, in key order
+(bbolt's cursor from `klo` while below `khi`; the limit `0` is none). -/
+def keyRangeReadSpec (rt : GoInterfaceOk) (m : Bucket) : IProp GF :=
+  iprop(∀ (b : GoInterface) (lo hi : GoSlice) (klo khi : GoString) (dqlo dqhi : DFrac),
+    {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ lo ↦*{dqlo} klo ∗
+        hi ↦*{dqhi} khi ∗ ⌜khi ≠ []⌝ }}
+      (App (App (App (App (Val #(methods rt.ty go!"UnsafeRange" rt.v)) (Val #b)) (Val #lo))
+        (Val #hi)) (Val #(W64 0)))
+    {{ (ks vs : GoSlice), RET (PairV #ks #vs); lo ↦*{dqlo} klo ∗ hi ↦*{dqhi} khi ∗
+        rangeVals ks vs m klo khi }})
+
 /-- `rt` is a `ReadTx` over the snapshot `m` of the bucket (persistent): `RLock`/`RUnlock`
-return, and its reads are the snapshot's. -/
+return, and its reads are the snapshot's: a key's entry (`keyRangeSpec`) and a range of keys
+(`keyRangeReadSpec`). -/
 def keyReadSnap (rt : GoInterfaceOk) (m : Bucket) : IProp GF :=
   iprop(□ ({{ True }} (App (Val #(methods rt.ty go!"RLock" rt.v)) (Val #())) {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #())) {{ RET #(); True }}) ∗
-    □ keyRangeSpec rt m)
+    □ keyRangeSpec rt m ∗ □ keyRangeReadSpec rt m)
 
 instance keyReadSnap_persistent (rt : GoInterfaceOk) (m : Bucket) :
     Persistent (keyReadSnap (GF := GF) rt m) := by
@@ -160,7 +195,7 @@ theorem keyReadSnap_reader (rt : GoInterfaceOk) (m : Bucket) :
     keyReadSnap (GF := GF) rt m ⊢ keyReader rt m iprop(True) := by
   iintro #H
   iunfold keyReadSnap at H
-  icases H with ⟨-, -, #Hr⟩
+  icases H with ⟨-, -, #Hr, -⟩
   iunfold keyRangeSpec at Hr
   iunfold keyReader
   iintro %b %key %k %dq !> %Φ ⟨#HK, -, Hkey⟩ HΦ
@@ -578,6 +613,10 @@ def storeReader (s : Loc) (γ : StoreNames) : IProp GF :=
     "HrevMu" ∷ sync.ownRWMutex (revMuAddr s) (revMuInv s γ) ∗
     "Hti" ∷ idxReader ti γ.idx)
 
+/-- The right to close the store (`store.Close`, which closes its `stopc`: once): the `stopc`
+field, owned (`NewStore` returns it; nothing else writes it). -/
+def storeCloser (s : Loc) : IProp GF := iprop(∃ c : GoChan, s.[store, go!"stopc"] ↦ c)
+
 /-! ## The read transaction -/
 
 /-- The `storeTxnRead` of a read transaction at revision `rev` of the committed log `log`
@@ -663,10 +702,39 @@ def rangeKvs (full : Bool) (kvs : GoSlice) (st : List EtcdKv)
 is not positive. -/
 def rangeRev (rev optRev : w64) : w64 := if sint.Z optRev ≤ 0 then rev else optRev
 
+/-- **An error `fmt.Errorf` returned** (persistent), as Perennial's model of `fmt.Errorf` makes
+it: `errors.New` of the format (`Perennial/TrustedCode/fmt.lean`: the arguments, `%w` included,
+are ignored), an `*errors.errorString` whose `Error()` returns. Go's `fmt.Errorf` with `%w`
+returns a `*fmt.wrapError` instead, which `errors.Is` sees through to the wrapped error: the
+model does not (2026-10-12, the request path's unit 3b: `rangeKeys`' context error, and the txn
+package's `executeTxn` wrapping it, reach the gRPC layer; `notes/STATUS.md`, "Unit 3b").
+Not from the trust-boundary axiom `fmt.Errorf.wp_proof` (`Spec/fmt/Errorf.lean`, which gives
+only that `Error()` returns): what the gRPC layer needs of the error (`applyErrIs`: a leaf
+pointer error) is true of the model's `*errors.errorString` but not of Go's `*fmt.wrapError`,
+whose `Unwrap` `errors.Is` follows, so an axiom stating it would be false of Go (2026-10-13, the
+merge of `origin/lean`; `notes/decisions.md`, "`fmt.Errorf`'s `%w` errors: the model's body, not
+the axiom"). -/
+def errorfIs (err : GoInterface) : IProp GF :=
+  iprop(∃ x : Loc,
+    ⌜err = interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x⌝ ∗
+    □ ∀ Φ : val → IProp GF, ▷ (∀ str : GoString, Φ #str) -∗
+      WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
+        go!"Error" #x)) (Val #())) {{ Φ }})
+
+omit package_sem in
+instance errorfIs_persistent (err : GoInterface) : Persistent (errorfIs (GF := GF) err) := by
+  unfold errorfIs; infer_instance
+
+omit package_sem in
+theorem errorfIs_ne_nil (err : GoInterface) : errorfIs (GF := GF) err ⊢ ⌜err ≠ GoInterface.nil⌝ := by
+  iunfold errorfIs
+  iintro ⟨%x, %h, -⟩
+  ipureintro; subst h; intro h; cases h
+
 /-- What `rangeKeys(ctx, key, end, rev, ro)` returns (`r`, `err`) of the committed log `log`
 at the transaction's revision `rev`, for `[k, e)` (`endNil`: no end key):
 * a future revision (`ro.Rev > rev`): `ErrFutureRev` and a count of `-1`;
-* the context done (a full read only): no result and an error;
+* the context done (a full read only): no result and `fmt.Errorf`'s error (`errorfIs`);
 * else the answer at `rangeRev rev ro.Rev`: the count alone (`CountOnly`), or the key-values
   of the index's answers (at most the limit), keys and revisions only (`FastKeysOnly`) or the
   state's key-values from the bucket, with the index's count. -/
@@ -677,7 +745,7 @@ def rangeOutcome (r : Loc) (err : GoInterface) (log : Log) (rev : w64) (endNil :
       (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
       r ↦ ({ KVs' := slice.nil, Rev' := rev, Count' := W64 (-1) } : RangeResult)) ∨
     (⌜sint.Z ro.Rev' ≤ sint.Z rev⌝ ∗ ⌜ro.CountOnly' = false ∧ ro.FastKeysOnly' = false⌝ ∗
-      ⌜r = null⌝ ∗ ⌜err ≠ GoInterface.nil⌝) ∨
+      ⌜r = null⌝ ∗ errorfIs err) ∨
     (⌜sint.Z ro.Rev' ≤ sint.Z rev⌝ ∗ ⌜err = GoInterface.nil⌝ ∗
       if ro.CountOnly' then
         r ↦ ({
@@ -757,6 +825,118 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Cha
     "Hti" ∷ idxReader ti γ.idx ∗
     "%Htrnn" ∷ ⌜trace ≠ null⌝)
 
+/-- The write transaction of `storeTxnWriteIs` without its `changes` slice's contents and their
+key-values (`chs ↦* ps`, `changesAre ps ilog pend`: the caller's, `storeTxnWrite.Changes`):
+the slice is `chs`, of `ps.length = pend.length` pointers, and the index writer may be sealed
+(`idxWriterB`: the watchable store seals the pending revision before it notifies). What
+`storeTxnWrite.End` needs (it reads the slice's length only). -/
+def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
+    (chs : GoSlice) (ps : List Loc) (sealed : Bool) : IProp GF :=
+  iprop(∃ (trace ti : Loc) (bt : GoInterfaceOk) (Locked : Puts → IProp GF) (ntok : Nat)
+    (Pw : IProp GF) (fw : val),
+    "Htoks" ∷ ownTokAuthDfrac γ.revs (DFrac.own (1 : Qp).half) ntok ∗
+    "%Hbudget" ∷ ⌜ilog.length + ntok + 3 ≤ 2 ^ 63⌝ ∗
+    "Htok" ∷ revToken γ ∗
+    "Htw" ∷ tw ↦ ({
+        storeTxnCommon' := {
+          s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace },
+        tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
+        changes' := chs } : storeTxnWrite) ∗
+    "Hcap" ∷ ownSliceCap Loc chs (DFrac.own 1) ∗
+    "%Hps" ∷ ⌜ps.length = pend.length ∧ ps.length = sint.nat chs.len ∧ 0 ≤ sint.Z chs.len⌝ ∗
+    "#Hs" ∷ isStore s γ ∗
+    "#Hidx" ∷ s.[store, go!"kvindex"] ↦□
+      (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
+    "#Hhook" ∷ hookIs γ Pw fw ∗
+    "#Hbt" ∷ batchTxSpec bt (bucketView γ) (writerRes s γ) Locked Pw fw ∗
+    "Hlocked" ∷ Locked (pendPuts ilog pend) ∗
+    "Hw" ∷ idxWriterB γ.idx ilog pend sealed ∗
+    "Hclog" ∷ ghostVar γ.clog (1 : Qp).half ilog ∗
+    "Hcur" ∷ (s.[store, go!"currentRev"] ↦{DFrac.own (1 : Qp).half}
+      (W64 ((ilog.length : Int) - 1) : w64) : IProp GF) ∗
+    "Hbv" ∷ bucketView γ (1 : Qp).half (bucketMap ilog) ∗
+    "#Hcert" ∷ idxCert γ.idx ilog ∗
+    "%Hne" ∷ ⌜ilog ≠ []⌝ ∗
+    "Hmu" ∷ sync.ownRWMutexRLocked (muAddr s) muInv ∗
+    "HrevMu" ∷ sync.ownRWMutex (revMuAddr s) (revMuInv s γ) ∗
+    "Hti" ∷ idxReader ti γ.idx ∗
+    "%Htrnn" ∷ ⌜trace ≠ null⌝)
+
+/-- The write transaction as its core, its `changes` and their key-values. -/
+theorem storeTxnWriteIs_split (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change) :
+    storeTxnWriteIs (GF := GF) tw s γ ilog pend ⊢
+      ∃ (chs : GoSlice) (ps : List Loc), storeTxnWriteCore tw s γ ilog pend chs ps false ∗
+        chs ↦* ps ∗ changesAre ps ilog pend := by
+  iintro Htw
+  iunfold storeTxnWriteIs at Htw
+  iNamed Htw
+  ihave %Hlen := ownSlice_len _ _ _ $$ Hchs
+  iexists chs, ps
+  iframe Hchs Hkvs
+  iunfold storeTxnWriteCore
+  iexists trace, ti, bt, Locked, ntok, Pw, fw
+  simp only [named, idxWriterB_false]
+  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
+  iframe #
+  ipureintro; exact ⟨Hbudget, ⟨Hps, Hlen.1, Hlen.2⟩, Hne, Htrnn⟩
+
+theorem storeTxnWriteIs_join (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
+    (chs : GoSlice) (ps : List Loc) :
+    storeTxnWriteCore (GF := GF) tw s γ ilog pend chs ps false ∗ chs ↦* ps ∗
+      changesAre ps ilog pend ⊢ storeTxnWriteIs tw s γ ilog pend := by
+  iintro ⟨Hc, Hchs, Hkvs⟩
+  iunfold storeTxnWriteCore at Hc
+  iNamed Hc
+  simp only [idxWriterB_false]
+  iunfold storeTxnWriteIs
+  iexists trace, ti, bt, Locked, chs, ps, ntok, Pw, fw
+  simp only [named]
+  iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
+  iframe #
+  ipureintro; exact ⟨Hbudget, Hps.1, Hne, Htrnn⟩
+
+/-- **Seal** the write transaction's pending revision (not empty): its history's lower bound
+with the revision committed, persistent. -/
+theorem storeTxnWriteCore_seal (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
+    (chs : GoSlice) (ps : List Loc) (hne : pend ≠ []) :
+    storeTxnWriteCore (GF := GF) tw s γ ilog pend chs ps false ==∗
+      storeTxnWriteCore tw s γ ilog pend chs ps true ∗
+        monoListLbOwn γ.idx.hist (histOf (ilog ++ [pend])) := by
+  iintro Hc
+  iunfold storeTxnWriteCore at Hc
+  iNamed Hc
+  simp only [idxWriterB_false]
+  imod idxWriter_seal γ.idx ilog pend hne $$ Hw with ⟨Hw, #Hlb⟩
+  imodintro
+  iframe Hlb
+  iunfold storeTxnWriteCore
+  iexists trace, ti, bt, Locked, ntok, Pw, fw
+  simp only [named, idxWriterB_true]
+  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
+  iframe #
+  ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
+
+/-- The write transaction's facts: the writer's log is well formed, and its committed log is
+the store's view of `currentRev` (kept). -/
+theorem storeTxnWriteCore_wf (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
+    (chs : GoSlice) (ps : List Loc) (b : Bool) :
+    storeTxnWriteCore (GF := GF) tw s γ ilog pend chs ps b ⊢
+      storeTxnWriteCore tw s γ ilog pend chs ps b ∗
+        ⌜IdxWf ilog pend ∧ ps.length = pend.length ∧ ps.length = sint.nat chs.len ∧
+          0 ≤ sint.Z chs.len ∧ ilog ≠ []⌝ := by
+  iintro Hc
+  iunfold storeTxnWriteCore at Hc
+  iNamed Hc
+  ihave %Hwf := idxWriterB_wf γ.idx ilog pend b $$ Hw
+  isplitl
+  · iunfold storeTxnWriteCore
+    iexists trace, ti, bt, Locked, ntok, Pw, fw
+    simp only [named]
+    iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
+    iframe #
+    ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
+  ipureintro; exact ⟨Hwf, Hps.1, Hps.2.1, Hps.2.2, Hne⟩
+
 /-- The write transaction `store.Write` returns, as the caller sees it: the `metricsTxnWrite`
 wrapper at `mw` (its counters `puts`, `deletes`, `putSize`) around the `storeTxnWrite`. -/
 def isTxnWrite (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
@@ -766,6 +946,58 @@ def isTxnWrite (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
         TxnWrite' := interface.mkOk (go.GoType.PointerType storeTxnWrite.ty) #tw,
         ranges' := ranges, puts' := puts, deletes' := deletes, putSize' := putSize } : metricsTxnWrite) ∗
     "Htw" ∷ storeTxnWriteIs tw s γ ilog pend)
+
+/-- The write transaction at `mw` without its key-values (`storeTxnWriteCore`). -/
+def isTxnWriteCore (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
+    (puts deletes putSize : w64) (chs : GoSlice) (ps : List Loc) (sealed : Bool) : IProp GF :=
+  iprop(∃ (tw : Loc) (ranges : w64),
+    "Hmw" ∷ mw ↦ ({
+        TxnWrite' := interface.mkOk (go.GoType.PointerType storeTxnWrite.ty) #tw,
+        ranges' := ranges, puts' := puts, deletes' := deletes, putSize' := putSize } : metricsTxnWrite) ∗
+    "Htw" ∷ storeTxnWriteCore tw s γ ilog pend chs ps sealed)
+
+theorem isTxnWrite_split (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
+    (puts deletes putSize : w64) :
+    isTxnWrite (GF := GF) mw s γ ilog pend puts deletes putSize ⊢
+      ∃ (chs : GoSlice) (ps : List Loc),
+        isTxnWriteCore mw s γ ilog pend puts deletes putSize chs ps false ∗
+        chs ↦* ps ∗ changesAre ps ilog pend := by
+  iintro H
+  iunfold isTxnWrite at H
+  iNamed H
+  icases storeTxnWriteIs_split tw s γ ilog pend $$ Htw with ⟨%chs, %ps, Hc, Hchs, Hkvs⟩
+  iexists chs, ps
+  iframe Hchs Hkvs
+  iunfold isTxnWriteCore
+  iexists tw, ranges
+  iframe
+
+theorem isTxnWrite_join (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
+    (puts deletes putSize : w64) (chs : GoSlice) (ps : List Loc) :
+    isTxnWriteCore (GF := GF) mw s γ ilog pend puts deletes putSize chs ps false ∗
+      chs ↦* ps ∗ changesAre ps ilog pend ⊢ isTxnWrite mw s γ ilog pend puts deletes putSize := by
+  iintro ⟨H, Hchs, Hkvs⟩
+  iunfold isTxnWriteCore at H
+  iNamed H
+  iunfold isTxnWrite
+  iexists tw, ranges
+  iframe Hmw
+  iapply storeTxnWriteIs_join $$ [$Htw $Hchs $Hkvs]
+
+theorem isTxnWriteCore_seal (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
+    (puts deletes putSize : w64) (chs : GoSlice) (ps : List Loc) (hne : pend ≠ []) :
+    isTxnWriteCore (GF := GF) mw s γ ilog pend puts deletes putSize chs ps false ==∗
+      isTxnWriteCore mw s γ ilog pend puts deletes putSize chs ps true ∗
+        monoListLbOwn γ.idx.hist (histOf (ilog ++ [pend])) := by
+  iintro H
+  iunfold isTxnWriteCore at H
+  iNamed H
+  imod storeTxnWriteCore_seal tw s γ ilog pend chs ps hne $$ Htw with ⟨Htw, #Hlb⟩
+  imodintro
+  iframe Hlb
+  iunfold isTxnWriteCore
+  iexists tw, ranges
+  iframe
 
 /-- The log a write transaction commits at `End`: the pending revision appended, if it has a
 change (else no revision is made). -/
@@ -785,6 +1017,26 @@ inductive TxnKind where
 def isTxn (mw s : Loc) (γ : StoreNames) : TxnKind → IProp GF
   | .read log rev => isTxnRead mw s γ log rev
   | .write ilog pend puts deletes putSize => isTxnWrite mw s γ ilog pend puts deletes putSize
+
+/-- What `End` needs of a transaction (`metricsTxnWrite.End`): a read transaction; a write
+transaction's core (its key-values released: `isTxnWrite_split`), sealed or not. -/
+def isTxnEnd (mw s : Loc) (γ : StoreNames) : TxnKind → IProp GF
+  | .read log rev => isTxnRead mw s γ log rev
+  | .write ilog pend puts deletes putSize =>
+    iprop(∃ (chs : GoSlice) (ps : List Loc) (sealed : Bool),
+      isTxnWriteCore mw s γ ilog pend puts deletes putSize chs ps sealed)
+
+/-- A transaction is ready to end (its key-values, if any, dropped). -/
+theorem isTxn_toEnd (mw s : Loc) (γ : StoreNames) (kind : TxnKind) :
+    isTxn (GF := GF) mw s γ kind ⊢ isTxnEnd mw s γ kind := by
+  cases kind with
+  | read log rev => exact .rfl
+  | write ilog pend puts deletes putSize =>
+    simp only [isTxn, isTxnEnd]
+    iintro H
+    icases isTxnWrite_split mw s γ ilog pend puts deletes putSize $$ H with ⟨%chs, %ps, Hc, -, -⟩
+    iexists chs, ps, false
+    iexact Hc
 
 /-- What `End` leaves of a transaction: nothing of a read one; of a write one, the
 certificate of the committed log, and the revision token back if no revision was made. -/

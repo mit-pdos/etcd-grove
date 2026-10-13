@@ -4,7 +4,7 @@
 module
 
 public import Spec.sort.Sort
-public import Perennial.Proof.sort_proof.sortInterface
+public import Perennial.Proof.sort
 
 @[expose] public section
 

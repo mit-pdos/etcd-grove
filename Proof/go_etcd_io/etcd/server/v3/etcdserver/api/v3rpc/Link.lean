@@ -30,10 +30,6 @@ public import Proof.google_golang_org.grpc.status.Error
 public import Proof.google_golang_org.grpc.status.Errorf
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base
-public import Spec.go_etcd_io.etcd.pkg.v3.adt.NewIntervalTree
-public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__InsertAny
-public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Intersects
-public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Union
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Link
 
@@ -65,6 +61,10 @@ theorem wp_NewKVServer :
 theorem wp_checkDeleteRequest :
     EtcdGrove.v3rpc.checkDeleteRequest.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.checkDeleteRequest.wp_proof
+
+theorem wp_checkIntervals :
+    EtcdGrove.v3rpc.checkIntervals.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.checkIntervals.wp_proof adt.wp_NewIntervalTree adt.wp_NewStringAffineInterval adt.wp_NewStringAffinePoint adt.intervalTree.wp_Insert adt.intervalTree.wp_Intersects adt.intervalTree.wp_Union
 
 theorem wp_checkPutRequest :
     EtcdGrove.v3rpc.checkPutRequest.spec (GF := GF) (hG := hG) :=
@@ -130,31 +130,11 @@ theorem kvServer.wp_Range :
     EtcdGrove.v3rpc.kvServer.Range.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.kvServer.Range.wp_proof wp_checkRangeRequest wp_togRPCError header.wp_fill
 
-end links
-
-/-! The results that reach a function specified but not proved yet (a later unit's):
-its spec is a hypothesis (`h_<fn>`) of each of them. -/
-section links_pending
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-variable (h_adt_NewIntervalTree : EtcdGrove.adt.NewIntervalTree.spec (GF := GF) (hG := hG))
-variable (h_adt_intervalTree__InsertAny : EtcdGrove.adt.intervalTree.InsertAny.spec (GF := GF) (hG := hG))
-variable (h_adt_intervalTree__Intersects : EtcdGrove.adt.intervalTree.Intersects.spec (GF := GF) (hG := hG))
-variable (h_adt_intervalTree__Union : EtcdGrove.adt.intervalTree.Union.spec (GF := GF) (hG := hG))
-include h_adt_NewIntervalTree h_adt_intervalTree__InsertAny h_adt_intervalTree__Intersects h_adt_intervalTree__Union
-
-theorem wp_checkIntervals :
-    EtcdGrove.v3rpc.checkIntervals.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.checkIntervals.wp_proof h_adt_NewIntervalTree adt.wp_NewStringAffineInterval adt.wp_NewStringAffinePoint h_adt_intervalTree__InsertAny h_adt_intervalTree__Intersects h_adt_intervalTree__Union
-
 theorem kvServer.wp_Txn :
     EtcdGrove.v3rpc.kvServer.Txn.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.kvServer.Txn.wp_proof wp_checkTxnRequest (wp_checkIntervals h_adt_NewIntervalTree h_adt_intervalTree__InsertAny h_adt_intervalTree__Intersects h_adt_intervalTree__Union) wp_togRPCError header.wp_fill
+  EtcdGrove.v3rpc.kvServer.Txn.wp_proof wp_checkTxnRequest wp_checkIntervals wp_togRPCError header.wp_fill
 
-end links_pending
+end links
 
 end v3rpc
 end EtcdGrove

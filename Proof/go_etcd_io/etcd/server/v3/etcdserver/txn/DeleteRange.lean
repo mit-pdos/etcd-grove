@@ -56,7 +56,7 @@ theorem txn.DeleteRange.wp_proof
   · ipureintro; rfl
   iintro %fsl ⟨Hfsl, -⟩
   (try wp_auto)
-  wp_apply (hEnsure ctx cd lg _ _) $$ [$Hctx] as %ctx' %t ⟨%Ht, %vs, #Hctx'⟩
+  wp_apply (hEnsure ctx cd lg _ _) $$ [$Hctx] as %ctx' %t ⟨%Ht, %vs, #Hctx', -⟩
   (try wp_auto)
   -- `kv.Write(trace)`: the store's
   iunfold txn.isKV at Hkv
@@ -87,12 +87,13 @@ theorem txn.DeleteRange.wp_proof
     ipureintro; exact hb
   rw [txn.pendState_nil]
   simp only [List.nil_append]
-  icases Hout with (⟨%Herr, ⟨%deletes', Htx⟩, #Hresp⟩ | ⟨%Hne, Htx⟩)
+  icases Hout with (⟨%Herr, ⟨%deletes', Htx⟩, #Hresp, Hhdr⟩ | ⟨%Hne, Htx⟩)
   · -- deleted: the deferred `End` commits (if something was deleted)
     ihave Htx : mvcc.isTxn mw s γ (.write ilog (txn.delChanges (mvcc.stateAfter ilog) o) (W64 0)
         deletes' (W64 0)) $$ [Htx]
     · simp only [mvcc.isTxn]; iexact Htx
     (try wp_auto)
+    ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
     wp_apply (hEnd mw s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost⟩
     · iapply mvcc.txnEndPre_write; iframe Hhook HP
     simp only [mvcc.txnEndPost]
@@ -107,12 +108,13 @@ theorem txn.DeleteRange.wp_proof
     isplitl []
     · ipureintro; exact ⟨Hpin, Hfx.1⟩
     ileft
-    iframe Hresp Hc Htok
+    iframe Hresp Hhdr Hc Htok
     ipureintro; exact Herr
   · -- the range read's context error: nothing written, the token back
     ihave Htx : mvcc.isTxn mw s γ (.write ilog [] (W64 0) (W64 0) (W64 0)) $$ [Htx]
     · simp only [mvcc.isTxn]; iexact Htx
     (try wp_auto)
+    ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
     wp_apply (hEnd mw s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost⟩
     · iapply mvcc.txnEndPre_write; iframe Hhook HP
     simp only [mvcc.txnEndPost, mvcc.commitLog, ↓reduceIte]

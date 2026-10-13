@@ -18,12 +18,12 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/register/(Link|Results)\.le
 # opaque (untranslated) variable initializers (notes/STATUS.md, "Adequacy of the register's
 # driver"). Written by `--check --update` after a full build.
 axiom reflect.DeepEqual.wp_proof
-sorry Perennial.crypto.rand.wp_initialize'
+sorry Perennial.crypto.rand.initialize'.wp_proof
 sorry Perennial.errors.wp_errorType_init
 sorry Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize'
-sorry Perennial.log.wp_initialize'
-sorry Perennial.math.big.wp_initialize'
-sorry Perennial.math.wp_initialize'
+sorry Perennial.log.initialize'.wp_proof
+sorry Perennial.math.big.initialize'.wp_proof
+sorry Perennial.math.initialize'.wp_proof
 sorry Perennial.os.wp_initialize'
 sorry Perennial.strconv.wp_initialize'
-sorry Perennial.time.wp_initialize'
+sorry Perennial.time.initialize'.wp_proof

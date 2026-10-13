@@ -123,8 +123,11 @@ proto_MarshalIRR:
 # `Value` at `traceutil.StartTimeKey` (Perennial's `isContext` specifies `Value` only at
 # `&cancelCtxKey`), and `errors.Is` of a context's error against `context.Canceled` /
 # `DeadlineExceeded` (no error tree for a context's `Err`; `DeadlineExceeded` is not a pointer).
+# And (unit 3a) a done context's `Err()` is `Canceled` or `DeadlineExceeded` (Go's contract of
+# `Context.Err`; Perennial's `isContext` says only "a typed error").
 context_ValueStartTime:
 errors_IsCtxErr:
+context_ErrDone:
 # (reused from the Links that define them: mvcc's span, the apply package's `WithValue`)
 trace_SpanFromContext:
 context_WithValue:
@@ -154,23 +157,50 @@ EtcdServer__FeatureEnabled:
 EtcdServer__AuthStore:
 EtcdServer__AuthInfoFromCtx: EtcdServer__AuthStore
 EtcdServer__parseProposeCtxErr: errors_IsCtxErr time_Time__After EtcdServer__getLead EtcdServer__MemberID RaftCluster__Members etcdserver_isConnectedToQuorumSince etcdserver_isConnectedSince
-EtcdServer__processInternalRaftRequestOnce: EtcdServer__getAppliedIndex EtcdServer__getCommittedIndex EtcdServer__FeatureEnabled exceedsRequestLimit idutil_Generator__Next EtcdServer__AuthInfoFromCtx getRequestType proto_MarshalIRR config_ServerConfig__ReqTimeout trace_SpanFromContext EtcdServer__parseProposeCtxErr strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues
+EtcdServer__processInternalRaftRequestOnce: EtcdServer__getAppliedIndex EtcdServer__getCommittedIndex EtcdServer__FeatureEnabled exceedsRequestLimit idutil_Generator__Next EtcdServer__AuthInfoFromCtx getRequestType proto_MarshalIRR config_ServerConfig__ReqTimeout trace_SpanFromContext EtcdServer__parseProposeCtxErr context_ErrDone strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues
 EtcdServer__raftRequest: EtcdServer__processInternalRaftRequestOnce trace_SpanFromContext context_ValueStartTime traceutil_Trace__GetStartTime traceutil_Trace__SetStartTime traceutil_Trace__InsertStep traceutil_Trace__LogIfLong
 EtcdServer__Put: EtcdServer__raftRequest PutRequest__GetKey traceutil_Tracer__Start trace_WithAttributes attribute_String context_WithValue
 EtcdServer__DeleteRange: EtcdServer__raftRequest DeleteRangeRequest__GetKey DeleteRangeRequest__GetRangeEnd traceutil_Tracer__Start trace_WithAttributes attribute_String
-# The rest of the request path (unit 3, the read side; Txn, whose span attributes call the
-# first* loops), with a first guess of their callees.
-# EtcdServer__KV:
-# EtcdServer__Cluster:
-# EtcdServer__getTerm:
-# EtcdServer__Term: EtcdServer__getTerm
-# EtcdServer__Leader: EtcdServer__getLead
-# EtcdServer__LinearizableReadNotify:
-# EtcdServer__newHeader: membership_RaftCluster__ID EtcdServer__MemberID EtcdServer__KV EtcdServer__Term EtcdServer__Leader
-# firstCompareKey: Compare__GetKey
-# firstOpKey: RequestOp__GetRequest PutRequest__GetKey RangeRequest__GetKey DeleteRangeRequest__GetKey
-# firstOpType: RequestOp__GetRequest
-# firstOpLease: RequestOp__GetRequest PutRequest__GetLease
-# EtcdServer__doSerialize: traceutil_Get EtcdServer__AuthInfoFromCtx traceutil_Trace__Step
-# EtcdServer__Txn: txn_IsTxnReadonly traceutil_Tracer__Start trace_WithAttributes firstCompareKey firstOpKey firstOpType firstOpLease attribute_String attribute_Int64 attribute_Int attribute_Bool traceutil_EnsureTrace txn_IsTxnSerializable EtcdServer__LinearizableReadNotify traceutil_Trace__Step apply_CheckTxnAuth txn_WarnOfExpensiveReadOnlyTxnRequest traceutil_Trace__LogIfLong strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues txn_Txn EtcdServer__doSerialize context_WithValue EtcdServer__raftRequest
-# EtcdServer__Range: traceutil_Tracer__Start trace_WithAttributes attribute_String attribute_Int64 attribute_Bool traceutil_EnsureTrace txn_WarnOfExpensiveReadOnlyRangeRequest traceutil_Trace__AddField traceutil_Trace__LogIfLong strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues EtcdServer__LinearizableReadNotify traceutil_Trace__Step txn_Range EtcdServer__doSerialize
+# The request path's read side and Txn (unit 3b, 2026-10-12; see InvRead.lean): the txn
+# package's, the apply package's and mvcc's functions it calls (`@`: linked in their Link.lean;
+# the traceutil functions are the txn package's, reused).
+txn_Range: @
+txn_Txn: @
+txn_IsTxnReadonly: @
+txn_IsTxnSerializable: @
+apply_CheckTxnAuth: @
+mvcc_store__Rev: @
+traceutil_EnsureTrace:
+traceutil_Get:
+traceutil_Trace__Step:
+traceutil_Trace__AddField:
+# etcdserverpb's getters the read side's trace attributes call, with bodies (proved).
+Compare__GetKey:
+RangeRequest__GetKey:
+RangeRequest__GetRangeEnd:
+RangeRequest__GetRevision:
+RangeRequest__GetLimit:
+RangeRequest__GetCountOnly:
+RangeRequest__GetKeysOnly:
+TxnRequest__GetCompare:
+TxnRequest__GetSuccess:
+TxnRequest__GetFailure:
+RequestOp__GetRequest:
+PutRequest__GetLease:
+# The server's getters (the response header's), the read loop's delegation, the span
+# attributes' loops (tracing.go), newHeader.
+EtcdServer__KV:
+EtcdServer__Cluster:
+EtcdServer__getTerm:
+EtcdServer__Term: EtcdServer__getTerm
+EtcdServer__Leader: EtcdServer__getLead
+EtcdServer__LinearizableReadNotify:
+EtcdServer__newHeader: membership_RaftCluster__ID EtcdServer__MemberID EtcdServer__KV mvcc_store__Rev EtcdServer__Term EtcdServer__Leader
+firstCompareKey: Compare__GetKey
+firstOpKey: RequestOp__GetRequest PutRequest__GetKey RangeRequest__GetKey DeleteRangeRequest__GetKey
+firstOpType: RequestOp__GetRequest
+firstOpLease: RequestOp__GetRequest PutRequest__GetLease
+# doSerialize, Range and Txn (both branches), unit 3b.
+EtcdServer__doSerialize: traceutil_Get EtcdServer__AuthInfoFromCtx traceutil_Trace__Step
+EtcdServer__Range: traceutil_Tracer__Start trace_WithAttributes attribute_String attribute_Int64 attribute_Bool RangeRequest__GetKey RangeRequest__GetRangeEnd RangeRequest__GetRevision RangeRequest__GetLimit RangeRequest__GetCountOnly RangeRequest__GetKeysOnly EtcdServer__Logger traceutil_EnsureTrace txn_WarnOfExpensiveReadOnlyRangeRequest traceutil_Trace__AddField traceutil_Trace__LogIfLong strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues traceutil_Trace__Step EtcdServer__KV txn_Range EtcdServer__doSerialize
+EtcdServer__Txn: txn_IsTxnReadonly traceutil_Tracer__Start trace_WithAttributes TxnRequest__GetCompare firstCompareKey attribute_String TxnRequest__GetSuccess firstOpKey firstOpType firstOpLease attribute_Int64 attribute_Int TxnRequest__GetFailure attribute_Bool EtcdServer__Logger traceutil_EnsureTrace txn_IsTxnSerializable traceutil_Trace__Step apply_CheckTxnAuth txn_WarnOfExpensiveReadOnlyTxnRequest traceutil_Trace__LogIfLong strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues EtcdServer__KV txn_Txn EtcdServer__doSerialize context_WithValue EtcdServer__raftRequest

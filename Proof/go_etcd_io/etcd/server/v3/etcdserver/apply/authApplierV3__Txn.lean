@@ -55,7 +55,7 @@ theorem apply.authApplierV3.Txn.wp_proof
     iapply HΦ
     iapply apply.auth_reject_kvPost E c p (.ok bi) rq log _ Pre Q Post hk $$ Happ [] Hkv [Hinfo]
       Hres Hcs
-    · simp only [apply.txnOutcomeIs, apply.rejErrIs]
+    · simp only [apply.txnAnswerIs, apply.txnOutcomeIs, apply.rejErrIs]
       isplitr
       · ipureintro; trivial
       · iframe HeI; ipureintro; simp

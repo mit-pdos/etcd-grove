@@ -32,7 +32,9 @@ theorem v3rpc.newHeader.wp_proof : v3rpc.newHeader.spec (GF := GF) (hG := hG) :=
   iapply wp_fupd
   ihave #Hkv' := Hkv
   iunfold v3rpc.raftKV at Hkv'
-  icases Hkv' with ⟨-, -, -, -, #HKV, #HCl, #HMid, #Hrs⟩
+  icases Hkv' with ⟨-, -, -, -, #HG⟩
+  iunfold v3rpc.kvGetOk at HG
+  icases HG with ⟨#HKV, #HCl, #HMid, #Hrs⟩
   wp_auto
   wp_apply HCl as %c ⟨%ci, %Hci, #HID⟩
   subst Hci

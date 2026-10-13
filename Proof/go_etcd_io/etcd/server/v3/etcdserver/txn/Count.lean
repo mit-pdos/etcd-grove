@@ -47,16 +47,19 @@ theorem txn.Count.wp_proof
   have heff : (txn.countOp k (txn.rangeEndOf rangeEnd e) revision).effSortOrder = W64 0 := by
     simp [txn.countOp, txn.rangeOpOf, OpFull.effSortOrder]
   wp_apply (hRange ctx cd false lg kv s γ «$a3_ptr» _ false m log₀) $$ [$Hkv $Hrd $Htoks $Hc0 $Hreq $Hctx]
-    as %resp %tr %err ⟨Hrd, Htoks, %Htr, %log, %rev, #Hcert, %Hpin, #Hres, -⟩
+    as %resp %tr %err ⟨Hrd, Htoks, %Htr, %log, %rev, #Hcert, %Hpin, #Hres, -, -⟩
   · isplitr
     · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+    isplitr
+    · ipureintro; exact Hlg
+    isplitr
+    · ipureintro; unfold txn.validSortTarget; simp [txn.countOp, txn.rangeOpOf]
+    iintro !> %log' - -
     ipureintro
-    refine ⟨Hlg, ?_, ?_⟩
-    · unfold txn.validSortTarget; simp [txn.countOp, txn.rangeOpOf]
-    · intro _ _ _ h; rw [heff] at h; rcases h with h | h <;> cases h
+    intro h; rw [heff] at h; rcases h with h | h <;> cases h
   have hrevo : (txn.countOp k (txn.rangeEndOf rangeEnd e) revision).base.rev = revision := rfl
   iunfold txn.rangeResult at Hres
-  icases Hres with (⟨%Hf, %ef, #Hef, %Herr⟩ | %Hce | ⟨%Hok, %kvs, %more, #Hresp, %Hsrv⟩)
+  icases Hres with (⟨%Hf, %ef, #Hef, %Herr⟩ | ⟨%Hce, -⟩ | ⟨%Hok, %kvs, %more, #Hresp, %Hsrv⟩)
   · subst Herr
     wp_auto
     iapply HΦ

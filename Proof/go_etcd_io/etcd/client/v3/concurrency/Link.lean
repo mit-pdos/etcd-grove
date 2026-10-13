@@ -76,6 +76,7 @@ public import Proof.go_etcd_io.etcd.client.v3.WithSort
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.WithLease
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.WithTTL
+public import Proof.fmt.SprintfNamed
 public import Proof.go_etcd_io.etcd.client.v3.getPrefix
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.isKeyCurrent
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.lockerMutex__Lock
@@ -257,6 +258,10 @@ theorem v3.WatchResponse.wp_Err :
     EtcdGrove.WatchResponse.Err.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WatchResponse.Err.wp_proof rpctypes.wp_Error status.wp_Error
 
+theorem fmt.wp_SprintfNamed :
+    EtcdGrove.fmt.SprintfNamed.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.fmt.SprintfNamed.wp_proof
+
 theorem v3.wp_WithFirstCreate :
     EtcdGrove.WithFirstCreate.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithFirstCreate.wp_proof v3.wp_withTop
@@ -330,7 +335,7 @@ theorem wp_waitDeletes :
 
 theorem Election.wp_Campaign :
     EtcdGrove.concurrency.Election.Campaign.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.concurrency.Election.Campaign.wp_proof Session.wp_Client Session.wp_Lease v3.wp_CreateRevision v3.wp_Compare v3.wp_WithLease v3.wp_OpPut v3.wp_OpGet ResponseOp.wp_GetResponseRange Election.wp_Proclaim Election.wp_Resign wp_waitDeletes v3.Client.wp_Ctx
+  EtcdGrove.concurrency.Election.Campaign.wp_proof Session.wp_Client Session.wp_Lease v3.wp_CreateRevision v3.wp_Compare v3.wp_WithLease v3.wp_OpPut v3.wp_OpGet ResponseOp.wp_GetResponseRange Election.wp_Proclaim Election.wp_Resign wp_waitDeletes v3.Client.wp_Ctx fmt.wp_SprintfNamed
 
 theorem Election.wp_Header :
     EtcdGrove.concurrency.Election.Header.spec (GF := GF) (hG := hG) :=
@@ -370,7 +375,7 @@ theorem Mutex.wp_Key :
 
 theorem Mutex.wp_tryAcquire :
     EtcdGrove.concurrency.Mutex.tryAcquire.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.concurrency.Mutex.tryAcquire.wp_proof Session.wp_Client Session.wp_Lease v3.wp_CreateRevision v3.wp_Compare v3.wp_WithLease v3.wp_OpPut v3.wp_OpGet v3.wp_WithFirstCreate ResponseOp.wp_GetResponseRange
+  EtcdGrove.concurrency.Mutex.tryAcquire.wp_proof Session.wp_Client Session.wp_Lease v3.wp_CreateRevision v3.wp_Compare v3.wp_WithLease v3.wp_OpPut v3.wp_OpGet v3.wp_WithFirstCreate ResponseOp.wp_GetResponseRange fmt.wp_SprintfNamed
 
 theorem Mutex.wp_Unlock :
     EtcdGrove.concurrency.Mutex.Unlock.spec (GF := GF) (hG := hG) :=

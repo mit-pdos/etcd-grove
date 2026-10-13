@@ -1980,6 +1980,68 @@ record.
   `max` augmentation, the in-order list) and proves the triples, without changing any
   result's statement. *Rejected:* writing the representation invariant in unit 1b (unit 4's
   hardest design decision before any client exercises the contract).
+- **Two corrections found by the tree's proof** (2026-10-12, unit 4a). (a) *The nodes' pairs
+  are not read-only*: `Delete`'s two-children case copies the successor's `iv` into the deleted
+  node (`z.iv = y.iv`, CLRS), so a `↦□` of a node's pair is unsound with `Delete` — a client
+  holding `&z.iv` for good would later read another entry there. `Find` and `Stab` now *lend*
+  the pointers at the tree's fraction with a wand giving `ownIvt` back (`p ↦{q} … ∗ (p ↦{q} …
+  -∗ ownIvt t L q)`; `Stab`: a big-sep of the pointers and one wand); the watcher group reads
+  `iv.Val` right after the call and returns the pointers before its next tree operation. (b)
+  *`Stab` is wrong for a degenerate query*: `visit`'s pruning (`[node.begin, node.max)` against
+  the query) misses entries when the query has `begin ≥ end` with a non-empty `begin` (a
+  two-node counterexample: `[1, 10)` under `[5, 4)`, query `[5, 5)`); `Stab`'s spec takes
+  `⌜b = "" ∨ affLt b e⌝`, which the only query the group makes, the point `[key, key ++ "\x00")`,
+  satisfies. `Intersects` needs no premise (checked). Neither is an etcd bug: the client never
+  holds a pointer across a delete nor stabs a degenerate interval.
+- **The count's bound** (4a → 4b): `ownIvt` keeps `L.length < 2^63` because `Stab` returns
+  `nil` on `count == 0` (a wrapped count would hide entries); `Insert` cannot establish it from
+  the heap, so its spec takes `L.length + 1 < 2^63`, which the watcher group proves from its
+  map's size bound (every interval has a member: `RangesOk`). `RbOk` is kept although no spec
+  uses it: it is what makes the fixups provable in 4b/4c.
+- **The watcher budget** (2026-10-12, 4b): the group cannot bound its size (Perennial's maps
+  are bounded only at `len`, by assumption), so the bound is a resource, as the revision
+  budget: `New` returns `2^63 - 3` watcher tokens, the stream's `Watch` spends one per watcher
+  (`WatchParams.T`), the lock invariant keeps `live + unspent + 3 ≤ 2^63`; a cancel refunds
+  nothing (a client that creates `2^63 - 3` watchers runs out, the truth about the program).
+  *Rejected:* an axiom "a tree holds fewer than `2^63` entries", like Perennial's map
+  assumption (smallest change, one more model assumption).
+- **Duplicates in the tree** (2026-10-12, 4b; asked by the request path's session:
+  `v3rpc.checkIntervals` inserts the same range twice, a legal request): the tree's invariant
+  is non-strict (equal intervals in insertion order among equals, as the code's descent goes
+  right of an equal), `Insert` takes no distinctness premise (so it is their `InsertAny`), and
+  `Find`/`Delete` promise *some* entry with the interval (the code's `find` returns the topmost
+  duplicate; which one `Delete` removes is not determined) — the watcher group, with one
+  interval per range, recovers `find?`/`eraseP` by uniqueness. Their `Union` spec must also take
+  the fraction and the count bound. Done at the merge (2026-10-12): `Union` takes `L.length + L'.length < 2^63`,
+  which `checkIntervals` gets from a premise on the request (`delCount`, the deletes at every depth,
+  in `txnReqWire`): nested transactions may share structure in memory, so no slice length bounds it.
+- **The visitor's position** (2026-10-12, 4d; the third correction found by the tree's proof).
+  `Visit`'s closure protocol (`ivVisitorOk q ivv I`: the visitor takes `I acc` and the lent pair,
+  gives `I (acc ++ [(p, z)])`) held for any `acc`, so a visitor could not know how many entries it
+  had seen; `Union`'s visitor calls `Insert`, whose count-bound premise needs that number below
+  the other tree's size. The protocol now names the entries the visitor will see, `S` (`Visit`
+  passes `stab (b, e) L`), and each call carries `⌜acc.map Prod.snd ++ [z] <+: S⌝`; the
+  internal `visit` takes `S` with the premise that `acc` and its subtree's stabbed entries are a
+  prefix of it. *Rejected:* a count bound as a premise of `Union` on the *sum* only, with the
+  closure's invariant carrying the bound (it cannot: the invariant is over `acc`, whose length
+  the old protocol did not relate to `L'`); an `ownIvt t L q` with the bound `L.length <
+  2^63 - (something)` (changes every spec). No client of `Visit` but `Stab` and `Union`.
+- **The hole's frames have locations** (2026-10-12, 4c). 4b's `ownCtx t s C n p mh` quantified
+  the frames' nodes existentially: enough for `Insert` (the fixup only moves up, by reading
+  `parent`), not for `Delete`, which reads a node back after a helper has walked up through
+  its frame (`z` after `y.parent.updateMax`, to write `z.iv = y.iv`; `x.parent` after
+  `rotateLeft(x.parent)` in the fixup's case 1 and `rotateRight(w)` in case 3). The helpers'
+  specs now index the path by its frames' locations (`ownPathAt … ls …`, `ownCtxAt`, kept by
+  `updateMax`, `replaceParent` and the rotations; the rotations also give the rotated-down
+  node's fields back explicitly), and `find` returns the node under its path rather than
+  behind a wand; the existential forms are derived lemmas, so 4b's proofs stand. *Rejected:*
+  re-finding `z` by a second descent (not what the code does) and a separate predicate for
+  `Delete` only (two hole predicates to keep in step). **The sentinel as `x`**: CLRS's `x`
+  may be the sentinel (the spliced node had no child), whose `parent` the splice writes and
+  whose colour the fixup's exit writes; `sentAt s x p` (`∃ v, s ↦ v ∗ ⌜x = s → v.parent = p⌝`)
+  carries the one field the fixup reads, and `ownSentinel`'s existential absorbs the rest.
+  `successor`'s walk up the parents (a node without a right child) is never reached by
+  `Delete` (two children) and is not specified.
 
 ### The watcher group and the stream (unit 2)
 
@@ -2100,6 +2162,34 @@ theorem).
   `storeReader`, since `store.Rev` opens a read transaction), passed through the stream's
   `Rev`/`RequestProgress`/`RequestProgressAll`; `watch` and the stream's `Watch` take
   `0 ≤ startRev`.
+- **Refinements for 3b** (2026-10-12): the backend contract's range read (`keyRangeReadSpec`,
+  bbolt's cursor order: the bytes order, which `u64Be` makes the revisions' order) is a
+  strengthening of a premise (`isKeyBackend` is `NewStore`'s), so no proof changed; `store.Close`
+  is a trust-boundary axiom with a close-once right (`storeCloser`), as `restore`; tickers are
+  axioms faithful to Go (`Reset` and `NewTicker` need a positive duration), and `time.Since` is
+  assumed positive — the honest statement of a real hazard (`issues/
+  etcd-watch-sync-ticker-reset-zero.md`) rather than a total `Reset` that would be false;
+  the watcher group's all-watchers map is explicit (`ownWatcherGroupAt`) where a loop ranges
+  over it while deleting; the notified log is a prefix of the certified one (`σ.Lmu <+: C`),
+  which is all the sync machinery needs.
+- **3c, the theorem's form** (2026-10-12): the guarantee is a persistent fact the receive
+  lemma yields per response (`watchRecvOk`), not a statement over the whole channel history:
+  the client holds only its received prefix and the channel's invariant, and each receive
+  extends the fact; the theorems relate it to any certificate of the committed log (the history
+  lower bounds are comparable), so a client that also reads the store gets the delivered events
+  as the committed log's. The deliveries' revision cuts (`delivsCut`) are in the invariant
+  because a received prefix of the flattened events must end at a revision boundary to be
+  stated as `watchEvents … lo d`. *Rejected:* a theorem over `sent` (the sender's view: the
+  client never holds it); per-delivery bounds in `Deliv` itself (every 3a/3b proof building a
+  delivery would change; the cut as a separate persistent clause touched three).
+- **The post-lock hook** (2026-10-12, the third merge with `lean`; "mvcc: the batch lock runs
+  the hook"): the watchable store's write path takes the hook's resources exactly as the inner
+  calls do, nothing of its own: `watchableStore.Write` takes `hookIs γ.st P f ∗ Pre ∗ □ {P ∗
+  Pre} f() {Q}` and returns `Q` (as `store.Write`); `watchableStoreTxnWrite.End` takes
+  `hookIs γ.st P f ∗ P` (what the inner `metricsTxnWrite.End`'s `txnEndPre` needs). The hook
+  lives in the inner store's transaction (`storeTxnWriteCore` carries `hookIs γ Pw fw`, `End`
+  makes `P` agree with `Pw` by `hookIs_agree_lc`), so `isWatchTxnWrite` is unchanged, and the
+  caller's update (`Q ={⊤}=∗ P ∗ Post`) stays the caller's, between `Write` and `End`.
 
 ## mvcc: the log of changes as the model, the key index as a function of its events
 
@@ -3560,6 +3650,72 @@ gRPC checks discharge the txn package's request premises.
   (raft's `Node` and `None`, rafthttp's `Transporter`, otel's `Tracer`: imports and a constant
   only) rather than axiomatizing loads of axiomatized types.
 
+**2026-10-12 · unit 3a implemented** (the handoff gaps; `Put`/`DeleteRange` end to end):
+
+- **The header's id fields: a separate, non-persistent conjunct** (unit 3a). The txn package
+  allocates the response header (`&pb.ResponseHeader{}` in `put`/`deleteRange`); its four id
+  fields go owned through `txn.respHdrOwn hf` beside the response's read-only predicate
+  (`putResponseIs`, unchanged and persistent), then the apply package's `appliedHdr log hf` (the
+  four fields, and the log at least `NewStore`'s two revisions with room for the write, so the
+  response's revision is not `0`: `soleWriter` now keeps `2 ≤ log.length`), wrapped with the
+  persistent outcome as `putAnswerIs`/`deleteAnswerIs` (the chain's triples, `dispatchAnswer`),
+  through the wait's handoff (`resultΨ`, `appliedOk`: resources, nothing kept them under `□`), to
+  `EtcdServer.Put`/`DeleteRange`'s success. *Rejected:* the fields inside `putOutcomeIs` (it is
+  persistent and named by many layers; the handler's `A.ok` keeps it while `hdrW` takes the
+  fields); `Txn` and `Range` (their headers are `newTxnResp`'s and `executeRange`'s: unit 3b).
+- **The error facts in `applyErrIs`** (unit 3a). `applyErrIs err` gains `errKeyMsg err`: `nil`,
+  or a safe key of `togRPCError`'s map (`SafeMapKey`) whose `Error()` returns (`errMsgOk`). Every
+  producer discharges it: `nil`; the `errors.New` variables (`errVarLeaf` keeps the message
+  triple, `errors.wp_New`'s; a pointer error is a safe key, `safeMapKey_ptrErr`); the contracts'
+  errors (the auth store's, the lessor's: premises, now stronger). So `srvErrIs` is `applyErrIs`
+  of a non-nil error (`srvErrIs_of_applyErrIs`). The proposal's errors needed it too, which the
+  plan missed: the auth store's `AuthInfoFromCtx` and raft's `Propose` contracts return
+  `applyErrIs` errors, `proto.MarshalIRR`'s error is one (protobuf-go's pointer errors), and
+  `parseProposeCtxErr` returns only its variables: its `default` branch returns `cctx.Err()`,
+  an error Perennial's `isContext` says only "typed" of, so **a new trust-boundary axiom**
+  `context.ErrDone` (a done context's `Err()` is `Canceled` or `DeadlineExceeded`, Go's
+  documented contract of `Context.Err`) and `errors.IsCtxErr` strengthened (`true` when the error
+  is the target, Go's `Is` compares first) make the branch unreachable. *Rejected:* a conjunct
+  beside `applyErrIs` on the server's path (every apply-side producer already had the facts; one
+  predicate is simpler); a premise that every typed error is a safe key (false: an error of an
+  uncomparable type).
+- **`raftKV` per method; the server's parameters** (unit 3a, `ServerKV.lean`). `raftKV s A` is
+  now `kvRangeOk ∗ kvPutOk ∗ kvDeleteOk ∗ kvTxnOk ∗ kvGetOk` (the handlers take their conjunct);
+  `srvKVAns s E ρ A0` instantiates `A` for the write path (`srvCall`: the context, one id credit,
+  a `leadTimeMu` reader slot, given back in `putAppliedOk`/`putErrOk`) and defers `Range`, `Txn`,
+  `revR` to `A0` (3b's); `raftKV_of_server` proves the `Put`/`DeleteRange` conjuncts from the
+  linked `EtcdServer.Put`/`DeleteRange` with the other three as premises. `KV().Rev()` stays in
+  `kvGetOk` (3b): `header.fill` never calls it on these answers (their revision is not `0`).
+
+**2026-10-12 · unit 3b implemented** (the read side and `Txn`; the server's contract discharged):
+
+- **`txn.Txn`: two triples by caller** (unit 3b, `Spec/.../txn/Txn.lean`). The apply thread's
+  (`specSole`: the sole writer, a never-done context) and the server's read-only transactions'
+  (`specRead`: a reader's slots and tokens, a certificate, any context), `Txn.spec := specSole ∧
+  specRead`, proved together; `executeTxn`/`txn.txn` take a never-done flag (`false` only for
+  read-only runs) and a context-error outcome. *Rejected:* a premise that the request's context is
+  never done (false of gRPC contexts); a separate spec file per caller (one Hoare triple per Go
+  function: the conjunction is one spec).
+- **The context error through Perennial's `fmt.Errorf`** (unit 3b). Perennial models
+  `fmt.Errorf` as `errors.New(format)` (no `%w`): the read side's context error is an
+  `*errors.errorString` leaf (`mvcc.errorfIs`, in mvcc's `rangeOutcome` and txn's `rangeResult`),
+  and `applyErrIs` of it needs only that `*errorString` has no `Is`/`As`/`Unwrap` (a method-set
+  fact, a package-fact premise in `srvErrVars`). *Rejected:* modelling the wrap in etcd-grove (it
+  is Perennial's trusted model; the gap is recorded: Go's `togRPCError` maps the wrapped context
+  error to `ErrGRPCCanceled`, the model's to `codes.Unknown`, and the handlers' specs say only
+  "an error"); a trust-boundary axiom for the error.
+- **Request premises in the handlers' contract** (unit 3b, `KVAns.pre`). The server's read-only
+  `Txn` is within the txn package's model only for gets at revision `0` whose sort is not cut
+  early (`txnInModel`): a pure premise per request, which `A.call ctx` (per context) could not
+  carry. *Rejected:* `call` taking the request (a resource per request was not needed).
+- **The store stays small, a premise of the readers** (`storeSmall`, unit 3b): the sort's bound
+  (`LogSmall`) of every certified log; `txn.Range`'s sort premise is asked of certified logs only.
+  The apply thread has the same premise per entry (`rangeOk`, `TxnPre`). *Rejected:* a premise on
+  every log (vacuous for sorted reads).
+- **`srvKVAns` concrete** (unit 3b): 3a's `A0` replaced by the read side's names (`γr`, `c`); every
+  call resource comes back with every answer but a write's id credit; `revR` is the store's reader
+  slots (`KV().Rev()` is `store.Rev`), which `fill` never needs on the server's answers.
+
 ## The server's raft wrapper: raft.Node as a contract, an SPSC stream to the apply side
 
 **2026-10-12 · plan, carried out the same day** (`server/v3/etcdserver/raft.go`, ~450 Go lines; branch `server-raft`; `STATUS.md`, "etcd's server: the raft wrapper"). Two changes in the proof: the WAL's `Close` succeeds by the contract (else `onStop` panics in the loop's goroutine), and `start` case-splits `islead` rather than joining (the follower's select returns on `stopped`, which no join assertion reaches).
@@ -3761,3 +3917,47 @@ Units 2 and 3 carried the plan out (`STATUS.md`, "The backend"); the proofs chan
   Perennial's `os.FileMode` alias), so the invariants' allocation is assumed by whoever creates
   `isBackend`; `batchTx.Commit`/`CommitAndStop` (dead: `batchTxBuffered` overrides them);
   `UnsafeForEach` (three functions), the snapshot, the hash and defragmentation.
+
+---
+
+## Perennial `a54e1999f`, not its `lean`
+
+**2026-10-12 · accepted (decided with the user)**
+
+**Decision:** pin Perennial `a54e1999f` (its proof layout), not its current `lean`
+(`d0324b842`). Since `3fbe65749` Perennial's model does not propagate a panic to the caller, so
+etcd's STM, which recovers `stm.fetch`'s and `commit`'s panics in `runSTM`, is not provable
+there. The calls Perennial's new `ArgsWf` excludes (errors, `Duration`s, `LeaseID` as `fmt`
+arguments; a context's `Err()` formatted) are trust-boundary axioms and strengthened
+assumptions, each listed in `STATUS.md` ("Perennial `a54e1999f`") to be replaced by proofs.
+
+**Rejected:** axioms for the STM at `d0324b842` (the model's code is stuck where `fetch`
+panics; an axiom that `runSTM` returns would contradict it and could derive `False`); the STM's
+specs restated in Perennial's "stuck" style (a premise equivalent to `▷ False`: vacuous results
+that look verified); waiting for Perennial to propagate panics before any bump (the layout
+change broke etcd-grove's imports now). The port to `d0324b842` is kept on branch
+`perennial-d0324-wip`.
+
+---
+
+## `fmt.Errorf`'s `%w` errors: the model's body, not the axiom
+
+**2026-10-13 · accepted (the merge of `origin/lean`, Perennial `a54e1999f`)**
+
+**Decision:** the two `fmt.Errorf("...: %w", err)` calls whose error reaches the gRPC layer
+(`mvcc.storeTxnCommon.rangeKeys`' `ctx.Err()`, the txn package's `executeTxn` wrapping it) keep
+`mvcc.wp_Errorf_errorfIs`, which steps into Perennial's model of `Errorf` (`errors.New(format)`,
+an `*errors.errorString`), not etcd-grove's trust-boundary axiom `fmt.Errorf.wp_proof`. The
+request path needs `applyErrIs` of the error, which asks for a leaf (no `Unwrap`) pointer error;
+the axiom gives only that `Error()` returns, and extending it with the leaf would be false of
+Go, whose `%w` error is a `*fmt.wrapError` whose `Unwrap` `errors.Is` follows. A pointer-type
+clause (true of Go) does not give `applyErrIs`.
+
+**Rejected:** the axiom with an `errLeaf` clause (false of Go for `%w`); the axiom with Go's
+error tree (`Unwrap` returning the `%w` argument): `applyErrIs` of the tree would need the
+context error's tree, and `context.DeadlineExceeded` is a non-pointer error, which `applyErrIs`'
+`TreeTyped` (for every target, `DeadlineExceeded` included) cannot describe; that is a redesign
+of `applyErrIs` (targets restricted to pointer errors), not a merge. So the request path's error
+facts for a canceled read rest on Perennial's model, which Perennial documents as not modeling
+`%w` (`Perennial/TrustedCode/fmt.lean`): the known gap, `notes/STATUS.md`, "Merge of
+`origin/lean` (Perennial `a54e1999f`)".

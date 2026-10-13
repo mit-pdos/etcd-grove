@@ -376,9 +376,10 @@ theorem rangeResult_txn (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev :
     · exact h
     · rw [hrev0, h00] at h; omega
   unfold rangeResult
-  iintro (⟨%H, -⟩ | %H | ⟨%H, %kvs, %more, #Hresp, %Hok⟩)
+  iintro (⟨%H, -⟩ | ⟨%H, #He⟩ | ⟨%H, %kvs, %more, #Hresp, %Hok⟩)
   · rw [hrev0, h00] at H; omega
-  · exact absurd herr' H.2.2.2.2
+  · ihave %Hne := mvcc.errorfIs_ne_nil err $$ He
+    exact absurd herr' Hne
   · rw [hRR] at Hok
     rw [hRR]
     obtain ⟨kvs', h1, h2, -⟩ := srvRangeOk_rangeKvsOk o _ kvs more hset Hok hcut
@@ -501,10 +502,12 @@ theorem wp_txnWrite_Changes (hCh : mvcc.metricsTxnWrite.Changes.spec (GF := GF) 
     iapply (hCh mw s γ ilog pend puts deletes putSize) $$ [Htx]
     · simp only [mvcc.isTxn] at *; iframe Htx Hpkg
     inext
-    iintro %chs ⟨%Hl, Htx⟩
+    iintro %chs %ps ⟨Hchs, Hkvs, %Hps, Htx⟩
+    ihave %Hl := ownSlice_len _ _ _ $$ Hchs
+    ihave Htx := mvcc.isTxnWrite_join mw s γ ilog pend puts deletes putSize chs ps $$ [$Htx $Hchs $Hkvs]
     iapply HΦ
     isplitl []
-    · ipureintro; exact Hl
+    · ipureintro; rw [← Hps]; exact ⟨Hl.1.symm, Hl.2⟩
     iunfold txnWriteIs
     iexists _
     isplitl

@@ -50,6 +50,7 @@ the tests; the issues and pull requests are filed by hand from them. A finding t
 | [etcd-txn-delete-then-ignore-put](etcd-txn-delete-then-ignore-put.md) | bug (a committed entry panics every member, and again on every restart) | `txn-delete-then-ignore-put` (d9ba0e03c) | txn (unit 3), 2026-10-12 |
 | [etcd-range-sort-none-limit](etcd-range-sort-none-limit.md) | bug | `range-sort-none-limit` (7362d4129) | txn (unit 2), 2026-10-11 |
 | [etcd-range-keys-only-lease](etcd-range-keys-only-lease.md) | bug (regression in v3.7, 7624a8a2e) | `range-keys-only-lease` (01e522548) | txn (unit 2), 2026-10-11 |
+| [etcd-watch-sync-ticker-reset-zero](etcd-watch-sync-ticker-reset-zero.md) | bug (a panic on a coarse monotonic clock: Windows) | none | mvcc watchable store (unit 3b), 2026-10-12 |
 | [etcd-apply-lease-checkpoint-sections](etcd-apply-lease-checkpoint-sections.md) | bug | `lease-checkpoint-one-section` (2a163496c) | apply (unit 1), 2026-10-12 |
 
 Findings without a draft yet (`notes/STATUS.md`, the leasing sections): `gatherOps` appending
@@ -81,5 +82,10 @@ found 2026-10-12, backend unit 1; not filed).
 commit it can serve a deleted key (a reader in `Unlock`'s window) or an old value of a key the
 pre-commit hook rewrote (deterministic); no wrong mvcc result known (reproduced twice; found
 2026-10-12, backend unit 2; not filed).
+
+[go-itab-reinterpret-assert](go-itab-reinterpret-assert.md): in Go itself, a type assertion
+on an `I1` value read through a `*I2` (two named interfaces with the same methods) panics with
+"main.I2 is main.T, not main.T", since the runtime compares itabs (found 2026-10-13, Perennial's
+byte-memory review, round 3; unclear what in Go should change; not filed).
 Leads not yet assessed: the gRPC proxy's cache (`server/proxy/grpcproxy/cache/store.go`) builds
 its intervals as `checkIntervals` did, so a cached from-key range may never be invalidated.

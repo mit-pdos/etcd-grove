@@ -454,7 +454,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
     simp only [↓reduceIte]
     icases Hrecv with ⟨HP, Hwcons⟩
     (try wp_auto)
-    wp_apply wp_Err wr_ptr wv (DFrac.own 1) $$ [$wr] as %werr ⟨wr, %Herr⟩
+    wp_apply wp_Err wr_ptr wv (DFrac.own 1) $$ [$wr] as %werr ⟨wr, %Herr, -⟩
     obtain ⟨e', rfl⟩ | rfl : (∃ e', werr = GoInterface.ok e') ∨ werr = GoInterface.nil := by
       cases werr with
       | ok e' => exact Or.inl ⟨e', rfl⟩

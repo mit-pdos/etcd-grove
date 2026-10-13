@@ -57,16 +57,18 @@ theorem v3rpc.kvServer.Txn.wp_proof
     (hFill : v3rpc.header.fill.spec (GF := GF) (hG := hG)) :
     v3rpc.kvServer.Txn.spec (GF := GF) (hG := hG) := by
   intro p s A cid mid n ctx r cs ts es
-  wp_start as ⟨#Hsrv, Hcall, #Hr, #Hwire⟩
+  wp_start as ⟨#Hsrv, Hcall, #Hr, #Hwire, %Hpre⟩
   ihave #Hsrv' := Hsrv
   iunfold v3rpc.kvServerIs at Hsrv'
   icases Hsrv' with ⟨%Hpn, #Hhdr, #Hkv, #Hn, #HKV⟩
   iunfold v3rpc.raftKV at HKV
-  icases HKV with ⟨-, -, -, #HTxn, -, -, -, -⟩
+  icases HKV with ⟨-, -, -, #HTxn, -⟩
+  iunfold v3rpc.kvTxnOk at HTxn
   ihave #Hr' := Hr
   iunfold v3rpc.txnReqIs at Hr'
   icases Hr' with ⟨%Hrn, %csl, %ssl, %fsl, %cps, %sps, %fps, -, -, -, #Hs, #Hssl, #Hss, #Hf, #Hfsl, #Hfs⟩
   iunfold v3rpc.txnReqWire at Hwire
+  icases Hwire with ⟨%Hdc, #Hwire⟩
   ihave ⟨#Hsw, #Hfw⟩ := Hwire $$ %ssl %fsl %sps %fps Hs Hssl Hf Hfsl
   wp_auto
   wp_apply hChk $$ [] as %err #Herr
@@ -92,7 +94,7 @@ theorem v3rpc.kvServer.Txn.wp_proof
     subst Herr
     wp_auto
     wp_apply (hIv ssl sps ts) $$ [] as %m1 %t1 %e1 Hiv1
-    · iframe #
+    · iframe #; ipureintro; exact Hdc.1
     cases hts : v3rpc.ivCheck ts with
     | none =>
       iunfold txn.errVarIs at Hiv1
@@ -112,7 +114,7 @@ theorem v3rpc.kvServer.Txn.wp_proof
       subst He1
       wp_auto
       wp_apply (hIv fsl fps es) $$ [] as %m2 %t2 %e2 Hiv2
-      · iframe #
+      · iframe #; ipureintro; exact Hdc.2
       cases hes : v3rpc.ivCheck es with
       | none =>
         iunfold txn.errVarIs at Hiv2
@@ -134,9 +136,9 @@ theorem v3rpc.kvServer.Txn.wp_proof
         wp_apply HTxn $$ [Hcall] as %resp %err' Hans
         · iframe; iframe #
           ipureintro
-          exact ⟨hc, by simp [v3rpc.intervalsOk, hts], by simp [v3rpc.intervalsOk, hes]⟩
+          exact ⟨hc, by simp [v3rpc.intervalsOk, hts], by simp [v3rpc.intervalsOk, hes], Hpre⟩
         iunfold v3rpc.kvAnswer at Hans
-        icases Hans with (⟨%Hok, %h, %rv, #Hhf, Hw, Hrev, HA⟩ | ⟨%Hrn, #Hse, HA⟩)
+        icases Hans with (⟨%Hok, %h, %rv, #Hhf, Hw, Hrev, HA⟩ | ⟨#Hse, HA⟩)
         · obtain ⟨He, Hrn⟩ := Hok
           subst He
           wp_auto
@@ -156,7 +158,6 @@ theorem v3rpc.kvServer.Txn.wp_proof
         · ihave #Hse' := Hse
           iunfold v3rpc.srvErrIs at Hse'
           icases Hse' with ⟨%Hen, -⟩
-          subst Hrn
           cases err' with
           | nil => exact absurd rfl Hen
           | ok ei =>

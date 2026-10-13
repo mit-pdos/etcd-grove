@@ -38,6 +38,7 @@ theorem apply.applierV3backend.Txn.wp_proof
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
   icases Hpre with ⟨%Hrq, #Hr, ⟨Hrd, Hsw, #Hknown⟩, Hres, Hcs⟩
+  icases txn.soleWriter_len' _ _ $$ Hsw with ⟨%Hl2, Hsw⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
@@ -50,7 +51,7 @@ theorem apply.applierV3backend.Txn.wp_proof
   iunfold apply.isApplyLessor at Hle
   icases Hle with ⟨#Hle, -⟩
   obtain ⟨ht, hk, hpre⟩ := Hrq
-  wp_apply (hTxn todoCtxVal mvcc.neverCd opts.Logger' r opts.TxnModeWriteWithSharedBuffer'
+  wp_apply (hTxn.1 todoCtxVal mvcc.neverCd opts.Logger' r opts.TxnModeWriteWithSharedBuffer'
       opts.KV' opts.Lessor' skip E.s E.γ log t E.P Pre Q Post E.f) $$ [$Hrd $Hsw $Hcs]
     as %resp %trace %err ⟨Hrd, Hout⟩
   · iframe #
@@ -61,7 +62,7 @@ theorem apply.applierV3backend.Txn.wp_proof
     ipureintro; exact hpre
   iapply HΦ
   iunfold apply.kvPost
-  icases Hout with (⟨%Herr, #He, Hsw, HPre⟩ | ⟨%Hok, #Hresp, Hsw, #Hknown', HPP⟩)
+  icases Hout with (⟨%Herr, #He, Hsw, HPre⟩ | ⟨%Hok, #Hresp, Hhdr, Hsw, #Hknown', HPP⟩)
   · -- checkTxn's error
     iexists (.rejected .backend)
     isplitr
@@ -69,7 +70,7 @@ theorem apply.applierV3backend.Txn.wp_proof
       unfold apply.chainStep apply.backendStep
       rw [hk]
       exact ⟨t, ht, Or.inl rfl⟩
-    simp only [apply.txnOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
+    simp only [apply.txnAnswerIs, apply.txnOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
     iframe Hres He
     isplitl []
     · ipureintro; exact Herr.1
@@ -84,11 +85,11 @@ theorem apply.applierV3backend.Txn.wp_proof
       unfold apply.chainStep apply.backendStep
       rw [hk]
       exact ⟨t, ht, Or.inr ⟨rfl, Hok.2.2⟩⟩
-    simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, apply.Outcome.logAfter,
-      Bool.false_eq_true, ↓reduceIte, txn.srvRunTxn]
-    iframe Hres Hresp
+    simp only [apply.txnAnswerIs, apply.txnOutcomeIs, apply.noSpaceErrIs, apply.Outcome.logAfter,
+      Bool.false_eq_true, ↓reduceIte, txn.srvRunTxn, apply.appliedHdr]
+    iframe Hres Hresp Hhdr
     isplitl []
-    · ipureintro; exact Hok.1
+    · ipureintro; exact ⟨Hok.1, Hl2, hpre.1⟩
     isplitl [Hrd Hsw]
     · iunfold apply.kvOwn; iframe; iframe #
     cases txn.txnReadonly t

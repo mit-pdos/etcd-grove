@@ -53,8 +53,8 @@ theorem v3rpc.togRPCError.wp_proof
   iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ctxCanceledPtr at Hcanc
   icases Hcanc with ⟨%ec, #Hec, %Hecp⟩
   wp_auto
-  iunfold applyErrIs at HIs
-  ihave ⟨%S, %M, #Htree, %HS⟩ := HIs $$ %(GoInterface.ok ec)
+  ihave #HIsT := applyErrIs_tree err $$ HIs
+  ihave ⟨%S, %M, #Htree, %HS⟩ := HIsT $$ %(GoInterface.ok ec)
   wp_apply hIs S M err (GoInterface.ok ec) (fun tii h => by cases h; exact Hecp) HS.2
     $$ [$Htree] as %b1 -
   · iframe #; ipureintro; exact HS.1
@@ -62,7 +62,7 @@ theorem v3rpc.togRPCError.wp_proof
   rotate_left
   · iapply HΦ
     ipureintro; exact Hnn
-  ihave ⟨%S', %M', #Htree', %HS'⟩ := HIs $$ %de
+  ihave ⟨%S', %M', #Htree', %HS'⟩ := HIsT $$ %de
   wp_apply hDE S' M' err de $$ [$Htree'] as %b2 -
   · iframe #; ipureintro; exact HS'.1
   wp_if_destruct
@@ -93,7 +93,7 @@ theorem v3rpc.togRPCError.wp_proof
       simp only [google_golang_org.grpc.codes.OK]
       exact fun h => absurd (go.intoVal_inj h) (by decide)
     inext
-    iintro %e %He
+    iintro %e ⟨%He, -⟩
     wp_auto
     iapply HΦ
     ipureintro; exact He

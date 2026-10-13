@@ -52,7 +52,7 @@ theorem apply.applierV3backend.newHeader.wp_proof
   rw [Hkveq]
   wp_auto
   iunfold txn.soleWriter at Hsw
-  icases Hsw with ⟨#Hcert, Htoks⟩
+  icases Hsw with ⟨#Hcert, Htoks, %Hl2⟩
   wp_apply (hRev E.s rv E.γ (txn.soleBudget log) log) $$ [$Hrd $Htoks]
     as %v ⟨Hrd, Htoks, -⟩
   · iframe #
@@ -66,6 +66,7 @@ theorem apply.applierV3backend.newHeader.wp_proof
   · iunfold txn.soleWriter
     iframe Htoks
     iframe #
+    ipureintro; exact Hl2
   iapply typedPointsto_not_null $$ Hh
 
 end proof

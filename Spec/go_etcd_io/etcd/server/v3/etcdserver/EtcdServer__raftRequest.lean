@@ -39,7 +39,7 @@ abbrev EtcdServer.raftRequest.spec : Prop :=
   {{ (resp err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
           ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ appliedOk E rq' resp) ∨
-       (⌜resp = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗
+       (⌜resp = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
          ((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
             ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ appliedErr E rq' err) ∨
           srvMaybeDeposited ρ rq))) }}

@@ -25,7 +25,7 @@ variable [go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `NewStore(lg, b, le, cfg)` on a fresh backend `b` returns a store `s` (`isStore`) at the
 initial committed log `[[], []]` (revision 0 and `currentRev = 1`, both empty), with its two
-views, all the reader slots of its locks (`storeReader`, one per slot) and the revision budget
+views (owned: `newWatchableStore` overwrites them), all the reader slots of its locks (`storeReader`, one per slot) and the revision budget
 (`2 ^ 63 - 5` tokens: the batch lock's resource `writerRes` needs `ilog.length + ntok + 3 ≤
 2 ^ 63`, with the initial log of length 2), and the index's certificate of the initial log.
 
@@ -38,7 +38,8 @@ views, all the reader slots of its locks (`storeReader`, one per slot) and the r
   store.
 * The backend's batch lock has invariant `P` and runs the post-lock hook `f` (`isKeyBackend`'s
   `P f`, any); the store records them (`hookIs`, returned), for its writers.
-* A `nil` logger is replaced by `zap.NewNop()`'s; the configuration `cfg` is not modelled. -/
+* A `nil` logger is replaced by `zap.NewNop()`'s; the configuration `cfg` is not modelled.
+* The right to close the store once (`storeCloser`: its `stopc` field, owned). -/
 abbrev mvcc.NewStore.spec : Prop :=
   ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (γb γl : GName) (P : IProp GF) (f : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
@@ -50,15 +51,15 @@ abbrev mvcc.NewStore.spec : Prop :=
   {{ (s : Loc), RET #s; ∃ γ : mvcc.StoreNames, ⌜γ.bucket = γb ∧ γ.leases = γl⌝ ∗
       mvcc.isStore s γ ∗ mvcc.hookIs γ P f ∗
       (∃ rv wv : Loc,
-        s.[store, go!"ReadView"] ↦□
+        s.[store, go!"ReadView"] ↦
           (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗
         mvcc.isReadView rv s γ ∗
-        s.[store, go!"WriteView"] ↦□
+        s.[store, go!"WriteView"] ↦
           (interface.mkOk (go.GoType.PointerType writeView.ty) #wv : GoInterface) ∗
         mvcc.isWriteView wv s γ) ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
         mvcc.storeReader s γ) ∗
-      ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] }}
+      ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s }}
 
 end spec
 

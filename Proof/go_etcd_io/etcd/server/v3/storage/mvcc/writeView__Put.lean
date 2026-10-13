@@ -59,6 +59,7 @@ theorem mvcc.writeView.Put.wp_proof
   ihave Htx' : mvcc.isTxn mw s γ (.write ilog [.put k v leaseID] (W64 0 + W64 1) (W64 0)
       (W64 0 + (key.len + value.len))) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
+  ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ $$ Htx'
   -- the caller's update: the lock's invariant back for `Unlock`
   imod Hupd $$ HQ with ⟨HP, HPost⟩
   wp_apply (hEnd mw s γ _) $$ [$Htx' Hhook HP] as ⟨Hrd, Hcert⟩

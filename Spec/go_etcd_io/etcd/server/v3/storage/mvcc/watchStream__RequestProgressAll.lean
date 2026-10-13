@@ -26,9 +26,9 @@ watchers. -/
 abbrev mvcc.watchStream.RequestProgressAll.spec : Prop :=
   ∀ (ws : Loc) (wa : GoInterface) (P : mvcc.WatchParams GF) (γ : GName),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isWatchStream ws wa P γ }}
+      mvcc.isWatchStream ws wa P γ ∗ P.R }}
     (App (Val (ws @!! go.GoType.PointerType watchStream.ty @!! go!"RequestProgressAll")) (Val #()))
-  {{ (b : Bool), RET #b; True }}
+  {{ (b : Bool), RET #b; P.R }}
 
 end spec
 

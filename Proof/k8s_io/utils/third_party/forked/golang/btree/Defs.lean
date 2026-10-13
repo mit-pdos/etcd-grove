@@ -32,7 +32,7 @@ module
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Tree
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Model
 public import GeneratedProof.k8s_io.utils.third_party.forked.golang.btree
-public import Perennial.Proof.sync_proof.mutex
+public import Perennial.Proof.sync
 
 @[expose] public section
 

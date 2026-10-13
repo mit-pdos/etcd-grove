@@ -29,13 +29,14 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **`checkIntervals(reqs)`** of the operations `us`: as `ivCheck` computes it. On `nil`, the
-map's keys are `ivCheck`'s puts and the tree (an owned `*intervalTree`) holds, in some order,
-`ivCheck`'s deletes; otherwise `ErrGRPCDuplicateKey`. The deletes' range ends as off the wire
-(`reqOpsWire`). -/
+map's keys are `ivCheck`'s puts and the tree (an owned `*intervalTree`, the whole tree:
+fraction `1`) holds, in some order, `ivCheck`'s deletes; otherwise `ErrGRPCDuplicateKey`. The
+deletes' range ends as off the wire (`reqOpsWire`), and fewer than `2^63` at every depth
+(`delCount`: the tree's count bound, which `Insert` and `Union` take). -/
 abbrev v3rpc.checkIntervals.spec : Prop :=
   ∀ (sl : GoSlice) (ps : List Loc) (us : List v3rpc.ReqOp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ sl ↦*□ ps ∗ v3rpc.reqOpsIs ps us ∗
-      v3rpc.reqOpsWire ps us }}
+      v3rpc.reqOpsWire ps us ∗ ⌜v3rpc.delCount us < 2 ^ 63⌝ }}
     (App (Val (@! v3rpc.checkIntervals)) (Val #sl))
   {{ (m : Loc) (t err : GoInterface), RET (PairV (PairV #m #t) #err);
       match v3rpc.ivCheck us with
@@ -43,7 +44,7 @@ abbrev v3rpc.checkIntervals.spec : Prop :=
           (∃ M : GMap GoString Unit, m ↦$ M ∗ ⌜∀ k, (M !! k).isSome = true ↔ k ∈ puts⌝) ∗
           (∃ (tl : Loc) (L : List adt.Entry),
             ⌜t = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #tl⌝ ∗
-            adt.ownIvt tl L ∗ ⌜(L.map Prod.fst).Perm ds⌝)
+            adt.ownIvt tl L 1 ∗ ⌜(L.map Prod.fst).Perm ds⌝)
       | none => txn.errVarIs v3rpc.CheckErr.duplicateKey.var err }}
 
 end spec

@@ -31,6 +31,8 @@ usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --txn > Proof/go_etcd_io/etcd/server/v3/etcdserver/txn/Link.lean
        etc/gen-link.py --apply > Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Link.lean
        etc/gen-link.py --v3rpc > Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Link.lean
+       etc/gen-link.py --fmt > Proof/fmt/Link.lean
+       etc/gen-link.py --context > Proof/context/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -81,6 +83,11 @@ functions they call, from etc/link-lean-first-v3rpc.txt, under the package's ass
 include the server's: its Link reaches `EtcdDeps`); as `--apply`, its results are in a namespace
 of their own (`v3rpc`), and the server's, the txn package's and the interval tree's functions are
 `@` callees, linked in their `Link.lean`s.
+`--fmt` and `--context` link etcd-grove's trust boundary of the standard library's `fmt`
+(`Errorf`, `Printf`) and `context` (the `Error()` of `Err()`'s error), from
+etc/link-lean-first-fmt.txt and etc/link-lean-first-context.txt, under those packages' own
+assumptions, so that Links of unrelated packages (the cache's, mvcc's) take them as `@` callees
+instead of each defining the same result.
 **Reuse** (2026-10-12): a callee whose result a Link this one imports already defines, under the
 same name, is imported, not redefined: two Links defining one theorem cannot be imported
 together (the trust report runs Lean on the roots a group of parts reaches together: the
@@ -165,6 +172,11 @@ LEAN_FIRST = {
                   "go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions",
                   "The `client/v3/experimental/recipes` package's proofs and the functions they "
                   "call", [""]),
+    # etcd-grove's trust boundary of `fmt` and `context`, shared by unrelated Links (`@`)
+    "--fmt": ("link-lean-first-fmt.txt", "", "_root_.Perennial.fmt.Assumptions",
+              "etcd-grove's trust boundary of `fmt` (axioms)", [""]),
+    "--context": ("link-lean-first-context.txt", "", "_root_.Perennial.context.Assumptions",
+                  "etcd-grove's trust boundary of `context` (axioms)", [""]),
     # the register example (examples/register): its proofs, over raft's (linked in raft's
     # `Link.lean`, the `@` callees) and the storage model `RegStor` gives
     "--register": ("link-lean-first-register.txt",
@@ -385,7 +397,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 """ + (f"namespace {nsd}\n" if nsd else "") + f"""
-open Iris Iris.BI {opens}
+open Iris Iris.BI{(' ' + opens) if opens else ''}
 """)
     out.append(f"""section links
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

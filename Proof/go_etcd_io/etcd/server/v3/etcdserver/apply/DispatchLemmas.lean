@@ -190,6 +190,26 @@ theorem deleteOutcomeIs_errIs (log : mvcc.Log) (o : OpFull) (resp : Loc) (err : 
   · icases H with ⟨-, H⟩
     iapply noSpaceErrIs_errIs ns err $$ Hv H
 
+theorem putAnswerIs_errIs (log : mvcc.Log) (o : OpFull) (resp : Loc) (err : GoInterface)
+    (oc : Outcome) :
+    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      putAnswerIs log o resp err oc -∗ applyErrIs err := by
+  iintro #Hv H
+  rcases oc with k | ⟨log', ns⟩ <;> simp only [putAnswerIs]
+  · iapply putOutcomeIs_errIs $$ Hv H
+  · icases H with ⟨H, -⟩
+    iapply putOutcomeIs_errIs $$ Hv H
+
+theorem deleteAnswerIs_errIs (log : mvcc.Log) (o : OpFull) (resp : Loc) (err : GoInterface)
+    (oc : Outcome) :
+    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      deleteAnswerIs log o resp err oc -∗ applyErrIs err := by
+  iintro #Hv H
+  rcases oc with k | ⟨log', ns⟩ <;> simp only [deleteAnswerIs]
+  · iapply deleteOutcomeIs_errIs $$ Hv H
+  · icases H with ⟨H, -⟩
+    iapply deleteOutcomeIs_errIs $$ Hv H
+
 theorem rangeOutcomeIs_errIs (log : mvcc.Log) (o : OpFull) (resp : Loc) (err : GoInterface)
     (oc : Outcome) :
     go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
@@ -201,13 +221,14 @@ theorem rangeOutcomeIs_errIs (log : mvcc.Log) (o : OpFull) (resp : Loc) (err : G
     iintro - %h; exact h.elim
   · icases H with ⟨H, %Hne⟩
     iunfold txn.rangeResult at H
-    icases H with (⟨-, %ef, #Hef, %Herr⟩ | %Hce | ⟨%Hok, -⟩)
+    icases H with (⟨-, %ef, #Hef, %Herr⟩ | ⟨%Hce, #Hef⟩ | ⟨%Hok, -⟩)
     · icases Hv with ⟨-, -, -, -, #HF, -⟩
       iapply errVar_applyErrIs _ _ $$ HF
       iexists ef; iframe Hef; ipureintro; exact Herr
-    · exfalso
+    · ihave %Hen := mvcc.errorfIs_ne_nil err $$ Hef
+      exfalso
       rcases Hne with h | h
-      · exact Hce.2.2.2.2 h
+      · exact Hen h
       · have := Hce.1; omega
     · rw [Hok.2]; iapply applyErrIs_nil
 
@@ -229,6 +250,16 @@ theorem txnOutcomeIs_errIs (log : mvcc.Log) (t : TxnModel) (skip : Bool) (resp :
     · iapply errVar_applyErrIs _ _ $$ HCp H
   · icases H with ⟨-, H⟩
     iapply noSpaceErrIs_errIs ns err $$ Hv H
+
+theorem txnAnswerIs_errIs (log : mvcc.Log) (t : TxnModel) (skip : Bool) (resp : Loc)
+    (err : GoInterface) (oc : Outcome) :
+    go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢
+      txnAnswerIs log t skip resp err oc -∗ applyErrIs err := by
+  iintro #Hv H
+  rcases oc with k | ⟨log', ns⟩ <;> simp only [txnAnswerIs]
+  · iapply txnOutcomeIs_errIs $$ Hv H
+  · icases H with ⟨H, -⟩
+    iapply txnOutcomeIs_errIs $$ Hv H
 
 theorem revokeOutcomeIs_errIs (resp : Loc) (err : GoInterface) (oc : Outcome) :
     go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars (GF := GF) ⊢

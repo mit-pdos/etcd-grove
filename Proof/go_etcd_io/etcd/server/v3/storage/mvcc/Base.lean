@@ -133,6 +133,13 @@ def gaugeSpec (g : GoInterfaceOk) : IProp GF :=
 instance gaugeSpec_persistent (g : GoInterfaceOk) : Persistent (gaugeSpec (GF := GF) g) := by
   unfold gaugeSpec; infer_instance
 
+/-- A prometheus `Gauge`'s `Set(x)` returns (the watchable store's `slowWatcherGauge`). -/
+def gaugeSetSpec (g : GoInterfaceOk) : IProp GF :=
+  iprop(□ (∀ x : w64, {{ True }} (App (Val #(methods g.ty go!"Set" g.v)) (Val #x)) {{ RET #(); True }}))
+
+instance gaugeSetSpec_persistent (g : GoInterfaceOk) : Persistent (gaugeSetSpec (GF := GF) g) := by
+  unfold gaugeSetSpec; infer_instance
+
 /-- mvcc's package facts: the error variables `ErrRevisionNotFound` (`key_index.go`),
 `ErrCompacted` and `ErrFutureRev` (`kvstore.go`), each a fixed non-nil error; and the metrics
 of `metrics.go` the KV core updates: the gauge `keysGauge` (the key index), the counters
@@ -143,7 +150,10 @@ them), their values unconstrained (the store's configuration is not modelled); a
 stream's (`watcher.go`): the errors `ErrWatcherNotExist`, `ErrEmptyWatcherRange` and
 `ErrWatcherDuplicateID`, each a fixed non-nil error, and the gauge `watchStreamGauge`; and the
 watcher group's (`watcher_group.go`): `watchBatchMaxRevs`, a `var` for tests only, read-only at
-its initial value `1000`. -/
+its initial value `1000`; and the watchable store's (`watchable_store.go`, `metrics.go`): the
+gauges `watcherGauge`, `slowWatcherGauge` and `pendingEventsGauge`, the `var`s `chanBufLen`
+(`128`), `maxWatchersPerSync` (`512`) and `watchResyncPeriod` (`100 * time.Millisecond`), for
+tests only, read-only at their initial values, and `slowWatcherGauge`'s `Set` (`syncWatchers`). -/
 abbrev mvccInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok e) ∗
@@ -160,7 +170,14 @@ abbrev mvccInit : IProp GF :=
     (∃ e : GoInterfaceOk, globalAddr ErrEmptyWatcherRange ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrWatcherDuplicateID ↦□ GoInterface.ok e) ∗
     (∃ g : GoInterfaceOk, globalAddr watchStreamGauge ↦□ GoInterface.ok g ∗ gaugeSpec g) ∗
-    globalAddr watchBatchMaxRevs ↦□ (W64 1000 : w64))
+    globalAddr watchBatchMaxRevs ↦□ (W64 1000 : w64) ∗
+    (∃ g : GoInterfaceOk, globalAddr watcherGauge ↦□ GoInterface.ok g ∗ gaugeSpec g) ∗
+    (∃ g : GoInterfaceOk, globalAddr slowWatcherGauge ↦□ GoInterface.ok g ∗ gaugeSpec g) ∗
+    (∃ g : GoInterfaceOk, globalAddr pendingEventsGauge ↦□ GoInterface.ok g ∗ gaugeSpec g) ∗
+    globalAddr chanBufLen ↦□ (W64 128 : w64) ∗
+    globalAddr maxWatchersPerSync ↦□ (W64 512 : w64) ∗
+    globalAddr watchResyncPeriod ↦□ (W64 100000000 : w64) ∗
+    (∃ g : GoInterfaceOk, globalAddr slowWatcherGauge ↦□ GoInterface.ok g ∗ gaugeSetSpec g))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc :=
   define_is_pkg_init mvccInit

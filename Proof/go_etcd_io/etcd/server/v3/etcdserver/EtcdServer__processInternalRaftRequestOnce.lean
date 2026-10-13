@@ -16,6 +16,7 @@ public import Spec.google_golang_org.protobuf.proto.MarshalIRR
 public import Spec.go_etcd_io.etcd.server.v3.config.ServerConfig__ReqTimeout
 public import Spec.go_opentelemetry_io.otel.trace.SpanFromContext
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__parseProposeCtxErr
+public import Spec.context.ErrDone
 public import Spec.strconv.FormatBool
 public import Spec.time.Duration__Seconds
 public import Spec.github_com.prometheus.client_golang.prometheus.HistogramVec__WithLabelValues
@@ -74,6 +75,8 @@ local macro "exit_nodep" : tactic => `(tactic| (
   iright
   isplitr
   · ipureintro; exact ⟨rfl, by simp⟩
+  isplitr
+  · first | iexact HaE | iexact HaTMR | iexact HaRTL
   iunfold srvMaybeDeposited
   iexists false
   simp only [Bool.false_eq_true, ↓reduceIte]
@@ -87,6 +90,8 @@ local macro "exit_dep" : tactic => `(tactic| (
   iright
   isplitr
   · ipureintro; exact ⟨rfl, by first | assumption | simp⟩
+  isplitr
+  · first | iexact HaE | iexact HaStop
   iunfold srvMaybeDeposited
   iexists true
   simp only [↓reduceIte]
@@ -120,7 +125,7 @@ local macro "piro_tail" : tactic => `(tactic| (
     as %dsl %merr Hmres
   · iframe #
   (try wp_auto)
-  icases Hmres with (⟨%Hmerr, %bs, %rq', Hbs, Hbscap, %Hbsdec⟩ | %Hmerr)
+  icases Hmres with (⟨%Hmerr, %bs, %rq', Hbs, Hbscap, %Hbsdec⟩ | ⟨%Hmerr, #HaE⟩)
   · subst Hmerr
     (try wp_auto)
     ihave %Hbslen := ownSlice_len _ _ _ $$ Hbs
@@ -190,7 +195,7 @@ local macro "piro_tail" : tactic => `(tactic| (
       iframe Hpf Hau
     (try wp_auto)
     iunfold srvPropRes at Hpres
-    icases Hpres with ⟨#Hdep, -⟩
+    icases Hpres with ⟨⟨#Hdep, -⟩, #HaE⟩
     iunfold waitRecv at Hrecv
     icases Hrecv with ⟨#Hho, Hcons⟩
     iunfold go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec at Hpfcs
@@ -285,12 +290,14 @@ local macro "piro_tail" : tactic => `(tactic| (
         wp_apply HTrig $$ %_ %_ [Hcons]
         · ileft; iexists γh; iframe Hcons Hregd; ipureintro; rfl
         (try wp_auto)
-        wp_apply HErrDone $$ [HCC] as %cerr %Hcerr
-        · iexact HCC
+        wp_apply hED cctx _ $$ [HCC] as %cerr ⟨%Hcerr, #Hcerrv⟩
+        · iframe #
         (try wp_auto)
-        wp_apply hPE s E ρ cerr start Hcerr $$ [Hrd] as %perr ⟨Hrd, %Hperr⟩
+        wp_apply hPE s E ρ cerr start Hcerr $$ [Hrd] as %perr ⟨Hrd, %Hperr, #HaE⟩
         · iframe Hrd
-          iunfold isServerReq; iexists v; iexact Hv
+          isplitl
+          · iunfold isServerReq; iexists v; iexact Hv
+          iexact Hcerrv
         (try wp_auto)
         wp_apply HGDec
         (try wp_auto)
@@ -335,6 +342,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
     (hTO : config.ServerConfig.ReqTimeout.spec (GF := GF) (hG := hG))
     (hSp : trace.SpanFromContext.spec (GF := GF) (hG := hG))
     (hPE : EtcdServer.parseProposeCtxErr.spec (GF := GF) (hG := hG))
+    (hED : context.ErrDone.spec (GF := GF) (hG := hG))
     (hFB : strconv.FormatBool.spec (GF := GF) (hG := hG))
     (hSec : time.Duration.Seconds.spec (GF := GF) (hG := hG))
     (hWL : prometheus.HistogramVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
@@ -376,10 +384,9 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, ⟨⟨%hist, #Hhist⟩, ⟨%pfc, #Hpfc, #Hpfcs⟩, ⟨%ppc, #Hppc, #Hppcs⟩, -,
     ⟨#HTMR, #HRTL, #HStop, -⟩⟩⟩
-  iunfold errVarLeaf at HTMR HRTL HStop
-  icases HTMR with ⟨%eTMR, #HeTMR, %-⟩
-  icases HRTL with ⟨%eRTL, #HeRTL, %-⟩
-  icases HStop with ⟨%eStop, #HeStop, %-⟩
+  ihave ⟨%eTMR, #HeTMR, #HaTMR⟩ := errVarLeaf_get _ $$ HTMR
+  ihave ⟨%eRTL, #HeRTL, #HaRTL⟩ := errVarLeaf_get _ $$ HRTL
+  ihave ⟨%eStop, #HeStop, #HaStop⟩ := errVarLeaf_get _ $$ HStop
   wp_apply hEx ai ci p rq en $$ []
   · iframe #
   cases hx : exceedsLimit ai ci rq.leaseRevoke.isSome en
@@ -405,7 +412,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
       have hla : la = null := Hlan.2 hau
       (try wp_auto)
       wp_if_destruct
-      · wp_apply hAuth s v.auth v.cca ctx cd $$ [] as %au %aerr Hau
+      · wp_apply hAuth s v.auth v.cca ctx cd $$ [] as %au %aerr ⟨Hau, #HaE⟩
         · iframe #
           iunfold mvcc.txnCtx; iright; iexact Hctx
         (try wp_auto)
@@ -417,6 +424,8 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
           iright
           isplitr
           · ipureintro; exact ⟨rfl, by simp⟩
+          isplitr
+          · iexact HaE
           iunfold srvMaybeDeposited
           iexists false
           simp only [Bool.false_eq_true, ↓reduceIte]
@@ -443,6 +452,8 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
     iright
     isplitr
     · ipureintro; exact ⟨rfl, by simp⟩
+    isplitr
+    · iexact HaTMR
     iunfold srvMaybeDeposited
     iexists false
     simp only [Bool.false_eq_true, ↓reduceIte]

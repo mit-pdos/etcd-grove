@@ -6,9 +6,10 @@ tree's contract".
 
 An interval is a pair `(begin, end)` of Go strings, `[begin, end)`, under the affine order
 `affCmp` (`StringAffineComparable.Compare`: `""` is +∞). The tree holds a list of entries
-(an interval and the `any` value stored with it), distinct intervals in the tree's order
-`ivlLt` (by begin, then end: `Insert` descends left when the new interval is below the node's,
-right otherwise, and rotations and the successor-based delete keep the in-order sequence).
+(an interval and the `any` value stored with it), sorted by the tree's order `ivlLt` (by begin,
+then end), equal intervals allowed, in insertion order among equals (`Insert` descends left when
+the new interval is below the node's, right otherwise, so after the equal ones; rotations and the
+successor-based delete keep the in-order sequence).
 `ivlCmp` is `Interval.Compare` (overlap is `0`), `stab` the entries a query overlaps.
 -/
 module
@@ -164,6 +165,22 @@ theorem affLt_trichotomy (a b : GoString) : affLt a b ∨ a = b ∨ affLt b a :=
     · exact Or.inl ((affCmp_neg_iff a b).1 hn)
     · exact Or.inr (Or.inr ((affCmp_neg_iff b a).1 (by omega)))
 
+/-- A string is below its proper extensions. -/
+theorem strLt_append (a b : GoString) (hb : b ≠ []) : go.GoStringLt a (a ++ b) := by
+  induction a with
+  | nil =>
+    cases b with
+    | nil => exact absurd rfl hb
+    | cons y ys => exact List.Lex.nil
+  | cons x xs ih => exact List.Lex.cons ih
+
+/-- The point query `NewStringAffinePoint key = [key, key ++ "\x00")` is not empty-and-finite:
+its begin is `""` (above everything: it overlaps nothing) or below its end. -/
+theorem point_ok (key : GoString) : key = go!"" ∨ affLt key (key ++ go!"\x00") := by
+  by_cases h : key = go!""
+  · exact Or.inl h
+  · exact Or.inr ⟨h, Or.inr (strLt_append key _ (by simp))⟩
+
 theorem ivlLt_iff (x y : IvlS) :
     ivlLt x y ↔ affLt x.1 y.1 ∨ (x.1 = y.1 ∧ affLt x.2 y.2) := by
   unfold ivlLt
@@ -192,6 +209,29 @@ theorem ivlLt_trichotomy (x y : IvlS) : ivlLt x y ∨ x = y ∨ ivlLt y x := by
     · exact Or.inr (Or.inr (Or.inr ⟨h.symm, h'⟩))
   · exact Or.inr (Or.inr (Or.inl h))
 
+theorem ivlLt_asymm {x y : IvlS} (h : ivlLt x y) : ¬ ivlLt y x :=
+  fun h' => ivlLt_irrefl x (ivlLt_trans h h')
+
+/-- `≤` of the tree's order (as `¬ >`) is transitive. -/
+theorem ivlLe_trans {x y z : IvlS} (h1 : ¬ ivlLt y x) (h2 : ¬ ivlLt z y) : ¬ ivlLt z x := by
+  intro h
+  rcases ivlLt_trichotomy x y with h' | rfl | h'
+  · exact h2 (ivlLt_trans h h')
+  · exact h2 h
+  · exact h1 h'
+
+theorem ivlLt_of_lt_of_le {x y z : IvlS} (h1 : ivlLt x y) (h2 : ¬ ivlLt z y) : ivlLt x z := by
+  rcases ivlLt_trichotomy x z with h | rfl | h
+  · exact h
+  · exact absurd h1 h2
+  · exact absurd (ivlLt_trans h h1) h2
+
+theorem ivlLt_of_le_of_lt {x y z : IvlS} (h1 : ¬ ivlLt y x) (h2 : ivlLt y z) : ivlLt x z := by
+  rcases ivlLt_trichotomy x z with h | rfl | h
+  · exact h
+  · exact absurd h2 h1
+  · exact absurd (ivlLt_trans h2 h) h1
+
 /-! ## `Insert` -/
 
 section entries
@@ -212,6 +252,13 @@ theorem mem_ivtInsert (z x : Entry) (L : List Entry) : x ∈ ivtInsert z L ↔ x
 theorem length_ivtInsert (z : Entry) (L : List Entry) :
     (ivtInsert z L).length = L.length + 1 := by
   rw [(ivtInsert_perm z L).length_eq, List.length_cons]
+
+/-- `Union`'s inserts, one by one: the count grows by the number inserted. -/
+theorem length_foldl_ivtInsert (zs L : List Entry) :
+    (zs.foldl (fun acc z => ivtInsert z acc) L).length = L.length + zs.length := by
+  induction zs generalizing L with
+  | nil => rfl
+  | cons z zs ih => rw [List.foldl_cons, ih, length_ivtInsert, List.length_cons]; omega
 
 /-- `Insert` keeps the entries sorted (by their intervals, strictly), given that the new
 interval is not in the tree. -/

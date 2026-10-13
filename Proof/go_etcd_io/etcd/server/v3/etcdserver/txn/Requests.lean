@@ -321,6 +321,19 @@ instance rangeResponseIs_persistent (resp : Loc) (rev : w64) (kvs : List EtcdKv)
     (count : w64) : Persistent (rangeResponseIs (GF := GF) resp rev kvs more count) := by
   unfold rangeResponseIs; infer_instance
 
+/-- **The response header at the field `hf`, its four id fields owned** (not persistent; beside a
+response's read-only predicate, `putResponseIs`, ...): the header the field points to, not nil,
+its `ClusterId`, `MemberId`, `RaftTerm` and `LeaderId` owned (any values: the txn package's
+`&pb.ResponseHeader{}` leaves them `0`). The gRPC layer's `header.fill` writes them
+(`v3rpc.hdrW`); the txn package, which allocates the header, hands them over through the apply
+thread's result (2026-10-12, the request path's unit 3a). -/
+def respHdrOwn (hf : Loc) : IProp GF :=
+  iprop(∃ h : Loc, hf ↦□ h ∗ ⌜h ≠ null⌝ ∗ ∃ (c m t l : w64),
+    structFieldRef etcdserverpb.ResponseHeader go!"ClusterId" h ↦ c ∗
+    structFieldRef etcdserverpb.ResponseHeader go!"MemberId" h ↦ m ∗
+    structFieldRef etcdserverpb.ResponseHeader go!"RaftTerm" h ↦ t ∗
+    structFieldRef etcdserverpb.ResponseHeader go!"LeaderId" h ↦ l)
+
 /-- **The `*pb.PutResponse` `resp`** (not nil, read-only): header revision `rev`, and the
 previous key-value `prev` (`PrevKv`: nil for `none`). -/
 def putResponseIs (resp : Loc) (rev : w64) (prev : Option EtcdKv) : IProp GF :=

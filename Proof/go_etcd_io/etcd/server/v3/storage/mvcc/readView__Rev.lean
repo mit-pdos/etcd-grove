@@ -71,6 +71,7 @@ theorem mvcc.readView.Rev.wp_proof
     iframe #
   ihave Htx' : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
+  ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ $$ Htx'
   ihave Hep : mvcc.txnEndPre γ (.read log rev) $$ []
   · simp only [mvcc.txnEndPre]; itrivial
   wp_apply (hEnd mw s γ (.read log rev)) $$ [$Htx' $Hep] as ⟨Hrd, -⟩

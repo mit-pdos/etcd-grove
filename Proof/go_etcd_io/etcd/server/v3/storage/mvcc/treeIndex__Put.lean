@@ -91,7 +91,7 @@ theorem mvcc.treeIndex.Put.wp_proof
   have hrevm : rev.Main' = W64 ilog.length := congrArg mvcc.Rev.main Hrev
   have hrevs : rev.Sub' = W64 pend.length := congrArg mvcc.Rev.sub Hrev
   have hev : mvcc.evOfChange ilog.length pend.length (.put k v l) =
-      { rev := ⟨W64 ilog.length, W64 pend.length⟩, key := k, tomb := false } := rfl
+      { rev := ⟨W64 ilog.length, W64 pend.length⟩, change := .put k v l } := rfl
   have hwf'' : mvcc.IdxWf ilog (pend ++ [.put k v l]) :=
     ⟨Hwf', Hlen, by simp; omega, Hcs⟩
   have hidxnew : mvcc.indexOf (mvcc.evsOf (ilog ++ [pend ++ [.put k v l]])) =

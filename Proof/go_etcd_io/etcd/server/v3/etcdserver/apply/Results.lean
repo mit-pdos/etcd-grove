@@ -208,7 +208,7 @@ theorem chain_put (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
         {{ putPre E (alarmChain ns cr) (.ok ai) r rq o log Pre Q Post }}
           (App (Val #(methods ai.ty go!"Put" ai.v)) (Val #r))
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-            ∃ oc : Outcome, ⌜alarmPut ns cr o log oc⌝ ∗ putOutcomeIs log o resp err oc ∗
+            ∃ oc : Outcome, ⌜alarmPut ns cr o log oc⌝ ∗ putAnswerIs log o resp err oc ∗
               kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain ns cr) (.ok ai) ∗ (Post ∨ Pre) }}) := by
   iintro #Hs
   iunfold applierSpec at Hs
@@ -247,7 +247,7 @@ theorem chain_deleteRange (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
         {{ deletePre E (alarmChain ns cr) (.ok ai) r rq o log Pre Q Post }}
           (App (Val #(methods ai.ty go!"DeleteRange" ai.v)) (Val #r))
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-            ∃ oc : Outcome, ⌜alarmDelete cr o log oc⌝ ∗ deleteOutcomeIs log o resp err oc ∗
+            ∃ oc : Outcome, ⌜alarmDelete cr o log oc⌝ ∗ deleteAnswerIs log o resp err oc ∗
               kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain ns cr) (.ok ai) ∗ (Post ∨ Pre) }}) := by
   iintro #Hs
   iunfold applierSpec at Hs
@@ -326,7 +326,7 @@ theorem chain_txn (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
         {{ txnPre E (alarmChain ns cr) (.ok ai) r rq t log Pre Q Post }}
           (App (App (Val #(methods ai.ty go!"Txn" ai.v)) (Val #r)) (Val #skip))
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-            ∃ oc : Outcome, ⌜alarmTxn ns cr t log oc⌝ ∗ txnOutcomeIs log t skip resp err oc ∗
+            ∃ oc : Outcome, ⌜alarmTxn ns cr t log oc⌝ ∗ txnAnswerIs log t skip resp err oc ∗
               kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain ns cr) (.ok ai) ∗ (Post ∨ Pre) }}) := by
   iintro #Hs
   iunfold applierSpec at Hs

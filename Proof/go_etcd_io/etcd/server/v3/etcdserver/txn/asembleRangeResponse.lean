@@ -280,12 +280,20 @@ theorem txn.asembleRangeResponse.wp_proof : txn.asembleRangeResponse.spec (GF :=
         (txn.srvTrunc o vs).map (txn.respKv o) := by
       rw [← Hl']; simp [List.map_map, Function.comp_def]
     rw [e1, e2]
-    unfold txn.rangeResponseIs
     isplitl []
-    · ipureintro; exact HrespNN
-    iexists «$v0_ptr», ks, l'.map Prod.fst
-    iframe #
-    ipureintro; exact Hv0nn
+    · unfold txn.rangeResponseIs
+      isplitl []
+      · ipureintro; exact HrespNN
+      iexists «$v0_ptr», ks, l'.map Prod.fst
+      iframe #
+      ipureintro; exact Hv0nn
+    unfold txn.respHdrOwn
+    iexists «$v0_ptr»
+    iframe Header
+    isplitl []
+    · ipureintro; exact Hv0nn
+    iexists _, _, _, _
+    iframe
 
 end proof
 

@@ -25,14 +25,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `status.Error(c, msg)` (`New(c, msg).Err()`) for a code other than `codes.OK` returns a
-non-nil error (a `*status.Error`). Only what `WatchResponse.Err` needs: nothing about which
-error, nor about `codes.OK` (for which it returns `nil`). -/
+non-nil error (a `*status.Error`), whose `Error()` returns some string (`errStrOk`: it formats
+the code and the message). Only what `WatchResponse.Err` needs: nothing about which error, nor
+about `codes.OK` (for which it returns `nil`). -/
 abbrev status.Error.spec : Prop :=
   ∀ (c : w32) (msg : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status ∗
       ⌜(#c : val) ≠ google_golang_org.grpc.codes.OK⌝ }}
     (App (App (Val (@! google_golang_org.grpc.status.Error)) (Val #c)) (Val #msg))
-  {{ (err : GoError), RET #err; ⌜err ≠ interface.nil⌝ }}
+  {{ (err : GoError), RET #err; ⌜err ≠ interface.nil⌝ ∗ errStrOk err }}
 
 end spec
 

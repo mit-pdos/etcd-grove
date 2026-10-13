@@ -53,8 +53,7 @@ set_option hygiene false in
 /-- The deferred metrics with `ar.Err` not nil: `errors.Is(ar.Err, ErrCompacted)`, then the
 warnings (the failure's if not `success`). -/
 local macro "err_path" : tactic => `(tactic| (
-  ihave #HeIu := HeI
-  iunfold applyErrIs at HeIu
+  ihave #HeIu := applyErrIs_tree _ $$ HeI
   ihave ⟨%S, %M, #Htree, %HS⟩ := HeIu $$ %(GoInterface.ok ec)
   wp_apply (hIs S M _ (GoInterface.ok ec) (fun tii h => by cases h; exact Hecl.1) HS.2)
     $$ [] as %b -
@@ -198,7 +197,7 @@ theorem apply.uberApplier.dispatch.wp_proof
   ihave #Hev' := Hev
   icases Hev' with ⟨-, -, -, -, -, #HCpl⟩
   iunfold errVarLeaf at HCpl
-  icases HCpl with ⟨%ec, #Hcomp, %Hecl⟩
+  icases HCpl with ⟨%ec, #Hcomp, %Hecl, -⟩
   ihave #Perr : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
   · iPkgInit
   ihave #Ptxn : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn $$ []
@@ -356,7 +355,7 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe
     iunfold apply.kvPost at Hpost
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP⟩
-    ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.putOutcomeIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
+    ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.putAnswerIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
     join_ar
     fin_kv
     iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩
@@ -378,7 +377,7 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe
     iunfold apply.kvPost at Hpost
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP⟩
-    ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.deleteOutcomeIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
+    ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.deleteAnswerIs_errIs _ _ _ _ _) $$ [$Hev $Hans]
     join_ar
     fin_kv
     iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩
@@ -400,7 +399,7 @@ theorem apply.uberApplier.dispatch.wp_proof
       iframe
     iunfold apply.kvPost at Hpost
     icases Hpost with ⟨%oc, %Hst, Hans, Hkv, Hres, HPP⟩
-    ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.txnOutcomeIs_errIs _ _ _ _ _ _) $$ [$Hev $Hans]
+    ihave ⟨Hans, #HeI⟩ := apply.keep_errIs (apply.txnAnswerIs_errIs _ _ _ _ _ _) $$ [$Hev $Hans]
     join_ar
     fin_kv
     iexists x, resp; iframe Hans; ipureintro; exact ⟨hs, rfl⟩

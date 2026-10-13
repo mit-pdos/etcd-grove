@@ -219,6 +219,15 @@ def levelDels : List ReqOp → List adt.IvlS
   | .delete o :: us => delIvl o :: levelDels us
   | _ :: us => levelDels us
 
+/-- **The deletes of the operations, at every depth** (both branches of every nested
+transaction): what bounds the intervals `checkIntervals` inserts in its tree (each is a delete
+of its level or comes from a nested transaction's tree), below the tree's count bound. -/
+def delCount : List ReqOp → Nat
+  | [] => 0
+  | .delete _ :: us => delCount us + 1
+  | .txn _ ts es :: us => delCount ts + delCount es + delCount us
+  | _ :: us => delCount us
+
 /-- The level's put keys, in order (the last loop). -/
 def levelPuts : List ReqOp → List GoString
   | [] => []

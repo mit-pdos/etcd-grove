@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.watchStream.Rev.wp_proof : mvcc.watchStream.Rev.spec (GF := GF) (hG := hG) := by
   intro ws wa P γ
-  wp_start as Hws
+  wp_start as ⟨Hws, HPR⟩
   iunfold mvcc.isWatchStream at Hws
   iNamed Hws
   wp_apply wp_with_defer as %defer defer
@@ -36,10 +36,10 @@ theorem mvcc.watchStream.Rev.wp_proof : mvcc.watchStream.Rev.spec (GF := GF) (hG
   icases Hwable with ⟨%wi, %hwa, #Hwatch, #Hprog, #HprogAll, #Hrev⟩
   subst hwa
   wp_auto
-  wp_apply Hrev as %r _
+  wp_apply Hrev $$ [$HPR] as %r HPR
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked $HR]
   iapply HΦ
-  itrivial
+  iframe HPR
 
 end proof
 

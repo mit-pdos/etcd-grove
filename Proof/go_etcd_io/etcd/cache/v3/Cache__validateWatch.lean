@@ -12,6 +12,7 @@ public import Spec.go_etcd_io.etcd.client.v3.Op__IsFilterDelete
 public import Spec.go_etcd_io.etcd.client.v3.Op__RangeBytes
 public import Spec.go_etcd_io.etcd.cache.v3.Cache__validateRange
 public import Spec.go_etcd_io.etcd.cache.v3.KeyPredForRange
+public import Spec.fmt.Errorf
 
 @[expose] public section
 
@@ -39,13 +40,17 @@ theorem Cache.validateWatch.wp_proof
     (wp_IsFilterDelete : Op.IsFilterDelete.spec (GF := GF) (hG := hG))
     (wp_RangeBytes : Op.RangeBytes.spec (GF := GF) (hG := hG))
     (wp_validateRange : Cache.validateRange.spec (GF := GF) (hG := hG))
-    (wp_KeyPredForRange : KeyPredForRange.spec (GF := GF) (hG := hG)) :
+    (wp_KeyPredForRange : KeyPredForRange.spec (GF := GF) (hG := hG))
+    (wp_Errorf : EtcdGrove.fmt.Errorf.spec (GF := GF) (hG := hG)) :
     Cache.validateWatch.spec (GF := GF) (hG := hG) := by
   intro c cf γr γd cap key op o
   wp_start as ⟨#Hc, #Ho⟩
   ihave Hci : (cacheInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hci with ⟨-, ⟨%eUR, #HeUR⟩, ⟨%eKR, #HeKR⟩, -⟩
+  icases Hci with ⟨-, ⟨%eUR, #HeURp⟩, ⟨%eKR, #HeKR⟩, -, -, #HUR⟩
+  ihave #HeUR : EtcdGrove.fmt.stringMethodSpec eUR go!"Error" $$ []
+  · rw [show EtcdGrove.fmt.stringMethodSpec eUR go!"Error" = errorStringSpec eUR from rfl]
+    iapply HUR; iexact HeURp
   ihave #Hcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   wp_auto
@@ -55,7 +60,8 @@ theorem Cache.validateWatch.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e #HeS
+    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
+    · fmt_args_ok
     iapply HΦ
     have hu : o.watchUnsupported = true := by simp [OpModel.watchUnsupported, ← Hif]
     simp only [validateResult, hu, ↓reduceIte]
@@ -64,7 +70,7 @@ theorem Cache.validateWatch.wp_proof
     iexists e
     isplitr
     · ipureintro; simp
-    unfold errorStringSpec; iexact HeS
+    rw [show errorStringSpec e = EtcdGrove.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
   have HprevKV : o.prevKV = false := by simpa using Hif
   wp_apply wp_IsFragment $$ [$op $Ho] as op
   wp_if_destruct
@@ -72,7 +78,8 @@ theorem Cache.validateWatch.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e #HeS
+    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
+    · fmt_args_ok
     iapply HΦ
     have hu : o.watchUnsupported = true := by simp [OpModel.watchUnsupported, ← Hif]
     simp only [validateResult, hu, ↓reduceIte]
@@ -81,7 +88,7 @@ theorem Cache.validateWatch.wp_proof
     iexists e
     isplitr
     · ipureintro; simp
-    unfold errorStringSpec; iexact HeS
+    rw [show errorStringSpec e = EtcdGrove.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
   have Hfragment : o.fragment = false := by simpa using Hif
   wp_apply wp_IsCreatedNotify $$ [$op $Ho] as op
   wp_if_destruct
@@ -89,7 +96,8 @@ theorem Cache.validateWatch.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e #HeS
+    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
+    · fmt_args_ok
     iapply HΦ
     have hu : o.watchUnsupported = true := by simp [OpModel.watchUnsupported, ← Hif]
     simp only [validateResult, hu, ↓reduceIte]
@@ -98,7 +106,7 @@ theorem Cache.validateWatch.wp_proof
     iexists e
     isplitr
     · ipureintro; simp
-    unfold errorStringSpec; iexact HeS
+    rw [show errorStringSpec e = EtcdGrove.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
   have HcreatedNotify : o.createdNotify = false := by simpa using Hif
   wp_apply wp_IsFilterPut $$ [$op $Ho] as op
   wp_if_destruct
@@ -106,7 +114,8 @@ theorem Cache.validateWatch.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e #HeS
+    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
+    · fmt_args_ok
     iapply HΦ
     have hu : o.watchUnsupported = true := by simp [OpModel.watchUnsupported, ← Hif]
     simp only [validateResult, hu, ↓reduceIte]
@@ -115,7 +124,7 @@ theorem Cache.validateWatch.wp_proof
     iexists e
     isplitr
     · ipureintro; simp
-    unfold errorStringSpec; iexact HeS
+    rw [show errorStringSpec e = EtcdGrove.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
   have HfilterPut : o.filterPut = false := by simpa using Hif
   wp_apply wp_IsFilterDelete $$ [$op $Ho] as op
   wp_if_destruct
@@ -123,7 +132,8 @@ theorem Cache.validateWatch.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf $$ [$Hsl] as %e #HeS
+    wp_apply wp_Errorf $$ [$Hsl] as %e ⟨-, #HeS⟩
+    · fmt_args_ok
     iapply HΦ
     have hu : o.watchUnsupported = true := by simp [OpModel.watchUnsupported, ← Hif]
     simp only [validateResult, hu, ↓reduceIte]
@@ -132,7 +142,7 @@ theorem Cache.validateWatch.wp_proof
     iexists e
     isplitr
     · ipureintro; simp
-    unfold errorStringSpec; iexact HeS
+    rw [show errorStringSpec e = EtcdGrove.fmt.stringMethodSpec e go!"Error" from rfl]; iexact HeS
   have HfilterDelete : o.filterDelete = false := by simpa using Hif
   have hu : o.watchUnsupported = false := by simp [OpModel.watchUnsupported, HprevKV, Hfragment, HcreatedNotify, HfilterPut, HfilterDelete]
   wp_apply wp_string_to_bytes key as %ssl ⟨Hssl, -⟩

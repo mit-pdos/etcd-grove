@@ -103,6 +103,11 @@ theorem txn.deleteRange.wp_proof
     · ipureintro; rfl
     isplitl [Htx]
     · iexists _; iexact Htx
+    isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
+    rotate_left
+    · iunfold txn.respHdrOwn; iexists _; iframe RHeader
+      isplitr; · ipureintro; exact Hhn
+      iexists _, _, _, _; iframe
     iunfold txn.deleteRangeResponseIs
     isplitl []
     · ipureintro; exact Hrn
@@ -178,6 +183,11 @@ theorem txn.deleteRange.wp_proof
       · ipureintro; rfl
       isplitl [Htx]
       · iexists _; iexact Htx
+      isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
+      rotate_left
+      · iunfold txn.respHdrOwn; iexists _; iframe RHeader
+        isplitr; · ipureintro; exact Hhn
+        iexists _, _, _, _; iframe
       iunfold txn.deleteRangeResponseIs
       isplitl []
       · ipureintro; exact Hrn

@@ -14,7 +14,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkIntervals
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.NewIntervalTree
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.NewStringAffineInterval
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.NewStringAffinePoint
-public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__InsertAny
+public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Insert
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Intersects
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Union
 
@@ -309,6 +309,168 @@ theorem ci_union_perm (L L' zs : List adt.Entry) (ds d' : List adt.IvlS)
     ← List.filter_map]
   exact h'.filter _
 
+/-! ## The tree's count bound (`delCount`) -/
+
+theorem ci_delCount_append (a b : List ReqOp) :
+    delCount (a ++ b) = delCount a + delCount b := by
+  induction a with
+  | nil => simp [delCount]
+  | cons u a ih => cases u <;> simp [delCount, ih] <;> omega
+
+theorem ci_levelDels_len_le (l : List ReqOp) : (levelDels l).length ≤ delCount l := by
+  induction l with
+  | nil => simp [levelDels, delCount]
+  | cons u l ih => cases u <;> simp [levelDels, delCount] <;> omega
+
+theorem ci_unionSel_len_le (d : List adt.IvlS) : (unionSel d).length ≤ d.length :=
+  List.length_filter_le _ _
+
+/-- The nested transactions' deletes (`ivNest`'s results, unioned by the second loop) are among
+the operations' deletes at every depth. -/
+theorem ci_nest_fold_bound : ∀ (l : List ReqOp) (nest : List NestRes) (p0 p : List GoString)
+    (d0 d : List adt.IvlS), ivNest l = some nest →
+    nest.foldl nestStep (some (p0, d0)) = some (p, d) →
+    d.length + (levelDels l).length ≤ d0.length + delCount l
+  | [], nest, p0, p, d0, d, h, hf => by
+    simp only [ivNest, Option.some.injEq] at h; subst h
+    simp only [List.foldl_nil, Option.some.injEq, Prod.mk.injEq] at hf
+    obtain ⟨-, rfl⟩ := hf
+    simp [levelDels, delCount]
+  | .txn cs ts es :: rest, nest, p0, p, d0, d, h, hf => by
+    simp only [ivNest] at h
+    cases hT : (ivNest ts).bind (ivFinish ts) with
+    | none => rw [hT] at h; cases h
+    | some pdT =>
+    cases hE : (ivNest es).bind (ivFinish es) with
+    | none => rw [hT, hE] at h; cases h
+    | some pdE =>
+    cases hR : ivNest rest with
+    | none => rw [hT, hE, hR] at h; cases h
+    | some r =>
+    obtain ⟨pT, dT⟩ := pdT
+    obtain ⟨pE, dE⟩ := pdE
+    rw [hT, hE, hR] at h
+    simp only [Option.some.injEq] at h; subst h
+    -- the nested branches' trees: each below its branch's deletes
+    have hbT : dT.length ≤ delCount ts := by
+      cases hnT : ivNest ts with
+      | none => rw [hnT] at hT; cases hT
+      | some nT =>
+        rw [hnT, Option.bind_some] at hT
+        unfold ivFinish at hT
+        cases hfT : nT.foldl nestStep (some ([], levelDels ts)) with
+        | none => rw [hfT, ci_foldl_putStep_none] at hT; cases hT
+        | some x =>
+          obtain ⟨px, dx⟩ := x
+          rw [hfT] at hT
+          have := ci_foldl_putStep_dels _ _ _ _ _ hT; subst this
+          have := ci_nest_fold_bound ts nT [] px (levelDels ts) dT hnT hfT
+          omega
+    have hbE : dE.length ≤ delCount es := by
+      cases hnE : ivNest es with
+      | none => rw [hnE] at hE; cases hE
+      | some nE =>
+        rw [hnE, Option.bind_some] at hE
+        unfold ivFinish at hE
+        cases hfE : nE.foldl nestStep (some ([], levelDels es)) with
+        | none => rw [hfE, ci_foldl_putStep_none] at hE; cases hE
+        | some x =>
+          obtain ⟨px, dx⟩ := x
+          rw [hfE] at hE
+          have := ci_foldl_putStep_dels _ _ _ _ _ hE; subst this
+          have := ci_nest_fold_bound es nE [] px (levelDels es) dE hnE hfE
+          omega
+    simp only [List.foldl_cons] at hf
+    cases h1 : nestStep (some (p0, d0)) ⟨pT, dT, pE, dE⟩ with
+    | none => rw [h1, ci_foldl_nestStep_none] at hf; cases hf
+    | some x =>
+      obtain ⟨p1, d1⟩ := x
+      rw [h1] at hf
+      have hd1 : d1 = d0 ++ unionSel dT ++ unionSel dE := by
+        simp only [nestStep] at h1
+        split at h1
+        · cases h1
+        split at h1
+        · cases h1
+        simp only [Option.some.injEq, Prod.mk.injEq] at h1
+        exact h1.2.symm
+      have := ci_nest_fold_bound rest r p1 p d1 d hR hf
+      have := ci_unionSel_len_le dT
+      have := ci_unionSel_len_le dE
+      subst hd1
+      simp only [List.length_append, levelDels, delCount] at *
+      omega
+  | .delete o :: rest, nest, p0, p, d0, d, h, hf => by
+    simp only [ivNest] at h
+    have := ci_nest_fold_bound rest nest p0 p d0 d h hf
+    simp only [levelDels, delCount, List.length_cons]
+    omega
+  | .range o :: rest, nest, p0, p, d0, d, h, hf => by
+    simp only [ivNest] at h
+    have := ci_nest_fold_bound rest nest p0 p d0 d h hf
+    simpa [levelDels, delCount] using this
+  | .put o :: rest, nest, p0, p, d0, d, h, hf => by
+    simp only [ivNest] at h
+    have := ci_nest_fold_bound rest nest p0 p d0 d h hf
+    simpa [levelDels, delCount] using this
+  | .empty :: rest, nest, p0, p, d0, d, h, hf => by
+    simp only [ivNest] at h
+    have := ci_nest_fold_bound rest nest p0 p d0 d h hf
+    simpa [levelDels, delCount] using this
+termination_by l => sizeOf l
+
+/-- `checkIntervals`'s tree holds at most the operations' deletes. -/
+theorem ci_ivCheck_len {l : List ReqOp} {p : List GoString} {d : List adt.IvlS}
+    (h : ivCheck l = some (p, d)) : d.length ≤ delCount l := by
+  unfold ivCheck at h
+  cases hn : ivNest l with
+  | none => rw [hn] at h; cases h
+  | some n =>
+    rw [hn, Option.bind_some] at h
+    unfold ivFinish at h
+    cases hf : n.foldl nestStep (some ([], levelDels l)) with
+    | none => rw [hf, ci_foldl_putStep_none] at h; cases h
+    | some x =>
+      obtain ⟨px, dx⟩ := x
+      rw [hf] at h
+      have := ci_foldl_putStep_dels _ _ _ _ _ h; subst this
+      have := ci_nest_fold_bound l n [] px (levelDels l) d hn hf
+      omega
+
+/-- A nested transaction at `k`: the level's deletes, the deletes at every depth of the
+operations before it but the level's own, and those of its two branches are at most the
+operations' (what the second loop's two `Union`s and the recursive calls need). -/
+theorem ci_bound_at {us : List ReqOp} {k : Nat} {cs : List CmpModel} {ts es : List ReqOp}
+    (hu : us[k]? = some (.txn cs ts es)) :
+    (levelDels us).length + delCount (us.take k) + (delCount ts + delCount es) ≤
+      delCount us + (levelDels (us.take k)).length := by
+  have hu' := hu
+  generalize hg : ReqOp.txn cs ts es = u at hu'
+  have hdu : delCount [u] = delCount ts + delCount es := by subst hg; simp [delCount]
+  have hlu : (levelDels [u]).length = 0 := by subst hg; simp [levelDels]
+  rw [← hdu]
+  obtain ⟨hk, heq⟩ := List.getElem?_eq_some_iff.1 hu'
+  have h2 := List.drop_eq_getElem_cons hk
+  rw [heq] at h2
+  have e1 : delCount us = delCount (us.take k) + delCount (us.drop k) := by
+    rw [← ci_delCount_append, List.take_append_drop]
+  have e2 : (levelDels us).length =
+      (levelDels (us.take k)).length + (levelDels (us.drop k)).length := by
+    rw [← List.length_append, ← ci_levelDels_append, List.take_append_drop]
+  rw [h2] at e1 e2
+  have e3 := ci_delCount_append [u] (us.drop (k + 1))
+  have e4 := ci_levelDels_append [u] (us.drop (k + 1))
+  have := ci_levelDels_len_le (us.drop (k + 1))
+  simp only [List.singleton_append] at e3 e4
+  rw [e4, List.length_append] at e2
+  omega
+
+/-- The level's deletes before `k` are among the level's. -/
+theorem ci_levelDels_take_le (us : List ReqOp) (k : Nat) :
+    (levelDels (us.take k)).length ≤ (levelDels us).length := by
+  conv => rhs; rw [← List.take_append_drop k us]
+  rw [ci_levelDels_append, List.length_append]; omega
+
 end ffi
 
 end v3rpc
@@ -369,6 +531,19 @@ theorem v3rpc.ci_reqOpsWire_get :
     iintro ⟨-, H⟩
     iapply v3rpc.ci_reqOpsWire_get ps us i p u h h' $$ H
 
+/-- The first loop's insert of the level's delete at `k`: below the tree's count bound. -/
+theorem v3rpc.ci_ins_bound {us : List v3rpc.ReqOp} {k : Nat} {o}
+    {L : List adt.Entry} (hu : us[k]? = some (.delete o))
+    (HL : (L.map Prod.fst).Perm (v3rpc.levelDels (us.take k))) (hdc : v3rpc.delCount us < 2 ^ 63) :
+    L.length + 1 < 2 ^ 63 := by
+  have h1 := HL.length_eq
+  rw [List.length_map] at h1
+  have h2 := v3rpc.ci_levelDels_take_le us (k + 1)
+  rw [v3rpc.ci_take_succ hu, v3rpc.ci_levelDels_append, List.length_append] at h2
+  simp only [v3rpc.levelDels, List.length_cons, List.length_nil] at h2
+  have := v3rpc.ci_levelDels_len_le us
+  omega
+
 /-- The spec's postcondition, as the hypothesis `wp_start` names `HΦ` (the loops' invariants
 carry it, for their early returns). -/
 def v3rpc.ciPost (us : List v3rpc.ReqOp) (Φ : val → IProp GF) : IProp GF :=
@@ -377,7 +552,7 @@ def v3rpc.ciPost (us : List v3rpc.ReqOp) (Φ : val → IProp GF) : IProp GF :=
           (∃ M : GMap GoString Unit, m ↦$ M ∗ ⌜∀ k, (M !! k).isSome = true ↔ k ∈ puts⌝) ∗
           (∃ (tl : Loc) (L : List adt.Entry),
             ⌜t = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #tl⌝ ∗
-            adt.ownIvt tl L ∗ ⌜(L.map Prod.fst).Perm ds⌝)
+            adt.ownIvt tl L 1 ∗ ⌜(L.map Prod.fst).Perm ds⌝)
       | none => txn.errVarIs v3rpc.CheckErr.duplicateKey.var err) -∗
     Φ (PairV (PairV #m #t) #err))
 
@@ -385,13 +560,13 @@ theorem v3rpc.checkIntervals.wp_proof
     (hNew : adt.NewIntervalTree.spec (GF := GF) (hG := hG))
     (hIvl : adt.NewStringAffineInterval.spec (GF := GF) (hG := hG))
     (hPt : adt.NewStringAffinePoint.spec (GF := GF) (hG := hG))
-    (hIns : adt.intervalTree.InsertAny.spec (GF := GF) (hG := hG))
+    (hIns : adt.intervalTree.Insert.spec (GF := GF) (hG := hG))
     (hInt : adt.intervalTree.Intersects.spec (GF := GF) (hG := hG))
     (hUnion : adt.intervalTree.Union.spec (GF := GF) (hG := hG)) :
     v3rpc.checkIntervals.spec (GF := GF) (hG := hG) := by
   intro sl ps us
   iloeb as IH generalizing %sl %ps %us
-  wp_start as ⟨#Hsl, #Hps, #Hwire⟩
+  wp_start as ⟨#Hsl, #Hps, #Hwire, %Hdc⟩
   ihave #Padt : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.adt $$ []
   · iPkgInit
   wp_auto
@@ -404,7 +579,7 @@ theorem v3rpc.checkIntervals.wp_proof
   ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
   ihave %Hlen := v3rpc.ci_reqOpsIs_len ps us $$ Hps
   ihave HI : iprop(∃ (n : w64) (q : Loc) (L : List adt.Entry),
-      "i" ∷ i_ptr ↦ n ∗ "req" ∷ req_ptr ↦ q ∗ "Htl" ∷ adt.ownIvt tl L ∗
+      "i" ∷ i_ptr ↦ n ∗ "req" ∷ req_ptr ↦ q ∗ "Htl" ∷ adt.ownIvt tl L 1 ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z sl.len⌝ ∗
       "%HL" ∷ ⌜(L.map Prod.fst).Perm (v3rpc.levelDels (us.take (sint.Z n).toNat))⌝) $$ [i req Htl]
   · iexists W64 0, _, []
@@ -440,6 +615,7 @@ theorem v3rpc.checkIntervals.wp_proof
       · wp_apply wp_bytes_to_string ksl k DFrac.discard $$ [$Hk] as -
         wp_apply hPt
         wp_apply hIns $$ [$Htl] as Htl
+        · ipureintro; exact ci_ins_bound hu HL Hdc
         have hesl : esl = slice.nil := Hwe.resolve_right (fun h => h Hif)
         have hdel : v3rpc.delIvl o = (k, k ++ [W8 0]) := by
           subst Ho; simp [v3rpc.delIvl, txn.rangeEndOf, hesl, v3rpc.pointIvl]
@@ -463,6 +639,7 @@ theorem v3rpc.checkIntervals.wp_proof
         wp_apply wp_bytes_to_string esl e DFrac.discard $$ [$He] as -
         wp_apply hIvl
         wp_apply hIns $$ [$Htl] as Htl
+        · ipureintro; exact ci_ins_bound hu HL Hdc
         wp_for_post
         iframe
         iexists n + W64 1, p, _
@@ -533,7 +710,7 @@ theorem v3rpc.checkIntervals.wp_proof
     wp_apply (wp_map_make1 (K := GoString) (V := Unit) go.string (go.StructType [])) as %mp Hmp
     ihave HI : iprop(∃ (n : w64) (q : Loc) (L : List adt.Entry) (M : GMap GoString Unit)
         (nest : List v3rpc.NestRes) (pts : List GoString) (ds : List adt.IvlS),
-        "i" ∷ i_ptr ↦ n ∗ "req" ∷ req_ptr ↦ q ∗ "Htl" ∷ adt.ownIvt tl L ∗ "Hmp" ∷ mp ↦$ M ∗
+        "i" ∷ i_ptr ↦ n ∗ "req" ∷ req_ptr ↦ q ∗ "Htl" ∷ adt.ownIvt tl L 1 ∗ "Hmp" ∷ mp ↦$ M ∗
         "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z sl.len⌝ ∗
         "%Hnest" ∷ ⌜v3rpc.ivNest (us.take (sint.Z n).toNat) = some nest ∧
           nest.foldl v3rpc.nestStep (some ([], v3rpc.levelDels us)) = some (pts, ds)⌝ ∗
@@ -564,8 +741,10 @@ theorem v3rpc.checkIntervals.wp_proof
         iunfold v3rpc.reqOpWire at Hw
         ihave ⟨#HwS, #HwF⟩ := Hw $$ %w %r %ssl %fsl %sps %fps HR Hw' HS Hssl HF Hfsl
         wp_auto
+        have Hbd := v3rpc.ci_bound_at hu
+        have Hbd' := v3rpc.ci_levelDels_take_le us (sint.Z n).toNat
         wp_apply IH $$ %ssl %sps %ts [] as %mT %tT %errT HT
-        · iframe #
+        · iframe #; ipureintro; omega
         cases hT : v3rpc.ivCheck ts with
         | none =>
           dsimp only
@@ -587,7 +766,7 @@ theorem v3rpc.checkIntervals.wp_proof
           subst HerrT HtT
           wp_auto
           wp_apply IH $$ %fsl %fps %es [] as %mE %tE %errE HE
-          · iframe #
+          · iframe #; ipureintro; omega
           cases hE : v3rpc.ivCheck es with
           | none =>
             dsimp only
@@ -613,7 +792,7 @@ theorem v3rpc.checkIntervals.wp_proof
             iapply wp_map_for_range (K := GoString) (V := Unit) (fun (keys : List GoString) (j : Int) =>
                 iprop(∃ (M' : GMap GoString Unit) (kv : GoString),
                 "HΦ" ∷ v3rpc.ciPost us Φ ∗ "k" ∷ k_ptr ↦ kv ∗ "Hmp" ∷ mp ↦$ M' ∗
-                "Htl" ∷ adt.ownIvt tl L ∗ "dels" ∷ dels_ptr ↦
+                "Htl" ∷ adt.ownIvt tl L 1 ∗ "dels" ∷ dels_ptr ↦
                   (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #tl :
                     GoInterface) ∗
                 "puts" ∷ puts_ptr ↦ mp ∗ "%Hj" ∷ ⌜0 ≤ j⌝ ∗
@@ -728,7 +907,7 @@ theorem v3rpc.checkIntervals.wp_proof
             iapply wp_map_for_range (K := GoString) (V := Unit) (fun (keys : List GoString) (j : Int) =>
                 iprop(∃ (M' : GMap GoString Unit) (kv : GoString),
                 "HΦ" ∷ v3rpc.ciPost us Φ ∗ "k" ∷ k_ptr ↦ kv ∗ "Hmp" ∷ mp ↦$ M' ∗
-                "Htl" ∷ adt.ownIvt tl L ∗ "dels" ∷ dels_ptr ↦
+                "Htl" ∷ adt.ownIvt tl L 1 ∗ "dels" ∷ dels_ptr ↦
                   (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.adt.intervalTree.ty) #tl :
                     GoInterface) ∗
                 "puts" ∷ puts_ptr ↦ mp ∗ "HmT" ∷ mT ↦$ MT ∗ "putsThen" ∷ putsThen_ptr ↦ mT ∗
@@ -906,11 +1085,23 @@ theorem v3rpc.checkIntervals.wp_proof
               intro x hx; exact Hok x ((HkE x).2 ((HME x).2 hx))
             obtain ⟨pts', hstep, hmem⟩ := v3rpc.ci_nestStep_ok (r := ⟨pT, dT, pE, dE⟩) Hok1' Hok2
             wp_auto
+            have Hfb := v3rpc.ci_nest_fold_bound _ _ _ _ _ _ Hnest.1 Hnest.2
+            have HbT := v3rpc.ci_ivCheck_len hT
+            have HbE := v3rpc.ci_ivCheck_len hE
+            have HlL := HL.length_eq
+            have HlT := HLT.length_eq
+            have HlE := HLE.length_eq
+            simp only [List.length_map] at HlL HlT HlE
+            have HlU := v3rpc.ci_unionSel_len_le dT
             wp_apply hIvl
             wp_apply hUnion $$ [$Htl $HtlT] as ⟨%zs1, %Hz1, Htl, HtlT⟩
+            · ipureintro; exact ⟨by omega, Or.inr ⟨by decide, Or.inl rfl⟩⟩
+            have HL1 := v3rpc.ci_union_perm L LT zs1 ds dT HL HLT Hz1
+            have HlL1 := HL1.length_eq
+            simp only [List.length_map, List.length_append] at HlL1
             wp_apply hIvl
             wp_apply hUnion $$ [$Htl $HtlE] as ⟨%zs2, %Hz2, Htl, HtlE⟩
-            have HL1 := v3rpc.ci_union_perm L LT zs1 ds dT HL HLT Hz1
+            · ipureintro; exact ⟨by omega, Or.inr ⟨by decide, Or.inl rfl⟩⟩
             have HL2 := v3rpc.ci_union_perm _ LE zs2 _ dE HL1 HLE Hz2
             obtain ⟨Hn1, Hn2⟩ := v3rpc.ci_txn_step_ok Hnest.1 Hnest.2 hu hT hE hstep
             iunfold v3rpc.ciPost at HΦ
@@ -982,7 +1173,7 @@ theorem v3rpc.checkIntervals.wp_proof
       clear Hif Hn hn
       try wp_auto
       ihave HI : iprop(∃ (n : w64) (q : Loc) (M : GMap GoString Unit) (pts' : List GoString),
-          "i" ∷ i_ptr ↦ n ∗ "req" ∷ req_ptr ↦ q ∗ "Htl" ∷ adt.ownIvt tl L ∗ "Hmp" ∷ mp ↦$ M ∗
+          "i" ∷ i_ptr ↦ n ∗ "req" ∷ req_ptr ↦ q ∗ "Htl" ∷ adt.ownIvt tl L 1 ∗ "Hmp" ∷ mp ↦$ M ∗
           "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z sl.len⌝ ∗
           "%Hpre" ∷ ⌜(v3rpc.levelPuts (us.take (sint.Z n).toNat)).foldl v3rpc.putStep
             (some (pts, ds)) = some (pts', ds)⌝ ∗

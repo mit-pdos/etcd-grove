@@ -39,7 +39,7 @@ theorem Cache.getWatch.wp_proof
   icases Hw with ⟨Hdw, %Hwo, %B, Hbd⟩
   wp_auto
   wp_apply wp_get c cf γr γd cap cf.ictx ics B $$ [$Hpkg $Hc $Hctxi $Hbd] as %resp %err Hres
-  icases Hres with (⟨%Herr, Hbd⟩ | ⟨%Herr, %R, #Hrev, Hbd, #Hlb, #Hslb, %HRb⟩)
+  icases Hres with (⟨%Herr, Hbd, #HeS⟩ | ⟨%Herr, %R, #Hrev, Hbd, #Hlb, #Hslb, %HRb⟩)
   · -- the get failed: return its error
     obtain ⟨-, Hne⟩ := Herr
     obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
@@ -50,6 +50,7 @@ theorem Cache.getWatch.wp_proof
     iapply HΦ
     isplitr
     · ipureintro; intro h; cases h
+    iframe HeS
     iframe Hrun
     iexists c0
     iframe Hdw
@@ -65,7 +66,7 @@ theorem Cache.getWatch.wp_proof
   have hR1 : sint.Z (R + W64 1) = sint.Z R + 1 := by
     have := HRb.2; word
   wp_apply wp_watch c cf γr γd cap (R + W64 1) R c0 $$ [$Hpkg $Hc Hdw Ha Hrun $Hslb]
-    as %err ⟨%Hne, Hrun, %c1, Hw⟩
+    as %err ⟨%Hne, #HeS, Hrun, %c1, Hw⟩
   · unfold cacheWriter
     iframe Hdw Hrun
     isplitl
@@ -79,6 +80,7 @@ theorem Cache.getWatch.wp_proof
   iapply HΦ
   isplitr
   · ipureintro; exact Hne
+  iframe HeS
   iframe Hrun
   iexists c1
   iunfold cacheWriter at Hw

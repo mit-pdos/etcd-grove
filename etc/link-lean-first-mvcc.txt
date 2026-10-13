@@ -110,17 +110,17 @@ NewHashStorage:
 schema_UnsafeCreateMetaBucket:
 store__restore:
 NewStore: zap_NewNop newTreeIndex schedule_NewFIFOScheduler NewHashStorage schema_UnsafeCreateMetaBucket store__restore
-# The interval tree's (pkg/v3/adt, see Proof/go_etcd_io/etcd/pkg/v3/adt/): its proved
-# comparisons (linked in its own Link.lean) and its pending contract (unit 4 proves it; until
-# then hypotheses of every result that reaches them).
+# The interval tree's (pkg/v3/adt, see Proof/go_etcd_io/etcd/pkg/v3/adt/): its comparisons
+# and its contract, all proved and linked in its own Link.lean (unit 4).
 adt_NewStringAffineInterval: @
 adt_NewStringAffinePoint: @
-adt_NewIntervalTree: ?
-adt_intervalTree__Find: ?
-adt_intervalTree__Insert: ?
-adt_intervalTree__Delete: ?
-adt_intervalTree__Intersects: ?
-adt_intervalTree__Stab: ?
+adt_NewIntervalTree: @
+adt_intervalTree__Find: @
+adt_intervalTree__Insert: @
+adt_intervalTree__Delete: @
+adt_intervalTree__Intersects: @
+adt_intervalTree__Stab: @
+adt_ownIvt_split: @
 # The watcher group (watcher_group.go): the sets and the group's structure over the tree's
 # contract, see InvWatchGroup.lean.
 watcherSet__add:
@@ -161,3 +161,39 @@ txnReadWrite__End: metricsTxnWrite__End
 txnReadWrite__Changes:
 txnReadWrite__Put:
 txnReadWrite__DeleteRange:
+# The watchable store (watchable_store.go, watchable_store_txn.go), unit 3a: the write path
+# (the wrapper's End seals the revision, notifies under the store's lock, then commits), the
+# registration and cancellation, the progress calls, see InvWatchStore.lean, InvWatchFrac.lean,
+# WatchClose.lean; `verify.Verify` is the trust boundary (an axiom).
+verify_Verify:
+watchableStore__Write: store__Write
+watchableStoreTxnWrite__End: metricsTxnWrite__Changes metricsTxnWrite__End storeTxnWrite__Rev watchableStore__notify
+watchableStore__notify: newWatcherBatch watcher__send watcherGroup__delete watchableStore__addVictim
+watchableStore__addVictim:
+watcher__send: verify_Verify
+watchableStore__watch: watcherGroup__add watchableStore__cancelWatcher
+watchableStore__cancelWatcher: watcherGroup__delete
+watchableStore__rev: traceutil_TODO store__Read storeTxnCommon__Rev metricsTxnWrite__End
+watchableStore__progressIfSync: watchableStore__rev watcher__send
+watchableStore__progress: watchableStore__progressIfSync
+watchableStore__progressAll: watchableStore__progressIfSync
+# The sync machinery and the constructors (watchable_store.go), unit 3b: the bucket read by
+# revision range (the backend contract's range read), the watchers synced in batches, the
+# victims resent, the two loops (tickers, `time.Since` and `store.Close` are the trust
+# boundary: axioms, see InvWatchSync.lean, SyncModel.lean, BucketRange.lean).
+time_NewTicker:
+time_Ticker__Stop:
+time_Ticker__Reset:
+time_Since:
+store__Close:
+kvsToEvents: proto_Unmarshal isTombstone BytesToRev watcherGroup__contains
+rangeEvents: NewRevBytes RevToBytes kvsToEvents
+watchableStore__syncWatchers: watcherGroup__size watcherGroup__choose rangeEvents newWatcherBatch watcher__send watcherGroup__add watcherGroup__delete watchableStore__addVictim
+watchableStore__moveVictims: watcher__send watcherGroup__add
+watchableStore__syncWatchersLoop: time_NewTicker time_Ticker__Stop watcherGroup__size watchableStore__syncWatchers time_Since time_Ticker__Reset
+watchableStore__syncVictimsLoop: watchableStore__moveVictims
+ChanBufLen:
+newWatchableStore: zap_NewNop NewStore newWatcherGroup adt_ownIvt_split
+mvcc_New: newWatchableStore watchableStore__syncWatchersLoop watchableStore__syncVictimsLoop
+watchableStore__Close: store__Close
+watchableStore__NewWatchStream: watchableStore__watch watchableStore__progress watchableStore__progressAll watchableStore__rev

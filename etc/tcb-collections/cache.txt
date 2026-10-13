@@ -7,6 +7,7 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/etcd/cache/v3/(Link|Results)\.lean$
 axiom EtcdStep
+axiom context.Err.wp_proof
 axiom etcdReachedAt
 axiom etcdReachedAt_timeless
 axiom etcdRevToken
@@ -14,5 +15,8 @@ axiom etcdState
 axiom etcdStep_compose
 axiom etcdStep_delete_present
 axiom etcdStep_transfer
+axiom fmt.Errorf.wp_proof
+axiom fmt.Printf.wp_proof
 axiom rpctypes.Error.wp_proof
 axiom status.Error.wp_proof
+axiom time.Duration.String.wp_proof

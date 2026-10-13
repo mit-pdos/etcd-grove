@@ -306,19 +306,21 @@ instance evIs_persistent (e : Loc) (ev : EvM) : Persistent (evIs (GF := GF) e ev
   cases ev.prevKv <;> infer_instance
 
 /-- The batch at `eb` holds `B`: its fields, its slice of events (owned, with its capacity),
-each event's pointer `evIs` of its model. -/
-def ownEventBatch (eb : Loc) (B : EventBatch) : IProp GF :=
+each event's pointer `evIs` of its model; at the fraction `q` (a victim batch, under the
+watchable store's lock). -/
+def ownEventBatch (eb : Loc) (B : EventBatch) (q : Qp := 1) : IProp GF :=
   iprop(∃ (s : GoSlice) (ps : List Loc),
-    eb ↦ ({ evs' := s, revs' := B.revs, moreRev' := B.moreRev } : eventBatch) ∗
-    s ↦* ps ∗ ownSliceCap Loc s (DFrac.own 1) ∗ ⌜ps.length = B.evs.length⌝ ∗
+    typedPointsto eb ({ evs' := s, revs' := B.revs, moreRev' := B.moreRev } : eventBatch)
+      (DFrac.own q) ∗
+    ownSlice s ps (DFrac.own q) ∗ ownSliceCap Loc s (DFrac.own q) ∗ ⌜ps.length = B.evs.length⌝ ∗
     [∗list] x ∈ ps.zip B.evs, evIs x.1 x.2)
 
 /-- The watcher batch `wb` (a `map[*watcher]*eventBatch`) holds `Bm`: each member's batch,
 owned, at a non-nil pointer. -/
-def ownWatcherBatch (wb : GoMap) (Bm : GMap Loc EventBatch) : IProp GF :=
+def ownWatcherBatch (wb : GoMap) (Bm : GMap Loc EventBatch) (q : Qp := 1) : IProp GF :=
   iprop(∃ PB : GMap Loc (Loc × EventBatch),
-    wb ↦$ GMap.fmap Prod.fst PB ∗ ⌜Bm = GMap.fmap Prod.snd PB⌝ ∗
-    [∗map] _w ↦ p ∈ PB, ⌜p.1 ≠ null⌝ ∗ ownEventBatch p.1 p.2)
+    ownMap wb (DFrac.own q) (GMap.fmap Prod.fst PB) ∗ ⌜Bm = GMap.fmap Prod.snd PB⌝ ∗
+    [∗map] _w ↦ p ∈ PB, ⌜p.1 ≠ null⌝ ∗ ownEventBatch p.1 p.2 q)
 
 /-- A watcher batch or `nil` (empty). -/
 def ownWatcherBatchOpt (wb : GoMap) (Bm : GMap Loc EventBatch) : IProp GF :=

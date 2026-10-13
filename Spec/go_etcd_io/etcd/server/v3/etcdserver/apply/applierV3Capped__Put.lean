@@ -34,7 +34,7 @@ abbrev apply.applierV3Capped.Put.spec : Prop :=
       apply.putPre E (.capped c) (interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #p) r rq o log Pre Q Post }}
     (App (Val (p @!! go.GoType.PointerType applierV3Capped.ty @!! go!"Put")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      apply.kvPost E (.capped c) (interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #p) rq log (apply.putOutcomeIs log o resp err) Pre Post }}
+      apply.kvPost E (.capped c) (interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #p) rq log (apply.putAnswerIs log o resp err) Pre Post }}
 
 end spec
 

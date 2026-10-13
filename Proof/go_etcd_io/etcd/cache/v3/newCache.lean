@@ -51,7 +51,14 @@ theorem newCache.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf $$ [$Hfmt $Hsl] as %e -
+    wp_apply fmt.wp_Errorf _ _ _ ?wf $$ [$Hfmt $Hsl] as %e -
+    case wf =>
+      try simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero]
+      repeat' first
+        | exact _root_.Perennial.fmt.ArgsWf.nil
+        | refine _root_.Perennial.fmt.ArgsWf.cons_string _ _ ?_
+        | refine _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int64 _) ?_
+        | refine _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int _) ?_
     iapply HΦ
     unfold newCacheResult CfgValid
     have hn : ¬ (0 < sint.Z cfg.HistoryWindowSize' ∧ 2 ≤ sint.Z cfg.BTreeDegree') := by omega
@@ -64,7 +71,14 @@ theorem newCache.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
-    wp_apply fmt.wp_Errorf $$ [$Hfmt $Hsl] as %e -
+    wp_apply fmt.wp_Errorf _ _ _ ?wf $$ [$Hfmt $Hsl] as %e -
+    case wf =>
+      try simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero]
+      repeat' first
+        | exact _root_.Perennial.fmt.ArgsWf.nil
+        | refine _root_.Perennial.fmt.ArgsWf.cons_string _ _ ?_
+        | refine _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int64 _) ?_
+        | refine _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int _) ?_
     iapply HΦ
     unfold newCacheResult CfgValid
     have hn : ¬ (0 < sint.Z cfg.HistoryWindowSize' ∧ 2 ≤ sint.Z cfg.BTreeDegree') := by omega

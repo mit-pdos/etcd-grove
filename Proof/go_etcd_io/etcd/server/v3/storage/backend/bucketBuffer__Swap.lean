@@ -41,16 +41,18 @@ theorem backend.bucketBuffer.Swap.wp_proof : backend.bucketBuffer.Swap.spec (GF 
     have := Hl.1; have := Hok.1; refine ⟨hj, ?_⟩; word
   list_elem p.kvs (sint.nat i) as xi
   list_elem p.kvs (sint.nat j) as xj
-  try simp only [Hbj, _root_.and_self, ite_true]
+  try simp only [Hbi, Hbj, _root_.and_self, ite_true]
+  wp_auto
+  try simp only [Hbi, Hbj, _root_.and_self, ite_true]
+  wp_auto
+  rw [if_pos Hbj]
   wp_apply wp_load_slice_index p.buf (sint.Z j) p.kvs (DFrac.own 1) xj hj $$ [Hs] as Hs
   · iframe; ipureintro; exact Hxj_lookup
-  try simp only [Hbi, _root_.and_self, ite_true]
+  try simp only [Hbi, Hbj, _root_.and_self, ite_true]
   wp_apply wp_load_slice_index p.buf (sint.Z i) p.kvs (DFrac.own 1) xi hi $$ [Hs] as Hs
   · iframe; ipureintro; exact Hxi_lookup
-  try simp only [Hbi, _root_.and_self, ite_true]
   wp_apply wp_store_slice_index p.buf (sint.Z i) p.kvs xj $$ [Hs] as Hs
   · iframe; ipureintro; exact ⟨hi, by have := Hl.1; word⟩
-  try simp only [Hbj, _root_.and_self, ite_true]
   wp_apply wp_store_slice_index p.buf (sint.Z j) _ xi $$ [Hs] as Hs
   · iframe; ipureintro; exact ⟨hj, by simp only [List.length_set]; have := Hl.1; word⟩
   ihave #Hro' := slotsRO_swap _ _ _ _ _ Hxi_lookup Hxj_lookup $$ Hro

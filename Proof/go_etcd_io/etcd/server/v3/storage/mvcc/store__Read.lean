@@ -69,7 +69,7 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     ihave #Hsnap0 : mvcc.keyReadSnap rt (mvcc.bucketMap log) $$ []
     · iexact Hsnap
     iunfold mvcc.keyReadSnap at Hsnap
-    icases Hsnap with ⟨#HRL, #HRU, #Hrange⟩
+    icases Hsnap with ⟨#HRL, #HRU, #Hrange, -⟩
     -- `tx.RLock()`
     wp_apply HRL
     (try wp_auto)

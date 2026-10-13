@@ -65,7 +65,7 @@ theorem txn.Put.wp_proof
   · ipureintro; rfl
   iintro %fsl ⟨Hfsl, -⟩
   (try wp_auto)
-  wp_apply (hEnsure ctx cd lg _ _) $$ [$Hctx] as %ctx' %t ⟨%Ht, %vs, #Hctx'⟩
+  wp_apply (hEnsure ctx cd lg _ _) $$ [$Hctx] as %ctx' %t ⟨%Ht, %vs, #Hctx', -⟩
   (try wp_auto)
   -- `checkLease(lessor, p)`
   wp_apply (hLease le γ.leases p o) $$ [$Hle $Hp] as %err Herr
@@ -118,6 +118,7 @@ theorem txn.Put.wp_proof
     icases He' with ⟨%e, -, %Hee⟩
     subst Hee
     (try wp_auto)
+    ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
     wp_apply (hEnd mw s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost⟩
     · iapply mvcc.txnEndPre_write; iframe Hhook HP
     simp only [mvcc.txnEndPost, mvcc.commitLog, ↓reduceIte]
@@ -148,13 +149,14 @@ theorem txn.Put.wp_proof
   · simp only [mvcc.isTxn]; iexact Htx
   have hp := hput ctx' { cd with Values := vs } mw s γ ilog [] (W64 0) (W64 0) (W64 0) p o prev
   simp only [txn.pendState_nil, List.nil_append, List.length_nil] at hp
-  wp_apply hp $$ [$Hctx' $Htx $Hp $Hprev $Hlok2] as %resp ⟨⟨%puts', %putSize', Htx⟩, #Hresp⟩
+  wp_apply hp $$ [$Hctx' $Htx $Hp $Hprev $Hlok2] as %resp ⟨⟨%puts', %putSize', Htx⟩, #Hresp, Hhdr⟩
   · ipureintro; exact ⟨Hn, by omega⟩
   (try wp_auto)
   -- the deferred `txnWrite.End()`: the put committed
   ihave Htx : mvcc.isTxn mw s γ (.write ilog
       [txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))] puts' (W64 0) putSize') $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
+  ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
   wp_apply (hEnd mw s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost⟩
   · iapply mvcc.txnEndPre_write; iframe Hhook HP
   simp only [mvcc.txnEndPost, mvcc.commitLog, List.cons_ne_nil, ↓reduceIte]
@@ -170,7 +172,7 @@ theorem txn.Put.wp_proof
   · ipureintro; exact ⟨Hpin, Hfx.1⟩
   iframe HPost
   iright
-  iframe Hresp Hc Hlok2
+  iframe Hresp Hhdr Hc Hlok2
   ipureintro; rfl
 
 end proof

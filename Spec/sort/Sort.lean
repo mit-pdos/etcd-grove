@@ -16,8 +16,7 @@ earlier one); the sort is not stable. The pure statement is Perennial's `slices.
 module
 
 public import Perennial.Proof.sort
-public import Perennial.Proof.slices_proof.pdqSort.sort_basics
-public import Perennial.Proof.sort_proof.pdqSort.sort_basics
+public import Perennial.Proof.slices.SortBasics
 
 @[expose] public section
 

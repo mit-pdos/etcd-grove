@@ -165,16 +165,16 @@ def dispatchAnswer (rq : IRRModel) (log : mvcc.Log) (skip : Bool) (resp err : Go
   match dispatchKind rq with
   | .put => iprop(∃ (op : OpFull) (r : Loc), ⌜rq.put = some op ∧
       resp = interface.mkOk (go.GoType.PointerType etcdserverpb.PutResponse.ty) #r⌝ ∗
-      putOutcomeIs log op r err o)
+      putAnswerIs log op r err o)
   | .deleteRange => iprop(∃ (op : OpFull) (r : Loc), ⌜rq.deleteRange = some op ∧
       resp = interface.mkOk (go.GoType.PointerType etcdserverpb.DeleteRangeResponse.ty) #r⌝ ∗
-      deleteOutcomeIs log op r err o)
+      deleteAnswerIs log op r err o)
   | .range => iprop(∃ (op : OpFull) (r : Loc), ⌜rq.range = some op ∧
       resp = interface.mkOk (go.GoType.PointerType etcdserverpb.RangeResponse.ty) #r⌝ ∗
       rangeOutcomeIs log op r err o)
   | .txn => iprop(∃ (t : TxnModel) (r : Loc), ⌜rq.txn = some t ∧
       resp = interface.mkOk (go.GoType.PointerType etcdserverpb.TxnResponse.ty) #r⌝ ∗
-      txnOutcomeIs log t skip r err o)
+      txnAnswerIs log t skip r err o)
   | .leaseRevoke => iprop(∃ r : Loc,
       ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseRevokeResponse.ty) #r⌝ ∗
       revokeOutcomeIs r err o)

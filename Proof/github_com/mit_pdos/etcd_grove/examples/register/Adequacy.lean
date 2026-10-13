@@ -10,7 +10,8 @@ stuck, no thread of it ends in a panic, and the main thread's result, if it has 
 `#()`. For every real execution, of any length: the thread bound comes from
 `threads_le_steps` (one step forks at most one thread).
 
-It follows from Perennial's `goose_adequacy_nopanic`, instantiated with the disk FFI (the
+It follows from Perennial's `goose_adequacy` (whose third conclusion, no thread has an
+unrecovered panic, gives the last one), instantiated with the disk FFI (the
 register's proofs are generic over the FFI; the disk's adequacy instance has trivial
 initial-state conditions) and a concrete ghost-state bundle `registerGF`, from
 `register_Main` (`Spec/.../register/Main.lean`) and the register package's
@@ -201,7 +202,14 @@ theorem register_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine goose_adequacy_nopanic (GF := registerGF) (n + 1) (n + 2) registerProgram σ g
+  suffices H : (∀ v t2', t2 = Val v :: t2' → v = #()) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) by
+    refine ⟨H.1, H.2.1, fun v hv => ?_⟩
+    cases h : v.isPanic
+    · rfl
+    · obtain ⟨p, rfl⟩ := val.isPanic_eq_true h
+      exact absurd (UnrecoveredPanic.panic p) (H.2.2 _ hv)
+  refine goose_adequacy (GF := registerGF) (n + 1) (n + 2) registerProgram σ g
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) trivial trivial ?_
     n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
   intro hG _ _ HL
