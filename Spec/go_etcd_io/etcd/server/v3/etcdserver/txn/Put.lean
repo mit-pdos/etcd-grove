@@ -34,13 +34,14 @@ the certificate of `ilog`); or the put committed: `ilog` with the revision of it
 with the previous key-value if `PrevKv` asked for it. The trace is not `nil`.
 The write transaction runs under the store's batch lock by the critical-section contract
 (`csContract P f Pre Q Post`, the store's hook `hookIs γ P f`): `Post` once it was opened, `Pre`
-if the lease check failed first. -/
+if the lease check failed first. The transaction spends a write token (`mvcc.storeWT γ`: the real
+backend's write-back budget; spent also when the lease check fails; 2026-10-13, unit 6). -/
 abbrev txn.Put.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg : Loc) (le kv : GoInterface)
     (s : Loc) (γ : mvcc.StoreNames) (p : Loc) (o : OpFull) (m : Nat) (log₀ : mvcc.Log)
     (P Pre Q Post : IProp GF) (f : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗
-      ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗ txn.isTxnLessor le γ.leases ∗
+      mvcc.storeWT γ ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗ txn.isTxnLessor le γ.leases ∗
       txn.putRequestIs p o ∗ mvcc.txnCtx ctx cd ∗
       □ (∀ ilog : mvcc.Log, ⌜txn.Pinned log₀ m ilog ∧ o.ignoreLease = true⌝ -∗
         txn.leaseOk γ.leases (txn.putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter ilog)))) ∗

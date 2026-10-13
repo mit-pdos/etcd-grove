@@ -34,7 +34,7 @@ theorem apply.authApplierV3.Put.wp_proof
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, ⟨%le, #Hlef, #Hle⟩, -⟩
   iunfold apply.putPre at Hpre
-  icases Hpre with ⟨%Hk, #Hr, Hm⟩
+  icases Hpre with ⟨%Hk, #Hr, Hwt, Hm⟩
   iunfold apply.mPre at Hm
   icases Hm with ⟨Hkv, Hres, Hcs⟩
   ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner $$ Happ Hres
@@ -62,7 +62,7 @@ theorem apply.authApplierV3.Put.wp_proof
     · iunfold apply.authInfoOwn; iexists info; iexact Hinfo
   | nil =>
   wp_auto
-  wp_apply HI $$ %r %rq %o %log %Pre %Q %Post [Hkv Hres Hcs] as %resp %trace %err Hpost
+  wp_apply HI $$ %r %rq %o %log %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %trace %err Hpost
   · iunfold apply.putPre
     iunfold apply.mPre
     iframe

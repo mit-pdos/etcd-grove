@@ -37,7 +37,7 @@ theorem apply.applierV3backend.Txn.wp_proof
   iunfold apply.txnPre at Hpre
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
-  icases Hpre with ⟨%Hrq, #Hr, ⟨Hrd, Hsw, #Hknown⟩, Hres, Hcs⟩
+  icases Hpre with ⟨%Hrq, #Hr, Hwt, ⟨Hrd, Hsw, #Hknown⟩, Hres, Hcs⟩
   icases txn.soleWriter_len' _ _ $$ Hsw with ⟨%Hl2, Hsw⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
@@ -52,7 +52,7 @@ theorem apply.applierV3backend.Txn.wp_proof
   icases Hle with ⟨#Hle, -⟩
   obtain ⟨ht, hk, hpre⟩ := Hrq
   wp_apply (hTxn.1 todoCtxVal mvcc.neverCd opts.Logger' r opts.TxnModeWriteWithSharedBuffer'
-      opts.KV' opts.Lessor' skip E.s E.γ log t E.P Pre Q Post E.f) $$ [$Hrd $Hsw $Hcs]
+      opts.KV' opts.Lessor' skip E.s E.γ log t E.P Pre Q Post E.f) $$ [$Hrd $Hsw $Hwt $Hcs]
     as %resp %trace %err ⟨Hrd, Hout⟩
   · iframe #
     isplitr

@@ -142,8 +142,9 @@ safe-range discipline is the backend's invariant). The store is generic in its b
 instance (`StoreNames.kb`): `NewStore` over the real backend (`mvcc_NewStore_backend`) makes a
 store of the real instance, over which every store result holds (`store.Write` restated:
 `mvcc_store_Write_backend`, its write token the backend's write-back budget). The layers above
-mvcc (txn and up) keep mvcc's assumed backend (`txn.isKV` carries `γ.kb = none`):
-`notes/STATUS.md`, "Unit 5". -/
+mvcc (txn and up) are generic in the instance too (unit 6: `txn.isKV` no longer pins
+`γ.kb = none`; the apply thread's KV over the real backend: the server's `server_kv_backend`);
+`notes/STATUS.md`, "Unit 5", "Unit 6". -/
 
 noncomputable section
 

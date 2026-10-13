@@ -25,7 +25,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 /-- **`DeleteRange(ctx, lg, kv, dr)`**: the delete request `o` as one write transaction, opened
 with a revision token, at a committed log `ilog` the caller's other tokens and certificate pin
-(`Pinned`; at the sole writer, its own log), with fewer than `2^63` keys. The keys of the
+(`Pinned`; at the sole writer, its own log), with fewer than `mvcc.putMax γ` keys in the
+request's range there (`2^56` for the real backend; 2026-10-13, unit 6: it was the whole state
+below `2^63`), spending a write token (`mvcc.storeWT γ`). The keys of the
 request's range at `ilog`'s state deleted (`delChanges`; the client's delete there:
 `stateAfter_commit_delete`): the committed log `commitLog` (no revision, the token back, if
 nothing was deleted), the response with their number, the revision (`writeRev`: the new one, or
@@ -39,9 +41,10 @@ abbrev txn.DeleteRange.spec : Prop :=
     (s : Loc) (γ : mvcc.StoreNames) (dr : Loc) (o : OpFull) (m : Nat) (log₀ : mvcc.Log)
     (P Pre Q Post : IProp GF) (f : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗
-      ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗ txn.deleteRangeRequestIs dr o ∗
+      mvcc.storeWT γ ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗ txn.deleteRangeRequestIs dr o ∗
       mvcc.txnCtx ctx cd ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
-      ⌜∀ ilog : mvcc.Log, txn.Pinned log₀ m ilog → (mvcc.stateAfter ilog).length < 2 ^ 63⌝ ∗
+      ⌜∀ ilog : mvcc.Log, txn.Pinned log₀ m ilog →
+        (rangeIn (mvcc.stateAfter ilog) o).length < mvcc.putMax γ⌝ ∗
       mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
     (App (App (App (App (Val (@! txn.DeleteRange)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #kv)) (Val #dr))

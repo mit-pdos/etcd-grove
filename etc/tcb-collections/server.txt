@@ -4,7 +4,9 @@
 # path's unit 2, 2026-10-12: the proposal path, pkg/wait and pkg/idutil, whose new axioms are
 # the context's Value at StartTimeKey and errors.Is at the context errors, and which reach
 # trace.SpanFromContext (mvcc's) and context.WithValue (the apply package's): 40 -> 44;
-# merged with the raft wrapper's proto.Clone, zap.Duration and zap.Logger.Fatal: 47).
+# merged with the raft wrapper's proto.Clone, zap.Duration and zap.Logger.Fatal: 47;
+# 2026-10-13, unit 6: `server_kv_backend`, the apply thread's KV made by `NewStore` over the real
+# backend, adds the backend's and bbolt's key-value contract and mvcc's store axioms: 114).
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/server.txt [--check [--update]]
 #
@@ -18,10 +20,53 @@ axiom attribute.Bool.wp_proof
 axiom attribute.Int.wp_proof
 axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
+axiom backend.ValidateCalledInsideApply.wp_proof
+axiom backend.ValidateCalledOutSideApply.wp_proof
+axiom backend.isDB
+axiom backend.isDB_persistent
+axiom backend.ownCur
+axiom backend.ownDB
+axiom backend.ownWTx
+axiom backend.ownWTx_fill
+axiom backend.ownWTx_live
 axiom backend.rBkt
+axiom backend.rBkt_persistent
+axiom backend.rBkt_timeless
 axiom backend.rtxSnap
+axiom backend.rtxSnap_persistent
 axiom backend.rtxStats
+axiom backend.rtxStats_excl
+axiom backend.rtxStats_timeless
+axiom backend.txBytes
+axiom backend.txBytes_acc
+axiom backend.txBytes_persistent
+axiom backend.txDB
+axiom backend.txDB_persistent
+axiom backend.txDone
+axiom backend.txDone_persistent
 axiom backend.txLive
+axiom backend.txLive_fractional
+axiom backend.txLive_nonnull
+axiom backend.txLive_timeless
+axiom backend.wBkt
+axiom backend.wBkt_persistent
+axiom backend.wrTok
+axiom bbolt.Bucket.Cursor_kvr.wp_proof
+axiom bbolt.Bucket.Cursor_kvw.wp_proof
+axiom bbolt.Bucket.Put_kv.wp_proof
+axiom bbolt.Cursor.Next_kv.wp_proof
+axiom bbolt.Cursor.Seek_kv.wp_proof
+axiom bbolt.DB.Begin_kv.wp_proof
+axiom bbolt.DB.Info_kv.wp_proof
+axiom bbolt.DB.Stats_kv.wp_proof
+axiom bbolt.Tx.Bucket_kvr.wp_proof
+axiom bbolt.Tx.Bucket_kvw.wp_proof
+axiom bbolt.Tx.Commit_kv.wp_proof
+axiom bbolt.Tx.CreateBucketIfNotExists_kv.wp_proof
+axiom bbolt.Tx.DB_kv.wp_proof
+axiom bbolt.Tx.Rollback_kv.wp_proof
+axiom bbolt.Tx.Size_kv.wp_proof
+axiom bbolt.Tx.Stats_kv.wp_proof
 axiom config.ServerConfig.ReqTimeout.wp_proof
 axiom context.ErrDone.wp_proof
 axiom context.ValueStartTime.wp_proof
@@ -32,6 +77,7 @@ axiom isConnectedSince.wp_proof
 axiom isConnectedToQuorumSince.wp_proof
 axiom membership.RaftCluster.ID.wp_proof
 axiom membership.RaftCluster.Members.wp_proof
+axiom mvcc.store.restore.wp_proof
 axiom pbutil.MustUnmarshalMessage.wp_proof
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof
 axiom proto.Clone.wp_proof
@@ -39,6 +85,8 @@ axiom proto.Marshal.wp_proof
 axiom proto.MarshalIRR.wp_proof
 axiom proto.Size.wp_proof
 axiom proto.Unmarshal.wp_proof
+axiom schedule.NewFIFOScheduler.wp_proof
+axiom sort.Stable.wp_proof
 axiom storage.BackendQuota.Cost.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom time.Duration.Seconds.wp_proof
@@ -63,6 +111,7 @@ axiom txn.WarnOfExpensiveReadOnlyRangeRequest.wp_proof
 axiom txn.WarnOfExpensiveReadOnlyTxnRequest.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
+axiom verify.Assert.wp_proof
 axiom verify.Verify.wp_proof
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof
@@ -73,6 +122,8 @@ axiom zap.Logger.Error.wp_proof
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.Warn.wp_proof
+axiom zap.NewNop.wp_proof
+axiom zap.Stack.wp_proof
 axiom zap.String.wp_proof
 axiom zap.Stringer.wp_proof
 axiom zap.Uint64.wp_proof

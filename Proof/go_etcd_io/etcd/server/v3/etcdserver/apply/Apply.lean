@@ -41,8 +41,8 @@ set_option hygiene false in
 /-- The call `uberApply.Apply(wrapper, v3)` and the postcondition. -/
 local macro "call_tail" : tactic => `(tactic| (
   wp_apply (hUA E p opts x «$r0_ptr» rq sk v3 Pre Q Post)
-      $$ [Hown Hkv Hcs] as %ar ⟨%x', %out, Hown, Hkv, HPP, %Hst, Hres⟩
-  · iframe # Hown Hkv Hcs
+      $$ [Hown Hkv Hwt Hcs] as %ar ⟨%x', %out, Hown, Hkv, HPP, %Hst, Hres⟩
+  · iframe # Hown Hkv Hwt Hcs
     ipureintro
     refine ⟨⟨Hrq, Hdk⟩, ?_⟩
     intro h
@@ -73,7 +73,7 @@ theorem apply.Apply.wp_proof
     (hUA : apply.uberApplier.Apply.spec (GF := GF) (hG := hG)) :
     apply.Apply.spec (GF := GF) (hG := hG) := by
   intro lg e m ua w v3 E Pre Q Post x rq id RD
-  wp_start as ⟨#Hfor, #Hwok, HRD, %Hlg, #He, Hhook, HPre, Hkv, %Hprem⟩
+  wp_start as ⟨#Hfor, #Hwok, HRD, %Hlg, #He, Hhook, HPre, Hkv, Hwt, %Hprem⟩
   obtain ⟨Hdec, Hid, Hrq, Hdk⟩ := Hprem
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit

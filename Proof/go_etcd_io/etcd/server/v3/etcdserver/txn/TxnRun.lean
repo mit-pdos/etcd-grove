@@ -446,12 +446,13 @@ theorem putLeaseOf_mem (s0 : List EtcdKv) (o : OpFull) (s : List EtcdKv) :
 
 /-- **`Txn`'s premises** at the sole writer's log `log`: room for one more revision, the run's
 premises (weak: an `IgnoreValue`/`IgnoreLease` put whose key is missing at `log` fails
-`checkTxn`), room for the run's changes. -/
+`checkTxn`), room for the run's changes (fewer than `2 ^ 56`: the real backend's bound on a
+session's puts, `mvcc.putMax`; 2026-10-13, unit 6: it was `2 ^ 63`). -/
 def TxnPre (log : Log) (t : TxnModel) : Prop :=
   log.length + 4 ≤ 2 ^ 63 ∧
   OpsOk true (stateAfter log) (W64 (log.length : Int)) (stateAfter log)
     (t.branch (txnOk (stateAfter log) t)) ∧
-  (srvRunTxn (W64 (log.length : Int)) (stateAfter log) t).2.1.length < 2 ^ 63
+  (srvRunTxn (W64 (log.length : Int)) (stateAfter log) t).2.1.length < 2 ^ 56
 
 /-! ## Read-only and serializable requests -/
 

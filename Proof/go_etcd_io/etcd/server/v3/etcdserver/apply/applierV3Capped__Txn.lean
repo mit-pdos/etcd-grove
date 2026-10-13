@@ -46,7 +46,7 @@ theorem apply.applierV3Capped.Txn.wp_proof
   iunfold apply.applierTriples at Ht
   icases Ht with ⟨-, -, -, #HTxn, -⟩
   iunfold apply.txnPre at Hpre
-  icases Hpre with ⟨%Hk, #Hr, Hm⟩
+  icases Hpre with ⟨%Hk, #Hr, Hwt, Hm⟩
   iunfold apply.mPre at Hm
   icases Hm with ⟨Hkv, Hres, Hcs⟩
   wp_apply hCost
@@ -75,7 +75,7 @@ theorem apply.applierV3Capped.Txn.wp_proof
     iapply apply.csContract_pre $$ Hcs
   · -- the inner applier's `Txn`
     ihave Hres := apply.chainRes_capped_out c p (.ok bi) $$ Hc Hres
-    wp_apply HTxn $$ %r %skip %rq %t %log %Pre %Q %Post [Hkv Hres Hcs]
+    wp_apply HTxn $$ %r %skip %rq %t %log %Pre %Q %Post [Hwt Hkv Hres Hcs]
       as %resp %trace %err Hpost
     · iunfold apply.txnPre
       iunfold apply.mPre

@@ -204,8 +204,8 @@ instance leaseIs_persistent (l : Loc) (id : w64) : Persistent (leaseIs (GF := GF
 /-- **The `lease.Lessor` `le`** as the apply package uses it (trust boundary: `lease` is
 names-only): the txn package's `isTxnLessor`, its writes under the batch lock (`P`, `f`); a
 revocation deletes the lease's keys through the store `γ`'s writer, one revision, under the
-same lock (`lessor.Revoke`: `le.rd()` is the store's `Write`), which at the sole writer is a
-commit of deletions. -/
+same lock (`lessor.Revoke`: `le.rd()` is the store's `Write`, which spends a write token,
+`mvcc.storeWT γ`; 2026-10-13, unit 6), which at the sole writer is a commit of deletions. -/
 def isApplyLessor (le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) :
     IProp GF :=
   iprop(txn.isTxnLessor le γ.leases ∗ ∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
@@ -217,7 +217,7 @@ def isApplyLessor (le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : 
             (⌜err = GoInterface.nil⌝ ∗ ∃ id' : w64, leaseIs l id' ∗ mvcc.leaseKnown γ.leases id')) ∗
           applyErrIs err }}) ∗
     □ (∀ (id : w64) (log : mvcc.Log) (Pre Q Post : IProp GF),
-      {{ mvcc.csContract P f Pre Q Post ∗ txn.soleWriter γ log }}
+      {{ mvcc.csContract P f Pre Q Post ∗ txn.soleWriter γ log ∗ mvcc.storeWT γ }}
         (App (Val #(methods li.ty go!"Revoke" li.v)) (Val #id))
       {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗
           (∃ pend : List mvcc.Change, ⌜∀ c ∈ pend, c.isDel = true⌝ ∗

@@ -98,8 +98,8 @@ theorem put_soleWriter (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
     (le kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (p : Loc) (o : OpFull) (log : mvcc.Log)
     (P Pre Q Post : IProp GF) (f : val) (hlen : log.length + 4 ≤ 2 ^ 63) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
-        isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ isTxnLessor le γ.leases ∗
-        putRequestIs p o ∗ mvcc.txnCtx ctx cd ∗
+        isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ mvcc.storeWT γ ∗
+        isTxnLessor le γ.leases ∗ putRequestIs p o ∗ mvcc.txnCtx ctx cd ∗
         □ (⌜o.ignoreLease = true⌝ -∗
           leaseOk γ.leases (putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter log)))) ∗
         mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
@@ -123,16 +123,17 @@ theorem put_soleWriter (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
               (applyTxnOp (W64 (log.length : Int)) (mvcc.stateAfter log) (putTxnOp o)).1⌝)) }} :=
   put_soleWriter_of wp_Put ctx cd lg le kv s γ p o log P Pre Q Post f hlen
 
-/-- **`DeleteRange` at the sole writer of `log`** (fewer than `2 ^ 63` keys): the client's delete
+/-- **`DeleteRange` at the sole writer of `log`** (fewer than `mvcc.putMax γ` keys in the range): the client's delete
 on `log`'s state committed (no revision if nothing was deleted), the sole writer at the
 committed log; or, with `PrevKv`, the range read's context error, the sole writer back. Under the
 critical-section contract: `Post`. -/
 theorem deleteRange_soleWriter (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (nd : Bool) (lg : Loc) (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (dr : Loc) (o : OpFull)
     (log : mvcc.Log) (P Pre Q Post : IProp GF) (f : val) (hlen : log.length + 4 ≤ 2 ^ 63)
-    (hst : (mvcc.stateAfter log).length < 2 ^ 63) :
+    (hst : (rangeIn (mvcc.stateAfter log) o).length < mvcc.putMax γ) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
-        isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ deleteRangeRequestIs dr o ∗
+        isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ mvcc.storeWT γ ∗
+        deleteRangeRequestIs dr o ∗
         mvcc.txnCtx ctx cd ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
         mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.DeleteRange))
@@ -343,8 +344,8 @@ theorem txn_runTxn (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (
     (hst : OpsStable (mvcc.stateAfter log) (W64 (log.length : Int)) (mvcc.stateAfter log)
       (t.branch (txnOk (mvcc.stateAfter log) t))) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
-        isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ isTxnLessor le γ.leases ∗
-        txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗ mvcc.neverDone cd ∗
+        isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ mvcc.storeWT γ ∗
+        isTxnLessor le γ.leases ∗ txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗ mvcc.neverDone cd ∗
         leasesKnown γ.leases (mvcc.stateAfter log) ∗ ⌜TxnPre log t⌝ ∗
         mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
       (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx)))
@@ -393,8 +394,8 @@ theorem txn_readonly_no_revision (ctx : GoInterfaceOk) (cd : context.ContextDesc
     (γ : mvcc.StoreNames) (log : mvcc.Log) (t : TxnModel) (P Pre Q Post : IProp GF) (f : val)
     (hro : txnReadonly t = true) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
-        isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ isTxnLessor le γ.leases ∗
-        txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗ mvcc.neverDone cd ∗
+        isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ mvcc.storeWT γ ∗
+        isTxnLessor le γ.leases ∗ txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗ mvcc.neverDone cd ∗
         leasesKnown γ.leases (mvcc.stateAfter log) ∗ ⌜TxnPre log t⌝ ∗
         mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
       (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx)))
@@ -434,8 +435,8 @@ theorem txn_check_error_no_write (ctx : GoInterfaceOk) (cd : context.ContextDesc
     (lg rt : Loc) (shared : Bool) (kv le : GoInterface) (skip : Bool) (s : Loc)
     (γ : mvcc.StoreNames) (log : mvcc.Log) (t : TxnModel) (P Pre Q Post : IProp GF) (f : val) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
-        isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ isTxnLessor le γ.leases ∗
-        txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗ mvcc.neverDone cd ∗
+        isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ mvcc.storeWT γ ∗
+        isTxnLessor le γ.leases ∗ txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗ mvcc.neverDone cd ∗
         leasesKnown γ.leases (mvcc.stateAfter log) ∗ ⌜TxnPre log t⌝ ∗
         mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
       (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx)))

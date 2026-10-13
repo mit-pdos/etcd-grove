@@ -29,6 +29,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Results
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Results
 
 @[expose] public section
 
@@ -478,6 +479,84 @@ theorem txn_applied_model (t t' : TxnModel) (hm : apply.HeaderModel) (rq' : appl
     · rw [hk] at hd; cases hd
     · rw [ht] at ht'; cases ht'; exact ha
 
+/-! ## The apply thread's KV over the real backend (2026-10-13, unit 6)
+
+The server's results above are generic in the store's backend instance (`txn.isKV` no longer
+pins `γ.kb = none`). `NewStore` over the real backend (`mvcc_NewStore_backend`, resting on the
+backend's proof and bbolt's key-value contract) makes what the apply thread starts with: the
+store as the txn package's `isKV`, its reader slots, the sole writer of the initial log, and a
+supply of `N` write tokens (`txn.storeWTs`, the backend's write-back tokens: `applyEntries`
+spends one per entry). The premises are the backend creator's (the backend's constructor is not
+proved): the backend made for the real instance, its post-lock hook set for good, **`keySized`**
+(fewer than `2 ^ 62` entries of the `Key` bucket in any state a read transaction holds: a
+genuine assumption, nothing in etcd bounds a bucket's size), the clients' view of the empty
+`Key` bucket, the lock resource's registration right, `N + 2` write-back tokens (`NewStore`
+spends two) and a reader token per reader slot. -/
+
+section backend
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+
+/-- **The apply thread's KV over the real backend**: `NewStore` on a fresh backend of the real
+instance `d` gives a store `s` of that instance (`γ.kb = some d`) that is the txn package's
+`isKV`, with its reader slots, the sole writer of `NewStore`'s log `[[], []]` and `N` write
+tokens: with the store's lessor's leases (none in the empty state), the apply thread's
+`apply.kvOwn` and `applyEntries`' write budget, for a server whose environment is the store's. -/
+theorem server_kv_backend (lg : Loc) (le : GoInterface)
+    (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
+    (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF)
+    (f : GoFunc) (hf : f ≠ func.nil) (N : Nat) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+        backend.isBackend d.γB d.P (mvcc.lateW d.gx) Pk d.be ∗ backend.plHookRO d.γB f ∗
+        mvcc.keySized d.γB d.P d.be ∗
+        mvcc.bkView d.γB 1 (∅ : mvcc.Bucket) ∗ mvcc.lateReg d.gx ∗
+        ownToks d.γB.wb (N + 2) ∗
+        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+          mvcc.bkRTx d.γB d.P d.be) ∗
+        mvcc.isLessor le γl }}
+      (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
+        (Val #(interface.mkOk
+          (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
+        (Val #le)) (Val #cfg))
+    {{ (s : Loc), RET #s; ∃ γ : mvcc.StoreNames,
+        ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = some d⌝ ∗
+        txn.isKV (interface.mkOk (go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.storage.mvcc.store.ty) #s) s γ ∗ mvcc.hookIs γ Pk #f ∗
+        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+          mvcc.storeReader s γ) ∗
+        txn.soleWriter γ [[], []] ∗ txn.storeWTs γ N ∗ mvcc.storeCloser s }} := by
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hv, Hrg, Hw, Hrts, #Hle⟩ HΦ
+  rw [show N + 2 = (N + 1) + 1 by omega]
+  icases ownToks_add_1 1 (N + 1) d.γB.wb $$ Hw with ⟨Hw, Hw1⟩
+  icases ownToks_add_1 1 N d.γB.wb $$ Hw with ⟨Hw, Hw2⟩
+  iapply (mvcc_NewStore_backend lg le cfg d hP γb γl Pk f hf) $$ %Φ
+    [Hv Hrg Hw1 Hw2 Hrts]
+  · iframe Hpkg Hbpkg Hsch Hb Hhk Hsz Hle Hv Hrg Hrts
+    unfold backend.wbTok
+    iframe Hw1 Hw2
+  iintro !> %s ⟨%γ, %Hγ, #Hst, #Hhk', -, Hrds, Htoks, #Hc, Hcl⟩
+  iapply HΦ
+  iexists γ
+  isplitr
+  · ipureintro; exact Hγ
+  iframe Hhk' Hrds Hcl
+  isplitr
+  · iunfold txn.isKV; iframe Hst; ipureintro; rfl
+  isplitl [Htoks]
+  · iapply txn.soleWriter_of_NewStore γ; iframe Htoks Hc
+  unfold txn.storeWTs
+  rw [Hγ.2.2]
+  iexact Hw
+
+end backend
+
+#print axioms Perennial.EtcdGrove.server_kv_backend
 #print axioms Perennial.EtcdGrove.applyEntries_model
 #print axioms Perennial.EtcdGrove.applyEntries_trace
 #print axioms Perennial.EtcdGrove.applyEntries_kv
