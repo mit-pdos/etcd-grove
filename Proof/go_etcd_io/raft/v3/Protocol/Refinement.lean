@@ -21,7 +21,7 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Protocol.LeaderCompleteness
+public import Proof.go_etcd_io.raft.v3.Protocol.ReadIndex
 
 @[expose] public section
 

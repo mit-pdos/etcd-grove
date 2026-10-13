@@ -17,7 +17,7 @@ the event history").
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import Proof.go_etcd_io.raft.v3.Protocol.LeaderCompleteness
 
 @[expose] public section
 
@@ -96,6 +96,43 @@ theorem rqRecOk_confirm (γ : RaftNames) (T : w64) (r : RqRec) (Q : GSet w64) :
 
 section inv
 variable [InvGS GF]
+
+/-- A campaign's term is nonzero: its log's terms are all below it, the boundary's
+term `0` (at index `0`) among them. -/
+theorem CampOk.term_nz {T : w64} {F : List raftpb.Entry} (H : CampOk T F) : T ≠ W64 0 := by
+  intro hT
+  have h0 : plogTermAt base0 F (W64 0) = some (W64 0) := by
+    simp [plogTermAt, base0]
+  have := H.2 _ _ h0
+  rw [hT] at this
+  exact Int.lt_irrefl _ this
+
+/-- A candidate's or a leader's term is nonzero (2026-10-10): it holds the record of its
+campaign at that term (`campOwn`), and a campaign does not wrap the term (`CampOk`).
+`Step` gives a leader's to `appendEntry` (through `stepLeader`), which stamps the
+self-acknowledgement with it: `RawNode.Advance` steps that message, and `Step` asks a
+`MsgAppResp` for a nonzero term. -/
+theorem ownRaftGhost_term_nz (γ : RaftNames) (id : w64) (s : PState) :
+    s.role ≠ .follower →
+    ⊢ ownRaftGhost (GF := GF) γ id s -∗ ⌜s.term ≠ W64 0⌝ := by
+  intro Hr
+  unfold ownRaftGhost ownLogGhost
+  iintro ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  icases Hlg with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
+  iNamed H
+  unfold campOwn at *
+  cases Hrole : s.role with
+  | follower => exact absurd Hrole Hr
+  | candidate =>
+    rw [Hrole] at *
+    ihave %Hc := isCamp_ok γ id s.term _ $$ Hcown
+    ipureintro; exact Hc.term_nz
+  | leader =>
+    rw [Hrole] at *
+    icases Hcown with ⟨%F0, #Hc0, -⟩
+    ihave %Hc := isCamp_ok γ id s.term _ $$ Hc0
+    ipureintro; exact Hc.term_nz
 
 /-! ### Followers: no acknowledgement above their term -/
 
