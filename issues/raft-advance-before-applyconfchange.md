@@ -60,6 +60,27 @@
   `Ready`'s committed entries are applied (`ApplyConfChange`) before `Advance` (before the
   `MsgStorageApplyResp`, with asynchronous storage writes) -- or raft's guards track the
   configuration actually in use rather than the applied index.
+- **A second consequence: a panic** (found 2026-10-13, reconfiguration stage A2). The same
+  window lets a node campaign with its own removal committed but not yet applied; when the
+  application then calls `ApplyConfChange`, the node stays a candidate outside the
+  configuration (`switchToConfig` steps down only a removed *leader*, and only with
+  `StepDownOnRemoval`). If the remaining voters grant it their votes it wins, and
+  `becomeLeader` (`raft.go:942-943`, `pr := r.trk.Progress[r.id]; pr.BecomeReplicate()`)
+  dereferences its missing `Progress`: a nil-pointer panic. Reproduction of the code path
+  (internal API: `newTestRaft`, `applyConfChange`, `Step`):
+  `raft-conf-lag-model/removed_candidate_test.go`, `TestRemovedCandidateWinsAndPanics`, which
+  passes by recovering the panic:
+
+      cp issues/raft-conf-lag-model/removed_candidate_test.go <etcd-raft checkout>/
+      cd <etcd-raft checkout> && go test -run TestRemovedCandidateWinsAndPanics -v .
+      ...
+      removed_candidate_test.go:47: PANIC reproduced: runtime error: invalid memory address or nil pointer dereference
+
+  The public-API route is the leader-lag test's: `Advance` past the committed removal, a
+  campaign (no unapplied conf change in `(applied, committed]`), then `ApplyConfChange`. Not
+  demonstrated end to end through `RawNode`. The proof excludes it by premise:
+  `raft.switchToConfig.spec` and `raft.applyConfChange.spec` require a candidate to stay a
+  voter, and `RawNode.ApplyConfChange.spec` (`CCApplies`) that the node stays a voter.
 - **How the proof handles it**: today no node ever applies a conf change (the verified
   scope has a fixed voter set: `ownRaftPhys cfg`, `γ.reCfg = cfg` in `raft.Step.spec`,
   `HnoConfChange` in `ownRaftLog`). The reconfiguration work will state the precondition on
