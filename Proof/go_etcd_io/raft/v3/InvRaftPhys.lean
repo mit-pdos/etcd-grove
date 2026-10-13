@@ -65,6 +65,7 @@ module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftlog
 public import Proof.go_etcd_io.raft.v3.InvTracker
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
 public import Proof.go_etcd_io.raft.v3.InvLogger
 public import Proof.go_etcd_io.raft.v3.InvMisc
 
@@ -651,8 +652,12 @@ theorem LogGhOk.of_off {s : NState} {ls' : LogState} (h : s.gh.unst = false) :
 -- progress map's domain and the configuration's voter set to `cfg`.
 variable (cfg : GSet w64)
 
-/-- Rocq `own_raft_phys_def`: the body of `ownRaftPhys` (see the file header). -/
-private def ownRaftPhysDef (r : Loc) (id : w64) (s : NState) : IProp GF :=
+/-- Rocq `own_raft_phys_def`: the body of `ownRaftPhys` (see the file header), over any
+tracker predicate `T` and voter set `V` (2026-10-13, reconfiguration stage A1): `ownRaftPhys
+cfg` is it at `ownTracker cfg` and `cfg` (`ownRaftPhysDef`), `ownRaftPhysC c` at
+`ownTrackerC c` and `c.voters`. -/
+private def ownRaftPhysG (T : tracker.ProgressTracker → Trk → IProp GF) (V : GSet w64)
+    (r : Loc) (id : w64) (s : NState) : IProp GF :=
   iprop(∃ (rv : raft) (msgs msgsAA : List raftpb.Message) (lok : GoInterfaceOk),
   -- the struct, `id` and `logger` shared (2026-10-10, `raftOwn`)
   "Hr" ∷ raftOwn r rv ∗
@@ -680,7 +685,7 @@ private def ownRaftPhysDef (r : Loc) (id : w64) (s : NState) : IProp GF :=
   -- the predicate on loan, `nstate.lent`.) (From 2026-09-22 to 2026-09-23 a second,
   -- persistent copy of the progress map's points-to sat here, beside the one inside
   -- `ownTracker`; indexing `ownTracker` by the map made it redundant.)
-  "Htrk" ∷ ownTracker cfg rv.trk' ⟨s.votes, s.progress, s.prvals⟩ ∗
+  "Htrk" ∷ T rv.trk' ⟨s.votes, s.progress, s.prvals⟩ ∗
 
   -- the log, at the state `s` records (`NState.logst`). Never on loan: what
   -- `raftLog.slice` returns is read-only and the caller's for good. (Until 2026-09-28
@@ -715,7 +720,7 @@ private def ownRaftPhysDef (r : Loc) (id : w64) (s : NState) : IProp GF :=
   -- only a voter leaves the follower role (2026-10-13, reconfiguration stage L): a learner
   -- never campaigns (`promotable`), so the role stores of `becomeCandidate`,
   -- `becomePreCandidate` and `becomeLeader` (`raft.wp_store_state`) are at a voter
-  "%Hvoter" ∷ ⌜s.role ≠ .follower → id ∈ cfg⌝ ∗
+  "%Hvoter" ∷ ⌜s.role ≠ .follower → id ∈ V⌝ ∗
 
   -- `r.preVote`, recorded (since 2026-10-04; until then a scope conjunct pinned it to
   -- `false`). Never written after `newRaft`.
@@ -752,6 +757,10 @@ private def ownRaftPhysDef (r : Loc) (id : w64) (s : NState) : IProp GF :=
   "%Hlok" ∷ ⌜rv.logger' = interface.ok lok⌝ ∗
   "#Hlogger" ∷ isLogger lok ∗
   "Hmisc" ∷ ownRaftMisc rv.readStates' rv.readOnly' rv.pendingReadIndexMessages' s.rd)
+
+/-- The body of `ownRaftPhys`: `ownRaftPhysG` at the simple configuration's tracker. -/
+private def ownRaftPhysDef (r : Loc) (id : w64) (s : NState) : IProp GF :=
+  ownRaftPhysG (ownTracker cfg) cfg r id s
 
 /-- Physical ownership of the raft struct (see the file header).
 
@@ -824,7 +833,7 @@ theorem ownRaftPhys_intro (r : Loc) (id : w64) (s : NState) (rv : raft)
     HnoLearner HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term
     Hgh_out Hgh_unst Hvoter
   iintro Hr #Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc #Houtbox
-  rw [ownRaftPhys_unseal]; unfold ownRaftPhysDef
+  rw [ownRaftPhys_unseal]; unfold ownRaftPhysDef ownRaftPhysG
   iexists rv, msgs, msgsAA, lok
   simp only [named]
   iframe Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
@@ -833,6 +842,82 @@ theorem ownRaftPhys_intro (r : Loc) (id : w64) (s : NState) (rv : raft)
     Hgh_out, Hgh_unst, Hvoter, Hprevote,
     HpropForward, HnoCCV, HnoCheckQuorum, HnoLearner, HnoTransfer, Hpci, Hid_nz, HelectionTimeout, Hlok⟩
 
+/-! ### At any configuration (2026-10-13, reconfiguration stage A1)
+
+`ownRaftPhysC c r id s` is `ownRaftPhys` with the tracker at the configuration `c : CfgM`
+(`ownTrackerC c`, `InvTrackerC.lean`: joint, with learners and staged learners, `AutoLeave`)
+and the voter set of `Hvoter` the voters of both halves (`c.voters`). Sealed the same way.
+`ownRaftPhys cfg` is the special case at `CfgM.simple cfg (domSet s.progress \ cfg)`
+(`ownRaftPhys_toC`, `ownRaftPhysC_toPhys`, below the accessors), so every spec stated on
+`ownRaftPhys` keeps its statement; a function whose behaviour depends on the configuration
+gets a spec on `ownRaftPhysC` (stage A2). Accessors so far: `ownRaftPhysC_tracker`,
+`ownRaftPhysC_reconfig`, `ownRaftPhysC_voter`, `ownRaftPhysC_progress_dom`; the field
+lemmas are `ownRaftPhys`'s (through the equivalence when the configuration is simple; at a
+joint one they are to be restated, A2). -/
+
+/-- Physical ownership of the raft struct at the configuration `c`. -/
+@[irreducible, no_expose] def ownRaftPhysC (c : CfgM) (r : Loc) (id : w64) (s : NState) :
+    IProp GF :=
+  ownRaftPhysG (ownTrackerC c) c.voters r id s
+
+private theorem ownRaftPhysC_unseal (c : CfgM) (r : Loc) (id : w64) (s : NState) :
+    ownRaftPhysC (GF := GF) c r id s = ownRaftPhysG (ownTrackerC c) c.voters r id s := by
+  with_unfolding_all rfl
+
+private theorem ownRaftPhysC_open (c : CfgM) (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysC (GF := GF) c r id s -∗ ownRaftPhysG (ownTrackerC c) c.voters r id s := by
+  rw [ownRaftPhysC_unseal]; iintro H; iexact H
+
+/-- Sealing `ownRaftPhysC`, as `ownRaftPhys_intro` (the same premises, the voter premise at
+`c.voters`, the tracker as `ownTrackerC c`). -/
+theorem ownRaftPhysC_intro (c : CfgM) (r : Loc) (id : w64) (s : NState) (rv : raft)
+    (msgs msgsAA : List raftpb.Message) (lok : GoInterfaceOk) :
+    rv.id' = id →
+    rv.Term' = s.term →
+    rv.Vote' = s.vote →
+    rv.lead' = s.lead →
+    rv.state' = stateW64 s.role →
+    rv.step' = s.stepfn →
+    rv.preVote' = s.prevote →
+    rv.disableProposalForwarding' = false →
+    rv.disableConfChangeValidation' = false →
+    rv.checkQuorum' = false →
+    rv.isLearner' = s.isLearner →
+    rv.leadTransferee' = s.lt ∧ s.lt ≠ id →
+    rv.pendingConfIndex' = s.pci →
+    id ≠ W64 0 →
+    0 < sint.Z rv.electionTimeout' →
+    rv.logger' = interface.ok lok →
+    rv.raftLog' = s.log →
+    (s.ticking = true → TickFnOk r rv.tick') →
+    (∀ m ∈ msgsAA, AAMsgOk id s.term m) →
+    (∀ m ∈ msgs ++ msgsAA, OutTermOk s.prevote s.term m) →
+    s.gh.outlb ≤ msgs.length + msgsAA.length →
+    (s.gh.unst = true → nextUnstable s.logst ≠ [] ∨ s.logst.snap ≠ none) →
+    (s.role ≠ .follower → id ∈ c.voters) →
+    ⊢ raftOwn (GF := GF) r rv -∗
+      isLogger lok -∗
+      ownTrackerC c rv.trk' ⟨s.votes, s.progress, s.prvals⟩ -∗
+      ownRaftLog rv.raftLog' s.logst -∗
+      rv.msgs' ↦* msgs -∗
+      ownSliceCap raftpb.Message rv.msgs' (DFrac.own 1) -∗
+      rv.msgsAfterAppend' ↦* msgsAA -∗
+      ownSliceCap raftpb.Message rv.msgsAfterAppend' (DFrac.own 1) -∗
+      ownRaftMisc rv.readStates' rv.readOnly' rv.pendingReadIndexMessages' s.rd -∗
+      outboxRel s.outbox msgs msgsAA -∗
+      ownRaftPhysC c r id s := by
+  intro Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum
+    HnoLearner HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term
+    Hgh_out Hgh_unst Hvoter
+  iintro Hr #Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc #Houtbox
+  rw [ownRaftPhysC_unseal]; unfold ownRaftPhysG
+  iexists rv, msgs, msgsAA, lok
+  simp only [named]
+  iframe Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
+  ipureintro
+  exact ⟨Hid, Hterm, Hvote, Hlead, Hstate, Hstepfn, Htick, Hlogp, HmsgsAA_ok, Hout_term,
+    Hgh_out, Hgh_unst, Hvoter, Hprevote,
+    HpropForward, HnoCCV, HnoCheckQuorum, HnoLearner, HnoTransfer, Hpci, Hid_nz, HelectionTimeout, Hlok⟩
 end proof
 
 set_option hygiene false in
@@ -841,6 +926,7 @@ conjuncts (`rv`, `msgs`, `msgsAA`, `lok`, `Hr`, `Hid`, ...). In this file only. 
 local macro "iNamed_phys " H:ident : tactic =>
   `(tactic| (ihave $H:ident := ownRaftPhys_open _ _ _ _ $$ $H:ident;
              iunfold ownRaftPhysDef at $H:ident;
+             iunfold ownRaftPhysG at $H:ident;
              icases $H:ident with ⟨%rv, %msgs, %msgsAA, %lok, $H:ident⟩;
              iNamed $H:ident))
 
@@ -2165,6 +2251,155 @@ theorem ownRaftPhys_retrack (cfg0 cfg : GSet w64) (r : Loc) (id : w64) (s : NSta
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
 end reconfig
+
+/-! ### `ownRaftPhysC`: the equivalence with `ownRaftPhys` and the accessors (2026-10-13) -/
+
+set_option hygiene false in
+/-- `iNamed_phys` for `ownRaftPhysC`. In this file only. -/
+local macro "iNamed_physC " H:ident : tactic =>
+  `(tactic| (ihave $H:ident := ownRaftPhysC_open _ _ _ _ $$ $H:ident;
+             iunfold ownRaftPhysG at $H:ident;
+             icases $H:ident with ⟨%rv, %msgs, %msgsAA, %lok, $H:ident⟩;
+             iNamed $H:ident))
+
+set_option hygiene false in
+/-- `reseal` for `ownRaftPhysC`, at the configuration `c` and the state `s'`. -/
+local macro "resealC " c:term:max s:term:max : tactic =>
+  `(tactic| (iapply ownRaftPhysC_intro $c _ _ $s _ msgs msgsAA lok
+                (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+                (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+                (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+                (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+                (by phys_pure) (by phys_pure) (by phys_pure)
+                $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox))
+
+section physC
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- `ownRaftPhys` is `ownRaftPhysC` at its simple configuration: the voters `cfg`, the
+learners the other tracked ids. -/
+theorem ownRaftPhys_toC (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
+      ownRaftPhysC (CfgM.simple cfg (domSet s.progress \ cfg)) r id s := by
+  iintro H
+  iNamed_phys H
+  ihave Htrk := ownTracker_toC _ _ _ $$ Htrk
+  iapply ownRaftPhysC_intro (CfgM.simple cfg (domSet s.progress \ cfg)) r id s rv msgs msgsAA lok
+    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
+    HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst
+    (fun h => by rw [CfgM.voters_simple]; exact Hvoter h)
+    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
+
+/-- Back: at a non-joint configuration `ownRaftPhysC` is `ownRaftPhys` at the incoming
+voters, the learners the tracked ids outside them. -/
+theorem ownRaftPhysC_toPhys (c : CfgM) (r : Loc) (id : w64) (s : NState)
+    (ho : c.outgoing = ∅) :
+    ⊢ ownRaftPhysC (GF := GF) c r id s -∗
+      ownRaftPhys c.incoming r id s ∗ ⌜c.learners = domSet s.progress \ c.incoming⌝ := by
+  iintro H
+  iNamed_physC H
+  icases ownTrackerC_toSimple _ _ _ ho $$ Htrk with ⟨Htrk, %Hl⟩
+  isplitl
+  · iapply ownRaftPhys_intro c.incoming r id s rv msgs msgsAA lok
+      Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
+      HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
+      Hgh_unst (fun h => by rw [← CfgM.voters_of_out ho]; exact Hvoter h)
+      $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
+  · ipureintro; exact Hl
+
+/-- `ownRaftPhysC_toPhys` at `CfgM.simple`. -/
+theorem ownRaftPhysC_simple_toPhys (cfg lrn : GSet w64) (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysC (GF := GF) (CfgM.simple cfg lrn) r id s -∗
+      ownRaftPhys cfg r id s ∗ ⌜lrn = domSet s.progress \ cfg⌝ :=
+  ownRaftPhysC_toPhys (CfgM.simple cfg lrn) r id s rfl
+
+/-- The tracker, as the tracker's own specs take it (`ownRaftPhys_tracker` at `c`): given
+back at any tracker value and tally, at the same progress map and `Progress` values. -/
+theorem ownRaftPhysC_tracker (c : CfgM) (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysC (GF := GF) c r id s -∗
+      ∃ tv, r.[raft, go!"trk"] ↦ tv ∗
+        ownTrackerC c tv ⟨s.votes, s.progress, s.prvals⟩ ∗
+        (∀ tv' votes', r.[raft, go!"trk"] ↦ tv' -∗
+           ownTrackerC c tv' ⟨votes', s.progress, s.prvals⟩ -∗
+           ownRaftPhysC c r id { s with votes := votes' }) := by
+  iintro H
+  iNamed_physC H
+  icases raft_split_trk r rv $$ Hr with ⟨Hf, Hback⟩
+  iexists rv.trk'
+  iframe Hf Htrk
+  iintro %tv' %votes' Hf Htrk
+  ihave Hr := Hback $$ %tv' Hf
+  resealC c { s with votes := votes' }
+
+/-- The tracker, given back with new `Progress` values (`ownRaftPhys_tracker_prvals` at
+`c`). -/
+theorem ownRaftPhysC_tracker_prvals (c : CfgM) (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysC (GF := GF) c r id s -∗
+      ∃ tv, r.[raft, go!"trk"] ↦ tv ∗
+        ownTrackerC c tv ⟨s.votes, s.progress, s.prvals⟩ ∗
+        (∀ tv' pvs', r.[raft, go!"trk"] ↦ tv' -∗
+           ownTrackerC c tv' ⟨s.votes, s.progress, pvs'⟩ -∗
+           ownRaftPhysC c r id { s with prvals := pvs' }) := by
+  iintro H
+  iNamed_physC H
+  icases raft_split_trk r rv $$ Hr with ⟨Hf, Hback⟩
+  iexists rv.trk'
+  iframe Hf Htrk
+  iintro %tv' %pvs' Hf Htrk
+  ihave Hr := Hback $$ %tv' Hf
+  resealC c { s with prvals := pvs' }
+
+/-- A new configuration (`ownRaftPhys_reconfig` at any configurations): the tracker at `c0`
+handed out, taken back at `c` with a new progress map and values -- what `switchToConfig`
+does at a joint configuration. The voter premise is for the new configuration. -/
+theorem ownRaftPhysC_reconfig (c0 c : CfgM) (r : Loc) (id : w64) (s : NState)
+    (Hv : s.role ≠ .follower → id ∈ c.voters) :
+    ⊢ ownRaftPhysC (GF := GF) c0 r id s -∗
+      ∃ tv, r.[raft, go!"trk"] ↦ tv ∗
+        ownTrackerC c0 tv ⟨s.votes, s.progress, s.prvals⟩ ∗
+        (∀ tv' prs' pvs', r.[raft, go!"trk"] ↦ tv' -∗
+           ownTrackerC c tv' ⟨s.votes, prs', pvs'⟩ -∗
+           ownRaftPhysC c r id { s with progress := prs', prvals := pvs' }) := by
+  iintro H
+  iNamed_physC H
+  icases raft_split_trk r rv $$ Hr with ⟨Hf, Hback⟩
+  iexists rv.trk'
+  iframe Hf Htrk
+  iintro %tv' %prs' %pvs' Hf Htrk
+  ihave Hr := Hback $$ %tv' Hf
+  iapply ownRaftPhysC_intro c r id { s with progress := prs', prvals := pvs' }
+      { rv with trk' := tv' } msgs msgsAA lok
+    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
+    HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst Hv
+    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
+
+/-- Only a voter (of either half) is out of the follower role. -/
+theorem ownRaftPhysC_voter (c : CfgM) (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysC (GF := GF) c r id s -∗
+      ⌜s.role ≠ .follower → id ∈ c.voters⌝ ∗ ownRaftPhysC c r id s := by
+  iintro H
+  iNamed_physC H
+  isplitr
+  · ipureintro; exact Hvoter
+  resealC c s
+
+/-- The progress map tracks exactly the configuration's ids, at most `2^62` of them. -/
+theorem ownRaftPhysC_progress_dom (c : CfgM) (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysC (GF := GF) c r id s -∗
+      ⌜domSet s.progress = c.ids ∧ (GMap.size s.progress : Int) ≤ 2 ^ 62⌝ ∗
+      ownRaftPhysC c r id s := by
+  iintro H
+  iNamed_physC H
+  icases ownTrackerC_pure _ _ _ $$ Htrk with ⟨%Hp, Htrk⟩
+  isplitr
+  · ipureintro; exact ⟨Hp.2.1, Hp.2.2.2.1⟩
+  resealC c s
+
+end physC
 
 set_option hygiene false in
 /-- A logging call through `r.logger`, once the raft fields its arguments read have
