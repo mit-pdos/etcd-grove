@@ -53,8 +53,12 @@ theorem mvcc.watchableStore.rev.wp_proof
   wp_auto
   imod ownToks_0 (GF := GF) γ.st.revs with Hnone
   imod mvcc.idxCert_nil (GF := GF) γ.st.idx with #Hc0
-  wp_apply (hRead st γ.st _ t 0 []) $$ [$Hs $Hrd $Hnone $Hc0] as %mw ⟨%log, %rev, Htx, -, -⟩
-  · ipureintro; exact Ht
+  imod mvcc.crevLb_neg γ.st.idx with #Hlbn
+  wp_apply (hRead st γ.st _ t 0 [] (-1) iprop(True)) $$ [$Hs $Hrd $Hnone $Hc0 $Hlbn]
+    as %mw ⟨%log, %rev, %crev, Htx, -, -, -⟩
+  · isplitr
+    · iintro !>; itrivial
+    ipureintro; exact Ht
   (try wp_auto)
   iunfold mvcc.isTxnRead at Htx
   iNamed Htx
@@ -69,17 +73,17 @@ theorem mvcc.watchableStore.rev.wp_proof
   (try wp_auto)
   wp_apply (hRev (mvcc.txCommon tr) rev) $$ [$HrevT]
   (try wp_auto)
-  ihave Htx : mvcc.isTxnRead mw st γ.st log rev $$ [Hmw Htrw Hrd Hmu HrevMu Hti]
+  ihave Htx : mvcc.isTxnRead mw st γ.st log rev crev iprop(True) $$ [Hmw Htrw Hrd Hmu HrevMu Hti]
   · iunfold mvcc.isTxnRead
     iexists trw, tr, trace, ti, rt, ranges
     iframe
     iframe #
-  ihave Htx' : mvcc.isTxn mw st γ.st (.read log rev) $$ [Htx]
+  ihave Htx' : mvcc.isTxn mw st γ.st (.read log rev) crev iprop(True) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
-  ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ $$ Htx'
+  ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ crev iprop(True) $$ Htx'
   ihave Hep : mvcc.txnEndPre γ.st (.read log rev) $$ []
   · simp only [mvcc.txnEndPre]; itrivial
-  wp_apply (hEnd mw st γ.st (.read log rev)) $$ [$Htx' $Hep] as ⟨Hrd, -⟩
+  wp_apply (hEnd mw st γ.st (.read log rev) crev iprop(True)) $$ [$Htx' $Hep] as ⟨Hrd, -, -⟩
   (try wp_auto)
   iapply HΦ
   iframe Hrd

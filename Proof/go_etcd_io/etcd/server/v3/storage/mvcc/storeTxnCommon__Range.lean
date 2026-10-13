@@ -28,12 +28,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.storeTxnCommon.Range.wp_proof (hRev : mvcc.storeTxnCommon.Rev.spec (GF := GF) (hG := hG))
     (hKeys : mvcc.storeTxnCommon.rangeKeys.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnCommon.Range.spec (GF := GF) (hG := hG) := by
-  intro tr s trace ti rt γ log rev ctx cd todo key endk k e ro
+  intro tr s trace ti rt γ log rev ctx cd todo key endk k e ro crev Z
   wp_start as ⟨#Hs, #Htr, Hrd, #Hidx, Hti, #Hctx, #Hkey, #Hend, Hmu⟩
   iunfold mvcc.txReader at Hrd
-  icases Hrd with ⟨%m, %Rd, %Tok, Hrd⟩
+  icases Hrd with ⟨%m, %m', %Rd, %Tok, Hrd⟩
   iNamed Hrd
-  ihave #Htr0 : mvcc.storeTxnReadIs tr s rt trace γ log rev $$ []
+  ihave #Htr0 : mvcc.storeTxnReadIs tr s rt trace γ log rev crev Z $$ []
   · iexact Htr
   iunfold mvcc.storeTxnReadIs at Htr
   iNamedSuffix Htr "T"
@@ -41,7 +41,9 @@ theorem mvcc.storeTxnCommon.Range.wp_proof (hRev : mvcc.storeTxnCommon.Rev.spec 
   wp_apply (hRev (mvcc.txCommon tr) rev) $$ [$HrevT]
   (try wp_auto)
   -- what `rangeKeys` uses: the snapshot as a reader, the certificate as the index's knowledge
-  ihave #Hrdr := mvcc.keyReadLocked_reader (mvcc.storeRT γ) false rt m Rd Tok $$ Hsnap
+  ihave #Hrdr := mvcc.keyReadLocked_readerD (mvcc.storeRT γ) false rt m m' Rd Tok (mvcc.delKey γ)
+    $$ [Hsnap Hthin]
+  · iframe #
   ihave #Hcert0 : mvcc.idxCert γ.idx log $$ []
   · iexact HcertT
   iunfold mvcc.idxCert at HcertT
@@ -54,23 +56,22 @@ theorem mvcc.storeTxnCommon.Range.wp_proof (hRev : mvcc.storeTxnCommon.Rev.spec 
     omega
   ihave Hkn : mvcc.idxKnows γ.idx (.cert log) $$ []
   · rw [mvcc.idxKnows_cert]; iexact Hcert0
-  icases mvcc.muHeld_cmp s γ (-1) $$ Hmu with ⟨Hcmp, Hcu, %Hcb, Hmub⟩
+  icases mvcc.muHeld_cmp s γ crev $$ Hmu with ⟨Hcmp, Hcu, %Hcb, Hmub⟩
   wp_apply (hKeys (mvcc.txCommon tr) s trace ti rt DFrac.discard m Tok γ (.cert log) log rev
-      ctx cd todo key endk k e ro _ _ (-1) (by assumption))
-    $$ [$Hs $HsT $HtxcT $HtraceT $Hrdr $Htok $Hkn $Hidx $Hti $Hctx $Hkey $Hend $Hcmp $Hcu]
+      ctx cd todo key endk k e ro _ _ crev log (by assumption))
+    $$ [$Hs $HsT $HtxcT $HtraceT $Hrdr $Htok $Hcert0 $Hkn $Hidx $Hti $Hctx $Hkey $Hend $Hcmp $Hcu]
     as %r %err ⟨%Htodo, -, -, -, Htok, -, Hti, Hcmp, Hcu, Hout⟩
-  · ipureintro; exact ⟨Hsub, rfl, HneT, hrv, by decide, by decide⟩
+  · ipureintro; exact ⟨Hsub, ⟨List.prefix_refl _, HcrevT.2⟩, rfl, HneT, hrv, Hcb⟩
   ihave Hmu := Hmub $$ Hcmp Hcu
-  ihave Hout := mvcc.rangeOutcomeC_neg _ _ _ _ _ _ _ _ hrv.1 $$ Hout
   (try wp_auto)
   iapply HΦ
   iframe Hti Hout Hmu
   isplitl []
   · ipureintro; exact Htodo
   iunfold mvcc.txReader
-  iexists m, Rd, Tok
+  iexists m, m', Rd, Tok
   simp only [named]
-  iframe Htok Hsnap
+  iframe Htok Hsnap Hthin
   ipureintro; exact Hsub
 
 end proof

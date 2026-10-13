@@ -26,14 +26,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF) (hG := hG)) :
     mvcc.store.Write.spec (GF := GF) (hG := hG) := by
-  intro s γ trace P Pre Q f
-  wp_start as ⟨#Hs, Hrd, Htok, Hwt, %Htrnn, #HhookC, Hpre, #Htriple⟩
+  intro s γ trace P Pre Q f clb Z
+  wp_start as ⟨#Hs, Hrd, #HZ, #Hclb, Htok, Hwt, %Htrnn, #HhookC, Hpre, #Htriple⟩
   ihave #Hs0 : mvcc.isStore s γ $$ []
   · iexact Hs
   iunfold mvcc.isStore at Hs
   icases Hs with ⟨%b, %le, %ti, %lg, %P0, %f0, %Dep, Hs⟩
   iNamed Hs
-  iunfold mvcc.storeReader at Hrd
+  iunfold mvcc.storeReaderC at Hrd
   icases Hrd with ⟨%ti2, Hrd⟩
   iNamedSuffix Hrd "R"
   wp_auto_lc 1
@@ -46,8 +46,8 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
     iframe Hpre
     iapply HP0P
     iexact HP0
-  -- `s.mu.RLock()`: its part of `s.mu`'s resource, at a compaction revision the frozen fact
-  -- says is `-1`
+  -- `s.mu.RLock()`: its part of `s.mu`'s resource, at the compaction revision `cm`, at or
+  -- above the caller's lower bound
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HmuR] as ⟨Hmul, HmuP⟩
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.muInv s γ sync.rfrac)) $$ Hlc1 HmuP with HmuP
@@ -55,15 +55,16 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   icases HmuP with ⟨%cm, HmuP⟩
   iunfold mvcc.muInvAt at HmuP
   iNamed HmuP
-  imod mvcc.crevFrozen_agree γ _ cm HcM $$ HfrzR HcrevM with ⟨HcrevM, %Hcm1⟩
-  subst Hcm1
-  ihave Hmuh : mvcc.muHeld s γ (-1) $$ [Hmul HcmpM HcrevM]
+  icases mvcc.crevUB_lb_keep γ.idx _ cm clb HcM $$ [$HcrevM $Hclb] with ⟨HcrevM, %Hclbc⟩
+  icases mvcc.crevUB_get_lb γ.idx _ cm $$ HcrevM with ⟨HcrevM, #Hlbc⟩
+  ihave #HclM0 := HclM
+  ihave Hmuh : mvcc.muHeld s γ cm $$ [Hmul HcmpM HcrevM]
   · iunfold mvcc.muHeld
     iframe Hmul
     iunfold mvcc.muInvAt
     iframe HcmpM HcrevM
     iframe #
-    ipureintro; decide
+    ipureintro; exact HcM
   -- `tx := s.b.BatchTx()`
   iunfold mvcc.isKeyBackendG at Hbk
   icases Hbk with ⟨%bi, %Hbi, #HC, #HR, #HB, -⟩
@@ -85,6 +86,12 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   ihave HW := mvcc.storeW_get s γ $$ [$Hreg $HW]
   iunfold mvcc.writerRes at HW
   iNamed HW
+  -- the compaction revision is a revision of the committed log (`s.mu`'s certified log is below
+  -- the writer's)
+  iunfold mvcc.crevSafe at HclM0
+  icases HclM0 with ⟨%log₀, #Hc0, %Hl0⟩
+  ihave %Hpre0 := mvcc.idxWriter_cert_prefix γ.idx ilog [] log₀ $$ [Hw Hc0]
+  · iframe Hw; iexact Hc0
   (try wp_auto)
   -- `make([]*mvccpb.KeyValue, 0, 4)`
   wp_apply (wp_slice_make3 (V := Loc) (W64 0) (W64 4) (by decide)) as %chs ⟨Hchs, Hcap, -⟩
@@ -93,7 +100,11 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   (try wp_auto)
   iapply HΦ
   iframe HQ
-  iexists ilog
+  iexists ilog, cm
+  iframe Hlbc
+  isplitl
+  rotate_left
+  · ipureintro; exact Hclbc
   iunfold mvcc.isTxnWrite
   iexists «$r0_ptr», W64 0
   iframe Hmw
@@ -111,7 +122,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   · iunfold mvcc.changesAre
     iapply BigSepL.bigSepL_nil_intro
     iempintro
-  ipureintro; exact ⟨Hne, Htrnn⟩
+  ipureintro; exact ⟨Hne, Htrnn, HcM, by have := Hpre0.length_le; omega⟩
 
 end proof
 

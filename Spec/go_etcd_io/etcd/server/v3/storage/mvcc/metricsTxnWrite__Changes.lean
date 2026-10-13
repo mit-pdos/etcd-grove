@@ -29,13 +29,13 @@ shares them with the watchers); the transaction keeps its core (`isTxnWrite_join
 transaction back). -/
 abbrev mvcc.metricsTxnWrite.Changes.spec : Prop :=
   ∀ (mw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
-    (puts deletes putSize : w64),
+    (puts deletes putSize : w64) (crev : Int) (Z : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isTxnWrite mw s γ ilog pend puts deletes putSize }}
+      mvcc.isTxnWrite mw s γ ilog pend puts deletes putSize crev Z }}
     (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Changes")) (Val #()))
   {{ (chs : GoSlice) (ps : List Loc), RET #chs;
       chs ↦* ps ∗ mvcc.changesAre ps ilog pend ∗ ⌜ps.length = pend.length⌝ ∗
-      mvcc.isTxnWriteCore mw s γ ilog pend puts deletes putSize chs ps false }}
+      mvcc.isTxnWriteCore mw s γ ilog pend puts deletes putSize chs ps false crev Z }}
 
 end spec
 

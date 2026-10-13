@@ -43,7 +43,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     (hZapErr : zap.Error.spec (GF := GF) (hG := hG))
     (hLogErr : zap.Logger.Error.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.put.spec (GF := GF) (hG := hG) := by
-  intro tw s γ ilog pend key value k v leaseID
+  intro tw s γ ilog pend key value k v leaseID crev Z
   wp_start as ⟨Htw, #Hkey, #Hval, Hlease, %Hb⟩
   have Hb63 : pend.length + 1 < 2 ^ 63 := Nat.lt_of_lt_of_le Hb (mvcc.kbPutMax_le _)
   simp only [go_etcd_io.etcd.server.v3.lease.NoLease]
@@ -102,14 +102,14 @@ theorem mvcc.storeTxnWrite.put.wp_proof
   -- `tw.s.kvindex.Get(key, rev)` by the writer
   ihave Hkn : mvcc.idxKnows γ.idx (.writer ilog pend) $$ [Hw]
   · rw [mvcc.idxKnows_writer]; iexact Hw
-  icases mvcc.muHeld_crev s γ (-1) $$ Hmu with ⟨Hcu, Hmub⟩
-  wp_apply (hGet ti γ.idx (.writer ilog pend) key k (W64 (ilog.length : Int)) e0 _ (-1))
+  icases mvcc.muHeld_crev s γ crev $$ Hmu with ⟨Hcu, Hmub⟩
+  wp_apply (hGet ti γ.idx (.writer ilog pend) key k (W64 (ilog.length : Int)) e0 _ crev)
     $$ [$HtiS $Hti $Hkn $Hkey $Herr $Hcu] as ⟨Hti, Hw, Hcu, -⟩
   · ipureintro; rw [mvcc.IdxKnow.log_writer]
     have h : sint.Z (W64 (ilog.length : Int) : w64) = ilog.length := by
       word
     simp only [List.length_append, List.length_singleton]
-    refine ⟨⟨by decide, by omega⟩, by omega, by omega⟩
+    refine ⟨⟨Hcrev.1, by have := Hcrev.2; omega⟩, by omega, by omega⟩
   ihave Hmu := Hmub $$ Hcu
   rw [mvcc.idxKnows_writer, mvcc.IdxKnow.log_writer]
   cases hg : mvcc.kiGet (mvcc.kiOfKey (mvcc.evsOf (ilog ++ [pend])) k) (W64 (ilog.length : Int)) with
@@ -185,7 +185,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
             s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace },
           tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
           changes' := chs' } : storeTxnWrite) -∗
-        mvcc.storeTxnWriteIs tw s γ ilog (pend ++ [.put k v leaseID]) : IProp GF)
+        mvcc.storeTxnWriteIs tw s γ ilog (pend ++ [.put k v leaseID]) crev Z : IProp GF)
         $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hkv]
     · iintro Htw
       iunfold mvcc.storeTxnWriteIs
@@ -209,7 +209,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
         iexists value
         iframe Hval
         iexact Hkv
-      ipureintro; exact ⟨Hne, Htrnn⟩
+      ipureintro; exact ⟨Hne, Htrnn, Hcrev⟩
     -- `if oldLease == leaseID { trace.Step; return }`
     wp_if_destruct
     · (try wp_auto)
@@ -386,7 +386,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
             s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace },
           tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
           changes' := chs' } : storeTxnWrite) -∗
-        mvcc.storeTxnWriteIs tw s γ ilog (pend ++ [.put k v leaseID]) : IProp GF)
+        mvcc.storeTxnWriteIs tw s γ ilog (pend ++ [.put k v leaseID]) crev Z : IProp GF)
         $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hkv]
     · iintro Htw
       iunfold mvcc.storeTxnWriteIs
@@ -410,7 +410,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
         iexists value
         iframe Hval
         iexact Hkv
-      ipureintro; exact ⟨Hne, Htrnn⟩
+      ipureintro; exact ⟨Hne, Htrnn, Hcrev⟩
     -- `if oldLease == leaseID { trace.Step; return }`
     wp_if_destruct
     · (try wp_auto)

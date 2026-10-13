@@ -29,7 +29,7 @@ theorem mvcc.metricsTxnWrite.End.wp_proof
     (hEnd : mvcc.storeTxnRead.End.spec (GF := GF) (hG := hG))
     (hEndW : mvcc.storeTxnWrite.End.spec (GF := GF) (hG := hG)) :
     mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG) := by
-  intro mw s γ kind
+  intro mw s γ kind crev Z
   wp_start as ⟨Htx, Hpre⟩
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -66,10 +66,10 @@ theorem mvcc.metricsTxnWrite.End.wp_proof
       -- the deferred `tw.TxnWrite.End()`: `txnReadWrite`'s promoted `End`, `storeTxnRead.End`
       rw [method_unfold (t := go.GoType.PointerType txnReadWrite.ty) (m := go!"End")]; wp_call
       (try wp_auto)
-      wp_apply (hEnd tr s trace ti rt γ log rev) $$ [$Hs $Htr $Hrd $Hidx $Hmu $HrevMu $Hti] as Hrd
+      wp_apply (hEnd tr s trace ti rt γ log rev crev Z) $$ [$Hs $Htr $Hrd $Hidx $Hmu $HrevMu $Hti] as ⟨Hrd, #HZ⟩
       (try wp_auto)
       iapply HΦ
-      iframe Hrd
+      iframe Hrd HZ
       (try itrivial)
   | write ilog pend puts deletes putSize =>
     simp only [mvcc.isTxnEnd, mvcc.txnEndPost, mvcc.txnEndPre]
@@ -92,10 +92,10 @@ theorem mvcc.metricsTxnWrite.End.wp_proof
       wp_apply HcdA
       (try wp_auto)
       -- the deferred `tw.TxnWrite.End()`: `storeTxnWrite.End`
-      wp_apply (hEndW tw s γ ilog pend chs ps sealed P f) $$ [$Htw $Hhook $HP] as ⟨Hrd, #Hcert, Htok⟩
+      wp_apply (hEndW tw s γ ilog pend chs ps sealed P f crev Z) $$ [$Htw $Hhook $HP] as ⟨Hrd, #HZ, #Hcert, Htok⟩
       (try wp_auto)
       iapply HΦ
-      iframe Hrd Htok
+      iframe Hrd HZ Htok
       iexact Hcert
 
 end proof

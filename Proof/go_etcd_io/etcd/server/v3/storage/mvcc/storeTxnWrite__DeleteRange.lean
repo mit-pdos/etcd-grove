@@ -27,11 +27,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
     (hdel : mvcc.storeTxnWrite.deleteRange.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.DeleteRange.spec (GF := GF) (hG := hG) := by
-  intro tw s γ ilog pend key endk k e
+  intro tw s γ ilog pend key endk k e crev Z
   wp_start as ⟨Htw, #Hkey, #Hend, %Hb⟩
   have hpm := mvcc.putMax_le γ
   (try wp_auto)
-  wp_apply (hdel tw s γ ilog pend key endk k e) $$ [$Htw $Hkey $Hend] as Htw
+  wp_apply (hdel tw s γ ilog pend key endk k e crev Z) $$ [$Htw $Hkey $Hend] as Htw
   · ipureintro; exact Hb
   (try wp_auto)
   iunfold mvcc.storeTxnWriteIs at Htw
@@ -92,7 +92,7 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
       simp only [named]
       iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
       iframe #
-      ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
+      ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
       ipureintro
       refine ⟨rfl, ?_⟩
       rw [hrev]; unfold mvcc.writeRev; rw [ite_eq_right hpne]
@@ -111,7 +111,7 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
       simp only [named]
       iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
       iframe #
-      ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
+      ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
       ipureintro
       refine ⟨rfl, ?_⟩
       unfold mvcc.writeRev; rw [ite_eq_left hp]; congr 1
@@ -128,7 +128,7 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
     simp only [named]
     iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
     iframe #
-    ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
+    ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
     ipureintro
     refine ⟨rfl, ?_⟩
     rw [hrev]; unfold mvcc.writeRev

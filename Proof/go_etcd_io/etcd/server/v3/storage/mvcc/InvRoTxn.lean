@@ -32,12 +32,15 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- The `txnReadWrite` at `trw` wraps a read transaction of `log` at `rev`. -/
-def isRoTxnWrite (trw s : Loc) (γ : StoreNames) (log : Log) (rev : w64) : IProp GF :=
+/-- The `txnReadWrite` at `trw` wraps a read transaction of `log` at `rev`, at the compaction
+revision `crev` with the reader's tag `Z` (by default the frozen transaction: `isTxnRead`'s
+defaults; 2026-10-13, unit 6a). -/
+def isRoTxnWrite (trw s : Loc) (γ : StoreNames) (log : Log) (rev : w64) (crev : Int := -1)
+    (Z : IProp GF := crevFrozen γ) : IProp GF :=
   iprop(∃ mw : Loc,
     trw.[txnReadWrite, go!"TxnRead"] ↦
       (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface) ∗
-    isTxnRead mw s γ log rev)
+    isTxnRead mw s γ log rev crev Z)
 
 end defs
 

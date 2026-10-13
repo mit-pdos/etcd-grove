@@ -47,8 +47,9 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG))
     (hUnm : proto.Unmarshal.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnCommon.rangeKeys.spec (GF := GF) (hG := hG) := by
-  intro txc s trace ti rt dq m R γ kn log rev ctx cd todo key endk k e ro qm qc c Htrnn
-  wp_start as ⟨#Hs, HsT, HtxcT, HtraceT, #Hrdr, HRr, %HsubT, Hkn, %Hklog, %HneT, %Hrv, #Hidx0, Hti0,
+  intro txc s trace ti rt dq m R γ kn log rev ctx cd todo key endk k e ro qm qc c lc Htrnn
+  wp_start as ⟨#Hs, HsT, HtxcT, HtraceT, #Hrdr, HRr, %HsubT, #Hlc, %Hlcp, Hkn, %Hklog, %HneT, %Hrv,
+    #Hidx0, Hti0,
     #Hctx, #Hkey, #Hend, Hcmp, Hcu, %Hc0⟩
   iunfold mvcc.isStore at Hs
   icases Hs with ⟨%b, %ti', %lg, Hs⟩
@@ -703,10 +704,23 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
               have hlookm : m.lookup (mvcc.revBytes a.2.1 false) = some (mvcc.kvEncode kv) :=
                 HsubT _ _ hlook
               -- `tr.tx.UnsafeRange(schema.Key, revBytes, nil, 0)`
-              iunfold mvcc.keyReader at Hrdr
+              iunfold mvcc.keyReaderD at Hrdr
               ihave HR := Hrdr $$ %bK %rb' %(mvcc.revBytes a.2.1 false) %(DFrac.own 1)
               wp_apply HR $$ [$HKeyG $HRr $Hrb] as %ks %vs Hout
-              icases Hout with ⟨%Rd, %T, HT, HTback, #Hrc, Hrb, #Hkv⟩
+              icases Hout with ⟨%Rd, %T, HT, HTback, #Hrc, Hrb, Hkvo⟩
+              -- a key compaction deleted is not one the read names (`rangeAnswers_not_del`)
+              icases Hkvo with (#Hkv | ⟨#Hdel, -⟩)
+              rotate_left
+              · iunfold mvcc.delKey at Hdel
+                icases Hdel with ⟨%c', %log', #Hlb', #Hc', %Hk'⟩
+                ihave %Hcc' := mvcc.crevUB_lb γ.idx qc c c' Hc0.1 Hk'.1 $$ Hcu Hlb'
+                ihave %Hcmp' := mvcc.idxCert_prefix γ.idx lc log' $$ [$Hlc $Hc']
+                iunfold mvcc.idxCert at Hc'
+                icases Hc' with ⟨-, -, %Hb', -⟩
+                exfalso
+                refine mvcc.rangeAnswers_not_del lc log log' Hlcp.1 ⟨Hlen, Hcs⟩ ⟨Hb'.2.1, Hb'.2.2⟩
+                  Hcmp' c' Hk'.1 (by omega) Hk'.2.2 _ k e _ ?_ a hmem false Hk'.2.1
+                rw [← hRW]; omega
               iunfold mvcc.keyVals at Hkv
               rw [hlookm]
               icases Hkv with ⟨%ksl, %vsl, #Hks, #Hksl, #Hvs, #Hvsl⟩

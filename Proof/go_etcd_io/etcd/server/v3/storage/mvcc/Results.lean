@@ -333,7 +333,7 @@ read at a revision at or above `c` answers as the uncompacted store (`mvcc_range
 read path's `rangeOutcomeC` is `rangeOutcome`, the answer from the certified log; below `c`,
 `ErrCompacted`), with the pure model's `IdxCRep.kiAt`/`IdxCRep.rangeAt` (the compacted index
 answers as the uncompacted one there) and `named_not_del` (what such a read names is not deleted
-from the bucket, under `NoDelPutAt`). -/
+from the bucket, under `NoDelPutAt`, which `store.Compact`'s caller asserts since unit 6a). -/
 
 noncomputable section
 
@@ -376,3 +376,148 @@ end Perennial
 
 #print axioms Perennial.EtcdGrove.mvcc_store_Compact
 #print axioms Perennial.EtcdGrove.mvcc_rangeOutcomeC_ge
+
+/-! ## Compaction-aware readers (unit 6a)
+
+The store's readers hold of a store whose compaction revision moves: a reader is
+`storeReaderC` (no frozen fact), and a transaction observes the compaction revision `crev`
+(`s.compactMainRev`, fixed while it holds `s.mu`), at or above any lower bound its opener knew
+(`store.Read`, `store.Write`: `c ≤ crev`; after `store.Compact(rev)` returns `nil`, its
+`crevLb γ rev` makes every transaction opened afterwards observe `crev ≥ rev`:
+`mvcc_store_Read_after_Compact`). Its range reads answer `rangeOutcomeC` at `crev`:
+`ErrCompacted` below it (`mvcc_rangeOutcomeC_lt`), the uncompacted outcome at or above it
+(`mvcc_rangeOutcomeC_ge`): what such a read names is never a key compaction deleted, because the
+one who compacts asserts `NoDelPutAt` at its revision (`store.Compact`'s premise, carried by the
+keys the job deletes, `delKey`; `rangeAnswers_not_del`). `FirstRev` is `crev`. The statements of
+a store never compacted (the readers of the packages above mvcc, `storeReader`, `rangeOutcome`)
+are corollaries (`spec_frozen`), printed here linked. -/
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode
+
+section readers
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
+
+/-- **A read below the compaction revision is `ErrCompacted`** (a read not in the future,
+`ro.Rev ≤ rev`, at a revision below `c`): the error and the result `{KVs: nil, Count: -1, Rev:
+0}`. -/
+theorem mvcc_rangeOutcomeC_lt (r : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (c : Int)
+    (endNil : Bool) (k e : GoString) (ro : go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions)
+    (hle : sint.Z ro.Rev' ≤ sint.Z rev) (hc : sint.Z (mvcc.rangeRev rev ro.Rev') < c) :
+    mvcc.rangeOutcomeC (GF := GF) r err log rev c endNil k e ro ⊢
+      (∃ ec : GoInterfaceOk, globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□
+          GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝) ∗
+        r ↦ ({ KVs' := slice.nil, Rev' := W64 0, Count' := W64 (-1) } :
+          go_etcd_io.etcd.server.v3.storage.mvcc.RangeResult) := by
+  iintro H
+  iunfold mvcc.rangeOutcomeC at H
+  icases H with (⟨-, Hec, Hr⟩ | ⟨%Hge, -⟩)
+  · iframe Hec Hr
+  · exfalso; have := Hge hle; omega
+
+/-- **`store.Read`, linked**, of a store that may be compacted: the transaction at the
+compaction revision `crev` it observed, `c ≤ crev` for the caller's lower bound `c`. -/
+theorem mvcc_store_Read : mvcc.store.Read.spec (GF := GF) (hG := hG) := mvcc.store.wp_Read
+
+/-- **After `Compact(rev)` returns `nil`, a transaction opened afterwards observes a compaction
+revision at or above `rev`**: `store.Compact`'s success gives `crevLb γ.idx rev`, which
+`store.Read` (here at `c = rev`) turns into `rev ≤ crev`. -/
+theorem mvcc_store_Read_after_Compact (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc)
+    (m : Nat) (log₀ : mvcc.Log) (rev : w64) (Z : IProp GF) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+        mvcc.isStore s γ ∗ mvcc.storeReaderC s γ ∗ □ Z ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
+        mvcc.crevLb γ.idx (sint.Z rev) ∗ ⌜trace ≠ null⌝ }}
+      (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.store.ty @!!
+        go!"Read")) (Val #mode)) (Val #trace))
+    {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite.ty) #mw);
+        ∃ (log : mvcc.Log) (rv : w64) (crev : Int), mvcc.isTxnRead mw s γ log rv crev Z ∗
+          ownToks γ.revs m ∗ mvcc.crevLb γ.idx crev ∗
+          ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ sint.Z rev ≤ crev⌝ }} :=
+  mvcc.store.wp_Read s γ mode trace m log₀ (sint.Z rev) Z
+
+/-- **`store.Write`, linked**, of a store that may be compacted. -/
+theorem mvcc_store_Write : mvcc.store.Write.spec (GF := GF) (hG := hG) := mvcc.store.wp_Write
+
+/-- **A read transaction's range, linked**: `rangeOutcomeC` at its compaction revision. -/
+theorem mvcc_storeTxnCommon_Range : mvcc.storeTxnCommon.Range.spec (GF := GF) (hG := hG) :=
+  mvcc.storeTxnCommon.wp_Range
+
+/-- **A write transaction's range, linked**: `rangeOutcomeC` at its compaction revision. -/
+theorem mvcc_storeTxnWrite_Range : mvcc.storeTxnWrite.Range.spec (GF := GF) (hG := hG) :=
+  mvcc.storeTxnWrite.wp_Range
+
+/-- **A transaction's range through the metrics wrapper, linked** (either kind). -/
+theorem mvcc_metricsTxnWrite_Range : mvcc.metricsTxnWrite.Range.spec (GF := GF) (hG := hG) :=
+  mvcc.metricsTxnWrite.wp_Range
+
+/-- **A read transaction's `FirstRev` is its compaction revision, linked.** -/
+theorem mvcc_metricsTxnWrite_FirstRev : mvcc.metricsTxnWrite.FirstRev.spec (GF := GF) (hG := hG) :=
+  mvcc.metricsTxnWrite.wp_FirstRev
+
+/-- **The read view's `Range` and `FirstRev`, linked**: at a compaction revision at or above the
+caller's lower bound. -/
+theorem mvcc_readView_Range : mvcc.readView.Range.spec (GF := GF) (hG := hG) :=
+  mvcc.readView.wp_Range
+theorem mvcc_readView_FirstRev : mvcc.readView.FirstRev.spec (GF := GF) (hG := hG) :=
+  mvcc.readView.wp_FirstRev
+
+/-! The frozen statements (a store never compacted: the readers of the packages above mvcc),
+corollaries of the linked results. -/
+theorem mvcc_store_Read_frozen : mvcc.store.Read.specFrozen (GF := GF) (hG := hG) :=
+  mvcc.store.Read.spec_frozen mvcc.store.wp_Read
+theorem mvcc_store_Write_frozen : mvcc.store.Write.specFrozen (GF := GF) (hG := hG) :=
+  mvcc.store.Write.spec_frozen mvcc.store.wp_Write
+theorem mvcc_storeTxnCommon_Range_frozen :
+    mvcc.storeTxnCommon.Range.specFrozen (GF := GF) (hG := hG) :=
+  mvcc.storeTxnCommon.Range.spec_frozen mvcc.storeTxnCommon.wp_Range
+theorem mvcc_storeTxnWrite_Range_frozen :
+    mvcc.storeTxnWrite.Range.specFrozen (GF := GF) (hG := hG) :=
+  mvcc.storeTxnWrite.Range.spec_frozen mvcc.storeTxnWrite.wp_Range
+theorem mvcc_metricsTxnWrite_Range_frozen :
+    mvcc.metricsTxnWrite.Range.specFrozen (GF := GF) (hG := hG) :=
+  mvcc.metricsTxnWrite.Range.spec_frozen mvcc.metricsTxnWrite.wp_Range
+theorem mvcc_metricsTxnWrite_End_frozen :
+    mvcc.metricsTxnWrite.End.specFrozen (GF := GF) (hG := hG) :=
+  mvcc.metricsTxnWrite.End.spec_frozen mvcc.metricsTxnWrite.wp_End
+theorem mvcc_readView_Range_frozen : mvcc.readView.Range.specFrozen (GF := GF) (hG := hG) :=
+  mvcc.readView.Range.spec_frozen mvcc.readView.wp_Range
+theorem mvcc_readView_FirstRev_frozen : mvcc.readView.FirstRev.specFrozen (GF := GF) (hG := hG) :=
+  mvcc.readView.FirstRev.spec_frozen mvcc.readView.wp_FirstRev
+theorem mvcc_store_Rev_frozen : mvcc.store.Rev.specFrozen (GF := GF) (hG := hG) :=
+  mvcc.store.Rev.spec_frozen mvcc.store.wp_Rev
+
+end readers
+
+end EtcdGrove
+end Perennial
+
+#print axioms Perennial.EtcdGrove.mvcc_rangeOutcomeC_lt
+#print axioms Perennial.EtcdGrove.mvcc_store_Read
+#print axioms Perennial.EtcdGrove.mvcc_store_Read_after_Compact
+#print axioms Perennial.EtcdGrove.mvcc_store_Write
+#print axioms Perennial.EtcdGrove.mvcc_storeTxnCommon_Range
+#print axioms Perennial.EtcdGrove.mvcc_storeTxnWrite_Range
+#print axioms Perennial.EtcdGrove.mvcc_metricsTxnWrite_Range
+#print axioms Perennial.EtcdGrove.mvcc_metricsTxnWrite_FirstRev
+#print axioms Perennial.EtcdGrove.mvcc_readView_Range
+#print axioms Perennial.EtcdGrove.mvcc_readView_FirstRev
+#print axioms Perennial.EtcdGrove.mvcc_store_Read_frozen
+#print axioms Perennial.EtcdGrove.mvcc_store_Write_frozen
+#print axioms Perennial.EtcdGrove.mvcc_storeTxnCommon_Range_frozen
+#print axioms Perennial.EtcdGrove.mvcc_storeTxnWrite_Range_frozen
+#print axioms Perennial.EtcdGrove.mvcc_metricsTxnWrite_Range_frozen
+#print axioms Perennial.EtcdGrove.mvcc_metricsTxnWrite_End_frozen
+#print axioms Perennial.EtcdGrove.mvcc_readView_Range_frozen
+#print axioms Perennial.EtcdGrove.mvcc_readView_FirstRev_frozen
+#print axioms Perennial.EtcdGrove.mvcc_store_Rev_frozen
+#print axioms Perennial.EtcdGrove.mvcc.rangeAnswers_not_del

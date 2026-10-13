@@ -36,9 +36,12 @@ theorem mvcc.store.Compact.wp_of_le
     (h2 : traceutil.Trace.Step.spec (GF := GF) (hG := hG))
     (h3 : mvcc.store.compact.spec (GF := GF) (hG := hG))
     (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (rev : w64) (c : Int) (P : IProp GF) (f : val)
-    (Pre Q Post : IProp GF) (htr : trace ≠ null) (hcmp : mvcc.storeCmp γ) (hc : -1 ≤ c) :
+    (Pre Q Post : IProp GF) (log : mvcc.Log) (htr : trace ≠ null) (hcmp : mvcc.storeCmp γ)
+    (hc : -1 ≤ c) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isStore s γ ∗ mvcc.storeStop s ∗ mvcc.compactRight γ c ∗ mvcc.hookIs γ P f ∗
+      mvcc.isStore s γ ∗ mvcc.storeStop s ∗ mvcc.compactRight γ c ∗
+      mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
+      mvcc.hookIs γ P f ∗
       mvcc.csContract P f Pre Q Post }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Compact")) (Val #trace)) (Val #rev))
   {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err);
@@ -51,7 +54,7 @@ theorem mvcc.store.Compact.wp_of_le
         (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
         (∃ log : mvcc.Log, mvcc.idxCert γ.idx log ∗ ⌜(log.length : Int) ≤ sint.Z rev⌝) ∗
         mvcc.compactRight γ c ∗ Pre) }} := by
-  wp_start as ⟨#Hs, #Hstop, Hright, #Hhook, Hcs⟩
+  wp_start as ⟨#Hs, #Hstop, Hright, #HcertC, %HndC, #Hhook, Hcs⟩
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
   iNamed Hs'
@@ -78,8 +81,8 @@ theorem mvcc.store.Compact.wp_of_le
   wp_apply (h0 s γ hcmp) $$ [] as %pcc -
   · iframe #
   (try wp_auto)
-  wp_apply (h1 s γ rev c' P f Pre Q Post hcmp) $$ [$Hmu1 $Hright $Hcs] as %ch %prev %err Hres
-  · iframe #
+  wp_apply (h1 s γ rev c' P f Pre Q Post log hcmp) $$ [$Hmu1 $Hright $Hcs] as %ch %prev %err Hres
+  · iframe #; ipureintro; exact HndC
   (try wp_auto)
   wp_apply (h2 trace _ _) $$ []
   · iframe #; ipureintro; exact htr
@@ -135,8 +138,8 @@ theorem mvcc.store.Compact.wp_proof
     (h2 : traceutil.Trace.Step.spec (GF := GF) (hG := hG))
     (h3 : mvcc.store.compact.spec (GF := GF) (hG := hG)) :
     mvcc.store.Compact.spec (GF := GF) (hG := hG) := by
-  intro s γ trace rev c P f Pre Q Post htr hcmp hc
-  exact mvcc.store.Compact.wp_of_le h0 h1 h2 h3 s γ trace rev c P f Pre Q Post htr hcmp hc
+  intro s γ trace rev c P f Pre Q Post log htr hcmp hc
+  exact mvcc.store.Compact.wp_of_le h0 h1 h2 h3 s γ trace rev c P f Pre Q Post log htr hcmp hc
 
 end proof
 

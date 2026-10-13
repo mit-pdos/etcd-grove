@@ -33,6 +33,8 @@ theorem mvcc.writeView.Put.wp_proof
     (hPut : mvcc.metricsTxnWrite.Put.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     mvcc.writeView.Put.spec (GF := GF) (hG := hG) := by
+  have hWrite := mvcc.store.Write.spec_frozen hWrite
+  have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
   intro wv s γ P Pre Q Post f key value k v leaseID
   wp_start as ⟨#Hwv, Hrd, Htok, Hwt, #Hhook, Hcs, #Hkey, #Hval, Hlease⟩
   have hpm := mvcc.putMax_ge γ

@@ -26,11 +26,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.storeTxnWrite.Put.wp_proof (hput : mvcc.storeTxnWrite.put.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.Put.spec (GF := GF) (hG := hG) := by
-  intro tw s γ ilog pend key value k v leaseID
+  intro tw s γ ilog pend key value k v leaseID crev Z
   wp_start as ⟨Htw, #Hkey, #Hval, Hlease, %Hb⟩
   have hpm := mvcc.putMax_le γ
   (try wp_auto)
-  wp_apply (hput tw s γ ilog pend key value k v leaseID) $$ [$Htw $Hkey $Hval $Hlease] as Htw
+  wp_apply (hput tw s γ ilog pend key value k v leaseID crev Z) $$ [$Htw $Hkey $Hval $Hlease] as Htw
   · ipureintro; exact Hb
   (try wp_auto)
   iunfold mvcc.storeTxnWriteIs at Htw
@@ -45,7 +45,7 @@ theorem mvcc.storeTxnWrite.Put.wp_proof (hput : mvcc.storeTxnWrite.put.spec (GF 
   simp only [named]
   iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
   iframe #
-  ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
+  ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
 
 end proof
 

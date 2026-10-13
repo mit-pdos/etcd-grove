@@ -33,6 +33,7 @@ theorem txn.getPrevKV.wp_proof
     (hTODO : context.TODO.spec (GF := GF) (hG := hG))
     (hRange : mvcc.metricsTxnWrite.Range.spec (GF := GF) (hG := hG)) :
     txn.getPrevKV.spec (GF := GF) (hG := hG) := by
+  have hRange := mvcc.metricsTxnWrite.Range.spec_frozen hRange
   intro trace mw s γ kind p o
   wp_start as ⟨%Htr, Htx, #Hp⟩
   iunfold txn.putRequestIs at Hp

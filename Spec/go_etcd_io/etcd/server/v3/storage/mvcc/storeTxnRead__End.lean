@@ -21,9 +21,24 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `tr.End()` ends the read transaction at `tr` (the `RUnlock` of its reader and of `s.mu`):
-the transaction's tokens are the caller's again (its reader's token is gone). -/
+/-- `tr.End()` ends the read transaction at `tr` (the `RUnlock` of its reader and of `s.mu`, held
+at the compaction revision `crev` the transaction observed): the transaction's tokens are the
+caller's again (`storeReaderC`, its reader's token gone), with the reader's tag `Z` (2026-10-13,
+unit 6a). The frozen statement (`crev = -1`, `Z = crevFrozen γ`: `storeReader`) is `specFrozen`,
+a corollary (`spec_frozen`). -/
 abbrev mvcc.storeTxnRead.End.spec : Prop :=
+  ∀ (tr s trace ti : Loc) (rt : GoInterfaceOk) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64)
+    (crev : Int) (Z : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
+      mvcc.isStore s γ ∗ mvcc.storeTxnReadIs tr s rt trace γ log rev crev Z ∗ mvcc.txReader γ rt log ∗
+      s.[store, go!"kvindex"] ↦□ (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
+      mvcc.muHeld s γ crev ∗
+      sync.ownRWMutex (mvcc.revMuAddr s) (mvcc.revMuInv s γ) ∗ mvcc.idxReader ti γ.idx }}
+    (App (Val (tr @!! go.GoType.PointerType storeTxnRead.ty @!! go!"End")) (Val #()))
+  {{ RET #(); mvcc.storeReaderC s γ ∗ □ Z }}
+
+/-- The frozen statement (before unit 6a). -/
+abbrev mvcc.storeTxnRead.End.specFrozen : Prop :=
   ∀ (tr s trace ti : Loc) (rt : GoInterfaceOk) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeTxnReadIs tr s rt trace γ log rev ∗ mvcc.txReader γ rt log ∗
@@ -32,6 +47,19 @@ abbrev mvcc.storeTxnRead.End.spec : Prop :=
       sync.ownRWMutex (mvcc.revMuAddr s) (mvcc.revMuInv s γ) ∗ mvcc.idxReader ti γ.idx }}
     (App (Val (tr @!! go.GoType.PointerType storeTxnRead.ty @!! go!"End")) (Val #()))
   {{ RET #(); mvcc.storeReader s γ }}
+
+open Iris.ProofMode in
+/-- **The frozen statement is a corollary** (`storeReader_of`). -/
+theorem mvcc.storeTxnRead.End.spec_frozen (h : mvcc.storeTxnRead.End.spec (GF := GF) (hG := hG)) :
+    mvcc.storeTxnRead.End.specFrozen (GF := GF) (hG := hG) := by
+  intro tr s trace ti rt γ log rev
+  iintro %Φ H HΦ
+  iapply (h tr s trace ti rt γ log rev (-1) (mvcc.crevFrozen γ)) $$ %Φ [H]
+  · iexact H
+  inext
+  iintro ⟨Hr, #Hf⟩
+  iapply HΦ
+  iapply mvcc.storeReader_of $$ [$Hr $Hf]
 
 end spec
 

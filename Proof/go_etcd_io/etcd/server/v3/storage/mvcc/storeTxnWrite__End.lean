@@ -24,7 +24,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF) (hG := hG) := by
-  intro tw s γ ilog pend chs ps sealed P f
+  intro tw s γ ilog pend chs ps sealed P f crev Z
   wp_start as ⟨Htw, #HhookC, HP⟩
   iunfold mvcc.storeTxnWriteCore at Htw
   iNamed Htw
@@ -78,11 +78,12 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     iunfold mvcc.muHeld at Hmu
     icases Hmu with ⟨Hmu, Hmua⟩
     wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu Hmua] as Hmu
-    · inext; iunfold mvcc.muInv; iexists -1; iexact Hmua
+    · inext; iunfold mvcc.muInv; iexists crev; iexact Hmua
     (try wp_auto)
     iapply HΦ
+    iframe HZ
     isplitl [Hmu HrevMu Hti Hrt]
-    · iunfold mvcc.storeReader
+    · iunfold mvcc.storeReaderC
       iexists ti
       simp only [named]
       iframe Hmu HrevMu Hti Hrt
@@ -175,11 +176,12 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       iunfold mvcc.muHeld at Hmu
       icases Hmu with ⟨Hmu, Hmua⟩
       wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu Hmua] as Hmu
-      · inext; iunfold mvcc.muInv; iexists -1; iexact Hmua
+      · inext; iunfold mvcc.muInv; iexists crev; iexact Hmua
       (try wp_auto)
       iapply HΦ
+      iframe HZ
       isplitl [Hmu HrevMu Hti Hrt]
-      · iunfold mvcc.storeReader
+      · iunfold mvcc.storeReaderC
         iexists ti
         simp only [named]
         iframe Hmu HrevMu Hti Hrt

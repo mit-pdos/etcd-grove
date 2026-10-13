@@ -40,6 +40,7 @@ theorem EtcdServer.newHeader.wp_proof
     (hTerm : EtcdServer.Term.spec (GF := GF) (hG := hG))
     (hLead : EtcdServer.Leader.spec (GF := GF) (hG := hG)) :
     EtcdServer.newHeader.spec (GF := GF) (hG := hG) := by
+  have hRev := mvcc.store.Rev.spec_frozen hRev
   intro s E γr cl mid
   wp_start as ⟨#Hrd, #Hcl, #Hmid, #Hlead, Hsr⟩
   iunfold isServerRead at Hrd

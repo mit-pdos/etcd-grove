@@ -24,7 +24,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.storeTxnWrite.Rev.wp_proof : mvcc.storeTxnWrite.Rev.spec (GF := GF) (hG := hG) := by
-  intro tw s γ ilog pend chs ps sealed
+  intro tw s γ ilog pend chs ps sealed crev Z
   wp_start as Htw
   iunfold mvcc.storeTxnWriteCore at Htw
   iNamed Htw
@@ -35,7 +35,7 @@ theorem mvcc.storeTxnWrite.Rev.wp_proof : mvcc.storeTxnWrite.Rev.spec (GF := GF)
   simp only [named]
   iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
   iframe #
-  ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
+  ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
 
 end proof
 

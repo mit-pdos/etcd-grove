@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.txnReadWrite.Rev.wp_proof
     (hRev : mvcc.storeTxnCommon.Rev.spec (GF := GF) (hG := hG)) :
     mvcc.txnReadWrite.Rev.spec (GF := GF) (hG := hG) := by
-  intro trw s γ log rev
+  intro trw s γ log rev crev Z
   wp_start as Hro
   iunfold mvcc.isRoTxnWrite at Hro
   icases Hro with ⟨%mw, Hf, Htx⟩

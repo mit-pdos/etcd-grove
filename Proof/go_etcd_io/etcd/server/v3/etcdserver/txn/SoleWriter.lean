@@ -242,6 +242,7 @@ theorem soleWriter_Read (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG))
       (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Read")) (Val #mode)) (Val #trace))
     {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
         ∃ rev : w64, mvcc.isTxnRead mw s γ log rev ∗ soleWriter γ log }} := by
+  have hRead := mvcc.store.Read.spec_frozen hRead
   wp_start_folded as ⟨#Hs, Hrd, Hsw⟩
   iunfold soleWriter at Hsw
   icases Hsw with ⟨#Hc, Ht, %Hl2⟩

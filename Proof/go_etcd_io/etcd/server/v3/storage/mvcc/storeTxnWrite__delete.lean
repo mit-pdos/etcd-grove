@@ -40,7 +40,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
     (hZapErr : zap.Error.spec (GF := GF) (hG := hG))
     (hLogErr : zap.Logger.Error.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.delete.spec (GF := GF) (hG := hG) := by
-  intro tw s γ ilog pend key k
+  intro tw s γ ilog pend key k crev Z
   wp_start as ⟨Htw, #Hkey, %Hpre⟩
   obtain ⟨Hpresent, Hbm⟩ := Hpre
   have Hb : pend.length + 1 < 2 ^ 63 := Nat.lt_of_lt_of_le Hbm (mvcc.kbPutMax_le _)
@@ -157,7 +157,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
           s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace },
         tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
         changes' := chs' } : storeTxnWrite) -∗
-      mvcc.storeTxnWriteIs tw s γ ilog (pend ++ [.del k]) : IProp GF)
+      mvcc.storeTxnWriteIs tw s γ ilog (pend ++ [.del k]) crev Z : IProp GF)
       $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hkv]
   · iintro Htw
     iunfold mvcc.storeTxnWriteIs
@@ -182,7 +182,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
       isplitl []
       · iexact Hnil
       iexact Hkv
-    ipureintro; exact ⟨Hne, Htrnn⟩
+    ipureintro; exact ⟨Hne, Htrnn, Hcrev⟩
   -- `item := lease.LeaseItem{Key: string(key)}`; `leaseID := tw.s.le.GetLease(item)`
   wp_apply (wp_bytes_to_string key k DFrac.discard) $$ [$Hkey] as -
   (try wp_auto)

@@ -48,8 +48,12 @@ theorem mvcc.store.Rev.wp_proof
   wp_apply hTODO as %t %Ht
   (try wp_auto)
   -- `rv.kv.Read(mode, trace)`: the store's, with the caller's tokens and certificate
-  wp_apply (hRead s γ _ t m log₀) $$ [$Hs $Hrd $Htoks $Hc0] as %mw ⟨%log, %rev, Htx, Htoks, %Hpin⟩
-  · ipureintro; exact Ht
+  imod mvcc.crevLb_neg γ.idx with #Hlbn
+  wp_apply (hRead s γ _ t m log₀ (-1) iprop(True)) $$ [$Hs $Hrd $Htoks $Hc0 $Hlbn]
+    as %mw ⟨%log, %rev, %crev, Htx, Htoks, -, %Hpin⟩
+  · isplitr
+    · iintro !>; itrivial
+    ipureintro; exact Ht
   (try wp_auto)
   iunfold mvcc.isTxnRead at Htx
   iNamed Htx
@@ -66,24 +70,24 @@ theorem mvcc.store.Rev.wp_proof
   wp_apply (hRev (mvcc.txCommon tr) rev) $$ [$HrevT]
   (try wp_auto)
   -- the deferred `tr.End()`: `metricsTxnWrite.End`
-  ihave Htx : mvcc.isTxnRead mw s γ log rev $$ [Hmw Htrw Hrd Hmu HrevMu Hti]
+  ihave Htx : mvcc.isTxnRead mw s γ log rev crev iprop(True) $$ [Hmw Htrw Hrd Hmu HrevMu Hti]
   · iunfold mvcc.isTxnRead
     iexists trw, tr, trace, ti, rt, ranges
     iframe
     iframe #
-  ihave Htx' : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
+  ihave Htx' : mvcc.isTxn mw s γ (.read log rev) crev iprop(True) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
-  ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ $$ Htx'
+  ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ crev iprop(True) $$ Htx'
   ihave Hep : mvcc.txnEndPre γ (.read log rev) $$ []
   · simp only [mvcc.txnEndPre]; itrivial
-  wp_apply (hEnd mw s γ (.read log rev)) $$ [$Htx' $Hep] as ⟨Hrd, -⟩
+  wp_apply (hEnd mw s γ (.read log rev) crev iprop(True)) $$ [$Htx' $Hep] as ⟨Hrd, -, -⟩
   (try wp_auto)
   iapply HΦ
   iframe Hrd Htoks
   iexists log
   iframe HcertT
   ipureintro
-  exact ⟨Hpin.1, Hpin.2, HneT, HrevT⟩
+  exact ⟨Hpin.1, Hpin.2.1, HneT, HrevT⟩
 
 end proof
 

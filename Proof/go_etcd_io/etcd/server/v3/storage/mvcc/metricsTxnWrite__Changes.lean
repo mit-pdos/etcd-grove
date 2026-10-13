@@ -27,12 +27,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.metricsTxnWrite.Changes.wp_proof
     (hCh : mvcc.storeTxnWrite.Changes.spec (GF := GF) (hG := hG)) :
     mvcc.metricsTxnWrite.Changes.spec (GF := GF) (hG := hG) := by
-  intro mw s γ ilog pend puts deletes putSize
+  intro mw s γ ilog pend puts deletes putSize crev Z
   wp_start as Htx
   iunfold mvcc.isTxnWrite at Htx
   iNamed Htx
   (try wp_auto)
-  wp_apply (hCh tw s γ ilog pend) $$ [$Htw] as %chs %ps ⟨Hchs, Hkvs, %Hps, Htw⟩
+  wp_apply (hCh tw s γ ilog pend crev Z) $$ [$Htw] as %chs %ps ⟨Hchs, Hkvs, %Hps, Htw⟩
   (try wp_auto)
   iapply HΦ
   iframe Hchs Hkvs

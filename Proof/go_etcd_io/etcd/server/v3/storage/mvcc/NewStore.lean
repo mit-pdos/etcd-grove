@@ -333,7 +333,7 @@ theorem mvcc.NewStore.wp_proof
     iunfold mvcc.muInvAt
     iframe HcmpA HcuM
     isplitl []
-    · iexists [[], []]; iframe Hcert; ipureintro; simp
+    · iapply mvcc.crevSafe_neg γ (-1) [[], []] (by decide) (by simp) $$ Hcert
     ipureintro; decide
   icases mvcc.guard_of_slots _ _ $$ Hmus with ⟨Hmus, #Hmug⟩
   icases mvcc.slot_take _ $$ Hmus with ⟨Hmu1, Hmus⟩

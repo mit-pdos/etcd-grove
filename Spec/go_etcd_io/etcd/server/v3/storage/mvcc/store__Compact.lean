@@ -42,13 +42,23 @@ The right's revision is at least `-1` (`NewStore`'s; each success raises it: 202
 contract correction: the counter `crevN` cannot tell a right below `-1` from one at `-1`, and
 then a `rev` in `(c, -1]` is `ErrCompacted` without `rev ≤ c`). The configuration's batch limit
 is positive (`isStore`: `NewStore` excludes a negative one,
-`issues/etcd-compaction-negative-batch-limit.md`). -/
+`issues/etcd-compaction-negative-batch-limit.md`).
+
+**The delete-then-put premise** (2026-10-13, unit 6a): the caller holds a certificate of a log
+`log` with revision `rev` (so `rev` is not above the committed log: the `ErrFutureRev` case does
+not arise from such a caller) whose revision `rev` does not delete a key and put it again
+(`NoDelPutAt`): else the compaction deletes the key's live value and a later read `Fatal`s
+(`issues/etcd-compaction-delete-then-put.md`). The store records it for the new compaction
+revision (`crevSafe`, in `s.mu`'s resource) and the keys the job deletes carry it (`delKey`), which
+is what makes the readers' specs hold of a compacted store (`rangeAnswers_not_del`). -/
 abbrev mvcc.store.Compact.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (rev : w64) (c : Int) (P : IProp GF) (f : val)
-    (Pre Q Post : IProp GF),
+    (Pre Q Post : IProp GF) (log : mvcc.Log),
   trace ≠ null → mvcc.storeCmp γ → -1 ≤ c →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isStore s γ ∗ mvcc.storeStop s ∗ mvcc.compactRight γ c ∗ mvcc.hookIs γ P f ∗
+      mvcc.isStore s γ ∗ mvcc.storeStop s ∗ mvcc.compactRight γ c ∗
+      mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
+      mvcc.hookIs γ P f ∗
       mvcc.csContract P f Pre Q Post }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Compact")) (Val #trace)) (Val #rev))
   {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err);

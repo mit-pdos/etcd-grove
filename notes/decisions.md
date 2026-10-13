@@ -4257,6 +4257,63 @@ where `treeIndex.Compact` needs `c ≤ rev`; the queue under `s.mu` or `s.revMu`
 - `crevFrozen` is the invariant of the right's revision half (`crevUB γ.idx ½ (-1)`), not of the
   whole right (the queue holds saved propositions, not timeless).
 
+### Compaction-aware readers (unit 6a): the delete-then-put premise on `Compact`, the frozen reader a corollary
+
+**2026-10-13 · adopted** (`STATUS.md`, "The store's compaction", unit 6a)
+
+**Decision 1: the one who compacts asserts `NoDelPutAt` at its revision.** `store.Compact`
+(`compactLockfree`, `updateCompactRev`) takes `idxCert γ.idx log`, `sint.Z rev < log.length` and
+`⌜NoDelPutAt log (sint.Z rev)⌝`: compaction at a revision that deletes a key and puts it again
+deletes the key's live value (`issues/etcd-compaction-delete-then-put.md`), after which a read
+`Fatal`s. Transactions that delete then put exist (any `store.Write` user may issue them); the
+gRPC checks (`checkIntervals`) exclude them on the request path only; the apply thread, which
+compacts at a revision of the raft log, cannot prove it of an arbitrary applied entry; what can
+is a statement about who wrote revision `rev` (e.g. every applied transaction passed the request
+path's checks), which belongs to the compactor's caller. So the premise is the compactor's, for
+its own revision. The fact is
+`crevSafe γ c` (a certified log with revision `c` and `NoDelPutAt` there: no ghost state,
+`NoDelPutAt` is of revision `c` alone, so every certified log covering `c` has it,
+`crevSafe_cert`). It is recorded where each reader finds it: in `s.mu`'s resource for the current
+revision (`muInvAt`'s certified log, which already held `c < log₀.length`; a transaction reads it
+from `muHeld`), in the job's premises (`compactJobPre`), and on every key the job deletes
+(`delKey`: the backend contract's `Del` now carries the deleting compaction's `NoDelPutAt`). The
+readers use the last: a read at or above its transaction's revision `crev` may meet a key deleted
+by any earlier compaction `c' ≤ crev` (the job of an earlier `Compact`, possibly still running),
+and needs `NoDelPutAt` at `c'`, not at `crev` (`rangeAnswers_not_del`: `named_not_del` through the
+prefix order of the certified logs, `KeyDel_prefix`, `NoDelPutAt_prefix`).
+*Rejected:* a history invariant on `End` (no transaction deletes then puts a key): its writers
+exist and the store cannot refuse them; it would be a premise of every `store.Write` user, the
+txn package's and the server's statements included, for a property only compaction needs.
+*Rejected:* the fact for the current revision only (in `muInvAt`): a reader at `crev` meets keys
+deleted by earlier compactions, whose revisions are lower bounds (`delKey`'s `crevLb`), not the
+current one; a ghost map from revisions to the fact (the deletable keys can carry it directly).
+
+**Decision 2: the transactions observe `crev` and carry a tag `Z`; the frozen ones are their
+defaults.** The store's specs take `storeReaderC` and quantify over the transaction's compaction
+revision `crev` (fixed while it holds `s.mu`; `store.Read` reads it into `firstRev`) and a
+persistent tag `Z` given back at `End` (`storeReaderC ∗ □ Z`): `Z = crevFrozen γ` for the frozen
+readers (so `End` gives `storeReader` back), `True` for a compacting client. The transaction
+predicates (`storeTxnReadIs`, `isTxnRead`, `isRoTxnWrite`, `storeTxnWriteIs`/`Core`,
+`isTxnWrite`/`Core`, `isTxn`/`isTxnEnd`) take `(crev : Int := -1) (Z : IProp GF := crevFrozen γ)`:
+at their defaults they are the frozen transactions, so the statements of the packages above mvcc
+(`mvcc.isTxn mw s γ kind`, …) are unchanged in text and in meaning, and the specs that only pass
+the transaction through (`Put`, `DeleteRange`, `Changes`, `Rev`, `put`, `delete`, `deleteRange`,
+`NewReadOnlyTxnWrite`) are general with their frozen statements as instances (unification picks
+the defaults). The specs whose shape changes (a `Range`'s outcome `rangeOutcomeC`, `FirstRev`'s
+value, `storeReaderC` for `storeReader`, `Read`/`Write`'s lower bound `crevLb γ.idx c`) have
+their old statement as `<fn>.specFrozen` and the corollary `<fn>.spec_frozen` next to the spec,
+in the `Spec` file (the clients import only callees' `Spec` files); the clients above mvcc apply
+it in one line (`have h := mvcc.<fn>.spec_frozen h`). The snapshot a transaction reads may miss
+keys compaction deleted (`txReader`'s `snapThin`, `keyReaderD`, `batchTx_readerD`); `rangeKeys`
+shows the keys a read at or above `crev` names are present (above).
+*Rejected:* separate general predicates (`isTxnReadC`, `isTxnC`, …) with the frozen ones as
+abbreviations: every lemma twice, and the iris tactics match hypotheses up to syntax, not
+unfolding; a `TxnKind` constructor for the general transactions (the txn package's `cases kind`
+would change); the frozen fact in the store-level resources (a compacting client's `End` cannot
+produce `crevFrozen`, so the frozen `End`'s `storeReader` must come from the transaction:
+the tag); `rangeOutcome` with an `ErrCompacted` disjunct guarded by a lower bound (unit 5a's
+rejection: the revision may be higher than the bound).
+
 ## The read loop's notifier: deposited lower bounds
 
 **2026-10-13 · accepted (the request path's unit 4a, `server/v3/etcdserver/read`; `STATUS.md`,

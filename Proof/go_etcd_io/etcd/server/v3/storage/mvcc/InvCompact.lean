@@ -133,10 +133,13 @@ instance barrierCtx_persistent (ctx : GoInterfaceOk) (cd : context.ContextDesc (
 
 /-- **What the compaction job at `rev` needs** (persistent): the store and its stop channel, its
 backend supporting the compaction (`storeCmp`), a lower bound `rev` of the compaction revision
-(`Compact` set it), a certified log with revision `rev`. -/
+(`Compact` set it), a certified log with revision `rev`, which does not delete a key and put it
+again (`NoDelPutAt`: `store.Compact`'s caller asserted it; the keys the job deletes carry it,
+`delKey`; 2026-10-13, unit 6a). -/
 def compactJobPre (s : Loc) (γ : StoreNames) (rev : w64) : IProp GF :=
   iprop(isStore s γ ∗ storeStop s ∗ ⌜storeCmp γ⌝ ∗ crevLb γ.idx (sint.Z rev) ∗
-    ∃ log : Log, idxCert γ.idx log ∗ ⌜0 ≤ sint.Z rev ∧ sint.Z rev < log.length⌝)
+    ∃ log : Log, idxCert γ.idx log ∗
+      ⌜0 ≤ sint.Z rev ∧ sint.Z rev < log.length ∧ NoDelPutAt log (sint.Z rev)⌝)
 
 instance compactJobPre_persistent (s : Loc) (γ : StoreNames) (rev : w64) :
     Persistent (compactJobPre (GF := GF) s γ rev) := by

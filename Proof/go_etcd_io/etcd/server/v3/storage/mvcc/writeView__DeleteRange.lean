@@ -33,6 +33,8 @@ theorem mvcc.writeView.DeleteRange.wp_proof
     (hDel : mvcc.metricsTxnWrite.DeleteRange.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     mvcc.writeView.DeleteRange.spec (GF := GF) (hG := hG) := by
+  have hWrite := mvcc.store.Write.spec_frozen hWrite
+  have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
   intro wv s γ P Pre Q Post f key endk k e
   wp_start as ⟨#Hwv, Hrd, Htok, Hwt, #Hhook, Hcs, #Hkey, #Hend, %Hb⟩
   iunfold mvcc.isWriteView at Hwv

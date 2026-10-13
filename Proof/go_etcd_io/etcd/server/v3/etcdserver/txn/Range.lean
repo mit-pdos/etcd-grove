@@ -37,6 +37,8 @@ theorem txn.Range.wp_proof
     (hExec : txn.executeRange.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.Range.spec (GF := GF) (hG := hG) := by
+  have hRead := mvcc.store.Read.spec_frozen hRead
+  have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
   intro ctx cd nd lg kv s γ r o withTotal m log₀
   wp_start as ⟨#Hkv, Hrd, Htoks, #Hc0, #Hr, #Hctx, #Hnd, %Hlg, %Hvst, #Hsort⟩
   iunfold txn.isKV at Hkv

@@ -35,6 +35,7 @@ theorem txn.applyCompare.wp_proof
     (hRange : mvcc.metricsTxnWrite.Range.spec (GF := GF) (hG := hG))
     (hKV : txn.compareKV.spec (GF := GF) (hG := hG)) :
     txn.applyCompare.spec (GF := GF) (hG := hG) := by
+  have hRange := mvcc.metricsTxnWrite.Range.spec_frozen hRange
   intro mw s γ log rev c cm
   wp_start as ⟨Htx, #Hc⟩
   ihave #Hc2 := Hc

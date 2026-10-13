@@ -25,12 +25,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- `NewReadOnlyTxnWrite(txn)` of a read transaction (`store.Read`'s): a `txnReadWrite`
 wrapping it, as a `TxnWrite`. -/
 abbrev mvcc.NewReadOnlyTxnWrite.spec : Prop :=
-  ∀ (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isTxnRead mw s γ log rev }}
+  ∀ (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (crev : Int) (Z : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isTxnRead mw s γ log rev crev Z }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewReadOnlyTxnWrite))
       (Val #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface)))
   {{ (trw : Loc), RET #(interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw : GoInterface);
-      mvcc.isRoTxnWrite trw s γ log rev }}
+      mvcc.isRoTxnWrite trw s γ log rev crev Z }}
 
 end spec
 

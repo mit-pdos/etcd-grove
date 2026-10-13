@@ -34,6 +34,8 @@ theorem txn.DeleteRange.wp_proof
     (hdel : txn.deleteRange.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.DeleteRange.spec (GF := GF) (hG := hG) := by
+  have hWrite := mvcc.store.Write.spec_frozen hWrite
+  have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
   intro ctx cd nd lg kv s γ dr o m log₀ P Pre Q Post f
   wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, #Hdr, #Hctx, #Hnd, %Hbig, Hcs, #Hhook⟩
   iunfold mvcc.csContract at Hcs

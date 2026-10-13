@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.NewReadOnlyTxnWrite.wp_proof :
     mvcc.NewReadOnlyTxnWrite.spec (GF := GF) (hG := hG) := by
-  intro mw s γ log rev
+  intro mw s γ log rev crev Z
   wp_start as Htx
   (try wp_auto)
   wp_alloc trw as Htrw

@@ -26,20 +26,20 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) (hG := hG)) :
     mvcc.store.Read.spec (GF := GF) (hG := hG) := by
-  intro s γ mode trace m log₀
-  wp_start as ⟨#Hs, Hrd, Hmine, #Hc0, %Htrnn⟩
+  intro s γ mode trace m log₀ clb Z
+  wp_start as ⟨#Hs, Hrd, #HZ, Hmine, #Hc0, #Hclb, %Htrnn⟩
   iunfold mvcc.idxCert at Hc0
   icases Hc0 with ⟨-, -, -, #Hl0⟩
   ihave #Hs0 : mvcc.isStore s γ $$ []
   · iexact Hs
   iunfold mvcc.isStore at Hs
   iNamed Hs
-  iunfold mvcc.storeReader at Hrd
+  iunfold mvcc.storeReaderC at Hrd
   icases Hrd with ⟨%ti2, Hrd⟩
   iNamedSuffix Hrd "R"
   (try wp_auto)
-  -- `s.mu.RLock()`: its part of `s.mu`'s resource, at a compaction revision the frozen fact
-  -- says is `-1`
+  -- `s.mu.RLock()`: its part of `s.mu`'s resource, at the compaction revision `cm`, at or above
+  -- the caller's lower bound
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HmuR] as ⟨Hmul, HmuP⟩
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.muInv s γ sync.rfrac)) $$ Hlc1 HmuP with HmuP
@@ -47,8 +47,8 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   icases HmuP with ⟨%cm, HmuP⟩
   iunfold mvcc.muInvAt at HmuP
   iNamed HmuP
-  imod mvcc.crevFrozen_agree γ _ cm HcM $$ HfrzR HcrevM with ⟨HcrevM, %Hcm1⟩
-  subst Hcm1
+  icases mvcc.crevUB_lb_keep γ.idx _ cm clb HcM $$ [$HcrevM $Hclb] with ⟨HcrevM, %Hclbc⟩
+  icases mvcc.crevUB_get_lb γ.idx _ cm $$ HcrevM with ⟨HcrevM, #Hlbc⟩
   -- `s.revMu.RLock()`
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HrevMuR] as ⟨Hrevl, HP⟩
   wp_auto_lc 1
@@ -56,8 +56,8 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   iunfold mvcc.revMuInv at HP
   icases HP with ⟨%log, %ntok, %c, HP⟩
   iNamed HP
-  imod mvcc.crevFrozen_agree γ _ c Hc.1 $$ HfrzR Hcrev with ⟨Hcrev, %Hc1⟩
-  subst Hc1
+  ihave %Hcc := mvcc.crevUB_agree γ.idx _ _ cm c HcM Hc.1 $$ HcrevM Hcrev
+  subst Hcc
   -- the caller's tokens are among the budget's
   icombine Htoks Hmine gives %Hle
   -- the caller's certificate is below the committed log
@@ -84,16 +84,13 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     · iframe HL Hbucket
     inext
     iintro ⟨Hbucket, %m', %Rd, %Tok, Htok, #Hsnap0, #Hthin⟩
-    -- the snapshot misses no key: the store is not compacted
-    icases mvcc.snapThin_crev γ _ _ _ $$ [$HcrevM $Hthin] with ⟨HcrevM, %Hm'⟩
-    subst Hm'
     (try wp_auto)
     -- `s.revMu.RUnlock()`
     wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrevl Hrev Hbucket Hclog Hcert Htoks Hlog Hcmp Hcrev]
       as HrevMuR
     · inext
       iunfold mvcc.revMuInv
-      iexists log, ntok, -1
+      iexists log, ntok, cm
       simp only [named]
       iframe Hrev Hbucket Hclog Htoks Hlog Hcmp Hcrev
       iframe #
@@ -109,21 +106,21 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     ipersist Ctrace
     ipersist Ttx
     (try wp_auto)
-    ihave Hmuh : mvcc.muHeld s γ (-1) $$ [Hmul HcmpM HcrevM]
+    ihave Hmuh : mvcc.muHeld s γ cm $$ [Hmul HcmpM HcrevM]
     · iunfold mvcc.muHeld
       iframe Hmul
       iunfold mvcc.muInvAt
       iframe HcmpM HcrevM
       iframe #
-      ipureintro; decide
+      ipureintro; exact HcM
     wp_apply (hNew _) as %mw ⟨%trw, Hmw, Htrw⟩
     (try wp_auto)
     iStructNamedPrefix Htrw "W"
     iapply HΦ
-    iexists log, (W64 ((log.length : Int) - 1))
+    iexists log, (W64 ((log.length : Int) - 1)), cm
     isplitr [Hmine]
     rotate_left
-    · iframe Hmine; ipureintro; exact ⟨Hpre.2, by omega⟩
+    · iframe Hmine Hlbc; ipureintro; exact ⟨Hpre.2, by omega, Hclbc⟩
     iunfold mvcc.isTxnRead
     iexists trw, tr, trace, ti2, rt, (W64 0)
     simp only [named]
@@ -134,12 +131,16 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     · iunfold mvcc.storeTxnReadIs
       simp only [named]
       iframe #
-      ipureintro; first | exact ⟨Hne, trivial, Htrnn⟩ | exact ⟨Hne, Htrnn⟩
+      ipureintro
+      first
+        | exact ⟨Hne, trivial, Htrnn, HcM, Hc.2⟩
+        | exact ⟨Hne, Htrnn, HcM, Hc.2⟩
+        | exact ⟨Hne, rfl, Htrnn, HcM, Hc.2⟩
     isplitl [Htok]
     · iunfold mvcc.txReader
-      iexists (mvcc.bucketMap log), Rd, Tok
+      iexists (mvcc.bucketMap log), m', Rd, Tok
       simp only [named]
-      iframe Htok
+      iframe Htok Hthin
       isplitr
       · iapply mvcc.keyReadLocked_weaken $$ Hsnap0
       ipureintro; exact fun _ _ h => h

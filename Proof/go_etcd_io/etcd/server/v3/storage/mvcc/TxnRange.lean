@@ -252,6 +252,41 @@ theorem wp_select1_alt_or_nil (c : comm_clause) (P : IProp GF) (dflt : Expr)
 
 end defs
 
+section kinds
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+/-- The revision a transaction reads at is not negative (2026-10-13, unit 6a: what
+`rangeOutcomeC_neg` needs, for the frozen statements of the `Range`s). -/
+theorem isTxn_readRev (mw s : Loc) (γ : StoreNames) (kind : TxnKind) (crev : Int)
+    (Z : IProp GF) :
+    isTxn (GF := GF) mw s γ kind crev Z ⊢ isTxn mw s γ kind crev Z ∗ ⌜0 ≤ sint.Z kind.readRev⌝ := by
+  cases kind with
+  | read log rev =>
+    simp only [isTxn, TxnKind.readRev]
+    iintro H
+    ihave %Hr : ⌜0 ≤ sint.Z rev⌝ $$ [H]
+    · iunfold isTxnRead at H
+      iNamed H
+      ihave %Hr := storeTxnReadIs_rev tr s rt trace γ log rev crev Z $$ Htr
+      ipureintro; exact Hr.1
+    iframe H
+    ipureintro; exact Hr
+  | write ilog pend puts deletes putSize =>
+    simp only [isTxn, TxnKind.readRev]
+    iintro H
+    ihave %Hr : ⌜0 ≤ sint.Z (W64 ((writeRev ilog pend : Nat) : Int) : w64)⌝ $$ [H]
+    · iunfold isTxnWrite at H
+      iNamed H
+      iapply storeTxnWriteIs_writeRev tw s γ ilog pend crev Z $$ Htw
+    iframe H
+    ipureintro; exact Hr
+
+end kinds
+
 end mvcc
 end EtcdGrove
 end Perennial

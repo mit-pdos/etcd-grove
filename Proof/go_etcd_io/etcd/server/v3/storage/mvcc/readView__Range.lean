@@ -33,8 +33,8 @@ theorem mvcc.readView.Range.wp_proof
     (hRange : mvcc.metricsTxnWrite.Range.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     mvcc.readView.Range.spec (GF := GF) (hG := hG) := by
-  intro rv s γ ctx cd key endk k e ro
-  wp_start as ⟨#Hrv, Hrd, #Hctx, #Hkey, #Hend⟩
+  intro rv s γ ctx cd key endk k e ro clb
+  wp_start as ⟨#Hrv, Hrd, #Hclb, #Hctx, #Hkey, #Hend⟩
   iunfold mvcc.isReadView at Hrv
   iNamed Hrv
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
@@ -46,15 +46,18 @@ theorem mvcc.readView.Range.wp_proof
   -- `rv.kv.Read(ConcurrentReadTxMode, trace)`: the store's
   imod ownToks_0 (GF := GF) γ.revs with Hnone
   imod mvcc.idxCert_nil (GF := GF) γ.idx with #Hc0
-  wp_apply (hRead s γ _ t 0 []) $$ [$Hs $Hrd $Hnone $Hc0] as %mw ⟨%log, %rev, Htx, -, -⟩
-  · ipureintro; exact Ht
+  wp_apply (hRead s γ _ t 0 [] clb iprop(True)) $$ [$Hs $Hrd $Hnone $Hc0 $Hclb]
+    as %mw ⟨%log, %rev, %crev, Htx, -, #Hlbc, %Hp⟩
+  · isplitr
+    · iintro !>; itrivial
+    ipureintro; exact Ht
   (try wp_auto)
   -- `tr.Range(...)`: `metricsTxnWrite.Range`
-  ihave Htx : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
+  ihave Htx : mvcc.isTxn mw s γ (.read log rev) crev iprop(True) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
   ihave #Hctx' : mvcc.rangeCtx false ctx cd $$ []
   · simp only [mvcc.rangeCtx, Bool.false_eq_true, ↓reduceIte]; iexact Hctx
-  wp_apply (hRange mw s γ (.read log rev) ctx cd false key endk k e ro)
+  wp_apply (hRange mw s γ (.read log rev) ctx cd false key endk k e ro crev iprop(True))
     $$ [$Htx $Hctx' $Hkey $Hend] as %r %err ⟨-, Htx, Hout⟩
   (try wp_auto)
   simp only [mvcc.isTxn, mvcc.TxnKind.readLog, mvcc.TxnKind.readRev]
@@ -64,24 +67,24 @@ theorem mvcc.readView.Range.wp_proof
   iunfold mvcc.storeTxnReadIs at HtrT
   iNamedSuffix HtrT "T"
   -- the deferred `tr.End()`: `metricsTxnWrite.End`
-  ihave Htx : mvcc.isTxnRead mw s γ log rev $$ [Hmw Htrw Hrd Hmu HrevMu Hti]
+  ihave Htx : mvcc.isTxnRead mw s γ log rev crev iprop(True) $$ [Hmw Htrw Hrd Hmu HrevMu Hti]
   · iunfold mvcc.isTxnRead
     iexists trw, tr, trace, ti, rt, ranges
     iframe
     iframe #
-  ihave Htx' : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
+  ihave Htx' : mvcc.isTxn mw s γ (.read log rev) crev iprop(True) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
-  ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ $$ Htx'
+  ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ crev iprop(True) $$ Htx'
   ihave Hep : mvcc.txnEndPre γ (.read log rev) $$ []
   · simp only [mvcc.txnEndPre]; itrivial
-  wp_apply (hEnd mw s γ (.read log rev)) $$ [$Htx' $Hep] as ⟨Hrd, -⟩
+  wp_apply (hEnd mw s γ (.read log rev) crev iprop(True)) $$ [$Htx' $Hep] as ⟨Hrd, -, -⟩
   (try wp_auto)
   iapply HΦ
   iframe Hrd
-  iexists log, rev
-  iframe HcertT Hout
+  iexists log, rev, crev
+  iframe HcertT Hout Hlbc
   ipureintro
-  exact ⟨HneT, HrevT⟩
+  exact ⟨HneT, HrevT, Hp.2.2, HcrevT.1⟩
 
 end proof
 

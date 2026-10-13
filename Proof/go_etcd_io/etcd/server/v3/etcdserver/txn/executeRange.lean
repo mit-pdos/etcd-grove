@@ -250,6 +250,8 @@ theorem txn.executeRange.wp_proof
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG))
     (hAsm : txn.asembleRangeResponse.spec (GF := GF) (hG := hG)) :
     txn.executeRange.spec (GF := GF) (hG := hG) := by
+  have hRange := mvcc.metricsTxnWrite.Range.spec_frozen hRange
+  have hRoRange := mvcc.txnReadWrite.Range.spec_frozen hRoRange
   intro ctx cd nd lg s γ tw kind ro r o withTotal
   wp_start_folded as ⟨Htv, #Hctx, #Hnd, #Hr, %Hpre⟩
   cases ro

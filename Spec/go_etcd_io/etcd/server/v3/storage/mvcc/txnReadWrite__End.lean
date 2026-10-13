@@ -22,12 +22,34 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `trw.End()`: the read transaction ended (`metricsTxnWrite.End`): its tokens back. -/
+/-- `trw.End()`: the read transaction ended (`metricsTxnWrite.End`): its tokens back
+(`storeReaderC`, with the reader's tag `Z`; 2026-10-13, unit 6a). The frozen statement
+(`storeReader`) is `specFrozen` (`spec_frozen`). -/
 abbrev mvcc.txnReadWrite.End.spec : Prop :=
+  ∀ (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (crev : Int) (Z : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isRoTxnWrite trw s γ log rev crev Z }}
+    (App (Val (trw @!! go.GoType.PointerType txnReadWrite.ty @!! go!"End")) (Val #()))
+  {{ RET #(); mvcc.storeReaderC s γ ∗ □ Z }}
+
+/-- The frozen statement (before unit 6a). -/
+abbrev mvcc.txnReadWrite.End.specFrozen : Prop :=
   ∀ (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isRoTxnWrite trw s γ log rev }}
     (App (Val (trw @!! go.GoType.PointerType txnReadWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); mvcc.storeReader s γ }}
+
+open Iris.ProofMode in
+/-- **The frozen statement is a corollary** (`storeReader_of`). -/
+theorem mvcc.txnReadWrite.End.spec_frozen (h : mvcc.txnReadWrite.End.spec (GF := GF) (hG := hG)) :
+    mvcc.txnReadWrite.End.specFrozen (GF := GF) (hG := hG) := by
+  intro trw s γ log rev
+  iintro %Φ H HΦ
+  iapply (h trw s γ log rev (-1) (mvcc.crevFrozen γ)) $$ %Φ [H]
+  · iexact H
+  inext
+  iintro ⟨Hr, #Hf⟩
+  iapply HΦ
+  iapply mvcc.storeReader_of $$ [$Hr $Hf]
 
 end spec
 

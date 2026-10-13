@@ -49,6 +49,7 @@ theorem mvcc.watchableStore.progressIfSync.wp_proof
     (hrev : mvcc.watchableStore.rev.spec (GF := GF) (hG := hG))
     (hsend : mvcc.watcher.send.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.progressIfSync.spec (GF := GF) (hG := hG) := by
+  have hrev := mvcc.watchableStore.rev.spec_frozen hrev
   intro s st γ m dq M rid
   wp_start as ⟨#Hws, Hm, #HM, HR⟩
   iunfold mvcc.watchReader at HR

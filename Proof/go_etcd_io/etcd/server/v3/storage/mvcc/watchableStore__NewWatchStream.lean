@@ -40,6 +40,7 @@ theorem mvcc.isWatchable_store
       mvcc.isWatchableStore s st γ ⊢
     mvcc.isWatchable (interface.mkOk (go.GoType.PointerType watchableStore.ty) #s)
       (mvcc.storeWatchParams s st γ) := by
+  have hRev := mvcc.watchableStore.rev.spec_frozen hRev
   iintro ⟨#Hpkg, #Hws⟩
   iunfold mvcc.isWatchable
   iexists ⟨go.GoType.PointerType watchableStore.ty, #s⟩

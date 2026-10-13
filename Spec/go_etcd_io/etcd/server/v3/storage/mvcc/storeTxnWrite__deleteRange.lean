@@ -26,15 +26,15 @@ revision at the transaction's revision (`writeRev`: the pending one if it has a 
 the committed log's last), `delKeys`, in key order, each deleted; their number. -/
 abbrev mvcc.storeTxnWrite.deleteRange.spec : Prop :=
   ∀ (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
-    (key endk : GoSlice) (k e : GoString),
+    (key endk : GoSlice) (k e : GoString) (crev : Int) (Z : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.storeTxnWriteIs tw s γ ilog pend ∗ key ↦*□ k ∗ endk ↦*□ e ∗
+      mvcc.storeTxnWriteIs tw s γ ilog pend crev Z ∗ key ↦*□ k ∗ endk ↦*□ e ∗
       ⌜pend.length + (mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e).length < mvcc.putMax γ⌝ }}
     (App (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"deleteRange"))
       (Val #key)) (Val #endk))
   {{ RET #(W64 ((mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e).length : Int) : w64);
       mvcc.storeTxnWriteIs tw s γ ilog
-        (pend ++ (mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e).map .del) }}
+        (pend ++ (mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e).map .del) crev Z }}
 
 end spec
 

@@ -45,6 +45,7 @@ theorem mvcc.watchWriter_pins (γ : mvcc.StoreNames) (L ilog : mvcc.Log) (pend :
 
 theorem mvcc.watchableStore.Write.wp_proof (hWrite : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.Write.spec (GF := GF) (hG := hG) := by
+  have hWrite := mvcc.store.Write.spec_frozen hWrite
   intro s st γ trace L P Pre Q f
   wp_start as ⟨#Hws, Hrd, Hwt, Hww, %Hlen, %Htrnn, #Hhook, Hpre, #Htr⟩
   ihave #Hws0 : mvcc.isWatchableStore s st γ $$ []

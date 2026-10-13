@@ -32,6 +32,7 @@ theorem txn.deleteRange.wp_proof
     (hRange : mvcc.metricsTxnWrite.Range.spec (GF := GF) (hG := hG))
     (hDel : mvcc.metricsTxnWrite.DeleteRange.spec (GF := GF) (hG := hG)) :
     txn.deleteRange.spec (GF := GF) (hG := hG) := by
+  have hRange := mvcc.metricsTxnWrite.Range.spec_frozen hRange
   intro ctx cd nd mw s γ ilog pend puts deletes putSize dr o
   wp_start as ⟨#Hctx, #Hnd, Htx, #Hdr, %Hbnd⟩
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []

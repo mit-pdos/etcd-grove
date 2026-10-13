@@ -40,6 +40,8 @@ theorem txn.Put.wp_proof
     (hput : txn.put.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.Put.spec (GF := GF) (hG := hG) := by
+  have hWrite := mvcc.store.Write.spec_frozen hWrite
+  have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
   intro ctx cd lg le kv s γ p o m log₀ P Pre Q Post f
   wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, #Hle, #Hp, #Hctx, #Hlprem, Hcs, #Hhook⟩
   iunfold mvcc.csContract at Hcs

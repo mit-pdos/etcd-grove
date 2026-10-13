@@ -63,11 +63,12 @@
   compaction revision never names a revision compaction may delete (`named_not_del`,
   `Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Compact.lean`, over `kiGet_avail`) needs the
   compaction revision's changes not to delete and then put one key (`NoDelPutAt`); without it the
-  theorem is false, which is how the bug surfaced. The compaction's own specs do not need it (the
-  job deletes what `doCompact` does not keep: `KeyDel`); the premise is the readers' of a
-  compacted store (none is specified yet: the store's readers are those of a store never
-  compacted, `crevFrozen`), and in the server it is the transaction checks' guarantee
-  (`checkIntervals`, the txn package's `NoDupKeysPerRev`).
+  theorem is false, which is how the bug surfaced. Since the mvcc store's unit 6a (2026-10-13) the
+  premise is `store.Compact`'s (and `compactLockfree`'s): its caller asserts `NoDelPutAt` of
+  the revision it compacts at; the store records it (`crevSafe`) and every key the job deletes
+  carries it (`delKey`), which is what lets the readers of a compacted store prove a read at or
+  above the compaction revision unaffected (`rangeAnswers_not_del`). In the server it is the
+  transaction checks' guarantee (`checkIntervals`, the txn package's `NoDupKeysPerRev`).
 - **Possible fixes**: in `doCompact`, skip a generation whose tombstone is at `atRev` when a later
   generation has a revision at `atRev` (compare the next generation's first revision, not the
   tombstone, with `atRev`); or reject a put of a key the same write transaction deleted.

@@ -29,17 +29,20 @@ critical-section contract of the batch lock (`csContract`:
 * `rev > c`, `rev` a revision of the committed log: under `s.revMu`, `compactMainRev = rev` (both
   locks' halves, the authority with the right's), `scheduledCompactRev = rev` written, `nil`, the
   previous compaction revision; the right at `rev` (its queue unchanged, good at `rev`:
-`compactQueue_mono`); the job's premises (`compactJobPre`: `crevLb γ rev`, a certified
-  log with revision `rev`) and the caller's `Post`;
+`compactQueue_mono`); the job's premises (`compactJobPre`: `crevLb γ rev`, the caller's
+  certified log with revision `rev`, which does not delete then put a key) and the caller's
+  `Post`; `s.mu`'s resource records the revision safe for readers (`crevSafe`; 2026-10-13, unit
+  6a: the caller's `NoDelPutAt`, as `store.Compact`'s);
 * `rev ≤ c`: `ErrCompacted`, and a barrier job scheduled that closes the channel returned (a
   receive right, `compactChan ch True`); nothing changed, `Pre` back;
 * `rev` above the committed log's last revision: `ErrFutureRev`, a `nil` channel; `Pre` back. -/
 abbrev mvcc.store.updateCompactRev.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (rev : w64) (c : Int) (P : IProp GF) (f : val)
-    (Pre Q Post : IProp GF),
+    (Pre Q Post : IProp GF) (log : mvcc.Log),
   mvcc.storeCmp γ →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeStop s ∗ mvcc.muInvAt s γ 1 c ∗ mvcc.compactRight γ c ∗
+      mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
       mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"updateCompactRev")) (Val #rev))
   {{ (ch : GoChan) (prev : w64) (err : GoInterface), RET (PairV (PairV #ch #prev) #err);

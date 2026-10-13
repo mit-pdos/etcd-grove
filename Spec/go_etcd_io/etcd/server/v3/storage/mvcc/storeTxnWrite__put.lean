@@ -28,13 +28,13 @@ value's bytes are read-only for good (the index and the change keep them); the l
 any, is a granted one; the revision has room for the change. -/
 abbrev mvcc.storeTxnWrite.put.spec : Prop :=
   ∀ (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
-    (key value : GoSlice) (k v : GoString) (leaseID : w64),
+    (key value : GoSlice) (k v : GoString) (leaseID : w64) (crev : Int) (Z : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.storeTxnWriteIs tw s γ ilog pend ∗ key ↦*□ k ∗ value ↦*□ v ∗
+      mvcc.storeTxnWriteIs tw s γ ilog pend crev Z ∗ key ↦*□ k ∗ value ↦*□ v ∗
       (⌜leaseID = W64 0⌝ ∨ mvcc.leaseKnown γ.leases leaseID) ∗ ⌜pend.length + 1 < mvcc.putMax γ⌝ }}
     (App (App (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"put")) (Val #key))
       (Val #value)) (Val #leaseID))
-  {{ RET #(); mvcc.storeTxnWriteIs tw s γ ilog (pend ++ [.put k v leaseID]) }}
+  {{ RET #(); mvcc.storeTxnWriteIs tw s γ ilog (pend ++ [.put k v leaseID]) crev Z }}
 
 end spec
 
