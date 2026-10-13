@@ -97,6 +97,12 @@ def MsgReadIndexResp : w32 := W32 16
 def MsgPreVote : w32 := W32 17
 def MsgPreVoteResp : w32 := W32 18
 def MsgStorageAppendResp : w32 := W32 20
+-- (2026-10-13) the local reports, leader transfer and `ForgetLeader`
+def MsgUnreachable : w32 := W32 10
+def MsgSnapStatus : w32 := W32 11
+def MsgTransferLeader : w32 := W32 13
+def MsgTimeoutNow : w32 := W32 14
+def MsgForgetLeader : w32 := W32 23
 
 def StateFollower : w64 := W64 0
 def StateCandidate : w64 := W64 1
@@ -111,6 +117,11 @@ def campaignPreElection : CampaignType := go!"CampaignPreElection"
 def campaignTransfer : CampaignType := go!"CampaignTransfer"
 
 end consts
+
+/-- The `Context` of `campaign(t)`'s vote requests (2026-10-13): the leader-transfer
+marker for a transfer's campaign (`[]byte(t)`), nothing otherwise. -/
+def transferCtx [FfiSyntax] (t : CampaignType) : List w8 :=
+  if t = campaignTransfer then campaignTransfer else []
 
 def VotePending : w8 := W8 1
 def VoteLost : w8 := W8 2
@@ -679,6 +690,11 @@ structure NState [FfiSyntax] where
   gh : NGhost := {}
   /-- the read-index state (2026-10-12), see `RdState` -/
   rd : RdState := {}
+  /-- `r.leadTransferee` (2026-10-13): the leader-transfer target, `0` for none. Only a
+  leader's `MsgTransferLeader` sets it (to another node: `ownRaftPhys` keeps it `≠ id`);
+  `reset` (every `becomeX` but `becomePreCandidate`) and `abortLeaderTransfer` clear it.
+  Invisible to the protocol (`toPState`). -/
+  lt : w64 := W64 0
 
 section phys_state
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
@@ -710,7 +726,7 @@ def sendMsgs (s : NState) (ms : List Msg) : NState :=
 `lead` and the tally. -/
 def resetTo0 (s : NState) (term : w64) : NState :=
   { s with term := term, vote := if term = s.term then s.vote else W64 0, lead := W64 0,
-           votes := ∅ }
+           votes := ∅, lt := W64 0 }
 
 /-- (2026-10-12) and the fresh `readOnly` object `reset` installs last. -/
 def resetTo (s : NState) (term : w64) : NState :=
@@ -740,8 +756,10 @@ def prevoteReq (id dst term : w64) (last : entryID) : Msg :=
 transition, then the self-addressed response and one request per peer in `peers`,
 each carrying the log's last entry id. An election is `becomeCandidate` and `MsgVote`s
 at the new term; a pre-election is `becomePrecandidate` and `MsgPreVote`s at `Term + 1`
-(the term itself does not move). -/
-def campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w64) : NState :=
+(the term itself does not move). The requests of an election carry the `Context` `cl`
+(2026-10-13): `transferCtx t`, the marker for a leader transfer's campaign. -/
+def campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w64)
+    (cl : List w8 := []) : NState :=
   if pre then
     sendMsgs (becomePrecandidate s)
       ([Msg.plain .preVoteResp id id (s.term + W64 1) false] ++
@@ -751,7 +769,7 @@ def campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w64) : NSta
     sendMsgs (becomeCandidate id s)
       ([Msg.plain .voteResp id id (becomeCandidate id s).term false] ++
        peers.map fun dst => pvoteReq id dst (becomeCandidate id s).term
-                 (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)))
+                 (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) cl)
 
 /-- `becomeLeader` up to its `appendEntry`: what `reset`, the `lead` and `state` writes
 and `r.step` leave. -/

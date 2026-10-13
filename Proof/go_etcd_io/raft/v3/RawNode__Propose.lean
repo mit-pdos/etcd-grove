@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- A premise of `Step` about another message type: `MsgProp` (`W32 2`) is not it. -/
 local macro "msg_ne" : tactic => `(tactic| (intro Hc; simp [MsgHup, MsgVote, MsgVoteResp,
   MsgPreVote, MsgPreVoteResp, MsgApp, MsgHeartbeat, MsgAppResp, MsgHeartbeatResp, MsgSnap,
-  MsgBeat, MsgStorageAppendResp, MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp] at Hc))
+  MsgBeat, MsgStorageAppendResp, MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hc))
 
 /-- `Step` on the literal message: `Type: MsgProp`, `From: r.id`, the one-entry batch;
 every other field zero. Its `MsgProp` arm, at the singleton batch, is the
@@ -57,7 +57,7 @@ theorem RawNode.Propose.wp_proof
     (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne)
     (by msg_ne)
-    (fun _ => ⟨rfl, .inr rfl⟩) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) Hrel
+    (fun _ => ⟨rfl, .inr rfl⟩) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hrel
     $$ [$Hphys $Hghost Hes Hcap Hcr]
   · -- the message: its one-entry batch, owned; `Context` nil
     simp only [MsgProp, ite_true]
@@ -94,10 +94,7 @@ theorem RawNode.Propose.wp_proof
         iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entData (GF := GF) γ e)).2
         iexact Hent
     isplitr
-    · isplitr
-      · iapply ownSlice_nil
-      · ipureintro
-        intro Hc; unfold campaignTransfer at Hc; simp at Hc
+    · iapply ownSlice_nil
     isplitl [Hcr]
     · rw [if_neg (by msg_ne)]; iexact Hcr
     · imodintro

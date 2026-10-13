@@ -213,7 +213,16 @@ def LeaderNonpropResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Mes
        prvalsMatch pvs = prvalsMatch s.prvals) ∨
     (m.From' ∈ domSet s.progress ∧
      m.Reject' = false ∧
-     AppRespAccepted cfg id s m.From' m.Index' s')))
+     AppRespAccepted cfg id s m.From' m.Index' s'))) ∨
+  -- (2026-10-13) `ForgetLeader` and `MsgTimeoutNow` (no-ops), the local reports (a peer's
+  -- `Progress` state, not its `Match`) and a leader-transfer request (`leadTransferee`,
+  -- and a `sendAppend` to the transferee; its `MsgTimeoutNow` drops out of the outbox)
+  ((m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
+    m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader) ∧
+   ∃ (lt' : w64) (ms : List Msg) (pvs : GMap w64 Progress),
+     s' = { sendMsgs { s with lt := lt' } ms with prvals := pvs } ∧
+     ReplSends id s ms ∧
+     prvalsMatch pvs = prvalsMatch s.prvals)
 
 /-- What `stepLeader` does with `m`, by type. `dropped` is whether it returned
 `ErrProposalDropped` (as in `FollowerStepResult`, `Spec/stepFollower.lean`); only a
@@ -266,7 +275,9 @@ abbrev stepLeader.spec : Prop :=
    m.Type' = MsgHeartbeatResp ∨ m.Type' = MsgAppResp ∨
    m.Type' = MsgProp ∨ m.Type' = MsgApp ∨
    m.Type' = MsgHeartbeat ∨ m.Type' = MsgPreVoteResp ∨
-   m.Type' = MsgReadIndex ∨ m.Type' = MsgReadIndexResp) →
+   m.Type' = MsgReadIndex ∨
+   (m.Type' = MsgReadIndexResp ∨ m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨
+    m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader)) →
   s.role = .leader →
   id ∈ cfg →
   (m.Type' = MsgAppResp → m.From' ≠ W64 0) →
@@ -302,8 +313,10 @@ abbrev stepLeader.spec : Prop :=
       ⌜LeaderStepResult cfg id s m ents dropped s' ctx⌝ ∗
       (if dropped then globalAddr ErrProposalDropped ↦□ err
        else ⌜err = interface.nil⌝) ∗
+      -- the batch, stamped -- or (2026-10-13) untouched, when a leader transfer in
+      -- progress dropped it before `appendEntry`
       (⌜m.Type' = MsgProp⌝ -∗
-       m.Entries' ↦* ents.mapIdx (stamp s.term (logLast s.logst))) }}
+       (m.Entries' ↦* ents.mapIdx (stamp s.term (logLast s.logst)) ∨ m.Entries' ↦* ents)) }}
 
 end spec
 

@@ -192,7 +192,9 @@ abbrev raft.send.spec : Prop :=
   -- before `Step`; a follower forwards that proposal as it is). Either way the queued
   -- message has `From = id`.
   -- (2026-10-12) or a read-index request forwarded on, which keeps its requester
-  (m.From' = W64 0 ∨ m.From' = id ∨ m.Type' = MsgReadIndex) →
+  -- (2026-10-13) or a leader-transfer request forwarded to the leader, which keeps its
+  -- transferee
+  (m.From' = W64 0 ∨ m.From' = id ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader) →
   SendOk id s m ents ctx out →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗

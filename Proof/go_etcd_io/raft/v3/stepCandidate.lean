@@ -334,7 +334,6 @@ theorem stepCandidate.wp_proof
             (fun h => by
               have := congrArg List.length h
               simp [campaignElection, campaignPreElection] at this)
-            (fun h => by simp (config := {decide := true}) [campaignElection, campaignTransfer] at h)
             $$ [$Hphys]
           as %peers %pvs ⟨%Hpeers, Hphys⟩
         iapply HΦ $$ %GoInterface.nil %_ %false
@@ -344,6 +343,9 @@ theorem stepCandidate.wp_proof
         refine ⟨?_, trivial⟩
         refine Hres_pv _ true false peers pvs (fun _ => ⟨Hwon rfl, Hpeers⟩)
           (fun h => absurd h (by decide)) ?_
+        have Htc : transferCtx campaignElection = [] := by
+          simp (config := {decide := true}) [transferCtx, campaignElection, campaignTransfer]
+        rw [Htc]
         rfl
       · -- `quorum.VoteLost`: step down at the unchanged term
         simp only [VoteLost]
@@ -369,30 +371,44 @@ theorem stepCandidate.wp_proof
           (fun h => absurd h (by decide)) ?_
         cases s; rfl
 
-  · -- `MsgReadIndex`, `MsgReadIndexResp` (2026-10-12): no arm; `myVoteRespType` is one of
-    -- the two vote response types, neither of these
-    rcases Hty with Hty' | Hty' <;> rw [Hty'] <;>
-      simp only [MsgReadIndex, MsgReadIndexResp] <;> wp_auto
+  · -- `MsgReadIndex`, `MsgReadIndexResp` (2026-10-12), and (2026-10-13) `MsgForgetLeader`,
+    -- `MsgTransferLeader` and the local reports: no arm; `MsgTimeoutNow`: logged. In each case
+    -- `myVoteRespType` is one of the two vote response types, neither of these
+    rcases Hty with Hty' | Hty' | Hty' | Hty' | Hty' | Hty' | Hty' <;> rw [Hty'] <;>
+      simp only [MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader,
+        MsgTimeoutNow, MsgUnreachable, MsgSnapStatus] <;> wp_auto
     all_goals
       by_cases Hp : s.role = .preCandidate
       · rw [Hmp Hp]
         wp_auto
+        try (
+          wp_apply raft.wp_load_id $$ Hphys as Hphys
+          wp_apply raft.wp_load_Term $$ Hphys as Hphys
+          wp_apply raft.wp_load_state $$ Hphys as Hphys
+          wp_raft_log)
         iapply HΦ $$ %GoInterface.nil %s %false
         iframe Hphys
         simp only [Bool.false_eq_true, ↓reduceIte]
         ipureintro
         refine ⟨?_, trivial⟩
         simp [CandidateStepResult, Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-          MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp]
+          MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+          MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
       · rw [Hmc Hp]
         wp_auto
+        try (
+          wp_apply raft.wp_load_id $$ Hphys as Hphys
+          wp_apply raft.wp_load_Term $$ Hphys as Hphys
+          wp_apply raft.wp_load_state $$ Hphys as Hphys
+          wp_raft_log)
         iapply HΦ $$ %GoInterface.nil %s %false
         iframe Hphys
         simp only [Bool.false_eq_true, ↓reduceIte]
         ipureintro
         refine ⟨?_, trivial⟩
         simp [CandidateStepResult, Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
-          MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp]
+          MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+          MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
 end proof
 
 end EtcdGrove

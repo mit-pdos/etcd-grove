@@ -14,6 +14,19 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.raft.v3
 
+section results
+variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+
+/-- What `hup` leaves (its postcondition's pure part, 2026-10-13, for `stepFollower`'s
+`MsgTimeoutNow`): `r.step` agrees with the role, a protocol step that receives nothing,
+the log untouched, the term up by at most one, `r.preVote` and the ghost bounds kept. -/
+def HupOk (cfg : GSet w64) (id : w64) (s s' : NState) : Prop :=
+  NStateWf s' ∧ Step cfg id (toPState s) [] (toPState s') ∧
+  (s'.logst = s.logst ∧ uint.Z s.term ≤ uint.Z s'.term ∧
+   uint.Z s'.term ≤ uint.Z s.term + 1 ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh)
+
+end results
+
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -37,8 +50,6 @@ abbrev raft.hup.spec : Prop :=
   uint.Z s.term + 1 < 2 ^ 64 →
   -- a pre-election only with pre-vote on (2026-10-10; see `raft.campaign.spec`)
   (t = campaignPreElection → s.prevote = true) →
-  -- not a leader transfer's (2026-10-12; see `raft.campaign.spec`)
-  t ≠ campaignTransfer →
   -- `r.step` matches the role; kept by the call
   NStateWf s →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}

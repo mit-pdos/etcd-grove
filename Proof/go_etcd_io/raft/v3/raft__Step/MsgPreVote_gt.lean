@@ -112,7 +112,7 @@ theorem wp_Step_MsgPreVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     s.prevote = true →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhys cfg r id s ∗
-        "#Hctx" ∷ (∃ (ctx : List w8), m.Context' ↦*□ ctx ∗ ⌜ctx ≠ campaignTransfer⌝) }}
+        "#Hctx" ∷ (∃ (ctx : List w8), m.Context' ↦*□ ctx) }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhys cfg r id s' ∗
@@ -139,50 +139,56 @@ theorem wp_Step_MsgPreVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_auto
   -- `force` is false (not a leader transfer) and `inLease` is false (no check-quorum),
   -- so the lease check does not drop the message
-  icases Hctx with ⟨%ctx, Hctx_sl, %Hctx_ne⟩
+  icases Hctx with ⟨%ctx, Hctx_sl⟩
   wp_apply wp_string_to_bytes as %ct_sl ⟨ct_sl, -⟩
   wp_apply bytes.wp_Equal _ _ DFrac.discard (DFrac.own 1) ctx (go!"CampaignTransfer")
       $$ [$Hctx_sl $ct_sl] as ⟨-, -⟩
   wp_apply raft.wp_load_checkQuorum $$ Hphys as Hphys
-  have Hctx_ne' : ctx ≠ go!"CampaignTransfer" := Hctx_ne
-  rw [decide_eq_false Hctx_ne']
+  -- `force` (2026-10-13): a leader transfer's vote request or not; either way
+  -- `!force && inLease` is false, `inLease` being false without check-quorum
+  by_cases Hforce : ctx = go!"CampaignTransfer"
+  rw [decide_eq_true Hforce]
   try wp_auto
-  -- the step-down switch: `MsgPreVote`, so nothing
-  rw [Hy17]
-  wp_auto
-  -- the type switch: not `MsgHup` / `MsgStorageAppendResp` / `MsgStorageApplyResp`,
-  -- but `MsgPreVote`
-  rw [Hty]
-  wp_auto
-  -- `canVote`: true by its third disjunct, whichever way the first two go; the
-  -- evaluation is joined
-  wp_join (Q := fun v => iprop(⌜v = #true⌝ ∗ ownRaftPhys cfg r id s ∗
-      r_ptr ↦ r ∗ m_ptr ↦ m)) at (if: _ then _ else _) with [Hphys r m]
-    as ⟨%Hv, Hphys, r, m⟩
-  · repeat (any_goals cv_step)
-    all_goals first | wp_join_done | (exfalso; omega) | (exfalso; exact Hif Hty)
-  subst Hv
-  wp_auto
-  -- `lastEntryID`, then `isUpToDate`
-  wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-  icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hback⟩
-  wp_apply _P.lastEntryID $$ [$Hlog] as %lastID ⟨Hlog, -⟩
-  ihave Hphys := Hback $$ Hlog
-  wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-  icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hback⟩
-  wp_apply _P.isUpToDate $$ [$Hlog] as %uptodate ⟨Hlog, %Hutd⟩
-  ihave Hphys := Hback $$ Hlog
-  cases uptodate
-  · -- behind: reject at `r.Term`, which is not `0`
-    have Hs0 : s.term ≠ W64 0 := fun H0 => by
-      have := Hutd0 H0
-      rw [← Hutd] at this
-      exact Bool.false_ne_true this
+  rotate_left
+  rw [decide_eq_false Hforce]
+  try wp_auto
+  all_goals
+    -- the step-down switch: `MsgPreVote`, so nothing
+    rw [Hy17]
+    wp_auto
+    -- the type switch: not `MsgHup` / `MsgStorageAppendResp` / `MsgStorageApplyResp`,
+    -- but `MsgPreVote`
+    rw [Hty]
+    wp_auto
+    -- `canVote`: true by its third disjunct, whichever way the first two go; the
+    -- evaluation is joined
+    wp_join (Q := fun v => iprop(⌜v = #true⌝ ∗ ownRaftPhys cfg r id s ∗
+        r_ptr ↦ r ∗ m_ptr ↦ m)) at (if: _ then _ else _) with [Hphys r m]
+      as ⟨%Hv, Hphys, r, m⟩
+    · repeat (any_goals cv_step)
+      all_goals first | wp_join_done | (exfalso; omega) | (exfalso; exact Hif Hty)
+    subst Hv
+    wp_auto
+    -- `lastEntryID`, then `isUpToDate`
+    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hback⟩
+    wp_apply _P.lastEntryID $$ [$Hlog] as %lastID ⟨Hlog, -⟩
+    ihave Hphys := Hback $$ Hlog
+    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hback⟩
+    wp_apply _P.isUpToDate $$ [$Hlog] as %uptodate ⟨Hlog, %Hutd⟩
+    ihave Hphys := Hback $$ Hlog
+    cases uptodate
+    · -- behind: reject at `r.Term`, which is not `0`
+      have Hs0 : s.term ≠ W64 0 := fun H0 => by
+        have := Hutd0 H0
+        rw [← Hutd] at this
+        exact Bool.false_ne_true this
+      wp_auto
+      prevote_resp_tail
+    -- up to date: grant at `m.Term`, recording nothing
     wp_auto
     prevote_resp_tail
-  -- up to date: grant at `m.Term`, recording nothing
-  wp_auto
-  prevote_resp_tail
 
 end StepProof
 

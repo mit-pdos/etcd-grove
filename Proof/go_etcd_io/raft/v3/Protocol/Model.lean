@@ -1421,9 +1421,10 @@ def pselfAck (s : PState) : Msg :=
   Msg.mk .appResp id id s.term false (plastIndex s) (W64 0) (W64 0) (W64 0) []
 
 /-- `campaign`'s vote request to `dst`, carrying the last entry id it read (`Index:
-last.index, LogTerm: last.term`). -/
-def pvoteReq (dst term : w64) (last : entryID) : Msg :=
-  Msg.mk .vote id dst term false last.index' last.term' (W64 0) (W64 0) []
+last.index, LogTerm: last.term`), and (2026-10-13) the `Context` `cl`: the leader-transfer
+marker for a transfer's campaign (`campaignTransfer`), `[]` otherwise. -/
+def pvoteReq (dst term : w64) (last : entryID) (cl : List w8 := []) : Msg :=
+  Msg.mkV .vote id dst term false last.index' last.term' (W64 0) (W64 0) [] [] cl
 
 /-- Receiving a message from the leader of the current term: `stepFollower`'s
 `r.lead = m.From` or `stepCandidate`'s `becomeFollower(m.Term, m.From)`, which agree on
@@ -1603,8 +1604,13 @@ inductive Step : PState → List Msg → PState → Prop where
   log.
 
   The no-wrap premise: the term increments, and a term that wrapped round to one the
-  node has already voted in would let it vote twice in that term. -/
-  | campaign (s : PState) (peers : List w64) :
+  node has already voted in would let it vote twice in that term.
+
+  The requests' `Context` is `cl` (2026-10-13): a leader transfer's campaign
+  (`campaignTransfer`, after a `MsgTimeoutNow`) marks them so that a voter in a lease
+  grants them anyway (`force`); with `checkQuorum` off there is no lease, and the
+  campaign is an ordinary one. -/
+  | campaign (s : PState) (peers : List w64) (cl : List w8) :
       s.role ≠ .leader →
       id ∈ cfg →
       uint.Z s.term + 1 < 2 ^ 64 →
@@ -1613,7 +1619,7 @@ inductive Step : PState → List Msg → PState → Prop where
         (psendMsgs (pbecomeCandidate id s)
           ([Msg.plain .voteResp id id (pbecomeCandidate id s).term false] ++
            peers.map (fun dst => pvoteReq id dst (pbecomeCandidate id s).term
-                                   (plogLast s.base s.log))))
+                                   (plogLast s.base s.log) cl)))
   /-- Granting a vote: the candidate's last entry, as the request reports it, is at
   least as recent as ours (`raftLog.isUpToDate`). Leader completeness rests on this
   check.

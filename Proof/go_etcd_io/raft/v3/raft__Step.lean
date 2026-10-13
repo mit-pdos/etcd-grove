@@ -44,6 +44,7 @@ public import Proof.go_etcd_io.raft.v3.raft__Step.MsgStorageAppendResp
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgStorageApplyResp
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgReadIndex
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgReadIndexResp
+public import Proof.go_etcd_io.raft.v3.raft__Step.MsgRest
 
 @[expose] public section
 
@@ -487,9 +488,9 @@ theorem raft.Step.wp_proof
      wp_raftLog_isUpToDate, wp_raftLog_stableTo, wp_raft_appliedTo,
      wp_raft_reduceUncommittedSize, wp_entsSize, wp_payloadsSize⟩
   intro cfg γ r id s ps m ents ctx Hcfg Hsm Hin Hhup Hvote Hvoteresp Hprevote Hprevoteresp
-    Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hri Hrir Hrel
+    Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hri Hrir Hrest Hrel
   obtain ⟨rfl, Hwf⟩ := Hrel
-  iintro %Φ ⟨#Hinit, Hphys, Hghost, Hm, ⟨#Hctxp, %Hctr⟩, Hcred, #Hsnap⟩ HΦ
+  iintro %Φ ⟨#Hinit, Hphys, Hghost, Hm, #Hctxp, Hcred, #Hsnap⟩ HΦ
   icases Hm with ⟨Hents, Hcap, %Hpents, %Happly, #Hmsg0⟩
   iapply wp_fupd
   by_cases Hty : m.Type' = MsgProp
@@ -648,10 +649,9 @@ theorem raft.Step.wp_proof
   · -- MsgVote: answer the vote request, stepping down first if needed.
     obtain ⟨Hto, Hterm, Hfnz⟩ := Hvote Hty
     ihave #Hm' := Hmsg $$ %MsgType.vote %(by rw [Hty]; exact mtypeOf_MsgVote) %(And.intro (by decide) (by decide))
-    ihave #Hctx' : (∃ (ctx : List w8), m.Context' ↦*□ ctx ∗ ⌜ctx ≠ campaignTransfer⌝) $$ []
+    ihave #Hctx' : (∃ (ctx : List w8), m.Context' ↦*□ ctx) $$ []
     · iexists ctx
-      iframe Hctxp
-      ipureintro; exact Hctr
+      iexact Hctxp
     wp_apply (wp_Step_MsgVote P cfg r id s m ents Hty Hto Hterm Hfnz Hwf) $$ [$Hphys $Hctx']
       as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst
@@ -672,10 +672,9 @@ theorem raft.Step.wp_proof
   · -- MsgPreVote (2026-10-04): answered with a free `MsgPreVoteResp`; nothing
     -- received, nothing recorded.
     obtain ⟨Hto, Hterm, Hfnz, Hfid, Hutd0, Hpvon⟩ := Hprevote Hty
-    ihave #Hctx' : (∃ (ctx : List w8), m.Context' ↦*□ ctx ∗ ⌜ctx ≠ campaignTransfer⌝) $$ []
+    ihave #Hctx' : (∃ (ctx : List w8), m.Context' ↦*□ ctx) $$ []
     · iexists ctx
-      iframe Hctxp
-      ipureintro; exact Hctr
+      iexact Hctxp
     wp_apply (wp_Step_MsgPreVote P cfg r id s m Hty Hto Hterm Hfnz Hfid Hwf Hutd0 Hpvon)
       $$ [$Hphys $Hctx'] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
     iapply finish_branch0 γ cfg r id s s' m err Φ Hcfg Hwf' Hst (fun _ => Hfr) (fun _ => Htm)
@@ -728,10 +727,53 @@ theorem raft.Step.wp_proof
     ihave #Hm' := Hmsgc $$ %MsgType.readIndexResp %(by rw [Hty]; rfl)
     iapply dispatch_ReadIndexResp P γ cfg r id s m ents ctx Φ Hcfg Hin Hwf Hty (Hrir Hty)
       $$ Hinit Hphys Hghost Hents Hctxp Hm' HΦ
-  -- none of the sixteen (the two storage acknowledgements were handled above)
+  -- (2026-10-13) the types outside the model: a free message justifies a step-down
+  ihave #Hsd := isMessage_stepdown (GF := GF) γ id m
+  obtain ⟨Hloc, Htn, Htl⟩ := Hrest
+  by_cases HtyL : m.Type' = MsgForgetLeader ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus
+  · -- the local reports and `ForgetLeader`
+    ihave %Hfv0 := ownRaftGhost_follower_votes γ id (toPState s) $$ Hghost
+    have Hfv : s.role = .follower → s.votes = ∅ := followerVotesOk_phys s Hfv0
+    wp_apply (wp_Step_MsgLocal P cfg r id s m HtyL (Hloc HtyL) Hin Hwf Hfv) $$ [$Hphys]
+      as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
+    obtain ⟨recv, Hrecv, Hstep⟩ := Hst
+    have Hn : m.Type' ≠ MsgVoteResp ∧ m.Type' ≠ MsgAppResp ∧ m.Type' ≠ MsgPreVoteResp := by
+      rcases HtyL with h | h | h <;> rw [h] <;> exact ⟨by w32_ne, by w32_ne, by w32_ne⟩
+    iapply finish_branch γ cfg r id s s' m _ recv err Φ Hcfg Hwf' Hrecv Hstep
+      (fun _ => Hfr) (fun _ => Htm) (RespStep.of_type Hn.1 Hn.2.1 Hn.2.2)
+      (by simp [stepdownMsg, Msg.plain]) $$ Hsd Hghost Hphys [] HΦ
+    ileft; ipureintro; exact Herr
+  by_cases Hty : m.Type' = MsgTransferLeader
+  · -- leader transfer: a request
+    obtain ⟨Hent, Hctx0, Htr⟩ := Htl Hty
+    ihave %Hlok0 := ownRaftGhost_lead_ok γ id (toPState s) $$ Hghost
+    have Hlok : s.role = .follower → s.lead ≠ id := by
+      intro Hf
+      rw [← toPState_lead_nonpre s (by rw [Hf]; decide)]
+      apply Hlok0
+      rw [toPState_role, Hf]; decide
+    wp_apply (wp_Step_MsgTransferLeader P cfg r id s m Hty Hent Hctx0 Htr Hlok Hin Hwf) $$ [$Hphys]
+      as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
+    obtain ⟨recv, Hrecv, Hstep⟩ := Hst
+    iapply finish_branch γ cfg r id s s' m _ recv err Φ Hcfg Hwf' Hrecv Hstep
+      (fun _ => Hfr) (fun _ => Htm) (by resp_other)
+      (by simp [stepdownMsg, Msg.plain]) $$ Hsd Hghost Hphys [] HΦ
+    ileft; ipureintro; exact Herr
+  by_cases Hty : m.Type' = MsgTimeoutNow
+  · -- leader transfer: the transferee campaigns
+    obtain ⟨Hnw, Hnwm⟩ := Htn Hty
+    wp_apply (wp_Step_MsgTimeoutNow P cfg r id s m Hty Hnw Hnwm Hin Hwf) $$ [$Hphys]
+      as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
+    obtain ⟨recv, Hrecv, Hstep⟩ := Hst
+    iapply finish_branch γ cfg r id s s' m _ recv err Φ Hcfg Hwf' Hrecv Hstep
+      (fun _ => Hfr) (fun _ => Htm) (by resp_other)
+      (by simp [stepdownMsg, Msg.plain]) $$ Hsd Hghost Hphys [] HΦ
+    ileft; ipureintro; exact Herr
+  -- none of the twenty-one (the two storage acknowledgements were handled above)
   exfalso
   simp only [StepMsg, stepMsgTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at Hsm
-  rcases Hsm with h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h <;> contradiction
+  rcases Hsm with h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h |
+    h <;> first | contradiction | exact HtyL (by simp [h])
 
 end dispatch
 

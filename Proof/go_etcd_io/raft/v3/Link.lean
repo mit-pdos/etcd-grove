@@ -89,13 +89,18 @@ public import Proof.go_etcd_io.raft.v3.tracker.Progress__ResetState
 public import Proof.go_etcd_io.raft.v3.tracker.Progress__SentCommit
 public import Proof.go_etcd_io.raft.v3.tracker.Progress__SentEntries
 public import Proof.go_etcd_io.raft.v3.RawNode__Advance
+public import Proof.go_etcd_io.raft.v3.RawNode__BasicStatus
 public import Proof.go_etcd_io.raft.v3.RawNode__Campaign
+public import Proof.go_etcd_io.raft.v3.RawNode__ForgetLeader
 public import Proof.go_etcd_io.raft.v3.RawNode__HasReady
 public import Proof.go_etcd_io.raft.v3.RawNode__Propose
 public import Proof.go_etcd_io.raft.v3.RawNode__ReadIndex
 public import Proof.go_etcd_io.raft.v3.RawNode__Ready
+public import Proof.go_etcd_io.raft.v3.RawNode__ReportSnapshot
+public import Proof.go_etcd_io.raft.v3.RawNode__ReportUnreachable
 public import Proof.go_etcd_io.raft.v3.RawNode__Step
 public import Proof.go_etcd_io.raft.v3.RawNode__Tick
+public import Proof.go_etcd_io.raft.v3.RawNode__TransferLeader
 public import Proof.go_etcd_io.raft.v3.RawNode__acceptReady
 public import Proof.go_etcd_io.raft.v3.RawNode__readyWithoutAccept
 public import Proof.go_etcd_io.raft.v3.RestartNode
@@ -119,6 +124,7 @@ public import Proof.go_etcd_io.raft.v3.confchange.toConfChangeSingle
 public import Proof.go_etcd_io.raft.v3.entsSize
 public import Proof.go_etcd_io.raft.v3.extend
 public import Proof.fmt.Sprintf
+public import Proof.go_etcd_io.raft.v3.getBasicStatus
 public import Proof.go_etcd_io.raft.v3.isHardStateEqual
 public import Proof.go_etcd_io.raft.v3.isMsgInArray
 public import Proof.go_etcd_io.raft.v3.limitSize
@@ -213,6 +219,7 @@ public import Proof.go_etcd_io.raft.v3.raft__restore
 public import Proof.go_etcd_io.raft.v3.raft__send
 public import Proof.go_etcd_io.raft.v3.raft__sendAppend
 public import Proof.go_etcd_io.raft.v3.raft__sendHeartbeat
+public import Proof.go_etcd_io.raft.v3.raft__sendTimeoutNow
 public import Proof.go_etcd_io.raft.v3.raft__softState
 public import Proof.go_etcd_io.raft.v3.raft__switchToConfig
 public import Proof.go_etcd_io.raft.v3.raft__tickElection
@@ -987,7 +994,7 @@ theorem wp_stepCandidate :
 
 theorem wp_stepFollower :
     stepFollower.spec (GF := GF) (hG := hG) :=
-  stepFollower.wp_proof raft.wp_handleAppendEntries raft.wp_handleHeartbeat raft.wp_handleSnapshot raft.wp_send
+  stepFollower.wp_proof raft.wp_handleAppendEntries raft.wp_handleHeartbeat raft.wp_handleSnapshot raft.wp_send raft.wp_hup
 
 theorem readOnly.wp_heartbeatCtx :
     readOnly.heartbeatCtx.spec (GF := GF) (hG := hG) :=
@@ -1049,9 +1056,13 @@ theorem raft.wp_responseToReadIndexReq :
     raft.responseToReadIndexReq.spec (GF := GF) (hG := hG) :=
   raft.responseToReadIndexReq.wp_proof
 
+theorem raft.wp_sendTimeoutNow :
+    raft.sendTimeoutNow.spec (GF := GF) (hG := hG) :=
+  raft.sendTimeoutNow.wp_proof raft.wp_send
+
 theorem wp_stepLeader :
     stepLeader.spec (GF := GF) (hG := hG) :=
-  stepLeader.wp_proof raft.wp_bcastHeartbeat raft.wp_sendAppend raft.wp_maybeSendAppend raft.wp_bcastAppend raft.wp_appendEntry raft.wp_maybeCommit wp_releasePendingReadIndexMessages tracker.Progress.wp_MaybeUpdate tracker.Progress.wp_MaybeDecrTo tracker.Progress.wp_BecomeProbe tracker.Progress.wp_BecomeReplicate tracker.Progress.wp_CanBumpCommit tracker.Inflights.wp_FreeLE raftLog.wp_findConflictByTerm raftLog.wp_lastIndex raftLog.wp_firstIndex tracker.ProgressTracker.wp_IsSingleton raft.wp_committedEntryInCurrentTerm wp_sendMsgReadIndexResponse readOnly.wp_recvAck readOnly.wp_maybeAdvance raft.wp_responseToReadIndexReq raft.wp_send
+  stepLeader.wp_proof raft.wp_bcastHeartbeat raft.wp_sendAppend raft.wp_maybeSendAppend raft.wp_bcastAppend raft.wp_appendEntry raft.wp_maybeCommit wp_releasePendingReadIndexMessages tracker.Progress.wp_MaybeUpdate tracker.Progress.wp_MaybeDecrTo tracker.Progress.wp_BecomeProbe tracker.Progress.wp_BecomeReplicate tracker.Progress.wp_CanBumpCommit tracker.Inflights.wp_FreeLE raftLog.wp_findConflictByTerm raftLog.wp_lastIndex raftLog.wp_firstIndex tracker.ProgressTracker.wp_IsSingleton raft.wp_committedEntryInCurrentTerm wp_sendMsgReadIndexResponse readOnly.wp_recvAck readOnly.wp_maybeAdvance raft.wp_responseToReadIndexReq raft.wp_send raft.wp_sendTimeoutNow raft.wp_abortLeaderTransfer
 
 theorem wp_traceReceiveMessage :
     traceReceiveMessage.spec (GF := GF) (hG := hG) :=
@@ -1080,6 +1091,10 @@ theorem raft.wp_appliedTo :
 theorem raft.wp_reduceUncommittedSize :
     raft.reduceUncommittedSize.spec (GF := GF) (hG := hG) :=
   raft.reduceUncommittedSize.wp_proof
+
+theorem wp_getBasicStatus :
+    getBasicStatus.spec (GF := GF) (hG := hG) :=
+  getBasicStatus.wp_proof raft.wp_hardState raft.wp_softState
 
 theorem SoftState.wp_equal :
     SoftState.equal.spec (GF := GF) (hG := hG) :=
@@ -1180,9 +1195,17 @@ theorem RawNode.wp_Advance :
     RawNode.Advance.spec (GF := GF) (hG := hG) :=
   RawNode.Advance.wp_proof raft.wp_Step
 
+theorem RawNode.wp_BasicStatus :
+    RawNode.BasicStatus.spec (GF := GF) (hG := hG) :=
+  RawNode.BasicStatus.wp_proof wp_getBasicStatus
+
 theorem RawNode.wp_Campaign :
     RawNode.Campaign.spec (GF := GF) (hG := hG) :=
   RawNode.Campaign.wp_proof raft.wp_Step
+
+theorem RawNode.wp_ForgetLeader :
+    RawNode.ForgetLeader.spec (GF := GF) (hG := hG) :=
+  RawNode.ForgetLeader.wp_proof raft.wp_Step
 
 theorem RawNode.wp_HasReady :
     RawNode.HasReady.spec (GF := GF) (hG := hG) :=
@@ -1208,6 +1231,14 @@ theorem RawNode.wp_Ready :
     RawNode.Ready.spec (GF := GF) (hG := hG) :=
   RawNode.Ready.wp_proof RawNode.wp_readyWithoutAccept RawNode.wp_acceptReady
 
+theorem RawNode.wp_ReportSnapshot :
+    RawNode.ReportSnapshot.spec (GF := GF) (hG := hG) :=
+  RawNode.ReportSnapshot.wp_proof raft.wp_Step
+
+theorem RawNode.wp_ReportUnreachable :
+    RawNode.ReportUnreachable.spec (GF := GF) (hG := hG) :=
+  RawNode.ReportUnreachable.wp_proof raft.wp_Step
+
 theorem RawNode.wp_Step :
     RawNode.Step.spec (GF := GF) (hG := hG) :=
   RawNode.Step.wp_proof wp_IsResponseMsg wp_IsLocalMsg wp_IsLocalMsgTarget raft.wp_Step
@@ -1218,11 +1249,15 @@ theorem raft.wp_tickElection :
 
 theorem raft.wp_tickHeartbeat :
     raft.tickHeartbeat.spec (GF := GF) (hG := hG) :=
-  raft.tickHeartbeat.wp_proof raft.wp_Step
+  raft.tickHeartbeat.wp_proof raft.wp_Step raft.wp_abortLeaderTransfer
 
 theorem RawNode.wp_Tick :
     RawNode.Tick.spec (GF := GF) (hG := hG) :=
   RawNode.Tick.wp_proof raft.wp_tickElection raft.wp_tickHeartbeat
+
+theorem RawNode.wp_TransferLeader :
+    RawNode.TransferLeader.spec (GF := GF) (hG := hG) :=
+  RawNode.TransferLeader.wp_proof raft.wp_Step
 
 theorem wp_newNode :
     newNode.spec (GF := GF) (hG := hG) :=

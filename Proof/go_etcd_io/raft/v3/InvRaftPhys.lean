@@ -724,7 +724,10 @@ private def ownRaftPhysDef (r : Loc) (id : w64) (s : NState) : IProp GF :=
   "%HpropForward" ∷ ⌜rv.disableProposalForwarding' = false⌝ ∗
   "%HnoCheckQuorum" ∷ ⌜rv.checkQuorum' = false⌝ ∗
   "%HnoLearner" ∷ ⌜rv.isLearner' = false⌝ ∗
-  "%HnoTransfer" ∷ ⌜rv.leadTransferee' = W64 0⌝ ∗
+  -- `r.leadTransferee` (2026-10-13; until then a scope conjunct pinned it to `0`): never
+  -- the node itself (`MsgTransferLeader` to self is ignored), so a `MsgTimeoutNow` to it
+  -- is never self-addressed
+  "%HnoTransfer" ∷ ⌜rv.leadTransferee' = s.lt ∧ s.lt ≠ id⌝ ∗
   "%Hid_nz" ∷ ⌜id ≠ W64 0⌝ ∗
   -- `Config.validate` requires `ElectionTick > HeartbeatTick > 0` and `newRaft`
   -- copies it, so this is an invariant of every struct raft builds. It is needed
@@ -782,7 +785,7 @@ theorem ownRaftPhys_intro (r : Loc) (id : w64) (s : NState) (rv : raft)
     rv.disableProposalForwarding' = false →
     rv.checkQuorum' = false →
     rv.isLearner' = false →
-    rv.leadTransferee' = W64 0 →
+    rv.leadTransferee' = s.lt ∧ s.lt ≠ id →
     id ≠ W64 0 →
     0 < sint.Z rv.electionTimeout' →
     rv.logger' = interface.ok lok →
@@ -831,7 +834,7 @@ set_option hygiene false in
 /-- The pure premises of `ownRaftPhys_intro` after a field access: each is a
 hypothesis of the opened predicate up to computation, or holds by computation. -/
 local macro "phys_pure" : tactic =>
-  `(tactic| first | assumption | rfl | exact Htick | exact Hout_term | exact Hgh_out | exact Hgh_unst)
+  `(tactic| first | assumption | rfl | exact Htick | exact Hout_term | exact Hgh_out | exact Hgh_unst | exact ⟨rfl, fun h => Hid_nz h.symm⟩ | exact ⟨rfl, Hx⟩)
 
 set_option hygiene false in
 /-- Rocq `reseal`: re-seal at the state `s'` the goal names, given explicitly because
@@ -865,6 +868,16 @@ theorem ownRaftPhys_progress_dom (r : Loc) (id : w64) (s : NState) :
   icases ownTracker_progress_map cfg _ _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
   isplitr
   · ipureintro; exact Hdom
+  reseal s
+
+/-- The leader-transfer target is never the node itself (2026-10-13): read out without
+consuming anything. -/
+theorem ownRaftPhys_lt_ne (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗ ⌜s.lt ≠ id⌝ ∗ ownRaftPhys cfg r id s := by
+  iintro H
+  iNamed_phys H
+  isplitr
+  · ipureintro; exact HnoTransfer.2
   reseal s
 
 /-- Changing only the outbox, up to permutation. -/
@@ -1111,11 +1124,11 @@ theorem raft.wp_load_isLearner (r : Loc) (id : w64) (s : NState) :
 theorem raft.wp_load_leadTransferee (r : Loc) (id : w64) (s : NState) :
     {{ ownRaftPhys (GF := GF) cfg r id s }}
       (App (Val (GoInstruction (GoLoad go.uint64))) (Val #(r.[raft, go!"leadTransferee"])))
-    {{ RET #(W64 0); ownRaftPhys cfg r id s }} := by
+    {{ RET #s.lt; ownRaftPhys cfg r id s }} := by
   iintro %Φ H HΦ
   iNamed_phys H
   wp_apply wp_load_access _ rv.leadTransferee' _ (raftOwn_access_load_leadTransferee _ _) $$ Hr as Hr
-  rw [HnoTransfer]; iapply HΦ; reseal s
+  rw [HnoTransfer.1]; iapply HΦ; reseal s
 
 /-! ### Loads of fields the abstraction does not track -/
 
@@ -1367,16 +1380,28 @@ theorem raft.wp_store_isLearner (r : Loc) (id : w64) (s : NState) :
   wp_apply wp_store_access _ rv.isLearner' false _ _ (raftOwn_access_store_isLearner _ _ _) $$ Hr as Hr
   iapply HΦ; reseal s
 
-/-- Only `None` (`W64 0`): no leader transfer is in scope. -/
+/-- `None` (`W64 0`, `abortLeaderTransfer`). -/
 theorem raft.wp_store_leadTransferee (r : Loc) (id : w64) (s : NState) :
     {{ ownRaftPhys (GF := GF) cfg r id s }}
       (App (Val (GoInstruction (GoStore go.uint64)))
         (Val (PairV #(r.[raft, go!"leadTransferee"]) #(W64 0))))
-    {{ RET #(); ownRaftPhys cfg r id s }} := by
+    {{ RET #(); ownRaftPhys cfg r id { s with lt := W64 0 } }} := by
   iintro %Φ H HΦ
   iNamed_phys H
   wp_apply wp_store_access _ rv.leadTransferee' (W64 0) _ _ (raftOwn_access_store_leadTransferee _ _ _) $$ Hr as Hr
-  iapply HΦ; reseal s
+  iapply HΦ; reseal { s with lt := W64 0 }
+
+/-- Another node (2026-10-13, `stepLeader`'s `MsgTransferLeader`). -/
+theorem raft.wp_store_leadTransferee_to (r : Loc) (id : w64) (s : NState) (x : w64)
+    (Hx : x ≠ id) :
+    {{ ownRaftPhys (GF := GF) cfg r id s }}
+      (App (Val (GoInstruction (GoStore go.uint64)))
+        (Val (PairV #(r.[raft, go!"leadTransferee"]) #x)))
+    {{ RET #(); ownRaftPhys cfg r id { s with lt := x } }} := by
+  iintro %Φ H HΦ
+  iNamed_phys H
+  wp_apply wp_store_access _ rv.leadTransferee' x _ _ (raftOwn_access_store_leadTransferee _ _ _) $$ Hr as Hr
+  iapply HΦ; reseal { s with lt := x }
 
 /-- Two states that are equal: for a state reached by a run of field stores and the
 name a spec gives it (`becomeFollower s t l`, say). Proving the `=` with `rfl` is

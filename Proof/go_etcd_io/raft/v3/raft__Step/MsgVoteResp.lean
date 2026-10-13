@@ -140,6 +140,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
       $$ [$Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
     · isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc
@@ -206,6 +207,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+            (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
           $$ [$Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
         · isplitl []
           · iintro %Hc; exfalso; rw [Hty] at Hc
@@ -332,8 +334,8 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         obtain ⟨rfl, Hres⟩ := Hres
         unfold LeaderNonpropResult at Hres
         have Heq : s1 = s := by
-          rcases Hres with ⟨-, h⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ <;>
-            first | exact h | (exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+          rcases Hres with ⟨-, h⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc6, -⟩ <;>
+            first | exact h | (exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)) | (exfalso; rcases Hc6 with h6 | h6 | h6 | h6 | h6 <;> rw [Hty] at h6 <;> exact absurd h6 (by w32_ne))
         subst s1
         simp only [Bool.false_eq_true, ↓reduceIte]
         icases Herrn with %Herrn

@@ -45,6 +45,8 @@ public import Spec.go_etcd_io.raft.v3.raft__responseToReadIndexReq
 public import Spec.go_etcd_io.raft.v3.raft__handleAppendEntries
 public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
 public import Spec.go_etcd_io.raft.v3.raft__handleSnapshot
+-- (2026-10-13) `HupOk`, for `MsgTimeoutNow`
+public import Spec.go_etcd_io.raft.v3.raft__hup
 
 @[expose] public section
 
@@ -56,7 +58,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section results
-variable [FfiSyntax]
+variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The forwarded proposal as `send` queues it: `m` with `To := lead`, `From := id`
 (stamped; `m.From = 0`), `Term = 0` (not stamped for `MsgProp`), the rest `m`'s. Field
@@ -103,6 +105,15 @@ def FollowerStepResult (id : w64) (s : NState) (m : raftpb.Message)
     (match ents with
      | [e] => s' = addReadState s m.Index' e.Data'
      | _ => s' = s)
+  -- (2026-10-13) `ForgetLeader` clears the leader (the read-only option is `Safe`);
+  -- a leader-transfer request is forwarded to the leader, or dropped without one, and
+  -- carries nothing the model sees; the local reports have no arm; `MsgTimeoutNow`
+  -- campaigns (`hup(campaignTransfer)`), with the voters `domSet s.progress` (`= cfg`,
+  -- `ownRaftPhys_progress_dom`)
+  else if m.Type' = MsgForgetLeader then dropped = false ∧ s' = { s with lead := W64 0 }
+  else if m.Type' = MsgTransferLeader ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus then
+    dropped = false ∧ s' = s
+  else if m.Type' = MsgTimeoutNow then dropped = false ∧ HupOk (domSet s.progress) id s s'
   else False
 
 end results
@@ -134,7 +145,9 @@ abbrev stepFollower.spec : Prop :=
    m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
    (m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp) ∨
    m.Type' = MsgSnap ∨ m.Type' = MsgPreVoteResp ∨
-   m.Type' = MsgReadIndex ∨ m.Type' = MsgReadIndexResp) →
+   m.Type' = MsgReadIndex ∨
+   (m.Type' = MsgReadIndexResp ∨ m.Type' = MsgForgetLeader ∨ m.Type' = MsgTransferLeader ∨
+    m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus)) →
   -- (2026-10-12) a read-index request is unstamped, and the leader is another node
   (m.Type' = MsgReadIndex → m.Term' = W64 0 ∧ s.lead ≠ id) →
   (m.Type' = MsgProp →
@@ -156,6 +169,14 @@ abbrev stepFollower.spec : Prop :=
   (m.Type' = MsgHeartbeat →
      uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) ∧
      m.From' ≠ id) →
+  -- (2026-10-13) a leader-transfer request is forwarded only unstamped (`send` panics on
+  -- a stamped one; a stamped request reaches a follower of its term only without a leader:
+  -- `raft.Step`'s premise), to another node; `MsgTimeoutNow` campaigns: the term does not
+  -- wrap and `r.step` agrees with the role (`hup`'s premises)
+  (m.Type' = MsgTransferLeader ∨ m.Type' = MsgTimeoutNow →
+     (m.Type' = MsgTransferLeader → (s.lead = W64 0 ∨ (m.Term' = W64 0 ∧ s.lead ≠ id)) ∧
+        m.Entries' = slice.nil ∧ m.Context' = slice.nil) ∧
+     (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ NStateWf s)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       -- the `Context` (2026-10-12): what a forwarded proposal and the response to a

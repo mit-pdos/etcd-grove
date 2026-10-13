@@ -57,6 +57,9 @@ macro "w32_ne" : tactic =>
       Perennial.EtcdGrove.MsgPreVote, Perennial.EtcdGrove.MsgPreVoteResp,
       Perennial.EtcdGrove.MsgStorageAppendResp, Perennial.EtcdGrove.MsgStorageApplyResp,
       Perennial.EtcdGrove.MsgReadIndex, Perennial.EtcdGrove.MsgReadIndexResp,
+      Perennial.EtcdGrove.MsgForgetLeader, Perennial.EtcdGrove.MsgUnreachable,
+      Perennial.EtcdGrove.MsgSnapStatus, Perennial.EtcdGrove.MsgTransferLeader,
+      Perennial.EtcdGrove.MsgTimeoutNow,
       ne_eq]; word))
 
 section base

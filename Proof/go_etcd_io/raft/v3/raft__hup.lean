@@ -52,7 +52,7 @@ theorem raft.hup.wp_proof
     (wp_raft_promotable : raft.promotable.spec (GF := GF) (hG := hG))
     (wp_raft_hasUnappliedConfChanges : raft.hasUnappliedConfChanges.spec (GF := GF) (hG := hG)) :
     raft.hup.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s t Hnowrap Hpv Htr Hwf
+  intro cfg r id s t Hnowrap Hpv Hwf
   wp_start as Hphys
   wp_auto
   wp_apply raft.wp_load_state $$ Hphys as Hphys
@@ -81,13 +81,13 @@ theorem raft.hup.wp_proof
       wp_apply raft.wp_load_id $$ Hphys as Hphys
       wp_apply raft.wp_load_Term $$ Hphys as Hphys
       wp_raft_log
-      wp_apply wp_raft_campaign _ _ _ _ _ Hrl Hin Hnowrap Hpv Htr $$ [$Hphys]
+      wp_apply wp_raft_campaign _ _ _ _ _ Hrl Hin Hnowrap Hpv $$ [$Hphys]
         as %peers %pvs ⟨%Hpeers, Hphys⟩
       iapply HΦ
       iframe Hphys
       ipureintro
-      refine ⟨nstateWf_prvals _ _ (nstateWf_campaignState _ _ _ _),
-        step_campaignState cfg _ _ _ _ _ Hrl Hin Hnowrap Hpeers, ?_⟩
+      refine ⟨nstateWf_prvals _ _ (nstateWf_campaignState _ _ _ _ _),
+        step_campaignState cfg _ _ _ _ _ Hrl Hin Hnowrap Hpeers _, ?_⟩
       unfold campaignState
       refine ⟨by split <;> rfl, ?_⟩
       split <;> simp only [sendMsgs, becomePrecandidate, becomeCandidate, resetTo, resetTo0] <;>

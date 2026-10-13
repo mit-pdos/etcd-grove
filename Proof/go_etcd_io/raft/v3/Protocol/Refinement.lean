@@ -369,9 +369,9 @@ private theorem isMessage_vote_inv (γ : RaftNames) (m : Msg) :
   iintro H; iexact H
 
 private theorem isMessage_voteReq (γ : RaftNames) (id dst t : w64) (last : entryID)
-    (F : List raftpb.Entry) :
+    (F : List raftpb.Entry) (cl : List w8) :
     plogLast base0 F = last →
-    ⊢ isCamp (GF := GF) γ id t F -∗ isMessage γ (pvoteReq id dst t last) := by
+    ⊢ isCamp (GF := GF) γ id t F -∗ isMessage γ (pvoteReq id dst t last cl) := by
   intro H
   unfold isMessage pvoteReq
   dsimp only
@@ -3107,9 +3107,9 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
     · ipureintro; exact ⟨fun h => absurd rfl h, fun h => by cases h⟩
     · lcm_mono
     · rd_mono
-  | campaign s peers Hrole Hin Hnw Hperm =>
+  | campaign s peers cl Hrole Hin Hnw Hperm =>
     have Hcnt : rdCount ([Msg.plain .voteResp id id (pbecomeCandidate id s).term false] ++
-        List.map (fun dst => pvoteReq id dst (pbecomeCandidate id s).term (plogLast s.base s.log))
+        List.map (fun dst => pvoteReq id dst (pbecomeCandidate id s).term (plogLast s.base s.log) cl)
           peers) = 0 := by
       rw [rdCount_append, rdCount_singleton]
       unfold rdCount
@@ -3166,7 +3166,7 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
         | none => rw [Hd] at Hk; cases Hk
         | some dst =>
           rw [Hd] at Hk; cases Hk
-          iapply isMessage_voteReq γ id dst _ _ F HF.2 $$ Hcamp
+          iapply isMessage_voteReq γ id dst _ _ F cl HF.2 $$ Hcamp
     · iapply tally_empty γ id _ (by rfl)
     · iapply leaderWit_nonleader γ id _ (by intro h; cases h)
     · iapply ownLogGhost_mono γ id (pbecomeCandidate id s) _ none (by rfl) (by rfl) (by rfl)

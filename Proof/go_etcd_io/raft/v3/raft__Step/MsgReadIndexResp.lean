@@ -98,11 +98,12 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
     simp only [stepFuncOf]
     wp_apply _P.stepFollower cfg r id { becomeFollower s m.Term' (W64 0) with prvals := pvs }
         m [e] (zero_val _) [] []
-        (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr Hty))))))))
+        (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
       $$ [$Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
     · isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc
@@ -169,11 +170,12 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
       · -- Follower: a `ReadState`
         simp only [stepFuncOf]
         wp_apply _P.stepFollower cfg r id s m [e] (zero_val _) [] []
-            (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr Hty))))))))
+            (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+            (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
           $$ [$Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
         · isplitl []
           · iintro %Hc; exfalso; rw [Hty] at Hc
@@ -199,7 +201,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
       · -- Candidate: ignored
         simp only [stepFuncOf]
         wp_apply _P.stepCandidate cfg r id s m [e] (zero_val _) [] []
-            (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr Hty))))))))
+            (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))))
             (fun Hc => by
               exfalso; rw [Hty] at Hc
               rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
@@ -226,7 +228,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
       · -- Leader: ignored (neither switch has it)
         simp only [stepFuncOf]
         wp_apply _P.stepLeader cfg r id s m [e] []
-            (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr Hty)))))))))
+            (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))))))
             Hrole Hcfg
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by
@@ -246,7 +248,10 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         rw [ite_eq_right (by rw [Hty]; w32_ne)] at Hres
         obtain ⟨rfl, Hres⟩ := Hres
         unfold LeaderNonpropResult at Hres
-        rcases Hres with ⟨-, Hs'⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩
+        rcases Hres with ⟨-, Hs'⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc6, -⟩
+        rotate_right
+        · exfalso
+          rcases Hc6 with h6 | h6 | h6 | h6 | h6 <;> rw [Hty] at h6 <;> exact absurd h6 (by w32_ne)
         all_goals try (exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         subst s'
         simp only [Bool.false_eq_true, ↓reduceIte]
@@ -260,7 +265,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
       · -- PreCandidate: ignored
         simp only [stepFuncOf]
         wp_apply _P.stepCandidate cfg r id s m [e] (zero_val _) [] []
-            (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr Hty))))))))
+            (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))))
             (fun Hc => by
               exfalso; rw [Hty] at Hc
               rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))

@@ -52,7 +52,34 @@ open Iris Iris.BI go_etcd_io.raft.v3
 def stepMsgTypes : List w32 :=
   [MsgHup, MsgVote, MsgVoteResp, MsgApp, MsgAppResp, MsgHeartbeat,
    MsgHeartbeatResp, MsgBeat, MsgProp, MsgSnap, MsgPreVote, MsgPreVoteResp,
-   MsgStorageAppendResp, MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp]
+   MsgStorageAppendResp, MsgStorageApplyResp, MsgReadIndex, MsgReadIndexResp,
+   MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTransferLeader, MsgTimeoutNow]
+
+/-- (2026-10-13) The premises of the types `Step` was extended to last: the local reports
+(`ReportUnreachable`, `ReportSnapshot`) and `ForgetLeader` are unstamped (`Term = 0`);
+a `MsgTimeoutNow` makes a follower campaign, at the message's term if it is later, so
+neither term wraps; and a leader-transfer request stamped with a term (forwarded by a
+follower to the leader it knew, `To: r.lead`) reaches a node that, at that term, is no
+follower with a leader -- the leader it was sent to stays leader for the term (with
+`checkQuorum` off a leader steps down only to a later term) -- since a follower would
+forward it again and `send` panics on a stamped `MsgTransferLeader`; and it carries no
+entries and no context (`RawNode.TransferLeader` builds it so, and forwarding keeps it).
+These are transport premises, like the others: no message fact carries them
+(`MsgTransferLeader` and `MsgTimeoutNow` are outside the model, `mtypeOf` is `none`). -/
+def RestMsgOk [FfiSyntax] (s : NState) (m : raftpb.Message) : Prop :=
+  ((m.Type' = MsgForgetLeader ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus) →
+     m.Term' = W64 0) ∧
+  (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ uint.Z m.Term' + 1 < 2 ^ 64) ∧
+  (m.Type' = MsgTransferLeader →
+     m.Entries' = slice.nil ∧ m.Context' = slice.nil ∧
+     (m.Term' ≠ W64 0 → m.Term' = s.term → s.role = .follower → s.lead = W64 0))
+
+/-- `RestMsgOk` of a message of none of those types. -/
+theorem RestMsgOk.of_ne [FfiSyntax] {s : NState} {m : raftpb.Message}
+    (h : m.Type' ≠ MsgForgetLeader ∧ m.Type' ≠ MsgUnreachable ∧ m.Type' ≠ MsgSnapStatus ∧
+      m.Type' ≠ MsgTimeoutNow ∧ m.Type' ≠ MsgTransferLeader) : RestMsgOk s m :=
+  ⟨fun h' => by rcases h' with h' | h' | h' <;> simp_all,
+   fun h' => absurd h' h.2.2.2.1, fun h' => absurd h' h.2.2.2.2⟩
 
 def StepMsg [FfiSyntax] (m : raftpb.Message) : Prop :=
   m.Type' ∈ stepMsgTypes
@@ -130,13 +157,14 @@ theorem NetFrame.of_logst [FfiSyntax] {s s' : NState} (h : s'.logst = s.logst)
   unfold NetFrame; rw [h, hpv, hg]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 /-- How a `Step` moves the term (2026-10-09): never back; by a local `MsgHup` at most one
-up (a campaign); by any other message (but a `MsgPreVoteResp`, which may also campaign)
-at most to the message's term. And `offsetInProgress` does not move back but by a
-`MsgApp`, whose append may truncate the in-progress entries. -/
+up (a campaign); by any other message (but a `MsgPreVoteResp` or (2026-10-13) a
+`MsgTimeoutNow`, which may also campaign) at most to the message's term. And
+`offsetInProgress` does not move back but by a `MsgApp`, whose append may truncate the
+in-progress entries. -/
 def TermStep [FfiSyntax] (m : raftpb.Message) (s s' : NState) : Prop :=
   uint.Z s.term ≤ uint.Z s'.term ∧
   (m.Type' = MsgHup → uint.Z s'.term ≤ uint.Z s.term + 1) ∧
-  (m.Type' ≠ MsgHup → m.Type' ≠ MsgPreVoteResp →
+  (m.Type' ≠ MsgHup → m.Type' ≠ MsgPreVoteResp → m.Type' ≠ MsgTimeoutNow →
      uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term')) ∧
   (m.Type' ≠ MsgApp → uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress)
 
@@ -146,7 +174,7 @@ theorem TermStep.of_term [FfiSyntax] {m : raftpb.Message} {s s' : NState}
     (hi : m.Type' ≠ MsgApp → uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress) :
     TermStep m s s' := by
   unfold TermStep; rw [h]
-  exact ⟨Int.le_refl _, fun _ => by omega, fun _ _ => Int.le_max_left _ _, hi⟩
+  exact ⟨Int.le_refl _, fun _ => by omega, fun _ _ _ => Int.le_max_left _ _, hi⟩
 
 theorem TermStep.refl [FfiSyntax] (m : raftpb.Message) (s : NState) : TermStep m s s :=
   TermStep.of_term rfl (fun _ => Int.le_refl _)
@@ -158,7 +186,7 @@ theorem TermStep.of_le [FfiSyntax] {m : raftpb.Message} {s s' : NState}
     (h2 : uint.Z s'.term ≤ uint.Z m.Term')
     (hi : m.Type' ≠ MsgApp → uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress) :
     TermStep m s s' :=
-  ⟨h1, fun h => absurd h hup, fun _ _ => Int.le_trans h2 (Int.le_max_right _ _), hi⟩
+  ⟨h1, fun h => absurd h hup, fun _ _ _ => Int.le_trans h2 (Int.le_max_right _ _), hi⟩
 
 /-- A local step's frame keeps the term and does not move `offsetInProgress` back. -/
 theorem TermStep.of_local [FfiSyntax] {m : raftpb.Message} {s s' : NState}
@@ -343,6 +371,8 @@ abbrev raft.Step.spec : Prop :=
   (m.Type' = MsgReadIndex → m.Term' = W64 0 ∧ 1 < GMap.size cfg) →
   (m.Type' = MsgReadIndexResp →
      m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) →
+  -- (2026-10-13) the local reports, `ForgetLeader` and leader transfer (`RestMsgOk`)
+  RestMsgOk s m →
   -- The one place the two layers meet. `s` is the physical abstract state
   -- `ownRaftPhys` is indexed by, `ps` the protocol state the ghost state is about,
   -- and `NStateRel` (`Defs.lean`) connects them: `ps` is `s`'s protocol fields,
@@ -379,11 +409,11 @@ abbrev raft.Step.spec : Prop :=
          "#Hmsg" ∷ □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗
                             ⌜ty ≠ .snap⌝ -∗
                             isMessage γ (absMsg ty m ents ctx))) ∗
-      -- the `Context`: not the leader-transfer marker (out of scope). (Until 2026-10-13
-      -- also empty on a heartbeat response; a read-index position is now what
+      -- the `Context`. (Until 2026-10-13 not the leader-transfer marker -- a transfer's
+      -- vote request is now an ordinary one: with `checkQuorum` off its `force` changes
+      -- nothing -- and empty on a heartbeat response; a read-index position is now what
       -- `isMessage` says it is.)
-      "#Hctx" ∷ (m.Context' ↦*□ ctx ∗
-                 ⌜ctx ≠ campaignTransfer⌝) ∗
+      "#Hctx" ∷ m.Context' ↦*□ ctx ∗
       -- (2026-10-13) a read-index request carries a read credit (`rdOwn`)
       "Hcred" ∷ rdCred γ (if m.Type' = MsgReadIndex then 1 else 0) ∗
       -- A `MsgSnap`'s snapshot (2026-10-02): what `m.Snapshot` points to, read-only,
