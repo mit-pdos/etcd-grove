@@ -9,7 +9,11 @@ backend and a share of it open (`bkRTx`), its writes spend a write-back's budget
 puts meet the safe-range condition (`keyPutOk`: proved of mvcc's revision keys,
 `storePutOk_next`), and the backend's batch lock holds the store's writer's resource through the
 late-bound `lateW d.gx`, registered by `NewStore`'s first `Unlock`. The other mvcc results are
-generic in the instance: at `γ.kb = some d` they are over the real backend.
+generic in the instance: at `γ.kb = some d` they are over the real backend. The compaction's
+(units 5a-5c) are not: they need a backend that supports it (`storeCmp`, false of the real
+instance: its model forbids deleting from the safe-range `Key` bucket; `notes/decisions.md`, "The
+compaction over the real backend"), so a store of the real instance is used frozen
+(`compactRight_freeze`, `storeReaders_of`).
 -/
 module
 
@@ -42,14 +46,17 @@ variable [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 (`isBackend d.γB d.P (lateW d.gx) Pk d.be`, with schema's buckets, its post-lock hook `f` set
 for good, and the size premise `keySized` of its range reads), given what the backend's creator
 holds (the clients' view of the empty `Key` bucket, the right to register the store's lock
-resource, two write-back tokens, one reader token per reader slot), `NewStore` returns a store
-of that instance. -/
+resource, two write-back tokens, one reader token per reader slot), and a batch limit not
+negative, `NewStore` returns a store of that instance (with its compaction right, of no use over
+this instance: `storeCmp`). -/
 theorem mvcc.NewStore_backend
     (hNewStore : mvcc.NewStore.spec (GF := GF) (hG := hG))
     (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
     (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
     (hBT : backend.backend.BatchTx.spec (GF := GF) (hG := hG))
     (hFC : backend.backend.ForceCommit.spec (GF := GF) (hG := hG))
+    (hSz : backend.backend.Size.spec (GF := GF) (hG := hG))
+    (hSzU : backend.backend.SizeInUse.spec (GF := GF) (hG := hG))
     (hcRL : backend.concurrentReadTx.RLock.spec (GF := GF) (hG := hG))
     (hcRU : backend.concurrentReadTx.RUnlock.spec (GF := GF) (hG := hG))
     (hcUR : backend.concurrentReadTx.UnsafeRange.spec (GF := GF) (hG := hG))
@@ -67,7 +74,7 @@ theorem mvcc.NewStore_backend
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     (lg : Loc) (le : GoInterface) (cfg : StoreConfig) (d : mvcc.KBReal)
     (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF) (f : GoFunc)
-    (hf : f ≠ func.nil) :
+    (hf : f ≠ func.nil) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit') :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -93,12 +100,13 @@ theorem mvcc.NewStore_backend
             (interface.mkOk (go.GoType.PointerType writeView.ty) #wv : GoInterface) ∗
           mvcc.isWriteView wv s γ) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-          mvcc.storeReader s γ) ∗
-        ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s }} := by
+          mvcc.storeReaderC s γ) ∗
+        ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s ∗
+        mvcc.storeStop s ∗ mvcc.compactRight γ (-1) }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hv, Hrg, Hw1, Hw2, Hrts, #Hle⟩ HΦ
-  ihave #Hbk := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hcRL hcRU hcUR hrRL hrRU hrUR hLI
-    hLO hSP hUL hbUR hCB hID hName hSafe d hP Pk f hf γb $$ [$Hbpkg $Hsch $Hb $Hhk $Hsz]
-  iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f) $$ %Φ [Hv Hrg Hw1 Hw2 Hrts] HΦ
+  ihave #Hbk := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
+    hrUR hLI hLO hSP hUL hbUR hCB hID hName hSafe d hP Pk f hf γb $$ [$Hbpkg $Hsch $Hb $Hhk $Hsz]
+  iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f hcfg) $$ %Φ [Hv Hrg Hw1 Hw2 Hrts] HΦ
   iframe Hpkg Hbk Hle
   rw [show mvcc.kbView (GF := GF) (some d) γb 1 (∅ : mvcc.Bucket) = mvcc.bkView d.γB 1 ∅ from rfl,
     show mvcc.kbRegRight (GF := GF) (some d) = mvcc.lateReg d.gx from rfl,

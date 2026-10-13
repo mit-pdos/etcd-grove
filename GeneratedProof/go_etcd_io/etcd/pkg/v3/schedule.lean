@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.context
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.pkg.v3.schedule
 
@@ -17,25 +18,6 @@ open Iris Iris.BI
 noncomputable section
 namespace go_etcd_io.etcd.pkg.v3.schedule
 
-namespace Job
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.pkg.v3.schedule.Assumptions]
-
-instance Job_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.schedule.Job :=
-  sorry -- axiomatized type
-
-instance Job_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.schedule.Job go_etcd_io.etcd.pkg.v3.schedule.Job.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Job
-
 namespace job
 section def_
 
@@ -45,12 +27,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.pkg.v3.schedule.Assumptions]
 
 instance job_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.schedule.job :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.schedule.job where
+  typedPointstoDef l v dq := iprop(
+    "name" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.job go!"name" l) v.name' dq ∗
+    "do'" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.job go!"do" l) v.do' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance job_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.schedule.job go_etcd_io.etcd.pkg.v3.schedule.job.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.schedule.job go_etcd_io.etcd.pkg.v3.schedule.job.underlying := by
+  solve_into_val_typed_struct
+
+instance job_access_load_name (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.job) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.job go!"name" l) v.name' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.job go!"name" l) v.name' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance job_access_store_name (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.job) (name' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.job go!"name" l) v.name' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.job go!"name" l) name' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := name' } : go_etcd_io.etcd.pkg.v3.schedule.job) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance job_access_load_do (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.job) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.job go!"do" l) v.do' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.job go!"do" l) v.do' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance job_access_store_do (l : Loc) (v : go_etcd_io.etcd.pkg.v3.schedule.job) (do' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.job go!"do" l) v.do' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.schedule.job go!"do" l) do' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with do' := do' } : go_etcd_io.etcd.pkg.v3.schedule.job) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end job

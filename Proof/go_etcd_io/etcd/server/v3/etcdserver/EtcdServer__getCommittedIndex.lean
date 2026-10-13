@@ -24,11 +24,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem EtcdServer.getCommittedIndex.wp_proof : EtcdServer.getCommittedIndex.spec (GF := GF) (hG := hG) := by
-  intro s
+  intro s γr
   wp_start as #Hl
   ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
-  iunfold srvAtomicU64 at Hl
+  iunfold srvCommittedInv at Hl
   wp_auto
   wp_apply_core sync.atomic.Uint64.wp_Load (structFieldRef EtcdServer go!"committedIndex" s)
     (DFrac.own 1) $$ [] [HΦ]
@@ -37,17 +37,19 @@ theorem EtcdServer.getCommittedIndex.wp_proof : EtcdServer.getCommittedIndex.spe
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
   inext
-  icases Hi with ⟨%v0, Hv⟩
+  icases Hi with ⟨%v0, Hv, Hauth⟩
   iexists v0
   iframe Hv
   iintro Hv
   imod Hmask with -
-  imod Hclose $$ [Hv] with -
-  · inext; iexists v0; iexact Hv
+  ihave #Hlb := monoNatLbOwn_get γr.committed _ _ $$ Hauth
+  imod Hclose $$ [Hv Hauth] with -
+  · inext; iexists v0; iframe Hv Hauth
   imodintro
   wp_auto
   iapply HΦ
-  itrivial
+  iunfold committedAtLeast
+  iexact Hlb
 
 end proof
 

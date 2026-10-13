@@ -5,7 +5,10 @@ server's raft wrapper".
 
 - **The environment** `E : RNEnv` is what the node contract is stated over: `C L`, "`L` is a
   prefix of the cluster's committed log"; `M m`, "raft may send the message `m`"; `T`, a tick's
-  resource (node.go's term-budget credit).
+  resource (node.go's term-budget credit); and (2026-10-13, the request path's unit 4b) the read
+  names `γr` and the read-index registrations `RQ id n` (`ReadIndex` registered the request id
+  `id` at a lower bound `n` of the committed index), which the read states a `Ready` carries
+  answer (`readStateOk`, `read/Inv.lean`).
 - **The node** (`isRaftNodeIfc E γ n`, the `raft.Node` interface, a trust boundary shaped like
   node.go's verified specs, `Proof/go_etcd_io/raft/v3/InvNode.lean`): `Ready()` is a handshake
   channel whose payload `rnReadyP` carries the node's half of the delivered log `dlv` at `d`,
@@ -26,6 +29,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftMsg
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Inv
 public import Perennial.Golang.Theory.Chan.Idioms.Idioms
 public import Perennial.Ghost.MonoList
 
@@ -63,9 +67,7 @@ instance toApply_countable : Pos.Countable toApply :=
   countableOfLeftInverse (fun a : toApply => (a.entries', a.snapshot', a.notifyc', a.raftAdvancedC'))
     (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2⟩) (fun _ => rfl)
 
-instance readState_countable : Pos.Countable ReadState :=
-  countableOfLeftInverse (fun r : ReadState => (r.Index', r.RequestCtx'))
-    (fun p => ⟨p.1, p.2⟩) (fun _ => rfl)
+-- `ReadState`'s instance (`readState_countable`): `InvRequest.lean` (2026-10-13, the read loop).
 
 end countable
 
@@ -121,6 +123,8 @@ structure RNEnv (GF : BundledGFunctors) where
   C : List EntryModel → IProp GF
   M : Loc → IProp GF
   T : IProp GF
+  γr : ReadNames
+  RQ : w64 → w64 → IProp GF
 
 /-- A message the node handed out, as the wrapper reads and forwards it (persistent). -/
 def rnMsgOk (E : RNEnv GF) (m : Loc) : IProp GF :=
@@ -149,8 +153,9 @@ instance softStateAt_persistent (p : Loc) : Persistent (softStateAt (GF := GF) p
 
 /-- What a `Ready` gives the driver, after the committed log `d` handed out before it: the
 committed entries `ce` to apply next (`C (d ++ ce)`), the entries `es` to append with the right
-to, the messages, each one raft may send; a `SoftState`, a `HardState`; no snapshot and no read
-states (as node.go's `readyData`). -/
+to, the messages, each one raft may send; a `SoftState`, a `HardState`; the read states, each
+answering the registrations of its request id (`readStateOk E.RQ`; 2026-10-13, the request path's
+unit 4b: they were none until then, as node.go's `readyData`); no snapshot. -/
 def rnReadyData (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d ce es : List EntryModel) :
     IProp GF :=
   iprop(∃ (ceL esL msL : List Loc) (hs : HardStateModel),
@@ -158,7 +163,8 @@ def rnReadyData (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d ce es : List Entry
     rd.Entries' ↦*□ esL ∗ entriesAt esL es ∗ appendRight γ es ∗
     rd.Messages' ↦*□ msL ∗ ([∗list] m ∈ msL, rnMsgOk E m) ∗
     softStateAt rd.SoftState' ∗ hardStateAt rd.HardState' hs ∗
-    ⌜rd.Snapshot' = null ∧ rd.ReadStates' = slice.nil⌝)
+    (∃ rsL : List ReadState, rd.ReadStates' ↦*□ rsL ∗ [∗list] rs ∈ rsL, readStateOk E.RQ rs) ∗
+    ⌜rd.Snapshot' = null⌝)
 
 /-- A `Ready` on the node's channel: the node's half of `dlv` at `d`, its record's other half,
 and the data. -/
@@ -180,7 +186,11 @@ def rnBusy (γ : RNNames) (d ce es : List EntryModel) : IProp GF :=
 
 /-- **The `raft.Node` `n`** (trust boundary, see the file header): `Ready` returns the node's
 handshake channel, `Advance` takes the busy driver and the append receipt, `Tick` a tick's
-resource, `Stop` returns. -/
+resource, `Stop` returns; and (2026-10-13, the request path's unit 4b) `ReadIndex(ctx, rctx)`,
+with the big-endian bytes of a request id read-only and a lower bound `n` of the committed index
+(`committedAtLeast E.γr n`), returns an error the gRPC layer can take, and if `nil` the
+registration `E.RQ id n` (persistent): the trust-boundary claim about raft that a read index is at
+least the committed index at the call (the read loop's `isReadRaft`). -/
 def isRaftNodeIfc (E : RNEnv GF) (γ : RNNames) (n : GoInterface) : IProp GF :=
   iprop(∃ ni : GoInterfaceOk, ⌜n = GoInterface.ok ni⌝ ∗
     □ ({{ True }} (App (Val #(methods ni.ty go!"Ready" ni.v)) (Val #()))
@@ -190,7 +200,14 @@ def isRaftNodeIfc (E : RNEnv GF) (γ : RNNames) (n : GoInterface) : IProp GF :=
         (App (Val #(methods ni.ty go!"Advance" ni.v)) (Val #()))
       {{ RET #(); rnDrv γ (d ++ ce) }}) ∗
     □ ({{ E.T }} (App (Val #(methods ni.ty go!"Tick" ni.v)) (Val #())) {{ RET #(); True }}) ∗
-    □ ({{ True }} (App (Val #(methods ni.ty go!"Stop" ni.v)) (Val #())) {{ RET #(); True }}))
+    □ ({{ True }} (App (Val #(methods ni.ty go!"Stop" ni.v)) (Val #())) {{ RET #(); True }}) ∗
+    □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (dq : DFrac)
+        (id n : w64),
+      {{ context.isContext ctx cd ∗ sl ↦*{dq} beBytes id ∗ committedAtLeast E.γr n }}
+        (App (App (Val #(methods ni.ty go!"ReadIndex" ni.v)) (Val #(GoInterface.ok ctx)))
+          (Val #sl))
+      {{ (err : GoInterface), RET #err; sl ↦*{dq} beBytes id ∗ applyErrIs err ∗
+          (⌜err = GoInterface.nil⌝ -∗ □ E.RQ id n) }}))
 
 instance isRaftNodeIfc_persistent (E : RNEnv GF) (γ : RNNames) (n : GoInterface) :
     Persistent (isRaftNodeIfc E γ n) := by
@@ -356,11 +373,11 @@ def isRNMsgSnapC (E : RNEnv GF) (c : Loc) : IProp GF :=
 instance isRNMsgSnapC_persistent (E : RNEnv GF) (c : Loc) : Persistent (isRNMsgSnapC E c) := by
   unfold isRNMsgSnapC; infer_instance
 
-/-- `readStateC`: a channel of read states with no logical content. -/
-def isRNReadStateC (c : Loc) : IProp GF :=
-  iprop(∃ γc : ChanNames, isChanBag γc c (V := ReadState) (fun _ => iprop(True)))
+/-- `readStateC`: a channel of read states, each answering the registrations of its request id
+(the read loop's `isReadStateC`; 2026-10-13, the request path's unit 4b: no content until then). -/
+def isRNReadStateC (E : RNEnv GF) (c : Loc) : IProp GF := isReadStateC c E.RQ
 
-instance isRNReadStateC_persistent (c : Loc) : Persistent (isRNReadStateC (GF := GF) c) := by
+instance isRNReadStateC_persistent (E : RNEnv GF) (c : Loc) : Persistent (isRNReadStateC E c) := by
   unfold isRNReadStateC; infer_instance
 
 /-! ## The wrapper -/
@@ -382,7 +399,7 @@ def isRaftNode (E : RNEnv GF) (γ : RNNames) (r : Loc) : IProp GF :=
     "#Hmsci" ∷ isRNMsgSnapC E msc ∗
     "#Hapc" ∷ rnApplycAddr r ↦□ apc ∗ "#Hapci" ∷ isRNApplyc E γ apc ∗
     "#Hrsc" ∷ rnReadStateCAddr r ↦□ rsc ∗
-    "#Hrsci" ∷ isRNReadStateC rsc ∗
+    "#Hrsci" ∷ isRNReadStateC E rsc ∗
     "#Htk" ∷ rnTickerAddr r ↦□ tk ∗ "#Htki" ∷ isRNTicker tk ∗
     "#Htd" ∷ rnTdAddr r ↦□ td ∗ "#Htdi" ∷ isRNTimeoutDetector td ∗
     "#Hstc" ∷ rnStoppedAddr r ↦□ stc ∗ "#Hstci" ∷ isUnitBag stc ∗

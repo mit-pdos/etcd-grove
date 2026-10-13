@@ -43,6 +43,16 @@ theorem entries_not_empty (L : List mvcc.IdxEntry) (evs : List mvcc.Ev)
     rw [← h]; unfold mvcc.idxOfEntries; exact List.mem_map_of_mem hz
   exact (mvcc.kiIsEmpty_false_of_head (mvcc.indexOf_head' evs _ this)).1
 
+/-- Every key index of the tree (compacted, `IdxCRep`) has a revision. -/
+theorem entries_not_emptyC (L : List mvcc.IdxEntry) (evs : List mvcc.Ev) (cmax : Int)
+    (h : mvcc.IdxCRep cmax evs (mvcc.idxOfEntries L)) : ∀ z ∈ L, mvcc.kiIsEmpty z.2.2 = false := by
+  intro z hz
+  have hmem : (z.2.1, z.2.2) ∈ mvcc.idxOfEntries L := by
+    unfold mvcc.idxOfEntries; exact List.mem_map_of_mem hz
+  have hg := mvcc.idxGet_of_mem _ h.1 _ hmem
+  obtain ⟨c, -, -, -, hne⟩ := mvcc.IdxCRep.get_some h hg
+  exact hne
+
 /-- `limit > 0 && len(revs) >= limit`, as Goose compiles it (the first conjunct already a value):
 `reached`. -/
 theorem wp_reachedLimit {V : Type} (t : go.GoType) [ZeroVal V] [TypedPointsto (GF := GF) V]

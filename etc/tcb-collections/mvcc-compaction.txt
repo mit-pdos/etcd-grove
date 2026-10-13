@@ -1,0 +1,58 @@
+# The mvcc store's compaction (unit 5a, 2026-10-13: specified, proofs pending; units 5b/5c):
+# the compaction functions' linked results in
+# Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link.lean (notes/STATUS.md, "The store's
+# compaction"). Their `sorry`s go as the proofs land.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/mvcc-compaction.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^mvcc\.store\.wp_(Compact|compact|compactLockfree|compactBarrier|updateCompactRev|scheduleCompaction|checkPrevCompactionCompleted)$
+roots ^mvcc\.treeIndex\.wp_(Compact|Keep)$
+roots ^mvcc\.keyIndex\.wp_(compact|keep|doCompact)$
+roots ^mvcc\.wp_(Unsafe)?(Set|Read)(Scheduled|Finished)Compact$
+roots ^schedule\.(job\.)?wp_(NewJob|Do|Name)$
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.txLive
+axiom context.Err.wp_proof
+axiom go_humanize.Bytes.wp_proof
+axiom mvcc.hashStorage.Store.wp_proof
+axiom mvcc.kvHasher.Hash.wp_proof
+axiom mvcc.kvHasher.WriteKeyValue.wp_proof
+axiom mvcc.newKVHasher.wp_proof
+axiom schedule.Scheduler.Schedule.wp_proof
+axiom time.Since.wp_proof
+axiom traceutil.Trace.Step.wp_proof
+axiom zap.Duration.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Int'.wp_proof
+axiom zap.Int64.wp_proof
+axiom zap.Logger.Info.wp_proof
+axiom zap.Logger.Panic.wp_proof
+axiom zap.Logger.Warn.wp_proof
+axiom zap.String.wp_proof
+axiom zap.Uint32.wp_proof
+sorry Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher.kvHasher_typed_pointsto
+sorry mvcc.SetFinishedCompact.wp_proof
+sorry mvcc.SetScheduledCompact.wp_proof
+sorry mvcc.UnsafeReadFinishedCompact.wp_proof
+sorry mvcc.UnsafeReadScheduledCompact.wp_proof
+sorry mvcc.UnsafeSetFinishedCompact.wp_proof
+sorry mvcc.UnsafeSetScheduledCompact.wp_proof
+sorry mvcc.keyIndex.compact.wp_proof
+sorry mvcc.keyIndex.doCompact.wp_proof
+sorry mvcc.keyIndex.keep.wp_proof
+sorry mvcc.store.Compact.wp_proof
+sorry mvcc.store.checkPrevCompactionCompleted.wp_proof
+sorry mvcc.store.compact.wp_proof
+sorry mvcc.store.compactBarrier.wp_proof
+sorry mvcc.store.compactLockfree.wp_proof
+sorry mvcc.store.scheduleCompaction.wp_proof
+sorry mvcc.store.updateCompactRev.wp_proof
+sorry mvcc.treeIndex.Compact.wp_proof
+sorry mvcc.treeIndex.Keep.wp_proof
+sorry schedule.NewJob.wp_proof
+sorry schedule.job.Do.wp_proof
+sorry schedule.job.Name.wp_proof

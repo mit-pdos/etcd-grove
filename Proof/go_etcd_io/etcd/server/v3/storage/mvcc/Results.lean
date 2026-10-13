@@ -132,6 +132,52 @@ events' and a response with events carrying the watcher's id (`watchRecvOk_revs`
 #print axioms Perennial.EtcdGrove.mvcc.watchGuarantee_unfiltered
 #print axioms Perennial.EtcdGrove.mvcc.watchRecvOk_revs
 
+/-! Compaction (unit 5a, 2026-10-13, `Compact.lean`): the pure model's theorems — a compacted
+key index answers as the uncompacted one at or above the compaction revision
+(`kiGet_kiCompact`), one compaction empties has no answer there (`kiGet_of_kiCompact_empty`),
+compactions compose (`kiCompact_kiCompact`, `kiCompact_kiCompact_le`), compaction at `-1`
+changes nothing (`kiCompact_neg`), compaction commutes with the writer's next event
+(`kiCompactO_step`, `IdxCRep.step`), the compacted index answers as the uncompacted one
+(`IdxCRep.kiAt`, `IdxCRep.rangeAt`), and what a read at or above the compaction revision names is
+kept (`kiGet_avail`, `named_not_del`: under `NoDelPutAt`,
+`issues/etcd-compaction-delete-then-put.md`). The compaction functions' results above
+(`store.wp_Compact`, ...) rest on their pending proofs (`sorry`: units 5b/5c). -/
+#print axioms Perennial.EtcdGrove.mvcc.kiGet_kiCompact
+#print axioms Perennial.EtcdGrove.mvcc.kiGet_of_kiCompact_empty
+#print axioms Perennial.EtcdGrove.mvcc.kiCompact_kiCompact
+#print axioms Perennial.EtcdGrove.mvcc.kiCompact_kiCompact_le
+#print axioms Perennial.EtcdGrove.mvcc.kiCompact_neg
+#print axioms Perennial.EtcdGrove.mvcc.kiCompactO_step
+#print axioms Perennial.EtcdGrove.mvcc.IdxCRep.step
+#print axioms Perennial.EtcdGrove.mvcc.IdxCRep.kiAt
+#print axioms Perennial.EtcdGrove.mvcc.IdxCRep.rangeAt
+#print axioms Perennial.EtcdGrove.mvcc.kiGet_avail
+#print axioms Perennial.EtcdGrove.mvcc.named_not_del
+#print axioms Perennial.EtcdGrove.mvcc.KeyDel_prefix
+#print axioms Perennial.EtcdGrove.mvcc.kiAvail_kiCompact
+
+/-! The compaction functions' results (unit 5a): specified, their proofs pending (`sorry`). -/
+#print axioms Perennial.EtcdGrove.mvcc.wp_UnsafeSetFinishedCompact
+#print axioms Perennial.EtcdGrove.mvcc.wp_SetFinishedCompact
+#print axioms Perennial.EtcdGrove.mvcc.wp_UnsafeSetScheduledCompact
+#print axioms Perennial.EtcdGrove.mvcc.wp_SetScheduledCompact
+#print axioms Perennial.EtcdGrove.mvcc.wp_UnsafeReadFinishedCompact
+#print axioms Perennial.EtcdGrove.mvcc.wp_UnsafeReadScheduledCompact
+#print axioms Perennial.EtcdGrove.mvcc.keyIndex.wp_doCompact
+#print axioms Perennial.EtcdGrove.mvcc.keyIndex.wp_compact
+#print axioms Perennial.EtcdGrove.mvcc.keyIndex.wp_keep
+#print axioms Perennial.EtcdGrove.mvcc.store.wp_checkPrevCompactionCompleted
+#print axioms Perennial.EtcdGrove.mvcc.treeIndex.wp_Compact
+#print axioms Perennial.EtcdGrove.mvcc.treeIndex.wp_Keep
+#print axioms Perennial.EtcdGrove.schedule.wp_NewJob
+#print axioms Perennial.EtcdGrove.schedule.job.wp_Do
+#print axioms Perennial.EtcdGrove.schedule.job.wp_Name
+#print axioms Perennial.EtcdGrove.mvcc.store.wp_compactBarrier
+#print axioms Perennial.EtcdGrove.mvcc.store.wp_updateCompactRev
+#print axioms Perennial.EtcdGrove.mvcc.store.wp_scheduleCompaction
+#print axioms Perennial.EtcdGrove.mvcc.store.wp_compact
+#print axioms Perennial.EtcdGrove.mvcc.store.wp_Compact
+#print axioms Perennial.EtcdGrove.mvcc.store.wp_compactLockfree
 /-! ## The backend meets mvcc (units 4 and 5, `BackendBridge.lean`, `StoreBackend.lean`)
 
 mvcc's contract of its backend (`isKeyBackendG`) holds of the proved backend (`isBackend`, its
@@ -164,22 +210,24 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 (`backend/Link.lean`) and schema's `bucket` methods' (mvcc's `Link.lean`). -/
 theorem mvcc_backend_bridge {P : backend.BParams} (hP : mvcc.bridgeParams P)
     (γ : backend.BNames) (W Pk : IProp GF) (b : Loc) (f : GoFunc)
-    (hf : f ≠ func.nil) :
+    (hf : f ≠ func.nil) (Del : GoString → IProp GF) (Cmp : Prop) (hC : ¬ Cmp) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       backend.isBackend γ P W Pk b ∗ backend.plHookRO γ f ∗ mvcc.keySized γ P b ⊢
       mvcc.isKeyBackendG
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
-        (mvcc.bkView γ) (mvcc.bkRTx γ P b) (backend.wbTok γ) mvcc.keyPutOk W W Pk #f :=
+        (mvcc.bkView γ) (mvcc.bkRTx γ P b) (backend.wbTok γ) mvcc.keyPutOk Del W W iprop(True) Cmp
+        Pk #f :=
   mvcc.isKeyBackendG_of_backend backend.backend.wp_ConcurrentReadTx backend.backend.wp_ReadTx
-    backend.backend.wp_BatchTx backend.backend.wp_ForceCommit backend.concurrentReadTx.wp_RLock
+    backend.backend.wp_BatchTx backend.backend.wp_ForceCommit backend.backend.wp_Size
+    backend.backend.wp_SizeInUse backend.concurrentReadTx.wp_RLock
     backend.concurrentReadTx.wp_RUnlock backend.concurrentReadTx.wp_UnsafeRange
     backend.readTx.wp_RLock backend.readTx.wp_RUnlock backend.readTx.wp_UnsafeRange
     backend.batchTxBuffered.wp_LockInsideApply backend.batchTxBuffered.wp_LockOutsideApply
     backend.batchTxBuffered.wp_UnsafeSeqPut backend.batchTxBuffered.wp_Unlock
     backend.batchTxBuffered.wp_UnsafeRange backend.batchTxBuffered.wp_UnsafeCreateBucket
     schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
-    hP γ W Pk b f hf
+    hP γ W Pk b f hf Del Cmp hC
 
 end bridge
 
@@ -196,7 +244,7 @@ proof and the backend's results). -/
 theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
     (cfg : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig)
     (d : mvcc.KBReal) (hP : mvcc.bridgeParams d.P) (γb γl : GName) (Pk : IProp GF)
-    (f : GoFunc) (hf : f ≠ func.nil) :
+    (f : GoFunc) (hf : f ≠ func.nil) (hcfg : 0 ≤ sint.Z cfg.CompactionBatchLimit') :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
@@ -224,17 +272,19 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
               go_etcd_io.etcd.server.v3.storage.mvcc.writeView.ty) #wv : GoInterface) ∗
           mvcc.isWriteView wv s γ) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
-          mvcc.storeReader s γ) ∗
-        ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s }} :=
+          mvcc.storeReaderC s γ) ∗
+        ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s ∗
+        mvcc.storeStop s ∗ mvcc.compactRight γ (-1) }} :=
   mvcc.NewStore_backend mvcc.wp_NewStore backend.backend.wp_ConcurrentReadTx
     backend.backend.wp_ReadTx backend.backend.wp_BatchTx backend.backend.wp_ForceCommit
+    backend.backend.wp_Size backend.backend.wp_SizeInUse
     backend.concurrentReadTx.wp_RLock backend.concurrentReadTx.wp_RUnlock
     backend.concurrentReadTx.wp_UnsafeRange backend.readTx.wp_RLock backend.readTx.wp_RUnlock
     backend.readTx.wp_UnsafeRange backend.batchTxBuffered.wp_LockInsideApply
     backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeSeqPut
     backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_UnsafeRange
     backend.batchTxBuffered.wp_UnsafeCreateBucket schema.bucket.wp_ID schema.bucket.wp_Name
-    schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f hf
+    schema.bucket.wp_IsSafeRangeBucket lg le cfg d hP γb γl Pk f hf hcfg
 
 /-- **`store.Write` over the real backend, linked**. -/
 theorem mvcc_store_Write_backend (s : Loc) (γ : mvcc.StoreNames) (d : mvcc.KBReal)

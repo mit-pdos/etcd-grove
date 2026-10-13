@@ -89,7 +89,9 @@ raftNode__apply:
 raftNode__onStop:
 raftNode__stop:
 raftNode__processMessages: Message__GetTo Message__GetType zap_String zap_Duration zap_Logger__Warn
-raftNode__start: raftNode__tick raftNode__processMessages updateCommittedIndex raftNode__onStop IsEmptySnap IsEmptyHardState HardState__GetCommit Entry__GetType proto_Clone zap_Error zap_Logger__Fatal
+raftNode__start: raftNode__tick raftNode__processMessages updateCommittedIndex raftNode__onStop IsEmptySnap IsEmptyHardState HardState__GetCommit Entry__GetType proto_Clone zap_Error zap_Logger__Fatal zap_Duration zap_Logger__Warn
+# raft.Node's ReadIndex, promoted (the request path's unit 4b): the read loop's raftInterface.
+raftNode__ReadIndex:
 #
 # The request path (v3_server.go; plan: notes/decisions.md, "The request path"; unit 0,
 # 2026-10-12). The trust boundary (axioms): otel's tracer, spans and attributes, the metrics'
@@ -146,6 +148,13 @@ wait_New: wait_list__Register wait_list__Trigger wait_list__IsRegistered
 wait_NewWithResponse:
 wait_waitWithResponse__Register:
 wait_waitWithResponse__Trigger:
+# pkg/wait's wait_time.go and pkg/notify's NewNotifier/Receive, with bodies (the request path's
+# unit 4b): the applied index's waiters, the read loop's channels.
+wait_NewTimeList:
+wait_timeList__Wait:
+wait_timeList__Trigger:
+NewNotifier:
+Notifier__Receive:
 # The request path's write side (v3_server.go, util.go, server.go; unit 2): the proposal, its
 # wait and the handoff, Put and DeleteRange. See InvRequest.lean, InvProposer.lean.
 isPriorityRequest:
@@ -204,3 +213,29 @@ firstOpLease: RequestOp__GetRequest PutRequest__GetLease
 EtcdServer__doSerialize: traceutil_Get EtcdServer__AuthInfoFromCtx traceutil_Trace__Step
 EtcdServer__Range: traceutil_Tracer__Start trace_WithAttributes attribute_String attribute_Int64 attribute_Bool RangeRequest__GetKey RangeRequest__GetRangeEnd RangeRequest__GetRevision RangeRequest__GetLimit RangeRequest__GetCountOnly RangeRequest__GetKeysOnly EtcdServer__Logger traceutil_EnsureTrace txn_WarnOfExpensiveReadOnlyRangeRequest traceutil_Trace__AddField traceutil_Trace__LogIfLong strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues traceutil_Trace__Step EtcdServer__KV txn_Range EtcdServer__doSerialize
 EtcdServer__Txn: txn_IsTxnReadonly traceutil_Tracer__Start trace_WithAttributes TxnRequest__GetCompare firstCompareKey attribute_String TxnRequest__GetSuccess firstOpKey firstOpType firstOpLease attribute_Int64 attribute_Int TxnRequest__GetFailure attribute_Bool EtcdServer__Logger traceutil_EnsureTrace txn_IsTxnSerializable traceutil_Trace__Step apply_CheckTxnAuth txn_WarnOfExpensiveReadOnlyTxnRequest traceutil_Trace__LogIfLong strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues EtcdServer__KV txn_Txn EtcdServer__doSerialize context_WithValue EtcdServer__raftRequest
+# The read loop's `server` interface on *EtcdServer (interface.go, server.go; the request path's
+# unit 4b): see ReadServer.lean (`isReadServer_of_server`).
+EtcdServer__ApplyWait:
+EtcdServer__Done:
+EtcdServer__Stopping:
+EtcdServer__LeaderChanged: Notifier__Receive
+EtcdServer__FirstCommitInTermNotify: Notifier__Receive
+EtcdServer__NextRequestID: idutil_Generator__Next
+EtcdServer__RequestTimeout: config_ServerConfig__ReqTimeout
+EtcdServer__AppliedIndex: EtcdServer__getAppliedIndex
+EtcdServer__CommittedIndex: EtcdServer__getCommittedIndex
+# The apply loop's step `applyAll` (server.go; the request path's unit 4b): `applySnapshot` under
+# raft's no-snapshot contract, the backend getter, the snapshot trigger, with bodies; the
+# trust boundary (`axiom … .wp_proof`): backend's VerifyBackendConsistency (verification code),
+# and the names-only snapshot, compaction and merged-snapshot methods. See InvApplyAll.lean.
+backend_VerifyBackendConsistency:
+EtcdServer__snapshot:
+EtcdServer__compactRaftLog:
+EtcdServer__createMergedSnapshotMessage:
+EtcdServer__sendMergedSnap:
+EtcdServer__applySnapshot: IsEmptySnap
+EtcdServer__Backend:
+EtcdServer__shouldSnapshotToDisk:
+EtcdServer__shouldSnapshotToMemory:
+EtcdServer__snapshotIfNeededAndCompactRaftLog: EtcdServer__shouldSnapshotToDisk EtcdServer__shouldSnapshotToMemory EtcdServer__snapshot EtcdServer__compactRaftLog
+EtcdServer__applyAll: EtcdServer__applySnapshot EtcdServer__applyEntries EtcdServer__Backend EtcdServer__Logger backend_VerifyBackendConsistency EtcdServer__snapshotIfNeededAndCompactRaftLog EtcdServer__createMergedSnapshotMessage EtcdServer__sendMergedSnap

@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-13 (unit 7: the consistent index's pre-commit hook proved on the real backend (`ci_hook_backend`, `ci_hookFnSpec`, no `sorry`): the backend's duplicate-put premise weakened to what the code needs (`WBuf.WfR`, `wbDupOk`, the hook's window `BCnt.hw`), the hook's own keys a ghost of the client's (`hkOwn`), the meta contract's values read under a resource and puts with tokens; the `ReadTx` reads stay a premise (startup only); see "Unit 7" under the backend; unit 6: the txn, apply, server and v3rpc results generic in the backend instance (`txn.isKV` no longer pins `γ.kb = none`): a write token per store write transaction, `txn.storeWTs` one per entry at `applyEntries`; the change bound `2^56` (a delete's range, `TxnPre`); `server_kv_backend` (the apply thread's KV made by `NewStore` over the real backend, on `keySized`); gates 158 axioms, 9 sorries, the `server` collection 114 axioms; see "Unit 6" under the backend; unit 5: mvcc's store over the real backend: the store generic in its backend's instance (`StoreNames.kb`), the late-bound lock resource `lateW`, reader and write tokens, the puts' safe-range condition proved of revision keys, the safe-range discipline in the backend's invariant, an oversized put fatal instead of a premise; `mvcc_NewStore_backend` and `mvcc_store_Write_backend` linked, no `sorry`; the layers above mvcc stay over the assumed backend (`txn.isKV`: `γ.kb = none`); a third reproduction of the cache finding (a range repeats a committed key); gates 158 axioms, 9 sorries, see "Unit 5" under the backend; unit 4, part 2: the backend bridge: mvcc's backend contract generalized (`isKeyBackendG`: reader and session tokens, the puts' condition, the snapshot chosen at `RLock`, `NewStore`'s session) and proved of the real backend (`isKeyBackendG_of_backend`, linked as `mvcc_backend_bridge`, no `sorry`; the range read on the premise `rangeSafe`); schema's `bucket` methods and `Key` translated and proved; mvcc's store not yet over it (five gaps listed); gates unchanged (158 axioms, 9 sorries), see "Unit 4" under the backend; a finding (`etcd-backend-put-value-too-large-fatal`); the backend (`server/v3/storage/backend`) translated with bodies and proved over bbolt as a key-value contract (20 trust-boundary specs): the buffers, the read and batch transactions, the commit, `run`, `Close`, 78 linked results, no `sorry`; the constructor not proved (bbolt's `Options` axiomatized); merged into `lean` with Perennial `a54e1999f` (two proofs adapted: `bucketBuffer.Swap`, Goose's multiple-assignment order; `backend.run`, `Timer.wp_Stop`'s new precondition); gates 158 axioms, 9 sorries, etcd 761 of 3599 functions verified; two findings reproduced, see "The backend"; 2026-10-13: `origin/lean` (Perennial `a54e1999f`, its proof layout; the fmt/time/context trust-boundary axioms) merged into `lean` on branch `merge-origin`: no adaptation needed; the `%w` errors of `rangeKeys`/`executeTxn` keep Perennial's model (the axiom cannot give the leaf `applyErrIs` needs without being false of Go), `context.Err` and `context.ErrDone` both kept; gates 104 axioms, 9 sorries, server 61/0, v3rpc 46/0, etcd 691 of 3599 functions verified, see "Merge of `origin/lean` (Perennial `a54e1999f`)" under the request path; `lean` (`a95ad2bb4`: the request path's unit 3b, the read side and `Txn`) merged into `mvcc`: one conflict (this line); their new `specRead` proof of `txn.Txn` takes our `isTxn_toEnd` before `End`, their `v3rpc.txn_end_to_end` loses its four `h_adt_*` hypotheses (the tree's contract is proved); gates 99 axioms, 9 sorries, server 61/0, v3rpc 46/0, etcd 691 of 3599 functions, see "Merge: lean into mvcc, the request path's unit 3b"; adt: unit 4d: `Union` proved over `Visit` and `Insert`; the visitor protocol tells the visitor its position (a third contract correction, for `Insert`'s count bound); no pending spec in any link list, the request path's `checkIntervals`/`Txn` unconditional, see "The watchable store"; `lean` (`fd5d5306e`: the request path `v3rpc` units 0–3a, the raft wrapper, the apply package units 1–3, Perennial `5857c495a`) merged into `mvcc`: the tree's contract reconciled (`InsertAny` gone, our `Insert` is it; `Union` restated at fractions with the count bound, pending for unit 4d; `checkIntervals` adapted, the count bound from a new `delCount` premise), `trace ≠ null` threaded into our write core and `watchableStore.Write`; gates 99 axioms, 9 sorries (the union), adt 0/0, mvcc 18/0, v3rpc 24/0, etcd 674 of 3599 functions, see "Merge: lean into mvcc, the request path"; adt: unit 4c: `Delete` proved with `deleteFixup` (CLRS 13.4's invariant), `min`, `successor`; the hole predicate with its frames' locations (`CtxAt.lean`) for the helpers that walk up through the caller's nodes; the tree's contract fully discharged, no pending spec left, the nine conditional mvcc results now theorems, see "The watchable store", "The whole watchable store"; adt: unit 4b: `Insert` proved with `insertFixup` (CLRS's invariant on a tree with a hole), the rotations, `replaceParent`, `updateMax`, `createIntervalNode`; the watcher budget (ghost tokens: `New` returns `2^63 - 3`, a stream's `Watch` spends one) supplies the tree's count bound; the tree allows equal intervals (the request path inserts the same range twice), see "The watchable store"; adt: the interval tree's proof, unit 4a: the red-black tree's representation (`Tree.lean`, `Defs.lean`: `ownIvt` defined, the `opaque` gone), `ownIvt_split` and the reads proved (`NewIntervalTree`, `Len`, `find`/`Find`, `Intersects`, `visit`/`Visit`/`Stab`); two contract corrections (`Find`/`Stab` lend their pointers; `Stab` needs a proper query), see "The watchable store"; mvcc: the watchable store, unit 3c: the client's receive lemma and the watch-guarantee theorems (`wp_watch_receive`, `watchRecvOk_cert`, `watchGuarantee_unfiltered`, `watchRecvOk_revs`: no `sorry`, no trust-boundary axiom of the package), the watchable store complete but `Restore` and the tree's proof (unit 4), see "The watchable store"; mvcc: the watchable store, unit 3b: the sync machinery and the constructors proved (`syncWatchers`, `moveVictims`, the two loops, `rangeEvents`/`kvsToEvents` over the backend's range read, `New`/`newWatchableStore`/`Close`/`NewWatchStream`); tickers, `time.Since` and `store.Close` axioms; a finding: `syncWatchersLoop` resets its ticker with a zero duration on a coarse clock (`issues/etcd-watch-sync-ticker-reset-zero.md`), see "The watchable store"; `lean` merged into `mvcc` (the apply package, units 0 and A; the batch lock runs the post-lock hook: `storeTxnWriteCore` carries `hookIs`, the watchable `Write`/`End` take the hook's resources as the inner ones), see "Merge: lean into mvcc, the hook (2026-10-12)"; mvcc: the watchable store, unit 3a: the write path proved (`Write`, the wrapper's `End` sealing the revision in the history before `notify`, `notify`, `addVictim`, `watch`, `cancelWatcher`, `send`, `rev`, the progress calls) over the lock invariant and the channel protocol; the history carries the change; the tree contract at a fraction (`ownIvt_split` pending); `storeTxnWriteIs` split; `verify.Verify` axiom, see "The watchable store"; the request path's unit 3b on branch `rp-u3b`: the read side and `Txn`: `EtcdServer.Range`, `Txn` (both branches), `doSerialize`, `newHeader`, the getters and `tracing.go`'s loops verified and linked, `txn.Txn` at a reader (`specRead`), the response headers owned for the reads and `Txn`, the read side's context error through Perennial's `fmt.Errorf` (no `%w`) with an `errorString` leaf premise, the server's contract `raftKV` discharged with no premise but `isServerReq`/`isServerRead` (`range_end_to_end`, `txn_end_to_end`, `range_linearizable`, `txn_applied`, ...), gates 94 axioms, 9 sorries, server 61/0, v3rpc 46/0, etcd 639 of 3599 functions verified, see "Unit 3b" under the request path; Perennial `a54e1999f` pinned (its proof layout; not its current `lean`, whose panic model cannot verify the STM: the port so far on branch `perennial-d0324-wip`); five new trust-boundary axioms for fmt, `time.Duration.String` and `context.Err`, seven strengthened assumptions, every one listed; gates 98 axioms, 9 sorries, see "Perennial `a54e1999f`: the proof layout"; the request path's unit 3a on branch `rp-u3a`: the gRPC `Put`/`DeleteRange` end to end (`put_end_to_end`, `deleteRange_end_to_end`: the handler's `(resp, nil)` is the apply thread's application at the log the entry met, the header filled), the server's contract `raftKV` split per method and discharged for `Put`/`DeleteRange` (`ServerKV.lean`), the response header's id fields owned from the txn package to the handler, `applyErrIs` with the gRPC facts, one new axiom (`context.ErrDone`), gates 94 axioms, 9 sorries, server 48/0, v3rpc 23/0, etcd 625 of 3599 functions verified, see "Unit 3a" under the request path; `origin/lean` merged into `lean` (the raft wrapper, build performance, the iframe race): the Goose configurations' union regenerated, `srvInit` the raft wrapper's and the request path's facts, gates 93 axioms, 9 sorries, server 47/0, server-raft 6/0, etcd 625 of 3599 functions verified, see "Merge of `origin/lean`" under the request path; the request path's units 1 and 2 merged into `lean` (notes and baseline conflicts only; `NewKVServer`'s `TypeRepr` of `EtcdServer` reached the axiomatized fields' `sorry` instances after the merge, fixed by an import; both `errors.Is` axioms kept; gates 91 axioms, 9 sorries, server 44/0, v3rpc 3/0, etcd 615 of 3599 functions verified), see "Merge 1/2"; the request path's unit 1 on branch `rp-u1`: every function of `key.go` but `RangeStream`/`Compact`, `header.go` and `togRPCError` specified and proved over the server's contract `raftKV s A` (parameters units 2/3 instantiate), `check_gives_nodup` (with the key check: unit 0's statement was false), `checkRequestOp_nonempty`; `api.Cluster`, `etcdserverpb.KVServer`/`RangeStreamResponse` translated; one new axiom (`errors.IsDeadlineExceeded`); adt's `InsertAny` (pending); gates 89 axioms, 9 sorries, v3rpc 3/0, etcd 592 of 3599 functions verified; see "Unit 1: the checks and the handlers"; the request path's unit 2 on branch `rp-u2`: `pkg/wait` and `pkg/idutil` verified, the proposal path (`processInternalRaftRequestOnce`, `raftRequest`, `Put`, `DeleteRange`) verified over the raft contract and the wait registry, the apply thread triggering the registry (`waitInv`); results `request_handoff`, `put_applied`, `deleteRange_applied`; 2 new axioms (90), 9 sorries, server 44, etcd 600 of 3599; `Txn` left to unit 3; see "Unit 2: the wait protocol and the proposal path"; the request path's unit 0 on branch `rp-u0`: `v3rpc`'s KV service, the server's request path, `pkg/wait` and `pkg/idutil` translated; the checks as pure functions (`v3rpc/Defs.lean`), the raft contract, the id generator, the wait registry and the read contract (`InvRequest.lean`); 22 new axioms, gates 88 axioms, 9 sorries, server 40/0, v3rpc 2/0; three findings (`checkIntervals` misses a later sibling's delete, `--max-txn-ops` is per level, request ids of two members collide when their ids agree in the low 16 bits), see "The request path"; the server's raft wrapper proved: `raftNode.start` and every method of raft.go, linked, gates 68 axioms, 9 sorries, server 22/0, server-raft 6/0, etcd 587 of 3599; see "etcd's server: the raft wrapper"; build performance on branch `proof-perf`: three proofs verify a common tail once (`wp_join`), `raftOwn_access` frames by name, the Results modules print axioms with full names, Perennial `afc8f0432` (not yet pinned) gives the WP tactics per-thread caches without a lookup per access, see "Build performance"; the intermittent failure of `InvSTMRun.lean` (`stmMethods_ser`) in loaded full builds was a race in Perennial's `iframe` (a global flag shared by declarations elaborated in parallel), fixed in Perennial `fb1ecb030` (in `5857c495a`); the proof unfolds `STMSt.empty` and no longer needs `iframe`'s prepass, see "Parallel elaboration and tactic state"; the apply package's unit 3 on branch `apply-u3`: the server bridge: the apply thread on the proved `apply.Apply` (`applierFor`, `applierFor_persistent`, `apply.Apply_server.wp_proof` gone; `isServer s γ ci TM E`, `srvApplyKV`), the KV threaded through `applyEntryNormal`/`apply`/`applyEntries` (`entryOk`/`entryStep`, `entriesOk`/`entriesStep`), the server's `Results.lean` (`applyEntries_model`, `_kv`, `_replay_no_write`, `_rejected_no_write`); gates 66 axioms, 9 sorries, server 19/0, apply 32/0, apply 71 of 73, etcd 577 of 3599; see "Unit 3: the server bridge" and "The whole package" in the apply section; the apply package's unit 2 merged into `lean`: `uber_applier.go` and `apply.go` specified and proved, `apply.Apply.spec` with the KV (`applyKV`, `applyStep`), the server still on its assumed contract (`apply.Apply_server`, unit 3); the `applyErrIs` gap closed (the contracts' errors and `applyErrVars` the two assumptions; `txn.Range`/`DeleteRange` take `nd`); gates 69 axioms, 9 sorries, apply 32/0, server 18/0, apply 71 of 73 functions verified, etcd 577 of 3599, see "Merge 2" in the apply section; Perennial `5857c495a` pinned: soundness fixes (unsigned `uint32` division, division by zero panics, shift counts not truncated, `^x`; `time.isTimer` unforgeable; `errors.wp_As` requires an interface or `error` target), the ring buffer's three divisions and `leasingKV.acquire`'s `errors.As` repaired, gates unchanged (69 axioms, 9 sorries), see "Perennial `5857c495a`: soundness fixes"; `origin/lean`'s eight small etcd axioms merged into `lean` (`MustUnmarshalMessage` a case per message type, each with its decoding premise; `store.Write` takes the non-nil trace and the hook; gates 69 axioms, 10 sorries, apply 31/0, server 18/0, mvcc 12/0, txn 18/0, etcd 568 of 3599 functions verified), see "Merges of `origin/lean`" in the apply section and "Small etcd axioms"; the apply package's unit 1 on branch `apply-u1`: every function of `backend.go` (but `Compaction`), `quota.go`, `capped.go`, `corrupt.go`, `auth.go` specified and proved, the constructors packaging the layers into `applierSpec`, `chainStep` over `backendStep`, `chain_put`/`_deleteRange`/`_range`/`_txn`; `auth.AuthStore` translated as an interface; a finding (a lease checkpoint entry's several critical sections; fix branch `lease-checkpoint-one-section`); gates 82 axioms, 1 sorry, apply 35/0, apply 63 of 73 functions verified, etcd 557 of 3599, see "Unit 1: the layers"; the apply package's units 0 and A merged into `lean` (the context premise `txnCtx` and the hook premise `csContract ∗ hookIs` both on txn's write path; one `csContract`, mvcc's; `store.Rev` under the hook's `End`; the server's `Link` reuses mvcc's zap results; gates 82 axioms, 1 sorry, apply 17/0, txn 22/0, mvcc 17/0, server 26/0, etcd 494 verified of 3599 functions), see "Merge 0/A"; the apply package's unit A: the backend's post-lock hook in mvcc's contract (`hookIs`, `csContract`), threaded through `store.Write`/`End` and txn's `Put`/`DeleteRange`/`Txn`, see "Unit A: the hook through mvcc"; the server's apply package, unit 0 on branch `apply-u0`: translated with bodies, scaffolding, 12 trust-boundary axioms, the txn functions at `context.TODO()` (`txnCtx`), `store.Rev`, `gen-link.py --apply` and the reuse rule; gates 81 axioms, 1 sorry; a finding (the alarm gauge), see "The server's apply package; a closed theorem about the register's driver in the operational semantics, `register_adequate`, from Perennial's adequacy; package initialization proved for raft, its subpackages, `context` and the register; the account of every axiom and `sorry` it rests on, see "Adequacy of the register's driver; Perennial `f8f01eb44` pinned: `time.wp_Since`/`Time.wp_Add` proved and `context.wp_WithDeadlineCause` proved (the `sorry` the concurrency proofs reached is gone; one new Perennial axiom `Timer.wp_Stop_func`), `isContext` stronger; `context.DeadlineExceededIsError` (a method-set fact, like `ErrorStringIsError`) added to raft's and the register's initialization premises; gates 57 axioms, 9 sorries (all the register's); small etcd axioms replaced by proofs on branch `etcd-small-axioms`: `NewHashStorage`, `UnsafeCreateMetaBucket`, `traceutil.TODO`, `Notifier.Notify`, `ServerConfig.ElectionTimeout`, `AlarmStore.Get`, `EtcdServer.Logger`/`isLeader` (with `MemberID`/`Lead`/`getLead`); `Trace.Step` requires a non-nil trace; `MustUnmarshalMessage`'s axiom made true (an encoding premise); gates on the branch 62 axioms, 1 sorry (57 axioms, 10 sorries once merged into `lean` with the standard-library axioms and the register's adequacy), etcd 505 verified of 3599 functions, 5202 of 45570 lines, see "Small etcd axioms"; a closed theorem about the register's driver in the operational semantics, `register_adequate`, from Perennial's adequacy; package initialization proved for raft, its subpackages, `context` and the register; the account of every axiom and `sorry` it rests on, see "Adequacy of the register's driver"; five standard-library axioms of etcd-grove proved from Perennial `e6ec34885` (pinned): `binary.bigEndian.{Uint64,PutUint64}`, `sort.Sort`, `sort.Reverse`, `errors.Is` (whose axiom was false as stated, now restated with Perennial's premises), see "Standard-library axioms from Perennial"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
+**Last updated:** 2026-10-13 (unit 7: the consistent index's pre-commit hook proved on the real backend (`ci_hook_backend`, `ci_hookFnSpec`, no `sorry`): the backend's duplicate-put premise weakened to what the code needs (`WBuf.WfR`, `wbDupOk`, the hook's window `BCnt.hw`), the hook's own keys a ghost of the client's (`hkOwn`), the meta contract's values read under a resource and puts with tokens; the `ReadTx` reads stay a premise (startup only); see "Unit 7" under the backend; `origin/lean` (`1c54ee184`: the backend's unit 6, the write budget and the results over either backend) merged into `lean` on branch `merge-origin4`: the apply thread's specs take both the applied-index ghost and the write budget (`txn.storeWTs`), `applyAll` gains the budget, `server_kv_backend` adapted to unit 5a's `NewStore` (the compaction right frozen, premise `0 ≤ CompactionBatchLimit`); gates 172 axioms, 31 sorries, `server` collection 119 (the union), others unchanged, etcd 794 of 3599 functions verified, see "Merge of `origin/lean` (the backend, unit 6: the write budget)"; `lean` (`deccecdff`: the backend's units 1–5 and the request path's 4a/4b) merged into `mvcc` after unit 5a: one backend contract and one store (`isKeyBackendG` with unit 5a's deletable keys, deposit witness, size queries and, under the condition `Cmp`, the compaction-only calls), the bridge extended (snapshots exact, the job's `LockOutsideApply`, `Size`/`SizeInUse` proved of the backend; the deletion from `Key`, the limited range, the `Meta` keys and the safe-range-delete lock not: the backend's model forbids deleting from a safe-range bucket, so `Cmp` is false of it and the compaction's specs take `storeCmp`); gates 172 axioms, 31 sorries (the union), mvcc 34/22, mvcc-compaction 22/22 (+4 bbolt predicates), every other collection unchanged (backend 59/0), etcd 794 of 3599 functions verified, 21 unfinished, see "Merge: lean into mvcc, the backend meets the compaction"; `lean` (`4f2c96322`: the request path's unit 4b, the apply loop and the applied index) merged into `mvcc`: one conflict (this line), no proof changed; gates 118 axioms, 31 sorries, all collections unchanged, see "Merge: lean into mvcc, the request path's unit 4b"; the request path's unit 4b on branch `rp-u4b`: the apply loop and the applied index: `applyAll` translated and proved (under raft's no-snapshot contract), `pkg/wait`'s `wait_time.go` and `pkg/notify`'s `NewNotifier`/`Receive` proved, the read loop's contracts discharged for `*EtcdServer` (`read_server`) and its `raftNode` (`read_raft`, `ReadIndex` and read states in the node contract), the ghost applied index tied to `s.appliedIndex` with a certified log deposited per index at `setAppliedIndex`, so `range_linearizable` says the read's log extends the log applied through an index at least `c`; 4a's `ApplyWait` and notifier clauses adapted; gates 112 axioms (+5: `VerifyBackendConsistency`, `snapshot`, `compactRaftLog`, `createMergedSnapshotMessage`, `sendMergedSnap`), 9 sorries, server 66/0, etcd 720 of 3599 functions verified, see "Unit 4b: the apply loop and the applied index" under the request path; `lean` (`17575d236`: the request path's unit 4a, the read loop) merged into `mvcc` after unit 5a: conflicts only in the baseline (union) and the notes, no proof changed; gates 113 axioms, 31 sorries, all collections unchanged, see "Merge: lean into mvcc, the request path's unit 4a"; mvcc: the store's compaction, unit 5a: the compaction functions translated (with `pkg/schedule`'s jobs), the pure model (`Compact.lean`), the compaction revision's counter and right, the backend contract with deletions, the 21 specs pending (`sorry`); the existing statements are of a store never compacted (`crevFrozen`); 6 new axioms, 22 new sorries (gates 110 axioms, 31 sorries, mvcc 30/22, new collection mvcc-compaction), two findings (`issues/etcd-compaction-*`), see "The store's compaction"; the request path's unit 4a on branch `rp-u4a`: etcd's linearizable read loop (`server/v3/etcdserver/read`) translated with bodies and proved over two contracts (`isReadServer`, `isReadRaft`), `isRead` met by `NewRead`'s result; `isRead` takes a reader slot of `r.mux` (`ReadNames` gains `notifier`), `applyErrIs`' typing clause is for pointer targets; gates 107 axioms (+3: `context.WithTimeoutBackground`, `strconv.FormatUint`, `traceutil.Trace.LogAllStepsIfLong`), 9 sorries, read 12/0, etcd 700 of 3599 functions verified, see "Unit 4a: the read loop" under the request path; `origin/lean` (the backend's unit 5: mvcc's store over the real backend) merged into `lean` (the request path's units 4a/4b) on branch `merge-origin3`: two conflicts (this line; the server collection's baseline, the union), no adaptation needed (the request path's proofs are over `txn.isKV`, which now carries `γ.kb = none`, and never destructure it); gates 166 axioms, 9 sorries, server 66 -> 70, apply 32 -> 36, mvcc 18 -> 22, txn 18 -> 22, v3rpc 46 -> 50 (bbolt's four opaque predicates, which `StoreNames.kb` names), etcd 794 of 3599 functions verified, see "Merge of `origin/lean` (the backend, unit 5)" under the request path; `origin/lean` (the storage backend, units 1–4, and the mvcc bridge) merged into `lean` (the request path's units 4a/4b) on branch `merge-origin2`: no adaptation needed; gates 166 axioms, 9 sorries, collections unchanged (backend 59/0, server 66/0, read 12/0), etcd 794 of 3599 functions verified, see "Merge of `origin/lean` (the backend, units 1–4)" under the request path; unit 6: the txn, apply, server and v3rpc results generic in the backend instance (`txn.isKV` no longer pins `γ.kb = none`): a write token per store write transaction, `txn.storeWTs` one per entry at `applyEntries`; the change bound `2^56` (a delete's range, `TxnPre`); `server_kv_backend` (the apply thread's KV made by `NewStore` over the real backend, on `keySized`); gates 158 axioms, 9 sorries, the `server` collection 114 axioms; see "Unit 6" under the backend; unit 5: mvcc's store over the real backend: the store generic in its backend's instance (`StoreNames.kb`), the late-bound lock resource `lateW`, reader and write tokens, the puts' safe-range condition proved of revision keys, the safe-range discipline in the backend's invariant, an oversized put fatal instead of a premise; `mvcc_NewStore_backend` and `mvcc_store_Write_backend` linked, no `sorry`; the layers above mvcc stay over the assumed backend (`txn.isKV`: `γ.kb = none`); a third reproduction of the cache finding (a range repeats a committed key); gates 158 axioms, 9 sorries, see "Unit 5" under the backend; unit 4, part 2: the backend bridge: mvcc's backend contract generalized (`isKeyBackendG`: reader and session tokens, the puts' condition, the snapshot chosen at `RLock`, `NewStore`'s session) and proved of the real backend (`isKeyBackendG_of_backend`, linked as `mvcc_backend_bridge`, no `sorry`; the range read on the premise `rangeSafe`); schema's `bucket` methods and `Key` translated and proved; mvcc's store not yet over it (five gaps listed); gates unchanged (158 axioms, 9 sorries), see "Unit 4" under the backend; a finding (`etcd-backend-put-value-too-large-fatal`); the backend (`server/v3/storage/backend`) translated with bodies and proved over bbolt as a key-value contract (20 trust-boundary specs): the buffers, the read and batch transactions, the commit, `run`, `Close`, 78 linked results, no `sorry`; the constructor not proved (bbolt's `Options` axiomatized); merged into `lean` with Perennial `a54e1999f` (two proofs adapted: `bucketBuffer.Swap`, Goose's multiple-assignment order; `backend.run`, `Timer.wp_Stop`'s new precondition); gates 158 axioms, 9 sorries, etcd 761 of 3599 functions verified; two findings reproduced, see "The backend"; earlier: `origin/lean` (Perennial `a54e1999f`, its proof layout; the fmt/time/context trust-boundary axioms) merged into `lean` on branch `merge-origin`: no adaptation needed; the `%w` errors of `rangeKeys`/`executeTxn` keep Perennial's model (the axiom cannot give the leaf `applyErrIs` needs without being false of Go), `context.Err` and `context.ErrDone` both kept; gates 104 axioms, 9 sorries, server 61/0, v3rpc 46/0, etcd 691 of 3599 functions verified, see "Merge of `origin/lean` (Perennial `a54e1999f`)" under the request path; `lean` (`a95ad2bb4`: the request path's unit 3b, the read side and `Txn`) merged into `mvcc`: one conflict (this line); their new `specRead` proof of `txn.Txn` takes our `isTxn_toEnd` before `End`, their `v3rpc.txn_end_to_end` loses its four `h_adt_*` hypotheses (the tree's contract is proved); gates 99 axioms, 9 sorries, server 61/0, v3rpc 46/0, etcd 691 of 3599 functions, see "Merge: lean into mvcc, the request path's unit 3b"; adt: unit 4d: `Union` proved over `Visit` and `Insert`; the visitor protocol tells the visitor its position (a third contract correction, for `Insert`'s count bound); no pending spec in any link list, the request path's `checkIntervals`/`Txn` unconditional, see "The watchable store"; `lean` (`fd5d5306e`: the request path `v3rpc` units 0–3a, the raft wrapper, the apply package units 1–3, Perennial `5857c495a`) merged into `mvcc`: the tree's contract reconciled (`InsertAny` gone, our `Insert` is it; `Union` restated at fractions with the count bound, pending for unit 4d; `checkIntervals` adapted, the count bound from a new `delCount` premise), `trace ≠ null` threaded into our write core and `watchableStore.Write`; gates 99 axioms, 9 sorries (the union), adt 0/0, mvcc 18/0, v3rpc 24/0, etcd 674 of 3599 functions, see "Merge: lean into mvcc, the request path"; adt: unit 4c: `Delete` proved with `deleteFixup` (CLRS 13.4's invariant), `min`, `successor`; the hole predicate with its frames' locations (`CtxAt.lean`) for the helpers that walk up through the caller's nodes; the tree's contract fully discharged, no pending spec left, the nine conditional mvcc results now theorems, see "The watchable store", "The whole watchable store"; adt: unit 4b: `Insert` proved with `insertFixup` (CLRS's invariant on a tree with a hole), the rotations, `replaceParent`, `updateMax`, `createIntervalNode`; the watcher budget (ghost tokens: `New` returns `2^63 - 3`, a stream's `Watch` spends one) supplies the tree's count bound; the tree allows equal intervals (the request path inserts the same range twice), see "The watchable store"; adt: the interval tree's proof, unit 4a: the red-black tree's representation (`Tree.lean`, `Defs.lean`: `ownIvt` defined, the `opaque` gone), `ownIvt_split` and the reads proved (`NewIntervalTree`, `Len`, `find`/`Find`, `Intersects`, `visit`/`Visit`/`Stab`); two contract corrections (`Find`/`Stab` lend their pointers; `Stab` needs a proper query), see "The watchable store"; mvcc: the watchable store, unit 3c: the client's receive lemma and the watch-guarantee theorems (`wp_watch_receive`, `watchRecvOk_cert`, `watchGuarantee_unfiltered`, `watchRecvOk_revs`: no `sorry`, no trust-boundary axiom of the package), the watchable store complete but `Restore` and the tree's proof (unit 4), see "The watchable store"; mvcc: the watchable store, unit 3b: the sync machinery and the constructors proved (`syncWatchers`, `moveVictims`, the two loops, `rangeEvents`/`kvsToEvents` over the backend's range read, `New`/`newWatchableStore`/`Close`/`NewWatchStream`); tickers, `time.Since` and `store.Close` axioms; a finding: `syncWatchersLoop` resets its ticker with a zero duration on a coarse clock (`issues/etcd-watch-sync-ticker-reset-zero.md`), see "The watchable store"; `lean` merged into `mvcc` (the apply package, units 0 and A; the batch lock runs the post-lock hook: `storeTxnWriteCore` carries `hookIs`, the watchable `Write`/`End` take the hook's resources as the inner ones), see "Merge: lean into mvcc, the hook (2026-10-12)"; mvcc: the watchable store, unit 3a: the write path proved (`Write`, the wrapper's `End` sealing the revision in the history before `notify`, `notify`, `addVictim`, `watch`, `cancelWatcher`, `send`, `rev`, the progress calls) over the lock invariant and the channel protocol; the history carries the change; the tree contract at a fraction (`ownIvt_split` pending); `storeTxnWriteIs` split; `verify.Verify` axiom, see "The watchable store"; the request path's unit 3b on branch `rp-u3b`: the read side and `Txn`: `EtcdServer.Range`, `Txn` (both branches), `doSerialize`, `newHeader`, the getters and `tracing.go`'s loops verified and linked, `txn.Txn` at a reader (`specRead`), the response headers owned for the reads and `Txn`, the read side's context error through Perennial's `fmt.Errorf` (no `%w`) with an `errorString` leaf premise, the server's contract `raftKV` discharged with no premise but `isServerReq`/`isServerRead` (`range_end_to_end`, `txn_end_to_end`, `range_linearizable`, `txn_applied`, ...), gates 94 axioms, 9 sorries, server 61/0, v3rpc 46/0, etcd 639 of 3599 functions verified, see "Unit 3b" under the request path; Perennial `a54e1999f` pinned (its proof layout; not its current `lean`, whose panic model cannot verify the STM: the port so far on branch `perennial-d0324-wip`); five new trust-boundary axioms for fmt, `time.Duration.String` and `context.Err`, seven strengthened assumptions, every one listed; gates 98 axioms, 9 sorries, see "Perennial `a54e1999f`: the proof layout"; the request path's unit 3a on branch `rp-u3a`: the gRPC `Put`/`DeleteRange` end to end (`put_end_to_end`, `deleteRange_end_to_end`: the handler's `(resp, nil)` is the apply thread's application at the log the entry met, the header filled), the server's contract `raftKV` split per method and discharged for `Put`/`DeleteRange` (`ServerKV.lean`), the response header's id fields owned from the txn package to the handler, `applyErrIs` with the gRPC facts, one new axiom (`context.ErrDone`), gates 94 axioms, 9 sorries, server 48/0, v3rpc 23/0, etcd 625 of 3599 functions verified, see "Unit 3a" under the request path; `origin/lean` merged into `lean` (the raft wrapper, build performance, the iframe race): the Goose configurations' union regenerated, `srvInit` the raft wrapper's and the request path's facts, gates 93 axioms, 9 sorries, server 47/0, server-raft 6/0, etcd 625 of 3599 functions verified, see "Merge of `origin/lean`" under the request path; the request path's units 1 and 2 merged into `lean` (notes and baseline conflicts only; `NewKVServer`'s `TypeRepr` of `EtcdServer` reached the axiomatized fields' `sorry` instances after the merge, fixed by an import; both `errors.Is` axioms kept; gates 91 axioms, 9 sorries, server 44/0, v3rpc 3/0, etcd 615 of 3599 functions verified), see "Merge 1/2"; the request path's unit 1 on branch `rp-u1`: every function of `key.go` but `RangeStream`/`Compact`, `header.go` and `togRPCError` specified and proved over the server's contract `raftKV s A` (parameters units 2/3 instantiate), `check_gives_nodup` (with the key check: unit 0's statement was false), `checkRequestOp_nonempty`; `api.Cluster`, `etcdserverpb.KVServer`/`RangeStreamResponse` translated; one new axiom (`errors.IsDeadlineExceeded`); adt's `InsertAny` (pending); gates 89 axioms, 9 sorries, v3rpc 3/0, etcd 592 of 3599 functions verified; see "Unit 1: the checks and the handlers"; the request path's unit 2 on branch `rp-u2`: `pkg/wait` and `pkg/idutil` verified, the proposal path (`processInternalRaftRequestOnce`, `raftRequest`, `Put`, `DeleteRange`) verified over the raft contract and the wait registry, the apply thread triggering the registry (`waitInv`); results `request_handoff`, `put_applied`, `deleteRange_applied`; 2 new axioms (90), 9 sorries, server 44, etcd 600 of 3599; `Txn` left to unit 3; see "Unit 2: the wait protocol and the proposal path"; the request path's unit 0 on branch `rp-u0`: `v3rpc`'s KV service, the server's request path, `pkg/wait` and `pkg/idutil` translated; the checks as pure functions (`v3rpc/Defs.lean`), the raft contract, the id generator, the wait registry and the read contract (`InvRequest.lean`); 22 new axioms, gates 88 axioms, 9 sorries, server 40/0, v3rpc 2/0; three findings (`checkIntervals` misses a later sibling's delete, `--max-txn-ops` is per level, request ids of two members collide when their ids agree in the low 16 bits), see "The request path"; the server's raft wrapper proved: `raftNode.start` and every method of raft.go, linked, gates 68 axioms, 9 sorries, server 22/0, server-raft 6/0, etcd 587 of 3599; see "etcd's server: the raft wrapper"; build performance on branch `proof-perf`: three proofs verify a common tail once (`wp_join`), `raftOwn_access` frames by name, the Results modules print axioms with full names, Perennial `afc8f0432` (not yet pinned) gives the WP tactics per-thread caches without a lookup per access, see "Build performance"; the intermittent failure of `InvSTMRun.lean` (`stmMethods_ser`) in loaded full builds was a race in Perennial's `iframe` (a global flag shared by declarations elaborated in parallel), fixed in Perennial `fb1ecb030` (in `5857c495a`); the proof unfolds `STMSt.empty` and no longer needs `iframe`'s prepass, see "Parallel elaboration and tactic state"; the apply package's unit 3 on branch `apply-u3`: the server bridge: the apply thread on the proved `apply.Apply` (`applierFor`, `applierFor_persistent`, `apply.Apply_server.wp_proof` gone; `isServer s γ ci TM E`, `srvApplyKV`), the KV threaded through `applyEntryNormal`/`apply`/`applyEntries` (`entryOk`/`entryStep`, `entriesOk`/`entriesStep`), the server's `Results.lean` (`applyEntries_model`, `_kv`, `_replay_no_write`, `_rejected_no_write`); gates 66 axioms, 9 sorries, server 19/0, apply 32/0, apply 71 of 73, etcd 577 of 3599; see "Unit 3: the server bridge" and "The whole package" in the apply section; the apply package's unit 2 merged into `lean`: `uber_applier.go` and `apply.go` specified and proved, `apply.Apply.spec` with the KV (`applyKV`, `applyStep`), the server still on its assumed contract (`apply.Apply_server`, unit 3); the `applyErrIs` gap closed (the contracts' errors and `applyErrVars` the two assumptions; `txn.Range`/`DeleteRange` take `nd`); gates 69 axioms, 9 sorries, apply 32/0, server 18/0, apply 71 of 73 functions verified, etcd 577 of 3599, see "Merge 2" in the apply section; Perennial `5857c495a` pinned: soundness fixes (unsigned `uint32` division, division by zero panics, shift counts not truncated, `^x`; `time.isTimer` unforgeable; `errors.wp_As` requires an interface or `error` target), the ring buffer's three divisions and `leasingKV.acquire`'s `errors.As` repaired, gates unchanged (69 axioms, 9 sorries), see "Perennial `5857c495a`: soundness fixes"; `origin/lean`'s eight small etcd axioms merged into `lean` (`MustUnmarshalMessage` a case per message type, each with its decoding premise; `store.Write` takes the non-nil trace and the hook; gates 69 axioms, 10 sorries, apply 31/0, server 18/0, mvcc 12/0, txn 18/0, etcd 568 of 3599 functions verified), see "Merges of `origin/lean`" in the apply section and "Small etcd axioms"; the apply package's unit 1 on branch `apply-u1`: every function of `backend.go` (but `Compaction`), `quota.go`, `capped.go`, `corrupt.go`, `auth.go` specified and proved, the constructors packaging the layers into `applierSpec`, `chainStep` over `backendStep`, `chain_put`/`_deleteRange`/`_range`/`_txn`; `auth.AuthStore` translated as an interface; a finding (a lease checkpoint entry's several critical sections; fix branch `lease-checkpoint-one-section`); gates 82 axioms, 1 sorry, apply 35/0, apply 63 of 73 functions verified, etcd 557 of 3599, see "Unit 1: the layers"; the apply package's units 0 and A merged into `lean` (the context premise `txnCtx` and the hook premise `csContract ∗ hookIs` both on txn's write path; one `csContract`, mvcc's; `store.Rev` under the hook's `End`; the server's `Link` reuses mvcc's zap results; gates 82 axioms, 1 sorry, apply 17/0, txn 22/0, mvcc 17/0, server 26/0, etcd 494 verified of 3599 functions), see "Merge 0/A"; the apply package's unit A: the backend's post-lock hook in mvcc's contract (`hookIs`, `csContract`), threaded through `store.Write`/`End` and txn's `Put`/`DeleteRange`/`Txn`, see "Unit A: the hook through mvcc"; the server's apply package, unit 0 on branch `apply-u0`: translated with bodies, scaffolding, 12 trust-boundary axioms, the txn functions at `context.TODO()` (`txnCtx`), `store.Rev`, `gen-link.py --apply` and the reuse rule; gates 81 axioms, 1 sorry; a finding (the alarm gauge), see "The server's apply package; a closed theorem about the register's driver in the operational semantics, `register_adequate`, from Perennial's adequacy; package initialization proved for raft, its subpackages, `context` and the register; the account of every axiom and `sorry` it rests on, see "Adequacy of the register's driver; Perennial `f8f01eb44` pinned: `time.wp_Since`/`Time.wp_Add` proved and `context.wp_WithDeadlineCause` proved (the `sorry` the concurrency proofs reached is gone; one new Perennial axiom `Timer.wp_Stop_func`), `isContext` stronger; `context.DeadlineExceededIsError` (a method-set fact, like `ErrorStringIsError`) added to raft's and the register's initialization premises; gates 57 axioms, 9 sorries (all the register's); small etcd axioms replaced by proofs on branch `etcd-small-axioms`: `NewHashStorage`, `UnsafeCreateMetaBucket`, `traceutil.TODO`, `Notifier.Notify`, `ServerConfig.ElectionTimeout`, `AlarmStore.Get`, `EtcdServer.Logger`/`isLeader` (with `MemberID`/`Lead`/`getLead`); `Trace.Step` requires a non-nil trace; `MustUnmarshalMessage`'s axiom made true (an encoding premise); gates on the branch 62 axioms, 1 sorry (57 axioms, 10 sorries once merged into `lean` with the standard-library axioms and the register's adequacy), etcd 505 verified of 3599 functions, 5202 of 45570 lines, see "Small etcd axioms"; a closed theorem about the register's driver in the operational semantics, `register_adequate`, from Perennial's adequacy; package initialization proved for raft, its subpackages, `context` and the register; the account of every axiom and `sorry` it rests on, see "Adequacy of the register's driver"; five standard-library axioms of etcd-grove proved from Perennial `e6ec34885` (pinned): `binary.bigEndian.{Uint64,PutUint64}`, `sort.Sort`, `sort.Reverse`, `errors.Is` (whose axiom was false as stated, now restated with Perennial's premises), see "Standard-library axioms from Perennial"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
 as pinned), the requests and responses as the client model's values (`Requests.lean`), `isKV`,
 `isTxnLessor`, 13 trust-boundary axioms (`sort.Sort`/`Reverse`, traceutil, `proto.Size`,
 `zap.Logger.Panic`, ...), mvcc's read-only write transaction proved, `gen-link.py --txn`, a
@@ -1124,6 +1124,308 @@ collection's `--check` (adt 0/0, apply 32/0, btree 0/0, cache 14/0, concurrency 
 v3rpc 46/0), `etc/verified-code.py`: etcd 691 of 3599 functions verified (etcd-raft 200 of 323,
 register 20 of 28).
 
+### Unit 4a: the read loop (2026-10-13)
+
+Branch `rp-u4a` (worktree `/shared/etcd-grove-rp4a`, off `lean` at `164492796`; Perennial
+`a54e1999f`). Design: `notes/decisions.md`, "The read loop's notifier: deposited lower bounds".
+- **Translation**: `read.toml` translates the package in full (`NewRead`, `Read`, the `server` and
+  `raftInterface` interfaces, `LinearizableReadNotify`, `LinearizableReadLoop`,
+  `requestCurrentIndex`, `sendReadIndex`, `uint64ToBigEndianBytes`, `isStopped`, `notifier`,
+  `newNotifier`, `notify`, the metrics, `init`); `etcdserver.toml` adds `EtcdServer.ApplyWait`,
+  `Done`, `LeaderChanged`, `NextRequestID`, `RequestTimeout`, `Stopping`,
+  `FirstCommitInTermNotify`, `AppliedIndex`, `CommittedIndex` and the promoted
+  `raftNode.ReadIndex`/`raftNodeConfig.ReadIndex` (translated, for 4b; no type dragged in).
+- **Verified and linked** (`read/Link.lean`, `etc/gen-link.py --read`, namespace `read`): all nine
+  functions but `init`. `read/Results.lean`: `read_new` (`NewRead.spec`: `isRead r γr`, the loop's
+  precondition, the reader slots), `read_loop`, `read_notify`; `#print axioms`: no `sorry`.
+- **The ghost protocol** (`read/Inv.lean`): each notifier `nc` has a need `γn` (mono nat);
+  `readInv γr` (invariant): the current `(nc, γn)` (`ghostVar γr.notifier`, half; the lock's
+  resource `readMuP r γr q` holds `r.notifier ↦{q} nc` and `q/2` of it), the waiters' view and the
+  right to notify it (`notifierIs`, `notifierOwn`), the need's authority `n` and `committedAtLeast γr
+  n`. A client deposits its `c` (`read_deposit`), the loop swaps and freezes (`read_swap`,
+  `needFrozen γn n := inv (monoNatAuthOwn γn 1 n)`), the close tells `notified nc γn γr := ∃ err,
+  nc.err ↦□ err ∗ applyErrIs err ∗ (⌜err ≠ nil⌝ ∨ frozenOk γn γr)`, `frozenOk γn γr := ∃ n i,
+  needFrozen γn n ∗ appliedAtLeast γr i ∗ ⌜n ≤ i⌝` (`read_frozenOk_readIndexOk`).
+- **The contracts** (persistent; unit 4b discharges them): `isReadServer srv γr LR NR` (`Done`,
+  `Stopping`, `LeaderChanged`, `FirstCommitInTermNotify` return closed-only channels, `bcastChan ch
+  True`; `Logger` with the caller's resource `LR`, given back; `AppliedIndex` an
+  `appliedAtLeast`; `ApplyWait(d)` a channel closed with `appliedAtLeast γr d`; `NextRequestID` for a
+  resource `NR`; `RequestTimeout` some duration) and `isReadRaft rf γr RQ` (`ReadState()`: a bag
+  channel of read states each `readStateOk RQ rs`: its context eight bytes, read-only, and `RQ id n
+  → n ≤ rs.Index` for the id they encode; `ReadIndex(ctx, beBytes id)` at `committedAtLeast γr n`:
+  `applyErrIs err`, and if `nil`, `□ RQ id n`). The loop's spec takes `LR` and `□ (|==> NR)`.
+- **Premises** (recorded here): the raft contract is sound only if request ids do not repeat
+  within the process (the request path's `2^48` id budget): a repeated id would let an old read
+  state answer a new request's bound; the id budget itself (`□ |==> NR`: one id resource per
+  `ReadIndex`, unboundedly many) is the server's premise; raft's read states carry the 8-byte
+  contexts `ReadIndex` was given (the server's `raftNode` is only called by the loop).
+- **Changes outside the package** (forced, see the decisions entry): `ReadNames` gains `notifier`
+  and `isRead`'s triple takes and returns `readReader r γr` (Perennial's `RWMutex` bounds readers);
+  `srvRdCall` gains `srvReadReader s γr`, threaded through `EtcdServer.Range`/`Txn`/
+  `LinearizableReadNotify`; `applyErrIs`' `TreeTyped` clause holds for pointer targets
+  (`ptrTarget`, what `errors.wp_Is` takes), so a done context's `DeadlineExceeded` (a struct) is
+  one (`applyErrIs_valLeaf`); `readState_countable` moved from `InvRaftNode.lean` to
+  `InvRequest.lean`; the read package's facts (`readInit`, in `BaseApply.lean`: its counters, the
+  retry time, `ErrStopped`/`ErrLeaderChanged`/`ErrTimeout`, raft's `ErrStopped`, `context.Canceled`
+  as `errVarLeaf`, `ctxDeadlineLeaf`: `DeadlineExceeded` a non-pointer leaf, a safe key, its
+  `Error()` returns) replace `True`; the cache's link list names its `newNotifier`/`notify`
+  `v3_…` (the read package has the same names).
+- **New axioms**: `context.WithTimeoutBackground` (Perennial's `WithTimeout` needs an `isContext`
+  parent, `Background()` is none), `strconv.FormatUint` (names-only `strconv`),
+  `traceutil.Trace.LogAllStepsIfLong` (names-only `traceutil`).
+- **Go**: no finding. `isStopped(err)` returns without closing the pending notifier: its waiters
+  leave by their context or `Done()` (stated in the loop's spec). A dropped `waitC` signal needs
+  nothing: the pending signal's iteration swaps after the client's deposit.
+- **For 4b**: prove `isReadServer s' γr (srvLgReader s) NR` for `*EtcdServer` (the applied index tied
+  to `appliedAtLeast`, `ApplyWait` to the wait-time registry, `NextRequestID`'s credit as `NR`) and
+  `isReadRaft` for the server's `raftNode`; allocate `γr.notifier` and call `NewRead`; hand the
+  reader slots to the request goroutines (`srvReadReader`).
+- **Gates**: full build clean (3843 jobs); `goose.py --check` passes; every `gen-link.py` mode
+  reproduces (`--cache` regenerated: import order only); `tcb-report.py --check --update`: 104 →
+  107 axioms, 9 sorries; collections unchanged (adt 0, apply 32, btree 0, cache 14, concurrency 13,
+  leasing 8, mvcc 18, raft 1, recipes 11, register 1/9, server-raft 6, server 61, txn 18, v3rpc 46),
+  new `read` 12/0; `verified-code.py`: etcd 691 → 700 of 3599 functions (7856 of 45570 lines),
+  `server/v3/etcdserver/read` 9 of 10 (174 of 178 lines; `init` not).
+
+### Unit 4b: the apply loop and the applied index (2026-10-13)
+
+Branch `rp-u4b` (worktree `/shared/etcd-grove-rp4b`, off `lean` at `17575d236`; Perennial
+`a54e1999f`). Design: `notes/decisions.md`, "The applied index: a certified log per index".
+- **Translation**: `wait.toml` adds `wait_time.go` (`WaitTime`, `closec`, `init`, `timeList`,
+  `NewTimeList`, `timeList.Wait`, `timeList.Trigger`); `notify.toml` `Notifier`, `NewNotifier`,
+  `Notifier.Receive`; `etcdserver.toml` `EtcdServer.applyAll`, `applySnapshot`, `Backend`,
+  `snapshotIfNeededAndCompactRaftLog`, `shouldSnapshotToDisk`, `shouldSnapshotToMemory`,
+  `memorySnapshotCount`. No type Goose cannot translate was dragged in.
+- **Verified and linked** (the server's `Link.lean`): `wait.NewTimeList`, `timeList.Wait`,
+  `timeList.Trigger` (`wait/TimeList.lean`: `isWaitTime wt P`, `isTimeList tl P`; `Wait(d)` returns
+  a channel closed with some `Q` with `□ (Q -∗ P d)`, `Trigger(d)` takes `□ P d`; `P` monotone
+  downward), `notify.NewNotifier`, `Notifier.Receive` (`notifyReader n`, a reader slot of `n.mu`);
+  the nine `server` methods of `*EtcdServer` (`ApplyWait`, `Done`, `LeaderChanged`,
+  `NextRequestID`, `RequestTimeout`, `Stopping`, `FirstCommitInTermNotify`, `AppliedIndex`,
+  `CommittedIndex`); `raftNode.ReadIndex`; `applyAll`, `applySnapshot` (under raft's no-snapshot
+  contract: it returns at `IsEmptySnap(nil)`; verified-code counts its 102 lines, all but the
+  check unreachable under the premise), `Backend`, `snapshotIfNeededAndCompactRaftLog`,
+  `shouldSnapshotToDisk`, `shouldSnapshotToMemory`; `getAppliedIndex`, `getCommittedIndex`,
+  `setAppliedIndex`, `apply`, `applyEntries`, `applyEntryNormal`, `setTerm`, `raftNode.start`,
+  `raftNode.ReadState` restated.
+- **The read loop's contracts discharged**: `read_server` (`isReadServer (*EtcdServer s) γr
+  (srvReadLR s) (idCred ρ.ids 1)` from `isServerReq s E ρ ∗ isServerRead s E γr`;
+  `ReadServer.lean`), `read_raft` (`isReadRaft (*raftNode r) E.γr E.RQ` from `isRaftNode E γ r`;
+  `ReadRaft.lean`), `wait_time` (`isWaitTime (*timeList tl) P` from `isTimeList tl P`). `LR :=
+  srvReadLR s` = `srvLgReader s` and a reader slot of each of `s.leaderChanged` and
+  `s.firstCommitInTerm`; `NR := idCred ρ.ids 1` (the loop's `□ |==> NR` is the server's id-budget
+  premise).
+- **The raft contract** (`InvRaftNode.lean`): `RNEnv` gains `γr : ReadNames` and `RQ`;
+  `isRaftNodeIfc` gains a `ReadIndex` conjunct (at `committedAtLeast E.γr n`: `applyErrIs err`, if
+  `nil` `□ E.RQ id n`: the trust-boundary claim that a read index is at least the committed index
+  at the call); `rnReadyData`'s read states are each `readStateOk E.RQ` (`ReadStates' = nil` until
+  then); `isRNReadStateC E c := isReadStateC c E.RQ`; `raftNode.start` forwards
+  `rd.ReadStates[len-1]` to `readStateC` (or warns after `time.After`, or returns on `r.stopped`;
+  joined by `wp_join (Q := …)` with a `returnVal` case), taking `zap.Duration`/`Logger.Warn`.
+- **The ghost applied index**: `ReadNames` gains `logs` (a ghost map, index ↦ KV log);
+  `appliedLogAt γr i L := i ↪[γr.logs]□ L` (`appliedLogAt_agree`); `srvAppliedInv s E γr` (the
+  atomic at `v`, `monoNatAuthOwn γr.applied ½ v`, the map's authority with keys `≤ v`,
+  `appliedLogAt γr v L`, `idxCert E.γ.idx L`) replaces `srvAtomicU64 appliedIndex`;
+  `srvAppliedOwn γr v` (the other half) is the apply thread's, carried by `apply`/`applyEntries`/
+  `applyAll` beside `ep.appliedi ↦ v` with `appliedLogAt γr v x.log`; `setAppliedIndex` takes
+  `srvAppliedOwn γr v`, `v < v'`, `idxCert L` and gives `srvAppliedOwn γr v' ∗ appliedAtLeast γr v'
+  ∗ appliedLogAt γr v' L` (deposited at the atomic store); `srvCommittedInv s γr` likewise (no log;
+  the writer's half `srvCommittedOwn` is 4c's). `isServer`/`srvAtomics` take `γr`; the proposer's
+  `srvReqFieldsAt` holds `srvIndexInvs s E := ∃ γr, srvAppliedInv s E γr ∗ srvCommittedInv s γr`
+  (a deviation from the brief, which threaded `γr` through `ReqFields`: the proposer reads the
+  indices only for the request limit, so the names do not matter, and `isServerReq`'s 39 uses keep
+  their signature); `srvReadFieldsAt` holds them at `γr`, with `applyWait` (`isWaitTime …
+  (appliedAtLeast γr)`), `leaderChanged`, `firstCommitInTerm`, `stopping` (`srvDoneChan`).
+  `readIndexOk_log`, `readIndexOk_logR`; `rangeReadOk`/`txnReadOk` (and v3rpc's `rangeAnsOk`/
+  `txnReadAns`) in the linearizable case: `readLogOk γr c log` (`readIndexOk γr c ∗ ∃ ci₀ L₀, c ≤
+  ci₀ ∗ appliedLogAt γr ci₀ L₀ ∗ L₀ <+: log`; `Range`/`Txn` pass the longer of their `log₀` and
+  `L₀` to `txn.Range`/`txn.Txn`). Results (`Results.lean`): `range_linearizable` restated with the
+  log, `applyAll_model`, `applied_log_at` (`setAppliedIndex`'s and `apply`'s deposits,
+  `appliedLogAt_agree`), `read_server`, `read_raft`, `wait_time`.
+- **Changes to 4a's contracts** (`read/Inv.lean`): `ApplyWait(d)` returns `∃ Q, bcastChan ch Q ∗ □
+  (Q -∗ appliedAtLeast γr d)` (`Wait` returns the package's `closec`, closed with nothing, when `d`
+  was triggered; Perennial's broadcast idiom has no way to view a closed channel at another
+  content); `LeaderChanged()`/`FirstCommitInTermNotify()` take and return `LR` (`srvChanOkR`:
+  `Receive` read-locks the notifier). The loop's proofs (`Read__LinearizableReadLoop`,
+  `Read__requestCurrentIndex`) pass `HLR` and apply the wand after the receive.
+- **Premises**: the id budget (`□ |==> idCred ρ.ids 1`, the loop's `NR`); raft's no-snapshot
+  contract (`ap.snapshot = nil`, `rnApP`); `closec` closed (`waitClosecInit`, a premise of
+  `NewTimeList` carried by `isTimeList`, as Perennial's `context.isClosedchanInit`: the package
+  facts are at any `HasLC`, the broadcast idiom needs later credits, so `wait`'s `isPkgInit` stays
+  `True` and `init` is not proved); `P` monotone downward and `□ P 0` for `NewTimeList`. Monotone
+  triggers are **not** needed (the lock keeps `□ P last`; a lower `Trigger(d)` brings `□ P d`):
+  documented in `TimeList.lean`. The server's package facts gain `srvApplyLoopInit`
+  (`proposalsApplied` a gauge with `Set`, `schema.AllBuckets` some slice).
+- **New axioms** (trust boundary, names-only callees of `applyAll`): `backend.VerifyBackendConsistency`
+  (verification code, as `verify.Verify`), `EtcdServer.snapshot` (frames `ep`'s applied index,
+  term, conf state, `srvApplyKV`, the backend, the applying index; keeps `loopOk`/`ciEff`; may move
+  `srvSnapState`), `EtcdServer.compactRaftLog`, `EtcdServer.createMergedSnapshotMessage`,
+  `EtcdServer.sendMergedSnap`. `proposalsApplied.Set` is a package fact (`gaugeSetSpec`, as the raft
+  wrapper's gauges), not an axiom.
+- **Go**: no finding. `applyAll` triggers `applyWait` after `applyEntries`, before `<-notifyc`: a
+  waiter is released once the KV applied through `d`, which is what a read sees (no WAL read).
+  `applyEntries`' gap panic is ruled out by its spec's premise `f0 ≤ ai + 1` (4c derives it from
+  `rnApP`'s consecutive `cum`). `SnapshotCount = 0` is not used by the proof. `Trigger` may lower
+  `lastTriggerDeadline`; the API's documentation promises no more than the code does.
+- **For 4c** (`run`/`start`): allocate `γr` (`applied`, `committed`, `notifier`, `logs`) with
+  `srvAppliedInv` at the snapshot index and the KV's log then (`appliedLogAt γr ai x.log`), keep
+  `srvAppliedOwn γr ai` for the apply loop and `srvCommittedOwn` for `updateCommittedIndex`
+  (raising `γr.committed` at the raft loop's commit; `isReadyHandler`'s `updateCommittedIndex` gets
+  a real spec); allocate `γr.notifier` and call `NewRead` with `read_server`/`read_raft`; hand out
+  the reader slots (`readReader`/`srvReadReader` to request goroutines, `srvReadLR s`: one
+  `srvLgReader` and one `notifyReader` of each notifier to the read loop, `srvBemuReader` to the
+  apply loop); build `RNEnv` with `γr`/`RQ` for the raft node contract; `stopping` is
+  `make(chan struct{}, 1)`: Perennial's broadcast allocation needs an unbuffered channel (`.Idle`),
+  so stating `srvDoneChan stopping` needs a capacity-1 broadcast idiom (a Perennial addition) or a
+  closed-only invariant for `Buffered []`; `waitClosecInit` from the package's initialization;
+  `applyAll`'s per-`toApply` facts (`taSnapshotAddr ap ↦□ nil`, `isUnitBag notifyc`) from `rnApP`.
+- **Gates**: full build clean; `goose.py --check` passes; every `gen-link.py` mode reproduces;
+  `tcb-report.py --check --update`: 107 → 112 axioms, 9 sorries; collections: server 61 → 66, the
+  others unchanged (adt 0, apply 32, btree 0, cache 14, concurrency 13, leasing 8, mvcc 18, raft 1,
+  read 12, recipes 11, register 1/9, server-raft 6, txn 18, v3rpc 46); `verified-code.py`: etcd
+  700 → 720 of 3599 functions (8053 of 45570 lines), `server/v3/etcdserver` 48 → 63 of 279 (923 of
+  4637 lines), `pkg/v3/wait` 7 → 10 of 12 (73 of 77 lines; `init` not translated as a function),
+  `pkg/v3/notify` 3 of 3, `server/v3/etcdserver/read` 9 of 10.
+
+### Merge of `origin/lean` (the backend, units 1–4) (2026-10-13)
+
+`origin/lean` (`10f2d82eb`: the storage backend, units 1–4, "The backend" above, with unit 4's
+generalized mvcc backend contract `isKeyBackendG` and its proof of the real backend,
+`mvcc_backend_bridge`) merged into `lean` (`4f2c96322`: the request path's units 4a and 4b), on
+branch `merge-origin2`. Same Perennial pin (`a54e1999f`) and `lake-manifest.json` on both sides.
+
+- **Conflicts**: `etc/gen-link.py` (`NAMESPACED`: both `--backend` and `--read`);
+  `etc/tcb-baseline.txt` (the union, which `--check` then confirmed exactly); `notes/STATUS.md`
+  (the "Last updated" line: both sides' items); `notes/decisions.md` (both entries: ours, "The read
+  loop's notifier" and "The applied index", then origin's "The backend meets mvcc"). The other 296
+  files merged cleanly; the mvcc files (`InvStore`, `BackendBridge`, `Base`, ...) are origin's
+  exactly.
+- **Adaptation**: none. Every file of our side builds against origin's contract as it is: the
+  request path's proofs (`EtcdServer.Range`/`Txn`, `InvRead`'s `srvRdCall`, v3rpc, `applyAll`)
+  use mvcc's store-level predicates (`isStore`, `isTxnRead`, `idxCert`, `storeReader`), not
+  `storeTxnReadIs`' inside (whose reader moved to `txReader`, which origin's own txn files already
+  adapted to) nor `isKeyBackend`; origin's move of the `backend`/`verify`/bbolt package-init
+  instances to `storage/backend/Base.lean` does not meet our `BaseApply.lean` additions (`readInit`,
+  `srvApplyLoopInit`, `strconv`), and `schema`'s instance now naming the buckets (`bucketIs`) is
+  not used by our proofs. No result restated.
+- **Not yet connected**: the request path's results still take mvcc's store as built on the
+  token-free contract (`isKeyBackend` = `isKeyBackendG` with `True` tokens and no put condition);
+  origin's bridge proves `isKeyBackendG` with the backend's tokens (`bkRT`, `wbTok`, `bkPutOk`), so
+  carrying the request path down to the real backend is still to do. Our trust-boundary
+  `backend.VerifyBackendConsistency` stays an axiom (origin translates `verify.go` names only).
+- **Trust base**: 166 axioms (ours 112 + origin's 158 − 104 shared; none new), 9 sorries.
+
+Gates: `lake build` (4141 jobs, no `sorry` but the generated axiomatized types' and raft `Init`'s),
+`etc/goose.py --check` (no regeneration), every `gen-link.py` mode reproduces (cache, concurrency,
+server, register, leasing, recipes, mvcc, txn, apply, adt, v3rpc, fmt, context, read, backend),
+`etc/tcb-report.py --check` (166 axioms, 9 sorries), every collection's `--check` unchanged (adt
+0/0, apply 32/0, backend 59/0, btree 0/0, cache 14/0, concurrency 13/0, leasing 8/0, mvcc 18/0,
+raft 1/0, read 12/0, recipes 11/0, register 1/9, server-raft 6/0, server 66/0, txn 18/0, v3rpc
+46/0), `etc/verified-code.py`: etcd 794 of 3599 functions verified (etcd-raft 200 of 323,
+register 20 of 28).
+
+### Merge of `origin/lean` (the backend, unit 5) (2026-10-13)
+
+`origin/lean` (`2722abe88`: the backend's unit 5, "Unit 5: mvcc's store over the real backend"
+above: the store generic in its backend's instance `StoreNames.kb`, the late-bound lock resource
+`lateW`, reader and write tokens, the puts' condition, `mvcc_NewStore_backend` and
+`mvcc_store_Write_backend`) merged into `lean` (`fe0a47aaf`: the request path's units 4a and 4b,
+merged with the backend's units 1–4), on branch `merge-origin3`. Same Perennial pin (`a54e1999f`)
+and `lake-manifest.json` on both sides.
+
+- **Conflicts**: `etc/tcb-collections/server.txt` (the baseline only, the `roots` lines identical:
+  our 4b axioms `VerifyBackendConsistency` and the four `EtcdServer` names-only contracts, their
+  bbolt predicates `backend.rBkt`/`rtxSnap`/`rtxStats`/`txLive`; the union, which `--check` then
+  confirmed exactly); `notes/STATUS.md` (the "Last updated" line: both sides' items). The other
+  91 files merged cleanly; the mvcc files (`InvStore`, `BackendBridge`, `StoreBackend`, `Base`,
+  the `Spec`s) are origin's exactly.
+- **Adaptation**: none. The request path meets unit 5 only through `txn.isKV`, which now carries
+  `⌜γ.kb = none⌝`: our 4a/4b files (`EtcdServer.Range`/`Txn`/`applyAll`/`apply`/`applyEntries`,
+  `InvRead`, `InvApplyAll`, `ReadServer`, v3rpc's `rangeAnsOk`/`txnReadAns`) keep `isKV` folded
+  (the two places that destructure it, `EtcdServer.newHeader` and v3rpc's `kvGetOk_of_server`,
+  origin already adapted), and never call `store.Write`/`NewStore` directly (the txn package's
+  `put`/`deleteRange`/`txn` do, and origin adapted them with `storeWT_none`/`putMax_none`). No
+  result restated.
+- **What unit 5 leaves the request path**: everything above mvcc is still over mvcc's assumed
+  backend (`γ.kb = none`), so the request path's results (`range_linearizable`, `put_end_to_end`,
+  `applyAll`'s, ...) are about a store whose backend is the token-free contract. Putting them over
+  the real backend needs `txn.isKV` generic in `kb` (dropping `γ.kb = none`), and with it: a write
+  token (`storeWT γ`, `backend.wbTok`) per write transaction carried from the server's state into
+  the apply package (`srvApplyKV`, `apply.applyKV`) and down to txn's `store.Write`; the bound
+  `mvcc.putMax γ` (`2 ^ 56` over the real backend) in place of `2 ^ 63` in the apply package's
+  premises; the reader tokens of the store's slots (`kbRT`), which `storeReader` already carries;
+  and the server's construction of the store over `backend.New` (not translated with bodies).
+- **Trust base**: 166 axioms (both sides' 166 and 158 share the 158; none new), 9 sorries. The
+  collections that reach mvcc's `StoreNames` (apply, mvcc, server, txn, v3rpc) gained bbolt's four
+  opaque predicates in origin's unit 5; the server's is the union (66 + 4 = 70).
+
+Gates: `lake build` (4143 jobs, no `sorry` but the generated axiomatized types', raft `Init`'s
+and Perennial's), `etc/goose.py --check` (no regeneration), every `gen-link.py` mode reproduces
+(cache, concurrency, server, register, leasing, recipes, mvcc, txn, apply, adt, v3rpc, fmt,
+context, read, backend), `etc/tcb-report.py --check` (166 axioms, 9 sorries), every collection's
+`--check` as merged (adt 0/0, apply 36/0, backend 59/0, btree 0/0, cache 14/0, concurrency 13/0,
+leasing 8/0, mvcc 22/0, raft 1/0, read 12/0, recipes 11/0, register 1/9, server-raft 6/0, server
+70/0, txn 22/0, v3rpc 50/0), `etc/verified-code.py`: etcd 794 of 3599 functions verified
+(etcd-raft 200 of 323, register 20 of 28).
+
+### Merge of `origin/lean` (the backend, unit 6: the write budget) (2026-10-13)
+
+`origin/lean` (`1c54ee184`: the backend's unit 6, "Unit 6: the layers above mvcc over the real
+backend" above: `txn.isKV` generic in the store's backend instance, a write token per store write
+transaction `txn.storeWTs E.γ n` threaded through the apply package into the apply thread, the
+change bound `2 ^ 56`, `server_kv_backend`) merged into `lean` (`5dfc2c339`: the request path's
+units 4a/4b and the backend's units 1–5, merged with the mvcc session's unit 5a, the compaction's
+scaffolding), on branch `merge-origin4`. Same Perennial pin (`a54e1999f`) and `lake-manifest.json`.
+
+- **Conflicts** (9 files): the apply thread's three specs and proofs (`EtcdServer.apply`,
+  `applyEntries`, `applyEntryNormal`), the server's `Results.lean` (the imports only),
+  `etc/tcb-collections/server.txt` (the header and the baseline) and this file (the "Last
+  updated" line). The other files merged cleanly; the mvcc files are origin's with our unit 5a's
+  additions (`storage/mvcc/Results.lean` merged cleanly: origin's doc paragraph and 5a's compaction
+  `#print axioms`; no mvcc file needed a hand resolution).
+- **The two spec changes combined**: the applied-index ghost (ours, 4b) and the write budget
+  (theirs, unit 6) are independent conjuncts, so each spec takes both. `applyEntryNormal`: `γr`
+  (ours) and `mvcc.storeWT E.γ` (theirs) in the pre. `apply`: pre `… srvApplyKV s E x ∗
+  srvAppliedOwn γr (f0 - 1) ∗ txn.storeWTs E.γ ms.length`, post unchanged (ours: `srvAppliedOwn
+  γr appliedi`, `appliedLogAt γr appliedi x'.log`; the tokens are spent). `applyEntries`: pre
+  `… srvApplyKV s E x ∗ srvAppliedOwn γr ai ∗ appliedLogAt γr ai x.log ∗ txn.storeWTs E.γ
+  (unapplied ai ms).length`, post ours. `applyAll` (ours, not conflicted) gains `applyEntries`'
+  budget in its pre, `txn.storeWTs E.γ (unapplied ai ms).length`, spent; `InvApplyAll`'s
+  `srvApplyRes` (what comes back) is unchanged.
+- **Proofs adapted**: `EtcdServer.apply` (the loop invariant carries both `HW` = `txn.storeWTs E.γ
+  (ms.length - j)` and ours' `Hao`/`Hlog`/`Haw`; the initial instance's `simp` is origin's, the
+  `Haw` goal ours), `applyEntries` and `applyEntryNormal` (both sides' hypotheses named and
+  passed), `applyAll` (passes the budget to `applyEntries`). `server_kv_backend` (origin's, in the
+  server's `Results.lean`) meets our unit 5a's `mvcc_NewStore_backend`, which now takes `0 ≤
+  CompactionBatchLimit` and returns the compaction-capable readers (`storeReaderC`), `storeStop`
+  and the compaction right `compactRight γ (-1)`: it gains the premise `hcfg` (`NewStore`'s), and
+  gives up the compaction right (`compactRight_freeze`, under `wp_fupd`) to turn the readers into
+  `storeReader`s (as `newWatchableStore` does), so its postcondition is origin's exactly.
+- **Restated results**: `applyAll_model`, `applyEntries_model` and the linked `wp_apply*` follow
+  their specs (the budget in the pre); `server_kv_backend` with the extra premise `hcfg`. Nothing
+  of origin's weakened otherwise; `γ.kb = none` stays gone.
+- **Trust base**: 172 axioms (ours; origin's 158 are among them), 31 sorries (ours: unit 5a's 22
+  and the register's 9). Collections as merged: `server` the union of both sides' baselines
+  (origin 114, ours 70: 119), which `--check` confirmed exactly; every other collection unchanged
+  (adt 0/0, apply 36/0, backend 59/0, btree 0/0, cache 14/0, concurrency 13/0, leasing 8/0,
+  mvcc 34/22, mvcc-compaction 22/22, raft 1/0, read 12/0, recipes 11/0, register 1/9,
+  server-raft 6/0, txn 22/0, v3rpc 50/0).
+- **For unit 4c** (`run`/`start`, chaining `applyAll` jobs): each `applyAll` now needs
+  `txn.storeWTs E.γ (unapplied ai ms).length` (one per entry above the applied index; a conf
+  change's is wasted). The supply is `server_kv_backend`'s `txn.storeWTs γ N` (the backend
+  creator's `N` write-back tokens, `ownToks d.γB.wb`; free when `γ.kb = none`): the run loop's
+  invariant must carry the remaining supply and split each batch's share off (a lemma
+  `storeWTs γ (a + b) ⊣⊢ storeWTs γ a ∗ storeWTs γ b`, from `ownToks_add`; only the one-token
+  `storeWTs_split` exists), so with a finite `N` the loop's spec bounds the entries applied (or
+  takes the budget per batch as a premise of raft's hand-off).
+
+Gates: `lake build` (no `sorry` but the generated axiomatized types', raft `Init`'s, Perennial's
+and unit 5a's 22), `etc/goose.py --check` (no regeneration), every `gen-link.py` mode reproduces
+(cache, concurrency, server, register, leasing, recipes, mvcc, txn, apply, adt, v3rpc, fmt,
+context, read, backend), `etc/tcb-report.py --check` (172 axioms, 31 sorries), every collection's
+`--check` as merged (above), `etc/verified-code.py`: etcd 794 of 3599 functions verified, 21
+unfinished (etcd-raft 200 of 323, register 20 of 28).
+
 ## Build performance (2026-10-12, branch `proof-perf`)
 
 Measured with `lake env lean` CPU time on the loaded shared machine (back to back, min of
@@ -2112,6 +2414,93 @@ base: the watchable store, units 1a–4c; the interval tree proved). `lean` move
 - **Pitfall**: `git diff lean` after `lean` moves compares against the new tip, not the merged
   one; compare against `MERGE_HEAD`.
 
+## Merge: lean into mvcc, the backend meets the compaction (2026-10-13)
+
+`lean` at `deccecdff` (the backend's units 1–5: etcd's `server/v3/storage/backend` proved over
+bbolt's key-value contract, mvcc's backend contract generalized and proved of it in
+`BackendBridge.lean`, mvcc's store over the real backend; and the request path's 4a/4b, already
+in `mvcc`) merged into `mvcc` at `b0824a24e` (unit 5a, the compaction's specs). 31 conflicts: the
+mvcc store's and backend contract's two rewrites, reconciled function by function (the design and
+its rejected alternatives: `notes/decisions.md`, "The compaction over the real backend (merge,
+2026-10-13)").
+
+- **The merged contract** (`InvStore.lean`): the backend side's `isKeyBackendG` /
+  `isBatchTxG` / `batchTxSpecG` / `batchTxInitSpec` / `keyReadSnap` / `keyReadLocked` with
+  unit 5a's parameters added: `isKeyBackendG b View RT WT PutOk Del W Wi Dep Cmp P f`. `Del`:
+  the snapshots' `snapThin` (now in `keyReadSnap`'s `RLock` postcondition) and the point read's
+  "deleted" disjunct; `Dep`: returned by `batchTxInitSpec`'s `Unlock` (no longer by the no-puts
+  `Unlock`), taken by the job's `LockOutsideApply`; `Size`/`SizeInUse`; under `⌜Cmp⌝`:
+  `UnsafeDelete(Key)`, the limited `UnsafeRange`, `UnsafePut(Meta)`, `ReadTx`'s `metaReadTx`,
+  `LockForSafeRangeDelete`/`Unlock…`. mvcc's assumed instances: `isKeyBackend b View Del W P f`
+  (∃ `Dep`, no tokens, `Cmp` true), `batchTxSpec bt View Del W Dep Locked P f`, `isBatchTx`.
+  `NewStore`'s premise: `storeBackend b s γ P f` (the instance's contract, ∃ `Dep`, `Cmp :=
+  storeCmp γ`, i.e. `γ.kb = none`).
+- **The merged store**: `StoreNames` has both sides' names (`kb`; `cmeta`, `fin`, `sch`;
+  `IdxNames.crev`); `isStore` has the instance's contract, `□ Dep`, the registration
+  (`storeRegd`), the configuration, scheduler, `stopc`, hash storage; `muInv`/`revMuInv` hold the
+  compaction revision's halves; `writerRes` holds `compactRes`; `storeReaderC`/`storeReader` carry
+  the backend's reader token (`storeRT`), `storeReader` also `crevFrozen`; the read transaction
+  has the backend side's `txReader` and unit 5a's `muHeld` and `crevFrozen`; the write
+  transaction both sides' fields (`storeRegd`, `storeRT`, `delKey`, `Dep`, `compactRes`,
+  `crevFrozen`). Every existing mvcc proof of both sides builds (`storeTxnWrite.put` needed
+  `maxHeartbeats 400000`).
+- **Proved of the real backend** (`BackendBridge.lean`, `isKeyBackendG_of_backend`, `Cmp` false,
+  `Dep = True`): exact snapshots (`snapThin_refl`), the point read's key found, the job's
+  `LockOutsideApply` (`bt_lockOutJ`), the init `Unlock`'s `□ True`, `Size`/`SizeInUse` (`bk_size`,
+  `bk_sizeInUse`, from `backend.Size`/`SizeInUse`), `ForceCommit` (unit 4's). **Not provable**,
+  hence under `Cmp`: the deletion from `Key` (the backend's `UnsafeDelete` requires a bucket that
+  is not safe-range, its invariant `safeSt` keeps every committed key of `Key`, and a deletion's
+  commit changes what readers see, which its `Unlock` allows only with the clients' whole view,
+  half of which is under `s.revMu`, which the job does not hold); the `Meta` keys (the hook's
+  bucket: reads promise nothing, so not `metaRevVal`; puts need the key absent from the hook's
+  leftovers, and cost an operation `bkLocked` does not count); the job's unbounded write-back
+  budget; `safeRangeDeleteMu`'s reader slots (not handed out by `isBackend`). None of these is an
+  axiom of bbolt's contract: they are the backend model's limits (a backend view up to deletable
+  keys, and the `Meta` keys as the store's, would be the extension).
+- **Adjusted unit 5a statements**: `store.Compact`, `updateCompactRev`, `compactLockfree`,
+  `checkPrevCompactionCompleted` take `storeCmp γ`; `compactJobPre` holds it; `keyReadSnap` drops
+  `metaReadSpec` (unused; `metaReadTx` stays); `NewStore`/`newWatchableStore`/`New` take the
+  backend side's instance premises (`kb`, `kbView`, `kbRegRight`, two `kbWT`, the `kbRT`s) as
+  `storeBackend`, and keep `0 ≤ CompactionBatchLimit`; `rangeEvents`/`store.restore` quantify over
+  `Dep`, `Cmp`; `mvcc_NewStore_backend` takes the batch-limit premise and returns unit 5a's
+  postcondition (`storeReaderC`, `storeStop`, `compactRight γ (-1)`; the client freezes it).
+- **Other packages**: no statement of txn/apply/v3rpc/server/read/backend changed.
+- **Gates**: `lake build` (the only `sorry` warnings are unit 5a's 21 pending proofs);
+  `goose.py --check`; every `gen-link.py` mode reproduces (raft's needs the Rocq tree: untouched);
+  the trust base 172 axioms, 31 sorries: exactly the union of `lean`'s 166/9 and `mvcc`'s 118/31
+  (nothing turned from axiom into theorem: the bridge's new clauses use the backend's linked
+  results); collections: mvcc 34/22 (the union: 5a's 30 + the 4 bbolt predicates), mvcc-compaction
+  18 -> 22 axioms (the 4 bbolt predicates, which `isStore`'s `StoreNames.kb` names), every other
+  unchanged (backend 59/0, server 70/0, apply 36/0, txn 22/0, v3rpc 50/0, read 12/0); verified
+  code: `server/v3/storage` 188 of 490 functions verified, 18 unfinished (mvcc 108 of 155, 18
+  unfinished, 6 assumed; backend 70 of 112; schema 10 of 110), etcd 794 of 3599, 21 unfinished.
+
+## Merge: lean into mvcc, the request path's unit 4b (2026-10-13)
+
+`lean` at `4f2c96322` (the request path's unit 4b: the apply loop `applyAll` and the applied index,
+`pkg/wait`'s `wait_time.go`, `pkg/notify`'s `NewNotifier`/`Receive`, the read loop's contracts
+discharged; five commits past `17575d236`) merged into `mvcc` at `1ce3878bb`. One conflict, this
+file's "Last updated" line. The server's `BaseApply.lean` and `Link.lean` merged automatically
+(4b's additions beside 5a's move of go-humanize's `isPkgInit` instance to mvcc's `Base.lean` and the
+zap/go-humanize theorems now defined by mvcc's `Link.lean`); every `gen-link.py` mode reproduces
+the merged `Link.lean`s. `etc/tcb-baseline.txt` merged automatically (4b's five axioms beside 5a's).
+Gates: `lake build`, `goose.py --check`, the trust base 118 axioms and 31 sorries (the union), every
+collection unchanged (server 66/0, mvcc 30/22, mvcc-compaction 18/22).
+
+## Merge: lean into mvcc, the request path's unit 4a (2026-10-13)
+
+`lean` at `17575d236` (the request path's unit 4a: the linearizable read loop,
+`server/v3/etcdserver/read`, two commits past `164492796`) merged into `mvcc` at `3f2263f69`
+(the compaction's unit 5a). Conflicts: `etc/tcb-baseline.txt` (both sides' additions kept: 5a's six
+axioms and 22 sorries, 4a's three axioms `context.WithTimeoutBackground`, `strconv.FormatUint`,
+`traceutil.Trace.LogAllStepsIfLong`), this file's "Last updated" line and `decisions.md` (both new
+sections kept). No proof or spec changed on either side: 4a touches nothing under `storage/mvcc`,
+`pkg/adt` or `pkg/schedule`; its `BaseApply.lean`/`InvApply.lean` edits merged cleanly with 5a's move
+of go-humanize's `isPkgInit` instance to mvcc's `Base.lean`. Gates: `lake build` 3900 jobs (the only
+`sorry` warnings the 21 pending compaction and scheduler proofs), `goose.py --check` ok, the trust base
+113 axioms and 31 sorries (the union), every collection unchanged (mvcc 30/22, mvcc-compaction 18/22,
+read 12/0), every `gen-link.py` mode reproduces.
+
 ## Merge: lean into mvcc, the request path's unit 3b (2026-10-12)
 
 Local `lean` at `a95ad2bb4` (5 commits since the base `fd5d5306e`: the request path's unit 3b,
@@ -2170,6 +2559,91 @@ merged into `mvcc` (base `e3effe933`). The Perennial and etcd pins did not move.
   axioms. Verified code: etcd 494 of 3599 functions (5149 of 45570 lines); mvcc 78 of 155 (7
   conditional on the tree's contract), 829 of 2073 lines; adt 4 of 42; txn 39 of 48, 570 of
   653 lines.
+
+## The store's compaction (2026-10-13, branch `mvcc`)
+
+The plan: unit 5a (this one) translates the compaction and fixes its model, the contracts and
+the specs; 5b proves the index's side (`keyIndex.compact`/`keep`/`doCompact`,
+`treeIndex.Compact`/`Keep`) and the meta keys; 5c the store's side (`Compact`,
+`updateCompactRev`, `compact`, `compactBarrier`, the job `scheduleCompaction`,
+`checkPrevCompactionCompleted`, `compactLockfree`). The design, with its rejected alternatives:
+`notes/decisions.md`, "mvcc: compaction — the compaction revision under revMu, the index
+compacted per key, the bucket minus a kept set".
+
+**Unit 5a (2026-10-13): done.**
+
+- **Translation.** `mvcc.toml`: `treeIndex.Compact`/`Keep`, `keyIndex.compact`/`keep`/
+  `doCompact`, `store.Compact`/`compactLockfree`/`compact`/`updateCompactRev`/
+  `checkPrevCompactionCompleted`/`compactBarrier`/`scheduleCompaction`, the meta keys'
+  `Unsafe{Read,Set}{Scheduled,Finished}Compact`/`Set{Scheduled,Finished}Compact`;
+  `go-humanize` imported (its `isPkgInit` instance moved from the server's `BaseApply.lean` to
+  mvcc's `Base.lean`). `schedule.toml`: `NewJob`, `job.Name`, `job.Do` with bodies, `context`
+  imported (the FIFO scheduler stays names-only). `etc/goose.py --check` passes.
+- **The model** (`Compact.lean`, pure, no `sorry`): `kiCompact` (the key index compacted at a
+  revision, `key_index.go`'s `compact` with `doCompact`), `kiAvail`/`kiKeep` (the kept set,
+  `keep`'s), `kiCompactO` (absent if emptied), `IdxCRep` (each key at its own level),
+  `crevN`, `KeyDel` (what the job may delete), `NoDelPutAt`, `keepAt`; theorems
+  `kiGet_kiCompact`, `kiGet_of_kiCompact_empty`, `kiCompact_kiCompact`/`_le`, `kiCompact_neg`,
+  `kiCompact_lastEmpty`, `kiCompact_empty_lastEmpty`, `kiCompactO_step`, `IdxCRep.step`/`kiAt`/
+  `rangeAt`/`get_some`/`get_none`/`mono`/`of_indexOf`, `kiGet_avail`, `named_not_del`,
+  `kiAvail_prefix`, `KeyDel_prefix`, `kiAvail_kiCompact` (printed by `Results.lean`).
+- **Invariants and contracts.** The index (`InvIndex.lean`): the compaction revision's counter
+  (`IdxNames.crev`, `crevUB`/`crevLb`), `idxLockInv` at `IdxCRep cmax`; `Get`/`Range`/
+  `Revisions`/`CountRevisions` take a part `crevUB γ q c` with `c ≤ atRev` (given back),
+  `KeyIndex`/`Insert` at `-1`, `newTreeIndex` returns the whole. The store (`InvStore.lean`):
+  `muInv` (`s.mu`'s resource, was `True`) and `revMuInv` each half of `compactMainRev` and a
+  quarter of the counter; the compaction right `compactRight γ c`; `crevFrozen` (the right
+  given up at `-1`); the backend contract with the deletable keys (`Del`), the
+  deposit witness (`Dep`), the batch transaction's `UnsafeDelete`/limited `UnsafeRange`/meta
+  `UnsafePut`, thinned snapshots (`snapThin`), the meta reads (`metaReadSpec`, `metaReadTx`),
+  `LockOutsideApply`, `LockForSafeRangeDelete`, `Size`/`SizeInUse` (since the merge with the
+  backend's units 1–5: inside the backend side's `isKeyBackendG`, the compaction-only calls under
+  its condition `Cmp`, `storeCmp γ` for the store; see "Merge: lean into mvcc, the backend meets
+  the compaction"); the meta record
+  (`compactRes`, `compactedAt`); `isStore` with the configuration (`0 < CompactionBatchLimit`),
+  the scheduler, `stopc`, the hash storage. `InvCompact.lean`: the job's predicates
+  (`compactJobPre`, `compactDone`, `compactChan`, `keepSetIs`, `storeStopped`, `barrierCtx`).
+  `pkg/schedule`'s `Defs.lean`: `isScheduler`, `schedRunning`, `jobIs`.
+- **Specs**: the 18 compaction functions and the 3 `pkg/schedule` functions specified, their
+  proofs pending (`sorry`), all linked (`etc/link-lean-first-mvcc.txt`); the store's readers
+  (`storeReader`) carry `crevFrozen` (the existing statements are of a store never compacted);
+  `rangeKeys` general (`rangeOutcomeC`); `NewStore` takes `0 ≤ cfg.CompactionBatchLimit` and
+  returns the compaction right with `storeReaderC`; `New`/`newWatchableStore` freeze it. No
+  statement of txn/apply/v3rpc/server changed.
+- **New axioms** (6, trust boundary): `schedule.Scheduler.Schedule` (the shape agreed with the
+  server's session), `mvcc.newKVHasher`, `mvcc.kvHasher.WriteKeyValue`, `mvcc.kvHasher.Hash`,
+  `mvcc.hashStorage.Store` (crc32 unmodelled), `zap.Uint32`. **New sorries** (22): the 18
+  mvcc pending proofs (`keyIndex.compact`/`keep`/`doCompact`, `treeIndex.Compact`/`Keep`,
+  `store.Compact`/`compact`/`compactLockfree`/`compactBarrier`/`updateCompactRev`/
+  `scheduleCompaction`/`checkPrevCompactionCompleted`, `{Unsafe,}Set{Scheduled,Finished}Compact`,
+  `UnsafeRead{Scheduled,Finished}Compact`), `schedule.NewJob`/`job.Do`/`job.Name`, and
+  `kvHasher.kvHasher_typed_pointsto` (the generated instance of the axiomatized type `kvHasher`,
+  reached by `scheduleCompaction`'s spec).
+- **Gates**: `lake build` passes (the only `sorry` warnings are the pending proofs);
+  `goose.py --check` passes; the trust base 110 axioms, 31 sorries (was 104, 9); collections:
+  mvcc 30/22 (was 18/0: the compaction's axioms and sorries, and the zap/humanize/context axioms
+  its functions reach), new `mvcc-compaction` 18/22 (tracks units 5b/5c); every other
+  collection unchanged; verified code: mvcc 108 of 155 functions verified, 18 unfinished, 6
+  assumed (1340 of 2073 lines), etcd 691 of 3599 functions, 21 unfinished.
+- **Findings** (`issues/`): `etcd-compaction-negative-batch-limit` (a negative
+  `CompactionBatchLimit` makes the job loop forever; `NewStore`'s premise) and
+  `etcd-compaction-delete-then-put` (compacting at a revision that deletes then puts a key
+  deletes its live value: a later read `Fatal`s; `named_not_del`'s premise `NoDelPutAt`), both
+  reproduced by Go tests (kept out of git, in `.lake/go-src/etcd`).
+- **Traps for 5b/5c**: `generation.walk`'s spec has a pure closure (`doCompact`'s closure writes
+  `available`: 5b needs an effectful `walk` spec); `kvHasher` is axiomatized (the job's proof
+  rests on its generated instances' `sorry`); readers of a compacted store are not specified
+  (`storeReaderC` exists; compaction-aware `Read`/`Write`/`Range` are the server's next need,
+  with `NoDelPutAt`); `compactDone`'s "some context closed" disjunct is weak (the cancelled
+  job's barrier); the bucket's logical view never shrinks (deletions are `Del`-invisible: the
+  job does not take `revMu`); `LockOutsideApply` gives `W` only with the deposit witness `Dep`;
+  `compactMainRev` is split between `s.mu` (`rangeKeys`) and `revMu` (`syncWatchers`);
+  since the merge with the backend, the compaction is specified over mvcc's assumed backend only
+  (`storeCmp γ`, `γ.kb = none`, a premise of `Compact`/`updateCompactRev`/`compactLockfree`/
+  `checkPrevCompactionCompleted` and part of `compactJobPre`): the real backend does not support
+  deleting from `Key` (see the merge section), so 5b/5c prove the compaction against the assumed
+  contract, whose guarded clauses (`⌜Cmp⌝ -∗ …`) they open with it; the store's readers and
+  writers now also carry the backend's tokens (`storeRT`, `storeWT`, `txReader`).
 
 ## The watchable store (2026-10-11, branch `mvcc`)
 

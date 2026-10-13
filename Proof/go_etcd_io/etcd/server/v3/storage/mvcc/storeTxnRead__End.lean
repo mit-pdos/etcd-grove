@@ -39,8 +39,10 @@ theorem mvcc.storeTxnRead.End.wp_proof : mvcc.storeTxnRead.End.spec (GF := GF) (
   wp_apply HRU $$ [$Htok] as Hrt
   (try wp_auto)
   -- `tr.s.mu.RUnlock()`
-  wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu0] as Hmu0
-  · inext; iunfold mvcc.muInv; itrivial
+  iunfold mvcc.muHeld at Hmu0
+  icases Hmu0 with ⟨Hmu0, Hmua⟩
+  wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu0 Hmua] as Hmu0
+  · inext; iunfold mvcc.muInv; iexists -1; iexact Hmua
   (try wp_auto)
   iapply HΦ
   iunfold mvcc.storeReader

@@ -34,7 +34,7 @@ theorem mvcc.newWatchableStore.wp_proof
     (hNewWG : mvcc.newWatcherGroup.spec (GF := GF) (hG := hG))
     (hsplit : adt.ownIvt_split.spec (GF := GF) (hG := hG)) :
     mvcc.newWatchableStore.spec (GF := GF) (hG := hG) := by
-  intro lg b le cfg kb γb γl P f
+  intro lg b le cfg kb γb γl P f Hcfg0
   wp_start as ⟨Hbk, Hbv, Hrg, Hwt1, Hwt2, Hrts, #Hlessor⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -44,8 +44,12 @@ theorem mvcc.newWatchableStore.wp_proof
     isplitr
     · ipureintro; rfl
     iexists l; iexact lg
-  wp_apply hNewStore $$ [$Hbk $Hbv $Hrg $Hwt1 $Hwt2 $Hrts $Hlessor] as %st ⟨%γs, ⟨%hγb, %hγl, %hγk⟩, #Hst, #HhookP, Hviews,
-    Hreaders, Htoks, #Hcert, Hsclose⟩
+  wp_apply (hNewStore _ _ _ _ _ _ _ _ _ Hcfg0) $$ [$Hbk $Hbv $Hrg $Hwt1 $Hwt2 $Hrts $Hlessor] as %st
+    ⟨%γs, ⟨%hγb, %hγl, %hγk⟩, #Hst, #HhookP, Hviews, Hreaders, Htoks, #Hcert, Hsclose, -, Hright⟩
+  -- the watchable store never compacts its store (compaction is out of its model): the right
+  -- given up, the readers those of a never-compacted store
+  imod mvcc.compactRight_freeze γs ⊤ $$ Hright with #Hfrz
+  ihave Hreaders := mvcc.storeReaders_of st γs _ $$ [$Hfrz $Hreaders]
   wp_apply chan.wp_make2 (V := Unit) $$ [] as %vc %γv ⟨#Hvc, %Hvcap, Hvown⟩
   · ipureintro; decide
   wp_apply hNewWG as %gu Hgu

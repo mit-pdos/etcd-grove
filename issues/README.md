@@ -87,6 +87,14 @@ encoded `KeyValue` exceeds bbolt's `MaxValueSize` (`2^31 - 2` bytes) makes the b
 `unsafePut` call `lg.Fatal` (an unstated precondition of `UnsafePut`/`UnsafeSeqPut` and of mvcc's
 `Put`; unreachable with the default request limit; found 2026-10-13, the backend bridge; not
 filed).
+[etcd-compaction-negative-batch-limit](etcd-compaction-negative-batch-limit.md): a negative
+`CompactionBatchLimit` (an unvalidated flag; `NewStore` defaults only `0`) makes every compaction
+job loop forever, force-committing every interval, its channel never closed (reproduced; found
+2026-10-13, mvcc compaction unit 5a; not filed).
+[etcd-compaction-delete-then-put](etcd-compaction-delete-then-put.md): compacting at a revision
+that deletes a key and puts it again deletes the key's live value from the bucket, and the next
+read of the key calls `lg.Fatal` (reproduced through mvcc's API; etcd's gRPC `checkIntervals`
+rejects such a transaction; found 2026-10-13, mvcc compaction unit 5a; not filed).
 
 [go-itab-reinterpret-assert](go-itab-reinterpret-assert.md): in Go itself, a type assertion
 on an `I1` value read through a `*I2` (two named interfaces with the same methods) panics with

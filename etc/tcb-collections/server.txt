@@ -7,6 +7,11 @@
 # merged with the raft wrapper's proto.Clone, zap.Duration and zap.Logger.Fatal: 47;
 # 2026-10-13, unit 6: `server_kv_backend`, the apply thread's KV made by `NewStore` over the real
 # backend, adds the backend's and bbolt's key-value contract and mvcc's store axioms: 114).
+# The request path's unit 4b (2026-10-13): the apply loop's applyAll reaches backend's
+# VerifyBackendConsistency and the names-only snapshot, compactRaftLog, createMergedSnapshotMessage
+# and sendMergedSnap contracts: 61 -> 66.
+# Merged with the backend's unit 5 (mvcc's StoreNames names bbolt's four opaque predicates): 70.
+# Merged with the backend's unit 6 (2026-10-13): the union.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/server.txt [--check [--update]]
 #
@@ -15,6 +20,10 @@
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/(Link|Results)\.lean$
 axiom EtcdServer.GoAttach.wp_proof
 axiom EtcdServer.applyConfChange.wp_proof
+axiom EtcdServer.compactRaftLog.wp_proof
+axiom EtcdServer.createMergedSnapshotMessage.wp_proof
+axiom EtcdServer.sendMergedSnap.wp_proof
+axiom EtcdServer.snapshot.wp_proof
 axiom EtcdServer.stopWithDelay.wp_proof
 axiom attribute.Bool.wp_proof
 axiom attribute.Int.wp_proof
@@ -22,6 +31,7 @@ axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
+axiom backend.VerifyBackendConsistency.wp_proof
 axiom backend.isDB
 axiom backend.isDB_persistent
 axiom backend.ownCur

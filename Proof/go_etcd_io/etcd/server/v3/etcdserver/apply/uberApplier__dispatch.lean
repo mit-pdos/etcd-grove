@@ -55,7 +55,8 @@ warnings (the failure's if not `success`). -/
 local macro "err_path" : tactic => `(tactic| (
   ihave #HeIu := applyErrIs_tree _ $$ HeI
   ihave ⟨%S, %M, #Htree, %HS⟩ := HeIu $$ %(GoInterface.ok ec)
-  wp_apply (hIs S M _ (GoInterface.ok ec) (fun tii h => by cases h; exact Hecl.1) HS.2)
+  wp_apply (hIs S M _ (GoInterface.ok ec) (fun tii h => by cases h; exact Hecl.1)
+    (HS.2 (fun tii h => by cases h; exact Hecl.1)))
     $$ [] as %b -
   · iframe Htree; ipureintro; exact HS.1
   wp_apply time.wp_Since as %d -

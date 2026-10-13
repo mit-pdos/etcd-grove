@@ -38,7 +38,7 @@ theorem mvcc.storeTxnWrite.Changes.wp_proof :
   iunfold mvcc.storeTxnWriteCore
   iexists trace, ti, bt, Locked, ntok
   simp only [named, mvcc.idxWriterB_false]
-  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt
+  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
   iframe #
   ipureintro; exact ⟨Hbudget, ⟨Hps, Hlen⟩, Hne, Htrnn⟩
 

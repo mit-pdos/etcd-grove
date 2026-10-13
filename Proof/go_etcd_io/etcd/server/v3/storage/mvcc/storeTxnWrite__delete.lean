@@ -74,7 +74,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   icases HlessorS with ⟨%li, %Hli, #HGetL, #HAttach, #HDetach, -⟩
   subst Hli
   ihave #Hbt0 : mvcc.batchTxSpecG bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
-      (mvcc.storePutOk γ) (mvcc.storeW s γ) Locked Pw fw $$ []
+      (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) _ (mvcc.storeCmp γ) Locked Pw fw $$ []
   · iexact Hbt
   iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨-, #HSeqPut, -, -, -⟩
@@ -158,14 +158,14 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
         tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
         changes' := chs' } : storeTxnWrite) -∗
       mvcc.storeTxnWriteIs tw s γ ilog (pend ++ [.del k]) : IProp GF)
-      $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hkv]
+      $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hkv]
   · iintro Htw
     iunfold mvcc.storeTxnWriteIs
     iexists trace, ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
     simp only [named]
     rw [mvcc.pendPuts_append ilog pend (.del k) _ hkvm']
     simp only [mvcc.revOf, mvcc.Change.isDel]
-    iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt
+    iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
     iframe #
     isplitl []
     · ipureintro; exact Hbudget

@@ -33,19 +33,21 @@ index (`idxKnows`: a committed log's certificate, or the writer's handle; its lo
 `atRev` below its length: the keys of `[key, end)` (the one `key` if
 `end == nil`) with a revision at `atRev` in `log`, in key order, with their modified and
 created revisions and versions, at most `limit` of them if positive (`rangeTaken`), and the
-count (`rangeTotal`: all of them if `withTotalCount`, else at most `limit`). -/
+count (`rangeTotal`: all of them if `withTotalCount`, else at most `limit`). The reader holds a part of the compaction revision `c`'s authority (`crevUB`, given back),
+at or below `atRev`: every key's compaction level is at most `c` (`idxLockInv`). -/
 abbrev mvcc.treeIndex.Range.spec : Prop :=
   ∀ (ti : Loc) (γ : mvcc.IdxNames) (kn : mvcc.IdxKnow) (key endk : GoSlice) (k e : GoString)
-    (atRev limit : w64) (withTotal : Bool) (e0 : GoInterfaceOk),
+    (atRev limit : w64) (withTotal : Bool) (e0 : GoInterfaceOk) (q : Qp) (c : Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isTreeIndex ti γ ∗ mvcc.idxReader ti γ ∗ mvcc.idxKnows γ kn ∗
+      mvcc.crevUB γ q c ∗ ⌜-1 ≤ c ∧ c ≤ sint.Z atRev⌝ ∗
       ⌜0 ≤ sint.Z atRev ∧ sint.Z atRev < kn.log.length⌝ ∗ key ↦*□ k ∗ endk ↦*□ e ∗
       globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e0 }}
     (App (App (App (App (App (Val (ti @!! go.GoType.PointerType treeIndex.ty @!! go!"Range"))
       (Val #key)) (Val #endk)) (Val #atRev)) (Val #limit)) (Val #withTotal))
   {{ (keys modifies creates vers : GoSlice) (total : w64),
       RET (PairV (PairV (PairV (PairV #keys #modifies) #creates) #vers) #total);
-      mvcc.idxReader ti γ ∗ mvcc.idxKnows γ kn ∗
+      mvcc.idxReader ti γ ∗ mvcc.idxKnows γ kn ∗ mvcc.crevUB γ q c ∗
       mvcc.ownKeys keys ((mvcc.rangeTaken kn.log (decide (endk = slice.nil)) k e atRev limit).map
         Prod.fst) ∗
       modifies ↦* ((mvcc.rangeTaken kn.log (decide (endk = slice.nil)) k e atRev limit).map

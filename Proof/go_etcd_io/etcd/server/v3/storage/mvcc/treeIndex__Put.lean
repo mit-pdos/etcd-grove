@@ -74,8 +74,13 @@ theorem mvcc.treeIndex.Put.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.idxLockInv t γ 1)) $$ Hlc1 HP with HP
   iunfold mvcc.idxLockInv at HP
-  icases HP with ⟨%ilog', %pend', %L, HP⟩
+  icases HP with ⟨%ilog', %pend', %L, %cmax, HP⟩
   iNamedSuffix HP "L"
+  -- every compaction level is below the writer's revision
+  icases HclL with ⟨%log₀, #Hl0, %Hc0⟩
+  ihave %Hl0pre := mono_list_auth_lb_valid γ.log _ _ _ $$ Hlauth Hl0
+  have hcmax : cmax < ilog.length := by
+    have := Hl0pre.2.length_le; omega
   -- the lock's events are the writer's
   ihave %Hpre := mono_list_auth_lb_valid γ.hist 1 _ _ $$ Hauth HhistL
   ihave %Hcnt := monoNatLbOwn_valid γ.nev 1 _ _ $$ HnevL Hwlb
@@ -94,9 +99,11 @@ theorem mvcc.treeIndex.Put.wp_proof
       { rev := ⟨W64 ilog.length, W64 pend.length⟩, change := .put k v l } := rfl
   have hwf'' : mvcc.IdxWf ilog (pend ++ [.put k v l]) :=
     ⟨Hwf', Hlen, by simp; omega, Hcs⟩
-  have hidxnew : mvcc.indexOf (mvcc.evsOf (ilog ++ [pend ++ [.put k v l]])) =
-      mvcc.idxPut (mvcc.idxOfEntries L) k ⟨W64 ilog.length, W64 pend.length⟩ := by
-    rw [mvcc.evsOf_append_change, mvcc.indexOf_append_ev, ← HLL, hev]; rfl
+  have hidxnew : mvcc.IdxCRep cmax (mvcc.evsOf (ilog ++ [pend ++ [.put k v l]]))
+      (mvcc.idxPut (mvcc.idxOfEntries L) k ⟨W64 ilog.length, W64 pend.length⟩) := by
+    have := mvcc.IdxCRep.step ilog pend (.put k v l) hwf''.logB hcmax HLL.1
+    rw [hev] at this
+    exact this
   have hcount : (mvcc.evsOf (ilog ++ [pend ++ [.put k v l]])).length =
       (mvcc.evsOf (ilog ++ [pend])).length + 1 := by
     rw [mvcc.evsOf_append_change, List.length_append, List.length_singleton]
@@ -155,7 +162,7 @@ theorem mvcc.treeIndex.Put.wp_proof
     · inext
       iunfold mvcc.idxLockInv
       iexists ilog, pend ++ [.put k v l],
-        btInsert mvcc.entryLess («$r0_ptr», k, mvcc.kiPut mvcc.KeyIndex.fresh ⟨W64 ilog.length, W64 pend.length⟩) L
+        btInsert mvcc.entryLess («$r0_ptr», k, mvcc.kiPut mvcc.KeyIndex.fresh ⟨W64 ilog.length, W64 pend.length⟩) L, cmax
       simp only [named]
       rw [← mvcc.histShape_ev, hcount]
       iframe HnevL
@@ -175,10 +182,15 @@ theorem mvcc.treeIndex.Put.wp_proof
         iexists gs'
         rw [← hrevm, ← hrevs]
         iexact Hki
+      isplitl []
+      · iexact HcrevL
+      isplitl []
+      · iexists log₀; iframe Hl0; ipureintro; exact Hc0
       ipureintro
-      refine ⟨?_, hwf''⟩
-      rw [mvcc.idxOfEntries_btInsert, hidxnew]
-      simp only [mvcc.idxPut, Hidx]
+      refine ⟨⟨?_, HLL.2⟩, hwf''⟩
+      rw [mvcc.idxOfEntries_btInsert]
+      simp only [mvcc.idxPut, Hidx] at hidxnew
+      exact hidxnew
     (try wp_auto)
     iapply HΦ
     iunfold mvcc.idxWriter
@@ -200,10 +212,7 @@ theorem mvcc.treeIndex.Put.wp_proof
     rw [hf] at Hidx
     simp only [Option.map_some] at Hidx
     obtain ⟨i, hi, hk⟩ := mvcc.find?_entry_getElem? L k z hf
-    have hz : z.2.2 = mvcc.kiOfKey (mvcc.evsOf (ilog ++ [pend])) k := by
-      have := (mvcc.indexOf_rep (mvcc.evsOf (ilog ++ [pend]))).2 k
-      rw [← HLL, Hidx] at this
-      exact this
+    obtain ⟨cz, -, -, hz, -⟩ := mvcc.IdxCRep.get_some HLL.1 Hidx
     (try wp_auto)
     -- `okeyi.put(ti.lg, rev.Main, rev.Sub)` on the key's index, borrowed from the tree
     icases BigSepL.bigSepL_lookup_acc (Φ := fun _ z => mvcc.ownEntry (GF := GF) z 1) hi |>.1 $$ Hkis
@@ -213,7 +222,7 @@ theorem mvcc.treeIndex.Put.wp_proof
     simp only at Hiw
     rw [Hiw]
     have Hlt : mvcc.Rev.lt z.2.2.modified ⟨rev.Main', rev.Sub'⟩ := by
-      rw [hrevm, hrevs, hz, mvcc.kiOfKey_eq_kiFold]
+      rw [hrevm, hrevs, hz, mvcc.kiCompact_modified, mvcc.kiOfKey_eq_kiFold]
       exact mvcc.kiFold_modified_lt k _ _ _ (mvcc.Rev.lt_zero_of_pos _ _ Hilog (by omega))
         (mvcc.evsOf_rev_lt ilog pend (by omega) Hplen)
     wp_apply (hPut z.1 gs z.2.2 lg rev.Main' rev.Sub') $$ [$Hki] as %r Hr
@@ -232,7 +241,7 @@ theorem mvcc.treeIndex.Put.wp_proof
     · inext
       iunfold mvcc.idxLockInv
       iexists ilog, pend ++ [.put k v l],
-        L.set i (z.1, z.2.1, mvcc.kiPut z.2.2 ⟨W64 ilog.length, W64 pend.length⟩)
+        L.set i (z.1, z.2.1, mvcc.kiPut z.2.2 ⟨W64 ilog.length, W64 pend.length⟩), cmax
       simp only [named]
       rw [← mvcc.histShape_ev, hcount]
       iframe HnevL
@@ -251,10 +260,15 @@ theorem mvcc.treeIndex.Put.wp_proof
         iexists gs'
         rw [← hrevm, ← hrevs]
         iexact Hki
+      isplitl []
+      · iexact HcrevL
+      isplitl []
+      · iexists log₀; iframe Hl0; ipureintro; exact Hc0
       ipureintro
-      refine ⟨?_, hwf''⟩
-      rw [hidxnew, ← mvcc.btInsert_idx_set L Hsorted i z (List.getElem?_eq_some_iff.1 hi), hk]
-      simp only [mvcc.idxPut, Hidx]
+      refine ⟨⟨?_, HLL.2⟩, hwf''⟩
+      rw [← mvcc.btInsert_idx_set L Hsorted i z (List.getElem?_eq_some_iff.1 hi), hk]
+      simp only [mvcc.idxPut, Hidx] at hidxnew
+      exact hidxnew
     (try wp_auto)
     iapply HΦ
     iunfold mvcc.idxWriter

@@ -90,10 +90,18 @@ def errKeyMsg (err : GoInterface) : IProp GF :=
 instance errKeyMsg_persistent (err : GoInterface) : Persistent (errKeyMsg (GF := GF) err) := by
   unfold errKeyMsg; infer_instance
 
+/-- A target `errors.Is` can compare with by `==` in the model (Perennial's `errors.wp_Is`): `nil`
+or a pointer error. -/
+def ptrTarget [FfiSyntax] [GoGlobalContext] (target : GoInterface) : Prop :=
+  ∀ tii, target = GoInterface.ok tii → _root_.Perennial.errors.IsPointerError tii
+
 /-- **An error the applier returns, as `errors.Is` and the gRPC layer see it** (persistent): for
 any target, the error is in an error tree (`errors.errorIsTree`: the specs of its `Is` and
 `Unwrap` methods, if it has them, which return without panicking), whose errors of the target's
-type hold pointers if the target does (`errors.TreeTyped`, Go's typing); and it is `nil` or a
+type hold pointers if the target is a pointer error (`errors.TreeTyped`, Go's typing, for the
+targets `errors.wp_Is` takes, `ptrTarget`: 2026-10-13, the request path's unit 4a, so that
+`context.DeadlineExceeded`, a struct error, is one; until then for every target, which no
+non-pointer error meets at itself); and it is `nil` or a
 safe map key whose `Error()` returns (`errKeyMsg`, what `togRPCError` needs: 2026-10-12, the
 request path's unit 3a, so that every error the server's request path returns can go to the
 gRPC layer). What `errors.Is(ar.Err, ErrNoSpace)` (the server's `applyEntryNormal`) and
@@ -106,7 +114,7 @@ package's unit 2), so that the apply package states it and the server reads it
 def applyErrIs (err : GoInterface) : IProp GF :=
   iprop((□ ∀ target : GoInterface, ∃ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop),
     _root_.Perennial.errors.errorIsTree (GF := GF) S M target ∗
-    ⌜S err ∧ _root_.Perennial.errors.TreeTyped S target⌝) ∗ errKeyMsg err)
+    ⌜S err ∧ (ptrTarget target → _root_.Perennial.errors.TreeTyped S target)⌝) ∗ errKeyMsg err)
 
 instance applyErrIs_persistent (err : GoInterface) :
     Persistent (applyErrIs (GF := GF) err) := by
@@ -117,7 +125,7 @@ theorem applyErrIs_tree (err : GoInterface) :
     applyErrIs (GF := GF) err ⊢ □ ∀ target : GoInterface,
       ∃ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop),
         _root_.Perennial.errors.errorIsTree (GF := GF) S M target ∗
-        ⌜S err ∧ _root_.Perennial.errors.TreeTyped S target⌝ := by
+        ⌜S err ∧ (ptrTarget target → _root_.Perennial.errors.TreeTyped S target)⌝ := by
   iunfold applyErrIs
   iintro ⟨#H, -⟩
   iexact H
@@ -144,7 +152,7 @@ theorem applyErrIs_nil : ⊢ applyErrIs (GF := GF) GoInterface.nil := by
   · iintro !> %ii %h
     cases h
   ipureintro
-  refine ⟨rfl, ?_⟩
+  refine ⟨rfl, fun _ => ?_⟩
   intro ii tii h
   cases h
 
@@ -164,7 +172,34 @@ theorem applyErrIs_leaf [_root_.Perennial.errors.Assumptions] (e : GoInterfaceOk
   isplitl
   · iapply _root_.Perennial.errors.errorIsTree_leaf e (fun _ => False) target h.2.1 h.2.2
   ipureintro
-  exact ⟨rfl, _root_.Perennial.errors.treeTyped_pointer e target h.1⟩
+  exact ⟨rfl, fun _ => _root_.Perennial.errors.treeTyped_pointer e target h.1⟩
+
+/-- **A leaf error that is not a pointer** (as `context.DeadlineExceeded`'s
+`deadlineExceededError{}`): no `Is`, `As` or `Unwrap` method, a dynamic type that is not a pointer
+type (so no pointer target has its type: `TreeTyped` holds of every target `wp_Is` takes), a safe
+key of a map (its `==` with itself does not panic), whose `Error()` returns. -/
+theorem applyErrIs_valLeaf [_root_.Perennial.errors.Assumptions] (e : GoInterfaceOk) (hleaf : _root_.Perennial.errors.isLeafError e)
+    (hIs : methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
+    (hty : ∀ T, e.ty ≠ go.GoType.PointerType T)
+    (hkey : SafeMapKey (GF := GF) go.error (GoInterface.ok e)) :
+    errMsgOk (GF := GF) e ⊢ applyErrIs (GoInterface.ok e) := by
+  iintro #Hm
+  iunfold applyErrIs
+  isplitl
+  rotate_left
+  · iunfold errKeyMsg; iright
+    isplitr
+    · ipureintro; exact hkey
+    iexists e; iframe Hm; ipureintro; rfl
+  iintro !> %target
+  iexists (· = GoInterface.ok e), (fun _ => False)
+  isplitl
+  · iapply _root_.Perennial.errors.errorIsTree_leaf e (fun _ => False) target hleaf hIs
+  ipureintro
+  refine ⟨rfl, fun hpt ii tii hii ht hty' => ?_⟩
+  cases hii
+  obtain ⟨T, l, hT, -⟩ := hpt tii ht
+  exact absurd (hty'.trans hT) (hty T)
 
 /-- **The error variable `g` holds an `errors.New` error** (persistent; a package fact): a leaf
 pointer error whose `Error()` returns (`errors.wp_New`; the message part since 2026-10-12, the

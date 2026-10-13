@@ -1,5 +1,5 @@
 /-
-`s.getAppliedIndex()` (`server.go`): the applied index's atomic. Lean-first (no Rocq
+`s.getAppliedIndex()` (`server.go`): the applied index's atomic, a lower bound of the ghost applied index. Lean-first (no Rocq
 counterpart).
 -/
 module
@@ -22,13 +22,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `s.getAppliedIndex()`, any goroutine: some index (the atomic, in its invariant). -/
+/-- `s.getAppliedIndex()`, any goroutine: an index the applied index has reached
+(`appliedAtLeast`; the applied index's invariant, the request path's unit 4b). -/
 abbrev EtcdServer.getAppliedIndex.spec : Prop :=
-  ∀ (s : Loc),
+  ∀ (s : Loc) (E : apply.AEnv GF) (γr : ReadNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvAtomicU64 (structFieldRef EtcdServer go!"appliedIndex" s) }}
+      srvAppliedInv s E γr }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"getAppliedIndex")) (Val #()))
-  {{ (v : w64), RET #v; True }}
+  {{ (v : w64), RET #v; appliedAtLeast γr v }}
 
 end spec
 

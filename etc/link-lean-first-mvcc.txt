@@ -203,3 +203,46 @@ newWatchableStore: zap_NewNop NewStore newWatcherGroup adt_ownIvt_split
 mvcc_New: newWatchableStore watchableStore__syncWatchersLoop watchableStore__syncVictimsLoop
 watchableStore__Close: store__Close
 watchableStore__NewWatchStream: watchableStore__watch watchableStore__progress watchableStore__progressAll watchableStore__rev
+# Compaction (unit 5a, 2026-10-13; Compact.lean, InvCompact.lean, notes/decisions.md "mvcc:
+# compaction"): the compaction functions specified, their proofs pending (`sorry`: units 5b/5c);
+# the trust boundary they reach: the hasher (hash.go's crc32: `newKVHasher`, `kvHasher`'s
+# `WriteKeyValue`/`Hash`, `hashStorage.Store`), the scheduler's `Schedule` (agreed with the
+# server's session), zap's fields and `Info`/`Warn`, humanize's `Bytes` (axioms); the jobs
+# (pkg/schedule's `NewJob`, `job.Do`/`Name`, translated: pending); the btree's `Clone`,
+# `Ascend`, `Delete` and context's `Err` linked in their own Link.lean (`@`).
+BTree__Clone: @
+BTree__Ascend: @
+BTree__Delete: @
+context_Err: @
+zap_Logger__Info:
+zap_Logger__Warn:
+zap_Duration:
+zap_Int:
+zap_Uint32:
+go_humanize_Bytes:
+schedule_Scheduler__Schedule:
+schedule_NewJob:
+schedule_job__Do:
+schedule_job__Name:
+newKVHasher:
+kvHasher__WriteKeyValue:
+kvHasher__Hash:
+hashStorage__Store:
+keyIndex__doCompact: generation__walk
+keyIndex__compact: keyIndex__isEmpty zap_String zap_Logger__Panic keyIndex__doCompact generation__isEmpty
+keyIndex__keep: keyIndex__isEmpty keyIndex__doCompact generation__isEmpty
+treeIndex__Compact: zap_Int64 zap_Logger__Info BTree__Clone BTree__Ascend keyIndex__compact keyIndex__isEmpty BTree__Delete zap_Logger__Panic
+treeIndex__Keep: BTree__Ascend keyIndex__keep
+UnsafeReadFinishedCompact: BytesToRev
+UnsafeReadScheduledCompact: BytesToRev
+UnsafeSetScheduledCompact: NewRevBytes RevToBytes
+UnsafeSetFinishedCompact: NewRevBytes RevToBytes
+SetScheduledCompact: UnsafeSetScheduledCompact
+SetFinishedCompact: UnsafeSetFinishedCompact
+store__checkPrevCompactionCompleted: UnsafeReadScheduledCompact UnsafeReadFinishedCompact
+store__compactBarrier: context_Err schedule_NewJob schedule_Scheduler__Schedule
+store__updateCompactRev: schedule_NewJob store__compactBarrier schedule_Scheduler__Schedule SetScheduledCompact
+store__scheduleCompaction: treeIndex__Compact time_Since binary_bigEndian__PutUint64 newKVHasher BytesToRev kvHasher__WriteKeyValue UnsafeSetFinishedCompact kvHasher__Hash zap_Int64 zap_Duration zap_Int zap_Uint32 zap_String go_humanize_Bytes zap_Logger__Info RevToBytes
+store__compact: schedule_NewJob context_Err store__compactBarrier store__scheduleCompaction zap_Error zap_Logger__Warn hashStorage__Store zap_Logger__Info schedule_Scheduler__Schedule traceutil_Trace__Step
+store__compactLockfree: store__checkPrevCompactionCompleted store__updateCompactRev traceutil_TODO store__compact
+store__Compact: store__checkPrevCompactionCompleted store__updateCompactRev traceutil_Trace__Step store__compact

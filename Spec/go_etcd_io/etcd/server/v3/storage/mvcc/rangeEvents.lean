@@ -26,13 +26,17 @@ caller's view of it at a fraction, `bucketMap log` of the committed log `log`, w
 certificate makes well formed), for `0 ≤ minRev ≤ maxRev ≤ log.length` (the `minRev < 0` warning
 is dead), the group `g` as the `contains` interface: a fresh slice of fresh events, read-only for
 good, the events of the revisions `[minRev, maxRev)` of `log` whose key some member of `g` covers,
-in revision order. The backend's reader token `RT` is lent (2026-10-13, unit 5). -/
+in revision order. The backend's reader token `RT` is lent (2026-10-13, unit 5). The store is
+not compacted (`crevFrozen`): its snapshot misses no event (compaction is out of the watchable
+store's model). -/
 abbrev mvcc.rangeEvents.spec : Prop :=
   ∀ (lg : Loc) (b : GoInterface) (γ : mvcc.StoreNames) (Wr P : IProp GF) (f : val) (q : Qp)
     (log : mvcc.Log) (minRev maxRev : w64) (g : Loc) (W : GMap Loc mvcc.WatchRange)
-    (RT WT Wi : IProp GF) (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop),
+    (RT WT Wi Dep : IProp GF) (Cmp : Prop)
+    (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isKeyBackendG b (mvcc.bucketView γ) RT WT PutOk Wr Wi P f ∗ RT ∗
+      mvcc.isKeyBackendG b (mvcc.bucketView γ) RT WT PutOk (mvcc.delKey γ) Wr Wi Dep Cmp P f ∗ RT ∗
+      mvcc.crevFrozen γ ∗
       mvcc.bucketView γ q (mvcc.bucketMap log) ∗
       mvcc.idxCert γ.idx log ∗ mvcc.ownWatcherGroup g W ∗
       ⌜0 ≤ sint.Z minRev ∧ sint.Z minRev ≤ sint.Z maxRev ∧ sint.Z maxRev ≤ log.length⌝ }}

@@ -28,9 +28,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.treeIndex.Get.wp_proof
     (hUnsafe : mvcc.treeIndex.unsafeGet.spec (GF := GF) (hG := hG)) :
     mvcc.treeIndex.Get.spec (GF := GF) (hG := hG) := by
-  intro ti γ kn key k atRev e
+  intro ti γ kn key k atRev e q c
   generalize hlog : kn.log = log at *
-  wp_start as ⟨#Hti, Hrd, Hkn, %Hrev, #Hkey, #Herr⟩
+  wp_start as ⟨#Hti, Hrd, Hkn, Hcu, %Hcb, %Hrev, #Hkey, #Herr⟩
   iunfold mvcc.isTreeIndex at Hti
   iNamed Hti
   iunfold mvcc.idxReader at Hrd
@@ -48,15 +48,16 @@ theorem mvcc.treeIndex.Get.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.idxLockInv t γ sync.rfrac)) $$ Hlc1 HP with HP
   iunfold mvcc.idxLockInv at HP
-  icases HP with ⟨%ilog, %pend, %L, HP⟩
+  icases HP with ⟨%ilog, %pend, %L, %cmax, HP⟩
   iNamedSuffix HP "L"
+  ihave %Hcle := mvcc.crevUB_lb γ q c cmax Hcb.1 HLL.2 $$ Hcu HcrevL
   obtain ⟨HwfL, HlenL, HpendL, HcsL⟩ := HwfL
   (try wp_auto)
   -- `ti.unsafeGet(key, atRev)`
   wp_apply (hUnsafe ti t lg L sync.rfrac key k atRev e) $$ [$HtreeL] as ⟨HtreeL, -⟩
   · iframe #
     ipureintro
-    exact ⟨Hlgnn, entries_not_empty L _ HLL⟩
+    exact ⟨Hlgnn, entries_not_emptyC L _ cmax HLL.1⟩
   -- the answer is the certified log's
   icases mvcc.idxKnows_facts γ kn log hlog ilog pend sync.rfrac $$ Hkn HhistL HnevL with ⟨%Hfacts, Hkn, HnevL⟩
   obtain ⟨Hcmp, Hcnt', Hwf0, Hlen0, Hcs0⟩ := Hfacts
@@ -66,13 +67,11 @@ theorem mvcc.treeIndex.Get.wp_proof
       rw [show (((sint.Z atRev).toNat : Nat) : Int) = sint.Z atRev from h]
       exact BitVec.ofInt_toInt.symm, (Int.toNat_of_nonneg Hrev.1).symm⟩
   have hrlt : r < log.length := by omega
-  have hans : (mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty =
-      mvcc.kiOfKey (mvcc.evsOf (ilog ++ [pend])) k := by
-    rw [HLL]; exact (mvcc.indexOf_rep _).2 k
-  have hstab := mvcc.reader_answer log ilog pend Hcmp Hcnt' (by omega) Hwf0 Hcs0 k r hrlt
+  have hstab := mvcc.reader_answerC log ilog pend L cmax Hcmp Hcnt' ⟨HwfL, HlenL, HpendL, HcsL⟩
+    Hwf0 Hcs0 HLL.1 k r hrlt Hlen0 (by omega)
   have hval : mvcc.kiGetVal ((mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty) atRev
       (GoInterface.ok e) = mvcc.kiGetVal (mvcc.kiOfKey (mvcc.evsOf log) k) atRev (GoInterface.ok e) := by
-    unfold mvcc.kiGetVal; rw [hans, hr, hstab]
+    unfold mvcc.kiGetVal; rw [hr, hstab]
   rw [hval]
   obtain ⟨m, c, v, i, hp⟩ := kiGetVal_pairs (mvcc.kiOfKey (mvcc.evsOf log) k) atRev (GoInterface.ok e)
   rw [hp]
@@ -84,7 +83,7 @@ theorem mvcc.treeIndex.Get.wp_proof
   wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HnevL HtreeL] as Hrd
   · inext
     iunfold mvcc.idxLockInv
-    iexists ilog, pend, L
+    iexists ilog, pend, L, cmax
     simp only [named]
     iframe HnevL HtreeL
     iframe #
@@ -93,7 +92,7 @@ theorem mvcc.treeIndex.Get.wp_proof
   (try wp_auto)
   rw [← hp]
   iapply HΦ
-  iframe Hkn
+  iframe Hkn Hcu
   iframe #
   iunfold mvcc.idxReader
   iexists t

@@ -44,9 +44,9 @@ theorem mvcc.treeIndex.Revisions.wp_proof
     (hVisit : mvcc.treeIndex.unsafeVisit.spec (GF := GF) (hG := hG))
     (hget : mvcc.keyIndex.get.spec (GF := GF) (hG := hG)) :
     mvcc.treeIndex.Revisions.spec (GF := GF) (hG := hG) := by
-  intro ti γ kn key endk k e atRev limit withTotal e0
+  intro ti γ kn key endk k e atRev limit withTotal e0 q c
   generalize hlog : kn.log = log at *
-  wp_start as ⟨#Hti, Hrd, Hkn, %Hrev, #Hkey, #Hend, #Herr⟩
+  wp_start as ⟨#Hti, Hrd, Hkn, Hcu, %Hcb, %Hrev, #Hkey, #Hend, #Herr⟩
   iunfold mvcc.isTreeIndex at Hti
   iNamed Hti
   iunfold mvcc.idxReader at Hrd
@@ -64,8 +64,9 @@ theorem mvcc.treeIndex.Revisions.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.idxLockInv t γ sync.rfrac)) $$ Hlc1 HP with HP
   iunfold mvcc.idxLockInv at HP
-  icases HP with ⟨%ilog, %pend, %L, HP⟩
+  icases HP with ⟨%ilog, %pend, %L, %cmax, HP⟩
   iNamedSuffix HP "L"
+  ihave %Hcle := mvcc.crevUB_lb γ q c cmax Hcb.1 HLL.2 $$ Hcu HcrevL
   obtain ⟨HwfL, HlenL, HpendL, HcsL⟩ := HwfL
   (try wp_auto)
   -- the reader's view is the certified log's
@@ -77,7 +78,7 @@ theorem mvcc.treeIndex.Revisions.wp_proof
       rw [show (((sint.Z atRev).toNat : Nat) : Int) = sint.Z atRev from h]
       exact BitVec.ofInt_toInt.symm, (Int.toNat_of_nonneg Hrev.1).symm⟩
   have hrlt : r < log.length := by omega
-  have hne := entries_not_empty L _ HLL
+  have hne := entries_not_emptyC L _ cmax HLL.1
   subst hr
   wp_if_destruct
   · -- `end == nil`: the one key, `ti.unsafeGet(key, atRev)`
@@ -85,13 +86,11 @@ theorem mvcc.treeIndex.Revisions.wp_proof
     · iframe #
       ipureintro
       exact ⟨Hlgnn, hne⟩
-    have hans : (mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty =
-        mvcc.kiOfKey (mvcc.evsOf (ilog ++ [pend])) k := by
-      rw [HLL]; exact (mvcc.indexOf_rep _).2 k
-    have hstab := mvcc.reader_answer log ilog pend Hcmp Hcnt' (by omega) Hwf0 Hcs0 k r hrlt
+    have hstab := mvcc.reader_answerC log ilog pend L cmax Hcmp Hcnt' ⟨HwfL, HlenL, HpendL, HcsL⟩
+      Hwf0 Hcs0 HLL.1 k r hrlt Hlen0 (by omega)
     have hval : mvcc.kiGetVal ((mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty) (W64 r)
         (GoInterface.ok e0) = mvcc.kiGetVal (mvcc.kiOfKey (mvcc.evsOf log) k) (W64 r) (GoInterface.ok e0) := by
-      unfold mvcc.kiGetVal; rw [hans, hstab]
+      unfold mvcc.kiGetVal; rw [hstab]
     rw [hval, mvcc.rangeTaken_true, mvcc.rangeTotal_true, mvcc.rangeAnswers_nil]
     unfold mvcc.kiGetVal
     cases hg : mvcc.kiGet (mvcc.kiOfKey (mvcc.evsOf log) k) (W64 r) with
@@ -105,7 +104,7 @@ theorem mvcc.treeIndex.Revisions.wp_proof
       wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HnevL HtreeL] as Hrd
       · inext
         iunfold mvcc.idxLockInv
-        iexists ilog, pend, L
+        iexists ilog, pend, L, cmax
         simp only [named]
         iframe HnevL HtreeL
         iframe #
@@ -113,7 +112,7 @@ theorem mvcc.treeIndex.Revisions.wp_proof
         exact ⟨HLL, HwfL, HlenL, HpendL, HcsL⟩
       (try wp_auto)
       iapply HΦ
-      iframe Hkn
+      iframe Hkn Hcu
       isplitl [Hrd]
       · iunfold mvcc.idxReader
         iexists t
@@ -140,7 +139,7 @@ theorem mvcc.treeIndex.Revisions.wp_proof
       wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HnevL HtreeL] as Hrd
       · inext
         iunfold mvcc.idxLockInv
-        iexists ilog, pend, L
+        iexists ilog, pend, L, cmax
         simp only [named]
         iframe HnevL HtreeL
         iframe #
@@ -148,7 +147,7 @@ theorem mvcc.treeIndex.Revisions.wp_proof
         exact ⟨HLL, HwfL, HlenL, HpendL, HcsL⟩
       (try wp_auto)
       iapply HΦ
-      iframe Hkn
+      iframe Hkn Hcu
       iframe Hsl Hcap
       isplitl [Hrd]
       · iunfold mvcc.idxReader
@@ -158,7 +157,8 @@ theorem mvcc.treeIndex.Revisions.wp_proof
       ipureintro; rfl
   · -- `end != nil`: `ti.unsafeVisit(key, end, f)`
     rw [mvcc.rangeTaken_false, mvcc.rangeTotal_false,
-      mvcc.rangeAnswers_entries log ilog pend L Hcmp Hcnt' (by omega) Hwf0 Hcs0 HLL k e r hrlt]
+      mvcc.rangeAnswers_entriesC log ilog pend L cmax Hcmp Hcnt' ⟨HwfL, HlenL, HpendL, HcsL⟩ Hwf0 Hcs0
+        HLL.1 k e r hrlt Hlen0 (by omega)]
     ipersist limit
     ipersist withTotalCount
     ipersist atRev
@@ -328,7 +328,7 @@ theorem mvcc.treeIndex.Revisions.wp_proof
     wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HnevL HtreeL] as Hrd
     · inext
       iunfold mvcc.idxLockInv
-      iexists ilog, pend, L
+      iexists ilog, pend, L, cmax
       simp only [named]
       iframe HnevL HtreeL
       iframe #
@@ -336,7 +336,7 @@ theorem mvcc.treeIndex.Revisions.wp_proof
       exact ⟨HLL, HwfL, HlenL, HpendL, HcsL⟩
     (try wp_auto)
     iapply HΦ
-    iframe Hkn
+    iframe Hkn Hcu
     rw [List.take_length]
     iframe Hsl Hcap
     isplitl [Hrd]

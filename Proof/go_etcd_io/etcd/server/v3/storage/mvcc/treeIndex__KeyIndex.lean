@@ -27,8 +27,8 @@ variable [go_etcd_io.etcd.cache.v3.Assumptions]
 theorem mvcc.treeIndex.KeyIndex.wp_proof
     (hKI : mvcc.treeIndex.keyIndex.spec (GF := GF) (hG := hG)) :
     mvcc.treeIndex.KeyIndex.spec (GF := GF) (hG := hG) := by
-  intro ti γ kn keyi k
-  wp_start as ⟨#Hti, Hrd, Hkn, #Hkey⟩
+  intro ti γ kn keyi k q
+  wp_start as ⟨#Hti, Hrd, Hkn, Hcu, #Hkey⟩
   iunfold mvcc.isTreeIndex at Hti
   iNamed Hti
   iunfold mvcc.idxReader at Hrd
@@ -46,8 +46,11 @@ theorem mvcc.treeIndex.KeyIndex.wp_proof
   wp_auto_lc 1
   imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.idxLockInv t γ sync.rfrac)) $$ Hlc1 HP with HP
   iunfold mvcc.idxLockInv at HP
-  icases HP with ⟨%ilog, %pend, %L, HP⟩
+  icases HP with ⟨%ilog, %pend, %L, %cmax, HP⟩
   iNamedSuffix HP "L"
+  ihave %Hcle := mvcc.crevUB_lb γ q (-1) cmax (by decide) HLL.2 $$ Hcu HcrevL
+  have HLLn : mvcc.IdxCRep (-1) (mvcc.evsOf (ilog ++ [pend])) (mvcc.idxOfEntries L) := by
+    have h := HLL.1; rwa [show cmax = -1 by have := HLL.2; omega] at h
   (try wp_auto)
   -- `ti.keyIndex(keyi)`
   ihave #Hitem : mvcc.kiItemIs (GF := GF) keyi (keyi, k) $$ []
@@ -67,7 +70,7 @@ theorem mvcc.treeIndex.KeyIndex.wp_proof
   obtain ⟨rest, hrest⟩ := mvcc.reader_prefix kn.log ilog pend Hcmp Hcnt' (by omega)
   icases mvcc.ownTree_sorted t L sync.rfrac $$ HtreeL with ⟨HtreeL, %Hsorted⟩
   have Hidx := mvcc.idxGet_entries L Hsorted k
-  rw [HLL] at Hidx
+  rw [mvcc.IdxCRep.get_neg (ilog ++ [pend]) HwfL.logB HLLn k] at Hidx
   have Hnone := mvcc.idxGet_indexOf_eq_none_iff (mvcc.evsOf (ilog ++ [pend])) k
   -- the pointer: the found entry's, with its key; or `nil`
   ihave Hres : (⌜p = null⌝ ∨ ⌜p ≠ null⌝ ∗ mvcc.kiKey p k) ∗
@@ -123,7 +126,7 @@ theorem mvcc.treeIndex.KeyIndex.wp_proof
   wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HnevL HtreeL] as Hrd
   · inext
     iunfold mvcc.idxLockInv
-    iexists ilog, pend, L
+    iexists ilog, pend, L, cmax
     simp only [named]
     iframe HnevL HtreeL
     iframe #
@@ -131,7 +134,7 @@ theorem mvcc.treeIndex.KeyIndex.wp_proof
     exact ⟨HLL, HwfL⟩
   (try wp_auto)
   iapply HΦ
-  iframe Hkn Hres
+  iframe Hkn Hres Hcu
   isplitl [Hrd]
   · iunfold mvcc.idxReader
     iexists t

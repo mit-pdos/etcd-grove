@@ -16,6 +16,8 @@ public import EtcdDeps.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
 public import Spec.google_golang_org.protobuf.proto.Clone
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Fatal
+public import Spec.go_uber_org.zap.Duration
+public import Spec.go_uber_org.zap.Logger__Warn
 
 @[expose] public section
 
@@ -48,7 +50,9 @@ theorem raftNode.start.wp_proof
     (wp_GetType : raftpb.Entry.GetType.spec (GF := GF) (hG := hG))
     (wp_Clone : proto.Clone.spec (GF := GF) (hG := hG))
     (wp_Error : zap.Error.spec (GF := GF) (hG := hG))
-    (wp_Fatal : zap.Logger.Fatal.spec (GF := GF) (hG := hG)) :
+    (wp_Fatal : zap.Logger.Fatal.spec (GF := GF) (hG := hG))
+    (wp_Duration : zap.Duration.spec (GF := GF) (hG := hG))
+    (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     raftNode.start.spec (GF := GF) (hG := hG) := by
   intro E γ r rh L
   wp_start as ⟨#Hr, #Hrh, Htok, Hdone, #HT⟩
@@ -60,7 +64,7 @@ theorem raftNode.start.wp_proof
   iunfold isRNTicker at Htki
   icases Htki with ⟨%tc, #Htc, #Htcb, #HtkStop⟩
   iunfold isRaftNodeIfc at Hni
-  icases Hni with ⟨%ni, %Hnieq, #HReady, #HAdv, #HTick, #HStop⟩
+  icases Hni with ⟨%ni, %Hnieq, #HReady, #HAdv, #HTick, #HStop, #HRI⟩
   subst Hnieq
   iunfold isRNTransport at Htri
   icases Htri with ⟨%ti, %Htieq, #HSend, #HTrStop⟩
@@ -90,6 +94,7 @@ theorem raftNode.start.wp_proof
   iunfold go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec at Hclcs
   icases Hclcs with ⟨#HlcInc, -⟩
   wp_auto
+  ipersist internalTimeout
   wp_apply wp_fork $$ [Htok Hdone r rh]
   · -- the goroutine
     wp_apply wp_with_defer as %defer defer
@@ -148,8 +153,7 @@ theorem raftNode.start.wp_proof
       icases rn_ready_recv E γ L' rd $$ Hdrv HP with ⟨%ce, %es, Hdata, Hbusy⟩
       iunfold rnReadyData at Hdata
       icases Hdata with ⟨%ceL, %esL, %msL, %hs, #Hce, #Hcea, #HC, #Hes, #Hesa, Happ, #Hms, #Hmsok,
-        #Hss, #Hhs, %Hsnap⟩
-      obtain ⟨Hsnapnil, Hrsnil⟩ := Hsnap
+        #Hss, #Hhs, ⟨%rsL, #Hrs, #Hrsok⟩, %Hsnapnil⟩
       wp_auto
       -- the `SoftState`: the leader, the gauges, the ready handler
       wp_join iprop(∃ b' : Bool, islead_ptr ↦ b' ∗ rd_ptr ↦ rd ∗ rh_ptr ↦ rh ∗ r_ptr ↦ r)
@@ -200,10 +204,118 @@ theorem raftNode.start.wp_proof
           · itrivial
           iexists _
           iframe islead rd rh r
-      -- no read states (`rd.ReadStates` is nil)
-      rw [Hrsnil]
       irename Hlc3 => HlcA
       irename Hlc4 => HlcB
+      -- the read states: the last one to `readStateC` (or a timeout, or `<-r.stopped`: return)
+      ihave %Hrsl := ownSlice_len _ _ _ $$ Hrs
+      ihave #Hrsci' := Hrsci
+      iunfold isRNReadStateC at Hrsci'
+      iunfold isReadStateC at Hrsci'
+      icases Hrsci' with ⟨%γrs, #Hrsb⟩
+      wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ rd_ptr ↦ rd ∗ r_ptr ↦ r) ∨
+          ⌜v = returnVal #()⌝)) with [rd r]
+      · -- no read states
+        ileft
+        iframe
+        try (ipureintro; rfl)
+      · -- `len(rd.ReadStates) != 0`: send the last one (or time out, or return on `r.stopped`)
+        have hlen : 0 < rsL.length := by
+          have h1 := Hrsl.1
+          have hne : rd.ReadStates'.len ≠ W64 0 := by
+            intro h; apply Hif; rw [h]
+          have h3 : sint.Z rd.ReadStates'.len ≠ 0 := by
+            intro h; apply hne; word
+          have h2 := Hrsl.2
+          have h4 : sint.nat rd.ReadStates'.len = (sint.Z rd.ReadStates'.len).toNat := rfl
+          omega
+        obtain ⟨rs, Hrs_lookup⟩ : ∃ rs, rsL[rsL.length - 1]? = some rs :=
+          ⟨_, List.getElem?_eq_getElem (by omega)⟩
+        have hpos : 0 < sint.Z rd.ReadStates'.len := by
+          have h4 : sint.nat rd.ReadStates'.len = (sint.Z rd.ReadStates'.len).toNat := rfl
+          have h2 := Hrsl.2
+          have h1 := Hrsl.1
+          omega
+        have hz : sint.Z (rd.ReadStates'.len - W64 1) = sint.Z rd.ReadStates'.len - 1 := by word
+        rw [if_pos ⟨by omega, by omega⟩]
+        wp_apply wp_load_slice_index rd.ReadStates' (sint.Z (rd.ReadStates'.len - W64 1)) rsL
+          DFrac.discard rs (by omega) $$ [] as -
+        · iframe Hrs
+          ipureintro
+          rw [← Hrs_lookup]
+          congr 1
+          have h4 : sint.nat rd.ReadStates'.len = (sint.Z rd.ReadStates'.len).toNat := rfl
+          have h1 := Hrsl.1
+          omega
+        wp_apply (lc := 2) time.wp_After as %ach %γa #Ha
+        ihave #Hrsk := (BigSepL.bigSepL_lookup (Φ := fun _ rs => readStateOk (GF := GF) E.RQ rs)
+          Hrs_lookup) $$ Hrsok
+        wp_apply_core chan.wp_select_blocking
+        -- `r.readStateC <- rs`
+        iapply BigAndL.bigAndL_cons.2
+        isplit
+        · simp only [chan.blockingClausePre]
+          iexists ReadState, inferInstance, inferInstance, inferInstance, inferInstance, rsc, γrs, rs
+          isplitr
+          · ipureintro; exact ⟨rfl, rfl⟩
+          isplitr
+          · iapply is_bag_is_chan $$ Hrsb
+          iapply bag_send_au γrs rsc _ rs _ $$ [$Hlc1 $Hlc2] Hrsb Hrsk
+          inext
+          try wp_auto
+          ileft
+          iframe
+          try (ipureintro; rfl)
+        -- `<-time.After(internalTimeout)`: a warning
+        iapply BigAndL.bigAndL_cons.2
+        isplit
+        · simp only [chan.blockingClausePre]
+          iexists time.Time, inferInstance, inferInstance, inferInstance, inferInstance, ach, γa
+          isplitr
+          · ipureintro; rfl
+          isplitr
+          · iapply is_bag_is_chan $$ Ha
+          iapply bag_recv_au γa ach _ _ $$ [$Hlc1 $Hlc2] Ha
+          inext
+          iintro %t -
+          wp_auto
+          wp_apply wp_Duration _ _ $$ [$Hzap] as %f1 -
+          wp_apply wp_slice_literal
+          isplitr
+          · ipureintro; rfl
+          iintro %fsl -
+          wp_auto
+          wp_apply wp_Warn lg _ _ $$ [$Hzap]
+          · ipureintro; exact Hlgnn
+          try wp_auto
+          ileft
+          iframe
+          try (ipureintro; rfl)
+        -- `<-r.stopped`: return
+        iapply BigAndL.bigAndL_cons.2
+        isplit
+        · simp only [chan.blockingClausePre]
+          iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, stc, γst
+          isplitr
+          · ipureintro; rfl
+          isplitr
+          · iapply is_bag_is_chan $$ Hstb
+          iapply bag_recv_au γst stc _ _ $$ [$Hlc1 $Hlc2] Hstb
+          inext
+          iintro %u -
+          try wp_auto
+          iright
+          ipureintro; rfl
+        iapply BigAndL.bigAndL_nil.2
+        itrivial
+      iintro (⟨%Hv, rd, r⟩ | %Hv)
+      rotate_left
+      · -- returned (`<-r.stopped`): the deferred `onStop`
+        subst Hv
+        wp_auto
+        wp_for_post
+        wp_apply wp_onStop E γ r $$ [$Hpkg $Hr $Hdone]
+        itrivial
+      subst Hv
       wp_auto_lc 3
       -- `notifyc`, `raftAdvancedC`: unit bags
       wp_apply chan.wp_make2 (V := Unit) $$ [] as %nc %γnc ⟨#Hncch, -, Hncown⟩

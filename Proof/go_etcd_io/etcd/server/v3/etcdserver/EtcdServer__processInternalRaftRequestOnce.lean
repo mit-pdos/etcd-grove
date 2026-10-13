@@ -355,7 +355,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
   ihave #Hv' := Hv
   iunfold srvReqFieldsAt at Hv'
   icases Hv' with ⟨#Hgen, #HidGen, #Hw, #Hwi, #Hrn, #Hmrb, #Hfgf, #Hfg, #Hcca, #Het, #Htm,
-    #Has, #Hras, #Hdone, #Hdonec, #Hmid, #Hlead, #Hcl, #Htr, #Hai, #Hci, #Hmint, #Hclog, %Hcfgnn⟩
+    #Has, #Hras, #Hdone, #Hdonec, #Hmid, #Hlead, #Hcl, #Htr, #Hidx, #Hmint, #Hclog, %Hcfgnn⟩
   ihave #Pidutil : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil $$ []
   · iPkgInit
   ihave #Pproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
@@ -372,10 +372,12 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
   · iPkgInit
   ihave #Pprom : isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus $$ []
   · iPkgInit
-  wp_apply hAI s $$ [] as %ai -
+  iunfold srvIndexInvs at Hidx
+  icases Hidx with ⟨%γr, #Hai, #Hci⟩
+  wp_apply hAI s E γr $$ [] as %ai -
   · iframe #
   (try wp_auto)
-  wp_apply hCI s $$ [] as %ci -
+  wp_apply hCI s γr $$ [] as %ci -
   · iframe #
   (try wp_auto)
   wp_apply hFE s v.fg _ $$ [] as %en -
@@ -383,7 +385,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, ⟨⟨%hist, #Hhist⟩, ⟨%pfc, #Hpfc, #Hpfcs⟩, ⟨%ppc, #Hppc, #Hppcs⟩, -,
-    ⟨#HTMR, #HRTL, #HStop, -⟩⟩⟩
+    ⟨#HTMR, #HRTL, #HStop, -⟩⟩, -⟩
   ihave ⟨%eTMR, #HeTMR, #HaTMR⟩ := errVarLeaf_get _ $$ HTMR
   ihave ⟨%eRTL, #HeRTL, #HaRTL⟩ := errVarLeaf_get _ $$ HRTL
   ihave ⟨%eStop, #HeStop, #HaStop⟩ := errVarLeaf_get _ $$ HStop

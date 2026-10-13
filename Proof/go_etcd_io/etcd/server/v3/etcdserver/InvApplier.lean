@@ -61,7 +61,6 @@ abbrev srvClusterAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"cluster" 
 abbrev srvCfgAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"Cfg" s
 abbrev srvQuotaAddr (s : Loc) : Loc :=
   structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"QuotaBackendBytes" (srvCfgAddr s)
-abbrev srvAppliedIndexAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"appliedIndex" s
 abbrev srvTermAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"term" s
 abbrev srvClusterFieldAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"cluster" s
 abbrev srvLgMuAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"lgMu" s
@@ -216,8 +215,7 @@ theorem entriesStep_trace (c : w64) (ms : List EntryModel) (x x' : apply.ApplyKV
       simp only [List.getElem?_cons_succ] at hm hy hy'
       exact hs n m' y y' hm hy hy'
 
-/-- The server's atomics' invariant's namespace. -/
-abbrev srvN : Namespace := nroot.@"server"
+-- The server's atomics' invariants' namespace `srvN`: `InvRequest.lean` (2026-10-13).
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -268,12 +266,15 @@ structure SrvFields where
   electionTicks : w64
   tickMs : w64
 
-/-- The server's two atomics the apply thread stores (read by other goroutines). -/
-def srvAtomics (s : Loc) : IProp GF :=
-  iprop(inv srvN (∃ v : w64, sync.atomic.ownUint64 (srvAppliedIndexAddr s) (DFrac.own 1) v) ∗
+/-- The server's two atomics the apply thread stores (read by other goroutines): the applied
+index, in its invariant with the ghost applied index and the applied logs (`srvAppliedInv`, the
+request path's unit 4b; any value until then), and the term. -/
+def srvAtomics (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
+  iprop(srvAppliedInv s E γr ∗
     inv srvN (∃ v : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) v))
 
-instance srvAtomics_persistent (s : Loc) : Persistent (srvAtomics (GF := GF) s) := by
+instance srvAtomics_persistent (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    Persistent (srvAtomics (GF := GF) s E γr) := by
   unfold srvAtomics; infer_instance
 
 /-- The entries `ents` are modelled by `ms` (persistent). -/
@@ -326,13 +327,14 @@ instance srvFieldsAt_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Met
 
 /-- The apply thread's view of the server `s` (persistent): `s.consistIndex` (with the
 protocol, `isServerCI`), the fields `applyEntryNormal` and `apply` read (the applier's in the
-environment `E`), and the atomics. -/
+environment `E`), and the atomics (the applied index's at the read names `γr`: unit 4b). -/
 def isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) : IProp GF :=
-  iprop(isServerCI s γ ci ∗ (∃ v : SrvFields, srvFieldsAt s γ ci TM E ρ v) ∗ srvAtomics s)
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) : IProp GF :=
+  iprop(isServerCI s γ ci ∗ (∃ v : SrvFields, srvFieldsAt s γ ci TM E ρ v) ∗ srvAtomics s E γr)
 
 instance isServer_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (ρ : ReqNames) : Persistent (isServer s γ ci TM E ρ) := by
+    (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
+    Persistent (isServer s γ ci TM E ρ γr) := by
   unfold isServer; infer_instance
 
 /-- **The apply thread's applier state** at `x` (not persistent): the server's `uberApply`'s
@@ -367,6 +369,22 @@ theorem applyKV_idxCert (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyK
     icases Hsw with ⟨#Hc, -, -⟩
     iexact Hc
   iframe H Hc
+
+/-- The certificate of the KV's log, from the apply thread's applier state at the server. -/
+theorem srvApplyKV_idxCert (s : Loc) (E : apply.AEnv GF) (x : apply.ApplyKV) :
+    srvApplyKV s E x ⊢ srvApplyKV s E x ∗ mvcc.idxCert E.γ.idx x.log := by
+  iintro H
+  iunfold srvApplyKV at H
+  icases H with ⟨%ua, #Hua, Hkv, Hw⟩
+  icases applyKV_idxCert E ua x $$ Hkv with ⟨Hkv, #Hc⟩
+  iframe Hc
+  iunfold srvApplyKV
+  iexists ua
+  isplitr
+  · iexact Hua
+  isplitl [Hkv]
+  · iexact Hkv
+  iexact Hw
 
 /-- Two claims of one id agree on the data. -/
 theorem idClaim_agree' (γi : IdNames) (id : w64) (d1 d2 : List w8) :
