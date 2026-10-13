@@ -208,7 +208,8 @@ watchableStore__NewWatchStream: watchableStore__watch watchableStore__progress w
 # the trust boundary they reach: the hasher (hash.go's crc32: `newKVHasher`, `kvHasher`'s
 # `WriteKeyValue`/`Hash`, `hashStorage.Store`), the scheduler's `Schedule` (agreed with the
 # server's session), zap's fields and `Info`/`Warn`, humanize's `Bytes` (axioms); the jobs
-# (pkg/schedule's `NewJob`, `job.Do`/`Name`, translated: pending); the btree's `Clone`,
+# (pkg/schedule's `NewJob`, `job.Do`/`Name`, translated: proved in the request path's unit 4d);
+# the btree's `Clone`,
 # `Ascend`, `Delete` and context's `Err` linked in their own Link.lean (`@`).
 BTree__Clone: @
 BTree__Ascend: @
@@ -224,9 +225,9 @@ schedule_Scheduler__Schedule:
 # (the request path's unit 4c: the scheduler's `Stop`, an axiom, for the server's `run`, which
 # reuses these entries with `@`)
 schedule_Scheduler__Stop:
-schedule_NewJob:
 schedule_job__Do:
 schedule_job__Name:
+schedule_NewJob: schedule_job__Do
 newKVHasher:
 kvHasher__WriteKeyValue:
 kvHasher__Hash:

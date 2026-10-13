@@ -738,9 +738,13 @@ theorem mvcc.readView.wp_Rev :
     mvcc.readView.Rev.spec (GF := GF) (hG := hG) :=
   mvcc.readView.Rev.wp_proof traceutil.wp_TODO mvcc.store.wp_Read mvcc.storeTxnCommon.wp_Rev mvcc.metricsTxnWrite.wp_End
 
+theorem schedule.job.wp_Do :
+    schedule.job.Do.spec (GF := GF) (hG := hG) :=
+  schedule.job.Do.wp_proof
+
 theorem schedule.wp_NewJob :
     schedule.NewJob.spec (GF := GF) (hG := hG) :=
-  schedule.NewJob.wp_proof
+  schedule.NewJob.wp_proof schedule.job.wp_Do
 
 theorem schedule.Scheduler.wp_Schedule :
     schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG) :=
@@ -749,10 +753,6 @@ theorem schedule.Scheduler.wp_Schedule :
 theorem schedule.Scheduler.wp_Stop :
     schedule.Scheduler.Stop.spec (GF := GF) (hG := hG) :=
   schedule.Scheduler.Stop.wp_proof
-
-theorem schedule.job.wp_Do :
-    schedule.job.Do.spec (GF := GF) (hG := hG) :=
-  schedule.job.Do.wp_proof
 
 theorem schedule.job.wp_Name :
     schedule.job.Name.spec (GF := GF) (hG := hG) :=
