@@ -71,7 +71,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- Rocq `STEP_POSTULATES`: the callee specs the branches are proved from. -/
 structure raft.Step.Postulates : Prop where
-  hup : raft.hup.spec (GF := GF) (hG := hG)
+  hup : raft.hup.specS (GF := GF) (hG := hG)
   becomeFollower : raft.becomeFollower.specS (GF := GF) (hG := hG)
   voteRespMsgType : voteRespMsgType.spec (GF := GF) (hG := hG)
   send : raft.send.specS (GF := GF) (hG := hG)

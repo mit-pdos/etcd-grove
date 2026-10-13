@@ -239,7 +239,7 @@ theorem raft.switchToConfig.wp_proof
       · -- a commit: broadcast
         simp only [↓reduceIte]
         wp_auto
-        wp_apply wp_raft_bcastAppend $$ [$Hphys] as %ms %pvs2 ⟨Hphys, %Hms, %Hmm⟩
+        wp_apply (raft.bcastAppend.spec_simple wp_raft_bcastAppend) $$ [$Hphys] as %ms %pvs2 ⟨Hphys, %Hms, %Hmm⟩
         wp_join_done
         iexists ms, pvs2
         simp only

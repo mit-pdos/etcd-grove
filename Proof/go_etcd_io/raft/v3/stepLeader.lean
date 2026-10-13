@@ -1305,7 +1305,7 @@ private theorem wp_stepLeader_appresp
             { s with prvals := pvs3, logst := { s.logst with committed := N } } Hlead Hnz
             (fun _ => HcN.2.2.1) $$ [$Hphys]
           as %hb %pvsR ⟨Hphys, %Hhb, %HmmR⟩
-        wp_apply wp_raft_bcastAppend $$ [$Hphys] as %ms %pvs4 ⟨Hphys, %Hms, %Hmm4⟩
+        wp_apply (raft.bcastAppend.spec_simple wp_raft_bcastAppend) $$ [$Hphys] as %ms %pvs4 ⟨Hphys, %Hms, %Hmm4⟩
         wp_join_done
         iexists N, releasedState id { s with logst := { s.logst with committed := N } }, hb, ms,
           pvs4

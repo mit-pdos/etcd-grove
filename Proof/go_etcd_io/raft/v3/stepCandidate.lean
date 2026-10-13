@@ -133,7 +133,7 @@ theorem stepCandidate.wp_proof
         as %pvs1 ⟨Hphys, %Hmb⟩
       -- `bcastAppend` adds *some* list of `App`s from `id` at the current term -- not one
       -- per peer; see `Spec/raft__bcastAppend.lean`.
-      wp_apply wp_raft_bcastAppend $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+      wp_apply (raft.bcastAppend.spec_simple wp_raft_bcastAppend) $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
       iapply HΦ $$ %GoInterface.nil %_ %false
       iframe Hphys
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -332,7 +332,7 @@ theorem stepCandidate.wp_proof
         have Hnl1 : s.role ≠ .leader := by rw [Hrole]; decide
         have Hnw1 := Hpvnw Hrole Hty
         rw [show go_etcd_io.raft.v3.campaignElection = #campaignElection from rfl]
-        wp_apply wp_raft_campaign _ _ _ { s with votes := recordVote s.votes m.From' (!m.Reject') }
+        wp_apply (raft.campaign.spec_simple wp_raft_campaign) _ _ _ { s with votes := recordVote s.votes m.From' (!m.Reject') }
             _ Hnl1 Hcfg Hnw1
             (fun h => by
               have := congrArg List.length h

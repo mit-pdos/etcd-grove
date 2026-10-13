@@ -396,7 +396,7 @@ theorem stepFollower.wp_proof
     wp_apply raft.wp_load_id $$ Hphys as Hphys
     wp_apply raft.wp_load_Term $$ Hphys as Hphys
     wp_raft_log
-    wp_apply wp_raft_hup cfg r id s _ Hnw
+    wp_apply (raft.hup.spec_simple wp_raft_hup) cfg r id s _ Hnw
         (fun h => by simp [campaignTransfer, campaignPreElection] at h) Hwf
       $$ [$Hphys] as %s' ⟨Hphys, %Hwf', %Hst, %Hfr⟩
     iapply HΦ $$ %GoInterface.nil %s' %false

@@ -35,6 +35,17 @@ model demanded one per peer, which would have made this claim false -- the same 
 `raft.appendEntry.spec` fell into before 2026-09-15 (it was called
 `wp_raft__appendEmptyEntry` then, after a Go method that does not exist). -/
 abbrev raft.bcastAppend.spec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysC c r id s }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"bcastAppend")) (Val #()))
+  {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
+      ownRaftPhysC c r id { sendMsgs s ms with prvals := pvs } ∗
+      ⌜ReplSends id s ms⌝ ∗
+      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
+
+/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
+derived from `raft.bcastAppend.spec` by `raft.bcastAppend.spec_simple`. -/
+abbrev raft.bcastAppend.specS : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"bcastAppend")) (Val #()))
@@ -42,6 +53,21 @@ abbrev raft.bcastAppend.spec : Prop :=
       ownRaftPhys cfg r id { sendMsgs s ms with prvals := pvs } ∗
       ⌜ReplSends id s ms⌝ ∗
       ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
+
+open Iris.ProofMode in
+theorem raft.bcastAppend.spec_simple
+    (H : raft.bcastAppend.spec (GF := GF) (hG := hG)) :
+    raft.bcastAppend.specS (GF := GF) (hG := hG) := by
+  intro cfg r id s
+  iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
+  ihave Hphys := ownRaftPhys_toC' $$ Hphys
+  iapply H _ r id s $$ [$Hpkg $Hphys]
+  inext
+  iintro %ms %pvs ⟨Hphys, %H1, %H2⟩
+  ihave Hphys := ownRaftPhysC_toS $$ Hphys
+  iapply HΦ
+  iframe Hphys
+  ipureintro; exact ⟨H1, H2⟩
 
 end spec
 

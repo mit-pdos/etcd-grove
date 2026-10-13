@@ -27,8 +27,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `ownTracker` at two indices that are equal (by computation: a state reached by
 record updates). -/
-private theorem ownTracker_cast (cfg : GSet w64) (tv : tracker.ProgressTracker) (t t' : Trk)
-    (h : t = t') : ownTracker (GF := GF) cfg tv t ⊢ ownTracker cfg tv t' := h ▸ .rfl
+private theorem ownTracker_cast (c : CfgM) (tv : tracker.ProgressTracker) (t t' : Trk)
+    (h : t = t') : ownTrackerC (GF := GF) c tv t ⊢ ownTrackerC c tv t' := h ▸ .rfl
 
 /-- `bcastAppend`
 
@@ -45,17 +45,17 @@ obligation.
 **`I` is a wand, and that is the point.** `Visit` takes the tracker object -- the `trk`
 field and `ownTracker` -- and lends it to the closure; but `r.sendAppend(id)` is
 specified on `ownRaftPhys`, which includes that object. So `I` carries exactly "the raft
-struct with a tracker-shaped hole", the wand of `ownRaftPhys_tracker_prvals`:
+struct with a tracker-shaped hole", the wand of `ownRaftPhysC_tracker_prvals`:
 
     ∃ ms, r_ptr ↦ r ∗ ⌜ReplSends id s ms⌝ ∗ ⌜prvalsMatch pvsx = prvalsMatch s.prvals⌝ ∗
           (∀ tvx pvsx, r.[trk] ↦ tvx -∗
-                  ownTracker cfg tvx ⟨s.votes, s.progress, pvsx⟩ -∗
-                  ownRaftPhys cfg r id { sendMsgs s ms with prvals := pvsx })
+                  ownTrackerC c tvx ⟨s.votes, s.progress, pvsx⟩ -∗
+                  ownRaftPhysC c r id { sendMsgs s ms with prvals := pvsx })
 
 quantified over the `Progress` values because `sendAppend` changes them
 (`NState.prvals`), and over the field value because `ownRaftPhys` hides it: after
 `sendAppend` the tracker is split off again at whatever value the struct now holds.
-That is also why `visitClosure`'s postcondition is existential in the tracker value; see
+That is also why `visitClosureC`'s postcondition is existential in the tracker value; see
 `InvTracker.lean`. What it does pin is the progress map, `NState.progress`, which is the
 index of the wand's `ownTracker`. The closure fills the hole with what it was handed,
 reads `r.id`, calls `sendAppend` on the whole struct, and splits the tracker off again
@@ -69,18 +69,18 @@ theorem raft.bcastAppend.wp_proof
     (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
     (wp_raft_sendAppend : raft.sendAppend.spec (GF := GF) (hG := hG)) :
     raft.bcastAppend.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s
+  intro c r id s
   wp_start as Hphys
   wp_auto
-  icases ownRaftPhys_tracker_prvals $$ Hphys with ⟨%tv, Htrkf, Htrk, Hrest⟩
-  wp_apply (tracker.ProgressTracker.Visit.spec_simple wp_ProgressTracker_Visit) cfg _ tv ⟨s.votes, s.progress, s.prvals⟩ _
+  icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv, Htrkf, Htrk, Hrest⟩
+  wp_apply wp_ProgressTracker_Visit c _ tv ⟨s.votes, s.progress, s.prvals⟩ _
       (fun _ pvsx => iprop(∃ (ms : List Msg),
         "rp" ∷ r_ptr ↦ r ∗
         "%Hms" ∷ ⌜ReplSends id s ms⌝ ∗
         "%Hmm" ∷ ⌜prvalsMatch pvsx = prvalsMatch s.prvals⌝ ∗
         "Hrest" ∷ (∀ tvx pvsx', r.[raft, go!"trk"] ↦ tvx -∗
-            ownTracker cfg tvx ⟨s.votes, s.progress, pvsx'⟩ -∗
-            ownRaftPhys cfg r id { sendMsgs s ms with prvals := pvsx' })))
+            ownTrackerC c tvx ⟨s.votes, s.progress, pvsx'⟩ -∗
+            ownRaftPhysC c r id { sendMsgs s ms with prvals := pvsx' })))
     $$ [$Htrkf $Htrk r Hrest]
   · isplitl [r Hrest]
     · iexists []
@@ -92,23 +92,23 @@ theorem raft.bcastAppend.wp_proof
       · ipureintro; trivial
       iintro %tvx %pvsx Hf Ht
       ihave Hphys := Hrest $$ %tvx %pvsx Hf Ht
-      iapply ownRaftPhys_eq cfg r id _ _ (by cases s; simp [sendMsgs]) $$ Hphys
+      iapply ownRaftPhysC_eq c r id _ _ (by cases s; simp [sendMsgs]) $$ Hphys
     -- the closure
     imodintro
-    unfold visitClosure
+    unfold visitClosureC
     iintro %i %pr %tv0 %pvs0 %p %D
     wp_start as ⟨%Hicfg, %Hpri, %Hpvi, %HmaxI, Htrkf, Hpr, Hback, HI⟩
     iNamed HI
     ihave Htrk := Hback $$ %p Hpr %rfl
     ihave Hphys := Hrest $$ Htrkf Htrk
     wp_auto
-    wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
     by_cases Hii : i = id
     · -- the leader itself: nothing is sent
       rw [decide_eq_true Hii]
       wp_auto
-      icases ownRaftPhys_tracker_prvals $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hrest⟩
-      ihave Htrk := ownTracker_cast cfg tv1 _ ⟨s.votes, s.progress, <[i := p]> pvs0⟩ ?_ $$ Htrk
+      icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hrest⟩
+      ihave Htrk := ownTracker_cast c tv1 _ ⟨s.votes, s.progress, <[i := p]> pvs0⟩ ?_ $$ Htrk
       · rfl
       iapply HΦ
       iexists tv1, _
@@ -122,17 +122,17 @@ theorem raft.bcastAppend.wp_proof
       · ipureintro; rw [GMap.insert_id _ _ _ Hpvi]; exact Hmm
       iintro %tvx %pvsx Hf Ht
       ihave Hphys := Hrest $$ %tvx %pvsx Hf [Ht]
-      · iapply ownTracker_cast cfg tvx ⟨s.votes, s.progress, pvsx⟩ _ ?_ $$ Ht
+      · iapply ownTracker_cast c tvx ⟨s.votes, s.progress, pvsx⟩ _ ?_ $$ Ht
         rfl
-      iapply ownRaftPhys_eq cfg r id _ _ (by cases s; rfl) $$ Hphys
+      iapply ownRaftPhysC_eq c r id _ _ (by cases s; rfl) $$ Hphys
     · -- a peer: `sendAppend` may add `App`s and change `Progress`es
       rw [decide_eq_false Hii]
       wp_auto
-      wp_apply (raft.sendAppend.spec_simple wp_raft_sendAppend) _ _ _ _ i Hii (by exact Hicfg) $$ [$Hphys]
+      wp_apply wp_raft_sendAppend _ _ _ _ i Hii (by exact Hicfg) $$ [$Hphys]
         as %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
       try wp_auto
-      icases ownRaftPhys_tracker_prvals $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hrest⟩
-      ihave Htrk := ownTracker_cast cfg tv1 _ ⟨s.votes, s.progress, pvs'⟩ ?_ $$ Htrk
+      icases ownRaftPhysC_tracker_prvals $$ Hphys with ⟨%tv1, Htrkf, Htrk, Hrest⟩
+      ihave Htrk := ownTracker_cast c tv1 _ ⟨s.votes, s.progress, pvs'⟩ ?_ $$ Htrk
       · rfl
       iapply HΦ
       iexists tv1, _
@@ -147,9 +147,9 @@ theorem raft.bcastAppend.wp_proof
       · ipureintro; simp only at Hmm'; rw [Hmm', GMap.insert_id _ _ _ Hpvi]; exact Hmm
       iintro %tvx %pvsx Hf Ht
       ihave Hphys := Hrest $$ %tvx %pvsx Hf [Ht]
-      · iapply ownTracker_cast cfg tvx ⟨s.votes, s.progress, pvsx⟩ _ ?_ $$ Ht
+      · iapply ownTracker_cast c tvx ⟨s.votes, s.progress, pvsx⟩ _ ?_ $$ Ht
         rfl
-      iapply ownRaftPhys_eq cfg r id _ _ (by cases s; simp [sendMsgs, List.append_assoc]) $$ Hphys
+      iapply ownRaftPhysC_eq c r id _ _ (by cases s; simp [sendMsgs, List.append_assoc]) $$ Hphys
   iintro ⟨%tvfin, %pvsfin, Htrkf, Htrk, HI⟩
   iNamed HI
   ihave Hphys := Hrest $$ %tvfin %pvsfin Htrkf Htrk

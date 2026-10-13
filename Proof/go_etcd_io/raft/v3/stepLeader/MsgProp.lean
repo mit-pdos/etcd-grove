@@ -619,7 +619,7 @@ theorem wp_stepLeader_prop
       iexists _
       iexact Hes
     · wp_auto
-      wp_apply wp_raft_bcastAppend $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+      wp_apply (raft.bcastAppend.spec_simple wp_raft_bcastAppend) $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
       iapply HΦ $$ %interface.nil %_ %false
       iframe Hphys
       isplitr
