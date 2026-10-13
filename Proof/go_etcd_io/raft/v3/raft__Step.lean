@@ -42,6 +42,7 @@ public import Proof.go_etcd_io.raft.v3.raft__Step.MsgPreVote
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgPreVoteResp
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgStorageAppendResp
 public import Proof.go_etcd_io.raft.v3.raft__Step.MsgStorageApplyResp
+public import Proof.go_etcd_io.raft.v3.raft__Step.MsgReadIndex
 
 @[expose] public section
 
@@ -358,7 +359,61 @@ private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := h
       ▷ stepPost γ cfg r id s m Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
         {{ v, |={⊤}=> Φ v }} := by
-  sorry
+  obtain ⟨Hterm, Hsz⟩ := Hm
+  iintro #Hinit Hphys Hghost #Hents #Hctxp #Hm Hcred HΦ
+  -- a request has an entry (its context)
+  have Hne_lem : ⊢ isMessage (GF := GF) γ (absMsg .readIndex m ents ctx) -∗ ⌜ents ≠ []⌝ := by
+    unfold isMessage
+    simp only [absMsg, absMsgFrom]
+    iintro ⟨%e, %c, %Lc, %He, -⟩
+    ipureintro
+    try simp only [Msg.mkV] at He
+    rw [He]; exact List.cons_ne_nil _ _
+  ihave %Hne := Hne_lem $$ Hm
+  -- a follower's leader is another node
+  ihave %Hlok0 := ownRaftGhost_lead_ok γ id (toPState s) $$ Hghost
+  have Hlok : s.role = .follower → s.lead ≠ id := by
+    intro Hf
+    rw [← toPState_lead_nonpre s (by rw [Hf]; decide)]
+    apply Hlok0
+    rw [toPState_role, Hf]; decide
+  -- a leader's read-only state
+  have Hlrd_lem : ⊢ ownRaftGhost (GF := GF) γ id (toPState s) -∗
+      ⌜s.role = .leader → RdOk cfg s.rd ∧ s.term ≠ W64 0⌝ := by
+    iintro Hg
+    by_cases hl : s.role = .leader
+    · ihave %H1 := ghost_rdOk γ id s hl $$ Hg
+      ipureintro; intro _; rw [← Hcfg]; exact H1
+    · ipureintro; exact fun h => absurd h hl
+  ihave %Hlrd := Hlrd_lem $$ Hghost
+  wp_apply (wp_Step_MsgReadIndex P cfg r id s m ents ctx Hty Hterm Hsz Hne Hlok Hlrd Hin Hwf)
+    $$ [$Hphys $Hents $Hctxp] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
+  obtain ⟨recv, Hrecv, Hlen, Hstep⟩ := Hst
+  -- the request's credit goes with it, if it was received
+  have Hcnt : rdCount recv ≤ 1 := by
+    have : rdCount recv ≤ recv.length := List.countP_le_length
+    omega
+  ihave Hc := (rdCred_split γ (rdCount recv) (1 - rdCount recv)).1 $$ [Hcred]
+  · rw [show rdCount recv + (1 - rdCount recv) = 1 by omega]; iexact Hcred
+  icases Hc with ⟨Hc, -⟩
+  ihave Hall : ([∗list] x ∈ recv, isMessage (GF := GF) γ x) $$ []
+  · iapply (BigSepL.bigSepL_intro
+      (P := iprop(□ isMessage (GF := GF) γ (absMsg .readIndex m ents ctx)))
+      (fun k x hx => by
+        rw [Hrecv x (List.mem_of_getElem? hx)]
+        exact intuitionistically_elim))
+    iexact Hm
+  have Hst' : Step γ.reCfg id (toPState s) recv (toPState s') := by rw [Hcfg]; exact Hstep
+  imod ownRaftGhost_step γ id _ recv _ Hst' $$ Hall Hc Hghost with Hghost
+  imodintro
+  unfold stepPost
+  ihave Herr' : (⌜err = interface.nil⌝ ∨
+      (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err) : IProp GF) $$ []
+  · ileft; ipureintro; exact Herr
+  iapply HΦ $$ %err %s' %(toPState s')
+  iframe Hphys Hghost Herr'
+  ipureintro
+  exact ⟨⟨rfl, Hwf'⟩, ⟨recv, Hstep⟩, fun _ => Hfr, fun _ => Htm, by resp_other⟩
 
 /-- `MsgReadIndexResp` (2026-10-13): a leader's answer to a forwarded request. -/
 private theorem dispatch_ReadIndexResp (P : raft.Step.Postulates (GF := GF) (hG := hG))

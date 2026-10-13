@@ -151,9 +151,142 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           | (simp [readForward, absMsg, absMsgFrom]; split <;> rfl)
       rw [He]
       exact this
-  · sorry
-  · sorry
-  · sorry
+  · -- a candidate (a pre-candidate is one too) ignores it
+    simp only [stepFuncOf]
+    wp_apply _P.stepCandidate cfg r id s m ents (zero_val _) [] ctx
+        (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))))
+        (fun Hc => by
+          exfalso; rw [Hty] at Hc
+          rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
+        (.inl Hrole) Hcfg
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      $$ [$Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
+    · isplitl []
+      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+      isplitl []
+      · iapply Hsnap0
+      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+    obtain ⟨rfl, Hs1⟩ := candidateStepResult_readIndex _ _ _ _ _ _ _ _ _ (.inl Hty) Hres
+    subst s1
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Herrn with %Herrn
+    subst Herrn
+    wp_auto
+    iapply HΦ $$ %interface.nil %s
+    iframe Hphys
+    ipureintro
+    exact ⟨Hwf, ⟨[], by simp, by simp, .refl _⟩, rfl, NetFrame.refl _, TermStep.refl _ _⟩
+  · -- Leader: pending, or arrival and heartbeats
+    simp only [stepFuncOf]
+    have Hpr : (toPState s).role = .leader := by simp [toPState, Hrole, proleRole]
+    have Hrd := toPState_rd_leader' s Hrole
+    wp_apply _P.stepLeader cfg r id s m ents ctx
+        (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))))
+        Hrole Hcfg
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by
+          exfalso; rw [Hty] at Hc
+          rcases Hc with Hc | ⟨Hc, -⟩ <;> exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun _ => Hlrd Hrole)
+        (fun _ => ⟨Hsz, Hne⟩)
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      $$ [$Hphys] as %err %s' %dropped ⟨Hphys, %Hres, Herrn, -⟩
+    · isplitl []
+      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+      isplitl []
+      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+      · iintro _; iexact Hents
+    unfold LeaderStepResult at Hres
+    rw [ite_eq_right (by rw [Hty]; w32_ne)] at Hres
+    obtain ⟨rfl, Hres⟩ := Hres
+    unfold LeaderNonpropResult at Hres
+    rcases Hres with ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨-, Hri⟩ | ⟨Hc, -⟩
+    all_goals try (exfalso; rw [Hty] at Hc; first
+      | exact absurd Hc (by w32_ne)
+      | (rcases Hc with Hc | Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne)))
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Herrn with %Herrn
+    subst Herrn
+    wp_auto
+    rcases Hri with ⟨Hnct, rfl⟩ | ⟨Hct, ms, pvs, rfl, Hms, Hpm⟩
+    · -- no entry of the term committed: pending
+      iapply HΦ $$ %interface.nil %({ s with rd := { s.rd with pend := s.rd.pend ++ [(m, ents)] } })
+      iframe Hphys
+      ipureintro
+      refine ⟨Hwf, ⟨[absMsg .readIndex m ents ctx], by simp, by simp, ?_⟩, rfl,
+        NetFrame.of_logst rfl, TermStep.of_term rfl (fun _ => Int.le_refl _)⟩
+      have e : toPState { s with rd := { s.rd with pend := s.rd.pend ++ [(m, ents)] } } =
+          { toPState s with rd := { (toPState s).rd with
+              pend := (toPState s).rd.pend ++ [(m, (absMsg .readIndex m ents ctx).entries)] } } := by
+        rw [Hrd]; simp [toPState, Hrole, absMsg, absMsgFrom]
+      rw [e]
+      exact Step.readPend (absMsg .readIndex m ents ctx) (toPState s) m rfl Hpr rfl
+    · -- arrival, then the heartbeats
+      iapply HΦ $$ %interface.nil %({ sendMsgs (arriveState id s m ents) ms with prvals := pvs })
+      iframe Hphys
+      ipureintro
+      refine ⟨nstateWf_prvals _ _ (nstateWf_sendMsgs _ _ Hwf),
+        ⟨[absMsg .readIndex m ents ctx] ++ [], by simp, by simp, ?_⟩, rfl,
+        NetFrame.of_logst rfl, TermStep.of_term rfl (fun _ => Int.le_refl _)⟩
+      let ps1 : PState := { toPState s with rd := { (toPState s).rd with
+          ro := readonlyArrive (toPState s).rd.ro id
+            ⟨(toPState s).commit, (absMsg .readIndex m ents ctx).src,
+             (absMsg .readIndex m ents ctx).entries⟩ } }
+      have H1 : Step cfg id (toPState s) [absMsg .readIndex m ents ctx] ps1 :=
+        Step.readArrive (absMsg .readIndex m ents ctx) (toPState s) rfl Hpr Hct
+      have Hps1ro : ps1.rd.ro = readonlyArrive s.rd.ro id (arriveReq s m ents) := by
+        simp [ps1, arriveReq, toPState, Hrole, absMsg, absMsgFrom]
+      have H2 : Step cfg id ps1 [] (psendMsgs ps1 ms) :=
+        .beat _ ms Hpr
+          (fun m' h => by
+            have := (Hms m' h).1
+            unfold HeartbeatOk matchOf at this ⊢
+            simpa [ps1] using this)
+          (fun m' h => by
+            rw [(Hms m' h).2, Hps1ro]
+            have : hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)) =
+                hbCtx (readonlyArrive s.rd.ro id (arriveReq s m ents)) := by
+              unfold readonlyArrive; rw [hbCtx_recvAck]
+            rw [this]
+            exact hbCtx_ok _)
+      have He : toPState { sendMsgs (arriveState id s m ents) ms with prvals := pvs } =
+          psendMsgs ps1 ms := by
+        rw [toPState_prvals (sendMsgs (arriveState id s m ents) ms) pvs (fun _ => Hpm),
+          toPState_sendMsgs]
+        congr 1
+        simp [ps1, arriveState, arriveReq, toPState, Hrole, absMsg, absMsgFrom]
+      rw [He]
+      exact .trans _ _ _ _ _ H1 H2
+  · -- a candidate (a pre-candidate is one too) ignores it
+    simp only [stepFuncOf]
+    wp_apply _P.stepCandidate cfg r id s m ents (zero_val _) [] ctx
+        (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))))
+        (fun Hc => by
+          exfalso; rw [Hty] at Hc
+          rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
+        (.inr Hrole) Hcfg
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+      $$ [$Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
+    · isplitl []
+      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+      isplitl []
+      · iapply Hsnap0
+      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+    obtain ⟨rfl, Hs1⟩ := candidateStepResult_readIndex _ _ _ _ _ _ _ _ _ (.inl Hty) Hres
+    subst s1
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Herrn with %Herrn
+    subst Herrn
+    wp_auto
+    iapply HΦ $$ %interface.nil %s
+    iframe Hphys
+    ipureintro
+    exact ⟨Hwf, ⟨[], by simp, by simp, .refl _⟩, rfl, NetFrame.refl _, TermStep.refl _ _⟩
 
 end StepProof
 
