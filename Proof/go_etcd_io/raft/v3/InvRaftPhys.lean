@@ -1514,6 +1514,23 @@ private theorem raft_split_raftLog_trk (l : Loc) (rv : raft) :
   iframe
   try iframe #
 
+/-- Two fields at once, `trk` and `readOnly`: for `ownRaftPhys_readOnly_trk`
+(2026-10-13). -/
+private theorem raft_split_trk_readOnly (l : Loc) (rv : raft) :
+    ⊢ raftOwn (GF := GF) l rv -∗
+      l.[raft, go!"trk"] ↦ rv.trk' ∗
+      l.[raft, go!"readOnly"] ↦ rv.readOnly' ∗
+      (∀ x y, l.[raft, go!"trk"] ↦ x -∗
+            l.[raft, go!"readOnly"] ↦ y -∗ raftOwn l { rv with trk' := x, readOnly' := y }) := by
+  unfold raftOwn
+  iintro Hf
+  iNamed Hf
+  iframe H_trk H_readOnly
+  iintro %x %y H_trk H_readOnly
+  simp only [named]
+  iframe
+  try iframe #
+
 -- The (fixed) set of voters.
 variable (cfg : GSet w64)
 
@@ -1811,6 +1828,41 @@ theorem ownRaftPhys_readOnly (r : Loc) (id : w64) (s : NState) :
     simp only [named]
     iframe HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap Hpri_ents
   reseal { s with rd := { s.rd with ro := rr' } }
+
+/-- The tracker and the `readOnly` object together (2026-10-13): `stepLeader`'s
+`r.readOnly.maybeAdvance(r.trk.Voters)` lends the tracker's voter map to the read-only
+object's method. Back at any tracker value (same tally, progress map and values) and any
+read-only record, which the state then records. -/
+theorem ownRaftPhys_readOnly_trk (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
+      ∃ (tv : tracker.ProgressTracker) (ro : Loc),
+        r.[raft, go!"trk"] ↦ tv ∗
+        ownTracker cfg tv ⟨s.votes, s.progress, s.prvals⟩ ∗
+        r.[raft, go!"readOnly"] ↦ ro ∗ ownReadOnly ro s.rd.ro ∗
+        (∀ (tv' : tracker.ProgressTracker) (ro' : Loc) (rr' : ReadOnly),
+           r.[raft, go!"trk"] ↦ tv' -∗
+           ownTracker cfg tv' ⟨s.votes, s.progress, s.prvals⟩ -∗
+           r.[raft, go!"readOnly"] ↦ ro' -∗ ownReadOnly ro' rr' -∗
+           ownRaftPhys cfg r id { s with rd := { s.rd with ro := rr' } }) := by
+  iintro H
+  iNamed_phys H
+  iunfold ownRaftMisc at Hmisc
+  iNamed Hmisc
+  icases raft_split_trk_readOnly r rv $$ Hr with ⟨Hft, Hf, Hback⟩
+  iexists rv.trk', rv.readOnly'
+  iframe Hft Htrk Hf Hro_obj
+  iintro %tv' %ro' %rr' Hft Htrk Hf Hro_obj
+  ihave Hr := Hback $$ %tv' %ro' Hft Hf
+  ihave Hmisc : ownRaftMisc (GF := GF) rv.readStates' ro' rv.pendingReadIndexMessages'
+      { s.rd with ro := rr' } $$ [HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap]
+  · unfold ownRaftMisc
+    simp only [named]
+    iframe HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap Hpri_ents
+  iapply ownRaftPhys_intro cfg r id { s with rd := { s.rd with ro := rr' } }
+      { rv with trk' := tv', readOnly' := ro' } msgs msgsAA lok
+    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCheckQuorum HnoLearner
+    HnoTransfer Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst
+    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
 /-- The three read-index fields with what hangs off them (2026-10-12), back at any values
 and any read state, which the state then records. -/

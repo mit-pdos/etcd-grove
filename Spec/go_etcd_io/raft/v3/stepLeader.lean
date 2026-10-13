@@ -36,11 +36,15 @@ This spec covers the seven types `Step` dispatches to it.
   `HeartbeatOk` allows, which is the model's `Step.beat`.
 - `MsgHeartbeatResp`: `pr.RecentActive`, `pr.MsgAppFlowPaused` written;
   `sendAppend(m.From)` when the peer is behind or probing; then `if r.readOnly.option
-  != ReadOnlySafe || len(m.Context) == 0 { return nil }`. The read-only code after it
-  is skipped because a heartbeat response in scope carries no context:
-  `bcastHeartbeat` sends `nil` (`heartbeatCtx`, no read requests) and `handleHeartbeat`
-  echoes it -- the premise `Hctx` below. So: `ReplSends` growth, no `Match` moved (the
-  model's `Step.sendApps`, or `Step.refl`).
+  != ReadOnlySafe || len(m.Context) == 0 { return nil }`: `ReplSends` growth, no
+  `Match` moved (the model's `Step.sendApps`, or `Step.refl`). (2026-10-12) With a
+  context (`m.Context ↦*□ ctx`, `Hctx`; the option is always `ReadOnlySafe`):
+  `recvAck(m.From, m.Context)`, `maybeAdvance(r.trk.Voters)`, and each confirmed request
+  answered (`ReadAckResult`). A sender with no `Progress` returns before all this, so
+  its context is ignored (the `m.From ∉ domSet s.progress` disjunct, 2026-10-13).
+- `MsgReadIndex` (2026-10-12): not at a single voter (premise), pending until an entry of
+  the leader's term is committed (`committedEntryInCurrentTerm`), then
+  `sendMsgReadIndexResponse`.
 - `MsgAppResp`, the replication path (`raft.go:1371-1565`):
   * no `Progress` for the sender: unchanged;
   * rejected: `MaybeDecrTo`, perhaps `BecomeProbe`, perhaps `sendAppend(m.From)` --
@@ -51,8 +55,9 @@ This spec covers the seven types `Step` dispatches to it.
     `maybeCommit()` may advance `committed` to an `N` with `CommitOk` **at the updated
     `Match` map** (`Step.commit`); then `bcastAppend` (after a commit) or `sendAppend`
     (for `CanBumpCommit`) and the `for r.maybeSendAppend(m.From, false) {}` loop
-    (`Step.sendApps`, judged after the commit). `releasePendingReadIndexMessages` is a
-    no-op under the scope. `sendTimeoutNow` is dead: it needs `m.From =
+    (`Step.sendApps`, judged after the commit). After a commit,
+    `releasePendingReadIndexMessages` releases the pending read-index requests
+    (2026-10-12), its heartbeats judged at the raised `Match` map. `sendTimeoutNow` is dead: it needs `m.From =
     r.leadTransferee`, which is `0` (`ownRaftPhys`'s `HnoTransfer`), and `m.From ≠ 0`
     is a premise.
 
@@ -111,11 +116,12 @@ def AppRespAccepted (cfg : GSet w64) (id : w64) (s : NState) (src index : w64)
      CommitOk cfg (toPState { s with prvals := pvs }) c) ∧
     ReplSends id { s with logst := { s.logst with committed := c } } ms ∧
     -- (2026-10-12) a commit releases the pending read-index requests, with their
-    -- heartbeats `hb`
+    -- heartbeats `hb` (judged, 2026-10-13, at the raised `Match` map: a heartbeat's
+    -- `Commit` is `min(Match, committed)` of the `Progress` it is sent from)
     (if c = s.logst.committed then hb = [] ∧
        s' = { sendMsgs { s with logst := { s.logst with committed := c } } ms with
                 prvals := pvs }
-     else ReleaseHbs id { s with logst := { s.logst with committed := c } } hb ∧
+     else ReleaseHbs id { s with logst := { s.logst with committed := c }, prvals := pvs } hb ∧
        s' = { sendMsgs (sendMsgs (releasedState id
                 { s with logst := { s.logst with committed := c } }) hb) ms with
                 prvals := pvs })
@@ -179,7 +185,8 @@ def LeaderNonpropResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Mes
      ReplSends id s ms ∧
      prvalsMatch pvs = prvalsMatch s.prvals ∧
      -- (2026-10-12) the read path, for a context
-     (ctx = [] ∧ s' = { sendMsgs s ms with prvals := pvs } ∨
+     -- (no read path without a context, or for a sender with no `Progress`)
+     ((ctx = [] ∨ m.From' ∉ domSet s.progress) ∧ s' = { sendMsgs s ms with prvals := pvs } ∨
       ctx ≠ [] ∧ ReadAckResult cfg id { sendMsgs s ms with prvals := pvs } m.From' ctx s')) ∨
   -- (2026-10-12) a read-index request: pending until an entry of the term is committed,
   -- then queued and heartbeats broadcast
@@ -241,8 +248,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
   An accepting `MsgAppResp` may come from the node itself (`appendEntry`'s
   self-acknowledgement): the code guards every send to `m.From` by `r.id != m.From`
   there;
-- `Hctx`: a `MsgHeartbeatResp` carries an empty `Context` (for any other type the wand
-  is trivial);
+- `Hctx`: a `MsgHeartbeatResp`'s `Context` holds `ctx` (for any other type the wand is
+  trivial), empty or at least eight bytes (`recvAck`'s `Uint64`), a position sent
+  (`maybeAdvance`'s bound); `Hrents`: a `MsgReadIndex`'s entries;
 - `MsgProp`: a non-empty batch (`Panicf` otherwise) of `EntryNormal` entries (no conf
   change in scope; the conf-change loop is then a no-op) of fewer than `2^61`
   (`appendEntry`'s no-wrap bound), and `Hents`: the batch at full ownership, since
