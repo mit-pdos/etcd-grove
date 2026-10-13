@@ -4,10 +4,13 @@ trust boundary of bbolt and the read buffer), the store's locks and what they ho
 transaction. Lean-first; `notes/decisions.md`, "The transactions: the store's locks and the
 backend contract".
 
-**The backend.** `keyReadSnap rt m` says `rt` is a `ReadTx` over a snapshot `m` of the bucket
-(`UnsafeRange(schema.Key, k, nil, 0)` returns `k`'s entry of `m`, read-only, or nothing);
-`isKeyBackend b View` that `b`'s `ConcurrentReadTx()`/`ReadTx()` return one of the bucket the
-caller's `View q m` holds (the store's ghost map authority at the caller's fraction).
+**The backend.** `keyReadSnap View RT rt m` says `rt` is a `ReadTx` over a snapshot `m` of the
+bucket (its `RLock` gives a token under which `UnsafeRange(schema.Key, k, nil, 0)` returns `k`'s
+entry of `m`, or nothing: `keyReadLocked`); `isKeyBackend b View` that `b`'s
+`ConcurrentReadTx()`/`ReadTx()` return one of the bucket the caller's `View q m` holds (the
+store's ghost map authority at the caller's fraction). `isKeyBackendG` is the general contract,
+with the backend's tokens and conditions (`BackendBridge.lean` proves it of the backend);
+`isKeyBackend`, the store's, its instance without them.
 
 **The locks.** `s.mu` (every transaction holds it shared; exclusively only by what is out of
 scope) holds nothing. `s.revMu` holds `currentRev` (the committed log's last revision),
@@ -110,101 +113,150 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-! ## The backend's contract -/
 
+/-- **A read capability** (persistent): a slice `s` a read returned as holding `b` (`Rd s b`)
+can be read while the reader's token `Tok` is held, at some fraction, the token lent out
+meanwhile. The slices of a real backend are bbolt's, valid only while its read transaction
+lives (until the reader's `RUnlock`, or while the batch transaction's lock is held): what the
+backend's `rdB rtx` with `crtSnap_read`/`rtHeld_read`, and the batch transaction's `UnsafeRange`
+capability under `batchLocked`, give. -/
+def rdCap (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) : IProp GF :=
+  iprop(□ ∀ (s : GoSlice) (b : GoString), Rd s b -∗ Tok -∗
+    ∃ dq : DFrac, s ↦*{dq} b ∗ (s ↦*{dq} b -∗ Tok))
+
+instance rdCap_persistent (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) :
+    Persistent (rdCap Rd Tok) := by
+  unfold rdCap; infer_instance
+
 /-- What `UnsafeRange(Key, k, nil, 0)` returns of the bucket `m`: the key and its value if `m`
-has `k` (read-only slices), else no key and no value. -/
-def keyVals (ks vs : GoSlice) (m : Bucket) (k : GoString) : IProp GF :=
+has `k` (read-only outer slices, the inner ones readable through `Rd`), else no key and no
+value. -/
+def keyVals (Rd : GoSlice → GoString → IProp GF) (ks vs : GoSlice) (m : Bucket) (k : GoString) :
+    IProp GF :=
   match m.lookup k with
-  | some v => iprop(∃ (ksl vsl : GoSlice), ks ↦*□ [ksl] ∗ ksl ↦*□ k ∗ vs ↦*□ [vsl] ∗ vsl ↦*□ v)
+  | some v => iprop(∃ (ksl vsl : GoSlice), ks ↦*□ [ksl] ∗ □ Rd ksl k ∗ vs ↦*□ [vsl] ∗ □ Rd vsl v)
   | none => iprop(ks ↦*□ ([] : List GoSlice) ∗ vs ↦*□ ([] : List GoSlice))
 
-instance keyVals_persistent (ks vs : GoSlice) (m : Bucket) (k : GoString) :
-    Persistent (keyVals (GF := GF) ks vs m k) := by
+instance keyVals_persistent (Rd : GoSlice → GoString → IProp GF) (ks vs : GoSlice) (m : Bucket)
+    (k : GoString) : Persistent (keyVals Rd ks vs m k) := by
   unfold keyVals; split <;> infer_instance
 
-/-- `rt`'s `UnsafeRange(schema.Key, key, nil, 0)`, for `key` holding `k`, reads `k`'s entry of
-the snapshot `m`. -/
-def keyRangeSpec (rt : GoInterfaceOk) (m : Bucket) : IProp GF :=
+/-- `rt`'s `UnsafeRange(schema.Key, key, nil, 0)`, for `key` holding `k`, under the reader's
+token `Tok`, reads `k`'s entry of the snapshot `m` (its slices readable through `Rd`). -/
+def keyRangeSpec (rt : GoInterfaceOk) (m : Bucket) (Rd : GoSlice → GoString → IProp GF)
+    (Tok : IProp GF) : IProp GF :=
   iprop(∀ (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac),
-    {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ key ↦*{dq} k }}
+    {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ Tok ∗ key ↦*{dq} k }}
       (App (App (App (App (Val #(methods rt.ty go!"UnsafeRange" rt.v)) (Val #b)) (Val #key))
         (Val #(slice.nil))) (Val #(W64 0)))
-    {{ (ks vs : GoSlice), RET (PairV #ks #vs); key ↦*{dq} k ∗ keyVals ks vs m k }})
+    {{ (ks vs : GoSlice), RET (PairV #ks #vs); Tok ∗ key ↦*{dq} k ∗ keyVals Rd ks vs m k }})
 
-/-- The slices `ks` and `vs` (read-only, of read-only slices) hold the keys and the values of the
-entries `l`, in order. -/
-def pairVals (ks vs : GoSlice) (l : List (GoString × GoString)) : IProp GF :=
+/-- The slices `ks` and `vs` (read-only, of slices readable through `Rd`) hold the keys and the
+values of the entries `l`, in order. -/
+def pairVals (Rd : GoSlice → GoString → IProp GF) (ks vs : GoSlice)
+    (l : List (GoString × GoString)) : IProp GF :=
   iprop(∃ kss vss : List GoSlice, ks ↦*□ kss ∗ vs ↦*□ vss ∗
     ⌜kss.length = l.length ∧ vss.length = l.length⌝ ∗
     [∗list] i ↦ p ∈ l, ∃ ksl vsl : GoSlice, ⌜kss[i]? = some ksl ∧ vss[i]? = some vsl⌝ ∗
-      ksl ↦*□ p.1 ∗ vsl ↦*□ p.2)
+      □ Rd ksl p.1 ∗ □ Rd vsl p.2)
 
-instance pairVals_persistent (ks vs : GoSlice) (l : List (GoString × GoString)) :
-    Persistent (pairVals (GF := GF) ks vs l) := by
+instance pairVals_persistent (Rd : GoSlice → GoString → IProp GF) (ks vs : GoSlice)
+    (l : List (GoString × GoString)) : Persistent (pairVals Rd ks vs l) := by
   unfold pairVals; infer_instance
 
 /-- What `UnsafeRange(Key, lo, hi, 0)` returns of the bucket `m` (`hi` not empty): the entries
 with a key in `[klo, khi)`, in key order (`bucketRange`; no limit). -/
-def rangeVals (ks vs : GoSlice) (m : Bucket) (klo khi : GoString) : IProp GF :=
-  pairVals ks vs (bucketRange m klo khi)
+def rangeVals (Rd : GoSlice → GoString → IProp GF) (ks vs : GoSlice) (m : Bucket)
+    (klo khi : GoString) : IProp GF :=
+  pairVals Rd ks vs (bucketRange m klo khi)
 
-instance rangeVals_persistent (ks vs : GoSlice) (m : Bucket) (klo khi : GoString) :
-    Persistent (rangeVals (GF := GF) ks vs m klo khi) := by
+instance rangeVals_persistent (Rd : GoSlice → GoString → IProp GF) (ks vs : GoSlice) (m : Bucket)
+    (klo khi : GoString) : Persistent (rangeVals Rd ks vs m klo khi) := by
   unfold rangeVals; infer_instance
 
 /-- `rt`'s `UnsafeRange(schema.Key, lo, hi, 0)`, for `lo` holding `klo` and `hi` holding a
-non-empty `khi`, reads the entries of the snapshot `m` with a key in `[klo, khi)`, in key order
-(bbolt's cursor from `klo` while below `khi`; the limit `0` is none). -/
-def keyRangeReadSpec (rt : GoInterfaceOk) (m : Bucket) : IProp GF :=
+non-empty `khi`, under the reader's token `Tok`, reads the entries of the snapshot `m` with a
+key in `[klo, khi)`, in key order (bbolt's cursor from `klo` while below `khi`; the limit `0` is
+none). -/
+def keyRangeReadSpec (rt : GoInterfaceOk) (m : Bucket) (Rd : GoSlice → GoString → IProp GF)
+    (Tok : IProp GF) : IProp GF :=
   iprop(∀ (b : GoInterface) (lo hi : GoSlice) (klo khi : GoString) (dqlo dqhi : DFrac),
-    {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ lo ↦*{dqlo} klo ∗
+    {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ Tok ∗ lo ↦*{dqlo} klo ∗
         hi ↦*{dqhi} khi ∗ ⌜khi ≠ []⌝ }}
       (App (App (App (App (Val #(methods rt.ty go!"UnsafeRange" rt.v)) (Val #b)) (Val #lo))
         (Val #hi)) (Val #(W64 0)))
-    {{ (ks vs : GoSlice), RET (PairV #ks #vs); lo ↦*{dqlo} klo ∗ hi ↦*{dqhi} khi ∗
-        rangeVals ks vs m klo khi }})
+    {{ (ks vs : GoSlice), RET (PairV #ks #vs); Tok ∗ lo ↦*{dqlo} klo ∗ hi ↦*{dqhi} khi ∗
+        rangeVals Rd ks vs m klo khi }})
 
-/-- `rt` is a `ReadTx` over the snapshot `m` of the bucket (persistent): `RLock`/`RUnlock`
-return, and its reads are the snapshot's: a key's entry (`keyRangeSpec`) and a range of keys
-(`keyRangeReadSpec`). -/
-def keyReadSnap (rt : GoInterfaceOk) (m : Bucket) : IProp GF :=
-  iprop(□ ({{ True }} (App (Val #(methods rt.ty go!"RLock" rt.v)) (Val #())) {{ RET #(); True }}) ∗
-    □ ({{ True }} (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #())) {{ RET #(); True }}) ∗
-    □ keyRangeSpec rt m ∗ □ keyRangeReadSpec rt m)
+/-- `rt` locked, over the snapshot `m` of the bucket (persistent), with `Tok` the reader's
+token from its `RLock` to its `RUnlock`: `RUnlock` takes `Tok` and gives back the reader's
+budget token `RT` (`isKeyBackendG`), and under `Tok` its reads are the snapshot's: a key's
+entry (`keyRangeSpec`) and a range of keys (`keyRangeReadSpec`), their slices readable through
+`Rd` while `Tok` is held (`rdCap`). -/
+def keyReadLocked (RT : IProp GF) (rt : GoInterfaceOk) (m : Bucket)
+    (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) : IProp GF :=
+  iprop(□ ({{ Tok }} (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #())) {{ RET #(); RT }}) ∗
+    □ keyRangeSpec rt m Rd Tok ∗ □ keyRangeReadSpec rt m Rd Tok ∗ rdCap Rd Tok)
 
-instance keyReadSnap_persistent (rt : GoInterfaceOk) (m : Bucket) :
-    Persistent (keyReadSnap (GF := GF) rt m) := by
+instance keyReadLocked_persistent (RT : IProp GF) (rt : GoInterfaceOk) (m : Bucket)
+    (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) :
+    Persistent (keyReadLocked RT rt m Rd Tok) := by
+  unfold keyReadLocked; infer_instance
+
+/-- `rt` is a `ReadTx` over the snapshot `m` of the bucket the caller's view holds
+(persistent), with `L` the right to lock it: `RLock`, with the caller's view `View q m` (any
+fraction; the caller keeps it), turns `L` into the reader's token `Tok`, over which `rt` is
+locked (`keyReadLocked`: the slices' predicate `Rd` and the token are chosen by the lock, for a
+shared read transaction reads the bbolt transaction of the interval its `RLock` finds). A
+concurrent read transaction's `RLock` does nothing (`L = Tok`, the view unused); the shared
+one's takes its read lock, the view tying what it reads to `m` (2026-10-13, the backend bridge:
+the shared transaction's state is the one at its `RLock`, not at `ReadTx()`). -/
+def keyReadSnap (View : Qp → Bucket → IProp GF) (RT : IProp GF) (rt : GoInterfaceOk) (m : Bucket)
+    (L : IProp GF) : IProp GF :=
+  iprop(□ (∀ q : Qp, {{ L ∗ View q m }} (App (Val #(methods rt.ty go!"RLock" rt.v)) (Val #()))
+    {{ RET #(); View q m ∗ ∃ (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF), Tok ∗
+        keyReadLocked RT rt m Rd Tok }}))
+
+instance keyReadSnap_persistent (View : Qp → Bucket → IProp GF) (RT : IProp GF)
+    (rt : GoInterfaceOk) (m : Bucket) (L : IProp GF) :
+    Persistent (keyReadSnap View RT rt m L) := by
   unfold keyReadSnap; infer_instance
 
 /-- A reader of the bucket `m` through `rt` (what `rangeKeys` needs of its `tx`): `rt`'s
 `UnsafeRange(schema.Key, key, nil, 0)`, for `key` holding `k`, reads `k`'s entry of `m`, with
-the owned resource `R` it needs (nothing for a read transaction's snapshot; the batch
-transaction's lock token and the bucket's view for a write transaction's). -/
+the owned resource `R` it needs (a read transaction's token; the batch transaction's lock token
+and the bucket's view for a write transaction's). The slices it returns are readable through
+some `Rd` while a token `T` is held, which the call gives for `R` (`T -∗ R`: the batch
+transaction's state at the read, for its lock token). -/
 def keyReader (rt : GoInterfaceOk) (m : Bucket) (R : IProp GF) : IProp GF :=
   iprop(∀ (b : GoInterface) (key : GoSlice) (k : GoString) (dq : DFrac),
     {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ R ∗ key ↦*{dq} k }}
       (App (App (App (App (Val #(methods rt.ty go!"UnsafeRange" rt.v)) (Val #b)) (Val #key))
         (Val #(slice.nil))) (Val #(W64 0)))
-    {{ (ks vs : GoSlice), RET (PairV #ks #vs); R ∗ key ↦*{dq} k ∗ keyVals ks vs m k }})
+    {{ (ks vs : GoSlice), RET (PairV #ks #vs); ∃ (Rd : GoSlice → GoString → IProp GF)
+        (T : IProp GF), T ∗ (T -∗ R) ∗ rdCap Rd T ∗ key ↦*{dq} k ∗ keyVals Rd ks vs m k }})
 
 instance keyReader_persistent (rt : GoInterfaceOk) (m : Bucket) (R : IProp GF) :
     Persistent (keyReader (GF := GF) rt m R) := by
   unfold keyReader; infer_instance
 
-/-- A snapshot is a reader, with nothing owned. -/
-theorem keyReadSnap_reader (rt : GoInterfaceOk) (m : Bucket) :
-    keyReadSnap (GF := GF) rt m ⊢ keyReader rt m iprop(True) := by
+/-- A locked snapshot is a reader, its token owned. -/
+theorem keyReadLocked_reader (RT : IProp GF) (rt : GoInterfaceOk) (m : Bucket)
+    (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF) :
+    keyReadLocked (GF := GF) RT rt m Rd Tok ⊢ keyReader rt m Tok := by
   iintro #H
-  iunfold keyReadSnap at H
-  icases H with ⟨-, -, #Hr, -⟩
+  iunfold keyReadLocked at H
+  icases H with ⟨-, #Hr, -, #Hcap⟩
   iunfold keyRangeSpec at Hr
   iunfold keyReader
-  iintro %b %key %k %dq !> %Φ ⟨#HK, -, Hkey⟩ HΦ
-  iapply Hr $$ %b %key %k %dq %Φ [Hkey]
-  · iframe Hkey; iexact HK
+  iintro %b %key %k %dq !> %Φ ⟨#HK, HT, Hkey⟩ HΦ
+  iapply Hr $$ %b %key %k %dq %Φ [HT Hkey]
+  · iframe HT Hkey; iexact HK
   inext
-  iintro %ks %vs ⟨Hkey, #Hkv⟩
+  iintro %ks %vs ⟨HT, Hkey, #Hkv⟩
   iapply HΦ
-  iframe Hkey Hkv
+  iexists Rd, Tok
+  iframe HT Hkey Hkv Hcap
+  iintro H; iexact H
 
 /-- What a reader of the index knows makes its log well formed and bounded (kept). -/
 theorem idxKnows_wf (γ : IdxNames) (kn : IdxKnow) :
@@ -294,32 +346,36 @@ abbrev Puts := List (GoString × GoString)
 
 /-- The batch transaction `bt` (`backend.BatchTx`, names-only: the trust boundary of the
 backend's write path), as the write transaction uses it, with `Locked l` its lock's token
-holding the puts `l` since the lock was taken: `LockInsideApply()` takes the lock (no puts
-yet) and gives the lock's resource `W` (what the store keeps under it); `UnsafeSeqPut(
-schema.Key, k, v)` under it adds a put; `Unlock()` takes the resource back and, with no puts,
-leaves the bucket as it is, else writes the puts back into the bucket, whose view `View 1 m`
-the caller holds (`storeTxnWrite.End` holds it, half under `s.revMu`, half in `W`), in order,
-then releases the lock with `W` made of the updated view (a wand: `W` holds part of the view);
-`UnsafeRange(schema.Key, k, nil, 0)` under the lock reads the bucket the caller holds a view
-of with the puts so far (the batch transaction sees its own puts).
+holding the puts `l` since the lock was taken, `RT` a client's token it is lent (the reader's
+budget token of `isKeyBackendG`: the backend open while the lock is taken), `WT` a write
+session's token (the backend's write-back budget: every `Unlock` may write back), and `PutOk` a
+condition of the puts (the backend's bounds and order): `LockInsideApply()` takes the lock (no
+puts yet), for a session's token, and gives the lock's resource `W` (what the store keeps under
+it); `UnsafeSeqPut(schema.Key, k, v)` under it adds a put (its key and value slices read-only
+for good: the backend's write buffer and bbolt keep them); `Unlock()` takes the resource back
+and, with no puts, leaves the bucket as it is, else writes the puts back into the bucket, whose
+view `View 1 m` the caller holds (`storeTxnWrite.End` holds it, half under `s.revMu`, half in
+`W`), in order, then releases the lock with `W` made of the updated view (a wand: `W` holds part
+of the view); `UnsafeRange(schema.Key, k, nil, 0)` under the lock reads the bucket the caller
+holds a view of with the puts so far (the batch transaction sees its own puts), its slices
+readable through some `Rd` under a token `T` the lock token is lent as until the next call (the
+backend's `batchLocked` at the session's state, whose bbolt transaction the slices are of).
 
-`NewStore`'s calls on a fresh backend: `LockOutsideApply()` takes the lock with no puts and
-*no* resource: the backend's batch lock holds `W` from `NewStore`'s first `Unlock()` on (the
-no-puts `Unlock` triple, which takes `W`, deposits it there; `NewStore` builds `W` before);
-`LockInsideApply` is the writers' lock, taken after that. `UnsafeCreateBucket(b)` under the
-lock leaves the puts as they are (it does not touch the `Key` bucket's entries). -/
-def batchTxSpec (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (W : IProp GF)
-    (Locked : Puts → IProp GF) (P : IProp GF) (f : val) : IProp GF :=
+The store's instance (`batchTxSpec`) has no tokens (`RT = WT = True`) and no condition: the
+backend's bridge (`BackendBridge.lean`) proves it with the backend's (2026-10-13, unit 4). -/
+def batchTxSpecG (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT : IProp GF)
+    (PutOk : Puts → GoString → GoString → Prop) (W : IProp GF) (Locked : Puts → IProp GF)
+    (P : IProp GF) (f : val) : IProp GF :=
   iprop(□ (∀ (Pre Q : IProp GF),
-      {{ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
+      {{ Pre ∗ RT ∗ WT ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
         (App (Val #(methods bt.ty go!"LockInsideApply" bt.v)) (Val #()))
-      {{ RET #(); Locked [] ∗ W ∗ Q }}) ∗
-    □ (∀ (l : Puts) (b : GoInterface) (key val : GoSlice) (k v : GoString) (dq dq' : DFrac),
+      {{ RET #(); Locked [] ∗ W ∗ Q ∗ RT }}) ∗
+    □ (∀ (l : Puts) (b : GoInterface) (key val : GoSlice) (k v : GoString),
       {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∗ Locked l ∗
-          key ↦*{dq} k ∗ val ↦*{dq'} v }}
+          key ↦*□ k ∗ val ↦*□ v ∗ ⌜PutOk l k v⌝ }}
         (App (App (App (Val #(methods bt.ty go!"UnsafeSeqPut" bt.v)) (Val #b)) (Val #key))
           (Val #val))
-      {{ RET #(); Locked (l ++ [(k, v)]) ∗ key ↦*{dq} k ∗ val ↦*{dq'} v }}) ∗
+      {{ RET #(); Locked (l ++ [(k, v)]) }}) ∗
     □ ({{ Locked [] ∗ W ∗ P }} (App (Val #(methods bt.ty go!"Unlock" bt.v)) (Val #()))
       {{ RET #(); True }}) ∗
     □ (∀ (l : Puts) (m : Bucket) (Q : IProp GF),
@@ -333,62 +389,152 @@ def batchTxSpec (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (W : IP
           key ↦*{dq} k }}
         (App (App (App (App (Val #(methods bt.ty go!"UnsafeRange" bt.v)) (Val #b)) (Val #key))
           (Val #(slice.nil))) (Val #(W64 0)))
-      {{ (ks vs : GoSlice), RET (PairV #ks #vs); Locked l ∗ View q m ∗ key ↦*{dq} k ∗
-          keyVals ks vs (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) k }}) ∗
-    □ ({{ True }} (App (Val #(methods bt.ty go!"LockOutsideApply" bt.v)) (Val #()))
-      {{ RET #(); Locked [] ∗ P }}) ∗
-    □ (∀ (l : Puts) (b : GoInterface),
-      {{ Locked l }} (App (Val #(methods bt.ty go!"UnsafeCreateBucket" bt.v)) (Val #b))
-      {{ RET #(); Locked l }}))
+      {{ (ks vs : GoSlice), RET (PairV #ks #vs); ∃ (Rd : GoSlice → GoString → IProp GF)
+          (T : IProp GF), T ∗ (T -∗ Locked l) ∗ rdCap Rd T ∗ View q m ∗ key ↦*{dq} k ∗
+          keyVals Rd ks vs (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) k }}))
+
+instance batchTxSpecG_persistent (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
+    (RT WT : IProp GF) (PutOk : Puts → GoString → GoString → Prop) (W : IProp GF)
+    (Locked : Puts → IProp GF) (P : IProp GF) (f : val) :
+    Persistent (batchTxSpecG bt View RT WT PutOk W Locked P f) := by
+  unfold batchTxSpecG; infer_instance
+
+/-- `NewStore`'s calls on a fresh backend's batch transaction `bt`, with `LockedO n` the lock's
+token after `n` buckets created: `LockOutsideApply()` takes the lock, for a session's token
+`WT` (the client's token `RT` lent), with *no* resource: the backend's batch lock holds `W` from
+`NewStore`'s first `Unlock()` on (the triple takes `W` and deposits it there; `NewStore` builds
+`W` before); `LockInsideApply` is the writers' lock, taken after that. `UnsafeCreateBucket(b)`
+under the lock, of schema's `Key` or `Meta` bucket, creates it (not touching the `Key` bucket's
+entries), at most twice (the backend's bound on a session's operations; `NewStore` creates
+two). -/
+def batchTxInitSpec (bt : GoInterfaceOk) (RT WT : IProp GF) (W : IProp GF)
+    (LockedO : Nat → IProp GF) (P : IProp GF) : IProp GF :=
+  iprop(□ ({{ RT ∗ WT }} (App (Val #(methods bt.ty go!"LockOutsideApply" bt.v)) (Val #()))
+      {{ RET #(); LockedO 0 ∗ P ∗ RT }}) ∗
+    □ (∀ (n : Nat) (b : GoInterface),
+      {{ LockedO n ∗ ⌜n < 2⌝ ∗ (globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ b ∨
+          globalAddr go_etcd_io.etcd.server.v3.storage.schema.Meta ↦□ b) }}
+        (App (Val #(methods bt.ty go!"UnsafeCreateBucket" bt.v)) (Val #b))
+      {{ RET #(); LockedO (n + 1) }}) ∗
+    □ (∀ n : Nat,
+      {{ LockedO n ∗ W ∗ P }} (App (Val #(methods bt.ty go!"Unlock" bt.v)) (Val #()))
+      {{ RET #(); True }}))
+
+instance batchTxInitSpec_persistent (bt : GoInterfaceOk) (RT WT : IProp GF) (W : IProp GF)
+    (LockedO : Nat → IProp GF) (P : IProp GF) :
+    Persistent (batchTxInitSpec bt RT WT W LockedO P) := by
+  unfold batchTxInitSpec; infer_instance
+
+/-- `bt` is a batch transaction (its lock tokens' predicates are its own). -/
+def isBatchTxG (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT : IProp GF)
+    (PutOk : Puts → GoString → GoString → Prop) (W : IProp GF) (P : IProp GF) (f : val) :
+    IProp GF :=
+  iprop(∃ (Locked : Puts → IProp GF) (LockedO : Nat → IProp GF),
+    batchTxSpecG bt View RT WT PutOk W Locked P f ∗ batchTxInitSpec bt RT WT W LockedO P)
+
+instance isBatchTxG_persistent (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
+    (RT WT : IProp GF) (PutOk : Puts → GoString → GoString → Prop) (W : IProp GF)
+    (P : IProp GF) (f : val) : Persistent (isBatchTxG bt View RT WT PutOk W P f) := by
+  unfold isBatchTxG; infer_instance
+
+/-- No condition on the puts (the store's instance). -/
+def noPutCond : Puts → GoString → GoString → Prop := fun _ _ _ => True
+
+/-- The store's batch transaction contract: no tokens, no condition on the puts. -/
+def batchTxSpec (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (W : IProp GF)
+    (Locked : Puts → IProp GF) (P : IProp GF) (f : val) : IProp GF :=
+  batchTxSpecG bt View iprop(True) iprop(True) noPutCond W Locked P f
 
 instance batchTxSpec_persistent (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
     (W : IProp GF) (Locked : Puts → IProp GF) (P : IProp GF) (f : val) :
     Persistent (batchTxSpec bt View W Locked P f) := by
   unfold batchTxSpec; infer_instance
 
-/-- `bt` is a batch transaction (its lock token's predicate is its own). -/
+/-- `bt` is a batch transaction (the store's instance). -/
 def isBatchTx (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (W : IProp GF)
     (P : IProp GF) (f : val) : IProp GF :=
-  iprop(∃ Locked : Puts → IProp GF, batchTxSpec bt View W Locked P f)
+  isBatchTxG bt View iprop(True) iprop(True) noPutCond W P f
 
 /-- The batch transaction under its lock is a reader of its own puts over the view. -/
-theorem batchTx_reader (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (W : IProp GF)
+theorem batchTx_reader (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (RT WT : IProp GF)
+    (PutOk : Puts → GoString → GoString → Prop) (W : IProp GF)
     (Locked : Puts → IProp GF) (P : IProp GF) (f : val) (l : Puts) (q : Qp) (m : Bucket) :
-    batchTxSpec bt View W Locked P f ⊢
+    batchTxSpecG bt View RT WT PutOk W Locked P f ⊢
       keyReader bt (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) iprop(Locked l ∗ View q m) := by
   iintro #H
-  iunfold batchTxSpec at H
-  icases H with ⟨-, -, -, -, #Hr, -⟩
+  iunfold batchTxSpecG at H
+  icases H with ⟨-, -, -, -, #Hr⟩
   iunfold keyReader
   iintro %b %key %k %dq !> %Φ ⟨#HK, ⟨Hl, Hv⟩, Hkey⟩ HΦ
   iapply Hr $$ %l %q %m %b %key %k %dq %Φ [Hl Hv Hkey]
   · iframe Hl Hv Hkey; iexact HK
   inext
-  iintro %ks %vs ⟨Hl, Hv, Hkey, #Hkv⟩
+  iintro %ks %vs ⟨%Rd, %T, HT, Hback, #Hcap, Hv, Hkey, #Hkv⟩
   iapply HΦ
-  iframe Hl Hv Hkey Hkv
+  iexists Rd, iprop(T ∗ View q m)
+  iframe HT Hv Hkey Hkv
+  isplitl [Hback]
+  · iintro ⟨HT, Hv⟩
+    ihave Hl := Hback $$ HT
+    iframe Hl Hv
+  iunfold rdCap at Hcap
+  iunfold rdCap
+  iintro !> %s %bs HRd ⟨HT, Hv⟩
+  icases Hcap $$ %s %bs HRd HT with ⟨%dq', Hs, Hb⟩
+  iexists dq'
+  iframe Hs
+  iintro Hs
+  ihave HT := Hb $$ Hs
+  iframe HT Hv
+
+/-- The store's batch transaction under its lock is a reader of its own puts over the view. -/
+theorem batchTxSpec_reader (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF) (W : IProp GF)
+    (Locked : Puts → IProp GF) (P : IProp GF) (f : val) (l : Puts) (q : Qp) (m : Bucket) :
+    batchTxSpec bt View W Locked P f ⊢
+      keyReader bt (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) iprop(Locked l ∗ View q m) := by
+  unfold batchTxSpec
+  exact batchTx_reader bt View _ _ _ W Locked P f l q m
 
 instance isBatchTx_persistent (bt : GoInterfaceOk) (View : Qp → Bucket → IProp GF)
     (W : IProp GF) (P : IProp GF) (f : val) : Persistent (isBatchTx bt View W P f) := by
   unfold isBatchTx; infer_instance
 
-/-- `b` is a `Backend` whose `ConcurrentReadTx()` and `ReadTx()` return a snapshot reader of
-the bucket the caller holds as `View q m` (any fraction `q`), which the caller keeps, and
-whose `BatchTx()` is a batch transaction over the view, its lock holding `W`; `ForceCommit()`
-returns (the commit to disk has no effect on the view). -/
-def isKeyBackend (b : GoInterface) (View : Qp → Bucket → IProp GF) (W : IProp GF)
-    (P : IProp GF) (f : val) : IProp GF :=
+/-- `b` is a `Backend` whose `ConcurrentReadTx()` and `ReadTx()`, for a reader's token `RT`
+(the backend's readers are bounded: a slot of its read lock and of its `txMu`, a budget token,
+and the backend open; given back by the reader's `RUnlock`), return a snapshot reader of the
+bucket the caller holds as `View q m` (any fraction `q`), which the caller keeps, with the right
+`L` to lock it (`keyReadSnap`: its `RLock` gives the reader's token, its `RUnlock` takes it),
+and whose `BatchTx()` is a batch transaction over the view, its lock holding `W`;
+`ForceCommit()`, for a session's token `WT` (`RT` lent), returns (the commit to disk has no
+effect on the view). The store's instance (`isKeyBackend`) has no tokens and no condition on
+the puts (`batchTxSpecG`'s `PutOk`); `BackendBridge.lean` proves the general one of the
+backend (2026-10-13, unit 4). -/
+def isKeyBackendG (b : GoInterface) (View : Qp → Bucket → IProp GF) (RT WT : IProp GF)
+    (PutOk : Puts → GoString → GoString → Prop) (W : IProp GF) (P : IProp GF) (f : val) :
+    IProp GF :=
   iprop(∃ bi : GoInterfaceOk, ⌜b = GoInterface.ok bi⌝ ∗
     □ (∀ (q : Qp) (m : Bucket),
-      {{ View q m }} (App (Val #(methods bi.ty go!"ConcurrentReadTx" bi.v)) (Val #()))
-      {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); View q m ∗ keyReadSnap rt m }}) ∗
+      {{ View q m ∗ RT }} (App (Val #(methods bi.ty go!"ConcurrentReadTx" bi.v)) (Val #()))
+      {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); View q m ∗
+          ∃ L : IProp GF, L ∗ keyReadSnap View RT rt m L }}) ∗
     □ (∀ (q : Qp) (m : Bucket),
-      {{ View q m }} (App (Val #(methods bi.ty go!"ReadTx" bi.v)) (Val #()))
-      {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); View q m ∗ keyReadSnap rt m }}) ∗
+      {{ View q m ∗ RT }} (App (Val #(methods bi.ty go!"ReadTx" bi.v)) (Val #()))
+      {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); View q m ∗
+          ∃ L : IProp GF, L ∗ keyReadSnap View RT rt m L }}) ∗
     □ ({{ True }} (App (Val #(methods bi.ty go!"BatchTx" bi.v)) (Val #()))
-      {{ (bt : GoInterfaceOk), RET #(GoInterface.ok bt); isBatchTx bt View W P f }}) ∗
-    □ ({{ True }} (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
-      {{ RET #(); True }}))
+      {{ (bt : GoInterfaceOk), RET #(GoInterface.ok bt); isBatchTxG bt View RT WT PutOk W P f }}) ∗
+    □ ({{ RT ∗ WT }} (App (Val #(methods bi.ty go!"ForceCommit" bi.v)) (Val #()))
+      {{ RET #(); RT }}))
+
+instance isKeyBackendG_persistent (b : GoInterface) (View : Qp → Bucket → IProp GF)
+    (RT WT : IProp GF) (PutOk : Puts → GoString → GoString → Prop) (W : IProp GF)
+    (P : IProp GF) (f : val) : Persistent (isKeyBackendG b View RT WT PutOk W P f) := by
+  unfold isKeyBackendG; infer_instance
+
+/-- The store's backend contract: no tokens, no condition on the puts. -/
+def isKeyBackend (b : GoInterface) (View : Qp → Bucket → IProp GF) (W : IProp GF)
+    (P : IProp GF) (f : val) : IProp GF :=
+  isKeyBackendG b View iprop(True) iprop(True) noPutCond W P f
 
 instance isKeyBackend_persistent (b : GoInterface) (View : Qp → Bucket → IProp GF)
     (W : IProp GF) (P : IProp GF) (f : val) : Persistent (isKeyBackend b View W P f) := by
@@ -620,23 +766,28 @@ def storeCloser (s : Loc) : IProp GF := iprop(∃ c : GoChan, s.[store, go!"stop
 /-! ## The read transaction -/
 
 /-- The `storeTxnRead` of a read transaction at revision `rev` of the committed log `log`
-(its fields, read-only): its reader `rt` (as `UnsafeReader` and as `ReadTx`) is a snapshot of
-a bucket holding `log`'s, `firstRev` is `-1`, `rev` is `log`'s last revision. -/
+(its fields, read-only): its reader `rt` (as `UnsafeReader` and as `ReadTx`; a snapshot of a
+bucket holding `log`'s, `txReader`), `firstRev` is `-1`, `rev` is `log`'s last revision. -/
 def storeTxnReadIs (tr s : Loc) (rt : GoInterfaceOk) (trace : Loc) (γ : StoreNames) (log : Log)
     (rev : w64) : IProp GF :=
-  iprop(∃ m : Bucket,
-    "#Hs" ∷ (txCommon tr).[storeTxnCommon, go!"s"] ↦□ s ∗
+  iprop("#Hs" ∷ (txCommon tr).[storeTxnCommon, go!"s"] ↦□ s ∗
     "#Htxc" ∷ (txCommon tr).[storeTxnCommon, go!"tx"] ↦□ (GoInterface.ok rt : GoInterface) ∗
     "#HfirstRev" ∷ (txCommon tr).[storeTxnCommon, go!"firstRev"] ↦□ (W64 (-1) : w64) ∗
     "#Hrev" ∷ (txCommon tr).[storeTxnCommon, go!"rev"] ↦□ rev ∗
     "#Htrace" ∷ (txCommon tr).[storeTxnCommon, go!"trace"] ↦□ trace ∗
     "#Htx" ∷ tr.[storeTxnRead, go!"tx"] ↦□ (GoInterface.ok rt : GoInterface) ∗
-    "#Hsnap" ∷ keyReadSnap rt m ∗
-    "%Hsub" ∷ ⌜GMap.Subseteq (bucketMap log) m⌝ ∗
     "#Hcert" ∷ idxCert γ.idx log ∗
     "%Hne" ∷ ⌜log ≠ []⌝ ∗
     "%Hrev" ∷ ⌜rev = W64 ((log.length : Int) - 1)⌝ ∗
     "%Htrnn" ∷ ⌜trace ≠ null⌝)
+
+/-- A read transaction's reader `rt`, locked: a snapshot of a bucket holding `log`'s, with the
+reader's token (from its `RLock` to the transaction's `End`, which `RUnlock`s it). -/
+def txReader (rt : GoInterfaceOk) (log : Log) : IProp GF :=
+  iprop(∃ (m : Bucket) (Rd : GoSlice → GoString → IProp GF) (Tok : IProp GF),
+    "#Hsnap" ∷ keyReadLocked iprop(True) rt m Rd Tok ∗
+    "Htok" ∷ Tok ∗
+    "%Hsub" ∷ ⌜GMap.Subseteq (bucketMap log) m⌝)
 
 instance storeTxnReadIs_persistent (tr s : Loc) (rt : GoInterfaceOk) (trace : Loc) (γ : StoreNames)
     (log : Log) (rev : w64) : Persistent (storeTxnReadIs (GF := GF) tr s rt trace γ log rev) := by
@@ -644,7 +795,8 @@ instance storeTxnReadIs_persistent (tr s : Loc) (rt : GoInterfaceOk) (trace : Lo
 
 /-- The read transaction `store.Read` returns, as the caller sees it: the `metricsTxnWrite`
 wrapper at `mw` (its counters), around the `txnReadWrite` wrapper around the `storeTxnRead`,
-with the transaction's tokens (`s.mu` held shared until `End`). -/
+with the transaction's tokens (`s.mu` held shared until `End`) and its reader's
+(`txReader`). -/
 def isTxnRead (mw s : Loc) (γ : StoreNames) (log : Log) (rev : w64) : IProp GF :=
   iprop(∃ (trw tr trace ti : Loc) (rt : GoInterfaceOk) (ranges : w64),
     "Hmw" ∷ mw ↦ ({
@@ -654,6 +806,7 @@ def isTxnRead (mw s : Loc) (γ : StoreNames) (log : Log) (rev : w64) : IProp GF 
       (interface.mkOk (go.GoType.PointerType storeTxnRead.ty) #tr : GoInterface) ∗
     "#Hs" ∷ isStore s γ ∗
     "#Htr" ∷ storeTxnReadIs tr s rt trace γ log rev ∗
+    "Hrd" ∷ txReader rt log ∗
     "#Hidx" ∷ s.[store, go!"kvindex"] ↦□
       (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
     "Hmu" ∷ sync.ownRWMutexRLocked (muAddr s) muInv ∗

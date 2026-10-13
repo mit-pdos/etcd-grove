@@ -109,6 +109,12 @@ schedule_NewFIFOScheduler:
 NewHashStorage:
 schema_UnsafeCreateMetaBucket:
 store__restore:
+# schema's `bucket` methods (bucket.go): the backend calls them through its `Bucket` interface
+# (`isBucket`), on schema's `Key` and `Meta` (the backend bridge, `BackendBridge.lean`).
+schema_bucket__ID:
+schema_bucket__Name:
+schema_bucket__IsSafeRangeBucket:
+schema_bucket__String: schema_bucket__Name
 NewStore: zap_NewNop newTreeIndex schedule_NewFIFOScheduler NewHashStorage schema_UnsafeCreateMetaBucket store__restore
 # The interval tree's (pkg/v3/adt, see Proof/go_etcd_io/etcd/pkg/v3/adt/): its comparisons
 # and its contract, all proved and linked in its own Link.lean (unit 4).

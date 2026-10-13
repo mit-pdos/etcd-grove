@@ -279,7 +279,6 @@ theorem isTxn_kindOk (mw s : Loc) (γ : mvcc.StoreNames) (kind : TxnKind) :
     iintro ⟨%trw, %tr, %trace, %ti, %rt, %ranges, H⟩
     iNamed H
     iunfold storeTxnReadIs at Htr
-    icases Htr with ⟨%m, Htr⟩
     iNamed Htr
     iunfold idxCert at Hcert
     icases Hcert with ⟨-, -, %Hc, -⟩

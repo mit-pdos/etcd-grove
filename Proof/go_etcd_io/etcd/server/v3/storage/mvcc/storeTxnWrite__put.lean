@@ -62,7 +62,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
   · iPkgInit
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hsch
-  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG⟩⟩
+  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
@@ -76,6 +76,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
   ihave #Hbt0 : mvcc.batchTxSpec bt (mvcc.bucketView γ) (mvcc.writerRes s γ) Locked Pw fw $$ []
   · iexact Hbt
   iunfold mvcc.batchTxSpec at Hbt
+  iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨-, #HSeqPut, -, -, -⟩
   -- the writer's log
   ihave %Hwf := mvcc.idxWriter_wf γ.idx ilog pend $$ Hw
@@ -149,8 +150,12 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     · ipureintro; exact Htrnn
     (try wp_auto)
     -- `tw.tx.UnsafeSeqPut(schema.Key, ibytes, d)`
-    wp_apply HSeqPut $$ %(mvcc.pendPuts ilog pend) %bK %ib' %d %_ %_ %(DFrac.own 1) %(DFrac.own 1)
-      [$HKeyG $Hlocked $Hib $Hd] as ⟨Hlocked, Hib, Hd⟩
+    -- the backend keeps the key and the value: read-only for good
+    ipersist Hib
+    ipersist Hd
+    wp_apply HSeqPut $$ %(mvcc.pendPuts ilog pend) %bK %ib' %d %_ %_
+      [$HKeyG $Hlocked $Hib $Hd] as Hlocked
+    · ipureintro; trivial
     (try wp_auto)
     -- `tw.s.kvindex.Put(key, idxRev)`
     wp_apply (hPutI ti γ.idx ilog pend key k _ v leaseID) $$ [$HtiS $Hw $Hkey] as Hw
@@ -346,8 +351,12 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     · ipureintro; exact Htrnn
     (try wp_auto)
     -- `tw.tx.UnsafeSeqPut(schema.Key, ibytes, d)`
-    wp_apply HSeqPut $$ %(mvcc.pendPuts ilog pend) %bK %ib' %d %_ %_ %(DFrac.own 1) %(DFrac.own 1)
-      [$HKeyG $Hlocked $Hib $Hd] as ⟨Hlocked, Hib, Hd⟩
+    -- the backend keeps the key and the value: read-only for good
+    ipersist Hib
+    ipersist Hd
+    wp_apply HSeqPut $$ %(mvcc.pendPuts ilog pend) %bK %ib' %d %_ %_
+      [$HKeyG $Hlocked $Hib $Hd] as Hlocked
+    · ipureintro; trivial
     (try wp_auto)
     -- `tw.s.kvindex.Put(key, idxRev)`
     wp_apply (hPutI ti γ.idx ilog pend key k _ v leaseID) $$ [$HtiS $Hw $Hkey] as Hw

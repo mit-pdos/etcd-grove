@@ -32,7 +32,7 @@ theorem schema.UnsafeReadConsistentIndex.wp_proof
   wp_start as #Hrd
   ihave Hsi : (schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hsi with ⟨⟨%mb, #Hmb⟩, ⟨%ck, #Hck, #Hckb⟩, ⟨%tk, #Htk, #Htkb⟩, -⟩
+  icases Hsi with ⟨⟨%mb, #Hmb, -⟩, ⟨%ck, #Hck, #Hckb⟩, ⟨%tk, #Htk, #Htkb⟩, -⟩
   unfold metaReader
   icases Hrd with ⟨#Hri, #Hrt⟩
   unfold metaRangeSpec

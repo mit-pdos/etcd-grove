@@ -26,14 +26,17 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.storeTxnRead.End.wp_proof : mvcc.storeTxnRead.End.spec (GF := GF) (hG := hG) := by
   intro tr s trace ti rt γ log rev
-  wp_start as ⟨-, #Htr, #Hidx0, Hmu0, HrevMu0, Hti0⟩
+  wp_start as ⟨-, #Htr, Hrd, #Hidx0, Hmu0, HrevMu0, Hti0⟩
   iunfold mvcc.storeTxnReadIs at Htr
   iNamedSuffix Htr "T"
-  iunfold mvcc.keyReadSnap at HsnapT
-  icases HsnapT with ⟨#HRL, #HRU, #Hrange, -⟩
+  iunfold mvcc.txReader at Hrd
+  icases Hrd with ⟨%m, %Rd, %Tok, Hrd⟩
+  iNamed Hrd
+  iunfold mvcc.keyReadLocked at Hsnap
+  icases Hsnap with ⟨#HRU, -, -, -⟩
   (try wp_auto)
   -- `tr.tx.RUnlock()`
-  wp_apply HRU
+  wp_apply HRU $$ [$Htok]
   (try wp_auto)
   -- `tr.s.mu.RUnlock()`
   wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu0] as Hmu0

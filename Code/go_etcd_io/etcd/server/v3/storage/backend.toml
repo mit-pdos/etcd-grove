@@ -1,6 +1,56 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
-imports = ["!*"]
+# etcd's backend over bbolt, with bodies: the write and read buffers (tx_buffer.go), the read
+# transactions (read_tx.go), the batch transaction (batch_tx.go), the hooks (hooks.go) and the
+# backend's core (backend.go: the constructor, the transactions it hands out, the periodic
+# commit, Close); the snapshot, the hash and defragmentation are names only, as are the lock
+# checks (verify.go: they read the goroutine's stack) and the metrics (metrics.go).
+translate = ["!*",
+  # tx_buffer.go
+  "bucketBufferInitialSize", "txBuffer.reset", "txWriteBuffer.put", "txWriteBuffer.putSeq",
+  "txWriteBuffer.putInternal", "txWriteBuffer.reset", "txWriteBuffer.writeback",
+  "txReadBuffer.Range", "txReadBuffer.ForEach", "txReadBuffer.unsafeCopy", "newBucketBuffer",
+  "bucketBuffer.Range", "bucketBuffer.ForEach", "bucketBuffer.add", "bucketBuffer.merge",
+  "bucketBuffer.dedupe", "bucketBuffer.Len", "bucketBuffer.Less", "bucketBuffer.Swap",
+  "bucketBuffer.CopyUsed",
+  # read_tx.go
+  "baseReadTx.UnsafeForEach", "baseReadTx.UnsafeRange", "readTx.Lock", "readTx.Unlock",
+  "readTx.RLock", "readTx.RUnlock", "readTx.reset", "concurrentReadTx.Lock",
+  "concurrentReadTx.Unlock", "concurrentReadTx.RLock", "concurrentReadTx.RUnlock",
+  # batch_tx.go
+  "batchTx.Lock", "batchTx.lock", "batchTx.LockInsideApply", "batchTx.LockOutsideApply",
+  "batchTx.Unlock", "batchTx.UnsafeCreateBucket", "batchTx.UnsafeDeleteBucket",
+  "batchTx.UnsafePut", "batchTx.UnsafeSeqPut", "batchTx.unsafePut", "batchTx.UnsafeRange",
+  "unsafeRange", "batchTx.UnsafeDelete", "batchTx.UnsafeForEach", "unsafeForEach",
+  "batchTx.Commit", "batchTx.CommitAndStop", "batchTx.safePending", "batchTx.commit",
+  "newBatchTxBuffered", "batchTxBuffered.Unlock", "batchTxBuffered.Commit",
+  "batchTxBuffered.CommitAndStop", "batchTxBuffered.commit", "batchTxBuffered.unsafeCommit",
+  "batchTxBuffered.UnsafePut", "batchTxBuffered.UnsafeSeqPut", "batchTxBuffered.UnsafeDelete",
+  "batchTxBuffered.UnsafeDeleteBucket",
+  # hooks.go
+  "hooks.OnPreCommitUnsafe", "NewHooks",
+  # backend.go
+  "defaultBatchLimit", "defaultBatchInterval", "defragLimit", "InitialMmapSize",
+  "minSnapshotWarningTimeout", "DefaultBackendConfig", "New", "WithMmapSize", "WithTimeout",
+  "NewDefaultBackend", "newBackend", "backend.BatchTx", "backend.SetTxPostLockInsideApplyHook",
+  "backend.ReadTx", "backend.ConcurrentReadTx", "backend.ForceCommit", "backend.Size",
+  "backend.SizeInUse", "backend.run", "backend.Close", "backend.Commits", "backend.begin",
+  "backend.unsafeBegin", "backend.OpenReadTxN", "backend.LockForSafeRangeDelete",
+  "backend.UnlockForSafeRangeDelete", "snapshot.Close",
+  # config_linux.go (boltOpenOptions names only: it is syscall's MAP_POPULATE, which Perennial
+  # does not translate)
+  "BackendConfig.mmapSize",
+  # the promoted methods of embedded fields (goose's MethodUnfold wrappers): readTx's and
+  # concurrentReadTx's baseReadTx; txReadBuffer's txBuffer; batchTx's sync.Mutex;
+  # batchTxBuffered's batchTx
+  "readTx.UnsafeRange", "readTx.UnsafeForEach", "concurrentReadTx.UnsafeRange",
+  "concurrentReadTx.UnsafeForEach", "txReadBuffer.reset", "batchTx.TryLock",
+  "batchTxBuffered.Lock", "batchTxBuffered.lock", "batchTxBuffered.LockInsideApply",
+  "batchTxBuffered.LockOutsideApply", "batchTxBuffered.UnsafeCreateBucket",
+  "batchTxBuffered.UnsafeRange", "batchTxBuffered.UnsafeForEach",
+  "batchTxBuffered.safePending", "batchTxBuffered.TryLock"]
+imports = ["!*", "bytes", "encoding/hex", "errors", "fmt", "math", "sort", "sync", "sync/atomic", "time",
+  "go.uber.org/zap", "go.etcd.io/bbolt", "go.etcd.io/bbolt/errors",
+  "go.etcd.io/etcd/client/pkg/v3/verify",
+  "github.com/prometheus/client_golang/prometheus"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

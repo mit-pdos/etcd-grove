@@ -61,7 +61,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   · iPkgInit
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hsch
-  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG⟩⟩
+  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
@@ -75,6 +75,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   ihave #Hbt0 : mvcc.batchTxSpec bt (mvcc.bucketView γ) (mvcc.writerRes s γ) Locked Pw fw $$ []
   · iexact Hbt
   iunfold mvcc.batchTxSpec at Hbt
+  iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨-, #HSeqPut, -, -, -⟩
   -- the writer's log
   ihave %Hwf := mvcc.idxWriter_wf γ.idx ilog pend $$ Hw
@@ -120,8 +121,17 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   (try wp_auto)
   -- `if err != nil { Fatal }`: not taken (`err` is `nil`: resolved by `wp_auto`)
   -- `tw.tx.UnsafeSeqPut(schema.Key, ibytes, d)`
-  ihave #HSeqPut' := HSeqPut $$ %(mvcc.pendPuts ilog pend) %bK %ib' %d %_ %_ %(DFrac.own 1) %(DFrac.own 1)
-  wp_apply HSeqPut' $$ [$HKeyG $Hlocked $Hib $Hd] as ⟨Hlocked, Hib, Hd⟩
+  -- the backend keeps the key and the value: read-only for good
+  ipersist Hib
+  ipersist Hd
+  ihave #HSeqPut' := HSeqPut $$ %(mvcc.pendPuts ilog pend) %bK %ib' %d %_ %_
+  -- (by hand: `wp_apply` loses the context here)
+  wp_bind (App (App (App (Val #(methods bt.ty go!"UnsafeSeqPut" bt.v)) _) _) _)
+  iapply HSeqPut' $$ [Hlocked]
+  · iframe Hlocked HKeyG Hib Hd
+    ipureintro; trivial
+  inext
+  iintro Hlocked
   (try wp_auto)
   -- `err = tw.s.kvindex.Tombstone(key, idxRev.Revision)`
   wp_apply (hTomb ti γ.idx ilog pend key k _) $$ [$HtiS $Hw $Hkey] as Hw
