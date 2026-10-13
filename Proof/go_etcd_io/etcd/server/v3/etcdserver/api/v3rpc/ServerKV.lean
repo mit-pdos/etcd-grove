@@ -157,12 +157,13 @@ def txnInModel (cs : List CmpModel) (ts es : List ReqOp) : Prop :=
 
 /-- **A successful `Range` of `o`, at the handler's level** (persistent; `rangeReadOk` but the
 header's fields, which `hdrW` takes): the txn package's answer at a certified log of at least
-two revisions, the header's revision `r` its last, after the read index unless serializable. -/
+two revisions, the header's revision `r` its last, after the read index unless serializable, the
+log extending the log applied through an index at least `c` (`readLogOk`, 2026-10-13, unit 4b). -/
 def rangeAnsOk (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (o : OpFull) (resp : Loc)
     (r : w64) : IProp GF :=
   iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
     ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ r = W64 ((log.length : Int) - 1)⌝ ∗
-    (if o.base.serializable then iprop(True) else readIndexOk γr c) ∗
+    (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
     txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) o true)
 
 /-- **A successful read-only `Txn` of `t`, at the handler's level** (`txnReadOk` but the
@@ -171,7 +172,7 @@ def txnReadAns (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (t : TxnModel) (r
     (r : w64) : IProp GF :=
   iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
     ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ r = W64 ((log.length : Int) - 1)⌝ ∗
-    (if txn.txnSerializable t then iprop(True) else readIndexOk γr c) ∗
+    (if txn.txnSerializable t then iprop(True) else readLogOk γr c log) ∗
     txn.txnResponseIs false resp (W64 ((log.length : Int) - 1)) t
       (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
       (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2)

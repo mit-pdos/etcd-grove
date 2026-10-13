@@ -225,7 +225,9 @@ theorem deleteRange_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (
 /-- **`range_end_to_end`**: the gRPC `Range`'s `(resp, nil)` is the txn package's range at a
 certified log of at least two revisions (`rangeAnsOk`: `rangeResult` of the server's selection
 at the revision read, the header's revision the log's last), read after the read index unless
-serializable (`readIndexOk γr c`), the header filled; the id credit and the reader slot back. -/
+serializable (`readLogOk γr c log`: the applied index reached the committed index `c` the caller
+knew of, and `log` extends the log applied through an index at least `c`; unit 4b), the header
+filled; the id credit and the reader slot back. -/
 theorem range_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (c : w64) (cid mid n : w64) (ctx : GoInterface) (r : Loc) (o : OpFull) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗

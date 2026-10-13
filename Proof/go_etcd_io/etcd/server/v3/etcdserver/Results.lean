@@ -24,11 +24,25 @@ The corollaries are on the run's trace (`entriesStep_trace`: the states it passe
   nothing (the double-apply half of the consistent-index guarantee, on the KV).
 * **A rejected entry** (`applyEntries_rejected_no_write`): rejected by the admin check or by a
   layer, the log as it is.
+
+**The apply loop's step and the applied index** (the request path's unit 4b, 2026-10-13):
+`applyAll_model` (linked `applyAll`: `applyEntries_model`'s content for the whole step, the
+applied index's waiters triggered at the new applied index, under raft's no-snapshot contract);
+`applied_log_at` (each `setAppliedIndex` deposits the KV log after its entry as the log applied
+through that index, `appliedLogAt`, which agrees); with `range_linearizable`, a linearizable read
+at the committed index `c` returns the state of a log extending the one applied through some
+index `ci₀ ≥ c`, and that log is exactly the apply thread's after the entry `ci₀`. The read
+loop's contracts are met by the server's objects: `read_server` (`isReadServer` for `*EtcdServer`)
+and `read_raft` (`isReadRaft` for its `raftNode`); `wait_time` (`pkg/wait`'s `*timeList` is a
+`WaitTime`).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Results
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadServer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadRaft
+public import Proof.go_etcd_io.etcd.pkg.v3.wait.TimeListIfc
 
 @[expose] public section
 
@@ -126,6 +140,61 @@ last entry), and the apply thread's KV taken from `x` to `x'` by `entriesStep c 
 (`c` the consistent index at the start), under `entriesOk`. -/
 theorem applyEntries_model : EtcdServer.applyEntries.spec (GF := GF) (hG := hG) :=
   EtcdServer.wp_applyEntries
+
+/-- **The apply loop's step** (`s.applyAll(ep, ap)`, linked; the request path's unit 4b):
+`applyEntries_model`'s content for the whole step (the KV from `x` to `x'` by `entriesStep`
+over the entries above the applied index, `loopOk` kept), the applied index at the new `ai'`
+(`srvAppliedOwn`, `appliedAtLeast`) with the log applied through it the KV's (`appliedLogAt γr ai'
+x'.log`), the applied index's waiters through `ai'` released (`applyWait.Trigger`), under raft's
+no-snapshot contract (`ap.snapshot = nil`) and the snapshot, compaction and merged-snapshot
+contracts. -/
+theorem applyAll_model : EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
+  EtcdServer.wp_applyAll
+
+/-- **The applied logs** (the apply-side half of `range_linearizable`'s log; the request path's
+unit 4b): `setAppliedIndex` (linked), right after the entry at index `v'` with mvcc's certificate
+of the KV log `L`, deposits `L` as the log applied through `v'` (`appliedLogAt γr v' L`); `apply`
+(linked) does it for every entry, so its result's index has the KV's log after the batch; and the
+log applied through an index is unique. Together with `range_linearizable`: a linearizable read at
+the committed index `c` returns the state of a log extending the one applied through some index
+`ci₀ ≥ c`, and that log is exactly the apply thread's after the entry at `ci₀`. -/
+theorem applied_log_at :
+    EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) ∧
+    EtcdServer.apply.spec (GF := GF) (hG := hG) ∧
+    ∀ (γr : ReadNames) (i : w64) (L L' : mvcc.Log),
+      ⊢ appliedLogAt (GF := GF) γr i L -∗ appliedLogAt γr i L' -∗ ⌜L = L'⌝ :=
+  ⟨EtcdServer.wp_setAppliedIndex, EtcdServer.wp_apply, appliedLogAt_agree⟩
+
+/-- **`*EtcdServer` meets the read loop's `server` contract** (`isReadServer`, the request path's
+unit 4b; its nine methods linked): from the server's facts (`isServerReq`, `isServerRead`), with
+the caller's resource `srvReadLR s` (the logger's and the two notifiers' reader slots) and the id
+resource `idCred ρ.ids 1` (the id budget). -/
+theorem read_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ⊢
+      isReadServer (interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s) γr (srvReadLR s)
+        (idCred ρ.ids 1) :=
+  isReadServer_of_server EtcdServer.wp_ApplyWait EtcdServer.wp_Done EtcdServer.wp_Stopping
+    EtcdServer.wp_LeaderChanged EtcdServer.wp_FirstCommitInTermNotify EtcdServer.wp_NextRequestID
+    EtcdServer.wp_RequestTimeout EtcdServer.wp_AppliedIndex EtcdServer.wp_Logger s E ρ γr
+
+/-- **The server's raft wrapper meets the read loop's `raftInterface` contract** (`isReadRaft`, the
+request path's unit 4b; `ReadState` and `ReadIndex` linked): over the node contract
+(`isRaftNodeIfc`, raft's trust boundary: `ReadIndex` registers at a committed bound, the `Ready`'s
+read states answer the registrations), at the read names `E.γr` and registrations `E.RQ`. -/
+theorem read_raft (E : RNEnv GF) (γ : RNNames) (r : Loc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ⊢
+      isReadRaft (interface.mkOk (go.GoType.PointerType raftNode.ty) #r) E.γr E.RQ :=
+  isReadRaft_of_raftNode raftNode.wp_ReadState raftNode.wp_ReadIndex E γ r
+
+/-- **`pkg/wait`'s `*timeList` is a `WaitTime`** (`isWaitTime`, the request path's unit 4b;
+`Wait`, `Trigger` linked): for a predicate `P` of deadlines monotone downward (`NewTimeList`'s
+premise, with `P 0` and `closec` closed). -/
+theorem wait_time (tl : Loc) (P : w64 → IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.wait ∗ isTimeList tl P ⊢
+      isWaitTime (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.wait.timeList.ty)
+        #tl) P :=
+  isWaitTime_of_timeList wait.timeList.wp_Wait wait.timeList.wp_Trigger tl P
 
 end triples
 
@@ -313,7 +382,9 @@ two revisions, the response header's id fields owned (for the gRPC layer to fill
 in the client model's terms (`txn.rangeResultClient`: `rangeKvsOk` of `rangeSel` of the state
 read, for a sort not cut early); linearizable, read after the read index (`readIndexOk γr c`:
 the applied index reached an index at least the committed index `c` the caller knew of, the read
-loop's contract `isRead`; unit 4 ties the applied index to the KV's log). An error is one the
+loop's contract `isRead`) and, since the request path's unit 4b, of a log extending the log the
+apply thread had applied through some index `ci₀ ≥ c` (`appliedLogAt γr ci₀ L₀`, `L₀ <+: log`; see
+`applied_log_at`). An error is one the
 gRPC layer can take (`applyErrIs`: the read loop's, the auth store's, `ErrFutureRev`, the
 context's).
 
@@ -349,6 +420,8 @@ theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
         ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗
             ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63⌝ ∗ readIndexOk γr c ∗
+            (∃ (ci₀ : w64) (L₀ : mvcc.Log), ⌜uint.Z c ≤ uint.Z ci₀⌝ ∗ appliedLogAt γr ci₀ L₀ ∗
+              ⌜L₀ <+: log⌝) ∗
             txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) o true ∗
             txn.respHdrOwn (structFieldRef etcdserverpb.RangeResponse go!"Header" resp)) ∨
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }} := by
@@ -363,9 +436,14 @@ theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   · ileft
     iunfold rangeReadOk at H
     simp only [hlin, Bool.false_eq_true, ↓reduceIte]
+    icases H with ⟨%log, #Hc, %Hl, #Hrl, #Hres, Hown⟩
+    iunfold readLogOk at Hrl
+    icases Hrl with ⟨#Hri, #Hlog⟩
     isplitr
     · ipureintro; exact Hok
-    iexact H
+    iexists log
+    iframe Hc Hri Hlog Hres Hown
+    ipureintro; exact Hl
   · iright; iexact H
 
 /-- **`range_serializable`** (see the section header): in the client model's terms, for a
@@ -479,6 +557,11 @@ theorem txn_applied_model (t t' : TxnModel) (hm : apply.HeaderModel) (rq' : appl
     · rw [ht] at ht'; cases ht'; exact ha
 
 #print axioms Perennial.EtcdGrove.applyEntries_model
+#print axioms Perennial.EtcdGrove.applyAll_model
+#print axioms Perennial.EtcdGrove.applied_log_at
+#print axioms Perennial.EtcdGrove.read_server
+#print axioms Perennial.EtcdGrove.read_raft
+#print axioms Perennial.EtcdGrove.wait_time
 #print axioms Perennial.EtcdGrove.applyEntries_trace
 #print axioms Perennial.EtcdGrove.applyEntries_kv
 #print axioms Perennial.EtcdGrove.applyEntries_replay_no_write

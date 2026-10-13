@@ -136,7 +136,7 @@ local macro "txn_tail" : tactic => `(tactic| (
       srvLgReader s)
     iprop(∃ (respv : Loc) (errv : GoInterface) (log : mvcc.Log), resp_ptr ↦ respv ∗
       err_ptr ↦ errv ∗ mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ mvcc.idxCert E.γ.idx log ∗
-      ⌜log₀ <+: log ∧ log.length + 0 + 3 ≤ 2 ^ 63 ∧ log ≠ []⌝ ∗
+      ⌜logR <+: log ∧ log.length + 0 + 3 ≤ 2 ^ 63 ∧ log ≠ []⌝ ∗
       ((⌜respv = null ∧ errv ≠ GoInterface.nil⌝ ∗ txn.checkErrIs errv) ∨
        (⌜errv = GoInterface.nil⌝ ∗
          txn.txnResponseIs false respv (W64 ((log.length : Int) - 1)) t
@@ -166,7 +166,7 @@ local macro "txn_tail" : tactic => `(tactic| (
       · iframe #
       (try wp_auto)
       imod ownToks_0 (GF := GF) E.γ.revs with Hnone
-      wp_apply (hTxn.2 ctx2 _ w.lg r en w.kv w.lessor false E.s E.γ 0 log₀ t) $$ [Hsr Hnone]
+      wp_apply (hTxn.2 ctx2 _ w.lg r en w.kv w.lessor false E.s E.γ 0 logR t) $$ [Hsr Hnone]
         as %respv %trv %errv ⟨Hsr, -, %log, #Hcert, %Hlog, Hres⟩
       · iframe # Hsr Hnone
         isplitr
@@ -226,7 +226,7 @@ local macro "txn_tail" : tactic => `(tactic| (
           have := Hlog.1.length_le
           exact ⟨by omega, by omega⟩
         isplitr
-        · iexact HriO
+        · iapply (readLogOk_if_mono _ γr c logR log Hlog.1) $$ HriO
         simp only [txn.srvRunTxn]
         iexact Hr
       · ihave %Hne := mvcc.errorfIs_ne_nil _ $$ He
@@ -560,12 +560,15 @@ theorem EtcdServer.Txn.wp_proof
         ipureintro; intro h; cases h
       | nil =>
         ihave #Hri' := Hri $$ %rfl
-        ihave #HriO : (if txn.txnSerializable t then iprop(True) else readIndexOk γr c : IProp GF) $$ []
-        · rw [hs]; simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hri'
+        imod readIndexOk_logR s E γr c log₀ $$ Hainv Hri' Hc0 with ⟨%logR, #HcR, %HpR, #HrlR⟩
+        have HlR : 2 ≤ logR.length := Nat.le_trans Hl0 HpR.length_le
+        ihave #HriO : (if txn.txnSerializable t then iprop(True) else readLogOk γr c logR : IProp GF) $$ []
+        · rw [hs]; simp only [Bool.false_eq_true, ↓reduceIte]; iexact HrlR
         wp_auto
         txn_tail
     · (try wp_auto)
-      ihave #HriO : (if txn.txnSerializable t then iprop(True) else readIndexOk γr c : IProp GF) $$ []
+      generalize log₀ = logR at Hl0 ⊢
+      ihave #HriO : (if txn.txnSerializable t then iprop(True) else readLogOk γr c logR : IProp GF) $$ []
       · rw [hs]; simp only [↓reduceIte]; itrivial
       txn_tail
 
