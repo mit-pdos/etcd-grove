@@ -659,36 +659,6 @@ structure NGhost where
   unst : Bool := false
 deriving DecidableEq
 
-/-! ### The read-index state (2026-10-12; the records moved from `InvMisc.lean`)
-
-A queued read-index request and the read-only object, as `InvMisc.lean`'s `ownReadOnly`
-sees them. -/
-
-structure ReadReq [FfiSyntax] where
-  index : w64
-  src : w64
-  ents : List raftpb.Entry
-
-/-- The read-only object. `pending`: `unconfirmedReads`, oldest first.
-`acks`: each voter's acknowledged *position* -- the largest context (as a number) the
-voter echoed in a heartbeat response; the context of a heartbeat is
-`confirmed + length pending` at the time it was sent (`readonlyPosition`).
-`confirmed`: `confirmedReads`, the number of requests ever removed from the front of
-`pending`. The `option` (`ReadOnlySafe` or `ReadOnlyLeaseBased`) is not in it: no spec
-states it (`stepLeader` reads the field and case-splits on the value; until
-2026-10-08 a `safe` field recorded it). -/
-structure ReadOnly [FfiSyntax] where
-  pending : List ReadReq
-  acks : GMap w64 w64
-  confirmed : w64
-
-/-- The physical read-index state (2026-10-12): `r.readStates` (as the Goose values),
-`r.readOnly` (as `ReadOnly`), and `r.pendingReadIndexMessages`, each with the entries
-its slice holds. -/
-structure RdState [FfiSyntax] where
-  states : List ReadState := []
-  ro : ReadOnly := ⟨[], ∅, W64 0⟩
-  pend : List (raftpb.Message × List raftpb.Entry) := []
 
 
 structure NState [FfiSyntax] where
@@ -880,6 +850,8 @@ def toPState (s : NState) : PState where
   log := s.logst.sents ++ s.logst.uents
   commit := s.logst.committed
   matched := if s.role = .leader then prvalsMatch s.prvals else ∅
+  -- (2026-10-12) a non-leader's read-only object is the fresh one `reset` installed
+  rd := if s.role = .leader then s.rd else rdNL s.rd
 
 /-- A physical state that can take a protocol step: `r.step` agrees with the role, and
 `r.tick` is set (2026-10-09).
@@ -901,12 +873,24 @@ proofs rewrite rather than unfold. -/
 theorem toPState_sendMsgs (s : NState) (ms : List Msg) :
     toPState (sendMsgs s ms) = psendMsgs (toPState s) ms := rfl
 
+/-- The protocol reading's read state, with the read-only object reset (2026-10-12). -/
+theorem rdNL_toPState (s : NState) : rdNL (toPState s).rd = rdNL s.rd := by
+  by_cases h : s.role = .leader <;> simp [toPState, h, rdNL]
+
 theorem toPState_becomeFollower (s : NState) (term lead : w64) :
-    toPState (becomeFollower s term lead) = pbecomeFollower (toPState s) term lead := rfl
+    toPState (becomeFollower s term lead) = pbecomeFollower (toPState s) term lead := by
+  have h := rdNL_toPState s
+  unfold toPState becomeFollower resetTo resetTo0 pbecomeFollower at *
+  simp only at *
+  rw [h]; rfl
 
 /-- `reset`'s conditional clear of the vote is overwritten by `vote := id`. -/
 theorem toPState_becomeCandidate (id : w64) (s : NState) :
-    toPState (becomeCandidate id s) = pbecomeCandidate id (toPState s) := rfl
+    toPState (becomeCandidate id s) = pbecomeCandidate id (toPState s) := by
+  have h := rdNL_toPState s
+  unfold toPState becomeCandidate resetTo resetTo0 pbecomeCandidate at *
+  simp only at *
+  rw [h]; rfl
 
 /-- `lastIndex()` as the two layers write it. -/
 theorem plastIndex_toPState (s : NState) : plastIndex (toPState s) = logLast s.logst := by
@@ -925,7 +909,7 @@ theorem toPState_becomeLeader (id : w64) (s : NState) (pvs : GMap w64 Progress) 
   have Hw : toPState { becomeLeaderLog id s with prvals := pvs } =
       pwinState id (toPState s) (prvalsMatch pvs) := by
     simp only [becomeLeaderLog, becomeLeaderPre, resetTo, resetTo0, toPState, pwinState, pappend,
-      pbecomeLeader, logAppend, leaderEntry_toPState, List.append_assoc, ite_true]
+      pbecomeLeader, logAppend, leaderEntry_toPState, List.append_assoc, ite_true, rdNL_ite]
     rfl
   rw [← Hw]
   simp only [becomeLeader, pselfAck, sendMsgs, psendMsgs]
@@ -946,7 +930,8 @@ theorem toPState_votes_pre (s : NState) (v : GMap w64 Bool) (Hr : s.role = .preC
 the same term: the vote is kept, the tally cleared. -/
 theorem toPState_becomePrecandidate (s : NState) :
     toPState (becomePrecandidate s) = pbecomeFollower (toPState s) s.term (W64 0) := by
-  simp [toPState, becomePrecandidate, pbecomeFollower, proleRole]
+  by_cases h : s.role = .leader <;>
+    simp [toPState, becomePrecandidate, pbecomeFollower, proleRole, h, rdNL]
 
 /-- The protocol's reading of the role, the leader and a follower's tally. -/
 theorem toPState_role (s : NState) : (toPState s).role = proleRole s.role := rfl

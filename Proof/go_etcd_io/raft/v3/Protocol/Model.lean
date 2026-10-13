@@ -148,6 +148,47 @@ def fromLeader : MsgType → Bool
   | .app | .heartbeat | .snap => true
   | _ => false
 
+/-! ### The read-index state (2026-10-12; the records moved from `InvMisc.lean`)
+
+A queued read-index request and the read-only object, as `InvMisc.lean`'s `ownReadOnly`
+sees them. -/
+
+structure ReadReq [FfiSyntax] where
+  index : w64
+  src : w64
+  ents : List raftpb.Entry
+
+/-- The read-only object. `pending`: `unconfirmedReads`, oldest first.
+`acks`: each voter's acknowledged *position* -- the largest context (as a number) the
+voter echoed in a heartbeat response; the context of a heartbeat is
+`confirmed + length pending` at the time it was sent (`readonlyPosition`).
+`confirmed`: `confirmedReads`, the number of requests ever removed from the front of
+`pending`. The `option` (`ReadOnlySafe` or `ReadOnlyLeaseBased`) is not in it: no spec
+states it (`stepLeader` reads the field and case-splits on the value; until
+2026-10-08 a `safe` field recorded it). -/
+structure ReadOnly [FfiSyntax] where
+  pending : List ReadReq
+  acks : GMap w64 w64
+  confirmed : w64
+
+/-- The physical read-index state (2026-10-12): `r.readStates` (as the Goose values),
+`r.readOnly` (as `ReadOnly`), and `r.pendingReadIndexMessages`, each with the entries
+its slice holds. -/
+structure RdState [FfiSyntax] where
+  states : List ReadState := []
+  ro : ReadOnly := ⟨[], ∅, W64 0⟩
+  pend : List (raftpb.Message × List raftpb.Entry) := []
+
+/-- The read state with a fresh read-only object, what `reset` installs (and a non-leader's,
+in the protocol reading). -/
+def rdNL [FfiSyntax] (rd : RdState) : RdState := { rd with ro := ⟨[], ∅, W64 0⟩ }
+
+@[simp] theorem rdNL_rdNL [FfiSyntax] (rd : RdState) : rdNL (rdNL rd) = rdNL rd := rfl
+
+@[simp] theorem rdNL_ite [FfiSyntax] (c : Prop) [Decidable c] (rd : RdState) :
+    rdNL (if c then rd else rdNL rd) = rdNL rd := by
+  split <;> rfl
+
 /-! ## Protocol node state
 
 `PState` is the **protocol** state of one node: what the state machine below and the
@@ -186,6 +227,9 @@ structure PState [FfiSyntax] where
   commit : w64
   /-- `Progress.Match` per voter, leaders only -/
   matched : GMap w64 w64
+  /-- the read-index state (2026-10-12): the `ReadState`s, a leader's read-only object
+  (fresh for a non-leader) and the pending requests -/
+  rd : RdState := {}
 
 /-! ### The client log (2026-10-10)
 
@@ -1170,6 +1214,7 @@ def pbecomeFollower (s : PState) (term lead : w64) : PState where
   log := s.log
   commit := s.commit
   matched := ∅
+  rd := rdNL s.rd
 
 def pbecomeCandidate (s : PState) : PState where
   term := s.term + W64 1
@@ -1182,6 +1227,7 @@ def pbecomeCandidate (s : PState) : PState where
   log := s.log
   commit := s.commit
   matched := ∅
+  rd := rdNL s.rd
 
 def pbecomeLeader (s : PState) (mt : GMap w64 w64) : PState where
   term := s.term
@@ -1194,6 +1240,7 @@ def pbecomeLeader (s : PState) (mt : GMap w64 w64) : PState where
   log := s.log
   commit := s.commit
   matched := mt
+  rd := rdNL s.rd
 
 /-- What `reset` leaves in `Progress.Match` (`raft.go:779-808`): `0` for every voter,
 then `lastIndex()` for the node itself. Stated without the voter set: a `0` claims
