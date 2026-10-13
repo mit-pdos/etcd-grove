@@ -209,7 +209,7 @@ theorem Main.wp_proof
   -- raft's ghost state for the cluster, the term budget, the proposed slices
   imod ownRaftGhost_alloc (GF := GF) ⊤ (GMap.listToSet clusterIds) (GMap.listToSet clusterIds)
     (by rw [GMap.elem_of_list_to_set]; decide)
-    with ⟨%γ, %Hcfg, #Hcinv, #Hc0, Hghosts, HcL, Hfresh, HreSl⟩
+    with ⟨%γ, %Hcfg, #Hcinv, #Hc0, Hghosts, ⟨HcL, Hfresh, HreSl⟩, ⟨HrdA, HrdC, #HrdI⟩⟩
   imod budget_alloc (GF := GF) (3 * ticksN) (by unfold ticksN; omega) ⊤
     with ⟨%bud, #Hbinv, Hcred, #Hlb0⟩
   imod propDataInv_alloc (GF := GF) γ ⊤ $$ HreSl with #Hpd

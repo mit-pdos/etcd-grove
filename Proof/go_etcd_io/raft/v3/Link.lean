@@ -81,6 +81,7 @@ public import Proof.go_etcd_io.raft.v3.RawNode__Advance
 public import Proof.go_etcd_io.raft.v3.RawNode__Campaign
 public import Proof.go_etcd_io.raft.v3.RawNode__HasReady
 public import Proof.go_etcd_io.raft.v3.RawNode__Propose
+public import Proof.go_etcd_io.raft.v3.RawNode__ReadIndex
 public import Proof.go_etcd_io.raft.v3.RawNode__Ready
 public import Proof.go_etcd_io.raft.v3.RawNode__Step
 public import Proof.go_etcd_io.raft.v3.RawNode__Tick
@@ -121,6 +122,7 @@ public import Proof.go_etcd_io.raft.v3.newRaft
 public import Proof.go_etcd_io.raft.v3.newReadOnly
 public import Proof.go_etcd_io.raft.v3.node__Advance
 public import Proof.go_etcd_io.raft.v3.node__Propose
+public import Proof.go_etcd_io.raft.v3.node__ReadIndex
 public import Proof.go_etcd_io.raft.v3.node__Ready
 public import Proof.go_etcd_io.raft.v3.node__Step
 public import Proof.go_etcd_io.raft.v3.node__Tick
@@ -174,6 +176,7 @@ public import Proof.go_etcd_io.raft.v3.raft__becomeFollower
 public import Proof.go_etcd_io.raft.v3.raft__becomeLeader
 public import Proof.go_etcd_io.raft.v3.raft__becomePreCandidate
 public import Proof.go_etcd_io.raft.v3.raft__campaign
+public import Proof.go_etcd_io.raft.v3.raft__committedEntryInCurrentTerm
 public import Proof.go_etcd_io.raft.v3.raft__handleAppendEntries
 public import Proof.go_etcd_io.raft.v3.raft__handleHeartbeat
 public import Proof.go_etcd_io.raft.v3.raft__handleSnapshot
@@ -192,6 +195,7 @@ public import Proof.go_etcd_io.raft.v3.raft__promotable
 public import Proof.go_etcd_io.raft.v3.raft__reduceUncommittedSize
 public import Proof.go_etcd_io.raft.v3.raft__reset
 public import Proof.go_etcd_io.raft.v3.raft__resetRandomizedElectionTimeout
+public import Proof.go_etcd_io.raft.v3.raft__responseToReadIndexReq
 public import Proof.go_etcd_io.raft.v3.raft__restore
 public import Proof.go_etcd_io.raft.v3.raft__send
 public import Proof.go_etcd_io.raft.v3.raft__sendAppend
@@ -209,6 +213,7 @@ public import Proof.go_etcd_io.raft.v3.readOnly__maybeAdvance
 public import Proof.go_etcd_io.raft.v3.readOnly__recvAck
 public import Proof.reflect.DeepEqual
 public import Proof.go_etcd_io.raft.v3.releasePendingReadIndexMessages
+public import Proof.go_etcd_io.raft.v3.sendMsgReadIndexResponse
 public import Proof.slices.Sort
 public import Proof.go_etcd_io.raft.v3.stepCandidate
 public import Proof.go_etcd_io.raft.v3.stepFollower
@@ -951,13 +956,41 @@ theorem raft.wp_maybeCommit :
     raft.maybeCommit.spec (GF := GF) (hG := hG) :=
   raft.maybeCommit.wp_proof wp_traceCommit tracker.ProgressTracker.wp_Committed raftLog.wp_maybeCommit
 
+theorem raft.wp_committedEntryInCurrentTerm :
+    raft.committedEntryInCurrentTerm.spec (GF := GF) (hG := hG) :=
+  raft.committedEntryInCurrentTerm.wp_proof raftLog.wp_term raftLog.wp_zeroTermOnOutOfBounds
+
+theorem readOnly.wp_addRequest :
+    readOnly.addRequest.spec (GF := GF) (hG := hG) :=
+  readOnly.addRequest.wp_proof
+
+theorem readOnly.wp_recvAck :
+    readOnly.recvAck.spec (GF := GF) (hG := hG) :=
+  readOnly.recvAck.wp_proof
+
+theorem wp_sendMsgReadIndexResponse :
+    sendMsgReadIndexResponse.spec (GF := GF) (hG := hG) :=
+  sendMsgReadIndexResponse.wp_proof readOnly.wp_addRequest readOnly.wp_recvAck readOnly.wp_heartbeatCtx raft.wp_bcastHeartbeat
+
 theorem wp_releasePendingReadIndexMessages :
     releasePendingReadIndexMessages.spec (GF := GF) (hG := hG) :=
-  releasePendingReadIndexMessages.wp_proof
+  releasePendingReadIndexMessages.wp_proof raft.wp_committedEntryInCurrentTerm wp_sendMsgReadIndexResponse
+
+theorem readOnly.wp_AckedIndex :
+    readOnly.AckedIndex.spec (GF := GF) (hG := hG) :=
+  readOnly.AckedIndex.wp_proof
+
+theorem readOnly.wp_maybeAdvance :
+    readOnly.maybeAdvance.spec (GF := GF) (hG := hG) :=
+  readOnly.maybeAdvance.wp_proof quorum.JointConfig.wp_CommittedIndex readOnly.wp_AckedIndex
+
+theorem raft.wp_responseToReadIndexReq :
+    raft.responseToReadIndexReq.spec (GF := GF) (hG := hG) :=
+  raft.responseToReadIndexReq.wp_proof
 
 theorem wp_stepLeader :
     stepLeader.spec (GF := GF) (hG := hG) :=
-  stepLeader.wp_proof raft.wp_bcastHeartbeat raft.wp_sendAppend raft.wp_maybeSendAppend raft.wp_bcastAppend raft.wp_appendEntry raft.wp_maybeCommit wp_releasePendingReadIndexMessages tracker.Progress.wp_MaybeUpdate tracker.Progress.wp_MaybeDecrTo tracker.Progress.wp_BecomeProbe tracker.Progress.wp_BecomeReplicate tracker.Progress.wp_CanBumpCommit tracker.Inflights.wp_FreeLE raftLog.wp_findConflictByTerm raftLog.wp_lastIndex raftLog.wp_firstIndex
+  stepLeader.wp_proof raft.wp_bcastHeartbeat raft.wp_sendAppend raft.wp_maybeSendAppend raft.wp_bcastAppend raft.wp_appendEntry raft.wp_maybeCommit wp_releasePendingReadIndexMessages tracker.Progress.wp_MaybeUpdate tracker.Progress.wp_MaybeDecrTo tracker.Progress.wp_BecomeProbe tracker.Progress.wp_BecomeReplicate tracker.Progress.wp_CanBumpCommit tracker.Inflights.wp_FreeLE raftLog.wp_findConflictByTerm raftLog.wp_lastIndex raftLog.wp_firstIndex tracker.ProgressTracker.wp_IsSingleton raft.wp_committedEntryInCurrentTerm wp_sendMsgReadIndexResponse readOnly.wp_recvAck readOnly.wp_maybeAdvance raft.wp_responseToReadIndexReq raft.wp_send
 
 theorem wp_traceReceiveMessage :
     traceReceiveMessage.spec (GF := GF) (hG := hG) :=
@@ -1059,22 +1092,6 @@ theorem quorum.mapAckIndexer.wp_AckedIndex :
     quorum.mapAckIndexer.AckedIndex.spec (GF := GF) (hG := hG) :=
   quorum.mapAckIndexer.AckedIndex.wp_proof
 
-theorem readOnly.wp_AckedIndex :
-    readOnly.AckedIndex.spec (GF := GF) (hG := hG) :=
-  readOnly.AckedIndex.wp_proof
-
-theorem readOnly.wp_addRequest :
-    readOnly.addRequest.spec (GF := GF) (hG := hG) :=
-  readOnly.addRequest.wp_proof
-
-theorem readOnly.wp_maybeAdvance :
-    readOnly.maybeAdvance.spec (GF := GF) (hG := hG) :=
-  readOnly.maybeAdvance.wp_proof quorum.JointConfig.wp_CommittedIndex readOnly.wp_AckedIndex
-
-theorem readOnly.wp_recvAck :
-    readOnly.recvAck.spec (GF := GF) (hG := hG) :=
-  readOnly.recvAck.wp_proof
-
 end links
 
 /-! The specs stated at `HeapGS HasLC.hasLC GF`: the ghost state holds an
@@ -1109,6 +1126,10 @@ theorem RawNode.wp_HasReady :
 theorem RawNode.wp_Propose :
     RawNode.Propose.spec (GF := GF) (hG := hG) :=
   RawNode.Propose.wp_proof raft.wp_Step
+
+theorem RawNode.wp_ReadIndex :
+    RawNode.ReadIndex.spec (GF := GF) (hG := hG) :=
+  RawNode.ReadIndex.wp_proof raft.wp_Step
 
 theorem RawNode.wp_readyWithoutAccept :
     RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG) :=
@@ -1170,13 +1191,17 @@ theorem node.wp_Propose :
     node.Propose.spec (GF := GF) (hG := hG) :=
   node.Propose.wp_proof node.wp_stepWait
 
-theorem node.wp_Ready :
-    node.Ready.spec (GF := GF) (hG := hG) :=
-  node.Ready.wp_proof
-
 theorem node.wp_step :
     node.step.spec (GF := GF) (hG := hG) :=
   node.step.wp_proof node.wp_stepWithWaitOption
+
+theorem node.wp_ReadIndex :
+    node.ReadIndex.spec (GF := GF) (hG := hG) :=
+  node.ReadIndex.wp_proof node.wp_step
+
+theorem node.wp_Ready :
+    node.Ready.spec (GF := GF) (hG := hG) :=
+  node.Ready.wp_proof
 
 theorem node.wp_Step :
     node.Step.spec (GF := GF) (hG := hG) :=
