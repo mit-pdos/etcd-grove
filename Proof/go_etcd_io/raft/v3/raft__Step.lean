@@ -233,7 +233,7 @@ private theorem dispatch_AppResp (P : raft.Step.Postulates (GF := GF) (hG := hG)
 
 private theorem dispatch_HeartbeatResp (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (γ : RaftNames) (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
-    (m : raftpb.Message) (ents : List raftpb.Entry) (Φ : val → IProp GF)
+    (m : raftpb.Message) (ents : List raftpb.Entry) (ctx : List w8) (Φ : val → IProp GF)
     (Hcfg : γ.reCfg = cfg) (Hin : id ∈ cfg) (Hwf : NStateWf s)
     (Hty : m.Type' = MsgHeartbeatResp)
     (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) :
@@ -241,18 +241,40 @@ private theorem dispatch_HeartbeatResp (P : raft.Step.Postulates (GF := GF) (hG 
       ownRaftPhys cfg r id s -∗
       ownRaftGhost γ id (toPState s) -∗
       m.Entries' ↦*□ ents -∗
-      m.Context' ↦*□ ([] : List w8) -∗
-      isMessage γ (absMsg .heartbeatResp m ents) -∗
+      m.Context' ↦*□ ctx -∗
+      isMessage γ (absMsg .heartbeatResp m ents ctx) -∗
       ▷ stepPost γ cfg r id s m Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
         {{ v, |={⊤}=> Φ v }} := by
   obtain ⟨Hto, Hterm, Hfnz, Hfid⟩ := Hm
   iintro #Hinit Hphys Hghost #Hents #Hctx0 #Hm HΦ
-  wp_apply (wp_Step_MsgHeartbeatResp P cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hin Hwf)
+  -- (2026-10-13) the read-only facts `stepLeader`'s read path needs, from the ghost state
+  have Hlrd_lem : ⊢ ownRaftGhost (GF := GF) γ id (toPState s) -∗
+      ⌜s.role = .leader → m.Term' = s.term →
+        (RdOk cfg s.rd ∧ s.term ≠ W64 0) ∧ (ctx = [] ∨ 8 ≤ ctx.length) ∧
+        (ctx ≠ [] → uint.Z (leToU64 (ctx.take 8))
+                      ≤ uint.Z s.rd.ro.confirmed + (s.rd.ro.pending.length : Int))⌝ := by
+    iintro Hg
+    by_cases hl : s.role = .leader
+    · by_cases ht : m.Term' = s.term
+      · ihave %H1 := ghost_rdOk γ id s hl $$ Hg
+        ihave %H2 := ghost_hbResp_ctx γ id s m ents ctx hl Hto ht $$ Hg Hm
+        ipureintro
+        intro _ _
+        rw [← Hcfg]
+        exact ⟨H1, H2⟩
+      · ipureintro; exact fun _ h => absurd h ht
+    · ipureintro; exact fun h => absurd h hl
+  ihave %Hlrd := Hlrd_lem $$ Hghost
+  wp_apply (wp_Step_MsgHeartbeatResp P cfg r id s m ents ctx Hlrd Hty Hto Hterm Hfnz Hfid Hin Hwf)
     $$ [$Hphys $Hents $Hctx0] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
-  obtain ⟨recv, Hrecv, Hstep⟩ := Hst
+  obtain ⟨c, recv, Hc, Hrecv, Hstep⟩ := Hst
+  ihave #Hmc : isMessage γ (absMsg .heartbeatResp m ents c) $$ []
+  · rcases Hc with rfl | rfl
+    · unfold isMessage; simp only [absMsg, absMsgFrom]; ileft; ipureintro; rfl
+    · iexact Hm
   iapply finish_branch γ cfg r id s s' m _ recv err Φ Hcfg Hwf' Hrecv Hstep
-    (fun _ => Hfr) (fun _ => Htm) (by resp_other) $$ Hm Hghost Hphys
+    (fun _ => Hfr) (fun _ => Htm) (by resp_other) $$ Hmc Hghost Hphys
     [] HΦ
   ileft; ipureintro; exact Herr
 
@@ -565,11 +587,10 @@ theorem raft.Step.wp_proof
     iapply dispatch_Heartbeat P γ cfg r id s m ents ctx Φ Hcfg Hin Hwf Hty (Hhb Hty)
       $$ Hinit Hphys Hghost Hents Hctxp Hm' HΦ
   by_cases Hty : m.Type' = MsgHeartbeatResp
-  · -- MsgHeartbeatResp: `dispatch_HeartbeatResp`; the `Context` is empty.
-    ihave #Hm' := Hmsg $$ %MsgType.heartbeatResp
+  · -- MsgHeartbeatResp: `dispatch_HeartbeatResp`, with its context (2026-10-13).
+    ihave #Hm' := Hmsgc $$ %MsgType.heartbeatResp
       %(by rw [Hty]; exact mtypeOf_MsgHeartbeatResp)
-    obtain rfl := Hctx0 Hty
-    iapply dispatch_HeartbeatResp P γ cfg r id s m ents Φ Hcfg Hin Hwf Hty (Hhbresp Hty)
+    iapply dispatch_HeartbeatResp P γ cfg r id s m ents ctx Φ Hcfg Hin Hwf Hty (Hhbresp Hty)
       $$ Hinit Hphys Hghost Hents Hctxp Hm' HΦ
   by_cases Hty : m.Type' = MsgBeat
   · -- MsgBeat: `dispatch_Beat`.

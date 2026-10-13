@@ -41,7 +41,11 @@ for it (`Step.refl`); `stepLeader` may `sendAppend` to the peer, which is
 out of the read-only code. -/
 theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) :
+    (ents : List raftpb.Entry) (ctx : List w8)
+    (Hlrd : s.role = .leader → m.Term' = s.term →
+      (RdOk cfg s.rd ∧ s.term ≠ W64 0) ∧ (ctx = [] ∨ 8 ≤ ctx.length) ∧
+      (ctx ≠ [] → uint.Z (leToU64 (ctx.take 8))
+                    ≤ uint.Z s.rd.ro.confirmed + (s.rd.ro.pending.length : Int))) :
     m.Type' = MsgHeartbeatResp →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -52,12 +56,12 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhys cfg r id s ∗
-        "#Hctx0" ∷ m.Context' ↦*□ ([] : List w8) }}
+        "#Hctx0" ∷ m.Context' ↦*□ ctx }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhys cfg r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeatResp m ents) ∧
+        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeatResp m ents ctx) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
@@ -144,16 +148,21 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
       keep_frame rfl rfl rfl rfl rfl⟩
   · -- Leader: `sendAppend` to a peer that is behind
     simp only [stepFuncOf]
-    wp_apply _P.stepLeader cfg r id s m [] (.inr (.inr (.inl Hty))) Hrole Hcfg
+    wp_apply _P.stepLeader cfg r id s m ents ctx (.inr (.inr (.inl Hty))) Hrole Hcfg
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ => Hfid)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun _ => (Hlrd Hrole Hteq).1)
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun _ => (Hlrd Hrole Hteq).2)
       $$ [$Hphys] as %err %s' %dropped ⟨Hphys, %Hres, Herrn, -⟩
     · isplitl []
       · iintro _; iexact Hctx0
+      isplitl []
+      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     obtain ⟨rfl, Hwf', Hstep, Hl, Ht, Hpv, Hg⟩ :=
-      leader_hbresp_step cfg id s m [] dropped s' Hrole Hty Hwf Hres
+      leader_hbresp_step cfg id s m ents ctx dropped s' Hrole Hty Hto Hteq Hwf Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn
@@ -161,8 +170,7 @@ theorem wp_Step_MsgHeartbeatResp_eq (_P : raft.Step.Postulates (GF := GF) (hG :=
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys
     ipureintro
-    exact ⟨Hwf', ⟨[], fun _ Hin => absurd Hin List.not_mem_nil, Hstep⟩, rfl,
-      keep_frame_logst Ht Hl Hpv Hg⟩
+    exact ⟨Hwf', Hstep, rfl, keep_frame_logst Ht Hl Hpv Hg⟩
   · -- PreCandidate (2026-10-04), as a candidate: no `MsgHeartbeatResp` arm either
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) [] []
