@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- `crt.UnsafeRange(bucket, key, endKey, limit)`: `rtRange` of its state. -/
 abbrev backend.concurrentReadTx.UnsafeRange.spec : Prop :=
-  ∀ (γ : BNames) (P : BParams) (WR : IProp GF) (b : Loc) (crt rtx : Loc) (rv : RView) (bk : GoInterface) (bi : BucketInfo) (key endKey : GoSlice) (kb eb : GoString) (dk de : DFrac) (limit : w64),
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (crt rtx : Loc) (rv : RView) (bk : GoInterface) (bi : BucketInfo) (key endKey : GoSlice) (kb eb : GoString) (dk de : DFrac) (limit : w64),
   (endKey = slice.nil ↔ eb = []) → (sint.Z (rangeLimit eb limit) ≤ 1 ∨ bi.safe = true) → P.has bi →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ crtSnap γ P b crt rtx rv ∗ isBucket bk bi ∗ key ↦*{dk} kb ∗ endKey ↦*{de} eb }}
     (App (App (App (App (Val (crt @!! go.GoType.PointerType concurrentReadTx.ty @!! go!"UnsafeRange")) (Val #bk)) (Val #key)) (Val #endKey)) (Val #limit))

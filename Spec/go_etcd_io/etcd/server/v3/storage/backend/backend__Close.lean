@@ -29,8 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- `b.Close()`, with all of the clients' open token: the `run` goroutine stopped (its
 `CommitAndStop`), then bbolt's database closed. -/
 abbrev backend.backend.Close.spec : Prop :=
-  ∀ (γ : BNames) (P : BParams) (WR : IProp GF) (b : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P WR b ∗ isStopChans γ b ∗
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ isStopChans γ b ∗
       bOpen γ 1 }}
     (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err; True }}

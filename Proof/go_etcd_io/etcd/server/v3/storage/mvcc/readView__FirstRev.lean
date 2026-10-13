@@ -64,7 +64,7 @@ theorem mvcc.readView.FirstRev.wp_proof
   wp_apply (hFirst (mvcc.txCommon tr) _) $$ [$HfirstRevT]
   (try wp_auto)
   -- the deferred `tr.End()`: `metricsTxnWrite.End`
-  ihave Htx : mvcc.isTxnRead mw s γ log rev $$ [Hmw Htrw Hmu HrevMu Hti]
+  ihave Htx : mvcc.isTxnRead mw s γ log rev $$ [Hmw Htrw Hrd Hmu HrevMu Hti]
   · iunfold mvcc.isTxnRead
     iexists trw, tr, trace, ti, rt, ranges
     iframe

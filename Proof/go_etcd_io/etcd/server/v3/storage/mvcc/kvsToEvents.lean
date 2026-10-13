@@ -41,8 +41,8 @@ theorem mvcc.kvsToEvents.wp_proof
     (hB2R : mvcc.BytesToRev.spec (GF := GF) (hG := hG))
     (hCont : mvcc.watcherGroup.contains.spec (GF := GF) (hG := hG)) :
     mvcc.kvsToEvents.spec (GF := GF) (hG := hG) := by
-  intro lg g W revs vals ents
-  wp_start as ⟨Hg, #Hpv, %Hbnd⟩
+  intro lg g W revs vals ents Rd Tok
+  wp_start as ⟨Hg, #Hpv, #Hrc, Htok, %Hbnd⟩
   iunfold mvcc.pairVals at Hpv
   icases Hpv with ⟨%kss, %vss, #Hks, #Hvs, %Hlens, #Hel⟩
   wp_auto
@@ -55,13 +55,13 @@ theorem mvcc.kvsToEvents.wp_proof
   ihave IH : iprop(∃ (n k : w64) (vv es : GoSlice) (ps : List Loc),
       "i" ∷ i_ptr ↦ n ∗ "Higo" ∷ igo ↦ k ∗ "v" ∷ v_ptr ↦ vv ∗ "evs" ∷ evs_ptr ↦ es ∗
       "Hes" ∷ es ↦* ps ∗ "Hcap" ∷ ownSliceCap Loc es (DFrac.own 1) ∗
-      "Hg" ∷ mvcc.ownWatcherGroup g W ∗
+      "Hg" ∷ mvcc.ownWatcherGroup g W ∗ "Htok" ∷ Tok ∗
       "Hdone" ∷ ([∗list] x ∈ ps.zip (mvcc.entsEvents W (ents.take (sint.nat n))), mvcc.evIs x.1 x.2) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ ents.length ∧
-        ps.length = (mvcc.entsEvents W (ents.take (sint.nat n))).length⌝) $$ [i Higo v evs Hg]
+        ps.length = (mvcc.entsEvents W (ents.take (sint.nat n))).length⌝) $$ [i Higo v evs Hg Htok]
   · iexists W64 0, _, _, _, []
     simp only [named]
-    iframe i Higo v evs Hg
+    iframe i Higo v evs Hg Htok
     isplitl []
     · iapply ownSlice_nil
     isplitl []
@@ -83,8 +83,11 @@ theorem mvcc.kvsToEvents.wp_proof
     wp_apply wp_load_slice_index vals (sint.Z n) vss DFrac.discard vsl Hn.1 $$ [$Hvs] as -
     · ipureintro; exact Hkv.2
     simp only [mvcc.KvEnt.pair]
-    wp_apply (hUnm vsl e.kv «$r0_ptr» _ DFrac.discard) $$ [$Hvsl $«$r0»]
-      as ⟨-, %ks', %vs', %st, %uf, %sc, Hp, #Hks', #Hvs'⟩
+    iunfold mvcc.rdCap at Hrc
+    icases Hrc $$ %vsl %(mvcc.kvEncode e.kv) Hvsl Htok with ⟨%dqv, Hvb, Hvback⟩
+    wp_apply (hUnm vsl e.kv «$r0_ptr» _ dqv) $$ [$Hvb $«$r0»]
+      as ⟨Hvb, %ks', %vs', %st, %uf, %sc, Hp, #Hks', #Hvs'⟩
+    ihave Htok := Hvback $$ Hvb
     ihave %Hpnn := typedPointsto_not_null _ _ _ $$ Hp
     iStructNamedPrefix Hp "K"
     (try wp_auto)
@@ -123,7 +126,9 @@ theorem mvcc.kvsToEvents.wp_proof
       simp only [Hbr, and_self, ↓reduceIte]
       wp_apply wp_load_slice_index revs (sint.Z n) kss DFrac.discard ksl Hn.1 $$ [$Hks] as -
       · ipureintro; exact Hkv.1
-      wp_apply (hTomb ksl (mvcc.revBytes e.rev e.tomb) DFrac.discard) $$ [$Hksl] as -
+      icases Hrc $$ %ksl %(mvcc.revBytes e.rev e.tomb) Hksl Htok with ⟨%dqk, Hkb, Hkback⟩
+      wp_apply (hTomb ksl (mvcc.revBytes e.rev e.tomb) dqk) $$ [$Hkb] as Hkb
+      ihave Htok := Hkback $$ Hkb
       rw [mvcc.isTomb_revBytes_self]
       cases ht : e.tomb
       · (try wp_auto)
@@ -178,9 +183,11 @@ theorem mvcc.kvsToEvents.wp_proof
         simp only [Hbr, and_self, ↓reduceIte]
         wp_apply wp_load_slice_index revs (sint.Z n) kss DFrac.discard ksl Hn.1 $$ [$Hks] as -
         · ipureintro; exact Hkv.1
+        icases Hrc $$ %ksl %(mvcc.revBytes e.rev true) Hksl Htok with ⟨%dqk, Hkb, Hkback⟩
         rw [mvcc.revBytes_true]
         have hb := Hbnd e (List.mem_of_getElem? He)
-        wp_apply (hB2R ksl e.rev [mvcc.markTomb] DFrac.discard (by simp) hb.1 hb.2) $$ [$Hksl] as -
+        wp_apply (hB2R ksl e.rev [mvcc.markTomb] dqk (by simp) hb.1 hb.2) $$ [$Hkb] as Hkb
+        ihave Htok := Hkback $$ Hkb
         (try wp_auto)
         have hev : e.ev = ⟨true, { e.kv with modRev := e.rev.main }, none⟩ := by unfold mvcc.KvEnt.ev; rw [ht]; rfl
         ihave Hpk : («$r0_ptr» ↦

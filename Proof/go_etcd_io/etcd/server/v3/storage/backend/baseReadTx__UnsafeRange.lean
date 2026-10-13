@@ -56,7 +56,7 @@ theorem backend.baseReadTx.UnsafeRange.wp_proof
     (hCursor : bbolt.Bucket.Cursor_kvr.spec (GF := GF) (hG := hG))
     (hur : backend.unsafeRange.spec (GF := GF) (hG := hG)) :
     backend.baseReadTx.UnsafeRange.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b base dq rtx rv q bk bi key endKey kb eb dk de limit Hnil Hsafe Hhas
+  intro γ P W Pk b base dq rtx rv q bk bi key endKey kb eb dk de limit Hnil Hsafe Hhas
   wp_start as ⟨Hrd, #Hbk, Hk, He⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

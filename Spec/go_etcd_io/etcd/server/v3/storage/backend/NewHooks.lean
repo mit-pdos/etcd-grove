@@ -25,10 +25,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- `NewHooks(f)`: a `Hooks` whose `OnPreCommitUnsafe` is `f`. -/
 abbrev backend.NewHooks.spec : Prop :=
-  ∀ (γ : BNames) (P : BParams) (WR : IProp GF) (b t : Loc) (f : GoFunc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ hookFnSpec γ P WR b t f }}
+  ∀ (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc) (f : GoFunc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ hookFnSpec γ P Pk b t f }}
     (App (Val (@! NewHooks)) (Val #f))
-  {{ (h : GoInterface), RET #h; hooksSpec γ P WR b t h }}
+  {{ (h : GoInterface), RET #h; hooksSpec γ P Pk b t h }}
 
 end spec
 

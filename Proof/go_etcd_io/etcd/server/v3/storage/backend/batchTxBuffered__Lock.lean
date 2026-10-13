@@ -29,9 +29,9 @@ variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions]
 theorem backend.batchTxBuffered.Lock.wp_proof
     (hM : backend.batchTx.Lock.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.Lock.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b t qo
+  intro γ P W Pk b t qo
   wp_start as ⟨#Hb, #Ht, Ho⟩
-  wp_apply (hM γ P WR b t qo) $$ [$Ho] as ⟨%st, Hl, %Hfo, HWR, Ho⟩
+  wp_apply (hM γ P W Pk b t qo) $$ [$Ho] as ⟨%st, Hl, %Hfo, HWR, Ho⟩
   · iframe #
   iapply HΦ
   iexists st

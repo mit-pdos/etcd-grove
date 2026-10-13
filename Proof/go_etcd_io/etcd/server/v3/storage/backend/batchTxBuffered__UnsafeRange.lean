@@ -29,7 +29,7 @@ variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions]
 theorem backend.batchTxBuffered.UnsafeRange.wp_proof
     (hBT : backend.batchTx.UnsafeRange.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b t st bk bi key endKey kb eb dk de limit Hend
+  intro γ P W Pk b t st bk bi key endKey kb eb dk de limit Hend
   wp_start as ⟨#Hb, #Ht, Hl, #Hbk, Hkey, HendKey⟩
   ihave #Hacc : (□ (∀ (s : GoSlice) (v : GoString) (st' : BSess), rdB st.tx s v -∗
       batchLocked γ P b st' -∗ ⌜st'.tx = st.tx⌝ -∗
@@ -38,7 +38,7 @@ theorem backend.batchTxBuffered.UnsafeRange.wp_proof
     iapply batchLocked_rdB γ P b st st' s v $$ [$Hr $Hl]
     ipureintro
     exact Htx
-  icases isBackend_bt γ P WR b t $$ [Hb Ht] with
+  icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
   · iframe #
   unfold batchLocked batchLockedAt batchPhys
@@ -46,7 +46,7 @@ theorem backend.batchTxBuffered.UnsafeRange.wp_proof
     Hg, %Hwf⟩
   icombine Ht Ht' gives %Heq
   subst Heq
-  wp_apply (hBT γ P WR b t st bk bi key endKey kb eb dk de limit)
+  wp_apply (hBT γ P W Pk b t st bk bi key endKey kb eb dk de limit)
     $$ [Htxf Hpend Hwtx $Hkey $HendKey] as %keys %vals ⟨Hw, Hkey, HendKey, Hout⟩
   · iframe #
     unfold btW

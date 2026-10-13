@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- `base.UnsafeRange(bucket, key, endKey, limit)` of a read transaction (shared or concurrent):
 `rtRange` of its state. -/
 abbrev backend.baseReadTx.UnsafeRange.spec : Prop :=
-  ∀ (γ : BNames) (P : BParams) (WR : IProp GF) (b : Loc) (base : Loc) (dq : DFrac) (rtx : Loc) (rv : RView) (q : Qp) (bk : GoInterface) (bi : BucketInfo) (key endKey : GoSlice) (kb eb : GoString) (dk de : DFrac) (limit : w64),
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (base : Loc) (dq : DFrac) (rtx : Loc) (rv : RView) (q : Qp) (bk : GoInterface) (bi : BucketInfo) (key endKey : GoSlice) (kb eb : GoString) (dk de : DFrac) (limit : w64),
   (endKey = slice.nil ↔ eb = []) → (sint.Z (rangeLimit eb limit) ≤ 1 ∨ bi.safe = true) → P.has bi →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ baseRd γ P base dq rtx rv q ∗ isBucket bk bi ∗ key ↦*{dk} kb ∗
       endKey ↦*{de} eb }}

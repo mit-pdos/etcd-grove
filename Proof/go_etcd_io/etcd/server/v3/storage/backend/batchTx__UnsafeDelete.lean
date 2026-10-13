@@ -39,9 +39,9 @@ theorem backend.batchTx.UnsafeDelete.wp_proof
     (hDelete : bbolt.Bucket.Delete_kv.spec (GF := GF) (hG := hG))
     (hError : zap.Error.spec (GF := GF) (hG := hG)) :
     backend.batchTx.UnsafeDelete.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b t st bk bi key kb dk
+  intro γ P W Pk b t st bk bi key kb dk
   wp_start as ⟨#Hb, #Ht, Hw, #Hbk, Hkey⟩
-  icases isBackend_bt γ P WR b t $$ [Hb Ht] with
+  icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db, %lg, %h, #Hbe, #Hlg, %Hlgn, #-, #-, #-, #-, #-, %HP⟩
   · iframe #
   unfold btW

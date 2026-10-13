@@ -8,6 +8,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__SetTxPostL
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__SetTxPostLockInsideApplyHook
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTx__lock
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Unlock
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.CommitLemmas
 
 @[expose] public section
 
@@ -32,27 +33,27 @@ theorem backend.backend.SetTxPostLockInsideApplyHook.wp_proof
     (hlock : backend.batchTx.lock.spec (GF := GF) (hG := hG))
     (hUnlock : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG)) :
     backend.backend.SetTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b qo f hook
+  intro γ P W Pk b qo f hook
   wp_start as ⟨#Hb, Ho, Hpl, Htok⟩
   unfold bOpen
   icases Ho with ⟨Ho, Hcls⟩
-  icases isBackend_b γ P WR b $$ Hb with
+  icases isBackend_b γ P W Pk b $$ Hb with
     ⟨%t, %rt, %db1, %lg2, #Ht, #-⟩
   wp_apply wp_with_defer as %defer defer
   try wp_auto
   wp_method_call
   wp_call
-  wp_apply (hlock γ P WR b t qo.half) $$ [$Ho] as ⟨%st, Hl, %Hfo, HWR, Ho⟩
+  wp_apply (hlock γ P W Pk b t qo.half) $$ [$Ho] as ⟨%st, Hl, %Hfo, ⟨HWv, HWR⟩, Ho⟩
   · iframe #
   unfold batchLocked batchLockedAt batchPhys
   icases Hl with ⟨%t1, %db, #Ht1, Hown, ⟨%hk, Htxf, Hpend, Hdel, HW, Hhkf, Hhk, Hdb, Hwtx, #Htxdb, Hmu⟩,
     Hg, %Hwf⟩
   icombine Ht Ht1 gives %Heq1
   subst Heq1
-  unfold plHook
-  imod ghostVar_update_halves hook γ.hook f hk $$ Hpl Hhk with ⟨Hpl, Hhk⟩
+  unfold plHook plHookAt
+  imod dghostVar_update_halves hook γ.hook f hk $$ Hpl Hhk with ⟨Hpl, Hhk⟩
   wp_auto
-  wp_apply (hUnlock γ P WR b t st iprop(True)) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hg Htok HWR]
+  wp_apply (hUnlock γ P W Pk b t st iprop(True)) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hg Htok HWv HWR]
   · iframe #
     unfold batchLocked batchLockedAt batchPhys
     iframe Htok
@@ -66,9 +67,9 @@ theorem backend.backend.SetTxPostLockInsideApplyHook.wp_proof
       · ipureintro
         exact Hwf
     · ileft
-      iframe HWR
+      iframe HWv HWR
       ipureintro
-      exact Hfo.1
+      exact viewSame_of_freeOk Hfo.1
   iapply HΦ
   iframe
 

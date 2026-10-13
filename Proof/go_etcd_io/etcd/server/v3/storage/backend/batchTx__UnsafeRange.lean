@@ -39,9 +39,9 @@ theorem backend.batchTx.UnsafeRange.wp_proof
     (hCursor : bbolt.Bucket.Cursor_kvw.spec (GF := GF) (hG := hG))
     (hRange : backend.unsafeRange.spec (GF := GF) (hG := hG)) :
     backend.batchTx.UnsafeRange.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b t st bk bi key endKey kb eb dk de limit
+  intro γ P W Pk b t st bk bi key endKey kb eb dk de limit
   wp_start as ⟨#Hb, #Ht, Hw, #Hbk, Hkey, HendKey⟩
-  icases isBackend_bt γ P WR b t $$ [Hb Ht] with
+  icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db, %lg, %h, #Hbe, #Hlg, %Hlgn, #-, #-, #-, #-, #-, %HP⟩
   · iframe #
   unfold btW

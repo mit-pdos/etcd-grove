@@ -3961,3 +3961,42 @@ of `applyErrIs` (targets restricted to pointer errors), not a merge. So the requ
 facts for a canceled read rest on Perennial's model, which Perennial documents as not modeling
 `%w` (`Perennial/TrustedCode/fmt.lean`): the known gap, `notes/STATUS.md`, "Merge of
 `origin/lean` (Perennial `a54e1999f`)".
+
+### The backend meets mvcc (unit 4, 2026-10-13 · proposed)
+
+mvcc's results rest on `isKeyBackend b View W P f` (`InvStore.lean`), an assumed contract of
+the backend's `Key` bucket; the backend is now proved against its own contract (`isBackend`).
+Unit 4 derives the first from the second, so that the Put/Get path's KV core rests on bbolt's
+contract only. The mismatches, and what changes:
+
+- **The views.** mvcc's `View q m` is the `Key` bucket; the backend's `bView γ q vd` is every
+  bucket off the hook's `P.HB`. The instance takes `P.HB := (· ≠ "key")`: the backend's view is
+  the `Key` bucket, every other bucket is unconstrained (the lessor, auth, membership and the
+  consistent index write them; their reads promise nothing here, as the hook's buckets now), and
+  `View q m := ∃ vd, bView γ q vd ∗ ⌜keyBucket vd = m⌝`. The backend's `Unlock` case without the
+  clients' view generalizes from `freeOk` to "the session changed nothing the readers see"
+  (`vData` unchanged, the write buffer empty off `HB`; a delete in another bucket then commits
+  without a view, as the `run` goroutine's commit does).
+- **The lock's resource** splits as mvcc's: `WR := W ∗ P`, the store's `W` (it holds half the
+  view: given back through the `Unlock`'s wand) and the hook's `P` (given up front: the commit's
+  pre-commit hook and the post-lock hook need it). `LockInsideApply` runs the post-lock hook on
+  `P ∗ Pre` (mvcc's `{P ∗ Pre} f() {Q}`) and returns `W ∗ Q`.
+- **The post-lock hook set once.** `plHook` becomes a `dghostVar`: `SetTxPostLockInsideApplyHook`
+  takes the clients' owned half; the client may then make it read-only (`plHookRO γ f`,
+  persistent), which `isKeyBackend`'s fixed `f` needs (etcd sets it once, `server.go:412`).
+- **The slices.** mvcc's results are `↦*□` (`keyVals`, `rangeVals`), false of bbolt (its slices
+  die with the read transaction). mvcc's contract takes the backend's `rdB rtx`-style slices with
+  a read capability under the reader's resource (`keyReader`'s `R`, `keyReadSnap`'s snapshot
+  token): `rangeKeys`, `rangeEvents` and the transactions read the bytes before their `End`.
+  `UnsafeSeqPut`'s key and value become `↦*□` (the backend and bbolt keep them; mvcc's slices are
+  fresh: it persists them).
+- **The bucket.** `schema.Key` is `backend.Bucket(bucket{id: 1, name: "key", safeRangeBucket:
+  true})`: `schema.toml` translates `bucket`'s methods and the bucket variables; schema's package
+  facts give `isBucket` of `Key` (and `Meta`).
+- **The bridge** (`Proof/go_etcd_io/etcd/server/v3/storage/mvcc/BackendBridge.lean`):
+  `isBackend γ P (W ∗ Pk) b ∗ plHookRO γ f ⊢ isKeyBackend (iface b) (View γ) W Pk f`, with
+  `Locked l` the backend's session whose `Key` bucket is the lock-time contents with `l` applied.
+
+*Rejected:* per-bucket views in the backend (the right generalization for several writers of
+visible buckets, but every reader proof changes; the `HB` instance gives mvcc its bucket alone and
+leaves the others to a later unit).

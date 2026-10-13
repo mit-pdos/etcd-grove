@@ -25,7 +25,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 theorem backend.backend.Size.wp_proof : backend.backend.Size.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b
+  intro γ P W Pk b
   wp_start as #Hb
   ihave #Hat : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit

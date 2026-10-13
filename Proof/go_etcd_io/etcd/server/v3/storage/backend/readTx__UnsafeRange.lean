@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 theorem backend.readTx.UnsafeRange.wp_proof
     (hbase : backend.baseReadTx.UnsafeRange.spec (GF := GF) (hG := hG)) :
     backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b rt rtx rv qo bk bi key endKey kb eb dk de limit Hnil Hsafe Hhas
+  intro γ P W Pk b rt rtx rv qo bk bi key endKey kb eb dk de limit Hnil Hsafe Hhas
   wp_start as ⟨#Hb, #Hrt, Hh, Hopen, #Hbk, Hk, He⟩
   unfold rtHeld
   icases Hh with ⟨%rt', %rd, %H, #Hrt', Hrl, HR, %Hrtx, Hcr⟩
@@ -57,7 +57,7 @@ theorem backend.readTx.UnsafeRange.wp_proof
     iapply bOpen_stopped γ qo $$ [$Hopen $Hst]
   simp only [↓reduceIte]
   icases Hiv with ⟨Hlive, #Hsnap, #Hintv, #Hwgi, Hwo⟩
-  wp_apply hbase γ P WR b (baseOf rt) (DFrac.own sync.rfrac) rd.rtx rv sync.rfrac.half bk bi key
+  wp_apply hbase γ P W Pk b (baseOf rt) (DFrac.own sync.rfrac) rd.rtx rv sync.rfrac.half bk bi key
       endKey kb eb dk de limit Hnil Hsafe Hhas $$ [Hrb Hrtxf Hcm Hown Hlive $Hk $He]
     as %keys %vals ⟨Hbr, Hk, He, Hout⟩
   · isplitl [Hrb Hrtxf Hcm Hown Hlive]

@@ -42,11 +42,11 @@ def btW (γ : BNames) (t : Loc) (st : BSess) : IProp GF :=
 
 /-- What a batch transaction's method reads of its backend: the backend field, the logger (not
 nil), the batch limit, the hooks, the batch lock, bbolt's database. -/
-theorem isBackend_bt (γ : BNames) (P : BParams) (WR : IProp GF) (b t : Loc) :
-    isBackend γ P WR b ∗ bF go!"batchTx" b ↦□ t ⊢
+theorem isBackend_bt (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t : Loc) :
+    isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ⊢
       ∃ (db lg : Loc) (h : GoInterface), beOf t ↦□ b ∗ bF go!"lg" b ↦□ lg ∗ ⌜lg ≠ Loc.null⌝ ∗
-        bF go!"batchLimit" b ↦□ P.limit ∗ bF go!"hooks" b ↦□ h ∗ hooksSpec γ P WR b t h ∗
-        sync.isMutex (muOf t) (batchFree γ P WR b t) ∗ isDB db ∗ ⌜P.Wf⌝ := by
+        bF go!"batchLimit" b ↦□ P.limit ∗ bF go!"hooks" b ↦□ h ∗ hooksSpec γ P Pk b t h ∗
+        sync.isMutex (muOf t) (batchFree γ P W Pk b t) ∗ isDB db ∗ ⌜P.Wf⌝ := by
   iintro ⟨#Hb, #Ht⟩
   unfold isBackend
   icases Hb with ⟨%t', %rt, %tm, %db, %lg, %h, #Ht', #-, #Hl, #Hlg, %Hlgn, #Hh, #Hbe, #-,
@@ -60,11 +60,11 @@ theorem isBackend_bt (γ : BNames) (P : BParams) (WR : IProp GF) (b t : Loc) :
 
 /-- What the backend's own methods read of it: the logger (not nil), the metrics, the batch
 transaction and the read transaction. -/
-theorem isBackend_b (γ : BNames) (P : BParams) (WR : IProp GF) (b : Loc) :
-    isBackend γ P WR b ⊢
+theorem isBackend_b (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
+    isBackend γ P W Pk b ⊢
       ∃ (t rt db lg : Loc), bF go!"batchTx" b ↦□ t ∗ bF go!"readTx" b ↦□ rt ∗
         bF go!"lg" b ↦□ lg ∗ ⌜lg ≠ Loc.null⌝ ∗ metricsInv b ∗ beOf t ↦□ b ∗
-        sync.isMutex (muOf t) (batchFree γ P WR b t) ∗
+        sync.isMutex (muOf t) (batchFree γ P W Pk b t) ∗
         sync.isRWMutexGuard (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
         sync.isRWMutexGuard (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
         isDB db ∗ cacheInv γ ∗ ⌜P.Wf⌝ := by

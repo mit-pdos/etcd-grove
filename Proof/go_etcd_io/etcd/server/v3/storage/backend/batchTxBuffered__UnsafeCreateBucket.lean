@@ -29,9 +29,9 @@ variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions]
 theorem backend.batchTxBuffered.UnsafeCreateBucket.wp_proof
     (hBT : backend.batchTx.UnsafeCreateBucket.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b t st bk bi Hhas Hn0 Hn1 Hp
+  intro γ P W Pk b t st bk bi Hhas Hn0 Hn1 Hp
   wp_start as ⟨#Hb, #Ht, Hl, #Hbk⟩
-  icases isBackend_bt γ P WR b t $$ [Hb Ht] with
+  icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
   · iframe #
   unfold batchLocked batchLockedAt batchPhys
@@ -39,7 +39,7 @@ theorem backend.batchTxBuffered.UnsafeCreateBucket.wp_proof
     Hg, %Hwf⟩
   icombine Ht Ht' gives %Heq
   subst Heq
-  wp_apply (hBT γ P WR b t st bk bi Hn0 Hn1) $$ [Htxf Hpend Hwtx] as Hw
+  wp_apply (hBT γ P W Pk b t st bk bi Hn0 Hn1) $$ [Htxf Hpend Hwtx] as Hw
   · iframe #
     unfold btW
     iframe

@@ -24,9 +24,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- `t.unsafePut(bucket, key, value, seq)` on the writer: bbolt's writer sets the entry (the bucket must exist: else `lg.Fatal`), one more pending operation. -/
 abbrev backend.batchTx.unsafePut.spec : Prop :=
-  ∀ (γ : BNames) (P : BParams) (WR : IProp GF) (b : Loc) (t : Loc) (st : BSess) (bk : GoInterface) (bi : BucketInfo) (key value : GoSlice) (kb vb : GoString) (dk : DFrac) (seq : Bool),
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (bk : GoInterface) (bi : BucketInfo) (key value : GoSlice) (kb vb : GoString) (dk : DFrac) (seq : Bool),
   0 < kb.length → kb.length ≤ maxKeySize → vb.length ≤ maxValueSize →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P WR b ∗ bF go!"batchTx" b ↦□ t ∗ btW γ t st ∗ isBucket bk bi ∗ key ↦*{dk} kb ∗ value ↦*□ vb }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ btW γ t st ∗ isBucket bk bi ∗ key ↦*{dk} kb ∗ value ↦*□ vb }}
     (App (App (App (App (Val (btOf t @!! go.GoType.PointerType batchTx.ty @!! go!"unsafePut")) (Val #bk)) (Val #key)) (Val #value)) (Val #seq))
   {{ RET #(); btW γ t (st.put bi kb vb seq) ∗ key ↦*{dk} kb }}
 

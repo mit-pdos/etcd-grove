@@ -35,7 +35,7 @@ theorem backend.batchTx.UnsafeDeleteBucket.wp_proof
     (hError : zap.Error.spec (GF := GF) (hG := hG))
     (hFatal : zap.Logger.Fatal.spec (GF := GF) (hG := hG)) :
     backend.batchTx.UnsafeDeleteBucket.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b t st bk bi
+  intro γ P W Pk b t st bk bi
   wp_start as ⟨#Hb, #Ht, Hw, #Hbk⟩
   ihave #Hep : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.errors $$ []
   · iPkgInit
@@ -43,7 +43,7 @@ theorem backend.batchTx.UnsafeDeleteBucket.wp_proof
   · iapply isPkgInit_access $$ Hep
   icases Hei with ⟨%e, #He, %Hel⟩
   obtain ⟨Hptr, Hleaf, HIs⟩ := Hel
-  icases isBackend_bt γ P WR b t $$ [Hb Ht] with
+  icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db, %lg, %h, #Hbe, #Hlg, %Hlgn, #-, #-, #-, #-, #-, %HP⟩
   · iframe #
   unfold btW

@@ -34,19 +34,19 @@ theorem backend.batchTxBuffered.Commit.wp_proof
     (hC : backend.batchTxBuffered.commit.spec (GF := GF) (hG := hG))
     (hBU : backend.batchTx.Unlock.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.Commit.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b t qo
+  intro γ P W Pk b t qo
   wp_start as ⟨#Hb, #Ht, Ho, Htok⟩
   unfold bOpen
   icases Ho with ⟨Ho, Hcls⟩
-  icases isBackend_b γ P WR b $$ Hb with
+  icases isBackend_b γ P W Pk b $$ Hb with
     ⟨%t2, %rt, %db1, %lg2, #Ht2, #Hrt, #-, %-, #Hmi, #-, #-, #Hrg, #-, #-, #Hci, %-⟩
   wp_auto
   wp_method_call
   wp_call
-  wp_apply (hlock γ P WR b t qo.half) $$ [$Ho] as ⟨%st, Hl, %Hfo, HWR, Ho⟩
+  wp_apply (hlock γ P W Pk b t qo.half) $$ [$Ho] as ⟨%st, Hl, %Hfo, ⟨HWv, HWR⟩, Ho⟩
   · iframe #
   ihave Hl := batchLocked_W γ P b st $$ Hl
-  wp_apply (hC γ P WR b t rt st false false 0 0) $$ [$Hl $HWR Htok] as ⟨HWR, -, Hpost⟩
+  wp_apply (hC γ P W Pk b t rt st false false 0 0) $$ [$Hl $HWR Htok] as ⟨HWR, -, Hpost⟩
   · iframe #
     isplitr
     · ipureintro
@@ -62,11 +62,11 @@ theorem backend.batchTxBuffered.Commit.wp_proof
   icases Hph2 with ⟨%hk, Htxf, Hpend, Hdel, HW, Hhkf, Hhk, Hdb, Hwtx, #Htxdb, Hmu⟩
   rw [Hfin.2.2]
   wp_auto
-  wp_apply (hBU γ P WR b t) $$ [$Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hg2 HWR]
+  wp_apply (hBU γ P W Pk b t) $$ [$Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hg2 HWv HWR]
   · iframe #
     ileft
     iexists st2, db2
-    iframe HWR Hg2
+    iframe HWv HWR Hg2
     isplitl
     · unfold batchPhys
       iexists hk

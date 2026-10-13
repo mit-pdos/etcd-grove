@@ -1,5 +1,5 @@
 /-
-`batchTx.lock` (`batch_tx.go`). `t.lock()`: the batch lock, free state and the client's resource (the backend open: a share of the open token at `false`).
+`batchTx.lock` (`batch_tx.go`). `t.lock()`: the batch lock, free state and the client's resources `W ∗ Pk` (the backend open: a share of the open token at `false`).
 Lean-first (no Rocq counterpart); see `InvBatch.lean` and `InvBackend.lean`.
 -/
 module
@@ -22,12 +22,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- `t.lock()`: the batch lock, free state and the client's resource (the backend open: a share of the open token at `false`). -/
+/-- `t.lock()`: the batch lock, free state and the client's resources `W ∗ Pk` (the backend open: a share of the open token at `false`). -/
 abbrev backend.batchTx.lock.spec : Prop :=
-  ∀ (γ : BNames) (P : BParams) (WR : IProp GF) (b : Loc) (t : Loc) (qo : Qp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P WR b ∗ bF go!"batchTx" b ↦□ t ∗ dghostVar γ.opn (DFrac.own qo) false }}
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (qo : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ dghostVar γ.opn (DFrac.own qo) false }}
     (App (Val (btOf t @!! go.GoType.PointerType batchTx.ty @!! go!"lock")) (Val #()))
-  {{ RET #(); ∃ st : BSess, batchLocked γ P b st ∗ ⌜freeOk P st ∧ st.cnt.p0 = sint.nat st.pend⌝ ∗ WR ∗
+  {{ RET #(); ∃ st : BSess, batchLocked γ P b st ∗ ⌜freeOk P st ∧ st.cnt.p0 = sint.nat st.pend⌝ ∗ (W ∗ Pk) ∗
       dghostVar γ.opn (DFrac.own qo) false }}
 
 end spec

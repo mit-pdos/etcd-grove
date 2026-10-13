@@ -34,9 +34,9 @@ theorem backend.backend.unsafeBegin.wp_proof
     (hError : zap.Error.spec (GF := GF) (hG := hG))
     (hFatal : zap.Logger.Fatal.spec (GF := GF) (hG := hG)) :
     backend.backend.unsafeBegin.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b db q D w
+  intro γ P W Pk b db q D w
   wp_start as ⟨#Hb, Hdb, Hown, Hwr⟩
-  icases isBackend_b γ P WR b $$ Hb with
+  icases isBackend_b γ P W Pk b $$ Hb with
     ⟨%t, %rt, %db0, %lg, #-, #-, #Hlg, %Hlgn, #-⟩
   wp_auto
   wp_apply (hBegin db γ.db D w) $$ [$Hown $Hwr] as %tx %err ⟨Hown, #Hisdb, Hr⟩

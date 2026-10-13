@@ -39,9 +39,9 @@ theorem backend.batchTx.unsafePut.wp_proof
     (hPut : bbolt.Bucket.Put_kv.spec (GF := GF) (hG := hG))
     (hError : zap.Error.spec (GF := GF) (hG := hG)) :
     backend.batchTx.unsafePut.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b t st bk bi key value kb vb dk seq Hk0 Hk1 Hv
+  intro γ P W Pk b t st bk bi key value kb vb dk seq Hk0 Hk1 Hv
   wp_start as ⟨#Hb, #Ht, Hw, #Hbk, Hkey, #Hval⟩
-  icases isBackend_bt γ P WR b t $$ [Hb Ht] with
+  icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db, %lg, %h, #Hbe, #Hlg, %Hlgn, #-, #-, #-, #-, #-, %HP⟩
   · iframe #
   unfold btW

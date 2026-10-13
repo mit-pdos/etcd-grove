@@ -120,8 +120,16 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   (try wp_auto)
   -- `if err != nil { Fatal }`: not taken (`err` is `nil`: resolved by `wp_auto`)
   -- `tw.tx.UnsafeSeqPut(schema.Key, ibytes, d)`
-  ihave #HSeqPut' := HSeqPut $$ %(mvcc.pendPuts ilog pend) %bK %ib' %d %_ %_ %(DFrac.own 1) %(DFrac.own 1)
-  wp_apply HSeqPut' $$ [$HKeyG $Hlocked $Hib $Hd] as ⟨Hlocked, Hib, Hd⟩
+  -- the backend keeps the key and the value: read-only for good
+  ipersist Hib
+  ipersist Hd
+  ihave #HSeqPut' := HSeqPut $$ %(mvcc.pendPuts ilog pend) %bK %ib' %d %_ %_
+  -- (by hand: `wp_apply` loses the context here)
+  wp_bind (App (App (App (Val #(methods bt.ty go!"UnsafeSeqPut" bt.v)) _) _) _)
+  iapply HSeqPut' $$ [Hlocked]
+  · iframe Hlocked HKeyG Hib Hd
+  inext
+  iintro Hlocked
   (try wp_auto)
   -- `err = tw.s.kvindex.Tombstone(key, idxRev.Revision)`
   wp_apply (hTomb ti γ.idx ilog pend key k _) $$ [$HtiS $Hw $Hkey] as Hw

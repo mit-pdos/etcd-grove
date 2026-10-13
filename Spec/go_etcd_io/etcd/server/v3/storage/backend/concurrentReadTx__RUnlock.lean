@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- `crt.RUnlock()`: its share of the interval given back (`txWg.Done()`), and its tokens. -/
 abbrev backend.concurrentReadTx.RUnlock.spec : Prop :=
-  ∀ (γ : BNames) (P : BParams) (WR : IProp GF) (b : Loc) (crt rtx : Loc) (rv : RView),
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (crt rtx : Loc) (rv : RView),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ crtSnap γ P b crt rtx rv }}
     (App (Val (crt @!! go.GoType.PointerType concurrentReadTx.ty @!! go!"RUnlock")) (Val #()))
   {{ RET #(); crTok γ b }}

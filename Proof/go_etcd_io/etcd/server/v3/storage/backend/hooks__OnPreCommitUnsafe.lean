@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 theorem backend.hooks.OnPreCommitUnsafe.wp_proof :
     backend.hooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b t h st
+  intro γ P Pk b t h st
   wp_start as ⟨#Hf, Hl, HWR⟩
   wp_auto
   unfold hookFnSpec

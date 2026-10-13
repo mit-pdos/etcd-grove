@@ -27,8 +27,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- `b.LockForSafeRangeDelete()`: `safeRangeDeleteMu` read-locked (it guards nothing here:
 defragmentation, its writer, is out of scope). -/
 abbrev backend.backend.LockForSafeRangeDelete.spec : Prop :=
-  ∀ (γ : BNames) (P : BParams) (WR : IProp GF) (b : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P WR b ∗ sync.ownRWMutex (bF go!"safeRangeDeleteMu" b) (fun _ => iprop(True)) }}
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ sync.ownRWMutex (bF go!"safeRangeDeleteMu" b) (fun _ => iprop(True)) }}
     (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"LockForSafeRangeDelete")) (Val #()))
   {{ RET #(); sync.ownRWMutexRLocked (bF go!"safeRangeDeleteMu" b) (fun _ => iprop(True)) }}
 

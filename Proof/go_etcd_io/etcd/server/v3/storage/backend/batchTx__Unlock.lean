@@ -27,9 +27,9 @@ variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions] [_root_.Pe
 
 theorem backend.batchTx.Unlock.wp_proof :
     backend.batchTx.Unlock.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b t
+  intro γ P W Pk b t
   wp_start as ⟨#Hb, #Ht, Hown, Hfree⟩
-  icases isBackend_bt γ P WR b t $$ [Hb Ht] with
+  icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb0, %HP⟩
   · iframe #
   icases Hfree with (⟨%st, %db, Hph, Hg, %Hfo, HWR⟩ | ⟨Hpend, #Hbs⟩)

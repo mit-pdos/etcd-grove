@@ -175,6 +175,15 @@ def freeOk (P : BParams) (st : BSess) : Prop :=
   sessWf P st ∧ sint.Z st.pend < sint.Z P.limit ∧ st.ndel = W64 0 ∧
   ∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []
 
+/-- The session changed nothing the readers see: the writer's contents read, off the hook's
+buckets, as the readers' view, and the write buffer is empty off them (so the write-back leaves
+the view as it is). A session that only put in, or deleted from, the hook's buckets has it (and
+any `freeOk` state: `viewSame_of_freeOk`); a delete pending is allowed (the `Unlock` then
+commits, which changes no `vData`). -/
+def viewSame (P : BParams) (st : BSess) : Prop :=
+  vData P (st.C, st.R) = sData P st.S ∧
+  ∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []
+
 /-- The buffers' sizes, bounded through the batch lock's ghost counters (`st.cnt`, and `n` the
 write-back tokens out, `w` the write-backs so far, `u` the write-back after which the `run`
 goroutine's last unpaid commit came: at most one unpaid commit after each write-back). A commit

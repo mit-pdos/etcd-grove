@@ -38,9 +38,9 @@ theorem backend.backend.run.wp_proof
     (hBU : backend.batchTx.Unlock.spec (GF := GF) (hG := hG))
     (hCS : backend.batchTxBuffered.CommitAndStop.spec (GF := GF) (hG := hG)) :
     backend.backend.run.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b sc dc γsc γdc u d
+  intro γ P W Pk b sc dc γsc γdc u d
   wp_start as ⟨#Hb, #Hsc, #Hbi, Hdcp, Hrt, Hq, Hus⟩
-  icases isBackend_b γ P WR b $$ Hb with
+  icases isBackend_b γ P W Pk b $$ Hb with
     ⟨%t, %rt, %db, %lg, #Ht, #Hrt, #Hlg, %Hlgn, #Hmi, #Hbe, #Hm, #Hrg, #Hmug, #Hisdb, #Hci, %HP⟩
   unfold isStopChansAt
   icases Hsc with ⟨#Hscf, #Hdcf, #Hscb, #Hdcb, #Hinv⟩
@@ -70,7 +70,7 @@ theorem backend.backend.run.wp_proof
     wp_auto
     rw [method_unfold (t := go.GoType.PointerType batchTxBuffered.ty) (m := go!"safePending") #t]
     wp_call
-    wp_apply (lc := 2) (hSP γ P WR b t u) $$ [$Hq $Hus] as %p ⟨Hq, Hus, Hp⟩
+    wp_apply (lc := 2) (hSP γ P W Pk b t u) $$ [$Hq $Hus] as %p ⟨Hq, Hus, Hp⟩
     · iframe #
     by_cases hp : p = W64 0
     · subst hp
@@ -89,10 +89,10 @@ theorem backend.backend.run.wp_proof
       wp_auto
       rw [method_unfold (t := go.GoType.PointerType batchTxBuffered.ty) (m := go!"lock") #t]
       wp_call
-      wp_apply (hlock γ P WR b t (1 : Qp).half.half) $$ [$Hq] as ⟨%st, Hl, %Hfo, HWR, Hq⟩
+      wp_apply (hlock γ P W Pk b t (1 : Qp).half.half) $$ [$Hq] as ⟨%st, Hl, %Hfo, ⟨HWv, HWR⟩, Hq⟩
       · iframe #
       ihave Hl := batchLocked_W γ P b st $$ Hl
-      wp_apply (hC γ P WR b t rt st false false 1 u) $$ [$Hl $HWR Hus] as ⟨HWR, Hpo, Hpost⟩
+      wp_apply (hC γ P W Pk b t rt st false false 1 u) $$ [$Hl $HWR Hus] as ⟨HWR, Hpo, Hpost⟩
       · iframe #
         isplitr
         · ipureintro
@@ -111,11 +111,11 @@ theorem backend.backend.run.wp_proof
       icases Hph2 with ⟨%hk, Htxf, Hpend, Hdel, HW, Hhkf, Hhk, Hdb, Hwtx, #Htxdb, Hmu⟩
       rw [Hfin.2.2]
       wp_auto
-      wp_apply (hBU γ P WR b t) $$ [$Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hg2 HWR]
+      wp_apply (hBU γ P W Pk b t) $$ [$Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hg2 HWv HWR]
       · iframe #
         ileft
         iexists st2, db2
-        iframe HWR Hg2
+        iframe HWv HWR Hg2
         isplitl
         · unfold batchPhys
           iexists hk
@@ -140,7 +140,7 @@ theorem backend.backend.run.wp_proof
     iintro ⟨#Hsq, -⟩
     wp_auto
     imod (stop_get γ sc γsc) $$ [$Hinv $Hsq $Hrt] with Hhalf
-    wp_apply (hCS γ P WR b t) $$ [$Hhalf $Hq] as #Hbs
+    wp_apply (hCS γ P W Pk b t) $$ [$Hhalf $Hq] as #Hbs
     · iframe #
     wp_for_post
     wp_apply (_root_.Perennial.time.Timer.wp_Stop tm) $$ [] as %bb -

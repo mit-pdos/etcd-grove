@@ -149,8 +149,11 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     · ipureintro; exact Htrnn
     (try wp_auto)
     -- `tw.tx.UnsafeSeqPut(schema.Key, ibytes, d)`
-    wp_apply HSeqPut $$ %(mvcc.pendPuts ilog pend) %bK %ib' %d %_ %_ %(DFrac.own 1) %(DFrac.own 1)
-      [$HKeyG $Hlocked $Hib $Hd] as ⟨Hlocked, Hib, Hd⟩
+    -- the backend keeps the key and the value: read-only for good
+    ipersist Hib
+    ipersist Hd
+    wp_apply HSeqPut $$ %(mvcc.pendPuts ilog pend) %bK %ib' %d %_ %_
+      [$HKeyG $Hlocked $Hib $Hd] as Hlocked
     (try wp_auto)
     -- `tw.s.kvindex.Put(key, idxRev)`
     wp_apply (hPutI ti γ.idx ilog pend key k _ v leaseID) $$ [$HtiS $Hw $Hkey] as Hw
@@ -346,8 +349,11 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     · ipureintro; exact Htrnn
     (try wp_auto)
     -- `tw.tx.UnsafeSeqPut(schema.Key, ibytes, d)`
-    wp_apply HSeqPut $$ %(mvcc.pendPuts ilog pend) %bK %ib' %d %_ %_ %(DFrac.own 1) %(DFrac.own 1)
-      [$HKeyG $Hlocked $Hib $Hd] as ⟨Hlocked, Hib, Hd⟩
+    -- the backend keeps the key and the value: read-only for good
+    ipersist Hib
+    ipersist Hd
+    wp_apply HSeqPut $$ %(mvcc.pendPuts ilog pend) %bK %ib' %d %_ %_
+      [$HKeyG $Hlocked $Hib $Hd] as Hlocked
     (try wp_auto)
     -- `tw.s.kvindex.Put(key, idxRev)`
     wp_apply (hPutI ti γ.idx ilog pend key k _ v leaseID) $$ [$HtiS $Hw $Hkey] as Hw

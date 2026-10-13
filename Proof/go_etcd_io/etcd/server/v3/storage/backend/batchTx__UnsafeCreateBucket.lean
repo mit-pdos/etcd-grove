@@ -35,9 +35,9 @@ theorem backend.batchTx.UnsafeCreateBucket.wp_proof
     (hError : zap.Error.spec (GF := GF) (hG := hG))
     (hFatal : zap.Logger.Fatal.spec (GF := GF) (hG := hG)) :
     backend.batchTx.UnsafeCreateBucket.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b t st bk bi Hn0 Hn1
+  intro γ P W Pk b t st bk bi Hn0 Hn1
   wp_start as ⟨#Hb, #Ht, Hw, #Hbk⟩
-  icases isBackend_bt γ P WR b t $$ [Hb Ht] with
+  icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db, %lg, %h, #Hbe, #Hlg, %Hlgn, #-, #-, #-, #-, #-, %HP⟩
   · iframe #
   unfold btW

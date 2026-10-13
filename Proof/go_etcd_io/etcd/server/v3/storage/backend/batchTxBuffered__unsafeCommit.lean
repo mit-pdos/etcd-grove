@@ -38,13 +38,13 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     (hBC : backend.batchTx.commit.spec (GF := GF) (hG := hG))
     (hBegin : backend.backend.begin.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.unsafeCommit.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b t rt st win stop m u
+  intro γ P W Pk b t rt st win stop m u
   wp_start as ⟨#Hb, #Ht, #Hrt, Hl, HWR, Hrr, %Hc, Hpay⟩
   obtain ⟨Hp0, HWe, Hview⟩ := Hc
-  icases isBackend_bt γ P WR b t $$ [Hb Ht] with
+  icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb0, %HP⟩
   · iframe #
-  icases isBackend_b γ P WR b $$ Hb with
+  icases isBackend_b γ P W Pk b $$ Hb with
     ⟨%t2, %rt2, %db1, %lg2, #-, #Hrt2, #-, %-, #Hmi, #-, #-, #Hrg, #-, #-, #Hci, %-⟩
   icombine Hrt Hrt2 gives %Heq
   subst Heq
@@ -67,7 +67,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     ipureintro
     exact ⟨Hbg0, Hwf⟩
   wp_auto
-  wp_join iprop(∃ st' : BSess, batchLocked γ P b st' ∗ WR ∗ ⌜hookStep P st st'⌝ ∗ t_ptr ↦ t) at next
+  wp_join iprop(∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ ⌜hookStep P st st'⌝ ∗ t_ptr ↦ t) at next
       with [Hl HWR t] as ⟨%st', Hl, HWR, %Hs, t⟩
   · unfold hooksSpec
     icases Hhs with (%Hnil | ⟨%ho, %Hho, #Hhook⟩)
@@ -121,7 +121,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     wp_apply (hRollback rtx D) $$ [$Hl1 $Hsn] as -
     itrivial
   wp_apply (hReset rt st'.R cm rtx wg) $$ [$HRB $Hcm $Hrtx $Hwg] as %cm' %wg' ⟨HRB, Hcm, Hcmm, Hrtx, Hwg, Hwgz⟩
-  wp_apply (hBC γ P WR b t db st' stop) $$ [Htxf Hpend Hwtx $Hdb $Htxdb $Hmu] as ⟨Hmu, Hres⟩
+  wp_apply (hBC γ P W Pk b t db st' stop) $$ [Htxf Hpend Hwtx $Hdb $Htxdb $Hmu] as ⟨Hmu, Hres⟩
   · iframe #
     unfold btW
     iframe
@@ -132,7 +132,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       icases Hw with ⟨Htxf, Hpend, Hwtx⟩
       rw [HA.1]
       wp_auto
-      wp_apply (hBegin γ P WR b db st'.C false) $$ [$Hmu $Hdb] as %txr ⟨Hmu, Hdb, #Htxdbr, Hrd⟩
+      wp_apply (hBegin γ P W Pk b db st'.C false) $$ [$Hmu $Hdb] as %txr ⟨Hmu, Hdb, #Htxdbr, Hrd⟩
       · iframe #
         simp only [Bool.false_eq_true, ↓reduceIte]
         itrivial
@@ -166,7 +166,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     · simp only [Bool.false_eq_true, ↓reduceIte]
       icases Hrest with ⟨Hwtx, #Htxdb'⟩
       wp_auto
-      wp_apply (hBegin γ P WR b db st'.S false) $$ [$Hmu $Hdb] as %txr ⟨Hmu, Hdb, #Htxdbr, Hrd⟩
+      wp_apply (hBegin γ P W Pk b db st'.S false) $$ [$Hmu $Hdb] as %txr ⟨Hmu, Hdb, #Htxdbr, Hrd⟩
       · iframe #
         simp only [Bool.false_eq_true, ↓reduceIte]
         itrivial

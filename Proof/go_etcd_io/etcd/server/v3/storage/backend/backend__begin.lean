@@ -39,13 +39,13 @@ theorem backend.backend.begin.wp_proof
     (hStats : bbolt.DB.Stats_kv.spec (GF := GF) (hG := hG))
     (hInfo : bbolt.DB.Info_kv.spec (GF := GF) (hG := hG)) :
     backend.backend.begin.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b db D w
+  intro γ P W Pk b db D w
   wp_start as ⟨#Hb, Hmu, Hown, Hwr⟩
-  icases isBackend_b γ P WR b $$ Hb with
+  icases isBackend_b γ P W Pk b $$ Hb with
     ⟨%t, %rt, %db0, %lg, #-, #-, #Hlg, %Hlgn, #Hmi, #-⟩
   wp_auto
   wp_apply sync.RWMutex.wp_RLock $$ [$Hmu] as ⟨Hrl, >Hdbp⟩
-  wp_apply (hUB γ P WR b db sync.rfrac D w) $$ [$Hdbp $Hown $Hwr] as %tx ⟨Hdbp, Hown, #Hisdb, #Htxdb, Htx⟩
+  wp_apply (hUB γ P W Pk b db sync.rfrac D w) $$ [$Hdbp $Hown $Hwr] as %tx ⟨Hdbp, Hown, #Hisdb, #Htxdb, Htx⟩
   · iframe #
   wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hdbp] as Hmu
   · inext; iexact Hdbp

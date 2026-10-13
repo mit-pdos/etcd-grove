@@ -16,7 +16,9 @@ bbolt as a key-value contract, the locks and the views".
   only the current state, and only while no `Unlock` is in progress (the writer deposits the
   clients' half of the view there for the window): so the cache's copy at the current version
   reads as the current state off the hook's buckets (`rtRes`'s `cacheValid`).
-- `γ.hook`: the post-lock hook, half the client's (`plHook γ f`), half the batch lock's;
+- `γ.hook` (`dghostVar GoFunc`): the post-lock hook, half the client's (`plHook γ f`), half the
+  batch lock's; the client may make its half read-only (`plHook_persist`: `plHookRO γ f`, persistent:
+  the hook then never changes);
   `γ.opn`: the backend open, half the clients' (`bOpen γ q`), half the `run` goroutine's;
   `γ.wb`: the write-back budget (`wbTok γ`: an `Unlock` may increment the read buffer's version,
   a `uint64`, whose wrap-around would make a stale cache look current); `γ.rdt`: the readers'
@@ -24,8 +26,9 @@ bbolt as a key-value contract, the locks and the views".
 
 **The locks.**
 - *The batch lock* (`batchTx.Mutex`, `batchFree`): the batch transaction's state for a `BSess`
-  (`batchPhys`), the view's quarter at `(C, R)`, `freeOk`, and the write-back budget's authority
-  (the version plus the tokens left below `2^64`).
+  (`batchPhys`), the view's quarter at `(C, R)`, `freeOk`, the write-back budget's authority
+  (the version plus the tokens left below `2^64`), and the clients' resources `W` (the lock
+  holder's) and `Pk` (the hooks': the pre-commit and post-lock hooks run on it).
 - *`readTx.mu`* (guarded `RWMutex`, `rtRes q`): the shared read transaction's fields at `q`, the
   view's and `γ.rd`'s shares, the history's authority at `q`, and, while a bbolt read
   transaction is open, its `txLive` share, the interval's invariants and `wgOpen` at `q`.
@@ -191,8 +194,28 @@ def bStopped (γ : BNames) : IProp GF := dghostVar γ.opn DFrac.discard true
 instance bStopped_persistent (γ : BNames) : Persistent (bStopped (GF := GF) γ) := by
   unfold bStopped; infer_instance
 
-/-- The clients' half of the post-lock hook (`SetTxPostLockInsideApplyHook` changes it). -/
-def plHook (γ : BNames) (f : GoFunc) : IProp GF := ghostVar γ.hook (1 : Qp).half f
+/-- The clients' share `dq` of the post-lock hook (a `dghostVar`; the batch lock holds an owned
+half). -/
+def plHookAt (γ : BNames) (dq : DFrac) (f : GoFunc) : IProp GF := dghostVar γ.hook dq f
+
+/-- The clients' owned half of the post-lock hook (`SetTxPostLockInsideApplyHook` changes it). -/
+abbrev plHook (γ : BNames) (f : GoFunc) : IProp GF := plHookAt γ (DFrac.own (1 : Qp).half) f
+
+/-- The post-lock hook is `f` for good (persistent: `plHook_persist`). -/
+abbrev plHookRO (γ : BNames) (f : GoFunc) : IProp GF := plHookAt γ DFrac.discard f
+
+instance plHookRO_persistent (γ : BNames) (f : GoFunc) : Persistent (plHookRO (GF := GF) γ f) := by
+  unfold plHookRO plHookAt; infer_instance
+
+instance plHookAt_timeless (γ : BNames) (dq : DFrac) (f : GoFunc) :
+    Timeless (plHookAt (GF := GF) γ dq f) := by
+  unfold plHookAt; infer_instance
+
+/-- The clients' half of the post-lock hook made read-only: the hook is `f` for good. -/
+theorem plHook_persist (γ : BNames) (f : GoFunc) : plHook (GF := GF) γ f ⊢ |==> plHookRO γ f := by
+  unfold plHookRO plHook plHookAt
+  iintro H
+  iapply dghostVar_persist $$ H
 
 /-- One write-back's budget (an `Unlock` costs one). -/
 def wbTok (γ : BNames) : IProp GF := ownToks γ.wb 1
@@ -421,7 +444,7 @@ of `b.mu` (`begin` reads `b.db` under it). -/
 def batchPhys (γ : BNames) (b t db : Loc) (st : BSess) : IProp GF :=
   iprop(∃ hk : GoFunc,
     txFOf t ↦ st.tx ∗ pendOf t ↦ st.pend ∗ delOf t ↦ st.ndel ∗ ownWB (wbOf t) st.W ∗
-    bF go!"txPostLockInsideApplyHook" b ↦ hk ∗ ghostVar γ.hook (1 : Qp).half hk ∗
+    bF go!"txPostLockInsideApplyHook" b ↦ hk ∗ dghostVar γ.hook (DFrac.own (1 : Qp).half) hk ∗
     ownDB db γ.db st.C ∗ ownWTx st.tx γ.db st.C st.S ∗ txDB st.tx db ∗
     sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db))
 
@@ -442,11 +465,13 @@ def batchGhostAt (γ : BNames) (P : BParams) (st : BSess) (free : Bool) : IProp 
 /-- The batch lock's ghost share, held. -/
 abbrev batchGhost (γ : BNames) (P : BParams) (st : BSess) : IProp GF := batchGhostAt γ P st false
 
-/-- The batch lock's resource, free: a state with `freeOk` and the client's resource `WR`; or
-the backend stopped (the `run` goroutine's `CommitAndStop`: the open token whole inside). -/
-def batchFree (γ : BNames) (P : BParams) (WR : IProp GF) (b t : Loc) : IProp GF :=
+/-- The batch lock's resource, free: a state with `freeOk` and the client's resources `W` (the
+lock holder's: an `Unlock` that changes the view gets it back with the new view) and `Pk` (the
+hooks': the pre-commit hook and the post-lock hook run with it); or the backend stopped (the `run`
+goroutine's `CommitAndStop`: the open token whole inside). -/
+def batchFree (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t : Loc) : IProp GF :=
   iprop((∃ (st : BSess) (db : Loc), batchPhys γ b t db st ∗ batchGhostAt γ P st true ∗ ⌜freeOk P st⌝ ∗
-    WR) ∨
+    W ∗ Pk) ∨
     bStopped γ)
 
 /-- The batch lock held, in state `st` (its transaction `t`, its database `db`). -/
@@ -458,29 +483,29 @@ def batchLocked (γ : BNames) (P : BParams) (b : Loc) (st : BSess) : IProp GF :=
   iprop(∃ (t db : Loc), bF go!"batchTx" b ↦□ t ∗ batchLockedAt γ P b t db st)
 
 /-- A `Hooks` value: nil, or one whose `OnPreCommitUnsafe(tx)`, on the batch transaction `t`
-held in a state `st`, with the client's resource `WR`, makes a hook step (`hookStep`). -/
-def hooksSpec (γ : BNames) (P : BParams) (WR : IProp GF) (b t : Loc) (h : GoInterface) :
+held in a state `st`, with the hooks' resource `Pk`, makes a hook step (`hookStep`). -/
+def hooksSpec (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc) (h : GoInterface) :
     IProp GF :=
   iprop(⌜h = GoInterface.nil⌝ ∨ ∃ ho : GoInterfaceOk, ⌜h = GoInterface.ok ho⌝ ∗
     □ ∀ st : BSess,
-      {{ batchLocked γ P b st ∗ WR }}
+      {{ batchLocked γ P b st ∗ Pk }}
         (App (Val #(methods ho.ty go!"OnPreCommitUnsafe" ho.v))
           (Val #(interface.mkOk (go.GoType.PointerType batchTxBuffered.ty) #t)))
-      {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ WR ∗ ⌜hookStep P st st'⌝ }})
+      {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ ⌜hookStep P st st'⌝ }})
 
 /-- A `HookFunc` with the same contract (what `NewHooks` wraps). -/
-def hookFnSpec (γ : BNames) (P : BParams) (WR : IProp GF) (b t : Loc) (f : GoFunc) : IProp GF :=
+def hookFnSpec (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc) (f : GoFunc) : IProp GF :=
   iprop(□ ∀ st : BSess,
-    {{ batchLocked γ P b st ∗ WR }}
+    {{ batchLocked γ P b st ∗ Pk }}
       (App (Val #f) (Val #(interface.mkOk (go.GoType.PointerType batchTxBuffered.ty) #t)))
-    {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ WR ∗ ⌜hookStep P st st'⌝ }})
+    {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ ⌜hookStep P st st'⌝ }})
 
-instance hooksSpec_persistent (γ : BNames) (P : BParams) (WR : IProp GF) (b t : Loc)
-    (h : GoInterface) : Persistent (hooksSpec γ P WR b t h) := by
+instance hooksSpec_persistent (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc)
+    (h : GoInterface) : Persistent (hooksSpec γ P Pk b t h) := by
   unfold hooksSpec; infer_instance
 
-instance hookFnSpec_persistent (γ : BNames) (P : BParams) (WR : IProp GF) (b t : Loc)
-    (f : GoFunc) : Persistent (hookFnSpec γ P WR b t f) := by
+instance hookFnSpec_persistent (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc)
+    (f : GoFunc) : Persistent (hookFnSpec γ P Pk b t f) := by
   unfold hookFnSpec; infer_instance
 
 /-- The backend's metrics fields (atomics). -/
@@ -491,22 +516,22 @@ def metricsInv (b : Loc) : IProp GF :=
 instance metricsInv_persistent (b : Loc) : Persistent (metricsInv (GF := GF) b) := by
   unfold metricsInv; infer_instance
 
-/-- `b` is a backend with parameters `P`, ghost names `γ`, the client's batch-lock resource
-`WR` (persistent). -/
-def isBackend (γ : BNames) (P : BParams) (WR : IProp GF) (b : Loc) : IProp GF :=
+/-- `b` is a backend with parameters `P`, ghost names `γ`, the client's batch-lock resources
+`W` (the lock holder's) and `Pk` (the hooks') (persistent). -/
+def isBackend (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) : IProp GF :=
   iprop(□ ∃ (t rt tm db lg : Loc) (h : GoInterface),
     bF go!"batchTx" b ↦□ t ∗ bF go!"readTx" b ↦□ rt ∗ bF go!"batchLimit" b ↦□ P.limit ∗
     bF go!"lg" b ↦□ lg ∗ ⌜lg ≠ Loc.null⌝ ∗ bF go!"hooks" b ↦□ h ∗ beOf t ↦□ b ∗
-    rtmuOf (baseOf rt) ↦□ tm ∗ hooksSpec γ P WR b t h ∗
-    sync.isMutex (muOf t) (batchFree γ P WR b t) ∗
+    rtmuOf (baseOf rt) ↦□ tm ∗ hooksSpec γ P Pk b t h ∗
+    sync.isMutex (muOf t) (batchFree γ P W Pk b t) ∗
     sync.isRWMutexGuard (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
     sync.isRWMutexGuard tm (fun q => tmTok γ q) ∗
     sync.isMutex (cmuOf b) (cacheRes γ P b) ∗ cacheInv γ ∗ metricsInv b ∗
     sync.isRWMutexGuard (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
     isDB db ∗ ⌜P.Wf⌝)
 
-instance isBackend_persistent (γ : BNames) (P : BParams) (WR : IProp GF) (b : Loc) :
-    Persistent (isBackend γ P WR b) := by
+instance isBackend_persistent (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
+    Persistent (isBackend γ P W Pk b) := by
   unfold isBackend; infer_instance
 
 /-! ## Readers -/

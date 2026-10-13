@@ -24,8 +24,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- `b.unsafeBegin(write)`: a bbolt transaction begun on the database `b.db` (`lg.Fatal` on an error): the write transaction (with the writer's token) or a read transaction, over the committed data. -/
 abbrev backend.backend.unsafeBegin.spec : Prop :=
-  ∀ (γ : BNames) (P : BParams) (WR : IProp GF) (b db : Loc) (q : Qp) (D : Data) (w : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P WR b ∗ bF go!"db" b ↦{DFrac.own q} db ∗ ownDB db γ.db D ∗
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b db : Loc) (q : Qp) (D : Data) (w : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"db" b ↦{DFrac.own q} db ∗ ownDB db γ.db D ∗
       (if w then wrTok γ.db else iprop(True)) }}
     (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"unsafeBegin")) (Val #w))
   {{ (tx : Loc), RET #tx; bF go!"db" b ↦{DFrac.own q} db ∗ ownDB db γ.db D ∗ isDB db ∗ txDB tx db ∗

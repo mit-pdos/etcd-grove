@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 theorem backend.backend.LockForSafeRangeDelete.wp_proof :
     backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b
+  intro γ P W Pk b
   wp_start as ⟨#Hb, Hmu⟩
   wp_auto
   wp_apply sync.RWMutex.wp_RLock $$ [$Hmu] as ⟨Hl, -⟩

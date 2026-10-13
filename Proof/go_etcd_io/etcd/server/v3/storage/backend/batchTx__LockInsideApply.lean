@@ -31,27 +31,29 @@ theorem backend.batchTx.LockInsideApply.wp_proof
     (hlock : backend.batchTx.lock.spec (GF := GF) (hG := hG))
     (hValidate : backend.ValidateCalledInsideApply.spec (GF := GF) (hG := hG)) :
     backend.batchTx.LockInsideApply.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b t qo f Q
-  wp_start as ⟨#Hb, #Ht, Ho, Hpl, Hf⟩
+  intro γ P W Pk b t qo dq f Pre Q
+  wp_start as ⟨#Hb, #Ht, Ho, Hpl, Hpre, Hf⟩
   unfold bOpen
   icases Ho with ⟨Ho, Hcls⟩
-  icases isBackend_bt γ P WR b t $$ [Hb Ht] with
+  icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
   · iframe #
   wp_auto
-  wp_apply (hlock γ P WR b t qo.half) $$ [$Ho] as ⟨%st, Hl, %Hfo, HWR, Ho⟩
+  wp_apply (hlock γ P W Pk b t qo.half) $$ [$Ho] as ⟨%st, Hl, %Hfo, ⟨HWv, HPk⟩, Ho⟩
   · iframe #
   unfold batchLocked batchLockedAt batchPhys
   icases Hl with ⟨%t', %db', #Ht', Hown, ⟨%hk, Htxf, Hpend, Hdel, HW, Hhkf, Hhk, Hdb', Hwtx, #Htxdb, Hmu⟩, Hg, %Hwf⟩
   icombine Ht Ht' gives %Heq
   subst Heq
-  unfold plHook
+  unfold plHookAt
   icombine Hpl Hhk gives % ⟨_, Hhkeq⟩
   subst Hhkeq
   wp_auto
-  icases Hf with (⟨%Hfn, HQ⟩ | ⟨%Hfn, Hwp⟩)
+  icases Hf with (⟨%Hfn, Hw⟩ | ⟨%Hfn, #Hwp⟩)
   · subst Hfn
     wp_auto
+    ihave HQ := Hw $$ [HPk Hpre]
+    · iframe
     iapply HΦ
     iexists st
     isplitl [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb' Hwtx Hmu Hg]
@@ -70,9 +72,10 @@ theorem backend.batchTx.LockInsideApply.wp_proof
     wp_auto
     wp_apply hValidate
     wp_bind (App (Val #f) (Val #()))
-    iapply wp_wand $$ Hwp
-    iintro %v ⟨%Hv, HQ⟩
-    subst Hv
+    iapply Hwp $$ [HPk Hpre]
+    · iframe
+    inext
+    iintro HQ
     wp_auto
     iapply HΦ
     iexists st

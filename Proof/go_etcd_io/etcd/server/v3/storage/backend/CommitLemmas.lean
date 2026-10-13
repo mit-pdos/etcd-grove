@@ -161,6 +161,10 @@ theorem vData_free (P : BParams) (st : BSess) (hst : sessWf P st) (hn : st.ndel 
   have hag := hst.2.2.2.2.2.2.2.2.2 hn
   exact agreeOff_symm (agreeOff_trans hag (agreeOff_ovB_nonHB P st.W.bks _ hW))
 
+/-- A free state changed nothing the readers see. -/
+theorem viewSame_of_freeOk {P : BParams} {st : BSess} (h : freeOk P st) : viewSame P st :=
+  ⟨vData_free P st h.1 h.2.2.1 h.2.2.2, h.2.2.2⟩
+
 theorem idsOk_bksReset {P : BParams} {B : GMap w64 (List Ent)} (h : idsOk P B) :
     idsOk P (bksReset B) := by
   intro i es hi

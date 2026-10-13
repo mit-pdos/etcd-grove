@@ -40,12 +40,12 @@ theorem backend.batchTx.commit.wp_proof
     (hFatal : zap.Logger.Fatal.spec (GF := GF) (hG := hG))
     (hBegin : backend.backend.begin.spec (GF := GF) (hG := hG)) :
     backend.batchTx.commit.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b t db st stop
+  intro γ P W Pk b t db st stop
   wp_start as ⟨#Hb, #Ht, Hw, Hown, #Htxdb, Hmu⟩
-  icases isBackend_bt γ P WR b t $$ [Hb Ht] with
+  icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #-, #-, #-, #-, #-, %HP⟩
   · iframe #
-  icases isBackend_b γ P WR b $$ Hb with ⟨%t', %rt, %db1, %lg', #-, #-, #-, %-, #Hmi, #-⟩
+  icases isBackend_b γ P W Pk b $$ Hb with ⟨%t', %rt, %db1, %lg', #-, #-, #-, %-, #Hmi, #-⟩
   ihave Hi : (backendInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hi with ⟨⟨%h1, #Hg1, #Hs1⟩, ⟨%h2, #Hg2, #Hs2⟩, ⟨%h3, #Hg3, #Hs3⟩, ⟨%h4, #Hg4, #Hs4⟩⟩
@@ -136,7 +136,7 @@ theorem backend.batchTx.commit.wp_proof
       wp_auto
       cases stop
       · try wp_auto
-        wp_apply (hBegin γ P WR b db st.S true) $$ [$Hmu $Hown Hwr] as %tx' ⟨Hmu, Hown, #Htxdb', Hwtx'⟩
+        wp_apply (hBegin γ P W Pk b db st.S true) $$ [$Hmu $Hown Hwr] as %tx' ⟨Hmu, Hown, #Htxdb', Hwtx'⟩
         · iframe #
           simp only [↓reduceIte]
           iexact Hwr

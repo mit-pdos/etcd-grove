@@ -29,14 +29,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 theorem backend.concurrentReadTx.UnsafeRange.wp_proof
     (hbase : backend.baseReadTx.UnsafeRange.spec (GF := GF) (hG := hG)) :
     backend.concurrentReadTx.UnsafeRange.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b crt rtx rv bk bi key endKey kb eb dk de limit Hnil Hsafe Hhas
+  intro γ P W Pk b crt rtx rv bk bi key endKey kb eb dk de limit Hnil Hsafe Hhas
   wp_start as ⟨Hs, #Hbk, Hk, He⟩
   unfold crtSnap
   icases Hs with ⟨%m, %Pb, %cm, %tm, %wg, %γw, %γo, %γt, %k, %q, %rt, #Hrt, #Htm, Hrb, #Hrtx, #Hcm,
     #Htm', #Hwg, Hown, #Hg, Hsh, #Hsnap, #Hintv, #Hwgi, %Hwf⟩
   unfold rdShare
   icases Hsh with ⟨Hlive, Hrc⟩
-  wp_apply hbase γ P WR b (cbaseOf crt) DFrac.discard rtx rv q bk bi key endKey kb eb dk de limit
+  wp_apply hbase γ P W Pk b (cbaseOf crt) DFrac.discard rtx rv q bk bi key endKey kb eb dk de limit
       Hnil Hsafe Hhas $$ [Hrb Hown Hlive $Hk $He]
     as %keys %vals ⟨Hbr, Hk, He, Hout⟩
   · isplitl [Hrb Hown Hlive]

@@ -24,8 +24,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- `t.CommitAndStop()` (the `run` goroutine's, at the stop): the batch transaction committed and no new one begun, the backend stopped (the whole open token: the clients' half and the `run` goroutine's quarter). -/
 abbrev backend.batchTxBuffered.CommitAndStop.spec : Prop :=
-  ∀ (γ : BNames) (P : BParams) (WR : IProp GF) (b : Loc) (t : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P WR b ∗ bF go!"batchTx" b ↦□ t ∗
+  ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗
       dghostVar γ.opn (DFrac.own (1 : Qp).half) false ∗
       dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false }}
     (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"CommitAndStop")) (Val #()))

@@ -27,9 +27,9 @@ variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions] [_root_.Pe
 
 theorem backend.batchTx.safePending.wp_proof :
     backend.batchTx.safePending.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b t u
+  intro γ P W Pk b t u
   wp_start as ⟨#Hb, #Ht, Hopn, Hu⟩
-  icases isBackend_bt γ P WR b t $$ [Hb Ht] with
+  icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb0, %HP⟩
   · iframe #
   wp_apply wp_with_defer as %defer defer

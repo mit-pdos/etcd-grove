@@ -25,7 +25,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 theorem backend.readTx.RUnlock.wp_proof : backend.readTx.RUnlock.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b rt rtx rv
+  intro γ P W Pk b rt rtx rv
   wp_start as ⟨#Hb, #Hrt, Hh⟩
   unfold rtHeld
   icases Hh with ⟨%rt', %rd, %H, #Hrt', Hrl, HP, %Hrtx, Hcr⟩

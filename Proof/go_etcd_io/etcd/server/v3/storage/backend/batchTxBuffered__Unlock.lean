@@ -39,12 +39,12 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
     (hC : backend.batchTxBuffered.commit.spec (GF := GF) (hG := hG))
     (hBU : backend.batchTx.Unlock.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b t st Q
+  intro γ P W Pk b t st Q
   wp_start as ⟨#Hb, #Ht, Hl, Htok, Hcase⟩
-  icases isBackend_bt γ P WR b t $$ [Hb Ht] with
+  icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb0, %HP⟩
   · iframe #
-  icases isBackend_b γ P WR b $$ Hb with
+  icases isBackend_b γ P W Pk b $$ Hb with
     ⟨%t2, %rt, %db1, %lg2, #-, #Hrt, #-, %-, #Hmi, #-, #-, #Hrg, #-, #-, #Hci, %-⟩
   ihave Hl := batchLocked_W γ P b st $$ Hl
   unfold batchLockedW batchGhostW
@@ -55,11 +55,11 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
   icases Hph with ⟨%hk, Htxf, Hpend, Hdel, HW, Hhkf, Hhk, Hdb, Hwtx, #Htxdb, Hmu⟩
   wp_auto
   by_cases hp0 : st.pend = W64 0
-  · icases Hcase with (⟨%Hfo, HWR, HQ⟩ | ⟨%vd, Hbv, HWR, HQw⟩)
+  · icases Hcase with (⟨%Hvs, HWv, HPk, HQ⟩ | ⟨%vd, Hbv, HPk, HQw⟩)
     · rw [decide_eq_true hp0]
       wp_auto
       obtain ⟨hfo, hbg⟩ := free_of_pend0 HP Hwf Hbg hp0
-      wp_apply (hBU γ P WR b t) $$ [$Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn HWR]
+      wp_apply (hBU γ P W Pk b t) $$ [$Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn HWv HPk]
       · iframe #
         unfold batchFree batchPhys batchGhostAt
         ileft
@@ -78,7 +78,7 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
         isplitr
         · ipureintro
           exact hfo
-        iexact HWR
+        iframe HWv HPk
       iapply HΦ
       iexact HQ
     · unfold bView
@@ -87,7 +87,13 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
       rw [decide_eq_true hp0]
       wp_auto
       obtain ⟨hfo, hbg⟩ := free_of_pend0 HP Hwf Hbg hp0
-      wp_apply (hBU γ P WR b t) $$ [$Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn HWR]
+      have hvf := vData_free P st Hwf hfo.2.2.1 hfo.2.2.2
+      ihave Hbv : iprop(ghostVar γ.view (1 : Qp).half (sData P st.S) ∗ ghostVar γ.cvw (1 : Qp).half ())
+        $$ [Hbv1 Hcvw]
+      · rw [← hvf, Hvd]
+        iframe
+      icases HQw $$ Hbv with ⟨HWv, HQ⟩
+      wp_apply (hBU γ P W Pk b t) $$ [$Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn HWv HPk]
       · iframe #
         unfold batchFree batchPhys batchGhostAt
         ileft
@@ -106,13 +112,10 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
         isplitr
         · ipureintro
           exact hfo
-        iexact HWR
+        iframe HWv HPk
       iapply HΦ
-      iapply HQw
-      rw [← vData_free P st Hwf (free_of_pend0 HP Hwf Hbg hp0).1.2.2.1
-        (free_of_pend0 HP Hwf Hbg hp0).1.2.2.2, Hvd]
-      iframe
-  · icases Hcase with (⟨%Hfo, HWR, HQ⟩ | ⟨%vd, Hbv, HWR, HQw⟩)
+      iexact HQ
+  · icases Hcase with (⟨%Hvs, HWv, HPk, HQ⟩ | ⟨%vd, Hbv, HPk, HQw⟩)
     · rw [decide_eq_false hp0]
       wp_auto
       wp_apply (hRLock γ P rt) $$ [$Hrg] as ⟨Hwl, Hrr⟩
@@ -130,45 +133,125 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
         omega
       have hbg' := bgOk_writeback Hbg Hle
       have hwf' := sessWf_writeback Hwf hp0
-      have hcond : ¬ (sint.Z P.limit ≤ sint.Z st.pend ∨ 0 < sint.Z st.ndel) := by
-        have h1 := Hfo.2.1
-        have h2 := Hfo.2.2.1
-        rintro (h | h)
-        · omega
-        · rw [h2] at h; exact absurd h (by decide)
-      have hsame := vData_writeback_same P st.C st.W st.R Hfo.2.2.2
+      have hsame := vData_writeback_same P st.C st.W st.R Hvs.2
+      have hvs' : vData P ((wbSt P st).C, (wbSt P st).R) = sData P (wbSt P st).S := by
+        rw [wbSt_C, wbSt_R, wbSt_S, hsame]
+        exact Hvs.1
       imod (rtRes_wb_close_same γ P rt st.W st.C st.R Hwf.2.2.1 hver hsame) $$ [$Hci $Hwb $HRB $Hrvs]
         with ⟨Hrr, Hrvs⟩
       ihave Hv : ghostVar γ.view (1 : Qp).half.half (vData P (st.C, writebackR st.W st.R)) $$ [Hv]
       · rw [hsame]; iexact Hv
       wp_apply (hRUnlock γ P rt) $$ [$Hwl $Hrr]
-      wp_if_destruct
-      · exfalso; exact hcond (Or.inl (by omega))
-      wp_if_destruct
-      · exfalso; exact hcond (Or.inr (by have : sint.Z (W64 0) = 0 := rfl; omega))
-      have hfo' := freeOk_writeback Hwf hp0 (by omega) (fun h => hcond (Or.inr h))
-      wp_apply (hBU γ P WR b t) $$ [$Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn HWR]
-      · iframe #
-        unfold batchFree batchPhys batchGhostAt
-        ileft
-        iexists (wbSt P st), db
-        try simp only [wbSt_C, wbSt_S, wbSt_R, wbSt_W, wbSt_pend, wbSt_ndel, wbSt_tx]
-        isplitl [Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu]
-        · iexists hk
-          iframe
-          iframe #
-        isplitl [Hv Hrvs Ha Hmo Hus Hopn]
-        · iframe Hv
-          iexists n - 1, w + 1, u0
-          iframe
-          ipureintro
-          exact hbg'
-        isplitr
-        · ipureintro
-          exact hfo'
-        iexact HWR
-      iapply HΦ
-      iexact HQ
+      by_cases hcond : (sint.Z P.limit ≤ sint.Z st.pend ∨ 0 < sint.Z st.ndel)
+      · wp_if_destruct
+        · wp_apply (hC γ P W Pk b t rt (wbSt P st) false false 2 0) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn HPk] as ⟨HPk, -, Hpost⟩
+          · iframe #
+            unfold batchLockedW batchGhostW batchPhys
+            isplitl [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn]
+            · iexists t, db
+              try simp only [wbSt_C, wbSt_S, wbSt_R, wbSt_W, wbSt_pend, wbSt_ndel, wbSt_tx]
+              iframe Ht Hown
+              isplitl [Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu]
+              · iexists hk
+                iframe
+                iframe #
+              isplitl [Hv Hrvs Ha Hmo Hus Hopn]
+              · iframe Hv
+                iexists n - 1, w + 1, u0
+                iframe
+                ipureintro
+                exact bgOk_unfree hbg'
+              · ipureintro
+                exact hwf'
+            iframe HPk
+            isplitr
+            · ipureintro
+              exact ⟨rfl, fun _ i _ _ => bkOf_writebackW _ _ i, fun _ => hvs'⟩
+            unfold payIn
+            rw [if_neg (by decide), if_neg (by decide), if_neg (by decide)]
+            ipureintro
+            rfl
+          try simp only [Bool.false_eq_true, ↓reduceIte]
+          icases Hpost with ⟨%st2, %db2, Hown, Hph2, Hg2, %Hfin, Hbv2⟩
+          wp_apply (hBU γ P W Pk b t) $$ [$Hown Hph2 Hg2 HWv HPk]
+          · iframe #
+            ileft
+            iexists st2, db2
+            iframe
+            ipureintro
+            exact Hfin.1
+          iapply HΦ
+          iexact HQ
+        wp_if_destruct
+        · wp_apply (hC γ P W Pk b t rt (wbSt P st) false false 2 0) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn HPk] as ⟨HPk, -, Hpost⟩
+          · iframe #
+            unfold batchLockedW batchGhostW batchPhys
+            isplitl [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn]
+            · iexists t, db
+              try simp only [wbSt_C, wbSt_S, wbSt_R, wbSt_W, wbSt_pend, wbSt_ndel, wbSt_tx]
+              iframe Ht Hown
+              isplitl [Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu]
+              · iexists hk
+                iframe
+                iframe #
+              isplitl [Hv Hrvs Ha Hmo Hus Hopn]
+              · iframe Hv
+                iexists n - 1, w + 1, u0
+                iframe
+                ipureintro
+                exact bgOk_unfree hbg'
+              · ipureintro
+                exact hwf'
+            iframe HPk
+            isplitr
+            · ipureintro
+              exact ⟨rfl, fun _ i _ _ => bkOf_writebackW _ _ i, fun _ => hvs'⟩
+            unfold payIn
+            rw [if_neg (by decide), if_neg (by decide), if_neg (by decide)]
+            ipureintro
+            rfl
+          try simp only [Bool.false_eq_true, ↓reduceIte]
+          icases Hpost with ⟨%st2, %db2, Hown, Hph2, Hg2, %Hfin, Hbv2⟩
+          wp_apply (hBU γ P W Pk b t) $$ [$Hown Hph2 Hg2 HWv HPk]
+          · iframe #
+            ileft
+            iexists st2, db2
+            iframe
+            ipureintro
+            exact Hfin.1
+          iapply HΦ
+          iexact HQ
+        exfalso
+        rcases hcond with h | h
+        · omega
+        · exact Hif (by have : sint.Z (W64 0) = 0 := rfl; omega)
+      · wp_if_destruct
+        · exfalso; exact hcond (Or.inl (by omega))
+        wp_if_destruct
+        · exfalso; exact hcond (Or.inr (by have : sint.Z (W64 0) = 0 := rfl; omega))
+        have hfo' := freeOk_writeback Hwf hp0 (by omega) (fun h => hcond (Or.inr h))
+        wp_apply (hBU γ P W Pk b t) $$ [$Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn HWv HPk]
+        · iframe #
+          unfold batchFree batchPhys batchGhostAt
+          ileft
+          iexists (wbSt P st), db
+          try simp only [wbSt_C, wbSt_S, wbSt_R, wbSt_W, wbSt_pend, wbSt_ndel, wbSt_tx]
+          isplitl [Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu]
+          · iexists hk
+            iframe
+            iframe #
+          isplitl [Hv Hrvs Ha Hmo Hus Hopn]
+          · iframe Hv
+            iexists n - 1, w + 1, u0
+            iframe
+            ipureintro
+            exact hbg'
+          isplitr
+          · ipureintro
+            exact hfo'
+          iframe HWv HPk
+        iapply HΦ
+        iexact HQ
     · rw [decide_eq_false hp0]
       wp_auto
       wp_apply (hRLock γ P rt) $$ [$Hrg] as ⟨Hwl, Hrr⟩
@@ -191,7 +274,7 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
           with ⟨Hrr, Hrvs, Hv, -⟩
         wp_apply (hRUnlock γ P rt) $$ [$Hwl $Hrr]
         wp_if_destruct
-        · wp_apply (hC γ P WR b t rt (wbSt P st) true false 2 0) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn HWR] as ⟨HWR, -, Hpost⟩
+        · wp_apply (hC γ P W Pk b t rt (wbSt P st) true false 2 0) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn HPk] as ⟨HPk, -, Hpost⟩
           · iframe #
             unfold batchLockedW batchGhostW batchPhys
             isplitl [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn]
@@ -210,7 +293,7 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
                 exact bgOk_unfree hbg'
               · ipureintro
                 exact hwf'
-            iframe HWR
+            iframe HPk
             isplitr
             · ipureintro
               exact ⟨rfl, fun _ i _ _ => bkOf_writebackW _ _ i, fun h => absurd h (by decide)⟩
@@ -220,7 +303,11 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
             rfl
           try simp only [Bool.false_eq_true, ↓reduceIte]
           icases Hpost with ⟨%st2, %db2, Hown, Hph2, Hg2, %Hfin, Hbv2⟩
-          wp_apply (hBU γ P WR b t) $$ [$Hown Hph2 Hg2 HWR]
+          ihave Hbv2 : bView γ 1 (sData P st.S) $$ [Hbv2]
+          · rw [← Hfin.2.1]
+            iexact Hbv2
+          icases HQw $$ Hbv2 with ⟨HWv, HQ⟩
+          wp_apply (hBU γ P W Pk b t) $$ [$Hown Hph2 Hg2 HWv HPk]
           · iframe #
             ileft
             iexists st2, db2
@@ -228,11 +315,9 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
             ipureintro
             exact Hfin.1
           iapply HΦ
-          iapply HQw
-          rw [← Hfin.2.1]
-          iexact Hbv2
+          iexact HQ
         wp_if_destruct
-        · wp_apply (hC γ P WR b t rt (wbSt P st) true false 2 0) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn HWR] as ⟨HWR, -, Hpost⟩
+        · wp_apply (hC γ P W Pk b t rt (wbSt P st) true false 2 0) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn HPk] as ⟨HPk, -, Hpost⟩
           · iframe #
             unfold batchLockedW batchGhostW batchPhys
             isplitl [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn]
@@ -251,7 +336,7 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
                 exact bgOk_unfree hbg'
               · ipureintro
                 exact hwf'
-            iframe HWR
+            iframe HPk
             isplitr
             · ipureintro
               exact ⟨rfl, fun _ i _ _ => bkOf_writebackW _ _ i, fun h => absurd h (by decide)⟩
@@ -261,7 +346,11 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
             rfl
           try simp only [Bool.false_eq_true, ↓reduceIte]
           icases Hpost with ⟨%st2, %db2, Hown, Hph2, Hg2, %Hfin, Hbv2⟩
-          wp_apply (hBU γ P WR b t) $$ [$Hown Hph2 Hg2 HWR]
+          ihave Hbv2 : bView γ 1 (sData P st.S) $$ [Hbv2]
+          · rw [← Hfin.2.1]
+            iexact Hbv2
+          icases HQw $$ Hbv2 with ⟨HWv, HQ⟩
+          wp_apply (hBU γ P W Pk b t) $$ [$Hown Hph2 Hg2 HWv HPk]
           · iframe #
             ileft
             iexists st2, db2
@@ -269,9 +358,7 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
             ipureintro
             exact Hfin.1
           iapply HΦ
-          iapply HQw
-          rw [← Hfin.2.1]
-          iexact Hbv2
+          iexact HQ
         exfalso
         rcases hcond with h | h
         · omega
@@ -284,7 +371,11 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
         wp_if_destruct
         · exfalso; exact hcond (Or.inr (by have : sint.Z (W64 0) = 0 := rfl; omega))
         have hfo' := freeOk_writeback Hwf hp0 (by omega) (fun h => hcond (Or.inr h))
-        wp_apply (hBU γ P WR b t) $$ [$Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn HWR]
+        ihave Hbvw : bView γ 1 (sData P st.S) $$ [Hbvw]
+        · rw [← wbSt_S P st, ← vData_free P (wbSt P st) hwf' hfo'.2.2.1 hfo'.2.2.2, wbSt_C, wbSt_R]
+          iexact Hbvw
+        icases HQw $$ Hbvw with ⟨HWv, HQ⟩
+        wp_apply (hBU γ P W Pk b t) $$ [$Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn HWv HPk]
         · iframe #
           unfold batchFree batchPhys batchGhostAt
           ileft
@@ -303,11 +394,9 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
           isplitr
           · ipureintro
             exact hfo'
-          iexact HWR
+          iframe HWv HPk
         iapply HΦ
-        iapply HQw
-        rw [← wbSt_S P st, ← vData_free P (wbSt P st) hwf' hfo'.2.2.1 hfo'.2.2.2, wbSt_C, wbSt_R]
-        iexact Hbvw
+        iexact HQ
 
 end proof
 

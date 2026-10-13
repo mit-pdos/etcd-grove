@@ -34,17 +34,17 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof
     (hC : backend.batchTxBuffered.commit.spec (GF := GF) (hG := hG))
     (hBU : backend.batchTx.Unlock.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.CommitAndStop.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b t
+  intro γ P W Pk b t
   wp_start as ⟨#Hb, #Ht, Ho, Hq⟩
-  icases isBackend_b γ P WR b $$ Hb with
+  icases isBackend_b γ P W Pk b $$ Hb with
     ⟨%t2, %rt, %db1, %lg2, #Ht2, #Hrt, #-, %-, #Hmi, #-, #-, #Hrg, #-, #-, #Hci, %-⟩
   wp_auto
   wp_method_call
   wp_call
-  wp_apply (hlock γ P WR b t (1 : Qp).half.half) $$ [$Hq] as ⟨%st, Hl, %Hfo, HWR, Hq⟩
+  wp_apply (hlock γ P W Pk b t (1 : Qp).half.half) $$ [$Hq] as ⟨%st, Hl, %Hfo, ⟨HWv, HWR⟩, Hq⟩
   · iframe #
   ihave Hl := batchLocked_W γ P b st $$ Hl
-  wp_apply (hC γ P WR b t rt st false true 0 0) $$ [$Hl $HWR Ho Hq] as ⟨HWR, -, Hpost⟩
+  wp_apply (hC γ P W Pk b t rt st false true 0 0) $$ [$Hl $HWR Ho Hq] as ⟨HWR, -, Hpost⟩
   · iframe #
     isplitr
     · ipureintro
@@ -59,7 +59,7 @@ theorem backend.batchTxBuffered.CommitAndStop.wp_proof
   wp_method_call
   wp_call
   wp_auto
-  wp_apply (hBU γ P WR b t) $$ [$Hown Hpend]
+  wp_apply (hBU γ P W Pk b t) $$ [$Hown Hpend]
   · iframe #
     iright
     iframe

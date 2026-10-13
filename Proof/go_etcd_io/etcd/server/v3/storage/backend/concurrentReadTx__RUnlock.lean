@@ -87,7 +87,7 @@ theorem backend.wp_rdDone (γ : BNames) (rtx wg : Loc) (γw γo γt : GName) (k 
 
 theorem backend.concurrentReadTx.RUnlock.wp_proof :
     backend.concurrentReadTx.RUnlock.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b crt rtx rv
+  intro γ P W Pk b crt rtx rv
   wp_start as H
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

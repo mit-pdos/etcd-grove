@@ -44,7 +44,7 @@ theorem mvcc.metricsTxnWrite.Range.wp_proof
     wp_method_call; wp_call
     (try wp_auto)
     wp_apply (hRange tr s trace ti rt γ log rev ctx cd todo key endk k e ro)
-      $$ [$Hs $Htr $Hidx $Hti $Hctx $Hkey $Hend] as %r %err ⟨%Htodo, Hti, Hout⟩
+      $$ [$Hs $Htr $Hrd $Hidx $Hti $Hctx $Hkey $Hend] as %r %err ⟨%Htodo, Hti, Hrd, Hout⟩
     (try wp_auto)
     iapply HΦ
     isplitl []

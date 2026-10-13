@@ -85,7 +85,7 @@ theorem backend.crtBuf_ready (γ : BNames) (P : BParams) (rv : RView) (idx : Nat
 theorem backend.backend.ConcurrentReadTx.wp_proof
     (hcopy : backend.txReadBuffer.unsafeCopy.spec (GF := GF) (hG := hG)) :
     backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b q qo vd
+  intro γ P W Pk b q qo vd
   wp_start as ⟨#Hb, Htok, Hbv, Hopen⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 theorem backend.NewHooks.wp_proof
     (hOn : backend.hooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG)) :
     backend.NewHooks.spec (GF := GF) (hG := hG) := by
-  intro γ P WR b t f
+  intro γ P Pk b t f
   wp_start as #Hf
   wp_auto
   iapply HΦ
@@ -38,7 +38,7 @@ theorem backend.NewHooks.wp_proof
   isplitr
   · ipureintro; rfl
   iintro !> %st !> %Φ' Hpre HΦ'
-  iapply (hOn γ P WR b t ⟨f⟩ st) $$ [Hpre] HΦ'
+  iapply (hOn γ P Pk b t ⟨f⟩ st) $$ [Hpre] HΦ'
   icases Hpre with ⟨Hl, HWR⟩
   iframe
   iframe Hf
