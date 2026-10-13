@@ -118,6 +118,11 @@ def campaignTransfer : CampaignType := go!"CampaignTransfer"
 
 end consts
 
+/-- The `Context` of `campaign(t)`'s vote requests (2026-10-13): the leader-transfer
+marker for a transfer's campaign (`[]byte(t)`), nothing otherwise. -/
+def transferCtx [FfiSyntax] (t : CampaignType) : List w8 :=
+  if t = campaignTransfer then campaignTransfer else []
+
 def VotePending : w8 := W8 1
 def VoteLost : w8 := W8 2
 def VoteWon : w8 := W8 3
@@ -751,8 +756,10 @@ def prevoteReq (id dst term : w64) (last : entryID) : Msg :=
 transition, then the self-addressed response and one request per peer in `peers`,
 each carrying the log's last entry id. An election is `becomeCandidate` and `MsgVote`s
 at the new term; a pre-election is `becomePrecandidate` and `MsgPreVote`s at `Term + 1`
-(the term itself does not move). -/
-def campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w64) : NState :=
+(the term itself does not move). The requests of an election carry the `Context` `cl`
+(2026-10-13): `transferCtx t`, the marker for a leader transfer's campaign. -/
+def campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w64)
+    (cl : List w8 := []) : NState :=
   if pre then
     sendMsgs (becomePrecandidate s)
       ([Msg.plain .preVoteResp id id (s.term + W64 1) false] ++
@@ -762,7 +769,7 @@ def campaignState (id : w64) (s : NState) (pre : Bool) (peers : List w64) : NSta
     sendMsgs (becomeCandidate id s)
       ([Msg.plain .voteResp id id (becomeCandidate id s).term false] ++
        peers.map fun dst => pvoteReq id dst (becomeCandidate id s).term
-                 (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)))
+                 (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) cl)
 
 /-- `becomeLeader` up to its `appendEntry`: what `reset`, the `lead` and `state` writes
 and `r.step` leave. -/

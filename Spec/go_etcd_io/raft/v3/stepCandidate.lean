@@ -121,6 +121,9 @@ def CandidateStepResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Mes
      else s' = s)
   -- read-index (2026-10-12): no case, nothing happens
   else if m.Type' = MsgReadIndex ∨ m.Type' = MsgReadIndexResp then dropped = false ∧ s' = s
+  -- (2026-10-13) likewise; `MsgTimeoutNow` is logged and ignored
+  else if m.Type' = MsgForgetLeader ∨ m.Type' = MsgTransferLeader ∨ m.Type' = MsgTimeoutNow ∨
+      m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus then dropped = false ∧ s' = s
   else False
 
 end results
@@ -156,7 +159,9 @@ abbrev stepCandidate.spec : Prop :=
    m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
    (m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp) ∨
    m.Type' = MsgSnap ∨ m.Type' = MsgPreVoteResp ∨
-   m.Type' = MsgReadIndex ∨ m.Type' = MsgReadIndexResp) →
+   m.Type' = MsgReadIndex ∨
+   (m.Type' = MsgReadIndexResp ∨ m.Type' = MsgForgetLeader ∨ m.Type' = MsgTransferLeader ∨
+    m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus)) →
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgApp ∨
    m.Type' = MsgHeartbeat ∨ m.Type' = MsgSnap →
    m.Term' = s.term ∧ m.Term' ≠ W64 0) →

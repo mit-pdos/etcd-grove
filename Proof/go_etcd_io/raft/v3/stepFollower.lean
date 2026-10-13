@@ -8,6 +8,7 @@ public import Spec.go_etcd_io.raft.v3.raft__handleAppendEntries
 public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
 public import Spec.go_etcd_io.raft.v3.raft__handleSnapshot
 public import Spec.go_etcd_io.raft.v3.raft__send
+public import Spec.go_etcd_io.raft.v3.raft__hup
 
 @[expose] public section
 
@@ -51,9 +52,10 @@ theorem stepFollower.wp_proof
     (wp_raft_handleAppendEntries : raft.handleAppendEntries.spec (GF := GF) (hG := hG))
     (wp_raft_handleHeartbeat : raft.handleHeartbeat.spec (GF := GF) (hG := hG))
     (wp_raft_handleSnapshot : raft.handleSnapshot.spec (GF := GF) (hG := hG))
-    (wp_raft_send : raft.send.spec (GF := GF) (hG := hG)) :
+    (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
+    (wp_raft_hup : raft.hup.spec (GF := GF) (hG := hG)) :
     stepFollower.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s m ents sv voters cl Hty Hri Hprop Happ Hhb
+  intro cfg r id s m ents sv voters cl Hty Hri Hprop Happ Hhb Hrest
   wp_start as H
   iNamed H
   ihave #Hinit := isInitialized_access $$ Hpkg
@@ -61,7 +63,8 @@ theorem stepFollower.wp_proof
   icases Hinit with ⟨%e1, %e2, %e3, %e4, %errPropDropped, %gr, %_, %_, %_, %_, #Hinit⟩
   iNamed Hinit
   wp_auto
-  rcases Hty with Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty
+  rcases Hty with Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty |
+    Hty
   · -- `MsgVoteResp`: no arm
     rw [Hty]
     simp only [MsgVoteResp]
@@ -219,7 +222,7 @@ theorem stepFollower.wp_proof
       wp_apply raft.wp_load_lead $$ Hphys as Hphys
       wp_apply wp_raft_send _ _ _ _ { m with To' := s.lead } ents cl
           [readForward id s.lead m ents cl]
-          (Or.inr (Or.inr Hty))
+          (Or.inr (Or.inr (Or.inl Hty)))
           (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨Hty, Hterm0, fun h => Hlid h, rfl⟩)))))
         $$ [$Hphys $Hes $Hcl]
       · iapply send_no_snap
@@ -295,6 +298,143 @@ theorem stepFollower.wp_proof
         simp [FollowerStepResult, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
           MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp]
       | [_], h => exact absurd rfl h
+  · -- `MsgForgetLeader` (2026-10-13): the read-only option is `Safe` (not `LeaseBased`),
+    -- then a leader, if any, is forgotten
+    rw [Hty]
+    simp only [MsgForgetLeader]
+    wp_auto
+    icases ownRaftPhys_readOnly cfg r id _ $$ Hphys with ⟨%ro, Hrof, Hro, Hback⟩
+    icases ownReadOnly_option ro _ $$ Hro with ⟨%o, %Hosafe, Hopt, Hroback⟩
+    wp_auto
+    ihave Hro := Hroback $$ Hopt
+    ihave Hphys := Hback $$ %ro %_ Hrof Hro
+    ihave Hphys := ownRaftPhys_eq cfg r id _ s rfl $$ Hphys
+    subst Hosafe
+    wp_auto
+    wp_apply raft.wp_load_lead $$ Hphys as Hphys
+    by_cases Hlead : s.lead = W64 0
+    · rw [decide_eq_true Hlead]
+      wp_auto
+      iapply HΦ $$ %GoInterface.nil %s %false
+      have Hs : s = { s with lead := W64 0 } := by cases s; simp_all
+      iframe Hphys
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      ipureintro
+      refine ⟨?_, trivial⟩
+      simp [FollowerStepResult, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+        MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+        MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
+      exact Hs
+    · rw [decide_eq_false Hlead]
+      wp_auto
+      wp_apply raft.wp_load_id $$ Hphys as Hphys
+      wp_apply raft.wp_load_lead $$ Hphys as Hphys
+      wp_apply raft.wp_load_Term $$ Hphys as Hphys
+      wp_raft_log
+      wp_apply raft.wp_store_lead $$ Hphys as Hphys
+      iapply HΦ $$ %GoInterface.nil %_ %false
+      iframe Hphys
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      ipureintro
+      refine ⟨?_, trivial⟩
+      simp [FollowerStepResult, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+        MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+        MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
+  · -- `MsgTransferLeader` (2026-10-13): forwarded to the leader, if any; it is outside
+    -- the model (`mtypeOf` is `none`), so nothing is queued abstractly
+    obtain ⟨Htl, -⟩ := Hrest (Or.inl Hty)
+    obtain ⟨Hterm0, Hlid, Hents0, Hctx0⟩ := Htl Hty
+    rw [Hty]
+    simp only [MsgTransferLeader]
+    wp_auto
+    wp_apply raft.wp_load_lead $$ Hphys as Hphys
+    by_cases Hlead : s.lead = W64 0
+    · rw [decide_eq_true Hlead]
+      wp_auto
+      wp_apply raft.wp_load_id $$ Hphys as Hphys
+      wp_apply raft.wp_load_Term $$ Hphys as Hphys
+      wp_raft_log
+      iapply HΦ $$ %GoInterface.nil %s %false
+      iframe Hphys
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      ipureintro
+      refine ⟨?_, trivial⟩
+      simp [FollowerStepResult, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+        MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+        MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
+    · rw [decide_eq_false Hlead]
+      wp_auto
+      wp_apply raft.wp_load_lead $$ Hphys as Hphys
+      have Hterm0' : m.Term' = W64 0 := Hterm0.resolve_right Hlead
+      wp_apply wp_raft_send _ _ _ _ { m with To' := s.lead } [] [] []
+          (Or.inr (Or.inr (Or.inr Hty)))
+          (Or.inr (Or.inr (Or.inl (Or.inr ⟨by rw [Hty]; rfl, Hterm0', fun h => Hlid h, rfl⟩))))
+        $$ [$Hphys]
+      · isplitr
+        · rw [Hents0]; iapply ownSlice_nil
+        isplitr
+        · rw [Hctx0]; iapply ownSlice_nil
+        iapply send_no_snap
+        simp [Hty, MsgTransferLeader, MsgSnap]
+      iintro Hphys
+      ihave Hphys := ownRaftPhys_unsend cfg r id s $$ Hphys
+      wp_auto
+      iapply HΦ $$ %GoInterface.nil %s %false
+      iframe Hphys
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      ipureintro
+      refine ⟨?_, trivial⟩
+      simp [FollowerStepResult, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+        MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+        MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
+  · -- `MsgTimeoutNow` (2026-10-13): `hup(campaignTransfer)`, an ordinary campaign
+    obtain ⟨-, Htn⟩ := Hrest (Or.inr Hty)
+    obtain ⟨Hnw, Hwf⟩ := Htn Hty
+    rw [Hty]
+    simp only [MsgTimeoutNow]
+    wp_auto
+    wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_raft_log
+    icases ownRaftPhys_progress_dom cfg r id s $$ Hphys with ⟨%Hdom, Hphys⟩
+    wp_apply wp_raft_hup cfg r id s _ Hnw
+        (fun h => by simp [campaignTransfer, campaignPreElection] at h) Hwf
+      $$ [$Hphys] as %s' ⟨Hphys, %Hwf', %Hst, %Hfr⟩
+    iapply HΦ $$ %GoInterface.nil %s' %false
+    iframe Hphys
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    ipureintro
+    refine ⟨?_, trivial⟩
+    simp only [FollowerStepResult, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+        MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+        MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, W32]
+    simp
+    rw [Hdom]
+    exact ⟨Hwf', Hst, Hfr⟩
+  · -- `MsgUnreachable` (2026-10-13): no arm
+    rw [Hty]
+    simp only [MsgUnreachable]
+    wp_auto
+    iapply HΦ $$ %GoInterface.nil %s %false
+    iframe Hphys
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    ipureintro
+    refine ⟨?_, trivial⟩
+    simp [FollowerStepResult, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+        MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+        MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
+  · -- `MsgSnapStatus` (2026-10-13): no arm
+    rw [Hty]
+    simp only [MsgSnapStatus]
+    wp_auto
+    iapply HΦ $$ %GoInterface.nil %s %false
+    iframe Hphys
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    ipureintro
+    refine ⟨?_, trivial⟩
+    simp [FollowerStepResult, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+        MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+        MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow]
 
 end proof
 

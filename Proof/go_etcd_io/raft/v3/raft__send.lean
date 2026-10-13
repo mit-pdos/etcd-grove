@@ -124,12 +124,13 @@ theorem raft.send.wp_proof
   -- forwarded read request's requester, 2026-10-12): nothing is written. Either way `m`
   -- is then `m` with `From := src`, and `src = id` unless `m` is a `MsgReadIndex`.
   obtain ⟨src, Hsrc_eq⟩ : ∃ src, src = if m.From' = W64 0 then id else m.From' := ⟨_, rfl⟩
-  have Hsrc : m.Type' ≠ MsgReadIndex → id = src := by
-    intro Hne
-    rcases Hfrom with Hf | Hf | Hf
+  have Hsrc : m.Type' ≠ MsgReadIndex → m.Type' ≠ MsgTransferLeader → id = src := by
+    intro Hne Hne2
+    rcases Hfrom with Hf | Hf | Hf | Hf
     · rw [Hsrc_eq, ite_eq_left Hf]
     · rw [Hsrc_eq, Hf]; split <;> simp_all
     · exact absurd Hf Hne
+    · exact absurd Hf Hne2
   wp_join iprop(r_ptr ↦ r ∗ m_ptr ↦ { m with From' := src } ∗ ownRaftPhys cfg r id s)
     with [r m Hphys] as ⟨r, m, Hphys⟩
   · wp_apply raft.wp_load_id $$ Hphys as Hphys
@@ -168,25 +169,45 @@ theorem raft.send.wp_proof
     · ipureintro; out_term
     iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
     rfl
-  -- every other message has `From = id` once queued
+  -- every other message has `From = id` once queued (but an undescribed type, which
+  -- may be a forwarded `MsgTransferLeader`: it drops out of the outbox anyway)
   all_goals
     first
       | (have Hs := Hsrc (by
             intro h
             first
               | (rcases Hvoty with h' | h' | h' | h' <;> rw [h'] at h <;> simp [MsgReadIndex, MsgProp, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp,
-                  MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap] at h)
+                  MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap, MsgTransferLeader] at h)
               | (rcases Hlty with h' | h' | h' | h' <;> rw [h'] at h <;> simp [MsgReadIndex, MsgProp, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp,
-                  MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap] at h)
+                  MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap, MsgTransferLeader] at h)
               | (rw [h, show mtypeOf MsgReadIndex = some .readIndex from rfl] at Hty
                  exact absurd Hty (by simp))
               | (rw [h] at HSnap; simp [MsgReadIndex, MsgProp, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp,
-                  MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap] at HSnap)
+                  MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap, MsgTransferLeader] at HSnap)
               | (rw [h] at HAR; simp [MsgReadIndex, MsgProp, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp,
-                  MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap] at HAR)
+                  MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap, MsgTransferLeader] at HAR)
               | (rw [h] at HProp; simp [MsgReadIndex, MsgProp, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp,
-                  MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap] at HProp))
+                  MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap, MsgTransferLeader] at HProp))
+            (by
+            intro h
+            first
+              | (rw [h, show mtypeOf MsgTransferLeader = none from rfl] at Hty
+                 cases Hty
+                 done)
+              | (rcases Hvoty with h' | h' | h' | h' <;> rw [h'] at h <;> simp [MsgReadIndex, MsgProp, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp,
+                  MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap, MsgTransferLeader] at h)
+              | (rcases Hlty with h' | h' | h' | h' <;> rw [h'] at h <;> simp [MsgReadIndex, MsgProp, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp,
+                  MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap, MsgTransferLeader] at h)
+              | (rw [h, show mtypeOf MsgReadIndex = some .readIndex from rfl] at Hty
+                 exact absurd Hty (by simp))
+              | (rw [h] at HSnap; simp [MsgReadIndex, MsgProp, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp,
+                  MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap, MsgTransferLeader] at HSnap)
+              | (rw [h] at HAR; simp [MsgReadIndex, MsgProp, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp,
+                  MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap, MsgTransferLeader] at HAR)
+              | (rw [h] at HProp; simp [MsgReadIndex, MsgProp, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp,
+                  MsgAppResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndexResp, MsgSnap, MsgTransferLeader] at HProp))
          subst Hs)
+      | skip
   · -- (a) a vote message: `Term` is kept. `MsgVote` goes onto `r.msgs`, `MsgVoteResp`
     -- onto `r.msgsAfterAppend`; either way the abstract outbox grows by exactly that
     -- message -- up to permutation, since a `MsgVote` lands in front of whatever

@@ -870,6 +870,16 @@ theorem ownRaftPhys_progress_dom (r : Loc) (id : w64) (s : NState) :
   · ipureintro; exact Hdom
   reseal s
 
+/-- The leader-transfer target is never the node itself (2026-10-13): read out without
+consuming anything. -/
+theorem ownRaftPhys_lt_ne (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗ ⌜s.lt ≠ id⌝ ∗ ownRaftPhys cfg r id s := by
+  iintro H
+  iNamed_phys H
+  isplitr
+  · ipureintro; exact HnoTransfer.2
+  reseal s
+
 /-- Changing only the outbox, up to permutation. -/
 theorem ownRaftPhys_outbox (r : Loc) (id : w64) (s : NState) (o : List Msg) :
     o ≡ₚ s.outbox →

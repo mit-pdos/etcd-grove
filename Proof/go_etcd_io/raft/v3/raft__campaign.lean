@@ -51,17 +51,18 @@ theorem campRoleState_logst (id : w64) (s : NState) (pre : Bool) :
 
 
 /-- The request `campaign` sends voter `y`, carrying the entry id `e` that
-`lastEntryID()` returned when it was built. -/
-def campReq (pre : Bool) (id y T : w64) (e : entryID) : Msg :=
-  Msg.mk (vreqTy pre) id y T false e.index' e.term' (W64 0) (W64 0) []
+`lastEntryID()` returned when it was built, and the `Context` `cl` (2026-10-13: the
+leader-transfer marker, or nothing). -/
+def campReq (pre : Bool) (id y T : w64) (e : entryID) (cl : List w8) : Msg :=
+  Msg.mkV (vreqTy pre) id y T false e.index' e.term' (W64 0) (W64 0) [] [] cl
 
 /-- The message `campaign` sends on behalf of voter `y`: the self-addressed response
 when `y` is this node, a request otherwise. `send` panics on a self-addressed request,
 which is exactly why the code splits these two cases. (Rocq's `cmsg f` takes a ghost
 function `f` for the entry id of each request; every request carries the same one,
 `L`, so here it is that entry id.) -/
-def campMsg (pre : Bool) (id T : w64) (e : entryID) (y : w64) : Msg :=
-  if y = id then Msg.plain (vrespTy pre) id id T false else campReq pre id y T e
+def campMsg (pre : Bool) (id T : w64) (e : entryID) (cl : List w8) (y : w64) : Msg :=
+  if y = id then Msg.plain (vrespTy pre) id id T false else campReq pre id y T e cl
 
 omit [GoGlobalContext] [GoSemanticsFunctions] in
 /-- `xs` enumerates the voters, so it is `id` followed by the other voters in some
@@ -130,7 +131,7 @@ theorem raft.campaign.wp_proof
     (wp_raftLog_lastEntryID : raftLog.lastEntryID.spec (GF := GF) (hG := hG))
     (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG := hG)) :
     raft.campaign.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s t Hrole Hid_cfg Hnowrap Hpv Htr
+  intro cfg r id s t Hrole Hid_cfg Hnowrap Hpv
   -- every `send` below carries `Term + 1`; `send` panics on a zero term,
   -- whence the premise.
   have Hno_wrap : s.term + W64 1 ≠ W64 0 := by word
@@ -178,7 +179,12 @@ theorem raft.campaign.wp_proof
   iNamed HJ
   have Hpvpre : decide (t = campaignPreElection) = true → s.prevote = true :=
     fun h => Hpv (of_decide_eq_true h)
-  generalize decide (t = campaignPreElection) = pre at Hpvpre
+  -- a pre-election's requests carry no `Context` (2026-10-13)
+  have Hprecl : decide (t = campaignPreElection) = true → transferCtx t = [] := by
+    intro h
+    rw [of_decide_eq_true h]
+    simp [transferCtx, campaignPreElection, campaignTransfer]
+  generalize decide (t = campaignPreElection) = pre at Hpvpre Hprecl
   wp_auto
   -- the voter ids, as a map. `IDs` is a method of the tracker's
   -- `Config.Voters`, so it takes the tracker object; the call does not
@@ -264,7 +270,7 @@ theorem raft.campaign.wp_proof
       "Hphys" ∷ ownRaftPhys cfg r id
         (sendMsgs { campRoleState id s pre with prvals := pvs }
           ((xs.take (sint.Z n).toNat).map (campMsg pre id (s.term + W64 1)
-            (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)))))) $$ [i id Hphys]
+            (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t))))) $$ [i id Hphys]
   · iexists W64 0, zero_val w64
     iframe
     ipureintro
@@ -328,7 +334,7 @@ theorem raft.campaign.wp_proof
       ihave Hphys : ownRaftPhys cfg r y
           (sendMsgs { campRoleState y s pre with prvals := pvs }
             ((xs.take (sint.Z (n + W64 1)).toNat).map (campMsg pre y (s.term + W64 1)
-              (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))))) $$ [Hphys]
+              (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t)))) $$ [Hphys]
       · rw [Hgrow, List.map_append, ← sendMsgs_app]
         simp only [List.map_cons, List.map_nil, campMsg, ↓reduceIte]
         iexact Hphys
@@ -353,15 +359,21 @@ theorem raft.campaign.wp_proof
       wp_apply raft.wp_load_Term $$ Hphys as Hphys
       wp_raft_log
       rw [campRoleState_logst] at HlastID
-      -- `ctx` is the `campaignTransfer` marker or nil; the model does not
-      -- look at a vote request's context, so both arms run the same tail.
-      wp_join iprop(∃ (csl : GoSlice), ctx_ptr ↦ csl ∗ csl ↦*□ ([] : List w8) ∗ t_ptr ↦ t)
-        with [ctx t] as ⟨%csl, ctx, #Hcl, t⟩
-      · exfalso; exact Htr rfl
+      -- `ctx` is the `campaignTransfer` marker or nil (2026-10-13: `transferCtx t`)
+      wp_join iprop(∃ (csl : GoSlice), ctx_ptr ↦ csl ∗ csl ↦* (transferCtx t) ∗ t_ptr ↦ t)
+        with [ctx t] as ⟨%csl, ctx, Hcl, t⟩
+      · wp_apply wp_string_to_bytes as %ct_sl ⟨ct_sl, -⟩
+        wp_join_done
+        iexists ct_sl
+        iframe
       · iexists _
         iframe
+        have Htc : transferCtx t = [] := by unfold transferCtx; exact if_neg (fun h => Hif h)
+        rw [Htc]
         iapply ownSlice_nil
-      wp_apply wp_raft_send _ _ _ _ _ [] [] [campReq pre id y (s.term + W64 1) lastID]
+      imod ownSlice_persist $$ Hcl with #Hcl
+      wp_apply wp_raft_send _ _ _ _ _ [] (transferCtx t)
+          [campReq pre id y (s.term + W64 1) lastID (transferCtx t)]
           (Or.inl rfl)
           (Or.inl ⟨vreqTy pre,
             by cases pre <;> simp [vreqW32],
@@ -386,7 +398,7 @@ theorem raft.campaign.wp_proof
       ihave Hphys : ownRaftPhys cfg r id
           (sendMsgs { campRoleState id s pre with prvals := pvs }
             ((xs.take (sint.Z (n + W64 1)).toNat).map (campMsg pre id (s.term + W64 1)
-              (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))))) $$ [Hphys]
+              (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t)))) $$ [Hphys]
       · rw [Hgrow, List.map_append, ← sendMsgs_app]
         simp only [List.map_cons, List.map_nil, campMsg, Hyid, ↓reduceIte, ← HlastID]
         iexact Hphys
@@ -410,10 +422,10 @@ theorem raft.campaign.wp_proof
     -- `campMsg` turns `id` into the self-addressed response and every other voter
     -- into one request each
     have Hmap : xs.map (campMsg pre id (s.term + W64 1)
-          (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))) ≡ₚ
+          (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t)) ≡ₚ
         [Msg.plain (vrespTy pre) id id (s.term + W64 1) false] ++
           (elements (cfg \ {[id]})).map (fun d => campReq pre id d (s.term + W64 1)
-            (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))) := by
+            (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t)) := by
       refine (Hsplit.map _).trans ?_
       rw [List.map_cons]
       simp only [campMsg, ↓reduceIte, List.singleton_append]
@@ -427,10 +439,12 @@ theorem raft.campaign.wp_proof
       ((campRoleState id s pre).outbox ++
         ([Msg.plain (vrespTy pre) id id (s.term + W64 1) false] ++
           (elements (cfg \ {[id]})).map (fun d => campReq pre id d (s.term + W64 1)
-            (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)))))
+            (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) (transferCtx t))))
       (List.Perm.append_left _ Hmap.symm) $$ Hphys
     iapply ownRaftPhys_eq $$ Hphys
-    cases pre <;> rfl
+    cases pre
+    · rfl
+    · rw [Hprecl rfl]; rfl
 
 end proof
 
