@@ -24,11 +24,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem EtcdServer.getAppliedIndex.wp_proof : EtcdServer.getAppliedIndex.spec (GF := GF) (hG := hG) := by
-  intro s
+  intro s E γr
   wp_start as #Hl
   ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
-  iunfold srvAtomicU64 at Hl
+  iunfold srvAppliedInv at Hl
   wp_auto
   wp_apply_core sync.atomic.Uint64.wp_Load (structFieldRef EtcdServer go!"appliedIndex" s)
     (DFrac.own 1) $$ [] [HΦ]
@@ -37,17 +37,19 @@ theorem EtcdServer.getAppliedIndex.wp_proof : EtcdServer.getAppliedIndex.spec (G
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
   inext
-  icases Hi with ⟨%v0, Hv⟩
+  icases Hi with ⟨%v0, %L0, %M, Hv, Hauth, HM, %HMk, #HL0, #Hc0⟩
   iexists v0
   iframe Hv
   iintro Hv
   imod Hmask with -
-  imod Hclose $$ [Hv] with -
-  · inext; iexists v0; iexact Hv
+  ihave #Hlb := monoNatLbOwn_get γr.applied _ _ $$ Hauth
+  imod Hclose $$ [Hv Hauth HM] with -
+  · inext; iexists v0, L0, M; iframe Hv Hauth HM HL0 Hc0; ipureintro; exact HMk
   imodintro
   wp_auto
   iapply HΦ
-  itrivial
+  iunfold appliedAtLeast
+  iexact Hlb
 
 end proof
 

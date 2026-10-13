@@ -55,7 +55,7 @@ theorem EtcdServer.doSerialize.wp_proof
   icases Hsrv with ⟨%v, #Hv⟩
   iunfold srvReqFieldsAt at Hv
   icases Hv with ⟨-, -, -, -, -, -, -, -, #Hcca, -, -,
-    #Has, #Hras, -, -, -, -, -, -, -, -, -, -, -⟩
+    #Has, #Hras, -, -, -, -, -, -, -, -, -, -⟩
   iunfold isServerRead at Hrd
   icases Hrd with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAt at Hw

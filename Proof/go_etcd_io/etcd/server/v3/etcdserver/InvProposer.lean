@@ -16,7 +16,8 @@ read-only, as `apply.internalRaftRequestIs`; the proposer owns `Header` and writ
 path reads (the id generator `idGen`, the wait `waitInv`, the raft node `srvRaftNode`, the
 configuration's `MaxRequestBytes`, feature gate, `ClientCertAuthEnabled`, election ticks, tick
 length, the auth store's request side `isReqAuth`, the `done` channel, the member id, the
-leader's atomic, the cluster and the transport, the applied and committed index atomics), and two
+leader's atomic, the cluster and the transport, the applied and committed indices' invariants at
+some read names, `srvIndexInvs`: 2026-10-13, unit 4b), and two
 invariants of the request path's ghost state: the **mint** (`srvMintInv`: the authority of raft's
 fresh-data tokens; every token is of data that decode to a request claimed under its id, so a
 proposer that claims a fresh id for its data mints the data's token: `srv_claim_mint`), and the
@@ -321,8 +322,7 @@ def srvReqFieldsAt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields)
     structFieldRef EtcdServer go!"cluster" s ↦□ v.cluster ∗
     structFieldRef raftNodeConfig go!"transport"
       (structFieldRef raftNode go!"raftNodeConfig" (structFieldRef EtcdServer go!"r" s)) ↦□ v.tr ∗
-    srvAtomicU64 (structFieldRef EtcdServer go!"appliedIndex" s) ∗
-    srvAtomicU64 (structFieldRef EtcdServer go!"committedIndex" s) ∗
+    srvIndexInvs s E ∗
     srvMintInv ρ ∗ srvCLogInv ρ.raft ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
 
 instance srvReqFieldsAt_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) :

@@ -33,23 +33,27 @@ from `x` to `x'` by `entriesStep c ms x x'` (`c` the consistent index the batch 
 normal entry applied by `apply.Apply`, with `v3` iff above `c`), under `entriesOk c ms x` (each
 normal entry's premise at every state the batch can reach it in). **The wait** (unit 2 of the
 request path): `batchWaitOk` (each normal entry's id claimed for its data; each conf change's id,
-`ccIdOf`, no KV request's registration), so every `Trigger` meets the registry's contract. -/
+`ccIdOf`, no KV request's registration), so every `Trigger` meets the registry's contract. **The
+applied index** (the request path's unit 4b): the apply thread's half of the ghost applied index
+(`srvAppliedOwn γr`) goes from `f0 - 1` to the last index, each `setAppliedIndex` depositing the KV
+log after its entry, so the last index's log is `x'.log` (`appliedLogAt`). -/
 abbrev EtcdServer.apply.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
-    (rac : GoChan) (st : ApplyState) (a at0 : w64) (x : apply.ApplyKV),
+    (rac : GoChan) (st : ApplyState) (a at0 : w64) (x : apply.ApplyKV) (γr : ReadNames),
   ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → entriesOk (ciEff γ st.k) ms x →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfStateAddr ep ↦ cs ∗
-      srvLgReader s ∗ srvApplyKV s E x }}
+      srvLgReader s ∗ srvApplyKV s E x ∗ srvAppliedOwn γr (f0 - 1) }}
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"apply"))
       (Val #es)) (Val #ep)) (Val #rac))
   {{ (appliedt appliedi : w64) (shouldStop : Bool),
       RET (PairV (PairV #appliedt #appliedi) #shouldStop);
       ∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
         applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
-        epConfStateAddr ep ↦ csl ∗ srvLgReader s ∗
-        (∃ x' : apply.ApplyKV, srvApplyKV s E x' ∗ ⌜entriesStep (ciEff γ st.k) ms x x'⌝) ∗
+        epConfStateAddr ep ↦ csl ∗ srvLgReader s ∗ srvAppliedOwn γr appliedi ∗
+        (∃ x' : apply.ApplyKV, srvApplyKV s E x' ∗ ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗
+          appliedLogAt γr appliedi x'.log) ∗
         ⌜(ms.getLast?).map EntryModel.index = some appliedi ∧
           (ms.getLast?).map EntryModel.term = some appliedt ∧
           loopOk γ st' appliedi ∧
