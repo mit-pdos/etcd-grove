@@ -38,8 +38,24 @@
       python3 model.py 4 3 lag 3 5 2 2 simple trace-leaderlag.txt      # ends UNSAFE
       python3 model.py 4 3 faithful 3 5 2 2 simple trace-leaderlag.txt # refused at ('commit', 1, 3)
 
-  (`trace-followerlag.txt` likewise.) A Go test against raft's own test harness is still to
-  be written.
+  (`trace-followerlag.txt` likewise.)
+
+  **Go reproduction** on the real code at the pinned revision (40f8be7), public API only
+  (`RawNode`: `Campaign`, `Propose`, `ProposeConfChange`, `Ready`, `Advance`,
+  `ApplyConfChange`, `Step`; synchronous `MemoryStorage`, messages routed by hand):
+  `raft-conf-lag-model/leaderlag_test.go`, `TestAdvanceBeforeApplyConfChangeLeaderLag`.
+  Node 1's application calls `Advance` while holding back `ApplyConfChange` (doc.go step 4);
+  the others apply before `Advance`. Node 4 joins empty and catches up from node 3; node 3's
+  conflicting entry at index 4 is its empty leader entry. The test passes by asserting the
+  violation:
+
+      cp issues/raft-conf-lag-model/leaderlag_test.go <etcd-raft checkout>/
+      cd <etcd-raft checkout> && go test -run TestAdvanceBeforeApplyConfChangeLeaderLag -v .
+      ...
+      SAFETY VIOLATION reproduced: index 4 committed as "x" (term 1) on node 1 and as "" (term 2) on node 3
+
+  With node 1 applying before `Advance` (a control edit, not in the file) the violation does
+  not occur: node 1 moves to `{1,3,4}` and `x` cannot commit with node 3 cut off.
 - **Expected**: either the documentation states the precondition -- the conf changes of a
   `Ready`'s committed entries are applied (`ApplyConfChange`) before `Advance` (before the
   `MsgStorageApplyResp`, with asynchronous storage writes) -- or raft's guards track the
@@ -61,5 +77,6 @@
   execution may be reachable in etcd (slow apply goroutine plus a partition; not
   demonstrated).
 - **Found**: 2026-10-13, analysing the reconfiguration stage B0 (apply-time configurations)
-  for the protocol model; checked by replay in the abstract model (exhaustive search covered
-  only depth 10–11, too shallow to separate the modes: weak evidence beyond the traces).
+  for the protocol model; checked by replay in the abstract model and reproduced by the Go
+  test above (the model's exhaustive search covered only depth 10–11: no evidence beyond the
+  traces).
