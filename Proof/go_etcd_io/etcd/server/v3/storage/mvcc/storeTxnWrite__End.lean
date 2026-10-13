@@ -36,7 +36,6 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
   icombine Hidx HidxS gives %Hti_eq
   have Hti_eq' := mvcc.mkOk_loc_inj _ Hti_eq
   subst Hti_eq'
-  iunfold mvcc.batchTxSpec at Hbt
   iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨-, -, #HUnlock0, #HUnlock, -⟩
   have hsplit := mvcc.own_half_half (1 : Qp)
@@ -67,6 +66,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       iframe Htoks Hw Hclog Hcur Hbv
       iframe #
       ipureintro; exact ⟨Hbudget, Hne⟩
+    ihave HW := mvcc.storeW_put s γ $$ [$Hreg $HW]
     rw [mvcc.pendPuts_nil]
     wp_apply HUnlock0 $$ [$Hlocked $HW $HP]
     (try wp_auto)
@@ -79,11 +79,11 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     · inext; iunfold mvcc.muInv; itrivial
     (try wp_auto)
     iapply HΦ
-    isplitl [Hmu HrevMu Hti]
+    isplitl [Hmu HrevMu Hti Hrt]
     · iunfold mvcc.storeReader
       iexists ti
       simp only [named]
-      iframe Hmu HrevMu Hti
+      iframe Hmu HrevMu Hti Hrt
       iframe #
     unfold mvcc.commitLog
     rw [ite_eq_left rfl]
@@ -143,6 +143,8 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       iintro Hv
       icases (mvcc.bucketView_halves γ 1 _).1 $$ Hv with ⟨Hv1, Hv2⟩
       iframe Hv2
+      iapply mvcc.storeW_put s γ
+      iframe Hreg
       iunfold mvcc.writerRes
       iexists (ilog ++ [pend]), n
       simp only [named]
@@ -170,11 +172,11 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       · inext; iunfold mvcc.muInv; itrivial
       (try wp_auto)
       iapply HΦ
-      isplitl [Hmu HrevMu Hti]
+      isplitl [Hmu HrevMu Hti Hrt]
       · iunfold mvcc.storeReader
         iexists ti
         simp only [named]
-        iframe Hmu HrevMu Hti
+        iframe Hmu HrevMu Hti Hrt
         iframe #
       unfold mvcc.commitLog
       rw [ite_eq_right hne']

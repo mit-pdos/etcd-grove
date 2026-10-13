@@ -631,7 +631,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
     · inext; iunfold mvcc.watchStoreInv; iexists _; iexact Hbody
     wp_for_post
     have hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by word
-    iframe HΦ Hmur HmuR HrevMuR HtiR s HvsM HvcapM
+    iframe HΦ Hmur HmuR HrevMuR HtiR HrtR s HvsM HvcapM
     iexists n + W64 1, nvv', NV', mv', vb
     simp only [named]
     rw [hn1]
@@ -646,7 +646,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
       obtain ⟨j, B', hj, h1, h2⟩ := Hn.2.2.2 k hk
       exact ⟨j, B', by omega, h1, h2⟩
   · -- the failed ones: victims again, in one batch
-    ihave HR : mvcc.watchReader s st γ $$ [Hmur HmuR HrevMuR HtiR]
+    ihave HR : mvcc.watchReader s st γ $$ [Hmur HmuR HrevMuR HtiR HrtR]
     · iunfold mvcc.watchReader; iframe Hmur
       iunfold mvcc.storeReader; iexists ti; simp only [named]; iframe; iframe #
     icases Hnvm with (⟨%Hnil1, %Hnil2⟩ | Hnvm)

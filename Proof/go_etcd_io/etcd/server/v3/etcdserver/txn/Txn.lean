@@ -112,7 +112,7 @@ theorem txn.Txn_sole
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   iunfold txn.isKV at Hkv
-  icases Hkv with ⟨%Hkv, #Hs⟩
+  icases Hkv with ⟨%Hkv, #Hs, %Hkb⟩
   subst Hkv
   wp_auto
   wp_apply (hEnsure ctx cd lg _ _) $$ [$Hctx] as %ctx' %tr ⟨%Htr, %vs, #Hctx', -⟩
@@ -193,7 +193,7 @@ theorem txn.Txn_sole
     simp only [Bool.not_true, ↓reduceIte] at htxn'
     wp_apply htxn'
       $$ [$Htw $Hctx' $Hnd' $Hrt $Hsl $Hleases] as %resp %err Hres
-    · ipureintro; exact ⟨trivial, hoks, Hpre.2.2, fun _ => hro, fun h => absurd h (by simp)⟩
+    · ipureintro; exact ⟨trivial, hoks, by rw [txn.putMax_none γ Hkb]; exact Hpre.2.2, fun _ => hro, fun h => absurd h (by simp)⟩
     icases Hres with (⟨%Herr, Htw, #Hresp, Hhdr, -⟩ | ⟨%Hc, -⟩)
     rotate_left
     · cases Hc
@@ -243,7 +243,8 @@ theorem txn.Txn_sole
     · simp only [mvcc.txnEndPre]; itrivial
     wp_apply (hEnd mw s γ (.read log rev)) $$ [$Htx $Hep] as ⟨Hrd, -⟩
     icases soleWriter_split γ log hlen4 $$ Hsw with ⟨Htok, Hsw⟩
-    wp_apply (hWrite s γ tr P Pre Q f) $$ [$Hs $Hrd $Htok $Hhook $HPre $Htr]
+    ihave Hwt := txn.storeWT_none (GF := GF) γ Hkb
+    wp_apply (hWrite s γ tr P Pre Q f) $$ [$Hs $Hrd $Htok $Hwt $Hhook $HPre $Htr]
       as %mw' ⟨⟨%ilog, Htx⟩, HQ⟩
     · ipureintro; exact Htr
     -- the caller's update (the writes are the model's): the lock's invariant back for `End`
@@ -263,7 +264,7 @@ theorem txn.Txn_sole
     simp only [Bool.not_false, ↓reduceIte, Bool.false_eq_true] at htxn'
     wp_apply htxn'
       $$ [$Htw $Hctx' $Hnd' $Hrt $Hsl $Hleases $Hknown] as %resp %err Hres
-    · ipureintro; exact ⟨hoks, Hpre.2.2, fun h => h.elim, fun h => absurd h (by simp)⟩
+    · ipureintro; exact ⟨hoks, by rw [txn.putMax_none γ Hkb]; exact Hpre.2.2, fun h => h.elim, fun h => absurd h (by simp)⟩
     icases Hres with (⟨%Herr, Htw, #Hresp, Hhdr, #Hk2⟩ | ⟨%Hc, -⟩)
     rotate_left
     · cases Hc
@@ -325,7 +326,7 @@ theorem txn.Txn_read
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   iunfold txn.isKV at Hkv
-  icases Hkv with ⟨%Hkv, #Hs⟩
+  icases Hkv with ⟨%Hkv, #Hs, %Hkb⟩
   subst Hkv
   wp_auto
   wp_apply (hEnsure ctx cd lg _ _) $$ [$Hctx] as %ctx' %tr ⟨%Htr, %vs, #Hctx', -⟩
@@ -402,7 +403,7 @@ theorem txn.Txn_read
     $$ [$Htw $Hctx' $Hrt $Hsl $Hleases] as %resp %err Hres
   · ipureintro
     refine ⟨trivial, hoks, ?_, fun _ => hro, fun _ => ⟨trivial, Hlg⟩⟩
-    simp only [srvRunTxn, hnil, List.length_nil]; omega
+    simp only [srvRunTxn, hnil, List.length_nil]; have := mvcc.putMax_ge γ; omega
   -- the read transaction ends; the response's fields for the trace
   ihave ⟨%pend', Htw, #Hshell, Hout⟩ : (∃ pend' : List mvcc.Change,
       txnWriteIs (interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw) s γ true log pend' ∗

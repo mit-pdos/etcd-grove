@@ -34,8 +34,8 @@ theorem mvcc.newWatchableStore.wp_proof
     (hNewWG : mvcc.newWatcherGroup.spec (GF := GF) (hG := hG))
     (hsplit : adt.ownIvt_split.spec (GF := GF) (hG := hG)) :
     mvcc.newWatchableStore.spec (GF := GF) (hG := hG) := by
-  intro lg b le cfg γb γl P f
-  wp_start as ⟨Hbk, Hbv, #Hlessor⟩
+  intro lg b le cfg kb γb γl P f
+  wp_start as ⟨Hbk, Hbv, Hrg, Hwt1, Hwt2, Hrts, #Hlessor⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   wp_auto
@@ -44,7 +44,7 @@ theorem mvcc.newWatchableStore.wp_proof
     isplitr
     · ipureintro; rfl
     iexists l; iexact lg
-  wp_apply hNewStore $$ [$Hbk $Hbv $Hlessor] as %st ⟨%γs, ⟨%hγb, %hγl⟩, #Hst, #HhookP, Hviews,
+  wp_apply hNewStore $$ [$Hbk $Hbv $Hrg $Hwt1 $Hwt2 $Hrts $Hlessor] as %st ⟨%γs, ⟨%hγb, %hγl, %hγk⟩, #Hst, #HhookP, Hviews,
     Hreaders, Htoks, #Hcert, Hsclose⟩
   wp_apply chan.wp_make2 (V := Unit) $$ [] as %vc %γv ⟨#Hvc, %Hvcap, Hvown⟩
   · ipureintro; decide
@@ -128,7 +128,7 @@ theorem mvcc.newWatchableStore.wp_proof
   iapply HΦ
   iexists st, γ
   isplitr
-  · ipureintro; exact ⟨hγb, hγl⟩
+  · ipureintro; exact ⟨hγb, hγl, hγk⟩
   isplitr
   · iunfold mvcc.isWatchableStore
     iexists vc, stc, rv, γv

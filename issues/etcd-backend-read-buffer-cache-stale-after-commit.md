@@ -158,6 +158,62 @@
   does not read through `ConcurrentReadTx`. So no wrong mvcc result is known; the
   backend's `ConcurrentReadTx` is wrong on its own terms (the comment in `ConcurrentReadTx` says
   the copy "is guaranteed to be up-to-date").
+  A third reproduction (2026-10-13, found proving mvcc's store over the backend, unit 5),
+  deterministic, with no hook and no delete: a range of a safe-range bucket (`Key`) returns a
+  key twice. A put written back into the read buffer is cached by a `ConcurrentReadTx`; any commit
+  (`ForceCommit` here, the backend's periodic `run` commit in a server) moves it into bbolt and
+  resets the read buffer without changing its version; the next `ConcurrentReadTx` takes the
+  cached copy, which still has the key, over the new bbolt transaction, which has it too, and
+  `UnsafeRange` of a range returns bbolt's entries followed by the buffer's
+  (`server/storage/backend/cache_range_dup_test.go`; fails at the pin with
+  `range returned 2 keys (["k1" "k1"]), want 1`):
+
+  ```go
+  package backend_test
+
+  import (
+  	"testing"
+  	"time"
+
+  	betesting "go.etcd.io/etcd/server/v3/storage/backend/testing"
+  	"go.etcd.io/etcd/server/v3/storage/schema"
+  )
+
+  func TestConcurrentReadTxRangeDuplicateAfterCommit(t *testing.T) {
+  	b, _ := betesting.NewTmpBackend(t, time.Hour, 10000)
+  	defer betesting.Close(t, b)
+
+  	tx := b.BatchTx()
+  	tx.Lock()
+  	tx.UnsafeCreateBucket(schema.Key)
+  	tx.Unlock()
+  	b.ForceCommit()
+
+  	tx.Lock()
+  	tx.UnsafeSeqPut(schema.Key, []byte("k1"), []byte("v1"))
+  	tx.Unlock() // written back into the read buffer
+
+  	rtx := b.ConcurrentReadTx() // copies the read buffer into the cache
+  	rtx.RLock()
+  	rtx.RUnlock()
+
+  	b.ForceCommit() // k1 into bbolt; the read buffer reset, its version unchanged
+
+  	rtx = b.ConcurrentReadTx() // the cached copy (with k1) over the new bbolt transaction
+  	rtx.RLock()
+  	ks, _ := rtx.UnsafeRange(schema.Key, []byte("k0"), []byte("k9"), 0)
+  	rtx.RUnlock()
+  	if len(ks) != 1 {
+  		t.Fatalf("range returned %d keys (%q), want 1", len(ks), ks)
+  	}
+  }
+  ```
+
+  mvcc's `store.Read` reads its `ConcurrentReadTx` one revision key at a time (`limit` 1: the
+  buffer's entry, then no bbolt read), so no wrong mvcc result is known from this either; the
+  watchable store's ranges use the shared `ReadTx`, which a commit updates under its lock.
+  The proof's contract of mvcc's backend promises no range read of a `ConcurrentReadTx`
+  (`keyReadSnap`'s `rng = false`).
 - **Expected**: a `ConcurrentReadTx` sees the batch transaction's committed and written-back
   state at some instant: after a commit, not the read buffer of before it.
 - **How the proof handles it**: the backend's contract makes the writer's `Unlock` take the

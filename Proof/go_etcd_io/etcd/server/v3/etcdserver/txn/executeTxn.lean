@@ -298,7 +298,7 @@ theorem txn.executeTxn.wp_proof
     have hmem : op ∈ ops := List.mem_of_getElem? Hop_lookup
     have hbnd : pend.length + (srvOps s0 r st (ops.take (sint.nat n))).1.length +
         (srvOp s0 r (mvcc.applyChanges r st (srvOps s0 r st (ops.take (sint.nat n))).1) op).1.length
-          < 2 ^ 63 := by
+          < mvcc.putMax γ := by
       have h := Hpre.2.1
       rw [srvOps_take_drop s0 r st ops (sint.nat n + 1), htake] at h
       simp only [List.length_append] at h; omega

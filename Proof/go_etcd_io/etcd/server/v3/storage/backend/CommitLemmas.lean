@@ -158,7 +158,7 @@ theorem vData_free (P : BParams) (st : BSess) (hst : sessWf P st) (hn : st.ndel 
   unfold sData
   apply vData_eq_of_agree
   rw [vOf_emptyR]
-  have hag := hst.2.2.2.2.2.2.2.2.2 hn
+  have hag := hst.2.2.2.2.2.2.2.2.2.1 hn
   exact agreeOff_symm (agreeOff_trans hag (agreeOff_ovB_nonHB P st.W.bks _ hW))
 
 /-- A free state changed nothing the readers see. -/
@@ -222,7 +222,7 @@ theorem commit_final {P : BParams} {st st' : BSess} {C' : Data} {tx' : Loc} {cnt
         have h2 := hst.2.2.2.2.2.2.2.1
         have : sint.Z st.pend = 0 := by rw [hp]; rfl
         word
-      have hag := hst.2.2.2.2.2.2.2.2.2 hn
+      have hag := hst.2.2.2.2.2.2.2.2.2.1 hn
       have hR := hst.2.2.2.2.2.2.2.2.1 hp
       rw [hsC]
       unfold viewOf at hag
@@ -235,9 +235,22 @@ theorem commit_final {P : BParams} {st st' : BSess} {C' : Data} {tx' : Loc} {cnt
     rw [vOf_emptyR, vOf_emptyR]
     exact hCS
   have hsw : sessWf P (commitSt st' C' tx' cnt') := by
-    obtain ⟨h1, h2, h3, h4, -⟩ := hst'
+    obtain ⟨h1, h2, h3, h4, -, -, -, -, -, -, hsf'⟩ := hst'
+    have hsafe : safeSt P (commitSt st' C' tx' cnt') := by
+      refine ⟨?_, fun n i hn hsb => ⟨?_, ?_⟩⟩
+      · intro n i _ _ kc vc e _ he
+        exact absurd he (by show e ∉ bkOf (bksReset st'.R.bks) i; rw [bkOf_bksResetC]; simp)
+      · intro kc vc e _ he
+        have hHB : P.HB n = false := hP.2.2.2.2 n hsb
+        have : bkOf st'.W.bks i = [] := hW' n i hn hHB
+        exact absurd he (by show e ∉ bkOf st'.W.bks i; rw [this]; simp)
+      · intro kc vc hc
+        show ∃ vs, (bktOf st'.S n).lookup kc = some vs
+        rcases hC' with rfl | ⟨_, rfl⟩
+        · exact ⟨vc, hc⟩
+        · exact (hsf'.2 n i hn hsb).2 kc vc hc
     refine ⟨h1, RBuf.reset_wf h2, h3, idsOk_bksReset h4, by simp [commitSt], by simp [commitSt],
-      by simp [commitSt], by simp [commitSt], fun _ i => bkOf_bksResetC _ i, fun _ => ?_⟩
+      by simp [commitSt], by simp [commitSt], fun _ i => bkOf_bksResetC _ i, fun _ => ?_, hsafe⟩
     show agreeOff P.HB (dget st'.S) (ovB P.BT st'.W.bks (ovB P.BT (bksReset st'.R.bks) (dget C')))
     rw [ovB_empty P.BT _ _ (bkOf_bksResetC st'.R.bks)]
     refine agreeOff_trans ?_ (agreeOff_symm (agreeOff_ovB_nonHB P st'.W.bks _ hW'))

@@ -26,18 +26,21 @@ caller's view of it at a fraction, `bucketMap log` of the committed log `log`, w
 certificate makes well formed), for `0 ≤ minRev ≤ maxRev ≤ log.length` (the `minRev < 0` warning
 is dead), the group `g` as the `contains` interface: a fresh slice of fresh events, read-only for
 good, the events of the revisions `[minRev, maxRev)` of `log` whose key some member of `g` covers,
-in revision order. -/
+in revision order. The backend's reader token `RT` is lent (2026-10-13, unit 5). -/
 abbrev mvcc.rangeEvents.spec : Prop :=
   ∀ (lg : Loc) (b : GoInterface) (γ : mvcc.StoreNames) (Wr P : IProp GF) (f : val) (q : Qp)
-    (log : mvcc.Log) (minRev maxRev : w64) (g : Loc) (W : GMap Loc mvcc.WatchRange),
+    (log : mvcc.Log) (minRev maxRev : w64) (g : Loc) (W : GMap Loc mvcc.WatchRange)
+    (RT WT Wi : IProp GF) (PutOk : mvcc.Bucket → mvcc.Puts → GoString → GoString → Prop),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isKeyBackend b (mvcc.bucketView γ) Wr P f ∗ mvcc.bucketView γ q (mvcc.bucketMap log) ∗
+      mvcc.isKeyBackendG b (mvcc.bucketView γ) RT WT PutOk Wr Wi P f ∗ RT ∗
+      mvcc.bucketView γ q (mvcc.bucketMap log) ∗
       mvcc.idxCert γ.idx log ∗ mvcc.ownWatcherGroup g W ∗
       ⌜0 ≤ sint.Z minRev ∧ sint.Z minRev ≤ sint.Z maxRev ∧ sint.Z maxRev ≤ log.length⌝ }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.rangeEvents)) (Val #lg))
       (Val #b)) (Val #minRev)) (Val #maxRev))
       (Val #(interface.mkOk (go.GoType.PointerType watcherGroup.ty) #g)))
-  {{ (evs : GoSlice), RET #evs; mvcc.bucketView γ q (mvcc.bucketMap log) ∗ mvcc.ownWatcherGroup g W ∗
+  {{ (evs : GoSlice), RET #evs; RT ∗ mvcc.bucketView γ q (mvcc.bucketMap log) ∗
+      mvcc.ownWatcherGroup g W ∗
       ∃ ps : List Loc, evs ↦* ps ∗ ownSliceCap Loc evs (DFrac.own 1) ∗
         ⌜ps.length = ((mvcc.logEvents log (sint.nat minRev) (sint.nat maxRev)).filter
           fun ev => mvcc.wgCovers W ev.kv.key).length⌝ ∗

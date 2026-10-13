@@ -1,6 +1,6 @@
 /-
-`Bucket.Put_kv` (bbolt). `b.Put(key, value)` in the write transaction (a key of `1..MaxKeySize` bytes, a value of
-at most `MaxValueSize`): the entry set (bbolt copies the key and keeps the value).
+`Bucket.Put_kv` (bbolt). `b.Put(key, value)` in the write transaction (a key of `1..MaxKeySize` bytes): the entry
+set for a value of at most `MaxValueSize`, else an error and nothing changed.
 The trust boundary: bbolt's key-value contract as the backend uses it (`InvBbolt.lean`), from the
 Go documentation; an axiom in `Proof/go_etcd_io/bbolt/Bucket__Put_kv.lean`. Lean-first (no Rocq
 counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a key-value contract,
@@ -26,15 +26,20 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `b.Put(key, value)` in the write transaction (a key of `1..MaxKeySize` bytes, a value of
-at most `MaxValueSize`): the entry set (bbolt copies the key and keeps the value). -/
+/-- `b.Put(key, value)` in the write transaction (a key of `1..MaxKeySize` bytes): for a value of
+at most `MaxValueSize`, `nil` and the entry set (bbolt copies the key and keeps the value); for a
+larger one, an error (`ErrValueTooLarge`: bbolt checks the size before anything else) and the
+contents unchanged (2026-10-13, unit 5: the backend's `unsafePut` then calls `lg.Fatal`). -/
 abbrev bbolt.Bucket.Put_kv.spec : Prop :=
   ∀ (tx : Loc) (γ : DBNames) (D S : Data) (b : Loc) (n : GoString) (m : BktData)
     (key value : GoSlice) (kb vb : GoString) (dk : DFrac),
-  S.lookup n = some m → 0 < kb.length → kb.length ≤ maxKeySize → vb.length ≤ maxValueSize →
+  S.lookup n = some m → 0 < kb.length → kb.length ≤ maxKeySize →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownWTx tx γ D S ∗ wBkt tx b n ∗ key ↦*{dk} kb ∗ value ↦*□ vb }}
     (App (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"Put")) (Val #key)) (Val #value))
-  {{ RET #GoInterface.nil; ownWTx tx γ D (S.insert n (m.insert kb vb)) ∗ key ↦*{dk} kb }}
+  {{ (err : GoInterface), RET #err; key ↦*{dk} kb ∗
+      ((⌜vb.length ≤ maxValueSize ∧ err = GoInterface.nil⌝ ∗
+          ownWTx tx γ D (S.insert n (m.insert kb vb))) ∨
+       (⌜maxValueSize < vb.length ∧ err ≠ GoInterface.nil⌝ ∗ ownWTx tx γ D S)) }}
 
 end spec
 

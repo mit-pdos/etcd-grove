@@ -36,7 +36,7 @@ theorem mvcc.storeTxnRead.End.wp_proof : mvcc.storeTxnRead.End.spec (GF := GF) (
   icases Hsnap with ⟨#HRU, -, -, -⟩
   (try wp_auto)
   -- `tr.tx.RUnlock()`
-  wp_apply HRU $$ [$Htok]
+  wp_apply HRU $$ [$Htok] as Hrt
   (try wp_auto)
   -- `tr.s.mu.RUnlock()`
   wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu0] as Hmu0
@@ -46,7 +46,7 @@ theorem mvcc.storeTxnRead.End.wp_proof : mvcc.storeTxnRead.End.spec (GF := GF) (
   iunfold mvcc.storeReader
   iexists ti
   simp only [named]
-  iframe Hmu0 HrevMu0 Hti0
+  iframe Hmu0 HrevMu0 Hti0 Hrt
   iframe #
 
 end proof

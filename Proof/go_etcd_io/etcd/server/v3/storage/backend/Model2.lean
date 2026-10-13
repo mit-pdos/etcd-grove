@@ -38,19 +38,22 @@ namespace EtcdGrove
 namespace backend
 
 /-- The backend's parameters: the clients' buckets (name to id), the buckets the pre-commit hook
-writes, how many entries one run of the hook puts at most, and the configuration's batch
-limit. -/
+writes, the safe-range buckets (`SB`: put to in increasing key order and never deleted from, so
+a range read of bbolt's entries then the read buffer's is the bucket's range; schema's `Key`),
+how many entries one run of the hook puts at most, and the configuration's batch limit. -/
 structure BParams where
   BT : GMap GoString w64
   HB : GoString → Bool
+  SB : GoString → Bool
   hookMax : Nat
   limit : w64
 
 /-- The parameters are sane: bucket ids distinct, the limit positive and small enough that the
-buffers do not overflow (`bufBound`), the hook's puts few. -/
+buffers do not overflow (`bufBound`), the hook's puts few, the safe-range buckets not the hook's. -/
 def BParams.Wf (P : BParams) : Prop :=
   (∀ n1 n2 i, P.BT.lookup n1 = some i → P.BT.lookup n2 = some i → n1 = n2) ∧
-  0 < sint.Z P.limit ∧ sint.Z P.limit ≤ 2 ^ 57 ∧ P.hookMax ≤ 2 ^ 16
+  0 < sint.Z P.limit ∧ sint.Z P.limit ≤ 2 ^ 57 ∧ P.hookMax ≤ 2 ^ 16 ∧
+  ∀ n, P.SB n = true → P.HB n = false
 
 /-- A bucket of the table. -/
 def BParams.has (P : BParams) (bi : BucketInfo) : Prop := P.BT.lookup bi.name = some bi.id
@@ -162,13 +165,35 @@ def sData (P : BParams) (S : Data) : GMap (GoString × GoString) GoString := vDa
 def idsOk (P : BParams) (B : GMap w64 (List Ent)) : Prop :=
   ∀ i es, B.lookup i = some es → ∃ n, P.BT.lookup n = some i
 
+/-- A bucket's contents in bbolt's data (empty if absent). -/
+def bktOf (D : Data) (n : GoString) : BktData := (D.lookup n).getD ∅
+
+/-- The safe-range discipline on a readers' state: in every safe-range bucket, every key of the
+committed data is below every key of the read buffer (so the backend's range, bbolt's then the
+read buffer's, is in key order and has no key twice). -/
+def safeRv (P : BParams) (rv : RView) : Prop :=
+  ∀ n i, P.BT.lookup n = some i → P.SB n = true → ∀ (kc vc : GoString) (e : Ent),
+    (bktOf rv.1 n).lookup kc = some vc → e ∈ bkOf rv.2.bks i → strLt kc e.1
+
+/-- The safe-range discipline on the batch state, for every safe-range bucket (name `n`, id
+`i`): the readers' state is safe (`safeRv`), every committed key is below every key of the write
+buffer (the session's puts were above the writer's contents), and every committed key is in the
+writer's contents (no deletes in safe-range buckets). -/
+def safeSt (P : BParams) (st : BSess) : Prop :=
+  safeRv P (st.C, st.R) ∧
+  ∀ n i, P.BT.lookup n = some i → P.SB n = true →
+    (∀ (kc vc : GoString) (e : Ent), (bktOf st.C n).lookup kc = some vc →
+      e ∈ bkOf st.W.bks i → strLt kc e.1) ∧
+    (∀ (kc vc : GoString), (bktOf st.C n).lookup kc = some vc → ∃ vs, (bktOf st.S n).lookup kc = some vs)
+
 /-- The state's facts at any time. -/
 def sessWf (P : BParams) (st : BSess) : Prop :=
   st.W.Wf ∧ st.R.Wf ∧ idsOk P st.W.bks ∧ idsOk P st.R.bks ∧
   0 ≤ sint.Z st.pend ∧ sint.Z st.pend < 2 ^ 58 ∧ 0 ≤ sint.Z st.ndel ∧
   sint.Z st.ndel ≤ sint.Z st.pend ∧
   (st.pend = W64 0 → ∀ i, bkOf st.R.bks i = []) ∧
-  (st.ndel = W64 0 → agreeOff P.HB (dget st.S) (ovB P.BT st.W.bks (viewOf P st)))
+  (st.ndel = W64 0 → agreeOff P.HB (dget st.S) (ovB P.BT st.W.bks (viewOf P st))) ∧
+  safeSt P st
 
 /-- The state's facts when the batch lock is free. -/
 def freeOk (P : BParams) (st : BSess) : Prop :=
@@ -211,9 +236,6 @@ namespace EtcdGrove
 namespace backend
 
 /-! ## The batch transaction's operations -/
-
-/-- A bucket's contents in bbolt's data (empty if absent). -/
-def bktOf (D : Data) (n : GoString) : BktData := (D.lookup n).getD ∅
 
 /-- `UnsafePut(bucket, k, v)` (and `UnsafeSeqPut`, with the write buffer's `putSeq`): bbolt's
 writer sets the entry, the write buffer gets it, one more pending operation. -/

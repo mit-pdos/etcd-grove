@@ -40,7 +40,7 @@ theorem txn.Range.wp_proof
   intro ctx cd nd lg kv s γ r o withTotal m log₀
   wp_start as ⟨#Hkv, Hrd, Htoks, #Hc0, #Hr, #Hctx, #Hnd, %Hlg, %Hvst, #Hsort⟩
   iunfold txn.isKV at Hkv
-  icases Hkv with ⟨%Hkv, #Hs⟩
+  icases Hkv with ⟨%Hkv, #Hs, %Hkb⟩
   subst Hkv
   wp_apply wp_with_defer as %defer defer
   wp_apply (hEnsure ctx cd lg _ _) $$ [$Hctx] as %ctx' %t ⟨%Ht, %vs, #Hctx', -⟩

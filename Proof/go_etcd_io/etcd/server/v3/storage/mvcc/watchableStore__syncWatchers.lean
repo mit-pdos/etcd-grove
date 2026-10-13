@@ -239,7 +239,8 @@ theorem mvcc.watchableStore.syncWatchers.wp_proof
     ipureintro; exact H
   have hcur1 : sint.Z (W64 ((C.length : Int) - 1) + W64 1) = (C.length : Int) := by word
   wp_apply (hRange _ _ γ.st _ _ _ _ C minRev (W64 ((C.length : Int) - 1) + W64 1) g W')
-    $$ [$HbkS $HbucketQ $HcertQ $Hg] as %evs ⟨HbucketQ, Hg, %ps, Hevs, Hevcap, %Hpslen, #HevIs⟩
+    $$ [$HbkS $HrtR $HbucketQ $HcertQ $Hg] as %evs ⟨HrtR, HbucketQ, Hg, %ps, Hevs, Hevcap, %Hpslen,
+      #HevIs⟩
   · ipureintro; rw [hcur1]; omega
   have hnat1 : sint.nat (W64 ((C.length : Int) - 1) + W64 1) = C.length := by
     show (sint.Z _).toNat = _; rw [hcur1]; simp

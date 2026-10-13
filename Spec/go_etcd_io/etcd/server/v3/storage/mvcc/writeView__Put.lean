@@ -29,7 +29,7 @@ abbrev mvcc.writeView.Put.spec : Prop :=
   ∀ (wv s : Loc) (γ : mvcc.StoreNames) (P Pre Q Post : IProp GF) (f : val)
     (key value : GoSlice) (k v : GoString) (leaseID : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isWriteView wv s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗
+      mvcc.isWriteView wv s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗ mvcc.storeWT γ ∗
       mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post ∗ key ↦*□ k ∗
       value ↦*□ v ∗ (⌜leaseID = W64 0⌝ ∨ mvcc.leaseKnown γ.leases leaseID) }}
     (App (App (App (Val (wv @!! go.GoType.PointerType writeView.ty @!! go!"Put")) (Val #key))

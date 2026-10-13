@@ -87,7 +87,8 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     wp_call
     (try wp_auto)
     -- the bucket through the batch transaction (its own puts), the index by the writer
-    ihave #Hrdr := mvcc.batchTxSpec_reader bt (mvcc.bucketView γ) (mvcc.writerRes s γ) Locked Pw fw
+    ihave #Hrdr := mvcc.batchTx_reader bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
+      (mvcc.storePutOk γ) (mvcc.storeW s γ) Locked Pw fw
       (mvcc.pendPuts ilog pend) (1 : Qp).half (mvcc.bucketMap ilog) $$ Hbt
     ihave HR : iprop(Locked (mvcc.pendPuts ilog pend) ∗
         mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap ilog)) $$ [Hlocked Hbv]
@@ -126,7 +127,7 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     iunfold mvcc.storeTxnWriteIs
     iexists trace, ti, bt, Locked, chs, ps, ntok
     simp only [named]
-    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
+    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt
     iframe #
     ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
 

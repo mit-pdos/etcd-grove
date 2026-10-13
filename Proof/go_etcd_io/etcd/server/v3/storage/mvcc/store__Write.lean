@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF) (hG := hG)) :
     mvcc.store.Write.spec (GF := GF) (hG := hG) := by
   intro s γ trace P Pre Q f
-  wp_start as ⟨#Hs, Hrd, Htok, %Htrnn, #HhookC, Hpre, #Htriple⟩
+  wp_start as ⟨#Hs, Hrd, Htok, Hwt, %Htrnn, #HhookC, Hpre, #Htriple⟩
   ihave #Hs0 : mvcc.isStore s γ $$ []
   · iexact Hs
   iunfold mvcc.isStore at Hs
@@ -50,7 +50,6 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HmuR] as ⟨Hmul, -⟩
   (try wp_auto)
   -- `tx := s.b.BatchTx()`
-  iunfold mvcc.isKeyBackend at Hbk
   iunfold mvcc.isKeyBackendG at Hbk
   icases Hbk with ⟨%bi, %Hbi, #HC, #HR, #HB, -⟩
   subst Hbi
@@ -59,14 +58,16 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   (try wp_auto)
   iunfold mvcc.isBatchTxG at Hbt
   icases Hbt with ⟨%Locked, %LockedO, #Hbt, -⟩
-  ihave #Hbt0 : mvcc.batchTxSpec bt (mvcc.bucketView γ) (mvcc.writerRes s γ) Locked P0 f $$ []
-  · iunfold mvcc.batchTxSpec; iexact Hbt
+  ihave #Hbt0 : mvcc.batchTxSpecG bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
+      (mvcc.storePutOk γ) (mvcc.storeW s γ) Locked P0 f $$ []
+  · iexact Hbt
   iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨#HLock, -, -, -, -⟩
   -- `tx.LockInsideApply()`: the writer's resources, the hook run on the caller's `Pre`
   ihave #HLock' := HLock $$ %Pre %Q
-  wp_apply HLock' $$ [$Hpre $Htr0] as ⟨Hlocked, HW, HQ, -⟩
+  wp_apply HLock' $$ [$Hpre $Htr0 $HrtR $Hwt] as ⟨Hlocked, HW, HQ, HrtR⟩
   (try wp_auto)
+  ihave HW := mvcc.storeW_get s γ $$ [$Hreg $HW]
   iunfold mvcc.writerRes at HW
   iNamed HW
   (try wp_auto)
@@ -85,7 +86,7 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   iexists trace, ti2, bt, Locked, chs, [], ntok, P0, f
   simp only [named, mvcc.pendPuts_nil]
   simp only [List.replicate_zero]
-  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmul HrevMuR HtiR
+  iframe Htoks Htok «$r0» Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmul HrevMuR HtiR HrtR
   iframe #
   isplitl []
   · ipureintro; exact Hbudget

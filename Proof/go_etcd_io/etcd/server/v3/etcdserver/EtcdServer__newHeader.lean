@@ -47,7 +47,7 @@ theorem EtcdServer.newHeader.wp_proof
   iunfold srvReadFieldsAt at Hf
   icases Hf with ⟨-, -, #HkvA, #Hkv, #HrvA, #Hrv, -, -, -, -, -, -, -, #Hterm, -, -⟩
   iunfold txn.isKV at Hkv
-  icases Hkv with ⟨%Hkv, #Hs⟩
+  icases Hkv with ⟨%Hkv, #Hs, %Hkb⟩
   ihave #Hmem : isPkgInit (PROP := IProp GF)
     pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
   · iPkgInit

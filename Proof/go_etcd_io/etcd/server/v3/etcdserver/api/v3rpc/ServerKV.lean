@@ -673,7 +673,7 @@ theorem kvGetOk_of_server (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
   iunfold srvReadFieldsAt at Hw
   icases Hw with ⟨-, -, #Hkvf, #Hkv, #Hrvf, #Hrv, -, -, -, -, -, -, -, #Hterm, -⟩
   iunfold txn.isKV at Hkv
-  icases Hkv with ⟨%Hkveq, #Hst⟩
+  icases Hkv with ⟨%Hkveq, #Hst, %Hkb⟩
   iunfold kvGetOk
   simp only [srvKVAns]
   isplitr

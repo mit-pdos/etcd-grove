@@ -4034,3 +4034,31 @@ foresee, and how it is resolved:
 - **The hook's buckets are all but `Key`** (`bridgeParams`): the view is the `Key` bucket, every
   other bucket's contents promise nothing to readers, so a session without `Key` puts changed
   nothing readers see (`viewSame_noPuts`) and needs no view at its `Unlock`.
+
+### The store over the real backend (unit 5, 2026-10-13 · adopted)
+
+- **The instance is data in the store's names** (`StoreNames.kb : Option KBReal`), not saved
+  propositions: the view, the reader and write tokens, the put condition and the lock resource
+  are functions of it, so the store's lock invariants keep their fractional laws and no agreement
+  costs a later credit; `none` is mvcc's assumed contract, so one generic proof serves both.
+  mvcc imports the backend's `InvBackend` for the real instance's predicates. *Rejected:* saved
+  propositions for the view and tokens (the bucket view's halves would agree only up to a later,
+  breaking `revMuInv`'s fractionality); two families of specs (duplicated proofs).
+- **The lock resource is late-bound by registration, not by changing the backend**: the real
+  backend is created with `W := lateW gx` (a one-shot registration of `(s, γ)`, a `dghostVar` of
+  countable data), which `NewStore`'s first `Unlock` sets; `isBackend` is generic in `W`, so no
+  backend proof changed.
+- **Above mvcc the instance is pinned to the assumed one** (`txn.isKV`'s `γ.kb = none`), rather
+  than threading the real backend's write tokens and `2^56` bound through txn, apply, server and
+  v3rpc: the server's apply loop has no counted write budget to give (`soleWriter`'s budget is a
+  function of the log; empty write transactions spend a write-back too), which is a statement
+  change at the top, not a threading.
+- **Size of a range: a premise** (`keySized`), the order: the backend's invariant. *Rejected:* a
+  size bound in the backend's discipline (its put premise would need the bucket's size, which
+  mvcc cannot bound: a revision may have `2^63` changes).
+- **An oversized value is fatal, not a premise**: bbolt's `Put` kv-spec covers it (Go returns
+  `ErrValueTooLarge`), and the backend's `lg.Fatal` never returns; mvcc cannot bound its encoded
+  `KeyValue` (`kvEncode` is opaque).
+- **`ConcurrentReadTx` promises no range** (`rng = false`): its cached read buffer can repeat a
+  committed key (the cache issue's third reproduction).
+

@@ -917,6 +917,23 @@ theorem rtHeld_view (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (q : 
   icombine Hview Hbv gives %Hv
   ipureintro; exact Hv.2
 
+/-- A held shared read transaction's state keeps the safe-range discipline (`safeRv`: in a
+safe-range bucket, bbolt's keys below the read buffer's). -/
+theorem rtHeld_safe (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) :
+    rtHeld (GF := GF) γ P b rtx rv ⊢ rtHeld γ P b rtx rv ∗ ⌜safeRv P rv⌝ := by
+  unfold rtHeld rtResAt rtRest rtCore
+  iintro ⟨%rt, %rd, %H, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs,
+    Hcur, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv⟩, %Hrtx, Hcr⟩
+  isplitl
+  · iexists rt, rd, H
+    iframe Hrt Hrl Hcr
+    isplitl
+    · iexists m, Pb, cm
+      iframe; iframe #
+      ipureintro; exact ⟨Hok, Hf⟩
+    ipureintro; exact Hrtx
+  ipureintro; exact Hf.2.2.2.2.2
+
 /-- A slice a held shared read transaction returned, read (the backend open: its bbolt
 transaction is). -/
 theorem rtHeld_read (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (qo : Qp)

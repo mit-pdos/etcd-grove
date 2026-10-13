@@ -28,6 +28,7 @@ theorem mvcc.storeTxnWrite.Put.wp_proof (hput : mvcc.storeTxnWrite.put.spec (GF 
     mvcc.storeTxnWrite.Put.spec (GF := GF) (hG := hG) := by
   intro tw s γ ilog pend key value k v leaseID
   wp_start as ⟨Htw, #Hkey, #Hval, Hlease, %Hb⟩
+  have hpm := mvcc.putMax_le γ
   (try wp_auto)
   wp_apply (hput tw s γ ilog pend key value k v leaseID) $$ [$Htw $Hkey $Hval $Hlease] as Htw
   · ipureintro; exact Hb
@@ -42,7 +43,7 @@ theorem mvcc.storeTxnWrite.Put.wp_proof (hput : mvcc.storeTxnWrite.put.spec (GF 
   iunfold mvcc.storeTxnWriteIs
   iexists trace, ti, bt, Locked, chs, ps, ntok
   simp only [named]
-  iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
+  iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt
   iframe #
   ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
 
