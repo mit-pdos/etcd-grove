@@ -47,10 +47,13 @@ theorem newRaft_post_init (hs : raftpb.HardState) (s : NState) :
     s.logst.sents = [] →
     s.logst.uents = [] →
     s.logst.committed = W64 0 →
+    s.rd.states = [] → s.rd.pend = [] →
     NStateRel s initPState := by
-  intro ⟨HT, HV, _⟩ ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho⟩ Hp Hse Hue Hc
+  intro ⟨HT, HV, _⟩ ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho⟩ Hp Hse Hue Hc Hst Hpd
   refine ⟨?_, Hwf⟩
-  simp [toPState, initPState, Ht, Hv, HT, HV, Hl, Hr, Hvs, Ho, Hp, Hse, Hue, Hc, proleRole]
+  simp [toPState, initPState, Ht, Hv, HT, HV, Hl, Hr, Hvs, Ho, Hp, Hse, Hue, Hc, proleRole, rdNL]
+  cases h : s.rd
+  simp_all
 
 end newRaft_post
 

@@ -169,7 +169,9 @@ abbrev newRaft.spec : Prop :=
         -- the storage it reads (2026-10-10, for `RNState.storage`)
         s.logst.storage = interface.ok si ∧
         -- no ghost lower bound yet (2026-10-10, `NGhost`)
-        s.gh = {}⌝ }}
+        s.gh = {} ∧
+        -- no read state (2026-10-13)
+        s.rd.states = [] ∧ s.rd.pend = []⌝ }}
 
 end spec
 

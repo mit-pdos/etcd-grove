@@ -44,12 +44,12 @@ theorem NewRawNode.wp_proof
   -- `prevSoftSt` points to a `SoftState` nobody writes again
   ipersist ss
   wp_apply wp_hardState _ r cv.ID' s $$ Hphys as Hphys
-  obtain ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho, Hpv, Hp, Hse, Hue, Hsd, Hcm, Hap, Hun, Hsn, Hsg, Hgh⟩ :=
-    Hpost
+  obtain ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho, Hpv, Hp, Hse, Hue, Hsd, Hcm, Hap, Hun, Hsn, Hsg, Hgh, Hrst,
+    Hrpd⟩ := Hpost
   have HT : hs.Term' = W64 0 := Hhs.1
   have Hrel : NStateRel s initPState :=
     newRaft_post_init hs s Hhs ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho⟩ (by rw [Hp, Hprev])
-      (by rw [Hse, Hents]) Hue (by rw [Hcm]; simp [committedAfter, Hhs, Hprev])
+      (by rw [Hse, Hents]) Hue (by rw [Hcm]; simp [committedAfter, Hhs, Hprev]) Hrst Hrpd
   -- the ghost state's configuration is the node's
   ihave Hphys : ownRaftPhys γ.reCfg r cv.ID' s $$ [Hphys]
   · rw [Hcfg]; iexact Hphys

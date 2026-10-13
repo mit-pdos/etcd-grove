@@ -347,7 +347,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
         m.Entries' ↦*□ ents ∗ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) ∗
         m.Context' ↦*□ ctx ∗
         ⌜ctx ≠ campaignTransfer ∧ (m.Type' = MsgHeartbeatResp → ctx = [])⌝ ∗
-        □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗ isMessage γ (absMsg ty m ents)) }}
+        □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗ isMessage γ (absMsg ty m ents ctx)) }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (t : w64), RET #err;
         ownRawNode γ rn id { rs with term := t } ∗
@@ -402,7 +402,6 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
       · ipureintro; not_net
       imodintro
       iintro %ty %Hty' _
-      iapply isMessage_ctx_intro
       iapply Hmsg $$ %ty %Hty'
     isplitr
     · iframe Hctx
@@ -536,7 +535,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
         try rw [Hty'] at Hty2
         rw [show mtypeOf MsgProp = some .propose from rfl] at Hty2
         cases Hty2
-        iapply isMessage_ctx_intro
+        iapply isMessage_ctx_intro _ _ _ _ _ ⟨nofun, nofun⟩
         iexact Hm'
     isplitr
     · isplitr

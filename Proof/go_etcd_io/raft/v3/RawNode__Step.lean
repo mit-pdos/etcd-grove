@@ -129,7 +129,6 @@ theorem RawNode.Step.wp_proof
           · ipureintro; not_net
           imodintro
           iintro %ty %Hty' _
-          iapply isMessage_ctx_intro
           iapply Hmsg $$ %ty %Hty'
         isplitr
         · iframe Hctx

@@ -74,7 +74,7 @@ abbrev RawNode.Step.spec : Prop :=
       -- (no read-index requests: a heartbeat carries none and its response echoes it)
       "#Hctx" ∷ m.Context' ↦*□ ctx ∗
       "%Hctx_ok" ∷ ⌜ctx ≠ campaignTransfer ∧ (m.Type' = MsgHeartbeatResp → ctx = [])⌝ ∗
-      "#Hmsg" ∷ □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗ isMessage γ (absMsg ty m ents)) }}
+      "#Hmsg" ∷ □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗ isMessage γ (absMsg ty m ents ctx)) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Step")) (Val #m))
   {{ (err : GoInterface) (t : w64), RET #err;
       "Hrn" ∷ ownRawNode γ rn id { rs with term := t } ∗
