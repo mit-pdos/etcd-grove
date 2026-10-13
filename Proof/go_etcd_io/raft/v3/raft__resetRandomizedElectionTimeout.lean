@@ -30,7 +30,7 @@ the sum, so nothing about the draw is needed beyond its existence. -/
 theorem raft.resetRandomizedElectionTimeout.wp_proof
     (wp_lockedRand_Intn : lockedRand.Intn.spec (GF := GF) (hG := hG)) :
     raft.resetRandomizedElectionTimeout.spec (GF := GF) (hG := hG) := by
-  intro c r id s
+  intro c V r id s
   wp_start as Hphys
   ihave #Hinit := isInitialized_access $$ Hpkg
   unfold isInitialized

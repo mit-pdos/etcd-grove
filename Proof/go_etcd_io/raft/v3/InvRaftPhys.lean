@@ -3410,6 +3410,20 @@ theorem ownRaftPhysCV_follower (V' : GSet w64) (r : Loc) (id : w64) (s : NState)
     Hgh_unst Hvoter'
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
+/-- `Hvoter`'s set changed to any `V'` that holds of the role (a superset, or any set at a
+follower). -/
+theorem ownRaftPhysCV_widen (V' : GSet w64) (r : Loc) (id : w64) (s : NState)
+    (Hv : (s.role ≠ .follower → id ∈ V) → s.role ≠ .follower → id ∈ V') :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ownRaftPhysCV c V' r id s := by
+  iintro H
+  iNamed_physC H
+  have Hvoter' : s.role ≠ .follower → id ∈ V' := Hv Hvoter
+  iapply ownRaftPhysCV_intro c V' _ _ s _ msgs msgsAA lok
+    Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
+    Hgh_unst Hvoter'
+    $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
+
 /-- `ownRaftPhysC_reconfig` to any `Hvoter` set: the tracker at `c0` handed out, taken back at
 `c` with `Hvoter` at `V'` (which must hold of the role now). -/
 theorem ownRaftPhysCV_reconfig (c' : CfgM) (V' : GSet w64) (r : Loc) (id : w64) (s : NState)

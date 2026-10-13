@@ -25,13 +25,13 @@ precondition says nothing about `r.step`: the function overwrites it first, whic
 why `newRaft` can call this on a struct whose `step` is still nil. The term does not
 move back (`raft.reset.spec`, 2026-10-10). -/
 abbrev raft.becomeFollower.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (term lead : w64),
+  ∀ (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) (term lead : w64),
   uint.Z s.term ≤ uint.Z term →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c V r id s }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"becomeFollower"))
       (Val #term)) (Val #lead))
   {{ (pvs : GMap w64 Progress), RET #();
-      ownRaftPhysCV c c.voters r id { becomeFollower s term lead with prvals := pvs } }}
+      ownRaftPhysCV c V r id { becomeFollower s term lead with prvals := pvs } }}
 
 /-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
 derived from `raft.becomeFollower.spec` by `raft.becomeFollower.spec_simple`. -/

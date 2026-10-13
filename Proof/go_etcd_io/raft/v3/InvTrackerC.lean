@@ -572,6 +572,75 @@ theorem visitClosure_toC (cfg : GSet w64) (trk : Loc) (votes : GMap w64 Bool)
   iframe Htrk HI
   iapply ownTracker_toC _ _ _ $$ Hown
 
+/-! ### A new configuration, as `switchToConfig` installs it (2026-10-13, stage A2) -/
+
+/-- The configuration value and progress map `switchToConfig(cfg, trk)` installs, at the
+configuration `c` (`ownConfigV` at any configuration): what of `ownTrackerC` is not the tally
+or the inflight bound. -/
+def ownConfigC (c : CfgM) (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc)
+    (pvs : GMap w64 Progress) : IProp GF :=
+  iprop(
+  "Hcfg" ∷ ownCfgCC cfgv (DFrac.own 1) c ∗
+  "#Hprsm" ∷ prsm ↦$□ prs ∗
+  "Hprogs" ∷ ([∗map] _k ↦ pr;p ∈ prs;pvs, ownProgress pr p) ∗
+  "%Hinv" ∷ ⌜CfgInv ⟨c, trkFlags pvs⟩⌝ ∗
+  "%Hdom" ∷ ⌜domSet prs = c.ids⌝ ∗
+  "%Hflags" ∷ ⌜LearnerFlagsC c pvs⌝ ∗
+  "%Hsize" ∷ ⌜(GMap.size prs : Int) ≤ 2 ^ 62⌝)
+
+/-- The old tracker's tally and inflight bound. -/
+theorem ownTrackerC_votes (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
+    ownTrackerC (GF := GF) c tv t ⊢
+      tv.Votes' ↦$ t.votes ∗ ⌜0 ≤ sint.Z tv.MaxInflight' ∧ sint.Z tv.MaxInflight' < 2 ^ 62⌝ := by
+  iintro Hold
+  iunfold ownTrackerC at Hold
+  iNamed Hold
+  iframe Hvotes
+  ipureintro; exact HmaxInfl
+
+/-- The new tracker: the old tally and bound, the new configuration and `Progress` objects. -/
+theorem ownTrackerC_reconfig (c : CfgM) (tv : tracker.ProgressTracker) (votes : GMap w64 Bool)
+    (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (pvs : GMap w64 Progress)
+    (Hmi : 0 ≤ sint.Z tv.MaxInflight' ∧ sint.Z tv.MaxInflight' < 2 ^ 62) :
+    ⊢ (tv.Votes' ↦$ votes : IProp GF) -∗ ownConfigC c cfgv prsm prs pvs -∗
+      ownTrackerC c { tv with Config' := cfgv, Progress' := prsm } ⟨votes, prs, pvs⟩ := by
+  iintro Hvotes Hnew
+  iunfold ownConfigC at Hnew
+  iNamed Hnew
+  iapply ownTrackerC_intro c { tv with Config' := cfgv, Progress' := prsm } votes prs pvs
+    Hinv Hdom Hflags Hsize Hmi $$ Hvotes Hprsm Hprogs Hcfg
+
+/-- `ownConfigV` is `ownConfigC` at its simple configuration (the learners the tracked ids
+outside the voters). -/
+theorem ownConfigV_toC (cfg : GSet w64) (cfgv : tracker.Config) (prsm : Loc)
+    (prs : GMap w64 Loc) (pvs : GMap w64 Progress) :
+    ownConfigV (GF := GF) cfg cfgv prsm prs pvs ⊢
+      ownConfigC (CfgM.simple cfg (domSet prs \ cfg)) cfgv prsm prs pvs := by
+  iintro Hown
+  iunfold ownConfigV at Hown
+  icases Hown with ⟨%vref, %vm, %learners, Hown⟩
+  iNamed Hown
+  obtain ⟨Hldom, Hlnx, Hfl⟩ := Hlrn
+  have Hv : vm = cfg := by rw [← Hvm, domSet_gset]
+  subst Hv
+  have Hl : learners = domSet prs \ vm := by rw [← Hldom, domSet_gset]
+  subst Hl
+  ihave %Hdom0 := BigSepM2.bigSepM2_lookup_iff $$ Hprogs
+  have Hd : ∀ k, (prs !! k).isSome ↔ (pvs !! k).isSome := Hdom0
+  unfold ownConfigC
+  simp only [named]
+  iframe Hprsm Hprogs
+  isplitl [Hvref Hcfgl]
+  · iapply ownCfgCC_intro cfgv (DFrac.own 1) (CfgM.simple vm (domSet prs \ vm))
+      vref map.nil Hcfgarr Hcfgal $$ [Hvref] [] [Hcfgl] []
+    · simp only [CfgM.simple]; iexact Hvref
+    · simp only [CfgM.simple]; iapply ownIdsetC_nil
+    · simp only [CfgM.simple]; iexact Hcfgl
+    · simp only [CfgM.simple]; rw [Hcfgln]; iapply ownIdsetC_nil
+  ipureintro
+  exact ⟨cfgInv_simple vm prs pvs Hprs Hd Hfl, ids_simple vm prs Hprs,
+    learnerFlagsC_simple vm prs pvs Hd Hfl, Hcsz⟩
+
 end defs
 
 end EtcdGrove

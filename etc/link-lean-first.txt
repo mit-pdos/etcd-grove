@@ -139,7 +139,8 @@ node__ProposeConfChange: confChangeToMsg node__Step
 # Reconfiguration, stage D (2026-10-13): ApplyConfChange for a change that leaves the
 # configuration unchanged. switchToConfig (a Rocq-side function, overridden) gains the
 # leader case's callees; applyConfChange and RawNode.ApplyConfChange are Lean-first.
-raft__switchToConfig: traceConfChangeEvent ProgressTracker__ConfState raft__maybeCommit raft__bcastAppend ProgressTracker__Visit raft__maybeSendAppend JointConfig__IDs raft__abortLeaderTransfer
+# (2026-10-13, stage A2) and becomeFollower, for a removed or demoted leader (stepDownOnRemoval).
+raft__switchToConfig: traceConfChangeEvent ProgressTracker__ConfState raft__maybeCommit raft__bcastAppend ProgressTracker__Visit raft__maybeSendAppend JointConfig__IDs raft__abortLeaderTransfer raft__becomeFollower
 raft__applyConfChange: raftLog__lastIndex ConfChangeV2__LeaveJoint ConfChangeV2__EnterJoint Changer__Simple raft__switchToConfig
 RawNode__ApplyConfChange: ConfChange__AsV2 ConfChangeV2__AsV2 raft__applyConfChange
 node__ApplyConfChange: ConfChange__AsV2 ConfChangeV2__AsV2

@@ -92,8 +92,9 @@ theorem raft.applyConfChange.wp_proof
   · iintro %tv' %prs'' %pvs'' Hf Ht
     ihave H := Hback $$ %tv' %s.votes %prs'' %pvs'' %s.logst Hlf Hf Ht Hlog %Hgh
     iapply ownRaftPhys_eq cfg r id _ _ (by cases s; rfl) $$ H
-  wp_apply wp_raft_switchToConfig cfg r id s tv cfgv trk prs' pvs'
-      (fun hl => ⟨Hv (by rw [hl]; decide), Hmk⟩) $$ [$Htrkf $Hback' $Hvotes $Hnew]
+  wp_apply (raft.switchToConfig.spec_simple wp_raft_switchToConfig) cfg r id s tv cfgv trk prs' pvs'
+      (fun hl => ⟨Hv (by rw [hl]; decide), Hmk⟩)
+      (fun hc => Hv (by rcases hc with h | h <;> rw [h] <;> decide)) $$ [$Htrkf $Hback' $Hvotes $Hnew]
     as %cs %xs %ls %s' ⟨Hphys, Hcs, Hls, %Hcs0, %Hsw⟩
   · ipureintro; exact Hmi
   try wp_auto

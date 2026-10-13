@@ -23,7 +23,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem raft.abortLeaderTransfer.wp_proof :
     raft.abortLeaderTransfer.spec (GF := GF) (hG := hG) := by
-  intro c r id s
+  intro c V r id s
   -- `leadTransferee := None`
   wp_start as Hphys
   wp_auto

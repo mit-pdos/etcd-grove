@@ -778,22 +778,6 @@ theorem raft.wp_abortLeaderTransfer :
     raft.abortLeaderTransfer.spec (GF := GF) (hG := hG) :=
   raft.abortLeaderTransfer.wp_proof
 
-theorem raft.wp_switchToConfig :
-    raft.switchToConfig.spec (GF := GF) (hG := hG) :=
-  raft.switchToConfig.wp_proof wp_traceConfChangeEvent tracker.ProgressTracker.wp_ConfState raft.wp_maybeCommit raft.wp_bcastAppend tracker.ProgressTracker.wp_Visit raft.wp_maybeSendAppend quorum.JointConfig.wp_IDs raft.wp_abortLeaderTransfer
-
-theorem wp_assertConfStatesEquivalent :
-    assertConfStatesEquivalent.spec (GF := GF) (hG := hG) :=
-  assertConfStatesEquivalent.wp_proof raftpb.ConfState.wp_Equivalent
-
-theorem raft.wp_loadState :
-    raft.loadState.spec (GF := GF) (hG := hG) :=
-  raft.loadState.wp_proof raftLog.wp_lastIndex
-
-theorem raftLog.wp_appliedTo :
-    raftLog.appliedTo.spec (GF := GF) (hG := hG) :=
-  raftLog.appliedTo.wp_proof
-
 theorem tracker.ProgressTracker.wp_ResetVotes :
     tracker.ProgressTracker.ResetVotes.spec (GF := GF) (hG := hG) :=
   tracker.ProgressTracker.ResetVotes.wp_proof
@@ -829,6 +813,22 @@ theorem wp_traceBecomeFollower :
 theorem raft.wp_becomeFollower :
     raft.becomeFollower.spec (GF := GF) (hG := hG) :=
   raft.becomeFollower.wp_proof raft.wp_reset wp_traceBecomeFollower
+
+theorem raft.wp_switchToConfig :
+    raft.switchToConfig.spec (GF := GF) (hG := hG) :=
+  raft.switchToConfig.wp_proof wp_traceConfChangeEvent tracker.ProgressTracker.wp_ConfState raft.wp_maybeCommit raft.wp_bcastAppend tracker.ProgressTracker.wp_Visit raft.wp_maybeSendAppend quorum.JointConfig.wp_IDs raft.wp_abortLeaderTransfer raft.wp_becomeFollower
+
+theorem wp_assertConfStatesEquivalent :
+    assertConfStatesEquivalent.spec (GF := GF) (hG := hG) :=
+  assertConfStatesEquivalent.wp_proof raftpb.ConfState.wp_Equivalent
+
+theorem raft.wp_loadState :
+    raft.loadState.spec (GF := GF) (hG := hG) :=
+  raft.loadState.wp_proof raftLog.wp_lastIndex
+
+theorem raftLog.wp_appliedTo :
+    raftLog.appliedTo.spec (GF := GF) (hG := hG) :=
+  raftLog.appliedTo.wp_proof
 
 theorem tracker.ProgressTracker.wp_VoterNodes :
     tracker.ProgressTracker.VoterNodes.spec (GF := GF) (hG := hG) :=
