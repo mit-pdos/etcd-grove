@@ -175,7 +175,7 @@ theorem raft.maybeSendSnapshot.wp_proof
       { Type' := W32 7, To' := to, From' := 0, Term' := 0, LogTerm' := 0, Index' := 0,
         Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := snapshot_ptr,
         Reject' := false, RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil }
-    wp_apply wp_raft_send cfg r id _ m [] [] [absSnapFrom m id s.term snap voters] ?_ ?_
+    wp_apply (raft.send.spec_simple wp_raft_send) cfg r id _ m [] [] [absSnapFrom m id s.term snap voters] ?_ ?_
       $$ [$Hphys]
     · exact Or.inl rfl
     · exact Or.inr (Or.inr (Or.inl (Or.inl ⟨rfl, rfl, Hto⟩)))

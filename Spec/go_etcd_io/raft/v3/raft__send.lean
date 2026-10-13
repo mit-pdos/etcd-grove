@@ -186,7 +186,7 @@ unchanged after (`NState.prvals`), and holds `ents` (read-only) across it.
 From 2026-09-21 to 2026-09-22 this was stated on a variant predicate, `own_raft_bare`;
 see notes/decisions.md ("Three layers") and notes/false-statements.md, 2026-09-21. -/
 abbrev raft.send.spec : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (ctx : List w8) (out : List Msg),
   -- `From` unset, or already the node's own (`RawNode.Propose` stamps `From: r.id`
   -- before `Step`; a follower forwards that proposal as it is). Either way the queued
@@ -194,6 +194,25 @@ abbrev raft.send.spec : Prop :=
   -- (2026-10-12) or a read-index request forwarded on, which keeps its requester
   -- (2026-10-13) or a leader-transfer request forwarded to the leader, which keeps its
   -- transferee
+  (m.From' = W64 0 ∨ m.From' = id ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader) →
+  SendOk id s m ents ctx out →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysC c r id s ∗
+      "#Hents" ∷ m.Entries' ↦*□ ents ∗
+      "#Hctx" ∷ m.Context' ↦*□ ctx ∗
+      "#Hsnap" ∷ □ (⌜m.Type' = MsgSnap⌝ -∗
+                    ∃ (sv : raftpb.Snapshot) (voters : List w64),
+                      ⌜out = [absSnapFrom m id s.term sv voters]⌝ ∗
+                      m.Snapshot' ↦□ sv ∗
+                      sv.Metadata'.ConfState'.Voters' ↦*□ voters) }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #m))
+  {{ RET #(); ownRaftPhysC c r id (sendMsgs s out) }}
+
+/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
+derived from `raft.send.spec` by `raft.send.spec_simple`. -/
+abbrev raft.send.specS : Prop :=
+  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
+    (ents : List raftpb.Entry) (ctx : List w8) (out : List Msg),
   (m.From' = W64 0 ∨ m.From' = id ∨ m.Type' = MsgReadIndex ∨ m.Type' = MsgTransferLeader) →
   SendOk id s m ents ctx out →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
@@ -207,6 +226,19 @@ abbrev raft.send.spec : Prop :=
                       sv.Metadata'.ConfState'.Voters' ↦*□ voters) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #m))
   {{ RET #(); ownRaftPhys cfg r id (sendMsgs s out) }}
+
+open Iris.ProofMode in
+theorem raft.send.spec_simple
+    (H : raft.send.spec (GF := GF) (hG := hG)) :
+    raft.send.specS (GF := GF) (hG := hG) := by
+  intro cfg r id s m ents ctx out Hfrom Hok
+  iintro %Φ ⟨#Hpkg, Hphys, #Hents, #Hctx, #Hsnap⟩ HΦ
+  ihave Hphys := ownRaftPhys_toC _ _ _ _ $$ Hphys
+  iapply H _ r id s m ents ctx out Hfrom Hok $$ [$Hpkg $Hphys $Hents $Hctx $Hsnap]
+  inext
+  iintro Hphys
+  icases ownRaftPhysC_simple_toPhys _ _ _ _ _ $$ Hphys with ⟨Hphys, -⟩
+  iapply HΦ $$ Hphys
 
 end spec
 

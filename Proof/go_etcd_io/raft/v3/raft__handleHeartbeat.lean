@@ -45,7 +45,7 @@ theorem raft.handleHeartbeat.wp_proof
   have Hok : ∀ s', SendOk id s' hb [] cl
       [{ Msg.plain .heartbeatResp id m.From' s'.term false with ctx := cl }] :=
     fun s' => Or.inr (Or.inl ⟨.heartbeatResp, Or.inr (Or.inr (Or.inr rfl)), rfl, rfl, Hfrom, rfl⟩)
-  wp_apply wp_raft_send cfg r id _ hb [] cl _ (Or.inl rfl) (Hok _) $$ [$Hphys] as Hphys
+  wp_apply (raft.send.spec_simple wp_raft_send) cfg r id _ hb [] cl _ (Or.inl rfl) (Hok _) $$ [$Hphys] as Hphys
   · isplitr
     · iapply ownSlice_nil
     isplitr

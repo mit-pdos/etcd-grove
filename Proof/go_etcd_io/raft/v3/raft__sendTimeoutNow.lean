@@ -34,7 +34,7 @@ theorem raft.sendTimeoutNow.wp_proof
       RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil }
   have Hok : SendOk id s tn [] [] [] :=
     Or.inr (Or.inr (Or.inl (Or.inr ⟨rfl, rfl, Hto, rfl⟩)))
-  wp_apply wp_raft_send cfg r id s tn [] [] [] (Or.inl rfl) Hok $$ [$Hphys] as Hphys
+  wp_apply (raft.send.spec_simple wp_raft_send) cfg r id s tn [] [] [] (Or.inl rfl) Hok $$ [$Hphys] as Hphys
   · isplitr
     · iapply ownSlice_nil
     isplitr

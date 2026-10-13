@@ -879,7 +879,7 @@ private theorem wp_stepLeader_hbresp
       wp_auto
       rw [decide_eq_false (fun h => Hloc (Or.inl h))]
       wp_auto
-      wp_apply wp_raft_send cfg r id cur (readIndexRespMsg rv.req' rv.index') (e :: es) []
+      wp_apply (raft.send.spec_simple wp_raft_send) cfg r id cur (readIndexRespMsg rv.req' rv.index') (e :: es) []
           [absMsgFrom .readIndexResp (readIndexRespMsg rv.req' rv.index') id cur.term (e :: es) []]
           (Or.inl rfl)
           (Or.inr (Or.inl ⟨.readIndexResp, Or.inr (Or.inr (Or.inl rfl)), rfl, rfl,

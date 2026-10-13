@@ -103,7 +103,7 @@ theorem stepFollower.wp_proof
       ihave Hes := Hents $$ %(Or.inr trivial)
       icases Hes with ⟨#Hes, -⟩
       ihave #Hcl := Hctx $$ %(by simp [Hty, MsgHeartbeat, MsgProp])
-      wp_apply wp_raft_send _ _ _ _ { m with To' := s.lead } ents cl [propForward id s.lead m ents cl]
+      wp_apply (raft.send.spec_simple wp_raft_send) _ _ _ _ { m with To' := s.lead } ents cl [propForward id s.lead m ents cl]
           (Or.imp_right Or.inl Hfrom0) (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Hterm0, fun h => Hlid h, rfl⟩)))))
         $$ [$Hphys $Hes $Hcl]
       · iapply send_no_snap
@@ -220,7 +220,7 @@ theorem stepFollower.wp_proof
       rw [decide_eq_false Hlead]
       wp_auto
       wp_apply raft.wp_load_lead $$ Hphys as Hphys
-      wp_apply wp_raft_send _ _ _ _ { m with To' := s.lead } ents cl
+      wp_apply (raft.send.spec_simple wp_raft_send) _ _ _ _ { m with To' := s.lead } ents cl
           [readForward id s.lead m ents cl]
           (Or.inr (Or.inr (Or.inl Hty)))
           (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨Hty, Hterm0, fun h => Hlid h, rfl⟩)))))
@@ -366,7 +366,7 @@ theorem stepFollower.wp_proof
       wp_auto
       wp_apply raft.wp_load_lead $$ Hphys as Hphys
       obtain ⟨Hterm0', Hlid⟩ := Hterm0.resolve_left Hlead
-      wp_apply wp_raft_send _ _ _ _ { m with To' := s.lead } [] [] []
+      wp_apply (raft.send.spec_simple wp_raft_send) _ _ _ _ { m with To' := s.lead } [] [] []
           (Or.inr (Or.inr (Or.inr Hty)))
           (Or.inr (Or.inr (Or.inl (Or.inr ⟨by rw [Hty]; rfl, Hterm0', fun h => Hlid h, rfl⟩))))
         $$ [$Hphys]

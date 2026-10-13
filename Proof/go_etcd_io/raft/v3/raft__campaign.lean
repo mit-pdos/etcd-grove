@@ -304,7 +304,7 @@ theorem raft.campaign.wp_proof
       -- `mtypeOf`, the term is nonzero (this is what the no-wrap premise
       -- buys), and -- only for a request -- the destination is not this
       -- node. The last is vacuous here: this is a response.
-      wp_apply wp_raft_send _ _ _ _ _ [] [] [Msg.plain (vrespTy pre) y y (s.term + W64 1) false]
+      wp_apply (raft.send.spec_simple wp_raft_send) _ _ _ _ _ [] [] [Msg.plain (vrespTy pre) y y (s.term + W64 1) false]
           (Or.inl rfl)
           (Or.inl ⟨vrespTy pre,
             by cases pre <;> simp [vrespW32],
@@ -372,7 +372,7 @@ theorem raft.campaign.wp_proof
         rw [Htc]
         iapply ownSlice_nil
       imod ownSlice_persist $$ Hcl with #Hcl
-      wp_apply wp_raft_send _ _ _ _ _ [] (transferCtx t)
+      wp_apply (raft.send.spec_simple wp_raft_send) _ _ _ _ _ [] (transferCtx t)
           [campReq pre id y (s.term + W64 1) lastID (transferCtx t)]
           (Or.inl rfl)
           (Or.inl ⟨vreqTy pre,

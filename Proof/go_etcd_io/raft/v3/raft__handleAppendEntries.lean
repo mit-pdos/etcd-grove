@@ -54,7 +54,7 @@ private theorem wp_send_appResp (wp_raft_send : raft.send.spec (GF := GF) (hG :=
                 raftpb.Message)))
     {{ RET #(); ownRaftPhys cfg r id (sendMsgs s [appResp id s dst rej idx hintterm hint]) }} := by
   iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
-  wp_apply wp_raft_send cfg r id s _ [] [] [appResp id s dst rej idx hintterm hint] (Or.inl rfl)
+  wp_apply (raft.send.spec_simple wp_raft_send) cfg r id s _ [] [] [appResp id s dst rej idx hintterm hint] (Or.inl rfl)
       (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun h => absurd h Hdst, rfl⟩)))) $$ [$Hphys]
       as Hphys
   · isplitr

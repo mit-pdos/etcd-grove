@@ -75,7 +75,7 @@ local macro "finish_some" : tactic => `(tactic| (
     rintro rfl
     exact absurd Hty (by decide)
   · ipureintro; out_term
-  iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
+  iapply ownRaftPhysC_eq _ _ _ _ _ ?_ $$ Hphys
   rfl))
 
 set_option hygiene false in
@@ -97,7 +97,7 @@ local macro "finish_some_aa" : tactic => `(tactic| (
     obtain ⟨He, Hc, Ht⟩ := Hself2 Hto
     exact ⟨Hmterm, He, Hc, fun h => by simp [MsgAppResp] at h, Ht⟩
   · ipureintro; out_term
-  iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
+  iapply ownRaftPhysC_eq _ _ _ _ _ ?_ $$ Hphys
   rfl))
 
 set_option hygiene false in
@@ -109,14 +109,14 @@ local macro "finish_none" : tactic => `(tactic| (
     ipureintro
     exact ⟨Hty, rfl⟩
   · ipureintro; out_term
-  iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
+  iapply ownRaftPhysC_eq _ _ _ _ _ ?_ $$ Hphys
   rfl))
 
 set_option linter.unusedSimpArgs false in
 theorem raft.send.wp_proof
     (wp_traceSendMessage : traceSendMessage.spec (GF := GF) (hG := hG)) :
     raft.send.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s m ents ctx out Hfrom Hok
+  intro c r id s m ents ctx out Hfrom Hok
   wp_start as H
   iNamed H
   wp_auto
@@ -131,9 +131,9 @@ theorem raft.send.wp_proof
     · rw [Hsrc_eq, Hf]; split <;> simp_all
     · exact absurd Hf Hne
     · exact absurd Hf Hne2
-  wp_join iprop(r_ptr ↦ r ∗ m_ptr ↦ { m with From' := src } ∗ ownRaftPhys cfg r id s)
+  wp_join iprop(r_ptr ↦ r ∗ m_ptr ↦ { m with From' := src } ∗ ownRaftPhysC c r id s)
     with [r m Hphys] as ⟨r, m, Hphys⟩
-  · wp_apply raft.wp_load_id $$ Hphys as Hphys
+  · wp_apply raft.wp_load_idC $$ Hphys as Hphys
     rw [show src = id by rw [Hsrc_eq, ite_eq_left (by simpa using Hif)]]
     iframe
     ipureintro; rfl
@@ -155,10 +155,10 @@ theorem raft.send.wp_proof
     subst HRI Hmterm
     rw [← Hsrc_eq]
     wp_auto
-    wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
     rw [decide_eq_false Hself]
     wp_auto
-    send_tail ownRaftPhys_msgs
+    send_tail ownRaftPhysC_msgs
     ihave Hphys := Hback $$ %q' %_ %(some (absMsg .readIndex _ ents ctx)) Hf Hq Hq_cap [] []
     · unfold msgAbs
       iright; ileft
@@ -167,7 +167,7 @@ theorem raft.send.wp_proof
       ipureintro
       exact ⟨rfl, by decide, rfl⟩
     · ipureintro; out_term
-    iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
+    iapply ownRaftPhysC_eq _ _ _ _ _ ?_ $$ Hphys
     rfl
   -- every other message has `From = id` once queued (but an undescribed type, which
   -- may be a forwarded `MsgTransferLeader`: it drops out of the outbox anyway)
@@ -223,10 +223,10 @@ theorem raft.send.wp_proof
       rw [decide_eq_false Hmterm]
       wp_auto
       -- not self-addressed
-      wp_apply raft.wp_load_id $$ Hphys as Hphys
+      wp_apply raft.wp_load_idC $$ Hphys as Hphys
       rw [decide_eq_false (Hself (.inl rfl))]
       wp_auto
-      send_tail ownRaftPhys_msgs
+      send_tail ownRaftPhysC_msgs
       finish_some
     · -- `MsgVoteResp` is a response, so it goes onto `r.msgsAfterAppend`.
       obtain ⟨mty, mto, mfrom, mterm, mlt, midx, ments, mcommit, mvote, msnap, mrej, mrh, mctx,
@@ -237,7 +237,7 @@ theorem raft.send.wp_proof
       wp_auto
       rw [decide_eq_false Hmterm]
       wp_auto
-      send_tail ownRaftPhys_msgsAA
+      send_tail ownRaftPhysC_msgsAA
       finish_some_aa
     · -- `MsgPreVote` (2026-10-04): a request, onto `r.msgs`, as `MsgVote`.
       obtain ⟨mty, mto, mfrom, mterm, mlt, midx, ments, mcommit, mvote, msnap, mrej, mrh, mctx,
@@ -248,10 +248,10 @@ theorem raft.send.wp_proof
       wp_auto
       rw [decide_eq_false Hmterm]
       wp_auto
-      wp_apply raft.wp_load_id $$ Hphys as Hphys
+      wp_apply raft.wp_load_idC $$ Hphys as Hphys
       rw [decide_eq_false (Hself (.inr rfl))]
       wp_auto
-      send_tail ownRaftPhys_msgs
+      send_tail ownRaftPhysC_msgs
       finish_some
     · -- `MsgPreVoteResp`: a response, onto `r.msgsAfterAppend`.
       obtain ⟨mty, mto, mfrom, mterm, mlt, midx, ments, mcommit, mvote, msnap, mrej, mrh, mctx,
@@ -262,7 +262,7 @@ theorem raft.send.wp_proof
       wp_auto
       rw [decide_eq_false Hmterm]
       wp_auto
-      send_tail ownRaftPhys_msgsAA
+      send_tail ownRaftPhysC_msgsAA
       finish_some_aa
   · -- (b) `Term` must be unset and is stamped with `r.Term` (= `s.term`); not a
     -- response, so onto `r.msgs` after the self-address check.
@@ -274,11 +274,11 @@ theorem raft.send.wp_proof
     · simp only [MsgApp, MsgHeartbeat, MsgReadIndexResp, MsgHeartbeatResp] at Hvt
       subst Hvt
       wp_auto
-      wp_apply raft.wp_load_Term $$ Hphys as Hphys
-      wp_apply raft.wp_load_id $$ Hphys as Hphys
+      wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+      wp_apply raft.wp_load_idC $$ Hphys as Hphys
       rw [decide_eq_false Hself]
       wp_auto
-      send_tail ownRaftPhys_msgs
+      send_tail ownRaftPhysC_msgs
       finish_some
   · -- (c') `MsgSnap`: (b)'s path through the body; the abstract message is the
     -- snapshot's, `absSnapFrom`, at the caller's `sv`/`voters`.
@@ -287,13 +287,13 @@ theorem raft.send.wp_proof
     simp only [MsgSnap] at HSnap Hmterm Hself ⊢
     subst HSnap Hmterm
     wp_auto
-    wp_apply raft.wp_load_Term $$ Hphys as Hphys
-    wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
     rw [decide_eq_false Hself]
     wp_auto
     icases Hsnap $$ %rfl with ⟨%sv, %voters, %Hout, #Hsv, #Hvoters⟩
     subst Hout
-    send_tail ownRaftPhys_msgs
+    send_tail ownRaftPhysC_msgs
     ihave Hphys := Hback $$ %q' %_ %(some (absSnap _ sv voters)) Hf Hq Hq_cap [] []
     · unfold msgAbs
       iright; iright
@@ -302,7 +302,7 @@ theorem raft.send.wp_proof
       ipureintro
       exact ⟨rfl, rfl⟩
     · ipureintro; out_term
-    iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
+    iapply ownRaftPhysC_eq _ _ _ _ _ ?_ $$ Hphys
     rfl
   · -- (c) a type the model does not see: stamped, onto `r.msgs`, and it drops out of
     -- the abstract outbox.
@@ -316,10 +316,10 @@ theorem raft.send.wp_proof
     subst Hmterm
     repeat (first
       | (simp only [HnV, HnVR, HnPV, HnPVR, HnProp, HnRI, HnAR, decide_false]; wp_auto)
-      | (wp_apply raft.wp_load_Term $$ Hphys as Hphys)
-      | (wp_apply raft.wp_load_id $$ Hphys as Hphys)
+      | (wp_apply raft.wp_load_TermC $$ Hphys as Hphys)
+      | (wp_apply raft.wp_load_idC $$ Hphys as Hphys)
       | (rw [decide_eq_false Hself]; wp_auto))
-    send_tail ownRaftPhys_msgs
+    send_tail ownRaftPhysC_msgs
     finish_none
   · -- (d) `MsgAppResp`: stamped, and a response, so onto `r.msgsAfterAppend`; it may
     -- be self-addressed (`appendEntry` does exactly that).
@@ -329,9 +329,9 @@ theorem raft.send.wp_proof
     subst HAR Hmterm
     simp only at Hself2
     wp_auto
-    wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
     have Hty : mtypeOf (W32 4) = some MsgType.appResp := rfl
-    send_tail ownRaftPhys_msgsAA
+    send_tail ownRaftPhysC_msgsAA
     ihave Hphys := Hback $$ %q' %_ %(some (absMsg .appResp _ ents ctx)) Hf Hq Hq_cap [] [] []
     · unfold msgAbs
       iright; ileft
@@ -345,7 +345,7 @@ theorem raft.send.wp_proof
       obtain ⟨He, Hc, Hnz, Hrj⟩ := Hself2 Hto
       exact ⟨Hnz, He, Hc, fun _ => Hrj, by simp only; split <;> omega⟩
     · ipureintro; out_term
-    iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
+    iapply ownRaftPhysC_eq _ _ _ _ _ ?_ $$ Hphys
     rfl
   · -- (e) a forwarded proposal: `Term` stays zero; not a response
     obtain ⟨mty, mto, mfrom, mterm, mlt, midx, ments, mcommit, mvote, msnap, mrej, mrh, mctx,
@@ -353,10 +353,10 @@ theorem raft.send.wp_proof
     simp only [MsgProp] at HProp Hmterm Hself ⊢
     subst HProp Hmterm
     wp_auto
-    wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
     rw [decide_eq_false Hself]
     wp_auto
-    send_tail ownRaftPhys_msgs
+    send_tail ownRaftPhysC_msgs
     ihave Hphys := Hback $$ %q' %_ %(some (absMsg .propose _ ents ctx)) Hf Hq Hq_cap [] []
     · unfold msgAbs
       iright; ileft
@@ -365,7 +365,7 @@ theorem raft.send.wp_proof
       ipureintro
       exact ⟨rfl, by decide, rfl⟩
     · ipureintro; out_term
-    iapply ownRaftPhys_eq _ _ _ _ _ ?_ $$ Hphys
+    iapply ownRaftPhysC_eq _ _ _ _ _ ?_ $$ Hphys
     rfl
 
 end proof

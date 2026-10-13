@@ -286,7 +286,7 @@ theorem raft.appendEntry.wp_proof
       { Type' := W32 4, To' := id, From' := 0, Term' := 0, LogTerm' := 0, Index' := li2,
         Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := null,
         Reject' := false, RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil }
-    wp_apply wp_raft_send cfg r id s' m [] [] [selfAck id s'] ?_ ?_ $$ [$Hphys]
+    wp_apply (raft.send.spec_simple wp_raft_send) cfg r id s' m [] [] [selfAck id s'] ?_ ?_ $$ [$Hphys]
     · exact Or.inl rfl
     · refine Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun _ => ⟨rfl, rfl, Hnz, rfl⟩, ?_⟩)))
       unfold selfAck absMsgFrom

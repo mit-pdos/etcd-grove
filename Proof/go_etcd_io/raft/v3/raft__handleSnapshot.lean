@@ -70,7 +70,7 @@ theorem raft.handleSnapshot.wp_proof
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
     rw [Hlv2.1]
-    wp_apply wp_raft_send _ _ _ _ _ [] [] _ (Or.inl rfl)
+    wp_apply (raft.send.spec_simple wp_raft_send) _ _ _ _ _ [] [] _ (Or.inl rfl)
       (appResp_sendOk id s1 m.From' s1.logst.committed Hfid) $$ [$Hphys] as Hphys
     · isplitr
       · iapply ownSlice_nil
@@ -99,7 +99,7 @@ theorem raft.handleSnapshot.wp_proof
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
     rw [Hlv2.1]
-    wp_apply wp_raft_send _ _ _ _ _ [] [] _ (Or.inl rfl)
+    wp_apply (raft.send.spec_simple wp_raft_send) _ _ _ _ _ [] [] _ (Or.inl rfl)
       (appResp_sendOk id _ m.From' sv.Metadata'.Index' Hfid) $$ [$Hphys] as Hphys
     · isplitr
       · iapply ownSlice_nil
@@ -130,7 +130,7 @@ theorem raft.handleSnapshot.wp_proof
       simp only [logRestore, List.length_nil, Int.natCast_zero, Int.add_zero] at Hli
       exact Hli
     subst Hli'
-    wp_apply wp_raft_send _ _ _ _ _ [] [] _ (Or.inl rfl)
+    wp_apply (raft.send.spec_simple wp_raft_send) _ _ _ _ _ [] [] _ (Or.inl rfl)
       (appResp_sendOk id _ m.From' sv.Metadata'.Index' Hfid) $$ [$Hphys] as Hphys
     · isplitr
       · iapply ownSlice_nil

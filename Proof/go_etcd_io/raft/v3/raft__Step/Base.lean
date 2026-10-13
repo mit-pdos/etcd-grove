@@ -74,7 +74,7 @@ structure raft.Step.Postulates : Prop where
   hup : raft.hup.spec (GF := GF) (hG := hG)
   becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG)
   voteRespMsgType : voteRespMsgType.spec (GF := GF) (hG := hG)
-  send : raft.send.spec (GF := GF) (hG := hG)
+  send : raft.send.specS (GF := GF) (hG := hG)
   stepCandidate : stepCandidate.spec (GF := GF) (hG := hG)
   /-- A `MsgVoteResp` falls through `Step`'s type switch to `r.step(m)`, which is any
   of the three depending on the role -- on `m.Term > r.Term` the term preamble has

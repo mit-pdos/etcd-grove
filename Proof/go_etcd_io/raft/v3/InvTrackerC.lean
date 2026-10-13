@@ -456,6 +456,23 @@ theorem ownTrackerC_lookup (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) (
     (by rw [trkFlags_insert_same _ _ _ _ Hv Hl]; exact Hinv) Hdom (Hflags.insert Hv Hl) Hsize
     HmaxInfl $$ Hvotes Hprs Hprogs Hcfg
 
+/-- `ownTrackerC_lookup`, given back at the same record (as `ownTracker_lookup_same`). -/
+theorem ownTrackerC_lookup_same (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) (i : w64)
+    (pr : Loc) (Hpr : t.prs !! i = some pr) :
+    ⊢ ownTrackerC (GF := GF) c tv t -∗
+      ∃ p, ⌜t.peers !! i = some p⌝ ∗ ownProgress pr p ∗
+        (ownProgress pr p -∗ ownTrackerC c tv t) := by
+  iintro Hown
+  icases ownTrackerC_lookup c tv t i pr Hpr $$ Hown with ⟨%p, %Hv, Hp, Hback⟩
+  iexists p
+  isplitr
+  · ipureintro; exact Hv
+  iframe Hp
+  iintro Hp
+  ihave Hown := Hback $$ %p Hp %rfl
+  rw [GMap.insert_id t.peers i p Hv]
+  iexact Hown
+
 /-- `visitClosure` (`InvTracker.lean`) at the configuration `c`: the closure `Visit` calls for
 each tracked id, lent the tracker field, the id's `Progress` and the wand back to the whole
 tracker, and the caller's invariant `I`. -/
