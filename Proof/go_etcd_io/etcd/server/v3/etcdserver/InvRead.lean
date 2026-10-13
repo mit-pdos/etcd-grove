@@ -18,8 +18,9 @@ of its entries).
 
 **A read call's resources** (`srvRdCall s E γr c`, ctx-independent): the store's reader slots
 (`mvcc.storeReader`: its `RWMutex`es admit a bounded number of readers), a reader slot of the
-logger's lock (`srvLgReader`), and a lower bound `c` of the cluster's committed index the caller
-knew of (`committedAtLeast`: what a linearizable read's `readIndexOk` is relative to).
+logger's lock (`srvLgReader`), a lower bound `c` of the cluster's committed index the caller
+knew of (`committedAtLeast`: what a linearizable read's `readIndexOk` is relative to), and a
+reader slot of the read loop's lock (`srvReadReader`, 2026-10-13, unit 4a).
 
 **The read side's answers**: a successful `Range` of `o` (`rangeReadOk`: the txn package's
 `rangeResult` with no error at a certified log of at least two revisions, read after the read
@@ -104,10 +105,16 @@ instance isServerRead_persistent (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     Persistent (isServerRead s E γr) := by
   unfold isServerRead; infer_instance
 
+/-- **A reader slot of the server's read loop's lock** (`s.read.mux`, `readReader`; 2026-10-13, the
+request path's unit 4a: `LinearizableReadNotify` read-locks it). -/
+def srvReadReader (s : Loc) (γr : ReadNames) : IProp GF :=
+  iprop(∃ rd : Loc, srvReadAddr s ↦□ rd ∗ readReader rd γr)
+
 /-- **A read call's resources** (see the file header): the store's reader slots, a reader slot
-of `s.lgMu`, and the committed index `c` the caller knew of. -/
+of `s.lgMu`, the committed index `c` the caller knew of, and (2026-10-13, unit 4a) a reader slot
+of the read loop's lock (`srvReadReader`). -/
 def srvRdCall (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) : IProp GF :=
-  iprop(mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ committedAtLeast γr c)
+  iprop(mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ committedAtLeast γr c ∗ srvReadReader s γr)
 
 /-- **A successful `Range` of `o`** with the response `resp`: the txn package's answer with no
 error (`rangeResult`: the server's selection of the state at the revision read) at a certified

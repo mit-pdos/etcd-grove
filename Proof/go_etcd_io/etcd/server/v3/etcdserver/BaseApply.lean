@@ -210,10 +210,59 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor
 
+-- `strconv` (Perennial's translation, names only: `FormatBool`, the request path's metrics
+-- labels, and `FormatUint`, the read loop's trace field; no variable read). Raft's `Base.lean` states the same instance for raft's proofs,
+-- which no module imports with the server's.
+namespace strconv
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.strconv :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.strconv :=
+  build_get_is_pkg_init_wf
+
+end strconv
+
 namespace go_etcd_io.etcd.server.v3.etcdserver.read
 
+/-- **`context.DeadlineExceeded` holds a struct error the gRPC layer can take** (a package fact
+the read package states, as the server states its foreign errors in `srvErrVars`; 2026-10-13, the
+request path's unit 4a: `LinearizableReadNotify` returns a done context's `Err()`, which is
+`Canceled` or `DeadlineExceeded`, `context.ErrDone`): Go's `deadlineExceededError{}` (an empty
+struct, not a pointer: `context.go`'s `var DeadlineExceeded error = deadlineExceededError{}`), whose
+method set is `Error`, `Timeout`, `Temporary` (no `Is`, `As` or `Unwrap`: a leaf), comparable (an
+empty struct: `==` on it does not panic, a safe map key), and whose `Error()` returns. Method sets
+are uninterpreted in the semantics, so this is stated, as `srvErrVars`' `errLeaf`. -/
+abbrev ctxDeadlineLeaf : IProp GF :=
+  iprop(∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ GoInterface.ok e ∗
+    ⌜_root_.Perennial.errors.isLeafError e ∧
+      methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) ∧
+      (∀ T, e.ty ≠ go.GoType.PointerType T) ∧
+      SafeMapKey (GF := GF) go.error (GoInterface.ok e)⌝ ∗
+    EtcdGrove.errMsgOk e)
+
+/-- **The read package's facts** (`server/v3/etcdserver/read`; 2026-10-13, the request path's unit
+4a; `True` until then): its metrics `slowReadIndex` and `readIndexFailed` hold fixed counters
+(`prometheus.NewCounter` at init; mvcc's `counterSpec`), `readIndexRetryTime` some duration (`500 *
+time.Millisecond`), and the error variables it returns or compares with hold `errors.New` errors
+(`EtcdGrove.errVarLeaf`): `etcdserver/errors`' `ErrStopped`, `ErrLeaderChanged`, `ErrTimeout`, raft's
+`ErrStopped` (`errors.Is`'s target in `sendReadIndex` and `isStopped`), and `context.Canceled`; and
+`context.DeadlineExceeded`'s (`ctxDeadlineLeaf`). An assumption about those packages'
+initialization, stated here for the errors of other packages, as `srvErrVars`. -/
+abbrev readInit : IProp GF :=
+  iprop((∃ c : GoInterfaceOk, globalAddr slowReadIndex ↦□ GoInterface.ok c ∗
+      go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c) ∗
+    (∃ c : GoInterfaceOk, globalAddr readIndexFailed ↦□ GoInterface.ok c ∗
+      go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c) ∗
+    (∃ d : _root_.Perennial.time.Duration, globalAddr readIndexRetryTime ↦□ d) ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrStopped ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrLeaderChanged ∗
+    EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeout ∗
+    EtcdGrove.errVarLeaf go_etcd_io.raft.v3.ErrStopped ∗
+    EtcdGrove.errVarLeaf _root_.Perennial.context.Canceled ∗
+    ctxDeadlineLeaf)
+
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init readInit
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read :=
   build_get_is_pkg_init_wf
 
@@ -228,18 +277,6 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
   build_get_is_pkg_init_wf
 
 end go_etcd_io.etcd.server.v3.features
-
--- `strconv` (Perennial's translation, names only: `FormatBool`, the request path's metrics
--- labels; no variable read). Raft's `Base.lean` states the same instance for raft's proofs,
--- which no module imports with the server's.
-namespace strconv
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.strconv :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.strconv :=
-  build_get_is_pkg_init_wf
-
-end strconv
 
 namespace go_etcd_io.etcd.server.v3.etcdserver
 

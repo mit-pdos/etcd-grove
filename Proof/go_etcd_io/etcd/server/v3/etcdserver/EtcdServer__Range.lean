@@ -232,16 +232,16 @@ local macro "range_tail" : tactic => `(tactic| (
     · range_defer
       ihave ⟨%Hrn0, #HeE⟩ := rangeResult_errIs _ _ _ _ _ _ (by intro h; cases h) Hleaf $$ HFut Hres
       iapply HΦ
-      isplitl [Hsr Hlr]
-      · iunfold srvRdCall; iframe Hsr Hlr Hcal
+      isplitl [Hsr Hlr Hrr]
+      · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr
       iright
       iframe HeE
       ipureintro; exact ⟨Hrn0, by intro h; cases h⟩
     · range_defer
       ihave %Hrn1 := rangeResult_nil_ne _ _ _ _ _ $$ Hres
       iapply HΦ
-      isplitl [Hsr Hlr]
-      · iunfold srvRdCall; iframe Hsr Hlr Hcal
+      isplitl [Hsr Hlr Hrr]
+      · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr
       ileft
       isplitr
       · ipureintro; exact ⟨rfl, Hrn1⟩
@@ -270,8 +270,8 @@ local macro "range_tail" : tactic => `(tactic| (
         (try wp_auto)
         range_defer_c
         iapply HΦ
-        isplitl [Hsr Hlr]
-        · iunfold srvRdCall; iframe Hsr Hlr Hcal
+        isplitl [Hsr Hlr Hrr]
+        · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr
         iright
         iframe HsE
         ipureintro; exact ⟨rfl, by intro h; cases h⟩
@@ -279,8 +279,8 @@ local macro "range_tail" : tactic => `(tactic| (
         wp_auto
         range_defer
         iapply HΦ
-        isplitl [Hsr Hlr]
-        · iunfold srvRdCall; iframe Hsr Hlr Hcal
+        isplitl [Hsr Hlr Hrr]
+        · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr
         iright
         iframe HsE
         ipureintro; exact ⟨rfl, by intro h; cases h⟩))
@@ -322,7 +322,7 @@ theorem EtcdServer.Range.wp_proof
   icases Hw with ⟨#Hread, #HisRead, #Hkvf, #HisKV, #Hrvf, #Hrv, #Hlef, #Hle, #Hauf, #Hau, #Hlgf,
     %Hlgn, #Hwad, #Hterm, #Hsmall, ⟨%log₀, #Hc0, %Hl0⟩⟩
   iunfold srvRdCall at Hcall
-  icases Hcall with ⟨Hsr, Hlr, #Hcal⟩
+  icases Hcall with ⟨Hsr, Hlr, #Hcal, Hrr⟩
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, ⟨⟨%hist, #Hhist⟩, -, -, ⟨%tr, #Htr⟩, ⟨-, -, -, -, -, -, -, -, %Hleaf⟩⟩⟩
@@ -422,8 +422,14 @@ theorem EtcdServer.Range.wp_proof
   cases ser
   · -- linearizable: the read index first
     (try wp_auto)
-    wp_apply HisRead' $$ %ctx2 %_ %c [] as %rerr ⟨#HrE, Hri⟩
-    · iframe #
+    iunfold srvReadReader at Hrr
+    icases Hrr with ⟨%rd, #Hrd0, Hrr⟩
+    icombine Hread Hrd0 gives %Hrdeq
+    subst Hrdeq
+    wp_apply HisRead' $$ %ctx2 %_ %c [Hrr] as %rerr ⟨Hrr, #HrE, Hri⟩
+    · iframe #; iframe Hrr
+    ihave Hrr : srvReadReader s γr $$ [Hrr]
+    · iunfold srvReadReader; iexists _; iframe Hread Hrr
     (try wp_auto)
     wp_apply hStep trc _ _ $$ []
     · iframe #; ipureintro; exact Htrc
@@ -438,8 +444,8 @@ theorem EtcdServer.Range.wp_proof
       (try wp_auto)
       range_defer_c
       iapply HΦ
-      isplitl [Hsr Hlr]
-      · iunfold srvRdCall; iframe Hsr Hlr Hcal
+      isplitl [Hsr Hlr Hrr]
+      · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr
       iright
       iframe HrE
       ipureintro; exact ⟨rfl, by intro h; cases h⟩

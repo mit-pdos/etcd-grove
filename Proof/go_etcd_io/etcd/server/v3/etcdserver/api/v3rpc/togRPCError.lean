@@ -55,7 +55,8 @@ theorem v3rpc.togRPCError.wp_proof
   wp_auto
   ihave #HIsT := applyErrIs_tree err $$ HIs
   ihave ⟨%S, %M, #Htree, %HS⟩ := HIsT $$ %(GoInterface.ok ec)
-  wp_apply hIs S M err (GoInterface.ok ec) (fun tii h => by cases h; exact Hecp) HS.2
+  wp_apply hIs S M err (GoInterface.ok ec) (fun tii h => by cases h; exact Hecp)
+    (HS.2 (fun tii h => by cases h; exact Hecp))
     $$ [$Htree] as %b1 -
   · iframe #; ipureintro; exact HS.1
   wp_if_destruct

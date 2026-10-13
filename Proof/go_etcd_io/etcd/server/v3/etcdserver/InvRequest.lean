@@ -41,10 +41,10 @@ d`, and proves `resultΨ E rq` of its result. A conf change's id (`ccIdOf`) is n
 mvcc's certificate of the log after (`idxCert`).
 
 **Reads** (`isRead r γr`): `LinearizableReadNotify(ctx)` (the read-index loop of `read.Read`,
-names-only until unit 4) returns `nil` only once the applied index is at least the committed
-index the caller knew of (`committedAtLeast γr c` in, `appliedAtLeast γr ci₀` with `c ≤ ci₀`
-out): unit 4 ties the two lower bounds to the consistent-index protocol and to raft's
-`ReadIndex`/`ReadState` contracts.
+proved in unit 4a, `read/Results.lean`, from contracts on the server and raft) returns `nil` only
+once the applied index is at least the committed index the caller knew of (`committedAtLeast γr
+c` in, `appliedAtLeast γr ci₀` with `c ≤ ci₀` out); its caller holds a reader slot of the read
+loop's lock (`readReader`). Unit 4b ties the two lower bounds to the consistent-index protocol.
 
 **The auth store's request side** (`isReqAuth st`): `AuthInfoFromCtx`/`AuthInfoFromTLS` return
 `nil` or an `*AuthInfo` with readable `Username`/`Revision` (`authInfoIs`), and an error.
@@ -310,11 +310,22 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
+/-- Raft's `ReadState` (v3.7) is countable (a channel's element type: the raft wrapper's
+`readStateC`, the read loop's `ReadState()`; moved here from `InvRaftNode.lean`, 2026-10-13, for
+the read package, which must not import the raft wrapper's invariants). -/
+instance readState_countable : Pos.Countable go_etcd_io.raft.v3.ReadState :=
+  countableOfLeftInverse (fun r : go_etcd_io.raft.v3.ReadState => (r.Index', r.RequestCtx'))
+    (fun p => ⟨p.1, p.2⟩) (fun _ => rfl)
+
 /-- The read-index ghost names: lower bounds of the applied index and of the committed
-index. -/
+index; and (2026-10-13, the request path's unit 4a) the read loop's current notifier, a ghost
+variable of the notifier and the name of its need (`read/Inv.lean`), whose halves the read loop's
+`RWMutex` and its invariant hold: the lock's resource (`readMuP`) names it, so a caller's reader
+slot of the lock (`readReader`) is a predicate of the names. -/
 structure ReadNames where
   applied : GName
   committed : GName
+  notifier : GName
 
 /-- The applied index is at least `i` (persistent). -/
 def appliedAtLeast (γr : ReadNames) (i : w64) : IProp GF := monoNatLbOwn γr.applied (uint.nat i)
@@ -337,23 +348,51 @@ def readIndexOk (γr : ReadNames) (c : w64) : IProp GF :=
 
 end readGhost
 
+section readAddrs
+variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+
+/-- The address of the read loop's current notifier (`r.notifier`). -/
+abbrev readNotifierAddr (r : Loc) : Loc :=
+  structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"notifier" r
+/-- The address of the read loop's lock (`r.mux`). -/
+abbrev readMuAddr (r : Loc) : Loc :=
+  structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"mux" r
+
+end readAddrs
+
 section read
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The `*read.Read` `r`** (persistent; the contract until unit 4 proves `read/read.go`):
-`LinearizableReadNotify(ctx)` returns `nil` only once the applied index has reached the
-committed index the caller knew of (`readIndexOk`), or an error the gRPC layer can take
-(`applyErrIs`: the read loop's `ErrStopped`, `ErrLeaderChanged`, ..., `errors.New` errors, or
-the context's `Canceled`/`DeadlineExceeded`; 2026-10-12, unit 3b, as `raftPropose`). -/
+/-- **The read loop's lock resource** at fraction `q` (`r.mux`, a `sync.RWMutex`; 2026-10-13, the
+request path's unit 4a): `r.notifier` (at `q`) and the ghost variable of the current notifier and
+its need's name (at `q / 2`; the read invariant holds the other half, `read/Inv.lean`). A reader
+(`LinearizableReadNotify`) learns which notifier is current; the writer (the loop) swaps it. -/
+def readMuP (r : Loc) (γr : ReadNames) (q : Qp) : IProp GF :=
+  iprop(∃ (nc : Loc) (γn : GName), (readNotifierAddr r ↦{DFrac.own q} nc : IProp GF) ∗
+    ghostVar γr.notifier q.half (nc, γn))
+
+/-- **A reader slot of the read loop's lock** (`r.mux`): Perennial's `RWMutex` admits a bounded
+number of readers (`sync.ownRWMutex`), so each goroutine calling `LinearizableReadNotify` holds
+one (as `srvLgReader` for `s.lgMu`; `read.NewRead` returns them). -/
+def readReader (r : Loc) (γr : ReadNames) : IProp GF :=
+  sync.ownRWMutex (GF := GF) (readMuAddr r) (readMuP r γr)
+
+/-- **The `*read.Read` `r`** (persistent; `read.NewRead`'s result, `read/Results.lean`, the request
+path's unit 4a): `LinearizableReadNotify(ctx)`, with a reader slot of `r.mux` (`readReader`, given
+back; 2026-10-13, unit 4a: Perennial's `RWMutex` bounds the readers), returns `nil` only once the
+applied index has reached the committed index the caller knew of (`readIndexOk`), or an error
+the gRPC layer can take (`applyErrIs`: the read loop's `ErrStopped`, `ErrLeaderChanged`, ...,
+`errors.New` errors, or the context's `Canceled`/`DeadlineExceeded`; 2026-10-12, unit 3b, as
+`raftPropose`). -/
 def isRead (r : Loc) (γr : ReadNames) : IProp GF :=
   iprop(□ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (c : w64),
-    {{ mvcc.txnCtx ctx cd ∗ committedAtLeast γr c }}
+    {{ mvcc.txnCtx ctx cd ∗ committedAtLeast γr c ∗ readReader r γr }}
       (App (Val (r @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.read.Read.ty @!!
         go!"LinearizableReadNotify")) (Val #(GoInterface.ok ctx)))
-    {{ (err : GoInterface), RET #err; applyErrIs err ∗
+    {{ (err : GoInterface), RET #err; readReader r γr ∗ applyErrIs err ∗
         (⌜err = GoInterface.nil⌝ -∗ readIndexOk γr c) }}))
 
 instance isRead_persistent (r : Loc) (γr : ReadNames) : Persistent (isRead (GF := GF) r γr) := by

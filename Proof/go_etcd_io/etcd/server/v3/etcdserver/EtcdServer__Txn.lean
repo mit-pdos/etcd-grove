@@ -117,8 +117,8 @@ set_option hygiene false in
 local macro "txn_close_err" : tactic => `(tactic| (
   iapply HΦ
   iframe Hlt
-  isplitl [Hsr Hlr]
-  · iunfold srvRdCall; iframe Hsr Hlr Hcal
+  isplitl [Hsr Hlr Hrr]
+  · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr
   (try rw [hro]); (try simp only [↓reduceIte])
   iframe Hcred
   iright
@@ -211,8 +211,8 @@ local macro "txn_tail" : tactic => `(tactic| (
           ipureintro; exact Hn
         iapply HΦ
         iframe Hlt
-        isplitl [Hsr Hlr]
-        · iunfold srvRdCall; iframe Hsr Hlr Hcal
+        isplitl [Hsr Hlr Hrr]
+        · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr
         (try rw [hro]); (try simp only [↓reduceIte])
         iframe Hcred
         ileft
@@ -291,7 +291,7 @@ theorem EtcdServer.Txn.wp_proof
   icases Hw with ⟨#Hread, #HisRead, #Hkvf, #HisKV, #Hrvf, #Hrv, #Hlef, #Hle, #Hauf, #Hau, #Hlgf,
     %Hlgn, #Hwad, #Hterm, #Hsmall, ⟨%log₀, #Hc0, %Hl0⟩⟩
   iunfold srvRdCall at Hcall
-  icases Hcall with ⟨Hsr, Hlr, #Hcal⟩
+  icases Hcall with ⟨Hsr, Hlr, #Hcal, Hrr⟩
   ihave #Hsrv' := Hsrv
   iunfold isServerReq at Hsrv'
   icases Hsrv' with ⟨%v, #Hv⟩
@@ -489,8 +489,8 @@ theorem EtcdServer.Txn.wp_proof
       (try wp_auto)
       iapply HΦ
       iframe Hlt
-      isplitl [Hsr Hlr]
-      · iunfold srvRdCall; iframe Hsr Hlr Hcal
+      isplitl [Hsr Hlr Hrr]
+      · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr
       ileft
       isplitr
       · ipureintro; exact ⟨by first | rfl | trivial, Hprn⟩
@@ -512,8 +512,8 @@ theorem EtcdServer.Txn.wp_proof
         (try wp_auto)
         iapply HΦ
         iframe Hlt
-        isplitl [Hsr Hlr]
-        · iunfold srvRdCall; iframe Hsr Hlr Hcal
+        isplitl [Hsr Hlr Hrr]
+        · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr
         simp only [Bool.false_eq_true, ↓reduceIte]
         iright
         isplitr
@@ -532,8 +532,14 @@ theorem EtcdServer.Txn.wp_proof
     · iframe #
     cases hs : txn.txnSerializable t
     · (try wp_auto)
-      wp_apply HisRead' $$ %ctx2 %_ %c [] as %rerr ⟨#HrE, Hri⟩
-      · iframe #
+      iunfold srvReadReader at Hrr
+      icases Hrr with ⟨%rd, #Hrd0, Hrr⟩
+      icombine Hread Hrd0 gives %Hrdeq
+      subst Hrdeq
+      wp_apply HisRead' $$ %ctx2 %_ %c [Hrr] as %rerr ⟨Hrr, #HrE, Hri⟩
+      · iframe #; iframe Hrr
+      ihave Hrr : srvReadReader s γr $$ [Hrr]
+      · iunfold srvReadReader; iexists _; iframe Hread Hrr
       (try wp_auto)
       wp_apply hStep trc _ _ $$ []
       · iframe #; ipureintro; exact Htrc
@@ -545,8 +551,8 @@ theorem EtcdServer.Txn.wp_proof
         (try wp_auto)
         iapply HΦ
         iframe Hlt
-        isplitl [Hsr Hlr]
-        · iunfold srvRdCall; iframe Hsr Hlr Hcal
+        isplitl [Hsr Hlr Hrr]
+        · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr
         (try rw [hro]); (try simp only [↓reduceIte])
         iframe Hcred
         iright

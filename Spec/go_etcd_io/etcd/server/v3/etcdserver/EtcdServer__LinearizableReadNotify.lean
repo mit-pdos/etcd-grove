@@ -22,17 +22,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `s.LinearizableReadNotify(ctx)`, a one-line delegation to the read loop's (`isRead`, the
-contract until unit 4 proves `read/read.go`): `nil` only once the applied index reached the
-committed index `c` the caller knew of (`readIndexOk`), else an error the gRPC layer can take. -/
+/-- `s.LinearizableReadNotify(ctx)`, a one-line delegation to the read loop's (`isRead`, met by
+`read.NewRead`'s result, the request path's unit 4a): `nil` only once the applied index reached
+the committed index `c` the caller knew of (`readIndexOk`), else an error the gRPC layer can take;
+the caller's reader slot of the read loop's lock (`readReader`) is given back. -/
 abbrev EtcdServer.LinearizableReadNotify.spec : Prop :=
   ∀ (s r : Loc) (γr : ReadNames) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (c : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvReadAddr s ↦□ r ∗ isRead r γr ∗ mvcc.txnCtx ctx cd ∗ committedAtLeast γr c }}
+      srvReadAddr s ↦□ r ∗ isRead r γr ∗ mvcc.txnCtx ctx cd ∗ committedAtLeast γr c ∗
+      readReader r γr }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LinearizableReadNotify"))
       (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err; applyErrIs err ∗
+  {{ (err : GoInterface), RET #err; readReader r γr ∗ applyErrIs err ∗
       (⌜err = GoInterface.nil⌝ -∗ readIndexOk γr c) }}
 
 end spec

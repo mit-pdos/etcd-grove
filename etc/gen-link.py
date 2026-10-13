@@ -32,6 +32,7 @@ usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --v3rpc > Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Link.lean
        etc/gen-link.py --fmt > Proof/fmt/Link.lean
        etc/gen-link.py --context > Proof/context/Link.lean
+       etc/gen-link.py --read > Proof/go_etcd_io/etcd/server/v3/etcdserver/read/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -78,6 +79,11 @@ functions they call, from etc/link-lean-first-v3rpc.txt, under the package's ass
 include the server's: its Link reaches `EtcdDeps`); as `--apply`, its results are in a namespace
 of their own (`v3rpc`), and the server's, the txn package's and the interval tree's functions are
 `@` callees, linked in their `Link.lean`s.
+`--read` links the proofs of etcd's linearizable read loop (`server/v3/etcdserver/read`:
+`NewRead`, `LinearizableReadNotify`, `LinearizableReadLoop`, over the contracts of its `server` and
+`raftInterface`) and of the trust-boundary functions they call, from etc/link-lean-first-read.txt,
+under the read package's assumptions; as `--txn`, its results are in a namespace of their own
+(`read`).
 `--fmt` and `--context` link etcd-grove's trust boundary of the standard library's `fmt`
 (`Errorf`, `Printf`) and `context` (the `Error()` of `Err()`'s error), from
 etc/link-lean-first-fmt.txt and etc/link-lean-first-context.txt, under those packages' own
@@ -162,6 +168,11 @@ LEAN_FIRST = {
                   "go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions",
                   "The `client/v3/experimental/recipes` package's proofs and the functions they "
                   "call", [""]),
+    # etcd's linearizable read loop (etcd's server/v3/etcdserver/read), over its contracts
+    "--read": ("link-lean-first-read.txt", "go_etcd_io.etcd.server.v3.etcdserver.read",
+               "go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions",
+               "The linearizable read loop's proofs (etcd's `server/v3/etcdserver/read`) and the "
+               "functions they call", [""]),
     # etcd-grove's trust boundary of `fmt` and `context`, shared by unrelated Links (`@`)
     "--fmt": ("link-lean-first-fmt.txt", "", "_root_.Perennial.fmt.Assumptions",
               "etcd-grove's trust boundary of `fmt` (axioms)", [""]),
@@ -176,7 +187,7 @@ LEAN_FIRST = {
 }
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
-              "--txn": "txn", "--apply": "apply", "--v3rpc": "v3rpc"}
+              "--txn": "txn", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}

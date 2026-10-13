@@ -53,8 +53,9 @@ ready__waitForState:
 ready__WaitReady: ready__waitForState
 ready__WaitNotReady: ready__waitForState
 # `notifier` (the end of cache/demux.go), see InvNotifier.lean.
-newNotifier:
-notifier__notify:
+# (`v3_`: the read package has a `newNotifier` and `notifier.notify` too, 2026-10-13)
+v3_newNotifier:
+v3_notifier__notify:
 notifier__wait:
 # `watcher` (cache/watcher.go), see InvWatcher.lean (and OnceFrame.lean).
 newWatcher:
@@ -62,7 +63,7 @@ watcher__enqueueResponse: WatchResponse__IsProgressNotify
 watcher__Stop:
 watcher__Compact:
 # The demux (cache/demux.go), see InvDemux.lean.
-newDemux: newRingBuffer newNotifier
+newDemux: newRingBuffer v3_newNotifier
 demux__Register:
 demux__Unregister: watcher__Stop
 demux__LatestRev:
@@ -183,7 +184,7 @@ realTimer__Reset:
 realClock__NewTimer: realTimer__Chan realTimer__Stop realTimer__Reset
 newConditionalProgressRequestor:
 conditionalProgressRequestor__run: fmt_Printf
-demux__resyncLoop: demux__resyncLaggingWatchers notifier__notify
+demux__resyncLoop: demux__resyncLaggingWatchers v3_notifier__notify
 demux__WaitForNextResync: notifier__wait
 NewDemux: newDemux demux__resyncLoop
 Cache__WaitForNextResync: demux__WaitForNextResync

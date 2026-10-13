@@ -1,0 +1,34 @@
+# etcd's linearizable read loop (etcd's server/v3/etcdserver/read; all Lean-first; the request
+# path's unit 4a), read by `etc/gen-link.py --read`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+#
+# The trust boundary (axioms): `context.WithTimeout` of `Background()` (Perennial specifies an
+# `isContext` parent only), `strconv.FormatUint`, traceutil's bookkeeping (`EnsureTrace`, `Step`,
+# `AddField`, `LogAllStepsIfLong`), zap's fields and loggers, a done context's `Err()`
+# (`context.ErrDone`). `errors.Is` is Perennial's `wp_Is`. Perennial-specified calls (channels,
+# `sync.RWMutex`, `time.NewTimer`/`Timer.Stop`/`Reset`, `context.Background`, `encoding/binary`)
+# and the interface calls (the `server` and `raftInterface` contracts, `isReadServer`,
+# `isReadRaft`; unit 4b discharges them) are not listed.
+context_WithTimeoutBackground:
+context_ErrDone:
+errors_Is:
+strconv_FormatUint:
+traceutil_EnsureTrace:
+traceutil_Trace__Step:
+traceutil_Trace__AddField:
+traceutil_Trace__LogAllStepsIfLong:
+zap_Error:
+zap_Uint64:
+zap_Duration:
+zap_Logger__Warn:
+zap_Logger__Info:
+# The read package (read.go, util.go).
+read_uint64ToBigEndianBytes:
+read_isStopped: errors_Is
+read_newNotifier:
+read_notifier__notify:
+read_Read__sendReadIndex: read_uint64ToBigEndianBytes context_WithTimeoutBackground errors_Is zap_Error zap_Logger__Warn
+read_Read__requestCurrentIndex: read_Read__sendReadIndex zap_Uint64 zap_Duration zap_Logger__Warn zap_Logger__Info
+read_Read__LinearizableReadNotify: context_ErrDone
+read_NewRead: read_newNotifier read_Read__LinearizableReadNotify
+read_Read__LinearizableReadLoop: traceutil_EnsureTrace read_newNotifier read_Read__requestCurrentIndex read_isStopped read_notifier__notify traceutil_Trace__Step traceutil_Trace__AddField strconv_FormatUint traceutil_Trace__LogAllStepsIfLong

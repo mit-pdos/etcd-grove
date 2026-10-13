@@ -29,11 +29,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem EtcdServer.LinearizableReadNotify.wp_proof :
     EtcdServer.LinearizableReadNotify.spec (GF := GF) (hG := hG) := by
   intro s r γr ctx cd c
-  wp_start as ⟨#Hr, #HR, #Hctx, #Hc⟩
+  wp_start as ⟨#Hr, #HR, #Hctx, #Hc, Hrr⟩
   wp_auto
   iunfold isRead at HR
-  wp_apply HR $$ [] as %err Herr
-  · iframe #
+  wp_apply HR $$ [Hrr] as %err Herr
+  · iframe #; iframe Hrr
   try wp_auto
   iapply HΦ
   iexact Herr
