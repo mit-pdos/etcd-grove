@@ -51,7 +51,7 @@ theorem EtcdServer.DeleteRange.wp_proof
   wp_apply wp_with_defer as %defer defer
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨-, ⟨-, -, -, ⟨%tr, #Htr⟩, -⟩⟩
+  icases Hinit with ⟨-, ⟨-, -, -, ⟨%tr, #Htr⟩, -⟩, -⟩
   ihave #Hdel' := Hdel
   iunfold txn.deleteRangeRequestIs at Hdel'
   icases Hdel' with ⟨%Hrn, %ksl, %esl, %k, %e, %pk, #HK, #Hk, #HE, #He, -⟩

@@ -113,7 +113,7 @@ theorem EtcdServer.doSerialize.wp_proof
       icombine Has Has2 gives %Heq
       iunfold apply.isAuthStore at Hauth
       icases Hauth with ⟨%ai0, %Hst, -, -, -, -, -, -, #HRev, -⟩
-      icases Hinit with ⟨-, ⟨-, -, -, -, ⟨-, -, -, -, -, -, -, #HOld, -⟩⟩⟩
+      icases Hinit with ⟨-, ⟨-, -, -, -, ⟨-, -, -, -, -, -, -, #HOld, -⟩⟩, -⟩
       ihave ⟨%eOld, #HeOld, #HaOld⟩ := errVarLeaf_get _ $$ HOld
       rw [Heq, Hst]
       wp_auto

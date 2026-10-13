@@ -224,3 +224,18 @@ EtcdServer__NextRequestID: idutil_Generator__Next
 EtcdServer__RequestTimeout: config_ServerConfig__ReqTimeout
 EtcdServer__AppliedIndex: EtcdServer__getAppliedIndex
 EtcdServer__CommittedIndex: EtcdServer__getCommittedIndex
+# The apply loop's step `applyAll` (server.go; the request path's unit 4b): `applySnapshot` under
+# raft's no-snapshot contract, the backend getter, the snapshot trigger, with bodies; the
+# trust boundary (`axiom … .wp_proof`): backend's VerifyBackendConsistency (verification code),
+# and the names-only snapshot, compaction and merged-snapshot methods. See InvApplyAll.lean.
+backend_VerifyBackendConsistency:
+EtcdServer__snapshot:
+EtcdServer__compactRaftLog:
+EtcdServer__createMergedSnapshotMessage:
+EtcdServer__sendMergedSnap:
+EtcdServer__applySnapshot: IsEmptySnap
+EtcdServer__Backend:
+EtcdServer__shouldSnapshotToDisk:
+EtcdServer__shouldSnapshotToMemory:
+EtcdServer__snapshotIfNeededAndCompactRaftLog: EtcdServer__shouldSnapshotToDisk EtcdServer__shouldSnapshotToMemory EtcdServer__snapshot EtcdServer__compactRaftLog
+EtcdServer__applyAll: EtcdServer__applySnapshot EtcdServer__applyEntries EtcdServer__Backend EtcdServer__Logger backend_VerifyBackendConsistency EtcdServer__snapshotIfNeededAndCompactRaftLog EtcdServer__createMergedSnapshotMessage EtcdServer__sendMergedSnap
