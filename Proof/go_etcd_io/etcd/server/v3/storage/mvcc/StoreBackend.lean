@@ -20,6 +20,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 @[expose] public section
 

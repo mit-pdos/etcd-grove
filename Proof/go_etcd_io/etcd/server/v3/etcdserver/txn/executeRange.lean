@@ -15,6 +15,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.filterRangeResults
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.sortRangeResults
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.asembleRangeResponse
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.executeRange
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 @[expose] public section
 

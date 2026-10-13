@@ -11,6 +11,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__KV
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Term
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Leader
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 @[expose] public section
 

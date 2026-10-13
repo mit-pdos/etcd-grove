@@ -5,6 +5,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__newHeader
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 @[expose] public section
 

@@ -8,6 +8,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Chang
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Rev
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 @[expose] public section
 

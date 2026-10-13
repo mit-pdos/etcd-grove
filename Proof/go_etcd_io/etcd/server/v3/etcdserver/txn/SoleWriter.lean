@@ -26,6 +26,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Lemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 @[expose] public section
 

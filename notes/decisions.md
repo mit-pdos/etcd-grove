@@ -4301,9 +4301,10 @@ the transaction through (`Put`, `DeleteRange`, `Changes`, `Rev`, `put`, `delete`
 `NewReadOnlyTxnWrite`) are general with their frozen statements as instances (unification picks
 the defaults). The specs whose shape changes (a `Range`'s outcome `rangeOutcomeC`, `FirstRev`'s
 value, `storeReaderC` for `storeReader`, `Read`/`Write`'s lower bound `crevLb γ.idx c`) have
-their old statement as `<fn>.specFrozen` and the corollary `<fn>.spec_frozen` next to the spec,
-in the `Spec` file (the clients import only callees' `Spec` files); the clients above mvcc apply
-it in one line (`have h := mvcc.<fn>.spec_frozen h`). The snapshot a transaction reads may miss
+their old statement as `<fn>.specFrozen` and the corollary `<fn>.spec_frozen`, all in one
+Proof-side module, `Proof/…/storage/mvcc/FrozenSpecs.lean` (a `Spec` file holds its triple and
+nothing else; the clients import the module, as they import mvcc's `Inv` modules); the clients
+above mvcc apply it in one line (`have h := mvcc.<fn>.spec_frozen h`). The snapshot a transaction reads may miss
 keys compaction deleted (`txReader`'s `snapThin`, `keyReaderD`, `batchTx_readerD`); `rangeKeys`
 shows the keys a read at or above `crev` names are present (above).
 *Rejected:* separate general predicates (`isTxnReadC`, `isTxnC`, …) with the frozen ones as

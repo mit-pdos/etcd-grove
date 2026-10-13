@@ -19,6 +19,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.NewReadOnlyTxnWrite
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.txn
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__End
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 @[expose] public section
 

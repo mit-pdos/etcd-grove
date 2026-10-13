@@ -10,6 +10,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progre
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__rev
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchClose
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewWatchableLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 @[expose] public section
 

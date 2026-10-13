@@ -3250,7 +3250,9 @@ next) can compact and still use every read (decisions.md, "Compaction-aware read
   `put`, `delete`, `deleteRange`, `Changes`, `Rev`, `NewReadOnlyTxnWrite`) quantify over `crev`
   and `Z` (their frozen statements are their instances at the defaults).
 - **The frozen statements are corollaries**: `<fn>.specFrozen` (the old statement) and
-  `<fn>.spec_frozen : <fn>.spec → <fn>.specFrozen` next to each spec whose shape changed
+  `<fn>.spec_frozen : <fn>.spec → <fn>.specFrozen`, in one module,
+  `Proof/go_etcd_io/etcd/server/v3/storage/mvcc/FrozenSpecs.lean` (the `Spec` files keep their
+  triple only: no convention break; the users import it), for each spec whose shape changed
   (`store.Read`/`Write`/`Rev`, `storeTxnCommon.Range`, `storeTxnRead.End`,
   `storeTxnWrite.Range`/`End`, `metricsTxnWrite.Range`/`End`, `txnReadWrite.Range`/`End`,
   `readView.Range`/`Rev`/`FirstRev`, `watchableStore.rev`), by `storeReader_toC`/`storeReader_of`,
@@ -3258,7 +3260,8 @@ next) can compact and still use every read (decisions.md, "Compaction-aware read
   `rangeOutcomeC_neg` (`storeTxnReadIs_rev`, `storeTxnWriteIs_writeRev`, `isTxn_readRev`,
   `idxCert_lastRev`).
 - **Files edited outside storage/mvcc** (one line each, `have h := mvcc.<fn>.spec_frozen h` at the
-  head of a proof taking the spec as a hypothesis; **no statement changed**): `txn/Range.lean`,
+  head of a proof taking the spec as a hypothesis, and the import of `FrozenSpecs`; **no statement
+  changed**): `txn/Range.lean`,
   `Put.lean`, `DeleteRange.lean`, `Txn.lean` (6), `SoleWriter.lean`, `applyCompare.lean`,
   `deleteRange.lean`, `executeRange.lean`, `getPrevKV.lean`; `api/v3rpc/ServerKV.lean`;
   `etcdserver/EtcdServer__newHeader.lean`; `apply/applierV3backend__newHeader.lean` (a theorem
@@ -3274,7 +3277,8 @@ next) can compact and still use every read (decisions.md, "Compaction-aware read
   corollaries linked (`mvcc_*_frozen`); `rangeAnswers_not_del`. None reaches a `sorry`.
 - **Gates**: `lake build` 4251 jobs, no `sorry` warning in this repository's proofs; the trust
   base unchanged (188 axioms, 11 sorries); every collection unchanged (mvcc 36/2, mvcc-compaction
-  23/2, …); every `gen-link.py` mode reproduces; `goose.py --check` passes; verified code
+  23/2, …); every `gen-link.py` mode reproduces; `goose.py --check` passes (after the move to
+  `FrozenSpecs.lean`: 4252 jobs, the same figures); verified code
   unchanged (mvcc 125 of 155 functions verified, 1 unfinished, 1537 of 2073 lines; etcd 820 of
   3599).
 - **Traps for 6b** (the watch store's compaction branch): the watchable store holds frozen readers

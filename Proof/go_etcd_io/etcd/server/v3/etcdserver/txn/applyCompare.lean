@@ -9,6 +9,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.compareKV
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Range
 public import Spec.context.TODO
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.RangeLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 @[expose] public section
 
