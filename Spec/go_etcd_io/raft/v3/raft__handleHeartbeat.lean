@@ -68,6 +68,18 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev raft.handleHeartbeat.spec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message) (cl : List w8),
+  uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) →
+  m.From' ≠ id →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysC c r id s ∗
+      "#Hctx" ∷ m.Context' ↦*□ cl }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleHeartbeat")) (Val #m))
+  {{ RET #(); ownRaftPhysC c r id (heartbeatResult id s m cl) }}
+
+/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
+derived from `raft.handleHeartbeat.spec` by `raft.handleHeartbeat.spec_simple`. -/
+abbrev raft.handleHeartbeat.specS : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message) (cl : List w8),
   uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) →
   m.From' ≠ id →
@@ -76,6 +88,19 @@ abbrev raft.handleHeartbeat.spec : Prop :=
       "#Hctx" ∷ m.Context' ↦*□ cl }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleHeartbeat")) (Val #m))
   {{ RET #(); ownRaftPhys cfg r id (heartbeatResult id s m cl) }}
+
+open Iris.ProofMode in
+theorem raft.handleHeartbeat.spec_simple
+    (H : raft.handleHeartbeat.spec (GF := GF) (hG := hG)) :
+    raft.handleHeartbeat.specS (GF := GF) (hG := hG) := by
+  intro cfg r id s m cl Hc Hfrom
+  iintro %Φ ⟨#Hpkg, Hphys, #Hctx⟩ HΦ
+  ihave Hphys := ownRaftPhys_toC' $$ Hphys
+  iapply H _ r id s m cl Hc Hfrom $$ [$Hpkg $Hphys $Hctx]
+  inext
+  iintro Hphys
+  iapply HΦ $$ [Hphys]
+  iapply ownRaftPhysC_toS $$ Hphys
 
 end spec
 

@@ -456,6 +456,32 @@ theorem ownTrackerC_lookup (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) (
     (by rw [trkFlags_insert_same _ _ _ _ Hv Hl]; exact Hinv) Hdom (Hflags.insert Hv Hl) Hsize
     HmaxInfl $$ Hvotes Hprs Hprogs Hcfg
 
+/-- The `Progress` records are indexed by the same peers as the map (`ownTracker_prvals_dom`). -/
+theorem ownTrackerC_prvals_dom (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
+    ⊢ ownTrackerC (GF := GF) c tv t -∗
+      ⌜domSet t.peers = domSet t.prs⌝ ∗ ownTrackerC c tv t := by
+  iintro Hown
+  iunfold ownTrackerC at Hown
+  iNamed Hown
+  ihave %Hiff := BigSepM2.bigSepM2_lookup_iff $$ Hprogs
+  isplitr
+  · ipureintro
+    apply GMap.set_eq; intro k
+    rw [GMap.elem_of_dom, GMap.elem_of_dom, ← Option.isSome_iff_exists,
+      ← Option.isSome_iff_exists]
+    exact (Hiff k).symm
+  iapply ownTrackerC_intro c tv t.votes t.prs t.peers Hinv Hdom Hflags Hsize HmaxInfl
+    $$ Hvotes Hprs Hprogs Hcfg
+
+/-- The inflight bound (`ownTracker_maxinflight`). -/
+theorem ownTrackerC_maxinflight (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
+    ⊢ ownTrackerC (GF := GF) c tv t -∗
+      ⌜0 ≤ sint.Z tv.MaxInflight' ∧ sint.Z tv.MaxInflight' < 2 ^ 62⌝ ∗ ownTrackerC c tv t := by
+  iintro Hown
+  icases ownTrackerC_pure _ _ _ $$ Hown with ⟨%H, Hown⟩
+  iframe Hown
+  ipureintro; exact H.2.2.2.2
+
 /-- `ownTrackerC_lookup`, given back at the same record (as `ownTracker_lookup_same`). -/
 theorem ownTrackerC_lookup_same (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) (i : w64)
     (pr : Loc) (Hpr : t.prs !! i = some pr) :

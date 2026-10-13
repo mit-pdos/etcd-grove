@@ -53,6 +53,22 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev raft.responseToReadIndexReq.spec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (req : raftpb.Message) (idx : w64)
+    (e : raftpb.Entry) (es : List raftpb.Entry),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysC c r id s ∗
+      "#Hents" ∷ req.Entries' ↦*□ (e :: es) }}
+    (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"responseToReadIndexReq"))
+      (Val #req)) (Val #idx))
+  {{ (resp : raftpb.Message), RET #resp;
+      if req.From' = W64 0 ∨ req.From' = id then
+        ownRaftPhysC c r id (addReadState s idx e.Data') ∗ ⌜resp.To' = W64 0⌝
+      else
+        ownRaftPhysC c r id s ∗ ⌜resp = readIndexRespMsg req idx⌝ }}
+
+/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
+derived from `raft.responseToReadIndexReq.spec` by `raft.responseToReadIndexReq.spec_simple`. -/
+abbrev raft.responseToReadIndexReq.specS : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (req : raftpb.Message) (idx : w64)
     (e : raftpb.Entry) (es : List raftpb.Entry),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
@@ -65,6 +81,29 @@ abbrev raft.responseToReadIndexReq.spec : Prop :=
         ownRaftPhys cfg r id (addReadState s idx e.Data') ∗ ⌜resp.To' = W64 0⌝
       else
         ownRaftPhys cfg r id s ∗ ⌜resp = readIndexRespMsg req idx⌝ }}
+
+open Iris.ProofMode in
+theorem raft.responseToReadIndexReq.spec_simple
+    (H : raft.responseToReadIndexReq.spec (GF := GF) (hG := hG)) :
+    raft.responseToReadIndexReq.specS (GF := GF) (hG := hG) := by
+  intro cfg r id s req idx e es
+  iintro %Φ ⟨#Hpkg, Hphys, #Hents⟩ HΦ
+  ihave Hphys := ownRaftPhys_toC' $$ Hphys
+  iapply H _ r id s req idx e es $$ [$Hpkg $Hphys $Hents]
+  inext
+  iintro %resp Hpost
+  iapply HΦ
+  by_cases Hc : req.From' = W64 0 ∨ req.From' = id
+  · simp only [Hc, ↓reduceIte]
+    icases Hpost with ⟨Hphys, %Hr⟩
+    ihave Hphys := ownRaftPhysC_toS $$ Hphys
+    iframe Hphys
+    ipureintro; exact Hr
+  · simp only [Hc, ↓reduceIte]
+    icases Hpost with ⟨Hphys, %Hr⟩
+    ihave Hphys := ownRaftPhysC_toS $$ Hphys
+    iframe Hphys
+    ipureintro; exact Hr
 
 end spec
 

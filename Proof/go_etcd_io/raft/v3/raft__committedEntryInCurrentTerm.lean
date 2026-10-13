@@ -31,13 +31,13 @@ theorem raft.committedEntryInCurrentTerm.wp_proof
     (wp_raftLog_zeroTermOnOutOfBounds :
       raftLog.zeroTermOnOutOfBounds.spec (GF := GF) (hG := hG)) :
     raft.committedEntryInCurrentTerm.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s _Hterm
+  intro c r id s _Hterm
   wp_start as Hpre
   iNamed Hpre
   wp_auto
   -- `r.raftLog.committed`, within the log
-  wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-  icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
+  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+  icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcb, Hlog⟩
   icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
   wp_auto
@@ -46,14 +46,14 @@ theorem raft.committedEntryInCurrentTerm.wp_proof
   rw [Hcm]
   ihave Hphys := Hlogback $$ Hlog
   -- `term(committed)`: in bounds, so no error
-  wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-  icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
+  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+  icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
   wp_apply wp_raftLog_term $$ [$Hlog] as %t %err ⟨Hlog, %Herr_iff, %Hterm_at, #Herr⟩
   ihave Hphys := Hlogback $$ Hlog
   have Herr : err = interface.nil := Herr_iff.2 ⟨Hcb.1.1, Hcb.1.2.2⟩
-  wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
   wp_apply wp_raftLog_zeroTermOnOutOfBounds $$ [$Herr] as %t' %Ht'
-  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   iapply HΦ
   iframe Hphys
   ipureintro

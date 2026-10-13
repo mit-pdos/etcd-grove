@@ -71,7 +71,7 @@ theorem raft.tickHeartbeat.wp_proof
         exact ⟨Hrel, Hrole, fun _ h => h⟩
       · rw [decide_eq_false Hlt]
         try wp_auto
-        wp_apply wp_raft_abortLeaderTransfer $$ [$Hphys] as Hphys
+        wp_apply (raft.abortLeaderTransfer.spec_simple wp_raft_abortLeaderTransfer) $$ [$Hphys] as Hphys
         try wp_auto
         wp_join_done
         iexists { s with lt := W64 0 }

@@ -43,18 +43,18 @@ private theorem wp_min_u64 (a b : w64) :
 /-- `r.send(pb.Message{To: to, Type: pb.MsgAppResp, Index: idx, ...})`: `SendOk`'s
 `MsgAppResp` clause (d) with no entries. -/
 private theorem wp_send_appResp (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (dst idx hintterm hint : w64)
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (dst idx hintterm hint : w64)
     (rej : Bool) (Hdst : dst ≠ id) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysC c r id s }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send"))
         (Val #({ Type' := W32 4, To' := dst, From' := 0, Term' := 0,
                  LogTerm' := hintterm, Index' := idx, Entries' := slice.nil,
                  Commit' := 0, Vote' := 0, Snapshot' := null, Reject' := rej,
                  RejectHint' := hint, Context' := slice.nil, Responses' := slice.nil } :
                 raftpb.Message)))
-    {{ RET #(); ownRaftPhys cfg r id (sendMsgs s [appResp id s dst rej idx hintterm hint]) }} := by
+    {{ RET #(); ownRaftPhysC c r id (sendMsgs s [appResp id s dst rej idx hintterm hint]) }} := by
   iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
-  wp_apply (raft.send.spec_simple wp_raft_send) cfg r id s _ [] [] [appResp id s dst rej idx hintterm hint] (Or.inl rfl)
+  wp_apply wp_raft_send c r id s _ [] [] [appResp id s dst rej idx hintterm hint] (Or.inl rfl)
       (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun h => absurd h Hdst, rfl⟩)))) $$ [$Hphys]
       as Hphys
   · isplitr
@@ -71,7 +71,7 @@ private theorem wp_send_appResp (wp_raft_send : raft.send.spec (GF := GF) (hG :=
 - `a.prev.index < committed`: `committed` is read twice through the log's struct
   (`ownRaftLog_struct`), once for the test and once for the reply.
 - `maybeAppend`: the log is taken out at its state and put back at whatever
-  `maybeAppend` leaves (`ownRaftPhys_log_at`); on `ok` that is the new `ls'`, on `!ok`
+  `maybeAppend` leaves (`ownRaftPhysC_log_at`); on `ok` that is the new `ls'`, on `!ok`
   its spec says `ls' = ls`.
 - the reject path: the `Debugf`'s arguments call `term(m.Index)` and hand its error to
   `zeroTermOnOutOfBounds`, whose premise is exactly `term`'s last conjunct; then
@@ -87,14 +87,14 @@ theorem raft.handleAppendEntries.wp_proof
     (wp_raftLog_findConflictByTerm : raftLog.findConflictByTerm.spec (GF := GF) (hG := hG))
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG)) :
     raft.handleAppendEntries.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s m ents Hwf Hnw Hconf Hfid
+  intro c r id s m ents Hwf Hnw Hconf Hfid
   wp_start as Hpre
   iNamed Hpre
   wp_auto
   wp_apply wp_logSliceFromMsgApp $$ [$m] as m
   -- the stale test reads `r.raftLog.committed`
-  wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-  icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
+  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+  icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
   icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
   wp_auto
   ihave Hlog := Hlb $$ Hl
@@ -103,8 +103,8 @@ theorem raft.handleAppendEntries.wp_proof
   rw [Hcm]
   wp_if_destruct
   · -- stale: acknowledge `committed`
-    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-    icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
+    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+    icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
     icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv2, Hl, %Hlv2, Hlb⟩
     wp_auto
     ihave Hlog := Hlb $$ Hl
@@ -117,8 +117,8 @@ theorem raft.handleAppendEntries.wp_proof
     ipureintro
     exact .inl ⟨Hif, rfl⟩
   · -- `maybeAppend`
-    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-    icases ownRaftPhys_log_at cfg r id s $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
+    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+    icases ownRaftPhysC_log_at c r id s $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
     wp_apply wp_raftLog_maybeAppend _ s.logst
         (logSlice.mk m.Term' (entryID.mk m.LogTerm' m.Index') m.Entries') ents m.Commit'
         Hwf Hnw (fun Hm => Hconf (by omega) Hm) $$ [$Hlog $Hents $Hcap]
@@ -143,8 +143,8 @@ theorem raft.handleAppendEntries.wp_proof
       -- rejected: `a.prev` does not match
       rw [Hpm] at Hma
       obtain ⟨rfl, rfl, rfl⟩ := Hma
-      ihave Hphys : ownRaftPhys cfg r id s $$ [Hphys]
-      · iapply ownRaftPhys_eq cfg r id _ _ ?_ $$ Hphys
+      ihave Hphys : ownRaftPhysC c r id s $$ [Hphys]
+      · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
         cases s; rfl
       have Hnm : ¬ PlogMatches s.logst.prev (s.logst.sents ++ s.logst.uents)
           (entryID.mk m.LogTerm' m.Index') := by
@@ -153,22 +153,22 @@ theorem raft.handleAppendEntries.wp_proof
         rw [if_pos Hc] at Hpm
         cases Hpm
       wp_auto
-      wp_apply raft.wp_load_id $$ Hphys as Hphys
-      wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-      icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
+      wp_apply raft.wp_load_idC $$ Hphys as Hphys
+      wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+      icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
       wp_apply wp_raftLog_term $$ [$Hlog] as %t %err ⟨Hlog, -, -, #Herr⟩
       ihave Hphys := Hlogback $$ Hlog
-      wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+      wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
       wp_apply wp_raftLog_zeroTermOnOutOfBounds $$ [$Herr] as %t' -
-      wp_raft_log
+      wp_raft_logC
       -- `hintIndex := min(m.Index, lastIndex())`
-      wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-      icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
+      wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+      icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
       wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, -⟩
       ihave Hphys := Hlogback $$ Hlog
       wp_apply wp_min_u64
-      wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-      icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
+      wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+      icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
       wp_apply wp_raftLog_findConflictByTerm $$ [$Hlog] as %hint %hintterm ⟨Hlog, -⟩
       ihave Hphys := Hlogback $$ Hlog
       wp_apply wp_send_appResp wp_raft_send (Hdst := Hfid) $$ [$Hphys] as Hphys

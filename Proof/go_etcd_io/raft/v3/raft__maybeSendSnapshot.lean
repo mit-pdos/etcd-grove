@@ -27,11 +27,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- Returning without sending: the state the caller expects. -/
-private theorem ownRaftPhys_nosend (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) :
-    ⊢ ownRaftPhys (GF := GF) cfg r id { s with prvals := s.prvals } -∗
-      ownRaftPhys cfg r id { sendMsgs s [] with prvals := s.prvals } := by
+private theorem ownRaftPhys_nosend (c : CfgM) (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysC (GF := GF) c r id { s with prvals := s.prvals } -∗
+      ownRaftPhysC c r id { sendMsgs s [] with prvals := s.prvals } := by
   iintro H
-  iapply ownRaftPhys_eq cfg r id _ _ (by cases s; simp [sendMsgs]) $$ H
+  iapply ownRaftPhysC_eq c r id _ _ (by cases s; simp [sendMsgs]) $$ H
 
 /-- Three exits, and the two `panic`s are both killed by `isStorage`'s
 `HSnapshot` (`InvStorage.lean`), whose postcondition is the disjunction
@@ -69,12 +69,12 @@ outbox unchanged, until 2026-10-01.)
 **Resources.** The struct arrives as `ownRaftPhys`, and stays
 whole except around the two accesses to `*pr`: the
 `pr.RecentActive` load and `pr.BecomeSnapshot`. Each borrows `pr`
-out of the tracker by its key (`ownTracker_lookup_same`, resp.
-`ownRaftPhys_pr_upd`; the premise puts it at `to` in `s.progress`) and gives it back at
+out of the tracker by its key (`ownTrackerC_lookup_same`, resp.
+`ownRaftPhysC_pr_upd`; the premise puts it at `to` in `s.progress`) and gives it back at
 once -- the first at the same value, the second at whatever
 `BecomeSnapshot` leaves, which the postcondition's `pvs` records.
 In between, the log lines read raft fields and the `raftLog` calls
-take the log out with `ownRaftPhys_log_same`. (Until 2026-09-29
+take the log out with `ownRaftPhysC_log_same`. (Until 2026-09-29
 the tracker was lent out of the struct for the whole body,
 `nstate.lent`.) -/
 theorem raft.maybeSendSnapshot.wp_proof
@@ -84,7 +84,7 @@ theorem raft.maybeSendSnapshot.wp_proof
     (wp_Progress_BecomeSnapshot : tracker.Progress.BecomeSnapshot.spec (GF := GF) (hG := hG))
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG)) :
     raft.maybeSendSnapshot.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s to pr Hto Hprto
+  intro c r id s to pr Hto Hprto
   wp_start as H
   iNamed H
   -- `isInitialized_access` hands the globals out; the `raftLog.snapshot` call below
@@ -95,8 +95,8 @@ theorem raft.maybeSendSnapshot.wp_proof
   unfold isInitialized
   iNamed Hinit
   -- `pr.RecentActive`: borrow `pr` for the load, and give it back
-  icases ownRaftPhys_tracker_same cfg r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-  icases ownTracker_lookup_same cfg tv ⟨s.votes, s.progress, s.prvals⟩ to pr Hprto $$ Htrk
+  icases ownRaftPhysC_tracker_same c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
+  icases ownTrackerC_lookup_same c tv ⟨s.votes, s.progress, s.prvals⟩ to pr Hprto $$ Htrk
     with ⟨%pp, %Hpl, Hpr, Htrkback⟩
   iunfold ownProgress at Hpr
   iNamed Hpr
@@ -109,18 +109,18 @@ theorem raft.maybeSendSnapshot.wp_proof
   ihave Htrk := Htrkback $$ Hpr
   ihave Hphys := Hback $$ %tv Htrkf Htrk
   -- nothing below writes a `Progress` until `BecomeSnapshot`
-  ihave Hphys : ownRaftPhys (GF := GF) cfg r id { s with prvals := s.prvals } $$ [Hphys]
-  · iapply ownRaftPhys_eq cfg r id _ _ (by cases s; rfl) $$ Hphys
+  ihave Hphys : ownRaftPhysC (GF := GF) c r id { s with prvals := s.prvals } $$ [Hphys]
+  · iapply ownRaftPhysC_eq c r id _ _ (by cases s; rfl) $$ Hphys
   cases Hra : pv.RecentActive' <;> wp_auto
   · -- not recently active: log and return `false`
-    wp_raft_log
+    wp_raft_logC
     iapply HΦ $$ %false %([] : List Msg) %s.prvals
     isplitl [Hphys]
     · iapply ownRaftPhys_nosend $$ Hphys
     ipureintro
     exact ⟨fun _ h => (nomatch h), rfl⟩
-  wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-  icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
+  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+  icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
   wp_apply wp_raftLog_snapshot _ _ _ $$ [$Hlog $ErrSnapUnavail] as %snap %err ⟨Hlog, Herr⟩
   ihave Hphys := Hlogback $$ Hlog
   icases Herr with (%Herr | ⟨%Herr, %voters, #Hvoters⟩)
@@ -129,8 +129,8 @@ theorem raft.maybeSendSnapshot.wp_proof
     subst Herr
     obtain ⟨t, p, rfl⟩ := HErrSnapUnavail_new
     wp_auto
-    wp_apply raft.wp_load_id $$ Hphys as Hphys
-    wp_raft_log
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
+    wp_raft_logC
     iapply HΦ $$ %false %([] : List Msg) %s.prvals
     isplitl [Hphys]
     · iapply ownRaftPhys_nosend $$ Hphys
@@ -146,25 +146,25 @@ theorem raft.maybeSendSnapshot.wp_proof
     -- the third `Debugf`'s argument list calls `firstIndex` and then
     -- reads `r.raftLog.committed` directly: the log's struct, for the
     -- read
-    wp_apply raft.wp_load_id $$ Hphys as Hphys
-    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-    icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
+    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+    icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
     wp_apply wp_raftLog_firstIndex _ _ $$ [$Hlog] as %fi ⟨Hlog, %Hfi⟩
     ihave Hphys := Hlogback $$ Hlog
-    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-    icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
+    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+    icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
     icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv, Hl, -, Hlb⟩
     wp_auto
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
-    wp_raft_log
+    wp_raft_logC
     -- `pr.BecomeSnapshot(sindex)`: borrow `pr` again, give it back at
     -- the new value
-    icases ownRaftPhys_pr_upd cfg r id s to pr pp $$ Hphys %Hprto %Hpl with ⟨Hpr, Hback⟩
+    icases ownRaftPhysC_pr_upd c r id s to pr pp $$ Hphys %Hprto %Hpl with ⟨Hpr, Hback⟩
     wp_apply wp_Progress_BecomeSnapshot $$ [$Hpr] as Hpr
     ihave Hphys := Hback $$ %(progressBecomeSnapshot pp snap.Metadata'.Index') Hpr %rfl
-    wp_apply raft.wp_load_id $$ Hphys as Hphys
-    wp_raft_log
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
+    wp_raft_logC
     -- `send_ok`'s `MsgSnap` clause, with no entries. `Snapshot:
     -- &snapshot` queues the address of the local variable, which nothing
     -- writes again: persist it, and the abstract message is the
@@ -175,7 +175,7 @@ theorem raft.maybeSendSnapshot.wp_proof
       { Type' := W32 7, To' := to, From' := 0, Term' := 0, LogTerm' := 0, Index' := 0,
         Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := snapshot_ptr,
         Reject' := false, RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil }
-    wp_apply (raft.send.spec_simple wp_raft_send) cfg r id _ m [] [] [absSnapFrom m id s.term snap voters] ?_ ?_
+    wp_apply wp_raft_send c r id _ m [] [] [absSnapFrom m id s.term snap voters] ?_ ?_
       $$ [$Hphys]
     · exact Or.inl rfl
     · exact Or.inr (Or.inr (Or.inl (Or.inl ⟨rfl, rfl, Hto⟩)))
@@ -193,7 +193,7 @@ theorem raft.maybeSendSnapshot.wp_proof
     iapply HΦ $$ %true %([absSnapFrom m id s.term snap voters] : List Msg)
       %(<[to := progressBecomeSnapshot pp snap.Metadata'.Index']> s.prvals)
     isplitl [Hphys]
-    · iapply ownRaftPhys_eq cfg r id _ _ (by cases s; rfl) $$ Hphys
+    · iapply ownRaftPhysC_eq c r id _ _ (by cases s; rfl) $$ Hphys
     ipureintro
     constructor
     · -- `SnapOk`: the snapshot's index is non-zero, at or below the

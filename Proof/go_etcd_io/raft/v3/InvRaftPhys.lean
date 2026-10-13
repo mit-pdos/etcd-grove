@@ -2317,6 +2317,20 @@ theorem ownRaftPhysC_simple_toPhys (cfg lrn : GSet w64) (r : Loc) (id : w64) (s 
       ownRaftPhys cfg r id s ∗ ⌜lrn = domSet s.progress \ cfg⌝ :=
   ownRaftPhysC_toPhys (CfgM.simple cfg lrn) r id s rfl
 
+/-- `ownRaftPhysC_simple_toPhys` without the learners' fact: what a `spec_simple` derivation
+does with a postcondition. -/
+theorem ownRaftPhysC_toS {cfg lrn : GSet w64} {r : Loc} {id : w64} {s : NState} :
+    ⊢ ownRaftPhysC (GF := GF) (CfgM.simple cfg lrn) r id s -∗ ownRaftPhys cfg r id s := by
+  iintro H
+  icases ownRaftPhysC_simple_toPhys cfg lrn r id s $$ H with ⟨H, -⟩
+  iexact H
+
+/-- `ownRaftPhys_toC` with implicit arguments. -/
+theorem ownRaftPhys_toC' {cfg : GSet w64} {r : Loc} {id : w64} {s : NState} :
+    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
+      ownRaftPhysC (CfgM.simple cfg (domSet s.progress \ cfg)) r id s :=
+  ownRaftPhys_toC cfg r id s
+
 /-- The tracker, as the tracker's own specs take it (`ownRaftPhys_tracker` at `c`): given
 back at any tracker value and tally, at the same progress map and `Progress` values. -/
 theorem ownRaftPhysC_tracker (c : CfgM) (r : Loc) (id : w64) (s : NState) :
@@ -3384,6 +3398,7 @@ macro "wp_raft_log" : tactic => `(tactic| (
   try wp_auto))
 
 
+set_option hygiene false in
 /-- `wp_raft_log` on `ownRaftPhysC` (`raft.wp_load_loggerC`). -/
 macro "wp_raft_logC" : tactic => `(tactic| (
   wp_apply Perennial.wp_slice_literal

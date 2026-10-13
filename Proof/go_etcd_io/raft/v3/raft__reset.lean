@@ -161,8 +161,8 @@ theorem raft.reset.wp_proof
   wp_apply raft.wp_store_lead $$ Hphys as Hphys
   wp_apply raft.wp_store_electionElapsed $$ Hphys as Hphys
   wp_apply raft.wp_store_heartbeatElapsed $$ Hphys as Hphys
-  wp_apply wp_raft_resetRandomizedElectionTimeout $$ [$Hphys] as Hphys
-  wp_apply wp_raft_abortLeaderTransfer $$ [$Hphys] as Hphys
+  wp_apply (raft.resetRandomizedElectionTimeout.spec_simple wp_raft_resetRandomizedElectionTimeout) $$ [$Hphys] as Hphys
+  wp_apply (raft.abortLeaderTransfer.spec_simple wp_raft_abortLeaderTransfer) $$ [$Hphys] as Hphys
   -- `r.trk.ResetVotes()`, on the tracker the accessor hands out; put back at the empty
   -- tally
   icases ownRaftPhys_tracker $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩

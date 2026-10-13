@@ -145,20 +145,45 @@ was appended: the batch, stamped with the current term and consecutive indices a
 the struct at the *same* state, which was only true because `ownRaftPhys` quantified
 the log away. -/
 abbrev raft.appendEntry.spec : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
     (ents : List raftpb.Entry),
   -- a batch small enough that `lastIndex()+1+k` does not wrap
   (ents.length : Int) < 2^61 →
   -- a leader's term (2026-10-10): the self-acknowledgement is stamped with it, and
   -- `RawNode.Advance` steps it, which needs a nonzero term (`AAMsgOk`)
   s.term ≠ W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysC c r id s ∗
       es ↦* ents }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
   {{ (accepted : Bool), RET #accepted;
       -- an all-empty batch is never dropped -- see above
       ⌜(∀ e ∈ ents, sint.Z e.Data'.len = 0) → accepted = true⌝ ∗
       -- stamped on both paths: the loop runs before the budget check
+      es ↦* ents.mapIdx (stamp s.term (logLast s.logst)) ∗
+      if accepted then
+        ownRaftPhysC c r id
+          (sendMsgs
+            { s with logst :=
+                logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }
+            [selfAck id
+              { s with logst :=
+                  logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }])
+      else
+        -- dropped: `Warningf` and `return false`, nothing written
+        ownRaftPhysC c r id s }}
+
+/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
+derived from `raft.appendEntry.spec` by `raft.appendEntry.spec_simple`. -/
+abbrev raft.appendEntry.specS : Prop :=
+  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
+    (ents : List raftpb.Entry),
+  (ents.length : Int) < 2^61 →
+  s.term ≠ W64 0 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s ∗
+      es ↦* ents }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
+  {{ (accepted : Bool), RET #accepted;
+      ⌜(∀ e ∈ ents, sint.Z e.Data'.len = 0) → accepted = true⌝ ∗
       es ↦* ents.mapIdx (stamp s.term (logLast s.logst)) ∗
       if accepted then
         ownRaftPhys cfg r id
@@ -169,8 +194,23 @@ abbrev raft.appendEntry.spec : Prop :=
               { s with logst :=
                   logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }])
       else
-        -- dropped: `Warningf` and `return false`, nothing written
         ownRaftPhys cfg r id s }}
+
+open Iris.ProofMode in
+theorem raft.appendEntry.spec_simple
+    (H : raft.appendEntry.spec (GF := GF) (hG := hG)) :
+    raft.appendEntry.specS (GF := GF) (hG := hG) := by
+  intro cfg r id s es ents Hlen Ht
+  iintro %Φ ⟨#Hpkg, Hphys, Hes⟩ HΦ
+  ihave Hphys := ownRaftPhys_toC' $$ Hphys
+  iapply H _ r id s es ents Hlen Ht $$ [$Hpkg $Hphys $Hes]
+  inext
+  iintro %acc ⟨%Hacc, Hes, Hphys⟩
+  iapply HΦ
+  iframe Hes
+  isplitr
+  · ipureintro; exact Hacc
+  cases acc <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> iapply ownRaftPhysC_toS $$ Hphys
 
 end spec
 

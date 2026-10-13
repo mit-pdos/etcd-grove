@@ -603,7 +603,7 @@ theorem wp_stepLeader_prop
     have Hlen' : ((leaderPropConf s ents cs).1.length : Int) < 2^61 := by
       simp only [leaderPropConf]
       rw [propConf_length, Hcslen, Nat.min_self]; exact Hsmall
-    wp_apply wp_raft_appendEntry cfg r id { s with pci := (leaderPropConf s ents cs).2 } _
+    wp_apply (raft.appendEntry.spec_simple wp_raft_appendEntry) cfg r id { s with pci := (leaderPropConf s ents cs).2 } _
         (leaderPropConf s ents cs).1 Hlen' Hnz $$ [$Hphys $Hes]
       as %acc ⟨-, Hes, Hphys⟩
     cases acc <;> simp only [Bool.false_eq_true, ↓reduceIte]

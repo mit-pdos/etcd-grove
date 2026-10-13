@@ -548,7 +548,7 @@ private theorem wp_stepLeader_transfer
     exact ⟨rfl, rest_res_self cfg id s m ents ctx Hty'⟩
   rw [decide_eq_false Hsame]
   wp_auto
-  wp_apply wp_raft_abortLeaderTransfer $$ [$Hphys] as Hphys
+  wp_apply (raft.abortLeaderTransfer.spec_simple wp_raft_abortLeaderTransfer) $$ [$Hphys] as Hphys
   wp_apply raft.wp_load_id $$ Hphys as Hphys
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
   wp_raft_log
@@ -586,7 +586,7 @@ private theorem wp_stepLeader_transfer
     ihave Hphys := Hlogback $$ Hlog
     wp_if_destruct
     · -- caught up: `MsgTimeoutNow` now
-      wp_apply wp_raft_sendTimeoutNow cfg r id _ m.From' Hself $$ [$Hphys] as Hphys
+      wp_apply (raft.sendTimeoutNow.spec_simple wp_raft_sendTimeoutNow) cfg r id _ m.From' Hself $$ [$Hphys] as Hphys
       wp_apply raft.wp_load_id $$ Hphys as Hphys
       wp_raft_log
       iapply HΦ $$ %interface.nil %_
@@ -850,7 +850,7 @@ private theorem wp_stepLeader_hbresp
     icases (go_etcd_io.raft.v3.readIndexRequest.readIndexRequest_access_load_index p rv
       DFrac.discard).access_strict $$ Hrv with ⟨#Hidx, -⟩
     wp_apply wp_load_pers _ rv.req' $$ Hreq
-    wp_apply wp_raft_responseToReadIndexReq cfg r id cur rv.req' rv.index' e es
+    wp_apply (raft.responseToReadIndexReq.spec_simple wp_raft_responseToReadIndexReq) cfg r id cur rv.req' rv.index' e es
       $$ [$Hphys $Hrvents'] as %resp Hpost
     by_cases Hloc : rv.req'.From' = W64 0 ∨ rv.req'.From' = id
     · -- a local request: a `ReadState`
@@ -961,7 +961,7 @@ private theorem wp_stepLeader_readindex
   ihave Htrk := Htrkback $$ %voters %Hvd Hv
   ihave Hphys := Hback $$ %tv Htrkf Htrk
   -- `r.committedEntryInCurrentTerm()`
-  wp_apply wp_raft_committedEntryInCurrentTerm cfg r id s Hnz $$ [$Hphys] as %b ⟨Hphys, %Hb⟩
+  wp_apply (raft.committedEntryInCurrentTerm.spec_simple wp_raft_committedEntryInCurrentTerm) cfg r id s Hnz $$ [$Hphys] as %b ⟨Hphys, %Hb⟩
   cases b
   · -- postponed: `r.pendingReadIndexMessages = append(r.pendingReadIndexMessages, m)`
     have Hb' : plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) s.logst.committed
@@ -1421,7 +1421,7 @@ private theorem wp_stepLeader_appresp
         wp_if_destruct
         · wp_apply raft.wp_load_id $$ Hphys as Hphys
           wp_raft_log
-          wp_apply wp_raft_sendTimeoutNow cfg r id _ m.From' Hfid $$ [$Hphys] as Hphys
+          wp_apply (raft.sendTimeoutNow.spec_simple wp_raft_sendTimeoutNow) cfg r id _ m.From' Hfid $$ [$Hphys] as Hphys
           wp_join_done
         · wp_join_done
       · rw [decide_eq_false Hft]

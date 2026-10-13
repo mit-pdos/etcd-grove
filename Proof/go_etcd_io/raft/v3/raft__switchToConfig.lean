@@ -285,7 +285,7 @@ theorem raft.switchToConfig.wp_proof
         | (wp_apply raft.wp_load_leadTransferee $$ Hphys as Hphys
            wp_if_destruct
            all_goals first
-             | (wp_apply wp_raft_abortLeaderTransfer $$ [$Hphys] as Hphys
+             | (wp_apply (raft.abortLeaderTransfer.spec_simple wp_raft_abortLeaderTransfer) $$ [$Hphys] as Hphys
                 wp_join_done
                 iexists _
                 iframe

@@ -125,7 +125,7 @@ Not needed, and so not premises: `m.Type = MsgApp` (the body never reads it), `m
 0` and `m.To = id` (no panic depends on them; `send`'s `MsgAppResp` clause allows any
 `To`, the node itself included), `m.Term` (only `a.term`, which nothing reads). -/
 abbrev raft.handleAppendEntries.spec : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (m : raftpb.Message) (ents : List raftpb.Entry),
   PlogWf (entryID.mk m.LogTerm' m.Index') ents →
   uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 →
@@ -139,12 +139,49 @@ abbrev raft.handleAppendEntries.spec : Prop :=
   -- a self-addressed rejection would not be steppable (`AAMsgOk`)
   m.From' ≠ id →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysC c r id s ∗
+      "#Hents" ∷ m.Entries' ↦*□ ents ∗
+      "Hcap" ∷ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleAppendEntries")) (Val #m))
+  {{ (s' : NState), RET #();
+      ownRaftPhysC c r id s' ∗ ⌜HandleAppResult id s m ents s'⌝ }}
+
+/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
+derived from `raft.handleAppendEntries.spec` by `raft.handleAppendEntries.spec_simple`. -/
+abbrev raft.handleAppendEntries.specS : Prop :=
+  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
+    (m : raftpb.Message) (ents : List raftpb.Entry),
+  PlogWf (entryID.mk m.LogTerm' m.Index') ents →
+  uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 →
+  (let ls := s.logst
+   let es := ls.sents ++ ls.uents
+   uint.Z ls.committed ≤ uint.Z m.Index' →
+   PlogMatches ls.prev es (entryID.mk m.LogTerm' m.Index') →
+   plogFindConflict ls.prev es ents = W64 0 ∨
+   uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents)) →
+  m.From' ≠ id →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       "#Hents" ∷ m.Entries' ↦*□ ents ∗
       "Hcap" ∷ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleAppendEntries")) (Val #m))
   {{ (s' : NState), RET #();
       ownRaftPhys cfg r id s' ∗ ⌜HandleAppResult id s m ents s'⌝ }}
+
+open Iris.ProofMode in
+theorem raft.handleAppendEntries.spec_simple
+    (H : raft.handleAppendEntries.spec (GF := GF) (hG := hG)) :
+    raft.handleAppendEntries.specS (GF := GF) (hG := hG) := by
+  intro cfg r id s m ents Hwf Hb Hc Hfrom
+  iintro %Φ ⟨#Hpkg, Hphys, #Hents, Hcap⟩ HΦ
+  ihave Hphys := ownRaftPhys_toC' $$ Hphys
+  iapply H _ r id s m ents Hwf Hb Hc Hfrom $$ [$Hpkg $Hphys $Hents $Hcap]
+  inext
+  iintro %s' ⟨Hphys, %Hres⟩
+  ihave Hphys := ownRaftPhysC_toS $$ Hphys
+  iapply HΦ
+  iframe Hphys
+  ipureintro; exact Hres
 
 end spec
 

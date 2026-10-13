@@ -116,7 +116,7 @@ theorem raft.bcastHeartbeatWithCtx.wp_proof
     · -- a peer: one heartbeat
       rw [decide_eq_false Hii]
       wp_auto
-      wp_apply wp_raft_sendHeartbeat _ _ _ _ i ctx cl Hii (by exact Hicfg) $$ [$Hphys]
+      wp_apply (raft.sendHeartbeat.spec_simple wp_raft_sendHeartbeat) _ _ _ _ i ctx cl Hii (by exact Hicfg) $$ [$Hphys]
         as %c %pvs' ⟨Hphys, %Hc1, %Hc2, %Hmm'⟩
       · iexact Hctx
       try wp_auto

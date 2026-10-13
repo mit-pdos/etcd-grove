@@ -147,14 +147,14 @@ theorem raft.appendEntry.wp_proof
     (wp_raftLog_append : raftLog.append.spec (GF := GF) (hG := hG))
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG)) :
     raft.appendEntry.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s es ents Hsmall Hnz
+  intro c r id s es ents Hsmall Hnz
   wp_start as ⟨Hphys, Hes⟩
   wp_auto
-  wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
   ihave %Hlen := ownSlice_len $$ Hes
   -- `li := r.raftLog.lastIndex()`: the log is read at the state `s` records, and put
   -- back unchanged
-  icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
+  icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hlogback⟩
   icases ownRaftLog_facts _ _ $$ Hlog with ⟨%Hfacts, Hlog⟩
   obtain ⟨Hidx, Hbnd⟩ := Hfacts
   wp_apply wp_raftLog_lastIndex _ _ $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
@@ -186,7 +186,7 @@ theorem raft.appendEntry.wp_proof
     simp only [Hbnd', and_self]
     wp_apply wp_load_slice_index es (sint.Z n) _ (DFrac.own 1) e Hn.1 $$ [Hes] as Hes
     · iframe; ipureintro; exact Hcur
-    wp_apply raft.wp_load_Term $$ Hphys as Hphys
+    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
     simp only [Hbnd', and_self]
     icases ownSlice_elem_acc (sint.Z n) e es (DFrac.own 1) _ Hn.1 Hcur $$ Hes with ⟨He1, Hesback⟩
     wp_auto
@@ -227,14 +227,14 @@ theorem raft.appendEntry.wp_proof
     rw [Hlast]
     cases ok <;> wp_auto
     · -- dropped: `Warningf`, `return false`, the struct untouched
-      wp_apply raft.wp_load_id $$ Hphys as Hphys
-      wp_raft_log
+      wp_apply raft.wp_load_idC $$ Hphys as Hphys
+      wp_raft_logC
       iapply HΦ
       simp only [Bool.false_eq_true, ↓reduceIte]
       iframe
       ipureintro; exact fun h => absurd (Hacc h) (by decide)
     wp_apply wp_traceReplicate
-    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
+    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     -- `append`'s premises
     have Hidx2 : LogIndicesOk s.logst.prev
         ((s.logst.sents ++ s.logst.uents) ++ ents.mapIdx (stamp s.term li)) :=
@@ -248,7 +248,7 @@ theorem raft.appendEntry.wp_proof
         rw [List.getElem?_append_right (by simp only [List.length_append]; omega)]
         simp only [List.length_append, Nat.add_sub_cancel_left]; exact Hk)
       rw [H]; push_cast; omega
-    icases ownRaftPhys_log_at cfg r id s $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
+    icases ownRaftPhysC_log_at c r id s $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
     -- `append`'s widened spec: the stamped batch continues the log, so
     -- it is a plain `logAppend` and nothing is adopted
     obtain ⟨Htac, Hado⟩ := logTruncateAppend_cont s.logst (ents.mapIdx (stamp s.term li))
@@ -272,7 +272,7 @@ theorem raft.appendEntry.wp_proof
     rw [Hado, Htac] at *
     simp only [Bool.false_eq_true, ↓reduceIte]
     ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.append _ Hgh0)
-    wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
     have Hlast2 : logLast (logAppend s.logst (ents.mapIdx (stamp s.term li))) = li2 := by
       unfold logLast
       unfold logAppend at Hli2 ⊢
@@ -286,7 +286,7 @@ theorem raft.appendEntry.wp_proof
       { Type' := W32 4, To' := id, From' := 0, Term' := 0, LogTerm' := 0, Index' := li2,
         Entries' := slice.nil, Commit' := 0, Vote' := 0, Snapshot' := null,
         Reject' := false, RejectHint' := 0, Context' := slice.nil, Responses' := slice.nil }
-    wp_apply (raft.send.spec_simple wp_raft_send) cfg r id s' m [] [] [selfAck id s'] ?_ ?_ $$ [$Hphys]
+    wp_apply wp_raft_send c r id s' m [] [] [selfAck id s'] ?_ ?_ $$ [$Hphys]
     · exact Or.inl rfl
     · refine Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, fun _ => ⟨rfl, rfl, Hnz, rfl⟩, ?_⟩)))
       unfold selfAck absMsgFrom

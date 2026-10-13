@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart; 2026-10-12, read-index).
 
-The local case reaches `r.readStates` through `ownRaftPhys_misc`, reads `req.Entries[0].Data`
+The local case reaches `r.readStates` through `ownRaftPhysC_misc`, reads `req.Entries[0].Data`
 through the read-only entries, and appends the `ReadState`; the forwarded case builds the
 response literal and touches nothing.
 -/
@@ -25,10 +25,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 set_option hygiene false in
-/-- The local case, once the test is decided: `r.readStates` through `ownRaftPhys_misc`,
+/-- The local case, once the test is decided: `r.readStates` through `ownRaftPhysC_misc`,
 `req.Entries[0].Data` through the read-only entries, the `ReadState` appended. -/
 local macro "local_case" : tactic => `(tactic| (
-  icases ownRaftPhys_misc cfg r id s $$ Hphys with ⟨%rs, %ro, %pr, Hrs, Hro, Hpr, Hmisc, Hback⟩
+  icases ownRaftPhysC_misc c r id s $$ Hphys with ⟨%rs, %ro, %pr, Hrs, Hro, Hpr, Hmisc, Hback⟩
   iunfold ownRaftMisc at Hmisc
   iNamed Hmisc
   ihave %Hlen := ownSlice_len _ _ _ $$ Hents
@@ -61,7 +61,7 @@ local macro "local_case" : tactic => `(tactic| (
   · unfold ownRaftMisc
     simp only [named]
     iframe HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap Hpri_ents
-  ihave Hphys := ownRaftPhys_eq cfg r id
+  ihave Hphys := ownRaftPhysC_eq c r id
     { s with rd := { s.rd with states := s.rd.states ++ [ReadState.mk idx e.Data'] } }
     (addReadState s idx e.Data') rfl $$ Hphys
   iframe Hphys
@@ -69,7 +69,7 @@ local macro "local_case" : tactic => `(tactic| (
 
 theorem raft.responseToReadIndexReq.wp_proof :
     raft.responseToReadIndexReq.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s req idx e es
+  intro c r id s req idx e es
   wp_start as Hpre
   iNamed Hpre
   wp_auto
@@ -80,7 +80,7 @@ theorem raft.responseToReadIndexReq.wp_proof :
     local_case
   · rw [decide_eq_false H0]
     wp_auto
-    wp_apply raft.wp_load_id $$ Hphys as Hphys
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
     by_cases Hid : req.From' = id
     · have Hlocal : req.From' = W64 0 ∨ req.From' = id := .inr Hid
       rw [decide_eq_true Hid]

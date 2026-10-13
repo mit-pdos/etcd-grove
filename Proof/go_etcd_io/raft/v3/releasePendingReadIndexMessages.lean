@@ -116,7 +116,7 @@ theorem releasePendingReadIndexMessages.wp_proof
   wp_auto
   clear Hnz Hprl pr ro rs
   -- the entry at the commit index is of the current term
-  wp_apply wp_raft_committedEntryInCurrentTerm _ _ _ _ Hterm $$ [$Hphys] as %b ⟨Hphys, %Hb⟩
+  wp_apply (raft.committedEntryInCurrentTerm.spec_simple wp_raft_committedEntryInCurrentTerm) _ _ _ _ Hterm $$ [$Hphys] as %b ⟨Hphys, %Hb⟩
   rw [Hb.2 (Hcit Hpend)]
   wp_auto
   -- `msgs := r.pendingReadIndexMessages; r.pendingReadIndexMessages = nil`

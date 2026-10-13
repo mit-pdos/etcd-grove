@@ -273,7 +273,7 @@ theorem raft.maybeSendAppend.wp_proof
   | ok eok =>
     -- the log no longer has `pr.Next - 1`: fall back to a snapshot
     wp_auto
-    wp_apply wp_raft_maybeSendSnapshot cfg r id s to pr Hto Hlk $$ [$Hphys]
+    wp_apply (raft.maybeSendSnapshot.spec_simple wp_raft_maybeSendSnapshot) cfg r id s to pr Hto Hlk $$ [$Hphys]
       as %b %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
     iapply HΦ
     iframe

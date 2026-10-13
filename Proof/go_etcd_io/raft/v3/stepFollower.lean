@@ -125,7 +125,7 @@ theorem stepFollower.wp_proof
     wp_apply raft.wp_store_lead $$ Hphys as Hphys
     ihave Hes := Hents $$ %(Or.inl trivial)
     icases Hes with ⟨#Hes, Hcap⟩
-    wp_apply wp_raft_handleAppendEntries _ _ _ { s with lead := m.From' } _ _ Hwf Hnw Hconf Hfid
+    wp_apply (raft.handleAppendEntries.spec_simple wp_raft_handleAppendEntries) _ _ _ { s with lead := m.From' } _ _ Hwf Hnw Hconf Hfid
       $$ [$Hphys $Hes $Hcap]
       as %s' ⟨Hphys, %Hres⟩
     iapply HΦ $$ %GoInterface.nil %s' %false
@@ -144,7 +144,7 @@ theorem stepFollower.wp_proof
     wp_apply raft.wp_store_electionElapsed $$ Hphys as Hphys
     wp_apply raft.wp_store_lead $$ Hphys as Hphys
     ihave #Hcl := Hctx $$ %(by simp [Hty, MsgHeartbeat, MsgProp])
-    wp_apply wp_raft_handleHeartbeat _ _ _ { s with lead := m.From' } _ cl Hcommit Hfrom
+    wp_apply (raft.handleHeartbeat.spec_simple wp_raft_handleHeartbeat) _ _ _ { s with lead := m.From' } _ cl Hcommit Hfrom
       $$ [$Hphys $Hcl] as Hphys
     iapply HΦ $$ %GoInterface.nil %_ %false
     iframe

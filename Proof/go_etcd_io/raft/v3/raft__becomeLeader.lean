@@ -114,7 +114,7 @@ theorem raft.becomeLeader.wp_proof
   -- dropped; the entry's `Data` is nil, so `accepted = true` and the `Panic` on the
   -- `false` branch below is dead code. It also queues a self-addressed `MsgAppResp`, the
   -- self-acknowledgement: the state is `becomeLeader`. One entry is not `2^61`.
-  wp_apply wp_raft_appendEntry cfg r id _ _ [zero_val raftpb.Entry]
+  wp_apply (raft.appendEntry.spec_simple wp_raft_appendEntry) cfg r id _ _ [zero_val raftpb.Entry]
       (by simp) (by subst hs1; exact Hnz)
       $$ [$Hphys $Hes]
     as %accepted ⟨%Hacc, Hes, Hphys⟩
