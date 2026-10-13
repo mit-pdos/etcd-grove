@@ -261,6 +261,21 @@ def readonlyRelease (r : ReadOnly) (id c : w64)
     (pend : List (raftpb.Message × List raftpb.Entry)) : ReadOnly :=
   pend.foldl (fun r p => readonlyArrive r id ⟨c, p.1.From', p.2⟩) r
 
+/-- What an arrival does: the request queued, the leader's ack raised to the new
+position. -/
+theorem readonlyArrive_eq (r : ReadOnly) (id : w64) (q : ReadReq) :
+    readonlyArrive r id q =
+      { pending := r.pending ++ [q]
+        acks := <[id := w64Max ((r.acks !! id).getD (W64 0))
+                          (r.confirmed + W64 (r.pending ++ [q]).length)]> r.acks
+        confirmed := r.confirmed } := by
+  have hl : (u64Le (r.confirmed + W64 (r.pending ++ [q]).length)).length = 8 := u64Le_length _
+  have hne : u64Le (r.confirmed + W64 (r.pending ++ [q]).length) ≠ [] := by
+    intro h; rw [h] at hl; simp at hl
+  unfold readonlyArrive readonlyRecvAck hbCtx readonlyAdd readonlyPosition
+  simp only [List.append_eq_nil_iff, List.cons_ne_self, and_false, ↓reduceIte, hne,
+    List.take_of_length_le (Nat.le_of_eq hl), u64Le_to_word]
+
 end readonly_fns
 
 /-! ## Protocol node state

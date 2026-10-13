@@ -120,8 +120,6 @@ structure BudgetNames where
 
 def budgetN : Namespace := nroot.@"raft_budget"
 
-theorem uint_nat_eq (w : w64) : (uint.nat w : Int) = uint.Z w := by
-  simp [uint.nat, uint.Z]
 
 section budget
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

@@ -822,6 +822,9 @@ The leader's commit raises it (`lcmOwn_commit`), which gives the global log's
 justification its `cmtLb`; a leader of `T` reads every `cmtLb` of its own `T` as at most
 its commit index (`lcmOwn_bound`). -/
 
+theorem uint_nat_eq (w : w64) : (uint.nat w : Int) = uint.Z w := by
+  simp [uint.nat, uint.Z]
+
 theorem uint_nat_le_of_Z_le {a b : w64} (h : uint.Z a ≤ uint.Z b) : uint.nat a ≤ uint.nat b := by
   simp only [uint.nat, uint.Z] at *; omega
 
@@ -1062,6 +1065,41 @@ theorem rdCred_zero_upd (γ : RaftNames) : ⊢ |==> rdCred (GF := GF) γ 0 := by
   unfold rdCred
   exact own_unit _
 
+/-- The credits handed out are fewer than `2^64 - 1`. -/
+theorem rdCred_bound (γ : RaftNames) (n : Nat) (E : CoPset) (HE : ↑rdCredN ⊆ E) :
+    ⊢ rdCredInv (GF := GF) γ -∗ rdCred γ n ={E}=∗ rdCred γ n ∗ ⌜n < 2 ^ 64 - 1⌝ := by
+  iintro #Hinv Hcr
+  unfold rdCredInv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%B, HB, %Hb⟩
+  unfold rdCred
+  icombine HB Hcr gives %Hv
+  have Hle : n ≤ B := by
+    obtain ⟨z, hz⟩ := (Auth.auth_both_valid_discrete.mp Hv).1
+    have : B = n + z := hz
+    omega
+  imod Hclose $$ [HB] with -
+  · inext
+    iexists B
+    iframe HB
+    ipureintro; exact Hb
+  imodintro
+  iframe Hcr
+  ipureintro; omega
+
+theorem HbAckOk_app (v : w64) (q : Nat) (recs more : List RqRec) :
+    HbAckOk v q recs → HbAckOk v q (recs ++ more) := by
+  intro ⟨h1, h2⟩
+  refine ⟨by simp; omega, ?_⟩
+  rw [List.take_append_of_le_length h1]
+  exact h2
+
+theorem HbAckOk_le (v : w64) (q q' : Nat) (recs : List RqRec) :
+    q' ≤ q → HbAckOk v q recs → HbAckOk v q' recs := by
+  intro hle ⟨h1, h2⟩
+  refine ⟨by omega, fun r hr => h2 r ?_⟩
+  exact (List.take_subset_take_left _ hle) hr
+
 /-- How many read-index requests a list of messages holds. -/
 def rdCount (ms : List Msg) : Nat := ms.countP (fun m => decide (m.ty = .readIndex))
 
@@ -1288,6 +1326,34 @@ theorem rdOwn_update (γ : RaftNames) (id : w64) (s s' : PState) (sts : List Rea
         (s.rd.pend.length + rdCount s.outbox) + (ps.length + rdCount ms) by omega]
     iapply (rdCred_split γ _ _).2
     iframe Hcr Hcr'
+  iexact Hinv
+
+/-- The pending requests taken out, with their facts and credits. -/
+theorem rdOwn_takePend (γ : RaftNames) (id : w64) (s : PState) :
+    rdOwn (GF := GF) γ id s ⊢
+      rdOwn γ id { s with rd := { s.rd with pend := [] } } ∗
+      ([∗list] p ∈ s.rd.pend, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ isPropData γ e.Data' c ∗ readReq γ c Lc) ∗
+      rdCred γ s.rd.pend.length := by
+  unfold rdOwn
+  iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv⟩
+  icases (rdCred_split γ s.rd.pend.length (rdCount s.outbox)).1 $$ Hcr with ⟨Hc1, Hc2⟩
+  iframe Hpd0 Hc1
+  iexists γl, rqm
+  isplitr; · ipureintro; exact Hγl
+  isplitl [Ha]; · iexact Ha
+  isplitr; · iexact Hf
+  isplitr; · ipureintro; exact Hok
+  isplitl [Hl]
+  · rw [show rdLead (GF := GF) γ { s with rd := { s.rd with pend := [] } } rqm =
+      rdLead γ s rqm from rfl]
+    iexact Hl
+  isplitr; · iexact Hst0
+  isplitr; · iapply (BigSepL.bigSepL_nil).2; iempintro
+  isplitl [Hc2]
+  · rw [show ({ s with rd := { s.rd with pend := [] } } : PState).rd.pend.length +
+        rdCount ({ s with rd := { s.rd with pend := [] } } : PState).outbox = rdCount s.outbox
+      by simp]
+    iexact Hc2
   iexact Hinv
 
 /-- A leader's heartbeat context is empty or a position its registry reaches. -/
