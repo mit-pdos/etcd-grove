@@ -38,8 +38,10 @@ Two of the branches are decided rather than taken:
   `stateW64 s.role` together with injectivity of
   `stateW64` -- the `≠ W64 2` fact in the non-leader branch is the
   same computation `becomeCandidate` does for its panic check.
-- `r.hasUnappliedConfChanges()` returns `false` (no reconfiguration is
-  in scope), so its logging arm is dead code.
+- `r.hasUnappliedConfChanges()` (since 2026-10-13, reconfiguration stage D, a real
+  answer: a conf-change entry at `(applied, committed]`) refuses the campaign: log and
+  return, `Step.refl`. (Until then it returned `false`, the log having no conf-change
+  entry, and its logging arm was dead.)
 
 `promotable` is the one branch genuinely taken both ways: its result is
 `decide (r.id ∈ cfg ∧ snap = none)`, which is exactly the
@@ -77,7 +79,21 @@ theorem raft.hup.wp_proof
       -- a voter, so it may campaign
       obtain ⟨Hin, Hsn⟩ := of_decide_eq_true Hb.symm
       wp_auto
-      wp_apply wp_raft_hasUnappliedConfChanges _ _ _ _ Hsn $$ [$Hphys] as Hphys
+      wp_apply wp_raft_hasUnappliedConfChanges _ _ _ _ Hsn $$ [$Hphys] as %hc ⟨Hphys, -⟩
+      cases hc with
+      | true =>
+        -- (2026-10-13) a conf-change entry committed but not applied: log and return,
+        -- having done nothing
+        wp_auto
+        wp_apply raft.wp_load_id $$ Hphys as Hphys
+        wp_apply raft.wp_load_Term $$ Hphys as Hphys
+        wp_raft_log
+        iapply HΦ $$ %s
+        iframe Hphys
+        ipureintro
+        exact ⟨Hwf, .refl _, rfl, Int.le_refl _, by omega, rfl, rfl⟩
+      | false =>
+      wp_auto
       wp_apply raft.wp_load_id $$ Hphys as Hphys
       wp_apply raft.wp_load_Term $$ Hphys as Hphys
       wp_raft_log

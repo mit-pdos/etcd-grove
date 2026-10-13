@@ -99,7 +99,7 @@ private theorem dispatch_App (P : raft.Step.Postulates (GF := GF) (hG := hG))
   iintro #Hinit Hphys Hghost #Hents Hcap #Hm HΦ
   -- `maybeAppend`'s batch facts: carried by the message
   ihave %Hbatch := app_recv_wf γ id (toPState s) (absMsg .app m ents) rfl Hto $$ Hghost Hm
-  obtain ⟨Hpwf, Hnw, Hnorm⟩ := Hbatch
+  obtain ⟨Hpwf, Hnw⟩ := Hbatch
   -- the conflict fact: the protocol's, for a message no older than us
   have Hconf_lem : ⊢ ownRaftGhost (GF := GF) γ id (toPState s) -∗
       isMessage γ (absMsg .app m ents) -∗
@@ -123,7 +123,7 @@ private theorem dispatch_App (P : raft.Step.Postulates (GF := GF) (hG := hG))
   -- `padoptLeader` agree
   ihave %Hfv0 := ownRaftGhost_follower_votes γ id (toPState s) $$ Hghost
   have Hfv : s.role = .follower → s.votes = ∅ := followerVotesOk_phys s Hfv0
-  wp_apply (wp_Step_MsgApp P cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hin Hwf Hpwf Hnw Hnorm
+  wp_apply (wp_Step_MsgApp P cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hin Hwf Hpwf Hnw
       Hconf Hfv) $$ [$Hphys $Hents $Hcap] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
   iapply finish_branch γ cfg r id s s' m _ recv err Φ Hcfg Hwf' Hrecv Hstep
@@ -500,7 +500,8 @@ theorem raft.Step.wp_proof
     -- proposals' updates, registered or handed back.
     simp only [ite_eq_left Hty]
     obtain ⟨Hterm, Hfrom⟩ := Hprop Hty
-    obtain ⟨Hne, Hnorm, Hlen⟩ := Hpents Hty
+    obtain ⟨Hne, Hlen⟩ := Hpents Hty
+    icases Hents with ⟨Hents, %cs, #Hcc⟩
     ihave %Hlok0 := ownRaftGhost_lead_ok γ id (toPState s) $$ Hghost
     -- a follower's leader is its physical one
     have Hlok : s.role = .follower → s.lead ≠ id := by
@@ -521,16 +522,17 @@ theorem raft.Step.wp_proof
       · ipureintro; exact fun h => absurd h hl
     ihave %Hlnz := Hlnz_lem $$ Hghost
     -- `Hents` is owned: the `by_cases` above reduced its `if m.Type' = MsgProp`
-    wp_apply (wp_Step_MsgProp P cfg r id s m ents ctx Hty Hterm Hfrom Hne Hnorm Hlen Hlok Hlnz Hin
+    wp_apply (wp_Step_MsgProp P cfg r id s m ents ctx cs Hty Hterm Hfrom Hne Hlen Hlok Hlnz Hin
       Hwf)
-      $$ [$Hphys $Hents $Hcap $Hctxp] as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hst, Herr⟩
+      $$ [$Hphys $Hents $Hcc $Hcap $Hctxp] as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hst, Herr⟩
     have Hst' : ∃ recv, (∀ m' ∈ recv, m' = absMsg .propose m ents ctx) ∧
         Step cfg id (toPState s) recv (toPState s') := by
-      rcases Hst with H | ⟨-, Hrl, Hnorm0, Hnw, Hstep⟩
+      rcases Hst with H | ⟨-, Hrl, ents', Hrepl, Hnw, Hstep⟩
       · exact H
-      · -- appended at the leader: `Step.propose` receives the proposal (2026-10-10)
+      · -- appended at the leader: `Step.propose` receives the proposal (2026-10-10), the
+        -- batch after the conf-change loop (2026-10-13)
         exact ⟨[absMsg .propose m ents ctx] ++ [], by simp,
-          .trans _ _ _ _ _ (.propose (absMsg .propose m ents ctx) _ ents rfl rfl Hrl Hnorm0 Hnw)
+          .trans _ _ _ _ _ (.propose (absMsg .propose m ents ctx) _ ents' rfl Hrepl Hrl Hnw)
             Hstep⟩
     obtain ⟨recv, Hrecv, Hstep⟩ := Hst'
     imod ghost_step_recv γ cfg id _ _ _ recv Hcfg Hrecv Hstep (by simp [absMsg, absMsgFrom])

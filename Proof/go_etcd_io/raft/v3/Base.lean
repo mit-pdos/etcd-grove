@@ -183,7 +183,11 @@ def isInitialized : IProp GF :=
     "#isResponseMsg" ∷ (globalAddr isResponseMsg ↦□ responseMsgs : IProp GF) ∗
     -- the errors `RawNode.Step` returns for a message it does not step
     "#ErrStepLocalMsg" ∷ (globalAddr ErrStepLocalMsg ↦□ errStepLocal : IProp GF) ∗
-    "#ErrStepPeerNotFound" ∷ (globalAddr ErrStepPeerNotFound ↦□ errStepPeer : IProp GF))
+    "#ErrStepPeerNotFound" ∷ (globalAddr ErrStepPeerNotFound ↦□ errStepPeer : IProp GF) ∗
+    -- (2026-10-13) `errBreak = errors.New("break")`, the sentinel `hasUnappliedConfChanges`'
+    -- callback stops `scan` with and then compares against (so `IsNewError`)
+    "#ErrBreak" ∷ (∃ eb : GoInterface, (globalAddr errBreak ↦□ eb : IProp GF) ∗
+      ⌜eb ≠ interface.nil ∧ IsNewError eb⌝))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
   define_is_pkg_init isInitialized

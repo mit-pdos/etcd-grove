@@ -50,7 +50,6 @@ theorem wp_Step_MsgApp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- `app_no_conflict_below_commit`)
     PlogWf (entryID.mk m.LogTerm' m.Index') ents →
     uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 →
-    (∀ e ∈ ents, e.Type' = EntryNormal) →
     -- (no conflict premise: a stale message never reaches `maybeAppend`)
     -- this file: the incoming term is stale: logged and dropped
     uint.Z m.Term' < uint.Z s.term →
@@ -67,7 +66,7 @@ theorem wp_Step_MsgApp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw Hnorm Hlt
+  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw Hlt
   wp_start as Hphys
   iNamed Hphys
   wp_auto

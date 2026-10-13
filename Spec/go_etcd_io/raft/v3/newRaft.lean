@@ -26,10 +26,10 @@ are, in order:
   forwarding arm). `PreVote` is either value since 2026-10-04: the state records it
   (`NState.prevote`).
 - the storage's contents (`ownStorage (interface.ok si) prev ents ss`): contiguous
-  indices and **no configuration-change entry**, and a snapshot `ss` that is empty or the
-  compaction boundary (since 2026-10-03; `Spec/newLogWithSize.lean` says why). The second
-  is `HnoConfChange`'s scope assumption and is false of a node `RawNode.Bootstrap` just
-  bootstrapped (notes/STATUS.md).
+  indices, and a snapshot `ss` that is empty or the compaction boundary (since
+  2026-10-03; `Spec/newLogWithSize.lean` says why). (Until 2026-10-13 also no
+  configuration-change entry, `HnoConfChange`'s scope assumption, false of a node
+  `RawNode.Bootstrap` just bootstrapped.)
 - `Storage.InitialState` returns `(hs, cs, nil)` and lends `cs.Voters` (whatever the
   storage's snapshot index `ss'` is by then: the log built by `newLogWithSize` does not
   expose it). This is a
@@ -114,6 +114,10 @@ abbrev newRaft.spec : Prop :=
   cv.DisableProposalForwarding' = false →
   -- `ReadOnlySafe` (2026-10-12): lease-based reads need bounded clock drift
   cv.ReadOnlyOption' = W64 0 →
+  -- conf-change validation on (2026-10-13): `stepLeader` refuses a conf change while one
+  -- is pending (as `ReadOnlyOption`, a scope premise: with validation off a leader may
+  -- append a second conf change before the first is applied)
+  cv.DisableConfChangeValidation' = false →
   -- a positive applying-size limit (2026-10-05): with both `MaxCommittedSizePerReady`
   -- and `MaxSizePerMsg` zero -- `validate` accepts that, and the documentation reads
   -- `MaxSizePerMsg = 0` as "at most one entry per message" -- the log starts with
@@ -122,7 +126,6 @@ abbrev newRaft.spec : Prop :=
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
   -- the stored log
   LogIndicesOk σ.prev σ.ents →
-  (∀ e ∈ σ.ents, e.Type' = EntryNormal) →
   (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
   -- nothing pending (2026-10-10)
   σ.pend = [] →

@@ -419,11 +419,17 @@ def isPropData (γ : RaftNames) (sl : GoSlice) (d : List w8) : IProp GF :=
 def deposited (γ : RaftNames) (d : List w8) : IProp GF :=
   iprop(∃ γp : GName × GName, d ↪[γ.reProps]□ γp)
 
-/-- The data of entry `e`: `none` for the zero slice (a leader's own entry), `some d`
-for a proposed slice holding `d` (of a normal entry: what a proposal's `isMessage`
-requires of its entries). -/
+/-- The data of entry `e`: `some d` for a normal entry whose slice was proposed holding
+the client data `d`; `none` for an entry that is not a client operation -- a normal entry
+with the zero slice (a leader's own entry, a refused conf change's replacement), or
+(since 2026-10-13, reconfiguration stage D) an entry of another type, whose proposed slice
+holds bytes that decode as its type says (`CCDecodes`: a conf-change entry's, which
+`stepLeader` `Unmarshal`s). Only normal entries' data are client operations (the client
+log, `cLog`, `GhostState.lean`). Until 2026-10-13 `none` was any entry with the zero slice,
+and every entry was normal. -/
 def entDataIs (γ : RaftNames) (e : raftpb.Entry) : Option (List w8) → IProp GF
-  | none => iprop(⌜e.Data' = (zero_val raftpb.Entry).Data'⌝)
+  | none => iprop(⌜e.Type' = W32 0 ∧ e.Data' = (zero_val raftpb.Entry).Data'⌝ ∨
+      (⌜e.Type' ≠ W32 0⌝ ∗ ∃ bs, isPropData γ e.Data' bs ∗ ⌜CCDecodes e.Type' bs⌝))
   | some d => iprop(⌜e.Data' ≠ (zero_val raftpb.Entry).Data' ∧ e.Type' = W32 0⌝ ∗
       isPropData γ e.Data' d ∗ deposited γ d)
 
@@ -457,8 +463,12 @@ theorem entDataIs_agree (γ : RaftNames) (e : raftpb.Entry) (o1 o2 : Option (Lis
     ⊢ entDataIs (GF := GF) γ e o1 -∗ entDataIs γ e o2 -∗ ⌜o1 = o2⌝ := by
   cases o1 <;> cases o2 <;> unfold entDataIs
   · iintro _ _; ipureintro; rfl
-  · iintro %H1 ⟨%H2, -⟩; exact absurd H1 H2.1
-  · iintro ⟨%H1, -⟩ %H2; exact absurd H2 H1.1
+  · iintro (%H1 | ⟨%H1, -⟩) ⟨%H2, -⟩
+    · exact absurd H1.2 H2.1
+    · exact absurd H2.2 H1
+  · iintro ⟨%H1, -⟩ (%H2 | ⟨%H2, -⟩)
+    · exact absurd H2.2 H1.1
+    · exact absurd H1.2 H2
   · unfold isPropData
     iintro ⟨-, #H1, -⟩ ⟨-, #H2, -⟩
     icases ghostMapElem_agree $$ H1 H2 with %H
@@ -472,6 +482,33 @@ theorem entDataIs_stamp (γ : RaftNames) (e : raftpb.Entry) (t i : w64) (o : Opt
 theorem entData_stamp (γ : RaftNames) (e : raftpb.Entry) (t i : w64) :
     entData (GF := GF) γ { e with Term' := t, Index' := i } = entData γ e := by
   unfold entData; simp only [entDataIs_stamp]
+
+/-- The empty normal entry (`pb.Entry{}`) is no client operation (2026-10-13). -/
+theorem entData_zero (γ : RaftNames) : ⊢ entData (GF := GF) γ (zero_val raftpb.Entry) := by
+  unfold entData
+  iexists none
+  unfold entDataIs
+  ileft
+  ipureintro
+  exact ⟨rfl, rfl⟩
+
+/-- `stepLeader`'s conf-change loop keeps the entries' data: a kept entry's is its own, a
+replaced one's is the empty normal entry's (2026-10-13). -/
+theorem entData_propRepl (γ : RaftNames) (es es' : List raftpb.Entry) (H : PropRepl es es') :
+    ⊢ ([∗list] e ∈ es, entData (GF := GF) γ e) -∗ [∗list] e ∈ es', entData γ e := by
+  induction H with
+  | nil => iintro _; iapply (BigSepL.bigSepL_nil (Φ := fun _ e => entData (GF := GF) γ e)).2;
+           iempintro
+  | cons Hx _ ih =>
+    rename_i x x' l l'
+    iintro Hl
+    icases (BigSepL.bigSepL_cons (Φ := fun _ e => entData (GF := GF) γ e)).1 $$ Hl with ⟨Hx', Hl⟩
+    iapply (BigSepL.bigSepL_cons (Φ := fun _ e => entData (GF := GF) γ e)).2
+    isplitl [Hx']
+    · rcases Hx with rfl | ⟨-, rfl⟩
+      · iexact Hx'
+      · iapply entData_zero
+    · iapply ih $$ Hl
 
 /-- `e` was created by the leader of its term, after an entry of term `pt`: the term log
 of `e`'s term holds `(e, pt)` at `e`'s index. Since 2026-10-03 also: `e` is past the

@@ -114,7 +114,6 @@ theorem raftLog.stableTo.wp_proof
       exact ⟨Hsp, (List.prefix_append _ _).trans Hps.1.1, Hps.2⟩
     · simp only [Huoff, List.length_append, List.length_take]
       word
-    · rw [List.append_assoc, List.take_append_drop]; exact HnoConfChange
     · simp only [List.length_append, List.length_take, List.length_drop]
       omega
     · intro _

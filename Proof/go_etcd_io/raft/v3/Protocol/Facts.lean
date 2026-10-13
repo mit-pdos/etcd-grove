@@ -107,8 +107,7 @@ theorem app_recv_wf (γ : RaftNames) (id : w64) (ps : PState) (m : Msg) :
     m.dst = id →
     ⊢ ownRaftGhost (GF := GF) γ id ps -∗ isMessage γ m -∗
       ⌜PlogWf (entryID.mk m.logterm m.index) m.entries ∧
-        uint.Z m.index + (m.entries.length : Int) + 1 < 2 ^ 64 ∧
-        ∀ e ∈ m.entries, e.Type' = W32 0⌝ := by
+        uint.Z m.index + (m.entries.length : Int) + 1 < 2 ^ 64⌝ := by
   intro Hty _
   simp only [isMessage, Hty]
   iintro - ⟨%Hpay, -⟩
@@ -129,7 +128,7 @@ theorem app_commit_le_lastnewi (γ : RaftNames) (id : w64) (ps : PState) (m : Ms
   intro Hty Hto _ Happ
   iintro Hown #Hm
   icases app_recv_wf γ id ps m Hty Hto $$ Hown Hm with %Hp
-  obtain ⟨Hwf, Hnw, -⟩ := Hp
+  obtain ⟨Hwf, Hnw⟩ := Hp
   ipureintro
   exact plogMaybeAppend_last _ _ _ _ _ _ Hwf Hnw Happ
 
@@ -155,7 +154,7 @@ theorem app_no_conflict_below_commit (γ : RaftNames) (id : w64) (ps : PState) (
   iintro - ⟨%Hpay, -⟩
   ipureintro
   intro _
-  obtain ⟨Hwf, -, -⟩ := Hpay
+  obtain ⟨Hwf, -⟩ := Hpay
   by_cases Hne : plogFindConflict ps.base ps.log m.entries = W64 0
   · exact .inl Hne
   right

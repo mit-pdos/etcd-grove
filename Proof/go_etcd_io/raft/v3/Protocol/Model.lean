@@ -19,9 +19,11 @@ Scope. Everything here (and the proofs in `Link.lean`) assumes:
 * no snapshot received   (phase 2 of notes/raft-replication-model.md: the rules
                           `Step.snap*` and `isMessage` for `snap` are here since
                           2026-10-02, but `Step` is not yet specified for `MsgSnap`),
-* **no configuration change is ever requested** -- so the log contains no
-  `EntryConfChange` or `EntryConfChangeV2` entry, and `r.hasUnappliedConfChanges()` is
-  always `false`. See notes/raft-implementation-facts.md.
+* (until 2026-10-13) no configuration change was ever requested -- the log contained no
+  `EntryConfChange` or `EntryConfChangeV2` entry. Since reconfiguration stage D conf-change
+  entries are in the log as data (proposed, appended -- or, refused by the leader, replaced
+  by the empty normal entry, `PropRepl` -- replicated, committed), while every node's
+  configuration stays `cfg` (no node applies one).
 
 **Since 2026-10-01 the model has a log** (notes/raft-replication-model.md): a node's
 protocol state is `(term, vote, lead, role, votes, outbox)` plus the log (`base`,
@@ -63,6 +65,7 @@ Lean notes:
 module
 
 public import Proof.go_etcd_io.raft.v3.Plog
+public import Proof.go_etcd_io.raft.v3.CCModel
 public import Perennial.Std.Word.LittleEndian
 public import Proof.go_etcd_io.raft.v3.ProjSimps
 
@@ -500,8 +503,7 @@ section pure
 variable [FfiSyntax]
 
 /-- `appendEntry`'s stamping loop: `es[k].Term = r.Term` and `es[k].Index = li+1+k`;
-nothing else about an entry changes, which is what keeps `Type = EntryNormal` true of
-the appended entries. (Moved here from `Defs.lean` on 2026-10-01: the model's
+nothing else about an entry changes (its `Type` and `Data` are the proposal's). (Moved here from `Defs.lean` on 2026-10-01: the model's
 `Step.win` and `Step.propose` stamp too.)
 
 An entry stamped at term `t` and index `i`: what a proposed (unstamped) entry `e0`
@@ -543,11 +545,11 @@ theorem stamp_index_eq (L : Int) (k : Nat) :
   omega
 
 /-- What a receiver of an `app` needs of its batch (`raftLog.maybeAppend`'s premises):
-consecutive indices from `index + 1`, no wrap, no conf change (phase-1 scope). -/
+consecutive indices from `index + 1`, no wrap. (Until 2026-10-13 also no conf change, the
+no-reconfiguration scope.) -/
 def AppPayloadOk (m : Msg) : Prop :=
   PlogWf (entryID.mk m.logterm m.index) m.entries ∧
-  uint.Z m.index + (m.entries.length : Int) + 1 < 2 ^ 64 ∧
-  ∀ e ∈ m.entries, e.Type' = W32 0
+  uint.Z m.index + (m.entries.length : Int) + 1 < 2 ^ 64
 
 omit [FfiSyntax] in
 /-- stdpp `drop_S`. -/
@@ -563,26 +565,24 @@ theorem prefix_lookup_Some {A : Type _} {l1 l2 : List A} {k : Nat} {e : A}
   obtain ⟨t, rfl⟩ := h
   rw [List.getElem?_append_left (List.getElem?_eq_some_iff.mp hk).1]; exact hk
 
-/-- A prefix of a well-formed, no-wrap, conf-change-free log from `i + 1` on is a
-batch `AppPayloadOk` accepts at `(t, i)`. -/
+/-- A prefix of a well-formed, no-wrap log from `i + 1` on is a batch `AppPayloadOk`
+accepts at `(t, i)`. -/
 theorem app_payload_from_log (b : entryID) (L : List raftpb.Entry) (t i : w64)
     (es : List raftpb.Entry) :
     PlogWf b L →
     uint.Z b.index' + (L.length : Int) + 1 < 2 ^ 64 →
     (uint.Z b.index' ≤ uint.Z i ∧ uint.Z i ≤ plogLastIndexZ b L) →
-    (∀ e ∈ L, e.Type' = W32 0) →
     es <+: plogFrom b L (i + W64 1) →
     PlogWf (entryID.mk t i) es ∧
-    uint.Z i + (es.length : Int) + 1 < 2 ^ 64 ∧
-    ∀ e ∈ es, e.Type' = W32 0 := by
-  intro Hwf Hnw Hi HN Hpre
+    uint.Z i + (es.length : Int) + 1 < 2 ^ 64 := by
+  intro Hwf Hnw Hi Hpre
   unfold plogLastIndexZ at Hi
   unfold plogFrom at Hpre
   have Hadd : uint.Z (i + W64 1) = uint.Z i + 1 := by word
   rw [Hadd] at Hpre
   have Hlen := Hpre.length_le
   rw [List.length_drop] at Hlen
-  refine ⟨fun j e Hj => ?_, by omega, fun e He => HN e (List.mem_of_mem_drop (Hpre.subset He))⟩
+  refine ⟨fun j e Hj => ?_, by omega⟩
   have Hj' := prefix_lookup_Some Hj Hpre
   rw [List.getElem?_drop] at Hj'
   have := Hwf _ _ Hj'
@@ -1478,7 +1478,7 @@ returns), and the entries are the leader's from `index + 1` on, cut short
 (`raftLog.entries` / `raftLog.slice` return a prefix of the log from the index asked
 for). `AppPayloadOk` is what a receiver needs of the batch itself
 (`raftLog.maybeAppend`'s premises); the sender has it from its own log's
-well-formedness, no-wrap and no-conf-change facts (`app_payload_from_log`), and
+well-formedness and no-wrap facts (`app_payload_from_log`), and
 `isMessage` carries it. -/
 def AppOk (s : PState) (m : Msg) : Prop :=
   m.ty = .app ∧ m.src = id ∧ m.term = s.term ∧
@@ -1781,16 +1781,18 @@ inductive Step : PState → List Msg → PState → Prop where
       (∀ m ∈ ms, ReplOk id s m) →
       Step s [] (psendMsgs s ms)
   /-- `MsgProp` at the leader: `appendEntry` of the batch, which queues the
-  self-acknowledgement. `EntryNormal` only: no conf change in phase 1. The proposal is
-  received (2026-10-10): its `isMessage` carries each entry's data (`entData`).
+  self-acknowledgement. The batch is the proposal's after `stepLeader`'s conf-change
+  loop (`PropRepl`: each entry kept, or a refused conf-change entry replaced by the empty
+  normal entry; since 2026-10-13, reconfiguration stage D -- until then `EntryNormal`
+  entries only, appended as proposed). The proposal is received (2026-10-10): its
+  `isMessage` carries each entry's data (`entData`).
 
   The third premise: the stamped indices do not wrap (`appendEntry`'s `Hsmall` and the
   log's own bound give it). Rocq's `let s' := pappend s (imap …) in` is inlined. -/
   | propose (m : Msg) (s : PState) (ents : List raftpb.Entry) :
       m.ty = .propose →
-      m.entries = ents →
+      PropRepl m.entries ents →
       s.role = .leader →
-      (∀ e ∈ ents, e.Type' = W32 0) →
       plogLastIndexZ s.base s.log + (ents.length : Int) < 2 ^ 64 →
       Step s [m]
         (psendMsgs (pappend s (ents.mapIdx (stamp s.term (plastIndex s))))

@@ -56,7 +56,7 @@ theorem raftLog.nextCommittedEnts.wp_proof
   have Hroom : uint.Z ls.apsize < uint.Z ls.apmax := Hpaused Hpz
   ihave Hlog : ownRaftLog l ls $$ [Hl HStorage Huents Huents_cap]
   · reseal_raftLog
-  clear Hcm Hap Hapg Hip Hasz Hamx Hidx Hnowrap Hstore Hoffset HnoConfChange Happlied
+  clear Hcm Hap Hapg Hip Hasz Hamx Hidx Hnowrap Hstore Hoffset Happlied
     Hpapplied Hcommitted Hssnap Hipb Hpersist Happlying Hpaused Hstor Hpend
   iclear HisStorage Husnap Hl_logger Hu_logger
   wp_auto
@@ -83,7 +83,7 @@ theorem raftLog.nextCommittedEnts.wp_proof
     rw [Hapg]
     ihave Hlog : ownRaftLog l ls $$ [Hl HStorage Huents Huents_cap]
     · reseal_raftLog
-    clear Hcm Hap Hapg Hip Hasz Hamx Hidx Hnowrap Hstore Hoffset HnoConfChange Happlied
+    clear Hcm Hap Hapg Hip Hasz Hamx Hidx Hnowrap Hstore Hoffset Happlied
       Hpapplied Hcommitted Hssnap Hipb Hpersist Happlying Hpaused Hstor Hpend
     iclear HisStorage Husnap Hl_logger Hu_logger
     wp_apply wp_raftLog_maxAppliableIndex l _ au $$ [Hlog] as %hi0 ⟨Hlog, %Hhi0⟩
@@ -104,7 +104,7 @@ theorem raftLog.nextCommittedEnts.wp_proof
     ihave Hlog : ownRaftLog l ls $$ [Hl HStorage Huents Huents_cap]
     · reseal_raftLog
     rw [Hasz, Hamx]
-    clear Hcm Hap Hapg Hip Hasz Hamx Hidx Hnowrap Hstore Hoffset HnoConfChange Happlied
+    clear Hcm Hap Hapg Hip Hasz Hamx Hidx Hnowrap Hstore Hoffset Happlied
       Hpapplied Hcommitted Hssnap Hipb Hpersist Happlying Hpaused Hstor Hpend
     iclear HisStorage Husnap Hl_logger Hu_logger
     wp_apply wp_raftLog_slice l ls (ls.applying + W64 1) (hi0 + W64 1) (ls.apmax - ls.apsize) ?_

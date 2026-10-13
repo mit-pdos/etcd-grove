@@ -67,14 +67,15 @@ local macro "read_field" : tactic => `(tactic| (
   are about.
 - For the `scan`, `Happlied`/`Hcommitted`/`Hnowrap` put `[applied+1, committed+1)`
   inside the log without wrapping, which is exactly `raftLog.scan.spec`'s range
-  premise, and `HnoConfChange` is its `∀ e ∈ sents ++ uents, P e` premise at
-  `P := fun e => e.Type' = EntryNormal`.
-- The invariant `I` handed to `scan` is `emp`. The closure's only write is
-  `found = true`, which is on the dead branch, so it needs no ownership of the
-  enclosing frame -- which is what lets the closure obligation be proved under the `□`
-  that `scanClosure` sits behind.
-- `errBreak` is therefore never returned, `scan` returns `nil`, the `Panicf` is dead
-  and `found` is still `false`.
+  premise; the range is `unappliedEnts`.
+- (2026-10-13) The callback's state is `found ↦ false` and "no conf-change entry in the
+  pages so far" (`I`); at the first conf-change entry it stores `found = true` and
+  returns `errBreak` (`B`: `found ↦ true`, the error is `errBreak`, and the range has a
+  conf-change entry). So `scan` returns `nil` with `found` false and no conf-change entry
+  in the range, or `errBreak` with `found` true; `errBreak` is a pointer error
+  (`IsNewError`, `isInitialized`'s `ErrBreak`), so `err != errBreak` steps and is false:
+  the `Panicf` is dead. (Until 2026-10-13 the log had no conf-change entry, the
+  callback's `found = true` branch was dead, and `scan` always returned `nil`.)
 
 Lean notes: `wp_apply raft.wp_load_raftLog` does not find the first loads of
 `r.raftLog` in this function, so `read_field` binds the load with `wp_bind` and
@@ -87,8 +88,11 @@ theorem raft.hasUnappliedConfChanges.wp_proof
     raft.hasUnappliedConfChanges.spec (GF := GF) (hG := hG) := by
   intro cfg r id s Hsn
   wp_start as Hphys
-  -- the log's facts, read once: `applied`/`committed` inside the log, and no conf
-  -- change in it
+  ihave #Hinit := isInitialized_access $$ Hpkg
+  iNamed Hinit
+  icases ErrBreak with ⟨%eb, #Heb, %Hebf⟩
+  obtain ⟨Hebnz, Hebnew⟩ := Hebf
+  -- the log's facts, read once: `applied`/`committed` inside the log
   icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hback⟩
   icases ownRaftLog_pure _ _
       (uint.Z s.logst.prev.index' ≤ uint.Z s.logst.applied ∧
@@ -96,18 +100,26 @@ theorem raft.hasUnappliedConfChanges.wp_proof
        uint.Z s.logst.committed ≤ uint.Z s.logst.prev.index' + (s.logst.sents.length : Int)
          + (s.logst.uents.length : Int) ∧
        uint.Z s.logst.prev.index' + (s.logst.sents.length : Int)
-         + (s.logst.uents.length : Int) + 1 < 2^64 ∧
-       ∀ e ∈ s.logst.sents ++ s.logst.uents, e.Type' = EntryNormal)
-      (fun _ _ _ Hnw _ _ Hnc Happ Hpap Hcom _ _ => ⟨Hpap Hsn, Happ.2, Hcom, Hnw, Hnc⟩) $$ Hlog
+         + (s.logst.uents.length : Int) + 1 < 2^64)
+      (fun _ _ _ Hnw _ _ Happ Hpap Hcom _ _ => ⟨Hpap Hsn, Happ.2, Hcom, Hnw⟩) $$ Hlog
     with ⟨%Hfacts, Hlog⟩
-  obtain ⟨Hpa, Hac, Hcl, Hnw, Hnc⟩ := Hfacts
+  obtain ⟨Hpa, Hac, Hcl, Hnw⟩ := Hfacts
   ihave Hphys := Hback $$ Hlog
   wp_auto
   read_field
   read_field
   wp_if_destruct
   · -- `applied >= committed`: the range is empty and the answer is `false`
-    iapply HΦ $$ Hphys
+    iapply HΦ
+    iframe Hphys
+    ipureintro
+    have Hemp : unappliedEnts s.logst = [] := by
+      unfold unappliedEnts scanRange
+      rw [show (uint.Z (s.logst.committed + W64 1) - uint.Z (s.logst.applied + W64 1)).toNat = 0
+        by word]
+      rfl
+    rw [Hemp]
+    simp
   -- the reads of `r.raftLog` for `lo`, `hi`, `pageSize`
   read_field
   read_field
@@ -125,17 +137,22 @@ theorem raft.hasUnappliedConfChanges.wp_proof
         + (s.logst.sents.length : Int) + (s.logst.uents.length : Int) + 1 := by
     word
   wp_func_lits
-  wp_apply wp_raftLog_scan _ s.logst _ _ _ _ emp (fun e => e.Type' = EntryNormal) Hrange Hnc
-    $$ [$Hlog] as ⟨Hlog, -⟩
-  · -- the callback, at `I := emp`
-    isplitr
-    · iempintro
+  wp_apply wp_raftLog_scan _ s.logst _ _ _ _
+    (fun acc => iprop(found_ptr ↦ false ∗ ⌜∀ e ∈ acc, ¬ IsConfEnt e⌝))
+    (fun err => iprop(⌜err = eb⌝ ∗ found_ptr ↦ true ∗
+      ⌜∃ e ∈ unappliedEnts s.logst, IsConfEnt e⌝)) Hrange
+    $$ [$Hlog found] as %err ⟨Hlog, Hres⟩
+  · isplitl [found]
+    · simp only [named]
+      iframe
+      ipureintro; simp
     imodintro
     unfold scanClosure
-    iintro %sl %es %dq
+    iintro %sl %acc %es %dq
     iintro %Ψ
     imodintro
-    iintro ⟨Hes, %HPes, -⟩ HΨ
+    iintro ⟨Hes, %Hpg, Hf, %Hacc⟩ HΨ
+    obtain ⟨_, Hpre⟩ := Hpg
     wp_auto
     -- the range construct's own counter `i_ptr` and the body's `i` (`ib`) share a Go
     -- name; rename the body's
@@ -143,58 +160,137 @@ theorem raft.hasUnappliedConfChanges.wp_proof
     irename: (ibp ↦ (_ : w64)) => ib
     ihave %Hslen := ownSlice_len _ _ _ $$ Hes
     ihave IH : iprop(∃ (k m : w64), "i" ∷ i_ptr ↦ k ∗ "ib" ∷ ibp ↦ m ∗
-        "Hes" ∷ sl ↦*{dq} es ∗ "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (es.length : Int)⌝)
-      $$ [i ib Hes]
+        "Hes" ∷ sl ↦*{dq} es ∗ "Hf" ∷ found_ptr ↦ false ∗
+        "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (es.length : Int)⌝ ∗
+        "%Hnc" ∷ ⌜∀ e ∈ es.take (sint.Z k).toNat, ¬ IsConfEnt e⌝)
+      $$ [i ib Hes Hf]
     · iexists W64 0, zero_val w64
       iframe
       ipureintro
-      word
+      refine ⟨by word, ?_⟩
+      simp
     wp_for IH
     wp_if_destruct
-    · list_elem es (sint.nat k) as e
+    · have Hlt : sint.Z k < sint.Z sl.len := by
+        first | exact Hif | exact of_decide_eq_true (go.intoVal_inj Hif)
+      list_elem es (sint.nat k) as e
       -- the range construct's own read of `ents[j]`
       rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
       wp_apply wp_load_slice_index sl (sint.Z k) es dq e (by word) $$ [Hes] with Hes
       · iframe
         ipureintro
         exact He_lookup
-      have HeT : e.Type' = EntryNormal := HPes e (List.mem_of_getElem? He_lookup)
       -- the two `ents[i].Type` reads load a *field*, so lend the element out rather than
       -- using `wp_load_slice_index`
       icases ownSlice_elem_acc (sint.Z k) e sl dq es (by word) He_lookup $$ Hes
         with ⟨Hel, Hesback⟩
       icases typedPointsto_not_null_dup _ _ _ $$ Hel with ⟨Hel, %Hel_nn⟩
       iStructNamed Hel
+      have Hset : es.set (sint.Z k).toNat e = es := by
+        have Hl : es[(sint.Z k).toNat]? = some e := He_lookup
+        obtain ⟨h, rfl⟩ := List.getElem?_eq_some_iff.1 Hl
+        exact List.set_getElem_self h
+      have Hmem : e ∈ es := List.mem_of_getElem? He_lookup
+      have HinL : e ∈ unappliedEnts s.logst := (Hpre.subset (List.mem_append_right _ Hmem))
       rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
       wp_auto
-      rw [decide_eq_false (by rw [HeT, EntryNormal]; word)]
+      by_cases H1 : e.Type' = W32 1
+      · -- `EntryConfChange`: found
+        rw [decide_eq_true (by rw [H1])]
+        wp_auto
+        ihave Hel : sliceIndexRef raftpb.Entry (sint.Z k) sl ↦{dq} e $$ [Term Index Type' Data]
+        · iapply typedPointsto_combine _ _ _ Hel_nn
+          simp only [TypedPointsto.typedPointstoDef]
+          iframe
+        ihave Hes := Hesback $$ %e Hel
+        rw [Hset]
+        wp_for_post
+        iapply HΨ
+        iframe
+        iright
+        iframe
+        ipureintro
+        exact ⟨Hebnz, rfl, e, HinL, Or.inl H1⟩
+      rw [decide_eq_false (by intro h; apply H1; rw [h])]
       wp_auto
       rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
       wp_auto
-      rw [decide_eq_false (by rw [HeT, EntryNormal]; word)]
+      by_cases H2 : e.Type' = W32 2
+      · -- `EntryConfChangeV2`: found
+        rw [decide_eq_true (by rw [H2])]
+        wp_auto
+        ihave Hel : sliceIndexRef raftpb.Entry (sint.Z k) sl ↦{dq} e $$ [Term Index Type' Data]
+        · iapply typedPointsto_combine _ _ _ Hel_nn
+          simp only [TypedPointsto.typedPointstoDef]
+          iframe
+        ihave Hes := Hesback $$ %e Hel
+        rw [Hset]
+        wp_for_post
+        iapply HΨ
+        iframe
+        iright
+        iframe
+        ipureintro
+        exact ⟨Hebnz, rfl, e, HinL, Or.inr H2⟩
+      rw [decide_eq_false (by intro h; apply H2; rw [h])]
       wp_auto
       ihave Hel : sliceIndexRef raftpb.Entry (sint.Z k) sl ↦{dq} e $$ [Term Index Type' Data]
       · iapply typedPointsto_combine _ _ _ Hel_nn
         simp only [TypedPointsto.typedPointstoDef]
         iframe
       ihave Hes := Hesback $$ %e Hel
-      -- `list_insert_id`
-      have Hset : es.set (sint.Z k).toNat e = es := by
-        have Hl : es[(sint.Z k).toNat]? = some e := He_lookup
-        obtain ⟨h, rfl⟩ := List.getElem?_eq_some_iff.1 Hl
-        exact List.set_getElem_self h
       rw [Hset]
       wp_for_post
       iframe
       iexists k + W64 1, k
       iframe
       ipureintro
-      word
-    · iapply HΨ
+      refine ⟨by word, ?_⟩
+      intro x Hx
+      rw [show (sint.Z (k + W64 1)).toNat = (sint.Z k).toNat + 1 by word,
+        List.take_add_one, He_lookup] at Hx
+      rcases List.mem_append.1 Hx with Hx | Hx
+      · exact Hnc x Hx
+      · simp only [Option.toList_some, List.mem_singleton] at Hx
+        subst Hx
+        rintro (h | h)
+        · exact H1 h
+        · exact H2 h
+    · have Hge : ¬ sint.Z k < sint.Z sl.len := by
+        first
+        | exact Hif
+        | exact fun h => Hif (congrArg (fun b : Bool => (#b : val)) (decide_eq_true h))
+      iapply HΨ
       iframe
-  -- `scan` returned `nil`, so the `Panicf` is dead and `found` is `false`
+      ileft
+      iframe
+      ipureintro
+      refine ⟨rfl, ?_⟩
+      intro x Hx
+      rcases List.mem_append.1 Hx with Hx | Hx
+      · exact Hacc x Hx
+      · apply Hnc x
+        rw [List.take_of_length_le (by word)]
+        exact Hx
   ihave Hphys := Hback $$ Hlog
-  iapply HΦ $$ Hphys
+  icases Hres with (⟨%Herr, Hf, %Hnone⟩ | ⟨%Hne, %Herr, Hf, %Hsome⟩)
+  · -- `scan` returned `nil`: no conf-change entry in the range, `found` is `false`
+    subst Herr
+    wp_auto
+    iapply HΦ
+    iframe Hphys
+    ipureintro
+    constructor
+    · intro h; cases h
+    · rintro ⟨e, He, Hc⟩; exact absurd Hc (Hnone e He)
+  · -- `scan` returned `errBreak`: `found` is `true`
+    subst Herr
+    obtain ⟨ty, p, rfl⟩ := Hebnew
+    wp_auto
+    iapply HΦ
+    iframe Hphys
+    ipureintro
+    exact ⟨fun _ => Hsome, fun _ => rfl⟩
 
 end proof
 

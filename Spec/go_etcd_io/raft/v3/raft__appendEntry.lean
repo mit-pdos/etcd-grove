@@ -73,7 +73,8 @@ only when
 (`raft.increaseUncommittedSize.impl`), and `payloadsSize` sums `len(e.Data)`.
 
 From 2026-09-18 to 2026-10-01 that was a *premise* (`Hempty`) and the result was
-`RET #true`. Since 2026-10-01 the triple takes an arbitrary `EntryNormal` batch -- what
+`RET #true`. Since 2026-10-01 the triple takes an arbitrary batch (until 2026-10-13 of
+`EntryNormal` entries) -- what
 `stepLeader`'s `MsgProp` arm passes, and what the model's `Step.propose` describes -- so
 the result is a bool `accepted`, and the fact above is a *conjunct* of the
 postcondition: `(∀ e ∈ ents, Data empty) → accepted = true`. That is as far as
@@ -93,13 +94,11 @@ struct is written, so it comes back at `s`. The accept path writes `r.uncommitte
 
 ### The premises
 
-Both are what the *log* needs:
+What the *log* needs (until 2026-10-13 also `Hnorm`, no configuration change in the
+batch, for `ownRaftLog`'s `HnoConfChange`; since reconfiguration stage D the log takes
+conf-change entries as data. The method does *not* set `Type` -- only `Term` and `Index`
+-- so the caller's value is what lands in the log):
 
-- `Hnorm`: no entry in the batch is a configuration change. `ownRaftLog`'s
-  `HnoConfChange` is about the whole log, so appending an `EntryConfChange` would break
-  it. `becomeLeader` passes `pb.Entry{Data: nil}`, whose `Type` is the zero value
-  `EntryNormal`. (Note the method does *not* set `Type` -- only `Term` and `Index` --
-  so the caller's value is what lands in the log.)
 - `Hsmall`: the batch has fewer than `2^61` entries, so that `lastIndex()+1+k` does not
   wrap while the loop stamps it in.
 
@@ -148,8 +147,6 @@ the log away. -/
 abbrev raft.appendEntry.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
     (ents : List raftpb.Entry),
-  -- no configuration change, so the log's `HnoConfChange` survives
-  (∀ e ∈ ents, e.Type' = EntryNormal) →
   -- a batch small enough that `lastIndex()+1+k` does not wrap
   (ents.length : Int) < 2^61 →
   -- a leader's term (2026-10-10): the self-acknowledgement is stamped with it, and

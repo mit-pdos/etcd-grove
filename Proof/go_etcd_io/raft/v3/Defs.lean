@@ -695,6 +695,12 @@ structure NState [FfiSyntax] where
   `reset` (every `becomeX` but `becomePreCandidate`) and `abortLeaderTransfer` clear it.
   Invisible to the protocol (`toPState`). -/
   lt : w64 := W64 0
+  /-- `r.pendingConfIndex` (2026-10-13, reconfiguration stage D): the index of the last
+  conf-change entry the leader appended (or, after `becomeLeader`, its last index, which may
+  hide one), against which `stepLeader` refuses another conf change until it is applied.
+  `reset` clears it, `becomeLeader` sets it, `stepLeader`'s proposal loop moves it.
+  Invisible to the protocol (`toPState`). -/
+  pci : w64 := W64 0
 
 section phys_state
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
@@ -728,9 +734,10 @@ def resetTo0 (s : NState) (term : w64) : NState :=
   { s with term := term, vote := if term = s.term then s.vote else W64 0, lead := W64 0,
            votes := ∅, lt := W64 0 }
 
-/-- (2026-10-12) and the fresh `readOnly` object `reset` installs last. -/
+/-- (2026-10-12) and the fresh `readOnly` object `reset` installs last; (2026-10-13) and
+`pendingConfIndex` cleared. -/
 def resetTo (s : NState) (term : w64) : NState :=
-  { resetTo0 s term with rd := { s.rd with ro := ⟨[], ∅, W64 0⟩ } }
+  { resetTo0 s term with rd := { s.rd with ro := ⟨[], ∅, W64 0⟩ }, pci := W64 0 }
 
 def becomeFollower (s : NState) (term lead : w64) : NState :=
   { resetTo s term with lead := lead, role := .follower, stepfn := stepFuncOf .follower,
@@ -789,10 +796,11 @@ Visible in the abstract outbox since 2026-10-01. -/
 def selfAck (id : w64) (s : NState) : Msg :=
   Msg.mk .appResp id id s.term false (logLast s.logst) (W64 0) (W64 0) (W64 0) []
 
-/-- `becomeLeader` up to `appendEntry`'s `send`: `becomeLeaderPre`, then the empty
-entry appended. -/
+/-- `becomeLeader` up to `appendEntry`'s `send`: `becomeLeaderPre`, `pendingConfIndex` at
+the last index (2026-10-13), then the empty entry appended. -/
 def becomeLeaderLog (id : w64) (s : NState) : NState :=
-  { becomeLeaderPre id s with logst := logAppend s.logst [leaderEntry s] }
+  { becomeLeaderPre id s with pci := logLast s.logst,
+                              logst := logAppend s.logst [leaderEntry s] }
 
 /-- `becomeLeader`: the empty entry appended and self-acknowledged. -/
 def becomeLeader (id : w64) (s : NState) : NState :=

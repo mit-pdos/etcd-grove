@@ -192,7 +192,7 @@ theorem stepCandidate.wp_proof
       simp [CandidateStepResult, Hty, MsgVoteResp, MsgProp]
     iexact ErrPropDropped
   · -- `MsgApp`: `becomeFollower(m.Term, m.From)`, then `handleAppendEntries`
-    obtain ⟨Hwf, Hnw, Hnorm, Hconf, Hfid⟩ := Happ Hty
+    obtain ⟨Hwf, Hnw, Hconf, Hfid⟩ := Happ Hty
     have Hterm' := (Hterm (Or.inr (Or.inl Hty))).1
     rw [Hty]
     simp only [MsgApp]
@@ -202,7 +202,7 @@ theorem stepCandidate.wp_proof
       as %pvs Hphys
     ihave Hes := Hents $$ %trivial
     icases Hes with ⟨#Hes, Hcap⟩
-    wp_apply wp_raft_handleAppendEntries _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs } _ _ Hwf Hnw Hnorm Hconf
+    wp_apply wp_raft_handleAppendEntries _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs } _ _ Hwf Hnw Hconf
       Hfid $$ [$Hphys $Hes $Hcap]
       as %s' ⟨Hphys, %Hres⟩
     iapply HΦ $$ %GoInterface.nil %s' %false

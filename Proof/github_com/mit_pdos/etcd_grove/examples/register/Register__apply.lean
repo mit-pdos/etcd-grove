@@ -70,16 +70,24 @@ theorem Register.apply.wp_proof (wp_decode : register.decode.spec (GF := GF) (hG
   wp_auto
   cases o with
   | none =>
-    -- a leader's own entry: the zero slice, no operation
+    -- a leader's own entry (the zero slice) or (2026-10-13) an entry of another type (a
+    -- conf change): no operation
     iunfold entDataIs at He
-    icases He with %Hz
+    icases He with (%Hz | ⟨%Hty, -⟩)
+    rotate_left
+    · -- not a normal entry: `apply` returns at once
+      wp_if_destruct
+      · exact absurd Hif Hty
+      · iapply HΦ
+        iapply Hkeep $$ Hv HmA HA
+        ipureintro; exact ⟨Hval, HA⟩
     wp_if_destruct
     rotate_left
     · iapply HΦ
       iapply Hkeep $$ Hv HmA HA
       ipureintro; exact ⟨Hval, HA⟩
     ihave #Hnil : e.Data' ↦*□ ([] : List w8) $$ []
-    · rw [Hz]; iapply ownSlice_nil
+    · rw [Hz.2]; iapply ownSlice_nil
     wp_apply wp_decode e.Data' [] DFrac.discard $$ [$Hnil]
     iintro -
     simp only [decodeRet, show decodeOp ([] : List w8) = none from rfl]

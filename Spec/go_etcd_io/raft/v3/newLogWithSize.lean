@@ -24,15 +24,14 @@ unstable suffix is empty and starts at `LastIndex()+1` (where `offsetInProgress`
 too: `ip` below), and `committed = applied = applying = FirstIndex()-1`, the compaction
 boundary.
 
-Two premises are about the storage's *contents* and are not in `isStorage`: that the
-stored entries carry contiguous indices after `prev` (`LogIndicesOk`), and that none is
-a configuration change. The first is true of any correct `Storage` (and of
-`MemoryStorage`) but `ownStorage` is abstract, so a client has to supply it. The second
-is the development's no-reconfiguration scope (`HnoConfChange`, `InvRaftlog.lean`) and
-is **false of a freshly bootstrapped etcd node**, whose storage holds the
-`EntryConfChange`s `Bootstrap` wrote (notes/STATUS.md, "What still needs fixing").
+One premise is about the storage's *contents* and is not in `isStorage`: that the
+stored entries carry contiguous indices after `prev` (`LogIndicesOk`), true of any
+correct `Storage` (and of `MemoryStorage`) but `ownStorage` is abstract, so a client has
+to supply it. (Until 2026-10-13 a second: that none is a configuration change, the
+no-reconfiguration scope `HnoConfChange`, false of a freshly bootstrapped etcd node,
+whose storage holds the `EntryConfChange`s `Bootstrap` wrote.)
 
-A third (2026-10-03) is about the storage's snapshot `ss`: it is empty
+Another (2026-10-03) is about the storage's snapshot `ss`: it is empty
 (`ss.index' = 0`) or it *is* the compaction boundary (`ss = prev`). That is
 `ownRaftLog`'s `StoredSnapOk` at `committed = prev.index'`, the commit index the log
 starts at. It holds of a fresh `MemoryStorage` (no snapshot, dummy entry `0`) and of the
@@ -59,7 +58,6 @@ abbrev newLogWithSize.spec : Prop :=
   ∀ (st : Storage) (lg : Logger) (maxSize : w64)
     (σ : StorState) (lok : GoInterfaceOk),
   LogIndicesOk σ.prev σ.ents →
-  (∀ e ∈ σ.ents, e.Type' = EntryNormal) →
   (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
   -- nothing pending (2026-10-10)
   σ.pend = [] →

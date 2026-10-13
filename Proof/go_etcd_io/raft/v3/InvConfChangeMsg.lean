@@ -22,6 +22,7 @@ encoding, and the vocabulary of `Spec/go_etcd_io/raft/v3/raftpb/{ConfChange,Conf
 module
 
 public import Proof.go_etcd_io.raft.v3.Base
+public import Proof.go_etcd_io.raft.v3.CCModel
 
 @[expose] public section
 
@@ -32,34 +33,8 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.raft.v3
 
-/-- The content of a legacy `raftpb.ConfChange` (`raft.pb.go`: `ID`, `Type`, `NodeID`,
-`Context`). -/
-structure CCV1M [FfiSyntax] where
-  type : raftpb.ConfChangeType
-  nodeId : w64
-  context : List w8
-  id : w64
-
-/-- The content of a `raftpb.ConfChangeV2` (`raft.pb.go`: `Transition`, `Changes`,
-`Context`). -/
-structure CCV2M [FfiSyntax] where
-  transition : raftpb.ConfChangeTransition
-  changes : List raftpb.ConfChangeSingle
-  context : List w8
-
-/-- What gogoproto's `(*ConfChange).Unmarshal` (`raft.pb.go:2940`) makes of `bs`, read into
-a zero `ConfChange`: the decoded content, or `none` where it returns an error. Opaque: the
-trust-boundary specs of `Marshal`/`Unmarshal` are what is known of it. -/
-opaque ccDecodeV1 [FfiSyntax] : List w8 → Option CCV1M
-
-/-- What gogoproto's `(*ConfChangeV2).Unmarshal` (`raft.pb.go:3169`) makes of `bs`, read into
-a zero `ConfChangeV2`; `none` where it returns an error. Opaque, as `ccDecodeV1`. -/
-opaque ccDecodeV2 [FfiSyntax] : List w8 → Option CCV2M
-
-/-- A conf change as `MarshalConfChange` sees it: a legacy `ConfChange` or a `ConfChangeV2`. -/
-inductive CCMsg [FfiSyntax] where
-  | v1 : CCV1M → CCMsg
-  | v2 : CCV2M → CCMsg
+/-! `CCV1M`, `CCV2M`, `ccDecodeV1`, `ccDecodeV2` and `CCMsg` are in `CCModel.lean` (since
+2026-10-13). -/
 
 /-- The `EntryType` of an entry carrying a conf change (`MarshalConfChange`): `nil` and a
 `ConfChangeV2` are `EntryConfChangeV2` (2), a `ConfChange` is `EntryConfChange` (1). -/
@@ -124,6 +99,79 @@ def ownCCI (c : GoInterface) (dq : DFrac) : Option CCMsg → IProp GF
       ⌜c = interface.mkOk raftpb.ConfChange.ty #v⌝ ∗ ownCCV1 v dq m)
   | some (.v2 m) => iprop(∃ v : raftpb.ConfChangeV2,
       ⌜c = interface.mkOk raftpb.ConfChangeV2.ty #v⌝ ∗ ownCCV2 v dq m)
+
+/-- What `stepLeader`'s proposal loop needs of an entry `e` of a proposal, with `o` its
+decoded conf change (2026-10-13): none for an entry that is not a conf change; for one,
+its data slice holds (read-only) bytes that decode to `o` as its type says. (`Unmarshal`
+panics if decoding fails, so the proposer has to provide the bytes; `confChangeToMsg`'s
+`CCData`.) -/
+def ccEntOk (e : raftpb.Entry) : Option CCMsg → IProp GF
+  | none => iprop(⌜¬ IsConfEnt e⌝)
+  | some (.v1 m) => iprop(⌜e.Type' = W32 1⌝ ∗ ∃ bs, e.Data' ↦*□ bs ∗ ⌜ccDecodeV1 bs = some m⌝)
+  | some (.v2 m) => iprop(⌜e.Type' = W32 2⌝ ∗ ∃ bs, e.Data' ↦*□ bs ∗ ⌜ccDecodeV2 bs = some m⌝)
+
+/-- `ccEntOk` of every entry of a batch, with the decoded conf changes `cs`. -/
+def ccEntsOk (ents : List raftpb.Entry) (cs : List (Option CCMsg)) : IProp GF :=
+  [∗list] e;o ∈ ents;cs, ccEntOk e o
+
+instance ccEntOk_persistent (e : raftpb.Entry) (o : Option CCMsg) :
+    Persistent (ccEntOk (GF := GF) e o) := by
+  rcases o with _ | (m | m) <;> unfold ccEntOk <;> infer_instance
+
+instance ccEntsOk_persistent (ents : List raftpb.Entry) (cs : List (Option CCMsg)) :
+    Persistent (ccEntsOk (GF := GF) ents cs) := by
+  unfold ccEntsOk; infer_instance
+
+theorem ccEntOk_type (e : raftpb.Entry) (o : Option CCMsg) :
+    ccEntOk (GF := GF) e o ⊢ ⌜o.isSome = decide (IsConfEnt e)⌝ := by
+  rcases o with _ | (m | m) <;> unfold ccEntOk
+  · iintro %H; ipureintro; simp [H]
+  · iintro ⟨%H, -⟩; ipureintro; simp [IsConfEnt, H]
+  · iintro ⟨%H, -⟩; ipureintro; simp [IsConfEnt, H]
+
+theorem ccEntsOk_types (ents : List raftpb.Entry) (cs : List (Option CCMsg)) :
+    ccEntsOk (GF := GF) ents cs ⊢ ⌜CCTypesOk ents cs⌝ := by
+  unfold ccEntsOk CCTypesOk
+  induction ents generalizing cs with
+  | nil =>
+    cases cs with
+    | nil => iintro _; ipureintro; exact List.Forall₂.nil
+    | cons c cs =>
+      iintro H
+      ihave %Hl := BigSepL2.bigSepL2_length $$ H
+      simp at Hl
+  | cons e ents ih =>
+    cases cs with
+    | nil =>
+      iintro H
+      ihave %Hl := BigSepL2.bigSepL2_length $$ H
+      simp at Hl
+    | cons c cs =>
+      iintro H
+      icases (BigSepL2.bigSepL2_cons (Φ := fun _ e o => ccEntOk (GF := GF) e o)).1 $$ H with ⟨He, Hr⟩
+      ihave %H1 := ccEntOk_type e c $$ He
+      ihave %H2 := ih cs $$ Hr
+      ipureintro
+      exact List.Forall₂.cons H1 H2
+
+/-- A batch of normal entries needs nothing. -/
+theorem ccEntsOk_normal (ents : List raftpb.Entry) (H : ∀ e ∈ ents, e.Type' = W32 0) :
+    ⊢ ccEntsOk (GF := GF) ents (ents.map fun _ => none) := by
+  unfold ccEntsOk
+  induction ents with
+  | nil =>
+    simp only [List.map_nil]
+    iapply (BigSepL2.bigSepL2_nil (Φ := fun _ e o => ccEntOk (GF := GF) e o)).2; iempintro
+  | cons e ents ih =>
+    simp only [List.map_cons]
+    iapply (BigSepL2.bigSepL2_cons (Φ := fun _ e o => ccEntOk (GF := GF) e o)).2
+    isplitl
+    · unfold ccEntOk
+      ipureintro
+      have He := H e List.mem_cons_self
+      unfold IsConfEnt; rw [He]
+      rintro (h | h) <;> revert h <;> word
+    · iapply ih (fun e' h => H e' (List.mem_cons_of_mem _ h))
 
 end own
 

@@ -23,28 +23,22 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `r.hasUnappliedConfChanges()`: false, since there is no reconfiguration.
+/-- `r.hasUnappliedConfChanges()`: whether a committed entry not applied yet (at
+`(applied, committed]`, `unappliedEnts`) is a configuration change (`IsConfEnt`).
 
-The tempting shortcut does not work: the generated body (Rocq
-new/code/go_etcd_io/raft/v3.v:3732; `raft.hasUnappliedConfChanges.impl` in
-`Code/go_etcd_io/raft/v3.lean`) opens with
+(Until 2026-10-13: always `false`, from `ownRaftLog`'s `HnoConfChange`, the scope
+assumption that no configuration change is ever requested. Reconfiguration stage D lets
+conf-change entries into the log, and this is the real answer.)
 
-    if r.raftLog.applied >= r.raftLog.committed { return false }
-
-but `applied >= committed` is a fact about the log that nothing available implies, so
-the `scan` over `(applied, committed]` is **genuinely reachable** -- it is not dead
-under our scope. Returning `false` therefore needs `ownRaftLog` to say that no entry in
-that range has `Type` `EntryConfChange` or `EntryConfChangeV2`, which is
-`HnoConfChange` in `ownRaftLog` (`InvRaftlog.lean`), together with
-`Happlied`/`Hcommitted` placing `(applied, committed]` inside the log so that `scan`'s
-bounds checks cannot panic.
+The generated body opens with `if r.raftLog.applied >= r.raftLog.committed { return
+false }` (the range is then empty); otherwise it `scan`s the range, its callback setting
+`found` and stopping the scan with `errBreak` at the first conf-change entry, and
+`Panicf`s on any other error (dead: `scan`'s only errors are the callback's).
 
 **Owns the receiver.** The method has a pointer receiver and reads `r.raftLog` through
-it four times before anything else, so the triple takes `r ↦ rv` and speaks of
-`ownRaftLog rv.raftLog'` -- the `tracker.ProgressTracker.Visit.spec` rule (main's
-notes/false-statements.md). Until 2026-09-19 it was stated on an unrelated `l : Loc`
-with no ownership of `r` at all, which asserted the safety of a load it did not own;
-that version was never proved. `r.logger` is also read, but only on the `Panicf` path,
+it four times before anything else, so the triple takes `ownRaftPhys` (until 2026-09-19
+it was stated on an unrelated `l : Loc` with no ownership of `r` at all; main's
+notes/false-statements.md). `r.logger` is also read, but only on the `Panicf` path,
 which is dead. -/
 abbrev raft.hasUnappliedConfChanges.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
@@ -57,7 +51,8 @@ abbrev raft.hasUnappliedConfChanges.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"hasUnappliedConfChanges"))
       (Val #()))
-  {{ RET #false; ownRaftPhys cfg r id s }}
+  {{ (b : Bool), RET #b; ownRaftPhys cfg r id s ∗
+      ⌜b = true ↔ ∃ e ∈ unappliedEnts s.logst, IsConfEnt e⌝ }}
 
 end spec
 

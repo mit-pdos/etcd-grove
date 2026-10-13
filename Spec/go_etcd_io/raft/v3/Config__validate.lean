@@ -53,7 +53,9 @@ def ConfigPreserved (cv cv' : Config) : Prop :=
   -- read by `NewRawNode` after `newRaft` (2026-10-09)
   cv'.AsyncStorageWrites' = cv.AsyncStorageWrites' ∧
   -- read by `newRaft` (2026-10-12, read-index)
-  cv'.ReadOnlyOption' = cv.ReadOnlyOption'
+  cv'.ReadOnlyOption' = cv.ReadOnlyOption' ∧
+  -- read by `newRaft` (2026-10-13, reconfiguration stage D)
+  cv'.DisableConfChangeValidation' = cv.DisableConfChangeValidation'
 
 end defs
 

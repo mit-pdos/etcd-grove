@@ -64,17 +64,19 @@ theorem RawNode.Propose.wp_proof
     isplitl [Hes Hcap]
     · simp only [named]
       isplitl [Hes]
-      · iexact Hes
+      · iframe Hes
+        iexists ([propEntry data_sl].map fun _ => none)
+        iapply ccEntsOk_normal [propEntry data_sl]
+        intro e He
+        simp only [List.mem_singleton] at He
+        subst He
+        rfl
       isplitl [Hcap]
       · iexact Hcap
       isplitr
       · ipureintro
         intro _
-        refine ⟨List.cons_ne_nil _ _, ?_, by simp⟩
-        intro e He
-        simp only [List.mem_singleton] at He
-        subst He
-        rfl
+        exact ⟨List.cons_ne_nil _ _, by simp⟩
       isplitr
       · ipureintro
         intro Hc
@@ -86,11 +88,7 @@ theorem RawNode.Propose.wp_proof
         unfold isMessage absMsg absMsgFrom
         isplitr
         · ipureintro
-          refine ⟨rfl, List.cons_ne_nil _ _, ?_, by simp⟩
-          intro e He
-          simp only [List.mem_singleton] at He
-          subst He
-          rfl
+          exact ⟨rfl, List.cons_ne_nil _ _, by simp⟩
         iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entData (GF := GF) γ e)).2
         iexact Hent
     isplitr

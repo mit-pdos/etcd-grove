@@ -646,7 +646,8 @@ theorem node_propose_ghost (γ : NodeNames) (id : w64) (n : Loc) (data_sl : GoSl
   by_cases Hz : data_sl = (zero_val raftpb.Entry).Data'
   · iexists none
     unfold entDataIs
-    ipureintro; exact Hz
+    ileft
+    ipureintro; exact ⟨rfl, Hz⟩
   · iexists some data
     unfold entDataIs propEntry
     simp only []

@@ -547,8 +547,9 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (id : w64) (s : PState)
     unfold entData
     iexists none
     unfold entDataIs
+    ileft
     ipureintro
-    rw [← He]; rfl
+    rw [← He]; exact ⟨rfl, rfl⟩
   have Hwl2 : PlogWf s.base s2.log := by
     rw [Hs2log]
     refine (PlogWf_app _ _ _).mpr ⟨Hwl, fun k x Hk => ?_⟩
@@ -1430,7 +1431,7 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
   ihave #HLf := leadFull_intro $$ Hp' Hpf'
   icases leadFull_wf γ s.term (fpL ++ l') $$ HLf with ⟨%HwLf, #HrLf⟩
   icases lpfull_fp $$ Hpf' with ⟨-, %HfL⟩
-  obtain ⟨Hwfb, Hnw, -⟩ := Hpay
+  obtain ⟨Hwfb, Hnw⟩ := Hpay
   ihave ⟨%Hok, #Hrecs⟩ := ownLogGhost_recs $$ Hlg
   ihave %Hwl := ownLogGhost_wf $$ Hlg
   obtain ⟨Hwf, Hbc, Hcl⟩ := Hok
@@ -3415,14 +3416,14 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
     iintro _ - Hown
     imod ownRaftGhost_step_send_apps γ id s ms Hrole Hms $$ Hown with Hown
     imodintro; iexact Hown
-  | propose m s ents Hty Hents Hrole _ Hnw =>
+  | propose m s ents Hty Hents Hrole Hnw =>
     iintro Hrecv - Hown
     ihave #Hm := recv_one $$ Hrecv
     iunfold isMessage at Hm
     rw [Hty]
     icases Hm with ⟨-, #Hed⟩
-    rw [Hents]
-    imod ownRaftGhost_step_propose γ id s ents Hrole Hnw $$ Hed Hown with Hown
+    ihave #Hed' := entData_propRepl γ _ _ Hents $$ Hed
+    imod ownRaftGhost_step_propose γ id s ents Hrole Hnw $$ Hed' Hown with Hown
     imodintro; iexact Hown
   | propForward m s Hty _ _ =>
     iintro Hrecv - Hown

@@ -51,7 +51,6 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- `app_no_conflict_below_commit`)
     PlogWf (entryID.mk m.LogTerm' m.Index') ents →
     uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 →
-    (∀ e ∈ ents, e.Type' = EntryNormal) →
     (uint.Z s.logst.committed ≤ uint.Z m.Index' →
      PlogMatches s.logst.prev (s.logst.sents ++ s.logst.uents)
        (entryID.mk m.LogTerm' m.Index') →
@@ -74,7 +73,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw Hnorm Hconf Hgt
+  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw Hconf Hgt
   wp_start as Hphys
   iNamed Hphys
   wp_auto
@@ -101,7 +100,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       ents (zero_val _) [] [] (.inr (.inr (.inl Hty)))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      (fun _ => ⟨Hpwf, Hnw, Hnorm, Hconf, Hfid⟩)
+      (fun _ => ⟨Hpwf, Hnw, Hconf, Hfid⟩)
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
     $$ [$Hphys Hcap] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩

@@ -117,7 +117,7 @@ theorem stepFollower.wp_proof
       simp [FollowerStepResult, Hty, MsgVoteResp, MsgProp]
       exact Hlead
   · -- `MsgApp`: adopt the sender as leader, then `handleAppendEntries`
-    obtain ⟨Hwf, Hnw, Hnorm, Hconf, Hfid⟩ := Happ Hty
+    obtain ⟨Hwf, Hnw, Hconf, Hfid⟩ := Happ Hty
     rw [Hty]
     simp only [MsgApp]
     wp_auto
@@ -125,7 +125,7 @@ theorem stepFollower.wp_proof
     wp_apply raft.wp_store_lead $$ Hphys as Hphys
     ihave Hes := Hents $$ %(Or.inl trivial)
     icases Hes with ⟨#Hes, Hcap⟩
-    wp_apply wp_raft_handleAppendEntries _ _ _ { s with lead := m.From' } _ _ Hwf Hnw Hnorm Hconf Hfid
+    wp_apply wp_raft_handleAppendEntries _ _ _ { s with lead := m.From' } _ _ Hwf Hnw Hconf Hfid
       $$ [$Hphys $Hes $Hcap]
       as %s' ⟨Hphys, %Hres⟩
     iapply HΦ $$ %GoInterface.nil %s' %false

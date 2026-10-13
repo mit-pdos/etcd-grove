@@ -476,8 +476,7 @@ theorem isMessage_propose_from (γ : RaftNames) (m : raftpb.Message) (ents : Lis
 
 theorem isMessage_propose_pure (γ : RaftNames) (m : raftpb.Message) (ents : List raftpb.Entry) :
     ⊢ isMessage (GF := GF) γ (absMsg .propose m ents) -∗
-      ⌜m.Term' = W64 0 ∧ ents ≠ [] ∧ (∀ e ∈ ents, e.Type' = W32 0) ∧
-        (ents.length : Int) < 2 ^ 61⌝ := by
+      ⌜m.Term' = W64 0 ∧ ents ≠ [] ∧ (ents.length : Int) < 2 ^ 61⌝ := by
   unfold isMessage absMsg absMsgFrom
   iintro ⟨%H, -⟩
   ipureintro; exact H
@@ -490,13 +489,95 @@ theorem isMessage_propMsg (γ : RaftNames) (esl data_sl : GoSlice) :
   unfold isMessage absMsg absMsgFrom
   isplitr
   · ipureintro
-    refine ⟨rfl, List.cons_ne_nil _ _, ?_, by simp⟩
-    intro e He
-    simp only [List.mem_singleton] at He
-    subst He
-    rfl
+    exact ⟨rfl, List.cons_ne_nil _ _, by simp⟩
   iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entData (GF := GF) γ e)).2
   iexact Hent
+
+/-- The proposed slices' invariant, out of a node (2026-10-13). -/
+theorem isNode_propDataInv (γ : NodeNames) (id : w64) (n : Loc) :
+    ⊢ isNode (GF := GF) γ id n -∗ inv propDataN (propDataInv γ.raft) := by
+  iintro #H
+  iunfold isNode at H
+  iNamed H
+  iexact Hpdinv
+
+/-- A proposal's conf-change entries' bytes, from their data's records (2026-10-13): each
+entry of a proposal has its data (`entData`), which for a conf-change entry is a proposed
+slice whose bytes decode as its type says (`CCDecodes`); the proposed slices' invariant
+gives the bytes (`propData_heap`). What `raft.Step` needs of a proposal (`ccEntsOk`). -/
+theorem propData_ccEnts (γ : RaftNames) (ents : List raftpb.Entry) (E : CoPset)
+    (HE : ↑propDataN ⊆ E) :
+    ⊢ inv propDataN (propDataInv (GF := GF) γ) -∗ ([∗list] e ∈ ents, entData γ e) ={E}=∗
+      ∃ cs, ccEntsOk ents cs := by
+  induction ents with
+  | nil =>
+    iintro #Hinv #Hes
+    imodintro
+    iexists []
+    unfold ccEntsOk
+    iapply (BigSepL2.bigSepL2_nil (Φ := fun _ e o => ccEntOk (GF := GF) e o)).2
+    iempintro
+  | cons e es ih =>
+    iintro #Hinv #Hes
+    icases (BigSepL.bigSepL_cons (Φ := fun _ e => entData (GF := GF) γ e)).1 $$ Hes
+      with ⟨#He, #Hes'⟩
+    ihave Hih := ih $$ Hinv Hes'
+    imod Hih with ⟨%cs, #Hcs⟩
+    ihave Hone : iprop(|={E}=> ∃ c, ccEntOk e c) $$ []
+    · iunfold entData at He
+      icases He with ⟨%o, #He⟩
+      cases o with
+      | some d =>
+        iunfold entDataIs at He
+        icases He with ⟨%Hd, -⟩
+        imodintro
+        iexists none
+        unfold ccEntOk
+        ipureintro
+        unfold IsConfEnt; rw [Hd.2]
+        rintro (h | h) <;> revert h <;> word
+      | none =>
+        iunfold entDataIs at He
+        icases He with (%Hz | ⟨%Hty, %bs, #Hpd, %Hdec⟩)
+        · imodintro
+          iexists none
+          unfold ccEntOk
+          ipureintro
+          unfold IsConfEnt; rw [Hz.1]
+          rintro (h | h) <;> revert h <;> word
+        · imod propData_heap γ e.Data' bs E HE $$ Hinv Hpd with #Hbs
+          imodintro
+          by_cases H1 : e.Type' = W32 1
+          · obtain ⟨m, Hm⟩ := Hdec.1 H1
+            iexists some (.v1 m)
+            simp only [ccEntOk]
+            isplitr
+            · ipureintro; exact H1
+            iexists bs
+            iframe Hbs
+            ipureintro; exact Hm
+          by_cases H2 : e.Type' = W32 2
+          · obtain ⟨m, Hm⟩ := Hdec.2 H2
+            iexists some (.v2 m)
+            simp only [ccEntOk]
+            isplitr
+            · ipureintro; exact H2
+            iexists bs
+            iframe Hbs
+            ipureintro; exact Hm
+          iexists none
+          unfold ccEntOk
+          ipureintro
+          rintro (h | h)
+          · exact H1 h
+          · exact H2 h
+    imod Hone with ⟨%c, #Hc⟩
+    imodintro
+    iexists c :: cs
+    unfold ccEntsOk
+    iapply (BigSepL2.bigSepL2_cons (Φ := fun _ e o => ccEntOk (GF := GF) e o)).2
+    iframe Hc
+    iexact Hcs
 
 /-- `r.Step(m)` on a proposal (`m.From` set to the node's id, as `run` does), `r` the
 node's raft struct: the batch owned, the proposal legitimately sent (its entries' data:
@@ -506,6 +587,8 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (m : raftpb.Message)
     (ents : List raftpb.Entry) (Hty : m.Type' = MsgProp) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+        -- (2026-10-13) for a forwarded conf change's bytes
+        inv propDataN (propDataInv γ) ∗
         ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗
         m.Entries' ↦* ents ∗ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) ∗
         isMessage γ (absMsg .propose m ents) ∗
@@ -513,14 +596,20 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step"))
         (Val #({ m with From' := id })))
     {{ (err : GoInterface), RET #err; ownRawNode γ rn id rs }} := by
-  iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hes, Hcap, #Hm, ⟨%ctx, #Hctx, %Hctxne⟩⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hpdinv, Hrn, #Hr, Hes, Hcap, #Hm, ⟨%ctx, #Hctx, %Hctxne⟩⟩ HΦ
   iNamed Hrn
   ihave #Hr' := rawNodeOwn_raft rn rnv $$ Hrn
   icombine Hr Hr' gives %Heq
   subst Heq
   ihave #Hm' := isMessage_propose_from γ m ents id $$ Hm
   ihave %Hpm := isMessage_propose_pure γ m ents $$ Hm
-  obtain ⟨Hterm, Hne, Hnorm, Hlen⟩ := Hpm
+  obtain ⟨Hterm, Hne, Hlen⟩ := Hpm
+  ihave #Hed : iprop([∗list] e ∈ ents, entData γ e) $$ []
+  · iunfold isMessage at Hm
+    simp only [absMsg, absMsgFrom]
+    icases Hm with ⟨-, #Hed⟩
+    iexact Hed
+  imod propData_ccEnts γ ents ⊤ CoPset.subseteq_top $$ Hpdinv Hed with ⟨%cs, #Hcc⟩
   have Hty' : ({ m with From' := id } : raftpb.Message).Type' = MsgProp := Hty
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   wp_apply wp_raft_Step γ.reCfg γ _ id s ps ({ m with From' := id }) ents ctx rfl
@@ -538,13 +627,15 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     isplitl [Hes Hcap]
     · simp only [named]
       isplitl [Hes]
-      · iexact Hes
+      · iframe Hes
+        iexists cs
+        iexact Hcc
       isplitl [Hcap]
       · iexact Hcap
       isplitr
       · ipureintro
         intro _
-        exact ⟨Hne, Hnorm, Hlen⟩
+        exact ⟨Hne, Hlen⟩
       isplitr
       · ipureintro
         intro Hc
