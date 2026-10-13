@@ -44,7 +44,6 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.Term' ≠ W64 0 →
     m.From' ≠ W64 0 →
     m.From' ≠ id →
-    id ∈ cfg →
     NStateWf s →
     -- protocol facts the dispatch derives from the ghost state (`app_recv_wf`,
     -- `app_no_conflict_below_commit`)
@@ -74,7 +73,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw Hconf Hteq Hvotes
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw Hconf Hteq Hvotes
   wp_start as Hphys
   iNamed Hphys
   wp_auto
@@ -127,7 +126,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · -- Candidate: `becomeFollower(r.Term, m.From)`, then the handler
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate cfg r id s m ents (zero_val _) [] [] (.inr (.inr (.inl Hty)))
-        (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole) Hcfg (fun _ => ⟨Hpwf, Hnw, Hconf, Hfid⟩)
+        (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole) (fun _ => ⟨Hpwf, Hnw, Hconf, Hfid⟩)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys Hcap] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
@@ -155,7 +154,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · -- Leader: `stepLeader` has no arm for it; nothing changes
     simp only [stepFuncOf]
     wp_apply _P.stepLeader cfg r id s m [] [] (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))
-        Hrole Hcfg
+        Hrole
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
@@ -184,7 +183,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- the handler
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate cfg r id s m ents (zero_val _) [] [] (.inr (.inr (.inl Hty)))
-        (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole) Hcfg (fun _ => ⟨Hpwf, Hnw, Hconf, Hfid⟩)
+        (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole) (fun _ => ⟨Hpwf, Hnw, Hconf, Hfid⟩)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys Hcap] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩

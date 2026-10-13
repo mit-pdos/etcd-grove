@@ -41,7 +41,7 @@ theorem RawNode.Campaign.wp_proof
   wp_auto
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   wp_apply wp_raft_Step γ.reCfg γ _ id s ps _ [] [] rfl
-    (by simp [StepMsg, stepMsgTypes, MsgHup]) Hin
+    (by simp [StepMsg, stepMsgTypes, MsgHup]) (fun _ => Hin)
     (fun _ => ⟨rfl, by rw [← Htrm]; exact Hterm⟩)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)

@@ -393,7 +393,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
         StableOk s.logst (entryID.mk m.LogTerm' m.Index')) ∧ s.gh.unst = false := by
     not_net
   have P8 : m.Type' = MsgStorageApplyResp → m.Term' = W64 0 := by not_net
-  wp_apply wp_raft_Step γ.reCfg γ _ id s ps m ents ctx rfl Hsm Hin P1
+  wp_apply wp_raft_Step γ.reCfg γ _ id s ps m ents ctx rfl Hsm (fun _ => Hin) P1
     (fun h => Hnr h (by ty_ne))
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1⟩) P2 P3
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
@@ -619,7 +619,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
   have Hty' : ({ m with From' := id } : raftpb.Message).Type' = MsgProp := Hty
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   wp_apply wp_raft_Step γ.reCfg γ _ id s ps ({ m with From' := id }) ents ctx rfl
-    (by simp only [StepMsg, stepMsgTypes]; rw [Hty']; simp [MsgProp]) Hin
+    (by simp only [StepMsg, stepMsgTypes]; rw [Hty']; simp [MsgProp]) (fun _ => Hin)
     (by msg_ne') (by msg_ne')
     (by msg_ne') (by msg_ne')
     (by msg_ne') (by msg_ne')

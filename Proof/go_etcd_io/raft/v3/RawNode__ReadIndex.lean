@@ -51,7 +51,7 @@ theorem RawNode.ReadIndex.wp_proof
   have hR : (W32 15 : w32) = MsgReadIndex := rfl
   wp_apply wp_raft_Step γ.reCfg γ _ id s ps _
     [({ (zero_val raftpb.Entry) with Data' := rctx } : raftpb.Entry)] [] rfl
-    (by simp [StepMsg, stepMsgTypes, MsgReadIndex]) Hin
+    (by simp [StepMsg, stepMsgTypes, MsgReadIndex]) (fun _ => Hin)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (fun _ => ⟨rfl, Hsing⟩) (by msg_ne) (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hrel

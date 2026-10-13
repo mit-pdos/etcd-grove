@@ -44,7 +44,6 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     m.Term' ≠ W64 0 →
     m.From' ≠ W64 0 →
     m.From' ≠ id →
-    id ∈ cfg →
     NStateWf s →
     -- protocol fact (`heartbeat_commit_le_last`)
     -- (no commit premise: a stale heartbeat never reaches `commitTo`)
@@ -63,7 +62,7 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hlt
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hlt
   wp_start as ⟨Hphys, #Hents, #Hctx⟩
   wp_auto
   wp_apply _P.traceReceiveMessage

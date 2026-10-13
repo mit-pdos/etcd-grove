@@ -36,7 +36,6 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev raft.tickHeartbeat.spec : Prop :=
   ∀ (cfg : GSet w64) (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (ps : PState),
   γ.reCfg = cfg →
-  id ∈ cfg →
   NStateRel s ps →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗

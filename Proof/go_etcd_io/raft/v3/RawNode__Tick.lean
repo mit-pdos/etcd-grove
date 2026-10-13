@@ -37,10 +37,10 @@ theorem RawNode.Tick.wp_proof
   wp_apply raft.wp_load_tick γ.reCfg rnv.raft' id s Hrel.2.2 $$ Hphys as %f ⟨Hphys, %Hf⟩
   rcases Hf with rfl | rfl
   all_goals first
-    | wp_apply wp_tickElection γ.reCfg γ rnv.raft' id s ps rfl Hin
+    | wp_apply wp_tickElection γ.reCfg γ rnv.raft' id s ps rfl
         (by rw [← Htrm]; exact Hterm) Hrel
         $$ [$Hphys $Hghost] as %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, %Htk⟩
-    | wp_apply wp_tickHeartbeat γ.reCfg γ rnv.raft' id s ps rfl Hin Hrel
+    | wp_apply wp_tickHeartbeat γ.reCfg γ rnv.raft' id s ps rfl Hrel
         $$ [$Hphys $Hghost] as %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, %Htk⟩
   all_goals (
     obtain ⟨⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩, Ht1, Ht2, -⟩ := Htk

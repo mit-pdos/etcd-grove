@@ -216,7 +216,7 @@ private theorem wp_step_pending
     have Hfnz : m.From' ≠ W64 0 := by rw [Hfr]; exact Hidnz
     have Hsm : StepMsg m := by
       rcases Hty with h | h | h <;> simp [StepMsg, stepMsgTypes, h]
-    iapply wp_raft_Step γ.reCfg γ r id s ps m [] [] rfl Hsm Hin
+    iapply wp_raft_Step γ.reCfg γ r id s ps m [] [] rfl Hsm (fun _ => Hin)
       (by not_self) (by not_self) (fun _ => ⟨Hto, Hnz⟩) (by not_self)
       (fun _ => ⟨Hto, Hnz, Hfnz, Hnw _ _ rfl⟩) (by not_self) (by not_self)
       (fun h => ⟨Hto, Hnz, Hfnz, fun Hr => by rw [Hrj h] at Hr; cases Hr⟩)
@@ -275,7 +275,7 @@ private theorem wp_step_pending
     icases stableOk_of_stored γ id s ps e Hrel Hlast Hsnap Hunp $$ Hstr Hghost
       with ⟨%Hsok, Hghost⟩
     iapply wp_raft_Step γ.reCfg γ r id s ps (appendAckMsg id t e) [] [] rfl
-      (by simp [StepMsg, stepMsgTypes, appendAckMsg]) Hin
+      (by simp [StepMsg, stepMsgTypes, appendAckMsg]) (fun _ => Hin)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (fun _ => ⟨rfl, Hle, fun _ _ => Hsok, Hghoff⟩) (by msg_ne) (by msg_ne) (by msg_ne) (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hrel
@@ -321,7 +321,7 @@ private theorem wp_step_pending
     subst Hm
     unfold pendingOwn
     iapply wp_raft_Step γ.reCfg γ r id s ps (applyAckMsg id sl) ce [] rfl
-      (by simp [StepMsg, stepMsgTypes, applyAckMsg]) Hin
+      (by simp [StepMsg, stepMsgTypes, applyAckMsg]) (fun _ => Hin)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (fun _ => rfl) (by msg_ne) (by msg_ne) (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hrel

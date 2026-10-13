@@ -34,7 +34,7 @@ theorem raft.tickHeartbeat.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (wp_raft_abortLeaderTransfer : raft.abortLeaderTransfer.spec (GF := GF) (hG := hG)) :
     raft.tickHeartbeat.spec (GF := GF) (hG := hG) := by
-  intro cfg γ r id s ps Hcfg Hin Hrel
+  intro cfg γ r id s ps Hcfg Hrel
   wp_start as H
   iNamed H
   wp_auto
@@ -114,7 +114,8 @@ theorem raft.tickHeartbeat.wp_proof
     have hP : (W32 1 : w32) ≠ MsgProp := by simp [MsgProp]
     imod rdCred_zero_upd (GF := GF) γ with Hcr
     wp_apply wp_raft_Step cfg γ r id s1 ps _ [] [] Hcfg
-      (by simp [StepMsg, stepMsgTypes, MsgBeat]) Hin
+      (by simp [StepMsg, stepMsgTypes, MsgBeat])
+      (by intro h; simp [MsgBeat, MsgSnap] at h)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (fun _ => rfl) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hrel1

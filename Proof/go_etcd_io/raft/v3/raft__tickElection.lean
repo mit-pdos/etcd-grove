@@ -33,7 +33,7 @@ theorem raft.tickElection.wp_proof
     (wp_pastElectionTimeout : raft.pastElectionTimeout.spec (GF := GF) (hG := hG))
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     raft.tickElection.spec (GF := GF) (hG := hG) := by
-  intro cfg γ r id s ps Hcfg Hin Hterm Hrel
+  intro cfg γ r id s ps Hcfg Hterm Hrel
   wp_start as H
   iNamed H
   wp_auto
@@ -54,7 +54,8 @@ theorem raft.tickElection.wp_proof
     have hP : (W32 0 : w32) ≠ MsgProp := by simp [MsgProp]
     imod rdCred_zero_upd (GF := GF) γ with Hcr
     wp_apply wp_raft_Step cfg γ r id s ps _ [] [] Hcfg
-      (by simp [StepMsg, stepMsgTypes, MsgHup]) Hin
+      (by simp [StepMsg, stepMsgTypes, MsgHup])
+      (by intro h; simp [MsgHup, MsgSnap] at h)
       (fun _ => ⟨rfl, Hterm⟩)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)

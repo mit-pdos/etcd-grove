@@ -1574,8 +1574,11 @@ theorem stepLeader.wp_proof
     (wp_fmt_Sprintf : fmt.Sprintf.spec (GF := GF) (hG := hG))
     (wp_traceChangeConfEvent : traceChangeConfEvent.spec (GF := GF) (hG := hG)) :
     stepLeader.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s m ents ctx Hty Hlead Hid Hfrom0 Hself Hprop Hrdnz Hri Hhr
+  intro cfg r id s m ents ctx Hty Hlead Hfrom0 Hself Hprop Hrdnz Hri Hhr
   iintro %Φ ⟨#Hinit, Hphys, Hctx, Hents, Hrents⟩ HΦ
+  -- a leader is a voter (`ownRaftPhys`'s `Hvoter`; until 2026-10-13 a premise)
+  icases ownRaftPhys_voter cfg r id s $$ Hphys with ⟨%Hvoter, Hphys⟩
+  have Hid : id ∈ cfg := Hvoter (by rw [Hlead]; decide)
   by_cases Hp : m.Type' = MsgProp
   · obtain ⟨Hne, Hsmall, Hnz⟩ := Hprop Hp
     icases Hents $$ %Hp with ⟨Hes, %cs, #Hcc⟩

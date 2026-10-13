@@ -45,7 +45,6 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.Term' ≠ W64 0 →
     m.From' ≠ W64 0 →
     m.From' ≠ id →
-    id ∈ cfg →
     NStateWf s →
     -- protocol facts the dispatch derives from the ghost state (`app_recv_wf`,
     -- `app_no_conflict_below_commit`)
@@ -73,7 +72,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw Hconf Hgt
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw Hconf Hgt
   wp_start as Hphys
   iNamed Hphys
   wp_auto

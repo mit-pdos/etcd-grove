@@ -44,7 +44,6 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev raft.tickElection.spec : Prop :=
   ∀ (cfg : GSet w64) (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (ps : PState),
   γ.reCfg = cfg →
-  id ∈ cfg →
   -- a campaign increments the term; `send` panics if it wraps
   uint.Z s.term + 1 < 2 ^ 64 →
   NStateRel s ps →

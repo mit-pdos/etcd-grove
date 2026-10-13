@@ -45,7 +45,6 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     m.Term' ≠ W64 0 →
     m.From' ≠ W64 0 →
     m.From' ≠ id →
-    id ∈ cfg →
     NStateWf s →
     -- protocol fact (`heartbeat_commit_le_last`)
     uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) →
@@ -65,7 +64,7 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hcommit Hgt
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hcommit Hgt
   wp_start as ⟨Hphys, #Hents, #Hctx⟩
   wp_auto
   wp_apply _P.traceReceiveMessage

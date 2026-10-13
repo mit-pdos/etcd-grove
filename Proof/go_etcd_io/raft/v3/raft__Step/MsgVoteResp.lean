@@ -95,7 +95,6 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.To' = id →
     m.Term' ≠ W64 0 →
     -- `stepCandidate` needs it; `Step` is the outermost caller
-    id ∈ cfg →
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhys cfg r id s }}
@@ -109,7 +108,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hcfg Hwf
+  intro Hty Hto Hterm Hwf
   have Hnpv : m.Type' ≠ MsgPreVoteResp := by rw [Hty]; w32_ne
   wp_start as Hphys
   wp_auto
@@ -241,6 +240,8 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         icases ownTracker_prvals_dom cfg tv _ $$ Htrk with ⟨%Hpd, Htrk⟩
         icases ownTracker_progress_map cfg tv _ $$ Htrk with ⟨-, %Hprd, Htrk⟩
         ihave Hphys := Hback $$ %tv Htrkf Htrk
+        icases ownRaftPhys_voter cfg r id s $$ Hphys with ⟨%Hvoter, Hphys⟩
+        have Hcfg : id ∈ cfg := Hvoter (by rw [Hrole]; decide)
         have Hid : id ∈ domSet s.prvals := by
           have h1 : domSet s.prvals = domSet s.progress := Hpd
           have h2 : cfg ⊆ domSet s.progress := Hprd
@@ -250,7 +251,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hlnw, Hlog⟩
         ihave Hphys := Hback $$ Hlog
         wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) [] [] (.inl Hty)
-            (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole) Hcfg
+            (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole)
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hrole] at Hc; exact absurd Hc (by decide))
@@ -314,7 +315,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             omega
       · -- Leader: `stepLeader`'s `MsgVoteResp` arm only reads.
         simp only [stepFuncOf]
-        wp_apply _P.stepLeader cfg r id s m [] [] (.inl Hty) Hrole Hcfg
+        wp_apply _P.stepLeader cfg r id s m [] [] (.inl Hty) Hrole
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by
               exfalso; rw [Hty] at Hc
@@ -350,7 +351,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- `MsgPreVoteResp`, so a vote response is ignored.
         simp only [stepFuncOf]
         wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) [] [] (.inl Hty)
-            (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole) Hcfg
+            (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole)
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))

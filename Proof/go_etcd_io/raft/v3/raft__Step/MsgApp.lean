@@ -56,7 +56,6 @@ theorem wp_Step_MsgApp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.Term' ≠ W64 0 →
     m.From' ≠ W64 0 →
     m.From' ≠ id →
-    id ∈ cfg →
     NStateWf s →
     -- protocol facts the dispatch derives from the ghost state (`app_recv_wf`,
     -- `app_no_conflict_below_commit`)
@@ -90,15 +89,15 @@ theorem wp_Step_MsgApp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw Hconf Hvotes
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw Hconf Hvotes
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · exact wp_Step_MsgApp_gt _P cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw
+  · exact wp_Step_MsgApp_gt _P cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw
       (Hconf (by omega)) Hgt
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · exact wp_Step_MsgApp_lt _P cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw
+    · exact wp_Step_MsgApp_lt _P cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw
         Hlt
     · have Hteq : m.Term' = s.term := by word
-      exact wp_Step_MsgApp_eq _P cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw
+      exact wp_Step_MsgApp_eq _P cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hwf Hpwf Hnw
         (Hconf (by omega)) Hteq Hvotes
 
 end StepProof

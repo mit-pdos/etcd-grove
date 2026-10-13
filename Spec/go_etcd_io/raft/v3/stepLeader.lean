@@ -301,7 +301,6 @@ abbrev stepLeader.spec : Prop :=
    (m.Type' = MsgReadIndexResp ∨ m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨
     m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader)) →
   s.role = .leader →
-  id ∈ cfg →
   (m.Type' = MsgAppResp → m.From' ≠ W64 0) →
   (m.Type' = MsgHeartbeatResp ∨ (m.Type' = MsgAppResp ∧ m.Reject' = true) →
    m.From' ≠ id) →

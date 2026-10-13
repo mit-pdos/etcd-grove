@@ -166,7 +166,6 @@ abbrev stepCandidate.spec : Prop :=
    m.Type' = MsgHeartbeat ∨ m.Type' = MsgSnap →
    m.Term' = s.term ∧ m.Term' ≠ W64 0) →
   s.role = .candidate ∨ s.role = .preCandidate →
-  id ∈ cfg →
   (m.Type' = MsgApp →
      PlogWf (entryID.mk m.LogTerm' m.Index') ents ∧
      uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 ∧

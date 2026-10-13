@@ -55,9 +55,12 @@ theorem stepCandidate.wp_proof
     (wp_raft_handleSnapshot : raft.handleSnapshot.spec (GF := GF) (hG := hG))
     (wp_raft_campaign : raft.campaign.spec (GF := GF) (hG := hG)) :
     stepCandidate.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s m ents sv voters cl Hty Hterm Hrole Hcfg Happ Hhb Hpvnw
+  intro cfg r id s m ents sv voters cl Hty Hterm Hrole Happ Hhb Hpvnw
   wp_start as H
   iNamed H
+  -- a candidate is a voter (`ownRaftPhys`'s `Hvoter`; until 2026-10-13 a premise)
+  icases ownRaftPhys_voter cfg r id s $$ Hphys with ⟨%Hvoter, Hphys⟩
+  have Hcfg : id ∈ cfg := Hvoter (by rcases Hrole with h | h <;> rw [h] <;> decide)
   ihave #Hinit := isInitialized_access $$ Hpkg
   unfold isInitialized
   icases Hinit with ⟨%e1, %e2, %e3, %e4, %errPropDropped, %gr, %_, %_, %_, %_, #Hinit⟩

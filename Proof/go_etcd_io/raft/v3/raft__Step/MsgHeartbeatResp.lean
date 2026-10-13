@@ -51,7 +51,6 @@ theorem wp_Step_MsgHeartbeatResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
     m.Term' ≠ W64 0 →
     m.From' ≠ W64 0 →
     m.From' ≠ id →
-    id ∈ cfg →
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhys cfg r id s ∗
@@ -67,7 +66,7 @@ theorem wp_Step_MsgHeartbeatResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf
+  intro Hty Hto Hterm Hfnz Hfid Hwf
   wp_start_folded as ⟨Hphys, -, #Hctx0⟩
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
   · wp_apply (wp_Step_Resp_gt _P cfg r id s m ents .heartbeatResp (.inr ⟨Hty, rfl⟩) Hto Hterm
@@ -87,7 +86,7 @@ theorem wp_Step_MsgHeartbeatResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
       exact ⟨Hwf', ⟨[], recv, .inl rfl, Hrecv, Hstep⟩, Herr, Hfr, Htm⟩
     · have Hteq : m.Term' = s.term := by word
       wp_apply (wp_Step_MsgHeartbeatResp_eq _P cfg r id s m ents ctx Hlrd Hty Hto Hterm Hteq Hfnz
-        Hfid Hcfg Hwf) $$ [$Hpkg $Hphys $Hctx0] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
+        Hfid Hwf) $$ [$Hpkg $Hphys $Hctx0] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
       iapply HΦ $$ %err %s'
       iframe Hphys
       ipureintro

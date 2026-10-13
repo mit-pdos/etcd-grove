@@ -99,7 +99,6 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (s.role = .follower → s.lead ≠ id) →
     -- a leader's term is nonzero (2026-10-10, `ownRaftGhost_term_nz`)
     (s.role = .leader → s.term ≠ W64 0) →
-    id ∈ cfg →
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhys cfg r id s ∗
@@ -133,7 +132,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
                    (ents'.mapIdx (stamp (toPState s).term (plastIndex (toPState s)))))])
                [] (toPState s'))⌝ ∗
         "Herr" ∷ (⌜err = interface.nil⌝ ∨ globalAddr ErrProposalDropped ↦□ err) }} := by
-  intro Hty Hterm Hfrom Hne Hlen Hlok Hlnz Hcfg Hwf
+  intro Hty Hterm Hfrom Hne Hlen Hlok Hlnz Hwf
   wp_start as ⟨Hphys, Hents, #Hcc, Hcap, #Hctx⟩
   wp_auto
   wp_apply _P.traceReceiveMessage
@@ -215,7 +214,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
           rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
-        (.inl Hrole) Hcfg
+        (.inl Hrole)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -244,7 +243,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       iright; iexact Herrn
   · -- Leader: append and broadcast, or drop
     simp only [stepFuncOf]
-    wp_apply _P.stepLeader cfg r id s m ents [] (.inr (.inr (.inr (.inr (.inl Hty))))) Hrole Hcfg
+    wp_apply _P.stepLeader cfg r id s m ents [] (.inr (.inr (.inr (.inr (.inl Hty))))) Hrole
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
@@ -324,7 +323,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
           rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
-        (.inr Hrole) Hcfg
+        (.inr Hrole)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))

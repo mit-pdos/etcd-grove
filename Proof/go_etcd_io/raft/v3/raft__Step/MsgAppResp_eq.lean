@@ -48,7 +48,6 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.Term' = s.term →
     m.From' ≠ W64 0 →
     (m.Reject' = true → m.From' ≠ id) →
-    id ∈ cfg →
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhys cfg r id s }}
@@ -61,7 +60,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hteq Hfnz Hrej Hcfg Hwf
+  intro Hty Hto Hterm Hteq Hfnz Hrej Hwf
   have Hty3 : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp :=
     .inr (.inl Hty)
   wp_start as Hphys
@@ -120,7 +119,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) [] []
         (.inr (.inr (.inr (.inr (.inl Hty3)))))
         (fun _ => ⟨Hteq, Hterm⟩)
-        (.inl Hrole) Hcfg
+        (.inl Hrole)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -144,7 +143,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       keep_frame rfl rfl rfl rfl rfl⟩
   · -- Leader: the replication path
     simp only [stepFuncOf]
-    wp_apply _P.stepLeader cfg r id s m [] [] (.inr (.inr (.inr (.inl Hty)))) Hrole Hcfg
+    wp_apply _P.stepLeader cfg r id s m [] [] (.inr (.inr (.inr (.inl Hty)))) Hrole
         (fun _ => Hfnz)
         (fun Hc => by
           rcases Hc with Hc | ⟨-, Hc⟩
@@ -175,7 +174,7 @@ theorem wp_Step_MsgAppResp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) [] []
         (.inr (.inr (.inr (.inr (.inl Hty3)))))
         (fun _ => ⟨Hteq, Hterm⟩)
-        (.inr Hrole) Hcfg
+        (.inr Hrole)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))

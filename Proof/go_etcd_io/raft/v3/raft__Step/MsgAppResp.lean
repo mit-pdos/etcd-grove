@@ -48,7 +48,6 @@ theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.Term' ≠ W64 0 →
     m.From' ≠ W64 0 →
     (m.Reject' = true → m.From' ≠ id) →
-    id ∈ cfg →
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhys cfg r id s ∗
@@ -63,7 +62,7 @@ theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hrej Hcfg Hwf
+  intro Hty Hto Hterm Hfnz Hrej Hwf
   wp_start_folded as ⟨Hphys, -⟩
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
   · wp_apply (wp_Step_Resp_gt _P cfg r id s m ents .appResp (.inl ⟨Hty, rfl⟩) Hto Hterm Hgt Hwf)
@@ -77,7 +76,7 @@ theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · iapply wp_Step_Resp_lt _P cfg r id s m ents .appResp (.inl Hty) Hterm Hlt Hwf
         $$ [$Hpkg $Hphys] HΦ
     · have Hteq : m.Term' = s.term := by word
-      wp_apply (wp_Step_MsgAppResp_eq _P cfg r id s m ents Hlrd Hty Hto Hterm Hteq Hfnz Hrej Hcfg
+      wp_apply (wp_Step_MsgAppResp_eq _P cfg r id s m ents Hlrd Hty Hto Hterm Hteq Hfnz Hrej
         Hwf)
         $$ [$Hpkg $Hphys] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
       iapply HΦ $$ %err %s'

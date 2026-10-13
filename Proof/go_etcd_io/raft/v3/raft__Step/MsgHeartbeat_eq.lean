@@ -44,7 +44,6 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     m.Term' ≠ W64 0 →
     m.From' ≠ W64 0 →
     m.From' ≠ id →
-    id ∈ cfg →
     NStateWf s →
     -- protocol fact (`heartbeat_commit_le_last`)
     uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) →
@@ -66,7 +65,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hcommit Hteq Hvotes
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hcommit Hteq Hvotes
   wp_start as ⟨Hphys, #Hents, #Hctx⟩
   wp_auto
   wp_apply _P.traceReceiveMessage
@@ -119,7 +118,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
   · -- Candidate: `becomeFollower(r.Term, m.From)`, then the handler
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate cfg r id s m ents (zero_val _) [] ctx
-        (.inr (.inr (.inr (.inl Hty)))) (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole) Hcfg
+        (.inr (.inr (.inr (.inl Hty)))) (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ => ⟨Hcommit, Hfid⟩)
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -146,7 +145,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
   · -- Leader: `stepLeader` has no arm for it; nothing changes
     simp only [stepFuncOf]
     wp_apply _P.stepLeader cfg r id s m [] [] (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
-        Hrole Hcfg
+        Hrole
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
@@ -176,7 +175,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     -- the handler
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate cfg r id s m ents (zero_val _) [] ctx
-        (.inr (.inr (.inr (.inl Hty)))) (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole) Hcfg
+        (.inr (.inr (.inr (.inl Hty)))) (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ => ⟨Hcommit, Hfid⟩)
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))

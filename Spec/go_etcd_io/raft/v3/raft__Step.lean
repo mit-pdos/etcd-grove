@@ -281,7 +281,9 @@ abbrev raft.Step.spec : Prop :=
   -- the development here. Under the no-learner, no-reconfiguration scope this is a
   -- property of the node, not of a particular call. Added 2026-09-16 for the
   -- `MsgVoteResp` branch.
-  id ∈ cfg →
+  -- (2026-10-13, reconfiguration stage L: a learner steps too; a candidate or leader is a
+  -- voter by `ownRaftPhys`, and only a snapshot's `restore` still needs this)
+  (m.Type' = MsgSnap → id ∈ cfg) →
   -- A `MsgHup` is local (`Term = 0`) and may start an election, which increments the
   -- term; `send` panics if that wraps to zero.
   (m.Type' = MsgHup →

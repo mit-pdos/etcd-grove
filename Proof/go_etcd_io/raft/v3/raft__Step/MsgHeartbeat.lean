@@ -56,7 +56,6 @@ theorem wp_Step_MsgHeartbeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.Term' ≠ W64 0 →
     m.From' ≠ W64 0 →
     m.From' ≠ id →
-    id ∈ cfg →
     NStateWf s →
     -- protocol fact (`heartbeat_commit_le_last`); GUARD (2026-10-02, the dispatch):
     -- only for a message no older than the receiver's term; a stale heartbeat never
@@ -78,14 +77,14 @@ theorem wp_Step_MsgHeartbeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hcommit Hvotes
+  intro Hty Hto Hterm Hfnz Hfid Hwf Hcommit Hvotes
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · exact wp_Step_MsgHeartbeat_gt _P cfg r id s m ents ctx Hty Hto Hterm Hfnz Hfid Hcfg Hwf
+  · exact wp_Step_MsgHeartbeat_gt _P cfg r id s m ents ctx Hty Hto Hterm Hfnz Hfid Hwf
       (Hcommit (by omega)) Hgt
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · exact wp_Step_MsgHeartbeat_lt _P cfg r id s m ents ctx Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hlt
+    · exact wp_Step_MsgHeartbeat_lt _P cfg r id s m ents ctx Hty Hto Hterm Hfnz Hfid Hwf Hlt
     · have Hteq : m.Term' = s.term := by word
-      exact wp_Step_MsgHeartbeat_eq _P cfg r id s m ents ctx Hty Hto Hterm Hfnz Hfid Hcfg Hwf
+      exact wp_Step_MsgHeartbeat_eq _P cfg r id s m ents ctx Hty Hto Hterm Hfnz Hfid Hwf
         (Hcommit (by omega)) Hteq Hvotes
 
 end StepProof

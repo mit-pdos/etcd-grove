@@ -44,7 +44,6 @@ theorem wp_Step_MsgPreVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.Term' ≠ W64 0 →
     -- a pre-candidate's term does not wrap (a won pre-vote campaigns)
     (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) →
-    id ∈ cfg →
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhys cfg r id s }}
@@ -58,13 +57,13 @@ theorem wp_Step_MsgPreVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hnw Hcfg Hwf
+  intro Hty Hto Hterm Hnw Hwf
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · exact wp_Step_MsgPreVoteResp_gt _P cfg r id s m ents Hty Hto Hterm Hgt Hnw Hcfg Hwf
+  · exact wp_Step_MsgPreVoteResp_gt _P cfg r id s m ents Hty Hto Hterm Hgt Hnw Hwf
   by_cases Hlt : uint.Z m.Term' < uint.Z s.term
   · exact wp_Step_MsgPreVoteResp_lt _P cfg r id s m ents Hty Hterm Hlt Hwf
   have Heq : m.Term' = s.term := by word
-  exact wp_Step_MsgPreVoteResp_eq _P cfg r id s m ents Hty Hto Hterm Heq Hnw Hcfg Hwf
+  exact wp_Step_MsgPreVoteResp_eq _P cfg r id s m ents Hty Hto Hterm Heq Hnw Hwf
 
 end StepProof
 

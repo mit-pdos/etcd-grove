@@ -41,7 +41,7 @@ theorem RawNode.ForgetLeader.wp_proof
   wp_auto
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   wp_apply wp_raft_Step γ.reCfg γ _ id s ps _ [] [] rfl
-    (by simp [StepMsg, stepMsgTypes, MsgForgetLeader]) Hin
+    (by simp [StepMsg, stepMsgTypes, MsgForgetLeader]) (fun _ => Hin)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)

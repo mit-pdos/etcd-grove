@@ -50,7 +50,7 @@ theorem RawNode.ProposeConfChange.wp_proof
   ihave #Hcc := ccEntsOk_cc o data bs Hbs $$ Hdata
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   wp_apply wp_raft_Step γ.reCfg γ _ id s ps (ccPropMsg esl) [ccEntry (some o) data] [] rfl
-    (by simp [StepMsg, stepMsgTypes, ccPropMsg, MsgProp]) Hin
+    (by simp [StepMsg, stepMsgTypes, ccPropMsg, MsgProp]) (fun _ => Hin)
     (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne)

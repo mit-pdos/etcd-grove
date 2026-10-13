@@ -38,7 +38,6 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message) :
     m.Type' = MsgBeat →
     m.Term' = W64 0 →
-    id ∈ cfg →
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhys cfg r id s }}
@@ -50,7 +49,7 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hterm Hcfg Hwf
+  intro Hty Hterm Hwf
   wp_start as Hphys
   iNamed Hphys
   wp_auto
@@ -105,7 +104,7 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
           rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
-        (.inl Hrole) Hcfg
+        (.inl Hrole)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -128,7 +127,7 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     exact ⟨Hwf, .refl _, rfl, keep_frame rfl rfl rfl rfl rfl⟩
   · -- Leader: `bcastHeartbeat`
     simp only [stepFuncOf]
-    wp_apply _P.stepLeader cfg r id s m [] [] (.inr (.inl Hty)) Hrole Hcfg
+    wp_apply _P.stepLeader cfg r id s m [] [] (.inr (.inl Hty)) Hrole
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
@@ -160,7 +159,7 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
           rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
-        (.inr Hrole) Hcfg
+        (.inr Hrole)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))

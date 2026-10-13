@@ -193,7 +193,7 @@ set_option hygiene false in
 /-- `wp_Step_MsgLocal` at a candidate or pre-candidate: nothing. -/
 local macro "local_candidate" : tactic => `(tactic| (
   wp_apply _P.stepCandidate cfg r id s m [] (zero_val _) [] [] (by simp [Hty])
-      (by ty_other) (by simp [Hrole]) Hcfg (by ty_other) (by ty_other)
+      (by ty_other) (by simp [Hrole]) (by ty_other) (by ty_other)
       (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
     $$ [Hphys] as %err %s1 %dropped ⟨Hphys, %Hres, Herrn⟩
   · iframe Hphys
@@ -217,7 +217,7 @@ local macro "local_candidate" : tactic => `(tactic| (
 set_option hygiene false in
 /-- `wp_Step_MsgLocal` at a leader: `leaderStepResult_rest`. -/
 local macro "local_leader" : tactic => `(tactic| (
-  wp_apply _P.stepLeader cfg r id s m [] [] (by simp [Hty]) Hrole Hcfg
+  wp_apply _P.stepLeader cfg r id s m [] [] (by simp [Hty]) Hrole
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
     $$ [Hphys] as %err %s' %dropped ⟨Hphys, %Hres, Herrn, -⟩
   · iframe Hphys
@@ -299,7 +299,6 @@ theorem wp_Step_MsgLocal (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message) :
     (m.Type' = MsgForgetLeader ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus) →
     m.Term' = W64 0 →
-    id ∈ cfg →
     NStateWf s →
     (s.role = .follower → s.votes = ∅) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
@@ -313,7 +312,7 @@ theorem wp_Step_MsgLocal (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty3 Hterm Hcfg Hwf Hfv
+  intro Hty3 Hterm Hwf Hfv
   have Hty5 : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by
     rcases Hty3 with h | h | h <;> simp [h]
@@ -365,7 +364,6 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
     m.Context' = slice.nil →
     (m.Term' ≠ W64 0 → m.Term' = s.term → s.role = .follower → s.lead = W64 0) →
     (s.role = .follower → s.lead ≠ id) →
-    id ∈ cfg →
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhys cfg r id s }}
@@ -378,7 +376,7 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hent Hctx0 Htr Hlok Hcfg Hwf
+  intro Hty Hent Hctx0 Htr Hlok Hwf
   have Hty5 : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by simp [Hty]
   have Hsnap0 : ∀ (P : IProp GF), ⊢ (⌜m.Type' = MsgSnap⌝ -∗ P : IProp GF) := fun P => by
@@ -484,7 +482,6 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.Type' = MsgTimeoutNow →
     uint.Z s.term + 1 < 2 ^ 64 →
     uint.Z m.Term' + 1 < 2 ^ 64 →
-    id ∈ cfg →
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhys cfg r id s }}
@@ -497,7 +494,7 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hnw Hnwm Hcfg Hwf
+  intro Hty Hnw Hnwm Hwf
   have Hty5 : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by simp [Hty]
   have Hsnap0 : ∀ (P : IProp GF), ⊢ (⌜m.Type' = MsgSnap⌝ -∗ P : IProp GF) := fun P => by
