@@ -29,6 +29,279 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- `Simple([AddNode id])` on a voters-only tracker whose progress map tracks exactly the
+voters, none of them a learner: `id` joins the voters, tracked as a non-learner. -/
+theorem simpleM_addNode (vm : GMap w64 Unit) (fl : GMap w64 Bool) (al : Bool) (id : w64)
+    (hid : id ≠ W64 0) (hdom : ∀ k, k ∈ fl ↔ k ∈ vm) :
+    simpleM [addNodeCC id] ⟨⟨vm, ∅, ∅, ∅, al⟩, fl⟩ =
+      some ⟨⟨<[id := ()]> vm, ∅, ∅, ∅, false⟩, <[id := false]> fl⟩ := by
+  have Hinv0 : CfgInv (clearAutoLeave ⟨⟨vm, ∅, ∅, ∅, al⟩, fl⟩) := by
+    refine ⟨fun k hk => ?_, fun k hk => ?_, fun k hk => ?_, fun _ => ⟨rfl, rfl⟩⟩
+    · simp only [clearAutoLeave.proj_cfg, clearAutoLeave.proj_prs] at hk ⊢
+      rcases hk with hk | hk | hk | hk
+      · exact (hdom k).2 hk
+      all_goals simp [GMap.mem_iff] at hk
+    · simp [clearAutoLeave, GMap.mem_iff] at hk
+    · simp [clearAutoLeave, GMap.mem_iff] at hk
+  have Hs1 : makeVoterM id (clearAutoLeave ⟨⟨vm, ∅, ∅, ∅, al⟩, fl⟩) =
+      ⟨⟨<[id := ()]> vm, ∅, ∅, ∅, false⟩, <[id := false]> fl⟩ := by
+    unfold makeVoterM
+    split
+    · simp [clearAutoLeave, GMap.delete_empty]
+    · simp [clearAutoLeave, initProgressM]
+  have Hne : (<[id := ()]> vm) ≠ ∅ := by
+    intro h; have := congrArg (fun m => m !! id) h; simp at this
+  have Happ : applyM [addNodeCC id] (clearAutoLeave ⟨⟨vm, ∅, ∅, ∅, al⟩, fl⟩) =
+      some ⟨⟨<[id := ()]> vm, ∅, ∅, ∅, false⟩, <[id := false]> fl⟩ := by
+    have hid' : (addNodeCC id).NodeId' ≠ W64 0 := hid
+    simp only [applyM, applyAll, applyOne, if_neg hid',
+      ↓reduceIte, Hs1, Option.bind_some,
+      if_neg Hne]
+  have Hsd : ¬ SymdiffTooBig vm (<[id := ()]> vm) := by
+    unfold SymdiffTooBig symdiffN
+    have h1 : vm \ (<[id := ()]> vm) = ∅ := by
+      apply GMap.map_eq; intro k
+      by_cases hk : id = k
+      · subst hk; simp
+      · rw [GMap.lookup_sdiff, GMap.lookup_insert_ne _ _ hk]
+        rcases h : vm !! k with _ | v <;> simp
+    have h2 : GMap.size ((<[id := ()]> vm) \ vm) ≤ 1 := by
+      have hsub : (<[id := ()]> vm) \ vm ⊆ ({[id := ()]} : GMap w64 Unit) := by
+        intro k v hkv
+        by_cases hk : id = k
+        · subst hk; cases v; simp
+        · rw [GMap.lookup_sdiff, GMap.lookup_insert_ne _ _ hk] at hkv
+          rcases h : vm !! k with _ | v' <;> simp_all
+      have := GMap.map_subseteq_size hsub
+      rw [GMap.map_size_singleton] at this
+      exact this
+    rw [h1, GMap.map_size_empty]
+    generalize GMap.size ((<[id := ()]> vm) \ vm) = n at h2
+    rcases Nat.le_one_iff_eq_zero_or_eq_one.1 h2 with h0 | h0 <;> subst h0 <;> decide
+  have Hinv1 : CfgInv ⟨⟨<[id := ()]> vm, ∅, ∅, ∅, false⟩, <[id := false]> fl⟩ := by
+    refine ⟨fun k hk => ?_, fun k hk => ?_, fun k hk => ?_, fun _ => ⟨rfl, rfl⟩⟩
+    · dsimp only at hk ⊢
+      rcases hk with hk | hk | hk | hk
+      · rw [GMap.mem_iff] at hk ⊢
+        by_cases h : id = k
+        · subst h; simp
+        · rw [GMap.lookup_insert_ne _ _ h] at hk ⊢
+          exact (hdom k).2 hk
+      all_goals simp [GMap.mem_iff] at hk
+    · simp [GMap.mem_iff] at hk
+    · simp [GMap.mem_iff] at hk
+  unfold simpleM
+  rw [if_neg (fun h => h Hinv0), Happ]
+  simp only [clearAutoLeave.proj_cfg]
+  rw [if_neg (by simp), if_neg Hsd]
+  simp [checkedM, Hinv1]
+
+/-- What `ownProgress` holds besides the points-to: the inflight ring, and that the value
+is a non-learner `Progress` of the record. -/
+def progR (pv : tracker.Progress) : IProp GF :=
+  iprop(∃ pp : Progress, ownInflights pv.Inflights' pp.infl ∗ ⌜progressAbs pv pp.infl = some pp⌝)
+
+/-- Name the values of a map of `ownProgress` objects. -/
+theorem ownProgress_values (prs : GMap w64 Loc) :
+    ([∗map] _k ↦ pr ∈ prs, ∃ pp, ownProgress pr pp) ⊢ ∃ pvs : GMap w64 tracker.Progress,
+      ([∗map] _k ↦ pr;pv ∈ prs;pvs, (pr ↦ pv : IProp GF)) ∗ ([∗map] _k ↦ pv ∈ pvs, progR pv) ∗
+      ⌜∀ k pv, pvs !! k = some pv → pv.IsLearner' = false⌝ ∗
+      ⌜∀ k, (prs !! k).isSome ↔ (pvs !! k).isSome⌝ := by
+  iintro H
+  ihave H : ([∗map] k ↦ pr ∈ prs, ∃ pv : tracker.Progress,
+      (pr ↦ pv ∗ (⌜pv.IsLearner' = false⌝ ∗ (emp ∗ progR pv)) : IProp GF)) $$ [H]
+  · iapply (BigSepM.bigSepM_mono (fun {k pr} _ => ?_)) $$ H
+    iintro ⟨%pp, Hp⟩
+    unfold ownProgress
+    iNamed Hp
+    iexists pv
+    iframe Hpv
+    isplitr
+    · ipureintro; exact ((progressAbs_Some _ _ _).1 Habs).1
+    isplitr
+    · iempintro
+    unfold progR
+    iexists pp
+    iframe Hinfl
+    ipureintro; exact Habs
+  icases bigSepM_exist_sepM2 prs _ $$ H with ⟨%pvs, H⟩
+  ihave %Hdom := BigSepM2.bigSepM2_lookup_iff $$ H
+  have Hdom' : ∀ k, (prs !! k).isSome ↔ (pvs !! k).isSome := Hdom
+  icases BigSepM2.bigSepM2_sep_eqv.1 $$ H with ⟨Hpt, H⟩
+  icases BigSepM2.bigSepM2_sep_eqv.1 $$ H with ⟨Hl, H⟩
+  ihave %Hlf := BigSepM2.bigSepM2_pure_intro $$ Hl
+  icases (BigSepM2.bigSepM2_sepM (Φ1 := fun (_ : w64) (_ : Loc) => (emp : IProp GF))
+    (Φ2 := fun (_ : w64) pv => progR (GF := GF) pv) Hdom).1 $$ H with ⟨-, HR⟩
+  iexists pvs
+  iframe Hpt HR
+  ipureintro
+  refine ⟨fun k pv h => ?_, Hdom'⟩
+  obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1 ((Hdom' k).2 (by rw [h]; rfl))
+  exact Hlf k pr pv hpr h
+
+/-- The other way: values with their rings and non-learner facts make `ownProgress`es. -/
+theorem ownProgress_of_values (prs : GMap w64 Loc) (pvs : GMap w64 tracker.Progress)
+    (Hdom : ∀ k, (prs !! k).isSome ↔ (pvs !! k).isSome)
+    (Hl : ∀ k pv, pvs !! k = some pv → pv.IsLearner' = false) :
+    ([∗map] _k ↦ pr;pv ∈ prs;pvs, (pr ↦ pv : IProp GF)) ∗
+      ([∗map] _k ↦ pv ∈ pvs, (⌜pv.IsLearner' = false⌝ -∗ progR (GF := GF) pv)) ⊢
+      [∗map] _k ↦ pr ∈ prs, ∃ pp, ownProgress pr pp := by
+  iintro ⟨Hpt, HR⟩
+  ihave HR := (BigSepM2.bigSepM2_sepM (Φ1 := fun (_ : w64) (_ : Loc) => (emp : IProp GF))
+    (Φ2 := fun (_ : w64) pv => iprop(⌜pv.IsLearner' = false⌝ -∗ progR (GF := GF) pv))
+    (m1 := prs) (m2 := pvs) Hdom).2
+    $$ [HR]
+  · isplitr
+    · iapply (BigSepM.bigSepM_emp (m := prs)).2
+      iempintro
+    · iexact HR
+  ihave H := BigSepM2.bigSepM2_sep_eqv.2 $$ [$Hpt $HR]
+  ihave H : ([∗map] _k ↦ pr;pv ∈ prs;pvs, ((∃ pp, ownProgress pr pp) ∗ emp : IProp GF)) $$ [H]
+  · iapply (BigSepM2.bigSepM2_mono (fun {k pr pv} _ hpv => ?_)) $$ H
+    iintro ⟨Hp, -, HR⟩
+    unfold progR
+    icases HR $$ %(Hl k pv hpv) with ⟨%pp, Hinfl, %Habs⟩
+    isplitl
+    · iexists pp
+      iapply ownProgress_intro _ _ pp $$ Hp Hinfl
+      ipureintro; exact Habs
+    · iempintro
+  icases (BigSepM2.bigSepM2_sepM (Φ1 := fun (_ : w64) pr => iprop(∃ pp, ownProgress (GF := GF) pr pp))
+    (Φ2 := fun (_ : w64) (_ : tracker.Progress) => (emp : IProp GF)) (m1 := prs) (m2 := pvs)
+    Hdom).1 $$ H with ⟨H, -⟩
+  iexact H
+
+/-- The statement `Changer.Simple.spec` had until 2026-10-12, for `Restore`'s path:
+`Simple([AddNode id])` with `id ≠ 0` on a voters-only tracker of non-learner `Progress`
+objects; the tracker's objects are given up (the copies take their inflight rings). -/
+abbrev Simple_votersOnly_spec : Prop :=
+  ∀ (p : Loc) (chg : confchange.Changer) (ccs : GoSlice) (id : w64) (v : Loc)
+    (vm : GMap w64 Unit) (prs : GMap w64 Loc) (dq dqc dqv dqp : DFrac),
+  id ≠ W64 0 →
+  GMap.size vm < 2 ^ 63 →
+  ConfigVotersOnly chg.Tracker'.Config' v →
+  domSet prs = domSet vm →
+  (0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dq} chg ∗
+      ccs ↦*{dqc} [addNodeCC id] ∗
+      v ↦${dqv} vm ∗ chg.Tracker'.Progress' ↦${dqp} prs ∗
+      ([∗map] _k ↦ pr ∈ prs, ∃ pp, ownProgress pr pp) }}
+    (App (Val (p @!! go.GoType.PointerType confchange.Changer.ty @!! go!"Simple")) (Val #ccs))
+  {{ (cfg' : tracker.Config) (trk v' : Loc) (prs' : GMap w64 Loc),
+      RET (PairV (PairV #cfg' #trk) #interface.nil);
+      p ↦{dq} chg ∗ ccs ↦*{dqc} [addNodeCC id] ∗
+      v ↦${dqv} vm ∗ chg.Tracker'.Progress' ↦${dqp} prs ∗
+      ⌜ConfigSimple cfg' v'⌝ ∗ v' ↦$ (<[id := ()]> vm) ∗ trk ↦$ prs' ∗
+      ⌜domSet prs' = domSet (<[id := ()]> vm)⌝ ∗
+      ([∗map] _k ↦ pr ∈ prs', ∃ pp, ownProgress pr pp) }}
+
+theorem Simple_votersOnly (H : confchange.Changer.Simple.spec (GF := GF) (hG := hG)) :
+    Simple_votersOnly_spec (GF := GF) (hG := hG) := by
+  intro p chg ccs id v vm prs dq dqc dqv dqp Hid Hsz Hcfg Hdom Hmi
+  obtain ⟨Harr, Hl, Hln⟩ := Hcfg
+  iintro %Φ ⟨#Hpkg, Hp, Hccs, Hv, Hpm, Hprogs⟩ HΦ
+  icases ownProgress_values prs $$ Hprogs with ⟨%pvs, Hpt, HR, %Hlf, %Hdom2⟩
+  have Hfl : ∀ k, k ∈ flagsOf pvs ↔ k ∈ vm := by
+    intro k
+    rw [flagsOf_mem, ← Hdom2]
+    show k ∈ prs ↔ k ∈ vm
+    rw [← GMap.elem_of_dom', Hdom, GMap.elem_of_dom']
+  have Hs := simpleM_addNode vm (flagsOf pvs) chg.Tracker'.Config'.AutoLeave' id Hid Hfl
+  ihave Htc : ownTrackerCC chg.Tracker' dqv dqp (DFrac.own 1)
+      ⟨vm, ∅, ∅, ∅, chg.Tracker'.Config'.AutoLeave'⟩ prs pvs $$ [Hv Hpm Hpt]
+  · unfold ownTrackerCC
+    iframe Hpm Hpt
+    iapply ownCfgCC_intro chg.Tracker'.Config' dqv
+      (⟨vm, ∅, ∅, ∅, chg.Tracker'.Config'.AutoLeave'⟩ : CfgM) v map.nil Harr rfl $$ Hv [] [] []
+    · unfold ownIdsetC; ileft; ipureintro; exact ⟨rfl, rfl⟩
+    · rw [Hl]; unfold ownIdsetC; ileft; ipureintro; exact ⟨rfl, rfl⟩
+    · rw [Hln]; unfold ownIdsetC; ileft; ipureintro; exact ⟨rfl, rfl⟩
+  iapply H p chg _ prs pvs ccs [addNodeCC id] dq dqc dqv dqp (DFrac.own 1) Hmi
+    $$ [$Hpkg $Hp $Hccs $Htc]
+  inext
+  iintro %cfg %trk %err ⟨Hp, Hccs, Htc, Hres⟩
+  rw [Hs]
+  simp only [ownResult]
+  icases Hres with ⟨%Herr, Hc, Hw⟩
+  subst Herr
+  unfold ownTrackerCC
+  icases Htc with ⟨Htcc, Hpm, -⟩
+  icases ownCfgCC_elim _ _ _ $$ Htcc with ⟨%vin0, %vout0, %Harr0, Hv, -, -, -, -⟩
+  have Hv0 : vin0 = v := by rw [Harr] at Harr0; injection Harr0 with h; exact h.symm
+  subst Hv0
+  icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr1, Hin, Hout, Hl1, Hln1, %Hal1⟩
+  ihave %Hvout : ⌜vout = map.nil⌝ $$ [Hout]
+  · unfold ownIdsetC
+    icases Hout with (%H | ⟨-, %H⟩)
+    · ipureintro; exact H.1
+    · exact absurd rfl H
+  ihave %Hl1' : ⌜cfg.Learners' = map.nil⌝ $$ [Hl1]
+  · unfold ownIdsetC
+    icases Hl1 with (%H | ⟨-, %H⟩)
+    · ipureintro; exact H.1
+    · exact absurd rfl H
+  ihave %Hln1' : ⌜cfg.LearnersNext' = map.nil⌝ $$ [Hln1]
+  · unfold ownIdsetC
+    icases Hln1 with (%H | ⟨-, %H⟩)
+    · ipureintro; exact H.1
+    · exact absurd rfl H
+  unfold ownPrsW
+  icases Hw with ⟨%prs0, %pvs0, Htrk, Hprs, %Hflags, Hnew⟩
+  ihave %Hdom3' := BigSepM2.bigSepM2_lookup_iff $$ Hprs
+  have Hdom3 : ∀ k, (prs0 !! k).isSome ↔ (pvs0 !! k).isSome := Hdom3'
+  have Hlf2 : ∀ k pv, pvs0 !! k = some pv → pv.IsLearner' = false := by
+    intro k pv h
+    have h' := flagsOf_lookup pvs0 k pv h
+    rw [Hflags] at h'
+    by_cases hk : id = k
+    · subst hk; simp at h'; exact h'
+    · rw [GMap.lookup_insert_ne _ _ hk, flagsOf_lookup'] at h'
+      cases h'' : pvs !! k with
+      | none => rw [h''] at h'; cases h'
+      | some pv' => rw [h''] at h'; simp at h'; rw [← h']; exact Hlf k pv' h''
+  have Hcopy : ∀ (k : w64) (pv0 pv : tracker.Progress), pvs !! k = some pv0 →
+      pv = { pv0 with IsLearner' := pv.IsLearner' } →
+      progR (GF := GF) pv0 ⊢ iprop(⌜pv.IsLearner' = false⌝ -∗ progR (GF := GF) pv) := by
+    intro k pv0 pv h0 h1
+    unfold progR
+    iintro ⟨%pp, Hinfl, %Habs⟩ %Hl2
+    have hl0 : pv0.IsLearner' = false := ((progressAbs_Some _ _ _).1 Habs).1
+    have hpv : pv = pv0 := by rw [h1, Hl2, ← hl0]
+    subst hpv
+    iexists pp
+    iframe Hinfl
+    ipureintro; exact Habs
+  have Hfresh : ∀ (k : w64) (pv : tracker.Progress), FreshPr chg pv →
+      ownInflights (GF := GF) pv.Inflights' (inflightsNew chg.Tracker'.MaxInflight'
+        chg.Tracker'.MaxInflightBytes') ⊢
+      iprop(⌜pv.IsLearner' = false⌝ -∗ progR (GF := GF) pv) := by
+    intro k pv Hf
+    unfold progR
+    iintro Hinfl %Hl2
+    iexists progressOf pv .probe (inflightsNew chg.Tracker'.MaxInflight'
+      chg.Tracker'.MaxInflightBytes')
+    simp only [progressOf]
+    iframe Hinfl
+    ipureintro
+    exact (progressAbs_Some _ _ _).2 ⟨Hl2, Hf.2.2.2.1, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  ihave HQ := ownNewPr_transfer chg pvs (fun _ pv => progR (GF := GF) pv)
+    (fun _ pv => iprop(⌜pv.IsLearner' = false⌝ -∗ progR (GF := GF) pv)) Hcopy Hfresh pvs0
+    $$ [$HR $Hnew]
+  iapply HΦ
+  iframe Hp Hccs Hv Hpm Hin Htrk
+  isplitr
+  · ipureintro
+    exact ⟨⟨by rw [Harr1, Hvout], Hl1', Hln1'⟩, Hal1⟩
+  isplitr
+  · ipureintro
+    apply GMap.set_eq; intro k
+    rw [GMap.elem_of_dom', GMap.elem_of_dom', GMap.mem_iff, Hdom3, ← flagsOf_mem, Hflags]
+    by_cases hk : id = k
+    · subst hk; simp [GMap.mem_iff]
+    · rw [GMap.mem_iff, GMap.mem_iff, GMap.lookup_insert_ne _ _ hk, GMap.lookup_insert_ne _ _ hk]
+      exact Hfl k
+  iapply ownProgress_of_values prs0 pvs0 Hdom3 Hlf2 $$ [$Hprs $HQ]
+
 /-- The invariant `chain` threads through `Restore`'s ops: before op `j`, the pair is
 either the empty configuration `Restore` started from (`j = 0`), or a fresh voters-only
 config holding the first `j` voters, with a progress for each (`0 < j`).
@@ -48,6 +321,7 @@ theorem confchange.Restore.wp_proof
     (wp_Changer_Simple : confchange.Changer.Simple.spec (GF := GF) (hG := hG))
     (wp_confchange_chain : confchange.chain.spec (GF := GF) (hG := hG)) :
     confchange.Restore.spec (GF := GF) (hG := hG) := by
+  have wp_Changer_Simple := Simple_votersOnly wp_Changer_Simple
   intro chg cs voters dq v0 Hvne Hv0n Hcvo Hcl Hcln Hmi Harr Hl Hln
   wp_start as ⟨Hvs, Hv0, #Hpm⟩
   wp_auto

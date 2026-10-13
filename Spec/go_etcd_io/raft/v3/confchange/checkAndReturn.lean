@@ -22,15 +22,19 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `checkAndReturn` on a config `checkInvariants` accepts returns it, with `nil`. -/
+/-- `checkAndReturn(cfg, trk)`: `(cfg, trk, nil)` if `checkInvariants` accepts them, an
+error otherwise. (Generalized 2026-10-12 from the voters-only case.) -/
 abbrev confchange.checkAndReturn.spec : Prop :=
-  ∀ (cfg : tracker.Config) (trk v : Loc) (vm : GMap w64 Unit) (prs : GMap w64 Loc)
-    (dqv dqp : DFrac),
-  ConfigSimple cfg v →
-  domSet prs = domSet vm →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ v ↦${dqv} vm ∗ trk ↦${dqp} prs }}
+  ∀ (cfg : tracker.Config) (trk : Loc) (c : CfgM) (prs : GMap w64 Loc)
+    (pvs : GMap w64 tracker.Progress) (dqc dqm dqp : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ ownCfgCC cfg dqc c ∗ trk ↦${dqm} prs ∗
+      ([∗map] _k ↦ pr;pv ∈ prs;pvs, pr ↦{dqp} pv) }}
     (App (App (Val #(functions confchange.checkAndReturn [])) (Val #cfg)) (Val #trk))
-  {{ RET (PairV (PairV #cfg #trk) #interface.nil); v ↦${dqv} vm ∗ trk ↦${dqp} prs }}
+  {{ (cfg' : tracker.Config) (trk' : Loc) (err : GoInterface),
+      RET (PairV (PairV #cfg' #trk') #err); ownCfgCC cfg dqc c ∗ trk ↦${dqm} prs ∗
+      ([∗map] _k ↦ pr;pv ∈ prs;pvs, pr ↦{dqp} pv) ∗
+      ⌜(CfgInv { cfg := c, prs := flagsOf pvs } ∧ err = interface.nil ∧ cfg' = cfg ∧ trk' = trk) ∨
+        (¬ CfgInv { cfg := c, prs := flagsOf pvs } ∧ err ≠ interface.nil)⌝ }}
 
 end spec
 

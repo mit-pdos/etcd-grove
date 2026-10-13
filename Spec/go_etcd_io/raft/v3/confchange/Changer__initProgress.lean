@@ -22,22 +22,19 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `initProgress(cfg, trk, id, false)`: `id` joins the incoming voter map and gets a
-fresh `Progress` (`Match = 0`, `Next = max(LastIndex, 1)`, a fresh `NewInflights`,
-`StateProbe`, not a learner, recently active). Stated for `isLearner = false` only. The
-`MaxInflight` bound is `NewInflights`'s premise. -/
+/-- `initProgress(cfg, trk, id, isLearner)` on an untracked id: `initProgressM` (an
+incoming voter, or a learner via `nilAwareAdd`), with a fresh `Progress` (`FreshPr`, its
+`NewInflights(MaxInflight, MaxInflightBytes)` owned). The `MaxInflight` bound is
+`NewInflights`'s premise. (Generalized 2026-10-12 from `isLearner = false`.) -/
 abbrev confchange.Changer.initProgress.spec : Prop :=
-  ∀ (p cfgp trk v : Loc) (chg : confchange.Changer) (cfg : tracker.Config) (id : w64)
-    (vm : GMap w64 Unit) (prs : GMap w64 Loc) (dq : DFrac),
-  ConfigSimple cfg v →
+  ∀ (p cfgp trk : Loc) (chg : confchange.Changer) (base : GMap w64 tracker.Progress)
+    (s : CCState) (id : w64) (b : Bool) (dq : DFrac),
+  id ∉ s.prs →
   (0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dq} chg ∗ cfgp ↦ cfg ∗ v ↦$ vm ∗ trk ↦$ prs }}
-    (App (App (App (App
-      (Val (p @!! go.GoType.PointerType confchange.Changer.ty @!! go!"initProgress"))
-      (Val #cfgp)) (Val #trk)) (Val #id)) (Val #false))
-  {{ (pr : Loc) (pp : Progress), RET #();
-      p ↦{dq} chg ∗ cfgp ↦ cfg ∗ v ↦$ (<[id := ()]> vm) ∗ trk ↦$ (<[id := pr]> prs) ∗
-      ownProgress pr pp }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dq} chg ∗ ownWork chg base cfgp trk s }}
+    (App (App (App (App (Val (p @!! go.GoType.PointerType confchange.Changer.ty @!! go!"initProgress"))
+      (Val #cfgp)) (Val #trk)) (Val #id)) (Val #b))
+  {{ RET #(); p ↦{dq} chg ∗ ownWork chg base cfgp trk (initProgressM id b s) }}
 
 end spec
 

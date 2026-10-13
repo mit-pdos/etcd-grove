@@ -321,6 +321,90 @@ costs no proof anything. -/
 def ownIdsetOpt (m : Loc) (ids : GMap w64 Unit) : IProp GF :=
   iprop(⌜m = map.nil ∧ ids = ∅⌝ ∨ m ↦$ ids)
 
+/-- `ownIdsetOpt` at a fraction: an id set that is `nil` (and empty) or a map read at
+`dq`. The general form, for `confchange` and the reconfiguration specs (2026-10-12). -/
+def ownIdsetQ (m : Loc) (dq : DFrac) (ids : GMap w64 Unit) : IProp GF :=
+  iprop(⌜m = map.nil ∧ ids = ∅⌝ ∨ m ↦${dq} ids)
+
+/-- An id set represented canonically: `nil` exactly when empty. `confchange` keeps the
+outgoing voter map and `LearnersNext` this way (`nilAwareDelete` nils an emptied map,
+`LeaveJoint` writes `nil`), and `checkInvariants` checks it of a non-joint config. -/
+def ownIdsetC (m : Loc) (dq : DFrac) (ids : GMap w64 Unit) : IProp GF :=
+  iprop(⌜m = map.nil ∧ ids = ∅⌝ ∨ (m ↦${dq} ids ∗ ⌜ids ≠ ∅⌝))
+
+theorem ownIdsetC_Q (m : Loc) (dq : DFrac) (ids : GMap w64 Unit) :
+    ownIdsetC (GF := GF) m dq ids ⊢ ownIdsetQ m dq ids := by
+  unfold ownIdsetC ownIdsetQ
+  iintro (%H | ⟨H, -⟩)
+  · ileft; ipureintro; exact H
+  · iright; iexact H
+
+theorem ownIdsetQ_elim (m : Loc) (dq : DFrac) (ids : GMap w64 Unit) :
+    ownIdsetQ (GF := GF) m dq ids ⊢ ⌜m = map.nil ∧ ids = ∅⌝ ∨ m ↦${dq} ids := by
+  unfold ownIdsetQ; iintro H; iexact H
+
+theorem ownIdsetQ_nil (dq : DFrac) : ⊢ ownIdsetQ (GF := GF) map.nil dq ∅ := by
+  unfold ownIdsetQ; ileft; ipureintro; exact ⟨rfl, rfl⟩
+
+theorem ownIdsetQ_map (m : Loc) (dq : DFrac) (ids : GMap w64 Unit) :
+    m ↦${dq} ids ⊢ ownIdsetQ (GF := GF) m dq ids := by
+  unfold ownIdsetQ; iintro H; iright; iexact H
+
+/-- A non-`nil` id set is a map. -/
+theorem ownIdsetQ_not_nil (m : Loc) (dq : DFrac) (ids : GMap w64 Unit) (H : m ≠ map.nil) :
+    ownIdsetQ (GF := GF) m dq ids ⊢ m ↦${dq} ids := by
+  unfold ownIdsetQ
+  iintro (%H' | Hm)
+  · exact absurd H'.1 H
+  · iexact Hm
+
+/-- A `nil` id set is empty. -/
+theorem ownIdsetQ_nil_empty (m : Loc) (dq : DFrac) (ids : GMap w64 Unit) :
+    ownIdsetQ (GF := GF) m dq ids ⊢ ownIdsetQ m dq ids ∗ ⌜m = map.nil → ids = ∅⌝ := by
+  unfold ownIdsetQ
+  iintro (%H | Hm)
+  · isplitl
+    · ileft; ipureintro; exact H
+    · ipureintro; exact fun _ => H.2
+  · ihave %Hnn := ownMap_not_nil _ _ _ $$ Hm
+    isplitl
+    · iright; iexact Hm
+    · ipureintro; exact fun h => absurd h Hnn
+
+/-- A map holding an inserted id is canonical. -/
+theorem ownIdsetC_insert (m : Loc) (dq : DFrac) (ids : GMap w64 Unit) (k : w64) :
+    m ↦${dq} (<[k := ()]> ids) ⊢ ownIdsetC (GF := GF) m dq (<[k := ()]> ids) := by
+  unfold ownIdsetC
+  iintro H
+  iright
+  iframe H
+  ipureintro
+  intro h
+  have := congrArg (fun m => m !! k) h
+  simp at this
+
+/-- `ownIdsetC` is `ownIdsetQ` and the canonical fact. -/
+theorem ownIdsetC_split (m : Loc) (dq : DFrac) (ids : GMap w64 Unit) :
+    ownIdsetC (GF := GF) m dq ids ⊢ ownIdsetQ m dq ids ∗ ⌜m = map.nil ∨ ids ≠ ∅⌝ := by
+  unfold ownIdsetC ownIdsetQ
+  iintro (%H | ⟨H, %Hne⟩)
+  · isplitl
+    · ileft; ipureintro; exact H
+    · ipureintro; exact .inl H.1
+  · isplitl
+    · iright; iexact H
+    · ipureintro; exact .inr Hne
+
+theorem ownIdsetC_join (m : Loc) (dq : DFrac) (ids : GMap w64 Unit) (H : m = map.nil ∨ ids ≠ ∅) :
+    ownIdsetQ (GF := GF) m dq ids ⊢ ownIdsetC m dq ids := by
+  unfold ownIdsetC ownIdsetQ
+  iintro (%H' | Hm)
+  · ileft; ipureintro; exact H'
+  · ihave %Hnn := ownMap_not_nil _ _ _ $$ Hm
+    rcases H with H | H
+    · exact absurd H Hnn
+    · iright; iframe Hm; ipureintro; exact H
+
 /-! ### The progress tracker
 
 `trk` is embedded in the raft struct **by value**, so the tracker's own bytes are part
@@ -1016,6 +1100,131 @@ instance isAckedIndexer_pers (l : GoInterface) (P : IProp GF) (acked : w64 → O
   unfold isAckedIndexer; infer_instance
 
 end replication
+
+/-- iris-lean's `PartialMap` operations on a `GMap` are `GMap`'s: the big-separation
+lemmas (`bigSepM2_insert`, `bigSepM2_delete`) state their maps with the former. -/
+@[simp] theorem pm_insert_gmap {V : Type} (m : GMap w64 V) (k : w64) (v : V) :
+    Iris.Std.PartialMap.insert m k v = <[k := v]> m := rfl
+
+@[simp] theorem pm_delete_gmap {V : Type} (m : GMap w64 V) (k : w64) :
+    Iris.Std.PartialMap.delete m k = GMap.delete k m := rfl
+
+section idset_range
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- `for id := range m` over an id set that may be `nil` (`ownIdsetQ`): `wp_map_for_range`
+for a map, no iteration for `nil` (whose set is empty). One rule for both, so that a proof
+does not split on `nil` before a loop and then prove what follows twice (2026-10-12, for
+`confchange`). -/
+theorem wp_idset_for_range (P : List w64 → Int → IProp GF) (body : GoFunc)
+    (m : Loc) (dq : DFrac) (s : GMap w64 Unit) (Φ : val → IProp GF) :
+    ownIdsetQ m dq s -∗
+    (∀ keys : List w64,
+      ⌜(∀ k, k ∈ keys ↔ (s !! k).isSome) ∧ keys.length = GMap.size s ∧ keys.Nodup⌝ -∗
+      (P keys 0 ∗
+       □ (∀ (i : Int) (key : w64) (v : Unit), ⌜keys[i.toNat]? = some key ∧ s !! key = some v⌝ -∗
+          P keys i -∗
+          WP (App (App (Val #body) (Val #key)) (Val #v))
+            {{ v, forMapPostcondition (P keys (i + 1))
+                (fun v => iprop(ownIdsetQ m dq s -∗ Φ v)) v }}) ∗
+       (P keys (GMap.size s) -∗ ownIdsetQ m dq s -∗ Φ executeVal))) -∗
+    WP (App (App (Val (map.forRange go.uint64 (go.GoType.StructType []))) (Val #m)) (Val #body))
+      {{ Φ }} := by
+  iintro Hm H
+  icases ownIdsetQ_elim _ _ _ $$ Hm with (⟨%Hnil, %Hs⟩ | Hm)
+  · subst Hnil Hs
+    icases H $$ %([] : List w64) %(⟨fun k => by simp, by simp [GMap.map_size_empty], List.nodup_nil⟩)
+      with ⟨HP, -, HΦ⟩
+    wp_pures
+    rw [GMap.map_size_empty]
+    iapply HΦ $$ HP
+    iapply ownIdsetQ_nil
+  · iapply wp_map_for_range P body _ _ m s dq Φ $$ Hm
+    iintro %keys %Hkeys
+    icases H $$ %keys %Hkeys with ⟨HP, #Hiter, HΦ⟩
+    iframe HP
+    isplitr
+    · imodintro
+      iintro %i %key %v %Hiv HP
+      iapply wp_wand $$ (Hiter $$ %i %key %v %Hiv HP)
+      iintro %bv Hpost
+      iapply forMapPostcondition_mono $$ [] Hpost
+      isplit
+      · iintro HP; iexact HP
+      · iintro %v' HΦ' Hm
+        iapply HΦ'
+        iapply ownIdsetQ_map $$ Hm
+    · iintro HP Hm
+      iapply HΦ $$ HP
+      iapply ownIdsetQ_map $$ Hm
+
+/-- `delete(m, k)` on a map of a named map type (`MajorityConfig`, `ProgressMap`):
+`wp_mapDelete` through `delete_underlying`. -/
+theorem wp_mapDelete_named {V : Type} [ZeroVal V] (t key_type elem_type : go.GoType)
+    [h : go.UnderlyingDirectedEq t (go.MapType key_type elem_type)]
+    (l : Loc) (m : GMap w64 V) (k : w64) [SafeMapKey (GF := GF) key_type k] :
+    {{ (l ↦$ m : IProp GF) }}
+      (App (App (Val #(functions go.delete [t])) (Val #l)) (Val #k))
+    {{ RET #(); l ↦$ (GMap.delete k m) }} := by
+  rw [go.delete_underlying t, h.underlying_unfold, ← go.delete_underlying]
+  exact wp_mapDelete l m k key_type elem_type
+
+/-- `_, ok := m[k]` on an id set that may be `nil`. -/
+theorem wp_idset_lookup2 (m : Loc) (dq : DFrac) (s : GMap w64 Unit) (k : w64) :
+    {{ ownIdsetQ (GF := GF) m dq s }}
+      (App (App (Val (map.lookup2 go.uint64 (go.GoType.StructType []))) (Val #m)) (Val #k))
+    {{ RET (PairV #() #(decide ((s !! k).isSome))); ownIdsetQ m dq s }} := by
+  iintro %Φ Hm HΦ
+  icases ownIdsetQ_elim _ _ _ $$ Hm with (⟨%Hnil, %Hs⟩ | Hm)
+  · subst Hnil Hs
+    wp_pures
+    rw [show decide ((((∅ : GMap w64 Unit)) !! k).isSome = true) = false by simp]
+    iapply HΦ
+    iapply ownIdsetQ_nil
+  · wp_apply wp_map_lookup2 $$ Hm as Hm
+    rcases h : s !! k with _ | ⟨⟩ <;>
+    · simp only [Option.getD_none, Option.getD_some]
+      iapply HΦ
+      iapply ownIdsetQ_map $$ Hm
+
+end idset_range
+
+/-! ### Tracker accessors: helpers (2026-10-12, for `IsSingleton`, `LearnerNodes`) -/
+
+section tracker_accessors
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- `len(m)` of an id set that may be `nil` (`ownIdsetQ`), at any type whose underlying
+type is a map: its size, below `2^63` (`wp_map_len_lt`; `0` for `nil`). -/
+theorem wp_idset_len {t key_type elem_type : go.GoType} [t ↓u go.MapType key_type elem_type]
+    (m : Loc) (dq : DFrac) (s : GMap w64 Unit) :
+    {{ ownIdsetQ (GF := GF) m dq s }}
+      (App (Val #(functions go.len [t])) (Val #m))
+    {{ RET #(W64 (GMap.size s)); ownIdsetQ m dq s ∗ ⌜GMap.size s < 2 ^ 63⌝ }} := by
+  iintro %Φ Hm HΦ
+  icases ownIdsetQ_elim _ _ _ $$ Hm with (⟨%Hnil, %Hs⟩ | Hm)
+  · subst Hnil Hs
+    wp_pures
+    rw [GMap.map_size_empty]
+    iapply HΦ
+    isplitl
+    · iapply ownIdsetQ_nil
+    · ipureintro; decide
+  · wp_apply wp_map_len_lt $$ Hm as ⟨Hm, %Hlt⟩
+    iapply HΦ
+    isplitl
+    · iapply ownIdsetQ_map $$ Hm
+    · ipureintro; exact Hlt
+
+end tracker_accessors
 
 end EtcdGrove
 end Perennial
