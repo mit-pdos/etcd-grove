@@ -4087,3 +4087,51 @@ foresee, and how it is resolved:
   `mvcc_NewStore_backend` with the sole writer and the write supply, the creator's resources
   (including `keySized` and `N + 2` write-back tokens) as its premises, since neither the
   backend's constructor nor the server's is proved.
+
+### The consistent index over the real backend (unit 7, 2026-10-13 · adopted)
+
+The consistent index's pre-commit hook (`UnsafeSave` → `schema.UnsafeUpdateConsistentIndex`)
+was proved against an abstract batch transaction (`metaWriter`); `CindexBackend.lean` derives
+that contract from the real backend's, and proves the hook in `hookFnSpec`'s shape.
+
+- **Duplicates allowed where the code tolerates them** (`WBuf.WfR`, `wbDupOk`): a bucket written
+  by `put` may repeat a key if the read buffer has no such bucket (`writeback`'s `!ok` branch
+  calls `dedupe`), or, in the pre-commit hook's window, if its read-buffer bucket is empty (the
+  commit's `reset`, right after the hook, drops it). The window is a flag of the batch lock's
+  ghost counters (`BCnt.hw`, so `hookStep` keeps it): the commit opens it (`BSess.setHw`) before
+  the hook and the reset closes it; `freeOk` and `Unlock` require it closed (a hook does not
+  unlock). `writeback`'s premise is `WfR` with "the read buffer lacks the bucket", `UnsafePut`'s
+  `kb ∉ keys ∨ wbDupOk st id`. The hooks get `hookPre` (window open, room for `hookMax`
+  operations, every write-buffer bucket empty or with an empty read-buffer bucket), which the
+  commit proves from the bounds (`bgOk` gained: after a commit, until the next write-back, the
+  read buffer is empty). *Rejected:* a premise only on the hook's buckets (a client's duplicate
+  into a bucket the read buffer has *is* the issue's stale read); deduplicating in the model (the
+  code does not); allowing duplicates whenever the read-buffer bucket is empty (a write-back may
+  follow a client session: the `ok` branch's `merge` keeps both).
+- **The hook's own keys are a ghost variable** (`BParams.HK`, `hkData`, `hkOwn`): their values
+  in the writer's contents, half the batch lock's (`batchGhostAt`), half the client's. A put of
+  one needs the client's half (`hkPut`), a delete or a bucket delete must not touch one, a
+  sequential put must not be one. The server's batch-lock resource holds the client's half as
+  its meta keys (`metaTM γB P mm`), so the hook knows what the writer's `Meta` holds, whatever
+  sessions ran since the last commit. *Rejected:* a pure premise of the hook on the state (not
+  stable across other sessions); per-bucket ownership (the readers' view would change).
+- **Room for the hook**: `Unlock` takes `pend + hookMax < 2^58` (its commit runs the hook), and
+  `unsafeCommit`/`commit` carry it; free states have it (`room_of_freeOk`). mvcc's sessions
+  carry their puts' bound (`sessPuts`: at most `2^56`; `bkLockedO`: at most two creations).
+- **The meta contract, generalized** (`InvCindex.lean`): a read's value slice is readable under
+  a resource (`metaValsA Acc`; `Acc := TM` for the batch transaction, whose slices are bbolt's
+  while the lock is held; `True` for the assumed `ReadTx`, whose statements are unchanged);
+  `readCIAUA` lends it to the decoding (`readCIAU` is its `True` instance); `metaWriter tx TM PTi
+  PTt`'s puts each spend a token (the hook may put `hookMax` entries) and store non-zero values.
+  The specs of `UnsafeReadConsistentIndex`, `unsafeUpdateConsistentIndex`,
+  `UnsafeUpdateConsistentIndex(Force)` and `UnsafeSave` changed accordingly; `ReadConsistentIndex`,
+  `ConsistentIndex`, `UnsafeConsistentIndex` did not.
+- **The reads of `ReadTx` stay a premise** (`isMetaBackend`): they run only while the index is 0
+  (after `NewConsistentIndex`/`SetBackend`, at startup), and the readers' view promises nothing
+  of the hook's buckets; deriving them needs a readers'-side ghost of the committed hook keys.
+- **The hook as a `hookFnSpec`** (`ci_hook_backend`, `ci_hookFnSpec`; linked in the server's
+  `Results.lean`): for any function that runs `ci.UnsafeSave` on its argument. etcd's hook is
+  `BackendHooks.OnPreCommitUnsafe` (`server/storage/hooks.go`, names only: its `confState` part
+  and the struct are not translated), and the backend's constructor, which would take its
+  `hooksSpec`, is not proved; so `server_kv_backend` (generic in the hooks' resource `Pk`) holds
+  at `Pk := batchLockInv γA (metaTM γB P)` with the hook's contract still the creator's premise.

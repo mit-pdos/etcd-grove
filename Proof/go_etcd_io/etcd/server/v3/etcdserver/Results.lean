@@ -30,6 +30,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Results
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Results
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CindexBackend
 
 @[expose] public section
 
@@ -554,9 +555,59 @@ theorem server_kv_backend (lg : Loc) (le : GoInterface)
   rw [Hγ.2.2]
   iexact Hw
 
+/-- **The consistent index's pre-commit hook over the real backend** (unit 7, 2026-10-13): on
+the real backend's batch transaction, in the hook's window (`hookPre`), the consistent index's
+`UnsafeSave` with the server's batch-lock resource (`batchLockInv γA (metaTM γ P)`: the stored
+index's mirror, the meta keys as the client's half of the hook's own keys, the lock's token) is a
+hook step (`hookStep`) and gives the resource back, the meta keys at what the commit persists.
+For backend parameters whose hook's own keys are the consistent index's two (`ciKeys`: a real
+instance's, `ciKeys_of`, for a hook's bound of at least 2). Its trust base: bbolt's contract,
+the backend's and schema's, and the consistent index's (`verify.Verify`, `binary`). -/
+theorem cindex_hook_backend (γA : ApplyNames) (ci : Loc) (γ : backend.BNames) (P : backend.BParams)
+    (W Pk : IProp GF) (b t : Loc) (hP : ciKeys P) (st : backend.BSess) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
+      backend.isBackend γ P W Pk b ∗ backend.bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗
+      inv applyN (consInv γA) ⊢
+      {{ backend.batchLocked γ P b st ∗ batchLockInv γA (metaTM γ P) ∗ ⌜backend.hookPre P st⌝ }}
+        (App (Val (ci @!! go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty @!! go!"UnsafeSave"))
+          (Val #(interface.mkOk (go.GoType.PointerType
+            go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) #t)))
+      {{ RET #(); ∃ st' : backend.BSess, backend.batchLocked γ P b st' ∗
+          batchLockInv γA (metaTM γ P) ∗ ⌜backend.hookStep P st st'⌝ }} :=
+  ci_hook_backend consistentIndex.wp_UnsafeSave backend.batchTxBuffered.wp_UnsafePut
+    backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID schema.bucket.wp_Name
+    schema.bucket.wp_IsSafeRangeBucket γA ci γ P W Pk b t hP st
+
+/-- The backend's hook contract (`hookFnSpec`, what `NewHooks` wraps into the backend's
+`hooksSpec`) of any hook function that runs the consistent index's `UnsafeSave` on the batch
+transaction (etcd's `BackendHooks.OnPreCommitUnsafe` does, then saves the `confState` when it
+is dirty: `storage/hooks.go`, not translated), the hooks' resource the server's batch-lock
+resource. -/
+theorem cindex_hookFnSpec (γA : ApplyNames) (ci : Loc) (γ : backend.BNames) (P : backend.BParams)
+    (W Pk : IProp GF) (b t : Loc) (hP : ciKeys P) (f : GoFunc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex ∗
+      backend.isBackend γ P W Pk b ∗ backend.bF go!"batchTx" b ↦□ t ∗ isCI ci γA.ci ∗
+      inv applyN (consInv γA) ∗
+      □ (∀ (v : val) (Ψ : val → IProp GF),
+          WP (App (Val (ci @!! go.GoType.PointerType
+            go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty @!! go!"UnsafeSave"))
+            (Val v)) {{ Ψ }} -∗
+          WP (App (Val #f) (Val v)) {{ Ψ }}) ⊢
+      backend.hookFnSpec γ P (batchLockInv γA (metaTM γ P)) b t f :=
+  ci_hookFnSpec consistentIndex.wp_UnsafeSave backend.batchTxBuffered.wp_UnsafePut
+    backend.batchTxBuffered.wp_UnsafeRange schema.bucket.wp_ID schema.bucket.wp_Name
+    schema.bucket.wp_IsSafeRangeBucket γA ci γ P W Pk b t hP f
+
 end backend
 
 #print axioms Perennial.EtcdGrove.server_kv_backend
+#print axioms Perennial.EtcdGrove.cindex_hook_backend
+#print axioms Perennial.EtcdGrove.cindex_hookFnSpec
 #print axioms Perennial.EtcdGrove.applyEntries_model
 #print axioms Perennial.EtcdGrove.applyEntries_trace
 #print axioms Perennial.EtcdGrove.applyEntries_kv

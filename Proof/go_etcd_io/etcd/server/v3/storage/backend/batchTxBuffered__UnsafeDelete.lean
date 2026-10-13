@@ -29,7 +29,7 @@ variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions]
 theorem backend.batchTxBuffered.UnsafeDelete.wp_proof
     (hBT : backend.batchTx.UnsafeDelete.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t st bk bi key kb dk Hhas Hp Hsb
+  intro γ P W Pk b t st bk bi key kb dk Hhas Hp Hsb Hhk
   wp_start as ⟨#Hb, #Ht, Hl, #Hbk, Hkey⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
@@ -51,7 +51,8 @@ theorem backend.batchTxBuffered.UnsafeDelete.wp_proof
   iexists t, db
   iframe Ht' Hown
   ihave Hg := batchGhost_step γ P (st := st) (st' := (st.del bi kb)) rfl rfl rfl
-    (pend_succ_nat Hwf Hp) (fun i => by simp [BSess.del, BSess.create, BSess.delBucket]) $$ Hg
+    (pend_succ_nat Hwf Hp) (fun i => by simp [BSess.del, BSess.create, BSess.delBucket])
+    (hkData_del st bi kb Hhk) $$ Hg
   iframe Hg
   isplitl
   · iexists hk

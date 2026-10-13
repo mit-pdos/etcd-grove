@@ -138,7 +138,7 @@ theorem safeSt_S_nonSB {P : BParams} {st st' : BSess} {name : GoString}
 theorem sessWf_put {P : BParams} {st : BSess} {bi : BucketInfo} {kb vb : GoString} {seq : Bool}
     (hP : P.Wf) (hst : sessWf P st) (hb : P.has bi)
     (hW : if seq then ∀ e ∈ bkOf st.W.bks bi.id, strLt e.1 kb
-      else kb ∉ (bkOf st.W.bks bi.id).map Prod.fst)
+      else kb ∉ (bkOf st.W.bks bi.id).map Prod.fst ∨ wbDupOk st bi.id)
     (hp : sint.Z st.pend + 1 < 2 ^ 58)
     (hSB : P.SB bi.name = true → ∀ kc vc, (bktOf st.S bi.name).lookup kc = some vc → strLt kc kb) :
     sessWf P (st.put bi kb vb seq) := by
@@ -148,10 +148,10 @@ theorem sessWf_put {P : BParams} {st : BSess} {bi : BucketInfo} {kb vb : GoStrin
     cases seq <;> rfl
   have hpz : sint.Z (st.pend + W64 1) = sint.Z st.pend + 1 := by word
   refine ⟨?_, hRf, ?_, hRi, ?_, ?_, hn0, ?_, ?_, ?_, safeSt_put hP hb hsf hSB⟩
-  · show (if seq then st.W.putSeq bi.id (kb, vb) else st.W.put bi.id (kb, vb)).Wf
+  · show (if seq then st.W.putSeq bi.id (kb, vb) else st.W.put bi.id (kb, vb)).WfR (wbDupOk st)
     cases seq
-    · exact WBuf.put_wf hWf (by simpa using hW)
-    · exact WBuf.putSeq_wf hWf (by simpa using hW)
+    · exact WBuf.WfR.put hWf (by simpa using hW)
+    · exact WBuf.WfR.putSeq hWf (by simpa using hW)
   · show idsOk P (if seq then st.W.putSeq bi.id (kb, vb) else st.W.put bi.id (kb, vb)).bks
     rw [hWbks]
     intro i es h
@@ -316,6 +316,55 @@ theorem bgOk_bufBound {P : BParams} {st : BSess} {free : Bool} {n w u : Nat}
   have hpn : sint.nat st.pend < 2 ^ 58 := by have := hst.2.2.2.2.2.1; word
   unfold bufBound
   omega
+
+/-! ## The hook's own keys (`hkData`) across a session's operations -/
+
+theorem hkData_put_other {P : BParams} (st : BSess) (bi : BucketInfo) (kb vb : GoString)
+    (seq : Bool) (h : P.hk bi.name kb = false) :
+    hkData P (st.put bi kb vb seq).S = hkData P st.S := by
+  apply hkData_eq
+  intro n k hk
+  show dget (st.S.insert bi.name ((bktOf st.S bi.name).insert kb vb)) n k = dget st.S n k
+  rw [dget_put]
+  split
+  · rename_i he
+    obtain ⟨rfl, rfl⟩ := he
+    rw [h] at hk; cases hk
+  · rfl
+
+theorem hkData_create {P : BParams} (st : BSess) (bi : BucketInfo) :
+    hkData P (st.create bi).S = hkData P st.S := by
+  apply hkData_eq
+  intro n k _
+  show dget (if st.S.lookup bi.name = none then st.S.insert bi.name ∅ else st.S) n k = dget st.S n k
+  rw [dget_create]
+
+theorem hkData_del {P : BParams} (st : BSess) (bi : BucketInfo) (kb : GoString)
+    (h : P.hk bi.name kb = false) :
+    hkData P (st.del bi kb).S = hkData P st.S := by
+  apply hkData_eq
+  intro n k hk
+  show dget (st.S.insert bi.name ((bktOf st.S bi.name).delete kb)) n k = dget st.S n k
+  rw [dget_eq_bktOf, dget_eq_bktOf]
+  by_cases hn : bi.name = n
+  · subst hn
+    have hne : kb ≠ k := fun he => by subst he; rw [h] at hk; cases hk
+    unfold bktOf
+    simp only [GMap.lookup_insert_eq_iff, ↓reduceIte, Option.getD_some]
+    rw [GMap.lookup_delete_ne _ hne]
+  · rw [bktOf_insert_ne _ _ _ _ hn]
+
+theorem hkData_delBucket {P : BParams} (st : BSess) (bi : BucketInfo)
+    (h : ∀ k, P.hk bi.name k = false) :
+    hkData P (st.delBucket bi).S = hkData P st.S := by
+  apply hkData_eq
+  intro n k hk
+  show dget (st.S.delete bi.name) n k = dget st.S n k
+  rw [dget_eq_bktOf, dget_eq_bktOf]
+  by_cases hn : bi.name = n
+  · subst hn
+    rw [h k] at hk; cases hk
+  · rw [bktOf_delete_ne _ _ _ hn]
 
 end backend
 end EtcdGrove

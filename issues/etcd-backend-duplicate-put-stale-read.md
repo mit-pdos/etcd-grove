@@ -84,7 +84,13 @@
   storage/backend/txWriteBuffer__writeback.lean`) take the premise that a non-sequential
   bucket's buffered puts have distinct keys (a sequential bucket's are increasing, which
   `putSeq`'s `verify` check states); the batch transaction's `UnsafePut` carries it as a
-  premise on the session's puts.
+  premise on the session's puts. Since 2026-10-13 (unit 7) the premise is what the code needs:
+  a duplicate is allowed in a bucket the read buffer lacks (`writeback`'s `!ok` branch
+  deduplicates it, `WBuf.WfR`) or, in the pre-commit hook's window, one whose read-buffer
+  bucket is empty (the commit's `reset` that follows drops it: `wbDupOk`). With it the
+  consistent-index hook's re-puts at every commit are proved harmless
+  (`Proof/go_etcd_io/etcd/server/v3/etcdserver/CindexBackend.lean`); a client's duplicate put
+  into a bucket the read buffer has is still excluded, as the reproduction shows it must be.
 - **Possible fixes**: in `writeback`, deduplicate a non-sequential bucket's buffer on both
   branches (`wb.dedupe()` in place of `sort.Sort(wb)`; `dedupe` sorts stably and keeps the
   newest); or make `merge` deduplicate whenever the source is not known to be duplicate-free.

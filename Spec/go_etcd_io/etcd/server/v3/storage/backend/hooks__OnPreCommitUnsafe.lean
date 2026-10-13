@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- `h.OnPreCommitUnsafe(tx)`: its function on `tx`. -/
 abbrev backend.hooks.OnPreCommitUnsafe.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (Pk : IProp GF) (b t : Loc) (h : hooks) (st : BSess),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ hookFnSpec γ P Pk b t h.onPreCommitUnsafe' ∗ batchLocked γ P b st ∗ Pk }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ hookFnSpec γ P Pk b t h.onPreCommitUnsafe' ∗ batchLocked γ P b st ∗ Pk ∗ ⌜hookPre P st⌝ }}
     (App (Val (h @!! hooks.ty @!! go!"OnPreCommitUnsafe"))
       (Val #(interface.mkOk (go.GoType.PointerType batchTxBuffered.ty) #t)))
   {{ RET #(); ∃ st' : BSess, batchLocked γ P b st' ∗ Pk ∗ ⌜hookStep P st st'⌝ }}

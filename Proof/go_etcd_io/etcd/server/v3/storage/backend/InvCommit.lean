@@ -37,9 +37,11 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
     payIn (GF := GF) γ st false m u ∗ ownTokAuth γ.wb n ∗ monoNatAuthOwn γ.wbc 1 w ∗
       ghostVar γ.used (1 : Qp).half u0 ∗ dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
       ghostVar γ.view (1 : Qp).half.half (vData P (C', st'.R.reset)) ∗
-      ghostVar γ.rvs (1 : Qp).half (((C', st'.R.reset) : RView), false) ⊢
-    |==> ∃ cnt' : BCnt, batchGhostAt γ P (commitSt st' C' tx' cnt') true ∗ payOut γ false m := by
-  iintro ⟨Hpay, Ha, Hm, Hu, Ho, Hv, Hr⟩
+      ghostVar γ.rvs (1 : Qp).half (((C', st'.R.reset) : RView), false) ∗
+      ghostVar γ.hkd (1 : Qp).half (hkData P st'.S) ⊢
+    |==> ∃ cnt' : BCnt, ⌜cnt'.hw = false⌝ ∗ batchGhostAt γ P (commitSt st' C' tx' cnt') true ∗
+      payOut γ false m := by
+  iintro ⟨Hpay, Ha, Hm, Hu, Ho, Hv, Hr, Hk⟩
   have hR := hs.2.1
   have hcnt := hs.2.2.2.2.2.2.2.2
   have hb'0 := hb'
@@ -54,11 +56,13 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
     icombine Ha Hpay gives %Hle
     imod ownTokAuth_sub 1 γ.wb n $$ Ha Hpay with Ha
     imodintro
-    iexists ⟨st.cnt.k + 1, st.cnt.c + 1, 0, 0⟩
-    isplitl [Hv Hr Ha Hm Hu Ho]
+    iexists ⟨st.cnt.k + 1, st.cnt.c + 1, 0, 0, false⟩
+    isplitr
+    · ipureintro; rfl
+    isplitl [Hv Hr Ha Hm Hu Ho Hk]
     · unfold batchGhostAt
-      simp only [commitSt_C, commitSt_R]
-      iframe Hv
+      simp only [commitSt_C, commitSt_R, commitSt_S]
+      iframe Hv Hk
       iexists n - 1, w, u0
       iframe Hr Ha Hm Hu Ho
       ipureintro
@@ -76,11 +80,13 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
     ihave %Hlw := monoNatLbOwn_valid γ.wbc 1 w (u0 + 1) $$ Hm Hlb
     imod ghostVar_update_halves w γ.used u0 u0 $$ Hu Hru with ⟨Hu, Hru⟩
     imodintro
-    iexists ⟨st.cnt.k, st.cnt.c + 1, 0, 0⟩
-    isplitl [Hv Hr Ha Hm Hu Ho]
+    iexists ⟨st.cnt.k, st.cnt.c + 1, 0, 0, false⟩
+    isplitr
+    · ipureintro; rfl
+    isplitl [Hv Hr Ha Hm Hu Ho Hk]
     · unfold batchGhostAt
-      simp only [commitSt_C, commitSt_R]
-      iframe Hv
+      simp only [commitSt_C, commitSt_R, commitSt_S]
+      iframe Hv Hk
       iexists n, w, w
       iframe Hr Ha Hm Hu Ho
       ipureintro
@@ -95,11 +101,13 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
   · rw [if_neg hm0, if_neg hm1, if_neg (fun h : True ∧ m = 1 => hm1 h.2)]
     icases Hpay with %Hc0
     imodintro
-    iexists ⟨st.cnt.k, st.cnt.c + 1, 0, 0⟩
-    isplitl [Hv Hr Ha Hm Hu Ho]
+    iexists ⟨st.cnt.k, st.cnt.c + 1, 0, 0, false⟩
+    isplitr
+    · ipureintro; rfl
+    isplitl [Hv Hr Ha Hm Hu Ho Hk]
     · unfold batchGhostAt
-      simp only [commitSt_C, commitSt_R]
-      iframe Hv
+      simp only [commitSt_C, commitSt_R, commitSt_S]
+      iframe Hv Hk
       iexists n, w, u0
       iframe Hr Ha Hm Hu Ho
       ipureintro
@@ -108,6 +116,26 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
       rw [Hc0]
       split <;> omega
     · itrivial
+
+theorem payIn_setHw (γ : BNames) (st : BSess) (x stop : Bool) (m u : Nat) :
+    payIn (GF := GF) γ (st.setHw x) stop m u = payIn γ st stop m u := rfl
+
+/-- The commit opens the hook's window on the batch lock's state (`BSess.setHw`). -/
+theorem batchLockedW_setHw (γ : BNames) (P : BParams) (b : Loc) (st : BSess) :
+    batchLockedW (GF := GF) γ P b st false ⊢ batchLocked γ P b (st.setHw true) := by
+  unfold batchLockedW batchLocked batchLockedAt batchGhost batchGhostAt batchGhostW
+  iintro ⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, %Hok⟩, %Hwf⟩
+  iexists t, db
+  rw [show batchPhys γ b t db (st.setHw true) = batchPhys γ b t db st from rfl]
+  simp only [setHw_C, setHw_R, setHw_S]
+  iframe Ht Hown Hph Hv
+  isplitl [Hr Ha Hm Hu Ho Hk]
+  · iexists n, w, u
+    iframe
+    ipureintro
+    exact bgOk_setHw true Hok
+  · ipureintro
+    exact sessWf_setHw Hwf
 
 end lemmas
 

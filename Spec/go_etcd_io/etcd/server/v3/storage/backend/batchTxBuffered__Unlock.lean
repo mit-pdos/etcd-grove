@@ -37,9 +37,11 @@ the readers see (`viewSame`: it may have put in or deleted from the hook's bucke
 commits) gives the lock's resources `W ∗ Pk`; otherwise it gives the clients' whole view and
 `Pk`, and gets the view back at its new value, from which it makes `W` (a wand: `W` may hold part
 of the view). A write-back's budget either way. (`Pk` is handed over up front in both cases: the
-commit's hook needs it, before the new view exists.) -/
+commit's hook needs it, before the new view exists.) Not in the hook's window (`hw`: a hook
+does not unlock), with room for the commit's hook (2026-10-13). -/
 abbrev backend.batchTxBuffered.Unlock.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (Q : IProp GF),
+  st.cnt.hw = false → sint.Z st.pend + P.hookMax < 2 ^ 58 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ wbTok γ ∗
       ((⌜viewSame P st⌝ ∗ W ∗ Pk ∗ Q) ∨
        (∃ vd : VData, bView γ 1 vd ∗ Pk ∗ (bView γ 1 (sData P st.S) -∗ W ∗ Q))) }}

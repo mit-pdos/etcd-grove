@@ -78,8 +78,9 @@ theorem consistentIndex.UnsafeConsistentIndex.wp_proof
   iunfold metaReadTx at Hrt
   icases Hrt with ⟨-, -, #Hrd⟩
   (try wp_auto)
-  wp_apply_core (hR rt E View) $$ [] [HΦ Hown ci]
+  wp_apply_core (hR rt E View (fun _ => iprop(True))) $$ [] [HΦ Hown ci]
   · iframe Hsch Hrd
+  iapply readCIAU_A
   iapply readCIAU_wand $$ HΦ
   iintro %m Hm
   (try wp_auto)

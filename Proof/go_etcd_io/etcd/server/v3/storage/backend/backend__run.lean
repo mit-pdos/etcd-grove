@@ -96,7 +96,8 @@ theorem backend.backend.run.wp_proof
       · iframe #
         isplitr
         · ipureintro
-          exact ⟨Hfo.2, Hfo.1.2.2.2, fun _ => vData_free P st Hfo.1.1 Hfo.1.2.2.1 Hfo.1.2.2.2⟩
+          exact ⟨room_of_freeOk HP Hfo.1, Hfo.2, Hfo.1.2.2.2.1,
+        fun _ => vData_free P st Hfo.1.1 Hfo.1.2.2.1 Hfo.1.2.2.2.1⟩
         unfold payIn
         rw [if_neg (by decide), if_neg (by decide), if_pos rfl]
         iframe Hus Hlb

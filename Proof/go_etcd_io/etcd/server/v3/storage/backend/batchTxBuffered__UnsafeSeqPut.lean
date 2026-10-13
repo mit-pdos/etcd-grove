@@ -31,7 +31,7 @@ theorem backend.batchTxBuffered.UnsafeSeqPut.wp_proof
     (hBT : backend.batchTx.UnsafeSeqPut.spec (GF := GF) (hG := hG))
     (hBuf : backend.txWriteBuffer.putSeq.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t st bk bi key value kb vb Hhas Hk0 Hk1 Hlt Hp Hsb
+  intro γ P W Pk b t st bk bi key value kb vb Hhas Hk0 Hk1 Hlt Hp Hhk Hsb
   wp_start as ⟨#Hb, #Ht, Hl, #Hbk, #Hkey, #Hval⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
@@ -57,7 +57,8 @@ theorem backend.batchTxBuffered.UnsafeSeqPut.wp_proof
   iexists t, db
   iframe Ht' Hown
   ihave Hg := batchGhost_step γ P (st := st) (st' := (st.put bi kb vb true)) rfl rfl rfl
-    (pend_succ_nat Hwf Hp) (fun i => put_W_le st bi kb vb true i) $$ Hg
+    (pend_succ_nat Hwf Hp) (fun i => put_W_le st bi kb vb true i)
+    (hkData_put_other st bi kb vb true Hhk) $$ Hg
   iframe Hg
   isplitl
   · iexists hk

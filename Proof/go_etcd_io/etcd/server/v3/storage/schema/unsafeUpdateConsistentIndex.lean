@@ -32,8 +32,8 @@ theorem schema.unsafeUpdateConsistentIndex.wp_proof
     (hV : verify.Verify.spec (GF := GF) (hG := hG))
     (hR : schema.UnsafeReadConsistentIndex.spec (GF := GF) (hG := hG)) :
     schema.unsafeUpdateConsistentIndex.spec (GF := GF) (hG := hG) := by
-  intro tx TM m index term allowDecreasing
-  wp_start as ⟨#Hw, HTM, %Hmono⟩
+  intro tx TM PTi PTt m index term allowDecreasing
+  wp_start as ⟨#Hw, HTM, HPi, HPt, %Hmono⟩
   ihave Hsi : (schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hsi with ⟨⟨%mb, #Hmb, -⟩, ⟨%ck, #Hck, #Hckb⟩, ⟨%tk, #Htk, #Htkb⟩, -⟩
@@ -58,9 +58,9 @@ theorem schema.unsafeUpdateConsistentIndex.wp_proof
       · iframe
       iintro ⟨index, tx, HTM⟩
       wp_auto
-      wp_apply_core (hR tx ⊤ TM) $$ [] [HTM index tx]
+      wp_apply_core (hR tx ⊤ TM TM) $$ [] [HTM index tx]
       · iframe Hpkg Hrd
-      unfold readCIAU readAU
+      unfold readCIAUA readAU
       imodintro
       iexists m
       iframe HTM
@@ -79,11 +79,16 @@ theorem schema.unsafeUpdateConsistentIndex.wp_proof
         ipureintro
         simp
       · simp only [h0, ↓reduceIte]
+        isplitl [HTM]
+        · iexact HTM
+        iintro HTM
         imodintro
         iexists m
         iframe HTM
         iintro HTM
         imodintro
+        iapply (acc_ite _ (TM m) _) $$ HTM
+        iintro HTM
         wp_auto
         wp_apply (wp_map_make1 (K := GoString) (V := GoInterface) go.string go.any) as %mref Hm
         wp_apply (wp_mapInsert (K := GoString) (V := GoInterface) go.string mref _ _ _) $$ [$Hm] as Hm
@@ -98,8 +103,9 @@ theorem schema.unsafeUpdateConsistentIndex.wp_proof
     unfold metaPutSpec
     ihave #Hp := Hput $$ %mb %ck %bs1 %m %index
     wp_bind (App (App (App (Val #(methods tx.ty go!"UnsafePut" tx.v)) (Val #mb)) (Val #ck)) (Val #bs1))
-    iapply Hp $$ [Hbs1 HTM]
-    · iframe Hmb Hckb Hbs1 HTM
+    iapply Hp $$ [Hbs1 HTM HPi]
+    · iframe Hmb Hckb Hbs1 HTM HPi
+      ipureintro; exact hidx
     inext
     iintro HTM
     wp_auto
@@ -109,8 +115,10 @@ theorem schema.unsafeUpdateConsistentIndex.wp_proof
       wp_apply wp_bePutUint64 hP bs2 _ term (by simp) $$ [$Hbs2] as Hbs2
       ihave #Hpt := Hputt $$ %mb %tk %bs2 %(index, m.2) %term
       wp_bind (App (App (App (Val #(methods tx.ty go!"UnsafePut" tx.v)) (Val #mb)) (Val #tk)) (Val #bs2))
-      iapply Hpt $$ [Hbs2 HTM]
-      · iframe Hmb Htkb Hbs2 HTM
+      have ht0 : term ≠ W64 0 := by intro h; subst h; simp at Hif
+      iapply Hpt $$ [Hbs2 HTM HPt]
+      · iframe Hmb Htkb Hbs2 HTM HPt
+        ipureintro; exact ht0
       inext
       iintro HTM
       (try wp_auto)
@@ -126,8 +134,9 @@ theorem schema.unsafeUpdateConsistentIndex.wp_proof
     unfold metaPutSpec
     ihave #Hp := Hput $$ %mb %ck %bs1 %m %index
     wp_bind (App (App (App (Val #(methods tx.ty go!"UnsafePut" tx.v)) (Val #mb)) (Val #ck)) (Val #bs1))
-    iapply Hp $$ [Hbs1 HTM]
-    · iframe Hmb Hckb Hbs1 HTM
+    iapply Hp $$ [Hbs1 HTM HPi]
+    · iframe Hmb Hckb Hbs1 HTM HPi
+      ipureintro; exact hidx
     inext
     iintro HTM
     wp_auto
@@ -137,8 +146,10 @@ theorem schema.unsafeUpdateConsistentIndex.wp_proof
       wp_apply wp_bePutUint64 hP bs2 _ term (by simp) $$ [$Hbs2] as Hbs2
       ihave #Hpt := Hputt $$ %mb %tk %bs2 %(index, m.2) %term
       wp_bind (App (App (App (Val #(methods tx.ty go!"UnsafePut" tx.v)) (Val #mb)) (Val #tk)) (Val #bs2))
-      iapply Hpt $$ [Hbs2 HTM]
-      · iframe Hmb Htkb Hbs2 HTM
+      have ht0 : term ≠ W64 0 := by intro h; subst h; simp at Hif
+      iapply Hpt $$ [Hbs2 HTM HPt]
+      · iframe Hmb Htkb Hbs2 HTM HPt
+        ipureintro; exact ht0
       inext
       iintro HTM
       (try wp_auto)

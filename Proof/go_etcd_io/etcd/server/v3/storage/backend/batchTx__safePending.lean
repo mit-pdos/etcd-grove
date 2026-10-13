@@ -39,7 +39,7 @@ theorem backend.batchTx.safePending.wp_proof :
   icases Hfree with (⟨%st, %db, Hph, Hg, %Hfo, HWR⟩ | #Hbs)
   · unfold batchPhys batchGhostAt
     icases Hph with ⟨%hk, Htxf, Hpend, Hdel, HW, Hhkf, Hhk, Hdb, Hwtx, #Htxdb, Hmu⟩
-    icases Hg with ⟨Hv, %n, %w, %u0, Hrvs, Ha, Hmo, Hus, Hopn', %Hbg⟩
+    icases Hg with ⟨Hv, %n, %w, %u0, Hrvs, Ha, Hmo, Hus, Hopn', Hhkd, %Hbg⟩
     icombine Hu Hus gives % ⟨_, Hueq⟩
     subst Hueq
     ihave #Hlb := monoNatLbOwn_get γ.wbc 1 w $$ Hmo
@@ -50,7 +50,7 @@ theorem backend.batchTx.safePending.wp_proof :
         have := (Hbg.2.2.2.2.2.2.2.2 rfl).2 hp
         iapply monoNatLbOwn_le (u + 1) (by omega) $$ Hlb
     wp_auto
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hm $Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn' HWR]
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hm $Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn' Hhkd HWR]
     · inext
       ileft
       iexists st, db

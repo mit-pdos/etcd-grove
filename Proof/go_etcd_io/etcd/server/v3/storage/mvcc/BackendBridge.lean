@@ -117,9 +117,11 @@ theorem bkRT_x (γ : BNames) (P : BParams) (b : Loc) (qo : Qp) :
   iexact H2
 
 /-- A session holding the puts `l` in the `Key` bucket: no delete pending, the write buffer's
-`Key` bucket the puts, one more pending operation a put at most (from the free lock's). -/
+`Key` bucket the puts, one more pending operation a put at most (from the free lock's), at most
+`2^56` puts, out of the hook's window. -/
 def sessPuts (P : BParams) (st : BSess) (l : Puts) : Prop :=
-  st.ndel = W64 0 ∧ sint.Z st.pend < sint.Z P.limit + l.length ∧ bkOf st.W.bks (W64 1) = l
+  st.ndel = W64 0 ∧ sint.Z st.pend < sint.Z P.limit + l.length ∧
+    (bkOf st.W.bks (W64 1) = l ∧ l.length ≤ 2 ^ 56 ∧ st.cnt.hw = false)
 
 /-- The batch lock held in a session holding the puts `l`, with a write-back's budget. -/
 def bkLockedAt (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (l : Puts) : IProp GF :=
@@ -130,10 +132,12 @@ def bkLocked (γ : BNames) (P : BParams) (b : Loc) (l : Puts) : IProp GF :=
   iprop(∃ st : BSess, bkLockedAt γ P b st l)
 
 /-- `NewStore`'s session after `n` bucket creations: no delete pending, `n` more operations
-than at the free lock, nothing the readers see changed, a write-back's budget. -/
+than at the free lock (at most two), nothing the readers see changed, out of the hook's window,
+a write-back's budget. -/
 def bkLockedO (γ : BNames) (P : BParams) (b : Loc) (n : Nat) : IProp GF :=
   iprop(∃ st : BSess, batchLocked γ P b st ∗ wbTok γ ∗
-    ⌜st.ndel = W64 0 ∧ sint.Z st.pend < sint.Z P.limit + n ∧ viewSame P st⌝)
+    ⌜st.ndel = W64 0 ∧ sint.Z st.pend < sint.Z P.limit + n ∧ viewSame P st ∧ n ≤ 2 ∧
+      st.cnt.hw = false⌝)
 
 end defs
 
@@ -192,7 +196,7 @@ theorem sData_puts {P : BParams} (hP : bridgeParams P) {st : BSess} {l : Puts} {
     have hk := hP.1
     unfold BParams.has keyBI at hk
     simp only at hk
-    rw [hk, Option.bind_some, hs.2.2]
+    rw [hk, Option.bind_some, hs.2.2.1]
     rfl
   · simp only [hn, ↓reduceIte, hP.2.2.1]
     simp [hn]
@@ -203,25 +207,38 @@ theorem viewSame_noPuts {P : BParams} (hP : bridgeParams P) {st : BSess} (hst : 
   have hW : ∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = [] := by
     intro n i hn hb
     rw [nonHB_key hP hn hb]
-    exact hs.2.2
+    exact hs.2.2.1
   exact ⟨vData_free P st hst hs.1 hW, hW⟩
 
 /-- A free state holds no puts. -/
 theorem sessPuts_free {P : BParams} (hP : bridgeParams P) {st : BSess} (h : freeOk P st) :
     sessPuts P st [] := by
-  refine ⟨h.2.2.1, by simpa using h.2.1, ?_⟩
+  refine ⟨h.2.2.1, by simpa using h.2.1, ?_, by simp, h.2.2.2.2⟩
   have hk := hP.1
   unfold BParams.has keyBI at hk
-  exact h.2.2.2 _ _ hk (key_not_HB hP)
+  exact h.2.2.2.1 _ _ hk (key_not_HB hP)
+
+/-- A session with puts leaves room for a commit's hook. -/
+theorem sessPuts_room {P : BParams} (hPw : P.Wf) {st : BSess} {l : Puts} (hs : sessPuts P st l) :
+    sint.Z st.pend + P.hookMax < 2 ^ 58 := by
+  obtain ⟨-, hp, -, hl, -⟩ := hs
+  have h1 := hPw.2.2.1
+  have h2 := hPw.2.2.2.1
+  omega
+
+/-- The `Key` bucket has no hook's own key. -/
+theorem key_not_hk {P : BParams} (hP : bridgeParams P) (k : GoString) : P.hk keyBI.name k = false := by
+  unfold BParams.hk
+  rw [show keyBI.name = go_etcd_io.etcd.server.v3.storage.schema.keyName from rfl, key_not_HB hP]
 
 /-- A put of the `Key` bucket. -/
 theorem sessPuts_put {P : BParams} (hPw : P.Wf) {st : BSess} {l : Puts}
     {k v : GoString} (hs : sessPuts P st l) (hl : l.length < 2 ^ 56) :
     sessPuts P (st.put keyBI k v true) (l ++ [(k, v)]) ∧ sint.Z st.pend + 1 < 2 ^ 58 := by
-  obtain ⟨hd, hp, hw⟩ := hs
+  obtain ⟨hd, hp, hw, -, hhw⟩ := hs
   have hlim := hPw.2.2.1
   have hb : sint.Z st.pend + 1 < 2 ^ 58 := by omega
-  refine ⟨⟨hd, ?_, ?_⟩, hb⟩
+  refine ⟨⟨hd, ?_, ?_, by simp only [List.length_append, List.length_singleton]; omega, hhw⟩, hb⟩
   · show sint.Z (st.pend + W64 1) < _
     simp only [List.length_append, List.length_singleton]
     have : sint.Z (st.pend + W64 1) = sint.Z st.pend + 1 := by word
@@ -1224,7 +1241,7 @@ theorem bt_seqPut (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (h
   obtain ⟨hl, hk0, hk1, hbm, hord⟩ := Hok
   obtain ⟨hs', hpend⟩ := sessPuts_put HPw Hs hl
   have hW : ∀ e ∈ bkOf st.W.bks keyBI.id, strLt e.1 k := by
-    rw [show keyBI.id = W64 1 from rfl, Hs.2.2]; exact hord
+    rw [show keyBI.id = W64 1 from rfl, Hs.2.2.1]; exact hord
   have hS := sData_puts hP Hwf Hs Hvd
   have hSB : P.SB keyBI.name = true → ∀ kc vc,
       (bktOf st.S keyBI.name).lookup kc = some vc → strLt kc k := by
@@ -1238,7 +1255,7 @@ theorem bt_seqPut (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (h
     | none =>
       rw [hlv, Option.none_or] at hc
       exact hbm kc vc hc
-  wp_apply (hSP γ P W Pk b t st bk keyBI key val k v hP.1 hk0 hk1 hW hpend hSB)
+  wp_apply (hSP γ P W Pk b t st bk keyBI key val k v hP.1 hk0 hk1 hW hpend (key_not_hk hP k) hSB)
     $$ [$Hb $Ht $Hl $Hbk $Hk $Hv] as Hl
   iapply HΦ
   isplitr [Hvw]
@@ -1262,12 +1279,14 @@ theorem bt_unlock0 (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := 
             go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) go!"Unlock" #t)) (Val #()))
         {{ RET #(); True }}) := by
   iintro ⟨#Hpkg, #Hb, #Ht⟩ !> %Φ !> ⟨Hl, HW, HPk⟩ HΦ
+  icases isBackend_b γ P W Pk b $$ Hb with ⟨%t', %rt, %db, %lg, -, -, -, -, -, -, -, -, -, -, -,
+    %HPw⟩
   iunfold bkLocked at Hl
   icases Hl with ⟨%st, Hl⟩
   iunfold bkLockedAt at Hl
   icases Hl with ⟨Hl, Hwb, %Hs⟩
   icases batchLocked_wf γ P b st $$ Hl with ⟨Hl, %Hwf⟩
-  wp_apply (hUL γ P W Pk b t st iprop(True)) $$ [$Hb $Ht $Hl $Hwb HW HPk]
+  wp_apply (hUL γ P W Pk b t st iprop(True) Hs.2.2.2.2 (sessPuts_room HPw Hs)) $$ [$Hb $Ht $Hl $Hwb HW HPk]
   · ileft
     iframe HW HPk
     ipureintro; exact viewSame_noPuts hP Hwf Hs
@@ -1286,6 +1305,8 @@ theorem bt_unlock (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := h
             go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) go!"Unlock" #t)) (Val #()))
         {{ RET #(); Q }}) := by
   iintro ⟨#Hpkg, #Hb, #Ht⟩ !> %l %m %Q %Φ !> ⟨Hl, Hv, Hwand, HPk⟩ HΦ
+  icases isBackend_b γ P W Pk b $$ Hb with ⟨%t', %rt, %db, %lg, -, -, -, -, -, -, -, -, -, -, -,
+    %HPw⟩
   iunfold bkLocked at Hl
   icases Hl with ⟨%st, Hl⟩
   iunfold bkLockedAt at Hl
@@ -1296,7 +1317,7 @@ theorem bt_unlock (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := h
   icases batchLocked_view γ P b st 1 vd $$ [$Hl $Hv] with ⟨Hl, Hv, %Hag⟩
   subst Hag
   -- (`wp_apply` aborts here without a message: the triple applied by hand)
-  iapply (hUL γ P W Pk b t st Q) $$ %Φ [Hl Hwb Hv HPk Hwand] HΦ
+  iapply (hUL γ P W Pk b t st Q Hs.2.2.2.2 (sessPuts_room HPw Hs)) $$ %Φ [Hl Hwb Hv HPk Hwand] HΦ
   iframe Hpkg Hb Ht Hl Hwb
   iright
   iexists (vData P (st.C, st.R))
@@ -1418,7 +1439,8 @@ theorem bt_lockOut (hLO : backend.batchTxBuffered.LockOutsideApply.spec (GF := G
     iexists st
     iframe
     ipureintro
-    exact ⟨Hfree.2.2.1, by simpa using Hfree.2.1, viewSame_of_freeOk Hfree⟩
+    exact ⟨Hfree.2.2.1, by simpa using Hfree.2.1, viewSame_of_freeOk Hfree, by omega,
+      Hfree.2.2.2.2⟩
   iunfold bkRTx
   iframe Hrd
   iexists qo
@@ -1447,15 +1469,15 @@ theorem bt_create (hCB : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := 
     %HPw⟩
   iunfold bkLockedO at Hl
   icases Hl with ⟨%st, Hl, Hwb, %Hs⟩
-  obtain ⟨hd, hp, hvs⟩ := Hs
+  obtain ⟨hd, hp, hvs, -, hhw⟩ := Hs
   have hlim := HPw.2.2.1
   have hpend : sint.Z st.pend + 1 < 2 ^ 58 := by omega
   have hpz : sint.Z (st.pend + W64 1) = sint.Z st.pend + 1 := by word
   have hpost : ∀ bi : BucketInfo, (st.create bi).ndel = W64 0 ∧
       sint.Z (st.create bi).pend < sint.Z P.limit + ((n + 1 : Nat) : Int) ∧
-      viewSame P (st.create bi) := by
+      viewSame P (st.create bi) ∧ n + 1 ≤ 2 ∧ (st.create bi).cnt.hw = false := by
     intro bi
-    refine ⟨hd, ?_, viewSame_create bi hvs⟩
+    refine ⟨hd, ?_, viewSame_create bi hvs, by omega, hhw⟩
     show sint.Z (st.pend + W64 1) < _
     push_cast; omega
   icases HKM with (#HK | #HM)
@@ -1488,13 +1510,21 @@ theorem bt_unlockO (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := 
             go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) go!"Unlock" #t)) (Val #()))
         {{ RET #(); True }}) := by
   iintro ⟨#Hpkg, #Hb, #Ht⟩ !> %n %Φ !> ⟨Hl, HW, HPk⟩ HΦ
+  icases isBackend_b γ P W Pk b $$ Hb with ⟨%t', %rt, %db, %lg, -, -, -, -, -, -, -, -, -, -, -,
+    %HPw⟩
   iunfold bkLockedO at Hl
   icases Hl with ⟨%st, Hl, Hwb, %Hs⟩
-  iapply (hUL γ P W Pk b t st iprop(True)) $$ %Φ [Hl Hwb HW HPk] HΦ
+  have hroom : sint.Z st.pend + P.hookMax < 2 ^ 58 := by
+    have h1 := HPw.2.2.1
+    have h2 := HPw.2.2.2.1
+    have h3 := Hs.2.1
+    have h4 := Hs.2.2.2.1
+    omega
+  iapply (hUL γ P W Pk b t st iprop(True) Hs.2.2.2.2 hroom) $$ %Φ [Hl Hwb HW HPk] HΦ
   iframe Hpkg Hb Ht Hl Hwb
   ileft
   iframe HW HPk
-  ipureintro; exact Hs.2.2
+  ipureintro; exact Hs.2.2.1
 
 /-- The backend's `ForceCommit()`, as mvcc's contract states it. -/
 theorem bk_forceCommit (hFC : backend.backend.ForceCommit.spec (GF := GF) (hG := hG))

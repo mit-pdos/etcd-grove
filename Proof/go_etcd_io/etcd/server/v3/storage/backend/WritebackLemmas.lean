@@ -21,7 +21,7 @@ namespace backend
 counters reset (`p0` the pending count, `e` the hook's leftovers moved into the read buffer). -/
 def wbSt (P : BParams) (st : BSess) : BSess :=
   { st with R := writebackR st.W st.R, W := writebackW st.W st.R,
-            cnt := ⟨0, 0, sint.nat st.pend, st.cnt.e + P.hookMax * st.cnt.c⟩ }
+            cnt := ⟨0, 0, sint.nat st.pend, st.cnt.e + P.hookMax * st.cnt.c, false⟩ }
 
 section wbSt_proj
 variable (P : BParams) (st : BSess)
@@ -106,7 +106,7 @@ theorem safeSt_writeback {P : BParams} {st : BSess} (hs : safeSt P st) : safeSt 
 theorem sessWf_writeback {P : BParams} {st : BSess} (hst : sessWf P st) (hpn : st.pend ≠ W64 0) :
     sessWf P (wbSt P st) := by
   obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag, hsf⟩ := hst
-  refine ⟨writebackW_wf _ _, writebackR_wf _ hRf, idsOk_writebackW hWi, idsOk_wbR hWi hRi,
+  refine ⟨WBuf.WfR.of_Wf _ (writebackW_wf _ _), writebackR_wf _ hRf, idsOk_writebackW hWi, idsOk_wbR hWi hRi,
     hp0, hp1, hn0, hnp, ?_, ?_, safeSt_writeback hsf⟩
   · intro hp
     exact absurd hp hpn
@@ -120,6 +120,16 @@ theorem sessWf_writeback {P : BParams} {st : BSess} (hst : sessWf P st) (hpn : s
     rw [vOf_writeback]
     exact this
 
+/-- Out of the hook's window, a write-buffer bucket repeats a key only where the read buffer has
+no bucket: what the write-back needs. -/
+theorem wfR_closed {st : BSess} (h : st.W.WfR (wbDupOk st)) (hw : st.cnt.hw = false) :
+    st.W.WfR (fun id => st.R.bks.lookup id = none) := by
+  apply h.mono
+  intro i hi
+  rcases hi with hi | ⟨hi, -⟩
+  · exact hi
+  · rw [hw] at hi; cases hi
+
 /-- The bounds after a write-back (one write-back token spent, one write-back more). -/
 theorem bgOk_writeback {P : BParams} {st : BSess} {n w u : Nat}
     (h : bgOk P st false n w u) (hn : 1 ≤ n) :
@@ -128,12 +138,12 @@ theorem bgOk_writeback {P : BParams} {st : BSess} {n w u : Nat}
   have hv : 0 ≤ uint.Z st.R.ver := by word
   have hk : st.cnt.k < 2 ^ 40 := by omega
   have hc : st.cnt.c ≤ st.cnt.k + 2 := by split at h3 <;> omega
-  refine ⟨?_, by omega, by simp [wbSt], by simp [wbSt], Or.inr rfl, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, by omega, by simp [wbSt], by simp [wbSt], ⟨Or.inr rfl, Or.inl rfl⟩, ?_, ?_, ?_, ?_⟩
   · show uint.Z (st.R.ver + W64 1) + ((n - 1 : Nat) : Int) + ((0 : Nat) : Int) < 2 ^ 40
     have : uint.Z (st.R.ver + W64 1) = uint.Z st.R.ver + 1 := by word
     omega
   · show st.cnt.e + P.hookMax * st.cnt.c ≤ P.hookMax * (2 ^ 40 + 2)
-    rcases h5 with he | hc0
+    rcases h5.1 with he | hc0
     · rw [he, Nat.zero_add]
       exact Nat.mul_le_mul_left _ (by omega)
     · rw [hc0, Nat.mul_zero, Nat.add_zero]
@@ -159,18 +169,18 @@ theorem bgOk_unfree {P : BParams} {st : BSess} {n w u : Nat} (h : bgOk P st true
 theorem freeOk_writeback {P : BParams} {st : BSess} (hst : sessWf P st) (hpn : st.pend ≠ W64 0)
     (hl : sint.Z st.pend < sint.Z P.limit) (hd : ¬ 0 < sint.Z st.ndel) :
     freeOk P (wbSt P st) := by
-  refine ⟨sessWf_writeback hst hpn, hl, ?_, fun _ i _ _ => bkOf_writebackW _ _ i⟩
+  refine ⟨sessWf_writeback hst hpn, hl, ?_, fun _ i _ _ => bkOf_writebackW _ _ i, rfl⟩
   have := hst.2.2.2.2.2.2.1
   show st.ndel = W64 0
   word
 
 /-- At pending count 0, the lock's state is free. -/
 theorem free_of_pend0 {P : BParams} {st : BSess} {n w u : Nat} (hP : P.Wf) (hst : sessWf P st)
-    (h : bgOk P st false n w u) (hp : st.pend = W64 0) :
+    (h : bgOk P st false n w u) (hp : st.pend = W64 0) (hhw : st.cnt.hw = false) :
     freeOk P st ∧ bgOk P st true n w u := by
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, -⟩ := h
   have hp' : sint.nat st.pend = 0 := by rw [hp]; rfl
-  refine ⟨⟨hst, ?_, ?_, ?_⟩, h1, h2, h3, h4, h5, h6, h7, h8, fun _ => ⟨by omega, fun h => absurd hp h⟩⟩
+  refine ⟨⟨hst, ?_, ?_, ?_, hhw⟩, h1, h2, h3, h4, h5, h6, h7, h8, fun _ => ⟨by omega, fun h => absurd hp h⟩⟩
   · rw [hp]; exact hP.2.1
   · have h1 := hst.2.2.2.2.2.2.1
     have h2 := hst.2.2.2.2.2.2.2.1
