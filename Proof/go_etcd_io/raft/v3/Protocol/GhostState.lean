@@ -603,6 +603,10 @@ instance committedJust_timeless (γ : RaftNames) (l : List raftpb.Entry) :
     Timeless (committedJust (GF := GF) γ l) := by
   unfold committedJust; infer_instance
 
+instance committedJust_persistent (γ : RaftNames) (l : List raftpb.Entry) :
+    Persistent (committedJust (GF := GF) γ l) := by
+  unfold committedJust; infer_instance
+
 def raftN : Namespace := nroot .@ "raft_commit"
 
 /-! ### The client log and the proposal registry (2026-10-10)
@@ -896,6 +900,37 @@ theorem lcmOwn_bound (γ : RaftNames) (id : w64) (s : PState) (n : w64) :
   icases ghostMapElem_agree $$ Hfc Hfc' with %Heq
   subst Heq
   ihave %Hv := monoNatLbOwn_valid γc 1 c (uint.nat n) $$ Hac Hlb
+  ipureintro
+  have h1 : (uint.nat n : Int) = uint.Z n := by simp [uint.nat, uint.Z]
+  have h2 : (uint.nat s.commit : Int) = uint.Z s.commit := by simp [uint.nat, uint.Z]
+  have h3 : (uint.nat n : Int) ≤ c := by exact_mod_cast Hv.2
+  have h4 : (c : Int) ≤ uint.nat s.commit := by exact_mod_cast Hcle
+  omega
+
+/-- `lcmOwn_bound`, keeping the lower bounds. -/
+theorem lcmOwn_bound_keep (γ : RaftNames) (id : w64) (s : PState) (n : w64) :
+    s.role = .leader →
+    ⊢ lcmOwn (GF := GF) γ id s -∗ cmtLb γ id s.term n -∗
+      lcmOwn γ id s ∗ ⌜uint.Z n ≤ uint.Z s.commit⌝ := by
+  intro Hr
+  unfold lcmOwn cmtLb
+  iintro ⟨%γl, %lcm, %Hγl, Ha, #Hf, %Hok, Hl⟩ ⟨%γl', %γc', %Hγl', #Hfc', #Hlb⟩
+  rw [Hγl] at Hγl'; cases Hγl'
+  rw [lcmLead_leader s lcm Hr]
+  icases Hl with ⟨%γc, %c, %Hγc, Hac, %Hcle⟩
+  ihave #Hfc := BigSepM.bigSepM_lookup (Φ := fun t γc => iprop(t ↪[γl]□ γc)) Hγc $$ Hf
+  icases ghostMapElem_agree $$ Hfc Hfc' with %Heq
+  subst Heq
+  ihave %Hv := monoNatLbOwn_valid γc 1 c (uint.nat n) $$ Hac Hlb
+  isplitl
+  · iexists γl, lcm
+    iframe Ha Hf
+    isplitr; · ipureintro; exact Hγl
+    isplitr; · ipureintro; exact Hok
+    rw [lcmLead_leader s lcm Hr]
+    iexists γc, c
+    iframe Hac
+    ipureintro; exact ⟨Hγc, Hcle⟩
   ipureintro
   have h1 : (uint.nat n : Int) = uint.Z n := by simp [uint.nat, uint.Z]
   have h2 : (uint.nat s.commit : Int) = uint.Z s.commit := by simp [uint.nat, uint.Z]
