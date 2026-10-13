@@ -1057,6 +1057,11 @@ theorem rdCred_split (γ : RaftNames) (a b : Nat) :
   rw [show (◯ (a + b) : Auth Nat) = (◯ a) • (◯ b) from Auth.frag_op]
   exact own_op γ.reRdCred _ _
 
+/-- No read credit. -/
+theorem rdCred_zero_upd (γ : RaftNames) : ⊢ |==> rdCred (GF := GF) γ 0 := by
+  unfold rdCred
+  exact own_unit _
+
 /-- How many read-index requests a list of messages holds. -/
 def rdCount (ms : List Msg) : Nat := ms.countP (fun m => decide (m.ty = .readIndex))
 
@@ -1240,6 +1245,50 @@ theorem rdOwn_takeReads (γ : RaftNames) (id : w64) (s : PState) :
     isplitl [Hcr]; · iexact Hcr
     iexact Hinv
   · iexact Hst0
+
+/-- A step that changes only the outbox and the read state, not the read-only object:
+`ReadState`s added, pending requests added (each with its facts and a credit), and
+messages sent with as many credits as they hold read-index requests. -/
+theorem rdOwn_update (γ : RaftNames) (id : w64) (s s' : PState) (sts : List ReadState)
+    (ps : List (raftpb.Message × List raftpb.Entry)) (ms : List Msg) :
+    s'.role = s.role → s'.term = s.term → s'.rd.ro = s.rd.ro →
+    s'.rd.states = s.rd.states ++ sts → s'.rd.pend = s.rd.pend ++ ps →
+    s'.outbox = s.outbox ++ ms →
+    ⊢ rdOwn (GF := GF) γ id s -∗ ([∗list] st ∈ sts, readStateOk γ st) -∗
+      ([∗list] p ∈ ps, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ isPropData γ e.Data' c ∗ readReq γ c Lc) -∗
+      rdCred γ (ps.length + rdCount ms) -∗
+      rdOwn γ id s' := by
+  intro Hr Ht Hro Hst Hpd Hout
+  unfold rdOwn
+  iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv⟩ #Hsts #Hps Hcr'
+  iexists γl, rqm
+  isplitr; · ipureintro; exact Hγl
+  isplitl [Ha]; · iexact Ha
+  isplitr; · iexact Hf
+  isplitr
+  · ipureintro
+    intro t Htt
+    rw [Ht, Hr]; exact Hok t Htt
+  isplitl [Hl]
+  · have : rdLead (GF := GF) γ s' rqm = rdLead γ s rqm := by
+      unfold rdLead; rw [Hr, Ht, Hro]
+    rw [this]; iexact Hl
+  isplitr
+  · rw [Hst]
+    iapply (BigSepL.bigSepL_append (Φ := fun _ st => readStateOk (GF := GF) γ st)).2
+    iframe Hst0 Hsts
+  isplitr
+  · rw [Hpd]
+    iapply (BigSepL.bigSepL_append (Φ := fun _ (p : raftpb.Message × List raftpb.Entry) => iprop(∃ e c Lc, ⌜p.2 = [e]⌝ ∗
+      isPropData (GF := GF) γ e.Data' c ∗ readReq γ c Lc))).2
+    iframe Hpd0 Hps
+  isplitl [Hcr Hcr']
+  · rw [Hpd, Hout, List.length_append, rdCount_append,
+      show s.rd.pend.length + ps.length + (rdCount s.outbox + rdCount ms) =
+        (s.rd.pend.length + rdCount s.outbox) + (ps.length + rdCount ms) by omega]
+    iapply (rdCred_split γ _ _).2
+    iframe Hcr Hcr'
+  iexact Hinv
 
 /-- A leader's heartbeat context is empty or a position its registry reaches. -/
 theorem rdOwn_hbCtx (γ : RaftNames) (id : w64) (s : PState) (Hr : s.role = .leader) :

@@ -2420,6 +2420,43 @@ theorem ownRaftGhost_step_snap_restore (γ : RaftNames) (id : w64) (s : PState) 
 
 /-! ### Read-index rules (2026-10-13) -/
 
+/-- A step that changes only the outbox (growing by `ms`) and the read state: the read
+ghost state is updated by `Hupd`, which may consult the log ghost state. -/
+theorem ownRaftGhost_rd (γ : RaftNames) (id : w64) (s s' : PState) (ms : List Msg)
+    (Hs' : s' = { s with outbox := s.outbox ++ ms, rd := s'.rd }) :
+    ⊢ ([∗list] m ∈ ms, isMessage (GF := GF) γ m) -∗ ownRaftGhost γ id s -∗
+      (∀ kl, ownLogGhost γ id s kl -∗ rdOwn γ id s ={⊤}=∗
+        ownLogGhost γ id s kl ∗ rdOwn γ id s') ={⊤}=∗
+      ownRaftGhost γ id s' := by
+  generalize Hr : s'.rd = rd' at Hs'
+  subst Hs'
+  iintro #Hms Hown Hupd
+  iunfold ownRaftGhost at Hown
+  icases Hown with ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  imod Hupd $$ Hlg Hrd with ⟨Hlg, Hrd⟩
+  imodintro
+  iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm] [Hrd]
+  · ipureintro; exact Hhist
+  · rw [show ({ s with outbox := s.outbox ++ ms, rd := rd' } : PState).outbox = s.outbox ++ ms
+      from rfl]
+    iapply outbox_app $$ Hout Hms
+  · iapply tally_eq γ id s { s with outbox := s.outbox ++ ms, rd := rd' } rfl rfl $$ Htally
+  · iapply leaderWit_eq γ id s { s with outbox := s.outbox ++ ms, rd := rd' } rfl rfl $$ Hlead
+  · iapply ownLogGhost_mono γ id s { s with outbox := s.outbox ++ ms, rd := rd' } kl rfl rfl rfl
+      (fun h => ⟨h, rfl, rfl⟩) (fun h => ⟨h, rfl⟩) (fun h => h) rfl (fun h => h) $$ Hlg
+  · ipureintro; exact Hlead_ok
+  · ipureintro; exact Hfollower_votes
+  · ipureintro; exact Hrole_ok
+  · lcm_mono
+  · iexact Hrd
+
+theorem isMessage_readIndex_tr (γ : RaftNames) (m m' : Msg) :
+    m.ty = .readIndex → m'.ty = .readIndex → m'.entries = m.entries →
+    ⊢ isMessage (GF := GF) γ m -∗ isMessage γ m' := by
+  intro H H' He
+  unfold isMessage; rw [H, H', He]; iintro H; iexact H
+
 theorem ownRaftGhost_step_read_fwd (γ : RaftNames) (id : w64) (s : PState) (m : Msg) :
     m.ty = .readIndex → s.role ≠ .leader → s.lead ≠ W64 0 →
     ⊢ isMessage (GF := GF) γ m -∗ rdCred γ 1 -∗ ownRaftGhost γ id s ={⊤}=∗
@@ -2427,14 +2464,46 @@ theorem ownRaftGhost_step_read_fwd (γ : RaftNames) (id : w64) (s : PState) (m :
         src := if m.src = W64 0 then id else m.src
         dst := s.lead
         term := W64 0 }]) := by
-  sorry
+  intro Hty Hrole Hlead
+  iintro #Hm Hcr Hown
+  iapply ownRaftGhost_rd γ id s _ [{ m with
+        src := if m.src = W64 0 then id else m.src
+        dst := s.lead
+        term := W64 0 }] rfl $$ [] Hown
+  · iapply (BigSepL.bigSepL_singleton (Φ := fun _ m => isMessage (GF := GF) γ m)).2
+    iapply isMessage_readIndex_tr γ m _ Hty (by exact Hty) (by rfl)
+    iexact Hm
+  iintro %kl Hlg Hrd
+  iframe Hlg
+  imodintro
+  iapply rdOwn_update γ id s _ [] [] _ (by rfl) (by rfl) (by rfl) (by simp) (by simp) (by rfl)
+    $$ Hrd [] [] [Hcr]
+  · iapply (BigSepL.bigSepL_nil).2; iempintro
+  · iapply (BigSepL.bigSepL_nil).2; iempintro
+  · rw [List.length_nil, rdCount_singleton, if_pos Hty]; iexact Hcr
 
 theorem ownRaftGhost_step_read_pend (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
     (pm : raftpb.Message) :
     m.ty = .readIndex → s.role = .leader →
     ⊢ isMessage (GF := GF) γ m -∗ rdCred γ 1 -∗ ownRaftGhost γ id s ={⊤}=∗
       ownRaftGhost γ id ({ s with rd := { s.rd with pend := s.rd.pend ++ [(pm, m.entries)] } }) := by
-  sorry
+  intro Hty Hrole
+  iintro #Hm Hcr Hown
+  iapply ownRaftGhost_rd γ id s _ [] (by cases s; simp) $$ [] Hown
+  · iapply (BigSepL.bigSepL_nil).2; iempintro
+  iintro %kl Hlg Hrd
+  iframe Hlg
+  imodintro
+  iapply rdOwn_update γ id s _ [] [(pm, m.entries)] [] (by rfl) (by rfl) (by rfl) (by simp)
+    (by rfl) (by simp) $$ Hrd [] [] [Hcr]
+  · iapply (BigSepL.bigSepL_nil).2; iempintro
+  · iapply (BigSepL.bigSepL_singleton (Φ := fun _ (p : raftpb.Message × List raftpb.Entry) =>
+      iprop(∃ e c Lc, ⌜p.2 = [e]⌝ ∗ isPropData (GF := GF) γ e.Data' c ∗ readReq γ c Lc))).2
+    iunfold isMessage at Hm
+    rw [Hty]
+    iexact Hm
+  · rw [show [(pm, m.entries)].length + rdCount ([] : List Msg) = 1 from rfl]
+    iexact Hcr
 
 theorem ownRaftGhost_step_read_arrive (γ : RaftNames) (id : w64) (s : PState) (m : Msg) :
     m.ty = .readIndex → s.role = .leader →
@@ -2469,7 +2538,29 @@ theorem ownRaftGhost_step_read_state (γ : RaftNames) (id : w64) (s : PState) (m
     ⊢ isMessage (GF := GF) γ m -∗ ownRaftGhost γ id s ={⊤}=∗
       ownRaftGhost γ id ({ s with rd := { s.rd with
         states := s.rd.states ++ [⟨m.index, e.Data'⟩] } }) := by
-  sorry
+  intro Hty He
+  iintro #Hm Hown
+  iapply ownRaftGhost_rd γ id s _ [] (by cases s; simp) $$ [] Hown
+  · iapply (BigSepL.bigSepL_nil).2; iempintro
+  iintro %kl Hlg Hrd
+  iframe Hlg
+  imod rdCred_zero_upd (GF := GF) γ with Hz
+  imodintro
+  iapply rdOwn_update γ id s _ [⟨m.index, e.Data'⟩] [] [] (by rfl) (by rfl) (by rfl) (by rfl)
+    (by simp) (by simp) $$ Hrd [] [] [Hz]
+  · iapply (BigSepL.bigSepL_singleton (Φ := fun _ st => readStateOk (GF := GF) γ st)).2
+    iunfold isMessage at Hm
+    rw [Hty]
+    icases Hm with ⟨%e', %c, %He', #Hpd, #Hok⟩
+    rw [He] at He'
+    cases He'
+    unfold readStateOk
+    iexists c
+    iframe Hpd Hok
+  · iapply (BigSepL.bigSepL_nil).2; iempintro
+  · rw [show ([] : List (raftpb.Message × List raftpb.Entry)).length + rdCount ([] : List Msg) = 0
+      from rfl]
+    iexact Hz
 
 theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List Msg)
     (s' : PState) :
