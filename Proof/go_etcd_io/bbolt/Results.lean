@@ -226,6 +226,11 @@ namespace bbolt
 #print axioms Tx.wp_Stats
 #print axioms Tx.wp_Writable
 #print axioms Tx.wp_allocate_w
+#print axioms Tx.wp_rollback_w
+#print axioms sort.wp_Sort_w
+#print axioms sync.Pool.wp_Put
+#print axioms Tx.wp_write_w
+#print axioms Tx.wp_writeMeta
 #print axioms wp_compareKeys
 #print axioms node.wp_childIndex
 #print axioms node.wp_dereference

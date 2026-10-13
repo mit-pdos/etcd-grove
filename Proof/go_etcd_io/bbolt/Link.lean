@@ -171,6 +171,9 @@ public import Proof.go_etcd_io.bbolt.Tx__nonPhysicalRollback
 public import Proof.go_etcd_io.bbolt.Tx__nonPhysicalRollback_w
 public import Proof.go_etcd_io.bbolt.Tx__page
 public import Proof.go_etcd_io.bbolt.Tx__page_w
+public import Proof.go_etcd_io.bbolt.Tx__rollback_w
+public import Proof.go_etcd_io.bbolt.Tx__write
+public import Proof.go_etcd_io.bbolt.Tx__writeMeta
 public import Proof.go_etcd_io.bbolt.atomicAddDuration
 public import Proof.go_etcd_io.bbolt.atomicLoadDuration
 public import Proof.go_etcd_io.bbolt.cloneBytes
@@ -226,7 +229,9 @@ public import Proof.os.File__Truncate
 public import Proof.os.File__WriteAt
 public import Proof.os.OpenFile
 public import Proof.go_etcd_io.bbolt.panicked__Error
+public import Proof.sort.Sort_w
 public import Proof.sync.Pool__Get
+public import Proof.sync.Pool__Put
 public import Proof.syscall.Fdatasync
 public import Proof.syscall.Flock
 public import Proof.golang_org.x.sys.unix.Madvise
@@ -1098,6 +1103,26 @@ theorem Tx.wp_Writable :
 theorem Tx.wp_allocate_w [AllG GF] :
     EtcdGrove.bbolt.Tx.allocate.wspec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Tx.allocate.wp_wproof EtcdGrove.bbolt.DB.wp_Logger EtcdGrove.bbolt.Meta.wp_Txid EtcdGrove.bbolt.DB.wp_allocate EtcdGrove.bbolt.Bucket.wp_dereference EtcdGrove.bbolt.DefaultLogger.wp_Errorf EtcdGrove.bbolt.Page.wp_Id EtcdGrove.bbolt.TxStats.wp_IncPageCount EtcdGrove.bbolt.TxStats.wp_IncPageAlloc
+
+theorem Tx.wp_rollback_w [AllG GF] :
+    EtcdGrove.bbolt.Tx.rollback.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Tx.rollback.wp_wproof EtcdGrove.bbolt.Meta.wp_Txid EtcdGrove.bbolt.DB.wp_hasSyncedFreelist EtcdGrove.bbolt.DB.wp_meta EtcdGrove.bbolt.Meta.wp_Freelist EtcdGrove.bbolt.DB.wp_page EtcdGrove.bbolt.Tx.wp_close_w
+
+theorem sort.wp_Sort_w :
+    EtcdGrove.bbolt.sort.Sort.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.sort.Sort.wp_wproof
+
+theorem sync.Pool.wp_Put :
+    EtcdGrove.bbolt.sync.Pool.Put.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.sync.Pool.Put.wp_proof
+
+theorem Tx.wp_write_w [AllG GF] :
+    EtcdGrove.bbolt.Tx.write.wspec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Tx.write.wp_wproof EtcdGrove.bbolt.DB.wp_Logger EtcdGrove.bbolt.DefaultLogger.wp_Errorf EtcdGrove.bbolt.sort.wp_Sort_w EtcdGrove.bbolt.Page.wp_Overflow EtcdGrove.bbolt.Page.wp_Id EtcdGrove.bbolt.wp_UnsafeByteSlice EtcdGrove.bbolt.os.File.wp_WriteAt EtcdGrove.bbolt.TxStats.wp_IncWrite EtcdGrove.bbolt.wp_fdatasync EtcdGrove.bbolt.sync.Pool.wp_Put
+
+theorem Tx.wp_writeMeta :
+    EtcdGrove.bbolt.Tx.writeMeta.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Tx.writeMeta.wp_proof EtcdGrove.bbolt.DB.wp_Logger EtcdGrove.bbolt.DB.wp_pageInBuffer EtcdGrove.bbolt.Meta.wp_Write EtcdGrove.bbolt.Page.wp_Id EtcdGrove.bbolt.os.File.wp_WriteAt EtcdGrove.bbolt.wp_fdatasync EtcdGrove.bbolt.TxStats.wp_IncWrite EtcdGrove.bbolt.DefaultLogger.wp_Errorf
 
 theorem wp_compareKeys :
     EtcdGrove.bbolt.compareKeys.spec (GF := GF) (hG := hG) :=

@@ -280,3 +280,11 @@ Bucket__SetSequence_s: Bucket__Writable_w InBucket__RootPage Bucket__node_s InBu
 Bucket__NextSequence_s: Bucket__Writable_w InBucket__RootPage Bucket__node_s InBucket__IncSequence InBucket__InSequence
 Tx__CreateBucket_s: Bucket__CreateBucket_s
 Tx__CreateBucketIfNotExists_s: Bucket__CreateBucketIfNotExists_s
+Meta__Write: @
+Page__Overflow: @
+common_UnsafeByteSlice: @
+sync_Pool__Put:
+sort_Sort_w:
+Tx__write: DB__Logger DefaultLogger__Errorf sort_Sort_w Page__Overflow Page__Id common_UnsafeByteSlice os_File__WriteAt TxStats__IncWrite fdatasync sync_Pool__Put
+Tx__writeMeta: DB__Logger DB__pageInBuffer Meta__Write Page__Id os_File__WriteAt fdatasync TxStats__IncWrite DefaultLogger__Errorf
+Tx__rollback_w: Meta__Txid DB__hasSyncedFreelist DB__meta Meta__Freelist DB__page Tx__close_w
