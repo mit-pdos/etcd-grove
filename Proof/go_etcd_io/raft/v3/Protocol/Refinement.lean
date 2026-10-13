@@ -2799,6 +2799,25 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
     ihave #Hm := recv_one $$ Hrecv
     imod ownRaftGhost_step_snap_stale γ id s m Hty Hfid Hterm Hrole $$ Hm Hown with Hown
     imodintro; iexact Hown
+  | takeReads s =>
+    iintro _ Hown
+    iunfold ownRaftGhost at Hown
+    icases Hown with ⟨%γv, %voted, %kl, H⟩
+    iNamed H
+    icases rdOwn_takeReads γ id s $$ Hrd with ⟨Hrd, -⟩
+    imodintro
+    iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm] [Hrd]
+    · ipureintro; exact Hhist
+    · iapply outbox_eq γ s _ (by rfl) $$ Hout
+    · iapply tally_eq γ id s _ rfl rfl $$ Htally
+    · iapply leaderWit_eq γ id s { s with rd := { s.rd with states := [] } } rfl rfl $$ Hlead
+    · iapply ownLogGhost_mono γ id s { s with rd := { s.rd with states := [] } } kl rfl rfl rfl
+        (fun h => ⟨h, rfl, rfl⟩) (fun h => ⟨h, rfl⟩) (fun h => h) rfl (fun h => h) $$ Hlg
+    · ipureintro; exact Hlead_ok
+    · ipureintro; exact Hfollower_votes
+    · ipureintro; exact Hrole_ok
+    · lcm_mono
+    · iexact Hrd
   | sendFree s m Hfree Hfrom =>
     have Hcnt : rdCount [m] = 0 := by
       rw [rdCount_singleton]; rcases Hfree with h | h <;> simp [h]

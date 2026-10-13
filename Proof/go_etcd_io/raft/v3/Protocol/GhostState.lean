@@ -1066,6 +1066,15 @@ theorem rdCount_append (a b : List Msg) : rdCount (a ++ b) = rdCount a + rdCount
 theorem rdCount_singleton (m : Msg) : rdCount [m] = if m.ty = .readIndex then 1 else 0 := by
   unfold rdCount; by_cases h : m.ty = .readIndex <;> simp [h]
 
+/-- A `ReadState` handed out (2026-10-13): its context is a slice proposed holding `c`,
+and its index is at least the log `c` was created knowing (`readOk`). -/
+def readStateOk (γ : RaftNames) (st : ReadState) : IProp GF :=
+  iprop(∃ c, isPropData γ st.RequestCtx' c ∗ readOk γ c st.Index')
+
+instance readStateOk_persistent (γ : RaftNames) (st : ReadState) :
+    Persistent (readStateOk (GF := GF) γ st) := by
+  unfold readStateOk; infer_instance
+
 def rdLead (γ : RaftNames) (s : PState) (rqm : GMap w64 GName) : IProp GF :=
   match s.role with
   | .leader => iprop(∃ γq, ∃ (recs : List RqRec), ⌜rqm !! s.term = some γq⌝ ∗
@@ -1093,7 +1102,7 @@ def rdOwn (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
   iprop(∃ γl, ∃ (rqm : GMap w64 GName), ⌜γ.reRdq !! id = some γl⌝ ∗
     ghostMapAuth γl 1 rqm ∗ ([∗map] t ↦ γq ∈ rqm, t ↪[γl]□ γq) ∗
     ⌜LcmOk rqm s⌝ ∗ rdLead γ s rqm ∗
-    ([∗list] st ∈ s.rd.states, ∃ c, isPropData γ st.RequestCtx' c ∗ readOk γ c st.Index') ∗
+    ([∗list] st ∈ s.rd.states, readStateOk γ st) ∗
     ([∗list] p ∈ s.rd.pend, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ isPropData γ e.Data' c ∗ readReq γ c Lc) ∗
     rdCred γ (s.rd.pend.length + rdCount s.outbox) ∗
     rdCredInv γ)
@@ -1208,6 +1217,29 @@ theorem rdOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
     · iexact Hz
   rw [Hst, Hpd]
   iframe Hst0 Hpd0
+
+/-- The `ReadState`s handed out: each `readStateOk`, and the rest unchanged. -/
+theorem rdOwn_takeReads (γ : RaftNames) (id : w64) (s : PState) :
+    rdOwn (GF := GF) γ id s ⊢
+      rdOwn γ id { s with rd := { s.rd with states := [] } } ∗
+      [∗list] st ∈ s.rd.states, readStateOk γ st := by
+  unfold rdOwn
+  iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv⟩
+  isplitl [Ha Hl Hcr]
+  · iexists γl, rqm
+    isplitr; · ipureintro; exact Hγl
+    isplitl [Ha]; · iexact Ha
+    isplitr; · iexact Hf
+    isplitr; · ipureintro; exact Hok
+    isplitl [Hl]
+    · rw [show rdLead (GF := GF) γ { s with rd := { s.rd with states := [] } } rqm =
+        rdLead γ s rqm from rfl]
+      iexact Hl
+    isplitr; · iapply (BigSepL.bigSepL_nil).2; iempintro
+    isplitr; · iexact Hpd0
+    isplitl [Hcr]; · iexact Hcr
+    iexact Hinv
+  · iexact Hst0
 
 /-- A leader's heartbeat context is empty or a position its registry reaches. -/
 theorem rdOwn_hbCtx (γ : RaftNames) (id : w64) (s : PState) (Hr : s.role = .leader) :

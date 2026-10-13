@@ -1726,6 +1726,11 @@ inductive Step : PState → List Msg → PState → Prop where
         (psendMsgs (padoptLeader s m.src)
           [Msg.mk .appResp id m.src s.term false s.commit (W64 0) (W64 0) (W64 0) []])
 
+  /-- `acceptReady` (2026-10-13): the `ReadState`s are handed out with the `Ready`
+  (`r.readStates = nil`). -/
+  | takeReads (s : PState) :
+      Step s [] ({ s with rd := { s.rd with states := [] } })
+
   /- ### Pre-vote (phase 3, 2026-10-04)
 
   Pre-vote is an implementation detail: the protocol does not model it
