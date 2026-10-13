@@ -45,13 +45,13 @@ theorem RawNode.Ready.wp_proof
   iNamed H
   wp_auto
   wp_apply wp_RawNode_readyWithoutAccept γ rn id rs Hsteps0 Hunp0 $$ [$Hrn]
-    as %rd %ce %es %ms H
+    as %rd %ce %es %ms %sts H
   iNamed H
   imod ownRawNodeReady_handout γ rn id rs rd ce es ms $$ Hrn with ⟨Hrn, Happ⟩
   wp_apply wp_RawNode_acceptReady γ rn id rs rd ce es ms $$ [$Hrn] as %steps H
   iNamed H
-  iapply HΦ $$ %rd %ce %es %ms %steps
-  iframe Hrn Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_ok Happ
+  iapply HΦ $$ %rd %ce %es %ms %sts %steps
+  iframe Hrn Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_ok Happ Hrs Hrs_ok
   ipureintro; exact ⟨Hmsgs_term, Hsnapz⟩
 
 end proof

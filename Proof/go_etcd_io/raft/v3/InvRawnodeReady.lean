@@ -8,7 +8,7 @@
 with the outbox `r.msgs`' slice given up to `rd.Messages` (`readyWithoutAccept` builds
 `rd.Messages` in place from `r.msgs`, and `acceptReady` only sets the field to `nil`), and
 what `acceptReady` reads of `rd` recorded: the soft state pointer read-only (or `nil`), no
-snapshot nor read states, the committed entries `ce` (read-only, with the slice's capacity,
+snapshot, the read states (2026-10-13: below), the committed entries `ce` (read-only, with the slice's capacity,
 which `acceptReady` hands to the queued `MsgStorageApplyResp`) and the entries `es` handed
 out for the storage. The node itself is as `readyWithoutAccept` found it (it only reads);
 `acceptReady` takes the predicate back to `ownRawNode` at the post-`Ready` state.
@@ -27,6 +27,18 @@ can be recovered from the new ones (Perennial's `wp_slice_append_undo`). So
 `ownRaftPhysReady` keeps a wand `Hundo` from `rd.Messages`' contents and capacity back to
 `r.msgs`' (indexed by the slice and the list it was built for, `ms`, a parameter of
 `ownRawNodeReady`), and the queues' term bound (`OutTermOk`) for the wand `Hclose`.
+
+**Read states (2026-10-13).** `readyWithoutAccept` sets `rd.ReadStates = r.readStates`
+when it is not empty, and `acceptReady` sets `r.readStates = nil` when `rd.ReadStates` is
+not empty. The slice is read-only in the struct (`ownRaftMisc`), so `readyWithoutAccept`
+hands out `rd.ReadStates ↦*□ sts` and each `ReadState`'s `readStateOk`, persistent facts
+it copies out of the ghost state (`ownRaftGhost_readStates`) without a model step: nothing
+has to be given back when the `Ready` is abandoned, and a stale `Ready` that `node.go`
+sends later still carries them. `acceptReady` takes the model step `Step.takeReads`
+(the protocol state's `ReadState`s become `[]`, as the struct's do); what it needs of `rd`
+is that an empty `rd.ReadStates` means the node has no `ReadState` (`Hrdrs`): true of a
+fresh `Ready` (the slice is the node's when non-empty) and of an idle node (`HasReady`
+is `false` only when `r.readStates` is empty, `ownRawNodeIdle`).
 -/
 module
 
@@ -97,7 +109,8 @@ def ownRaftPhysReady (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (msl : G
     "Hf_Term" ∷ r.[raft, go!"Term"] ↦ s.term ∗
     "Hf_Vote" ∷ r.[raft, go!"Vote"] ↦ s.vote ∗
     "Hf_readStates" ∷ r.[raft, go!"readStates"] ↦ rsl ∗
-    "%Hrs" ∷ ⌜rsl.len = W64 0⌝ ∗
+    "#HreadStates" ∷ rsl ↦*□ s.rd.states ∗
+    "HreadStates_cap" ∷ ownSliceCap ReadState rsl (DFrac.own 1) ∗
     "Hf_raftLog" ∷ r.[raft, go!"raftLog"] ↦ s.log ∗
     "Hf_state" ∷ r.[raft, go!"state"] ↦ stateW64 s.role ∗
     "Hf_lead" ∷ r.[raft, go!"lead"] ↦ s.lead ∗
@@ -115,10 +128,12 @@ def ownRaftPhysReady (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (msl : G
     -- the log, after the storage's hand-out if `h` (2026-10-10, `ownRaftLog_handout`)
     "Hlog" ∷ ownRaftLog s.log (if h then logHanded s.logst else s.logst) ∗
     "Hclose" ∷ (∀ (sl1' sl2' : GoSlice) (ms1' ms2' : List raftpb.Message) (o : List Msg)
-                  (ls' : LogState) (g : NGhost),
+                  (ls' : LogState) (g : NGhost) (rs' : GoSlice) (rd' : RdState),
         r.[raft, go!"Term"] ↦ s.term -∗
         r.[raft, go!"Vote"] ↦ s.vote -∗
-        r.[raft, go!"readStates"] ↦ rsl -∗
+        r.[raft, go!"readStates"] ↦ rs' -∗
+        rs' ↦*□ rd'.states -∗ ownSliceCap ReadState rs' (DFrac.own 1) -∗
+        ⌜rd'.ro = s.rd.ro ∧ rd'.pend = s.rd.pend⌝ -∗
         r.[raft, go!"raftLog"] ↦ s.log -∗
         r.[raft, go!"state"] ↦ stateW64 s.role -∗
         r.[raft, go!"lead"] ↦ s.lead -∗
@@ -132,13 +147,14 @@ def ownRaftPhysReady (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (msl : G
         ⌜g.outlb ≤ ms1'.length + ms2'.length⌝ -∗
         ⌜g.unst = true → nextUnstable ls' ≠ [] ∨ ls'.snap ≠ none⌝ -∗
         ownRaftLog s.log ls' -∗
-        ownRaftPhys cfg r id { s with outbox := o, logst := ls', gh := g }))
+        ownRaftPhys cfg r id { s with outbox := o, logst := ls', gh := g, rd := rd' }))
 
 /-- The node between `readyWithoutAccept` and `acceptReady` (see the file header): the
 conjuncts of `ownRawNode γ rn id rs` at a state `s` with an empty queue and nothing
 unpersisted (`Ready`'s premises), the struct open without the outbox's contents
 (`ownRaftPhysReady`), and what `acceptReady` reads of `rd`: `rd.SoftState` `nil` or
-read-only, no snapshot nor read states, the committed entries `ce` extending
+read-only, no snapshot, the read states (if none, the node has none: `Hrdrs`), the
+committed entries `ce` extending
 `rs.delivered` (`isCommitted`) and the next ones after `applying` (`CeOk`), with their
 slice's capacity, and the entries `es` handed out (`nextUnstable`). `ms` are the messages
 handed out in `rd.Messages`, which `ownRawNodeReady_abandon` takes back (2026-10-10). -/
@@ -167,7 +183,8 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   "%Hrs_clb" ∷ ⌜uint.Z rs.clb ≤ uint.Z s.logst.committed⌝ ∗
   -- the `Ready`, as `acceptReady` reads it
   "#Hrdsoft" ∷ (⌜rd.SoftState' = null⌝ ∨ ∃ v : SoftState, rd.SoftState' ↦□ v) ∗
-  "%Hrdz" ∷ ⌜rd.Snapshot' = zero_val raftpb.Snapshot ∧ rd.ReadStates' = slice.nil⌝ ∗
+  "%Hrdz" ∷ ⌜rd.Snapshot' = zero_val raftpb.Snapshot⌝ ∗
+  "#Hrdrs" ∷ (∃ sts : List ReadState, rd.ReadStates' ↦*□ sts ∗ ⌜sts = [] → s.rd.states = []⌝) ∗
   "#Hce" ∷ rd.CommittedEntries' ↦*□ ce ∗
   "Hce_cap" ∷ ownSliceCap raftpb.Entry rd.CommittedEntries' (DFrac.own 1) ∗
   "%Hceok" ∷ ⌜CeOk s.logst ce⌝ ∗
@@ -205,8 +222,9 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   simp only [Bool.false_eq_true, ↓reduceIte]
   let g : NGhost := { outlb := ms1.length + ms2.length,
                       unst := decide (nextUnstable s.logst ≠ []) }
-  ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %g Hf_Term Hf_Vote
-    Hf_readStates Hf_raftLog Hf_state Hf_lead Hf_msgs Hm1 Hc1 Hf_msgsAA HmsgsAA HmsgsAA_cap
+  ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %g %rsl %s.rd Hf_Term Hf_Vote
+    Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl)
+    Hf_raftLog Hf_state Hf_lead Hf_msgs Hm1 Hc1 Hf_msgsAA HmsgsAA HmsgsAA_cap
     Houtbox %HmsgsAA_ok %Hout_term %(Nat.le_refl _)
     %(fun h => .inl (of_decide_eq_true h)) Hlog
   ihave #Hdeliv : isCommitted γ rs.delivered $$ []
@@ -263,15 +281,15 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
   · iunfold ownRawNodeReady
     iexists s, ps, rnv, sv
     simp only [named]
-    iframe Hrn Hghost Hsoft Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft Hce Hce_cap
+    iframe Hrn Hghost Hsoft Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft Hrdrs Hce Hce_cap
     isplitl
     · iunfold ownRaftPhysReady
       iexists rsl, sl1, sl2, ms1, ms2
       simp only [named, ↓reduceIte]
-      iframe Hf_id Hf_Term Hf_Vote Hf_readStates Hf_raftLog Hf_state Hf_lead Hf_msgs
-        Hf_msgsAA HmsgsAA HmsgsAA_cap Houtbox Hundo Hlog Hclose
+      iframe Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog
+        Hf_state Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Houtbox Hundo Hlog Hclose
       ipureintro
-      exact ⟨Hrs, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hmslen⟩
+      exact ⟨HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hmslen⟩
     ipureintro
     exact ⟨Hrel, Hin, Hasync, Hdlen, Hunp, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
       Hrs_clb, Hrdz, Hceok, Hes⟩
@@ -281,7 +299,7 @@ theorem ownRawNodeReady_handout (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
 
 `HasReady` returning `false` (`RawNode.HasReady.spec`) leaves the node as `ownRawNodeIdle`:
 `ownRawNode` at a state with no queued message, no unstable entry still to be handed out,
-and so the lower bounds `outlb` and `unst` at their least (`ownRawNodeIdle_facts`). Its use:
+no `ReadState` (2026-10-13), and so the lower bounds `outlb` and `unst` at their least (`ownRawNodeIdle_facts`). Its use:
 `node.go`'s `run` keeps a `Ready` it computed earlier armed when `HasReady` is `false`,
 and may send it; by the lower bounds that `Ready` held nothing but committed entries still
 the next ones, and possibly a stale `SoftState`/`HardState` (which only reset what
@@ -315,8 +333,9 @@ def ownRawNodeIdle (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp
   "%Hrs_out" ∷ ⌜rs.outlb = s.gh.outlb⌝ ∗
   "%Hrs_unst" ∷ ⌜rs.unst = s.gh.unst⌝ ∗
   "%Hrs_clb" ∷ ⌜uint.Z rs.clb ≤ uint.Z s.logst.committed⌝ ∗
-  -- nothing new: no queued message, no unstable entry still to be handed out
-  "%Hidle" ∷ ⌜s.gh.outlb = 0 ∧ nextUnstable s.logst = []⌝)
+  -- nothing new: no queued message, no unstable entry still to be handed out, no
+  -- `ReadState` (2026-10-13)
+  "%Hidle" ∷ ⌜s.gh.outlb = 0 ∧ nextUnstable s.logst = [] ∧ s.rd.states = []⌝)
 
 theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (s : NState) (ps : PState) (rnv : RawNode) (sv : SoftState) (steps : List raftpb.Message)
@@ -327,7 +346,7 @@ theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
     (Hpvoff : s.prevote = false) (Hrs_out : rs.outlb = s.gh.outlb)
     (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
-    (Hidle : s.gh.outlb = 0 ∧ nextUnstable s.logst = []) :
+    (Hidle : s.gh.outlb = 0 ∧ nextUnstable s.logst = [] ∧ s.rd.states = []) :
     ⊢ rawNodeOwn rn rnv -∗ ownRaftPhys γ.reCfg rnv.raft' id s -∗ ownRaftGhost (GF := GF) γ id ps -∗
       rnv.prevSoftSt' ↦□ sv -∗ rnv.stepsOnAdvance' ↦* steps -∗
       ownSliceCap raftpb.Message rnv.stepsOnAdvance' (DFrac.own 1) -∗
@@ -368,7 +387,7 @@ theorem ownRawNodeIdle_facts (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     cases Hu : s.gh.unst
     · rfl
     · rcases Hgh Hu with H | H
-      · exact absurd Hidle.2 H
+      · exact absurd Hidle.2.1 H
       · exact absurd Hsnap H
   iapply ownRawNodeIdle_intro γ rn id rs s ps rnv sv steps Hrel Hin Hasync Hdlen Hunp Hsnap
     Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hidle
@@ -379,19 +398,20 @@ header): an idle node (no `Ready` outstanding: `rs.steps = []`, `rs.unpersisted 
 `ownRawNodeReady` for a `Ready` `rd` that hands out no messages and no entries, whose
 committed entries `ce` extend the committed log handed out and are the next ones up to
 the commit index's lower bound (`ownRawNodeReady_abandon`'s third fact), and whose soft
-state, snapshot and read states are as `readyWithoutAccept` leaves them. -/
+state and snapshot are as `readyWithoutAccept` leaves them; its read states `sts` may be
+any (2026-10-13): the idle node has none, which is all `acceptReady` needs. -/
 theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
-    (ce : List raftpb.Entry)
+    (ce : List raftpb.Entry) (sts : List ReadState)
     (Hsteps0 : rs.steps = []) (Hunp0 : rs.unpersisted = [])
-    (Hrdz : rd.Snapshot' = zero_val raftpb.Snapshot ∧ rd.ReadStates' = slice.nil)
+    (Hrdz : rd.Snapshot' = zero_val raftpb.Snapshot)
     (Hce_ok : ∀ e, ce.getLast? = some e → uint.Z e.Index' ≤ uint.Z rs.clb ∧
       uint.Z e.Index' = (rs.delivered.length : Int) + (ce.length : Int)) :
     ⊢ (⌜rd.SoftState' = null⌝ ∨ ∃ v : SoftState, rd.SoftState' ↦□ v) -∗
       rd.CommittedEntries' ↦*□ ce -∗
       ownSliceCap raftpb.Entry rd.CommittedEntries' (DFrac.own 1) -∗
-      isCommitted γ (rs.delivered ++ ce) -∗
+      isCommitted γ (rs.delivered ++ ce) -∗ rd.ReadStates' ↦*□ sts -∗
       ownRawNodeIdle (GF := GF) γ rn id rs -∗ ownRawNodeReady γ rn id rs rd ce [] [] false := by
-  iintro #Hrdsoft #Hce Hce_cap #Hcommitted H
+  iintro #Hrdsoft #Hce Hce_cap #Hcommitted #Hrsts H
   iNamed H
   ihave %Hlen := BigSepL2.bigSepL2_length $$ Hpend
   have Hsteps_nil : steps = [] := by
@@ -400,18 +420,21 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
   icases ownRaftPhys_view γ.reCfg rnv.raft' id s $$ Hphys with
     ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
   iNamed Hv
+  ihave #Hrdrs : iprop(∃ sts : List ReadState, rd.ReadStates' ↦*□ sts ∗
+      ⌜sts = [] → s.rd.states = []⌝) $$ []
+  · iexists sts
+    iframe Hrsts
+    ipureintro; intro _; exact Hidle.2.2
   iunfold ownRawNodeReady
   iexists s, ps, rnv, sv
   simp only [named]
-  iframe Hrn Hghost Hsoft Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft Hce Hce_cap
+  iframe Hrn Hghost Hsoft Hsteps Hsteps_cap Hcommitted Hstrecs Hrdsoft Hrdrs Hce Hce_cap
   isplitl
   · iunfold ownRaftPhysReady
     iexists rss, sl1, sl2, ms1, ms2
     simp only [named, Bool.false_eq_true, ↓reduceIte]
-    iframe Hf_id Hf_Term Hf_Vote Hf_readStates Hf_raftLog Hf_state Hf_lead Hf_msgs Hf_msgsAA
-      HmsgsAA HmsgsAA_cap Houtbox Hlog
-    isplitr
-    · ipureintro; exact Hrs
+    iframe Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog Hf_state
+      Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Houtbox Hlog
     isplitr
     · ipureintro; exact HmsgsAA_ok
     isplitr
@@ -425,18 +448,33 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
     isplitl [Hmsgs Hmsgs_cap]
     · iintro - -
       iframe Hmsgs Hmsgs_cap
-    iintro %sl1' %sl2' %ms1' %ms2' %o %ls' %g HfTerm HfVote Hfrs Hflog Hfst Hfld Hfm Hm Hmc Hfma
-      Hma Hmac #Hob %H1 %H2 %H3 %H4 Hl
-    iapply Hclose $$ %sl1' %sl2' %ms1' %ms2' %o %ls' %g HfTerm HfVote Hfrs Hflog Hfst Hfld Hfm
-      Hm Hmc Hfma Hma Hmac Hob %H1 %H2 %H3 %H4 Hl
+    iintro %sl1' %sl2' %ms1' %ms2' %o %ls' %g %rs' %rd' HfTerm HfVote Hfrs Hrs' Hrsc %Hrd'
+      Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac #Hob %H1 %H2 %H3 %H4 Hl
+    iapply Hclose $$ %sl1' %sl2' %ms1' %ms2' %o %ls' %g %rs' %rd' HfTerm HfVote Hfrs Hrs' Hrsc
+      %Hrd' Hflog Hfst Hfld Hfm Hm Hmc Hfma Hma Hmac Hob %H1 %H2 %H3 %H4 Hl
   ipureintro
   refine ⟨Hrel, Hin, Hasync, Hdlen, Hunp0 ▸ Hunp.symm, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst, Hrs_clb, Hrdz,
-    fun e He => ?_, Hidle.2.symm⟩
+    fun e He => ?_, Hidle.2.1.symm⟩
   obtain ⟨H1, H2⟩ := Hce_ok e He
   have Hne : ce ≠ [] := by intro h; subst h; simp at He
   have : 0 < ce.length := List.length_pos_iff.2 Hne
   have := uint_Z_nonneg s.logst.applying
   refine ⟨by omega, by omega, by omega⟩
+
+/-- The `ReadState`s of the protocol state, each `readStateOk` (2026-10-13): persistent,
+copied out of `rdOwn`. -/
+theorem ownRaftGhost_readStates (γ : RaftNames) (id : w64) (ps : PState) :
+    ⊢ ownRaftGhost (GF := GF) γ id ps -∗ [∗list] st ∈ ps.rd.states, readStateOk γ st := by
+  unfold ownRaftGhost
+  iintro ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  iunfold rdOwn at Hrd
+  icases Hrd with ⟨%γl, %rqm, -, -, -, -, -, #Hst0, -⟩
+  iexact Hst0
+
+/-- The physical `ReadState`s are the protocol state's. -/
+theorem toPState_rd_states (s : NState) : (toPState s).rd.states = s.rd.states := by
+  by_cases h : s.role = .leader <;> simp [toPState, h, rdNL]
 
 end rawnodeReady
 

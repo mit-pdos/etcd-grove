@@ -52,10 +52,11 @@ variable [FfiSyntax]
 /-- The node after `Ready`: the outbox handed to the application, the unstable entries
 in progress and the handed-out ones the application's to persist (`logAcceptUnstable`),
 `applying` at the last committed entry handed out (`logAcceptApplying`; `sz` is
-`entsSize` of them). -/
+`entsSize` of them), and (2026-10-13) the `ReadState`s handed out (`r.readStates = nil`). -/
 def readyNstate (s : NState) (ce : List raftpb.Entry) (sz : w64) : NState :=
   { s with outbox := [],
-           logst := logAcceptApplying (logAcceptUnstable s.logst) ce sz, gh := {} }
+           logst := logAcceptApplying (logAcceptUnstable s.logst) ce sz, gh := {},
+           rd := { s.rd with states := [] } }
 
 /-- The local messages `acceptReady` queues for `Advance`: the self-addressed responses
 from `msgsAfterAppend` (`selfs`, each `selfPending`), an acknowledgement of the log up to
@@ -68,11 +69,13 @@ def readySteps (s : NState) (selfs : List Pending) (ce : List raftpb.Entry) :
    else [Pending.appendAck s.term (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))]) ++
   (if ce = [] then [] else [Pending.applyAck ce])
 
-/-- `Ready` changes nothing the protocol sees but the outbox. -/
+/-- `Ready` changes nothing the protocol sees but the outbox and (2026-10-13) the
+`ReadState`s. -/
 theorem toPState_ready (s : NState) (ce : List raftpb.Entry) (sz : w64) :
-    toPState (readyNstate s ce sz) = { toPState s with outbox := [] } := by
-  unfold readyNstate logAcceptApplying logAcceptUnstable
-  cases ce.getLast? <;> rfl
+    toPState (readyNstate s ce sz) =
+      { toPState s with outbox := [], rd := { (toPState s).rd with states := [] } } := by
+  unfold readyNstate logAcceptApplying logAcceptUnstable toPState
+  by_cases h : s.role = .leader <;> cases ce.getLast? <;> simp [h, rdNL]
 
 omit [FfiSyntax] in
 private theorem prefix_getElem? {α : Type _} {l1 l2 : List α} {i : Nat} {x : α}
@@ -167,7 +170,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem nstateRel_ready (s : NState) (ps : PState) (ce : List raftpb.Entry) (sz : w64) :
-    NStateRel s ps → NStateRel (readyNstate s ce sz) { ps with outbox := [] } := by
+    NStateRel s ps → NStateRel (readyNstate s ce sz)
+      { ps with outbox := [], rd := { ps.rd with states := [] } } := by
   intro ⟨Hps, Hwf⟩
   subst Hps
   exact ⟨toPState_ready s ce sz, Hwf⟩
@@ -365,6 +369,8 @@ theorem RawNode.acceptReady.wp_proof
   icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hwf3, Hlog⟩
   icases ownRaftLog_wf _ _ $$ Hlog with ⟨%Hidx, Hlog⟩
   simp only [logHanded] at Hwf1 Hwf2 Hwf3 Hidx
+  icases Hrdrs with ⟨%sts, #Hrdsts, %Hsts⟩
+  ihave %Hstl := ownSlice_len _ _ _ $$ Hrdsts
   wp_auto
   -- `if rd.SoftState != nil { rn.prevSoftSt = rd.SoftState }`: either way `prevSoftSt`
   -- points to a read-only `SoftState`
@@ -387,7 +393,57 @@ theorem RawNode.acceptReady.wp_proof
   wp_join iprop(rn_ptr ↦ rn ∗ rd_ptr ↦ rd ∗
       ∃ ph, rawNodeOwn rn { rnv with prevSoftSt' := psp, prevHardSt' := ph })
     with [Hrn rn rd] as ⟨rn, rd, %ph, Hrn⟩
-  rw [Hrdz.2, Hasync]
+  -- `if len(rd.ReadStates) != 0 { rn.raft.readStates = nil }`: either way the node has no
+  -- `ReadState` left
+  wp_join iprop(rn_ptr ↦ rn ∗ rd_ptr ↦ rd ∗
+      rawNodeOwn rn { rnv with prevSoftSt' := psp, prevHardSt' := ph } ∗
+      ∃ rs', rnv.raft'.[raft, go!"readStates"] ↦ rs' ∗ rs' ↦*□ ([] : List ReadState) ∗
+        ownSliceCap ReadState rs' (DFrac.own 1))
+    with [rn rd Hrn Hf_readStates HreadStates_cap]
+    as ⟨rn, rd, Hrn, %rs', Hf_readStates, #HreadStates', HreadStates_cap'⟩
+  · first
+      | (iframe rn rd Hrn
+         iexists slice.nil
+         iframe Hf_readStates
+         isplitr
+         · iapply ownSlice_nil
+         · iapply ownSliceCap_nil
+         done)
+      | (have He : s.rd.states = [] := by
+           apply Hsts
+           apply List.eq_nil_of_length_eq_zero
+           rw [Hstl.1]
+           have Hz : rd.ReadStates'.len = W64 0 := by
+             first | exact Hif | (apply Classical.byContradiction; intro h; exact Hif h)
+           rw [Hz]; rfl
+         iframe rn rd Hrn
+         iexists rss
+         iframe Hf_readStates HreadStates_cap
+         rw [← He]
+         iexact HreadStates
+         done)
+  · first
+      | (iframe rn rd Hrn
+         iexists slice.nil
+         iframe Hf_readStates
+         isplitr
+         · iapply ownSlice_nil
+         · iapply ownSliceCap_nil
+         done)
+      | (have He : s.rd.states = [] := by
+           apply Hsts
+           apply List.eq_nil_of_length_eq_zero
+           rw [Hstl.1]
+           have Hz : rd.ReadStates'.len = W64 0 := by
+             first | exact Hif | (apply Classical.byContradiction; intro h; exact Hif h)
+           rw [Hz]; rfl
+         iframe rn rd Hrn
+         iexists rss
+         iframe Hf_readStates HreadStates_cap
+         rw [← He]
+         iexact HreadStates
+         done)
+  rw [Hasync]
   ihave %Hs0 := ownSlice_len _ _ _ $$ Hsteps
   have Hs0' : rnv.stepsOnAdvance'.len = W64 0 := by
     simp only [List.length_nil] at Hs0
@@ -448,7 +504,7 @@ theorem RawNode.acceptReady.wp_proof
   rw [List.take_of_length_le (l := ms2) (i := sint.nat n) (by word)]
   -- `needStorageAppendRespMsg(r, rd)`: the snapshot is empty
   wp_apply wp_needStorageAppendRespMsg_inline wp_raftLog_hasNextOrInProgressUnstableEnts
-    wp_IsEmptySnap rnv.raft' s.log (logHanded s.logst) _ Hrdz.1 $$ [$Hf_raftLog $Hlog] as ⟨Hf_raftLog, Hlog⟩
+    wp_IsEmptySnap rnv.raft' s.log (logHanded s.logst) _ Hrdz $$ [$Hf_raftLog $Hlog] as ⟨Hf_raftLog, Hlog⟩
   wp_join iprop(rn_ptr ↦ rn ∗ rd_ptr ↦ rd ∗
       ownRaftLog s.log (logHanded s.logst) ∗ rnv.raft'.[raft, go!"raftLog"] ↦ s.log ∗
       rnv.raft'.[raft, go!"id"] ↦□ id ∗ rnv.raft'.[raft, go!"Term"] ↦ s.term ∗
@@ -466,7 +522,7 @@ theorem RawNode.acceptReady.wp_proof
     iframe Hrn Hsteps Hsteps_cap
   · -- `newStorageAppendRespMsg(r, rd)`
     wp_apply wp_newStorageAppendRespMsg_inline wp_raftLog_hasNextOrInProgressUnstableEnts
-      wp_IsEmptySnap wp_raftLog_lastEntryID rnv.raft' id s.term s.log (logHanded s.logst) _ Hif Hrdz.1
+      wp_IsEmptySnap wp_raftLog_lastEntryID rnv.raft' id s.term s.log (logHanded s.logst) _ Hif Hrdz
       $$ [$Hf_id $Hf_Term $Hf_raftLog $Hlog] as ⟨Hf_id, Hf_Term, Hf_raftLog, Hlog⟩
     wp_apply wp_slice_literal
     try (isplitr; (ipureintro; rfl))
@@ -575,12 +631,20 @@ theorem RawNode.acceptReady.wp_proof
   have Hdrain : Step γ.reCfg id ps [] { ps with outbox := [] } :=
     Step.drain ps [] List.nil_subperm
   imod ownRaftGhost_step_0 _ _ _ _ Hdrain $$ Hghost with Hghost
+  -- and `Step.takeReads` (2026-10-13): the `ReadState`s were handed out, with their
+  -- facts, by `readyWithoutAccept`
+  have Htake : Step γ.reCfg id { ps with outbox := [] } []
+      { ps with outbox := [], rd := { ps.rd with states := [] } } :=
+    Step.takeReads _
+  imod ownRaftGhost_step_0 _ _ _ _ Htake $$ Hghost with Hghost
   wp_apply wp_traceReady
   -- the raft struct, closed with empty queues
   ihave Hphys := Hclose $$ %slice.nil %slice.nil %([] : List raftpb.Message)
     %([] : List raftpb.Message) %([] : List Msg)
     %(logAcceptApplying (logAcceptUnstable s.logst) ce sz) %({} : NGhost)
-    Hf_Term Hf_Vote Hf_readStates Hf_raftLog Hf_state Hf_lead Hf_msgs [] [] Hf_msgsAA [] []
+    %rs' %({ s.rd with states := [] } : RdState)
+    Hf_Term Hf_Vote Hf_readStates HreadStates' HreadStates_cap' %(And.intro rfl rfl)
+    Hf_raftLog Hf_state Hf_lead Hf_msgs [] [] Hf_msgsAA [] []
     [] [] [] [] [] Hlog
   · iapply ownSlice_nil
   · iapply ownSliceCap_nil
@@ -664,7 +728,8 @@ theorem RawNode.acceptReady.wp_proof
     { rs with delivered := rs.delivered ++ ce, unpersisted := nextUnstable s.logst,
               steps := readySteps s ((selfmsgs id ms2).map selfPending) ce,
               outlb := 0, unst := false }
-    (readyNstate s ce sz) { toPState s with outbox := [] }
+    (readyNstate s ce sz)
+    { toPState s with outbox := [], rd := { (toPState s).rd with states := [] } }
     { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl4 }
     v _
     (nstateRel_ready s _ ce sz ⟨rfl, Hwfs⟩) Hin Hasync Hdlen'

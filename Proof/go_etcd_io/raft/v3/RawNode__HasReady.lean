@@ -38,8 +38,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 set_option hygiene false in
 /-- Rocq's local `close_view`: close the raft struct unchanged (`Hphys`). -/
 local macro "close_view" : tactic => `(tactic| (
-  ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %s.gh Hf_Term Hf_Vote
-    Hf_readStates Hf_raftLog Hf_state Hf_lead Hf_msgs Hmsgs Hmsgs_cap Hf_msgsAA HmsgsAA
+  ihave Hphys := Hclose $$ %sl1 %sl2 %ms1 %ms2 %s.outbox %s.logst %s.gh %rss %s.rd Hf_Term Hf_Vote
+    Hf_readStates HreadStates HreadStates_cap %(And.intro rfl rfl) Hf_raftLog Hf_state Hf_lead Hf_msgs Hmsgs Hmsgs_cap Hf_msgsAA HmsgsAA
     HmsgsAA_cap Houtbox %HmsgsAA_ok %Hout_term %Hgh_out %Hgh_unst Hlog))
 
 set_option hygiene false in
@@ -55,8 +55,8 @@ local macro "finish" : tactic => `(tactic| (
     $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs))
 
 set_option hygiene false in
-/-- The one path that returns `false`: no queue is non-empty and no unstable entry is
-still to be handed out, so the node is idle. -/
+/-- The one path that returns `false`: no queue is non-empty, no unstable entry is
+still to be handed out and (2026-10-13) no `ReadState` is queued, so the node is idle. -/
 local macro "finish_false" : tactic => `(tactic| (
   ihave %Hl1 := ownSlice_len _ _ _ $$ Hmsgs
   ihave %Hl2 := ownSlice_len _ _ _ $$ HmsgsAA
@@ -65,13 +65,21 @@ local macro "finish_false" : tactic => `(tactic| (
     · exact h
     · exact absurd (Hue.trans (decide_eq_true h)) (by decide)
   have Hout0 : s.gh.outlb = 0 := by word
+  have Hrd0 : s.rd.states = [] := by
+    apply List.eq_nil_of_length_eq_zero
+    rw [Hrs.1]
+    have Hz : rss.len = W64 0 := by
+      first
+        | exact Hif
+        | (apply Classical.byContradiction; intro h; exact Hif h)
+    rw [Hz]; rfl
   close_view
   iapply HΦ
   iright
   isplitr
   · ipureintro; rfl
   iapply ownRawNodeIdle_intro γ rn id rs s ps rnv sv steps Hrel Hin Hasync Hdlen Hunp Hsnap
-    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb ⟨Hout0, Hnu⟩
+    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb ⟨Hout0, Hnu, Hrd0⟩
     $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs))
 
 set_option hygiene false in
@@ -98,9 +106,10 @@ local macro "rest" : tactic => `(tactic| (
       · iframe Hlog
       cases bce
       · wp_auto
-        rw [Hrs]
-        wp_auto
-        finish_false
+        -- `len(r.readStates) != 0` (2026-10-13: no longer `0` in scope)
+        wp_if_destruct
+        · finish_false
+        · finish
       · wp_auto
         finish
     · wp_auto

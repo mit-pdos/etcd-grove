@@ -100,7 +100,7 @@ theorem node.run.wp_proof
       icases Hb with (⟨%Hb, Hrn⟩ | ⟨%Hb, Hrn⟩) <;> subst Hb
       · wp_auto
         wp_apply wp_RawNode_readyWithoutAccept γ.raft nv.rn' id rs Hsteps Hunp $$ [$Hrn]
-          as %rd' %ce %es %ms H
+          as %rd' %ce %es %ms %sts H
         iNamed H
         wp_join_done
         iexists nv.readyc', rd'
@@ -120,6 +120,9 @@ theorem node.run.wp_proof
         iframe Hrn
         unfold freshOk
         iframe Hce Hcommitted Hents Hmsgs Hmsgs_cap Hmsgs_ok
+        isplitr
+        · iexists sts
+          iframe Hrs Hrs_ok
         ipureintro; exact ⟨Hmsgs_term, Hsnapz⟩
       · try wp_auto
         wp_join_done
@@ -421,17 +424,21 @@ theorem node.run.wp_proof
         ownRawNodeReady γ.raft nv.rn' id rs rdv' ce es ms false ∗
         rdv'.CommittedEntries' ↦*□ ce ∗ isCommitted γ.raft (rs.delivered ++ ce) ∗
         rdv'.Entries' ↦*□ es ∗ rdv'.Messages' ↦* ms ∗ ([∗list] m ∈ ms, isRaftMsg γ.raft m) ∗
+        (∃ sts : List ReadState, rdv'.ReadStates' ↦*□ sts ∗
+          [∗list] st ∈ sts, readStateOk γ.raft st) ∗
         ⌜(∀ m ∈ ms, uint.Z m.Term' ≤ uint.Z rs.term) ∧
-          rdv'.Snapshot' = zero_val raftpb.Snapshot ∧ rdv'.ReadStates' = slice.nil⌝) $$ [Hst]
+          rdv'.Snapshot' = zero_val raftpb.Snapshot⌝) $$ [Hst]
     · icases Hst with (⟨%ce, %es, %ms, Hrn, Hf⟩ | ⟨Hrn, Hstale⟩)
       · iunfold freshOk at Hf
-        icases Hf with ⟨#Hce, #Hcommitted, #Hents, Hmsgs, -, #Hmsgs_ok, %Hfacts⟩
+        icases Hf with ⟨#Hce, #Hcommitted, #Hents, Hmsgs, -, #Hmsgs_ok, #Hrsts, %Hfacts⟩
         iexists ce, es, ms
-        iframe Hrn Hce Hcommitted Hents Hmsgs Hmsgs_ok
+        iframe Hrn Hce Hcommitted Hents Hmsgs Hmsgs_ok Hrsts
         ipureintro; exact Hfacts
       · icases ownRawNodeIdle_facts γ.raft nv.rn' id rs $$ Hrn with ⟨%Hidf, Hrn⟩
         iunfold staleOk at Hstale
-        icases Hstale with ⟨%ce, %es, %k, #Hrdsoft, #Hce, Hce_cap, #Hcommitted, #Hents, %Hsf⟩
+        icases Hstale with
+          ⟨%ce, %es, %k, #Hrdsoft, #Hce, Hce_cap, #Hcommitted, #Hents, #Hrsts, %Hsf⟩
+        icases Hrsts with ⟨%sts, #Hrs, #Hrs_ok⟩
         obtain ⟨Hrdz, Hes, Hshape, Hk, Hce_ok⟩ := Hsf
         have Hes0 : es = [] := by
           by_cases h : es = []
@@ -441,8 +448,8 @@ theorem node.run.wp_proof
             exact absurd this (by simp)
         have Hk0 : k = 0 := by have := Hidf.1; omega
         subst Hes0 Hk0
-        ihave Hrn := ownRawNodeIdle_ready γ.raft nv.rn' id rs rdv' ce Hsteps Hunp Hrdz Hce_ok
-          $$ Hrdsoft Hce Hce_cap Hcommitted Hrn
+        ihave Hrn := ownRawNodeIdle_ready γ.raft nv.rn' id rs rdv' ce sts Hsteps Hunp Hrdz
+          Hce_ok $$ Hrdsoft Hce Hce_cap Hcommitted Hrs Hrn
         iexists ce, [], []
         iframe Hrn Hce Hcommitted Hents
         isplitl []
@@ -450,8 +457,12 @@ theorem node.run.wp_proof
         isplitl []
         · iapply BigSepL.bigSepL_nil.2
           iempintro
+        isplitr
+        · iexists sts
+          iframe Hrs Hrs_ok
         ipureintro; exact ⟨by simp, Hrdz⟩
-    icases Hg with ⟨%ce, %es, %ms, Hrn, #Hce, #Hcommitted, #Hents, Hmsgs, #Hmsgs_ok, %Hfacts⟩
+    icases Hg with
+      ⟨%ce, %es, %ms, Hrn, #Hce, #Hcommitted, #Hents, Hmsgs, #Hmsgs_ok, #Hrsts, %Hfacts⟩
     iapply handshake_send_au_upd (t := Ready.ty) γ.readyc nv.readyc' rdv' (readyP γ) iprop(True) _
       $$ [$Hlc1 $Hlc2 $Hlc3] Hreadyc
     -- the append right goes with the `Ready`, and `rof` records it
@@ -466,7 +477,7 @@ theorem node.run.wp_proof
       iexists rs.delivered, ce, es, ms
       iframe Hdlv Hr1
       unfold readyData
-      iframe Hce Hcommitted Hents Hmsgs Hmt
+      iframe Hce Hcommitted Hents Hmsgs Hmt Hrsts
       isplitl [Happ]
       · rw [← Hstor]
         iexact Happ

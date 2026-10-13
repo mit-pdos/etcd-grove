@@ -331,13 +331,16 @@ def stepP (γ : NodeNames) (id : w64) (m : raftpb.Message) : IProp GF :=
 /-- What a `Ready` gives the driver, after the committed log `d` handed out before it: the
 committed entries `ce` to apply next (`isCommitted` of `d ++ ce`), the entries `es` to
 append with the right to (`appendRight`), the messages to send (each legitimately sent,
-of a term within the budget), no snapshot and no read states. -/
+of a term within the budget), no snapshot, and (2026-10-13) the read states, read-only,
+each `readStateOk`: its context a proposed slice (`isPropData`) whose read was created
+knowing a committed log of length at most its index (`readOk`). -/
 def readyData (γ : NodeNames) (rd : Ready) (d ce es : List raftpb.Entry)
     (ms : List raftpb.Message) : IProp GF :=
   iprop(rd.CommittedEntries' ↦*□ ce ∗ isCommitted γ.raft (d ++ ce) ∗
     rd.Entries' ↦*□ es ∗ appendRight γ.stor es ∗
     rd.Messages' ↦* ms ∗ ([∗list] m ∈ ms, isRaftMsg γ.raft m ∗ termLB γ.bud m.Term') ∗
-    ⌜rd.Snapshot' = zero_val raftpb.Snapshot ∧ rd.ReadStates' = slice.nil⌝)
+    (∃ sts : List ReadState, rd.ReadStates' ↦*□ sts ∗ [∗list] st ∈ sts, readStateOk γ.raft st) ∗
+    ⌜rd.Snapshot' = zero_val raftpb.Snapshot⌝)
 
 /-- A `Ready` on `readyc` (see the file header): `run`'s half of `dlv` at `d`, the other half
 of its record, and the data. -/

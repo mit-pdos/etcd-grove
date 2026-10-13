@@ -122,11 +122,19 @@ def ownReadOnly (ro : Loc) (r : ReadOnly) : IProp GF :=
 /-- Full ownership of the three read-index fields and everything hanging off them: the
 `readStates` slice, the `readOnly` object, and the `pendingReadIndexMessages` slice, at
 the physical read state `rd` (2026-10-12; until then existential, with the two queues
-empty). -/
+empty).
+
+The `ReadState`s are held **read-only** (`↦*□`), with the capacity past the end owned
+(2026-10-13), as `ownReadOnly` holds its queue: `readyWithoutAccept` hands the slice out
+(`rd.ReadStates = r.readStates`) while the node keeps it until `acceptReady` sets the
+field to `nil`, and a `Ready` that `node.go` abandons may still be sent later, after
+`r.readStates` was appended to; `responseToReadIndexReq` and `stepFollower` append in place
+into the slack (`wp_slice_append_persistent`), which leaves the elements handed out
+alone. -/
 def ownRaftMisc (readStates : GoSlice) (ro : Loc) (pendingReadIndex : GoSlice)
     (rd : RdState) : IProp GF :=
   iprop(
-  "HreadStates" ∷ readStates ↦* rd.states ∗
+  "HreadStates" ∷ readStates ↦*□ rd.states ∗
   "HreadStates_cap" ∷ ownSliceCap ReadState readStates (DFrac.own 1) ∗
   "Hro_obj" ∷ ownReadOnly ro rd.ro ∗
   "Hpri" ∷ pendingReadIndex ↦* rd.pend.map Prod.fst ∗
