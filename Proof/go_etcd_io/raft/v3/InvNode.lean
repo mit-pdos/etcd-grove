@@ -478,10 +478,10 @@ def tickInv (γ : NodeNames) : IProp GF :=
   iprop(∃ l : List Unit, ownChan γ.tick Unit (.Buffered l) ∗ tickCred γ.bud l.length)
 
 /-- A conf change on `confc` (2026-10-13, `node.ApplyConfChange`): its changes, read-only,
-leave the configuration unchanged (`ccApplyM`, the scope of `raft.applyConfChange`). -/
+keep the voters and only drop learners (`CCShrink`, `RawNode.ApplyConfChange`'s scope). -/
 def confcP (γ : NodeNames) (v : raftpb.ConfChangeV2) : IProp GF :=
   iprop(∃ ccs : List raftpb.ConfChangeSingle, v.Changes' ↦*□ ccs ∗
-    ⌜CCNoop γ.raft.reCfg v.Transition' ccs⌝)
+    ⌜CCShrink γ.raft.reCfg v.Transition' ccs⌝)
 
 /-- The `ConfState` on `confstatec`: the voters and the learners (none of them a voter;
 since 2026-10-13), read-only, and nothing else. -/

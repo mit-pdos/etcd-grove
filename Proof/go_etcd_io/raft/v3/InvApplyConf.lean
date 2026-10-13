@@ -398,6 +398,214 @@ theorem simpleM_cfgState_addLearner (V L : GSet w64) (id : w64) (hid : id ≠ W6
     (cfgState V (<[id := ()]> L)).cfg.incoming from Hsd)]
   simp [checkedM, cfgInv_cfgState _ _ Hd']
 
+
+/-! ### Changes of the learners only (2026-10-13, stage L part 3)
+
+`CCVoterKeep cfg t ccs`: whatever the learners, the change answers a non-joint configuration
+with the same voters and some learners -- an `AddLearnerNode` or a `RemoveNode` of an id that
+is not a voter, an `UpdateNode`, or a change with `NodeId = 0`. -/
+
+/-- A change that keeps the voters `cfg`, whatever the learners. -/
+def CCVoterKeep (cfg : GSet w64) (t : raftpb.ConfChangeTransition)
+    (ccs : List raftpb.ConfChangeSingle) : Prop :=
+  ∀ lrn : GSet w64, (∀ k, k ∈ lrn → k ∉ cfg) →
+    ∃ lrn' : GSet w64, (∀ k, k ∈ lrn' → k ∉ cfg) ∧
+      ccApplyM t ccs (cfgState cfg lrn) = some (cfgState cfg lrn')
+
+theorem CCNoop.voterKeep {cfg : GSet w64} {t : raftpb.ConfChangeTransition}
+    {ccs : List raftpb.ConfChangeSingle} (H : CCNoop cfg t ccs) : CCVoterKeep cfg t ccs :=
+  fun lrn Hd => ⟨lrn, Hd, H lrn Hd⟩
+
+/-- A change whose model answer is a non-joint configuration with the voters it started from
+is a `Simple` one (`ccApplyM_noop`, for any learners on either side). -/
+theorem ccApplyM_simple (cfg lrn lrn' : GSet w64) (Hd : ∀ k, k ∈ lrn → k ∉ cfg)
+    (t : raftpb.ConfChangeTransition) (ccs : List raftpb.ConfChangeSingle)
+    (H : ccApplyM t ccs (cfgState cfg lrn) = some (cfgState cfg lrn')) :
+    ¬ (t = W32 0 ∧ ccs = []) ∧ (∃ al, enterJointOf t ccs.length = some (al, false)) ∧
+      simpleM ccs (cfgState cfg lrn) = some (cfgState cfg lrn') := by
+  unfold ccApplyM at H
+  by_cases Hl : t = W32 0 ∧ ccs = []
+  · rw [if_pos Hl] at H
+    unfold leaveJointM at H
+    rw [if_neg (fun h => h (cfgInv_cfgState cfg lrn Hd)),
+      if_pos (show (cfgState cfg lrn).cfg.outgoing = ∅ from rfl)] at H
+    cases H
+  rw [if_neg Hl] at H
+  refine ⟨Hl, ?_⟩
+  rcases He : enterJointOf t ccs.length with _ | ⟨al, ok⟩
+  · rw [He] at H; cases H
+  rw [He] at H
+  cases ok
+  · exact ⟨⟨al, rfl⟩, H⟩
+  · exfalso
+    simp only at H
+    unfold enterJointM at H
+    rw [if_neg (fun h => h (cfgInv_cfgState cfg lrn Hd)), if_neg (fun h => h rfl)] at H
+    by_cases Hin : (cfgState cfg lrn).cfg.incoming = ∅
+    · rw [if_pos Hin] at H; cases H
+    rw [if_neg Hin] at H
+    revert H
+    generalize Happ : applyM ccs _ = r
+    cases r with
+    | none => intro H; cases H
+    | some s1 =>
+      intro H
+      simp only [checkedM] at H
+      split at H
+      · simp only [Option.some.injEq] at H
+        have Hout := applyM_outgoing ccs _ s1 Happ
+        have h2 : s1.cfg.outgoing = (cfgState cfg lrn').cfg.outgoing := by rw [← H]
+        rw [h2] at Hout
+        exact Hin Hout.symm
+      · cases H
+
+theorem cfgFlags_delete_learner (V L : GSet w64) (id : w64) (h : id ∉ V) :
+    GMap.delete id (cfgFlags V L) = cfgFlags V (GMap.delete id L) := by
+  apply GMap.map_eq; intro k
+  rw [cfgFlags_lookup]
+  by_cases hk : id = k
+  · subst hk
+    rw [GMap.lookup_delete, if_neg h,
+      if_neg (show id ∉ (GMap.delete id L : GSet w64) by
+        rw [GMap.elem_of_gset, GMap.lookup_delete]; simp)]
+  · rw [GMap.lookup_delete_ne _ hk, cfgFlags_lookup]
+    have e : k ∈ (GMap.delete id L : GSet w64) ↔ k ∈ L := by
+      rw [GMap.elem_of_gset, GMap.elem_of_gset, GMap.lookup_delete_ne _ hk]
+    by_cases h1 : k ∈ V
+    · rw [if_pos h1, if_pos h1]
+    · rw [if_neg h1, if_neg h1]
+      by_cases h2 : k ∈ L
+      · rw [if_pos h2, if_pos (e.2 h2)]
+      · rw [if_neg h2, if_neg (fun h' => h2 (e.1 h'))]
+
+/-- `Simple([RemoveNode id])` on `cfgState V L`, `V` non-empty, `id` not a voter: `id` leaves
+the learners (nothing if untracked). -/
+theorem simpleM_cfgState_removeLearner (V L : GSet w64) (c : raftpb.ConfChangeSingle)
+    (Hty : c.Type' = W32 1) (h0 : c.NodeId' ≠ W64 0) (hV : c.NodeId' ∉ V) (hne : V ≠ ∅) (Hd : ∀ k, k ∈ L → k ∉ V) :
+    simpleM [c] (cfgState V L) = some (cfgState V (GMap.delete c.NodeId' L)) := by
+  have Hd' : ∀ k, k ∈ (GMap.delete c.NodeId' L : GSet w64) → k ∉ V := by
+    intro k h
+    apply Hd k
+    rw [GMap.elem_of_gset] at h ⊢
+    by_cases hk : c.NodeId' = k
+    · subst hk; rw [GMap.lookup_delete] at h; cases h
+    · rw [GMap.lookup_delete_ne _ hk] at h; exact h
+  have Hrm : removeM c.NodeId' (cfgState V L) = cfgState V (GMap.delete c.NodeId' L) := by
+    unfold removeM
+    split
+    · have hout : c.NodeId' ∉ (cfgState V L).cfg.outgoing := GMap.not_elem_of_empty _
+      rw [if_neg hout]
+      simp only [cfgState, cfgM, removeCfg]
+      rw [GMap.delete_notin _ _ (gset_lookup_none V _ hV), GMap.delete_empty,
+        cfgFlags_delete_learner V L _ hV]
+    · rename_i hn
+      have hL : c.NodeId' ∉ L := fun h => hn ((cfgFlags_mem V L _).2 (.inr h))
+      rw [GMap.delete_notin _ _ (gset_lookup_none L _ hL)]
+  have Happ : applyM [c] (cfgState V L) = some (cfgState V (GMap.delete c.NodeId' L)) := by
+    simp only [applyM, applyAll, applyOne, if_neg h0, Hty]
+    rw [if_neg (show (W32 1 : w32) ≠ W32 0 by decide),
+      if_neg (show (W32 1 : w32) ≠ W32 3 by decide)]
+    simp only [if_true, Option.bind_some]
+    rw [Hrm]
+    try simp only [Option.bind_some]
+    rw [if_neg (show (cfgState V (GMap.delete c.NodeId' L)).cfg.incoming ≠ ∅ from hne)]
+  have Hsd : ¬ SymdiffTooBig V V := by
+    unfold SymdiffTooBig symdiffN
+    rw [GMap.map_difference_diag, GMap.map_size_empty]
+    decide
+  unfold simpleM
+  rw [clearAutoLeave_cfgState, if_neg (fun h => h (cfgInv_cfgState V L Hd)),
+    if_neg (fun h => h rfl), Happ]
+  simp only
+  rw [if_neg (show ¬ SymdiffTooBig (cfgState V L).cfg.incoming
+    (cfgState V (GMap.delete c.NodeId' L)).cfg.incoming from Hsd)]
+  simp [checkedM, cfgInv_cfgState _ _ Hd']
+
+/-- The one `Simple` change of a `ConfChange` (or a one-change `ConfChangeV2` with transition
+`Auto`) whose model answer is some learners (`CCVoterKeep`'s witness). -/
+theorem ccApplyM_single (cfg lrn lrn' : GSet w64) (c : raftpb.ConfChangeSingle)
+    (H : simpleM [c] (cfgState cfg lrn) = some (cfgState cfg lrn')) :
+    ccApplyM (W32 0) [c] (cfgState cfg lrn) = some (cfgState cfg lrn') := by
+  unfold ccApplyM
+  rw [if_neg (by simp)]
+  have He : enterJointOf (W32 0) [c].length = some (false, false) := by
+    simp [enterJointOf]
+  rw [He]
+  exact H
+
+/-- An `AddLearnerNode` of a non-voter keeps the voters (a no-op for `NodeId = 0`). -/
+theorem ccVoterKeep_addLearner (cfg : GSet w64) (Hne : cfg ≠ ∅) (c : raftpb.ConfChangeSingle)
+    (Hty : c.Type' = W32 3) (Hid : c.NodeId' ∉ cfg) : CCVoterKeep cfg (W32 0) [c] := by
+  intro lrn Hd
+  by_cases h0 : c.NodeId' = W64 0
+  · exact ⟨lrn, Hd, ccApplyM_single_noop cfg lrn Hd c h0 Hne⟩
+  have Hc : c = addLearnerCC c.NodeId' := by cases c; simp only at Hty; subst Hty; rfl
+  refine ⟨<[c.NodeId' := ()]> lrn, ?_, ccApplyM_single cfg lrn _ c ?_⟩
+  · intro k hk
+    rcases (gset_mem_insert lrn c.NodeId' k).1 hk with h | h
+    · subst h; exact Hid
+    · exact Hd k h
+  · rw [Hc]; exact simpleM_cfgState_addLearner cfg lrn _ h0 Hid Hne Hd
+
+/-- A `RemoveNode` of a non-voter keeps the voters (a no-op for `NodeId = 0` or an untracked
+id). -/
+theorem ccVoterKeep_removeLearner (cfg : GSet w64) (Hne : cfg ≠ ∅) (c : raftpb.ConfChangeSingle)
+    (Hty : c.Type' = W32 1) (Hid : c.NodeId' ∉ cfg) : CCVoterKeep cfg (W32 0) [c] := by
+  intro lrn Hd
+  by_cases h0 : c.NodeId' = W64 0
+  · exact ⟨lrn, Hd, ccApplyM_single_noop cfg lrn Hd c h0 Hne⟩
+  refine ⟨GMap.delete c.NodeId' lrn, ?_, ccApplyM_single cfg lrn _ c
+    (simpleM_cfgState_removeLearner cfg lrn c Hty h0 Hid Hne Hd)⟩
+  intro k hk
+  apply Hd k
+  rw [GMap.elem_of_gset] at hk ⊢
+  by_cases hkk : c.NodeId' = k
+  · subst hkk; rw [GMap.lookup_delete] at hk; cases hk
+  · rw [GMap.lookup_delete_ne _ hkk] at hk; exact hk
+
+
+/-- A change that keeps the voters `cfg` and only drops learners, whatever the learners: the
+scope of `RawNode.ApplyConfChange` (2026-10-13; until then `CCNoop`). Adding a learner is
+outside it only for the bound on the tracked ids (`ownTracker`'s `Hcfg_size`), which a
+`RawNode` client cannot state without the learner set. -/
+def CCShrink (cfg : GSet w64) (t : raftpb.ConfChangeTransition)
+    (ccs : List raftpb.ConfChangeSingle) : Prop :=
+  ∀ lrn : GSet w64, (∀ k, k ∈ lrn → k ∉ cfg) →
+    ∃ lrn' : GSet w64, lrn' ⊆ lrn ∧
+      ccApplyM t ccs (cfgState cfg lrn) = some (cfgState cfg lrn')
+
+theorem CCNoop.shrink {cfg : GSet w64} {t : raftpb.ConfChangeTransition}
+    {ccs : List raftpb.ConfChangeSingle} (H : CCNoop cfg t ccs) : CCShrink cfg t ccs :=
+  fun lrn Hd => ⟨lrn, GMap.subseteq_refl _, H lrn Hd⟩
+
+/-- A `RemoveNode` of a non-voter only drops learners. -/
+theorem ccShrink_removeLearner (cfg : GSet w64) (Hne : cfg ≠ ∅) (c : raftpb.ConfChangeSingle)
+    (Hty : c.Type' = W32 1) (Hid : c.NodeId' ∉ cfg) : CCShrink cfg (W32 0) [c] := by
+  intro lrn Hd
+  by_cases h0 : c.NodeId' = W64 0
+  · exact ⟨lrn, GMap.subseteq_refl _, ccApplyM_single_noop cfg lrn Hd c h0 Hne⟩
+  refine ⟨GMap.delete c.NodeId' lrn, GMap.delete_subseteq _ _, ccApplyM_single cfg lrn _ c
+    (simpleM_cfgState_removeLearner cfg lrn c Hty h0 Hid Hne Hd)⟩
+
+/-- The premise `raft.applyConfChange` takes, from a `CCShrink` change on a node tracking
+`domSet prs`: the new learners are among the old ones, so the bound on the tracked ids holds. -/
+theorem applyCC_of_shrink (cfg : GSet w64) {V : Type} (prs : GMap w64 V)
+    (t : raftpb.ConfChangeTransition) (ccs : List raftpb.ConfChangeSingle)
+    (H : CCShrink cfg t ccs) (Hsub : cfg ⊆ domSet prs) (Hsz : (GMap.size prs : Int) ≤ 2 ^ 62) :
+    ∃ lrn', (∀ k, k ∈ lrn' → k ∉ cfg) ∧ (GMap.size (cfg ∪ lrn') : Int) ≤ 2 ^ 62 ∧
+      ccApplyM t ccs (cfgState cfg (domSet prs \ cfg)) = some (cfgState cfg lrn') := by
+  obtain ⟨lrn', Hl, Hm⟩ := H (domSet prs \ cfg) (fun k hk => ((GMap.elem_of_difference _ _ _).1 hk).2)
+  refine ⟨lrn', fun k hk => ((GMap.elem_of_difference _ _ _).1
+    ((GMap.elem_of_subseteq _ _).1 Hl k hk)).2, ?_, Hm⟩
+  have h1 : cfg ∪ lrn' ⊆ domSet prs := by
+    rw [GMap.union_subseteq]
+    refine ⟨Hsub, ?_⟩
+    rw [GMap.elem_of_subseteq]; intro k hk
+    exact ((GMap.elem_of_difference _ _ _).1 ((GMap.elem_of_subseteq _ _).1 Hl k hk)).1
+  have h2 := GMap.subseteq_size h1
+  rw [GMap.size_dom] at h2
+  omega
+
 end model
 
 /-! ## The tracker as a `Changer` reads it, and the result as `switchToConfig` takes it -/

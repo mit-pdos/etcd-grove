@@ -886,6 +886,18 @@ theorem ownRaftPhys_progress_dom (r : Loc) (id : w64) (s : NState) :
   · ipureintro; exact Hdom
   reseal s
 
+/-- The progress map tracks at most `2^62` ids (2026-10-13): read out without consuming
+anything. -/
+theorem ownRaftPhys_progress_size (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
+      ⌜(GMap.size s.progress : Int) ≤ 2 ^ 62⌝ ∗ ownRaftPhys cfg r id s := by
+  iintro H
+  iNamed_phys H
+  icases ownTracker_size_prs cfg _ _ $$ Htrk with ⟨%Hsz, Htrk⟩
+  isplitr
+  · ipureintro; exact Hsz
+  reseal s
+
 /-- The leader-transfer target is never the node itself (2026-10-13): read out without
 consuming anything. -/
 theorem ownRaftPhys_lt_ne (r : Loc) (id : w64) (s : NState) :

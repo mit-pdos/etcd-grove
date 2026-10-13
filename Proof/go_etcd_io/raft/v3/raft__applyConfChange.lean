@@ -36,10 +36,10 @@ theorem raft.applyConfChange.wp_proof
     (wp_Changer_Simple : confchange.Changer.Simple.spec (GF := GF) (hG := hG))
     (wp_raft_switchToConfig : raft.switchToConfig.spec (GF := GF) (hG := hG)) :
     raft.applyConfChange.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s cc ccs dq Hnoop
+  intro cfg r id s cc ccs dq lrn' Hd' Hsz' Hnoop
   have Hd : ∀ k, k ∈ domSet s.progress \ cfg → k ∉ cfg :=
     fun k hk => ((GMap.elem_of_difference _ _ _).1 hk).2
-  obtain ⟨Hnl, ⟨al, Hej⟩, Hsimple⟩ := ccApplyM_noop cfg _ Hd _ _ Hnoop
+  obtain ⟨Hnl, ⟨al, Hej⟩, Hsimple⟩ := ccApplyM_simple cfg _ lrn' Hd _ _ Hnoop
   wp_start as H
   iNamed H
   icases ownRaftPhys_gh $$ Hphys with ⟨%Hgh, Hphys⟩
@@ -47,9 +47,6 @@ theorem raft.applyConfChange.wp_proof
   icases ownRaftPhys_retrack cfg cfg r id s Hv $$ Hphys with ⟨%tv, Htrkf, Htrk, Hlf, Hlog, Hback⟩
   icases ownTracker_toCC cfg tv ⟨s.votes, s.progress, s.prvals⟩ $$ Htrk
     with ⟨%pvs, Htc, HR, Hvotes, %Hfl, %Hmi, %Hsz⟩
-  obtain ⟨Hsub, Hsz⟩ := Hsz
-  have Hsz' : (GMap.size (cfg ∪ (domSet s.progress \ cfg)) : Int) ≤ 2 ^ 62 := by
-    rw [← GMap.union_difference_L Hsub, GMap.size_dom]; exact Hsz
   wp_auto
   wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, -⟩
   wp_method_call
@@ -79,14 +76,12 @@ theorem raft.applyConfChange.wp_proof
   simp only [ownResult]
   icases Hres with ⟨%Herr, Hc, Hw⟩
   subst Herr
-  ihave Hc := (show ownCfgCC (GF := GF) cfgv (DFrac.own 1)
-      (cfgState cfg (domSet s.progress \ cfg)).cfg ⊢
-    ownCfgCC cfgv (DFrac.own 1) (cfgM cfg (domSet s.progress \ cfg)) from .rfl) $$ Hc
+  ihave Hc := (show ownCfgCC (GF := GF) cfgv (DFrac.own 1) (cfgState cfg lrn').cfg ⊢
+    ownCfgCC cfgv (DFrac.own 1) (cfgM cfg lrn') from .rfl) $$ Hc
   ihave Hw := (show ownPrsW (GF := GF) { Tracker' := tv, LastIndex' := li } pvs trk
-      (cfgState cfg (domSet s.progress \ cfg)).prs ⊢
-    ownPrsW { Tracker' := tv, LastIndex' := li } pvs trk
-      (cfgFlags cfg (domSet s.progress \ cfg)) from .rfl) $$ Hw
-  imod ownResult_noop_transfer cfg _ Hd _ pvs s.prvals cfgv trk Hsz' $$ [$Hc $Hw $HR]
+      (cfgState cfg lrn').prs ⊢
+    ownPrsW { Tracker' := tv, LastIndex' := li } pvs trk (cfgFlags cfg lrn') from .rfl) $$ Hw
+  imod ownResult_noop_transfer cfg lrn' Hd' _ pvs s.prvals cfgv trk Hsz' $$ [$Hc $Hw $HR]
     with ⟨%prs', %pvs', Hnew, %Hmk, %Hpd⟩
   wp_auto
   -- `r.switchToConfig(cfg, trk)`
@@ -105,7 +100,7 @@ theorem raft.applyConfChange.wp_proof
   iapply HΦ $$ %cs %xs %ls %s'
   iframe Hphys Hccs Hcs Hls
   ipureintro
-  have Hpd' : domSet prs' \ cfg = domSet s.progress \ cfg := by
+  have Hpd' : domSet prs' \ cfg = lrn' := by
     rw [Hpd]
     apply GMap.set_eq; intro k
     simp only [GMap.elem_of_difference, GMap.elem_of_union]
@@ -113,7 +108,7 @@ theorem raft.applyConfChange.wp_proof
     · rintro ⟨h | h, h'⟩
       · exact absurd h h'
       · exact h
-    · intro h; exact ⟨.inr h, h.2⟩
+    · intro h; exact ⟨.inr h, Hd' k h⟩
   refine ⟨⟨Hcs0.1, Hpd' ▸ Hcs0.2.1, Hcs0.2.2⟩, prs', pvs', fun _ => Hmk, Hsw⟩
 
 end proof

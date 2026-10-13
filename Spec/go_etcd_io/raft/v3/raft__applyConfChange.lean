@@ -115,11 +115,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 index, runs `LeaveJoint`, `EnterJoint` or `Simple` as `cc` says (panicking on an error),
 and installs the result (`switchToConfig`), returning the new `ConfState`.
 
-**Scope: a change that leaves the configuration unchanged** -- its model answer is the
-state it started from, `ccApplyM cc.Transition ccs (cfgState cfg lrn) = some (cfgState cfg lrn)`
-for the node's learners `lrn = domSet s.progress \ cfg` (since 2026-10-13, stage L)
-(e.g. a change with `NodeId = 0`, `ccApplyM_single_noop`; only `Simple` can answer that,
-`ccApplyM_noop`). `ownRaftPhys` stays at `cfg`. Even so the Go code installs new
+**Scope: a change that keeps the voters** -- its model answer is a non-joint state with the
+voters it started from and some learners `lrn'`: `ccApplyM cc.Transition ccs (cfgState cfg
+lrn) = some (cfgState cfg lrn')` for the node's learners `lrn = domSet s.progress \ cfg`
+(since 2026-10-13, stage L; until then `lrn' = lrn = ∅`): e.g. a change with `NodeId = 0`
+(`ccApplyM_single_noop`), an `AddLearnerNode` or a `RemoveNode` of a non-voter
+(`ccVoterKeep_addLearner`, `ccVoterKeep_removeLearner`); only `Simple` can answer that
+(`ccApplyM_simple`). `ownRaftPhys` stays at `cfg`. Even so the Go code installs new
 `Progress` objects (`checkAndCopy`'s copies, or fresh ones for a peer removed and re-added
 in one change, whose `Match` is `0`), and at a leader commits and sends appends: the result
 is `ApplyCCOk`, a protocol `Step` that receives nothing (`applyCCOk_step`). (Until
@@ -131,9 +133,13 @@ The order in which an application must call this relative to `Advance`
 concern; for an unchanged configuration it does not matter. -/
 abbrev raft.applyConfChange.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (cc : raftpb.ConfChangeV2)
-    (ccs : List raftpb.ConfChangeSingle) (dq : DFrac),
+    (ccs : List raftpb.ConfChangeSingle) (dq : DFrac) (lrn' : GSet w64),
+  -- (2026-10-13, stage L part 3) the new learners `lrn'`, none a voter, and not too many
+  -- tracked ids (`ownTracker`'s bound)
+  (∀ k, k ∈ lrn' → k ∉ cfg) →
+  (GMap.size (cfg ∪ lrn') : Int) ≤ 2 ^ 62 →
   ccApplyM cc.Transition' ccs (cfgState cfg (domSet s.progress \ cfg)) =
-    some (cfgState cfg (domSet s.progress \ cfg)) →
+    some (cfgState cfg lrn') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       "Hccs" ∷ cc.Changes' ↦*{dq} ccs }}
@@ -142,7 +148,7 @@ abbrev raft.applyConfChange.spec : Prop :=
       ownRaftPhys cfg r id s' ∗
       cc.Changes' ↦*{dq} ccs ∗
       cs.Voters' ↦* xs ∗ cs.Learners' ↦* ls ∗
-      ⌜xs ≡ₚ elements cfg ∧ ls ≡ₚ elements (domSet s.progress \ cfg) ∧
+      ⌜xs ≡ₚ elements cfg ∧ ls ≡ₚ elements lrn' ∧
         cs.VotersOutgoing'.len = W64 0 ∧
         cs.LearnersNext'.len = W64 0 ∧
         cs.AutoLeave' = false⌝ ∗

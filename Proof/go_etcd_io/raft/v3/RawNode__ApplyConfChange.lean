@@ -42,12 +42,14 @@ theorem RawNode.ApplyConfChange.wp_proof
     wp_auto
     wp_apply wp_ConfChange_AsV2 as %v2 ⟨%Hv2, Hch⟩
     obtain ⟨Hty, Hnid, Hid⟩ := Hvm
-    have Hn : ccApplyM v2.Transition' [({ Type' := v.Type', NodeId' := v.NodeId' } :
-        raftpb.ConfChangeSingle)] (cfgState γ.reCfg (domSet s.progress \ γ.reCfg)) =
-        some (cfgState γ.reCfg (domSet s.progress \ γ.reCfg)) := by
-      rw [Hv2.1, Hty, Hnid]
-      exact Hnoop _ (fun k hk => ((GMap.elem_of_difference _ _ _).1 hk).2)
-    wp_apply +noauto wp_raft_applyConfChange γ.reCfg rnv.raft' id s v2 _ (DFrac.own 1) Hn
+    have Hn0 : CCShrink γ.reCfg v2.Transition' [({ Type' := v.Type', NodeId' := v.NodeId' } :
+        raftpb.ConfChangeSingle)] := by
+      rw [Hv2.1, Hty, Hnid]; exact Hnoop
+    icases ownRaftPhys_progress_dom γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsub, Hphys⟩
+    icases ownRaftPhys_progress_size γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsz, Hphys⟩
+    obtain ⟨lrn', Hd', Hsz', Hn⟩ := applyCC_of_shrink γ.reCfg s.progress _ _ Hn0 Hsub Hsz
+    wp_apply +noauto wp_raft_applyConfChange γ.reCfg rnv.raft' id s v2 _ (DFrac.own 1) lrn' Hd'
+      Hsz' Hn
       $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, -, Hvoters, Hls, %Hcs0, %Hok⟩
     imod rawNode_applyCC_reseal γ rn id rs s s' ps rnv sv steps Hrel Hin Hasync Hdlen Hunp Hsnap
       Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hok
@@ -65,18 +67,19 @@ theorem RawNode.ApplyConfChange.wp_proof
       ipureintro; exact ⟨Hty, Hnid, Hid⟩
     iframe
     ipureintro
-    exact ⟨Hcs0.1, fun k hk => ((GMap.elem_of_difference _ _ _).1
-      ((GMap.elem_of_elements _ _).1 (Hcs0.2.1.mem_iff.1 hk))).2, Hcs0.2.2⟩
+    exact ⟨Hcs0.1, fun k hk => Hd' k ((GMap.elem_of_elements _ _).1 (Hcs0.2.1.mem_iff.1 hk)),
+      Hcs0.2.2⟩
   · -- a `ConfChangeV2`: `AsV2` is itself
     simp only [ownCCI, ownCCV2]
     icases Hc with ⟨%v, %Hcv, %Htr, Hch, Hctx⟩
     subst Hcv
     wp_auto
     wp_apply wp_ConfChangeV2_AsV2
-    have Hn : ccApplyM v.Transition' m.changes (cfgState γ.reCfg (domSet s.progress \ γ.reCfg)) =
-        some (cfgState γ.reCfg (domSet s.progress \ γ.reCfg)) := by
-      rw [Htr]; exact Hnoop _ (fun k hk => ((GMap.elem_of_difference _ _ _).1 hk).2)
-    wp_apply +noauto wp_raft_applyConfChange γ.reCfg rnv.raft' id s v _ dq Hn
+    have Hn0 : CCShrink γ.reCfg v.Transition' m.changes := by rw [Htr]; exact Hnoop
+    icases ownRaftPhys_progress_dom γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsub, Hphys⟩
+    icases ownRaftPhys_progress_size γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsz, Hphys⟩
+    obtain ⟨lrn', Hd', Hsz', Hn⟩ := applyCC_of_shrink γ.reCfg s.progress _ _ Hn0 Hsub Hsz
+    wp_apply +noauto wp_raft_applyConfChange γ.reCfg rnv.raft' id s v _ dq lrn' Hd' Hsz' Hn
       $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, Hch, Hvoters, Hls, %Hcs0, %Hok⟩
     imod rawNode_applyCC_reseal γ rn id rs s s' ps rnv sv steps Hrel Hin Hasync Hdlen Hunp Hsnap
       Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hok
@@ -94,8 +97,8 @@ theorem RawNode.ApplyConfChange.wp_proof
       ipureintro; exact Htr
     iframe
     ipureintro
-    exact ⟨Hcs0.1, fun k hk => ((GMap.elem_of_difference _ _ _).1
-      ((GMap.elem_of_elements _ _).1 (Hcs0.2.1.mem_iff.1 hk))).2, Hcs0.2.2⟩
+    exact ⟨Hcs0.1, fun k hk => Hd' k ((GMap.elem_of_elements _ _).1 (Hcs0.2.1.mem_iff.1 hk)),
+      Hcs0.2.2⟩
 
 end proof
 

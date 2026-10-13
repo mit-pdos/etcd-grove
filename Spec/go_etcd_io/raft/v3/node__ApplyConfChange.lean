@@ -2,14 +2,14 @@
 
 ## `node.ApplyConfChange(cc)` (node.go:556), 2026-10-13 (reconfiguration stage D)
 
-From any goroutine: `cc.AsV2()` onto `confc` (`confcP`: its changes, read-only, leave the
-configuration unchanged), which `run` applies (`raft.applyConfChange`, the ghost step inside,
+From any goroutine: `cc.AsV2()` onto `confc` (`confcP`: its changes, read-only, keep the
+voters and only drop learners -- `CCShrink`; until 2026-10-13 an unchanged configuration), which `run` applies (`raft.applyConfChange`, the ghost step inside,
 `wp_rn_raft_applyConfChange`) and answers with the `ConfState` on `confstatec`
 (`confstateP`), which this returns, by pointer. `n.done` never fires.
 
-**Scope**, as `RawNode.ApplyConfChange`'s: a change whose model answer is the configuration
-it started from (`ccApplyM` of `ccV2Of o` on `cfgState γ.raft.reCfg`), e.g. a `ConfChange`
-with `NodeId = 0`. The change is held read-only (`DFrac.discard`): `run` reads its `Changes`
+**Scope**, as `RawNode.ApplyConfChange`'s: a change whose model answer keeps the voters and
+some of the learners (`CCShrink` of `ccV2Of o`), e.g. a `ConfChange` with `NodeId = 0`, or a
+`RemoveNode` of a learner. The change is held read-only (`DFrac.discard`): `run` reads its `Changes`
 on its own goroutine.
 
 **Order with `Advance`** (`issues/raft-advance-before-applyconfchange.md`): an application
@@ -41,7 +41,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 abbrev node.ApplyConfChange.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (c : GoInterface) (o : CCMsg),
-  CCNoop γ.raft.reCfg (ccV2Of o).1 (ccV2Of o).2 →
+  CCShrink γ.raft.reCfg (ccV2Of o).1 (ccV2Of o).2 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
       ownCCI c DFrac.discard (some o) }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ApplyConfChange")) (Val #c))
