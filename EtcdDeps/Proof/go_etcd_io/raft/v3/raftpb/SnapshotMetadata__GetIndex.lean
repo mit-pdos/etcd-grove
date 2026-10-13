@@ -23,11 +23,35 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.raftpb.Assumptions]
 
-theorem raftpb.SnapshotMetadata.GetIndex.wp_proof : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG) := by
-  wp_start
-  wp_auto
-  iapply HΦ
-  itrivial
+theorem raftpb.SnapshotMetadata.GetIndex.wp_proof :
+    raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG) := by
+  intro md i
+  wp_start as H
+  icases H with (⟨%Hnull, %Hz⟩ | ⟨%p, %Hnn, #Hf, #Hp⟩)
+  · subst Hnull Hz
+    wp_auto
+    iapply HΦ
+    itrivial
+  · have hd : decide (md = null) = false := decide_eq_false Hnn
+    wp_auto
+    simp only [hd, Bool.not_false]
+    wp_auto
+    iunfold optU64 at Hp
+    by_cases hp : p = null
+    · rw [ite_eq_left hp]
+      icases Hp with %Hz
+      subst hp
+      (try wp_auto)
+      rw [← Hz]
+      iapply HΦ
+      itrivial
+    · rw [ite_eq_right hp]
+      (try wp_auto)
+      have hd' : decide (p = null) = false := decide_eq_false hp
+      simp only [hd', Bool.not_false]
+      wp_auto
+      iapply HΦ
+      itrivial
 
 end proof
 

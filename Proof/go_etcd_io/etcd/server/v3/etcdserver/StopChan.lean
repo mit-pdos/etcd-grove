@@ -344,6 +344,45 @@ theorem stop_chan_nonblocking_receive_done (ch : GoChan) (γ : ChanNames)
     iexact HΦ
   all_goals (iexfalso; iexact Hs)
 
+/-- **The close, by the closer, with the flag's names**: the closer's half of the flag (at
+`false`) becomes the flag discarded at `true` (what `run`'s shutdown hands `GoAttach`'s protocol). -/
+theorem stop_close_au_internal (ch : GoChan) (γ : ChanNames) (γch : BroadcastInternalNames)
+    (Q : IProp GF) (Φ : IProp GF) :
+    ⊢ isStopChanInternal ch γ γch Q -∗ dghostVar γch.doneGn (.own (1 : Qp).half) false -∗ □ Q -∗
+      ▷ (dghostVar γch.doneGn .discard true -∗ Φ) -∗ closeAu γ Unit Φ := by
+  iintro #Hint Hown #HQ HΦ
+  ihave #Hint' := Hint
+  unfold isStopChanInternal
+  icases Hint' with ⟨#His_ch, #Hinv⟩
+  unfold closeAu
+  iinv Hinv with Hi Hclose
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  unfold stopChanInv
+  icases Hi with ⟨%st, Hch, Hs⟩
+  iexists st
+  iframe Hch
+  rcases st with (_ | ⟨_, _⟩) | _ | _ | _ | _ | _ | (_ | ⟨_, _⟩)
+  all_goals dsimp only
+  case Buffered.nil =>
+    iintro Hch
+    imod Hmask with -
+    imod dghostVar_update_halves true _ _ _ $$ Hown Hs with ⟨Hown, -⟩
+    imod dghostVar_persist _ _ _ $$ Hown with #Hown
+    imod Hclose $$ [Hch] with -
+    · inext; iexists .Closed []; dsimp only; iframe Hch
+      isplitl []
+      · imodintro; iexact HQ
+      · iexact Hown
+    imodintro
+    iapply HΦ $$ Hown
+  case Closed.nil =>
+    icases Hs with ⟨-, #Hs⟩
+    ihave %Hbad := dghostVar_agree _ _ _ _ _ $$ Hown Hs
+    cases Hbad
+  all_goals first | itrivial | (iexfalso; iexact Hs)
+
 end proof
 
 end EtcdGrove

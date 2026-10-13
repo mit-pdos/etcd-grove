@@ -225,7 +225,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
   ihave #Perrs : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors $$ []
   · iPkgInit
   iunfold lessorOk at Hlok
-  icases Hlok with ⟨%li, %Hli, #HPromote⟩
+  icases Hlok with ⟨%li, %Hli, #HPromote, -, -⟩
   cases v3
   · -- replayed: no backend writes, state unchanged
     wp_auto

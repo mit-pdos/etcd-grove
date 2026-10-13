@@ -242,3 +242,19 @@ EtcdServer__shouldSnapshotToDisk:
 EtcdServer__shouldSnapshotToMemory:
 EtcdServer__snapshotIfNeededAndCompactRaftLog: EtcdServer__shouldSnapshotToDisk EtcdServer__shouldSnapshotToMemory EtcdServer__snapshot EtcdServer__compactRaftLog
 EtcdServer__applyAll: EtcdServer__applySnapshot EtcdServer__applyEntries EtcdServer__Backend EtcdServer__Logger backend_VerifyBackendConsistency EtcdServer__snapshotIfNeededAndCompactRaftLog EtcdServer__createMergedSnapshotMessage EtcdServer__sendMergedSnap
+# The server's apply loop `run` (server.go; the request path's unit 4c, see InvRun.lean): the
+# committed index's and the leader's setters (with bodies), the raft storage snapshot's
+# metadata getters (raft v3.7's raftpb), the FIFO scheduler (in mvcc's list: its results reused from mvcc's Link), and the
+# trust boundary (`axiom … .wp_proof`): `revokeExpiredLeases`, `Cleanup` (names-only server
+# methods) and v2stats' `BecomeLeader`.
+SnapshotMetadata__GetTerm:
+EtcdServer__setCommittedIndex:
+EtcdServer__setLead:
+EtcdServer__revokeExpiredLeases:
+EtcdServer__Cleanup:
+v2stats_ServerStats__BecomeLeader:
+schedule_NewFIFOScheduler:
+schedule_NewJob:
+schedule_Scheduler__Schedule:
+schedule_Scheduler__Stop:
+EtcdServer__run: EtcdServer__applyAll EtcdServer__Logger SnapshotMetadata__GetIndex SnapshotMetadata__GetTerm schedule_NewFIFOScheduler EtcdServer__getLead EtcdServer__setLead EtcdServer__isLeader Notifier__Notify v2stats_ServerStats__BecomeLeader EtcdServer__getCommittedIndex EtcdServer__setCommittedIndex raftNode__start raftNode__apply schedule_NewJob schedule_Scheduler__Schedule EtcdServer__revokeExpiredLeases zap_Error zap_Logger__Warn schedule_Scheduler__Stop raftNode__stop EtcdServer__Cleanup

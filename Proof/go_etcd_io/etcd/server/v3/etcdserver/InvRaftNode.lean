@@ -350,9 +350,11 @@ def rnApP (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :=
     ap.entries' ↦*□ ceL ∗ entriesAt ceL ce ∗ □ E.C (F ++ ce) ∗ ⌜ap.snapshot' = null⌝ ∗
     isUnitBag ap.notifyc' ∗ isUnitBag ap.raftAdvancedC')
 
-/-- `applyc` (persistent): an SPSC channel of `rnApP` payloads, never closed. -/
+/-- `applyc` (persistent): an SPSC channel of `rnApP` payloads, never closed (its close's
+resource is `False`: 2026-10-13, the request path's unit 4c, `True` until then; the loop never
+closes it, and the apply side's receive needs that it is not closed). -/
 def isRNApplyc (E : RNEnv GF) (γ : RNNames) (c : Loc) : IProp GF :=
-  isSpsc γ.ap c (V := toApply) (rnApP E γ) (fun _ => iprop(True))
+  isSpsc γ.ap c (V := toApply) (rnApP E γ) (fun _ => iprop(False))
 
 instance isRNApplyc_persistent (E : RNEnv GF) (γ : RNNames) (c : Loc) :
     Persistent (isRNApplyc E γ c) := by

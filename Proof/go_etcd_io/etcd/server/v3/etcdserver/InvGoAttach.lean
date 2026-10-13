@@ -32,6 +32,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopChan
 public import Perennial.Proof.sync
+public import Perennial.Ghost.Token
 
 @[expose] public section
 
@@ -44,10 +45,12 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
-/-- The ghost names of `GoAttach`'s protocol: the flag `open`, the wait group's, the started
+/-- The ghost names of `GoAttach`'s protocol: the flag `open`, the closer's token (`run`'s
+shutdown's, deposited when it closes `stopping`), the wait group's, the started
 goroutines' receipts, and the `stopping` channel's (its channel names and its closer's flag). -/
 structure GoNames where
   b : GName
+  close : GName
   wg : sync.WaitGroupNames
   run : GName
   ch : ChanNames
@@ -92,12 +95,13 @@ def wgMuP (γ : GoNames) (q : Qp) : IProp GF :=
 
 /-- **The counter's invariant**: the other half of `open`; the wait group's counter `ctr`, `k`
 goroutines started (their receipts' authority) with their thread tokens deposited; while open,
-no waiter. -/
+no waiter; once closed, the closer's token (so `run`'s shutdown, holding it, knows it closes an
+open channel). -/
 def goAttachInv (γ : GoNames) : IProp GF :=
   iprop(∃ (b : Bool) (ctr : w32) (k : Nat), ghostVar γ.b (1 : Qp).half b ∗
     sync.ownWaitGroup γ.wg ctr ∗ threadToks k ∗ ownTokAuth γ.run k ∗
     ⌜0 ≤ sint.Z ctr ∧ sint.nat ctr = k⌝ ∗
-    (⌜b = false⌝ ∨ ⌜b = true⌝ ∗ sync.ownWaitGroupWaiters γ.wg 0))
+    (⌜b = false⌝ ∗ token γ.close ∨ ⌜b = true⌝ ∗ sync.ownWaitGroupWaiters γ.wg 0))
 
 /-- **`GoAttach`'s protocol at `s`** (persistent): the `stopping` channel, the wait group, the
 counter's invariant, `wgMu`'s write side, the context field (set by `start` before any goroutine,
@@ -184,7 +188,7 @@ theorem wp_goAttach_Add (s : Loc) (γ : GoNames) (q : Qp)
   icases Hi with ⟨%b, %ctr, %k, Hbi, Hwgo, Hk, Hrun, ⟨%Hctr, %Hkd⟩, Hw⟩
   ihave %Hag := ghostVar_agree γ.b _ _ _ _ $$ Hb Hbi
   cases Hag
-  icases Hw with (%Hf | ⟨-, Hw⟩)
+  icases Hw with (⟨%Hf, -⟩ | ⟨-, Hw⟩)
   · cases Hf
   icases threadToks_add_one_lt k $$ [Htok Hk] with ⟨%Hlt, Hk⟩
   · iframe
@@ -264,6 +268,104 @@ theorem wp_goAttach_Done (s : Loc) (γ : GoNames) :
   imodintro
   iapply HΦ
   iexact Htok
+
+/-- **`s.wg.Wait()`** by the closer, with the "no waiters" it took out at the close: it returns
+(once every started goroutine is `Done`; nothing is claimed). -/
+theorem wp_goAttach_Wait (s : Loc) (γ : GoNames) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ sync.isWaitGroup (srvWgAddr s) γ.wg goAttachWGN ∗
+        inv goAttachN (goAttachInv γ) ∗ sync.ownWaitGroupWaiters γ.wg 0 }}
+      (App (Val (srvWgAddr s @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Wait")) (Val #()))
+    {{ RET #(); True }} := by
+  iintro %Φ ⟨#Hsync, #Hwg, #Hinv, Hw0⟩ HΦ
+  iapply fupd_wp
+  imod fupd_mask_subseteq (E1 := ⊤) (E2 := ↑goAttachWGN) (fun _ _ => CoPset.mem_full) with Hmask
+  imod sync.alloc_wait_token (srvWgAddr s) γ.wg goAttachWGN 0 (by decide) $$ Hwg Hw0
+    with ⟨Hw1, Htok⟩
+  imod Hmask with -
+  imodintro
+  iapply sync.WaitGroup.wp_Wait (srvWgAddr s) γ.wg goAttachWGN $$ [Htok] [HΦ]
+  · iframe #; iframe
+  iinv Hinv with Hi Hclose <;> try exact goAttachN_mask
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  iunfold goAttachInv at Hi
+  icases Hi with ⟨%b, %ctr, %k, Hbi, Hwgo, Hk, Hrun, Hp, Hw⟩
+  iexists ctr
+  iframe Hwgo
+  iintro %Hz Hwgo
+  imod Hmask with -
+  imod Hclose $$ [Hbi Hwgo Hk Hrun Hp Hw] with -
+  · inext
+    iunfold goAttachInv
+    iexists b, ctr, k
+    iframe
+  imodintro
+  iintro -
+  iapply HΦ
+  itrivial
+
+/-- **`run`'s shutdown, the ghost step at `close(s.stopping)`**: with the closer's token and the
+write lock's whole resource at `open` (the closer's flag of `stopping` already spent on the
+close, which gave the flag discarded at `true`), the flag `open` becomes `false`, the closer's
+token goes into the invariant and the "no waiters" comes out (for `Wait`); the lock's resource is
+the closed one. -/
+theorem goAttach_shutdown (γ : GoNames) :
+    ⊢ inv goAttachN (goAttachInv (GF := GF) γ) -∗ token γ.close -∗ ghostVar γ.b (1 : Qp).half true -∗
+      dghostVar γ.chi.doneGn DFrac.discard true ={⊤}=∗
+      wgMuP γ 1 ∗ sync.ownWaitGroupWaiters γ.wg 0 := by
+  iintro #Hinv Htok Hb #Hd
+  iinv Hinv with Hi Hclose
+  iunfold goAttachInv at Hi
+  icases Hi with ⟨%b, %ctr, %k, >Hbi, Hwgo, Hk, Hrun, Hp, Hw⟩
+  ihave %Hag := ghostVar_agree γ.b _ _ _ _ $$ Hb Hbi
+  cases Hag
+  imod Hw with (⟨%Hf, -⟩ | ⟨-, Hw⟩)
+  · cases Hf
+  imod ghostVar_update_halves false γ.b true true $$ Hb Hbi with ⟨Hb, Hbi⟩
+  imod Hclose $$ [Hbi Hwgo Hk Hrun Hp Htok] with -
+  · inext
+    iunfold goAttachInv
+    iexists false, ctr, k
+    iframe
+    ileft
+    iframe Htok
+    ipureintro; rfl
+  imodintro
+  iframe Hw
+  iunfold wgMuP
+  iexists false
+  rw [show (1 : Qp).half = (1 : Qp).half from rfl]
+  iframe Hb
+  iunfold stopPart
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  iexact Hd
+
+/-- The closer's token and a closed `open` are exclusive: the closer knows `stopping` is open
+(the lock's resource at `false` cannot be what it locked). -/
+theorem goAttach_closer_open (γ : GoNames) (b : Bool) (q : Qp) :
+    ⊢ inv goAttachN (goAttachInv (GF := GF) γ) -∗ token γ.close -∗ ghostVar γ.b q b ={⊤}=∗
+      ⌜b = true⌝ ∗ token γ.close ∗ ghostVar γ.b q b := by
+  iintro #Hinv Htok Hb
+  iinv Hinv with Hi Hclose
+  iunfold goAttachInv at Hi
+  icases Hi with ⟨%b', %ctr, %k, >Hbi, Hwgo, Hk, Hrun, Hp, Hw⟩
+  ihave %Hag := ghostVar_agree γ.b _ _ _ _ $$ Hb Hbi
+  cases Hag
+  imod Hw with (⟨%Hf, Htok'⟩ | ⟨%Ht, Hw⟩)
+  · iexfalso
+    iapply token_exclusive $$ Htok Htok'
+  imod Hclose $$ [Hbi Hwgo Hk Hrun Hp Hw] with -
+  · inext
+    iunfold goAttachInv
+    iexists b, ctr, k
+    iframe
+    iright
+    iframe Hw
+    ipureintro; exact Ht
+  imodintro
+  iframe Htok Hb
+  ipureintro; exact Ht
 
 end lemmas
 
