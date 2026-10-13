@@ -549,9 +549,10 @@ below both (`cq_agree`, from the vote table), so -- the logs having records -- t
 prefixes are prefixes of one another (`full_take_eq`). The extension is entry by entry,
 firing the deposited updates (`fire_upto`) -- with the invariant open, so at
 `⊤ ∖ ↑raftN`, which the updates' outer mask is. -/
-theorem commit_extend (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) :
-    ⊢ raftCommitInv (GF := GF) γ -∗ cq γ t n G ={⊤}=∗ isCommitted γ (G.take (uint.Z n).toNat) := by
-  iintro #Hinv #Hcq
+theorem commit_extend (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) (ldr : w64) :
+    ⊢ raftCommitInv (GF := GF) γ -∗ cq γ t n G -∗ isLeader γ ldr t -∗ cmtLb γ ldr t n ={⊤}=∗
+      isCommitted γ (G.take (uint.Z n).toNat) := by
+  iintro #Hinv #Hcq #Hldr #Hclb
   unfold raftCommitInv
   iinv Hinv with ⟨%P, %R, >HP, >Hj, >Htbl, Hpo⟩ Hclose
   imod propsOwn_open γ _ P R $$ Hpo with Hpo
@@ -563,7 +564,7 @@ theorem commit_extend (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) :
   unfold plogLastIndexZ at HnG
   rw [base0_index] at HnG
   unfold committedJust
-  icases Hj with (%HP0 | ⟨%t0, %n0, %G0, #Hcq0, %HP0⟩)
+  icases Hj with (%HP0 | ⟨%t0, %n0, %G0, %ldr0, #Hcq0, %HP0, #Hldr0, #Hclb0⟩)
   · subst HP0
     ihave HP' : ownCommitted γ (G.take 0) $$ [HP]
     · rw [List.take_zero]; iexact HP
@@ -581,10 +582,9 @@ theorem commit_extend (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) :
       · iexact HP
       isplitr [Htbl Hpo]
       · iright
-        iexists t, n, G
-        isplitr
-        · iexact Hcq
-        · ipureintro; rfl
+        iexists t, n, G, ldr
+        iframe Hcq Hldr Hclb
+        ipureintro; rfl
       iframe
     imodintro
     iexact Hc
@@ -612,10 +612,9 @@ theorem commit_extend (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) :
         · iexact HP
         isplitr [Htbl Hpo]
         · iright
-          iexists t, n, G
-          isplitr
-          · iexact Hcq
-          · ipureintro; rfl
+          iexists t, n, G, ldr
+          iframe Hcq Hldr Hclb
+          ipureintro; rfl
         iframe
       imodintro
       iexact Hc
@@ -633,10 +632,9 @@ theorem commit_extend (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) :
         · iexact HP
         isplitr [Htbl Hpo]
         · iright
-          iexists t0, n0, G0
-          isplitr
-          · iexact Hcq0
-          · ipureintro; rfl
+          iexists t0, n0, G0, ldr0
+          iframe Hcq0 Hldr0 Hclb0
+          ipureintro; rfl
         iframe
       imodintro
       iapply isCommitted_mono γ _ _ (by rw [← Htk]; exact take_prefix_le _ _ _ (by omega)) $$ Hc0

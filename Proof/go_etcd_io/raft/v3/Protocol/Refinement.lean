@@ -34,6 +34,27 @@ namespace EtcdGrove
 
 open Iris Iris.BI GMap go_etcd_io.raft.v3
 
+set_option hygiene false in
+/-- The commit lower bounds across a rule that neither makes a leader nor moves a leader's
+term (2026-10-12, `lcmOwn_mono`): each of the four premises is a computation on the
+rule's states. -/
+local macro "lcm_mono" : tactic => `(tactic| (
+  iapply lcmOwn_mono _ _ _ _ ?_ ?_ ?_ ?_ $$ Hlcm <;>
+  first
+    | (intro h; simp_all [psendMsgs, padoptLeader, pbecomeFollower, pbecomeCandidate]; done)
+    | (intro h h'; simp_all [psendMsgs, padoptLeader, pbecomeFollower, pbecomeCandidate]; done)
+    | (simp_all [psendMsgs, padoptLeader, pbecomeFollower, pbecomeCandidate]; done)
+    | (simp [psendMsgs, padoptLeader, pbecomeFollower, pbecomeCandidate]; omega)
+    | (simp [psendMsgs, padoptLeader, pbecomeFollower, pbecomeCandidate, plogCommitTo];
+       split <;> omega)
+    | (intro h; exact absurd h (by simp_all))
+    | (simp_all; done)
+    | exact Int.le_refl _
+    | omega
+    | (dsimp only [psendMsgs, padoptLeader, pbecomeFollower, pbecomeCandidate]; omega)
+    | (intro _ _; dsimp only [psendMsgs, padoptLeader, pbecomeFollower, pbecomeCandidate]; omega)
+    | word))
+
 section ghost
 variable [FfiSyntax]
 variable {GF : BundledGFunctors} [AllG GF] [InvGS GF]
@@ -262,7 +283,7 @@ private theorem ownRaftGhost_step_stale (γ : RaftNames) (id : w64) (s : PState)
       (by show uint.Z s.term < uint.Z s.term + 1; omega) $$ [] Hc
     iapply logRecs_full γ s.base fp s.log Hf $$ Hfr Hrecs
   imodintro
-  iapply ownRaftGhost_intro γ id _ γv voted (some m.src) Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs []
+  iapply ownRaftGhost_intro γ id _ γv voted (some m.src) Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm]
   · ipureintro; exact Hhist
   · rw [psendMsgs_outbox]; simp only [padoptLeader]
     iapply outbox_snoc $$ Hout
@@ -275,6 +296,7 @@ private theorem ownRaftGhost_step_stale (γ : RaftNames) (id : w64) (s : PState)
   · ipureintro; intro _; exact Hfid
   · ipureintro; intro _; rfl
   · ipureintro; exact ⟨fun h => absurd rfl h, fun h => by cases h⟩
+  · lcm_mono
 
 private theorem matchedOk_nonleader (γ : RaftNames) (s : PState) :
     s.role ≠ .leader → ⊢ matchedOk (GF := GF) γ s := by
@@ -753,8 +775,11 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (id : w64) (s : PState)
       (<[s.term := granted s.votes]> wins)
     iframe % # ∗
   have Hwl2' : PlogWfR s2.base s2.log := by rw [Hs2base]; exact PlogWf_wfR _ _ Hwl2
+  -- the commit lower bound of the new term (2026-10-12)
+  imod lcmOwn_win γ id s s2 (by rw [Hrole]; decide) Hs2role Hs2term
+    (by rw [Hs2commit]; exact Int.le_refl _) $$ Hlcm with Hlcm
   imodintro
-  iapply ownRaftGhost_intro γ id _ γv voted (some id) Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs []
+  iapply ownRaftGhost_intro γ id _ γv voted (some id) Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm]
   · ipureintro
     exact VoteHistOk_eq voted s _ Hhist (by show s2.term = s.term; exact Hs2term)
       (by show s2.vote = s.vote; exact Hs2vote)
@@ -795,6 +820,7 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (id : w64) (s : PState)
       rw [Hs2vote]; exact Hrole_ok.1 (by rw [Hrole]; intro h; cases h)
     · have h' : s2.role = .candidate := h
       rw [Hs2role] at h'; cases h'
+  · lcm_mono
 
 /-- `Step.beat`: a heartbeat carries the leadership, a commit index the leader has, and
 the `Match` it is bounded by. -/
@@ -818,7 +844,7 @@ theorem ownRaftGhost_step_beat (γ : RaftNames) (id : w64) (s : PState) (ms : Li
   ihave ⟨#Hfrp, %Hfp⟩ := lpfull_fp $$ Hpf
   ihave #Hcmt := cprefix_transfer γ fp1 fp s Hfp1 Hfp.1 $$ Hfr1 Hfrp Hcm1
   imodintro
-  iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs []
+  iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm]
   · ipureintro; exact Hhist
   · rw [psendMsgs_outbox]
     iapply outbox_app $$ Hout
@@ -858,6 +884,7 @@ theorem ownRaftGhost_step_beat (γ : RaftNames) (id : w64) (s : PState) (ms : Li
   · ipureintro; exact Hlead_ok
   · ipureintro; exact Hfollower_votes
   · ipureintro; exact Hrole_ok
+  · lcm_mono
 
 /-- `Step.sendApps`: as `Step.win`'s broadcast. -/
 theorem ownRaftGhost_step_send_apps (γ : RaftNames) (id : w64) (s : PState)
@@ -879,7 +906,7 @@ theorem ownRaftGhost_step_send_apps (γ : RaftNames) (id : w64) (s : PState)
   ihave ⟨#Hfrp, %Hfp⟩ := lpfull_fp $$ Hpf
   ihave #Hcmt := cprefix_transfer γ fp1 fp s Hfp1 Hfp.1 $$ Hfr1 Hfrp Hcm1
   imodintro
-  iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs []
+  iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm]
   · ipureintro; exact Hhist
   · rw [psendMsgs_outbox]
     iapply outbox_app $$ Hout
@@ -893,6 +920,7 @@ theorem ownRaftGhost_step_send_apps (γ : RaftNames) (id : w64) (s : PState)
   · ipureintro; exact Hlead_ok
   · ipureintro; exact Hfollower_votes
   · ipureintro; exact Hrole_ok
+  · lcm_mono
 
 /-- `Step.propForward`: the forwarded proposal carries the received one's entries, and
 what it says of them (2026-10-10). -/
@@ -909,7 +937,7 @@ theorem ownRaftGhost_step_prop_forward (γ : RaftNames) (id : w64) (s : PState) 
   icases Hown with ⟨%γv, %voted, %kl, H⟩
   iNamed H
   imodintro
-  iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs []
+  iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm]
   · ipureintro; exact Hhist
   · rw [psendMsgs_outbox]
     iapply outbox_snoc $$ Hout
@@ -926,6 +954,7 @@ theorem ownRaftGhost_step_prop_forward (γ : RaftNames) (id : w64) (s : PState) 
   · ipureintro; exact Hlead_ok
   · ipureintro; exact Hfollower_votes
   · ipureintro; exact Hrole_ok
+  · lcm_mono
 
 /-- `Step.appResp`: the new `Match` is the old one or the acknowledgement the message
 carries. -/
@@ -950,7 +979,7 @@ theorem ownRaftGhost_step_app_resp (γ : RaftNames) (id : w64) (s : PState) (m :
   ihave #Hack : isAcked γ m.src s.term m.index $$ []
   · rw [← Hterm]; iapply isMessage_appResp_inv γ m Hty Hrej $$ Hm
   imodintro
-  iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs []
+  iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm]
   · ipureintro; exact Hhist
   · iexact Hout
   · iexact Htally
@@ -971,6 +1000,7 @@ theorem ownRaftGhost_step_app_resp (γ : RaftNames) (id : w64) (s : PState) (m :
   · ipureintro; exact Hlead_ok
   · ipureintro; exact Hfollower_votes
   · ipureintro; exact Hrole_ok
+  · lcm_mono
 
 /-- `Step.commit`: a quorum of `Match`es at least `n` is a commit fact `cq`, which extends
 the global committed log (`commit_extend`, inside the invariant) -- the node's committed
@@ -1017,9 +1047,11 @@ theorem ownRaftGhost_step_commit (γ : RaftNames) (id : w64) (s : PState) (n : w
     isplitr
     · ipureintro; simpa using Hle'
     · iapply BigSepM.bigSepM_lookup Hx $$ Hmatched
-  imod commit_extend γ s.term n (fp0 ++ s.log) $$ Hinv Hcq with #Hcmn
+  imod lcmOwn_commit γ id s { s with commit := n } n Hrole Hrole rfl rfl (Int.le_of_lt Hlt)
+    $$ Hlcm with ⟨Hlcm, #Hclb⟩
+  imod commit_extend γ s.term n (fp0 ++ s.log) id $$ Hinv Hcq Hl Hclb with #Hcmn
   imodintro
-  iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs []
+  iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm]
   · ipureintro; exact Hhist
   · iexact Hout
   · iexact Htally
@@ -1046,6 +1078,7 @@ theorem ownRaftGhost_step_commit (γ : RaftNames) (id : w64) (s : PState) (n : w
   · ipureintro; exact Hlead_ok
   · ipureintro; exact Hfollower_votes
   · ipureintro; exact Hrole_ok
+  · iexact Hlcm
 
 /-- `Step.appStale`: back to follower of `m.src` in the same term, and acknowledge the
 commit index -- which needs no justification. -/
@@ -1081,7 +1114,7 @@ theorem ownRaftGhost_step_app_reject (γ : RaftNames) (id : w64) (s : PState) (m
   icases Hown with ⟨%γv, %voted, %kl, H⟩
   iNamed H
   imodintro
-  iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs []
+  iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm]
   · ipureintro; exact Hhist
   · rw [psendMsgs_outbox]; simp only [padoptLeader]
     iapply outbox_snoc $$ Hout
@@ -1094,6 +1127,7 @@ theorem ownRaftGhost_step_app_reject (γ : RaftNames) (id : w64) (s : PState) (m
   · ipureintro; intro _; exact Hfid
   · ipureintro; intro _; rfl
   · ipureintro; exact ⟨fun h => absurd rfl h, fun h => by cases h⟩
+  · lcm_mono
 
 /-- `Step.heartbeat`: back to follower of `m.src`; the new commit index is the old one or
 the heartbeat's, which carries `isCommittedIdx` and which the rule's premise puts within
@@ -1122,7 +1156,7 @@ theorem ownRaftGhost_step_heartbeat (γ : RaftNames) (id : w64) (s : PState) (m 
   ihave #Hagree := ownLogGhost_ack_agree γ id s kl i $$ Hlg Hack
   ihave ⟨%Hok, #Hrecs⟩ := ownLogGhost_recs $$ Hlg
   imodintro
-  iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs []
+  iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm]
   · ipureintro; exact Hhist
   · rw [psendMsgs_outbox]; simp only [padoptLeader]
     iapply outbox_snoc $$ Hout
@@ -1200,6 +1234,7 @@ theorem ownRaftGhost_step_heartbeat (γ : RaftNames) (id : w64) (s : PState) (m 
   · ipureintro; intro _; exact Hfid
   · ipureintro; intro _; rfl
   · ipureintro; exact ⟨fun h => absurd rfl h, fun h => by cases h⟩
+  · lcm_mono
 
 /-- `Step.appAccept`. The new log is the old one cut at the first conflict, if any, and
 the batch appended (`plogMaybeAppend_inv`); the batch is the leader's (`isMessage`'s
@@ -1558,7 +1593,7 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
     · ipureintro; omega
     · iexact HLf
   imodintro
-  iapply ownRaftGhost_intro γ id _ γv voted (some m.src) Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs []
+  iapply ownRaftGhost_intro γ id _ γv voted (some m.src) Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm]
   · ipureintro; exact Hhist
   · rw [psendMsgs_outbox]; simp only [padoptLeader]
     iapply outbox_snoc $$ Hout
@@ -1576,6 +1611,7 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
   · ipureintro; intro _; exact Hfid
   · ipureintro; intro _; rfl
   · ipureintro; exact ⟨fun h => absurd rfl h, fun h => by cases h⟩
+  · lcm_mono
 
 /-- Freezing a batch of stamped entries into the leader's term log: their indices are
 past everything in it (`leadLogOwn`'s bound) and do not wrap. Each is frozen with the
@@ -1950,7 +1986,7 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
       | some _ => show uint.Z s.term < uint.Z s.term + 1; omega
     · iexact HLf
   imodintro
-  iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs []
+  iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm]
   · ipureintro; exact Hhist
   · rw [psendMsgs_outbox, show (pappend s nw).outbox = s.outbox from rfl]
     iapply outbox_snoc $$ Hout
@@ -1964,6 +2000,7 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
   · ipureintro; exact Hlead_ok
   · ipureintro; exact Hfollower_votes
   · ipureintro; exact Hrole_ok
+  · lcm_mono
 
 /-- `Step.snapStale`: back to follower of `m.src`, acknowledging the commit index --
 `Step.appStale`'s update. -/
@@ -2053,7 +2090,7 @@ theorem ownRaftGhost_step_snap_fastfwd (γ : RaftNames) (id : w64) (s : PState) 
       (by show uint.Z s.term < uint.Z s.term + 1; omega) $$ [] Hc
     iapply logRecs_full γ s.base fp s.log Hf $$ Hfr Hrecs
   imodintro
-  iapply ownRaftGhost_intro γ id _ γv voted (some m.src) Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs []
+  iapply ownRaftGhost_intro γ id _ γv voted (some m.src) Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm]
   · ipureintro; exact Hhist
   · rw [psendMsgs_outbox]; simp only [padoptLeader]
     iapply outbox_snoc $$ Hout
@@ -2067,6 +2104,7 @@ theorem ownRaftGhost_step_snap_fastfwd (γ : RaftNames) (id : w64) (s : PState) 
   · ipureintro; intro _; exact Hfid
   · ipureintro; intro _; rfl
   · ipureintro; exact ⟨fun h => absurd rfl h, fun h => by cases h⟩
+  · lcm_mono
 
 /-- `Step.snapRestore`: the log is replaced by the snapshot -- no entries after the new
 base, so no records to keep; the compacted prefix is the leader's full log up to the
@@ -2203,7 +2241,7 @@ theorem ownRaftGhost_step_snap_restore (γ : RaftNames) (id : w64) (s : PState) 
     unfold logRecs
     iapply BigSepL.bigSepL_nil.2; iempintro
   imodintro
-  iapply ownRaftGhost_intro γ id _ γv voted (some m.src) Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs []
+  iapply ownRaftGhost_intro γ id _ γv voted (some m.src) Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm]
   · ipureintro; exact Hhist
   · rw [psendMsgs_outbox]; simp only [padoptLeader]
     iapply outbox_snoc $$ Hout
@@ -2219,6 +2257,7 @@ theorem ownRaftGhost_step_snap_restore (γ : RaftNames) (id : w64) (s : PState) 
   · ipureintro; intro _; exact Hfid
   · ipureintro; intro _; rfl
   · ipureintro; exact ⟨fun h => absurd rfl h, fun h => by cases h⟩
+  · lcm_mono
 
 /-! ### The refinement obligation -/
 
@@ -2246,7 +2285,7 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
     iNamed H
     have Hne : m.term ≠ s.term := by intro Heq; rw [Heq] at Hlt; omega
     imodintro
-    iapply ownRaftGhost_intro γ id _ γv voted none Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs []
+    iapply ownRaftGhost_intro γ id _ γv voted none Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm]
     · ipureintro
       refine ⟨fun t Ht => ?_, ?_⟩
       · have := Hhist.1 t Ht; show uint.Z t ≤ uint.Z m.term; omega
@@ -2264,6 +2303,7 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
       · exact fun h => Hidnz h.symm
     · ipureintro; intro _; rfl
     · ipureintro; exact ⟨fun h => absurd rfl h, fun h => by cases h⟩
+    · lcm_mono
   | campaign s peers Hrole Hin Hnw Hperm =>
     iintro _ Hown
     iunfold ownRaftGhost at Hown
@@ -2290,7 +2330,7 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
     · unfold isVote; iexists γv; iframe Hself; ipureintro; exact Hname
     imodintro
     iapply ownRaftGhost_intro γ id _ γv (<[s.term + W64 1 := id]> voted) none Hname Hidnz $$
-      Hvoted [] [] [] [] [] [Hlg] [] [] [] []
+      Hvoted [] [] [] [] [] [Hlg] [] [] [] [] [Hlcm]
     · ipureintro
       refine ⟨fun t Ht => ?_, ?_⟩
       · show uint.Z t ≤ uint.Z (s.term + W64 1)
@@ -2330,6 +2370,7 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
       · iexact Hvj
       · iexact Hvrecs
     · ipureintro; exact ⟨fun _ => rfl, fun _ => rfl⟩
+    · lcm_mono
   | grantVote m s Hty Hto Hfrom Hterm Hcan Hutd =>
     iintro Hrecv Hown
     ihave #Hm := recv_one $$ Hrecv
@@ -2404,7 +2445,7 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
           · iexact Hvrecs
     imod H2 with ⟨%voted', Hvoted, %Hhist', #Hfrags', #Hvrecs', #Hgrant, Hlg⟩
     imodintro
-    iapply ownRaftGhost_intro γ id _ γv voted' kl Hname Hidnz $$ Hvoted [] Hfrags' [] [] [] [Hlg] [] [] Hvrecs' []
+    iapply ownRaftGhost_intro γ id _ γv voted' kl Hname Hidnz $$ Hvoted [] Hfrags' [] [] [] [Hlg] [] [] Hvrecs' [] [Hlcm]
     · ipureintro; exact Hhist'
     · rw [psendMsgs_outbox]
       iapply outbox_snoc $$ Hout
@@ -2422,13 +2463,14 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
       rcases Hcan with Hs | ⟨Hn, -⟩
       · rw [← Hs]; exact Hrole_ok.1 Hr
       · exfalso; apply Hidnz; rw [← Hn]; exact (Hrole_ok.1 Hr).symm
+    · lcm_mono
   | rejectVote m s Hty Hto =>
     iintro _ Hown
     iunfold ownRaftGhost at Hown
     icases Hown with ⟨%γv, %voted, %kl, H⟩
     iNamed H
     imodintro
-    iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs []
+    iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm]
     · ipureintro; exact Hhist
     · rw [psendMsgs_outbox]
       iapply outbox_snoc $$ Hout
@@ -2439,6 +2481,7 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
     · ipureintro; exact Hlead_ok
     · ipureintro; exact Hfollower_votes
     · ipureintro; exact Hrole_ok
+    · lcm_mono
   | recordVote m s Hty Hto Hterm Hrole =>
     iintro Hrecv Hown
     ihave #Hm := recv_one $$ Hrecv
@@ -2446,7 +2489,7 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
     icases Hown with ⟨%γv, %voted, %kl, H⟩
     iNamed H
     imodintro
-    iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs []
+    iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm]
     · ipureintro; exact Hhist
     · iexact Hout
     · iapply BigSepM.bigSepM_forall_elim
@@ -2467,6 +2510,7 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
     · ipureintro; exact Hlead_ok
     · ipureintro; intro h; rw [Hrole] at h; cases h
     · ipureintro; exact Hrole_ok
+    · lcm_mono
   | win s mt ms Hrole Hq Hnw Hmt Hms =>
     iintro _ Hown
     imod ownRaftGhost_step_win γ id s mt ms Hrole Hq Hnw Hmt Hms $$ Hown with Hown
@@ -2478,7 +2522,7 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
     iNamed H
     have Hlead0 := Hrole_ok.2 Hrole
     imodintro
-    iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs []
+    iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm]
     · ipureintro
       exact VoteHistOk_eq voted s _ Hhist rfl (pbecomeFollower_vote_same s _)
     · iapply outbox_eq γ s _ (by rfl) $$ Hout
@@ -2490,13 +2534,14 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
     · ipureintro; intro _; exact fun h => Hidnz h.symm
     · ipureintro; intro _; rfl
     · ipureintro; exact ⟨fun h => absurd rfl h, fun h => by cases h⟩
+    · lcm_mono
   | drain s o' Hsub =>
     iintro _ Hown
     iunfold ownRaftGhost at Hown
     icases Hown with ⟨%γv, %voted, %kl, H⟩
     iNamed H
     imodintro
-    iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs []
+    iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm]
     · ipureintro; exact Hhist
     · iapply BigSepL.bigSepL_forall_elim
       iintro %k %x %Hk
@@ -2510,6 +2555,7 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
     · ipureintro; exact Hlead_ok
     · ipureintro; exact Hfollower_votes
     · ipureintro; exact Hrole_ok
+    · lcm_mono
   | appAccept m s lastnewi es' Hty _ Hfid Hterm Hrole Hcm Happ _ =>
     iintro Hrecv Hown
     ihave #Hm := recv_one $$ Hrecv
@@ -2581,7 +2627,7 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
     icases Hown with ⟨%γv, %voted, %kl, H⟩
     iNamed H
     imodintro
-    iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs []
+    iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm]
     · ipureintro; exact Hhist
     · rw [psendMsgs_outbox]
       iapply outbox_snoc $$ Hout
@@ -2593,13 +2639,14 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
     · ipureintro; exact Hlead_ok
     · ipureintro; exact Hfollower_votes
     · ipureintro; exact Hrole_ok
+    · lcm_mono
   | abandon s Hrole =>
     iintro _ Hown
     iunfold ownRaftGhost at Hown
     icases Hown with ⟨%γv, %voted, %kl, H⟩
     iNamed H
     imodintro
-    iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs []
+    iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm]
     · ipureintro
       exact VoteHistOk_eq voted s _ Hhist rfl (pbecomeFollower_vote_same s _)
     · iapply outbox_eq γ s _ (by rfl) $$ Hout
@@ -2611,13 +2658,14 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
     · ipureintro; intro _; exact fun h => Hidnz h.symm
     · ipureintro; intro _; rfl
     · ipureintro; exact ⟨fun h => absurd rfl h, fun h => by cases h⟩
+    · lcm_mono
   | zeroAck s dst =>
     iintro _ Hown
     iunfold ownRaftGhost at Hown
     icases Hown with ⟨%γv, %voted, %kl, H⟩
     iNamed H
     imodintro
-    iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs []
+    iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm]
     · ipureintro; exact Hhist
     · rw [psendMsgs_outbox]
       iapply outbox_snoc $$ Hout
@@ -2629,6 +2677,7 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
     · ipureintro; exact Hlead_ok
     · ipureintro; exact Hfollower_votes
     · ipureintro; exact Hrole_ok
+    · lcm_mono
 
 end ghost
 

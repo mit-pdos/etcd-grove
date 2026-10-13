@@ -594,7 +594,10 @@ theorem votesTbl_insert (γ : RaftNames) (id : w64) (γv : GName) (voted : GMap 
   iexact Hf
 
 def committedJust (γ : RaftNames) (l : List raftpb.Entry) : IProp GF :=
-  iprop(⌜l = []⌝ ∨ ∃ t n G, cq γ t n G ∗ ⌜l = G.take (uint.Z n).toNat⌝)
+  iprop(⌜l = []⌝ ∨ ∃ t n G ldr, cq γ t n G ∗ ⌜l = G.take (uint.Z n).toNat⌝ ∗
+    -- (2026-10-12, read-index) the leader of `t` whose commit extended the log to `n`,
+    -- and its commit lower bound for `t`
+    isLeader γ ldr t ∗ cmtLb γ ldr t n)
 
 instance committedJust_timeless (γ : RaftNames) (l : List raftpb.Entry) :
     Timeless (committedJust (GF := GF) γ l) := by
@@ -722,6 +725,184 @@ entries at indices `1 .. commit`). -/
 def cprefix (fp : List raftpb.Entry) (s : PState) : List raftpb.Entry :=
   (fp ++ s.log).take (uint.Z s.commit).toNat
 
+/-! ### The commit lower bounds of the terms a node led (2026-10-12, read-index)
+
+`lcmOwn γ id s`: node `id`'s map `term ↦ γc` (`reLcm`), with its keys as `TermsOk`'s, and,
+while it leads, the authority of its current term's lower bound, at most its commit index.
+The leader's commit raises it (`lcmOwn_commit`), which gives the global log's
+justification its `cmtLb`; a leader of `T` reads every `cmtLb` of its own `T` as at most
+its commit index (`lcmOwn_bound`). -/
+
+theorem uint_nat_le_of_Z_le {a b : w64} (h : uint.Z a ≤ uint.Z b) : uint.nat a ≤ uint.nat b := by
+  simp only [uint.nat, uint.Z] at *; omega
+
+def LcmOk (lcm : GMap w64 GName) (s : PState) : Prop :=
+  ∀ t, (lcm !! t).isSome →
+    uint.Z t < uint.Z s.term ∨
+    (t = s.term ∧ s.role = .leader)
+
+def lcmLead (s : PState) (lcm : GMap w64 GName) : IProp GF :=
+  match s.role with
+  | .leader => iprop(∃ γc c, ⌜lcm !! s.term = some γc⌝ ∗ monoNatAuthOwn γc 1 c ∗
+      ⌜c ≤ uint.nat s.commit⌝)
+  | _ => iprop(True)
+
+instance lcmLead_timeless (s : PState) (lcm : GMap w64 GName) :
+    Timeless (lcmLead (GF := GF) s lcm) := by
+  unfold lcmLead; split <;> infer_instance
+
+theorem lcmLead_leader (s : PState) (lcm : GMap w64 GName) (h : s.role = .leader) :
+    lcmLead (GF := GF) s lcm = iprop(∃ γc c, ⌜lcm !! s.term = some γc⌝ ∗
+      monoNatAuthOwn γc 1 c ∗ ⌜c ≤ uint.nat s.commit⌝) := by
+  unfold lcmLead; rw [h]
+
+theorem lcmLead_nl (s : PState) (lcm : GMap w64 GName) (h : s.role ≠ .leader) :
+    lcmLead (GF := GF) s lcm = iprop(True) := by
+  unfold lcmLead; split
+  · contradiction
+  · rfl
+
+def lcmOwn (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
+  iprop(∃ γl, ∃ (lcm : GMap w64 GName), ⌜γ.reLcm !! id = some γl⌝ ∗
+    ghostMapAuth γl 1 lcm ∗ ([∗map] t ↦ γc ∈ lcm, t ↪[γl]□ γc) ∗
+    ⌜LcmOk lcm s⌝ ∗ lcmLead s lcm)
+
+instance lcmOwn_timeless (γ : RaftNames) (id : w64) (s : PState) :
+    Timeless (lcmOwn (GF := GF) γ id s) := by
+  unfold lcmOwn; infer_instance
+
+/-- Across a step: a leader stays one only within its term, leaves a term only for a
+higher one, and the commit index does not move back. -/
+theorem lcmOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
+    (s'.role = .leader → s.role = .leader ∧ s'.term = s.term) →
+    (s'.role ≠ .leader → s.role = .leader → uint.Z s.term < uint.Z s'.term) →
+    uint.Z s.term ≤ uint.Z s'.term →
+    uint.Z s.commit ≤ uint.Z s'.commit →
+    lcmOwn (GF := GF) γ id s ⊢ lcmOwn γ id s' := by
+  intro Hlead Hdown Hle Hcm
+  unfold lcmOwn
+  iintro ⟨%γl, %lcm, %Hγl, Ha, #Hf, %Hok, Hl⟩
+  iexists γl, lcm
+  iframe Ha Hf
+  isplitr; · ipureintro; exact Hγl
+  isplitr
+  · ipureintro
+    intro t Ht
+    rcases Hok t Ht with Hlt | ⟨rfl, Hr⟩
+    · left; omega
+    · by_cases Hr' : s'.role = .leader
+      · obtain ⟨-, Hte⟩ := Hlead Hr'; right; exact ⟨Hte.symm, Hr'⟩
+      · left; exact Hdown Hr' Hr
+  by_cases Hr' : s'.role = .leader
+  · obtain ⟨Hr, Hte⟩ := Hlead Hr'
+    rw [lcmLead_leader s lcm Hr, lcmLead_leader s' lcm Hr', Hte]
+    icases Hl with ⟨%γc, %c, %Hc, Hac, %Hcle⟩
+    iexists γc, c
+    iframe Hac
+    ipureintro
+    refine ⟨Hc, ?_⟩
+    have := uint_nat_le_of_Z_le Hcm
+    omega
+  · rw [lcmLead_nl s' lcm Hr']
+    ipureintro; trivial
+
+/-- A candidate that wins its term allocates the term's lower bound, at its commit
+index. -/
+theorem lcmOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
+    s.role ≠ .leader → s'.role = .leader → s'.term = s.term →
+    uint.Z s.commit ≤ uint.Z s'.commit →
+    lcmOwn (GF := GF) γ id s ⊢ |==> lcmOwn γ id s' := by
+  intro Hr Hr' Hte Hcm
+  unfold lcmOwn
+  iintro ⟨%γl, %lcm, %Hγl, Ha, #Hf, %Hok, -⟩
+  have Hfree : lcm !! s.term = none := by
+    cases h : lcm !! s.term with
+    | none => rfl
+    | some _ =>
+      rcases Hok s.term (by simp [h]) with Hlt | ⟨-, Hl⟩
+      · omega
+      · exact absurd Hl Hr
+  imod mono_nat_own_alloc (GF := GF) (uint.nat s.commit) with ⟨%γc, Hac, -⟩
+  imod ghost_map_insert_persist s.term γc Hfree $$ Ha with ⟨Ha, #Hfc⟩
+  imodintro
+  iexists γl, (<[s.term := γc]> lcm)
+  iframe Ha
+  isplitr; · ipureintro; exact Hγl
+  isplitr
+  · iapply (BigSepM.bigSepM_insert (Φ := fun t γc => iprop(t ↪[γl]□ γc)) Hfree).2
+    isplitr; · iexact Hfc
+    iexact Hf
+  isplitr
+  · ipureintro
+    intro t Ht
+    by_cases Htt : s.term = t
+    · subst Htt; right; exact ⟨Hte.symm, Hr'⟩
+    · rw [GMap.lookup_insert_ne _ _ Htt] at Ht
+      rcases Hok t Ht with Hlt | ⟨rfl, Hl⟩
+      · left; rw [Hte]; exact Hlt
+      · exact absurd Hl Hr
+  rw [lcmLead_leader s' _ Hr', Hte]
+  iexists γc, uint.nat s.commit
+  iframe Hac
+  ipureintro
+  refine ⟨by simp, uint_nat_le_of_Z_le Hcm⟩
+
+/-- A leader's commit moving up to `n`: the lower bound follows, and gives `cmtLb`. -/
+theorem lcmOwn_commit (γ : RaftNames) (id : w64) (s s' : PState) (n : w64) :
+    s.role = .leader → s'.role = .leader → s'.term = s.term → s'.commit = n →
+    uint.Z s.commit ≤ uint.Z n →
+    lcmOwn (GF := GF) γ id s ⊢ |==> (lcmOwn γ id s' ∗ cmtLb γ id s.term n) := by
+  intro Hr Hr' Hte Hc Hle
+  unfold lcmOwn
+  iintro ⟨%γl, %lcm, %Hγl, Ha, #Hf, %Hok, Hl⟩
+  rw [lcmLead_leader s lcm Hr]
+  icases Hl with ⟨%γc, %c, %Hγc, Hac, %Hcle⟩
+  have Hcn : c ≤ uint.nat n := by have := uint_nat_le_of_Z_le Hle; omega
+  ihave Hup := mono_nat_own_update (GF := GF) (γ := γc) (n := c) (uint.nat n) Hcn $$ Hac
+  imod Hup with ⟨Hac, #Hlb⟩
+  ihave #Hfc := BigSepM.bigSepM_lookup (Φ := fun t γc => iprop(t ↪[γl]□ γc)) Hγc $$ Hf
+  imodintro
+  isplitl [Ha Hac]
+  · iexists γl, lcm
+    iframe Ha Hf
+    isplitr; · ipureintro; exact Hγl
+    isplitr
+    · ipureintro
+      intro t Ht
+      rcases Hok t Ht with Hlt | ⟨rfl, -⟩
+      · left; rw [Hte]; exact Hlt
+      · right; exact ⟨Hte.symm, Hr'⟩
+    rw [lcmLead_leader s' lcm Hr', Hte]
+    iexists γc, uint.nat n
+    iframe Hac
+    ipureintro
+    exact ⟨Hγc, by rw [Hc]; exact Nat.le_refl _⟩
+  · unfold cmtLb
+    iexists γl, γc
+    iframe Hfc Hlb
+    ipureintro; exact Hγl
+
+/-- A leader of `T` holds every commit lower bound of its own `T` to its commit index. -/
+theorem lcmOwn_bound (γ : RaftNames) (id : w64) (s : PState) (n : w64) :
+    s.role = .leader →
+    ⊢ lcmOwn (GF := GF) γ id s -∗ cmtLb γ id s.term n -∗ ⌜uint.Z n ≤ uint.Z s.commit⌝ := by
+  intro Hr
+  unfold lcmOwn cmtLb
+  iintro ⟨%γl, %lcm, %Hγl, Ha, #Hf, %Hok, Hl⟩ ⟨%γl', %γc', %Hγl', #Hfc', #Hlb⟩
+  rw [Hγl] at Hγl'; cases Hγl'
+  rw [lcmLead_leader s lcm Hr]
+  icases Hl with ⟨%γc, %c, %Hγc, Hac, %Hcle⟩
+  ihave #Hfc := BigSepM.bigSepM_lookup (Φ := fun t γc => iprop(t ↪[γl]□ γc)) Hγc $$ Hf
+  icases ghostMapElem_agree $$ Hfc Hfc' with %Heq
+  subst Heq
+  ihave %Hv := monoNatLbOwn_valid γc 1 c (uint.nat n) $$ Hac Hlb
+  ipureintro
+  have h1 : (uint.nat n : Int) = uint.Z n := by simp [uint.nat, uint.Z]
+  have h2 : (uint.nat s.commit : Int) = uint.Z s.commit := by simp [uint.nat, uint.Z]
+  have h3 : (uint.nat n : Int) ≤ c := by exact_mod_cast Hv.2
+  have h4 : (c : Int) ≤ uint.nat s.commit := by exact_mod_cast Hcle
+  omega
+
 /-- The terms a node has won: as `TermsOk`. -/
 def WinsOk (wins : GMap w64 (GSet w64)) (s : PState) : Prop :=
   ∀ t, (wins !! t).isSome →
@@ -795,7 +976,9 @@ def ownRaftGhost (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
     "%Hlead_ok" ∷ ⌜LeadOk id s⌝ ∗
     "%Hfollower_votes" ∷ ⌜FollowerVotesOk s⌝ ∗
     "#Hvrecs" ∷ ([∗map] t ↦ c ∈ voted, voteJust γ id t c) ∗
-    "%Hrole_ok" ∷ ⌜RoleOk id s⌝)
+    "%Hrole_ok" ∷ ⌜RoleOk id s⌝ ∗
+    -- 2026-10-12 (read-index): the commit lower bounds of the terms it led
+    "Hlcm"     ∷ lcmOwn γ id s)
 
 -- Not `Timeless` since 2026-10-05: `ownLogGhost` holds the invariant `raftCommitInv`.
 
@@ -814,10 +997,11 @@ theorem ownRaftGhost_intro (γ : RaftNames) (id : w64) (s : PState) (γv : GName
       ⌜FollowerVotesOk s⌝ -∗
       ([∗map] t ↦ c ∈ voted, voteJust γ id t c) -∗
       ⌜RoleOk id s⌝ -∗
+      lcmOwn γ id s -∗
       ownRaftGhost γ id s := by
   intro Hname Hidnz
   unfold ownRaftGhost
-  iintro H1 %H2 #H3 #H4 #H5 #H6 H7 %H8 %H9 #H10 %H11
+  iintro H1 %H2 #H3 #H4 #H5 #H6 H7 %H8 %H9 #H10 %H11 H12
   iexists γv, voted, kl
   isplitr; · ipureintro; exact Hname
   isplitr; · ipureintro; exact Hidnz
@@ -831,7 +1015,8 @@ theorem ownRaftGhost_intro (γ : RaftNames) (id : w64) (s : PState) (γv : GName
   isplitr; · ipureintro; exact H8
   isplitr; · ipureintro; exact H9
   isplitr; · iexact H10
-  ipureintro; exact H11
+  isplitr; · ipureintro; exact H11
+  iexact H12
 
 /-- A non-leader does not record itself as leader. -/
 theorem ownRaftGhost_lead_ok (γ : RaftNames) (id : w64) (s : PState) :

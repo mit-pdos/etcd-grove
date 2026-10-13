@@ -94,6 +94,7 @@ module
 public import Proof.go_etcd_io.raft.v3.Protocol.Model
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.MonoList
+public import Perennial.Ghost.MonoNat
 public import Perennial.Ghost.SavedProp
 public import Perennial.Ghost.Token
 public import Perennial.GooseLang.Countable
@@ -204,6 +205,22 @@ structure RaftNames where
   client holds; `propFresh γ d` (an element) is what a first deposit of `d` consumes
   (the invariant keeps it), so no data is deposited twice. -/
   reFresh : GName
+  /-- `reLcm !! id` (2026-10-12, read-index): node `id`'s map `term ↦ γc` of the commit
+  lower bounds of the terms it led: `γc` is a monotone nat, whose authority the node holds
+  while it leads that term (at most its commit index), and whose lower bounds the global
+  committed log's justification carries (`cmtLb`). -/
+  reLcm : GMap w64 GName
+  /-- `reRdq !! id` (2026-10-12): node `id`'s map `term ↦ γq` of the read-request
+  registries of the terms it led (a `mono_list` of `rqRec`s, `ownReadGhost`). -/
+  reRdq : GMap w64 GName
+  /-- The read contexts (2026-10-12): a ghost map `ctx ↦ Lc` (persistent elements,
+  `readReq`), the committed log when the context was created; the authority is in
+  `raftCommitInv`, and creating a context consumes its fresh token (`propFresh`). -/
+  reReads : GName
+  /-- The read credits (2026-10-12): an `Auth Nat`; a `MsgReadIndex` carries one, and a
+  leader keeps the ones its requests carried (`ownReadGhost`), which bounds its request
+  positions. -/
+  reRdCred : GName
 
 /-- An event of a node's history (`reEvs`): an acknowledgement `(t, i)`, or a vote in
 `T` cast knowing the leader of `T` iff `d`, with full log `F` (`isVlog`'s data). -/
@@ -320,6 +337,18 @@ instance isLeader_timeless (γ : RaftNames) (id term : w64) :
 
 Two leaders in one term were each elected by a quorum; the quorums meet in a voter that
 cast one vote. -/
+/-- The leader `ldr` of `t` had a commit index of at least `n` (2026-10-12): a lower bound
+of its commit lower bound for `t` (`reLcm`). -/
+def cmtLb (γ : RaftNames) (ldr t n : w64) : IProp GF :=
+  iprop(∃ γl γc, ⌜γ.reLcm !! ldr = some γl⌝ ∗ t ↪[γl]□ γc ∗ monoNatLbOwn γc (uint.nat n))
+
+instance cmtLb_persistent (γ : RaftNames) (ldr t n : w64) :
+    Persistent (cmtLb (GF := GF) γ ldr t n) := by
+  unfold cmtLb; infer_instance
+instance cmtLb_timeless (γ : RaftNames) (ldr t n : w64) :
+    Timeless (cmtLb (GF := GF) γ ldr t n) := by
+  unfold cmtLb; infer_instance
+
 theorem isLeader_unique (γ : RaftNames) (id1 id2 term : w64) :
     ⊢ isLeader (GF := GF) γ id1 term -∗ isLeader γ id2 term -∗ ⌜id1 = id2⌝ := by
   unfold isLeader isWin
