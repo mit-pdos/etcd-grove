@@ -13,6 +13,7 @@ public import Spec.go_etcd_io.etcd.client.v3.OpPut
 public import Spec.go_etcd_io.etcd.client.v3.OpGet
 public import Spec.go_etcd_io.etcd.client.v3.WithFirstCreate
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseRange
+public import Spec.fmt.SprintfNamed
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.InvMutexLemmas
 
 @[expose] public section
@@ -84,7 +85,8 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
     (hPut : EtcdGrove.OpPut.spec (GF := GF) (hG := hG))
     (hGet : EtcdGrove.OpGet.spec (GF := GF) (hG := hG))
     (hWFC : EtcdGrove.WithFirstCreate.spec (GF := GF) (hG := hG))
-    (hGRR : EtcdGrove.ResponseOp.GetResponseRange.spec (GF := GF) (hG := hG)) :
+    (hGRR : EtcdGrove.ResponseOp.GetResponseRange.spec (GF := GF) (hG := hG))
+    (hSp : EtcdGrove.fmt.SprintfNamed.spec (GF := GF) (hG := hG)) :
     Mutex.tryAcquire.spec (GF := GF) (hG := hG) := by
   intro m s γ client id pfx st ctx cs lo
   wp_start as ⟨#Hm, Hst, #Hctx, #Hlo⟩
@@ -104,14 +106,19 @@ theorem Mutex.tryAcquire.wp_proof (hCl : Session.Client.spec (GF := GF) (hG := h
   (try wp_auto)
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
-  wp_apply _root_.Perennial.fmt.wp_Sprintf _ _ _ _ ?wf $$ [$Hfmt $Hargs] as %key ⟨Hargs, %Hkey⟩
-  case wf =>
+  wp_apply hSp $$ [$Hfmt $Hargs] as %key ⟨Hargs, %Hkey⟩
+  · ipureintro
     rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
-    simp only [List.set_cons_succ, List.set_cons_zero]
-    exact .cons_string _ _ (.cons_other _ _ _ (by simp [go.string, go_etcd_io.etcd.client.v3.LeaseID.ty])
-      (by simp [_root_.Perennial.fmt.IsIntType, go.int, go.int64, go.int32, go.int16, go.int8,
-        go.uint, go.uint64, go.uint32, go.uint16, go.uint8, go_etcd_io.etcd.client.v3.LeaseID.ty])
-      .nil)
+    simp only [List.set_cons_succ, List.set_cons_zero, List.mem_cons, List.not_mem_nil,
+      or_false, forall_eq_or_imp, forall_eq]
+    refine ⟨Or.inl ((_root_.Perennial.fmt.ArgsWf.cons_string pfx []
+      _root_.Perennial.fmt.ArgsWf.nil) _ (List.mem_singleton_self _)), Or.inr ⟨⟨go!"go.etcd.io/etcd/client/v3.LeaseID", ?_, ?_⟩, ?_⟩⟩
+    · simp [go_etcd_io.etcd.client.v3.LeaseID.ty]
+    · simp [EtcdGrove.fmt.methodlessNamedTypes]
+    · show _root_.Perennial.fmt.IsBasicType (underlying go_etcd_io.etcd.client.v3.LeaseID.ty)
+      rw [show underlying go_etcd_io.etcd.client.v3.LeaseID.ty = go.int64
+        from go.IsUnderlying.is_underlying]
+      simp [_root_.Perennial.fmt.IsBasicType, _root_.Perennial.fmt.IsIntType]
   rw [show sint.nat (W64 (0 + 1)) = 1 by rfl] at Hkey
   simp only [List.set_cons_succ, List.set_cons_zero] at Hkey
   have Hpk : pfx <+: key := _root_.Perennial.fmt.SprintfOut.str_x_prefix pfx _ _ Hkey

@@ -73,7 +73,10 @@ Mutex__IsOwner: CreateRevision v3_Compare
 NewLocker: NewMutex
 waitDelete: WithRev WatchResponse__Err
 waitDeletes: WithLastCreate WithMaxCreateRev waitDelete
-Mutex__tryAcquire: Session__Client Session__Lease CreateRevision v3_Compare v3_WithLease OpPut OpGet WithFirstCreate ResponseOp__GetResponseRange
+# `fmt.Sprintf` of a `LeaseID` (`%x`): the trust boundary (an etcd-grove axiom,
+# `Proof/fmt/SprintfNamed.lean`).
+fmt_SprintfNamed:
+Mutex__tryAcquire: Session__Client Session__Lease CreateRevision v3_Compare v3_WithLease OpPut OpGet WithFirstCreate ResponseOp__GetResponseRange fmt_SprintfNamed
 Mutex__Unlock: Session__Client
 Mutex__TryLock: Mutex__tryAcquire ResponseOp__GetResponseRange Session__Client
 Mutex__Lock: Mutex__tryAcquire ResponseOp__GetResponseRange Session__Client waitDeletes Client__Ctx Mutex__Unlock
@@ -88,7 +91,7 @@ Election__Header:
 Election__Leader: Session__Client WithFirstCreate
 Election__Resign: Session__Client CreateRevision v3_Compare OpDelete
 Election__Proclaim: Session__Client CreateRevision v3_Compare Session__Lease v3_WithLease OpPut
-Election__Campaign: Session__Client Session__Lease CreateRevision v3_Compare v3_WithLease OpPut OpGet ResponseOp__GetResponseRange Election__Proclaim Election__Resign waitDeletes Client__Ctx
+Election__Campaign: Session__Client Session__Lease CreateRevision v3_Compare v3_WithLease OpPut OpGet ResponseOp__GetResponseRange Election__Proclaim Election__Resign waitDeletes Client__Ctx fmt_SprintfNamed
 Election__observe: Session__Client WithFirstCreate WithRev WithPrefix WatchResponse__Err
 Election__Observe: Election__observe
 # STM (client/v3/concurrency/stm.go), see InvSTM.lean. The STM's abort (`panic(stmError{err})`)

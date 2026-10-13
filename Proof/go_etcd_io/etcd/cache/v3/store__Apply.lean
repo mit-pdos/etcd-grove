@@ -120,7 +120,7 @@ theorem store.Apply.wp_proof
         ∃ Y : w64, st.history.getLast? = some (Y, st.latest) ∧ sint.Z lo ≤ sint.Z Y :=
       ⟨Hinv, Hsynced, Y, hY, hloY⟩
     wp_auto
-    wp_apply wp_validateRevisions resp r st.latestRev $$ [] as %verr %Hval
+    wp_apply wp_validateRevisions resp r st.latestRev $$ [] as %verr ⟨#HverrS, %Hval⟩
     · iexact Hresp
     ihave #Hlb0 := monoNatLbOwn_get $$ Hrev
     ihave #Hslb0 := monoNatLbOwn_get $$ Hsnap
@@ -134,6 +134,8 @@ theorem store.Apply.wp_proof
         iframe; iframe #; ipureintro; exact ⟨Hsynced, Hinv⟩
       have Happ : applyResp cap st r = (st, false) := by simp [applyResp, hc, hv]
       iapply HΦ
+      isplitl []
+      · first | iapply errStrOk_nil | iexact HverrS | iexact HeA | (iapply errStrOk_ok; iapply errorStringSpec_of_msg; iexact HeN)
       iright
       iexists st
       rw [Happ]
@@ -166,6 +168,8 @@ theorem store.Apply.wp_proof
             iframe; iframe #; ipureintro; exact ⟨Hsynced, Hinv⟩
           have Happ := Apply_empty (cap := cap) hc hv hpn he
           iapply HΦ
+          isplitl []
+          · first | iapply errStrOk_nil | iexact HverrS | iexact HeA | (iapply errStrOk_ok; iapply errorStringSpec_of_msg; iexact HeN)
           iright
           iexists st
           rw [Happ]
@@ -197,7 +201,7 @@ theorem store.Apply.wp_proof
           · rw [← Hsnaps]; iexact Hcerts
           rw [Happ] at Hsync' Hkey
           wp_apply wp_applyEventsLocked s γ cap E st resp.Events' r.events
-            $$ [HlatestRev Hhist Htr] as %err ⟨Hphys, % ⟨Hinv', Hmono'⟩, %Herr⟩
+            $$ [HlatestRev Hhist Htr] as %err ⟨#HeA, Hphys, % ⟨Hinv', Hmono'⟩, %Herr⟩
           · iunfold storeLockedPhys; iframe; iframe Hs HevsAt Hcerts'; ipureintro
             exact ⟨Hinv, Hsorted, Habove⟩
           generalize applyEvents cap st r.events = res at Happ Hinv' Hmono' Herr Hsync' Hkey ⊢
@@ -215,6 +219,8 @@ theorem store.Apply.wp_proof
           · iunfold storeLockInv; inext; iexists st'; simp only [named]; unfold storeLockRest
             iframe; iframe #; ipureintro; exact ⟨Hsync', Hinv'⟩
           iapply HΦ
+          isplitl []
+          · first | iapply errStrOk_nil | iexact HverrS | iexact HeA | (iapply errStrOk_ok; iapply errorStringSpec_of_msg; iexact HeN)
           iright
           iexists st
           rw [Happ]
@@ -266,6 +272,8 @@ theorem store.Apply.wp_proof
         · iunfold storeLockInv; inext; iexists st'; simp only [named]; unfold storeLockRest
           iframe; iframe #; ipureintro; exact ⟨Hsync', Hinv'⟩
         iapply HΦ
+        isplitl []
+        · first | iapply errStrOk_nil | iexact HverrS | iexact HeA | (iapply errStrOk_ok; iapply errorStringSpec_of_msg; iexact HeN)
         iright
         iexists st
         rw [Happ]
@@ -276,8 +284,10 @@ theorem store.Apply.wp_proof
         ipureintro; exact ⟨Hpost, rfl⟩
   · -- canceled: `errors.New("canceled")`, nothing changes
     wp_auto
-    wp_apply errors.wp_New as %e -
+    wp_apply errors.wp_New as %e ⟨-, #HeN⟩
     iapply HΦ
+    isplitl []
+    · first | iapply errStrOk_nil | iexact HverrS | iexact HeA | (iapply errStrOk_ok; iapply errorStringSpec_of_msg; iexact HeN)
     ileft
     ipureintro; exact ⟨rfl, e, rfl⟩
 

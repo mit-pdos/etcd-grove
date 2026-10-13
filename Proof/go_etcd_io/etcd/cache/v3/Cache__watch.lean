@@ -38,8 +38,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- What `applyErr` carries with a value: a non-nil error. -/
-def watchP (v : GoError) : IProp GF := iprop(⌜v ≠ GoInterface.nil⌝)
+/-- What `applyErr` carries with a value: a non-nil error, whose `Error()` returns some string. -/
+def watchP (v : GoError) : IProp GF := iprop(⌜v ≠ GoInterface.nil⌝ ∗ errStrOk v)
 
 theorem Cache.watch.wp_proof
     (wp_Init : demux.Init.spec (GF := GF) (hG := hG))
@@ -116,7 +116,7 @@ theorem Cache.watch.wp_proof
   wp_apply wp_fork_tok_self $$ [Hwcons Hprod Hrun']
   · wp_apply wp_with_defer as %defer defer
     try wp_auto
-    wp_apply wp_applyStorage c cf γr γd cap w γw rev $$ [$Hpkg $Hc $Hwi $Hwcons $Hslb] as %err -
+    wp_apply wp_applyStorage c cf γr γd cap w γw rev $$ [$Hpkg $Hc $Hwi $Hwcons $Hslb] as %err #HaS
     · ipureintro; exact hrev
     cases err with
     | ok e =>
@@ -125,7 +125,9 @@ theorem Cache.watch.wp_proof
         $$ [$Hae $Hprod] as Hprod
       · unfold watchP
         isplitl
-        · ipureintro; intro h; cases h
+        · isplitl []
+          · ipureintro; intro h; cases h
+          iexact HaS
         itrivial
       try wp_auto
       wp_apply wp_handoff_close γa ch watchP iprop(True) iprop(True) true $$ [$Hae $Hprod]
@@ -146,10 +148,16 @@ theorem Cache.watch.wp_proof
   -- `err := c.watchEvents(rev, applyErr, &readyOnce)`
   try wp_auto
   wp_apply wp_watchEvents c cf γr γd cap rev ch γa watchP iprop(True) iprop(True)
-    readyOnce_ptr cc $$ [$Hpkg $Hc $Hae $Hcons $Honce Hcore Hh Hbd] as %err ⟨%c1, Hw, %Hc1, -⟩
+    readyOnce_ptr cc $$ [$Hpkg $Hc $Hae $Hcons $Honce Hcore Hh Hbd] as %err ⟨%c1, Hw, %Hc1, Hho⟩
   · unfold cacheWriter demuxWriter
     iframe Hcore Hh Hbd
     ipureintro; exact ⟨⟨Hinvc, Hwoc⟩, hrev, hcur⟩
+  ihave #HeW : errStrOk err $$ [Hho]
+  · iunfold watchP at Hho
+    icases Hho with (⟨-, #H⟩ | ⟨-, (⟨⟨-, #H⟩, -⟩ | ⟨%Hn, -⟩)⟩)
+    · iexact H
+    · iexact H
+    · subst Hn; iapply errStrOk_nil
   -- `c.demux.Unregister(storeW)`
   unfold cacheWriter demuxWriter
   icases Hw with ⟨⟨Hcore, Hh, %Hinv1⟩, %Hwo1, Hbd⟩
@@ -163,6 +171,7 @@ theorem Cache.watch.wp_proof
     iapply HΦ
     isplitr
     · ipureintro; intro h; cases h
+    iframe HeW
     iframe Hrun
     iexists c1
     iframe Hcore Hh Hbd

@@ -3763,3 +3763,47 @@ after the applied index, as raft hands them over". Its proof is what discharges 
 - **Ticks**: node.go's `Tick` spends a term-budget credit; the wrapper ticks without bound. The
   contract's `Tick` takes a resource `T` the caller supplies, and `start` takes `□ |==> T`: the
   gap a composition with node.go must close (a bound on a run's ticks).
+
+---
+
+## Perennial `a54e1999f`, not its `lean`
+
+**2026-10-12 · accepted (decided with the user)**
+
+**Decision:** pin Perennial `a54e1999f` (its proof layout), not its current `lean`
+(`d0324b842`). Since `3fbe65749` Perennial's model does not propagate a panic to the caller, so
+etcd's STM, which recovers `stm.fetch`'s and `commit`'s panics in `runSTM`, is not provable
+there. The calls Perennial's new `ArgsWf` excludes (errors, `Duration`s, `LeaseID` as `fmt`
+arguments; a context's `Err()` formatted) are trust-boundary axioms and strengthened
+assumptions, each listed in `STATUS.md` ("Perennial `a54e1999f`") to be replaced by proofs.
+
+**Rejected:** axioms for the STM at `d0324b842` (the model's code is stuck where `fetch`
+panics; an axiom that `runSTM` returns would contradict it and could derive `False`); the STM's
+specs restated in Perennial's "stuck" style (a premise equivalent to `▷ False`: vacuous results
+that look verified); waiting for Perennial to propagate panics before any bump (the layout
+change broke etcd-grove's imports now). The port to `d0324b842` is kept on branch
+`perennial-d0324-wip`.
+
+---
+
+## `fmt.Errorf`'s `%w` errors: the model's body, not the axiom
+
+**2026-10-13 · accepted (the merge of `origin/lean`, Perennial `a54e1999f`)**
+
+**Decision:** the two `fmt.Errorf("...: %w", err)` calls whose error reaches the gRPC layer
+(`mvcc.storeTxnCommon.rangeKeys`' `ctx.Err()`, the txn package's `executeTxn` wrapping it) keep
+`mvcc.wp_Errorf_errorfIs`, which steps into Perennial's model of `Errorf` (`errors.New(format)`,
+an `*errors.errorString`), not etcd-grove's trust-boundary axiom `fmt.Errorf.wp_proof`. The
+request path needs `applyErrIs` of the error, which asks for a leaf (no `Unwrap`) pointer error;
+the axiom gives only that `Error()` returns, and extending it with the leaf would be false of
+Go, whose `%w` error is a `*fmt.wrapError` whose `Unwrap` `errors.Is` follows. A pointer-type
+clause (true of Go) does not give `applyErrIs`.
+
+**Rejected:** the axiom with an `errLeaf` clause (false of Go for `%w`); the axiom with Go's
+error tree (`Unwrap` returning the `%w` argument): `applyErrIs` of the tree would need the
+context error's tree, and `context.DeadlineExceeded` is a non-pointer error, which `applyErrIs`'
+`TreeTyped` (for every target, `DeadlineExceeded` included) cannot describe; that is a redesign
+of `applyErrIs` (targets restricted to pointer errors), not a merge. So the request path's error
+facts for a canceled read rest on Perennial's model, which Perennial documents as not modeling
+`%w` (`Perennial/TrustedCode/fmt.lean`): the known gap, `notes/STATUS.md`, "Merge of
+`origin/lean` (Perennial `a54e1999f`)".

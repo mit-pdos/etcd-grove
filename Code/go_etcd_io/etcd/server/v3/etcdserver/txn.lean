@@ -286,6 +286,8 @@ noncomputable def deleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "end" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$l0" (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty go!"Deleted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty)))) (Var "resp")))
+  (Let "$l1" (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty go!"Revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty)))) (Var "resp")))))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)))) (Var "dr"))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "end"))
   (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnWrite.ty go!"DeleteRange"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnWrite.ty))) (Var "txnWrite"))) (Var "$a0")) (Var "$a1"))))
@@ -298,9 +300,9 @@ noncomputable def deleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty)))) (Var "resp")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty go!"Revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty)))) (Var "resp"))))) (Var "$r1")))))))
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$l1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty go!"Deleted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty)))) (Var "resp"))) (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$l0") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty go!"PrevKv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)))) (Var "dr"))))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)))) (Var "dr"))))
@@ -1658,7 +1660,7 @@ noncomputable def newTxnResp.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "tv" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp_RequestTxn.ty)))) (Var "$x"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp_RequestTxn.ty go!"RequestTxn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp_RequestTxn.ty)))) (Var "tv"))))
   (Let "$a1" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.bool)))) (Var "txnPath"))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.bool)))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.bool)]))) (Val #())) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.bool)))) (Var "txnPath"))))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.bool)))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.bool)]))) (Val #())) (Var "$s")))))
   (App (App (App (Val (GoInstruction (FuncResolve newTxnResp []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -1673,7 +1675,7 @@ noncomputable def newTxnResp.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Response")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp_ResponseTxn.ty) (Var "$v0")))]))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.bool)))) (Var "txnPath"))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.bool)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Val #(W64 1)) (App (Val (GoInstruction (GoLoad go.int))) (Var "txns"))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.bool)]))) (Val #())) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.bool)))) (Var "txnPath"))))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.bool)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Val #(W64 1)) (App (Val (GoInstruction (GoLoad go.int))) (Var "txns"))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.bool)]))) (Val #())) (Var "$s")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "txnCount") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "txnCount")) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "txns")) (Val #(W64 1)))))))))))
@@ -1921,7 +1923,7 @@ noncomputable def executeTxn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.TxnWrite.ty))) (Var "txnWrite"))
   (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp_RequestTxn.ty go!"RequestTxn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp_RequestTxn.ty)))) (Var "tv"))))
   (Let "$a4" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.bool)))) (Var "txnPath"))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.bool)))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.bool)]))) (Val #())) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.bool)))) (Var "txnPath"))))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.bool)))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.bool)]))) (Val #())) (Var "$s")))))
   (Let "$a5" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty)))) (Var "resp"))
   (Let "$a6" (App (Val (GoInstruction (GoLoad go.bool))) (Var "skipRangeExecution"))
   (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve executeTxn []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")))))))))
@@ -1936,7 +1938,7 @@ noncomputable def executeTxn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.bool)))) (Var "txnPath"))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.bool)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "applyTxns")) (Val #(W64 1))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.bool)]))) (Val #())) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.bool)))) (Var "txnPath"))))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.bool)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "applyTxns")) (Val #(W64 1))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.bool)]))) (Val #())) (Var "$s")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.bool)))) (Pair (Var "txnPath") (Var "$r0")))))))
   (App (Val doExecute)
@@ -2049,7 +2051,7 @@ noncomputable def checkTxn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp_RequestTxn.ty go!"RequestTxn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp_RequestTxn.ty)))) (Var "tv"))))
   (Let "$a3" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor.ty))) (Var "lessor"))
   (Let "$a4" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.bool)))) (Var "txnPath"))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.bool)))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.bool)]))) (Val #())) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.bool)))) (Var "txnPath"))))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.bool)))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.bool)]))) (Val #())) (Var "$s")))))
   (App (App (App (App (App (App (Val (GoInstruction (FuncResolve checkTxn []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -2059,7 +2061,7 @@ noncomputable def checkTxn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.bool)))) (Var "txnPath"))
-  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.bool)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "txns")) (Val #(W64 1))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.bool)]))) (Val #())) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.bool)))) (Var "txnPath"))))))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.bool)))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "txns")) (Val #(W64 1))))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.bool)]))) (Val #())) (Var "$s")))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.bool)))) (Pair (Var "txnPath") (Var "$r0")))))))
   (App (Val doExecute)

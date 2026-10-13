@@ -147,12 +147,15 @@ public import Proof.go_etcd_io.etcd.cache.v3.store__Restore
 public import Proof.go_etcd_io.etcd.cache.v3.store__applyEventsLocked
 public import Proof.go_etcd_io.etcd.cache.v3.store__applyProgressNotifyLocked
 public import Proof.go_etcd_io.etcd.cache.v3.store__getSnapshot
+public import Proof.time.Duration__String
 public import Proof.go_etcd_io.etcd.cache.v3.New
 public import Proof.go_etcd_io.etcd.cache.v3.Range
 public import Proof.go_etcd_io.etcd.cache.v3.validateRevisions
 public import Proof.go_etcd_io.etcd.cache.v3.watcher__Compact
 public import Proof.go_etcd_io.etcd.cache.v3.watcher__Stop
 public import Proof.go_etcd_io.etcd.cache.v3.watcher__enqueueResponse
+public import Proof.context.Link
+public import Proof.fmt.Link
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Link
 
 @[expose] public section
@@ -399,6 +402,10 @@ theorem ringBuffer.wp_PeekOldest :
     ringBuffer.PeekOldest.spec (GF := GF) (hG := hG) :=
   ringBuffer.PeekOldest.wp_proof
 
+theorem time.Duration.wp_String :
+    time.Duration.String.spec (GF := GF) (hG := hG) :=
+  time.Duration.String.wp_proof
+
 theorem wp_newRingBuffer :
     newRingBuffer.spec (GF := GF) (hG := hG) :=
   newRingBuffer.wp_proof
@@ -528,7 +535,7 @@ theorem wp_KeyPredForRange :
 
 theorem Cache.wp_validateGet :
     Cache.validateGet.spec (GF := GF) (hG := hG) :=
-  Cache.validateGet.wp_proof Op.wp_IsCountOnly Op.wp_IsPrevKV Op.wp_IsSortSet Op.wp_Limit Op.wp_MinModRev Op.wp_MaxModRev Op.wp_MinCreateRev Op.wp_MaxCreateRev Op.wp_RangeBytes Cache.wp_validateRange wp_KeyPredForRange
+  Cache.validateGet.wp_proof Op.wp_IsCountOnly Op.wp_IsPrevKV Op.wp_IsSortSet Op.wp_Limit Op.wp_MinModRev Op.wp_MaxModRev Op.wp_MinCreateRev Op.wp_MaxCreateRev Op.wp_RangeBytes Cache.wp_validateRange wp_KeyPredForRange fmt.wp_Errorf
 
 theorem Cache.wp_serverRevision :
     Cache.serverRevision.spec (GF := GF) (hG := hG) :=
@@ -588,7 +595,7 @@ theorem Cache.wp_WaitForRevision :
 
 theorem Cache.wp_validateWatch :
     Cache.validateWatch.spec (GF := GF) (hG := hG) :=
-  Cache.validateWatch.wp_proof Op.wp_IsPrevKV Op.wp_IsFragment Op.wp_IsCreatedNotify Op.wp_IsFilterPut Op.wp_IsFilterDelete Op.wp_RangeBytes Cache.wp_validateRange wp_KeyPredForRange
+  Cache.validateWatch.wp_proof Op.wp_IsPrevKV Op.wp_IsFragment Op.wp_IsCreatedNotify Op.wp_IsFilterPut Op.wp_IsFilterDelete Op.wp_RangeBytes Cache.wp_validateRange wp_KeyPredForRange fmt.wp_Errorf
 
 theorem wp_newWatcher :
     newWatcher.spec (GF := GF) (hG := hG) :=
@@ -660,7 +667,7 @@ theorem demux.wp_Broadcast :
 
 theorem Cache.wp_watchEvents :
     Cache.watchEvents.spec (GF := GF) (hG := hG) :=
-  Cache.watchEvents.wp_proof wp_WithPrefix wp_WithRev wp_WithProgressNotify wp_WithCreatedNotify ready.wp_Set WatchResponse.wp_Err ready.wp_Reset demux.wp_Broadcast
+  Cache.watchEvents.wp_proof wp_WithPrefix wp_WithRev wp_WithProgressNotify wp_WithCreatedNotify ready.wp_Set WatchResponse.wp_Err ready.wp_Reset demux.wp_Broadcast context.wp_Err
 
 theorem Cache.wp_watch :
     Cache.watch.spec (GF := GF) (hG := hG) :=
@@ -676,7 +683,7 @@ theorem wp_defaultConfig :
 
 theorem Cache.wp_getWatchLoop :
     Cache.getWatchLoop.spec (GF := GF) (hG := hG) :=
-  Cache.getWatchLoop.wp_proof wp_defaultConfig Cache.wp_getWatch
+  Cache.getWatchLoop.wp_proof wp_defaultConfig Cache.wp_getWatch fmt.wp_Printf time.Duration.wp_String
 
 theorem wp_newNotifier :
     newNotifier.spec (GF := GF) (hG := hG) :=
@@ -712,7 +719,7 @@ theorem Prefix.wp_Match :
 
 theorem conditionalProgressRequestor.wp_run :
     conditionalProgressRequestor.run.spec (GF := GF) (hG := hG) :=
-  conditionalProgressRequestor.run.wp_proof
+  conditionalProgressRequestor.run.wp_proof fmt.wp_Printf
 
 theorem demux.wp_Compact :
     demux.Compact.spec (GF := GF) (hG := hG) :=

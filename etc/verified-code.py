@@ -86,7 +86,8 @@ NS = proof_roots.namespace()
 def link_project(mod):
     """The project (of `etc/goose.py`) whose Go functions the linked results of `mod` are
     about: the one owning the translation of the package directory its path names
-    (`Proof.<dir>.Link`: `Code/<dir>`; `<root>.Proof.<dir>.Link`: `<root>/Code/<dir>`)."""
+    (`Proof.<dir>.Link`: `Code/<dir>`; `<root>.Proof.<dir>.Link`: `<root>/Code/<dir>`), or
+    `None` for a standard-library package's (not counted)."""
     parts = mod.split(".")[:-1]
     root = parts[0] if parts[0] in proof_roots.PART_ROOTS else ""
     d = "/".join(parts[2:] if root else parts[1:])
@@ -94,12 +95,16 @@ def link_project(mod):
         owned = [(r, o) for r, _, _, own in goose.pieces(p) for o in own]
         if any(r == root and (d == o or d.startswith(o + "/")) for r, o in owned):
             return p.name
+    if "." not in d.split("/")[0]:
+        # a standard-library package (`Proof/fmt/Link.lean`, `Proof/context/Link.lean`):
+        # this repository's trust boundary of a package Perennial translates, no project's
+        return None
     sys.exit(f"verified-code: no project of etc/goose.py translates {d} (for {mod})")
 
 
 # The modules of linked results (each states `T.wp_M : T.M.spec`): every `Link.lean`
 # under `Proof/` -> the project whose functions they are about.
-LINKS = {m: link_project(m) for m in proof_roots.link_modules()}
+LINKS = {m: p for m in proof_roots.link_modules() if (p := link_project(m)) is not None}
 # The namespace each Link names its results in, beyond `NS` (etc/proof_roots.py).
 LINK_NS = {m: proof_roots.link_namespace(m) for m in LINKS}
 # The linked results resting on a function specified but not proved yet (`links_pending`).

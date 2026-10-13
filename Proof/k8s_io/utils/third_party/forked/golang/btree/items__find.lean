@@ -1,7 +1,7 @@
 module
 public import Spec.k8s_io.utils.third_party.forked.golang.btree.items__find
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Lemmas.Low
-public import Perennial.Proof.sort_proof.search
+public import Perennial.Proof.sort
 
 @[expose] public section
 

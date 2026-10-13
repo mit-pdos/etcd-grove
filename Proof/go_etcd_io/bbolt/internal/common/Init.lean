@@ -8,7 +8,7 @@ module
 public import GeneratedProof.go_etcd_io.bbolt.internal.common
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.fmt
-public import Perennial.Proof.sort_proof.sort_init
+public import Perennial.Proof.sort
 
 @[expose] public section
 

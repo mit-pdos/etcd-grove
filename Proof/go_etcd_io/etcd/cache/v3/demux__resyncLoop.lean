@@ -65,7 +65,8 @@ theorem demux.resyncLoop.wp_proof
     iintro -
     wp_auto
     wp_for_post
-    wp_apply time.Timer.wp_Stop t tch γt $$ [$Ht] as %b -
+    wp_apply time.Timer.wp_Stop t $$ [] as %b -
+    · ileft; iexists tch, γt; iexact Ht
     iapply HΦ
     iframe
     unfold demuxResyncHandle

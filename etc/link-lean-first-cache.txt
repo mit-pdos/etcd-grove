@@ -119,6 +119,18 @@ OpWatch: Op__applyOpts
 rpctypes_Error:
 status_Error:
 WatchResponse__Err: rpctypes_Error status_Error
+# The trust boundary (etcd-grove axioms, linked in `Proof/fmt/Link.lean`, `@`): `fmt.Errorf` and `fmt.Printf` for arguments that are
+# basic or have an `Error()`/`String()` returning some string (`fmt.argsOk`,
+# `Spec/fmt/Errorf.lean`): the `%w` of `ErrUnsupportedRequest`, the log lines of the progress
+# requestor and of the watch loop.
+fmt_Errorf: @
+fmt_Printf: @
+# The trust boundary (etcd-grove axioms): `time.Duration.String` (the watch loop's `%v` of its
+# backoff) and the `Error()` of a context's `Err()` (`Spec/context/Err.lean`, linked in
+# `Proof/context/Link.lean`, `@`; the watch loop
+# prints the internal context's error).
+time_Duration__String:
+context_Err: @
 # Key predicates (cache/predicate.go) and the Cache's request validation and delegations
 # (cache/cache.go), see InvCache.lean.
 ExactKey:
@@ -127,8 +139,8 @@ v3_Range:
 KeyPredForRange: ExactKey FromKey v3_Range
 Prefix__Match:
 Cache__validateRange: GetPrefixRangeEnd
-Cache__validateGet: Op__IsCountOnly Op__IsPrevKV Op__IsSortSet Op__Limit Op__MinModRev Op__MaxModRev Op__MinCreateRev Op__MaxCreateRev Op__RangeBytes Cache__validateRange KeyPredForRange
-Cache__validateWatch: Op__IsPrevKV Op__IsFragment Op__IsCreatedNotify Op__IsFilterPut Op__IsFilterDelete Op__RangeBytes Cache__validateRange KeyPredForRange
+Cache__validateGet: Op__IsCountOnly Op__IsPrevKV Op__IsSortSet Op__Limit Op__MinModRev Op__MaxModRev Op__MinCreateRev Op__MaxCreateRev Op__RangeBytes Cache__validateRange KeyPredForRange fmt_Errorf
+Cache__validateWatch: Op__IsPrevKV Op__IsFragment Op__IsCreatedNotify Op__IsFilterPut Op__IsFilterDelete Op__RangeBytes Cache__validateRange KeyPredForRange fmt_Errorf
 Cache__Ready: ready__Ready
 Cache__WaitReady: ready__WaitReady
 Cache__RequestProgress: demux__BroadcastProgress
@@ -144,11 +156,11 @@ Cache__Get: store__LatestRev Cache__WaitReady OpGet Cache__validateGet Op__Range
 Cache__WaitForRevision: store__LatestRev
 Cache__get: WithPrefix store__Restore
 Cache__applyStorage: store__Apply
-Cache__watchEvents: WithPrefix WithRev WithProgressNotify WithCreatedNotify ready__Set WatchResponse__Err ready__Reset demux__Broadcast
+Cache__watchEvents: WithPrefix WithRev WithProgressNotify WithCreatedNotify ready__Set WatchResponse__Err ready__Reset demux__Broadcast context_Err
 Cache__watch: demux__Init newWatcher demux__Register Cache__applyStorage Cache__watchEvents demux__Unregister
 Cache__getWatch: Cache__get Cache__watch
 defaultConfig:
-Cache__getWatchLoop: defaultConfig Cache__getWatch
+Cache__getWatchLoop: defaultConfig Cache__getWatch fmt_Printf time_Duration__String
 Cache__Watch: Cache__WaitReady OpWatch Op__Rev Cache__validateWatch newWatcher demux__Register Op__IsProgressNotify demux__BroadcastProgressTo demux__Unregister
 # The rest of the package (2026-10-09): the configuration's options (cache/config.go, see
 # InvConfig.lean), the real clock (cache/clock.go; Perennial's time.NewTimer, Timer.Stop,
@@ -170,7 +182,7 @@ realTimer__Stop:
 realTimer__Reset:
 realClock__NewTimer: realTimer__Chan realTimer__Stop realTimer__Reset
 newConditionalProgressRequestor:
-conditionalProgressRequestor__run:
+conditionalProgressRequestor__run: fmt_Printf
 demux__resyncLoop: demux__resyncLaggingWatchers notifier__notify
 demux__WaitForNextResync: notifier__wait
 NewDemux: newDemux demux__resyncLoop

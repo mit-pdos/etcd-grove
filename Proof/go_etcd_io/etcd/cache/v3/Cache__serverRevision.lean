@@ -62,10 +62,10 @@ theorem Cache.serverRevision.wp_proof
     · cases Hf; cases Hg; iexact Hf1
     · cases Hf; cases Hg; iexact Hf2
     · simp at Hf
-  iunfold isEtcdKV at HisKV
+  iunfold isEtcdKVE at HisKV
   ihave #HG := HisKV $$ %ctx %s %(if cf.pfx = [] then (go!"/" : GoString) else cf.pfx) %optsSl
     %([withLimitM (W64 1), withCountOnlyM] : List (OpFull → OpFull)) %(W64 0)
-  wp_apply HG $$ [] as %resp %err #Hres
+  wp_apply HG $$ [] as %resp %err ⟨#Hres, #HeS⟩
   · iframe Hctx Hopts
     isplitr
     · iapply etcdReached_zero

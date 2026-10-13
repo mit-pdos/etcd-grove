@@ -22,7 +22,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- `s.applyEventsLocked(events)`, under the write lock: the physical state becomes
-`(applyEvents cap st evs).1`, and the error is `nil` iff `(applyEvents cap st evs).2`. The
+`(applyEvents cap st evs).1`, and the error is `nil` iff `(applyEvents cap st evs).2` (an error's
+`Error()` returns some string, `errStrOk`: `fmt.Errorf`'s). The
 events must be in revision order and above the latest revision (what `Apply`'s
 `validateRevisions` checks), so that the history's revisions increase, and certified
 (`snapCerts E (applyEventsSnaps st.latest evs)`: every snapshot it appends). -/
@@ -34,7 +35,7 @@ abbrev store.applyEventsLocked.spec : Prop :=
       ⌜EvRevSorted evs ∧ ∀ e ∈ evs, sint.Z st.latestRev < sint.Z e.rev⌝ ∗
       snapCerts E (applyEventsSnaps st.latest evs) }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"applyEventsLocked")) (Val #evSl))
-  {{ (err : GoInterface), RET #err;
+  {{ (err : GoInterface), RET #err; errStrOk err ∗
       storeLockedPhys s cap E (applyEvents cap st evs).1 ∗
       ⌜StoreInv cap (applyEvents cap st evs).1 ∧
         sint.Z st.latestRev ≤ sint.Z (applyEvents cap st evs).1.latestRev⌝ ∗

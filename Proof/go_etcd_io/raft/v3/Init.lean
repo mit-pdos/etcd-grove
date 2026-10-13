@@ -25,7 +25,7 @@ Three things are not facts of the model, and are premises:
 module
 
 public import Proof.go_etcd_io.raft.v3.Base
-public import Perennial.Proof.context_proof.context_init
+public import Perennial.Proof.context
 
 @[expose] public section
 

@@ -1,0 +1,4 @@
+# etcd-grove's trust boundary of `context` (an axiom, `Proof/context/Err.lean`), read by
+# `etc/gen-link.py --context`: a context's `Err()`, its error's `Error()` returning some string.
+# The cache's and mvcc's Links take it as an `@` callee.
+context_Err:

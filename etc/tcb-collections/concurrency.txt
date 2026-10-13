@@ -14,6 +14,7 @@ axiom etcdState_agree
 axiom etcdState_create_persist
 axiom etcdState_modrev_det
 axiom etcdState_revs
+axiom fmt.SprintfNamed.wp_proof
 axiom proto.Clone.wp_proof
 axiom rpctypes.Error.wp_proof
 axiom status.Error.wp_proof

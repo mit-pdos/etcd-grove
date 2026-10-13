@@ -807,6 +807,24 @@ instance isEtcdKV_persistent (kv : GoInterfaceOk) (pfx : GoString) :
     Persistent (isEtcdKV (GF := GF) kv pfx) := by
   unfold isEtcdKV; infer_instance
 
+/-- **The cache's client `KV`**: `isEtcdKV`, and the `Error()` of a non-nil error its `Get`
+returns returns some string (`errStrOk`: the cache's watch loop prints it with `fmt.Printf`'s
+`%v`; etcd's client returns a context error, a gRPC status error or an `rpctypes` error, each an
+error whose `Error` builds a string). A definition, like `isEtcdKV`. -/
+def isEtcdKVE (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
+  iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)) (key : GoString)
+      (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64),
+    {{ context.isContext ctx cs ∗ optsAt sl gs ∗ etcdReached lo ∗
+        ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ }}
+      (App (App (App (Val #(methods kv.ty go!"Get" kv.v)) (Val #(GoInterface.ok ctx)))
+        (Val #key)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        kvGetResult pfx lo (opGetModel key gs) resp err ∗ errStrOk err }})
+
+instance isEtcdKVE_persistent (kv : GoInterfaceOk) (pfx : GoString) :
+    Persistent (isEtcdKVE (GF := GF) kv pfx) := by
+  unfold isEtcdKVE; infer_instance
+
 end client
 
 /-! ## The client's `Watcher.Watch` -/
@@ -857,6 +875,8 @@ instance watchChain_persistent (pfx : GoString) (prev : w64) (bs : List Batch) :
 at revision `c`, after which it is at `c'`. Its header revision is below `2^63 - 1` (etcd's
 revisions are), and it is one of:
 * an error (`resp.Err() != nil`: a close error, a compaction, a cancel); the position is kept;
+  the close error's `Error()`, if it has one, returns some string (`errStrOk`: a gRPC status
+  error or a context error from the client's stream);
 * the created notification (no events); the position is kept; etcd has reached its header
   revision (`etcdReached`, free if `0`);
 * a progress notification at `p ≥ c`: nothing under the prefix changed in `(c, p]`; the
@@ -867,7 +887,7 @@ revisions are), and it is one of:
 def watchRespOk (pfx : GoString) (c c' : w64) (v : go_etcd_io.etcd.client.v3.WatchResponse)
     (r : RespModel) : IProp GF :=
   iprop(⌜sint.Z r.hdrRev < 2 ^ 63 - 1⌝ ∗
-    (⌜watchErr v ∧ c' = c⌝ ∨
+    ((⌜watchErr v ∧ c' = c⌝ ∗ errStrOk v.closeErr') ∨
      (⌜¬ watchErr v ∧ r.created = true ∧ r.events = [] ∧ c' = c⌝ ∗ etcdReached r.hdrRev) ∨
      (⌜¬ watchErr v ∧ r.isProgressNotify = true ∧ sint.Z c ≤ sint.Z r.hdrRev ∧ c' = r.hdrRev ∧
        EtcdStep c r.hdrRev pfx []⌝ ∗ etcdReached r.hdrRev) ∨
@@ -923,14 +943,18 @@ instance isEtcdWatcher_persistent (w : GoInterfaceOk) (pfx : GoString) :
   unfold isEtcdWatcher; infer_instance
 
 /-- **The client's `RequestProgress`** (`clientv3.Watcher`'s, through the cache's
-`progressNotifier` interface): `w.RequestProgress(ctx)` returns some error, with no logical effect.
-etcd's progress notification shows up on the watch streams, where it is already modelled (a
-progress response of `watchRespOk`). A definition, like `isEtcdWatcher`. -/
+`progressNotifier` interface): `w.RequestProgress(ctx)` returns some error, with no logical effect,
+whose `Error()`, if it is not `nil`, returns some string (`errorStringSpec`: the run loop prints
+it with `fmt.Printf`'s `%v`; etcd's client returns a context error, a gRPC status error or an
+`rpctypes` error, each an error whose `Error` builds a string). etcd's progress notification shows
+up on the watch streams, where it is already modelled (a progress response of `watchRespOk`). A
+definition, like `isEtcdWatcher`. -/
 def isEtcdProgressNotifier (w : GoInterfaceOk) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cs : context.ContextDesc (IProp GF)),
     {{ context.isContext ctx cs }}
       (App (Val #(methods w.ty go!"RequestProgress" w.v)) (Val #(GoInterface.ok ctx)))
-    {{ (err : GoInterface), RET #err; True }})
+    {{ (err : GoInterface), RET #err;
+        □ ∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ → errorStringSpec e }})
 
 instance isEtcdProgressNotifier_persistent (w : GoInterfaceOk) :
     Persistent (isEtcdProgressNotifier (GF := GF) w) := by

@@ -31,7 +31,12 @@ context was canceled for some other reason"), kept by the standard contexts (a `
 stores `Canceled`, `DeadlineExceeded` or its parent's `Err()`); Perennial's `isContext` says
 only that it is a typed error (`isTypedErr`). The server's `processInternalRaftRequestOnce`
 passes `cctx.Err()` to `parseProposeCtxErr`, whose `default` branch (returning the error itself,
-which the gRPC layer could not map) this rules out. -/
+which the gRPC layer could not map) this rules out.
+
+Not the same assumption as `context.Err` (`Spec/context/Err.lean`, the cache's), and neither
+follows from the other (2026-10-13, the merge of `origin/lean`): that one is for any context and
+says only that the error's `Error()` returns; this one is for a done context and says which
+error it is, nothing of its `Error()`. -/
 abbrev context.ErrDone.spec : Prop :=
   ∀ (c : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.context ∗ context.isContext c cd ∗

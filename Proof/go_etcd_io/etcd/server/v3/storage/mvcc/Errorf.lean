@@ -3,6 +3,11 @@
 the format, an `*errors.errorString`. Perennial's `fmt.wp_Errorf` keeps only that `Error()`
 returns; the request path's read side (2026-10-12, unit 3b) needs the type to tell the gRPC layer
 the error is a pointer leaf (`applyErrIs`). Lean-first (no Rocq counterpart).
+
+This steps into Perennial's model of `Errorf` (`errors.New(format)`), outside the arguments
+Perennial's `fmt.wp_Errorf` admits (`fmt.ArgsWf`); etcd-grove's axiom for the others
+(`Spec/fmt/Errorf.lean`) does not give the leaf, which Go's `%w` error is not
+(`notes/decisions.md`, "`fmt.Errorf`'s `%w` errors: the model's body, not the axiom").
 -/
 module
 

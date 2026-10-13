@@ -95,7 +95,7 @@ theorem waitDelete.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     icases H with ⟨-, %Hv⟩
     wp_auto
     wp_for_post
-    wp_apply wp_Err wr_ptr v (DFrac.own 1) $$ [$wr] as %err ⟨wr, %Herr⟩
+    wp_apply wp_Err wr_ptr v (DFrac.own 1) $$ [$wr] as %err ⟨wr, %Herr, -⟩
     cases err with
     | ok e =>
       wp_auto

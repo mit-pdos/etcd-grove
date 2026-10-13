@@ -26,7 +26,8 @@ variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 `isStoreWriter`, in `isCacheFields`), for the store watcher `storeW` (no key filter) the demux
 delivers to from `s` on (`demuxPub`, start `0 < s`), of which it is the consumer, when the store's
 newest snapshot is at least `s - 1`: it applies every response it receives (`store.Apply`) until
-the internal context is done or the channel is closed (`nil`), or `Apply` fails (its error).
+the internal context is done or the channel is closed (`nil`), or `Apply` fails (its error, whose
+`Error()` returns some string: `errStrOk`).
 
 Each `Apply` is certified against whatever state the store is in (`storeApplyCert`): the batches
 the demux delivers come with the certificates of etcd's steps (`demuxPub`), chained from the
@@ -45,7 +46,7 @@ abbrev Cache.applyStorage.spec : Prop :=
       isWatcher w γw none (demuxPub (cacheCert cf) none s) ∗
       watcherConsumer γw [] ∗ storeSnapLb cf.γs (s - W64 1) ∗ ⌜0 < sint.Z s⌝ }}
     (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"applyStorage")) (Val #w))
-  {{ (err : GoInterface), RET #err; True }}
+  {{ (err : GoInterface), RET #err; errStrOk err }}
 
 end spec
 

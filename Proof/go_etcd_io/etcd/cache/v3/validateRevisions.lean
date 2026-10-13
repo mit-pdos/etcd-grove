@@ -42,6 +42,8 @@ theorem validateRevisions.wp_proof
     ihave %Hsl_len := ownSlice_len _ _ _ $$ Hsl
     wp_if_destruct
     · iapply HΦ
+      isplitl []
+      · first | iapply errStrOk_nil | (iapply errStrOk_ok; unfold errorStringSpec; iexact HeS)
       ipureintro
       have : r.events = [] := by
         rw [← List.length_eq_zero_iff, ← Hlen]; word
@@ -81,9 +83,18 @@ theorem validateRevisions.wp_proof
           isplitr
           · ipureintro; rfl
           iintro %sl ⟨Hsl', -⟩
-          wp_apply fmt.wp_Errorf $$ [$Hsl'] as %er _
+          wp_apply fmt.wp_Errorf _ _ _ ?wf $$ [$Hsl'] as %er #HeS
+          case wf =>
+            try simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero]
+            repeat' first
+              | exact _root_.Perennial.fmt.ArgsWf.nil
+              | refine _root_.Perennial.fmt.ArgsWf.cons_string _ _ ?_
+              | refine _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int64 _) ?_
+              | refine _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int _) ?_
           wp_for_post
           iapply HΦ
+          isplitl []
+          · first | iapply errStrOk_nil | (iapply errStrOk_ok; unfold errorStringSpec; iexact HeS)
           ipureintro
           rw [Hbad _ (by omega)]
           exact ⟨er, rfl⟩
@@ -92,9 +103,18 @@ theorem validateRevisions.wp_proof
             isplitr
             · ipureintro; rfl
             iintro %sl ⟨Hsl', -⟩
-            wp_apply fmt.wp_Errorf $$ [$Hsl'] as %er _
+            wp_apply fmt.wp_Errorf _ _ _ ?wf $$ [$Hsl'] as %er #HeS
+            case wf =>
+              try simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero]
+              repeat' first
+                | exact _root_.Perennial.fmt.ArgsWf.nil
+                | refine _root_.Perennial.fmt.ArgsWf.cons_string _ _ ?_
+                | refine _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int64 _) ?_
+                | refine _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int _) ?_
             wp_for_post
             iapply HΦ
+            isplitl []
+            · first | iapply errStrOk_nil | (iapply errStrOk_ok; unfold errorStringSpec; iexact HeS)
             ipureintro
             rw [Hbad _ (by omega)]
             exact ⟨er, rfl⟩
@@ -115,6 +135,8 @@ theorem validateRevisions.wp_proof
               have : sint.Z e.rev ≠ sint.Z latestRev := fun h => h2 (by word)
               omega
       · iapply HΦ
+        isplitl []
+        · first | iapply errStrOk_nil | (iapply errStrOk_ok; unfold errorStringSpec; iexact HeS)
         ipureintro
         have : validRevisions r latestRev = true := by
           simp only [validRevisions, hp, Bool.false_eq_true, ↓reduceIte, List.all_eq_true]
@@ -134,13 +156,24 @@ theorem validateRevisions.wp_proof
       isplitr
       · ipureintro; rfl
       iintro %sl ⟨Hsl', -⟩
-      wp_apply fmt.wp_Errorf $$ [$Hsl'] as %e _
+      wp_apply fmt.wp_Errorf _ _ _ ?wf $$ [$Hsl'] as %e #HeS
+      case wf =>
+        try simp only [show sint.nat (W64 (0 + 1)) = 1 by rfl, List.set_cons_succ, List.set_cons_zero]
+        repeat' first
+          | exact _root_.Perennial.fmt.ArgsWf.nil
+          | refine _root_.Perennial.fmt.ArgsWf.cons_string _ _ ?_
+          | refine _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int64 _) ?_
+          | refine _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.int _) ?_
       iapply HΦ
+      isplitl []
+      · first | iapply errStrOk_nil | (iapply errStrOk_ok; unfold errorStringSpec; iexact HeS)
       ipureintro
       simp only [validRevisions, hp, ↓reduceIte]
       simp only [Hif, _root_.decide_true, Bool.not_true, Bool.false_eq_true, ↓reduceIte]
       exact ⟨e, rfl⟩
     · iapply HΦ
+      isplitl []
+      · first | iapply errStrOk_nil | (iapply errStrOk_ok; unfold errorStringSpec; iexact HeS)
       ipureintro
       simp only [validRevisions, hp, ↓reduceIte]
       simp [Hif]

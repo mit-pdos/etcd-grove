@@ -707,7 +707,13 @@ it: `errors.New` of the format (`Perennial/TrustedCode/fmt.lean`: the arguments,
 are ignored), an `*errors.errorString` whose `Error()` returns. Go's `fmt.Errorf` with `%w`
 returns a `*fmt.wrapError` instead, which `errors.Is` sees through to the wrapped error: the
 model does not (2026-10-12, the request path's unit 3b: `rangeKeys`' context error, and the txn
-package's `executeTxn` wrapping it, reach the gRPC layer; `notes/STATUS.md`, "Unit 3b"). -/
+package's `executeTxn` wrapping it, reach the gRPC layer; `notes/STATUS.md`, "Unit 3b").
+Not from the trust-boundary axiom `fmt.Errorf.wp_proof` (`Spec/fmt/Errorf.lean`, which gives
+only that `Error()` returns): what the gRPC layer needs of the error (`applyErrIs`: a leaf
+pointer error) is true of the model's `*errors.errorString` but not of Go's `*fmt.wrapError`,
+whose `Unwrap` `errors.Is` follows, so an axiom stating it would be false of Go (2026-10-13, the
+merge of `origin/lean`; `notes/decisions.md`, "`fmt.Errorf`'s `%w` errors: the model's body, not
+the axiom"). -/
 def errorfIs (err : GoInterface) : IProp GF :=
   iprop(∃ x : Loc,
     ⌜err = interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x⌝ ∗

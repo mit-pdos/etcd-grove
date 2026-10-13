@@ -25,7 +25,8 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- `wr.Err()`: `nil` exactly when the response has no close error, no compact revision and
 is not canceled (otherwise some error: `rpctypes.Error(closeErr)`, `rpctypes.ErrCompacted`, or
 for a cancellation `rpctypes.Error` of a `FailedPrecondition` status with the cancel reason, or
-`rpctypes.ErrFutureRev` without one). A read, on any fraction. -/
+`rpctypes.ErrFutureRev` without one), whose `Error()` returns some string if the close
+error's does (`errStrOk`). A read, on any fraction. -/
 abbrev WatchResponse.Err.spec : Prop :=
   ∀ (wr : Loc) (resp : go_etcd_io.etcd.client.v3.WatchResponse) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ wr ↦{dq} resp }}
@@ -33,7 +34,8 @@ abbrev WatchResponse.Err.spec : Prop :=
   {{ (err : GoError), RET #err; wr ↦{dq} resp ∗
       ⌜err = interface.nil ↔
         (resp.closeErr' = interface.nil ∧ resp.CompactRevision' = W64 0 ∧
-          resp.Canceled' = false)⌝ }}
+          resp.Canceled' = false)⌝ ∗
+      □ (errStrOk resp.closeErr' -∗ errStrOk err) }}
 
 end spec
 

@@ -158,9 +158,9 @@ theorem Cache.get.wp_proof
     rcases i with _ | i
     · cases Hf; cases Hg; iexact Hf1
     · simp at Hf
-  iunfold isEtcdKV at HisKV
+  iunfold isEtcdKVE at HisKV
   ihave #HG := HisKV $$ %ctx %s %cf.pfx %optsSl %([withPrefixM] : List (OpFull → OpFull)) %B
-  wp_apply HG $$ [] as %resp %err #Hres
+  wp_apply HG $$ [] as %resp %err ⟨#Hres, #HeS⟩
   · iframe Hctx Hopts HRB
     ipureintro
     refine ⟨?_, opGetModel_withPrefix_t cf.pfx⟩
@@ -177,6 +177,7 @@ theorem Cache.get.wp_proof
     ileft
     isplitr
     · ipureintro; exact ⟨rfl, Herr⟩
+    iframe HeS
     iunfold cacheBound
     iframe Ha HRB
     ipureintro; exact HB0

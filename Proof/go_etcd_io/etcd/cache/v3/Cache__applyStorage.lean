@@ -689,7 +689,7 @@ theorem Cache.applyStorage.wp_proof
     wp_auto
     wp_for_post
     iapply HΦ
-    itrivial
+    first | iapply errStrOk_nil | iexact HeAp
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `resp, ok := <-storeW.respCh`
@@ -709,7 +709,7 @@ theorem Cache.applyStorage.wp_proof
       wp_auto
       wp_for_post
       iapply HΦ
-      itrivial
+      first | iapply errStrOk_nil | iexact HeAp
     | true =>
       simp only [↓reduceIte]
       icases Hres with ⟨%r, #Hsent, Hcons, #Hpub⟩
@@ -767,14 +767,14 @@ theorem Cache.applyStorage.wp_proof
           unfold snapCerts; imodintro; iintro %x %hx; simp at hx
       wp_auto
       wp_apply wp_Apply cf.store cf.γs cf.scap (etcdCert cf.pfx) (cacheRev cf) Y resp r
-        $$ [$HisStore $HisStoreW $Hresp $HYc $Hcert] as %err Hres
+        $$ [$HisStore $HisStoreW $Hresp $HYc $Hcert] as %err ⟨#HeAp, Hres⟩
       · ipureintro; exact ⟨hsorted, hY0⟩
       icases Hres with (%Hcanc | ⟨%st, %Hst, #Hlb, #Hslb, %Herr⟩)
       · obtain ⟨-, e, rfl⟩ := Hcanc
         wp_auto
         wp_for_post
         iapply HΦ
-        itrivial
+        first | iapply errStrOk_nil | iexact HeAp
       cases hok : (applyResp cf.scap st r).2 with
       | false =>
         rw [hok] at Herr
@@ -782,7 +782,7 @@ theorem Cache.applyStorage.wp_proof
         wp_auto
         wp_for_post
         iapply HΦ
-        itrivial
+        first | iapply errStrOk_nil | iexact HeAp
       | true =>
         rw [hok] at Herr
         subst Herr
