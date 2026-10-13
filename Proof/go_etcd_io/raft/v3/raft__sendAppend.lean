@@ -25,10 +25,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raft.sendAppend.wp_proof
     (wp_raft_maybeSendAppend : raft.maybeSendAppend.spec (GF := GF) (hG := hG)) :
     raft.sendAppend.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s to Hto Hcfg
+  intro c r id s to Hto Hcfg
   wp_start as Hphys
   wp_auto
-  wp_apply (raft.maybeSendAppend.spec_simple wp_raft_maybeSendAppend) cfg r id s to true Hto Hcfg $$ [$Hphys]
+  wp_apply wp_raft_maybeSendAppend c r id s to true Hto Hcfg $$ [$Hphys]
     as %b %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
   iapply HΦ
   iframe

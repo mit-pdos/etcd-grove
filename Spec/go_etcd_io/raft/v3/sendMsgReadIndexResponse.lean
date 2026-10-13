@@ -52,6 +52,22 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev sendMsgReadIndexResponse.spec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
+    (ents : List raftpb.Entry),
+  s.role = .leader →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysC c r id s ∗
+      "#Hents" ∷ m.Entries' ↦*□ ents }}
+    (App (App (Val #(functions sendMsgReadIndexResponse [])) (Val #r)) (Val #m))
+  {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
+      ownRaftPhysC c r id { sendMsgs (arriveState id s m ents) ms with prvals := pvs } ∗
+      ⌜∀ m' ∈ ms, HeartbeatOk id (toPState s) m' ∧
+         m'.ctx = hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents))⌝ ∗
+      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
+
+/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
+derived from `sendMsgReadIndexResponse.spec` by `sendMsgReadIndexResponse.spec_simple`. -/
+abbrev sendMsgReadIndexResponse.specS : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry),
   s.role = .leader →
@@ -64,6 +80,21 @@ abbrev sendMsgReadIndexResponse.spec : Prop :=
       ⌜∀ m' ∈ ms, HeartbeatOk id (toPState s) m' ∧
          m'.ctx = hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents))⌝ ∗
       ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
+
+open Iris.ProofMode in
+theorem sendMsgReadIndexResponse.spec_simple
+    (H : sendMsgReadIndexResponse.spec (GF := GF) (hG := hG)) :
+    sendMsgReadIndexResponse.specS (GF := GF) (hG := hG) := by
+  intro cfg r id s m ents Hl
+  iintro %Φ ⟨#Hpkg, Hphys, #Hents⟩ HΦ
+  ihave Hphys := ownRaftPhys_toC' $$ Hphys
+  iapply H _ r id s m ents Hl $$ [$Hpkg $Hphys $Hents]
+  inext
+  iintro %ms %pvs ⟨Hphys, %H1, %H2⟩
+  ihave Hphys := ownRaftPhysC_toS $$ Hphys
+  iapply HΦ
+  iframe Hphys
+  ipureintro; exact ⟨H1, H2⟩
 
 end spec
 

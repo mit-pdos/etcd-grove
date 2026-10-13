@@ -4,7 +4,7 @@ for the general spec of 2026-10-12, which releases the pending requests.
 
 An empty queue returns at the length test. Otherwise the entry at the commit index is of
 the current term (the premise), so `committedEntryInCurrentTerm` holds and the `Error` arm
-is dead; the field is taken (`ownRaftPhys_misc`, the state's `pend` emptied) and each
+is dead; the field is taken (`ownRaftPhysC_misc`, the state's `pend` emptied) and each
 request goes to `sendMsgReadIndexResponse`, with the invariant that after `k` of them the
 read-only object is `readonlyRelease` of the first `k` (`relState`).
 -/
@@ -77,12 +77,12 @@ theorem releasePendingReadIndexMessages.wp_proof
       raft.committedEntryInCurrentTerm.spec (GF := GF) (hG := hG))
     (wp_sendMsgReadIndexResponse : sendMsgReadIndexResponse.spec (GF := GF) (hG := hG)) :
     releasePendingReadIndexMessages.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s Hlead Hterm Hcit
+  intro c r id s Hlead Hterm Hcit
   wp_start as Hpre
   iNamed Hpre
   wp_auto
   -- `len(r.pendingReadIndexMessages) == 0`
-  icases ownRaftPhys_misc cfg r id s $$ Hphys with ⟨%rs, %ro, %pr, Hrs, Hro, Hpr, Hmisc, Hback⟩
+  icases ownRaftPhysC_misc c r id s $$ Hphys with ⟨%rs, %ro, %pr, Hrs, Hro, Hpr, Hmisc, Hback⟩
   iunfold ownRaftMisc at Hmisc
   iNamed Hmisc
   ihave %Hprl := ownSlice_len _ _ _ $$ Hpri
@@ -92,7 +92,7 @@ theorem releasePendingReadIndexMessages.wp_proof
   · unfold ownRaftMisc
     simp only [named]
     iframe HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap Hpri_ents
-  ihave Hphys := ownRaftPhys_eq cfg r id _ s rfl $$ Hphys
+  ihave Hphys := ownRaftPhysC_eq c r id _ s rfl $$ Hphys
   by_cases Hpend : s.rd.pend = []
   · -- nothing pending: return
     have Hz : pr.len = W64 0 := by
@@ -101,7 +101,7 @@ theorem releasePendingReadIndexMessages.wp_proof
     rw [decide_eq_true Hz]
     wp_auto
     iapply HΦ $$ %([] : List Msg) %s.prvals
-    ihave Hphys := ownRaftPhys_eq cfg r id s
+    ihave Hphys := ownRaftPhysC_eq c r id s
       { sendMsgs (releasedState id s) [] with prvals := s.prvals } (released_nil id s Hpend).symm
       $$ Hphys
     iframe Hphys
@@ -116,11 +116,11 @@ theorem releasePendingReadIndexMessages.wp_proof
   wp_auto
   clear Hnz Hprl pr ro rs
   -- the entry at the commit index is of the current term
-  wp_apply (raft.committedEntryInCurrentTerm.spec_simple wp_raft_committedEntryInCurrentTerm) _ _ _ _ Hterm $$ [$Hphys] as %b ⟨Hphys, %Hb⟩
+  wp_apply wp_raft_committedEntryInCurrentTerm _ _ _ _ Hterm $$ [$Hphys] as %b ⟨Hphys, %Hb⟩
   rw [Hb.2 (Hcit Hpend)]
   wp_auto
   -- `msgs := r.pendingReadIndexMessages; r.pendingReadIndexMessages = nil`
-  icases ownRaftPhys_misc cfg r id s $$ Hphys with ⟨%rs, %ro, %pr, Hrs, Hro, Hpr, Hmisc, Hback⟩
+  icases ownRaftPhysC_misc c r id s $$ Hphys with ⟨%rs, %ro, %pr, Hrs, Hro, Hpr, Hmisc, Hback⟩
   iunfold ownRaftMisc at Hmisc
   iNamed Hmisc
   ihave %Hprl := ownSlice_len _ _ _ $$ Hpri
@@ -137,7 +137,7 @@ theorem releasePendingReadIndexMessages.wp_proof
     iapply BigSepL.bigSepL_nil.2
     iempintro
   iclear Hpri_cap
-  ihave Hphys := ownRaftPhys_eq cfg r id _
+  ihave Hphys := ownRaftPhysC_eq c r id _
     { sendMsgs (relState id s (sint.nat (W64 0))) [] with prvals := s.prvals }
     (by simp [relState, sendMsgs, readonlyRelease]; rfl) $$ Hphys
   -- the loop: after `n` requests, the first `n` are released
@@ -145,7 +145,7 @@ theorem releasePendingReadIndexMessages.wp_proof
       "i" ∷ i_ptr ↦ n ∗
       "m" ∷ m_ptr ↦ mv ∗
       "Hpri" ∷ pr ↦* s.rd.pend.map Prod.fst ∗
-      "Hphys" ∷ ownRaftPhys cfg r id
+      "Hphys" ∷ ownRaftPhysC c r id
         { sendMsgs (relState id s (sint.nat n)) ms with prvals := pvs } ∗
       "%Hms" ∷ ⌜∀ m' ∈ ms, HeartbeatOk id (toPState s) m' ∧
          ∃ k, 0 < k ∧ k ≤ sint.nat n ∧
@@ -181,7 +181,7 @@ theorem releasePendingReadIndexMessages.wp_proof
     iexists n + W64 1, p.1, ms ++ ms', pvs'
     have Hsucc : sint.nat (n + W64 1) = sint.nat n + 1 := by word
     rw [Hsucc]
-    ihave Hphys := ownRaftPhys_eq cfg r id _
+    ihave Hphys := ownRaftPhysC_eq c r id _
       { sendMsgs (relState id s (sint.nat n + 1)) (ms ++ ms') with prvals := pvs' }
       (by simp only [sendMsgs, arriveState, relState, arriveReq,
             readonlyRelease_take_succ _ _ _ _ _ _ Hp, List.append_assoc]) $$ Hphys

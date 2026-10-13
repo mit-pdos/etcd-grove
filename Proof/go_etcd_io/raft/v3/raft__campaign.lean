@@ -165,7 +165,7 @@ theorem raft.campaign.wp_proof
     iexists s.prvals
     simp only [campaignPreElection, decide_true, campRoleState, vreqW32, ↓reduceIte]
     iframe
-  · wp_apply wp_raft_becomeCandidate _ _ _ _ Hrole Hnowrap Hid_cfg $$ [$Hphys] as %pvs Hphys
+  · wp_apply (raft.becomeCandidate.spec_simple wp_raft_becomeCandidate) _ _ _ _ Hrole Hnowrap Hid_cfg $$ [$Hphys] as %pvs Hphys
     rw [show raftpb.MsgVote = #MsgVote from rfl]
     wp_auto
     wp_apply raft.wp_load_Term $$ Hphys as Hphys

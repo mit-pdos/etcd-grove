@@ -31,6 +31,20 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 result is dropped. Same postcondition, therefore: the outbox grows by some list of
 messages `ReplOk` allows, and `Match` does not move. -/
 abbrev raft.sendAppend.spec : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64),
+  to ≠ id →
+  to ∈ domSet s.progress →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysC c r id s }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"sendAppend")) (Val #to))
+  {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
+      ownRaftPhysC c r id { sendMsgs s ms with prvals := pvs } ∗
+      ⌜ReplSends id s ms⌝ ∗
+      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
+
+/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
+derived from `raft.sendAppend.spec` by `raft.sendAppend.spec_simple`. -/
+abbrev raft.sendAppend.specS : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (to : w64),
   to ≠ id →
   to ∈ domSet s.progress →
@@ -41,6 +55,21 @@ abbrev raft.sendAppend.spec : Prop :=
       ownRaftPhys cfg r id { sendMsgs s ms with prvals := pvs } ∗
       ⌜ReplSends id s ms⌝ ∗
       ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
+
+open Iris.ProofMode in
+theorem raft.sendAppend.spec_simple
+    (H : raft.sendAppend.spec (GF := GF) (hG := hG)) :
+    raft.sendAppend.specS (GF := GF) (hG := hG) := by
+  intro cfg r id s to Hto Hdom
+  iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
+  ihave Hphys := ownRaftPhys_toC' $$ Hphys
+  iapply H _ r id s to Hto Hdom $$ [$Hpkg $Hphys]
+  inext
+  iintro %ms %pvs ⟨Hphys, %H1, %H2⟩
+  ihave Hphys := ownRaftPhysC_toS $$ Hphys
+  iapply HΦ
+  iframe Hphys
+  ipureintro; exact ⟨H1, H2⟩
 
 end spec
 

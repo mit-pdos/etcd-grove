@@ -597,7 +597,7 @@ private theorem wp_stepLeader_transfer
       ipureintro
       exact ⟨rfl, Hres0 _⟩
     · -- behind: an append
-      wp_apply wp_raft_sendAppend cfg r id _ m.From' Hself (by exact Hfcfg) $$ [$Hphys]
+      wp_apply (raft.sendAppend.spec_simple wp_raft_sendAppend) cfg r id _ m.From' Hself (by exact Hfcfg) $$ [$Hphys]
         as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
       iapply HΦ $$ %interface.nil %_
       ihave Hphys := ownRaftPhys_eq cfg r id _
@@ -621,7 +621,7 @@ private theorem wp_stepLeader_beat
   wp_auto
   simp only [Hty, MsgBeat]
   wp_auto
-  wp_apply wp_raft_bcastHeartbeat cfg r id s Hlead $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+  wp_apply (raft.bcastHeartbeat.spec_simple wp_raft_bcastHeartbeat) cfg r id s Hlead $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
   iapply HΦ
   iframe Hphys
   ipureintro
@@ -715,7 +715,7 @@ private theorem wp_stepLeader_hbresp
     ihave Hphys := Hlogback $$ Hlog
     wp_if_destruct
     · -- behind
-      wp_apply wp_raft_sendAppend cfg r id _ m.From' Hself (by exact Hfcfg) $$ [$Hphys]
+      wp_apply (raft.sendAppend.spec_simple wp_raft_sendAppend) cfg r id _ m.From' Hself (by exact Hfcfg) $$ [$Hphys]
         as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
       wp_join_done
       iexists ms, pvs
@@ -729,7 +729,7 @@ private theorem wp_stepLeader_hbresp
     · iapply ownProgress_intro $$ Hpv Hinfl %Habs
     wp_if_destruct
     · -- probing
-      wp_apply wp_raft_sendAppend cfg r id _ m.From' Hself (by exact Hfcfg) $$ [$Hphys]
+      wp_apply (raft.sendAppend.spec_simple wp_raft_sendAppend) cfg r id _ m.From' Hself (by exact Hfcfg) $$ [$Hphys]
         as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
       wp_join_done
       iexists ms, pvs
@@ -991,7 +991,7 @@ private theorem wp_stepLeader_readindex
   · -- `sendMsgReadIndexResponse(r, m)`
     have Hb' := Hb.1 rfl
     wp_auto
-    wp_apply wp_sendMsgReadIndexResponse cfg r id s m ents Hlead $$ [$Hphys $Hes]
+    wp_apply (sendMsgReadIndexResponse.spec_simple wp_sendMsgReadIndexResponse) cfg r id s m ents Hlead $$ [$Hphys $Hes]
       as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
     iapply HΦ
     iframe Hphys
@@ -1282,7 +1282,7 @@ private theorem wp_stepLeader_appresp
             ipureintro
             exact ⟨Or.inl rfl, by simp, fun _ h => absurd h List.not_mem_nil, rfl⟩
           · wp_auto
-            wp_apply wp_raft_sendAppend cfg r id _ m.From' (Ne.symm Hsame) (by exact Hfcfg) $$ [$Hphys]
+            wp_apply (raft.sendAppend.spec_simple wp_raft_sendAppend) cfg r id _ m.From' (Ne.symm Hsame) (by exact Hfcfg) $$ [$Hphys]
               as %ms %pvs4 ⟨Hphys, %Hms, %Hmm4⟩
             wp_join_done
             iexists s.logst.committed,
@@ -1301,7 +1301,7 @@ private theorem wp_stepLeader_appresp
         have HNne : N ≠ s.logst.committed := by
           intro h; have := HcN.1; rw [h] at this; simp [toPState] at this
         wp_auto
-        wp_apply wp_releasePendingReadIndexMessages cfg r id
+        wp_apply (releasePendingReadIndexMessages.spec_simple wp_releasePendingReadIndexMessages) cfg r id
             { s with prvals := pvs3, logst := { s.logst with committed := N } } Hlead Hnz
             (fun _ => HcN.2.2.1) $$ [$Hphys]
           as %hb %pvsR ⟨Hphys, %Hhb, %HmmR⟩
@@ -1503,7 +1503,7 @@ private theorem wp_stepLeader_appresp
       ihave Hphys := Hpback $$ %(progressBecomeProbe p2) Hpa %(by first | rfl | simp)
       have HM3 : (progressBecomeProbe p2).matched = p2.matched := rfl
       generalize Hpvs3 : (<[m.From' := progressBecomeProbe p2]> pvs2 : GMap w64 Progress) = pvs3
-      wp_apply wp_raft_sendAppend cfg r id _ m.From' Hself (by exact Hfcfg) $$ [$Hphys]
+      wp_apply (raft.sendAppend.spec_simple wp_raft_sendAppend) cfg r id _ m.From' Hself (by exact Hfcfg) $$ [$Hphys]
         as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
       ihave Hphys := ownRaftPhys_eq cfg r id _ { sendMsgs s ms with prvals := pvs }
         (by simp [sendMsgs]) $$ Hphys
@@ -1521,7 +1521,7 @@ private theorem wp_stepLeader_appresp
       ihave Hphys := Hpback $$ %p2 Hpa %(by first | rfl | simp)
       have HM3 : p2.matched = p2.matched := rfl
       generalize Hpvs3 : (<[m.From' := p2]> pvs2 : GMap w64 Progress) = pvs3
-      wp_apply wp_raft_sendAppend cfg r id _ m.From' Hself (by exact Hfcfg) $$ [$Hphys]
+      wp_apply (raft.sendAppend.spec_simple wp_raft_sendAppend) cfg r id _ m.From' Hself (by exact Hfcfg) $$ [$Hphys]
         as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
       ihave Hphys := ownRaftPhys_eq cfg r id _ { sendMsgs s ms with prvals := pvs }
         (by simp [sendMsgs]) $$ Hphys

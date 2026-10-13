@@ -499,6 +499,30 @@ theorem ownTrackerC_lookup_same (c : CfgM) (tv : tracker.ProgressTracker) (t : T
   rw [GMap.insert_id t.peers i p Hv]
   iexact Hown
 
+/-- `r.trk.Progress[i]` for a tracked id (`wp_tracker_progress_lookup` at `c`). -/
+theorem wp_trackerC_progress_lookup (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) (i : w64)
+    (Hi : i ∈ c.ids) :
+    {{ ownTrackerC (GF := GF) c tv t }}
+      (App (App (Val (map.lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty)))
+        (Val #tv.Progress')) (Val #i))
+    {{ (pr : Loc), RET #pr;
+        ⌜t.prs !! i = some pr⌝ ∗
+        ∃ p, ⌜t.peers !! i = some p⌝ ∗ ownProgress pr p ∗
+          (∀ p', ownProgress pr p' -∗ ⌜p'.learner = p.learner⌝ -∗
+                 ownTrackerC c tv ⟨t.votes, t.prs, <[i := p']> t.peers⟩) }} := by
+  iintro %Φ Hown HΦ
+  icases ownTrackerC_progress_map c tv t $$ Hown with ⟨#Hprs, %Hdom, Hown⟩
+  obtain ⟨pr, Hpr⟩ : ∃ pr, t.prs !! i = some pr := by
+    rw [← GMap.elem_of_dom, Hdom]; exact Hi
+  wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ t.prs i _
+    $$ Hprs with -
+  rw [Hpr]
+  simp only [Option.getD_some]
+  iapply HΦ $$ %pr
+  isplitr
+  · ipureintro; rfl
+  iapply ownTrackerC_lookup c tv t i pr Hpr $$ Hown
+
 /-- `visitClosure` (`InvTracker.lean`) at the configuration `c`: the closure `Visit` calls for
 each tracked id, lent the tracker field, the id's `Progress` and the wand back to the whole
 tracker, and the caller's invariant `I`. -/

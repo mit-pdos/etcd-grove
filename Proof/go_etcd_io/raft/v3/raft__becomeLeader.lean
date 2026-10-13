@@ -3,7 +3,7 @@ Port of election_proof/proof_raft__becomeLeader.v.
 
 Lean notes: the Go code stores the generated constant `go_etcd_io.raft.v3.StateLeader`
 (`#(W64 2)`), which `wp_apply` does not unify with `#(stateW64 .leader)`;
-`wp_store_state_leader` is `raft.wp_store_state` at that value.
+`wp_store_state_leader` is `raft.wp_store_stateC` at that value.
 -/
 module
 
@@ -30,14 +30,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `raft.wp_store_state` at the value the Go code stores. -/
-private theorem wp_store_state_leader (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
-    (Hcfg : id ∈ cfg) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
+/-- `raft.wp_store_stateC` at the value the Go code stores. -/
+private theorem wp_store_state_leader (c : CfgM) (r : Loc) (id : w64) (s : NState)
+    (Hcfg : id ∈ c.voters) :
+    {{ ownRaftPhysC (GF := GF) c r id s }}
       (App (Val (GoInstruction (GoStore StateType.ty)))
         (Val (PairV #(r.[raft, go!"state"]) go_etcd_io.raft.v3.StateLeader)))
-    {{ RET #(); ownRaftPhys cfg r id { s with role := .leader } }} :=
-  raft.wp_store_state (cfg := cfg) r id s .leader (fun _ => Hcfg)
+    {{ RET #(); ownRaftPhysC c r id { s with role := .leader } }} :=
+  raft.wp_store_stateC c r id s .leader (fun _ => Hcfg)
 
 theorem raft.becomeLeader.wp_proof
     (wp_raft_reset : raft.reset.spec (GF := GF) (hG := hG))
@@ -46,36 +46,39 @@ theorem raft.becomeLeader.wp_proof
     (wp_raft_appendEntry : raft.appendEntry.spec (GF := GF) (hG := hG))
     (wp_Progress_BecomeReplicate : tracker.Progress.BecomeReplicate.spec (GF := GF) (hG := hG)) :
     raft.becomeLeader.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s Hrole Hcfg Hnz
+  intro c r id s Hrole Hnz
   wp_start as Hphys
+  -- the node is a voter (`ownRaftPhysC`'s `Hvoter`: it is not a follower), so tracked
+  icases ownRaftPhysC_voter c r id s $$ Hphys with ⟨%Hv, Hphys⟩
+  have Hcfg : id ∈ c.voters := Hv Hrole
   wp_auto
   -- `becomeLeader` panics on a follower; by assumption we are not one.
   have Hnf : stateW64 s.role ≠ W64 0 := by
     cases h : s.role <;> simp_all [stateW64, StateCandidate, StateLeader, StatePreCandidate]
-  wp_apply raft.wp_load_state $$ Hphys as Hphys
+  wp_apply raft.wp_load_stateC $$ Hphys as Hphys
   rw [decide_eq_false Hnf]
   wp_auto
   -- `r.step := stepLeader`, then `reset` at the unchanged term, so the vote survives
-  wp_apply raft.wp_store_step $$ Hphys as Hphys
-  wp_apply raft.wp_load_Term $$ Hphys as Hphys
-  wp_apply (raft.reset.spec_simple wp_raft_reset) cfg r id { s with stepfn := functions stepLeader [] } s.term
+  wp_apply raft.wp_store_stepC $$ Hphys as Hphys
+  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  wp_apply wp_raft_reset c r id { s with stepfn := functions stepLeader [] } s.term
     (Int.le_refl _) $$ [$Hphys] as %pvs ⟨Hphys, %Hmr⟩
   -- `r.tick`, `r.lead := r.id`, `r.state := StateLeader`
-  wp_apply raft.wp_store_tick (Hf := .inr rfl) $$ Hphys as Hphys
-  wp_apply raft.wp_load_id $$ Hphys as Hphys
-  wp_apply raft.wp_store_lead $$ Hphys as Hphys
+  wp_apply raft.wp_store_tickC (Hf := .inr rfl) $$ Hphys as Hphys
+  wp_apply raft.wp_load_idC $$ Hphys as Hphys
+  wp_apply raft.wp_store_leadC $$ Hphys as Hphys
   wp_apply wp_store_state_leader _ _ _ _ Hcfg $$ Hphys as Hphys
   -- the state is now `becomeLeaderPre` up to the order of the record updates
-  ihave Hphys : ownRaftPhys cfg r id { becomeLeaderPre id s with prvals := pvs } $$ [Hphys]
-  · iapply ownRaftPhys_eq cfg r id _ _ ?_ $$ Hphys
+  ihave Hphys : ownRaftPhysC c r id { becomeLeaderPre id s with prvals := pvs } $$ [Hphys]
+  · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
     rfl
   generalize hs1 : ({ becomeLeaderPre id s with prvals := pvs } : NState) = s1
   -- the leader's own `Progress` is marked replicating and recently active; the map
   -- lookup is on the tracker object
-  wp_apply raft.wp_load_id $$ Hphys as Hphys
-  icases ownRaftPhys_tracker_prvals cfg r id _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
+  wp_apply raft.wp_load_idC $$ Hphys as Hphys
+  icases ownRaftPhysC_tracker_prvals c r id _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
   wp_auto
-  wp_apply wp_tracker_progress_lookup cfg tv _ id Hcfg $$ [$Htrk]
+  wp_apply wp_trackerC_progress_lookup c tv _ id ((GMap.elem_of_subseteq _ _).1 (voters_sub_ids c) _ Hcfg) $$ [$Htrk]
     as %pr ⟨-, %p0, %Hpv0, Hpr, Hprback⟩
   wp_apply wp_Progress_BecomeReplicate $$ [$Hpr] as Hpr
   -- `ownProgress` owns the whole `Progress` value, so the `RecentActive` assignment steps
@@ -93,11 +96,11 @@ theorem raft.becomeLeader.wp_proof
   ihave Htrk := Hprback $$ %_ Hpr %rfl
   ihave Hphys := Hback $$ %_ %_ Htrkf Htrk
   -- `r.pendingConfIndex = r.raftLog.lastIndex()`
-  wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-  icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hback⟩
+  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+  icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩
   wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
   ihave Hphys := Hback $$ Hlog
-  wp_apply raft.wp_store_pendingConfIndex $$ Hphys as Hphys
+  wp_apply raft.wp_store_pendingConfIndexC $$ Hphys as Hphys
   have Hli' : li = logLast s.logst := by
     subst hs1
     unfold logLast
@@ -114,7 +117,7 @@ theorem raft.becomeLeader.wp_proof
   -- dropped; the entry's `Data` is nil, so `accepted = true` and the `Panic` on the
   -- `false` branch below is dead code. It also queues a self-addressed `MsgAppResp`, the
   -- self-acknowledgement: the state is `becomeLeader`. One entry is not `2^61`.
-  wp_apply (raft.appendEntry.spec_simple wp_raft_appendEntry) cfg r id _ _ [zero_val raftpb.Entry]
+  wp_apply wp_raft_appendEntry c r id _ _ [zero_val raftpb.Entry]
       (by simp) (by subst hs1; exact Hnz)
       $$ [$Hphys $Hes]
     as %accepted ⟨%Hacc, Hes, Hphys⟩
@@ -124,16 +127,16 @@ theorem raft.becomeLeader.wp_proof
   simp only [↓reduceIte]
   wp_auto
   -- `appendEntry` appended the stamped empty entry: that is `becomeLeader` (`Defs.lean`)
-  ihave Hphys : ownRaftPhys cfg r id
+  ihave Hphys : ownRaftPhysC c r id
       { becomeLeader id s with
         prvals := <[id := progressBecomeReplicate p0]> pvs }
       $$ [Hphys]
-  · iapply ownRaftPhys_eq cfg r id _ _ ?_ $$ Hphys
+  · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
     subst hs1
     rfl
-  wp_apply raft.wp_load_id $$ Hphys as Hphys
-  wp_apply raft.wp_load_Term $$ Hphys as Hphys
-  wp_raft_log
+  wp_apply raft.wp_load_idC $$ Hphys as Hphys
+  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+  wp_raft_logC
   iapply HΦ
   iframe
   ipureintro

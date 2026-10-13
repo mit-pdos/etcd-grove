@@ -128,7 +128,7 @@ theorem stepCandidate.wp_proof
       wp_apply raft.wp_load_state $$ Hphys as Hphys
       rw [decide_eq_false (by simp only [Hrole]; decide)]
       wp_auto
-      wp_apply wp_raft_becomeLeader _ _ _ _ (by simp only [Hrole]; decide) Hcfg
+      wp_apply (raft.becomeLeader.spec_simple wp_raft_becomeLeader) _ _ _ _ (by simp only [Hrole]; decide) Hcfg
           (by exact Hterm' ▸ Hmnz) $$ [$Hphys]
         as %pvs1 ⟨Hphys, %Hmb⟩
       -- `bcastAppend` adds *some* list of `App`s from `id` at the current term -- not one
@@ -152,7 +152,7 @@ theorem stepCandidate.wp_proof
       wp_auto
       -- the `r.Term` the code passes is `s1`'s term
       wp_apply raft.wp_load_Term $$ Hphys as Hphys
-      wp_apply wp_raft_becomeFollower _ _ _ _ _ _ (by exact Int.le_refl _) $$ [$Hphys] as %pvs Hphys
+      wp_apply (raft.becomeFollower.spec_simple wp_raft_becomeFollower) _ _ _ _ _ _ (by exact Int.le_refl _) $$ [$Hphys] as %pvs Hphys
       iapply HΦ $$ %GoInterface.nil %_ %false
       iframe Hphys
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -200,7 +200,7 @@ theorem stepCandidate.wp_proof
     rw [Hty]
     simp only [MsgApp]
     wp_auto
-    wp_apply wp_raft_becomeFollower _ _ _ _ _ _
+    wp_apply (raft.becomeFollower.spec_simple wp_raft_becomeFollower) _ _ _ _ _ _
       (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) $$ [$Hphys]
       as %pvs Hphys
     ihave Hes := Hents $$ %trivial
@@ -223,7 +223,7 @@ theorem stepCandidate.wp_proof
     rw [Hty]
     simp only [MsgHeartbeat]
     wp_auto
-    wp_apply wp_raft_becomeFollower _ _ _ _ _ _
+    wp_apply (raft.becomeFollower.spec_simple wp_raft_becomeFollower) _ _ _ _ _ _
       (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) $$ [$Hphys]
       as %pvs Hphys
     ihave #Hcl := Hctx $$ %(by simp [Hty, MsgHeartbeat, MsgProp])
@@ -269,7 +269,7 @@ theorem stepCandidate.wp_proof
     obtain ⟨Hscope, Hfid⟩ := Hsc
     simp only [MsgSnap]
     wp_auto
-    wp_apply wp_raft_becomeFollower _ _ _ _ _ _
+    wp_apply (raft.becomeFollower.spec_simple wp_raft_becomeFollower) _ _ _ _ _ _
       (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) $$ [$Hphys]
       as %pvs Hphys
     wp_apply wp_raft_handleSnapshot _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
@@ -354,7 +354,7 @@ theorem stepCandidate.wp_proof
         simp only [VoteLost]
         wp_auto
         wp_apply raft.wp_load_Term $$ Hphys as Hphys
-        wp_apply wp_raft_becomeFollower _ _ _ _ _ _ (by exact Int.le_refl _) $$ [$Hphys]
+        wp_apply (raft.becomeFollower.spec_simple wp_raft_becomeFollower) _ _ _ _ _ _ (by exact Int.le_refl _) $$ [$Hphys]
           as %pvs Hphys
         iapply HΦ $$ %GoInterface.nil %_ %false
         iframe Hphys

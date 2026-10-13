@@ -230,7 +230,7 @@ theorem newRaft.wp_proof
     simp only [s2, ls2, ap, ls1, s1, Ha0, ↓reduceIte, w64Max, Int.lt_irrefl]
   -- `r.becomeFollower(r.Term, None)`
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
-  wp_apply wp_raft_becomeFollower _ _ _ s2 s2.term (W64 0) (Int.le_refl _) $$ [$Hphys]
+  wp_apply (raft.becomeFollower.spec_simple wp_raft_becomeFollower) _ _ _ s2 s2.term (W64 0) (Int.le_refl _) $$ [$Hphys]
     as %pvs3 Hphys
   let s3 : NState := { becomeFollower s2 s2.term (W64 0) with prvals := pvs3 }
   -- `r.trk.VoterNodes()`
