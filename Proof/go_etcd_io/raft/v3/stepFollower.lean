@@ -41,14 +41,19 @@ the rest by computation.
   store into the local copy of `m`, and `send` takes clause (e).
 - `MsgApp`/`MsgHeartbeat`/`MsgSnap`: two stores (`electionElapsed`,
   untracked, and `lead`), then `handleAppendEntries`/`handleHeartbeat`/
-  `handleSnapshot` at `{ s with lead := m.From' }`. -/
+  `handleSnapshot` at `{ s with lead := m.From' }`.
+- `MsgReadIndex` (2026-10-12): leaderless, `Infof` and `nil`; otherwise
+  `m.To = r.lead` and `send`, by its last clause (the requester kept if set).
+- `MsgReadIndexResp` (2026-10-12): not one entry, `Errorf` and `nil`; otherwise
+  `r.readStates` grows by `ReadState{m.Index, m.Entries[0].Data}`, through
+  `ownRaftPhys_misc`. -/
 theorem stepFollower.wp_proof
     (wp_raft_handleAppendEntries : raft.handleAppendEntries.spec (GF := GF) (hG := hG))
     (wp_raft_handleHeartbeat : raft.handleHeartbeat.spec (GF := GF) (hG := hG))
     (wp_raft_handleSnapshot : raft.handleSnapshot.spec (GF := GF) (hG := hG))
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG)) :
     stepFollower.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s m ents sv voters cl Hty Hprop Happ Hhb
+  intro cfg r id s m ents sv voters cl Hty Hri Hprop Happ Hhb
   wp_start as H
   iNamed H
   ihave #Hinit := isInitialized_access $$ Hpkg
@@ -56,7 +61,7 @@ theorem stepFollower.wp_proof
   icases Hinit with ⟨%e1, %e2, %e3, %e4, %errPropDropped, %gr, %_, %_, %_, %_, #Hinit⟩
   iNamed Hinit
   wp_auto
-  rcases Hty with Hty | Hty | Hty | Hty | Hty | Hty | Hty
+  rcases Hty with Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty
   · -- `MsgVoteResp`: no arm
     rw [Hty]
     simp only [MsgVoteResp]
@@ -96,7 +101,7 @@ theorem stepFollower.wp_proof
       icases Hes with ⟨#Hes, -⟩
       ihave #Hcl := Hctx $$ %(by simp [Hty, MsgHeartbeat, MsgProp])
       wp_apply wp_raft_send _ _ _ _ { m with To' := s.lead } ents cl [propForward id s.lead m ents cl]
-          Hfrom0 (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Hterm0, fun h => Hlid h, rfl⟩)))))
+          (Or.imp_right Or.inl Hfrom0) (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Hterm0, fun h => Hlid h, rfl⟩)))))
         $$ [$Hphys $Hes $Hcl]
       · iapply send_no_snap
         simp [Hty, MsgProp, MsgSnap]
@@ -185,6 +190,110 @@ theorem stepFollower.wp_proof
     ipureintro
     simp [FollowerStepResult, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
       MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp]
+
+  · -- `MsgReadIndex` (2026-10-12): forwarded to the leader, if any
+    obtain ⟨Hterm0, Hlid⟩ := Hri Hty
+    ihave #Hes := Hrents $$ %(Or.inl Hty)
+    ihave #Hcl := Hctx $$ %(Or.inr (Or.inr Hty))
+    rw [Hty]
+    simp only [MsgReadIndex]
+    wp_auto
+    wp_apply raft.wp_load_lead $$ Hphys as Hphys
+    by_cases Hlead : s.lead = W64 0
+    · -- leaderless: logged and dropped
+      rw [decide_eq_true Hlead]
+      wp_auto
+      wp_apply raft.wp_load_id $$ Hphys as Hphys
+      wp_apply raft.wp_load_Term $$ Hphys as Hphys
+      wp_raft_log
+      iapply HΦ $$ %GoInterface.nil %s %false
+      iframe Hphys
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      ipureintro
+      refine ⟨?_, trivial⟩
+      simp [FollowerStepResult, Hty, Hlead, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+        MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex]
+    · -- forwarded to the leader
+      rw [decide_eq_false Hlead]
+      wp_auto
+      wp_apply raft.wp_load_lead $$ Hphys as Hphys
+      wp_apply wp_raft_send _ _ _ _ { m with To' := s.lead } ents cl
+          [readForward id s.lead m ents cl]
+          (Or.inr (Or.inr Hty))
+          (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨Hty, Hterm0, fun h => Hlid h, rfl⟩)))))
+        $$ [$Hphys $Hes $Hcl]
+      · iapply send_no_snap
+        simp [Hty, MsgReadIndex, MsgSnap]
+      iintro Hphys
+      wp_auto
+      iapply HΦ $$ %GoInterface.nil %_ %false
+      iframe
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      ipureintro
+      refine ⟨?_, trivial⟩
+      simp [FollowerStepResult, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+        MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex]
+      exact fun h => absurd h Hlead
+  · -- `MsgReadIndexResp` (2026-10-12): one entry becomes a `ReadState`
+    ihave #Hes := Hrents $$ %(Or.inr Hty)
+    ihave %Hlen := ownSlice_len _ _ _ $$ Hes
+    rw [Hty]
+    simp only [MsgReadIndexResp]
+    wp_auto
+    wp_if_destruct
+    · -- one entry: `r.readStates = append(r.readStates, ReadState{m.Index, m.Entries[0].Data})`
+      obtain ⟨e, rfl⟩ : ∃ e, ents = [e] :=
+        List.length_eq_one_iff.1 (by rw [Hlen.1, Hif]; rfl)
+      icases ownSlice_elem_acc (sint.Z (W64 0)) e m.Entries' DFrac.discard [e] (by word) (by simp)
+        $$ Hes with ⟨#He, -⟩
+      iStructNamed He
+      icases ownRaftPhys_misc _ _ _ $$ Hphys with ⟨%rs, %ro, %pr, Hrs, Hro, Hpr, Hmisc, Hback⟩
+      iunfold ownRaftMisc at Hmisc
+      iNamed Hmisc
+      wp_auto
+      simp only [show (0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z m.Entries'.len) = True from
+        eq_true ⟨by word, by rw [Hif]; word⟩, ↓reduceIte]
+      wp_auto
+      wp_apply wp_slice_literal (V := ReadState) [ReadState.mk m.Index' e.Data']
+      isplitr
+      · ipureintro; rfl
+      iintro %sl ⟨Hsl, -⟩
+      wp_auto
+      wp_apply wp_slice_append (V := ReadState) _ _ _ _ _ $$ [$HreadStates $HreadStates_cap $Hsl]
+        as %rs' ⟨Hrs', Hcap', -⟩
+      ihave Hmisc : ownRaftMisc (GF := GF) rs' ro pr
+          { s.rd with states := s.rd.states ++ [ReadState.mk m.Index' e.Data'] }
+          $$ [Hrs' Hcap' Hro_obj Hpri Hpri_cap]
+      · unfold ownRaftMisc
+        simp only [named]
+        iframe Hrs' Hcap' Hro_obj Hpri Hpri_cap Hpri_ents
+      ihave Hphys := Hback $$ %rs' %ro %pr %_ Hrs Hro Hpr Hmisc
+      iapply HΦ $$ %GoInterface.nil %_ %false
+      iframe Hphys
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      ipureintro
+      refine ⟨?_, trivial⟩
+      simp [FollowerStepResult, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+        MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp,
+        addReadState]
+    · -- not one entry: logged and ignored
+      wp_apply raft.wp_load_id $$ Hphys as Hphys
+      wp_raft_log
+      iapply HΦ $$ %GoInterface.nil %s %false
+      iframe Hphys
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      ipureintro
+      refine ⟨?_, trivial⟩
+      have Hne : ¬ ents.length = 1 := fun h => Hif (by
+        have := Hlen.1; rw [h] at this; word)
+      match ents, Hne with
+      | [], _ =>
+        simp [FollowerStepResult, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+          MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp]
+      | _ :: _ :: _, _ =>
+        simp [FollowerStepResult, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+          MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp]
+      | [_], h => exact absurd rfl h
 
 end proof
 

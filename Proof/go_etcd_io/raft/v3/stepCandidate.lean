@@ -32,7 +32,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 points-to from `isInitialized_access`). `MsgApp`: `becomeFollower(m.Term, m.From)` with
 `m.Term = s.term`, then `handleAppendEntries` at the follower state. `MsgHeartbeat`: the
 same `becomeFollower`, then `handleHeartbeat`. `MsgBeat`, `MsgAppResp`,
-`MsgHeartbeatResp`: no arm.
+`MsgHeartbeatResp`: no arm; nor `MsgReadIndex`, `MsgReadIndexResp` (2026-10-12).
 
 `MsgVoteResp`, unchanged since 2026-09: the type switch is walked to the
 `myVoteRespType` arm (`m.Type = MsgVoteResp`, and `state = StateCandidate` so
@@ -89,7 +89,7 @@ theorem stepCandidate.wp_proof
   have Hmc : s.role ≠ .preCandidate → mvr = W32 6 := by
     intro Hp; rw [← Hmvr, if_neg Hp]
   clear Hmvr
-  rcases Hty with Hty | Hty | Hty | Hty | Hty | Hty | Hty
+  rcases Hty with Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty
   · -- `MsgVoteResp`: none of `MsgProp`, `MsgApp`, `MsgHeartbeat`, `MsgSnap`, so it falls
     -- through to `myVoteRespType`
     obtain ⟨Hterm', Hmnz⟩ := Hterm (Or.inl Hty)
@@ -369,6 +369,30 @@ theorem stepCandidate.wp_proof
           (fun h => absurd h (by decide)) ?_
         cases s; rfl
 
+  · -- `MsgReadIndex`, `MsgReadIndexResp` (2026-10-12): no arm; `myVoteRespType` is one of
+    -- the two vote response types, neither of these
+    rcases Hty with Hty' | Hty' <;> rw [Hty'] <;>
+      simp only [MsgReadIndex, MsgReadIndexResp] <;> wp_auto
+    all_goals
+      by_cases Hp : s.role = .preCandidate
+      · rw [Hmp Hp]
+        wp_auto
+        iapply HΦ $$ %GoInterface.nil %s %false
+        iframe Hphys
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        ipureintro
+        refine ⟨?_, trivial⟩
+        simp [CandidateStepResult, Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+          MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp]
+      · rw [Hmc Hp]
+        wp_auto
+        iapply HΦ $$ %GoInterface.nil %s %false
+        iframe Hphys
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        ipureintro
+        refine ⟨?_, trivial⟩
+        simp [CandidateStepResult, Hty', MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
+          MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp]
 end proof
 
 end EtcdGrove
