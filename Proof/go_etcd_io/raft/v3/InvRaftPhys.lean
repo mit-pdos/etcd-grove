@@ -744,6 +744,8 @@ private def ownRaftPhysG (T : tracker.ProgressTracker → Trk → IProp GF) (V :
   "%HnoTransfer" ∷ ⌜rv.leadTransferee' = s.lt ∧ s.lt ≠ id⌝ ∗
   -- `r.pendingConfIndex` (2026-10-13, reconfiguration stage D), recorded
   "%Hpci" ∷ ⌜rv.pendingConfIndex' = s.pci⌝ ∗
+  -- `r.stepDownOnRemoval` (2026-10-13, reconfiguration stage A2), recorded
+  "%Hsdr" ∷ ⌜rv.stepDownOnRemoval' = s.sdr⌝ ∗
   "%Hid_nz" ∷ ⌜id ≠ W64 0⌝ ∗
   -- `Config.validate` requires `ElectionTick > HeartbeatTick > 0` and `newRaft`
   -- copies it, so this is an invariant of every struct raft builds. It is needed
@@ -808,6 +810,7 @@ theorem ownRaftPhys_intro (r : Loc) (id : w64) (s : NState) (rv : raft)
     rv.isLearner' = s.isLearner →
     rv.leadTransferee' = s.lt ∧ s.lt ≠ id →
     rv.pendingConfIndex' = s.pci →
+    rv.stepDownOnRemoval' = s.sdr →
     id ≠ W64 0 →
     0 < sint.Z rv.electionTimeout' →
     rv.logger' = interface.ok lok →
@@ -830,7 +833,7 @@ theorem ownRaftPhys_intro (r : Loc) (id : w64) (s : NState) (rv : raft)
       outboxRel s.outbox msgs msgsAA -∗
       ownRaftPhys cfg r id s := by
   intro Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum
-    HnoLearner HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term
+    HnoLearner HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term
     Hgh_out Hgh_unst Hvoter
   iintro Hr #Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc #Houtbox
   rw [ownRaftPhys_unseal]; unfold ownRaftPhysDef ownRaftPhysG
@@ -840,7 +843,7 @@ theorem ownRaftPhys_intro (r : Loc) (id : w64) (s : NState) (rv : raft)
   ipureintro
   exact ⟨Hid, Hterm, Hvote, Hlead, Hstate, Hstepfn, Htick, Hlogp, HmsgsAA_ok, Hout_term,
     Hgh_out, Hgh_unst, Hvoter, Hprevote,
-    HpropForward, HnoCCV, HnoCheckQuorum, HnoLearner, HnoTransfer, Hpci, Hid_nz, HelectionTimeout, Hlok⟩
+    HpropForward, HnoCCV, HnoCheckQuorum, HnoLearner, HnoTransfer, Hpci, Hsdr, Hid_nz, HelectionTimeout, Hlok⟩
 
 /-! ### At any configuration (2026-10-13, reconfiguration stage A1)
 
@@ -885,6 +888,7 @@ theorem ownRaftPhysC_intro (c : CfgM) (r : Loc) (id : w64) (s : NState) (rv : ra
     rv.isLearner' = s.isLearner →
     rv.leadTransferee' = s.lt ∧ s.lt ≠ id →
     rv.pendingConfIndex' = s.pci →
+    rv.stepDownOnRemoval' = s.sdr →
     id ≠ W64 0 →
     0 < sint.Z rv.electionTimeout' →
     rv.logger' = interface.ok lok →
@@ -907,7 +911,7 @@ theorem ownRaftPhysC_intro (c : CfgM) (r : Loc) (id : w64) (s : NState) (rv : ra
       outboxRel s.outbox msgs msgsAA -∗
       ownRaftPhysC c r id s := by
   intro Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum
-    HnoLearner HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term
+    HnoLearner HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term
     Hgh_out Hgh_unst Hvoter
   iintro Hr #Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc #Houtbox
   rw [ownRaftPhysC_unseal]; unfold ownRaftPhysG
@@ -917,7 +921,7 @@ theorem ownRaftPhysC_intro (c : CfgM) (r : Loc) (id : w64) (s : NState) (rv : ra
   ipureintro
   exact ⟨Hid, Hterm, Hvote, Hlead, Hstate, Hstepfn, Htick, Hlogp, HmsgsAA_ok, Hout_term,
     Hgh_out, Hgh_unst, Hvoter, Hprevote,
-    HpropForward, HnoCCV, HnoCheckQuorum, HnoLearner, HnoTransfer, Hpci, Hid_nz, HelectionTimeout, Hlok⟩
+    HpropForward, HnoCCV, HnoCheckQuorum, HnoLearner, HnoTransfer, Hpci, Hsdr, Hid_nz, HelectionTimeout, Hlok⟩
 end proof
 
 set_option hygiene false in
@@ -942,7 +946,7 @@ otherwise `ownRaftPhys_intro`'s `s` is fixed by `Htrk` -- at the state *before* 
 access -- and the conclusion no longer matches. -/
 local macro "reseal " s:term:max : tactic =>
   `(tactic| (iapply ownRaftPhys_intro _ _ _ $s _ msgs msgsAA lok
-                (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+                (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
                 (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
                 (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
                 (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
@@ -1015,7 +1019,7 @@ theorem ownRaftPhys_outbox (r : Loc) (id : w64) (s : NState) (o : List Msg) :
   ihave #Houtbox' := outboxRel_perm _ o _ _ Ho $$ Houtbox
   iapply ownRaftPhys_intro _ _ _ { s with outbox := o } _ msgs msgsAA lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst Hvoter
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst Hvoter
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox'
 
 /-- Sending nothing, in both directions: an exit that sends nothing proves a
@@ -1374,7 +1378,7 @@ theorem raft.wp_store_Term (r : Loc) (id : w64) (s : NState) (v : w64)
     fun m Hm => (Hout_term m Hm).mono Hle
   iapply HΦ
   iapply ownRaftPhys_intro _ _ _ { s with term := v } _ msgs msgsAA lok
-    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) HmsgsAA_ok' Hout_term' Hgh_out Hgh_unst Hvoter
@@ -1413,7 +1417,7 @@ theorem raft.wp_store_state (r : Loc) (id : w64) (s : NState) (ro : PRole)
   have Hvoter' : ({ s with role := ro } : NState).role ≠ .follower → id ∈ cfg := Hro
   iapply HΦ
   iapply ownRaftPhys_intro _ _ _ { s with role := ro } _ msgs msgsAA lok
-    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
@@ -1443,7 +1447,7 @@ theorem raft.wp_store_tick (r : Loc) (id : w64) (s : NState) (f : GoFunc)
   wp_apply wp_store_access _ rv.tick' f _ _ (raftOwn_access_store_tick _ _ _) $$ Hr as Hr
   iapply HΦ
   iapply ownRaftPhys_intro _ _ _ { s with ticking := true } _ msgs msgsAA lok
-    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (fun _ => Hf) (by phys_pure) (by phys_pure) Hgh_out Hgh_unst Hvoter
@@ -1845,7 +1849,7 @@ theorem ownRaftPhys_log_at (r : Loc) (id : w64) (s : NState) :
   · rw [Hlogp]; iexact Hlog
   iapply ownRaftPhys_intro _ _ _ { s with logst := ls' } _ msgs msgsAA lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
     Hgh_unst' Hvoter
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
@@ -1919,7 +1923,7 @@ theorem ownRaftPhys_msgs (r : Loc) (id : w64) (s : NState) :
   iapply ownRaftPhys_intro _ _ _ { s with outbox := s.outbox ++ absList [a] }
       { rv with msgs' := sl' } (msgs ++ [m']) msgsAA lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term'
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term'
     (by simp only [List.length_append, List.length_singleton]; omega) Hgh_unst Hvoter
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
@@ -1970,7 +1974,7 @@ theorem ownRaftPhys_msgsAA (r : Loc) (id : w64) (s : NState) :
   iapply ownRaftPhys_intro _ _ _ { s with outbox := s.outbox ++ absList [a] }
       { rv with msgsAfterAppend' := sl' } msgs (msgsAA ++ [m']) lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok' Hout_term'
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok' Hout_term'
     (by simp only [List.length_append, List.length_singleton]; omega) Hgh_unst Hvoter
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
@@ -2031,7 +2035,7 @@ theorem ownRaftPhys_readOnly_trk (r : Loc) (id : w64) (s : NState) :
   iapply ownRaftPhys_intro cfg r id { s with rd := { s.rd with ro := rr' } }
       { rv with trk' := tv', readOnly' := ro' } msgs msgsAA lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst Hvoter
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst Hvoter
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
 /-- The three read-index fields with what hangs off them (2026-10-12), back at any values
@@ -2165,7 +2169,7 @@ theorem ownRaftPhys_view (r : Loc) (id : w64) (s : NState) :
   iapply ownRaftPhys_intro _ _ _ { s with outbox := o, logst := ls', gh := g, rd := rd' }
       { rv with msgs' := sl1', msgsAfterAppend' := sl2', readStates' := rs' } ms1' ms2' lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok' Hout_term' Hg1 Hg2 Hvoter
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok' Hout_term' Hg1 Hg2 Hvoter
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox'
 
 end proof
@@ -2202,7 +2206,7 @@ theorem ownRaftPhys_reconfig (cfg0 cfg : GSet w64) (r : Loc) (id : w64) (s : NSt
   iapply ownRaftPhys_intro cfg r id { s with progress := prs', prvals := pvs' }
       { rv with trk' := tv' } msgs msgsAA lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst Hv
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst Hv
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
 /-- The tracker replaced while the log is in use (2026-10-02): `restore` stores a fresh
@@ -2246,7 +2250,7 @@ theorem ownRaftPhys_retrack (cfg0 cfg : GSet w64) (r : Loc) (id : w64) (s : NSta
       { s with votes := votes', progress := prs', prvals := pvs', logst := ls' }
       { rv with trk' := tv' } msgs msgsAA lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
     Hgh_unst' Hv
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
@@ -2266,7 +2270,7 @@ set_option hygiene false in
 /-- `reseal` for `ownRaftPhysC`, at the configuration `c` and the state `s'`. -/
 local macro "resealC " c:term:max s:term:max : tactic =>
   `(tactic| (iapply ownRaftPhysC_intro $c _ _ $s _ msgs msgsAA lok
-                (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+                (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
                 (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
                 (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
                 (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
@@ -2290,7 +2294,7 @@ theorem ownRaftPhys_toC (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) :
   ihave Htrk := ownTracker_toC _ _ _ $$ Htrk
   iapply ownRaftPhysC_intro (CfgM.simple cfg (domSet s.progress \ cfg)) r id s rv msgs msgsAA lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst
     (fun h => by rw [CfgM.voters_simple]; exact Hvoter h)
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
@@ -2306,7 +2310,7 @@ theorem ownRaftPhysC_toPhys (c : CfgM) (r : Loc) (id : w64) (s : NState)
   isplitl
   · iapply ownRaftPhys_intro c.incoming r id s rv msgs msgsAA lok
       Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-      HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
+      HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
       Hgh_unst (fun h => by rw [← CfgM.voters_of_out ho]; exact Hvoter h)
       $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
   · ipureintro; exact Hl
@@ -2388,7 +2392,7 @@ theorem ownRaftPhysC_reconfig (c0 c : CfgM) (r : Loc) (id : w64) (s : NState)
   iapply ownRaftPhysC_intro c r id { s with progress := prs', prvals := pvs' }
       { rv with trk' := tv' } msgs msgsAA lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst Hv
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst Hv
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
 /-- Only a voter (of either half) is out of the follower role. -/
@@ -2454,7 +2458,7 @@ theorem ownRaftPhysC_outbox (r : Loc) (id : w64) (s : NState) (o : List Msg) :
   ihave #Houtbox' := outboxRel_perm _ o _ _ Ho $$ Houtbox
   iapply ownRaftPhysC_intro c _ _ { s with outbox := o } _ msgs msgsAA lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst Hvoter
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst Hvoter
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox'
 
 /-- Sending nothing, in both directions: an exit that sends nothing proves a
@@ -2617,6 +2621,16 @@ theorem raft.wp_load_isLearnerC (r : Loc) (id : w64) (s : NState) :
   wp_apply wp_load_access _ rv.isLearner' _ (raftOwn_access_load_isLearner _ _) $$ Hr as Hr
   rw [HnoLearner]; iapply HΦ; resealC c s
 
+/-- `r.stepDownOnRemoval` (2026-10-13, reconfiguration stage A2): `NState.sdr`. -/
+theorem raft.wp_load_stepDownOnRemovalC (r : Loc) (id : w64) (s : NState) :
+    {{ ownRaftPhysC (GF := GF) c r id s }}
+      (App (Val (GoInstruction (GoLoad go.bool))) (Val #(r.[raft, go!"stepDownOnRemoval"])))
+    {{ RET #s.sdr; ownRaftPhysC c r id s }} := by
+  iintro %Φ H HΦ
+  iNamed_physC H
+  wp_apply wp_load_access _ rv.stepDownOnRemoval' _ (raftOwn_access_load_stepDownOnRemoval _ _) $$ Hr as Hr
+  rw [Hsdr]; iapply HΦ; resealC c s
+
 theorem raft.wp_load_leadTransfereeC (r : Loc) (id : w64) (s : NState) :
     {{ ownRaftPhysC (GF := GF) c r id s }}
       (App (Val (GoInstruction (GoLoad go.uint64))) (Val #(r.[raft, go!"leadTransferee"])))
@@ -2730,7 +2744,7 @@ theorem raft.wp_store_TermC (r : Loc) (id : w64) (s : NState) (v : w64)
     fun m Hm => (Hout_term m Hm).mono Hle
   iapply HΦ
   iapply ownRaftPhysC_intro c _ _ { s with term := v } _ msgs msgsAA lok
-    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) HmsgsAA_ok' Hout_term' Hgh_out Hgh_unst Hvoter
@@ -2769,7 +2783,7 @@ theorem raft.wp_store_stateC (r : Loc) (id : w64) (s : NState) (ro : PRole)
   have Hvoter' : ({ s with role := ro } : NState).role ≠ .follower → id ∈ c.voters := Hro
   iapply HΦ
   iapply ownRaftPhysC_intro c _ _ { s with role := ro } _ msgs msgsAA lok
-    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
@@ -2797,7 +2811,7 @@ theorem raft.wp_store_tickC (r : Loc) (id : w64) (s : NState) (f : GoFunc)
   wp_apply wp_store_access _ rv.tick' f _ _ (raftOwn_access_store_tick _ _ _) $$ Hr as Hr
   iapply HΦ
   iapply ownRaftPhysC_intro c _ _ { s with ticking := true } _ msgs msgsAA lok
-    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
+    (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
     (by phys_pure) (by phys_pure) (fun _ => Hf) (by phys_pure) (by phys_pure) Hgh_out Hgh_unst Hvoter
@@ -3010,7 +3024,7 @@ theorem ownRaftPhysC_log_at (r : Loc) (id : w64) (s : NState) :
   · rw [Hlogp]; iexact Hlog
   iapply ownRaftPhysC_intro c _ _ { s with logst := ls' } _ msgs msgsAA lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
     Hgh_unst' Hvoter
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
@@ -3084,7 +3098,7 @@ theorem ownRaftPhysC_msgs (r : Loc) (id : w64) (s : NState) :
   iapply ownRaftPhysC_intro c _ _ { s with outbox := s.outbox ++ absList [a] }
       { rv with msgs' := sl' } (msgs ++ [m']) msgsAA lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term'
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term'
     (by simp only [List.length_append, List.length_singleton]; omega) Hgh_unst Hvoter
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
@@ -3135,7 +3149,7 @@ theorem ownRaftPhysC_msgsAA (r : Loc) (id : w64) (s : NState) :
   iapply ownRaftPhysC_intro c _ _ { s with outbox := s.outbox ++ absList [a] }
       { rv with msgsAfterAppend' := sl' } msgs (msgsAA ++ [m']) lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok' Hout_term'
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok' Hout_term'
     (by simp only [List.length_append, List.length_singleton]; omega) Hgh_unst Hvoter
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
@@ -3196,7 +3210,7 @@ theorem ownRaftPhysC_readOnly_trk (r : Loc) (id : w64) (s : NState) :
   iapply ownRaftPhysC_intro c r id { s with rd := { s.rd with ro := rr' } }
       { rv with trk' := tv', readOnly' := ro' } msgs msgsAA lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst Hvoter
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out Hgh_unst Hvoter
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
 /-- The three read-index fields with what hangs off them (2026-10-12), back at any values
@@ -3330,7 +3344,7 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
   iapply ownRaftPhysC_intro c _ _ { s with outbox := o, logst := ls', gh := g, rd := rd' }
       { rv with msgs' := sl1', msgsAfterAppend' := sl2', readStates' := rs' } ms1' ms2' lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok' Hout_term' Hg1 Hg2 Hvoter
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok' Hout_term' Hg1 Hg2 Hvoter
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox'
 
 
@@ -3370,7 +3384,7 @@ theorem ownRaftPhysC_retrack (c0 : CfgM) (r : Loc) (id : w64) (s : NState)
       { s with votes := votes', progress := prs', prvals := pvs', logst := ls' }
       { rv with trk' := tv' } msgs msgsAA lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
-    HnoTransfer Hpci Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
+    HnoTransfer Hpci Hsdr Hid_nz HelectionTimeout Hlok Hlogp Htick HmsgsAA_ok Hout_term Hgh_out
     Hgh_unst' Hv
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 

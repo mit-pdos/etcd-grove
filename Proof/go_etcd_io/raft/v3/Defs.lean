@@ -720,6 +720,10 @@ structure NState [FfiSyntax] where
   `Progress`. Read only by `switchToConfig` itself, right after the store. Invisible to the
   protocol (`toPState`). -/
   isLearner : Bool := false
+  /-- `r.stepDownOnRemoval` (2026-10-13, reconfiguration stage A2), recorded: a removed or
+  demoted leader steps down in `switchToConfig` exactly when it is set. Never written after
+  `newRaft` (`Config.StepDownOnRemoval`). Invisible to the protocol (`toPState`). -/
+  sdr : Bool := false
 
 /-- What `switchToConfig` stores in `r.isLearner` (2026-10-13): `ok && pr.IsLearner` for the
 node's own `Progress` in the new progress map `prs` -- tracked, and outside the voters `cfg`
