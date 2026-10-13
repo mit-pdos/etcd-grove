@@ -84,7 +84,7 @@ theorem readOnly.maybeAdvance.wp_proof
       iexists rov, ptrs
       simp only [named]
       iframe Hro Hacks Hucr Hucr_cap Hreqs
-      ipureintro; exact Hro_conf
+      ipureintro; exact ⟨Hro_conf, Hro_safe⟩
     iframe Hv
     iexists []
     isplitl
@@ -130,7 +130,7 @@ theorem readOnly.maybeAdvance.wp_proof
       iexists _, (ptrs.drop (uint.nat (N - rov.confirmedReads')))
       simp only [named]
       iframe Hro Hacks Hrest Hcap Hreqs2
-      ipureintro; rfl
+      ipureintro; exact ⟨rfl, Hro_safe⟩
     iexists _
     iframe Hpre Hreqs1
 

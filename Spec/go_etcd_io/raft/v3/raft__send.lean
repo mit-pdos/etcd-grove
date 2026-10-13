@@ -138,7 +138,7 @@ def SendOk (id : w64) (s : NState) (m : raftpb.Message) (ents : List raftpb.Entr
    (m.Type' = MsgReadIndex ∧
     m.Term' = W64 0 ∧
     m.To' ≠ id ∧
-    out = [absMsgFrom .readIndex m id (W64 0) ents ctx]))
+    out = [absMsgFrom .readIndex m (if m.From' = W64 0 then id else m.From') (W64 0) ents ctx]))
 
 /- A caller discharges `SendOk` by picking the clause and splitting it: for a vote
 message with `ty` the abstract type, in Rocq,
@@ -191,7 +191,8 @@ abbrev raft.send.spec : Prop :=
   -- `From` unset, or already the node's own (`RawNode.Propose` stamps `From: r.id`
   -- before `Step`; a follower forwards that proposal as it is). Either way the queued
   -- message has `From = id`.
-  (m.From' = W64 0 ∨ m.From' = id) →
+  -- (2026-10-12) or a read-index request forwarded on, which keeps its requester
+  (m.From' = W64 0 ∨ m.From' = id ∨ m.Type' = MsgReadIndex) →
   SendOk id s m ents ctx out →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗

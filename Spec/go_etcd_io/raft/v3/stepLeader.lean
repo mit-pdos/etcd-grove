@@ -73,6 +73,9 @@ public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 public import Spec.go_etcd_io.raft.v3.raft__maybeCommit
 public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
 public import Spec.go_etcd_io.raft.v3.raft__appendEntry
+-- read-index (2026-10-12)
+public import Spec.go_etcd_io.raft.v3.releasePendingReadIndexMessages
+public import Spec.go_etcd_io.raft.v3.raft__responseToReadIndexReq
 
 @[expose] public section
 
@@ -86,6 +89,13 @@ open Iris Iris.BI go_etcd_io.raft.v3
 section results
 variable [FfiSyntax]
 
+/-- `releasePendingReadIndexMessages`' heartbeats at `s` (2026-10-12): `HeartbeatOk`, each
+with the position after one of the released requests. -/
+def ReleaseHbs (id : w64) (s : NState) (hb : List Msg) : Prop :=
+  ∀ m' ∈ hb, HeartbeatOk id (toPState s) m' ∧
+    ∃ k, 0 < k ∧ k ≤ s.rd.pend.length ∧
+      m'.ctx = hbCtx (readonlyRelease s.rd.ro id s.logst.committed (s.rd.pend.take k))
+
 /-- `MsgAppResp` accepted from `src` at `index`: `s'` is `s` with the sender's `Match`
 raised as `MaybeUpdate` raises it (the `Progress` values are otherwise unconstrained:
 `pvs`), `committed` at `c` -- unchanged, or a `CommitOk` index judged against the
@@ -93,15 +103,45 @@ raised `Match` map -- and the outbox grown by `ms`, which `ReplSends` allows aft
 commit. (Rocq's argument `from` is `src`.) -/
 def AppRespAccepted (cfg : GSet w64) (id : w64) (s : NState) (src index : w64)
     (s' : NState) : Prop :=
-  ∃ (x : w64) (pvs : GMap w64 Progress) (c : w64) (ms : List Msg),
+  ∃ (x : w64) (pvs : GMap w64 Progress) (c : w64) (hb ms : List Msg),
     prvalsMatch s.prvals !! src = some x ∧
     prvalsMatch pvs =
       <[src := if uint.Z x < uint.Z index then index else x]> (prvalsMatch s.prvals) ∧
     (c = s.logst.committed ∨
      CommitOk cfg (toPState { s with prvals := pvs }) c) ∧
     ReplSends id { s with logst := { s.logst with committed := c } } ms ∧
-    s' = { sendMsgs { s with logst := { s.logst with committed := c } } ms with
-             prvals := pvs }
+    -- (2026-10-12) a commit releases the pending read-index requests, with their
+    -- heartbeats `hb`
+    (if c = s.logst.committed then hb = [] ∧
+       s' = { sendMsgs { s with logst := { s.logst with committed := c } } ms with
+                prvals := pvs }
+     else ReleaseHbs id { s with logst := { s.logst with committed := c } } hb ∧
+       s' = { sendMsgs (sendMsgs (releasedState id
+                { s with logst := { s.logst with committed := c } }) hb) ms with
+                prvals := pvs })
+
+/-- A confirmed read-index request answered (2026-10-12, `responseToReadIndexReq` and the
+`send`): a local one becomes a `ReadState` (its context the first entry's data), a
+forwarded one a `MsgReadIndexResp` to its sender. -/
+def readRespond (id : w64) (s : NState) (q : ReadReq) : NState :=
+  if q.src = W64 0 ∨ q.src = id then
+    match q.ents with
+    | e :: _ => addReadState s q.index e.Data'
+    | [] => s
+  else sendMsgs s [Msg.mk .readIndexResp id q.src s.term false q.index (W64 0) (W64 0)
+                     (W64 0) q.ents]
+
+def readRespondAll (id : w64) (s : NState) (qs : List ReadReq) : NState :=
+  qs.foldl (readRespond id) s
+
+/-- The read path of a `MsgHeartbeatResp` with a context (2026-10-12): the sender's
+acknowledgement, the requests a quorum has acknowledged confirmed and answered. -/
+def ReadAckResult (cfg : GSet w64) (id : w64) (s : NState) (src : w64) (ctx : List w8)
+    (s' : NState) : Prop :=
+  ∃ N, IsQuorumIndex cfg (fun v => ((readonlyRecvAck s.rd.ro src ctx).acks !! v).getD (W64 0)) N ∧
+    s' = readRespondAll id
+      { s with rd := { s.rd with ro := (readonlyAdvance (readonlyRecvAck s.rd.ro src ctx) N).1 } }
+      (readonlyAdvance (readonlyRecvAck s.rd.ro src ctx) N).2
 
 /-- The state `appendEntry` leaves when it accepts the batch `ents`: the log grows by
 the stamped batch (`stamp`, the term and the indices after the last), and the
@@ -125,7 +165,7 @@ def LeaderProposeResult (id : w64) (s : NState) (ents : List raftpb.Entry)
 /-- What `stepLeader` does with `m`, for the types other than `MsgProp` (none of which
 drops anything). The disjuncts are exclusive on `m.Type`. -/
 def LeaderNonpropResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
-    (s' : NState) : Prop :=
+    (ents : List raftpb.Entry) (ctx : List w8) (s' : NState) : Prop :=
   ((m.Type' = MsgVoteResp ∨ m.Type' = MsgApp ∨
     m.Type' = MsgHeartbeat ∨ m.Type' = MsgPreVoteResp) ∧
    s' = s) ∨
@@ -136,9 +176,22 @@ def LeaderNonpropResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Mes
      prvalsMatch pvs = prvalsMatch s.prvals) ∨
   (m.Type' = MsgHeartbeatResp ∧
    ∃ (ms : List Msg) (pvs : GMap w64 Progress),
-     s' = { sendMsgs s ms with prvals := pvs } ∧
      ReplSends id s ms ∧
-     prvalsMatch pvs = prvalsMatch s.prvals) ∨
+     prvalsMatch pvs = prvalsMatch s.prvals ∧
+     -- (2026-10-12) the read path, for a context
+     (ctx = [] ∧ s' = { sendMsgs s ms with prvals := pvs } ∨
+      ctx ≠ [] ∧ ReadAckResult cfg id { sendMsgs s ms with prvals := pvs } m.From' ctx s')) ∨
+  -- (2026-10-12) a read-index request: pending until an entry of the term is committed,
+  -- then queued and heartbeats broadcast
+  (m.Type' = MsgReadIndex ∧
+   ((plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) s.logst.committed ≠ some s.term ∧
+     s' = { s with rd := { s.rd with pend := s.rd.pend ++ [(m, ents)] } }) ∨
+    (plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) s.logst.committed = some s.term ∧
+     ∃ (ms : List Msg) (pvs : GMap w64 Progress),
+       s' = { sendMsgs (arriveState id s m ents) ms with prvals := pvs } ∧
+       (∀ m' ∈ ms, HeartbeatOk id (toPState s) m' ∧
+          m'.ctx = hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents))) ∧
+       prvalsMatch pvs = prvalsMatch s.prvals))) ∨
   (m.Type' = MsgAppResp ∧
    ((m.From' ∉ domSet s.progress ∧ s' = s) ∨
     (m.From' ∈ domSet s.progress ∧
@@ -155,10 +208,20 @@ def LeaderNonpropResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Mes
 `ErrProposalDropped` (as in `FollowerStepResult`, `Spec/stepFollower.lean`); only a
 `MsgProp` can be. -/
 def LeaderStepResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (dropped : Bool) (s' : NState) : Prop :=
+    (ents : List raftpb.Entry) (dropped : Bool) (s' : NState) (ctx : List w8 := []) : Prop :=
   if m.Type' = MsgProp then
     LeaderProposeResult id s ents dropped s'
-  else dropped = false ∧ LeaderNonpropResult cfg id s m s'
+  else dropped = false ∧ LeaderNonpropResult cfg id s m ents ctx s'
+
+/-- What the read-index code needs of the read-only state (2026-10-12; the ghost state,
+`ownReadGhost`, keeps it): every voter's acknowledgement is a position sent (at most the
+queue's end, so `maybeAdvance` does not panic), and every request has entries (its
+context is the first's data). -/
+def RdOk (cfg : GSet w64) (rd : RdState) : Prop :=
+  (∀ v ∈ cfg, uint.Z ((rd.ro.acks !! v).getD (W64 0))
+                ≤ uint.Z rd.ro.confirmed + (rd.ro.pending.length : Int)) ∧
+  (∀ q ∈ rd.ro.pending, q.ents ≠ []) ∧
+  (∀ p ∈ rd.pend, p.2 ≠ [])
 
 end results
 
@@ -186,11 +249,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
   `appendEntry` stamps it in place. It comes back stamped in the postcondition. -/
 abbrev stepLeader.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry),
+    (ents : List raftpb.Entry) (ctx : List w8),
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgBeat ∨
    m.Type' = MsgHeartbeatResp ∨ m.Type' = MsgAppResp ∨
    m.Type' = MsgProp ∨ m.Type' = MsgApp ∨
-   m.Type' = MsgHeartbeat ∨ m.Type' = MsgPreVoteResp) →
+   m.Type' = MsgHeartbeat ∨ m.Type' = MsgPreVoteResp ∨
+   m.Type' = MsgReadIndex) →
   s.role = .leader →
   id ∈ cfg →
   (m.Type' = MsgAppResp → m.From' ≠ W64 0) →
@@ -202,16 +266,27 @@ abbrev stepLeader.spec : Prop :=
    -- the leader's term is nonzero (2026-10-10; `appendEntry`'s premise, from the
    -- ghost state: `ownRaftGhost_term_nz`)
    s.term ≠ W64 0) →
+  -- read-index (2026-10-12): the read-only state as the ghost state keeps it, the
+  -- leader's term nonzero (`committedEntryInCurrentTerm`), a request not at a single voter
+  -- (`IsSingleton`'s immediate, unconfirmed answer is out of scope) and with entries, and a
+  -- heartbeat response's context a position sent (eight bytes)
+  RdOk cfg s.rd →
+  s.term ≠ W64 0 →
+  (m.Type' = MsgReadIndex → 1 < GMap.size cfg ∧ ents ≠ []) →
+  (m.Type' = MsgHeartbeatResp →
+   (ctx = [] ∨ 8 ≤ ctx.length) ∧
+   (ctx ≠ [] → uint.Z (leToU64 (ctx.take 8))
+                 ≤ uint.Z s.rd.ro.confirmed + (s.rd.ro.pending.length : Int))) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
-      "Hctx" ∷ (⌜m.Type' = MsgHeartbeatResp⌝ -∗
-                 m.Context' ↦*□ ([] : List w8)) ∗
+      "Hctx" ∷ (⌜m.Type' = MsgHeartbeatResp⌝ -∗ m.Context' ↦*□ ctx) ∗
       "Hents" ∷ (⌜m.Type' = MsgProp⌝ -∗
-                 m.Entries' ↦* ents) }}
+                 m.Entries' ↦* ents) ∗
+      "Hrents" ∷ (⌜m.Type' = MsgReadIndex⌝ -∗ m.Entries' ↦*□ ents) }}
     (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #m))
   {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
       ownRaftPhys cfg r id s' ∗
-      ⌜LeaderStepResult cfg id s m ents dropped s'⌝ ∗
+      ⌜LeaderStepResult cfg id s m ents dropped s' ctx⌝ ∗
       (if dropped then globalAddr ErrProposalDropped ↦□ err
        else ⌜err = interface.nil⌝) ∗
       (⌜m.Type' = MsgProp⌝ -∗

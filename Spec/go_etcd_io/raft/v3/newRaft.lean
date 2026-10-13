@@ -112,6 +112,8 @@ abbrev newRaft.spec : Prop :=
   sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
   cv.CheckQuorum' = false →
   cv.DisableProposalForwarding' = false →
+  -- `ReadOnlySafe` (2026-10-12): lease-based reads need bounded clock drift
+  cv.ReadOnlyOption' = W64 0 →
   -- a positive applying-size limit (2026-10-05): with both `MaxCommittedSizePerReady`
   -- and `MaxSizePerMsg` zero -- `validate` accepts that, and the documentation reads
   -- `MaxSizePerMsg = 0` as "at most one entry per message" -- the log starts with

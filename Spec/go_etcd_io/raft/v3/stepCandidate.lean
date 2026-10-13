@@ -119,6 +119,8 @@ def CandidateStepResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Mes
     dropped = false ∧
     (if s.role = .preCandidate then PrecandVoteRespResult cfg id s m s'
      else s' = s)
+  -- read-index (2026-10-12): no case, nothing happens
+  else if m.Type' = MsgReadIndex ∨ m.Type' = MsgReadIndexResp then dropped = false ∧ s' = s
   else False
 
 end results
@@ -153,7 +155,8 @@ abbrev stepCandidate.spec : Prop :=
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
    m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
    (m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp) ∨
-   m.Type' = MsgSnap ∨ m.Type' = MsgPreVoteResp) →
+   m.Type' = MsgSnap ∨ m.Type' = MsgPreVoteResp ∨
+   m.Type' = MsgReadIndex ∨ m.Type' = MsgReadIndexResp) →
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgApp ∨
    m.Type' = MsgHeartbeat ∨ m.Type' = MsgSnap →
    m.Term' = s.term ∧ m.Term' ≠ W64 0) →

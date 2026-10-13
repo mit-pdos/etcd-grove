@@ -36,7 +36,7 @@ theorem readOnly.AckedIndex.wp_proof : readOnly.AckedIndex.spec (GF := GF) (hG :
   iexists rov, ptrs
   simp only [named]
   iframe
-  ipureintro; exact Hro_conf
+  ipureintro; exact ⟨Hro_conf, Hro_safe⟩
 
 end proof
 

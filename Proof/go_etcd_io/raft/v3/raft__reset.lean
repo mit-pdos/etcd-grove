@@ -309,13 +309,12 @@ theorem raft.reset.wp_proof
   wp_apply raft.wp_store_pendingConfIndex $$ Hphys as Hphys
   wp_apply raft.wp_store_uncommittedSize $$ Hphys as Hphys
   -- `r.readOnly = newReadOnly(r.readOnly.option)`
-  icases ownRaftPhys_readOnly $$ Hphys with ⟨%ro, %Hpend, Hrof, Hro, Hback⟩
-  icases ownReadOnly_option $$ Hro with ⟨%o, Hopt, Hroback⟩
+  icases ownRaftPhys_readOnly $$ Hphys with ⟨%ro, Hrof, Hro, Hback⟩
+  icases ownReadOnly_option $$ Hro with ⟨%o, %Hosafe, Hopt, Hroback⟩
   wp_auto
   ihave Hro := Hroback $$ Hopt
-  wp_apply wp_newReadOnly as %ro' Hro'
-  ihave Hphys := Hback $$ %ro' %(ReadOnly.mk [] ∅ (W64 0)) [] Hrof Hro'
-  · ipureintro; rfl
+  wp_apply wp_newReadOnly _ Hosafe as %ro' Hro'
+  ihave Hphys := Hback $$ %ro' %(ReadOnly.mk [] ∅ (W64 0)) Hrof Hro'
   iapply HΦ $$ %pvsfin
   isplitl
   · iapply ownRaftPhys_eq cfg r id _ _ (by rfl) $$ Hphys

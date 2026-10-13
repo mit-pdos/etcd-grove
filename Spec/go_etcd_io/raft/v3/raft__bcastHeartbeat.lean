@@ -45,7 +45,8 @@ abbrev raft.bcastHeartbeat.spec : Prop :=
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"bcastHeartbeat")) (Val #()))
   {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
       ownRaftPhys cfg r id { sendMsgs s ms with prvals := pvs } ∗
-      ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m⌝ ∗
+      -- each with the read-only object's context (2026-10-12; `nil` without a request)
+      ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = hbCtx s.rd.ro⌝ ∗
       ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
 
 end spec

@@ -1099,39 +1099,6 @@ theorem raft.wp_load_disableProposalForwarding (r : Loc) (id : w64) (s : NState)
   wp_apply wp_load_access _ rv.disableProposalForwarding' _ (raftOwn_access_load_disableProposalForwarding _ _) $$ Hr as Hr
   rw [HpropForward]; iapply HΦ; reseal s
 
-/-- `r.pendingReadIndexMessages`, at a slice of length `0` (`ownRaftMisc` holds it at
-the empty list). Moved here from `proof_releasePendingReadIndexMessages.v` on
-2026-10-02. -/
-theorem raft.wp_load_pendingReadIndexMessages (r : Loc) (id : w64) (s : NState) :
-    {{ ownRaftPhys (GF := GF) cfg r id s }}
-      (App (Val (GoInstruction (GoLoad (go.GoType.SliceType raftpb.Message.ty))))
-        (Val #(r.[raft, go!"pendingReadIndexMessages"])))
-    {{ (sl : GoSlice), RET #sl; ownRaftPhys cfg r id s ∗ ⌜sl.len = W64 0⌝ }} := by
-  iintro %Φ H HΦ
-  iNamed_phys H
-  iunfold ownRaftMisc at Hmisc
-  iNamed Hmisc
-  ihave %Hl := ownSlice_len _ _ _ $$ Hpri
-  wp_apply wp_load_access _ rv.pendingReadIndexMessages' _ (raftOwn_access_load_pendingReadIndexMessages _ _) $$ Hr as Hr
-  iapply HΦ
-  isplitl
-  · ihave Hmisc : ownRaftMisc (GF := GF) rv.readStates' rv.readOnly'
-        rv.pendingReadIndexMessages' s.rd $$ [HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap]
-    · unfold ownRaftMisc
-      simp only [named]
-      iframe HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap Hpri_ents
-      ipureintro; exact Hrd_scope
-    reseal s
-  · ipureintro
-    obtain ⟨Hl1, Hl2⟩ := Hl
-    rw [Hrd_scope.2.2] at Hl1
-    simp only [List.map_nil, List.length_nil] at Hl1
-    apply BitVec.eq_of_toInt_eq
-    simp only [sint.nat] at Hl1
-    simp only [sint.Z] at Hl2
-    rw [show (W64 0).toInt = 0 by rfl]
-    omega
-
 theorem raft.wp_load_isLearner (r : Loc) (id : w64) (s : NState) :
     {{ ownRaftPhys (GF := GF) cfg r id s }}
       (App (Val (GoInstruction (GoLoad go.bool))) (Val #(r.[raft, go!"isLearner"])))
@@ -1504,6 +1471,26 @@ private theorem raft_split_view (l : Loc) (rv : raft) :
   iframe
   try iframe #
 
+/-- The three read-index fields (2026-10-12): `ownRaftPhys_misc`. -/
+private theorem raft_split_misc (l : Loc) (rv : raft) :
+    ⊢ raftOwn (GF := GF) l rv -∗
+      l.[raft, go!"readStates"] ↦ rv.readStates' ∗
+      l.[raft, go!"readOnly"] ↦ rv.readOnly' ∗
+      l.[raft, go!"pendingReadIndexMessages"] ↦ rv.pendingReadIndexMessages' ∗
+      (∀ x y z, l.[raft, go!"readStates"] ↦ x -∗
+              l.[raft, go!"readOnly"] ↦ y -∗
+              l.[raft, go!"pendingReadIndexMessages"] ↦ z -∗
+              raftOwn l { rv with readStates' := x, readOnly' := y,
+                                  pendingReadIndexMessages' := z }) := by
+  unfold raftOwn
+  iintro Hf
+  iNamed Hf
+  iframe H_readStates H_readOnly H_pendingReadIndexMessages
+  iintro %x %y %z H_readStates H_readOnly H_pendingReadIndexMessages
+  simp only [named]
+  iframe
+  try iframe #
+
 private theorem raft_split_readOnly (l : Loc) (rv : raft) :
     ⊢ raftOwn (GF := GF) l rv -∗
       l.[raft, go!"readOnly"] ↦ rv.readOnly' ∗
@@ -1800,15 +1787,13 @@ theorem ownRaftPhys_msgsAA (r : Loc) (id : w64) (s : NState) :
     (by simp only [List.length_append, List.length_singleton]; omega) Hgh_unst
     $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox
 
-/-- The `readOnly` object (2026-10-12: at `s.rd.ro`, and back at any record with no pending
-request, which the state then records). `reset` replaces it; `bcastHeartbeat` reads its
-context. -/
+/-- The `readOnly` object (2026-10-12: at `s.rd.ro`, and back at any record, which the state
+then records). `reset` replaces it; `bcastHeartbeat` reads its context. -/
 theorem ownRaftPhys_readOnly (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
       ∃ (ro : Loc),
-        ⌜s.rd.ro.pending = []⌝ ∗
         r.[raft, go!"readOnly"] ↦ ro ∗ ownReadOnly ro s.rd.ro ∗
-        (∀ (ro' : Loc) (rr' : ReadOnly), ⌜rr'.pending = []⌝ -∗
+        (∀ (ro' : Loc) (rr' : ReadOnly),
            r.[raft, go!"readOnly"] ↦ ro' -∗ ownReadOnly ro' rr' -∗
            ownRaftPhys cfg r id { s with rd := { s.rd with ro := rr' } }) := by
   iintro H
@@ -1817,18 +1802,37 @@ theorem ownRaftPhys_readOnly (r : Loc) (id : w64) (s : NState) :
   iNamed Hmisc
   icases raft_split_readOnly r rv $$ Hr with ⟨Hf, Hback⟩
   iexists rv.readOnly'
-  isplitr
-  · ipureintro; exact Hrd_scope.2.1
   iframe Hf Hro_obj
-  iintro %ro' %rr' %Hpend' Hf Hro_obj
+  iintro %ro' %rr' Hf Hro_obj
   ihave Hr := Hback $$ %ro' Hf
   ihave Hmisc : ownRaftMisc (GF := GF) rv.readStates' ro' rv.pendingReadIndexMessages'
       { s.rd with ro := rr' } $$ [HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap]
   · unfold ownRaftMisc
     simp only [named]
     iframe HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap Hpri_ents
-    ipureintro; exact ⟨Hrd_scope.1, Hpend', Hrd_scope.2.2⟩
   reseal { s with rd := { s.rd with ro := rr' } }
+
+/-- The three read-index fields with what hangs off them (2026-10-12), back at any values
+and any read state, which the state then records. -/
+theorem ownRaftPhys_misc (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhys (GF := GF) cfg r id s -∗
+      ∃ (rs : GoSlice) (ro : Loc) (pr : GoSlice),
+        r.[raft, go!"readStates"] ↦ rs ∗ r.[raft, go!"readOnly"] ↦ ro ∗
+        r.[raft, go!"pendingReadIndexMessages"] ↦ pr ∗
+        ownRaftMisc rs ro pr s.rd ∗
+        (∀ (rs' : GoSlice) (ro' : Loc) (pr' : GoSlice) (rd' : RdState),
+           r.[raft, go!"readStates"] ↦ rs' -∗ r.[raft, go!"readOnly"] ↦ ro' -∗
+           r.[raft, go!"pendingReadIndexMessages"] ↦ pr' -∗
+           ownRaftMisc rs' ro' pr' rd' -∗
+           ownRaftPhys cfg r id { s with rd := rd' }) := by
+  iintro H
+  iNamed_phys H
+  icases raft_split_misc r rv $$ Hr with ⟨Hf1, Hf2, Hf3, Hback⟩
+  iexists rv.readStates', rv.readOnly', rv.pendingReadIndexMessages'
+  iframe Hf1 Hf2 Hf3 Hmisc
+  iintro %rs' %ro' %pr' %rd' Hf1 Hf2 Hf3 Hmisc
+  ihave Hr := Hback $$ %rs' %ro' %pr' Hf1 Hf2 Hf3
+  reseal { s with rd := rd' }
 
 /-- Rocq `own_raft_phys_view`: the struct open for `RawNode.Ready` (see
 `raft_split_view`). -/
@@ -1839,7 +1843,7 @@ theorem ownRaftPhys_view (r : Loc) (id : w64) (s : NState) :
         "Hf_Term" ∷ r.[raft, go!"Term"] ↦ s.term ∗
         "Hf_Vote" ∷ r.[raft, go!"Vote"] ↦ s.vote ∗
         "Hf_readStates" ∷ r.[raft, go!"readStates"] ↦ rs ∗
-        "%Hrs" ∷ ⌜rs.len = W64 0⌝ ∗
+        "%Hrs" ∷ ⌜s.rd.states.length = sint.nat rs.len ∧ 0 ≤ sint.Z rs.len⌝ ∗
         "Hf_raftLog" ∷ r.[raft, go!"raftLog"] ↦ s.log ∗
         "Hf_state" ∷ r.[raft, go!"state"] ↦ stateW64 s.role ∗
         "Hf_lead" ∷ r.[raft, go!"lead"] ↦ s.lead ∗
@@ -1877,13 +1881,11 @@ theorem ownRaftPhys_view (r : Loc) (id : w64) (s : NState) :
   iunfold ownRaftMisc at Hmisc
   iNamed Hmisc
   ihave %Hrl := ownSlice_len _ _ _ $$ HreadStates
-  rw [Hrd_scope.1] at Hrl
   ihave Hmisc : ownRaftMisc (GF := GF) rv.readStates' rv.readOnly'
       rv.pendingReadIndexMessages' s.rd $$ [HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap]
   · unfold ownRaftMisc
     simp only [named]
     iframe HreadStates HreadStates_cap Hro_obj Hpri Hpri_cap Hpri_ents
-    ipureintro; exact Hrd_scope
   icases raft_split_view r rv $$ Hr with
     ⟨Hfid, HfTerm, HfVote, Hfrs, Hflog, Hfst, Hfm, Hfma, Hfld, Hback⟩
   ihave #Hfid : r.[raft, go!"id"] ↦□ id $$ [Hfid]
@@ -1905,14 +1907,7 @@ theorem ownRaftPhys_view (r : Loc) (id : w64) (s : NState) :
   iframe Hfid HfTerm HfVote Hfrs Hflog Hfst Hfld Hfm Hfma Hmsgs Hmsgs_cap HmsgsAA
     HmsgsAA_cap Houtbox Hlog
   isplitr
-  · ipureintro
-    obtain ⟨Hl1, Hl2⟩ := Hrl
-    simp only [List.length_nil] at Hl1
-    apply BitVec.eq_of_toInt_eq
-    simp only [sint.nat] at Hl1
-    simp only [sint.Z] at Hl2
-    rw [show (W64 0).toInt = 0 by rfl]
-    omega
+  · ipureintro; exact Hrl
   isplitr
   · ipureintro; exact HmsgsAA_ok
   isplitr

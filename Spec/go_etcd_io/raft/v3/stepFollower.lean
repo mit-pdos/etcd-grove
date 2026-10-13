@@ -40,6 +40,8 @@ Lean notes:
 -/
 module
 
+-- read-index (2026-10-12): `addReadState`
+public import Spec.go_etcd_io.raft.v3.raft__responseToReadIndexReq
 public import Spec.go_etcd_io.raft.v3.raft__handleAppendEntries
 public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
 public import Spec.go_etcd_io.raft.v3.raft__handleSnapshot
@@ -65,6 +67,13 @@ def propForward (id lead : w64) (m : raftpb.Message) (ents : List raftpb.Entry)
   Msg.mkV .propose id lead (W64 0) m.Reject' m.Index' m.LogTerm' m.Commit' m.RejectHint'
     ents [] cl
 
+/-- A read-index request forwarded to the leader `lead` (2026-10-12): `From` stamped if unset
+(a twice-forwarded request keeps its requester), `Term` left at `0`. -/
+def readForward (id lead : w64) (m : raftpb.Message) (ents : List raftpb.Entry)
+    (cl : List w8 := []) : Msg :=
+  Msg.mkV .readIndex (if m.From' = W64 0 then id else m.From') lead (W64 0) m.Reject' m.Index'
+    m.LogTerm' m.Commit' m.RejectHint' ents [] cl
+
 /-- What `stepFollower` does with `m`, by type. `dropped` is whether it returned
 `ErrProposalDropped` (the postcondition then says `err` is that global's value;
 otherwise `err = nil`). -/
@@ -84,6 +93,16 @@ def FollowerStepResult (id : w64) (s : NState) (m : raftpb.Message)
   else if m.Type' = MsgSnap then
     dropped = false ∧ HandleSnapResult id { s with lead := m.From' } m sv s'
   else if m.Type' = MsgPreVoteResp then dropped = false ∧ s' = s
+  -- read-index (2026-10-12): a request goes to the leader, a response becomes a `ReadState`
+  else if m.Type' = MsgReadIndex then
+    dropped = false ∧
+    (if s.lead = W64 0 then s' = s
+     else s' = sendMsgs s [readForward id s.lead m ents cl])
+  else if m.Type' = MsgReadIndexResp then
+    dropped = false ∧
+    (match ents with
+     | [e] => s' = addReadState s m.Index' e.Data'
+     | _ => s' = s)
   else False
 
 end results
@@ -114,7 +133,10 @@ abbrev stepFollower.spec : Prop :=
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
    m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
    (m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp) ∨
-   m.Type' = MsgSnap ∨ m.Type' = MsgPreVoteResp) →
+   m.Type' = MsgSnap ∨ m.Type' = MsgPreVoteResp ∨
+   m.Type' = MsgReadIndex ∨ m.Type' = MsgReadIndexResp) →
+  -- (2026-10-12) a read-index request is unstamped, and the leader is another node
+  (m.Type' = MsgReadIndex → m.Term' = W64 0 ∧ s.lead ≠ id) →
   (m.Type' = MsgProp →
      (m.From' = W64 0 ∨ m.From' = id) ∧
      m.Term' = W64 0 ∧
@@ -138,7 +160,11 @@ abbrev stepFollower.spec : Prop :=
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       -- the `Context` (2026-10-12): what a forwarded proposal and the response to a
       -- heartbeat carry
-      "Hctx" ∷ (⌜m.Type' = MsgHeartbeat ∨ m.Type' = MsgProp⌝ -∗ m.Context' ↦*□ cl) ∗
+      "Hctx" ∷ (⌜m.Type' = MsgHeartbeat ∨ m.Type' = MsgProp ∨ m.Type' = MsgReadIndex⌝ -∗
+                 m.Context' ↦*□ cl) ∗
+      -- (2026-10-12) a read-index message's entries, read-only
+      "Hrents" ∷ (⌜m.Type' = MsgReadIndex ∨ m.Type' = MsgReadIndexResp⌝ -∗
+                  m.Entries' ↦*□ ents) ∗
       "Hsnap" ∷ (⌜m.Type' = MsgSnap⌝ -∗
                  ⌜SnapScope cfg sv voters ∧ s.role = .follower ∧
                    s.votes = ∅ ∧ id ∈ cfg ∧ m.From' ≠ id⌝ ∗

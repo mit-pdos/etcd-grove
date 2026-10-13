@@ -292,7 +292,7 @@ theorem Main.wp_proof
       ⟨go.GoType.PointerType rStorageTy, #st⟩ memStorEmpty (zero_val raftpb.HardState)
       { (zero_val raftpb.ConfState) with Voters' := slice.mk vsl (W64 3) (W64 3) } clusterIds
       DFrac.discard (nodeConfig_valid id0 st Hid0m) rfl rfl
-      (by show sint.Z (W64 256) < 2 ^ 62; decide) rfl rfl
+      (by show sint.Z (W64 256) < 2 ^ 62; decide) rfl rfl rfl
       (by right; show W64 1048576 ≠ W64 0; decide)
       rfl rfl rfl rfl rfl (by left; rfl) rfl (by unfold HsEmpty; exact ⟨rfl, rfl, rfl⟩)
       (by decide) clusterIds_nodup (by decide) (by decide) rfl rfl rfl rfl Hcfg Hid0m)

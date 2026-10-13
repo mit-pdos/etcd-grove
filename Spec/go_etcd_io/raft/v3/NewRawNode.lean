@@ -75,6 +75,8 @@ abbrev NewRawNode.spec : Prop :=
   sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
   cv.CheckQuorum' = false →
   cv.DisableProposalForwarding' = false →
+  -- `ReadOnlySafe` (2026-10-12)
+  cv.ReadOnlyOption' = W64 0 →
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
   -- synchronous storage writes, nothing applied
   cv.AsyncStorageWrites' = false →

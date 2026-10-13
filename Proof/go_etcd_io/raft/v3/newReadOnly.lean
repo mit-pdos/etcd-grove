@@ -22,7 +22,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem newReadOnly.wp_proof : newReadOnly.spec (GF := GF) (hG := hG) := by
-  intro o
+  intro o Ho
   wp_start
   wp_auto
   wp_apply wp_map_make1 as %mref Hmref
@@ -34,6 +34,8 @@ theorem newReadOnly.wp_proof : newReadOnly.spec (GF := GF) (hG := hG) := by
   iframe Hro' Hmref
   isplitr
   · ipureintro; rfl
+  isplitr
+  · ipureintro; exact Ho
   isplitr
   · iapply ownSlice_nil
   isplitr

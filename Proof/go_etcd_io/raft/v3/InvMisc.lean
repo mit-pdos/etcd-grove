@@ -76,6 +76,22 @@ def readonlyAdvance (r : ReadOnly) (N : w64) : ReadOnly × List ReadReq :=
     let k := uint.nat (N - r.confirmed)
     ({ r with pending := r.pending.drop k, confirmed := N }, r.pending.take k)
 
+/-- The context `heartbeatCtx` returns (2026-10-12): none for an empty queue, else the
+position, little-endian. -/
+def hbCtx (r : ReadOnly) : List w8 :=
+  if r.pending = [] then [] else u64Le (readonlyPosition r)
+
+/-- `sendMsgReadIndexResponse` on the read-only object (`ReadOnlySafe`): the request is
+queued, then the leader acknowledges the new position itself. -/
+def readonlyArrive (r : ReadOnly) (id : w64) (q : ReadReq) : ReadOnly :=
+  readonlyRecvAck (readonlyAdd r q) id (hbCtx (readonlyAdd r q))
+
+/-- `releasePendingReadIndexMessages` on the read-only object: each pending request
+arrives, read at the commit index `c`, in order. -/
+def readonlyRelease (r : ReadOnly) (id c : w64)
+    (pend : List (raftpb.Message × List raftpb.Entry)) : ReadOnly :=
+  pend.foldl (fun r p => readonlyArrive r id ⟨c, p.1.From', p.2⟩) r
+
 end records
 
 section proof
@@ -126,6 +142,9 @@ def ownReadOnly (ro : Loc) (r : ReadOnly) : IProp GF :=
   iprop(∃ (rov : readOnly) (ptrs : List Loc),
   "Hro" ∷ ro ↦ rov ∗
   "%Hro_conf" ∷ ⌜rov.confirmedReads' = r.confirmed⌝ ∗
+  -- (2026-10-12) `ReadOnlySafe`: `ReadOnlyLeaseBased` needs bounded clock drift, out of
+  -- scope (`newRaft` takes the option `Safe`, `reset` keeps it)
+  "%Hro_safe" ∷ ⌜rov.option' = W64 0⌝ ∗
   "Hacks" ∷ rov.acks' ↦$ r.acks ∗
   "Hucr" ∷ rov.unconfirmedReads' ↦*□ ptrs ∗
   "Hucr_cap" ∷ ownSliceCap Loc rov.unconfirmedReads' (DFrac.own 1) ∗
@@ -143,10 +162,7 @@ def ownRaftMisc (readStates : GoSlice) (ro : Loc) (pendingReadIndex : GoSlice)
   "Hro_obj" ∷ ownReadOnly ro rd.ro ∗
   "Hpri" ∷ pendingReadIndex ↦* rd.pend.map Prod.fst ∗
   "Hpri_cap" ∷ ownSliceCap raftpb.Message pendingReadIndex (DFrac.own 1) ∗
-  "#Hpri_ents" ∷ ([∗list] p ∈ rd.pend, p.1.Entries' ↦*□ p.2) ∗
-  -- Scope (until read-index is in, 2026-10-12): no `ReadState`, no queued or pending
-  -- read-index request
-  "%Hrd_scope" ∷ ⌜RdScope rd⌝)
+  "#Hpri_ents" ∷ ([∗list] p ∈ rd.pend, p.1.Entries' ↦*□ p.2))
 
 /-- `reset` replaces `r.readOnly` with `newReadOnly(r.readOnly.option)`, so it reads
 the old object's `option` field; it reaches the object through `ownRaftPhys_readOnly`
@@ -154,6 +170,7 @@ the old object's `option` field; it reaches the object through `ownRaftPhys_read
 theorem ownReadOnly_option (ro : Loc) (r : ReadOnly) :
     ⊢ ownReadOnly (GF := GF) ro r -∗
       ∃ (o : ReadOnlyOption),
+        ⌜o = W64 0⌝ ∗
         ro.[readOnly, go!"option"] ↦ o ∗
         (ro.[readOnly, go!"option"] ↦ o -∗ ownReadOnly ro r) := by
   iintro Hro_obj
@@ -163,13 +180,14 @@ theorem ownReadOnly_option (ro : Loc) (r : ReadOnly) :
   iexists rov.option'
   icases (go_etcd_io.raft.v3.readOnly.readOnly_access_load_option ro rov (DFrac.own 1)).access_strict
     $$ Hro with ⟨Hopt, Hback⟩
+  isplitr; · ipureintro; exact Hro_safe
   iframe Hopt
   iintro Hopt
   ihave Hro := Hback $$ Hopt
   iexists rov, ptrs
   simp only [named]
   iframe Hro Hacks Hucr Hucr_cap Hreqs
-  ipureintro; exact Hro_conf
+  ipureintro; exact ⟨Hro_conf, Hro_safe⟩
 
 end proof
 

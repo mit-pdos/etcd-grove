@@ -29,11 +29,11 @@ theorem NewRawNode.wp_proof
     (wp_softState : raft.softState.spec (GF := GF) (hG := hG))
     (wp_hardState : raft.hardState.spec (GF := GF) (hG := hG)) :
     NewRawNode.spec (GF := GF) (hG := hG) := by
-  intro γ c cv lok si σ hs cs voters dqv Hvalid Hlok Hsto Hmi Hcq Hdpf Hmcs Hasync HpvF Happ
+  intro γ c cv lok si σ hs cs voters dqv Hvalid Hlok Hsto Hmi Hcq Hdpf Hros Hmcs Hasync HpvF Happ
     Hprev Hents Hss Hpe Hhs Hvne Hvnd Hv0 Hvlen Hc1 Hc2 Hc3 Hal Hcfg Hid
   wp_start as ⟨Hc, #Hlg, #Hst, HSt, #Hinit, Hghost, #Hcomm⟩
   wp_auto
-  wp_apply wp_newRaft c cv lok si σ hs cs voters dqv Hvalid Hlok Hsto Hmi Hcq Hdpf Hmcs
+  wp_apply wp_newRaft c cv lok si σ hs cs voters dqv Hvalid Hlok Hsto Hmi Hcq Hdpf Hros Hmcs
     (by rw [Hents]; intro k e h; simp at h)
     (by rw [Hents]; intro e h; simp at h) Hss Hpe (fun h => absurd Hhs h) (.inl Happ)
     Hvne Hvnd Hv0 Hvlen Hc1 Hc2 Hc3 Hal

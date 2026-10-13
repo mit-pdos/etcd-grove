@@ -56,13 +56,13 @@ theorem newRaft.wp_proof
     (wp_strings_Join : strings.Join.spec (GF := GF) (hG := hG)) :
     newRaft.spec (GF := GF) (hG := hG) := by
   intro c cv lok si σ hs cs voters dqv
-    Hvalid Hlok Hsto HmaxInfl Hcq Hdpf Hmcs Hidx Hncc Hss Hpe Hhs Happ Hvne Hvnd Hv0 Hvlen62 Hcs1 Hcs2 Hcs3 Hal
+    Hvalid Hlok Hsto HmaxInfl Hcq Hdpf Hros Hmcs Hidx Hncc Hss Hpe Hhs Happ Hvne Hvnd Hv0 Hvlen62 Hcs1 Hcs2 Hcs3 Hal
   obtain ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩ := Hvalid
   wp_start as ⟨Hc, #Hlg0, #HisSto, HSto, #HInit⟩
   wp_auto
   wp_apply wp_Config_validate _ _ ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩
     $$ [$Hc] as %cv' ⟨Hc, %Hpres⟩
-  obtain ⟨HpID, HpET, HpHT, HpSt, HpAp, HpMI, HpCQ, HpPV, HpDPF, HpLg, HpMC, HpAW⟩ := Hpres
+  obtain ⟨HpID, HpET, HpHT, HpSt, HpAp, HpMI, HpCQ, HpPV, HpDPF, HpLg, HpMC, HpAW, HpRO⟩ := Hpres
   rw [HpSt, Hsto, HpLg, Hlok]
   have Hmcs' : 0 < uint.Z cv'.MaxCommittedSizePerReady' := by
     rw [HpMC]
@@ -82,7 +82,7 @@ theorem newRaft.wp_proof
   ihave HL := HLback $$ HSto
   wp_apply wp_MakeProgressTracker as %tv0 %v0 ⟨%Htv0, Hv0, Hvotes, Hprs0⟩
   obtain ⟨Htv0mi, Htv0mb, Htv0arr, Htv0l, Htv0ln, Htv0al⟩ := Htv0
-  wp_apply wp_newReadOnly as %ro Hro
+  wp_apply wp_newReadOnly _ (HpRO.trans Hros) as %ro Hro
   wp_apply wp_traceInitState
   wp_apply wp_raftLog_lastEntryID $$ [$HL] as %lastID ⟨HL, -⟩
   have Hmi : 0 ≤ sint.Z tv0.MaxInflight' ∧ sint.Z tv0.MaxInflight' < 2 ^ 62 := by
@@ -114,9 +114,7 @@ theorem newRaft.wp_proof
     · rw [List.map_nil]; iapply ownSlice_nil
     isplitr
     · iapply ownSliceCap_nil
-    isplitr
-    · iapply (BigSepL.bigSepL_nil).2; iempintro
-    ipureintro; exact ⟨rfl, rfl, rfl⟩
+    iapply (BigSepL.bigSepL_nil).2; iempintro
   ihave Hnil1 := ownSlice_nil (V := raftpb.Message) (GF := GF) (DFrac.own 1)
   ihave Hnil2 := ownSlice_nil (V := raftpb.Message) (GF := GF) (DFrac.own 1)
   ihave Hcap1 := ownSliceCap_nil (V := raftpb.Message) (GF := GF)

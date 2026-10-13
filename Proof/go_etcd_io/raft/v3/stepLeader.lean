@@ -262,7 +262,7 @@ private theorem wp_stepLeader_hbresp
   iNamed HR
   -- `if r.readOnly.option != ReadOnlySafe || len(m.Context) == 0 { return nil }`
   icases ownRaftPhys_readOnly cfg r id _ $$ Hphys with ⟨%ro, %Hpend, Hrof, Hro, Hback⟩
-  icases ownReadOnly_option ro _ $$ Hro with ⟨%o, Hopt, Hroback⟩
+  icases ownReadOnly_option ro _ $$ Hro with ⟨%o, %Hosafe, Hopt, Hroback⟩
   wp_auto
   ihave Hro := Hroback $$ Hopt
   ihave Hphys := Hback $$ %ro %_ %Hpend Hrof Hro
