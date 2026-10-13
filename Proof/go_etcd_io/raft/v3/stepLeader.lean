@@ -185,7 +185,7 @@ through, whether or not the sender has a `Progress`. -/
 private theorem wp_stepLeader_noop (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (ctx : List w8)
     (Hty : m.Type' = MsgVoteResp ∨ m.Type' = MsgApp ∨
-      m.Type' = MsgHeartbeat ∨ m.Type' = MsgPreVoteResp) :
+      m.Type' = MsgHeartbeat ∨ m.Type' = MsgPreVoteResp ∨ m.Type' = MsgReadIndexResp) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #m))
     {{ (err : GoInterface) (s' : NState), RET #err;
@@ -194,11 +194,11 @@ private theorem wp_stepLeader_noop (r : Loc) (id : w64) (s : NState) (m : raftpb
   wp_start as Hphys
   wp_auto
   have Hres : LeaderNonpropResult cfg id s m ents ctx s := Or.inl ⟨Hty, rfl⟩
-  rcases Hty with Hl | Hl | Hl | Hl
+  rcases Hty with Hl | Hl | Hl | Hl | Hl
   all_goals
     first
     | simp only [Hl, MsgVoteResp] | simp only [Hl, MsgApp] | simp only [Hl, MsgHeartbeat]
-    | simp only [Hl, MsgPreVoteResp]
+    | simp only [Hl, MsgPreVoteResp] | simp only [Hl, MsgReadIndexResp]
     wp_auto
     icases ownRaftPhys_tracker_same cfg r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
     icases ownTracker_progress_map cfg tv _ $$ Htrk with ⟨#Hprs, -, Htrk⟩
@@ -1299,7 +1299,12 @@ theorem stepLeader.wp_proof
       ipureintro; exact Herr
     · iintro %Hc
       exact absurd Hc Hp
-  rcases Hty with Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty
+  rcases Hty with Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty
+  rotate_right
+  · iapply wp_stepLeader_noop cfg r id s m ents ctx (Or.inr (Or.inr (Or.inr (Or.inr Hty))))
+      $$ [Hphys] HΦ'
+    iframe
+    iexact Hinit
   · iapply wp_stepLeader_noop cfg r id s m ents ctx (Or.inl Hty) $$ [Hphys] HΦ'
     iframe
     iexact Hinit
@@ -1330,7 +1335,8 @@ theorem stepLeader.wp_proof
   · iapply wp_stepLeader_noop cfg r id s m ents ctx (Or.inr (Or.inr (Or.inl Hty))) $$ [Hphys] HΦ'
     iframe
     iexact Hinit
-  · iapply wp_stepLeader_noop cfg r id s m ents ctx (Or.inr (Or.inr (Or.inr Hty))) $$ [Hphys] HΦ'
+  · iapply wp_stepLeader_noop cfg r id s m ents ctx (Or.inr (Or.inr (Or.inr (Or.inl Hty))))
+      $$ [Hphys] HΦ'
     iframe
     iexact Hinit
   · obtain ⟨Hsz, -⟩ := Hri Hty

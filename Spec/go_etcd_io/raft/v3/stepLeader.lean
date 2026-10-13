@@ -173,7 +173,10 @@ drops anything). The disjuncts are exclusive on `m.Type`. -/
 def LeaderNonpropResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (ctx : List w8) (s' : NState) : Prop :=
   ((m.Type' = MsgVoteResp ∨ m.Type' = MsgApp ∨
-    m.Type' = MsgHeartbeat ∨ m.Type' = MsgPreVoteResp) ∧
+    m.Type' = MsgHeartbeat ∨ m.Type' = MsgPreVoteResp ∨
+    -- (2026-10-13) a read-index response, at a leader of its term (which the protocol
+    -- excludes): in neither switch
+    m.Type' = MsgReadIndexResp) ∧
    s' = s) ∨
   (m.Type' = MsgBeat ∧
    ∃ (ms : List Msg) (pvs : GMap w64 Progress),
@@ -263,7 +266,7 @@ abbrev stepLeader.spec : Prop :=
    m.Type' = MsgHeartbeatResp ∨ m.Type' = MsgAppResp ∨
    m.Type' = MsgProp ∨ m.Type' = MsgApp ∨
    m.Type' = MsgHeartbeat ∨ m.Type' = MsgPreVoteResp ∨
-   m.Type' = MsgReadIndex) →
+   m.Type' = MsgReadIndex ∨ m.Type' = MsgReadIndexResp) →
   s.role = .leader →
   id ∈ cfg →
   (m.Type' = MsgAppResp → m.From' ≠ W64 0) →
