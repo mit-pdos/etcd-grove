@@ -148,7 +148,7 @@ theorem mvcc.NewStore.wp_proof
   · iexists _; iframe cfg; ipureintro; exact Hcfg1
   · iexists _; iframe cfg; ipureintro; exact Hcfg1
   -- the store's struct
-  wp_apply hNewIdx $$ [] as %ti ⟨%γi, #Hti, Hiw, Hil, Hcu, Hird⟩
+  wp_apply hNewIdx $$ [] as %ti ⟨%γi, #Hti, Hiw, Hil, Hcu, -, Hird⟩
   · ipureintro; exact Hlgnn
   (try wp_auto)
   wp_apply hFifo as %sc ⟨%γs, #HisSched⟩

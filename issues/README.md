@@ -95,6 +95,11 @@ job loop forever, force-committing every interval, its channel never closed (rep
 that deletes a key and puts it again deletes the key's live value from the bucket, and the next
 read of the key calls `lg.Fatal` (reproduced through mvcc's API; etcd's gRPC `checkIntervals`
 rejects such a transaction; found 2026-10-13, mvcc compaction unit 5a; not filed).
+[etcd-index-compact-overlapping](etcd-index-compact-overlapping.md): two overlapping
+`treeIndex.Compact` passes can compact a key index the other deleted (`lg.Panic`) or delete a key
+put again in between (an unstated precondition of the `index` interface; unreachable through the
+store, whose FIFO scheduler runs the jobs one at a time; reproduced; found 2026-10-13, mvcc
+compaction unit 5b; not filed).
 
 [go-itab-reinterpret-assert](go-itab-reinterpret-assert.md): in Go itself, a type assertion
 on an `I1` value read through a `*I2` (two named interfaces with the same methods) panics with

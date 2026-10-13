@@ -30,6 +30,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Compact
 public import Proof.go_etcd_io.etcd.cache.v3.InvBtree
 public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.MonoNat
+public import Perennial.Ghost.GhostVar
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.CompactIdx
 
 @[expose] public section
 
@@ -490,6 +492,115 @@ theorem ownTree_entry (t : Loc) (L : List IdxEntry) (q : Qp) (z : IdxEntry) (hz 
   rw [← Hyp]
   iexact Hkey
 
+/-- Deleting (by key) the item of the entry at `j` is erasing the entry, on sorted entries. -/
+theorem btDelete_items_eraseIdx : ∀ (L : List IdxEntry), L.Pairwise entryLess → ∀ (j : Nat)
+    (z : IdxEntry) (q : Loc), L[j]? = some z →
+    btDelete kiItemLess (q, z.2.1) (itemsOfEntries L) = itemsOfEntries (L.eraseIdx j)
+  | [], _, j, _, _, h => by simp at h
+  | w :: ws, hs, 0, z, q, h => by
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at h
+    subst h
+    simp only [itemsOfEntries, List.map_cons, List.eraseIdx_cons_zero]
+    unfold btDelete
+    have h1 : ¬ kiItemLess (w.1, w.2.1) (q, w.2.1) := goStringLt_irrefl _
+    have h2 : ¬ kiItemLess (q, w.2.1) (w.1, w.2.1) := goStringLt_irrefl _
+    rw [ite_eq_right h1, ite_eq_right h2]
+  | w :: ws, hs, j + 1, z, q, h => by
+    simp only [List.getElem?_cons_succ] at h
+    rw [List.pairwise_cons] at hs
+    have hz : z ∈ ws := List.mem_of_getElem? h
+    have hw : entryLess w z := hs.1 z hz
+    simp only [itemsOfEntries, List.map_cons, List.eraseIdx_cons_succ]
+    unfold btDelete
+    have h1 : kiItemLess (w.1, w.2.1) (q, z.2.1) := hw
+    rw [ite_eq_left h1]
+    have := btDelete_items_eraseIdx ws hs.2 j z q h
+    unfold itemsOfEntries at this
+    rw [this]
+
+theorem idxOfEntries_eraseIdx (L : List IdxEntry) (j : Nat) :
+    idxOfEntries (L.eraseIdx j) = (idxOfEntries L).eraseIdx j := by
+  unfold idxOfEntries
+  induction L generalizing j with
+  | nil => simp
+  | cons w ws ih => cases j with
+    | zero => simp
+    | succ j => simp only [List.eraseIdx_cons_succ, List.map_cons, ih]
+
+/-- The entry at `j` taken out of the entries' resources. -/
+theorem bigSepL_ownEntry_eraseIdx (q : Qp) : ∀ (L : List IdxEntry) (j : Nat) (z : IdxEntry),
+    L[j]? = some z →
+    ([∗list] y ∈ L, ownEntry (GF := GF) y q) ⊢ ownEntry z q ∗ [∗list] y ∈ L.eraseIdx j, ownEntry y q
+  | [], _, _, h => by simp at h
+  | w :: ws, 0, z, h => by
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at h
+    subst h
+    simp only [List.eraseIdx_cons_zero]
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨Hw, Hs⟩
+    iframe Hw Hs
+  | w :: ws, j + 1, z, h => by
+    simp only [List.getElem?_cons_succ] at h
+    simp only [List.eraseIdx_cons_succ]
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨Hw, Hs⟩
+    icases bigSepL_ownEntry_eraseIdx q ws j z h $$ Hs with ⟨Hz, Hs⟩
+    iframe Hz
+    iapply BigSepL.bigSepL_cons.2
+    iframe Hw Hs
+
+/-- Every entry's pointer is a key index of the entry's key, for good. -/
+theorem ownTree_keys (t : Loc) (L : List IdxEntry) (q : Qp) :
+    ownTree (GF := GF) t L q ⊢ ownTree t L q ∗ □ (∀ z, ⌜z ∈ L⌝ -∗ kiKey z.1 z.2.1) := by
+  unfold ownTree
+  iintro ⟨%Hs, Ht, Hk⟩
+  iunfold ownBTree at Ht
+  icases Ht with ⟨%h, %zs, Hbt, %Hzs, #Hall⟩
+  isplitl [Hbt Hk]
+  · iframe Hk
+    isplitl []
+    · ipureintro; exact Hs
+    iunfold ownBTree
+    iexists h, zs
+    iframe Hbt
+    iframe #
+    ipureintro; exact Hzs
+  imodintro
+  iintro %z %hz
+  have hmem : (z.1, z.2.1) ∈ zs.map Prod.snd := by
+    rw [Hzs]; unfold itemsOfEntries; exact List.mem_map_of_mem hz
+  obtain ⟨y, hy, hyv⟩ := List.mem_map.1 hmem
+  ihave #Hy : kiItemIs y.1 (z.1, z.2.1) $$ []
+  · rw [← hyv]; iapply Hall; ipureintro; exact hy
+  iunfold kiItemIs at Hy
+  icases Hy with ⟨%Hyp, #Hkey⟩
+  simp only at Hyp
+  rw [← Hyp]
+  iexact Hkey
+
+/-- Entries sorted by key, each pointer a key index of its key: the pointers are distinct. -/
+theorem kiKeys_nodup (L : List IdxEntry) (hs : L.Pairwise entryLess) :
+    (□ ∀ z, ⌜z ∈ L⌝ -∗ kiKey (GF := GF) z.1 z.2.1) ⊢ ⌜(L.map Prod.fst).Nodup⌝ := by
+  iintro #H
+  ihave %Hk : ⌜∀ (a b : IdxEntry), a ∈ L → b ∈ L → a.1 = b.1 → a.2.1 = b.2.1⌝ $$ []
+  · iapply pure_forall.2; iintro %a
+    iapply pure_forall.2; iintro %b
+    iapply pure_forall.2; iintro %ha
+    iapply pure_forall.2; iintro %hb
+    iapply pure_forall.2; iintro %hab
+    ihave #Ha := H $$ %a %ha
+    ihave #Hb := H $$ %b %hb
+    rw [hab]
+    iapply kiKey_agree $$ Ha Hb
+  ipureintro
+  unfold List.Nodup
+  rw [List.pairwise_map]
+  refine List.Pairwise.imp_of_mem (fun {a b} ha hb hlt heq => ?_) hs
+  have := Hk a b ha hb heq
+  unfold entryLess at hlt
+  rw [this] at hlt
+  exact goStringLt_irrefl _ hlt
+
 /-! ### The lock invariant, the writer and the certificate -/
 
 /-- The ghost names of a tree index: its history, its number of events, and the committed log
@@ -503,6 +614,10 @@ structure IdxNames where
   nev : GName
   log : GName
   crev : GName
+  /-- the compactor's state (`ghostVar (Int × List Loc)`: the revision of the last compaction and
+  the key indexes a compaction in progress has yet to visit), half in the lock's resource
+  (`idxCmpOwn`), half the compactor's (`idxCompactor`) -/
+  cmp : GName
 
 /-- The writer's log, well formed and bounded: `ilog` committed, `pend` pending. -/
 def IdxWf (ilog : Log) (pend : List Change) : Prop :=
@@ -527,6 +642,97 @@ theorem crevUB_lb (γ : IdxNames) (q : Qp) (c c' : Int) (hc : -1 ≤ c) (hc' : -
   iintro Ha Hl
   ihave %h := monoNatLbOwn_valid γ.crev q _ _ $$ Ha Hl
   ipureintro; exact crevN_le hc' hc h.2
+
+/-- **The compactor's state in the lock's resource** (at the lock's fraction `q`, half of it):
+the revision `cc` of the last compaction, at or above every key's level (`cmax`), and the key
+indexes `P` a compaction in progress has yet to visit, all in the tree (no one but the compactor
+removes them: replacing a key index, `Insert`, needs no compaction, `cmax < 0`). -/
+def idxCmpOwn (γ : IdxNames) (q : Qp) (L : List IdxEntry) (cmax : Int) : IProp GF :=
+  iprop(∃ (cc : Int) (P : List Loc), ghostVar γ.cmp q.half (cc, P) ∗
+    ⌜cmax ≤ cc ∧ (∀ p ∈ P, p ∈ L.map Prod.fst) ∧ (P ≠ [] → 0 ≤ cmax)⌝)
+
+/-- **The compactor's token** (exclusive: one compaction at a time; the store's compaction job
+runs on the FIFO scheduler): the revision of the last compaction, `-1` if none. -/
+def idxCompactor (γ : IdxNames) (c : Int) : IProp GF := ghostVar γ.cmp (1 : Qp).half (c, ([] : List Loc))
+
+theorem Qp.half_add (q1 q2 : Qp) : (q1 + q2).half = q1.half + q2.half :=
+  Subtype.ext (by simp only [Qp.val_half, Qp.val_add]; grind)
+
+/-- The writers keep every key index in the tree (they add some). -/
+theorem idxCmpOwn_mono (γ : IdxNames) (q : Qp) (L L' : List IdxEntry) (cmax : Int)
+    (h : ∀ p ∈ L.map Prod.fst, p ∈ L'.map Prod.fst) :
+    idxCmpOwn (GF := GF) γ q L cmax ⊢ idxCmpOwn γ q L' cmax := by
+  unfold idxCmpOwn
+  iintro ⟨%cc, %P, H, %Hp⟩
+  iexists cc, P
+  iframe H
+  ipureintro
+  exact ⟨Hp.1, fun p hp => h p (Hp.2.1 p hp), Hp.2.2⟩
+
+/-- With no compaction (`cmax < 0`), no compaction is in progress: any tree. -/
+theorem idxCmpOwn_neg (γ : IdxNames) (q : Qp) (L L' : List IdxEntry) (cmax : Int) (h : cmax < 0) :
+    idxCmpOwn (GF := GF) γ q L cmax ⊢ idxCmpOwn γ q L' cmax := by
+  unfold idxCmpOwn
+  iintro ⟨%cc, %P, H, %Hp⟩
+  iexists cc, P
+  iframe H
+  ipureintro
+  refine ⟨Hp.1, fun p hp => ?_, Hp.2.2⟩
+  exfalso
+  have := Hp.2.2 (List.ne_nil_of_mem hp)
+  omega
+
+/-- Changing an entry in place keeps the pointers. -/
+theorem ptrs_set (L : List IdxEntry) (i : Nat) (z z' : IdxEntry) (hi : L[i]? = some z)
+    (h : z'.1 = z.1) : (L.set i z').map Prod.fst = L.map Prod.fst := by
+  have hlt : i < L.length := (List.getElem?_eq_some_iff.1 hi).1
+  have hz : L[i] = z := (List.getElem?_eq_some_iff.1 hi).2
+  apply List.ext_getElem (by simp)
+  intro j h1 h2
+  simp only [List.getElem_map, List.getElem_set]
+  split
+  · rename_i hj; subst hj; rw [hz, h]
+  · rfl
+
+/-- Inserting an entry of a new key keeps the pointers. -/
+theorem ptrs_btInsert_new : ∀ (L : List IdxEntry) (z : IdxEntry), (∀ w ∈ L, w.2.1 ≠ z.2.1) →
+    ∀ p ∈ L.map Prod.fst, p ∈ (btInsert entryLess z L).map Prod.fst
+  | [], _, _, p, hp => by simp at hp
+  | w :: ws, z, hn, p, hp => by
+    unfold btInsert
+    split
+    · rcases List.mem_cons.1 hp with rfl | hp
+      · simp
+      · simp only [List.map_cons, List.mem_cons]
+        exact Or.inr (ptrs_btInsert_new ws z (fun w' hw' => hn w' (List.mem_cons_of_mem _ hw')) p hp)
+    · split
+      · simp only [List.map_cons, List.mem_cons] at hp ⊢; exact Or.inr hp
+      · rename_i h1 h2
+        exact absurd (goStringLt_eq_of_not_lt h1 h2) (hn w List.mem_cons_self)
+
+theorem idxCmpOwn_split (γ : IdxNames) (L : List IdxEntry) (cmax : Int) (q1 q2 : Qp) :
+    idxCmpOwn (GF := GF) γ (q1 + q2) L cmax ⊢ idxCmpOwn γ q1 L cmax ∗ idxCmpOwn γ q2 L cmax := by
+  unfold idxCmpOwn
+  iintro ⟨%cc, %P, H, %Hp⟩
+  rw [Qp.half_add]
+  icases (ghostVar_fractional (GF := GF) γ.cmp (cc, P)).fractional q1.half q2.half |>.1 $$ H
+    with ⟨H1, H2⟩
+  isplitl [H1]
+  · iexists cc, P; iframe H1; ipureintro; exact Hp
+  · iexists cc, P; iframe H2; ipureintro; exact Hp
+
+theorem idxCmpOwn_combine (γ : IdxNames) (L : List IdxEntry) (c1 c2 : Int) (q1 q2 : Qp) :
+    idxCmpOwn (GF := GF) γ q1 L c1 ∗ idxCmpOwn γ q2 L c2 ⊢ idxCmpOwn γ (q1 + q2) L c1 := by
+  unfold idxCmpOwn
+  iintro ⟨⟨%cc1, %P1, H1, %Hp1⟩, ⟨%cc2, %P2, H2, -⟩⟩
+  ihave %Ha := ghostVar_agree γ.cmp _ _ _ _ $$ H1 H2
+  cases Ha
+  iexists cc1, P1
+  rw [Qp.half_add]
+  isplitl [H1 H2]
+  · iapply (ghostVar_fractional (GF := GF) γ.cmp (cc1, P1)).fractional q1.half q2.half |>.2
+    iframe H1 H2
+  ipureintro; exact Hp1
 
 /-- A key's index of any events is well formed (its fold from `kiEmpty`). -/
 theorem kiOfKey_KiWf_inv (evs : List Ev) (k : GoString) : KiWf (kiOfKey evs k) := by
@@ -640,7 +846,8 @@ def idxLockInv (t : Loc) (γ : IdxNames) (q : Qp) : IProp GF :=
     "#Hcrev" ∷ crevLb γ cmax ∗
     "#Hcl" ∷ (∃ log₀ : Log, monoListLbOwn γ.log log₀ ∗ ⌜cmax < log₀.length⌝) ∗
     "%HL" ∷ ⌜IdxCRep cmax (evsOf (ilog ++ [pend])) (idxOfEntries L) ∧ -1 ≤ cmax⌝ ∗
-    "%Hwf" ∷ ⌜IdxWf ilog pend⌝)
+    "%Hwf" ∷ ⌜IdxWf ilog pend⌝ ∗
+    "Hcmp" ∷ idxCmpOwn γ q L cmax)
 
 instance idxLockInv_fractional (t : Loc) (γ : IdxNames) :
     Fractional (idxLockInv (GF := GF) t γ) where
@@ -652,10 +859,11 @@ instance idxLockInv_fractional (t : Loc) (γ : IdxNames) :
       iNamed H
       icases (hnat _).1 $$ Hnev with ⟨Hn1, Hn2⟩
       icases (ownTree_fractional t L).fractional q1 q2 |>.1 $$ Htree with ⟨Ht1, Ht2⟩
-      isplitl [Hn1 Ht1]
-      · iexists ilog, pend, L, cmax; simp only [named]; iframe Hn1 Ht1; iframe #; ipureintro
+      icases idxCmpOwn_split γ L cmax q1 q2 $$ Hcmp with ⟨Hc1, Hc2⟩
+      isplitl [Hn1 Ht1 Hc1]
+      · iexists ilog, pend, L, cmax; simp only [named]; iframe Hn1 Ht1 Hc1; iframe #; ipureintro
         exact ⟨HL, Hwf⟩
-      · iexists ilog, pend, L, cmax; simp only [named]; iframe Hn2 Ht2; iframe #; ipureintro
+      · iexists ilog, pend, L, cmax; simp only [named]; iframe Hn2 Ht2 Hc2; iframe #; ipureintro
         exact ⟨HL, Hwf⟩
     · iintro ⟨H1, H2⟩
       unfold idxLockInv
@@ -673,6 +881,9 @@ instance idxLockInv_fractional (t : Loc) (γ : IdxNames) :
       iexists ilog1, pend1, L1, cmax1
       simp only [named]
       iframe Htree
+      ihave Hcmp := idxCmpOwn_combine γ L1 cmax1 cmax2 q1 q2 $$ [Hcmp1 Hcmp2]
+      · iframe Hcmp1 Hcmp2
+      iframe Hcmp
       isplitl []
       · iexact Hhist1
       isplitl [Hnev1 Hnev2]

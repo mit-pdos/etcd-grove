@@ -113,12 +113,14 @@ theorem mvcc.treeIndex.Insert.wp_proof
   rw [method_unfold (t := go.GoType.PointerType treeIndex.ty) (m := go!"Unlock")]
   wp_call
   (try wp_auto)
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HnevL Ht Hback Hki]
+  ihave HcmpL := mvcc.idxCmpOwn_neg γ _ L (btInsert mvcc.entryLess (ki, k, m) L) cmax
+    (by have := HLL.2; omega) $$ HcmpL
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HnevL Ht Hback Hki HcmpL]
   · inext
     iunfold mvcc.idxLockInv
     iexists ilog', pend', btInsert mvcc.entryLess (ki, k, m) L, cmax
     simp only [named]
-    iframe HnevL
+    iframe HnevL HcmpL
     isplitl []
     · iexact HhistL
     isplitl [Ht Hback Hki]

@@ -4159,6 +4159,53 @@ be unprovable instead of inapplicable); dropping `Dep` (the assumed backend's lo
 the store's `writerRes`, not late-bound: the lock cannot hold it before `NewStore` makes it);
 dropping `snapThin` (the assumed contract would be false of Go's backend once compaction runs).
 
+### The index side's proofs (unit 5b, 2026-10-13 · adopted)
+
+**2026-10-13 · adopted** (`STATUS.md`, "The store's compaction", unit 5b)
+
+- **`walk`'s closure is effectful.** `generation.walk`'s spec takes `walkFnSpecR f p R Q`
+  (`Defs.lean`): on a revision where `p` holds the closure returns true keeping `R`; where it
+  fails it returns false turning `R` into `Q r`; `walk` gives back `walkPost revs p R Q` (`R` if
+  every revision passed, else `Q` of the one it stopped at, `genWalk`'s). The pure closure of
+  `keyIndex.get` is the case `R = True` (`walkFnSpecR_of_pure`); `doCompact`'s takes the
+  `available` map with `R` = the map at `A`, `Q r` = the map with `r` inserted. *Rejected:* an
+  invariant indexed by the visited revisions (no caller needs more than "unchanged until the
+  stop"; the walk stops at the first failure, so the effect happens once).
+- **Contract correction: `treeIndex.Compact` takes the compactor's token.** 5a's spec needed
+  only persistent facts (`isTreeIndex`, `crevLb`, `idxCert`), so it allowed two concurrent
+  passes: then one pass can `compact` a key index the other deleted (an empty one: `lg.Panic`),
+  or delete by key a key put again in between, and the clone's pointers are not owned by anyone
+  when visited (unprovable, and false of Go: `issues/etcd-index-compact-overlapping.md`). It
+  also allowed a pass at a revision below an earlier pass's, whose `available` is then not
+  `keepSetIs` (the key indexes are already compacted above it). The new ghost name `IdxNames.cmp`
+  (`ghostVar (Int × List Loc)`) holds the last compaction's revision and the pointers a pass has
+  yet to visit, half in the lock's resource (`idxCmpOwn γ q L cmax`: every pending pointer is in
+  the tree, every key's level at most the revision, nothing pending unless `0 ≤ cmax`), half the
+  compactor's (`idxCompactor γ c`, exclusive). `Compact` takes `idxCompactor γ c` with
+  `c ≤ rev` and returns `idxCompactor γ rev`; `newTreeIndex` returns `idxCompactor γ (-1)`
+  (`NewStore` drops it for now: unit 5c keeps it where the jobs find it, they run one at a time
+  on the FIFO scheduler, `schedRunning`). The writers keep the invariant unchanged in substance:
+  `Put`/`Tombstone` keep every pointer (`idxCmpOwn_mono`), `Insert` replaces one only with no
+  compaction (`cmax < 0`, its `crevUB … (-1)`; `idxCmpOwn_neg`). `InvStore.lean` changes only its
+  `Countable IdxNames` instance (the new field). *Rejected:* keeping the deleted key indexes'
+  resources in the lock (a stale pass would still delete a key put again, by key); the
+  scheduler's run token in the index's spec (the index cannot name the store's scheduler);
+  pointer stability without ghost state (the lock invariant is a state predicate: nothing in it
+  forbids a lock holder to drop an entry whose compaction empties it).
+- **`doCompact` at any fraction.** Its 5a spec took the key index at fraction 1, but `keep`
+  (under `RLock`, at any fraction) calls it: the spec now takes `dq` (it only reads the key
+  index). `compact` passes 1.
+- **Revisions as map keys.** `go.IntoValInj Revision` is derived from the determinism of the
+  struct's field loads (`Revision.TypeAssumptions.get_Main`/`get_Sub`), and `SafeMapKey Revision.ty
+  r` from the struct comparison's semantics (`Defs.lean`): no new assumption.
+- **What `Compact`'s map is.** The pass's invariant: the map holds exactly the revisions
+  `kiAvail` keeps, of the log, for the keys visited so far (each key's index at its visit is its
+  events' compacted at a level at most `rev`: `IdxCRep.avail_some`, `reader_avail`); a key with a
+  kept revision was in the clone (`keepAt_keys`: at clone time, a key absent from the tree is one
+  whose compaction emptied it, which keeps nothing at `rev`). `Keep`'s: `keepFold` over the
+  lock's entries is every key's `kiKeep` (`keepFold_spec`; a revision `keep` takes back is no
+  other key's, `IdxCRep.avail_inj`), and `kiKeep` is the log's (`reader_keep`).
+
 ## The read loop's notifier: deposited lower bounds
 
 **2026-10-13 · accepted (the request path's unit 4a, `server/v3/etcdserver/read`; `STATUS.md`,

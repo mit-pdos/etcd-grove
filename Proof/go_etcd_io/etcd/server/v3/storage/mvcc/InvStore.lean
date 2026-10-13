@@ -113,8 +113,8 @@ structure StoreNames where
   sch : schedule.SchedNames
 
 instance idxNames_countable : Pos.Countable IdxNames :=
-  countableOfLeftInverse (fun x : IdxNames => (x.hist, x.nev, x.log, x.crev))
-    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2⟩) (fun _ => rfl)
+  countableOfLeftInverse (fun x : IdxNames => (x.hist, x.nev, x.log, x.crev, x.cmp))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2⟩) (fun _ => rfl)
 
 instance schedNames_countable : Pos.Countable schedule.SchedNames :=
   countableOfLeftInverse (fun x : schedule.SchedNames => (x.run, x.jobs)) (fun p => ⟨p.1, p.2⟩)

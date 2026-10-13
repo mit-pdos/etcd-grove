@@ -105,17 +105,20 @@ theorem mvcc.keyIndex.get.wp_proof
       ipersist atRev
       have hne : gm.revs ≠ [] := Hif
       wp_apply (hW (sliceIndexRef generation (gi : Int) gs) gv gm dq _
-        (mvcc.pAbove atRev)) $$ [Hel Hg] as ⟨Hel, Hg⟩
+        (mvcc.pAbove atRev) iprop(True) (fun _ => iprop(True))) $$ [Hel Hg] as ⟨Hel, Hg, -⟩
       · iframe Hel Hg
-        iunfold mvcc.walkFnSpec
-        imodintro
-        iintro %r
-        wp_start
-        wp_auto
-        simp only [mvcc.pAbove, mvcc.revOf_main]
-        by_cases h : sint.Z atRev < sint.Z r.Main'
-        · simp only [h, _root_.decide_true]; wp_end
-        · simp only [h, _root_.decide_false]; wp_end
+        isplitl []
+        · iapply mvcc.walkFnSpecR_of_pure
+          iunfold mvcc.walkFnSpec
+          imodintro
+          iintro %r
+          wp_start
+          wp_auto
+          simp only [mvcc.pAbove, mvcc.revOf_main]
+          by_cases h : sint.Z atRev < sint.Z r.Main'
+          · simp only [h, _root_.decide_true]; wp_end
+          · simp only [h, _root_.decide_false]; wp_end
+        itrivial
       obtain ⟨n, hn⟩ : ∃ n, n = mvcc.genWalk gm.revs (mvcc.pAbove atRev) :=
         ⟨_, rfl⟩
       have Hrange := mvcc.genWalk_range gm.revs (mvcc.pAbove atRev)

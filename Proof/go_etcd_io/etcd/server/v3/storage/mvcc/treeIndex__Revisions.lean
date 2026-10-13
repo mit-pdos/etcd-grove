@@ -101,12 +101,12 @@ theorem mvcc.treeIndex.Revisions.wp_proof
       rw [method_unfold (t := go.GoType.PointerType treeIndex.ty) (m := go!"RUnlock")]
       wp_call
       (try wp_auto)
-      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HnevL HtreeL] as Hrd
+      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HnevL HtreeL HcmpL] as Hrd
       · inext
         iunfold mvcc.idxLockInv
         iexists ilog, pend, L, cmax
         simp only [named]
-        iframe HnevL HtreeL
+        iframe HnevL HtreeL HcmpL
         iframe #
         ipureintro
         exact ⟨HLL, HwfL, HlenL, HpendL, HcsL⟩
@@ -136,12 +136,12 @@ theorem mvcc.treeIndex.Revisions.wp_proof
       rw [method_unfold (t := go.GoType.PointerType treeIndex.ty) (m := go!"RUnlock")]
       wp_call
       (try wp_auto)
-      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HnevL HtreeL] as Hrd
+      wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HnevL HtreeL HcmpL] as Hrd
       · inext
         iunfold mvcc.idxLockInv
         iexists ilog, pend, L, cmax
         simp only [named]
-        iframe HnevL HtreeL
+        iframe HnevL HtreeL HcmpL
         iframe #
         ipureintro
         exact ⟨HLL, HwfL, HlenL, HpendL, HcsL⟩
@@ -325,12 +325,12 @@ theorem mvcc.treeIndex.Revisions.wp_proof
     rw [method_unfold (t := go.GoType.PointerType treeIndex.ty) (m := go!"RUnlock")]
     wp_call
     (try wp_auto)
-    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HnevL HtreeL] as Hrd
+    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HnevL HtreeL HcmpL] as Hrd
     · inext
       iunfold mvcc.idxLockInv
       iexists ilog, pend, L, cmax
       simp only [named]
-      iframe HnevL HtreeL
+      iframe HnevL HtreeL HcmpL
       iframe #
       ipureintro
       exact ⟨HLL, HwfL, HlenL, HpendL, HcsL⟩

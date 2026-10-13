@@ -41,9 +41,6 @@ sorry mvcc.UnsafeReadFinishedCompact.wp_proof
 sorry mvcc.UnsafeReadScheduledCompact.wp_proof
 sorry mvcc.UnsafeSetFinishedCompact.wp_proof
 sorry mvcc.UnsafeSetScheduledCompact.wp_proof
-sorry mvcc.keyIndex.compact.wp_proof
-sorry mvcc.keyIndex.doCompact.wp_proof
-sorry mvcc.keyIndex.keep.wp_proof
 sorry mvcc.store.Compact.wp_proof
 sorry mvcc.store.checkPrevCompactionCompleted.wp_proof
 sorry mvcc.store.compact.wp_proof
@@ -51,8 +48,6 @@ sorry mvcc.store.compactBarrier.wp_proof
 sorry mvcc.store.compactLockfree.wp_proof
 sorry mvcc.store.scheduleCompaction.wp_proof
 sorry mvcc.store.updateCompactRev.wp_proof
-sorry mvcc.treeIndex.Compact.wp_proof
-sorry mvcc.treeIndex.Keep.wp_proof
 sorry schedule.NewJob.wp_proof
 sorry schedule.job.Do.wp_proof
 sorry schedule.job.Name.wp_proof
