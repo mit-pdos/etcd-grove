@@ -35,7 +35,7 @@ theorem mvcc.newWatchableStore.wp_proof
     (hsplit : adt.ownIvt_split.spec (GF := GF) (hG := hG)) :
     mvcc.newWatchableStore.spec (GF := GF) (hG := hG) := by
   intro lg b le cfg kb γb γl P f Hcfg0
-  wp_start as ⟨Hbk, Hbv, Hrg, Hwt1, Hwt2, Hrts, #Hlessor⟩
+  wp_start as ⟨Hbk, Hbv, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   wp_auto
@@ -44,7 +44,7 @@ theorem mvcc.newWatchableStore.wp_proof
     isplitr
     · ipureintro; rfl
     iexists l; iexact lg
-  wp_apply (hNewStore _ _ _ _ _ _ _ _ _ Hcfg0) $$ [$Hbk $Hbv $Hrg $Hwt1 $Hwt2 $Hrts $Hlessor] as %st
+  wp_apply (hNewStore _ _ _ _ _ _ _ _ _ Hcfg0) $$ [$Hbk $Hbv $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor] as %st
     ⟨%γs, ⟨%hγb, %hγl, %hγk⟩, #Hst, #HhookP, Hviews, Hreaders, Htoks, #Hcert, Hsclose, -, Hright⟩
   -- the watchable store never compacts its store (compaction is out of its model): the right
   -- given up, the readers those of a never-compacted store
@@ -69,7 +69,7 @@ theorem mvcc.newWatchableStore.wp_proof
   (try wp_auto)
   ihave #Hlessor1 := Hlessor
   iunfold mvcc.isLessor at Hlessor1
-  icases Hlessor1 with ⟨%li, %Hli, -, -, -, #HSetRD⟩
+  icases Hlessor1 with ⟨%lp, %Hli, -, -, -, -, #HSetRD⟩
   subst Hli
   -- the read view, read-only for good
   iStructNamed Hrv

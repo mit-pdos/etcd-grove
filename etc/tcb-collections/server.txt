@@ -96,6 +96,7 @@ axiom proto.MarshalIRR.wp_proof
 axiom proto.Size.wp_proof
 axiom proto.Unmarshal.wp_proof
 axiom schedule.NewFIFOScheduler.wp_proof
+axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom sort.Stable.wp_proof
 axiom storage.BackendQuota.Cost.wp_proof
 axiom strconv.FormatBool.wp_proof

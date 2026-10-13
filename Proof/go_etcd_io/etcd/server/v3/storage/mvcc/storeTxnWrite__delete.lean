@@ -71,7 +71,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   · iPkgInit
   -- the lessor and the batch transaction
   iunfold mvcc.isLessor at HlessorS
-  icases HlessorS with ⟨%li, %Hli, #HGetL, #HAttach, #HDetach, -⟩
+  icases HlessorS with ⟨%lp, %Hli, #Hpin, #HGetL, #HAttach, #HDetach, -⟩
   subst Hli
   ihave #Hbt0 : mvcc.batchTxSpecG bt (mvcc.bucketView γ) (mvcc.storeRT γ) (mvcc.storeWT γ)
       (mvcc.storePutOk γ) (mvcc.delKey γ) (mvcc.storeW s γ) _ (mvcc.storeCmp γ) Locked Pw fw $$ []
@@ -156,16 +156,16 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
         storeTxnCommon' := {
           s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace },
         tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
-        changes' := chs' } : storeTxnWrite) -∗
+        changes' := chs' } : storeTxnWrite) -∗ lease.lessorRdOf γ.leases -∗
       mvcc.storeTxnWriteIs tw s γ ilog (pend ++ [.del k]) : IProp GF)
       $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hkv]
-  · iintro Htw
+  · iintro Htw Hlrd
     iunfold mvcc.storeTxnWriteIs
     iexists trace, ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
     simp only [named]
     rw [mvcc.pendPuts_append ilog pend (.del k) _ hkvm']
     simp only [mvcc.revOf, mvcc.Change.isDel]
-    iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
+    iframe Htoks Htok Htw Hchs Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
     iframe #
     isplitl []
     · ipureintro; exact Hbudget
@@ -186,14 +186,20 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   -- `item := lease.LeaseItem{Key: string(key)}`; `leaseID := tw.s.le.GetLease(item)`
   wp_apply (wp_bytes_to_string key k DFrac.discard) $$ [$Hkey] as -
   (try wp_auto)
+  iunfold lease.lessorRdOf at Hlrd
+  icases Hlrd with ⟨%lpr, #Hpinr, Hrd⟩
+  ihave %Hlpeq := lease.lessorPin_agree γ.leases lp lpr $$ [$Hpin $Hpinr]
+  subst Hlpeq
   ihave #HGetL' := HGetL $$ %({ Key' := k } : go_etcd_io.etcd.server.v3.lease.LeaseItem)
   (try wp_auto)
-  wp_apply HGetL' as %lid -
+  wp_apply HGetL' $$ [$Hrd] as %lid Hrd
+  ihave Hlrd : lease.lessorRdOf γ.leases $$ [Hrd]
+  · iunfold lease.lessorRdOf; iexists lp; iframe Hpin Hrd
   (try wp_auto)
   -- `if leaseID != lease.NoLease { Detach }`: the first goal is `leaseID == NoLease`
   wp_if_destruct
   · (try wp_auto)
-    iapply HΦ; iapply Hpack; iexact Htw
+    iapply HΦ; iapply Hpack $$ Htw Hlrd
   · (try wp_auto)
     wp_apply wp_slice_literal
     isplitr
@@ -207,7 +213,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
     cases err with
     | nil =>
       (try wp_auto)
-      iapply HΦ; iapply Hpack; iexact Htw
+      iapply HΦ; iapply Hpack $$ Htw Hlrd
     | ok e =>
       (try wp_auto)
       wp_apply (hZapErr (GoInterface.ok e)) as %f -
@@ -220,7 +226,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
       wp_apply (hLogErr lg _ _)
       · ipureintro; exact HlgnnS
       (try wp_auto)
-      iapply HΦ; iapply Hpack; iexact Htw
+      iapply HΦ; iapply Hpack $$ Htw Hlrd
 
 end proof
 

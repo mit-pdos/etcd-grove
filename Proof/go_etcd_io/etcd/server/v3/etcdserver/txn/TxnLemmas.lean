@@ -293,8 +293,8 @@ theorem responseOpsIs_nil (skip : Bool) : ⊢ responseOpsIs (GF := GF) skip [] [
   unfold responseOpsIs; itrivial
 
 /-- A delete keeps the state's leases known. -/
-theorem leasesKnown_delete (γl : GName) (r : w64) (s : List EtcdKv) (o : OpFull) :
-    leasesKnown (GF := GF) γl s ⊢ leasesKnown γl (mvcc.applyChanges r s (delChanges s o)) := by
+theorem leasesKnown_delete (L : List w64) (r : w64) (s : List EtcdKv) (o : OpFull) :
+    leasesKnown (GF := GF) L s ⊢ leasesKnown L (mvcc.applyChanges r s (delChanges s o)) := by
   rw [applyChanges_delChanges]
   apply leasesKnown_sub
   intro v hv

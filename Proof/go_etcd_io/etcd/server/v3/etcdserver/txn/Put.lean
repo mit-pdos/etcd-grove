@@ -40,8 +40,8 @@ theorem txn.Put.wp_proof
     (hput : txn.put.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.Put.spec (GF := GF) (hG := hG) := by
-  intro ctx cd lg le kv s γ p o m log₀ P Pre Q Post f
-  wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, #Hle, #Hp, #Hctx, #Hlprem, Hcs, #Hhook⟩
+  intro ctx cd lg le kv s γ p o m log₀ P Pre Q Post f L
+  wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, #Hle, Hu, #Hp, #Hctx, #Hlprem, Hcs, #Hhook⟩
   iunfold mvcc.csContract at Hcs
   icases Hcs with ⟨Hpre, #Htr, Hupd⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
@@ -68,7 +68,7 @@ theorem txn.Put.wp_proof
   wp_apply (hEnsure ctx cd lg _ _) $$ [$Hctx] as %ctx' %t ⟨%Ht, %vs, #Hctx', -⟩
   (try wp_auto)
   -- `checkLease(lessor, p)`
-  wp_apply (hLease le γ.leases p o) $$ [$Hle $Hp] as %err Herr
+  wp_apply (hLease le γ.leases p o L) $$ [$Hle $Hp $Hu] as %err ⟨Hu, Herr⟩
   (try wp_auto)
   icases Herr with (⟨%Herr, #Hlok⟩ | ⟨%Hne, #He⟩)
   rotate_left
@@ -79,7 +79,7 @@ theorem txn.Put.wp_proof
     subst Hee
     (try wp_auto)
     iapply HΦ
-    iframe Hrd Htoks
+    iframe Hrd Htoks Hu
     isplitl []
     · ipureintro; exact Ht
     ileft
@@ -125,7 +125,7 @@ theorem txn.Put.wp_proof
     icases Hpost with ⟨#Hc, Htok⟩
     (try wp_auto)
     iapply HΦ
-    iframe Hrd Htoks
+    iframe Hrd Htoks Hu
     isplitl []
     · ipureintro; exact Ht
     iright
@@ -139,7 +139,7 @@ theorem txn.Put.wp_proof
   subst Herr
   (try wp_auto)
   -- the lease the put writes: the request's (found by `checkLease`) or the previous one
-  ihave #Hlok2 : txn.leaseOk γ.leases
+  ihave #Hlok2 : txn.leaseOk L
       (txn.putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))) $$ []
   · cases hil : o.ignoreLease
     · unfold txn.putLeaseOf; rw [hil]; simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hlok
@@ -147,9 +147,12 @@ theorem txn.Put.wp_proof
       ipureintro; exact ⟨Hpin, rfl⟩
   ihave Htx : mvcc.isTxnWrite mw s γ ilog [] (W64 0) (W64 0) (W64 0) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
-  have hp := hput ctx' { cd with Values := vs } mw s γ ilog [] (W64 0) (W64 0) (W64 0) p o prev
+  have hp := hput ctx' { cd with Values := vs } mw s γ ilog [] (W64 0) (W64 0) (W64 0) p o prev L
   simp only [txn.pendState_nil, List.nil_append, List.length_nil] at hp
-  wp_apply hp $$ [$Hctx' $Htx $Hp $Hprev $Hlok2] as %resp ⟨⟨%puts', %putSize', Htx⟩, #Hresp, Hhdr⟩
+  iunfold EtcdGrove.lease.lessorUser at Hu
+  icases Hu with ⟨Hown, Hrdo⟩
+  wp_apply hp $$ [$Hctx' $Htx $Hp $Hprev $Hlok2 $Hown]
+    as %resp ⟨⟨%puts', %putSize', Htx⟩, #Hresp, Hhdr, Hown⟩
   · ipureintro; exact ⟨Hn, by have := mvcc.putMax_ge γ; omega⟩
   (try wp_auto)
   -- the deferred `txnWrite.End()`: the put committed
@@ -164,6 +167,8 @@ theorem txn.Put.wp_proof
   (try wp_auto)
   iapply HΦ
   iframe Hrd Htoks
+  isplitl [Hown Hrdo]
+  · iunfold EtcdGrove.lease.lessorUser; iframe Hown Hrdo
   isplitl []
   · ipureintro; exact Ht
   iright

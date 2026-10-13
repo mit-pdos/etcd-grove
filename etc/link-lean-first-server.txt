@@ -20,6 +20,25 @@ consistentIndex__UnsafeSave: schema_UnsafeUpdateConsistentIndex
 consistentIndex__SetBackend: consistentIndex__SetConsistentIndex
 consistentIndex__ConsistentIndex: consistentIndex__SetConsistentIndex schema_ReadConsistentIndex
 consistentIndex__UnsafeConsistentIndex: consistentIndex__SetConsistentIndex schema_UnsafeReadConsistentIndex
+# The server's backend hooks (server/storage/hooks.go; the backend's unit 8, 2026-10-13), see
+# storage/InvHooks.lean: the confState save is the trust boundary (it encodes with
+# encoding/json); the backend's put is linked in the backend's Link.lean (`@`), schema's bucket
+# methods in mvcc's.
+schema_MustUnsafeSaveConfStateToBackend:
+storage_NewBackendHooks:
+storage_BackendHooks__OnPreCommitUnsafe: schema_MustUnsafeSaveConfStateToBackend batchTxBuffered__UnsafePut schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
+batchTxBuffered__UnsafePut: @
+# The lessor's KV-facing methods (server/lease/lessor.go; the backend's unit 8, 2026-10-13), see
+# lease/InvLessor.lean: mvcc's and the txn package's lessor contracts are derived from them
+# (lease/LessorContract.lean).
+lease_lessor__GetLease:
+lease_lessor__Lookup:
+lease_lessor__Attach:
+lease_lessor__Detach:
+lease_lessor__SetRangeDeleter:
+schema_bucket__ID:
+schema_bucket__Name:
+schema_bucket__IsSafeRangeBucket:
 # raft v3.7's raftpb getters (etcd's own raft dependency), see InvRaftpb.lean.
 Entry__GetIndex:
 Entry__GetTerm:

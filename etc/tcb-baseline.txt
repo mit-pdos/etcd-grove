@@ -112,6 +112,7 @@ axiom reflect.DeepEqual.wp_proof
 axiom rpctypes.Error.wp_proof
 axiom schedule.NewFIFOScheduler.wp_proof
 axiom schedule.Scheduler.Schedule.wp_proof
+axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom semver.MustParse.wp_proof
 axiom semver.Version.LessThan.wp_proof
 axiom semver.Version.String.wp_proof

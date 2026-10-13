@@ -43,6 +43,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevOrder
 public import Perennial.Golang.Theory.Chan
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Defs
+public import Proof.go_etcd_io.etcd.server.v3.lease.InvLessor
 
 @[expose] public section
 
@@ -95,7 +96,8 @@ structure StoreNames where
   bucket : GName
   /-- `ghostVar Log`: the committed log, half under `s.revMu`, half under the batch lock -/
   clog : GName
-  /-- a ghost map of the granted leases (persistent elements): what `Attach` needs -/
+  /-- the lessor's ghost map (`lease.lessorMu`): its live set, half the lease owner's
+  (`lease.leaseOwn`, what `Attach` needs), and its location -/
   leases : GName
   /-- the revision budget (`ownTokAuth`): a write transaction costs one token (`revToken`), so
   `currentRev` never overflows -/
@@ -817,42 +819,47 @@ instance isKeyBackend_persistent (b : GoInterface) (View : Qp → Bucket → IPr
     Persistent (isKeyBackend b View Del W P f) := by
   unfold isKeyBackend; infer_instance
 
-/-! ## The lessor -/
+/-! ## The lessor
 
-/-- The lease `id` is one the lessor granted: a persistent ghost fact of the lessor's ghost
-map `γl` (the store's `γ.leases`; the lessor's `Grant`, out of scope, allocates it). `Attach`
-needs it. -/
-def leaseKnown (γl : GName) (id : w64) : IProp GF :=
-  iprop(id ↪[γl]□ ())
+(2026-10-13, unit 8 of the backend: the lessor's KV-facing methods are proved,
+`Proof/go_etcd_io/etcd/server/v3/lease/`; this contract is derived from them,
+`lease.isLessor_of_lessorInv`.) A lease is live for the holder of the lease owner's half of the
+lessor's live set (`lease.leaseOwn γl L`: `L`), not for good: `Revoke` shrinks `L`, after which
+`Attach` returns `ErrLeaseNotFound` (on which mvcc's `put` panics). So `Attach` takes the
+owner's half and the lease's membership, and `GetLease` a reader slot of the lessor's lock
+(`lease.lessorRd`; the store keeps one, `lessorRdOf` in its writer's resource). -/
 
-instance leaseKnown_persistent (γl : GName) (id : w64) : Persistent (leaseKnown (GF := GF) γl id) := by
-  unfold leaseKnown; infer_instance
-
-/-- The lessor `le` (`lease.Lessor`, names-only: the trust boundary), as the KV core uses it:
-`GetLease(item)` returns some lease id (`NoLease` if none); `Attach(id, items)` of a granted
-lease returns `nil`; `Detach(id, items)` returns `nil` or an error (which the code logs). The
-items are read. Leases have no liveness here: what the lessor does with them is its own.
-`SetRangeDeleter(f)` returns: `NewStore` passes the closure `func() lease.TxnDelete { return
-s.Write(traceutil.TODO()) }` (the store's own verified `store.Write`), which the contract takes
-as an opaque value; the lessor's later calls of it (on a lease's expiry) are outside the model.
-The lessor's ghost name `γl` is its own (it exists before the store). -/
+/-- The lessor `le` (the real `*lessor` at `lp`, ghost map `γl`), as the KV core uses it:
+`GetLease(item)` returns some lease id (`NoLease` if none), with a reader slot; `Attach(id,
+items)` of a live lease (`id ∈ L`, the owner's half held) returns `nil`; `Detach(id, items)`
+returns `nil` or an error (which the code logs). The items are read. `SetRangeDeleter(f)`
+returns: `NewStore` passes the closure `func() lease.TxnDelete { return s.Write(traceutil.TODO())
+}` (the store's own verified `store.Write`), which the contract takes as an opaque value; the
+lessor's later calls of it (`Revoke`) are outside the model. The lessor's ghost name `γl` is its
+own (it exists before the store). -/
 def isLessor (le : GoInterface) (γl : GName) : IProp GF :=
-  iprop(∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
+  iprop(∃ lp : Loc, ⌜le = lease.lessorIface lp⌝ ∗ lease.lessorPin γl lp ∗
     □ (∀ (item : go_etcd_io.etcd.server.v3.lease.LeaseItem),
-      {{ True }} (App (Val #(methods li.ty go!"GetLease" li.v)) (Val #item))
-      {{ (id : w64), RET #id; True }}) ∗
+      {{ lease.lessorRd lp γl }}
+        (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty)
+          go!"GetLease" #lp)) (Val #item))
+      {{ (id : w64), RET #id; lease.lessorRd lp γl }}) ∗
     □ (∀ (id : w64) (items : GoSlice) (l : List go_etcd_io.etcd.server.v3.lease.LeaseItem)
-        (dq : DFrac),
-      {{ leaseKnown γl id ∗ items ↦*{dq} l }}
-        (App (App (Val #(methods li.ty go!"Attach" li.v)) (Val #id)) (Val #items))
-      {{ RET #(GoInterface.nil); items ↦*{dq} l }}) ∗
+        (dq : DFrac) (L : List w64),
+      {{ lease.leaseOwn γl L ∗ ⌜id ∈ L⌝ ∗ items ↦*{dq} l }}
+        (App (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty)
+          go!"Attach" #lp)) (Val #id)) (Val #items))
+      {{ RET #(GoInterface.nil); lease.leaseOwn γl L ∗ items ↦*{dq} l }}) ∗
     □ (∀ (id : w64) (items : GoSlice) (l : List go_etcd_io.etcd.server.v3.lease.LeaseItem)
         (dq : DFrac),
       {{ items ↦*{dq} l }}
-        (App (App (Val #(methods li.ty go!"Detach" li.v)) (Val #id)) (Val #items))
+        (App (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty)
+          go!"Detach" #lp)) (Val #id)) (Val #items))
       {{ (err : GoInterface), RET #err; items ↦*{dq} l }}) ∗
-    □ (∀ f : val,
-      {{ True }} (App (Val #(methods li.ty go!"SetRangeDeleter" li.v)) (Val f))
+    □ (∀ f : GoFunc,
+      {{ True }}
+        (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty)
+          go!"SetRangeDeleter" #lp)) (Val #f))
       {{ RET #(); True }}))
 
 instance isLessor_persistent (le : GoInterface) (γl : GName) : Persistent (isLessor (GF := GF) le γl) := by
@@ -1253,7 +1260,8 @@ def writerRes (s : Loc) (γ : StoreNames) : IProp GF :=
     "Hbv" ∷ bucketView γ (1 : Qp).half (bucketMap ilog) ∗
     "#Hcert" ∷ idxCert γ.idx ilog ∗
     "%Hne" ∷ ⌜ilog ≠ []⌝ ∗
-    "Hcres" ∷ compactRes γ)
+    "Hcres" ∷ compactRes γ ∗
+    "Hlrd" ∷ lease.lessorRdOf γ.leases)
 
 /-! ### The batch lock's resource, late-bound (the real backend)
 
@@ -1922,6 +1930,7 @@ def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Cha
     "Hti" ∷ idxReader ti γ.idx ∗
     "%Htrnn" ∷ ⌜trace ≠ null⌝ ∗
     "Hcres" ∷ compactRes γ ∗
+    "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
     "#Hfrz" ∷ crevFrozen γ)
 
 /-- The write transaction of `storeTxnWriteIs` without its `changes` slice's contents and their
@@ -1964,6 +1973,7 @@ def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List C
     "Hti" ∷ idxReader ti γ.idx ∗
     "%Htrnn" ∷ ⌜trace ≠ null⌝ ∗
     "Hcres" ∷ compactRes γ ∗
+    "Hlrd" ∷ lease.lessorRdOf γ.leases ∗
     "#Hfrz" ∷ crevFrozen γ)
 
 /-- The write transaction as its core, its `changes` and their key-values. -/
@@ -1980,7 +1990,7 @@ theorem storeTxnWriteIs_split (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend 
   iunfold storeTxnWriteCore
   iexists trace, ti, bt, Locked, ntok, Pw, fw, Dep
   simp only [named, idxWriterB_false]
-  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
+  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
   iframe #
   ipureintro; exact ⟨Hbudget, ⟨Hps, Hlen.1, Hlen.2⟩, Hne, Htrnn⟩
 
@@ -1995,7 +2005,7 @@ theorem storeTxnWriteIs_join (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend :
   iunfold storeTxnWriteIs
   iexists trace, ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
   simp only [named]
-  iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
+  iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
   iframe #
   ipureintro; exact ⟨Hbudget, Hps.1, Hne, Htrnn⟩
 
@@ -2016,7 +2026,7 @@ theorem storeTxnWriteCore_seal (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend
   iunfold storeTxnWriteCore
   iexists trace, ti, bt, Locked, ntok, Pw, fw, Dep
   simp only [named, idxWriterB_true]
-  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
+  iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
   iframe #
   ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
 
@@ -2036,7 +2046,7 @@ theorem storeTxnWriteCore_wf (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend :
   · iunfold storeTxnWriteCore
     iexists trace, ti, bt, Locked, ntok, Pw, fw, Dep
     simp only [named]
-    iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
+    iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
     iframe #
     ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
   ipureintro; exact ⟨Hwf, Hps.1, Hps.2.1, Hps.2.2, Hne⟩

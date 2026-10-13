@@ -254,7 +254,7 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
         backend.wbTok d.γB ∗ backend.wbTok d.γB ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           mvcc.bkRTx d.γB d.P d.be) ∗
-        mvcc.isLessor le γl }}
+        lease.lessorRdOf γl ∗ mvcc.isLessor le γl }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
         (Val #(interface.mkOk
           (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))

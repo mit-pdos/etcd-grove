@@ -7,11 +7,10 @@ What the txn package's functions are given (Lean-first): the store as an `mvcc.K
 (`mvcc.isStore`, persistent); its `Read`/`Write` are mvcc's verified `store.Read`/`store.Write`.
 
 **`isTxnLessor le γl`**: mvcc's `isLessor` (what the store calls: `GetLease`, `Attach`,
-`Detach`, `SetRangeDeleter`) and `Lookup(id)`, which `checkLease` calls: it returns `nil` or a
-lease that the lessor granted (`mvcc.leaseKnown γl id`, which mvcc's `Put` of a key with that
-lease needs). Additive: mvcc's `isLessor` is unchanged. The lessor is the trust boundary
-(`lease` is names-only); leases have no liveness here, so a lease found may expire later (its
-keys' deletion is a write of the lessor's range deleter, outside this model's sole writer).
+`Detach`, `SetRangeDeleter`) and `Lookup(id)`, which `checkLease` calls: for the lease owner
+(`lease.lessorUser γl L`) it returns `nil` or a lease of the live set `L`, which mvcc's `Put` of a
+key with that lease needs (with the owner's half, `lease.leaseOwn`). Both are derived from the
+lessor's proofs (2026-10-13, unit 8 of the backend; they were the trust boundary).
 -/
 module
 
@@ -84,13 +83,15 @@ instance isKV_persistent (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) :
     Persistent (isKV (GF := GF) kv s γ) := by
   unfold isKV; infer_instance
 
-/-- The `lease.Lessor` `le` as the txn package uses it: mvcc's contract, and `Lookup(id)`
-returns `nil` or a lease the lessor granted. -/
+/-- The `lease.Lessor` `le` as the txn package uses it: mvcc's contract, and `Lookup(id)` by the
+lease owner (`lease.lessorUser γl L`: its half of the live set `L`, a reader slot of the lessor's
+lock) returns `nil` or a live lease (`id ∈ L`; 2026-10-13, unit 8 of the backend: derived from
+the lessor's proof, `lease.isTxnLessor_of_lessorInv`). -/
 def isTxnLessor (le : GoInterface) (γl : GName) : IProp GF :=
   iprop(mvcc.isLessor le γl ∗ ∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
-    □ (∀ id : w64,
-      {{ True }} (App (Val #(methods li.ty go!"Lookup" li.v)) (Val #id))
-      {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ mvcc.leaseKnown γl id }}))
+    □ (∀ (id : w64) (L : List w64),
+      {{ lease.lessorUser γl L }} (App (Val #(methods li.ty go!"Lookup" li.v)) (Val #id))
+      {{ (l : Loc), RET #l; lease.lessorUser γl L ∗ (⌜l = null⌝ ∨ ⌜id ∈ L⌝) }}))
 
 instance isTxnLessor_persistent (le : GoInterface) (γl : GName) :
     Persistent (isTxnLessor (GF := GF) le γl) := by

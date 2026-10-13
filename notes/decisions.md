@@ -4412,3 +4412,56 @@ that contract from the real backend's, and proves the hook in `hookFnSpec`'s sha
   and the struct are not translated), and the backend's constructor, which would take its
   `hooksSpec`, is not proved; so `server_kv_backend` (generic in the hooks' resource `Pk`) holds
   at `Pk := batchLockInv γA (metaTM γB P)` with the hook's contract still the creator's premise.
+
+### The server's backend hook (unit 8, 2026-10-13 · adopted)
+
+- **The hooks' contract is derived by Löb induction, not assumed**: `isBackend` holds the hooks'
+  contract (`hooksSpec`) and the hook's puts need `isBackend` (the batch transaction's specs take
+  it). `isBackendNH` is `isBackend` without the hooks' contract; `isBackend_of_hooks` derives
+  `isBackend` from it and a hooks' contract given `▷ isBackend` (the hook's call takes a step
+  before it needs the backend), so `BackendHooks.OnPreCommitUnsafe`'s spec takes `▷ isBackend`
+  and `▷ saveSpec`. *Rejected:* `hooksSpec` taking the backend predicate as a parameter (a cycle
+  of definitions); keeping the hooks' contract a premise inside `isBackend` (what unit 7 left).
+- **The indexer's save as a contract of its own** (`saveSpec`, `hookSaveStep`: a hook step with
+  one put of room and the `confState` key free to put): `OnPreCommitUnsafe` is proved for any
+  indexer meeting it; the consistent index's `UnsafeSave` does (`ci_saveSpec`, from
+  `ci_hook_backend_run`, which keeps `hookRun`). The `confState` put needs `hookMax ≥ 3` and the
+  key not one of the hook's own (`hooksParams`): the consistent index's two keys are the own keys,
+  `confState` is written only by the hook.
+- **`MustUnsafeSaveConfStateToBackend` is the trust boundary** (axiom): it is `json.Marshal` of
+  `any` and one `tx.UnsafePut(Meta, "confState", bytes)`; its spec is that put's triple lifted,
+  any bytes. The `ConfState` it reads takes no resource: `ConfState` (protobuf-go v2) is an
+  axiomatized type whose typed points-to is a generated `sorry` instance, and `SetConfState`
+  stores a fresh clone no one writes. *Rejected:* `cs ↦{dq} c` (reaches `sorryAx`).
+
+### The lessor's KV-facing methods and the live leases (unit 8, 2026-10-13 · adopted)
+
+- **A lease is live relative to the lease owner's half, not for good.** mvcc's `put` calls
+  `Attach` and panics on its error, which the real `Attach` returns once `Revoke` has deleted the
+  lease; the persistent `mvcc.leaseKnown γl id` (granted once, known forever) promised `Attach`'s
+  success after a revocation. Now the lessor's ghost map `γl` (the store's `γ.leases`) holds the
+  live set `L` (the lease map's domain), half in `le.mu`'s invariant, half the lease owner's
+  (`lease.leaseOwn γl L`): the apply thread, the one goroutine that grants and revokes. A live
+  lease is the pure `id ∈ L` for that half; `Attach` takes the half (any holder of it agrees with
+  the lessor's under the lock), `Grant`/`Revoke` change `L`. *Rejected:* a persistent fact
+  indexed by a revocation epoch (every statement carrying the epoch: the same threading, more
+  ghost state); fractional, duplicable facts consumed by `Revoke` (a dropped fraction makes the
+  lease unrevokable); a revocation forbidden for known leases (no `LeaseRevoke` proof).
+- **Threaded where the code needs it, and only there**: mvcc's `put` path (`leaseOwn`), the txn
+  package's lease checks (`lessorUser`: the half and a reader slot for `Lookup`'s read lock) and
+  its put and transaction paths, the apply package's `kvOwn` (`leasesLive`: some `L` with the
+  state's leases in it and the owner's resource; a definition, so the apply, server and v3rpc
+  specs are unchanged). `checkTxn` takes the owner's resource only for a request that is not
+  read-only (`⌜lu = false⌝ ∨ lessorUser`), so the server's read-only `Txn` (the request path's
+  `specRead`) is unchanged.
+- **Reader slots**: `GetLease` and `Lookup` take `le.mu`'s read lock, which Perennial's
+  `RWMutex` spec meters (`ownRWMutex`). The store keeps one slot (`lessorRdOf`, in its writer's
+  resource: `GetLease` is called by `put` and `delete`, so no delete spec changes); the owner one
+  (in `lessorUser`, for `Lookup`). Slots name the lessor through the ghost map's pinned element
+  (`lessorPin`), so the owner's resource names `γl` only. *Rejected:* a slot in the delete specs
+  (it reaches the request path's `DeleteRange`).
+- **`Revoke` and `Grant` stay assumed, now honest about the live set**: `Grant` only adds (the
+  granted lease in the new set); `Revoke` removes the lease and keeps the state's leases live,
+  the coupling of the lease's item set (`l.Keys()`, maintained by mvcc's `Attach`/`Detach`) with
+  the store's keys that its deletions rely on, stated as its contract. The apply level's
+  `Lookup {{ True }}` (with `leaseIs`) is left as it was: the proved `Lookup` needs a reader slot.

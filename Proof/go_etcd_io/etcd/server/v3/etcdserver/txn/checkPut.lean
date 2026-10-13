@@ -30,10 +30,10 @@ theorem txn.checkPut.wp_proof
     (hLease : txn.checkLease.spec (GF := GF) (hG := hG))
     (hCheck : txn.checkAndGetPrevKV.spec (GF := GF) (hG := hG)) :
     txn.checkPut.spec (GF := GF) (hG := hG) := by
-  intro trace mw s γ kind le γl p o
-  wp_start as ⟨%Htr, Htx, #Hp, #Hle⟩
+  intro trace mw s γ kind le γl p o L
+  wp_start as ⟨%Htr, Htx, #Hp, #Hle, Hu⟩
   (try wp_auto)
-  wp_apply (hLease le γl p o) $$ [$Hle $Hp] as %err Herr
+  wp_apply (hLease le γl p o L) $$ [$Hle $Hp $Hu] as %err ⟨Hu, Herr⟩
   (try wp_auto)
   icases Herr with (⟨%Herr, #Hlok⟩ | ⟨%Hne, #He⟩)
   · subst Herr
@@ -42,7 +42,7 @@ theorem txn.checkPut.wp_proof
     · ipureintro; exact Htr
     (try wp_auto)
     iapply HΦ
-    iframe Htx
+    iframe Htx Hu
     icases Hout with (⟨%He2, %Hn, -⟩ | ⟨%Hn, #He2⟩)
     · ileft
       isplitl []
@@ -59,7 +59,7 @@ theorem txn.checkPut.wp_proof
     subst Hee
     (try wp_auto)
     iapply HΦ
-    iframe Htx
+    iframe Htx Hu
     iright; ileft
     isplitl []
     · ipureintro; exact Hne

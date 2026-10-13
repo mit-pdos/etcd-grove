@@ -38,14 +38,16 @@ the context error: `executeTxn` returns `fmt.Errorf`'s wrapping of it (`mvcc.err
 abbrev txn.executeTxn.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg s : Loc)
     (γ : mvcc.StoreNames) (tw : GoInterface) (ro : Bool) (ilog : mvcc.Log) (pend : List mvcc.Change)
-    (rt : Loc) (t : TxnModel) (pl : GoSlice) (rest : List Bool) (tresp : Loc) (skip : Bool),
+    (rt : Loc) (t : TxnModel) (pl : GoSlice) (rest : List Bool) (tresp : Loc) (skip : Bool)
+    (L : List w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.txnWriteIs tw s γ ro ilog pend ∗ mvcc.txnCtx ctx cd ∗
       (if nd then mvcc.neverDone cd else iprop(True)) ∗
       txn.txnRequestIs rt t ∗ pl ↦*□ (txn.txnPath (mvcc.stateAfter ilog) t ++ rest) ∗
       txn.respsSkel (mvcc.stateAfter ilog) tresp (t.branch (txn.txnOk (mvcc.stateAfter ilog) t)) ∗
-      txn.leasesOk γ.leases (txn.opsLeases (mvcc.stateAfter ilog)
+      txn.leasesOk L (txn.opsLeases (mvcc.stateAfter ilog)
         (t.branch (txn.txnOk (mvcc.stateAfter ilog) t))) ∗
-      (if ro then iprop(True) else txn.leasesKnown γ.leases (txn.pendState ilog pend)) ∗
+      (if ro then iprop(True) else txn.leasesKnown L (txn.pendState ilog pend)) ∗
+      (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L) ∗
       ⌜txn.OpsOk false (mvcc.stateAfter ilog) (W64 (ilog.length : Int)) (txn.pendState ilog pend)
           (t.branch (txn.txnOk (mvcc.stateAfter ilog) t)) ∧
         pend.length + (txn.srvOps (mvcc.stateAfter ilog) (W64 (ilog.length : Int))
@@ -64,9 +66,10 @@ abbrev txn.executeTxn.spec : Prop :=
           (txn.srvOps (mvcc.stateAfter ilog) (W64 (ilog.length : Int)) (txn.pendState ilog pend)
             (t.branch (txn.txnOk (mvcc.stateAfter ilog) t))).2 ∗
         (if ro then iprop(True) else
-          txn.leasesKnown γ.leases (txn.pendState ilog (pend ++ (txn.srvOps (mvcc.stateAfter ilog)
+          txn.leasesKnown L (txn.pendState ilog (pend ++ (txn.srvOps (mvcc.stateAfter ilog)
             (W64 (ilog.length : Int)) (txn.pendState ilog pend)
-            (t.branch (txn.txnOk (mvcc.stateAfter ilog) t))).1)))) ∨
+            (t.branch (txn.txnOk (mvcc.stateAfter ilog) t))).1))) ∗
+        (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L)) ∨
       (⌜nd = false⌝ ∗ mvcc.errorfIs err ∗
         ∃ pend' : List mvcc.Change, txn.txnWriteIs tw s γ ro ilog pend') }}
 

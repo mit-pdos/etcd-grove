@@ -134,7 +134,7 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     iunfold mvcc.storeTxnWriteIs
     iexists trace, ti, bt, Locked, chs, ps, ntok
     simp only [named]
-    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres
+    iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
     iframe #
     ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
 

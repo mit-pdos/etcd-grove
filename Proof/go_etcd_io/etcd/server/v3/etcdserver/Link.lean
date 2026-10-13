@@ -127,6 +127,11 @@ public import Proof.go_etcd_io.etcd.pkg.v3.idutil.NewGenerator
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.lowbit
 public import EtcdDeps.Proof.go_etcd_io.raft.v3.isHardStateEqual
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isPriorityRequest
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Attach
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Detach
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__GetLease
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Lookup
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__SetRangeDeleter
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__ID
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage
 public import Proof.github_com.prometheus.client_golang.prometheus.HistogramVec__WithLabelValues
@@ -142,11 +147,14 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__processMessag
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__start
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__stop
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__tick
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.MustUnsafeSaveConfStateToBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.ReadConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndexForce
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeUpdateConsistentIndex
+public import Proof.go_etcd_io.etcd.server.v3.storage.BackendHooks__OnPreCommitUnsafe
+public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendHooks
 public import Proof.strconv.FormatBool
 public import Proof.time.Duration__Seconds
 public import Proof.time.Time__After
@@ -178,6 +186,7 @@ public import Proof.go_uber_org.zap.Stringer
 public import Proof.go_uber_org.zap.Uint64
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Link
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Link
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link
 
 @[expose] public section
@@ -532,6 +541,26 @@ theorem idutil.wp_NewGenerator :
     idutil.NewGenerator.spec (GF := GF) (hG := hG) :=
   idutil.NewGenerator.wp_proof idutil.wp_lowbit
 
+theorem lease.lessor.wp_Attach :
+    lease.lessor.Attach.spec (GF := GF) (hG := hG) :=
+  lease.lessor.Attach.wp_proof
+
+theorem lease.lessor.wp_Detach :
+    lease.lessor.Detach.spec (GF := GF) (hG := hG) :=
+  lease.lessor.Detach.wp_proof
+
+theorem lease.lessor.wp_GetLease :
+    lease.lessor.GetLease.spec (GF := GF) (hG := hG) :=
+  lease.lessor.GetLease.wp_proof
+
+theorem lease.lessor.wp_Lookup :
+    lease.lessor.Lookup.spec (GF := GF) (hG := hG) :=
+  lease.lessor.Lookup.wp_proof
+
+theorem lease.lessor.wp_SetRangeDeleter :
+    lease.lessor.SetRangeDeleter.spec (GF := GF) (hG := hG) :=
+  lease.lessor.SetRangeDeleter.wp_proof
+
 theorem proto.wp_Clone :
     proto.Clone.spec (GF := GF) (hG := hG) :=
   proto.Clone.wp_proof
@@ -540,9 +569,21 @@ theorem zap.Logger.wp_Fatal :
     zap.Logger.Fatal.spec (GF := GF) (hG := hG) :=
   zap.Logger.Fatal.wp_proof
 
+theorem schema.wp_MustUnsafeSaveConfStateToBackend :
+    schema.MustUnsafeSaveConfStateToBackend.spec (GF := GF) (hG := hG) :=
+  schema.MustUnsafeSaveConfStateToBackend.wp_proof
+
 theorem schema.wp_UnsafeUpdateConsistentIndexForce :
     schema.UnsafeUpdateConsistentIndexForce.spec (GF := GF) (hG := hG) :=
   schema.UnsafeUpdateConsistentIndexForce.wp_proof schema.wp_unsafeUpdateConsistentIndex
+
+theorem storage.BackendHooks.wp_OnPreCommitUnsafe :
+    storage.BackendHooks.OnPreCommitUnsafe.spec (GF := GF) (hG := hG) :=
+  storage.BackendHooks.OnPreCommitUnsafe.wp_proof schema.wp_MustUnsafeSaveConfStateToBackend backend.batchTxBuffered.wp_UnsafePut schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
+
+theorem storage.wp_NewBackendHooks :
+    storage.NewBackendHooks.spec (GF := GF) (hG := hG) :=
+  storage.NewBackendHooks.wp_proof
 
 end links
 

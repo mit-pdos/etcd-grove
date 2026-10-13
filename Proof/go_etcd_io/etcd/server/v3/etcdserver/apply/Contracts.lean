@@ -48,6 +48,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Wait
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.SoleWriter
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvTxn
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 
 @[expose] public section
@@ -205,23 +206,33 @@ instance leaseIs_persistent (l : Loc) (id : w64) : Persistent (leaseIs (GF := GF
 names-only): the txn package's `isTxnLessor`, its writes under the batch lock (`P`, `f`); a
 revocation deletes the lease's keys through the store `γ`'s writer, one revision, under the
 same lock (`lessor.Revoke`: `le.rd()` is the store's `Write`, which spends a write token,
-`mvcc.storeWT γ`; 2026-10-13, unit 6), which at the sole writer is a commit of deletions. -/
+`mvcc.storeWT γ`; 2026-10-13, unit 6), which at the sole writer is a commit of deletions.
+The live set (2026-10-13, unit 8 of the backend: the lessor's `GetLease`, `Attach`, `Detach`,
+`Lookup` and `SetRangeDeleter` are proved, `isTxnLessor` derived): `Grant` and `Revoke` take the
+lease owner's half (`lease.leaseOwn γ.leases L`); a grant only adds to the live set (a granted
+lease in it), a revocation removes the lease and, deleting its keys (`l.Keys()`, the lease's item
+set, which the store's puts and deletes keep through `Attach`/`Detach`), keeps every lease of the
+state live (`txn.leasesKnown`). Still assumed (the lessor's other methods are not proved). -/
 def isApplyLessor (le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) :
     IProp GF :=
   iprop(txn.isTxnLessor le γ.leases ∗ ∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
-    □ (∀ (id ttl : w64) (Pre Q Post : IProp GF),
-      {{ mvcc.csContract P f Pre Q Post }}
+    □ (∀ (id ttl : w64) (L : List w64) (Pre Q Post : IProp GF),
+      {{ mvcc.csContract P f Pre Q Post ∗ lease.leaseOwn γ.leases L }}
         (App (App (Val #(methods li.ty go!"Grant" li.v)) (Val #id)) (Val #ttl))
       {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); (Post ∨ Pre) ∗
-          (⌜err ≠ GoInterface.nil⌝ ∨
-            (⌜err = GoInterface.nil⌝ ∗ ∃ id' : w64, leaseIs l id' ∗ mvcc.leaseKnown γ.leases id')) ∗
+          (∃ L' : List w64, lease.leaseOwn γ.leases L' ∗ ⌜∀ x ∈ L, x ∈ L'⌝ ∗
+            (⌜err ≠ GoInterface.nil⌝ ∨
+              (⌜err = GoInterface.nil⌝ ∗ ∃ id' : w64, leaseIs l id' ∗ ⌜id' ∈ L'⌝))) ∗
           applyErrIs err }}) ∗
-    □ (∀ (id : w64) (log : mvcc.Log) (Pre Q Post : IProp GF),
-      {{ mvcc.csContract P f Pre Q Post ∗ txn.soleWriter γ log ∗ mvcc.storeWT γ }}
+    □ (∀ (id : w64) (log : mvcc.Log) (L : List w64) (Pre Q Post : IProp GF),
+      {{ mvcc.csContract P f Pre Q Post ∗ txn.soleWriter γ log ∗ mvcc.storeWT γ ∗
+          lease.leaseOwn γ.leases L ∗ txn.leasesKnown L (mvcc.stateAfter log) }}
         (App (Val #(methods li.ty go!"Revoke" li.v)) (Val #id))
       {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗
-          (∃ pend : List mvcc.Change, ⌜∀ c ∈ pend, c.isDel = true⌝ ∗
-            txn.soleWriter γ (mvcc.commitLog log pend)) ∗ applyErrIs err }}) ∗
+          (∃ (pend : List mvcc.Change) (L' : List w64), ⌜∀ c ∈ pend, c.isDel = true⌝ ∗
+            txn.soleWriter γ (mvcc.commitLog log pend) ∗ lease.leaseOwn γ.leases L' ∗
+            txn.leasesKnown L' (mvcc.stateAfter (mvcc.commitLog log pend))) ∗
+          applyErrIs err }}) ∗
     □ (∀ (id rem : w64) (Pre Q Post : IProp GF),
       {{ mvcc.csContract P f Pre Q Post }}
         (App (App (Val #(methods li.ty go!"Checkpoint" li.v)) (Val #id)) (Val #rem))

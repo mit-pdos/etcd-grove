@@ -1,6 +1,6 @@
 /-
 Package initialization instances for etcd's mvcc store (`server/v3/storage/mvcc`) and the
-packages it imports that no other proof module provides: `pkg/v3/traceutil`, `server/v3/lease`,
+packages it imports that no other proof module provides: `pkg/v3/traceutil`,
 `pkg/v3/schedule`, `go-humanize` (moved here from the server's `BaseApply.lean` on 2026-10-13: the
 compaction job calls `humanize.Bytes`) and opentelemetry's `otel/trace` with the packages of the
 types its `Span` names (`trace/embedded`, `codes`, `attribute`) (all names and types only, but
@@ -8,7 +8,7 @@ types its `Span` names (`trace/embedded`, `codes`, `attribute`) (all names and t
 cache's (`cache/v3/Base.lean`: `zap`, `proto`, `mvccpb`, `client/v3`), the server's
 (`etcdserver/Base.lean`: `schema`), the backend's (`storage/backend/Base.lean`: `backend`,
 `client/pkg/v3/verify`, prometheus's `client_golang/prometheus`), the btree's
-(`btree/Init.lean`) and Perennial's (`sync`, `bytes`, `context`, `errors`, `fmt`, `time`,
+(`btree/Init.lean`), the lessor's (`server/v3/lease/Base.lean`) and Perennial's (`sync`, `bytes`, `context`, `errors`, `fmt`, `time`,
 `encoding/binary`, `math`, `strings`).
 
 As in those, the package facts are assumptions about package initialization, not proved from
@@ -28,6 +28,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
 public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Base
+public import Proof.go_etcd_io.etcd.server.v3.lease.Base
 public import Perennial.Proof.time
 public import Perennial.Proof.bytes
 public import Perennial.Proof.math
@@ -58,15 +59,6 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
   build_get_is_pkg_init_wf
 
 end go_etcd_io.etcd.pkg.v3.traceutil
-
-namespace go_etcd_io.etcd.server.v3.lease
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.lease
 
 namespace go_etcd_io.etcd.pkg.v3.schedule
 

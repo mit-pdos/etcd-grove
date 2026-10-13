@@ -3,8 +3,13 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import GeneratedProof.github_com.Masterminds.semver.v3
+public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.cindex
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.backend
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.schema
 public import EtcdDeps.GeneratedProof.go_etcd_io.raft.v3.raftpb
+public import GeneratedProof.go_uber_org.zap
+public import GeneratedProof.google_golang_org.protobuf.proto
+public import Perennial.GeneratedProof.sync
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.storage
 
@@ -29,12 +34,101 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.storage.Assumptions]
 
 instance BackendHooks_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.BackendHooks :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.BackendHooks where
+  typedPointstoDef l v dq := iprop(
+    "indexer" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"indexer" l) v.indexer' dq ∗
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"lg" l) v.lg' dq ∗
+    "confState" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"confState" l) v.confState' dq ∗
+    "confStateDirty" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"confStateDirty" l) v.confStateDirty' dq ∗
+    "confStateLock" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"confStateLock" l) v.confStateLock' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance BackendHooks_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.BackendHooks go_etcd_io.etcd.server.v3.storage.BackendHooks.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.BackendHooks go_etcd_io.etcd.server.v3.storage.BackendHooks.underlying := by
+  solve_into_val_typed_struct
+
+instance BackendHooks_access_load_indexer (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.BackendHooks) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"indexer" l) v.indexer' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"indexer" l) v.indexer' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance BackendHooks_access_store_indexer (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.BackendHooks) (indexer' : go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"indexer" l) v.indexer' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"indexer" l) indexer' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indexer' := indexer' } : go_etcd_io.etcd.server.v3.storage.BackendHooks) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance BackendHooks_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.BackendHooks) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance BackendHooks_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.BackendHooks) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.storage.BackendHooks) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance BackendHooks_access_load_confState (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.BackendHooks) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"confState" l) v.confState' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"confState" l) v.confState' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance BackendHooks_access_store_confState (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.BackendHooks) (confState' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"confState" l) v.confState' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"confState" l) confState' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with confState' := confState' } : go_etcd_io.etcd.server.v3.storage.BackendHooks) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance BackendHooks_access_load_confStateDirty (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.BackendHooks) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"confStateDirty" l) v.confStateDirty' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"confStateDirty" l) v.confStateDirty' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance BackendHooks_access_store_confStateDirty (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.BackendHooks) (confStateDirty' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"confStateDirty" l) v.confStateDirty' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"confStateDirty" l) confStateDirty' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with confStateDirty' := confStateDirty' } : go_etcd_io.etcd.server.v3.storage.BackendHooks) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance BackendHooks_access_load_confStateLock (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.BackendHooks) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"confStateLock" l) v.confStateLock' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"confStateLock" l) v.confStateLock' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance BackendHooks_access_store_confStateLock (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.BackendHooks) (confStateLock' : sync.Mutex) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"confStateLock" l) v.confStateLock' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.BackendHooks go!"confStateLock" l) confStateLock' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with confStateLock' := confStateLock' } : go_etcd_io.etcd.server.v3.storage.BackendHooks) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end BackendHooks

@@ -1,10 +1,14 @@
-# Types and names only: function and method bodies are axiomatized.
+# Types and names only, except the lessor's methods the KV store calls (`GetLease`, `Attach`,
+# `Detach`, `Lookup`, `SetRangeDeleter`; lessor.go), with bodies.
 # Lessor is an interface (the apply thread calls its Promote), so the packages its methods'
 # signatures name are imported (Checkpointer's context and request type, Recover's backend).
-# `sync` for the struct `Lease` (its locks), whose `ID` the server's apply package reads.
-translate = ["!*", "Lessor", "NoLease"]
-imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb",
-  "go.etcd.io/etcd/server/v3/storage/backend"]
+# `sync` for the struct `Lease` (its locks), whose `ID` the server's apply package reads;
+# `zap` and `semver` for the struct `lessor` (its logger, its cluster's version).
+translate = ["!*", "Lessor", "NoLease", "ErrLeaseNotFound", "lessor.GetLease", "lessor.Attach",
+  "lessor.Detach", "lessor.Lookup", "lessor.SetRangeDeleter"]
+imports = ["!*", "context", "sync", "time", "errors", "go.etcd.io/etcd/api/v3/etcdserverpb",
+  "go.etcd.io/etcd/server/v3/storage/backend", "go.uber.org/zap",
+  "github.com/Masterminds/semver/v3"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

@@ -84,7 +84,7 @@ theorem mvcc.NewStore_backend
         backend.wbTok d.γB ∗ backend.wbTok d.γB ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           mvcc.bkRTx d.γB d.P d.be) ∗
-        mvcc.isLessor le γl }}
+        lease.lessorRdOf γl ∗ mvcc.isLessor le γl }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
         (Val #(interface.mkOk
           (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
@@ -103,16 +103,16 @@ theorem mvcc.NewStore_backend
           mvcc.storeReaderC s γ) ∗
         ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗ mvcc.storeCloser s ∗
         mvcc.storeStop s ∗ mvcc.compactRight γ (-1) }} := by
-  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hv, Hrg, Hw1, Hw2, Hrts, #Hle⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hhk, #Hsz, Hv, Hrg, Hw1, Hw2, Hrts, Hlrd, #Hle⟩ HΦ
   ihave #Hbk := mvcc.storeBackend_of_backend hCRT hRT hBT hFC hSz hSzU hcRL hcRU hcUR hrRL hrRU
     hrUR hLI hLO hSP hUL hbUR hCB hID hName hSafe d hP Pk f hf γb $$ [$Hbpkg $Hsch $Hb $Hhk $Hsz]
-  iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f hcfg) $$ %Φ [Hv Hrg Hw1 Hw2 Hrts] HΦ
+  iapply (hNewStore lg _ le cfg (some d) γb γl Pk #f hcfg) $$ %Φ [Hv Hrg Hw1 Hw2 Hrts Hlrd] HΦ
   iframe Hpkg Hbk Hle
   rw [show mvcc.kbView (GF := GF) (some d) γb 1 (∅ : mvcc.Bucket) = mvcc.bkView d.γB 1 ∅ from rfl,
     show mvcc.kbRegRight (GF := GF) (some d) = mvcc.lateReg d.gx from rfl,
     show mvcc.kbWT (GF := GF) (some d) = backend.wbTok d.γB from rfl,
     show mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be from rfl]
-  iframe Hv Hrg Hw1 Hw2 Hrts
+  iframe Hv Hrg Hw1 Hw2 Hrts Hlrd
 
 /-- **`store.Write` over the real backend**: the generic `store.Write` at a store of the real
 instance `d`, its write token the backend's write-back budget. -/

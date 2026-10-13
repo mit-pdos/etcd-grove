@@ -112,7 +112,7 @@ theorem mvcc.NewStore.wp_proof
     (hRestore : mvcc.store.restore.spec (GF := GF) (hG := hG)) :
     mvcc.NewStore.spec (GF := GF) (hG := hG) := by
   intro lg b le cfg kb γb γl P f Hcfg0
-  wp_start as ⟨Hbk, Hbv, Hrg, Hwt1, Hwt2, Hrts, #Hlessor⟩
+  wp_start as ⟨Hbk, Hbv, Hrg, Hwt1, Hwt2, Hrts, Hlrd, #Hlessor⟩
   -- package facts: the configuration defaults, the `Key` bucket, zap, schedule, schema
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -166,7 +166,7 @@ theorem mvcc.NewStore.wp_proof
   ihave #Hlessor0 : mvcc.isLessor le γl $$ []
   · iexact Hlessor
   iunfold mvcc.isLessor at Hlessor
-  icases Hlessor with ⟨%li, %Hli, -, -, -, #HSetRD⟩
+  icases Hlessor with ⟨%lp, %Hli, -, -, -, -, #HSetRD⟩
   subst Hli
   (try wp_auto)
   wp_apply HSetRD
@@ -294,12 +294,14 @@ theorem mvcc.NewStore.wp_proof
   · rw [← hsplit]; iexact currentRev
   icases ((typedPointsto_dfractional (GF := GF) _ _).dfractional _ _).1 $$ Hcur2 with ⟨HcurA, HcurB⟩
   have hone : (W64 1 : w64) = W64 (((([[], []] : mvcc.Log).length : Int)) - 1) := rfl
-  ihave HW : mvcc.writerRes «$r0_ptr» γ $$ [Hauth Hiw Hc1 HcurA Hbv1 Hcres]
+  ihave Hlrd : lease.lessorRdOf γ.leases $$ [Hlrd]
+  · rw [hγl]; iexact Hlrd
+  ihave HW : mvcc.writerRes «$r0_ptr» γ $$ [Hauth Hiw Hc1 HcurA Hbv1 Hcres Hlrd]
   · iunfold mvcc.writerRes
     iexists [[], []], 2 ^ 63 - 5
     simp only [named]
     rw [mvcc.bucketMap_init, ← hone]
-    iframe Hauth Hiw Hc1 HcurA Hbv1 Hcres
+    iframe Hauth Hiw Hc1 HcurA Hbv1 Hcres Hlrd
     iframe #
     ipureintro
     exact ⟨by simp, by simp⟩
@@ -347,7 +349,7 @@ theorem mvcc.NewStore.wp_proof
     iapply ((typedPointsto_dfractional (GF := GF) _ _).dfractional _ _).2
     iframe HcmpM HcmpB
   -- `s.restore()` on the fresh backend: nothing changes (`err == nil`)
-  wp_apply hRestore $$ %«$r0_ptr» %γ %(GoInterface.ok bi) %(GoInterface.ok li) %ti %lg'
+  wp_apply hRestore $$ %«$r0_ptr» %γ %(GoInterface.ok bi) %(lease.lessorIface lp) %ti %lg'
       %(1 : Qp).half %P %f %_ %_ %_ %_ %_ %_ %_ [$Hbv2 $HcurB $HcmpF $revMu]
       as ⟨Hbv2, HcurB, HcmpF, revMu⟩
   · iframe #; ipureintro; exact Hlgnn
@@ -381,11 +383,11 @@ theorem mvcc.NewStore.wp_proof
     ipureintro; decide
   (try wp_auto)
   -- the store
-  ihave #Hlessor1 : mvcc.isLessor (GoInterface.ok li) γ.leases $$ []
+  ihave #Hlessor1 : mvcc.isLessor (lease.lessorIface lp) γ.leases $$ []
   · rw [hγl]; iexact Hlessor0
   ihave #Hs : mvcc.isStore «$r0_ptr» γ $$ []
   · iunfold mvcc.isStore
-    iexists (GoInterface.ok bi), (GoInterface.ok li), ti, lg', P, f, Dep, cfg2, sc, stopc, hp
+    iexists (GoInterface.ok bi), (lease.lessorIface lp), ti, lg', P, f, Dep, cfg2, sc, stopc, hp
     simp only [named]
     iframe #
     ipureintro; exact ⟨Hlgnn, Hcfg2⟩

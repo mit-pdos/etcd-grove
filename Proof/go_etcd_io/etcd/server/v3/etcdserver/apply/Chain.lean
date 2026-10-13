@@ -231,11 +231,17 @@ structure AEnv (GF : BundledGFunctors) where
   P : IProp GF
   f : val
 
+/-- **The live leases of the state `s`** (2026-10-13, unit 8 of the backend): the lease owner's
+resource at some live set `L` (its half of the lessor's live set, a reader slot of its lock) of
+which every lease of `s` is. -/
+def leasesLive (γ : mvcc.StoreNames) (s : List EtcdKv) : IProp GF :=
+  iprop(∃ L : List w64, txn.leasesKnown L s ∗ lease.lessorUser γ.leases L)
+
 /-- **The apply thread's KV resources** at the committed log `log`: the store's reader slots,
-the sole writer of `log`, every lease of its state known. -/
+the sole writer of `log`, every lease of its state live. -/
 def kvOwn (E : AEnv GF) (log : mvcc.Log) : IProp GF :=
   iprop(mvcc.storeReader E.s E.γ ∗ txn.soleWriter E.γ log ∗
-    txn.leasesKnown E.γ.leases (mvcc.stateAfter log))
+    leasesLive E.γ (mvcc.stateAfter log))
 
 /-- **The thread-owned resources of the chain `c`'s methods** at its value `a`: the auth layers'
 `authInfo` (owned while the layer's `Apply` holds its mutex), and the inner chain's. -/

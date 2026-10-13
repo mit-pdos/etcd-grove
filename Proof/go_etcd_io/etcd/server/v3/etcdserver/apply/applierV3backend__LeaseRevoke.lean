@@ -35,7 +35,11 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   iunfold apply.revokePre at Hpre
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
-  icases Hpre with ⟨%Hrq, #Hr, Hwt, ⟨Hrd, Hsw, #Hknown⟩, Hres, Hcs⟩
+  icases Hpre with ⟨%Hrq, #Hr, Hwt, ⟨Hrd, Hsw, Hlive⟩, Hres, Hcs⟩
+  iunfold apply.leasesLive at Hlive
+  icases Hlive with ⟨%L, #Hknown, Hu⟩
+  iunfold EtcdGrove.lease.lessorUser at Hu
+  icases Hu with ⟨Hown, Hrdo⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
@@ -49,7 +53,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   wp_auto
   rw [Hli]
   wp_auto
-  wp_apply HRevoke $$ [$Hcs $Hsw $Hwt] as %err ⟨HPP, ⟨%pend, %Hdel, Hsw⟩, #HeI⟩
+  wp_apply HRevoke $$ [$Hcs $Hsw $Hwt $Hown $Hknown] as %err ⟨HPP, ⟨%pend, %L', %Hdel, Hsw, Hown, #Hknown'⟩, #HeI⟩
   wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh⟩
   · iexact Hb
   wp_alloc resp as Hresp
@@ -66,7 +70,11 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   iframe HeI Hres HPP
   iunfold apply.kvOwn
   iframe Hrd Hsw
-  iapply apply.leasesKnown_commit_dels _ log pend Hdel $$ Hknown
+  iunfold apply.leasesLive
+  iexists L'
+  iframe Hknown'
+  iunfold EtcdGrove.lease.lessorUser
+  iframe Hown Hrdo
 
 end proof
 

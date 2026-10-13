@@ -5,6 +5,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__LeaseGrant
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__newHeader
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.KVLemmas
 
 @[expose] public section
 
@@ -33,7 +34,11 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
   wp_start as ⟨#Hb, ⟨%g, #Hr⟩, Hpre⟩
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
-  icases Hpre with ⟨⟨Hrd, Hsw, #Hknown⟩, Hres, Hcs⟩
+  icases Hpre with ⟨⟨Hrd, Hsw, Hlive⟩, Hres, Hcs⟩
+  iunfold apply.leasesLive at Hlive
+  icases Hlive with ⟨%L, #Hknown, Hu⟩
+  iunfold EtcdGrove.lease.lessorUser at Hu
+  icases Hu with ⟨Hown, Hrdo⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
@@ -47,7 +52,14 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
   wp_auto
   rw [Hli]
   wp_auto
-  wp_apply HGrant $$ [$Hcs] as %l %err ⟨HPP, Hl, #HeI⟩
+  wp_apply HGrant $$ [$Hcs $Hown] as %l %err ⟨HPP, ⟨%L', Hown, %HLL, Hl⟩, #HeI⟩
+  ihave Hlive : apply.leasesLive E.γ (mvcc.stateAfter log) $$ [Hown Hrdo]
+  · iunfold apply.leasesLive
+    iexists L'
+    isplitl []
+    · iapply EtcdGrove.apply.leasesKnown_mono L L' _ HLL $$ Hknown
+    iunfold EtcdGrove.lease.lessorUser
+    iframe Hown Hrdo
   icases Hl with (%Hne | ⟨%He, %id', #Hlease, -⟩)
   · cases err with
     | nil => exact absurd rfl Hne
@@ -59,7 +71,6 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
       iunfold apply.mPost
       iunfold apply.kvOwn
       iframe
-      iframe #
   · subst He
     iunfold apply.leaseIs at Hlease
     icases Hlease with ⟨%Hln, #HlID, #HTTL, -⟩
@@ -74,7 +85,6 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
     iunfold apply.mPost
     iunfold apply.kvOwn
     iframe
-    iframe #
 
 end proof
 

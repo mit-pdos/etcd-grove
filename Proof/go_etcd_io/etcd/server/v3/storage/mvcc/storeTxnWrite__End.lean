@@ -59,11 +59,11 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     subst hnil
     ihave Hw := mvcc.idxWriterB_nil γ.idx ilog sealed $$ Hw
     (try wp_auto)
-    ihave HW : mvcc.writerRes s γ $$ [Htoks Hw Hclog Hcur Hbv Hcres]
+    ihave HW : mvcc.writerRes s γ $$ [Htoks Hw Hclog Hcur Hbv Hcres Hlrd]
     · iunfold mvcc.writerRes
       iexists ilog, ntok
       simp only [named]
-      iframe Htoks Hw Hclog Hcur Hbv Hcres
+      iframe Htoks Hw Hclog Hcur Hbv Hcres Hlrd
       iframe #
       ipureintro; exact ⟨Hbudget, Hne⟩
     ihave HW := mvcc.storeW_put s γ $$ [$Hreg $HW]
@@ -141,7 +141,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
     -- (half the new view), the other half kept for `s.revMu`
     ihave #HUnlock' := HUnlock $$ %(mvcc.pendPuts ilog pend) %(mvcc.bucketMap ilog)
       %(mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap (ilog ++ [pend])))
-    wp_apply HUnlock' $$ [$Hlocked $Hview $HP Htoks Hw Hclog Hcur Hcres] as Hbucket
+    wp_apply HUnlock' $$ [$Hlocked $Hview $HP Htoks Hw Hclog Hcur Hcres Hlrd] as Hbucket
     · rw [← mvcc.bucketMap_append ilog pend Hne]
       iintro Hv
       icases (mvcc.bucketView_halves γ 1 _).1 $$ Hv with ⟨Hv1, Hv2⟩
@@ -151,7 +151,7 @@ theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF)
       iunfold mvcc.writerRes
       iexists (ilog ++ [pend]), n
       simp only [named]
-      iframe Htoks Hw Hclog Hcur Hv1 Hcres
+      iframe Htoks Hw Hclog Hcur Hv1 Hcres Hlrd
       iframe #
       ipureintro
       exact ⟨by simp; omega, by simp⟩

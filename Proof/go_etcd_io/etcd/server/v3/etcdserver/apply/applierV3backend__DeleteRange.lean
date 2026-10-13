@@ -75,7 +75,12 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
     isplitl [Hrd Hsw Hknown]
     · iunfold apply.kvOwn
       iframe Hrd Hsw
-      iapply apply.leasesKnown_commit_delete $$ Hknown
+      iunfold apply.leasesLive at Hknown
+      icases Hknown with ⟨%L, #Hk, Hu⟩
+      iunfold apply.leasesLive
+      iexists L
+      iframe Hu
+      iapply apply.leasesKnown_commit_delete $$ Hk
     ileft; iexact HPost
   · -- the range read's context error: not at `context.TODO()` (`nd`)
     exact Herr.elim

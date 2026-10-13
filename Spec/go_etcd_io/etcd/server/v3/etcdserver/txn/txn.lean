@@ -50,13 +50,14 @@ a logger; 2026-10-12, the request path's unit 3b): or `executeTxn`'s context err
 abbrev txn.txn.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg s : Loc)
     (γ : mvcc.StoreNames) (tw : GoInterface) (ro : Bool) (ilog : mvcc.Log) (rt : Loc)
-    (t : TxnModel) (pl : GoSlice) (skip : Bool),
+    (t : TxnModel) (pl : GoSlice) (skip : Bool) (L : List w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.txnWriteIs tw s γ ro ilog [] ∗ mvcc.txnCtx ctx cd ∗
       (if nd then mvcc.neverDone cd else iprop(True)) ∗
       txn.txnRequestIs rt t ∗ pl ↦*□ txn.txnPath (mvcc.stateAfter ilog) t ∗
-      txn.leasesOk γ.leases (txn.opsLeases (mvcc.stateAfter ilog)
+      txn.leasesOk L (txn.opsLeases (mvcc.stateAfter ilog)
         (t.branch (txn.txnOk (mvcc.stateAfter ilog) t))) ∗
-      (if ro then iprop(True) else txn.leasesKnown γ.leases (mvcc.stateAfter ilog)) ∗
+      (if ro then iprop(True) else txn.leasesKnown L (mvcc.stateAfter ilog)) ∗
+      (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L) ∗
       ⌜txn.OpsOk false (mvcc.stateAfter ilog) (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)
           (t.branch (txn.txnOk (mvcc.stateAfter ilog) t)) ∧
         (txn.srvRunTxn (W64 (ilog.length : Int)) (mvcc.stateAfter ilog) t).2.1.length < mvcc.putMax γ ∧
@@ -74,8 +75,9 @@ abbrev txn.txn.spec : Prop :=
           (txn.srvRunTxn (W64 (ilog.length : Int)) (mvcc.stateAfter ilog) t).2.2 ∗
         txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp) ∗
         (if ro then iprop(True) else
-          txn.leasesKnown γ.leases (mvcc.applyChanges (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)
-            (txn.srvRunTxn (W64 (ilog.length : Int)) (mvcc.stateAfter ilog) t).2.1))) ∨
+          txn.leasesKnown L (mvcc.applyChanges (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)
+            (txn.srvRunTxn (W64 (ilog.length : Int)) (mvcc.stateAfter ilog) t).2.1)) ∗
+        (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L)) ∨
       (⌜nd = false⌝ ∗ mvcc.errorfIs err ∗
         (∃ pend' : List mvcc.Change, txn.txnWriteIs tw s γ ro ilog pend') ∗
         txn.txnRespShell resp) }}

@@ -96,17 +96,18 @@ theorem put_checkPut : checkPut.spec (GF := GF) (hG := hG) := wp_checkPut
 the lease was not found (no transaction), else `Post`. -/
 theorem put_soleWriter (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg : Loc)
     (le kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (p : Loc) (o : OpFull) (log : mvcc.Log)
-    (P Pre Q Post : IProp GF) (f : val) (hlen : log.length + 4 ≤ 2 ^ 63) :
+    (P Pre Q Post : IProp GF) (f : val) (L : List w64) (hlen : log.length + 4 ≤ 2 ^ 63) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
         isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ mvcc.storeWT γ ∗
-        isTxnLessor le γ.leases ∗ putRequestIs p o ∗ mvcc.txnCtx ctx cd ∗
+        isTxnLessor le γ.leases ∗ lease.lessorUser γ.leases L ∗ putRequestIs p o ∗
+        mvcc.txnCtx ctx cd ∗
         □ (⌜o.ignoreLease = true⌝ -∗
-          leaseOk γ.leases (putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter log)))) ∗
+          leaseOk L (putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter log)))) ∗
         mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
       (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.Put))
         (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #le)) (Val #kv)) (Val #p))
     {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-        mvcc.storeReader s γ ∗ ⌜trace ≠ null⌝ ∗
+        mvcc.storeReader s γ ∗ lease.lessorUser γ.leases L ∗ ⌜trace ≠ null⌝ ∗
         ((⌜o.leaseID ≠ W64 0 ∧ resp = null⌝ ∗
             errVarIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err ∗ soleWriter γ log ∗
             Pre) ∨
@@ -118,10 +119,10 @@ theorem put_soleWriter (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
               (if o.base.prevKV then mvcc.findKey o.key (mvcc.stateAfter log) else none) ∗
             respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"Header" resp) ∗
             soleWriter γ (log ++ [[putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) ∗
-            leaseOk γ.leases (putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter log))) ∗ Post ∗
+            leaseOk L (putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter log))) ∗ Post ∗
             ⌜mvcc.stateAfter (log ++ [[putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) =
               (applyTxnOp (W64 (log.length : Int)) (mvcc.stateAfter log) (putTxnOp o)).1⌝)) }} :=
-  put_soleWriter_of wp_Put ctx cd lg le kv s γ p o log P Pre Q Post f hlen
+  put_soleWriter_of wp_Put ctx cd lg le kv s γ p o log P Pre Q Post f L hlen
 
 /-- **`DeleteRange` at the sole writer of `log`** (fewer than `mvcc.putMax γ` keys in the range): the client's delete
 on `log`'s state committed (no revision if nothing was deleted), the sole writer at the
@@ -340,18 +341,18 @@ and results, its header revision `writeRev log pend`, nothing for a read-only re
 critical-section contract: `Pre` back on an error or a read-only request, else `Post`. -/
 theorem txn_runTxn (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg rt : Loc)
     (shared : Bool) (kv le : GoInterface) (skip : Bool) (s : Loc) (γ : mvcc.StoreNames)
-    (log : mvcc.Log) (t : TxnModel) (P Pre Q Post : IProp GF) (f : val)
+    (log : mvcc.Log) (t : TxnModel) (P Pre Q Post : IProp GF) (f : val) (L : List w64)
     (hst : OpsStable (mvcc.stateAfter log) (W64 (log.length : Int)) (mvcc.stateAfter log)
       (t.branch (txnOk (mvcc.stateAfter log) t))) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
         isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ mvcc.storeWT γ ∗
         isTxnLessor le γ.leases ∗ txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗ mvcc.neverDone cd ∗
-        leasesKnown γ.leases (mvcc.stateAfter log) ∗ ⌜TxnPre log t⌝ ∗
+        leasesKnown L (mvcc.stateAfter log) ∗ lease.lessorUser γ.leases L ∗ ⌜TxnPre log t⌝ ∗
         mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
       (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx)))
         (Val #lg)) (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
     {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-        mvcc.storeReader s γ ∗
+        mvcc.storeReader s γ ∗ lease.lessorUser γ.leases L ∗
         ((⌜resp = null ∧ trace = null ∧ err ≠ GoInterface.nil⌝ ∗ checkErrIs err ∗
             soleWriter γ log ∗ Pre) ∨
          (⌜err = GoInterface.nil ∧ trace ≠ null⌝ ∗ (if txnReadonly t then Pre else Post) ∗
@@ -363,14 +364,14 @@ theorem txn_runTxn (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (
               (runTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
               (runTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2 ∗
             soleWriter γ (mvcc.commitLog log pend) ∗
-            leasesKnown γ.leases (runTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1)) }} := by
+            leasesKnown L (runTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1)) }} := by
   wp_start_folded as Hpre
-  iapply (wp_Txn.1 ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f) $$ [Hpre]
+  iapply (wp_Txn.1 ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f L) $$ [Hpre]
   · iframe Hpre Hpkg
   inext
-  iintro %resp %trace %err ⟨Hrd, Hout⟩
+  iintro %resp %trace %err ⟨Hrd, Hu, Hout⟩
   iapply HΦ
-  iframe Hrd
+  iframe Hrd Hu
   icases Hout with (Herr | ⟨%Hok, #Hresp, -, Hsw, #Hknown, HPP⟩)
   · ileft; iexact Herr
   · iright
@@ -392,28 +393,28 @@ batch lock (`Pre` back). -/
 theorem txn_readonly_no_revision (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (lg rt : Loc) (shared : Bool) (kv le : GoInterface) (skip : Bool) (s : Loc)
     (γ : mvcc.StoreNames) (log : mvcc.Log) (t : TxnModel) (P Pre Q Post : IProp GF) (f : val)
-    (hro : txnReadonly t = true) :
+    (L : List w64) (hro : txnReadonly t = true) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
         isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ mvcc.storeWT γ ∗
         isTxnLessor le γ.leases ∗ txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗ mvcc.neverDone cd ∗
-        leasesKnown γ.leases (mvcc.stateAfter log) ∗ ⌜TxnPre log t⌝ ∗
+        leasesKnown L (mvcc.stateAfter log) ∗ lease.lessorUser γ.leases L ∗ ⌜TxnPre log t⌝ ∗
         mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
       (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx)))
         (Val #lg)) (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
     {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-        mvcc.storeReader s γ ∗ soleWriter γ log ∗ Pre ∗
+        mvcc.storeReader s γ ∗ lease.lessorUser γ.leases L ∗ soleWriter γ log ∗ Pre ∗
         ((⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ checkErrIs err) ∨
          (⌜err = GoInterface.nil⌝ ∗
             txnResponseIs skip resp (W64 ((log.length - 1 : Nat) : Int)) t
               (srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
               (srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2)) }} := by
   wp_start_folded as Hpre
-  iapply (wp_Txn.1 ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f) $$ [Hpre]
+  iapply (wp_Txn.1 ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f L) $$ [Hpre]
   · iframe Hpre Hpkg
   inext
-  iintro %resp %trace %err ⟨Hrd, Hout⟩
+  iintro %resp %trace %err ⟨Hrd, Hu, Hout⟩
   iapply HΦ
-  iframe Hrd
+  iframe Hrd Hu
   icases Hout with (⟨%Hn, #Herr, Hsw, HPre⟩ | ⟨%Hok, #Hresp, -, Hsw, -, HPP⟩)
   · iframe Hsw HPre
     ileft
@@ -433,25 +434,26 @@ theorem txn_readonly_no_revision (ctx : GoInterfaceOk) (cd : context.ContextDesc
 error leaves the sole writer at `log`, with no response, and takes no batch lock (`Pre` back). -/
 theorem txn_check_error_no_write (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (lg rt : Loc) (shared : Bool) (kv le : GoInterface) (skip : Bool) (s : Loc)
-    (γ : mvcc.StoreNames) (log : mvcc.Log) (t : TxnModel) (P Pre Q Post : IProp GF) (f : val) :
+    (γ : mvcc.StoreNames) (log : mvcc.Log) (t : TxnModel) (P Pre Q Post : IProp GF) (f : val)
+    (L : List w64) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
         isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ mvcc.storeWT γ ∗
         isTxnLessor le γ.leases ∗ txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗ mvcc.neverDone cd ∗
-        leasesKnown γ.leases (mvcc.stateAfter log) ∗ ⌜TxnPre log t⌝ ∗
+        leasesKnown L (mvcc.stateAfter log) ∗ lease.lessorUser γ.leases L ∗ ⌜TxnPre log t⌝ ∗
         mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
       (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx)))
         (Val #lg)) (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
     {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-        mvcc.storeReader s γ ∗ ∃ log' : mvcc.Log, soleWriter γ log' ∗
+        mvcc.storeReader s γ ∗ lease.lessorUser γ.leases L ∗ ∃ log' : mvcc.Log, soleWriter γ log' ∗
           ((⌜err ≠ GoInterface.nil⌝ ∗ Pre) ∨ (Pre ∨ Post)) ∗
           ⌜err ≠ GoInterface.nil → log' = log ∧ resp = null⌝ }} := by
   wp_start_folded as Hpre
-  iapply (wp_Txn.1 ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f) $$ [Hpre]
+  iapply (wp_Txn.1 ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f L) $$ [Hpre]
   · iframe Hpre Hpkg
   inext
-  iintro %resp %trace %err ⟨Hrd, Hout⟩
+  iintro %resp %trace %err ⟨Hrd, Hu, Hout⟩
   iapply HΦ
-  iframe Hrd
+  iframe Hrd Hu
   icases Hout with (⟨%Hn, -, Hsw, HPre⟩ | ⟨%Hok, -, -, Hsw, -, HPP⟩)
   · iexists log
     iframe Hsw

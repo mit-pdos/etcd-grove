@@ -33,17 +33,21 @@ the checks' errors (`checkErrIs`) and `0` (a nested call's count is used before 
 tested). Nothing is written. -/
 abbrev txn.checkTxn.spec : Prop :=
   ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (rt : Loc)
-    (t : TxnModel) (le : GoInterface) (γl : GName) (pl : GoSlice) (rest : List Bool),
+    (t : TxnModel) (le : GoInterface) (γl : GName) (pl : GoSlice) (rest : List Bool)
+    (L : List w64) (lu : Bool),
+  (lu = false → txn.txnReadonly t = true) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ ⌜trace ≠ null⌝ ∗ mvcc.isTxnRead mw s γ log rev ∗ txn.txnRequestIs rt t ∗
-      txn.isTxnLessor le γl ∗ pl ↦*□ (txn.txnPath (mvcc.stateAfter log) t ++ rest) }}
+      txn.isTxnLessor le γl ∗ (⌜lu = false⌝ ∨ lease.lessorUser γl L) ∗
+      pl ↦*□ (txn.txnPath (mvcc.stateAfter log) t ++ rest) }}
     (App (App (App (App (App (Val (@! txn.checkTxn)) (Val #trace))
       (Val #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface)))
       (Val #rt)) (Val #le)) (Val #pl))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err); mvcc.isTxnRead mw s γ log rev ∗
+      (⌜lu = false⌝ ∨ lease.lessorUser γl L) ∗
       ((⌜err = GoInterface.nil ∧ n = W64 (txn.nestedCount (mvcc.stateAfter log) t : Int) ∧
           txn.PathsIgnOk (mvcc.stateAfter log)
             (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ ∗
-        txn.leasesOk γl (txn.opsLeases (mvcc.stateAfter log)
+        txn.leasesOk L (txn.opsLeases (mvcc.stateAfter log)
           (t.branch (txn.txnOk (mvcc.stateAfter log) t)))) ∨
        (⌜err ≠ GoInterface.nil ∧ n = W64 0⌝ ∗ txn.checkErrIs err)) }}
 

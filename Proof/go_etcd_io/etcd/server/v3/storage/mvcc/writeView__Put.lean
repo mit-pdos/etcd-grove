@@ -33,8 +33,8 @@ theorem mvcc.writeView.Put.wp_proof
     (hPut : mvcc.metricsTxnWrite.Put.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     mvcc.writeView.Put.spec (GF := GF) (hG := hG) := by
-  intro wv s γ P Pre Q Post f key value k v leaseID
-  wp_start as ⟨#Hwv, Hrd, Htok, Hwt, #Hhook, Hcs, #Hkey, #Hval, Hlease⟩
+  intro wv s γ P Pre Q Post f key value k v leaseID L
+  wp_start as ⟨#Hwv, Hrd, Htok, Hwt, #Hhook, Hcs, #Hkey, #Hval, Hown, %Hlease⟩
   have hpm := mvcc.putMax_ge γ
   iunfold mvcc.isWriteView at Hwv
   iNamed Hwv
@@ -51,9 +51,9 @@ theorem mvcc.writeView.Put.wp_proof
   · ipureintro; exact Ht
   (try wp_auto)
   -- `tw.Put(key, value, lease)`
-  wp_apply (hPut mw s γ ilog [] (W64 0) (W64 0) (W64 0) key value k v leaseID)
-    $$ [$Htx $Hkey $Hval $Hlease] as Htx
-  · ipureintro; simp; omega
+  wp_apply (hPut mw s γ ilog [] (W64 0) (W64 0) (W64 0) key value k v leaseID L)
+    $$ [$Htx $Hkey $Hval $Hown] as ⟨Htx, Hown⟩
+  · ipureintro; refine ⟨Hlease, ?_⟩; simp; omega
   (try wp_auto)
   -- the deferred `tw.End()`
   rw [List.nil_append]
@@ -67,7 +67,7 @@ theorem mvcc.writeView.Put.wp_proof
   (try wp_auto)
   · iapply mvcc.txnEndPre_write; iframe Hhook HP
   iapply HΦ
-  iframe Hrd HPost
+  iframe Hrd HPost Hown
   iexists ilog
   simp only [mvcc.txnEndPost, mvcc.commitLog, List.cons_ne_self, ↓reduceIte]
   icases Hcert with ⟨Hcert, -⟩
