@@ -261,6 +261,15 @@ def readonlyRelease (r : ReadOnly) (id c : w64)
     (pend : List (raftpb.Message × List raftpb.Entry)) : ReadOnly :=
   pend.foldl (fun r p => readonlyArrive r id ⟨c, p.1.From', p.2⟩) r
 
+/-- An acknowledgement of a position `q`: the larger of the old ack and `q`. -/
+theorem readonlyRecvAck_eq (r : ReadOnly) (src q : w64) :
+    readonlyRecvAck r src (u64Le q) =
+      { r with acks := <[src := w64Max ((r.acks !! src).getD (W64 0)) q]> r.acks } := by
+  have hl : (u64Le q).length = 8 := u64Le_length _
+  have hne : u64Le q ≠ [] := by intro h; rw [h] at hl; simp at hl
+  unfold readonlyRecvAck
+  simp only [hne, ↓reduceIte, List.take_of_length_le (Nat.le_of_eq hl), u64Le_to_word]
+
 /-- What an arrival does: the request queued, the leader's ack raised to the new
 position. -/
 theorem readonlyArrive_eq (r : ReadOnly) (id : w64) (q : ReadReq) :
@@ -1479,6 +1488,17 @@ def preadRespond (s : PState) (q : ReadReq) : PState :=
 
 def preadRespondAll (s : PState) (qs : List ReadReq) : PState :=
   qs.foldl (preadRespond id) s
+
+theorem readonlyAdvance_acks (r : ReadOnly) (a : GMap w64 w64) (N : w64) :
+    readonlyAdvance { r with acks := a } N =
+      if uint.Z N ≤ uint.Z r.confirmed then ({ r with acks := a }, [])
+      else ({ pending := r.pending.drop (uint.nat (N - r.confirmed)), acks := a, confirmed := N },
+            r.pending.take (uint.nat (N - r.confirmed))) := rfl
+
+theorem preadRespondAll_cons (s : PState) (q : ReadReq) (qs : List ReadReq) :
+    preadRespondAll id s (q :: qs) = preadRespondAll id (preadRespond id s q) qs := rfl
+
+theorem preadRespondAll_nil (s : PState) : preadRespondAll id s [] = s := rfl
 
 /-- Answering changes only the outbox and the read state. -/
 theorem preadRespond_eq (s : PState) (q : ReadReq) :

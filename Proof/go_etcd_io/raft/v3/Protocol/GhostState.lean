@@ -1100,6 +1100,23 @@ theorem HbAckOk_le (v : w64) (q q' : Nat) (recs : List RqRec) :
   refine ⟨by omega, fun r hr => h2 r ?_⟩
   exact (List.take_subset_take_left _ hle) hr
 
+theorem HbAckOk_w64Max (v x y : w64) (recs : List RqRec) :
+    HbAckOk v (uint.nat x) recs → HbAckOk v (uint.nat y) recs →
+    HbAckOk v (uint.nat (w64Max x y)) recs := by
+  intro hx hy; unfold w64Max; split <;> assumption
+
+theorem HbAckOk_zero (v : w64) (recs : List RqRec) : HbAckOk v 0 recs :=
+  ⟨Nat.zero_le _, fun r hr => by simp at hr⟩
+
+/-- What a confirmed request's answer needs (2026-10-13): its entry, a proposed slice whose
+context `c` the index reads (`readOk`). -/
+def respFacts (γ : RaftNames) (q : ReadReq) : IProp GF :=
+  iprop(∃ e c, ⌜q.ents = [e]⌝ ∗ isPropData γ e.Data' c ∗ readOk γ c q.index)
+
+instance respFacts_persistent (γ : RaftNames) (q : ReadReq) :
+    Persistent (respFacts (GF := GF) γ q) := by
+  unfold respFacts; infer_instance
+
 /-- How many read-index requests a list of messages holds. -/
 def rdCount (ms : List Msg) : Nat := ms.countP (fun m => decide (m.ty = .readIndex))
 

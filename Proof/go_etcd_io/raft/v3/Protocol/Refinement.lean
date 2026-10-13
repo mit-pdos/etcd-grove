@@ -2731,6 +2731,246 @@ theorem ownRaftGhost_step_read_release (γ : RaftNames) (id : w64) (s : PState) 
   iapply key s.rd.pend s.rd.ro $$ [Hown] Hps Hcr
   iexact Hown
 
+theorem HbAckOk_prefix (v : w64) (k : Nat) (recs0 recs : List RqRec) :
+    recs0 <+: recs → HbAckOk v k recs0 → HbAckOk v k recs := by
+  intro ⟨more, h⟩ hk
+  subst h
+  exact HbAckOk_app v k recs0 more hk
+
+/-- An acknowledgement of position `q` by `src` (a heartbeat response's, `HbAckOk` of a
+prefix of the term's registry), then the requests up to a position `N` a quorum
+acknowledged confirmed: each of their records is not doomed (`rqRecOk_confirm`), so each
+confirmed request has its answer's facts. -/
+theorem rdOwn_ack (γ : RaftNames) (id : w64) (s : PState) (src q N : w64)
+    (recs0 : List RqRec) :
+    s.role = .leader →
+    QuorumAcked γ.reCfg
+      (fun v => ((readonlyRecvAck s.rd.ro src (u64Le q)).acks !! v).getD (W64 0)) N →
+    HbAckOk src (uint.nat q) recs0 →
+    ⊢ rdOwn (GF := GF) γ id s -∗ rqLb γ id s.term recs0 -∗
+      rdOwn γ id { s with rd := { s.rd with
+        ro := (readonlyAdvance (readonlyRecvAck s.rd.ro src (u64Le q)) N).1 } } ∗
+      [∗list] q' ∈ (readonlyAdvance (readonlyRecvAck s.rd.ro src (u64Le q)) N).2, respFacts γ q' := by
+  intro Hr HQ Hq0
+  rw [readonlyRecvAck_eq] at HQ ⊢
+  unfold rdOwn
+  iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv⟩ #Hlb
+  unfold rdLead
+  rw [Hr]
+  icases Hl with ⟨%γq, %recs, %Hq, Hauth, #Hrs, %Hlen, #Hpq, %Hacks, Hcrs⟩
+  unfold rqLb
+  icases Hlb with ⟨%γl', %γq', %Hγl', #Hel, #Hlb⟩
+  rw [Hγl] at Hγl'
+  cases Hγl'
+  icases ghost_map_lookup $$ Ha Hel with %Hq'
+  have Hqq : γq = γq' := by
+    have h1 : rqm !! s.term = some γq' := Hq'
+    rw [Hq] at h1
+    exact Option.some.inj h1
+  subst Hqq
+  icases mono_list_auth_lb_valid $$ Hauth Hlb with %Hpre
+  -- the acknowledgements after `src`'s
+  have Hacks' : ∀ v a,
+      (<[src := w64Max ((s.rd.ro.acks !! src).getD (W64 0)) q]> s.rd.ro.acks) !! v = some a →
+      HbAckOk v (uint.nat a) recs := by
+    intro v a Hva
+    by_cases Hv : v = src
+    · subst Hv
+      rw [GMap.lookup_insert] at Hva
+      cases Hva
+      apply HbAckOk_w64Max
+      · cases Hx : s.rd.ro.acks !! v with
+        | none => exact HbAckOk_zero v recs
+        | some a0 => exact Hacks v a0 Hx
+      · exact HbAckOk_prefix v _ recs0 recs Hpre.2 Hq0
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm Hv)] at Hva
+      exact Hacks v a Hva
+  rw [readonlyAdvance_acks]
+  split
+  · -- nothing confirmed
+    rename_i Hle
+    isplitl
+    · iexists γl, rqm
+      isplitr; · ipureintro; exact Hγl
+      isplitl [Ha]; · iexact Ha
+      isplitr; · iexact Hf
+      isplitr
+      · ipureintro
+        intro t Ht
+        rcases Hok t Ht with h | ⟨h1, -⟩
+        · left; exact h
+        · right; exact ⟨h1, rfl⟩
+      isplitl [Hauth Hcrs]
+      · iexists γq, recs
+        isplitr; · ipureintro; exact Hq
+        isplitl [Hauth]; · iexact Hauth
+        isplitr; · iexact Hrs
+        isplitr; · ipureintro; exact Hlen
+        isplitr; · iexact Hpq
+        isplitr; · ipureintro; exact Hacks'
+        iexact Hcrs
+      isplitr; · iexact Hst0
+      isplitr; · iexact Hpd0
+      isplitl [Hcr]; · iexact Hcr
+      iexact Hinv
+    · iapply (BigSepL.bigSepL_nil).2; iempintro
+  · rename_i Hgt
+    obtain ⟨Q, HQq, HQv⟩ := HQ
+    have Hpos : 0 < uint.Z N := by have := uint_Z_nonneg s.rd.ro.confirmed; omega
+    have hc : uint.nat s.rd.ro.confirmed ≤ uint.nat N := uint_nat_le_of_Z_le (by omega)
+    have HQN : ∀ v ∈ Q, HbAckOk v (uint.nat N) recs := by
+      intro v hv
+      have h := HQv v hv
+      cases Hx : (<[src := w64Max ((s.rd.ro.acks !! src).getD (W64 0)) q]> s.rd.ro.acks) !! v with
+      | none =>
+        simp only [Hx, Option.getD_none] at h
+        exfalso
+        have h0 : uint.Z (W64 0 : w64) = 0 := by decide
+        omega
+      | some a =>
+        simp only [Hx, Option.getD_some] at h
+        exact HbAckOk_le v _ _ recs (uint_nat_le_of_Z_le h) (Hacks' v a Hx)
+    obtain ⟨v0, Hv0, -, -⟩ := quorums_intersect_cfg _ _ _ HQq HQq
+    have HNle : uint.nat N ≤ recs.length := (HQN v0 Hv0).1
+    have Hk : uint.nat (N - s.rd.ro.confirmed) = uint.nat N - uint.nat s.rd.ro.confirmed := by
+      have := uint_nat_eq N
+      have := uint_nat_eq s.rd.ro.confirmed
+      have := uint_nat_eq (N - s.rd.ro.confirmed)
+      word
+    have HkP : uint.nat N - uint.nat s.rd.ro.confirmed ≤ s.rd.ro.pending.length := by
+      omega
+    rw [Hk]
+    generalize HK : uint.nat N - uint.nat s.rd.ro.confirmed = k at HkP ⊢
+    have Hsplit : s.rd.ro.pending = s.rd.ro.pending.take k ++ s.rd.ro.pending.drop k :=
+      (List.take_append_drop k _).symm
+    ihave Hpq2 := (BigSepL.bigSepL_append (Φ := fun j (q' : ReadReq) => iprop(∃ r e',
+        ⌜recs[uint.nat s.rd.ro.confirmed + j]? = some r ∧ q'.index = r.1.2 ∧ q'.ents = [e']⌝ ∗
+        isPropData (GF := GF) γ e'.Data' r.1.1))).1 $$ [Hpq]
+    · rw [← Hsplit]; iexact Hpq
+    icases Hpq2 with ⟨#Hpq1, #Hpq2⟩
+    have Htk : (s.rd.ro.pending.take k).length = k := by simp; omega
+    isplitl
+    · iexists γl, rqm
+      isplitr; · ipureintro; exact Hγl
+      isplitl [Ha]; · iexact Ha
+      isplitr; · iexact Hf
+      isplitr
+      · ipureintro
+        intro t Ht
+        rcases Hok t Ht with h | ⟨h1, -⟩
+        · left; exact h
+        · right; exact ⟨h1, rfl⟩
+      isplitl [Hauth Hcrs]
+      · iexists γq, recs
+        isplitr; · ipureintro; exact Hq
+        isplitl [Hauth]; · iexact Hauth
+        isplitr; · iexact Hrs
+        isplitr
+        · ipureintro
+          simp only [List.length_drop]
+          omega
+        isplitr
+        · iapply BigSepL.bigSepL_impl $$ Hpq2
+          imodintro
+          iintro %j %x %Hj ⟨%r, %e', %Hx, #Hd⟩
+          iexists r, e'
+          iframe Hd
+          ipureintro
+          refine ⟨?_, Hx.2⟩
+          rw [← Hx.1]
+          congr 1
+          simp only at *
+          omega
+        isplitr; · ipureintro; exact Hacks'
+        iexact Hcrs
+      isplitr; · iexact Hst0
+      isplitr; · iexact Hpd0
+      isplitl [Hcr]; · iexact Hcr
+      iexact Hinv
+    · iapply BigSepL.bigSepL_impl $$ Hpq1
+      imodintro
+      iintro %j %x %Hj ⟨%r, %e', %Hx, #Hd⟩
+      have Hjk : j < k := by
+        have := (List.getElem?_eq_some_iff.mp Hj).1
+        rw [Htk] at this; exact this
+      have HiN : uint.nat s.rd.ro.confirmed + j < uint.nat N := by omega
+      have Hmem : r ∈ recs.take (uint.nat N) := by
+        rw [List.mem_iff_getElem?]
+        exact ⟨uint.nat s.rd.ro.confirmed + j, by rw [List.getElem?_take_of_lt HiN]; exact Hx.1⟩
+      ihave #Hrr := BigSepL.bigSepL_lookup (Φ := fun _ r => rqRecOk (GF := GF) γ s.term r) Hx.1
+        $$ Hrs
+      ihave #Hok := rqRecOk_confirm γ s.term r Q HQq
+        (fun v hv t' qq h => (HQN v hv).2 r Hmem t' qq h) $$ Hrr
+      unfold respFacts
+      iexists e', r.1.1
+      iframe Hd
+      isplitr; · ipureintro; exact Hx.2.2
+      rw [Hx.2.1]
+      iexact Hok
+
+/-- An answer, given its facts. -/
+theorem ownRaftGhost_respond (γ : RaftNames) (id : w64) (t : PState) (q : ReadReq) :
+    ⊢ ownRaftGhost (GF := GF) γ id t -∗ respFacts γ q ={⊤}=∗
+      ownRaftGhost γ id (preadRespond id t q) := by
+  iintro Hown #Hq
+  iunfold respFacts at Hq
+  icases Hq with ⟨%e, %c, %He, #Hpd, #Hok⟩
+  unfold preadRespond
+  split
+  · rw [He]
+    simp only []
+    iapply ownRaftGhost_rd γ id t _ [] (by cases t; simp) $$ [] Hown
+    · iapply (BigSepL.bigSepL_nil).2; iempintro
+    iintro %kl Hlg Hrd
+    iframe Hlg
+    imod rdCred_zero_upd (GF := GF) γ with Hz
+    imodintro
+    iapply rdOwn_update γ id t _ [⟨q.index, e.Data'⟩] [] [] (by rfl) (by rfl) (by rfl) (by rfl)
+      (by simp) (by simp) $$ Hrd [] [] [Hz]
+    · iapply (BigSepL.bigSepL_singleton (Φ := fun _ st => readStateOk (GF := GF) γ st)).2
+      unfold readStateOk
+      iexists c
+      iframe Hpd Hok
+    · iapply (BigSepL.bigSepL_nil).2; iempintro
+    · rw [show ([] : List (raftpb.Message × List raftpb.Entry)).length + rdCount ([] : List Msg) = 0
+        from rfl]
+      iexact Hz
+  · iapply ownRaftGhost_rd γ id t _ [Msg.mk .readIndexResp id q.src t.term false q.index (W64 0)
+        (W64 0) (W64 0) q.ents] (by rfl) $$ [] Hown
+    · iapply (BigSepL.bigSepL_singleton (Φ := fun _ m => isMessage (GF := GF) γ m)).2
+      unfold isMessage
+      iexists e, c
+      iframe Hpd Hok
+      ipureintro; exact He
+    iintro %kl Hlg Hrd
+    iframe Hlg
+    imod rdCred_zero_upd (GF := GF) γ with Hz
+    imodintro
+    iapply rdOwn_update γ id t _ [] [] _ (by rfl) (by rfl) (by rfl) (by simp) (by simp) (by rfl)
+      $$ Hrd [] [] [Hz]
+    · iapply (BigSepL.bigSepL_nil).2; iempintro
+    · iapply (BigSepL.bigSepL_nil).2; iempintro
+    · rw [List.length_nil, rdCount_singleton]
+      simp only [reduceCtorEq, ↓reduceIte, Nat.zero_add]
+      iexact Hz
+
+theorem ownRaftGhost_respondAll (γ : RaftNames) (id : w64) (qs : List ReadReq) :
+    ∀ t, ⊢ ownRaftGhost (GF := GF) γ id t -∗ ([∗list] q ∈ qs, respFacts γ q) ={⊤}=∗
+      ownRaftGhost γ id (preadRespondAll id t qs) := by
+  induction qs with
+  | nil =>
+    intro t
+    iintro Hown -
+    rw [preadRespondAll_nil]
+    imodintro; iexact Hown
+  | cons q qs ih =>
+    intro t
+    iintro Hown Hqs
+    icases (BigSepL.bigSepL_cons).1 $$ Hqs with ⟨#Hq, Hqs⟩
+    rw [preadRespondAll_cons]
+    imod ownRaftGhost_respond γ id t q $$ Hown Hq with Hown
+    iapply ih $$ Hown Hqs
+
 theorem ownRaftGhost_step_read_ack (γ : RaftNames) (id : w64) (s : PState) (m : Msg) (N : w64) :
     m.ty = .heartbeatResp → m.dst = id → m.term = s.term → s.role = .leader → m.ctx ≠ [] →
     QuorumAcked γ.reCfg
@@ -2740,7 +2980,25 @@ theorem ownRaftGhost_step_read_ack (γ : RaftNames) (id : w64) (s : PState) (m :
         ({ s with rd := { s.rd with
              ro := (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).1 } })
         (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).2) := by
-  sorry
+  intro Hty Hto Hterm Hrole Hctx HQ
+  iintro #Hm Hown
+  iunfold isMessage at Hm
+  rw [Hty]
+  icases Hm with (%H0 | ⟨%q, %recs0, %Hq, #Hlb⟩)
+  · exact absurd H0 Hctx
+  obtain ⟨Hcq, Hack⟩ := Hq
+  rw [Hto, Hterm]
+  rw [Hcq] at HQ ⊢
+  imod ownRaftGhost_rdR γ id s ({ s with rd := { s.rd with
+      ro := (readonlyAdvance (readonlyRecvAck s.rd.ro m.src (u64Le q)) N).1 } }) []
+    (iprop([∗list] q' ∈ (readonlyAdvance (readonlyRecvAck s.rd.ro m.src (u64Le q)) N).2,
+      respFacts (GF := GF) γ q')) (by cases s; simp) $$ [] Hown [] with ⟨Hown, Hresp⟩
+  · iapply (BigSepL.bigSepL_nil).2; iempintro
+  · iintro %kl Hlg Hrd
+    iframe Hlg
+    imodintro
+    iapply rdOwn_ack γ id s m.src q N recs0 Hrole HQ Hack $$ Hrd Hlb
+  iapply ownRaftGhost_respondAll γ id _ _ $$ Hown Hresp
 
 theorem ownRaftGhost_step_read_state (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
     (e : raftpb.Entry) :
