@@ -121,7 +121,7 @@ theorem EtcdServer.apply.wp_proof
       "appliedi" ∷ appliedi_ptr ↦ ai ∗ "appliedt" ∷ appliedt_ptr ↦ at' ∗
       "Hst" ∷ applyThread γ st' ∗ "Hbe" ∷ applyBackend γ ci b ∗ "Happ" ∷ ciApplying ci a' t' ∗
       "Hcs" ∷ epConfStateAddr ep ↦ csl ∗ "Hlr" ∷ srvLgReader s ∗ "Hgr" ∷ srvGoRes s ∗
-      "HKV" ∷ srvApplyKV s E xj ∗ "HW" ∷ txn.storeWTs E.γ (ms.length - sint.nat j) ∗
+      "HKV" ∷ srvApplyKV s E ρ.wait xj ∗ "HW" ∷ txn.storeWTs E.γ (ms.length - sint.nat j) ∗
       "Hao" ∷ srvAppliedOwn γr aw ∗
       "#Hlog" ∷ □ (⌜0 < sint.Z j⌝ -∗ appliedLogAt γr aw xj.log) ∗
       "%Hxs" ∷ ⌜entriesStep (ciEff γ st.k) (ms.take (sint.nat j)) x xj ∧
@@ -130,7 +130,7 @@ theorem EtcdServer.apply.wp_proof
         (∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
           applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
           epConfStateAddr ep ↦ csl ∗ srvLgReader s ∗ srvGoRes s ∗ srvAppliedOwn γr appliedi ∗
-          (∃ x' : apply.ApplyKV, srvApplyKV s E x' ∗ ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗
+          (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗ ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗
             appliedLogAt γr appliedi x'.log) ∗
           ⌜(ms.getLast?).map EntryModel.index = some appliedi ∧
             (ms.getLast?).map EntryModel.term = some appliedt ∧
@@ -263,10 +263,12 @@ theorem EtcdServer.apply.wp_proof
       · -- a normal entry
         simp only [h0, _root_.decide_true]
         (try wp_auto)
-        wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') true xj) $$ [Hst Hbe Happ Hlr Hgr HKV Hwt]
-          as ⟨Hbe, Hlr, Hgr, ⟨%x1, %out1, HKV, %Hstep1⟩, Hpost⟩
+        wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') true xj γr none) $$ [Hst Hbe Happ Hlr Hgr HKV Hwt]
+          as ⟨Hbe, Hlr, Hgr, ⟨%x1, %out1, HKV, %Hstep1, -⟩, Hpost⟩
         · rw [ite_eq_left rfl]
           iframe Hsrv0 Hewo He Hst Hbe Happ Hlr Hgr HKV Hwt
+          isplitr
+          · iapply entryRegd_none
           ipureintro
           refine ⟨⟨hlp ▸ hpend', hOk1 h0, h0⟩, ?_⟩
           rw [hlpp, hlc]
@@ -281,7 +283,7 @@ theorem EtcdServer.apply.wp_proof
         (try wp_auto)
         wp_apply hGI $$ [He] as -
         · iframe He
-        icases srvApplyKV_idxCert s E x1 $$ HKV with ⟨HKV, #Hcert⟩
+        icases srvApplyKV_idxCert s E ρ.wait x1 $$ HKV with ⟨HKV, #Hcert⟩
         wp_apply (hSet1 s E γr aw m.index x1.log (by omega)) $$ [Hao] as ⟨Hao, -, #Hlg1⟩
         · iframe #; iframe Hao
         ihave #Hlog' : iprop(□ (⌜0 < sint.Z (j + W64 1)⌝ -∗ appliedLogAt γr m.index x1.log)) $$ []
@@ -399,7 +401,7 @@ theorem EtcdServer.apply.wp_proof
         (try wp_auto)
         wp_apply hGI $$ [He] as -
         · iframe He
-        icases srvApplyKV_idxCert s E xj $$ HKV with ⟨HKV, #Hcert⟩
+        icases srvApplyKV_idxCert s E ρ.wait xj $$ HKV with ⟨HKV, #Hcert⟩
         wp_apply (hSet1 s E γr aw m.index xj.log (by omega)) $$ [Hao] as ⟨Hao, -, #Hlg1⟩
         · iframe #; iframe Hao
         ihave #Hlog' : iprop(□ (⌜0 < sint.Z (j + W64 1)⌝ -∗ appliedLogAt γr m.index xj.log)) $$ []
@@ -503,10 +505,12 @@ theorem EtcdServer.apply.wp_proof
       · -- a normal entry
         (try simp only [h0, _root_.decide_true])
         (try wp_auto)
-        wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') false xj) $$ [Hst Hbe Hlr Hgr HKV Hwt]
-          as ⟨Hbe, Hlr, Hgr, ⟨%x1, %out1, HKV, %Hstep1⟩, Hst⟩
+        wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') false xj γr none) $$ [Hst Hbe Hlr Hgr HKV Hwt]
+          as ⟨Hbe, Hlr, Hgr, ⟨%x1, %out1, HKV, %Hstep1, -⟩, Hst⟩
         · simp only [Bool.false_eq_true, ↓reduceIte]
           iframe Hsrv0 Hewo He Hst Hbe Hlr Hgr HKV Hwt
+          isplitr
+          · iapply entryRegd_none
           ipureintro; exact ⟨⟨hpend'', hOk1 h0, h0⟩, trivial⟩
         have hb1 : batchStep (ciEff γ st.k) m xj x1 := by
           unfold batchStep; rw [ite_eq_left h0]
@@ -517,7 +521,7 @@ theorem EtcdServer.apply.wp_proof
         (try wp_auto)
         wp_apply hGI $$ [He] as -
         · iframe He
-        icases srvApplyKV_idxCert s E x1 $$ HKV with ⟨HKV, #Hcert⟩
+        icases srvApplyKV_idxCert s E ρ.wait x1 $$ HKV with ⟨HKV, #Hcert⟩
         wp_apply (hSet1 s E γr aw m.index x1.log (by omega)) $$ [Hao] as ⟨Hao, -, #Hlg1⟩
         · iframe #; iframe Hao
         ihave #Hlog' : iprop(□ (⌜0 < sint.Z (j + W64 1)⌝ -∗ appliedLogAt γr m.index x1.log)) $$ []
@@ -566,7 +570,7 @@ theorem EtcdServer.apply.wp_proof
         (try wp_auto)
         wp_apply hGI $$ [He] as -
         · iframe He
-        icases srvApplyKV_idxCert s E xj $$ HKV with ⟨HKV, #Hcert⟩
+        icases srvApplyKV_idxCert s E ρ.wait xj $$ HKV with ⟨HKV, #Hcert⟩
         wp_apply (hSet1 s E γr aw m.index xj.log (by omega)) $$ [Hao] as ⟨Hao, -, #Hlg1⟩
         · iframe #; iframe Hao
         ihave #Hlog' : iprop(□ (⌜0 < sint.Z (j + W64 1)⌝ -∗ appliedLogAt γr m.index xj.log)) $$ []

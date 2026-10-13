@@ -50,7 +50,7 @@ abbrev EtcdServer.applyAll.spec : Prop :=
       taNotifycAddr ap ↦□ nc ∗ isUnitBag nc ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfStateAddr ep ↦ cs ∗
       srvSnapState s ep ∗ applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
-      srvLgReader s ∗ srvGoRes s ∗ srvBemuReader s ∗ srvApplyKV s E x ∗ srvAppliedOwn γr ai ∗
+      srvLgReader s ∗ srvGoRes s ∗ srvBemuReader s ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr ai ∗
       appliedLogAt γr ai x.log ∗ txn.storeWTs E.γ (unapplied ai ms).length }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
       (Val #ap))
@@ -59,7 +59,7 @@ abbrev EtcdServer.applyAll.spec : Prop :=
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfStateAddr ep ↦ cs' ∗
         srvSnapState s ep ∗ applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' t' ∗
         srvLgReader s ∗ srvGoRes s ∗ srvBemuReader s ∗ srvAppliedOwn γr ai' ∗ appliedAtLeast γr ai' ∗
-        (∃ x' : apply.ApplyKV, srvApplyKV s E x' ∗
+        (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗
           ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr ai' x'.log) ∗
         ⌜loopOk γ st' ai' ∧
           uint.Z ai' = max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0) ∧

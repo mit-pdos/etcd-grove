@@ -90,6 +90,13 @@ inductive ApplyOut where
   /-- Dispatched: the outcome `o`, the wrapper's `SkipRangeExecution` `skip`. -/
   | dispatched (o : Outcome) (skip : Bool)
 
+/-- The outcome was **waived for want of a waiter** (`apply.Apply`'s `needResult` false: the
+request not applied, `skipped`, or a transaction's ranges not run, `SkipRangeExecution`). -/
+def ApplyOut.waived : ApplyOut → Bool
+  | .skipped => true
+  | .rejected => false
+  | .dispatched _ skip => skip
+
 /-- **What `apply.Apply` does with the request `rq`** (`v3`: `shouldApplyV3`) from the state `x`
 to `x'`. -/
 def applyStep (rq : IRRModel) (v3 : Bool) (x x' : ApplyKV) : ApplyOut → Prop

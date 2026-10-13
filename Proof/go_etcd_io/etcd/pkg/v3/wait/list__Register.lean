@@ -55,15 +55,16 @@ theorem wait.list.Register.wp_proof : wait.list.Register.spec (GF := GF) (hG := 
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold waitList at Hl
-  icases Hl with ⟨%sl, #He, %Hlen, #Hreg, #Hsh⟩
+  icases Hl with ⟨%sl, #He, %Hlen, #Hsh⟩
   have hidx : 0 ≤ sint.Z (id % W64 64) ∧ sint.Z (id % W64 64) < sint.Z sl.len := by
     rw [Hlen]; word
   generalize hn : (sint.Z (id % W64 64)).toNat = n
   have hn' : sint.Z (id % W64 64) = (n : Int) := by omega
   have hn64 : n < 64 := by omega
+  have hk : (W64 (n : Int)) = id % W64 64 := by rw [← hn']; simp [W64, sint.Z]
   ihave #Hs := Hsh $$ %n %hn64
   iunfold waitShard at Hs
-  icases Hs with ⟨%mref, %γs, #Hm, #Hg, #Hinv⟩
+  icases Hs with ⟨%mref, %γs, %γr, #Hnm, #Hm, #Hg, #Hinv⟩
   wp_apply wp_with_defer as %defer defer
   wp_apply chan.wp_make2 (V := GoInterface) (W64 1) as %ch %γc ⟨#Hch, %Hcap, Hoc⟩
   · ipureintro; decide
@@ -87,8 +88,7 @@ theorem wait.list.Register.wp_proof : wait.list.Register.spec (GF := GF) (hG := 
   | some ch' =>
     simp only [Option.isSome_some, decide_true, Bool.not_true]
     wp_auto_lc 1
-    imod waitShard_regd γw R γs id M ch' hM $$ Hinv Hlc1 Hga with ⟨Hga, %t, #Hr⟩
-    imod waitReg_absurd γi γw id t $$ Hreg Hr Hslot with Hf
+    imod waitShard_dup γi R γs γr id M ch' hM $$ Hinv Hlc1 Hga Hslot with Hf
     iexfalso; iexact Hf
   | none =>
     wp_auto_lc 1
@@ -96,17 +96,20 @@ theorem wait.list.Register.wp_proof : wait.list.Register.spec (GF := GF) (hG := 
     rw [hn']
     wp_auto
     wp_apply wp_mapInsert $$ [$Hmap] as Hmap
-    imod waitReg_insert γi γw id γh.takenName $$ Hreg Hslot with #Hr
-    imod waitShard_put γw R γs id M ch hM $$ Hinv Hlc1 Hga [Hp] with Hga
-    · iunfold waitEntry; iexists γh, Ψ; iframe Hp; iframe #
+    imod waitShard_register γi R γs γr id M ch hM γh Ψ $$ Hinv Hlc1 Hga Hslot Hh Hp HR
+      with ⟨Hga, %g, #Hr⟩
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hga Hmap]
     · inext; iunfold waitShardP; iexists _; iframe
     (try wp_auto)
     iapply HΦ
     iexists γh
-    iframe Hr
-    iunfold waitRecv
-    iframe Hc Hh
+    isplitl [Hc]
+    · iunfold waitRecv
+      iframe Hc Hh
+    iunfold waitRegd
+    iexists γs, γr, g
+    rw [← hk]
+    iframe #
 
 end proof
 

@@ -29,15 +29,16 @@ theorem wait.list.Trigger.wp_proof : wait.list.Trigger.spec (GF := GF) (hG := hG
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold waitList at Hl
-  icases Hl with ⟨%sl, #He, %Hlen, #Hreg, #Hsh⟩
+  icases Hl with ⟨%sl, #He, %Hlen, #Hsh⟩
   have hidx : 0 ≤ sint.Z (id % W64 64) ∧ sint.Z (id % W64 64) < sint.Z sl.len := by
     rw [Hlen]; word
   generalize hn : (sint.Z (id % W64 64)).toNat = n
   have hn' : sint.Z (id % W64 64) = (n : Int) := by omega
   have hn64 : n < 64 := by omega
+  have hk : (W64 (n : Int)) = id % W64 64 := by rw [← hn']; simp [W64, sint.Z]
   ihave #Hs := Hsh $$ %n %hn64
   iunfold waitShard at Hs
-  icases Hs with ⟨%mref, %γs, #Hm, #Hg, #Hinv⟩
+  icases Hs with ⟨%mref, %γs, %γr, #Hnm, #Hm, #Hg, #Hinv⟩
   wp_auto
   simp only [hidx, and_self, ↓reduceIte]
   rw [hn']
@@ -55,7 +56,7 @@ theorem wait.list.Trigger.wp_proof : wait.list.Trigger.spec (GF := GF) (hG := hG
   simp only [hidx, and_self, ↓reduceIte]
   rw [hn']
   wp_auto_lc 1
-  imod waitShard_take γw R γs id M $$ Hinv Hlc1 Hga with ⟨Hga, Hent⟩
+  imod waitShard_take γi R γs γr id M $$ Hinv Hlc1 Hga with ⟨Hga, Hent⟩
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hga Hmap]
   · inext; iunfold waitShardP; iexists _; iframe
   cases hM : M !! id with
@@ -64,7 +65,7 @@ theorem wait.list.Trigger.wp_proof : wait.list.Trigger.spec (GF := GF) (hG := hG
     iapply HΦ; itrivial
   | some ch =>
     iunfold waitEntry at Hent
-    icases Hent with ⟨%γh, %Ψ, #Hh, Hp, #HR, #Hr⟩
+    icases Hent with ⟨%γh, %Ψ, %g, #Hh, Hp, #HR, #Hr⟩
     ihave #Hh' := Hh
     iunfold isHandoff at Hh'
     icases Hh' with ⟨#Hch, -⟩
@@ -76,10 +77,14 @@ theorem wait.list.Trigger.wp_proof : wait.list.Trigger.spec (GF := GF) (hG := hG
     · iunfold waitVal
       icases Hpre with (⟨%γh', %Hx, Hc, #Hr'⟩ | Ht)
       · iright
-        iunfold waitRegd at Hr Hr'
+        iunfold waitRegd at Hr'
+        icases Hr' with ⟨%γs', %γr', %g', #Hnm', #Hr'⟩
+        rw [← hk]
+        ihave %Hag := ghostMapElem_agree $$ Hnm Hnm'
+        cases Hag
         ihave %Ht := ghostMapElem_agree $$ Hr Hr'
         have hc : handoffConsumer (GF := GF) γh false = handoffConsumer γh' false := by
-          unfold handoffConsumer; rw [Ht]
+          unfold handoffConsumer; rw [(Prod.mk.inj Ht).1]
         rw [hc]
         iframe Hc
         ipureintro; exact Hx

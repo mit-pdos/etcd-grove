@@ -63,7 +63,12 @@ local macro "call_tail" : tactic => `(tactic| (
   iframe Hres
   isplitl [Hown Hkv]
   · iunfold apply.applyKV; iexists p; iframe Hown Hkv; ipureintro; rfl
-  ipureintro; exact Hst.1))
+  isplitr
+  · ipureintro; exact Hst.1
+  icases Hwv with (%Hsk | HG)
+  · ileft; ipureintro
+    rcases Hst.2 with h | ⟨o, h⟩ <;> subst h <;> simp [apply.ApplyOut.waived, Hsk]
+  · iright; iexact HG))
 
 theorem apply.Apply.wp_proof
     (hMU : pbutil.MustUnmarshalMessage.spec (GF := GF) (hG := hG))
@@ -72,8 +77,8 @@ theorem apply.Apply.wp_proof
     (hNSE : apply.noSideEffect.spec (GF := GF) (hG := hG))
     (hUA : apply.uberApplier.Apply.spec (GF := GF) (hG := hG)) :
     apply.Apply.spec (GF := GF) (hG := hG) := by
-  intro lg e m ua w v3 E Pre Q Post x rq id RD
-  wp_start as ⟨#Hfor, #Hwok, HRD, %Hlg, #He, Hhook, HPre, Hkv, Hwt, %Hprem⟩
+  intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot
+  wp_start as ⟨#Hfor, #Hwok, HRD, HK, %Hlg, #He, Hhook, HPre, Hkv, Hwt, %Hprem⟩
   obtain ⟨Hdec, Hid, Hrq, Hdk⟩ := Hprem
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -129,7 +134,7 @@ theorem apply.Apply.wp_proof
   iunfold waitOk at Hwok
   icases Hwok with ⟨%wi, %Hwi, #HIsReg⟩
   subst Hwi
-  wp_apply HIsReg $$ [$HRD] as %need HRD
+  wp_apply HIsReg $$ [$HRD $HK] as %need ⟨HRD, Hneed⟩
   wp_join (Q := fun v => iprop(⌜v = #(!need && !decide (lt = null))⌝)) at (if: _ then _ else _)
   · cases need
     · wp_auto
@@ -170,12 +175,16 @@ theorem apply.Apply.wp_proof
   generalize hsk : (!need && !decide (lt = null)) = sk
   cases need
   · -- no waiter: applied only with side effects
+    icases Hneed with (%Hf | HG)
+    · cases Hf
     wp_auto
     wp_apply (hNSE raftReq_ptr rq) $$ [] as %b %Hb
     · iframe #
     subst Hb
     cases hns : apply.noSideEffect rq
     · wp_auto
+      ihave Hwv : iprop(⌜sk = false⌝ ∨ G ot id) $$ [HG]
+      · iright; iexact HG
       call_tail
     · wp_auto
       iapply HΦ
@@ -190,8 +199,15 @@ theorem apply.Apply.wp_proof
       simp only [apply.applyResultIs]
       isplitl [Hown Hkv]
       · iunfold apply.applyKV; iexists p; iframe Hown Hkv; ipureintro; rfl
-      ipureintro; simp [apply.applyStep, hns]
+      isplitr
+      · ipureintro; simp [apply.applyStep, hns]
+      isplitr
+      · itrivial
+      iright; iexact HG
   · -- a waiter: applied
+    ihave Hwv : iprop(⌜sk = false⌝ ∨ G ot id) $$ []
+    · ileft; ipureintro; rw [← hsk]; simp
+    iclear Hneed
     wp_auto
     call_tail
 

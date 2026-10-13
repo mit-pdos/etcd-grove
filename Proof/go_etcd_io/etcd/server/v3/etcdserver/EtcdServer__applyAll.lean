@@ -103,7 +103,7 @@ theorem EtcdServer.applyAll.wp_proof
   · iexact Hncb
   (try wp_auto)
   -- `s.snapshotIfNeededAndCompactRaftLog(ep)`
-  wp_apply hSINC s E γ ci b γr ep st' ai' at' cs' a' t' x' hok'
+  wp_apply hSINC s E ρ.wait γ ci b γr ep st' ai' at' cs' a' t' x' hok'
     $$ [Hss Hai Hat Hcs Hst Hbe Happ Hlr HKV]
     as ⟨%st'', Hss, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, %Hst''⟩
   · iframe #; iframe
