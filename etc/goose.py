@@ -99,15 +99,17 @@ PROJECTS = [
         repo="https://github.com/etcd-io/raft",
         rev="40f8be730b181c22b430ad83845ce477ca76ad15",
         # Modules Code.go_etcd_io.raft.v3*, GeneratedProof.go_etcd_io.raft.v3*.
-        lean_roots=["go.etcd.io/raft/v3="],
+        lean_roots=["go.etcd.io/raft/v3=", "github.com/gogo/protobuf="],
         packages=[
             ".",
             "go.etcd.io/raft/v3/confchange",
             "go.etcd.io/raft/v3/quorum",
             "go.etcd.io/raft/v3/raftpb",
             "go.etcd.io/raft/v3/tracker",
+            # names only: what raftpb's `ConfChangeV2.LeaveJoint` calls (`proto.Equal`)
+            "github.com/gogo/protobuf/proto",
         ],
-        owned=[os.path.join("go_etcd_io", "raft")],
+        owned=[os.path.join("go_etcd_io", "raft"), os.path.join("github_com", "gogo")],
         counted_modules=["go.etcd.io/raft/v3"],
     ),
     Project(

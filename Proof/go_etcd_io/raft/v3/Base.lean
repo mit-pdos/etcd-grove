@@ -62,6 +62,15 @@ instance reflect_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.reflect :=
 instance reflect_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.reflect :=
   build_get_is_pkg_init_wf
 
+/-- gogoproto's `proto`, names-only (`raftpb`'s `ConfChangeV2.LeaveJoint` calls `proto.Equal`,
+the axiom `Spec/github_com/gogo/protobuf/proto/Equal.lean`). -/
+instance gogoproto_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.github_com.gogo.protobuf.proto :=
+  define_is_pkg_init iprop(True)
+instance gogoproto_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.github_com.gogo.protobuf.proto :=
+  build_get_is_pkg_init_wf
+
 instance raftpb_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb :=
   define_is_pkg_init iprop(True)
 instance raftpb_get_is_pkg_init_wf_inst :

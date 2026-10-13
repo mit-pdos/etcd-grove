@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-13 (raft's read-index (`ReadOnlySafe`) verified end to end: six protocol rules refined (forward, pending, arrival, release, acknowledgement and quorum confirmation, the answer), `raft.Step` for `MsgReadIndex`/`MsgReadIndexResp` and heartbeats with read positions, `RawNode.ReadIndex`/`node.ReadIndex`, `Ready`'s `ReadState`s with what each promises (`readOk`), read credits against position wrap-around; no new axiom or `sorry`, see "Read-index (`ReadOnlySafe`)"; 2026-10-12: raft's `MemoryStorage` complete: `InitialState`, `SetHardState`, `ApplySnapshot`, `CreateSnapshot`, `Compact` specified and proved over `memStorMeta` (the hard state and snapshot, half of each outside the lock), two findings (`CreateSnapshot`'s undocumented range, below the compaction boundary a runtime panic; `InitialState` races, unlocked), see "`MemoryStorage`: the rest of the storage"; raft's `confchange` specified and proved for all inputs against a pure model (joint configs, learners, `EnterJoint`/`LeaveJoint`, every error path), `Restore.spec` unchanged, six `quorum`/`tracker` functions, two findings, see "`confchange`, `quorum`, `tracker`: general specs for reconfiguration"; a closed theorem about the register's driver in the operational semantics, `register_adequate`, from Perennial's adequacy; package initialization proved for raft, its subpackages, `context` and the register; the account of every axiom and `sorry` it rests on, see "Adequacy of the register's driver"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
+**Last updated:** 2026-10-13 (reconfiguration, stage 0: raftpb's conf-change helpers translated and proved (`AsV1`/`AsV2`, `EnterJoint`, `LeaveJoint`, `MarshalConfChange`) with `confChangeToMsg`, five trust-boundary axioms (gogoproto's `Marshal`/`Unmarshal` of `ConfChange`/`ConfChangeV2` over the opaque decoders `ccDecodeV1`/`ccDecodeV2`, `proto.Equal`), `ProposeConfChange` left for the log stage, a finding (an undefined `Transition` panics every node at apply), see "Reconfiguration, stage 0"; raft's read-index (`ReadOnlySafe`) verified end to end: six protocol rules refined (forward, pending, arrival, release, acknowledgement and quorum confirmation, the answer), `raft.Step` for `MsgReadIndex`/`MsgReadIndexResp` and heartbeats with read positions, `RawNode.ReadIndex`/`node.ReadIndex`, `Ready`'s `ReadState`s with what each promises (`readOk`), read credits against position wrap-around; no new axiom or `sorry`, see "Read-index (`ReadOnlySafe`)"; 2026-10-12: raft's `MemoryStorage` complete: `InitialState`, `SetHardState`, `ApplySnapshot`, `CreateSnapshot`, `Compact` specified and proved over `memStorMeta` (the hard state and snapshot, half of each outside the lock), two findings (`CreateSnapshot`'s undocumented range, below the compaction boundary a runtime panic; `InitialState` races, unlocked), see "`MemoryStorage`: the rest of the storage"; raft's `confchange` specified and proved for all inputs against a pure model (joint configs, learners, `EnterJoint`/`LeaveJoint`, every error path), `Restore.spec` unchanged, six `quorum`/`tracker` functions, two findings, see "`confchange`, `quorum`, `tracker`: general specs for reconfiguration"; a closed theorem about the register's driver in the operational semantics, `register_adequate`, from Perennial's adequacy; package initialization proved for raft, its subpackages, `context` and the register; the account of every axiom and `sorry` it rests on, see "Adequacy of the register's driver"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
 as pinned), the requests and responses as the client model's values (`Requests.lean`), `isKV`,
 `isTxnLessor`, 13 trust-boundary axioms (`sort.Sort`/`Reverse`, traceutil, `proto.Size`,
 `zap.Logger.Panic`, ...), mvcc's read-only write transaction proved, `gen-link.py --txn`, a
@@ -106,6 +106,58 @@ unchanged; the register collection 1 axiom, 9 sorries, unchanged).
   the waiting reads (`readsOwn`); `deliver` takes `1 < size reCfg` (for a forwarded
   `MsgReadIndex`); a heartbeat's context is eight bytes by `isMessage`, so not the
   leader-transfer marker (`hb_ctx_ok`). No raft file changed.
+
+## Reconfiguration, stage 0: the conf-change messages and their encoding (2026-10-13)
+
+Groundwork for joint-consensus reconfiguration, Lean-first, sorry-free; the log path
+(`stepLeader`, `raft.Step`, `ownRaftLog`) untouched.
+
+- **Translation.** `raftpb.toml` now translates `confchange.go`'s helpers: `MarshalConfChange`,
+  `ConfChange.AsV1`/`AsV2`, `ConfChangeV2.AsV1`/`AsV2`/`EnterJoint`/`LeaveJoint`, and the three
+  `ConfChangeTransition*` aliases. `LeaveJoint` calls gogoproto's `proto.Equal`, so
+  `github.com/gogo/protobuf/proto` joins the etcd-raft project names-only
+  (`Code/github_com/gogo/protobuf/proto.toml`: only `Message` translated, so that the conversion
+  to it steps; `etc/goose.py`: the package, its `-lean-root`, `github_com/gogo` owned). Its
+  `IsPkgInit` is `True` (`Base.lean`); the register's `pkgInitTable` (`Adequacy.lean`) has its
+  entry. gogoproto's `Marshal`/`Unmarshal` methods stay names-only. `confChangeToMsg` was
+  already translated (raft's toml translates everything).
+- **The model** (`InvConfChangeMsg.lean`): `CCV1M`/`CCV2M` (a message's content, every slice a
+  list; a `CCV2M`'s changes are the `List raftpb.ConfChangeSingle` of `InvConfchange.lean`'s
+  `applyM`/`enterJointM`), `ownCCV1`/`ownCCV2`, `CCMsg` and `ownCCI` (a `ConfChangeI` holding
+  `nil`, a `ConfChange` or a `ConfChangeV2` *value*), `ccEntryType`, `CCData`, `ccEntry`,
+  `ccPropMsg`, `enterJointOf`; and `ccDecodeV1`/`ccDecodeV2`, **opaque**: what gogoproto's
+  `Unmarshal` makes of bytes (into a zero message), `none` on its errors.
+- **Trust boundary: five axioms**, each a WP triple, justified in its spec's doc comment
+  against `raft.pb.go`/`equal.go`:
+  `raftpb.ConfChange.Marshal`, `raftpb.ConfChangeV2.Marshal` (a fresh slice and a `nil` error,
+  the bytes decode back: `ccDecodeV* bs = some m`), `raftpb.ConfChange.Unmarshal`,
+  `raftpb.ConfChangeV2.Unmarshal` (into a zero message: `nil` and the content when
+  `ccDecodeV* bs = some m`, a non-`nil` error otherwise; never a panic) and `gogoproto.Equal`
+  (for `LeaveJoint`'s one call: `&c` with a `nil` `Context` against `&ConfChangeV2{}` is
+  `Transition = 0 ∧ len(Changes) = 0`). **No pure encoder and no round-trip law axiom**:
+  `Marshal`'s bytes depend on `Context`'s `nil`-ness, which the content records forget, so an
+  axiom "`Marshal` returns `ccEncode m`" would be false; the round trip is `Marshal`'s
+  postcondition instead (weaker, and all a decoder-side proof needs).
+- **Proved** (Spec/Proof `raftpb/`): `ConfChange.AsV2` (the one change `{Type, NodeId}`, the
+  same `Context`, `Auto`), `ConfChange.AsV1`, `ConfChangeV2.AsV1`/`AsV2`, `EnterJoint`
+  (`enterJointOf c.Transition ccs.length`, a panic for an undefined transition with joint
+  consensus), `LeaveJoint` (`Transition = 0 ∧ ccs = []`), `MarshalConfChange` (`ccEntryType o`,
+  bytes with `CCData o`, `nil`), `confChangeToMsg` (`ccPropMsg ents` with
+  `ents ↦* [ccEntry o data]`).
+- **Not specified: `RawNode.ProposeConfChange`, `node.ProposeConfChange`.** They step
+  `confChangeToMsg`'s `MsgProp`, whose entry is `EntryConfChange`/`EntryConfChangeV2`; `raft.Step`'s
+  spec admits no such entry (`stepLeader`'s `appendEntry` needs `EntryNormal`, `ownRaftLog`'s
+  `HnoConfChange`). A spec now would need an unsatisfiable premise; they wait for the log to
+  admit conf-change entries (stage 1). The encoding layer they rest on is done.
+- **Finding** (`issues/raft-unknown-transition-panic.md`, reproduced): a `ConfChangeV2` with an
+  undefined `Transition` and joint consensus is accepted by `stepLeader`, committed, and panics
+  `ApplyConfChange` (`EnterJoint`) on every node, again on every restart.
+- `etc/link-lean-first.txt`: the new functions; `Link.lean` regenerated. Full `lake build`
+  passes; `etc/tcb-report.py --check` gained exactly the five axioms (baseline updated: 75
+  axioms, 10 sorries), as did `tcb-collections/raft.txt` (6 axioms, no sorry); the register's
+  collection is unchanged (its results do not reach the new functions).
+- Build note: once, under a parallel full build, `stepLeader.lean` failed at an `iframe` (line
+  436) that succeeds alone and in the next build; not investigated further.
 
 ## `MemoryStorage`: the rest of the storage (2026-10-12)
 
@@ -217,7 +269,7 @@ of its `Get` is one such panic, so it never fires.
   - Ghost state: a concrete bundle `registerGF` (`AllG` at slot 0, then invariants, credits,
     heap, prophecies, package state, the disk heap) with its `GooseGpreS` instance.
   - From `ownGoState ∅` to `ownInitializing getIsPkgInit`: `getIsPkgInit` is a lookup table
-    over the 29 packages the register reaches, transitively. Its `GetIsPkgInitWf` is proved
+    over the 30 packages the register reaches, transitively. Its `GetIsPkgInitWf` is proved
     by `repeat' (first | exact True.intro | apply And.intro | rfl)`.
   - Then `register.wp_initialize'` (`Init.lean`), then `register.wp_Main`.
 - **Initialization, proved.**
