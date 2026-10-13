@@ -11,6 +11,7 @@ public import Spec.go_etcd_io.raft.v3.raft__Step
 public import Spec.go_etcd_io.raft.v3.raft__hasLeader
 public import Spec.go_etcd_io.raft.v3.IsResponseMsg
 public import Spec.go_etcd_io.raft.v3.IsLocalMsgTarget
+public import Spec.go_etcd_io.raft.v3.raft__applyConfChange
 public import Proof.go_etcd_io.raft.v3.InvNodeRun
 
 @[expose] public section
@@ -39,7 +40,8 @@ theorem node.run.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (wp_raft_hasLeader : raft.hasLeader.spec (GF := GF) (hG := hG))
     (wp_IsResponseMsg : IsResponseMsg.spec (GF := GF) (hG := hG))
-    (wp_IsLocalMsgTarget : IsLocalMsgTarget.spec (GF := GF) (hG := hG)) :
+    (wp_IsLocalMsgTarget : IsLocalMsgTarget.spec (GF := GF) (hG := hG))
+    (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     node.run.spec (GF := GF) (hG := hG) := by
   intro γ id n
   wp_start as ⟨#Hnode, Hpre⟩
@@ -354,7 +356,7 @@ theorem node.run.wp_proof
       unfold runHead
       iexists { rs with term := t }
       iframe Hrn Hrest)
-  -- `<-n.confc`: never
+  -- `cc := <-n.confc` (2026-10-13): a conf change that leaves the configuration unchanged
   iapply BigAndL.bigAndL_cons.2
   isplit
   · ileft
@@ -365,7 +367,90 @@ theorem node.run.wp_proof
     · ipureintro; rfl
     isplitr
     · iapply isHandshake_isChan $$ Hconfc
-    iapply handshake_false_recv_au γ.confc nv.confc' $$ [$Hlc1 $Hlc2] Hconfc
+    iapply handshake_receive_au γ.confc nv.confc' (confcP γ) iprop(True) _
+      $$ [$Hlc1 $Hlc2] Hconfc []
+    · itrivial
+    inext
+    iintro %cc HP
+    iunfold confcP at HP
+    icases HP with ⟨%ccs, #Hccs, %Hn⟩
+    wp_auto
+    ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid
+    iunfold runHead at Hhead
+    icases Hhead with ⟨%rs, Hrn, Hrest⟩
+    -- `_, okBefore := r.trk.Progress[r.id]`: the node is a voter
+    icases ownRawNode_borrow_in γ.raft nv.rn' id rs r $$ Hrn Hrnraft
+      with ⟨%s, %Hin, Hphys, Hback⟩
+    icases ownRaftPhys_tracker_same _ r id _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Htb⟩
+    icases ownTracker_progress_map _ _ _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
+    wp_auto
+    wp_apply wp_map_lookup2 $$ Hprs as -
+    ihave Hphys := Htb $$ %tv Htrkf Htrk
+    ihave Hrn := Hback $$ Hphys
+    have Hb : (s.progress !! id).isSome = true := by
+      have := (GMap.elem_of_dom s.progress id).1 (by rw [Hdom]; exact Hin)
+      obtain ⟨v, hv⟩ := this; rw [hv]; rfl
+    rw [Hb]
+    try wp_auto
+    -- `cs := r.applyConfChange(cc)`
+    wp_apply wp_rn_raft_applyConfChange wp_raft_applyConfChange γ.raft nv.rn' id rs r cc ccs Hn
+      $$ [$Hrn $Hrnraft $Hccs] as %cs %xs ⟨Hrn, Hvoters, %Hcs⟩
+    -- `_, okAfter := r.trk.Progress[r.id]`: still a voter
+    icases ownRawNode_borrow_in γ.raft nv.rn' id rs r $$ Hrn Hrnraft
+      with ⟨%s2, %Hin2, Hphys, Hback⟩
+    try wp_auto
+    icases ownRaftPhys_tracker_same _ r id _ $$ Hphys with ⟨%tv2, Htrkf, Htrk, Htb⟩
+    icases ownTracker_progress_map _ _ _ $$ Htrk with ⟨#Hprs2, %Hdom2, Htrk⟩
+    wp_auto
+    wp_apply wp_map_lookup2 $$ Hprs2 as -
+    ihave Hphys := Htb $$ %tv2 Htrkf Htrk
+    ihave Hrn := Hback $$ Hphys
+    have Hb2 : (s2.progress !! id).isSome = true := by
+      have := (GMap.elem_of_dom s2.progress id).1 (by rw [Hdom2]; exact Hin2)
+      obtain ⟨v, hv⟩ := this; rw [hv]; rfl
+    rw [Hb2]
+    imod ownSlice_persist $$ Hvoters with #Hvoters
+    wp_auto_lc 3
+    -- `select { case n.confstatec <- cs: case <-n.done: }`
+    wp_apply_core chan.wp_select_blocking
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · simp only [chan.blockingClausePre]
+      iexists raftpb.ConfState, inferInstance, inferInstance, inferInstance, inferInstance,
+        nv.confstatec', γ.confstatec, _
+      isplitr
+      · ipureintro; exact ⟨rfl, rfl⟩
+      isplitr
+      · iapply isHandshake_isChan $$ Hconfstatec
+      iapply handshake_send_au γ.confstatec nv.confstatec' _ (confstateP γ) iprop(True)
+        $$ [$Hlc1 $Hlc2 $Hlc3] Hconfstatec []
+      · unfold confstateP
+        iexists xs
+        iframe Hvoters
+        ipureintro; exact Hcs
+      inext
+      iintro -
+      wp_auto
+      wp_for_post
+      iframe HΦ n r
+      iexists pc', rc', ac, rdv', ld'
+      iframe propc readyc advancec rd lead
+      isplitr
+      · ipureintro; exact Hpc'
+      unfold runHead
+      iexists rs
+      iframe Hrn Hrest
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · simp only [chan.blockingClausePre]
+      iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, nv.done', γ.done
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · iapply isHandshake_isChan $$ Hdone
+      iapply handshake_false_recv_au γ.done nv.done' $$ [$Hlc1 $Hlc2] Hdone
+    iapply BigAndL.bigAndL_nil.2
+    itrivial
   -- `<-n.tickc`
   iapply BigAndL.bigAndL_cons.2
   isplit

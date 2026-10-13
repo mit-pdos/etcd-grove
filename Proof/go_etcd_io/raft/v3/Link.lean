@@ -141,6 +141,7 @@ public import Proof.go_etcd_io.raft.v3.newNode
 public import Proof.go_etcd_io.raft.v3.newRaft
 public import Proof.go_etcd_io.raft.v3.newReadOnly
 public import Proof.go_etcd_io.raft.v3.node__Advance
+public import Proof.go_etcd_io.raft.v3.node__ApplyConfChange
 public import Proof.go_etcd_io.raft.v3.node__ForgetLeader
 public import Proof.go_etcd_io.raft.v3.node__Propose
 public import Proof.go_etcd_io.raft.v3.node__ProposeConfChange
@@ -1294,7 +1295,7 @@ theorem raft.wp_hasLeader :
 
 theorem node.wp_run :
     node.run.spec (GF := GF) (hG := hG) :=
-  node.run.wp_proof RawNode.wp_HasReady RawNode.wp_readyWithoutAccept RawNode.wp_acceptReady RawNode.wp_Advance RawNode.wp_Tick raft.wp_Step raft.wp_hasLeader wp_IsResponseMsg wp_IsLocalMsgTarget
+  node.run.wp_proof RawNode.wp_HasReady RawNode.wp_readyWithoutAccept RawNode.wp_acceptReady RawNode.wp_Advance RawNode.wp_Tick raft.wp_Step raft.wp_hasLeader wp_IsResponseMsg wp_IsLocalMsgTarget raft.wp_applyConfChange
 
 theorem wp_RestartNode :
     RestartNode.spec (GF := GF) (hG := hG) :=
@@ -1303,6 +1304,10 @@ theorem wp_RestartNode :
 theorem node.wp_Advance :
     node.Advance.spec (GF := GF) (hG := hG) :=
   node.Advance.wp_proof
+
+theorem node.wp_ApplyConfChange :
+    node.ApplyConfChange.spec (GF := GF) (hG := hG) :=
+  node.ApplyConfChange.wp_proof raftpb.ConfChange.wp_AsV2 raftpb.ConfChangeV2.wp_AsV2
 
 theorem node.wp_stepWithWaitOption :
     node.stepWithWaitOption.spec (GF := GF) (hG := hG) :=

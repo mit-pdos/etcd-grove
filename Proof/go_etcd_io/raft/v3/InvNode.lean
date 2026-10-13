@@ -6,8 +6,10 @@ Lean-first (no Rocq counterpart).
 `node.run` is one goroutine that owns the `RawNode`; clients talk to it over channels:
 `propc` (a proposal and, for `Propose`, a buffered result channel), `recvc` (a message from
 the network), `tickc` (buffered, a tick dropped when full), `readyc` (the next `Ready`),
-`advancec` (the application's "done with that `Ready`"), and `done`, `stop`, `status`,
-`confc` (shutdown, status and reconfiguration: out of scope, never used).
+`advancec` (the application's "done with that `Ready`"), `confc`/`confstatec` (a conf change
+to apply and the resulting `ConfState`; since 2026-10-13, for changes that leave the
+configuration unchanged, `confcP`/`confstateP`), and `done`, `stop`, `status` (shutdown and
+status: out of scope, never used).
 
 ## The ghost state
 
@@ -47,6 +49,7 @@ public import Perennial.Golang.Theory.Chan.Idioms.Handshake
 public import Proof.go_etcd_io.etcd.cache.v3.Handoff
 public import Perennial.Ghost.MonoNat
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import Proof.go_etcd_io.raft.v3.InvApplyConf
 
 @[expose] public section
 
@@ -301,6 +304,8 @@ structure NodeNames [FfiSyntax] where
   propc : ChanNames
   recvc : ChanNames
   confc : ChanNames
+  /-- (2026-10-13) `confstatec`: the `ConfState` `run` answers a conf change with -/
+  confstatec : ChanNames
   readyc : ChanNames
   advancec : ChanNames
   tick : ChanNames
@@ -472,6 +477,18 @@ def advanceP (γ : NodeNames) (_ : Unit) : IProp GF :=
 def tickInv (γ : NodeNames) : IProp GF :=
   iprop(∃ l : List Unit, ownChan γ.tick Unit (.Buffered l) ∗ tickCred γ.bud l.length)
 
+/-- A conf change on `confc` (2026-10-13, `node.ApplyConfChange`): its changes, read-only,
+leave the configuration unchanged (`ccApplyM`, the scope of `raft.applyConfChange`). -/
+def confcP (γ : NodeNames) (v : raftpb.ConfChangeV2) : IProp GF :=
+  iprop(∃ ccs : List raftpb.ConfChangeSingle, v.Changes' ↦*□ ccs ∗
+    ⌜ccApplyM v.Transition' ccs (cfgState γ.raft.reCfg) = some (cfgState γ.raft.reCfg)⌝)
+
+/-- The `ConfState` on `confstatec`: the voters, read-only, and nothing else. -/
+def confstateP (γ : NodeNames) (cs : raftpb.ConfState) : IProp GF :=
+  iprop(∃ xs : List w64, cs.Voters' ↦*□ xs ∗ ⌜xs ≡ₚ elements γ.raft.reCfg ∧
+    cs.VotersOutgoing'.len = W64 0 ∧ cs.Learners'.len = W64 0 ∧
+    cs.LearnersNext'.len = W64 0 ∧ cs.AutoLeave' = false⌝)
+
 /-- See the file header. -/
 def isNode (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=
   iprop(∃ (nv : node) (r : Loc) (lok : GoInterfaceOk),
@@ -482,8 +499,8 @@ def isNode (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=
     "#Hlogger" ∷ isLogger lok ∗
     "#Hpropc" ∷ isHandshake γ.propc nv.propc' (propP γ) iprop(True) ∗
     "#Hrecvc" ∷ isHandshake γ.recvc nv.recvc' (netP γ id) iprop(True) ∗
-    "#Hconfc" ∷ isHandshake γ.confc nv.confc' (fun (_ : raftpb.ConfChangeV2) => iprop(False))
-      iprop(True) ∗
+    "#Hconfc" ∷ isHandshake γ.confc nv.confc' (confcP γ) iprop(True) ∗
+    "#Hconfstatec" ∷ isHandshake γ.confstatec nv.confstatec' (confstateP γ) iprop(True) ∗
     "#Hreadyc" ∷ isHandshake γ.readyc nv.readyc' (readyP γ) iprop(True) ∗
     "#Hadvancec" ∷ isHandshake γ.advancec nv.advancec' (advanceP γ) iprop(True) ∗
     "#Hdone" ∷ isHandshake γ.done nv.done' (fun (_ : Unit) => iprop(False)) iprop(True) ∗

@@ -27,10 +27,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The node struct's channels, fresh (see the file header). -/
 def newNodeChans (nv : node) : IProp GF :=
-  iprop(∃ (γp γr γc γrd γa γt γd γs γst : ChanNames),
+  iprop(∃ (γp γr γc γcs γrd γa γt γd γs γst : ChanNames),
     isChan nv.propc' γp msgWithResult ∗ ownChan γp msgWithResult .Idle ∗
     isChan nv.recvc' γr raftpb.Message ∗ ownChan γr raftpb.Message .Idle ∗
     isChan nv.confc' γc raftpb.ConfChangeV2 ∗ ownChan γc raftpb.ConfChangeV2 .Idle ∗
+    isChan nv.confstatec' γcs raftpb.ConfState ∗ ownChan γcs raftpb.ConfState .Idle ∗
     isChan nv.readyc' γrd Ready ∗ ownChan γrd Ready .Idle ∗
     isChan nv.advancec' γa Unit ∗ ownChan γa Unit .Idle ∗
     isChan nv.tickc' γt Unit ∗ ownChan γt Unit (.Buffered []) ∗

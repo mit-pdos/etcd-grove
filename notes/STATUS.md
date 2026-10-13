@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-13 (reconfiguration, stage D: conf-change entries flow through the log as data while every node's configuration stays fixed -- `ownRaftLog`'s `HnoConfChange` dropped, `hasUnappliedConfChanges`'s real answer (a generalized `scan`), `hup`'s refusal, `pendingConfIndex` tracked (`NState.pci`), `stepLeader`'s conf-change loop proved (decode, the three checks, the overwrite of a refused change), `Step.propose` over the loop's batch (`PropRepl`), conf entries outside the client log, `RawNode.ProposeConfChange`/`node.ProposeConfChange` specified and proved, `RawNode.ApplyConfChange` left; leader transfer at the node layer and in the register: `netP`/`RawNode.Step` admit `MsgTimeoutNow` (with a term-budget tick credit), an unstamped `MsgTransferLeader`, the local reports and transfer vote contexts; `node.TransferLeadership`/`ForgetLeader`/`ReportUnreachable`/`ReportSnapshot` verified; the register's transport passes `MsgTimeoutNow` (bounded, `transfers`) and transfer votes, `Register.TransferLeadership`, `Main` asks for a transfer; see "Leader transfer at the node layer and in the register"; leader transfer, `MsgForgetLeader`, `MsgUnreachable`, `MsgSnapStatus` and basic status verified through `raft.Step` and `RawNode` (the transfer target tracked in `ownRaftPhys`, transfer campaigns are ordinary campaigns, `ctx ≠ campaignTransfer` dropped from `raft.Step`), see "Leader transfer and the rest of the message types"; a safety violation reproduced on etcd-raft when `Advance` precedes `ApplyConfChange` (allowed by its documentation), `issues/raft-advance-before-applyconfchange.md`; reconfiguration, stage 0: raftpb's conf-change helpers translated and proved (`AsV1`/`AsV2`, `EnterJoint`, `LeaveJoint`, `MarshalConfChange`) with `confChangeToMsg`, five trust-boundary axioms (gogoproto's `Marshal`/`Unmarshal` of `ConfChange`/`ConfChangeV2` over the opaque decoders `ccDecodeV1`/`ccDecodeV2`, `proto.Equal`), `ProposeConfChange` left for the log stage, a finding (an undefined `Transition` panics every node at apply), see "Reconfiguration, stage 0"; raft's read-index (`ReadOnlySafe`) verified end to end: six protocol rules refined (forward, pending, arrival, release, acknowledgement and quorum confirmation, the answer), `raft.Step` for `MsgReadIndex`/`MsgReadIndexResp` and heartbeats with read positions, `RawNode.ReadIndex`/`node.ReadIndex`, `Ready`'s `ReadState`s with what each promises (`readOk`), read credits against position wrap-around; no new axiom or `sorry`, see "Read-index (`ReadOnlySafe`)"; 2026-10-12: raft's `MemoryStorage` complete: `InitialState`, `SetHardState`, `ApplySnapshot`, `CreateSnapshot`, `Compact` specified and proved over `memStorMeta` (the hard state and snapshot, half of each outside the lock), two findings (`CreateSnapshot`'s undocumented range, below the compaction boundary a runtime panic; `InitialState` races, unlocked), see "`MemoryStorage`: the rest of the storage"; raft's `confchange` specified and proved for all inputs against a pure model (joint configs, learners, `EnterJoint`/`LeaveJoint`, every error path), `Restore.spec` unchanged, six `quorum`/`tracker` functions, two findings, see "`confchange`, `quorum`, `tracker`: general specs for reconfiguration"; a closed theorem about the register's driver in the operational semantics, `register_adequate`, from Perennial's adequacy; package initialization proved for raft, its subpackages, `context` and the register; the account of every axiom and `sorry` it rests on, see "Adequacy of the register's driver"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
+**Last updated:** 2026-10-13 (reconfiguration, stage D finished for changes that leave the configuration unchanged: `Step.reMatch`, `switchToConfig` at a leader, `raft.applyConfChange`, `RawNode.ApplyConfChange`, `node.ApplyConfChange` with the `confc`/`confstatec` handshake in `node.run`, see "Reconfiguration, stage D: `ApplyConfChange` for an unchanged configuration"; stage L (learners) planned, not started, see "Reconfiguration, stage L: learners"; reconfiguration, stage D: conf-change entries flow through the log as data while every node's configuration stays fixed -- `ownRaftLog`'s `HnoConfChange` dropped, `hasUnappliedConfChanges`'s real answer (a generalized `scan`), `hup`'s refusal, `pendingConfIndex` tracked (`NState.pci`), `stepLeader`'s conf-change loop proved (decode, the three checks, the overwrite of a refused change), `Step.propose` over the loop's batch (`PropRepl`), conf entries outside the client log, `RawNode.ProposeConfChange`/`node.ProposeConfChange` specified and proved, `RawNode.ApplyConfChange` left; leader transfer at the node layer and in the register: `netP`/`RawNode.Step` admit `MsgTimeoutNow` (with a term-budget tick credit), an unstamped `MsgTransferLeader`, the local reports and transfer vote contexts; `node.TransferLeadership`/`ForgetLeader`/`ReportUnreachable`/`ReportSnapshot` verified; the register's transport passes `MsgTimeoutNow` (bounded, `transfers`) and transfer votes, `Register.TransferLeadership`, `Main` asks for a transfer; see "Leader transfer at the node layer and in the register"; leader transfer, `MsgForgetLeader`, `MsgUnreachable`, `MsgSnapStatus` and basic status verified through `raft.Step` and `RawNode` (the transfer target tracked in `ownRaftPhys`, transfer campaigns are ordinary campaigns, `ctx ≠ campaignTransfer` dropped from `raft.Step`), see "Leader transfer and the rest of the message types"; a safety violation reproduced on etcd-raft when `Advance` precedes `ApplyConfChange` (allowed by its documentation), `issues/raft-advance-before-applyconfchange.md`; reconfiguration, stage 0: raftpb's conf-change helpers translated and proved (`AsV1`/`AsV2`, `EnterJoint`, `LeaveJoint`, `MarshalConfChange`) with `confChangeToMsg`, five trust-boundary axioms (gogoproto's `Marshal`/`Unmarshal` of `ConfChange`/`ConfChangeV2` over the opaque decoders `ccDecodeV1`/`ccDecodeV2`, `proto.Equal`), `ProposeConfChange` left for the log stage, a finding (an undefined `Transition` panics every node at apply), see "Reconfiguration, stage 0"; raft's read-index (`ReadOnlySafe`) verified end to end: six protocol rules refined (forward, pending, arrival, release, acknowledgement and quorum confirmation, the answer), `raft.Step` for `MsgReadIndex`/`MsgReadIndexResp` and heartbeats with read positions, `RawNode.ReadIndex`/`node.ReadIndex`, `Ready`'s `ReadState`s with what each promises (`readOk`), read credits against position wrap-around; no new axiom or `sorry`, see "Read-index (`ReadOnlySafe`)"; 2026-10-12: raft's `MemoryStorage` complete: `InitialState`, `SetHardState`, `ApplySnapshot`, `CreateSnapshot`, `Compact` specified and proved over `memStorMeta` (the hard state and snapshot, half of each outside the lock), two findings (`CreateSnapshot`'s undocumented range, below the compaction boundary a runtime panic; `InitialState` races, unlocked), see "`MemoryStorage`: the rest of the storage"; raft's `confchange` specified and proved for all inputs against a pure model (joint configs, learners, `EnterJoint`/`LeaveJoint`, every error path), `Restore.spec` unchanged, six `quorum`/`tracker` functions, two findings, see "`confchange`, `quorum`, `tracker`: general specs for reconfiguration"; a closed theorem about the register's driver in the operational semantics, `register_adequate`, from Perennial's adequacy; package initialization proved for raft, its subpackages, `context` and the register; the account of every axiom and `sorry` it rests on, see "Adequacy of the register's driver"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
 as pinned), the requests and responses as the client model's values (`Requests.lean`), `isKV`,
 `isTxnLessor`, 13 trust-boundary axioms (`sort.Sort`/`Reverse`, traceutil, `proto.Size`,
 `zap.Logger.Panic`, ...), mvcc's read-only write transaction proved, `gen-link.py --txn`, a
@@ -18,6 +18,101 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## Reconfiguration, stage D: `ApplyConfChange` for an unchanged configuration (2026-10-13)
+
+`RawNode.ApplyConfChange` and `node.ApplyConfChange` are specified and proved for a change whose
+model answer is the configuration it started from; `ownRawNode γ` is kept, the ghost step is
+taken inside. Trust base: no new axiom, no new `sorry` (`etc/tcb-report.py --check`: 75 axioms,
+10 sorries; `raft.txt` unchanged; `register.txt` gains `gogoproto.Equal.wp_proof`, which `node.run`
+now reaches through `applyConfChange` -> `ConfChangeV2.LeaveJoint`: baseline updated).
+
+- **Scope** (`InvApplyConf.lean`): `ccApplyM t ccs s` is `applyConfChange`'s choice
+  (`LeaveJoint` / `EnterJoint` / `Simple`, `none` where `EnterJoint` panics) on what `AsV2`
+  makes of the change (`ccV2Of`); `cfgState cfg` is what `confchange` sees of a node at `cfg`
+  (voters only, every `Progress` a non-learner). The premise of every spec below is
+  `ccApplyM (ccV2Of o) (cfgState cfg) = some (cfgState cfg)`; only `Simple` can answer that
+  (`ccApplyM_noop`, through `applyM_outgoing`), e.g. any change with `NodeId = 0`
+  (`ccApplyM_single_noop`, `ccApplyM_v1_noop`), an `UpdateNode`, an `AddNode` of a voter, a
+  `RemoveNode` of an untracked id, a remove and re-add of one voter.
+- **The model: `Step.reMatch`** (Model.lean, refined in Refinement.lean by
+  `ownRaftGhost_step_rematch`): a leader's `matched` replaced by a map whose every entry is `0`
+  or the peer's old one. Needed because even a no-op change installs *new* `Progress` objects:
+  copies (`checkAndCopy`), or fresh ones (`Match = 0`) for a peer removed and re-added in one
+  `Simple` -- `ownNewPr`'s disjunction does not say which. `isAcked` at `0` holds for free, so
+  `matchedOk` survives. (Also what stage L needs: a learner added gets a fresh `Progress`.)
+- **`ownTracker`**: its `Learners`/`LearnersNext` are now `ownIdsetC` (canonical, so `nil` while
+  empty) rather than `ownIdsetOpt`, as `ownTrackerCC` needs; `ProgressTracker.ConfState`'s proof
+  adapted. `ownTracker_toCC` gives the tracker as the `Changer` reads it, the inflight rings set
+  apart (`progRAt`); `ownResult_noop_transfer` moves them to `Simple`'s result (`ownNewPr_transfer`)
+  and gives `ownConfigV` (`ownConfig` with the records named) with `MatchKept` (InvTracker.lean).
+- **`raft.switchToConfig.spec` changed**: it now takes the struct *open at its tracker* -- the
+  field, `ownRaftPhys_reconfig`'s wand, the old tally and inflight bound (`ownTracker_votes`) --
+  and the new configuration as `ownConfigV cfg cfgv prsm prs pvs`; premise `s.role = .leader →
+  id ∈ cfg ∧ MatchKept s.prvals pvs`; post `∃ cs xs s', ownRaftPhys cfg r id s' ∗ ... ∗
+  ⌜SwitchOk cfg id {s with progress := prs, prvals := pvs} s'⌝` (non-leader: `s' = s1`; leader:
+  `LeaderSwitch`: `maybeCommit` to `c` or not, the appends `ReplSends` allows, no `Match` moved,
+  `leadTransferee` possibly cleared). The open form lets the caller move the old objects' rings
+  to the copies before the call. The old statement is `raft.switchToConfig.spec_nonleader`
+  (derived, in the Spec file), which `newRaft` and `restore` now call. Not covered: a leader
+  removed or demoted (`stepDownOnRemoval`).
+- **`raft.applyConfChange`** (new spec): on `ownRaftPhys cfg` and the change's `Changes`, with
+  `id ∈ cfg` and the scope premise; post `ApplyCCOk cfg id s s'`, whose protocol reading
+  (`applyCCOk_step`) is one `Step` receiving nothing (`reMatch`, then `commit`, then `sendApps`;
+  `refl` at a non-leader) and a frame (role, `r.step`, `r.tick`, term, pre-vote, ghost bounds,
+  the log but a raised commit index). `LeaveJoint`/`EnterJoint` of the `Changer` are unreachable
+  (no specs needed).
+- **`RawNode.ApplyConfChange`** (new spec): `ownRawNode γ rn id rs` and `ownCCI c dq (some o)`
+  kept, a fresh `*ConfState` with the voters. `rawNode_applyCC_reseal` (InvNodeRun.lean) is the
+  ghost step and the re-seal.
+- **`node.ApplyConfChange`** (new spec, `{{ isNode γ id n ∗ ownCCI c DFrac.discard (some o) }}
+  ... {{ csp cs, csp ↦ cs ∗ confstateP γ cs }}`): `isNode`'s `confc` handshake now carries
+  `confcP` (the changes read-only, in scope) and a new `confstatec` handshake `confstateP`
+  (`NodeNames.confstatec`, `newNodeChans` gains the channel, `RestartNode` starts both);
+  `node.run`'s `confc` arm is proved (`okBefore`/`okAfter` both true: the node stays a voter,
+  `ownRawNode_borrow_in`; `wp_rn_raft_applyConfChange`; the send on `confstatec`).
+- **The `Advance` ordering** (`issues/raft-advance-before-applyconfchange.md`): stated in the
+  documentation of `RawNode.ApplyConfChange` and `node.ApplyConfChange`. For the covered changes
+  it is not needed (the configuration in use does not change, so neither guard is misled); no
+  premise, and `ownRawNode` could not state one (it does not record which entries the
+  application applied). A configuration-changing spec will need it.
+- Lean-first link entries (`etc/link-lean-first.txt`): `raft__switchToConfig` (overridden),
+  `raft__applyConfChange`, `RawNode__ApplyConfChange`, `node__ApplyConfChange`, `node__run` (+
+  `raft__applyConfChange`).
+- Build note: a parallel full build once failed in `stepLeader.lean` (`ipureintro` at line 711,
+  an unknown free variable at 813) and passed when rebuilt alone -- the same flakiness noted in
+  stage 0.
+- Not a Go bug, noted: `switchToConfig`'s commit (`maybeCommit` after a configuration change)
+  does not release pending read-index requests as `stepLeader`'s does; they wait for the next
+  commit (liveness only).
+
+## Reconfiguration, stage L: learners (planned, not started)
+
+Not started: it is much bigger than one session (83 raft files mention `ownTracker`,
+`progressAbs`, `visitClosure`, `HnoLearner` or `SnapScope`; 176 sites with `∈ cfg` premises or
+learner-free facts). The plan, as specified by the coordinator, with what stage D now provides:
+
+- Protocol: nothing (`IsQuorum cfg q` intersects with `cfg`, `grantVote` has no `cfg` premise,
+  `Step.campaign` needs `id ∈ cfg`); `γ.reCfg = voters`. `Step.reMatch` already lets a leader's
+  `matched` gain a learner at `0` or lose one.
+- `ownTracker cfg` → indexed by voters and learners: progress-map domain `voters ∪ learners`
+  (disjoint), `progressAbs` allowing `IsLearner = true` (record it in `Progress`?, or a
+  per-id flag map in `Trk`), `Learners` an arbitrary `ownIdsetC` (already canonical since stage
+  D), `LearnersNext = ∅`. Every proof that reads `Progress.IsLearner = false` from `progressAbs`
+  (`promotable`, `switchToConfig`, `ConfState`, `IsSingleton`, ...) changes.
+- `visitClosure`'s `i ∈ cfg` becomes `i ∈ voters ∪ learners`; `reset`, `bcastAppend`,
+  `bcastHeartbeat`, `maybeSendAppend`'s `to ∈ cfg` premise likewise.
+- `ownRaftPhys`: drop `HnoLearner`, add `NState.isLearner`; `raft.Step`'s `id ∈ cfg` becomes
+  "voter or learner" where only tracking is needed; a learner never campaigns (`promotable`).
+- Snapshots: `SnapScope` and the snap rules with learners (`Restore` of a `ConfState` with
+  learners: `confchange.Restore`'s spec is voters-only today).
+- Ghost allocation over an id universe (`ownRaftGhost_alloc` already takes `ids` apart from
+  `cfg`).
+- `ApplyConfChange` for voter-preserving changes (AddLearner of a new id, removing a learner):
+  `ccApplyM`'s answer with the same incoming voters, `RNState` gaining the application-visible
+  configuration; `ownResult_noop_transfer` generalized (fresh `Progress` objects for new
+  learners already handled by its fresh case).
+- The register: unchanged (no learners).
 
 ## Leader transfer at the node layer and in the register (2026-10-13)
 
@@ -132,22 +227,9 @@ also rests on gogoproto's two `Unmarshal` axioms, which every `Step` reaches thr
 - **Edits to the other agent's files** (minimal): `InvNode.lean` (`node_propose_ghost`'s `none`
   case is the new disjunct, one line); `node__run.lean` (passes the invariant to
   `wp_rn_raft_Step_prop`). `RawNode__Step`, `netP`, `Cluster.lean` untouched.
-- **Left: `RawNode.ApplyConfChange`** (and `raft.applyConfChange`, `switchToConfig` at a
-  leader). Even for a change that leaves the configuration unchanged (a V1 change with
-  `NodeId = 0`, which `confchange.apply` skips) the Go code installs *copies*: `Changer.Simple`
-  clones the tracker (a new progress map of new `Progress` objects sharing the old `Inflights`),
-  `switchToConfig` stores them into `r.trk` and, at a leader, runs `maybeCommit` then
-  `bcastAppend` or a `Visit` of `maybeSendAppend`, and the `leadTransferee` check over
-  `Voters.IDs()`. What it needs: `ownTracker` → `ownTrackerCC` (fractions) and back;
-  `simpleM [⟨t, 0⟩] s = some (clearAutoLeave s)` for a simple learner-free `s`; `ownResult` →
-  `ownConfig` (`ownNewPr_transfer` moving each ring to its copy, the copies' values equal to the
-  originals'); `switchToConfig`'s spec extended to the leader (`Step.commit`, `Step.sendApps`);
-  `applyConfChange` (`LeaveJoint`/`EnterJoint` specs give `false`/`ok = false`); and
-  `RawNode.ApplyConfChange` updating the ghost state like `Step`. Its documentation must state
-  the ordering `issues/raft-advance-before-applyconfchange.md` requires (apply a `Ready`'s conf
-  changes before `Advance`); for an unchanged configuration the order does not matter (the
-  configuration in use is the same either way), so a premise would not be needed there. Until
-  it exists no client applies a conf change, and the order is vacuous.
+- **Left** (since done for an unchanged configuration: see "Reconfiguration, stage D:
+  `ApplyConfChange` for an unchanged configuration"): `ApplyConfChange` of a change that changes
+  the configuration.
 
 ## Leader transfer and the rest of the message types (2026-10-13)
 

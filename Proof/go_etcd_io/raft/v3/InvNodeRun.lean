@@ -16,6 +16,7 @@ module
 
 public import Proof.go_etcd_io.raft.v3.InvNode
 public import Spec.go_etcd_io.raft.v3.raft__Step
+public import Spec.go_etcd_io.raft.v3.raft__applyConfChange
 -- `Step.commit_mono`
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
 
@@ -682,6 +683,109 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
     $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstr'
 
 end step
+
+/-! ## `r.applyConfChange`, on the node (2026-10-13) -/
+
+section applycc
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- After `applyConfChange`: the ghost step its result is (`applyCCOk_step`,
+`ownRaftGhost_step_0`), and `ownRawNode` re-sealed at the same client-facing state. -/
+theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
+    (s s' : NState) (ps : PState) (rnv : RawNode) (sv : SoftState) (steps : List raftpb.Message)
+    (Hrel : NStateRel s ps) (Hin : id ∈ γ.reCfg) (Hasync : rnv.asyncStorageWrites' = false)
+    (Hdlen : rs.delivered.length = (uint.Z s.logst.applying).toNat)
+    (Hunp : rs.unpersisted = s.logst.unpersisted) (Hsnap : s.logst.snap = none)
+    (Hstok : StepsOk s rs.steps) (Htrm : rs.term = s.term) (Hstor : rs.storage = s.logst.storage)
+    (Hpvoff : s.prevote = false) (Hrs_out : rs.outlb = s.gh.outlb)
+    (Hrs_unst : rs.unst = s.gh.unst) (Hrs_clb : uint.Z rs.clb ≤ uint.Z s.logst.committed)
+    (Hok : ApplyCCOk γ.reCfg id s s') :
+    ⊢ rawNodeOwn rn rnv -∗ ownRaftPhys γ.reCfg rnv.raft' id s' -∗ ownRaftGhost (GF := GF) γ id ps -∗
+      rnv.prevSoftSt' ↦□ sv -∗ rnv.stepsOnAdvance' ↦* steps -∗
+      ownSliceCap raftpb.Message rnv.stepsOnAdvance' (DFrac.own 1) -∗
+      ([∗list] _k ↦ m;p ∈ steps;rs.steps, pendingRel γ id m p) -∗
+      ([∗list] _k ↦ m;p ∈ steps;rs.steps, pendingOwn m p) -∗
+      isCommitted γ rs.delivered -∗
+      storedRecs γ s.logst.prev s.logst.stored ={⊤}=∗
+      ownRawNode γ rn id rs := by
+  obtain ⟨Hst, Hro, Hsf, Htk, Htm, Hpv, Hgh, Hls, Hc⟩ := applyCCOk_step _ _ _ _ Hok
+  have Hprev : s'.logst.prev = s.logst.prev := by rw [Hls]
+  have Hstored : s'.logst.stored = s.logst.stored := by rw [Hls]
+  have Happ : s'.logst.applying = s.logst.applying := by rw [Hls]
+  have Hunp' : s'.logst.unpersisted = s.logst.unpersisted := by rw [Hls]
+  have Hsnap' : s'.logst.snap = s.logst.snap := by rw [Hls]
+  have Hstor' : s'.logst.storage = s.logst.storage := by rw [Hls]
+  have Hwf' : NStateWf s' := by
+    obtain ⟨-, H1, H2⟩ := Hrel
+    exact ⟨by rw [Hsf, Hro]; exact H1, by rw [Htk]; exact H2⟩
+  iintro Hrn Hphys Hghost #Hsoft Hsteps Hcap #Hpend Hpown #Hdeliv #Hstrecs
+  rw [← Hrel.1] at *
+  imod ownRaftGhost_step_0 γ id _ _ Hst $$ Hghost with Hghost
+  ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hprev Hstored $$ Hstrecs
+  iapply ownRawNode_intro γ rn id rs s' (toPState s') rnv sv steps ⟨rfl, Hwf'⟩ Hin Hasync
+    (by rw [Happ]; exact Hdlen) (by rw [Hunp']; exact Hunp) (by rw [Hsnap']; exact Hsnap)
+    (stepsOk_mono_le s s' _ (by rw [Htm]; exact Int.le_refl _) ⟨Hprev, Hstored⟩ Hc Happ Hpv Hstok)
+    (by rw [Htm]; exact Htrm) (by rw [Hstor']; exact Hstor) (by rw [Hpv]; exact Hpvoff)
+    (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
+    $$ Hrn Hphys Hghost Hsoft Hsteps Hcap Hpend Hpown Hdeliv Hstr'
+
+/-- `r.applyConfChange(cc)` on the node's raft struct, for a change that leaves the
+configuration unchanged (`node.run`'s `confc` arm); the ghost step inside. -/
+theorem wp_rn_raft_applyConfChange
+    (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG))
+    (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (cc : raftpb.ConfChangeV2)
+    (ccs : List raftpb.ConfChangeSingle)
+    (Hn : ccApplyM cc.Transition' ccs (cfgState γ.reCfg) = some (cfgState γ.reCfg)) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+        ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗ cc.Changes' ↦*□ ccs }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"applyConfChange")) (Val #cc))
+    {{ (cs : raftpb.ConfState) (xs : List w64), RET #cs;
+        ownRawNode γ rn id rs ∗ cs.Voters' ↦* xs ∗ ⌜xs ≡ₚ elements γ.reCfg ∧
+          cs.VotersOutgoing'.len = W64 0 ∧ cs.Learners'.len = W64 0 ∧
+          cs.LearnersNext'.len = W64 0 ∧ cs.AutoLeave' = false⌝ }} := by
+  iintro %Φ ⟨#Hpkg, Hrn, #Hr, #Hccs⟩ HΦ
+  iNamed Hrn
+  ihave #Hr' := rawNodeOwn_raft rn rnv $$ Hrn
+  icombine Hr Hr' gives %Heq
+  subst Heq
+  iapply wp_fupd
+  wp_apply +noauto wp_raft_applyConfChange γ.reCfg rnv.raft' id s cc ccs DFrac.discard Hin Hn
+    $$ [$Hphys $Hccs] as %cs %xs %s' ⟨Hphys, -, Hvoters, %Hxs, %Hcs0, %Hok⟩
+  imod rawNode_applyCC_reseal γ rn id rs s s' ps rnv sv steps Hrel Hin Hasync Hdlen Hunp Hsnap
+    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hok
+    $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs with Hrn
+  try wp_auto
+  imodintro
+  iapply HΦ $$ %cs %xs
+  iframe Hrn Hvoters
+  ipureintro; exact ⟨Hxs, Hcs0⟩
+
+/-- The struct out of the node with the node's membership (`ownRawNode_borrow`'s and
+`Hin`): for `_, ok := r.trk.Progress[r.id]`, which finds the node. -/
+theorem ownRawNode_borrow_in (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) :
+    ⊢ ownRawNode (GF := GF) γ rn id rs -∗ rn.[RawNode, go!"raft"] ↦□ r -∗
+      ∃ s : NState, ⌜id ∈ γ.reCfg⌝ ∗ ownRaftPhys γ.reCfg r id s ∗
+        (ownRaftPhys γ.reCfg r id s -∗ ownRawNode γ rn id rs) := by
+  iintro H #Hr
+  iNamed H
+  ihave #Hr' := rawNodeOwn_raft rn rnv $$ Hrn
+  icombine Hr Hr' gives %Heq
+  subst Heq
+  iexists s
+  isplitr
+  · ipureintro; exact Hin
+  isplitl [Hphys]
+  · iexact Hphys
+  iintro Hphys
+  iapply ownRawNode_intro γ rn id rs s ps rnv sv steps Hrel Hin Hasync Hdlen Hunp Hsnap Hstok
+    Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
+    $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs
+
+end applycc
 
 /-! ## `run`'s states -/
 

@@ -3311,3 +3311,29 @@ three choices in how:
 
 `Config.DisableConfChangeValidation = false` is a scope premise (with validation off a leader may
 append a second conf change before the first is applied), like `ReadOnlyOption = 0`.
+
+---
+
+## Reconfiguration stage D: `ApplyConfChange` of an unchanged configuration -- `Step.reMatch`, `switchToConfig` open at its tracker
+
+**2026-10-13 · accepted**
+
+- **A model rule that lowers `Match`.** Even a change that leaves the configuration as it is
+  makes `switchToConfig` install new `Progress` objects, and `confchange`'s specs (`ownNewPr`)
+  say only that each is a copy of an old one *or* fresh (`Match = 0`): a remove and re-add of a
+  voter in one `Simple` really does reset its `Progress`. A leader's `matched` can therefore
+  drop to `0`; `Step.reMatch` says exactly that (each new entry `0` or the old one; entries may
+  come and go). It is sound because `matchedOk` asks only `isAcked`, which holds of `0`.
+  *Rejected*: strengthening `confchange`'s specs to track which objects are copies (every
+  `Changer` proof would change, and remove-then-add still resets); a premise excluding resets
+  (not expressible on `ownResult`).
+- **`switchToConfig` takes the struct open at its tracker.** The new `Progress` objects share
+  the old ones' `Inflights`, whose rings the old tracker owns; the caller must move them before
+  the old tracker disappears, so the spec takes the tracker field and the re-sealing wand
+  (`ownRaftPhys_reconfig`'s), the old tally and bound, and the new configuration with its
+  records (`ownConfigV`). The old sealed statement is derived (`spec_nonleader`).
+  *Rejected*: a wand in the precondition from the old `Progress` objects to the new
+  configuration (the copies' values must agree with the old ones', which the wand could not
+  see without the old points-tos).
+- **No `Advance`-ordering premise yet**: for an unchanged configuration the order is harmless
+  (issue file), and `ownRawNode` does not record applied entries; documented on the specs.

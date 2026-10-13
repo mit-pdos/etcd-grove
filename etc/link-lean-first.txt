@@ -79,7 +79,7 @@ RawNode__Ready: RawNode__readyWithoutAccept RawNode__acceptReady
 # node.go (2026-10-10), Lean-first: the concurrent Node over a RawNode (InvNode.lean).
 raft__hasLeader:
 newNode:
-node__run: RawNode__HasReady RawNode__readyWithoutAccept RawNode__acceptReady RawNode__Advance RawNode__Tick raft__Step raft__hasLeader IsResponseMsg IsLocalMsgTarget
+node__run: RawNode__HasReady RawNode__readyWithoutAccept RawNode__acceptReady RawNode__Advance RawNode__Tick raft__Step raft__hasLeader IsResponseMsg IsLocalMsgTarget raft__applyConfChange
 RestartNode: NewRawNode newNode node__run
 node__stepWithWaitOption:
 node__step: node__stepWithWaitOption
@@ -142,3 +142,4 @@ node__ProposeConfChange: confChangeToMsg node__Step
 raft__switchToConfig: traceConfChangeEvent ProgressTracker__ConfState raft__maybeCommit raft__bcastAppend ProgressTracker__Visit raft__maybeSendAppend JointConfig__IDs raft__abortLeaderTransfer
 raft__applyConfChange: raftLog__lastIndex ConfChangeV2__LeaveJoint ConfChangeV2__EnterJoint Changer__Simple raft__switchToConfig
 RawNode__ApplyConfChange: ConfChange__AsV2 ConfChangeV2__AsV2 raft__applyConfChange
+node__ApplyConfChange: ConfChange__AsV2 ConfChangeV2__AsV2
