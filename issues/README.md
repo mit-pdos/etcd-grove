@@ -95,6 +95,18 @@ job loop forever, force-committing every interval, its channel never closed (rep
 that deletes a key and puts it again deletes the key's live value from the bucket, and the next
 read of the key calls `lg.Fatal` (reproduced through mvcc's API; etcd's gRPC `checkIntervals`
 rejects such a transaction; found 2026-10-13, mvcc compaction unit 5a; not filed).
+[etcd-request-id-member-prefix](etcd-request-id-member-prefix.md): request ids are unique per
+member's low 16 bits only (`idutil.NewGenerator(uint16(memberID), …)`), so two members whose ids
+agree there can mint the same request id, and one member's apply thread can hand another's
+request result to its own waiter (reproduced; found 2026-10-12, the request path's unit 0; a
+premise of the raft contract's apply side; not filed).
+[etcd-max-txn-ops-nested](etcd-max-txn-ops-nested.md): `--max-txn-ops` bounds each nesting level
+of a transaction, not the transaction (the flag's text says a transaction; reproduced; found
+2026-10-12, the request path's unit 0; documentation; not filed).
+[etcd-txn-check-intervals-sibling](etcd-txn-check-intervals-sibling.md): `checkIntervals` checks a
+nested transaction's puts against the level's deletes collected so far, not its siblings', so the
+overlap it rejects depends on the order of the ops (reproduced; found 2026-10-12, the request
+path's unit 0; not filed).
 
 [go-itab-reinterpret-assert](go-itab-reinterpret-assert.md): in Go itself, a type assertion
 on an `I1` value read through a `*I2` (two named interfaces with the same methods) panics with
