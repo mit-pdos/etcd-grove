@@ -3941,3 +3941,39 @@ code forced:
   none); `NewStore` takes `0 ≤ cfg.CompactionBatchLimit` (a zero limit is defaulted: `mvccInit`
   fixes `defaultCompactionBatchLimit = 1000`), the premise that the code's unvalidated flag needs
   (`issues/etcd-compaction-negative-batch-limit.md`, reproduced).
+## The read loop's notifier: deposited lower bounds
+
+**2026-10-13 · accepted (the request path's unit 4a, `server/v3/etcdserver/read`; `STATUS.md`,
+"Unit 4a: the read loop")**
+
+**Decision:** `LinearizableReadNotify(ctx)`'s caller knows a lower bound `c` of the committed index
+(`committedAtLeast γr c`), obtained before it reads `r.notifier`; the loop issues `ReadIndex` after
+it swapped that notifier out, and the read state's index is at least the committed index then. Two
+lower bounds of a monotone index do not compare, so the client **deposits** `c` where the loop
+collects it: each notifier has a ghost mono nat, its **need** (the largest bound a client of it
+required). Under the read lock the client raises the current notifier's need to `c` (`read_deposit`),
+the read invariant keeping a committed lower bound at least the need (the join of the clients'
+bounds: whichever is larger). Under the write lock the loop swaps the notifier out and takes the need
+and its committed bound `n` out of the invariant (`read_swap`), so `ReadIndex` at `n` answers every
+deposited bound. The need is then **frozen**: its authority goes into an invariant of its own
+(`needFrozen`, persistent; Perennial's mono nat has no persistent authority), since no client can
+take the notifier any more; the close of the notifier's channel (Perennial's broadcast idiom, a
+persistent `notified`: the error, `nc.err ↦□`, and if `nil` the frozen need with an applied index
+at least it) lets every waiter compare its lower bound of the need with the frozen authority.
+
+The current notifier is named by a ghost variable whose halves the lock's resource (`readMuP`, with
+`r.notifier` at the lock's fraction) and the read invariant hold, so a reader learns which notifier
+(and need) is current by agreement at any fraction. That ghost variable's name is part of
+`ReadNames` (`notifier`), because Perennial's `RWMutex` bounds its readers: each caller of
+`LinearizableReadNotify` holds a reader slot (`readReader r γr`, `sync.ownRWMutex`), a predicate the
+server's read call resources (`srvRdCall`) must be able to name. `NewRead` takes the full ghost
+variable (any value) at that name.
+
+**Rejected:** comparing the client's bound with the read index directly (two lower bounds); a
+persistent authority of the need (Perennial's `MonoNat` has none; the invariant is the frozen
+authority); the read lock's resource with no ghost name (`r.notifier`'s fraction alone): the client
+must learn the current need's name from what it holds under the lock, and a name pinned to a location
+needs a ghost name anyway; the slot as an existential in `isRead` (a slot of a different lock
+predicate than the read invariant's cannot be ruled out); `context.DeadlineExceeded` kept out of
+`applyErrIs` (the loop returns a done context's `Err()`: `applyErrIs`' typing clause now holds for the
+targets `errors.wp_Is` takes, pointer targets, `ptrTarget`, which a struct error meets).

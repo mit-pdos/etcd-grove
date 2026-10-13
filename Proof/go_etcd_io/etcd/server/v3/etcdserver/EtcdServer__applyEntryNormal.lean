@@ -379,7 +379,8 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       (try wp_auto)
       ihave #HerrT := applyErrIs_tree err $$ HerrIs
       ihave ⟨%S, %M, #Htree, %HS⟩ := HerrT $$ %(GoInterface.ok ens)
-      wp_apply hIs S M err (GoInterface.ok ens) (fun tii h => by cases h; exact Hensp) HS.2
+      wp_apply hIs S M err (GoInterface.ok ens) (fun tii h => by cases h; exact Hensp)
+        (HS.2 (fun tii h => by cases h; exact Hensp))
         $$ [$Htree] as %isns -
       · ipureintro; exact HS.1
       iunfold waitInv at Hwok

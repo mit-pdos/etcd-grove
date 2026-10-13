@@ -11,6 +11,7 @@ axiom config.ServerConfig.ReqTimeout.wp_proof
 axiom context.Err.wp_proof
 axiom context.ErrDone.wp_proof
 axiom context.ValueStartTime.wp_proof
+axiom context.WithTimeoutBackground.wp_proof
 axiom context.WithValue.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
@@ -64,6 +65,7 @@ axiom status.FromError.wp_proof
 axiom storage.BackendQuota.Cost.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom strconv.FormatBool.wp_proof
+axiom strconv.FormatUint.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.String.wp_proof
 axiom time.NewTicker.wp_proof
@@ -78,6 +80,7 @@ axiom traceutil.Get.wp_proof
 axiom traceutil.Trace.AddField.wp_proof
 axiom traceutil.Trace.GetStartTime.wp_proof
 axiom traceutil.Trace.InsertStep.wp_proof
+axiom traceutil.Trace.LogAllStepsIfLong.wp_proof
 axiom traceutil.Trace.LogIfLong.wp_proof
 axiom traceutil.Trace.SetStartTime.wp_proof
 axiom traceutil.Trace.StartSubTrace.wp_proof

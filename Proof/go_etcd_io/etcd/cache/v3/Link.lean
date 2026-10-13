@@ -106,12 +106,10 @@ public import Proof.go_etcd_io.etcd.cache.v3.newClonedSnapshot
 public import Proof.go_etcd_io.etcd.cache.v3.newConditionalProgressRequestor
 public import Proof.go_etcd_io.etcd.cache.v3.newDemux
 public import Proof.go_etcd_io.etcd.cache.v3.newKVItem
-public import Proof.go_etcd_io.etcd.cache.v3.newNotifier
 public import Proof.go_etcd_io.etcd.cache.v3.newReady
 public import Proof.go_etcd_io.etcd.cache.v3.newRingBuffer
 public import Proof.go_etcd_io.etcd.cache.v3.newStore
 public import Proof.go_etcd_io.etcd.cache.v3.newWatcher
-public import Proof.go_etcd_io.etcd.cache.v3.notifier__notify
 public import Proof.go_etcd_io.etcd.cache.v3.notifier__wait
 public import Proof.go_etcd_io.etcd.cache.v3.probeItemFromKey
 public import Proof.go_etcd_io.etcd.cache.v3.ready__Ready
@@ -150,6 +148,8 @@ public import Proof.go_etcd_io.etcd.cache.v3.store__getSnapshot
 public import Proof.time.Duration__String
 public import Proof.go_etcd_io.etcd.cache.v3.New
 public import Proof.go_etcd_io.etcd.cache.v3.Range
+public import Proof.go_etcd_io.etcd.cache.v3.newNotifier
+public import Proof.go_etcd_io.etcd.cache.v3.notifier__notify
 public import Proof.go_etcd_io.etcd.cache.v3.validateRevisions
 public import Proof.go_etcd_io.etcd.cache.v3.watcher__Compact
 public import Proof.go_etcd_io.etcd.cache.v3.watcher__Stop

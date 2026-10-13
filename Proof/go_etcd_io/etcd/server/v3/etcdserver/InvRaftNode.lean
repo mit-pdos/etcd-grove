@@ -63,9 +63,7 @@ instance toApply_countable : Pos.Countable toApply :=
   countableOfLeftInverse (fun a : toApply => (a.entries', a.snapshot', a.notifyc', a.raftAdvancedC'))
     (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2⟩) (fun _ => rfl)
 
-instance readState_countable : Pos.Countable ReadState :=
-  countableOfLeftInverse (fun r : ReadState => (r.Index', r.RequestCtx'))
-    (fun p => ⟨p.1, p.2⟩) (fun _ => rfl)
+-- `ReadState`'s instance (`readState_countable`): `InvRequest.lean` (2026-10-13, the read loop).
 
 end countable
 
