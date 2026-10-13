@@ -1397,6 +1397,64 @@ theorem rdOwn_takePend (γ : RaftNames) (id : w64) (s : PState) :
     iexact Hc2
   iexact Hinv
 
+/-- What the read-index code needs of a leader's read-only state (2026-10-13; `RdOk`):
+its acknowledgements are positions its queue reaches, its requests and pending ones have
+entries. -/
+theorem rdOwn_rdFacts (γ : RaftNames) (id : w64) (s : PState) (Hr : s.role = .leader) :
+    ⊢ rdOwn (GF := GF) γ id s -∗
+      ⌜(∀ v a, s.rd.ro.acks !! v = some a →
+          uint.nat a ≤ uint.nat s.rd.ro.confirmed + s.rd.ro.pending.length) ∧
+        (∀ q ∈ s.rd.ro.pending, q.ents ≠ []) ∧ (∀ p ∈ s.rd.pend, p.2 ≠ [])⌝ := by
+  unfold rdOwn
+  iintro ⟨%γl, %rqm, %Hγl, -, -, -, Hl, -, #Hpd0, -⟩
+  unfold rdLead
+  rw [Hr]
+  icases Hl with ⟨%γq, %recs, %Hq, -, -, %Hlen, #Hpq, %Hacks, -⟩
+  ihave Hp1 : ([∗list] k ↦ x ∈ s.rd.ro.pending, ⌜x.ents ≠ []⌝ : IProp GF) $$ []
+  · iapply BigSepL.bigSepL_impl $$ Hpq
+    imodintro
+    iintro %k %x %Hk ⟨%r, %e, %H, -⟩
+    ipureintro
+    rw [H.2.2]; exact List.cons_ne_nil _ _
+  ihave %Hp1' := BigSepL.bigSepL_pure_intro $$ Hp1
+  ihave Hp2 : ([∗list] k ↦ x ∈ s.rd.pend, ⌜x.2 ≠ []⌝ : IProp GF) $$ []
+  · iapply BigSepL.bigSepL_impl $$ Hpd0
+    imodintro
+    iintro %k %x %Hk ⟨%e, %c, %Lc, %H, -⟩
+    ipureintro
+    rw [H]; exact List.cons_ne_nil _ _
+  ihave %Hp2' := BigSepL.bigSepL_pure_intro $$ Hp2
+  ipureintro
+  refine ⟨fun v a h => ?_, fun q hq => ?_, fun p hp => ?_⟩
+  · have := (Hacks v a h).1; omega
+  · obtain ⟨k, hk⟩ := List.mem_iff_getElem?.mp hq; exact Hp1' k q hk
+  · obtain ⟨k, hk⟩ := List.mem_iff_getElem?.mp hp; exact Hp2' k p hk
+
+/-- A heartbeat response's position, at the leader of its term: at most its queue's end. -/
+theorem rdOwn_hbResp_pos (γ : RaftNames) (id : w64) (s : PState) (Hr : s.role = .leader)
+    (recs0 : List RqRec) (q : w64) (Hq : uint.nat q ≤ recs0.length) :
+    ⊢ rdOwn (GF := GF) γ id s -∗ rqLb γ id s.term recs0 -∗
+      ⌜uint.nat q ≤ uint.nat s.rd.ro.confirmed + s.rd.ro.pending.length⌝ := by
+  unfold rdOwn
+  iintro ⟨%γl, %rqm, %Hγl, Ha, -, -, Hl, -⟩ #Hlb
+  unfold rdLead
+  rw [Hr]
+  icases Hl with ⟨%γq, %recs, %Hq', Hauth, -, %Hlen, -⟩
+  unfold rqLb
+  icases Hlb with ⟨%γl', %γq'', %Hγl', #Hel, #Hlb⟩
+  rw [Hγl] at Hγl'
+  cases Hγl'
+  icases ghost_map_lookup $$ Ha Hel with %Hq2
+  have Hqq : γq = γq'' := by
+    have h1 : rqm !! s.term = some γq'' := Hq2
+    rw [Hq'] at h1
+    exact Option.some.inj h1
+  subst Hqq
+  icases mono_list_auth_lb_valid $$ Hauth Hlb with %Hpre
+  ipureintro
+  have := Hpre.2.length_le
+  omega
+
 /-- A leader's registry, at least up to the end of its queue. -/
 theorem rdOwn_regLb (γ : RaftNames) (id : w64) (s : PState) (Hr : s.role = .leader) :
     ⊢ rdOwn (GF := GF) γ id s -∗

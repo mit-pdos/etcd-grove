@@ -155,6 +155,66 @@ theorem stepdown_frame' {m : raftpb.Message} {s s1 s' : NState} {l : w64}
     (by rw [hl]; rfl) (by rw [hl]; rfl) (by rw [hl]; rfl) (by rw [hl]; rfl) (by rw [hl]; rfl)
     (by rw [hl]; rfl) (by rw [hl]; rfl) hpv hg
 
+/-- A leader's read-only state is as the read-index code needs it (`RdOk`, 2026-10-13),
+and its term is nonzero. -/
+theorem ghost_rdOk (γ : RaftNames) (id : w64) (s : NState) (Hr : s.role = .leader) :
+    ⊢ ownRaftGhost (GF := GF) γ id (toPState s) -∗ ⌜RdOk γ.reCfg s.rd ∧ s.term ≠ W64 0⌝ := by
+  iintro Hown
+  have Hpr : (toPState s).role = .leader := by simp [toPState, Hr, proleRole]
+  have Hrd : (toPState s).rd = s.rd := by simp [toPState, Hr]
+  ihave %Hnz := ownRaftGhost_term_nz γ id (toPState s) (by rw [Hpr]; decide) $$ Hown
+  iunfold ownRaftGhost at Hown
+  icases Hown with ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  ihave %Hf := rdOwn_rdFacts γ id (toPState s) Hpr $$ Hrd
+  rw [Hrd] at Hf
+  ipureintro
+  obtain ⟨H1, H2, H3⟩ := Hf
+  refine ⟨⟨fun v _ => ?_, H2, H3⟩, Hnz⟩
+  cases h : s.rd.ro.acks !! v with
+  | none =>
+    have := uint_Z_nonneg s.rd.ro.confirmed
+    have h0 : uint.Z (W64 0 : w64) = 0 := by decide
+    simp only [Option.getD_none]; omega
+  | some a =>
+    simp only [Option.getD_some]
+    have := H1 v a h
+    have := uint_nat_eq a
+    have := uint_nat_eq s.rd.ro.confirmed
+    omega
+
+/-- A heartbeat response's context, at the leader of its term (2026-10-13): empty, or eight
+bytes holding a position the queue reaches -- what `recvAck`/`maybeAdvance` need. -/
+theorem ghost_hbResp_ctx (γ : RaftNames) (id : w64) (s : NState) (m : raftpb.Message)
+    (ents : List raftpb.Entry) (ctx : List w8) (Hr : s.role = .leader) (Hto : m.To' = id)
+    (Hteq : m.Term' = s.term) :
+    ⊢ ownRaftGhost (GF := GF) γ id (toPState s) -∗ isMessage γ (absMsg .heartbeatResp m ents ctx) -∗
+      ⌜(ctx = [] ∨ 8 ≤ ctx.length) ∧
+        (ctx ≠ [] → uint.Z (leToU64 (ctx.take 8))
+                      ≤ uint.Z s.rd.ro.confirmed + (s.rd.ro.pending.length : Int))⌝ := by
+  iintro Hown #Hm
+  have Hpr : (toPState s).role = .leader := by simp [toPState, Hr, proleRole]
+  have Hrd : (toPState s).rd = s.rd := by simp [toPState, Hr]
+  unfold isMessage
+  simp only [absMsg, absMsgFrom]
+  icases Hm with (%H0 | ⟨%q, %recs0, %Hq, #Hlb⟩)
+  · ipureintro; exact ⟨.inl H0, fun h => absurd H0 h⟩
+  · obtain ⟨Hcq, Hack⟩ := Hq
+    iunfold ownRaftGhost at Hown
+    icases Hown with ⟨%γv, %voted, %kl, H⟩
+    iNamed H
+    rw [Hto, Hteq]
+    ihave %Hpos := rdOwn_hbResp_pos γ id (toPState s) Hpr recs0 q Hack.1 $$ Hrd [Hlb]
+    · rw [show (toPState s).term = s.term from rfl]; iexact Hlb
+    rw [Hrd] at Hpos
+    ipureintro
+    have hl : (u64Le q).length = 8 := u64Le_length _
+    refine ⟨.inr (by rw [Hcq, hl]; exact Nat.le_refl 8), fun _ => ?_⟩
+    rw [Hcq, List.take_of_length_le (Nat.le_of_eq hl), u64Le_to_word]
+    have := uint_nat_eq q
+    have := uint_nat_eq s.rd.ro.confirmed
+    omega
+
 /-- The one ghost update of a branch: `recv` is the incoming message, some number of
 times, and that message is `isMessage`. -/
 theorem ghost_step_recv (γ : RaftNames) (cfg : GSet w64) (id : w64)

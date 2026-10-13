@@ -150,7 +150,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · exact ⟨rfl, rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
-    · exact step_handle_snap cfg id _ _ m sv voters s1 (adopt_candidate s m.From' pvs) Hto Hteq
+    · exact step_handle_snap cfg id _ _ m sv voters s1 (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
         (by simp [toPState, Hrole, proleRole]) Hfid Hscope Hcfg Hhs
   · -- Leader: excluded
     exact absurd Hrole Hnl
@@ -185,7 +185,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · exact ⟨rfl, rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
-    · exact step_handle_snap cfg id _ _ m sv voters s1 (adopt_candidate s m.From' pvs) Hto Hteq
+    · exact step_handle_snap cfg id _ _ m sv voters s1 (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
         (by simp [toPState, Hrole, proleRole]) Hfid Hscope Hcfg Hhs
 
 end StepProof

@@ -146,7 +146,8 @@ theorem step_higher_term_leader (cfg : GSet w64) (id : w64) (ps : PState) (ty : 
 theorem adopt_after_stepdown (s : NState) (term src : w64) (pvs : GMap w64 Progress) :
     toPState { becomeFollower s term src with prvals := pvs, lead := src }
     = padoptLeader (pbecomeFollower (toPState s) term src) src := by
-  simp [toPState, padoptLeader, pbecomeFollower, becomeFollower, resetTo, resetTo0, proleRole]
+  simp only [pbecomeFollower, padoptLeader, rdNL_toPState]
+  simp [toPState, becomeFollower, resetTo, resetTo0, proleRole, rdNL]
 
 /-- `stepFollower`'s `r.lead = m.From` at the current term. A follower's tally is empty
 -- `padoptLeader` clears it -- which `NState` does not record by itself; it is the
@@ -160,10 +161,11 @@ theorem adopt_follower (s : NState) (src : w64) :
 
 /-- `stepCandidate`'s `becomeFollower(r.Term, m.From)`: the term does not move, so the
 vote is kept, and the tally is cleared. -/
-theorem adopt_candidate (s : NState) (src : w64) (pvs : GMap w64 Progress) :
+theorem adopt_candidate (s : NState) (src : w64) (pvs : GMap w64 Progress)
+    (Hnl : s.role ≠ .leader) :
     toPState { becomeFollower s s.term src with prvals := pvs }
     = padoptLeader (toPState s) src := by
-  simp [toPState, padoptLeader, becomeFollower, resetTo, resetTo0, proleRole]
+  simp [toPState, padoptLeader, becomeFollower, resetTo, resetTo0, proleRole, rdNL, Hnl]
 
 /-! ## Well-formedness is preserved by the handlers -/
 

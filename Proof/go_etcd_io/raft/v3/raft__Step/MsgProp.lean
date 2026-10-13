@@ -241,16 +241,21 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       iright; iexact Herrn
   · -- Leader: append and broadcast, or drop
     simp only [stepFuncOf]
-    wp_apply _P.stepLeader cfg r id s m ents (.inr (.inr (.inr (.inr (.inl Hty))))) Hrole Hcfg
+    wp_apply _P.stepLeader cfg r id s m ents [] (.inr (.inr (.inr (.inr (.inl Hty))))) Hrole Hcfg
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
           rcases Hc with Hc | ⟨Hc, -⟩ <;> exact absurd Hc (by w32_ne))
         (fun _ => ⟨Hne, Hnorm, Hlen, Hlnz Hrole⟩)
+        (fun Hc => by exfalso; rw [Hty] at Hc; rcases Hc with Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+        (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys Hents] as %err %s' %dropped ⟨Hphys, %Hres, Herrn, -⟩
     · isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
+      isplitl [Hents]
       · iintro _; iexact Hents
+      · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     unfold LeaderStepResult at Hres
     rw [ite_pos Hty] at Hres
     unfold LeaderProposeResult at Hres

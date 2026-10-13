@@ -140,7 +140,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
       keep_frame rfl rfl rfl rfl rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
-    · exact step_handle_heartbeat cfg id _ _ m ents ctx (adopt_candidate s m.From' pvs) Hto Hteq
+    · exact step_handle_heartbeat cfg id _ _ m ents ctx (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
         (by simp [toPState, Hrole, proleRole]) Hcommit Hfid
   · -- Leader: `stepLeader` has no arm for it; nothing changes
     simp only [stepFuncOf]
@@ -197,7 +197,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
       keep_frame rfl rfl rfl rfl rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
-    · exact step_handle_heartbeat cfg id _ _ m ents ctx (adopt_candidate s m.From' pvs) Hto Hteq
+    · exact step_handle_heartbeat cfg id _ _ m ents ctx (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
         (by simp [toPState, Hrole, proleRole]) Hcommit Hfid
 
 end StepProof

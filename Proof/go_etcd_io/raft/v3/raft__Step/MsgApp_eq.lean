@@ -150,7 +150,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     refine ⟨nstateWf_handle_app _ _ _ _ _ Hwf1 Happ, ⟨[absMsg .app m ents], ?_, ?_⟩, rfl,
       app_frame Hty Happ (NetFrame.refl _) (Int.le_refl _) (Int.le_max_left _ _)⟩
     · intro m' Hm'; simpa using Hm'
-    · exact step_handle_app cfg id _ _ m ents s1 (adopt_candidate s m.From' pvs) Hto Hteq
+    · exact step_handle_app cfg id _ _ m ents s1 (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
         (by simp [toPState, Hrole, proleRole]) Hconf Happ Hfid
   · -- Leader: `stepLeader` has no arm for it; nothing changes
     simp only [stepFuncOf]
@@ -207,7 +207,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     refine ⟨nstateWf_handle_app _ _ _ _ _ Hwf1 Happ, ⟨[absMsg .app m ents], ?_, ?_⟩, rfl,
       app_frame Hty Happ (NetFrame.refl _) (Int.le_refl _) (Int.le_max_left _ _)⟩
     · intro m' Hm'; simpa using Hm'
-    · exact step_handle_app cfg id _ _ m ents s1 (adopt_candidate s m.From' pvs) Hto Hteq
+    · exact step_handle_app cfg id _ _ m ents s1 (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
         (by simp [toPState, Hrole, proleRole]) Hconf Happ Hfid
 
 end StepProof
