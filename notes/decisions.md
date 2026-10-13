@@ -4206,6 +4206,57 @@ dropping `snapThin` (the assumed contract would be false of Go's backend once co
   lock's entries is every key's `kiKeep` (`keepFold_spec`; a revision `keep` takes back is no
   other key's, `IdxCRep.avail_inj`), and `kiKeep` is the log's (`reader_keep`).
 
+### The store's side: the compaction right carries the scheduler queue (unit 5c)
+
+**2026-10-13 · adopted** (`STATUS.md`, "The store's compaction", unit 5c)
+
+**Decision: the compaction job is a tracked job of the store's FIFO scheduler, and the exclusive
+compaction right holds the queue.** `treeIndex.Compact` takes the index compactor's token
+(`idxCompactor γ.idx c`, unit 5b) and consecutive compaction jobs must get it in order. The
+compaction right is now `compactRight γ c = crevUB γ.idx ½ c ∗ compactQueue γ c`, where
+`compactQueue γ c = ∃ Ps p Q R, schedQueue γ.sch (Ps ++ [p]) ∗ savedProp p Q ∗ R ∗ (Q ∗ R -∗
+compactTok γ c)` and `compactTok γ c = ∃ c' ≤ c, idxCompactor γ.idx c'` (the request path's
+`run` threads the apply thread's resources the same way). `compact` schedules the job tracked:
+`Prev := Q` (the previous job's `Post`, or the scheduler's initial `True`), its `Pre` holds `R`
+and the wand, `Post := compactTok γ rev`; `NewStore` builds the queue at `-1` from
+`NewFIFOScheduler`'s `[n, p₀]` (`Q = True`, `R` the token from `newTreeIndex`, which it no longer
+drops). The token is "at or below" the job's revision because a job whose context was cancelled
+(the scheduler's `Stop`) never runs its pass and hands the token on unchanged. `Compact` takes
+the right and returns it at `rev` on success (unchanged on `ErrCompacted`/`ErrFutureRev`); the
+apply thread, etcd's only caller, holds it, which serializes compactions. Go's `compact` call
+(kvstore.go:283) runs after `s.mu` is released, so an exclusive right owned by the caller is the
+only thing that can carry the queue to it. `crevFrozen` freezes the right's half of the revision
+authority only (the queue is dropped: a frozen store schedules no compaction). The barrier jobs
+(`compactBarrier`'s reschedule, `updateCompactRev`'s on `ErrCompacted`) are untracked
+(`Prev = Post = True`, `schedLive`), their `Pre` the channel's close right and `□ Q`;
+`compactBarrier`'s closure calls itself (Löb induction).
+
+*Rejected:* the untracked form with the token exchanged through `schedRunning` (an invariant
+holding the token, opened by whoever runs): a job scheduled later could run first as far as the
+contract says (the untracked form promises no order) and find the token above its revision,
+where `treeIndex.Compact` needs `c ≤ rev`; the queue under `s.mu` or `s.revMu` (in `muInv` or
+`revMuInv`): `compact`'s call site holds neither lock, and the lock's resource is fractional
+(the readers' parts) while the queue is exclusive.
+
+**Contract corrections (unit 5c):**
+- `compactRes`'s finished-compactions counter is at least the record's finished revision, no
+  longer equal to it (`∃ n, monoNatAuthOwn γ.fin 1 n ∗ ⌜crevN (finRev fin) ≤ n⌝`): a finishing job
+  writes `finishedCompactRev = rev` and raises the counter to `rev` if below, and the batch lock's
+  resource does not know the jobs run in revision order. `compactedAt γ rev` now reads "a
+  compaction at `rev` or later finished" (the same in Go's runs, where jobs are ordered).
+- `store.compact` takes and returns `compactQueue γ rev`; `scheduleCompaction` takes
+  `compactTok γ rev` and returns `idxCompactor γ.idx rev` in both outcomes (its pass runs first).
+- `store.Compact` takes `-1 ≤ c`: the counter `crevN c = (c + 1).toNat` cannot tell a right below
+  `-1` from one at `-1`, under which Go returns `ErrCompacted` for `rev ∈ (c, -1]` while the spec
+  promised `rev ≤ c`. Every right a caller holds is at `-1` or above (`NewStore`'s, then each
+  success's `rev > c`). (`compactLockfree`'s `muInvAt` already carries it.)
+- New trust boundary: `time.Time.Unix` (`Spec/time/Time__Unix.lean`, an axiom like `time.Since`:
+  Perennial's `time` does not translate it; the job's deferred `dbCompactionLast.Set`), and the
+  job reaches the hasher's second generated instance (`kvHasher_into_val_typed`, `sorry --
+  axiomatized type`: it allocates the hasher), as 5a anticipated.
+- `crevFrozen` is the invariant of the right's revision half (`crevUB γ.idx ½ (-1)`), not of the
+  whole right (the queue holds saved propositions, not timeless).
+
 ## The read loop's notifier: deposited lower bounds
 
 **2026-10-13 · accepted (the request path's unit 4a, `server/v3/etcdserver/read`; `STATUS.md`,

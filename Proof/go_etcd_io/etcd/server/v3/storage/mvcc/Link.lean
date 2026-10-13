@@ -109,6 +109,7 @@ public import Proof.time.NewTicker
 public import Proof.time.Since
 public import Proof.time.Ticker__Reset
 public import Proof.time.Ticker__Stop
+public import Proof.time.Time__Unix
 public import Proof.go_opentelemetry_io.otel.trace.SpanFromContext
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__Step
@@ -770,9 +771,13 @@ theorem mvcc.store.wp_updateCompactRev :
     mvcc.store.updateCompactRev.spec (GF := GF) (hG := hG) :=
   mvcc.store.updateCompactRev.wp_proof schedule.wp_NewJob mvcc.store.wp_compactBarrier schedule.Scheduler.wp_Schedule mvcc.wp_SetScheduledCompact
 
+theorem time.Time.wp_Unix :
+    time.Time.Unix.spec (GF := GF) (hG := hG) :=
+  time.Time.Unix.wp_proof
+
 theorem mvcc.store.wp_scheduleCompaction [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.scheduleCompaction.spec (GF := GF) (hG := hG) :=
-  mvcc.store.scheduleCompaction.wp_proof mvcc.treeIndex.wp_Compact time.wp_Since binary.bigEndian.wp_PutUint64 mvcc.wp_newKVHasher mvcc.wp_BytesToRev mvcc.kvHasher.wp_WriteKeyValue mvcc.wp_UnsafeSetFinishedCompact mvcc.kvHasher.wp_Hash zap.wp_Int64 zap.wp_Duration zap.wp_Int' zap.wp_Uint32 zap.wp_String go_humanize.wp_Bytes zap.Logger.wp_Info mvcc.wp_RevToBytes
+  mvcc.store.scheduleCompaction.wp_proof mvcc.treeIndex.wp_Compact time.wp_Since binary.bigEndian.wp_PutUint64 mvcc.wp_newKVHasher mvcc.wp_BytesToRev mvcc.kvHasher.wp_WriteKeyValue mvcc.wp_UnsafeSetFinishedCompact mvcc.kvHasher.wp_Hash zap.wp_Int64 zap.wp_Duration zap.wp_Int' zap.wp_Uint32 zap.wp_String go_humanize.wp_Bytes zap.Logger.wp_Info mvcc.wp_RevToBytes time.Time.wp_Unix
 
 theorem mvcc.store.wp_compact [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.compact.spec (GF := GF) (hG := hG) :=

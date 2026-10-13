@@ -148,10 +148,10 @@ theorem mvcc.NewStore.wp_proof
   · iexists _; iframe cfg; ipureintro; exact Hcfg1
   · iexists _; iframe cfg; ipureintro; exact Hcfg1
   -- the store's struct
-  wp_apply hNewIdx $$ [] as %ti ⟨%γi, #Hti, Hiw, Hil, Hcu, -, Hird⟩
+  wp_apply hNewIdx $$ [] as %ti ⟨%γi, #Hti, Hiw, Hil, Hcu, Hcmp0, Hird⟩
   · ipureintro; exact Hlgnn
   (try wp_auto)
-  wp_apply hFifo $$ [] as %sc ⟨%γs, %n₀, %p₀, #HisFifo, Hstop, -, -⟩
+  wp_apply hFifo $$ [] as %sc ⟨%γs, %n₀, %p₀, #HisFifo, Hstop, Hq0, #Hp0⟩
   · ipureintro; exact Hlgnn
   -- the store never stops its scheduler: its untracked jobs need `schedLive` (2026-10-13, the
   -- request path's unit 4c's FIFO contract)
@@ -205,12 +205,11 @@ theorem mvcc.NewStore.wp_proof
   · iunfold mvcc.hookIs; rw [hγh, hγhf]; iframe Hh Hhf
   ihave Hcres : mvcc.compactRes γ $$ [Hmeta Hfin]
   · iunfold mvcc.compactRes
-    iexists none, none
+    iexists none, none, 0
     iunfold mvcc.metaCompact
     rw [hγm, hγfin]
-    iframe Hmeta
-    rw [show mvcc.crevN (mvcc.finRev none) = 0 from rfl]
-    iexact Hfin
+    iframe Hmeta Hfin
+    ipureintro; exact Nat.le_refl _
   ihave #HisSched' : schedule.isScheduler sc γ.sch $$ []
   · rw [hγs]; iexact HisSched
   rw [← hγi, ← hγc, ← hγr]
@@ -418,8 +417,22 @@ theorem mvcc.NewStore.wp_proof
   isplitl []
   · iunfold mvcc.storeStop; iexists stopc; iframe stopc
     iunfold mvcc.isStopChan; iexists γstop; iexact Hstop0
+  -- the compaction right: the index compactor's token at `-1` beside the scheduler's queue, whose
+  -- last name saves the initial `True` (2026-10-13, unit 5c)
   iunfold mvcc.compactRight
-  iexact Hright
+  iframe Hright
+  iunfold mvcc.compactQueue
+  iexists [n₀], p₀, iprop(True), mvcc.compactTok γ (-1)
+  rw [hγs, List.singleton_append]
+  iframe Hq0 Hp0
+  isplitl [Hcmp0]
+  · iunfold mvcc.compactTok
+    iexists -1
+    rw [hγi]
+    iframe Hcmp0
+    ipureintro; exact Int.le_refl _
+  iintro ⟨-, H⟩
+  iexact H
 
 end proof
 

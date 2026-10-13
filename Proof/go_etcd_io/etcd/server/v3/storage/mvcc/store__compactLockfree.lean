@@ -34,7 +34,54 @@ theorem mvcc.store.compactLockfree.wp_proof
     (h2 : traceutil.TODO.spec (GF := GF) (hG := hG))
     (h3 : mvcc.store.compact.spec (GF := GF) (hG := hG)) :
     mvcc.store.compactLockfree.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro s γ rev c P f Pre Q Post hcmp
+  wp_start as ⟨#Hs, #Hstop, Hmu, Hright, #Hhook, Hcs⟩
+  ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
+  · iPkgInit
+  (try wp_auto)
+  wp_apply (h0 s γ hcmp) $$ [] as %pcc -
+  · iframe #
+  (try wp_auto)
+  wp_apply (h1 s γ rev c P f Pre Q Post hcmp) $$ [$Hmu $Hright $Hcs] as %ch %prev %err Hres
+  · iframe #
+  (try wp_auto)
+  icases Hres with (⟨⟨%Herr, %Hch, %Hprev, %Hlt⟩, Hmu, Hright, HPost, #Hjob⟩ |
+    ⟨⟨%Hle, %Hprev⟩, ⟨%ec, #Hec, %Herr⟩, Hmu, Hright, HPre, #Hch⟩ |
+    ⟨⟨%Hlt, %Hch, %Hprev⟩, ⟨%ef, #Hef, %Herr⟩, #Hcert, Hmu, Hright, HPre⟩)
+  · subst Herr
+    (try wp_auto)
+    wp_apply h2 as %t %Ht
+    (try wp_auto)
+    iunfold mvcc.compactRight at Hright
+    icases Hright with ⟨Hcrev, Hq⟩
+    wp_apply (h3 s γ t rev prev pcc Ht) $$ [$Hjob $Hq] as %ch' ⟨#Hch', Hq⟩
+    (try wp_auto)
+    iapply HΦ
+    ileft
+    iframe Hmu HPost Hch'
+    isplitr
+    · ipureintro; exact ⟨rfl, Hlt⟩
+    isplitl [Hcrev Hq]
+    · iunfold mvcc.compactRight; iframe Hcrev Hq
+    iunfold mvcc.compactJobPre at Hjob
+    icases Hjob with ⟨-, -, -, #Hlb, -⟩
+    iexact Hlb
+  · subst Herr
+    (try wp_auto)
+    iapply HΦ
+    iright; ileft
+    iframe Hmu Hright HPre Hch
+    isplitr
+    · ipureintro; exact Hle
+    iexists ec; iframe Hec; ipureintro; rfl
+  · subst Herr Hch
+    (try wp_auto)
+    iapply HΦ
+    iright; iright
+    iframe Hmu Hright HPre
+    isplitr
+    · ipureintro; exact ⟨Hlt, rfl⟩
+    iexists ef; iframe Hef; ipureintro; rfl
 
 end proof
 
