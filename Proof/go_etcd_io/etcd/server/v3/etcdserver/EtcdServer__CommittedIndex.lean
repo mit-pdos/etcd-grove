@@ -33,8 +33,8 @@ theorem EtcdServer.CommittedIndex.wp_proof
   intro s γr
   wp_start as #Hinv
   wp_auto
-  wp_apply hG' s γr $$ [] as %v #Hv
-  · iframe #
+  wp_apply hG' s γr none $$ [] as %v ⟨#Hv, -, -⟩
+  · iframe #; iunfold srvCommittedOwnOpt; itrivial
   iapply HΦ
   iexact Hv
 

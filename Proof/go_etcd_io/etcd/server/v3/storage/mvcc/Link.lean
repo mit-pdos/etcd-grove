@@ -70,6 +70,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.readView__Rev
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.NewFIFOScheduler
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.NewJob
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Scheduler__Schedule
+public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Scheduler__Stop
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.job__Do
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.job__Name
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeCreateMetaBucket
@@ -108,6 +109,7 @@ public import Proof.time.NewTicker
 public import Proof.time.Since
 public import Proof.time.Ticker__Reset
 public import Proof.time.Ticker__Stop
+public import Proof.time.Time__Unix
 public import Proof.go_opentelemetry_io.otel.trace.SpanFromContext
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__Step
@@ -737,17 +739,21 @@ theorem mvcc.readView.wp_Rev :
     mvcc.readView.Rev.spec (GF := GF) (hG := hG) :=
   mvcc.readView.Rev.wp_proof traceutil.wp_TODO mvcc.store.wp_Read mvcc.storeTxnCommon.wp_Rev mvcc.metricsTxnWrite.wp_End
 
+theorem schedule.job.wp_Do :
+    schedule.job.Do.spec (GF := GF) (hG := hG) :=
+  schedule.job.Do.wp_proof
+
 theorem schedule.wp_NewJob :
     schedule.NewJob.spec (GF := GF) (hG := hG) :=
-  schedule.NewJob.wp_proof
+  schedule.NewJob.wp_proof schedule.job.wp_Do
 
 theorem schedule.Scheduler.wp_Schedule :
     schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG) :=
   schedule.Scheduler.Schedule.wp_proof
 
-theorem schedule.job.wp_Do :
-    schedule.job.Do.spec (GF := GF) (hG := hG) :=
-  schedule.job.Do.wp_proof
+theorem schedule.Scheduler.wp_Stop :
+    schedule.Scheduler.Stop.spec (GF := GF) (hG := hG) :=
+  schedule.Scheduler.Stop.wp_proof
 
 theorem schedule.job.wp_Name :
     schedule.job.Name.spec (GF := GF) (hG := hG) :=
@@ -765,9 +771,13 @@ theorem mvcc.store.wp_updateCompactRev :
     mvcc.store.updateCompactRev.spec (GF := GF) (hG := hG) :=
   mvcc.store.updateCompactRev.wp_proof schedule.wp_NewJob mvcc.store.wp_compactBarrier schedule.Scheduler.wp_Schedule mvcc.wp_SetScheduledCompact
 
+theorem time.Time.wp_Unix :
+    time.Time.Unix.spec (GF := GF) (hG := hG) :=
+  time.Time.Unix.wp_proof
+
 theorem mvcc.store.wp_scheduleCompaction [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.scheduleCompaction.spec (GF := GF) (hG := hG) :=
-  mvcc.store.scheduleCompaction.wp_proof mvcc.treeIndex.wp_Compact time.wp_Since binary.bigEndian.wp_PutUint64 mvcc.wp_newKVHasher mvcc.wp_BytesToRev mvcc.kvHasher.wp_WriteKeyValue mvcc.wp_UnsafeSetFinishedCompact mvcc.kvHasher.wp_Hash zap.wp_Int64 zap.wp_Duration zap.wp_Int' zap.wp_Uint32 zap.wp_String go_humanize.wp_Bytes zap.Logger.wp_Info mvcc.wp_RevToBytes
+  mvcc.store.scheduleCompaction.wp_proof mvcc.treeIndex.wp_Compact time.wp_Since binary.bigEndian.wp_PutUint64 mvcc.wp_newKVHasher mvcc.wp_BytesToRev mvcc.kvHasher.wp_WriteKeyValue mvcc.wp_UnsafeSetFinishedCompact mvcc.kvHasher.wp_Hash zap.wp_Int64 zap.wp_Duration zap.wp_Int' zap.wp_Uint32 zap.wp_String go_humanize.wp_Bytes zap.Logger.wp_Info mvcc.wp_RevToBytes time.Time.wp_Unix
 
 theorem mvcc.store.wp_compact [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.store.compact.spec (GF := GF) (hG := hG) :=

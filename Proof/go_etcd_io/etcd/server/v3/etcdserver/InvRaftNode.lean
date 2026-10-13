@@ -298,8 +298,11 @@ def isRNIDRemoved (f : GoFunc) : IProp GF :=
 instance isRNIDRemoved_persistent (f : GoFunc) : Persistent (isRNIDRemoved (GF := GF) f) := by
   unfold isRNIDRemoved; infer_instance
 
-/-- **The ready handler `rh`** (the server's four closures, `run`): each returns. -/
-def isReadyHandler (rh : Loc) : IProp GF :=
+/-- **The ready handler `rh`** (the server's four closures, `run`): each returns; and
+`updateCommittedIndex` keeps the raft loop's resource `R` (2026-10-13, the request path's unit
+4c: the server's `R` is the committed index's writer half, `∃ v, srvCommittedOwn γr v`, which the
+raft loop owns across its iterations; the wrapper's proofs are parametric in `R`). -/
+def isReadyHandler (rh : Loc) (R : IProp GF) : IProp GF :=
   iprop(∃ (gl ul uls uci : GoFunc),
     structFieldRef raftReadyHandler go!"getLead" rh ↦□ gl ∗
     structFieldRef raftReadyHandler go!"updateLead" rh ↦□ ul ∗
@@ -308,9 +311,10 @@ def isReadyHandler (rh : Loc) : IProp GF :=
     □ ({{ True }} (App (Val #gl) (Val #())) {{ (v : w64), RET #v; True }}) ∗
     □ (∀ v : w64, {{ True }} (App (Val #ul) (Val #v)) {{ RET #(); True }}) ∗
     □ (∀ b : Bool, {{ True }} (App (Val #uls) (Val #b)) {{ RET #(); True }}) ∗
-    □ (∀ v : w64, {{ True }} (App (Val #uci) (Val #v)) {{ RET #(); True }}))
+    □ (∀ v : w64, {{ R }} (App (Val #uci) (Val #v)) {{ RET #(); R }}))
 
-instance isReadyHandler_persistent (rh : Loc) : Persistent (isReadyHandler (GF := GF) rh) := by
+instance isReadyHandler_persistent (rh : Loc) (R : IProp GF) :
+    Persistent (isReadyHandler (GF := GF) rh R) := by
   unfold isReadyHandler; infer_instance
 
 /-- **The ticker `tk`** (Perennial models no `time.Ticker`): its `C` is a channel on which a
@@ -346,9 +350,11 @@ def rnApP (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :=
     ap.entries' ↦*□ ceL ∗ entriesAt ceL ce ∗ □ E.C (F ++ ce) ∗ ⌜ap.snapshot' = null⌝ ∗
     isUnitBag ap.notifyc' ∗ isUnitBag ap.raftAdvancedC')
 
-/-- `applyc` (persistent): an SPSC channel of `rnApP` payloads, never closed. -/
+/-- `applyc` (persistent): an SPSC channel of `rnApP` payloads, never closed (its close's
+resource is `False`: 2026-10-13, the request path's unit 4c, `True` until then; the loop never
+closes it, and the apply side's receive needs that it is not closed). -/
 def isRNApplyc (E : RNEnv GF) (γ : RNNames) (c : Loc) : IProp GF :=
-  isSpsc γ.ap c (V := toApply) (rnApP E γ) (fun _ => iprop(True))
+  isSpsc γ.ap c (V := toApply) (rnApP E γ) (fun _ => iprop(False))
 
 instance isRNApplyc_persistent (E : RNEnv GF) (γ : RNNames) (c : Loc) :
     Persistent (isRNApplyc E γ c) := by

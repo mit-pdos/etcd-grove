@@ -140,8 +140,7 @@ changes nothing (`kiCompact_neg`), compaction commutes with the writer's next ev
 (`kiCompactO_step`, `IdxCRep.step`), the compacted index answers as the uncompacted one
 (`IdxCRep.kiAt`, `IdxCRep.rangeAt`), and what a read at or above the compaction revision names is
 kept (`kiGet_avail`, `named_not_del`: under `NoDelPutAt`,
-`issues/etcd-compaction-delete-then-put.md`). The compaction functions' results above
-(`store.wp_Compact`, ...) rest on their pending proofs (`sorry`: units 5b/5c). -/
+`issues/etcd-compaction-delete-then-put.md`). -/
 #print axioms Perennial.EtcdGrove.mvcc.kiGet_kiCompact
 #print axioms Perennial.EtcdGrove.mvcc.kiGet_of_kiCompact_empty
 #print axioms Perennial.EtcdGrove.mvcc.kiCompact_kiCompact
@@ -156,7 +155,12 @@ kept (`kiGet_avail`, `named_not_del`: under `NoDelPutAt`,
 #print axioms Perennial.EtcdGrove.mvcc.KeyDel_prefix
 #print axioms Perennial.EtcdGrove.mvcc.kiAvail_kiCompact
 
-/-! The compaction functions' results (unit 5a): specified, their proofs pending (`sorry`). -/
+/-! The compaction functions' results (units 5a-5c): the meta keys, the index's side (unit 5b),
+the store's side (unit 5c: `Compact`, `updateCompactRev`, `compact` scheduling the job tracked on
+the FIFO scheduler, the job `scheduleCompaction`, the barriers, `compactLockfree`), over mvcc's
+assumed backend (`storeCmp`). The scheduler's `NewJob`/`job.Do`/`job.Name` are pending (`sorry`:
+the request path's unit 4d), so every result that schedules a job rests on them; the job's
+hasher is axiomatized (`kvHasher`'s generated instance, `sorry -- axiomatized type`). -/
 #print axioms Perennial.EtcdGrove.mvcc.wp_UnsafeSetFinishedCompact
 #print axioms Perennial.EtcdGrove.mvcc.wp_SetFinishedCompact
 #print axioms Perennial.EtcdGrove.mvcc.wp_UnsafeSetScheduledCompact
@@ -315,3 +319,60 @@ end Perennial
 /-! The pure core of the range read: a safe `Key` bucket's range in a readers' state is the
 bucket's range. -/
 #print axioms Perennial.EtcdGrove.mvcc.rtRange_safe
+
+/-! ## The compaction (units 5a-5c)
+
+`store.Compact` with the compaction right at `c` (`compactRight`: half the compaction revision's
+authority and the compaction jobs' queue on the store's FIFO scheduler, whose last job hands the
+next one the index compactor's token): on success, the right at `rev`, a lower bound `rev` of the
+compaction revision for every reader, and the job's channel, whose receive gives `compactDone`
+(the compaction finished at `rev` or later, `compactedAt`, or interrupted by the store's `Close`
+or a cancelled scheduler context); `ErrCompacted` (the barrier's channel) or `ErrFutureRev`
+otherwise, the right unchanged. And what it means for readers: at a compaction revision `c`, a
+read at a revision at or above `c` answers as the uncompacted store (`mvcc_rangeOutcomeC_ge`: the
+read path's `rangeOutcomeC` is `rangeOutcome`, the answer from the certified log; below `c`,
+`ErrCompacted`), with the pure model's `IdxCRep.kiAt`/`IdxCRep.rangeAt` (the compacted index
+answers as the uncompacted one there) and `named_not_del` (what such a read names is not deleted
+from the bucket, under `NoDelPutAt`). -/
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode
+
+section compaction
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [go_etcd_io.etcd.cache.v3.Assumptions]
+
+/-- **The store's compaction, linked** (`store.Compact`'s proof with its callees'). -/
+theorem mvcc_store_Compact : mvcc.store.Compact.spec (GF := GF) (hG := hG) :=
+  mvcc.store.wp_Compact
+
+/-- **A read at or above the compaction revision is unchanged by compaction**: at the compaction
+revision `c`, the outcome of a range read at a revision at or above `c` (`rangeRev rev ro.Rev`,
+the read's revision) is the uncompacted store's (`rangeOutcome`: the answer from the certified
+log, as with no compaction). -/
+theorem mvcc_rangeOutcomeC_ge (r : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (c : Int)
+    (endNil : Bool) (k e : GoString) (ro : go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions)
+    (hc : c ≤ sint.Z (mvcc.rangeRev rev ro.Rev')) :
+    mvcc.rangeOutcomeC (GF := GF) r err log rev c endNil k e ro ⊢
+      mvcc.rangeOutcome r err log rev endNil k e ro := by
+  iintro H
+  iunfold mvcc.rangeOutcomeC at H
+  icases H with (⟨%Hc, -, -⟩ | ⟨-, H⟩)
+  · exfalso; omega
+  · iexact H
+
+end compaction
+
+end EtcdGrove
+end Perennial
+
+#print axioms Perennial.EtcdGrove.mvcc_store_Compact
+#print axioms Perennial.EtcdGrove.mvcc_rangeOutcomeC_ge

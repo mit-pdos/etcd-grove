@@ -4159,6 +4159,104 @@ be unprovable instead of inapplicable); dropping `Dep` (the assumed backend's lo
 the store's `writerRes`, not late-bound: the lock cannot hold it before `NewStore` makes it);
 dropping `snapThin` (the assumed contract would be false of Go's backend once compaction runs).
 
+### The index side's proofs (unit 5b, 2026-10-13 · adopted)
+
+**2026-10-13 · adopted** (`STATUS.md`, "The store's compaction", unit 5b)
+
+- **`walk`'s closure is effectful.** `generation.walk`'s spec takes `walkFnSpecR f p R Q`
+  (`Defs.lean`): on a revision where `p` holds the closure returns true keeping `R`; where it
+  fails it returns false turning `R` into `Q r`; `walk` gives back `walkPost revs p R Q` (`R` if
+  every revision passed, else `Q` of the one it stopped at, `genWalk`'s). The pure closure of
+  `keyIndex.get` is the case `R = True` (`walkFnSpecR_of_pure`); `doCompact`'s takes the
+  `available` map with `R` = the map at `A`, `Q r` = the map with `r` inserted. *Rejected:* an
+  invariant indexed by the visited revisions (no caller needs more than "unchanged until the
+  stop"; the walk stops at the first failure, so the effect happens once).
+- **Contract correction: `treeIndex.Compact` takes the compactor's token.** 5a's spec needed
+  only persistent facts (`isTreeIndex`, `crevLb`, `idxCert`), so it allowed two concurrent
+  passes: then one pass can `compact` a key index the other deleted (an empty one: `lg.Panic`),
+  or delete by key a key put again in between, and the clone's pointers are not owned by anyone
+  when visited (unprovable, and false of Go: `issues/etcd-index-compact-overlapping.md`). It
+  also allowed a pass at a revision below an earlier pass's, whose `available` is then not
+  `keepSetIs` (the key indexes are already compacted above it). The new ghost name `IdxNames.cmp`
+  (`ghostVar (Int × List Loc)`) holds the last compaction's revision and the pointers a pass has
+  yet to visit, half in the lock's resource (`idxCmpOwn γ q L cmax`: every pending pointer is in
+  the tree, every key's level at most the revision, nothing pending unless `0 ≤ cmax`), half the
+  compactor's (`idxCompactor γ c`, exclusive). `Compact` takes `idxCompactor γ c` with
+  `c ≤ rev` and returns `idxCompactor γ rev`; `newTreeIndex` returns `idxCompactor γ (-1)`
+  (`NewStore` drops it for now: unit 5c keeps it where the jobs find it, they run one at a time
+  on the FIFO scheduler, `schedRunning`). The writers keep the invariant unchanged in substance:
+  `Put`/`Tombstone` keep every pointer (`idxCmpOwn_mono`), `Insert` replaces one only with no
+  compaction (`cmax < 0`, its `crevUB … (-1)`; `idxCmpOwn_neg`). `InvStore.lean` changes only its
+  `Countable IdxNames` instance (the new field). *Rejected:* keeping the deleted key indexes'
+  resources in the lock (a stale pass would still delete a key put again, by key); the
+  scheduler's run token in the index's spec (the index cannot name the store's scheduler);
+  pointer stability without ghost state (the lock invariant is a state predicate: nothing in it
+  forbids a lock holder to drop an entry whose compaction empties it).
+- **`doCompact` at any fraction.** Its 5a spec took the key index at fraction 1, but `keep`
+  (under `RLock`, at any fraction) calls it: the spec now takes `dq` (it only reads the key
+  index). `compact` passes 1.
+- **Revisions as map keys.** `go.IntoValInj Revision` is derived from the determinism of the
+  struct's field loads (`Revision.TypeAssumptions.get_Main`/`get_Sub`), and `SafeMapKey Revision.ty
+  r` from the struct comparison's semantics (`Defs.lean`): no new assumption.
+- **What `Compact`'s map is.** The pass's invariant: the map holds exactly the revisions
+  `kiAvail` keeps, of the log, for the keys visited so far (each key's index at its visit is its
+  events' compacted at a level at most `rev`: `IdxCRep.avail_some`, `reader_avail`); a key with a
+  kept revision was in the clone (`keepAt_keys`: at clone time, a key absent from the tree is one
+  whose compaction emptied it, which keeps nothing at `rev`). `Keep`'s: `keepFold` over the
+  lock's entries is every key's `kiKeep` (`keepFold_spec`; a revision `keep` takes back is no
+  other key's, `IdxCRep.avail_inj`), and `kiKeep` is the log's (`reader_keep`).
+
+### The store's side: the compaction right carries the scheduler queue (unit 5c)
+
+**2026-10-13 · adopted** (`STATUS.md`, "The store's compaction", unit 5c)
+
+**Decision: the compaction job is a tracked job of the store's FIFO scheduler, and the exclusive
+compaction right holds the queue.** `treeIndex.Compact` takes the index compactor's token
+(`idxCompactor γ.idx c`, unit 5b) and consecutive compaction jobs must get it in order. The
+compaction right is now `compactRight γ c = crevUB γ.idx ½ c ∗ compactQueue γ c`, where
+`compactQueue γ c = ∃ Ps p Q R, schedQueue γ.sch (Ps ++ [p]) ∗ savedProp p Q ∗ R ∗ (Q ∗ R -∗
+compactTok γ c)` and `compactTok γ c = ∃ c' ≤ c, idxCompactor γ.idx c'` (the request path's
+`run` threads the apply thread's resources the same way). `compact` schedules the job tracked:
+`Prev := Q` (the previous job's `Post`, or the scheduler's initial `True`), its `Pre` holds `R`
+and the wand, `Post := compactTok γ rev`; `NewStore` builds the queue at `-1` from
+`NewFIFOScheduler`'s `[n, p₀]` (`Q = True`, `R` the token from `newTreeIndex`, which it no longer
+drops). The token is "at or below" the job's revision because a job whose context was cancelled
+(the scheduler's `Stop`) never runs its pass and hands the token on unchanged. `Compact` takes
+the right and returns it at `rev` on success (unchanged on `ErrCompacted`/`ErrFutureRev`); the
+apply thread, etcd's only caller, holds it, which serializes compactions. Go's `compact` call
+(kvstore.go:283) runs after `s.mu` is released, so an exclusive right owned by the caller is the
+only thing that can carry the queue to it. `crevFrozen` freezes the right's half of the revision
+authority only (the queue is dropped: a frozen store schedules no compaction). The barrier jobs
+(`compactBarrier`'s reschedule, `updateCompactRev`'s on `ErrCompacted`) are untracked
+(`Prev = Post = True`, `schedLive`), their `Pre` the channel's close right and `□ Q`;
+`compactBarrier`'s closure calls itself (Löb induction).
+
+*Rejected:* the untracked form with the token exchanged through `schedRunning` (an invariant
+holding the token, opened by whoever runs): a job scheduled later could run first as far as the
+contract says (the untracked form promises no order) and find the token above its revision,
+where `treeIndex.Compact` needs `c ≤ rev`; the queue under `s.mu` or `s.revMu` (in `muInv` or
+`revMuInv`): `compact`'s call site holds neither lock, and the lock's resource is fractional
+(the readers' parts) while the queue is exclusive.
+
+**Contract corrections (unit 5c):**
+- `compactRes`'s finished-compactions counter is at least the record's finished revision, no
+  longer equal to it (`∃ n, monoNatAuthOwn γ.fin 1 n ∗ ⌜crevN (finRev fin) ≤ n⌝`): a finishing job
+  writes `finishedCompactRev = rev` and raises the counter to `rev` if below, and the batch lock's
+  resource does not know the jobs run in revision order. `compactedAt γ rev` now reads "a
+  compaction at `rev` or later finished" (the same in Go's runs, where jobs are ordered).
+- `store.compact` takes and returns `compactQueue γ rev`; `scheduleCompaction` takes
+  `compactTok γ rev` and returns `idxCompactor γ.idx rev` in both outcomes (its pass runs first).
+- `store.Compact` takes `-1 ≤ c`: the counter `crevN c = (c + 1).toNat` cannot tell a right below
+  `-1` from one at `-1`, under which Go returns `ErrCompacted` for `rev ∈ (c, -1]` while the spec
+  promised `rev ≤ c`. Every right a caller holds is at `-1` or above (`NewStore`'s, then each
+  success's `rev > c`). (`compactLockfree`'s `muInvAt` already carries it.)
+- New trust boundary: `time.Time.Unix` (`Spec/time/Time__Unix.lean`, an axiom like `time.Since`:
+  Perennial's `time` does not translate it; the job's deferred `dbCompactionLast.Set`), and the
+  job reaches the hasher's second generated instance (`kvHasher_into_val_typed`, `sorry --
+  axiomatized type`: it allocates the hasher), as 5a anticipated.
+- `crevFrozen` is the invariant of the right's revision half (`crevUB γ.idx ½ (-1)`), not of the
+  whole right (the queue holds saved propositions, not timeless).
+
 ## The read loop's notifier: deposited lower bounds
 
 **2026-10-13 · accepted (the request path's unit 4a, `server/v3/etcdserver/read`; `STATUS.md`,
@@ -4365,6 +4463,51 @@ foresee, and how it is resolved:
   (including `keySized` and `N + 2` write-back tokens) as its premises, since neither the
   backend's constructor nor the server's is proved.
 
+## The server's goroutines: the FIFO scheduler as a chain of saved postconditions, the construction premise
+
+(2026-10-13, the request path's unit 4c.) `run` receives each batch of committed entries from the
+raft wrapper and schedules its `applyAll` as a job on a FIFO scheduler (`pkg/schedule`); the jobs
+run one after another in a worker goroutine, each with the apply thread's resources the previous
+job left. `start` sets the fields the goroutines share and starts `run`; `Start` attaches the
+other goroutines through `GoAttach`.
+
+**The scheduler is a trust-boundary contract with a queue of saved postconditions.** The
+scheduler's code is names-only (mvcc's compaction uses it too), so its contract is one axiom,
+`Scheduler.Schedule`. What `run` needs is FIFO: the job for a batch runs after the jobs scheduled
+before it, and gets what they left. The contract keeps a ghost queue (`schedQueue γ Ps`, a mono
+list of saved-proposition names): a tracked `Schedule` names the previous job's `Post` (`Prev`,
+the queue's last saved proposition) and appends its own `Post`; the job runs with `Prev` and must
+return `Post`. So the scheduler never needs to know what the resources are, and `run` threads the
+apply thread's state (`applyRes C A`, the one definition of that bundle) as `Prev := applyRes C
+A`, `Post := applyRes C (A ++ ce)` without holding it between iterations (the loop invariant holds
+the queue). An untracked `Schedule` (`Prev = Post = True`, while the scheduler is live) covers
+mvcc's compaction, whose jobs carry everything in `Pre`. The alternative, a scheduler proved in
+Lean over its list and condition variable, is work in the scheduler's own package; the contract is
+what its proof would show. The worker's thread token comes with the run token (`schedRunning`),
+so a job may call `GoAttach` (the alarm goroutine).
+
+**`start`'s premise is one named predicate, `isServerBuilt`.** Every result about the running
+server (`range_linearizable`, `txn_applied`, the v3rpc end-to-end results) took `isServerReq`/
+`isServerRead` as premises; `start` now produces them, so they are conditional on what `NewServer`
+hands to `start` alone. The premise is stated as the views minus the fields `start` sets
+(`srvFieldsBuilt`, `srvReqBuilt`, `srvReadBuilt`, `srvRunBuilt`, `srvApplyAllBuilt`, `applyBuilt`),
+plus the ghost state and contracts `NewServer` must set up, each a named conjunct, so a `NewServer`
+proof (or a later unit adding a resource, as the backend's write budget did) slots in at one place.
+The read names `γr` are the premise's, not `start`'s: the raft node's contract (`isRaftNode`,
+`NewServer`'s) is stated over them (`Er.γr`, the read registrations). The names-only methods
+`start` and `run` call on the server's collaborators are contracts in the premise where they need
+ghost state (`clusterVersionOk`: `nil` then non-`nil` for good; `rnSnapOnce`: the snapshot `run`
+starts from, once) and axioms where they need none (the monitors, `Cleanup`).
+
+**`stopping` gets its own idiom, not Perennial's broadcast.** It is `make(chan struct{}, 1)`,
+closed once by `run`'s shutdown, never sent on; Perennial's broadcast idiom allocates only
+unbuffered channels. `StopChan.lean` restates the idiom for `Buffered []` (the invariant's two
+states: open, with the closer's flag at half; closed, with `□ Q` and the flag discarded), with the
+receives and the close. `GoAttach` needs more than a receiver's view: under `wgMu`'s read lock it
+must know the channel is open (so its `wg.Add(1)` cannot race `run`'s `wg.Wait()`), which a
+fraction of the closer's flag in the lock's resource gives (`wgMuP`), the writer collecting all of
+it to close.
+
 ### The consistent index over the real backend (unit 7, 2026-10-13 · adopted)
 
 The consistent index's pre-commit hook (`UnsafeSave` → `schema.UnsafeUpdateConsistentIndex`)
@@ -4465,3 +4608,55 @@ that contract from the real backend's, and proves the hook in `hookFnSpec`'s sha
   the coupling of the lease's item set (`l.Keys()`, maintained by mvcc's `Attach`/`Detach`) with
   the store's keys that its deletions rely on, stated as its contract. The apply level's
   `Lookup {{ True }}` (with `leaseIs`) is left as it was: the proved `Lookup` needs a reader slot.
+
+---
+
+## The request path, closed: delivery, the premises kept, and why
+
+**2026-10-13 · adopted (the request path's unit 4d)** (`notes/STATUS.md`, "Unit 4d: the
+wrap-up", "The request path: results and premises")
+
+**Delivery: the wait registry's ghost state tells live from gone.** `IsRegistered` was "some
+boolean", so the apply thread's skip of a side-effect-free entry (and `SkipRangeExecution` of a
+transaction) said nothing about the waiter. Each shard now records every registration it ever had
+(`γr`: id ↦ the consumer token's name and a flag), with the flag exclusive while the id is in the
+live map and discarded once a `Trigger` takes it out; a reader who knows the registration
+(`waitRegd`) and does not find the id gets the discarded flag (`waitGone`). The shards' names are
+recorded in the wait's ghost map (`k ↦□ (γs, γr)`): without that pin a reader's slot and a
+writer's shard view, each an existential, could not be shown to name the same maps. The clause is
+optional in the caller's knowledge (`ot : Option GName`), so the apply loops, which do not learn
+the registration (the raft contract's claims are made before `Register`), keep the old triple
+(`none`), and `request_delivered` states the delivery at a known registration (`some t`).
+*Rejected:* a persistent "absent" fact without the registration in the precondition (false of a
+later registration of the id); a value-changing persistent element (`id ↪□ (t, live)`: persistent
+elements do not change; the flag is a separate one-shot ghost variable); carrying the registration
+through the raft contract now (it would change the claims, `idClaim`'s value, for a result the
+loops do not need yet: the retargeting of raft to v3.7 is where the contract changes).
+
+**`storeSmall` stays a physical premise.** The write budget (`2^64 ≤ N` tokens, one per applied
+entry) bounds entries, not changes: one entry's `Txn` carries up to `--max-txn-ops` changes per
+nesting level, so no bound below `2^62` changes follows. An etcd store with `2^62` changes does
+not exist (revisions are `int64`, each change costs bbolt bytes); the discharge would be a change
+counter in mvcc's store invariant bounded by the revision. Not done: it touches mvcc's invariant
+(the mvcc session's) for a bound no execution reaches.
+
+**The `%w` limitation stays documented, not redesigned.** Perennial `a54e1999f`'s `fmt.Errorf` is
+`errors.New(format)`: no `*fmt.wrapError`, no `Unwrap`. A faithful axiom (`Errorf` with `%w`
+returns an error whose `Unwrap` is the argument) would contradict the model's body, whose result's
+method set has no `Unwrap`; so the canceled read's error stays an `*errorString` leaf in the model
+(`codes.Unknown` in the model, `codes.Canceled` in Go; no stated result names the code). The fix
+is Perennial's (its model building `wrapError`), a follow-up there.
+
+**`raftRequestAlarm` stays a contract.** The id credit is available (`□ |==> idCred`) and
+`isServerReq` could ride in `applyRes`, but `raftRequest` holds a reader slot of `leadTimeMu` for
+`parseProposeCtxErr`, and Perennial's `RWMutex` lends a bounded number of slots, each kept for the
+reader's lifetime; the apply thread spawns an unbounded number of alarm goroutines (one per
+NOSPACE entry until the alarm applies), none of which returns its slot. A persistent read
+permission in Perennial's `RWMutex`, or a bound on the alarm goroutines, would let it be proved.
+
+**The construction premise is planned, not proved.** `isServerBuilt`'s clauses map to `NewServer`
+and `bootstrap` (STATUS's table): most from existing results (`server_kv_backend`, the
+consistent index, `NewUberApplier`, `NewGenerator`, `NewNotifier`) and ghost allocation, four
+needing contracts of names-only constructors (lessor, alarm store, auth store, transport,
+compactor, stats, cluster version), three premises no `NewServer` proof can discharge (the raft
+contract, the id budget, `storeSmall`).

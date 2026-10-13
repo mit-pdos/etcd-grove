@@ -119,8 +119,8 @@ structure StoreNames where
   sch : schedule.SchedNames
 
 instance idxNames_countable : Pos.Countable IdxNames :=
-  countableOfLeftInverse (fun x : IdxNames => (x.hist, x.nev, x.log, x.crev))
-    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2⟩) (fun _ => rfl)
+  countableOfLeftInverse (fun x : IdxNames => (x.hist, x.nev, x.log, x.crev, x.cmp))
+    (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2⟩) (fun _ => rfl)
 
 instance schedNames_countable : Pos.Countable schedule.SchedNames :=
   countableOfLeftInverse (fun x : schedule.SchedNames => (x.run, x.jobs)) (fun p => ⟨p.1, p.2⟩)
@@ -1078,24 +1078,68 @@ instance crevUB_timeless (γ : IdxNames) (q : Qp) (c : Int) :
     Timeless (crevUB (GF := GF) γ q c) := by
   unfold crevUB; infer_instance
 
-/-- **The compaction right** at `c`: half the compaction revision's authority (the other halves
-are a quarter under each of `s.mu` and `s.revMu`, `muInv`, `revMuInv`). `NewStore` returns it at
-`-1`; `store.Compact` takes it (it updates the revision under both locks, which hold the rest
-of the authority) and returns it at the new revision. -/
-def compactRight (γ : StoreNames) (c : Int) : IProp GF := crevUB γ.idx (1 : Qp).half c
+/-- **The index compactor's token, at or below `c`** (exclusive): the index's compactor token
+(`idxCompactor`, `treeIndex.Compact`'s) at the revision of the last compaction of the index, at most
+`c` (a compaction job at `c` may find the index compacted below it: an earlier job interrupted
+before its pass, by a cancelled context, leaves the token where it was; 2026-10-13, unit 5c). -/
+def compactTok (γ : StoreNames) (c : Int) : IProp GF :=
+  iprop(∃ c' : Int, ⌜c' ≤ c⌝ ∗ idxCompactor γ.idx c')
 
-instance compactRight_timeless (γ : StoreNames) (c : Int) :
-    Timeless (compactRight (GF := GF) γ c) := by
-  unfold compactRight; infer_instance
+instance compactTok_timeless (γ : StoreNames) (c : Int) :
+    Timeless (compactTok (GF := GF) γ c) := by
+  unfold compactTok idxCompactor; infer_instance
+
+/-- The compactor's token is good at any higher revision. -/
+theorem compactTok_mono (γ : StoreNames) (c c' : Int) (h : c ≤ c') :
+    compactTok (GF := GF) γ c ⊢ compactTok γ c' := by
+  unfold compactTok
+  iintro ⟨%c₀, %h₀, H⟩
+  iexists c₀
+  iframe H
+  ipureintro; omega
+
+/-- **The compaction jobs' queue** at `c` (exclusive; 2026-10-13, unit 5c): the store's
+scheduler's queue of tracked jobs (`schedule.schedQueue`), whose last name `p` saves the `Post`
+`Q` of the last compaction job scheduled (or, before any, the scheduler's initial `True`), and a
+resource `R` which, with `Q`, gives the index compactor's token at or below `c` (`compactTok`):
+the next compaction job, tracked, gets `Q` from the scheduler (its `Prev`: the previous job has
+run) and `R` from its caller (its `Pre`). Before any compaction, `Q = True` and `R` the token
+itself (`NewStore`); after, `Q` the token, `R = True`. The request path's `run` threads the apply
+thread's resources the same way. -/
+def compactQueue (γ : StoreNames) (c : Int) : IProp GF :=
+  iprop(∃ (Ps : List GName) (p : GName) (Q R : IProp GF),
+    schedule.schedQueue γ.sch (Ps ++ [p]) ∗ schedule.savedProp p Q ∗ R ∗ (Q ∗ R -∗ compactTok γ c))
+
+/-- The queue is good at any higher revision. -/
+theorem compactQueue_mono (γ : StoreNames) (c c' : Int) (h : c ≤ c') :
+    compactQueue (GF := GF) γ c ⊢ compactQueue γ c' := by
+  unfold compactQueue
+  iintro ⟨%Ps, %p, %Q, %R, Hq, #Hp, HR, Hw⟩
+  iexists Ps, p, Q, R
+  iframe Hq Hp HR
+  iintro HQR
+  ihave Ht := Hw $$ HQR
+  iapply compactTok_mono γ c c' h $$ Ht
+
+/-- **The compaction right** at `c`: half the compaction revision's authority (the other halves
+are a quarter under each of `s.mu` and `s.revMu`, `muInv`, `revMuInv`), and the compaction jobs'
+queue (`compactQueue`: the scheduler's tracked queue, its last job's `Post` giving the index
+compactor's token at or below `c`; 2026-10-13, unit 5c). `NewStore` returns it at `-1`;
+`store.Compact` takes it (it updates the revision under both locks, which hold the rest of the
+authority, then schedules the job, tracked, after `s.mu` is released: the right is what carries
+the queue there) and returns it at the new revision. -/
+def compactRight (γ : StoreNames) (c : Int) : IProp GF :=
+  iprop(crevUB γ.idx (1 : Qp).half c ∗ compactQueue γ c)
 
 /-- The invariant's name of a frozen compaction revision. -/
 abbrev crevFrozenN : Namespace := nroot.@"mvcc_crevFrozen"
 
 /-- **No compaction, ever** (persistent): the compaction right at `-1`, given up into an
-invariant (`compactRight_freeze`), so the revision stays `-1` (no one can gather the authority
+invariant (`compactRight_freeze`; its half of the revision's authority, the jobs' queue dropped),
+so the revision stays `-1` (no one can gather the authority
 to update it). The store's readers and writers as the txn, apply, request path and watchable
 store use them (`storeReader`) carry it: their specs are of a store that is not compacted. -/
-def crevFrozen (γ : StoreNames) : IProp GF := inv crevFrozenN (compactRight γ (-1))
+def crevFrozen (γ : StoreNames) : IProp GF := inv crevFrozenN (crevUB γ.idx (1 : Qp).half (-1))
 
 instance crevFrozen_persistent (γ : StoreNames) : Persistent (crevFrozen (GF := GF) γ) := by
   unfold crevFrozen; infer_instance
@@ -1166,6 +1210,8 @@ theorem snapThin_crev (γ : StoreNames) (q : Qp) (m m' : Bucket) :
 theorem compactRight_freeze (γ : StoreNames) (E : CoPset) :
     ⊢ compactRight (GF := GF) γ (-1) ={E}=∗ crevFrozen γ := by
   iintro H
+  iunfold compactRight at H
+  icases H with ⟨H, -⟩
   iunfold crevFrozen
   iapply inv_alloc
   inext
@@ -1176,12 +1222,11 @@ theorem crevFrozen_agree (γ : StoreNames) (q : Qp) (c : Int) (hc : -1 ≤ c) :
     ⊢ crevFrozen (GF := GF) γ -∗ crevUB γ.idx q c ={⊤}=∗ crevUB γ.idx q c ∗ ⌜c = -1⌝ := by
   iintro #Hf Hc
   iunfold crevFrozen at Hf
-  imod inv_acc (E := ⊤) (N := crevFrozenN) (P := compactRight (GF := GF) γ (-1))
+  imod inv_acc (E := ⊤) (N := crevFrozenN) (P := crevUB (GF := GF) γ.idx (1 : Qp).half (-1))
     (by exact CoPset.subseteq_top) $$ Hf with ⟨>Hr, Hclose⟩
-  iunfold compactRight at Hr
   ihave %Heq := crevUB_agree γ.idx q (1 : Qp).half c (-1) hc (by decide) $$ Hc Hr
   imod Hclose $$ [Hr] with -
-  · inext; iunfold compactRight; iexact Hr
+  · inext; iexact Hr
   imodintro
   iframe Hc
   ipureintro; exact Heq
@@ -1191,9 +1236,8 @@ theorem crevFrozen_noDel (γ : StoreNames) (k : GoString) :
     ⊢ crevFrozen (GF := GF) γ -∗ delKey γ k ={⊤}=∗ False := by
   iintro #Hf #Hd
   iunfold crevFrozen at Hf
-  imod inv_acc (E := ⊤) (N := crevFrozenN) (P := compactRight (GF := GF) γ (-1))
+  imod inv_acc (E := ⊤) (N := crevFrozenN) (P := crevUB (GF := GF) γ.idx (1 : Qp).half (-1))
     (by exact CoPset.subseteq_top) $$ Hf with ⟨>Hr, Hclose⟩
-  iunfold compactRight at Hr
   ihave %Hf := crevUB_noDel γ (1 : Qp).half k $$ Hr Hd
   exact Hf.elim
 
@@ -1202,12 +1246,11 @@ theorem snapThin_frozen (γ : StoreNames) (m m' : Bucket) :
     ⊢ crevFrozen (GF := GF) γ -∗ snapThin m m' (delKey γ) ={⊤}=∗ ⌜m' = m⌝ := by
   iintro #Hf #Ht
   iunfold crevFrozen at Hf
-  imod inv_acc (E := ⊤) (N := crevFrozenN) (P := compactRight (GF := GF) γ (-1))
+  imod inv_acc (E := ⊤) (N := crevFrozenN) (P := crevUB (GF := GF) γ.idx (1 : Qp).half (-1))
     (by exact CoPset.subseteq_top) $$ Hf with ⟨>Hr, Hclose⟩
-  iunfold compactRight at Hr
   icases snapThin_crev γ (1 : Qp).half m m' $$ [$Hr $Ht] with ⟨Hr, %Heq⟩
   imod Hclose $$ [Hr] with -
-  · inext; iunfold compactRight; iexact Hr
+  · inext; iexact Hr
   imodintro
   ipureintro; exact Heq
 
@@ -1232,10 +1275,13 @@ instance compactedAt_persistent (γ : StoreNames) (rev : Int) :
   unfold compactedAt; infer_instance
 
 /-- The compaction's part of the batch lock's resource: the meta keys' record and the finished
-compactions' counter, at the record's finished revision. -/
+compactions' counter, at or above the record's finished revision (the highest revision a job
+finished at: the jobs run in the order of their revisions, but the batch lock's resource does not
+know it, so a job finishing writes its revision and raises the counter to it, if below;
+2026-10-13, unit 5c, contract correction: the counter was the record's revision exactly). -/
 def compactRes (γ : StoreNames) : IProp GF :=
-  iprop(∃ sched fin : Option w64, metaCompact γ 1 sched fin ∗
-    monoNatAuthOwn γ.fin 1 (crevN (finRev fin)))
+  iprop(∃ (sched fin : Option w64) (n : Nat), metaCompact γ 1 sched fin ∗
+    monoNatAuthOwn γ.fin 1 n ∗ ⌜crevN (finRev fin) ≤ n⌝)
 
 /-! ## The locks -/
 
@@ -1361,6 +1407,32 @@ theorem storeW_register (s : Loc) (γ : StoreNames) :
       iexact H
     · ihave %Hc := dghostVar_agree d.gx _ _ _ _ $$ Hr' H2
       cases Hc
+
+/-- **The store's backend contract over mvcc's assumed backend** (`storeCmp γ`, `γ.kb = none`;
+2026-10-13, unit 5c): no tokens, no condition on the puts, the lock resource the writer's
+(`writerRes`), the compaction's calls (`Cmp` true). -/
+theorem isKeyBackendG_cmp (b : GoInterface) (s : Loc) (γ : StoreNames) (Dep P : IProp GF) (f : val)
+    (h : storeCmp γ) :
+    isKeyBackendG (GF := GF) b (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
+      (storeW s γ) (kbWi γ.kb) Dep (storeCmp γ) P f ⊢
+    isKeyBackendG b (bucketView γ) iprop(True) iprop(True) noPutCond (delKey γ) (writerRes s γ)
+      iprop(True) Dep True P f := by
+  unfold storeCmp kbCmp at h
+  unfold storeW kbWi storeRT storeWT storePutOk storeCmp kbCmp kbRT kbWT kbPutOk
+  simp only [h]
+  exact .rfl
+
+/-- **The store's batch transaction over mvcc's assumed backend** (`storeCmp γ`): the assumed
+contract (`batchTxSpec`), its lock resource the writer's (2026-10-13, unit 5c). -/
+theorem batchTxSpecG_cmp (bt : GoInterfaceOk) (s : Loc) (γ : StoreNames) (Dep : IProp GF)
+    (Locked : Puts → IProp GF) (P : IProp GF) (f : val) (h : storeCmp γ) :
+    batchTxSpecG (GF := GF) bt (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (delKey γ)
+      (storeW s γ) Dep (storeCmp γ) Locked P f ⊢
+    batchTxSpec bt (bucketView γ) (delKey γ) (writerRes s γ) Dep Locked P f := by
+  unfold storeCmp kbCmp at h
+  unfold batchTxSpec storeW storeRT storeWT storePutOk storeCmp kbCmp kbRT kbWT kbPutOk
+  simp only [h]
+  exact .rfl
 
 /-- `s.revMu`'s resource at fraction `q`: the committed log `log`'s last revision in
 `currentRev` (half of it: the writer holds the other half under the batch lock), half the

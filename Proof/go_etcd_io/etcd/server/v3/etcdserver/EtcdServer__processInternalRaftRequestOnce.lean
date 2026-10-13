@@ -377,8 +377,8 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
   wp_apply hAI s E γr $$ [] as %ai -
   · iframe #
   (try wp_auto)
-  wp_apply hCI s γr $$ [] as %ci -
-  · iframe #
+  wp_apply hCI s γr none $$ [] as %ci -
+  · iframe #; iunfold srvCommittedOwnOpt; itrivial
   (try wp_auto)
   wp_apply hFE s v.fg _ $$ [] as %en -
   · iframe #

@@ -51,7 +51,6 @@ apply_Apply: @
 # membership change's contract, and names-only callees (zap, the alarm store, ...).
 EtcdServer__applyConfChange:
 pbutil_MustUnmarshalMessage:
-EtcdServer__GoAttach:
 EtcdServer__stopWithDelay:
 # The apply thread's small callees, with bodies (proved): the server's leader test and
 # logger (server.go), the notifier (pkg/notify), the election timeout (server/config), the
@@ -81,7 +80,11 @@ EtcdServer__getTxPostLockInsideApplyHook: consistentIndex__ConsistentApplyingInd
 EtcdServer__setAppliedIndex:
 EtcdServer__setTerm:
 EtcdServer__applyEntries: Entry__GetIndex EtcdServer__apply EtcdServer__stopWithDelay
-EtcdServer__applyEntryNormal: Entry__GetIndex Entry__GetTerm consistentIndex__ConsistentIndex consistentIndex__SetConsistentIndex Notifier__Notify EtcdServer__isLeader ServerConfig__ElectionTimeout apply_Apply errors_Is AlarmStore__Get EtcdServer__Logger zap_String zap_Int64 zap_Error go_humanize_Bytes zap_Logger__Warn EtcdServer__GoAttach
+# GoAttach (server.go; the request path's unit 4c: with its body, over Perennial's WaitGroup and
+# RWMutex, InvGoAttach.lean; the apply thread's alarm goroutine's proposal is the contract
+# EtcdServer.raftRequestAlarm, AlarmContract.lean)
+EtcdServer__GoAttach: EtcdServer__Logger zap_Logger__Warn
+EtcdServer__applyEntryNormal: Entry__GetIndex Entry__GetTerm consistentIndex__ConsistentIndex consistentIndex__SetConsistentIndex Notifier__Notify EtcdServer__isLeader ServerConfig__ElectionTimeout apply_Apply errors_Is AlarmStore__Get EtcdServer__Logger zap_String zap_Int64 zap_Error go_humanize_Bytes zap_Logger__Warn EtcdServer__GoAttach EtcdServer__MemberID
 EtcdServer__apply: zap_Logger__Debug zap_Int zap_Uint64 zap_Stringer consistentIndex__ConsistentIndex consistentIndex__SetConsistentApplyingIndex consistentIndex__SetConsistentIndex Entry__GetIndex Entry__GetTerm Entry__GetType EtcdServer__applyEntryNormal EtcdServer__setAppliedIndex EtcdServer__setTerm pbutil_MustUnmarshalMessage EtcdServer__applyConfChange ConfChange__GetId RaftCluster__Members
 # The raft wrapper (server/etcdserver/raft.go), see InvRaftNode.lean: raft v3.7's helpers and
 # getters it calls, its trust boundary (zap's Duration and Fatal, proto.Clone: names-only), and
@@ -258,3 +261,45 @@ EtcdServer__shouldSnapshotToDisk:
 EtcdServer__shouldSnapshotToMemory:
 EtcdServer__snapshotIfNeededAndCompactRaftLog: EtcdServer__shouldSnapshotToDisk EtcdServer__shouldSnapshotToMemory EtcdServer__snapshot EtcdServer__compactRaftLog
 EtcdServer__applyAll: EtcdServer__applySnapshot EtcdServer__applyEntries EtcdServer__Backend EtcdServer__Logger backend_VerifyBackendConsistency EtcdServer__snapshotIfNeededAndCompactRaftLog EtcdServer__createMergedSnapshotMessage EtcdServer__sendMergedSnap
+# The server's apply loop `run` (server.go; the request path's unit 4c, see InvRun.lean): the
+# committed index's and the leader's setters (with bodies), the raft storage snapshot's
+# metadata getters (raft v3.7's raftpb), the FIFO scheduler (in mvcc's list: its results reused from mvcc's Link), and the
+# trust boundary (`axiom … .wp_proof`): `revokeExpiredLeases`, `Cleanup` (names-only server
+# methods) and v2stats' `BecomeLeader`.
+SnapshotMetadata__GetTerm:
+EtcdServer__setCommittedIndex:
+EtcdServer__setLead:
+EtcdServer__revokeExpiredLeases:
+EtcdServer__Cleanup:
+v2stats_ServerStats__BecomeLeader:
+schedule_NewFIFOScheduler:
+schedule_job__Do:
+schedule_NewJob: schedule_job__Do
+schedule_Scheduler__Schedule:
+schedule_Scheduler__Stop:
+EtcdServer__run: EtcdServer__applyAll EtcdServer__Logger SnapshotMetadata__GetIndex SnapshotMetadata__GetTerm schedule_NewFIFOScheduler EtcdServer__getLead EtcdServer__setLead EtcdServer__isLeader Notifier__Notify v2stats_ServerStats__BecomeLeader EtcdServer__getCommittedIndex EtcdServer__setCommittedIndex raftNode__start raftNode__apply schedule_NewJob schedule_Scheduler__Schedule EtcdServer__revokeExpiredLeases zap_Error zap_Logger__Warn schedule_Scheduler__Stop raftNode__stop EtcdServer__Cleanup
+# The server's `start` and `Start` (server.go; the request path's unit 4c, see InvStart.lean):
+# `start` with its body (the registries, the channels, the context, the read loop's `*Read`, the
+# leader-change notifier, `GoAttach`'s protocol, `go s.run()`); `Start` with its body (`start`,
+# then ten goroutines through `GoAttach`: the read loop, verified, and nine names-only monitors);
+# the trust boundary (`axiom … .wp_proof`): the monitors, `version.Cluster`, prometheus'
+# `GaugeVec.With`; `ClusterVersion()` is a contract of the construction premise
+# (`clusterVersionOk`). The read package's `NewRead` and `LinearizableReadLoop` are its Link's.
+zap_Logger__Info:
+types_ID__String:
+Version__String:
+version_Cluster:
+prometheus_GaugeVec__With:
+EtcdServer__adjustTicks:
+EtcdServer__publishV3:
+EtcdServer__purgeFile:
+monitorFileDescriptor:
+EtcdServer__monitorClusterVersions:
+EtcdServer__monitorStorageVersion:
+EtcdServer__monitorKVHash:
+EtcdServer__monitorCompactHash:
+EtcdServer__monitorDowngrade:
+read_NewRead: @
+read_Read__LinearizableReadLoop: @
+EtcdServer__start: EtcdServer__Logger zap_Logger__Info zap_String zap_Uint64 wait_New wait_NewTimeList wait_timeList__Wait wait_timeList__Trigger read_NewRead NewNotifier EtcdServer__MemberID EtcdServer__Cluster membership_RaftCluster__ID types_ID__String Version__String version_Cluster prometheus_GaugeVec__With EtcdServer__run EtcdServer__ApplyWait EtcdServer__Done EtcdServer__Stopping EtcdServer__LeaderChanged EtcdServer__FirstCommitInTermNotify EtcdServer__NextRequestID EtcdServer__RequestTimeout EtcdServer__AppliedIndex raftNode__ReadState raftNode__ReadIndex
+EtcdServer__Start: EtcdServer__start EtcdServer__GoAttach EtcdServer__Logger EtcdServer__adjustTicks EtcdServer__publishV3 config_ServerConfig__ReqTimeout EtcdServer__purgeFile monitorFileDescriptor EtcdServer__monitorClusterVersions EtcdServer__monitorStorageVersion read_Read__LinearizableReadLoop EtcdServer__monitorKVHash EtcdServer__monitorCompactHash EtcdServer__monitorDowngrade

@@ -5,6 +5,7 @@ committed entries. Lean-first (no Rocq counterpart); see `InvApplier.lean`, `Inv
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvGoAttach
 
 @[expose] public section
 
@@ -46,15 +47,15 @@ abbrev EtcdServer.apply.spec : Prop :=
   ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → entriesOk (ciEff γ st.k) ms x →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfStateAddr ep ↦ cs ∗
-      srvLgReader s ∗ srvApplyKV s E x ∗ srvAppliedOwn γr (f0 - 1) ∗ txn.storeWTs E.γ ms.length }}
+      srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr (f0 - 1) ∗ txn.storeWTs E.γ ms.length }}
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"apply"))
       (Val #es)) (Val #ep)) (Val #rac))
   {{ (appliedt appliedi : w64) (shouldStop : Bool),
       RET (PairV (PairV #appliedt #appliedi) #shouldStop);
       ∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
         applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
-        epConfStateAddr ep ↦ csl ∗ srvLgReader s ∗ srvAppliedOwn γr appliedi ∗
-        (∃ x' : apply.ApplyKV, srvApplyKV s E x' ∗ ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗
+        epConfStateAddr ep ↦ csl ∗ srvLgReader s ∗ srvGoRes s ∗ srvAppliedOwn γr appliedi ∗
+        (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗ ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗
           appliedLogAt γr appliedi x'.log) ∗
         ⌜(ms.getLast?).map EntryModel.index = some appliedi ∧
           (ms.getLast?).map EntryModel.term = some appliedt ∧

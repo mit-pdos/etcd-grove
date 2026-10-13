@@ -28,7 +28,8 @@ critical-section contract of the batch lock (`csContract`:
 `SetScheduledCompact`'s `LockInsideApply` runs the post-lock hook):
 * `rev > c`, `rev` a revision of the committed log: under `s.revMu`, `compactMainRev = rev` (both
   locks' halves, the authority with the right's), `scheduledCompactRev = rev` written, `nil`, the
-  previous compaction revision; the job's premises (`compactJobPre`: `crevLb γ rev`, a certified
+  previous compaction revision; the right at `rev` (its queue unchanged, good at `rev`:
+`compactQueue_mono`); the job's premises (`compactJobPre`: `crevLb γ rev`, a certified
   log with revision `rev`) and the caller's `Post`;
 * `rev ≤ c`: `ErrCompacted`, and a barrier job scheduled that closes the channel returned (a
   receive right, `compactChan ch True`); nothing changed, `Pre` back;

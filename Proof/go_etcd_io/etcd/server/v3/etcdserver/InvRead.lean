@@ -15,7 +15,8 @@ revisions (`idxCert`: every read is of a log at least that long, so a read's rev
 `0`), the read loop's server fields (2026-10-13, the request path's unit 4b: the applied and
 committed indices' invariants, `srvAppliedInv`/`srvCommittedInv`; the applied index's waiters
 `applyWait`, a `WaitTime` for `appliedAtLeast γr`, `isWaitTime`; the notifiers `leaderChanged` and
-`firstCommitInTerm`; the `stopping` channel, closed, never sent on), and **the store stays small** (`storeSmall`: every certified log has at most `2 ^ 62`
+`firstCommitInTerm`; the `stopping` channel, closed, never sent on: `stopChan`, buffered, 2026-10-13,
+unit 4c), and **the store stays small** (`storeSmall`: every certified log has at most `2 ^ 62`
 changes, `txn.LogSmall`, the sort's premise; a premise, as the apply thread's `rangeOk`/`TxnPre`
 of its entries).
 
@@ -43,6 +44,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvTxn
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.TimeList
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopChan
 
 @[expose] public section
 
@@ -114,7 +116,7 @@ def srvReadFieldsAt (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v : ReadFie
     srvAppliedInv s E γr ∗ srvCommittedInv s γr ∗
     srvApplyWaitAddr s ↦□ v.aw ∗ isWaitTime v.aw (appliedAtLeast γr) ∗
     srvLeaderChangedAddr s ↦□ v.lc ∗ srvFirstCommitAddr s ↦□ v.fc ∗
-    srvStoppingAddr s ↦□ v.stopping ∗ srvDoneChan v.stopping)
+    srvStoppingAddr s ↦□ v.stopping ∗ stopChan v.stopping)
 
 instance srvReadFieldsAt_persistent (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     (v : ReadFields) : Persistent (srvReadFieldsAt s E γr v) := by
@@ -191,8 +193,9 @@ def txnReadOk (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (t : TxnModel) (re
 /-- **A successful writing `Txn` of `t`** (as `Put`'s and `DeleteRange`'s): the request the
 proposed data decode to (`rq'`, whose transaction `t'` is `t` unless a range end is `[0]`,
 `irrWireOf`) was dispatched by the apply thread at the KV state `x` to `x'` and applied
-(`applied l false`), possibly with header-only ranges (`skip`: `SkipRangeExecution`, the apply
-thread's `IsRegistered` being "some boolean" in the wait's contract), the response the
+(`applied l false`), possibly with header-only ranges (`skip`: `SkipRangeExecution`; the apply
+loops call `IsRegistered` knowing nothing of the id's registration, so the model admits it; at a
+known registration `request_delivered` excludes it unless the registration is gone), the response the
 transaction's (`txnOutcomeIs` at `x.log`), the header's id fields owned (`appliedHdr`), mvcc's
 certificate of the log after. -/
 def txnAppliedOk (E : apply.AEnv GF) (t : TxnModel) (resp : Loc) : IProp GF :=

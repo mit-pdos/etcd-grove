@@ -79,6 +79,14 @@ theorem storeWTs_split (γ : mvcc.StoreNames) (n : Nat) :
     rw [Nat.add_comm]
     exact ownToks_add_1 n 1 d.γB.wb
 
+/-- A supply splits and joins (the server's `run` splits each batch's share off its budget). -/
+theorem storeWTs_add (γ : mvcc.StoreNames) (a b : Nat) :
+    storeWTs (GF := GF) γ (a + b) ⊣⊢ storeWTs γ a ∗ storeWTs γ b := by
+  unfold storeWTs
+  cases γ.kb with
+  | none => exact ⟨by iintro -; isplitl <;> itrivial, by iintro -; itrivial⟩
+  | some d => exact ownToks_add b a d.γB.wb
+
 instance isKV_persistent (kv : GoInterface) (s : Loc) (γ : mvcc.StoreNames) :
     Persistent (isKV (GF := GF) kv s γ) := by
   unfold isKV; infer_instance

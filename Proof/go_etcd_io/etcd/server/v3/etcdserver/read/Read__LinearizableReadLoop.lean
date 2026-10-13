@@ -77,7 +77,7 @@ theorem read.Read.LinearizableReadLoop.wp_proof
   iunfold isReadServer at Hsrv
   icases Hsrv with ⟨-, %si, %Hsi, #HStopping, #HLC, -, #HLg, #HAI, #HAW, -, -⟩
   subst Hsi
-  iunfold srvChanOk at HStopping
+  iunfold srvStopOk at HStopping
   iunfold srvChanOkR at HLC
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -91,7 +91,8 @@ theorem read.Read.LinearizableReadLoop.wp_proof
   wp_apply HStopping as %stc #Hstc
   ihave #Hlcnc := Hlcn
   ihave #Hstcc := Hstc
-  iunfold bcastChan at Hlcnc Hstcc
+  iunfold bcastChan at Hlcnc
+  iunfold stopChan at Hstcc
   icases Hlcnc with ⟨%γlc, #Hlcn'⟩
   icases Hstcc with ⟨%γst, #Hstc'⟩
   wp_apply_core chan.wp_select_blocking
@@ -185,7 +186,8 @@ theorem read.Read.LinearizableReadLoop.wp_proof
     wp_if_destruct
     · wp_apply HAW $$ %ci as %awc ⟨%Qaw, #Hawc, #Hawq⟩
       wp_apply HStopping as %stc2 #Hstc2
-      iunfold bcastChan at Hawc Hstc2
+      iunfold bcastChan at Hawc
+      iunfold stopChan at Hstc2
       icases Hawc with ⟨%γaw, #Hawc⟩
       icases Hstc2 with ⟨%γst2, #Hstc2⟩
       wp_apply_core chan.wp_select_blocking
@@ -209,8 +211,8 @@ theorem read.Read.LinearizableReadLoop.wp_proof
         isplitr
         · ipureintro; rfl
         isplitr
-        · iapply ownBroadcastChan_is_chan $$ Hstc2
-        iapply broadcast_chan_receive _ _ _ _ _ $$ Hstc2
+        · iapply ownStopChan_is_chan $$ Hstc2
+        iapply stop_chan_receive _ _ _ _ _ $$ Hstc2
         iintro ⟨-, -⟩
         wp_auto
         wp_for_post
@@ -228,8 +230,8 @@ theorem read.Read.LinearizableReadLoop.wp_proof
     isplitr
     · ipureintro; rfl
     isplitr
-    · iapply ownBroadcastChan_is_chan $$ Hstc'
-    iapply broadcast_chan_receive _ _ _ _ _ $$ Hstc'
+    · iapply ownStopChan_is_chan $$ Hstc'
+    iapply stop_chan_receive _ _ _ _ _ $$ Hstc'
     iintro ⟨-, -⟩
     wp_auto
     wp_for_post

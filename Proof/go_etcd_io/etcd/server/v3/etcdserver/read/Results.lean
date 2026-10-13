@@ -46,9 +46,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.read.Assumptions]
 
 /-- **`NewRead`'s result meets the read contract** (`Spec/go_etcd_io/etcd/server/v3/etcdserver/read/
-NewRead.lean`): given the server's and raft's contracts, `NewRead(srv, rf)` returns `r` with
-`isRead r γr` (the contract the server's `Range`/`Txn` take: `LinearizableReadNotify` returns
-`nil` only with `readIndexOk γr c`), the loop's precondition and the reader slots of `r.mux`. -/
+NewRead.lean`): given the server's `Done()`, `NewRead(srv, rf)` returns `r` with `isRead r γr`
+(the contract the server's `Range`/`Txn` take: `LinearizableReadNotify` returns `nil` only with
+`readIndexOk γr c`), the reader slots of `r.mux`, and the loop's precondition from the server's
+and raft's contracts. -/
 theorem read_new : NewRead.spec (GF := GF) (hG := hG) := wp_NewRead
 
 /-- **The read loop** (`Spec/go_etcd_io/etcd/server/v3/etcdserver/read/Read__LinearizableReadLoop.lean`):

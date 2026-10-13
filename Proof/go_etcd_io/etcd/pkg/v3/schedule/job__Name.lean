@@ -1,5 +1,5 @@
 /-
-Proof of the spec of the same name: pending (mvcc's compaction, units 5b/5c; `sorry`).
+Proof of the spec of the same name (the request path's unit 4d).
 -/
 module
 
@@ -21,9 +21,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.pkg.v3.schedule.Assumptions]
 
-/-- Pending (mvcc's compaction, units 5b/5c). -/
 theorem schedule.job.Name.wp_proof : schedule.job.Name.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro jv
+  wp_start
+  wp_auto
+  iapply HΦ
+  itrivial
 
 end proof
 

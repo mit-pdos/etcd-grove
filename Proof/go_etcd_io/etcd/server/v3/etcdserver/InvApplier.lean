@@ -226,15 +226,6 @@ variable [sem : go.Semantics]
 -- The server's wait: `waitInv` (`InvRequest.lean`, the registry's contract, in `srvFieldsAt`);
 -- the apply thread's reader of it, `waitOk` (`apply/Wait.lean`, in `srvApplyKV`).
 
-/-- `l` is a `lease.Lessor` whose `Promote` returns (in memory: no backend writes). -/
-def lessorOk (l : GoInterface) : IProp GF :=
-  iprop(∃ li : GoInterfaceOk, ⌜l = GoInterface.ok li⌝ ∗
-    □ (∀ d : w64,
-      {{ True }} (App (Val #(methods li.ty go!"Promote" li.v)) (Val #d)) {{ RET #(); True }}))
-
-instance lessorOk_persistent (l : GoInterface) : Persistent (lessorOk (GF := GF) l) := by
-  unfold lessorOk; infer_instance
-
 /-- The server's atomic `s.lead` (the leader's id, which raft's goroutine stores; the apply
 thread loads it in `isLeader`). -/
 def srvLeadInv (s : Loc) : IProp GF :=
@@ -302,6 +293,22 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-! At `HeapGS HasLC.hasLC GF` (later credits), as the notifier `s.firstCommitInTerm`'s
 predicate is (Perennial's channel specs are), and the apply package's. -/
 
+/-- `l` is a `lease.Lessor` whose `Promote` returns (in memory: no backend writes); and
+(2026-10-13, the request path's unit 4c: the server's `run`) whose `Demote` returns and whose
+`ExpiredLeasesC` returns a channel of slices of expired leases, with no logical content (`run`
+passes them to the names-only `revokeExpiredLeases`). A trust-boundary contract (the lessor is
+names-only). -/
+def lessorOk (l : GoInterface) : IProp GF :=
+  iprop(∃ li : GoInterfaceOk, ⌜l = GoInterface.ok li⌝ ∗
+    □ (∀ d : w64,
+      {{ True }} (App (Val #(methods li.ty go!"Promote" li.v)) (Val #d)) {{ RET #(); True }}) ∗
+    □ ({{ True }} (App (Val #(methods li.ty go!"Demote" li.v)) (Val #())) {{ RET #(); True }}) ∗
+    □ ({{ True }} (App (Val #(methods li.ty go!"ExpiredLeasesC" li.v)) (Val #()))
+      {{ (c : GoChan), RET #c; ∃ γc : ChanNames, isChanBag γc c (V := GoSlice) (fun _ => iprop(True)) }}))
+
+instance lessorOk_persistent (l : GoInterface) : Persistent (lessorOk (GF := GF) l) := by
+  unfold lessorOk; infer_instance
+
 /-- The server `s`'s fields hold `v`, with their contracts; the backend's applier `uberApply`
 is the apply package's uber-applier in the environment `E` (`apply.applierFor`), whose batch
 lock has the protocol's invariant `batchLockInv γ TM` and runs the post-lock hook `v.hook`. -/
@@ -340,14 +347,49 @@ instance isServer_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
 /-- **The apply thread's applier state** at `x` (not persistent): the server's `uberApply`'s
 (`apply.applyKV`: its current chain `x.chain`, the KV's resources at the committed log
 `x.log`). -/
-def srvApplyKV (s : Loc) (E : apply.AEnv GF) (x : apply.ApplyKV) : IProp GF :=
+def srvApplyKV (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) : IProp GF :=
   iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦□ ua ∗ apply.applyKV E ua x ∗
-    ∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗ waitOk w RD ∗ RD)
+    ∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
+      waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD)
+
+/-- **What the caller of `applyEntryNormal` knows of the entry's registration** (persistent; the
+request path's unit 4d): for an entry whose data decode to a request with an id, `ot`'s
+knowledge of the id (`waitRegdOpt`: nothing for `none`, the registration with the consumer token
+`t` for `some t`). -/
+def entryRegd (γw : GName) (m : EntryModel) (ot : Option GName) : IProp GF :=
+  iprop(□ ∀ (rq : apply.IRRModel) (id : w64),
+    ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ → waitRegdOpt γw id ot)
+
+instance entryRegd_persistent (γw : GName) (m : EntryModel) (ot : Option GName) :
+    Persistent (entryRegd (GF := GF) γw m ot) := by
+  unfold entryRegd; infer_instance
+
+/-- Nothing known: `entryRegd` at `none`. -/
+theorem entryRegd_none (γw : GName) (m : EntryModel) : ⊢ entryRegd (GF := GF) γw m none := by
+  iunfold entryRegd
+  imodintro
+  iintro %rq %id %_
+  iunfold waitRegdOpt
+  itrivial
+
+/-- **The entry's delivery** (persistent; the request path's unit 4d): the entry has no data, or
+its outcome was not waived for want of a waiter (`ApplyOut.waived`: applied, its ranges run),
+or the registration `ot` knew of is gone (`waitGoneOpt`: a `Trigger` took it out). -/
+def entryDelivered (γw : GName) (m : EntryModel) (ot : Option GName) (out : apply.ApplyOut) :
+    IProp GF :=
+  iprop(⌜m.data = [] ∨ out.waived = false⌝ ∨
+    ∃ (rq : apply.IRRModel) (id : w64), ⌜apply.irrDecode m.data = some rq ∧
+      apply.irrId rq = some id⌝ ∗ waitGoneOpt γw id ot)
+
+instance entryDelivered_persistent (γw : GName) (m : EntryModel) (ot : Option GName)
+    (out : apply.ApplyOut) : Persistent (entryDelivered (GF := GF) γw m ot out) := by
+  unfold entryDelivered; infer_instance
 
 /-- `wait.New`'s contract gives the apply package's `waitOk` (the `IsRegistered` triple). -/
 theorem isWait_waitOk (w : GoInterface) (γi : IdNames) (γw : GName)
     (R : w64 → (GoInterface → IProp GF) → IProp GF) (RD : IProp GF) :
-    isWait w γi γw R RD ⊢ waitOk w RD := by
+    isWait w γi γw R RD ⊢
+      waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) := by
   iintro H
   iunfold isWait at H
   icases H with ⟨%wi, %Hw, -, -, #HI⟩
@@ -371,8 +413,8 @@ theorem applyKV_idxCert (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyK
   iframe H Hc
 
 /-- The certificate of the KV's log, from the apply thread's applier state at the server. -/
-theorem srvApplyKV_idxCert (s : Loc) (E : apply.AEnv GF) (x : apply.ApplyKV) :
-    srvApplyKV s E x ⊢ srvApplyKV s E x ∗ mvcc.idxCert E.γ.idx x.log := by
+theorem srvApplyKV_idxCert (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) :
+    srvApplyKV s E γw x ⊢ srvApplyKV s E γw x ∗ mvcc.idxCert E.γ.idx x.log := by
   iintro H
   iunfold srvApplyKV at H
   icases H with ⟨%ua, #Hua, Hkv, Hw⟩

@@ -306,11 +306,13 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm
 
--- `api/membership` (names only: `RaftCluster`)
+-- `api/membership` (names only: `RaftCluster`; 2026-10-13, the request path's unit 4c: the package
+-- variable `ClusterVersionMetrics`, which the server's `start` sets, holds some `*GaugeVec`)
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.membership
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init iprop(∃ gv : Loc,
+    globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterVersionMetrics ↦□ gv)
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership :=
   build_get_is_pkg_init_wf
 

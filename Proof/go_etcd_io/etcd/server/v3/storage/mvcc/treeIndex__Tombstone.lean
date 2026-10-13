@@ -156,14 +156,17 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
   (try wp_auto)
   have hset : mvcc.itemsOfEntries (L.set i (z.1, z.2.1, mvcc.kiTombstone z.2.2 ⟨W64 ilog.length, W64 pend.length⟩)) =
       mvcc.itemsOfEntries L := mvcc.itemsOfEntries_set L i z _ hi rfl rfl
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HnevL Ht Hback Hki]
+  ihave HcmpL := mvcc.idxCmpOwn_mono γ _ L
+    (L.set i (z.1, z.2.1, mvcc.kiTombstone z.2.2 ⟨W64 ilog.length, W64 pend.length⟩)) cmax
+    (fun p hp => by rwa [mvcc.ptrs_set L i z (z.1, z.2.1, mvcc.kiTombstone z.2.2 ⟨W64 ilog.length, W64 pend.length⟩) hi rfl]) $$ HcmpL
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk HnevL Ht Hback Hki HcmpL]
   · inext
     iunfold mvcc.idxLockInv
     iexists ilog, pend ++ [.del k],
       L.set i (z.1, z.2.1, mvcc.kiTombstone z.2.2 ⟨W64 ilog.length, W64 pend.length⟩), cmax
     simp only [named]
     rw [← mvcc.histShape_ev, hcount]
-    iframe HnevL
+    iframe HnevL HcmpL
     isplitl []
     · iexact Hlb'
     isplitl [Ht Hback Hki]

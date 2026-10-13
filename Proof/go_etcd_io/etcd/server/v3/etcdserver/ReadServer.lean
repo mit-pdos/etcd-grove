@@ -87,13 +87,11 @@ theorem isReadServer_of_server
   · ipureintro; rfl
   -- `Stopping()`
   isplitr
-  · iunfold srvChanOk
+  · iunfold srvStopOk
     iintro !> %Φ !> - HΦ
     wp_apply hStop s w.stopping $$ []
     · iframe #
     iapply HΦ
-    iunfold srvDoneChan at Hst
-    iunfold bcastChan
     iexact Hst
   -- `LeaderChanged()`
   isplitr

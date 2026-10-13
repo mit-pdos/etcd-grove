@@ -22,7 +22,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `s.compactLockfree(rev)` (`restore`'s, with `s.mu` held exclusively: `muInvAt s γ 1 c`):
-`updateCompactRev` then, on success, `compact` (at `context.TODO()`'s trace). Of a store whose
+`updateCompactRev` then, on success, `compact` (at `context.TODO()`'s trace), the job scheduled on
+the compaction right's queue (2026-10-13, unit 5c). Of a store whose
 backend supports the compaction (`storeCmp`). -/
 abbrev mvcc.store.compactLockfree.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (rev : w64) (c : Int) (P : IProp GF) (f : val)

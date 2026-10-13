@@ -191,6 +191,9 @@ time_NewTicker:
 time_Ticker__Stop:
 time_Ticker__Reset:
 time_Since:
+# (unit 5c: `Time.Unix`, untranslated in Perennial's `time`: the compaction job's deferred
+# `dbCompactionLast.Set(float64(time.Now().Unix()))`; an axiom, as `Since`)
+time_Time__Unix:
 store__Close:
 kvsToEvents: proto_Unmarshal isTombstone BytesToRev watcherGroup__contains
 rangeEvents: NewRevBytes RevToBytes kvsToEvents
@@ -208,7 +211,8 @@ watchableStore__NewWatchStream: watchableStore__watch watchableStore__progress w
 # the trust boundary they reach: the hasher (hash.go's crc32: `newKVHasher`, `kvHasher`'s
 # `WriteKeyValue`/`Hash`, `hashStorage.Store`), the scheduler's `Schedule` (agreed with the
 # server's session), zap's fields and `Info`/`Warn`, humanize's `Bytes` (axioms); the jobs
-# (pkg/schedule's `NewJob`, `job.Do`/`Name`, translated: pending); the btree's `Clone`,
+# (pkg/schedule's `NewJob`, `job.Do`/`Name`, translated: proved in the request path's unit 4d);
+# the btree's `Clone`,
 # `Ascend`, `Delete` and context's `Err` linked in their own Link.lean (`@`).
 BTree__Clone: @
 BTree__Ascend: @
@@ -221,9 +225,12 @@ zap_Int:
 zap_Uint32:
 go_humanize_Bytes:
 schedule_Scheduler__Schedule:
-schedule_NewJob:
+# (the request path's unit 4c: the scheduler's `Stop`, an axiom, for the server's `run`, which
+# reuses these entries with `@`)
+schedule_Scheduler__Stop:
 schedule_job__Do:
 schedule_job__Name:
+schedule_NewJob: schedule_job__Do
 newKVHasher:
 kvHasher__WriteKeyValue:
 kvHasher__Hash:
@@ -242,7 +249,7 @@ SetFinishedCompact: UnsafeSetFinishedCompact
 store__checkPrevCompactionCompleted: UnsafeReadScheduledCompact UnsafeReadFinishedCompact
 store__compactBarrier: context_Err schedule_NewJob schedule_Scheduler__Schedule
 store__updateCompactRev: schedule_NewJob store__compactBarrier schedule_Scheduler__Schedule SetScheduledCompact
-store__scheduleCompaction: treeIndex__Compact time_Since binary_bigEndian__PutUint64 newKVHasher BytesToRev kvHasher__WriteKeyValue UnsafeSetFinishedCompact kvHasher__Hash zap_Int64 zap_Duration zap_Int zap_Uint32 zap_String go_humanize_Bytes zap_Logger__Info RevToBytes
+store__scheduleCompaction: treeIndex__Compact time_Since binary_bigEndian__PutUint64 newKVHasher BytesToRev kvHasher__WriteKeyValue UnsafeSetFinishedCompact kvHasher__Hash zap_Int64 zap_Duration zap_Int zap_Uint32 zap_String go_humanize_Bytes zap_Logger__Info RevToBytes time_Time__Unix
 store__compact: schedule_NewJob context_Err store__compactBarrier store__scheduleCompaction zap_Error zap_Logger__Warn hashStorage__Store zap_Logger__Info schedule_Scheduler__Schedule traceutil_Trace__Step
 store__compactLockfree: store__checkPrevCompactionCompleted store__updateCompactRev traceutil_TODO store__compact
 store__Compact: store__checkPrevCompactionCompleted store__updateCompactRev traceutil_Trace__Step store__compact

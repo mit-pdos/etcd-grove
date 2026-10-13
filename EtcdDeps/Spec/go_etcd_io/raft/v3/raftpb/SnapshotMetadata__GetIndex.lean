@@ -22,11 +22,15 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.raftpb.Assumptions]
 
-/-- `GetIndex()` of a nil `*SnapshotMetadata`: 0 (`raft.IsEmptySnap` of a nil snapshot). -/
+/-- `GetIndex()` of a nil `*SnapshotMetadata` (`raft.IsEmptySnap` of a nil snapshot): 0; of one
+whose `Index` field holds `i` (`optU64`; the server's `run`, 2026-10-13): `i`. -/
 abbrev raftpb.SnapshotMetadata.GetIndex.spec : Prop :=
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb }}
-    (App (Val (null @!! go.GoType.PointerType raftpb.SnapshotMetadata.ty @!! go!"GetIndex")) (Val #()))
-  {{ RET #(W64 0); True }}
+  ∀ (md : Loc) (i : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗
+      (⌜md = null ∧ i = W64 0⌝ ∨
+        ∃ pi : Loc, ⌜md ≠ null⌝ ∗ structFieldRef raftpb.SnapshotMetadata go!"Index" md ↦□ pi ∗ optU64 pi i) }}
+    (App (Val (md @!! go.GoType.PointerType raftpb.SnapshotMetadata.ty @!! go!"GetIndex")) (Val #()))
+  {{ RET #i; True }}
 
 end spec
 

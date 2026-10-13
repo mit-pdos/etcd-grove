@@ -22,25 +22,31 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- **`s.Compact(trace, rev)`** with the compaction right at the store's compaction revision `c`
-(the caller is the one that compacts: the server's apply thread), under the critical-section
+(`compactRight`: half the revision's authority and the compaction jobs' queue on the store's FIFO
+scheduler, 2026-10-13, unit 5c; the caller is the one that compacts: the server's apply thread,
+and the exclusive right serializes its compactions: the job is scheduled after `s.mu` is
+released, so only the right can carry the queue there), under the critical-section
 contract of the batch lock (`csContract`: `SetScheduledCompact`'s `LockInsideApply` runs the
 post-lock hook), `trace ≠ nil`, the store's backend supporting the compaction (`storeCmp`: mvcc's
 assumed backend; 2026-10-13, the merge with the real backend, whose model has no deletion from
 the `Key` bucket); under `s.mu` held exclusively (no transaction open):
 * `rev > c`, `rev` a revision of the committed log: the compaction revision is `rev` (the right
-  at `rev`, a lower bound `crevLb γ rev` for every reader since), `nil`, the caller's `Post`, and
-  the job's channel (`compactChan`: once closed, `compactDone s γ rev`: the index and the bucket
+  at `rev`, its queue ending with the job's `Post`, a lower bound `crevLb γ rev` for every reader
+  since), `nil`, the caller's `Post`, and the job's channel (`compactChan`: once closed, `compactDone s γ rev`: the index and the bucket
   compacted at `rev`, `finishedCompactRev = rev`, or the compaction interrupted by `Close`);
 * `rev ≤ c`: `ErrCompacted`, the barrier's channel (closed once the jobs before it ran:
   nothing promised, `True`), `Pre` back;
 * `rev` above the committed log's last revision (a certificate of a shorter log): `ErrFutureRev`,
   a `nil` channel, `Pre` back.
-The configuration's batch limit is positive (`isStore`: `NewStore` excludes a negative one,
+The right's revision is at least `-1` (`NewStore`'s; each success raises it: 2026-10-13, unit 5c,
+contract correction: the counter `crevN` cannot tell a right below `-1` from one at `-1`, and
+then a `rev` in `(c, -1]` is `ErrCompacted` without `rev ≤ c`). The configuration's batch limit
+is positive (`isStore`: `NewStore` excludes a negative one,
 `issues/etcd-compaction-negative-batch-limit.md`). -/
 abbrev mvcc.store.Compact.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (rev : w64) (c : Int) (P : IProp GF) (f : val)
     (Pre Q Post : IProp GF),
-  trace ≠ null → mvcc.storeCmp γ →
+  trace ≠ null → mvcc.storeCmp γ → -1 ≤ c →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeStop s ∗ mvcc.compactRight γ c ∗ mvcc.hookIs γ P f ∗
       mvcc.csContract P f Pre Q Post }}
