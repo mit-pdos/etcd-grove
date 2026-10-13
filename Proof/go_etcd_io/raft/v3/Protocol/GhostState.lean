@@ -1345,6 +1345,30 @@ theorem rdOwn_update (γ : RaftNames) (id : w64) (s s' : PState) (sts : List Rea
     iframe Hcr Hcr'
   iexact Hinv
 
+/-- Messages leaving the outbox (`Ready`): their read credits go with them. -/
+theorem rdOwn_drain (γ : RaftNames) (id : w64) (s : PState) (o' : List Msg)
+    (h : rdCount o' ≤ rdCount s.outbox) :
+    rdOwn (GF := GF) γ id s ⊢
+      rdOwn γ id { s with outbox := o' } ∗ rdCred γ (rdCount s.outbox - rdCount o') := by
+  unfold rdOwn
+  iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv⟩
+  rw [show s.rd.pend.length + rdCount s.outbox =
+      (s.rd.pend.length + rdCount o') + (rdCount s.outbox - rdCount o') by omega]
+  icases (rdCred_split γ _ _).1 $$ Hcr with ⟨Hc1, Hc2⟩
+  iframe Hc2
+  iexists γl, rqm
+  isplitr; · ipureintro; exact Hγl
+  isplitl [Ha]; · iexact Ha
+  isplitr; · iexact Hf
+  isplitr; · ipureintro; exact Hok
+  isplitl [Hl]
+  · rw [show rdLead (GF := GF) γ { s with outbox := o' } rqm = rdLead γ s rqm from rfl]
+    iexact Hl
+  isplitr; · iexact Hst0
+  isplitr; · iexact Hpd0
+  isplitl [Hc1]; · iexact Hc1
+  iexact Hinv
+
 /-- The pending requests taken out, with their facts and credits. -/
 theorem rdOwn_takePend (γ : RaftNames) (id : w64) (s : PState) :
     rdOwn (GF := GF) γ id s ⊢

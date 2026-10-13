@@ -2420,6 +2420,36 @@ theorem ownRaftGhost_step_snap_restore (γ : RaftNames) (id : w64) (s : PState) 
 
 /-! ### Read-index rules (2026-10-13) -/
 
+/-- `Step.drain` with the drained messages' read credits handed out (2026-10-13): what
+`Ready` gives the transport with each `MsgReadIndex`. -/
+theorem ownRaftGhost_drain (γ : RaftNames) (id : w64) (s : PState) (o' : List Msg)
+    (Hsub : o'.Subperm s.outbox) :
+    ⊢ ownRaftGhost (GF := GF) γ id s ==∗
+      ownRaftGhost γ id { s with outbox := o' } ∗ rdCred γ (rdCount s.outbox - rdCount o') := by
+  iintro Hown
+  iunfold ownRaftGhost at Hown
+  icases Hown with ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  icases rdOwn_drain γ id s o' (List.Subperm.countP_le _ Hsub) $$ Hrd with ⟨Hrd, Hcr⟩
+  imodintro
+  iframe Hcr
+  iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm] [Hrd]
+  · ipureintro; exact Hhist
+  · iapply BigSepL.bigSepL_forall_elim
+    iintro %k %x %Hk
+    obtain ⟨j, Hj⟩ := List.mem_iff_getElem?.mp (Hsub.subset (List.mem_of_getElem? Hk))
+    iapply BigSepL.bigSepL_lookup (Φ := fun _ m => isMessage (GF := GF) γ m) Hj $$ Hout
+  · iexact Htally
+  · iapply leaderWit_eq γ id s _ (by rfl) (by rfl) $$ Hlead
+  · iapply ownLogGhost_mono γ id s _ kl (by rfl) (by rfl) (by rfl)
+      (by intro h; exact ⟨h, rfl, rfl⟩) (by intro h; exact ⟨h, rfl⟩) (by exact fun h => h) (by rfl)
+      (by exact fun h => h) $$ Hlg
+  · ipureintro; exact Hlead_ok
+  · ipureintro; exact Hfollower_votes
+  · ipureintro; exact Hrole_ok
+  · lcm_mono
+  · iexact Hrd
+
 /-- A step that changes only the outbox (growing by `ms`) and the read state: the read
 ghost state is updated by `Hupd`, which may consult the log ghost state. -/
 theorem ownRaftGhost_rd (γ : RaftNames) (id : w64) (s s' : PState) (ms : List Msg)
