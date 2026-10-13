@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Code.fmt
+public import Code.github_com.gogo.protobuf.proto
 public import Perennial.Code.reflect
 public import Perennial.Code.slices
 public import Perennial.Code.math.bits
@@ -176,11 +177,14 @@ attribute [irreducible] ConfChangeV2.ty
 @[reducible] noncomputable def MsgForgetLeader [FfiSyntax] [GoGlobalContext] : val :=
   #(W32 23)
 
-axiom ConfChangeTransitionAuto [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def ConfChangeTransitionAuto [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 0)
 
-axiom ConfChangeTransitionJointImplicit [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def ConfChangeTransitionJointImplicit [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 1)
 
-axiom ConfChangeTransitionJointExplicit [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def ConfChangeTransitionJointExplicit [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 2)
 
 @[reducible] noncomputable def ConfChangeAddNode [FfiSyntax] [GoGlobalContext] : val :=
   #(W32 0)
@@ -388,6 +392,187 @@ noncomputable def sozRaft [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def skipRaft [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.skipRaft"
 
+/-- MarshalConfChange calls Marshal on the underlying ConfChange or ConfChangeV2
+    and returns the result along with the corresponding EntryType.
+
+    go: confchange.go:34:6 -/
+noncomputable def MarshalConfChange.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc ConfChangeI.ty))) (Var "c"))
+  (Let "typ" (App (Val (GoInstruction (GoAlloc EntryType.ty))) (App (Val (GoInstruction (GoZeroVal EntryType.ty))) (Val #())))
+  (Let "ccdata" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (Pair (App (Val (GoInstruction (GoLoad EntryType.ty))) (Var "typ")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "ccdata"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals ConfChangeI.ty))) (Pair (App (Val (GoInstruction (GoLoad ConfChangeI.ty))) (Var "c")) (App (Val (GoInstruction (Convert go.untypedNil ConfChangeI.ty))) (Val UntypedNil)))))
+  (Let "$r0" (Val EntryConfChangeV2)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.byte)))) (Val UntypedNil))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "ccdata") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore EntryType.ty))) (Pair (Var "typ") (Var "$r0"))))))
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve ConfChangeI.ty go!"AsV1"))) (App (Val (GoInstruction (GoLoad ConfChangeI.ty))) (Var "c"))) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "ccv1" (App (Val (GoInstruction (GoAlloc ConfChange.ty))) (App (Val (GoInstruction (GoZeroVal ConfChange.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (Val EntryConfChange)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ConfChange.ty) go!"Marshal"))) (Var "ccv1")) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "ccdata") (Var "$r0"))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore EntryType.ty))) (Pair (Var "typ") (Var "$r0"))))))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve ConfChangeI.ty go!"AsV2"))) (App (Val (GoInstruction (GoLoad ConfChangeI.ty))) (Var "c"))) (Val #()))
+  (Let "ccv2" (App (Val (GoInstruction (GoAlloc ConfChangeV2.ty))) (App (Val (GoInstruction (GoZeroVal ConfChangeV2.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val EntryConfChangeV2)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ConfChangeV2.ty) go!"Marshal"))) (Var "ccv2")) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "ccdata") (Var "$r0"))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore EntryType.ty))) (Pair (Var "typ") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore ConfChangeV2.ty))) (Pair (Var "ccv2") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore ConfChange.ty))) (Pair (Var "ccv1") (Var "$r0"))))))))))))))))))))
+
+/-- AsV2 returns a V2 configuration change carrying out the same operation.
+
+    go: confchange.go:56:21 -/
+noncomputable def ConfChange.AsV2.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc ConfChange.ty))) (Var "c"))
+  (App (Val doReturn)
+  (Let "$v0" (Let "$v0" (App (Val (GoInstruction (GoLoad ConfChangeType.ty))) (App (Val (GoInstruction (StructFieldRef ConfChange.ty go!"Type"))) (Var "c")))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef ConfChange.ty go!"NodeId"))) (Var "c")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType ConfChangeSingle.ty)))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"Type")) (ElementExpression ConfChangeType.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"NodeId")) (ElementExpression go.uint64 (Var "$v1")))]))]))))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef ConfChange.ty go!"Context"))) (Var "c")))
+  (App (Val (GoInstruction (CompositeLiteral ConfChangeV2.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Changes")) (ElementExpression (go.GoType.SliceType ConfChangeSingle.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"Context")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1")))])))))))))
+
+/-- AsV1 returns the ConfChange and true.
+
+    go: confchange.go:67:21 -/
+noncomputable def ConfChange.AsV1.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc ConfChange.ty))) (Var "c"))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad ConfChange.ty))) (Var "c")) (Val #true)))))))
+
+/-- AsV2 is the identity.
+
+    go: confchange.go:72:23 -/
+noncomputable def ConfChangeV2.AsV2.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc ConfChangeV2.ty))) (Var "c"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad ConfChangeV2.ty))) (Var "c")))))))
+
+/-- AsV1 returns ConfChange{} and false.
+
+    go: confchange.go:75:23 -/
+noncomputable def ConfChangeV2.AsV1.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc ConfChangeV2.ty))) (Var "c"))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (CompositeLiteral ConfChange.ty))) (LiteralValue [])) (Val #false)))))))
+
+/-- EnterJoint returns two bools. The second bool is true if and only if this
+    config change will use Joint Consensus, which is the case if it contains more
+    than one change or if the use of Joint Consensus was requested explicitly.
+    The first bool can only be true if second one is, and indicates whether the
+    Joint State will be left automatically.
+
+    go: confchange.go:82:23 -/
+noncomputable def ConfChangeV2.EnterJoint.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "autoLeave" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "c" (App (Val (GoInstruction (GoAlloc ConfChangeV2.ty))) (Var "c"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (Val #false) (Val #false)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals ConfChangeTransition.ty))) (Pair (App (Val (GoInstruction (GoLoad ConfChangeTransition.ty))) (App (Val (GoInstruction (StructFieldRef ConfChangeV2.ty go!"Transition"))) (Var "c"))) (Val ConfChangeTransitionAuto)))) (Val #true) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType ConfChangeSingle.ty)))) (App (Val (GoInstruction (StructFieldRef ConfChangeV2.ty go!"Changes"))) (Var "c")))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType ConfChangeSingle.ty)]))) (Val #())) (Var "$a0"))) (Val #(W64 1))))))
+  (Let "autoLeave" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "autoLeave")) (Val #true)))))
+  (Let "$sw" (App (Val (GoInstruction (GoLoad ConfChangeTransition.ty))) (App (Val (GoInstruction (StructFieldRef ConfChangeV2.ty go!"Transition"))) (Var "c")))
+  (If (App (Val (GoInstruction (GoOp GoEquals ConfChangeTransition.ty))) (Pair (Var "$sw") (Val ConfChangeTransitionAuto)))
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "autoLeave") (Var "$r0")))))
+  (If (App (Val (GoInstruction (GoOp GoEquals ConfChangeTransition.ty))) (Pair (Var "$sw") (Val ConfChangeTransitionJointImplicit)))
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "autoLeave") (Var "$r0")))))
+  (If (App (Val (GoInstruction (GoOp GoEquals ConfChangeTransition.ty))) (Pair (Var "$sw") (Val ConfChangeTransitionJointExplicit)))
+  (App (Val doExecute)
+  (Val #()))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Let "$a0" (Val #(go!"unknown transition: %+v"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert ConfChangeV2.ty go.any))) (App (Val (GoInstruction (GoLoad ConfChangeV2.ty))) (Var "c")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))))))
+  (App (Val doExecute)
+  (Val #()))))))))))
+
+/-- LeaveJoint is true if the configuration change leaves a joint configuration.
+    This is the case if the ConfChangeV2 is zero, with the possible exception of
+    the Context field.
+
+    go: confchange.go:109:23 -/
+noncomputable def ConfChangeV2.LeaveJoint.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc ConfChangeV2.ty))) (Var "c"))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.byte)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType ConfChangeV2.ty) _root_.Perennial.github_com.gogo.protobuf.proto.Message.ty))) (Var "c"))
+  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType ConfChangeV2.ty) _root_.Perennial.github_com.gogo.protobuf.proto.Message.ty))) (App (Val (GoInstruction (GoAlloc ConfChangeV2.ty))) (App (Val (GoInstruction (CompositeLiteral ConfChangeV2.ty))) (LiteralValue []))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.gogo.protobuf.proto.Equal []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (StructFieldRef ConfChangeV2.ty go!"Context"))) (Var "c")) (Var "$r0"))))))))))
+
 /-- Equivalent returns a nil error if the inputs describe the same configuration.
     On mismatch, returns a descriptive error showing the differences.
 
@@ -534,7 +719,7 @@ noncomputable def sovRaft.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.math.bits.Len64 []))) (Val #())) (Var "$a0"))) (Val #(W64 6)))) (Val #(W64 7)))))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.raft.v3.raftpb where
-  pkgImportedPkgs := [pkg_id.fmt, pkg_id.reflect, pkg_id.slices, pkg_id.math.bits]
+  pkgImportedPkgs := [pkg_id.fmt, pkg_id.github_com.gogo.protobuf.proto, pkg_id.reflect, pkg_id.slices, pkg_id.math.bits]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -542,6 +727,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.raft.v3.raftpb)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -744,6 +930,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.gogo.protobuf.proto.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.reflect.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -1197,6 +1385,12 @@ class ConfChange.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_Context : ∀ (x : ConfChange) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConfChange.underlying go!"Context") (PairV #x #y) (Val #(({ x with Context' := y } : ConfChange)))
   get_Id : ∀ (x : ConfChange), go.IsGoStepPureDetTagged under (StructFieldGet ConfChange.underlying go!"Id") #x (Val #(x.Id'))
   set_Id : ∀ (x : ConfChange) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ConfChange.underlying go!"Id") (PairV #x #y) (Val #(({ x with Id' := y } : ConfChange)))
+  AsV1_unfold : MethodUnfold ConfChange.ty go!"AsV1" ConfChange.AsV1.impl
+  AsV2_unfold : MethodUnfold ConfChange.ty go!"AsV2" ConfChange.AsV2.impl
+  ptr_AsV1_unfold : MethodUnfold (go.GoType.PointerType ConfChange.ty) go!"AsV1" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve ConfChange.ty go!"AsV1"))) (App (Val (GoInstruction (GoLoad ConfChange.ty))) (Var "$r"))))
+  ptr_AsV2_unfold : MethodUnfold (go.GoType.PointerType ConfChange.ty) go!"AsV2" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve ConfChange.ty go!"AsV2"))) (App (Val (GoInstruction (GoLoad ConfChange.ty))) (Var "$r"))))
 
 attribute [instance] ConfChange.TypeAssumptions.type_repr
   ConfChange.TypeAssumptions.underlying
@@ -1208,6 +1402,10 @@ attribute [instance] ConfChange.TypeAssumptions.type_repr
   ConfChange.TypeAssumptions.set_Context
   ConfChange.TypeAssumptions.get_Id
   ConfChange.TypeAssumptions.set_Id
+  ConfChange.TypeAssumptions.AsV1_unfold
+  ConfChange.TypeAssumptions.AsV2_unfold
+  ConfChange.TypeAssumptions.ptr_AsV1_unfold
+  ConfChange.TypeAssumptions.ptr_AsV2_unfold
 
 structure ConfChangeSingle [FfiSyntax] where
   mk ::
@@ -1279,6 +1477,18 @@ class ConfChangeV2.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_Changes : ∀ (x : ConfChangeV2) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConfChangeV2.underlying go!"Changes") (PairV #x #y) (Val #(({ x with Changes' := y } : ConfChangeV2)))
   get_Context : ∀ (x : ConfChangeV2), go.IsGoStepPureDetTagged under (StructFieldGet ConfChangeV2.underlying go!"Context") #x (Val #(x.Context'))
   set_Context : ∀ (x : ConfChangeV2) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ConfChangeV2.underlying go!"Context") (PairV #x #y) (Val #(({ x with Context' := y } : ConfChangeV2)))
+  AsV1_unfold : MethodUnfold ConfChangeV2.ty go!"AsV1" ConfChangeV2.AsV1.impl
+  AsV2_unfold : MethodUnfold ConfChangeV2.ty go!"AsV2" ConfChangeV2.AsV2.impl
+  EnterJoint_unfold : MethodUnfold ConfChangeV2.ty go!"EnterJoint" ConfChangeV2.EnterJoint.impl
+  LeaveJoint_unfold : MethodUnfold ConfChangeV2.ty go!"LeaveJoint" ConfChangeV2.LeaveJoint.impl
+  ptr_AsV1_unfold : MethodUnfold (go.GoType.PointerType ConfChangeV2.ty) go!"AsV1" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve ConfChangeV2.ty go!"AsV1"))) (App (Val (GoInstruction (GoLoad ConfChangeV2.ty))) (Var "$r"))))
+  ptr_AsV2_unfold : MethodUnfold (go.GoType.PointerType ConfChangeV2.ty) go!"AsV2" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve ConfChangeV2.ty go!"AsV2"))) (App (Val (GoInstruction (GoLoad ConfChangeV2.ty))) (Var "$r"))))
+  ptr_EnterJoint_unfold : MethodUnfold (go.GoType.PointerType ConfChangeV2.ty) go!"EnterJoint" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve ConfChangeV2.ty go!"EnterJoint"))) (App (Val (GoInstruction (GoLoad ConfChangeV2.ty))) (Var "$r"))))
+  ptr_LeaveJoint_unfold : MethodUnfold (go.GoType.PointerType ConfChangeV2.ty) go!"LeaveJoint" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve ConfChangeV2.ty go!"LeaveJoint"))) (App (Val (GoInstruction (GoLoad ConfChangeV2.ty))) (Var "$r"))))
 
 attribute [instance] ConfChangeV2.TypeAssumptions.type_repr
   ConfChangeV2.TypeAssumptions.underlying
@@ -1288,6 +1498,14 @@ attribute [instance] ConfChangeV2.TypeAssumptions.type_repr
   ConfChangeV2.TypeAssumptions.set_Changes
   ConfChangeV2.TypeAssumptions.get_Context
   ConfChangeV2.TypeAssumptions.set_Context
+  ConfChangeV2.TypeAssumptions.AsV1_unfold
+  ConfChangeV2.TypeAssumptions.AsV2_unfold
+  ConfChangeV2.TypeAssumptions.EnterJoint_unfold
+  ConfChangeV2.TypeAssumptions.LeaveJoint_unfold
+  ConfChangeV2.TypeAssumptions.ptr_AsV1_unfold
+  ConfChangeV2.TypeAssumptions.ptr_AsV2_unfold
+  ConfChangeV2.TypeAssumptions.ptr_EnterJoint_unfold
+  ConfChangeV2.TypeAssumptions.ptr_LeaveJoint_unfold
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   ConfChangeI_instance : ConfChangeI.TypeAssumptions
@@ -1304,8 +1522,10 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   ConfChange_instance : ConfChange.TypeAssumptions
   ConfChangeSingle_instance : ConfChangeSingle.TypeAssumptions
   ConfChangeV2_instance : ConfChangeV2.TypeAssumptions
+  MarshalConfChange_unfold : FuncUnfold MarshalConfChange [] MarshalConfChange.impl
   sovRaft_unfold : FuncUnfold sovRaft [] sovRaft.impl
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
+  import_proto_Assumption : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions
   import_reflect_Assumption : _root_.Perennial.reflect.Assumptions
   import_slices_Assumption : _root_.Perennial.slices.Assumptions
   import_bits_Assumption : _root_.Perennial.math.bits.Assumptions
@@ -1324,8 +1544,10 @@ attribute [instance] Assumptions.ConfChangeI_instance
   Assumptions.ConfChange_instance
   Assumptions.ConfChangeSingle_instance
   Assumptions.ConfChangeV2_instance
+  Assumptions.MarshalConfChange_unfold
   Assumptions.sovRaft_unfold
   Assumptions.import_fmt_Assumption
+  Assumptions.import_proto_Assumption
   Assumptions.import_reflect_Assumption
   Assumptions.import_slices_Assumption
   Assumptions.import_bits_Assumption

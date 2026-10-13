@@ -3,6 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.fmt
+public import GeneratedProof.github_com.gogo.protobuf.proto
 public import Perennial.GeneratedProof.math.bits
 public import Perennial.GeneratedProof.reflect
 public import Perennial.GeneratedProof.slices

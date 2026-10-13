@@ -147,6 +147,7 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.io, isPkgInit pkg_id.io),
    (pkg_id.errors, isPkgInit pkg_id.errors),
    (pkg_id.go_etcd_io.raft.v3.raftpb, isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb),
+   (pkg_id.github_com.gogo.protobuf.proto, isPkgInit pkg_id.github_com.gogo.protobuf.proto),
    (pkg_id.reflect, isPkgInit pkg_id.reflect),
    (pkg_id.fmt, isPkgInit pkg_id.fmt),
    (pkg_id.go_etcd_io.raft.v3, isPkgInit pkg_id.go_etcd_io.raft.v3),

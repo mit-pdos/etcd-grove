@@ -27,6 +27,7 @@ axiom etcdStep_delete_present
 axiom etcdStep_transfer
 axiom fmt.Sscanf.wp_proof
 axiom go_humanize.Bytes.wp_proof
+axiom gogoproto.Equal.wp_proof
 axiom membership.RaftCluster.Members.wp_proof
 axiom mvcc.NewHashStorage.wp_proof
 axiom mvcc.store.restore.wp_proof
@@ -36,6 +37,10 @@ axiom proto.Clone.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.Size.wp_proof
 axiom proto.Unmarshal.wp_proof
+axiom raftpb.ConfChange.Marshal.wp_proof
+axiom raftpb.ConfChange.Unmarshal.wp_proof
+axiom raftpb.ConfChangeV2.Marshal.wp_proof
+axiom raftpb.ConfChangeV2.Unmarshal.wp_proof
 axiom reflect.DeepEqual.wp_proof
 axiom rpctypes.Error.wp_proof
 axiom schedule.NewFIFOScheduler.wp_proof

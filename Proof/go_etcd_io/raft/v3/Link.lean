@@ -18,6 +18,16 @@ public import Proof.go_etcd_io.raft.v3.confchange.Changer__initProgress
 public import Proof.go_etcd_io.raft.v3.confchange.Changer__makeLearner
 public import Proof.go_etcd_io.raft.v3.confchange.Changer__makeVoter
 public import Proof.go_etcd_io.raft.v3.confchange.Changer__remove
+public import Proof.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV1
+public import Proof.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV2
+public import Proof.go_etcd_io.raft.v3.raftpb.ConfChangeV2__EnterJoint
+public import Proof.go_etcd_io.raft.v3.raftpb.ConfChangeV2__LeaveJoint
+public import Proof.go_etcd_io.raft.v3.raftpb.ConfChangeV2__Marshal
+public import Proof.go_etcd_io.raft.v3.raftpb.ConfChangeV2__Unmarshal
+public import Proof.go_etcd_io.raft.v3.raftpb.ConfChange__AsV1
+public import Proof.go_etcd_io.raft.v3.raftpb.ConfChange__AsV2
+public import Proof.go_etcd_io.raft.v3.raftpb.ConfChange__Marshal
+public import Proof.go_etcd_io.raft.v3.raftpb.ConfChange__Unmarshal
 public import Proof.go_etcd_io.raft.v3.raftpb.ConfState__Equivalent
 public import Proof.go_etcd_io.raft.v3.tracker.Config__Clone
 public import Proof.go_etcd_io.raft.v3.Config__validate
@@ -41,6 +51,7 @@ public import Proof.go_etcd_io.raft.v3.quorum.MajorityConfig__CommittedIndex
 public import Proof.go_etcd_io.raft.v3.quorum.MajorityConfig__Slice
 public import Proof.go_etcd_io.raft.v3.quorum.MajorityConfig__VoteResult
 public import Proof.go_etcd_io.raft.v3.tracker.MakeProgressTracker
+public import Proof.go_etcd_io.raft.v3.raftpb.MarshalConfChange
 public import Proof.go_etcd_io.raft.v3.MemoryStorage__Append
 public import Proof.go_etcd_io.raft.v3.MemoryStorage__ApplySnapshot
 public import Proof.go_etcd_io.raft.v3.MemoryStorage__Compact
@@ -92,6 +103,7 @@ public import Proof.go_etcd_io.raft.v3.SoftState__equal
 public import Proof.go_etcd_io.raft.v3.assertConfStatesEquivalent
 public import Proof.math.big.Int__Int64
 public import Proof.math.big.NewInt
+public import Proof.go_etcd_io.raft.v3.confChangeToMsg
 public import Proof.go_etcd_io.raft.v3.confchange.Restore
 public import Proof.go_etcd_io.raft.v3.confchange.chain
 public import Proof.go_etcd_io.raft.v3.confchange.checkAndReturn
@@ -133,6 +145,7 @@ public import Proof.go_etcd_io.raft.v3.node__stepWithWaitOption
 public import Proof.go_etcd_io.raft.v3.payloadSize
 public import Proof.go_etcd_io.raft.v3.payloadsSize
 public import Proof.go_etcd_io.raft.v3.pbEntryID
+public import Proof.github_com.gogo.protobuf.proto.Equal
 public import Proof.go_etcd_io.raft.v3.raftLog__acceptApplying
 public import Proof.go_etcd_io.raft.v3.raftLog__acceptUnstable
 public import Proof.go_etcd_io.raft.v3.raftLog__append
@@ -348,6 +361,54 @@ theorem confchange.Changer.wp_Simple :
     confchange.Changer.Simple.spec (GF := GF) (hG := hG) :=
   confchange.Changer.Simple.wp_proof confchange.Changer.wp_checkAndCopy confchange.wp_joint confchange.Changer.wp_err confchange.Changer.wp_apply confchange.wp_incoming confchange.wp_symdiff confchange.wp_checkAndReturn
 
+theorem raftpb.ConfChangeV2.wp_AsV1 :
+    raftpb.ConfChangeV2.AsV1.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChangeV2.AsV1.wp_proof
+
+theorem raftpb.ConfChangeV2.wp_AsV2 :
+    raftpb.ConfChangeV2.AsV2.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChangeV2.AsV2.wp_proof
+
+theorem fmt.wp_Sprintf :
+    fmt.Sprintf.spec (GF := GF) (hG := hG) :=
+  fmt.Sprintf.wp_proof
+
+theorem raftpb.ConfChangeV2.wp_EnterJoint :
+    raftpb.ConfChangeV2.EnterJoint.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChangeV2.EnterJoint.wp_proof fmt.wp_Sprintf
+
+theorem gogoproto.wp_Equal :
+    gogoproto.Equal.spec (GF := GF) (hG := hG) :=
+  gogoproto.Equal.wp_proof
+
+theorem raftpb.ConfChangeV2.wp_LeaveJoint :
+    raftpb.ConfChangeV2.LeaveJoint.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChangeV2.LeaveJoint.wp_proof gogoproto.wp_Equal
+
+theorem raftpb.ConfChangeV2.wp_Marshal :
+    raftpb.ConfChangeV2.Marshal.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChangeV2.Marshal.wp_proof
+
+theorem raftpb.ConfChangeV2.wp_Unmarshal :
+    raftpb.ConfChangeV2.Unmarshal.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChangeV2.Unmarshal.wp_proof
+
+theorem raftpb.ConfChange.wp_AsV1 :
+    raftpb.ConfChange.AsV1.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChange.AsV1.wp_proof
+
+theorem raftpb.ConfChange.wp_AsV2 :
+    raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChange.AsV2.wp_proof
+
+theorem raftpb.ConfChange.wp_Marshal :
+    raftpb.ConfChange.Marshal.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChange.Marshal.wp_proof
+
+theorem raftpb.ConfChange.wp_Unmarshal :
+    raftpb.ConfChange.Unmarshal.spec (GF := GF) (hG := hG) :=
+  raftpb.ConfChange.Unmarshal.wp_proof
+
 theorem slices.wp_Sort :
     slices.«Sort».spec (GF := GF) (hG := hG) :=
   slices.«Sort».wp_proof
@@ -451,6 +512,10 @@ theorem quorum.MajorityConfig.wp_Slice :
 theorem tracker.wp_MakeProgressTracker :
     tracker.MakeProgressTracker.spec (GF := GF) (hG := hG) :=
   tracker.MakeProgressTracker.wp_proof
+
+theorem raftpb.wp_MarshalConfChange :
+    raftpb.MarshalConfChange.spec (GF := GF) (hG := hG) :=
+  raftpb.MarshalConfChange.wp_proof raftpb.ConfChange.wp_AsV1 raftpb.ConfChangeV2.wp_AsV1 raftpb.ConfChangeV2.wp_AsV2 raftpb.ConfChange.wp_Marshal raftpb.ConfChangeV2.wp_Marshal
 
 theorem MemoryStorage.wp_firstIndex :
     MemoryStorage.firstIndex.spec (GF := GF) (hG := hG) :=
@@ -639,10 +704,6 @@ theorem raft.wp_becomeFollower :
 theorem tracker.ProgressTracker.wp_VoterNodes :
     tracker.ProgressTracker.VoterNodes.spec (GF := GF) (hG := hG) :=
   tracker.ProgressTracker.VoterNodes.wp_proof quorum.JointConfig.wp_IDs slices.wp_Sort
-
-theorem fmt.wp_Sprintf :
-    fmt.Sprintf.spec (GF := GF) (hG := hG) :=
-  fmt.Sprintf.wp_proof
 
 theorem strings.wp_Join :
     strings.Join.spec (GF := GF) (hG := hG) :=
@@ -1087,6 +1148,10 @@ theorem wp_traceReady :
 theorem raft.wp_pastElectionTimeout :
     raft.pastElectionTimeout.spec (GF := GF) (hG := hG) :=
   raft.pastElectionTimeout.wp_proof
+
+theorem wp_confChangeToMsg :
+    confChangeToMsg.spec (GF := GF) (hG := hG) :=
+  confChangeToMsg.wp_proof raftpb.wp_MarshalConfChange
 
 theorem quorum.mapAckIndexer.wp_AckedIndex :
     quorum.mapAckIndexer.AckedIndex.spec (GF := GF) (hG := hG) :=
