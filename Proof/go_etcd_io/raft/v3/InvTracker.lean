@@ -442,8 +442,9 @@ def ownTracker (tv : tracker.ProgressTracker) (t : Trk) : IProp GF :=
   -- back to that pointer; see `ownTracker_lookup` below. Changed 2026-09-20.
   --
   -- It is a genuine restriction: a proof of a reconfiguration path would have to take
-  -- the map back to `DFrac.own 1`. Reconfiguration is out of scope (see
-  -- `HnoConfChange` in `InvRaftlog.lean`).
+  -- the map back to `DFrac.own 1`. Reconfiguration is out of scope (the configuration in
+  -- use is fixed: `ownRaftPhys cfg`; since 2026-10-13 conf-change entries are in the log
+  -- as data).
   "#Hprs" ∷ tv.Progress' ↦$□ t.prs ∗
   "Hprogs" ∷ ([∗map] _k ↦ pr;p ∈ t.prs;t.peers, ownProgress pr p) ∗
   "%Hprs_dom" ∷ ⌜domSet t.prs = cfg⌝ ∗

@@ -94,6 +94,7 @@ public import Proof.go_etcd_io.raft.v3.RawNode__Campaign
 public import Proof.go_etcd_io.raft.v3.RawNode__ForgetLeader
 public import Proof.go_etcd_io.raft.v3.RawNode__HasReady
 public import Proof.go_etcd_io.raft.v3.RawNode__Propose
+public import Proof.go_etcd_io.raft.v3.RawNode__ProposeConfChange
 public import Proof.go_etcd_io.raft.v3.RawNode__ReadIndex
 public import Proof.go_etcd_io.raft.v3.RawNode__Ready
 public import Proof.go_etcd_io.raft.v3.RawNode__ReportSnapshot
@@ -141,6 +142,7 @@ public import Proof.go_etcd_io.raft.v3.newReadOnly
 public import Proof.go_etcd_io.raft.v3.node__Advance
 public import Proof.go_etcd_io.raft.v3.node__ForgetLeader
 public import Proof.go_etcd_io.raft.v3.node__Propose
+public import Proof.go_etcd_io.raft.v3.node__ProposeConfChange
 public import Proof.go_etcd_io.raft.v3.node__ReadIndex
 public import Proof.go_etcd_io.raft.v3.node__Ready
 public import Proof.go_etcd_io.raft.v3.node__ReportSnapshot
@@ -246,6 +248,7 @@ public import Proof.strings.Join
 public import Proof.go_etcd_io.raft.v3.traceBecomeCandidate
 public import Proof.go_etcd_io.raft.v3.traceBecomeFollower
 public import Proof.go_etcd_io.raft.v3.traceBecomeLeader
+public import Proof.go_etcd_io.raft.v3.traceChangeConfEvent
 public import Proof.go_etcd_io.raft.v3.traceCommit
 public import Proof.go_etcd_io.raft.v3.traceConfChangeEvent
 public import Proof.go_etcd_io.raft.v3.traceInitState
@@ -1064,9 +1067,13 @@ theorem raft.wp_sendTimeoutNow :
     raft.sendTimeoutNow.spec (GF := GF) (hG := hG) :=
   raft.sendTimeoutNow.wp_proof raft.wp_send
 
+theorem wp_traceChangeConfEvent :
+    traceChangeConfEvent.spec (GF := GF) (hG := hG) :=
+  traceChangeConfEvent.wp_proof
+
 theorem wp_stepLeader :
     stepLeader.spec (GF := GF) (hG := hG) :=
-  stepLeader.wp_proof raft.wp_bcastHeartbeat raft.wp_sendAppend raft.wp_maybeSendAppend raft.wp_bcastAppend raft.wp_appendEntry raft.wp_maybeCommit wp_releasePendingReadIndexMessages tracker.Progress.wp_MaybeUpdate tracker.Progress.wp_MaybeDecrTo tracker.Progress.wp_BecomeProbe tracker.Progress.wp_BecomeReplicate tracker.Progress.wp_CanBumpCommit tracker.Inflights.wp_FreeLE raftLog.wp_findConflictByTerm raftLog.wp_lastIndex raftLog.wp_firstIndex tracker.ProgressTracker.wp_IsSingleton raft.wp_committedEntryInCurrentTerm wp_sendMsgReadIndexResponse readOnly.wp_recvAck readOnly.wp_maybeAdvance raft.wp_responseToReadIndexReq raft.wp_send raft.wp_sendTimeoutNow raft.wp_abortLeaderTransfer
+  stepLeader.wp_proof raft.wp_bcastHeartbeat raft.wp_sendAppend raft.wp_maybeSendAppend raft.wp_bcastAppend raft.wp_appendEntry raft.wp_maybeCommit wp_releasePendingReadIndexMessages tracker.Progress.wp_MaybeUpdate tracker.Progress.wp_MaybeDecrTo tracker.Progress.wp_BecomeProbe tracker.Progress.wp_BecomeReplicate tracker.Progress.wp_CanBumpCommit tracker.Inflights.wp_FreeLE raftLog.wp_findConflictByTerm raftLog.wp_lastIndex raftLog.wp_firstIndex tracker.ProgressTracker.wp_IsSingleton raft.wp_committedEntryInCurrentTerm wp_sendMsgReadIndexResponse readOnly.wp_recvAck readOnly.wp_maybeAdvance raft.wp_responseToReadIndexReq raft.wp_send raft.wp_sendTimeoutNow raft.wp_abortLeaderTransfer raftpb.ConfChange.wp_Unmarshal raftpb.ConfChangeV2.wp_Unmarshal raftpb.ConfChange.wp_AsV2 raftpb.ConfChangeV2.wp_AsV2 fmt.wp_Sprintf wp_traceChangeConfEvent
 
 theorem wp_traceReceiveMessage :
     traceReceiveMessage.spec (GF := GF) (hG := hG) :=
@@ -1132,6 +1139,10 @@ theorem raftLog.wp_hasNextCommittedEnts :
     raftLog.hasNextCommittedEnts.spec (GF := GF) (hG := hG) :=
   raftLog.hasNextCommittedEnts.wp_proof raftLog.wp_hasNextOrInProgressSnapshot raftLog.wp_maxAppliableIndex
 
+theorem wp_confChangeToMsg :
+    confChangeToMsg.spec (GF := GF) (hG := hG) :=
+  confChangeToMsg.wp_proof raftpb.wp_MarshalConfChange
+
 theorem raftLog.wp_nextCommittedEnts :
     raftLog.nextCommittedEnts.spec (GF := GF) (hG := hG) :=
   raftLog.nextCommittedEnts.wp_proof raftLog.wp_hasNextOrInProgressSnapshot raftLog.wp_maxAppliableIndex raftLog.wp_slice
@@ -1167,10 +1178,6 @@ theorem wp_traceReady :
 theorem raft.wp_pastElectionTimeout :
     raft.pastElectionTimeout.spec (GF := GF) (hG := hG) :=
   raft.pastElectionTimeout.wp_proof
-
-theorem wp_confChangeToMsg :
-    confChangeToMsg.spec (GF := GF) (hG := hG) :=
-  confChangeToMsg.wp_proof raftpb.wp_MarshalConfChange
 
 theorem quorum.mapAckIndexer.wp_AckedIndex :
     quorum.mapAckIndexer.AckedIndex.spec (GF := GF) (hG := hG) :=
@@ -1218,6 +1225,10 @@ theorem RawNode.wp_HasReady :
 theorem RawNode.wp_Propose :
     RawNode.Propose.spec (GF := GF) (hG := hG) :=
   RawNode.Propose.wp_proof raft.wp_Step
+
+theorem RawNode.wp_ProposeConfChange :
+    RawNode.ProposeConfChange.spec (GF := GF) (hG := hG) :=
+  RawNode.ProposeConfChange.wp_proof wp_confChangeToMsg raft.wp_Step
 
 theorem RawNode.wp_ReadIndex :
     RawNode.ReadIndex.spec (GF := GF) (hG := hG) :=
@@ -1303,6 +1314,14 @@ theorem node.wp_Propose :
     node.Propose.spec (GF := GF) (hG := hG) :=
   node.Propose.wp_proof node.wp_stepWait
 
+theorem node.wp_Step :
+    node.Step.spec (GF := GF) (hG := hG) :=
+  node.Step.wp_proof wp_IsLocalMsg wp_IsLocalMsgTarget node.wp_step
+
+theorem node.wp_ProposeConfChange :
+    node.ProposeConfChange.spec (GF := GF) (hG := hG) :=
+  node.ProposeConfChange.wp_proof wp_confChangeToMsg node.wp_Step
+
 theorem node.wp_ReadIndex :
     node.ReadIndex.spec (GF := GF) (hG := hG) :=
   node.ReadIndex.wp_proof node.wp_step
@@ -1318,10 +1337,6 @@ theorem node.wp_ReportSnapshot :
 theorem node.wp_ReportUnreachable :
     node.ReportUnreachable.spec (GF := GF) (hG := hG) :=
   node.ReportUnreachable.wp_proof
-
-theorem node.wp_Step :
-    node.Step.spec (GF := GF) (hG := hG) :=
-  node.Step.wp_proof wp_IsLocalMsg wp_IsLocalMsgTarget node.wp_step
 
 theorem node.wp_Tick :
     node.Tick.spec (GF := GF) (hG := hG) :=

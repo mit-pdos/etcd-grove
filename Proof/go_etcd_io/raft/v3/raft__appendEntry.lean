@@ -68,7 +68,7 @@ private theorem ownRaftLog_facts (l : Loc) (ls : LogState) :
       rw [Hul.1]; have := word.signed_range lv.unstable'.entries'.len; word
     omega
   · iapply ownRaftLog_intro l lv lv.storage' σ _ _ ls rfl Hcm Hap Hidx Hnowrap Hstore Hoffset
-      HnoConfChange Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
+      Happlied Hpapplied Hcommitted Hssnap Hapg Hip Hipb Hpersist Happlying
       Hpaused Hasz Hamx Hstor Hpend rfl rfl $$ Hl HisStorage HStorage Husnap Huents Huents_cap Hl_logger
       Hu_logger
 
@@ -147,7 +147,7 @@ theorem raft.appendEntry.wp_proof
     (wp_raftLog_append : raftLog.append.spec (GF := GF) (hG := hG))
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG)) :
     raft.appendEntry.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s es ents Hnorm Hsmall Hnz
+  intro cfg r id s es ents Hsmall Hnz
   wp_start as ⟨Hphys, Hes⟩
   wp_auto
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
@@ -240,8 +240,6 @@ theorem raft.appendEntry.wp_proof
         ((s.logst.sents ++ s.logst.uents) ++ ents.mapIdx (stamp s.term li)) :=
       stamped_indices _ _ _ _ _ Hidx (by rw [List.length_append]; push_cast; omega)
         (by omega)
-    have Hnorm2 : ∀ e ∈ ents.mapIdx (stamp s.term li), e.Type' = EntryNormal :=
-      stamped_mem _ _ _ _ Hnorm (fun _ _ h => h)
     have Hk2 : ∀ (k2 : Nat) e, (ents.mapIdx (stamp s.term li))[k2]? = some e →
         uint.Z e.Index' = uint.Z s.logst.prev.index' + (s.logst.sents.length : Int)
           + (s.logst.uents.length : Int) + 1 + (k2 : Int) := by
@@ -268,7 +266,7 @@ theorem raft.appendEntry.wp_proof
       push_cast at H0
       refine ⟨⟨by omega, by omega⟩, fun k e Hk => by rw [Hk2 k e Hk, H0]; omega, ?_⟩
       rw [List.length_mapIdx]; omega
-    wp_apply wp_raftLog_append _ _ _ _ _ Hpre Hnorm2 $$ [$Hlog $Hes]
+    wp_apply wp_raftLog_append _ _ _ _ _ Hpre $$ [$Hlog $Hes]
       as %li2 ⟨Hlog, Hes, %Hsplit2, %Hli2⟩
     · rw [Hado]; simp only [Bool.false_eq_true, ↓reduceIte, named]; itrivial
     rw [Hado, Htac] at *

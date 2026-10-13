@@ -27,6 +27,7 @@ module
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 -- `StableOk`, for `MsgStorageAppendResp` (2026-10-05)
 public import Proof.go_etcd_io.raft.v3.InvReadylog
+public import Proof.go_etcd_io.raft.v3.InvConfChangeMsg
 -- `SnapScope`, for `MsgSnap`
 public import Spec.go_etcd_io.raft.v3.raft__restore
 public import Proof.go_etcd_io.raft.v3.StepLemmas
@@ -394,19 +395,19 @@ abbrev raft.Step.spec : Prop :=
       -- - the slice's capacity, owned: `raftLog.maybeAppend` can adopt the caller's
       --   slice (`unstable.truncateAndAppend`'s replace arm), so a received `MsgApp`
       --   needs it;
-      -- - a proposal's batch is non-empty (`stepLeader`'s `Panicf`), `EntryNormal`
-      --   only (no conf change in scope) and short enough for `appendEntry`'s indices
-      --   not to wrap;
+      -- - a proposal's batch is non-empty (`stepLeader`'s `Panicf`) and short enough for
+      --   `appendEntry`'s indices not to wrap, and (2026-10-13, reconfiguration stage D;
+      --   until then `EntryNormal` only) its conf-change entries' bytes decode (`ccEntsOk`:
+      --   `stepLeader` `Unmarshal`s them, panicking on an error);
       -- - what the message carries as a protocol message: its abstraction (`absMsg`,
       --   which needs the entries) was legitimately sent -- for every type but
       --   `MsgSnap`, whose abstraction is `absSnap` (`"Hsnap"` below).
       "Hm" ∷ (
-         "Hents" ∷ (if m.Type' = MsgProp then m.Entries' ↦* ents
+         "Hents" ∷ (if m.Type' = MsgProp then m.Entries' ↦* ents ∗ (∃ cs, ccEntsOk ents cs)
                     else m.Entries' ↦*□ ents) ∗
          "Hents_cap" ∷ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) ∗
          "%Hprop" ∷ ⌜m.Type' = MsgProp →
                       ents ≠ [] ∧
-                      (∀ e ∈ ents, e.Type' = EntryNormal) ∧
                       (ents.length : Int) < 2^61⌝ ∗
          "%Happly" ∷ ⌜m.Type' = MsgStorageApplyResp →
                        ∀ e, ents.getLast? = some e →

@@ -111,8 +111,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 message, since `a = logSliceFromMsgApp(&m)` is `{term: m.Term, prev: (m.LogTerm,
 m.Index), entries: m.Entries}`:
 
-- the batch is a well-formed log slice after `(m.LogTerm, m.Index)`, does not wrap, and
-  holds no configuration change;
+- the batch is a well-formed log slice after `(m.LogTerm, m.Index)` and does not wrap
+  (until 2026-10-13 also: holds no configuration change);
 - **the conflict fact**, as hypothetical as the code allows: only when the stale test
   has failed (`committed ≤ m.Index`) and the prefix matches is `maybeAppend`'s `Panicf`
   reachable, and there the conflict index must be `0` or above `committed`
@@ -129,7 +129,6 @@ abbrev raft.handleAppendEntries.spec : Prop :=
     (m : raftpb.Message) (ents : List raftpb.Entry),
   PlogWf (entryID.mk m.LogTerm' m.Index') ents →
   uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 →
-  (∀ e ∈ ents, e.Type' = EntryNormal) →
   (let ls := s.logst
    let es := ls.sents ++ ls.uents
    uint.Z ls.committed ≤ uint.Z m.Index' →

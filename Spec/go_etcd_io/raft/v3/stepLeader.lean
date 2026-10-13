@@ -24,14 +24,22 @@ This spec covers the seven types `Step` dispatches to it.
   the protocol, not by the code.)
 - `MsgProp` (`raft.go:1281-1345`): `len(m.Entries) == 0` is a `Panicf` (premise `ents ≠
   []`); `r.trk.Progress[r.id] == nil` drops (dead: `id ∈ cfg`); `r.leadTransferee !=
-  None` drops (dead: `HnoTransfer`); the conf-change loop reads each entry's `Type` and
-  does nothing (premise: all `EntryNormal`); then `if !r.appendEntry(m.Entries...) {
-  return ErrProposalDropped }` and `r.bcastAppend()`. `appendEntry` *writes*
-  `Term`/`Index` into the caller's entries, so the batch is owned (not `↦*□`) and comes
-  back stamped. Accepted: the log grows by the stamped batch, the self-acknowledgement
-  is queued (`Step.propose`), then `bcastAppend`'s `ReplSends` (`Step.sendApps`),
-  `Match` untouched. Rejected (the uncommitted-size budget, which `NState` does not
-  track): the state is unchanged and `ErrProposalDropped` is returned.
+  None` drops (a leader transfer in progress); the conf-change loop (since 2026-10-13,
+  reconfiguration stage D; until then a premise made every entry `EntryNormal` and the loop
+  a no-op) decodes each conf-change entry (`Unmarshal`, which must not fail: `"Hcc"`,
+  `ccEntsOk`, gives the bytes and what they decode to) and refuses it -- writing
+  `pb.Entry{Type: EntryNormal}` over it in the caller's batch -- when a conf change is
+  pending (`pendingConfIndex > applied`) or it is an empty `ConfChangeV2` (a request to
+  leave a joint configuration, which the configuration in use never is: `alreadyJoint` is
+  `false`), and otherwise accepts it and moves `pendingConfIndex` to its index-to-be
+  (`propConf`, `CCModel.lean`; `Config.DisableConfChangeValidation` is `false`, `newRaft`'s
+  premise); then `if !r.appendEntry(m.Entries...) { return ErrProposalDropped }` and
+  `r.bcastAppend()`. `appendEntry` *writes* `Term`/`Index` into the caller's entries, so
+  the batch is owned (not `↦*□`). Accepted: the log grows by the loop's batch, stamped, the
+  self-acknowledgement is queued (`Step.propose`), then `bcastAppend`'s `ReplSends`
+  (`Step.sendApps`), `Match` untouched. Rejected (the uncommitted-size budget, which
+  `NState` does not track): only `pendingConfIndex` has moved, and `ErrProposalDropped` is
+  returned.
 - `MsgBeat`: `r.bcastHeartbeat()` (`Spec/raft__bcastHeartbeat.lean`) -- heartbeats
   `HeartbeatOk` allows, which is the model's `Step.beat`.
 - `MsgHeartbeatResp`: `pr.RecentActive`, `pr.MsgAppFlowPaused` written;
@@ -75,6 +83,7 @@ is `List.mapIdx`, `dom` is `domSet`, `Forall P ms` is `∀ m ∈ ms, P m`.
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.InvConfChangeMsg
 public import Spec.go_etcd_io.raft.v3.raft__maybeCommit
 public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
 public import Spec.go_etcd_io.raft.v3.raft__appendEntry
@@ -158,14 +167,26 @@ def proposed (id : w64) (s : NState) (ents : List raftpb.Entry) : NState :=
     { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }
   sendMsgs s1 [selfAck id s1]
 
-/-- `MsgProp` at the leader: dropped and unchanged, or the batch appended and then
-`bcastAppend`'s sends, judged at the appended state, with no `Match` moved. -/
+/-- `stepLeader`'s conf-change loop at `s` (2026-10-13): the batch it leaves and
+`pendingConfIndex` (`propConf`, `CCModel.lean`), for the decoded conf changes `cs`. -/
+def leaderPropConf (s : NState) (ents : List raftpb.Entry) (cs : List (Option CCMsg)) :
+    List raftpb.Entry × w64 :=
+  propConf s.logst.applied (logLast s.logst) s.pci ents cs
+
+/-- `MsgProp` at the leader: dropped -- unchanged (a leader transfer in progress, before
+the conf-change loop), or with only `pendingConfIndex` moved by the loop (`appendEntry`
+refused the batch) -- or the loop's batch appended and then `bcastAppend`'s sends, judged
+at the appended state, with no `Match` moved; for some decoded conf changes `cs` of the
+batch (2026-10-13; until then the batch was appended as proposed). -/
 def LeaderProposeResult (id : w64) (s : NState) (ents : List raftpb.Entry)
     (dropped : Bool) (s' : NState) : Prop :=
-  if dropped then s' = s
+  ∃ cs : List (Option CCMsg), CCTypesOk ents cs ∧
+  if dropped then s' = s ∨ s' = { s with pci := (leaderPropConf s ents cs).2 }
   else ∃ (ms : List Msg) (pvs : GMap w64 Progress),
-    s' = { sendMsgs (proposed id s ents) ms with prvals := pvs } ∧
-    ReplSends id (proposed id s ents) ms ∧
+    s' = { sendMsgs (proposed id { s with pci := (leaderPropConf s ents cs).2 }
+             (leaderPropConf s ents cs).1) ms with prvals := pvs } ∧
+    ReplSends id (proposed id { s with pci := (leaderPropConf s ents cs).2 }
+      (leaderPropConf s ents cs).1) ms ∧
     prvalsMatch pvs = prvalsMatch s.prvals
 
 /-- What `stepLeader` does with `m`, for the types other than `MsgProp` (none of which
@@ -264,10 +285,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 - `Hctx`: a `MsgHeartbeatResp`'s `Context` holds `ctx` (for any other type the wand is
   trivial), empty or at least eight bytes (`recvAck`'s `Uint64`), a position sent
   (`maybeAdvance`'s bound); `Hrents`: a `MsgReadIndex`'s entries;
-- `MsgProp`: a non-empty batch (`Panicf` otherwise) of `EntryNormal` entries (no conf
-  change in scope; the conf-change loop is then a no-op) of fewer than `2^61`
-  (`appendEntry`'s no-wrap bound), and `Hents`: the batch at full ownership, since
-  `appendEntry` stamps it in place. It comes back stamped in the postcondition. -/
+- `MsgProp`: a non-empty batch (`Panicf` otherwise) of fewer than `2^61` entries
+  (`appendEntry`'s no-wrap bound), `Hents`: the batch at full ownership, since the
+  conf-change loop writes refused entries and `appendEntry` stamps it in place, and (since
+  2026-10-13) `Hcc`: each conf-change entry's bytes, which decode (`Unmarshal`'s
+  `panic`). The batch comes back, changed, in the postcondition. -/
 abbrev stepLeader.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (ctx : List w8),
@@ -284,7 +306,7 @@ abbrev stepLeader.spec : Prop :=
   (m.Type' = MsgHeartbeatResp ∨ (m.Type' = MsgAppResp ∧ m.Reject' = true) →
    m.From' ≠ id) →
   (m.Type' = MsgProp →
-   ents ≠ [] ∧ (∀ e ∈ ents, e.Type' = EntryNormal) ∧
+   ents ≠ [] ∧
    (ents.length : Int) < 2^61 ∧
    -- the leader's term is nonzero (2026-10-10; `appendEntry`'s premise, from the
    -- ghost state: `ownRaftGhost_term_nz`)
@@ -304,8 +326,9 @@ abbrev stepLeader.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       "Hctx" ∷ (⌜m.Type' = MsgHeartbeatResp⌝ -∗ m.Context' ↦*□ ctx) ∗
+      -- (2026-10-13) and its conf-change entries' bytes, which decode
       "Hents" ∷ (⌜m.Type' = MsgProp⌝ -∗
-                 m.Entries' ↦* ents) ∗
+                 m.Entries' ↦* ents ∗ ∃ cs, ccEntsOk ents cs) ∗
       "Hrents" ∷ (⌜m.Type' = MsgReadIndex⌝ -∗ m.Entries' ↦*□ ents) }}
     (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #m))
   {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
@@ -313,10 +336,10 @@ abbrev stepLeader.spec : Prop :=
       ⌜LeaderStepResult cfg id s m ents dropped s' ctx⌝ ∗
       (if dropped then globalAddr ErrProposalDropped ↦□ err
        else ⌜err = interface.nil⌝) ∗
-      -- the batch, stamped -- or (2026-10-13) untouched, when a leader transfer in
-      -- progress dropped it before `appendEntry`
-      (⌜m.Type' = MsgProp⌝ -∗
-       (m.Entries' ↦* ents.mapIdx (stamp s.term (logLast s.logst)) ∨ m.Entries' ↦* ents)) }}
+      -- the batch, changed (refused conf changes overwritten, stamped) -- or untouched,
+      -- when a leader transfer in progress dropped it before the loop (2026-10-13: until
+      -- then stated exactly; no caller used it)
+      (⌜m.Type' = MsgProp⌝ -∗ ∃ ents' : List raftpb.Entry, m.Entries' ↦* ents') }}
 
 end spec
 

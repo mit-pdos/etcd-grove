@@ -87,7 +87,7 @@ theorem raft.handleAppendEntries.wp_proof
     (wp_raftLog_findConflictByTerm : raftLog.findConflictByTerm.spec (GF := GF) (hG := hG))
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG)) :
     raft.handleAppendEntries.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s m ents Hwf Hnw Hnorm Hconf Hfid
+  intro cfg r id s m ents Hwf Hnw Hconf Hfid
   wp_start as Hpre
   iNamed Hpre
   wp_auto
@@ -121,7 +121,7 @@ theorem raft.handleAppendEntries.wp_proof
     icases ownRaftPhys_log_at cfg r id s $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
     wp_apply wp_raftLog_maybeAppend _ s.logst
         (logSlice.mk m.Term' (entryID.mk m.LogTerm' m.Index') m.Entries') ents m.Commit'
-        Hwf Hnw Hnorm (fun Hm => Hconf (by omega) Hm) $$ [$Hlog $Hents $Hcap]
+        Hwf Hnw (fun Hm => Hconf (by omega) Hm) $$ [$Hlog $Hents $Hcap]
       as %lastnewi %ok %ls' ⟨Hlog, %Hma, %Hmagh⟩
     ihave Hphys := Hlogback $$ %ls' Hlog
       %(fun h => (Hgh0 h).elim (fun h1 => .inl (Hmagh.2 h1)) (fun h1 => .inr (Hmagh.1 ▸ h1)))

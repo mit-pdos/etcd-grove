@@ -228,8 +228,9 @@ theorem node.run.wp_proof
       · rw [show (propMsg esl).Entries' = esl from rfl]; iexact Hes
       ihave Hcap : ownSliceCap raftpb.Entry (propMsg esl).Entries' (DFrac.own 1) $$ [Hcap]
       · rw [show (propMsg esl).Entries' = esl from rfl]; iexact Hcap
+      ihave #Hpdi := isNode_propDataInv γ id n $$ Hnode
       wp_apply wp_rn_raft_Step_prop wp_raft_Step γ.raft nv.rn' id rs r (propMsg esl)
-        [propEntry data_sl] rfl $$ [$Hrn $Hrnraft $Hes $Hcap $Hm]
+        [propEntry data_sl] rfl $$ [$Hpdi $Hrn $Hrnraft $Hes $Hcap $Hm]
         as %err Hrn
       · iexists []
         rw [show (propMsg esl).Context' = slice.nil from rfl]
@@ -262,8 +263,9 @@ theorem node.run.wp_proof
       ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid
       iunfold runHead at Hhead
       icases Hhead with ⟨%rs, Hrn, Hrest⟩
+      ihave #Hpdi := isNode_propDataInv γ id n $$ Hnode
       wp_apply wp_rn_raft_Step_prop wp_raft_Step γ.raft nv.rn' id rs r pm.m' ents Hty
-        $$ [$Hrn $Hrnraft $Hes $Hcap $Hm] as %err Hrn
+        $$ [$Hpdi $Hrn $Hrnraft $Hes $Hcap $Hm] as %err Hrn
       · iexists ctx
         iframe Hctx
       rw [Hres]

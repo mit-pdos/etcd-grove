@@ -171,10 +171,11 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
          isCommitted γ ((fp ++ l).take (uint.Z m.index).toNat)) ∗
       ⌜m.src ≠ W64 0⌝)
   | .propose =>
-      -- a proposal (2026-10-10): a local one (term `0`), a non-empty batch of normal
-      -- entries short enough for `appendEntry`, each with its data (`entData`: proposed,
-      -- its update deposited before it left the proposing node)
-      iprop(⌜m.term = W64 0 ∧ m.entries ≠ [] ∧ (∀ e ∈ m.entries, e.Type' = W32 0) ∧
+      -- a proposal (2026-10-10): a local one (term `0`), a non-empty batch short enough
+      -- for `appendEntry`, each entry with its data (`entData`: a normal entry's proposed,
+      -- its update deposited before it left the proposing node; since 2026-10-13 also
+      -- conf-change entries, whose bytes decode -- until then normal entries only)
+      iprop(⌜m.term = W64 0 ∧ m.entries ≠ [] ∧
           (m.entries.length : Int) < 2 ^ 61⌝ ∗
         [∗list] e ∈ m.entries, entData γ e)
   -- (2026-10-12) read-index: a heartbeat response's position, acknowledged; a request's

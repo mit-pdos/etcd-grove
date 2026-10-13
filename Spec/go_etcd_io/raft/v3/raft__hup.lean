@@ -36,8 +36,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `hup` checks the node is a promotable voter with no unapplied configuration change,
 then campaigns. Genuinely disjunctive — it either campaigns or returns having done
-nothing — so unlike `campaign` its postcondition names the model's relation rather than
-a specific state; the do-nothing case is `Step.refl`. Since 2026-10-04 `t` is any campaign
+nothing (already a leader, unpromotable, or, since 2026-10-13, a conf-change entry
+committed but not applied: `hasUnappliedConfChanges`) — so unlike `campaign` its
+postcondition names the model's relation rather than a specific state; the do-nothing
+case is `Step.refl`. Since 2026-10-04 `t` is any campaign
 type, `campaignPreElection` included: a pre-election is `Step.abandon` and free sends
 (`step_campaignState`, `StepLemmas.lean`).
 

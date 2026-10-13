@@ -58,8 +58,8 @@ Premises (for a non-empty batch, `e0 = ents[0]`):
   code needs") -- and keeps `committed` inside the new log;
 - contiguous indices from `e0.Index` and `e0.Index + |ents| < 2^64`: the new log is
   `LogIndicesOk` and does not wrap. `ownRaftLog` cannot carry a bound that survives a
-  longer log (`InvRaftlog.lean`), so the caller supplies it;
-- no configuration change in the batch (`HnoConfChange`'s scope).
+  longer log (`InvRaftlog.lean`), so the caller supplies it. (Until 2026-10-13 also: no
+  configuration change in the batch, `HnoConfChange`'s scope.)
 
 **The batch**: lent and returned unless `logAdopts ls ents` -- the batch starts at or
 below the unstable offset without continuing the suffix -- in which case
@@ -76,7 +76,6 @@ abbrev raftLog.append.spec : Prop :=
      (∀ (k : Nat) e, ents[k]? = some e →
         uint.Z e.Index' = uint.Z e0.Index' + (k : Int)) ∧
      uint.Z e0.Index' + (ents.length : Int) < 2^64) →
-  (∀ e ∈ ents, e.Type' = EntryNormal) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hlog" ∷ ownRaftLog l ls ∗
       "Hes" ∷ es ↦*{dq} ents ∗
       "Hadopt" ∷ (if logAdopts ls ents

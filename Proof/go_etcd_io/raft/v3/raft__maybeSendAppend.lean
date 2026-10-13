@@ -156,7 +156,7 @@ local macro "msa_send" : tactic => `(tactic| (
     · refine app_payload_from_log s.logst.prev (s.logst.sents ++ s.logst.uents) pterm
         (p.next - W64 1) es_e Hlwf (by simp only [List.length_append]; push_cast; omega)
         ⟨Herr1.1, by unfold plogLastIndexZ; simp only [List.length_append]; push_cast; omega⟩
-        Hlnc (by rw [Hn1]; exact Hpkgpre)
+        (by rw [Hn1]; exact Hpkgpre)
   · show prvalsMatch _ = _
     rw [GMap.insert_insert]
     refine prvalsMatch_insert_same _ _ p _ Hpvs ?_
@@ -266,7 +266,6 @@ theorem raft.maybeSendAppend.wp_proof
   icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hlogback⟩
   icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hnw, Hlog⟩
   icases ownRaftLog_wf _ _ $$ Hlog with ⟨%Hlwf, Hlog⟩
-  icases ownRaftLog_no_confchange _ _ $$ Hlog with ⟨%Hlnc, Hlog⟩
   wp_apply wp_raftLog_term _ s.logst _ $$ [$Hlog] as %pterm %err ⟨Hlog, %Herr, %Hterm_at, -⟩
   ihave Hphys := Hlogback $$ Hlog
   cases err with

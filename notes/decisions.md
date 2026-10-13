@@ -3277,3 +3277,37 @@ three types that read them, so the other branches discharge them by type.
 *Rejected*: making `RdOk` a field of `ownRaftPhys` (it is a fact about the ghost records,
 which the physical predicate does not see); a logically atomic `Read` for the register (the
 linearization point is in the past when the `ReadState` arrives: it would need prophecy).
+
+---
+
+## Reconfiguration stage D: conf-change entries as data, their bytes through the proposal
+
+**2026-10-13 · accepted**
+
+Conf-change entries are in the log as data (notes/STATUS.md, "Reconfiguration, stage D");
+three choices in how:
+
+- **The leader's decoding needs the bytes; they travel with the protocol message.** `stepLeader`
+  `Unmarshal`s each proposed conf-change entry and panics on an error, so `raft.Step` needs each
+  conf entry's bytes, which decode (`ccEntsOk`, a heap fact). A local proposal
+  (`RawNode.ProposeConfChange`) has them from `confChangeToMsg`; a forwarded one reaches the
+  leader through the network, where only `isMessage` (ghost, heap-free) survives. So the bytes are
+  recorded where the client data already are: the proposed slices' registry (`isPropData`,
+  `propDataInv`), and a conf entry's `entDataIs γ e none` carries `∃ bs, isPropData γ e.Data' bs ∗
+  ⌜CCDecodes e.Type' bs⌝`; `node.run` turns it back into bytes (`propData_ccEnts`).
+  *Rejected*: restricting forwarded proposals to normal entries (a follower's `ProposeConfChange`
+  would be unspecifiable); a pure premise (bytes are heap); putting heap points-to into
+  `isMessage` (the protocol layer is heap-free and imports no `Base`).
+- **The client log stays a log of normal entries.** `entDataIs`'s `some d` keeps `Type = 0`, so a
+  conf entry is `none` and `firstOcc`/`cLog`/`propsOwn` skip it with no change; the zero-slice
+  `none` case now also requires `Type = 0` (else a `Type = 1` entry with no data would escape the
+  decoding fact).
+- **`stepLeader`'s exact answer, existentially.** The loop's result depends on what each entry
+  decodes to (an empty `ConfChangeV2` is refused); `LeaderProposeResult` quantifies over the decoded
+  changes (`∃ cs, CCTypesOk ents cs ∧ ...`) rather than adding a parameter, so that the fifteen
+  non-proposal call sites of `stepLeader` are unchanged; `Step.propose` takes any batch related to
+  the proposal by `PropRepl` (each entry kept or a conf entry replaced by the zero entry), which is
+  all the ghost state needs (`entData_propRepl`).
+
+`Config.DisableConfChangeValidation = false` is a scope premise (with validation off a leader may
+append a second conf change before the first is applied), like `ReadOnlyOption = 0`.

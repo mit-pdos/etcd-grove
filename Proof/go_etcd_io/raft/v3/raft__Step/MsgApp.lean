@@ -62,7 +62,6 @@ theorem wp_Step_MsgApp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- `app_no_conflict_below_commit`)
     PlogWf (entryID.mk m.LogTerm' m.Index') ents →
     uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 →
-    (∀ e ∈ ents, e.Type' = EntryNormal) →
     -- GUARD (2026-10-02, the dispatch): the protocol fact holds only for a message no
     -- older than the receiver's term; a stale `MsgApp` is dropped by the preamble and
     -- never reaches `maybeAppend`
@@ -91,16 +90,16 @@ theorem wp_Step_MsgApp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw Hnorm Hconf Hvotes
+  intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw Hconf Hvotes
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
   · exact wp_Step_MsgApp_gt _P cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw
-      Hnorm (Hconf (by omega)) Hgt
+      (Hconf (by omega)) Hgt
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
     · exact wp_Step_MsgApp_lt _P cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw
-        Hnorm Hlt
+        Hlt
     · have Hteq : m.Term' = s.term := by word
       exact wp_Step_MsgApp_eq _P cfg r id s m ents Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hpwf Hnw
-        Hnorm (Hconf (by omega)) Hteq Hvotes
+        (Hconf (by omega)) Hteq Hvotes
 
 end StepProof
 

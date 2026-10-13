@@ -46,7 +46,7 @@ postcondition's implication says.
 
 Since 2026-10-01 the triple takes an *arbitrary* batch (until then it required the
 all-empty one and returned `RET #true`), because `appendEntry` was widened to arbitrary
-`EntryNormal` proposals and has a reachable drop path. The result is a bare
+proposals (until 2026-10-13 of `EntryNormal` entries) and has a reachable drop path. The result is a bare
 `ok : Bool`: the exact reject condition reads `r.uncommittedSize` and
 `r.maxUncommittedSize`, neither of which `NState` holds, so it cannot be stated against
 `ownRaftPhys`; what *can* be stated is the empty-batch implication above. On either

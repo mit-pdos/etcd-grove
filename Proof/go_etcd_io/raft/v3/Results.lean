@@ -106,6 +106,7 @@ end Perennial
 /-! The trust base of the top-level results, printed in the build log. -/
 #print axioms Perennial.EtcdGrove.raft.wp_Step
 #print axioms Perennial.EtcdGrove.RawNode.wp_Propose
+#print axioms Perennial.EtcdGrove.RawNode.wp_ProposeConfChange
 #print axioms Perennial.EtcdGrove.wp_newRaft
 #print axioms Perennial.EtcdGrove.RawNode.wp_Ready
 #print axioms Perennial.EtcdGrove.RawNode.wp_readyWithoutAccept
@@ -122,6 +123,7 @@ end Perennial
 #print axioms Perennial.EtcdGrove.node.wp_run
 #print axioms Perennial.EtcdGrove.wp_newNode
 #print axioms Perennial.EtcdGrove.node.wp_Propose
+#print axioms Perennial.EtcdGrove.node.wp_ProposeConfChange
 #print axioms Perennial.EtcdGrove.node.wp_Step
 #print axioms Perennial.EtcdGrove.node.wp_Tick
 #print axioms Perennial.EtcdGrove.node.wp_Ready

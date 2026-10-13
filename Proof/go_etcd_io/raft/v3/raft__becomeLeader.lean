@@ -94,9 +94,15 @@ theorem raft.becomeLeader.wp_proof
   -- `r.pendingConfIndex = r.raftLog.lastIndex()`
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
   icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hback⟩
-  wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, -⟩
+  wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
   ihave Hphys := Hback $$ Hlog
   wp_apply raft.wp_store_pendingConfIndex $$ Hphys as Hphys
+  have Hli' : li = logLast s.logst := by
+    subst hs1
+    unfold logLast
+    simp only [becomeLeaderPre, resetTo, resetTo0] at Hli
+    word
+  subst Hli'
   wp_apply wp_traceBecomeLeader
   wp_apply wp_slice_literal
   try (isplitr; (ipureintro; rfl))
@@ -106,11 +112,9 @@ theorem raft.becomeLeader.wp_proof
   -- `Hes`. It returns a bool, and its postcondition says an all-empty batch is never
   -- dropped; the entry's `Data` is nil, so `accepted = true` and the `Panic` on the
   -- `false` branch below is dead code. It also queues a self-addressed `MsgAppResp`, the
-  -- self-acknowledgement: the state is `becomeLeader`. `Type` is the zero value
-  -- `EntryNormal`, which is what keeps the log's `HnoConfChange` true; and one entry is
-  -- not `2^61`.
+  -- self-acknowledgement: the state is `becomeLeader`. One entry is not `2^61`.
   wp_apply wp_raft_appendEntry cfg r id _ _ [zero_val raftpb.Entry]
-      (by intro e He; simp at He; subst He; rfl) (by simp) (by subst hs1; exact Hnz)
+      (by simp) (by subst hs1; exact Hnz)
       $$ [$Hphys $Hes]
     as %accepted ⟨%Hacc, Hes, Hphys⟩
   -- empty payload, so accepted; the `false` branch is gone before any `WP` is stepped on it

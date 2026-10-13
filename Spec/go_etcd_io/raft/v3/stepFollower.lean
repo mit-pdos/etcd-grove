@@ -157,7 +157,6 @@ abbrev stepFollower.spec : Prop :=
   (m.Type' = MsgApp →
      PlogWf (entryID.mk m.LogTerm' m.Index') ents ∧
      uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 ∧
-     (∀ e ∈ ents, e.Type' = EntryNormal) ∧
      (let ls := s.logst
       let es := ls.sents ++ ls.uents
       uint.Z ls.committed ≤ uint.Z m.Index' →

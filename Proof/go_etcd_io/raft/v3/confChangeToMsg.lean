@@ -32,7 +32,7 @@ theorem confChangeToMsg.wp_proof
   wp_apply wp_slice_literal (V := raftpb.Entry) [ccEntry o data]
   isplitr
   · ipureintro; rfl
-  iintro %ents ⟨Hents, -⟩
+  iintro %ents ⟨Hents, Hcap⟩
   simp only [raftpb.MsgProp]
   wp_auto
   simp only [ccPropMsg]

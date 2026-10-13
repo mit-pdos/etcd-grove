@@ -16,7 +16,12 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/register/(Link|Results)\.le
 # Since 2026-10-12 the closed theorem `register_cluster_safe` (adequacy, with package
 # initialization proved) also rests on the 9 `sorry`s below: package initializers that run
 # opaque (untranslated) variable initializers (notes/STATUS.md, "Adequacy of the register's
-# driver"). Written by `--check --update` after a full build.
+# driver"). Since 2026-10-13 (reconfiguration stage D) also on gogoproto's two `Unmarshal`
+# trust-boundary axioms: raft's leader decodes a proposal's conf-change entries
+# (`stepLeader`'s loop), which every `Step` reaches. Written by `--check --update` after a
+# full build.
+axiom raftpb.ConfChange.Unmarshal.wp_proof
+axiom raftpb.ConfChangeV2.Unmarshal.wp_proof
 axiom reflect.DeepEqual.wp_proof
 sorry Perennial.crypto.rand.wp_initialize'
 sorry Perennial.errors.wp_errorType_init

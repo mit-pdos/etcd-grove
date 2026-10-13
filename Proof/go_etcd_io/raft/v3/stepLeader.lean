@@ -46,6 +46,8 @@ public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__IsSingleton
 -- (2026-10-13) leader transfer
 public import Spec.go_etcd_io.raft.v3.raft__sendTimeoutNow
 public import Spec.go_etcd_io.raft.v3.raft__abortLeaderTransfer
+-- (2026-10-13) the `MsgProp` branch, with the conf-change loop
+public import Proof.go_etcd_io.raft.v3.stepLeader.MsgProp
 
 @[expose] public section
 
@@ -1517,150 +1519,6 @@ private theorem wp_stepLeader_appresp
       exact prvalsMatch_insert_same _ _ p2 _ Hpvs2' HM3
 
 
-/-- **`MsgProp`**
-
-`len(m.Entries) == 0` is false (`ents ≠ []`); `r.trk.Progress[r.id]` is a hit
-(`id ∈ cfg`, and a `Progress` pointer is never nil); `r.leadTransferee` is `0`; the
-conf-change loop reads each entry's `Type` -- `EntryNormal`, so neither `Unmarshal` arm
-runs and `cc` stays nil -- and writes nothing. Then `appendEntry` stamps the batch and,
-if it accepts it, `bcastAppend`. -/
-private theorem wp_stepLeader_prop
-    (wp_raft_bcastAppend : raft.bcastAppend.spec (GF := GF) (hG := hG))
-    (wp_raft_appendEntry : raft.appendEntry.spec (GF := GF) (hG := hG))
-    (r : Loc) (id : w64) (s : NState) (m : raftpb.Message) (ents : List raftpb.Entry)
-    (Hty : m.Type' = MsgProp) (Hid : id ∈ cfg) (Hne : ents ≠ [])
-    (Hnorm : ∀ e ∈ ents, e.Type' = EntryNormal) (Hsmall : (ents.length : Int) < 2^61)
-    (Hnz : s.term ≠ W64 0) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s ∗
-        m.Entries' ↦* ents }}
-      (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #m))
-    {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
-        ownRaftPhys cfg r id s' ∗
-        ⌜LeaderProposeResult id s ents dropped s'⌝ ∗
-        (if dropped then globalAddr ErrProposalDropped ↦□ err
-         else ⌜err = interface.nil⌝) ∗
-        (m.Entries' ↦* ents.mapIdx (stamp s.term (logLast s.logst)) ∨ m.Entries' ↦* ents) }} := by
-  wp_start as ⟨Hphys, Hes⟩
-  ihave #Hinit := isInitialized_access $$ Hpkg
-  unfold isInitialized
-  icases Hinit with ⟨%e1, %e2, %e3, %e4, %errPropDropped, %gr, %_, %_, %_, %_, #Hinit⟩
-  iNamed Hinit
-  wp_auto
-  simp only [Hty, MsgProp]
-  wp_auto
-  ihave %Hl := ownSlice_len _ _ _ $$ Hes
-  wp_if_destruct
-  · exfalso
-    apply Hne
-    apply List.eq_nil_of_length_eq_zero
-    rw [Hl.1, Hif]; rfl
-  wp_apply raft.wp_load_id $$ Hphys as Hphys
-  icases ownRaftPhys_tracker_same cfg r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-  icases ownTracker_progress_map cfg tv _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
-  icases ownTracker_prvals_dom cfg tv _ $$ Htrk with ⟨%Hpdom, Htrk⟩
-  dsimp only at Hdom Hpdom
-  wp_auto
-  ihave Hphys := Hback $$ Htrkf Htrk
-  wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ s.progress
-    id _ $$ Hprs with -
-  obtain ⟨pr, Hlk⟩ : ∃ pr, s.progress !! id = some pr := by
-    rw [← GMap.elem_of_dom, Hdom]; exact Hid
-  obtain ⟨p, Hpvs⟩ : ∃ p, s.prvals !! id = some p := by
-    rw [← GMap.elem_of_dom, Hpdom, GMap.elem_of_dom]; exact ⟨pr, Hlk⟩
-  icases ownRaftPhys_pr cfg r id s id pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
-  iNamed Hpa
-  ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hpv
-  ihave Hphys := Hpback $$ [Hpv Hinfl]
-  · iapply ownProgress_intro $$ Hpv Hinfl %Habs
-  rw [Hlk]
-  simp only [Option.getD_some]
-  wp_if_destruct
-  · exact absurd rfl Hnn
-  wp_apply raft.wp_load_leadTransferee $$ Hphys as Hphys
-  -- (2026-10-13) a leader transfer in progress drops the proposal
-  by_cases Hlt : s.lt = W64 0
-  rotate_left
-  · rw [decide_eq_false Hlt]
-    wp_auto
-    wp_apply raft.wp_load_id $$ Hphys as Hphys
-    wp_apply raft.wp_load_Term $$ Hphys as Hphys
-    wp_apply raft.wp_load_leadTransferee $$ Hphys as Hphys
-    wp_raft_log
-    iapply HΦ $$ %errPropDropped %s %true
-    iframe Hphys
-    isplitr
-    · ipureintro
-      simp [LeaderProposeResult]
-    simp only [↓reduceIte]
-    iframe ErrPropDropped
-    iright
-    iexact Hes
-  rw [decide_eq_true Hlt]
-  wp_auto
-  rename_i gi_ptr
-  irename : (gi_ptr ↦ zero_val w64 : IProp GF) => Hgi
-  ihave IH : iprop(∃ (n k : w64),
-      "Hj" ∷ i_ptr ↦ n ∗
-      "Hgi" ∷ gi_ptr ↦ k ∗
-      "Hes" ∷ m.Entries' ↦* ents ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ents.length : Int)⌝) $$ [i Hgi Hes]
-  · iexists W64 0, zero_val w64
-    iframe
-    ipureintro
-    word
-  wp_for IH
-  wp_if_destruct
-  · list_elem ents (sint.nat n) as e
-    rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
-    wp_apply wp_load_slice_index _ (sint.Z n) ents (DFrac.own 1) e Hn.1 $$ [Hes] with Hes
-    · iframe
-      ipureintro
-      exact He_lookup
-    rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
-    icases ownSlice_elem_acc (sint.Z n) e _ (DFrac.own 1) ents Hn.1 He_lookup $$ Hes
-      with ⟨He, Hesback⟩
-    have Hety : e.Type' = EntryNormal := Hnorm e (List.mem_of_getElem? He_lookup)
-    wp_auto
-    simp only [Hety, EntryNormal]
-    wp_auto
-    simp only [Hety, EntryNormal]
-    wp_auto
-    ihave Hes := Hesback $$ %e He
-    rw [list_set_self ents (sint.Z n) e He_lookup]
-    wp_for_post
-    iframe
-    iexists n + W64 1, n
-    iframe
-    ipureintro
-    word
-  · wp_apply wp_raft_appendEntry cfg r id s _ ents Hnorm Hsmall Hnz $$ [$Hphys $Hes]
-      as %acc ⟨-, Hes, Hphys⟩
-    cases acc <;> simp only [Bool.false_eq_true, ↓reduceIte]
-    · -- dropped
-      wp_auto
-      iapply HΦ $$ %errPropDropped %s %true
-      iframe Hphys
-      isplitr
-      · ipureintro
-        simp [LeaderProposeResult]
-      simp only [↓reduceIte]
-      iframe ErrPropDropped
-      ileft
-      iexact Hes
-    · wp_auto
-      wp_apply wp_raft_bcastAppend $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
-      iapply HΦ $$ %interface.nil %_ %false
-      iframe Hphys
-      isplitr
-      · ipureintro
-        simp only [LeaderProposeResult, Bool.false_eq_true, ↓reduceIte]
-        exact ⟨ms, pvs, rfl, Hms, Hmm⟩
-      isplitr
-      · simp only [Bool.false_eq_true, ↓reduceIte]
-        ipureintro; trivial
-      ileft
-      iexact Hes
-
 /-- By the message type, one lemma each. The non-`MsgProp` lemmas are stated at
 `LeaderNonpropResult` with `err = nil`; `HΦ'` turns that into the postcondition with
 `dropped = false`. -/
@@ -1693,17 +1551,25 @@ theorem stepLeader.wp_proof
     (wp_raft_responseToReadIndexReq : raft.responseToReadIndexReq.spec (GF := GF) (hG := hG))
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
     (wp_raft_sendTimeoutNow : raft.sendTimeoutNow.spec (GF := GF) (hG := hG))
-    (wp_raft_abortLeaderTransfer : raft.abortLeaderTransfer.spec (GF := GF) (hG := hG)) :
+    (wp_raft_abortLeaderTransfer : raft.abortLeaderTransfer.spec (GF := GF) (hG := hG))
+    (wp_ConfChange_Unmarshal : raftpb.ConfChange.Unmarshal.spec (GF := GF) (hG := hG))
+    (wp_ConfChangeV2_Unmarshal : raftpb.ConfChangeV2.Unmarshal.spec (GF := GF) (hG := hG))
+    (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG))
+    (wp_ConfChangeV2_AsV2 : raftpb.ConfChangeV2.AsV2.spec (GF := GF) (hG := hG))
+    (wp_fmt_Sprintf : fmt.Sprintf.spec (GF := GF) (hG := hG))
+    (wp_traceChangeConfEvent : traceChangeConfEvent.spec (GF := GF) (hG := hG)) :
     stepLeader.spec (GF := GF) (hG := hG) := by
   intro cfg r id s m ents ctx Hty Hlead Hid Hfrom0 Hself Hprop Hrdnz Hri Hhr
   iintro %Φ ⟨#Hinit, Hphys, Hctx, Hents, Hrents⟩ HΦ
   by_cases Hp : m.Type' = MsgProp
-  · obtain ⟨Hne, Hnorm, Hsmall, Hnz⟩ := Hprop Hp
-    ihave Hes := Hents $$ %Hp
-    iapply wp_stepLeader_prop cfg wp_raft_bcastAppend wp_raft_appendEntry r id s m ents Hp Hid
-      Hne Hnorm Hsmall Hnz $$ [Hphys Hes]
+  · obtain ⟨Hne, Hsmall, Hnz⟩ := Hprop Hp
+    icases Hents $$ %Hp with ⟨Hes, %cs, #Hcc⟩
+    iapply wp_stepLeader_prop cfg wp_raft_bcastAppend wp_raft_appendEntry wp_raftLog_lastIndex
+      wp_ConfChange_Unmarshal wp_ConfChangeV2_Unmarshal wp_ConfChange_AsV2 wp_ConfChangeV2_AsV2
+      wp_fmt_Sprintf wp_traceChangeConfEvent r id s m ents cs Hp Hid
+      Hne Hsmall Hnz $$ [Hphys Hes]
     · iframe
-      iexact Hinit
+      iframe Hinit Hcc
     inext
     iintro %err %s' %dropped ⟨Hphys, %Hres, Herr, Hes⟩
     iapply HΦ

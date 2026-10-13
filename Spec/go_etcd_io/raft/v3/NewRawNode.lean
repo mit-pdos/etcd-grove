@@ -80,6 +80,8 @@ abbrev NewRawNode.spec : Prop :=
   cv.DisableProposalForwarding' = false →
   -- `ReadOnlySafe` (2026-10-12)
   cv.ReadOnlyOption' = W64 0 →
+  -- conf-change validation on (2026-10-13; `newRaft`'s premise)
+  cv.DisableConfChangeValidation' = false →
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
   -- synchronous storage writes, nothing applied
   cv.AsyncStorageWrites' = false →

@@ -90,12 +90,11 @@ type switch's default arm runs `r.step(r, m)`:
 `send` not self-addressed. -/
 theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (ctx : List w8) :
+    (ents : List raftpb.Entry) (ctx : List w8) (cs : List (Option CCMsg)) :
     m.Type' = MsgProp →
     m.Term' = W64 0 →
     (m.From' = W64 0 ∨ m.From' = id) →
     ents ≠ [] →
-    (∀ e ∈ ents, e.Type' = EntryNormal) →
     (ents.length : Int) < 2^61 →
     (s.role = .follower → s.lead ≠ id) →
     -- a leader's term is nonzero (2026-10-10, `ownRaftGhost_term_nz`)
@@ -105,6 +104,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhys cfg r id s ∗
         "Hents" ∷ m.Entries' ↦* ents ∗
+        -- (2026-10-13) the conf-change entries' bytes
+        "#Hcc" ∷ ccEntsOk ents cs ∗
         "Hcap" ∷ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) ∗
         "#Hctx" ∷ m.Context' ↦*□ ctx }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
@@ -122,17 +123,18 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hrefines" ∷ ⌜(∃ recv, (∀ m' ∈ recv, m' = absMsg .propose m ents ctx) ∧
               Step cfg id (toPState s) recv (toPState s')) ∨
             (err = interface.nil ∧ (toPState s).role = .leader ∧
-             (∀ e ∈ ents, e.Type' = W32 0) ∧
-             plogLastIndexZ (toPState s).base (toPState s).log + (ents.length : Int) < 2 ^ 64 ∧
+             -- (2026-10-13) the batch after the conf-change loop
+             ∃ ents', PropRepl ents ents' ∧
+             plogLastIndexZ (toPState s).base (toPState s).log + (ents'.length : Int) < 2 ^ 64 ∧
              Step cfg id
                (psendMsgs (pappend (toPState s)
-                   (ents.mapIdx (stamp (toPState s).term (plastIndex (toPState s)))))
+                   (ents'.mapIdx (stamp (toPState s).term (plastIndex (toPState s)))))
                  [pselfAck id (pappend (toPState s)
-                   (ents.mapIdx (stamp (toPState s).term (plastIndex (toPState s)))))])
+                   (ents'.mapIdx (stamp (toPState s).term (plastIndex (toPState s)))))])
                [] (toPState s'))⌝ ∗
         "Herr" ∷ (⌜err = interface.nil⌝ ∨ globalAddr ErrProposalDropped ↦□ err) }} := by
-  intro Hty Hterm Hfrom Hne Hnorm Hlen Hlok Hlnz Hcfg Hwf
-  wp_start as ⟨Hphys, Hents, Hcap, #Hctx⟩
+  intro Hty Hterm Hfrom Hne Hlen Hlok Hlnz Hcfg Hwf
+  wp_start as ⟨Hphys, Hents, #Hcc, Hcap, #Hctx⟩
   wp_auto
   wp_apply _P.traceReceiveMessage
   rw [decide_eq_true Hterm]
@@ -247,7 +249,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
           rcases Hc with Hc | ⟨Hc, -⟩ <;> exact absurd Hc (by w32_ne))
-        (fun _ => ⟨Hne, Hnorm, Hlen, Hlnz Hrole⟩)
+        (fun _ => ⟨Hne, Hlen, Hlnz Hrole⟩)
         (fun Hc => by exfalso; rw [Hty] at Hc; rcases Hc with Hc | Hc | Hc <;> exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -255,11 +257,15 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · isplitl []
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
       isplitl [Hents]
-      · iintro _; iexact Hents
+      · iintro _; iframe Hents; iexists cs; iexact Hcc
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     unfold LeaderStepResult at Hres
     rw [ite_pos Hty] at Hres
     unfold LeaderProposeResult at Hres
+    obtain ⟨cs', Hct, Hres⟩ := Hres
+    have Hrepl : PropRepl ents (leaderPropConf s ents cs').1 :=
+      propConf_repl s.logst.applied (logLast s.logst) s.pci ents cs' Hct
+    have Hps : ∀ p, toPState { s with pci := p } = toPState s := fun _ => rfl
     cases dropped
     · -- appended and broadcast
       simp only [Bool.false_eq_true, ↓reduceIte] at Hres ⊢
@@ -279,20 +285,27 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl⟩
       isplitr
       · ipureintro; right
-        refine ⟨rfl, by rw [toPState_role, Hrole]; rfl, Hnorm, ?_, ?_⟩
+        refine ⟨rfl, by rw [toPState_role, Hrole]; rfl, (leaderPropConf s ents cs').1, Hrepl, ?_, ?_⟩
         · simp only [proposed, sendMsgs, logAppend, List.length_append, List.length_mapIdx] at Hnw
           simp only [plogLastIndexZ, toPState, List.length_append]
           push_cast at Hnw ⊢
           omega
-        · rw [toPState_prvals (sendMsgs (proposed id s ents) ms) pvs (fun _ => Hpvs), toPState_sendMsgs, toPState_proposed]
+        · generalize Hsp : ({ s with pci := (leaderPropConf s ents cs').2 } : NState) = sp at Hms ⊢
+          have Hspv : sp.prvals = s.prvals := by rw [← Hsp]
+          rw [← Hspv] at Hpvs
+          have Hsps : toPState sp = toPState s := by rw [← Hsp]; rfl
+          have Hspt : sp.term = s.term := by rw [← Hsp]
+          rw [toPState_prvals (sendMsgs (proposed id sp (leaderPropConf s ents cs').1) ms) pvs
+            (fun _ => Hpvs), toPState_sendMsgs, toPState_proposed, Hsps, Hspt]
           unfold ReplSends at Hms
-          rw [toPState_proposed] at Hms
+          rw [toPState_proposed, Hsps, Hspt] at Hms
           exact Step.sendApps _ _ (by simp [psendMsgs, pappend, toPState, Hrole, proleRole]) Hms
       ileft; ipureintro; rfl
-    · -- `appendEntry` refused the batch
+    · -- dropped: a leader transfer in progress, or `appendEntry` refused the batch (only
+      -- `pendingConfIndex` moved, 2026-10-13)
       simp only [↓reduceIte] at Hres ⊢
-      subst Hres
-      cases err
+      rcases Hres with rfl | rfl
+      all_goals cases err
       all_goals
         wp_auto
         iapply HΦ

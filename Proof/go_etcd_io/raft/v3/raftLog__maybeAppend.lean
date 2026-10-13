@@ -103,7 +103,7 @@ theorem raftLog.maybeAppend.wp_proof
     (wp_raftLog_append : raftLog.append.spec (GF := GF) (hG := hG))
     (wp_raftLog_commitTo : raftLog.commitTo.spec (GF := GF) (hG := hG)) :
     raftLog.maybeAppend.spec (GF := GF) (hG := hG) := by
-  intro l ls a ents committed Hwf Hnw Hnorm Hci
+  intro l ls a ents committed Hwf Hnw Hci
   wp_start as H
   iNamed H
   wp_auto
@@ -255,7 +255,7 @@ theorem raftLog.maybeAppend.wp_proof
       have Hnu := nextUnstable_truncateAppend_ne ls (ents.drop k) e He2 Hrw.1.1 Hrw.1.2
         (by omega) Hcile
       wp_apply wp_raftLog_append _ ls (ents.drop k) _ _
-          Happ_pre (fun x Hx => Hnorm x (List.mem_of_mem_drop Hx)) $$ [$Hlog $Hdrop $Hadopt]
+          Happ_pre $$ [$Hlog $Hdrop $Hadopt]
         as %li ⟨Hlog, -, %Hsplit, %Hli⟩
       obtain ⟨Hp1, Hc1, Ha1, Hag1, Hsn1, Hun1, Hst1, Hsg1⟩ := logTruncateAppend_fields ls
         (ents.drop k)

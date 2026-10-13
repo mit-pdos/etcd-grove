@@ -22,7 +22,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := by
-  intro st lg maxSize σ lok Hidx Hnocc Hss Hpe Hlg Hmax
+  intro st lg maxSize σ lok Hidx Hss Hpe Hlg Hmax
   subst Hlg
   wp_start as ⟨#Hsto, HStorage, #Hlg⟩
   ihave #Hsto2 : isStorage st $$ [Hsto]
@@ -71,8 +71,6 @@ theorem newLogWithSize.wp_proof : newLogWithSize.spec (GF := GF) (hG := hG) := b
     · iapply ownSlice_nil
     isplitr
     · iapply ownSliceCap_nil
-    isplitr
-    · ipureintro; exact Hnocc
     isplitr
     · ipureintro; constructor <;> word
     isplitr

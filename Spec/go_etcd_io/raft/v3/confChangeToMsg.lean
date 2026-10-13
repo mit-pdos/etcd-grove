@@ -1,10 +1,9 @@
 /-
 `confChangeToMsg` (`node.go:482`): the proposal of a conf change. Lean-first (no Rocq counterpart); see `InvConfChangeMsg.lean`.
 
-`RawNode.ProposeConfChange` and `node.ProposeConfChange` step this message; they are not
-specified yet, since `raft.Step`'s spec admits no conf-change entry (`stepLeader`'s
-`appendEntry` needs `EntryNormal` entries, `ownRaftLog` has none): see `notes/STATUS.md`,
-"Reconfiguration, stage 0".
+`RawNode.ProposeConfChange` and `node.ProposeConfChange` step this message (since
+2026-10-13, reconfiguration stage D, when the log took conf-change entries; see
+`notes/STATUS.md`, "Reconfiguration, stage D").
 -/
 module
 
@@ -34,7 +33,10 @@ abbrev confChangeToMsg.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownCCI c dq o }}
     (App (Val #(functions confChangeToMsg [])) (Val #c))
   {{ (ents data : GoSlice) (bs : List w8), RET (PairV #(ccPropMsg ents) #interface.nil);
-      ownCCI c dq o ∗ ents ↦* [ccEntry o data] ∗ data ↦* bs ∗ ⌜CCData o bs⌝ }}
+      ownCCI c dq o ∗ ents ↦* [ccEntry o data] ∗
+      -- (2026-10-13) the fresh slice's capacity, which `raft.Step` takes
+      ownSliceCap raftpb.Entry ents (DFrac.own 1) ∗
+      data ↦* bs ∗ ⌜CCData o bs⌝ }}
 
 end spec
 
