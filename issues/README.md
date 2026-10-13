@@ -73,5 +73,9 @@ unit 0; not filed).
 [etcd-apply-authstatus-metric-label](etcd-apply-authstatus-metric-label.md): `dispatch` does not
 set `op` for `AuthStatus`, whose apply latency is recorded under `op="unknown"` (a wrong metric
 label; found 2026-10-12, apply unit 2; not filed).
+[go-itab-reinterpret-assert](go-itab-reinterpret-assert.md): in Go itself, a type assertion
+on an `I1` value read through a `*I2` (two named interfaces with the same methods) panics with
+"main.I2 is main.T, not main.T", since the runtime compares itabs (found 2026-10-13, Perennial's
+byte-memory review, round 3; unclear what in Go should change; not filed).
 Leads not yet assessed: the gRPC proxy's cache (`server/proxy/grpcproxy/cache/store.go`) builds
 its intervals as `checkIntervals` did, so a cached from-key range may never be invalidated.
