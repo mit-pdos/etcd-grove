@@ -44,7 +44,7 @@ theorem MemoryStorage.firstIndex.wp_proof :
   · ipureintro
     rw [Hdummy.1]
     word
-  · iexists hs, snap, es, dummy, cs, voters
+  · iexists hs, snap, es, dummy, nfi, nli, nen, nte, nsn, voters
     iframe
     ipureintro
     exact ⟨Hsnap_id, Hdummy⟩

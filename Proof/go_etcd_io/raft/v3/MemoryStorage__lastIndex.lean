@@ -49,7 +49,7 @@ theorem MemoryStorage.lastIndex.wp_proof : MemoryStorage.lastIndex.spec (GF := G
     rw [← Hdummy.1]
     word
   · unfold memstorageFields
-    iexists hs, snap, es, dummy, cs, voters
+    iexists hs, snap, es, dummy, nfi, nli, nen, nte, nsn, voters
     iframe
     ipureintro
     exact ⟨Hsnap_id, Hdummy⟩

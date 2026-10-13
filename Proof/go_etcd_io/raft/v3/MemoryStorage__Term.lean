@@ -40,7 +40,7 @@ theorem MemoryStorage.Term.wp_proof :
   icases memView_agree γs σ σ0 $$ Hview Hgs_inv with ⟨%Hvw, Hview, Hgs_inv⟩
   obtain ⟨Hrange0, Hteq⟩ := memView_term σ σ0 Hvw i0 Hrange Hpf
   iunfold memstorageFields at Hfields_inv
-  icases Hfields_inv with ⟨%hs, %snap, %es, %dummy, %cs, %voters, Hfields_inv⟩
+  icases Hfields_inv with ⟨%hs, %snap, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, %voters, Hfields_inv⟩
   iNamed Hfields_inv
   wp_auto
   icases Hents with #Hents
@@ -94,13 +94,13 @@ theorem MemoryStorage.Term.wp_proof :
       rfl
   wp_method_call
   wp_call
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState Hsnapshot Hvoters Hents_f Hents_cap HcallStats]
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hgs_inv HhardState Hsnapshot Hvoters Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · inext
     unfold memstorageInv memstorageFields
     iexists σ0
     iframe Hgs_inv
     isplitl
-    · iexists hs, snap, es, dummy, _, voters
+    · iexists hs, snap, es, dummy, _, _, _, _, _, voters
       iframe # ∗
       ipureintro; exact ⟨Hsnap_id, Hd0, Hd1⟩
     ipureintro; exact Hpb_inv

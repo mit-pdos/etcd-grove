@@ -41,20 +41,12 @@ theorem MemoryStorage.FirstIndex.wp_proof
   -- the contents agree with the view on the boundary (2026-10-10)
   icases memView_agree γs σ σ0 $$ Hview Hgs_inv with ⟨%Hvw, Hview, Hgs_inv⟩
   iNamed Hfields_inv
-  icases typedPointsto_not_null_dup _ _ _ $$ HcallStats with ⟨HcallStats, %Hcs_nn⟩
-  iStructNamed HcallStats
   wp_auto
-  ihave Hf : memstorageFields ms σ0 $$ [HhardState Hsnapshot Hvoters Hents_f Hents Hents_cap firstIndex lastIndex term entries snapshot initialState]
+  ihave Hf : memstorageFields ms σ0 $$ [HhardState Hsnapshot Hvoters Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · unfold memstorageFields
-    iexists hs, snap, es, dummy, { cs with firstIndex' := cs.firstIndex' + W64 1 }, voters
+    iexists hs, snap, es, dummy, _, nli, nen, nte, nsn, voters
     iframe
-    isplitr
-    · ipureintro; exact Hsnap_id
-    isplitr
-    · ipureintro; exact Hdummy
-    iapply typedPointsto_combine _ _ _ Hcs_nn
-    simp only [TypedPointsto.typedPointstoDef]
-    iframe
+    ipureintro; exact ⟨Hsnap_id, Hdummy⟩
   wp_apply wp_MemoryStorage_firstIndex ms σ0 Hpb_inv $$ [$Hf] as %fi ⟨%Hfi, Hf⟩
   -- the deferred `ms.Unlock()`
   wp_method_call

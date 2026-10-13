@@ -42,12 +42,12 @@ theorem MemoryStorage.LastIndex.wp_proof
   have Heq : σ0 = σ := Hvw.2.2.2 Hpnil
   subst Heq
   iunfold memstorageFields at Hfields_inv
-  icases Hfields_inv with ⟨%hs, %snap, %es, %dummy, %cs, %voters, Hfields_inv⟩
+  icases Hfields_inv with ⟨%hs, %snap, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, %voters, Hfields_inv⟩
   iNamed Hfields_inv
   wp_auto
-  ihave Hf : memstorageFields ms σ0 $$ [HhardState Hsnapshot Hvoters Hents_f Hents Hents_cap HcallStats]
+  ihave Hf : memstorageFields ms σ0 $$ [HhardState Hsnapshot Hvoters Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · unfold memstorageFields
-    iexists hs, snap, es, dummy, _, voters
+    iexists hs, snap, es, dummy, _, _, _, _, _, voters
     simp only [named]
     iframe
     ipureintro; exact ⟨Hsnap_id, Hdummy⟩

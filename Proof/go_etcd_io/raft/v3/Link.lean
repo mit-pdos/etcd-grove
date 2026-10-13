@@ -38,9 +38,14 @@ public import Proof.go_etcd_io.raft.v3.quorum.MajorityConfig__Slice
 public import Proof.go_etcd_io.raft.v3.quorum.MajorityConfig__VoteResult
 public import Proof.go_etcd_io.raft.v3.tracker.MakeProgressTracker
 public import Proof.go_etcd_io.raft.v3.MemoryStorage__Append
+public import Proof.go_etcd_io.raft.v3.MemoryStorage__ApplySnapshot
+public import Proof.go_etcd_io.raft.v3.MemoryStorage__Compact
+public import Proof.go_etcd_io.raft.v3.MemoryStorage__CreateSnapshot
 public import Proof.go_etcd_io.raft.v3.MemoryStorage__Entries
 public import Proof.go_etcd_io.raft.v3.MemoryStorage__FirstIndex
+public import Proof.go_etcd_io.raft.v3.MemoryStorage__InitialState
 public import Proof.go_etcd_io.raft.v3.MemoryStorage__LastIndex
+public import Proof.go_etcd_io.raft.v3.MemoryStorage__SetHardState
 public import Proof.go_etcd_io.raft.v3.MemoryStorage__Snapshot
 public import Proof.go_etcd_io.raft.v3.MemoryStorage__Term
 public import Proof.go_etcd_io.raft.v3.MemoryStorage__firstIndex
@@ -365,6 +370,26 @@ theorem MemoryStorage.wp_Append :
 theorem wp_NewMemoryStorage :
     NewMemoryStorage.spec (GF := GF) (hG := hG) :=
   NewMemoryStorage.wp_proof
+
+theorem MemoryStorage.wp_InitialState :
+    MemoryStorage.InitialState.spec (GF := GF) (hG := hG) :=
+  MemoryStorage.InitialState.wp_proof
+
+theorem MemoryStorage.wp_SetHardState :
+    MemoryStorage.SetHardState.spec (GF := GF) (hG := hG) :=
+  MemoryStorage.SetHardState.wp_proof
+
+theorem MemoryStorage.wp_ApplySnapshot :
+    MemoryStorage.ApplySnapshot.spec (GF := GF) (hG := hG) :=
+  MemoryStorage.ApplySnapshot.wp_proof
+
+theorem MemoryStorage.wp_CreateSnapshot :
+    MemoryStorage.CreateSnapshot.spec (GF := GF) (hG := hG) :=
+  MemoryStorage.CreateSnapshot.wp_proof MemoryStorage.wp_lastIndex
+
+theorem MemoryStorage.wp_Compact :
+    MemoryStorage.Compact.spec (GF := GF) (hG := hG) :=
+  MemoryStorage.Compact.wp_proof MemoryStorage.wp_lastIndex
 
 theorem MemoryStorage.wp_LastIndex :
     MemoryStorage.LastIndex.spec (GF := GF) (hG := hG) :=
