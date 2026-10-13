@@ -212,6 +212,17 @@ theorem w64Max_spec (x y : w64) : uint.Z (w64Max x y) = max (uint.Z x) (uint.Z y
 def readonlyPosition (r : ReadOnly) : w64 :=
   r.confirmed + W64 r.pending.length
 
+/-- The position is at most the unwrapped sum. -/
+theorem readonlyPosition_le (r : ReadOnly) :
+    uint.nat (readonlyPosition r) ≤ uint.nat r.confirmed + r.pending.length := by
+  unfold readonlyPosition
+  have h1 : uint.nat (W64 r.pending.length) ≤ r.pending.length := by
+    word
+  have h2 : uint.nat (r.confirmed + W64 r.pending.length) ≤
+      uint.nat r.confirmed + uint.nat (W64 r.pending.length) := by
+    word
+  omega
+
 /-- `addRequest`: append to the queue. -/
 def readonlyAdd (r : ReadOnly) (q : ReadReq) : ReadOnly :=
   { r with pending := r.pending ++ [q] }
@@ -1596,10 +1607,12 @@ inductive Step : PState → List Msg → PState → Prop where
         (psendMsgs
           { padoptLeader s m.src with commit := plogCommitTo s.commit m.commit }
           [{ Msg.plain .heartbeatResp id m.src s.term false with ctx := m.ctx }])
-  /-- `MsgBeat` / `bcastHeartbeat`: any heartbeats `HeartbeatOk` allows. -/
+  /-- `MsgBeat` / `bcastHeartbeat`: any heartbeats `HeartbeatOk` allows, with the read-only
+  object's context (2026-10-13). -/
   | beat (s : PState) (ms : List Msg) :
       s.role = .leader →
       (∀ m ∈ ms, HeartbeatOk id s m) →
+      (∀ m ∈ ms, m.ctx = hbCtx s.rd.ro) →
       Step s [] (psendMsgs s ms)
   /-- `stepLeader`'s `MsgAppResp`, accepting: `pr.MaybeUpdate(m.Index)` raises the
   sender's `Match`. A *rejecting* `appResp` changes no protocol state (`MaybeDecrTo`

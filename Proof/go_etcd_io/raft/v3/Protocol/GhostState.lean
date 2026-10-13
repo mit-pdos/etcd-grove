@@ -1060,6 +1060,12 @@ theorem rdCred_split (γ : RaftNames) (a b : Nat) :
 /-- How many read-index requests a list of messages holds. -/
 def rdCount (ms : List Msg) : Nat := ms.countP (fun m => decide (m.ty = .readIndex))
 
+theorem rdCount_append (a b : List Msg) : rdCount (a ++ b) = rdCount a + rdCount b := by
+  unfold rdCount; exact List.countP_append
+
+theorem rdCount_singleton (m : Msg) : rdCount [m] = if m.ty = .readIndex then 1 else 0 := by
+  unfold rdCount; by_cases h : m.ty = .readIndex <;> simp [h]
+
 def rdLead (γ : RaftNames) (s : PState) (rqm : GMap w64 GName) : IProp GF :=
   match s.role with
   | .leader => iprop(∃ γq, ∃ (recs : List RqRec), ⌜rqm !! s.term = some γq⌝ ∗
@@ -1139,6 +1145,99 @@ theorem rdOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
     iexact Hcr
   icases Hcr with ⟨Hcr, -⟩
   iexact Hcr
+
+/-- Winning: a registry for the term, empty, the read-only object fresh. -/
+theorem rdOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
+    s.role ≠ .leader → s'.role = .leader → s'.term = s.term →
+    s'.rd = rdNL s.rd → rdCount s'.outbox ≤ rdCount s.outbox →
+    rdOwn (GF := GF) γ id s ⊢ |==> rdOwn γ id s' := by
+  intro Hr Hr' Hte Hrd Hcnt
+  unfold rdOwn
+  iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, -, #Hst0, #Hpd0, Hcr, #Hinv⟩
+  have Hfree : rqm !! s.term = none := by
+    cases h : rqm !! s.term with
+    | none => rfl
+    | some _ =>
+      rcases Hok s.term (by simp [h]) with Hlt | ⟨-, Hl⟩
+      · omega
+      · exact absurd Hl Hr
+  imod mono_list_own_alloc (GF := GF) ([] : List RqRec) with ⟨%γq, Haq, -⟩
+  imod ghost_map_insert_persist s.term γq Hfree $$ Ha with ⟨Ha, #Hfq⟩
+  have Hpd : s'.rd.pend = s.rd.pend := by rw [Hrd]; rfl
+  have Hst : s'.rd.states = s.rd.states := by rw [Hrd]; rfl
+  ihave Hcr := (rdCred_split γ (s'.rd.pend.length + rdCount s'.outbox)
+    (rdCount s.outbox - rdCount s'.outbox)).1 $$ [Hcr]
+  · rw [Hpd, show s.rd.pend.length + rdCount s'.outbox + (rdCount s.outbox - rdCount s'.outbox)
+      = s.rd.pend.length + rdCount s.outbox by omega]
+    iexact Hcr
+  icases Hcr with ⟨Hcr, Hcr0⟩
+  ihave Hcr0 := (rdCred_split γ 0 (rdCount s.outbox - rdCount s'.outbox)).1 $$ [Hcr0]
+  · rw [Nat.zero_add]; iexact Hcr0
+  icases Hcr0 with ⟨Hz, -⟩
+  imodintro
+  iexists γl, (<[s.term := γq]> rqm)
+  iframe Ha Hinv Hcr
+  isplitr; · ipureintro; exact Hγl
+  isplitr
+  · iapply (BigSepM.bigSepM_insert (Φ := fun t γc => iprop(t ↪[γl]□ γc)) Hfree).2
+    isplitr; · iexact Hfq
+    iexact Hf
+  isplitr
+  · ipureintro
+    intro t Ht
+    by_cases Htt : s.term = t
+    · subst Htt; right; exact ⟨Hte.symm, Hr'⟩
+    · rw [GMap.lookup_insert_ne _ _ Htt] at Ht
+      rcases Hok t Ht with Hlt | ⟨rfl, Hl⟩
+      · left; rw [Hte]; exact Hlt
+      · exact absurd Hl Hr
+  isplitl [Haq Hz]
+  · unfold rdLead
+    rw [Hr']
+    iexists γq, []
+    isplitr
+    · ipureintro; rw [Hte]; simp
+    iframe Haq
+    have Hro : s'.rd.ro = ⟨[], ∅, W64 0⟩ := by rw [Hrd]; rfl
+    rw [Hro]
+    isplitr; · iapply BigSepL.bigSepL_nil.2; iempintro
+    isplitr; · ipureintro; rfl
+    isplitr; · iapply BigSepL.bigSepL_nil.2; iempintro
+    isplitr
+    · ipureintro; intro v a h; simp at h
+    · iexact Hz
+  rw [Hst, Hpd]
+  iframe Hst0 Hpd0
+
+/-- A leader's heartbeat context is empty or a position its registry reaches. -/
+theorem rdOwn_hbCtx (γ : RaftNames) (id : w64) (s : PState) (Hr : s.role = .leader) :
+    ⊢ rdOwn (GF := GF) γ id s -∗
+      (⌜hbCtx s.rd.ro = []⌝ ∨ ∃ (q : w64) (recs : List RqRec),
+         ⌜hbCtx s.rd.ro = u64Le q ∧ uint.nat q ≤ recs.length⌝ ∗ rqLb γ id s.term recs ∗
+         [∗list] r ∈ recs, rqRecOk γ s.term r) := by
+  unfold rdOwn
+  iintro ⟨%γl, %rqm, %Hγl, -, #Hf, -, Hl, -⟩
+  unfold rdLead
+  rw [Hr]
+  icases Hl with ⟨%γq, %recs, %Hq, Ha, #Hrs, %Hlen, -⟩
+  by_cases hp : s.rd.ro.pending = []
+  · ileft; ipureintro; simp [hbCtx, hp]
+  · iright
+    iexists readonlyPosition s.rd.ro, recs
+    ihave #Hlb := monoListLbOwn_get $$ Ha
+    ihave #Ht := BigSepM.bigSepM_lookup (Φ := fun t γq => iprop(t ↪[γl]□ γq)) Hq $$ Hf
+    isplitr
+    · ipureintro
+      refine ⟨by simp [hbCtx, hp], ?_⟩
+      have := readonlyPosition_le s.rd.ro
+      omega
+    isplitr
+    · unfold rqLb
+      iexists γl, γq
+      isplitr
+      · ipureintro; exact Hγl
+      iframe Ht Hlb
+    · iexact Hrs
 
 /-- The terms a node has won: as `TermsOk`. -/
 def WinsOk (wins : GMap w64 (GSet w64)) (s : PState) : Prop :=
