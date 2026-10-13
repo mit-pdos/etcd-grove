@@ -30,10 +30,10 @@ theorem mvcc.storeTxnRead.End.wp_proof : mvcc.storeTxnRead.End.spec (GF := GF) (
   iunfold mvcc.storeTxnReadIs at Htr
   iNamedSuffix Htr "T"
   iunfold mvcc.txReader at Hrd
-  icases Hrd with ⟨%m, %Rd, %L, %Tok, Hrd⟩
+  icases Hrd with ⟨%m, %Rd, %Tok, Hrd⟩
   iNamed Hrd
-  iunfold mvcc.keyReadSnap at Hsnap
-  icases Hsnap with ⟨-, #HRU, -, -, -⟩
+  iunfold mvcc.keyReadLocked at Hsnap
+  icases Hsnap with ⟨#HRU, -, -, -⟩
   (try wp_auto)
   -- `tr.tx.RUnlock()`
   wp_apply HRU $$ [$Htok]

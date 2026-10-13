@@ -31,7 +31,7 @@ theorem mvcc.storeTxnCommon.Range.wp_proof (hRev : mvcc.storeTxnCommon.Rev.spec 
   intro tr s trace ti rt γ log rev ctx cd todo key endk k e ro
   wp_start as ⟨#Hs, #Htr, Hrd, #Hidx, Hti, #Hctx, #Hkey, #Hend⟩
   iunfold mvcc.txReader at Hrd
-  icases Hrd with ⟨%m, %Rd, %L, %Tok, Hrd⟩
+  icases Hrd with ⟨%m, %Rd, %Tok, Hrd⟩
   iNamed Hrd
   ihave #Htr0 : mvcc.storeTxnReadIs tr s rt trace γ log rev $$ []
   · iexact Htr
@@ -41,7 +41,7 @@ theorem mvcc.storeTxnCommon.Range.wp_proof (hRev : mvcc.storeTxnCommon.Rev.spec 
   wp_apply (hRev (mvcc.txCommon tr) rev) $$ [$HrevT]
   (try wp_auto)
   -- what `rangeKeys` uses: the snapshot as a reader, the certificate as the index's knowledge
-  ihave #Hrdr := mvcc.keyReadSnap_reader rt m Rd L Tok $$ Hsnap
+  ihave #Hrdr := mvcc.keyReadLocked_reader iprop(True) rt m Rd Tok $$ Hsnap
   ihave #Hcert0 : mvcc.idxCert γ.idx log $$ []
   · iexact HcertT
   iunfold mvcc.idxCert at HcertT
@@ -65,7 +65,7 @@ theorem mvcc.storeTxnCommon.Range.wp_proof (hRev : mvcc.storeTxnCommon.Rev.spec 
   isplitl []
   · ipureintro; exact Htodo
   iunfold mvcc.txReader
-  iexists m, Rd, L, Tok
+  iexists m, Rd, Tok
   simp only [named]
   iframe Htok Hsnap
   ipureintro; exact Hsub

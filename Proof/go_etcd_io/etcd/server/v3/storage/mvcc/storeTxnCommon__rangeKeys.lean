@@ -448,7 +448,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
           · iPkgInit
           ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
           · iapply isPkgInit_access $$ Hsch
-          icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG⟩⟩
+          icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩⟩
           ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
           · iPkgInit
           ihave #HD := mvcc.rangeCtx_Done todo ctx cd $$ Hctx

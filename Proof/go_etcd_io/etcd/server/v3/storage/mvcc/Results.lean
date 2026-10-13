@@ -1,13 +1,16 @@
 /-
 The trust base of every result of the mvcc KV core so far: `#print axioms` of each theorem
-of `Link.lean`, and of the model's main theorem (`LogLemmas.lean`). Built with the rest; read
-its output to check it.
+of `Link.lean`, and of the model's main theorem (`LogLemmas.lean`); and the backend bridge
+(`BackendBridge.lean`), linked with the backend's results (`mvcc_backend_bridge`). Built with
+the rest; read its output to check it.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.LogLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchRecv
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Link
 
 @[expose] public section
 
@@ -127,3 +130,62 @@ events' and a response with events carrying the watcher's id (`watchRecvOk_revs`
 #print axioms Perennial.EtcdGrove.mvcc.watchRecvOk_cert
 #print axioms Perennial.EtcdGrove.mvcc.watchGuarantee_unfiltered
 #print axioms Perennial.EtcdGrove.mvcc.watchRecvOk_revs
+
+/-! ## The backend meets mvcc (unit 4, `BackendBridge.lean`)
+
+mvcc's contract of its backend (`isKeyBackendG`) holds of the proved backend (`isBackend`, its
+results linked: `backend/Link.lean`, resting on bbolt's key-value contract), for mvcc's
+parameters (`bridgeParams`) and a post-lock hook set for good; the range read of the `Key`
+bucket rests on the premise `rangeSafe` (the safe-range discipline on the readers' states,
+which the backend's invariant does not give). mvcc's store does not use this instance yet: it
+assumes the instance without tokens (`isKeyBackend`) over its own view of the bucket
+(`notes/STATUS.md`, "Unit 4"). -/
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProofMode
+
+section bridge
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+/-- **The bridge, linked**: `mvcc.isKeyBackendG_of_backend` with the backend's results
+(`backend/Link.lean`) and schema's `bucket` methods' (mvcc's `Link.lean`). -/
+theorem mvcc_backend_bridge {P : backend.BParams} (hP : mvcc.bridgeParams P)
+    (γ : backend.BNames) (W Pk : IProp GF) (b : Loc) (qo : Qp) (f : GoFunc)
+    (hf : f ≠ func.nil) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      backend.isBackend γ P W Pk b ∗ backend.plHookRO γ f ∗ mvcc.rangeSafe γ P b ⊢
+      mvcc.isKeyBackendG
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
+        (mvcc.bkView γ) (mvcc.bkRT γ P b qo) (backend.wbTok γ) mvcc.bkPutOk W Pk #f :=
+  mvcc.isKeyBackendG_of_backend backend.backend.wp_ConcurrentReadTx backend.backend.wp_ReadTx
+    backend.backend.wp_BatchTx backend.backend.wp_ForceCommit backend.concurrentReadTx.wp_RLock
+    backend.concurrentReadTx.wp_RUnlock backend.concurrentReadTx.wp_UnsafeRange
+    backend.readTx.wp_RLock backend.readTx.wp_RUnlock backend.readTx.wp_UnsafeRange
+    backend.batchTxBuffered.wp_LockInsideApply backend.batchTxBuffered.wp_LockOutsideApply
+    backend.batchTxBuffered.wp_UnsafeSeqPut backend.batchTxBuffered.wp_Unlock
+    backend.batchTxBuffered.wp_UnsafeRange backend.batchTxBuffered.wp_UnsafeCreateBucket
+    schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
+    hP γ W Pk b qo f hf
+
+end bridge
+
+end EtcdGrove
+end Perennial
+
+#print axioms Perennial.EtcdGrove.mvcc_backend_bridge
+#print axioms Perennial.EtcdGrove.schema.bucket.wp_ID
+#print axioms Perennial.EtcdGrove.schema.bucket.wp_Name
+#print axioms Perennial.EtcdGrove.schema.bucket.wp_IsSafeRangeBucket
+#print axioms Perennial.EtcdGrove.schema.bucket.wp_String
+/-! The pure core of the range read: a safe `Key` bucket's range in a readers' state is the
+bucket's range. -/
+#print axioms Perennial.EtcdGrove.mvcc.rtRange_safe

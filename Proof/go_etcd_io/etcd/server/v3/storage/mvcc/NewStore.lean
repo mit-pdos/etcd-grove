@@ -118,7 +118,7 @@ theorem mvcc.NewStore.wp_proof
   · iPkgInit
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hsch
-  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG⟩⟩
+  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Hsched : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule $$ []
@@ -202,39 +202,46 @@ theorem mvcc.NewStore.wp_proof
   ihave #Hbk0 : mvcc.isKeyBackend b (mvcc.bucketView γ) (mvcc.writerRes «$r0_ptr» γ) P f $$ []
   · iexact Hbk1
   iunfold mvcc.isKeyBackend at Hbk1
+  iunfold mvcc.isKeyBackendG at Hbk1
   icases Hbk1 with ⟨%bi, %Hbi, -, -, #HB, #HForce⟩
   subst Hbi
   (try wp_auto)
   wp_apply HB as %bt #Hbt
   (try wp_auto)
-  iunfold mvcc.isBatchTx at Hbt
-  icases Hbt with ⟨%Locked, #Hbt⟩
-  iunfold mvcc.batchTxSpec at Hbt
-  icases Hbt with ⟨-, -, #HUnlock0, -, -, #HLockOut, #HCreate⟩
+  iunfold mvcc.isBatchTxG at Hbt
+  icases Hbt with ⟨%Locked, %LockedO, -, #Hinit⟩
+  iunfold mvcc.batchTxInitSpec at Hinit
+  icases Hinit with ⟨#HLockOut, #HCreate, #HUnlock0⟩
   -- `tx.LockOutsideApply()`, the buckets created
   -- (`wp_apply` of the batch transaction's triples, whose token `Locked` is a variable from
   -- an existential, fails with an unknown free variable here: bind and apply)
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
   iapply HLockOut
-  · itrivial
+  · isplitl [] <;> itrivial
   inext
-  iintro ⟨Hlocked, HP⟩
+  iintro ⟨Hlocked, HP, -⟩
   (try wp_auto)
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #bK))
-  iapply HCreate $$ %([] : mvcc.Puts) %bK [Hlocked]
-  · iexact Hlocked
+  iapply HCreate $$ %0 %bK [Hlocked]
+  · iframe Hlocked
+    isplitr
+    · ipureintro; omega
+    ileft; iexact HKeyG
   inext
   iintro Hlocked
   (try wp_auto)
   wp_bind (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.UnsafeCreateMetaBucket)) (Val #(GoInterface.ok bt)))
-  iapply (hMeta bt (Locked [])) $$ [Hlocked]
+  iapply (hMeta bt (LockedO (0 + 1)) (LockedO (0 + 1 + 1))) $$ [Hlocked]
   · iframe Hlocked
     isplitr
     · iPkgInit
     imodintro
-    iintro %b'
-    ihave Hc := HCreate $$ %([] : mvcc.Puts) %b'
-    iexact Hc
+    iintro %b' !> %Φ' ⟨Hl, #HM⟩ HΦ'
+    iapply HCreate $$ %(0 + 1) %b' %Φ' [Hl] HΦ'
+    iframe Hl
+    isplitr
+    · ipureintro; omega
+    iright; iexact HM
   inext
   iintro Hlocked
   (try wp_auto)
@@ -256,13 +263,14 @@ theorem mvcc.NewStore.wp_proof
     ipureintro
     exact ⟨by simp, by simp⟩
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
-  iapply HUnlock0 $$ [Hlocked HW HP]
+  iapply HUnlock0 $$ %(0 + 1 + 1) [Hlocked HW HP]
   · iframe Hlocked HW HP
   inext
   iintro -
   (try wp_auto)
   -- `s.b.ForceCommit()`
-  wp_apply HForce
+  wp_apply HForce $$ []
+  · isplitl [] <;> itrivial
   (try wp_auto)
   -- `s.mu.Lock()`: the lock initialized (it holds nothing), one slot taken
   imod sync.init_RWMutex (mvcc.muInv (hG := hG)) (mvcc.muAddr «$r0_ptr») $$ [] mu with Hmus

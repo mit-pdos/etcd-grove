@@ -40,6 +40,7 @@ theorem mvcc.rangeEvents.wp_proof
     icases Hcert with ⟨-, -, %H, -⟩
     ipureintro; exact H
   iunfold mvcc.isKeyBackend at Hbk
+  iunfold mvcc.isKeyBackendG at Hbk
   icases Hbk with ⟨%bi, %Hbi, -, #HR, -, -⟩
   subst Hbi
   wp_auto
@@ -57,20 +58,22 @@ theorem mvcc.rangeEvents.wp_proof
   simp only [List.drop_of_length_le (show (List.replicate 17 (W8 0)).length ≤ 17 by simp),
     List.append_nil, mvcc.revOf]
   wp_apply HR $$ [$Hview] as %rt ⟨Hview, Hsnap⟩
-  icases Hsnap with ⟨%Rd, %L, %Tok, HL, #Hsnap⟩
+  icases Hsnap with ⟨%L, HL, #Hsnap⟩
   iunfold mvcc.keyReadSnap at Hsnap
-  icases Hsnap with ⟨#HRL, #HRU, -, #Hrange, #Hrc⟩
   (try wp_auto)
   wp_bind (App (Val #(methods rt.ty go!"RLock" rt.v)) _)
-  iapply HRL $$ HL
+  iapply Hsnap $$ %q [HL Hview]
+  · iframe HL Hview
   inext
-  iintro Htok
+  iintro ⟨Hview, %Rd, %Tok, Htok, #Hlk⟩
+  iunfold mvcc.keyReadLocked at Hlk
+  icases Hlk with ⟨#HRU, -, #Hrange, #Hrc⟩
   (try wp_auto)
   ihave #Hsch : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
   · iPkgInit
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hsch
-  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG⟩⟩
+  icases Hsi with ⟨-, -, -, ⟨%bK, #HKeyG, -⟩⟩
   iunfold mvcc.keyRangeReadSpec at Hrange
   ihave HRg := Hrange $$ %bK %mn' %mx'
   (try wp_auto)

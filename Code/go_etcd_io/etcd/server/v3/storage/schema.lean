@@ -132,12 +132,8 @@ axiom authDisabled.init [FfiSyntax] [GoGlobalContext] : val
 noncomputable def keyBucketName [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.keyBucketName"
 
-axiom keyBucketName.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def metaBucketName [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.metaBucketName"
-
-axiom metaBucketName.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def leaseBucketName [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.leaseBucketName"
@@ -186,8 +182,6 @@ axiom testBucketName.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def Key [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Key"
-
-axiom Key.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def Meta [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Meta"
@@ -438,6 +432,42 @@ noncomputable def UnsafeSetStorageVersion [FfiSyntax] [GoGlobalContext] : GoStri
 
 noncomputable def UnsafeClearStorageVersion [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.UnsafeClearStorageVersion"
+
+/-- go: bucket.go:75:17 -/
+noncomputable def bucket.ID.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc bucket.ty))) (Var "b"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty))) (App (Val (GoInstruction (StructFieldRef bucket.ty go!"id"))) (Var "b"))))))))
+
+/-- go: bucket.go:76:17 -/
+noncomputable def bucket.Name.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc bucket.ty))) (Var "b"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef bucket.ty go!"name"))) (Var "b"))))))))
+
+/-- go: bucket.go:77:17 -/
+noncomputable def bucket.String.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc bucket.ty))) (Var "b"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType bucket.ty) go!"Name"))) (Var "b")) (Val #()))))))))
+
+/-- go: bucket.go:78:17 -/
+noncomputable def bucket.IsSafeRangeBucket.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc bucket.ty))) (Var "b"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef bucket.ty go!"safeRangeBucket"))) (Var "b"))))))))
 
 /-- UnsafeCreateMetaBucket creates the `meta` bucket (if it does not exist yet).
 
@@ -693,6 +723,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"key")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"meta")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -701,6 +734,12 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert bucket.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Let "$v0" (Val #(W64 1))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GlobalVarAddr keyBucketName))) (Val #())))
+  (Let "$v2" (Val #true)
+  (App (Val (GoInstruction (CompositeLiteral bucket.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"name")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1"))), (KeyedElement (some (KeyField go!"safeRangeBucket")) (ElementExpression go.bool (Var "$v2")))]))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert bucket.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Let "$v0" (Val #(W64 2))
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GlobalVarAddr metaBucketName))) (Val #())))
@@ -777,7 +816,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Meta))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val Key.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Key))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val testBucketName.init) (Val #()))))))
   (App (Val doExecute)
@@ -797,9 +836,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val leaseBucketName.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val metaBucketName.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr metaBucketName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val keyBucketName.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr keyBucketName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
@@ -816,6 +855,12 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.encoding.binary.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc keyBucketName (go.GoType.SliceType go.byte))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc metaBucketName (go.GoType.SliceType go.byte))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc Key _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc Meta _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty)) (Val #()))))))
   (App (Val doExecute)
@@ -1021,6 +1066,18 @@ class bucket.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   set_name : ∀ (x : bucket) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet bucket.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : bucket)))
   get_safeRangeBucket : ∀ (x : bucket), go.IsGoStepPureDetTagged under (StructFieldGet bucket.underlying go!"safeRangeBucket") #x (Val #(x.safeRangeBucket'))
   set_safeRangeBucket : ∀ (x : bucket) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet bucket.underlying go!"safeRangeBucket") (PairV #x #y) (Val #(({ x with safeRangeBucket' := y } : bucket)))
+  ID_unfold : MethodUnfold bucket.ty go!"ID" bucket.ID.impl
+  IsSafeRangeBucket_unfold : MethodUnfold bucket.ty go!"IsSafeRangeBucket" bucket.IsSafeRangeBucket.impl
+  Name_unfold : MethodUnfold bucket.ty go!"Name" bucket.Name.impl
+  String_unfold : MethodUnfold bucket.ty go!"String" bucket.String.impl
+  ptr_ID_unfold : MethodUnfold (go.GoType.PointerType bucket.ty) go!"ID" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve bucket.ty go!"ID"))) (App (Val (GoInstruction (GoLoad bucket.ty))) (Var "$r"))))
+  ptr_IsSafeRangeBucket_unfold : MethodUnfold (go.GoType.PointerType bucket.ty) go!"IsSafeRangeBucket" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve bucket.ty go!"IsSafeRangeBucket"))) (App (Val (GoInstruction (GoLoad bucket.ty))) (Var "$r"))))
+  ptr_Name_unfold : MethodUnfold (go.GoType.PointerType bucket.ty) go!"Name" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve bucket.ty go!"Name"))) (App (Val (GoInstruction (GoLoad bucket.ty))) (Var "$r"))))
+  ptr_String_unfold : MethodUnfold (go.GoType.PointerType bucket.ty) go!"String" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve bucket.ty go!"String"))) (App (Val (GoInstruction (GoLoad bucket.ty))) (Var "$r"))))
 
 attribute [instance] bucket.TypeAssumptions.type_repr
   bucket.TypeAssumptions.underlying
@@ -1030,6 +1087,14 @@ attribute [instance] bucket.TypeAssumptions.type_repr
   bucket.TypeAssumptions.set_name
   bucket.TypeAssumptions.get_safeRangeBucket
   bucket.TypeAssumptions.set_safeRangeBucket
+  bucket.TypeAssumptions.ID_unfold
+  bucket.TypeAssumptions.IsSafeRangeBucket_unfold
+  bucket.TypeAssumptions.Name_unfold
+  bucket.TypeAssumptions.String_unfold
+  bucket.TypeAssumptions.ptr_ID_unfold
+  bucket.TypeAssumptions.ptr_IsSafeRangeBucket_unfold
+  bucket.TypeAssumptions.ptr_Name_unfold
+  bucket.TypeAssumptions.ptr_String_unfold
 
 abbrev schemaChange [FfiSyntax] : Type := GoInterface
 

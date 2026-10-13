@@ -4000,3 +4000,37 @@ contract only. The mismatches, and what changes:
 *Rejected:* per-bucket views in the backend (the right generalization for several writers of
 visible buckets, but every reader proof changes; the `HB` instance gives mvcc its bucket alone and
 leaves the others to a later unit).
+
+### The bridge (unit 4, part 2, 2026-10-13 · adopted)
+
+`BackendBridge.lean` proves mvcc's contract of the real backend. What the plan above did not
+foresee, and how it is resolved:
+
+- **The contract takes the backend's tokens as parameters** (`isKeyBackendG b View RT WT PutOk W
+  P f`) rather than fixed to the backend's: mvcc stays generic in its backend, and the store
+  uses the instance without tokens (`isKeyBackend := isKeyBackendG … True True noPutCond …`), so
+  no spec above mvcc changed. `RT` (a reader's slot of the backend and a share of it open) is
+  taken by `ConcurrentReadTx`/`ReadTx`, given back by `RUnlock` and lent to the calls that need the
+  backend open; `WT` (a write-back's budget) is spent by every session; `PutOk` is what the
+  backend's `UnsafeSeqPut` needs of a put (bounds, keys increasing). *Rejected:* wiring `RT`
+  through `storeReader` now: it does not compose until `WT` and the view do (STATUS, "Unit 4").
+- **The shared read transaction's snapshot is the one its `RLock` finds**: `ReadTx()` returns the
+  shared `readTx`, whose interval (bbolt's read transaction) changes at every commit until its
+  `RLock`. So the snapshot splits: `keyReadSnap View RT rt m L` is `RLock` alone, taking the
+  caller's view `View q m` (kept) and *choosing* the slices' predicate `Rd` and the token
+  (`keyReadLocked RT rt m Rd Tok`: `RUnlock`, the reads, `rdCap`); `rtHeld_view` ties the held
+  state to the view. *Rejected:* a ghost location for the reader's state (more ghost state for
+  what the view already says; mvcc holds `s.revMu`'s view at every `RLock`).
+- **`NewStore`'s session has its own token** (`batchTxInitSpec`: `LockedO n`, `n` buckets
+  created, at most two): a create keeps the puts but costs a pending operation, and the backend
+  bounds a session's operations (`pend < 2^58`), so a token `Locked l` preserved by creations
+  could promise no bound. The creations are of schema's `Key`/`Meta` (`globalAddr ↦□ b`: the
+  backend needs `isBucket`); `UnsafeCreateMetaBucket`'s callback is on `Meta`'s value.
+- **The range read rests on a premise** (`rangeSafe`: the readers' states keep the `Key` bucket's
+  read-buffer keys above bbolt's), with the pure core proved (`rtRange_safe`). *Rejected:* adding
+  the safe-range discipline to the backend now (every session lemma, the write-back and the
+  commit would change); and dropping the range read from the bridge (the premise says exactly
+  what is missing).
+- **The hook's buckets are all but `Key`** (`bridgeParams`): the view is the `Key` bucket, every
+  other bucket's contents promise nothing to readers, so a session without `Key` puts changed
+  nothing readers see (`viewSame_noPuts`) and needs no view at its `Unlock`.

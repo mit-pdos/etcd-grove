@@ -82,6 +82,11 @@ found 2026-10-12, backend unit 1; not filed).
 commit it can serve a deleted key (a reader in `Unlock`'s window) or an old value of a key the
 pre-commit hook rewrote (deterministic); no wrong mvcc result known (reproduced twice; found
 2026-10-12, backend unit 2; not filed).
+[etcd-backend-put-value-too-large-fatal](etcd-backend-put-value-too-large-fatal.md): a put whose
+encoded `KeyValue` exceeds bbolt's `MaxValueSize` (`2^31 - 2` bytes) makes the backend's
+`unsafePut` call `lg.Fatal` (an unstated precondition of `UnsafePut`/`UnsafeSeqPut` and of mvcc's
+`Put`; unreachable with the default request limit; found 2026-10-13, the backend bridge; not
+filed).
 
 [go-itab-reinterpret-assert](go-itab-reinterpret-assert.md): in Go itself, a type assertion
 on an `I1` value read through a `*I2` (two named interfaces with the same methods) panics with

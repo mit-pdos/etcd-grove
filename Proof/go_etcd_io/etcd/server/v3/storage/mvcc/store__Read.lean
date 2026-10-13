@@ -53,6 +53,7 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   -- the caller's certificate is below the committed log
   ihave %Hpre := mono_list_auth_lb_valid γ.idx.log _ _ _ $$ Hlog Hl0
   iunfold mvcc.isKeyBackend at Hbk
+  iunfold mvcc.isKeyBackendG at Hbk
   icases Hbk with ⟨%bi, %Hbi, #HC, #HR, -⟩
   subst Hbi
   (try wp_auto)
@@ -66,16 +67,14 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
          wp_apply HRq $$ [$Hbucket] as %rt ⟨Hbucket, Hsnap⟩)
   all_goals
     (try wp_auto)
-    icases Hsnap with ⟨%Rd, %L, %Tok, HL, #Hsnap⟩
-    ihave #Hsnap0 : mvcc.keyReadSnap rt (mvcc.bucketMap log) Rd L Tok $$ []
-    · iexact Hsnap
+    icases Hsnap with ⟨%L, HL, #Hsnap⟩
     iunfold mvcc.keyReadSnap at Hsnap
-    icases Hsnap with ⟨#HRL, -, -, -, -⟩
-    -- `tx.RLock()`
+    -- `tx.RLock()`, with the view (`s.revMu`'s, held)
     wp_bind (App (Val #(methods rt.ty go!"RLock" rt.v)) _)
-    iapply HRL $$ HL
+    iapply Hsnap $$ %sync.rfrac.half [HL Hbucket]
+    · iframe HL Hbucket
     inext
-    iintro Htok
+    iintro ⟨Hbucket, %Rd, %Tok, Htok, #Hsnap0⟩
     (try wp_auto)
     -- `s.revMu.RUnlock()`
     wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrevl Hrev Hbucket Hclog Hcert Htoks Hlog] as HrevMuR
@@ -118,7 +117,7 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
       ipureintro; exact ⟨Hne, trivial, Htrnn⟩
     isplitl [Htok]
     · iunfold mvcc.txReader
-      iexists (mvcc.bucketMap log), Rd, L, Tok
+      iexists (mvcc.bucketMap log), Rd, Tok
       simp only [named]
       iframe Htok Hsnap0
       ipureintro; exact fun _ _ h => h

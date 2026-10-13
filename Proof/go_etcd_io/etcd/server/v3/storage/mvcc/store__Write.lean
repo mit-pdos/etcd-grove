@@ -51,20 +51,21 @@ theorem mvcc.store.Write.wp_proof (hNew : mvcc.newMetricsTxnWrite.spec (GF := GF
   (try wp_auto)
   -- `tx := s.b.BatchTx()`
   iunfold mvcc.isKeyBackend at Hbk
+  iunfold mvcc.isKeyBackendG at Hbk
   icases Hbk with ⟨%bi, %Hbi, #HC, #HR, #HB, -⟩
   subst Hbi
   (try wp_auto)
   wp_apply HB as %bt #Hbt
   (try wp_auto)
-  iunfold mvcc.isBatchTx at Hbt
-  icases Hbt with ⟨%Locked, #Hbt⟩
+  iunfold mvcc.isBatchTxG at Hbt
+  icases Hbt with ⟨%Locked, %LockedO, #Hbt, -⟩
   ihave #Hbt0 : mvcc.batchTxSpec bt (mvcc.bucketView γ) (mvcc.writerRes s γ) Locked P0 f $$ []
-  · iexact Hbt
-  iunfold mvcc.batchTxSpec at Hbt
+  · iunfold mvcc.batchTxSpec; iexact Hbt
+  iunfold mvcc.batchTxSpecG at Hbt
   icases Hbt with ⟨#HLock, -, -, -, -⟩
   -- `tx.LockInsideApply()`: the writer's resources, the hook run on the caller's `Pre`
   ihave #HLock' := HLock $$ %Pre %Q
-  wp_apply HLock' $$ [$Hpre $Htr0] as ⟨Hlocked, HW, HQ⟩
+  wp_apply HLock' $$ [$Hpre $Htr0] as ⟨Hlocked, HW, HQ, -⟩
   (try wp_auto)
   iunfold mvcc.writerRes at HW
   iNamed HW

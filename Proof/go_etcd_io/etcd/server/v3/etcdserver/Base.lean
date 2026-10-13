@@ -7,9 +7,10 @@ there when the backend got bodies). The standard-library ones (`sync`, `sync/ato
 
 As in `Cache/Base.lean`, the package facts are assumptions about package initialization,
 not proved from `initialize'` (schema's initializer runs the axiomatized initializers of
-its untranslated variables). They are `True` except for the three `schema` variables the
-consistent index reads: the `Meta` bucket and the two key names of `cindex.go`, each a
-fixed read-only value (`globalAddr X ↦□ v`), the key names holding their bytes.
+its untranslated variables). They are `True` except for the `schema` variables the consistent
+index and the mvcc store read: the `Meta` and `Key` buckets (the values `bucket.go` makes,
+`bucketIs`) and the two key names of `cindex.go`, each a fixed read-only value
+(`globalAddr X ↦□ v`), the key names holding their bytes.
 -/
 module
 
@@ -46,13 +47,32 @@ def ciKeyBytes : GoString := go!"consistent_index"
 /-- The bytes of the key under which its term is stored. -/
 def termKeyBytes : GoString := go!"term"
 
+/-- The name of the `Key` bucket (`keyBucketName`). -/
+def keyName : GoString := go!"key"
+
+/-- The name of the `Meta` bucket (`metaBucketName`). -/
+def metaName : GoString := go!"meta"
+
+/-- `b` is the `Bucket` value `bucket{id, name, safeRangeBucket: safe}` (`bucket.go`'s
+`backend.Bucket(bucket{...})`), its name's slice holding `name`, read-only. -/
+def bucketIs (b : GoInterface) (id : w64) (name : GoString) (safe : Bool) : IProp GF :=
+  iprop(∃ s : GoSlice,
+    ⌜b = interface.mkOk bucket.ty #({ id' := id, name' := s, safeRangeBucket' := safe } : bucket)⌝ ∗
+    s ↦*□ name)
+
+instance bucketIs_persistent (b : GoInterface) (id : w64) (name : GoString) (safe : Bool) :
+    Persistent (bucketIs (GF := GF) b id name safe) := by
+  unfold bucketIs; infer_instance
+
 /-- `schema`'s package facts: the `Meta` bucket and the two key names of `cindex.go`, and the
-`Key` bucket (the mvcc store's). -/
+`Key` bucket (the mvcc store's), the two buckets as `bucket.go` makes them (`bucketIs`: id 2,
+`"meta"`, not safe-range; id 1, `"key"`, safe-range; 2026-10-13: they were only some values,
+before `bucket.go` was translated). -/
 abbrev schemaInit : IProp GF :=
-  iprop((∃ b : GoInterface, globalAddr Meta ↦□ b) ∗
+  iprop((∃ b : GoInterface, globalAddr Meta ↦□ b ∗ bucketIs b (W64 2) metaName false) ∗
     (∃ s : GoSlice, globalAddr MetaConsistentIndexKeyName ↦□ s ∗ s ↦*□ ciKeyBytes) ∗
     (∃ s : GoSlice, globalAddr MetaTermKeyName ↦□ s ∗ s ↦*□ termKeyBytes) ∗
-    (∃ b : GoInterface, globalAddr Key ↦□ b))
+    (∃ b : GoInterface, globalAddr Key ↦□ b ∗ bucketIs b (W64 1) keyName true))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema :=
   define_is_pkg_init schemaInit

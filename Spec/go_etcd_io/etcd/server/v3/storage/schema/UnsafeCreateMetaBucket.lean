@@ -22,15 +22,18 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- `UnsafeCreateMetaBucket(tx)` calls `tx.UnsafeCreateBucket(Meta)`: under the contract of
-`tx`'s `UnsafeCreateBucket` (any bucket, keeping the caller's `P`: the batch transaction's lock
-token, `batchTxSpec`'s triple in mvcc's `NewStore`), it keeps `P`. -/
+`tx`'s `UnsafeCreateBucket` on the `Meta` bucket (from the caller's `P` to its `Q`: the batch
+transaction's lock tokens, `batchTxInitSpec`'s triple in mvcc's `NewStore`), it makes `Q`
+(2026-10-13: the triple was on any bucket, keeping `P`; the backend's bridge needs the bucket's
+value, and counts the creations). -/
 abbrev schema.UnsafeCreateMetaBucket.spec : Prop :=
-  ∀ (tx : GoInterfaceOk) (P : IProp GF),
+  ∀ (tx : GoInterfaceOk) (P Q : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ P ∗
       □ (∀ b : GoInterface,
-        {{ P }} (App (Val #(methods tx.ty go!"UnsafeCreateBucket" tx.v)) (Val #b)) {{ RET #(); P }}) }}
+        {{ P ∗ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Meta ↦□ b }} (App (Val #(methods tx.ty go!"UnsafeCreateBucket" tx.v)) (Val #b))
+        {{ RET #(); Q }}) }}
     (App (Val (@! schema.UnsafeCreateMetaBucket)) (Val #(GoInterface.ok tx)))
-  {{ RET #(); P }}
+  {{ RET #(); Q }}
 
 end spec
 
