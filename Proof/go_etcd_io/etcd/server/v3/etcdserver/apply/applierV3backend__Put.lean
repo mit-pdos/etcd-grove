@@ -37,7 +37,7 @@ theorem apply.applierV3backend.Put.wp_proof
   iunfold apply.putPre at Hpre
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
-  icases Hpre with ⟨%Hrq, #Hr, ⟨Hrd, Hsw, #Hknown⟩, Hres, Hcs⟩
+  icases Hpre with ⟨%Hrq, #Hr, Hwt, ⟨Hrd, Hsw, #Hknown⟩, Hres, Hcs⟩
   icases txn.soleWriter_len' _ _ $$ Hsw with ⟨%Hl2, Hsw⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
@@ -53,7 +53,7 @@ theorem apply.applierV3backend.Put.wp_proof
   have hlen : log.length + 4 ≤ 2 ^ 63 := Hrq.2.2
   ihave #Hl := apply.leaseOk_ignore E.γ.leases (mvcc.stateAfter log) o $$ Hknown
   wp_apply (txn.put_soleWriter_of hPut todoCtxVal mvcc.neverCd opts.Logger' opts.Lessor' opts.KV'
-      E.s E.γ r o log E.P Pre Q Post E.f hlen) $$ [$Hrd $Hsw $Hcs]
+      E.s E.γ r o log E.P Pre Q Post E.f hlen) $$ [$Hrd $Hsw $Hwt $Hcs]
     as %resp %trace %err ⟨Hrd, %Htr, Hout⟩
   · iframe #
     iapply mvcc.txnCtx_todo

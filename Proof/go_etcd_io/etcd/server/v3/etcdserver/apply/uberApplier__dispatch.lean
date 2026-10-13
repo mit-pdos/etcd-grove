@@ -134,7 +134,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     (hAlarm : apply.uberApplier.Alarm.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.dispatch.spec (GF := GF) (hG := hG) := by
   intro E p opts c a r rq skip v3 log Pre Q Post
-  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, Hc, %Hok⟩
+  wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, Hwt, Hc, %Hok⟩
   ihave #Hu' := Hu
   iunfold apply.uberIs at Hu'
   icases Hu' with ⟨%Hpn, #Hopts, #Hlg, #Has, #Hwad, %base, #Hbase, #Hbs⟩
@@ -316,7 +316,7 @@ theorem apply.uberApplier.dispatch.wp_proof
           apply.kvOwn E (o.logAfter log) ∗ apply.cPost true Pre Post ∗
           ⌜apply.dispatchStep c rq true log o ∧ apply.chainAfter rq true c c'⌝ ∗
           apply.dispatchResult rq true log skip «$r0_ptr» o))
-    with [a r ar op «$r0» Hc Hres Ha Hkv]
+    with [a r ar op «$r0» Hc Hres Ha Hkv Hwt]
   · -- Range
     have hl : lRa ≠ null := by simpa using Hif
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nRa.2 h))
@@ -347,7 +347,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .put := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HPut $$ %lPu %rq %x %log %Pre %Q %Post [Hkv Hres Hc] as %resp %trace %err Hpost
+    wp_apply HPut $$ %lPu %rq %x %log %Pre %Q %Post [Hkv Hwt Hres Hc] as %resp %trace %err Hpost
     · iunfold apply.putPre
       isplitr
       · ipureintro; exact ⟨hs, hk, hok⟩
@@ -369,10 +369,10 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .deleteRange := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HDel $$ %lDe %rq %x %log %Pre %Q %Post [Hkv Hres Hc] as %resp %trace %err Hpost
+    wp_apply HDel $$ %lDe %rq %x %log %Pre %Q %Post [Hkv Hwt Hres Hc] as %resp %trace %err Hpost
     · iunfold apply.deletePre
       isplitr
-      · ipureintro; exact ⟨hs, hk, hok⟩
+      · ipureintro; exact ⟨hs, hk, hok x hs⟩
       iframe HR
       iunfold apply.mPre
       iframe
@@ -391,7 +391,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .txn := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HTxn $$ %lTx %skip %rq %x %log %Pre %Q %Post [Hkv Hres Hc] as %resp %trace %err Hpost
+    wp_apply HTxn $$ %lTx %skip %rq %x %log %Pre %Q %Post [Hkv Hwt Hres Hc] as %resp %trace %err Hpost
     · iunfold apply.txnPre
       isplitr
       · ipureintro; exact ⟨hs, hk, hok x hs⟩
@@ -439,7 +439,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .leaseRevoke := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HRev $$ %lLR %rq %x %log %Pre %Q %Post [Hkv Hres Hc] as %resp %err Hpost
+    wp_apply HRev $$ %lLR %rq %x %log %Pre %Q %Post [Hkv Hwt Hres Hc] as %resp %err Hpost
     · iunfold apply.revokePre
       isplitr
       · ipureintro; exact ⟨hs, hk⟩

@@ -163,7 +163,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     (hGA : EtcdServer.GoAttach.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ b e m st v3 x γr
-  wp_start as ⟨#Hsrv, #Hewo, #He, Hst, Hbe, Hlr, HKV, %Hpo, Hv3⟩
+  wp_start as ⟨#Hsrv, #Hewo, #He, Hst, Hbe, Hlr, HKV, Hwt, %Hpo, Hv3⟩
   obtain ⟨Hp, Hok, Htyp⟩ := Hpo
   wp_apply wp_with_defer as %defer defer
   iunfold isServer at Hsrv
@@ -244,8 +244,8 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       icombine Hw Hw' gives %Hweq
       subst Hweq
       wp_apply hA fv.lg e m fv.ua fv.w false E iprop(True) iprop(True) iprop(True) x rq id0 RD
-        $$ [HKV HRD] as %ar %id ⟨HRD, -, #Har, %Hid, %x', %out, HKV, %Hstep, -⟩
-      · iframe Happl Hwok' HRD He HKV
+        $$ [HKV Hwt HRD] as %ar %id ⟨HRD, -, #Har, %Hid, %x', %out, HKV, %Hstep, -⟩
+      · iframe Happl Hwok' HRD He HKV Hwt
         simp only [Bool.false_eq_true, ↓reduceIte]
         isplitr
         · ipureintro; exact Hlgnn
@@ -324,8 +324,8 @@ theorem EtcdServer.applyEntryNormal.wp_proof
           ciApplying ci m.index m.term ∗ applyBackend γ ci b)
         iprop(applyThread γ ⟨m.index, m.index, m.index, false⟩ ∗ ciApplying ci m.index m.term ∗
           applyBackend γ ci b) x rq id0 RD
-        $$ [Hst Happ Hbe HKV HRD] as %ar %id ⟨HRD, Hout, #Har, %Hid, %x', %out, HKV, %Hstep, HRes⟩
-      · iframe Happl Hwok' HRD He HKV
+        $$ [Hst Happ Hbe HKV Hwt HRD] as %ar %id ⟨HRD, Hout, #Har, %Hid, %x', %out, HKV, %Hstep, HRes⟩
+      · iframe Happl Hwok' HRD He HKV Hwt
         simp only [↓reduceIte]
         rw [HEP, HEf]
         isplitr

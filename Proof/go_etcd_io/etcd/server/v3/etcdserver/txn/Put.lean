@@ -41,7 +41,7 @@ theorem txn.Put.wp_proof
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.Put.spec (GF := GF) (hG := hG) := by
   intro ctx cd lg le kv s γ p o m log₀ P Pre Q Post f
-  wp_start as ⟨#Hkv, Hrd, Htok, Htoks, #Hc0, #Hle, #Hp, #Hctx, #Hlprem, Hcs, #Hhook⟩
+  wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, #Hle, #Hp, #Hctx, #Hlprem, Hcs, #Hhook⟩
   iunfold mvcc.csContract at Hcs
   icases Hcs with ⟨Hpre, #Htr, Hupd⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
@@ -89,10 +89,9 @@ theorem txn.Put.wp_proof
   (try wp_auto)
   -- `kv.Write(trace)`: the store's
   iunfold txn.isKV at Hkv
-  icases Hkv with ⟨%Hkv, #Hs, %Hkb⟩
+  icases Hkv with ⟨%Hkv, #Hs⟩
   subst Hkv
   (try wp_auto)
-  ihave Hwt := txn.storeWT_none (GF := GF) γ Hkb
   wp_apply (hWrite s γ t P Pre Q f) $$ [$Hs $Hrd $Htok $Hwt $Hhook $Hpre $Htr] as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
   · ipureintro; exact Ht
   -- the caller's update (the writes are the model's): the lock's invariant back for `End`

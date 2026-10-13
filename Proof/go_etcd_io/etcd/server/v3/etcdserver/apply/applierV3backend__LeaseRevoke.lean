@@ -35,7 +35,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   iunfold apply.revokePre at Hpre
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
-  icases Hpre with ⟨%Hrq, #Hr, ⟨Hrd, Hsw, #Hknown⟩, Hres, Hcs⟩
+  icases Hpre with ⟨%Hrq, #Hr, Hwt, ⟨Hrd, Hsw, #Hknown⟩, Hres, Hcs⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
@@ -49,7 +49,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   wp_auto
   rw [Hli]
   wp_auto
-  wp_apply HRevoke $$ [$Hcs $Hsw] as %err ⟨HPP, ⟨%pend, %Hdel, Hsw⟩, #HeI⟩
+  wp_apply HRevoke $$ [$Hcs $Hsw $Hwt] as %err ⟨HPP, ⟨%pend, %Hdel, Hsw⟩, #HeI⟩
   wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh⟩
   · iexact Hb
   wp_alloc resp as Hresp

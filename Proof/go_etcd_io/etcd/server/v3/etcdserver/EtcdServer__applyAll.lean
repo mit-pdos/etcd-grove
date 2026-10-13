@@ -48,7 +48,7 @@ theorem EtcdServer.applyAll.wp_proof
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x Hms Hai1 Hok hEok
   wp_start as ⟨#Hsrv, #Hsa, #Hbw, #Hes, #Hrac, #Hsn, #Hnc, #Hncb, #Hesl, #Hentsat, Hai, Hat, Hcs,
-    Hss, Hst, Hbe, Happ, Hlr, Hbr, HKV, Hao, #Hlog⟩
+    Hss, Hst, Hbe, Happ, Hlr, Hbr, HKV, Hao, #Hlog, HW⟩
   ihave #Hsrv' := Hsrv
   iunfold isServer at Hsrv'
   icases Hsrv' with ⟨-, ⟨%sv, #Hfl⟩, -⟩
@@ -69,7 +69,7 @@ theorem EtcdServer.applyAll.wp_proof
   (try wp_auto)
   -- `s.applyEntries(ep, apply)`
   wp_apply hAE s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr Hms Hai1 Hok hEok
-    $$ [Hai Hat Hcs Hst Hbe Happ Hlr HKV Hao]
+    $$ [Hai Hat Hcs Hst Hbe Happ Hlr HKV Hao HW]
     as ⟨%st', %ai', %at', %a', %t', %cs', Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hao, ⟨%x', HKV, %Hx',
       #Hlog'⟩, %Hpost⟩
   · iframe #; iframe

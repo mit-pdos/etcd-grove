@@ -190,9 +190,11 @@ def backendStep (rq : IRRModel) (log : mvcc.Log) (o : Outcome) : Prop :=
 /-- A put's premise at the sole writer's log: room for one more revision. -/
 def putOk (log : mvcc.Log) : Prop := log.length + 4 ≤ 2 ^ 63
 
-/-- A delete's premises: room for one more revision, fewer than `2 ^ 63` keys. -/
-def delOk (log : mvcc.Log) : Prop :=
-  log.length + 4 ≤ 2 ^ 63 ∧ (mvcc.stateAfter log).length < 2 ^ 63
+/-- A delete's premises: room for one more revision, fewer than `2 ^ 56` keys in the request's
+range (the real backend's bound on a session's puts, `mvcc.putMax`: each deleted key is a
+tombstone put; 2026-10-13, unit 6: it was the whole state below `2 ^ 63`). -/
+def delOk (log : mvcc.Log) (o : OpFull) : Prop :=
+  log.length + 4 ≤ 2 ^ 63 ∧ (rangeIn (mvcc.stateAfter log) o).length < 2 ^ 56
 
 /-- A range's premises: room for the read, a valid sort target, the sort's premise. -/
 def rangeOk (log : mvcc.Log) (o : OpFull) : Prop :=
@@ -205,7 +207,7 @@ lock: `issues/etcd-apply-lease-checkpoint-sections.md`); a cluster version that 
 def rqOk (log : mvcc.Log) (rq : IRRModel) : Prop :=
   match dispatchKind rq with
   | .put => putOk log
-  | .deleteRange => delOk log
+  | .deleteRange => ∀ o, rq.deleteRange = some o → delOk log o
   | .range => ∀ o, rq.range = some o → rangeOk log o
   | .txn => ∀ t, rq.txn = some t → txn.TxnPre log t
   | .leaseCheckpoint => ∀ cs, rq.leaseCheckpoint = some cs → cs.length ≤ 1
@@ -373,7 +375,10 @@ KV methods (and the revocation, which deletes through the store) run the request
 `dispatch` passes on: `dispatchKind rq`) and come to an outcome of `chainStep backendStep c`;
 the others leave the log as it is. A method that may write the backend takes the
 critical-section contract `csContract P f Pre Q Post` and returns `Post` (it wrote in one
-critical section of the batch lock, the hook first) or `Pre` (it did not). -/
+critical section of the batch lock, the hook first) or `Pre` (it did not). The methods that
+may open a store write transaction (`Put`, `DeleteRange`, `Txn`, `LeaseRevoke`) take a write
+token (`mvcc.storeWT E.γ`: the real backend's write-back budget) and spend it (2026-10-13,
+unit 6). -/
 
 /-- The common precondition of a writing method. -/
 def mPre (E : AEnv GF) (c : Chain) (a : GoInterface) (log : mvcc.Log)
@@ -407,13 +412,13 @@ def kvPost (E : AEnv GF) (c : Chain) (a : GoInterface) (rq : IRRModel) (log : mv
 def putPre (E : AEnv GF) (c : Chain) (a : GoInterface) (r : Loc) (rq : IRRModel) (o : OpFull)
     (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
   iprop(⌜rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log⌝ ∗ txn.putRequestIs r o ∗
-    mPre E c a log Pre Q Post)
+    mvcc.storeWT E.γ ∗ mPre E c a log Pre Q Post)
 
 /-- `DeleteRange(r)`'s precondition. -/
 def deletePre (E : AEnv GF) (c : Chain) (a : GoInterface) (r : Loc) (rq : IRRModel)
     (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop(⌜rq.deleteRange = some o ∧ dispatchKind rq = .deleteRange ∧ delOk log⌝ ∗
-    txn.deleteRangeRequestIs r o ∗ mPre E c a log Pre Q Post)
+  iprop(⌜rq.deleteRange = some o ∧ dispatchKind rq = .deleteRange ∧ delOk log o⌝ ∗
+    txn.deleteRangeRequestIs r o ∗ mvcc.storeWT E.γ ∗ mPre E c a log Pre Q Post)
 
 /-- `Range(r)`'s precondition (a read: no contract). -/
 def rangePre (E : AEnv GF) (c : Chain) (a : GoInterface) (r : Loc) (rq : IRRModel)
@@ -431,13 +436,13 @@ def rangePost (E : AEnv GF) (c : Chain) (a : GoInterface) (rq : IRRModel) (o : O
 def txnPre (E : AEnv GF) (c : Chain) (a : GoInterface) (r : Loc) (rq : IRRModel)
     (t : TxnModel) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
   iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPre log t⌝ ∗ txn.txnRequestIs r t ∗
-    mPre E c a log Pre Q Post)
+    mvcc.storeWT E.γ ∗ mPre E c a log Pre Q Post)
 
 /-- `LeaseRevoke(r)`'s precondition. -/
 def revokePre (E : AEnv GF) (c : Chain) (a : GoInterface) (r : Loc) (rq : IRRModel)
     (id : w64) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
   iprop(⌜rq.leaseRevoke = some id ∧ dispatchKind rq = .leaseRevoke⌝ ∗ leaseRevokeIs r id ∗
-    mPre E c a log Pre Q Post)
+    mvcc.storeWT E.γ ∗ mPre E c a log Pre Q Post)
 
 /-- The request facts of a one-argument method that leaves the log as it is, by method: what
 the layers read of the request (`R r`); `True` for those passed on unread to the auth store. -/

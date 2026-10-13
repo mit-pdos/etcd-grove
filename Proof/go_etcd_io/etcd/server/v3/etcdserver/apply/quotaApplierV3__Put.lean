@@ -47,14 +47,14 @@ theorem apply.quotaApplierV3.Put.wp_proof :
   iunfold apply.applierTriples at Ht
   icases Ht with ⟨#HPut, -⟩
   iunfold apply.putPre at Hpre
-  icases Hpre with ⟨%Hk, #Hr, Hm⟩
+  icases Hpre with ⟨%Hk, #Hr, Hwt, Hm⟩
   iunfold apply.mPre at Hm
   icases Hm with ⟨Hkv, Hres, Hcs⟩
   wp_auto
   wp_apply HAvail $$ %_ %r [] as %ok -
   · ipureintro; exact Or.inl rfl
   ihave Hres := apply.chainRes_quota_out c p (.ok bi) $$ Hf Hres
-  wp_apply HPut $$ %r %rq %o %log %Pre %Q %Post [Hkv Hres Hcs] as %resp %trace %err Hpost
+  wp_apply HPut $$ %r %rq %o %log %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %trace %err Hpost
   · iunfold apply.putPre
     iunfold apply.mPre
     iframe

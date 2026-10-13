@@ -4339,3 +4339,28 @@ foresee, and how it is resolved:
 - **`ConcurrentReadTx` promises no range** (`rng = false`): its cached read buffer can repeat a
   committed key (the cache issue's third reproduction).
 
+
+### The layers above mvcc over the real backend (unit 6, 2026-10-13 · adopted)
+
+- **Generic, not switched**: `txn.isKV` drops `γ.kb = none`; every statement above mvcc holds
+  for both instances, the instance's costs entering as resources that are free over the
+  assumed backend (`storeWT`, `txn.storeWTs`) and bounds that hold of both (`2^56 ≤ putMax γ`).
+  *Rejected:* pinning `γ.kb = some d` (the assumed instance's results would be lost for no
+  gain).
+- **The write budget is a counted resource, one token per entry**: `apply.Apply` (and the
+  server's `applyEntryNormal`) spend one `storeWT`; `apply`/`applyEntries` take
+  `txn.storeWTs E.γ n` for the `n` entries they apply. A token per *entry* over-approximates
+  (conf changes and replays waste theirs) but is stated on what the apply loop sees, and an
+  entry opens at most one store write transaction. *Rejected:* a write count in the pure
+  `ApplyKV` (every `applyStep`/`entriesOk` statement changes), the budget as a function of the
+  log (an empty write transaction writes back too: the backend's `pending` counts since the
+  last commit, not per session), and a token returned on the paths that open no write
+  transaction (each triple would grow a disjunct for a gain only of precision).
+- **The change bound at the request**: a delete's range below `2^56` (`delOk log o`: it
+  tombstones exactly those keys), a transaction's changes below `2^56` (`TxnPre`); for both
+  instances. *Rejected:* a bound on the store's size (stronger than needed) and a check in
+  the code (there is none in Go).
+- **`keySized` stays a premise, at the composition**: `server_kv_backend` composes
+  `mvcc_NewStore_backend` with the sole writer and the write supply, the creator's resources
+  (including `keySized` and `N + 2` write-back tokens) as its premises, since neither the
+  backend's constructor nor the server's is proved.

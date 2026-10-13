@@ -34,7 +34,7 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, ⟨%le, #Hlef, #Hle⟩, -⟩
   iunfold apply.revokePre at Hpre
-  icases Hpre with ⟨%Hk, #Hr, Hm⟩
+  icases Hpre with ⟨%Hk, #Hr, Hwt, Hm⟩
   iunfold apply.mPre at Hm
   icases Hm with ⟨Hkv, Hres, Hcs⟩
   ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner $$ Happ Hres
@@ -65,7 +65,7 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
     · iunfold apply.authInfoOwn; iexists info; iexact Hinfo
   | nil =>
   wp_auto
-  wp_apply HI $$ %r %rq %id %log %Pre %Q %Post [Hkv Hres Hcs] as %resp %err Hpost
+  wp_apply HI $$ %r %rq %id %log %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %err Hpost
   · iunfold apply.revokePre
     iunfold apply.mPre
     iframe

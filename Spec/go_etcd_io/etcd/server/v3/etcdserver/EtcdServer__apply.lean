@@ -36,7 +36,9 @@ request path): `batchWaitOk` (each normal entry's id claimed for its data; each 
 `ccIdOf`, no KV request's registration), so every `Trigger` meets the registry's contract. **The
 applied index** (the request path's unit 4b): the apply thread's half of the ghost applied index
 (`srvAppliedOwn γr`) goes from `f0 - 1` to the last index, each `setAppliedIndex` depositing the KV
-log after its entry, so the last index's log is `x'.log` (`appliedLogAt`). -/
+log after its entry, so the last index's log is `x'.log` (`appliedLogAt`). **The write budget**
+(2026-10-13, unit 6): one write token of the store per entry (`txn.storeWTs E.γ ms.length`,
+spent; a conf change's is wasted). -/
 abbrev EtcdServer.apply.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
@@ -44,7 +46,7 @@ abbrev EtcdServer.apply.spec : Prop :=
   ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → entriesOk (ciEff γ st.k) ms x →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfStateAddr ep ↦ cs ∗
-      srvLgReader s ∗ srvApplyKV s E x ∗ srvAppliedOwn γr (f0 - 1) }}
+      srvLgReader s ∗ srvApplyKV s E x ∗ srvAppliedOwn γr (f0 - 1) ∗ txn.storeWTs E.γ ms.length }}
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"apply"))
       (Val #es)) (Val #ep)) (Val #rac))
   {{ (appliedt appliedi : w64) (shouldStop : Bool),

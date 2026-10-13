@@ -106,13 +106,13 @@ theorem txn.Txn_sole
     (hRoEnd : mvcc.txnReadWrite.End.spec (GF := GF) (hG := hG)) :
     txn.Txn.specSole (GF := GF) (hG := hG) := by
   intro ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f
-  wp_start as ⟨#Hkv, Hrd, Hsw, #Hle, #Hrt, #Hctx, #Hnd, #Hknown, %Hpre, Hcs, #Hhook⟩
+  wp_start as ⟨#Hkv, Hrd, Hsw, Hwt, #Hle, #Hrt, #Hctx, #Hnd, #Hknown, %Hpre, Hcs, #Hhook⟩
   iunfold mvcc.csContract at Hcs
   icases Hcs with ⟨HPre, #Htr, Hupd⟩
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   iunfold txn.isKV at Hkv
-  icases Hkv with ⟨%Hkv, #Hs, %Hkb⟩
+  icases Hkv with ⟨%Hkv, #Hs⟩
   subst Hkv
   wp_auto
   wp_apply (hEnsure ctx cd lg _ _) $$ [$Hctx] as %ctx' %tr ⟨%Htr, %vs, #Hctx', -⟩
@@ -193,7 +193,7 @@ theorem txn.Txn_sole
     simp only [Bool.not_true, ↓reduceIte] at htxn'
     wp_apply htxn'
       $$ [$Htw $Hctx' $Hnd' $Hrt $Hsl $Hleases] as %resp %err Hres
-    · ipureintro; exact ⟨trivial, hoks, by rw [txn.putMax_none γ Hkb]; exact Hpre.2.2, fun _ => hro, fun h => absurd h (by simp)⟩
+    · ipureintro; exact ⟨trivial, hoks, Nat.lt_of_lt_of_le Hpre.2.2 (txn.putMax_ge γ), fun _ => hro, fun h => absurd h (by simp)⟩
     icases Hres with (⟨%Herr, Htw, #Hresp, Hhdr, -⟩ | ⟨%Hc, -⟩)
     rotate_left
     · cases Hc
@@ -243,7 +243,6 @@ theorem txn.Txn_sole
     · simp only [mvcc.txnEndPre]; itrivial
     wp_apply (hEnd mw s γ (.read log rev)) $$ [$Htx $Hep] as ⟨Hrd, -⟩
     icases soleWriter_split γ log hlen4 $$ Hsw with ⟨Htok, Hsw⟩
-    ihave Hwt := txn.storeWT_none (GF := GF) γ Hkb
     wp_apply (hWrite s γ tr P Pre Q f) $$ [$Hs $Hrd $Htok $Hwt $Hhook $HPre $Htr]
       as %mw' ⟨⟨%ilog, Htx⟩, HQ⟩
     · ipureintro; exact Htr
@@ -264,7 +263,7 @@ theorem txn.Txn_sole
     simp only [Bool.not_false, ↓reduceIte, Bool.false_eq_true] at htxn'
     wp_apply htxn'
       $$ [$Htw $Hctx' $Hnd' $Hrt $Hsl $Hleases $Hknown] as %resp %err Hres
-    · ipureintro; exact ⟨hoks, by rw [txn.putMax_none γ Hkb]; exact Hpre.2.2, fun h => h.elim, fun h => absurd h (by simp)⟩
+    · ipureintro; exact ⟨hoks, Nat.lt_of_lt_of_le Hpre.2.2 (txn.putMax_ge γ), fun h => h.elim, fun h => absurd h (by simp)⟩
     icases Hres with (⟨%Herr, Htw, #Hresp, Hhdr, #Hk2⟩ | ⟨%Hc, -⟩)
     rotate_left
     · cases Hc
@@ -326,7 +325,7 @@ theorem txn.Txn_read
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   iunfold txn.isKV at Hkv
-  icases Hkv with ⟨%Hkv, #Hs, %Hkb⟩
+  icases Hkv with ⟨%Hkv, #Hs⟩
   subst Hkv
   wp_auto
   wp_apply (hEnsure ctx cd lg _ _) $$ [$Hctx] as %ctx' %tr ⟨%Htr, %vs, #Hctx', -⟩

@@ -75,7 +75,7 @@ theorem EtcdServer.apply.wp_proof
     (hMem : membership.RaftCluster.Members.spec (GF := GF) (hG := hG)) :
     EtcdServer.apply.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr hne hfrom hok hEok
-  wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hents, Hst, Hbe, Happ, Hcs, Hlr, HKV, Hao⟩
+  wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hents, Hst, Hbe, Happ, Hcs, Hlr, HKV, Hao, HW⟩
   ihave #Hsrv0 := Hsrv
   iunfold isServer at Hsrv
   icases Hsrv with ⟨#Hsci, ⟨%sv, #Hfl⟩, #Hat⟩
@@ -121,7 +121,7 @@ theorem EtcdServer.apply.wp_proof
       "appliedi" ∷ appliedi_ptr ↦ ai ∗ "appliedt" ∷ appliedt_ptr ↦ at' ∗
       "Hst" ∷ applyThread γ st' ∗ "Hbe" ∷ applyBackend γ ci b ∗ "Happ" ∷ ciApplying ci a' t' ∗
       "Hcs" ∷ epConfStateAddr ep ↦ csl ∗ "Hlr" ∷ srvLgReader s ∗
-      "HKV" ∷ srvApplyKV s E xj ∗
+      "HKV" ∷ srvApplyKV s E xj ∗ "HW" ∷ txn.storeWTs E.γ (ms.length - sint.nat j) ∗
       "Hao" ∷ srvAppliedOwn γr aw ∗
       "#Hlog" ∷ □ (⌜0 < sint.Z j⌝ -∗ appliedLogAt γr aw xj.log) ∗
       "%Hxs" ∷ ⌜entriesStep (ciEff γ st.k) (ms.take (sint.nat j)) x xj ∧
@@ -145,14 +145,14 @@ theorem EtcdServer.apply.wp_proof
       "%Hlast" ∷ ⌜∀ m : EntryModel, 0 < sint.nat j → ms[sint.nat j - 1]? = some m →
         m.index = ai ∧ m.term = at'⌝ ∗
       "%Haw" ∷ ⌜uint.Z aw = uint.Z f0 - 1 + sint.Z j⌝ : IProp GF)
-    $$ [cnt iv shouldStop appliedi appliedt Hst Hbe Happ Hcs Hlr HKV Hao HΦ]
+    $$ [cnt iv shouldStop appliedi appliedt Hst Hbe Happ Hcs Hlr HKV HW Hao HΦ]
   · iexists (W64 0), st, a, at0, cs, false, (W64 0), (W64 0), (W64 0), x, f0 - 1
-    simp only [named]
+    simp only [named, show sint.nat (W64 0) = 0 from rfl, Nat.sub_zero]
     iframe
     isplitr
     · iintro !> %h0; exfalso; simp at h0
     ipureintro
-    refine ⟨⟨rfl, by rw [show sint.nat (W64 0) = 0 from rfl]; exact hEok⟩, by word, ⟨Hpend, ?_, ?_⟩, fun m h => absurd h (by simp), by rw [Hf0m1]; simp⟩
+    refine ⟨⟨rfl, by first | (rw [List.drop_zero]; exact hEok) | simpa using hEok⟩, by word, ⟨Hpend, ?_, ?_⟩, fun m h => absurd h (by simp), by rw [Hf0m1]; simp⟩
     · rw [Hp0]; simp
     · simp
   wp_for HI
@@ -172,6 +172,10 @@ theorem EtcdServer.apply.wp_proof
       show (sint.Z (j + W64 1)).toNat = (sint.Z j).toNat + 1
       have : sint.Z (j + W64 1) = sint.Z j + 1 := by word
       rw [this]; omega
+    have hW : ms.length - sint.nat j = (ms.length - sint.nat (j + W64 1)) + 1 := by
+      rw [hjs]; omega
+    rw [hW]
+    icases txn.storeWTs_split E.γ _ $$ HW with ⟨Hwt, HW⟩
     have hconf : m.typ ≠ W32 0 → batchStep (ciEff γ st.k) m xj xj := by
       intro hn; unfold batchStep; rw [ite_eq_right hn]
     have Hlt : sint.Z j < sint.Z es.len := by
@@ -193,7 +197,7 @@ theorem EtcdServer.apply.wp_proof
     ihave #Hrpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
     · iPkgInit
     wp_apply_core (wp_ci_get hCI γ ci b st' Hstj.1) $$ [Hst Hbe]
-      [cnt iv shouldStop appliedi appliedt Happ Hcs Hlr HKV Hao Hphi e]
+      [cnt iv shouldStop appliedi appliedt Happ Hcs Hlr HKV HW Hwt Hao Hphi e]
     · iframe Hcipkg Hci Hinv Hst Hbe
     iintro ⟨Hst, Hbe⟩
     obtain ⟨hlp, hlpp, hlpe, hlc⟩ := stLoaded_facts γ st'
@@ -259,10 +263,10 @@ theorem EtcdServer.apply.wp_proof
       · -- a normal entry
         simp only [h0, _root_.decide_true]
         (try wp_auto)
-        wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') true xj) $$ [Hst Hbe Happ Hlr HKV]
+        wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') true xj) $$ [Hst Hbe Happ Hlr HKV Hwt]
           as ⟨Hbe, Hlr, ⟨%x1, %out1, HKV, %Hstep1⟩, Hpost⟩
         · rw [ite_eq_left rfl]
-          iframe Hsrv0 Hewo He Hst Hbe Happ Hlr HKV
+          iframe Hsrv0 Hewo He Hst Hbe Happ Hlr HKV Hwt
           ipureintro
           refine ⟨⟨hlp ▸ hpend', hOk1 h0, h0⟩, ?_⟩
           rw [hlpp, hlc]
@@ -499,10 +503,10 @@ theorem EtcdServer.apply.wp_proof
       · -- a normal entry
         (try simp only [h0, _root_.decide_true])
         (try wp_auto)
-        wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') false xj) $$ [Hst Hbe Hlr HKV]
+        wp_apply (hAEN s γ ci TM E ρ b e m (stLoaded γ st') false xj) $$ [Hst Hbe Hlr HKV Hwt]
           as ⟨Hbe, Hlr, ⟨%x1, %out1, HKV, %Hstep1⟩, Hst⟩
         · simp only [Bool.false_eq_true, ↓reduceIte]
-          iframe Hsrv0 Hewo He Hst Hbe Hlr HKV
+          iframe Hsrv0 Hewo He Hst Hbe Hlr HKV Hwt
           ipureintro; exact ⟨⟨hpend'', hOk1 h0, h0⟩, trivial⟩
         have hb1 : batchStep (ciEff γ st.k) m xj x1 := by
           unfold batchStep; rw [ite_eq_left h0]

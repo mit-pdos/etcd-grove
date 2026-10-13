@@ -33,7 +33,11 @@ start (`ciEff γ st.k`), under `entriesOk c (unapplied ai ms) x`, and `batchWait
 batch (unit 2 of the request path: the wait's premise, see `apply`). **The applied index** (the
 request path's unit 4b): the apply thread's half of the ghost applied index (`srvAppliedOwn γr`)
 at `ai`, with the log applied through `ai` the KV's (`appliedLogAt γr ai x.log`), goes to `ai'`, the
-log applied through `ai'` the KV's after (`apply` deposits one per entry). -/
+log applied through `ai'` the KV's after (`apply` deposits one per entry). **The write budget**
+(2026-10-13, unit 6): one write token of the store per entry applied (`txn.storeWTs E.γ`,
+spent: `apply.Apply` may open one store write transaction per entry, and over the real backend
+every write transaction's `Unlock` may write back, costing one of the backend's write-back
+tokens, `backend.wbTok`). -/
 abbrev EtcdServer.applyEntries.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (ep ap : Loc) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64)
@@ -45,7 +49,8 @@ abbrev EtcdServer.applyEntries.spec : Prop :=
       es ↦*□ ents ∗ entriesAt ents ms ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfStateAddr ep ↦ cs ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗
-      srvApplyKV s E x ∗ srvAppliedOwn γr ai ∗ appliedLogAt γr ai x.log }}
+      srvApplyKV s E x ∗ srvAppliedOwn γr ai ∗ appliedLogAt γr ai x.log ∗
+      txn.storeWTs E.γ (unapplied ai ms).length }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntries"))
       (Val #ep)) (Val #ap))
   {{ RET #();

@@ -30,7 +30,7 @@ theorem apply.uberApplier.Apply.wp_proof
     (hD : apply.uberApplier.dispatch.spec (GF := GF) (hG := hG)) :
     apply.uberApplier.Apply.spec (GF := GF) (hG := hG) := by
   intro E p opts x r rq skip v3 Pre Q Post
-  wp_start as ⟨#Hu, #Hw, Hown, Hkv, Hcs, %Hok, %Hskip⟩
+  wp_start as ⟨#Hu, #Hw, Hown, Hkv, Hwt, Hcs, %Hok, %Hskip⟩
   iunfold apply.uberOwn at Hown
   icases Hown with ⟨%a, Ha, #Hs⟩
   ihave #Hs' := Hs
@@ -44,25 +44,25 @@ theorem apply.uberApplier.Apply.wp_proof
   wp_apply HApply $$ %r %rq %skip %v3
       %(methods (go.GoType.PointerType uberApplier.ty) go!"dispatch" #p)
       %(iprop(structFieldRef uberApplier go!"applyV3" p ↦ (GoInterface.ok ai) ∗ apply.kvOwn E x.log ∗
-        apply.cPre v3 E.P E.f Pre Q Post))
+        mvcc.storeWT E.γ ∗ apply.cPre v3 E.P E.f Pre Q Post))
       %(fun ar => iprop(∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),
         structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
         apply.kvOwn E (o.logAfter x.log) ∗ apply.cPost v3 Pre Post ∗
         ⌜apply.dispatchStep x.chain rq v3 x.log o ∧ apply.chainAfter rq v3 x.chain c'⌝ ∗
         apply.dispatchResult rq v3 x.log skip ar o))
-      [Ha Hkv Hcs] as %ar Hpost
-  · iframe Hw Ha Hkv Hcs
+      [Ha Hkv Hwt Hcs] as %ar Hpost
+  · iframe Hw Ha Hkv Hwt Hcs
     imodintro
-    iintro %Φ' ⟨Hres, Ha, Hkv, Hcs⟩ HΦ'
-    iapply (hD E p opts x.chain (.ok ai) r rq skip v3 x.log Pre Q Post) $$ [Hres Ha Hkv Hcs]
+    iintro %Φ' ⟨Hres, Ha, Hkv, Hwt, Hcs⟩ HΦ'
+    iapply (hD E p opts x.chain (.ok ai) r rq skip v3 x.log Pre Q Post) $$ [Hres Ha Hkv Hwt Hcs]
     · iframe #
-      iframe Hres Ha Hkv Hcs
+      iframe Hres Ha Hkv Hwt Hcs
       ipureintro; exact Hok
     inext
     iintro %ar ⟨Hres, HB⟩
     iapply HΦ'
     iframe Hres HB
-  icases Hpost with (⟨%a', %c', %o, Ha', #Hs'', Hkv, HPP, %Hst, Hres⟩ | ⟨%Hna, ⟨Ha, Hkv, Hcs⟩, Hrej⟩)
+  icases Hpost with (⟨%a', %c', %o, Ha', #Hs'', Hkv, HPP, %Hst, Hres⟩ | ⟨%Hna, ⟨Ha, Hkv, -, Hcs⟩, Hrej⟩)
   · imodintro
     iapply HΦ
     iexists ⟨o.logAfter x.log, c'⟩, (.dispatched o skip)

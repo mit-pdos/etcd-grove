@@ -46,7 +46,9 @@ backend's batch lock has invariant `E.P` and runs the post-lock hook `E.f`.
   package's for a KV request; `dispatchOk`: not a compaction, not empty), goes to `x'` by
   `applyStep rq v3 x x' out`: skipped or rejected by the admin check (`x' = x`), or dispatched
   (`dispatchStep`: a KV request as the chain's `chainStep backendStep`, the txn package's results;
-  without `v3`, nothing), the result `applyResultIs`. -/
+  without `v3`, nothing), the result `applyResultIs`. It spends one write token of the store
+  (`mvcc.storeWT E.γ`: a KV write or a revocation opens one store write transaction, whose
+  `Unlock` over the real backend may cost a write-back; 2026-10-13, unit 6). -/
 abbrev apply.Apply.spec : Prop :=
   ∀ (lg e : Loc) (m : EntryModel) (ua w : GoInterface) (v3 : Bool) (E : AEnv GF)
     (Pre Q Post : IProp GF) (x : apply.ApplyKV) (rq : IRRModel) (id : w64) (RD : IProp GF),
@@ -55,7 +57,7 @@ abbrev apply.Apply.spec : Prop :=
       (if v3 then iprop(□ ({{ E.P ∗ Pre }} (App (Val E.f) (Val #())) {{ RET #(); Q }}) ∗
           (Q ={⊤}=∗ E.P ∗ Post))
        else iprop(True)) ∗ Pre ∗
-      apply.applyKV E ua x ∗
+      apply.applyKV E ua x ∗ mvcc.storeWT E.γ ∗
       ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.rqOk x.log rq ∧
         apply.dispatchOk rq⌝ }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))

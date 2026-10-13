@@ -74,11 +74,11 @@ theorem apply.newApplierV3Capped.wp_proof
     wp_call
     wp_auto
     iunfold apply.deletePre at Hpre
-    icases Hpre with ⟨%Hk, #Hr, Hm⟩
+    icases Hpre with ⟨%Hk, #Hr, Hwt, Hm⟩
     iunfold apply.mPre at Hm
     icases Hm with ⟨Hkv, Hres, Hcs⟩
     ihave Hres := apply.chainRes_capped_out c p (.ok bi) $$ applierV3 Hres
-    iapply HDel $$ %r %rq %o %log %Pre %Q %Post [Hkv Hres Hcs]
+    iapply HDel $$ %r %rq %o %log %Pre %Q %Post [Hwt Hkv Hres Hcs]
     · iunfold apply.deletePre
       iunfold apply.mPre
       iframe
@@ -147,11 +147,11 @@ theorem apply.newApplierV3Capped.wp_proof
     wp_call
     wp_auto
     iunfold apply.revokePre at Hpre
-    icases Hpre with ⟨%Hk, #Hr, Hm⟩
+    icases Hpre with ⟨%Hk, #Hr, Hwt, Hm⟩
     iunfold apply.mPre at Hm
     icases Hm with ⟨Hkv, Hres, Hcs⟩
     ihave Hres := apply.chainRes_capped_out c p (.ok bi) $$ applierV3 Hres
-    iapply HRev $$ %r %rq %id %log %Pre %Q %Post [Hkv Hres Hcs]
+    iapply HRev $$ %r %rq %id %log %Pre %Q %Post [Hwt Hkv Hres Hcs]
     · iunfold apply.revokePre
       iunfold apply.mPre
       iframe
