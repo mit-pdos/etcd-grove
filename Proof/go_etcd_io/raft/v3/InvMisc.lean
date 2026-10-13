@@ -49,6 +49,18 @@ or pending request. -/
 def RdScope (rd : RdState) : Prop :=
   rd.states = [] ∧ rd.ro.pending = [] ∧ rd.pend = []
 
+/-- `recvAck` changes only the acks, so not the heartbeat context. -/
+theorem hbCtx_recvAck (r : ReadOnly) (src : w64) (ctx : List w8) :
+    hbCtx (readonlyRecvAck r src ctx) = hbCtx r := by
+  unfold readonlyRecvAck
+  split <;> rfl
+
+/-- A queue with a request added is not empty: its context is the position. -/
+theorem hbCtx_add (r : ReadOnly) (q : ReadReq) :
+    hbCtx (readonlyAdd r q) = u64Le (readonlyPosition (readonlyAdd r q)) := by
+  unfold hbCtx
+  rw [ite_eq_right (by simp [readonlyAdd])]
+
 end records
 
 section proof
