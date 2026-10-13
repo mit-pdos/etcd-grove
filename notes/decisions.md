@@ -3361,3 +3361,35 @@ append a second conf change before the first is applied), like `ReadOnlyOption =
   `applyConfChange`, and `NetFrame` says nothing about the progress map's domain. The
   `RawNode`/`node` `ApplyConfChange` premise is `CCNoop` (a no-op whatever the learners) until
   then.
+
+---
+
+## Reconfiguration stage A1: one body for both struct predicates, old specs as corollaries
+
+**2026-10-13 · accepted**
+
+- **`ownRaftPhysC` beside `ownRaftPhys`, one private body.** The body of the raft-struct
+  predicate is generic in the tracker predicate and in `Hvoter`'s voter set
+  (`ownRaftPhysG T V`, private to `InvRaftPhys.lean`); `ownRaftPhys cfg` is it at
+  `ownTracker cfg`/`cfg`, `ownRaftPhysC c` at `ownTrackerC c`/`c.voters`, each sealed. The 134
+  files on `ownRaftPhys` are untouched; `ownRaftPhys_toC`/`ownRaftPhysC_toPhys` convert at
+  `CfgM.simple cfg (domSet s.progress \ cfg)`. *Rejected*: redefining `ownRaftPhys cfg` as
+  `ownRaftPhysC (CfgM.simple ...)` (every accessor in `InvRaftPhys.lean` would go through the
+  conversion); making `ownRaftPhys` an `abbrev` of a sealed generic predicate (changes
+  elaboration in every caller). The ~60 field lemmas are still stated on `ownRaftPhys`; A2 can
+  restate them on `ownRaftPhysC` and derive the old ones through the equivalence (a field
+  access leaves `s.progress` alone).
+- **`ownTrackerC` uses `confchange`'s representation** (`ownCfgCC`, `CfgInv`) so that a
+  `Changer` result can be installed without translation; the learner flags are
+  `decide (k ∈ c.learners)` (`LearnerFlagsC`), which every `Changer` operation preserves on a
+  reachable state (a voter is never flagged; to be proved in A2). `ownTracker` stays a separate
+  definition with a two-way conversion, not a special case by definition: 19 files unfold it.
+- **Generalized specs replace the old ones; the old statements are corollaries**
+  (`<fn>.spec_simple` in the `Spec` file, derived from the new `spec` through the tracker
+  conversion), so that `Link.lean` still links one triple per function and each caller changes
+  one line (`wp_apply (X.spec_simple wp_X) ...`). `JointConfig.VoteResult` is general in its
+  receiver and vote map (any `*JointConfig`, any fractions), which also let `QuorumActive` stop
+  inlining it.
+- **`StepC` is a copy of `Step` with five rules generalized**, not a parameterization of
+  `Step` (which would change every constructor use in the ghost layer); `step_iff_stepC` ties
+  them. `CfgM` moved to `Protocol/StepC.lean` so that the protocol layer can name it.

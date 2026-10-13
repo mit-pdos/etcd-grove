@@ -20,7 +20,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **This statement was FALSE until 2026-09-16** and is now repaired. The repair is
+/-- **At any configuration since 2026-10-13** (reconfiguration stage A1): stated on
+`ownTrackerC c` and `visitClosureC c` (`InvTrackerC.lean`), the visited ids ending at the
+progress map's domain, which is every voter of either half and every learner. The statement
+on `ownTracker cfg`/`visitClosure cfg` is `spec_simple` below. The history that follows is of
+the simple statement.
+
+**This statement was FALSE until 2026-09-16** and is now repaired. The repair is
 recorded here rather than silently applied, because a `Qed` resting on a false
 `Admitted` is unsound and `proof_raft__reset.v` -- hence `becomeFollower`,
 `becomeCandidate`, `becomeLeader` and everything above them -- was resting on this one.

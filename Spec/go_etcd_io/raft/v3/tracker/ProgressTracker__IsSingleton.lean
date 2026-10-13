@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.raft.v3.InvTracker
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
 
 @[expose] public section
 
@@ -40,6 +41,34 @@ abbrev tracker.ProgressTracker.IsSingleton.spec : Prop :=
       (Val #()))
   {{ RET #(decide (GMap.size s0 = 1 ∧ GMap.size s1 = 0));
       trk ↦{dq} tv ∗ ownIdsetQ v0 dq0 s0 ∗ ownIdsetQ v1 dq1 s1 }}
+
+open Iris.ProofMode in
+/-- The tracker form at any configuration (2026-10-13, reconfiguration stage A1): with
+`ownTrackerC c` sealed, the answer is whether the incoming voters are one id and the outgoing
+none. -/
+theorem tracker.ProgressTracker.IsSingleton.spec_trackerC
+    (H : tracker.ProgressTracker.IsSingleton.spec (GF := GF) (hG := hG))
+    (c : CfgM) (trk : Loc) (dq : DFrac) (tv : tracker.ProgressTracker) (t : Trk) :
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦{dq} tv ∗
+      ownTrackerC c tv t }}
+    (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"IsSingleton"))
+      (Val #()))
+  {{ RET #(decide (GMap.size c.incoming = 1 ∧ GMap.size c.outgoing = 0));
+      trk ↦{dq} tv ∗ ownTrackerC c tv t }} := by
+  obtain ⟨votes, prs, pvs⟩ := t
+  iintro %Φ ⟨#Hpkg, Htrk, Hown⟩ HΦ
+  iunfold ownTrackerC at Hown
+  iNamed Hown
+  icases ownCfgCC_voters _ _ $$ Hcfg with ⟨%vin, %vout, %Harr, Hv0, Hv1, Hcback⟩
+  iapply H trk dq tv vin vout (DFrac.own 1) (DFrac.own 1) c.incoming c.outgoing Harr
+    $$ [$Hpkg $Htrk $Hv0 $Hv1]
+  inext
+  iintro ⟨Htrk, Hv0, Hv1⟩
+  ihave Hcfg := Hcback $$ Hv0 Hv1
+  iapply HΦ
+  iframe Htrk
+  iapply ownTrackerC_intro c tv votes prs pvs Hinv Hdom Hflags Hsize HmaxInfl
+    $$ Hvotes Hprs Hprogs Hcfg
 
 end spec
 
