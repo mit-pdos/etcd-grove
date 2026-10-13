@@ -22,14 +22,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `joint` of a config whose outgoing voter map is `nil` is `false`: `len` of the nil
-map is `0`. Stated for that case only, the one this development reaches. -/
+/-- `joint(cfg)`: whether the outgoing voter map (`nil` or a map) is non-empty.
+(Generalized 2026-10-12 from the `nil` case.) -/
 abbrev confchange.joint.spec : Prop :=
-  ∀ (cfg : tracker.Config) (v : Loc),
-  cfg.Voters'.arr = [v, map.nil] →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange }}
+  ∀ (cfg : tracker.Config) (vin vout : Loc) (s : GSet w64) (dq : DFrac),
+  cfg.Voters'.arr = [vin, vout] →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ ownIdsetQ vout dq s }}
     (App (Val #(functions confchange.joint [])) (Val #cfg))
-  {{ RET #false; True }}
+  {{ RET #(decide (0 < GMap.size s)); ownIdsetQ vout dq s }}
 
 end spec
 

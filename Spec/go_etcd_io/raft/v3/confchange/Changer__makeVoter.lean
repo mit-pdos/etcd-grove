@@ -22,25 +22,15 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `makeVoter(cfg, trk, id)` on a voters-only non-joint config: afterwards `id` is a
-voter with an owned `Progress`. A new id goes through `initProgress`; an id already
-present (a repeated voter in the `ConfState`) keeps its `Progress`, re-marked a
-non-learner, and the `nilAwareDelete`s on the `nil` learner maps are no-ops. -/
+/-- `makeVoter(cfg, trk, id)`: `makeVoterM`. (Generalized 2026-10-12 from the voters-only
+config `Restore` builds.) -/
 abbrev confchange.Changer.makeVoter.spec : Prop :=
-  ∀ (p cfgp trk v : Loc) (chg : confchange.Changer) (cfg : tracker.Config) (id : w64)
-    (vm : GMap w64 Unit) (prs : GMap w64 Loc) (dq : DFrac),
-  ConfigSimple cfg v →
-  domSet prs = domSet vm →
+  ∀ (p cfgp trk : Loc) (chg : confchange.Changer) (base : GMap w64 tracker.Progress)
+    (s : CCState) (id : w64) (dq : DFrac),
   (0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dq} chg ∗ cfgp ↦ cfg ∗ v ↦$ vm ∗ trk ↦$ prs ∗
-      ([∗map] _k ↦ pr ∈ prs, ∃ pp, ownProgress pr pp) }}
-    (App (App (App
-      (Val (p @!! go.GoType.PointerType confchange.Changer.ty @!! go!"makeVoter"))
-      (Val #cfgp)) (Val #trk)) (Val #id))
-  {{ (prs' : GMap w64 Loc), RET #();
-      p ↦{dq} chg ∗ cfgp ↦ cfg ∗ v ↦$ (<[id := ()]> vm) ∗ trk ↦$ prs' ∗
-      ⌜domSet prs' = domSet (<[id := ()]> vm)⌝ ∗
-      ([∗map] _k ↦ pr ∈ prs', ∃ pp, ownProgress pr pp) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ p ↦{dq} chg ∗ ownWork chg base cfgp trk s }}
+    (App (App (App (Val (p @!! go.GoType.PointerType confchange.Changer.ty @!! go!"makeVoter")) (Val #cfgp)) (Val #trk)) (Val #id))
+  {{ RET #(); p ↦{dq} chg ∗ ownWork chg base cfgp trk (makeVoterM id s) }}
 
 end spec
 

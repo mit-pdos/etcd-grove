@@ -194,12 +194,32 @@ originals' inflight rings; the originals come back as bare points-tos (dropped).
 path they are garbage anyway (`chain` replaces them), except `MakeProgressTracker`'s
 empty map, which has none to lose.
 
-**Specs are stated for the case reached, not in general.** `joint` only for a `nil`
-outgoing map, `nilAwareDelete` only for a `nil` map, `apply`/`Simple` only for
-`[AddNode id]` with `id ≠ 0`, `symdiff` with a postcondition that says only "at most 1
-under the two inclusions `Simple` establishes" (the exact count would need a bound on
-the maps' sizes to rule out `n++` wrapping, which nothing on this path has). Widening
-them is ordinary proof work when a reconfiguration path needs it.
+**Specs are stated for the case reached, not in general** (superseded 2026-10-12, below).
+`joint` only for a `nil` outgoing map, `nilAwareDelete` only for a `nil` map,
+`apply`/`Simple` only for `[AddNode id]` with `id ≠ 0`, `symdiff` with a postcondition that
+said only "at most 1 under the two inclusions `Simple` establishes".
+
+**Generalized 2026-10-12: a pure model, every function for all inputs.** Each `Changer`
+method's result is a pure function of the tracker's state (`InvConfchange.lean`: `CfgM`,
+`CCState`, `simpleM`/`enterJointM`/`leaveJointM`/`applyM`/...), `none` exactly on its
+error paths; `checkInvariants` returns `nil` iff `CfgInv`. Choices:
+- the progress map is modelled by each id's `IsLearner` only (the one field `confchange`
+  touches); the specs relate the result's `Progress` values to the tracker's (`ownNewPr`: a
+  copy with `IsLearner` changed, or a fresh one owning its `Inflights`), and
+  `ownNewPr_transfer` moves whatever the caller holds for the originals (inflight rings) to
+  the copies, so the tracker's own objects are only read (any fractions);
+- `symdiff` returns the exact count modulo `2^64` (`symdiffN`); `Simple`'s check is stated
+  on Go's `int` (`SymdiffTooBig`), with no size premise;
+- the outgoing voter map, `Learners` and `LearnersNext` are represented canonically (`nil`
+  exactly when empty, `ownIdsetC`): every operation keeps them so and `checkInvariants`
+  checks two of them; an empty non-`nil` `Learners` map (legal for the Go code, never
+  created by it) is outside the specs. Needed so that `Restore`'s statement, which promises
+  `Learners = nil`, follows from the general `Simple`;
+- the old specs are replaced, not kept beside the new ones; `Restore`'s statement is
+  unchanged, and its proof derives the old `Simple` statement (`Simple_votersOnly`).
+Two findings: `Config.Clone` drops `AutoLeave` (`issues/raft-config-clone-autoleave.md`);
+a tracker with a `nil` incoming voter map panics (`issues/raft-changer-nil-incoming.md`,
+excluded by `ownCfgCC`).
 
 **A Goose bug found on the way.** `cc := cc` (Go's loop-local-copy idiom, used twice in
 `Restore`) was translated as "allocate a fresh zero `cc`, then read `cc`", i.e. the new

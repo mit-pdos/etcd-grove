@@ -22,18 +22,15 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `symdiff` reads both maps and returns a count. The postcondition states the one
-fact `Simple` needs of it: when `l ⊆ r` and `r` adds at most one id `x` to `l`, the
-count is at most `1`. (The exact count would need a bound on the maps' sizes to rule
-out `n++` wrapping; nothing on this path has one.) -/
+/-- `symdiff(l, r)` returns the size of the symmetric difference, as a Go `int`: the count
+is incremented once per id of `l` not in `r` and once per id of `r` not in `l`, so the
+result is `symdiffN ml mr` modulo `2^64` (no bound is needed). (Until 2026-10-12 this
+said only "at most 1 under `Simple`'s two inclusions".) -/
 abbrev confchange.symdiff.spec : Prop :=
-  ∀ (l r : Loc) (ml mr : GMap w64 Unit) (dql dqr : DFrac),
+  ∀ (l r : Loc) (ml mr : GSet w64) (dql dqr : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ l ↦${dql} ml ∗ r ↦${dqr} mr }}
     (App (App (Val #(functions confchange.symdiff [])) (Val #l)) (Val #r))
-  {{ (n : w64), RET #n; l ↦${dql} ml ∗ r ↦${dqr} mr ∗
-      ⌜(∀ k, (ml !! k).isSome → (mr !! k).isSome) →
-        ∀ x, (∀ k, (mr !! k).isSome → (ml !! k).isSome ∨ k = x) →
-        0 ≤ sint.Z n ∧ sint.Z n ≤ 1⌝ }}
+  {{ RET #(W64 (symdiffN ml mr : Int)); l ↦${dql} ml ∗ r ↦${dqr} mr }}
 
 end spec
 

@@ -1,5 +1,5 @@
 /-
-Proof of `Spec/Changer__makeVoter.lean`. Lean-first (no Rocq counterpart).
+Proof of `Spec/go_etcd_io/raft/v3/confchange/Changer__makeVoter.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -29,10 +29,12 @@ theorem confchange.Changer.makeVoter.wp_proof
     (wp_confchange_incoming : confchange.incoming.spec (GF := GF) (hG := hG))
     (wp_confchange_nilAwareDelete : confchange.nilAwareDelete.spec (GF := GF) (hG := hG)) :
     confchange.Changer.makeVoter.spec (GF := GF) (hG := hG) := by
-  intro p cfgp trk v chg cfg id vm prs dq Hcfg Hdom Hmi
-  have Hcfg' := Hcfg
-  obtain ⟨⟨Harr, Hl, Hln⟩, Hal⟩ := Hcfg'
-  wp_start as ⟨Hp, Hcfgp, Hv, Htrk, Hprogs⟩
+  intro p cfgp trk chg base s id dq Hmi
+  wp_start as ⟨Hp, Hw⟩
+  icases ownWork_elim _ _ _ _ _ $$ Hw with
+    ⟨%cfg, %prs, %pvs, Hcfgp, Hc, Htrk, Hprs, %Hflags, Hnew⟩
+  ihave %Hdom0 := BigSepM2.bigSepM2_lookup_iff $$ Hprs
+  have Hdom : ∀ k, (prs !! k).isSome ↔ (pvs !! k).isSome := Hdom0
   wp_auto
   wp_method_call
   wp_call
@@ -43,63 +45,58 @@ theorem confchange.Changer.makeVoter.wp_proof
   · -- a new id: `initProgress`
     simp only [Option.getD_none]
     wp_auto
-    -- `c.initProgress(...)` on the local copy of the receiver
-    wp_apply wp_Changer_initProgress c_ptr _ _ v _ _ _ _ _ _ Hcfg Hmi $$ [$c $Hcfgp $Hv $Htrk]
-      as %pr %pp ⟨c, Hcfgp, Hv, Htrk, Hpr⟩
+    have Hid : id ∉ s.prs := by
+      rw [← Hflags, flagsOf_mem]
+      intro h; rw [← Hdom, Hlk] at h; cases h
+    ihave Hw := ownWork_intro chg base cfgp trk s cfg prs pvs Hflags $$ Hcfgp Hc Htrk Hprs Hnew
+    wp_apply wp_Changer_initProgress c_ptr cfgp trk chg base s id false _ Hid Hmi
+      $$ [$c $Hw] as ⟨c, Hw⟩
     iapply HΦ
-    iframe Hp Hcfgp Hv Htrk
-    isplitr
-    · ipureintro
-      rw [GMap.dom_insert, GMap.dom_insert, Hdom]
-    iapply (BigSepM.bigSepM_insert (Φ := fun _ pr => iprop(∃ pp, ownProgress pr pp)) Hlk).2
-    iframe Hprogs
-    iexists pp
-    iexact Hpr
-  · -- a repeated voter: its `Progress` stays, re-marked a non-learner (it already is
-    -- one), the learner maps are `nil`
+    iframe Hp
+    simp only [makeVoterM, if_neg Hid]
+    iexact Hw
+  · -- a tracked id: marked a non-learner, out of the learner sets, an incoming voter
     simp only [Option.getD_some]
-    icases (BigSepM.bigSepM_delete (Φ := fun _ pr => iprop(∃ pp, ownProgress pr pp)) (m := prs)
-      Hlk).1 $$ Hprogs with ⟨⟨%pp, Hpr⟩, Hprogs⟩
-    iNamed Hpr
-    icases typedPointsto_not_null_dup _ _ _ $$ Hpv with ⟨Hpv, %Hprnn⟩
+    obtain ⟨pv, Hpv⟩ : ∃ pv, pvs !! id = some pv :=
+      Option.isSome_iff_exists.1 ((Hdom id).1 (by rw [Hlk]; rfl))
+    have Hmem : id ∈ s.prs := by
+      rw [← Hflags, flagsOf_mem, Hpv]; rfl
+    icases ownPrs_borrow chg base prs pvs id pr pv Hlk Hpv $$ [$Hprs $Hnew] with ⟨Hpr, Hback⟩
+    icases typedPointsto_not_null_dup _ _ _ $$ Hpr with ⟨Hpr, %Hprnn⟩
     wp_if_destruct
     · exact absurd rfl Hprnn
-    -- `nilAwareDelete(&cfg.Learners, id)`, `nilAwareDelete(&cfg.LearnersNext, id)`
-    icases (Access.access (A := iprop(cfgp.[tracker.Config, go!"Learners"] ↦ cfg.Learners'))
-      (A' := iprop(cfgp.[tracker.Config, go!"Learners"] ↦ cfg.Learners'))
-      (P := iprop(cfgp ↦ cfg))) $$ Hcfgp with ⟨Hf, Hback⟩
-    rw [Hl]
-    wp_apply wp_confchange_nilAwareDelete $$ [$Hf] as Hf
-    rw [← Hl]
-    ihave Hcfgp := Hback $$ Hf
-    icases (Access.access (A := iprop(cfgp.[tracker.Config, go!"LearnersNext"] ↦ cfg.LearnersNext'))
-      (A' := iprop(cfgp.[tracker.Config, go!"LearnersNext"] ↦ cfg.LearnersNext'))
-      (P := iprop(cfgp ↦ cfg))) $$ Hcfgp with ⟨Hf, Hback⟩
-    rw [Hln]
-    wp_apply wp_confchange_nilAwareDelete $$ [$Hf] as Hf
-    rw [← Hln]
-    ihave Hcfgp := Hback $$ Hf
-    wp_auto
-    wp_apply wp_confchange_incoming _ v map.nil Harr
-    wp_apply wp_mapInsert $$ Hv as Hv
+    icases ownCfgCC_elim _ _ _ $$ Hc with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal⟩
+    icases typedPointsto_not_null_dup _ _ _ $$ Hcfgp with ⟨Hcfgp, %Hcnn⟩
+    iStructNamed Hcfgp
+    icases Hback $$ %false Hpr with ⟨Hprs, Hnew⟩
+    ihave Hl := ownIdsetC_Q _ _ _ $$ Hl
+    wp_apply wp_confchange_nilAwareDelete $$ [$Learners $Hl] as %ml ⟨Learners, Hl⟩
+    ihave Hln := ownIdsetC_Q _ _ _ $$ Hln
+    wp_apply wp_confchange_nilAwareDelete $$ [$LearnersNext $Hln] as %mln ⟨LearnersNext, Hln⟩
+    wp_apply wp_confchange_incoming _ vin vout Harr
+    wp_apply wp_mapInsert $$ Hin as Hin
+    ihave Hcfgp : (cfgp ↦ ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)) $$
+        [Voters AutoLeave Learners LearnersNext]
+    · iapply typedPointsto_combine _ _ _ Hcnn
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    ihave Hc : ownCfgCC ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)
+        (DFrac.own 1) (makeVoterM id s).cfg $$ [Hin Hout Hl Hln]
+    · iapply ownCfgCC_intro ({ cfg with Learners' := ml, LearnersNext' := mln } : tracker.Config)
+        (DFrac.own 1) (makeVoterM id s).cfg vin vout Harr (by simp [makeVoterM, Hmem, Hal])
+        $$ [Hin] [Hout] [Hl] [Hln]
+      all_goals simp only [makeVoterM, if_pos Hmem]
+      · iexact Hin
+      · iexact Hout
+      · iexact Hl
+      · iexact Hln
     iapply HΦ
-    iframe Hp Hcfgp Hv Htrk
-    have Hid_vm : vm !! id = some () := by
-      have h1 : id ∈ domSet prs := GMap.elem_of_dom_2 _ _ _ Hlk
-      rw [Hdom, GMap.elem_of_dom] at h1
-      obtain ⟨⟨⟩, h⟩ := h1
-      exact h
-    isplitr
-    · ipureintro
-      rw [GMap.dom_insert_lookup _ _ _ _ Hid_vm]
-      exact Hdom
-    iapply (BigSepM.bigSepM_delete (Φ := fun _ pr => iprop(∃ pp, ownProgress pr pp)) (m := prs)
-      Hlk).2
-    iframe Hprogs
-    iexists pp
-    have Hpv_learner : pv.IsLearner' = false := ((progressAbs_Some _ _ _).1 Habs).1
-    iapply ownProgress_intro _ _ pp $$ Hpv Hinfl
-    ipureintro
-    rw [show ({ pv with IsLearner' := false } : tracker.Progress) = pv by
-      rw [← Hpv_learner]]
-    exact Habs
+    iframe Hp
+    iapply ownWork_intro chg base cfgp trk (makeVoterM id s) _ prs _ ?_
+      $$ Hcfgp Hc Htrk Hprs Hnew
+    simp only [makeVoterM, if_pos Hmem, flagsOf_insert, Hflags]
+
+end proof
+
+end EtcdGrove
+end Perennial

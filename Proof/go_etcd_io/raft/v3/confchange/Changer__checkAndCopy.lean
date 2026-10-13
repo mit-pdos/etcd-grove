@@ -1,5 +1,5 @@
 /-
-Proof of `Spec/Changer__checkAndCopy.lean`. Lean-first (no Rocq counterpart).
+Proof of `Spec/go_etcd_io/raft/v3/confchange/Changer__checkAndCopy.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -27,8 +27,12 @@ theorem confchange.Changer.checkAndCopy.wp_proof
     (wp_Config_Clone : tracker.Config.Clone.spec (GF := GF) (hG := hG))
     (wp_confchange_checkAndReturn : confchange.checkAndReturn.spec (GF := GF) (hG := hG)) :
     confchange.Changer.checkAndCopy.spec (GF := GF) (hG := hG) := by
-  intro p chg v vm prs dq dqv dqp Hcfg Hdom
-  wp_start as ⟨Hp, Hv, Hpm, Hprogs⟩
+  intro p chg c prs pvs dq dqc dqm dqp
+  wp_start as ⟨Hp, Htc⟩
+  unfold ownTrackerCC
+  icases Htc with ⟨Hc, Hpm, Hprs⟩
+  ihave %Hdom0 := BigSepM2.bigSepM2_lookup_iff $$ Hprs
+  have Hdom : ∀ k, (prs !! k).isSome ↔ (pvs !! k).isSome := Hdom0
   wp_auto
   wp_method_call
   wp_call
@@ -40,115 +44,108 @@ theorem confchange.Changer.checkAndCopy.wp_proof
     (A' := iprop((c_ptr.[confchange.Changer, go!"Tracker"]).[tracker.ProgressTracker, go!"Config"] ↦
       chg.Tracker'.Config'))
     (P := iprop(c_ptr ↦ chg))) $$ c with ⟨Hf, Hback⟩
-  wp_apply wp_Config_Clone _ _ v vm _ _ Hcfg $$ [$Hf $Hv] as %cfg' %v' ⟨Hf, Hv, %Hcfg', Hv'⟩
+  wp_apply wp_Config_Clone _ _ c _ dqc $$ [$Hf $Hc] as %cfg' ⟨Hf, Hc, Hc'⟩
   ihave c := Hback $$ Hf
   -- `trk := tracker.ProgressMap{}`: a `make`
   wp_apply wp_map_make1 (K := w64) (V := Loc) as %trkm Htrk
-  -- `for id, pr := range c.Tracker.Progress { ppr := *pr; trk[id] = &ppr }`. Each copy
-  -- takes the original's inflight ring, so the invariant marks the originals copied so
-  -- far (`keys.take i`) as no longer owned.
+  -- `for id, pr := range c.Tracker.Progress { ppr := *pr; trk[id] = &ppr }`: after `i`
+  -- keys, the copy map holds a fresh copy of each of them
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply wp_map_for_range (fun (keys : List w64) (i : Int) => iprop(∃ (x : w64) (y : Loc)
-      (prs' : GMap w64 Loc),
+      (prs' : GMap w64 Loc) (pvs' : GMap w64 tracker.Progress),
       "id" ∷ id_ptr ↦ x ∗
       "pr" ∷ pr_ptr ↦ y ∗
       "trk" ∷ trk_ptr ↦ trkm ∗
       "Htrk" ∷ trkm ↦$ prs' ∗
+      "Hprs" ∷ ([∗map] _k ↦ pr;pv ∈ prs;pvs, pr ↦{dqp} pv) ∗
+      "Hcopies" ∷ ([∗map] _k ↦ pr;pv ∈ prs';pvs', pr ↦ pv) ∗
       "%Hi" ∷ ⌜0 ≤ i⌝ ∗
-      "%Hdom'" ∷ ⌜∀ k, k ∈ domSet prs' ↔ k ∈ keys.take i.toNat⌝ ∗
-      "Hcopies" ∷ ([∗map] _k ↦ pr ∈ prs', ∃ pp, ownProgress pr pp) ∗
-      "Horig" ∷ ([∗map] k ↦ pr ∈ prs, ⌜k ∈ keys.take i.toNat⌝ ∨ ∃ pp, ownProgress pr pp)))
+      "%Hpart" ∷ ⌜∀ k, pvs' !! k = if k ∈ keys.take i.toNat then pvs !! k else none⌝))
     $$ Hpm
   iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
-  isplitl [id pr trk Htrk Hprogs]
-  · iexists zero_val w64, zero_val Loc, ∅
-    simp only [named, Int.toNat_zero, List.take_zero]
-    iframe id pr trk Htrk
-    isplitr
-    · ipureintro; exact Int.le_refl _
-    isplitr
-    · ipureintro
-      intro k
-      simp only [List.not_mem_nil, iff_false]
-      rw [GMap.elem_of_dom]
-      rintro ⟨v, hv⟩
-      simp at hv
+  isplitl [id pr trk Htrk Hprs]
+  · iexists zero_val w64, zero_val Loc, ∅, ∅
+    iframe id pr trk Htrk Hprs
     isplitl []
-    · iapply BigSepM.bigSepM_empty.2; iempintro
-    have Hmono : ∀ (k : w64) (pr : Loc),
-        (iprop(∃ pp, ownProgress pr pp) : IProp GF) ⊢
-          iprop(⌜k ∈ ([] : List w64)⌝ ∨ ∃ pp, ownProgress pr pp) := by
-      intro k pr; iintro H; iright; iexact H
-    iapply (BigSepM.bigSepM_mono (fun {k pr} _ => Hmono k pr)) $$ Hprogs
+    · iapply (BigSepM2.bigSepM2_empty _).2; iempintro
+    ipureintro
+    refine ⟨Int.le_refl _, fun k => ?_⟩
+    simp
   isplitr
   · imodintro
-    iintro %i %key %vv ⟨%Hkey, %Hvv⟩ HP
+    iintro %i %key %pr ⟨%Hkey, %Hpr⟩ HP
     iNamed HP
-    -- the original at `key`, still owned
-    icases (BigSepM.bigSepM_delete (m := prs) Hvv).1 $$ Horig with ⟨Hk, Horig⟩
-    icases Hk with (%Hin | ⟨%pp, Hpr⟩)
-    · exact absurd Hin (not_mem_take_of_nodup Hknodup Hkey)
-    iNamed Hpr
+    obtain ⟨pv, Hpv⟩ : ∃ pv, pvs !! key = some pv :=
+      Option.isSome_iff_exists.1 ((Hdom key).1 (by rw [Hpr]; rfl))
+    have Hnew : key ∉ keys.take i.toNat := not_mem_take_of_nodup Hknodup Hkey
+    icases (BigSepM2.bigSepM2_lookup_acc Hpr Hpv) $$ Hprs with ⟨Hp1, Hprback⟩
     wp_auto
+    ihave Hprs := Hprback $$ Hp1
     wp_apply wp_mapInsert $$ Htrk as Htrk
     unfold forMapPostcondition
     iright; ileft
     isplitr
     · ipureintro; rfl
+    ihave %Hcdom0 := BigSepM2.bigSepM2_lookup_iff $$ Hcopies
+    have Hpv'none : pvs' !! key = none := by rw [Hpart, if_neg Hnew]
+    have Hprs'none : prs' !! key = none := by
+      have h := (Hcdom0 key)
+      change (prs' !! key).isSome = true ↔ (pvs' !! key).isSome = true at h
+      rw [Hpv'none] at h
+      cases h' : prs' !! key with
+      | none => rfl
+      | some _ => rw [h'] at h; simp at h
+    iexists key, pr, _, <[key := pv]> pvs'
+    iframe id pr trk Htrk Hprs
+    isplitl [Hcopies ppr]
+    · iapply (BigSepM2.bigSepM2_insert Hprs'none Hpv'none).2
+      iframe
+    ipureintro
+    refine ⟨by omega, fun k => ?_⟩
     have Htake : keys.take (i + 1).toNat = keys.take i.toNat ++ [key] := by
-      rw [show (i + 1).toNat = i.toNat + 1 by omega]
-      rw [List.take_add_one, Hkey]; rfl
-    have Hnew : prs' !! key = none := by
-      rw [← GMap.not_elem_of_dom, Hdom']
-      exact not_mem_take_of_nodup Hknodup Hkey
-    iexists key, vv, _
-    simp only [named]
-    iframe id pr trk Htrk
-    isplitr
-    · ipureintro; omega
-    isplitr
-    · ipureintro
-      intro k
-      rw [GMap.dom_insert, GMap.elem_of_union, GMap.elem_of_singleton, Hdom', Htake,
-        List.mem_append, List.mem_singleton]
-      constructor
-      · rintro (h | h); exact .inr h; exact .inl h
-      · rintro (h | h); exact .inr h; exact .inl h
-    isplitl [Hcopies ppr Hinfl]
-    · iapply (BigSepM.bigSepM_insert (Φ := fun _ pr => iprop(∃ pp, ownProgress pr pp)) (m := prs')
-        Hnew).2
-      iframe Hcopies
-      iexists pp
-      iapply ownProgress_intro _ _ pp $$ ppr Hinfl
-      ipureintro; exact Habs
-    iapply (BigSepM.bigSepM_delete (m := prs) Hvv).2
-    isplitl []
-    · ileft; ipureintro; rw [Htake]; exact List.mem_append_right _ (List.mem_singleton.2 rfl)
-    have Hmono : ∀ (k : w64) (pr : Loc),
-        (iprop(⌜k ∈ keys.take i.toNat⌝ ∨ ∃ pp, ownProgress pr pp) : IProp GF) ⊢
-          iprop(⌜k ∈ keys.take (i + 1).toNat⌝ ∨ ∃ pp, ownProgress pr pp) := by
-      intro k pr
-      iintro (%Hin | H)
-      · ileft; ipureintro; rw [Htake]; exact List.mem_append_left _ Hin
-      · iright; iexact H
-    iapply (BigSepM.bigSepM_mono (fun {k pr} _ => Hmono k pr)) $$ Horig
+      rw [show (i + 1).toNat = i.toNat + 1 by omega, List.take_add_one, Hkey]; rfl
+    rw [Htake]
+    by_cases hk : k = key
+    · subst hk
+      rw [GMap.lookup_insert_eq, if_pos (List.mem_append_right _ (List.mem_singleton.2 rfl)), Hpv]
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hk), Hpart]
+      simp only [List.mem_append, List.mem_singleton, hk, or_false]
   iintro HP Hpm
   iNamed HP
-  rw [Int.toNat_natCast, ← Hklen, List.take_length] at Hdom'
-  have Hdom'' : domSet prs' = domSet vm := by
-    rw [← Hdom]
-    apply GMap.set_eq; intro k
-    rw [Hdom', Hkset]
-    exact (GMap.elem_of_dom' _ _).symm
+  have Hpvs' : pvs' = pvs := by
+    apply GMap.map_eq; intro k
+    rw [Hpart, Int.toNat_natCast, ← Hklen, List.take_length]
+    by_cases hk : k ∈ keys
+    · rw [if_pos hk]
+    · rw [if_neg hk]
+      have h1 : (prs !! k).isSome = false := by
+        cases h : (prs !! k).isSome
+        · rfl
+        · exact absurd ((Hkset k).2 h) hk
+      have h2 : (pvs !! k).isSome = false := by
+        cases h : (pvs !! k).isSome
+        · rfl
+        · rw [← Hdom] at h; rw [h] at h1; cases h1
+      cases h3 : pvs !! k with
+      | none => rfl
+      | some _ => rw [h3] at h2; cases h2
+  subst Hpvs'
   -- `checkAndReturn(cfg, trk)`
   wp_auto
-  wp_apply wp_confchange_checkAndReturn _ _ v' vm prs' _ _ Hcfg' Hdom'' $$ [$Hv' $Htrk]
-    as ⟨Hv', Htrk⟩
+  wp_apply wp_confchange_checkAndReturn cfg' trkm _ prs' pvs' _ _ _ $$ [$Hc' $Htrk $Hcopies]
+    as %cfg'' %trk'' %err ⟨Hc', Htrk, Hcopies, %Hres⟩
   iapply HΦ
-  iframe
-  ipureintro
-  exact ⟨Hcfg', Hdom''⟩
+  iframe Hp Hc Hpm Hprs
+  rcases Hres with ⟨Hinv, Herr, rfl, rfl⟩ | ⟨Hinv, Herr⟩
+  · iright
+    iframe Hc'
+    isplitr
+    · ipureintro; exact ⟨Hinv, Herr⟩
+    iexists prs'
+    iframe
+  · ileft
+    ipureintro; exact ⟨Hinv, Herr⟩
 
 end proof
 

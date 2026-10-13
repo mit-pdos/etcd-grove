@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-12 (a closed theorem about the register's driver in the operational semantics, `register_adequate`, from Perennial's adequacy; package initialization proved for raft, its subpackages, `context` and the register; the account of every axiom and `sorry` it rests on, see "Adequacy of the register's driver"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
+**Last updated:** 2026-10-12 (raft's `confchange` specified and proved for all inputs against a pure model (joint configs, learners, `EnterJoint`/`LeaveJoint`, every error path), `Restore.spec` unchanged, six `quorum`/`tracker` functions, two findings, see "`confchange`, `quorum`, `tracker`: general specs for reconfiguration"; a closed theorem about the register's driver in the operational semantics, `register_adequate`, from Perennial's adequacy; package initialization proved for raft, its subpackages, `context` and the register; the account of every axiom and `sorry` it rests on, see "Adequacy of the register's driver"; `origin/lean` merged into `mvcc` (the txn package, units 0–4, and its mvcc changes: the read-only write transaction, `metricsTxnWrite.Rev`/`Changes` of either kind, `idxLogAuth`, reads pinned by tokens; our `zap.Logger.Panic` kept), see "Merge: lean into mvcc (2026-10-12)"; mvcc: the watchable store, unit 2 complete: the batches (`ebAdd`, `batchOf`) and `choose`/`chooseAll` over the members' states, 23 functions of `watcher_group.go`/`watcher.go`; unit 3's design (the store's invariant, the channel protocol of the watch guarantee, three parts), see "The watchable store" and decisions.md "The watchable store's concurrency (unit 3)"; unit 2, first half: the watcher group's sets and structure (11 functions over the tree's contract, 5 of them conditional on it) and the client's watch stream (7 functions over the `watchable` contract; `trace.SpanFromContext` axiom), see "The watchable store"; 2026-10-11: unit 1b: the interval tree's contract (string-affine intervals over the opaque `ownIvt`, seven pending specs, `gen-link.py --adt`) and four pure functions proved, see "The watchable store"; unit 1a: `pkg/v3/adt` (the interval tree) and `watchable_store.go`/`watchable_store_txn.go`/`watcher.go`/`watcher_group.go` translated with bodies, the plan (contract first, the tree's proof last), see "The watchable store"; mvcc: `zap.Logger.Panic`/`Fatal` specified (a panic with the message; an exit, never returning), the key index's `put`/`tombstone`/`get` specified over all inputs (a bad input is the panic, the key index unchanged), `isTreeIndex` with a non-nil logger, see "`key_index.go`'s panics"; the txn units 3 (`Txn`) and 4 (the history laws of the log) merged into `lean` (`2175453f0`; notes-only conflicts, no proof changed; the whole package verified: every translated function of `txn.go`/`put.go`/`range.go`/`delete.go`, txn 39 of 48 functions, 570 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 474 verified of 3599 functions, 4943 of 45570 lines), see "Merge 3/4" and "The whole package"; the txn units 1 (`Put`, `DeleteRange`) and 2 (`range.go`) merged into `lean` (`mkGteRange` proved by both: unit 1's kept, `executeRange` adapted, one `wp_slice_literal_nn`; `gen-link.py` every mode reproduces; txn 27 of 48 functions verified, 274 of 653 lines; gates 69 axioms, 1 sorry, txn 20/0, etcd 462 verified of 3599 functions, 4647 of 45570 lines), see "Merge of units 1 and 2"; 2026-10-11: the txn units 0, 0b and 0c merged into `lean` (notes-only conflicts, no proof changed, both `Link.lean`s reproduce; gates 69 axioms, 1 sorry, txn 17/0, mvcc 13/0, etcd 435 verified of 3599 functions, 4373 of 45570 lines), see "Merge of units 0, 0b and 0c"; the server's `txn` package unit 0 on branch `txn-u0`: translated (`txn.toml`, Goose accepts it
 as pinned), the requests and responses as the client model's values (`Requests.lean`), `isKV`,
 `isTxnLessor`, 13 trust-boundary axioms (`sort.Sort`/`Reverse`, traceutil, `proto.Size`,
 `zap.Logger.Panic`, ...), mvcc's read-only write transaction proved, `gen-link.py --txn`, a
@@ -18,6 +18,55 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## `confchange`, `quorum`, `tracker`: general specs for reconfiguration (2026-10-12)
+
+Every function of raft's `confchange` package is specified and proved for all inputs (joint
+configurations, learners, staged learners, removal, `AutoLeave`, every error path), against a
+pure model, Lean-first; with six small `quorum`/`tracker` functions. Purpose: the specs
+`raft.applyConfChange` and joint-consensus reconfiguration will be proved from.
+
+- **The model** (`InvConfchange.lean`): `CfgM` (incoming, outgoing, learners, learnersNext,
+  autoLeave as `GSet w64`s), `CCState` (with each tracked id's `IsLearner`), `CfgInv` (exactly
+  what `checkInvariants` accepts), and `simpleM`/`enterJointM`/`leaveJointM`/`applyM`/
+  `makeVoterM`/`makeLearnerM`/`removeM`/`initProgressM`/`checkedM`: each `Changer` method is an
+  `Option CCState`, `none` on its errors (already/not joint, zero voters, unexpected type,
+  removed all voters, more than one voter changed, invariants broken).
+- **Representation**: `ownCfgCC` (incoming map owned; outgoing, `Learners`, `LearnersNext`
+  canonical, `nil` exactly when empty), `ownTrackerCC` (the tracker, read at any fractions),
+  `ownResult` (a method's `(cfg, trk, err)`), `ownPrsW`/`ownNewPr` (each result `Progress` a
+  copy of the tracker's with `IsLearner` changed, or fresh with its `Inflights`),
+  `ownNewPr_transfer` (moves resources held for the originals to the copies).
+- **Specs** (Spec/go_etcd_io/raft/v3/confchange/): new `EnterJoint`, `LeaveJoint`,
+  `makeLearner`, `remove`, `err`, `nilAwareAdd`, `outgoingPtr`; replaced by general ones
+  `Simple`, `apply`, `makeVoter`, `initProgress`, `joint`, `nilAwareDelete`, `symdiff` (exact
+  count mod `2^64`), `checkInvariants` (`nil` iff `CfgInv`), `checkAndReturn`, `checkAndCopy`;
+  `tracker.Config.Clone` and `quorum.JointConfig.IDs` generalized (any `nil`-or-map halves,
+  result the union; `IDs.spec_tracker` re-derived). `incoming`/`outgoing`/`chain`/
+  `toConfChangeSingle` unchanged. **`Restore.spec` unchanged**: its proof derives the old
+  `Simple` statement from the new one (`Simple_votersOnly`, with `simpleM_addNode`,
+  `ownProgress_values`, `ownProgress_of_values` in `Proof/.../confchange/Restore.lean`).
+- **quorum/tracker** (a subagent's, cherry-picked): `mapAckIndexer.AckedIndex`,
+  `Inflights.Count`, `Inflights.Clone`, `ProgressTracker.IsSingleton` (joint form),
+  `LearnerNodes` (sorted permutation of the learners, `nil` when none; needs `≤ 2^62`
+  learners for `slices.Sort`), `QuorumActive` on the existing `ownTracker` (simple config):
+  the answer is a quorum test of *some* subset of the voters, because `RecentActive` is not in
+  the `Progress` record; `JointConfig.VoteResult.spec` is stated only for the tracker's own
+  vote map, so `QuorumActive`'s proof steps through it with `MajorityConfig.VoteResult` as
+  callee. Both are gaps for later (add `RecentActive` to `Progress`; generalize `VoteResult`).
+- **Restriction**: an empty non-`nil` `Learners` map is outside the specs (no `confchange`
+  operation creates one; `Restore` needs `Learners = nil` out of the general spec).
+- **Findings** (`issues/`): `raft-config-clone-autoleave` (`Config.Clone` drops `AutoLeave`,
+  so `Status().Config.AutoLeave` is always false) and `raft-changer-nil-incoming` (a tracker
+  with a `nil` incoming voter map panics on `AddNode`); both reproduced with Go tests.
+- New generic lemmas: `wp_idset_for_range`/`wp_idset_lookup2` (a range/lookup over a
+  `nil`-or-map id set, one rule), `wp_mapDelete_named` (`delete` on a named map type),
+  `ownIdsetQ`/`ownIdsetC` and their conversions (InvTracker.lean).
+- `etc/link-lean-first.txt` lists the new functions and `confchange_Restore`'s callees
+  (`Link.lean` regenerated by `etc/gen-link.py` from the Rocq tree at `857d09190`: the file
+  now reproduces). Full `lake build` passes; `etc/tcb-report.py --check` matches the
+  baseline (70 axioms, 10 sorries); the 60 confchange/quorum/tracker roots reach no `sorry`
+  and no axiom of this repository.
 
 ## Adequacy of the register's driver: the closed theorem and its trust base (2026-10-12)
 

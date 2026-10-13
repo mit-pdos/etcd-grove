@@ -1,6 +1,6 @@
 /-
-`tracker.Config.Clone` copies a config so that it shares no memory with the original.
-Lean-first (no Rocq counterpart); see `InvConfchange.lean`.
+`Config.Clone` copies a configuration's maps. Lean-first (no Rocq counterpart); see
+`InvConfchange.lean`.
 -/
 module
 
@@ -22,19 +22,17 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `Clone` of a voters-only non-joint config: a fresh incoming voter map with the same
-ids; `nil` maps clone to `nil`; `AutoLeave` is **not** copied (the `Config{...}` literal
-leaves it at `false`), which is why the result is again `ConfigSimple`. The receiver is a
-value method; it is called through the field's address (`(c Config) Clone()` on
-`c.Tracker.Config`), so the triple is stated on the pointer method. -/
+/-- `Clone()` on a configuration representing `c`: a configuration with fresh maps holding
+the same sets (a `nil` map cloned as `nil`, so the canonical representations stay
+canonical) and **`AutoLeave` false**: `Clone` does not copy it (`raft-config-clone-autoleave`
+in `issues/`). (Generalized 2026-10-12 from the voters-only config.) -/
 abbrev tracker.Config.Clone.spec : Prop :=
-  ∀ (p : Loc) (cfg : tracker.Config) (v : Loc) (vm : GMap w64 Unit) (dq dqv : DFrac),
-  ConfigVotersOnly cfg v →
+  ∀ (p : Loc) (cfg : tracker.Config) (c : CfgM) (dq dqc : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗
-      p ↦{dq} cfg ∗ v ↦${dqv} vm }}
+      p ↦{dq} cfg ∗ ownCfgCC cfg dqc c }}
     (App (Val (p @!! go.GoType.PointerType tracker.Config.ty @!! go!"Clone")) (Val #()))
-  {{ (cfg' : tracker.Config) (v' : Loc), RET #cfg';
-      p ↦{dq} cfg ∗ v ↦${dqv} vm ∗ ⌜ConfigSimple cfg' v'⌝ ∗ v' ↦$ vm }}
+  {{ (cfg' : tracker.Config), RET #cfg';
+      p ↦{dq} cfg ∗ ownCfgCC cfg dqc c ∗ ownCfgCC cfg' (DFrac.own 1) { c with autoLeave := false } }}
 
 end spec
 

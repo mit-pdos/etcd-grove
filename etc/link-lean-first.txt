@@ -1,21 +1,39 @@
 # Lean-first functions (no Rocq counterpart), read by etc/gen-link.py:
 # `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
-# The confchange package, translated and proved 2026-10-08 (see InvConfchange.lean).
+# The confchange package, translated and proved 2026-10-08 (see InvConfchange.lean);
+# generalized to all inputs 2026-10-12 (EnterJoint, LeaveJoint, makeLearner, remove, err,
+# nilAwareAdd, outgoingPtr added); Restore (a Rocq-side Axiom) proved from its callees.
 confchange_incoming:
 confchange_outgoing:
+confchange_outgoingPtr:
 confchange_joint: confchange_outgoing
+confchange_nilAwareAdd:
 confchange_nilAwareDelete:
 confchange_symdiff:
-confchange_checkInvariants: JointConfig__IDs confchange_joint confchange_outgoing
+confchange_checkInvariants: JointConfig__IDs confchange_joint confchange_outgoing confchange_incoming
 confchange_checkAndReturn: confchange_checkInvariants
 Config__Clone:
 Changer__checkAndCopy: Config__Clone confchange_checkAndReturn
-Changer__initProgress: confchange_incoming tracker_NewInflights
+Changer__err:
+Changer__initProgress: confchange_incoming tracker_NewInflights confchange_nilAwareAdd
+Changer__remove: confchange_incoming confchange_outgoing confchange_nilAwareDelete
 Changer__makeVoter: Changer__initProgress confchange_incoming confchange_nilAwareDelete
-Changer__apply: Changer__makeVoter confchange_incoming
-Changer__Simple: Changer__checkAndCopy confchange_joint Changer__apply confchange_incoming confchange_symdiff confchange_checkAndReturn
+Changer__makeLearner: Changer__initProgress Changer__remove confchange_outgoing confchange_nilAwareAdd
+Changer__apply: Changer__makeVoter Changer__makeLearner Changer__remove confchange_incoming
+Changer__Simple: Changer__checkAndCopy confchange_joint Changer__err Changer__apply confchange_incoming confchange_symdiff confchange_checkAndReturn
+Changer__EnterJoint: Changer__checkAndCopy confchange_joint Changer__err confchange_incoming confchange_outgoingPtr confchange_outgoing Changer__apply confchange_checkAndReturn
+Changer__LeaveJoint: Changer__checkAndCopy confchange_joint Changer__err confchange_nilAwareAdd confchange_outgoing confchange_incoming confchange_outgoingPtr confchange_checkAndReturn
 confchange_toConfChangeSingle:
 confchange_chain:
+confchange_Restore: confchange_toConfChangeSingle Changer__Simple confchange_chain
+# The tracker/quorum accessors (2026-10-12). QuorumActive inlines JointConfig.VoteResult
+# (whose spec is on the tracker's own vote map).
+mapAckIndexer__AckedIndex:
+Inflights__Count:
+Inflights__Clone:
+ProgressTracker__IsSingleton:
+ProgressTracker__LearnerNodes: slices_Sort
+ProgressTracker__QuorumActive: ProgressTracker__Visit MajorityConfig__VoteResult
 # raftpb.ConfState.Equivalent (confstate.go), proved 2026-10-08: its callees override
 # the (empty) Rocq postulates of spec_ConfState__Equivalent.v, an Axiom there.
 reflect_DeepEqual:
