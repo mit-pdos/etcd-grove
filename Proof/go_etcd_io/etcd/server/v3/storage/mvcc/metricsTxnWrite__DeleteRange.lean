@@ -29,6 +29,7 @@ theorem mvcc.metricsTxnWrite.DeleteRange.wp_proof
     mvcc.metricsTxnWrite.DeleteRange.spec (GF := GF) (hG := hG) := by
   intro mw s γ ilog pend puts deletes putSize key endk k e
   wp_start as ⟨Htx, #Hkey, #Hend, %Hb⟩
+  have hpm := mvcc.putMax_le γ
   iunfold mvcc.isTxnWrite at Htx
   iNamed Htx
   (try wp_auto)

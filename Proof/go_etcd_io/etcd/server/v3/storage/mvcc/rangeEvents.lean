@@ -33,13 +33,12 @@ theorem mvcc.rangeEvents.wp_proof
     (hRevTo : mvcc.RevToBytes.spec (GF := GF) (hG := hG))
     (hKvs : mvcc.kvsToEvents.spec (GF := GF) (hG := hG)) :
     mvcc.rangeEvents.spec (GF := GF) (hG := hG) := by
-  intro lg b γ Wr P f q log minRev maxRev g W
-  wp_start as ⟨#Hbk, Hview, #Hcert, Hg, %Hrng⟩
+  intro lg b γ Wr P f q log minRev maxRev g W RT WT Wi PutOk
+  wp_start as ⟨#Hbk, Hrt, Hview, #Hcert, Hg, %Hrng⟩
   ihave %Hwf : ⌜mvcc.LogWf' log ∧ log.length < 2 ^ 63 ∧ ∀ cs ∈ log, cs.length < 2 ^ 63⌝ $$ [Hcert]
   · iunfold mvcc.idxCert at Hcert
     icases Hcert with ⟨-, -, %H, -⟩
     ipureintro; exact H
-  iunfold mvcc.isKeyBackend at Hbk
   iunfold mvcc.isKeyBackendG at Hbk
   icases Hbk with ⟨%bi, %Hbi, -, #HR, -, -⟩
   subst Hbi
@@ -57,7 +56,7 @@ theorem mvcc.rangeEvents.wp_proof
   (try wp_auto)
   simp only [List.drop_of_length_le (show (List.replicate 17 (W8 0)).length ≤ 17 by simp),
     List.append_nil, mvcc.revOf]
-  wp_apply HR $$ [$Hview] as %rt ⟨Hview, Hsnap⟩
+  wp_apply HR $$ [$Hview $Hrt] as %rt ⟨Hview, Hsnap⟩
   icases Hsnap with ⟨%L, HL, #Hsnap⟩
   iunfold mvcc.keyReadSnap at Hsnap
   (try wp_auto)
@@ -66,8 +65,9 @@ theorem mvcc.rangeEvents.wp_proof
   · iframe HL Hview
   inext
   iintro ⟨Hview, %Rd, %Tok, Htok, #Hlk⟩
+  ihave #Hrange := mvcc.keyReadLocked_range _ _ _ _ _ $$ Hlk
   iunfold mvcc.keyReadLocked at Hlk
-  icases Hlk with ⟨#HRU, -, #Hrange, #Hrc⟩
+  icases Hlk with ⟨#HRU, -, -, #Hrc⟩
   (try wp_auto)
   ihave #Hsch : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
   · iPkgInit
@@ -96,7 +96,12 @@ theorem mvcc.rangeEvents.wp_proof
     $$ [$Hg $Hkv $Hrc $Htok] as %evs ⟨Hg, Htok, %ps, Hevs, Hcap, %Hps, Hdone⟩
   · ipureintro; exact mvcc.logEnts_bounds log hlen hcs _ _ hhi
   (try wp_auto)
-  wp_apply HRU $$ [$Htok]
+  -- (by hand: `wp_apply` aborts here)
+  wp_bind (App (Val #(methods rt.ty _ rt.v)) (Val #()))
+  iapply HRU $$ [Htok]
+  · iexact Htok
+  inext
+  iintro Hrt
   (try wp_auto)
   have hev : mvcc.entsEvents W (mvcc.logEnts log (sint.nat minRev) (sint.nat maxRev)) =
       (mvcc.logEvents log (sint.nat minRev) (sint.nat maxRev)).filter

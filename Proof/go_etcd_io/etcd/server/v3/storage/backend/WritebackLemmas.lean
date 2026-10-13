@@ -75,11 +75,39 @@ theorem vData_writeback_same (P : BParams) (C : Data) (W : WBuf) (R : RBuf)
   rw [vOf_writeback]
   exact agreeOff_ovB_nonHB P W.bks _ hW
 
+theorem mem_canon {l : List Ent} {e : Ent} (h : e ∈ canon l) : e ∈ l := by
+  unfold canon at h
+  exact List.mem_mergeSort.1 ((dedupLast_sublist _).subset h)
+
+/-- An entry of a merged bucket is the read buffer's or the write buffer's. -/
+theorem mem_bkOf_wbMerge {W R : GMap w64 (List Ent)} {i : w64} {e : Ent}
+    (h : e ∈ bkOf (wbMerge W R) i) : e ∈ bkOf R i ∨ e ∈ bkOf W i := by
+  rw [bkOf_wbMerge] at h
+  unfold bkOf
+  cases hw : W.lookup i with
+  | none => rw [hw] at h; exact Or.inl h
+  | some es =>
+    rw [hw] at h
+    rcases List.mem_append.1 (mem_canon h) with h | h
+    · exact Or.inl h
+    · exact Or.inr (by simpa using h)
+
+/-- The write-back keeps the safe-range discipline: the merged read buffer's keys are the read
+buffer's and the write buffer's, both above the committed ones. -/
+theorem safeSt_writeback {P : BParams} {st : BSess} (hs : safeSt P st) : safeSt P (wbSt P st) := by
+  refine ⟨?_, fun n i hn hsb => ⟨?_, (hs.2 n i hn hsb).2⟩⟩
+  · intro n i hn hsb kc vc e hc he
+    rcases mem_bkOf_wbMerge (W := st.W.bks) (R := st.R.bks) he with he | he
+    · exact hs.1 n i hn hsb kc vc e hc he
+    · exact (hs.2 n i hn hsb).1 kc vc e hc he
+  · intro kc vc e _ he
+    exact absurd he (by show e ∉ bkOf (writebackW st.W st.R).bks i; rw [bkOf_writebackW]; simp)
+
 theorem sessWf_writeback {P : BParams} {st : BSess} (hst : sessWf P st) (hpn : st.pend ≠ W64 0) :
     sessWf P (wbSt P st) := by
-  obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag⟩ := hst
+  obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag, hsf⟩ := hst
   refine ⟨writebackW_wf _ _, writebackR_wf _ hRf, idsOk_writebackW hWi, idsOk_wbR hWi hRi,
-    hp0, hp1, hn0, hnp, ?_, ?_⟩
+    hp0, hp1, hn0, hnp, ?_, ?_, safeSt_writeback hsf⟩
   · intro hp
     exact absurd hp hpn
   · intro hn

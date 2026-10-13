@@ -60,10 +60,11 @@ theorem txn.DeleteRange.wp_proof
   (try wp_auto)
   -- `kv.Write(trace)`: the store's
   iunfold txn.isKV at Hkv
-  icases Hkv with ⟨%Hkv, #Hs⟩
+  icases Hkv with ⟨%Hkv, #Hs, %Hkb⟩
   subst Hkv
   (try wp_auto)
-  wp_apply (hWrite s γ t P Pre Q f) $$ [$Hs $Hrd $Htok $Hhook $Hpre $Htr] as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
+  ihave Hwt := txn.storeWT_none (GF := GF) γ Hkb
+  wp_apply (hWrite s γ t P Pre Q f) $$ [$Hs $Hrd $Htok $Hwt $Hhook $Hpre $Htr] as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
   · ipureintro; exact Ht
   -- the caller's update (the writes are the model's): the lock's invariant back for `End`
   imod Hupd $$ HQ with ⟨HP, HPost⟩
@@ -84,7 +85,7 @@ theorem txn.DeleteRange.wp_proof
     · cases nd
       · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
       · simp only [↓reduceIte, mvcc.neverDone] at *; iexact Hnd
-    ipureintro; exact hb
+    ipureintro; rw [txn.putMax_none γ Hkb]; exact hb
   rw [txn.pendState_nil]
   simp only [List.nil_append]
   icases Hout with (⟨%Herr, ⟨%deletes', Htx⟩, #Hresp, Hhdr⟩ | ⟨%Hne, Htx⟩)

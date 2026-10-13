@@ -30,7 +30,8 @@ abbrev mvcc.watchableStore.Write.spec : Prop :=
   ∀ (s st : Loc) (γ : mvcc.WsNames) (trace : Loc) (L : mvcc.Log) (P Pre Q : IProp GF)
     (f : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isWatchableStore s st γ ∗ mvcc.storeReader st γ.st ∗ mvcc.watchWriter γ L ∗
+      mvcc.isWatchableStore s st γ ∗ mvcc.storeReader st γ.st ∗ mvcc.storeWT γ.st ∗
+      mvcc.watchWriter γ L ∗
       ⌜L.length + 4 ≤ 2 ^ 63⌝ ∗ ⌜trace ≠ null⌝ ∗
       mvcc.hookIs γ.st P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"Write")) (Val #trace))

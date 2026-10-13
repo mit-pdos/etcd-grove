@@ -133,11 +133,12 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
         omega
       have hbg' := bgOk_writeback Hbg Hle
       have hwf' := sessWf_writeback Hwf hp0
+      have hsafe : safeRv P (st.C, writebackR st.W st.R) := hwf'.2.2.2.2.2.2.2.2.2.2.1
       have hsame := vData_writeback_same P st.C st.W st.R Hvs.2
       have hvs' : vData P ((wbSt P st).C, (wbSt P st).R) = sData P (wbSt P st).S := by
         rw [wbSt_C, wbSt_R, wbSt_S, hsame]
         exact Hvs.1
-      imod (rtRes_wb_close_same γ P rt st.W st.C st.R Hwf.2.2.1 hver hsame) $$ [$Hci $Hwb $HRB $Hrvs]
+      imod (rtRes_wb_close_same γ P rt st.W st.C st.R Hwf.2.2.1 hver hsame hsafe) $$ [$Hci $Hwb $HRB $Hrvs]
         with ⟨Hrr, Hrvs⟩
       ihave Hv : ghostVar γ.view (1 : Qp).half.half (vData P (st.C, writebackR st.W st.R)) $$ [Hv]
       · rw [hsame]; iexact Hv
@@ -269,8 +270,9 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
         omega
       have hbg' := bgOk_writeback Hbg Hle
       have hwf' := sessWf_writeback Hwf hp0
+      have hsafe : safeRv P (st.C, writebackR st.W st.R) := hwf'.2.2.2.2.2.2.2.2.2.2.1
       by_cases hcond : (sint.Z P.limit ≤ sint.Z st.pend ∨ 0 < sint.Z st.ndel)
-      · imod (rtRes_wb_close γ P rt st.W st.C st.R vd true Hwf.2.2.1 hver) $$ [$Hci $Hwb $HRB $Hrvs $Hv $Hbv]
+      · imod (rtRes_wb_close γ P rt st.W st.C st.R vd true Hwf.2.2.1 hver hsafe) $$ [$Hci $Hwb $HRB $Hrvs $Hv $Hbv]
           with ⟨Hrr, Hrvs, Hv, -⟩
         wp_apply (hRUnlock γ P rt) $$ [$Hwl $Hrr]
         wp_if_destruct
@@ -363,7 +365,7 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
         rcases hcond with h | h
         · omega
         · exact Hif (by have : sint.Z (W64 0) = 0 := rfl; omega)
-      · imod (rtRes_wb_close γ P rt st.W st.C st.R vd false Hwf.2.2.1 hver) $$ [$Hci $Hwb $HRB $Hrvs $Hv $Hbv]
+      · imod (rtRes_wb_close γ P rt st.W st.C st.R vd false Hwf.2.2.1 hver hsafe) $$ [$Hci $Hwb $HRB $Hrvs $Hv $Hbv]
           with ⟨Hrr, Hrvs, Hv, Hbvw⟩
         wp_apply (hRUnlock γ P rt) $$ [$Hwl $Hrr]
         wp_if_destruct

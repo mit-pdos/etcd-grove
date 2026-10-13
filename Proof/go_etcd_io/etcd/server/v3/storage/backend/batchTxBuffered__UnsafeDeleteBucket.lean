@@ -29,7 +29,7 @@ variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions]
 theorem backend.batchTxBuffered.UnsafeDeleteBucket.wp_proof
     (hBT : backend.batchTx.UnsafeDeleteBucket.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.UnsafeDeleteBucket.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t st bk bi Hhas Hp
+  intro γ P W Pk b t st bk bi Hhas Hp Hsb
   wp_start as ⟨#Hb, #Ht, Hl, #Hbk⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
@@ -58,7 +58,7 @@ theorem backend.batchTxBuffered.UnsafeDeleteBucket.wp_proof
     iframe
     iframe #
   · ipureintro
-    exact sessWf_delBucket Hwf Hp
+    exact sessWf_delBucket Hwf Hp Hsb
 
 end proof
 

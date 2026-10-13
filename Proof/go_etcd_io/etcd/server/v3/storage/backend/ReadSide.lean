@@ -40,6 +40,19 @@ namespace backend
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend
 
+/-- A reset read buffer is safe over any committed data (its buckets are empty). -/
+theorem safeRv_reset (P : BParams) (C : Data) (R : RBuf) : safeRv P (C, R.reset) := by
+  intro n i _ _ kc vc e _ he
+  have h0 : bkOf (bksReset R.bks) i = [] := by
+    unfold bkOf bksReset
+    show (((R.bks.filter _).fmap _).lookup i).getD [] = []
+    rw [show ((R.bks.filter (fun _ es => !es.isEmpty)).fmap (fun _ => ([] : List Ent))).lookup i =
+      ((R.bks.lookup i).filter (fun es => !es.isEmpty)).map (fun _ => []) from rfl]
+    cases R.bks.lookup i with
+    | none => rfl
+    | some es => simp only [Option.filter]; split <;> rfl
+  exact absurd he (by show e ∉ bkOf (bksReset R.bks) i; rw [h0]; simp)
+
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -168,7 +181,8 @@ theorem rtIntv_upd (γ : BNames) (P : BParams) (q : Qp) (rd : RdSt) (i : Nat) (w
 /-- The write-back's common part: the new version's state `(ver + 1, 0)`, given the view's
 quarter already at the new view, the clients' share to deposit for a window. -/
 theorem wb_core (γ : BNames) (P : BParams) (rt : Loc) (W : WBuf) (C : Data) (R : RBuf)
-    (win : Bool) (hW : idsOk P W.bks) (hver : uint.Z R.ver + 1 < 2 ^ 64) :
+    (win : Bool) (hW : idsOk P W.bks) (hver : uint.Z R.ver + 1 < 2 ^ 64)
+    (hsafe : safeRv P (C, writebackR W R)) :
     cacheInv (GF := GF) γ ∗
       (∃ (rd : RdSt) (cm : GoMap) (H : GMap (w64 × Nat) RView), ⌜rd.win = false⌝ ∗
         rbktOf (baseOf rt) ↦ cm ∗ rtCore γ P rt 1 rd (C, R) cm H) ∗
@@ -241,7 +255,7 @@ theorem wb_core (γ : BNames) (P : BParams) (rt : Loc) (W : WBuf) (C : Data) (R 
     · ipureintro; exact Hok
     isplitr
     · ipureintro
-      refine ⟨hR'wf, hR'ids, GMap.lookup_insert _ _ _, ?_, fun _ => trivial⟩
+      refine ⟨hR'wf, hR'ids, GMap.lookup_insert _ _ _, ?_, fun _ => trivial, hsafe⟩
       intro k rv' hk
       by_cases hkk : (R.ver + W64 1, 0) = k
       · subst hkk; exact keyLe_refl _
@@ -288,7 +302,7 @@ theorem wb_core (γ : BNames) (P : BParams) (rt : Loc) (W : WBuf) (C : Data) (R 
     · ipureintro; exact Hok
     isplitr
     · ipureintro
-      refine ⟨hR'wf, hR'ids, GMap.lookup_insert _ _ _, ?_, fun _ => trivial⟩
+      refine ⟨hR'wf, hR'ids, GMap.lookup_insert _ _ _, ?_, fun _ => trivial, hsafe⟩
       intro k rv' hk
       by_cases hkk : (R.ver + W64 1, 0) = k
       · subst hkk; exact keyLe_refl _
@@ -305,7 +319,8 @@ theorem wb_core (γ : BNames) (P : BParams) (rt : Loc) (W : WBuf) (C : Data) (R 
 share and the batch lock's quarter); with `win`, the window opens (the clients' share stays in
 `cacheInv`). -/
 theorem rtRes_wb_close (γ : BNames) (P : BParams) (rt : Loc) (W : WBuf) (C : Data) (R : RBuf)
-    (vd : VData) (win : Bool) (hW : idsOk P W.bks) (hver : uint.Z R.ver + 1 < 2 ^ 64) :
+    (vd : VData) (win : Bool) (hW : idsOk P W.bks) (hver : uint.Z R.ver + 1 < 2 ^ 64)
+    (hsafe : safeRv P (C, writebackR W R)) :
     cacheInv (GF := GF) γ ∗ rtWb γ P rt C R ∗ ownRB (rbufOf (baseOf rt)) (writebackR W R) ∗
       ghostVar γ.rvs (1 : Qp).half ((C, R), false) ∗
       ghostVar γ.view (1 : Qp).half.half (vData P (C, R)) ∗ bView γ 1 vd ⊢
@@ -320,7 +335,7 @@ theorem rtRes_wb_close (γ : BNames) (P : BParams) (rt : Loc) (W : WBuf) (C : Da
   imod view_upd3 γ _ _ _ (vData P (C, writebackR W R)) $$ [Hvr Hvq Hvc] with ⟨Hvr, Hvq, Hvc⟩
   · iframe
   cases win
-  · imod wb_core γ P rt W C R false hW hver $$ [Hcm Hcore Hvr Hrb Hb] with ⟨Hres, Hb⟩
+  · imod wb_core γ P rt W C R false hW hver hsafe $$ [Hcm Hcore Hvr Hrb Hb] with ⟨Hres, Hb⟩
     · iframe #; iframe
       isplitr
       · ipureintro; exact Hw
@@ -328,7 +343,7 @@ theorem rtRes_wb_close (γ : BNames) (P : BParams) (rt : Loc) (W : WBuf) (C : Da
     imodintro
     simp only [Bool.false_eq_true, ↓reduceIte]
     iframe
-  · imod wb_core γ P rt W C R true hW hver $$ [Hcm Hcore Hvr Hrb Hb Hvc Hcw] with ⟨Hres, Hb⟩
+  · imod wb_core γ P rt W C R true hW hver hsafe $$ [Hcm Hcore Hvr Hrb Hb Hvc Hcw] with ⟨Hres, Hb⟩
     · iframe #; iframe
       isplitr
       · ipureintro; exact Hw
@@ -345,7 +360,8 @@ the hook's buckets): the new version's state, no window, the view (and the clien
 untouched. -/
 theorem rtRes_wb_close_same (γ : BNames) (P : BParams) (rt : Loc) (W : WBuf) (C : Data)
     (R : RBuf) (hW : idsOk P W.bks) (hver : uint.Z R.ver + 1 < 2 ^ 64)
-    (hsame : vData P (C, writebackR W R) = vData P (C, R)) :
+    (hsame : vData P (C, writebackR W R) = vData P (C, R))
+    (hsafe : safeRv P (C, writebackR W R)) :
     cacheInv (GF := GF) γ ∗ rtWb γ P rt C R ∗ ownRB (rbufOf (baseOf rt)) (writebackR W R) ∗
       ghostVar γ.rvs (1 : Qp).half ((C, R), false) ⊢
     |={⊤}=> (rtRes γ P rt 1 ∗ ghostVar γ.rvs (1 : Qp).half ((C, writebackR W R), false)) := by
@@ -353,7 +369,7 @@ theorem rtRes_wb_close_same (γ : BNames) (P : BParams) (rt : Loc) (W : WBuf) (C
   unfold rtWb rtRest
   icases Hwb with ⟨%rd, %cm, %H, %Hw, Hcm, Hvr, Hcore⟩
   rw [← hsame] at *
-  iapply wb_core γ P rt W C R false hW hver $$ [Hcm Hcore Hvr Hrb Hb]
+  iapply wb_core γ P rt W C R false hW hver hsafe $$ [Hcm Hcore Hvr Hrb Hb]
   iframe #; iframe
   isplitr
   · ipureintro; exact Hw
@@ -394,7 +410,7 @@ theorem rtRes_cm_open (γ : BNames) (P : BParams) (rt : Loc) (C : Data) (R : RBu
     · iright; iframe #; ipureintro; exact Hnull
     iexists rd, H
     iframe; iframe #
-    ipureintro; exact ⟨rfl, Hf⟩
+    ipureintro; obtain ⟨f1, f2, f3, f4, f5, -⟩ := Hf; exact ⟨rfl, f1, f2, f3, f4, f5⟩
   simp only [↓reduceIte]
   icases Hiv with ⟨Hlive, #Hsnap, -, #Hwgi, Hwo, Htk⟩
   unfold wgInv
@@ -421,7 +437,7 @@ theorem rtRes_cm_open (γ : BNames) (P : BParams) (rt : Loc) (C : Data) (R : RBu
         iframe; iframe #
       iexists rd, H
       iframe; iframe #
-      ipureintro; exact ⟨rfl, Hf⟩
+      ipureintro; obtain ⟨f1, f2, f3, f4, f5, -⟩ := Hf; exact ⟨rfl, f1, f2, f3, f4, f5⟩
     · unfold wgOpen
       ihave %Hv := ghostVar_valid_2 rd.γw () 1 () 1 $$ Hwo Hwo'
       exfalso; have := Hv.1; simp only [Qp.le_iff, Qp.val_add, Qp.val_one] at this; grind
@@ -588,7 +604,7 @@ theorem rtRes_cm_close (γ : BNames) (P : BParams) (rt : Loc) (C C' : Data) (R :
     · ipureintro; exact Hok
     isplitr
     · ipureintro
-      exact ⟨hR'wf, hR'ids, GMap.lookup_insert _ _ _, hH', fun h => by cases h⟩
+      exact ⟨hR'wf, hR'ids, GMap.lookup_insert _ _ _, hH', (fun h => by cases h), safeRv_reset P C' R⟩
     unfold histAt; iexact Hnew
   · -- a window: the clients' share back from the cache's invariant, the view updated
     icases Hwin with (>%Hbad | ⟨%vd, >Hbv⟩)
@@ -634,7 +650,7 @@ theorem rtRes_cm_close (γ : BNames) (P : BParams) (rt : Loc) (C C' : Data) (R :
       · ipureintro; exact Hok
       isplitr
       · ipureintro
-        exact ⟨hR'wf, hR'ids, GMap.lookup_insert _ _ _, hH', fun h => by cases h⟩
+        exact ⟨hR'wf, hR'ids, GMap.lookup_insert _ _ _, hH', (fun h => by cases h), safeRv_reset P C' R⟩
       unfold histAt; iexact Hnew
     iframe
 

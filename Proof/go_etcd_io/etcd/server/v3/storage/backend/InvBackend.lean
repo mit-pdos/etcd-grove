@@ -387,7 +387,7 @@ def rtCore (γ : BNames) (P : BParams) (rt : Loc) (q : Qp) (rd : RdSt) (rv : RVi
     rtxOf (baseOf rt) ↦{DFrac.own q} rd.rtx ∗ rwgOf (baseOf rt) ↦{DFrac.own q} rd.wg ∗
     ⌜rv.2.Wf ∧ idsOk P rv.2.bks ∧ H.lookup (rv.2.ver, rd.idx) = some rv ∧
       (∀ k rv', H.lookup k = some rv' → keyLe k (rv.2.ver, rd.idx)) ∧
-      (rd.win = true → rd.idx = 0)⌝ ∗
+      (rd.win = true → rd.idx = 0) ∧ safeRv P rv⌝ ∗
     histAt γ rv.2.ver rd.idx rv ∗ cacheValid γ P rv rd.idx ∗
     (if rd.win then poisonAt γ rv.2.ver rd.idx else iprop(True)) ∗
     ownTokAuthDfrac γ.rdt DFrac.discard rdMax ∗ rtIntv γ P q rd cm rv.1)

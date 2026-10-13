@@ -52,7 +52,6 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   icombine Htoks Hmine gives %Hle
   -- the caller's certificate is below the committed log
   ihave %Hpre := mono_list_auth_lb_valid γ.idx.log _ _ _ $$ Hlog Hl0
-  iunfold mvcc.isKeyBackend at Hbk
   iunfold mvcc.isKeyBackendG at Hbk
   icases Hbk with ⟨%bi, %Hbi, #HC, #HR, -⟩
   subst Hbi
@@ -62,9 +61,9 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   all_goals
     first
       | (ihave HCq := HC $$ %sync.rfrac.half %(mvcc.bucketMap log)
-         wp_apply HCq $$ [$Hbucket] as %rt ⟨Hbucket, Hsnap⟩)
+         wp_apply HCq $$ [$Hbucket $HrtR] as %rt ⟨Hbucket, Hsnap⟩)
       | (ihave HRq := HR $$ %sync.rfrac.half %(mvcc.bucketMap log)
-         wp_apply HRq $$ [$Hbucket] as %rt ⟨Hbucket, Hsnap⟩)
+         wp_apply HRq $$ [$Hbucket $HrtR] as %rt ⟨Hbucket, Hsnap⟩)
   all_goals
     (try wp_auto)
     icases Hsnap with ⟨%L, HL, #Hsnap⟩
@@ -119,7 +118,9 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     · iunfold mvcc.txReader
       iexists (mvcc.bucketMap log), Rd, Tok
       simp only [named]
-      iframe Htok Hsnap0
+      iframe Htok
+      isplitr
+      · iapply mvcc.keyReadLocked_weaken $$ Hsnap0
       ipureintro; exact fun _ _ h => h
     iexact HidxR
 

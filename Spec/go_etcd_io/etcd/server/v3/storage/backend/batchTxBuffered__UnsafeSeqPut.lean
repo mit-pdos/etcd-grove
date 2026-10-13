@@ -25,11 +25,13 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- `t.UnsafeSeqPut(bucket, key, value)` under the lock: as `UnsafePut`, the key above the
-bucket's buffered keys (its `verify` check). -/
+bucket's buffered keys (its `verify` check), and in a safe-range bucket above the writer's
+contents. -/
 abbrev backend.batchTxBuffered.UnsafeSeqPut.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (bk : GoInterface) (bi : BucketInfo) (key value : GoSlice) (kb vb : GoString),
-  P.has bi → 0 < kb.length → kb.length ≤ maxKeySize → vb.length ≤ maxValueSize →
+  P.has bi → 0 < kb.length → kb.length ≤ maxKeySize →
   (∀ e ∈ bkOf st.W.bks bi.id, strLt e.1 kb) → sint.Z st.pend + 1 < 2 ^ 58 →
+  (P.SB bi.name = true → ∀ kc vc, (bktOf st.S bi.name).lookup kc = some vc → strLt kc kb) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗ key ↦*□ kb ∗ value ↦*□ vb }}
     (App (App (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"UnsafeSeqPut")) (Val #bk)) (Val #key)) (Val #value))
   {{ RET #(); batchLocked γ P b (st.put bi kb vb true) }}

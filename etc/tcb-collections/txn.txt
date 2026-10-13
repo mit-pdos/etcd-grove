@@ -6,6 +6,10 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/txn/(Link|Results)\.lean$
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.txLive
 axiom proto.Marshal.wp_proof
 axiom proto.Size.wp_proof
 axiom proto.Unmarshal.wp_proof

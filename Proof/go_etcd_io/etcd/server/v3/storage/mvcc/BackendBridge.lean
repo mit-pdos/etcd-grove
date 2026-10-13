@@ -6,12 +6,14 @@ backend whose parameters `P` have schema's buckets and whose hook's buckets are 
 (`bridgeParams`). Lean-first; `notes/decisions.md`, "The backend meets mvcc (unit 4)".
 
 **The instance.**
-- The view: `bkView γ q m`, the backend's clients' view (`bView γ q vd`) whose `Key` bucket is
-  `m` (`keyView`: off the hook's buckets, the view is the `Key` bucket).
-- The reader's token: `bkRT γ P b qo`, a reader's slot of the backend (`rdTok`) and its share
-  `qo` of the backend open (`bOpen`); the session's token: a write-back's budget (`wbTok`).
-- The puts' condition (`bkPutOk`): at most `2^56` per session, a key of `1..MaxKeySize` bytes
-  above the session's earlier ones, a value of at most `MaxValueSize` bytes.
+- The view: `bkView γ q m` (`InvStore.lean`), the backend's clients' view (`bView γ q vd`) whose
+  `Key` bucket is `m` (`keyView`: off the hook's buckets, the view is the `Key` bucket).
+- The reader's token: `bkRTx γ P b`, a reader's slot of the backend (`rdTok`) and a share of the
+  backend open (`bOpen`); the session's token: a write-back's budget (`wbTok`).
+- The puts' condition (`keyPutOk`, `InvStore.lean`): at most `2^56` per session, a key of
+  `1..MaxKeySize` bytes above every key of the bucket and of the session's puts (the safe-range
+  discipline the backend now requires of `Key`'s `UnsafeSeqPut`); no bound on the value (an
+  oversized one is fatal in the backend: `issues/etcd-backend-put-value-too-large-fatal.md`).
 - The lock's tokens: `bkLocked γ P b l`, the batch lock held in a session whose write buffer's
   `Key` bucket is the puts `l` (no delete pending), with a write-back's budget for its `Unlock`;
   `bkLockedO γ P b n`, `NewStore`'s session after `n` bucket creations (nothing the readers see
@@ -20,8 +22,12 @@ backend whose parameters `P` have schema's buckets and whose hook's buckets are 
   `rangeEvents`): the backend's `UnsafeRange` returns bbolt's range then the read buffer's
   (`rtRange`), which is the bucket's range only if the read buffer's keys are above bbolt's
   (`keySafe`: the "safe range bucket" discipline, keys never overwritten, put in increasing
-  order, which the backend does not enforce). The bridge takes it as a premise on the readers'
-  states (`rangeSafe`), which the backend's invariant does not give (yet).
+  order). The order is the backend's invariant (`safeRv`, `rtHeld_safe`: unit 5); the size (the
+  range's limit is `2^63 - 1` entries) is the premise `keySized`. A `ConcurrentReadTx` promises
+  no range (its cached read buffer can repeat a committed key:
+  `issues/etcd-backend-read-buffer-cache-stale-after-commit.md`).
+- Unit 5: `storeBackend_of_backend` gives the contract `NewStore` takes for every store of a
+  real instance (`KBReal`), with the late-bound lock resource `lateW`.
 -/
 module
 
@@ -77,14 +83,13 @@ hook's buckets (those whose contents the readers' view `vData` leaves out) are a
 nothing here). -/
 def bridgeParams (P : BParams) : Prop :=
   P.has keyBI ∧ P.has metaBI ∧
-    ∀ n, P.HB n = decide (n ≠ go_etcd_io.etcd.server.v3.storage.schema.keyName)
+    (∀ n, P.HB n = decide (n ≠ go_etcd_io.etcd.server.v3.storage.schema.keyName)) ∧
+    ∀ n, P.SB n = decide (n = go_etcd_io.etcd.server.v3.storage.schema.keyName)
 
-/-! ## The view -/
-
-/-- The readers' view `vd` is the `Key` bucket `m`, and nothing else. -/
-def keyView (vd : VData) (m : Bucket) : Prop :=
-  ∀ n k, vd.lookup (n, k) =
-    if n = go_etcd_io.etcd.server.v3.storage.schema.keyName then m.lookup k else none
+/-- A real instance's parameters are the bridge's when its table has schema's buckets. -/
+theorem bridgeParams_of (d : KBReal) (hk : d.BT.lookup keyBI.name = some keyBI.id)
+    (hm : d.BT.lookup metaBI.name = some metaBI.id) : bridgeParams d.P :=
+  ⟨hk, hm, fun _ => rfl, fun _ => rfl⟩
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -93,22 +98,23 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- mvcc's view of the `Key` bucket, at fraction `q`: the backend's clients' view of it. -/
-def bkView (γ : BNames) (q : Qp) (m : Bucket) : IProp GF :=
-  iprop(∃ vd : VData, bView γ q vd ∗ ⌜keyView vd m⌝)
-
-/-- A reader's token: a reader's slot of the backend, and the share `qo` of the backend open
-(given back at its `RUnlock`). -/
+/-- A reader's token at the share `qo`: a reader's slot of the backend, and the share `qo` of
+the backend open (given back at its `RUnlock`). -/
 def bkRT (γ : BNames) (P : BParams) (b : Loc) (qo : Qp) : IProp GF :=
   iprop(rdTok γ P b ∗ bOpen γ qo)
 
-/-- The puts the backend takes in a session: at most `2^56` (the backend's bound on a
-session's operations), each key of `1..MaxKeySize` bytes and above the earlier ones (its
-`UnsafeSeqPut` checks the order: `verify`), each value of at most `MaxValueSize` bytes (bbolt
-fails, and the backend's `Fatal` exits, on a larger one). -/
-def bkPutOk (l : Puts) (k v : GoString) : Prop :=
-  l.length < 2 ^ 56 ∧ 0 < k.length ∧ k.length ≤ maxKeySize ∧ v.length ≤ maxValueSize ∧
-    ∀ p ∈ l, strLt p.1 k
+/-- A reader's token (the contract's: some share of the backend open; `kbRT` of a real
+instance). -/
+def bkRTx (γ : BNames) (P : BParams) (b : Loc) : IProp GF :=
+  iprop(rdTok γ P b ∗ ∃ q : Qp, bOpen γ q)
+
+theorem bkRT_x (γ : BNames) (P : BParams) (b : Loc) (qo : Qp) :
+    bkRT (GF := GF) γ P b qo ⊢ bkRTx γ P b := by
+  unfold bkRT bkRTx
+  iintro ⟨H1, H2⟩
+  iframe H1
+  iexists qo
+  iexact H2
 
 /-- A session holding the puts `l` in the `Key` bucket: no delete pending, the write buffer's
 `Key` bucket the puts, one more pending operation a put at most (from the free lock's). -/
@@ -145,12 +151,12 @@ theorem foldl_insert_lookup (l : Puts) (m : Bucket) (k : GoString) :
 /-- With the bridge's parameters, the `Key` bucket is not the hook's. -/
 theorem key_not_HB {P : BParams} (hP : bridgeParams P) :
     P.HB go_etcd_io.etcd.server.v3.storage.schema.keyName = false := by
-  rw [hP.2.2]; simp
+  rw [hP.2.2.1]; simp
 
 /-- With the bridge's parameters, a bucket of the table off the hook's is `Key`. -/
 theorem nonHB_key {P : BParams} (hP : bridgeParams P) {n : GoString} {i : w64}
     (hn : P.BT.lookup n = some i) (hb : P.HB n = false) : i = W64 1 := by
-  rw [hP.2.2] at hb
+  rw [hP.2.2.1] at hb
   simp only [decide_eq_false_iff_not, Decidable.not_not] at hb
   subst hb
   have := hP.1
@@ -175,7 +181,7 @@ theorem sData_puts {P : BParams} (hP : bridgeParams P) {st : BSess} {l : Puts} {
     (hst : sessWf P st) (hs : sessPuts P st l) (hv : keyView (vData P (st.C, st.R)) m) :
     keyView (sData P st.S) (l.foldl (fun m p => GMap.insert p.1 p.2 m) m) := by
   intro n k
-  have hag := hst.2.2.2.2.2.2.2.2.2 hs.1
+  have hag := hst.2.2.2.2.2.2.2.2.2.1 hs.1
   show (if P.HB (n, k).1 then none else vOf P (st.S, ⟨∅, W64 0⟩) (n, k).1 (n, k).2) = _
   rw [vOf_emptyR]
   by_cases hn : n = go_etcd_io.etcd.server.v3.storage.schema.keyName
@@ -188,7 +194,7 @@ theorem sData_puts {P : BParams} (hP : bridgeParams P) {st : BSess} {l : Puts} {
     simp only at hk
     rw [hk, Option.bind_some, hs.2.2]
     rfl
-  · simp only [hn, ↓reduceIte, hP.2.2]
+  · simp only [hn, ↓reduceIte, hP.2.2.1]
     simp [hn]
 
 /-- A session with no puts in the `Key` bucket changed nothing the readers see. -/
@@ -366,6 +372,16 @@ def keySafe (rv : RView) : Prop :=
   (bktOf rv.1 go_etcd_io.etcd.server.v3.storage.schema.keyName).size +
     (bkOf rv.2.bks (W64 1)).length < 2 ^ 62
 
+/-- The safe-range state of the `Key` bucket, from the backend's invariant (`safeRv`) and the
+size. -/
+theorem keySafe_of {P : BParams} (hP : bridgeParams P) {rv : RView} (h : safeRv P rv)
+    (hsz : (bktOf rv.1 go_etcd_io.etcd.server.v3.storage.schema.keyName).size +
+      (bkOf rv.2.bks (W64 1)).length < 2 ^ 62) : keySafe rv := by
+  refine ⟨fun kc vc e hc he => ?_, hsz⟩
+  have hk := hP.1
+  unfold BParams.has keyBI at hk
+  exact h _ _ hk (by rw [hP.2.2.2]; simp) kc vc e hc he
+
 section readers
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -374,22 +390,21 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 variable [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
-/-- **The premise of the range read**: every readers' state a read transaction of the backend
-`b` holds (a concurrent one's, the shared one's) is safe for the `Key` bucket (`keySafe`).
-The backend's invariant does not give it: it lets a client overwrite a key, or put one below
-bbolt's, and then its `UnsafeRange` of a range returns both values, or out of order (Go's
-`IsSafeRangeBucket` documents the discipline: "safeRangeBucket is known to never overwrite any
-key so range is safe"). mvcc's puts keep it (revisions, increasing, each written once); a proof
-would add the discipline to the backend's batch-lock invariant and to `UnsafeSeqPut`'s
-premise. -/
-def rangeSafe (γ : BNames) (P : BParams) (b : Loc) : IProp GF :=
-  iprop(□ (∀ (crt rtx : Loc) (rv : RView), crtSnap γ P b crt rtx rv -∗
-      crtSnap γ P b crt rtx rv ∗ ⌜keySafe rv⌝) ∗
-    □ (∀ (rtx : Loc) (rv : RView), rtHeld γ P b rtx rv -∗ rtHeld γ P b rtx rv ∗ ⌜keySafe rv⌝))
+/-- **The premise of the range read**: the shared read transaction's states hold fewer than
+`2^62` entries of the `Key` bucket (bbolt's and the read buffer's). The range read's limit is
+`2^63 - 1` entries, and nothing bounds a bucket's size: bbolt's contract has no bound, nor has
+the store's log (each revision may have up to `2^63` changes). The order half of the safe-range
+discipline is the backend's invariant now (`rtHeld_safe`: the read buffer's `Key` entries above
+bbolt's, 2026-10-13, unit 5); this premise is only the size (2026-10-13; it replaces the unit-4
+premise `rangeSafe`, which also assumed the order). -/
+def keySized (γ : BNames) (P : BParams) (b : Loc) : IProp GF :=
+  iprop(□ ∀ (rtx : Loc) (rv : RView), rtHeld γ P b rtx rv -∗ rtHeld γ P b rtx rv ∗
+    ⌜(bktOf rv.1 go_etcd_io.etcd.server.v3.storage.schema.keyName).size +
+      (bkOf rv.2.bks (W64 1)).length < 2 ^ 62⌝)
 
-instance rangeSafe_persistent (γ : BNames) (P : BParams) (b : Loc) :
-    Persistent (rangeSafe (GF := GF) γ P b) := by
-  unfold rangeSafe; infer_instance
+instance keySized_persistent (γ : BNames) (P : BParams) (b : Loc) :
+    Persistent (keySized (GF := GF) γ P b) := by
+  unfold keySized; infer_instance
 
 /-- A concurrent read transaction's token: its state, the way back to the reader's slot, and
 the backend open. -/
@@ -852,46 +867,6 @@ theorem endKey_nil_iff (hi : GoSlice) (khi : GoString) (dq : DFrac) (hne : khi �
     exact absurd (List.length_eq_zero_iff.1 this) hne
   · intro h; exact absurd h hne
 
-/-- A concurrent read transaction's range read of a safe `Key` bucket (mvcc's
-`keyRangeReadSpec`). -/
-theorem crt_rangeRead (hUR : backend.concurrentReadTx.UnsafeRange.spec (GF := GF) (hG := hG))
-    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
-    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
-    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
-    {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b crt rtx : Loc)
-    (rv : RView) (qo : Qp) (m : Bucket) (hv : keyView (vData P rv) m) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      rangeSafe γ P b ⊢
-      keyRangeReadSpec
-        ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx.ty, #crt⟩
-        m (rdB rtx) (crtTok γ P b crt rtx rv qo) := by
-  iintro ⟨#Hpkg, #Hsch, #Hsafe⟩
-  iunfold keyRangeReadSpec
-  iintro %bk %lo %hi %klo %khi %dqlo %dqhi !> %Φ ⟨#HK, Ht, Hlo, Hhi, %Hne⟩ HΦ
-  iunfold crtTok at Ht
-  icases Ht with ⟨Hsnap, Hback, Ho⟩
-  ihave #Hbk := key_isBucket hID hName hSafe bk $$ [$Hsch $HK]
-  icases crtSnap_wf γ P b crt rtx rv $$ Hsnap with ⟨Hsnap, %Hwf⟩
-  iunfold rangeSafe at Hsafe
-  icases Hsafe with ⟨#Hs1, -⟩
-  icases Hs1 $$ %crt %rtx %rv Hsnap with ⟨Hsnap, %Hks⟩
-  ihave %Hiff := endKey_nil_iff hi khi dqhi Hne $$ Hhi
-  iapply wp_fupd
-  wp_apply (hUR γ P W Pk b crt rtx rv bk keyBI lo hi klo khi dqlo dqhi (W64 0) Hiff (Or.inr rfl)
-      hP.1) $$ [$Hsnap $Hbk $Hlo $Hhi] as %ks %vs ⟨Hsnap, Hlo, Hhi, Hout⟩
-  irevert Hout
-  rw [rtRange_safe hP Hwf Hks hv klo khi Hne]
-  iintro Hout
-  imod kvsOutRd_pairVals rtx ks vs _ $$ Hout with #Hkv
-  imodintro
-  iapply HΦ
-  iframe Hlo Hhi
-  iunfold rangeVals
-  iframe Hkv
-  iunfold crtTok
-  iframe
-
 /-- The held shared read transaction's range read of a safe `Key` bucket. -/
 theorem rt_rangeRead (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
@@ -901,7 +876,7 @@ theorem rt_rangeRead (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG
     (rv : RView) (qo : Qp) (m : Bucket) (hv : keyView (vData P rv) m) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ rangeSafe γ P b ⊢
+      isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ keySized γ P b ⊢
       keyRangeReadSpec ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.readTx.ty, #rt⟩
         m (rdB rtx) (rtTok γ P b rtx rv qo) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hrt, #Hsafe⟩
@@ -911,9 +886,10 @@ theorem rt_rangeRead (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG
   icases Ht with ⟨Hh, Ho⟩
   ihave #Hbk := key_isBucket hID hName hSafe bk $$ [$Hsch $HK]
   icases rtHeld_wf γ P b rtx rv $$ Hh with ⟨Hh, %Hwf⟩
-  iunfold rangeSafe at Hsafe
-  icases Hsafe with ⟨-, #Hs2⟩
-  icases Hs2 $$ %rtx %rv Hh with ⟨Hh, %Hks⟩
+  icases rtHeld_safe γ P b rtx rv $$ Hh with ⟨Hh, %Hsf⟩
+  iunfold keySized at Hsafe
+  icases Hsafe $$ %rtx %rv Hh with ⟨Hh, %Hsz⟩
+  have Hks := keySafe_of hP Hsf Hsz
   ihave %Hiff := endKey_nil_iff hi khi dqhi Hne $$ Hhi
   iapply wp_fupd
   wp_apply (hUR γ P W Pk b rt rtx rv qo bk keyBI lo hi klo khi dqlo dqhi (W64 0) Hiff
@@ -951,19 +927,20 @@ theorem crt_locked (hRU : backend.concurrentReadTx.RUnlock.spec (GF := GF) (hG :
     {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b crt rtx : Loc)
     (rv : RView) (qo : Qp) (m : Bucket) (hv : keyView (vData P rv) m) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      rangeSafe γ P b ⊢
-      keyReadLocked (bkRT γ P b qo)
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ⊢
+      keyReadLocked (bkRTx γ P b) false
         ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx.ty, #crt⟩
         m (rdB rtx) (crtTok γ P b crt rtx rv qo) := by
-  iintro ⟨#Hpkg, #Hsch, #Hsafe⟩
+  iintro ⟨#Hpkg, #Hsch⟩
   iunfold keyReadLocked
+  simp only [Bool.false_eq_true, ↓reduceIte]
   isplitr
   · iintro !> %Φ !> Ht HΦ
     iunfold crtTok at Ht
     icases Ht with ⟨Hsnap, Hback, Ho⟩
     wp_apply (hRU γ P W Pk b crt rtx rv) $$ [$Hsnap] as Hcr
     iapply HΦ
+    iapply bkRT_x γ P b qo
     iunfold bkRT
     ihave Hrd := Hback $$ Hcr
     iframe Hrd Ho
@@ -971,8 +948,7 @@ theorem crt_locked (hRU : backend.concurrentReadTx.RUnlock.spec (GF := GF) (hG :
   · iintro !>
     iapply crt_keyRange hUR hID hName hSafe hP γ W Pk b crt rtx rv qo m hv $$ [$Hpkg $Hsch]
   isplitr
-  · iintro !>
-    iapply crt_rangeRead hUR hID hName hSafe hP γ W Pk b crt rtx rv qo m hv $$ [$Hpkg $Hsch $Hsafe]
+  · itrivial
   iunfold rdCap
   iintro !> %s %v #HRd Ht
   iunfold crtTok at Ht
@@ -995,18 +971,20 @@ theorem rt_locked (hRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
     (rv : RView) (qo : Qp) (m : Bucket) (hv : keyView (vData P rv) m) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ rangeSafe γ P b ⊢
-      keyReadLocked (bkRT γ P b qo)
+      isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ keySized γ P b ⊢
+      keyReadLocked (bkRTx γ P b) true
         ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.readTx.ty, #rt⟩
         m (rdB rtx) (rtTok γ P b rtx rv qo) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hrt, #Hsafe⟩
   iunfold keyReadLocked
+  simp only [↓reduceIte]
   isplitr
   · iintro !> %Φ !> Ht HΦ
     iunfold rtTok at Ht
     icases Ht with ⟨Hh, Ho⟩
     wp_apply (hRU γ P W Pk b rt rtx rv) $$ [$Hb $Hrt $Hh] as Hrd
     iapply HΦ
+    iapply bkRT_x γ P b qo
     iunfold bkRT
     iframe Hrd Ho
   isplitr
@@ -1036,21 +1014,21 @@ theorem bridge_crt (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG 
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
-    {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b : Loc) (qo : Qp) :
+    {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      isBackend γ P W Pk b ∗ rangeSafe γ P b ⊢
+      isBackend γ P W Pk b ⊢
       □ (∀ (q : Qp) (m : Bucket),
-        {{ bkView γ q m ∗ bkRT γ P b qo }}
+        {{ bkView γ q m ∗ bkRTx γ P b }}
           (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
             go!"ConcurrentReadTx" #b)) (Val #()))
         {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); bkView γ q m ∗
-            ∃ L : IProp GF, L ∗ keyReadSnap (bkView γ) (bkRT γ P b qo) rt m L }}) := by
-  iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe⟩ !> %q %m %Φ !> ⟨Hv, Hrt⟩ HΦ
+            ∃ L : IProp GF, L ∗ keyReadSnap (bkView γ) (bkRTx γ P b) false rt m L }}) := by
+  iintro ⟨#Hpkg, #Hsch, #Hb⟩ !> %q %m %Φ !> ⟨Hv, Hrt⟩ HΦ
   iunfold bkView at Hv
   icases Hv with ⟨%vd, Hv, %Hvd⟩
-  iunfold bkRT at Hrt
-  icases Hrt with ⟨Hrd, Ho⟩
+  iunfold bkRTx at Hrt
+  icases Hrt with ⟨Hrd, %qo, Ho⟩
   wp_apply (hCRT γ P W Pk b q qo vd) $$ [$Hb $Hrd $Hv $Ho]
     as %crt %rtx %rv ⟨Hsnap, %Hrv, Hback, Hv, Ho⟩
   subst Hrv
@@ -1070,7 +1048,7 @@ theorem bridge_crt (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG 
   iframe Hv'
   iexists (rdB rtx), (crtTok γ P b crt rtx rv qo)
   iframe HL
-  iapply crt_locked hRU hUR hID hName hSafe hP γ W Pk b crt rtx rv qo m Hvd $$ [$Hpkg $Hsch $Hsafe]
+  iapply crt_locked hRU hUR hID hName hSafe hP γ W Pk b crt rtx rv qo m Hvd $$ [$Hpkg $Hsch]
 
 /-- **`ReadTx()`** as mvcc's contract states it: the shared read transaction, whose `RLock`
 finds the readers' state of the caller's view then (`rtHeld_view`). -/
@@ -1081,26 +1059,26 @@ theorem bridge_rt (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
-    {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b : Loc) (qo : Qp) :
+    {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      isBackend γ P W Pk b ∗ rangeSafe γ P b ⊢
+      isBackend γ P W Pk b ∗ keySized γ P b ⊢
       □ (∀ (q : Qp) (m : Bucket),
-        {{ bkView γ q m ∗ bkRT γ P b qo }}
+        {{ bkView γ q m ∗ bkRTx γ P b }}
           (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
             go!"ReadTx" #b)) (Val #()))
         {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); bkView γ q m ∗
-            ∃ L : IProp GF, L ∗ keyReadSnap (bkView γ) (bkRT γ P b qo) rt m L }}) := by
+            ∃ L : IProp GF, L ∗ keyReadSnap (bkView γ) (bkRTx γ P b) true rt m L }}) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hsafe⟩ !> %q %m %Φ !> ⟨Hv, Hrt⟩ HΦ
   wp_apply (hRT γ P W Pk b) $$ [$Hb] as %rt #Hrtf
   iapply HΦ
   iframe Hv
-  iexists (bkRT γ P b qo)
+  iexists (bkRTx γ P b)
   iframe Hrt
   iunfold keyReadSnap
   iintro !> %q' %Φ' !> ⟨HL, Hv'⟩ HΦ'
-  iunfold bkRT at HL
-  icases HL with ⟨Hrd, Ho⟩
+  iunfold bkRTx at HL
+  icases HL with ⟨Hrd, %qo, Ho⟩
   wp_apply (hRL γ P W Pk b rt qo) $$ [$Hb $Hrtf $Hrd $Ho] as ⟨%rtx, %rv, Hh, Ho⟩
   iunfold bkView at Hv'
   icases Hv' with ⟨%vd, Hv', %Hvd⟩
@@ -1181,20 +1159,20 @@ theorem batchLocked_wf (γ : BNames) (P : BParams) (b : Loc) (st : BSess) :
 
 /-- The batch transaction's `LockInsideApply()`, as mvcc's contract states it. -/
 theorem bt_lockIn (hLI : backend.batchTxBuffered.LockInsideApply.spec (GF := GF) (hG := hG))
-    {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b t : Loc) (qo : Qp)
+    {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b t : Loc)
     (f : GoFunc) (hf : f ≠ func.nil) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ plHookRO γ f ⊢
       □ (∀ (Pre Q : IProp GF),
-        {{ Pre ∗ bkRT γ P b qo ∗ wbTok γ ∗
+        {{ Pre ∗ bkRTx γ P b ∗ wbTok γ ∗
             □ ({{ Pk ∗ Pre }} (App (Val #f) (Val #())) {{ RET #(); Q }}) }}
           (App (Val #(methods (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) go!"LockInsideApply" #t))
             (Val #()))
-        {{ RET #(); bkLocked γ P b [] ∗ W ∗ Q ∗ bkRT γ P b qo }}) := by
+        {{ RET #(); bkLocked γ P b [] ∗ W ∗ Q ∗ bkRTx γ P b }}) := by
   iintro ⟨#Hpkg, #Hb, #Ht, #Hhk⟩ !> %Pre %Q %Φ !> ⟨Hpre, Hrt, Hwb, #Htr⟩ HΦ
-  iunfold bkRT at Hrt
-  icases Hrt with ⟨Hrd, Ho⟩
+  iunfold bkRTx at Hrt
+  icases Hrt with ⟨Hrd, %qo, Ho⟩
   wp_apply (hLI γ P W Pk b t qo DFrac.discard f Pre Q) $$ [$Hb $Ht $Ho $Hhk $Hpre]
     as ⟨%st, Hl, %Hfree, HW, HQ, Ho, -⟩
   · iright
@@ -1208,8 +1186,10 @@ theorem bt_lockIn (hLI : backend.batchTxBuffered.LockInsideApply.spec (GF := GF)
     iunfold bkLockedAt
     iframe
     ipureintro; exact sessPuts_free hP Hfree
-  iunfold bkRT
-  iframe
+  iunfold bkRTx
+  iframe Hrd
+  iexists qo
+  iexact Ho
 
 /-- The batch transaction's `UnsafeSeqPut(schema.Key, k, v)`, as mvcc's contract states it. -/
 theorem bt_seqPut (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (hG := hG))
@@ -1220,14 +1200,15 @@ theorem bt_seqPut (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (h
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ⊢
-      □ (∀ (l : Puts) (bk : GoInterface) (key val : GoSlice) (k v : GoString),
+      □ (∀ (l : Puts) (q : Qp) (m : Bucket) (bk : GoInterface) (key val : GoSlice) (k v : GoString),
         {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Key ↦□ bk ∗ bkLocked γ P b l ∗
-            key ↦*□ k ∗ val ↦*□ v ∗ ⌜bkPutOk l k v⌝ }}
+            bkView γ q m ∗ key ↦*□ k ∗ val ↦*□ v ∗ ⌜keyPutOk m l k v⌝ }}
           (App (App (App (Val #(methods (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) go!"UnsafeSeqPut" #t))
             (Val #bk)) (Val #key)) (Val #val))
-        {{ RET #(); bkLocked γ P b (l ++ [(k, v)]) }}) := by
-  iintro ⟨#Hpkg, #Hsch, #Hb, #Ht⟩ !> %l %bk %key %val %k %v %Φ !> ⟨#HK, Hl, #Hk, #Hv, %Hok⟩ HΦ
+        {{ RET #(); bkLocked γ P b (l ++ [(k, v)]) ∗ bkView γ q m }}) := by
+  iintro ⟨#Hpkg, #Hsch, #Hb, #Ht⟩ !> %l %q %m %bk %key %val %k %v %Φ !>
+    ⟨#HK, Hl, Hvw, #Hk, #Hv, %Hok⟩ HΦ
   icases isBackend_b γ P W Pk b $$ Hb with ⟨%t', %rt, %db, %lg, -, -, -, -, -, -, -, -, -, -, -,
     %HPw⟩
   iunfold bkLocked at Hl
@@ -1235,18 +1216,41 @@ theorem bt_seqPut (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (h
   iunfold bkLockedAt at Hl
   icases Hl with ⟨Hl, Hwb, %Hs⟩
   ihave #Hbk := key_isBucket hID hName hSafe bk $$ [$Hsch $HK]
-  obtain ⟨hl, hk0, hk1, hv1, hord⟩ := Hok
+  icases batchLocked_wf γ P b st $$ Hl with ⟨Hl, %Hwf⟩
+  iunfold bkView at Hvw
+  icases Hvw with ⟨%vd, Hvw, %Hvd⟩
+  icases batchLocked_view γ P b st q vd $$ [$Hl $Hvw] with ⟨Hl, Hvw, %Hag⟩
+  subst Hag
+  obtain ⟨hl, hk0, hk1, hbm, hord⟩ := Hok
   obtain ⟨hs', hpend⟩ := sessPuts_put HPw Hs hl
   have hW : ∀ e ∈ bkOf st.W.bks keyBI.id, strLt e.1 k := by
     rw [show keyBI.id = W64 1 from rfl, Hs.2.2]; exact hord
-  wp_apply (hSP γ P W Pk b t st bk keyBI key val k v hP.1 hk0 hk1 hv1 hW hpend)
+  have hS := sData_puts hP Hwf Hs Hvd
+  have hSB : P.SB keyBI.name = true → ∀ kc vc,
+      (bktOf st.S keyBI.name).lookup kc = some vc → strLt kc k := by
+    intro _ kc vc hc
+    rw [show keyBI.name = go_etcd_io.etcd.server.v3.storage.schema.keyName from rfl,
+      bktOf_of_sData hP hS, foldl_insert_lookup] at hc
+    cases hlv : lastVal l kc with
+    | some v' =>
+      obtain ⟨e, he, hek⟩ := lastVal_isSome_mem (l := l) (k := kc) (by rw [hlv]; rfl)
+      rw [← hek]; exact hord e he
+    | none =>
+      rw [hlv, Option.none_or] at hc
+      exact hbm kc vc hc
+  wp_apply (hSP γ P W Pk b t st bk keyBI key val k v hP.1 hk0 hk1 hW hpend hSB)
     $$ [$Hb $Ht $Hl $Hbk $Hk $Hv] as Hl
   iapply HΦ
-  iunfold bkLocked
-  iexists (st.put keyBI k v true)
-  iunfold bkLockedAt
-  iframe
-  ipureintro; exact hs'
+  isplitr [Hvw]
+  · iunfold bkLocked
+    iexists (st.put keyBI k v true)
+    iunfold bkLockedAt
+    iframe
+    ipureintro; exact hs'
+  iunfold bkView
+  iexists (vData P (st.C, st.R))
+  iframe Hvw
+  ipureintro; exact Hvd
 
 /-- The batch transaction's `Unlock()` after a session with no puts. -/
 theorem bt_unlock0 (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
@@ -1395,28 +1399,30 @@ theorem bt_range (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG 
 /-- The batch transaction's `LockOutsideApply()` (`NewStore`'s): the lock, its resource `W`
 dropped (`NewStore`'s first `Unlock` deposits its own). -/
 theorem bt_lockOut (hLO : backend.batchTxBuffered.LockOutsideApply.spec (GF := GF) (hG := hG))
-    (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t : Loc) (qo : Qp) :
+    (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ⊢
-      □ ({{ bkRT γ P b qo ∗ wbTok γ }}
+      □ ({{ bkRTx γ P b ∗ wbTok γ }}
           (App (Val #(methods (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) go!"LockOutsideApply" #t))
             (Val #()))
-        {{ RET #(); bkLockedO γ P b 0 ∗ Pk ∗ bkRT γ P b qo }}) := by
+        {{ RET #(); bkLockedO γ P b 0 ∗ W ∗ Pk ∗ bkRTx γ P b }}) := by
   iintro ⟨#Hpkg, #Hb, #Ht⟩ !> %Φ !> ⟨Hrt, Hwb⟩ HΦ
-  iunfold bkRT at Hrt
-  icases Hrt with ⟨Hrd, Ho⟩
-  wp_apply (hLO γ P W Pk b t qo) $$ [$Hb $Ht $Ho] as ⟨%st, Hl, %Hfree, ⟨-, HPk⟩, Ho⟩
+  iunfold bkRTx at Hrt
+  icases Hrt with ⟨Hrd, %qo, Ho⟩
+  wp_apply (hLO γ P W Pk b t qo) $$ [$Hb $Ht $Ho] as ⟨%st, Hl, %Hfree, ⟨HW, HPk⟩, Ho⟩
   iapply HΦ
-  iframe HPk
+  iframe HW HPk
   isplitl [Hl Hwb]
   · iunfold bkLockedO
     iexists st
     iframe
     ipureintro
     exact ⟨Hfree.2.2.1, by simpa using Hfree.2.1, viewSame_of_freeOk Hfree⟩
-  iunfold bkRT
-  iframe
+  iunfold bkRTx
+  iframe Hrd
+  iexists qo
+  iexact Ho
 
 /-- The batch transaction's `UnsafeCreateBucket(b)` of schema's `Key` or `Meta` bucket in
 `NewStore`'s session. -/
@@ -1492,20 +1498,22 @@ theorem bt_unlockO (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := 
 
 /-- The backend's `ForceCommit()`, as mvcc's contract states it. -/
 theorem bk_forceCommit (hFC : backend.backend.ForceCommit.spec (GF := GF) (hG := hG))
-    (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (qo : Qp) :
+    (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isBackend γ P W Pk b ⊢
-      □ ({{ bkRT γ P b qo ∗ wbTok γ }}
+      □ ({{ bkRTx γ P b ∗ wbTok γ }}
           (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
             go!"ForceCommit" #b)) (Val #()))
-        {{ RET #(); bkRT γ P b qo }}) := by
+        {{ RET #(); bkRTx γ P b }}) := by
   iintro ⟨#Hpkg, #Hb⟩ !> %Φ !> ⟨Hrt, Hwb⟩ HΦ
-  iunfold bkRT at Hrt
-  icases Hrt with ⟨Hrd, Ho⟩
+  iunfold bkRTx at Hrt
+  icases Hrt with ⟨Hrd, %qo, Ho⟩
   wp_apply (hFC γ P W Pk b qo) $$ [$Hb $Ho $Hwb] as Ho
   iapply HΦ
-  iunfold bkRT
-  iframe
+  iunfold bkRTx
+  iframe Hrd
+  iexists qo
+  iexact Ho
 
 end batch2
 
@@ -1519,15 +1527,16 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 variable [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
-/-- **The bridge** (unit 4): the backend `b` (`isBackend`), with mvcc's parameters
-(`bridgeParams`: schema's buckets, the hook's buckets all but `Key`) and its post-lock hook set
-for good to a function `f` (`plHookRO`, not nil: etcd's server sets it once), is a backend of
-mvcc's contract (`isKeyBackendG`) over the `Key` bucket: the view `bkView γ`, the reader's
-token `bkRT γ P b qo` (a reader's slot and the share `qo` of the backend open), the session's
-token `wbTok γ` (a write-back's budget), the puts' condition `bkPutOk`, the lock's resource `W`
-and the hooks' resource `Pk` as mvcc's lock resource and invariant, and the hook `f`. The range
-read of the `Key` bucket (the watchable store's) rests on the premise `rangeSafe` (the
-safe-range discipline on the readers' states, which the backend's invariant does not give). -/
+/-- **The bridge** (units 4 and 5): the backend `b` (`isBackend`), with mvcc's parameters
+(`bridgeParams`: schema's buckets, the hook's buckets all but `Key`, `Key` the safe-range
+bucket) and its post-lock hook set for good to a function `f` (`plHookRO`, not nil: etcd's
+server sets it once), is a backend of mvcc's contract (`isKeyBackendG`) over the `Key` bucket:
+the view `bkView γ`, the reader's token `bkRTx γ P b` (a reader's slot and a share of the
+backend open), the session's token `wbTok γ` (a write-back's budget), the puts' condition
+`keyPutOk` (the key above the bucket's and the session's keys), the lock's resource `W` (its
+initial resource too) and the hooks' resource `Pk` as mvcc's lock resource and invariant, and
+the hook `f`. The range read of the `Key` bucket (the watchable store's, through `ReadTx`) rests
+on the premise `keySized` (fewer than `2^62` entries); a `ConcurrentReadTx` promises no range. -/
 theorem isKeyBackendG_of_backend
     (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
     (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
@@ -1548,24 +1557,24 @@ theorem isKeyBackendG_of_backend
     (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
-    {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b : Loc) (qo : Qp)
+    {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b : Loc)
     (f : GoFunc) (hf : f ≠ func.nil) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      isBackend γ P W Pk b ∗ plHookRO γ f ∗ rangeSafe γ P b ⊢
+      isBackend γ P W Pk b ∗ plHookRO γ f ∗ keySized γ P b ⊢
       isKeyBackendG
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b)
-        (bkView γ) (bkRT γ P b qo) (wbTok γ) bkPutOk W Pk #f := by
+        (bkView γ) (bkRTx γ P b) (wbTok γ) keyPutOk W W Pk #f := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hhk, #Hsafe⟩
   iunfold isKeyBackendG
   iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty, #b⟩
   isplitr
   · ipureintro; rfl
   isplitr
-  · iapply bridge_crt hCRT hcRL hcRU hcUR hID hName hSafe hP γ W Pk b qo
-      $$ [$Hpkg $Hsch $Hb $Hsafe]
+  · iapply bridge_crt hCRT hcRL hcRU hcUR hID hName hSafe hP γ W Pk b
+      $$ [$Hpkg $Hsch $Hb]
   isplitr
-  · iapply bridge_rt hRT hrRL hrRU hrUR hID hName hSafe hP γ W Pk b qo
+  · iapply bridge_rt hRT hrRL hrRU hrUR hID hName hSafe hP γ W Pk b
       $$ [$Hpkg $Hsch $Hb $Hsafe]
   isplitr
   · iintro !> %Φ !> - HΦ
@@ -1576,7 +1585,7 @@ theorem isKeyBackendG_of_backend
     isplitl []
     · iunfold batchTxSpecG
       isplitr
-      · iapply bt_lockIn hLI hP γ W Pk b t qo f hf $$ [$Hpkg $Hb $Ht $Hhk]
+      · iapply bt_lockIn hLI hP γ W Pk b t f hf $$ [$Hpkg $Hb $Ht $Hhk]
       isplitr
       · iapply bt_seqPut hSP hID hName hSafe hP γ W Pk b t $$ [$Hpkg $Hsch $Hb $Ht]
       isplitr
@@ -1586,11 +1595,62 @@ theorem isKeyBackendG_of_backend
       iapply bt_range hbUR hID hName hSafe hP γ W Pk b t $$ [$Hpkg $Hsch $Hb $Ht]
     · iunfold batchTxInitSpec
       isplitr
-      · iapply bt_lockOut hLO γ P W Pk b t qo $$ [$Hpkg $Hb $Ht]
+      · iapply bt_lockOut hLO γ P W Pk b t $$ [$Hpkg $Hb $Ht]
       isplitr
       · iapply bt_create hCB hID hName hSafe hP γ W Pk b t $$ [$Hpkg $Hsch $Hb $Ht]
       iapply bt_unlockO hUL γ P W Pk b t $$ [$Hpkg $Hb $Ht]
-  iapply bk_forceCommit hFC γ P W Pk b qo $$ [$Hpkg $Hb]
+  iapply bk_forceCommit hFC γ P W Pk b $$ [$Hpkg $Hb]
+
+/-- **The store's backend contract, of the real backend** (unit 5): a backend made for the real
+instance `d` (its ghost names `d.γB`, parameters `d.P` with schema's buckets, location `d.be`,
+and the late-bound lock resource `lateW d.gx`) gives, for every store `(s, γ)` of that
+instance, the contract `NewStore` takes (`mvcc.NewStore.spec`'s premise). -/
+theorem storeBackend_of_backend
+    (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG := hG))
+    (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
+    (hBT : backend.backend.BatchTx.spec (GF := GF) (hG := hG))
+    (hFC : backend.backend.ForceCommit.spec (GF := GF) (hG := hG))
+    (hcRL : backend.concurrentReadTx.RLock.spec (GF := GF) (hG := hG))
+    (hcRU : backend.concurrentReadTx.RUnlock.spec (GF := GF) (hG := hG))
+    (hcUR : backend.concurrentReadTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hrRL : backend.readTx.RLock.spec (GF := GF) (hG := hG))
+    (hrRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
+    (hrUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hLI : backend.batchTxBuffered.LockInsideApply.spec (GF := GF) (hG := hG))
+    (hLO : backend.batchTxBuffered.LockOutsideApply.spec (GF := GF) (hG := hG))
+    (hSP : backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (hG := hG))
+    (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
+    (hbUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hCB : backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (d : KBReal) (hP : bridgeParams d.P) (Pk : IProp GF) (f : GoFunc) (hf : f ≠ func.nil)
+    (γb : GName) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isBackend d.γB d.P (lateW d.gx) Pk d.be ∗ plHookRO d.γB f ∗ keySized d.γB d.P d.be ⊢
+      ∀ (s : Loc) (γ : StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d⌝ →
+        isKeyBackendG
+          (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
+            #d.be)
+          (bucketView γ) (storeRT γ) (storeWT γ) (storePutOk γ) (storeW s γ) (kbWi γ.kb) Pk #f := by
+  iintro #H %s %γ %hγ
+  obtain ⟨-, hk⟩ := hγ
+  have hv : bucketView (GF := GF) γ = bkView d.γB := by
+    funext q m; unfold bucketView kbView; rw [hk]
+  have hrt : storeRT (GF := GF) γ = bkRTx d.γB d.P d.be := by
+    unfold storeRT kbRT bkRTx; rw [hk]
+  have hwt : storeWT (GF := GF) γ = wbTok d.γB := by
+    unfold storeWT kbWT; rw [hk]
+  have hpo : storePutOk γ = keyPutOk := by
+    unfold storePutOk kbPutOk; rw [hk]
+  have hw : storeW (GF := GF) s γ = lateW d.gx := by
+    unfold storeW; rw [hk]
+  rw [hv, hrt, hwt, hpo, hw, hk]
+  simp only [kbWi]
+  iapply isKeyBackendG_of_backend hCRT hRT hBT hFC hcRL hcRU hcUR hrRL hrRU hrUR hLI hLO hSP hUL
+    hbUR hCB hID hName hSafe hP d.γB (lateW d.gx) Pk d.be f hf $$ H
 
 end main
 

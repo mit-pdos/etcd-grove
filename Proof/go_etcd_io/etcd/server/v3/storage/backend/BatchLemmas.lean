@@ -58,18 +58,96 @@ theorem dget_create (S : Data) (n : GoString) :
     · simp [hn]
   · rfl
 
+theorem dget_eq_bktOf (D : Data) (n k : GoString) : dget D n k = (bktOf D n).lookup k := by
+  unfold dget bktOf
+  cases D.lookup n <;> simp
+
+/-- The writer's put leaves every other bucket, and keeps the put bucket's keys. -/
+theorem bktOf_put_lookup (S : Data) (n k v n' kc : GoString) :
+    (bktOf (S.insert n ((bktOf S n).insert k v)) n').lookup kc =
+      if n = n' ∧ k = kc then some v else (bktOf S n').lookup kc := by
+  rw [← dget_eq_bktOf, ← dget_eq_bktOf]
+  exact dget_put S n k v n' kc
+
+/-- A bucket's creation changes no bucket's contents (absent reads as empty). -/
+theorem bktOf_create (S : Data) (n n' : GoString) :
+    bktOf (if S.lookup n = none then S.insert n ∅ else S) n' = bktOf S n' := by
+  split
+  · rename_i h
+    unfold bktOf
+    simp only [GMap.lookup_insert_eq_iff]
+    by_cases hn : n = n'
+    · subst hn; simp [h]
+    · simp [hn]
+  · rfl
+
+/-- A change of the writer's bucket `n` only leaves every other bucket. -/
+theorem bktOf_insert_ne (S : Data) (n n' : GoString) (m : BktData) (h : n ≠ n') :
+    bktOf (S.insert n m) n' = bktOf S n' := by
+  unfold bktOf
+  simp [GMap.lookup_insert_eq_iff, h]
+
+theorem bktOf_delete_ne (S : Data) (n n' : GoString) (h : n ≠ n') :
+    bktOf (S.delete n) n' = bktOf S n' := by
+  unfold bktOf
+  rw [GMap.lookup_delete_ne _ h]
+
+/-- A put keeps the safe-range discipline, its key above the writer's contents of a safe-range
+bucket. -/
+theorem safeSt_put {P : BParams} {st : BSess} {bi : BucketInfo} {kb vb : GoString} {seq : Bool}
+    (hP : P.Wf) (hb : P.has bi) (hs : safeSt P st)
+    (hSB : P.SB bi.name = true → ∀ kc vc, (bktOf st.S bi.name).lookup kc = some vc → strLt kc kb) :
+    safeSt P (st.put bi kb vb seq) := by
+  have hWbks : (st.put bi kb vb seq).W.bks = wbAdd st.W.bks bi.id (kb, vb) := by
+    unfold BSess.put; cases seq <;> rfl
+  refine ⟨hs.1, fun n i hn hsb => ⟨?_, ?_⟩⟩
+  · intro kc vc e hc he
+    show strLt kc e.1
+    rw [hWbks, bkOf_wbAdd] at he
+    split at he
+    · rename_i hi
+      subst hi
+      have hnm : bi.name = n := hP.1 _ _ _ hb hn
+      subst hnm
+      rcases List.mem_append.1 he with he | he
+      · exact (hs.2 _ _ hn hsb).1 kc vc e hc he
+      · rw [List.mem_singleton] at he
+        subst he
+        obtain ⟨vs, hvs⟩ := (hs.2 _ _ hn hsb).2 kc vc hc
+        exact hSB hsb kc vs hvs
+    · exact (hs.2 _ _ hn hsb).1 kc vc e hc he
+  · intro kc vc hc
+    obtain ⟨vs, hvs⟩ := (hs.2 _ _ hn hsb).2 kc vc hc
+    show ∃ vs, (bktOf (st.S.insert bi.name ((bktOf st.S bi.name).insert kb vb)) n).lookup kc = some vs
+    rw [bktOf_put_lookup]
+    split
+    · exact ⟨_, rfl⟩
+    · exact ⟨vs, hvs⟩
+
+/-- An operation that changes only the writer's contents of a bucket that is not safe-range
+keeps the discipline. -/
+theorem safeSt_S_nonSB {P : BParams} {st st' : BSess} {name : GoString}
+    (hs : safeSt P st) (hsb : P.SB name = false) (hC : st'.C = st.C) (hR : st'.R = st.R)
+    (hW : st'.W = st.W) (hS : ∀ n, n ≠ name → bktOf st'.S n = bktOf st.S n) :
+    safeSt P st' := by
+  refine ⟨by rw [hC, hR]; exact hs.1, fun n i hn hsbn => ⟨?_, ?_⟩⟩
+  · rw [hC, hW]; exact (hs.2 n i hn hsbn).1
+  · have hne : n ≠ name := fun h => by subst h; rw [hsb] at hsbn; cases hsbn
+    rw [hC, hS n hne]; exact (hs.2 n i hn hsbn).2
+
 theorem sessWf_put {P : BParams} {st : BSess} {bi : BucketInfo} {kb vb : GoString} {seq : Bool}
     (hP : P.Wf) (hst : sessWf P st) (hb : P.has bi)
     (hW : if seq then ∀ e ∈ bkOf st.W.bks bi.id, strLt e.1 kb
       else kb ∉ (bkOf st.W.bks bi.id).map Prod.fst)
-    (hp : sint.Z st.pend + 1 < 2 ^ 58) :
+    (hp : sint.Z st.pend + 1 < 2 ^ 58)
+    (hSB : P.SB bi.name = true → ∀ kc vc, (bktOf st.S bi.name).lookup kc = some vc → strLt kc kb) :
     sessWf P (st.put bi kb vb seq) := by
-  obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag⟩ := hst
+  obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag, hsf⟩ := hst
   have hWbks : (if seq then st.W.putSeq bi.id (kb, vb) else st.W.put bi.id (kb, vb)).bks =
       wbAdd st.W.bks bi.id (kb, vb) := by
     cases seq <;> rfl
   have hpz : sint.Z (st.pend + W64 1) = sint.Z st.pend + 1 := by word
-  refine ⟨?_, hRf, ?_, hRi, ?_, ?_, hn0, ?_, ?_, ?_⟩
+  refine ⟨?_, hRf, ?_, hRi, ?_, ?_, hn0, ?_, ?_, ?_, safeSt_put hP hb hsf hSB⟩
   · show (if seq then st.W.putSeq bi.id (kb, vb) else st.W.put bi.id (kb, vb)).Wf
     cases seq
     · exact WBuf.put_wf hWf (by simpa using hW)
@@ -118,12 +196,13 @@ theorem sessWf_put {P : BParams} {st : BSess} {bi : BucketInfo} {kb vb : GoStrin
         · rfl
 
 theorem sessWf_del {P : BParams} {st : BSess} {bi : BucketInfo} {kb : GoString}
-    (hst : sessWf P st) (hp : sint.Z st.pend + 1 < 2 ^ 58) :
+    (hst : sessWf P st) (hp : sint.Z st.pend + 1 < 2 ^ 58) (hSB : P.SB bi.name = false) :
     sessWf P (st.del bi kb) := by
-  obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag⟩ := hst
+  obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag, hsf⟩ := hst
   have hpz : sint.Z (st.pend + W64 1) = sint.Z st.pend + 1 := by word
   have hnz : sint.Z (st.ndel + W64 1) = sint.Z st.ndel + 1 := by word
-  refine ⟨hWf, hRf, hWi, hRi, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨hWf, hRf, hWi, hRi, ?_, ?_, ?_, ?_, ?_, ?_,
+    safeSt_S_nonSB hsf hSB rfl rfl rfl (fun n hn => bktOf_insert_ne _ _ _ _ (Ne.symm hn))⟩
   · show 0 ≤ sint.Z (st.pend + W64 1); omega
   · show sint.Z (st.pend + W64 1) < 2 ^ 58; omega
   · show 0 ≤ sint.Z (st.ndel + W64 1); omega
@@ -138,12 +217,13 @@ theorem sessWf_del {P : BParams} {st : BSess} {bi : BucketInfo} {kb : GoString}
     omega
 
 theorem sessWf_delBucket {P : BParams} {st : BSess} {bi : BucketInfo}
-    (hst : sessWf P st) (hp : sint.Z st.pend + 1 < 2 ^ 58) :
+    (hst : sessWf P st) (hp : sint.Z st.pend + 1 < 2 ^ 58) (hSB : P.SB bi.name = false) :
     sessWf P (st.delBucket bi) := by
-  obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag⟩ := hst
+  obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag, hsf⟩ := hst
   have hpz : sint.Z (st.pend + W64 1) = sint.Z st.pend + 1 := by word
   have hnz : sint.Z (st.ndel + W64 1) = sint.Z st.ndel + 1 := by word
-  refine ⟨hWf, hRf, hWi, hRi, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨hWf, hRf, hWi, hRi, ?_, ?_, ?_, ?_, ?_, ?_,
+    safeSt_S_nonSB hsf hSB rfl rfl rfl (fun n hn => bktOf_delete_ne _ _ _ (Ne.symm hn))⟩
   · show 0 ≤ sint.Z (st.pend + W64 1); omega
   · show sint.Z (st.pend + W64 1) < 2 ^ 58; omega
   · show 0 ≤ sint.Z (st.ndel + W64 1); omega
@@ -160,9 +240,14 @@ theorem sessWf_delBucket {P : BParams} {st : BSess} {bi : BucketInfo}
 theorem sessWf_create {P : BParams} {st : BSess} {bi : BucketInfo}
     (hst : sessWf P st) (hp : sint.Z st.pend + 1 < 2 ^ 58) :
     sessWf P (st.create bi) := by
-  obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag⟩ := hst
+  obtain ⟨hWf, hRf, hWi, hRi, hp0, hp1, hn0, hnp, hR0, hag, hsf⟩ := hst
   have hpz : sint.Z (st.pend + W64 1) = sint.Z st.pend + 1 := by word
-  refine ⟨hWf, hRf, hWi, hRi, ?_, ?_, hn0, ?_, ?_, ?_⟩
+  have hsf' : safeSt P (st.create bi) := by
+    refine ⟨hsf.1, fun n i hn hsbn => ⟨(hsf.2 n i hn hsbn).1, ?_⟩⟩
+    show ∀ kc vc, (bktOf st.C n).lookup kc = some vc →
+      ∃ vs, (bktOf (if st.S.lookup bi.name = none then st.S.insert bi.name ∅ else st.S) n).lookup kc = some vs
+    rw [bktOf_create]; exact (hsf.2 n i hn hsbn).2
+  refine ⟨hWf, hRf, hWi, hRi, ?_, ?_, hn0, ?_, ?_, ?_, hsf'⟩
   · show 0 ≤ sint.Z (st.pend + W64 1); omega
   · show sint.Z (st.pend + W64 1) < 2 ^ 58; omega
   · show sint.Z st.ndel ≤ sint.Z (st.pend + W64 1); omega
@@ -223,7 +308,7 @@ theorem bgOk_bufBound {P : BParams} {st : BSess} {free : Bool} {n w u : Nat}
   have hv : 0 ≤ uint.Z st.R.ver := by word
   have hk : st.cnt.k < 2 ^ 40 := by omega
   have hc : st.cnt.c ≤ st.cnt.k + 2 := by split at h3 <;> omega
-  have hm := hP.2.2.2
+  have hm := hP.2.2.2.1
   have hmc : P.hookMax * st.cnt.c ≤ 2 ^ 16 * (2 ^ 40 + 2) :=
     Nat.mul_le_mul hm (by omega)
   have hme : st.cnt.e ≤ 2 ^ 16 * (2 ^ 40 + 2) :=

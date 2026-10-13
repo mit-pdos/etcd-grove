@@ -31,7 +31,7 @@ theorem backend.batchTxBuffered.UnsafeSeqPut.wp_proof
     (hBT : backend.batchTx.UnsafeSeqPut.spec (GF := GF) (hG := hG))
     (hBuf : backend.txWriteBuffer.putSeq.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t st bk bi key value kb vb Hhas Hk0 Hk1 Hv Hlt Hp
+  intro γ P W Pk b t st bk bi key value kb vb Hhas Hk0 Hk1 Hlt Hp Hsb
   wp_start as ⟨#Hb, #Ht, Hl, #Hbk, #Hkey, #Hval⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, %Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
@@ -42,7 +42,7 @@ theorem backend.batchTxBuffered.UnsafeSeqPut.wp_proof
   icombine Ht Ht' gives %Heq
   subst Heq
   wp_auto
-  wp_apply (hBT γ P W Pk b t st bk bi key value kb vb DFrac.discard Hk0 Hk1 Hv)
+  wp_apply (hBT γ P W Pk b t st bk bi key value kb vb DFrac.discard Hk0 Hk1)
     $$ [Htxf Hpend Hwtx] as ⟨Hw, -⟩
   · iframe #
     unfold btW
@@ -65,7 +65,7 @@ theorem backend.batchTxBuffered.UnsafeSeqPut.wp_proof
     iframe
     iframe #
   · ipureintro
-    exact sessWf_put HP Hwf Hhas (by simpa using Hlt) Hp
+    exact sessWf_put HP Hwf Hhas (by simpa using Hlt) Hp Hsb
 
 end proof
 

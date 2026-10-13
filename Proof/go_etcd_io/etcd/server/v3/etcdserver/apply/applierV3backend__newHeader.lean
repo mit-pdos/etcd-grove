@@ -43,7 +43,7 @@ theorem apply.applierV3backend.newHeader.wp_proof
   iunfold apply.isApplyKV at Hkv
   icases Hkv with ⟨#HisKV, %rv, #HRV, #Hrv⟩
   iunfold txn.isKV at HisKV
-  icases HisKV with ⟨%Hkveq, #Hst⟩
+  icases HisKV with ⟨%Hkveq, #Hst, %Hkb⟩
   wp_auto
   wp_apply HID as %cid -
   rw [Hri]

@@ -67,7 +67,7 @@ theorem mvcc.isTxnWriteCore_room (mw s : Loc) (γ : mvcc.StoreNames) (ilog : mvc
     iexists trace, ti, bt, Locked, ntok
     simp only [named]
     unfold mvcc.revToken
-    iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti
+    iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt
     iframe #
     ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
   ipureintro; omega

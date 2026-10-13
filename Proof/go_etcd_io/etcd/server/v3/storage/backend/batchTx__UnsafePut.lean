@@ -29,10 +29,10 @@ variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions]
 theorem backend.batchTx.UnsafePut.wp_proof
     (hup : backend.batchTx.unsafePut.spec (GF := GF) (hG := hG)) :
     backend.batchTx.UnsafePut.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t st bk bi key value kb vb dk Hk0 Hk1 Hv
+  intro γ P W Pk b t st bk bi key value kb vb dk Hk0 Hk1
   wp_start as ⟨#Hb, #Ht, Hw, #Hbk, Hkey, #Hval⟩
   wp_auto
-  wp_apply (hup γ P W Pk b t st bk bi key value kb vb dk false Hk0 Hk1 Hv) $$ [$Hw $Hkey] as ⟨Hw, Hkey⟩
+  wp_apply (hup γ P W Pk b t st bk bi key value kb vb dk false Hk0 Hk1) $$ [$Hw $Hkey] as ⟨Hw, Hkey⟩
   · iframe #
   iapply HΦ
   iframe
