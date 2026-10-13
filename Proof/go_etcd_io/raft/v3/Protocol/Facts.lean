@@ -1359,18 +1359,39 @@ section lemmas
 variable [FfiSyntax]
 variable {GF : BundledGFunctors} [AllG GF] [InvGS GF]
 
-/-- Taking a step that consumes a single known message. -/
+/-- No read credit (2026-10-13). -/
+theorem rdCred_zero (γ : RaftNames) : ⊢ |==> rdCred (GF := GF) γ 0 := by
+  unfold rdCred
+  exact own_unit _
+
+/-- Taking a step that consumes a single known message, with its read credit (2026-10-13:
+one for a `MsgReadIndex`). -/
+theorem ownRaftGhost_step_1c (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
+    (s' : PState) :
+    Step γ.reCfg id s [m] s' →
+    ⊢ isMessage (GF := GF) γ m -∗ rdCred γ (rdCount [m]) -∗
+      ownRaftGhost γ id s ={⊤}=∗
+      ownRaftGhost γ id s' := by
+  intro Hstep
+  iintro #Hm Hcr Hown
+  iapply ownRaftGhost_step γ id s [m] s' Hstep $$ [] Hcr Hown
+  iapply (BigSepL.bigSepL_singleton (Φ := fun _ m => isMessage (GF := GF) γ m)).2
+  iexact Hm
+
+/-- Taking a step that consumes a single known message other than a `MsgReadIndex`. -/
 theorem ownRaftGhost_step_1 (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
     (s' : PState) :
+    m.ty ≠ .readIndex →
     Step γ.reCfg id s [m] s' →
     ⊢ isMessage (GF := GF) γ m -∗
       ownRaftGhost γ id s ={⊤}=∗
       ownRaftGhost γ id s' := by
-  intro Hstep
+  intro Hty Hstep
   iintro #Hm Hown
-  iapply ownRaftGhost_step γ id s [m] s' Hstep $$ [] Hown
-  iapply (BigSepL.bigSepL_singleton (Φ := fun _ m => isMessage (GF := GF) γ m)).2
-  iexact Hm
+  imod rdCred_zero (GF := GF) γ with Hcr
+  iapply ownRaftGhost_step_1c γ id s m s' Hstep $$ Hm [Hcr] Hown
+  rw [rdCount_singleton, if_neg Hty]
+  iexact Hcr
 
 /-- Taking a step that consumes nothing. -/
 theorem ownRaftGhost_step_0 (γ : RaftNames) (id : w64) (s s' : PState) :
@@ -1378,9 +1399,11 @@ theorem ownRaftGhost_step_0 (γ : RaftNames) (id : w64) (s s' : PState) :
     ⊢ ownRaftGhost (GF := GF) γ id s ={⊤}=∗ ownRaftGhost γ id s' := by
   intro Hstep
   iintro Hown
-  iapply ownRaftGhost_step γ id s [] s' Hstep $$ [] Hown
-  iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
-  iempintro
+  imod rdCred_zero (GF := GF) γ with Hcr
+  iapply ownRaftGhost_step γ id s [] s' Hstep $$ [] [Hcr] Hown
+  · iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
+    iempintro
+  · rw [show rdCount ([] : List Msg) = 0 from rfl]; iexact Hcr
 
 end lemmas
 
@@ -1406,6 +1429,12 @@ theorem Step.commit_mono [FfiSyntax] {cfg : GSet w64} {id : w64} {ps : PState}
   | commit _ _ _ h => exact Int.le_of_lt h
   | snapRestore _ _ _ _ _ _ _ _ _ h => simp only [psendMsgs]; omega
   | snapFastfwd _ _ _ _ _ _ _ _ _ h => simp only [psendMsgs]; omega
+  | readAck m s N =>
+    obtain ⟨o, r, h⟩ := preadRespondAll_eq id
+      ({ s with rd := { s.rd with
+           ro := (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).1 } })
+      (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).2
+    rw [h]; exact Int.le_refl _
   | _ => simp [psendMsgs, pbecomeFollower, pbecomeCandidate, pwinState, pappend, pbecomeLeader,
       padoptLeader]
 

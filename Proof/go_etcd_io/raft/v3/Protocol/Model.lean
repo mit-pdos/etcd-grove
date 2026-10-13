@@ -1447,6 +1447,49 @@ output: they are the growth of `s'.outbox`.
 Reflexivity and transitivity are part of the relation so that a single Go function
 which performs several protocol steps refines a single `Step`. -/
 
+/-! ### Read-index (2026-10-13)
+
+A confirmed request is answered (`responseToReadIndexReq`): a local one (from `0`, or from
+the leader itself) becomes a `ReadState` whose context is its entry's data, a forwarded one
+a `MsgReadIndexResp` to its sender carrying its entries. `N` is acknowledged by a quorum
+when a quorum's acks are at least `N` (what `maybeAdvance`'s `CommittedIndex` gives). -/
+
+def preadRespond (s : PState) (q : ReadReq) : PState :=
+  if q.src = W64 0 ∨ q.src = id then
+    match q.ents with
+    | e :: _ => { s with rd := { s.rd with states := s.rd.states ++ [⟨q.index, e.Data'⟩] } }
+    | [] => s
+  else psendMsgs s [Msg.mk .readIndexResp id q.src s.term false q.index (W64 0) (W64 0)
+                      (W64 0) q.ents]
+
+def preadRespondAll (s : PState) (qs : List ReadReq) : PState :=
+  qs.foldl (preadRespond id) s
+
+/-- Answering changes only the outbox and the read state. -/
+theorem preadRespond_eq (s : PState) (q : ReadReq) :
+    ∃ o r, preadRespond id s q = { s with outbox := o, rd := r } := by
+  unfold preadRespond
+  split
+  · split
+    · exact ⟨_, _, rfl⟩
+    · exact ⟨s.outbox, s.rd, by cases s; rfl⟩
+  · exact ⟨_, _, rfl⟩
+
+theorem preadRespondAll_eq (s : PState) (qs : List ReadReq) :
+    ∃ o r, preadRespondAll id s qs = { s with outbox := o, rd := r } := by
+  unfold preadRespondAll
+  induction qs generalizing s with
+  | nil => exact ⟨s.outbox, s.rd, by cases s; rfl⟩
+  | cons q qs ih =>
+    rw [List.foldl_cons]
+    obtain ⟨o1, r1, h1⟩ := preadRespond_eq id s q
+    rw [h1]
+    obtain ⟨o, r, h⟩ := ih { s with outbox := o1, rd := r1 }
+    exact ⟨o, r, h⟩
+
+def QuorumAcked (f : w64 → w64) (N : w64) : Prop :=
+  ∃ Q, IsQuorum cfg Q ∧ ∀ v ∈ Q, uint.Z N ≤ uint.Z (f v)
+
 inductive Step : PState → List Msg → PState → Prop where
   /-- Structural rules. -/
   | refl (s : PState) : Step s [] s
@@ -1730,6 +1773,51 @@ inductive Step : PState → List Msg → PState → Prop where
   (`r.readStates = nil`). -/
   | takeReads (s : PState) :
       Step s [] ({ s with rd := { s.rd with states := [] } })
+
+  /- ### Read-index (2026-10-13; `notes/decisions.md`, "Read-index")
+
+  A request carries a read credit (`rdOwn`), which `Step`'s refinement takes with it. -/
+
+  /-- `stepFollower`'s `MsgReadIndex`: forwarded to the leader, from the node itself for a
+  local request (`From = 0`). (No leader: dropped, `Step.refl`.) -/
+  | readFwd (m : Msg) (s : PState) :
+      m.ty = .readIndex → s.role ≠ .leader → s.lead ≠ W64 0 →
+      Step s [m] (psendMsgs s [{ m with
+        src := if m.src = W64 0 then id else m.src
+        dst := s.lead
+        term := W64 0 }])
+  /-- `stepLeader`'s `MsgReadIndex` before an entry of the term is committed: pending. -/
+  | readPend (m : Msg) (s : PState) (pm : raftpb.Message) :
+      m.ty = .readIndex → s.role = .leader → m.src = pm.From' →
+      Step s [m] ({ s with rd := { s.rd with pend := s.rd.pend ++ [(pm, m.entries)] } })
+  /-- `sendMsgReadIndexResponse`: the request queued at the commit index, which is at an
+  entry of the term, and acknowledged by the leader itself. -/
+  | readArrive (m : Msg) (s : PState) :
+      m.ty = .readIndex → s.role = .leader →
+      plogTermAt s.base s.log s.commit = some s.term →
+      Step s [m] ({ s with rd := { s.rd with
+                     ro := readonlyArrive s.rd.ro id ⟨s.commit, m.src, m.entries⟩ } })
+  /-- `releasePendingReadIndexMessages`: the pending requests arrive, in order. -/
+  | readRelease (s : PState) :
+      s.role = .leader → plogTermAt s.base s.log s.commit = some s.term →
+      Step s [] ({ s with rd := { s.rd with
+        pend := []
+        ro := readonlyRelease s.rd.ro id s.commit s.rd.pend } })
+  /-- `stepLeader`'s `MsgHeartbeatResp` with a context: the sender's acknowledgement,
+  then the requests up to a position a quorum acknowledged confirmed and answered. -/
+  | readAck (m : Msg) (s : PState) (N : w64) :
+      m.ty = .heartbeatResp → m.dst = id → m.term = s.term → s.role = .leader →
+      m.ctx ≠ [] →
+      QuorumAcked cfg (fun v => ((readonlyRecvAck s.rd.ro m.src m.ctx).acks !! v).getD (W64 0))
+        N →
+      Step s [m] (preadRespondAll id
+        ({ s with rd := { s.rd with
+             ro := (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).1 } })
+        (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).2)
+  /-- `stepFollower`'s `MsgReadIndexResp`: a `ReadState`. -/
+  | readState (m : Msg) (s : PState) (e : raftpb.Entry) :
+      m.ty = .readIndexResp → m.entries = [e] →
+      Step s [m] ({ s with rd := { s.rd with states := s.rd.states ++ [⟨m.index, e.Data'⟩] } })
 
   /- ### Pre-vote (phase 3, 2026-10-04)
 
