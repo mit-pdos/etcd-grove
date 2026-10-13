@@ -1945,6 +1945,16 @@ inductive Step : PState → List Msg → PState → Prop where
   | zeroAck (s : PState) (dst : w64) :
       Step s [] (psendMsgs s [Msg.mk .appResp id dst s.term false
                                 (W64 0) (W64 0) (W64 0) (W64 0) []])
+  /-- `ApplyConfChange` at a leader (2026-10-13, reconfiguration stage D): `switchToConfig`
+  installs the progress map `confchange` built, each `Progress` a copy of the old one of
+  the same peer (its `Match` kept) or a fresh one (`initProgress`: `Match = 0`), for a peer
+  added or removed and re-added in one change. So each new `Match` is `0` or the peer's old
+  one; peers may also leave the map. Lowering a `Match` acknowledges less (`isAcked` at
+  `0` holds for free), so nothing the leader has committed or will commit is affected. -/
+  | reMatch (s : PState) (mt : GMap w64 w64) :
+      s.role = .leader →
+      (∀ v i, mt !! v = some i → uint.Z i = 0 ∨ s.matched !! v = some i) →
+      Step s [] { s with matched := mt }
 
 end model
 

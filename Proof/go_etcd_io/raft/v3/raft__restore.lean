@@ -239,7 +239,7 @@ theorem raft.restore.wp_proof
       ipureintro
       rw [← Hcfgeq]
       exact ⟨Hcfgarr, Hcfgl, Hcfgln, Hcfgal, Hvm, Hprs, Hcfgeq ▸ Hcsz⟩
-    wp_apply wp_raft_switchToConfig _ _ _ _ _ cfgv prsm prs (by simp [Hrole]) $$ [$Hphys $Hcfg]
+    wp_apply (raft.switchToConfig.spec_nonleader wp_raft_switchToConfig) _ _ _ _ _ cfgv prsm prs (by simp [Hrole]) $$ [$Hphys $Hcfg]
       as %cs2 %xs2 %pvs1 ⟨Hphys, Hcs2v, %Hxs2, %Hcs2l⟩
     obtain ⟨Hc2a, Hc2b, Hc2c, Hc2al⟩ := Hcs2l
     have Hperm2 : voters ≡ₚ xs2 := Hperm.trans Hxs2.symm

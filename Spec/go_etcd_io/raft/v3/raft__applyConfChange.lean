@@ -1,0 +1,152 @@
+/-
+`raft.applyConfChange` (raft.go), Lean-first (2026-10-13, reconfiguration stage D): for a
+change that leaves the configuration unchanged.
+-/
+module
+
+public import Proof.go_etcd_io.raft.v3.InvApplyConf
+public import Spec.go_etcd_io.raft.v3.raft__switchToConfig
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI go_etcd_io.raft.v3
+
+section pure
+variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+
+/-- What `applyConfChange` did to the node: installed new `Progress` objects (`prs`, records
+`pvs`, each `Match` the old one or `0` at a leader), then `switchToConfig`'s rest
+(`SwitchOk`). -/
+def ApplyCCOk (cfg : GSet w64) (id : w64) (s s' : NState) : Prop :=
+  ∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress),
+    (s.role = .leader → MatchKept s.prvals pvs) ∧
+    SwitchOk cfg id { s with progress := prs, prvals := pvs } s'
+
+/-- The protocol reading of `ApplyCCOk`: one `Step` that receives nothing (at a leader
+`Step.reMatch`, then `Step.commit` if `maybeCommit` moved the commit index, then
+`Step.sendApps`; at a non-leader `Step.refl`), and what is kept of the physical state: the
+role, `r.step`, `r.tick`, the term, pre-vote, the ghost bounds, the log but for a raised
+commit index. -/
+theorem applyCCOk_step (cfg : GSet w64) (id : w64) (s s' : NState) (H : ApplyCCOk cfg id s s') :
+    Step cfg id (toPState s) [] (toPState s') ∧
+    s'.role = s.role ∧ s'.stepfn = s.stepfn ∧ s'.ticking = s.ticking ∧ s'.term = s.term ∧
+    s'.prevote = s.prevote ∧ s'.gh = s.gh ∧
+    s'.logst = { s.logst with committed := s'.logst.committed } ∧
+    uint.Z s.logst.committed ≤ uint.Z s'.logst.committed := by
+  obtain ⟨prs, pvs, Hmk, Hsw⟩ := H
+  unfold SwitchOk at Hsw
+  by_cases Hl : s.role = .leader
+  · rw [if_pos (show ({ s with progress := prs, prvals := pvs } : NState).role = .leader from Hl)]
+      at Hsw
+    obtain ⟨c, ms, pvs2, lt', Hc, Hms, Hmm, rfl⟩ := Hsw
+    have Hpl : (toPState s).role = .leader := by simp [toPState, Hl, proleRole]
+    -- the new `Progress` values
+    have H1 : Step cfg id (toPState s) []
+        (toPState { s with progress := prs, prvals := pvs }) := by
+      have e : toPState { s with progress := prs, prvals := pvs } =
+          { toPState s with matched := prvalsMatch pvs } := by simp [toPState, Hl]
+      rw [e]
+      refine .reMatch _ _ Hpl (fun v i hv => ?_)
+      simp only [prvalsMatch, GMap.lookup_fmap'] at hv
+      cases hp : pvs !! v with
+      | none => rw [hp] at hv; cases hv
+      | some p' =>
+        rw [hp] at hv
+        simp only [Option.map_some, Option.some.injEq] at hv
+        subst hv
+        rcases Hmk Hl v p' hp with h0 | ⟨p, hp0, hm⟩
+        · exact .inl h0
+        · right
+          simp [toPState, Hl, prvalsMatch, GMap.lookup_fmap', hp0, hm]
+    generalize Hs1 : ({ s with progress := prs, prvals := pvs } : NState) = s1 at H1 Hc Hms Hmm
+    have Hl1 : s1.role = .leader := by rw [← Hs1]; exact Hl
+    have Hpl1 : (toPState s1).role = .leader := by simp [toPState, Hl1, proleRole]
+    -- the commit
+    have H2 : Step cfg id (toPState s1) []
+        (toPState { s1 with logst := { s1.logst with committed := c } }) := by
+      rcases Hc with rfl | ⟨Hlt, Hle, Htm, Hq⟩
+      · have e : ({ s1 with logst := { s1.logst with committed := s1.logst.committed } } : NState)
+            = s1 := by cases s1; rfl
+        rw [e]; exact .refl _
+      · have e : toPState { s1 with logst := { s1.logst with committed := c } } =
+            { toPState s1 with commit := c } := by simp [toPState, Hl1]
+        rw [e]
+        exact .commit _ c Hpl1 Hlt Hle Htm Hq
+    generalize Hs2 : ({ s1 with logst := { s1.logst with committed := c } } : NState) = s2
+      at H2 Hms
+    have Hl2 : s2.role = .leader := by rw [← Hs2]; exact Hl1
+    -- the appends
+    have H3 : Step cfg id (toPState s2) []
+        (toPState { sendMsgs s2 ms with prvals := pvs2, lt := lt' }) := by
+      have e : toPState { sendMsgs s2 ms with prvals := pvs2, lt := lt' } =
+          toPState { sendMsgs s2 ms with prvals := pvs2 } := rfl
+      rw [e, toPState_prvals (sendMsgs s2 ms) pvs2 (fun _ => by
+        rw [Hmm]; rw [← Hs2]; rfl), toPState_sendMsgs]
+      exact .sendApps _ ms (by simp [toPState, Hl2, proleRole]) Hms
+    refine ⟨.trans _ _ _ _ _ H1 (.trans _ _ _ _ _ H2 H3), ?_⟩
+    subst Hs1 Hs2
+    refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_⟩
+    rcases Hc with rfl | ⟨Hlt, -⟩
+    · exact Int.le_refl _
+    · simp only [toPState] at Hlt; simp only [sendMsgs]; omega
+  · rw [if_neg (show ¬ ({ s with progress := prs, prvals := pvs } : NState).role = .leader
+      from Hl)] at Hsw
+    subst Hsw
+    have e : toPState { s with progress := prs, prvals := pvs } = toPState s := by
+      simp [toPState, Hl]
+    rw [e]
+    exact ⟨.refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩
+
+end pure
+
+section spec
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- `r.applyConfChange(cc)`: builds a `confchange.Changer` on the node's tracker and last
+index, runs `LeaveJoint`, `EnterJoint` or `Simple` as `cc` says (panicking on an error),
+and installs the result (`switchToConfig`), returning the new `ConfState`.
+
+**Scope: a change that leaves the configuration unchanged** -- its model answer is the
+state it started from, `ccApplyM cc.Transition ccs (cfgState cfg) = some (cfgState cfg)`
+(e.g. a change with `NodeId = 0`, `ccApplyM_single_noop`; only `Simple` can answer that,
+`ccApplyM_noop`). `ownRaftPhys` stays at `cfg`. Even so the Go code installs new
+`Progress` objects (`checkAndCopy`'s copies, or fresh ones for a peer removed and re-added
+in one change, whose `Match` is `0`), and at a leader commits and sends appends: the result
+is `ApplyCCOk`, a protocol `Step` that receives nothing (`applyCCOk_step`). `id ∈ cfg` is
+the node's scope (a voter), which a leader's `maybeCommit` needs.
+
+The order in which an application must call this relative to `Advance`
+(`issues/raft-advance-before-applyconfchange.md`) is `RawNode.ApplyConfChange`'s
+concern; for an unchanged configuration it does not matter. -/
+abbrev raft.applyConfChange.spec : Prop :=
+  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (cc : raftpb.ConfChangeV2)
+    (ccs : List raftpb.ConfChangeSingle) (dq : DFrac),
+  id ∈ cfg →
+  ccApplyM cc.Transition' ccs (cfgState cfg) = some (cfgState cfg) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhys cfg r id s ∗
+      "Hccs" ∷ cc.Changes' ↦*{dq} ccs }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"applyConfChange")) (Val #cc))
+  {{ (cs : raftpb.ConfState) (xs : List w64) (s' : NState), RET #cs;
+      ownRaftPhys cfg r id s' ∗
+      cc.Changes' ↦*{dq} ccs ∗
+      cs.Voters' ↦* xs ∗ ⌜xs ≡ₚ elements cfg⌝ ∗
+      ⌜cs.VotersOutgoing'.len = W64 0 ∧
+        cs.Learners'.len = W64 0 ∧
+        cs.LearnersNext'.len = W64 0 ∧
+        cs.AutoLeave' = false⌝ ∗
+      ⌜ApplyCCOk cfg id s s'⌝ }}
+
+end spec
+
+end EtcdGrove
+end Perennial

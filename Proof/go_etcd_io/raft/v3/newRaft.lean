@@ -140,7 +140,7 @@ theorem newRaft.wp_proof
     iframe Hvref Hprsm Hprogs
     ipureintro
     exact ⟨Hcfgarr, Hcfgl, Hcfgln, Hcfgal, Hvm, Hprs, Hcsz⟩
-  wp_apply wp_raft_switchToConfig _ _ _ _ s0 cfgv prsm prs (by simp only [s0]; decide) $$ [$Hphys $Hcfg]
+  wp_apply (raft.switchToConfig.spec_nonleader wp_raft_switchToConfig) _ _ _ _ s0 cfgv prsm prs (by simp only [s0]; decide) $$ [$Hphys $Hcfg]
     as %cs2 %xs2 %pvs1 ⟨Hphys, Hcs2v, %Hxs2, %Hcs2l⟩
   obtain ⟨Hc2a, Hc2b, Hc2c, Hc2al⟩ := Hcs2l
   have Hperm : voters ≡ₚ xs2 := by

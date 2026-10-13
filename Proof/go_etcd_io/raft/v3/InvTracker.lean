@@ -405,6 +405,21 @@ theorem ownIdsetC_join (m : Loc) (dq : DFrac) (ids : GMap w64 Unit) (H : m = map
     · exact absurd H Hnn
     · iright; iframe Hm; ipureintro; exact H
 
+/-- An empty canonical id set is `nil`. -/
+theorem ownIdsetC_empty_nil (m : Loc) (dq : DFrac) :
+    ownIdsetC (GF := GF) m dq ∅ ⊢ ⌜m = map.nil⌝ := by
+  unfold ownIdsetC
+  iintro (%H | ⟨-, %Hne⟩)
+  · ipureintro; exact H.1
+  · exact absurd rfl Hne
+
+theorem ownIdsetC_nil_of (m : Loc) (dq : DFrac) (ids : GMap w64 Unit) (H : ids = ∅) :
+    ownIdsetC (GF := GF) m dq ids ⊢ ⌜m = map.nil⌝ := by
+  subst H; exact ownIdsetC_empty_nil m dq
+
+theorem ownIdsetC_nil (dq : DFrac) : ⊢ ownIdsetC (GF := GF) map.nil dq ∅ := by
+  unfold ownIdsetC; ileft; ipureintro; exact ⟨rfl, rfl⟩
+
 /-! ### The progress tracker
 
 `trk` is embedded in the raft struct **by value**, so the tracker's own bytes are part
@@ -456,10 +471,12 @@ def ownTracker (tv : tracker.ProgressTracker) (t : Trk) : IProp GF :=
   "%Hautoleave" ∷ ⌜tv.Config'.AutoLeave' = false⌝ ∗
   "Hvoters" ∷ voters_ref ↦$ voters ∗
   "%Hvoters_dom" ∷ ⌜domSet voters = cfg⌝ ∗
-  -- no learners. Either map may be `nil` -- and after `newRaft` both are: see
-  -- `ownIdsetOpt`.
-  "Hlearners" ∷ ownIdsetOpt tv.Config'.Learners' learners ∗
-  "HlearnersNext" ∷ ownIdsetOpt tv.Config'.LearnersNext' learnersNext ∗
+  -- no learners. Both maps are canonical (`ownIdsetC`: `nil` exactly when empty, so here
+  -- `nil` -- as after `newRaft`: see `ownIdsetOpt`), as `confchange`'s specs need them
+  -- (`ownTrackerCC`; since 2026-10-13, for `ApplyConfChange`; until then `ownIdsetOpt`,
+  -- which also allowed an empty map).
+  "Hlearners" ∷ ownIdsetC tv.Config'.Learners' (DFrac.own 1) learners ∗
+  "HlearnersNext" ∷ ownIdsetC tv.Config'.LearnersNext' (DFrac.own 1) learnersNext ∗
   "%Hno_learners" ∷ ⌜learners = ∅ ∧ learnersNext = ∅⌝ ∗
   -- `campaign` does `make([]uint64, 0, len(idMap))`, and `wp_slice_make3` needs
   -- `0 ≤ sint.Z cap`; `campaign`, `Visit`, `VoterNodes` and `CommittedIndex` then
@@ -513,8 +530,8 @@ theorem ownTracker_intro (tv : tracker.ProgressTracker) (votes : GMap w64 Bool)
       tv.Progress' ↦$□ prs -∗
       ([∗map] _k ↦ pr;p ∈ prs;peers, ownProgress pr p) -∗
       voters_ref ↦$ voters -∗
-      ownIdsetOpt tv.Config'.Learners' learners -∗
-      ownIdsetOpt tv.Config'.LearnersNext' learnersNext -∗
+      ownIdsetC tv.Config'.Learners' (DFrac.own 1) learners -∗
+      ownIdsetC tv.Config'.LearnersNext' (DFrac.own 1) learnersNext -∗
       ownTracker cfg tv ⟨votes, prs, peers⟩ := by
   unfold ownTracker
   iintro Hvotes #Hprs Hprogs Hvoters Hlearners HlearnersNext
@@ -976,10 +993,10 @@ theorem ownTracker_empty (tv : tracker.ProgressTracker) (v0 : Loc)
       tv.Progress' ↦$□ (∅ : GMap w64 Loc) -∗
       ownTracker ∅ tv ⟨∅, ∅, ∅⟩ := by
   iintro Hv0 Hvotes #Hprs
-  ihave Hl0 : ownIdsetOpt (GF := GF) tv.Config'.Learners' (∅ : GMap w64 Unit) $$ []
-  · unfold ownIdsetOpt; ileft; ipureintro; exact ⟨Hl, rfl⟩
-  ihave Hln0 : ownIdsetOpt (GF := GF) tv.Config'.LearnersNext' (∅ : GMap w64 Unit) $$ []
-  · unfold ownIdsetOpt; ileft; ipureintro; exact ⟨Hln, rfl⟩
+  ihave Hl0 : ownIdsetC (GF := GF) tv.Config'.Learners' (DFrac.own 1) (∅ : GMap w64 Unit) $$ []
+  · unfold ownIdsetC; ileft; ipureintro; exact ⟨Hl, rfl⟩
+  ihave Hln0 : ownIdsetC (GF := GF) tv.Config'.LearnersNext' (DFrac.own 1) (∅ : GMap w64 Unit) $$ []
+  · unfold ownIdsetC; ileft; ipureintro; exact ⟨Hln, rfl⟩
   ihave Hprogs : ([∗map] _k ↦ pr;p ∈ (∅ : GMap w64 Loc); (∅ : GMap w64 Progress),
       ownProgress (GF := GF) pr p) $$ []
   · iapply (BigSepM2.bigSepM2_empty _).2; iempintro
@@ -1007,15 +1024,89 @@ theorem ownTracker_reconfig (cfg0 cfg : GSet w64) (tv : tracker.ProgressTracker)
   icases bigSepM_exist_sepM2 prs (fun _ pr (p : Progress) => ownProgress (GF := GF) pr p)
     $$ Hprogs with ⟨%pvs, Hprogs⟩
   iexists pvs
-  ihave Hl0 : ownIdsetOpt (GF := GF) cfgv.Learners' (∅ : GMap w64 Unit) $$ []
-  · unfold ownIdsetOpt; ileft; ipureintro; exact ⟨Hcfgl, rfl⟩
-  ihave Hln0 : ownIdsetOpt (GF := GF) cfgv.LearnersNext' (∅ : GMap w64 Unit) $$ []
-  · unfold ownIdsetOpt; ileft; ipureintro; exact ⟨Hcfgln, rfl⟩
+  ihave Hl0 : ownIdsetC (GF := GF) cfgv.Learners' (DFrac.own 1) (∅ : GMap w64 Unit) $$ []
+  · unfold ownIdsetC; ileft; ipureintro; exact ⟨Hcfgl, rfl⟩
+  ihave Hln0 : ownIdsetC (GF := GF) cfgv.LearnersNext' (DFrac.own 1) (∅ : GMap w64 Unit) $$ []
+  · unfold ownIdsetC; ileft; ipureintro; exact ⟨Hcfgln, rfl⟩
   iapply ownTracker_intro cfg { tv with Config' := cfgv, Progress' := prsm } t.votes prs pvs
     vref vm ∅ ∅ Hprs Hcfgarr Hcfgal Hvm ⟨rfl, rfl⟩ Hcsz HmaxInfl
     $$ Hvotes Hprsm Hprogs Hvref Hl0 Hln0
 
+/-! ### A configuration with its `Progress` records, for `ApplyConfChange` (2026-10-13)
+
+`ownConfigV` is `ownConfig` with the records of the new `Progress` objects named (`pvs`), and
+`MatchKept old pvs` says each new `Match` is `0` (a fresh `Progress`) or the peer's old one (a
+copy): what `Step.reMatch` takes at a leader. `switchToConfig` takes the new configuration in
+this form, and the old tracker's tally and inflight bound (`ownTracker_votes`), so that the
+caller can move the old `Progress` objects' inflight rings to their copies before the call. -/
+
+def ownConfigV (cfg : GSet w64) (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc)
+    (pvs : GMap w64 Progress) : IProp GF :=
+  iprop(∃ (vref : Loc) (vm : GMap w64 Unit),
+    "%Hcfgarr" ∷ ⌜cfgv.Voters'.arr = [vref, map.nil]⌝ ∗
+    "%Hcfgl" ∷ ⌜cfgv.Learners' = map.nil⌝ ∗
+    "%Hcfgln" ∷ ⌜cfgv.LearnersNext' = map.nil⌝ ∗
+    "%Hcfgal" ∷ ⌜cfgv.AutoLeave' = false⌝ ∗
+    "Hvref" ∷ vref ↦$ vm ∗
+    "%Hvm" ∷ ⌜domSet vm = cfg⌝ ∗
+    "#Hprsm" ∷ prsm ↦$□ prs ∗
+    "%Hprs" ∷ ⌜domSet prs = cfg⌝ ∗
+    "Hprogs" ∷ ([∗map] _k ↦ pr;p ∈ prs;pvs, ownProgress pr p) ∗
+    "%Hcsz" ∷ ⌜(GMap.size cfg : Int) ≤ 2 ^ 62⌝)
+
+/-- `ownConfig` with its records named. -/
+theorem ownConfig_values (cfg : GSet w64) (cfgv : tracker.Config) (prsm : Loc)
+    (prs : GMap w64 Loc) :
+    ownConfig (GF := GF) cfg cfgv prsm prs ⊢ ∃ pvs, ownConfigV cfg cfgv prsm prs pvs := by
+  iintro Hnew
+  iunfold ownConfig at Hnew
+  icases Hnew with ⟨%vref, %vm, Hnew⟩
+  iNamed Hnew
+  icases bigSepM_exist_sepM2 prs (fun _ pr (p : Progress) => ownProgress (GF := GF) pr p)
+    $$ Hprogs with ⟨%pvs, Hprogs⟩
+  iexists pvs
+  unfold ownConfigV
+  iexists vref, vm
+  simp only [named]
+  iframe Hvref Hprsm Hprogs
+  ipureintro
+  exact ⟨Hcfgarr, Hcfgl, Hcfgln, Hcfgal, Hvm, Hprs, Hcsz⟩
+
+/-- What of a tracker survives a change of configuration: the tally and the inflight bound. -/
+theorem ownTracker_votes (cfg : GSet w64) (tv : tracker.ProgressTracker) (t : Trk) :
+    ownTracker (GF := GF) cfg tv t ⊢
+      tv.Votes' ↦$ t.votes ∗ ⌜0 ≤ sint.Z tv.MaxInflight' ∧ sint.Z tv.MaxInflight' < 2 ^ 62⌝ := by
+  iintro Hold
+  iunfold ownTracker at Hold
+  icases Hold with ⟨%voters_ref, %voters, %learners, %learnersNext, Hold⟩
+  iNamed Hold
+  iframe Hvotes
+  ipureintro; exact HmaxInfl
+
+/-- The new tracker: the old tally, the new configuration and `Progress` objects. -/
+theorem ownTracker_reconfigV (cfg : GSet w64) (tv : tracker.ProgressTracker) (votes : GMap w64 Bool)
+    (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (pvs : GMap w64 Progress)
+    (Hmi : 0 ≤ sint.Z tv.MaxInflight' ∧ sint.Z tv.MaxInflight' < 2 ^ 62) :
+    ⊢ (tv.Votes' ↦$ votes : IProp GF) -∗ ownConfigV cfg cfgv prsm prs pvs -∗
+      ownTracker cfg { tv with Config' := cfgv, Progress' := prsm } ⟨votes, prs, pvs⟩ := by
+  iintro Hvotes Hnew
+  unfold ownConfigV
+  icases Hnew with ⟨%vref, %vm, Hnew⟩
+  iNamed Hnew
+  ihave Hl0 : ownIdsetC (GF := GF) cfgv.Learners' (DFrac.own 1) (∅ : GMap w64 Unit) $$ []
+  · unfold ownIdsetC; ileft; ipureintro; exact ⟨Hcfgl, rfl⟩
+  ihave Hln0 : ownIdsetC (GF := GF) cfgv.LearnersNext' (DFrac.own 1) (∅ : GMap w64 Unit) $$ []
+  · unfold ownIdsetC; ileft; ipureintro; exact ⟨Hcfgln, rfl⟩
+  iapply ownTracker_intro cfg { tv with Config' := cfgv, Progress' := prsm } votes prs pvs
+    vref vm ∅ ∅ Hprs Hcfgarr Hcfgal Hvm ⟨rfl, rfl⟩ Hcsz Hmi
+    $$ Hvotes Hprsm Hprogs Hvref Hl0 Hln0
+
 end config
+
+/-- Each new `Match` is `0` or the peer's old one (2026-10-13, `Step.reMatch`). -/
+def MatchKept (old pvs : GMap w64 Progress) : Prop :=
+  ∀ k p', pvs !! k = some p' →
+    uint.Z p'.matched = 0 ∨ ∃ p, old !! k = some p ∧ p.matched = p'.matched
 
 /-! ## Replication-side additions (2026-10-01)
 

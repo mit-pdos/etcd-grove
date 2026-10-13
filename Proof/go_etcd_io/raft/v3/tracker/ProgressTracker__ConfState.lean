@@ -78,11 +78,21 @@ theorem tracker.ProgressTracker.ConfState.wp_proof
   ihave Htrk := Htrkback $$ Hvf
   wp_auto
   obtain ⟨rfl, rfl⟩ := Hno_learners
-  wp_apply wp_MajorityConfig_Slice $$ [$Hlearners] as %sl2 %xs2 ⟨Hlearners, Hsl2, -, %Hxs2⟩
-  · ipureintro; simp [GMap.size_empty]
-  wp_apply wp_MajorityConfig_Slice $$ [$HlearnersNext]
-    as %sl3 %xs3 ⟨HlearnersNext, Hsl3, -, %Hxs3⟩
-  · ipureintro; simp [GMap.size_empty]
+  icases ownIdsetC_empty_nil _ _ $$ Hlearners with %HL
+  icases ownIdsetC_empty_nil _ _ $$ HlearnersNext with %HLN
+  wp_apply wp_MajorityConfig_Slice tv.Config'.Learners' ∅ $$ [] as %sl2 %xs2 ⟨-, Hsl2, -, %Hxs2⟩
+  · isplitl
+    · unfold ownIdsetOpt; ileft; ipureintro; exact ⟨HL, rfl⟩
+    · ipureintro; simp [GMap.size_empty]
+  wp_apply wp_MajorityConfig_Slice tv.Config'.LearnersNext' ∅ $$ []
+    as %sl3 %xs3 ⟨-, Hsl3, -, %Hxs3⟩
+  · isplitl
+    · unfold ownIdsetOpt; ileft; ipureintro; exact ⟨HLN, rfl⟩
+    · ipureintro; simp [GMap.size_empty]
+  ihave Hlearners : ownIdsetC (GF := GF) tv.Config'.Learners' (DFrac.own 1) ∅ $$ []
+  · unfold ownIdsetC; ileft; ipureintro; exact ⟨HL, rfl⟩
+  ihave HlearnersNext : ownIdsetC (GF := GF) tv.Config'.LearnersNext' (DFrac.own 1) ∅ $$ []
+  · unfold ownIdsetC; ileft; ipureintro; exact ⟨HLN, rfl⟩
   obtain rfl := perm_elements_empty xs1 Hxs1
   obtain rfl := perm_elements_empty xs2 Hxs2
   obtain rfl := perm_elements_empty xs3 Hxs3

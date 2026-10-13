@@ -1067,6 +1067,43 @@ theorem ownRaftGhost_step_app_resp (γ : RaftNames) (id : w64) (s : PState) (m :
   · lcm_mono
   · rd_mono
 
+/-- `Step.reMatch` (2026-10-13): each new `Match` is `0` (acknowledged for free) or the
+peer's old one (acknowledged already). -/
+theorem ownRaftGhost_step_rematch (γ : RaftNames) (id : w64) (s : PState) (mt : GMap w64 w64) :
+    s.role = .leader →
+    (∀ v i, mt !! v = some i → uint.Z i = 0 ∨ s.matched !! v = some i) →
+    ⊢ ownRaftGhost (GF := GF) γ id s ==∗ ownRaftGhost γ id { s with matched := mt } := by
+  intro Hrole Hmt
+  iintro Hown
+  iunfold ownRaftGhost at Hown
+  icases Hown with ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  imodintro
+  iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm] [Hrd]
+  · ipureintro; exact Hhist
+  · iexact Hout
+  · iexact Htally
+  · iapply leaderWit_eq γ id s _ (by rfl) (by rfl) $$ Hlead
+  · ihave #Hmatched := ownLogGhost_matched $$ Hlg
+    iapply ownLogGhost_mono' γ id s _ kl kl (by rfl) (by rfl) (by intro h; exact ⟨h, rfl⟩)
+      (by intro h _; exact absurd Hrole h) (by intro h; exact ⟨h, rfl⟩) (by exact Int.le_refl _)
+      (by exact Int.le_refl _) (by exact Or.inl ⟨rfl, rfl, fun h => h, fun h => h⟩) (by exact Or.inl rfl)
+      $$ Hlg [] [] []
+    · rw [matchedOk_leader γ _ Hrole]
+      unfold matchedOk; simp only [Hrole]
+      iapply BigSepM.bigSepM_forall_elim
+      iintro %v %i %Hv
+      rcases Hmt v i Hv with H0 | Hx
+      · unfold isAcked; ileft; ipureintro; exact H0
+      · iapply BigSepM.bigSepM_lookup Hx $$ Hmatched
+    · iintro %fp %_ - #Hc; iexact Hc
+    · iintro %fp %_ - #Hc; simp only [cprefix]; iexact Hc
+  · ipureintro; exact Hlead_ok
+  · ipureintro; exact Hfollower_votes
+  · ipureintro; exact Hrole_ok
+  · lcm_mono
+  · rd_mono
+
 /-- `Step.commit`: a quorum of `Match`es at least `n` is a commit fact `cq`, which extends
 the global committed log (`commit_extend`, inside the invariant) -- the node's committed
 prefix is then `isCommitted`. -/
@@ -3408,6 +3445,10 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
     iintro Hrecv - Hown
     ihave #Hm := recv_one $$ Hrecv
     imod ownRaftGhost_step_app_resp γ id s m x Hty Hterm Hrole Hrej Hx $$ Hm Hown with Hown
+    imodintro; iexact Hown
+  | reMatch s mt Hrole Hmt =>
+    iintro _ - Hown
+    imod ownRaftGhost_step_rematch γ id s mt Hrole Hmt $$ Hown with Hown
     imodintro; iexact Hown
   | commit s n Hrole Hlt Hle Htm Hq =>
     iintro _ - Hown
