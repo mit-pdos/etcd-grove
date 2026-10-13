@@ -44,7 +44,12 @@ mvcc's certificate of the log after (`idxCert`).
 proved in unit 4a, `read/Results.lean`, from contracts on the server and raft) returns `nil` only
 once the applied index is at least the committed index the caller knew of (`committedAtLeast γr
 c` in, `appliedAtLeast γr ci₀` with `c ≤ ci₀` out); its caller holds a reader slot of the read
-loop's lock (`readReader`). Unit 4b ties the two lower bounds to the consistent-index protocol.
+loop's lock (`readReader`). Since the request path's unit 4b (2026-10-13) the applied index's
+lower bounds are `s.appliedIndex`'s (`srvAppliedInv`: the atomic, half of the ghost index's
+authority, the applied logs `γr.logs`), the apply thread holding the other half
+(`srvAppliedOwn`) and depositing, at each `setAppliedIndex`, the KV log after the entry
+(`appliedLogAt`); the committed index's are `s.committedIndex`'s (`srvCommittedInv`; the writer's
+half `srvCommittedOwn` is the raft loop's, unit 4c).
 
 **The auth store's request side** (`isReqAuth st`): `AuthInfoFromCtx`/`AuthInfoFromTLS` return
 `nil` or an `*AuthInfo` with readable `Username`/`Revision` (`authInfoIs`), and an error.

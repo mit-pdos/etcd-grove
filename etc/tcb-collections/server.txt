@@ -5,6 +5,9 @@
 # the context's Value at StartTimeKey and errors.Is at the context errors, and which reach
 # trace.SpanFromContext (mvcc's) and context.WithValue (the apply package's): 40 -> 44;
 # merged with the raft wrapper's proto.Clone, zap.Duration and zap.Logger.Fatal: 47).
+# The request path's unit 4b (2026-10-13): the apply loop's applyAll reaches backend's
+# VerifyBackendConsistency and the names-only snapshot, compactRaftLog, createMergedSnapshotMessage
+# and sendMergedSnap contracts: 61 -> 66.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/server.txt [--check [--update]]
 #
@@ -13,11 +16,16 @@
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/(Link|Results)\.lean$
 axiom EtcdServer.GoAttach.wp_proof
 axiom EtcdServer.applyConfChange.wp_proof
+axiom EtcdServer.compactRaftLog.wp_proof
+axiom EtcdServer.createMergedSnapshotMessage.wp_proof
+axiom EtcdServer.sendMergedSnap.wp_proof
+axiom EtcdServer.snapshot.wp_proof
 axiom EtcdServer.stopWithDelay.wp_proof
 axiom attribute.Bool.wp_proof
 axiom attribute.Int.wp_proof
 axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
+axiom backend.VerifyBackendConsistency.wp_proof
 axiom config.ServerConfig.ReqTimeout.wp_proof
 axiom context.ErrDone.wp_proof
 axiom context.ValueStartTime.wp_proof

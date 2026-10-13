@@ -19,7 +19,8 @@ take `nc` any more), sends `ReadIndex` with that committed bound `n`, so the rea
 at least `n`, hence at least every deposited `c`. The close transfers `notified`: the error, and if
 `nil` the frozen need and an applied index at least it.
 
-**The contracts** (persistent; unit 4b discharges them for `*EtcdServer` and its `raftNode`):
+**The contracts** (persistent; discharged for `*EtcdServer` and its `raftNode` in the request
+path's unit 4b: `ReadServer.lean`, `ReadRaft.lean`, the server's `read_server`, `read_raft`):
 `isReadServer srv γr LR NR` (the `server` interface: the stop, done, leader-change and
 first-commit channels (`bcastChan`, closed and never sent on), the logger with the caller's
 resource `LR` (the server's `lgMu` reader slot), the applied index's lower bound, `ApplyWait`'s
