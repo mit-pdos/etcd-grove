@@ -14,19 +14,21 @@ Three exits that matter, in the body's order:
 Three more are dead under the premises: the node is not a follower
 (`becomeFollower(Term+1)`, `false`) -- both callers have just made it one, so `s.role =
 .follower`; `r.id` is in none of the `ConfState`'s sets (`false`) -- the voters are `cfg`
-and `id ∈ cfg`; and `confchange.Restore` failing (`panic`) -- its axiom covers the
-voters-only, zero-free case.
+and `id ∈ cfg`; and `confchange.Restore` failing (`panic`) -- its spec covers the
+non-joint, zero-free case.
 
-`SnapScope cfg sv voters` is the fixed-voter-set scope for a snapshot, what `Step`'s
-`"Hsnap"` supplies: the `ConfState` is `cfg`'s voters, nothing else (no learners, no
-joint configuration, `AutoLeave` off -- `assertConfStatesEquivalent` compares it with
-the one `switchToConfig` reports); `cfg` is zero-free (`confchange.Restore` skips
-`NodeID = 0`); and the index is below `2^61` (`LogStoreOk`'s bound for a pending
-snapshot, `InvRaftlog.lean`).
+`SnapScope cfg sv voters learners` is the fixed-voter-set scope for a snapshot, what
+`Step`'s `"Hsnap"` supplies: the `ConfState`'s voters are `cfg`'s and its learners (since
+2026-10-13, reconfiguration stage L; until then none) are outside `cfg`, zero-free and
+without repeats; no joint configuration, `AutoLeave` off -- `assertConfStatesEquivalent`
+compares it with the one `switchToConfig` reports; `cfg` is zero-free (`confchange.Restore`
+skips `NodeID = 0`); and the index is below `2^61` (`LogStoreOk`'s bound for a pending
+snapshot, `InvRaftlog.lean`). The node itself is a voter (`id ∈ cfg`: a learner receiving a
+snapshot needs the `found` search over the learners, not done).
 
 The rebuilt tracker: a fresh, empty `Votes` map -- the tally was already empty
 (`s.votes = ∅`: a follower's, `FollowerVotesOk`), so `NState.votes` does not move -- a
-fresh progress map over the same `cfg` (`prs`), and `Progress` values `pvs` the spec
+fresh progress map over the same `cfg` and the snapshot's learners (`prs`), and `Progress` values `pvs` the spec
 does not pin -- a follower's are invisible to the protocol (`toPState`).
 
 Lean notes: Rocq's `snap_scope` and `restore_result` are `SnapScope` and
@@ -50,10 +52,13 @@ section results
 variable [FfiSyntax]
 
 /-- The fixed-voter-set scope for a snapshot; see the file header. -/
-def SnapScope (cfg : GSet w64) (sv : raftpb.Snapshot) (voters : List w64) : Prop :=
+def SnapScope (cfg : GSet w64) (sv : raftpb.Snapshot) (voters learners : List w64) : Prop :=
   let cs := sv.Metadata'.ConfState'
   voters ≡ₚ elements cfg ∧ W64 0 ∉ cfg ∧
-  cs.Learners'.len = W64 0 ∧
+  -- (2026-10-13, stage L) the learners, none a voter nor `0`, no repeats (`Equivalent`
+  -- compares them sorted with the tracker's)
+  learners.Nodup ∧ (∀ k ∈ learners, k ∉ cfg ∧ k ≠ W64 0) ∧
+  (GMap.size cfg + learners.length : Int) ≤ 2 ^ 62 ∧
   cs.VotersOutgoing'.len = W64 0 ∧
   cs.LearnersNext'.len = W64 0 ∧
   cs.AutoLeave' = false ∧
@@ -88,14 +93,15 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 abbrev raft.restore.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
-    (sv : raftpb.Snapshot) (voters : List w64),
+    (sv : raftpb.Snapshot) (voters learners : List w64),
   s.role = .follower →
   s.votes = ∅ →
   id ∈ cfg →
-  SnapScope cfg sv voters →
+  SnapScope cfg sv voters learners →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
-      "#Hvoters" ∷ sv.Metadata'.ConfState'.Voters' ↦*□ voters }}
+      "#Hvoters" ∷ sv.Metadata'.ConfState'.Voters' ↦*□ voters ∗
+      "#Hlearners" ∷ ownIdList sv.Metadata'.ConfState'.Learners' DFrac.discard learners }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"restore")) (Val #sv))
   {{ (b : Bool) (s' : NState), RET #b;
       ownRaftPhys cfg r id s' ∗ ⌜RestoreResult s sv b s'⌝ }}

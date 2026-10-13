@@ -26,9 +26,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 with `append([]uint64(nil), s...)` and sorted.
 
 **Not translated** (`raftpb` is types-only), so this is an `axiom`. It is stated for the
-voters-only case `newRaft` needs: both sides have empty `VotersOutgoing`, `Learners`
-and `LearnersNext`, equal `AutoLeave`, and `Voters` lists that are permutations of each
-other. Then every slice sorts to the same list -- the empty ones to `nil`, whether they
+non-joint case: both sides have empty `VotersOutgoing` and `LearnersNext`, equal
+`AutoLeave`, and `Voters` lists, and (since 2026-10-13) `Learners` lists, that are
+permutations of each other. Then every slice sorts to the same list -- the empty ones to `nil`, whether they
 started `nil` or empty, because `append` of nothing to `nil` is `nil` -- and
 `ConfState` has exactly these five fields (`raftpb/raft.pb.go`), so `DeepEqual` holds
 and the result is `nil`. The `Voters` lists have at most `2^62` elements, the bound of
@@ -37,24 +37,27 @@ and the result is `nil`. The `Voters` lists have at most `2^62` elements, the bo
 Only the `nil` outcome is specified: the one caller, `assertConfStatesEquivalent`,
 `Panic`s on anything else. -/
 abbrev raftpb.ConfState.Equivalent.spec : Prop :=
-  ∀ (p : Loc) (cs1 cs2 : raftpb.ConfState) (v1 v2 : List w64) (dq1 dq2 : DFrac),
+  ∀ (p : Loc) (cs1 cs2 : raftpb.ConfState) (v1 v2 l1 l2 : List w64) (dq1 dq2 dl1 dl2 : DFrac),
   v1 ≡ₚ v2 → (v1.length : Int) ≤ 2 ^ 62 →
+  l1 ≡ₚ l2 → (l1.length : Int) ≤ 2 ^ 62 →
   cs1.VotersOutgoing'.len = W64 0 →
-  cs1.Learners'.len = W64 0 →
   cs1.LearnersNext'.len = W64 0 →
   cs2.VotersOutgoing'.len = W64 0 →
-  cs2.Learners'.len = W64 0 →
   cs2.LearnersNext'.len = W64 0 →
   cs1.AutoLeave' = cs2.AutoLeave' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ p ↦ cs1 ∗
       cs1.Voters' ↦*{dq1} v1 ∗
-      cs2.Voters' ↦*{dq2} v2 }}
+      cs2.Voters' ↦*{dq2} v2 ∗
+      ownIdList cs1.Learners' dl1 l1 ∗
+      ownIdList cs2.Learners' dl2 l2 }}
     (App (Val (p @!! go.GoType.PointerType raftpb.ConfState.ty @!! go!"Equivalent"))
       (Val #cs2))
   {{ RET #interface.nil;
       p ↦ cs1 ∗
       cs1.Voters' ↦*{dq1} v1 ∗
-      cs2.Voters' ↦*{dq2} v2 }}
+      cs2.Voters' ↦*{dq2} v2 ∗
+      ownIdList cs1.Learners' dl1 l1 ∗
+      ownIdList cs2.Learners' dl2 l2 }}
 
 end spec
 

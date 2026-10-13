@@ -289,12 +289,9 @@ theorem step_handle_snap (cfg : GSet w64) (id : w64) (ps : PState) (t : NState)
     m.Term' = ps.term →
     ps.role ≠ .leader →
     m.From' ≠ id →
-    SnapScope cfg sv voters →
-    id ∈ cfg →
     HandleSnapResult id t m sv s' →
     Step cfg id ps [absSnap m sv voters] (toPState s') := by
-  intro Ht Hto Hterm Hnl Hfid Hscope Hin Hres
-  have Hperm : voters ≡ₚ elements cfg := Hscope.1
+  intro Ht Hto Hterm Hnl Hfid Hres
   have Htm : t.term = ps.term := congrArg PState.term Ht
   have Hb : t.logst.prev = ps.base := congrArg PState.base Ht
   have Hl : t.logst.sents ++ t.logst.uents = ps.log := congrArg PState.log Ht
@@ -314,7 +311,7 @@ theorem step_handle_snap (cfg : GSet w64) (id : w64) (ps : PState) (t : NState)
   · -- fast-forward
     rw [Hc] at Hlt; rw [Hb, Hl] at Hm
     refine step_eq cfg id _ _ _ _
-      (Step.snapFastfwd (absSnap m sv voters) ps rfl Hto Hfid Hterm Hnl Hperm Hin Hlt Hm) ?_
+      (Step.snapFastfwd (absSnap m sv voters) ps rfl Hto Hfid Hterm Hnl Hlt Hm) ?_
     rw [toPState_sendMsgs']
     have Hs : toPState { t with logst := { t.logst with committed := (snapId sv).index' } } =
         { toPState t with commit := (snapId sv).index' } := rfl
@@ -323,7 +320,7 @@ theorem step_handle_snap (cfg : GSet w64) (id : w64) (ps : PState) (t : NState)
   · -- restore
     rw [Hc] at Hlt; rw [Hb, Hl] at Hnm
     refine step_eq cfg id _ _ _ _
-      (Step.snapRestore (absSnap m sv voters) ps rfl Hto Hfid Hterm Hnl Hperm Hin Hlt Hnm) ?_
+      (Step.snapRestore (absSnap m sv voters) ps rfl Hto Hfid Hterm Hnl Hlt Hnm) ?_
     rw [toPState_sendMsgs']
     have Hs : toPState
         { t with progress := prs, prvals := pvs, logst := logRestore t.logst (snapId sv),

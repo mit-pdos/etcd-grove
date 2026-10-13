@@ -99,6 +99,54 @@ abbrev raft.switchToConfig.spec : Prop :=
       ⌜SwitchOk cfg id { s with progress := prs, prvals := pvs, isLearner := learnerOf cfg prs id }
         s'⌝ }}
 
+/-- At a follower, from the struct sealed at any configuration `cfg0` and the new
+configuration as `confchange.Restore` builds it (`ownConfig`), with the learners `lrn`
+(2026-10-13): what `restore` calls. -/
+theorem raft.switchToConfig.spec_follower
+    (H : raft.switchToConfig.spec (GF := GF) (hG := hG))
+    (cfg0 cfg lrn : GSet w64) (r : Loc) (id : w64) (s : NState)
+    (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (Hrole : s.role = .follower)
+    (Hdom : domSet prs = cfg ∪ lrn) (Hd : ∀ k, k ∈ lrn → k ∉ cfg) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg0 r id s ∗
+        ownConfig cfg cfgv prsm prs }}
+      (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"switchToConfig"))
+        (Val #cfgv)) (Val #prsm))
+    {{ (cs : raftpb.ConfState) (xs ls : List w64)
+        (pvs : GMap w64 Progress), RET #cs;
+        ownRaftPhys cfg r id { s with progress := prs, prvals := pvs,
+                                      isLearner := learnerOf cfg prs id } ∗
+        cs.Voters' ↦* xs ∗ cs.Learners' ↦* ls ∗
+        ⌜xs ≡ₚ elements cfg ∧ ls ≡ₚ elements lrn ∧
+          cs.VotersOutgoing'.len = W64 0 ∧
+          cs.LearnersNext'.len = W64 0 ∧
+          cs.AutoLeave' = false⌝ }} := by
+  iintro %Φ ⟨#Hpkg, Hphys, Hcfg⟩ HΦ
+  icases ownRaftPhys_reconfig cfg0 cfg r id s (fun h => absurd Hrole h) $$ Hphys
+    with ⟨%tv, Htrkf, Hold, Hback⟩
+  icases ownTracker_votes $$ Hold with ⟨Hvotes, %Hmi⟩
+  icases ownConfig_values $$ Hcfg with ⟨%pvs, Hcfg⟩
+  iapply H cfg r id s tv cfgv prsm prs pvs (fun h => absurd (Hrole.symm.trans h) (by decide))
+    $$ [$Hpkg $Htrkf $Hback $Hvotes $Hcfg]
+  · ipureintro; exact Hmi
+  inext
+  iintro %cs %xs %ls %s' ⟨Hphys, Hcs, Hls, %Hcs0, %Hsw⟩
+  unfold SwitchOk at Hsw
+  rw [if_neg (by rw [Hrole]; decide)] at Hsw
+  subst Hsw
+  have Hl : domSet prs \ cfg = lrn := by
+    rw [Hdom]
+    apply GMap.set_eq; intro k
+    rw [GMap.elem_of_difference, GMap.elem_of_union]
+    constructor
+    · rintro ⟨h | h, h'⟩
+      · exact absurd h h'
+      · exact h
+    · intro h; exact ⟨.inr h, Hd k h⟩
+  iapply HΦ $$ %cs %xs %ls %pvs
+  iframe Hphys Hcs Hls
+  ipureintro
+  exact ⟨Hcs0.1, Hl ▸ Hcs0.2.1, Hcs0.2.2⟩
+
 /-- The statement until 2026-10-13: at a non-leader, from the struct sealed at any
 configuration `cfg0` and the new configuration as `confchange.Restore` builds it
 (`ownConfig`), with no learners (`domSet prs = cfg`). What `newRaft` and `restore` call. -/

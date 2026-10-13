@@ -1815,8 +1815,8 @@ inductive Step : PState → List Msg → PState → Prop where
   an `app` (`padoptLeader`). `restore(s)` (raft.go:1849) returns `false` when
   `Metadata.Index ≤ committed` (`Step.snapStale`); when the node is not a follower
   (dead: both callers have just made it one); when `r.id` is in none of the
-  `ConfState`'s sets (dead under the fixed voter set: the voters are `cfg` and
-  `id ∈ cfg`, premises below); and when the log already has `(Term, Index)`, after
+  `ConfState`'s sets (the physical layer's scope: `SnapScope`; until 2026-10-13 the
+  premises `m.voters ≡ₚ elements cfg` and `id ∈ cfg` here, which no refinement read); and when the log already has `(Term, Index)`, after
   `commitTo(Index)` (`Step.snapFastfwd`). Otherwise the log is replaced by the snapshot
   (`Step.snapRestore`). The reply is `MsgAppResp{Index: lastIndex()}` after a restore
   -- `Index`, the unstable log being empty at offset `Index + 1` -- and
@@ -1832,8 +1832,6 @@ inductive Step : PState → List Msg → PState → Prop where
       m.src ≠ id →
       m.term = s.term →
       s.role ≠ .leader →
-      m.voters ≡ₚ elements cfg →
-      id ∈ cfg →
       uint.Z s.commit < uint.Z m.index →
       ¬ PlogMatches s.base s.log (entryID.mk m.logterm m.index) →
       Step s [m]
@@ -1848,8 +1846,6 @@ inductive Step : PState → List Msg → PState → Prop where
       m.src ≠ id →
       m.term = s.term →
       s.role ≠ .leader →
-      m.voters ≡ₚ elements cfg →
-      id ∈ cfg →
       uint.Z s.commit < uint.Z m.index →
       PlogMatches s.base s.log (entryID.mk m.logterm m.index) →
       Step s [m]

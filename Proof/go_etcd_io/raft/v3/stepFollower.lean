@@ -165,15 +165,15 @@ theorem stepFollower.wp_proof
         MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp]
   · -- `MsgSnap`: adopt the sender as leader, then `handleSnapshot`
     ihave Hs := Hsnap $$ %Hty
-    icases Hs with ⟨%Hsc, #Hsv, #Hvs⟩
+    icases Hs with ⟨%learners, %Hsc, #Hsv, #Hvs, #Hls⟩
     obtain ⟨Hscope, Hrole, Hvotes, Hcfg, Hfid⟩ := Hsc
     rw [Hty]
     simp only [MsgSnap]
     wp_auto
     wp_apply raft.wp_store_electionElapsed $$ Hphys as Hphys
     wp_apply raft.wp_store_lead $$ Hphys as Hphys
-    wp_apply wp_raft_handleSnapshot _ _ _ { s with lead := m.From' } _ sv voters Hrole Hvotes Hcfg Hscope
-      Hfid $$ [$Hphys $Hsv $Hvs]
+    wp_apply wp_raft_handleSnapshot _ _ _ { s with lead := m.From' } _ sv voters learners Hrole
+      Hvotes Hcfg Hscope Hfid $$ [$Hphys $Hsv $Hvs $Hls]
       as %s' ⟨Hphys, %Hres⟩
     iapply HΦ $$ %GoInterface.nil %s' %false
     iframe

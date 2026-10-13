@@ -89,10 +89,14 @@ theorem newRaft.wp_proof
   have Hmi : 0 ≤ sint.Z tv0.MaxInflight' ∧ sint.Z tv0.MaxInflight' < 2 ^ 62 := by
     rw [Htv0mi, HpMI]; omega
   ipersist Hprs0
-  wp_apply wp_confchange_Restore ⟨tv0, lastID.index'⟩ _ voters dqv v0 Hvne Hv0 Hcs1 Hcs2 Hcs3
-    Hmi Htv0arr Htv0l Htv0ln $$ [$Hvoters $Hv0 $Hprs0]
-    as %cfgv %prsm %prs %vref %vm ⟨Hvoters, Hv0, -, %Hcfgv, Hvref, %Hvm, Hprsm, %Hprs, Hprogs⟩
-  obtain ⟨Hcfgarr, Hcfgl, Hcfgln, Hcfgal⟩ := Hcfgv
+  ihave #Hl0 : ownIdList (GF := GF) cs.Learners' DFrac.discard [] $$ []
+  · unfold ownIdList; ileft; ipureintro; exact ⟨Hcs2, rfl⟩
+  wp_apply wp_confchange_Restore ⟨tv0, lastID.index'⟩ _ voters [] dqv DFrac.discard v0 Hvne Hv0
+    (by simp) (by simp) Hcs1 Hcs3 Hmi Htv0arr Htv0l Htv0ln Htv0al $$ [$Hvoters $Hl0 $Hv0 $Hprs0]
+    as %cfgv %prsm %prs %vref %vm ⟨Hvoters, -, Hv0, -, %Hcfgv, Hlm, Hvref, %Hvm, Hprsm, %Hprs, Hprogs⟩
+  obtain ⟨Hcfgarr, Hcfgln, Hcfgal⟩ := Hcfgv
+  have Hprs' : domSet prs = GMap.listToSet voters := by
+    rw [Hprs]; exact GMap.map_union_empty _
   -- the struct, over the empty configuration: its tracker is the empty
   -- one `MakeProgressTracker` built, and its log is at the state
   -- `newLogWithSize` built. It holds no `Progress` yet, so `prvals` is
@@ -134,18 +138,24 @@ theorem newRaft.wp_proof
   ihave %Hvlen := ownSlice_len $$ Hvoters
   have Hcsz : (GMap.size (GMap.listToSet voters) : Int) ≤ 2 ^ 62 := by
     rw [GMap.size_list_to_set _ Hvnd]; exact Hvlen62
-  ihave Hcfg := ownConfig_voters (GF := GF) (GMap.listToSet voters) cfgv prsm prs vref vm
-    Hcfgarr Hcfgl Hcfgln Hcfgal Hvm Hprs Hcsz $$ Hvref Hprsm Hprogs
-  wp_apply (raft.switchToConfig.spec_nonleader wp_raft_switchToConfig) _ _ _ _ s0 cfgv prsm prs (by simp only [s0]) Hprs $$ [$Hphys $Hcfg]
+  ihave Hcfg := ownConfig_restore (GF := GF) (GMap.listToSet voters) (GMap.listToSet []) cfgv
+    prsm prs vref vm Hcfgarr Hcfgln Hcfgal Hvm Hprs
+    (fun k hk => absurd hk (GMap.not_elem_of_empty _))
+    (by rw [show GMap.listToSet ([] : List w64) = ∅ from rfl, GMap.map_union_empty]; exact Hcsz)
+    $$ Hvref Hlm Hprsm Hprogs
+  wp_apply (raft.switchToConfig.spec_nonleader wp_raft_switchToConfig) _ _ _ _ s0 cfgv prsm prs (by simp only [s0]) Hprs' $$ [$Hphys $Hcfg]
     as %cs2 %xs2 %pvs1 ⟨Hphys, Hcs2v, %Hxs2, %Hcs2l⟩
   obtain ⟨Hc2a, Hc2b, Hc2c, Hc2al⟩ := Hcs2l
   have Hperm : voters ≡ₚ xs2 := by
     refine List.Perm.trans ?_ Hxs2.symm
     refine (List.perm_ext_iff_of_nodup Hvnd (GMap.NoDup_elements _)).2 ?_
     intro k; rw [GMap.elem_of_elements, GMap.elem_of_list_to_set]
-  wp_apply wp_assertConfStatesEquivalent _ cs cs2 voters xs2 dqv (DFrac.own 1)
-    Hperm Hvlen62 Hcs1 Hcs2 Hcs3 Hc2a Hc2b Hc2c (by rw [Hal, Hc2al]) $$ [$Hvoters $Hcs2v]
-    as ⟨Hvoters, Hcs2v⟩
+  ihave #Hl2 : ownIdList (GF := GF) cs2.Learners' DFrac.discard [] $$ []
+  · unfold ownIdList; ileft; ipureintro; exact ⟨Hc2b, rfl⟩
+  wp_apply wp_assertConfStatesEquivalent _ cs cs2 voters xs2 [] [] dqv (DFrac.own 1)
+    DFrac.discard DFrac.discard
+    Hperm Hvlen62 (List.Perm.refl _) (by simp) Hcs1 Hcs3 Hc2a Hc2c (by rw [Hal, Hc2al])
+    $$ [$Hvoters $Hcs2v $Hl0 $Hl2] as ⟨Hvoters, Hcs2v, -, -⟩
   -- `if !IsEmptyHardState(hs) { r.loadState(hs) }`: both arms end at the
   -- same struct state `s1` and log state `ls1`, so the rest of the proof
   -- is done once, for both.

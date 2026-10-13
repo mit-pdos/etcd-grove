@@ -23,8 +23,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem confchange.toConfChangeSingle.wp_proof :
     confchange.toConfChangeSingle.spec (GF := GF) (hG := hG) := by
-  intro cs voters dq Hvo Hl Hln
-  wp_start as Hvs
+  intro cs voters learners dq dql Hvo Hln
+  wp_start as ⟨Hvs, Hls⟩
   -- `in` is a Lean keyword: name its cell by hand before `wp_auto` names the others
   wp_pures
   wp_alloc in_ptr as Hin
@@ -71,23 +71,73 @@ theorem confchange.toConfChangeSingle.wp_proof :
     wp_for_post
     have Htake : voters.take (sint.nat (n + W64 1)) = voters.take (sint.nat n) ++ [x] := by
       rw [show sint.nat (n + W64 1) = sint.nat n + 1 by word, List.take_add_one, Hx]; rfl
-    iframe HΦ Hvs out cs
+    iframe HΦ Hvs Hls out cs
     iexists n + W64 1, s3, x
     simp only [named, Htake, List.map_append, List.map_cons, List.map_nil]
     iframe
     ipureintro; constructor <;> word
-  · -- the loop is over: `in` holds every voter's change. Two more empty ranges, then
-    -- `return out, in`
+  · -- the loop is over: `in` holds every voter's change. Then the learners, one more
+    -- empty range, and `return out, in`
     have Hn' : sint.nat n = voters.length := by word
     rw [Hn', List.take_length]
-    wp_for
+    unfold ownIdList
+    icases Hls with (⟨%Hl0, %Hle⟩ | Hls)
+    · -- no learners: the range exits at once
+      subst Hle
+      wp_for
+      wp_if_destruct
+      · exfalso; rw [Hl0] at Hif; word
+      wp_for
+      wp_if_destruct
+      · exfalso; rw [Hln] at Hif; word
+      iapply HΦ
+      simp only [List.map_nil, List.append_nil]
+      iframe
+      ileft; ipureintro; exact ⟨Hl0, by trivial⟩
+    ihave %Hllen := ownSlice_len $$ Hls
+    ihave IH : iprop(∃ (n : w64) (s' : GoSlice) (x : w64),
+        "i" ∷ i_ptr ↦ n ∗
+        "Hin" ∷ in_ptr ↦ s' ∗
+        "id" ∷ id_ptr ↦ x ∗
+        "Hs" ∷ s' ↦* (voters.map addNodeCC ++ (learners.take (sint.nat n)).map addLearnerCC) ∗
+        "Hcap" ∷ ownSliceCap raftpb.ConfChangeSingle s' (DFrac.own 1) ∗
+        "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (learners.length : Int)⌝) $$ [i Hin id Hs Hcap]
+    · iexists W64 0, s', zero_val w64
+      simp only [named, show sint.nat (W64 0) = 0 by rfl, List.take_zero, List.map_nil,
+        List.append_nil]
+      iframe
+      ipureintro; constructor <;> word
+    wp_for IH
     wp_if_destruct
-    · exfalso; rw [Hl] at Hif; word
-    wp_for
-    wp_if_destruct
-    · exfalso; rw [Hln] at Hif; word
-    iapply HΦ
-    iframe
+    · have Hif' : sint.Z n < sint.Z cs.Learners'.len := by simpa using Hif
+      have Hlt : sint.nat n < learners.length := by word
+      obtain ⟨x, Hx⟩ : ∃ x, learners[sint.nat n]? = some x :=
+        ⟨_, List.getElem?_eq_getElem Hlt⟩
+      have Hbnd' : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z cs.Learners'.len := ⟨Hn.1, by word⟩
+      simp only [Hbnd', _root_.and_self]
+      wp_apply wp_load_slice_index cs.Learners' (sint.Z n) _ _ x Hn.1 $$ [Hls] with Hls
+      · iframe Hls; ipureintro; exact Hx
+      wp_apply wp_slice_literal (V := raftpb.ConfChangeSingle) [addLearnerCC x]
+      isplitr
+      · ipureintro; rfl
+      iintro %sl2 ⟨Hsl2, -⟩
+      wp_apply wp_slice_append $$ [$Hs $Hcap $Hsl2] as %s3 ⟨Hs, Hcap, -⟩
+      wp_for_post
+      have Htake : learners.take (sint.nat (n + W64 1)) = learners.take (sint.nat n) ++ [x] := by
+        rw [show sint.nat (n + W64 1) = sint.nat n + 1 by word, List.take_add_one, Hx]; rfl
+      iframe HΦ Hvs Hls out cs
+      iexists n + W64 1, s3, x
+      simp only [named, Htake, List.map_append, List.map_cons, List.map_nil, List.append_assoc]
+      iframe
+      ipureintro; constructor <;> word
+    · have Hif' : ¬ sint.Z n < sint.Z cs.Learners'.len := by simpa using Hif
+      have Hn2 : sint.nat n = learners.length := by word
+      rw [Hn2, List.take_length]
+      wp_for
+      wp_if_destruct
+      · exfalso; rw [Hln] at Hif; word
+      iapply HΦ
+      iframe
 
 end proof
 

@@ -314,29 +314,31 @@ the three `step_snap_*` rules need no other protocol fact: a restore replaces th
 wholesale and the fast-forward's `commitTo` is in range by `matchTerm`. -/
 private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
     (γ : RaftNames) (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
-    (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : List w64) (Φ : val → IProp GF)
+    (m : raftpb.Message) (sv : raftpb.Snapshot) (voters learners : List w64)
+    (Φ : val → IProp GF)
     (Hcfg : γ.reCfg = cfg) (Hin : id ∈ cfg) (Hwf : NStateWf s)
     (Hty : m.Type' = MsgSnap)
     (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id)
-    (Hscope : SnapScope cfg sv voters) :
+    (Hscope : SnapScope cfg sv voters learners) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
       ownRaftPhys cfg r id s -∗
       ownRaftGhost γ id (toPState s) -∗
       m.Snapshot' ↦□ sv -∗
       sv.Metadata'.ConfState'.Voters' ↦*□ voters -∗
+      ownIdList sv.Metadata'.ConfState'.Learners' DFrac.discard learners -∗
       isMessage γ (absSnap m sv voters) -∗
       ▷ stepPost γ cfg r id s m Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
         {{ v, |={⊤}=> Φ v }} := by
   obtain ⟨Hto, Hterm, Hfnz, Hfid⟩ := Hm
-  iintro #Hinit Hphys Hghost #Hsv #Hvs #Hm HΦ
+  iintro #Hinit Hphys Hghost #Hsv #Hvs #Hls #Hm HΦ
   -- at the current term the receiver is not a leader: the sender leads it
   ihave #Hl2 := isMessage_snap_isLeader γ m sv voters $$ Hm
   ihave %Hnl := not_leader_of_msg γ id s m Hfid $$ Hghost Hl2
   ihave %Hfv0 := ownRaftGhost_follower_votes γ id (toPState s) $$ Hghost
   have Hfv : s.role = .follower → s.votes = ∅ := followerVotesOk_phys s Hfv0
-  wp_apply (wp_Step_MsgSnap P cfg r id s m sv voters Hty Hto Hterm Hfnz Hfid Hin Hwf Hscope
-      Hnl Hfv) $$ [$Hphys $Hsv $Hvs] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr⟩
+  wp_apply (wp_Step_MsgSnap P cfg r id s m sv voters learners Hty Hto Hterm Hfnz Hfid Hin Hwf
+      Hscope Hnl Hfv) $$ [$Hphys $Hsv $Hvs $Hls] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
   -- the frame and the term step are not claimed for a snapshot
   iapply finish_branch γ cfg r id s s' m _ recv err Φ Hcfg Hwf' Hrecv Hstep
@@ -624,9 +626,9 @@ theorem raft.Step.wp_proof
       fun h _ => Hfr' h, Htm', Hresp'⟩
   by_cases Hns : m.Type' = MsgSnap
   · -- MsgSnap: `dispatch_Snap`, with the snapshot from `"Hsnap"`.
-    icases Hsnap $$ %Hns with ⟨%sv, %voters, #Hsv, #Hvs, %Hscope, #Hm'⟩
-    iapply dispatch_Snap P γ cfg r id s m sv voters Φ Hcfg (Hin Hns) Hwf Hns (Hsnapt Hns) Hscope
-      $$ Hinit Hphys Hghost Hsv Hvs Hm' HΦ
+    icases Hsnap $$ %Hns with ⟨%sv, %voters, %learners, #Hsv, #Hvs, #Hls, %Hscope, #Hm'⟩
+    iapply dispatch_Snap P γ cfg r id s m sv voters learners Φ Hcfg (Hin Hns) Hwf Hns
+      (Hsnapt Hns) Hscope $$ Hinit Hphys Hghost Hsv Hvs Hls Hm' HΦ
   -- from here on `m` is not a `MsgSnap`, so `Hm`'s `ty ≠ .snap` guard always holds
   ihave #Hmsgc : (□ ∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗ isMessage γ (absMsg ty m ents ctx)) $$ []
   · imodintro

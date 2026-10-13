@@ -22,19 +22,20 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- For a voters-only `ConfState` (empty `VotersOutgoing`, `Learners`,
-`LearnersNext`): no outgoing changes (`out` stays `nil`) and one `AddNode id` per
-voter, in order, in a fresh slice. The three empty slices are ranged over but never
-read, so they need no points-to. -/
+/-- For a non-joint `ConfState` (empty `VotersOutgoing` and `LearnersNext`): no outgoing
+changes (`out` stays `nil`) and one `AddNode id` per voter, then one `AddLearnerNode id` per
+learner (since 2026-10-13; until then `Learners` was empty), in order, in a fresh slice. The
+two empty slices are ranged over but never read, so they need no points-to. -/
 abbrev confchange.toConfChangeSingle.spec : Prop :=
-  ∀ (cs : raftpb.ConfState) (voters : List w64) (dq : DFrac),
+  ∀ (cs : raftpb.ConfState) (voters learners : List w64) (dq dql : DFrac),
   cs.VotersOutgoing'.len = W64 0 →
-  cs.Learners'.len = W64 0 →
   cs.LearnersNext'.len = W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ cs.Voters' ↦*{dq} voters }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ cs.Voters' ↦*{dq} voters ∗
+      ownIdList cs.Learners' dql learners }}
     (App (Val #(functions confchange.toConfChangeSingle [])) (Val #cs))
   {{ (s : GoSlice), RET (PairV #slice.nil #s);
-      cs.Voters' ↦*{dq} voters ∗ s ↦* voters.map addNodeCC ∗
+      cs.Voters' ↦*{dq} voters ∗ ownIdList cs.Learners' dql learners ∗
+      s ↦* (voters.map addNodeCC ++ learners.map addLearnerCC) ∗
       ownSliceCap raftpb.ConfChangeSingle s (DFrac.own 1) }}
 
 end spec

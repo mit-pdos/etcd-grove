@@ -436,10 +436,11 @@ abbrev raft.Step.spec : Prop :=
       -- the branch (`W64 0 ∉ cfg`, `AutoLeave`, the index bound) are transport/client
       -- assumptions like the rest.
       "#Hsnap" ∷ □ (⌜m.Type' = MsgSnap⌝ -∗
-         ∃ (sv : raftpb.Snapshot) (voters : List w64),
+         ∃ (sv : raftpb.Snapshot) (voters learners : List w64),
            m.Snapshot' ↦□ sv ∗
            sv.Metadata'.ConfState'.Voters' ↦*□ voters ∗
-           ⌜SnapScope cfg sv voters⌝ ∗
+           ownIdList sv.Metadata'.ConfState'.Learners' DFrac.discard learners ∗
+           ⌜SnapScope cfg sv voters learners⌝ ∗
            isMessage γ (absSnap m sv voters)) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
   {{ (err : GoInterface) (s' : NState) (ps' : PState), RET #err;

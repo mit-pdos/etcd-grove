@@ -245,6 +245,159 @@ theorem ccApplyM_v1_noop (cfg : GSet w64) (m : CCV1M) (H : m.nodeId = W64 0) (Hn
     CCNoop cfg (ccV2Of (.v1 m)).1 (ccV2Of (.v1 m)).2 :=
   fun lrn Hd => ccApplyM_single_noop cfg lrn Hd _ H Hne
 
+
+/-! ### `Restore`'s steps on a non-joint configuration (2026-10-13, stage L)
+
+`confchange.Restore` replays a `ConfState` as one `Simple` per voter (`AddNode`), then one per
+learner (`AddLearnerNode`); on `cfgState V L` each adds the id to the voters, or the
+learners. -/
+
+theorem cfgFlags_insert_voter (V L : GSet w64) (id : w64) (h : id ∉ L) :
+    <[id := false]> (cfgFlags V L) = cfgFlags (<[id := ()]> V) L := by
+  apply GMap.map_eq; intro k
+  rw [cfgFlags_lookup]
+  by_cases hk : id = k
+  · subst hk
+    rw [GMap.lookup_insert_eq, if_pos ((GMap.elem_of_gset _ _).2 (GMap.lookup_insert_eq _ _ _))]
+  · rw [GMap.lookup_insert_ne _ _ hk, cfgFlags_lookup]
+    have e : k ∈ (<[id := ()]> V : GSet w64) ↔ k ∈ V := by
+      rw [GMap.elem_of_gset, GMap.elem_of_gset, GMap.lookup_insert_ne _ _ hk]
+    by_cases h1 : k ∈ V
+    · rw [if_pos h1, if_pos (e.2 h1)]
+    · rw [if_neg h1, if_neg (fun h' => h1 (e.1 h'))]
+
+theorem cfgFlags_insert_learner (V L : GSet w64) (id : w64) (h : id ∉ V) :
+    <[id := true]> (cfgFlags V L) = cfgFlags V (<[id := ()]> L) := by
+  apply GMap.map_eq; intro k
+  rw [cfgFlags_lookup]
+  by_cases hk : id = k
+  · subst hk
+    rw [GMap.lookup_insert_eq, if_neg h,
+      if_pos ((GMap.elem_of_gset _ _).2 (GMap.lookup_insert_eq _ _ _))]
+  · rw [GMap.lookup_insert_ne _ _ hk, cfgFlags_lookup]
+    have e : k ∈ (<[id := ()]> L : GSet w64) ↔ k ∈ L := by
+      rw [GMap.elem_of_gset, GMap.elem_of_gset, GMap.lookup_insert_ne _ _ hk]
+    by_cases h1 : k ∈ V
+    · rw [if_pos h1, if_pos h1]
+    · rw [if_neg h1, if_neg h1]
+      by_cases h2 : k ∈ L
+      · rw [if_pos h2, if_pos (e.2 h2)]
+      · rw [if_neg h2, if_neg (fun h' => h2 (e.1 h'))]
+
+theorem gset_lookup_none (L : GSet w64) (id : w64) (h : id ∉ L) : L !! id = none := by
+  cases hl : L !! id with
+  | none => rfl
+  | some u => exact absurd ((GMap.elem_of_gset _ _).2 (by cases u; exact hl)) h
+
+theorem gset_insert_ne_empty (V : GSet w64) (id : w64) : (<[id := ()]> V : GSet w64) ≠ ∅ := by
+  intro h; have := congrArg (fun m => m !! id) h; simp at this
+
+theorem gset_mem_insert (V : GSet w64) (id k : w64) :
+    k ∈ (<[id := ()]> V : GSet w64) ↔ k = id ∨ k ∈ V := by
+  rw [GMap.elem_of_gset, GMap.elem_of_gset]
+  by_cases hk : id = k
+  · subst hk; simp
+  · rw [GMap.lookup_insert_ne _ _ hk]; simp [Ne.symm hk]
+
+/-- One voter more changes the voters by at most one. -/
+theorem not_symdiffTooBig_insert (V : GSet w64) (id : w64) :
+    ¬ SymdiffTooBig V (<[id := ()]> V) := by
+  unfold SymdiffTooBig symdiffN
+  have h1 : V \ (<[id := ()]> V) = ∅ := by
+    apply GMap.map_eq; intro k
+    by_cases hk : id = k
+    · subst hk; simp
+    · rw [GMap.lookup_sdiff, GMap.lookup_insert_ne _ _ hk]
+      rcases h : V !! k with _ | v <;> simp
+  have h2 : GMap.size ((<[id := ()]> V) \ V) ≤ 1 := by
+    have hsub : (<[id := ()]> V) \ V ⊆ ({[id := ()]} : GMap w64 Unit) := by
+      intro k v hkv
+      by_cases hk : id = k
+      · subst hk; cases v; simp
+      · rw [GMap.lookup_sdiff, GMap.lookup_insert_ne _ _ hk] at hkv
+        rcases h : V !! k with _ | v' <;> simp_all
+    have := GMap.map_subseteq_size hsub
+    rw [GMap.map_size_singleton] at this
+    exact this
+  rw [h1, GMap.map_size_empty]
+  generalize GMap.size ((<[id := ()]> V) \ V) = n at h2
+  rcases Nat.le_one_iff_eq_zero_or_eq_one.1 h2 with h0 | h0 <;> subst h0 <;> decide
+
+/-- `Simple([AddNode id])` on `cfgState V L`, `id` not a learner: `id` joins the voters. -/
+theorem simpleM_cfgState_addNode (V L : GSet w64) (id : w64) (hid : id ≠ W64 0)
+    (hL : id ∉ L) (Hd : ∀ k, k ∈ L → k ∉ V) :
+    simpleM [addNodeCC id] (cfgState V L) = some (cfgState (<[id := ()]> V) L) := by
+  have Hd' : ∀ k, k ∈ L → k ∉ (<[id := ()]> V : GSet w64) := by
+    intro k hk h
+    rcases (gset_mem_insert V id k).1 h with h | h
+    · subst h; exact hL hk
+    · exact Hd k hk h
+  have Hmv : makeVoterM id (cfgState V L) = cfgState (<[id := ()]> V) L := by
+    unfold makeVoterM
+    split
+    · simp only [cfgState, cfgM]
+      rw [GMap.delete_notin _ _ (gset_lookup_none L id hL), GMap.delete_empty,
+        cfgFlags_insert_voter V L id hL]
+    · simp only [initProgressM, cfgState, cfgM, Bool.false_eq_true, ↓reduceIte]
+      rw [cfgFlags_insert_voter V L id hL]
+  have Happ : applyM [addNodeCC id] (cfgState V L) = some (cfgState (<[id := ()]> V) L) := by
+    have hid' : (addNodeCC id).NodeId' ≠ W64 0 := hid
+    simp only [applyM, applyAll, applyOne, if_neg hid', ↓reduceIte, Option.bind_some]
+    rw [Hmv]
+    try simp only [Option.bind_some]
+    rw [if_neg (show (cfgState (<[id := ()]> V) L).cfg.incoming ≠ ∅ from
+      gset_insert_ne_empty V id)]
+  unfold simpleM
+  rw [clearAutoLeave_cfgState, if_neg (fun h => h (cfgInv_cfgState V L Hd)),
+    if_neg (fun h => h rfl), Happ]
+  simp only
+  rw [if_neg (show ¬ SymdiffTooBig (cfgState V L).cfg.incoming
+    (cfgState (<[id := ()]> V) L).cfg.incoming from not_symdiffTooBig_insert V id)]
+  simp [checkedM, cfgInv_cfgState _ L Hd']
+
+/-- `Simple([AddLearnerNode id])` on `cfgState V L`, `V` non-empty, `id` not a voter: `id`
+joins the learners. -/
+theorem simpleM_cfgState_addLearner (V L : GSet w64) (id : w64) (hid : id ≠ W64 0)
+    (hV : id ∉ V) (hne : V ≠ ∅) (Hd : ∀ k, k ∈ L → k ∉ V) :
+    simpleM [addLearnerCC id] (cfgState V L) = some (cfgState V (<[id := ()]> L)) := by
+  have Hd' : ∀ k, k ∈ (<[id := ()]> L : GSet w64) → k ∉ V := by
+    intro k h
+    rcases (gset_mem_insert L id k).1 h with h | h
+    · subst h; exact hV
+    · exact Hd k h
+  have Hml : makeLearnerM id (cfgState V L) = cfgState V (<[id := ()]> L) := by
+    unfold makeLearnerM
+    have hlk := cfgFlags_lookup V L id
+    rw [if_neg hV] at hlk
+    by_cases hl : id ∈ L
+    · rw [if_pos hl] at hlk
+      simp only [cfgState] at hlk ⊢
+      rw [hlk]
+      simp only
+      rw [GMap.insert_id L id () ((GMap.elem_of_gset _ _).1 hl)]
+    · rw [if_neg hl] at hlk
+      simp only [cfgState] at hlk ⊢
+      rw [hlk]
+      simp only [initProgressM, cfgM, ↓reduceIte]
+      rw [cfgFlags_insert_learner V L id hV]
+  have Happ : applyM [addLearnerCC id] (cfgState V L) = some (cfgState V (<[id := ()]> L)) := by
+    have hid' : (addLearnerCC id).NodeId' ≠ W64 0 := hid
+    simp only [applyM, applyAll, applyOne, if_neg hid', ↓reduceIte, Option.bind_some]
+    rw [Hml, if_neg (show (W32 3 : w32) ≠ W32 0 by decide)]
+    simp only [Option.bind_some]
+    rw [if_neg (show (cfgState V (<[id := ()]> L)).cfg.incoming ≠ ∅ from hne)]
+  have Hsd : ¬ SymdiffTooBig V V := by
+    unfold SymdiffTooBig symdiffN
+    rw [GMap.map_difference_diag, GMap.map_size_empty]
+    decide
+  unfold simpleM
+  rw [clearAutoLeave_cfgState, if_neg (fun h => h (cfgInv_cfgState V L Hd)),
+    if_neg (fun h => h rfl), Happ]
+  simp only
+  rw [if_neg (show ¬ SymdiffTooBig (cfgState V L).cfg.incoming
+    (cfgState V (<[id := ()]> L)).cfg.incoming from Hsd)]
+  simp [checkedM, cfgInv_cfgState _ _ Hd']
+
 end model
 
 /-! ## The tracker as a `Changer` reads it, and the result as `switchToConfig` takes it -/

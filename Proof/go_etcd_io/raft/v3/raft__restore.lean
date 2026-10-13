@@ -56,8 +56,8 @@ theorem raft.restore.wp_proof
     (wp_raft_switchToConfig : raft.switchToConfig.spec (GF := GF) (hG := hG))
     (wp_assertConfStatesEquivalent : assertConfStatesEquivalent.spec (GF := GF) (hG := hG)) :
     raft.restore.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s sv voters Hrole Hvotes Hin Hscope
-  obtain ⟨Hperm, H0, Hcl, Hcvo, Hcln, Hcal, Hidx61⟩ := Hscope
+  intro cfg r id s sv voters learners Hrole Hvotes Hin Hscope
+  obtain ⟨Hperm, H0, Hlnd, Hlok, Hlsz, Hcvo, Hcln, Hcal, Hidx61⟩ := Hscope
   wp_start as H
   iNamed H
   wp_auto
@@ -216,10 +216,15 @@ theorem raft.restore.wp_proof
     have Hvne : voters ≠ [] := by rintro rfl; simp at Hidv
     have Hv0n : W64 0 ∉ voters := fun h =>
       H0 ((GMap.elem_of_elements cfg _).1 (Hperm.mem_iff.1 h))
-    wp_apply wp_confchange_Restore { Tracker' := tv0, LastIndex' := li } _ voters DFrac.discard v0
-        Hvne Hv0n Hcvo Hcl Hcln Hmi0 Htv0arr Htv0l Htv0ln $$ [$Hvoters $Hv0 $Hprs0]
-      as %cfgv %prsm %prs %vref %vm ⟨-, Hv0, -, %Hcfgv, Hvref, %Hvm, Hprsm, %Hprs, Hprogs⟩
-    obtain ⟨Hcfgarr, Hcfgl, Hcfgln, Hcfgal⟩ := Hcfgv
+    have Hl0n : W64 0 ∉ learners := fun h => (Hlok _ h).2 rfl
+    have Hdis : ∀ k ∈ learners, k ∉ voters := fun k hk hv =>
+      (Hlok k hk).1 ((GMap.elem_of_elements cfg _).1 (Hperm.mem_iff.1 hv))
+    wp_apply wp_confchange_Restore { Tracker' := tv0, LastIndex' := li } _ voters learners
+        DFrac.discard DFrac.discard v0
+        Hvne Hv0n Hl0n Hdis Hcvo Hcln Hmi0 Htv0arr Htv0l Htv0ln Htv0al
+        $$ [$Hvoters $Hlearners $Hv0 $Hprs0]
+      as %cfgv %prsm %prs %vref %vm ⟨-, -, Hv0, -, %Hcfgv, Hlm, Hvref, %Hvm, Hprsm, %Hprs, Hprogs⟩
+    obtain ⟨Hcfgarr, Hcfgln, Hcfgal⟩ := Hcfgv
     -- the struct, re-sealed over the empty configuration
     ihave Htrk0 := ownTracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi0 $$ Hv0 Hvotes0 Hprs0
     ihave Hphys := Hback $$ %tv0 %∅ %∅ %∅ %_ Hlf Htrkf Htrk0 Hlog
@@ -230,15 +235,37 @@ theorem raft.restore.wp_proof
       apply GMap.set_eq; intro x
       rw [GMap.elem_of_list_to_set, Hperm.mem_iff, GMap.elem_of_elements]
     have Hcsz : (GMap.size cfg : Int) ≤ 2 ^ 62 := Hcfg_size
+    have Hd : ∀ k, k ∈ GMap.listToSet learners → k ∉ cfg := fun k hk =>
+      (Hlok k ((GMap.elem_of_list_to_set _ _).1 hk)).1
+    have Hlsz' : (GMap.size (cfg ∪ GMap.listToSet learners) : Int) ≤ 2 ^ 62 := by
+      have hdisj : cfg ## GMap.listToSet learners := by
+        rw [GMap.elem_of_disjoint]; intro k h1 h2; exact Hd k h2 h1
+      rw [GMap.size_union hdisj, GMap.size_list_to_set _ Hlnd]
+      exact Hlsz
     ipersist Hprsm
-    ihave Hcfg := ownConfig_voters (GF := GF) cfg cfgv prsm prs vref vm
-      Hcfgarr Hcfgl Hcfgln Hcfgal (Hcfgeq ▸ Hvm) (Hcfgeq ▸ Hprs) Hcsz $$ Hvref Hprsm Hprogs
-    wp_apply (raft.switchToConfig.spec_nonleader wp_raft_switchToConfig) _ _ _ _ _ cfgv prsm prs (by simp [Hrole]) (Hcfgeq ▸ Hprs) $$ [$Hphys $Hcfg]
-      as %cs2 %xs2 %pvs1 ⟨Hphys, Hcs2v, %Hxs2, %Hcs2l⟩
-    obtain ⟨Hc2a, Hc2b, Hc2c, Hc2al⟩ := Hcs2l
+    rw [Hcfgeq] at Hvm Hprs
+    ihave Hprogs : ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗ ⌜p.learner = !decide (k ∈ cfg)⌝)
+      $$ [Hprogs]
+    · rw [Hcfgeq]; iexact Hprogs
+    ihave Hcfg := ownConfig_restore (GF := GF) cfg (GMap.listToSet learners) cfgv prsm prs vref vm
+      Hcfgarr Hcfgln Hcfgal Hvm Hprs Hd Hlsz' $$ Hvref Hlm Hprsm Hprogs
+    wp_apply (raft.switchToConfig.spec_follower wp_raft_switchToConfig) _ _ _ _ _ _ cfgv prsm prs
+        (by simp [Hrole]) Hprs Hd $$ [$Hphys $Hcfg]
+      as %cs2 %xs2 %ls2 %pvs1 ⟨Hphys, Hcs2v, Hcs2l, %Hcs2⟩
+    obtain ⟨Hxs2, Hls2, Hc2a, Hc2c, Hc2al⟩ := Hcs2
     have Hperm2 : voters ≡ₚ xs2 := Hperm.trans Hxs2.symm
-    wp_apply wp_assertConfStatesEquivalent _ _ cs2 voters xs2 DFrac.discard (DFrac.own 1)
-        Hperm2 (by rw [Hperm.length_eq, GMap.length_elements]; exact Hcsz) Hcvo Hcl Hcln Hc2a Hc2b Hc2c (by rw [Hcal, Hc2al]) $$ [$Hvoters $Hcs2v] as -
+    have Hlperm2 : learners ≡ₚ ls2 := by
+      refine List.Perm.trans ?_ Hls2.symm
+      refine (List.perm_ext_iff_of_nodup Hlnd (GMap.NoDup_elements _)).2 ?_
+      intro k; rw [GMap.elem_of_elements, GMap.elem_of_list_to_set]
+    ihave Hcs2l : ownIdList (GF := GF) cs2.Learners' (DFrac.own 1) ls2 $$ [Hcs2l]
+    · unfold ownIdList; iright; iexact Hcs2l
+    wp_apply wp_assertConfStatesEquivalent _ _ cs2 voters xs2 learners ls2 DFrac.discard
+        (DFrac.own 1) DFrac.discard (DFrac.own 1)
+        Hperm2 (by rw [Hperm.length_eq, GMap.length_elements]; exact Hcsz) Hlperm2
+        (by have := Hlsz; have h0 : (0 : Int) ≤ GMap.size cfg := by omega
+            omega)
+        Hcvo Hcln Hc2a Hc2c (by rw [Hcal, Hc2al]) $$ [$Hvoters $Hcs2v $Hlearners $Hcs2l] as -
     wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
     icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     wp_apply wp_raftLog_lastEntryID $$ [$Hlog] as %last ⟨Hlog, -⟩
@@ -254,7 +281,7 @@ theorem raft.restore.wp_proof
     iapply HΦ $$ %true %_
     iframe Hphys
     ipureintro
-    refine .inr (.inr ⟨by simp only [snapId]; omega, Hm, rfl, prs, pvs1, false, ?_⟩)
+    refine .inr (.inr ⟨by simp only [snapId]; omega, Hm, rfl, prs, pvs1, learnerOf cfg prs id, ?_⟩)
     obtain ⟨⟩ := s
     simp only at Hvotes
     subst Hvotes

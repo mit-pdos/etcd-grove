@@ -1426,8 +1426,8 @@ theorem Step.commit_mono [FfiSyntax] {cfg : GSet w64} {id : w64} {ps : PState}
   | appAccept => exact plogCommitTo_ge _ _
   | heartbeat => exact plogCommitTo_ge _ _
   | commit _ _ _ h => exact Int.le_of_lt h
-  | snapRestore _ _ _ _ _ _ _ _ _ h => simp only [psendMsgs]; omega
-  | snapFastfwd _ _ _ _ _ _ _ _ _ h => simp only [psendMsgs]; omega
+  | snapRestore _ _ _ _ _ _ _ h => simp only [psendMsgs]; omega
+  | snapFastfwd _ _ _ _ _ _ _ h => simp only [psendMsgs]; omega
   | readAck m s N =>
     obtain ⟨o, r, h⟩ := preadRespondAll_eq id
       ({ s with rd := { s.rd with

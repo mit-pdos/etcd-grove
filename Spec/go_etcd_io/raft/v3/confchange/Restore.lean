@@ -31,8 +31,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 **Not translated** (`new/code/go_etcd_io/raft/v3/confchange.v.toml` translates only
 the `Changer` type), so this triple is an `Axiom` -- and, unlike `slices.Sort`, one
-about **core raft** code. It is stated for the one case this development needs: a
-voters-only `ConfState` applied to the empty tracker `MakeProgressTracker` builds. Read
+about **core raft** code. It is stated for a non-joint `ConfState` (voters and, since
+2026-10-13, learners) applied to the empty tracker `MakeProgressTracker` builds; the
+learners come after the voters (`toConfChangeSingle`), one `AddLearnerNode` each. Read
 against the Go (`confchange/restore.go`, `confchange/confchange.go`) it says:
 
 - `toConfChangeSingle` turns `cs` into no outgoing changes and one `AddNode id` per
@@ -65,19 +66,23 @@ repeated voter.
 `Inflights`; see `spec_tracker_NewInflights.v`. -/
 abbrev confchange.Restore.spec : Prop :=
   ∀ (chg : confchange.Changer) (cs : raftpb.ConfState)
-    (voters : List w64) (dq : DFrac) (v0 : Loc),
+    (voters learners : List w64) (dq dql : DFrac) (v0 : Loc),
   voters ≠ [] →
   W64 0 ∉ voters →
+  -- (2026-10-13, stage L) the learners: none of them a voter, nor `0`
+  W64 0 ∉ learners →
+  (∀ k ∈ learners, k ∉ voters) →
   cs.VotersOutgoing'.len = W64 0 →
-  cs.Learners'.len = W64 0 →
   cs.LearnersNext'.len = W64 0 →
   (0 ≤ sint.Z chg.Tracker'.MaxInflight' ∧ sint.Z chg.Tracker'.MaxInflight' < 2 ^ 62) →
   -- the empty configuration
   chg.Tracker'.Config'.Voters'.arr = [v0, map.nil] →
   chg.Tracker'.Config'.Learners' = map.nil →
   chg.Tracker'.Config'.LearnersNext' = map.nil →
+  chg.Tracker'.Config'.AutoLeave' = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗
       cs.Voters' ↦*{dq} voters ∗
+      ownIdList cs.Learners' dql learners ∗
       v0 ↦$ (∅ : GMap w64 Unit) ∗
       chg.Tracker'.Progress' ↦$□ (∅ : GMap w64 Loc) }}
     (App (App (Val #(functions confchange.Restore [])) (Val #chg)) (Val #cs))
@@ -85,15 +90,17 @@ abbrev confchange.Restore.spec : Prop :=
       (vref : Loc) (vm : GMap w64 Unit),
       RET (PairV (PairV #cfgv #prsm) #interface.nil);
       cs.Voters' ↦*{dq} voters ∗
+      ownIdList cs.Learners' dql learners ∗
       v0 ↦$ (∅ : GMap w64 Unit) ∗
       chg.Tracker'.Progress' ↦$□ (∅ : GMap w64 Loc) ∗
       ⌜cfgv.Voters'.arr = [vref, map.nil] ∧
-        cfgv.Learners' = map.nil ∧
         cfgv.LearnersNext' = map.nil ∧
         cfgv.AutoLeave' = false⌝ ∗
+      ownIdsetC cfgv.Learners' (DFrac.own 1) (GMap.listToSet learners) ∗
       vref ↦$ vm ∗ ⌜domSet vm = GMap.listToSet voters⌝ ∗
-      prsm ↦$ prs ∗ ⌜domSet prs = GMap.listToSet voters⌝ ∗
-      ([∗map] _k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗ ⌜p.learner = false⌝) }}
+      prsm ↦$ prs ∗ ⌜domSet prs = GMap.listToSet voters ∪ GMap.listToSet learners⌝ ∗
+      ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗
+        ⌜p.learner = decide (k ∉ GMap.listToSet voters)⌝) }}
 
 end spec
 

@@ -49,7 +49,7 @@ namespace StepProof
 
 theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (sv : raftpb.Snapshot) (voters : List w64) :
+    (sv : raftpb.Snapshot) (voters learners : List w64) :
     m.Type' = MsgSnap →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -57,9 +57,9 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.From' ≠ id →
     id ∈ cfg →
     NStateWf s →
-    -- the snapshot's `ConfState` is `cfg`'s voters, zero-free, no learners or joint
-    -- configuration; its index below `2^61` (`Step`'s `"Hsnap"`)
-    SnapScope cfg sv voters →
+    -- the snapshot's `ConfState` is `cfg`'s voters and learners outside `cfg`, zero-free,
+    -- no joint configuration; its index below `2^61` (`Step`'s `"Hsnap"`)
+    SnapScope cfg sv voters learners →
     -- protocol facts the dispatch derives from the ghost state: at the current term
     -- the receiver is not a leader (`isLeader_unique`), and a follower's tally is
     -- empty (`FollowerVotesOk`)
@@ -68,7 +68,8 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhys cfg r id s ∗
         "#Hsv" ∷ m.Snapshot' ↦□ sv ∗
-        "#Hvs" ∷ sv.Metadata'.ConfState'.Voters' ↦*□ voters }}
+        "#Hvs" ∷ sv.Metadata'.ConfState'.Voters' ↦*□ voters ∗
+        "#Hls" ∷ ownIdList sv.Metadata'.ConfState'.Learners' DFrac.discard learners }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhys cfg r id s' ∗
@@ -78,14 +79,14 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hnl Hvotes
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · exact wp_Step_MsgSnap_gt _P cfg r id s m sv voters Hty Hto Hterm Hfnz Hfid Hcfg Hwf
-      Hscope Hgt
+  · exact wp_Step_MsgSnap_gt _P cfg r id s m sv voters learners Hty Hto Hterm Hfnz Hfid Hcfg
+      Hwf Hscope Hgt
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · wp_start_folded as ⟨Hphys, -, -⟩
+    · wp_start_folded as ⟨Hphys, -, -, -⟩
       iapply wp_Step_MsgSnap_lt _P cfg r id s m sv voters Hty Hto Hterm Hwf Hlt $$ [$Hpkg $Hphys] HΦ
     · have Hteq : m.Term' = s.term := by word
-      exact wp_Step_MsgSnap_eq _P cfg r id s m sv voters Hty Hto Hterm Hfnz Hfid Hcfg Hwf
-        Hscope Hteq (Hnl Hteq) Hvotes
+      exact wp_Step_MsgSnap_eq _P cfg r id s m sv voters learners Hty Hto Hterm Hfnz Hfid Hcfg
+        Hwf Hscope Hteq (Hnl Hteq) Hvotes
 
 end StepProof
 

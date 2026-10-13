@@ -421,6 +421,28 @@ theorem ownIdsetC_nil_of (m : Loc) (dq : DFrac) (ids : GMap w64 Unit) (H : ids =
 theorem ownIdsetC_nil (dq : DFrac) : ⊢ ownIdsetC (GF := GF) map.nil dq ∅ := by
   unfold ownIdsetC; ileft; ipureintro; exact ⟨rfl, rfl⟩
 
+/-- A list of ids in a slice that is either empty (known only by its length: a `ConfState`
+from the storage whose `Learners` is empty comes with no points-to) or owned (2026-10-13,
+for `confchange.Restore`'s learners). -/
+def ownIdList (sl : GoSlice) (dq : DFrac) (l : List w64) : IProp GF :=
+  iprop(⌜sl.len = W64 0 ∧ l = []⌝ ∨ sl ↦*{dq} l)
+
+instance ownIdList_persistent (sl : GoSlice) (l : List w64) :
+    Persistent (ownIdList (GF := GF) sl DFrac.discard l) := by
+  unfold ownIdList; infer_instance
+
+theorem ownIdList_len (sl : GoSlice) (dq : DFrac) (l : List w64) :
+    ownIdList (GF := GF) sl dq l ⊢ ownIdList sl dq l ∗ ⌜l.length = sint.nat sl.len⌝ := by
+  unfold ownIdList
+  iintro (%H | Hs)
+  · isplitl
+    · ileft; ipureintro; exact H
+    · ipureintro; rw [H.1, H.2]; rfl
+  · ihave %Hl := ownSlice_len $$ Hs
+    isplitl
+    · iright; iexact Hs
+    · ipureintro; exact Hl.1
+
 /-- Each tracked peer's `IsLearner` is whether it is outside the voter set `cfg`
 (2026-10-13, reconfiguration stage L): the voters are `cfg`, the learners the other
 tracked ids. -/
@@ -1165,6 +1187,52 @@ theorem ownConfig_voters (cfg : GSet w64) (cfgv : tracker.Config) (prsm : Loc)
   obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1
     ((Hiff k).2 (by show (pvs !! k).isSome = true; rw [Hp]; rfl))
   exact Hfl k pr p hpr Hp
+
+/-- What `confchange.Restore` builds for a non-joint `ConfState` with learners `lrn`
+(2026-10-13), as an `ownConfig`. -/
+theorem ownConfig_restore (cfg lrn : GSet w64) (cfgv : tracker.Config) (prsm : Loc)
+    (prs : GMap w64 Loc) (vref : Loc) (vm : GMap w64 Unit)
+    (Hcfgarr : cfgv.Voters'.arr = [vref, map.nil])
+    (Hcfgln : cfgv.LearnersNext' = map.nil)
+    (Hcfgal : cfgv.AutoLeave' = false)
+    (Hvm : domSet vm = cfg)
+    (Hprs : domSet prs = cfg ∪ lrn)
+    (Hd : ∀ k, k ∈ lrn → k ∉ cfg)
+    (Hcsz : (GMap.size (cfg ∪ lrn) : Int) ≤ 2 ^ 62) :
+    ⊢ (vref ↦$ vm : IProp GF) -∗ ownIdsetC cfgv.Learners' (DFrac.own 1) lrn -∗ prsm ↦$□ prs -∗
+      ([∗map] k ↦ pr ∈ prs, ∃ p, ownProgress pr p ∗ ⌜p.learner = !decide (k ∈ cfg)⌝) -∗
+      ownConfig cfg cfgv prsm prs := by
+  iintro Hvref Hl #Hprsm Hprogs
+  icases bigSepM_exist_sepM2 prs
+    (fun k pr (p : Progress) => iprop(ownProgress (GF := GF) pr p ∗ ⌜p.learner = !decide (k ∈ cfg)⌝))
+    $$ Hprogs with ⟨%pvs, Hprogs⟩
+  ihave %Hiff := BigSepM2.bigSepM2_lookup_iff $$ Hprogs
+  icases BigSepM2.bigSepM2_sep_eqv.1 $$ Hprogs with ⟨Hprogs, Hfl⟩
+  ihave %Hfl := BigSepM2.bigSepM2_pure_intro $$ Hfl
+  have Hdl : domSet lrn = lrn := by
+    apply GMap.map_eq; intro k
+    simp only [domSet, GMap.lookup_fmap]
+    cases lrn !! k <;> rfl
+  unfold ownConfig
+  iexists pvs
+  unfold ownConfigV
+  iexists vref, vm, lrn
+  simp only [named]
+  iframe Hvref Hprsm Hprogs Hl
+  ipureintro
+  refine ⟨Hcfgarr, Hcfgln, Hcfgal, Hvm, by rw [Hprs]; exact GMap.union_subseteq_l _ _,
+    ⟨?_, rfl, ?_⟩, by rw [← GMap.size_dom, Hprs]; exact Hcsz⟩
+  · apply GMap.set_eq; intro k
+    rw [Hdl, Hprs, GMap.elem_of_difference, GMap.elem_of_union]
+    constructor
+    · intro h; exact ⟨.inr h, Hd k h⟩
+    · rintro ⟨h | h, h'⟩
+      · exact absurd h h'
+      · exact h
+  · intro k p Hp
+    obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1
+      ((Hiff k).2 (by show (pvs !! k).isSome = true; rw [Hp]; rfl))
+    exact (Hfl k pr p hpr Hp).trans decide_not.symm
 
 /-- What of a tracker survives a change of configuration: the tally and the inflight bound. -/
 theorem ownTracker_votes (cfg : GSet w64) (tv : tracker.ProgressTracker) (t : Trk) :

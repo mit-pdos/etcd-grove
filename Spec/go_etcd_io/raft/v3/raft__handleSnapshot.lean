@@ -72,17 +72,18 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 abbrev raft.handleSnapshot.spec : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
-    (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : List w64),
+    (m : raftpb.Message) (sv : raftpb.Snapshot) (voters learners : List w64),
   s.role = .follower →
   s.votes = ∅ →
   id ∈ cfg →
-  SnapScope cfg sv voters →
+  SnapScope cfg sv voters learners →
   -- from another node (2026-10-10; `Step`'s premise): the reply goes to `m.From`
   m.From' ≠ id →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       "#Hsv" ∷ m.Snapshot' ↦□ sv ∗
-      "#Hvoters" ∷ sv.Metadata'.ConfState'.Voters' ↦*□ voters }}
+      "#Hvoters" ∷ sv.Metadata'.ConfState'.Voters' ↦*□ voters ∗
+      "#Hlearners" ∷ ownIdList sv.Metadata'.ConfState'.Learners' DFrac.discard learners }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleSnapshot")) (Val #m))
   {{ (s' : NState), RET #();
       ownRaftPhys cfg r id s' ∗ ⌜HandleSnapResult id s m sv s'⌝ }}

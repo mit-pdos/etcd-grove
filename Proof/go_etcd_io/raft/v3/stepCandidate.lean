@@ -265,7 +265,7 @@ theorem stepCandidate.wp_proof
     have Hterm' := (Hterm (Or.inr (Or.inr (Or.inr Hty)))).1
     rw [Hty]
     ihave Hs := Hsnap $$ %rfl
-    icases Hs with ⟨%Hsc, #Hsv, #Hvs⟩
+    icases Hs with ⟨%learners, %Hsc, #Hsv, #Hvs, #Hls⟩
     obtain ⟨Hscope, Hfid⟩ := Hsc
     simp only [MsgSnap]
     wp_auto
@@ -273,7 +273,7 @@ theorem stepCandidate.wp_proof
       (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) $$ [$Hphys]
       as %pvs Hphys
     wp_apply wp_raft_handleSnapshot _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
-        _ sv voters rfl rfl Hcfg Hscope Hfid $$ [$Hphys $Hsv $Hvs]
+        _ sv voters learners rfl rfl Hcfg Hscope Hfid $$ [$Hphys $Hsv $Hvs $Hls]
       as %s' ⟨Hphys, %Hres⟩
     iapply HΦ $$ %GoInterface.nil %s' %false
     iframe Hphys

@@ -3471,12 +3471,12 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
     ihave #Hm := recv_one $$ Hrecv
     imod ownRaftGhost_step_prop_forward γ id s m Hty $$ Hm Hown with Hown
     imodintro; iexact Hown
-  | snapRestore m s Hty _ Hfid Hterm Hrole _ _ Hlt Hnm =>
+  | snapRestore m s Hty _ Hfid Hterm Hrole Hlt Hnm =>
     iintro Hrecv - Hown
     ihave #Hm := recv_one $$ Hrecv
     imod ownRaftGhost_step_snap_restore γ id s m Hty Hfid Hterm Hrole Hlt Hnm $$ Hm Hown with Hown
     imodintro; iexact Hown
-  | snapFastfwd m s Hty _ Hfid Hterm Hrole _ _ Hlt Hmt =>
+  | snapFastfwd m s Hty _ Hfid Hterm Hrole Hlt Hmt =>
     iintro Hrecv - Hown
     ihave #Hm := recv_one $$ Hrecv
     imod ownRaftGhost_step_snap_fastfwd γ id s m Hty Hfid Hterm Hrole Hlt Hmt $$ Hm Hown with Hown

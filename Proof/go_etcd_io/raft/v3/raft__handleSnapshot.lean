@@ -42,14 +42,15 @@ theorem raft.handleSnapshot.wp_proof
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG))
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG)) :
     raft.handleSnapshot.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s m sv voters Hrole Hvotes Hin Hscope Hfid
+  intro cfg r id s m sv voters learners Hrole Hvotes Hin Hscope Hfid
   wp_start as H
   iNamed H
   wp_auto
   ihave %Hnn := typedPointsto_not_null $$ Hsv
   rw [decide_eq_false Hnn]
   wp_auto
-  wp_apply wp_raft_restore _ _ _ _ sv voters Hrole Hvotes Hin Hscope $$ [$Hphys $Hvoters]
+  wp_apply wp_raft_restore _ _ _ _ sv voters learners Hrole Hvotes Hin Hscope
+    $$ [$Hphys $Hvoters $Hlearners]
     as %b %s1 ⟨Hphys, %Hres⟩
   rcases Hres with ⟨Hst, rfl, rfl⟩ | ⟨Hlt, Hm, rfl, rfl⟩ | ⟨Hlt, Hnm, rfl, prs, pvs, il, rfl⟩
   · -- obsolete: acknowledge the commit index

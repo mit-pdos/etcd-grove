@@ -185,11 +185,12 @@ abbrev stepFollower.spec : Prop :=
       -- (2026-10-12) a read-index message's entries, read-only
       "Hrents" ∷ (⌜m.Type' = MsgReadIndex ∨ m.Type' = MsgReadIndexResp⌝ -∗
                   m.Entries' ↦*□ ents) ∗
-      "Hsnap" ∷ (⌜m.Type' = MsgSnap⌝ -∗
-                 ⌜SnapScope cfg sv voters ∧ s.role = .follower ∧
+      "Hsnap" ∷ (⌜m.Type' = MsgSnap⌝ -∗ ∃ learners,
+                 ⌜SnapScope cfg sv voters learners ∧ s.role = .follower ∧
                    s.votes = ∅ ∧ id ∈ cfg ∧ m.From' ≠ id⌝ ∗
                  m.Snapshot' ↦□ sv ∗
-                 sv.Metadata'.ConfState'.Voters' ↦*□ voters) ∗
+                 sv.Metadata'.ConfState'.Voters' ↦*□ voters ∗
+                 ownIdList sv.Metadata'.ConfState'.Learners' DFrac.discard learners) ∗
       "Hents" ∷ (⌜m.Type' = MsgApp ∨ m.Type' = MsgProp⌝ -∗
                  m.Entries' ↦*□ ents ∗
                  ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1)) }}

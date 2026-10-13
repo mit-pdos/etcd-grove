@@ -187,9 +187,10 @@ abbrev stepCandidate.spec : Prop :=
       -- the `Context` (2026-10-12): what the response to a heartbeat carries
       "Hctx" ∷ (⌜m.Type' = MsgHeartbeat⌝ -∗ m.Context' ↦*□ cl) ∗
       "Hsnap" ∷ (⌜m.Type' = MsgSnap⌝ -∗
-                 ⌜SnapScope cfg sv voters ∧ m.From' ≠ id⌝ ∗
+                 ∃ learners, ⌜SnapScope cfg sv voters learners ∧ m.From' ≠ id⌝ ∗
                  m.Snapshot' ↦□ sv ∗
-                 sv.Metadata'.ConfState'.Voters' ↦*□ voters) ∗
+                 sv.Metadata'.ConfState'.Voters' ↦*□ voters ∗
+                 ownIdList sv.Metadata'.ConfState'.Learners' DFrac.discard learners) ∗
       "Hents" ∷ (⌜m.Type' = MsgApp⌝ -∗
                  m.Entries' ↦*□ ents ∗
                  ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1)) }}

@@ -39,7 +39,7 @@ namespace StepProof
 
 theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (sv : raftpb.Snapshot) (voters : List w64) :
+    (sv : raftpb.Snapshot) (voters learners : List w64) :
     m.Type' = MsgSnap →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -47,13 +47,14 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.From' ≠ id →
     id ∈ cfg →
     NStateWf s →
-    SnapScope cfg sv voters →
+    SnapScope cfg sv voters learners →
     -- this file: the incoming term is higher
     uint.Z s.term < uint.Z m.Term' →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhys cfg r id s ∗
         "#Hsv" ∷ m.Snapshot' ↦□ sv ∗
-        "#Hvs" ∷ sv.Metadata'.ConfState'.Voters' ↦*□ voters }}
+        "#Hvs" ∷ sv.Metadata'.ConfState'.Voters' ↦*□ voters ∗
+        "#Hls" ∷ ownIdList sv.Metadata'.ConfState'.Learners' DFrac.discard learners }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhys cfg r id s' ∗
@@ -62,7 +63,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hgt
-  wp_start as ⟨Hphys, #Hsv, #Hvs⟩
+  wp_start as ⟨Hphys, #Hsv, #Hvs, #Hls⟩
   wp_auto
   wp_apply _P.traceReceiveMessage
   rw [decide_eq_false Hterm]
@@ -102,10 +103,11 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
     isplitl []
     · iintro %_
+      iexists learners
       isplitr
       · ipureintro
         exact ⟨Hscope, rfl, rfl, Hcfg, Hfid⟩
-      · iframe Hsv Hvs
+      · iframe Hsv Hvs Hls
     · iintro %Hc; exfalso; rw [Hty] at Hc
       rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
   obtain ⟨rfl, Hhs⟩ := followerStepResult_snap _ _ _ _ _ _ _ _ Hty Hres
@@ -125,7 +127,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · refine .trans _ _ _ _ _ (step_higher_term_snap cfg id (toPState s) m sv voters Hgt Hto Hfid) ?_
     exact step_handle_snap cfg id _ _ m sv voters s1
       (adopt_after_stepdown s m.Term' m.From' pvs) Hto rfl (by simp [pbecomeFollower]) Hfid
-      Hscope Hcfg Hhs
+      Hhs
 
 end StepProof
 

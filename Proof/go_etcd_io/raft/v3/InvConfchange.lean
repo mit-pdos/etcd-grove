@@ -255,6 +255,10 @@ def ConfigSimple [FfiSyntax] (cfg : tracker.Config) (v : Loc) : Prop :=
 abbrev addNodeCC [FfiSyntax] (id : w64) : raftpb.ConfChangeSingle :=
   { Type' := W32 0, NodeId' := id }
 
+/-- `pb.ConfChangeSingle{Type: pb.ConfChangeAddLearnerNode, NodeId: id}` (2026-10-13). -/
+abbrev addLearnerCC [FfiSyntax] (id : w64) : raftpb.ConfChangeSingle :=
+  { Type' := W32 3, NodeId' := id }
+
 /-- The model of a progress map's values: each id's `IsLearner`. -/
 def flagsOf [FfiSyntax] (pvs : GMap w64 tracker.Progress) : GMap w64 Bool :=
   GMap.fmap (fun pv => pv.IsLearner') pvs
