@@ -497,6 +497,52 @@ theorem ccApplyM_inv {s s' : CCState} (t : raftpb.ConfChangeTransition)
     obtain ⟨rfl, hi⟩ := checkedM_some H; exact hi
   · cases H
 
+/-- What `confchange` sees of a node at the configuration `c`: its voters tracked as
+non-learners, its learners as learners (`cfgState` at any configuration). -/
+def cfgStateC (c : CfgM) : CCState := { cfg := c, prs := cfgFlags c.voters c.learners }
+
+theorem cfgStateC_simple (cfg lrn : GSet w64) :
+    cfgStateC (CfgM.simple cfg lrn) = cfgState cfg lrn := by
+  unfold cfgStateC cfgState
+  rw [CfgM.voters_simple]; rfl
+
+/-- A reachable state's flags are its configuration's (`cfgStateC`). -/
+theorem CCGood.flags {c : CfgM} {f : GMap w64 Bool} (h : CCGood ⟨c, f⟩) :
+    f = cfgFlags c.voters c.learners := by
+  obtain ⟨hd, hf, hl, -⟩ := h
+  apply GMap.map_eq; intro k
+  rw [cfgFlags_lookup]
+  by_cases hv : k ∈ c.voters
+  · have hk : k ∈ f := (hd k).2 (GMap.elem_of_union_l _ hv)
+    obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 ((GMap.mem_iff _ _).1 hk)
+    have hnl : k ∉ c.learners := by
+      intro h'
+      obtain ⟨a1, a2⟩ := hl k h'
+      unfold CfgM.voters at hv
+      rcases (GMap.elem_of_union _ _ _).1 hv with h'' | h''
+      · exact a1 h''
+      · exact a2 h''
+    rw [if_pos hv, hb, hf k b hb]
+    simp [hnl]
+  · rw [if_neg hv]
+    by_cases hl' : k ∈ c.learners
+    · have hk : k ∈ f := (hd k).2 (GMap.elem_of_union_r _ hl')
+      obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 ((GMap.mem_iff _ _).1 hk)
+      rw [if_pos hl', hb, hf k b hb]
+      simp [hl']
+    · rw [if_neg hl']
+      have hk : k ∉ f := by
+        rw [hd, mem_ids]
+        intro h'
+        rcases h' with h' | h' | h'
+        · exact hv (GMap.elem_of_union_l _ h')
+        · exact hv (GMap.elem_of_union_r _ h')
+        · exact hl' h'
+      rw [GMap.mem_iff] at hk
+      cases h3 : f !! k with
+      | none => rfl
+      | some _ => rw [h3] at hk; exact absurd rfl hk
+
 end model
 
 /-! ## The tracker as a `Changer` reads it, and a result as `switchToConfig` takes it -/
@@ -622,7 +668,7 @@ theorem ownResult_transfer (s' : CCState) (Hgood : CCGood s') (Hinv : CfgInv s')
       ownPrsW chg base trk s'.prs ∗
       ([∗map] k ↦ pv ∈ base, progRAt peers k pv) ⊢
       |==> ∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress),
-        ownConfigC s'.cfg cfgv trk prs pvs ∗ ⌜MatchKept peers pvs⌝ := by
+        ownConfigC s'.cfg cfgv trk prs pvs ∗ ⌜MatchKept peers pvs⌝ ∗ ⌜domSet prs = s'.cfg.ids⌝ := by
   iintro ⟨Hc, Hw, HR⟩
   unfold ownPrsW
   icases Hw with ⟨%prs, %pvs, Htrk, Hprs, %Hflags, Hnew⟩
@@ -734,7 +780,7 @@ theorem ownResult_transfer (s' : CCState) (Hgood : CCGood s') (Hinv : CfgInv s')
     · rw [Htf]; exact Hinv
     · rw [← GMap.size_dom, Hpdom]; exact Hsz
   · ipureintro
-    intro k p' hp'
+    refine ⟨fun k p' hp' => ?_, Hpdom⟩
     obtain ⟨pr, hpr⟩ := Option.isSome_iff_exists.1 ((Hdom2' k).2 (by rw [hp']; rfl))
     exact (Hmk k pr p' hpr hp').1
 

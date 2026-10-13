@@ -6,6 +6,8 @@ public import Spec.go_etcd_io.raft.v3.raftLog__lastIndex
 public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__LeaveJoint
 public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__EnterJoint
 public import Spec.go_etcd_io.raft.v3.confchange.Changer__Simple
+public import Spec.go_etcd_io.raft.v3.confchange.Changer__LeaveJoint
+public import Spec.go_etcd_io.raft.v3.confchange.Changer__EnterJoint
 
 @[expose] public section
 
@@ -23,94 +25,174 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The struct opened at its tracker and log (`ownRaftPhys_retrack`); the `Changer` reads
-the tracker (`ownTracker_toCC`) and the last index; `cc.LeaveJoint()` is false and
-`cc.EnterJoint()` says not joint (`ccApplyM_noop`), so `Simple` runs, and answers the
-configuration it started from; the old `Progress` objects' rings go to the new ones
-(`ownResult_noop_transfer`), and `switchToConfig` installs them. The `LeaveJoint`/
-`EnterJoint` methods of the `Changer` are unreachable. -/
+/-- The struct opened at its tracker and log (`ownRaftPhysC_retrack`, with `Hvoter` at the new
+voters and the node itself, as `switchToConfig` takes it); the `Changer` reads the tracker
+(`ownTrackerC_toCC`: the state `cfgStateC c`, reachable) and the last index; `cc.LeaveJoint()`
+and `cc.EnterJoint()` choose `LeaveJoint`, `EnterJoint` or `Simple` as `ccApplyM` does; the
+result is reachable (`ccApplyM_good`) and passes `checkInvariants` (`ccApplyM_inv`), so with
+the old objects' rings moved to the new ones it is an `ownConfigC` (`ownResult_transfer`);
+`switchToConfig` installs it. -/
 theorem raft.applyConfChange.wp_proof
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG))
     (wp_ConfChangeV2_LeaveJoint : raftpb.ConfChangeV2.LeaveJoint.spec (GF := GF) (hG := hG))
     (wp_ConfChangeV2_EnterJoint : raftpb.ConfChangeV2.EnterJoint.spec (GF := GF) (hG := hG))
+    (wp_Changer_LeaveJoint : confchange.Changer.LeaveJoint.spec (GF := GF) (hG := hG))
+    (wp_Changer_EnterJoint : confchange.Changer.EnterJoint.spec (GF := GF) (hG := hG))
     (wp_Changer_Simple : confchange.Changer.Simple.spec (GF := GF) (hG := hG))
     (wp_raft_switchToConfig : raft.switchToConfig.spec (GF := GF) (hG := hG)) :
     raft.applyConfChange.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s cc ccs dq lrn' Hd' Hsz' Hnoop
-  have Hd : ∀ k, k ∈ domSet s.progress \ cfg → k ∉ cfg :=
-    fun k hk => ((GMap.elem_of_difference _ _ _).1 hk).2
-  obtain ⟨Hnl, ⟨al, Hej⟩, Hsimple⟩ := ccApplyM_simple cfg _ lrn' Hd _ _ Hnoop
+  intro c r id s cc ccs dq c' Happ0 Hsz Hsdr Hcand
   wp_start as H
   iNamed H
-  icases ownRaftPhys_gh $$ Hphys with ⟨%Hgh, Hphys⟩
-  icases ownRaftPhys_voter cfg r id s $$ Hphys with ⟨%Hv, Hphys⟩
-  icases ownRaftPhys_retrack cfg cfg r id s Hv $$ Hphys with ⟨%tv, Htrkf, Htrk, Hlf, Hlog, Hback⟩
-  icases ownTracker_toCC cfg tv ⟨s.votes, s.progress, s.prvals⟩ $$ Htrk
-    with ⟨%pvs, Htc, HR, Hvotes, %Hfl, %Hmi, %Hsz⟩
+  icases ownRaftPhysC_gh c r id s $$ Hphys with ⟨%Hgh, Hphys⟩
+  icases ownRaftPhysC_retrack c'.cfg c c.voters (c'.cfg.voters ∪ {[id]}) r id s
+      (fun _ => GMap.elem_of_union_r _ (GMap.elem_of_singleton_2 id)) $$ Hphys
+    with ⟨%tv, Htrkf, Htrk, Hlf, Hlog, Hback⟩
+  icases ownTrackerC_toCC c tv ⟨s.votes, s.progress, s.prvals⟩ $$ Htrk
+    with ⟨%pvs, Htc, HR, Hvotes, %Hfl, %Hmi, %Hg⟩
+  obtain ⟨Hgood, -, -, -⟩ := Hg
+  have Hst : ({ cfg := c, prs := flagsOf pvs } : CCState) = cfgStateC c := by
+    rw [Hfl]; unfold cfgStateC; rw [← Hgood.flags]
+  have Hgood' : CCGood (cfgStateC c) := by
+    have h := Hgood
+    unfold cfgStateC; rw [← Hgood.flags]; exact h
+  have Happ := Happ0
+  unfold ccApplyM at Happ
   wp_auto
   wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, -⟩
   wp_method_call
   wp_call
   wp_auto
-  -- `cc.LeaveJoint()`: false
   wp_apply wp_ConfChangeV2_LeaveJoint cc ccs dq $$ [$Hccs] as Hccs
-  rw [decide_eq_false Hnl]
-  wp_auto
-  wp_method_call
-  wp_call
-  wp_auto
-  -- `cc.EnterJoint()`: not joint
-  wp_apply wp_ConfChangeV2_EnterJoint cc ccs dq $$ [$Hccs] as %rv ⟨Hccs, Hres⟩
-  rw [Hej]
-  icases Hres with %Hres
-  subst Hres
-  wp_auto
-  -- `changer.Simple(cc.Changes...)`
-  wp_apply wp_Changer_Simple _ { Tracker' := tv, LastIndex' := li }
-      (cfgM cfg (domSet s.progress \ cfg)) s.progress pvs
-      cc.Changes' ccs (DFrac.own 1) dq (DFrac.own 1) DFrac.discard (DFrac.own 1) Hmi
-    $$ [$Hccs $Htc $changer]
-    as %cfgv %trk %err ⟨-, Hccs, -, Hres⟩
-  rw [show ({ cfg := cfgM cfg (domSet s.progress \ cfg), prs := flagsOf pvs } : CCState) =
-      cfgState cfg (domSet s.progress \ cfg) by rw [Hfl]; rfl, Hsimple]
-  simp only [ownResult]
-  icases Hres with ⟨%Herr, Hc, Hw⟩
-  subst Herr
-  ihave Hc := (show ownCfgCC (GF := GF) cfgv (DFrac.own 1) (cfgState cfg lrn').cfg ⊢
-    ownCfgCC cfgv (DFrac.own 1) (cfgM cfg lrn') from .rfl) $$ Hc
-  ihave Hw := (show ownPrsW (GF := GF) { Tracker' := tv, LastIndex' := li } pvs trk
-      (cfgState cfg lrn').prs ⊢
-    ownPrsW { Tracker' := tv, LastIndex' := li } pvs trk (cfgFlags cfg lrn') from .rfl) $$ Hw
-  imod ownResult_noop_transfer cfg lrn' Hd' _ pvs s.prvals cfgv trk Hsz' $$ [$Hc $Hw $HR]
-    with ⟨%prs', %pvs', Hnew, %Hmk, %Hpd⟩
-  wp_auto
-  -- `r.switchToConfig(cfg, trk)`
-  ihave Hback' : (∀ tv' prs'' pvs'', r.[raft, go!"trk"] ↦ tv' -∗
-      ownTracker cfg tv' ⟨s.votes, prs'', pvs''⟩ -∗
-      ownRaftPhys (GF := GF) cfg r id { s with progress := prs'', prvals := pvs'' })
-      $$ [Hback Hlf Hlog]
-  · iintro %tv' %prs'' %pvs'' Hf Ht
-    ihave H := Hback $$ %tv' %s.votes %prs'' %pvs'' %s.logst Hlf Hf Ht Hlog %Hgh
-    iapply ownRaftPhys_eq cfg r id _ _ (by cases s; rfl) $$ H
-  wp_apply (raft.switchToConfig.spec_simple wp_raft_switchToConfig) cfg r id s tv cfgv trk prs' pvs'
-      (fun hl => ⟨Hv (by rw [hl]; decide), Hmk⟩)
-      (fun hc => Hv (by rcases hc with h | h <;> rw [h] <;> decide)) $$ [$Htrkf $Hback' $Hvotes $Hnew]
-    as %cs %xs %ls %s' ⟨Hphys, Hcs, Hls, %Hcs0, %Hsw⟩
-  · ipureintro; exact Hmi
-  try wp_auto
-  iapply HΦ $$ %cs %xs %ls %s'
-  iframe Hphys Hccs Hcs Hls
-  ipureintro
-  have Hpd' : domSet prs' \ cfg = lrn' := by
-    rw [Hpd]
-    apply GMap.set_eq; intro k
-    simp only [GMap.elem_of_difference, GMap.elem_of_union]
-    constructor
-    · rintro ⟨h | h, h'⟩
-      · exact absurd h h'
-      · exact h
-    · intro h; exact ⟨.inr h, Hd' k h⟩
-  refine ⟨⟨Hcs0.1, Hpd' ▸ Hcs0.2.1, Hcs0.2.2⟩, prs', pvs', fun _ => Hmk, Hsw⟩
+  by_cases Hlj : cc.Transition' = W32 0 ∧ ccs = []
+  · -- `changer.LeaveJoint()`
+    rw [decide_eq_true Hlj]
+    rw [if_pos Hlj] at Happ
+    wp_auto
+    wp_apply wp_Changer_LeaveJoint _ { Tracker' := tv, LastIndex' := li } c s.progress pvs
+        (DFrac.own 1) (DFrac.own 1) DFrac.discard (DFrac.own 1)
+      $$ [$Htc $changer]
+      as %cfgv %trk %err ⟨-, -, Hres⟩
+    rw [Hst, Happ]
+    simp only [ownResult]
+    icases Hres with ⟨%Herr, Hc, Hw⟩
+    subst Herr
+    imod ownResult_transfer c' (ccApplyM_good Hgood' _ _ Happ0) (ccApplyM_inv _ _ Happ0) _ pvs
+        s.prvals cfgv trk Hsz $$ [$Hc $Hw $HR]
+      with ⟨%prs', %pvs', Hnew, %Hmk, %Hpd⟩
+    wp_auto
+    -- `r.switchToConfig(cfg, trk)`
+    ihave Hback' : (∀ tv' prs'' pvs'', r.[raft, go!"trk"] ↦ tv' -∗
+        ownTrackerC c'.cfg tv' ⟨s.votes, prs'', pvs''⟩ -∗
+        ownRaftPhysCV (GF := GF) c'.cfg (c'.cfg.voters ∪ {[id]}) r id
+          { s with progress := prs'', prvals := pvs'' })
+        $$ [Hback Hlf Hlog]
+    · iintro %tv' %prs'' %pvs'' Hf Ht
+      ihave H := Hback $$ %tv' %s.votes %prs'' %pvs'' %s.logst Hlf Hf Ht Hlog %Hgh
+      iapply ownRaftPhysC_eq c'.cfg r id _ _ (by cases s; rfl) $$ H
+    wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs'
+        (fun hl => by
+          by_cases hin : id ∈ c'.cfg.voters
+          · exact .inl ⟨hin, Hmk⟩
+          · exact .inr ⟨hin, Hsdr hl hin⟩) Hcand
+      $$ [$Htrkf $Hback' $Hvotes $Hnew]
+      as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, Hos, Hls, Hlns, %Hcs0, %Hsw⟩
+    · ipureintro; exact Hmi
+    try wp_auto
+    iapply HΦ $$ %cs %xs %os %ls %lns %s'
+    iframe Hphys Hccs Hcs Hos Hls Hlns
+    ipureintro
+    exact ⟨Hcs0, prs', pvs', Hpd, Hmk, Hsw⟩
+  · rw [decide_eq_false Hlj]
+    rw [if_neg Hlj] at Happ
+    wp_auto
+    wp_method_call
+    wp_call
+    wp_auto
+    wp_apply wp_ConfChangeV2_EnterJoint cc ccs dq $$ [$Hccs] as %rv ⟨Hccs, Hres⟩
+    cases Hej : enterJointOf cc.Transition' ccs.length with
+    | none => rw [Hej] at Happ; cases Happ
+    | some p =>
+      obtain ⟨al, ok⟩ := p
+      rw [Hej] at Happ
+      simp only [Hej]
+      icases Hres with %Hres
+      subst Hres
+      cases ok
+      · -- `changer.Simple(cc.Changes...)`
+        simp only at Happ
+        wp_auto
+        wp_apply wp_Changer_Simple _ { Tracker' := tv, LastIndex' := li } c s.progress pvs
+            cc.Changes' ccs (DFrac.own 1) dq (DFrac.own 1) DFrac.discard (DFrac.own 1) Hmi
+          $$ [$Hccs $Htc $changer]
+          as %cfgv %trk %err ⟨-, Hccs, -, Hres⟩
+        rw [Hst, Happ]
+        simp only [ownResult]
+        icases Hres with ⟨%Herr, Hc, Hw⟩
+        subst Herr
+        imod ownResult_transfer c' (ccApplyM_good Hgood' _ _ Happ0) (ccApplyM_inv _ _ Happ0) _ pvs
+            s.prvals cfgv trk Hsz $$ [$Hc $Hw $HR]
+          with ⟨%prs', %pvs', Hnew, %Hmk, %Hpd⟩
+        wp_auto
+        -- `r.switchToConfig(cfg, trk)`
+        ihave Hback' : (∀ tv' prs'' pvs'', r.[raft, go!"trk"] ↦ tv' -∗
+            ownTrackerC c'.cfg tv' ⟨s.votes, prs'', pvs''⟩ -∗
+            ownRaftPhysCV (GF := GF) c'.cfg (c'.cfg.voters ∪ {[id]}) r id
+              { s with progress := prs'', prvals := pvs'' })
+            $$ [Hback Hlf Hlog]
+        · iintro %tv' %prs'' %pvs'' Hf Ht
+          ihave H := Hback $$ %tv' %s.votes %prs'' %pvs'' %s.logst Hlf Hf Ht Hlog %Hgh
+          iapply ownRaftPhysC_eq c'.cfg r id _ _ (by cases s; rfl) $$ H
+        wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs'
+            (fun hl => by
+              by_cases hin : id ∈ c'.cfg.voters
+              · exact .inl ⟨hin, Hmk⟩
+              · exact .inr ⟨hin, Hsdr hl hin⟩) Hcand
+          $$ [$Htrkf $Hback' $Hvotes $Hnew]
+          as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, Hos, Hls, Hlns, %Hcs0, %Hsw⟩
+        · ipureintro; exact Hmi
+        try wp_auto
+        iapply HΦ $$ %cs %xs %os %ls %lns %s'
+        iframe Hphys Hccs Hcs Hos Hls Hlns
+        ipureintro
+        exact ⟨Hcs0, prs', pvs', Hpd, Hmk, Hsw⟩
+      · -- `changer.EnterJoint(autoLeave, cc.Changes...)`
+        simp only at Happ
+        wp_auto
+        wp_apply wp_Changer_EnterJoint _ { Tracker' := tv, LastIndex' := li } c s.progress pvs al
+            cc.Changes' ccs (DFrac.own 1) dq (DFrac.own 1) DFrac.discard (DFrac.own 1) Hmi
+          $$ [$Hccs $Htc $changer]
+          as %cfgv %trk %err ⟨-, Hccs, -, Hres⟩
+        rw [Hst, Happ]
+        simp only [ownResult]
+        icases Hres with ⟨%Herr, Hc, Hw⟩
+        subst Herr
+        imod ownResult_transfer c' (ccApplyM_good Hgood' _ _ Happ0) (ccApplyM_inv _ _ Happ0) _ pvs
+            s.prvals cfgv trk Hsz $$ [$Hc $Hw $HR]
+          with ⟨%prs', %pvs', Hnew, %Hmk, %Hpd⟩
+        wp_auto
+        -- `r.switchToConfig(cfg, trk)`
+        ihave Hback' : (∀ tv' prs'' pvs'', r.[raft, go!"trk"] ↦ tv' -∗
+            ownTrackerC c'.cfg tv' ⟨s.votes, prs'', pvs''⟩ -∗
+            ownRaftPhysCV (GF := GF) c'.cfg (c'.cfg.voters ∪ {[id]}) r id
+              { s with progress := prs'', prvals := pvs'' })
+            $$ [Hback Hlf Hlog]
+        · iintro %tv' %prs'' %pvs'' Hf Ht
+          ihave H := Hback $$ %tv' %s.votes %prs'' %pvs'' %s.logst Hlf Hf Ht Hlog %Hgh
+          iapply ownRaftPhysC_eq c'.cfg r id _ _ (by cases s; rfl) $$ H
+        wp_apply wp_raft_switchToConfig c'.cfg r id s tv cfgv trk prs' pvs'
+            (fun hl => by
+              by_cases hin : id ∈ c'.cfg.voters
+              · exact .inl ⟨hin, Hmk⟩
+              · exact .inr ⟨hin, Hsdr hl hin⟩) Hcand
+          $$ [$Htrkf $Hback' $Hvotes $Hnew]
+          as %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, Hos, Hls, Hlns, %Hcs0, %Hsw⟩
+        · ipureintro; exact Hmi
+        try wp_auto
+        iapply HΦ $$ %cs %xs %os %ls %lns %s'
+        iframe Hphys Hccs Hcs Hos Hls Hlns
+        ipureintro
+        exact ⟨Hcs0, prs', pvs', Hpd, Hmk, Hsw⟩
 
 end proof
 

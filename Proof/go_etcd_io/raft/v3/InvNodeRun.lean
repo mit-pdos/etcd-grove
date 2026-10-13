@@ -757,7 +757,7 @@ theorem wp_rn_raft_applyConfChange
   icases ownRaftPhys_progress_dom γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsub, Hphys⟩
   icases ownRaftPhys_progress_size γ.reCfg rnv.raft' id s $$ Hphys with ⟨%Hsz, Hphys⟩
   obtain ⟨lrn', Hd', Hsz', Hn'⟩ := applyCC_of_shrink γ.reCfg s.progress _ _ Hn Hsub Hsz
-  wp_apply +noauto wp_raft_applyConfChange γ.reCfg rnv.raft' id s cc ccs DFrac.discard lrn' Hd'
+  wp_apply +noauto (raft.applyConfChange.spec_simple wp_raft_applyConfChange) γ.reCfg rnv.raft' id s cc ccs DFrac.discard lrn' Hd'
       Hsz' Hn'
     $$ [$Hphys $Hccs] as %cs %xs %ls %s' ⟨Hphys, -, Hvoters, Hls, %Hcs0, %Hok⟩
   imod rawNode_applyCC_reseal γ rn id rs s s' ps rnv sv steps Hrel Hin Hasync Hdlen Hunp Hsnap

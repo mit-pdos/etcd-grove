@@ -141,6 +141,7 @@ node__ProposeConfChange: confChangeToMsg node__Step
 # leader case's callees; applyConfChange and RawNode.ApplyConfChange are Lean-first.
 # (2026-10-13, stage A2) and becomeFollower, for a removed or demoted leader (stepDownOnRemoval).
 raft__switchToConfig: traceConfChangeEvent ProgressTracker__ConfState raft__maybeCommit raft__bcastAppend ProgressTracker__Visit raft__maybeSendAppend JointConfig__IDs raft__abortLeaderTransfer raft__becomeFollower
-raft__applyConfChange: raftLog__lastIndex ConfChangeV2__LeaveJoint ConfChangeV2__EnterJoint Changer__Simple raft__switchToConfig
+# (2026-10-13, stage A2) any change: LeaveJoint and EnterJoint of the Changer too.
+raft__applyConfChange: raftLog__lastIndex ConfChangeV2__LeaveJoint ConfChangeV2__EnterJoint Changer__LeaveJoint Changer__EnterJoint Changer__Simple raft__switchToConfig
 RawNode__ApplyConfChange: ConfChange__AsV2 ConfChangeV2__AsV2 raft__applyConfChange
 node__ApplyConfChange: ConfChange__AsV2 ConfChangeV2__AsV2

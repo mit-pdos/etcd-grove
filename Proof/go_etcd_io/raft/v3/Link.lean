@@ -1108,7 +1108,7 @@ theorem raft.wp_reduceUncommittedSize :
 
 theorem raft.wp_applyConfChange :
     raft.applyConfChange.spec (GF := GF) (hG := hG) :=
-  raft.applyConfChange.wp_proof raftLog.wp_lastIndex raftpb.ConfChangeV2.wp_LeaveJoint raftpb.ConfChangeV2.wp_EnterJoint confchange.Changer.wp_Simple raft.wp_switchToConfig
+  raft.applyConfChange.wp_proof raftLog.wp_lastIndex raftpb.ConfChangeV2.wp_LeaveJoint raftpb.ConfChangeV2.wp_EnterJoint confchange.Changer.wp_LeaveJoint confchange.Changer.wp_EnterJoint confchange.Changer.wp_Simple raft.wp_switchToConfig
 
 theorem wp_getBasicStatus :
     getBasicStatus.spec (GF := GF) (hG := hG) :=

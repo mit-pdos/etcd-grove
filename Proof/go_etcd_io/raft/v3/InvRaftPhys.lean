@@ -3359,9 +3359,9 @@ theorem ownRaftPhysC_view (r : Loc) (id : w64) (s : NState) :
 
 /-- The tracker replaced while the log is in use (`ownRaftPhys_retrack` at any
 configurations): `restore` at a node of any configuration `c0` installs the snapshot's `c`. -/
-theorem ownRaftPhysC_retrack (c0 : CfgM) (r : Loc) (id : w64) (s : NState)
-    (Hv : s.role ≠ .follower → id ∈ c.voters) :
-    ⊢ ownRaftPhysCV (GF := GF) c0 c0.voters r id s -∗
+theorem ownRaftPhysC_retrack (c0 : CfgM) (V0 V' : GSet w64) (r : Loc) (id : w64) (s : NState)
+    (Hv : s.role ≠ .follower → id ∈ V') :
+    ⊢ ownRaftPhysCV (GF := GF) c0 V0 r id s -∗
       ∃ tv, r.[raft, go!"trk"] ↦ tv ∗
         ownTrackerC c0 tv ⟨s.votes, s.progress, s.prvals⟩ ∗
         r.[raft, go!"raftLog"] ↦ s.log ∗
@@ -3371,7 +3371,7 @@ theorem ownRaftPhysC_retrack (c0 : CfgM) (r : Loc) (id : w64) (s : NState)
            r.[raft, go!"trk"] ↦ tv' -∗
            ownTrackerC c tv' ⟨votes', prs', pvs'⟩ -∗
            ownRaftLog s.log ls' -∗ ⌜LogGhOk s ls'⌝ -∗
-           ownRaftPhysCV c c.voters r id
+           ownRaftPhysCV c V' r id
              { s with votes := votes', progress := prs', prvals := pvs', logst := ls' }) := by
   iintro H
   iNamed_physC H
@@ -3389,7 +3389,7 @@ theorem ownRaftPhysC_retrack (c0 : CfgM) (r : Loc) (id : w64) (s : NState)
   ihave Hlog : ownRaftLog (GF := GF) rv.raftLog' ls' $$ [Hlog]
   · rw [Hlogp]; iexact Hlog
   ihave Hr := Hback $$ %tv' Hlf Hf
-  iapply ownRaftPhysCV_intro c _ r id
+  iapply ownRaftPhysCV_intro c V' r id
       { s with votes := votes', progress := prs', prvals := pvs', logst := ls' }
       { rv with trk' := tv' } msgs msgsAA lok
     Hid Hterm Hvote Hlead Hstate Hstepfn Hprevote HpropForward HnoCCV HnoCheckQuorum HnoLearner
