@@ -60,7 +60,7 @@ theorem readOnly.maybeAdvance.wp_proof
     wp_start_folded as HP
     wp_apply wp_readOnly_AckedIndex $$ [$HP] as HP
     iapply HΦ $$ HP
-  wp_apply wp_JointConfig_CommittedIndex c_ptr c m0 ids _ (ownReadOnly ro r)
+  wp_apply (quorum.JointConfig.CommittedIndex.spec_simple wp_JointConfig_CommittedIndex) c_ptr c m0 ids _ (ownReadOnly ro r)
       (fun v => r.acks !! v) $$ [$c $Hvoters $Hown $Hidx]
     as %N ⟨c, Hv, Hown, %Hemp, %Hq⟩
   · isplitr

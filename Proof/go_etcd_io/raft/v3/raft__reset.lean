@@ -177,7 +177,7 @@ theorem raft.reset.wp_proof
   icases ownTracker_prvals_dom $$ Htrk with ⟨%Hpdom, Htrk⟩
   icases ownTracker_progress_map $$ Htrk with ⟨-, %Hprdom, Htrk⟩
   have Hdomcfg : domSet s.prvals = domSet s.progress := Hpdom
-  wp_apply wp_ProgressTracker_Visit cfg _ tv1
+  wp_apply (tracker.ProgressTracker.Visit.spec_simple wp_ProgressTracker_Visit) cfg _ tv1
       ⟨(resetTo0 s term).votes, (resetTo0 s term).progress, (resetTo0 s term).prvals⟩ _
       (fun D pvsx => iprop(r_ptr ↦ r ∗
         ⌜ResetInv id (logLast s.logst) s.prvals pvsx D⌝ ∗

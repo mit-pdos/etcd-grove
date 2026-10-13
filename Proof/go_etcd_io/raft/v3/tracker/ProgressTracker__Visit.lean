@@ -63,15 +63,16 @@ across a rebuild of the tracker. -/
 theorem tracker.ProgressTracker.Visit.wp_proof
     (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG := hG)) :
     tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG) := by
-  intro cfg trk tv t f I
+  intro c trk tv t f I
   obtain ⟨votes, prs, pvs⟩ := t
   wp_start as ⟨Htrk, Hown, HI, #Hf⟩
+  iunfold ownTrackerC at Hown
   iNamed Hown
   dsimp only at *
   wp_auto
   -- `n := len(p.Progress)`
   wp_apply wp_ProgressMap_len $$ Hprs as -
-  have Hsz62 : (GMap.size prs : Int) ≤ 2 ^ 62 := Hcfg_size
+  have Hsz62 : (GMap.size prs : Int) ≤ 2 ^ 62 := Hsize
   have Hsz : (GMap.size prs : Int) < 2 ^ 63 := by omega
   wp_join iprop(∃ (sl : GoSlice) (xs : List w64),
       "n" ∷ n_ptr ↦ W64 (GMap.size prs) ∗
@@ -191,20 +192,19 @@ theorem tracker.ProgressTracker.Visit.wp_proof
       List.mem_reverse]
     exact Hkset y
   -- re-seal the tracker: the closure is lent all of it
-  ihave Hown := ownTracker_intro cfg tv votes prs pvs voters_ref voters
-    learners learnersNext Hprs_dom Hvoters_arr Hautoleave Hvoters_dom Hno_learners Hcfg_size
-    HmaxInfl $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext
+  ihave Hown := ownTrackerC_intro c tv votes prs pvs Hinv Hdom Hflags Hsize HmaxInfl
+    $$ Hvotes Hprs Hprogs Hcfg
   -- The tracker *value* is part of the invariant: the closure may hand back a
   -- different one (see `visitClosure`, `InvTracker.lean`), and the loop only ever
   -- needs `domSet prs = cfg`, which holds at any of them. The range variable `id` is
   -- written on every iteration, so it lives inside the invariant.
-  ihave IH : iprop(∃ (j c : w64) (tvc : tracker.ProgressTracker) (pvsc : GMap w64 Progress),
+  ihave IH : iprop(∃ (j cv : w64) (tvc : tracker.ProgressTracker) (pvsc : GMap w64 Progress),
       "i" ∷ i_ptr ↦ j ∗
-      "id" ∷ id_ptr ↦ c ∗
+      "id" ∷ id_ptr ↦ cv ∗
       "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ (ys.length : Int)⌝ ∗
       "Htrk" ∷ trk ↦ tvc ∗
       "HI" ∷ I (GMap.listToSet (ys.take (sint.Z j).toNat)) pvsc ∗
-      "Hown" ∷ ownTracker cfg tvc ⟨votes, prs, pvsc⟩ ∗
+      "Hown" ∷ ownTrackerC c tvc ⟨votes, prs, pvsc⟩ ∗
       "Hsl" ∷ sl ↦* ys) $$ [i id Htrk HI Hown Hsl]
   · iexists W64 0, zero_val w64, tv, pvs
     simp only [named]
@@ -223,15 +223,16 @@ theorem tracker.ProgressTracker.Visit.wp_proof
     · iframe; ipureintro; exact Hy
     -- the progress map's points-to at the tracker value the loop currently holds;
     -- the map itself is `prs` at every one of them
-    icases ownTracker_progress_map cfg tvc _ $$ Hown with ⟨#Hprsc, %Hdomc, Hown⟩
+    icases ownTrackerC_progress_map c tvc _ $$ Hown with ⟨#Hprsc, %Hdomc, Hown⟩
     obtain ⟨prc, Hprc⟩ : ∃ prc, prs !! y = some prc := by
       rw [GMap.elem_of_dom] at Hycfg; exact Hycfg
     wp_apply wp_map_lookup1 $$ Hprsc as -
     rw [Hprc, Option.getD_some]
-    icases ownTracker_maxinflight cfg tvc _ $$ Hown with ⟨%HmaxIc, Hown⟩
-    icases ownTracker_lookup cfg tvc ⟨votes, prs, pvsc⟩ y prc Hprc $$ Hown
+    icases ownTrackerC_pure c tvc _ $$ Hown with ⟨%Hpc, Hown⟩
+    have HmaxIc := Hpc.2.2.2.2
+    icases ownTrackerC_lookup c tvc ⟨votes, prs, pvsc⟩ y prc Hprc $$ Hown
       with ⟨%p, %Hpv, Hpr, Hback⟩
-    iunfold visitClosure at Hf
+    iunfold visitClosureC at Hf
     wp_apply Hf $$ %y %prc %tvc %pvsc %p %(GMap.listToSet (ys.take (sint.Z j).toNat))
         [Htrk Hpr Hback HI] as ⟨%tv2, %pvs2, Htrk, Hown, HI⟩
     · iframe Htrk Hpr Hback HI

@@ -235,7 +235,7 @@ theorem newRaft.wp_proof
   let s3 : NState := { becomeFollower s2 s2.term (W64 0) with prvals := pvs3 }
   -- `r.trk.VoterNodes()`
   icases ownRaftPhys_tracker_same _ _ _ s3 $$ Hphys with ⟨%tv3, Htrkf, Htrk3, Htrkback⟩
-  wp_apply wp_ProgressTracker_VoterNodes $$ [$Htrkf $Htrk3] as %nsl %nxs ⟨Htrkf, Htrk3, Hnsl, %Hnxs⟩
+  wp_apply (tracker.ProgressTracker.VoterNodes.spec_simple wp_ProgressTracker_VoterNodes) $$ [$Htrkf $Htrk3] as %nsl %nxs ⟨Htrkf, Htrk3, Hnsl, %Hnxs⟩
   ihave Hphys := Htrkback $$ %tv3 Htrkf Htrk3
   -- the log line's `nodesStrs` loop; what it builds is never read
   ihave IH : iprop(∃ (k x : w64) (sl' : GoSlice) (strs : List GoString),

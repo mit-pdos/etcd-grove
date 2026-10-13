@@ -3,6 +3,7 @@ Port of election_proof/spec_ProgressTracker__TallyVotes.v (feb5c73d4).
 -/
 module
 
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
@@ -24,37 +25,45 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `TallyVotes` reports the outcome of the election, which is exactly the quorum
 condition of the model.
 
-**Proved 2026-09-20** (`proof_ProgressTracker__TallyVotes.v`). The function counts the
-granted and rejected `t.votes` over `trk.Progress` and then delegates the verdict to
-`p.Config.Voters.VoteResult(p.Votes)` (`spec_JointConfig__VoteResult.v` and, under it,
-`spec_MajorityConfig__VoteResult.v`), which is where the quorum arithmetic lives. What
-the loop here contributes is the two counters, and they are *not* what the
-postcondition talks about: the returned `g`/`rj` are existentially quantified, since no
-caller reads them (`poll` returns them to `stepCandidate`, which only looks at `res`).
+The function counts the granted and rejected `t.votes` of the voters over `trk.Progress`
+(a learner is skipped: `if pr.IsLearner { continue }`) and then delegates the verdict to
+`p.Config.Voters.VoteResult(p.Votes)` (`JointConfig.VoteResult`, and under it
+`MajorityConfig.VoteResult`), which is where the quorum arithmetic lives. The counters are
+not what the postcondition talks about: the returned `g`/`rj` are existentially
+quantified, since no caller reads them (`poll` returns them to `stepCandidate`, which only
+looks at `res`).
 
-Three things had to be fixed before this could be proved, all recorded here because
-each cost a day:
+**At any configuration since 2026-10-13** (reconfiguration stage A1; `ownTrackerC`): the
+answer is `VoteWon` exactly when the granted votes are a quorum of both voter halves
+(`JQuorum`) and `VoteLost` exactly when one half's non-rejecting voters are not a majority
+of it (`JLost`) -- equivalences, with no premise: `MajQ` carries Go's convention that an
+empty half wins every election. The statement at a simple configuration (`ownTracker cfg`,
+`cfg ≠ ∅`, `IsQuorum cfg`) is `tracker.ProgressTracker.TallyVotes.spec_simple`, which
+`raft.poll` uses.
 
-- **Array indexing.** `quorum.JointConfig` is `[2]MajorityConfig`, and Goose
-  translated `c[0]` as `IndexRef` applied to the array *value*, where
-  `index_ref_array` only steps on an array *location*. Fixed in Goose 2026-09-17; see
-  `spec_JointConfig__IDs.v` for the write-up.
-
-- **`len` of a nil map.** The second component of a simple configuration is
-  `map.nil`, and `MajorityConfig.VoteResult` begins with `len(c) == 0`.
-  `pure_wp_map_nil_len` (`new/golang/theory/map.v`) handles it; the
-  `go.len_underlying` detour a map of a *named* type needs is in
-  `proof_MajorityConfig__VoteResult_helpers/majority_len.v`.
-
-The `VoteWon` conjunct is false at `cfg = ∅` -- `MajorityConfig.VoteResult` returns
-`VoteWon` outright for an empty config ("by convention, the elections on an empty
-config win"), while `IsQuorum ∅ q` unfolds to `0 < 2 * 0`. That is why this spec (like
-`JointConfig.wp_VoteResult`, which it passes the premise to) takes `cfg ≠ ∅`; the fact
-used to be a conjunct of `ownTracker`, and was moved out so that the empty tracker is
-an `ownTracker ∅ …`. -/
+History, from the Rocq port: proved 2026-09-20 after two Goose fixes (array indexing of
+`quorum.JointConfig`, `len` of a nil map); the `VoteLost` conjunct was corrected 2026-09-16
+from "a majority rejected" (false: 4 voters with 2 rejecting and 2 silent gives `VoteLost`
+with no rejection quorum) to "cannot still win"; see `Protocol.lean`'s `Step.lose`. -/
 abbrev tracker.ProgressTracker.TallyVotes.spec : Prop :=
-  ∀ (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk),
-  cfg ≠ ∅ →
+  ∀ (c : CfgM) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
+      ownTrackerC c tv t }}
+    (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"TallyVotes"))
+      (Val #()))
+  {{ (g rj : w64) (res : w8), RET (PairV (PairV #g #rj) #res);
+      trk ↦ tv ∗ ownTrackerC c tv t ∗
+      ⌜res = VoteWon ∨ res = VoteLost ∨ res = VotePending⌝ ∗
+      ⌜res = VoteWon ↔ JQuorum c (granted t.votes)⌝ ∗
+      ⌜res = VoteLost ↔ JLost c t.votes⌝ }}
+
+open Iris.ProofMode in
+/-- The statement until 2026-10-13, at a simple configuration (`ownTracker cfg`) with
+`cfg ≠ ∅`: an empty configuration "wins" every election in Go, while `IsQuorum ∅ q` is
+false. -/
+theorem tracker.ProgressTracker.TallyVotes.spec_simple
+    (H : tracker.ProgressTracker.TallyVotes.spec (GF := GF) (hG := hG))
+    (cfg : GSet w64) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk) (Hne : cfg ≠ ∅) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.tracker ∗ trk ↦ tv ∗
       ownTracker cfg tv t }}
     (App (Val (trk @!! go.GoType.PointerType tracker.ProgressTracker.ty @!! go!"TallyVotes"))
@@ -63,13 +72,19 @@ abbrev tracker.ProgressTracker.TallyVotes.spec : Prop :=
       trk ↦ tv ∗ ownTracker cfg tv t ∗
       ⌜res = VoteWon ∨ res = VoteLost ∨ res = VotePending⌝ ∗
       ⌜res = VoteWon → IsQuorum cfg (granted t.votes)⌝ ∗
-      -- `VoteLost` means the candidate **cannot still win**, not that a majority
-      -- rejected -- Go computes `votedCnt + missing < q`, and
-      -- `votedCnt + missing = size (cfg \ rejected)`. The old form,
-      -- `IsQuorum cfg (rejected t.votes)`, was false: 4 voters with 2 rejecting and 2
-      -- silent gives `VoteLost` with no rejection quorum. Corrected 2026-09-16; see
-      -- `Protocol.lean`'s `Step.lose`.
-      ⌜res = VoteLost → ¬ IsQuorum cfg (cfg \ rejected t.votes)⌝ }}
+      ⌜res = VoteLost → ¬ IsQuorum cfg (cfg \ rejected t.votes)⌝ }} := by
+  iintro %Φ ⟨#Hpkg, Htrk, Hown⟩ HΦ
+  ihave Hown := ownTracker_toC _ _ _ $$ Hown
+  iapply H _ trk tv t $$ [$Hpkg $Htrk $Hown]
+  inext
+  iintro %g %rj %res ⟨Htrk, Hown, %Hres, %Hwon, %Hlost⟩
+  icases ownTrackerC_toTracker _ _ _ _ $$ Hown with ⟨Hown, -⟩
+  iapply HΦ
+  iframe Htrk Hown
+  ipureintro
+  exact ⟨Hres, fun h => (JQuorum_of_out (c := CfgM.simple cfg (domSet t.prs \ cfg)) Hne rfl _).1
+      (Hwon.1 h),
+    fun h => (JLost_of_out (c := CfgM.simple cfg (domSet t.prs \ cfg)) Hne rfl _).1 (Hlost.1 h)⟩
 
 end spec
 

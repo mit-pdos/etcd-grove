@@ -21,20 +21,20 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- Open `ownTracker`; load `p.Voters` (the array value) and hand it to
-`JointConfig.CommittedIndex` with the voter map and the progress map with its
-`Progress` objects (`ownProgressMap`) as the indexer's resource -- the indexer is
-`matchAckIndexer(p.Progress)`, whose contract comes from `matchAckIndexer.AckedIndex`'s
-triple -- then close `ownTracker` again around the voter map it hands back. -/
+/-- Open `ownTrackerC`; hand `&p.Config.Voters` to `JointConfig.CommittedIndex` with the two
+voter halves (`ownCfgCC_voters`) and the progress map with its `Progress` objects
+(`ownProgressMap`) as the indexer's resource -- the indexer is `matchAckIndexer(p.Progress)`,
+whose contract comes from `matchAckIndexer.AckedIndex`'s triple -- then close `ownTrackerC`
+again. -/
 theorem tracker.ProgressTracker.Committed.wp_proof
     (wp_JointConfig_CommittedIndex : quorum.JointConfig.CommittedIndex.spec (GF := GF) (hG := hG))
     (wp_matchAckIndexer_AckedIndex :
       tracker.matchAckIndexer.AckedIndex.spec (GF := GF) (hG := hG)) :
     tracker.ProgressTracker.Committed.spec (GF := GF) (hG := hG) := by
-  intro cfg trk tv t
+  intro c trk tv t
   obtain ⟨votes, prs, pvs⟩ := t
   wp_start as ⟨Htrk, Hown⟩
-  unfold ownTracker
+  iunfold ownTrackerC at Hown
   iNamed Hown
   simp only at *
   wp_auto
@@ -55,17 +55,25 @@ theorem tracker.ProgressTracker.Committed.wp_proof
   · unfold ownProgressMap
     iexists prs
     iframe Hprs Hprogs
+  icases ownCfgCC_voters _ _ $$ Hcfg with ⟨%vin, %vout, %Harr, Hv0, Hv1, Hcback⟩
+  have Hsz0 : (GMap.size c.incoming : Int) ≤ 2 ^ 62 := by
+    have := size_le_of_sub_dom c.incoming prs (by
+      rw [Hdom]; exact incoming_sub_ids c)
+    omega
+  have Hsz1 : (GMap.size c.outgoing : Int) ≤ 2 ^ 62 := by
+    have := size_le_of_sub_dom c.outgoing prs (by
+      rw [Hdom]; exact outgoing_sub_ids c)
+    omega
   -- the `Voters` field's location, out of `trk ↦ tv`
   icases (tracker.ProgressTracker.ProgressTracker_access_load_Config trk tv (DFrac.own 1)).access_strict
     $$ Htrk with ⟨Hcfgf, Hback1⟩
   icases (tracker.Config.Config_access_load_Voters _ tv.Config' (DFrac.own 1)).access_strict
     $$ Hcfgf with ⟨Hvf, Hback2⟩
-  wp_apply wp_JointConfig_CommittedIndex _ _ voters_ref voters _ _ (pvsAcked pvs)
-      $$ [$Hidx $HP $Hvf $Hvoters] as %N ⟨Hvf, ⟨%voters', %Hdom, Hvoters⟩, HP, %Hemp, %Hq⟩
-  · ipureintro
-    exact ⟨by rw [Hvoters_dom]; exact cfg_size_le cfg _ Hprs_dom Hcfg_size, Hvoters_arr⟩
+  wp_apply wp_JointConfig_CommittedIndex _ (DFrac.own 1) _ vin vout c.incoming c.outgoing _ _
+      (pvsAcked pvs) Harr Hsz0 Hsz1 $$ [$Hidx $HP $Hvf $Hv0 $Hv1] as %N ⟨Hvf, Hv0, Hv1, HP, %HN⟩
   ihave Hcfgf := Hback2 $$ Hvf
   ihave Htrk := Hback1 $$ Hcfgf
+  ihave Hcfg := Hcback $$ Hv0 Hv1
   -- the map is the tracker's: its contents agree with `Hprs`
   iunfold ownProgressMap at HP
   icases HP with ⟨%prs', #Hprs', Hprogs⟩
@@ -73,16 +81,11 @@ theorem tracker.ProgressTracker.Committed.wp_proof
   subst Hprs_eq
   iapply HΦ
   iframe Htrk
-  rw [Hvoters_dom] at Hemp Hq
-  isplitl [Hvotes Hlearners HlearnersNext Hvoters Hprogs]
-  · iexists voters_ref, voters', learners, learnersNext
-    simp only [named]
-    iframe Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext
-    ipureintro
-    exact ⟨Hprs_dom, Hvoters_arr, Hautoleave, by rw [Hdom]; exact Hvoters_dom, Hno_learners,
-      Hcfg_size, HmaxInfl⟩
+  isplitl [Hvotes Hprogs Hcfg]
+  · iapply ownTrackerC_intro c tv votes prs pvs Hinv Hdom Hflags Hsize HmaxInfl
+      $$ Hvotes Hprs Hprogs Hcfg
   ipureintro
-  exact ⟨Hemp, Hq⟩
+  exact HN
 
 end proof
 

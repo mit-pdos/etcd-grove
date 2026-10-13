@@ -31,20 +31,14 @@ theorem tracker.ProgressTracker.VoterNodes.wp_proof
     (wp_JointConfig_IDs : quorum.JointConfig.IDs.spec (GF := GF) (hG := hG))
     (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG := hG)) :
     tracker.ProgressTracker.VoterNodes.spec (GF := GF) (hG := hG) := by
-  intro cfg trk tv t
+  intro c trk tv t
   wp_start as ⟨Htrk, Hown⟩
   wp_auto
-  wp_apply (quorum.JointConfig.IDs.spec_tracker wp_JointConfig_IDs) $$ [$Htrk $Hown] as %mref %idm ⟨Htrk, Hown, Hidm, %Hdomidm⟩
-  iNamed Hown
-  have Hcfg_size' := cfg_size_le cfg _ Hprs_dom Hcfg_size
-  ihave Hown := ownTracker_intro cfg tv t.votes t.prs t.peers voters_ref voters
-    learners learnersNext Hprs_dom Hvoters_arr Hautoleave Hvoters_dom Hno_learners Hcfg_size
-    HmaxInfl $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext
+  wp_apply (quorum.JointConfig.IDs.spec_trackerC wp_JointConfig_IDs) $$ [$Htrk $Hown] as %mref ⟨Htrk, Hown, Hidm⟩
+  icases ownTrackerC_voters_size _ _ _ $$ Hown with ⟨%Hvsz, Hown⟩
+  have Hcfg_size' := Hvsz.1
   wp_apply wp_map_len $$ Hidm as Hidm
-  have Hszidm : GMap.size idm = GMap.size cfg := by
-    rw [← Hdomidm, GMap.size_dom]
-  rw [Hszidm]
-  wp_apply wp_slice_make3 (V := w64) (t := go.uint64) (W64 0) (W64 (GMap.size cfg))
+  wp_apply wp_slice_make3 (V := w64) (t := go.uint64) (W64 0) (W64 (GMap.size c.voters))
     (by word) as %sl ⟨Hsl, Hsl_cap, %Hslcap⟩
   simp only [List.replicate_zero]
   wp_func_lits
@@ -94,10 +88,9 @@ theorem tracker.ProgressTracker.VoterNodes.wp_proof
   iapply HΦ
   iframe
   ipureintro
-  refine Hxs.symm.trans ((List.perm_ext_iff_of_nodup Hknodup (GMap.NoDup_elements cfg)).2 ?_)
+  refine Hxs.symm.trans ((List.perm_ext_iff_of_nodup Hknodup (GMap.NoDup_elements c.voters)).2 ?_)
   intro k
-  rw [Hkset, GMap.elem_of_elements, ← Hdomidm, GMap.elem_of_dom]
-  cases idm !! k <;> simp
+  rw [Hkset, GMap.elem_of_elements]; rfl
 
 end proof
 

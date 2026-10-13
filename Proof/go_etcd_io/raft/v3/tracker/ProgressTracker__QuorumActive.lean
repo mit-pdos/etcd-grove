@@ -5,7 +5,7 @@ module
 
 public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__QuorumActive
 public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__Visit
-public import Spec.go_etcd_io.raft.v3.quorum.MajorityConfig__VoteResult
+public import Spec.go_etcd_io.raft.v3.quorum.JointConfig__VoteResult
 
 @[expose] public section
 
@@ -23,50 +23,26 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `array_acc`, putting back the same element (as in `JointConfig__VoteResult.lean`). -/
-private theorem array_acc_same' {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc)
-    (i : Int) (dq : DFrac) (n : Int) (a : GoArray V n) (v : V)
-    (hpos : 0 ≤ i) (hlookup : a.arr[i.toNat]? = some v) :
-    typedPointsto (GF := GF) p a dq ⊢
-      iprop(typedPointsto (arrayIndexRef V i p) v dq ∗
-        (typedPointsto (arrayIndexRef V i p) v dq -∗ typedPointsto p a dq)) := by
-  have hset : a.arr.set i.toNat v = a.arr := by
-    obtain ⟨h, rfl⟩ := List.getElem?_eq_some_iff.1 hlookup
-    exact List.set_getElem_self h
-  iintro Ha
-  icases array_acc (GF := GF) p i dq n a v hpos hlookup $$ Ha with ⟨Hv, Ha⟩
-  iframe Hv
-  iintro Hv
-  ihave Ha := Ha $$ %v Hv
-  rw [hset]
-  iexact Ha
-
-/-- `Visit`, with the caller invariant that the local `votes` map has the visited ids as its
-domain (and the `Progress` values are unchanged: the closure only reads its `Progress`,
-whose `IsLearner` is false by `ownProgress`); then `VoteResult` on the tracker's
-`JointConfig`.
-
-`JointConfig.VoteResult` is **inlined** and its two `MajorityConfig.VoteResult` calls are
-the callees: `JointConfig.VoteResult.spec` is stated for the tracker's own vote map
-(`tv.Votes'`, what `TallyVotes` passes) and cannot be used on the fresh `votes` map here.
-The inlined body is that spec's proof (`Proof/.../quorum/JointConfig__VoteResult.lean`)
-without its `cfg ≠ ∅` premise: for `cfg = ∅` the first component answers `VoteWon` too. -/
+/-- `Visit`, with the caller invariant that the local `votes` map has visited voters as its
+domain (and the `Progress` values are unchanged: the closure only reads its `Progress`; a
+learner, `IsLearner` set by `LearnerFlagsC`, is skipped); then `JointConfig.VoteResult` on
+the tracker's `JointConfig` and the fresh `votes` map (since 2026-10-13 its spec is general;
+until then this proof inlined it). -/
 theorem tracker.ProgressTracker.QuorumActive.wp_proof
     (wp_ProgressTracker_Visit : tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG))
-    (wp_MajorityConfig_VoteResult : quorum.MajorityConfig.VoteResult.spec (GF := GF) (hG := hG)) :
+    (wp_JointConfig_VoteResult : quorum.JointConfig.VoteResult.spec (GF := GF) (hG := hG)) :
     tracker.ProgressTracker.QuorumActive.spec (GF := GF) (hG := hG) := by
-  intro cfg trk tv t
+  intro c trk tv t
   wp_start as ⟨Htrk, Hown⟩
-  icases ownTracker_flags cfg tv t $$ Hown with ⟨%Hfl, Hown⟩
+  icases ownTrackerC_pure c tv t $$ Hown with ⟨%Hpure, Hown⟩
+  obtain ⟨-, Hdom0, Hfl, -, -⟩ := Hpure
   wp_auto
   wp_apply wp_map_make1 (K := w64) (V := Bool) as %vref Hvm
-  -- (since 2026-10-13 the learners are visited too, and skipped: the map's domain is the
-  -- voters visited, within `cfg`)
-  wp_apply wp_ProgressTracker_Visit cfg _ tv t _
+  wp_apply wp_ProgressTracker_Visit c _ tv t _
       (fun _ pvsx => iprop(∃ (vm : GMap w64 Bool),
         "votes" ∷ votes_ptr ↦ vref ∗
         "Hvm" ∷ vref ↦$ vm ∗
-        "%Hdom" ∷ ⌜domSet vm ⊆ cfg⌝ ∗
+        "%Hvdom" ∷ ⌜domSet vm ⊆ c.voters⌝ ∗
         "%Hpvs" ∷ ⌜pvsx = t.peers⌝))
     $$ [$Htrk $Hown votes Hvm]
   · isplitl [votes Hvm]
@@ -76,18 +52,41 @@ theorem tracker.ProgressTracker.QuorumActive.wp_proof
       ipureintro
       exact ⟨by rw [GMap.dom_empty]; exact GMap.empty_subseteq _, trivial⟩
     imodintro
-    unfold visitClosure
+    unfold visitClosureC
     iintro %i %pr %tv0 %pvs0 %p %D
     wp_start as ⟨%Hicfg, %Hpri, %Hpvi, %HmaxI, Htrkf, Hpr, Hback, HI⟩
     iNamed HI
     iunfold ownProgress at Hpr
     iNamed Hpr
     have Habs' := (progressAbs_Some _ _ _).1 Habs
-    have Hpl : p.learner = decide (i ∉ cfg) := Hfl i p (Hpvs ▸ Hpvi)
+    have Hpl : p.learner = decide (i ∈ c.learners) := Hfl i p (Hpvs ▸ Hpvi)
     wp_auto
-    by_cases Hic : i ∈ cfg
+    by_cases Hic : i ∈ c.learners
+    · have Hb : pv.IsLearner' = true := by
+        rw [Habs'.1, Hpl]; exact decide_eq_true Hic
+      rw [Hb]
+      wp_auto
+      ihave Hpr := ownProgress_intro pr pv p $$ Hpv Hinfl []
+      · ipureintro; exact Habs
+      ihave Htrk := Hback $$ %p Hpr %rfl
+      rw [GMap.insert_id pvs0 i p Hpvi]
+      iapply HΦ
+      iexists tv0, pvs0
+      iframe Htrkf Htrk
+      iexists vm
+      simp only [named]
+      iframe votes Hvm
+      ipureintro
+      exact ⟨Hvdom, Hpvs⟩
     · have Hb : pv.IsLearner' = false := by
-        rw [Habs'.1, Hpl]; exact decide_eq_false (fun h => h Hic)
+        rw [Habs'.1, Hpl]; exact decide_eq_false Hic
+      -- a tracked non-learner is a voter
+      have Hiv : i ∈ c.voters := by
+        rw [Hdom0] at Hicfg
+        unfold CfgM.ids at Hicfg
+        rcases (GMap.elem_of_union _ _ _).1 Hicfg with h | h
+        · exact h
+        · exact absurd h Hic
       rw [Hb]
       wp_auto
       wp_apply wp_mapInsert $$ [$Hvm] as Hvm
@@ -104,106 +103,42 @@ theorem tracker.ProgressTracker.QuorumActive.wp_proof
       ipureintro
       refine ⟨?_, Hpvs⟩
       rw [GMap.dom_insert, GMap.union_subseteq]
-      exact ⟨(GMap.singleton_subseteq_l _ _).2 Hic, Hdom⟩
-    · have Hb : pv.IsLearner' = true := by
-        rw [Habs'.1, Hpl]; exact decide_eq_true Hic
-      rw [Hb]
-      wp_auto
-      ihave Hpr := ownProgress_intro pr pv p $$ Hpv Hinfl []
-      · ipureintro; exact Habs
-      ihave Htrk := Hback $$ %p Hpr %rfl
-      rw [GMap.insert_id pvs0 i p Hpvi]
-      iapply HΦ
-      iexists tv0, pvs0
-      iframe Htrkf Htrk
-      iexists vm
-      simp only [named]
-      iframe votes Hvm
-      ipureintro
-      exact ⟨Hdom, Hpvs⟩
+      exact ⟨(GMap.singleton_subseteq_l _ _).2 Hiv, Hvdom⟩
   iintro ⟨%tvfin, %pvsfin, Htrk, Hown, HI⟩
   iNamed HI
   subst Hpvs
+  iunfold ownTrackerC at Hown
   iNamed Hown
-  have Hcfg_size' := cfg_size_le cfg _ Hprs_dom Hcfg_size
+  simp only at Hinv Hdom Hflags Hsize
+  icases ownCfgCC_voters _ _ $$ Hcfg with ⟨%vin, %vout, %Harr, Hv0, Hv1, Hcback⟩
+  have Hsz0 : (GMap.size c.incoming : Int) < 2 ^ 63 := by
+    have := size_le_of_sub_dom c.incoming t.prs (by rw [Hdom]; exact incoming_sub_ids c)
+    omega
+  have Hsz1 : (GMap.size c.outgoing : Int) < 2 ^ 63 := by
+    have := size_le_of_sub_dom c.outgoing t.prs (by rw [Hdom]; exact outgoing_sub_ids c)
+    omega
   wp_auto
-  wp_method_call
-  wp_call
-  wp_auto
-  wp_method_call
-  wp_call
-  wp_auto
-  ihave %Hvnn := ownMap_not_nil $$ Hvoters
-  icases array_acc_same' (GF := GF) _ (sint.Z (W64 0)) _ _ _ voters_ref (by decide)
-      (by simp [Hvoters_arr]) $$ c with ⟨Hc0, Hcback⟩
-  wp_apply wp_MajorityConfig_VoteResult cfg $$ [$Hc0 $Hvm Hvoters]
-    as %r1 ⟨Hc0, Hvm, Hv, %Hr1, %Hemp1, %Hwon1, -⟩
-  · isplitr
-    · ipureintro; omega
-    iright
-    iexists voters
-    iframe
-    ipureintro; exact Hvoters_dom
-  icases Hv with (⟨%Hn, -⟩ | ⟨%voters', %Hvoters'_dom, Hvoters⟩)
-  · exact absurd Hn Hvnn
-  ihave c := Hcback $$ Hc0
-  icases array_acc_same' (GF := GF) _ (sint.Z (W64 1)) _ _ _ map.nil (by decide)
-      (by simp [Hvoters_arr]) $$ c with ⟨Hc1, Hcback⟩
-  wp_apply wp_MajorityConfig_VoteResult ∅ $$ [$Hc1 $Hvm]
-    as %r2 ⟨Hc1, Hvm, -, %Hr2, %Hr2won, -, -⟩
-  · isplitr
-    · ipureintro; rw [GMap.map_size_empty]; decide
-    ileft
-    ipureintro; exact ⟨rfl, rfl⟩
-  have HN2 : r2 = VoteWon := Hr2won rfl
-  subst HN2
-  ihave Hown := ownTracker_intro cfg tvfin t.votes t.prs t.peers voters_ref voters' learners
-    learnersNext Hprs_dom Hvoters_arr Hautoleave Hvoters'_dom Hno_learners Hcfg_size HmaxInfl
-    $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext
-  rw [show quorum.VoteLost = #VoteLost from rfl, show quorum.VotePending = #VotePending from rfl,
-    show quorum.VoteWon = #VoteWon from rfl]
-  have Hsub : granted vm ⊆ cfg := by
+  icases (tracker.ProgressTracker.ProgressTracker_access_load_Config trk tvfin (DFrac.own 1)).access_strict
+    $$ Htrk with ⟨Hcfgf, Hback1⟩
+  icases (tracker.Config.Config_access_load_Voters _ tvfin.Config' (DFrac.own 1)).access_strict
+    $$ Hcfgf with ⟨Hvf, Hback2⟩
+  wp_apply wp_JointConfig_VoteResult _ (DFrac.own 1) _ vin vout c.incoming c.outgoing vref
+      (DFrac.own 1) vm Harr Hsz0 Hsz1 $$ [$Hvf $Hv0 $Hv1 $Hvm]
+    as %res ⟨Hvf, Hv0, Hv1, Hvm, %Hres, %Hwon, -⟩
+  ihave Hcfgf := Hback2 $$ Hvf
+  ihave Htrk := Hback1 $$ Hcfgf
+  ihave Hcfg := Hcback $$ Hv0 Hv1
+  ihave Hown := ownTrackerC_intro c tvfin t.votes t.prs t.peers Hinv Hdom Hflags Hsize HmaxInfl
+    $$ Hvotes Hprs Hprogs Hcfg
+  have Hsub : granted vm ⊆ c.voters := by
     rw [GMap.elem_of_subseteq]
     intro x hx
     rw [elem_of_granted] at hx
-    exact (GMap.elem_of_subseteq _ _).1 Hdom _ ((GMap.elem_of_dom _ _).2 ⟨_, hx⟩)
-  rcases Hr1 with rfl | rfl | rfl
-  · rw [decide_eq_true rfl]
-    wp_auto
-    iapply HΦ $$ %true %tvfin %(granted vm)
-    iframe Htrk Hown
-    ipureintro
-    refine ⟨Hsub, ?_⟩
-    simp only [true_iff]
-    by_cases Hc : cfg = ∅
-    · exact Or.inl Hc
-    · exact Or.inr ((Hwon1 Hc).1 rfl)
-  · rw [decide_eq_false (by decide)]
-    wp_auto
-    iapply HΦ $$ %false %tvfin %(granted vm)
-    iframe Htrk Hown
-    ipureintro
-    refine ⟨Hsub, ?_⟩
-    simp only [Bool.false_eq_true, false_iff]
-    intro H
-    by_cases Hc : cfg = ∅
-    · exact absurd (Hemp1 Hc) (by decide)
-    · rcases H with H | H
-      · exact Hc H
-      · exact absurd ((Hwon1 Hc).2 H) (by decide)
-  · rw [decide_eq_false (by decide)]
-    wp_auto
-    iapply HΦ $$ %false %tvfin %(granted vm)
-    iframe Htrk Hown
-    ipureintro
-    refine ⟨Hsub, ?_⟩
-    simp only [Bool.false_eq_true, false_iff]
-    intro H
-    by_cases Hc : cfg = ∅
-    · exact absurd (Hemp1 Hc) (by decide)
-    · rcases H with H | H
-      · exact Hc H
-      · exact absurd ((Hwon1 Hc).2 H) (by decide)
+    exact (GMap.elem_of_subseteq _ _).1 Hvdom _ ((GMap.elem_of_dom _ _).2 ⟨_, hx⟩)
+  iapply HΦ $$ %(decide (res = W8 3)) %tvfin %(granted vm)
+  iframe Htrk Hown
+  ipureintro
+  exact ⟨Hsub, decide_eq_true_iff.trans Hwon⟩
 
 end proof
 

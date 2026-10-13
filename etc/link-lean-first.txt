@@ -26,14 +26,14 @@ Changer__LeaveJoint: Changer__checkAndCopy confchange_joint Changer__err confcha
 confchange_toConfChangeSingle:
 confchange_chain:
 confchange_Restore: confchange_toConfChangeSingle Changer__Simple confchange_chain
-# The tracker/quorum accessors (2026-10-12). QuorumActive inlines JointConfig.VoteResult
-# (whose spec is on the tracker's own vote map).
+# The tracker/quorum accessors (2026-10-12). QuorumActive inlined JointConfig.VoteResult
+# until 2026-10-13 (reconfiguration stage A1), when that spec became general.
 mapAckIndexer__AckedIndex:
 Inflights__Count:
 Inflights__Clone:
 ProgressTracker__IsSingleton:
 ProgressTracker__LearnerNodes: slices_Sort
-ProgressTracker__QuorumActive: ProgressTracker__Visit MajorityConfig__VoteResult
+ProgressTracker__QuorumActive: ProgressTracker__Visit JointConfig__VoteResult
 # raftpb.ConfState.Equivalent (confstate.go), proved 2026-10-08: its callees override
 # the (empty) Rocq postulates of spec_ConfState__Equivalent.v, an Axiom there.
 reflect_DeepEqual:

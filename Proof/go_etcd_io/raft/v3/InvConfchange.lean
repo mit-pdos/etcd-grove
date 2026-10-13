@@ -29,6 +29,7 @@ these files are Lean-first.
 module
 
 public import Proof.go_etcd_io.raft.v3.InvTracker
+public import Proof.go_etcd_io.raft.v3.Protocol.StepC
 
 @[expose] public section
 
@@ -50,13 +51,8 @@ sets (`Voters[0]`, `Voters[1]`), the learners, the staged learners (`LearnersNex
 code's checks are the model's: `CfgInv` is exactly what `checkInvariants` accepts, and
 each `Changer` method is an `Option CCState`, `none` on every error path. -/
 
-/-- A `tracker.Config`, abstractly. -/
-structure CfgM where
-  incoming : GSet w64
-  outgoing : GSet w64
-  learners : GSet w64
-  learnersNext : GSet w64
-  autoLeave : Bool
+-- `CfgM`, a `tracker.Config` abstractly, is in `Protocol/StepC.lean` (moved 2026-10-13, so
+-- that the protocol's joint-configuration step relation can name it).
 
 /-- A (`Config`, progress map) pair: the configuration, and each tracked id (the progress
 map's domain) with its `Progress`'s `IsLearner`. -/

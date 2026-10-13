@@ -97,7 +97,7 @@ theorem raft.maybeCommit.wp_proof
   wp_apply wp_with_defer as %defer defer
   wp_apply raft.wp_load_Term $$ Hphys as Hphys
   icases ownRaftPhys_tracker_same cfg r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-  wp_apply wp_ProgressTracker_Committed $$ [$Htrkf $Htrk] as %N ⟨Htrkf, Htrk, %Hempty, %Hq⟩
+  wp_apply (tracker.ProgressTracker.Committed.spec_simple wp_ProgressTracker_Committed) $$ [$Htrkf $Htrk] as %N ⟨Htrkf, Htrk, %Hempty, %Hq⟩
   ihave Hphys := Hback $$ %tv Htrkf Htrk
   wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
   icases ownRaftPhys_log_at cfg r id s $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩

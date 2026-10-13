@@ -48,7 +48,7 @@ theorem raft.poll.wp_proof
     wp_raft_log
     icases ownRaftPhys_tracker cfg r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
     wp_apply wp_ProgressTracker_RecordVote $$ [$Htrkf $Htrk] as ⟨Htrkf, Htrk⟩
-    wp_apply wp_ProgressTracker_TallyVotes _ _ _ _ Hcfg_ne $$ [$Htrkf $Htrk]
+    wp_apply (tracker.ProgressTracker.TallyVotes.spec_simple wp_ProgressTracker_TallyVotes) _ _ _ _ Hcfg_ne $$ [$Htrkf $Htrk]
       as %g %rj %res ⟨Htrkf, Htrk, %Hres, %Hwon, %Hlost⟩
     ihave Hphys := Hback $$ %tv %(recordVote s.votes src _) Htrkf Htrk
     iapply HΦ

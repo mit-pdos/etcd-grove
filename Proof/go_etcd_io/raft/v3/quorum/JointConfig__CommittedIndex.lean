@@ -44,67 +44,44 @@ private theorem array_acc_same' {V : Type} [ZeroVal V] [TypedPointsto (GF := GF)
   iexact Ha
 
 /-- The receiver is a value-receiver copy `c`: `c[0]` and `c[1]` are handed to
-`MajorityConfig.CommittedIndex` one after the other, the voter map and the indexer's
-resource lent to the first; `c[1]` is the nil component, whose answer is `MaxUint64`;
-then `min`. The array element reads go through `array_acc`. -/
+`MajorityConfig.CommittedIndex` one after the other, each with its half's id set and the
+indexer's resource; then `min`. The array element reads go through `array_acc`. -/
 theorem quorum.JointConfig.CommittedIndex.wp_proof
     (wp_MajorityConfig_CommittedIndex :
       quorum.MajorityConfig.CommittedIndex.spec (GF := GF) (hG := hG)) :
     quorum.JointConfig.CommittedIndex.spec (GF := GF) (hG := hG) := by
-  intro c a m0 ids l PP acked
-  wp_start as ⟨%Hsz, Hc, %Harr, Hm0, #Hidx, HP⟩
+  intro cp dqc a v0 v1 s0 s1 l PP acked Harr Hsz0 Hsz1
+  wp_start as ⟨Hc, Hv0, Hv1, #Hidx, HP⟩
   wp_auto
   wp_method_call
   wp_call
   wp_call
   wp_auto
-  icases array_acc_same' (GF := GF) _ (sint.Z (W64 0)) _ _ _ m0 (by decide) (by simp [Harr])
+  icases array_acc_same' (GF := GF) _ (sint.Z (W64 0)) _ _ _ v0 (by decide) (by simp [Harr])
     $$ c with ⟨Hc0, Hcback⟩
-  -- the voter map is a real map, so the callee's `map.nil` disjunct cannot come back for it
-  ihave %Hvnn := ownMap_not_nil _ _ _ $$ Hm0
-  wp_apply wp_MajorityConfig_CommittedIndex (domSet ids) $$ [$Hc0 $Hidx $HP Hm0]
-    as %N0 ⟨Hc0, Hv, HP, %Hemp0, %Hq0⟩
-  · isplitr
-    · ipureintro; exact Hsz
-    iright
-    iexists ids
-    iframe
-    ipureintro; rfl
-  icases Hv with (⟨%Hnil, -⟩ | ⟨%voters', %Hvoters'_dom, Hvoters⟩)
-  · exact absurd Hnil Hvnn
-  -- `c[1]`: the nil component of a simple configuration
+  ihave Hv0 := ownIdsetQ_toMaj _ _ $$ Hv0
+  wp_apply wp_MajorityConfig_CommittedIndex s0 $$ [$Hc0 $Hidx $HP $Hv0]
+    as %N0 ⟨Hc0, Hv0, HP, %Hemp0, %Hq0⟩
+  · ipureintro; exact Hsz0
   ihave c := Hcback $$ Hc0
-  icases array_acc_same' (GF := GF) _ (sint.Z (W64 1)) _ _ _ map.nil (by decide) (by simp [Harr])
+  icases array_acc_same' (GF := GF) _ (sint.Z (W64 1)) _ _ _ v1 (by decide) (by simp [Harr])
     $$ c with ⟨Hc1, Hcback⟩
-  wp_apply wp_MajorityConfig_CommittedIndex ∅ $$ [$Hc1 $Hidx $HP]
-    as %N1 ⟨Hc1, -, HP, %Hemp1, -⟩
-  · isplitr
-    · ipureintro; rw [GMap.map_size_empty]; decide
-    ileft
-    ipureintro; exact ⟨rfl, rfl⟩
-  have HN1 : N1 = W64 (2 ^ 64 - 1) := Hemp1 rfl
-  subst HN1
+  ihave Hv1 := ownIdsetQ_toMaj _ _ $$ Hv1
+  wp_apply wp_MajorityConfig_CommittedIndex s1 $$ [$Hc1 $Hidx $HP $Hv1]
+    as %N1 ⟨Hc1, Hv1, HP, %Hemp1, %Hq1⟩
+  · ipureintro; exact Hsz1
   ihave c := Hcback $$ Hc1
-  -- `min`: `c[0]`'s answer on both exits
+  ihave Hv0 := ownIdsetQ_ofMaj _ _ $$ Hv0
+  ihave Hv1 := ownIdsetQ_ofMaj _ _ $$ Hv1
   wp_if_destruct
   · iapply HΦ
-    iframe Hc HP
-    isplitl [Hvoters]
-    · iexists voters'
-      iframe
-      ipureintro; exact Hvoters'_dom
+    iframe Hc Hv0 Hv1 HP
     ipureintro
-    exact ⟨Hemp0, Hq0⟩
-  · have Heq : N0 = W64 (2 ^ 64 - 1) := by word
-    subst Heq
-    iapply HΦ
-    iframe Hc HP
-    isplitl [Hvoters]
-    · iexists voters'
-      iframe
-      ipureintro; exact Hvoters'_dom
+    exact ⟨N0, N1, ⟨Hemp0, Hq0⟩, ⟨Hemp1, Hq1⟩, by rw [if_pos (by word)]⟩
+  · iapply HΦ
+    iframe Hc Hv0 Hv1 HP
     ipureintro
-    exact ⟨fun _ => rfl, Hq0⟩
+    exact ⟨N0, N1, ⟨Hemp0, Hq0⟩, ⟨Hemp1, Hq1⟩, by rw [if_neg (by word)]⟩
 
 end proof
 

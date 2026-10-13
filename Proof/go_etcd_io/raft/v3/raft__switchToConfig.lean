@@ -73,7 +73,7 @@ theorem raft.switchToConfig.wp_proof
   wp_raft_log
   -- `cs := r.trk.ConfState()`
   icases ownRaftPhys_tracker_same cfg r id _ $$ Hphys with ⟨%tv2, Htrkf, Htrk, Hback⟩
-  wp_apply wp_ProgressTracker_ConfState $$ [$Htrkf $Htrk]
+  wp_apply (tracker.ProgressTracker.ConfState.spec_simple wp_ProgressTracker_ConfState) $$ [$Htrkf $Htrk]
     as %cs %xs %ls ⟨Htrkf, Htrk, Hcs, Hls, %Hcs0⟩
   ihave Hphys := Hback $$ %tv2 Htrkf Htrk
   -- `pr, ok := r.trk.Progress[r.id]`
@@ -147,7 +147,7 @@ theorem raft.switchToConfig.wp_proof
         have Hs1c : ({ s1 with logst := { s1.logst with committed := s1.logst.committed } } : NState)
             = s1 := by cases s1; rfl
         icases ownRaftPhys_tracker_prvals $$ Hphys with ⟨%tv, Htrkf, Htrk, Hrest⟩
-        wp_apply wp_ProgressTracker_Visit cfg _ tv ⟨s1.votes, s1.progress, s1.prvals⟩ _
+        wp_apply (tracker.ProgressTracker.Visit.spec_simple wp_ProgressTracker_Visit) cfg _ tv ⟨s1.votes, s1.progress, s1.prvals⟩ _
             (fun _ pvsx => iprop(∃ (ms : List Msg),
               "rp" ∷ r_ptr ↦ r ∗
               "%Hms" ∷ ⌜ReplSends id s1 ms⌝ ∗

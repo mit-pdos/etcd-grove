@@ -73,7 +73,7 @@ theorem raft.bcastAppend.wp_proof
   wp_start as Hphys
   wp_auto
   icases ownRaftPhys_tracker_prvals $$ Hphys with ⟨%tv, Htrkf, Htrk, Hrest⟩
-  wp_apply wp_ProgressTracker_Visit cfg _ tv ⟨s.votes, s.progress, s.prvals⟩ _
+  wp_apply (tracker.ProgressTracker.Visit.spec_simple wp_ProgressTracker_Visit) cfg _ tv ⟨s.votes, s.progress, s.prvals⟩ _
       (fun _ pvsx => iprop(∃ (ms : List Msg),
         "rp" ∷ r_ptr ↦ r ∗
         "%Hms" ∷ ⌜ReplSends id s ms⌝ ∗

@@ -44,81 +44,98 @@ private theorem array_acc_same' {V : Type} [ZeroVal V] [TypedPointsto (GF := GF)
   rw [hset]
   iexact Ha
 
-/-- Both components are asked, and the second is `map.nil` -- an empty config, whose
-result is `VoteWon` by convention -- so the combination returns `r1` on all three
-paths. The array element reads go through `array_acc_same'`
-(`Perennial/Golang/Theory/Array.lean`), exactly as in `Proof/JointConfig__CommittedIndex.lean`;
-`Hvoters_arr` says element 0 is `voters_ref` and element 1 is `map.nil`. -/
+/-- What one half's answer says, as `MajQ` (pure). -/
+theorem majVote_facts (r : w8) (s q q' : GSet w64)
+    (Hr : r = VoteWon ∨ r = VoteLost ∨ r = VotePending)
+    (Hemp : s = ∅ → r = VoteWon) (Hw : s ≠ ∅ → (r = VoteWon ↔ IsQuorum s q))
+    (Hl : s ≠ ∅ → (r = VoteLost ↔ ¬ IsQuorum s q')) :
+    (r = VoteWon ↔ MajQ s q) ∧ (r = VoteLost ↔ ¬ MajQ s q') := by
+  by_cases hs : s = ∅
+  · have := Hemp hs
+    subst this
+    refine ⟨⟨fun _ => .inl hs, fun _ => rfl⟩, ⟨fun h => absurd h (by decide), fun h => absurd (.inl hs) h⟩⟩
+  · rw [MajQ_of_ne _ hs, MajQ_of_ne _ hs]
+    exact ⟨Hw hs, Hl hs⟩
+
+/-- The combination of the two halves' answers (pure). -/
+theorem jointVote_facts (r1 r2 : w8)
+    (Hr1 : r1 = VoteWon ∨ r1 = VoteLost ∨ r1 = VotePending)
+    (Hr2 : r2 = VoteWon ∨ r2 = VoteLost ∨ r2 = VotePending) :
+    let res := if r1 = r2 then r1 else if r1 = VoteLost ∨ r2 = VoteLost then VoteLost else VotePending
+    (res = VoteWon ∨ res = VoteLost ∨ res = VotePending) ∧
+    (res = VoteWon ↔ r1 = VoteWon ∧ r2 = VoteWon) ∧
+    (res = VoteLost ↔ r1 = VoteLost ∨ r2 = VoteLost) := by
+  rcases Hr1 with rfl | rfl | rfl <;> rcases Hr2 with rfl | rfl | rfl <;> decide
+
+/-- Both halves asked, through `array_acc_same'` (each half's id set lent to
+`MajorityConfig.VoteResult` and given back), the answers combined (`jointVote_facts`). -/
 theorem quorum.JointConfig.VoteResult.wp_proof
     (wp_MajorityConfig_VoteResult : quorum.MajorityConfig.VoteResult.spec (GF := GF) (hG := hG)) :
     quorum.JointConfig.VoteResult.spec (GF := GF) (hG := hG) := by
-  intro cfg trk tv t Hcfg_ne
-  obtain ⟨votes, prs, pvs⟩ := t
-  wp_start as ⟨Htrk, Hown⟩
-  iunfold ownTracker at Hown
-  icases Hown with ⟨%voters_ref, %voters, %learners, %learnersNext, Hown⟩
-  iNamed Hown
-  have Hcfg_size' := cfg_size_le cfg _ Hprs_dom Hcfg_size
+  intro cp dqc a v0 v1 s0 s1 vm dqv votes Harr Hsz0 Hsz1
+  wp_start as ⟨Hc, Hv0, Hv1, Hvotes⟩
   wp_auto
   wp_method_call
   wp_call
   wp_call
   wp_auto
-  icases array_acc_same' (GF := GF) _ (sint.Z (W64 0)) _ _ _ voters_ref (by decide)
-      (by simp [Hvoters_arr]) $$ c with ⟨Hc0, Hcback⟩
-  wp_apply wp_MajorityConfig_VoteResult cfg $$ [$Hc0 $Hvotes Hvoters]
-    as %r1 ⟨Hc0, Hvotes, Hv, %Hr1, -, %Hwon1, %Hlost1⟩
-  · isplitr
-    · ipureintro; omega
-    iright
-    iexists voters
-    iframe
-    ipureintro; exact Hvoters_dom
-  -- the first component is the real voter set, so the `map.nil` disjunct of
-  -- `MajorityConfig.VoteResult`'s postcondition would give `cfg = ∅`
-  icases Hv with (⟨-, %Hemp⟩ | ⟨%voters', %Hvoters'_dom, Hvoters⟩)
-  · exact absurd Hemp Hcfg_ne
-  -- `c[1]`: the nil component of a simple configuration
+  icases array_acc_same' (GF := GF) _ (sint.Z (W64 0)) _ _ _ v0 (by decide)
+      (by simp [Harr]) $$ c with ⟨Hc0, Hcback⟩
+  ihave Hv0 := ownIdsetQ_toMaj _ _ $$ Hv0
+  wp_apply wp_MajorityConfig_VoteResult s0 $$ [$Hc0 $Hvotes $Hv0]
+    as %r1 ⟨Hc0, Hvotes, Hv0, %Hr1, %Hemp1, %Hwon1, %Hlost1⟩
+  · ipureintro; exact Hsz0
   ihave c := Hcback $$ Hc0
-  icases array_acc_same' (GF := GF) _ (sint.Z (W64 1)) _ _ _ map.nil (by decide)
-      (by simp [Hvoters_arr]) $$ c with ⟨Hc1, Hcback⟩
-  wp_apply wp_MajorityConfig_VoteResult ∅ $$ [$Hc1 $Hvotes]
-    as %r2 ⟨Hc1, Hvotes, -, %Hr2, %Hr2won, -, -⟩
-  · isplitr
-    · ipureintro; rw [GMap.map_size_empty]; decide
-    ileft
-    ipureintro; exact ⟨rfl, rfl⟩
-  -- "elections on an empty config win": `r2` is `VoteWon`, so the joint answer is `r1`
-  -- on every path
-  have HN2 : r2 = VoteWon := Hr2won rfl
-  subst HN2
+  icases array_acc_same' (GF := GF) _ (sint.Z (W64 1)) _ _ _ v1 (by decide)
+      (by simp [Harr]) $$ c with ⟨Hc1, Hcback⟩
+  ihave Hv1 := ownIdsetQ_toMaj _ _ $$ Hv1
+  wp_apply wp_MajorityConfig_VoteResult s1 $$ [$Hc1 $Hvotes $Hv1]
+    as %r2 ⟨Hc1, Hvotes, Hv1, %Hr2, %Hemp2, %Hwon2, %Hlost2⟩
+  · ipureintro; exact Hsz1
   ihave c := Hcback $$ Hc1
+  ihave Hv0 := ownIdsetQ_ofMaj _ _ $$ Hv0
+  ihave Hv1 := ownIdsetQ_ofMaj _ _ $$ Hv1
+  obtain ⟨Hw1, Hl1⟩ := majVote_facts r1 s0 _ _ Hr1 Hemp1 Hwon1 Hlost1
+  obtain ⟨Hw2, Hl2⟩ := majVote_facts r2 s1 _ _ Hr2 Hemp2 Hwon2 Hlost2
   rw [show quorum.VoteLost = #VoteLost from rfl, show quorum.VotePending = #VotePending from rfl]
-  ihave Hown := ownTracker_intro cfg tv votes prs pvs voters_ref voters' learners learnersNext
-    Hprs_dom Hvoters_arr Hautoleave Hvoters'_dom Hno_learners Hcfg_size HmaxInfl
-    $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext
-  rcases Hr1 with rfl | rfl | rfl
-  · -- `r1 == r2`: both won
-    rw [decide_eq_true rfl]
+  have Hf := jointVote_facts r1 r2 Hr1 Hr2
+  by_cases h12 : r1 = r2
+  · rw [decide_eq_true h12]
     wp_auto
     iapply HΦ
-    iframe Htrk Hown
+    iframe Hc Hv0 Hv1 Hvotes
     ipureintro
-    exact ⟨Or.inl rfl, Hwon1 Hcfg_ne, Hlost1 Hcfg_ne⟩
-  · -- `r1` lost, `r2` won: the second test fires on `r1`
-    rw [decide_eq_false (by decide)]
+    rw [if_pos h12] at Hf
+    exact ⟨Hf.1, Hf.2.1.trans (and_congr Hw1 Hw2), Hf.2.2.trans (or_congr Hl1 Hl2)⟩
+  · rw [decide_eq_false h12]
     wp_auto
-    iapply HΦ
-    iframe Htrk Hown
-    ipureintro
-    exact ⟨Or.inr (Or.inl rfl), Hwon1 Hcfg_ne, Hlost1 Hcfg_ne⟩
-  · -- `r1` still pending: neither test fires
-    rw [decide_eq_false (by decide)]
-    wp_auto
-    iapply HΦ
-    iframe Htrk Hown
-    ipureintro
-    exact ⟨Or.inr (Or.inr rfl), Hwon1 Hcfg_ne, Hlost1 Hcfg_ne⟩
+    rw [if_neg h12] at Hf
+    by_cases h1L : r1 = VoteLost
+    · rw [decide_eq_true h1L]
+      wp_auto
+      iapply HΦ
+      iframe Hc Hv0 Hv1 Hvotes
+      ipureintro
+      rw [if_pos (Or.inl h1L : r1 = VoteLost ∨ r2 = VoteLost)] at Hf
+      exact ⟨Hf.1, Hf.2.1.trans (and_congr Hw1 Hw2), Hf.2.2.trans (or_congr Hl1 Hl2)⟩
+    · rw [decide_eq_false h1L]
+      wp_auto
+      by_cases h2L : r2 = VoteLost
+      · rw [decide_eq_true h2L]
+        wp_auto
+        iapply HΦ
+        iframe Hc Hv0 Hv1 Hvotes
+        ipureintro
+        rw [if_pos (Or.inr h2L : r1 = VoteLost ∨ r2 = VoteLost)] at Hf
+        exact ⟨Hf.1, Hf.2.1.trans (and_congr Hw1 Hw2), Hf.2.2.trans (or_congr Hl1 Hl2)⟩
+      · rw [decide_eq_false h2L]
+        wp_auto
+        iapply HΦ
+        iframe Hc Hv0 Hv1 Hvotes
+        ipureintro
+        have hn : ¬ (r1 = VoteLost ∨ r2 = VoteLost) := fun h => h.elim h1L h2L
+        rw [if_neg hn] at Hf
+        exact ⟨Hf.1, Hf.2.1.trans (and_congr Hw1 Hw2), Hf.2.2.trans (or_congr Hl1 Hl2)⟩
 
 end proof
 

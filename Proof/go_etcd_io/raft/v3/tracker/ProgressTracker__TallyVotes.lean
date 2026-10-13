@@ -29,13 +29,12 @@ needed); the verdict is `JointConfig.VoteResult`'s. -/
 theorem tracker.ProgressTracker.TallyVotes.wp_proof
     (wp_JointConfig_VoteResult : quorum.JointConfig.VoteResult.spec (GF := GF) (hG := hG)) :
     tracker.ProgressTracker.TallyVotes.spec (GF := GF) (hG := hG) := by
-  intro cfg trk tv t Hcfg_ne
+  intro c trk tv t
   obtain ⟨votes, prs, pvs⟩ := t
   wp_start as ⟨Htrk, Hown⟩
-  iunfold ownTracker at Hown
-  icases Hown with ⟨%voters_ref, %voters, %learners, %learnersNext, Hown⟩
+  iunfold ownTrackerC at Hown
   iNamed Hown
-  dsimp only at Hprs_dom
+  simp only at Hinv Hdom Hflags Hsize
   -- the `var _ quorum.VoteResult` declaration Go emits for the named return
   -- is an *anonymous* `GoAlloc`, which `wp_auto` will not step past.
   wp_alloc res0 as Hres0
@@ -46,8 +45,8 @@ theorem tracker.ProgressTracker.TallyVotes.wp_proof
   -- `slice.for_range`.
   -- (since 2026-10-13 the learners are tracked too, and skipped: the counters count the
   -- voters only)
-  let Pgr : w64 → Prop := fun k => k ∈ cfg ∧ votes !! k = some true
-  let Prj : w64 → Prop := fun k => k ∈ cfg ∧ votes !! k = some false
+  let Pgr : w64 → Prop := fun k => k ∉ c.learners ∧ votes !! k = some true
+  let Prj : w64 → Prop := fun k => k ∉ c.learners ∧ votes !! k = some false
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply wp_map_for_range (fun (keys : List w64) (i : Int) => iprop(∃ (prv : Loc) (idv : w64),
@@ -94,12 +93,11 @@ theorem tracker.ProgressTracker.TallyVotes.wp_proof
     -- `if pr.IsLearner { continue }`: a learner is the tracked id outside `cfg`
     -- (`LearnerFlags`), and without the rewrite the `if` scrutinee is not a literal and
     -- `wp_auto` parks.
-    rw [Hnolearner, Hno_learners.2.2 key pk Hpvk]
-    by_cases Hkc : key ∈ cfg
-    rotate_left
+    rw [Hnolearner, Hflags key pk Hpvk]
+    by_cases Hkc : key ∈ c.learners
     · -- a learner: `continue`, both counters unchanged
-      have HPg : ¬ Pgr key := fun h => Hkc h.1
-      have HPr : ¬ Prj key := fun h => Hkc h.1
+      have HPg : ¬ Pgr key := fun h => h.1 Hkc
+      have HPr : ¬ Prj key := fun h => h.1 Hkc
       rw [decide_eq_true Hkc]
       wp_auto
       ihave Hprogs := Hback $$ [Hpv Hinfl]
@@ -116,7 +114,7 @@ theorem tracker.ProgressTracker.TallyVotes.wp_proof
       simp only [HPg, HPr, ↓reduceIte, Nat.add_zero]
       iframe
       ipureintro; omega
-    rw [decide_eq_false (fun h => h Hkc)]
+    rw [decide_eq_false Hkc]
     wp_auto
     wp_apply wp_map_lookup2 $$ Hvotes as Hvotes
     ihave Hprogs := Hback $$ [Hpv Hinfl]
@@ -180,17 +178,32 @@ theorem tracker.ProgressTracker.TallyVotes.wp_proof
   dsimp only at Hklen
   rw [← Hklen, Int.toNat_natCast, List.take_length]
   wp_auto
-  -- `p.Config.Voters.VoteResult(p.Votes)`: re-seal the tracker and ask the
-  -- joint quorum. The two counters already hold the model's numbers.
-  ihave Hown := ownTracker_intro cfg tv votes prs pvs voters_ref voters
-    learners learnersNext Hprs_dom Hvoters_arr Hautoleave Hvoters_dom Hno_learners Hcfg_size
-    HmaxInfl $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext
-  wp_apply wp_JointConfig_VoteResult cfg trk tv ⟨votes, prs, pvs⟩ Hcfg_ne $$ [$Htrk $Hown]
-    as %res ⟨Htrk, Hown, %Hres, %Hwon, %Hlost⟩
+  -- `p.Config.Voters.VoteResult(p.Votes)`: the two voter halves and the vote map lent to
+  -- the joint quorum, then the tracker re-sealed. The counters are not in the answer.
+  icases ownCfgCC_voters _ _ $$ Hcfg with ⟨%vin, %vout, %Harr, Hv0, Hv1, Hcback⟩
+  have Hsz0 : (GMap.size c.incoming : Int) < 2 ^ 63 := by
+    have := size_le_of_sub_dom c.incoming prs (by rw [Hdom]; exact incoming_sub_ids c)
+    omega
+  have Hsz1 : (GMap.size c.outgoing : Int) < 2 ^ 63 := by
+    have := size_le_of_sub_dom c.outgoing prs (by rw [Hdom]; exact outgoing_sub_ids c)
+    omega
+  icases (tracker.ProgressTracker.ProgressTracker_access_load_Config trk tv (DFrac.own 1)).access_strict
+    $$ Htrk with ⟨Hcfgf, Hback1⟩
+  icases (tracker.Config.Config_access_load_Voters _ tv.Config' (DFrac.own 1)).access_strict
+    $$ Hcfgf with ⟨Hvf, Hback2⟩
+  wp_apply wp_JointConfig_VoteResult _ (DFrac.own 1) _ vin vout c.incoming c.outgoing tv.Votes'
+      (DFrac.own 1) votes Harr Hsz0 Hsz1 $$ [$Hvf $Hv0 $Hv1 $Hvotes]
+    as %res ⟨Hvf, Hv0, Hv1, Hvotes, %Hres, %Hwon, %Hlost⟩
+  ihave Hcfgf := Hback2 $$ Hvf
+  ihave Htrk := Hback1 $$ Hcfgf
+  ihave Hcfg := Hcback $$ Hv0 Hv1
   iapply HΦ
-  iframe Htrk Hown
+  iframe Htrk
+  isplitl [Hvotes Hprogs Hcfg]
+  · iapply ownTrackerC_intro c tv votes prs pvs Hinv Hdom Hflags Hsize HmaxInfl
+      $$ Hvotes Hprs Hprogs Hcfg
   ipureintro
-  exact ⟨Hres, Hwon.1, Hlost.1⟩
+  exact ⟨Hres, Hwon, Hlost⟩
 
 end proof
 

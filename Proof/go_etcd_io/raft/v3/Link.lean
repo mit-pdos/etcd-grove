@@ -860,7 +860,7 @@ theorem tracker.ProgressTracker.wp_LearnerNodes :
 
 theorem tracker.ProgressTracker.wp_QuorumActive :
     tracker.ProgressTracker.QuorumActive.spec (GF := GF) (hG := hG) :=
-  tracker.ProgressTracker.QuorumActive.wp_proof tracker.ProgressTracker.wp_Visit quorum.MajorityConfig.wp_VoteResult
+  tracker.ProgressTracker.QuorumActive.wp_proof tracker.ProgressTracker.wp_Visit quorum.JointConfig.wp_VoteResult
 
 theorem tracker.ProgressTracker.wp_RecordVote :
     tracker.ProgressTracker.RecordVote.spec (GF := GF) (hG := hG) :=

@@ -6,6 +6,7 @@ Lean notes: the type of Rocq's untyped binder `tv` is written out
 -/
 module
 
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 
 @[expose] public section
@@ -96,6 +97,40 @@ theorem quorum.JointConfig.IDs.spec_tracker
       $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext
   ipureintro
   rw [GMap.map_union_empty, Hvoters_dom]
+
+/-- The tracker form at any configuration (2026-10-13, reconfiguration stage A1): `IDs` on
+`&trk.Config.Voters` with `ownTrackerC c` sealed returns the voters of both halves. -/
+theorem quorum.JointConfig.IDs.spec_trackerC
+    (H : quorum.JointConfig.IDs.spec (GF := GF) (hG := hG))
+    (c : CfgM) (trk : Loc) (tv : tracker.ProgressTracker) (t : Trk) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.quorum ∗ trk ↦ tv ∗
+        ownTrackerC c tv t }}
+      (App (Val (((trk.[tracker.ProgressTracker, go!"Config"]).[tracker.Config, go!"Voters"])
+        @!! go.GoType.PointerType quorum.JointConfig.ty @!! go!"IDs")) (Val #()))
+    {{ (mref : Loc), RET #mref;
+        trk ↦ tv ∗ ownTrackerC c tv t ∗ mref ↦$ c.voters }} := by
+  obtain ⟨votes, prs, pvs⟩ := t
+  iintro %Φ ⟨#Hpkg, Htrk, Hown⟩ HΦ
+  iunfold ownTrackerC at Hown
+  iNamed Hown
+  icases ownCfgCC_voters _ _ $$ Hcfg with ⟨%vin, %vout, %Harr, Hv0, Hv1, Hcback⟩
+  icases (Access.access (A := iprop(
+      (trk.[tracker.ProgressTracker, go!"Config"]).[tracker.Config, go!"Voters"] ↦
+        tv.Config'.Voters'))
+    (A' := iprop((trk.[tracker.ProgressTracker, go!"Config"]).[tracker.Config, go!"Voters"] ↦
+        tv.Config'.Voters'))
+    (P := iprop(trk ↦ tv))) $$ Htrk with ⟨Hf, Hback⟩
+  iapply H _ _ _ _ c.incoming c.outgoing _ (DFrac.own 1) (DFrac.own 1) Harr $$ [$Hf $Hv0 $Hv1]
+  · iPkgInit
+  inext
+  iintro %mref ⟨Hf, Hv0, Hv1, Hidm⟩
+  ihave Htrk := Hback $$ Hf
+  ihave Hcfg := Hcback $$ Hv0 Hv1
+  iapply HΦ
+  unfold CfgM.voters
+  iframe Htrk Hidm
+  iapply ownTrackerC_intro c tv votes prs pvs Hinv Hdom Hflags Hsize HmaxInfl
+    $$ Hvotes Hprs Hprogs Hcfg
 
 end spec
 

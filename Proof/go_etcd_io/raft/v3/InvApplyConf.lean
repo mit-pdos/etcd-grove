@@ -20,6 +20,7 @@ module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 public import Proof.go_etcd_io.raft.v3.InvConfchange
+public import Proof.go_etcd_io.raft.v3.InvTrackerC
 public import Proof.go_etcd_io.raft.v3.InvConfChangeMsg
 
 @[expose] public section
@@ -41,9 +42,12 @@ variable [FfiSyntax]
 def cfgFlags (cfg lrn : GSet w64) : GMap w64 Bool :=
   GMap.fmap (fun _ => false) cfg ∪ GMap.fmap (fun _ => true) lrn
 
-/-- The configuration with voters `cfg` and learners `lrn` as a `Config`. -/
+/-- The configuration with voters `cfg` and learners `lrn` as a `Config` (the same as
+`CfgM.simple cfg lrn`, `Protocol/StepC.lean`: `cfgM_eq_simple`). -/
 def cfgM (cfg lrn : GSet w64) : CfgM :=
   { incoming := cfg, outgoing := ∅, learners := lrn, learnersNext := ∅, autoLeave := false }
+
+theorem cfgM_eq_simple (cfg lrn : GSet w64) : cfgM cfg lrn = CfgM.simple cfg lrn := rfl
 
 /-- What `confchange` sees of a node whose configuration is `cfg` with the learners `lrn`
 (`ownTracker`: `lrn` is the tracked ids outside `cfg`). -/
@@ -623,11 +627,7 @@ def progRAt (peers : GMap w64 Progress) (k : w64) (pv : tracker.Progress) : IPro
   iprop(∃ p, ⌜peers !! k = some p⌝ ∗ ownInflights pv.Inflights' p.infl ∗
     ⌜progressAbs pv p.infl = some p⌝)
 
-/-- A set is its own domain. -/
-theorem domSet_gset (s : GSet w64) : domSet s = s := by
-  apply GMap.map_eq; intro k
-  simp only [domSet, GMap.lookup_fmap]
-  cases s !! k <;> rfl
+-- `domSet_gset` (a set is its own domain) is in `InvTrackerC.lean` since 2026-10-13.
 
 /-- The node's tracker as the `Changer` reads it: the configuration `cfgM cfg lrn` (`lrn` the
 learners, the tracked ids outside `cfg`), the progress map (read-only) and the `Progress`
