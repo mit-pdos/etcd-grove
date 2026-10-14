@@ -3,10 +3,10 @@
 - **Status**: fixed in a fork commit, to be verified (2026-10-14): `0560cb7` (etcd-io/raft
   `40f8be7` plus the fix of `raft-conf-lag-model/readindex-singleton-fix.patch` and regression
   tests `readindex_singleton_test.go`, which fail without it), saved as
-  `raft-conf-lag-model/0001-raft-readindex-singleton-fix.patch` (`git am` on `40f8be7`). Meant
-  for branch `raft-goose-lean` of `upamanyus/etcd`, from which the proof's raft pin
-  (`etc/goose.py`, project `etcd-raft`) will be taken; not pushed yet (no write access from the
-  agent account). Not reported upstream.
+  `raft-conf-lag-model/0001-raft-readindex-singleton-fix.patch` (`git am` on `40f8be7`), pushed
+  as branch `raft-goose-lean` of `upamanyus/etcd` (a branch holding etcd-io/raft's history), from
+  which the proof's raft pin (`etc/goose.py`, project `etcd-raft`) is taken. Not reported
+  upstream.
 - **Where** (etcd-io/raft at `40f8be730b18`, the revision `etc/goose.py` pins):
   - `raft.go:1341-1348` (`stepLeader`, `MsgReadIndex`): `if r.trk.IsSingleton()` answers at
     once with `r.raftLog.committed`. This runs *before* the `committedEntryInCurrentTerm`
