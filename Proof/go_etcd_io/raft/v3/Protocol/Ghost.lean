@@ -610,6 +610,18 @@ theorem isCampK_camp (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) (k : w
     ⊢ isCampK (GF := GF) γ c T F k -∗ isCamp γ c T F := by
   iintro #H; unfold isCamp; iexists k; iexact H
 
+theorem isCampK_k_le (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) (k : w64) :
+    ⊢ isCampK (GF := GF) γ c T F k -∗ ⌜uint.Z k ≤ plogLastIndexZ base0 F⌝ := by
+  unfold isCampK
+  iintro ⟨%_, %H, -⟩
+  ipureintro; exact H.2.2
+
+theorem isCampK_committed (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) (k : w64) :
+    ⊢ isCampK (GF := GF) γ c T F k -∗ isCommitted γ (F.take (uint.Z k).toNat) := by
+  unfold isCampK
+  iintro ⟨%_, -, -, #H⟩
+  iexact H
+
 /-! ### Leadership -/
 
 /-- A configuration is countable data (the winners table stores one per term). -/

@@ -306,6 +306,150 @@ theorem lc_adj (γ : RaftNames) (T t n : w64) (F : List raftpb.Entry) (c : w64)
     rw [Hm n Hnli]; exact HFvn
 
 
+/-! ### Two commit facts below `T`, by the induction hypothesis (2026-10-14, stage B5) -/
+
+/-- `cq_lt_agree` below `T`, by the induction hypothesis instead of `lc_core`. -/
+theorem cq_lt_agree_ih (γ : RaftNames) (T : w64) (IH : LcIH (GF := GF) γ T)
+    (t1 n1 t2 n2 : w64) (G1 G2 : List raftpb.Entry) :
+    uint.Z t1 < uint.Z t2 → uint.Z t2 < uint.Z T →
+    ⊢ votesTbl (GF := GF) γ -∗ cq γ t1 n1 G1 -∗ cq γ t2 n2 G2 -∗
+      ⌜∀ j : w64, uint.Z j ≤ uint.Z n1 → plogTermAt base0 G1 j = plogTermAt base0 G2 j⌝ := by
+  intro Hlt Ht2
+  iintro HS #Hq1 #Hq2
+  icases cq_full γ t1 n1 G1 $$ Hq1 with ⟨%Hw1, #Hr1⟩
+  icases cq_full γ t2 n2 G2 $$ Hq2 with ⟨%Hw2, #Hr2⟩
+  icases cq_base γ _ _ _ $$ Hq1 with ⟨%H1n, -⟩
+  icases cq_base γ _ _ _ $$ Hq2 with ⟨-, #Hfl2⟩
+  icases leadFull_camp γ t2 G2 $$ Hfl2 with ⟨%ldr, %F0, #Hl, #Hc, %Hpre⟩
+  icases isCamp_ok γ ldr t2 F0 $$ Hc with %Hcok
+  have Hcl := camp_last t2 F0 Hcok
+  have HGl : plogTermAt base0 G2 (W64 (plogLastIndexZ base0 F0))
+      = some (plogLast base0 F0).term' := by
+    rw [plogTermAt_prefix _ F0 G2 _ Hpre (by rw [Hcl]; rfl), Hcl]
+  icases IH t2 t1 n1 G1 ldr F0 G2 Ht2 Hlt Hw2 HGl $$ HS Hq1 Hl Hc Hr2 with %H2n
+  iapply full_match γ G1 G2 n1 Hw1 Hw2 (by rw [H1n]; rfl) (by rw [H1n, H2n]) $$ Hr1 Hr2
+
+/-- `cq_agree` below `T`, by the induction hypothesis. -/
+theorem cq_agree_ih (γ : RaftNames) (T : w64) (IH : LcIH (GF := GF) γ T)
+    (t1 n1 t2 n2 i : w64) (G1 G2 : List raftpb.Entry) :
+    uint.Z t1 < uint.Z T → uint.Z t2 < uint.Z T →
+    uint.Z i ≤ uint.Z n1 → uint.Z i ≤ uint.Z n2 →
+    ⊢ votesTbl (GF := GF) γ -∗ cq γ t1 n1 G1 -∗ cq γ t2 n2 G2 -∗
+      ⌜∀ j : w64, uint.Z j ≤ uint.Z i → plogTermAt base0 G1 j = plogTermAt base0 G2 j⌝ := by
+  intro Ht1 Ht2 Hi1 Hi2
+  iintro HS #Hq1 #Hq2
+  rcases Int.lt_trichotomy (uint.Z t1) (uint.Z t2) with Hlt | Heq | Hgt
+  · icases cq_lt_agree_ih γ T IH t1 n1 t2 n2 G1 G2 Hlt Ht2 $$ HS Hq1 Hq2 with %H
+    ipureintro; intro j Hj; exact H j (by omega)
+  · have Ht : t1 = t2 := uint_Z_inj.mp Heq
+    subst Ht
+    icases cq_full γ t1 n1 G1 $$ Hq1 with ⟨%Hw1, #Hr1⟩
+    icases cq_full γ t1 n2 G2 $$ Hq2 with ⟨%Hw2, #Hr2⟩
+    icases cq_base γ _ _ _ $$ Hq1 with ⟨%H1n, #Hf1⟩
+    icases cq_base γ _ _ _ $$ Hq2 with ⟨%H2n, #Hf2⟩
+    have Hs1 := full_term_at_some G1 i n1 (by rw [H1n]; rfl) Hi1
+    have Hs2 := full_term_at_some G2 i n2 (by rw [H2n]; rfl) Hi2
+    icases leadFull_agree γ t1 G1 G2 i Hs1 Hs2 $$ Hf1 Hf2 with %Hag
+    iapply full_match γ G1 G2 i Hw1 Hw2 Hs1 Hag $$ Hr1 Hr2
+  · icases cq_lt_agree_ih γ T IH t2 n2 t1 n1 G2 G1 Hgt Ht1 $$ HS Hq2 Hq1 with %H
+    ipureintro; intro j Hj; exact (H j (by omega)).symm
+
+/-- The far case "older commit fact" of `lc_core` (the paper's section 7, `j_c ≥ j_m + 2`,
+2026-10-14, stage B5): the campaign's commit index `k` is justified by a commit fact of a term
+below `T` (the campaign's `commitIn`), which agrees with the commit fact up to the smaller of
+the two indices (the induction hypothesis). If `n ≤ k`, the campaign log has `t` at `n`, and so
+has every log that reaches its last entry; if `k < n`, the commit fact's log has the campaign
+log's first `k` entries, two more conf entries than its own prefix at `a`: against its I1
+(the paper's repair 1). -/
+theorem lc_far_newer (γ : RaftNames) (T t n : w64) (F : List raftpb.Entry) (a : w64)
+    (F0 G : List raftpb.Entry) (kw tmc : w64) (IH : LcIH (GF := GF) γ T) :
+    uint.Z t < uint.Z T → uint.Z tmc < uint.Z T →
+    PlogWf base0 G →
+    plogTermAt base0 G (W64 (plogLastIndexZ base0 F0))
+      = some (plogLast base0 F0).term' →
+    CampOk T F0 → uint.Z kw ≤ plogLastIndexZ base0 F0 →
+    ConfI1 F (uint.Z a).toNat →
+    confCount (F.take (uint.Z a).toNat) + 2 ≤ confCount (F0.take (uint.Z kw).toNat) →
+    ⊢ votesTbl (GF := GF) γ -∗ cq γ t n F -∗ logRecs γ base0 F0 -∗ commitIn γ F0 kw tmc -∗
+      logRecs γ base0 G -∗ ⌜plogTermAt base0 G n = some t⌝ := by
+  intro HtT HtmT HwG HGl Hcok Hkle HI1 Hcc
+  iintro HS #Hcq #HrF0 #Hcm #HrG
+  have HwF0 := Hcok.1
+  icases cq_full γ t n F $$ Hcq with ⟨%HwF, #HrF⟩
+  icases cq_base γ t n F $$ Hcq with ⟨%HFn, -⟩
+  ihave #Hcj := commitIn_j γ F0 kw tmc $$ Hcm
+  iunfold commitJ at Hcj
+  icases Hcj with (%Hk0 | ⟨%tk, %nk, %Gk, #Hqk, %Hk⟩)
+  · exfalso
+    have h0 : (uint.Z kw).toNat = 0 := by omega
+    rw [h0, List.take_zero] at Hcc
+    simp [confCount] at Hcc
+  obtain ⟨Hkn, Htk, HGk⟩ := Hk
+  icases cq_full γ tk nk Gk $$ Hqk with ⟨%HwGk, #HrGk⟩
+  icases cq_base γ tk nk Gk $$ Hqk with ⟨%HGkn, -⟩
+  -- the justifying fact's log agrees with the campaign log up to `k`
+  have HsGk : (plogTermAt base0 Gk kw).isSome :=
+    full_term_at_some Gk kw nk (by rw [HGkn]; rfl) Hkn
+  icases full_match γ Gk F0 kw HwGk HwF0 HsGk HGk $$ HrGk HrF0 with %HmK
+  -- every log reaching the campaign log's last entry agrees with it below
+  have Hcl := camp_last T F0 Hcok
+  have Hli := uint_Z_W64 (plogLastIndexZ base0 F0) (plogLastIndexZ_nonneg _ _)
+    (PlogWf_range _ _ HwF0)
+  icases full_match γ F0 G (W64 (plogLastIndexZ base0 F0)) HwF0 HwG (by rw [Hcl]; rfl)
+    (by rw [Hcl, HGl]) $$ HrF0 HrG with %HmG
+  by_cases Hnk : uint.Z n ≤ uint.Z kw
+  · icases cq_agree_ih γ T IH t n tk nk n F Gk HtT (by omega) (Int.le_refl _) (by omega)
+      $$ HS Hcq Hqk with %Hag
+    ipureintro
+    rw [← HmG n (by omega), ← HmK n Hnk, ← Hag n (Int.le_refl _), HFn]
+  · icases cq_agree_ih γ T IH t n tk nk kw F Gk HtT (by omega) (by omega) Hkn
+      $$ HS Hcq Hqk with %Hag
+    have HsF : (plogTermAt base0 F kw).isSome :=
+      full_term_at_some F kw n (by rw [HFn]; rfl) (by omega)
+    icases full_take_eq γ F F0 kw HwF HwF0 HsF
+      ((Hag kw (Int.le_refl _)).trans (HmK kw (Int.le_refl _))) $$ HrF HrF0 with %Htk
+    exact (far_newer HI1 Htk Hcc).elim
+
+/-- The far case "older winner" of `lc_core` (the paper's section 7, `j_c ≤ j_m - 2`,
+2026-10-14, stage B5): the commit fact's witness for its conf entry `j_c + 1` (0-based) has the
+configuration index just after the winner's, so its quorum meets the winning one, and the
+adjacent case (`lc_adj`) puts its log, up to the entry, into the campaign log: two conf entries
+past the campaign's commit index, against I1 at the campaign. -/
+theorem lc_far_older (γ : RaftNames) (T t : w64) (F : List raftpb.Entry) (a : w64)
+    (c : w64) (F0 : List raftpb.Entry) (kw : w64) (cW : CfgM) (V : GSet w64)
+    (IH : LcIH (GF := GF) γ T) :
+    uint.Z t < uint.Z T → CampOk T F0 →
+    ConfI1 F0 (uint.Z kw).toNat →
+    CfgAt γ (F0.take (uint.Z kw).toNat) cW → JQuorum cW V →
+    confCount (F0.take (uint.Z kw).toNat) + 2 ≤ confCount (F.take (uint.Z a).toNat) →
+    ⊢ votesTbl (GF := GF) γ -∗ cqDyn γ t F a -∗ isWin γ c T V -∗ isCamp γ c T F0 -∗
+      logRecs γ base0 F0 -∗ isCommitted γ (F0.take (uint.Z kw).toNat) -∗ ⌜False⌝ := by
+  intro HtT Hcok HI1 HcfgW HjW Hcc
+  iintro HS #Hd #Hwin #Hc #HrF0 #HcF0
+  have HwF0 := Hcok.1
+  iunfold cqDyn at Hd
+  icases Hd with ⟨-, #Hwit⟩
+  obtain ⟨k2, hk2, hp2, hc2⟩ :=
+    exists_confPos F (uint.Z a).toNat (confCount (F0.take (uint.Z kw).toNat) + 1) (by omega)
+  ihave Hw := Hwit $$ %k2 %(And.intro hp2 hk2)
+  icases Hw with ⟨%tw, %nw, %Gw, %aw, %cw, %qw, %Hwo, #Hcqw⟩
+  icases cqAt_parts γ tw nw Gw aw cw qw $$ Hcqw with ⟨%Hpw, -, #HcGw, #Hackw, -⟩
+  icases isCommitted_agree γ _ _ $$ HcGw HcF0 with %Hpre
+  obtain ⟨Htw, Hnw, Haw, Hag, Hcw⟩ := Hwo
+  have Hcw' : confCount (Gw.take (uint.Z aw).toNat) = confCount (F0.take (uint.Z kw).toNat) + 1 := by
+    rw [Hcw, hc2]
+  have Hov := CfgAt.overlap_adj Hpre (by omega) (by omega) Hpw.2.2.1 HcfgW
+  have Hmeet := Hov qw V Hpw.2.2.2 HjW
+  ihave #Hcqw' := cqAt_cq γ _ _ _ _ _ _ $$ Hcqw
+  icases lc_adj γ T tw nw Gw c F0 F0 qw V IH (by omega) HwF0 (camp_last T F0 Hcok) Hmeet
+    $$ HS Hcqw' Hackw Hwin Hc HrF0 with %HF0nw
+  icases cq_full γ tw nw Gw $$ Hcqw' with ⟨%HwGw, #HrGw⟩
+  icases full_take_eq γ Gw F0 nw HwGw HwF0 (by rw [Hpw.1]; rfl) (by rw [Hpw.1, HF0nw])
+    $$ HrGw HrF0 with %Htk
+  ipureintro
+  refine far_older HI1 ?_ hp2 hc2
+  rw [take_agree_le Htk.symm (by omega), Hag]
+
 /-- The core of Leader Completeness, by strong induction on the term `T` of the leader
 (`k` bounds it). If a quorum acknowledged the leader of `t < T` up to `n`, where its log
 `F` has an entry of term `t`, then every full log `G` with records that reaches the last
@@ -345,14 +489,51 @@ theorem lc_core (γ : RaftNames) (k : Nat) :
   icases Hl with ⟨%V, #Hwin⟩
   icases isWin_core γ c T V $$ Hwin with ⟨%cW, #Hcore⟩
   iunfold isWinCore at Hcore
-  icases Hcore with ⟨%γw, %F0w, %kw, %Hw, -⟩
-  -- B4: the two recorded configurations overlap (the static instance). B5: the case split
-  -- on their configuration indices (`notes/reconfiguration-safety.md`, section 7).
+  icases Hcore with ⟨%γw, %F0w, %kw, %Hw, #HcK, -, #Hvs⟩
+  -- Static, the two recorded configurations overlap. Dynamic (2026-10-14, stage B5), the case
+  -- split on their configuration indices (`notes/reconfiguration-safety.md`, section 7).
   cases HD : γ.dyn with
-  | some D => sorry -- B5: the far cases
   | none =>
-  have Hmeet := CfgAt.overlap (RaftNames.dyn_eq_none.1 HD) Hq.2.2.1 Hw.2.2 q V Hq.2.2.2 Hw.2.1
-  iapply lc_adj γ T t n F c F0 G q V IH HtT HwG HGl Hmeet $$ HS Hcq Hacks Hwin Hc HrG
+    have Hmeet := CfgAt.overlap (RaftNames.dyn_eq_none.1 HD) Hq.2.2.1 Hw.2.2 q V Hq.2.2.2 Hw.2.1
+    iapply lc_adj γ T t n F c F0 G q V IH HtT HwG HGl Hmeet $$ HS Hcq Hacks Hwin Hc HrG
+  | some D =>
+  have Hdyn : γ.reDyn ≠ none := fun h => by rw [RaftNames.dyn_none h] at HD; cases HD
+  icases cqAt_parts γ t n F a cQ q $$ Hcqa with ⟨-, -, #HcF, -, #HdF⟩
+  ihave #HdF' := dynOn_elim γ _ Hdyn $$ HdF
+  ihave #HdF2 := HdF'
+  iunfold cqDyn at HdF2
+  icases HdF2 with ⟨%HI1F, -⟩
+  -- the winner's campaign's dynamic facts, from a vote of its quorum
+  obtain ⟨v0, Hv0⟩ := CfgAt.member Hw.2.2 Hw.2.1
+  ihave #Hv0v := BigSepM.bigSepM_lookup (Φ := fun v _ => isVote (GF := GF) γ v T c)
+    ((GMap.elem_of_gset _ _).mp Hv0) $$ Hvs
+  ihave #Hj := votesTbl_just γ v0 T c $$ HS Hv0v
+  iunfold voteJust at Hj
+  icases Hj with ⟨%kj, %dj, %Fvj, %Fcj, -, -, -, -, -, -, #Hcdj⟩
+  ihave #Hcd := dynOn_elim γ _ Hdyn $$ Hcdj
+  iunfold campDyn at Hcd
+  icases Hcd with ⟨%kc, %tmc, %Hcp, #HcKc, #HrF0c, #HcmF0⟩
+  icases isCampK_agree γ c T F0w Fcj kw kc $$ HcK HcKc with %Hag
+  obtain ⟨rfl, rfl⟩ := Hag
+  ihave #Hc' := isCampK_camp γ c T F0w kw $$ HcK
+  icases isCamp_agree γ c T F0 F0w $$ Hc Hc' with %HF0
+  subst HF0
+  icases isCamp_ok γ c T F0 $$ Hc with %Hcok
+  icases isCampK_k_le γ c T F0 kw $$ HcK with %Hkle
+  ihave #HcF0 := isCampK_committed γ c T F0 kw $$ HcK
+  icases isCommitted_agree γ _ _ $$ HcF HcF0 with %Hpre
+  by_cases Hadj : confCount (F.take (uint.Z a).toNat) ≤ confCount (F0.take (uint.Z kw).toNat) + 1 ∧
+      confCount (F0.take (uint.Z kw).toNat) ≤ confCount (F.take (uint.Z a).toNat) + 1
+  · have Hmeet := CfgAt.overlap_adj Hpre Hadj.2 Hadj.1 Hq.2.2.1 Hw.2.2 q V Hq.2.2.2 Hw.2.1
+    iapply lc_adj γ T t n F c F0 G q V IH HtT HwG HGl Hmeet $$ HS Hcq Hacks Hwin Hc HrG
+  · rcases (by omega : confCount (F.take (uint.Z a).toNat) + 2 ≤ confCount (F0.take (uint.Z kw).toNat) ∨
+        confCount (F0.take (uint.Z kw).toNat) + 2 ≤ confCount (F.take (uint.Z a).toNat))
+      with Hfar | Hfar
+    · iapply lc_far_newer γ T t n F a F0 G kw tmc IH HtT Hcp.1 HwG HGl Hcok Hkle HI1F Hfar
+        $$ HS Hcq HrF0c HcmF0 HrG
+    · icases lc_far_older γ T t F a c F0 kw cW V IH HtT Hcok Hcp.2.1 Hw.2.2 Hw.2.1 Hfar
+        $$ HS HdF' Hwin Hc HrF0c HcF0 with %Hf
+      exact Hf.elim
 
 /-- Two commit facts agree below the earlier one's index: same term, the leader's logs
 agree; an earlier term, `lc_core` puts the earlier committed log's entry in the later
