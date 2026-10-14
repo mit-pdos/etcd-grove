@@ -41,7 +41,7 @@ private theorem stepCD_appliedTo (c : CfgM) (id : w64) (m : raftpb.Message) (s :
     StepCD c id m s [] { s with logst := logAppliedTo s.logst idx sz } := by
   refine ⟨by rw [toPState_logAppliedTo]; exact .refl _, fun Adm dec g hc hd => ?_⟩
   obtain ⟨Hsn, Ha1⟩ := hd.2.2.2.1 Hty
-  refine ⟨max g.cidx (uint.nat (w64Max idx s.logst.applied)), ?_⟩
+  refine ⟨max g.cidx (uint.nat (w64Max idx s.logst.applied)), .inr ⟨Hty, rfl⟩, ?_⟩
   have Hr : rOf { s with logst := logAppliedTo s.logst idx sz }
       { g with cidx := max g.cidx (uint.nat (w64Max idx s.logst.applied)) } =
       { rOf s g with applied := w64Max idx s.logst.applied,

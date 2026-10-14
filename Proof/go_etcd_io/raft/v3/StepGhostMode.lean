@@ -58,13 +58,110 @@ def GMode.Pre (md : GMode) (m : raftpb.Message) (ents : List raftpb.Entry) (s : 
 
 /-- The step in the mode's model: `StepC c` statically, `StepR` at the dynamic configurations
 (no snapshot prefix: a snapshot restore is outside the dynamic scope) dynamically, the
-configuration index possibly moved (`StepR.advance`). -/
-def GMode.StepOut (md : GMode) (c : CfgM) (id : w64) (s s' : NState) (md' : GMode) : Prop :=
+configuration index possibly moved (`StepR.advance`), only by a `MsgStorageApplyResp`
+(`CidxMove`, 2026-10-14, stage B7 part 2). -/
+def GMode.StepOut (md : GMode) (c : CfgM) (id : w64) (m : raftpb.Message) (s s' : NState)
+    (md' : GMode) : Prop :=
   match md with
   | .static => md' = .static ∧ ∃ recv, StepC c id (toPState s) recv (toPState s')
-  | .dyn dec c0 h0 g => ∃ cidx', md' = .dyn dec c0 h0 { g with cidx := cidx' } ∧
+  | .dyn dec c0 h0 g => ∃ cidx', CidxMove m s' g cidx' ∧ md' = .dyn dec c0 h0 { g with cidx := cidx' } ∧
       ∃ recv, StepR (AdmS dec c0 (fun _ => False)) dec id (rOf s g) recv
         (rOf s' { g with cidx := cidx' })
+
+/-! ### The commit index never moves back, in either model (2026-10-14, stage B7 part 2)
+
+As `Step.commit_mono` (`Protocol/Facts.lean`): what the `RawNode` predicate needs to carry a
+queued `MsgStorageApplyResp`'s "its entries are committed" across steps. -/
+
+private theorem plogCommitTo_ge' (c t : w64) : uint.Z c ≤ uint.Z (plogCommitTo c t) := by
+  unfold plogCommitTo; split <;> omega
+
+theorem StepC.commit_mono {c : CfgM} {id : w64} {ps : PState} {recv : List Msg} {ps' : PState}
+    (H : StepC c id ps recv ps') : uint.Z ps.commit ≤ uint.Z ps'.commit := by
+  induction H with
+  | refl => exact Int.le_refl _
+  | trans _ _ _ _ _ _ _ ih1 ih2 => omega
+  | appAccept => exact plogCommitTo_ge' _ _
+  | heartbeat => exact plogCommitTo_ge' _ _
+  | commit _ _ _ h => exact Int.le_of_lt h
+  | snapRestore _ _ _ _ _ _ _ h => simp only [psendMsgs]; omega
+  | snapFastfwd _ _ _ _ _ _ _ h => simp only [psendMsgs]; omega
+  | readAck m s N =>
+    obtain ⟨o, r, h⟩ := preadRespondAll_eq id
+      ({ s with rd := { s.rd with
+           ro := (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).1 } })
+      (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).2
+    rw [h]; exact Int.le_refl _
+  | _ => simp [psendMsgs, pbecomeFollower, pbecomeCandidate, pwinState, pappend, pbecomeLeader,
+      padoptLeader]
+
+theorem StepR.commit_mono {Adm : List raftpb.Entry → CCState → Prop} {dec : CCDec} {id : w64}
+    {r : RState} {recv : List Msg} {r' : RState} (H : StepR Adm dec id r recv r') :
+    uint.Z r.p.commit ≤ uint.Z r'.p.commit := by
+  induction H with
+  | refl => exact Int.le_refl _
+  | trans _ _ _ _ _ _ _ ih1 ih2 => omega
+  | appAccept => exact plogCommitTo_ge' _ _
+  | heartbeat => exact plogCommitTo_ge' _ _
+  | commit _ _ _ h => exact Int.le_of_lt h
+  | snapRestore _ _ _ _ _ _ _ _ _ h => simp only [psendMsgs]; omega
+  | snapFastfwd _ _ _ _ _ _ _ h => simp only [psendMsgs]; omega
+  | readAck m r N =>
+    obtain ⟨o, rd, h⟩ := preadRespondAll_eq id
+      ({ r.p with rd := { r.p.rd with
+           ro := (readonlyAdvance (readonlyRecvAck r.p.rd.ro m.src m.ctx) N).1 } })
+      (readonlyAdvance (readonlyRecvAck r.p.rd.ro m.src m.ctx) N).2
+    simp only [h]; exact Int.le_refl _
+  | _ => simp [psendMsgs, pbecomeFollower, pbecomeCandidate, pwinState, pappend, pbecomeLeader,
+      padoptLeader]
+
+/-- The step in the mode's model does not move the code's commit index back. -/
+theorem GMode.StepOut.commit_mono {md : GMode} {c : CfgM} {id : w64} {m : raftpb.Message}
+    {s s' : NState} {md' : GMode} (H : md.StepOut c id m s s' md') :
+    uint.Z s.logst.committed ≤ uint.Z s'.logst.committed := by
+  cases md with
+  | static =>
+    obtain ⟨-, recv, H⟩ := H
+    exact StepC.commit_mono H
+  | dyn dec c0 h0 g =>
+    obtain ⟨cidx', -, -, recv, H⟩ := H
+    exact StepR.commit_mono H
+
+/-- A step of any message but a `MsgStorageApplyResp` keeps the mode (the configuration index
+does not move, `CidxMove`). -/
+theorem GMode.StepOut.keep {md : GMode} {c : CfgM} {id : w64} {m : raftpb.Message}
+    {s s' : NState} {md' : GMode} (H : md.StepOut c id m s s' md')
+    (hm : m.Type' ≠ MsgStorageApplyResp) : md' = md := by
+  cases md with
+  | static => exact H.1
+  | dyn dec c0 h0 g =>
+    obtain ⟨cidx', Hcm, rfl, -⟩ := H
+    rcases Hcm with rfl | ⟨h, -⟩
+    · rfl
+    · exact absurd h hm
+
+/-- A `MsgStorageApplyResp`'s step moves the configuration index to the new `applied` when it
+was below (`CidxMove`). -/
+theorem GMode.StepOut.applyResp {dec : CCDec} {c0 : CCState} {h0 : CfgOk c0} {g : RGh}
+    {c : CfgM} {id : w64} {m : raftpb.Message} {s s' : NState} {md' : GMode}
+    (H : (GMode.dyn dec c0 h0 g).StepOut c id m s s' md') :
+    ∃ cidx', (cidx' = g.cidx ∨ cidx' = max g.cidx (uint.nat s'.logst.applied)) ∧
+      md' = .dyn dec c0 h0 { g with cidx := cidx' } := by
+  obtain ⟨cidx', Hcm, rfl, -⟩ := H
+  refine ⟨cidx', ?_, rfl⟩
+  rcases Hcm with h | ⟨-, h⟩
+  · exact .inl h
+  · exact .inr h
+
+/-- The dynamic mode's premises of a step, for a message that is no snapshot, no storage-apply
+acknowledgement and no proposal: only that the node is no pre-candidate. -/
+theorem GMode.Pre.of_other {md : GMode} {m : raftpb.Message} {ents : List raftpb.Entry}
+    {s : NState} (h1 : m.Type' ≠ MsgSnap) (h2 : md.isDyn = true → s.role ≠ .preCandidate)
+    (h3 : m.Type' ≠ MsgStorageApplyResp) (h4 : m.Type' ≠ MsgProp) : md.Pre m ents s := by
+  cases md with
+  | static => trivial
+  | dyn dec c0 h0 g =>
+    exact ⟨h1, h2 rfl, fun h => absurd h h3, fun h => absurd h h4⟩
 
 /-- `GMode.Pre` gives `DynHyp` at any end state whose `applied` moved at most to the
 acknowledged index, given the invariant (`applied ≤` the configuration index). -/
@@ -141,7 +238,7 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : ra
       RInv dec c0 (rOf s g) → DynHyp m s s' g) :
     ⊢ ([∗list] x ∈ recv, isMessage (GF := GF) γ x) -∗ rdCred γ (rdCount recv) -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
-      ∃ md', ⌜md.StepOut c id s s' md'⌝ ∗
+      ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
         ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRest γ md' c id s' := by
   cases md with
   | static =>
@@ -159,7 +256,7 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : ra
     simp only [ghostRest, GMode.isDyn]
     iintro Hrecv Hcr Hg ⟨%Hdc, #Hfr, #Hc⟩
     obtain ⟨HD, hc, HI⟩ := Hdc
-    obtain ⟨cidx', HR⟩ := Hstep.2 (AdmS dec c0 (fun _ => False)) dec g hc
+    obtain ⟨cidx', Hcm, HR⟩ := Hstep.2 (AdmS dec c0 (fun _ => False)) dec g hc
       (Hdh dec c0 h0 g rfl HI)
     ihave Hown : ownRaftGhostR γ dec c0 id (rOf s g) $$ [Hg]
     · simp only [ownRaftGhostR, rOf.proj_p, rOf.proj_fp]
@@ -179,11 +276,30 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : ra
     simp only [GMode.isDyn, rOf.proj_p, rOf.proj_fp]
     iframe Hg
     isplitr
-    · ipureintro; exact ⟨cidx', rfl, recv, HR⟩
+    · ipureintro; exact ⟨cidx', Hcm, rfl, recv, HR⟩
     iframe Hfr'
     isplitr
     · ipureintro; exact ⟨HD, hc, HI'⟩
     iintro %hcand; iapply Hc'; exact hcand
+
+/-- Two code states that the mode's ghost state reads alike (2026-10-14, stage B7 part 2): the
+same protocol state, `applied`, pending snapshot and (at a leader) `pendingConfIndex`. -/
+theorem rOf_congr {s s' : NState} (g : RGh) (hp : toPState s' = toPState s)
+    (ha : s'.logst.applied = s.logst.applied) (hs : s'.logst.snap = s.logst.snap)
+    (hpci : pciR s' = pciR s) : rOf s' g = rOf s g := by
+  unfold rOf; rw [hp, ha, hs, hpci]; try rfl
+
+theorem ownStepGhost_congr (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {s s' : NState}
+    (hp : toPState s' = toPState s) (ha : s'.logst.applied = s.logst.applied)
+    (hs : s'.logst.snap = s.logst.snap) (hpci : pciR s' = pciR s) :
+    ownStepGhost (GF := GF) γ md c id s ⊢ ownStepGhost γ md c id s' := by
+  cases md with
+  | static =>
+    simp only [ownStepGhost, ghostRest]; rw [hp]
+  | dyn dec c0 h0 g =>
+    simp only [ownStepGhost, ghostRest]
+    have hr := rOf_congr g hp ha hs hpci
+    rw [hp, hr]
 
 end ghost
 

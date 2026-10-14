@@ -169,7 +169,7 @@ def stepPost (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : 
     ("Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
      "Hghost" ∷ ownStepGhost γ md' c' id s' ∗
      "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-     "%Hrefines" ∷ ⌜md.StepOut c id s s' md'⌝ ∗
+     "%Hrefines" ∷ ⌜md.StepOut c id m s s' md'⌝ ∗
      "%Hcfg'" ∷ ⌜m.Type' ≠ MsgSnap → c' = c⌝ ∗
      "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → NetFrame s s'⌝ ∗
      "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
@@ -326,7 +326,7 @@ theorem ghost_step_md (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : r
     (Hn : rdCount recv ≤ n) :
     ⊢ isMessage (GF := GF) γ a -∗ rdCred γ n -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗
       ghostRest γ md c id s ={⊤}=∗
-      ∃ md', ⌜md.StepOut c id s s' md'⌝ ∗ ownStepGhost γ md' c id s' := by
+      ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗ ownStepGhost γ md' c id s' := by
   iintro #Hm Hcr Hg Hrest
   ihave Hall : ([∗list] m ∈ recv, isMessage (GF := GF) γ m) $$ []
   · iapply (BigSepL.bigSepL_intro (P := iprop(□ isMessage (GF := GF) γ a))
@@ -350,7 +350,7 @@ theorem ghost_step_md (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : r
 theorem ghost_step_md0 (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : raftpb.Message)
     (s s' : NState) (Hstep : StepCD c id m s [] s') (Hdh : DynHypFor md m s s') :
     ⊢ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
-      ∃ md', ⌜md.StepOut c id s s' md'⌝ ∗ ownStepGhost γ md' c id s' := by
+      ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗ ownStepGhost γ md' c id s' := by
   iintro Hg Hrest
   imod rdCred_zero (GF := GF) γ with Hcr
   imod ghost_stepCD γ md c id m s [] s' Hstep Hdh $$ [] [Hcr] Hg Hrest

@@ -724,7 +724,10 @@ private def ownRaftPhysG (T : tracker.ProgressTracker → Trk → IProp GF) (V :
 
   -- `r.preVote`, recorded (since 2026-10-04; until then a scope conjunct pinned it to
   -- `false`). Never written after `newRaft`.
-  "%Hprevote" ∷ ⌜rv.preVote' = s.prevote⌝ ∗
+  -- (2026-10-14, reconfiguration stage B7 part 2) and a pre-candidate has pre-vote on: only
+  -- `campaign(campaignPreElection)` makes one, which `hup` calls only when `r.preVote`
+  -- (`raft.wp_store_stateC`'s premise); so with pre-vote off there is no pre-candidate
+  "%Hprevote" ∷ ⌜rv.preVote' = s.prevote ∧ (s.role = .preCandidate → s.prevote = true)⌝ ∗
 
   -- scope assumptions
   -- `Config.DisableProposalForwarding` is `false` (`newRaft`'s premise): a follower
@@ -803,7 +806,7 @@ theorem ownRaftPhys_intro (r : Loc) (id : w64) (s : NState) (rv : raft)
     rv.lead' = s.lead →
     rv.state' = stateW64 s.role →
     rv.step' = s.stepfn →
-    rv.preVote' = s.prevote →
+    rv.preVote' = s.prevote ∧ (s.role = .preCandidate → s.prevote = true) →
     rv.disableProposalForwarding' = false →
     rv.disableConfChangeValidation' = false →
     rv.checkQuorum' = false →
@@ -890,7 +893,7 @@ theorem ownRaftPhysCV_intro (c : CfgM) (V : GSet w64) (r : Loc) (id : w64) (s : 
     rv.lead' = s.lead →
     rv.state' = stateW64 s.role →
     rv.step' = s.stepfn →
-    rv.preVote' = s.prevote →
+    rv.preVote' = s.prevote ∧ (s.role = .preCandidate → s.prevote = true) →
     rv.disableProposalForwarding' = false →
     rv.disableConfChangeValidation' = false →
     rv.checkQuorum' = false →
@@ -1238,7 +1241,7 @@ theorem raft.wp_load_preVote (r : Loc) (id : w64) (s : NState) :
   iintro %Φ H HΦ
   iNamed_phys H
   wp_apply wp_load_access _ rv.preVote' _ (raftOwn_access_load_preVote _ _) $$ Hr as Hr
-  rw [Hprevote]; iapply HΦ; reseal s
+  rw [Hprevote.1]; iapply HΦ; reseal s
 
 theorem raft.wp_load_disableProposalForwarding (r : Loc) (id : w64) (s : NState) :
     {{ ownRaftPhys (GF := GF) cfg r id s }}
@@ -1415,7 +1418,8 @@ theorem raft.wp_store_lead (r : Loc) (id : w64) (s : NState) (v : w64) :
 constant (`StateFollower` = `W64 0`), which unifies with `stateW64 .follower` by
 computation. -/
 theorem raft.wp_store_state (r : Loc) (id : w64) (s : NState) (ro : PRole)
-    (Hro : ro ≠ .follower → id ∈ cfg) :
+    (Hro : ro ≠ .follower → id ∈ cfg)
+    (Hpc : ro = .preCandidate → s.prevote = true := by intro h; cases h) :
     {{ ownRaftPhys (GF := GF) cfg r id s }}
       (App (Val (GoInstruction (GoStore StateType.ty)))
         (Val (PairV #(r.[raft, go!"state"]) #(stateW64 ro))))
@@ -1424,6 +1428,9 @@ theorem raft.wp_store_state (r : Loc) (id : w64) (s : NState) (ro : PRole)
   iNamed_phys H
   wp_apply wp_store_access _ rv.state' (stateW64 ro) _ _ (raftOwn_access_store_state _ _ _) $$ Hr as Hr
   have Hvoter' : ({ s with role := ro } : NState).role ≠ .follower → id ∈ cfg := Hro
+  have Hpv' : rv.preVote' = ({ s with role := ro } : NState).prevote ∧
+      (({ s with role := ro } : NState).role = .preCandidate →
+        ({ s with role := ro } : NState).prevote = true) := ⟨Hprevote.1, Hpc⟩
   iapply HΦ
   iapply ownRaftPhys_intro _ _ _ { s with role := ro } _ msgs msgsAA lok
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)
@@ -2414,6 +2421,16 @@ theorem ownRaftPhysC_voter (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : N
   · ipureintro; exact Hvoter
   resealC c s
 
+/-- A pre-candidate has pre-vote on (2026-10-14, reconfiguration stage B7 part 2). -/
+theorem ownRaftPhysC_precand (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
+      ⌜s.role = .preCandidate → s.prevote = true⌝ ∗ ownRaftPhysCV c V r id s := by
+  iintro H
+  iNamed_physC H
+  isplitr
+  · ipureintro; exact Hprevote.2
+  resealC c s
+
 /-- The progress map tracks exactly the configuration's ids, at most `2^62` of them. -/
 theorem ownRaftPhysC_progress_dom (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
@@ -2598,7 +2615,7 @@ theorem raft.wp_load_preVoteC (r : Loc) (id : w64) (s : NState) :
   iintro %Φ H HΦ
   iNamed_physC H
   wp_apply wp_load_access _ rv.preVote' _ (raftOwn_access_load_preVote _ _) $$ Hr as Hr
-  rw [Hprevote]; iapply HΦ; resealC c s
+  rw [Hprevote.1]; iapply HΦ; resealC c s
 
 theorem raft.wp_load_disableProposalForwardingC (r : Loc) (id : w64) (s : NState) :
     {{ ownRaftPhysCV (GF := GF) c V r id s }}
@@ -2781,7 +2798,8 @@ theorem raft.wp_store_leadC (r : Loc) (id : w64) (s : NState) (v : w64) :
 constant (`StateFollower` = `W64 0`), which unifies with `stateW64 .follower` by
 computation. -/
 theorem raft.wp_store_stateC (r : Loc) (id : w64) (s : NState) (ro : PRole)
-    (Hro : ro ≠ .follower → id ∈ V) :
+    (Hro : ro ≠ .follower → id ∈ V)
+    (Hpc : ro = .preCandidate → s.prevote = true := by intro h; cases h) :
     {{ ownRaftPhysCV (GF := GF) c V r id s }}
       (App (Val (GoInstruction (GoStore StateType.ty)))
         (Val (PairV #(r.[raft, go!"state"]) #(stateW64 ro))))
@@ -2790,6 +2808,9 @@ theorem raft.wp_store_stateC (r : Loc) (id : w64) (s : NState) (ro : PRole)
   iNamed_physC H
   wp_apply wp_store_access _ rv.state' (stateW64 ro) _ _ (raftOwn_access_store_state _ _ _) $$ Hr as Hr
   have Hvoter' : ({ s with role := ro } : NState).role ≠ .follower → id ∈ V := Hro
+  have Hpv' : rv.preVote' = ({ s with role := ro } : NState).prevote ∧
+      (({ s with role := ro } : NState).role = .preCandidate →
+        ({ s with role := ro } : NState).prevote = true) := ⟨Hprevote.1, Hpc⟩
   iapply HΦ
   iapply ownRaftPhysCV_intro c _ _ _ { s with role := ro } _ msgs msgsAA lok
     (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure) (by phys_pure)

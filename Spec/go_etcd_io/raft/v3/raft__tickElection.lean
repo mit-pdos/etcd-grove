@@ -4,7 +4,7 @@
 
 `electionElapsed++`; once past the (randomized) election timeout, a node that can be
 leader (`promotable`) resets the counter and steps a `MsgHup` from itself: it campaigns.
-Specified like `raft.Step` (the ghost state, `NStateRel`), with what `RawNode.Tick` needs
+Specified like `raft.Step` (the ghost state in either mode, since 2026-10-14 `ownStepGhost`), with what `RawNode.Tick` needs
 of the physical state: `TickStep`. In any role: a leader's `MsgHup` is ignored.
 
 Lean notes: like `raft.Step.spec`, the section fixes `hlc := HasLC.hasLC` and has
@@ -42,20 +42,22 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev raft.tickElection.spec : Prop :=
-  ∀ (cfg : GSet w64) (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (ps : PState),
-  γ.reCfg = cfg →
+  ∀ (c : CfgM) (md : GMode) (γ : RaftNames) (r : Loc) (id : w64) (s : NState),
   -- a campaign increments the term; `send` panics if it wraps
   uint.Z s.term + 1 < 2 ^ 64 →
-  NStateRel s ps →
+  NStateWf s →
+  -- (2026-10-14, stage B7 part 2) in either ghost mode (`raft.Step.spec`'s); the dynamic one
+  -- excludes a pre-candidate (`GMode.Pre`)
+  (md.isDyn = true → s.role ≠ .preCandidate) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhys cfg r id s ∗
-      "Hghost" ∷ ownRaftGhost γ id ps }}
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      "Hghost" ∷ ownStepGhost γ md c id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"tickElection")) (Val #()))
-  {{ (s' : NState) (ps' : PState), RET #();
-      "Hphys" ∷ ownRaftPhys cfg r id s' ∗
-      "Hghost" ∷ ownRaftGhost γ id ps' ∗
-      "%Hrel" ∷ ⌜NStateRel s' ps'⌝ ∗
-      "%Hrefines" ∷ ⌜∃ recv, Step cfg id ps recv ps'⌝ ∗
+  {{ (s' : NState), RET #();
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+      "Hghost" ∷ ownStepGhost γ md c id s' ∗
+      "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
+      "%Hcm" ∷ ⌜uint.Z s.logst.committed ≤ uint.Z s'.logst.committed⌝ ∗
       "%Htick" ∷ ⌜TickStep s s'⌝ }}
 
 end spec
