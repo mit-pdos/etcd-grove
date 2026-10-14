@@ -430,8 +430,110 @@ theorem checkSingle.wp_proof
               exact ⟨this, by simpa using hi⟩
     | true =>
       -- a return
-      trace_state
-      sorry
+      simp only [↓reduceIte, _root_.decide_true, Bool.not_true]
+      wp_auto
+      ihave HG := HG $$ He
+      ihave %Hcl := callsRep_length S loc ces fs $$ Hces
+      ihave %Hcsl := ownSlice_len $$ Hcalls
+      obtain ⟨Hcsl1, Hcsl2⟩ := Hcsl
+      wp_if_destruct
+      · -- `len(calls) == 0`: not linearizable
+        have hfs : fs = [] := by
+          apply List.eq_nil_of_length_eq_zero; rw [← Hcl, Hcsl1]; word
+        subst hfs
+        wp_for_post
+        iapply HΦ
+        iframe
+        iright; ileft; ipureintro
+        exact inv_fail hok Hinv he rfl
+      -- `if computePartial { ... }`: memory safety only
+      wp_join iprop(longestOwn lgst h.length ∗ csl ↦* ces ∗
+          nodesG hd loc (valOf h) (es.map entryOf) (layout (es.map entryOf) (ids fs)) ∗
+          longest_ptr ↦ lgst ∗ calls_ptr ↦ csl)
+        with [Hlongest Hcalls HG longest calls] as ⟨Hlongest, Hcalls, HG, longest, calls⟩
+      · trace_state
+        sorry
+      -- `callsTop := calls[len(calls)-1]`
+      have hlen0 : csl.len ≠ W64 0 := Hif
+      have hfs : fs ≠ [] := by
+        intro h'; rw [h'] at Hcl; apply hlen0; simp at Hcl; rw [Hcl] at Hcsl1
+        exact len_zero_of _ Hcsl1 Hcsl2
+      obtain ⟨f, fs', rfl⟩ := List.exists_cons_of_ne_nil hfs
+      icases callsRep_pop S loc ces f fs' $$ Hces with ⟨%ces', %ce, %Hce, #Hcsv, #Hces'⟩
+      obtain ⟨rfl, Hcent⟩ := Hce
+      have hcl' : ces'.length = fs'.length := by simpa using Hcl
+      have hlen1 : sint.Z (csl.len - W64 1) = ces'.length := by
+        have : (ces'.length + 1 : Nat) = sint.nat csl.len := by simpa using Hcsl1
+        word
+      have Hb : 0 ≤ sint.Z (csl.len - W64 1) ∧ sint.Z (csl.len - W64 1) < sint.Z csl.len := by
+        constructor <;> word
+      simp only [Hb, _root_.and_self, ↓reduceIte]
+      wp_apply wp_load_slice_index csl _ (ces' ++ [ce]) (DFrac.own 1) ce Hb.1 $$ [Hcalls] as Hcalls
+      · iframe; ipureintro; rw [hlen1]; simp
+      -- the frame's call
+      obtain ⟨hfr, hpre, hpos⟩ := Hinv.2.1
+      have hcm : (⟨false, f.id⟩ : Entry) ∈ es.map entryOf := rem_get_mem hpos
+      have hfid : f.id < h.length := (hok.2.1 _).mp hcm
+      have hfnot : f.id ∉ ids fs' := rem_get_not_mem hpos
+      obtain ⟨q', hpq', hq'⟩ := rem_call_has_ret hok hpos
+      rw [Hcent]
+      icases nodesG_read hnd (mem_slots_some hcm) _ $$ HG with ⟨Hc, HG⟩
+      simp only [slotLoc]
+      wp_auto
+      ihave HG := HG $$ Hc
+      -- `linearized.clear(uint(entry.id))`
+      rw [method_unfold (t := go.GoType.PointerType bitset.ty) (m := go!"clear")]
+      wp_call
+      wp_auto
+      have hfb : uint.nat (W64 f.id) / 64 < ws.length := by
+        rw [Hws1, show uint.nat (W64 f.id) = f.id by word]; exact bsChunks_gt _ _ hfid
+      wp_apply wp_clear lsl ws (W64 f.id) hfb $$ [Hlin] as Hlin
+      · iframe
+      -- `calls = calls[:len(calls)-1]`
+      ihave %Hwf := ownSlice_wf $$ Hcalls
+      obtain ⟨Hwf1, Hwf2⟩ := Hwf
+      have Hb2 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z (csl.len - W64 1) ∧
+          sint.Z (csl.len - W64 1) ≤ sint.Z csl.cap := by
+        refine ⟨by decide, by word, by word⟩
+      simp only [Hb2, _root_.and_self, ↓reduceIte]
+      icases ownSlice_slice_with_cap (W64 0) (csl.len - W64 1) csl (ces' ++ [ce])
+        ⟨by decide, by word, by word⟩ $$ [Hcalls Hcap] with ⟨-, Hcalls, Hcap⟩
+      · iframe
+      have hsub : subslice (sint.nat (W64 0)) (sint.nat (csl.len - W64 1)) (ces' ++ [ce]) = ces' := by
+        rw [show sint.nat (W64 0) = 0 from rfl, show sint.nat (csl.len - W64 1) = ces'.length by word]
+        simp [subslice]
+      rw [hsub]
+      wp_auto
+      -- `unlift(entry)`
+      wp_apply wp_unlift hd loc (valOf h) (es.map entryOf) (ids fs') f.pos q' f.id hnd hpos hpq' hq'
+        $$ [HG] as Hnodes
+      · iunfold nodesOwn; iframe; ipureintro; exact Hnn
+      -- `entry = entry.next`
+      iunfold nodesOwn at Hnodes
+      icases Hnodes with ⟨HG, %Hnn'⟩
+      icases nodesG_read hnd (mem_slots_some hcm) _ $$ HG with ⟨Hc, HG⟩
+      simp only [slotLoc]
+      wp_auto
+      ihave HG := HG $$ Hc
+      rw [nbrLoc_next hd loc hnd hpos]
+      wp_for_post
+      iframe
+      iexists fs', f.pre, f.pos + 1, cache
+      iframe
+      unfold searchInv
+      simp only [named]
+      iexists ce.state', lsl, bsClear ws (W64 f.id), _, ces'
+      iframe
+      iframe Hcsv Hces'
+      isplitl [HG]
+      · iunfold nodesOwn; iframe; ipureintro; exact Hnn'
+      ipureintro
+      refine ⟨⟨by rw [bsClear_length]; exact Hws1, fun i => ?_⟩, inv_pop hok Hinv he rfl, fun _ => ?_⟩
+      · rw [bsBit_clear _ _ _ hfb, Hws2, show uint.nat (W64 f.id) = f.id by word]
+        by_cases hif : i = f.id
+        · subst hif; simp [hfnot]
+        · simp [ids, hif]
+      · exact Nat.lt_of_le_of_lt hpq' (List.getElem?_eq_some_iff.mp hq').1
   · -- the loop's end: the list is empty
     have hnull : curLoc loc (rem (es.map entryOf) (ids fs)) 0 = null := by
       have : ¬ ((!decide (curLoc loc (rem (es.map entryOf) (ids fs)) 0 = null)) = true) :=

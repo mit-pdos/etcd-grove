@@ -103,6 +103,9 @@ theorem nbrLoc_next (hd : Loc) (loc : Entry → Loc) {es : List Entry} (hnd : es
   unfold curLoc
   cases (rem es B)[p + 1]? <;> rfl
 
+theorem len_zero_of (l : w64) (h1 : 0 = sint.nat l) (h2 : 0 ≤ sint.Z l) : l = W64 0 := by
+  word
+
 /-- `len(history) / 2` (a signed division). -/
 theorem sdiv_two (l : w64) (k : Nat) (h1 : sint.Z l = 2 * (k : Int)) (hk : (k : Int) < 2 ^ 60) :
     BitVec.sdiv l (W64 2) = W64 k := by
@@ -146,6 +149,48 @@ instance callsRep_persistent (S : ModelSpec GF σ) (loc : Entry → Loc) (ces : 
     (fs : List (Frame σ)) : Persistent (callsRep S loc ces fs) := by
   unfold callsRep
   exact BigSepL2.bigSepL2_persistent (fun _ _ _ _ _ => inferInstance)
+
+theorem callsRep_length (S : ModelSpec GF σ) (loc : Entry → Loc) (ces : List callsEntry)
+    (fs : List (Frame σ)) : callsRep S loc ces fs ⊢ ⌜ces.length = fs.length⌝ := by
+  unfold callsRep
+  iintro H
+  ihave %h := BigSepL2.bigSepL2_length $$ H
+  ipureintro; simpa using h
+
+/-- The newest frame is the last entry of the stack. -/
+theorem callsRep_pop (S : ModelSpec GF σ) (loc : Entry → Loc) (ces : List callsEntry)
+    (f : Frame σ) (fs : List (Frame σ)) :
+    callsRep S loc ces (f :: fs) ⊢ ∃ (ces' : List callsEntry) (ce : callsEntry),
+      ⌜ces = ces' ++ [ce] ∧ ce.entry' = loc ⟨false, f.id⟩⌝ ∗ S.rep ce.state' f.pre ∗
+      callsRep S loc ces' fs := by
+  unfold callsRep
+  simp only [List.reverse_cons]
+  iintro H
+  icases BigSepL2.bigSepL2_app_inv_right $$ H with ⟨%l1, %l2, %hces, H1, H2⟩
+  ihave %hl2 := BigSepL2.bigSepL2_length $$ H2
+  simp only [List.length_singleton] at hl2
+  obtain ⟨ce, rfl⟩ : ∃ ce, l2 = [ce] := by
+    cases l2 with
+    | nil => simp at hl2
+    | cons a l => cases l with
+      | nil => exact ⟨a, rfl⟩
+      | cons b l => simp at hl2
+  icases BigSepL2.bigSepL2_singleton.1 $$ H2 with ⟨%he, #Hs⟩
+  iexists l1, ce
+  iframe H1 Hs
+  ipureintro; exact ⟨hces, he⟩
+
+/-- The `k`-th entry of the stack holds the call of the `k`-th oldest frame. -/
+theorem callsRep_get (S : ModelSpec GF σ) (loc : Entry → Loc) (ces : List callsEntry)
+    (fs : List (Frame σ)) {k : Nat} {ce : callsEntry} {f : Frame σ} (hce : ces[k]? = some ce)
+    (hf : fs.reverse[k]? = some f) :
+    callsRep S loc ces fs ⊢ ⌜ce.entry' = loc ⟨false, f.id⟩⌝ := by
+  unfold callsRep
+  iintro H
+  icases BigSepL2.bigSepL2_lookup (Φ := fun _ ce f =>
+    iprop(⌜ce.entry' = loc ⟨false, f.id⟩⌝ ∗ S.rep ce.state' f.pre : IProp GF)) hce hf $$ H
+    with ⟨%h, -⟩
+  ipureintro; exact h
 
 theorem cacheEntryOk_cons (S : ModelSpec GF σ) (n : Nat) (cache : List ((Nat → Prop) × σ))
     (c : (Nat → Prop) × σ) (ce : cacheEntry) :
