@@ -39,15 +39,15 @@ namespace StepProof
 
 theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (scfg : GSet w64) (sv : raftpb.Snapshot) (voters learners : List w64) :
+    (scfg : CSLists) (sv : raftpb.Snapshot) :
     m.Type' = MsgSnap →
     m.To' = id →
     m.Term' ≠ W64 0 →
     m.From' ≠ W64 0 →
     m.From' ≠ id →
-    id ∈ scfg →
+    scfg.Has id →
     NStateWf s →
-    SnapScope scfg sv voters learners →
+    SnapScope sv scfg →
     -- this file: the current term
     m.Term' = s.term →
     -- not a leader: the sender leads this term (`isLeader_unique`)
@@ -57,19 +57,18 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "#Hsv" ∷ m.Snapshot' ↦□ sv ∗
-        "#Hvs" ∷ sv.Metadata'.ConfState'.Voters' ↦*□ voters ∗
-        "#Hls" ∷ ownIdList sv.Metadata'.ConfState'.Learners' DFrac.discard learners }}
+        "#Hcs" ∷ ownCSL sv.Metadata'.ConfState' scfg }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState) (c' : CfgM), RET #err;
         "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
         -- (2026-10-14, stage B7) the snapshot's configuration after a restore
-        "%Hc'" ∷ ⌜c' = c ∨ ∃ L, c' = CfgM.simple scfg L⌝ ∗
+        "%Hc'" ∷ ⌜c' = c ∨ c' = snapCfg sv scfg⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv voters) ∧
-            StepCD c id m s recv s'⌝ ∗
+        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg) ∧
+            StepCDS c c' (snapCfg sv scfg) id (snapId sv) s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hteq Hnl Hvotes
-  wp_start as ⟨Hphys, #Hsv, #Hvs, #Hls⟩
+  wp_start as ⟨Hphys, #Hsv, #Hcs⟩
   wp_auto
   wp_apply _P.traceReceiveMessage
   rw [decide_eq_false Hterm]
@@ -88,7 +87,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · -- Follower: `stepFollower`'s arm, with `r.lead = m.From`
     simp only [stepFuncOf]
     have Hvs := Hvotes Hrole
-    wp_apply _P.stepFollower c scfg r id s m [] sv voters []
+    wp_apply _P.stepFollower c scfg r id s m [] sv []
         (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -104,11 +103,10 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
       isplitl []
       · iintro %_
-        iexists learners
         isplitr
         · ipureintro
           exact ⟨Hscope, Hrole, Hvs, Hcfg, Hfid⟩
-        · iframe Hsv Hvs Hls
+        · iframe Hsv Hcs
       · iintro %Hc; exfalso; rw [Hty] at Hc
         rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
     obtain ⟨Hc1, rfl, Hhs⟩ := followerStepResult_snap _ _ _ _ _ _ _ _ Hty Hres
@@ -119,16 +117,16 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s1 %c1
     iframe Hphys
     ipureintro
-    refine ⟨Hc1, nstateWf_handle_snap (t := { s with lead := m.From' }) _ _ _ _ Hwf Hhs,
-      ⟨[absSnap m sv voters], ?_, ?_⟩, rfl⟩
+    refine ⟨snapCfgOk_cases Hc1, nstateWf_handle_snap (t := { s with lead := m.From' }) _ _ _ _ Hwf Hhs,
+      ⟨[absSnap m sv scfg], ?_, ?_⟩, rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
-    · refine StepCD.of_excluded ?_ (.inl Hty)
-      exact step_handle_snap c id _ _ m sv voters s1 (adopt_follower s m.From' Hrole Hvs) Hto
-        Hteq (by simp [toPState, Hrole, proleRole]) Hfid Hhs
+    · exact stepCDS_handle_snap c _ c1 id s _ m sv scfg s1
+        (adopt_follower s m.From' Hrole Hvs) rfl (by rw [Hrole]; decide) Hrole Hto Hteq Hfid Hhs
+        Hc1
   · -- Candidate: `becomeFollower(r.Term, m.From)`, then `handleSnapshot`
     simp only [stepFuncOf]
-    wp_apply _P.stepCandidate c scfg r id s m [] sv voters []
+    wp_apply _P.stepCandidate c scfg r id s m [] sv []
         (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))) (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -139,11 +137,10 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         first | (rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
       isplitl []
       · iintro %_
-        iexists learners
         isplitr
         · ipureintro
           exact ⟨Hscope, Hcfg, Hfid⟩
-        · iframe Hsv Hvs Hls
+        · iframe Hsv Hcs
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     obtain ⟨Hc1, rfl, pvs, Hhs⟩ := candidateStepResult_snap _ _ _ _ _ _ _ _ Hty Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -153,19 +150,21 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s1 %c1
     iframe Hphys
     ipureintro
-    refine ⟨Hc1, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs, ⟨[absSnap m sv voters], ?_, ?_⟩, rfl⟩
+    refine ⟨snapCfgOk_cases Hc1, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs,
+      ⟨[absSnap m sv scfg], ?_, ?_⟩, rfl⟩
     · exact ⟨rfl, rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
-    · refine StepCD.of_excluded ?_ (.inl Hty)
-      exact step_handle_snap c id _ _ m sv voters s1 (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
-        (by simp [toPState, Hrole, proleRole]) Hfid Hhs
+    · exact stepCDS_handle_snap c _ c1 id s _ m sv scfg s1
+        (adopt_candidate s m.From' pvs (by rw [Hrole]; decide))
+        (by simp [becomeFollower, resetTo, resetTo0]) (by rw [Hrole]; decide)
+        (by simp [becomeFollower]) Hto Hteq Hfid Hhs Hc1
   · -- Leader: excluded
     exact absurd Hrole Hnl
   · -- PreCandidate (2026-10-04), as a candidate: `becomeFollower(r.Term, m.From)`, then
     -- `handleSnapshot`
     simp only [stepFuncOf]
-    wp_apply _P.stepCandidate c scfg r id s m [] sv voters []
+    wp_apply _P.stepCandidate c scfg r id s m [] sv []
         (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))) (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -176,11 +175,10 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         first | (rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)) | exact absurd Hc (by w32_ne)
       isplitl []
       · iintro %_
-        iexists learners
         isplitr
         · ipureintro
           exact ⟨Hscope, Hcfg, Hfid⟩
-        · iframe Hsv Hvs Hls
+        · iframe Hsv Hcs
       · iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
     obtain ⟨Hc1, rfl, pvs, Hhs⟩ := candidateStepResult_snap _ _ _ _ _ _ _ _ Hty Hres
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -190,13 +188,15 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s1 %c1
     iframe Hphys
     ipureintro
-    refine ⟨Hc1, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs, ⟨[absSnap m sv voters], ?_, ?_⟩, rfl⟩
+    refine ⟨snapCfgOk_cases Hc1, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs,
+      ⟨[absSnap m sv scfg], ?_, ?_⟩, rfl⟩
     · exact ⟨rfl, rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
-    · refine StepCD.of_excluded ?_ (.inl Hty)
-      exact step_handle_snap c id _ _ m sv voters s1 (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
-        (by simp [toPState, Hrole, proleRole]) Hfid Hhs
+    · exact stepCDS_handle_snap c _ c1 id s _ m sv scfg s1
+        (adopt_candidate s m.From' pvs (by rw [Hrole]; decide))
+        (by simp [becomeFollower, resetTo, resetTo0]) (by rw [Hrole]; decide)
+        (by simp [becomeFollower]) Hto Hteq Hfid Hhs Hc1
 
 end StepProof
 

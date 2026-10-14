@@ -276,15 +276,9 @@ abbrev raft.Step.spec : Prop :=
     -- carries (a heartbeat's response echoes it; a forwarded proposal keeps it)
     (ctx : List w8),
   StepMsg m →
-  -- The node is a voter. `stepCandidate` needs this outright (its `poll` and
-  -- `becomeLeader` both do) and `spec_stepCandidate_MsgVoteResp.v` says to thread it
-  -- in "from the caller" -- but `Step` *is* the outermost caller, so it has to enter
-  -- the development here. Under the no-learner, no-reconfiguration scope this is a
-  -- property of the node, not of a particular call. Added 2026-09-16 for the
-  -- `MsgVoteResp` branch.
-  -- (2026-10-13, reconfiguration stage L: a learner steps too; a candidate or leader is a
-  -- voter by `ownRaftPhys`, and only a snapshot's `restore` still needs this)
-  (m.Type' = MsgSnap → id ∈ γ.reCfg) →
+  -- (Until 2026-10-14, stage B8, a premise `m.Type' = MsgSnap → id ∈ γ.reCfg`: the node one of
+  -- the ghost state's voters, which a snapshot's `restore` needs. It is now one of the
+  -- snapshot's ids, in `"Hsnap"`.)
   -- A `MsgHup` is local (`Term = 0`) and may start an election, which increments the
   -- term; `send` panics if that wraps to zero.
   (m.Type' = MsgHup →
@@ -433,24 +427,23 @@ abbrev raft.Step.spec : Prop :=
       "#Hctx" ∷ m.Context' ↦*□ ctx ∗
       -- (2026-10-13) a read-index request carries a read credit (`rdOwn`)
       "Hcred" ∷ rdCred γ (if m.Type' = MsgReadIndex then 1 else 0) ∗
-      -- A `MsgSnap`'s snapshot (2026-10-02): what `m.Snapshot` points to, read-only,
-      -- and the list behind its `ConfState.Voters`; under the fixed-voter-set scope
-      -- `SnapScope` (`Spec/raft__restore.lean`): the voters are `cfg`'s, `cfg` is
-      -- zero-free, the other three sets are empty and `AutoLeave` is off (what
-      -- `confchange.Restore`'s and `assertConfStatesEquivalent`'s specs cover), and
-      -- the index is below `2^61` (a pending snapshot becomes the `Storage`'s
-      -- boundary, which `isStorage`'s `Hbounded` bounds the same way). And the
-      -- abstraction `absSnap` (`Defs.lean`) -- the snapshot's metadata, not `m`'s own
-      -- `Index`/`LogTerm` -- was legitimately sent. The two added on 2026-10-02 with
-      -- the branch (`W64 0 ∉ cfg`, `AutoLeave`, the index bound) are transport/client
-      -- assumptions like the rest.
+      -- A `MsgSnap`'s snapshot (2026-10-02; any `ConfState` since 2026-10-14, stage B8): what
+      -- `m.Snapshot` points to, read-only, and the four lists `scfg` its `ConfState`'s
+      -- slices hold, read-only (`ownCSL`); well formed (`SnapScope`, `Spec/raft__restore.lean`:
+      -- `CSWf`, no repeats, `AutoLeave` off when not joint, the index below `2^61` -- a pending
+      -- snapshot becomes the `Storage`'s boundary, which `isStorage`'s `Hbounded` bounds the
+      -- same way), the node one of its ids (`CSLists.Has`); what the mode asks of it
+      -- (`GMode.SnapOk`: statically the ghost state's voters, not joint; dynamically A3, the
+      -- `ConfState` the fold of the snapshot's prefix); and the abstraction `absSnap`
+      -- (`Defs.lean`) -- the snapshot's metadata, not `m`'s own `Index`/`LogTerm` -- was
+      -- legitimately sent. Transport/client assumptions like the rest.
       "#Hsnap" ∷ □ (⌜m.Type' = MsgSnap⌝ -∗
-         ∃ (sv : raftpb.Snapshot) (voters learners : List w64),
+         ∃ (sv : raftpb.Snapshot) (scfg : CSLists),
            m.Snapshot' ↦□ sv ∗
-           sv.Metadata'.ConfState'.Voters' ↦*□ voters ∗
-           ownIdList sv.Metadata'.ConfState'.Learners' DFrac.discard learners ∗
-           ⌜SnapScope γ.reCfg sv voters learners⌝ ∗
-           isMessage γ (absSnap m sv voters)) }}
+           ownCSL sv.Metadata'.ConfState' scfg ∗
+           ⌜SnapScope sv scfg ∧ scfg.Has id⌝ ∗
+           md.SnapOk γ sv scfg ∗
+           isMessage γ (absSnap m sv scfg)) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
   {{ (err : GoInterface) (s' : NState) (c' : CfgM) (md' : GMode), RET #err;
       "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
@@ -655,12 +648,11 @@ abbrev raft.Step.specS : Prop :=
       -- the branch (`W64 0 ∉ cfg`, `AutoLeave`, the index bound) are transport/client
       -- assumptions like the rest.
       "#Hsnap" ∷ □ (⌜m.Type' = MsgSnap⌝ -∗
-         ∃ (sv : raftpb.Snapshot) (voters learners : List w64),
+         ∃ (sv : raftpb.Snapshot) (scfg : CSLists),
            m.Snapshot' ↦□ sv ∗
-           sv.Metadata'.ConfState'.Voters' ↦*□ voters ∗
-           ownIdList sv.Metadata'.ConfState'.Learners' DFrac.discard learners ∗
-           ⌜SnapScope cfg sv voters learners⌝ ∗
-           isMessage γ (absSnap m sv voters)) }}
+           ownCSL sv.Metadata'.ConfState' scfg ∗
+           ⌜SnapScope sv scfg ∧ GMap.listToSet scfg.voters = cfg ∧ scfg.outgoing = []⌝ ∗
+           isMessage γ (absSnap m sv scfg)) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
   {{ (err : GoInterface) (s' : NState) (ps' : PState), RET #err;
       "Hphys" ∷ ownRaftPhys cfg r id s' ∗
@@ -692,7 +684,7 @@ theorem raft.Step.spec_simple (H : raft.Step.spec (GF := GF) (hG := hG)) :
   ihave %Hst := ownRaftGhost_static γ id _ $$ Hghost
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
   iapply H (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) .static γ r id s m ents ctx
-      Hsm Hin Hhup Hvote Hvoteresp Hprevote Hprevoteresp
+      Hsm Hhup Hvote Hvoteresp Hprevote Hprevoteresp
       Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr
       (fun h => by
         obtain ⟨h1, h2⟩ := Hri h
@@ -701,11 +693,27 @@ theorem raft.Step.spec_simple (H : raft.Step.spec (GF := GF) (hG := hG)) :
         omega)
       (fun _ h => absurd h (by simp [CfgM.simple]))
       Hrir Hrest Hwf trivial
-    $$ [$Hpkg $Hphys $Hm $Hctx $Hcred $Hsnap Hghost]
-  · simp only [ownStepGhost, ghostRest, GMode.isDyn]
-    isplitl [Hghost]
-    · iexact Hghost
-    ipureintro; exact CfgStatic.simple γ _ Hst
+    $$ [$Hpkg $Hphys $Hm $Hctx $Hcred Hghost]
+  · isplitl [Hghost]
+    · simp only [ownStepGhost, ghostRest, GMode.isDyn]
+      isplitl [Hghost]
+      · iexact Hghost
+      ipureintro; exact CfgStatic.simple γ _ Hst
+    -- the snapshot: the node is one of its voters, the ghost state's
+    imodintro
+    iintro %Hns
+    icases Hsnap $$ %Hns with ⟨%sv, %scfg, #Hsv, #Hcs, %Hsc, #Hm'⟩
+    obtain ⟨Hscope, Hvs, Hout⟩ := Hsc
+    iexists sv, scfg
+    iframe Hsv Hcs Hm'
+    isplitr
+    · ipureintro
+      refine ⟨Hscope, .inl ?_⟩
+      have := Hin Hns
+      rw [← Hvs] at this
+      exact (GMap.elem_of_list_to_set _ _).1 this
+    simp only [GMode.SnapOk]
+    ipureintro; exact ⟨Hvs, Hout⟩
   inext
   iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', %Hlocal, %Hframe, %Hterm,
     %Hresp, Herr⟩

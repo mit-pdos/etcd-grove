@@ -36,7 +36,7 @@ namespace StepProof
 
 theorem wp_Step_MsgSnap_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (sv : raftpb.Snapshot) (voters : List w64) :
+    (sv : raftpb.Snapshot) (scfg : CSLists) :
     m.Type' = MsgSnap →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -49,8 +49,8 @@ theorem wp_Step_MsgSnap_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv voters) ∧
-            StepCD c id m s recv s'⌝ ∗
+        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg) ∧
+            StepCDS c c (snapCfg sv scfg) id (snapId sv) s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hto Hterm Hwf Hlt
   wp_start as Hphys
@@ -79,7 +79,8 @@ theorem wp_Step_MsgSnap_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
-    exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.of_excluded (.refl _) (.inl Hty)⟩, rfl⟩
+    exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
+      StepCDS.frame (.refl _) (RFrame.refl _)⟩, rfl⟩
 
 end StepProof
 

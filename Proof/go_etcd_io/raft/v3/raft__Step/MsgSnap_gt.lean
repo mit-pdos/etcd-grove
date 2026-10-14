@@ -39,33 +39,32 @@ namespace StepProof
 
 theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (scfg : GSet w64) (sv : raftpb.Snapshot) (voters learners : List w64) :
+    (scfg : CSLists) (sv : raftpb.Snapshot) :
     m.Type' = MsgSnap →
     m.To' = id →
     m.Term' ≠ W64 0 →
     m.From' ≠ W64 0 →
     m.From' ≠ id →
-    id ∈ scfg →
+    scfg.Has id →
     NStateWf s →
-    SnapScope scfg sv voters learners →
+    SnapScope sv scfg →
     -- this file: the incoming term is higher
     uint.Z s.term < uint.Z m.Term' →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "#Hsv" ∷ m.Snapshot' ↦□ sv ∗
-        "#Hvs" ∷ sv.Metadata'.ConfState'.Voters' ↦*□ voters ∗
-        "#Hls" ∷ ownIdList sv.Metadata'.ConfState'.Learners' DFrac.discard learners }}
+        "#Hcs" ∷ ownCSL sv.Metadata'.ConfState' scfg }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState) (c' : CfgM), RET #err;
         "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
         -- (2026-10-14, stage B7) the snapshot's configuration after a restore
-        "%Hc'" ∷ ⌜c' = c ∨ ∃ L, c' = CfgM.simple scfg L⌝ ∗
+        "%Hc'" ∷ ⌜c' = c ∨ c' = snapCfg sv scfg⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv voters) ∧
-            StepCD c id m s recv s'⌝ ∗
+        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg) ∧
+            StepCDS c c' (snapCfg sv scfg) id (snapId sv) s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hgt
-  wp_start as ⟨Hphys, #Hsv, #Hvs, #Hls⟩
+  wp_start as ⟨Hphys, #Hsv, #Hcs⟩
   wp_auto
   wp_apply _P.traceReceiveMessage
   rw [decide_eq_false Hterm]
@@ -89,7 +88,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   rw [show ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).stepfn
       = functions stepFollower [] from rfl]
   wp_apply _P.stepFollower c scfg r id
-      ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) m [] sv voters []
+      ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) m [] sv []
       (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -105,11 +104,10 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
     isplitl []
     · iintro %_
-      iexists learners
       isplitr
       · ipureintro
         exact ⟨Hscope, rfl, rfl, Hcfg, Hfid⟩
-      · iframe Hsv Hvs Hls
+      · iframe Hsv Hcs
     · iintro %Hc; exfalso; rw [Hty] at Hc
       rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne)
   obtain ⟨Hc1, rfl, Hhs⟩ := followerStepResult_snap _ _ _ _ _ _ _ _ Hty Hres
@@ -120,17 +118,23 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   iapply HΦ $$ %interface.nil %s1 %c1
   iframe Hphys
   ipureintro
-  refine ⟨Hc1, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs, ?_, rfl⟩
+  refine ⟨snapCfgOk_cases Hc1, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs, ?_, rfl⟩
   · exact ⟨rfl, rfl⟩
-  refine ⟨[absSnap m sv voters] ++ [absSnap m sv voters], ?_, ?_⟩
+  refine ⟨[absSnap m sv scfg] ++ [absSnap m sv scfg], ?_, ?_⟩
   · intro m' Hm'
     simp only [List.mem_append, List.mem_singleton, or_self] at Hm'
     exact Hm'
-  · refine StepCD.of_excluded ?_ (.inl Hty)
-    refine .trans _ _ _ _ _ (step_higher_term_snap c id (toPState s) m sv voters Hgt Hto Hfid) ?_
-    exact step_handle_snap c id _ _ m sv voters s1
-      (adopt_after_stepdown s m.Term' m.From' pvs) Hto rfl (by simp [pbecomeFollower]) Hfid
-      Hhs
+  · -- the step-down (a frame step), then `handleSnapshot` on the follower
+    have e : toPState ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) =
+        pbecomeFollower (toPState s) m.Term' m.From' := by
+      rw [toPState_prvals_nl _ _ (by simp [becomeFollower]), toPState_becomeFollower]
+    have Hcf := stepCF_higher_term_snap c id (toPState s) m sv scfg Hgt Hto Hfid
+    rw [← e] at Hcf
+    refine StepCDS.trans_frame Hcf ⟨by simp [becomeFollower, resetTo, resetTo0],
+      by simp [becomeFollower, resetTo, resetTo0], fun h => by simp [becomeFollower] at h⟩ ?_
+    exact stepCDS_handle_snap c _ c1 id _ _ m sv scfg s1
+      (adopt_follower _ m.From' rfl rfl) rfl (by simp [becomeFollower]) rfl Hto
+      (by simp [toPState, becomeFollower, resetTo, resetTo0]) Hfid Hhs Hc1
 
 end StepProof
 

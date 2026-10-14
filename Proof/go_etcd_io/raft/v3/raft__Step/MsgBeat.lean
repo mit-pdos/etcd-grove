@@ -69,7 +69,7 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   cases Hrole : s.role
   · -- Follower: no `MsgBeat` arm
     simp only [stepFuncOf]
-    wp_apply _P.stepFollower c ∅ r id s m [] (zero_val _) [] []
+    wp_apply _P.stepFollower c ∅ r id s m [] (zero_val _) []
         (.inr (.inr (.inr (.inr (.inl Hty3)))))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -99,7 +99,7 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     exact ⟨Hwf, StepCD.frame (.refl _) (RFrame.refl _), rfl, keep_frame rfl rfl rfl rfl rfl⟩
   · -- Candidate: no `MsgBeat` arm either
     simp only [stepFuncOf]
-    wp_apply _P.stepCandidate c ∅ r id s m [] (zero_val _) [] []
+    wp_apply _P.stepCandidate c ∅ r id s m [] (zero_val _) []
         (.inr (.inr (.inr (.inr (.inl Hty3)))))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
@@ -154,7 +154,7 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     exact ⟨Hwf', Hstep, rfl, keep_frame_logst Ht Hl Hpv Hg⟩
   · -- PreCandidate (2026-10-04), as a candidate: no `MsgBeat` arm either
     simp only [stepFuncOf]
-    wp_apply _P.stepCandidate c ∅ r id s m [] (zero_val _) [] []
+    wp_apply _P.stepCandidate c ∅ r id s m [] (zero_val _) []
         (.inr (.inr (.inr (.inr (.inl Hty3)))))
         (fun Hc => by
           exfalso; rw [Hty] at Hc

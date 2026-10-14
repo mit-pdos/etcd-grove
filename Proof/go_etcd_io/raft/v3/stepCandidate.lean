@@ -55,7 +55,7 @@ theorem stepCandidate.wp_proof
     (wp_raft_handleSnapshot : raft.handleSnapshot.spec (GF := GF) (hG := hG))
     (wp_raft_campaign : raft.campaign.spec (GF := GF) (hG := hG)) :
     stepCandidate.spec (GF := GF) (hG := hG) := by
-  intro c scfg r id s m ents sv voters cl Hty Hterm Hrole Happ Hhb Hpvnw
+  intro c scfg r id s m ents sv cl Hty Hterm Hrole Happ Hhb Hpvnw
   wp_start as H
   iNamed H
   -- a candidate is a voter (`ownRaftPhys`'s `Hvoter`; until 2026-10-13 a premise)
@@ -282,7 +282,7 @@ theorem stepCandidate.wp_proof
     have Hterm' := (Hterm (Or.inr (Or.inr (Or.inr Hty)))).1
     rw [Hty]
     ihave Hs := Hsnap $$ %rfl
-    icases Hs with ⟨%learners, %Hsc, #Hsv, #Hvs, #Hls⟩
+    icases Hs with ⟨%Hsc, #Hsv, #Hcs⟩
     obtain ⟨Hscope, Hcfg', Hfid⟩ := Hsc
     simp only [MsgSnap]
     wp_auto
@@ -290,8 +290,8 @@ theorem stepCandidate.wp_proof
       (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) $$ [$Hphys]
       as %pvs Hphys
     -- (2026-10-14) at any configuration: `handleSnapshot` on the struct at `c`
-    wp_apply wp_raft_handleSnapshot c scfg _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
-        _ sv voters learners rfl rfl Hcfg' Hscope Hfid $$ [$Hphys $Hsv $Hvs $Hls]
+    wp_apply wp_raft_handleSnapshot c _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
+        _ sv scfg rfl rfl Hcfg' Hscope Hfid $$ [$Hphys $Hsv $Hcs]
       as %s' %c' ⟨Hphys, %Hres, %Hc'⟩
     iapply HΦ $$ %GoInterface.nil %s' %false %c'
     iframe Hphys

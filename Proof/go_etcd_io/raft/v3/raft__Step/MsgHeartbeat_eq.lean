@@ -85,7 +85,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
   · -- Follower: `stepFollower`'s arm, with `r.lead = m.From`
     simp only [stepFuncOf]
     have Hvs := Hvotes Hrole
-    wp_apply _P.stepFollower c ∅ r id s m ents (zero_val _) [] ctx (.inr (.inr (.inr (.inl Hty))))
+    wp_apply _P.stepFollower c ∅ r id s m ents (zero_val _) ctx (.inr (.inr (.inr (.inl Hty))))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -118,7 +118,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         (by simp [toPState, Hrole, proleRole]) Hcommit Hfid
   · -- Candidate: `becomeFollower(r.Term, m.From)`, then the handler
     simp only [stepFuncOf]
-    wp_apply _P.stepCandidate c ∅ r id s m ents (zero_val _) [] ctx
+    wp_apply _P.stepCandidate c ∅ r id s m ents (zero_val _) ctx
         (.inr (.inr (.inr (.inl Hty)))) (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ => ⟨Hcommit, Hfid⟩)
@@ -176,7 +176,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
   · -- PreCandidate (2026-10-04), as a candidate: `becomeFollower(r.Term, m.From)`, then
     -- the handler
     simp only [stepFuncOf]
-    wp_apply _P.stepCandidate c ∅ r id s m ents (zero_val _) [] ctx
+    wp_apply _P.stepCandidate c ∅ r id s m ents (zero_val _) ctx
         (.inr (.inr (.inr (.inl Hty)))) (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ => ⟨Hcommit, Hfid⟩)

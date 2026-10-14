@@ -202,18 +202,28 @@ def absMsg (ty : MsgType) (m : raftpb.Message) (ents : List raftpb.Entry)
     (ctx : List w8 := []) : Msg :=
   absMsgFrom ty m m.From' m.Term' ents ctx
 
+/-- The four id lists of a `ConfState` (2026-10-14, reconfiguration stage B8): what its
+`Voters`, `Learners`, `VotersOutgoing` and `LearnersNext` slices hold. A joint configuration's
+`ConfState` has all four; `confchange.Restore` reads all four (`Restore.spec`). -/
+structure CSLists where
+  voters : List w64
+  learners : List w64
+  outgoing : List w64
+  learnersNext : List w64
+
 /-- The abstraction of a `MsgSnap` (2026-10-02). What the protocol reads of a snapshot
 is behind the pointer `m.Snapshot`: `sv` is the `Snapshot` it points to, and `voters`
-the list behind `sv`'s `Metadata.ConfState.Voters` slice. `index`/`logterm` are the
+the lists behind `sv`'s `Metadata.ConfState` slices (since 2026-10-14, stage B8, all four;
+the abstract message keeps the incoming voters). `index`/`logterm` are the
 snapshot's `Metadata.Index`/`Metadata.Term` -- not `m`'s own `Index`/`LogTerm`, which
 `maybeSendSnapshot` leaves at `0` -- and there are no entries. As for `absMsgFrom`,
 `src`/`term` are given separately because `send` stamps them. -/
 def absSnapFrom (m : raftpb.Message) (src term : w64) (sv : raftpb.Snapshot)
-    (voters : List w64) : Msg :=
+    (voters : CSLists) : Msg :=
   Msg.mkV .snap src m.To' term m.Reject' sv.Metadata'.Index' sv.Metadata'.Term'
-    m.Commit' m.RejectHint' [] voters []
+    m.Commit' m.RejectHint' [] voters.voters []
 
-def absSnap (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : List w64) : Msg :=
+def absSnap (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : CSLists) : Msg :=
   absSnapFrom m m.From' m.Term' sv voters
 
 end msgs

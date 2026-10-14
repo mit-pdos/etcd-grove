@@ -51,7 +51,7 @@ local macro "prevote_resp_dispatch" : tactic =>
     cases Hrole : s.role
     · -- Follower: no arm
       simp only [stepFuncOf]
-      wp_apply _P.stepFollower c ∅ r id s m [] (zero_val _) [] []
+      wp_apply _P.stepFollower c ∅ r id s m [] (zero_val _) []
           (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -83,7 +83,7 @@ local macro "prevote_resp_dispatch" : tactic =>
     · -- Candidate: `myVoteRespType` is `MsgVoteResp`; a stale pre-vote response is
       -- ignored
       simp only [stepFuncOf]
-      wp_apply _P.stepCandidate c ∅ r id s m [] (zero_val _) [] []
+      wp_apply _P.stepCandidate c ∅ r id s m [] (zero_val _) []
           (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
           (fun Hc => by
             exfalso; rw [Hty] at Hc
@@ -142,7 +142,7 @@ local macro "prevote_resp_dispatch" : tactic =>
       RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
     · -- PreCandidate: the pre-vote tally
       simp only [stepFuncOf]
-      wp_apply _P.stepCandidate c ∅ r id s m [] (zero_val _) [] []
+      wp_apply _P.stepCandidate c ∅ r id s m [] (zero_val _) []
           (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
           (fun Hc => by
             exfalso; rw [Hty] at Hc
@@ -253,7 +253,7 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
       (by simp [absMsg, absMsgFrom, fromLeader])
   rw [show ({ becomeFollower s m.Term' (W64 0) with prvals := pvs } : NState).stepfn =
     functions stepFollower [] from rfl]
-  wp_apply _P.stepFollower c ∅ r id _ m [] (zero_val _) [] []
+  wp_apply _P.stepFollower c ∅ r id _ m [] (zero_val _) []
       (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty)))))))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))

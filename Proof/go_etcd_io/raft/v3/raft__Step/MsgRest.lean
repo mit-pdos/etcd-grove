@@ -48,7 +48,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
 
-theorem followerStepResult_forget (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id : w64) (s : NState) (m : raftpb.Message)
+theorem followerStepResult_forget (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
     (cl : List w8) (Hty : m.Type' = MsgForgetLeader)
     (H : FollowerStepResultC c scfg id s m ents sv dropped s' c' cl) :
@@ -61,7 +61,7 @@ theorem followerStepResult_forget (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id :
     MsgForgetLeader, W32] at H
   simpa using H
 
-theorem followerStepResult_rnoop (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id : w64) (s : NState) (m : raftpb.Message)
+theorem followerStepResult_rnoop (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
     (cl : List w8)
     (Hty : m.Type' = MsgTransferLeader ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus)
@@ -75,7 +75,7 @@ theorem followerStepResult_rnoop (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id : 
     MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, W32] at H <;>
   simpa using H
 
-theorem followerStepResult_timeout (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id : w64) (s : NState) (m : raftpb.Message)
+theorem followerStepResult_timeout (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
     (cl : List w8) (Hty : m.Type' = MsgTimeoutNow)
     (H : FollowerStepResultC c scfg id s m ents sv dropped s' c' cl) :
@@ -88,7 +88,7 @@ theorem followerStepResult_timeout (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id 
     MsgForgetLeader, MsgTransferLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, W32] at H
   simpa using H
 
-theorem candidateStepResult_rest (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id : w64) (s : NState)
+theorem candidateStepResult_rest (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState)
     (m : raftpb.Message) (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool)
     (s' : NState) (cl : List w8)
     (Hty : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
@@ -161,7 +161,7 @@ local macro "ity_other" : tactic => `(tactic| (iintro %Hc; exfalso; rw [Hty] at 
 set_option hygiene false in
 /-- `wp_Step_MsgLocal` at a follower. -/
 local macro "local_follower" : tactic => `(tactic| (
-  wp_apply _P.stepFollower c ∅ r id s m [] (zero_val _) [] [] (by simp [Hty])
+  wp_apply _P.stepFollower c ∅ r id s m [] (zero_val _) [] (by simp [Hty])
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
     $$ [Hphys] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
   · iframe Hphys
@@ -201,7 +201,7 @@ local macro "local_follower" : tactic => `(tactic| (
 set_option hygiene false in
 /-- `wp_Step_MsgLocal` at a candidate or pre-candidate: nothing. -/
 local macro "local_candidate" : tactic => `(tactic| (
-  wp_apply _P.stepCandidate c ∅ r id s m [] (zero_val _) [] [] (by simp [Hty])
+  wp_apply _P.stepCandidate c ∅ r id s m [] (zero_val _) [] (by simp [Hty])
       (by ty_other) (by simp [Hrole]) (by ty_other) (by ty_other)
       (fun _ Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
     $$ [Hphys] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
@@ -251,7 +251,7 @@ local macro "local_leader" : tactic => `(tactic| (
 set_option hygiene false in
 /-- A leader-transfer request at a follower (at the state `s`): forwarded, or dropped. -/
 local macro "transfer_follower " h:term : tactic => `(tactic| (
-  wp_apply _P.stepFollower c ∅ r id s m [] (zero_val _) [] [] (by simp [Hty])
+  wp_apply _P.stepFollower c ∅ r id s m [] (zero_val _) [] (by simp [Hty])
       (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (fun _ => ⟨fun _ => ⟨$h, Hent, Hctx0⟩, fun h' => absurd h' (by rw [Hty]; w32_ne)⟩)
     $$ [Hphys] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
@@ -279,7 +279,7 @@ local macro "transfer_follower " h:term : tactic => `(tactic| (
 set_option hygiene false in
 /-- `MsgTimeoutNow` at a follower (at the state `s`): `hup(campaignTransfer)`. -/
 local macro "timeout_follower" : tactic => `(tactic| (
-  wp_apply _P.stepFollower c ∅ r id s m [] (zero_val _) [] [] (by simp [Hty])
+  wp_apply _P.stepFollower c ∅ r id s m [] (zero_val _) [] (by simp [Hty])
       (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (fun _ => ⟨fun h' => absurd h' (by rw [Hty]; w32_ne), fun _ => ⟨Hnw, Hwf⟩⟩)
     $$ [Hphys] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
@@ -428,7 +428,7 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
       stepFuncOf .follower from rfl]
     simp only [stepFuncOf]
     wp_apply _P.stepFollower c ∅ r id { becomeFollower s m.Term' (W64 0) with prvals := pvs }
-        m [] (zero_val _) [] [] (by simp [Hty])
+        m [] (zero_val _) [] (by simp [Hty])
         (by ty_other) (by ty_other) (by ty_other) (by ty_other)
         (fun _ => ⟨fun _ => ⟨.inl rfl, Hent, Hctx0⟩, fun h' => absurd h' (by rw [Hty]; w32_ne)⟩)
       $$ [Hphys] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
@@ -555,7 +555,7 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       stepFuncOf .follower from rfl]
     simp only [stepFuncOf]
     wp_apply _P.stepFollower c ∅ r id { becomeFollower s m.Term' (W64 0) with prvals := pvs }
-        m [] (zero_val _) [] [] (by simp [Hty])
+        m [] (zero_val _) [] (by simp [Hty])
         (by ty_other) (by ty_other) (by ty_other) (by ty_other)
         (fun _ => ⟨fun h' => absurd h' (by rw [Hty]; w32_ne), fun _ => ⟨Hnwm, ⟨rfl, rfl⟩⟩⟩)
       $$ [Hphys] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩

@@ -201,10 +201,10 @@ abbrev raft.send.spec : Prop :=
       "#Hents" ∷ m.Entries' ↦*□ ents ∗
       "#Hctx" ∷ m.Context' ↦*□ ctx ∗
       "#Hsnap" ∷ □ (⌜m.Type' = MsgSnap⌝ -∗
-                    ∃ (sv : raftpb.Snapshot) (voters : List w64),
+                    ∃ (sv : raftpb.Snapshot) (voters : CSLists),
                       ⌜out = [absSnapFrom m id s.term sv voters]⌝ ∗
                       m.Snapshot' ↦□ sv ∗
-                      sv.Metadata'.ConfState'.Voters' ↦*□ voters) }}
+                      ownCSL sv.Metadata'.ConfState' voters) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #m))
   {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s out) }}
 
@@ -220,10 +220,10 @@ abbrev raft.send.specS : Prop :=
       "#Hents" ∷ m.Entries' ↦*□ ents ∗
       "#Hctx" ∷ m.Context' ↦*□ ctx ∗
       "#Hsnap" ∷ □ (⌜m.Type' = MsgSnap⌝ -∗
-                    ∃ (sv : raftpb.Snapshot) (voters : List w64),
+                    ∃ (sv : raftpb.Snapshot) (voters : CSLists),
                       ⌜out = [absSnapFrom m id s.term sv voters]⌝ ∗
                       m.Snapshot' ↦□ sv ∗
-                      sv.Metadata'.ConfState'.Voters' ↦*□ voters) }}
+                      ownCSL sv.Metadata'.ConfState' voters) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #m))
   {{ RET #(); ownRaftPhys cfg r id (sendMsgs s out) }}
 
