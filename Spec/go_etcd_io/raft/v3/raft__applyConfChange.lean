@@ -111,6 +111,99 @@ def ApplyCCOkC (c' : CfgM) (id : w64) (s s' : NState) : Prop :=
     domSet prs = c'.ids ∧ MatchKept s.prvals pvs ∧
     SwitchOkC c' id { s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } s'
 
+/-- The protocol reading of `ApplyCCOkC` at the new configuration `c'` (2026-10-14,
+reconfiguration stage A3): a node that is not a leader, or a leader that stays a voter of either
+half of `c'`, takes one `StepC c'` step receiving nothing (at a leader `reMatch`, then `commit`
+by a joint quorum if `maybeCommit` moved the commit index, then `sendApps`; `refl` at a
+non-leader), with `applyCCOk_step`'s frame. A leader removed or demoted (no voter of `c'`) takes
+the `reMatch` step and then steps down at its own term (`becomeFollower(r.Term, None)`,
+`stepDownOnRemoval`), which no `StepC` rule describes: `StepC` has no step-down of a leader at
+its own term (`abandon` is a non-leader's). -/
+theorem applyCCOkC_step (c' : CfgM) (id : w64) (s s' : NState) (H : ApplyCCOkC c' id s s') :
+    (StepC c' id (toPState s) [] (toPState s') ∧
+      s'.role = s.role ∧ s'.stepfn = s.stepfn ∧ s'.ticking = s.ticking ∧ s'.term = s.term ∧
+      s'.prevote = s.prevote ∧ s'.gh = s.gh ∧
+      s'.logst = { s.logst with committed := s'.logst.committed } ∧
+      uint.Z s.logst.committed ≤ uint.Z s'.logst.committed) ∨
+    (s.role = .leader ∧ id ∉ c'.voters ∧
+      ∃ ps1, StepC c' id (toPState s) [] ps1 ∧
+        toPState s' = pbecomeFollower ps1 s.term (W64 0)) := by
+  obtain ⟨prs, pvs, -, Hmk, Hsw⟩ := H
+  unfold SwitchOkC at Hsw
+  by_cases Hl : s.role = .leader
+  · rw [if_pos (show ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
+        NState).role = .leader from Hl)] at Hsw
+    have Hpl : (toPState s).role = .leader := by simp [toPState, Hl, proleRole]
+    -- the new `Progress` values
+    have H1 : StepC c' id (toPState s) []
+        (toPState { s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id }) := by
+      have e : toPState { s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } =
+          { toPState s with matched := prvalsMatch pvs } := by simp [toPState, Hl]
+      rw [e]
+      refine .reMatch _ _ Hpl (fun v i hv => ?_)
+      simp only [prvalsMatch, GMap.lookup_fmap'] at hv
+      cases hp : pvs !! v with
+      | none => rw [hp] at hv; cases hv
+      | some p' =>
+        rw [hp] at hv
+        simp only [Option.map_some, Option.some.injEq] at hv
+        subst hv
+        rcases Hmk v p' hp with h0 | ⟨p, hp0, hm⟩
+        · exact .inl h0
+        · right
+          simp [toPState, Hl, prvalsMatch, GMap.lookup_fmap', hp0, hm]
+    by_cases Hv : id ∈ c'.voters
+    · rw [if_pos Hv] at Hsw
+      left
+      obtain ⟨c, ms, pvs2, lt', Hc, Hms, Hmm, rfl⟩ := Hsw
+      generalize Hs1 : ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
+        NState) = s1 at H1 Hc Hms Hmm
+      have Hl1 : s1.role = .leader := by rw [← Hs1]; exact Hl
+      have Hpl1 : (toPState s1).role = .leader := by simp [toPState, Hl1, proleRole]
+      -- the commit
+      have H2 : StepC c' id (toPState s1) []
+          (toPState { s1 with logst := { s1.logst with committed := c } }) := by
+        rcases Hc with rfl | ⟨Hlt, Hle, Htm, Hq⟩
+        · have e : ({ s1 with logst := { s1.logst with committed := s1.logst.committed } } : NState)
+              = s1 := by cases s1; rfl
+          rw [e]; exact .refl _
+        · have e : toPState { s1 with logst := { s1.logst with committed := c } } =
+              { toPState s1 with commit := c } := by simp [toPState, Hl1]
+          rw [e]
+          exact .commit _ c Hpl1 Hlt Hle Htm Hq
+      generalize Hs2 : ({ s1 with logst := { s1.logst with committed := c } } : NState) = s2
+        at H2 Hms
+      have Hl2 : s2.role = .leader := by rw [← Hs2]; exact Hl1
+      -- the appends
+      have H3 : StepC c' id (toPState s2) []
+          (toPState { sendMsgs s2 ms with prvals := pvs2, lt := lt' }) := by
+        have e : toPState { sendMsgs s2 ms with prvals := pvs2, lt := lt' } =
+            toPState { sendMsgs s2 ms with prvals := pvs2 } := rfl
+        rw [e, toPState_prvals (sendMsgs s2 ms) pvs2 (fun _ => by
+          rw [Hmm]; rw [← Hs2]; rfl), toPState_sendMsgs]
+        exact .sendApps _ ms (by simp [toPState, Hl2, proleRole]) Hms
+      refine ⟨.trans _ _ _ _ _ H1 (.trans _ _ _ _ _ H2 H3), ?_⟩
+      subst Hs1 Hs2
+      refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_⟩
+      rcases Hc with rfl | ⟨Hlt, -⟩
+      · exact Int.le_refl _
+      · simp only [toPState] at Hlt; simp only [sendMsgs]; omega
+    · -- removed or demoted: `reMatch`, then the step-down
+      rw [if_neg Hv] at Hsw
+      right
+      obtain ⟨pvs', rfl⟩ := Hsw
+      refine ⟨Hl, Hv, _, H1, ?_⟩
+      rw [toPState_prvals _ _ (fun h => by simp [becomeFollower] at h), toPState_becomeFollower]
+  · rw [if_neg (show ¬ ({ s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } :
+        NState).role = .leader from Hl)] at Hsw
+    subst Hsw
+    left
+    have e : toPState { s with progress := prs, prvals := pvs, isLearner := learnerOfC c' id } =
+        toPState s := by
+      simp [toPState, Hl]
+    rw [e]
+    exact ⟨.refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩
+
 end pure
 
 section spec

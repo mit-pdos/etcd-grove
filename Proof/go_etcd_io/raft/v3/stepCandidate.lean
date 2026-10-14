@@ -55,7 +55,7 @@ theorem stepCandidate.wp_proof
     (wp_raft_handleSnapshot : raft.handleSnapshot.spec (GF := GF) (hG := hG))
     (wp_raft_campaign : raft.campaign.spec (GF := GF) (hG := hG)) :
     stepCandidate.spec (GF := GF) (hG := hG) := by
-  intro c r id s m ents sv voters cl Hty Hterm Hrole Happ Hhb Hpvnw
+  intro c scfg r id s m ents sv voters cl Hty Hterm Hrole Happ Hhb Hpvnw
   wp_start as H
   iNamed H
   -- a candidate is a voter (`ownRaftPhys`'s `Hvoter`; until 2026-10-13 a premise)
@@ -283,26 +283,23 @@ theorem stepCandidate.wp_proof
     rw [Hty]
     ihave Hs := Hsnap $$ %rfl
     icases Hs with ⟨%learners, %Hsc, #Hsv, #Hvs, #Hls⟩
-    obtain ⟨Hout, Hscope, Hfid⟩ := Hsc
-    have Hcfg' : id ∈ c.incoming := by rw [← CfgM.voters_of_out Hout]; exact Hcfg
+    obtain ⟨Hscope, Hcfg', Hfid⟩ := Hsc
     simp only [MsgSnap]
     wp_auto
     wp_apply wp_raft_becomeFollower _ _ _ _ _ _
       (by exact Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hterm'.symm)) $$ [$Hphys]
       as %pvs Hphys
-    -- a non-joint configuration: the struct as `ownRaftPhys`, which `handleSnapshot` takes
-    icases ownRaftPhysC_toPhys c r id _ Hout $$ Hphys with ⟨Hphys, -⟩
-    wp_apply wp_raft_handleSnapshot _ _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
+    -- (2026-10-14) at any configuration: `handleSnapshot` on the struct at `c`
+    wp_apply wp_raft_handleSnapshot c scfg _ _ { becomeFollower s m.Term' m.From' with prvals := pvs }
         _ sv voters learners rfl rfl Hcfg' Hscope Hfid $$ [$Hphys $Hsv $Hvs $Hls]
-      as %s' ⟨Hphys, %Hres⟩
-    ihave Hphys := ownRaftPhys_toC' $$ Hphys
-    iapply HΦ $$ %GoInterface.nil %s' %false %(CfgM.simple c.incoming (domSet s'.progress \ c.incoming))
+      as %s' %c' ⟨Hphys, %Hres, %Hc'⟩
+    iapply HΦ $$ %GoInterface.nil %s' %false %c'
     iframe Hphys
     simp only [Bool.false_eq_true, ↓reduceIte]
     ipureintro
     refine ⟨?_, trivial⟩
     unfold CandidateStepResultC
-    refine ⟨by simp [Hty], ?_⟩
+    refine ⟨by rw [if_pos Hty]; exact Hc', ?_⟩
     simp only [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
       MsgAppResp, MsgHeartbeatResp, MsgSnap]
     refine ⟨trivial, pvs, ?_⟩
@@ -340,7 +337,7 @@ theorem stepCandidate.wp_proof
           (lost = true →
             JLost c (recordVote s.votes m.From' (!m.Reject'))) →
           s' = { prevoteRespResult id s m.From' m.Reject' won lost peers with prvals := pvs } →
-          CandidateStepResultC c id s m ents sv false s' c cl := by
+          CandidateStepResultC c scfg id s m ents sv false s' c cl := by
         intro s' won lost peers pvs Hw Hl Hs'
         unfold CandidateStepResultC
         refine ⟨by simp [Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader, MsgTimeoutNow, MsgUnreachable, MsgSnapStatus], ?_⟩

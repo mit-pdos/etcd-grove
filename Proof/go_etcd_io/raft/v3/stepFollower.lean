@@ -55,7 +55,7 @@ theorem stepFollower.wp_proof
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
     (wp_raft_hup : raft.hup.spec (GF := GF) (hG := hG)) :
     stepFollower.spec (GF := GF) (hG := hG) := by
-  intro c r id s m ents sv voters cl Hty Hri Hprop Happ Hhb Hrest
+  intro c scfg r id s m ents sv voters cl Hty Hri Hprop Happ Hhb Hrest
   wp_start as H
   iNamed H
   ihave #Hinit := isInitialized_access $$ Hpkg
@@ -166,26 +166,24 @@ theorem stepFollower.wp_proof
   · -- `MsgSnap`: adopt the sender as leader, then `handleSnapshot`
     ihave Hs := Hsnap $$ %Hty
     icases Hs with ⟨%learners, %Hsc, #Hsv, #Hvs, #Hls⟩
-    obtain ⟨Hout, Hscope, Hrole, Hvotes, Hcfg, Hfid⟩ := Hsc
+    obtain ⟨Hscope, Hrole, Hvotes, Hcfg, Hfid⟩ := Hsc
     rw [Hty]
     simp only [MsgSnap]
     wp_auto
     wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
     wp_apply raft.wp_store_leadC $$ Hphys as Hphys
-    -- a non-joint configuration: the struct as `ownRaftPhys`, which `handleSnapshot` takes
-    icases ownRaftPhysC_toPhys c r id _ Hout $$ Hphys with ⟨Hphys, -⟩
-    wp_apply wp_raft_handleSnapshot _ _ _ { s with lead := m.From' } _ sv voters learners Hrole
+    -- (2026-10-14) at any configuration: `handleSnapshot` on the struct at `c`
+    wp_apply wp_raft_handleSnapshot c scfg _ _ { s with lead := m.From' } _ sv voters learners Hrole
       Hvotes Hcfg Hscope Hfid $$ [$Hphys $Hsv $Hvs $Hls]
-      as %s' ⟨Hphys, %Hres⟩
-    ihave Hphys := ownRaftPhys_toC' $$ Hphys
-    iapply HΦ $$ %GoInterface.nil %s' %false %(CfgM.simple c.incoming (domSet s'.progress \ c.incoming))
+      as %s' %c' ⟨Hphys, %Hres, %Hc'⟩
+    iapply HΦ $$ %GoInterface.nil %s' %false %c'
     iframe
     simp only [Bool.false_eq_true, ↓reduceIte]
     ipureintro
     refine ⟨?_, trivial⟩
     simp [FollowerStepResultC, MsgSnap, Hty, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat,
       MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp]
-    exact Hres
+    exact ⟨Hc', Hres⟩
   · -- `MsgPreVoteResp` (2026-10-04): no arm
     rw [Hty]
     simp only [MsgPreVoteResp]

@@ -3424,3 +3424,34 @@ append a second conf change before the first is applied), like `ReadOnlyOption =
   reflects.
 - **`CCGood` instead of strengthening `confchange`'s specs**: reachability is a pure invariant of
   the model (`ccApplyM_good`), so the `Changer` proofs are untouched.
+
+---
+
+## Reconfiguration stage A3: `joint` as a parameter of the loop's model, snapshots of any voters, no `StepC` step-down rule
+
+**2026-10-14 · accepted**
+
+- **`propConf` and `LeaderProposeResult` take `joint`, default `false`**, rather than a second
+  copy of the conf-change loop's model: the refusal is `pending ∨ ccWantsLeave cc ≠ joint`,
+  which is the old `pending ∨ ccWantsLeave cc = true` at `joint = false`. The ghost layer
+  (`raft__Step/MsgProp.lean`, `PropRepl`) keeps elaborating against the default; the C result
+  passes `c.joint`. *Rejected*: a `LeaderProposeResultC` duplicate (the dispatcher's `MsgProp`
+  branch would need its own copy of the reasoning).
+- **`readOnly.maybeAdvance.spec` replaced, no `spec_simple`**: its only caller is `stepLeader`,
+  now at any configuration.
+- **A snapshot of any (non-joint) voters, at any configuration.** `restore` never reads the old
+  configuration except to drop it (`MakeProgressTracker`), so generalizing the node's
+  configuration costs only the retrack; generalizing the snapshot's voters away from the node's
+  is free (`SnapScope cfg` was already a parameter). The snapshot's voters are a new spec
+  parameter (`scfg`) of `stepFollower`/`stepCandidate` rather than existential in `Hsnap`, so
+  that the result can name the configuration after a restore. A joint snapshot `ConfState`
+  stays out (`confchange.Restore` of a joint state is not specified); stated, not hidden.
+- **The removed leader's step-down is a disjunct of `applyCCOkC_step`, not a `StepC` rule**:
+  `StepC` is tied to `Step` by `step_iff_stepC` at non-joint configurations, and `Step` has no
+  such rule either (a leader there is always a voter). The protocol at joint configurations will
+  have to add one (or forbid self-removal).
+- **Items 3-5 left with a plan** (notes/STATUS.md, "Reconfiguration, stage A3"): the `raft.Step`
+  branches are physical triples with pure `Step` witnesses, so `raft.Step` at `c` is their
+  conversion to `StepC` (with C result and step lemmas), and the old branch lemmas follow at
+  `CfgM.simple`; the `RawNode` client's view (`RNState`) needs the learner set (and, for
+  self-removal, the role) before `CCApplies` can be discharged for growing changes.

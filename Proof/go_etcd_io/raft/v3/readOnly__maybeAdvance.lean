@@ -33,6 +33,23 @@ private theorem bigSepL2_take_drop {A B : Type} (Φ : A → B → IProp GF) (n :
   conv => lhs; rw [← List.take_append_drop n l1, ← List.take_append_drop n l2]
   exact (BigSepL2.bigSepL2_append (Or.inl (by simp [Hl]))).1
 
+/-- The joint quorum index is at most some voter's acknowledgement, when there is a voter: a
+non-empty half's quorum index is one of its voters' values, and the joint answer is at most
+each half's (an empty half answers `MaxUint64`). -/
+private theorem jcommitted_le (s0 s1 : GSet w64) (f : w64 → w64) (N : w64)
+    (H : JCommittedIdx s0 s1 f N) (Hne : s0 ∪ s1 ≠ ∅) :
+    ∃ v, v ∈ s0 ∪ s1 ∧ f v = N ∨ v ∈ s0 ∪ s1 ∧ uint.Z N ≤ uint.Z (f v) := by
+  obtain ⟨N0, N1, H0, H1, HN⟩ := H
+  by_cases h0 : s0 = ∅
+  · have h1 : s1 ≠ ∅ := by
+      intro h1; apply Hne; rw [h0, h1, GMap.union_empty_r_L]
+    obtain ⟨⟨v, hv, hfv⟩, -, -⟩ := H1.2 h1
+    refine ⟨v, Or.inr ⟨GMap.elem_of_union_r _ hv, ?_⟩⟩
+    rw [HN, hfv]; split <;> omega
+  · obtain ⟨⟨v, hv, hfv⟩, -, -⟩ := H0.2 h0
+    refine ⟨v, Or.inr ⟨GMap.elem_of_union_l _ hv, ?_⟩⟩
+    rw [HN, hfv]; split <;> omega
+
 /-- `CommittedIndex` is called on the object itself, as an `AckedIndexer`, with the
 whole object as the indexer's resource and the voter map lent (the receiver is the
 local copy of `c`). Then, if the quorum index is past `confirmedReads`, the first
@@ -43,7 +60,7 @@ theorem readOnly.maybeAdvance.wp_proof
     (wp_JointConfig_CommittedIndex : quorum.JointConfig.CommittedIndex.spec (GF := GF) (hG := hG))
     (wp_readOnly_AckedIndex : readOnly.AckedIndex.spec (GF := GF) (hG := hG)) :
     readOnly.maybeAdvance.spec (GF := GF) (hG := hG) := by
-  intro ro r c m0 ids
+  intro ro r c v0 v1 s0 s1
   wp_start as H
   iNamed H
   wp_auto
@@ -60,12 +77,9 @@ theorem readOnly.maybeAdvance.wp_proof
     wp_start_folded as HP
     wp_apply wp_readOnly_AckedIndex $$ [$HP] as HP
     iapply HΦ $$ HP
-  wp_apply (quorum.JointConfig.CommittedIndex.spec_simple wp_JointConfig_CommittedIndex) c_ptr c m0 ids _ (ownReadOnly ro r)
-      (fun v => r.acks !! v) $$ [$c $Hvoters $Hown $Hidx]
-    as %N ⟨c, Hv, Hown, %Hemp, %Hq⟩
-  · isplitr
-    · ipureintro; exact Hsz
-    ipureintro; exact Hc
+  wp_apply wp_JointConfig_CommittedIndex c_ptr (DFrac.own 1) c v0 v1 s0 s1 _ (ownReadOnly ro r)
+      (fun v => r.acks !! v) Hc Hsz.1 Hsz.2 $$ [$c $Hv0 $Hv1 $Hown $Hidx]
+    as %N ⟨c, Hv0, Hv1, Hown, %Hq⟩
   iNamed Hown
   wp_auto
   ihave %Hl := ownSlice_len $$ Hucr
@@ -78,23 +92,26 @@ theorem readOnly.maybeAdvance.wp_proof
     iapply HΦ $$ %slice.nil %N
     rw [Hadv]
     isplitr
-    · ipureintro; exact Hq Hne
+    · ipureintro; exact Hq
     isplitl [Hro Hacks Hucr Hucr_cap Hreqs]
     · unfold ownReadOnly
       iexists rov, ptrs
       simp only [named]
       iframe Hro Hacks Hucr Hucr_cap Hreqs
       ipureintro; exact ⟨Hro_conf, Hro_safe⟩
-    iframe Hv
+    iframe Hv0 Hv1
     iexists []
     isplitl
     · iapply ownSlice_nil
     iapply BigSepL2.bigSepL2_nil.2
     iempintro
   · -- `N` is one of the acknowledged positions, so at most `confirmed + len pending`
-    obtain ⟨⟨v, Hv, HNv⟩, -, -⟩ := Hq Hne
+    obtain ⟨v, ⟨Hv, HNv⟩ | ⟨Hv, HNv⟩⟩ := jcommitted_le s0 s1 _ N Hq Hne
+    all_goals
     have HNle : uint.Z N ≤ uint.Z rov.confirmedReads' + (r.pending.length : Int) := by
-      rw [← HNv, Hro_conf]; exact Hbound v Hv
+      first
+      | (rw [← HNv, Hro_conf]; exact Hbound v Hv)
+      | (have := Hbound v Hv; rw [Hro_conf]; omega)
     have HsubZ : uint.Z (N - rov.confirmedReads') = uint.Z N - uint.Z rov.confirmedReads' := by
       word
     have HlenZ : (ptrs.length : Int) = sint.Z rov.unconfirmedReads'.len := by
@@ -123,8 +140,8 @@ theorem readOnly.maybeAdvance.wp_proof
       unfold readonlyAdvance; rw [ite_eq_right (by rw [← Hro_conf]; exact Hif)]
     rw [Hadv, ← Hro_conf]
     isplitr
-    · ipureintro; exact Hq Hne
-    iframe Hv
+    · ipureintro; exact Hq
+    iframe Hv0 Hv1
     isplitl [Hro Hacks Hrest Hcap Hreqs2]
     · unfold ownReadOnly
       iexists _, (ptrs.drop (uint.nat (N - rov.confirmedReads')))

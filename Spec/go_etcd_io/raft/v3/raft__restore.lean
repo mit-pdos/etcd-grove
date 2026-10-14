@@ -81,6 +81,12 @@ def RestoreResult (s : NState) (sv : raftpb.Snapshot) (b : Bool) (s' : NState) :
    ∃ prs pvs il, s' = { s with progress := prs, prvals := pvs, logst := logRestore ls sid,
                                isLearner := il })
 
+/-- The configuration the node is at after `restore` (2026-10-14, reconfiguration stage A3):
+the snapshot's -- its voters `cfg`, the learners the tracked ids outside them -- when it
+restored (`b`), the one it was at otherwise. -/
+def restoreCfg (c : CfgM) (cfg : GSet w64) (b : Bool) (s' : NState) : CfgM :=
+  if b then CfgM.simple cfg (domSet s'.progress \ cfg) else c
+
 end results
 
 section spec
@@ -90,8 +96,30 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- See the file header. -/
+/-- See the file header. At any configuration since 2026-10-14 (reconfiguration stage A3): the
+struct at any `c` (`ownRaftPhysCV c c.voters`, joint or not); the snapshot's configuration is
+non-joint with the voters `cfg` (`SnapScope`), which need not be `c`'s; after a restore the node
+is at the snapshot's configuration, otherwise still at `c` (`restoreCfg`). A joint snapshot
+`ConfState` is out of scope (`SnapScope`: `confchange.Restore`'s spec covers the non-joint
+case only). The old statement (the snapshot's voters the node's) is `raft.restore.specS`. -/
 abbrev raft.restore.spec : Prop :=
+  ∀ (c : CfgM) (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
+    (sv : raftpb.Snapshot) (voters learners : List w64),
+  s.role = .follower →
+  s.votes = ∅ →
+  id ∈ cfg →
+  SnapScope cfg sv voters learners →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      "#Hvoters" ∷ sv.Metadata'.ConfState'.Voters' ↦*□ voters ∗
+      "#Hlearners" ∷ ownIdList sv.Metadata'.ConfState'.Learners' DFrac.discard learners }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"restore")) (Val #sv))
+  {{ (b : Bool) (s' : NState), RET #b;
+      ownRaftPhysCV (restoreCfg c cfg b s') (restoreCfg c cfg b s').voters r id s' ∗
+      ⌜RestoreResult s sv b s'⌝ }}
+
+/-- The statement until 2026-10-14: the snapshot's voters are the node's, `cfg`. -/
+abbrev raft.restore.specS : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
     (sv : raftpb.Snapshot) (voters learners : List w64),
   s.role = .follower →
@@ -105,6 +133,29 @@ abbrev raft.restore.spec : Prop :=
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"restore")) (Val #sv))
   {{ (b : Bool) (s' : NState), RET #b;
       ownRaftPhys cfg r id s' ∗ ⌜RestoreResult s sv b s'⌝ }}
+
+open Iris.ProofMode in
+theorem raft.restore.spec_simple
+    (H : raft.restore.spec (GF := GF) (hG := hG)) :
+    raft.restore.specS (GF := GF) (hG := hG) := by
+  intro cfg r id s sv voters learners Hrole Hvotes Hin Hscope
+  iintro %Φ ⟨#Hpkg, Hphys, #Hvoters, #Hlearners⟩ HΦ
+  ihave Hphys := ownRaftPhys_toC' $$ Hphys
+  iapply H _ cfg r id s sv voters learners Hrole Hvotes Hin Hscope
+    $$ [$Hpkg $Hphys $Hvoters $Hlearners]
+  inext
+  iintro %b %s' ⟨Hphys, %Hres⟩
+  cases b
+  · simp only [restoreCfg, Bool.false_eq_true, ↓reduceIte]
+    ihave Hphys := ownRaftPhysC_toS $$ Hphys
+    iapply HΦ
+    iframe Hphys
+    ipureintro; exact Hres
+  · simp only [restoreCfg, ↓reduceIte]
+    ihave Hphys := ownRaftPhysC_toS $$ Hphys
+    iapply HΦ
+    iframe Hphys
+    ipureintro; exact Hres
 
 end spec
 
