@@ -7,7 +7,7 @@ import this module.
 
 Lean notes: the branch lemma takes the callee specs (Rocq's functor argument
 `P : STEP_POSTULATES`) as its first argument `_P : raft.Step.Postulates`, and Rocq's
-section variable `cfg` as its second.
+section variable `c` as its second.
 -/
 module
 
@@ -42,28 +42,30 @@ runs
         r.reduceUncommittedSize(payloadsSize(m.Entries))
     }
 
-moving `applied` (`logAppliedTo`). Nothing the protocol sees changes: `Step.refl`. The
+moving `applied` (`logAppliedTo`). Nothing the protocol sees changes: `StepC.refl`. The
 premise is `appliedTo`'s: the last entry is committed. -/
 theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) :
     m.Type' = MsgStorageApplyResp →
     m.Term' = W64 0 →
     (∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s.logst.committed) →
     NStateWf s →
+    -- (2026-10-14, stage B7) `appliedTo`'s auto-leave branch is not taken
+    (c.autoLeave = true → s.role ≠ .leader) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "#Hents" ∷ m.Entries' ↦*□ ents }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hframe" ∷ ⌜LocalFrame s s' ∧
                      ((∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s.logst.applying) →
                       s'.logst.applying = s.logst.applying)⌝ ∗
-        "%Hrefines" ∷ ⌜Step cfg id (toPState s) [] (toPState s')⌝ ∗
+        "%Hrefines" ∷ ⌜StepC c id (toPState s) [] (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  intro Hty Hterm Hlast Hwf
+  intro Hty Hterm Hlast Hwf Hal
   wp_start as ⟨Hphys, #Hents⟩
   wp_auto
   wp_apply _P.traceReceiveMessage
@@ -100,10 +102,10 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     wp_auto
     wp_apply _P.entsSize $$ [$Hents] as %sz -
     -- `applied ≤ applying`: `applying` stays put when the entries end at or below it
-    icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hback⟩
+    icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hback⟩
     icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hrw, Hlog⟩
     ihave Hphys := Hback $$ Hlog
-    wp_apply _P.appliedTo cfg r id s e.Index' sz (Hlast e He) $$ [$Hphys] as Hphys
+    wp_apply _P.appliedTo c r id s e.Index' sz (Hlast e He) Hal $$ [$Hphys] as Hphys
     wp_apply _P.payloadsSize $$ [$Hents] as %psz -
     wp_apply _P.reduceUncommittedSize $$ [$Hphys] as Hphys
     iapply HΦ $$ %interface.nil %_

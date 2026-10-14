@@ -213,9 +213,10 @@ theorem followerStepResult_app (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id : w6
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState) :
     m.Type' = MsgApp →
     FollowerStepResultC c scfg id s m ents sv dropped s' c' →
-    dropped = false ∧ HandleAppResult id { s with lead := m.From' } m ents s' := by
+    c = c' ∧ dropped = false ∧ HandleAppResult id { s with lead := m.From' } m ents s' := by
   intro Hty H
   unfold FollowerStepResultC at H
+  refine ⟨(FollowerStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
   replace H := H.2
   simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
     MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
@@ -225,9 +226,10 @@ theorem followerStepResult_heartbeat (c : CfgM) {scfg : GSet w64} {c' : CfgM} (i
     (cl : List w8) :
     m.Type' = MsgHeartbeat →
     FollowerStepResultC c scfg id s m ents sv dropped s' c' cl →
-    dropped = false ∧ s' = heartbeatResult id { s with lead := m.From' } m cl := by
+    c = c' ∧ dropped = false ∧ s' = heartbeatResult id { s with lead := m.From' } m cl := by
   intro Hty H
   unfold FollowerStepResultC at H
+  refine ⟨(FollowerStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
   replace H := H.2
   simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
     MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
@@ -237,11 +239,12 @@ theorem candidateStepResult_app (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id : w
     (s' : NState) :
     m.Type' = MsgApp →
     CandidateStepResultC c scfg id s m ents sv dropped s' c' →
-    dropped = false ∧
+    c = c' ∧ dropped = false ∧
     ∃ pvs, HandleAppResult id { becomeFollower s s.term m.From' with prvals := pvs }
       m ents s' := by
   intro Hty H
   unfold CandidateStepResultC at H
+  refine ⟨(CandidateStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
   replace H := H.2
   simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
     MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
@@ -251,10 +254,11 @@ theorem candidateStepResult_heartbeat (c : CfgM) {scfg : GSet w64} {c' : CfgM} (
     (s' : NState) (cl : List w8) :
     m.Type' = MsgHeartbeat →
     CandidateStepResultC c scfg id s m ents sv dropped s' c' cl →
-    dropped = false ∧
+    c = c' ∧ dropped = false ∧
     ∃ pvs, s' = heartbeatResult id { becomeFollower s s.term m.From' with prvals := pvs } m cl := by
   intro Hty H
   unfold CandidateStepResultC at H
+  refine ⟨(CandidateStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
   replace H := H.2
   simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
     MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, W32] using H
@@ -359,8 +363,15 @@ theorem followerStepResult_snap (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id : w
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState) :
     m.Type' = MsgSnap →
     FollowerStepResultC c scfg id s m ents sv dropped s' c' →
+    (c' = c ∨ ∃ L, c' = CfgM.simple scfg L) ∧
     dropped = false ∧ HandleSnapResult id { s with lead := m.From' } m sv s' := by
   intro Hty H
+  refine ⟨?_, ?_⟩
+  · have h1 := H.1
+    rw [if_pos Hty] at h1
+    rcases h1 with ⟨-, h⟩ | ⟨-, h⟩
+    · exact .inr ⟨_, h⟩
+    · exact .inl h
   unfold FollowerStepResultC at H
   replace H := H.2
   simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
@@ -371,10 +382,17 @@ theorem candidateStepResult_snap (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id : 
     (s' : NState) :
     m.Type' = MsgSnap →
     CandidateStepResultC c scfg id s m ents sv dropped s' c' →
+    (c' = c ∨ ∃ L, c' = CfgM.simple scfg L) ∧
     dropped = false ∧
     ∃ pvs, HandleSnapResult id { becomeFollower s s.term m.From' with prvals := pvs }
       m sv s' := by
   intro Hty H
+  refine ⟨?_, ?_⟩
+  · have h1 := H.1
+    rw [if_pos Hty] at h1
+    rcases h1 with ⟨-, h⟩ | ⟨-, h⟩
+    · exact .inr ⟨_, h⟩
+    · exact .inl h
   unfold CandidateStepResultC at H
   replace H := H.2
   simpa [Hty, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,

@@ -62,6 +62,49 @@ macro "w32_ne" : tactic =>
       Perennial.EtcdGrove.MsgTimeoutNow,
       ne_eq]; word))
 
+/-- `m.Type' ≠ MsgSnap` from a hypothesis `h` naming `m.Type'` (one type, or a disjunction of
+them), for the configuration conjunct of the `stepX` results (2026-10-14, stage B7). -/
+syntax "nonsnap " ident : tactic
+macro_rules
+  | `(tactic| nonsnap $h:ident) =>
+    `(tactic| (intro hsnap; (rw [hsnap] at $h:ident); revert $h:ident; simp only [Perennial.EtcdGrove.MsgBeat,
+        Perennial.EtcdGrove.MsgHup, Perennial.EtcdGrove.MsgProp, Perennial.EtcdGrove.MsgApp,
+        Perennial.EtcdGrove.MsgAppResp, Perennial.EtcdGrove.MsgVote,
+        Perennial.EtcdGrove.MsgVoteResp, Perennial.EtcdGrove.MsgSnap,
+        Perennial.EtcdGrove.MsgHeartbeat, Perennial.EtcdGrove.MsgHeartbeatResp,
+        Perennial.EtcdGrove.MsgPreVote, Perennial.EtcdGrove.MsgPreVoteResp,
+        Perennial.EtcdGrove.MsgStorageAppendResp, Perennial.EtcdGrove.MsgStorageApplyResp,
+        Perennial.EtcdGrove.MsgReadIndex, Perennial.EtcdGrove.MsgReadIndexResp,
+        Perennial.EtcdGrove.MsgForgetLeader, Perennial.EtcdGrove.MsgUnreachable,
+        Perennial.EtcdGrove.MsgSnapStatus, Perennial.EtcdGrove.MsgTransferLeader,
+        Perennial.EtcdGrove.MsgTimeoutNow, _root_.or_false, _root_.false_or,
+        _root_.or_self]; word))
+
+section cfg_eq
+variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+
+/-- Off a `MsgSnap`, `stepFollower` leaves the configuration. -/
+theorem FollowerStepResultC.cfg {c : CfgM} {scfg : GSet w64} {id : w64} {s : NState}
+    {m : raftpb.Message} {ents : List raftpb.Entry} {sv : raftpb.Snapshot} {dropped : Bool}
+    {s' : NState} {c' : CfgM} {cl : List w8} (h : m.Type' ≠ MsgSnap)
+    (H : FollowerStepResultC c scfg id s m ents sv dropped s' c' cl) : c' = c := by
+  have := H.1; rwa [if_neg h] at this
+
+/-- Off a `MsgSnap`, `stepCandidate` leaves the configuration. -/
+theorem CandidateStepResultC.cfg {c : CfgM} {scfg : GSet w64} {id : w64} {s : NState}
+    {m : raftpb.Message} {ents : List raftpb.Entry} {sv : raftpb.Snapshot} {dropped : Bool}
+    {s' : NState} {c' : CfgM} {cl : List w8} (h : m.Type' ≠ MsgSnap)
+    (H : CandidateStepResultC c scfg id s m ents sv dropped s' c' cl) : c' = c := by
+  have := H.1; rwa [if_neg h] at this
+
+end cfg_eq
+
+example [FfiSyntax] (m : raftpb.Message)
+    (Hty : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp) :
+    m.Type' ≠ MsgSnap := by nonsnap Hty
+example [FfiSyntax] (m : raftpb.Message) (Hty : m.Type' = MsgHeartbeat) :
+    m.Type' ≠ MsgSnap := by nonsnap Hty
+
 section base
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]

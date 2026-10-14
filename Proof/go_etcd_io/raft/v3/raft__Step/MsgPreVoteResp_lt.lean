@@ -8,7 +8,7 @@ stale. In its own file so that it checks in parallel with the others;
 Lean notes:
 * The branch lemma takes the callee specs (Rocq's functor argument
   `P : STEP_POSTULATES`) as its first argument `_P : raft.Step.Postulates`, and Rocq's
-  section variable `cfg` as its second.
+  section variable `c` as its second.
 * Rocq's `Local Ltac ne_ty` (`bool_decide (m.Type = c) = false` by `w32_ne`) is not
   ported.
 -/
@@ -34,23 +34,23 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
 
-/-- `MsgPreVoteResp` with `m.Term < r.Term`: logged and dropped. `Step.refl`, nothing
+/-- `MsgPreVoteResp` with `m.Term < r.Term`: logged and dropped. `StepC.refl`, nothing
 received. -/
 theorem wp_Step_MsgPreVoteResp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) :
     m.Type' = MsgPreVoteResp →
     m.Term' ≠ W64 0 →
     uint.Z m.Term' < uint.Z s.term →
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s }}
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .preVoteResp m ents) ∧
-            Step cfg id (toPState s) recv (toPState s')⌝ ∗
+            StepC c id (toPState s) recv (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
@@ -62,14 +62,14 @@ theorem wp_Step_MsgPreVoteResp_lt (_P : raft.Step.Postulates (GF := GF) (hG := h
   wp_apply _P.traceReceiveMessage
   rw [decide_eq_false Hterm]
   wp_auto
-  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   rw [decide_eq_false (show ¬ uint.Z s.term < uint.Z m.Term' by omega)]
   wp_auto
-  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   rw [decide_eq_true Hlt]
   wp_auto
-  wp_apply raft.wp_load_checkQuorum $$ Hphys as Hphys
-  wp_apply raft.wp_load_preVote $$ Hphys as Hphys
+  wp_apply raft.wp_load_checkQuorumC $$ Hphys as Hphys
+  wp_apply raft.wp_load_preVoteC $$ Hphys as Hphys
   have Hn8 : decide (m.Type' = W32 8) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hn3 : decide (m.Type' = W32 3) = false := decide_eq_false (by rw [Hty]; w32_ne)
   have Hn17 : decide (m.Type' = W32 17) = false := decide_eq_false (by rw [Hty]; w32_ne)
@@ -82,9 +82,9 @@ theorem wp_Step_MsgPreVoteResp_lt (_P : raft.Step.Postulates (GF := GF) (hG := h
     wp_auto
     rw [Hn20]
     wp_auto
-    wp_apply raft.wp_load_id $$ Hphys as Hphys
-    wp_apply raft.wp_load_Term $$ Hphys as Hphys
-    wp_raft_log
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
+    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+    wp_raft_logC
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro

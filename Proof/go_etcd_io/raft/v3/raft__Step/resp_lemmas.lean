@@ -37,8 +37,9 @@ namespace StepProof
 theorem followerStepResult_noop (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
     (Hty : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp)
-    (H : FollowerStepResultC c scfg id s m ents sv dropped s' c') : dropped = false ∧ s' = s := by
+    (H : FollowerStepResultC c scfg id s m ents sv dropped s' c') : c = c' ∧ dropped = false ∧ s' = s := by
   unfold FollowerStepResultC at H
+  refine ⟨(FollowerStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
   replace H := H.2
   rcases Hty with h | h | h <;>
     simp [h, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
@@ -49,8 +50,9 @@ theorem candidateStepResult_noop (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id : 
     (m : raftpb.Message) (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool)
     (s' : NState)
     (Hty : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp)
-    (H : CandidateStepResultC c scfg id s m ents sv dropped s' c') : dropped = false ∧ s' = s := by
+    (H : CandidateStepResultC c scfg id s m ents sv dropped s' c') : c = c' ∧ dropped = false ∧ s' = s := by
   unfold CandidateStepResultC at H
+  refine ⟨(CandidateStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
   replace H := H.2
   rcases Hty with h | h | h <;>
     simp [h, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,

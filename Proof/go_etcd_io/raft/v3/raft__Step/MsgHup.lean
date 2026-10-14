@@ -12,7 +12,7 @@ moved out of the top-level directory).
 
 Lean notes: the branch lemma takes the callee specs (Rocq's functor argument
 `P : STEP_POSTULATES`) as its first argument `_P : raft.Step.Postulates`, and Rocq's
-section variable `cfg` as its second.
+section variable `c` as its second.
 -/
 module
 
@@ -43,7 +43,7 @@ Like the other branch lemmas this is ghost-free: it establishes the `Step` witne
 pure fact, and `raft.Step.wp_proof` turns them into the single `ownRaftGhost_step` of
 the whole development. -/
 theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message) :
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message) :
     m.Type' = MsgHup →
     m.Term' = W64 0 →
     -- an election increments the term; `send` panics if that wraps to zero
@@ -51,12 +51,12 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- `r.step` matches the role
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s }}
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜Step cfg id (toPState s) [] (toPState s')⌝ ∗
+        "%Hrefines" ∷ ⌜StepC c id (toPState s) [] (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -73,19 +73,20 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_auto
   -- `hup(campaignPreElection)` with pre-vote on, `hup(campaignElection)` otherwise;
   -- `hup`'s spec covers both
-  wp_apply raft.wp_load_preVote $$ Hphys as Hphys
+  wp_apply raft.wp_load_preVoteC $$ Hphys as Hphys
   -- `hup(campaignPreElection)` exactly when `r.preVote`
   cases Hpv : s.prevote
   all_goals
     wp_auto
-    wp_apply _P.hup cfg r id s _ Hnowrap ?Hpvt Hwf $$ [$Hphys]
-      as %s' ⟨Hphys, %Hwf', %Hstep, %Hl, %Ht1, %Ht2, %Hpv', %Hg'⟩
+    wp_apply _P.hup c r id s _ Hnowrap ?Hpvt Hwf $$ [$Hphys]
+      as %s' ⟨Hphys, %Hok⟩
     case Hpvt =>
       first
         | exact fun _ => Hpv
         | exact fun h => by
             have := congrArg List.length h
             simp [campaignElection, campaignPreElection] at this
+    obtain ⟨Hwf', Hstep, ⟨Hl, Ht1, Ht2, Hpv', Hg'⟩, -⟩ := Hok
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys
     ipureintro

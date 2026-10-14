@@ -48,9 +48,10 @@ local macro "mtype_simp" : tactic =>
 theorem followerStepResult_prevoteresp (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState) :
     m.Type' = MsgPreVoteResp →
-    FollowerStepResultC c scfg id s m ents sv dropped s' c' → dropped = false ∧ s' = s := by
+    FollowerStepResultC c scfg id s m ents sv dropped s' c' → c = c' ∧ dropped = false ∧ s' = s := by
   intro Hty H
   unfold FollowerStepResultC at H
+  refine ⟨(FollowerStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
   replace H := H.2
   rw [Hty] at H
   mtype_simp
@@ -140,10 +141,11 @@ theorem candidateStepResult_prevoteresp (c : CfgM) {scfg : GSet w64} {c' : CfgM}
     (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) →
     NStateWf s →
     CandidateStepResultC c scfg id s m ents sv dropped s' c' →
-    dropped = false ∧ NStateWf s' ∧ StepC c id (toPState s) [] (toPState s') ∧
+    c = c' ∧ dropped = false ∧ NStateWf s' ∧ StepC c id (toPState s) [] (toPState s') ∧
       RespStep m s s' ∧ NetFrame s s' ∧ TermStep m s s' := by
   intro Hty Hrole Hin Hnw Hwf H
   unfold CandidateStepResultC at H
+  refine ⟨(CandidateStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
   replace H := H.2
   rw [Hty] at H
   mtype_simp
