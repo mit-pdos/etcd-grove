@@ -408,8 +408,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
       Hself (.inr (.inr (.inl h)))⟩)
     P4 P5 P6 P7 P8
-    (fun h => ⟨Hri (.inl h), by
-      have := Hsing h; unfold NotSingleton at this; rw [Hvc.1, Hvc.2]; exact this⟩)
+    (fun h => Hri (.inl h))
     (by not_net)
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
       Hself (.inr (.inr (.inr h)))⟩) Hrest Hwf

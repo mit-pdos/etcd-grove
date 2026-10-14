@@ -56,7 +56,7 @@ theorem RawNode.ReadIndex.wp_proof
     (by simp [StepMsg, stepMsgTypes, MsgReadIndex]) 
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
-    (by msg_ne) (by msg_ne) (fun _ => ⟨rfl, by unfold NotSingleton at Hsing; rw [Hvc.1, Hvc.2]; exact Hsing⟩)
+    (by msg_ne) (by msg_ne) (fun _ => rfl)
     (by msg_ne) (by msg_ne) (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
     (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne))
     $$ [$Hphys $Hghost Hcap Hcred]

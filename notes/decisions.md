@@ -3748,3 +3748,26 @@ add model-level theorems as deliverables. (The user's decision, 2026-10-14.)
 - **`node.go` stays static** (`isNode`'s `Hstatic`): its `confc` arm and channel protocols carry
   the static premise; making them dynamic needs the configuration index shared with the driver
   (left).
+
+## Verifying a fork revision of raft: the single-voter read-index fix (stage F)
+
+**2026-10-14 · accepted**
+
+- **The raft pin is a fork revision, not upstream.** `issues/raft-readindex-singleton-stale.md`
+  is a real stale read under reconfiguration; a spec premise can exclude it statically
+  (`1 < size cfg`) but not once configurations change, where it would be a restriction on runs.
+  So the verified code is etcd-io/raft `40f8be7` plus the fix (and its regression test): commit
+  `0560cb7` on branch `raft-goose-lean` of `upamanyus/etcd`, a branch holding etcd-io/raft's
+  history (the fork repository otherwise holds etcd). `etc/goose.py` pins it (comment there),
+  CLAUDE.md says so, and the register's `go.mod` replaces `go.etcd.io/raft/v3` by the same
+  revision under the path `github.com/upamanyus/etcd/v3` (Go refuses the plain path: the fork's
+  `go.mod` declares a `/v3` module). Not reported upstream yet. *Rejected*: restricting runs
+  (no single-voter configuration while a leader may get `MsgReadIndex`), or keeping the shortcut
+  static-only -- both leave the code as shipped unverified on a path users reach.
+- **The shortcut is two model rules, refined by the heartbeat argument with the quorum `{id}`.**
+  `readSingle`/`readReleaseSingle` (a request, or every pending one, answered at the commit
+  index) for a leader with an entry of its term committed, at `CfgSingle c id`. The leader's own
+  acknowledgement confirms the arrival's record: no new ghost state, and the same proof in both
+  modes. *Rejected*: the static-only route of `notes/raft-readindex-spec.md` §4.4 (voter
+  membership of campaigners in `isCampK`, past-term commit bounds in `lcmOwn`), which would have
+  changed the ghost definitions and still not covered the dynamic mode.

@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-14 (reconfiguration, stage B7 part 2: **the `RawNode` API in the dynamic model** -- `RNState.mode` (static or dynamic), `ownRawNode` in either mode, `NewRawNode` from the dynamic ghost state, `ApplyConfChange` as `StepR.applyConf` (a removed leader steps down), `Advance` with A1, every other `RawNode` spec unchanged in shape; `node.go`/the register still static; the `raft_reconfig_*` scaffolding deleted; see "Reconfiguration, stage B7, part 2"; reconfiguration, stage B8: **snapshots at a changing configuration** -- a snapshot of any well-formed `ConfState`, joint included, restored through `raft.restore`/`handleSnapshot`/`stepFollower`/`stepCandidate`/`raft.Step` (the general `confchange.Restore`, `ConfState.Equivalent`, `assertConfStatesEquivalent` as `spec`; the node any id of the `ConfState`, learners and outgoing voters included), `MsgSnap` in `raft.Step`'s dynamic mode as `StepR.snapRestore` (`StepCDS`, `ghost_stepCDS`; the prefix from the message, `isMessage_snap_prefix`; A3 the receiver's premise `GMode.SnapOk`), the four `ConfState` lists from the storage to the outbox (`CSLists`, `ownCSL`); A3 carried from the sender's storage by the message left; see "Reconfiguration, stage B8 (snapshots at a changing configuration)"; reconfiguration, stage B7 part 1: **`raft.Step` in the dynamic model** -- `raft.Step.spec` takes the ghost state in either mode (`GMode`, `ownStepGhost`); in the dynamic mode every step is a `StepR` step and `ownRaftGhostR` follows the code, under the premises `GMode.Pre` (no `MsgSnap`, no pre-candidate, A1 at `MsgStorageApplyResp`, a log bound for dropped proposals); the struct at any configuration (`ownRaftPhysCV c`); `RawNode`/`node` still static through `raft.Step.specS`; see "Reconfiguration, stage B7, part 1"; reconfiguration, stage B8, standalone part: **`confchange.Restore`
+**Last updated:** 2026-10-14 (stage F: **the single-voter read-index fix verified at `raft.Step`** -- the raft pin is the fork revision `0560cb7` (etcd-io/raft `40f8be7` plus the fix of `issues/raft-readindex-singleton-stale.md`), `sendMsgReadIndexResponse`'s shortcut (the leader as single voter, after `committedEntryInCurrentTerm`) is the model's `readSingle`/`readReleaseSingle`, refined in both modes by the leader's own acknowledgement (quorum `{id}`), `raft.Step.spec`'s single-voter read-index premise gone; see "The single-voter read-index fix"; reconfiguration, stage B7 part 2: **the `RawNode` API in the dynamic model** -- `RNState.mode` (static or dynamic), `ownRawNode` in either mode, `NewRawNode` from the dynamic ghost state, `ApplyConfChange` as `StepR.applyConf` (a removed leader steps down), `Advance` with A1, every other `RawNode` spec unchanged in shape; `node.go`/the register still static; the `raft_reconfig_*` scaffolding deleted; see "Reconfiguration, stage B7, part 2"; reconfiguration, stage B8: **snapshots at a changing configuration** -- a snapshot of any well-formed `ConfState`, joint included, restored through `raft.restore`/`handleSnapshot`/`stepFollower`/`stepCandidate`/`raft.Step` (the general `confchange.Restore`, `ConfState.Equivalent`, `assertConfStatesEquivalent` as `spec`; the node any id of the `ConfState`, learners and outgoing voters included), `MsgSnap` in `raft.Step`'s dynamic mode as `StepR.snapRestore` (`StepCDS`, `ghost_stepCDS`; the prefix from the message, `isMessage_snap_prefix`; A3 the receiver's premise `GMode.SnapOk`), the four `ConfState` lists from the storage to the outbox (`CSLists`, `ownCSL`); A3 carried from the sender's storage by the message left; see "Reconfiguration, stage B8 (snapshots at a changing configuration)"; reconfiguration, stage B7 part 1: **`raft.Step` in the dynamic model** -- `raft.Step.spec` takes the ghost state in either mode (`GMode`, `ownStepGhost`); in the dynamic mode every step is a `StepR` step and `ownRaftGhostR` follows the code, under the premises `GMode.Pre` (no `MsgSnap`, no pre-candidate, A1 at `MsgStorageApplyResp`, a log bound for dropped proposals); the struct at any configuration (`ownRaftPhysCV c`); `RawNode`/`node` still static through `raft.Step.specS`; see "Reconfiguration, stage B7, part 1"; reconfiguration, stage B8, standalone part: **`confchange.Restore`
 for any `ConfState`** (`Restore.specG`, joint included, against `restoreM`; the non-joint
 `Restore.spec` derived), A3 as definitions (`SnapConf.lean`: `SnapConfOk`, `SnapObl`),
 `MemoryStorage` keeping a snapshot's four `ConfState` slices, and the asynchronous-storage
@@ -33,6 +33,79 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## The single-voter read-index fix (2026-10-14, stage F)
+
+`ReadOnlySafe` read index at a single-voter configuration was stale in the pinned raft
+(`issues/raft-readindex-singleton-stale.md`): `stepLeader` answered at once when `IsSingleton`,
+before `committedEntryInCurrentTerm` and whoever the voter was. The pin is now the fork revision
+with the fix, and `raft.Step` is verified on it in both ghost modes with no single-voter
+exclusion. Trust base unchanged (`etc/tcb-report.py --check`: 75 axioms, 10 sorries;
+`raft.txt`, `register.txt` pass; `raft-dyn.txt` was deleted by B7 part 2).
+
+Commits:
+- `92b66cc08`: the repin. `etc/goose.py`'s `etcd-raft` is `upamanyus/etcd` at
+  `0560cb75ad8e` (branch `raft-goose-lean`: etcd-io/raft `40f8be7` plus the fix and its
+  regression test); the translation differs in `stepLeader` (the `IsSingleton` branch gone) and
+  `sendMsgReadIndexResponse` (the new branch). The register's `go.mod` replaces
+  `go.etcd.io/raft/v3` by `github.com/upamanyus/etcd/v3 v3.0.0-20261014191125-0560cb75ad8e`
+  (the fork's `go.mod` declares `module go.etcd.io/raft/v3`; a replacement under the plain
+  `github.com/upamanyus/etcd` path is refused by `go` -- "post-v0 module path" -- so the
+  replacement path carries `/v3`). `go test ./...` in `examples/register` passes.
+- `6fd84dc22`: the model. `Step`, `StepC`, `StepCF`, `StepR` gain `readSingle` (a request
+  answered at once at the commit index: `preadRespondAll` of one request) and
+  `readReleaseSingle` (every pending request answered so), each for a leader whose commit index
+  is at an entry of its term and whose configuration's only voter is itself (`CfgSingle c id`:
+  `c.incoming = {[id]} ∧ c.outgoing = ∅`, `StepC.lean`, with `cfgSingle_iff` against Go's test
+  and `JQuorum_single`). Refined in both modes (`ownRaftGhost_single_confirm`,
+  `Protocol/Refinement.lean`): the heartbeat path's argument with the quorum `{id}` -- the
+  arrival's record (`ownRaftGhost_read_arrive`) is confirmed by `rqRecOk_confirm` (static) or
+  `rqRecOk_confirm_dyn` (dynamic, inside the commit invariant), the leader being in no doom
+  quorum of its term (`ownLogGhost_not_doomed`). **That route worked**: the static-only facts
+  `notes/raft-readindex-spec.md` §4.4 asked for (campaigners' voter membership in `isCampK`,
+  past-term bounds in `lcmOwn`) are not needed, and no ghost definition changed. A request's
+  read credit is dropped (the shortcut stashes no record).
+- `6350abf69`: the code.
+  - `sendMsgReadIndexResponse.spec`: premise `ents ≠ []` (`req.Entries[0]`); post
+    `∃ s', ownRaftPhysCV c … s' ∗ ⌜SendRIResult c id s m ents s'⌝` -- `CfgSingle c id ∧ s' =
+    readRespond id s (arriveReq s m ents)` or `¬ CfgSingle c id ∧` the heartbeat result of
+    before. Callees: `IsSingleton`, `responseToReadIndexReq`, `send` added (the voter lookup is
+    `wp_idset_lookup2` on `Voters[0]`, through the generated field accessors and `array_acc`).
+    `readRespond`/`readRespondAll` moved into its Spec, with `readRespond_eq`,
+    `readRespondAll_eq`/`_fields`/`_prvals`/`_take_succ`.
+  - `releasePendingReadIndexMessages.spec`: premise `∀ p ∈ s.rd.pend, p.2 ≠ []`; post
+    `∃ s', … ∗ ⌜ReleaseResult c id s s'⌝` -- answered at once (`readRespondAll` of
+    `pendReqs s` from `s` with nothing pending) or released with heartbeats as before.
+  - `stepLeader.spec`: premise `MsgReadIndex → ents ≠ []` (was also `¬ (size c.incoming = 1 ∧
+    size c.outgoing = 0)`); `LeaderNonpropResultC`'s read-index case is `SendRIResult`;
+    `AppRespAcceptedC`'s release is either branch. `IsSingleton` is no longer its callee. The
+    static `stepLeader.specS` and the simple-configuration results (`AppRespAccepted`,
+    `ReadAckResult`, `LeaderNonpropResult`, `LeaderStepResult` and their `.simple`; no caller)
+    are gone, as are `sendMsgReadIndexResponse.specS`/`releasePending….specS` (no caller).
+  - `raft.Step.spec`: `MsgReadIndex → m.Term' = W64 0` (the single-voter conjunct gone). The
+    `MsgReadIndex` branch and `MsgAppResp`'s release produce `StepCF.readSingle` /
+    `readReleaseSingle`. `raft.Step.specS` keeps `1 < GMap.size cfg` (its callers pass it).
+  - `Link.lean` regenerated (`etc/link-lean-first.txt`: the two callee lists).
+- the merge of `worktree-raft-rest` `4c8e4cd3a` (B7 part 2), with the one-line adaptations of
+  the three `raft.Step.spec` call sites it added (`RawNode__Step`, `RawNode__ReadIndex`,
+  `InvNodeRun`: the read-index argument is now just `m.Term' = 0`), and `StepGhostMode`'s
+  `commit_mono` over the two new rules.
+
+**What the public API can drop next** (B7 part 2's files, untouched here but for the call
+sites above; `raft.Step` needs none of these any more):
+- `RawNode.Step.spec`'s `(m.Type' = MsgReadIndex → NotSingleton (rs.vcfg γ))` and
+  `RawNode.ReadIndex.spec`'s `NotSingleton (rs.vcfg γ)` (with `NotSingleton`,
+  `NotSingleton_static`, `InvRawnode.lean`; `ownStepGhost_vcfg`'s use at the three call sites);
+- `InvNodeRun.wp_rn_raft_Step_net`'s `Hsing`, `InvNode.lean`'s network-message clause
+  `m.Type' = MsgReadIndex → 1 < GMap.size γ.raft.reCfg`, `node.ReadIndex.spec`'s
+  `1 < GMap.size γ.raft.reCfg`;
+- the register's `deliver.spec` and `Register.Read.spec` `1 < GMap.size …reCfg`
+  (`Main.lean`'s `clusterIds_size`, `Cluster.lean`'s `Hcfg`);
+- `raft.Step.specS`'s `∧ 1 < GMap.size cfg` (with its callers' argument).
+
+Findings: no new Go bug (the fix behaves as the issue's patch says; no other path reaches the
+shortcut). One proof-engineering note: `etc/goose.py`'s register comment now records the `/v3`
+replacement path.
 
 ## Reconfiguration, stage B7, part 2: the `RawNode` API in the dynamic model (2026-10-14)
 
@@ -569,7 +642,9 @@ Assumptions (each a restriction of the model, not a premise found false):
 - Fresh nodes from one `c0` (`CfgOk c0`, empty log); no crash-restart (atomic persistence moot);
   no panic (`cfgFold` defined on the applied prefixes: `RInv`).
 - The single-voter read-index shortcut is not modelled (`StepR.readAck` confirms with a joint
-  quorum, as Go's fixed code would; `issues/raft-readindex-singleton-stale.md`).
+  quorum, as Go's fixed code would; `issues/raft-readindex-singleton-stale.md`). (Gone with stage
+  F: the fixed shortcut is `StepR.readSingle`/`readReleaseSingle`; see "The single-voter
+  read-index fix".)
 - `AppCommitEq`: an `MsgApp` carries the sender's commit index (as `sendAppend` does).
 - `StepDownOnRemoval` either way: `StepR.stepDown` is refined.
 
@@ -1536,7 +1611,8 @@ The design is in decisions.md, "Read-index: ..." (its last section); in short:
   `ReadState`s (read-only in the raft struct: `rd.ReadStates` aliases `r.readStates`).
 - **Scope.** `ReadOnlySafe` only (`ReadOnlyOption = 0` is a premise of `newRaft`/`NewRawNode`/
   `RestartNode`; the lease-based option is out); not at a single voter (`IsSingleton`'s
-  immediate answer: a premise `1 < size cfg` of `raft.Step`/`node.ReadIndex`). A heartbeat
+  immediate answer: a premise `1 < size cfg` of `raft.Step`/`node.ReadIndex`; since 2026-10-14
+  in scope at `raft.Step`, the pin having the fix: "The single-voter read-index fix"). A heartbeat
   response's context is now any position (the `ctx = []` restriction is gone).
 - **Spec changes.** `raft.Step.spec`: the two types, their premises, a credit; `stepLeader`:
   the read premises only for the three types that read them, `MsgReadIndexResp` a no-op, the

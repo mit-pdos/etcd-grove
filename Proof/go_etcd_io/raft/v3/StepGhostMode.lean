@@ -108,6 +108,13 @@ theorem StepC.commit_mono {c : CfgM} {id : w64} {ps : PState} {recv : List Msg} 
            ro := (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).1 } })
       (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).2
     rw [h]; exact Int.le_refl _
+  | readSingle m s =>
+    obtain ⟨o, r, h⟩ := preadRespondAll_eq id s [⟨s.commit, m.src, m.entries⟩]
+    rw [h]; exact Int.le_refl _
+  | readReleaseSingle s =>
+    obtain ⟨o, r, h⟩ := preadRespondAll_eq id ({ s with rd := { s.rd with pend := [] } })
+      (s.rd.pend.map (fun p => ⟨s.commit, p.1.From', p.2⟩))
+    rw [h]; exact Int.le_refl _
   | _ => simp [psendMsgs, pbecomeFollower, pbecomeCandidate, pwinState, pappend, pbecomeLeader,
       padoptLeader]
 
@@ -127,6 +134,13 @@ theorem StepR.commit_mono {Adm : List raftpb.Entry → CCState → Prop} {dec : 
       ({ r.p with rd := { r.p.rd with
            ro := (readonlyAdvance (readonlyRecvAck r.p.rd.ro m.src m.ctx) N).1 } })
       (readonlyAdvance (readonlyRecvAck r.p.rd.ro m.src m.ctx) N).2
+    simp only [h]; exact Int.le_refl _
+  | readSingle m r =>
+    obtain ⟨o, rd, h⟩ := preadRespondAll_eq id r.p [⟨r.p.commit, m.src, m.entries⟩]
+    simp only [h]; exact Int.le_refl _
+  | readReleaseSingle r =>
+    obtain ⟨o, rd, h⟩ := preadRespondAll_eq id ({ r.p with rd := { r.p.rd with pend := [] } })
+      (r.p.rd.pend.map (fun q => ⟨r.p.commit, q.1.From', q.2⟩))
     simp only [h]; exact Int.le_refl _
   | _ => simp [psendMsgs, pbecomeFollower, pbecomeCandidate, pwinState, pappend, pbecomeLeader,
       padoptLeader]
