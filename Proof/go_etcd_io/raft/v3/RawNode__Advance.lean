@@ -477,7 +477,7 @@ theorem RawNode.Advance.wp_proof
       | static =>
         iframe Hghost
         ipureintro; intro _ _ _ _; trivial
-      | dyn dec c0 h0 =>
+      | dyn dec c0 h0 _ =>
         simp only [RNMode.toG]
         icases ownStepGhost_deliv γ dec c0 h0 ⟨ca, rs.cfg, fp⟩ cf id s1 rs.delivered
           (by rw [Hdlen]; have := uint_Z_nonneg s.logst.applying; rw [← Hs1.1] at *; omega)

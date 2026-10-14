@@ -67,6 +67,7 @@ module
 public import Proof.go_etcd_io.raft.v3.InvReadylog
 -- (2026-10-14, reconfiguration stage B7 part 2) the ghost modes
 public import Proof.go_etcd_io.raft.v3.StepGhostMode
+public import Proof.go_etcd_io.raft.v3.SnapConf
 
 @[expose] public section
 
@@ -113,7 +114,7 @@ by applied conf entries: a decoder `dec` and an initial configuration `c0`; B5's
 `ownRaftGhostR`). -/
 inductive RNMode [FfiSyntax] where
   | static
-  | dyn (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
+  | dyn (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (h1 : CCGood c0)
 
 /-- What the application sees of a `RawNode` (2026-10-09). -/
 structure RNState [FfiSyntax] where
@@ -168,7 +169,7 @@ def RNMode.isDyn : RNMode → Bool
 /-- The ghost mode `raft.Step` keeps for a `RawNode` in mode `md`, with the ghost part `g`. -/
 def RNMode.toG : RNMode → RGh → GMode
   | .static, _ => .static
-  | .dyn dec c0 h0, g => .dyn dec c0 h0 g
+  | .dyn dec c0 h0 _, g => .dyn dec c0 h0 g
 
 theorem RNMode.toG_isDyn (md : RNMode) (g : RGh) : (md.toG g).isDyn = md.isDyn := by
   cases md <;> rfl
@@ -201,7 +202,7 @@ theorem RNMode.stepOut_ca {mode : RNMode} {ca : Nat} {cfg : CCState} {fp : List 
   cases mode with
   | static =>
     exact ⟨ca, H.1, Nat.le_refl _, Nat.le_max_left _ _, fun _ => rfl, fun _ => rfl⟩
-  | dyn dec c0 h0 =>
+  | dyn dec c0 h0 _ =>
     obtain ⟨g', Hcm, rfl, -⟩ := H
     rcases Hcm with h | h | ⟨hty, h⟩
     · exact absurd h hs
@@ -792,7 +793,7 @@ theorem ownStepGhost_vcfg (γ : RaftNames) (rs : RNState) (fp : List raftpb.Entr
     iframe Hg
     ipureintro
     exact ⟨⟨HC.1, HC.2.1⟩, HC⟩
-  | dyn dec c0 h0 =>
+  | dyn dec c0 h0 _ =>
     simp only [hm, RNMode.toG, ownStepGhost, ghostRest]
     icases H with ⟨Hg, %HC, Hr⟩
     iframe Hg Hr
@@ -1023,7 +1024,7 @@ theorem ownRawNode_mode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
     rw [RNMode.toG_isDyn] at Hm
     cases hm : rs.mode with
     | static => rw [hm] at Hm; simp [RNMode.isDyn] at Hm; simp [Hm]
-    | dyn dec c0 h0 => rw [hm] at Hm; simp [RNMode.isDyn] at Hm; simp [Option.isSome_iff_ne_none.1 Hm]
+    | dyn dec c0 h0 _ => rw [hm] at Hm; simp [RNMode.isDyn] at Hm; simp [Option.isSome_iff_ne_none.1 Hm]
   iapply ownRawNode_intro γ rn id rs s cf fp rnv sv steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap
     Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs
