@@ -20,8 +20,8 @@ and the peers guarantee of them, which `raft.Step` takes as premises
 the node itself for a leader's `MsgApp`/`MsgHeartbeat`/`MsgReadIndexResp`, a heartbeat
 response or a rejecting `MsgAppResp`. The unstamped types (`UnstampedType`, `Term = 0`):
 a `MsgReadIndex` is a follower's forwarded request (or a local one, `node.ReadIndex`'s),
-from and to anyone, and only in a configuration of more than one voter (`raft.Step`'s
-premise: `IsSingleton`'s immediate answer is out of scope); it carries one read credit
+from and to anyone (any number of voters since 2026-10-14: stage F verified the single-voter
+shortcut, stage R dropped the premise); it carries one read credit
 (`rdCred`, `Hcred`), which `Ready` handed out with it. A `MsgTransferLeader` carries no
 entries and no context, as `TransferLeadership` builds it. A `MsgTimeoutNow` makes the node
 campaign one term past its own or the message's: neither may be the last term

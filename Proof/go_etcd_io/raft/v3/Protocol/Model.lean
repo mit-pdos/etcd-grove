@@ -389,9 +389,9 @@ structure PState [FfiSyntax] where
 
 /-! ### The client log (2026-10-10)
 
-The data of committed client entries in commit order, first occurrences only: what
-`cLog` (`GhostState.lean`) holds of the committed log, given each entry's data
-(`none` for a leader's own entry). -/
+The data of committed client entries in commit order, first occurrences only, given each
+entry's data (`none` for a leader's own entry): until 2026-10-14 (stage R) what raft's client log
+`cLog` held; now the register's history over raft's full log (`regInv`). -/
 
 /-- One entry's data added to the client log: a new data is appended; a repeated one, or
 a leader's own entry (`none`), leaves it. -/

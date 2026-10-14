@@ -762,7 +762,8 @@ def isTermLog (γ : RaftNames) (v t : w64) (γt : GName) (b : entryID)
 
 /-! ### Proposed data (2026-10-10)
 
-What an entry's `Data'` slice holds, for the client log (`cLog`, `GhostState.lean`): a
+What an entry's `Data'` slice holds, for the updates over the committed log (`propAu`/`noopAu`,
+`GhostState.lean`; until 2026-10-14, stage R, the client log `cLog`): a
 leader's own entry (the empty entry a new leader appends) has the zero slice; every other
 entry was proposed, and its slice is recorded (`isPropData`) with data whose atomic
 update was deposited (`deposited`). -/
@@ -780,8 +781,8 @@ the client data `d`; `none` for an entry that is not a client operation -- a nor
 with the zero slice (a leader's own entry, a refused conf change's replacement), or
 (since 2026-10-13, reconfiguration stage D) an entry of another type, whose proposed slice
 holds bytes that decode as its type says (`CCDecodes`: a conf-change entry's, which
-`stepLeader` `Unmarshal`s). Only normal entries' data are client operations (the client
-log, `cLog`, `GhostState.lean`). Until 2026-10-13 `none` was any entry with the zero slice,
+`stepLeader` `Unmarshal`s). Only normal entries' data are client operations (`propAu` of
+their data moves the client's log, `noopAu` the others', `GhostState.lean`). Until 2026-10-13 `none` was any entry with the zero slice,
 and every entry was normal. -/
 def entDataIs (γ : RaftNames) (e : raftpb.Entry) : Option (List w8) → IProp GF
   | none => iprop(⌜e.Type' = W32 0 ∧ e.Data' = (zero_val raftpb.Entry).Data'⌝ ∨

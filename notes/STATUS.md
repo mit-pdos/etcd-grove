@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-14 (stage F: **the single-voter read-index fix verified at `raft.Step`** -- the raft pin is the fork revision `0560cb7` (etcd-io/raft `40f8be7` plus the fix of `issues/raft-readindex-singleton-stale.md`), `sendMsgReadIndexResponse`'s shortcut (the leader as single voter, after `committedEntryInCurrentTerm`) is the model's `readSingle`/`readReleaseSingle`, refined in both modes by the leader's own acknowledgement (quorum `{id}`), `raft.Step.spec`'s single-voter read-index premise gone; see "The single-voter read-index fix"; reconfiguration, stage B7 part 2: **the `RawNode` API in the dynamic model** -- `RNState.mode` (static or dynamic), `ownRawNode` in either mode, `NewRawNode` from the dynamic ghost state, `ApplyConfChange` as `StepR.applyConf` (a removed leader steps down), `Advance` with A1, every other `RawNode` spec unchanged in shape; `node.go`/the register still static; the `raft_reconfig_*` scaffolding deleted; see "Reconfiguration, stage B7, part 2"; reconfiguration, stage B8: **snapshots at a changing configuration** -- a snapshot of any well-formed `ConfState`, joint included, restored through `raft.restore`/`handleSnapshot`/`stepFollower`/`stepCandidate`/`raft.Step` (the general `confchange.Restore`, `ConfState.Equivalent`, `assertConfStatesEquivalent` as `spec`; the node any id of the `ConfState`, learners and outgoing voters included), `MsgSnap` in `raft.Step`'s dynamic mode as `StepR.snapRestore` (`StepCDS`, `ghost_stepCDS`; the prefix from the message, `isMessage_snap_prefix`; A3 the receiver's premise `GMode.SnapOk`), the four `ConfState` lists from the storage to the outbox (`CSLists`, `ownCSL`); A3 carried from the sender's storage by the message left; see "Reconfiguration, stage B8 (snapshots at a changing configuration)"; reconfiguration, stage B7 part 1: **`raft.Step` in the dynamic model** -- `raft.Step.spec` takes the ghost state in either mode (`GMode`, `ownStepGhost`); in the dynamic mode every step is a `StepR` step and `ownRaftGhostR` follows the code, under the premises `GMode.Pre` (no `MsgSnap`, no pre-candidate, A1 at `MsgStorageApplyResp`, a log bound for dropped proposals); the struct at any configuration (`ownRaftPhysCV c`); `RawNode`/`node` still static through `raft.Step.specS`; see "Reconfiguration, stage B7, part 1"; reconfiguration, stage B8, standalone part: **`confchange.Restore`
+**Last updated:** 2026-10-14 (stage R: **ReadIndex and proposals as persistent atomic updates over the full committed log** (`notes/raft-readindex-spec.md`) -- `rLog` replaces the client log, `propAu` fires at every committed occurrence, `noopAu` at raft's own entries, a read's `readAu` is deposited by `RawNode.ReadIndex`/`node.ReadIndex` and fired at every commit after, `read_collect`/`prop_collect` give `▷ ▷ □` results; one later credit per ghost step with the commit invariant in a log half and a registry half held open across the step; no voter-count premise left at the public API or in the register; see "The new ReadIndex and proposal specs (stage R)"; stage F: **the single-voter read-index fix verified at `raft.Step`** -- the raft pin is the fork revision `0560cb7` (etcd-io/raft `40f8be7` plus the fix of `issues/raft-readindex-singleton-stale.md`), `sendMsgReadIndexResponse`'s shortcut (the leader as single voter, after `committedEntryInCurrentTerm`) is the model's `readSingle`/`readReleaseSingle`, refined in both modes by the leader's own acknowledgement (quorum `{id}`), `raft.Step.spec`'s single-voter read-index premise gone; see "The single-voter read-index fix"; reconfiguration, stage B7 part 2: **the `RawNode` API in the dynamic model** -- `RNState.mode` (static or dynamic), `ownRawNode` in either mode, `NewRawNode` from the dynamic ghost state, `ApplyConfChange` as `StepR.applyConf` (a removed leader steps down), `Advance` with A1, every other `RawNode` spec unchanged in shape; `node.go`/the register still static; the `raft_reconfig_*` scaffolding deleted; see "Reconfiguration, stage B7, part 2"; reconfiguration, stage B8: **snapshots at a changing configuration** -- a snapshot of any well-formed `ConfState`, joint included, restored through `raft.restore`/`handleSnapshot`/`stepFollower`/`stepCandidate`/`raft.Step` (the general `confchange.Restore`, `ConfState.Equivalent`, `assertConfStatesEquivalent` as `spec`; the node any id of the `ConfState`, learners and outgoing voters included), `MsgSnap` in `raft.Step`'s dynamic mode as `StepR.snapRestore` (`StepCDS`, `ghost_stepCDS`; the prefix from the message, `isMessage_snap_prefix`; A3 the receiver's premise `GMode.SnapOk`), the four `ConfState` lists from the storage to the outbox (`CSLists`, `ownCSL`); A3 carried from the sender's storage by the message left; see "Reconfiguration, stage B8 (snapshots at a changing configuration)"; reconfiguration, stage B7 part 1: **`raft.Step` in the dynamic model** -- `raft.Step.spec` takes the ghost state in either mode (`GMode`, `ownStepGhost`); in the dynamic mode every step is a `StepR` step and `ownRaftGhostR` follows the code, under the premises `GMode.Pre` (no `MsgSnap`, no pre-candidate, A1 at `MsgStorageApplyResp`, a log bound for dropped proposals); the struct at any configuration (`ownRaftPhysCV c`); `RawNode`/`node` still static through `raft.Step.specS`; see "Reconfiguration, stage B7, part 1"; reconfiguration, stage B8, standalone part: **`confchange.Restore`
 for any `ConfState`** (`Restore.specG`, joint included, against `restoreM`; the non-joint
 `Restore.spec` derived), A3 as definitions (`SnapConf.lean`: `SnapConfOk`, `SnapObl`),
 `MemoryStorage` keeping a snapshot's four `ConfState` slices, and the asynchronous-storage
@@ -33,6 +33,88 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## The new ReadIndex and proposal specs (stage R) (2026-10-14)
+
+The read index and proposals now hand raft **persistent atomic updates over the full committed
+log**, as the backend unit T1 asked (`notes/raft-readindex-spec.md`, implemented with the user's
+defaults; design in decisions.md, "ReadIndex and proposals as persistent atomic updates over the
+full log (stage R)"). Trust base unchanged (75 axioms, 10 sorries; see below).
+
+Commits: `5b226157f` (R1-R3, the raft side: ghost state, credits, specs, premises; the register
+not yet building), `30f1eb308` (R4, the register), and this notes commit.
+
+- **The ghost state** (`Protocol/GhostState.lean`). `rLog γ L` (the full committed log, client
+  half; `reRLog` replaces `reCLog`); `propAu` (persistent, `∀∀ e` with the entry's data, result
+  `□ Q L` at every committed occurrence), `noopAu` (raft's own entries), `readAu`;
+  `rdFresh`/`reRdFresh`; `readReq γ c Lc` (`Lc` the global log at the deposit, with the result
+  predicate's name), `isRead`, `readWit`; the registries `propsOwn`/`readsReg` with `propSlot`/
+  `readSlot` (results at every log fired at), `regsAt`/`regsOwn`. The commit invariant has two
+  halves, `raftLogInv` (log, justification, tables, the entries' data, a quarter of `reRLog`) and
+  `raftRegInv` (the registries, `noopAu`, the other quarter).
+- **Firing** (`Protocol/LeaderCompleteness.lean`). `fire_one`: the entry's own update moves the
+  log (`propAu_fire`/`noopAu_fire`), every read slot is fired at the new log (`readsReg_fire`,
+  over the map with the log's half threaded, `bigSepM_fupd_thread`), the other proposal slots keep
+  their results (`propSlot_grow`). `commit_extend` takes the held registry half (`regsOwn`) at
+  `⊤ ∖ ↑raftRegN`.
+- **One later credit per ghost step.** `ownRaftGhost_stepC`/`ownRaftGhostR_stepR` take `£ 1`,
+  open the registry half once (`regs_open`) and thread it through the derivation
+  (`ownRaftGhost_stepC_in`, `ownRaftGhostR_stepR_in`; every case lemma of `Refinement.lean` at
+  `⊤ ∖ ↑raftRegN`), since a derivation of the transitive closure may commit several times; also
+  `ghost_stepCD`/`ghost_stepCDS`/`ghost_step_md(0)`/`ghost_step_recv`, `ownRaftGhost_step(_0/1/1c)`,
+  `rawNode_applyCC_reseal`. The credit is in `raft.Step.spec`'s precondition (`"Hlc" ∷ £ 1`;
+  carried by `stepPost` to the branches) and its callers take it from a pure step.
+- **Deposits and collections** (`Protocol/ReadIndex.lean`, `Protocol/Facts.lean`, `InvNode.lean`,
+  `InvRawnodeReady.lean`): `read_deposit` (at `⊤`, fires at once), `read_collect`
+  (`▷ ▷ □ Qr L` for a committed `L` at least `i` long), `readStateOk_readWit`;
+  `prop_deposit` (no credit, no ticket), `prop_collect` (`▷ ▷ □ Q (L.take m)` at every committed
+  occurrence `L[m]? = some e` with `entDataIs γ e (some d)`); `node_read_deposit`,
+  `node_read_collect`, `node_collect`, `node_propose_ghost` (no credit).
+- **The public specs that changed** (statement shapes):
+  - `RawNode.ReadIndex.spec`: binders `Qr L0` (was `Lc`), no `NotSingleton` premise; pre
+    `isPropData γ rctx c ∗ rdFresh γ c ∗ readAu γ Qr ∗ isCommitted γ L0 ∗ rdCred γ 1` (was
+    `readReq γ c Lc ∗ rdCred γ 1`); post `ownRawNode … ∗ ∃ Lc, ⌜L0 <+: Lc⌝ ∗ readReq γ c Lc ∗
+    isRead γ c Qr`.
+  - `node.ReadIndex.spec`: the same (binders `Qr L0`, no `1 < GMap.size` premise, post
+    `∃ Lc, ⌜L0 <+: Lc⌝ ∗ readReq γ.raft c Lc ∗ isRead γ.raft c Qr` whatever the error).
+  - `node.Propose.spec`: `Q : List raftpb.Entry → IProp GF` (was over the client log); `propArg`
+    hands in the persistent `propAu`, `propRes` returns `∃ γq, isProp γ d γq Q` (no ticket).
+  - `RawNode.Step.spec`: the premise `m.Type' = MsgReadIndex → NotSingleton (rs.vcfg γ)` gone
+    (`NotSingleton`/`notSingleton_static` deleted); `InvNode.lean`'s `netP` lost its
+    `MsgReadIndex → 1 < GMap.size` clause, `InvNodeRun.wp_rn_raft_Step_net` its `Hsing`.
+  - `raft.Step.spec` (internal): `"Hlc" ∷ £ 1`; `raft.Step.specS`: the same, and its
+    read-index premise is `m.Term' = W64 0` (the `∧ 1 < GMap.size cfg` gone).
+  - Allocation: `ownRaftGhost_alloc(_gen)` take the client's continuation (`allocClient`: given
+    `γ`, `rLog γ []` and the fresh-token/slice authorities, it returns `noopAu γ ∗ C γ`) and return
+    `C γ`; `raft_dyn_alloc` likewise.
+  - Unchanged: every other `RawNode`/`node` spec, `RawNode.Ready.spec`'s `readStateOk`.
+- **The register** (`examples/register`). `regInv` holds `rLog` with the entries' data (the
+  history is their `firstOcc`), the value, the token authorities (`reFresh`, `reRdFresh`), the
+  operations' slots (`RegNames.ops`, `opSlot`); `reg_mint` creates the slot from the client's
+  update (with a credit from a pure step); `reg_propAu` is the persistent update `Propose`
+  deposits (it moves the log at every occurrence and runs the client's update at the first),
+  `reg_noopAu` the standing one (built in `Main`'s allocation continuation), `reg_readAu` a
+  read's (`Qr := fun _ => True`); `reg_collect` gives the client's result with its ticket; `Read`
+  passes its `regLb` log as `L0`, and the applier's answer is `readAns` (a read index and the
+  value after a log at least that long), which the reader turns into `readP` with the deposit's
+  record. `deliver.spec` and `Register.Read.spec` lost `1 < GMap.size …reCfg` (`Main`'s
+  `clusterIds_size` uses, `Cluster.lean`'s `Hcfg`). Results/Adequacy: the statements are the
+  same but `register_Read`'s (its spec has no size premise); `register_regLb_current` and the
+  adequacy theorem unchanged. No Go change.
+- **The note's [unsure] points.** Masks: no invariant is open around a commit -- commits happen
+  in ghost steps inside `raft.Step`'s WP (a non-atomic call, so at `⊤`), `ApplyConfChange`'s and
+  `node.run`'s re-seal (WP level); `open_node` only unfolds the persistent `isNode`; the clients'
+  update bodies run at `⊤ ∖ ↑raftN` (the register's opens `regN`, its client's AU then at
+  `regMask`). Credits: the branches have no pure step of their own before the ghost update (the
+  dispatch applies each branch lemma to the whole call), so the fallback was used: one `£ 1` in
+  `raft.Step.spec`'s precondition, paid by its callers.
+- **Findings.** The note's §4.2 is unsound as stated (several commits per derivation); its §5
+  binder is the client's choice (`∀∀` needed); the deposit inside the spec forces the register's
+  answer to carry the read index (its waiter precedes the deposit). No Go bug.
+
+Checks: `lake build` of the five targets; `etc/tcb-report.py --check` (75 axioms, 10 sorries;
+`raft.txt`, `register.txt` pass); `etc/goose.py --check`; `Link.lean` reproduces
+(`etc/gen-link.py`: no callee list moved).
 
 ## The single-voter read-index fix (2026-10-14, stage F)
 

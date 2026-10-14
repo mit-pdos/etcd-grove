@@ -368,8 +368,8 @@ def propP (γ : NodeNames) (pm : msgWithResult) : IProp GF :=
 
 /-- A message from the network on `recvc`, for node `id`: what `RawNode.Step` takes
 (`NetMsgOk`, its entries read-only with their capacity, its context, its abstraction sent;
-since 2026-10-13 a read-index request only with more than one voter, and with its read
-credit) and a term within the budget. Also (2026-10-13) the local messages that go through
+since 2026-10-13 a read-index request with its read credit; until 2026-10-14, stage R, only
+with more than one voter) and a term within the budget. Also (2026-10-13) the local messages that go through
 `recvc` too: a read-index request (`node.ReadIndex`), a transfer request
 (`TransferLeadership`), `ForgetLeader` and the reports (`ReportUnreachable`,
 `ReportSnapshot`). Since 2026-10-13 a `MsgTimeoutNow` too, with one tick credit

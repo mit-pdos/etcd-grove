@@ -590,9 +590,8 @@ abbrev raft.Step.specS : Prop :=
      s.gh.unst = false) →
   (m.Type' = MsgStorageApplyResp → m.Term' = W64 0) →
   -- Read-index (2026-10-13): a request is unstamped (`Term = 0`; a local one from
-  -- `ReadIndex`, a forwarded one from a follower), and not in a single-voter
-  -- configuration (`IsSingleton`'s immediate answer is out of scope); a response is a
-  -- leader's, from another node.
+  -- `ReadIndex`, a forwarded one from a follower; until 2026-10-14, stage R, also not in a
+  -- single-voter configuration); a response is a leader's, from another node.
   (m.Type' = MsgReadIndex → m.Term' = W64 0) →
   (m.Type' = MsgReadIndexResp →
      m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) →

@@ -3771,3 +3771,60 @@ add model-level theorems as deliverables. (The user's decision, 2026-10-14.)
   modes. *Rejected*: the static-only route of `notes/raft-readindex-spec.md` §4.4 (voter
   membership of campaigners in `isCampK`, past-term commit bounds in `lcmOwn`), which would have
   changed the ghost definitions and still not covered the dynamic mode.
+
+## ReadIndex and proposals as persistent atomic updates over the full log (stage R)
+
+**2026-10-14 · accepted** (`notes/raft-readindex-spec.md`, the backend unit T1's handoff; the
+user's defaults for its open questions)
+
+- **The client's view is the full committed log** (`rLog γ L`, ghost variable `reRLog`, replacing
+  the first-occurrence client log `cLog`), moved only by deposited **persistent** atomic
+  updates: `propAu γ d Q` at every committed occurrence of `d` (result `□ Q L`, the log before),
+  the standing `noopAu γ` at raft's own entries (given by the client at allocation, through a
+  continuation `allocClient` of `ownRaftGhost_alloc(_gen)`), and a read's `readAu γ Qr`, which
+  leaves the log as it is. The register, whose operations are linear and must run once, keeps the
+  first-occurrence slots itself (`opSlot`, the client's update with a later credit), which raft's
+  `propSlot` used to be.
+- **Reads fire at the deposit and at every commit after it** (open question 1, the user's
+  default): an update over the live log cannot be fired at a prefix already committed, so "from
+  the safe index on" is impossible; the read index enters only in what may be collected
+  (`readWit`, `read_collect`: every committed log at least `i ≥ |Lc|` long was fired at).
+  `readReq γ c Lc` now records the **exact** global log at the deposit.
+- **The updates bind raft's entry with `∀∀`, not `∃∃`** (correcting the note's pair `∃∃ (L, e)`;
+  open question 7 moot): in an atomic update the `∃∃` value is the client's choice (it hands over
+  the precondition), the `∀∀` the linearizer's. So `propAu γ d Q = □ AU <{ ∃∃ L, rLog γ L }> @
+  ⊤ ∖ ↑raftN, ∅ <{ ∀∀ e, rLog γ (L ++ [e]) ∗ entDataIs γ e (some d), COMM □ Q L }>`, the client
+  learning the entry's data from the binder. (The notation does take several `∃∃` binders.)
+- **One later credit per ghost step, with the commit invariant in two halves.** The note's plan
+  (one `£ 1` per ghost step, used by `commit_extend`) does not work as stated: `Step`/`StepC`/
+  `StepR` are transitive closures, so one derivation may commit several times, each commit firing
+  updates under the invariant's later, and one credit strips one later. The commit invariant is
+  split: the log half (`raftLogInv`, at `raftN.@"log"`) and the registry half (`raftRegInv`, at
+  `raftN.@"reg"`: the registries, `noopAu`, a quarter of `reRLog`; the log half has the other
+  quarter, so both are at the global log). A ghost step opens the registry half once with its
+  credit (`regs_open`) and threads its contents (`regsOwn`) through the derivation
+  (`ownRaftGhost_stepC_in`, `ownRaftGhostR_stepR_in`), whose case lemmas run at
+  `⊤ ∖ ↑raftRegN` and open the log half only; the updates' outer mask `⊤ ∖ ↑raftN` excludes both.
+  *Rejected*: a commit-counting index on the step relation (a copy of `StepC`'s forty rules and
+  of every branch's derivation); deferring the firing to whoever collects (the log of `rLog`
+  lagging the committed one, against the user's firing discipline, and a credit at `⊤` at every
+  collection).
+- **The credit comes from `raft.Step.spec`'s precondition** (the note's fallback; the
+  [unsure] of §4.2): `raft.Step`'s dispatch applies the branch lemmas to the whole call, so no
+  pure step precedes a branch's ghost update without restating them; `stepPost` carries the
+  credit to each branch's `finish_branch`. Its callers (the `RawNode` methods, `tickElection`/
+  `tickHeartbeat`, `node.run`'s arms, `Advance`'s pending loop, `ApplyConfChange`) take it from
+  their own pure steps; no public `RawNode`/`node` spec changed for it.
+- **A separate token map for read contexts** (`reRdFresh`, `rdFresh`; open question 5); the
+  read registry's authority (`reReads`) is raft's, in the registry half.
+- **The deposit is in the spec** (open question 9): `RawNode.ReadIndex`/`node.ReadIndex` take
+  `rdFresh γ c ∗ readAu γ Qr ∗ isCommitted γ L0` and return `∃ Lc, ⌜L0 <+: Lc⌝ ∗ readReq γ c Lc ∗
+  isRead γ c Qr`. Consequence for the register: its read's waiter is made (under the lock) before
+  the call, so it cannot hold the deposit's record; the applier answers with the read state's
+  index and the value after a committed log at least that long (`readAns`), and the reader, with
+  the call's post, turns it into `readP`.
+- **`▷ ▷` at collection** (open question 6): `read_collect`, `prop_collect` give `▷ ▷ □ Q`; a
+  client spends `£ 2` (the register does, in `do`).
+- **No extra facts in `readAu`'s precondition** (open question 8); lease-based reads and
+  crash-restart stay out (10, 11).
+- Raft's read registry is `readsReg` (the register already had a `readsOwn`).

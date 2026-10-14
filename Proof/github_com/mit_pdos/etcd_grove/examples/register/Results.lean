@@ -15,7 +15,7 @@ generated); raft's functions it calls are linked in raft's `Link.lean`.
   value after a longer one, itself a lower bound -- the value at a point between the call
   and the return. The history at any moment is a lower bound, at the client's value
   (`register_regLb_current`). One operation credit and one read credit (`rdCred`, from
-  raft's allocation), and more than one voter.
+  raft's allocation); any number of voters (since 2026-10-14, stage R).
 * **`New`** (`register_New`): a replica on its running node and storage, the shared register
   invariant and the replica's sequence-number token give `isRegister` and the credits; its
   `run` goroutine drives the node (`register_run`).
