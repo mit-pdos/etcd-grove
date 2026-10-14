@@ -116,6 +116,30 @@ def msgAbs (m : raftpb.Message) (a : Option Msg) : IProp GF :=
        m.Snapshot' ↦□ sv ∗
        sv.Metadata'.ConfState'.Voters' ↦*□ voters))
 
+/-- A `ConfState`'s four id slices holding `cl`: `Voters` at `dq`, the other three (which may be
+`nil` with no points-to when empty, `ownIdList`) at `dl` (2026-10-14, reconfiguration stage B8;
+`ConfState.Equivalent`'s, `assertConfStatesEquivalent`'s and `confchange.Restore`'s view). -/
+def ownCSIds (cs : raftpb.ConfState) (dq dl : DFrac) (cl : CSLists) : IProp GF :=
+  iprop(cs.Voters' ↦*{dq} cl.voters ∗ ownIdList cs.Learners' dl cl.learners ∗
+    ownIdList cs.VotersOutgoing' dl cl.outgoing ∗ ownIdList cs.LearnersNext' dl cl.learnersNext)
+
+instance ownCSIds_persistent (cs : raftpb.ConfState) (cl : CSLists) :
+    Persistent (ownCSIds (GF := GF) cs DFrac.discard DFrac.discard cl) := by
+  unfold ownCSIds; infer_instance
+
+open Iris.ProofMode in
+/-- The read-only slices of `ownCSL` as `ownCSIds`. -/
+theorem ownCSL_ids (cs : raftpb.ConfState) (cl : CSLists) :
+    ownCSL (GF := GF) cs cl ⊢ ownCSIds cs DFrac.discard DFrac.discard cl := by
+  unfold ownCSL ownCSIds ownIdList
+  iintro ⟨#Hv, #Hl, #Ho, #Hn⟩
+  iframe Hv
+  isplitr
+  · iright; iexact Hl
+  isplitr
+  · iright; iexact Ho
+  iright; iexact Hn
+
 /-- `send`'s `Hsnap` precondition for a message that is not a `MsgSnap`: vacuous. -/
 theorem send_no_snap (m : raftpb.Message) (P : IProp GF) (Hne : m.Type' ≠ MsgSnap) :
     ⊢ □ (⌜m.Type' = MsgSnap⌝ -∗ P) := by

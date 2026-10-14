@@ -152,26 +152,50 @@ theorem wp_sortCopy_idlist (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG
     · iright; iexact Hl
     ipureintro; exact Hf
 
-/-- One `ConfState` after the loop: its id slices replaced by fresh sorted copies (the
-two empty ones by `nil`), the original voter and learner slices untouched. -/
-def csSorted (c : Loc) (cs : raftpb.ConfState) (dq dl : DFrac) (v l : List w64) : IProp GF :=
-  iprop(∃ (cs' : raftpb.ConfState) (v' l' : List w64),
+/-- A slice `sl'` is a fresh sorted copy of the list `l`, `nil` iff `l` is empty. -/
+def SortedCopy (l l' : List w64) (sl' : GoSlice) : Prop :=
+  l ≡ₚ l' ∧ SortedW64 l' ∧ (sl' = slice.nil ↔ l = [])
+
+/-- Two sorted copies of permutations of each other agree: the same list, and both `nil` or
+neither. -/
+theorem SortedCopy.agree {l1 l2 l1' l2' : List w64} {s1 s2 : GoSlice} (Hp : l1 ≡ₚ l2)
+    (H1 : SortedCopy l1 l1' s1) (H2 : SortedCopy l2 l2' s2) :
+    (s1 = slice.nil ↔ s2 = slice.nil) ∧ l1' = l2' := by
+  obtain ⟨Hp1, Hs1, Hn1⟩ := H1
+  obtain ⟨Hp2, Hs2, Hn2⟩ := H2
+  refine ⟨?_, sorted_perm_eq _ _ (Hp1.symm.trans (Hp.trans Hp2))
+    ((sortedW64_iff_pairwise _).1 Hs1) ((sortedW64_iff_pairwise _).1 Hs2)⟩
+  rw [Hn1, Hn2]
+  constructor
+  · intro h; exact List.Perm.eq_nil (Hp.symm.trans (List.Perm.of_eq h)) ▸ rfl
+  · intro h; exact List.Perm.eq_nil (Hp.trans (List.Perm.of_eq h)) ▸ rfl
+
+/-- One `ConfState` after the loop: its four id slices replaced by fresh sorted copies (the
+empty ones by `nil`), the original slices untouched. -/
+def csSorted (c : Loc) (cs : raftpb.ConfState) (dq dl : DFrac) (a : CSLists) : IProp GF :=
+  iprop(∃ (cs' : raftpb.ConfState) (a' : CSLists),
     "Hc" ∷ c ↦ cs' ∗
-    "Hv" ∷ cs.Voters' ↦*{dq} v ∗
-    "Hl" ∷ ownIdList cs.Learners' dl l ∗
-    "Hsv" ∷ cs'.Voters' ↦* v' ∗
-    "Hsl" ∷ cs'.Learners' ↦* l' ∗
-    "%Hfacts" ∷ ⌜cs'.VotersOutgoing' = slice.nil ∧
-      cs'.LearnersNext' = slice.nil ∧ cs'.AutoLeave' = cs.AutoLeave' ∧
-      v ≡ₚ v' ∧ SortedW64 v' ∧ (cs'.Voters' = slice.nil ↔ v = []) ∧
-      l ≡ₚ l' ∧ SortedW64 l' ∧ (cs'.Learners' = slice.nil ↔ l = [])⌝)
+    "Hids" ∷ ownCSIds cs dq dl a ∗
+    "Hsv" ∷ cs'.Voters' ↦* a'.voters ∗
+    "Hsl" ∷ cs'.Learners' ↦* a'.learners ∗
+    "Hso" ∷ cs'.VotersOutgoing' ↦* a'.outgoing ∗
+    "Hsn" ∷ cs'.LearnersNext' ↦* a'.learnersNext ∗
+    "%Hfacts" ∷ ⌜cs'.AutoLeave' = cs.AutoLeave' ∧
+      SortedCopy a.voters a'.voters cs'.Voters' ∧
+      SortedCopy a.learners a'.learners cs'.Learners' ∧
+      SortedCopy a.outgoing a'.outgoing cs'.VotersOutgoing' ∧
+      SortedCopy a.learnersNext a'.learnersNext cs'.LearnersNext'⌝)
 
 theorem raftpb.ConfState.Equivalent.wp_proof
     (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG := hG))
     (wp_reflect_DeepEqual : reflect.DeepEqual.spec (GF := GF) (hG := hG)) :
     raftpb.ConfState.Equivalent.spec (GF := GF) (hG := hG) := by
-  intro p cs1 cs2 v1 v2 l1 l2 dq1 dq2 dl1 dl2 Hperm Hlen Hlperm Hllen H1 H3 H4 H6 Hal
-  wp_start as ⟨Hp, Hv1, Hv2, Hl1, Hl2⟩
+  intro p cs1 cs2 a b dq1 dq2 dl1 dl2 Hperm Hb Hal
+  have Hb2 : b.Bounded := by
+    obtain ⟨h1, h2, h3, h4⟩ := Hb
+    obtain ⟨p1, p2, p3, p4⟩ := Hperm
+    exact ⟨p1.length_eq ▸ h1, p2.length_eq ▸ h2, p3.length_eq ▸ h3, p4.length_eq ▸ h4⟩
+  wp_start as ⟨Hp, Hc1, Hc2⟩
   wp_auto
   wp_method_call
   wp_call
@@ -190,14 +214,13 @@ theorem raftpb.ConfState.Equivalent.wp_proof
   ihave IH : iprop(∃ (n : w64) (x : Loc),
       "i" ∷ i_ptr ↦ n ∗
       "cs" ∷ cs_ptr ↦ x ∗
-      "Hst" ∷ ((⌜n = W64 0⌝ ∗ cs1_ptr ↦ cs1 ∗ cs1.Voters' ↦*{dq1} v1 ∗
-                  ownIdList cs1.Learners' dl1 l1 ∗
-                  cs2_ptr ↦ cs2 ∗ cs2.Voters' ↦*{dq2} v2 ∗ ownIdList cs2.Learners' dl2 l2) ∨
-               (⌜n = W64 1⌝ ∗ csSorted cs1_ptr cs1 dq1 dl1 v1 l1 ∗ cs2_ptr ↦ cs2 ∗
-                  cs2.Voters' ↦*{dq2} v2 ∗ ownIdList cs2.Learners' dl2 l2) ∨
-               (⌜n = W64 2⌝ ∗ csSorted cs1_ptr cs1 dq1 dl1 v1 l1 ∗
-                  csSorted cs2_ptr cs2 dq2 dl2 v2 l2)))
-    $$ [i cs cs1 Hv1 Hl1 cs2 Hv2 Hl2]
+      "Hst" ∷ ((⌜n = W64 0⌝ ∗ cs1_ptr ↦ cs1 ∗ ownCSIds cs1 dq1 dl1 a ∗
+                  cs2_ptr ↦ cs2 ∗ ownCSIds cs2 dq2 dl2 b) ∨
+               (⌜n = W64 1⌝ ∗ csSorted cs1_ptr cs1 dq1 dl1 a ∗ cs2_ptr ↦ cs2 ∗
+                  ownCSIds cs2 dq2 dl2 b) ∨
+               (⌜n = W64 2⌝ ∗ csSorted cs1_ptr cs1 dq1 dl1 a ∗
+                  csSorted cs2_ptr cs2 dq2 dl2 b)))
+    $$ [i cs cs1 Hc1 cs2 Hc2]
   · iexists W64 0, zero_val Loc
     iframe i cs
     ileft
@@ -205,7 +228,7 @@ theorem raftpb.ConfState.Equivalent.wp_proof
     ipureintro; rfl
   wp_for IH
   wp_if_destruct
-  · icases Hst with (⟨%Hn, cs1, Hv1, Hl1, cs2, Hv2, Hl2⟩ | ⟨%Hn, Hd1, cs2, Hv2, Hl2⟩ | ⟨%Hn, -, -⟩)
+  · icases Hst with (⟨%Hn, cs1, Hc1, cs2, Hc2⟩ | ⟨%Hn, Hd1, cs2, Hc2⟩ | ⟨%Hn, -, -⟩)
     · -- `cs = &cs1`
       have Hbnd' : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z (W64 2) := ⟨by rw [Hn]; decide, Hif⟩
       simp only [Hbnd', _root_.and_self]
@@ -213,14 +236,31 @@ theorem raftpb.ConfState.Equivalent.wp_proof
       · iframe Hsl; ipureintro; rw [Hn]; rfl
       icases typedPointsto_not_null_dup _ _ _ $$ cs1 with ⟨cs1, %Hnn⟩
       iStructNamed cs1
-      wp_apply (wp_sortCopy_owned wp_slices_Sort f hf.symm) _ _ v1 dq1 Hlen $$ [$Hv1 $Voters]
-        as %sv %v1' ⟨Voters, Hv1, Hsv, -, %Hs1⟩
-      wp_apply (wp_sortCopy_idlist wp_slices_Sort f hf.symm) _ _ l1 dl1 Hllen
-        $$ [$Learners $Hl1] as %slv %l1' ⟨Learners, Hl1, Hslv, %Hsl1⟩
-      wp_apply (wp_sortCopy_empty wp_slices_Sort f hf.symm) _ _ H1 $$ [$VotersOutgoing]
-        as ⟨VotersOutgoing, -⟩
-      wp_apply (wp_sortCopy_empty wp_slices_Sort f hf.symm) _ _ H3 $$ [$LearnersNext]
-        as ⟨LearnersNext, -⟩
+      unfold ownCSIds
+      icases Hc1 with ⟨Hv, Hl, Ho, Hn⟩
+      wp_apply (wp_sortCopy_owned wp_slices_Sort f hf.symm) _ _ a.voters dq1 Hb.1
+        $$ [$Hv $Voters] as %sv %v' ⟨Voters, Hv, Hsv, -, %Hs1⟩
+      wp_apply (wp_sortCopy_idlist wp_slices_Sort f hf.symm) _ _ a.learners dl1 Hb.2.1
+        $$ [$Learners $Hl] as %slv %l' ⟨Learners, Hl, Hslv, %Hs2⟩
+      wp_apply (wp_sortCopy_idlist wp_slices_Sort f hf.symm) _ _ a.outgoing dl1 Hb.2.2.1
+        $$ [$VotersOutgoing $Ho] as %sov %o' ⟨VotersOutgoing, Ho, Hsov, %Hs3⟩
+      wp_apply (wp_sortCopy_idlist wp_slices_Sort f hf.symm) _ _ a.learnersNext dl1 Hb.2.2.2
+        $$ [$LearnersNext $Hn] as %snv %n' ⟨LearnersNext, Hn, Hsnv, %Hs4⟩
+      ihave Hd1 : csSorted cs1_ptr cs1 dq1 dl1 a $$ [Voters Learners VotersOutgoing
+          LearnersNext AutoLeave Hv Hl Ho Hn Hsv Hslv Hsov Hsnv]
+      · unfold csSorted
+        iexists ({ Voters' := sv, Learners' := slv, VotersOutgoing' := sov, LearnersNext' := snv, AutoLeave' := cs1.AutoLeave' } : raftpb.ConfState), (⟨v', l', o', n'⟩ : CSLists)
+        simp only [named]
+        iframe Hsv Hslv Hsov Hsnv
+        isplitl [Voters Learners VotersOutgoing LearnersNext AutoLeave]
+        · iapply typedPointsto_combine _ _ _ Hnn
+          simp only [TypedPointsto.typedPointstoDef]
+          iframe
+          try itrivial
+        isplitl [Hv Hl Ho Hn]
+        · unfold ownCSIds; iframe
+        ipureintro
+        exact ⟨trivial, Hs1, Hs2, Hs3, Hs4⟩
       wp_for_post
       iframe HΦ Hp s Hsl Hslcap orig1 orig2
       iexists n + W64 1, cs1_ptr
@@ -229,18 +269,7 @@ theorem raftpb.ConfState.Equivalent.wp_proof
       iright; ileft
       isplitr
       · ipureintro; rw [Hn]; rfl
-      iframe cs2 Hv2 Hl2
-      unfold csSorted
-      iexists ({ Voters' := sv, Learners' := slv, VotersOutgoing' := slice.nil, LearnersNext' := slice.nil, AutoLeave' := cs1.AutoLeave' } : raftpb.ConfState), v1', l1'
-      simp only [named]
-      iframe Hv1 Hl1 Hsv Hslv
-      isplitl [Voters Learners VotersOutgoing LearnersNext AutoLeave]
-      · iapply typedPointsto_combine _ _ _ Hnn
-        simp only [TypedPointsto.typedPointstoDef]
-        iframe
-        try itrivial
-      ipureintro
-      exact ⟨trivial, trivial, trivial, Hs1.1, Hs1.2.1, Hs1.2.2, Hsl1.1, Hsl1.2.1, Hsl1.2.2⟩
+      iframe
     · -- `cs = &cs2`
       have Hbnd' : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z (W64 2) := ⟨by rw [Hn]; decide, Hif⟩
       simp only [Hbnd', _root_.and_self]
@@ -248,15 +277,31 @@ theorem raftpb.ConfState.Equivalent.wp_proof
       · iframe Hsl; ipureintro; rw [Hn]; rfl
       icases typedPointsto_not_null_dup _ _ _ $$ cs2 with ⟨cs2, %Hnn⟩
       iStructNamed cs2
-      wp_apply (wp_sortCopy_owned wp_slices_Sort f hf.symm) _ _ v2 dq2 (by rw [← Hperm.length_eq]; exact Hlen) $$ [$Hv2 $Voters]
-        as %sv %v2' ⟨Voters, Hv2, Hsv, -, %Hs1⟩
-      wp_apply (wp_sortCopy_idlist wp_slices_Sort f hf.symm) _ _ l2 dl2
-          (by rw [← Hlperm.length_eq]; exact Hllen)
-        $$ [$Learners $Hl2] as %slv %l2' ⟨Learners, Hl2, Hslv, %Hsl1⟩
-      wp_apply (wp_sortCopy_empty wp_slices_Sort f hf.symm) _ _ H4 $$ [$VotersOutgoing]
-        as ⟨VotersOutgoing, -⟩
-      wp_apply (wp_sortCopy_empty wp_slices_Sort f hf.symm) _ _ H6 $$ [$LearnersNext]
-        as ⟨LearnersNext, -⟩
+      unfold ownCSIds
+      icases Hc2 with ⟨Hv, Hl, Ho, Hn⟩
+      wp_apply (wp_sortCopy_owned wp_slices_Sort f hf.symm) _ _ b.voters dq2 Hb2.1
+        $$ [$Hv $Voters] as %sv %v' ⟨Voters, Hv, Hsv, -, %Hs1⟩
+      wp_apply (wp_sortCopy_idlist wp_slices_Sort f hf.symm) _ _ b.learners dl2 Hb2.2.1
+        $$ [$Learners $Hl] as %slv %l' ⟨Learners, Hl, Hslv, %Hs2⟩
+      wp_apply (wp_sortCopy_idlist wp_slices_Sort f hf.symm) _ _ b.outgoing dl2 Hb2.2.2.1
+        $$ [$VotersOutgoing $Ho] as %sov %o' ⟨VotersOutgoing, Ho, Hsov, %Hs3⟩
+      wp_apply (wp_sortCopy_idlist wp_slices_Sort f hf.symm) _ _ b.learnersNext dl2 Hb2.2.2.2
+        $$ [$LearnersNext $Hn] as %snv %n' ⟨LearnersNext, Hn, Hsnv, %Hs4⟩
+      ihave Hd2 : csSorted cs2_ptr cs2 dq2 dl2 b $$ [Voters Learners VotersOutgoing
+          LearnersNext AutoLeave Hv Hl Ho Hn Hsv Hslv Hsov Hsnv]
+      · unfold csSorted
+        iexists ({ Voters' := sv, Learners' := slv, VotersOutgoing' := sov, LearnersNext' := snv, AutoLeave' := cs2.AutoLeave' } : raftpb.ConfState), (⟨v', l', o', n'⟩ : CSLists)
+        simp only [named]
+        iframe Hsv Hslv Hsov Hsnv
+        isplitl [Voters Learners VotersOutgoing LearnersNext AutoLeave]
+        · iapply typedPointsto_combine _ _ _ Hnn
+          simp only [TypedPointsto.typedPointstoDef]
+          iframe
+          try itrivial
+        isplitl [Hv Hl Ho Hn]
+        · unfold ownCSIds; iframe
+        ipureintro
+        exact ⟨trivial, Hs1, Hs2, Hs3, Hs4⟩
       wp_for_post
       iframe HΦ Hp s Hsl Hslcap orig1 orig2
       iexists n + W64 1, cs2_ptr
@@ -265,62 +310,34 @@ theorem raftpb.ConfState.Equivalent.wp_proof
       iright; iright
       isplitr
       · ipureintro; rw [Hn]; rfl
-      iframe Hd1
-      unfold csSorted
-      iexists ({ Voters' := sv, Learners' := slv, VotersOutgoing' := slice.nil, LearnersNext' := slice.nil, AutoLeave' := cs2.AutoLeave' } : raftpb.ConfState), v2', l2'
-      simp only [named]
-      iframe Hv2 Hl2 Hsv Hslv
-      isplitl [Voters Learners VotersOutgoing LearnersNext AutoLeave]
-      · iapply typedPointsto_combine _ _ _ Hnn
-        simp only [TypedPointsto.typedPointstoDef]
-        iframe
-        try itrivial
-      ipureintro
-      exact ⟨trivial, trivial, trivial, Hs1.1, Hs1.2.1, Hs1.2.2, Hsl1.1, Hsl1.2.1, Hsl1.2.2⟩
+      iframe
     · exfalso; rw [Hn] at Hif; exact absurd Hif (by decide)
   · -- both sorted: `reflect.DeepEqual(cs1, cs2)` holds
-    icases Hst with (⟨%Hn, -, -, -, -, -, -⟩ | ⟨%Hn, -, -, -, -⟩ | ⟨%Hn, Hd1, Hd2⟩)
+    icases Hst with (⟨%Hn, -, -, -, -⟩ | ⟨%Hn, -, -, -⟩ | ⟨%Hn, Hd1, Hd2⟩)
     · exfalso; rw [Hn] at Hif; exact Hif (by decide)
     · exfalso; rw [Hn] at Hif; exact Hif (by decide)
     unfold csSorted
-    icases Hd1 with ⟨%cs1', %v1', %l1', Hc1, Hv1, Hl1, Hsv1, Hsl1, %Hf1⟩
-    icases Hd2 with ⟨%cs2', %v2', %l2', Hc2, Hv2, Hl2, Hsv2, Hsl2, %Hf2⟩
-    obtain ⟨Hvo1, Hln1, Hal1, Hp1, Hso1, Hnil1, Hlp1, Hlso1, Hlnil1⟩ := Hf1
-    obtain ⟨Hvo2, Hln2, Hal2, Hp2, Hso2, Hnil2, Hlp2, Hlso2, Hlnil2⟩ := Hf2
+    icases Hd1 with ⟨%cs1', %a', Hc1, Hids1, Hsv1, Hsl1, Hso1, Hsn1, %Hf1⟩
+    icases Hd2 with ⟨%cs2', %b', Hc2, Hids2, Hsv2, Hsl2, Hso2, Hsn2, %Hf2⟩
+    obtain ⟨Hal1, Hv1, Hl1, Ho1, Hn1⟩ := Hf1
+    obtain ⟨Hal2, Hv2, Hl2, Ho2, Hn2⟩ := Hf2
+    obtain ⟨Hpv, Hpl, Hpo, Hpn⟩ := Hperm
     wp_auto
-    ihave Hn2 : (cs1'.VotersOutgoing' ↦* ([] : List w64)) $$ []
-    · rw [Hvo1]; iapply ownSlice_nil
-    ihave Hn3 : (cs1'.LearnersNext' ↦* ([] : List w64)) $$ []
-    · rw [Hln1]; iapply ownSlice_nil
-    ihave Hn5 : (cs2'.VotersOutgoing' ↦* ([] : List w64)) $$ []
-    · rw [Hvo2]; iapply ownSlice_nil
-    ihave Hn6 : (cs2'.LearnersNext' ↦* ([] : List w64)) $$ []
-    · rw [Hln2]; iapply ownSlice_nil
-    wp_apply wp_reflect_DeepEqual cs1' cs2' v1' l1' [] [] v2' l2' [] []
-      $$ [$Hsv1 $Hsl1 $Hn2 $Hn3 $Hsv2 $Hsl2 $Hn5 $Hn6] as ⟨Hsv1, -, -, -, Hsv2, -, -, -⟩
-    have Heq : v1' = v2' :=
-      sorted_perm_eq _ _ (Hp1.symm.trans (Hperm.trans Hp2))
-        ((sortedW64_iff_pairwise _).1 Hso1) ((sortedW64_iff_pairwise _).1 Hso2)
-    have Hleq : l1' = l2' :=
-      sorted_perm_eq _ _ (Hlp1.symm.trans (Hlperm.trans Hlp2))
-        ((sortedW64_iff_pairwise _).1 Hlso1) ((sortedW64_iff_pairwise _).1 Hlso2)
-    have HP : confStateDeepEq cs1' cs2' v1' l1' [] [] v2' l2' [] [] := by
-      refine ⟨?_, Heq, ?_, Hleq, by rw [Hvo1, Hvo2], rfl, by rw [Hln1, Hln2], rfl,
-        by rw [Hal1, Hal2, Hal]⟩
-      · rw [Hnil1, Hnil2]
-        constructor
-        · intro h; exact List.Perm.eq_nil (Hperm.symm.trans (List.Perm.of_eq h)) ▸ rfl
-        · intro h; exact List.Perm.eq_nil (Hperm.trans (List.Perm.of_eq h)) ▸ rfl
-      · rw [Hlnil1, Hlnil2]
-        constructor
-        · intro h; exact List.Perm.eq_nil (Hlperm.symm.trans (List.Perm.of_eq h)) ▸ rfl
-        · intro h; exact List.Perm.eq_nil (Hlperm.trans (List.Perm.of_eq h)) ▸ rfl
+    wp_apply wp_reflect_DeepEqual cs1' cs2' a'.voters a'.learners a'.outgoing a'.learnersNext
+        b'.voters b'.learners b'.outgoing b'.learnersNext
+      $$ [$Hsv1 $Hsl1 $Hso1 $Hsn1 $Hsv2 $Hsl2 $Hso2 $Hsn2] as -
+    obtain ⟨Ev1, Ev2⟩ := SortedCopy.agree Hpv Hv1 Hv2
+    obtain ⟨El1, El2⟩ := SortedCopy.agree Hpl Hl1 Hl2
+    obtain ⟨Eo1, Eo2⟩ := SortedCopy.agree Hpo Ho1 Ho2
+    obtain ⟨En1, En2⟩ := SortedCopy.agree Hpn Hn1 Hn2
+    have HP : confStateDeepEq cs1' cs2' a'.voters a'.learners a'.outgoing a'.learnersNext
+        b'.voters b'.learners b'.outgoing b'.learnersNext :=
+      ⟨Ev1, Ev2, El1, El2, Eo1, Eo2, En1, En2, by rw [Hal1, Hal2, Hal]⟩
     rw [decide_eq_true HP]
     wp_auto
     iapply HΦ
     iframe
 
 end proof
-
 end EtcdGrove
 end Perennial

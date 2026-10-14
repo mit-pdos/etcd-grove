@@ -56,6 +56,8 @@ theorem raft.restore.wp_proof
     (wp_raft_switchToConfig : raft.switchToConfig.spec (GF := GF) (hG := hG))
     (wp_assertConfStatesEquivalent : assertConfStatesEquivalent.spec (GF := GF) (hG := hG)) :
     raft.restore.spec (GF := GF) (hG := hG) := by
+  have wp_confchange_Restore := confchange.Restore.spec_simple wp_confchange_Restore
+  have wp_assertConfStatesEquivalent := assertConfStatesEquivalent.spec_simple wp_assertConfStatesEquivalent
   intro c cfg r id s sv voters learners Hrole Hvotes Hin Hscope
   obtain ⟨Hperm, H0, Hlnd, Hlok, Hlsz, Hcvo, Hcln, Hcal, Hidx61⟩ := Hscope
   wp_start as H

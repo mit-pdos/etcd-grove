@@ -55,6 +55,8 @@ theorem newRaft.wp_proof
     (wp_fmt_Sprintf : fmt.Sprintf.spec (GF := GF) (hG := hG))
     (wp_strings_Join : strings.Join.spec (GF := GF) (hG := hG)) :
     newRaft.spec (GF := GF) (hG := hG) := by
+  have wp_confchange_Restore := confchange.Restore.spec_simple wp_confchange_Restore
+  have wp_assertConfStatesEquivalent := assertConfStatesEquivalent.spec_simple wp_assertConfStatesEquivalent
   intro c cv lok si σ hs cs voters dqv
     Hvalid Hlok Hsto HmaxInfl Hcq Hdpf Hros Hdccv Hmcs Hidx Hss Hpe Hhs Happ Hvne Hvnd Hv0 Hvlen62 Hcs1 Hcs2 Hcs3 Hal
   obtain ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩ := Hvalid
