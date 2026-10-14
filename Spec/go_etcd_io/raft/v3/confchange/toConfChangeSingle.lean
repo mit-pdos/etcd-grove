@@ -4,7 +4,7 @@ rebuild it. Lean-first (no Rocq counterpart); see `InvConfchange.lean`.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvConfchange
+public import Proof.go_etcd_io.raft.v3.InvRestore
 
 @[expose] public section
 
@@ -22,20 +22,24 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- For a non-joint `ConfState` (empty `VotersOutgoing` and `LearnersNext`): no outgoing
-changes (`out` stays `nil`) and one `AddNode id` per voter, then one `AddLearnerNode id` per
-learner (since 2026-10-13; until then `Learners` was empty), in order, in a fresh slice. The
-two empty slices are ranged over but never read, so they need no points-to. -/
+/-- The changes `Restore` replays a `ConfState` as (`InvRestore.lean`): `out` holds one
+`AddNode` per outgoing voter (`restoreOutCC`; `nil` when there is none), `in` one `RemoveNode`
+per outgoing voter, then one `AddNode` per voter, one `AddLearnerNode` per learner and per
+staged learner (`restoreInCC`), in a fresh slice. Generalized 2026-10-14 (reconfiguration
+stage B8) from the non-joint case (empty `VotersOutgoing` and `LearnersNext`). The three id
+lists other than the voters may come without a points-to when empty (`ownIdList`). -/
 abbrev confchange.toConfChangeSingle.spec : Prop :=
-  ∀ (cs : raftpb.ConfState) (voters learners : List w64) (dq dql : DFrac),
-  cs.VotersOutgoing'.len = W64 0 →
-  cs.LearnersNext'.len = W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗ cs.Voters' ↦*{dq} voters ∗
-      ownIdList cs.Learners' dql learners }}
-    (App (Val #(functions confchange.toConfChangeSingle [])) (Val #cs))
-  {{ (s : GoSlice), RET (PairV #slice.nil #s);
+  ∀ (cs : raftpb.ConfState) (voters learners outgoing learnersNext : List w64)
+    (dq dql dqo dqn : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.confchange ∗
       cs.Voters' ↦*{dq} voters ∗ ownIdList cs.Learners' dql learners ∗
-      s ↦* (voters.map addNodeCC ++ learners.map addLearnerCC) ∗
+      ownIdList cs.VotersOutgoing' dqo outgoing ∗ ownIdList cs.LearnersNext' dqn learnersNext }}
+    (App (Val #(functions confchange.toConfChangeSingle [])) (Val #cs))
+  {{ (o s : GoSlice), RET (PairV #o #s);
+      cs.Voters' ↦*{dq} voters ∗ ownIdList cs.Learners' dql learners ∗
+      ownIdList cs.VotersOutgoing' dqo outgoing ∗ ownIdList cs.LearnersNext' dqn learnersNext ∗
+      o ↦* restoreOutCC outgoing ∗
+      s ↦* restoreInCC outgoing voters learners learnersNext ∗
       ownSliceCap raftpb.ConfChangeSingle s (DFrac.own 1) }}
 
 end spec

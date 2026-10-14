@@ -648,7 +648,7 @@ theorem confchange.wp_chain :
 
 theorem confchange.wp_Restore :
     confchange.Restore.spec (GF := GF) (hG := hG) :=
-  confchange.Restore.wp_proof confchange.wp_toConfChangeSingle confchange.Changer.wp_Simple confchange.wp_chain
+  confchange.Restore.wp_proof confchange.wp_toConfChangeSingle confchange.Changer.wp_Simple confchange.Changer.wp_EnterJoint confchange.wp_chain
 
 theorem wp_traceConfChangeEvent :
     traceConfChangeEvent.spec (GF := GF) (hG := hG) :=

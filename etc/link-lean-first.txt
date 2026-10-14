@@ -25,7 +25,7 @@ Changer__EnterJoint: Changer__checkAndCopy confchange_joint Changer__err confcha
 Changer__LeaveJoint: Changer__checkAndCopy confchange_joint Changer__err confchange_nilAwareAdd confchange_outgoing confchange_incoming confchange_outgoingPtr confchange_checkAndReturn
 confchange_toConfChangeSingle:
 confchange_chain:
-confchange_Restore: confchange_toConfChangeSingle Changer__Simple confchange_chain
+confchange_Restore: confchange_toConfChangeSingle Changer__Simple Changer__EnterJoint confchange_chain
 # The tracker/quorum accessors (2026-10-12). QuorumActive inlined JointConfig.VoteResult
 # until 2026-10-13 (reconfiguration stage A1), when that spec became general.
 mapAckIndexer__AckedIndex:
