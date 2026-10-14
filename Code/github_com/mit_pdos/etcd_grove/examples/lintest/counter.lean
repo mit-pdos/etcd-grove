@@ -40,7 +40,7 @@ noncomputable def Check [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/lintest/counter.Check"
 
 /-- Model is the counter's sequential specification: the state is an int64; an input true
-    increments it and outputs the new value, an input false outputs it.
+    increments it and outputs the new value, any other input outputs it.
 
     go: counter.go:17:6 -/
 noncomputable def Model.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -61,14 +61,26 @@ noncomputable def Model.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$r0" (App (Val (GoInstruction (TypeAssert go.int64))) (App (Val (GoInstruction (GoLoad go.any))) (Var "state")))
   (Let "s" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 go.bool))) (App (Val (GoInstruction (GoLoad go.any))) (Var "input")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "inc" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Pair (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (TypeAssert go.int64))) (App (Val (GoInstruction (GoLoad go.any))) (Var "output"))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "s")))) (App (Val (GoInstruction (Convert go.int64 go.any))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "s")))))))
-  (If (App (Val (GoInstruction (TypeAssert go.bool))) (App (Val (GoInstruction (GoLoad go.any))) (Var "input")))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "inc"))
   (App (Val doReturn)
   (Pair (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (TypeAssert go.int64))) (App (Val (GoInstruction (GoLoad go.any))) (Var "output"))) (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "s")) (Val #(W64 1)))))) (App (Val (GoInstruction (Convert go.int64 go.any))) (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "s")) (Val #(W64 1)))))))
   (App (Val doExecute)
   (Val #()))))))
+  (App (Val doExecute)
+  (Var "$r1")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "inc") (Var "$r0")))))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "s") (Var "$r0"))))))))))))))
   (Let "$v2" (Lam "a"
@@ -80,7 +92,7 @@ noncomputable def Model.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (TypeAssert go.int64))) (App (Val (GoInstruction (GoLoad go.any))) (Var "a"))) (App (Val (GoInstruction (TypeAssert go.int64))) (App (Val (GoInstruction (GoLoad go.any))) (Var "b")))))))))))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Init")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [] false [go.any])) (Var "$v0"))), (KeyedElement (some (KeyField go!"Step")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.any, go.any, go.any] false [go.bool, go.any])) (Var "$v1"))), (KeyedElement (some (KeyField go!"Equal")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.any, go.any] false [go.bool])) (Var "$v2")))]))))))))
 
-/-- go: counter.go:37:6 -/
+/-- go: counter.go:38:6 -/
 noncomputable def New.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
@@ -88,15 +100,24 @@ noncomputable def New.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoAlloc Counter.ty))) (App (Val (GoInstruction (CompositeLiteral Counter.ty))) (LiteralValue []))))))
 
 /-- Apply runs one operation: an input true increments the counter and returns the new value,
-    an input false returns it.
+    any other input returns it. (lintest.Run's apply must take any input: an input that is not
+    a bool is a read, not a panic.)
 
-    go: counter.go:43:19 -/
+    go: counter.go:45:19 -/
 noncomputable def Counter.Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "input"
   (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Counter.ty)))) (Var "c"))
   (Let "input" (App (Val (GoInstruction (GoAlloc go.any))) (Var "input"))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 go.bool))) (App (Val (GoInstruction (GoLoad go.any))) (Var "input")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "inc" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Counter.ty go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Counter.ty)))) (Var "c"))))
@@ -109,20 +130,24 @@ noncomputable def Counter.Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef Counter.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Counter.ty)))) (Var "c")))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "n") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (TypeAssert go.bool))) (App (Val (GoInstruction (GoLoad go.any))) (Var "input")))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "inc"))
   (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef Counter.ty go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Counter.ty)))) (Var "c")))) (Val #(W64 1))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef Counter.ty go!"n"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Counter.ty)))) (Var "c"))) (Var "$r0")))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Counter.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Counter.ty)))) (Var "c")))) (Val #())))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Counter.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Counter.ty)))) (Var "c")))) (Val #()))))))
+  (App (Val doExecute)
+  (Var "$r1")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "inc") (Var "$r0"))))))))))))))))
 
 /-- Check runs clients clients of a fresh counter, each running ops operations (client i
     increments if i is even and reads otherwise), traced with the given clock, and checks the
     trace with porcupine.
 
-    go: counter.go:56:6 -/
+    go: counter.go:59:6 -/
 noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "clock"
   (Lam "clients"

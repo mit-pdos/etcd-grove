@@ -13,13 +13,14 @@ import (
 )
 
 // Model is the counter's sequential specification: the state is an int64; an input true
-// increments it and outputs the new value, an input false outputs it.
+// increments it and outputs the new value, any other input outputs it.
 func Model() porcupine.Model {
 	return porcupine.Model{
 		Init: func() any { return int64(0) },
 		Step: func(state, input, output any) (bool, any) {
 			s := state.(int64)
-			if input.(bool) {
+			inc, _ := input.(bool)
+			if inc {
 				return output.(int64) == s+1, s + 1
 			}
 			return output.(int64) == s, s
@@ -39,10 +40,12 @@ func New() *Counter {
 }
 
 // Apply runs one operation: an input true increments the counter and returns the new value,
-// an input false returns it.
+// any other input returns it. (lintest.Run's apply must take any input: an input that is not
+// a bool is a read, not a panic.)
 func (c *Counter) Apply(input any) any {
+	inc, _ := input.(bool)
 	c.mu.Lock()
-	if input.(bool) {
+	if inc {
 		c.n = c.n + 1
 	}
 	n := c.n
