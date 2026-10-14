@@ -67,7 +67,7 @@ theorem raft.hup.wp_proof
     iapply HΦ $$ %s
     iframe Hphys
     ipureintro
-    exact ⟨Hwf, .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl⟩
+    exact ⟨Hwf, .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩
   · -- not a leader
     have Hnl : stateW64 s.role ≠ W64 2 := by
       cases h : s.role <;> simp_all [stateW64] <;> decide
@@ -79,7 +79,7 @@ theorem raft.hup.wp_proof
       -- a voter, so it may campaign
       obtain ⟨Hin, Hsn⟩ := of_decide_eq_true Hb.symm
       wp_auto
-      wp_apply wp_raft_hasUnappliedConfChanges _ _ _ _ Hsn $$ [$Hphys] as %hc ⟨Hphys, -⟩
+      wp_apply wp_raft_hasUnappliedConfChanges _ _ _ _ Hsn $$ [$Hphys] as %hc ⟨Hphys, %Hhc⟩
       cases hc with
       | true =>
         -- (2026-10-13) a conf-change entry committed but not applied: log and return,
@@ -91,7 +91,7 @@ theorem raft.hup.wp_proof
         iapply HΦ $$ %s
         iframe Hphys
         ipureintro
-        exact ⟨Hwf, .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl⟩
+        exact ⟨Hwf, .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩
       | false =>
       wp_auto
       wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -103,7 +103,8 @@ theorem raft.hup.wp_proof
       iframe Hphys
       ipureintro
       refine ⟨nstateWf_prvals _ _ (nstateWf_campaignState _ _ _ _ _),
-        stepC_campaignState c _ _ _ _ _ Hrl Hin Hnowrap Hpeers _, ?_, fun h => absurd Hin h⟩
+        stepC_campaignState c _ _ _ _ _ Hrl Hin Hnowrap Hpeers _, ?_, fun h => absurd Hin h,
+        .inr ⟨Hrl, Hin, Hsn, fun h => by simpa using Hhc.2 h, _, peers, pvs, _, Hpeers, rfl⟩⟩
       unfold campaignState
       refine ⟨by split <;> rfl, ?_⟩
       split <;> simp only [sendMsgs, becomePrecandidate, becomeCandidate, resetTo, resetTo0] <;>
@@ -116,7 +117,7 @@ theorem raft.hup.wp_proof
       iapply HΦ $$ %s
       iframe Hphys
       ipureintro
-      exact ⟨Hwf, .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl⟩
+      exact ⟨Hwf, .refl _, ⟨rfl, Int.le_refl _, by omega, rfl, rfl⟩, fun _ => rfl, .inl rfl⟩
 
 end proof
 
