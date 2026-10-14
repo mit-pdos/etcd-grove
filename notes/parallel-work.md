@@ -12,16 +12,11 @@ L, A1, A2; leader transfer; read-index) before picking a task.
   Proof.github_com.mit_pdos.etcd_grove.examples.register.Results
   Proof.github_com.mit_pdos.etcd_grove.examples.register.Adequacy`;
   `etc/tcb-report.py --check` = 75 axioms, 10 sorries.
-- Running in the integration session (do not duplicate, do not edit their files):
-  - **Stage A3** (code-level reconfiguration, finishing stage A): `stepLeader` at joint
-    configurations, `restore`/`handleSnapshot` at joint configurations, `raft.Step` and
-    the detached `RawNode` `Step`/`Ready`/`Advance`/`Tick` (`ownRawNodeC`), the
-    `CCApplies` size bound. Touches `stepLeader*.lean`, `raft__Step*.lean`,
-    `RawNode__*.lean`, `InvRaftPhys.lean`, `InvRawnodeC.lean`, `InvApplyConfC.lean`,
-    `InvTracker*.lean`, `Spec/go_etcd_io/raft/v3/*`, `Link.lean`, `etc/link-lean-first.txt`.
-  - (Stage B1, the overlap lemmas `Protocol/CfgOverlap.lean` and the paper proof
-    `notes/reconfiguration-safety.md`, has merged.) Stage B2 starts after A3 merges and
-    edits `Protocol/*.lean` and the `raft__Step.lean` boundary.
+- Update 2026-10-14 (head `b2ee06944`): stages A3 and B1 have merged; tasks 1-3 below are done
+  (`parallel/b1-review`, `parallel/raft-guard-fix`, merged). **Stage B2 is now running** in
+  the integration session: it edits `Proof/go_etcd_io/raft/v3/Protocol/*.lean` (`Refinement`,
+  `StepGhost`, `Ghost`, `GhostState`, `LeaderCompleteness`, `ReadIndex`, `Facts`, `StepC`) and
+  the ghost-update boundary in `raft__Step.lean`, possibly `Link.lean`. Avoid those files.
 - Next on the critical path (integration session, sequential): B2 (ghost layer on
   `StepC` at a constant configuration) → B3 (model fields, guards, invariants I1–I3) →
   B4 (winners table, configuration-carrying predicates, static mode) → B5 (safety under
@@ -74,7 +69,7 @@ Each is self-contained; pick one or more. They avoid the files above.
    searches the faithful mode exhaustively at small bounds would back B1's paper proof.
    Deliverable: the checker under `issues/raft-conf-lag-model/` and results in a notes file.
 
-## Tasks to hold until A3 has merged (they touch its files)
+## Tasks open since A3 merged (avoid B2's files above; these are in the code layer)
 
 - `getStatus`/`RawNode.Status`/`node.Status` (`Config.Clone`'s spec needs canonical
   learner sets; `node.run`'s status channel is unused today).
