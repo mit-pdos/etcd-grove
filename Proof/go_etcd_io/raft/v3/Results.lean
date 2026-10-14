@@ -57,6 +57,8 @@ module
 public import Proof.go_etcd_io.raft.v3.Link
 -- `newRaft_post_init` (moved there 2026-10-09: `NewRawNode`'s proof uses it)
 public import Spec.go_etcd_io.raft.v3.NewRawNode
+-- the dynamic model's results (2026-10-14, reconfiguration stage B5)
+public import Proof.go_etcd_io.raft.v3.Protocol.ResultsDyn
 
 @[expose] public section
 
@@ -99,6 +101,55 @@ theorem raft_election_safety (γ : RaftNames) (id1 id2 : w64) (s1 s2 : PState) :
 
 end proof
 
+/-! ### Safety under reconfiguration (2026-10-14, stage B5)
+
+The protocol with configurations changing by applied conf entries (`StepR` at the dynamic
+configurations `AdmFold dec c0`), proved with the ghost argument: the dynamic ghost state
+`ownRaftGhostR` is allocated for fresh nodes from `c0`, kept by every `StepR` step, and gives
+log agreement and election safety. A model theorem: **not yet reached from Go** (the code's
+specs produce `Step` witnesses at a static configuration; stage B7 connects them). Its
+assumptions are listed in `Protocol/ResultsDyn.lean` and `notes/STATUS.md`
+("Reconfiguration, stage B5"). Restated here so that they are roots of the trust report
+(`etc/tcb-collections/raft-dyn.txt`). -/
+
+section dyn
+open GMap
+variable [ext : FfiSyntax]
+variable {GF : BundledGFunctors} [AllG GF] [InvGS GF]
+
+theorem raft_reconfig_alloc (E : CoPset) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
+    (ids : GSet w64) :
+    W64 0 ∉ ids →
+    ⊢ |={E}=> ∃ γ : RaftNames, ⌜γ.dyn = some (DynCfg.ofFold dec c0 h0)⌝ ∗
+        raftCommitInv (GF := GF) γ ∗
+        [∗map] id ↦ _u ∈ toMap ids, ownRaftGhostR γ dec c0 id (rinit c0) :=
+  raft_dyn_alloc E dec c0 h0 ids
+
+theorem raft_reconfig_step (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
+    (HD : γ.dyn = some (DynCfg.ofFold dec c0 h0)) (S : List raftpb.Entry → Prop)
+    (id : w64) (r : RState) (recv : List Msg) (r' : RState) :
+    StepR (AdmS dec c0 S) dec id r recv r' →
+    ⊢ (□ ∀ (fp : List raftpb.Entry), ⌜S fp⌝ -∗ logRecs (GF := GF) γ base0 fp) -∗
+      ([∗list] m ∈ recv, isMessage γ m) -∗ rdCred γ (rdCount recv) -∗
+      ownRaftGhostR γ dec c0 id r ={⊤}=∗ ownRaftGhostR γ dec c0 id r' :=
+  ownRaftGhostR_stepR γ dec c0 h0 HD S id r recv r'
+
+theorem raft_reconfig_log_agreement (γ : RaftNames) (dec : CCDec) (c0 : CCState)
+    (id1 id2 : w64) (r1 r2 : RState) :
+    ⊢ ownRaftGhostR (GF := GF) γ dec c0 id1 r1 -∗ ownRaftGhostR γ dec c0 id2 r2 -∗
+      ⌜r1.full.take (uint.nat r1.p.commit) <+: r2.full.take (uint.nat r2.p.commit) ∨
+        r2.full.take (uint.nat r2.p.commit) <+: r1.full.take (uint.nat r1.p.commit)⌝ :=
+  raft_dyn_committed_agree γ dec c0 id1 id2 r1 r2
+
+theorem raft_reconfig_election_safety (γ : RaftNames) (dec : CCDec) (c0 : CCState)
+    (id1 id2 : w64) (r1 r2 : RState) :
+    r1.p.role = .leader → r2.p.role = .leader → r1.p.term = r2.p.term →
+    ⊢ ownRaftGhostR (GF := GF) γ dec c0 id1 r1 -∗ ownRaftGhostR γ dec c0 id2 r2 -∗
+      ⌜id1 = id2⌝ :=
+  raft_dyn_election_safety γ dec c0 id1 id2 r1 r2
+
+end dyn
+
 
 end EtcdGrove
 end Perennial
@@ -128,3 +179,7 @@ end Perennial
 #print axioms Perennial.EtcdGrove.node.wp_Tick
 #print axioms Perennial.EtcdGrove.node.wp_Ready
 #print axioms Perennial.EtcdGrove.node.wp_Advance
+#print axioms Perennial.EtcdGrove.raft_reconfig_alloc
+#print axioms Perennial.EtcdGrove.raft_reconfig_step
+#print axioms Perennial.EtcdGrove.raft_reconfig_log_agreement
+#print axioms Perennial.EtcdGrove.raft_reconfig_election_safety
