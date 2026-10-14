@@ -728,6 +728,91 @@ theorem ownLogGhost_lead_prefix (γ : RaftNames) (id : w64) (s : PState)
   · iexact Hp
   · iexact H
 
+/-- A leader stepping down at its term (2026-10-14, stage B5: `StepR.stepDown`): its term
+log is dropped (`TermsOk`'s keys allow a non-candidate at its term); its acknowledgements of
+its term, within its log (`LeadAcksOk`), are justified by its own prefix. -/
+theorem ownLogGhost_stepDown (γ : RaftNames) (id : w64) (s s' : PState) (kl : Option w64)
+    (Hr : s.role = .leader) (Hr' : s'.role = .follower) (Hte : s'.term = s.term)
+    (Hv : s'.vote = s.vote) (Hb : s'.base = s.base) (Hlg : s'.log = s.log)
+    (Hc : s'.commit = s.commit) :
+    ⊢ isLeader (GF := GF) γ id s.term -∗ ownLogGhost γ id s kl -∗ ownLogGhost γ id s' kl := by
+  iintro #Hl H
+  icases ownLogGhost_lead_full γ id s kl Hr $$ Hl H with ⟨⟨%fpl, #Hp, #Hpf, -⟩, H⟩
+  unfold ownLogGhost
+  icases H with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
+  iNamed H
+  iclear Htlog
+  have Hnl : s'.role ≠ .leader := by rw [Hr']; decide
+  have Hnc : s'.role ≠ .candidate := by rw [Hr']; decide
+  have Hterms_ok' : TermsOk terms s' := by
+    intro t Ht; rw [Hte]
+    rcases Hterms_ok t Ht with h | ⟨h, -⟩
+    · left; exact h
+    · right; exact ⟨h, Hnc⟩
+  have Hwins_ok' : WinsOk wins s' := by
+    intro t Ht; rw [Hte]
+    rcases Hwins_ok t Ht with h | ⟨h, -⟩
+    · left; exact h
+    · right; exact ⟨h, Hnc⟩
+  have Hacks_term' : AcksTerm s' acks := fun k Hk => by rw [Hte]; exact Hacks_term k Hk
+  have Hlog_ok' : LogOk s' := by unfold LogOk; rw [Hb, Hlg, Hc]; exact Hlog_ok
+  have Hfull' : FullOk s'.base fp ∧ PlogWf s'.base s'.log ∧ TermsLe s' (fp ++ s'.log) := by
+    obtain ⟨H1, H2, H3⟩ := Hfull
+    refine ⟨by rw [Hb]; exact H1, by rw [Hb, Hlg]; exact H2, fun j x Hx => ?_⟩
+    rw [Hlg] at Hx
+    rw [Hte]
+    exact ⟨(H3 j x Hx).1, fun h => absurd h Hnc⟩
+  have Hcamps_ok' : ∀ T, (camps !! T).isSome → uint.Z T ≤ uint.Z s'.term := by
+    intro T HT; rw [Hte]; exact Hcamps_ok T HT
+  have Hlacks' : LeadAcksOk s' acks := ⟨fun h => absurd h Hnc, fun h => absurd h Hnl⟩
+  ihave Htlog' : leadLogOwn (GF := GF) γ s' terms $$ []
+  · rw [leadLogOwn_nl γ s' terms Hnl]; ipureintro; trivial
+  ihave #Hacks_ok' : acksOk (GF := GF) γ s' acks $$ []
+  · rw [acksOk_nl γ s' acks Hnl]
+    iapply (BigSepM.bigSepM_forall (Φ := fun (k : w64 × w64) (_ : Unit) => ackOk (GF := GF) γ s' k)).2
+    iintro %k %u %Hk
+    unfold ackOk
+    iintro %Hk12
+    obtain ⟨Hk1, Hk2⟩ := Hk12
+    rw [Hte] at Hk1
+    have Hkk : k = (s.term, k.2) := Prod.ext Hk1 rfl
+    have Hi := Hlacks.2 Hr k.2 (by rw [← Hkk, show acks !! k = some u from Hk]; rfl)
+    rw [Hc] at Hk2
+    rw [Hb, Hlg, Hk1]
+    unfold ackAgree
+    isplitr; · ipureintro; exact Hi
+    iexists id, s.base, s.log
+    isplitr; · iexact Hp
+    isplitr
+    · ipureintro
+      refine ⟨plogTermAt_in_range _ _ _ ⟨?_, Hi⟩, rfl⟩
+      have := Hlog_ok.2.1; omega
+    · iexists fpl; iexact Hpf
+  ihave #Hmatched' : matchedOk (GF := GF) γ s' $$ []
+  · rw [matchedOk_nl γ s' Hnl]; ipureintro; trivial
+  ihave #Hrecs' : logRecs (GF := GF) γ s'.base s'.log $$ []
+  · rw [Hb, Hlg]; iexact Hrecs
+  ihave #Hcommit' : commitIn (GF := GF) γ (fp ++ s'.log) s'.commit s'.term $$ []
+  · rw [Hlg, Hc, Hte]; iexact Hcommit
+  ihave #Hbase' : baseOk (GF := GF) γ s'.base $$ []
+  · rw [Hb]; iexact Hbase
+  ihave #Hcown' : campOwn (GF := GF) γ id s' (fp ++ s'.log) $$ []
+  · unfold campOwn; rw [Hr']; ipureintro; trivial
+  ihave #Hvlogs' : vlogsOk (GF := GF) γ s' acks vlogs $$ []
+  · unfold vlogsOk; rw [Hte]; iexact Hvlogs_ok
+  ihave #Hhists' : histsOk (GF := GF) γ s' kl (fp ++ s'.log) acks $$ []
+  · rw [show histsOk (GF := GF) γ s' kl (fp ++ s'.log) acks = histsOk γ s kl (fp ++ s.log) acks by
+      unfold histsOk bnd; rw [Hte, Hlg]]
+    iexact Hhists
+  ihave #Hkl' := klOk_step γ id s s' kl kl
+    (Or.inl ⟨rfl, Hte, fun h => by rw [← Hv]; exact h, fun h => absurd h Hnl⟩) $$ Hkl
+  ihave Hevs' : ownEvs (GF := GF) γ id s'.term acks $$ [Hevs]
+  · rw [Hte]; iexact Hevs
+  ihave #Hcmt' : isCommitted (GF := GF) γ (cprefix fp s') $$ []
+  · unfold cprefix; rw [Hlg, Hc]; iexact Hcmt
+  iexists γm, terms, γa, acks, fp, γc, camps, γl, vlogs, γw, wins
+  iframe % # ∗
+
 /-- `Step.campaign`, on the log ghost state: record the campaign log (the full log,
 unchanged since) and, for the self-vote, the vote-time log -- with the histories of
 every earlier acknowledgement; the new term has no known leader. -/

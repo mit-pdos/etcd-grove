@@ -3544,6 +3544,36 @@ theorem ownRaftGhost_step_lose (γ : RaftNames) (c : CfgM) (id : w64) (s : PStat
   · lcm_mono
   · rd_mono
 
+/-- `StepR.stepDown` (2026-10-14, stage B5): a leader becomes a follower at its term. Its
+term log, commit lower bound and read registry are dropped (`ownLogGhost_stepDown`,
+`lcmOwn_mono'`, `rdOwn_mono'`); its known leader (itself) stays known. -/
+theorem ownRaftGhost_step_stepDown (γ : RaftNames) (id : w64) (s : PState)
+    (Hrole : s.role = .leader) :
+    ⊢ ([∗list] m ∈ ([] : List Msg), isMessage (GF := GF) γ m) -∗ rdCred γ (rdCount ([] : List Msg)) -∗
+      ownRaftGhost γ id s md ={⊤}=∗ ownRaftGhost γ id (pbecomeFollower s s.term (W64 0)) md := by
+  iintro _ - Hown
+  iunfold ownRaftGhost at Hown
+  icases Hown with ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  ihave #Hl : isLeader γ id s.term $$ []
+  · rw [← leaderWit_leader γ id s Hrole]; iexact Hlead
+  imodintro
+  iapply ownRaftGhost_intro γ id _ γv voted kl Hname Hidnz Hmode $$ Hvoted [] Hfrags [] [] [] [Hlg] [] [] Hvrecs [] [Hlcm] [Hrd]
+  · ipureintro
+    exact VoteHistOk_eq voted s _ Hhist rfl (pbecomeFollower_vote_same s _)
+  · iapply outbox_eq γ s _ (by rfl) $$ Hout
+  · iapply tally_empty γ id _ (by rfl)
+  · iapply leaderWit_nonleader γ id _ (by intro h; cases h)
+  · iapply ownLogGhost_stepDown γ id s (pbecomeFollower s s.term (W64 0)) kl Hrole rfl rfl (pbecomeFollower_vote_same s _) rfl rfl rfl
+      $$ Hl Hlg
+  · ipureintro; intro _; exact fun h => Hidnz h.symm
+  · ipureintro; intro _; rfl
+  · ipureintro; exact ⟨fun h => absurd rfl h, fun h => by cases h⟩
+  · iapply lcmOwn_mono' γ id s (pbecomeFollower s s.term (W64 0)) (fun h => by cases h) (Int.le_refl _) (Int.le_refl _)
+      (fun h => by cases h) $$ Hlcm
+  · iapply rdOwn_mono' γ id s (pbecomeFollower s s.term (W64 0)) (fun h => by cases h) (fun _ => Or.inl rfl) (Int.le_refl _) rfl rfl
+      (Nat.le_refl _) (fun h => by cases h) $$ Hrd
+
 theorem ownRaftGhost_step_drain (γ : RaftNames) (id : w64) (s : PState) (o' : List Msg) (Hsub : o'.Subperm s.outbox) :
     ⊢ ([∗list] m ∈ ([] : List Msg), isMessage (GF := GF) γ m) -∗ rdCred γ (rdCount ([] : List Msg)) -∗
       ownRaftGhost γ id s md ={⊤}=∗ ownRaftGhost γ id ({ s with outbox := o' }) md := by

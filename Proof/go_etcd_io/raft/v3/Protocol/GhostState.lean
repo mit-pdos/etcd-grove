@@ -950,14 +950,13 @@ instance lcmOwn_timeless (γ : RaftNames) (id : w64) (s : PState) :
 
 /-- Across a step: a leader stays one only within its term, leaves a term only for a
 higher one, and the commit index does not move back. -/
-theorem lcmOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
+theorem lcmOwn_mono' (γ : RaftNames) (id : w64) (s s' : PState) :
     (s'.role = .leader → s.role = .leader ∧ s'.term = s.term) →
-    (s'.role ≠ .leader → s.role = .leader → uint.Z s.term < uint.Z s'.term) →
     uint.Z s.term ≤ uint.Z s'.term →
     uint.Z s.commit ≤ uint.Z s'.commit →
     (s'.role = .candidate → s.role = .candidate ∨ uint.Z s.term < uint.Z s'.term) →
     lcmOwn (GF := GF) γ id s ⊢ lcmOwn γ id s' := by
-  intro Hlead Hdown Hle Hcm Hcand
+  intro Hlead Hle Hcm Hcand
   unfold lcmOwn
   iintro ⟨%γl, %lcm, %Hγl, Ha, #Hf, %Hok, Hl⟩
   iexists γl, lcm
@@ -987,6 +986,17 @@ theorem lcmOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
     omega
   · rw [lcmLead_nl s' lcm Hr']
     ipureintro; trivial
+
+/-- `lcmOwn_mono'`, with the premise (unused since 2026-10-14, stage B5: a leader may step
+down at its term) that a leader leaves its term only for a higher one. -/
+theorem lcmOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
+    (s'.role = .leader → s.role = .leader ∧ s'.term = s.term) →
+    (s'.role ≠ .leader → s.role = .leader → uint.Z s.term < uint.Z s'.term) →
+    uint.Z s.term ≤ uint.Z s'.term →
+    uint.Z s.commit ≤ uint.Z s'.commit →
+    (s'.role = .candidate → s.role = .candidate ∨ uint.Z s.term < uint.Z s'.term) →
+    lcmOwn (GF := GF) γ id s ⊢ lcmOwn γ id s' :=
+  fun Hlead _ Hle Hcm Hcand => lcmOwn_mono' γ id s s' Hlead Hle Hcm Hcand
 
 /-- A candidate that wins its term allocates the term's lower bound, at its commit
 index. -/
@@ -1261,17 +1271,16 @@ def rdOwn (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
 read state, a non-leader's read-only object is the fresh one, a leader leaves its term only
 for a higher one, the `ReadState`s and pending requests are kept, and the outbox holds no
 more read-index requests. -/
-theorem rdOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
+theorem rdOwn_mono' (γ : RaftNames) (id : w64) (s s' : PState) :
     (s'.role = .leader → s.role = .leader ∧ s'.term = s.term ∧ s'.rd = s.rd) →
     (s'.role ≠ .leader →
        s'.rd.ro = ⟨[], ∅, W64 0⟩ ∨ (s.role ≠ .leader ∧ s'.rd.ro = s.rd.ro)) →
-    (s'.role ≠ .leader → s.role = .leader → uint.Z s.term < uint.Z s'.term) →
     uint.Z s.term ≤ uint.Z s'.term →
     s'.rd.states = s.rd.states → s'.rd.pend = s.rd.pend →
     rdCount s'.outbox ≤ rdCount s.outbox →
     (s'.role = .candidate → s.role = .candidate ∨ uint.Z s.term < uint.Z s'.term) →
     rdOwn (GF := GF) γ id s ⊢ rdOwn γ id s' := by
-  intro Hlead Hnl Hdown Hle Hst Hpd Hcnt Hcand
+  intro Hlead Hnl Hle Hst Hpd Hcnt Hcand
   unfold rdOwn
   iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv⟩
   iexists γl, rqm
@@ -1309,6 +1318,21 @@ theorem rdOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
     iexact Hcr
   icases Hcr with ⟨Hcr, -⟩
   iexact Hcr
+
+/-- `rdOwn_mono'`, with the premise (unused since 2026-10-14, stage B5) that a leader leaves
+its term only for a higher one. -/
+theorem rdOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
+    (s'.role = .leader → s.role = .leader ∧ s'.term = s.term ∧ s'.rd = s.rd) →
+    (s'.role ≠ .leader →
+       s'.rd.ro = ⟨[], ∅, W64 0⟩ ∨ (s.role ≠ .leader ∧ s'.rd.ro = s.rd.ro)) →
+    (s'.role ≠ .leader → s.role = .leader → uint.Z s.term < uint.Z s'.term) →
+    uint.Z s.term ≤ uint.Z s'.term →
+    s'.rd.states = s.rd.states → s'.rd.pend = s.rd.pend →
+    rdCount s'.outbox ≤ rdCount s.outbox →
+    (s'.role = .candidate → s.role = .candidate ∨ uint.Z s.term < uint.Z s'.term) →
+    rdOwn (GF := GF) γ id s ⊢ rdOwn γ id s' :=
+  fun Hlead Hnl _ Hle Hst Hpd Hcnt Hcand =>
+    rdOwn_mono' γ id s s' Hlead Hnl Hle Hst Hpd Hcnt Hcand
 
 /-- Winning: a registry for the term, empty, the read-only object fresh. -/
 theorem rdOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :

@@ -861,7 +861,16 @@ theorem ownRaftGhostR_stepR (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : 
     iintro #HS Hrecv Hcr Hown
     iunfold ownRaftGhostR at Hown
     icases Hown with ⟨Hg, %HI, #Hfr, #Hc⟩
-    sorry
+    imod ownRaftGhost_step_stepDown γ id r.p h1 $$ Hrecv Hcr Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    isplitr
+    · ipureintro; exact (RInv_stepR (Adm := AdmS dec c0 S) (id := id) (fun _ _ h => h.1) (StepR.stepDown r h1 h2) noApp0 HI)
+    iintro %h
+    exfalso
+    revert h
+    simp [pbecomeFollower]
 
 end ghost
 
