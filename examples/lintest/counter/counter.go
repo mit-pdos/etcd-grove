@@ -12,14 +12,24 @@ import (
 	"github.com/mit-pdos/etcd-grove/examples/lintest"
 )
 
-// Model is the counter's sequential specification: the state is an int64; an input true
+// Inc is the counter's increment input; any other input is a read.
+//
+// The operation is chosen by the input's dynamic type only (`_, inc := input.(Inc)`), never by
+// its value: lintest.Run's apply must take any input, and its proof's inputs are arbitrary
+// interface values.
+type Inc struct{}
+
+// Read is the input clients use for a read (any input other than Inc is one).
+type Read struct{}
+
+// Model is the counter's sequential specification: the state is an int64; an input Inc
 // increments it and outputs the new value, any other input outputs it.
 func Model() porcupine.Model {
 	return porcupine.Model{
 		Init: func() any { return int64(0) },
 		Step: func(state, input, output any) (bool, any) {
 			s := state.(int64)
-			inc, _ := input.(bool)
+			_, inc := input.(Inc)
 			if inc {
 				return output.(int64) == s+1, s + 1
 			}
@@ -39,11 +49,10 @@ func New() *Counter {
 	return &Counter{}
 }
 
-// Apply runs one operation: an input true increments the counter and returns the new value,
-// any other input returns it. (lintest.Run's apply must take any input: an input that is not
-// a bool is a read, not a panic.)
+// Apply runs one operation: an input Inc increments the counter and returns the new value,
+// any other input returns it.
 func (c *Counter) Apply(input any) any {
-	inc, _ := input.(bool)
+	_, inc := input.(Inc)
 	c.mu.Lock()
 	if inc {
 		c.n = c.n + 1
@@ -58,6 +67,11 @@ func (c *Counter) Apply(input any) any {
 // trace with porcupine.
 func Check(clock lintest.Clock, clients int, ops int, timeout time.Duration) porcupine.CheckResult {
 	c := New()
-	gen := func(id int) any { return id%2 == 0 }
+	gen := func(id int) any {
+		if id%2 == 0 {
+			return Inc{}
+		}
+		return Read{}
+	}
 	return lintest.Run(Model(), c.Apply, gen, clock, clients, ops, timeout)
 }
