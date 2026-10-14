@@ -19,6 +19,64 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## Unit T1: Put and Get as persistent atomic updates linearized by raft (2026-10-14, branch `worktree-backend`; in progress)
+
+Design: `notes/decisions.md`, "Put and Get as persistent atomic updates linearized by raft". The
+user's decisions are recorded there:
+
+- the full committed raft log, not `srvCLog`;
+- every committed occurrence fires the persistent `Put` update;
+- `authOn` in the model;
+- the plain workload enforced by an invariant;
+- reads batched with a list of registered `Q`s;
+- one `ReadIndex` spec for every configuration.
+
+**Done**:
+- `etcdserver/KVModel.lean` (pure, no `sorry`, no axiom). It contains:
+  - plain requests, entries and logs (`plainReq`, `plainEntry`, `plainLog`);
+  - the deterministic model (`backendLog`, `chainLog`, `dispatchLog`, `kvEntry`, `kvOf`, `kvVal`);
+  - the shape lemmas (`kvEntry_grow`, `kvOf_prefix`, `kvOf_append`);
+  - the intermediate value lemma `kvOf_ivt`;
+  - where the apply relation departs from the function: `backendStep_plain`, `chainStep_plain`,
+    `dispatchStep_plain`, `applyStep_plain`, `batchStep_plain`. On a plain entry, every allowed
+    step leaves the chain alone and changes the log as `kvEntry` says, or is an auth rejection
+    with the log unchanged.
+
+**Not done** (no statement changed yet): `authOn` in the model, the KV invariant, the restated raft
+contract, the read loop's registry, the re-proofs of `Range`/`Put`, the handlers and the client
+results. Two gaps need decisions first (decisions.md, "Two gaps found"):
+
+1. **A linearizable read's mvcc log is not pinned to a raft index.** `readLogOk` is a lower bound
+   only, and the apply thread commits to mvcc before it deposits the log, so `□ Q` of the value
+   read cannot be derived. Proposed fix: `store.Read` exposes its linearization point (an
+   observer under `revMu`), and the apply thread deposits its next log (known by determinism)
+   before the mvcc commit.
+2. **The NOSPACE alarm.** The quota's outcome is a relation, and on `ErrNoSpace` the apply thread
+   proposes a non-plain `Alarm`. Proposed fix: a quota mode in the model (`quotaFull`, a premise
+   on the disk, like `storeSmall`).
+
+**Plain enforcement (designed)**: the only proposal update is `kv_prop_au`, which needs the request
+plain or a non-plain credit `srvNonPlain` kept inside `kvInv`, so that nobody holds it. The
+writing `Txn` (`txn_end_to_end`'s writing case), lease grant and revoke, compaction, alarms, the
+auth admin requests, and the proposing names-only contracts (`compactorOk`,
+`revokeExpiredLeases`, the hash monitors) need the credit.
+
+**What the raft library's proof must prove** (against the verified raft's names):
+
+- proposal updates persistent, fired at every committed occurrence over the full committed log
+  (`isCommitted`), raft's own entries through a standing update given at the node's start;
+- `node.ReadIndex`/`RawNode.ReadIndex` take a persistent read update `□ AU <{∃∃ L, rLog L}>
+  <{rLog L, COMM □ Qr L}>`, kept in the leader's read registry and fired by every commit step that
+  reaches the safe index `i` (and at registration if the log is exactly `i` long), recording the
+  witness for every committed log through an index `≥ i`;
+- the safe-index lemma: the committed log at the call is at most `i` long;
+- one spec for every configuration: the premise `1 < GMap.size γ.raft.reCfg` is dropped. The
+  singleton branch (`raft.go:1343`: `IsSingleton()` answers at once with `r.raftLog.committed`,
+  skipping the heartbeat round and `committedEntryInCurrentTerm`) is another case of the same
+  spec: immediate for a static single voter; for a configuration reduced to one voter, it rests on
+  the reconfiguration invariants (the node applies the change that makes it the sole voter only
+  once its commit index has passed that change).
+
 ## Adequacy for a minimal client example: what is left (2026-10-14)
 
 The target: a closed Go program, `main` starting one etcd member in-process and a client doing
