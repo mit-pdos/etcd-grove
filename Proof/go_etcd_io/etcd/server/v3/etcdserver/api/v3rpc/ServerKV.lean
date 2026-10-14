@@ -94,6 +94,16 @@ def srvCall (s : Loc) (ρ : ReqNames) (ctx : GoInterface) : IProp GF :=
   iprop(∃ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)), ⌜ctx = GoInterface.ok ci⌝ ∗
     context.isContext ci cd ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s)
 
+/-- `putAppliedOk` but the caller's reader slot: the answer's facts (the vertical slice's unit
+V1: what the client's copy of the response has, `Wire.lean`). -/
+def putApplied (E : apply.AEnv GF) (o : OpFull) (resp : Loc) (r : w64) : IProp GF :=
+  iprop(∃ (hm : apply.HeaderModel) (x x' : apply.ApplyKV) (l : mvcc.Log)
+      (skip : Bool),
+    ⌜apply.applyStep (apply.withHeader (irrPut o) hm) true x x' (.dispatched (.applied l false) skip) ∧
+      r = W64 (x.log.length : Int)⌝ ∗
+    apply.putOutcomeIs x.log o resp GoInterface.nil (.applied l false) ∗
+    mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log)
+
 /-- **A successful `Put` of `o`** (`EtcdServer.Put`'s success, at the handler's level): the
 request with the server's header (`hm`) was dispatched by the apply thread at the KV state `x`
 to `x'` and applied (`applied l false`: `putModel`'s, no `ErrNoSpace`), the response is the
@@ -102,43 +112,49 @@ asked), the header's revision `r` is that revision, mvcc's certificate of the lo
 caller's reader slot back. -/
 def putAppliedOk (s : Loc) (E : apply.AEnv GF) (o : OpFull) (resp : Loc) (r : w64) :
     IProp GF :=
-  iprop(srvLeadTimeReader s ∗ ∃ (hm : apply.HeaderModel) (x x' : apply.ApplyKV) (l : mvcc.Log)
-      (skip : Bool),
-    ⌜apply.applyStep (apply.withHeader (irrPut o) hm) true x x' (.dispatched (.applied l false) skip) ∧
-      r = W64 (x.log.length : Int)⌝ ∗
-    apply.putOutcomeIs x.log o resp GoInterface.nil (.applied l false) ∗
-    mvcc.idxCert E.γ.idx x'.log)
+  iprop(srvLeadTimeReader s ∗ putApplied E o resp r)
 
-/-- **A successful `DeleteRange` of `o`**: as `putAppliedOk`, for the request the proposed data
-decode to (`rq'`, whose delete `op'` is `o` unless its range end is `[0]`, `irrWireOf`); the
-header's revision the delete's (`writeRev`). -/
-def deleteAppliedOk (s : Loc) (E : apply.AEnv GF) (o : OpFull) (resp : Loc) (r : w64) :
-    IProp GF :=
-  iprop(srvLeadTimeReader s ∗ ∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel) (op' : OpFull)
+/-- `deleteAppliedOk` but the caller's reader slot (as `putApplied`). -/
+def deleteApplied (E : apply.AEnv GF) (o : OpFull) (resp : Loc) (r : w64) : IProp GF :=
+  iprop(∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel) (op' : OpFull)
       (x x' : apply.ApplyKV) (l : mvcc.Log) (skip : Bool),
     ⌜irrWireOf (apply.withHeader (irrDeleteRange o) hm) rq' ∧ rq'.deleteRange = some op' ∧
       (irrNoZeroEnd (irrDeleteRange o) → op' = o) ∧
       apply.applyStep rq' true x x' (.dispatched (.applied l false) skip) ∧
       r = W64 ((mvcc.writeRev x.log (txn.delChanges (mvcc.stateAfter x.log) op') : Nat) : Int)⌝ ∗
     apply.deleteOutcomeIs x.log op' resp GoInterface.nil (.applied l false) ∗
-    mvcc.idxCert E.γ.idx x'.log)
+    mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log)
+
+/-- **A successful `DeleteRange` of `o`**: as `putAppliedOk`, for the request the proposed data
+decode to (`rq'`, whose delete `op'` is `o` unless its range end is `[0]`, `irrWireOf`); the
+header's revision the delete's (`writeRev`). -/
+def deleteAppliedOk (s : Loc) (E : apply.AEnv GF) (o : OpFull) (resp : Loc) (r : w64) :
+    IProp GF :=
+  iprop(srvLeadTimeReader s ∗ deleteApplied E o resp r)
+
+/-- `putErrOk` but the reader slot (the vertical slice's unit V1: what the client learns of a
+failed put, `Wire.lean`). -/
+def putErr (E : apply.AEnv GF) (ρ : ReqNames) (o : OpFull) (err : GoInterface) : IProp GF :=
+  iprop((∃ hm : apply.HeaderModel, appliedErr E (apply.withHeader (irrPut o) hm) err) ∨
+    srvMaybeDeposited ρ (irrPut o))
 
 /-- **A failed `Put` of `o`**: the apply thread's error (`appliedErr`), or the proposal's (made
 or not; if made, deposited: it may still be applied, `srvMaybeDeposited`); the reader slot
 back. -/
 def putErrOk (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (o : OpFull) (err : GoInterface) :
     IProp GF :=
-  iprop(srvLeadTimeReader s ∗
-    ((∃ hm : apply.HeaderModel, appliedErr E (apply.withHeader (irrPut o) hm) err) ∨
-      srvMaybeDeposited ρ (irrPut o)))
+  iprop(srvLeadTimeReader s ∗ putErr E ρ o err)
+
+/-- `deleteErrOk` but the reader slot (as `putErr`). -/
+def deleteErr (E : apply.AEnv GF) (ρ : ReqNames) (o : OpFull) (err : GoInterface) : IProp GF :=
+  iprop((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
+      ⌜irrWireOf (apply.withHeader (irrDeleteRange o) hm) rq'⌝ ∗ appliedErr E rq' err) ∨
+    srvMaybeDeposited ρ (irrDeleteRange o))
 
 /-- **A failed `DeleteRange` of `o`** (as `putErrOk`). -/
 def deleteErrOk (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (o : OpFull) (err : GoInterface) :
     IProp GF :=
-  iprop(srvLeadTimeReader s ∗
-    ((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
-        ⌜irrWireOf (apply.withHeader (irrDeleteRange o) hm) rq'⌝ ∗ appliedErr E rq' err) ∨
-      srvMaybeDeposited ρ (irrDeleteRange o)))
+  iprop(srvLeadTimeReader s ∗ deleteErr E ρ o err)
 
 /-- **The transaction model of a checked transaction request** (`none` if an operation is
 empty: the check rejects it). -/
@@ -190,7 +206,7 @@ def txnAppliedAns (E : apply.AEnv GF) (t : TxnModel) (resp : Loc) (r : w64) : IP
       r = W64 (mvcc.writeRev x.log
         (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').2.1 : Int)⌝ ∗
     apply.txnOutcomeIs x.log t' skip resp GoInterface.nil (.applied l false) ∗
-    mvcc.idxCert E.γ.idx x'.log)
+    mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log)
 
 /-- **The server's parameters of `raftKV`** (see the file header). -/
 def srvKVAns (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64) :
@@ -387,7 +403,7 @@ theorem kvPutOk_of_server (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
   · iframe #; iframe Hrd Hcred
   iapply HΦ
   iunfold kvAnswer
-  icases Hres with (⟨%Herr, %hm, %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert⟩ |
+  icases Hres with (⟨%Herr, %hm, %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert, HMint⟩ |
     ⟨%Hre, #HaE, Hfail⟩)
   · obtain ⟨Hstep, l, rfl⟩ := Hst
     subst Herr
@@ -409,8 +425,9 @@ theorem kvPutOk_of_server (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
     iframe Hrc
     iunfold putAppliedOk
     iframe Hrd
+    iunfold putApplied
     iexists hm, x, x', l, skip
-    iframe Hcert
+    iframe Hcert HMint
     isplitr
     · ipureintro; exact ⟨Hstep, rfl⟩
     simp only [apply.putOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
@@ -422,7 +439,9 @@ theorem kvPutOk_of_server (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
     simp only
     iframe Hrc
     iunfold putErrOk
-    iframe Hrd Hfail
+    iframe Hrd
+    iunfold putErr
+    iexact Hfail
 
 /-- **`raftKV`'s `DeleteRange` conjunct, from `EtcdServer.DeleteRange`**. -/
 theorem kvDeleteOk_of_server (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG := hG))
@@ -441,7 +460,7 @@ theorem kvDeleteOk_of_server (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG 
   · iframe #; iframe Hrd Hcred
   iapply HΦ
   iunfold kvAnswer
-  icases Hres with (⟨%Herr, %hm, %rq', %op', %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert⟩ |
+  icases Hres with (⟨%Herr, %hm, %rq', %op', %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert, HMint⟩ |
     ⟨%Hre, #HaE, Hfail⟩)
   · obtain ⟨Hwire, Hop', Hnz, Hstep, l, rfl⟩ := Hst
     subst Herr
@@ -463,8 +482,9 @@ theorem kvDeleteOk_of_server (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG 
     iframe Hrc
     iunfold deleteAppliedOk
     iframe Hrd
+    iunfold deleteApplied
     iexists hm, rq', op', x, x', l, skip
-    iframe Hcert
+    iframe Hcert HMint
     isplitr
     · ipureintro; exact ⟨Hwire, Hop', Hnz, Hstep, rfl⟩
     simp only [apply.deleteOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
@@ -476,7 +496,9 @@ theorem kvDeleteOk_of_server (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG 
     simp only
     iframe Hrc
     iunfold deleteErrOk
-    iframe Hrd Hfail
+    iframe Hrd
+    iunfold deleteErr
+    iexact Hfail
 
 /-- **`raftKV`'s `Range` conjunct, from `EtcdServer.Range`**. -/
 theorem kvRangeOk_of_server (hRange : EtcdServer.Range.spec (GF := GF) (hG := hG))
@@ -562,7 +584,7 @@ theorem kvTxnOk_of_server (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
     · obtain ⟨rfl, Hrn⟩ := Herr
       iunfold txnAppliedOk at Hok'
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
-      icases Hok' with ⟨%hm', %rq', %t', %x, %x', %l, %skip, %Hst, ⟨#Hout, %Hnil⟩, Hhdr, #Hcert⟩
+      icases Hok' with ⟨%hm', %rq', %t', %x, %x', %l, %skip, %Hst, ⟨#Hout, %Hnil⟩, Hhdr, #Hcert, HMint⟩
       ihave #Hresp := Hout
       iunfold txn.txnResponseIs at Hresp
       icases Hresp with ⟨-, #Hf⟩
@@ -589,7 +611,7 @@ theorem kvTxnOk_of_server (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact ⟨Hst.1, Hst.2.1, Hst.2.2.1, Hst.2.2.2, rfl⟩
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
-      iframe Hout Hcert
+      iframe Hout Hcert HMint
       try (ipureintro; trivial)
     · obtain ⟨-, Hne⟩ := Hre
       iright

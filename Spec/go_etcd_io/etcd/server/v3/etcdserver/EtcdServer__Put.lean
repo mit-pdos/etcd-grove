@@ -27,7 +27,7 @@ one id credit and a reader slot of `s.leadTimeMu`: success, the apply package's 
 (`putOutcomeIs`, no error: applied, `putModel`'s, at the log `x.log` the entry met) of the request
 with the header the server set (`hm`), dispatched at `x` to `x'` (`applyStep`), the response
 header's id fields owned (`appliedHdr`: for the gRPC layer to fill), with mvcc's certificate of
-the log after; failure, no response and an error the gRPC layer can take (`applyErrIs`): the
+the log after and the token of the revision it appended (`revMinted`, the vertical slice's unit V1); failure, no response and an error the gRPC layer can take (`applyErrIs`): the
 apply's (`appliedErr`), or the proposal's (made or not; if made, deposited: it may still be
 applied). -/
 abbrev EtcdServer.Put.spec : Prop :=
@@ -45,7 +45,7 @@ abbrev EtcdServer.Put.spec : Prop :=
             ∃ log', o = .applied log' false⌝ ∗
           apply.putOutcomeIs x.log op resp GoInterface.nil o ∗
           apply.appliedHdr x.log (structFieldRef etcdserverpb.PutResponse go!"Header" resp) ∗
-          mvcc.idxCert E.γ.idx x'.log) ∨
+          mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
          ((∃ hm : apply.HeaderModel, appliedErr E (apply.withHeader (irrPut op) hm) err) ∨
           srvMaybeDeposited ρ (irrPut op)))) }}

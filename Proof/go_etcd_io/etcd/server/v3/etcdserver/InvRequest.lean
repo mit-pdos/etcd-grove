@@ -179,14 +179,174 @@ structure ReqNames where
   ids : IdNames
   wait : GName
 
-/-- **The result `ar` of applying `rq`** (persistent if its parts are): a non-nil `*apply.Result`
-of applying `rq` (with `v3`) at some KV state `y`, to `y'` (`apply.applyStep`,
-`apply.applyResultIs`), with mvcc's certificate of the log after. -/
+/-! ### The revisions' tokens (the vertical slice's unit V1) -/
+
+/-- **The token of revision `r`** (the server's `etcdRevToken`, `v3rpc.etcdModelOfServer`):
+the exclusive element `r ↪[E.γrev] ()` of the ghost map of revisions the apply thread minted. -/
+def revTok (E : apply.AEnv GF) (r : w64) : IProp GF := r ↪[E.γrev] ()
+
+/-- **Two tokens of one revision: impossible.** -/
+theorem revTok_excl (E : apply.AEnv GF) (r : w64) : revTok E r ∗ revTok E r ⊢ False := by
+  unfold revTok
+  iintro ⟨H1, H2⟩
+  ihave %H := ghostMapElem_ne E.γrev r r (DFrac.own 1) () () $$ H1 H2
+  exact absurd rfl H
+
+/-- **The authority of the revisions' tokens** at the KV's log `log` (the apply thread's, in
+`srvApplyKV`): every revision minted so far is below the log's length. A revision is minted when
+the log grows to it, once: the log only grows. -/
+def revAuth (E : apply.AEnv GF) (log : mvcc.Log) : IProp GF :=
+  iprop(∃ m : GMap w64 Unit, ghostMapAuth E.γrev 1 m ∗
+    ⌜∀ k : w64, (m.lookup k).isSome → uint.nat k < log.length⌝)
+
+/-- **What a step of the KV's log minted**: nothing (the log unchanged), or the token of the
+revision it appended (`log.length`, the new log's last). -/
+def revMinted (E : apply.AEnv GF) (log log' : mvcc.Log) : IProp GF :=
+  iprop(⌜log' = log⌝ ∨
+    ∃ cs : List mvcc.Change, ⌜log' = log ++ [cs]⌝ ∗ revTok E (W64 (log.length : Int)))
+
+/-- The authority at the empty map: nothing minted (what a server's construction allocates). -/
+theorem revAuth_empty (E : apply.AEnv GF) (log : mvcc.Log) :
+    ghostMapAuth (GF := GF) E.γrev 1 (∅ : GMap w64 Unit) ⊢ revAuth E log := by
+  iintro H
+  unfold revAuth
+  iexists ∅
+  iframe H
+  ipureintro
+  intro k hk
+  simp at hk
+
+/-- A certified log has fewer than `2 ^ 63` revisions. -/
+theorem idxCert_len (γ : mvcc.IdxNames) (log : mvcc.Log) :
+    mvcc.idxCert (GF := GF) γ log ⊢ ⌜log.length < 2 ^ 63⌝ := by
+  unfold mvcc.idxCert
+  iintro ⟨-, -, %H, -⟩
+  ipureintro; exact H.2.1
+
+/-- **Minting**: a step of the log that appends at most one revision moves the authority along
+and mints the new revision's token. -/
+theorem revAuth_step (E : apply.AEnv GF) (log log' : mvcc.Log)
+    (hg : log' = log ∨ ∃ cs, log' = log ++ [cs]) (hlen : log'.length < 2 ^ 63) (M : CoPset) :
+    revAuth E log ={M}=∗ revAuth E log' ∗ revMinted E log log' := by
+  unfold revAuth revMinted revTok
+  iintro ⟨%m, Ha, %Hm⟩
+  rcases hg with rfl | ⟨cs, rfl⟩
+  · imodintro
+    isplitl [Ha]
+    · iexists m; iframe Ha; ipureintro; exact Hm
+    · ileft; ipureintro; rfl
+  · have hl : log.length < 2 ^ 63 := by simp at hlen; omega
+    have hw : uint.nat (W64 (log.length : Int)) = log.length := by word
+    have hk : m.lookup (W64 (log.length : Int)) = none := by
+      cases h : m.lookup (W64 (log.length : Int)) with
+      | none => rfl
+      | some u =>
+        have := Hm _ (by rw [h]; rfl)
+        omega
+    imod ghost_map_insert (W64 (log.length : Int)) () hk $$ Ha with ⟨Ha, Ht⟩
+    imodintro
+    isplitl [Ha]
+    · iexists _
+      iframe Ha
+      ipureintro
+      intro k hk'
+      simp only [List.length_append, List.length_singleton]
+      by_cases he : W64 (log.length : Int) = k
+      · subst he; omega
+      · rw [GMap.lookup_insert_ne _ _ he] at hk'
+        have := Hm k hk'
+        omega
+    · iright; iexists cs; iframe Ht; ipureintro; rfl
+
+/-- A chain's outcome leaves the log as it is or appends one revision. -/
+theorem commitLog_grow (log : mvcc.Log) (pend : List mvcc.Change) :
+    mvcc.commitLog log pend = log ∨ ∃ cs, mvcc.commitLog log pend = log ++ [cs] := by
+  unfold mvcc.commitLog
+  split
+  · left; rfl
+  · right; exact ⟨_, rfl⟩
+
+theorem backendStep_grow {rq : apply.IRRModel} {log : mvcc.Log} {o : apply.Outcome}
+    (h : apply.backendStep rq log o) :
+    o.logAfter log = log ∨ ∃ cs, o.logAfter log = log ++ [cs] := by
+  unfold apply.backendStep at h
+  split at h
+  · obtain ⟨op, -, h | h | h⟩ := h
+    · rw [h.2]; left; rfl
+    · rw [h.2.2]; left; rfl
+    · rw [h]; right; exact ⟨_, rfl⟩
+  · obtain ⟨op, -, h | h⟩ := h
+    · rw [h]; exact commitLog_grow _ _
+    · rw [h.2]; left; rfl
+  · rw [h]; left; rfl
+  · obtain ⟨t, -, h | h⟩ := h
+    · rw [h]; left; rfl
+    · rw [h.1]; exact commitLog_grow _ _
+  · obtain ⟨pend, -, h⟩ := h
+    rw [h]; exact commitLog_grow _ _
+  · exact h.elim
+  · exact h.elim
+  · rcases h with h | h <;> (rw [h]; left; rfl)
+
+theorem chainStep_grow : ∀ (c : apply.Chain) {rq : apply.IRRModel} {log : mvcc.Log}
+    {o : apply.Outcome}, apply.chainStep apply.backendStep c rq log o →
+      o.logAfter log = log ∨ ∃ cs, o.logAfter log = log ++ [cs]
+  | .backend, _, _, _, h => backendStep_grow h
+  | .corrupt c, _, _, _, h => by
+    simp only [apply.chainStep] at h
+    split at h
+    · rw [h]; left; rfl
+    · exact chainStep_grow c h
+  | .capped c, _, _, _, h => by
+    simp only [apply.chainStep] at h
+    split at h
+    · rw [h]; left; rfl
+    · split at h
+      · rcases h with h | h
+        · rw [h]; left; rfl
+        · exact chainStep_grow c h
+      · exact chainStep_grow c h
+  | .auth c, _, _, _, h => by
+    simp only [apply.chainStep] at h
+    split at h
+    · rcases h with h | h
+      · rw [h]; left; rfl
+      · exact chainStep_grow c h
+    · exact chainStep_grow c h
+  | .quota c, _, _, _, h => by
+    simp only [apply.chainStep] at h
+    split at h
+    · obtain ⟨o', h1, rfl | ⟨l, rfl, rfl⟩⟩ := h
+      · exact chainStep_grow c h1
+      · simpa [apply.Outcome.logAfter] using chainStep_grow c h1
+    · exact chainStep_grow c h
+
+/-- **An application step appends at most one revision** to the KV's log. -/
+theorem applyStep_grow {rq : apply.IRRModel} {v3 : Bool} {x x' : apply.ApplyKV}
+    {out : apply.ApplyOut} (h : apply.applyStep rq v3 x x' out) :
+    x'.log = x.log ∨ ∃ cs, x'.log = x.log ++ [cs] := by
+  cases out with
+  | skipped => rw [h.2]; left; rfl
+  | rejected => rw [h.2]; left; rfl
+  | dispatched o skip =>
+    obtain ⟨-, hd, hl, -⟩ := h
+    rw [hl]
+    unfold apply.dispatchStep at hd
+    split at hd
+    · rw [hd]; left; rfl
+    · split at hd
+      · exact chainStep_grow _ hd
+      · left; exact hd
+
+/-- **The result `ar` of applying `rq`**: a non-nil `*apply.Result` of applying `rq` (with `v3`)
+at some KV state `y`, to `y'` (`apply.applyStep`, `apply.applyResultIs`), with mvcc's
+certificate of the log after, and what the step minted (`revMinted`: the token of the revision
+it appended, if it appended one; the vertical slice's unit V1). -/
 def resultIs (E : apply.AEnv GF) (rq : apply.IRRModel) (ar : Loc) : IProp GF :=
   iprop(⌜ar ≠ null⌝ ∗
     ∃ (y y' : apply.ApplyKV) (out : apply.ApplyOut),
       ⌜apply.applyStep rq true y y' out⌝ ∗ apply.applyResultIs rq true y.log ar out ∗
-      mvcc.idxCert E.γ.idx y'.log)
+      mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log)
 
 /-- **The result the proposer of `rq` expects**: the `*apply.Result` `ar` (as an interface
 value) with `resultIs E rq ar`. -/

@@ -346,9 +346,10 @@ instance isServer_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
 
 /-- **The apply thread's applier state** at `x` (not persistent): the server's `uberApply`'s
 (`apply.applyKV`: its current chain `x.chain`, the KV's resources at the committed log
-`x.log`). -/
+`x.log`), and the authority of the revisions' tokens at `x.log` (`revAuth`: the apply thread
+mints a revision's token when the log grows to it; the vertical slice's unit V1). -/
 def srvApplyKV (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) : IProp GF :=
-  iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦□ ua ∗ apply.applyKV E ua x ∗
+  iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦□ ua ∗ apply.applyKV E ua x ∗ revAuth E x.log ∗
     ∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
       waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD)
 

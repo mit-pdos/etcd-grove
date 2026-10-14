@@ -88,6 +88,10 @@ axiom fmt.Sscanf.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom isConnectedSince.wp_proof
 axiom isConnectedToQuorumSince.wp_proof
+axiom kVClient.DeleteRange.wp_proof
+axiom kVClient.Put.wp_proof
+axiom kVClient.Range.wp_proof
+axiom kVClient.Txn.wp_proof
 axiom membership.RaftCluster.ID.wp_proof
 axiom membership.RaftCluster.Members.wp_proof
 axiom monitorFileDescriptor.wp_proof
@@ -153,6 +157,7 @@ axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
 axiom types.ID.String.wp_proof
 axiom v2stats.ServerStats.BecomeLeader.wp_proof
+axiom v3rpc.grpcConnTo
 axiom verify.Assert.wp_proof
 axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof

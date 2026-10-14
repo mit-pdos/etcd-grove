@@ -345,9 +345,9 @@ theorem EtcdServer.start.wp_proof
     iexact Hcancel
   -- the apply thread's resources
   iunfold applyBuilt at Happ
-  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hlo, Hbe, Hca, Halg, Hbm, ⟨%ua, #Hua, Hkv⟩, Hao, #Hlog,
-    Hfs⟩
-  ihave Hstart : applyStart s γ ci b E γr ai₀ c₀ x₀ γw $$ [Hth Hbe Hca Halg Hbm Hkv Hao Hfs Hwg1 HRD]
+  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hlo, Hbe, Hca, Halg, Hbm, ⟨%ua, #Hua, Hkv⟩, HRA, Hao,
+    #Hlog, Hfs⟩
+  ihave Hstart : applyStart s γ ci b E γr ai₀ c₀ x₀ γw $$ [Hth Hbe Hca Halg Hbm Hkv HRA Hao Hfs Hwg1 HRD]
   · iunfold applyStart
     iexists st₀, a, t, f
     iframe Hth Hbe Hca Halg Hbm Hao Hfs Hwg1 Hlog
@@ -359,6 +359,8 @@ theorem EtcdServer.start.wp_proof
     · iexact Hua
     isplitl [Hkv]
     · iexact Hkv
+    isplitl [HRA]
+    · iexact HRA
     iexists w, RD
     isplitr
     · iexact Hw

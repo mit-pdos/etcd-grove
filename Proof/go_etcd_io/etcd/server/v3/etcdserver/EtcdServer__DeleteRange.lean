@@ -142,7 +142,7 @@ theorem EtcdServer.DeleteRange.wp_proof
   icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hok⟩ | ⟨%Hre, #HaE, Hfail⟩)
   · subst Herr
     iunfold appliedOk at Hok
-    icases Hok with ⟨%x, %x', %o, %skip, %Hstep, Hans, #Hcert⟩
+    icases Hok with ⟨%x, %x', %o, %skip, %Hstep, Hans, #Hcert, HMint⟩
     have Hk : apply.dispatchKind rq' = .deleteRange := by
       rw [Hwire.2.2.1]; simp [apply.dispatchKind, apply.withHeader, irrDeleteRange, apply.irrEmpty]
     iunfold apply.dispatchAnswer at Hans
@@ -163,7 +163,7 @@ theorem EtcdServer.DeleteRange.wp_proof
     isplitr
     · ipureintro; rfl
     iexists hm, rq', op', x, x', .applied log' false, skip
-    iframe Hpo Hhdr Hcert
+    iframe Hpo Hhdr Hcert HMint
     ipureintro
     refine ⟨Hwire, Hop', ?_, Hstep, log', rfl⟩
     intro Hnz

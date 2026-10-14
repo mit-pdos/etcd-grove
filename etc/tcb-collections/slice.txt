@@ -1,0 +1,19 @@
+# The vertical slice: client to server (unit V1, 2026-10-13: the clients' model of etcd
+# implemented by the server, `v3rpc/ClientModel.lean`; the wire, the gRPC KV stub's contract,
+# `v3rpc/Wire.lean`): the results v3rpc's Results.lean states for it. V2 adds the queue's theorem
+# through a real client and server.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/slice.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots \bv3rpc\.(etcd_model_of_server|etcdReached_of_hdr|etcdState_of_range|etcdState_of_txnRead|revToken_of_put|kvclient_of_conn)$
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.txLive
+axiom kVClient.DeleteRange.wp_proof
+axiom kVClient.Put.wp_proof
+axiom kVClient.Range.wp_proof
+axiom kVClient.Txn.wp_proof
+axiom v3rpc.grpcConnTo

@@ -46,7 +46,7 @@ local macro "rr_ok" : tactic => `(tactic| (
   · ipureintro; exact Hwire
   iunfold appliedOk
   iexists y, y', o, skip
-  iframe Hcert
+  iframe Hcert HMint
   isplitr
   · ipureintro; exact Hstep
   rw [← hve]
@@ -77,7 +77,7 @@ theorem EtcdServer.raftRequest.wp_proof
   · subst Herr
     (try wp_auto)
     iunfold resultIs at Hri
-    icases Hri with ⟨%Hnn, %y, %y', %out, %Hstep, Hres, #Hcert⟩
+    icases Hri with ⟨%Hnn, %y, %y', %out, %Hstep, Hres, #Hcert, HMint⟩
     rcases out with _ | _ | ⟨o, skip⟩
     · simp only [apply.applyResultIs]
       icases Hres with %Hn
@@ -114,7 +114,7 @@ theorem EtcdServer.raftRequest.wp_proof
         isplitr
         · ipureintro; exact Hnn
         iexists y, y', .rejected
-        iframe Hcert
+        iframe Hcert HMint
         isplitr
         · ipureintro; exact Hstep
         simp only [apply.applyResultIs]
@@ -147,7 +147,7 @@ theorem EtcdServer.raftRequest.wp_proof
         isplitr
         · ipureintro; exact Hnn
         iexists y, y', .dispatched o skip
-        iframe Hcert
+        iframe Hcert HMint
         isplitr
         · ipureintro; exact Hstep
         simp only [apply.applyResultIs, apply.dispatchResult, or_true, ↓reduceIte]

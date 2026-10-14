@@ -4665,3 +4665,53 @@ consistent index, `NewUberApplier`, `NewGenerator`, `NewNotifier`) and ghost all
 needing contracts of names-only constructors (lessor, alarm store, auth store, transport,
 compactor, stats, cluster version), three premises no `NewServer` proof can discharge (the raft
 contract, the id budget, `storeSmall`).
+
+## The client's model as a class the server instantiates; the wire as the handler's theorem transported
+
+(The vertical slice's unit V1, 2026-10-13; `notes/STATUS.md`, "The vertical slice: client to
+server".)
+
+**A class, not axioms.** The clients' fourteen axioms about etcd (`etcdState` and its laws,
+`etcdReachedAt`, `etcdRevToken`, `EtcdStep` and its laws) are the fields of `class EtcdModel GF`,
+a section variable of every client file that reaches them; the server's `etcdModelOfServer E` is a
+`def`, applied where the slice is stated, not an `instance` (a client result is about any model;
+the slice picks the server's). A field is the real fact: `etcdState` is a certified log's state at
+the revision restricted to the prefix, `EtcdStep` a certified log's events under the prefix
+between two revisions, `etcdRevToken` a ghost token the apply thread mints when the log grows,
+`etcdReachedAt` a certified log having the revision. Nothing is `True` or `False`.
+
+**`EtcdStep` became an `IProp`.** The server's step is a fact about its certified log, a ghost
+lower bound; a pure proposition cannot refer to it. The cost: `TailOk`/`WriterOk`/`CursorOk` in the
+cache's watch loop became persistent, timeless `IProp`s, and the pure lemmas over them
+entailments. The alternative, a `Prop` field quantifying over "the" server log, has no log to
+name.
+
+**`LogSmall` in the state, not `NoDupKeysPerRev`.** `etcdState_revs`' positive version holds of a
+log that writes each key at most once per revision, which etcd's server does not guarantee (two
+known `checkIntervals` gaps); it holds too of a log of at most `2 ^ 62` changes (the version
+counts puts), which the read path already assumes (`storeSmall`). So `etcdState` carries
+`LogSmall`, and the server's results producing it take `storeSmall` (from `isServerRead`).
+
+**The state at a revision of a certified log, not of a certificate of that length.** `etcdState
+rev` is `underPfx pfx (stateAt log rev)` for some certified `log` with `rev < |log|`; the brief's
+"a certificate of a log of length `rev + 1`" needs a certificate of a prefix, which mvcc does not
+provide (its history and event lower bounds would need prefix lemmas), and says the same.
+
+**The token where the log grows.** `apply.Apply` is the apply package's, which knows nothing of
+clients; the server's `applyEntryNormal` holds the authority (`revAuth`, in `srvApplyKV`) and mints
+after `Apply` returns, from `applyStep_grow` (a step appends at most one revision). The token rides
+the entry's result through the wait (`resultIs`), delivered once, to the handler's answer. A
+revision no request awaits (a lease revocation's) mints a token no one receives: exclusivity needs
+only that keys never repeat.
+
+**The wire is the handler's theorem, transported.** The generated gRPC stub is names-only; its four
+methods are axioms stated as the server's end-to-end theorems with the server-side resources
+removed and the response the client's fresh copy (the same field formulas), at committed index
+`0` (a fresh handler knows none), the revision field without the store's reader slot
+(`hdrRevC`), and errors only as non-nil (gRPC transports a status, not a value). The connection is
+one opaque predicate (`grpcConnTo`) inside `connectedTo` with the server facts the theorems
+assume. The axioms' premises (the per-call pool, the transport's integrity, protobuf round-trips)
+are stated in prose: they are what a proof of gRPC and protobuf would discharge. What the
+transported statements do not give the clients' contracts (linearizability's `lo ≤ r`, mainly)
+is listed in STATUS rather than weakened in the contracts.
+

@@ -43,6 +43,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.CheckNodup
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Results
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClientModel
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Wire
 
 @[expose] public section
 
@@ -364,6 +366,153 @@ theorem deleteRange_end_to_end_model (op op' : OpFull) (hm : apply.HeaderModel)
 
 end endToEnd
 
+/-! ## The vertical slice, unit V1 (2026-10-13): the clients' model implemented; the wire
+
+`ClientModel.lean`: the clients' class `EtcdModel` (`cache/v3/EtcdModel.lean`, fourteen axioms
+until V1) instantiated by the server (`etcdModelOfServer`), each law a theorem; what the
+server's answers give the model (`etcdState_of_range`, `etcdState_of_txnRead`,
+`etcdReached_of_cert`, `revToken_of_put`). `Wire.lean`: the generated gRPC KV stub's contract
+(four axioms, `kVClient.wp_Range`, ..., in `Link.lean`), each the server's end-to-end theorem
+transported to the client, and `isKVClient`, proved of the stub from the connection
+(`kvclient_of_conn`). -/
+
+section slice
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
+open Iris.ProofMode go_etcd_io.etcd.api.v3 mvcc txn
+
+/-- **The server implements the clients' model of etcd** (`etcdModelOfServer`, every law a
+theorem): its predicates are the server's facts about its certified log (`srvEtcdState`,
+`srvReachedAt`, `srvStep`) and the revisions' tokens the apply thread mints (`revTok`). -/
+theorem etcd_model_of_server (E : apply.AEnv GF) :
+    ∃ M : EtcdModel GF, M.etcdState = srvEtcdState E ∧ M.etcdReachedAt = srvReachedAt E ∧
+      M.etcdRevToken = revTok E ∧ M.EtcdStep = srvStep E :=
+  ⟨etcdModelOfServer E, rfl, rfl, rfl, rfl⟩
+
+/-- **A header's revision is reached**: the revision of a certified log (every answer's header
+revision is one: `rangeAnsOk`'s, `txnReadAns`'s, the writes' `idxCert` of the log after) gives
+`etcdReached` in the server's model (`etcdReached_of_cert`). -/
+theorem etcdReached_of_hdr (E : apply.AEnv GF) (log : mvcc.Log) (r : w64)
+    (h : sint.Z r < log.length) :
+    mvcc.idxCert E.γ.idx log ⊢ etcdReached (EM := etcdModelOfServer E) r :=
+  etcdReached_of_cert E log r h
+
+/-- **What a successful `Range` gives the clients' model** (`range_end_to_end`'s `rangeAnsOk`):
+the header's revision `r` is the certified log's last (reached), and etcd's state at `r` under any
+prefix is the log's last state restricted to it; the response is the txn package's range at that
+log (`txn.rangeResult`; with `rangeSel_underPfx`, its selection of a range under the prefix is the
+restricted state's). -/
+theorem etcdState_of_range (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (o : OpFull)
+    (resp : Loc) (r : w64) (pfx : GoString) :
+    storeSmall E.γ ∗ rangeAnsOk E γr c o resp r ⊢
+      ∃ log : Log, ⌜r = W64 ((log.length : Int) - 1) ∧ 2 ≤ log.length ∧
+          log.length + 3 ≤ 2 ^ 63⌝ ∗
+        □ etcdState (self := etcdModelOfServer E) r pfx (underPfx pfx (stateAfter log)) ∗
+        ⌜EtcdStateWf pfx (underPfx pfx (stateAfter log))⌝ ∗
+        etcdReached (EM := etcdModelOfServer E) r ∗
+        (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
+        txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) o true := by
+  iintro ⟨#Hsm, Hok⟩
+  iunfold rangeAnsOk at Hok
+  icases Hok with ⟨%log, #H, %Hl, Hlin, Hres⟩
+  obtain ⟨h2, h3, rfl⟩ := Hl
+  have hr : sint.Z (W64 ((log.length : Int) - 1)) = (log.length : Int) - 1 := by word
+  ihave ⟨#Hst, %Hwf⟩ := etcdState_of_cert_last E log pfx h2 h3 $$ [$Hsm $H]
+  iexists log
+  iframe Hst Hlin Hres
+  isplitr
+  · ipureintro; exact ⟨rfl, h2, h3⟩
+  isplitr
+  · ipureintro; exact Hwf
+  iapply etcdReached_of_cert E log _ (by omega) $$ H
+
+/-- **What a successful read-only `Txn` gives the clients' model** (`txn_end_to_end`'s
+`txnReadAns`): as `etcdState_of_range`, the response the server's run of the transaction at the
+log's last revision. -/
+theorem etcdState_of_txnRead (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (t : TxnModel)
+    (resp : Loc) (r : w64) (pfx : GoString) :
+    storeSmall E.γ ∗ txnReadAns E γr c t resp r ⊢
+      ∃ log : Log, ⌜r = W64 ((log.length : Int) - 1) ∧ 2 ≤ log.length ∧
+          log.length + 3 ≤ 2 ^ 63⌝ ∗
+        □ etcdState (self := etcdModelOfServer E) r pfx (underPfx pfx (stateAfter log)) ∗
+        ⌜EtcdStateWf pfx (underPfx pfx (stateAfter log))⌝ ∗
+        etcdReached (EM := etcdModelOfServer E) r ∗
+        (if txn.txnSerializable t then iprop(True) else readLogOk γr c log) ∗
+        txn.txnResponseIs false resp (W64 ((log.length : Int) - 1)) t
+          (txn.srvRunTxn (W64 (log.length : Int)) (stateAfter log) t).1
+          (txn.srvRunTxn (W64 (log.length : Int)) (stateAfter log) t).2.2 := by
+  iintro ⟨#Hsm, Hok⟩
+  iunfold txnReadAns at Hok
+  icases Hok with ⟨%log, #H, %Hl, Hlin, Hres⟩
+  obtain ⟨h2, h3, rfl⟩ := Hl
+  have hr : sint.Z (W64 ((log.length : Int) - 1)) = (log.length : Int) - 1 := by word
+  ihave ⟨#Hst, %Hwf⟩ := etcdState_of_cert_last E log pfx h2 h3 $$ [$Hsm $H]
+  iexists log
+  iframe Hst Hlin Hres
+  isplitr
+  · ipureintro; exact ⟨rfl, h2, h3⟩
+  isplitr
+  · ipureintro; exact Hwf
+  iapply etcdReached_of_cert E log _ (by omega) $$ H
+
+/-- **What a successful `Put` gives the clients' model** (`put_end_to_end`'s `putAppliedOk`, the
+client's `putApplied`): the token of the header's revision `r` (`etcdRevToken r`: the apply thread
+minted it when the put's revision committed) and that etcd has reached `r`. -/
+theorem revToken_of_put (E : apply.AEnv GF) (o : OpFull) (resp : Loc) (r : w64) :
+    putApplied E o resp r ⊢
+      etcdRevToken (self := etcdModelOfServer E) r ∗ etcdReached (EM := etcdModelOfServer E) r := by
+  iintro Hok
+  iunfold putApplied at Hok
+  icases Hok with ⟨%hm, %x, %x', %l, %skip, %Hp, -, #Hcert, HMint⟩
+  obtain ⟨Hstep, rfl⟩ := Hp
+  obtain ⟨cs, hcs⟩ := put_appended o hm x x' l skip Hstep
+  ihave %Hlen := idxCert_len E.γ.idx x'.log $$ Hcert
+  iunfold revMinted at HMint
+  icases HMint with (%He | ⟨%cs', %He, Ht⟩)
+  · rw [hcs] at He
+    exact absurd (congrArg List.length He) (by simp)
+  isplitl [Ht]
+  · rw [etcdModelOfServer_etcdRevToken]
+    iexact Ht
+  iapply etcdReached_of_cert E x'.log _ (by rw [hcs] at Hlen ⊢; simp at Hlen ⊢; word) $$ Hcert
+
+/-- **The generated stub is a `pb.KVClient` talking to the server** (`isKVClient`): `&kVClient{cc}`
+with `cc` connected to the server's KV service (`connectedTo`), from the stub's four axioms. -/
+theorem kvclient_of_conn (c : Loc) (cc : GoInterface) (p s : Loc) (E : apply.AEnv GF)
+    (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64) :
+    structFieldRef etcdserverpb.kVClient go!"cc" c ↦□ cc ∗ connectedTo cc p s E ρ γr cid mid n ⊢
+      isKVClient ⟨go.GoType.PointerType etcdserverpb.kVClient.ty, #c⟩ E ρ γr cid mid n := by
+  iintro ⟨#Hcc, #Hconn⟩
+  unfold isKVClient
+  isplitl
+  · imodintro
+    iintro %ctx %cd %inp %o %opts !> %Φ ⟨Hpkg, Hctx, Hr⟩ HΦ
+    iapply (kVClient.wp_Range c cc p s E ρ γr cid mid n ctx cd inp o opts) $$ [Hpkg Hctx Hr] HΦ
+    iframe Hpkg Hctx Hr Hcc Hconn
+  isplitl
+  · imodintro
+    iintro %ctx %cd %inp %o %opts !> %Φ ⟨Hpkg, Hctx, Hr⟩ HΦ
+    iapply (kVClient.wp_Put c cc p s E ρ γr cid mid n ctx cd inp o opts) $$ [Hpkg Hctx Hr] HΦ
+    iframe Hpkg Hctx Hr Hcc Hconn
+  isplitl
+  · imodintro
+    iintro %ctx %cd %inp %o %opts !> %Φ ⟨Hpkg, Hctx, Hr⟩ HΦ
+    iapply (kVClient.wp_DeleteRange c cc p s E ρ γr cid mid n ctx cd inp o opts) $$
+      [Hpkg Hctx Hr] HΦ
+    iframe Hpkg Hctx Hr Hcc Hconn
+  · imodintro
+    iintro %ctx %cd %inp %cs %ts %es %opts !> %Φ ⟨Hpkg, Hctx, Hr, Hw, %Hm⟩ HΦ
+    iapply (kVClient.wp_Txn c cc p s E ρ γr cid mid n ctx cd inp cs ts es opts) $$
+      [Hpkg Hctx Hr Hw] HΦ
+    iframe Hpkg Hctx Hr Hw Hcc Hconn
+    ipureintro; exact Hm
+
+end slice
+
 end v3rpc
 
 #print axioms Perennial.EtcdGrove.v3rpc.checkIntervals_nodup
@@ -387,6 +536,13 @@ end v3rpc
 #print axioms Perennial.EtcdGrove.v3rpc.raftKV_server
 #print axioms Perennial.EtcdGrove.v3rpc.put_end_to_end_model
 #print axioms Perennial.EtcdGrove.v3rpc.deleteRange_end_to_end_model
+#print axioms Perennial.EtcdGrove.v3rpc.etcdModelOfServer
+#print axioms Perennial.EtcdGrove.v3rpc.etcd_model_of_server
+#print axioms Perennial.EtcdGrove.v3rpc.etcdState_of_range
+#print axioms Perennial.EtcdGrove.v3rpc.etcdState_of_txnRead
+#print axioms Perennial.EtcdGrove.v3rpc.etcdReached_of_hdr
+#print axioms Perennial.EtcdGrove.v3rpc.revToken_of_put
+#print axioms Perennial.EtcdGrove.v3rpc.kvclient_of_conn
 
 end EtcdGrove
 end Perennial

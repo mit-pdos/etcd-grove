@@ -18,7 +18,9 @@ starts `run`. Everything else is `NewServer`'s, and is stated here as it is when
 * the raft wrapper (its node contract over the server's `E.C`, `srvC`), its tokens at the empty
   log, the raft storage's snapshot contract (`rnSnapOnce`);
 * the apply thread's resources at the snapshot's index `ai₀` (`applyBuilt`: `applyStart` but the
-  `wgMu` slot and the wait `start` makes);
+  `wgMu` slot and the wait `start` makes), with the authority of the revisions' tokens at the
+  KV's log (`revAuth E x₀.log`: a ghost allocation at `E.γrev`, an empty map does, `revAuth_empty`;
+  the vertical slice's unit V1);
 * the contracts of the names-only parts (`clusterVersionOk`: `ClusterVersion()`, monotone from
   `nil` to non-`nil`; `□ |==> idCred ρ.ids 1`: the read loop's ids; `□ |==> Er.T`: the ticks);
 * the fields `start` sets (any values), `wg` and `wgMu` at their zero values;
@@ -165,7 +167,7 @@ def applyBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : app
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReader s ∗
-    (∃ ua : GoInterface, srvUberApplyAddr s ↦□ ua ∗ apply.applyKV E ua x₀) ∗
+    (∃ ua : GoInterface, srvUberApplyAddr s ↦□ ua ∗ apply.applyKV E ua x₀) ∗ revAuth E x₀.log ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ srvForceSnapAddr s ↦ f)
 
 /-- **The construction premise** (see the file header; named conjuncts, what a `NewServer` proof

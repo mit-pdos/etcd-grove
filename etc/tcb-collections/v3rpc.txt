@@ -30,6 +30,10 @@ axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom isConnectedSince.wp_proof
 axiom isConnectedToQuorumSince.wp_proof
+axiom kVClient.DeleteRange.wp_proof
+axiom kVClient.Put.wp_proof
+axiom kVClient.Range.wp_proof
+axiom kVClient.Txn.wp_proof
 axiom membership.RaftCluster.ID.wp_proof
 axiom membership.RaftCluster.Members.wp_proof
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof
@@ -59,6 +63,7 @@ axiom traceutil.Tracer.Start.wp_proof
 axiom txn.RangeSecObserve.wp_proof
 axiom txn.WarnOfExpensiveReadOnlyRangeRequest.wp_proof
 axiom txn.WarnOfExpensiveReadOnlyTxnRequest.wp_proof
+axiom v3rpc.grpcConnTo
 axiom zap.Error.wp_proof
 axiom zap.Int64.wp_proof
 axiom zap.Logger.Error.wp_proof

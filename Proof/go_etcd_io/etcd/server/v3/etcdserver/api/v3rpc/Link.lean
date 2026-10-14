@@ -18,6 +18,10 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkRequestO
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkTxnRequest
 public import Proof.errors.Is
 public import Proof.errors.IsDeadlineExceeded
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__DeleteRange
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Put
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Range
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Txn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.headerFillingRangeStream__Send
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header__fill
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header__fillWithoutRevision
@@ -135,6 +139,33 @@ theorem kvServer.wp_Txn :
   EtcdGrove.v3rpc.kvServer.Txn.wp_proof wp_checkTxnRequest wp_checkIntervals wp_togRPCError header.wp_fill
 
 end links
+
+/-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
+`context` (Perennial states them there: their invariants need later credits). -/
+section links_hasLC
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
+theorem kVClient.wp_DeleteRange :
+    EtcdGrove.kVClient.DeleteRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.kVClient.DeleteRange.wp_proof
+
+theorem kVClient.wp_Put :
+    EtcdGrove.kVClient.Put.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.kVClient.Put.wp_proof
+
+theorem kVClient.wp_Range :
+    EtcdGrove.kVClient.Range.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.kVClient.Range.wp_proof
+
+theorem kVClient.wp_Txn :
+    EtcdGrove.kVClient.Txn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.kVClient.Txn.wp_proof
+
+end links_hasLC
 
 end v3rpc
 end EtcdGrove

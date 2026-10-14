@@ -464,7 +464,7 @@ theorem EtcdServer.Txn.wp_proof
     icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hok⟩ | ⟨%Hre, #HaE, Hfail⟩)
     · subst Herr
       iunfold appliedOk at Hok
-      icases Hok with ⟨%x, %x', %oc, %skip, %Hstep, Hans, #Hcert⟩
+      icases Hok with ⟨%x, %x', %oc, %skip, %Hstep, Hans, #Hcert, HMint⟩
       have Hk : apply.dispatchKind rq' = .txn := by
         rw [Hwire.2.2.1]
         simp [apply.dispatchKind, apply.withHeader, irrTxn, apply.irrEmpty]
@@ -497,7 +497,7 @@ theorem EtcdServer.Txn.wp_proof
       iunfold txnAppliedOk
       iexists hm, rq', t', x, x', log', skip
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]
-      iframe Hhdr Hcert Hpo
+      iframe Hhdr Hcert Hpo HMint
       ipureintro
       refine ⟨Hwire, Ht', fun hz => ?_, Hstep⟩
       have := Hwire.2.2.2 hz

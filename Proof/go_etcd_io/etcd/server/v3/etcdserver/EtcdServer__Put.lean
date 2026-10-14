@@ -143,7 +143,7 @@ theorem EtcdServer.Put.wp_proof
       simp [irrNoZeroEnd, apply.withHeader, irrPut, apply.irrEmpty]
     subst Hrq
     iunfold appliedOk at Hok
-    icases Hok with ⟨%x, %x', %o, %skip, %Hstep, Hans, #Hcert⟩
+    icases Hok with ⟨%x, %x', %o, %skip, %Hstep, Hans, #Hcert, HMint⟩
     have Hk : apply.dispatchKind (apply.withHeader (irrPut op) hm) = .put := by
       simp [apply.dispatchKind, apply.withHeader, irrPut, apply.irrEmpty]
     iunfold apply.dispatchAnswer at Hans
@@ -165,7 +165,7 @@ theorem EtcdServer.Put.wp_proof
     isplitr
     · ipureintro; rfl
     iexists hm, x, x', .applied log' false, skip
-    iframe Hpo Hhdr Hcert
+    iframe Hpo Hhdr Hcert HMint
     ipureintro; exact ⟨Hstep, log', rfl⟩
   · obtain ⟨rfl, Hne⟩ := Hre
     (try wp_auto)

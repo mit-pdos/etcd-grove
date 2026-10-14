@@ -46,6 +46,13 @@ kvServer__Put: checkPutRequest togRPCError header__fill
 kvServer__DeleteRange: checkDeleteRequest togRPCError header__fill
 kvServer__Txn: checkTxnRequest checkIntervals togRPCError header__fill
 headerFillingRangeStream__Send: header__fillWithoutRevision
+# The wire (the vertical slice's unit V1, 2026-10-13): the generated gRPC KV stub's methods
+# (`api/etcdserverpb/rpc_grpc.pb.go`, names-only), each the server's end-to-end theorem transported
+# to the client (axioms, the trust boundary: `Wire.lean`).
+etcdserverpb_kVClient__Range:
+etcdserverpb_kVClient__Put:
+etcdserverpb_kVClient__DeleteRange:
+etcdserverpb_kVClient__Txn:
 # Not verified: `kvServer.RangeStream` (the server's `RangeStream`, the streaming read, is out of
 # the request path's model: no contract for it) and `kvServer.Compact` (`AuthAdmin.isPermitted`
 # and the server's `Compact`: compaction is out of the model, as in the apply package).

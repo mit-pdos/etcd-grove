@@ -206,7 +206,7 @@ def txnAppliedOk (E : apply.AEnv GF) (t : TxnModel) (resp : Loc) : IProp GF :=
       apply.applyStep rq' true x x' (.dispatched (.applied l false) skip)⌝ ∗
     apply.txnOutcomeIs x.log t' skip resp GoInterface.nil (.applied l false) ∗
     apply.appliedHdr x.log (structFieldRef etcdserverpb.TxnResponse go!"Header" resp) ∗
-    mvcc.idxCert E.γ.idx x'.log)
+    mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log)
 
 /-- **A failed writing `Txn` of `t`** (as `Put`'s): the apply thread's error (`appliedErr`), or
 the proposal's (made or not; if made, deposited: it may still be applied). -/
