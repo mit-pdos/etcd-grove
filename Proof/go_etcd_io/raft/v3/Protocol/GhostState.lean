@@ -69,17 +69,38 @@ instance readOk_persistent (γ : RaftNames) (c : List w8) (i : w64) :
 at arrival (the term and quorum of the acknowledgements that doomed it). -/
 abbrev RqRec := (List w8 × w64) × Option (w64 × GSet w64)
 
-/-- A quorum `q` acknowledged at a term `t'` above `T` (each a real acknowledgement, at a
-nonzero index). Since 2026-10-14 (reconfiguration stage B4) the record keeps the doom fact
-itself, a commit fact of `t'` at a nonzero index with its configuration data (`cqAt`; the
-paper's section 8: B5 reads its witnesses and at-most-one), so `q` is a joint quorum of a
-recorded configuration; it was `IsQuorum γ.reCfg q` and the acknowledgements only. -/
-def doomed (γ : RaftNames) (T t' : w64) (q : GSet w64) : IProp GF :=
-  iprop(∃ n G a c, ⌜uint.Z T < uint.Z t' ∧ 0 < uint.Z n⌝ ∗ cqAt γ t' n G a c q)
+/-- A record doomed by a commit fact of a term `t'` above `T` at a nonzero index (the doom
+fact, `cqAt`, with its configuration data; since 2026-10-14, reconfiguration stage B4). The
+record's set `U` holds the doom fact's quorum and (since stage B5, dynamic mode) the quorums of
+the doom fact's witnesses of terms above `T` (the paper's section 8, case `j_r ≤ j_m - 2`), every
+member of which acknowledged at a term above `T`: a node at term `T` is in none of them
+(`ownRaftGhost_not_doomed`). The doom fact's witnesses are restated with that inclusion (the
+arrival chose them, `doomed_intro`). -/
+def doomed (γ : RaftNames) (T t' : w64) (U : GSet w64) : IProp GF :=
+  iprop(∃ n G a c q, ⌜uint.Z T < uint.Z t' ∧ 0 < uint.Z n ∧ ∀ x, x ∈ q → x ∈ U⌝ ∗
+    cqAt γ t' n G a c q ∗
+    (∀ (u : w64), ∀ (_ : u ∈ U), ∃ (t'' i'' : w64),
+      ⌜uint.Z T < uint.Z t'' ∧ 0 < uint.Z i''⌝ ∗ isAcked γ u t'' i'') ∗
+    dynOn γ iprop(∀ (k : Nat), ∀ (_ : IsConfPos G k ∧ k < (uint.Z a).toNat),
+      ∃ (tw nw : w64) (Gw : List raftpb.Entry) (aw : w64) (cw : CfgM) (qw : GSet w64),
+        ⌜WitOk G k tw nw Gw aw (uint.Z t' + 1) ∧ (uint.Z T < uint.Z tw → ∀ x, x ∈ qw → x ∈ U)⌝ ∗
+        cqAt γ tw nw Gw aw cw qw))
 
 instance doomed_persistent (γ : RaftNames) (T t' : w64) (q : GSet w64) :
     Persistent (doomed (GF := GF) γ T t' q) := by
-  unfold doomed; infer_instance
+  unfold doomed
+  refine exists_persistent _ (h := fun n => ?_)
+  refine exists_persistent _ (h := fun G => ?_)
+  refine exists_persistent _ (h := fun a => ?_)
+  refine exists_persistent _ (h := fun c => ?_)
+  refine exists_persistent _ (h := fun q1 => ?_)
+  refine @sep_persistent _ _ _ _ inferInstance ?_
+  refine @sep_persistent _ _ _ _ inferInstance ?_
+  refine @sep_persistent _ _ _ _ ?_ ?_
+  · refine forall_persistent _ (h := fun u => ?_)
+    refine forall_persistent _ (h := fun hu => ?_)
+    infer_instance
+  · exact dynOn_persistent _ _
 
 def rqRecOk (γ : RaftNames) (T : w64) (r : RqRec) : IProp GF :=
   match r.2 with

@@ -87,22 +87,150 @@ static instance has them overlap (`CfgAt.overlap`). B5: the paper's section 8, b
 reader's and the doom fact's configuration indices (the far cases through the doom fact's
 witness and at-most-one, `lc_core` at the doom term, I3 at the reader). -/
 theorem rqRecOk_confirm (γ : RaftNames) (T : w64) (r : RqRec) (P : List raftpb.Entry)
-    (c : CfgM) (Q : GSet w64) :
+    (c : CfgM) (Q : GSet w64) (Hst : γ.reDyn = none) :
     CfgAt γ P c → JQuorum c Q →
     (∀ v ∈ Q, ∀ t' q, r.2 = some (t', q) → v ∉ q) →
     ⊢ rqRecOk (GF := GF) γ T r -∗ readOk γ r.1.1 r.1.2 := by
   intro HcQ HQ Hw
-  rcases h : r.2 with _ | ⟨t', q⟩ <;> simp only [rqRecOk, h]
+  rcases h : r.2 with _ | ⟨t', U⟩ <;> simp only [rqRecOk, h]
   · iintro H; iexact H
   · unfold doomed
-    iintro ⟨%n, %G, %a, %c', -, #Hcqa⟩
+    iintro ⟨%n, %G, %a, %c', %q, %HqU, #Hcqa, -, -⟩
     icases cqAt_parts γ _ _ _ _ _ _ $$ Hcqa with ⟨%Hpq, -⟩
     obtain ⟨-, -, Hc', Hq'⟩ := Hpq
-    cases HD : γ.dyn with
-    | some D => sorry -- B5: the far cases
-    | none =>
-    obtain ⟨x, Hx1, Hx2⟩ := CfgAt.overlap (RaftNames.dyn_eq_none.1 HD) HcQ Hc' Q q HQ Hq'
-    exact absurd Hx2 (Hw x Hx1 t' q h)
+    obtain ⟨x, Hx1, Hx2⟩ := CfgAt.overlap Hst HcQ Hc' Q q HQ Hq'
+    exact absurd (HqU.2.2 x Hx2) (Hw x Hx1 t' U h)
+
+/-- The arrival's choice of the doom fact's witnesses (2026-10-14, stage B5): the union `U` of the
+quorums of those of a term above `T` (every member of which acknowledged above `T`). -/
+theorem doom_choice (γ : RaftNames) (G : List raftpb.Entry) (T tD : w64) : ∀ (m : Nat),
+    ⊢ (∀ (k : Nat), ∀ (_ : IsConfPos G k ∧ k < m),
+        ∃ (tw nw : w64) (Gw : List raftpb.Entry) (aw : w64) (cw : CfgM) (qw : GSet w64),
+          ∃ (_ : WitOk G k tw nw Gw aw (uint.Z tD + 1)), cqAt (GF := GF) γ tw nw Gw aw cw qw) -∗
+      ∃ U : GSet w64,
+        (∀ (u : w64), ∀ (_ : u ∈ U), ∃ (t'' i'' : w64),
+          ⌜uint.Z T < uint.Z t'' ∧ 0 < uint.Z i''⌝ ∗ isAcked γ u t'' i'') ∗
+        (∀ (k : Nat), ∀ (_ : IsConfPos G k ∧ k < m),
+          ∃ (tw nw : w64) (Gw : List raftpb.Entry) (aw : w64) (cw : CfgM) (qw : GSet w64),
+            ⌜WitOk G k tw nw Gw aw (uint.Z tD + 1) ∧
+              (uint.Z T < uint.Z tw → ∀ x, x ∈ qw → x ∈ U)⌝ ∗ cqAt γ tw nw Gw aw cw qw) := by
+  intro m
+  induction m with
+  | zero =>
+    iintro #H
+    iexists (∅ : GSet w64)
+    isplitr
+    · iintro %u %hu
+      exfalso
+      rw [GMap.elem_of_gset, GMap.lookup_empty] at hu
+      cases hu
+    · iintro %k %hk
+      exfalso; have := hk.2; omega
+  | succ m ih =>
+    iintro #H
+    icases ih $$ [] with ⟨%U0, #HU0, #HW0⟩
+    · iintro %k %Hk
+      iapply H $$ %k %(⟨Hk.1, by omega⟩ : IsConfPos G k ∧ k < m + 1)
+    by_cases hp : IsConfPos G m
+    · ihave Hwm := H $$ %m %(⟨hp, by omega⟩ : IsConfPos G m ∧ m < m + 1)
+      icases Hwm with ⟨%tw, %nw, %Gw, %aw, %cw, %qw, %Hwo, #Hcqw⟩
+      icases cqAt_parts γ tw nw Gw aw cw qw $$ Hcqw with ⟨-, -, -, #Hackw, -⟩
+      iexists (if uint.Z T < uint.Z tw then U0 ∪ qw else U0)
+      isplitr
+      · iintro %u %hu
+        by_cases hT : uint.Z T < uint.Z tw
+        · rw [if_pos hT] at hu
+          rcases (GMap.elem_of_union u U0 qw).1 hu with h | h
+          · iapply HU0 $$ %u %h
+          · ihave ⟨%i', %Hi', #Ha⟩ := BigSepM.bigSepM_lookup
+              (Φ := fun v _ => iprop(∃ i', ⌜uint.Z nw ≤ uint.Z i'⌝ ∗ isAcked (GF := GF) γ v tw i'))
+              ((GMap.elem_of_gset _ _).mp h) $$ Hackw
+            iexists tw, i'
+            iframe Ha
+            ipureintro; exact ⟨hT, by have := Hwo.2.1; omega⟩
+        · rw [if_neg hT] at hu
+          iapply HU0 $$ %u %hu
+      · iintro %k %Hk
+        by_cases hkm : k = m
+        · subst hkm
+          iexists tw, nw, Gw, aw, cw, qw
+          iframe Hcqw
+          ipureintro
+          refine ⟨Hwo, fun hT x hx => ?_⟩
+          rw [if_pos hT]; exact GMap.elem_of_union_r _ hx
+        · ihave Hw := HW0 $$ %k %(⟨Hk.1, by omega⟩ : IsConfPos G k ∧ k < m)
+          icases Hw with ⟨%tw', %nw', %Gw', %aw', %cw', %qw', %Hwo', #Hc'⟩
+          iexists tw', nw', Gw', aw', cw', qw'
+          iframe Hc'
+          ipureintro
+          refine ⟨Hwo'.1, fun hT x hx => ?_⟩
+          have hx' := Hwo'.2 hT x hx
+          split
+          · exact GMap.elem_of_union_l _ hx'
+          · exact hx'
+    · iexists U0
+      iframe HU0
+      iintro %k %Hk
+      have hkm : k < m := by
+        rcases Nat.lt_or_ge k m with h | h
+        · exact h
+        · exfalso; have : k = m := by have := Hk.2; omega
+          subst this; exact hp Hk.1
+      iapply HW0 $$ %k %(⟨Hk.1, hkm⟩ : IsConfPos G k ∧ k < m)
+
+/-- A commit fact of a term above `T`, at a nonzero index, dooms a record (the arrival's case
+split): its quorum and, in the dynamic mode, its witnesses' of terms above `T`. -/
+theorem doomed_intro (γ : RaftNames) (T t n : w64) (G : List raftpb.Entry) (a : w64) (c : CfgM)
+    (q : GSet w64) :
+    uint.Z T < uint.Z t → 0 < uint.Z n →
+    ⊢ cqAt (GF := GF) γ t n G a c q -∗ ∃ U, doomed γ T t U := by
+  intro HT Hn
+  iintro #Hc
+  icases cqAt_parts γ t n G a c q $$ Hc with ⟨%Hp, -, -, #Hacks, #Hd⟩
+  ihave #Hq : (∀ (u : w64), ∀ (_ : u ∈ q), ∃ (t'' i'' : w64),
+      ⌜uint.Z T < uint.Z t'' ∧ 0 < uint.Z i''⌝ ∗ isAcked (GF := GF) γ u t'' i'') $$ []
+  · iintro %u %hu
+    ihave ⟨%i', %Hi', #Ha⟩ := BigSepM.bigSepM_lookup
+      (Φ := fun v _ => iprop(∃ i', ⌜uint.Z n ≤ uint.Z i'⌝ ∗ isAcked (GF := GF) γ v t i'))
+      ((GMap.elem_of_gset _ _).mp hu) $$ Hacks
+    iexists t, i'
+    iframe Ha
+    ipureintro; exact ⟨HT, by omega⟩
+  cases hD : γ.reDyn with
+  | none =>
+    iexists q
+    unfold doomed
+    iexists n, G, a, c, q
+    iframe Hc Hq
+    isplitr
+    · ipureintro; exact ⟨HT, Hn, fun x hx => hx⟩
+    · iapply dynOn_static γ _ hD
+  | some D' =>
+    have Hdyn : γ.reDyn ≠ none := by rw [hD]; simp
+    ihave #Hd' := dynOn_elim γ _ Hdyn $$ Hd
+    iunfold cqDyn at Hd'
+    icases Hd' with ⟨-, #Hwit⟩
+    icases doom_choice γ G T t (uint.Z a).toNat $$ Hwit with ⟨%U0, #HU0, #HW0⟩
+    iexists (U0 ∪ q)
+    unfold doomed
+    iexists n, G, a, c, q
+    iframe Hc
+    isplitr
+    · ipureintro; exact ⟨HT, Hn, fun x hx => GMap.elem_of_union_r _ hx⟩
+    isplitr
+    · iintro %u %hu
+      rcases (GMap.elem_of_union u U0 q).1 hu with h | h
+      · iapply HU0 $$ %u %h
+      · iapply Hq $$ %u %h
+    · unfold dynOn
+      iright
+      iintro %k %Hk
+      ihave Hw := HW0 $$ %k %Hk
+      icases Hw with ⟨%tw, %nw, %Gw, %aw, %cw, %qw, %Hwo, #Hcw⟩
+      iexists tw, nw, Gw, aw, cw, qw
+      iframe Hcw
+      ipureintro
+      exact ⟨Hwo.1, fun hT x hx => GMap.elem_of_union_l _ (Hwo.2 hT x hx)⟩
 
 section inv
 variable [InvGS GF]
@@ -169,18 +297,14 @@ theorem ownRaftGhost_not_doomed (γ : RaftNames) (v : w64) (s : PState) (r : RqR
   rcases h : r.2 with _ | ⟨t', q⟩ <;> simp only [rqRecOk, h]
   · ipureintro; intro t' q h'; cases h'
   · unfold doomed
-    icases Hr with ⟨%n, %G, %a, %c, %Hpq, #Hcqa⟩
-    icases cqAt_parts γ _ _ _ _ _ _ $$ Hcqa with ⟨-, -, -, #Hacks, -⟩
-    have Hlt := Hpq.1
+    icases Hr with ⟨%n, %G, %a, %c, %q', %Hpq, -, #HU, -⟩
     by_cases hv : v ∈ q
-    · ihave ⟨%i', %Hi', #Ha⟩ := BigSepM.bigSepM_lookup
-        (Φ := fun v _ => iprop(∃ i', ⌜uint.Z n ≤ uint.Z i'⌝ ∗ isAcked (GF := GF) γ v t' i'))
-        ((GMap.elem_of_gset _ _).mp hv) $$ Hacks
+    · ihave ⟨%t'', %i'', %Hti, #Ha⟩ := HU $$ %v %hv
       unfold isAcked
       icases Ha with (%H0 | ⟨-, #Hev⟩)
-      · exfalso; have := Hpq.2; omega
-      · ihave %Hle := ownRaftGhost_ack_le γ v s t' i' $$ Hown Hev
-        exfalso; omega
+      · exfalso; have := Hti.2; omega
+      · ihave %Hle := ownRaftGhost_ack_le γ v s t'' i'' $$ Hown Hev
+        exfalso; have := Hti.1; omega
     · ipureintro
       intro t'' q' hh
       cases hh
@@ -244,11 +368,11 @@ theorem read_arrive_core (γ : RaftNames) (id : w64) (s : PState) (c : List w8)
         iapply Hnone (Hok (uint.Z n) HPn (by rw [Hn0]; exact uint_Z_nonneg _)) $$ Hrq
       · iframe Htbl Hlcm
         icases cq_cqAt γ t n G $$ Hcq with ⟨%a, %cQ, %q, #Hcqa⟩
-        iexists (some (t, q))
-        unfold rqRecOk doomed
-        iexists n, G, a, cQ
-        iframe Hcqa
-        ipureintro; exact ⟨HtT, by have := uint_Z_nonneg n; omega⟩
+        icases doomed_intro γ s.term t n G a cQ q HtT (by have := uint_Z_nonneg n; omega)
+          $$ Hcqa with ⟨%U, #Hdm⟩
+        iexists (some (t, U))
+        simp only [rqRecOk]
+        iexact Hdm
     · -- the leader's own commit
       have Ht : t = s.term := uint_Z_inj.mp HtT.symm
       subst Ht

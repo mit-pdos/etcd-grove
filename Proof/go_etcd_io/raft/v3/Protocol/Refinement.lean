@@ -1270,18 +1270,14 @@ theorem ownLogGhost_not_doomed (γ : RaftNames) (v : w64) (s : PState) (kl : Opt
   rcases h : r.2 with _ | ⟨t', q⟩ <;> simp only [rqRecOk, h]
   · ipureintro; intro t' q h'; cases h'
   · unfold doomed
-    icases Hr with ⟨%n, %G, %a, %c, %Hpq, #Hcqa⟩
-    icases cqAt_parts γ _ _ _ _ _ _ $$ Hcqa with ⟨-, -, -, #Hacks, -⟩
-    have Hlt := Hpq.1
+    icases Hr with ⟨%n, %G, %a, %c, %q', %Hpq, -, #HU, -⟩
     by_cases hv : v ∈ q
-    · ihave ⟨%i', %Hi', #Ha⟩ := BigSepM.bigSepM_lookup
-        (Φ := fun v _ => iprop(∃ i', ⌜uint.Z n ≤ uint.Z i'⌝ ∗ isAcked (GF := GF) γ v t' i'))
-        ((GMap.elem_of_gset _ _).mp hv) $$ Hacks
+    · ihave ⟨%t'', %i'', %Hti, #Ha⟩ := HU $$ %v %hv
       unfold isAcked
       icases Ha with (%H0 | ⟨-, #Hev⟩)
-      · exfalso; have := Hpq.2; omega
-      · ihave %Hle := ownLogGhost_ack_le γ v s kl t' i' $$ Hown Hev
-        exfalso; omega
+      · exfalso; have := Hti.2; omega
+      · ihave %Hle := ownLogGhost_ack_le γ v s kl t'' i'' $$ Hown Hev
+        exfalso; have := Hti.1; omega
     · ipureintro
       intro t'' q' hh
       cases hh
@@ -2830,7 +2826,7 @@ prefix of the term's registry), then the requests up to a position `N` a quorum
 acknowledged confirmed: each of their records is not doomed (`rqRecOk_confirm`), so each
 confirmed request has its answer's facts. -/
 theorem rdOwn_ack (γ : RaftNames) (id : w64) (s : PState) (src q N : w64)
-    (recs0 : List RqRec) (P : List raftpb.Entry) (c : CfgM) :
+    (recs0 : List RqRec) (P : List raftpb.Entry) (c : CfgM) (Hst : γ.reDyn = none) :
     s.role = .leader →
     -- (2026-10-14, reconfiguration stage B4) a joint quorum of a recorded configuration, the
     -- reader's (was `QuorumAcked γ.reCfg`)
@@ -2990,7 +2986,7 @@ theorem rdOwn_ack (γ : RaftNames) (id : w64) (s : PState) (src q N : w64)
         exact ⟨uint.nat s.rd.ro.confirmed + j, by rw [List.getElem?_take_of_lt HiN]; exact Hx.1⟩
       ihave #Hrr := BigSepL.bigSepL_lookup (Φ := fun _ r => rqRecOk (GF := GF) γ s.term r) Hx.1
         $$ Hrs
-      ihave #Hok := rqRecOk_confirm γ s.term r P c Q HcP HQq
+      ihave #Hok := rqRecOk_confirm γ s.term r P c Q Hst HcP HQq
         (fun v hv t' qq h => (HQN v hv).2 r Hmem t' qq h) $$ Hrr
       unfold respFacts
       iexists e', r.1.1
@@ -3091,7 +3087,7 @@ theorem ownRaftGhost_step_read_ack (γ : RaftNames) (c : CfgM) (HC : CfgStatic �
     imodintro
     -- the reader's configuration (B4: the static one, of any prefix; B5: of the reader's
     -- applied prefix, its configuration index)
-    iapply rdOwn_ack γ id s m.src q N recs0 [] c Hrole (CfgAt.of_static _ HC) HQ Hack $$ Hrd Hlb
+    iapply rdOwn_ack γ id s m.src q N recs0 [] c HC.2.2 Hrole (CfgAt.of_static _ HC) HQ Hack $$ Hrd Hlb
   iapply ownRaftGhost_respondAll γ id _ _ $$ Hown Hresp
 
 theorem ownRaftGhost_step_read_state (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
