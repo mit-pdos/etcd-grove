@@ -60,7 +60,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- (2026-10-14, stage B7) the snapshot's configuration after a restore
         "%Hc'" ∷ ⌜c' = c ∨ c' = snapCfg sv scfg⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg.voters) ∧
+        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg) ∧
             StepCDS c c' (snapCfg sv scfg) id (snapId sv) s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hgt
@@ -120,7 +120,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   ipureintro
   refine ⟨snapCfgOk_cases Hc1, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs, ?_, rfl⟩
   · exact ⟨rfl, rfl⟩
-  refine ⟨[absSnap m sv scfg.voters] ++ [absSnap m sv scfg.voters], ?_, ?_⟩
+  refine ⟨[absSnap m sv scfg] ++ [absSnap m sv scfg], ?_, ?_⟩
   · intro m' Hm'
     simp only [List.mem_append, List.mem_singleton, or_self] at Hm'
     exact Hm'
@@ -128,11 +128,11 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     have e : toPState ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) =
         pbecomeFollower (toPState s) m.Term' m.From' := by
       rw [toPState_prvals_nl _ _ (by simp [becomeFollower]), toPState_becomeFollower]
-    have Hcf := stepCF_higher_term_snap c id (toPState s) m sv scfg.voters Hgt Hto Hfid
+    have Hcf := stepCF_higher_term_snap c id (toPState s) m sv scfg Hgt Hto Hfid
     rw [← e] at Hcf
     refine StepCDS.trans_frame Hcf ⟨by simp [becomeFollower, resetTo, resetTo0],
       by simp [becomeFollower, resetTo, resetTo0], fun h => by simp [becomeFollower] at h⟩ ?_
-    exact stepCDS_handle_snap c _ c1 id _ _ m sv scfg.voters s1
+    exact stepCDS_handle_snap c _ c1 id _ _ m sv scfg s1
       (adopt_follower _ m.From' rfl rfl) rfl (by simp [becomeFollower]) rfl Hto
       (by simp [toPState, becomeFollower, resetTo, resetTo0]) Hfid Hhs Hc1
 

@@ -306,7 +306,7 @@ theorem leaderStepResult_app_hb (c : CfgM) (id : w64) (s : NState)
 `absSnap`. -/
 
 theorem step_handle_snap (c : CfgM) (id : w64) (ps : PState) (t : NState)
-    (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : List w64) (s' : NState) :
+    (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : CSLists) (s' : NState) :
     toPState t = padoptLeader ps m.From' →
     m.To' = id →
     m.Term' = ps.term →
@@ -357,7 +357,7 @@ theorem step_handle_snap (c : CfgM) (id : w64) (ps : PState) (t : NState)
     simp only [appResp, Htm, absSnap, absSnapFrom, padoptLeader, snapId]
 
 theorem step_higher_term_snap (c : CfgM) (id : w64) (ps : PState)
-    (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : List w64) :
+    (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : CSLists) :
     uint.Z ps.term < uint.Z m.Term' →
     m.To' = id →
     m.From' ≠ id →
@@ -369,7 +369,7 @@ theorem step_higher_term_snap (c : CfgM) (id : w64) (ps : PState)
 
 /-- `step_handle_snap`'s two exits that keep the configuration, as `StepCF` steps. -/
 theorem stepCF_handle_snap_keep (c : CfgM) (id : w64) (ps : PState) (t : NState)
-    (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : List w64) (s' : NState) :
+    (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : CSLists) (s' : NState) :
     toPState t = padoptLeader ps m.From' →
     m.To' = id →
     m.Term' = ps.term →
@@ -410,7 +410,7 @@ the obsolete and fast-forward exits are frame steps at `c`; a restore is `StepR.
 the node at the configuration `cn` the `ConfState` denotes. `t` is the state `handleSnapshot`
 ran on: the sender adopted as leader (`padoptLeader`), the log untouched. -/
 theorem stepCDS_handle_snap (c cn c' : CfgM) (id : w64) (s t : NState) (m : raftpb.Message)
-    (sv : raftpb.Snapshot) (voters : List w64) (s' : NState) :
+    (sv : raftpb.Snapshot) (voters : CSLists) (s' : NState) :
     toPState t = padoptLeader (toPState s) m.From' →
     t.logst = s.logst →
     s.role ≠ .leader →
@@ -487,7 +487,7 @@ end snapCDS
 
 /-- `step_higher_term_snap` as a `StepCF` step (2026-10-14, stage B8). -/
 theorem stepCF_higher_term_snap (c : CfgM) (id : w64) (ps : PState)
-    (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : List w64) :
+    (m : raftpb.Message) (sv : raftpb.Snapshot) (voters : CSLists) :
     uint.Z ps.term < uint.Z m.Term' →
     m.To' = id →
     m.From' ≠ id →

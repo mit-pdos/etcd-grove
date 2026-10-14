@@ -111,10 +111,10 @@ def msgAbs (m : raftpb.Message) (a : Option Msg) : IProp GF :=
   iprop(⌜mtypeOf m.Type' = none ∧ a = none⌝ ∨
     (∃ ty ents ctx, ⌜mtypeOf m.Type' = some ty ∧ ty ≠ .snap ∧ a = some (absMsg ty m ents ctx)⌝ ∗
                 m.Entries' ↦*□ ents ∗ m.Context' ↦*□ ctx) ∨
-    (∃ (sv : raftpb.Snapshot) (voters : List w64),
+    (∃ (sv : raftpb.Snapshot) (voters : CSLists),
        ⌜mtypeOf m.Type' = some .snap ∧ a = some (absSnap m sv voters)⌝ ∗
        m.Snapshot' ↦□ sv ∗
-       sv.Metadata'.ConfState'.Voters' ↦*□ voters))
+       ownCSL sv.Metadata'.ConfState' voters))
 
 /-- A `ConfState`'s four id slices holding `cl`: `Voters` at `dq`, the other three (which may be
 `nil` with no points-to when empty, `ownIdList`) at `dl` (2026-10-14, reconfiguration stage B8;

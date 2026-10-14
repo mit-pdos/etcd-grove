@@ -443,7 +443,7 @@ abbrev raft.Step.spec : Prop :=
            ownCSL sv.Metadata'.ConfState' scfg ∗
            ⌜SnapScope sv scfg ∧ id ∈ scfg.voters⌝ ∗
            md.SnapOk γ sv scfg ∗
-           isMessage γ (absSnap m sv scfg.voters)) }}
+           isMessage γ (absSnap m sv scfg)) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
   {{ (err : GoInterface) (s' : NState) (c' : CfgM) (md' : GMode), RET #err;
       "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
@@ -652,7 +652,7 @@ abbrev raft.Step.specS : Prop :=
            m.Snapshot' ↦□ sv ∗
            ownCSL sv.Metadata'.ConfState' scfg ∗
            ⌜SnapScope sv scfg ∧ GMap.listToSet scfg.voters = cfg ∧ scfg.outgoing = []⌝ ∗
-           isMessage γ (absSnap m sv scfg.voters)) }}
+           isMessage γ (absSnap m sv scfg)) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
   {{ (err : GoInterface) (s' : NState) (ps' : PState), RET #err;
       "Hphys" ∷ ownRaftPhys cfg r id s' ∗

@@ -226,15 +226,6 @@ def PendOk (σ : StorState) (p : List raftpb.Entry) : Prop :=
     uint.Z σ.prev.index' < uint.Z e0.Index' ∧
     uint.Z e0.Index' ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) + 1
 
-/-- The four id lists of a `ConfState` (2026-10-14, reconfiguration stage B8): what its
-`Voters`, `Learners`, `VotersOutgoing` and `LearnersNext` slices hold. A joint configuration's
-`ConfState` has all four; `confchange.Restore` reads all four (`Restore.spec`). -/
-structure CSLists where
-  voters : List w64
-  learners : List w64
-  outgoing : List w64
-  learnersNext : List w64
-
 /-- No lists (the argument of a spec about a `ConfState` where none is read). -/
 instance : EmptyCollection CSLists := ⟨⟨[], [], [], []⟩⟩
 
@@ -410,7 +401,7 @@ def isStorageWith (P : StorState → IProp GF)
          P σ ∗
          (⌜err = esu⌝ ∨
           (⌜err = interface.nil ∧ snapId snap = σ.ss ∧ snap.Metadata'.Index' ≠ W64 0⌝ ∗
-           ∃ (voters : List w64), snap.Metadata'.ConfState'.Voters' ↦*□ voters)) }}) ∗
+           ∃ (voters : CSLists), ownCSL snap.Metadata'.ConfState' voters)) }}) ∗
   /- The pending append (2026-10-10, for `node.go`; notes/decisions.md, "Storage: a
      pending append, for node.go"). The application appends a `Ready`'s entries on its own
      goroutine while raft keeps reading the storage. Two laws, ghost updates of the

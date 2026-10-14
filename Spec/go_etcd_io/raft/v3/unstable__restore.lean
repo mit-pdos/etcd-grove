@@ -34,10 +34,10 @@ stored snapshot's voters to `maybeSendSnapshot`). The old entries are dropped (t
 suffix is empty, a `nil` slice); the logger is left alone, which `ownUnstable` keeps
 without saying (until 2026-10-08 the post said so, on the Goose value). -/
 abbrev unstable.restore.spec : Prop :=
-  ∀ (u : Loc) (us : UnstableSt) (sv : raftpb.Snapshot) (voters : List w64),
+  ∀ (u : Loc) (us : UnstableSt) (sv : raftpb.Snapshot) (voters : CSLists),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hun" ∷ ownUnstable u us ∗
-      "#Hvoters" ∷ sv.Metadata'.ConfState'.Voters' ↦*□ voters }}
+      "#Hvoters" ∷ ownCSL sv.Metadata'.ConfState' voters }}
     (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"restore")) (Val #sv))
   {{ RET #();
       ownUnstable u { ents := [], offset := sv.Metadata'.Index' + W64 1,

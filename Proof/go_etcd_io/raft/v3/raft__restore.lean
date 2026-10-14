@@ -316,8 +316,10 @@ theorem raft.restore.wp_proof
     -- `r.raftLog.restore(s)`
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     icases ownRaftPhysC_log_at $$ Hphys with ⟨Hlog, -, Hlogback⟩
-    wp_apply wp_raftLog_restore _ _ sv cl.voters (by simp only [snapId]; omega)
-        (by simp only [snapId]; omega) $$ [$Hlog $Hvoters] as Hlog
+    ihave #Hcs : ownCSL (GF := GF) sv.Metadata'.ConfState' cl $$ []
+    · unfold ownCSL; iframe Hvoters Hlearners Houtg Hlnx
+    wp_apply wp_raftLog_restore _ _ sv cl (by simp only [snapId]; omega)
+        (by simp only [snapId]; omega) $$ [$Hlog $Hcs] as Hlog
     ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_snap (by simp [logRestore]))
     -- the tracker replaced by the empty one, the log used meanwhile
     icases ownRaftPhysC_retrack c c.voters (CfgM.simple ∅ (domSet (∅ : GMap w64 Loc) \ ∅)).voters

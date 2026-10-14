@@ -158,7 +158,7 @@ private theorem isMessage_heartbeat_isLeader (γ : RaftNames) (m : raftpb.Messag
 
 /-- The same, for a snapshot. -/
 private theorem isMessage_snap_isLeader (γ : RaftNames) (m : raftpb.Message)
-    (sv : raftpb.Snapshot) (voters : List w64) :
+    (sv : raftpb.Snapshot) (voters : CSLists) :
     isMessage (GF := GF) γ (absSnap m sv voters) ⊢ isLeader γ m.From' m.Term' := by
   unfold isMessage absSnap absSnapFrom
   iintro ⟨H, -⟩
@@ -326,14 +326,14 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
       m.Snapshot' ↦□ sv -∗
       ownCSL sv.Metadata'.ConfState' scfg -∗
       md.SnapOk γ sv scfg -∗
-      isMessage γ (absSnap m sv scfg.voters) -∗
+      isMessage γ (absSnap m sv scfg) -∗
       ▷ stepPost γ md c r id s m Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
         {{ v, |={⊤}=> Φ v }} := by
   obtain ⟨Hto, Hterm, Hfnz, Hfid⟩ := Hm
   iintro #Hinit Hphys Hghost Hrest #Hsv #Hcs #Hso #Hm HΦ
   -- at the current term the receiver is not a leader: the sender leads it
-  ihave #Hl2 := isMessage_snap_isLeader γ m sv scfg.voters $$ Hm
+  ihave #Hl2 := isMessage_snap_isLeader γ m sv scfg $$ Hm
   ihave %Hnl := not_leader_of_msg γ id s m Hfid $$ Hghost Hl2
   ihave %Hfv0 := ownRaftGhost_follower_votes γ id (toPState s) $$ Hghost
   have Hfv : s.role = .follower → s.votes = ∅ := followerVotesOk_phys s Hfv0
@@ -347,12 +347,12 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
     intro x hx; rw [Hrecv x hx]; simp [absSnap, absSnapFrom]
   imod rdCred_zero_upd (GF := GF) γ with Hz
   ihave Hall : ([∗list] x ∈ recv, isMessage (GF := GF) γ x) $$ []
-  · iapply (BigSepL.bigSepL_intro (P := iprop(□ isMessage (GF := GF) γ (absSnap m sv scfg.voters)))
+  · iapply (BigSepL.bigSepL_intro (P := iprop(□ isMessage (GF := GF) γ (absSnap m sv scfg)))
       (fun k x hx => by
         rw [Hrecv x (List.mem_of_getElem? hx)]
         exact intuitionistically_elim))
     iexact Hm
-  imod ghost_stepCDS γ md c c1 id sv scfg s recv s' (absSnap m sv scfg.voters) ⟨rfl, rfl⟩ Hstep
+  imod ghost_stepCDS γ md c c1 id sv scfg s recv s' (absSnap m sv scfg) ⟨rfl, rfl⟩ Hstep
       Hid Hc1 $$ Hm Hall [Hz] Hso Hghost Hrest with ⟨%md', %Hout, Hghost, Hrest⟩
   · rw [Hcnt]; iexact Hz
   imodintro

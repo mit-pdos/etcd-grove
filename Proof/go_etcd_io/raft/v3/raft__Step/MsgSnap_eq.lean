@@ -64,7 +64,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- (2026-10-14, stage B7) the snapshot's configuration after a restore
         "%Hc'" ∷ ⌜c' = c ∨ c' = snapCfg sv scfg⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg.voters) ∧
+        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg) ∧
             StepCDS c c' (snapCfg sv scfg) id (snapId sv) s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hteq Hnl Hvotes
@@ -118,10 +118,10 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iframe Hphys
     ipureintro
     refine ⟨snapCfgOk_cases Hc1, nstateWf_handle_snap (t := { s with lead := m.From' }) _ _ _ _ Hwf Hhs,
-      ⟨[absSnap m sv scfg.voters], ?_, ?_⟩, rfl⟩
+      ⟨[absSnap m sv scfg], ?_, ?_⟩, rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
-    · exact stepCDS_handle_snap c _ c1 id s _ m sv scfg.voters s1
+    · exact stepCDS_handle_snap c _ c1 id s _ m sv scfg s1
         (adopt_follower s m.From' Hrole Hvs) rfl (by rw [Hrole]; decide) Hrole Hto Hteq Hfid Hhs
         Hc1
   · -- Candidate: `becomeFollower(r.Term, m.From)`, then `handleSnapshot`
@@ -151,11 +151,11 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iframe Hphys
     ipureintro
     refine ⟨snapCfgOk_cases Hc1, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs,
-      ⟨[absSnap m sv scfg.voters], ?_, ?_⟩, rfl⟩
+      ⟨[absSnap m sv scfg], ?_, ?_⟩, rfl⟩
     · exact ⟨rfl, rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
-    · exact stepCDS_handle_snap c _ c1 id s _ m sv scfg.voters s1
+    · exact stepCDS_handle_snap c _ c1 id s _ m sv scfg s1
         (adopt_candidate s m.From' pvs (by rw [Hrole]; decide))
         (by simp [becomeFollower, resetTo, resetTo0]) (by rw [Hrole]; decide)
         (by simp [becomeFollower]) Hto Hteq Hfid Hhs Hc1
@@ -189,11 +189,11 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iframe Hphys
     ipureintro
     refine ⟨snapCfgOk_cases Hc1, nstateWf_handle_snap _ _ _ _ _ ?_ Hhs,
-      ⟨[absSnap m sv scfg.voters], ?_, ?_⟩, rfl⟩
+      ⟨[absSnap m sv scfg], ?_, ?_⟩, rfl⟩
     · exact ⟨rfl, rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
-    · exact stepCDS_handle_snap c _ c1 id s _ m sv scfg.voters s1
+    · exact stepCDS_handle_snap c _ c1 id s _ m sv scfg s1
         (adopt_candidate s m.From' pvs (by rw [Hrole]; decide))
         (by simp [becomeFollower, resetTo, resetTo0]) (by rw [Hrole]; decide)
         (by simp [becomeFollower]) Hto Hteq Hfid Hhs Hc1

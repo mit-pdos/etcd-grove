@@ -36,7 +36,7 @@ abbrev Storage.Snapshot.spec : Prop :=
       ownMemoryStorage ms γs σ ∗
       (⌜err = esu⌝ ∨
        (⌜err = interface.nil ∧ snapId snap = σ.ss ∧ snap.Metadata'.Index' ≠ W64 0⌝ ∗
-        ∃ (voters : List w64), snap.Metadata'.ConfState'.Voters' ↦*□ voters)) }}
+        ∃ (voters : CSLists), ownCSL snap.Metadata'.ConfState' voters)) }}
 
 end spec
 
