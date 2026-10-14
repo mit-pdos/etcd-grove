@@ -257,8 +257,177 @@ theorem checkSingle.wp_proof
         rw [hst] at Hok
         simp only [Option.isSome_some] at Hok
         subst Hok
-        trace_state
-        sorry
+        iunfold stepPost at Hpost
+        simp only [hst]
+        wp_auto
+        -- `linearized.set(uint(entry.id))`
+        have hyn : y < 2 ^ 60 := by omega
+        icases nodesG_read hnd (mem_slots_some hes_e) _ $$ HG with ⟨He, HG⟩
+        simp only [slotLoc]
+        wp_auto
+        ihave HG := HG $$ He
+        rw [method_unfold (t := go.GoType.PointerType bitset.ty) (m := go!"set")]
+        wp_call
+        wp_auto
+        have hyb : uint.nat (W64 y) / 64 < ws.length := by
+          rw [Hws1, show uint.nat (W64 y) = y by word]; exact bsChunks_gt _ _ hy
+        wp_apply wp_set lsl ws (W64 y) hyb $$ [Hlin] as Hlin
+        · iframe
+        -- `key := cacheKey(model, linearized, newState)`, `bucket := cache[key]`
+        wp_apply wp_cacheKey σ S m lsl (bsSet ws (W64 y)) (DFrac.own 1) nsv t' $$ [$Heh $Hlin $Hpost]
+          as %key Hlin
+        iunfold cacheOwn at Hcache
+        icases Hcache with ⟨%CM, Hcm, HB⟩
+        wp_apply (wp_map_lookup1 (K := w64) (V := GoSlice)) $$ Hcm as Hcm
+        rw [show zero_val GoSlice = slice.nil from rfl]
+        icases buckets_read S h.length cache CM key $$ HB with ⟨⟨%bces, #Hbk, #Hbces⟩, HB⟩
+        -- `cacheContains(model, bucket, linearized, newState)`
+        wp_apply wp_cacheContains σ S m (cacheP h.length cache) _ bces DFrac.discard lsl _ (DFrac.own 1)
+          nsv t' $$ [$Heh $Hbk $Hbces $Hlin $Hpost] as %hit ⟨-, Hlin, %Hhit⟩
+        have hyids : y ∉ ids fs := rem_get_not_mem he
+        have hidsn : ∀ i ∈ ids fs, i < h.length := by
+          intro i hi
+          simp only [ids, List.mem_map] at hi
+          obtain ⟨f, hf, rfl⟩ := hi
+          exact (hok.2.1 _).mp (framesOk_mem Hinv.2.1 f hf)
+        have hbits1 : ∀ i, bsBit (bsSet ws (W64 y)) i = decide (i ∈ y :: ids fs) := by
+          intro i
+          rw [bsBit_set _ _ _ hyb, Hws2, show uint.nat (W64 y) = y by word]
+          by_cases hiy : i = y <;> simp [hiy]
+        cases hit
+        · -- not in the cache: push
+          wp_auto
+          rw [method_unfold (t := go.GoType.PointerType bitset.ty) (m := go!"clone")]
+          wp_call
+          wp_auto
+          wp_apply wp_clone lsl (bsSet ws (W64 y)) (DFrac.own 1) $$ [Hlin] as %lin2 ⟨Hlin, Hlin2⟩
+          · iframe
+          ipersist Hlin2
+          -- the new cache entry, and the cache with its configuration
+          let cnew : (Nat → Prop) × σ := (fun i => i ∈ y :: ids fs, t')
+          have hcnew : cacheP h.length (cnew :: cache) (bsSet ws (W64 y)) t' := by
+            refine ⟨cnew, List.mem_cons_self .., fun i => ?_, rfl⟩
+            simp only [cnew, hbits1 i, decide_eq_true_eq]
+            constructor
+            · intro hi
+              refine ⟨?_, hi⟩
+              rcases List.mem_cons.mp hi with rfl | hi
+              · exact hy
+              · exact hidsn i hi
+            · exact fun h' => h'.2
+          ihave HB := buckets_cons S h.length cache cnew CM $$ HB
+          icases buckets_take S h.length (cnew :: cache) CM key $$ HB with ⟨Hbo, HBback⟩
+          iunfold bucketOwn at Hbo
+          icases Hbo with ⟨%bces2, #Hbk2, Hbcap, #Hbces2⟩
+          wp_apply wp_slice_literal
+          isplitr
+          · ipureintro; rfl
+          iintro %litp ⟨Hlit, -⟩
+          wp_apply wp_slice_append_persistent $$ [Hbk2 Hbcap Hlit] as %bk' ⟨#Hbk', Hbcap', -⟩
+          · iframe Hbk2 Hbcap Hlit
+          wp_auto
+          wp_apply wp_mapInsert $$ Hcm as Hcm
+          ihave HB := HBback $$ %bk' [Hbcap']
+          · iunfold bucketOwn
+            iexists bces2 ++ [⟨lin2, nsv⟩]
+            iframe Hbk' Hbcap'
+            iapply BigSepL.bigSepL_snoc.2
+            iframe Hbces2
+            iunfold cacheEntryOk
+            iexists bsSet ws (W64 y), t'
+            iframe Hlin2 Hpost
+            ipureintro; exact hcnew
+          -- `calls = append(calls, callsEntry{entry, state})`
+          wp_apply wp_slice_literal
+          isplitr
+          · ipureintro; rfl
+          iintro %litc ⟨Hlitc, -⟩
+          wp_apply wp_slice_append $$ [Hcalls Hcap Hlitc] as %csl' ⟨Hcalls, Hcap, -⟩
+          · iframe Hcalls Hcap Hlitc
+          wp_auto
+          -- `lift(entry)`
+          wp_apply wp_lift hd loc (valOf h) (es.map entryOf) (ids fs) p q y hnd he hpq hq $$ [HG]
+            as Hnodes
+          · iunfold nodesOwn; iframe; ipureintro; exact Hnn
+          -- `entry = headEntry.next`
+          iunfold nodesOwn at Hnodes
+          icases Hnodes with ⟨HG, %Hnn'⟩
+          icases nodesG_read hnd mem_slots_none _ $$ HG with ⟨Hh, HG⟩
+          simp only [slotLoc]
+          wp_auto
+          ihave HG := HG $$ Hh
+          rw [nbrLoc_head' hd loc hnd]
+          wp_for_post
+          iframe
+          iexists ⟨y, s, p⟩ :: fs, t', 0, cnew :: cache
+          iframe
+          unfold searchInv
+          simp only [named]
+          iexists nsv, lsl, bsSet ws (W64 y), csl', ces ++ [⟨loc ⟨false, y⟩, sv⟩]
+          iframe
+          iframe Hpost
+          isplitl [HG]
+          · iunfold nodesOwn; iframe; ipureintro; exact Hnn'
+          isplitl [Hcm HB]
+          · iunfold cacheOwn; iexists _; iframe
+          isplitl []
+          · simp only [callsRep, List.reverse_cons]
+            iapply BigSepL2.bigSepL2_snoc.2
+            iframe Hces Hsv
+            ipureintro; rfl
+          ipureintro
+          refine ⟨⟨by rw [bsSet_length]; exact Hws1, hbits1⟩, ?_, fun hne => List.length_pos_iff.mpr hne⟩
+          exact inv_push Hinv he ho (by simpa using hst)
+        · -- in the cache: skip
+          wp_auto
+          icases nodesG_read hnd (mem_slots_some hes_e) _ $$ HG with ⟨He, HG⟩
+          simp only [slotLoc]
+          wp_auto
+          ihave HG := HG $$ He
+          rw [method_unfold (t := go.GoType.PointerType bitset.ty) (m := go!"clear")]
+          wp_call
+          wp_auto
+          have hyb' : uint.nat (W64 y) / 64 < (bsSet ws (W64 y)).length := by rw [bsSet_length]; exact hyb
+          wp_apply wp_clear lsl (bsSet ws (W64 y)) (W64 y) hyb' $$ [Hlin] as Hlin
+          · iframe
+          icases nodesG_read hnd (mem_slots_some hes_e) _ $$ HG with ⟨He, HG⟩
+          simp only [slotLoc]
+          wp_auto
+          ihave HG := HG $$ He
+          rw [nbrLoc_next hd loc hnd he]
+          wp_for_post
+          iframe
+          iexists fs, s, p + 1, cache
+          iframe
+          unfold searchInv
+          simp only [named]
+          iexists sv, lsl, _, csl, ces
+          iframe
+          iframe Hsv Hces
+          isplitl [HG]
+          · iunfold nodesOwn; iframe; ipureintro; exact Hnn
+          isplitl [Hcm HB]
+          · iunfold cacheOwn; iexists CM; iframe
+          ipureintro
+          refine ⟨⟨by rw [bsClear_length, bsSet_length]; exact Hws1, fun i => ?_⟩, ?_, fun _ => hpq1⟩
+          · rw [bsBit_clear _ _ _ hyb', hbits1, show uint.nat (W64 y) = y by word]
+            by_cases hiy : i = y
+            · subst hiy; simp [hyids]
+            · simp [hiy]
+          · refine inv_skip Hinv he (fun o' t'' ho' hst' => ?_)
+            rw [ho] at ho'; cases ho'
+            rw [hst] at hst'; cases hst'
+            obtain ⟨c', hc', h1, h2⟩ := Hhit rfl
+            refine ⟨c', hc', fun i => ?_, h2⟩
+            rw [h1 i, hbits1 i]
+            constructor
+            · rintro ⟨_, hb⟩; simpa using hb
+            · intro hi
+              have : i < h.length := by
+                rcases List.mem_cons.mp hi with rfl | hi
+                · exact hy
+                · exact hidsn i hi
+              exact ⟨this, by simpa using hi⟩
     | true =>
       -- a return
       trace_state

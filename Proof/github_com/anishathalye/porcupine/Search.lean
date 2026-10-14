@@ -84,6 +84,14 @@ theorem nbrLoc_head (hd : Loc) (loc : Entry → Loc) {es : List Entry} (hnd : es
   unfold curLoc
   cases (rem es B)[0]? <;> rfl
 
+/-- The head's `next`, once `layout` is unfolded. -/
+theorem nbrLoc_head' (hd : Loc) (loc : Entry → Loc) {es : List Entry} (hnd : es.Nodup)
+    (B : List Nat) : nbrLoc hd loc (nextOf (cur es B) none) = curLoc loc (rem es B) 0 := by
+  have hc : (cur es B)[0]? = some none := by simp [cur]
+  rw [nextOf_getElem? (cur_nodup hnd B) hc, cur_getElem?]
+  unfold curLoc
+  cases (rem es B)[0]? <;> rfl
+
 /-- An entry's `next`: the node after it. -/
 theorem nbrLoc_next (hd : Loc) (loc : Entry → Loc) {es : List Entry} (hnd : es.Nodup)
     {B : List Nat} {p : Nat} {e : Entry} (he : (rem es B)[p]? = some e) :
