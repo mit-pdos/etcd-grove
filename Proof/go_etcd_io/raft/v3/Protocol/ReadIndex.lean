@@ -80,18 +80,24 @@ theorem readOk_prefix (γ : RaftNames) (c : List w8) (i : w64) (Lc D : List raft
 /-! ### Request records -/
 
 
-/-- A record whose doom quorum (if any) misses every member of a quorum `Q` is not
-doomed. -/
-theorem rqRecOk_confirm (γ : RaftNames) (T : w64) (r : RqRec) (Q : GSet w64) :
-    IsQuorum γ.reCfg Q →
+/-- A record whose doom quorum (if any) misses every member of a joint quorum `Q` of a
+recorded configuration (the reader's, at confirmation) is not doomed. Since 2026-10-14
+(reconfiguration stage B4) the quorums are joint quorums of recorded configurations, and the
+static instance has them overlap (`CfgAt.overlap`). B5: the paper's section 8, by cases on the
+reader's and the doom fact's configuration indices (the far cases through the doom fact's
+witness and at-most-one, `lc_core` at the doom term, I3 at the reader). -/
+theorem rqRecOk_confirm (γ : RaftNames) (T : w64) (r : RqRec) (P : List raftpb.Entry)
+    (c : CfgM) (Q : GSet w64) :
+    CfgAt γ P c → JQuorum c Q →
     (∀ v ∈ Q, ∀ t' q, r.2 = some (t', q) → v ∉ q) →
     ⊢ rqRecOk (GF := GF) γ T r -∗ readOk γ r.1.1 r.1.2 := by
-  intro HQ Hw
+  intro HcQ HQ Hw
   rcases h : r.2 with _ | ⟨t', q⟩ <;> simp only [rqRecOk, h]
   · iintro H; iexact H
-  · unfold doomed
-    iintro ⟨%Hpq, -⟩
-    obtain ⟨x, Hx1, Hx2, -⟩ := quorums_intersect_cfg _ _ _ HQ Hpq.2
+  · unfold doomed cqAt
+    iintro ⟨%n, %G, %a, %c', -, -, -, %Hpq, -⟩
+    obtain ⟨-, Hc', Hq'⟩ := Hpq
+    obtain ⟨x, Hx1, Hx2⟩ := CfgAt.overlap HcQ Hc' Q q HQ Hq'
     exact absurd Hx2 (Hw x Hx1 t' q h)
 
 section inv
@@ -158,16 +164,16 @@ theorem ownRaftGhost_not_doomed (γ : RaftNames) (v : w64) (s : PState) (r : RqR
   iintro Hown #Hr
   rcases h : r.2 with _ | ⟨t', q⟩ <;> simp only [rqRecOk, h]
   · ipureintro; intro t' q h'; cases h'
-  · unfold doomed
-    icases Hr with ⟨%Hpq, #Hacks⟩
+  · unfold doomed cqAt
+    icases Hr with ⟨%n, %G, %a, %c, %Hpq, -, -, -, -, #Hacks⟩
     have Hlt := Hpq.1
     by_cases hv : v ∈ q
     · ihave ⟨%i', %Hi', #Ha⟩ := BigSepM.bigSepM_lookup
-        (Φ := fun v _ => iprop(∃ i', ⌜0 < uint.Z i'⌝ ∗ isAcked (GF := GF) γ v t' i'))
+        (Φ := fun v _ => iprop(∃ i', ⌜uint.Z n ≤ uint.Z i'⌝ ∗ isAcked (GF := GF) γ v t' i'))
         ((GMap.elem_of_gset _ _).mp hv) $$ Hacks
       unfold isAcked
       icases Ha with (%H0 | ⟨-, #Hev⟩)
-      · exfalso; omega
+      · exfalso; have := Hpq.2; omega
       · ihave %Hle := ownRaftGhost_ack_le γ v s t' i' $$ Hown Hev
         exfalso; omega
     · ipureintro
@@ -232,17 +238,12 @@ theorem read_arrive_core (γ : RaftNames) (id : w64) (s : PState) (c : List w8)
       · iframe Htbl Hlcm
         iapply Hnone (Hok (uint.Z n) HPn (by rw [Hn0]; exact uint_Z_nonneg _)) $$ Hrq
       · iframe Htbl Hlcm
-        unfold cq
-        icases Hcq with ⟨-, -, %q, %Hq, #Hacks⟩
+        icases cq_cqAt γ t n G $$ Hcq with ⟨%a, %cQ, %q, #Hcqa⟩
         iexists (some (t, q))
         unfold rqRecOk doomed
-        isplitr; · ipureintro; exact ⟨HtT, Hq⟩
-        iapply BigSepM.bigSepM_impl $$ Hacks
-        imodintro
-        iintro %v %u %_ ⟨%i', %Hi', #Ha⟩
-        iexists i'
-        iframe Ha
-        ipureintro; have := uint_Z_nonneg n; omega
+        iexists n, G, a, cQ
+        iframe Hcqa
+        ipureintro; exact ⟨HtT, by have := uint_Z_nonneg n; omega⟩
     · -- the leader's own commit
       have Ht : t = s.term := uint_Z_inj.mp HtT.symm
       subst Ht
@@ -305,11 +306,11 @@ theorem ownRaftGhost_read_arrive (γ : RaftNames) (id : w64) (s : PState) (c : L
   ieval (unfold readReq) at Hrq'
   icases Hrq' with ⟨-, #HLc⟩
   unfold raftCommitInv
-  iinv Hinv with ⟨%P, %R, >HP, >#Hj, >Htbl, Hpo⟩ Hclose
+  iinv Hinv with ⟨%P, %R, >HP, >#Hj, >Htbl, Hpo, Hwt⟩ Hclose
   ihave %HLP := isCommitted_prefix γ Lc P $$ HLc HP
   icases read_arrive_core γ id s c Lc P fp Hr Htnz Hct HLP Hfl.1 Hfl.2
     $$ Hj Htbl Hlcm Hl Hcmt Hrq with ⟨Htbl, Hlcm, #Hres⟩
-  imod Hclose $$ [HP Htbl Hpo] with -
+  imod Hclose $$ [HP Htbl Hpo Hwt] with -
   · inext
     iexists P, R
     iframe

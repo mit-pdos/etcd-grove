@@ -3528,3 +3528,36 @@ append a second conf change before the first is applied), like `ReadOnlyOption =
   finding about the model, not about Go.
 - **`propDrop` receives nothing**: the code's dropped proposal takes no protocol step (its
   `Step` witness is `refl`), but `stepLeader`'s loop has already moved `pendingConfIndex`.
+
+---
+
+## Reconfiguration stage B4: winners table as a ghost map, `CfgAt` as the one static hook, the ghost stays on `StepC`
+
+**2026-10-14 · accepted**
+
+- **The winners table is a global ghost map `term ↦ ((winner, configuration), quorum)` whose
+  persistent elements are part of `isWin`**, with the authority (and each entry's record) in
+  `raftCommitInv`. So election safety (`isLeader_unique`) is the elements' agreement and stays
+  a persistent, invariant-free lemma: the code proofs that use it (`raft__Step.lean`,
+  `MsgSnap*`, `Facts.lean`, `Results.lean`) are untouched, and in the dynamic proof it needs no
+  quorum intersection at all. The intersection argument moved to win time (`win_fresh`), the
+  only place that inserts. *Rejected*: the table as a pure map inside the invariant read through
+  the invariant (every `isLeader_unique` user would open `raftCommitInv`, code included).
+  `isWin`'s signature is unchanged (the configuration is existential inside it), so `klOk`,
+  `voteJust` and their users did not change.
+- **`CfgAt γ P c`, defined at B4 as `CfgStatic γ c`, is the single hook for the configuration**,
+  and `CfgAt.overlap` the single static lemma; the definitions record `(P, c)` with each quorum
+  so B5 changes `CfgAt`'s body and the three uses of `CfgAt.overlap`, not the predicates' shapes.
+  *Rejected*: a static/dynamic mode field in `RaftNames` (B4 would prove everything under a
+  `mode = static` premise threaded to the code), and recording configuration indices `j` now
+  (they need the decoder and `c0` in the ghost, i.e. B5's `cfgFold` link).
+- **The dynamic-only facts (commit facts' at-most-one and witnesses, the campaign's witnesses,
+  `W`) are not added as placeholders.** They are false for `StepC` runs (no `pendingConfIndex`,
+  any commit index on `MsgApp`), so their content cannot be proved before the ghost follows
+  `StepR`, and `True` placeholders would not save B5 any rule's proof.
+- **The ghost keeps refining `StepC`, not `StepR`.** Nothing produces a `StepR` derivation (the
+  code produces `Step`), and the dispatcher cannot convert one: `StepR` is strictly stronger
+  (the campaign guard, the exact proposal loop, `AppCommitEq`), and its extra state (`applied`,
+  `pci`, `snap`, and the ghost `cidx`, `cfg`, `fp`) is not in `PState`/`NState`. Refining
+  `StepR` directly needs B7's code-side witnesses and an `ownRaftGhost` that holds the `RState`
+  fields with `RInv`; `ownRaftGhost_stepR` (B3) stays the projection.

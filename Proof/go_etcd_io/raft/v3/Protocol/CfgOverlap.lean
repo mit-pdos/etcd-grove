@@ -41,29 +41,6 @@ namespace EtcdGrove
 
 open go_etcd_io.raft.v3
 
-/-! ### Overlapping configurations -/
-
-/-- Every joint quorum of `c1` meets every joint quorum of `c2`. -/
-def QOverlap (c1 c2 : CfgM) : Prop :=
-  ∀ q1 q2, JQuorum c1 q1 → JQuorum c2 q2 → ∃ x, x ∈ q1 ∧ x ∈ q2
-
-theorem QOverlap.symm {c1 c2 : CfgM} (h : QOverlap c1 c2) : QOverlap c2 c1 :=
-  fun q1 q2 h1 h2 => (h q2 q1 h2 h1).elim fun x hx => ⟨x, hx.2, hx.1⟩
-
-/-- A joint quorum of a configuration with an incoming voter is a majority of its incoming
-voters. -/
-theorem JQuorum_incoming {c : CfgM} {q : GSet w64} (hi : c.incoming ≠ ∅) (h : JQuorum c q) :
-    IsQuorum c.incoming q :=
-  (MajQ_of_ne q hi).1 h.1
-
-/-- Two joint quorums of one configuration (with an incoming voter) meet. -/
-theorem JQuorum_intersect {c : CfgM} (hi : c.incoming ≠ ∅) {q1 q2 : GSet w64}
-    (h1 : JQuorum c q1) (h2 : JQuorum c q2) : ∃ x, x ∈ q1 ∧ x ∈ q2 :=
-  quorums_intersect c.incoming q1 q2 (JQuorum_incoming hi h1) (JQuorum_incoming hi h2)
-
-theorem QOverlap.refl {c : CfgM} (hi : c.incoming ≠ ∅) : QOverlap c c :=
-  fun _ _ h1 h2 => JQuorum_intersect hi h1 h2
-
 /-! ### Majorities of nearly equal sets -/
 
 theorem gset_size_inter_diff (l r : GSet w64) :

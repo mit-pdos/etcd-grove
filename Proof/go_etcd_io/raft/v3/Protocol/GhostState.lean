@@ -70,10 +70,12 @@ at arrival (the term and quorum of the acknowledgements that doomed it). -/
 abbrev RqRec := (List w8 × w64) × Option (w64 × GSet w64)
 
 /-- A quorum `q` acknowledged at a term `t'` above `T` (each a real acknowledgement, at a
-nonzero index). -/
+nonzero index). Since 2026-10-14 (reconfiguration stage B4) the record keeps the doom fact
+itself, a commit fact of `t'` at a nonzero index with its configuration data (`cqAt`; the
+paper's section 8: B5 reads its witnesses and at-most-one), so `q` is a joint quorum of a
+recorded configuration; it was `IsQuorum γ.reCfg q` and the acknowledgements only. -/
 def doomed (γ : RaftNames) (T t' : w64) (q : GSet w64) : IProp GF :=
-  iprop(⌜uint.Z T < uint.Z t' ∧ IsQuorum γ.reCfg q⌝ ∗
-    [∗map] v ↦ _u ∈ toMap q, ∃ i', ⌜0 < uint.Z i'⌝ ∗ isAcked γ v t' i')
+  iprop(∃ n G a c, ⌜uint.Z T < uint.Z t' ∧ 0 < uint.Z n⌝ ∗ cqAt γ t' n G a c q)
 
 instance doomed_persistent (γ : RaftNames) (T t' : w64) (q : GSet w64) :
     Persistent (doomed (GF := GF) γ T t' q) := by
@@ -802,9 +804,19 @@ def propsOwn (γ : RaftNames) (l : List raftpb.Entry) (R : GMap (List w8) (GName
     ghostMapAuth γ.reProps 1 R ∗
     [∗map] d ↦ γp ∈ R, propSlot γ d γp (firstOcc ods) ∗ propFresh γ d)
 
+/-- The winners table (2026-10-14, reconfiguration stage B4): the authority of `reTbl`, each
+entry with its winner's record (and the entry's persistent element). -/
+def winTbl (γ : RaftNames) : IProp GF :=
+  iprop(∃ W : GMap w64 WinRec, ghostMapAuth γ.reTbl 1 W ∗
+    [∗map] T ↦ r ∈ W, isWinCore γ r.1.1 T r.1.2 r.2 ∗ T ↪[γ.reTbl]□ r)
+
+instance winTbl_timeless (γ : RaftNames) : Timeless (winTbl (GF := GF) γ) := by
+  unfold winTbl; infer_instance
+
 def raftCommitInv (γ : RaftNames) : IProp GF :=
   inv raftN iprop(∃ l, ∃ (R : GMap (List w8) (GName × GName)),
-               ownCommitted γ l ∗ committedJust γ l ∗ votesTbl γ ∗ propsOwn γ l R)
+               ownCommitted γ l ∗ committedJust γ l ∗ votesTbl γ ∗ propsOwn γ l R ∗
+               winTbl γ)
 
 instance raftCommitInv_persistent (γ : RaftNames) :
     Persistent (raftCommitInv (GF := GF) γ) := by
@@ -1503,7 +1515,7 @@ def WinsOk (wins : GMap w64 (GSet w64)) (s : PState) : Prop :=
 
 def ownLogGhost (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) : IProp GF :=
   iprop(∃ γm, ∃ (terms : GMap w64 TermRec), ∃ γa, ∃ (acks : GMap (w64 × w64) Unit),
-    ∃ (fp : List raftpb.Entry), ∃ γc, ∃ (camps : GMap w64 (List raftpb.Entry)), ∃ γl,
+    ∃ (fp : List raftpb.Entry), ∃ γc, ∃ (camps : GMap w64 (List raftpb.Entry × w64)), ∃ γl,
     ∃ (vlogs : GMap Nat ((w64 × Bool) × List raftpb.Entry)), ∃ γw,
     ∃ (wins : GMap w64 (GSet w64)),
     "%Htname"  ∷ ⌜γ.reTerms !! id = some γm⌝ ∗

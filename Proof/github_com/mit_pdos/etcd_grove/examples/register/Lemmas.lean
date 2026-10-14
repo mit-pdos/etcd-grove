@@ -304,7 +304,7 @@ theorem regLb_current (γr : RegNames) (x : List w8) (E : CoPset)
   iunfold regVal at Hx
   ihave %Hxeq := ghostVar_agree γr.val (regFold L) (1 : Qp).half x (1 : Qp).half $$ Hv Hx
   unfold raftCommitInv
-  iinv Hcinv with ⟨%P, %Rp, >HP, >Hj, >Htbl, Hpo⟩ Hclose2
+  iinv Hcinv with ⟨%P, %Rp, >HP, >Hj, >Htbl, Hpo, Hwt⟩ Hclose2
   imod propsOwn_open γr.raft _ P Rp $$ Hpo with Hpo
   unfold propsOwnL
   icases Hpo with ⟨%odsP, #HdsP, Hv2, Hra, Hs⟩
@@ -317,7 +317,7 @@ theorem regLb_current (γr : RegNames) (x : List w8) (E : CoPset)
     iexists odsP
     iframe HdsP Hv2 Hra Hs
   ihave Hpo := propsOwn_close γr.raft P Rp $$ Hpo
-  imod Hclose2 $$ [HP Hj Htbl Hpo] with -
+  imod Hclose2 $$ [HP Hj Htbl Hpo Hwt] with -
   · inext
     iexists P, Rp
     iframe
@@ -351,7 +351,7 @@ theorem reg_deposited_minted (γr : RegNames) (d d0 : List w8) (k : w64 × w64) 
   icases Hi with ⟨%L, %M, %R0, %S, %Mi, HcL, Hv, HM, HR0, HS, HMi, %Hok⟩
   -- the datum's fresh token is in raft's registry: `d ∈ M`
   unfold raftCommitInv
-  iinv Hcinv with ⟨%P, %R, >HP, >Hj, >Htbl, Hpo⟩ Hclose2
+  iinv Hcinv with ⟨%P, %R, >HP, >Hj, >Htbl, Hpo, Hwt⟩ Hclose2
   imod propsOwn_open γr.raft _ P R $$ Hpo with Hpo
   unfold propsOwnL
   icases Hpo with ⟨%odsP, #HdsP, Hv2, Hra, Hs⟩
@@ -370,7 +370,7 @@ theorem reg_deposited_minted (γr : RegNames) (d d0 : List w8) (k : w64 × w64) 
     iexists odsP
     iframe HdsP Hv2 Hra Hs
   ihave Hpo := propsOwn_close γr.raft P R $$ Hpo
-  imod Hclose2 $$ [HP Hj Htbl Hpo] with -
+  imod Hclose2 $$ [HP Hj Htbl Hpo Hwt] with -
   · inext
     iexists P, R
     iframe
