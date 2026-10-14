@@ -540,6 +540,90 @@ instance txnBuilderSpec_persistent (t : GoInterfaceOk) (pfx : GoString)
     (B : TxnBuild → IProp GF) : Persistent (txnBuilderSpec t pfx B) := by
   unfold txnBuilderSpec; infer_instance
 
+omit EM in
+/-- **A get etcd's server answers as the model says** (the vertical slice's unit V2): not
+keys-only (a fast keys-only read zeroes the leases, `issues/etcd-range-keys-only-lease.md`), not
+sorted by a target other than the key with no order and a positive limit (mvcc then stops reading
+early, `issues/etcd-range-sort-none-limit.md`), a limit below `2 ^ 63 - 1` (`More` is then the
+model's), and a sort order and target among the protobuf's (`0` to `2`, `0` to `4`: the wire
+carries them as `int32`, and a transaction's operations are not checked by `IsSortOptionValid`).
+Every get the recipes make is one (`isEtcdKVTodo`). -/
+def OpFull.getExact (o : OpFull) : Prop :=
+  o.keysOnly = false ∧
+    ¬ (o.base.sortSet = true ∧ o.sortTarget ≠ W64 0 ∧ o.sortOrder = W64 0 ∧
+      0 < sint.Z o.base.limit) ∧
+    sint.Z o.base.limit < 2 ^ 63 - 1 ∧
+    0 ≤ sint.Z o.sortOrder ∧ sint.Z o.sortOrder ≤ 2 ∧ 0 ≤ sint.Z o.sortTarget ∧
+    sint.Z o.sortTarget ≤ 4
+
+omit EM in
+/-- An operation that is a get. -/
+def TxnOp.isGet : TxnOp → Bool
+  | .get _ => true
+  | _ => false
+
+omit EM in
+/-- **A transaction etcd's server answers as the model says** (the vertical slice's unit V2): its
+gets read the transaction's revision and are `getExact`; and a transaction with any other
+operation has no get (the apply thread may answer a writing transaction's gets header-only,
+`SkipRangeExecution`, when it saw no waiter registered for the request, and the server's proof
+does not carry that the waiter that receives the answer was registered then) and no comparison
+or delete with the range end `[0]` (`WithFromKey`'s: the server's proof models the request the
+proposed data decode to only up to such range ends, `irrWireOf`). The recipes' transactions have
+no get and no range end. -/
+def TxnModel.exactGets (t : TxnModel) : Prop :=
+  (∀ o : OpFull, TxnOp.get o ∈ t.thenOps ++ t.elseOps → o.base.rev = W64 0 ∧ o.getExact) ∧
+    ((t.thenOps ++ t.elseOps).all TxnOp.isGet = false →
+      (∀ o : OpFull, TxnOp.get o ∉ t.thenOps ++ t.elseOps) ∧
+      (∀ c ∈ t.cmps, c.rangeEnd ≠ [W8 0]) ∧
+      (∀ o : OpFull, TxnOp.delete o ∈ t.thenOps ++ t.elseOps → o.base.rangeEnd ≠ [W8 0]))
+
+omit EM in
+/-- A transaction without gets, comparisons or deletes on the range end `[0]` is `exactGets`. -/
+theorem TxnModel.exactGets_of_noGets (t : TxnModel)
+    (h : ∀ o : OpFull, TxnOp.get o ∉ t.thenOps ++ t.elseOps)
+    (hc : ∀ c ∈ t.cmps, c.rangeEnd ≠ [W8 0])
+    (hd : ∀ o : OpFull, TxnOp.delete o ∈ t.thenOps ++ t.elseOps → o.base.rangeEnd ≠ [W8 0]) :
+    t.exactGets :=
+  ⟨fun o ho => absurd ho (h o), fun _ => ⟨h, hc, hd⟩⟩
+
+/-- **The builder, for transactions etcd's server answers as the model says**
+(`txnBuilderSpec` with `Commit` for `exactGets` transactions only; the vertical slice's unit V2:
+what a real `*kv` over a connection to etcd's server meets, `client/v3/ServerKVTxn.lean`). -/
+def txnBuilderSpecX (t : GoInterfaceOk) (pfx : GoString) (B : TxnBuild → IProp GF) : IProp GF :=
+  iprop(
+    (□ ∀ (b : TxnBuild) (sl : GoSlice) (ms : List CmpModel),
+      {{ B b ∗ cmpsAt sl ms ∗ ⌜b.cif = false ∧ b.cthen = false ∧ b.celse = false⌝ }}
+        (App (Val #(methods t.ty go!"If" t.v)) (Val #sl))
+      {{ RET #(GoInterface.ok t);
+          B { b with model := { b.model with cmps := b.model.cmps ++ ms }, cif := true } }}) ∗
+    (□ ∀ (b : TxnBuild) (sl : GoSlice) (os : List OpFull) (ops : List TxnOp),
+      {{ B b ∗ opsAt sl os ∗ ⌜os.map txnOpOf = ops.map some ∧ b.cthen = false ∧
+          b.celse = false⌝ }}
+        (App (Val #(methods t.ty go!"Then" t.v)) (Val #sl))
+      {{ RET #(GoInterface.ok t);
+          B { b with model := { b.model with thenOps := b.model.thenOps ++ ops },
+                     cthen := true } }}) ∗
+    (□ ∀ (b : TxnBuild) (sl : GoSlice) (os : List OpFull) (ops : List TxnOp),
+      {{ B b ∗ opsAt sl os ∗ ⌜os.map txnOpOf = ops.map some ∧ b.celse = false⌝ }}
+        (App (Val #(methods t.ty go!"Else" t.v)) (Val #sl))
+      {{ RET #(GoInterface.ok t);
+          B { b with model := { b.model with elseOps := b.model.elseOps ++ ops },
+                     celse := true } }}) ∗
+    (□ ∀ (b : TxnBuild) (lo : w64),
+      {{ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx ∧ b.model.exactGets⌝ }}
+        (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+          txnCommitResultTok pfx lo b.model resp err }}) ∗
+    (□ ∀ (b : TxnBuild),
+      {{ B b ∗ ⌜b.model.exactGets⌝ }}
+        (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); txnAnyResult resp err }}))
+
+instance txnBuilderSpecX_persistent (t : GoInterfaceOk) (pfx : GoString)
+    (B : TxnBuild → IProp GF) : Persistent (txnBuilderSpecX t pfx B) := by
+  unfold txnBuilderSpecX; infer_instance
+
 /-- **The client's transactions** (`clientv3.KV`'s `Txn`; a definition, the assumption a caller
 makes of `client.KV`, as `isEtcdKV`): `kv.Txn(ctx)` returns a builder in its empty state. -/
 def isEtcdTxnKV (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
@@ -745,22 +829,60 @@ instance getRespMore_persistent (pfx : GoString) (o : OpFull) (resp : Loc) (err 
     Persistent (getRespMore (GF := GF) pfx o resp err) := by
   unfold getRespMore; split <;> infer_instance
 
+/-- **What `kv.Get` returns, for the recipes** (`kvGetResult` with the state's map of the
+key-values, `isEtcdKvs`, for a prefix get only; the vertical slice's unit V2): any error; or, on
+success, a response at a header revision `r` etcd has reached, below `2 ^ 63 - 1`, at least `lo`
+unless serializable, which lists exactly etcd's state at `r` (`isEtcdKvs`) if `o` is a prefix
+get, or etcd's selection at `r` for any other get of a range under `pfx` at the latest revision
+(`getRespRange`). For another get, `kvGetResult`'s map of the state is not what a client could be
+given: its key-values' pointers are not in the response (`client/v3/ServerKVGet.lean`). -/
+def kvGetResultR (pfx : GoString) (lo : w64) (o : OpFull) (resp : Loc) (err : GoInterface) :
+    IProp GF :=
+  iprop(⌜err ≠ GoInterface.nil⌝ ∨
+    (⌜err = GoInterface.nil⌝ ∗ ∃ r : w64, getRespRev resp r ∗ etcdReached r ∗
+      ⌜(o.base.serializable = false → sint.Z lo ≤ sint.Z r) ∧ sint.Z r < 2 ^ 63 - 1⌝ ∗
+      (if o.isPrefixGet pfx then iprop(∃ m : KvMap, isEtcdKvs r pfx m ∗ getRespKvs resp m)
+       else getRespRange pfx r o resp)))
+
+instance kvGetResultR_persistent (pfx : GoString) (lo : w64) (o : OpFull) (resp : Loc)
+    (err : GoInterface) : Persistent (kvGetResultR (GF := GF) pfx lo o resp err) := by
+  unfold kvGetResultR; split <;> infer_instance
+
+/-- `kvGetResult` gives `kvGetResultR`. -/
+theorem kvGetResult_R (pfx : GoString) (lo : w64) (o : OpFull) (resp : Loc) (err : GoInterface) :
+    kvGetResult (GF := GF) pfx lo o resp err ⊢ kvGetResultR pfx lo o resp err := by
+  unfold kvGetResult kvGetResultR
+  iintro (%H | ⟨%H, %r, %m, #Hrev, #Hkvs, #Hr, %Hp, Hif⟩)
+  · ileft; ipureintro; exact H
+  · iright
+    isplitr
+    · ipureintro; exact H
+    iexists r
+    iframe Hrev Hr
+    isplitr
+    · ipureintro; exact Hp
+    split
+    · iexists m
+      iframe Hkvs Hif
+    · iexact Hif
+
 /-- **`isEtcdKV` at `context.TODO()`** (a definition, the assumption a caller makes of
-`client.KV`): `kv.Get(context.TODO(), key, opts...)` returns `kvGetResult`, as `isEtcdKV` does
-for a context (whose descriptor no postcondition mentions), and the response's `More` flag
-(`getRespMore`). The recipes' addition: every call
-the recipes make through `client.KV` passes `context.TODO()`. The options' closures may need a
-resource `R` (`optsAtRes`: the client calls them one at a time, in the caller's goroutine), which
-the call gives back (`WithFirstKey()`'s sort option writes a variable it captured; `optsAt_res`
-for the others). -/
+`client.KV`): `kv.Get(context.TODO(), key, opts...)`, for a get etcd's server answers as the model
+says (`getExact`), returns `kvGetResultR` and the response's `More` flag (`getRespMore`). The
+recipes' addition: every call the recipes make through `client.KV` passes `context.TODO()`. The
+options' closures may need a resource `R` (`optsAtRes`: the client calls them one at a time, in
+the caller's goroutine), which the call gives back (`WithFirstKey()`'s sort option writes a
+variable it captured; `optsAt_res` for the others). (The vertical slice's unit V2 restricted it
+to `getExact` gets and `kvGetResultR`, what a real `*kv` meets: `client/v3/ServerKVGet.lean`.) -/
 def isEtcdKVTodo (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (R : IProp GF)
       (lo : w64),
-    {{ optsAtRes sl gs R ∗ R ∗ etcdReached lo ∗ ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1⌝ }}
+    {{ optsAtRes sl gs R ∗ R ∗ etcdReached lo ∗
+        ⌜¬ opGetPanics gs ∧ (opGetModel key gs).t = W64 1 ∧ (opGetModel key gs).getExact⌝ }}
       (App (App (App (Val #(methods kv.ty go!"Get" kv.v)) (Val #(GoInterface.ok todoCtxVal)))
         (Val #key)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        R ∗ kvGetResult pfx lo (opGetModel key gs) resp err ∗
+        R ∗ kvGetResultR pfx lo (opGetModel key gs) resp err ∗
         getRespMore pfx (opGetModel key gs) resp err }})
 
 instance isEtcdKVTodo_persistent (kv : GoInterfaceOk) (pfx : GoString) :
@@ -796,7 +918,7 @@ made if it wrote), whose error, if any, is a client error as `errors.Is` sees it
 def txnCommitErrTodo (t : GoInterfaceOk) (pfx : GoString) (B : TxnBuild → IProp GF) :
     IProp GF :=
   iprop(□ ∀ (b : TxnBuild) (lo : w64),
-    {{ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx⌝ }}
+    {{ B b ∗ etcdReached lo ∗ ⌜b.model.Under pfx ∧ b.model.exactGets⌝ }}
       (App (Val #(methods t.ty go!"Commit" t.v)) (Val #()))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         txnCommitResultTok pfx lo b.model resp err ∗ (⌜err = GoInterface.nil⌝ ∨ clientErrIs err) }})
@@ -812,7 +934,7 @@ def isEtcdTxnKVTodo (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ {{ True }}
       (App (Val #(methods kv.ty go!"Txn" kv.v)) (Val #(GoInterface.ok todoCtxVal)))
     {{ (t : GoInterfaceOk), RET #(GoInterface.ok t);
-        ∃ B : TxnBuild → IProp GF, B TxnBuild.empty ∗ txnBuilderSpec t pfx B ∗
+        ∃ B : TxnBuild → IProp GF, B TxnBuild.empty ∗ txnBuilderSpecX t pfx B ∗
           txnCommitErrTodo t pfx B }})
 
 instance isEtcdTxnKVTodo_persistent (kv : GoInterfaceOk) (pfx : GoString) :
@@ -820,12 +942,16 @@ instance isEtcdTxnKVTodo_persistent (kv : GoInterfaceOk) (pfx : GoString) :
   unfold isEtcdTxnKVTodo; infer_instance
 
 /-- **`isEtcdDeleteKV` at `context.TODO()`**: `kv.Delete(context.TODO(), key, opts...)` returns
-`deleteResult`. The recipes' addition, as `isEtcdKVTodo`. -/
+`deleteResult`. The recipes' addition, as `isEtcdKVTodo`. (The vertical slice's unit V2 restricted
+it to a range end other than `[0]`, `WithFromKey`'s: the server's proof models the request the
+proposed data decode to only up to such range ends, `irrWireOf`; every delete the recipes make
+is of a single key.) -/
 def isEtcdDeleteKVTodo (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64),
     {{ optsAt sl gs ∗ etcdReached lo ∗
         ⌜¬ opDeletePanics key gs ∧
-          KeyRangeUnder pfx (opDeleteModel key gs).key (opDeleteModel key gs).base.rangeEnd⌝ }}
+          KeyRangeUnder pfx (opDeleteModel key gs).key (opDeleteModel key gs).base.rangeEnd ∧
+          (opDeleteModel key gs).base.rangeEnd ≠ [W8 0] ∧ (opDeleteModel key gs).t = W64 3⌝ }}
       (App (App (App (Val #(methods kv.ty go!"Delete" kv.v)) (Val #(GoInterface.ok todoCtxVal)))
         (Val #key)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -836,13 +962,15 @@ instance isEtcdDeleteKVTodo_persistent (kv : GoInterfaceOk) (pfx : GoString) :
   unfold isEtcdDeleteKVTodo; infer_instance
 
 /-- **`isEtcdPutKV` at `context.TODO()`**: `kv.Put(context.TODO(), key, val, opts...)` returns
-`putResult`. The recipes' addition, as `isEtcdKVTodo`. -/
+`putResult`. The recipes' addition, as `isEtcdKVTodo`. (The vertical slice's unit V2 added that the
+options leave the `Op` a put, `t = 2`, as Go's options, which cannot write the unexported `t`,
+do; the model's option transformers are arbitrary functions. Likewise `t = 3` for a delete.) -/
 def isEtcdPutKVTodo (kv : GoInterfaceOk) (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (key val : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (op : TxnOp)
       (lo : w64),
     {{ optsAt sl gs ∗ etcdReached lo ∗
         ⌜¬ (opPutModel key val gs).putPanics ∧ txnOpOf (opPutModel key val gs) = some op ∧
-          op.Under pfx⌝ }}
+          op.Under pfx ∧ (opPutModel key val gs).t = W64 2⌝ }}
       (App (App (App (App (Val #(methods kv.ty go!"Put" kv.v)) (Val #(GoInterface.ok todoCtxVal)))
         (Val #key)) (Val #val)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); putResult pfx lo op err }})

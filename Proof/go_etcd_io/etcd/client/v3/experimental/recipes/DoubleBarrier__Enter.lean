@@ -181,7 +181,7 @@ theorem DoubleBarrier.Enter.wp_proof
       wp_apply HP $$ [] as %presp %perr Hpres
       · iframe Hnil HR2
         ipureintro
-        exact ⟨putOp_not_panics' _ _, putOp_txnOpOf' _ _, hpr⟩
+        exact ⟨putOp_not_panics' _ _, putOp_txnOpOf' _ _, hpr, rfl⟩
       iunfold putResult at Hpres
       icases Hpres with (%Hpne | ⟨%Hpnil, -⟩)
       · obtain ⟨e, rfl⟩ : ∃ e, perr = GoInterface.ok e := by
