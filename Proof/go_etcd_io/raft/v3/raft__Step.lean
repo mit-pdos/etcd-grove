@@ -409,7 +409,8 @@ private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := h
     iexact Hm
   have Hst' : Step γ.reCfg id (toPState s) recv (toPState s') := by rw [Hcfg]; exact Hstep
   -- the code's `Step` witness, at the ghost state's configuration (`StepC`, 2026-10-14)
-  imod ownRaftGhost_stepC γ _ (CfgStatic.simple γ ∅) id _ recv _
+  ihave %Hstc := ownRaftGhost_static γ id (toPState s) $$ Hghost
+  imod ownRaftGhost_stepC γ _ (CfgStatic.simple γ ∅ Hstc) id _ recv _
     ((CfgStatic.stepC_iff γ ∅ id _ _ _).1 Hst') $$ Hall Hc Hghost with Hghost
   imodintro
   unfold stepPost

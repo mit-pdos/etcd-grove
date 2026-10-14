@@ -3561,3 +3561,49 @@ append a second conf change before the first is applied), like `ReadOnlyOption =
   `pci`, `snap`, and the ghost `cidx`, `cfg`, `fp`) is not in `PState`/`NState`. Refining
   `StepR` directly needs B7's code-side witnesses and an `ownRaftGhost` that holds the `RState`
   fields with `RInv`; `ownRaftGhost_stepR` (B3) stays the projection.
+
+## Reconfiguration stage B5: a mode in `RaftNames`, guarded dynamic facts, the ghost refines `StepR` beside `StepC`
+
+**2026-10-14 · accepted**
+
+- **The mode is a field, `RaftNames.reDyn : Option (∀ e, DynCfg)`, and `ownRaftGhost` carries a
+  flag `md` (default `false`) with `⌜γ.reDyn.isSome = md⌝`.** B4 rejected a mode field to keep
+  the code proofs free of a `mode = static` premise; with the flag defaulting to `false` they
+  are, and the code gets the static mode from its own `ownRaftGhost` (`ownRaftGhost_static`,
+  two dispatcher lines). `DynCfg` is the configuration function of committed prefixes with the
+  one fact the ghost uses (`adj`: overlap for prefixes at most one conf entry apart,
+  `fold_adjacent`); `DynCfg.ofFold dec c0` instantiates it, so `Ghost.lean` does not import
+  `CfgOverlap`. *Rejected*: two ghost states (static and dynamic) -- every rule's proof twice.
+- **Dynamic-only facts are guarded, `dynOn γ P := ⌜γ.reDyn = none⌝ ∨ P`**, inside the shared
+  predicates (commit facts, campaign facts on votes, I1 on `MsgApp`). The static mode proves
+  them by the left disjunct, so the `StepC` refinement (where they are false, B4) is unchanged;
+  the dynamic mode uses the right. *Rejected*: separate dynamic predicates (every message and
+  record shape duplicated).
+- **The commit fact is recursive** (`cqAt`, well-founded on the configuration index): in the
+  dynamic mode it carries `ConfI1` (at most one conf entry above `a`) and, for the conf
+  positions `≤ a`, witnesses that are themselves commit facts (`witsB`); `commitIn` (a node's
+  commit index) carries the witnesses of its prefix. Campaign facts (`campDyn`: `ConfI1`, the
+  witnesses, `commitIn` below the term) travel with each vote instead of in the campaign
+  record, since the voter, not the candidate, is where `lc_core`'s far case needs them.
+- **`doomed` keeps a witness set `U`** (the doom quorum and every witness quorum above `T`), with
+  a finite choice (`doom_choice`) to pick it when a read is confirmed; repair 4 needs the
+  reader's acknowledgement in each.
+- **The step environment `dynEnv`** is a premise of the configuration-reading rules: static,
+  `CfgStatic γ c`; dynamic, the facts of `RInv` they read (full log, `cidx`, `ConfI1`, `CfgAt` of
+  the applied prefix, the leader's I3, the candidate's campaign record at its commit index).
+  `ownRaftGhostR` (`ownRaftGhost … true ∗ RInv ∗` the records of the full prefix `∗` a
+  candidate's campaign record) provides it; the per-rule lemmas do not know about `RState`.
+- **Snapshot prefixes as a premise.** `StepR.snapRestore`'s new full prefix is constrained only
+  by `FullOk` and `Adm`; rather than strengthen `StepR` (B3's model), the refinement takes the
+  records of the derivation's admissible prefixes (`AdmS dec c0 S`, `□ ∀ fp, ⌜S fp⌝ -∗ logRecs`).
+  The code (B7) supplies them from the snapshot message's knowledge.
+- **`stepDown` by weakening, not by excluding it.** `TermsOk`/`WinsOk`/`LcmOk` allowed a term's
+  entry only below the node's term or at it as leader; now at it as a non-candidate, so a
+  leader may become a follower at its term. What that loses (a non-leader's acknowledgements of
+  its term need a justification, `acksOk`) is restored by `LeadAcksOk` in `ownLogGhost` (a
+  leader acknowledges only entries of its log, a candidate none of its term), which lets
+  `ownLogGhost_stepDown` justify them by the leader's own prefix. *Rejected*: assuming
+  `StepDownOnRemoval = false` (Go's default) -- a premise on the configuration that the code
+  would have to carry, for a rule the model already has.
+- **The ghost refines `StepR` in the dynamic mode and `StepC` in the static mode**, both from the
+  same per-rule lemmas; B4's decision (the code-facing ghost stays on `StepC`) stands until B7.

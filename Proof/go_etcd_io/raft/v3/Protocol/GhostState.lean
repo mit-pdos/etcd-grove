@@ -45,6 +45,7 @@ open Iris Iris.BI GMap go_etcd_io.raft.v3
 section ghost
 variable [FfiSyntax]
 variable {GF : BundledGFunctors} [AllG GF]
+variable {md : Bool}
 
 /-! ### Read-index (2026-10-12; see `Protocol/ReadIndex.lean`) -/
 
@@ -69,17 +70,38 @@ instance readOk_persistent (γ : RaftNames) (c : List w8) (i : w64) :
 at arrival (the term and quorum of the acknowledgements that doomed it). -/
 abbrev RqRec := (List w8 × w64) × Option (w64 × GSet w64)
 
-/-- A quorum `q` acknowledged at a term `t'` above `T` (each a real acknowledgement, at a
-nonzero index). Since 2026-10-14 (reconfiguration stage B4) the record keeps the doom fact
-itself, a commit fact of `t'` at a nonzero index with its configuration data (`cqAt`; the
-paper's section 8: B5 reads its witnesses and at-most-one), so `q` is a joint quorum of a
-recorded configuration; it was `IsQuorum γ.reCfg q` and the acknowledgements only. -/
-def doomed (γ : RaftNames) (T t' : w64) (q : GSet w64) : IProp GF :=
-  iprop(∃ n G a c, ⌜uint.Z T < uint.Z t' ∧ 0 < uint.Z n⌝ ∗ cqAt γ t' n G a c q)
+/-- A record doomed by a commit fact of a term `t'` above `T` at a nonzero index (the doom
+fact, `cqAt`, with its configuration data; since 2026-10-14, reconfiguration stage B4). The
+record's set `U` holds the doom fact's quorum and (since stage B5, dynamic mode) the quorums of
+the doom fact's witnesses of terms above `T` (the paper's section 8, case `j_r ≤ j_m - 2`), every
+member of which acknowledged at a term above `T`: a node at term `T` is in none of them
+(`ownRaftGhost_not_doomed`). The doom fact's witnesses are restated with that inclusion (the
+arrival chose them, `doomed_intro`). -/
+def doomed (γ : RaftNames) (T t' : w64) (U : GSet w64) : IProp GF :=
+  iprop(∃ n G a c q, ⌜uint.Z T < uint.Z t' ∧ 0 < uint.Z n ∧ ∀ x, x ∈ q → x ∈ U⌝ ∗
+    cqAt γ t' n G a c q ∗
+    (∀ (u : w64), ∀ (_ : u ∈ U), ∃ (t'' i'' : w64),
+      ⌜uint.Z T < uint.Z t'' ∧ 0 < uint.Z i''⌝ ∗ isAcked γ u t'' i'') ∗
+    dynOn γ iprop(∀ (k : Nat), ∀ (_ : IsConfPos G k ∧ k < (uint.Z a).toNat),
+      ∃ (tw nw : w64) (Gw : List raftpb.Entry) (aw : w64) (cw : CfgM) (qw : GSet w64),
+        ⌜WitOk G k tw nw Gw aw (uint.Z t' + 1) ∧ (uint.Z T < uint.Z tw → ∀ x, x ∈ qw → x ∈ U)⌝ ∗
+        cqAt γ tw nw Gw aw cw qw))
 
 instance doomed_persistent (γ : RaftNames) (T t' : w64) (q : GSet w64) :
     Persistent (doomed (GF := GF) γ T t' q) := by
-  unfold doomed; infer_instance
+  unfold doomed
+  refine exists_persistent _ (h := fun n => ?_)
+  refine exists_persistent _ (h := fun G => ?_)
+  refine exists_persistent _ (h := fun a => ?_)
+  refine exists_persistent _ (h := fun c => ?_)
+  refine exists_persistent _ (h := fun q1 => ?_)
+  refine @sep_persistent _ _ _ _ inferInstance ?_
+  refine @sep_persistent _ _ _ _ inferInstance ?_
+  refine @sep_persistent _ _ _ _ ?_ ?_
+  · refine forall_persistent _ (h := fun u => ?_)
+    refine forall_persistent _ (h := fun hu => ?_)
+    infer_instance
+  · exact dynOn_persistent _ _
 
 def rqRecOk (γ : RaftNames) (T : w64) (r : RqRec) : IProp GF :=
   match r.2 with
@@ -121,6 +143,49 @@ is doomed by a quorum containing `v`. -/
 def HbAckOk (v : w64) (q : Nat) (recs : List RqRec) : Prop :=
   q ≤ recs.length ∧ ∀ r ∈ recs.take q, ∀ t' qq, r.2 = some (t', qq) → v ∉ qq
 
+/-! ### Campaign records' dynamic facts (2026-10-14, reconfiguration stage B5)
+
+What the dynamic proof needs of a campaign `(F, k)` of `c` in `T`, beyond `isCampK` (which sits
+below the commit facts and cannot name them): I1 of the campaign log at `k` (`RInv`'s, at the
+campaign), its records, and the candidate's `commitIn` of `k` at a term below `T` -- the
+commit fact that justifies `k` and the witnesses of the conf entries below `k` (the paper's
+repair 3). A vote request carries it (`isMessage`), and so does every vote cast for the
+candidate (`voteJust`): the winners' are found through their votes. -/
+def campDyn (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) : IProp GF :=
+  iprop(∃ (k tm : w64), ⌜uint.Z tm < uint.Z T ∧ ConfI1 F (uint.Z k).toNat ∧ PlogWf base0 F⌝ ∗
+    isCampK γ c T F k ∗ logRecs γ base0 F ∗ commitIn γ F k tm)
+
+instance campDyn_persistent (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) :
+    Persistent (campDyn (GF := GF) γ c T F) := by
+  unfold campDyn; infer_instance
+instance campDyn_timeless (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) :
+    Timeless (campDyn (GF := GF) γ c T F) := by
+  unfold campDyn; infer_instance
+
+/-- What the rules that read the configuration need of the node's reconfiguration state
+(2026-10-14, stage B5), at the configuration `c` of the step: static, `c` is the ghost state's;
+dynamic, the full log's prefix `fpR` (with records, so the ghost state's), I1 of the full log at the
+commit index, a configuration index `a ≤ commit` whose prefix's configuration is `c` (`CfgAt`), at
+a leader at most one conf entry at or past `a` (I3), at a candidate `a` is the commit index (I2)
+and its campaign record is of its full log at the commit index. The dynamic refinement
+(`RefinementDyn.lean`) supplies it from `RInv`. -/
+def dynEnv (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) : IProp GF :=
+  iprop(⌜CfgStatic γ c⌝ ∨ (⌜γ.reDyn ≠ none⌝ ∗ ∃ (fpR : List raftpb.Entry) (a : w64),
+    ⌜FullOk s.base fpR ∧ ConfI1 (fpR ++ s.log) (uint.Z s.commit).toNat ∧
+      uint.Z a ≤ uint.Z s.commit ∧ CfgAt γ ((fpR ++ s.log).take (uint.Z a).toNat) c ∧
+      (s.role = .leader → confCount ((fpR ++ s.log).drop (uint.Z a).toNat) ≤ 1) ∧
+      (s.role = .candidate → a = s.commit)⌝ ∗
+    logRecs γ base0 fpR ∗
+    (∀ (_ : s.role = .candidate), isCampK γ id s.term (fpR ++ s.log) s.commit)))
+
+instance dynEnv_persistent (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) :
+    Persistent (dynEnv (GF := GF) γ id c s) := by
+  unfold dynEnv; infer_instance
+
+theorem dynEnv_static (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) (HC : CfgStatic γ c) :
+    ⊢ dynEnv (GF := GF) γ id c s := by
+  unfold dynEnv; ileft; ipureintro; exact HC
+
 /-! ### Messages -/
 
 def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
@@ -129,7 +194,9 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
       -- the candidate's campaign record, whose last entry the request reports
       -- (2026-10-03)
       iprop(∃ Fc, isCamp γ m.src m.term Fc ∗
-        ⌜plogLast base0 Fc = entryID.mk m.logterm m.index⌝)
+        ⌜plogLast base0 Fc = entryID.mk m.logterm m.index⌝ ∗
+        -- (2026-10-14, stage B5) the campaign's dynamic facts
+        dynOn γ (campDyn γ m.src m.term Fc))
   | .voteResp =>
       if m.reject then iprop(True)
       else isVote γ m.src m.term m.dst
@@ -144,7 +211,10 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
          lpfull γ m.src m.term bL l fp ∗
          commitIn γ (fp ++ l) m.commit m.term ∗
          -- the leader's committed prefix up to `Commit` (2026-10-05)
-         isCommitted γ ((fp ++ l).take (uint.Z m.commit).toNat)) ∗
+         isCommitted γ ((fp ++ l).take (uint.Z m.commit).toNat) ∗
+         -- (2026-10-14, stage B5) I1 of the leader's log at `Commit` (`RInv`'s, with
+         -- `AppCommitEq`): what the receiver's I1 needs (`AppKnow`)
+         dynOn γ iprop(⌜ConfI1 (fp ++ l) (uint.Z m.commit).toNat⌝)) ∗
       ⌜m.src ≠ W64 0⌝)
   | .appResp =>
       if m.reject then iprop(True)
@@ -286,7 +356,7 @@ abbrev TermRec := (GName × entryID) × List raftpb.Entry
 def TermsOk (terms : GMap w64 TermRec) (s : PState) : Prop :=
   ∀ t, (terms !! t).isSome →
     uint.Z t < uint.Z s.term ∨
-    (t = s.term ∧ s.role = .leader)
+    (t = s.term ∧ s.role ≠ .candidate)
 
 /-- A leader owns the term log of its term, whose recorded base and initial log are the
 leader's base and a prefix of its log, and holds a fragment of it for every entry it has
@@ -506,7 +576,9 @@ def voteJust (γ : RaftNames) (v T c : w64) : IProp GF :=
   iprop(∃ k d Fv Fc, isVlog γ v k T d Fv ∗ isCamp γ c T Fc ∗ logRecs γ base0 Fv ∗
     ⌜PlogWf base0 Fv ∧ plogUpToDate base0 Fv (plogLast base0 Fc) = true⌝ ∗
     (if d then iprop(∃ ldr q, isWin γ ldr T q ∗ ⌜v ∉ q⌝) else iprop(True)) ∗
-    voteEv γ v T d Fv)
+    voteEv γ v T d Fv ∗
+    -- (2026-10-14, stage B5) the candidate's campaign's dynamic facts
+    dynOn γ (campDyn γ c T Fc))
 
 instance voteJust_persistent (γ : RaftNames) (v T c : w64) :
     Persistent (voteJust (GF := GF) γ v T c) := by
@@ -844,7 +916,7 @@ theorem uint_nat_le_of_Z_le {a b : w64} (h : uint.Z a ≤ uint.Z b) : uint.nat a
 def LcmOk (lcm : GMap w64 GName) (s : PState) : Prop :=
   ∀ t, (lcm !! t).isSome →
     uint.Z t < uint.Z s.term ∨
-    (t = s.term ∧ s.role = .leader)
+    (t = s.term ∧ s.role ≠ .candidate)
 
 def lcmLead (s : PState) (lcm : GMap w64 GName) : IProp GF :=
   match s.role with
@@ -878,13 +950,13 @@ instance lcmOwn_timeless (γ : RaftNames) (id : w64) (s : PState) :
 
 /-- Across a step: a leader stays one only within its term, leaves a term only for a
 higher one, and the commit index does not move back. -/
-theorem lcmOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
+theorem lcmOwn_mono' (γ : RaftNames) (id : w64) (s s' : PState) :
     (s'.role = .leader → s.role = .leader ∧ s'.term = s.term) →
-    (s'.role ≠ .leader → s.role = .leader → uint.Z s.term < uint.Z s'.term) →
     uint.Z s.term ≤ uint.Z s'.term →
     uint.Z s.commit ≤ uint.Z s'.commit →
+    (s'.role = .candidate → s.role = .candidate ∨ uint.Z s.term < uint.Z s'.term) →
     lcmOwn (GF := GF) γ id s ⊢ lcmOwn γ id s' := by
-  intro Hlead Hdown Hle Hcm
+  intro Hlead Hle Hcm Hcand
   unfold lcmOwn
   iintro ⟨%γl, %lcm, %Hγl, Ha, #Hf, %Hok, Hl⟩
   iexists γl, lcm
@@ -895,9 +967,13 @@ theorem lcmOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
     intro t Ht
     rcases Hok t Ht with Hlt | ⟨rfl, Hr⟩
     · left; omega
-    · by_cases Hr' : s'.role = .leader
-      · obtain ⟨-, Hte⟩ := Hlead Hr'; right; exact ⟨Hte.symm, Hr'⟩
-      · left; exact Hdown Hr' Hr
+    · by_cases Hlt : uint.Z s.term < uint.Z s'.term
+      · left; exact Hlt
+      · right
+        refine ⟨uint_Z_inj.mp (by omega), fun hc => ?_⟩
+        rcases Hcand hc with h | h
+        · exact Hr h
+        · exact Hlt h
   by_cases Hr' : s'.role = .leader
   · obtain ⟨Hr, Hte⟩ := Hlead Hr'
     rw [lcmLead_leader s lcm Hr, lcmLead_leader s' lcm Hr', Hte]
@@ -911,10 +987,21 @@ theorem lcmOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
   · rw [lcmLead_nl s' lcm Hr']
     ipureintro; trivial
 
+/-- `lcmOwn_mono'`, with the premise (unused since 2026-10-14, stage B5: a leader may step
+down at its term) that a leader leaves its term only for a higher one. -/
+theorem lcmOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
+    (s'.role = .leader → s.role = .leader ∧ s'.term = s.term) →
+    (s'.role ≠ .leader → s.role = .leader → uint.Z s.term < uint.Z s'.term) →
+    uint.Z s.term ≤ uint.Z s'.term →
+    uint.Z s.commit ≤ uint.Z s'.commit →
+    (s'.role = .candidate → s.role = .candidate ∨ uint.Z s.term < uint.Z s'.term) →
+    lcmOwn (GF := GF) γ id s ⊢ lcmOwn γ id s' :=
+  fun Hlead _ Hle Hcm Hcand => lcmOwn_mono' γ id s s' Hlead Hle Hcm Hcand
+
 /-- A candidate that wins its term allocates the term's lower bound, at its commit
 index. -/
 theorem lcmOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
-    s.role ≠ .leader → s'.role = .leader → s'.term = s.term →
+    s.role = .candidate → s'.role = .leader → s'.term = s.term →
     uint.Z s.commit ≤ uint.Z s'.commit →
     lcmOwn (GF := GF) γ id s ⊢ |==> lcmOwn γ id s' := by
   intro Hr Hr' Hte Hcm
@@ -926,7 +1013,7 @@ theorem lcmOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
     | some _ =>
       rcases Hok s.term (by simp [h]) with Hlt | ⟨-, Hl⟩
       · omega
-      · exact absurd Hl Hr
+      · exact absurd Hr Hl
   imod mono_nat_own_alloc (GF := GF) (uint.nat s.commit) with ⟨%γc, Hac, -⟩
   imod ghost_map_insert_persist s.term γc Hfree $$ Ha with ⟨Ha, #Hfc⟩
   imodintro
@@ -941,11 +1028,11 @@ theorem lcmOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
   · ipureintro
     intro t Ht
     by_cases Htt : s.term = t
-    · subst Htt; right; exact ⟨Hte.symm, Hr'⟩
+    · subst Htt; right; exact ⟨Hte.symm, by rw [Hr']; decide⟩
     · rw [GMap.lookup_insert_ne _ _ Htt] at Ht
       rcases Hok t Ht with Hlt | ⟨rfl, Hl⟩
       · left; rw [Hte]; exact Hlt
-      · exact absurd Hl Hr
+      · exact absurd Hr Hl
   rw [lcmLead_leader s' _ Hr', Hte]
   iexists γc, uint.nat s.commit
   iframe Hac
@@ -976,7 +1063,7 @@ theorem lcmOwn_commit (γ : RaftNames) (id : w64) (s s' : PState) (n : w64) :
       intro t Ht
       rcases Hok t Ht with Hlt | ⟨rfl, -⟩
       · left; rw [Hte]; exact Hlt
-      · right; exact ⟨Hte.symm, Hr'⟩
+      · right; exact ⟨Hte.symm, by rw [Hr']; decide⟩
     rw [lcmLead_leader s' lcm Hr', Hte]
     iexists γc, uint.nat n
     iframe Hac
@@ -1184,16 +1271,16 @@ def rdOwn (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
 read state, a non-leader's read-only object is the fresh one, a leader leaves its term only
 for a higher one, the `ReadState`s and pending requests are kept, and the outbox holds no
 more read-index requests. -/
-theorem rdOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
+theorem rdOwn_mono' (γ : RaftNames) (id : w64) (s s' : PState) :
     (s'.role = .leader → s.role = .leader ∧ s'.term = s.term ∧ s'.rd = s.rd) →
     (s'.role ≠ .leader →
        s'.rd.ro = ⟨[], ∅, W64 0⟩ ∨ (s.role ≠ .leader ∧ s'.rd.ro = s.rd.ro)) →
-    (s'.role ≠ .leader → s.role = .leader → uint.Z s.term < uint.Z s'.term) →
     uint.Z s.term ≤ uint.Z s'.term →
     s'.rd.states = s.rd.states → s'.rd.pend = s.rd.pend →
     rdCount s'.outbox ≤ rdCount s.outbox →
+    (s'.role = .candidate → s.role = .candidate ∨ uint.Z s.term < uint.Z s'.term) →
     rdOwn (GF := GF) γ id s ⊢ rdOwn γ id s' := by
-  intro Hlead Hnl Hdown Hle Hst Hpd Hcnt
+  intro Hlead Hnl Hle Hst Hpd Hcnt Hcand
   unfold rdOwn
   iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv⟩
   iexists γl, rqm
@@ -1204,9 +1291,13 @@ theorem rdOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
     intro t Ht
     rcases Hok t Ht with Hlt | ⟨rfl, Hr⟩
     · left; omega
-    · by_cases Hr' : s'.role = .leader
-      · obtain ⟨-, Hte, -⟩ := Hlead Hr'; right; exact ⟨Hte.symm, Hr'⟩
-      · left; exact Hdown Hr' Hr
+    · by_cases Hlt : uint.Z s.term < uint.Z s'.term
+      · left; exact Hlt
+      · right
+        refine ⟨uint_Z_inj.mp (by omega), fun hc => ?_⟩
+        rcases Hcand hc with h | h
+        · exact Hr h
+        · exact Hlt h
   isplitl [Hl]
   · by_cases Hr' : s'.role = .leader
     · obtain ⟨Hr, Hte, Hrd⟩ := Hlead Hr'
@@ -1228,9 +1319,24 @@ theorem rdOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
   icases Hcr with ⟨Hcr, -⟩
   iexact Hcr
 
+/-- `rdOwn_mono'`, with the premise (unused since 2026-10-14, stage B5) that a leader leaves
+its term only for a higher one. -/
+theorem rdOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
+    (s'.role = .leader → s.role = .leader ∧ s'.term = s.term ∧ s'.rd = s.rd) →
+    (s'.role ≠ .leader →
+       s'.rd.ro = ⟨[], ∅, W64 0⟩ ∨ (s.role ≠ .leader ∧ s'.rd.ro = s.rd.ro)) →
+    (s'.role ≠ .leader → s.role = .leader → uint.Z s.term < uint.Z s'.term) →
+    uint.Z s.term ≤ uint.Z s'.term →
+    s'.rd.states = s.rd.states → s'.rd.pend = s.rd.pend →
+    rdCount s'.outbox ≤ rdCount s.outbox →
+    (s'.role = .candidate → s.role = .candidate ∨ uint.Z s.term < uint.Z s'.term) →
+    rdOwn (GF := GF) γ id s ⊢ rdOwn γ id s' :=
+  fun Hlead Hnl _ Hle Hst Hpd Hcnt Hcand =>
+    rdOwn_mono' γ id s s' Hlead Hnl Hle Hst Hpd Hcnt Hcand
+
 /-- Winning: a registry for the term, empty, the read-only object fresh. -/
 theorem rdOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
-    s.role ≠ .leader → s'.role = .leader → s'.term = s.term →
+    s.role = .candidate → s'.role = .leader → s'.term = s.term →
     s'.rd = rdNL s.rd → rdCount s'.outbox ≤ rdCount s.outbox →
     rdOwn (GF := GF) γ id s ⊢ |==> rdOwn γ id s' := by
   intro Hr Hr' Hte Hrd Hcnt
@@ -1242,7 +1348,7 @@ theorem rdOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
     | some _ =>
       rcases Hok s.term (by simp [h]) with Hlt | ⟨-, Hl⟩
       · omega
-      · exact absurd Hl Hr
+      · exact absurd Hr Hl
   imod mono_list_own_alloc (GF := GF) ([] : List RqRec) with ⟨%γq, Haq, -⟩
   imod ghost_map_insert_persist s.term γq Hfree $$ Ha with ⟨Ha, #Hfq⟩
   have Hpd : s'.rd.pend = s.rd.pend := by rw [Hrd]; rfl
@@ -1268,11 +1374,11 @@ theorem rdOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
   · ipureintro
     intro t Ht
     by_cases Htt : s.term = t
-    · subst Htt; right; exact ⟨Hte.symm, Hr'⟩
+    · subst Htt; right; exact ⟨Hte.symm, by rw [Hr']; decide⟩
     · rw [GMap.lookup_insert_ne _ _ Htt] at Ht
       rcases Hok t Ht with Hlt | ⟨rfl, Hl⟩
       · left; rw [Hte]; exact Hlt
-      · exact absurd Hl Hr
+      · exact absurd Hr Hl
   isplitl [Haq Hz]
   · unfold rdLead
     rw [Hr']
@@ -1511,7 +1617,15 @@ theorem hbCtx_isMessage (γ : RaftNames) (id T : w64) (r : ReadOnly) (ctx : List
 def WinsOk (wins : GMap w64 (GSet w64)) (s : PState) : Prop :=
   ∀ t, (wins !! t).isSome →
     uint.Z t < uint.Z s.term ∨
-    (t = s.term ∧ s.role = .leader)
+    (t = s.term ∧ s.role ≠ .candidate)
+
+/-- A candidate has no acknowledgement of its term; a leader's of its term are within its log
+(it acknowledges only its own entries then). What a leader that steps down at its term needs
+(2026-10-14, stage B5: the non-leader's `acksOk`). -/
+def LeadAcksOk (s : PState) (acks : GMap (w64 × w64) Unit) : Prop :=
+  (s.role = .candidate → ∀ i, acks !! (s.term, i) = none) ∧
+  (s.role = .leader → ∀ i, (acks !! (s.term, i)).isSome →
+    uint.Z i ≤ plogLastIndexZ s.base s.log)
 
 def ownLogGhost (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) : IProp GF :=
   iprop(∃ γm, ∃ (terms : GMap w64 TermRec), ∃ γa, ∃ (acks : GMap (w64 × w64) Unit),
@@ -1555,7 +1669,9 @@ def ownLogGhost (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) : IPr
     -- entries, a prefix of the global log
     "Hevs"     ∷ ownEvs γ id s.term acks ∗
     "#Hinv"    ∷ raftCommitInv γ ∗
-    "#Hcmt"    ∷ isCommitted γ (cprefix fp s))
+    "#Hcmt"    ∷ isCommitted γ (cprefix fp s) ∗
+    -- 2026-10-14 (stage B5): a candidate's and a leader's acknowledgements of their term
+    "%Hlacks"  ∷ ⌜LeadAcksOk s acks⌝)
 
 -- Not `Timeless` since 2026-10-05: it holds the invariant `raftCommitInv`.
 
@@ -1566,7 +1682,7 @@ def RoleOk (id : w64) (s : PState) : Prop :=
   (s.role ≠ .follower → s.vote = id) ∧
   (s.role = .candidate → s.lead = W64 0)
 
-def ownRaftGhost (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
+def ownRaftGhost (γ : RaftNames) (id : w64) (s : PState) (md : Bool := false) : IProp GF :=
   iprop(∃ γv, ∃ (voted : GMap w64 w64), ∃ (kl : Option w64),
     "%Hname"  ∷ ⌜γ.reVotes !! id = some γv⌝ ∗
     "%Hidnz"  ∷ ⌜id ≠ W64 0⌝ ∗
@@ -1584,14 +1700,18 @@ def ownRaftGhost (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
     -- 2026-10-12 (read-index): the commit lower bounds of the terms it led
     "Hlcm"     ∷ lcmOwn γ id s ∗
     -- 2026-10-12: the read-index ghost state
-    "Hrd"      ∷ rdOwn γ id s)
+    "Hrd"      ∷ rdOwn γ id s ∗
+    -- 2026-10-14 (reconfiguration stage B5): the mode, `md` (`false` by default: the code's
+    -- ghost state is static, `γ.reDyn = none`, `ownRaftGhost_static`)
+    "%Hmode"   ∷ ⌜γ.reDyn.isSome = md⌝)
 
 -- Not `Timeless` since 2026-10-05: `ownLogGhost` holds the invariant `raftCommitInv`.
 
 theorem ownRaftGhost_intro (γ : RaftNames) (id : w64) (s : PState) (γv : GName)
-    (voted : GMap w64 w64) (kl : Option w64) :
+    (voted : GMap w64 w64) (kl : Option w64) {md : Bool} :
     γ.reVotes !! id = some γv →
     id ≠ W64 0 →
+    γ.reDyn.isSome = md →
     ⊢ ghostMapAuth (GF := GF) γv (1 : Qp).half voted -∗
       ⌜VoteHistOk voted s⌝ -∗
       ([∗map] t ↦ c ∈ voted, isVote γ id t c) -∗
@@ -1605,8 +1725,8 @@ theorem ownRaftGhost_intro (γ : RaftNames) (id : w64) (s : PState) (γv : GName
       ⌜RoleOk id s⌝ -∗
       lcmOwn γ id s -∗
       rdOwn γ id s -∗
-      ownRaftGhost γ id s := by
-  intro Hname Hidnz
+      ownRaftGhost γ id s md := by
+  intro Hname Hidnz Hmode
   unfold ownRaftGhost
   iintro H1 %H2 #H3 #H4 #H5 #H6 H7 %H8 %H9 #H10 %H11 H12 H13
   iexists γv, voted, kl
@@ -1624,11 +1744,31 @@ theorem ownRaftGhost_intro (γ : RaftNames) (id : w64) (s : PState) (γv : GName
   isplitr; · iexact H10
   isplitr; · ipureintro; exact H11
   isplitl [H12]; · iexact H12
-  iexact H13
+  isplitl [H13]; · iexact H13
+  ipureintro; exact Hmode
+
+/-- The mode of a node's ghost state. -/
+theorem ownRaftGhost_mode (γ : RaftNames) (id : w64) (s : PState) :
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ ⌜γ.reDyn.isSome = md⌝ := by
+  unfold ownRaftGhost
+  iintro ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  ipureintro; exact Hmode
+
+/-- The code's ghost state is static. -/
+theorem ownRaftGhost_static (γ : RaftNames) (id : w64) (s : PState) :
+    ⊢ ownRaftGhost (GF := GF) γ id s -∗ ⌜γ.reDyn = none⌝ := by
+  unfold ownRaftGhost
+  iintro ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  ipureintro
+  cases h : γ.reDyn with
+  | none => rfl
+  | some _ => rw [h] at Hmode; cases Hmode
 
 /-- A non-leader does not record itself as leader. -/
 theorem ownRaftGhost_lead_ok (γ : RaftNames) (id : w64) (s : PState) :
-    ⊢ ownRaftGhost (GF := GF) γ id s -∗ ⌜LeadOk id s⌝ := by
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ ⌜LeadOk id s⌝ := by
   unfold ownRaftGhost
   iintro ⟨%γv, %voted, %kl, H⟩
   iNamed H
@@ -1636,7 +1776,7 @@ theorem ownRaftGhost_lead_ok (γ : RaftNames) (id : w64) (s : PState) :
 
 /-- A follower's tally is empty. -/
 theorem ownRaftGhost_follower_votes (γ : RaftNames) (id : w64) (s : PState) :
-    ⊢ ownRaftGhost (GF := GF) γ id s -∗ ⌜FollowerVotesOk s⌝ := by
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ ⌜FollowerVotesOk s⌝ := by
   unfold ownRaftGhost
   iintro ⟨%γv, %voted, %kl, H⟩
   iNamed H
@@ -1652,7 +1792,7 @@ theorem matchedOk_eq (γ : RaftNames) (s1 s2 : PState) :
   iintro H; iexact H
 
 theorem ownRaftGhost_excl (γ : RaftNames) (id : w64) (s1 s2 : PState) :
-    ⊢ ownRaftGhost (GF := GF) γ id s1 -∗ ownRaftGhost γ id s2 -∗ False := by
+    ⊢ ownRaftGhost (GF := GF) γ id s1 md -∗ ownRaftGhost γ id s2 md -∗ False := by
   -- the vote map is half the node's since 2026-10-05; the term-log map is whole
   unfold ownRaftGhost ownLogGhost
   iintro ⟨%γ1, %v1, %k1, H1⟩ ⟨%γ2, %v2, %k2, H2⟩
@@ -1666,7 +1806,7 @@ theorem ownRaftGhost_excl (γ : RaftNames) (id : w64) (s1 s2 : PState) :
 
 /-- Everything in a node's outbox was legitimately put there. -/
 theorem ownRaftGhost_outbox (γ : RaftNames) (id : w64) (s : PState) :
-    ⊢ ownRaftGhost (GF := GF) γ id s -∗ ([∗list] m ∈ s.outbox, isMessage γ m) := by
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ ([∗list] m ∈ s.outbox, isMessage γ m) := by
   unfold ownRaftGhost
   iintro ⟨%γv, %voted, %kl, H⟩
   iNamed H
@@ -1674,7 +1814,7 @@ theorem ownRaftGhost_outbox (γ : RaftNames) (id : w64) (s : PState) :
 
 theorem ownRaftGhost_isLeader (γ : RaftNames) (id : w64) (s : PState) :
     s.role = .leader →
-    ⊢ ownRaftGhost (GF := GF) γ id s -∗ isLeader γ id s.term := by
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ isLeader γ id s.term := by
   intro Hrole
   unfold ownRaftGhost
   iintro ⟨%γv, %voted, %kl, H⟩

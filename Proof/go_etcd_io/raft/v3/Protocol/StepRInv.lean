@@ -66,31 +66,10 @@ theorem rUnat_le {a b : w64} (h : uint.Z a ≤ uint.Z b) : uint.nat a ≤ uint.n
 
 /-! ### Conf entries of a list -/
 
-/-- I1: of two conf-change entries of `l`, the first is at a position below `c`. -/
-def ConfI1 (l : List raftpb.Entry) (c : Nat) : Prop :=
-  ∀ (k1 k2 : Nat) (e1 e2 : raftpb.Entry), k1 < k2 → l[k1]? = some e1 → l[k2]? = some e2 →
-    IsConfEnt e1 → IsConfEnt e2 → k1 < c
-
 /-- I3: every conf-change entry is at a position below `pci`, at most one at or past `a`. -/
 def ConfI3 (l : List raftpb.Entry) (pci a : Nat) : Prop :=
   (∀ (k : Nat) (e : raftpb.Entry), l[k]? = some e → IsConfEnt e → k < pci) ∧
   confCount (l.drop a) ≤ 1
-
-theorem confCount_pos {l : List raftpb.Entry} {k : Nat} {e : raftpb.Entry} (h : l[k]? = some e)
-    (hc : IsConfEnt e) : 0 < confCount l := by
-  unfold confCount
-  rw [List.countP_pos_iff]
-  exact ⟨e, List.mem_of_getElem? h, by simpa using hc⟩
-
-theorem two_le_confCount {l : List raftpb.Entry} {k1 k2 : Nat} {e1 e2 : raftpb.Entry}
-    (hlt : k1 < k2) (h1 : l[k1]? = some e1) (h2 : l[k2]? = some e2) (c1 : IsConfEnt e1)
-    (c2 : IsConfEnt e2) : 2 ≤ confCount l := by
-  rw [← List.take_append_drop k2 l, confCount_append]
-  have a : 0 < confCount (l.take k2) :=
-    confCount_pos (k := k1) (by rw [List.getElem?_take, if_pos hlt]; exact h1) c1
-  have b : 0 < confCount (l.drop k2) :=
-    confCount_pos (k := 0) (by rw [List.getElem?_drop, Nat.add_zero]; exact h2) c2
-  omega
 
 theorem confCount_eq_zero {l : List raftpb.Entry}
     (h : ∀ (k : Nat) (e : raftpb.Entry), l[k]? = some e → ¬ IsConfEnt e) : confCount l = 0 := by
@@ -147,15 +126,6 @@ theorem confCount_mapIdx {l : List raftpb.Entry} {f : Nat → raftpb.Entry → r
     · rw [if_pos (hi.2 hc), if_pos hc]
     · rw [if_neg (fun h => hc (hi.1 h)), if_neg hc]
 
-theorem isConfEnt_stamp (t li : w64) (k : Nat) (e : raftpb.Entry) :
-    IsConfEnt (stamp t li k e) ↔ IsConfEnt e := Iff.rfl
-
-theorem not_isConfEnt_zero : ¬ IsConfEnt (zero_val raftpb.Entry) := by
-  have h : (zero_val raftpb.Entry).Type' = W32 0 := rfl
-  unfold IsConfEnt; rw [h]
-  intro hc; rcases hc with h1 | h2
-  · revert h1; word
-  · revert h2; word
 
 /-! ### `NoConfIn` -/
 
@@ -212,7 +182,7 @@ theorem ConfI1.append_nonconf {l x : List raftpb.Entry} {c : Nat} (h : ConfI1 l 
     exact absurd c2 (hx e2 (List.mem_of_getElem? h2))
 
 /-- Every list with one conf entry at most past `a` has I1 at any `c ≥ a`. -/
-theorem ConfI1_of_drop {l : List raftpb.Entry} {a c : Nat} (h : confCount (l.drop a) ≤ 1)
+theorem ConfI1_of_drop_le {l : List raftpb.Entry} {a c : Nat} (h : confCount (l.drop a) ≤ 1)
     (hac : a ≤ c) : ConfI1 l c := by
   intro k1 k2 e1 e2 hlt h1 h2 c1 c2
   apply Classical.byContradiction
@@ -262,7 +232,7 @@ theorem RInv.cfgOk {dec : CCDec} {c0 : CCState} {r : RState} (H : RInv dec c0 r)
 /-- A leader's I1 comes from its I3. -/
 theorem RInv.i1_of_i3 {dec : CCDec} {c0 : CCState} {r : RState} (H : RInv dec c0 r)
     (hl : r.p.role = .leader) : ConfI1 r.full (uint.nat r.p.commit) :=
-  ConfI1_of_drop (H.i3 hl).2 (Nat.le_trans H.applied_cidx H.cidx_commit)
+  ConfI1_of_drop_le (H.i3 hl).2 (Nat.le_trans H.applied_cidx H.cidx_commit)
 
 /-- A rule that moves none of the fields the invariant reads, and keeps the role (with
 `pci`) or makes a follower. -/
@@ -609,7 +579,7 @@ theorem RInv_propose {r : RState} (id : w64) (m : Msg) (cs : List (Option CCMsg)
     unfold plogLastIndexZ at hcl ⊢; simp only [List.length_append]; push_cast; omega
   · rw [hfull, List.take_append_of_le_length hcidx]; exact H.cfg
   · rw [hfull]
-    exact ConfI1_of_drop i3'.2 (show uint.nat r.applied ≤ uint.nat r.p.commit by
+    exact ConfI1_of_drop_le i3'.2 (show uint.nat r.applied ≤ uint.nat r.p.commit by
       have := H.applied_cidx; have := H.cidx_commit; omega)
   · intro _; rw [hfull]; exact i3'
 

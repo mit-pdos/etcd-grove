@@ -135,6 +135,233 @@ def CfgM.joint (c : CfgM) : Bool := decide (0 < GMap.size c.outgoing)
 theorem CfgM.joint_simple (cfg lrn : GSet w64) : (CfgM.simple cfg lrn).joint = false := by
   simp [CfgM.joint, CfgM.simple, GMap.map_size_empty]
 
+/-! ### Conf-change entries of a log (moved here from `CfgOverlap.lean` and `StepRInv.lean`
+in stage B5: the ghost state's dynamic facts read them) -/
+
+section conf
+variable [FfiSyntax]
+
+/-- The number of conf-change entries of `l`. -/
+def confCount (l : List raftpb.Entry) : Nat := l.countP fun e => decide (IsConfEnt e)
+
+theorem confCount_append (l1 l2 : List raftpb.Entry) :
+    confCount (l1 ++ l2) = confCount l1 + confCount l2 := by
+  unfold confCount; exact List.countP_append ..
+
+theorem confCount_cons (e : raftpb.Entry) (l : List raftpb.Entry) :
+    confCount (e :: l) = confCount l + (if IsConfEnt e then 1 else 0) := by
+  unfold confCount
+  rw [List.countP_cons]
+  by_cases h : IsConfEnt e <;> simp [h]
+
+/-- A conf-change entry at position `k` of `l` (2026-10-14, stage B5). -/
+def IsConfPos (l : List raftpb.Entry) (k : Nat) : Prop := ∃ e, l[k]? = some e ∧ IsConfEnt e
+
+/-- I1: of two conf-change entries of `l`, the first is at a position below `c`. -/
+def ConfI1 (l : List raftpb.Entry) (c : Nat) : Prop :=
+  ∀ (k1 k2 : Nat) (e1 e2 : raftpb.Entry), k1 < k2 → l[k1]? = some e1 → l[k2]? = some e2 →
+    IsConfEnt e1 → IsConfEnt e2 → k1 < c
+
+theorem confCount_pos {l : List raftpb.Entry} {k : Nat} {e : raftpb.Entry} (h : l[k]? = some e)
+    (hc : IsConfEnt e) : 0 < confCount l := by
+  unfold confCount
+  rw [List.countP_pos_iff]
+  exact ⟨e, List.mem_of_getElem? h, by simpa using hc⟩
+
+theorem two_le_confCount {l : List raftpb.Entry} {k1 k2 : Nat} {e1 e2 : raftpb.Entry}
+    (hlt : k1 < k2) (h1 : l[k1]? = some e1) (h2 : l[k2]? = some e2) (c1 : IsConfEnt e1)
+    (c2 : IsConfEnt e2) : 2 ≤ confCount l := by
+  rw [← List.take_append_drop k2 l, confCount_append]
+  have a : 0 < confCount (l.take k2) :=
+    confCount_pos (k := k1) (by rw [List.getElem?_take, if_pos hlt]; exact h1) c1
+  have b : 0 < confCount (l.drop k2) :=
+    confCount_pos (k := 0) (by rw [List.getElem?_drop, Nat.add_zero]; exact h2) c2
+  omega
+
+/-! #### Conf positions and counts (2026-10-14, stage B5: the far cases' pure core) -/
+
+instance IsConfPos.dec (l : List raftpb.Entry) (k : Nat) : Decidable (IsConfPos l k) :=
+  match h : l[k]? with
+  | some e =>
+    if hc : IsConfEnt e then isTrue ⟨e, h, hc⟩
+    else isFalse (by rintro ⟨e', he', hc'⟩; rw [h] at he'; cases he'; exact hc hc')
+  | none => isFalse (by rintro ⟨e', he', -⟩; rw [h] at he'; cases he')
+
+theorem confCount_take_mono (l : List raftpb.Entry) {i j : Nat} (h : i ≤ j) :
+    confCount (l.take i) ≤ confCount (l.take j) := by
+  have : l.take j = l.take i ++ (l.drop i).take (j - i) := by
+    have h2 := List.take_add (l := l) (i := i) (j := j - i)
+    rwa [Nat.add_sub_cancel' h] at h2
+  rw [this, confCount_append]; omega
+
+theorem confCount_take_succ (l : List raftpb.Entry) (k : Nat) :
+    confCount (l.take (k + 1)) = confCount (l.take k) + (if IsConfPos l k then 1 else 0) := by
+  by_cases hk : k < l.length
+  · rw [List.take_succ, confCount_append, List.getElem?_eq_getElem hk]
+    simp only [Option.toList_some]
+    by_cases hc : IsConfEnt l[k]
+    · have : IsConfPos l k := ⟨l[k], List.getElem?_eq_getElem hk, hc⟩
+      rw [if_pos this]
+      unfold confCount; simp [hc]
+    · have : ¬ IsConfPos l k := by
+        rintro ⟨e, he, hce⟩
+        rw [List.getElem?_eq_getElem hk] at he
+        cases he; exact hc hce
+      rw [if_neg this]
+      unfold confCount; simp [hc]
+  · have h1 : l.take (k + 1) = l.take k := by
+      rw [List.take_of_length_le (by omega), List.take_of_length_le (by omega)]
+    have h2 : ¬ IsConfPos l k := by
+      rintro ⟨e, he, -⟩
+      rw [List.getElem?_eq_none (by omega)] at he; cases he
+    rw [h1, if_neg h2]; rfl
+
+/-- The `j`-th conf entry (0-based) below `a`. -/
+theorem exists_confPos (l : List raftpb.Entry) (a j : Nat) (h : j < confCount (l.take a)) :
+    ∃ k, k < a ∧ IsConfPos l k ∧ confCount (l.take k) = j := by
+  induction a with
+  | zero => simp [confCount] at h
+  | succ a ih =>
+    rw [confCount_take_succ] at h
+    by_cases hj : j < confCount (l.take a)
+    · obtain ⟨k, hk, hc, he⟩ := ih hj
+      exact ⟨k, by omega, hc, he⟩
+    · by_cases hc : IsConfPos l a
+      · rw [if_pos hc] at h
+        exact ⟨a, by omega, hc, by omega⟩
+      · rw [if_neg hc] at h; omega
+
+/-- A conf entry whose prefix has at least the conf entries of the prefix of length `a` is at
+or past `a`. -/
+theorem confPos_ge_of_count (l : List raftpb.Entry) {a k : Nat} (hk : IsConfPos l k)
+    (hc : confCount (l.take a) ≤ confCount (l.take k)) : a ≤ k := by
+  refine Nat.le_of_not_lt fun hlt => ?_
+  have h1 := confCount_take_mono l (show k + 1 ≤ a by omega)
+  rw [confCount_take_succ, if_pos hk] at h1
+  omega
+
+theorem confPos_lt_of_count (l : List raftpb.Entry) {k1 k2 : Nat}
+    (hc : confCount (l.take k1) < confCount (l.take k2)) : k1 < k2 := by
+  refine Nat.lt_of_not_le fun h => ?_
+  have := confCount_take_mono l (show k2 ≤ k1 by omega)
+  omega
+
+theorem IsConfPos_of_take {l l' : List raftpb.Entry} {m k : Nat} (h : l'.take m = l.take m)
+    (hk : k < m) (hp : IsConfPos l k) : IsConfPos l' k := by
+  obtain ⟨e, he, hc⟩ := hp
+  refine ⟨e, ?_, hc⟩
+  have := congrArg (fun x => x[k]?) h
+  simp only [List.getElem?_take, hk, ite_true] at this
+  rw [this]; exact he
+
+theorem confCount_take_agree {l l' : List raftpb.Entry} {m k : Nat} (h : l'.take m = l.take m)
+    (hk : k ≤ m) : confCount (l'.take k) = confCount (l.take k) := by
+  have := congrArg (List.take k) h
+  simp only [List.take_take, Nat.min_eq_left hk] at this
+  rw [this]
+
+/-- At most one conf entry at or past `a` is I1 at `a`. -/
+theorem ConfI1_of_drop {l : List raftpb.Entry} {a : Nat} (h : confCount (l.drop a) ≤ 1) :
+    ConfI1 l a := by
+  intro k1 k2 e1 e2 hlt h1 h2 c1 c2
+  refine Nat.lt_of_not_le fun hge => ?_
+  have h1' : (l.drop a)[k1 - a]? = some e1 := by
+    rw [List.getElem?_drop, Nat.add_sub_cancel' hge]; exact h1
+  have h2' : (l.drop a)[k2 - a]? = some e2 := by
+    rw [List.getElem?_drop, Nat.add_sub_cancel' (by omega)]; exact h2
+  have := two_le_confCount (show k1 - a < k2 - a by omega) h1' h2' c1 c2
+  omega
+
+theorem isConfEnt_stamp (t li : w64) (k : Nat) (e : raftpb.Entry) :
+    IsConfEnt (stamp t li k e) ↔ IsConfEnt e := Iff.rfl
+
+theorem not_isConfEnt_zero : ¬ IsConfEnt (zero_val raftpb.Entry) := by
+  have h : (zero_val raftpb.Entry).Type' = W32 0 := rfl
+  unfold IsConfEnt; rw [h]
+  intro hc; rcases hc with h1 | h2
+  · revert h1; word
+  · revert h2; word
+
+theorem ConfI1_snoc {l : List raftpb.Entry} {c : Nat} {e : raftpb.Entry} (h : ConfI1 l c)
+    (he : ¬ IsConfEnt e) : ConfI1 (l ++ [e]) c := by
+  intro k1 k2 e1 e2 hlt h1 h2 c1 c2
+  have hk2 : k2 < l.length := by
+    refine Nat.lt_of_not_le fun hge => ?_
+    have : (l ++ [e])[k2]? = some e2 := h2
+    rw [List.getElem?_append_right (by omega)] at this
+    have hk : k2 - l.length = 0 := by
+      have := (List.getElem?_eq_some_iff.mp this).1
+      simp at this; omega
+    rw [hk] at this
+    simp at this
+    subst this; exact he c2
+  rw [List.getElem?_append_left (by omega)] at h1
+  rw [List.getElem?_append_left hk2] at h2
+  exact h k1 k2 e1 e2 hlt h1 h2 c1 c2
+
+theorem ConfI1_take {l : List raftpb.Entry} {c n : Nat} (h : ConfI1 l c) : ConfI1 (l.take n) c := by
+  intro k1 k2 e1 e2 hlt h1 h2 c1 c2
+  rw [List.getElem?_take] at h1 h2
+  by_cases hk1 : k1 < n <;> by_cases hk2 : k2 < n <;>
+    simp only [hk1, hk2, ite_true, ite_false] at h1 h2
+  · exact h k1 k2 e1 e2 hlt h1 h2 c1 c2
+  all_goals (first | cases h1 | cases h2)
+
+/-- With at most one conf entry at or past `a`, a conf entry at `k ≥ a` has exactly the conf
+entries of the prefix of length `a` before it. -/
+theorem confCount_take_eq_of_drop {l : List raftpb.Entry} {a k : Nat}
+    (h : confCount (l.drop a) ≤ 1) (hk : IsConfPos l k) (hak : a ≤ k) :
+    confCount (l.take k) = confCount (l.take a) := by
+  have hle := confCount_take_mono l hak
+  refine Nat.le_antisymm ?_ hle
+  refine Nat.le_of_not_lt fun hlt => ?_
+  obtain ⟨j, hj, hjp, hjc⟩ := exists_confPos l k (confCount (l.take a)) hlt
+  have haj : a ≤ j := confPos_ge_of_count l hjp (by omega)
+  obtain ⟨e1, he1, hc1⟩ := hjp
+  obtain ⟨e2, he2, hc2⟩ := hk
+  have := ConfI1_of_drop h j k e1 e2 hj he1 he2 hc1 hc2
+  omega
+
+/-- The far case "older commit fact" (the paper's section 7, `j_c ≥ j_m + 2`): a log with at
+most one conf entry at or past `a` cannot agree up to `k` with a log whose prefix of length `k`
+has two more conf entries than its own prefix of length `a`. -/
+theorem far_newer {F F0 : List raftpb.Entry} {a k : Nat} (hI1 : ConfI1 F a)
+    (hag : F.take k = F0.take k) (hc : confCount (F.take a) + 2 ≤ confCount (F0.take k)) :
+    False := by
+  have hck : confCount (F.take a) + 2 ≤ confCount (F.take k) := by rw [hag]; exact hc
+  obtain ⟨k1, hk1, hp1, he1⟩ := exists_confPos F k (confCount (F.take a)) (by omega)
+  obtain ⟨k2, hk2, hp2, he2⟩ := exists_confPos F k (confCount (F.take a) + 1) (by omega)
+  have h12 : k1 < k2 := confPos_lt_of_count F (by omega)
+  have ha1 : a ≤ k1 := confPos_ge_of_count F hp1 (by omega)
+  obtain ⟨e1, he1', hc1⟩ := hp1
+  obtain ⟨e2, he2', hc2⟩ := hp2
+  have := hI1 k1 k2 e1 e2 h12 he1' he2' hc1 hc2
+  omega
+
+/-- The far case "older winner" (the paper's section 7, `j_c ≤ j_m - 2`, and section 5): a
+campaign log with at most one conf entry at or past `k` cannot agree, up to and including a conf
+entry `k2` of `F`, with `F` when `F`'s prefix before `k2` has one more conf entry than the
+campaign's prefix of length `k`. -/
+theorem far_older {F F0 : List raftpb.Entry} {k k2 : Nat} (hI1 : ConfI1 F0 k)
+    (hag : F0.take (k2 + 1) = F.take (k2 + 1)) (hp2 : IsConfPos F k2)
+    (hc : confCount (F.take k2) = confCount (F0.take k) + 1) : False := by
+  obtain ⟨k1, hk1, hp1, he1⟩ := exists_confPos F k2 (confCount (F0.take k)) (by omega)
+  have hp1' := IsConfPos_of_take hag (by omega) hp1
+  have hp2' := IsConfPos_of_take hag (by omega) hp2
+  have hc1 : confCount (F0.take k1) = confCount (F.take k1) :=
+    confCount_take_agree hag (by omega)
+  have hk : k ≤ k1 := confPos_ge_of_count F0 hp1' (by omega)
+  obtain ⟨e1, he1', hc1'⟩ := hp1'
+  obtain ⟨e2, he2', hc2'⟩ := hp2'
+  have := hI1 k1 k2 e1 e2 hk1 he1' he2' hc1' hc2'
+  omega
+
+/-- An `MsgApp` carries the sender's commit index (Go's `sendAppend`; moved here from
+`StepR.lean` in stage B5, the ghost state's rules read it). -/
+def AppCommitEq (s : PState) (m : Msg) : Prop := m.ty = .app → m.commit = s.commit
+
+end conf
+
 section model
 variable [FfiSyntax]
 
