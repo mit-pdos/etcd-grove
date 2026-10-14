@@ -237,7 +237,9 @@ theorem ghost_step_recv (γ : RaftNames) (cfg : GSet w64) (id : w64)
         rw [Hrecv x (List.mem_of_getElem? hx)]
         exact intuitionistically_elim))
     iexact Hm
-  iapply ownRaftGhost_step γ id ps recv ps' Hstep $$ Hall [Hz] Hg
+  -- the code's `Step` witness, at the ghost state's configuration (`StepC`, 2026-10-14)
+  iapply ownRaftGhost_stepC γ _ (CfgStatic.simple γ ∅) id ps recv ps'
+    ((CfgStatic.stepC_iff γ ∅ id ps recv ps').1 Hstep) $$ Hall [Hz] Hg
   rw [Hcnt]; iexact Hz
 
 /-- A branch's postcondition, delivered: the ghost step, then `Φ`. -/

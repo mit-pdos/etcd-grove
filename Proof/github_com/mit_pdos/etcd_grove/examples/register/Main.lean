@@ -140,6 +140,13 @@ theorem clusterIds_size : 1 < GMap.size (GMap.listToSet clusterIds) := by
   intro k
   rw [listToSet_constMap, constMap_lookup_isSome]
 
+/-- The cluster has a voter (what `ownRaftGhost_alloc` asks). -/
+theorem clusterIds_ne : GMap.listToSet clusterIds ≠ ∅ := by
+  intro h
+  have := clusterIds_size
+  rw [h, GMap.size_empty] at this
+  omega
+
 theorem take_drop_ne (l : List w64) (hnd : l.Nodup) (n : Nat) (x y : w64)
     (hx : x ∈ l.take n) (hy : y ∈ l.drop n) : x ≠ y := by
   rw [← List.take_append_drop n l, List.nodup_append] at hnd
@@ -234,7 +241,7 @@ theorem Main.wp_proof
   imod ownSlice_persist _ _ _ $$ Hvsl with #Hvsl
   -- raft's ghost state for the cluster, the term budget, the proposed slices
   imod ownRaftGhost_alloc (GF := GF) ⊤ (GMap.listToSet clusterIds) (GMap.listToSet clusterIds)
-    (by rw [GMap.elem_of_list_to_set]; decide)
+    clusterIds_ne (by rw [GMap.elem_of_list_to_set]; decide)
     with ⟨%γ, %Hcfg, #Hcinv, #Hc0, Hghosts, ⟨HcL, Hfresh, HreSl⟩, ⟨HrdA, HrdC, #HrdI⟩⟩
   imod budget_alloc (GF := GF) (3 * ticksN + timeoutsN) (by unfold ticksN timeoutsN; omega) ⊤
     with ⟨%bud, #Hbinv, Hcred, #Hlb0⟩

@@ -3455,3 +3455,23 @@ append a second conf change before the first is applied), like `ReadOnlyOption =
   conversion to `StepC` (with C result and step lemmas), and the old branch lemmas follow at
   `CfgM.simple`; the `RawNode` client's view (`RNState`) needs the learner set (and, for
   self-removal, the role) before `CCApplies` can be discharged for growing changes.
+
+---
+
+## Reconfiguration stage B2: non-empty voters in `RaftNames`, one `CfgStatic` constraint
+
+**2026-10-14 · accepted**
+
+- **`RaftNames.reCfg_ne`, a proof field**, rather than a premise of `ownRaftGhost_step(C)`'s
+  callers or a conjunct of `ownRaftGhost`. `StepC` at an empty configuration lets anyone win
+  (Go's `MajQ` convention), so the refinement needs `reCfg ≠ ∅`; `raft.Step`'s spec has no way
+  to supply it (learners step, `ownRaftPhys` has no non-emptiness by design, and changing the
+  Go-facing spec was out of scope), and a conjunct of `ownRaftGhost` would touch every rule's
+  re-sealing. The field costs one premise of `ownRaftGhost_alloc`. *Rejected*: mapping `Step`
+  at an empty configuration into `StepC` (`Step.lose` there has no `StepC.lose`, and no `c`
+  makes every `JQuorum c` an `IsQuorum ∅`).
+- **The constraint is `CfgStatic γ c` (incoming = `γ.reCfg`, not joint)**, not
+  `c = CfgM.simple γ.reCfg lrn`: the same at B2, but with no learner bookkeeping, and the shape
+  B4 replaces. The three quorum-reading rules convert `JQuorum c` to `IsQuorum γ.reCfg` at their
+  start; the ghost definitions keep `IsQuorum γ.reCfg` (moving them is the winners table's
+  work).
