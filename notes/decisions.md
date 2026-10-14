@@ -4726,3 +4726,97 @@ consistent index, `NewUberApplier`, `NewGenerator`, `NewNotifier`) and ghost all
 needing contracts of names-only constructors (lessor, alarm store, auth store, transport,
 compactor, stats, cluster version), three premises no `NewServer` proof can discharge (the raft
 contract, the id budget, `storeSmall`).
+
+## The client meets the server (unit C1)
+
+**2026-10-14 · adopted (unit C1)** (`notes/STATUS.md`, "Unit C1: the client meets the server")
+
+**The trust boundary is grpc's `ClientConn.Invoke`, interceptors included.** The client's KV path
+is verified from `kv.Put`/`kv.Get` down to the generated stub (`kv.Do`, `ContextError`, the retry
+client, `kVClient.Put`/`Range`, `NewKV`, `RetryKVClient`, `NewKVClient`, `withRepeatablePolicy`);
+what is assumed is one call, `(*grpc.ClientConn).Invoke` of the KV service's `Put` and `Range`
+(`Spec/google_golang_org/grpc/ClientConn__Invoke.lean`, an axiom): the network, grpc's client and
+server, the protobuf codec, the client's retry interceptor (installed at dial, `client.go`), and the
+server's runtime (its gRPC server's per-call goroutines, its unary interceptors, the quota wrapper
+`quotaKVServer`). *Rejected:* the boundary below the interceptor (a contract of grpc's `invoke`,
+the interceptor proved): the interceptor's loop reads the auth token (`shouldRefreshToken`,
+`refreshToken`, through the client's auth client), logs through zap, backs off with timers, filters
+call options by type assertion; proving it is a unit of its own, and what it would discharge is
+stated below.
+
+**What a call gives: a run of the handler on a copy, or an error.** The connection
+(`isKVConn conn K`, an axiomatized persistent predicate: a fact about a grpc object and the process
+at its other end, like bbolt's predicates) names the server's handlers (`K.put`, `K.range`:
+function values) and what the server's runtime gives each run (`K.R ctx'`). `Invoke`'s triple takes
+the caller's request (`inp ↦ req`, owned: protobuf's marshaling writes its size cache) and a zero
+reply (`out`, owned), and a persistent premise `putRunOk K o Q` (`rangeRunOk`): the handler's
+triple, with `K.R ctx'` and a fresh decoded copy of the request (`txn.putRequestIs r o`, the
+server's own predicate: the copy's fields read-only, its size cache in an invariant, at the
+server's model of the request, `putReqOp`/`rangeReqOp`), whose success gives a response message
+(`putRespMsg resp m`, `rangeRespMsg`: every field the wire carries, read-only) with the caller's
+persistent knowledge `□ Q m`. It returns `nil` and `out` holding the same message with `□ Q m`, or a
+client error (`clientErr`) and nothing. The run premise is persistent because the handler may run
+several times; `Q` is persistent so that nothing of the runtime's resources leaks to the client.
+*Rejected:* the axiom stated over the server's predicates (`isServerReq`, `kvServerAt`, the
+answers `putAppliedOk`, ...): it would put the server's whole model in the trust base; with the run
+premise the client's results discharge it from `put_end_to_end`/`range_end_to_end` (proved), and
+the axiom says only "the server runs its handler on a copy". A deep-copy relation between the
+server's response and the reply: the message predicates are read-only field contents (no
+ownership, no server-side resource), so the same predicate holds of both, which a copy relation
+would only restate.
+
+**The wire.** The server's model of the client's request is that of a copy: its range end is the
+contents of `RangeEnd` (`rangeReqOp`; protobuf does not carry an empty bytes field, which the
+server decodes as `nil`, and `txn.rangeEndOf nil [] = []`), its key the contents of `Key`
+(`nil` and empty agree); a slice's identity is not on the wire. The reply's message predicates say
+contents only, for the same reason.
+
+**Retries.** The interceptor's attempts are inside the boundary. A `Range` (`withRepeatablePolicy`)
+is retried on `Unavailable`; a `Put` (`nonRepeatable`) on "no connection/address available"
+(`isSafeRetryMutableRPC`: the request was not sent) and also, whatever the policy, after a gRPC
+`Canceled` or `DeadlineExceeded` while the caller's context is live (`issues/
+etcd-client-retry-put-ctx-error.md`: a branch for a per-attempt context etcd no longer has;
+reproduced: a mock server receives the `Put` twice). The contract says what this allows: a
+successful reply is the last run's (the interceptor returns at the first `nil`, and grpc's codec
+resets the reply before unmarshaling), earlier runs may have happened and may have applied the
+put; an error says nothing about any run.
+
+**The runtime's resources are the server's premises, stated per run.** etcd's handlers need, per
+call, a context (`isContext` of the stream's context), one id credit, reader slots of
+`leadTimeMu`, the store, the logger's lock and the read loop's lock (`srvCall`, `srvRdCall`); a
+server-side caller obtains them from the server's runtime, which nothing here models. So `K.R ctx'`
+is given to every run by the axiom: for etcd's server (`client/v3/Results.lean`, `etcdKVConn`)
+`srvCall s ρ ctx' ∗` the reader slots of `srvRdCall`. This is the same idealization the server's own
+results make (`isServerBuilt`'s id budget `□ |==> idCred ρ.ids 1`, `notes/STATUS.md`: the
+generator's `2 ^ 48 - 1` ids are assumed not to wrap), and the reader slots come back from each
+run (the handler's triple returns them), so the bound Perennial's `RWMutex` puts on concurrent
+readers is not reached by the runtime's own accounting. The committed index a linearizable read
+knows of is not the runtime's: `committedAtLeast γr c` is the client's (persistent; `0` is free),
+so `K.R` does not mention `c` and `kvServerAt` is used at any `c` (it reads only `revR`,
+`kvServerAt_srvKVAns`).
+
+**Call options and context errors are typing premises.** `Invoke`'s frame needs that no call
+option writes the caller's memory (grpc's `Header`, `Trailer`, `Peer` options do): `callOptOk`
+admits grpc's scalar option types (the stub's `StaticMethodCallOption`, `client.go`'s
+`defaultCallOpts`) and a `retryOption` whose closure writes only the interceptor's `retryPolicy`
+(`withRepeatablePolicy`'s, proved). The client's call-option slice is full (`len = cap`, as
+`client.go` builds it): `retryKVClient.Range` appends `withRepeatablePolicy()` to it, which with
+spare capacity would write the slice's shared backing array from concurrent calls (grpc's own
+`combine` copies for this reason). `ContextError` hands its result, possibly the context's error,
+to `errors.As` on `kv.Put`'s second `ContextError`; `ctxErrClient` (a premise of `kv.Put`/`kv.Get`)
+says the context's `Err()` returns client errors and keeps returning one once it has: Go's
+documented contract and the method sets of `Canceled`/`DeadlineExceeded`, which the model lacks
+(as `clientErr` itself, which `rpctypes.Error`'s axiom now carries: an `EtcdError` is a leaf error).
+
+**A future proof of the interceptor would discharge** the retry part of the axiom: from a contract
+of grpc's plain `invoke` (one attempt: a run on a copy or an error, the same shape), the loop gives
+"the last attempt's run, earlier attempts' runs unknown"; the options' filtering (`filterCallOptions`,
+a type assertion on `retryOption`) would discharge `callOptOk`'s retry case; the token refresh
+needs the auth client's contract. What stays assumed is grpc's transport and the server's runtime
+(`isKVConn`: the dial, the registration, the runtime's resources).
+
+**What C1 does not state.** Only a single-endpoint connection to one server (a client with several
+endpoints balances attempts over members: unit C2's cluster-level contract), only a `Get` without
+a sort option (`Op.IsSortOptionValid`'s sort case reads `etcdserverpb`'s enumeration maps, package
+facts not stated), only `Put` and `Get` (`kv.Do`'s delete and transaction cases are not specified:
+the precondition `doRunOk` rules them out).

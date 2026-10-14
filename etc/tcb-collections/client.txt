@@ -1,0 +1,66 @@
+# The client's KV path over gRPC (unit C1, the client meets the server): every linked result of
+# Proof/go_etcd_io/etcd/client/v3/Link.lean (`kv.Put`, `kv.Get`, `kv.Do`, `NewKV`, the retry
+# client, the generated stub, over grpc's `ClientConn.Invoke`, the trust boundary) and the
+# end-to-end results of Proof/go_etcd_io/etcd/client/v3/Results.lean (through the server's
+# gRPC handlers: the request path's trust boundary too).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/client.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/go_etcd_io/etcd/client/v3/(Link|Results)\.lean$
+axiom attribute.Bool.wp_proof
+axiom attribute.Int.wp_proof
+axiom attribute.Int64.wp_proof
+axiom attribute.String.wp_proof
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.txLive
+axiom config.ServerConfig.ReqTimeout.wp_proof
+axiom context.ErrDone.wp_proof
+axiom context.ValueStartTime.wp_proof
+axiom context.WithValue.wp_proof
+axiom errors.IsCtxErr.wp_proof
+axiom errors.IsDeadlineExceeded.wp_proof
+axiom grpc.ClientConn.Invoke.wp_proof
+axiom grpc.StaticMethod.wp_proof
+axiom isConnectedSince.wp_proof
+axiom isConnectedToQuorumSince.wp_proof
+axiom isKVConn
+axiom isKVConn_persistent
+axiom membership.RaftCluster.ID.wp_proof
+axiom membership.RaftCluster.Members.wp_proof
+axiom prometheus.HistogramVec.WithLabelValues.wp_proof
+axiom proto.Marshal.wp_proof
+axiom proto.MarshalIRR.wp_proof
+axiom proto.Size.wp_proof
+axiom proto.Unmarshal.wp_proof
+axiom rpctypes.Error.wp_proof
+axiom status.Error.wp_proof
+axiom status.FromError.wp_proof
+axiom strconv.FormatBool.wp_proof
+axiom time.Duration.Seconds.wp_proof
+axiom time.Time.After.wp_proof
+axiom trace.SpanFromContext.wp_proof
+axiom trace.WithAttributes.wp_proof
+axiom traceutil.EnsureTrace.wp_proof
+axiom traceutil.Get.wp_proof
+axiom traceutil.Trace.AddField.wp_proof
+axiom traceutil.Trace.GetStartTime.wp_proof
+axiom traceutil.Trace.InsertStep.wp_proof
+axiom traceutil.Trace.LogIfLong.wp_proof
+axiom traceutil.Trace.SetStartTime.wp_proof
+axiom traceutil.Trace.StartSubTrace.wp_proof
+axiom traceutil.Trace.Step.wp_proof
+axiom traceutil.Trace.StepWithFunction.wp_proof
+axiom traceutil.Trace.StopSubTrace.wp_proof
+axiom traceutil.Tracer.Start.wp_proof
+axiom txn.RangeSecObserve.wp_proof
+axiom txn.WarnOfExpensiveReadOnlyRangeRequest.wp_proof
+axiom txn.WarnOfExpensiveReadOnlyTxnRequest.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Int64.wp_proof
+axiom zap.Logger.Error.wp_proof
+axiom zap.Logger.Panic.wp_proof
+axiom zap.String.wp_proof

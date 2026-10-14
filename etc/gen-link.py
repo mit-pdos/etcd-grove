@@ -34,6 +34,7 @@ usage: etc/gen-link.py ROCQ_PROOF_DIR > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --fmt > Proof/fmt/Link.lean
        etc/gen-link.py --context > Proof/context/Link.lean
        etc/gen-link.py --read > Proof/go_etcd_io/etcd/server/v3/etcdserver/read/Link.lean
+       etc/gen-link.py --client > Proof/go_etcd_io/etcd/client/v3/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -89,6 +90,11 @@ of their own (`v3rpc`), and the server's, the txn package's and the interval tre
 `raftInterface`) and of the trust-boundary functions they call, from etc/link-lean-first-read.txt,
 under the read package's assumptions; as `--txn`, its results are in a namespace of their own
 (`read`).
+`--client` links the proofs of the client's KV path over gRPC (unit C1: `NewKV`, `kv.Put`,
+`kv.Get`, `kv.Do`, `ContextError`, the retry client, the generated stub `etcdserverpb.kVClient`)
+and the trust boundary they rest on (grpc's `ClientConn.Invoke`, an axiom), from
+etc/link-lean-first-client.txt, under clientv3's assumptions; as `--leasing`, its results are in
+a namespace of their own (`client`), a clientv3 function's with the prefix `v3.`.
 `--fmt` and `--context` link etcd-grove's trust boundary of the standard library's `fmt`
 (`Errorf`, `Printf`) and `context` (the `Error()` of `Err()`'s error), from
 etc/link-lean-first-fmt.txt and etc/link-lean-first-context.txt, under those packages' own
@@ -173,6 +179,12 @@ LEAN_FIRST = {
                 "go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions",
                 "The gRPC KV service's proofs (etcd's `server/v3/etcdserver/api/v3rpc`) and the "
                 "functions they call", ["", "EtcdDeps"]),
+    # the client's KV path over gRPC (unit C1, the client meets the server)
+    "--client": ("link-lean-first-client.txt", "go_etcd_io.etcd.client.v3 go_etcd_io.etcd.api.v3",
+                 "go_etcd_io.etcd.client.v3.Assumptions",
+                 "The client's KV path over gRPC (`client/v3`'s `NewKV`, `kv.Put`, `kv.Get`, `kv.Do`, the "
+                 "retry client, the generated stub) and the trust boundary it rests on (grpc's "
+                 "`ClientConn.Invoke`)", [""]),
     "--recipes": ("link-lean-first-recipes.txt",
                   "go_etcd_io.etcd.client.v3.experimental.recipes go_etcd_io.etcd.api.v3",
                   "go_etcd_io.etcd.client.v3.experimental.recipes.Assumptions",
@@ -196,7 +208,7 @@ LEAN_FIRST = {
                    "The register example's proofs (`examples/register`)", [""]),
 }
 # The mode whose results are put in a namespace of their own (see the docstring).
-NAMESPACED = {"--backend": "backend", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
+NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes",
               "--txn": "txn", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.

@@ -100,10 +100,14 @@ axiom fmt.Printf.wp_proof
 axiom fmt.SprintfNamed.wp_proof
 axiom fmt.Sscanf.wp_proof
 axiom go_humanize.Bytes.wp_proof
+axiom grpc.ClientConn.Invoke.wp_proof
+axiom grpc.StaticMethod.wp_proof
 axiom heap.Fix.wp_proof
 axiom heap.Push.wp_proof
 axiom isConnectedSince.wp_proof
 axiom isConnectedToQuorumSince.wp_proof
+axiom isKVConn
+axiom isKVConn_persistent
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
 axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
