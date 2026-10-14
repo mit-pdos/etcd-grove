@@ -10,11 +10,11 @@ mutex, its porcupine model and `Check`, which runs the driver on them.
 
 States are `w64` (Go's `int64`, wrapping). An operation `(i, o)` of interface values is
 allowed in state `s` iff its output is the boxed `int64` of the next state
-`counterNext s i`, which is `s + 1` if the input is not `nil` (`isInc i`, `input != nil`) and
-`s` otherwise. A state value is the boxed `int64` of the state (`rep`); an operation's output
-is a boxed `int64` (`ioOk`), which `Step`'s `output.(int64)` needs. The input needs nothing:
-`Step` and `Apply` only compare it with `nil`, which is why they take any interface value,
-even an ill-formed one (`lintest.Run`'s `applySpec` quantifies over all of them).
+`counterNext s i`, which is `s + 1` if the input is the boxed `true` and `s` otherwise. A
+state value is the boxed `int64` of the state (`rep`). The inputs are boxed `bool`s
+(`counterInOk`, the driver's `inOk`: `gen` returns them, `Apply` assumes them), and an
+operation's input and output are a boxed `bool` and a boxed `int64` (`ioOk`), which `Step`'s
+`input.(bool)` and `output.(int64)` need.
 
 ## The counter (`isCounter γ c`)
 
@@ -66,17 +66,14 @@ open github_com.anishathalye.porcupine github_com.anishathalye.porcupine.Theory
 section model
 variable [ext : FfiSyntax] [go_gctx : GoGlobalContext]
 
-/-- `input != nil`: does `i` increment? -/
-def isInc (i : GoInterface) : Bool :=
-  match i with
-  | interface.nil => false
-  | interface.ok _ => true
-
 /-- The boxed `int64` `x` (`any(x)`). -/
 abbrev boxI (x : w64) : GoInterface := interface.mkOk go.int64 #x
 
-/-- The state after input `i` in state `s`. -/
-def counterNext (s : w64) (i : GoInterface) : w64 := if isInc i then s + W64 1 else s
+/-- The boxed `bool` `b` (`any(b)`). -/
+abbrev boxB (b : Bool) : GoInterface := interface.mkOk go.bool #b
+
+/-- The state after input `i` in state `s`: the input `true` increments. -/
+def counterNext (s : w64) (i : GoInterface) : w64 := if i = boxB true then s + W64 1 else s
 
 /-- The counter's sequential model (see the file header). -/
 def counterM : SeqModel w64 OpV where
@@ -93,6 +90,18 @@ theorem boxI_inj (x y : w64) : boxI x = boxI y ↔ x = y := by
     simp only [boxI, interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at h
     exact GoGlobalContext.intoVal_inj_w64 h
   · rintro rfl; rfl
+
+theorem boxB_inj (a b : Bool) : boxB a = boxB b ↔ a = b := by
+  constructor
+  · intro h
+    simp only [boxB, interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at h
+    exact GoGlobalContext.intoVal_inj_bool h
+  · rintro rfl; rfl
+
+theorem counterNext_boxB (s : w64) (b : Bool) :
+    counterNext s (boxB b) = if b then s + W64 1 else s := by
+  unfold counterNext
+  simp only [boxB_inj]
 
 /-- The model on an output `boxI x`. -/
 theorem counterM_step_box (s x : w64) (i : GoInterface) :
@@ -128,8 +137,11 @@ def counterS : ModelSpec GF w64 where
   M := counterM
   rep v s := iprop(⌜v = boxI s⌝)
   rep_pers _ _ := by infer_instance
-  ioOk _ o := iprop(⌜∃ x : w64, o = boxI x⌝)
+  ioOk i o := iprop(⌜(∃ b : Bool, i = boxB b) ∧ ∃ x : w64, o = boxI x⌝)
   ioOk_pers _ _ := by infer_instance
+
+/-- The counter's inputs: boxed `bool`s (the driver's `inOk`). -/
+abbrev counterInOk (i : GoInterface) : IProp GF := iprop(⌜∃ b : Bool, i = boxB b⌝)
 
 /-- What `Step` returns of a next state: `stepPost` of the output `boxI x`. -/
 theorem stepPost_counter (s x : w64) (i : GoInterface) :

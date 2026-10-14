@@ -3,7 +3,8 @@ Lean-first (no Rocq counterpart).
 
 The proof of `(*Counter).Apply`: the linearization point is right after `c.mu.Lock()`: there the lock invariant gives `c.n = s` (with the ghost variable's other
 half, which agrees with the abstract state), and the abstract state goes to
-`counterNext s input`, which the critical section then stores in `c.n` and returns.
+`counterNext s input`, which the critical section then stores in `c.n` and returns. The input
+is a boxed `bool` (`counterInOk`), so `input.(bool)` goes through.
 -/
 module
 
@@ -41,7 +42,8 @@ theorem Counter.Apply.wp_proof
   unfold applySpec
   iintro %i
   imodintro
-  iintro %Φ HAU
+  iintro %Φ %Hin HAU
+  obtain ⟨b, rfl⟩ := Hin
   wp_method_call
   wp_call
   wp_call
@@ -54,16 +56,15 @@ theorem Counter.Apply.wp_proof
   imod HAU with ⟨%s, Hs, Hcommit⟩
   icombine Hg Hs gives % ⟨_, Heq⟩
   subst Heq
-  imod ghostVar_update_halves (counterNext n i) γ _ _ $$ Hg Hs with ⟨Hg, Hs⟩
-  imod Hcommit $$ %(counterNext n i) %(boxI (counterNext n i)) [Hs] with HΦ
+  imod ghostVar_update_halves (counterNext n (boxB b)) γ _ _ $$ Hg Hs with ⟨Hg, Hs⟩
+  imod Hcommit $$ %(counterNext n (boxB b)) %(boxI (counterNext n (boxB b))) [Hs] with HΦ
   · iframe
     ipureintro
     simp [counterS, counterM_step]
   imodintro
-  cases i with
-  | nil =>
-    simp only [counterNext, isInc, Bool.false_eq_true, ite_false]
-    wp_auto
+  rw [counterNext_boxB]
+  cases b <;> (simp only [Bool.false_eq_true, ite_false, ite_true]; wp_auto)
+  all_goals
     wp_apply wp_Unlock (muAddr c) (counterR γ c) $$ [$Hc $Hlocked Hn Hg]
     · iexists _
       iframe
@@ -71,18 +72,7 @@ theorem Counter.Apply.wp_proof
     iapply HΦ
     simp only [counterS]
     ipureintro
-    exact ⟨_, rfl⟩
-  | ok ii =>
-    simp only [counterNext, isInc, ite_true]
-    wp_auto
-    wp_apply wp_Unlock (muAddr c) (counterR γ c) $$ [$Hc $Hlocked Hn Hg]
-    · iexists _
-      iframe
-    unfold boxI
-    iapply HΦ
-    simp only [counterS]
-    ipureintro
-    exact ⟨_, rfl⟩
+    exact ⟨⟨_, rfl⟩, _, rfl⟩
 
 end proof
 

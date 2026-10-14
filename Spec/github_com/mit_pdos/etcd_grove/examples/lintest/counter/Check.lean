@@ -1,8 +1,8 @@
 /- Lean-first (no Rocq counterpart).
 
 `Check(clock, clients, ops, timeout)` (counter.go): `lintest.Run` on a fresh counter, its
-model and the generator `func(id int) any` (an `Inc` for an even client, a `Read` for an odd
-one), with the given clock. For any clock with `clockSpec` (whose invariants are not
+model and the generator `func(id int) any` (`true`, an increment, for an even client,
+`false`, a read, for an odd one), with the given clock. For any clock with `clockSpec` (whose invariants are not
 `lintestN`), under `Run`'s bounds on `clients` and `ops`, the result is never `Illegal`, and
 it is `Ok` if `timeout ≤ 0`.
 -/

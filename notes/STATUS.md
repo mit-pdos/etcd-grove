@@ -26,7 +26,9 @@ module system").
 - `Run.wp_proof` (proved, from `runClient.spec`, porcupine's `CheckOperationsVerbose.spec` and
   `sync.WaitGroup.{Add,Done,Wait}.spec`): for a model `isModel S m`, a library `apply`
   logically atomic against `S.M` (`applySpec`, `<<{ ∀∀ s, libState s }>> … <<{ ∃∃ s' o, … }>>`,
-  Perennial's `AtomicFupd` notation), any `gen`, a monotone logically atomic `clock`
+  Perennial's `AtomicFupd` notation) on the inputs with a persistent `inOk i` (the library's
+  well-formed inputs; `True` for any), a `gen` returning inputs with `□ inOk i`
+  (`genSpec gen inOk`; unit F), a monotone logically atomic `clock`
   (`clockSpec`), `clients * ops < 2^60`, `0 ≤ ops`, `0 ≤ clients < 2^31`: `Run` returns
   `r ≠ "Illegal"` and `r = "Ok"` if `timeout ≤ 0`.
 - The argument: a ghost log in `Run`'s invariant (`linInv`, `Defs.lean`: library state, clock
@@ -51,24 +53,30 @@ module system").
 `sorry`, no new axiom:
 
 - `Defs.lean`: the model `counterS` (states `w64`; `(i, o)` allowed iff `o` is the boxed
-  `int64` of `counterNext s i`, `s + 1` if `i ≠ nil`; `rep v s := v = boxI s`,
-  `ioOk i o := ∃ x, o = boxI x`), the lock invariant (`c.n` and half a ghost variable),
-  `isCounter`, `counterState`.
+  `int64` of `counterNext s i`, `s + 1` if `i` is the boxed `true`; `rep v s := v = boxI s`,
+  `ioOk i o := (∃ b, i = boxB b) ∧ ∃ x, o = boxI x`), the inputs `counterInOk i := ∃ b,
+  i = boxB b`, the lock invariant (`c.n` and half a ghost variable), `isCounter`,
+  `counterState`.
 - `Model.wp_proof` (`isModel counterS`), `New.wp_proof`, `Counter.Apply.wp_proof`
-  (`applySpec counterS (counterState γ) ∅ (c.Apply)`, from `sync.Mutex.{Lock,Unlock}.spec`;
-  linearization point right after `Lock`), `Check.wp_proof` (from `Run.spec`, `Model.spec`,
-  `New.spec`, `Counter.Apply.spec`; `genSpec` of the closure inline).
+  (`applySpec counterS counterInOk (counterState γ) ∅ (c.Apply)`, from
+  `sync.Mutex.{Lock,Unlock}.spec`; linearization point right after `Lock`), `Check.wp_proof`
+  (from `Run.spec`, `Model.spec`, `New.spec`, `Counter.Apply.spec`; `genSpec` of the closure
+  `func(id int) any { return id%2 == 0 }` inline).
 - `Results.lean`: `CheckCounterClock.wp_proof` (`Check(CounterClock(), …)` never `Illegal`,
   from `CounterClock.spec` and `Check.spec`) and `CheckCounterClock.wp_of_Run` (linked down to
   `Run.spec`: only Perennial's axiomatized types in `#print axioms`).
-- **The Go code changed** (`counter.go`): `Apply` and `Model.Step` choose the operation by
-  `input != nil`, not by `input.(bool)`. `applySpec` quantifies over every `GoInterface`,
-  including ill-formed ones (a payload not of its dynamic type, even a `PanicV`): on one, a
-  type assertion (the comma-ok form too: goose extracts its value) panics or gets stuck, as
-  does a comparison with a non-nil value; the comparison with `nil` does not look at the
-  payload. A library that inspects its input meets `applySpec` only if the driver's spec
-  restricts inputs to well-formed values (e.g. `applySpec` over `∀ i, ⌜wf i⌝ -∗ …` with
-  `genSpec` returning `wf i`, as Perennial's `fmt` specs take `ArgWf`).
+- The counter's inputs are `bool`s, and `Apply` and `Model.Step` assert `input.(bool)`, as
+  etcd's model asserts `in.(EtcdRequest)`. Unit E had to choose the operation by
+  `input != nil` instead, because `applySpec` then quantified over every `GoInterface`,
+  including ill-formed ones (a payload not of its dynamic type, even a `PanicV`), on which a
+  type assertion (the comma-ok form too: goose extracts its value) panics or gets stuck.
+  **Fixed (unit F, 2026-10-14):** the driver's specs take a persistent input predicate
+  `inOk : GoInterface → IProp GF` (quantified in `Run.spec` and `runClient.spec`):
+  `genSpec gen inOk` returns `i` with `□ inOk i`, `applySpec S inOk …` is
+  `∀ i, {{ inOk i }} <<{ ∀∀ s, libState s }>> apply i …` (the atomic triple's private
+  precondition), and `runClient` passes the persistent fact from `gen`'s postcondition to
+  `apply` (`wp_apply_commit` takes it). The model's `ioOk i o` still comes from `apply`'s
+  postcondition; for the counter it records that `i` is a boxed `bool`, which `Step` needs.
 
 ## Unit T1: Put and Get as persistent atomic updates linearized by raft (2026-10-14, branch `worktree-backend`; in progress)
 

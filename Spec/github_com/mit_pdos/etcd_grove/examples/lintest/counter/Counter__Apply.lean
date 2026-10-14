@@ -3,7 +3,7 @@
 `(*Counter).Apply` (counter.go): the method value `c.Apply` is logically atomic against the
 counter's model (`applySpec`, `Proof/.../lintest/Defs.lean`), over the counter's abstract state
 (`counterState γ`), with no invariant of its own (`Eapp = ∅`: its linearization point is in
-the critical section, which the mutex guards), for any input.
+the critical section, which the mutex guards), for a boxed `bool` input (`counterInOk`).
 -/
 module
 
@@ -32,7 +32,7 @@ abbrev Counter.Apply.spec : Prop :=
   ∀ (γ : GName) (c : Loc),
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.counter -∗
     isCounter γ c -∗
-    applySpec (counterS (GF := GF)) (counterState γ) ∅
+    applySpec (counterS (GF := GF)) counterInOk (counterState γ) ∅
       (methods (go.GoType.PointerType
         github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter.ty) go!"Apply" #c)
 

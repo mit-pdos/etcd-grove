@@ -21,29 +21,6 @@ open Iris Iris.BI
 noncomputable section
 namespace github_com.mit_pdos.etcd_grove.examples.lintest.counter
 
-namespace Inc
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lintest.counter.Assumptions]
-
-instance Inc_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.lintest.counter.Inc where
-  typedPointstoDef l v dq := iprop(
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-instance Inc_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.lintest.counter.Inc github_com.mit_pdos.etcd_grove.examples.lintest.counter.Inc.underlying := by
-  solve_into_val_typed_struct
-
-end def_
-end Inc
-
 namespace Counter
 section def_
 

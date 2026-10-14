@@ -2,9 +2,10 @@
 Lean-first (no Rocq counterpart).
 
 The proof of `Model`: the three closures meet `initSpec`, `stepSpec` and `equalSpec` of
-`counterS`; the other fields are `nil`. `Step`'s `state.(int64)` and `output.(int64)` go through
-by `rep` and `ioOk` (boxed `int64`s), and its verdict is `counterM.step`'s: the output is
-compared with the next state `counterNext s input` (`input != nil`), which `Step` returns.
+`counterS`; the other fields are `nil`. `Step`'s `state.(int64)`, `input.(bool)` and
+`output.(int64)` go through by `rep` and `ioOk` (a boxed `int64`, `bool` and `int64`), and its
+verdict is `counterM.step`'s: the output is compared with the next state `counterNext s input`,
+which `Step` returns.
 -/
 module
 
@@ -58,30 +59,31 @@ theorem Model.wp_proof : Model.spec (GF := GF) (hG := hG) := by
     iintro !> %Φ' Hpre HΦ'
     simp only [counterS]
     icases Hpre with ⟨%Hrep, %Hio⟩
-    obtain ⟨x, rfl⟩ := Hio
+    obtain ⟨⟨b, rfl⟩, x, rfl⟩ := Hio
     subst Hrep
     wp_auto
-    cases i with
-    | nil =>
+    cases b with
+    | false =>
       wp_auto
       iapply HΦ'
       isplitr
       · ipureintro
-        rw [counterM_step_box]
-        by_cases h : x = s <;> simp [h, counterNext, isInc]
-      have H := stepPost_counter (GF := GF) s x GoInterface.nil
-      simp only [counterS, counterNext, isInc, ite_false, Bool.false_eq_true] at H
-      iapply H
-    | ok ii =>
-      wp_auto
-      iapply HΦ'
-      isplitr
-      · ipureintro
-        rw [counterM_step_box]
-        simp only [counterNext, isInc, ite_true]
+        rw [counterM_step_box, counterNext_boxB]
+        simp only [Bool.false_eq_true, ite_false]
         split <;> simp_all
-      have H := stepPost_counter (GF := GF) s x (GoInterface.ok ii)
-      simp only [counterS, counterNext, isInc, ite_true] at H
+      have H := stepPost_counter (GF := GF) s x (boxB false)
+      simp only [counterS, counterNext_boxB, Bool.false_eq_true, ite_false] at H
+      iapply H
+    | true =>
+      wp_auto
+      iapply HΦ'
+      isplitr
+      · ipureintro
+        rw [counterM_step_box, counterNext_boxB]
+        simp only [ite_true]
+        split <;> simp_all
+      have H := stepPost_counter (GF := GF) s x (boxB true)
+      simp only [counterS, counterNext_boxB, ite_true] at H
       iapply H
   isplitr
   · ipureintro; nofun
