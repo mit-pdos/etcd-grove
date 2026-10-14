@@ -1,6 +1,9 @@
 /- Lean-first (no Rocq counterpart).
 
 `CheckOperations(model, history)` (porcupine.go): `true` on a linearizable history.
+
+`context.isClosedchanInit` (`context`'s package-init ghost fact: `closedchan` is closed) is what
+`checkParallel`'s `context.WithCancel(context.Background())` needs.
 -/
 module
 
@@ -28,7 +31,8 @@ abbrev CheckOperations.spec : Prop :=
   ∀ (σ : Type) (S : ModelSpec GF σ) (m : Model) (sl : GoSlice) (ops : List Operation)
     (dq : DFrac),
   HistOk ops →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.anishathalye.porcupine ∗ isModel S m ∗ sl ↦*{dq} ops ∗ opsIoOk S ops }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.anishathalye.porcupine ∗ context.isClosedchanInit ∗
+      isModel S m ∗ sl ↦*{dq} ops ∗ opsIoOk S ops }}
     (App (App (Val (@! github_com.anishathalye.porcupine.CheckOperations))
       (Val #m)) (Val #sl))
   {{ (b : Bool), RET #b; ⌜Linearizable S.M (histOf ops) → b = true⌝ }}
