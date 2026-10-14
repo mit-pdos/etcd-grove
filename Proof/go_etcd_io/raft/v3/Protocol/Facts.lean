@@ -1129,13 +1129,16 @@ private theorem alloc_nodes (γ : RaftNames) (ids : GSet w64) {md : Bool}
         $$ Hinv Hc0 Hcinv Hcr1 Hrq1 Hv1 Hm1 Ha1 Hc1 Hl1 Hw1 He1 Hlc1
     · iapply IH (fun h => Hnz (Hsub _ h)) $$ Hinv Hc0 Hv Hm Ha Hc Hl Hw He Hlc Hrq Hcinv Hcr0
 
-theorem ownRaftGhost_alloc (E : CoPset) (cfg ids : GSet w64) :
+/-- The allocation, in either mode (2026-10-14, stage B5: `dyn` is the ghost state's mode,
+`RaftNames.reDyn`; the static one is `ownRaftGhost_alloc`). -/
+theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
+    (dyn : Option ((e : FfiSyntax) → @DynCfg e)) :
     -- (2026-10-14, reconfiguration stage B2) the voters are not empty: `RaftNames.reCfg_ne`
     cfg ≠ ∅ →
     W64 0 ∉ ids →
-    ⊢ |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg⌝ ∗ raftCommitInv (GF := GF) γ ∗
+    ⊢ |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn⌝ ∗ raftCommitInv (GF := GF) γ ∗
         isCommitted γ [] ∗
-        ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id initPState) ∗
+        ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id initPState dyn.isSome) ∗
         -- the client's (2026-10-10): its half of the client log, the authority of the
         -- fresh-data tokens and that of the proposed slices
         (cLog γ [] ∗ ghostMapAuth γ.reFresh 1 (∅ : GMap (List w8) Unit) ∗
@@ -1169,7 +1172,7 @@ theorem ownRaftGhost_alloc (E : CoPset) (cfg ids : GSet w64) :
     with ⟨Hcl1, Hcl2⟩
   · rw [Qp.half_add_half]; iexact Hcl
   obtain ⟨γ0, Hγ0⟩ : ∃ γ0 : RaftNames,
-      γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γsl, γcl, γfr, nlc, nrq, γrd, γrc, γtb, none, Hcne⟩ :=
+      γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γsl, γcl, γfr, nlc, nrq, γrd, γrc, γtb, dyn, Hcne⟩ :=
     ⟨_, rfl⟩
   have e1 : γ0.reVotes = nv := by rw [Hγ0]
   have e2 : γ0.reTerms = nt := by rw [Hγ0]
@@ -1267,15 +1270,37 @@ theorem ownRaftGhost_alloc (E : CoPset) (cfg ids : GSet w64) :
   · rw [isCommitted_unseal]; unfold isCommittedDef; iexact Hclb
   imodintro
   iexists γ0
-  isplitr; · ipureintro; exact e0
+  isplitr; · ipureintro; exact ⟨e0, by rw [Hγ0]⟩
   isplitr; · iexact Hinv'
   isplitr; · iexact Hc0
   isplitl [Hv Ht Ha Hc Hl Hw He Hlc Hrq Hcr0]
-  · iapply alloc_nodes γ0 ids (by rw [Hγ0]; rfl) Hnz $$ Hinv' Hc0 Hv Ht Ha Hc Hl Hw He Hlc Hrq Hcinv' Hcr0
+  · iapply alloc_nodes γ0 ids (by rw [Hγ0]) Hnz $$ Hinv' Hc0 Hv Ht Ha Hc Hl Hw He Hlc Hrq Hcinv' Hcr0
   isplitl [Hcl2 Hfra Hsla]
   · unfold cLog
     iframe Hcl2 Hfra Hsla
   iframe Hrda Hcr Hcinv'
+
+theorem ownRaftGhost_alloc (E : CoPset) (cfg ids : GSet w64) :
+    -- (2026-10-14, reconfiguration stage B2) the voters are not empty: `RaftNames.reCfg_ne`
+    cfg ≠ ∅ →
+    W64 0 ∉ ids →
+    ⊢ |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg⌝ ∗ raftCommitInv (GF := GF) γ ∗
+        isCommitted γ [] ∗
+        ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id initPState) ∗
+        -- the client's (2026-10-10): its half of the client log, the authority of the
+        -- fresh-data tokens and that of the proposed slices
+        (cLog γ [] ∗ ghostMapAuth γ.reFresh 1 (∅ : GMap (List w8) Unit) ∗
+          ghostMapAuth γ.reSl 1 (∅ : GMap GoSlice (List w8))) ∗
+        -- (2026-10-13) the read contexts' authority and every read credit
+        (ghostMapAuth γ.reReads 1 (∅ : GMap (List w8) (List raftpb.Entry)) ∗
+          rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
+  intro Hcne Hnz
+  imod ownRaftGhost_alloc_gen E cfg ids none Hcne Hnz with ⟨%γ, %Hγ, H⟩
+  imodintro
+  iexists γ
+  isplitr; · ipureintro; exact Hγ.1
+  simp only [Option.isSome_none]
+  iexact H
 
 end ghost
 
