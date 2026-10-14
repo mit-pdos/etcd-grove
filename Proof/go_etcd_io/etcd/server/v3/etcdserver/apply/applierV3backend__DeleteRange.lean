@@ -37,7 +37,7 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
   iunfold apply.deletePre at Hpre
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
-  icases Hpre with ⟨%Hrq, #Hr, Hwt, ⟨Hrd, Hsw, Hknown⟩, Hres, Hcs⟩
+  icases Hpre with ⟨%Hrq, #Hr, Hwt, ⟨Hrd, Hsw, Hknown, Hard⟩, Hres, Hcs⟩
   icases txn.soleWriter_len' _ _ $$ Hsw with ⟨%Hl2, Hsw⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
@@ -79,9 +79,9 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
     iframe Hres Hresp Hhdr
     isplitl []
     · ipureintro; exact ⟨Herr, Hl2, hlen⟩
-    isplitl [Hrd Hsw Hknown]
+    isplitl [Hrd Hsw Hknown Hard]
     · iunfold apply.kvOwn
-      iframe Hrd Hsw
+      iframe Hrd Hsw Hard
       iunfold apply.leasesLive at Hknown
       icases Hknown with ⟨%L, #Hk, Hu⟩
       iunfold apply.leasesLive

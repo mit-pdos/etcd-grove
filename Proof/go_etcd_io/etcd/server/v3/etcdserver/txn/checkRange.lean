@@ -38,7 +38,7 @@ theorem txn.checkRange.wp_proof
   · iapply isPkgInit_access $$ Hmp
   icases Hinit with ⟨-, ⟨%ec, #Hcomp⟩, ⟨%ef, #Hfut⟩, -⟩
   iunfold txn.rangeRequestIs at Hr
-  icases Hr with ⟨%Hnn, %ksl, %esl, %k, %e, %rv, %limit, %order, %target, %ser, %ko, %co, %minM, %maxM, %minC, %maxC, #Hk, #Hks, #He, #Hes, #Hlim, #Hrev, #Hord, #Htgt, #Hser, #Hko, #Hco, #HminM, #HmaxM, #HminC, #HmaxC, %Ho⟩
+  icases Hr with ⟨%Hnn, %ksl, %esl, %k, %e, %rv, %limit, %order, %target, %ser, %ko, %co, %minM, %maxM, %minC, %maxC, #Hk, #Hks, #He, #Hes, #Hlim, #Hrev, #Hord, #Htgt, #Hser, #Hko, #Hco, #HminM, #HmaxM, #HminC, #HmaxC, %Ho, -⟩
   have hrv : o.base.rev = rv := by subst Ho; rfl
   wp_auto
   wp_if_destruct

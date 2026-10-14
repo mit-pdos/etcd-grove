@@ -71,7 +71,7 @@ theorem txn.compareKV.wp_proof
   intro c ckv cm v
   wp_start as ⟨#Hc, #Hkv⟩
   iunfold txn.compareIs at Hc
-  icases Hc with ⟨%Hcn, %ksl, %esl, %e, %u, #Hres, #Htgt, #Hk, #Hks, #He, #Hes, %Hre, #Hu, #Hun, %Hw⟩
+  icases Hc with ⟨%Hcn, %ksl, %esl, %e, %u, #Hres, #Htgt, #Hk, #Hks, #He, #Hes, %Hre, #Hu, #Hun, %Hw, -⟩
   -- the operand's wrapper is not a typed `nil` (`compareIs`): `tv != nil` holds
   have hw : ∀ (t : go.GoType) (w : Loc), u = interface.mkOk t #w → w ≠ null := Hw
   iunfold txn.kvIs at Hkv

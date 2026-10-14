@@ -37,7 +37,7 @@ theorem txn.deleteRange.wp_proof
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   iunfold txn.deleteRangeRequestIs at Hdr
-  icases Hdr with ⟨%Hdnn, %ksl, %esl, %k, %e, %pk, #Hk, #Hks, #He, #Hes, #Hpk, %Ho⟩
+  icases Hdr with ⟨%Hdnn, %ksl, %esl, %k, %e, %pk, #Hk, #Hks, #He, #Hes, #Hpk, %Ho, -⟩
   -- the facts of the transaction
   ihave ⟨%Hfx, Htx⟩ := txn.isTxnWrite_facts mw s γ ilog pend puts deletes putSize $$ Htx
   ihave Htx : mvcc.isTxn mw s γ trace (.write ilog pend puts deletes putSize) $$ [Htx]

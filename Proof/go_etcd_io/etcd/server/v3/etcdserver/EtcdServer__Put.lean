@@ -45,7 +45,7 @@ theorem EtcdServer.Put.wp_proof
     (hWV : context.WithValue.spec (GF := GF) (hG := hG)) :
     EtcdServer.Put.spec (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd r op
-  wp_start as ⟨#Hsrv, Hrd, Hcred, #Hctx, #Hput⟩
+  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hput⟩
   wp_apply wp_with_defer as %defer defer
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -132,8 +132,8 @@ theorem EtcdServer.Put.wp_proof
     repeat (isplitr; · iexists _; iframe #; try (ipureintro; simp))
     iexists _; iframe #; try (ipureintro; simp)
   (try wp_auto)
-  wp_apply hRR s E ρ ctx2 _ «$a1_ptr» (irrPut op) rfl $$ [Hrd Hcred Header] as %resp %err ⟨Hrd, Hres⟩
-  · iframe # Hrd Hcred
+  wp_apply hRR s E ρ ctx2 _ «$a1_ptr» (irrPut op) rfl $$ [Hrd Hard Hcred Header] as %resp %err ⟨Hrd, Hard, Hres⟩
+  · iframe # Hrd Hard Hcred
     iexists _; iexact Header
   (try wp_auto)
   icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hok⟩ | ⟨%Hre, #HaE, Hfail⟩)
@@ -160,7 +160,7 @@ theorem EtcdServer.Put.wp_proof
     wp_apply HEnd
     (try wp_auto)
     iapply HΦ
-    iframe Hrd
+    iframe Hrd Hard
     ileft
     isplitr
     · ipureintro; rfl
@@ -174,7 +174,7 @@ theorem EtcdServer.Put.wp_proof
       wp_apply HEnd
       (try wp_auto)
       iapply HΦ
-      iframe Hrd
+      iframe Hrd Hard
       iright
       isplitr
       · ipureintro; exact ⟨rfl, Hne⟩

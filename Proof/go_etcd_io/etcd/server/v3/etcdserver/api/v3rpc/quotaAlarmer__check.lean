@@ -31,7 +31,7 @@ theorem v3rpc.quotaAlarmer.check.wp_proof
     (wp_Alarm : EtcdServer.Alarm.spec (GF := GF) (hG := hG)) :
     v3rpc.quotaAlarmer.check.spec (GF := GF) (hG := hG) := by
   intro qa s E ρ ci cd r
-  wp_start as ⟨#Hqa, #Hsrv, #HNR, Hlt, #Hctx⟩
+  wp_start as ⟨#Hqa, #Hsrv, #HNR, Hlt, Hard, #Hctx⟩
   ihave Hinit : (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.v3rpcInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, -, -, -, #Hiv⟩
@@ -51,7 +51,7 @@ theorem v3rpc.quotaAlarmer.check.wp_proof
   · wp_auto
     ihave Hu := HNR
     imod Hu with Hid'
-    wp_apply wp_Alarm s E ρ ci cd $$ [Hlt Hid' «$r0»] as %resp %err Hlt
+    wp_apply wp_Alarm s E ρ ci cd $$ [Hlt Hard Hid' «$r0»] as %resp %err ⟨Hlt, Hard⟩
     · iframe; iframe #
     iapply HΦ
     iframe

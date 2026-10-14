@@ -45,7 +45,7 @@ theorem v3rpc.checkPutRequest.wp_proof :
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, ⟨#HeK, -, #HeV, #HeL, -, -, -⟩, -, -⟩
   iunfold txn.putRequestIs at Hr
-  icases Hr with ⟨%Hrn, %ksl, %vsl, %k, %v, %lease, %pk, %iv, %il, #Hk, #Hks, #Hv, #Hvs, #Hl, -, #Hiv, #Hil, -, %Ho⟩
+  icases Hr with ⟨%Hrn, %ksl, %vsl, %k, %v, %lease, %pk, %iv, %il, #Hk, #Hks, #Hv, #Hvs, #Hl, -, #Hiv, #Hil, -, %Ho, -⟩
   ihave %Hkl := ownSlice_len _ _ _ $$ Hks
   ihave %Hvl := ownSlice_len _ _ _ $$ Hvs
   subst Ho

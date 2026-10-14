@@ -63,7 +63,7 @@ theorem apply.applierV3backend.Authenticate.wp_proof
   rw [Hai]
   wp_apply HM $$ %c2 %am.name %am.password %Pre %Q %Post [$Hcs] as %resp %err ⟨HPP, Hhdr, #HeI⟩
   iunfold apply.kvOwn at Hkv
-  icases Hkv with ⟨Hrd, Hsw, Hknown⟩
+  icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
   wp_if_destruct
   · -- no response
     iapply HΦ

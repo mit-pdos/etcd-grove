@@ -53,7 +53,7 @@ theorem txn.Put.wp_proof
   ihave #Hp0 := Hp
   iunfold txn.putRequestIs at Hp0
   icases Hp0 with ⟨%Hpnn, %ksl, %vsl, %k, %v, %lease, %pk, %iv, %il, #Hk, #Hks, #Hv, #Hvs, #Hl,
-    #Hpk, #Hiv, #Hil, -, %Ho⟩
+    #Hpk, #Hiv, #Hil, -, %Ho, -⟩
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply wp_bytes_to_string $$ [$Hks] as -

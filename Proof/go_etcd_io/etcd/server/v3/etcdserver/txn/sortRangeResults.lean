@@ -384,7 +384,7 @@ theorem txn.sortRangeResults.wp_proof
   wp_start as ⟨Hrr, #Hr, %Hvalid, %Hprem⟩
   ihave #Hr2 := Hr
   iunfold txn.rangeRequestIs at Hr2
-  icases Hr2 with ⟨%Hnn, %ksl, %esl, %k, %e, %rv, %limit, %order, %target, %ser, %ko, %co, %minM, %maxM, %minC, %maxC, #Hk, #Hks, #He, #Hes, #Hlim, #Hrev, #Hord, #Htgt, #Hser, #Hko, #Hco, #HminM, #HmaxM, #HminC, #HmaxC, %Ho⟩
+  icases Hr2 with ⟨%Hnn, %ksl, %esl, %k, %e, %rv, %limit, %order, %target, %ser, %ko, %co, %minM, %maxM, %minC, %maxC, #Hk, #Hks, #He, #Hes, #Hlim, #Hrev, #Hord, #Htgt, #Hser, #Hko, #Hco, #HminM, #HmaxM, #HminC, #HmaxC, %Ho, -⟩
   iunfold txn.rangeResultIs at Hrr
   icases Hrr with ⟨%sl, %l, %Hl, Hrr, Hsl⟩
   iunfold txn.kvsOwnAt at Hsl

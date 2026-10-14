@@ -41,10 +41,10 @@ theorem apply.applierV3backend.AuthStatus.wp_proof
   iStructNamed Hopts
   wp_auto
   rw [Hai]
-  wp_apply HEn as %en -
-  wp_apply HRev as %rev -
   iunfold apply.kvOwn at Hkv
-  icases Hkv with ⟨Hrd, Hsw, Hknown⟩
+  icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
+  wp_apply HEn $$ [$Hard] as %en Hard
+  wp_apply HRev as %rev -
   wp_apply (hHdr E p log) $$ [$Hpkg $Hb $Hrd $Hsw] as %h ⟨Hrd, Hsw, -⟩
   wp_alloc l as Hl
   wp_auto

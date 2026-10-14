@@ -287,11 +287,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **A run's slot** (see the file header): the reader slots a run of etcd's KV handlers holds
-and gives back: `s.leadTimeMu`'s (`srvCall`'s), the store's, the logger's and the read loop's
-(`srvRdCall`'s). The server hands the gRPC runtime a number of them when it serves (bounded
-`RWMutex` slots: at most that many runs at a time). -/
+and gives back: `s.leadTimeMu`'s (`srvCall`'s), the store's, the logger's, the read loop's and the
+auth store's reader resource (`E.RD`, 2026-10-14, unit A2; `srvRdCall`'s). The server hands the
+gRPC runtime a number of them when it serves (bounded `RWMutex` slots: at most that many runs at
+a time). -/
 def etcdRunSlot (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
-  iprop(srvLeadTimeReader s ∗ mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ srvReadReader s γr)
+  iprop(srvLeadTimeReader s ∗ mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ srvReadReader s γr ∗
+    E.RD)
 
 /-- **What a successful `Put` of `o` tells the client** about the reply's message `m` (persistent;
 see the file header): since 2026-10-14 (unit C2a) with the witness that the log after is applied
@@ -434,10 +436,10 @@ reader slot of `s.lgMu`, the metrics interceptor's and `newUnaryInterceptor`'s n
 def etcdIcRs (s : Loc) : List (IProp GF) := [srvLgReader s, iprop(True), iprop(True)]
 
 /-- **A run's slot, as grpc's runtime holds it** (unit P3b): the handlers' (`etcdRunSlot`), the
-quota wrapper's reader slot of `s.leadTimeMu` (its NOSPACE alarm's `raftRequest`), and the
-interceptors' (`etcdIcRs`). -/
+quota wrapper's reader slot of `s.leadTimeMu` and auth reader resource `E.RD` (its NOSPACE alarm's
+`raftRequest`; `E.RD` since unit A2), and the interceptors' (`etcdIcRs`). -/
 def etcdGrpcSlot (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
-  iprop((etcdRunSlot s E γr ∗ srvLeadTimeReader s) ∗ [∗list] R ∈ etcdIcRs s, R)
+  iprop((etcdRunSlot s E γr ∗ srvLeadTimeReader s ∗ E.RD) ∗ [∗list] R ∈ etcdIcRs s, R)
 
 end defs
 
@@ -462,7 +464,7 @@ theorem etcdRunSlot_back (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w6
     srvLeadTimeReader (GF := GF) s ∗ srvRdCall s E γr c ⊢ etcdRunSlot s E γr := by
   iintro ⟨Hlt, Hrd⟩
   unfold srvRdCall etcdRunSlot
-  icases Hrd with ⟨Hsr, Hlg, -, Hrr⟩
+  icases Hrd with ⟨Hsr, Hlg, -, Hrr, Hard⟩
   iframe
 
 /-- **A run's context carries no trace** (`traceutil.ctxTraceIs ci none`, what `v3rpc.srvCall`
@@ -502,13 +504,13 @@ theorem etcd_putHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
   ihave #Htr := ctxTraceIs_none_of_runCtx ci $$ Hrc
   rw [show (pbPutRequest (GF := GF)).recv r o = txn.putRequestIs r o from rfl]
   iunfold etcdRunSlot at Hslot
-  icases Hslot with ⟨Hlt, Hsr, Hlg, Hrd⟩
+  icases Hslot with ⟨Hlt, Hsr, Hlg, Hrd, Hard⟩
   ihave Hu := HNR
   imod Hu with Hid
   imod (monoNatLbOwn_0 (GF := GF) γr.committed) with #H0
   iapply wp_fupd
   iapply (v3rpc.put_end_to_end p s E ρ γr (W64 0) cid mid n (GoInterface.ok ci) r o) $$
-    [Hlt Hsr Hlg Hrd Hid]
+    [Hlt Hsr Hlg Hrd Hard Hid]
   · iframe #
     unfold v3rpc.srvCall srvRdCall committedAtLeast
     isplitl [Hlt Hid]
@@ -608,12 +610,12 @@ theorem etcd_rangeHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
   icases Hspec with ⟨%c, #Hc0, Hspec⟩
   rw [kvServerAt_srvKVAns p s E ρ γr (W64 0) c]
   iunfold etcdRunSlot at Hslot
-  icases Hslot with ⟨Hlt, Hsr, Hlg, Hrd⟩
+  icases Hslot with ⟨Hlt, Hsr, Hlg, Hrd, Hard⟩
   ihave Hu := HNR
   imod Hu with Hid
   iapply wp_fupd
   iapply (v3rpc.range_end_to_end p s E ρ γr c cid mid n (GoInterface.ok ci) r o) $$
-    [Hlt Hsr Hlg Hrd Hid]
+    [Hlt Hsr Hlg Hrd Hard Hid]
   · iframe #
     unfold v3rpc.srvCall srvRdCall
     isplitl [Hlt Hid]
@@ -712,13 +714,13 @@ theorem etcd_deleteHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
   ihave #Htr := ctxTraceIs_none_of_runCtx ci $$ Hrc
   rw [show (pbDeleteRangeRequest (GF := GF)).recv r o = txn.deleteRangeRequestIs r o from rfl]
   iunfold etcdRunSlot at Hslot
-  icases Hslot with ⟨Hlt, Hsr, Hlg, Hrd⟩
+  icases Hslot with ⟨Hlt, Hsr, Hlg, Hrd, Hard⟩
   ihave Hu := HNR
   imod Hu with Hid
   imod (monoNatLbOwn_0 (GF := GF) γr.committed) with #H0
   iapply wp_fupd
   iapply (v3rpc.deleteRange_end_to_end p s E ρ γr (W64 0) cid mid n (GoInterface.ok ci) r o) $$
-    [Hlt Hsr Hlg Hrd Hid]
+    [Hlt Hsr Hlg Hrd Hard Hid]
   · iframe #
     unfold v3rpc.srvCall srvRdCall committedAtLeast
     isplitl [Hlt Hid]
@@ -948,15 +950,15 @@ theorem etcd_kv_served [v3rpc.QuotaKVServerIsKVServer] (addr : GoString) (p q s 
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ E ρ
     (etcdRunSlot s E γr) $$ []
   · iframe #
-  ihave #Hr' := grpcHandlerOk_frame _ _ (srvLeadTimeReader s) (etcdRangeSpec E γr cid mid) $$ Hr
-  ihave #Hd' := grpcHandlerOk_frame _ _ (srvLeadTimeReader s) (etcdDeleteSpec E cid mid) $$ Hd
+  ihave #Hr' := grpcHandlerOk_frame _ _ iprop(srvLeadTimeReader s ∗ E.RD) (etcdRangeSpec E γr cid mid) $$ Hr
+  ihave #Hd' := grpcHandlerOk_frame _ _ iprop(srvLeadTimeReader s ∗ E.RD) (etcdDeleteSpec E cid mid) $$ Hd
   ihave #Hqr := v3rpc.quotaKV_promotedHandlerOk (etcdRangeSpec E γr cid mid) q s
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩
-    iprop(etcdRunSlot s E γr ∗ srvLeadTimeReader s) go!"Range" inferInstance $$ [Hq Hr']
+    iprop(etcdRunSlot s E γr ∗ srvLeadTimeReader s ∗ E.RD) go!"Range" inferInstance $$ [Hq Hr']
   · iframe #
   ihave #Hqd := v3rpc.quotaKV_promotedHandlerOk (etcdDeleteSpec E cid mid) q s
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩
-    iprop(etcdRunSlot s E γr ∗ srvLeadTimeReader s) go!"DeleteRange" inferInstance $$ [Hq Hd']
+    iprop(etcdRunSlot s E γr ∗ srvLeadTimeReader s ∗ E.RD) go!"DeleteRange" inferInstance $$ [Hq Hd']
   · iframe #
   ihave #Hics : srvInterceptorsOk (GF := GF) v3rpc.learnerReqOk [il, im, iu] (etcdIcRs s) $$ []
   · unfold etcdIcRs srvInterceptorsOk srvInterceptorsOk srvInterceptorsOk srvInterceptorsOk

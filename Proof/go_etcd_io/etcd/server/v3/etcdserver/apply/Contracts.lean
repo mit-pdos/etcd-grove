@@ -14,8 +14,9 @@ gets the same shape through mvcc (unit A of the apply plan: `hookIs`, `store.Wri
 definition is mvcc's (`InvStore.lean`), shared by both.
 
 **The components** (each with the hook's `P f` where it writes the backend):
-* `isAuthStore st P f` (`auth.AuthStore`): the permission checks (`Is*Permitted`) return some
-  error and keep the caller's `AuthInfo`; `HasRole`, `IsAuthEnabled`, `Revision` return; every
+* `isAuthStore st P f RD` (`auth.AuthStore`): the permission checks (`Is*Permitted`, with the
+  caller's reader resource `RD` and the key's length bound) return some error and keep the
+  caller's `AuthInfo`; `HasRole`, `IsAuthEnabled` (with `RD`), `Revision` return; every
   other method is a `csContract` and returns, for a response, `nil` or a fresh one whose
   `Header` can be set (`respHdrOk`).
 * `isApplyLessor le γ P f` (`lease.Lessor`): the txn package's `isTxnLessor`, and `Grant`
@@ -123,39 +124,45 @@ def authReqContract (ai : GoInterfaceOk) (m : GoString) (T : Type) (P : IProp GF
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗
         respHdrOk T resp ∗ applyErrIs err }}))
 
-/-- A permission check `m(authInfo, key...)` of the auth store: some error; the caller's
-`AuthInfo` and keys kept. -/
-def permCheck2 (ai : GoInterfaceOk) (m : GoString) : IProp GF :=
+/-- A permission check `m(authInfo, key...)` of the auth store, with the caller's reader
+resource `RD` (held and given back) and the key shorter than `2 ^ 63 - 1`: some error; the
+caller's `AuthInfo` and keys kept. -/
+def permCheck2 (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) : IProp GF :=
   iprop(□ (∀ (a : Loc) (info : auth.AuthInfo) (dq : DFrac) (key : GoSlice) (k : List w8)
       (dk : DFrac),
-    {{ a ↦{dq} info ∗ key ↦*{dk} k }}
+    {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ RD ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
       (App (App (Val #(methods ai.ty m ai.v)) (Val #a)) (Val #key))
-    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ applyErrIs err }}))
+    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ RD ∗ applyErrIs err }}))
 
-/-- A permission check `m(authInfo, key, rangeEnd)` of the auth store. -/
-def permCheck3 (ai : GoInterfaceOk) (m : GoString) : IProp GF :=
+/-- A permission check `m(authInfo, key, rangeEnd)` of the auth store (as `permCheck2`). -/
+def permCheck3 (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) : IProp GF :=
   iprop(□ (∀ (a : Loc) (info : auth.AuthInfo) (dq : DFrac) (key re : GoSlice) (k e : List w8)
       (dk de : DFrac),
-    {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e }}
+    {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
       (App (App (App (Val #(methods ai.ty m ai.v)) (Val #a)) (Val #key)) (Val #re))
-    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗
+    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗
         applyErrIs err }}))
 
-/-- **The `auth.AuthStore` `st`** as the apply package uses it (trust boundary: `auth` is
-names-only), whose writes run under the batch lock with invariant `P` and hook `f`. -/
-def isAuthStore (st : GoInterface) (P : IProp GF) (f : val) : IProp GF :=
+/-- **The `auth.AuthStore` `st`** as the apply package uses it, whose writes run under the batch
+lock with invariant `P` and hook `f`, and whose request side takes the caller's reader resource
+`RD` (2026-10-14, unit A2: the real store's methods read-lock its `RWMutex`es and the backend's
+read transaction, a reader slot each; `auth.authRd st R` of the real store). The permission checks,
+`IsAdminPermitted`, `IsAuthEnabled` and `Revision` are the real store's (`isAuthStore_of_authInv`,
+`AuthDerive.lean`); `HasRole` and the admin requests (`AuthEnable` ...) are its contract
+(`isAuthStoreAdmin`, the premise). -/
+def isAuthStore (st : GoInterface) (P : IProp GF) (f : val) (RD : IProp GF) : IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
-    permCheck2 ai go!"IsPutPermitted" ∗
-    permCheck3 ai go!"IsRangePermitted" ∗
-    permCheck3 ai go!"IsDeleteRangePermitted" ∗
+    permCheck2 ai go!"IsPutPermitted" RD ∗
+    permCheck3 ai go!"IsRangePermitted" RD ∗
+    permCheck3 ai go!"IsDeleteRangePermitted" RD ∗
     □ (∀ (a : Loc) (info : auth.AuthInfo) (dq : DFrac),
-      {{ a ↦{dq} info }} (App (Val #(methods ai.ty go!"IsAdminPermitted" ai.v)) (Val #a))
-      {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ applyErrIs err }}) ∗
+      {{ a ↦{dq} info ∗ RD }} (App (Val #(methods ai.ty go!"IsAdminPermitted" ai.v)) (Val #a))
+      {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ RD ∗ applyErrIs err }}) ∗
     □ (∀ (u r : GoString),
       {{ True }} (App (App (Val #(methods ai.ty go!"HasRole" ai.v)) (Val #u)) (Val #r))
       {{ (b : Bool), RET #b; True }}) ∗
-    □ ({{ True }} (App (Val #(methods ai.ty go!"IsAuthEnabled" ai.v)) (Val #()))
-      {{ (b : Bool), RET #b; True }}) ∗
+    □ ({{ RD }} (App (Val #(methods ai.ty go!"IsAuthEnabled" ai.v)) (Val #()))
+      {{ (b : Bool), RET #b; RD }}) ∗
     □ ({{ True }} (App (Val #(methods ai.ty go!"Revision" ai.v)) (Val #()))
       {{ (x : w64), RET #x; True }}) ∗
     □ (∀ (Pre Q Post : IProp GF),
@@ -184,20 +191,22 @@ def isAuthStore (st : GoInterface) (P : IProp GF) (f : val) : IProp GF :=
     authReqContract ai go!"UserList" etcdserverpb.AuthUserListResponse P f ∗
     authReqContract ai go!"RoleList" etcdserverpb.AuthRoleListResponse P f)
 
-instance isAuthStore_persistent (st : GoInterface) (P : IProp GF) (f : val) :
-    Persistent (isAuthStore st P f) := by
+instance isAuthStore_persistent (st : GoInterface) (P : IProp GF) (f : val) (RD : IProp GF) :
+    Persistent (isAuthStore st P f RD) := by
   unfold isAuthStore permCheck2 permCheck3 authReqContract; infer_instance
 
 /-! ## The lessor -/
 
 /-- The `*lease.Lease` `l` (not nil): its `ID`, and its `TTL()` and `Keys()` return (`Keys` a
-fresh slice of the lease's keys). -/
+fresh slice of the lease's keys, each shorter than `2 ^ 63 - 1`: 2026-10-14, unit A2, the auth
+store's `IsPutPermitted` of each needs it; true of every string in memory). -/
 def leaseIs (l : Loc) (id : w64) : IProp GF :=
   iprop(⌜l ≠ null⌝ ∗ structFieldRef lease.Lease go!"ID" l ↦□ id ∗
     □ ({{ True }} (App (Val (l @!! go.GoType.PointerType lease.Lease.ty @!! go!"TTL")) (Val #()))
       {{ (t : w64), RET #t; True }}) ∗
     □ ({{ True }} (App (Val (l @!! go.GoType.PointerType lease.Lease.ty @!! go!"Keys")) (Val #()))
-      {{ (sl : GoSlice), RET #sl; ∃ ks : List GoString, sl ↦* ks }}))
+      {{ (sl : GoSlice), RET #sl; ∃ ks : List GoString, sl ↦* ks ∗
+          ⌜∀ k ∈ ks, (k.length : Int) < 2 ^ 63 - 1⌝ }}))
 
 instance leaseIs_persistent (l : Loc) (id : w64) : Persistent (leaseIs (GF := GF) l id) := by
   unfold leaseIs; infer_instance

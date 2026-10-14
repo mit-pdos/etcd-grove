@@ -52,7 +52,7 @@ theorem apply.authApplierV3.Apply.wp_proof
   ihave #Hirr' := Hirr
   iunfold apply.internalRaftRequestIs at Hirr'
   icases Hirr' with ⟨%Hipn, -, ⟨%hl, #HH, #Hhdr⟩, -⟩
-  wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinfo⟩
+  wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinfo, Hard⟩
   iunfold apply.authInfoOwn at Hinfo
   icases Hinfo with ⟨%info, Hinfo⟩
   wp_join iprop(∃ info' : go_etcd_io.etcd.server.v3.auth.AuthInfo,
@@ -99,14 +99,14 @@ theorem apply.authApplierV3.Apply.wp_proof
     iunfold apply.authInfoOwn at Hi
     icases Hi with ⟨%info2, Hinfo⟩
     wp_auto
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hinfo]
-    · inext; iunfold apply.authInfoOwn; iexists _; iexact Hinfo
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hinfo Hard]
+    · inext; iframe Hard; iunfold apply.authInfoOwn; iexists _; iexact Hinfo
     iapply HΦ
     icases Hpost with (HB | ⟨%h, HA, Hrej⟩)
     · ileft; iexact HB
     · iright; iframe; ipureintro; first | rfl | (rw [hna] at h; exact h)
   wp_auto
-  wp_apply HAdmin $$ [$Hinfo] as %err ⟨Hinfo, #HeI⟩
+  wp_apply HAdmin $$ [$Hinfo $Hard] as %err ⟨Hinfo, Hard, #HeI⟩
   cases err with
   | nil =>
     wp_auto
@@ -134,8 +134,8 @@ theorem apply.authApplierV3.Apply.wp_proof
     iunfold apply.authInfoOwn at Hi
     icases Hi with ⟨%info2, Hinfo⟩
     wp_auto
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hinfo]
-    · inext; iunfold apply.authInfoOwn; iexists _; iexact Hinfo
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hinfo Hard]
+    · inext; iframe Hard; iunfold apply.authInfoOwn; iexists _; iexact Hinfo
     iapply HΦ
     icases Hpost with (HB | ⟨%h, HA, Hrej⟩)
     · ileft; iexact HB
@@ -145,8 +145,8 @@ theorem apply.authApplierV3.Apply.wp_proof
     wp_alloc ar as Har
     ihave ⟨Har, %Harn⟩ := typedPointsto_not_null_dup _ _ _ $$ Har
     wp_auto
-    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hinfo]
-    · inext; iunfold apply.authInfoOwn; iexists _; iexact Hinfo
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hinfo Hard]
+    · inext; iframe Hard; iunfold apply.authInfoOwn; iexists _; iexact Hinfo
     iapply HΦ
     iright
     iframe HA

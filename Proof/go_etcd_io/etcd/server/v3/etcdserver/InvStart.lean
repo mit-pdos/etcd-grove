@@ -85,7 +85,7 @@ instance srvFieldsBuilt_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : 
 
 /-- **`isServerReq`'s fields but `w` and `done`** (persistent; `srvReqFieldsAt` without them and
 without the indices' invariants, which `isServerBuilt` states once). -/
-def srvReqBuilt (s : Loc) (ρ : ReqNames) (v : ReqFields) : IProp GF :=
+def srvReqBuilt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) : IProp GF :=
   iprop(structFieldRef EtcdServer go!"reqIDGen" s ↦□ v.gen ∗ idGen ρ.ids v.gen ∗
     srvRaftNode s ρ.raft ∗
     srvCfgFieldAddr s go!"MaxRequestBytes" ↦□ v.maxReq ∗
@@ -93,7 +93,7 @@ def srvReqBuilt (s : Loc) (ρ : ReqNames) (v : ReqFields) : IProp GF :=
     srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ v.cca ∗
     srvCfgFieldAddr s go!"ElectionTicks" ↦□ v.electionTicks ∗
     srvCfgFieldAddr s go!"TickMs" ↦□ v.tickMs ∗
-    structFieldRef EtcdServer go!"authStore" s ↦□ v.auth ∗ isReqAuth v.auth ∗
+    structFieldRef EtcdServer go!"authStore" s ↦□ v.auth ∗ isReqAuth v.auth E.RD ∗
     structFieldRef EtcdServer go!"memberID" s ↦□ v.memberID ∗
     srvAtomicU64 (structFieldRef EtcdServer go!"lead" s) ∗
     structFieldRef EtcdServer go!"cluster" s ↦□ v.cluster ∗
@@ -102,8 +102,8 @@ def srvReqBuilt (s : Loc) (ρ : ReqNames) (v : ReqFields) : IProp GF :=
     srvPeersOk v.cluster v.cid v.tr ∗
     srvMintInv ρ ∗ srvCLogInv ρ.raft ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
 
-instance srvReqBuilt_persistent (s : Loc) (ρ : ReqNames) (v : ReqFields) :
-    Persistent (srvReqBuilt (GF := GF) s ρ v) := by
+instance srvReqBuilt_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) :
+    Persistent (srvReqBuilt (GF := GF) s E ρ v) := by
   unfold srvReqBuilt; infer_instance
 
 /-- **`isServerRead`'s fields but `read`, `applyWait`, `leaderChanged`, `stopping`** (persistent;
@@ -115,7 +115,7 @@ def srvReadBuilt (s : Loc) (E : apply.AEnv GF) (v : ReadFields) : IProp GF :=
         #v.rv : GoInterface) ∗
     mvcc.isReadView v.rv E.s E.γ ∗
     srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.γ E.P E.f ∗
-    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.P E.f ∗
+    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.P E.f E.RD ∗
     srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
@@ -180,7 +180,7 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
   iprop(-- the server's views but the fields `start` sets
     "#Hci" ∷ isServerCI s γ ci ∗
     "#Hfb" ∷ (∃ v : SrvFields, srvFieldsBuilt s γ ci TM E v) ∗
-    "#Hreqb" ∷ (∃ v : ReqFields, srvReqBuilt s ρ v) ∗
+    "#Hreqb" ∷ (∃ v : ReqFields, srvReqBuilt s E ρ v) ∗
     "#Hrdb" ∷ (∃ v : ReadFields, srvReadBuilt s E v) ∗
     "#Hrunb" ∷ (∃ v : RunFields, srvRunBuilt s v) ∗
     "#Hsab" ∷ srvApplyAllBuilt s ∗

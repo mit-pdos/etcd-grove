@@ -46,7 +46,7 @@ theorem apply.applierV3backend.AuthDisable.wp_proof
   rw [Hai]
   wp_apply HM $$ %Pre %Q %Post [$Hcs] as HPP
   iunfold apply.kvOwn at Hkv
-  icases Hkv with ⟨Hrd, Hsw, Hknown⟩
+  icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
   wp_apply (hHdr E p log) $$ [$Hpkg $Hb $Hrd $Hsw] as %h ⟨Hrd, Hsw, -⟩
   wp_alloc l as Hl
   wp_auto

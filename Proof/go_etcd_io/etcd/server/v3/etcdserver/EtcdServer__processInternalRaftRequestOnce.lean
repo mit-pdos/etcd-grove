@@ -71,7 +71,7 @@ set_option hygiene false in
 /-- A return before the proposal: no result, the error (not nil), nothing deposited. -/
 local macro "exit_nodep" : tactic => `(tactic| (
   iapply HΦ
-  iframe Hrd
+  iframe Hrd Hard
   iright
   isplitr
   · ipureintro; exact ⟨rfl, by simp⟩
@@ -86,7 +86,7 @@ set_option hygiene false in
 /-- A return after the proposal: no result, the error (not nil), the proposal deposited. -/
 local macro "exit_dep" : tactic => `(tactic| (
   iapply HΦ
-  iframe Hrd
+  iframe Hrd Hard
   iright
   isplitr
   · ipureintro; exact ⟨rfl, by first | assumption | simp⟩
@@ -266,7 +266,7 @@ local macro "piro_tail" : tactic => `(tactic| (
         wp_apply Hcancel
         run_metrics
         iapply HΦ
-        iframe Hrd
+        iframe Hrd Hard
         ileft
         isplitr
         · ipureintro; rfl
@@ -348,7 +348,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
     (hWL : prometheus.HistogramVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
     EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd p rq Hid0
-  wp_start as ⟨#Hsrv, Hrd, Hcred, #Hctx, #Hirr, ⟨%h0, Hhdr⟩⟩
+  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hirr, ⟨%h0, Hhdr⟩⟩
   wp_apply wp_with_defer as %defer defer
   iunfold isServerReq at Hsrv
   icases Hsrv with ⟨%v, #Hv⟩
@@ -414,15 +414,15 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
       have hla : la = null := Hlan.2 hau
       (try wp_auto)
       wp_if_destruct
-      · wp_apply hAuth s v.auth v.cca ctx cd $$ [] as %au %aerr ⟨Hau, #HaE⟩
-        · iframe #
+      · wp_apply hAuth s v.auth E.RD v.cca ctx cd $$ [Hard] as %au %aerr ⟨Hard, Hau, #HaE⟩
+        · iframe Hard; iframe #
           iunfold mvcc.txnCtx; iright; iexact Hctx
         (try wp_auto)
         cases aerr with
         | ok aei =>
           (try wp_auto)
           iapply HΦ
-          iframe Hrd
+          iframe Hrd Hard
           iright
           isplitr
           · ipureintro; exact ⟨rfl, by simp⟩
@@ -450,7 +450,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
       · exact absurd hla Hif
   · (try wp_auto)
     iapply HΦ
-    iframe Hrd
+    iframe Hrd Hard
     iright
     isplitr
     · ipureintro; exact ⟨rfl, by simp⟩

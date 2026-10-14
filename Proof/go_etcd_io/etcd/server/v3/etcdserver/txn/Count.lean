@@ -29,7 +29,7 @@ theorem txn.Count.wp_proof
     (hRange : txn.Range.spec (GF := GF) (hG := hG)) :
     txn.Count.spec (GF := GF) (hG := hG) := by
   intro ctx cd lg kv s γ key rangeEnd k e revision m log₀ ot te
-  wp_start as ⟨#Hkv, Hrd, Htoks, #Hc0, #Hk, #He, #Hctx, #Hct, Hto, %Hlg⟩
+  wp_start as ⟨#Hkv, Hrd, Htoks, #Hc0, #Hk, #He, #Hctx, #Hct, Hto, %Hlg, %Hklen⟩
   wp_auto
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ «$a3»
   iStructNamed «$a3»
@@ -43,7 +43,7 @@ theorem txn.Count.wp_proof
     iexists key, rangeEnd, k, e, revision, (0 : w64), (0 : w32), (0 : w32), false, false, true,
       (0 : w64), (0 : w64), (0 : w64), (0 : w64)
     iframe #
-    ipureintro; rfl
+    ipureintro; exact ⟨rfl, Hklen⟩
   have heff : (txn.countOp k (txn.rangeEndOf rangeEnd e) revision).effSortOrder = W64 0 := by
     simp [txn.countOp, txn.rangeOpOf, OpFull.effSortOrder]
   wp_apply (hRange ctx cd false lg kv s γ «$a3_ptr» _ false m log₀ ot te) $$ [$Hkv $Hrd $Htoks $Hc0 $Hreq $Hctx $Hct $Hto]

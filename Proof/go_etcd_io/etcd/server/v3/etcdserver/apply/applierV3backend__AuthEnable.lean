@@ -46,7 +46,7 @@ theorem apply.applierV3backend.AuthEnable.wp_proof
   rw [Hai]
   wp_apply HM $$ %Pre %Q %Post [$Hcs] as %err ⟨HPP, #HeI⟩
   iunfold apply.kvOwn at Hkv
-  icases Hkv with ⟨Hrd, Hsw, Hknown⟩
+  icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
   rcases err with ei | _
   · -- the store's error
     wp_auto

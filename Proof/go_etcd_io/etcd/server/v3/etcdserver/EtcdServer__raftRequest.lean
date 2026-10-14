@@ -37,7 +37,7 @@ set_option hygiene false in
 /-- The success return: the apply's answer, dispatched, no error. -/
 local macro "rr_ok" : tactic => `(tactic| (
   iapply HΦ
-  iframe Hrd
+  iframe Hrd Hard
   ileft
   isplitr
   · ipureintro; rfl
@@ -64,14 +64,14 @@ theorem EtcdServer.raftRequest.wp_proof
     (hLL : traceutil.Trace.LogIfLong.spec (GF := GF) (hG := hG)) :
     EtcdServer.raftRequest.spec (GF := GF) (hG := hG) := by
   intro s E ρ ctx cd p rq Hid0
-  wp_start as ⟨#Hsrv, Hrd, Hcred, #Hctx, #Hirr, Hhdr⟩
+  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hirr, Hhdr⟩
   ihave #Ptrace : isPkgInit (PROP := IProp GF) pkg_id.go_opentelemetry_io.otel.trace $$ []
   · iPkgInit
   ihave #Ptu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   wp_auto
-  wp_apply hP s E ρ ctx cd p rq Hid0 $$ [Hrd Hcred Hhdr] as %res %err ⟨Hrd, Hres⟩
-  · iframe # Hrd Hcred Hhdr
+  wp_apply hP s E ρ ctx cd p rq Hid0 $$ [Hrd Hard Hcred Hhdr] as %res %err ⟨Hrd, Hard, Hres⟩
+  · iframe # Hrd Hard Hcred Hhdr
   (try wp_auto)
   icases Hres with (⟨%Herr, %hm, %rq', %Hwire, HTr, Hri⟩ | ⟨%Hres, #HaE, Hdep⟩)
   · subst Herr
@@ -95,7 +95,7 @@ theorem EtcdServer.raftRequest.wp_proof
       · rw [hve] at HvE
         (try wp_auto)
         iapply HΦ
-        iframe Hrd
+        iframe Hrd Hard
         iright
         isplitr
         · ipureintro; exact ⟨rfl, by simp⟩
@@ -128,7 +128,7 @@ theorem EtcdServer.raftRequest.wp_proof
       rcases hve : v.Err' with ei | _
       · (try wp_auto)
         iapply HΦ
-        iframe Hrd
+        iframe Hrd Hard
         iright
         isplitr
         · ipureintro; exact ⟨rfl, by simp⟩
@@ -204,7 +204,7 @@ theorem EtcdServer.raftRequest.wp_proof
       wp_apply HRec
       (try wp_auto)
       iapply HΦ
-      iframe Hrd
+      iframe Hrd Hard
       iright
       isplitr
       · ipureintro; exact ⟨rfl, Hne⟩

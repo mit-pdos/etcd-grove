@@ -34,7 +34,7 @@ theorem txn.rangeLimit.wp_proof
   wp_start as #Hr
   ihave #Hr2 := Hr
   iunfold txn.rangeRequestIs at Hr2
-  icases Hr2 with ⟨%Hnn, %ksl, %esl, %k, %e, %rev, %limit, %order, %target, %ser, %ko, %co, %minM, %maxM, %minC, %maxC, #Hk, #Hks, #He, #Hes, #Hlim, #Hrev, #Hord, #Htgt, #Hser, #Hko, #Hco, #HminM, #HmaxM, #HminC, #HmaxC, %Ho⟩
+  icases Hr2 with ⟨%Hnn, %ksl, %esl, %k, %e, %rev, %limit, %order, %target, %ser, %ko, %co, %minM, %maxM, %minC, %maxC, #Hk, #Hks, #He, #Hes, #Hlim, #Hrev, #Hord, #Htgt, #Hser, #Hko, #Hco, #HminM, #HmaxM, #HminC, #HmaxC, %Ho, -⟩
   wp_auto
   wp_apply hIsDef
   have hdef : txn.isDefaultOrd o.sortTarget o.sortOrder =

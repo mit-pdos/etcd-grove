@@ -22,7 +22,11 @@ applies first, then reports). Compaction is out of the model (`notes/decisions.m
 backend's batch lock: its invariant `P` and post-lock hook `f` (mvcc's `hookIs γ P f`). The apply
 thread owns the store's reader slots and its sole writer at the committed log `log`, with every
 lease of the state known (`kvOwn E log`); every method takes and returns it, at the log its
-outcome commits (`Outcome.logAfter`).
+outcome commits (`Outcome.logAfter`). The environment's reader resource `RD` (2026-10-14, unit
+A2) is the auth store's request side's (`isAuthStore st P f RD`; of the real store, a reader slot
+of each of its `RWMutex`es and of the backend's read transaction, `auth.authRd st R`): the apply
+thread holds one in `kvOwn` (the auth layer's KV methods' checks), the auth layer's mutex another
+(its `Apply`'s admin check, which runs before the `applyFunc` gets the thread's resources).
 
 **An applier value** (`applierSpec E c a`): the triples of the `applierV3` interface value `a`'s
 methods, as the chain `c` runs them (persistent; every method but `Compaction`, which is out of
@@ -224,13 +228,15 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-! ## The environment and the thread's resources -/
 
-/-- **A chain's environment**: the store `s` (ghost names `γ`) the backend's KV is, and its
-backend's batch lock's invariant `P` and post-lock hook `f`. -/
+/-- **A chain's environment**: the store `s` (ghost names `γ`) the backend's KV is, its
+backend's batch lock's invariant `P` and post-lock hook `f`, and the auth store's reader resource
+`RD` (see the file header). -/
 structure AEnv (GF : BundledGFunctors) where
   s : Loc
   γ : mvcc.StoreNames
   P : IProp GF
   f : val
+  RD : IProp GF
 
 /-- **The live leases of the state `s`** (2026-10-13, unit 8 of the backend): the lease owner's
 resource at some live set `L` (its half of the lessor's live set, a reader slot of its lock) of
@@ -239,10 +245,21 @@ def leasesLive (γ : mvcc.StoreNames) (s : List EtcdKv) : IProp GF :=
   iprop(∃ L : List w64, txn.leasesKnown L s ∗ lease.lessorUser γ.leases L)
 
 /-- **The apply thread's KV resources** at the committed log `log`: the store's reader slots,
-the sole writer of `log`, every lease of its state live. -/
+the sole writer of `log`, every lease of its state live, and the auth store's reader resource
+(`E.RD`, 2026-10-14, unit A2). -/
 def kvOwn (E : AEnv GF) (log : mvcc.Log) : IProp GF :=
   iprop(mvcc.storeReader E.s E.γ ∗ txn.soleWriter E.γ log ∗
-    leasesLive E.γ (mvcc.stateAfter log))
+    leasesLive E.γ (mvcc.stateAfter log) ∗ E.RD)
+
+open Iris.ProofMode in
+/-- The auth store's reader resource of the apply thread's KV resources, lent out (unit A2). -/
+theorem kvOwn_rd (E : AEnv GF) (log : mvcc.Log) :
+    kvOwn E log ⊢ E.RD ∗ (E.RD -∗ kvOwn E log) := by
+  unfold kvOwn
+  iintro ⟨Hsr, Hsw, Hll, Hrd⟩
+  iframe Hrd
+  iintro Hrd
+  iframe
 
 /-- **The thread-owned resources of the chain `c`'s methods** at its value `a`: the auth layers'
 `authInfo` (owned while the layer's `Apply` holds its mutex), and the inner chain's. -/
@@ -575,7 +592,7 @@ instance applierSpec_persistent (E : AEnv GF) (c : Chain) (a : GoInterface) :
 whose hook is `E.f` under `E.P`), and the components with their contracts. -/
 def backendOptsOk (E : AEnv GF) (opts : ApplierOptions) : IProp GF :=
   iprop(⌜opts.Logger' ≠ null⌝ ∗ isApplyKV opts.KV' E.s E.γ ∗ mvcc.hookIs E.γ E.P E.f ∗
-    isApplyLessor opts.Lessor' E.γ E.P E.f ∗ isAuthStore opts.AuthStore' E.P E.f ∗
+    isApplyLessor opts.Lessor' E.γ E.P E.f ∗ isAuthStore opts.AuthStore' E.P E.f E.RD ∗
     isAlarmStore opts.AlarmStore' E.P E.f ∗ isCluster opts.Cluster' E.P E.f ∗
     isRaftStatus opts.RaftStatus' ∗ isSnapshotServer opts.SnapshotServer' ∗
     isConsistentIndexer opts.ConsistentIndex')
@@ -616,13 +633,15 @@ def authInfoOwn (p : Loc) : IProp GF :=
     structFieldRef authApplierV3 go!"authInfo" p ↦ info)
 
 /-- **The `*authApplierV3` `p`**: its inner applier, auth store and lessor, read-only, with
-their contracts, and its mutex, whose resource is its `authInfo`. -/
+their contracts, and its mutex, whose resource is its `authInfo` and a reader resource of the auth
+store (`E.RD`: `Apply`'s admin check; 2026-10-14, unit A2). -/
 def authIs (E : AEnv GF) (p : Loc) (inner : GoInterface) : IProp GF :=
   iprop(structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ∗
-    (∃ st : GoInterface, structFieldRef authApplierV3 go!"as" p ↦□ st ∗ isAuthStore st E.P E.f) ∗
+    (∃ st : GoInterface, structFieldRef authApplierV3 go!"as" p ↦□ st ∗
+      isAuthStore st E.P E.f E.RD) ∗
     (∃ le : GoInterface, structFieldRef authApplierV3 go!"lessor" p ↦□ le ∗
       isApplyLessor le E.γ E.P E.f) ∗
-    sync.isMutex (structFieldRef authApplierV3 go!"mu" p) (authInfoOwn p))
+    sync.isMutex (structFieldRef authApplierV3 go!"mu" p) iprop(authInfoOwn p ∗ E.RD))
 
 instance authIs_persistent (E : AEnv GF) (p : Loc) (inner : GoInterface) :
     Persistent (authIs E p inner) := by

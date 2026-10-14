@@ -26,7 +26,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 on any auth info, an error the gRPC layer can take) and the read `get` (`{G} get() {Q}`): the
 request's auth info (`AuthInfoFromCtx`, or an empty one), `chk` of it, `get()`, then the
 token's revision against the auth store's (`ErrAuthOldRevision`). Success: `get` ran (`Q`);
-failure: an error the gRPC layer can take, and `get` ran or not (`G ∨ Q`). -/
+failure: an error the gRPC layer can take, and `get` ran or not (`G ∨ Q`). 2026-10-14 (unit A2):
+the auth store's reader resource `E.RD`, which `AuthInfoFromCtx` and `chk` take and give back. -/
 abbrev EtcdServer.doSerialize.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (chk get : GoFunc) (G Q : IProp GF) (t : Loc) (e : Bool),
@@ -34,15 +35,15 @@ abbrev EtcdServer.doSerialize.spec : Prop :=
       isServerReq s E ρ ∗ isServerRead s E γr ∗ mvcc.txnCtx ctx cd ∗
       traceutil.ctxTraceIs ctx (some t) ∗
       (∀ (a : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac),
-        {{ a ↦{dq} info }} (App (Val #chk) (Val #a))
-        {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ applyErrIs err }}) ∗
+        {{ a ↦{dq} info ∗ E.RD }} (App (Val #chk) (Val #a))
+        {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ E.RD ∗ applyErrIs err }}) ∗
       {{ G ∗ traceutil.ownTrace t e }} (App (Val #get) (Val #())) {{ RET #(); Q }} ∗ G ∗
-      traceutil.ownTrace t e }}
+      traceutil.ownTrace t e ∗ E.RD }}
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"doSerialize"))
       (Val #(GoInterface.ok ctx))) (Val #chk)) (Val #get))
-  {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ Q) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
-        ((G ∗ traceutil.ownTrace t e) ∨ Q)) }}
+  {{ (err : GoInterface), RET #err; E.RD ∗
+      ((⌜err = GoInterface.nil⌝ ∗ Q) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+        ((G ∗ traceutil.ownTrace t e) ∨ Q))) }}
 
 end spec
 

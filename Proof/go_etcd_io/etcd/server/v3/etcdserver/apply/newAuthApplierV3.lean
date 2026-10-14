@@ -44,7 +44,7 @@ theorem apply.newAuthApplierV3.wp_proof
     (hRG : apply.authApplierV3.RoleGet.spec (GF := GF) (hG := hG)) :
     apply.newAuthApplierV3.spec (GF := GF) (hG := hG) := by
   intro E c st base le
-  wp_start as ⟨#Hst, #Hle, #Hbase⟩
+  wp_start as ⟨#Hst, #Hle, Hard, #Hbase⟩
   ihave #Hb := Hbase
   iunfold apply.applierSpec at Hb
   icases Hb with ⟨%bi, %Hbi, #Ht⟩
@@ -58,10 +58,10 @@ theorem apply.newAuthApplierV3.wp_proof
   ipersist applierV3
   ipersist as'
   ipersist lessor
-  imod sync.init_Mutex (apply.authInfoOwn (GF := GF) p) ⊤ (structFieldRef authApplierV3 go!"mu" p)
-    $$ [mu] [authInfo] with #Hmu
+  imod sync.init_Mutex iprop(apply.authInfoOwn (GF := GF) p ∗ E.RD) ⊤
+      (structFieldRef authApplierV3 go!"mu" p) $$ [mu] [authInfo Hard] with #Hmu
   · iexact mu
-  · inext; iunfold apply.authInfoOwn; iexists _; iexact authInfo
+  · inext; iframe Hard; iunfold apply.authInfoOwn; iexists _; iexact authInfo
   ihave #Hauth : apply.authIs E p (.ok bi) $$ []
   · iunfold apply.authIs
     iframe applierV3 Hmu

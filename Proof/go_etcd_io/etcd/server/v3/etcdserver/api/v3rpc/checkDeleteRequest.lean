@@ -35,7 +35,7 @@ theorem v3rpc.checkDeleteRequest.wp_proof :
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, ⟨#HeK, -, -, -, -, -, -⟩, -, -⟩
   iunfold txn.deleteRangeRequestIs at Hr
-  icases Hr with ⟨%Hrn, %ksl, %esl, %k, %e, %pk, #Hk, #Hks, -, -, -, %Ho⟩
+  icases Hr with ⟨%Hrn, %ksl, %esl, %k, %e, %pk, #Hk, #Hks, -, -, -, %Ho, -⟩
   ihave %Hkl := ownSlice_len _ _ _ $$ Hks
   subst Ho
   wp_auto

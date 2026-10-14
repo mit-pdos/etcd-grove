@@ -387,8 +387,10 @@ theorem kvPutOk_of_server (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
   iunfold srvCall at Hcall
   icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, -, Hcred, Hrd⟩
   subst Hci
-  wp_apply hPut s E ρ ci cd r o $$ [Hrd Hcred] as %resp %err ⟨Hrd, Hres⟩
-  · iframe #; iframe Hrd Hcred
+  ihave ⟨Hard, Hrc⟩ := srvRdCall_rd s E γr c $$ Hrc
+  wp_apply hPut s E ρ ci cd r o $$ [Hrd Hard Hcred] as %resp %err ⟨Hrd, Hard, Hres⟩
+  · iframe #; iframe Hrd Hard Hcred
+  ihave Hrc := Hrc $$ Hard
   iapply HΦ
   iunfold kvAnswer
   icases Hres with (⟨%Herr, %hm, %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert, #Hwit⟩ |
@@ -441,8 +443,10 @@ theorem kvDeleteOk_of_server (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG 
   iunfold srvCall at Hcall
   icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, -, Hcred, Hrd⟩
   subst Hci
-  wp_apply hDel s E ρ ci cd r o $$ [Hrd Hcred] as %resp %err ⟨Hrd, Hres⟩
-  · iframe #; iframe Hrd Hcred
+  ihave ⟨Hard, Hrc⟩ := srvRdCall_rd s E γr c $$ Hrc
+  wp_apply hDel s E ρ ci cd r o $$ [Hrd Hard Hcred] as %resp %err ⟨Hrd, Hard, Hres⟩
+  · iframe #; iframe Hrd Hard Hcred
+  ihave Hrc := Hrc $$ Hard
   iapply HΦ
   iunfold kvAnswer
   icases Hres with (⟨%Herr, %hm, %rq', %op', %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert⟩ |

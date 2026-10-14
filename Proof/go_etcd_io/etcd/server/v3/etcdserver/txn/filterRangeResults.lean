@@ -31,7 +31,7 @@ theorem txn.filterRangeResults.wp_proof (hPrune : txn.pruneKVs.spec (GF := GF) (
   wp_start as ⟨Hres, #Hr⟩
   ihave #Hr2 := Hr
   iunfold txn.rangeRequestIs at Hr2
-  icases Hr2 with ⟨%Hnn, %ksl, %esl, %k, %e, %rv, %limit, %order, %target, %ser, %ko, %co, %minM, %maxM, %minC, %maxC, #Hk, #Hks, #He, #Hes, #Hlim, #Hrev, #Hord, #Htgt, #Hser, #Hko, #Hco, #HminM, #HmaxM, #HminC, #HmaxC, %Ho⟩
+  icases Hr2 with ⟨%Hnn, %ksl, %esl, %k, %e, %rv, %limit, %order, %target, %ser, %ko, %co, %minM, %maxM, %minC, %maxC, #Hk, #Hks, #He, #Hes, #Hlim, #Hrev, #Hord, #Htgt, #Hser, #Hko, #Hco, #HminM, #HmaxM, #HminC, #HmaxC, %Ho, -⟩
   wp_auto
   ipersist r
   wp_join iprop(rr_ptr ↦ rr ∗ txn.rangeResultIs rr rev count (vs.filter (fun v => decide (maxM = W64 0) || decide (sint.Z v.modRev ≤ sint.Z maxM)))) with [Hres rr] as ⟨rr, Hres⟩

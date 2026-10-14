@@ -37,6 +37,7 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
   icases Hpre with ⟨%Hk, #Hr, Hwt, Hm⟩
   iunfold apply.mPre at Hm
   icases Hm with ⟨Hkv, Hres, Hcs⟩
+  ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
   ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner $$ Happ Hres
   iunfold apply.authInfoOwn at Hinfo
   icases Hinfo with ⟨%info, Hinfo⟩
@@ -51,7 +52,8 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
   iunfold apply.leaseRevokeIs at Hr'
   icases Hr' with ⟨%Hrn, #HID⟩
   wp_auto
-  wp_apply (hLP st le E.γ E.P E.f _ info (DFrac.own 1) id) $$ [$Hst $Hle $Hinfo] as %err ⟨Hinfo, #HeI⟩
+  wp_apply (hLP st le E.γ E.P E.f E.RD _ info (DFrac.own 1) id) $$ [$Hst $Hle $Hinfo $Hard] as %err ⟨Hinfo, Hard, #HeI⟩
+  ihave Hkv := Hkv $$ Hard
   cases err with
   | ok e' =>
     wp_auto

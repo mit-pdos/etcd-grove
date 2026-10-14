@@ -5209,3 +5209,52 @@ thread deposits at the names the waiter expects; the read side (`isServerRead s 
 unchanged, and `etcd_kv_served` registers the `Put` at `ρ.rd` (a user instantiates its `γr` with
 `ρ.rd` to get both at one name). *Rejected:* a read-names parameter on `isServerReq` (29 files of
 request-path specs for a name only the wait's condition uses).
+
+## The auth premises over a reader resource (unit A2, 2026-10-14 · adopted)
+
+**Decision:** the server's auth contracts take the caller's reader resource: `isReqAuth st RD`
+(`AuthInfoFromCtx`) and `apply.isAuthStore st P f RD` (the permission checks, `IsAdminPermitted`,
+`IsAuthEnabled`), each call taking `RD` and giving it back, and the permission checks the key's
+length below `2 ^ 63 - 1`. These are P2's derived forms, so the real store meets them:
+`isReqAuth_of_authInv` and `apply.isAuthStore_of_authInv` at `RD := auth.authRd st R` (a slot of
+`enabledMu`, of `rangePermCacheMu`, and the backend's read resource `R`). One resource for both
+contracts: `AuthInfoFromCtx` uses only `authRd`'s `enabledMu` slot, and every holder of one needs
+the other's checks too.
+
+**The resource is the environment's** (`apply.AEnv.RD`, the plan of integration I1): every
+statement over the apply chain or the server's views already names `E`, so the contracts are
+`isAuthStore … E.RD`/`isReqAuth … E.RD` and no statement gains a parameter. Its holders, each a
+thread that calls the store:
+
+- the apply thread, in `kvOwn E log` (every applier method's precondition: the auth layer's KV
+  methods and `UserGet`/`RoleGet`, the backend's `AuthStatus`);
+- the auth layer's mutex (`authIs`: `authInfoOwn p ∗ E.RD`), for `Apply`'s admin check:
+  `Apply` runs before the `applyFunc` hands the thread's resources to the methods, and its own
+  precondition is the caller's opaque `A` (so a second resource, given to `newAuthApplierV3` at
+  construction). *Rejected:* `E.RD` in `chainRes` (one copy, but `chainRes` is `E`-free and in
+  every method's statement); `E.RD` in `Apply`'s triple (the `applyFunc` would then lack it while
+  `Apply` holds it);
+- a read call's `srvRdCall` (the read path's `AuthInfoFromCtx`, `chk`, `CheckTxnAuth`), lent to
+  `EtcdServer.Put`/`DeleteRange` by v3rpc's handlers, which hold one;
+- the write path beside `srvLeadTimeReader s` (`processInternalRaftRequestOnce`'s
+  `AuthInfoFromCtx`, up through `raftRequest`, `Put`, `DeleteRange`, `Alarm`, the quota wrapper);
+- the client's gRPC run slots (`etcdRunSlot`, and one more in `etcdGrpcSlot` for the quota
+  wrapper's alarm): the bounded pool of runs is what makes the bounded `RWMutex` slots enough.
+
+*Rejected* (again, P2): the slots in the store's invariant (unboundedly many concurrent requests).
+
+**The key bound is a conjunct of the request models** (`rangeRequestIs`, `putRequestIs`,
+`deleteRangeRequestIs`, `compareIs`: `⌜sint.Z ksl.len < 2 ^ 63 - 1⌝` of the `Key` slice, the last
+conjunct, so a destructuring pattern ending in `-` is unchanged). The decoding states it (grpc's
+`recv` is the predicate; `pbutil.MustUnmarshalMessage`'s request too): true of every slice in
+memory, the gap is only the model's `make`. The nested transaction's checks inherit it through
+`requestOpIs`. A lease's keys get it from the lessor's `Lookup` contract (`leaseIs`' `Keys()`).
+The one proof that builds a request, `txn.Count`, takes it as a premise. *Rejected:* a model-level
+`keyFits o` beside the predicates (a recursive predicate over the transaction's ops and
+comparisons, restated at every layer that carries a request); a separate slice-level predicate
+(the same recursion).
+
+**The construction premise keeps the contracts** (smaller than stating `auth.authInv st R` in
+`isServerBuilt`: the premise's other clauses are contracts of the same kind): a `NewServer` proof
+would discharge them from `NewAuthStore`'s invariant with the two derivations, the admin part
+`isAuthStoreAdmin` assumed.

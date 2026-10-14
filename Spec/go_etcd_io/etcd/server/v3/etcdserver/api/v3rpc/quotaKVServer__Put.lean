@@ -29,8 +29,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 
 /-- **`q.Put(ctx, r)`** on a `*quotaKVServer` over a service `kv` whose `Put` meets `Spec` with
 the resource `S` (`grpcHandlerOk`), for the server `s` (its request-path view and id budget, for
-the alarm): the quota check, then `kv.Put(ctx, r)`: `S` and the reader slot of `leadTimeMu` come
-back, and on success the response is `kv.Put`'s (at some `m'` with `Φ m'`). -/
+the alarm): the quota check, then `kv.Put(ctx, r)`: `S`, the reader slot of `leadTimeMu` and the
+auth store's reader resource `E.RD` (2026-10-14, unit A2) come back, and on success the response is `kv.Put`'s (at some `m'` with `Φ m'`). -/
 abbrev v3rpc.quotaKVServer.Put.spec : Prop :=
   ∀ (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep) (q s : Loc) (kv : GoInterfaceOk)
     (E : apply.AEnv GF) (ρ : ReqNames) (S : IProp GF) (m : Req.M) (Φ : Rep.M → IProp GF)
@@ -38,11 +38,11 @@ abbrev v3rpc.quotaKVServer.Put.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       v3rpc.quotaKVServerAt q kv s ∗ grpcHandlerOk #(methods kv.ty go!"Put" kv.v) S Spec ∗
-      isServerReq s E ρ ∗ □ (|==> idCred ρ.ids 1) ∗ S ∗ srvLeadTimeReader s ∗
+      isServerReq s E ρ ∗ □ (|==> idCred ρ.ids 1) ∗ S ∗ srvLeadTimeReader s ∗ E.RD ∗
       context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗ Spec m Φ }}
     (App (App (Val (q @!! go.GoType.PointerType v3rpc.quotaKVServer.ty @!! go!"Put"))
       (Val #(GoInterface.ok ci))) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ srvLeadTimeReader s ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ srvLeadTimeReader s ∗ E.RD ∗
       (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') }}
 
 end spec

@@ -34,7 +34,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
   wp_start as ⟨#Hb, ⟨%g, #Hr⟩, Hpre⟩
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
-  icases Hpre with ⟨⟨Hrd, Hsw, Hlive⟩, Hres, Hcs⟩
+  icases Hpre with ⟨⟨Hrd, Hsw, Hlive, Hard⟩, Hres, Hcs⟩
   iunfold apply.leasesLive at Hlive
   icases Hlive with ⟨%L, #Hknown, Hu⟩
   iunfold EtcdGrove.lease.lessorUser at Hu

@@ -61,7 +61,7 @@ theorem v3rpc.checkRangeStreamRequest.wp_proof
   ihave #Hr' := Hr
   iunfold txn.rangeRequestIs at Hr'
   icases Hr' with ⟨%Hrn, %ksl, %esl, %k, %e, %rev, %limit, %order, %target, %ser, %ko, %co,
-    %minM, %maxM, %minC, %maxC, -, -, -, -, -, -, #Ho, #Ht, -, -, -, -, -, -, -, %Hop⟩
+    %minM, %maxM, %minC, %maxC, -, -, -, -, -, -, #Ho, #Ht, -, -, -, -, -, -, -, %Hop, -⟩
   cases hc : v3rpc.rangeCheck o with
   | some ce =>
     simp only [v3rpc.checkRes]

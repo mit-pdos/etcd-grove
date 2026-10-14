@@ -35,7 +35,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   iunfold apply.revokePre at Hpre
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
-  icases Hpre with ⟨%Hrq, #Hr, Hwt, ⟨Hrd, Hsw, Hlive⟩, Hres, Hcs⟩
+  icases Hpre with ⟨%Hrq, #Hr, Hwt, ⟨Hrd, Hsw, Hlive, Hard⟩, Hres, Hcs⟩
   iunfold apply.leasesLive at Hlive
   icases Hlive with ⟨%L, #Hknown, Hu⟩
   iunfold EtcdGrove.lease.lessorUser at Hu
@@ -69,7 +69,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   simp only [apply.revokeOutcomeIs, apply.Outcome.logAfter]
   iframe HeI Hres HPP
   iunfold apply.kvOwn
-  iframe Hrd Hsw
+  iframe Hrd Hsw Hard
   iunfold apply.leasesLive
   iexists L'
   iframe Hknown'

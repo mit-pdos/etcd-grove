@@ -37,7 +37,7 @@ theorem txn.getPrevKV.wp_proof
   wp_start as ⟨%Htr, Htx, #Hp⟩
   iunfold txn.putRequestIs at Hp
   icases Hp with ⟨%Hpnn, %ksl, %vsl, %k, %v, %lease, %pk, %iv, %il, #Hk, #Hks, #Hv, #Hvs, #Hl,
-    #Hpk, #Hiv, #Hil, -, %Ho⟩
+    #Hpk, #Hiv, #Hil, -, %Ho, -⟩
   have hR : txn.readsPrev o = ((iv || il) || pk) := by subst Ho; rfl
   have hK : o.key = k := by subst Ho; rfl
   rw [hR, hK]

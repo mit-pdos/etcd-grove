@@ -41,7 +41,7 @@ theorem v3rpc.checkRangeRequest.wp_proof :
   icases HeS with ⟨%eS, #HeS⟩
   iunfold txn.rangeRequestIs at Hr
   icases Hr with ⟨%Hrn, %ksl, %esl, %k, %e, %rev, %limit, %order, %target, %ser, %ko, %co,
-    %minM, %maxM, %minC, %maxC, #Hk, #Hks, -, -, -, -, #Ho, #Ht, -, -, -, -, -, -, -, %Hop⟩
+    %minM, %maxM, %minC, %maxC, #Hk, #Hks, -, -, -, -, #Ho, #Ht, -, -, -, -, -, -, -, %Hop, -⟩
   ihave %Hkl := ownSlice_len _ _ _ $$ Hks
   subst Hop
   wp_auto
