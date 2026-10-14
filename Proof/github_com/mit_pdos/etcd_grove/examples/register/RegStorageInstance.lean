@@ -18,6 +18,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.Storage__Snapshot
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.Storage__InitialState
+public import Proof.go_etcd_io.raft.v3.Sig
 
 @[expose] public section
 
@@ -89,7 +90,7 @@ theorem regStorage_isStorage
     imodintro
     iintro %Φ ⟨Hown, %Hpn⟩ HΦ
     ihave Hown := regOwnStorage_at s ms γs σ $$ Hrec Hown
-    ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init ms γs σ $$ Hown
+    ihave ⟨#Hinit, Hown⟩ := raftSig.laws.ownMemoryStorage_init ms γs σ $$ Hown
     wp_method_call
     wp_auto
     wp_apply MemoryStorage.wp_LastIndex $$ [$Hown] as %li ⟨%Hli, Hown⟩
@@ -103,7 +104,7 @@ theorem regStorage_isStorage
     imodintro
     iintro %Φ Hown HΦ
     ihave Hown := regOwnStorage_at s ms γs σ $$ Hrec Hown
-    ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init ms γs σ $$ Hown
+    ihave ⟨#Hinit, Hown⟩ := raftSig.laws.ownMemoryStorage_init ms γs σ $$ Hown
     wp_method_call
     wp_auto
     wp_apply MemoryStorage.wp_FirstIndex $$ [$Hown] as %fi ⟨%Hfi, Hown⟩
@@ -116,7 +117,7 @@ theorem regStorage_isStorage
     imodintro
     iintro %Φ ⟨Hown, %Hr, %Hpf⟩ HΦ
     ihave Hown := regOwnStorage_at s ms γs σ $$ Hrec Hown
-    ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init ms γs σ $$ Hown
+    ihave ⟨#Hinit, Hown⟩ := raftSig.laws.ownMemoryStorage_init ms γs σ $$ Hown
     wp_method_call
     wp_auto
     wp_apply MemoryStorage.wp_Term $$ [$Hown] as %t ⟨%Ht, Hown⟩
@@ -130,7 +131,7 @@ theorem regStorage_isStorage
     imodintro
     iintro %Φ ⟨Hown, %Hr, %Hpf⟩ HΦ
     ihave Hown := regOwnStorage_at s ms γs σ $$ Hrec Hown
-    ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init ms γs σ $$ Hown
+    ihave ⟨#Hinit, Hown⟩ := raftSig.laws.ownMemoryStorage_init ms γs σ $$ Hown
     wp_method_call
     wp_auto
     wp_apply MemoryStorage.wp_Entries $$ [$Hown] as %sl %es ⟨Hs, %Hp, Hown⟩
@@ -143,7 +144,7 @@ theorem regStorage_isStorage
   · imodintro
     iintro %σ Hown
     ihave Hown := regOwnStorage_at s ms γs σ $$ Hrec Hown
-    icases ownMemoryStorage_bounded ms γs σ $$ Hown with ⟨%Hb, Hown⟩
+    icases raftSig.laws.ownMemoryStorage_bounded ms γs σ $$ Hown with ⟨%Hb, Hown⟩
     ihave Hown := regOwnStorage_intro s ms γs σ $$ Hrec Hown
     iframe Hown
     ipureintro; exact Hb
@@ -160,7 +161,7 @@ theorem regStorage_isStorage
   · imodintro
     iintro %σ %p Hown %Hpo
     ihave Hown := regOwnStorage_at s ms γs σ $$ Hrec Hown
-    imod memStorage_handout ms γs σ p Hpo $$ Hown with ⟨Hown, Htok⟩
+    imod raftSig.laws.memStorage_handout ms γs σ p Hpo $$ Hown with ⟨Hown, Htok⟩
     ihave Hown := regOwnStorage_intro s ms γs _ $$ Hrec Hown
     imodintro
     iframe Hown
@@ -181,7 +182,7 @@ theorem regStorage_isStorage
   subst this
   icases regStorRec_agree s ms ms' γs γs' $$ Hrec Hrec2 with ⟨%H1, %H2⟩
   subst H1 H2
-  imod memStorage_absorb ms γs σ1 σ p $$ Hown Ht with ⟨%Heq, Hown⟩
+  imod raftSig.laws.memStorage_absorb ms γs σ1 σ p $$ Hown Ht with ⟨%Heq, Hown⟩
   ihave Hown := regOwnStorage_intro s ms γs _ $$ Hrec Hown
   imodintro
   iframe Hown

@@ -25,6 +25,7 @@ public import Spec.go_etcd_io.raft.v3.node__Step
 public import Spec.go_etcd_io.raft.v3.node__Tick
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.RegStorageInstance
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Alloc
+public import Proof.go_etcd_io.raft.v3.Sig
 
 @[expose] public section
 
@@ -207,12 +208,12 @@ theorem Main.wp_proof
   rw [Hsz, Hl]
   imod ownSlice_persist _ _ _ $$ Hvsl with #Hvsl
   -- raft's ghost state for the cluster, the term budget, the proposed slices
-  imod ownRaftGhost_alloc (GF := GF) ⊤ (GMap.listToSet clusterIds) (GMap.listToSet clusterIds)
+  imod (raftSig.ghostLaws (GF := GF)).ownRaftGhost_alloc ⊤ (GMap.listToSet clusterIds) (GMap.listToSet clusterIds)
     (by rw [GMap.elem_of_list_to_set]; decide)
     with ⟨%γ, %Hcfg, #Hcinv, #Hc0, Hghosts, HcL, Hfresh, HreSl⟩
-  imod budget_alloc (GF := GF) (3 * ticksN) (by unfold ticksN; omega) ⊤
+  imod (raftSig.laws (GF := GF)).budget_alloc (3 * ticksN) (by unfold ticksN; omega) ⊤
     with ⟨%bud, #Hbinv, Hcred, #Hlb0⟩
-  imod propDataInv_alloc (GF := GF) γ ⊤ $$ HreSl with #Hpd
+  imod (raftSig.laws (GF := GF)).propDataInv_alloc γ ⊤ $$ HreSl with #Hpd
   -- the register's invariant, the client's half of the value, the sequence-number tokens
   imod regInv_alloc (GF := GF) ⊤ γ (constMap clusterIds (W64 0)) $$ HcL Hfresh
     with ⟨%γr, %Hγr, #Hreg, Hval, Hseqs⟩
@@ -446,7 +447,7 @@ theorem Main.wp_proof
         rw [show 3 - sint.nat k = (3 - (sint.nat k + 1)) + 1 by omega, Nat.add_mul, Nat.one_mul,
           Nat.add_comm]
       rw [Hcr]
-      icases (tickCred_split bud ticksN _).1 $$ Hcred with ⟨Hc1, Hcred⟩
+      icases (raftSig.laws.tickCred_split bud ticksN _).1 $$ Hcred with ⟨Hc1, Hcred⟩
       ihave Hregs' : iprop([∗list] id ∈ clusterIds.take (sint.nat k + 1), ∃ (r' : Loc)
           (γp' : RepNames), ⌜(<[id0 := r]> R) !! id = some r'⌝ ∗ isRegister (GF := GF) γr γp' r' ∗
             opCred γp' (2 ^ 64 - 1)) $$ [Hregs Hopc]

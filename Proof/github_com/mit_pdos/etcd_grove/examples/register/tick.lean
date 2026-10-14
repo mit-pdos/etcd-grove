@@ -7,6 +7,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.tick
 public import Spec.go_etcd_io.raft.v3.node__Tick
 public import Perennial.Proof.time
+public import Proof.go_etcd_io.raft.v3.Sig
 
 @[expose] public section
 
@@ -44,7 +45,7 @@ theorem tick.wp_proof (wp_node_Tick : node.Tick.spec (GF := GF) (hG := hG)) :
   wp_if_destruct
   · have Hlt : sint.nat k < ticksN := by unfold ticksN at *; word
     rw [show ticksN - sint.nat k = 1 + (ticksN - (sint.nat k + 1)) by omega]
-    icases (tickCred_split γn.bud 1 _).1 $$ Hcred with ⟨Hc1, Hcred⟩
+    icases (raftSig.laws.tickCred_split γn.bud 1 _).1 $$ Hcred with ⟨Hc1, Hcred⟩
     wp_apply time.wp_Sleep
     wp_apply wp_node_Tick γn id n $$ [$HisNode $Hc1]
     wp_for_post

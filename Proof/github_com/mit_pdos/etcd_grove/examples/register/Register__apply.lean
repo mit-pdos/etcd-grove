@@ -7,6 +7,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.Register__apply
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.decode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Lemmas
+public import Proof.go_etcd_io.raft.v3.Sig
 
 @[expose] public section
 
@@ -37,9 +38,9 @@ theorem Register.apply.wp_proof (wp_decode : register.decode.spec (GF := GF) (hG
   iNamed Hrun
   -- the data of the entries applied so far and of `e`
   rw [← Hraft]
-  imod node_committed_data γp.node id n (ap ++ [e]) ⊤ CoPset.subseteq_top $$ HisNode Hce
+  imod raftSig.laws.node_committed_data γp.node id n (ap ++ [e]) ⊤ CoPset.subseteq_top $$ HisNode Hce
     with ⟨%ods', #Hods'⟩
-  ihave %Hpre := entDataIs_list_prefix _ ap (ap ++ [e]) ods ods' (List.prefix_append _ _)
+  ihave %Hpre := raftSig.ghostLaws.entDataIs_list_prefix _ ap (ap ++ [e]) ods ods' (List.prefix_append _ _)
     $$ Hods Hods'
   ihave %Hl1 := BigSepL2.bigSepL2_length $$ Hods
   ihave %Hl2 := BigSepL2.bigSepL2_length $$ Hods'
@@ -91,7 +92,7 @@ theorem Register.apply.wp_proof (wp_decode : register.decode.spec (GF := GF) (hG
     ihave #He' := He
     iunfold entDataIs at He'
     icases He' with ⟨%Hz, #Hpd, #Hdep⟩
-    imod node_entData_heap γp.node id n e d ⊤ CoPset.subseteq_top $$ HisNode He with #Hd
+    imod raftSig.laws.node_entData_heap γp.node id n e d ⊤ CoPset.subseteq_top $$ HisNode He with #Hd
     wp_if_destruct
     rotate_left
     · exact absurd Hz.2 Hif
@@ -186,7 +187,7 @@ theorem Register.apply.wp_proof (wp_decode : register.decode.spec (GF := GF) (hG
             imod reg_deposited_minted γr d d0 (rep, sq) ⊤ CoPset.subseteq_top
               (by rw [show (⊤ : CoPset) \ ↑regN = ⊤ \ ↑regN from rfl]; exact raftN_regN) Hkey
               $$ Hinv [] [] [] with %Hd0
-            · rw [← Hraft]; open_node HisNode; iexact Hcinv
+            · rw [← Hraft]; iapply raftSig.laws.isNode_commitInv $$ HisNode
             · rw [← Hraft]; iexact Hdep
             · rw [Hif]; iexact Hmint
             subst Hd0
@@ -261,7 +262,7 @@ theorem Register.apply.wp_proof (wp_decode : register.decode.spec (GF := GF) (hG
             imod reg_deposited_minted γr d d0 (rep, sq) ⊤ CoPset.subseteq_top
               (by rw [show (⊤ : CoPset) \ ↑regN = ⊤ \ ↑regN from rfl]; exact raftN_regN) Hkey
               $$ Hinv [] [] [] with %Hd0
-            · rw [← Hraft]; open_node HisNode; iexact Hcinv
+            · rw [← Hraft]; iapply raftSig.laws.isNode_commitInv $$ HisNode
             · rw [← Hraft]; iexact Hdep
             · rw [Hif]; iexact Hmint
             subst Hd0

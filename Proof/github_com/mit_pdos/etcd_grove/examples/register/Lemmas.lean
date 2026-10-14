@@ -6,7 +6,7 @@ Lean-first (no Rocq counterpart).
 - `regStor_register`: a new storage joins the registry (`regStorInv`, `Defs.lean`).
 - `reg_mint`: a new sequence number mints the operation's fresh token (`MintOk`).
 - `reg_deposited_minted`: a deposited datum (raft's registry) was minted, so a datum with
-  a minted key is the one minted there.
+  a minted key is the one minted there (raft's `deposited_fresh`, a law of its signature).
 - `reg_propAu`: the client's atomic update over the register's value, wrapped as the
   atomic update over raft's client log that `Node.Propose` deposits: when raft commits
   the operation's first entry, it opens `regInv`, runs the client's update and moves the
@@ -16,6 +16,7 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Defs
+public import Proof.go_etcd_io.raft.v3.Sig
 
 @[expose] public section
 
@@ -202,30 +203,7 @@ theorem reg_deposited_minted (γr : RegNames) (d d0 : List w8) (k : w64 × w64) 
   unfold regInvBody
   icases Hi with ⟨%L, %M, %S, %Mi, HcL, Hv, HM, HS, HMi, %Hok⟩
   -- the datum's fresh token is in raft's registry: `d ∈ M`
-  unfold raftCommitInv
-  iinv Hcinv with ⟨%P, %R, >HP, >Hj, >Htbl, Hpo⟩ Hclose2
-  imod propsOwn_open γr.raft _ P R $$ Hpo with Hpo
-  unfold propsOwnL
-  icases Hpo with ⟨%odsP, #HdsP, Hv2, Hra, Hs⟩
-  unfold deposited
-  icases Hdep with ⟨%γp, #Hfr⟩
-  icases ghost_map_lookup $$ Hra Hfr with %HR
-  icases (BigSepM.bigSepM_lookup_acc (Φ := fun d γp =>
-    iprop(▷ (propSlot (GF := GF) γr.raft d γp (firstOcc odsP) ∗ propFresh γr.raft d))) HR).1 $$ Hs
-    with ⟨⟨Hsl, >Hf⟩, Hsback⟩
-  iunfold propFresh at Hf
-  icases ghost_map_lookup $$ HM Hf with %HMd
-  ihave Hs := Hsback $$ [Hsl Hf]
-  · inext; iframe Hsl; unfold propFresh; iexact Hf
-  ihave Hpo : propsOwnL γr.raft P R $$ [Hv2 Hra Hs]
-  · unfold propsOwnL
-    iexists odsP
-    iframe HdsP Hv2 Hra Hs
-  ihave Hpo := propsOwn_close γr.raft P R $$ Hpo
-  imod Hclose2 $$ [HP Hj Htbl Hpo] with -
-  · inext
-    iexists P, R
-    iframe
+  imod raftSig.ghostLaws.deposited_fresh γr.raft d M _ HE2 $$ Hcinv Hdep HM with ⟨%HMd, HM⟩
   obtain ⟨k', Hk', HMik⟩ := Hok.1 d HMd
   rw [Hk] at Hk'; cases Hk'
   icases ghost_map_lookup $$ HMi Hmint with %HMi0

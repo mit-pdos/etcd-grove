@@ -11,6 +11,7 @@ public import Spec.go_etcd_io.raft.v3.node__Ready
 public import Spec.go_etcd_io.raft.v3.node__Advance
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Append
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.RegStorageInstance
+public import Proof.go_etcd_io.raft.v3.Sig
 
 @[expose] public section
 
@@ -52,7 +53,7 @@ theorem Register.run.wp_proof
   · iexists [], _
     iframe
   wp_for IH
-  wp_apply node_ready_receive γp.node id n ch ds $$ [$Hch $Hdrv] as %rdv' ⟨%ce, %es, %msgs, Hdata, Hbusy⟩
+  wp_apply raftSig.laws.node_ready_receive γp.node id n ch ds $$ [$Hch $Hdrv] as %rdv' ⟨%ce, %es, %msgs, Hdata, Hbusy⟩
   unfold readyData
   icases Hdata with ⟨#Hce, #Hcomm, #Hes, Happ, Hms, Hmsok, %Hsnap⟩
   wp_apply wp_fits rdv'.Entries' es DFrac.discard $$ [$Hes] as %b ⟨-, %Hfit⟩
@@ -126,7 +127,7 @@ theorem Register.run.wp_proof
     · iframe Hce; ipureintro; exact Hen
     have Htk : ce.take (sint.nat k + 1) = ce.take (sint.nat k) ++ [en] := by
       rw [List.take_add_one, Hen]; rfl
-    ihave #Hc1 := isCommitted_mono γp.node.raft (ds ++ ce.take (sint.nat k) ++ [en]) (ds ++ ce)
+    ihave #Hc1 := raftSig.ghostLaws.isCommitted_mono γp.node.raft (ds ++ ce.take (sint.nat k) ++ [en]) (ds ++ ce)
       (by rw [List.append_assoc, ← Htk]; exact List.prefix_append_right_inj _ |>.mpr (List.take_prefix _ _))
       $$ Hcomm
     rw [Hraft]

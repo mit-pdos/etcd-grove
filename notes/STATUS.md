@@ -19,6 +19,17 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## raft's signature (2026-10-14, branch `raft-sig`)
+
+`Spec/go_etcd_io/raft/v3/Sig.lean` / `Proof/go_etcd_io/raft/v3/Sig.lean`: the specs a client of
+raft may call, the vocabulary it may name, and the laws (`raftSig.GhostLaws`, `raftSig.Laws`);
+`notes/decisions.md`, "Package signatures: raft's first". The register uses raft only through
+it (`etc/api-check.py raft --check` passes); two laws are new (`deposited_fresh`,
+`isNode_commitInv`), proved from what the register's `reg_deposited_minted` and `apply` did by
+opening raft's predicates. `Proof/go_etcd_io/raft/v3/Results.lean` (`raft_election_safety`, the
+`#print axioms`) is gone. When unit T1 moves `cLog`/`propAu` to the full committed log ("What
+the raft library's proof must prove" in decisions.md), the change is to the signature's laws.
+
 ## Unit T1: Put and Get as persistent atomic updates linearized by raft (2026-10-14, branch `worktree-backend`; in progress)
 
 Design: `notes/decisions.md`, "Put and Get as persistent atomic updates linearized by raft". The

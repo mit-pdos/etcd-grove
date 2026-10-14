@@ -7,6 +7,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.Register__do
 public import Spec.github_com.mit_pdos.etcd_grove.examples.register.encode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.register.Lemmas
+public import Proof.go_etcd_io.raft.v3.Sig
 
 @[expose] public section
 
@@ -145,7 +146,7 @@ theorem Register.do.wp_proof
     simp only [↓reduceIte]
     icases Hres with ⟨-, %γq, #Hp, Htok⟩
     rw [← Hraft]
-    imod node_collect γp.node id n d γq _ l ods m ⊤ CoPset.subseteq_top Hm1 Hm2
+    imod raftSig.laws.node_collect γp.node id n d γq _ l ods m ⊤ CoPset.subseteq_top Hm1 Hm2
       $$ HisNode Hp Htok Hl Hods with HQ
     imod lc_fupd_elim_later $$ Hlc1 HQ with HQ
     imod lc_fupd_elim_later $$ Hlc2 HQ with HQ

@@ -5666,3 +5666,62 @@ Against the verified raft's names (`Protocol/GhostState.lean`, `InvNode.lean`):
   - for a configuration reduced to one voter, it rests on the reconfiguration invariants: the node
     applies the change that makes it the sole voter only once its commit index has passed that
     change.
+
+## Package signatures: raft's first (2026-10-14 · adopted for raft)
+
+**The problem.** A client of a package's proof could use anything of it: every definition and
+lemma of its shared files is public. Measured on the register (raft's one client), with
+`etc/api-check.lean`'s scan of the constants its declarations use: 13 specs and their 13 linked
+results, but also ~110 raft definitions and ~40 theorems, among them the commit invariant's
+registry (`reg_deposited_minted` unfolded `raftCommitInv`, opened `propsOwn` with
+`propsOwn_open` from `LeaderCompleteness`, and closed it again) and `isNode`'s body (the apply
+loop's `open_node`, to get `raftCommitInv` out of it, which exposes the node's channel
+protocols `advanceP`, `propP`, `readyP`, `tickInv`). A change to raft's internals could break
+the client, and nothing said what raft promises.
+
+**Decision.** A package states its **signature** in `Spec/<pkg>/Sig.lean`: the specs of the
+functions a client may call (`raftSig.specs`: the exported functions and the `Node`
+interface's methods, 27), the vocabulary beyond what those specs and the laws are stated in
+(`raftSig.vocab`, each entry with why it is exported: the proposal protocol's client side,
+the messages a driver delivers, the `Storage` contract a client's storage meets, the logger),
+and the **laws** of the vocabulary as `Prop` structures (`raftSig.GhostLaws` over the ghost
+state alone, for a client's ghost lemmas; `raftSig.Laws` at the program level), proved in
+`Proof/<pkg>/Sig.lean` (`raftSig.ghostLaws`, `raftSig.laws`). A client uses a law through the
+signature (`raftSig.laws.node_collect`), so raft's internal names are free to change. Two laws
+are new, the two facts the register proved by reaching past the API: `deposited_fresh` (a
+deposited datum's fresh token is in the client's map) and `isNode_commitInv`.
+
+**The check** (`etc/api-check.py raft`, `--check` exits 1): the clients are the modules outside
+the package that import it; a package constant a client declaration uses (in its statement or
+its proof) must be a spec of `specs`, its `Link` result, the package's initialization, a
+declaration of the signature, vocabulary (listed, or named by a spec or a law), a field or
+constructor of a vocabulary type, an instance, or a pure theorem (no `Iris` constant) over the
+vocabulary. Unfolding a predicate whose body is not vocabulary shows up as a use of its body
+(checked: a module that `open_node`s and uses `propsOwn_open` is reported on both). The
+vocabulary is not closed under bodies: a predicate is transparent only when its body's
+constants are listed (`stepP`'s `netP`/`fwdP`, which a driver builds from raw messages).
+
+**Rejected.**
+- *A class per package, as `EtcdModel`*: Lean-checked abstraction, but a package's own specs
+  cannot be stated over its class (its proofs need the bodies), and every client file would
+  take it as a section variable. It stays for real boundaries: a remote service, the two raft
+  translations.
+- *Lean's `@[no_expose]`* on the API predicates: the package's own proofs are other modules,
+  and need the bodies too.
+- *One `Laws` structure*: the program-level context (`HeapGS`, `StorageModel`, the package's
+  assumptions) is unusable from the register's ghost lemmas (`[AllG GF] [InvGS GF]`).
+- *Keeping the laws' theorem names as the API*: the signature would be documentation only, and
+  raft could not rename an internal lemma a client happened to use.
+
+**Gone with it.** `Proof/go_etcd_io/raft/v3/Results.lean` (its `#print axioms`, done by
+`etc/tcb-report.py`, and `raft_election_safety`, a sanity check that no proof used:
+`isCommitted_agree`, a law, is the property clients use; its overview moved to
+`Proof/go_etcd_io/raft/v3/Sig.lean`). `Sig.lean` is a TCB root (`etc/proof_roots.py`), and
+`etc/tcb-collections/raft.txt` takes `Link|Sig`.
+
+**Open.** `Spec/{math/big,crypto/rand,reflect/DeepEqual}` are stated in raft's vocabulary
+(`ownBigInt`, `confStateDeepEq`) and used by raft alone: the check counts them as raft's; they
+belong in their packages' own vocabulary. `Spec/{fmt/Sprintf,slices/Sort,strings/Join}` import
+`InvRaftPhys`, and `txn/Requests.lean` raft's `ProjSimps` (a tactic command), which other
+packages share: they should import what they use from a shared place. The vocabulary still
+lives in `Proof/` files, mixed with lemmas (rule A of the layout discussion, not done here).

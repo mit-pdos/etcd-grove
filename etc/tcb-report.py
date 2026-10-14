@@ -40,7 +40,8 @@ nothing is a lower bound:
     function that no other proof uses (every theorem of a package's
     `Proof/<pkg>/Link.lean` is one function's spec instantiated with its callees'
     results; a spec some other proof uses is internal: were it wrong, that proof would
-    fail), and the theorems of each `Results.lean` (results restated or derived);
+    fail), the theorems of each `Results.lean` (results restated or derived) and of each
+    `Sig.lean` (a package signature's laws);
   * definitions -- this repository's definitions those statements are written in
     terms of, transitively through their bodies.  A wrong definition makes a true
     theorem say nothing, so these are trusted exactly as the axioms are.

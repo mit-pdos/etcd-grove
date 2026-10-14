@@ -4,13 +4,14 @@
 The layout (CLAUDE.md): `Code/<pkg>` and `GeneratedProof/<pkg>` are Goose translations,
 `Spec/<pkg>/<fn>.lean` and `Proof/<pkg>/<fn>.lean` a Go function's spec and proof, and
 a package's `Proof/<pkg>/Link.lean` links every proof to its callees' (`T.wp_M :
-T.M.spec`; `Results.lean` beside it restates exported results).  A project of
+T.M.spec`; `Results.lean` beside it restates exported results, and a package with a
+signature has `Sig.lean`, the proofs of its laws).  A project of
 `etc/goose.py` may translate more packages into a module root of its own (a `Part`,
 `<root>/Code/`, ..., `<root>/Proof/`), for a Go path that is also translated from another
 source; the modules that reach one part root's translations cannot be imported with
 those that reach another's, or the main root's same path.
 
-The roots are the theorems of every `Link.lean` and `Results.lean` under `Proof/` and
+The roots are the theorems of every `Link.lean`, `Results.lean` and `Sig.lean` under `Proof/` and
 `<root>/Proof/`, so a new package's proofs are picked up when its directory has them.
 `etc/tcb-report.lean` imports the modules of one run into one environment; the runs
 group the root modules by the part roots they reach (none, for most), read off the
@@ -40,7 +41,7 @@ PROJECT_MODS = tuple(["Spec.", "Proof."] + [f"{r}.{d}." for r in PART_ROOTS
 PROJECT_DIRS = tuple(m.rstrip(".").replace(".", "/") for m in PROJECT_MODS)
 ROOT_DIRS = ("Proof",) + tuple(os.path.join(r, "Proof") for r in PART_ROOTS)
 LOCAL_DIRS = ("Code", "GeneratedProof", "Spec", "Proof") + tuple(PART_ROOTS)
-ROOT_FILES = ("Link.lean", "Results.lean")
+ROOT_FILES = ("Link.lean", "Results.lean", "Sig.lean")
 IMPORT = re.compile(r"^\s*(?:public\s+)?(?:meta\s+)?import\s+(.*)$", re.M)
 NAMESPACE = re.compile(r"^namespace\s+(\S+)", re.M)
 
@@ -64,7 +65,7 @@ def is_project(mod):
 
 
 def root_modules():
-    """Every `Link`/`Results` module, sorted."""
+    """Every `Link`/`Results`/`Sig` module, sorted."""
     mods = []
     for d in ROOT_DIRS:
         for dp, _, fs in os.walk(os.path.join(ROOT, d)):
