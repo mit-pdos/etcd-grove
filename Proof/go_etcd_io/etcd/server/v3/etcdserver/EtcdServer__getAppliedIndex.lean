@@ -37,14 +37,14 @@ theorem EtcdServer.getAppliedIndex.wp_proof : EtcdServer.getAppliedIndex.spec (G
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
   inext
-  icases Hi with ⟨%v0, %L0, %M, %p, Hv, Hauth, HM, Hp, %HMk, #HL0, #Hc0⟩
+  icases Hi with ⟨%v0, %L0, %M, %p, Hv, Hauth, HM, Hp, %HMk, #HL0, #Hc0, #Hkl⟩
   iexists v0
   iframe Hv
   iintro Hv
   imod Hmask with -
   ihave #Hlb := monoNatLbOwn_get γr.applied _ _ $$ Hauth
   imod Hclose $$ [Hv Hauth HM Hp] with -
-  · inext; iexists v0, L0, M, p; iframe Hv Hauth HM Hp HL0 Hc0; ipureintro; exact HMk
+  · inext; iexists v0, L0, M, p; iframe Hv Hauth HM Hp HL0 Hc0 Hkl; ipureintro; exact HMk
   imodintro
   wp_auto
   iapply HΦ

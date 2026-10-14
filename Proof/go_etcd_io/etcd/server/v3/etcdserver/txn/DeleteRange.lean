@@ -38,7 +38,7 @@ theorem txn.DeleteRange.wp_proof
   have hWrite := mvcc.store.Write.spec_frozen hWrite
   have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
   intro ctx cd nd lg kv s γ dr o m log₀ P Pre Q Post f ot te
-  wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, #Hdr, #Hctx, #Hct, Hto, #Hnd, %Hbig, Hcs, #Hhook⟩
+  wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, #Hdr, #Hctx, #Hct, Hto, #Hnd, %Hbig, #Hcok, Hcs, #Hhook⟩
   iunfold mvcc.csContract at Hcs
   icases Hcs with ⟨Hpre, #Htr, Hupd⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
@@ -105,7 +105,7 @@ theorem txn.DeleteRange.wp_proof
     (try wp_auto)
     ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
     wp_apply (hEnd trace mw s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost, %te', Htrc⟩
-    · iapply mvcc.txnEndPre_write; iframe Hhook HP
+    · iapply mvcc.txnEndPre_write; iframe Hhook HP; iapply Hcok; ipureintro; exact Hpin
     simp only [mvcc.txnEndPost]
     icases Hpost with ⟨#Hc, Htok⟩
     (try wp_auto)
@@ -130,7 +130,7 @@ theorem txn.DeleteRange.wp_proof
     (try wp_auto)
     ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
     wp_apply (hEnd trace mw s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost, %te', Htrc⟩
-    · iapply mvcc.txnEndPre_write; iframe Hhook HP
+    · iapply mvcc.txnEndPre_write; iframe Hhook HP; iunfold mvcc.certOkNext; ileft; ipureintro; rfl
     simp only [mvcc.txnEndPost, mvcc.commitLog, ↓reduceIte]
     icases Hpost with ⟨#Hc, Htok⟩
     (try wp_auto)

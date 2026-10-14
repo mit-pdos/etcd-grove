@@ -33,6 +33,10 @@ resource `E.RD` (`AuthInfoFromCtx`):
   `resultIs E rq' res` (the apply package's `applyStep` and `applyResultIs` at the KV state the
   entry met, and mvcc's certificate of the log after; 2026-10-14, unit C2a: `resultIsW E ρ.rd`, with
   the witness that the log after is applied through an index of the committed log, `appliedWit`);
+  and (2026-10-14, unit T1) the result `Qr` of the proposal's update at a committed log (`reqPropOk
+  ρ.kv rq Qr`: the request has no KV effect, `Qr` trivial; or it is a plain put with its client's
+  update; or the non-plain credit, which no one has): `□ Qr L` of the committed log `L` before
+  the entry the result is of;
 * failure: no result, an error the gRPC layer can take (`applyErrIs`: in an error tree, a safe map
   key, with a message; 2026-10-12, unit 3a), and the proposal, if made, deposited (`srvMaybeDeposited`: it may
   still be applied: the request limit, the auth store's error, the marshal's error, the size
@@ -40,18 +44,19 @@ resource `E.RD` (`AuthInfoFromCtx`):
   server's stop (`ErrStopped`) after it). -/
 abbrev EtcdServer.processInternalRaftRequestOnce.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (p : Loc) (rq : apply.IRRModel),
+    (cd : context.ContextDesc (IProp GF)) (p : Loc) (rq : apply.IRRModel)
+    (Qr : List EntryModel → IProp GF),
   rq.id = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
-      irrNoHdrIs p rq ∗
+      irrNoHdrIs p rq ∗ reqPropOk ρ.kv rq Qr ∗
       (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"processInternalRaftRequestOnce"))
       (Val #(GoInterface.ok ctx))) (Val #p))
   {{ (res : Loc) (err : GoInterface), RET (PairV #res #err); srvLeadTimeReader s ∗ E.RD ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
           ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ apply.resTrace res ∗
-          resultIsW E ρ.rd rq' res) ∨
+          resultIsW E ρ.rd rq' res ∗ ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ □ Qr L) ∨
        (⌜res = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ srvMaybeDeposited ρ rq)) }}
 
 end spec

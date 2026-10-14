@@ -21,6 +21,7 @@ public import Spec.strconv.FormatBool
 public import Spec.time.Duration__Seconds
 public import Spec.github_com.prometheus.client_golang.prometheus.HistogramVec__WithLabelValues
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ProposerLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.UberLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.DispatchLemmas
 public import EtcdDeps.GeneratedProof.go_etcd_io.raft.v3
@@ -135,7 +136,7 @@ local macro "piro_tail" : tactic => `(tactic| (
     rw [Hid0]
     (try wp_auto)
     rw [Hhvid]
-    obtain ⟨Hdec, Hwire⟩ := Hbsdec
+    obtain ⟨Hdec, Hwire, Hbsne⟩ := Hbsdec
     have Hidrq : apply.irrId rq' = some id := by
       obtain ⟨h1, h2, -, -⟩ := Hwire
       unfold apply.irrId
@@ -150,7 +151,7 @@ local macro "piro_tail" : tactic => `(tactic| (
     icases Hwait with ⟨%wi, %Hwi', #HReg, #HTrig, -⟩
     rw [Hwi']
     (try wp_auto)
-    wp_apply HReg $$ %id %(resultΨ E ρ.rd rq') [Hslot] as %ch ⟨%γh, Hrecv, #Hregd⟩
+    wp_apply HReg $$ %id %(resultΨ E ρ rq') [Hslot] as %ch ⟨%γh, Hrecv, #Hregd⟩
     · iframe Hslot
       imodintro
       iunfold reqWaitR
@@ -177,8 +178,10 @@ local macro "piro_tail" : tactic => `(tactic| (
     iunfold srvRaftNode at Hrn
     icases Hrn with ⟨%nd, #Hnd, #Hprop⟩
     iunfold raftPropose at Hprop
-    icases Hprop with ⟨%ni, %Hni, #HPropose⟩
-    ihave #Hau := srvPropAu_trivial ρ.raft bs $$ Hclog
+    icases Hprop with ⟨%ni, %Hni, #HrLog, #HWits, #HPropose⟩
+    ihave HokW := reqPropOk_wire ρ.kv rq rq' ⟨id, hv.Username', hv.AuthRevision'⟩ Qr Hwire $$ Hok
+    imod kv_prop_au ρ.raft ρ.kv bs rq' Qr (Hbsne (by simp [apply.withHeader])) Hdec ⊤
+      CoPset.subseteq_top $$ Hclog HokW with #Hau
     rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Propose")]
     (try wp_auto)
     rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Propose")]
@@ -186,7 +189,7 @@ local macro "piro_tail" : tactic => `(tactic| (
     (try wp_auto)
     rw [Hni]
     (try wp_auto)
-    wp_apply HPropose $$ %cctx %_ %dsl %bs %(fun _ => iprop(True)) %true [Hpf] as %perr Hpres
+    wp_apply HPropose $$ %cctx %_ %dsl %bs %Qr %true [Hpf] as %perr Hpres
     · iframe Hbs
       isplitr
       · iunfold mvcc.txnCtx; iright; iexact Hcctx
@@ -195,7 +198,8 @@ local macro "piro_tail" : tactic => `(tactic| (
       iframe Hpf Hau
     (try wp_auto)
     iunfold srvPropRes at Hpres
-    icases Hpres with ⟨⟨#Hdep, -⟩, #HaE⟩
+    isimp only [↓reduceIte] at Hpres
+    icases Hpres with ⟨⟨#Hdep, #HisP⟩, #HaE⟩
     iunfold waitRecv at Hrecv
     icases Hrecv with ⟨#Hho, Hcons⟩
     iunfold go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec at Hpfcs
@@ -237,7 +241,7 @@ local macro "piro_tail" : tactic => `(tactic| (
         · ipureintro; rfl
         isplitr
         · iexact Hchan
-        iapply handoff_rcv_au γh ch (waitVal γh (resultΨ E ρ.rd rq')) iprop(True) iprop(False) false _
+        iapply handoff_rcv_au γh ch (waitVal γh (resultΨ E ρ rq')) iprop(True) iprop(False) false _
           $$ Hho Hlc1 Hcons
         inext
         iintro %x %ok ⟨Hcons', Hgot⟩
@@ -256,9 +260,23 @@ local macro "piro_tail" : tactic => `(tactic| (
           ihave %Hbad := dghostVar_agree _ _ _ _ _ $$ Hcons' Hc2
           cases Hbad
         iunfold resultΨ at Hres
-        icases Hres with ⟨%ar, %Hx, HTr, Hri⟩
+        icases Hres with ⟨%ar, %Hx, HTr, Hri, #HeW⟩
         subst Hx
-        (try wp_auto)
+        wp_auto_lc 2
+        iunfold entryWit at HeW
+        icases HeW with ⟨%Lw, %mw, %ew, %idw, #HLw, #Hclw, %Hew⟩
+        obtain ⟨hlk, het, hdecw, hidw⟩ := Hew
+        have hidd : idw = id := by rw [Hidrq] at hidw; cases hidw; rfl
+        subst hidd
+        ihave %Hdd := idClaim_agree ρ.ids idw ew.data bs $$ Hclw Hclaim
+        ihave #HWits' := HWits
+        iunfold srvPropWits at HWits'
+        imod HWits' $$ %bs %Qr %Lw %mw %ew HisP HLw [] [Hlc1 Hlc2] with #HQr
+        · ipureintro; exact ⟨hlk, het, Hdd⟩
+        · iapply (lc_split (n := 1) (m := 1)).2; iframe
+        ihave #HLt : iprop(srvRLogLb ρ.raft (Lw.take mw)) $$ []
+        · iunfold srvRLogLb; iunfold srvRLogLb at HLw
+          iapply monoListLbOwn_le _ (List.take_prefix _ _) $$ HLw
         wp_apply HAddEv
         (try wp_auto)
         wp_apply HGDec
@@ -270,9 +288,12 @@ local macro "piro_tail" : tactic => `(tactic| (
         ileft
         isplitr
         · ipureintro; rfl
-        iexists ⟨id, hv.Username', hv.AuthRevision'⟩, rq'
+        iexists ⟨idw, hv.Username', hv.AuthRevision'⟩, rq'
         iframe Hri HTr
-        ipureintro; exact Hwire
+        isplitr
+        · ipureintro; exact Hwire
+        iexists Lw.take mw
+        iframe HLt HQr
       iapply BigAndL.bigAndL_cons.2
       isplit
       · -- the context done: give up
@@ -347,8 +368,8 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
     (hSec : time.Duration.Seconds.spec (GF := GF) (hG := hG))
     (hWL : prometheus.HistogramVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
     EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd p rq Hid0
-  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hirr, ⟨%h0, Hhdr⟩⟩
+  intro s E ρ ctx cd p rq Qr Hid0
+  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hirr, Hok, ⟨%h0, Hhdr⟩⟩
   wp_apply wp_with_defer as %defer defer
   iunfold isServerReq at Hsrv
   icases Hsrv with ⟨%v, #Hv⟩

@@ -22,7 +22,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **`s.DeleteRange(ctx, r)`** (as `Put`): success, the apply package's answer to the delete
+/-- **`s.DeleteRange(ctx, r)`** (as `Put`; 2026-10-14, unit T1: a delete is not a plain proposal,
+it takes the non-plain credit `srvNonPlain`, which no one has): success, the apply package's answer to the delete
 (`deleteOutcomeIs`, no error: applied; the response header's id fields owned, `appliedHdr`) of the request the proposed data decode to (`rq'`, whose delete is
 `op'`: `op` itself unless the range end is `[0]`, the model's ambiguity, `irrWireOf`), at the log
 the entry met, with mvcc's certificate of the log after. -/
@@ -31,7 +32,7 @@ abbrev EtcdServer.DeleteRange.spec : Prop :=
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (op : OpFull),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
-      txn.deleteRangeRequestIs r op }}
+      txn.deleteRangeRequestIs r op ∗ srvNonPlain ρ.kv }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"DeleteRange"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗

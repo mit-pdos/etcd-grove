@@ -168,7 +168,7 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
     mvcc.watchableStoreTxnWrite.End.spec (GF := GF) (hG := hG) := by
   have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
   intro trace tw s st γ ilog pend puts deletes putSize P f
-  wp_start as ⟨Hw, #Hhook, HPh⟩
+  wp_start as ⟨Hw, #Hhook, HPh, #HokN⟩
   iunfold mvcc.isWatchTxnWrite at Hw
   iNamed Hw
   (try wp_auto)
@@ -196,7 +196,7 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
     · simp only [mvcc.isTxnEnd]; iexists chs, ps, false; iexact Hcore
     wp_apply (hEnd trace mw st γ.st (.write ilog [] puts deletes putSize)) $$ [$Hte Hhook HPh]
       as ⟨Hrd, Hpost, Htrc⟩
-    · iapply mvcc.txnEndPre_write; iframe Hhook HPh
+    · iapply mvcc.txnEndPre_write; iframe Hhook HPh; iunfold mvcc.certOkNext; ileft; ipureintro; rfl
     simp only [mvcc.txnEndPost, mvcc.commitLog, ↓reduceIte]
     icases Hpost with ⟨#Hc, Htok⟩
     (try wp_auto)
@@ -482,7 +482,7 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
   · simp only [mvcc.isTxnEnd]; iexists chs, ps, true; iexact Hcw
   wp_apply (hEnd trace mw st γ.st (.write ilog pend puts deletes putSize)) $$ [$Hte Hhook HPh]
     as ⟨Hrd, Hpost, Htrc⟩
-  · iapply mvcc.txnEndPre_write; iframe Hhook HPh
+  · iapply mvcc.txnEndPre_write; iframe Hhook HPh HokN
   have hcl : mvcc.commitLog ilog pend = ilog ++ [pend] := by
     unfold mvcc.commitLog; rw [if_neg hne]
   simp only [mvcc.txnEndPost, hcl]

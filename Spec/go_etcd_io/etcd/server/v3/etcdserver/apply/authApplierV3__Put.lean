@@ -31,10 +31,10 @@ abbrev apply.authApplierV3.Put.spec : Prop :=
   ∀ (E : AEnv GF) (c : apply.Chain) (inner : GoInterface) (p r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log)
     (Pre Q Post : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.authIs E p inner ∗ apply.applierSpec E c inner ∗
-      apply.putPre E (.auth c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) r rq o log Pre Q Post }}
+      apply.putPre E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) r rq o log Pre Q Post }}
     (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"Put")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      apply.kvPost E (.auth c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) rq log (apply.putAnswerIs log o resp err) Pre Post ∗
+      apply.kvPost E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) rq log (apply.putAnswerIs log o resp err) Pre Post ∗
       apply.traceRes trace }}
 
 end spec

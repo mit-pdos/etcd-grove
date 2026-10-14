@@ -106,7 +106,7 @@ compaction nor empty (`dispatchOk`), and satisfying the txn package's premises a
 (`rqOk`: `apply.Apply.spec`'s). -/
 def entryOk (x : apply.ApplyKV) (m : EntryModel) : Prop :=
   m.data = [] ∨ ∃ rq, apply.irrDecode m.data = some rq ∧ (∃ id, apply.irrId rq = some id) ∧
-    apply.rqOk x.log rq ∧ apply.dispatchOk rq
+    apply.rqOk x.log rq ∧ apply.dispatchOk x.chain.authOn rq
 
 /-- **What `applyEntryNormal` does to the KV** with the normal entry `m` (`v3`: above `ci`): no
 data, nothing (`skipped`); else its decoded request through `apply.Apply` (`applyStep`). -/
@@ -165,21 +165,16 @@ theorem chainStep_prefix (c : apply.Chain) (rq : apply.IRRModel) (log : mvcc.Log
         · exact List.prefix_refl _
         · exact ih o h
       · exact ih o h
-  | auth c ih =>
+  | auth _ c ih =>
     unfold apply.chainStep at h
     split at h
-    · rcases h with rfl | h
+    · rcases h with ⟨-, rfl⟩ | h
       · exact List.prefix_refl _
       · exact ih o h
     · exact ih o h
   | quota c ih =>
     unfold apply.chainStep at h
-    split at h
-    · obtain ⟨o', h', ho⟩ := h
-      rcases ho with rfl | ⟨l', rfl, rfl⟩
-      · exact ih o h'
-      · have := ih _ h'; simpa only [apply.Outcome.logAfter] using this
-    · exact ih o h
+    exact ih o h
 
 /-- `apply.Apply`'s step extends the KV's log (2026-10-14, unit C2a). -/
 theorem applyStep_prefix (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV)
@@ -348,12 +343,23 @@ structure SrvFields where
   electionTicks : w64
   tickMs : w64
 
+/-- The server's KV invariants (persistent; 2026-10-14, unit T1): the KV invariant, the
+certificates', raft's committed log's; the store's certificates at the KV's names. -/
+def srvKVInvs (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
+  iprop(kvInv γr.raft γr.kv ∗ kvCertInv γr.raft γr.kv ∗ srvRaftLogInv γr.raft ∗
+    ⌜E.γ.cok = γr.kv.cok⌝)
+
+instance srvKVInvs_persistent (E : apply.AEnv GF) (γr : ReadNames) :
+    Persistent (srvKVInvs (GF := GF) E γr) := by
+  unfold srvKVInvs; infer_instance
+
 /-- The server's two atomics the apply thread stores (read by other goroutines): the applied
 index, in its invariant with the ghost applied index and the applied logs (`srvAppliedInv`, the
 request path's unit 4b; any value until then), and the term. -/
 def srvAtomics (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   iprop(srvAppliedInv s E γr ∗
-    inv srvN (∃ v : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) v))
+    inv srvN (∃ v : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) v) ∗
+    srvKVInvs E γr)
 
 instance srvAtomics_persistent (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     Persistent (srvAtomics (GF := GF) s E γr) := by
@@ -493,6 +499,19 @@ theorem isWait_waitOk (w : GoInterface) (γi : IdNames) (γw : GName)
   iexists wi
   iframe HI
   ipureintro; exact Hw
+
+/-- The apply thread's chain is in the environment's auth mode (2026-10-14, unit T1). -/
+theorem applyKV_authOn (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyKV) :
+    apply.applyKV E ua x ⊢ apply.applyKV E ua x ∗ ⌜x.chain.authOn = E.authOn⌝ := by
+  iintro H
+  ihave %Hc : iprop(⌜x.chain.authOn = E.authOn⌝) $$ [H]
+  · iunfold apply.applyKV at H
+    icases H with ⟨%p, -, Ho, -⟩
+    iunfold apply.uberOwn at Ho
+    icases Ho with ⟨%a, -, -, %h⟩
+    ipureintro; exact h
+  iframe H
+  ipureintro; exact Hc
 
 /-- The certificate of the KV's log, from the apply thread's applier state. -/
 theorem applyKV_idxCert (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyKV) :

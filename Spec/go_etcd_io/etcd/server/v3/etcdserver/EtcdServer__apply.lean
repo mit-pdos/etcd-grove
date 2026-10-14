@@ -40,18 +40,22 @@ applied index** (the request path's unit 4b): the apply thread's half of the gho
 log after its entry, so the last index's log is `x'.log` (`appliedLogAt`); since 2026-10-14 (unit
 C2a) from the log applied through `f0 - 1` the KV's (`appliedLogAt γr (f0 - 1) x.log`), with each
 entry committed (`batchCommittedIdx`: raft's batches, `rnApP`), each entry's log deposited ahead
-of its result (`applyEntryNormal`'s `srvAppliedPre`). **The write budget**
+of its result (`applyEntryNormal`'s `srvAppliedPre`). **The KV model** (2026-10-14, unit T1): the
+apply thread at the committed raft log `A` through `f0 - 1` (`kvApplied`), the batch committed after
+it (`kvBatch`), at `A ++ ms` after. **The write budget**
 (2026-10-13, unit 6): one write token of the store per entry (`txn.storeWTs E.γ ms.length`,
 spent; a conf change's is wasted). -/
 abbrev EtcdServer.apply.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
-    (rac : GoChan) (st : ApplyState) (a at0 : w64) (x : apply.ApplyKV) (γr : ReadNames),
+    (rac : GoChan) (st : ApplyState) (a at0 : w64) (x : apply.ApplyKV) (γr : ReadNames)
+    (A : List EntryModel),
   ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → entriesOk (ciEff γ st.k) ms x →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a at0 ∗ epConfStateAddr ep ↦ cs ∗
       srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr (f0 - 1) ∗
-      appliedLogAt γr (f0 - 1) x.log ∗ batchCommittedIdx γr ms ∗ txn.storeWTs E.γ ms.length }}
+      appliedLogAt γr (f0 - 1) x.log ∗ batchCommittedIdx γr ms ∗ txn.storeWTs E.γ ms.length ∗
+      kvApplied γr.raft γr.kv A x ∗ kvBatch γr (ciEff γ st.k) (f0 - 1) A ms }}
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"apply"))
       (Val #es)) (Val #ep)) (Val #rac))
   {{ (appliedt appliedi : w64) (shouldStop : Bool),
@@ -60,7 +64,7 @@ abbrev EtcdServer.apply.spec : Prop :=
         applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
         epConfStateAddr ep ↦ csl ∗ srvLgReader s ∗ srvGoRes s ∗ srvAppliedOwn γr appliedi ∗
         (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗ ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗
-          appliedLogAt γr appliedi x'.log) ∗
+          appliedLogAt γr appliedi x'.log ∗ kvApplied γr.raft γr.kv (A ++ ms) x') ∗
         ⌜(ms.getLast?).map EntryModel.index = some appliedi ∧
           (ms.getLast?).map EntryModel.term = some appliedt ∧
           loopOk γ st' appliedi ∧

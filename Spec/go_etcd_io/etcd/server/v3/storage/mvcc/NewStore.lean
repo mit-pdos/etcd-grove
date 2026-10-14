@@ -71,7 +71,7 @@ abbrev mvcc.NewStore.spec : Prop :=
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.mvcc.NewStore)) (Val #lg))
       (Val #b)) (Val #le)) (Val #cfg))
   {{ (s : Loc), RET #s; ∃ γ : mvcc.StoreNames, ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = kb⌝ ∗
-      mvcc.isStore s γ ∗ mvcc.hookIs γ P f ∗
+      mvcc.isStore s γ ∗ ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗ mvcc.hookIs γ P f ∗
       (∃ rv wv : Loc,
         s.[store, go!"ReadView"] ↦
           (interface.mkOk (go.GoType.PointerType readView.ty) #rv : GoInterface) ∗

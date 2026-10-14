@@ -23,6 +23,7 @@ public import Spec.go_uber_org.zap.Logger__Warn
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__GoAttach
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AlarmContract
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApply
 
 @[expose] public section
 
@@ -131,6 +132,9 @@ local macro "trig'" : tactic => `(tactic| (
   · ipureintro; rfl
   isplitl [HTr]
   · iexact HTr
+  isplitl
+  rotate_left
+  · iexact HeW
   iunfold resultIsW
   isplitr
   · ipureintro; exact Har0
@@ -164,6 +168,9 @@ local macro "trig" : tactic => `(tactic| (
   · ipureintro; rfl
   isplitl [HTr]
   · iexact HTr
+  isplitl
+  rotate_left
+  · iexact HeW
   iunfold resultIsW
   isplitr
   · ipureintro; exact Har0
@@ -204,9 +211,9 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     (hGA : EtcdServer.GoAttach.spec (GF := GF) (hG := hG))
     (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyEntryNormal.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ b e m st v3 x γr ot v
-  wp_start as ⟨#Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hao, #HLv, #Hcm, %Hvi, %Hpo,
-    Hv3⟩
+  intro s γ ci TM E ρ b e m st v3 x γr ot v A
+  wp_start as ⟨#Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hao, #HLv, #Hcm, Hka, #HAm,
+    %HkA, %Hvi, %Hpo, Hv3⟩
   obtain ⟨Hp, Hok, Htyp⟩ := Hpo
   wp_apply wp_with_defer as %defer defer
   ihave #Hsrv0 := Hsrv
@@ -214,8 +221,18 @@ theorem EtcdServer.applyEntryNormal.wp_proof
   icases Hsrv with ⟨%Hrd, #Hsci, ⟨%fv, #Hfv⟩, #Hat⟩
   ihave #Hat' := Hat
   iunfold srvAtomics at Hat'
-  icases Hat' with ⟨#Hainv, -⟩
+  icases Hat' with ⟨#Hainv, -, #Hkvi⟩
   ihave #Hmono := appliedMono_of_inv s E γr $$ Hainv
+  -- the KV model (unit T1): the entry plain, the log after it the model's, certified
+  ihave #Hkvi' := Hkvi
+  iunfold srvKVInvs at Hkvi'
+  icases Hkvi' with ⟨-, -, -, %Hcok⟩
+  icases srvApplyKV_idxCert s E ρ.wait x $$ HKV with ⟨HKV, #Hcx⟩
+  ihave %Hlx := idxCert_len E.γ.idx x.log $$ Hcx
+  imod kv_applied_step E γr A m x (kvEntry_len _ _ x m Hok Hlx) $$ Hkvi Hka HAm with ⟨%Hpe, Hka⟩
+  obtain ⟨Hpe, Hxch, Hoff⟩ := Hpe
+  ihave ⟨Hka, #Hkc⟩ := kvAppliedL_cert _ _ _ _ $$ Hka
+  have hiA : uint.Z m.index = uint.Z γr.raft.ai0 + A.length + 1 := by omega
   iunfold srvFieldsAt at Hfv
   icases Hfv with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, #Hua, #Happl, %HE, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl, #Hrc, #Hq,
     #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
@@ -252,13 +269,16 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     · -- no data
       have hnil : m.data = [] := by
         apply List.eq_nil_of_length_eq_zero; rw [Hdlen.1, Hif]; rfl
-      imod applied_predeposit s E γr v m.index x.log x.log Hvi (List.prefix_refl _) $$ Hainv Hao HLv
+      have hl0 : x.log = kvEntry γr.kv.c0 x.chain x.log m :=
+        (kvEntry_nonwrite _ _ _ m (Or.inl hnil)).symm
+      ihave ⟨Hka, #HkL⟩ := kvApplied_next γr A m x x m.index hiA hl0 Hxch $$ Hka
+      imod applied_predeposit s E γr v m.index x.log x.log Hvi (List.prefix_refl _) $$ Hainv Hao HLv HkL
         with Hpre
       ihave HKV : iprop(∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKV s E ρ.wait x' ∗
           ⌜entryStep m false x x' out⌝ ∗ entryDelivered ρ.wait m ot out ∗
-          srvAppliedPre γr v m.index x'.log) $$ [HKV Hpre]
+          srvAppliedPre γr v m.index x'.log ∗ kvApplied γr.raft γr.kv (A ++ [m]) x') $$ [HKV Hpre Hka]
       · iexists x, apply.ApplyOut.skipped
-        iframe HKV Hpre
+        iframe HKV Hpre Hka
         isplitr
         · ipureintro; unfold entryStep; rw [ite_eq_left hnil]; exact ⟨rfl, rfl⟩
         iunfold entryDelivered; ileft; ipureintro; left; exact hnil
@@ -296,11 +316,14 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       subst Hueq
       icombine Hw Hw' gives %Hweq
       subst Hweq
+      ihave ⟨HKV, %HaOn⟩ := applyKV_authOn E fv.ua x $$ HKV
+      ihave #Hcp := kv_certPre E γr.kv Hcok γr.kv.c0 x m rq false (Hpe Htyp hdata rq hdec) Hoff Htyp
+        hdata hdec HkA.2 $$ Hkc
       iapply wp_fupd
       wp_apply hA fv.lg e m fv.ua fv.w false E iprop(True) iprop(True) iprop(True) x rq id0 RD
         (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot
         $$ [HKV Hwt HRD] as %ar %id ⟨HRD, -, #Har, -, %Hid, %x', %out, HKV, %Hstep, -, #Hdel⟩
-      · iframe Happl Hwok' HRD He HKV Hwt
+      · iframe Happl Hwok' HRD He HKV Hwt Hcp
         isplitr
         · iunfold entryRegd at Hreg; iapply Hreg; ipureintro; exact ⟨hdec, hid⟩
         simp only [Bool.false_eq_true, ↓reduceIte]
@@ -308,18 +331,23 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         · ipureintro; exact Hlgnn
         isplitr
         · itrivial
-        ipureintro; exact ⟨hdec, hid, hrq, hdk⟩
+        ipureintro; exact ⟨hdec, hid, hrq, HaOn ▸ hdk⟩
       ihave ⟨HKV, #Hcert⟩ := applyKV_idxCert E fv.ua x' $$ HKV
       ihave %Hlen := idxCert_len E.γ.idx x'.log $$ Hcert
       imod revAuth_step E x.log x'.log (applyStep_grow Hstep) Hlen ⊤ $$ HRA with ⟨HRA, -⟩
       (try wp_auto)
+      have hes : entryStep m false x x' out := by
+        unfold entryStep; rw [ite_eq_right hdata]; exact ⟨rq, id0, hdec, hid, Hstep⟩
+      obtain ⟨hc', hl'⟩ := batchStep_plain γr.kv.c0 m x x' Hpe Hoff
+        (batchStep_of_entryStep γr.kv.c0 m false x x' out Htyp HkA.2 hes)
+      ihave ⟨Hka, #HkL⟩ := kvApplied_next γr A m x x' m.index hiA hl' (hc'.trans Hxch) $$ Hka
       imod applied_predeposit s E γr v m.index x.log x'.log Hvi
-        (applyStep_prefix rq false x x' out Hstep) $$ Hainv Hao HLv with Hpre
+        (applyStep_prefix rq false x x' out Hstep) $$ Hainv Hao HLv HkL with Hpre
       imodintro
       iapply HΦ
       iframe Hbe Hst Hlr Hgr
       iexists x', out
-      iframe Hpre
+      iframe Hpre Hka
       isplitl
       · iunfold srvApplyKV; iexists fv.ua; isplitr; · iexact Hua
         isplitl [HKV]; · iexact HKV
@@ -341,13 +369,16 @@ theorem EtcdServer.applyEntryNormal.wp_proof
     · -- no data: processed with no writes
       have hnil : m.data = [] := by
         apply List.eq_nil_of_length_eq_zero; rw [Hdlen.1, Hif]; rfl
-      imod applied_predeposit s E γr v m.index x.log x.log Hvi (List.prefix_refl _) $$ Hainv Hao HLv
+      have hl0 : x.log = kvEntry γr.kv.c0 x.chain x.log m :=
+        (kvEntry_nonwrite _ _ _ m (Or.inl hnil)).symm
+      ihave ⟨Hka, #HkL⟩ := kvApplied_next γr A m x x m.index hiA hl0 Hxch $$ Hka
+      imod applied_predeposit s E γr v m.index x.log x.log Hvi (List.prefix_refl _) $$ Hainv Hao HLv HkL
         with Hpre
       ihave HKV : iprop(∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKV s E ρ.wait x' ∗
           ⌜entryStep m true x x' out⌝ ∗ entryDelivered ρ.wait m ot out ∗
-          srvAppliedPre γr v m.index x'.log) $$ [HKV Hpre]
+          srvAppliedPre γr v m.index x'.log ∗ kvApplied γr.raft γr.kv (A ++ [m]) x') $$ [HKV Hpre Hka]
       · iexists x, apply.ApplyOut.skipped
-        iframe HKV Hpre
+        iframe HKV Hpre Hka
         isplitr
         · ipureintro; unfold entryStep; rw [ite_eq_left hnil]; exact ⟨rfl, rfl⟩
         iunfold entryDelivered; ileft; ipureintro; left; exact hnil
@@ -390,6 +421,9 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       subst Hueq
       icombine Hw Hw' gives %Hweq
       subst Hweq
+      ihave ⟨HKV, %HaOn⟩ := applyKV_authOn E fv.ua x $$ HKV
+      ihave #Hcp := kv_certPre E γr.kv Hcok γr.kv.c0 x m rq true (Hpe Htyp hdata rq hdec) Hoff Htyp
+        hdata hdec HkA.2 $$ Hkc
       obtain ⟨HEP, HEf⟩ := HE
       wp_apply hA fv.lg e m fv.ua fv.w true E
         iprop(applyThread γ st ∗ ciApplying ci m.index m.term ∗ applyBackend γ ci b ∗
@@ -402,7 +436,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot
         $$ [Hst Happ Hbe HKV Hwt HRD] as %ar %id
           ⟨HRD, Hout, #Har, HTr, %Hid, %x', %out, HKV, %Hstep, HRes, #Hdel⟩
-      · iframe Happl Hwok' HRD He HKV Hwt
+      · iframe Happl Hwok' HRD He HKV Hwt Hcp
         isplitr
         · iunfold entryRegd at Hreg; iapply Hreg; ipureintro; exact ⟨hdec, hid⟩
         simp only [↓reduceIte]
@@ -426,7 +460,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
             · iunfold batchLockInv; iexists mm; iframe
             iexact Hst
         · iframe Hst Happ Hbe
-          ipureintro; exact ⟨hpre, hdec, hid, hrq, hdk⟩
+          ipureintro; exact ⟨hpre, hdec, hid, hrq, HaOn ▸ hdk⟩
       ihave Hj : iprop(|={⊤}=> ∃ st1 : ApplyState, applyThread γ st1 ∗
           ciApplying ci m.index m.term ∗ applyBackend γ ci b ∗
           ⌜st1 = ⟨m.index, m.index, m.index, false⟩ ∨ st1 = { st with p := m.index }⌝) $$ [Hout]
@@ -438,14 +472,19 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       ihave ⟨HKV, #Hcert⟩ := applyKV_idxCert E fv.ua x' $$ HKV
       ihave %Hlen := idxCert_len E.γ.idx x'.log $$ Hcert
       imod revAuth_step E x.log x'.log (applyStep_grow Hstep) Hlen ⊤ $$ HRA with ⟨HRA, HMint⟩
+      have hes : entryStep m true x x' out := by
+        unfold entryStep; rw [ite_eq_right hdata]; exact ⟨rq, id0, hdec, hid, Hstep⟩
+      obtain ⟨hc', hl'⟩ := batchStep_plain γr.kv.c0 m x x' Hpe Hoff
+        (batchStep_of_entryStep γr.kv.c0 m true x x' out Htyp HkA.2 hes)
+      ihave ⟨Hka, #HkL⟩ := kvApplied_next γr A m x x' m.index hiA hl' (hc'.trans Hxch) $$ Hka
       imod applied_predeposit s E γr v m.index x.log x'.log Hvi
-        (applyStep_prefix rq true x x' out Hstep) $$ Hainv Hao HLv with Hpre
+        (applyStep_prefix rq true x x' out Hstep) $$ Hainv Hao HLv HkL with Hpre
       icases srvAppliedPre_log γr v m.index x'.log $$ Hpre with ⟨Hpre, #HLpre⟩
       ihave HKV : iprop(∃ (x'' : apply.ApplyKV) (out' : apply.ApplyOut), srvApplyKV s E ρ.wait x'' ∗
           ⌜entryStep m true x x'' out'⌝ ∗ entryDelivered ρ.wait m ot out' ∗
-          srvAppliedPre γr v m.index x''.log) $$ [HKV HRD HRA Hpre]
+          srvAppliedPre γr v m.index x''.log ∗ kvApplied γr.raft γr.kv (A ++ [m]) x'') $$ [HKV HRD HRA Hpre Hka]
       · iexists x', out
-        iframe Hpre
+        iframe Hpre Hka
         isplitl
         · iunfold srvApplyKV; iexists fv.ua; isplitr; · iexact Hua
           isplitl [HKV]; · iexact HKV
@@ -480,13 +519,27 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       iunfold isWait at Hwok
       icases Hwok with ⟨%wi, %Hwi, -, #HTrig, -⟩
       subst Hid
-      ihave #Hcl0 : iprop(idClaim ρ.ids id m.data) $$ []
-      · have he : entryWaitOk ρ E m = iprop(∀ (rq : apply.IRRModel) (id : w64),
+      have he : entryWaitOk ρ E m = iprop((∀ (rq : apply.IRRModel) (id : w64),
             ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
-              idClaim ρ.ids id m.data) := by unfold entryWaitOk; rw [ite_eq_left Htyp]
-        rw [he]
-        iapply Hewo
+              idClaim ρ.ids id m.data) ∗
+            ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L⌝) := by
+        unfold entryWaitOk; rw [ite_eq_left Htyp]
+      ihave #Hewo' : iprop((∀ (rq : apply.IRRModel) (id : w64),
+            ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
+              idClaim ρ.ids id m.data) ∗
+            ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ ⌜m ∈ L⌝) $$ []
+      · rw [← he]; iexact Hewo
+      icases Hewo' with ⟨#Hewc, %Lw, #HLw, %HmLw⟩
+      ihave #Hcl0 : iprop(idClaim ρ.ids id m.data) $$ []
+      · iapply Hewc
         ipureintro; exact ⟨hdata, hdec, hid⟩
+      ihave #HeW : iprop(entryWit ρ rq) $$ []
+      · obtain ⟨jw, hjw, hjw'⟩ := List.getElem_of_mem HmLw
+        iunfold entryWit
+        iexists Lw, jw, m, id
+        iframe HLw Hcl0
+        ipureintro
+        exact ⟨by rw [List.getElem?_eq_getElem hjw, hjw'], Htyp, hdec, hid⟩
       cases isns
       · -- not `ErrNoSpace`: hand the result to the waiter
         (try wp_auto)
@@ -541,14 +594,14 @@ theorem EtcdServer.applyEntryNormal.wp_proof
           ihave #Hgok' := Hgok
           iunfold srvGoAttachOk at Hgok'
           icases Hgok' with ⟨%gch, %gc, -, -, -, -, -, #Hctx, -, -⟩
-          ihave HTP : iprop(waitTrig (reqWaitR ρ.ids E ρ.rd) id (interface.mkOk (go.GoType.PointerType
+          ihave HTP : iprop(waitTrig (reqWaitR ρ E) id (interface.mkOk (go.GoType.PointerType
               go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar)) $$ [HRes HTr HMint]
           · trig'
           ipersist s
           ipersist id
           ipersist ar
           wp_func_lits
-          wp_apply hGA s _ iprop(waitTrig (reqWaitR ρ.ids E ρ.rd) id (interface.mkOk (go.GoType.PointerType
+          wp_apply hGA s _ iprop(waitTrig (reqWaitR ρ E) id (interface.mkOk (go.GoType.PointerType
               go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar)) $$ [Hrd Htok Hlr HTP]
             as ⟨Hgr, Hlr⟩
           · iframe Hlr HTP

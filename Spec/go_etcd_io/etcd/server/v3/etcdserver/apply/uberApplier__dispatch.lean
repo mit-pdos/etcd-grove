@@ -34,15 +34,16 @@ an empty request), with the apply thread's KV at `log` and the critical-section 
 `v3` (`cPre v3`); the KV and `applyV3` (changed by an alarm request) after it (`dispatchStep`,
 `chainAfter`), the result (`dispatchResult`). Its deferred metrics (`ApplySecObserve`, the
 warnings) return. A write token of the store (`mvcc.storeWT E.γ`) is handed to the method
-that may open a store write transaction (2026-10-13, unit 6). -/
+that may open a store write transaction (2026-10-13, unit 6). The certificates of the logs the
+request may commit (`certPre`; 2026-10-14, unit T1). -/
 abbrev apply.uberApplier.dispatch.spec : Prop :=
   ∀ (E : AEnv GF) (p : Loc) (opts : ApplierOptions) (c : apply.Chain) (a : GoInterface)
     (r : Loc) (rq : IRRModel) (skip v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.uberIs E p opts ∗
       apply.irrWrapperIs r rq skip ∗ apply.chainRes c a ∗
       structFieldRef uberApplier go!"applyV3" p ↦ a ∗ apply.applierSpec E c a ∗
-      apply.kvOwn E log ∗ mvcc.storeWT E.γ ∗ apply.cPre v3 E.P E.f Pre Q Post ∗
-      ⌜apply.rqOk log rq ∧ apply.dispatchOk rq⌝ }}
+      apply.kvOwn E log ∗ apply.certPreV v3 E c rq log ∗ mvcc.storeWT E.γ ∗ apply.cPre v3 E.P E.f Pre Q Post ∗
+      ⌜apply.rqOk log rq ∧ apply.dispatchOk E.authOn rq⌝ ∗ ⌜c.authOn = E.authOn⌝ }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"dispatch")) (Val #r)) (Val #v3))
   {{ (ar : Loc), RET #ar; apply.chainRes c a ∗
       ∃ (a' : GoInterface) (c' : apply.Chain) (o : apply.Outcome),

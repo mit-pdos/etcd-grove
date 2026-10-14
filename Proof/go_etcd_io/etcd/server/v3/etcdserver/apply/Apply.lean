@@ -78,7 +78,7 @@ theorem apply.Apply.wp_proof
     (hUA : apply.uberApplier.Apply.spec (GF := GF) (hG := hG)) :
     apply.Apply.spec (GF := GF) (hG := hG) := by
   intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot
-  wp_start as ⟨#Hfor, #Hwok, HRD, HK, %Hlg, #He, Hhook, HPre, Hkv, Hwt, %Hprem⟩
+  wp_start as ⟨#Hfor, #Hwok, HRD, HK, %Hlg, #He, Hhook, HPre, Hkv, Hwt, #Hcp, %Hprem⟩
   obtain ⟨Hdec, Hid, Hrq, Hdk⟩ := Hprem
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit

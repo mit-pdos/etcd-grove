@@ -30,16 +30,20 @@ at least `c` (`readIndexOk`): the notifier the caller waited on was swapped out 
 `c` in its need, and the loop closed it with `nil` only after the applied index passed a read
 index issued after the swap; else an error the gRPC layer can take: the notifier's (the loop's
 `requestCurrentIndex` error), the context's (`Canceled`, `DeadlineExceeded`), or the server's
-`ErrStopped`. A context with a `nil` `Done()` (`mvcc.txnCtx`'s other case) is never done. -/
+`ErrStopped`. A context with a `nil` `Done()` (`mvcc.txnCtx`'s other case) is never done.
+(2026-10-14, unit T1) The caller registers its result predicate `Q` (a saved predicate at `g`)
+with its `Get` update (`kvDep`) in the notifier's clients' list, and on `nil` learns its read
+served (`readServed`: raft's witness of the round's update at a read index at least `c`). -/
 abbrev read.Read.LinearizableReadNotify.spec : Prop :=
   ∀ (r : Loc) (γr : ReadNames) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (c : w64),
+    (c : w64) (g : GName) (Q : List EntryModel → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read ∗
-      isReadPre r γr ∗ mvcc.txnCtx ctx cd ∗ committedAtLeast γr c ∗ readReader r γr }}
+      isReadPre r γr ∗ mvcc.txnCtx ctx cd ∗ committedAtLeast γr c ∗ readReader r γr ∗
+      savedPredOwn g DFrac.discard Q ∗ kvDep γr.kv Q }}
     (App (Val (r @!! go.GoType.PointerType Read.ty @!! go!"LinearizableReadNotify"))
       (Val #(GoInterface.ok ctx)))
   {{ (err : GoInterface), RET #err; readReader r γr ∗ applyErrIs err ∗
-      (⌜err = GoInterface.nil⌝ -∗ readIndexOk γr c) }}
+      (⌜err = GoInterface.nil⌝ -∗ readIndexOk γr c ∗ readServed γr c g) }}
 
 end spec
 

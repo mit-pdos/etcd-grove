@@ -37,7 +37,9 @@ The write transaction runs under the store's batch lock by the critical-section 
 if the lease check failed first. The transaction spends a write token (`mvcc.storeWT γ`: the real
 backend's write-back budget; spent also when the lease check fails; 2026-10-13, unit 6).
 2026-10-14 (unit P1b): the context's trace `ot` (`ctxTraceIs`) and its ownership taken
-(`EnsureTrace`); the trace returned owned, the context's if it had a non-empty one. -/
+(`EnsureTrace`); the trace returned owned, the context's if it had a non-empty one.
+2026-10-14 (unit T1): the caller certifies the log the put commits (`certOk`, the store's
+`txnEndPre`). -/
 abbrev txn.Put.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg : Loc) (le kv : GoInterface)
     (s : Loc) (γ : mvcc.StoreNames) (p : Loc) (o : OpFull) (m : Nat) (log₀ : mvcc.Log)
@@ -48,6 +50,8 @@ abbrev txn.Put.spec : Prop :=
       txn.putRequestIs p o ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
       □ (∀ ilog : mvcc.Log, ⌜txn.Pinned log₀ m ilog ∧ o.ignoreLease = true⌝ -∗
         txn.leaseOk L (txn.putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter ilog)))) ∗
+      □ (∀ ilog : mvcc.Log, ⌜txn.Pinned log₀ m ilog⌝ -∗
+        mvcc.certOk γ (ilog ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))]])) ∗
       mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
     (App (App (App (App (App (Val (@! txn.Put)) (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #le))
       (Val #kv)) (Val #p))

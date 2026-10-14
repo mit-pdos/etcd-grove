@@ -24,8 +24,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem raftNode.ReadIndex.wp_proof : raftNode.ReadIndex.spec (GF := GF) (hG := hG) := by
-  intro E γ r ctx cd sl dq id n
-  wp_start as ⟨#Hr, #Hctx, Hsl, #Hc⟩
+  intro E γ r ctx cd sl dq id n Qr
+  wp_start as ⟨#Hr, #Hctx, Hsl, #Hc, #HRA⟩
   iunfold isRaftNode at Hr
   iNamed Hr
   iunfold isRaftNodeIfc at Hni
@@ -34,8 +34,8 @@ theorem raftNode.ReadIndex.wp_proof : raftNode.ReadIndex.spec (GF := GF) (hG := 
   rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"ReadIndex")]
   wp_pures
   (try wp_auto)
-  wp_apply HRI $$ %ctx %cd %sl %dq %id %n [Hsl] as %err Hpost
-  · iframe Hctx Hc Hsl
+  wp_apply HRI $$ %ctx %cd %sl %dq %id %n %Qr [Hsl] as %err Hpost
+  · iframe Hctx Hc Hsl HRA
   iapply HΦ
   iexact Hpost
 

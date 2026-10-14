@@ -46,6 +46,7 @@ theorem put_soleWriter_of (hPut : Put.spec (GF := GF) (hG := hG)) (ctx : GoInter
         putRequestIs p o ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
         □ (⌜o.ignoreLease = true⌝ -∗
           leaseOk L (putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter log)))) ∗
+        mvcc.certOk γ (log ++ [[putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) ∗
         mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
       (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.Put))
         (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #le)) (Val #kv)) (Val #p))
@@ -66,19 +67,24 @@ theorem put_soleWriter_of (hPut : Put.spec (GF := GF) (hG := hG)) (ctx : GoInter
             leaseOk L (putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter log))) ∗ Post ∗
             ⌜mvcc.stateAfter (log ++ [[putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) =
               (applyTxnOp (W64 (log.length : Int)) (mvcc.stateAfter log) (putTxnOp o)).1⌝)) }} := by
-  wp_start_folded as ⟨#Hkv, Hrd, Hsw, Hwt, #Hle, Hu, #Hp, #Hctx, #Hct, Hto, #Hl, Hcs, #Hhook⟩
+  wp_start_folded as ⟨#Hkv, Hrd, Hsw, Hwt, #Hle, Hu, #Hp, #Hctx, #Hct, Hto, #Hl, #Hcok, Hcs, #Hhook⟩
   icases soleWriter_split γ log hlen $$ Hsw with ⟨Htok, Hsw⟩
   iunfold soleWriterOpen at Hsw
   icases Hsw with ⟨#Hc, Htoks, %Hl2⟩
   iapply (hPut ctx cd lg le kv s γ p o (soleBudget log - 1) log P Pre Q Post f L ot te)
     $$ [Hrd Htok Hwt Htoks Hcs Hu Hto]
   · iframe # ∗
+    isplitr
+    · imodintro
+      iintro %ilog %Hpi
+      obtain ⟨Hpin, Hil⟩ := Hpi
+      rw [pinned_sole log ilog hlen Hpin]
+      iapply Hl
+      ipureintro; exact Hil
     imodintro
-    iintro %ilog %Hpi
-    obtain ⟨Hpin, Hil⟩ := Hpi
+    iintro %ilog %Hpin
     rw [pinned_sole log ilog hlen Hpin]
-    iapply Hl
-    ipureintro; exact Hil
+    iexact Hcok
   inext
   iintro %resp %trace %err ⟨Hrd, Htoks, Hu, %Ht, Htrc, %Hteq, Hout⟩
   ihave Hsw : soleWriterOpen γ log $$ [Htoks]
@@ -141,6 +147,7 @@ theorem deleteRange_soleWriter_of (hDel : DeleteRange.spec (GF := GF) (hG := hG)
         isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ mvcc.storeWT γ ∗
         deleteRangeRequestIs dr o ∗
         mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
+        mvcc.certOkNext γ log (delChanges (mvcc.stateAfter log) o) ∗
         mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.DeleteRange))
         (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #kv)) (Val #dr))
@@ -158,17 +165,22 @@ theorem deleteRange_soleWriter_of (hDel : DeleteRange.spec (GF := GF) (hG := hG)
               (applyTxnOp (W64 (log.length : Int)) (mvcc.stateAfter log) (.delete o)).1⌝) ∨
          (⌜err ≠ GoInterface.nil ∧ o.base.prevKV = true ∧ resp = null ∧ nd = false⌝ ∗
            soleWriter γ log)) }} := by
-  wp_start_folded as ⟨#Hkv, Hrd, Hsw, Hwt, #Hdr, #Hctx, #Hct, Hto, #Hnd, Hcs, #Hhook⟩
+  wp_start_folded as ⟨#Hkv, Hrd, Hsw, Hwt, #Hdr, #Hctx, #Hct, Hto, #Hnd, #Hcok, Hcs, #Hhook⟩
   icases soleWriter_split γ log hlen $$ Hsw with ⟨Htok, Hsw⟩
   iunfold soleWriterOpen at Hsw
   icases Hsw with ⟨#Hc, Htoks, %Hl2⟩
   iapply (hDel ctx cd nd lg kv s γ dr o (soleBudget log - 1) log P Pre Q Post f ot te)
     $$ [Hrd Htok Hwt Htoks Hcs Hto]
   · iframe # ∗
-    ipureintro
-    intro ilog hp
-    rw [pinned_sole log ilog hlen hp]
-    exact hst
+    isplitr
+    · ipureintro
+      intro ilog hp
+      rw [pinned_sole log ilog hlen hp]
+      exact hst
+    imodintro
+    iintro %ilog %Hpin
+    rw [pinned_sole log ilog hlen Hpin]
+    iexact Hcok
   inext
   iintro %resp %trace %err ⟨Hrd, Htoks, %Ht, HPost, Htrc, %Hteq, %ilog, %Hpi, Hout⟩
   have hil := pinned_sole log ilog hlen Hpi.1
@@ -234,7 +246,7 @@ theorem range_soleWriter_of (hRange : Range.spec (GF := GF) (hG := hG)) (log : m
     rw [soleWriter_pins_read log log' hlen ⟨h.1, h.2⟩]
     exact Hpre.2
   inext
-  iintro %resp %tr %err ⟨Hrd, Ht, %Htr, Htrc, %Hteq, %log', %rev, -, %Hp, #Hres, -, %Hnd'⟩
+  iintro %resp %tr %err ⟨Hrd, Ht, %Htr, Htrc, %Hteq, %log', %rev, -, -, %Hp, #Hres, -, %Hnd'⟩
   have heq := soleWriter_pins_read log log' hlen ⟨Hp.1, Hp.2.1⟩
   subst heq
   obtain ⟨-, -, -, hrev⟩ := Hp

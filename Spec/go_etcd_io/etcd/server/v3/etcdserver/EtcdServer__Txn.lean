@@ -39,7 +39,8 @@ abbrev EtcdServer.Txn.spec : Prop :=
       isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
       srvRdCall s E γr c ∗ context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
       traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗
-      ⌜txn.txnReadonly t = true → txn.txnGetsOk t⌝ }}
+      ⌜txn.txnReadonly t = true → txn.txnGetsOk t⌝ ∗
+      (if txn.txnReadonly t then iprop(True) else srvNonPlain ρ.kv) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Txn"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

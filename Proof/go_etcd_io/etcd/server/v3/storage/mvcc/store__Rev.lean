@@ -50,7 +50,7 @@ theorem mvcc.store.Rev.wp_proof
   -- `rv.kv.Read(mode, t)`: the store's, with the caller's tokens and certificate
   imod mvcc.crevLb_neg γ.idx with #Hlbn
   wp_apply (hRead s γ _ t m log₀ true (-1) iprop(True)) $$ [$Hs $Hrd $Htoks $Hc0 $Hlbn $Htrc]
-    as %mw ⟨%log, %rev, %crev, Htx, Htoks, -, %Hpin⟩
+    as %mw ⟨%log, %rev, %crev, Htx, Htoks, -, #Hrok, %Hpin⟩
   · isplitr
     · iintro !>; itrivial
     ipureintro; exact Ht

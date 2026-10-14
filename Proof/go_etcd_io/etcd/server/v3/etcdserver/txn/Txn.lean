@@ -110,7 +110,7 @@ theorem txn.Txn_sole
   have hWrite := mvcc.store.Write.spec_frozen hWrite
   have hRoEnd := mvcc.txnReadWrite.End.spec_frozen hRoEnd
   intro ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f L ot te
-  wp_start as ⟨#Hkv, Hrd, Hsw, Hwt, #Hle, #Hrt, #Hctx, #Hct, Hto, #Hnd, #Hknown, Hu, %Hpre, Hcs, #Hhook⟩
+  wp_start as ⟨#Hkv, Hrd, Hsw, Hwt, #Hle, #Hrt, #Hctx, #Hct, Hto, #Hnd, #Hknown, Hu, %Hpre, #Hcok, Hcs, #Hhook⟩
   iunfold mvcc.csContract at Hcs
   icases Hcs with ⟨HPre, #Htr, Hupd⟩
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
@@ -317,7 +317,7 @@ theorem txn.Txn_sole
     ihave Htx := (txnViewIs_mw mw' s γ _).1 $$ Hv
     ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
     wp_apply (hEnd trace mw' s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost, %te5, Htrc⟩
-    · iapply mvcc.txnEndPre_write; iframe Hhook HP
+    · iapply mvcc.txnEndPre_write; iframe Hhook HP; simp only [hro, Bool.false_eq_true, ↓reduceIte, srvRunTxn]; iexact Hcok
     ihave Hsw := soleWriter_close_end γ log _ p1 p2 p3 hlen4 $$ [Htoks Hpost]
     · iframe Hpost; iunfold soleWriterOpen; iframe Hc Htoks; ipureintro; exact Hl2
     ihave #Hresp2 := Hresp
@@ -394,7 +394,7 @@ theorem txn.Txn_read
   · (try cases shared) <;>
       (try simp only [SharedBufReadTxMode, ConcurrentReadTxMode]) <;> wp_auto <;>
       (isplitl []; · itrivial) <;> iexists _ <;> iframe
-  wp_apply (hRead s γ md trace m log₀ false) $$ [$Hs $Hrd $Htoks $Hc0 $Htrc] as %mw ⟨%log, %rev, Htx, Htoks, %Hpin⟩
+  wp_apply (hRead s γ md trace m log₀ false) $$ [$Hs $Hrd $Htoks $Hc0 $Htrc] as %mw ⟨%log, %rev, Htx, Htoks, -, %Hpin⟩
   · ipureintro; exact Htr
   icases isTxnRead_pure mw s γ log rev $$ Htx with ⟨Htx, %Hlog⟩
   icases isTxnRead_cert mw s γ log rev $$ Htx with ⟨Htx, #Hcert⟩

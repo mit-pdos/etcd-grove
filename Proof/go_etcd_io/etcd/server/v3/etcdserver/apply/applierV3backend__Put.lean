@@ -37,7 +37,7 @@ theorem apply.applierV3backend.Put.wp_proof
   iunfold apply.putPre at Hpre
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
-  icases Hpre with ⟨%Hrq, #Hr, Hwt, ⟨Hrd, Hsw, Hlive, Hard⟩, Hres, Hcs⟩
+  icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hwt, ⟨Hrd, Hsw, Hlive, Hard⟩, Hres, Hcs⟩
   iunfold apply.leasesLive at Hlive
   icases Hlive with ⟨%L, #Hknown, Hu⟩
   icases txn.soleWriter_len' _ _ $$ Hsw with ⟨%Hl2, Hsw⟩
@@ -53,6 +53,9 @@ theorem apply.applierV3backend.Put.wp_proof
   iunfold apply.isApplyLessor at Hle
   icases Hle with ⟨#Hle, -⟩
   have hlen : log.length + 4 ≤ 2 ^ 63 := Hrq.2.2
+  ihave #Hcok := apply.certPre_backend_applied E rq log
+    (log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) false
+    (by unfold apply.backendStep; rw [Hrq.2.1]; exact ⟨o, Hrq.1, Or.inr (Or.inr rfl)⟩) $$ Hcp
   ihave #Hl := apply.leaseOk_ignore L (mvcc.stateAfter log) o $$ Hknown
   wp_apply (txn.put_soleWriter_of hPut todoCtxVal mvcc.neverCd opts.Logger' opts.Lessor' opts.KV'
       E.s E.γ r o log E.P Pre Q Post E.f L none false hlen) $$ [$Hrd $Hsw $Hwt $Hcs $Hu]

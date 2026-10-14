@@ -47,7 +47,7 @@ theorem txn.Count.wp_proof
   have heff : (txn.countOp k (txn.rangeEndOf rangeEnd e) revision).effSortOrder = W64 0 := by
     simp [txn.countOp, txn.rangeOpOf, OpFull.effSortOrder]
   wp_apply (hRange ctx cd false lg kv s γ «$a3_ptr» _ false m log₀ ot te) $$ [$Hkv $Hrd $Htoks $Hc0 $Hreq $Hctx $Hct $Hto]
-    as %resp %tr %err ⟨Hrd, Htoks, %Htr, -, -, %log, %rev, #Hcert, %Hpin, #Hres, -, -⟩
+    as %resp %tr %err ⟨Hrd, Htoks, %Htr, -, -, %log, %rev, #Hcert, -, %Hpin, #Hres, -, -⟩
   · isplitr
     · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
     isplitr

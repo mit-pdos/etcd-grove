@@ -1,7 +1,6 @@
 /-
 Lemmas of the request path's proposer side (`InvProposer.lean`): minting a proposal's fresh
-token with its id's claim (`srv_claim_mint`), the trivial update a proposal deposits
-(`srvPropAu_trivial`), the request with its header (`irrIs_of_noHdr`). Lean-first (no Rocq
+token with its id's claim (`srv_claim_mint`), the request with its header (`irrIs_of_noHdr`). Lean-first (no Rocq
 counterpart).
 -/
 module
@@ -34,10 +33,6 @@ variable [sem : go.Semantics]
 instance idClaim_timeless (γi : IdNames) (id : w64) (d : List w8) :
     Timeless (idClaim (GF := GF) γi id d) := by
   unfold idClaim; infer_instance
-
-instance srvCLog_timeless (γ : ServerRaftNames) (L : List (List w8)) :
-    Timeless (srvCLog (GF := GF) γ L) := by
-  unfold srvCLog; infer_instance
 
 /-- **Claiming a fresh id for the proposal's data mints the data's fresh token**: the data
 decode to a request whose id is `id`, unclaimed until now, so no token of the data exists (every
@@ -77,37 +72,6 @@ theorem srv_claim_mint (ρ : ReqNames) (g : Loc) (id : w64) (d : List w8) (rq : 
     iframe Hc
     iunfold srvPropFresh
     iexact Hfr
-
-/-- **The update a proposal deposits** (`Q` = `True`): the server keeps the client log's other
-half in an invariant (`srvCLogInv`), the proposer's result comes through the wait. -/
-theorem srvPropAu_trivial (γ : ServerRaftNames) (d : List w8) :
-    ⊢ srvCLogInv (GF := GF) γ -∗ srvPropAu γ d (fun _ => iprop(True)) := by
-  iintro #Hinv
-  unfold srvPropAu
-  iauintro
-  unfold atomic_acc
-  unfold srvCLogInv
-  have Hdisj := srvCLogN_raftN
-  iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%L, HcL⟩
-  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
-  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
-  iintro Hmask
-  iexists L
-  iframe HcL
-  isplit
-  · iintro HcL
-    imod Hmask with -
-    imod Hclose $$ [HcL] with -
-    · inext; iexists L; iexact HcL
-    imodintro
-    itrivial
-  · iintro HcL
-    imod Hmask with -
-    imod Hclose $$ [HcL] with -
-    · inext; iexists (L ++ [d]); iexact HcL
-    imodintro
-    itrivial
 
 end lemmas
 

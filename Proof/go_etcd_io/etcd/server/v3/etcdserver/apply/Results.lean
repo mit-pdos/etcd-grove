@@ -37,7 +37,7 @@ open Iris Iris.BI Iris.ProofMode
 Every function of the five files but the backend's `Compaction` (out of the model) has a
 `Spec`/`Proof` pair and a linked result (`Link.lean`); the constructors package each layer's
 triples into `applierSpec E c a` (`Chain.lean`), over the inner applier's. Restated here for the
-chains the uber-applier builds (`alarmChain ns cr`: `baseChain` is `alarmChain false false`),
+chains the uber-applier builds (`alarmChain E.authOn ns cr`: `baseChain` is `alarmChain E.authOn false false`),
 with the outcome relation `chainStep backendStep` computed in the txn package's terms:
 
 * **A put** (`chain_put`): with a `CORRUPT` alarm `ErrCorrupt`; else with a `NOSPACE` alarm
@@ -81,31 +81,31 @@ def txnModel (t : TxnModel) (log : mvcc.Log) (o : Outcome) : Prop :=
     (txn.txnReadonly t = true →
       (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1 = []))
 
-/-- A put through `alarmChain ns cr`. -/
+/-- A put through `alarmChain E.authOn ns cr`. -/
 def alarmPut (ns cr : Bool) (op : OpFull) (log : mvcc.Log) (o : Outcome) : Prop :=
   if cr then o = .rejected .corrupt
   else if ns then o = .rejected .noSpace
   else o = .rejected .auth ∨ ∃ o', putModel op log o' ∧ quotaAfter o' o
 
-/-- A delete through `alarmChain ns cr`. -/
+/-- A delete through `alarmChain E.authOn ns cr`. -/
 def alarmDelete (cr : Bool) (op : OpFull) (log : mvcc.Log) (o : Outcome) : Prop :=
   if cr then o = .rejected .corrupt
   else o = .rejected .auth ∨ deleteModel op log o
 
-/-- A range through `alarmChain ns cr`. -/
+/-- A range through `alarmChain E.authOn ns cr`. -/
 def alarmRange (cr : Bool) (log : mvcc.Log) (o : Outcome) : Prop :=
   if cr then o = .rejected .corrupt
   else o = .rejected .auth ∨ o = .applied log false
 
-/-- A transaction through `alarmChain ns cr`. -/
+/-- A transaction through `alarmChain E.authOn ns cr`. -/
 def alarmTxn (ns cr : Bool) (t : TxnModel) (log : mvcc.Log) (o : Outcome) : Prop :=
   if cr then o = .rejected .corrupt
   else (ns = true ∧ o = .rejected .noSpace) ∨ o = .rejected .auth ∨
     ∃ o', txnModel t log o' ∧ quotaAfter o' o
 
-theorem chainStep_alarm_put (ns cr : Bool) (rq : IRRModel) (op : OpFull) (log : mvcc.Log)
+theorem chainStep_alarm_put (on ns cr : Bool) (rq : IRRModel) (op : OpFull) (log : mvcc.Log)
     (o : Outcome) (hk : dispatchKind rq = .put) (hp : rq.put = some op)
-    (h : chainStep backendStep (alarmChain ns cr) rq log o) : alarmPut ns cr op log o := by
+    (h : chainStep backendStep (alarmChain on ns cr) rq log o) : alarmPut ns cr op log o := by
   have hb : ∀ o', backendStep rq log o' → putModel op log o' := by
     intro o' h'
     unfold backendStep at h'
@@ -113,21 +113,21 @@ theorem chainStep_alarm_put (ns cr : Bool) (rq : IRRModel) (op : OpFull) (log : 
     obtain ⟨op', hp', h'⟩ := h'
     rw [hp] at hp'; cases hp'
     exact h'
-  have hbase : chainStep backendStep baseChain rq log o →
+  have hbase : chainStep backendStep (baseChain on) rq log o →
       o = .rejected .auth ∨ ∃ o', putModel op log o' ∧ quotaAfter o' o := by
     intro h
-    simp only [baseChain, chainStep, authChecks, quotaChecks, hk, true_or, ↓reduceIte] at h
-    rcases h with h | ⟨o', h', hq⟩
+    simp only [baseChain, chainStep, authChecks, quotaChecks, hk, _root_.true_or, ↓reduceIte] at h
+    rcases h with ⟨-, h⟩ | h'
     · exact Or.inl h
-    · exact Or.inr ⟨o', hb o' h', hq⟩
+    · exact Or.inr ⟨o, hb o h', Or.inl rfl⟩
   unfold alarmPut
   cases cr <;> cases ns <;>
     simp only [alarmChain, chainStep, corruptRejects, cappedRejects, hk, Bool.false_eq_true,
       ↓reduceIte] at h ⊢ <;> first | exact h | exact hbase h
 
-theorem chainStep_alarm_delete (ns cr : Bool) (rq : IRRModel) (op : OpFull) (log : mvcc.Log)
+theorem chainStep_alarm_delete (on ns cr : Bool) (rq : IRRModel) (op : OpFull) (log : mvcc.Log)
     (o : Outcome) (hk : dispatchKind rq = .deleteRange) (hp : rq.deleteRange = some op)
-    (h : chainStep backendStep (alarmChain ns cr) rq log o) : alarmDelete cr op log o := by
+    (h : chainStep backendStep (alarmChain on ns cr) rq log o) : alarmDelete cr op log o := by
   have hb : backendStep rq log o → deleteModel op log o := by
     intro h'
     unfold backendStep at h'
@@ -135,12 +135,12 @@ theorem chainStep_alarm_delete (ns cr : Bool) (rq : IRRModel) (op : OpFull) (log
     obtain ⟨op', hp', h'⟩ := h'
     rw [hp] at hp'; cases hp'
     exact h'
-  have hbase : chainStep backendStep baseChain rq log o →
+  have hbase : chainStep backendStep (baseChain on) rq log o →
       o = .rejected .auth ∨ deleteModel op log o := by
     intro h
-    simp only [baseChain, chainStep, authChecks, quotaChecks, hk, true_or, ↓reduceIte,
+    simp only [baseChain, chainStep, authChecks, quotaChecks, hk, _root_.true_or, ↓reduceIte,
       Bool.false_eq_true] at h
-    rcases h with h | h
+    rcases h with ⟨-, h⟩ | h
     · exact Or.inl h
     · exact Or.inr (hb h)
   unfold alarmDelete
@@ -148,23 +148,25 @@ theorem chainStep_alarm_delete (ns cr : Bool) (rq : IRRModel) (op : OpFull) (log
     simp only [alarmChain, chainStep, corruptRejects, cappedRejects, hk, Bool.false_eq_true,
       ↓reduceIte, reduceCtorEq] at h ⊢ <;> first | exact h | exact hbase h
 
-theorem chainStep_alarm_range (ns cr : Bool) (rq : IRRModel) (log : mvcc.Log)
+theorem chainStep_alarm_range (on ns cr : Bool) (rq : IRRModel) (log : mvcc.Log)
     (o : Outcome) (hk : dispatchKind rq = .range)
-    (h : chainStep backendStep (alarmChain ns cr) rq log o) : alarmRange cr log o := by
-  have hbase : chainStep backendStep baseChain rq log o →
+    (h : chainStep backendStep (alarmChain on ns cr) rq log o) : alarmRange cr log o := by
+  have hbase : chainStep backendStep (baseChain on) rq log o →
       o = .rejected .auth ∨ o = .applied log false := by
     intro h
-    simp only [baseChain, chainStep, authChecks, quotaChecks, hk, true_or, ↓reduceIte,
+    simp only [baseChain, chainStep, authChecks, quotaChecks, hk, _root_.true_or, ↓reduceIte,
       Bool.false_eq_true, backendStep] at h
-    exact h
+    rcases h with ⟨-, h⟩ | h
+    · exact Or.inl h
+    · exact Or.inr h
   unfold alarmRange
   cases cr <;> cases ns <;>
     simp only [alarmChain, chainStep, corruptRejects, cappedRejects, hk, Bool.false_eq_true,
       ↓reduceIte, reduceCtorEq] at h ⊢ <;> first | exact h | exact hbase h
 
-theorem chainStep_alarm_txn (ns cr : Bool) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log)
+theorem chainStep_alarm_txn (on ns cr : Bool) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log)
     (o : Outcome) (hk : dispatchKind rq = .txn) (hp : rq.txn = some t)
-    (h : chainStep backendStep (alarmChain ns cr) rq log o) : alarmTxn ns cr t log o := by
+    (h : chainStep backendStep (alarmChain on ns cr) rq log o) : alarmTxn ns cr t log o := by
   have hb : ∀ o', backendStep rq log o' → txnModel t log o' := by
     intro o' h'
     unfold backendStep at h'
@@ -172,17 +174,17 @@ theorem chainStep_alarm_txn (ns cr : Bool) (rq : IRRModel) (t : TxnModel) (log :
     obtain ⟨t', hp', h'⟩ := h'
     rw [hp] at hp'; cases hp'
     exact h'
-  have hbase : chainStep backendStep baseChain rq log o →
+  have hbase : chainStep backendStep (baseChain on) rq log o →
       o = .rejected .auth ∨ ∃ o', txnModel t log o' ∧ quotaAfter o' o := by
     intro h
-    simp only [baseChain, chainStep, authChecks, quotaChecks, hk, true_or, ↓reduceIte] at h
-    rcases h with h | ⟨o', h', hq⟩
+    simp only [baseChain, chainStep, authChecks, quotaChecks, hk, _root_.true_or, ↓reduceIte] at h
+    rcases h with ⟨-, h⟩ | h'
     · exact Or.inl h
-    · exact Or.inr ⟨o', hb o' h', hq⟩
+    · exact Or.inr ⟨o, hb o h', Or.inl rfl⟩
   unfold alarmTxn
   cases cr <;> cases ns <;>
     simp only [alarmChain, chainStep, corruptRejects, cappedRejects, hk, Bool.false_eq_true,
-      ↓reduceIte, true_and, false_and, false_or] at h ⊢
+      ↓reduceIte, _root_.true_and, _root_.false_and, _root_.false_or] at h ⊢
   all_goals first
     | exact h
     | exact Or.inr (hbase h)
@@ -198,18 +200,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **A put through the uber-applier's chain** (`alarmChain ns cr`; `baseChain` at
+/-- **A put through the uber-applier's chain** (`alarmChain E.authOn ns cr`; `baseChain` at
 `ns = cr = false`): the outcome `alarmPut` (the txn package's `putModel`), its answer, the log it
 commits. -/
 theorem chain_put (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
-    applierSpec E (alarmChain ns cr) a ⊢
+    applierSpec E (alarmChain E.authOn ns cr) a ⊢
       ∃ ai : GoInterfaceOk, ⌜a = GoInterface.ok ai⌝ ∗
       □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF),
-        {{ putPre E (alarmChain ns cr) (.ok ai) r rq o log Pre Q Post }}
+        {{ putPre E (alarmChain E.authOn ns cr) (.ok ai) r rq o log Pre Q Post }}
           (App (Val #(methods ai.ty go!"Put" ai.v)) (Val #r))
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
             ∃ oc : Outcome, ⌜alarmPut ns cr o log oc⌝ ∗ putAnswerIs log o resp err oc ∗
-              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain ns cr) (.ok ai) ∗ (Post ∨ Pre) ∗ traceRes trace }}) := by
+              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) ∗ (Post ∨ Pre) ∗ traceRes trace }}) := by
   iintro #Hs
   iunfold applierSpec at Hs
   icases Hs with ⟨%ai, %Ha, #Ht⟩
@@ -237,19 +239,19 @@ theorem chain_put (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   icases HR with ⟨H1, H2, H3, H4⟩
   iframe H1 H2 H3 H4 Htr
   ipureintro
-  exact chainStep_alarm_put ns cr rq o log oc Hk.2.1 Hk.1 Hst
-/-- **A delete through the uber-applier's chain** (`alarmChain ns cr`; `baseChain` at
+  exact chainStep_alarm_put E.authOn ns cr rq o log oc Hk.2.1 Hk.1 Hst
+/-- **A delete through the uber-applier's chain** (`alarmChain E.authOn ns cr`; `baseChain` at
 `ns = cr = false`): the outcome `alarmDelete` (the txn package's `deleteModel`), its answer, the log it
 commits. -/
 theorem chain_deleteRange (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
-    applierSpec E (alarmChain ns cr) a ⊢
+    applierSpec E (alarmChain E.authOn ns cr) a ⊢
       ∃ ai : GoInterfaceOk, ⌜a = GoInterface.ok ai⌝ ∗
       □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF),
-        {{ deletePre E (alarmChain ns cr) (.ok ai) r rq o log Pre Q Post }}
+        {{ deletePre E (alarmChain E.authOn ns cr) (.ok ai) r rq o log Pre Q Post }}
           (App (Val #(methods ai.ty go!"DeleteRange" ai.v)) (Val #r))
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
             ∃ oc : Outcome, ⌜alarmDelete cr o log oc⌝ ∗ deleteAnswerIs log o resp err oc ∗
-              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain ns cr) (.ok ai) ∗ (Post ∨ Pre) ∗ traceRes trace }}) := by
+              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) ∗ (Post ∨ Pre) ∗ traceRes trace }}) := by
   iintro #Hs
   iunfold applierSpec at Hs
   icases Hs with ⟨%ai, %Ha, #Ht⟩
@@ -277,18 +279,18 @@ theorem chain_deleteRange (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   icases HR with ⟨H1, H2, H3, H4⟩
   iframe H1 H2 H3 H4 Htr
   ipureintro
-  exact chainStep_alarm_delete ns cr rq o log oc Hk.2.1 Hk.1 Hst
+  exact chainStep_alarm_delete E.authOn ns cr rq o log oc Hk.2.1 Hk.1 Hst
 /-- **A range through the uber-applier's chain**: the outcome `alarmRange` (`rangeResult` at
 `log` unless rejected), its answer; the log as it is. -/
 theorem chain_range (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
-    applierSpec E (alarmChain ns cr) a ⊢
+    applierSpec E (alarmChain E.authOn ns cr) a ⊢
       ∃ ai : GoInterfaceOk, ⌜a = GoInterface.ok ai⌝ ∗
       □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log),
-        {{ rangePre E (alarmChain ns cr) (.ok ai) r rq o log }}
+        {{ rangePre E (alarmChain E.authOn ns cr) (.ok ai) r rq o log }}
           (App (Val #(methods ai.ty go!"Range" ai.v)) (Val #r))
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
             ∃ oc : Outcome, ⌜alarmRange cr log oc⌝ ∗ rangeOutcomeIs log o resp err oc ∗
-              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain ns cr) (.ok ai) ∗ traceRes trace }}) := by
+              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) ∗ traceRes trace }}) := by
   iintro #Hs
   iunfold applierSpec at Hs
   icases Hs with ⟨%ai, %Ha, #Ht⟩
@@ -316,21 +318,21 @@ theorem chain_range (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   icases HR with ⟨H1, H2, H3⟩
   iframe H1 H2 H3 Htr
   ipureintro
-  exact chainStep_alarm_range ns cr rq log oc Hk.2.1 Hst
+  exact chainStep_alarm_range E.authOn ns cr rq log oc Hk.2.1 Hst
 
 /-- **A transaction through the uber-applier's chain**: the outcome `alarmTxn` (the txn
 package's `txnModel`: `checkTxn`'s error or the server's run `srvRunTxn`), its answer, the log it
 commits. -/
 theorem chain_txn (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
-    applierSpec E (alarmChain ns cr) a ⊢
+    applierSpec E (alarmChain E.authOn ns cr) a ⊢
       ∃ ai : GoInterfaceOk, ⌜a = GoInterface.ok ai⌝ ∗
       □ (∀ (r : Loc) (skip : Bool) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log)
           (Pre Q Post : IProp GF),
-        {{ txnPre E (alarmChain ns cr) (.ok ai) r rq t log Pre Q Post }}
+        {{ txnPre E (alarmChain E.authOn ns cr) (.ok ai) r rq t log Pre Q Post }}
           (App (App (Val #(methods ai.ty go!"Txn" ai.v)) (Val #r)) (Val #skip))
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
             ∃ oc : Outcome, ⌜alarmTxn ns cr t log oc⌝ ∗ txnAnswerIs log t skip resp err oc ∗
-              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain ns cr) (.ok ai) ∗ (Post ∨ Pre) ∗ traceRes trace }}) := by
+              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain E.authOn ns cr) (.ok ai) ∗ (Post ∨ Pre) ∗ traceRes trace }}) := by
   iintro #Hs
   iunfold applierSpec at Hs
   icases Hs with ⟨%ai, %Ha, #Ht⟩
@@ -358,7 +360,7 @@ theorem chain_txn (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
   icases HR with ⟨H1, H2, H3, H4⟩
   iframe H1 H2 H3 H4 Htr
   ipureintro
-  exact chainStep_alarm_txn ns cr rq t log oc Hk.2.1 Hk.1 Hst
+  exact chainStep_alarm_txn E.authOn ns cr rq t log oc Hk.2.1 Hk.1 Hst
 
 end triples
 
@@ -375,7 +377,7 @@ end triples
 /-! ## Unit 2: the uber-applier and `Apply` (`uber_applier.go`, `apply.go`)
 
 Every function of the two files has a `Spec`/`Proof` pair and a linked result: `NewUberApplier`
-(`uberIs`, and the chain the alarms ask for, `alarmChain ns cr`), `newApplierV3` (`baseChain`),
+(`uberIs`, and the chain the alarms ask for, `alarmChain E.authOn ns cr`), `newApplierV3` (`baseChain`),
 `restoreAlarms`, `uberApplier.Apply`, `dispatch`, `uberApplier.Alarm`, `noSideEffect` and
 `apply.Apply` (`wp_Apply : apply.Apply.spec`): the server's contract (one critical section of the
 batch lock after the hook, or none; nothing without `v3`) with the KV: the apply thread's
@@ -400,23 +402,18 @@ theorem chainStep_log_same (B : IRRModel → mvcc.Log → Outcome → Prop) (rq 
   intro c
   induction c with
   | backend => intro o h; exact hB o h
-  | auth c ih =>
+  | auth _ c ih =>
     intro o h
     simp only [chainStep] at h
     split at h
-    · rcases h with rfl | h
+    · rcases h with ⟨-, rfl⟩ | h
       · rfl
       · exact ih o h
     · exact ih o h
   | quota c ih =>
     intro o h
     simp only [chainStep] at h
-    split at h
-    · obtain ⟨o', h', hq⟩ := h
-      rcases hq with rfl | ⟨log', rfl, rfl⟩
-      · exact ih _ h'
-      · simpa [Outcome.logAfter] using ih _ h'
-    · exact ih o h
+    exact ih o h
   | capped c ih =>
     intro o h
     simp only [chainStep] at h
@@ -451,11 +448,11 @@ theorem dispatchKind_txn (rq : IRRModel) (h : dispatchKind rq = .txn) : rq.txn.i
   simp only [dispatchKind, ite_eq_iff', reduceCtorEq, and_false, false_or, or_false] at h
   exact h.2.2.2.2.2.2.2.1
 
-/-- **A KV entry through `apply.Apply`** (with `v3`, the uber-applier at `alarmChain ns cr`):
+/-- **A KV entry through `apply.Apply`** (with `v3`, the uber-applier at `alarmChain E.authOn ns cr`):
 skipped or rejected by the admin check (the state as it is), or dispatched: the outcome of the
 chain in the txn package's terms, the log it commits, the chain as it was. -/
-theorem apply_kv (rq : IRRModel) (x x' : ApplyKV) (out : ApplyOut) (ns cr : Bool)
-    (hc : x.chain = alarmChain ns cr) (hk : isKVKind (dispatchKind rq) = true)
+theorem apply_kv (rq : IRRModel) (x x' : ApplyKV) (out : ApplyOut) (on ns cr : Bool)
+    (hc : x.chain = alarmChain on ns cr) (hk : isKVKind (dispatchKind rq) = true)
     (h : applyStep rq true x x' out) :
     ((out = .skipped ∨ out = .rejected) ∧ x' = x) ∨
     ∃ o sk, out = .dispatched o sk ∧ x'.log = o.logAfter x.log ∧ x'.chain = x.chain ∧
@@ -482,13 +479,13 @@ theorem apply_kv (rq : IRRModel) (x x' : ApplyKV) (out : ApplyOut) (ns cr : Bool
     rw [hc] at hcs
     refine Or.inr ⟨o, sk, rfl, hl, hch', ?_⟩
     cases hdk : dispatchKind rq <;> rw [hdk] at hk <;> simp [isKVKind] at hk
-    · exact Or.inr (Or.inr (Or.inl ⟨rfl, chainStep_alarm_range ns cr rq x.log o hdk hcs⟩))
+    · exact Or.inr (Or.inr (Or.inl ⟨rfl, chainStep_alarm_range on ns cr rq x.log o hdk hcs⟩))
     · obtain ⟨op, hop⟩ := Option.isSome_iff_exists.mp (dispatchKind_put rq hdk)
-      exact Or.inl ⟨op, hop, rfl, chainStep_alarm_put ns cr rq op x.log o hdk hop hcs⟩
+      exact Or.inl ⟨op, hop, rfl, chainStep_alarm_put on ns cr rq op x.log o hdk hop hcs⟩
     · obtain ⟨op, hop⟩ := Option.isSome_iff_exists.mp (dispatchKind_deleteRange rq hdk)
-      exact Or.inr (Or.inl ⟨op, hop, rfl, chainStep_alarm_delete ns cr rq op x.log o hdk hop hcs⟩)
+      exact Or.inr (Or.inl ⟨op, hop, rfl, chainStep_alarm_delete on ns cr rq op x.log o hdk hop hcs⟩)
     · obtain ⟨t, ht⟩ := Option.isSome_iff_exists.mp (dispatchKind_txn rq hdk)
-      exact Or.inr (Or.inr (Or.inr ⟨t, ht, rfl, chainStep_alarm_txn ns cr rq t x.log o hdk ht hcs⟩))
+      exact Or.inr (Or.inr (Or.inr ⟨t, ht, rfl, chainStep_alarm_txn on ns cr rq t x.log o hdk ht hcs⟩))
 
 /-- **A read writes nothing**: a range, or a read-only transaction, through `apply.Apply` leaves
 the log. -/

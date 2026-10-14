@@ -34,10 +34,11 @@ apply's (`appliedErr`), or the proposal's (made or not; if made, deposited: it m
 applied). -/
 abbrev EtcdServer.Put.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (r : Loc) (op : OpFull),
+    (cd : context.ContextDesc (IProp GF)) (r : Loc) (op : OpFull)
+    (Q : Option GoString → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
-      txn.putRequestIs r op }}
+      txn.putRequestIs r op ∗ putPermit ρ.kv op Q }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Put"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
@@ -47,7 +48,8 @@ abbrev EtcdServer.Put.spec : Prop :=
             ∃ log', o = .applied log' false⌝ ∗
           apply.putOutcomeIs x.log op resp GoInterface.nil o ∗
           apply.appliedHdr x.log (structFieldRef etcdserverpb.PutResponse go!"Header" resp) ∗
-          mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log) ∨
+          mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗
+          ∃ vo : Option GoString, □ Q vo) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
          ((∃ hm : apply.HeaderModel, appliedErr E (apply.withHeader (irrPut op) hm) err) ∨
           srvMaybeDeposited ρ (irrPut op)))) }}

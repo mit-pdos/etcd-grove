@@ -251,7 +251,7 @@ theorem soleWriter_Read (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG))
   · iframe # ∗
     ipureintro; exact htr
   inext
-  iintro %mw ⟨%log', %rev, Htx, Ht, %Hp⟩
+  iintro %mw ⟨%log', %rev, Htx, Ht, -, %Hp⟩
   have heq := soleWriter_pins_read log log' hlen Hp
   subst heq
   iapply HΦ

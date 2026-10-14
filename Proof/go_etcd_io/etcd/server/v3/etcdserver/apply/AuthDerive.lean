@@ -145,7 +145,7 @@ theorem isAuthStore_of_authInv
     (st : Loc) (R : IProp GF) (P : IProp GF) (f : val) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R ∗
       isAuthStoreAdmin (auth.authIface st) P f ⊢
-      isAuthStore (auth.authIface st) P f (auth.authRd st R) := by
+      isAuthStore (auth.authIface st) P f (auth.authRd st R) true := by
   iintro ⟨#Hpkg, #Hinv, #Hadm⟩
   iunfold isAuthStoreAdmin at Hadm
   icases Hadm with ⟨%ai', %Hai', #HHas, #HAE, #HAD, #HAu, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8,
@@ -165,7 +165,9 @@ theorem isAuthStore_of_authInv
     iintro !> %err ⟨Hrd, Ha, Hk, #Herr⟩
     iapply HΦ
     iframe
-    iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
+    isplitl []
+    · iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
+    · ipureintro; intro h; cases h
   isplitr
   · iunfold permCheck3
     iintro !> %a %info %dq %key %re %k %e %dk %de %Φ !> ⟨Ha, Hk, He, Hrd, %Hlen⟩ HΦ
@@ -174,7 +176,9 @@ theorem isAuthStore_of_authInv
     iintro !> %err ⟨Hrd, Ha, Hk, He, #Herr⟩
     iapply HΦ
     iframe
-    iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
+    isplitl []
+    · iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
+    · ipureintro; intro h; cases h
   isplitr
   · iunfold permCheck3
     iintro !> %a %info %dq %key %re %k %e %dk %de %Φ !> ⟨Ha, Hk, He, Hrd, %Hlen⟩ HΦ
@@ -183,7 +187,9 @@ theorem isAuthStore_of_authInv
     iintro !> %err ⟨Hrd, Ha, Hk, He, #Herr⟩
     iapply HΦ
     iframe
-    iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
+    isplitl []
+    · iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
+    · ipureintro; intro h; cases h
   isplitr
   · iintro !> %a %info %dq %Φ !> ⟨Ha, Hrd⟩ HΦ
     iapply (hAdmin st R a info dq) $$ [Ha Hrd]
@@ -191,7 +197,9 @@ theorem isAuthStore_of_authInv
     iintro !> %err ⟨Hrd, Ha, #Herr⟩
     iapply HΦ
     iframe
-    iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
+    isplitl []
+    · iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
+    · ipureintro; intro h; cases h
   iframe HHas
   isplitr
   · iintro !> %Φ !> Hrd HΦ
@@ -205,6 +213,9 @@ theorem isAuthStore_of_authInv
     iframe
   isplitr
   · iapply authRevision_of_authInv hRev st R $$ [$Hpkg $Hinv]
+  isplitr
+  · iintro !> %Pre %Q %Post %Φ !> ⟨-, Hcs⟩ HΦ
+    iapply HAE $$ %Pre %Q %Post %Φ Hcs HΦ
   iframe #
 
 end proof

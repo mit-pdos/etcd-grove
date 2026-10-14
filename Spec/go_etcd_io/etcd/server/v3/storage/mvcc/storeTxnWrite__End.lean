@@ -33,7 +33,8 @@ abbrev mvcc.storeTxnWrite.End.spec : Prop :=
     (chs : GoSlice) (ps : List Loc) (sealed : Bool) (P : IProp GF) (f : val) (crev : Int)
     (Z : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.storeTxnWriteCore tw s γ trace ilog pend chs ps sealed crev Z ∗ mvcc.hookIs γ P f ∗ P }}
+      mvcc.storeTxnWriteCore tw s γ trace ilog pend chs ps sealed crev Z ∗ mvcc.hookIs γ P f ∗ P ∗
+      mvcc.certOkNext γ ilog pend }}
     (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); mvcc.storeReaderC s γ ∗ □ Z ∗ mvcc.idxCert γ.idx (mvcc.commitLog ilog pend) ∗
       (if pend = [] then mvcc.revToken γ else iprop(True)) }}

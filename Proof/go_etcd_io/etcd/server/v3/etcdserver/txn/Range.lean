@@ -50,7 +50,7 @@ theorem txn.Range.wp_proof
     as %ctx' %trace ⟨⟨%Ht, %Hteq⟩, Htrc, #Hct', %vs, #Hctx', -⟩
   · iapply traceutil.ownFields_nil
   wp_apply time.wp_Now as %now -
-  wp_apply (hRead s γ _ trace m log₀ false) $$ [$Hs $Hrd $Htoks $Hc0 $Htrc] as %mw ⟨%log, %rev, Htx, Htoks, %Hpin⟩
+  wp_apply (hRead s γ _ trace m log₀ false) $$ [$Hs $Hrd $Htoks $Hc0 $Htrc] as %mw ⟨%log, %rev, Htx, Htoks, #Hrok, %Hpin⟩
   · ipureintro; exact Ht
   icases isTxnRead_pure mw s γ log rev $$ Htx with ⟨Htx, %Hlog⟩
   icases isTxnRead_cert mw s γ log rev $$ Htx with ⟨Htx, #Hcert⟩
@@ -86,7 +86,7 @@ theorem txn.Range.wp_proof
     isplitr
     · ipureintro; exact Hteq
     iexists log, rev
-    iframe Hcert Hres Hhdr
+    iframe Hcert Hrok Hres Hhdr
     ipureintro
     exact ⟨⟨Hpin.1, Hpin.2, Hlog.2.1, Hlog.2.2⟩, Hnd'⟩
 

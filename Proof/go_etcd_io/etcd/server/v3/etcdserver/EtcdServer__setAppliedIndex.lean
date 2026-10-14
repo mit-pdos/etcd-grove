@@ -41,7 +41,7 @@ theorem EtcdServer.setAppliedIndex.wp_proof :
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
   inext
-  icases Hi with ⟨%v0, %L0, %M, %p, Hv, Hauth, HM, Hp, %HMk, #HL0, #Hc0⟩
+  icases Hi with ⟨%v0, %L0, %M, %p, Hv, Hauth, HM, Hp, %HMk, #HL0, #Hc0, #Hkl⟩
   iexists v0
   iframe Hv
   iintro Hv
@@ -60,7 +60,7 @@ theorem EtcdServer.setAppliedIndex.wp_proof :
   imod Hclose $$ [Hv Hauth HM Hp] with -
   · inext
     iexists v', L, M, false
-    iframe Hv Hauth HM Hp Hc HLv'
+    iframe Hv Hauth HM Hp Hc HLv' Hkl
     ipureintro
     refine ⟨?_, HMk.2⟩
     intro k L' hk

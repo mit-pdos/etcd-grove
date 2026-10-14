@@ -44,11 +44,11 @@ theorem apply.uberApplier.restoreAlarms.wp_proof
   wp_apply HGet as %s2 -
   wp_if_destruct
   · -- a `NOSPACE` alarm: capped
-    wp_apply (hCap E baseChain base) $$ [] as %a1 #Ha1
+    wp_apply (hCap E (baseChain E.authOn) base) $$ [] as %a1 #Ha1
     · iframe #
     (try wp_auto)
     wp_if_destruct
-    · wp_apply (hCor E (.capped baseChain) a1) $$ [] as %a2 #Ha2
+    · wp_apply (hCor E (.capped (baseChain E.authOn)) a1) $$ [] as %a2 #Ha2
       · iframe #
       (try wp_auto)
       iapply HΦ
@@ -58,6 +58,7 @@ theorem apply.uberApplier.restoreAlarms.wp_proof
       simp only [apply.alarmChain, ↓reduceIte, Bool.false_eq_true]
       iframe
       try iframe #
+      try (ipureintro; simp [apply.baseChain, apply.Chain.authOn])
     · iapply HΦ
       iexists true, false
       iunfold apply.uberOwn
@@ -65,9 +66,10 @@ theorem apply.uberApplier.restoreAlarms.wp_proof
       simp only [apply.alarmChain, ↓reduceIte, Bool.false_eq_true]
       iframe
       try iframe #
+      try (ipureintro; simp [apply.baseChain, apply.Chain.authOn])
   · (try wp_auto)
     wp_if_destruct
-    · wp_apply (hCor E baseChain base) $$ [] as %a2 #Ha2
+    · wp_apply (hCor E (baseChain E.authOn) base) $$ [] as %a2 #Ha2
       · iframe #
       (try wp_auto)
       iapply HΦ
@@ -77,6 +79,7 @@ theorem apply.uberApplier.restoreAlarms.wp_proof
       simp only [apply.alarmChain, ↓reduceIte, Bool.false_eq_true]
       iframe
       try iframe #
+      try (ipureintro; simp [apply.baseChain, apply.Chain.authOn])
     · iapply HΦ
       iexists false, false
       iunfold apply.uberOwn
@@ -84,6 +87,7 @@ theorem apply.uberApplier.restoreAlarms.wp_proof
       simp only [apply.alarmChain, ↓reduceIte, Bool.false_eq_true]
       iframe
       try iframe #
+      try (ipureintro; simp [apply.baseChain, apply.Chain.authOn])
 
 end proof
 

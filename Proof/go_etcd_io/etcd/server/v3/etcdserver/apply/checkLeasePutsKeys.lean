@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.checkLeasePutsKeys.wp_proof :
     apply.checkLeasePutsKeys.spec (GF := GF) (hG := hG) := by
-  intro st P f RD ai info dq l id
+  intro st P f RD on ai info dq l id
   wp_start as ⟨#Hst, Hai, #Hl, Hrd⟩
   iunfold apply.isAuthStore at Hst
   icases Hst with ⟨%sti, %Hsti, #HPut, -, -, #HAdmin, -⟩
@@ -34,11 +34,13 @@ theorem apply.checkLeasePutsKeys.wp_proof :
   iunfold apply.leaseIs at Hl
   icases Hl with ⟨%Hln, -, -, #HKeys⟩
   wp_auto
-  wp_apply HAdmin $$ [$Hai $Hrd] as %err ⟨Hai, Hrd, #HeI1⟩
+  wp_apply HAdmin $$ [$Hai $Hrd] as %err ⟨Hai, Hrd, #HeI1, %Hoff⟩
   cases err with
   | nil =>
     wp_auto
-    iapply HΦ; iframe Hai Hrd; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
+    iapply HΦ; iframe Hai Hrd; isplitl []
+    · iexact HeI1
+    · ipureintro; intro _; rfl
   | ok e =>
   wp_auto
   wp_apply HKeys as %sl ⟨%ks, Hks, %Hksb⟩
@@ -64,7 +66,7 @@ theorem apply.checkLeasePutsKeys.wp_proof :
     · iframe; ipureintro; exact Hkx
     wp_apply wp_string_to_bytes kx as %bsl ⟨Hb, -⟩
     ihave %Hbl := ownSlice_len _ _ _ $$ Hb
-    wp_apply HPut $$ [$Hai $Hb $Hrd] as %err ⟨Hai, -, Hrd, #HeI2⟩
+    wp_apply HPut $$ [$Hai $Hb $Hrd] as %err ⟨Hai, -, Hrd, #HeI2, -⟩
     · ipureintro
       have h1 := Hksb kx (List.mem_of_getElem? Hkx)
       rw [Hbl.1] at h1
@@ -82,8 +84,12 @@ theorem apply.checkLeasePutsKeys.wp_proof :
     | ok e' =>
       wp_auto
       wp_for_post
-      iapply HΦ; iframe Hai Hrd; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
-  iapply HΦ; iframe Hai Hrd; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
+      iapply HΦ; iframe Hai Hrd; isplitl []
+      · first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
+      · ipureintro; intro h; cases Hoff h
+  iapply HΦ; iframe Hai Hrd; isplitl []
+  · first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
+  · ipureintro; intro h; cases Hoff h
 
 end proof
 

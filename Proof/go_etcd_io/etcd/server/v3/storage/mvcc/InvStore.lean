@@ -118,6 +118,12 @@ structure StoreNames where
   fin : GName
   /-- the compaction scheduler's names (`schedule.isScheduler`) -/
   sch : schedule.SchedNames
+  /-- the committed logs' certificates of the caller's (2026-10-14, unit T1): a ghost map from a
+  log's length to the log (persistent elements, `certOk`), whose authority `NewStore` hands its
+  caller; every committed log beyond `NewStore`'s two revisions has one (`revMuInv`), which the
+  writer supplies at the commit (`txnEndPre`) and a reader learns of the log it read
+  (`store.Read`). The etcd server's elements say a log is the KV model of a committed raft log. -/
+  cok : GName
 
 instance idxNames_countable : Pos.Countable IdxNames :=
   countableOfLeftInverse (fun x : IdxNames => (x.hist, x.nev, x.log, x.crev, x.cmp))
@@ -150,9 +156,10 @@ instance kbReal_countable : Pos.Countable KBReal :=
 instance storeNames_countable : Pos.Countable StoreNames :=
   countableOfLeftInverse
     (fun x : StoreNames => (x.idx, x.bucket, x.clog, x.leases, x.revs, x.hook, x.hookFn, x.kb,
-      x.cmeta, x.fin, x.sch))
+      x.cmeta, x.fin, x.sch, x.cok))
     (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2.1, p.2.2.2.2.1, p.2.2.2.2.2.1, p.2.2.2.2.2.2.1,
-      p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2⟩)
+      p.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.1, p.2.2.2.2.2.2.2.2.2.2.1,
+      p.2.2.2.2.2.2.2.2.2.2.2⟩)
     (fun _ => rfl)
 
 section addrs
@@ -1617,6 +1624,48 @@ theorem batchTxSpecG_cmp (bt : GoInterfaceOk) (s : Loc) (γ : StoreNames) (Dep :
   simp only [h]
   exact .rfl
 
+/-- **The committed log `log` is certified OK by the caller** (persistent; 2026-10-14, unit T1):
+`NewStore`'s logs (at most two revisions), or an element of the caller's map `γ.cok`. -/
+def certOk (γ : StoreNames) (log : Log) : IProp GF :=
+  iprop(⌜log.length ≤ 2⌝ ∨ (W64 (log.length : Int)) ↪[γ.cok]□ log ∨ (W64 0) ↪[γ.cok]□ ([] : Log))
+
+/-- **Every log is certified** (persistent): the map's free mode, the element `0 ↦ []` (a caller
+that does not use the certificates mints it; no committed log has length `0`, so a caller that does,
+the etcd server, never holds it). -/
+def certFree (γ : StoreNames) : IProp GF := (W64 0) ↪[γ.cok]□ ([] : Log)
+
+instance certFree_persistent (γ : StoreNames) : Persistent (certFree (GF := GF) γ) := by
+  unfold certFree; infer_instance
+
+open Iris.ProofMode in
+theorem certFree_certOk (γ : StoreNames) (log : Log) : certFree (GF := GF) γ ⊢ certOk γ log := by
+  unfold certFree certOk
+  iintro #H
+  iright; iright; iexact H
+
+instance certOk_persistent (γ : StoreNames) (log : Log) : Persistent (certOk (GF := GF) γ log) := by
+  unfold certOk; infer_instance
+
+instance certOk_timeless (γ : StoreNames) (log : Log) : Timeless (certOk (GF := GF) γ log) := by
+  unfold certOk; infer_instance
+
+/-- What a commit of `pend` after `ilog` needs: nothing for no change, else the certificate of the
+log after (2026-10-14, unit T1). -/
+def certOkNext (γ : StoreNames) (ilog : Log) (pend : List Change) : IProp GF :=
+  iprop(⌜pend = []⌝ ∨ certOk γ (ilog ++ [pend]))
+
+instance certOkNext_persistent (γ : StoreNames) (ilog : Log) (pend : List Change) :
+    Persistent (certOkNext (GF := GF) γ ilog pend) := by
+  unfold certOkNext; infer_instance
+
+open Iris.ProofMode in
+theorem certFree_certOkNext (γ : StoreNames) (ilog : Log) (pend : List Change) :
+    certFree (GF := GF) γ ⊢ certOkNext γ ilog pend := by
+  iintro #H
+  unfold certOkNext
+  iright
+  iapply certFree_certOk $$ H
+
 /-- `s.revMu`'s resource at fraction `q`: the committed log `log`'s last revision in
 `currentRev` (half of it: the writer holds the other half under the batch lock), half the
 committed-log ghost variable, the index's certificate of `log` and the bucket's authority
@@ -1632,6 +1681,7 @@ def revMuInv (s : Loc) (γ : StoreNames) (q : Qp) : IProp GF :=
       IProp GF) ∗
     "Hclog" ∷ ghostVar γ.clog q.half log ∗
     "#Hcert" ∷ idxCert γ.idx log ∗
+    "#Hok" ∷ certOk γ log ∗
     "%Hne" ∷ ⌜log ≠ []⌝ ∗
     "Hbucket" ∷ bucketView γ q.half (bucketMap log) ∗
     "Htoks" ∷ ownTokAuthDfrac γ.revs (DFrac.own q.half) ntok ∗
@@ -1705,6 +1755,8 @@ instance revMuInv_fractional (s : Loc) (γ : StoreNames) : Fractional (revMuInv 
       · iapply (hclog log).2; iframe Hclog1 Hclog2
       isplitr
       · iexact Hcert1
+      isplitr
+      · iexact Hok1
       isplitr
       · ipureintro; exact Hne1
       isplitl [Hbucket1 Hbucket2]
@@ -2635,15 +2687,16 @@ def txnEndPost (γ : StoreNames) : TxnKind → IProp GF
 invariant `P` (the store's: `hookIs`), which `Unlock` takes back. -/
 def txnEndPre (γ : StoreNames) : TxnKind → IProp GF
   | .read _ _ => iprop(True)
-  | .write _ _ _ _ _ => iprop(∃ (P : IProp GF) (f : val), hookIs γ P f ∗ P)
+  | .write ilog pend _ _ _ => iprop(∃ (P : IProp GF) (f : val), hookIs γ P f ∗ P ∗
+      certOkNext γ ilog pend)
 
 theorem txnEndPre_write (γ : StoreNames) (P : IProp GF) (f : val) (ilog : Log)
     (pend : List Change) (puts deletes putSize : w64) :
-    hookIs γ P f ∗ P ⊢ txnEndPre γ (.write ilog pend puts deletes putSize) := by
-  iintro ⟨#Hh, HP⟩
+    hookIs γ P f ∗ P ∗ certOkNext γ ilog pend ⊢ txnEndPre γ (.write ilog pend puts deletes putSize) := by
+  iintro ⟨#Hh, HP, #Hok⟩
   simp only [txnEndPre]
   iexists P, f
-  iframe Hh HP
+  iframe Hh HP Hok
 
 /-- The store's `writeView` (`kv_view.go`): its `kv` is the store `s`. -/
 def isWriteView (wv s : Loc) (γ : StoreNames) : IProp GF :=

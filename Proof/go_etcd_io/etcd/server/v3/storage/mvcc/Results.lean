@@ -266,7 +266,7 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
         (Val #le)) (Val #cfg))
     {{ (s : Loc), RET #s; ∃ γ : mvcc.StoreNames,
         ⌜γ.bucket = γb ∧ γ.leases = γl ∧ γ.kb = some d⌝ ∗
-        mvcc.isStore s γ ∗ mvcc.hookIs γ Pk #f ∗
+        mvcc.isStore s γ ∗ ghostMapAuth γ.cok 1 (∅ : GMap w64 mvcc.Log) ∗ mvcc.hookIs γ Pk #f ∗
         (∃ rv wv : Loc,
           s.[go_etcd_io.etcd.server.v3.storage.mvcc.store, go!"ReadView"] ↦
             (interface.mkOk (go.GoType.PointerType
@@ -442,7 +442,7 @@ theorem mvcc_store_Read_after_Compact (s : Loc) (γ : mvcc.StoreNames) (mode : w
     {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite.ty) #mw);
         ∃ (log : mvcc.Log) (rv : w64) (crev : Int), mvcc.isTxnRead mw s γ trace log rv crev Z ∗
-          ownToks γ.revs m ∗ mvcc.crevLb γ.idx crev ∗
+          ownToks γ.revs m ∗ mvcc.crevLb γ.idx crev ∗ mvcc.certOk γ log ∗
           ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ sint.Z rev ≤ crev⌝ }} :=
   mvcc.store.wp_Read s γ mode trace m log₀ te (sint.Z rev) Z
 

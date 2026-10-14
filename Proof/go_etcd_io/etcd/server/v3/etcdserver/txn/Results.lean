@@ -104,6 +104,7 @@ theorem put_soleWriter (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
         mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
         □ (⌜o.ignoreLease = true⌝ -∗
           leaseOk L (putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter log)))) ∗
+        mvcc.certOk γ (log ++ [[putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) ∗
         mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
       (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.Put))
         (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #le)) (Val #kv)) (Val #p))
@@ -139,6 +140,7 @@ theorem deleteRange_soleWriter (ctx : GoInterfaceOk) (cd : context.ContextDesc (
         isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ mvcc.storeWT γ ∗
         deleteRangeRequestIs dr o ∗
         mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
+        mvcc.certOkNext γ log (delChanges (mvcc.stateAfter log) o) ∗
         mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.txn.DeleteRange))
         (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #kv)) (Val #dr))
@@ -220,7 +222,7 @@ theorem range_rangeSel (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
     iintro !> %log' %h -
     ipureintro; exact Hpre.2.2 log' h.1 h.2
   inext
-  iintro %resp %tr %err ⟨Hrd, Ht, %Htr, -, -, %log, %rev, #Hcert, %Hp, #Hres, -, -⟩
+  iintro %resp %tr %err ⟨Hrd, Ht, %Htr, -, -, %log, %rev, #Hcert, -, %Hp, #Hres, -, -⟩
   iapply HΦ
   iframe Hrd Ht
   isplitr
@@ -361,6 +363,8 @@ theorem txn_runTxn (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (
         isTxnLessor le γ.leases ∗ txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗
         traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ mvcc.neverDone cd ∗
         leasesKnown L (mvcc.stateAfter log) ∗ lease.lessorUser γ.leases L ∗ ⌜TxnPre log t⌝ ∗
+        (if txnReadonly t then iprop(True) else
+          mvcc.certOkNext γ log (srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) ∗
         mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
       (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx)))
         (Val #lg)) (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
@@ -412,6 +416,8 @@ theorem txn_readonly_no_revision (ctx : GoInterfaceOk) (cd : context.ContextDesc
         isTxnLessor le γ.leases ∗ txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗
         traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ mvcc.neverDone cd ∗
         leasesKnown L (mvcc.stateAfter log) ∗ lease.lessorUser γ.leases L ∗ ⌜TxnPre log t⌝ ∗
+        (if txnReadonly t then iprop(True) else
+          mvcc.certOkNext γ log (srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) ∗
         mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
       (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx)))
         (Val #lg)) (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
@@ -455,6 +461,8 @@ theorem txn_check_error_no_write (ctx : GoInterfaceOk) (cd : context.ContextDesc
         isTxnLessor le γ.leases ∗ txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗
         traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ mvcc.neverDone cd ∗
         leasesKnown L (mvcc.stateAfter log) ∗ lease.lessorUser γ.leases L ∗ ⌜TxnPre log t⌝ ∗
+        (if txnReadonly t then iprop(True) else
+          mvcc.certOkNext γ log (srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) ∗
         mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
       (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx)))
         (Val #lg)) (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))

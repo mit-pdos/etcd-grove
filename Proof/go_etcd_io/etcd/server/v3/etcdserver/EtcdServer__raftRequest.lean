@@ -44,13 +44,15 @@ local macro "rr_ok" : tactic => `(tactic| (
   iexists hm, rq'
   isplitr
   · ipureintro; exact Hwire
-  iunfold appliedOk
-  iexists y, y', o, skip
-  iframe Hcert HMint Hwit
-  isplitr
-  · ipureintro; exact Hstep
-  rw [← hve]
-  iexact Hans))
+  isplitr [HQL]
+  · iunfold appliedOk
+    iexists y, y', o, skip
+    iframe Hcert HMint Hwit
+    isplitr
+    · ipureintro; exact Hstep
+    rw [← hve]
+    iexact Hans
+  iexact HQL))
 
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
@@ -63,17 +65,17 @@ theorem EtcdServer.raftRequest.wp_proof
     (hIS : traceutil.Trace.InsertStep.spec (GF := GF) (hG := hG))
     (hLL : traceutil.Trace.LogIfLong.spec (GF := GF) (hG := hG)) :
     EtcdServer.raftRequest.spec (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd p rq Hid0
-  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hirr, Hhdr⟩
+  intro s E ρ ctx cd p rq Qr Hid0
+  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hirr, Hok, Hhdr⟩
   ihave #Ptrace : isPkgInit (PROP := IProp GF) pkg_id.go_opentelemetry_io.otel.trace $$ []
   · iPkgInit
   ihave #Ptu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   wp_auto
-  wp_apply hP s E ρ ctx cd p rq Hid0 $$ [Hrd Hard Hcred Hhdr] as %res %err ⟨Hrd, Hard, Hres⟩
-  · iframe # Hrd Hard Hcred Hhdr
+  wp_apply hP s E ρ ctx cd p rq Qr Hid0 $$ [Hrd Hard Hcred Hhdr Hok] as %res %err ⟨Hrd, Hard, Hres⟩
+  · iframe # Hrd Hard Hcred Hhdr Hok
   (try wp_auto)
-  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, HTr, Hri⟩ | ⟨%Hres, #HaE, Hdep⟩)
+  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, HTr, Hri, HQL⟩ | ⟨%Hres, #HaE, Hdep⟩)
   · subst Herr
     (try wp_auto)
     iunfold resultIsW at Hri

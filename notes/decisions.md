@@ -5392,12 +5392,13 @@ success, `v3rpc.putApplied E γw` (`putAppliedOk = srvLeadTimeReader ∗ putAppl
 persistent `putReplyOk`. `DeleteRange`/`Txn` carry the token only (their witness is dropped at
 `EtcdServer.DeleteRange`/`Txn`, as in C2a).
 
-## Put and Get as persistent atomic updates linearized by raft (unit T1, 2026-10-14 · adopted in part)
+## Put and Get as persistent atomic updates linearized by raft (unit T1, 2026-10-14 · adopted)
 
-**Status.** The user confirmed the direction and decided the open points (2026-10-14). Done in Lean
-so far: the pure KV model (`etcdserver/KVModel.lean`). Not done: the contract restatement and the
-re-proofs, because of the two gaps below ("Two gaps found"), which need decisions before the
-ghost and contract layers are built.
+**Status.** Implemented (2026-10-14): the model, the KV ghost state and its invariants, the raft
+contract restated, the read loop's registry, mvcc's log certificates, the apply thread's KV
+ghost state, the server's `Put`/`Range`, the gRPC layer's deposits, the client's `kv.Put`/`kv.Get`
+with persistent updates. Full build green, no new axiom, no new `sorry` (`notes/STATUS.md`, "Unit
+T1"). The two gaps found while designing are resolved below ("The two gaps, resolved").
 
 **Goal.** TaDa-style specs, linearized by raft:
 
@@ -5438,10 +5439,10 @@ that turns these into ordinary atomic specs is later work.
   map `γkv`. The authority holds only the keys handed out. A key not in it is allocated at its
   current value (`kv_alloc`, inside the invariant).
 - **The KV invariant** `kvInv γ γkv` (namespace `kvN`, disjoint from `srvRaftN`): `∃ L, srvRLog γ
-  L ∗ ghostMapAuth γkv M ∗ ⌜plainLog L ∧ ∀ k vo, M !! k = some vo → vo = kvVal (kvOf c₀ ch₀ x₀.log
+  L ∗ ghostMapAuth γkv M ∗ ⌜plainLog L ∧ ∀ k vo, M !! k = some vo → vo = kvVal (kvRaftOf c₀ ch₀ x₀.log
   L) k⌝`. `srvRLog γ L` is the server's half of the committed raft log after `ai₀`. Raft holds the
   other half and moves both at each commit.
-- **The model** (`KVModel.lean`, done): `kvOf c₀ ch log₀ A`, the fold of `kvEntry` over raft
+- **The model** (`KVModel.lean`, done): `kvRaftOf c₀ ch log₀ A`, the fold of `kvEntry` over raft
   entries. A normal entry with data that decodes goes through `dispatchLog` (`chainLog` through the
   chain `ch`, the start's: `restoreAlarms`' chain at `x₀`, fixed since no alarm request is plain);
   everything else is the identity. `kvVal log k` is the value of `k` after `log`. The model's value
@@ -5461,8 +5462,8 @@ that turns these into ordinary atomic specs is later work.
     layer.
 
   The auth disjunct is what `authOn` removes.
-- **The intermediate value lemma** (`kvOf_ivt`, done): a log between `kvOf A₀` and `kvOf B`, with
-  `A₀ <+: B`, is `kvOf A` for some `A` between them, since each entry appends at most one revision
+- **The intermediate value lemma** (`kvRaftOf_ivt`, done): a log between `kvRaftOf A₀` and `kvRaftOf B`, with
+  `A₀ <+: B`, is `kvRaftOf A` for some `A` between them, since each entry appends at most one revision
   (`kvEntry_grow`).
 
 ### `authOn` in the model (next step; mechanical but wide)
@@ -5518,29 +5519,44 @@ some rq → plainReq rq⌝`. So:
 - **The NOSPACE alarm** (the apply thread's goroutine, `raftRequestAlarm`, an axiom) is the hard
   case; see "Two gaps found", gap 2.
 
-### The raft contract, restated (to implement)
+### The raft contract, restated (implemented, `InvRequest.lean`)
 
-It is stated over `ServerRaftNames`, with `cLog`/`committed` replaced by the committed raft log
-`srvRLog γ L` (halves) and its persistent lower bounds `srvRLogLb γ L`.
+It is stated over `ServerRaftNames` (`rlog`, `rlb`, `fresh`, `props`, `ai0`): the committed raft log
+after `ai0` as a ghost variable in halves (`srvRLog γ L`: the KV invariant's; raft's in its commit
+invariant `srvRaftLogInv`, with the lower bounds' authority) and its persistent lower bounds
+`srvRLogLb γ L`.
 
-- **Proposals**:
+- **Proposals** (`Propose` takes `srvPropArg`: a fresh token and the update, or a retry's
+  `srvDeposited`; gives `srvPropRes`):
   ```
-  srvPropAu γ d Q := □ AU <{∃∃ (L : List EntryModel) (e : EntryModel),
-      srvRLog γ L ∗ ⌜e.typ = W32 0 ∧ e.data = d⌝}> @ ⊤ ∖ ↑srvRaftN, ∅
-    <{srvRLog γ (L ++ [e]), COMM □ Q L}>
+  srvPropAu γ d Q := □ AU <{∃∃ L, srvRLog γ L}> @ ⊤ ∖ ↑srvRaftN, ∅
+      <{∀∀ e, ⌜e.typ = W32 0 ∧ e.data = d ∧ srvIdxOk γ.ai0 (L ++ [e])⌝ ∗ srvRLog γ (L ++ [e]),
+        COMM □ Q L}>
   ```
-  It is fired at every committed occurrence of `d`. Raft records `srvPropWit γ d Q := □ ∀ L,
-  srvRLogLb γ L -∗ ∀ m, ⌜m < L.length ∧ L[m].data = d ∧ L[m].typ = 0⌝ ={⊤}=∗ □ Q (L.take m)`. A
-  retry needs `srvDeposited γ d`.
-- **Raft's own entries**: a standing update given at the node's start, `□ ∀ e, ⌜noopEntry e⌝ → AU
-  <{∃∃ L, srvRLog γ L}> <{srvRLog γ (L ++ [e])}>`, where `noopEntry` is empty data or a conf change.
-  `kvInv` gives it.
-- **The apply side**: `rnReadyData`'s `□ E.C (d ++ ce)` carries `srvRLogLb γ (d ++ ce)`.
-- **Reads**: `ReadIndex(ctx, beBytes id)` takes `srvReadAu γ Qr := □ AU <{∃∃ L, srvRLog γ L}> @ ⊤ ∖
-  ↑srvRaftN, ∅ <{srvRLog γ L, COMM □ Qr L}>` and registers `RQ id Qr`. A read state answering `id`
-  gives its safe index `i = rs.Index` and `srvReadWit γ Qr i := □ ∀ L, srvRLogLb γ L -∗ ⌜uint.Z i ≤
-  uint.Z ai₀ + L.length⌝ ={⊤}=∗ □ Qr L` (pitfall (a): the log through a raft index includes raft's
-  own entries, which `kvOf` skips). One spec, with no voter-count premise (pitfall (c)).
+  fired at every committed occurrence of `d`; raft records it:
+  ```
+  srvPropWits γ := □ ∀ d Q L m e, srvIsProp γ d Q -∗ srvRLogLb γ L -∗
+      ⌜L[m]? = some e ∧ e.typ = W32 0 ∧ e.data = d⌝ -∗ £ 2 ={⊤}=∗ □ Q (L.take m)
+  ```
+  (two credits: raft's collection is under its invariant's later and the saved predicate's).
+- **Raft's own entries**: `srvNoopAu γ := □ ∀ e, ⌜e.data = [] ∨ e.typ ≠ W32 0⌝ -∗ AU <{∃∃ L,
+  srvRLog γ L}> @ ⊤ ∖ ↑srvRaftN, ∅ <{⌜srvIdxOk γ.ai0 (L ++ [e])⌝ ∗ srvRLog γ (L ++ [e]), COMM
+  True}>`, which the KV invariant gives (`kv_noop_au`) for raft to take at the node's start.
+- **The apply side**: `srvC ρ E ai₀ c₀ x₀ L` (raft's `E.C` of every `Ready`'s committed entries)
+  carries `srvRLogLb ρ.raft L`.
+- **Reads** (`raftNode.ReadIndex`, `isRaftNodeIfc`, `isReadRaft`): `ReadIndex(ctx, beBytes id)` with
+  `committedAtLeast γr n` takes `srvReadAu γ Qr := □ AU <{∃∃ L, srvRLog γ L}> @ ⊤ ∖ ↑srvRaftN, ∅
+  <{srvRLog γ L, COMM □ Qr L}>` and registers `□ RQ id n Qr`. A read state answering `id`
+  (`readStateOk`) gives `n ≤ rs.Index` and `srvReadWit γ Qr rs.Index`, with
+  ```
+  srvReadWit γ Qr i := □ ∀ L, srvRLogLb γ L -∗ ⌜uint.Z i ≤ uint.Z γ.ai0 + L.length⌝ -∗
+      £ 2 ={⊤}=∗ □ Qr L
+  ```
+  Raft deposits the update at the `ReadIndex` call and fires it then and at every later commit,
+  on the committed log of the moment (`notes/raft-readindex-spec.md`: `read_deposit`); the read
+  index bounds the committed log at the deposit, so every committed log through an index `≥ i`
+  was fired at (pitfall (a): the log through a raft index includes raft's own entries, which
+  `kvRaftOf` skips). One spec, with no voter-count premise (pitfall (c)).
 
 ### The read loop: one update per `ReadIndex`, a list of registered `Q`s (decision 2)
 
@@ -5565,13 +5581,45 @@ The `read` package stays generic: it is parameterized by the deposit (a persiste
 registered predicates' companions) and a composition premise, which the server instantiates with
 `kv_read_compose`.
 
-### Two gaps found (need decisions)
+### The two gaps, resolved (2026-10-14)
+
+1. **The read's log, pinned to a raft index** (the user's decision: mvcc's certificates, ghost
+   only, no Go change, no observer at `store.Read`'s linearization point). mvcc's store certifies
+   every log it commits by its *caller's* ghost map `γ.cok` (length ↦ log, persistent elements):
+   `certOk γ log := ⌜log.length ≤ 2⌝ ∨ (W64 log.length) ↪[γ.cok]□ log ∨ (W64 0) ↪[γ.cok]□ []` (the
+   last the free certificate a caller that does not use them mints, `certFree`). `revMuInv` keeps
+   `certOk` of the committed log; a write transaction's `End` takes `certOkNext γ ilog pend`
+   (`txnEndPre`), `store.Read` returns `certOk γ log` of the log it read; `NewStore` hands the
+   caller `ghostMapAuth γ.cok 1 ∅`. The txn package passes the premise up (`txn.Put`: `□ ∀ ilog,
+   ⌜Pinned log₀ m ilog⌝ -∗ certOk γ (ilog ++ [[putChangeOf …]])`; `DeleteRange`: `certOkNext` of
+   its changes; `Txn`: `certOkNext` of a writing run), and the apply package as `certPre E c rq log
+   := □ ∀ oc, ⌜chainStep backendStep c rq log oc⌝ -∗ certOk E.γ (oc.logAfter log)` (each layer's
+   `certPre_mono`), `certPreV v3` at `dispatch`/`uberApplier.Apply`/`apply.Apply`, and the lessor's
+   `Revoke` contract the same of its deletions. The server's elements say a log is the KV model of
+   a committed raft log: `kvCertInv γ γk := inv kvcN (∃ C hi Lb, ghostMapAuth γk.cok 1 C ∗
+   ghostVar γk.hi ½ hi ∗ srvRLogLb γ Lb ∗ ⌜certMapOk γk C hi Lb ∧ 2 ≤ γk.log0.length⌝)` with
+   `certMapOk`: every element `n ↦ l` has `|l| ≤ hi`, `n = W64 |l|`, `|l| < 2^63` and `l =
+   kvModel γk A` for some `A <+: Lb`. The apply thread holds the other half of `hi` at its log's
+   length (`kvApplied γ γk A x`: `srvRLogLb γ A`, the half, `kvCert γk x.log`, `x.log = kvModel γk
+   A`, `x.chain = γk.ch0`) and, before applying the next committed entry `m`, mints the
+   certificate of `kvEntry … x.log m = kvModel (A ++ [m])` at a length above every certified one
+   (`kv_cert_step`, `kv_applied_step`); by determinism (`chainStep_plain`, auth off) every outcome
+   of the request's chain has that log (`kv_certPre`). A reader (`kv_cert_read`, `kv_read_log`):
+   a certified `l` extending the log `L₀` applied through `i` (`kvLogAt`, from the applied index's
+   invariant, `kvLogsOk`) is `kvModel A` of a committed `A` through an index `≥ i` (if `A` is
+   shorter than `L₀`'s raft log, both models are prefixes of each other, so equal).
+2. **The NOSPACE alarm** (the user's decision): the quota's contract says `Available` returns
+   `true` ("the backend never reaches its quota: the disk never fills", a construction premise of
+   `isQuota`); `chainStep`'s quota case is the inner outcome, so `ErrNoSpace` and the server's
+   NOSPACE `Alarm` proposal are unreachable in the model.
+
+The design discussion, as it was before the decisions:
 
 1. **The read's log is not pinned to a raft index.** A linearizable `Range` reads mvcc's *current*
    log `l` (`txn.Range`: a certified `l` between the caller's certificate `log₀` and its revision
    tokens). The read side knows only `readLogOk`: `l` extends the log applied through some `ci₀ ≥
-   i`. To get `□ Q (kvVal l k)` from `srvReadWit`, `l` must be `kvOf A` for a committed `A` with
-   `|A| ≥ i - ai₀`. `kvOf_ivt` gives that from an **upper bound** `l <+: kvOf B` for some committed
+   i`. To get `□ Q (kvVal l k)` from `srvReadWit`, `l` must be `kvRaftOf A` for a committed `A` with
+   `|A| ≥ i - ai₀`. `kvRaftOf_ivt` gives that from an **upper bound** `l <+: kvRaftOf B` for some committed
    `B`. No existing fact gives one. The apply thread commits an entry's changes to mvcc before
    depositing its log (`applied_predeposit`), so a reader may see a log that no deposit names yet.
    The sole writer's revision tokens bound every committed log, but they are the apply thread's, so
@@ -5581,7 +5629,7 @@ registered predicates' companions) and a composition premise, which the server i
    - (a) mvcc's read transaction exposes its linearization point: `store.Read` (and through it
      `txn.Range`) takes an observer, run while it holds `revMu` with the committed log
      (`revMuInv`'s `ghostVar γ.clog`). The apply thread deposits its next log *before* the mvcc
-     commit (it is `kvOf` of the batch, known in advance by determinism), with an invariant that
+     commit (it is `kvRaftOf` of the batch, known in advance by determinism), with an invariant that
      the store's committed log is the deposited log at the applied index or the next. This is a
      change to mvcc's read and write-transaction specs (`store.Read`, `storeTxnWrite.End`) and to
      the apply thread's deposit.
@@ -5615,11 +5663,16 @@ Against the verified raft's names (`Protocol/GhostState.lean`, `InvNode.lean`):
   is exactly `i` long), recording `srvReadWit`.
 - The safe-index lemma becomes "the committed log at the call is at most `i` long", strengthened
   from `readReq γ c Lc`'s log the request knew.
-- **One spec for every configuration.** The verified `node.ReadIndex`/`RawNode.ReadIndex` premise
-  `1 < GMap.size γ.raft.reCfg` is dropped. The singleton branch (`raft.go:1343`: `IsSingleton()`
-  answers at once with `r.raftLog.committed`, skipping the heartbeat round and
-  `committedEntryInCurrentTerm`) is another case of the same spec:
-  - immediate for a static single voter, whose committed log is the cluster's;
-  - for a configuration reduced to one voter, it rests on the reconfiguration invariants: the node
-    applies the change that makes it the sole voter only once its commit index has passed that
-    change.
+- **One spec for every configuration** (static membership). The verified
+  `node.ReadIndex`/`RawNode.ReadIndex` premise `1 < GMap.size γ.raft.reCfg` is dropped. The
+  singleton branch (`raft.go:1343`: `IsSingleton()` answers at once with `r.raftLog.committed`,
+  skipping the heartbeat round and `committedEntryInCurrentTerm`) is another case of the same
+  spec, provable in the static mode only (a static single voter's committed log is the
+  cluster's). Under reconfiguration the singleton branch can answer with a stale index (the raft
+  team's `issues/raft-readindex-singleton-stale.md`); nothing more is claimed.
+- **The read update deposited at the call** (`notes/raft-readindex-spec.md`): `readReq γ c Lc`
+  with the exact committed log at the deposit, fired then and at every later commit; the
+  witness's collection costs two later credits (`£ 2` in `srvReadWit`, as `srvPropWits`).
+- **The delivered log is committed**: `srvC`'s `srvRLogLb` of every `Ready`'s committed entries
+  from the start.
+- **Raft's own entries** through `srvNoopAu`, taken at the node's start.

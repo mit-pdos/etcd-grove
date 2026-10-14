@@ -37,7 +37,7 @@ theorem read.NewRead.wp_proof
   · ipureintro; word
   ihave #Hwc' := Hwc
   imod start_bag (V := Unit) (fun _ => iprop(True)) _ wc γw (by trivial) $$ Hwc' Hwo with #Hbag
-  wp_apply hNN γr as %nc ⟨%γn, #Hnis, Hown, Hauth⟩
+  wp_apply hNN γr as %nc ⟨%γn, #Hnis, Hown, Hauth, Hlist⟩
   wp_alloc r as Hr
   iStructNamed Hr
   ipersist server
@@ -48,11 +48,14 @@ theorem read.NewRead.wp_proof
   imod monoNatLbOwn_0 γr.committed with #H0
   ihave #Hc0 : committedAtLeast (GF := GF) γr (W64 0) $$ []
   · iunfold committedAtLeast; rw [show uint.nat (W64 0) = 0 by word]; iexact H0
-  imod inv_alloc readInvN ⊤ iprop(∃ (nc : Loc) (γn : GName) (n : w64),
+  imod inv_alloc readInvN ⊤ iprop(∃ (nc : Loc) (γn : NeedNames) (n : w64) (gs : List GName),
       ghostVar γr.notifier (1 : Qp).half (nc, γn) ∗ notifierIs nc γn γr ∗ notifierOwn nc γn γr ∗
-      monoNatAuthOwn γn 1 (uint.nat n) ∗ committedAtLeast γr n) $$ [Hg2 Hown Hauth] with #Hinv
-  · inext; iexists nc, γn, (W64 0); iframe Hg2 Hnis Hown Hc0
-    rw [show uint.nat (W64 0) = 0 by word]; iexact Hauth
+      monoNatAuthOwn γn.need 1 (uint.nat n) ∗ committedAtLeast γr n ∗
+      monoListAuthOwn γn.list 1 gs ∗ [∗list] g ∈ gs, regOk γr.kv g)
+      $$ [Hg2 Hown Hauth Hlist] with #Hinv
+  · inext; iexists nc, γn, (W64 0), []; iframe Hg2 Hnis Hown Hc0 Hlist
+    rw [show uint.nat (W64 0) = 0 by word]; iframe Hauth
+    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; itrivial
   imod sync.init_RWMutex (readMuP r γr) (readMuAddr r) $$ [notifier Hg1] mux with Hslots
   · inext; iunfold readMuP; iexists nc, γn; iframe notifier Hg1
   icases read_guard_of_slots _ _ $$ Hslots with ⟨Hslots, #Hguard⟩
@@ -66,11 +69,11 @@ theorem read.NewRead.wp_proof
   iapply HΦ
   isplitr
   · iunfold isRead
-    iintro !> %ctx %cd %c %Φ' !> ⟨#Hctx, #Hc, Hrr⟩ HΦ'
-    iapply hNotify r γr ctx cd c $$ [Hrr] HΦ'
+    iintro !> %ctx %cd %c %g %Q %Φ' !> ⟨#Hctx, #Hc, Hrr, #HsQ, #HdQ⟩ HΦ'
+    iapply hNotify r γr ctx cd c g Q $$ [Hrr] HΦ'
     iframe #; iframe Hrr
   isplitr
-  · iintro !> %RQ %LR %NR #Hsrv #Hraft
+  · iintro !> %RQ %LR %NR #Hsrv #Hraft #Hcomp
     iunfold isReadLoopPre
     iexists srv, rf, wc, γw
     iframe #

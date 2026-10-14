@@ -31,7 +31,7 @@ theorem apply.applierV3backend.AuthEnable.wp_proof
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.AuthEnable.spec (GF := GF) (hG := hG) := by
   intro E p log Pre Q Post
-  wp_start as ⟨#Hb, Hpre⟩
+  wp_start as ⟨#Hb, %Hon, Hpre⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   ihave #Hb' := Hb
@@ -45,6 +45,7 @@ theorem apply.applierV3backend.AuthEnable.wp_proof
   wp_auto
   rw [Hai]
   wp_apply HM $$ %Pre %Q %Post [$Hcs] as %err ⟨HPP, #HeI⟩
+  · ipureintro; exact Hon
   iunfold apply.kvOwn at Hkv
   icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
   rcases err with ei | _

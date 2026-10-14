@@ -247,7 +247,7 @@ theorem raftNode.start.wp_proof
           have h1 := Hrsl.1
           omega
         wp_apply (lc := 2) time.wp_After as %ach %γa #Ha
-        ihave #Hrsk := (BigSepL.bigSepL_lookup (Φ := fun _ rs => readStateOk (GF := GF) E.RQ rs)
+        ihave #Hrsk := (BigSepL.bigSepL_lookup (Φ := fun _ rs => readStateOk (GF := GF) E.γr.raft E.RQ rs)
           Hrs_lookup) $$ Hrsok
         wp_apply_core chan.wp_select_blocking
         -- `r.readStateC <- rs`

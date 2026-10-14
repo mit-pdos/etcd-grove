@@ -139,47 +139,49 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 open Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 /-- **The server's contract, discharged** (`raftKV_of_server` at the linked results). -/
-theorem raftKV_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64) :
+theorem raftKV_server (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
+    (d : v3rpc.KVDep GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ⊢
-      raftKV s (srvKVAns s E ρ γr c) :=
+      raftKV s (srvKVAns s E ρ γr c d) :=
   raftKV_of_server EtcdServer.wp_Put EtcdServer.wp_DeleteRange EtcdServer.wp_Range
     EtcdServer.wp_Txn EtcdServer.wp_KV mvcc.store.wp_Rev EtcdServer.wp_Cluster
     membership.RaftCluster.wp_ID EtcdServer.wp_MemberID EtcdServer.wp_Term EtcdServer.wp_Leader
-    s E ρ γr c
+    s E ρ γr c d
 
 /-- **`put_end_to_end`** (see the section header). -/
 theorem put_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
-    (cid mid n : w64) (ctx : GoInterface) (r : Loc) (o : OpFull) :
+    (cid mid n : w64) (ctx : GoInterface) (r : Loc) (o : OpFull) (d : KVDep GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerReq s E ρ ∗ isServerRead s E γr ∗ kvServerAt p s (srvKVAns s E ρ γr c) cid mid n ∗
-        srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ txn.putRequestIs r o }}
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ kvServerAt p s (srvKVAns s E ρ γr c d) cid mid n ∗
+        srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ txn.putRequestIs r o ∗ kvDepOwn ρ γr d ∗
+        ⌜kvDepPre d (.put o)⌝ }}
       (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Put")) (Val #ctx))
         (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         match putCheck o with
-        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c
+        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwn ρ γr d
         | none =>
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
               structFieldRef etcdserverpb.PutResponse go!"Header" resp ↦□ h ∗ hdrFilled h cid mid ∗
               hdrRevOut (mvcc.storeReader E.s E.γ) h rv rv' ∗ srvRdCall s E γr c ∗
-              putAppliedOk s E ρ.rd o resp rv) ∨
+              putAppliedOk s E ρ.rd o resp rv ∗ ∃ vo, □ putDepQ d vo) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
             srvRdCall s E γr c ∗ putErrOk s E ρ o e) }} := by
-  iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, Hc, Hc0, #Hr⟩ HΦ
-  ihave #HKV := raftKV_server s E ρ γr c $$ []
+  iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, Hc, Hc0, #Hr, Hdep, %Hpre⟩ HΦ
+  ihave #HKV := raftKV_server s E ρ γr c d $$ []
   · iframe #
   ihave #Hks := kvServerIs_of_at p s _ cid mid n $$ [$Hat $HKV]
-  iapply (kvServer.wp_Put p s (srvKVAns s E ρ γr c) cid mid n ctx r o) $$ [Hc Hc0]
-  · iframe #; simp only [srvKVAns]; iframe Hc Hc0
+  iapply (kvServer.wp_Put p s (srvKVAns s E ρ γr c d) cid mid n ctx r o) $$ [Hc Hc0 Hdep]
+  · iframe #; simp only [srvKVAns]; iframe Hc Hc0 Hdep; ipureintro; exact ⟨trivial, Hpre⟩
   inext
   iintro %resp %err Hpost
   iapply HΦ
   cases hc : putCheck o with
   | some e =>
     simp only [hc, srvKVAns]
-    icases Hpost with ⟨Hco, Hc, Hc0⟩
+    icases Hpost with ⟨Hco, Hc, Hc0, Hdep'⟩
     iframe
   | none =>
     simp only [hc, kvOut, srvKVAns]
@@ -188,16 +190,17 @@ theorem put_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Re
 /-- **`deleteRange_end_to_end`** (as `put_end_to_end`, for `DeleteRange`: the answer's request is
 the one the proposed data decode to, `deleteAppliedOk`). -/
 theorem deleteRange_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
-    (c : w64) (cid mid n : w64) (ctx : GoInterface) (r : Loc) (o : OpFull) :
+    (c : w64) (cid mid n : w64) (ctx : GoInterface) (r : Loc) (o : OpFull) (d : KVDep GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerReq s E ρ ∗ isServerRead s E γr ∗ kvServerAt p s (srvKVAns s E ρ γr c) cid mid n ∗
-        srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ txn.deleteRangeRequestIs r o }}
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ kvServerAt p s (srvKVAns s E ρ γr c d) cid mid n ∗
+        srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ txn.deleteRangeRequestIs r o ∗ kvDepOwn ρ γr d ∗
+        ⌜kvDepPre d (.deleteRange o)⌝ }}
       (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"DeleteRange")) (Val #ctx))
         (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         match deleteCheck o with
-        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c
+        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwn ρ γr d
         | none =>
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
               structFieldRef etcdserverpb.DeleteRangeResponse go!"Header" resp ↦□ h ∗
@@ -205,19 +208,19 @@ theorem deleteRange_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (
               srvRdCall s E γr c ∗ deleteAppliedOk s E o resp rv) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
             srvRdCall s E γr c ∗ deleteErrOk s E ρ o e) }} := by
-  iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, Hc, Hc0, #Hr⟩ HΦ
-  ihave #HKV := raftKV_server s E ρ γr c $$ []
+  iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, Hc, Hc0, #Hr, Hdep, %Hpre⟩ HΦ
+  ihave #HKV := raftKV_server s E ρ γr c d $$ []
   · iframe #
   ihave #Hks := kvServerIs_of_at p s _ cid mid n $$ [$Hat $HKV]
-  iapply (kvServer.wp_DeleteRange p s (srvKVAns s E ρ γr c) cid mid n ctx r o) $$ [Hc Hc0]
-  · iframe #; simp only [srvKVAns]; iframe Hc Hc0
+  iapply (kvServer.wp_DeleteRange p s (srvKVAns s E ρ γr c d) cid mid n ctx r o) $$ [Hc Hc0 Hdep]
+  · iframe #; simp only [srvKVAns]; iframe Hc Hc0 Hdep; ipureintro; exact ⟨trivial, Hpre⟩
   inext
   iintro %resp %err Hpost
   iapply HΦ
   cases hc : deleteCheck o with
   | some e =>
     simp only [hc, srvKVAns]
-    icases Hpost with ⟨Hco, Hc, Hc0⟩
+    icases Hpost with ⟨Hco, Hc, Hc0, Hdep'⟩
     iframe
   | none =>
     simp only [hc, kvOut, srvKVAns]
@@ -230,37 +233,38 @@ serializable (`readLogOk γr c log`: the applied index reached the committed ind
 knew of, and `log` extends the log applied through an index at least `c`; unit 4b), the header
 filled; the id credit and the reader slot back. -/
 theorem range_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
-    (c : w64) (cid mid n : w64) (ctx : GoInterface) (r : Loc) (o : OpFull) :
+    (c : w64) (cid mid n : w64) (ctx : GoInterface) (r : Loc) (o : OpFull) (d : KVDep GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerReq s E ρ ∗ isServerRead s E γr ∗ kvServerAt p s (srvKVAns s E ρ γr c) cid mid n ∗
-        srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ txn.rangeRequestIs r o }}
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ kvServerAt p s (srvKVAns s E ρ γr c d) cid mid n ∗
+        srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ txn.rangeRequestIs r o ∗ kvDepOwn ρ γr d ∗
+        ⌜kvDepPre d (.range o)⌝ }}
       (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Range")) (Val #ctx))
         (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         match rangeCheck o with
-        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c
+        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwn ρ γr d
         | none =>
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
               structFieldRef etcdserverpb.RangeResponse go!"Header" resp ↦□ h ∗
               hdrFilled h cid mid ∗ hdrRevOut (mvcc.storeReader E.s E.γ) h rv rv' ∗
               srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s ∗
-              rangeAnsOk E γr c o resp rv) ∨
+              rangeAnsOk E γr c o resp rv (rangeDepQ γr.kv d)) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ _e : GoInterface,
             srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s) }} := by
-  iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, Hc, Hc0, #Hr⟩ HΦ
-  ihave #HKV := raftKV_server s E ρ γr c $$ []
+  iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, Hc, Hc0, #Hr, Hdep, %Hpre⟩ HΦ
+  ihave #HKV := raftKV_server s E ρ γr c d $$ []
   · iframe #
   ihave #Hks := kvServerIs_of_at p s _ cid mid n $$ [$Hat $HKV]
-  iapply (kvServer.wp_Range p s (srvKVAns s E ρ γr c) cid mid n ctx r o) $$ [Hc Hc0]
-  · iframe #; simp only [srvKVAns]; iframe Hc Hc0
+  iapply (kvServer.wp_Range p s (srvKVAns s E ρ γr c d) cid mid n ctx r o) $$ [Hc Hc0 Hdep]
+  · iframe #; simp only [srvKVAns]; iframe Hc Hc0 Hdep; ipureintro; exact ⟨trivial, Hpre⟩
   inext
   iintro %resp %err Hpost
   iapply HΦ
   cases hc : rangeCheck o with
   | some e =>
     simp only [hc, srvKVAns]
-    icases Hpost with ⟨Hco, Hc, Hc0⟩
+    icases Hpost with ⟨Hco, Hc, Hc0, Hdep'⟩
     iframe
   | none =>
     simp only [hc, kvOut, srvKVAns]
@@ -276,17 +280,17 @@ possibly with header-only ranges: `SkipRangeExecution`); or `nil` and an error (
 theorem txn_end_to_end
     (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (c : w64) (cid mid n : w64) (ctx : GoInterface) (r : Loc) (cs : List CmpModel)
-    (ts es : List ReqOp) :
+    (ts es : List ReqOp) (d : KVDep GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerReq s E ρ ∗ isServerRead s E γr ∗ kvServerAt p s (srvKVAns s E ρ γr c) cid mid n ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ kvServerAt p s (srvKVAns s E ρ γr c d) cid mid n ∗
         srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ txnReqIs r cs ts es ∗ txnReqWire r ts es ∗
-        ⌜txnInModel cs ts es⌝ }}
+        ⌜txnInModel cs ts es⌝ ∗ kvDepOwn ρ γr d ∗ ⌜kvDepPre d (.txn cs ts es)⌝ }}
       (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Txn")) (Val #ctx))
         (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         match txnAllCheck (sint.Z n) cs ts es with
-        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c
+        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwn ρ γr d
         | none =>
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
               structFieldRef etcdserverpb.TxnResponse go!"Header" resp ↦□ h ∗
@@ -299,36 +303,36 @@ theorem txn_end_to_end
             srvRdCall s E γr c ∗ srvLeadTimeReader s ∗
             ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
               if txn.txnReadonly t then idCred ρ.ids 1 else txnErrOk E ρ t e) }} := by
-  iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, Hc, Hc0, #Hr, #Hw, %Hin⟩ HΦ
-  ihave #HKV := raftKV_server s E ρ γr c $$ []
+  iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, Hc, Hc0, #Hr, #Hw, %Hin, Hdep, %Hpre⟩ HΦ
+  ihave #HKV := raftKV_server s E ρ γr c d $$ []
   · iframe #
   ihave #Hks := kvServerIs_of_at p s _ cid mid n $$ [$Hat $HKV]
-  iapply (kvServer.wp_Txn p s (srvKVAns s E ρ γr c) cid mid n
-    ctx r cs ts es) $$ [Hc Hc0]
-  · iframe #; simp only [srvKVAns]; iframe Hc Hc0; ipureintro; exact Hin
+  iapply (kvServer.wp_Txn p s (srvKVAns s E ρ γr c d) cid mid n
+    ctx r cs ts es) $$ [Hc Hc0 Hdep]
+  · iframe #; simp only [srvKVAns]; iframe Hc Hc0 Hdep; ipureintro; exact ⟨Hin, Hpre⟩
   inext
   iintro %resp %err Hpost
   iapply HΦ
   cases hc : txnAllCheck (sint.Z n) cs ts es with
   | some e =>
     simp only [hc, srvKVAns]
-    icases Hpost with ⟨Hco, Hc, Hc0⟩
+    icases Hpost with ⟨Hco, Hc, Hc0, Hdep'⟩
     iframe
   | none =>
     simp only [hc, kvOut, srvKVAns]
     iexact Hpost
 
 /-- **What a successful gRPC `Put` applied** (pure; with `put_end_to_end`'s `putAppliedOk`):
-through the uber-applier's chain `alarmChain ns cr`, the put was applied by the client model:
+through the uber-applier's chain `alarmChain on ns cr`, the put was applied by the client model:
 the log after is the log the entry met with the put's one change (`putChangeOf`, the client's
 `putTxnOp`), neither the corrupt nor the space alarm raised (`put_applied_model`). -/
 theorem put_end_to_end_model (o : OpFull) (hm : apply.HeaderModel) (x x' : apply.ApplyKV)
-    (l : mvcc.Log) (skip ns cr : Bool) (hc : x.chain = apply.alarmChain ns cr)
+    (l : mvcc.Log) (skip on ns cr : Bool) (hc : x.chain = apply.alarmChain on ns cr)
     (h : apply.applyStep (apply.withHeader (irrPut o) hm) true x x'
       (.dispatched (.applied l false) skip)) :
     x'.log = x.log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter x.log))]] ∧
       ns = false ∧ cr = false := by
-  obtain ⟨hlog, ha⟩ := put_applied_model o hm x x' _ skip ns cr hc h
+  obtain ⟨hlog, ha⟩ := put_applied_model o hm x x' _ skip on ns cr hc h
   simp only [apply.Outcome.logAfter] at hlog
   unfold apply.alarmPut at ha
   cases cr <;> cases ns <;> simp only [Bool.false_eq_true, ↓reduceIte, reduceCtorEq, false_or] at ha
@@ -344,17 +348,17 @@ theorem put_end_to_end_model (o : OpFull) (hm : apply.HeaderModel) (x x' : apply
   · cases hq
 
 /-- **What a successful gRPC `DeleteRange` applied** (pure; with `deleteRange_end_to_end`'s
-`deleteAppliedOk`): through `alarmChain ns cr`, the delete `op'` of the decoded request was
+`deleteAppliedOk`): through `alarmChain on ns cr`, the delete `op'` of the decoded request was
 applied by the client model: the log after commits its changes (`delChanges`, none if nothing
 matched), the corrupt alarm not raised (`deleteRange_applied_model`). -/
 theorem deleteRange_end_to_end_model (op op' : OpFull) (hm : apply.HeaderModel)
-    (rq' : apply.IRRModel) (x x' : apply.ApplyKV) (l : mvcc.Log) (skip ns cr : Bool)
-    (hc : x.chain = apply.alarmChain ns cr)
+    (rq' : apply.IRRModel) (x x' : apply.ApplyKV) (l : mvcc.Log) (skip on ns cr : Bool)
+    (hc : x.chain = apply.alarmChain on ns cr)
     (hw : irrWireOf (apply.withHeader (irrDeleteRange op) hm) rq')
     (hop : rq'.deleteRange = some op')
     (h : apply.applyStep rq' true x x' (.dispatched (.applied l false) skip)) :
     x'.log = mvcc.commitLog x.log (txn.delChanges (mvcc.stateAfter x.log) op') ∧ cr = false := by
-  obtain ⟨hlog, ha⟩ := deleteRange_applied_model op op' hm rq' x x' _ skip ns cr hc hw hop h
+  obtain ⟨hlog, ha⟩ := deleteRange_applied_model op op' hm rq' x x' _ skip on ns cr hc hw hop h
   simp only [apply.Outcome.logAfter] at hlog
   unfold apply.alarmDelete at ha
   cases cr <;> simp only [Bool.false_eq_true, ↓reduceIte, reduceCtorEq, false_or] at ha
@@ -405,8 +409,8 @@ prefix is the log's last state restricted to it; the response is the txn package
 log (`txn.rangeResult`; with `rangeSel_underPfx`, its selection of a range under the prefix is the
 restricted state's). -/
 theorem etcdState_of_range (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (o : OpFull)
-    (resp : Loc) (r : w64) (pfx : GoString) :
-    storeSmall E.γ ∗ rangeAnsOk E γr c o resp r ⊢
+    (resp : Loc) (r : w64) (pfx : GoString) (Q : List EntryModel → IProp GF) :
+    storeSmall E.γ ∗ rangeAnsOk E γr c o resp r Q ⊢
       ∃ log : Log, ⌜r = W64 ((log.length : Int) - 1) ∧ 2 ≤ log.length ∧
           log.length + 3 ≤ 2 ^ 63⌝ ∗
         □ etcdState (self := etcdModelOfServer E) r pfx (underPfx pfx (stateAfter log)) ∗
@@ -416,7 +420,7 @@ theorem etcdState_of_range (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (o : 
         txn.rangeResult resp GoInterface.nil log (W64 ((log.length : Int) - 1)) o true := by
   iintro ⟨#Hsm, Hok⟩
   iunfold rangeAnsOk at Hok
-  icases Hok with ⟨%log, #H, %Hl, Hlin, Hres⟩
+  icases Hok with ⟨%log, #H, %Hl, Hlin, -, Hres⟩
   obtain ⟨h2, h3, rfl⟩ := Hl
   have hr : sint.Z (W64 ((log.length : Int) - 1)) = (log.length : Int) - 1 := by word
   ihave ⟨#Hst, %Hwf⟩ := etcdState_of_cert_last E log pfx h2 h3 $$ [$Hsm $H]

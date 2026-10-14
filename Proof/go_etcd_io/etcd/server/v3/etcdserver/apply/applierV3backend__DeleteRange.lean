@@ -37,7 +37,7 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
   iunfold apply.deletePre at Hpre
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
-  icases Hpre with ⟨%Hrq, #Hr, Hwt, ⟨Hrd, Hsw, Hknown, Hard⟩, Hres, Hcs⟩
+  icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hwt, ⟨Hrd, Hsw, Hknown, Hard⟩, Hres, Hcs⟩
   icases txn.soleWriter_len' _ _ $$ Hsw with ⟨%Hl2, Hsw⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
@@ -49,6 +49,10 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
   iunfold apply.isApplyKV at Hkv
   icases Hkv with ⟨#Hkv, -⟩
   obtain ⟨hdel, hk, hlen, hst⟩ := Hrq
+  ihave #Hcok := apply.certPre_backend_applied E rq log
+    (mvcc.commitLog log (txn.delChanges (mvcc.stateAfter log) o)) false
+    (by unfold apply.backendStep; rw [hk]; exact ⟨o, hdel, Or.inl rfl⟩) $$ Hcp
+  ihave #Hcok := apply.certOkNext_of_commitLog E.γ log _ $$ Hcok
   wp_apply (txn.deleteRange_soleWriter_of hDel todoCtxVal mvcc.neverCd true opts.Logger' opts.KV'
       E.s E.γ r o log E.P Pre Q Post E.f none false hlen
       (Nat.lt_of_lt_of_le hst (txn.putMax_ge E.γ))) $$ [$Hrd $Hsw $Hwt $Hcs]

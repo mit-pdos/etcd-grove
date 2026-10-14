@@ -28,12 +28,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`checkLeasePuts(as, ai, lessor, id)`**: the lessor's `Lookup(id)`; for a lease, `checkLeasePutsKeys`: its error, or `nil`; the `AuthInfo` kept, nothing written. -/
 abbrev apply.checkLeasePuts.spec : Prop :=
-  ∀ (st le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RD : IProp GF) (ai : Loc)
+  ∀ (st le : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (RD : IProp GF) (on : Bool) (ai : Loc)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.isAuthStore st P f RD ∗ apply.isApplyLessor le γ P f ∗ ai ↦{dq} info ∗ RD }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.isAuthStore st P f RD on ∗ apply.isApplyLessor le γ P f ∗ ai ↦{dq} info ∗ RD }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkLeasePuts))
       (Val #st)) (Val #ai)) (Val #le)) (Val #id))
-  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ applyErrIs err }}
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ applyErrIs err ∗
+      ⌜on = false → err = GoInterface.nil⌝ }}
 
 end spec
 

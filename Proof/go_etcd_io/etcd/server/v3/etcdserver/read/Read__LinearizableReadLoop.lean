@@ -42,9 +42,9 @@ local macro "loop_tail" : tactic => `(tactic| (
   · iframe #; iframe Hown
     iintro -
     iunfold frozenOk
-    iexists n, _
-    iframe Hfz Hai'
-    ipureintro; word
+    iexists n, ci, _, gs
+    iframe Hfz Hlf Hai' Hwit
+    ipureintro; constructor <;> word
   (try wp_auto)
   wp_apply hStep t false _ slice.nil $$ [Htrc] as Htrc
   · iframe Htrc; iapply traceutil.ownFields_nil
@@ -73,7 +73,7 @@ theorem read.Read.LinearizableReadLoop.wp_proof
   ihave #Hpre' := Hpre
   iunfold isReadLoopPre at Hpre'
   icases Hpre' with ⟨%srv, %rf, %wc, %γw, #Hsf, #Hsrv, #Hrf, #Hraft, #Hwcf, #Hbag, #Hinv, #Hguard,
-    #Hcci⟩
+    #Hcci, #Hcomp⟩
   iunfold isReadServer at Hsrv
   icases Hsrv with ⟨-, %si, %Hsi, #HStopping, #HLC, -, #HLg, #HAI, #HAW, -, -⟩
   subst Hsi
@@ -140,16 +140,20 @@ theorem read.Read.LinearizableReadLoop.wp_proof
       isplitl []
       · simp only [traceutil.ownTraceOpt]; itrivial
       iapply traceutil.ownFields_nil
-    wp_apply hNN γr as %nc' ⟨%γn', #Hnis', Hown', Hauth'⟩
+    wp_apply hNN γr as %nc' ⟨%γn', #Hnis', Hown', Hauth', Hlist'⟩
     wp_apply sync.RWMutex.wp_Lock_guard (readMuAddr r) (readMuP r γr) $$ [] as ⟨Hwl, HP⟩
     · iframe #
     iunfold readMuP at HP
     icases HP with ⟨%nc, %γn, Hpt, Hg⟩
     wp_auto
-    imod read_swap γr nc γn nc' γn' $$ Hinv Hlc3 Hg Hnis' Hown' Hauth' with ⟨Hg, Hown, %n, #Hfz, #Hcn⟩
+    imod read_swap γr nc γn nc' γn' $$ Hinv Hlc3 Hg Hnis' Hown' Hauth' Hlist'
+      with ⟨Hg, Hown, %n, %gs, #Hfz, #Hcn, #Hlf, #Hregs⟩
+    ihave #Hcomp' := Hcomp
+    iunfold readCompose at Hcomp'
+    ihave #HRA := Hcomp' $$ %gs Hregs
     wp_apply sync.RWMutex.wp_Unlock_guard (readMuAddr r) (readMuP r γr) $$ [Hwl Hpt Hg]
     · iframe #; iframe Hwl; iunfold readMuP; iexists nc', γn'; iframe Hpt Hg
-    wp_apply hRCI r γr RQ LR NR lcn n $$ [HLR] as %ci %err ⟨HLR, #HaE, %Hci⟩
+    wp_apply hRCI r γr RQ LR NR lcn n (readQs gs) $$ [HLR] as %ci %err ⟨HLR, #HaE, Hci⟩
     · iframe #; iframe HLR
     wp_apply hStopped err $$ [] as %bst -
     · iframe #
@@ -167,7 +171,7 @@ theorem read.Read.LinearizableReadLoop.wp_proof
       wp_for_post
       iframe
     | nil =>
-    have Hci' := Hci rfl
+    ihave ⟨%Hci', #Hwit⟩ := Hci $$ %rfl
     wp_auto
     wp_apply hStep t false _ slice.nil $$ [$Htrc] as Htrc
     · iapply traceutil.ownFields_nil

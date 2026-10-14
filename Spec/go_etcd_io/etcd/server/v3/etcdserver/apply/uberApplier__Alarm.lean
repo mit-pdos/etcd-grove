@@ -40,7 +40,7 @@ abbrev apply.uberApplier.Alarm.spec : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.mPost E c a log Pre Post ∗ applyErrIs err ∗ ∃ (a' : GoInterface) (c' : apply.Chain),
         structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
-        ⌜(c' = c ∧ a' = a) ∨ ∃ ns cr, c' = apply.alarmChain ns cr⌝ }}
+        ⌜(c' = c ∧ a' = a) ∨ ∃ ns cr, c' = apply.alarmChain E.authOn ns cr⌝ }}
 
 end spec
 

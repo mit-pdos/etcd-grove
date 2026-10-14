@@ -79,7 +79,7 @@ theorem EtcdServer.Start.wp_proof
   iunfold isServerRead at Hrd'
   icases Hrd' with ⟨%vd, #Hvd⟩
   iunfold srvReadFieldsAt at Hvd
-  icases Hvd with ⟨-, -, -, -, -, -, -, -, -, -, #Hlgf, %Hlgn, -, -, -, -, -, -, -, -, -, -,
+  icases Hvd with ⟨-, -, -, -, -, -, -, -, -, -, #Hlgf, %Hlgn, -, -, -, -, -, -, -, -, -, -, -,
     #Hstpf, -⟩
   -- `func() { s.adjustTicks() }`
   wp_apply hGA s _ iprop(True) $$ [Hgr Hlg] as ⟨Hgr, Hlg⟩

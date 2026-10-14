@@ -29,17 +29,19 @@ response and an error (2026-10-14, unit C2a: the success with the result's witne
 proposal, if made, deposited). -/
 abbrev EtcdServer.raftRequest.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (p : Loc) (rq : apply.IRRModel),
+    (cd : context.ContextDesc (IProp GF)) (p : Loc) (rq : apply.IRRModel)
+    (Qr : List EntryModel → IProp GF),
   rq.id = W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
-      irrNoHdrIs p rq ∗
+      irrNoHdrIs p rq ∗ reqPropOk ρ.kv rq Qr ∗
       (∃ h0 : Loc, structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ h0) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"raftRequest"))
       (Val #(GoInterface.ok ctx))) (Val #p))
   {{ (resp err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
-          ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ appliedOk E ρ.rd rq' resp) ∨
+          ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ appliedOk E ρ.rd rq' resp ∗
+          ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ □ Qr L) ∨
        (⌜resp = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
          ((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
             ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ appliedErr E rq' err) ∨

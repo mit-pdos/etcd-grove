@@ -67,15 +67,15 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
         taEntriesAddr apL ↦□ es ∗ taRaftAdvancedCAddr apL ↦□ rac ∗
         taSnapshotAddr apL ↦□ (null : Loc) ∗ taNotifycAddr apL ↦□ nc ∗ isUnitBag nc ∗
         es ↦*□ ceL ∗ entriesAt ceL ce ∗ batchCommittedIdx C.γr ce ∗ schedule.schedRunning γs ∗
-        applyRes C A ∗ txn.storeWTs C.E.γ ce.length }}
+        applyRes C A ∗ txn.storeWTs C.E.γ ce.length ∗ srvRLogLb ρ.raft (A ++ ce) }}
       (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
         (Val #apL))
     {{ RET #(); schedule.schedRunning γs ∗ applyRes C (A ++ ce) }} := by
   iintro %Φ ⟨#Hpkg, #Hsrv, #Hsa, #Hbw, #Hes, #Hrac, #Hsn, #Hnc, #Hncb, #Hesl, #Hents, #Hbc, Hrun, HR,
-    HWc⟩ HΦ
+    HWc, #Hlbr⟩ HΦ
   iunfold applyRes at HR
   icases HR with ⟨%st, %ai, %at', %a, %t, %cs, %x, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hbr,
-    Hwr, HKV, Hao, #Hlog, %Hpure⟩
+    Hwr, HKV, Hao, #Hlog, Hkr, %Hpure⟩
   rw [hw]
   obtain ⟨Hloop, Hai0, HJ, Hstep⟩ := Hpure
   iunfold schedule.schedRunning at Hrun
@@ -106,8 +106,20 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     iintro %m %hm
     iapply Hbw
     ipureintro; exact List.mem_append_right A hm
-  iapply (hAA C.s C.γ C.ci TM C.E ρ C.γr C.b C.ep apL es ceL ce (ai + 1) rac nc st ai at' a t cs x
-      hms hb1 Hloop hok') $$ [Hai Hat Hcs Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao HWc]
+  ihave #Hsrv2 := Hsrv
+  iunfold isServer at Hsrv2
+  icases Hsrv2 with ⟨%Hρr, -⟩
+  iunfold kvRun at Hkr
+  icases Hkr with ⟨Hka, %Hkc⟩
+  ihave #Hkb : iprop(kvBatch C.γr (ciEff C.γ st.k) ai A ce) $$ []
+  · iunfold kvBatch
+    isplitr
+    · rw [← Hρr]; iexact Hlbr
+    ipureintro
+    refine ⟨by rw [Hkc.2]; exact Hai0, fun m hm => ?_⟩
+    rw [Hkc.1]; exact hcong m hm
+  iapply (hAA C.s C.γ C.ci TM C.E ρ C.γr C.b C.ep apL es ceL ce (ai + 1) rac nc st ai at' a t cs x A
+      hms hb1 Hloop hok') $$ [Hai Hat Hcs Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao HWc Hka]
   · rw [hun]
     iframe #
     iframe
@@ -115,13 +127,19 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     iframe
   inext
   iintro ⟨%st', %ai', %at'', %a', %t', %cs', Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, Hao,
-      #Hlb, ⟨%x', HKV, %Hx', #Hlog'⟩, %Hpost⟩
+      #Hlb, ⟨%x', HKV, %Hx', #Hlog', Hka⟩, %Hpost⟩
   obtain ⟨hloop', hai', hci'⟩ := Hpost
   iunfold srvGoRes at Hgr
   icases Hgr with ⟨Hwr, Htok⟩
   iapply HΦ
   iunfold schedule.schedRunning
   iframe Hrt Htok
+  ihave Hkr : iprop(kvRun C.γr C.ai₀ C.c₀ (A ++ ce) x') $$ [Hka]
+  · iunfold kvRun
+    isplitl [Hka]
+    · iapply (show kvApplied (GF := GF) C.γr.raft C.γr.kv (A ++ unapplied ai ce) x' ⊢
+        kvApplied C.γr.raft C.γr.kv (A ++ ce) x' from by rw [hun]) $$ Hka
+    ipureintro; exact Hkc
   iunfold applyRes
   rw [hw]
   iexists st', ai', at'', a', t', cs', x'
@@ -476,11 +494,11 @@ theorem EtcdServer.run.wp_proof
   irename appliediE => appliedi
   iunfold applyStart at Hstart
   icases Hstart with ⟨%st₀, %a₀, %t₀, %f₀, Hst, %Hst0, Hbe, Happ, Hlr', Hbr, Hwr, HKV, Hao,
-    #Hlog0, Hfs⟩
+    #Hlog0, Hkr, Hfs⟩
   obtain ⟨Hloop0, Hc0⟩ := Hst0
   ihave HR0 : iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait⟩ []) $$
       [appliedi appliedt confState diskSnapshotIndex memorySnapshotIndex Hfs Hst Hbe Happ Hlr' Hbr Hwr
-        HKV Hao]
+        HKV Hao Hkr]
   · iunfold applyRes
     iexists st₀, ai₀, at₀, a₀, t₀, cs, x₀
     iframe
@@ -546,7 +564,7 @@ theorem EtcdServer.run.wp_proof
     iStructNamedSuffix Hapf "A"
     ihave #HC'' := HC'
     iunfold srvC at HC''
-    icases HC'' with ⟨%Hcp, #Hbw⟩
+    icases HC'' with ⟨%Hcp, #Hbw, #Hlbr⟩
     obtain ⟨hidx, hok⟩ := Hcp
     ihave #Hbc : iprop(batchCommittedIdx γr ce) $$ []
     · rw [← HEγr]

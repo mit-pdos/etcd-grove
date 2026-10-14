@@ -44,13 +44,7 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
-instance entryModel_countable : Pos.Countable EntryModel :=
-  .ofInjective (fun m => Pos.Countable.encode (((m.term, m.index), m.typ), m.data))
-    (fun ⟨_, _, _, _⟩ ⟨_, _, _, _⟩ h => by
-      have h := Pos.encode_inj h
-      simp only [Prod.mk.injEq] at h
-      obtain ⟨⟨⟨rfl, rfl⟩, rfl⟩, rfl⟩ := h
-      rfl)
+-- `EntryModel`'s countable instance: `InvRaftpb.lean` (2026-10-14, unit T1).
 
 section countable
 variable [FfiSyntax]
@@ -124,7 +118,7 @@ structure RNEnv (GF : BundledGFunctors) where
   M : Loc → IProp GF
   T : IProp GF
   γr : ReadNames
-  RQ : w64 → w64 → IProp GF
+  RQ : w64 → w64 → (List EntryModel → IProp GF) → IProp GF
 
 /-- A message the node handed out, as the wrapper reads and forwards it (persistent). -/
 def rnMsgOk (E : RNEnv GF) (m : Loc) : IProp GF :=
@@ -163,7 +157,7 @@ def rnReadyData (E : RNEnv GF) (γ : RNNames) (rd : Ready) (d ce es : List Entry
     rd.Entries' ↦*□ esL ∗ entriesAt esL es ∗ appendRight γ es ∗
     rd.Messages' ↦*□ msL ∗ ([∗list] m ∈ msL, rnMsgOk E m) ∗
     softStateAt rd.SoftState' ∗ hardStateAt rd.HardState' hs ∗
-    (∃ rsL : List ReadState, rd.ReadStates' ↦*□ rsL ∗ [∗list] rs ∈ rsL, readStateOk E.RQ rs) ∗
+    (∃ rsL : List ReadState, rd.ReadStates' ↦*□ rsL ∗ [∗list] rs ∈ rsL, readStateOk E.γr.raft E.RQ rs) ∗
     ⌜rd.Snapshot' = null⌝)
 
 /-- A `Ready` on the node's channel: the node's half of `dlv` at `d`, its record's other half,
@@ -202,12 +196,13 @@ def isRaftNodeIfc (E : RNEnv GF) (γ : RNNames) (n : GoInterface) : IProp GF :=
     □ ({{ E.T }} (App (Val #(methods ni.ty go!"Tick" ni.v)) (Val #())) {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods ni.ty go!"Stop" ni.v)) (Val #())) {{ RET #(); True }}) ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (sl : GoSlice) (dq : DFrac)
-        (id n : w64),
-      {{ context.isContext ctx cd ∗ sl ↦*{dq} beBytes id ∗ committedAtLeast E.γr n }}
+        (id n : w64) (Qr : List EntryModel → IProp GF),
+      {{ context.isContext ctx cd ∗ sl ↦*{dq} beBytes id ∗ committedAtLeast E.γr n ∗
+          srvReadAu E.γr.raft Qr }}
         (App (App (Val #(methods ni.ty go!"ReadIndex" ni.v)) (Val #(GoInterface.ok ctx)))
           (Val #sl))
       {{ (err : GoInterface), RET #err; sl ↦*{dq} beBytes id ∗ applyErrIs err ∗
-          (⌜err = GoInterface.nil⌝ -∗ □ E.RQ id n) }}))
+          (⌜err = GoInterface.nil⌝ -∗ □ E.RQ id n Qr) }}))
 
 instance isRaftNodeIfc_persistent (E : RNEnv GF) (γ : RNNames) (n : GoInterface) :
     Persistent (isRaftNodeIfc E γ n) := by
@@ -385,7 +380,7 @@ instance isRNMsgSnapC_persistent (E : RNEnv GF) (c : Loc) : Persistent (isRNMsgS
 
 /-- `readStateC`: a channel of read states, each answering the registrations of its request id
 (the read loop's `isReadStateC`; 2026-10-13, the request path's unit 4b: no content until then). -/
-def isRNReadStateC (E : RNEnv GF) (c : Loc) : IProp GF := isReadStateC c E.RQ
+def isRNReadStateC (E : RNEnv GF) (c : Loc) : IProp GF := isReadStateC c E.γr.raft E.RQ
 
 instance isRNReadStateC_persistent (E : RNEnv GF) (c : Loc) : Persistent (isRNReadStateC E c) := by
   unfold isRNReadStateC; infer_instance
