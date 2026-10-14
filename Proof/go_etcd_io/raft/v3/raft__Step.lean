@@ -408,7 +408,9 @@ private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := h
         exact intuitionistically_elim))
     iexact Hm
   have Hst' : Step γ.reCfg id (toPState s) recv (toPState s') := by rw [Hcfg]; exact Hstep
-  imod ownRaftGhost_step γ id _ recv _ Hst' $$ Hall Hc Hghost with Hghost
+  -- the code's `Step` witness, at the ghost state's configuration (`StepC`, 2026-10-14)
+  imod ownRaftGhost_stepC γ _ (CfgStatic.simple γ ∅) id _ recv _
+    ((CfgStatic.stepC_iff γ ∅ id _ _ _).1 Hst') $$ Hall Hc Hghost with Hghost
   imodintro
   unfold stepPost
   ihave Herr' : (⌜err = interface.nil⌝ ∨
@@ -458,7 +460,8 @@ private theorem dispatch_ReadIndexResp (P : raft.Step.Postulates (GF := GF) (hG 
 /-- The top-level dispatch: the one triple for `Step`, and **the one place in this
 development where ghost state is updated**. Each branch lemma hands back a pure `Step`
 witness together with the list of messages it consumed; here that becomes a single
-`ownRaftGhost_step`.
+`ownRaftGhost_step` (since 2026-10-14, reconfiguration stage B2, `ownRaftGhost_stepC`: the
+witness is read as one of `StepC` at `CfgM.simple γ.reCfg ∅`, `CfgStatic.stepC_iff`).
 
 `iapply wp_fupd` up front is what makes that possible: the ghost update has to happen
 after the branch lemma returns, when the goal would otherwise be the bare postcondition

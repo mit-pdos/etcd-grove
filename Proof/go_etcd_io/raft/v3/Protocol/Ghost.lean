@@ -91,7 +91,7 @@ Lean notes:
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Protocol.Model
+public import Proof.go_etcd_io.raft.v3.Protocol.StepC
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.MonoList
 public import Perennial.Ghost.MonoNat
@@ -221,6 +221,44 @@ structure RaftNames where
   leader keeps the ones its requests carried (`ownReadGhost`), which bounds its request
   positions. -/
   reRdCred : GName
+  /-- The voter set is not empty (2026-10-14, reconfiguration stage B2). The protocol's
+  step at a configuration (`StepC`) reads quorums by Go's convention, under which every
+  set is a majority of an empty voter set (`MajQ`); the ghost state needs a real quorum
+  (`IsQuorum`), which an empty set has none of. Go's `confchange` refuses a change that
+  removes every voter, and `ownRaftGhost_alloc` takes the initial one non-empty. -/
+  reCfg_ne : reCfg ≠ ∅
+
+/-- The configuration a step is taken at is the ghost state's (2026-10-14, reconfiguration
+stage B2): its incoming voters are `γ.reCfg` and it is not joint (learners, staged
+learners and `AutoLeave` free). This is the one place the refinement (`ownRaftGhost_stepC`)
+constrains the step's configuration; the later stages replace it by what the winners table
+says about the term. -/
+def CfgStatic (γ : RaftNames) (c : CfgM) : Prop :=
+  c.incoming = γ.reCfg ∧ c.outgoing = ∅
+
+theorem CfgStatic.simple (γ : RaftNames) (lrn : GSet w64) :
+    CfgStatic γ (CfgM.simple γ.reCfg lrn) := ⟨rfl, rfl⟩
+
+theorem CfgStatic.voters {γ : RaftNames} {c : CfgM} (HC : CfgStatic γ c) :
+    c.voters = γ.reCfg := by
+  rw [CfgM.voters_of_out HC.2, HC.1]
+
+/-- A joint quorum of a static configuration is a quorum of the ghost state's voters. -/
+theorem CfgStatic.isQuorum {γ : RaftNames} {c : CfgM} (HC : CfgStatic γ c) {q : GSet w64}
+    (H : JQuorum c q) : IsQuorum γ.reCfg q := by
+  have hi : c.incoming ≠ ∅ := by rw [HC.1]; exact γ.reCfg_ne
+  rw [← HC.1]; exact (JQuorum_of_out hi HC.2 q).1 H
+
+theorem CfgStatic.quorumAcked {γ : RaftNames} {c : CfgM} (HC : CfgStatic γ c)
+    {f : w64 → w64} {N : w64} (H : JQuorumAcked c f N) : QuorumAcked γ.reCfg f N := by
+  have hi : c.incoming ≠ ∅ := by rw [HC.1]; exact γ.reCfg_ne
+  rw [← HC.1]; exact (JQuorumAcked_of_out hi HC.2 f N).1 H
+
+/-- The ghost state's step relation at a static configuration is `Step` at its voters. -/
+theorem CfgStatic.stepC_iff [FfiSyntax] (γ : RaftNames) (lrn : GSet w64) (id : w64)
+    (s : PState) (ms : List Msg) (s' : PState) :
+    Step γ.reCfg id s ms s' ↔ StepC (CfgM.simple γ.reCfg lrn) id s ms s' :=
+  step_iff_stepC γ.reCfg lrn id γ.reCfg_ne s ms s'
 
 /-- An event of a node's history (`reEvs`): an acknowledgement `(t, i)`, or a vote in
 `T` cast knowing the leader of `T` iff `d`, with full log `F` (`isVlog`'s data). -/

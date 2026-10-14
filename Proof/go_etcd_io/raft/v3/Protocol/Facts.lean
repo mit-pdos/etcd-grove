@@ -1214,6 +1214,8 @@ private theorem alloc_nodes (γ : RaftNames) (ids : GSet w64) :
     · iapply IH (fun h => Hnz (Hsub _ h)) $$ Hinv Hc0 Hv Hm Ha Hc Hl Hw He Hlc Hrq Hcinv Hcr0
 
 theorem ownRaftGhost_alloc (E : CoPset) (cfg ids : GSet w64) :
+    -- (2026-10-14, reconfiguration stage B2) the voters are not empty: `RaftNames.reCfg_ne`
+    cfg ≠ ∅ →
     W64 0 ∉ ids →
     ⊢ |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg⌝ ∗ raftCommitInv (GF := GF) γ ∗
         isCommitted γ [] ∗
@@ -1225,7 +1227,7 @@ theorem ownRaftGhost_alloc (E : CoPset) (cfg ids : GSet w64) :
         -- (2026-10-13) the read contexts' authority and every read credit
         (ghostMapAuth γ.reReads 1 (∅ : GMap (List w8) (List raftpb.Entry)) ∗
           rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
-  intro Hnz
+  intro Hcne Hnz
   imod alloc_maps (GF := GF) (K := w64) (V := w64) ids with ⟨%nv, %Hnv, Hv⟩
   imod alloc_maps (GF := GF) (K := w64) (V := TermRec) ids with ⟨%nt, -, Ht⟩
   imod alloc_maps (GF := GF) (K := w64 × w64) (V := Unit) ids with ⟨%na, -, Ha⟩
@@ -1249,7 +1251,7 @@ theorem ownRaftGhost_alloc (E : CoPset) (cfg ids : GSet w64) :
     with ⟨Hcl1, Hcl2⟩
   · rw [Qp.half_add_half]; iexact Hcl
   obtain ⟨γ0, Hγ0⟩ : ∃ γ0 : RaftNames,
-      γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γsl, γcl, γfr, nlc, nrq, γrd, γrc⟩ :=
+      γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γsl, γcl, γfr, nlc, nrq, γrd, γrc, Hcne⟩ :=
     ⟨_, rfl⟩
   have e1 : γ0.reVotes = nv := by rw [Hγ0]
   have e2 : γ0.reTerms = nt := by rw [Hγ0]

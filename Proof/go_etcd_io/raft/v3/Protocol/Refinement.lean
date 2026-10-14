@@ -443,10 +443,10 @@ private theorem campOwn_cand (γ : RaftNames) (id : w64) (s : PState) (F : List 
 
 /-- `Step.win`: allocate the term log -- recording the candidate's base and log, and
 holding the leader's entry -- and acknowledge the old and the new last index. -/
-theorem ownRaftGhost_step_win (γ : RaftNames) (id : w64) (s : PState)
-    (mt : GMap w64 w64) (ms : List Msg) :
+theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id : w64)
+    (s : PState) (mt : GMap w64 w64) (ms : List Msg) :
     s.role = .candidate →
-    IsQuorum γ.reCfg (granted s.votes) →
+    JQuorum c (granted s.votes) →
     plogLastIndexZ s.base s.log + 1 < 2 ^ 64 →
     LeaderMatchOk id s mt →
     (∀ m ∈ ms, ReplOk id (pwinState id s mt) m) →
@@ -454,6 +454,7 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (id : w64) (s : PState)
       ownRaftGhost γ id (psendMsgs (pwinState id s mt)
                            ([pselfAck id (pwinState id s mt)] ++ ms)) := by
   intro Hrole Hq Hnw Hmt Hms
+  replace Hq := HC.isQuorum Hq
   obtain ⟨Hmid, Hmoth⟩ := Hmt
   have Hs2log : (pwinState id s mt).log = s.log ++ [pleaderEntry s] := rfl
   have Hs2out : (pwinState id s mt).outbox = s.outbox := rfl
@@ -1107,14 +1108,16 @@ theorem ownRaftGhost_step_rematch (γ : RaftNames) (id : w64) (s : PState) (mt :
 /-- `Step.commit`: a quorum of `Match`es at least `n` is a commit fact `cq`, which extends
 the global committed log (`commit_extend`, inside the invariant) -- the node's committed
 prefix is then `isCommitted`. -/
-theorem ownRaftGhost_step_commit (γ : RaftNames) (id : w64) (s : PState) (n : w64) :
+theorem ownRaftGhost_step_commit (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id : w64)
+    (s : PState) (n : w64) :
     s.role = .leader →
     uint.Z s.commit < uint.Z n →
     uint.Z n ≤ plogLastIndexZ s.base s.log →
     plogTermAt s.base s.log n = some s.term →
-    IsQuorum γ.reCfg (ackedBy s n) →
+    JQuorum c (ackedBy s n) →
     ⊢ ownRaftGhost (GF := GF) γ id s ={⊤}=∗ ownRaftGhost γ id { s with commit := n } := by
   intro Hrole Hlt Hle Htm Hq
+  replace Hq := HC.isQuorum Hq
   iintro Hown
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γv, %voted, %kl, H⟩
@@ -3039,9 +3042,10 @@ theorem ownRaftGhost_respondAll (γ : RaftNames) (id : w64) (qs : List ReadReq) 
     imod ownRaftGhost_respond γ id t q $$ Hown Hq with Hown
     iapply ih $$ Hown Hqs
 
-theorem ownRaftGhost_step_read_ack (γ : RaftNames) (id : w64) (s : PState) (m : Msg) (N : w64) :
+theorem ownRaftGhost_step_read_ack (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id : w64)
+    (s : PState) (m : Msg) (N : w64) :
     m.ty = .heartbeatResp → m.dst = id → m.term = s.term → s.role = .leader → m.ctx ≠ [] →
-    QuorumAcked γ.reCfg
+    JQuorumAcked c
       (fun v => ((readonlyRecvAck s.rd.ro m.src m.ctx).acks !! v).getD (W64 0)) N →
     ⊢ isMessage (GF := GF) γ m -∗ ownRaftGhost γ id s ={⊤}=∗
       ownRaftGhost γ id (preadRespondAll id
@@ -3049,6 +3053,7 @@ theorem ownRaftGhost_step_read_ack (γ : RaftNames) (id : w64) (s : PState) (m :
              ro := (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).1 } })
         (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).2) := by
   intro Hty Hto Hterm Hrole Hctx HQ
+  replace HQ := HC.quorumAcked HQ
   iintro #Hm Hown
   iunfold isMessage at Hm
   rw [Hty]
@@ -3098,9 +3103,14 @@ theorem ownRaftGhost_step_read_state (γ : RaftNames) (id : w64) (s : PState) (m
       from rfl]
     iexact Hz
 
-theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List Msg)
-    (s' : PState) :
-    Step γ.reCfg id s recv s' →
+/-- The refinement (2026-10-14, reconfiguration stage B2: at a configuration `c`, the
+relation `StepC`): a protocol step updates the node's ghost state, given the messages it
+consumed and their read credits. The configuration is constrained to the ghost state's
+(`CfgStatic`); only `win`, `commit` and `readAck` read it, converting its joint quorum to
+an `IsQuorum γ.reCfg` (`CfgStatic.isQuorum`) at their start. -/
+theorem ownRaftGhost_stepC (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id : w64)
+    (s : PState) (recv : List Msg) (s' : PState) :
+    StepC c id s recv s' →
     ⊢ ([∗list] m ∈ recv, isMessage (GF := GF) γ m) -∗
       rdCred γ (rdCount recv) -∗
       ownRaftGhost γ id s ={⊤}=∗
@@ -3372,7 +3382,7 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
     · rd_mono
   | win s mt ms Hrole Hq Hnw Hmt Hms =>
     iintro _ - Hown
-    imod ownRaftGhost_step_win γ id s mt ms Hrole Hq Hnw Hmt Hms $$ Hown with Hown
+    imod ownRaftGhost_step_win γ c HC id s mt ms Hrole Hq Hnw Hmt Hms $$ Hown with Hown
     imodintro; iexact Hown
   | lose s Hrole Hnq =>
     iintro _ - Hown
@@ -3452,7 +3462,7 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
     imodintro; iexact Hown
   | commit s n Hrole Hlt Hle Htm Hq =>
     iintro _ - Hown
-    iapply ownRaftGhost_step_commit γ id s n Hrole Hlt Hle Htm Hq $$ Hown
+    iapply ownRaftGhost_step_commit γ c HC id s n Hrole Hlt Hle Htm Hq $$ Hown
   | sendApps s ms Hrole Hms =>
     iintro _ - Hown
     imod ownRaftGhost_step_send_apps γ id s ms Hrole Hms $$ Hown with Hown
@@ -3588,11 +3598,23 @@ theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List 
   | readAck m s N Hty Hto Hterm Hrole Hctx HN =>
     iintro Hrecv - Hown
     ihave #Hm := recv_one $$ Hrecv
-    iapply ownRaftGhost_step_read_ack γ id s m N Hty Hto Hterm Hrole Hctx HN $$ Hm Hown
+    iapply ownRaftGhost_step_read_ack γ c HC id s m N Hty Hto Hterm Hrole Hctx HN $$ Hm Hown
   | readState m s e Hty He =>
     iintro Hrecv - Hown
     ihave #Hm := recv_one $$ Hrecv
     iapply ownRaftGhost_step_read_state γ id s m e Hty He $$ Hm Hown
+
+/-- `ownRaftGhost_stepC` for a step of `Step` at the ghost state's voters, the form the
+code's branch lemmas produce (`step_iff_stepC` at `CfgM.simple γ.reCfg ∅`). -/
+theorem ownRaftGhost_step (γ : RaftNames) (id : w64) (s : PState) (recv : List Msg)
+    (s' : PState) :
+    Step γ.reCfg id s recv s' →
+    ⊢ ([∗list] m ∈ recv, isMessage (GF := GF) γ m) -∗
+      rdCred γ (rdCount recv) -∗
+      ownRaftGhost γ id s ={⊤}=∗
+      ownRaftGhost γ id s' := fun Hstep =>
+  ownRaftGhost_stepC γ _ (CfgStatic.simple γ ∅) id s recv s'
+    ((CfgStatic.stepC_iff γ ∅ id s recv s').1 Hstep)
 
 end ghost
 
