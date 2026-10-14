@@ -13,6 +13,7 @@ public import Perennial.Spec.sync.WaitGroup__Done
 public import Perennial.Spec.sync.WaitGroup__Wait
 public import Perennial.Proof.sync.WaitGroupJoin
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.RunLemmas
+public import Perennial.Proof.sync.Link
 
 @[expose] public section
 
@@ -36,10 +37,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.Assumpti
 
 theorem Run.wp_proof
     (wp_runClient : runClient.spec (GF := GF) (hG := hG))
-    (wp_CheckOperationsVerbose : porcupine.CheckOperationsVerbose.spec (GF := GF) (hG := hG))
-    (wp_WaitGroup_Add : sync.WaitGroup.Add.spec (GF := GF) (hG := hG))
-    (wp_WaitGroup_Done : sync.WaitGroup.Done.spec (GF := GF) (hG := hG))
-    (wp_WaitGroup_Wait : sync.WaitGroup.Wait.spec (GF := GF) (hG := hG)) :
+    (wp_CheckOperationsVerbose : porcupine.CheckOperationsVerbose.spec (GF := GF) (hG := hG)) :
     Run.spec (GF := GF) (hG := hG) :=
     fun σ S m apply gen clock inOk libState clockVal t0 Eapp Eclk clients ops dur HEapp HEclk
       Hc0 Hc31 Hops Hbound => by
@@ -99,7 +97,7 @@ theorem Run.wp_proof
   wp_if_destruct
   · have Hlt : sint.Z k < sint.Z clients := by simpa using Hif
     have hkn : sint.nat k < sint.nat clients := by word
-    wp_apply (sync.join.WaitGroup.wp_Add_of wp_WaitGroup_Add
+    wp_apply (sync.join.WaitGroup.wp_Add_of sync.WaitGroup.wp_Add
       (clientDone S γ hsl (sint.nat ops) (sint.nat k)) wg_ptr _ na) $$ [Hwg] as ⟨Hwg, Hdone⟩
     · iframe; ipureintro; word
     rw [show sint.nat clients - sint.nat k = (sint.nat clients - (sint.nat k + 1)) + 1 by omega,
@@ -123,7 +121,7 @@ theorem Run.wp_proof
           (DFrac.own 1) : IProp GF) $$ [Hcell]
       · rw [← hkk]; iexact Hcell
       wp_auto
-      wp_apply (sync.join.WaitGroup.wp_Done_of wp_WaitGroup_Done
+      wp_apply (sync.join.WaitGroup.wp_Done_of sync.WaitGroup.wp_Done
         (clientDone S γ hsl (sint.nat ops) (sint.nat k)) wg_ptr) $$ [Hdone Hcell Hsl Htok]
       · iframe Hdone
         unfold clientDone
@@ -154,7 +152,7 @@ theorem Run.wp_proof
       word
     rw [Hkc]
     iclear Hcells Htoks
-    wp_apply (lc := 2) (sync.join.WaitGroup.wp_Wait_of wp_WaitGroup_Wait _ na wg_ptr) $$ [$Hwg]
+    wp_apply (lc := 2) (sync.join.WaitGroup.wp_Wait_of sync.WaitGroup.wp_Wait _ na wg_ptr) $$ [$Hwg]
       as ⟨Hres, -⟩
     imod lc_fupd_elim_later $$ Hlc1 Hres with Hres
     iclear Hiter idc

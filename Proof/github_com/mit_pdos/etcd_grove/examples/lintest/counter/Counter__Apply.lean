@@ -11,6 +11,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter__Apply
 public import Perennial.Spec.sync.Mutex__Lock
 public import Perennial.Spec.sync.Mutex__Unlock
+public import Perennial.Proof.sync.Link
 
 @[expose] public section
 
@@ -33,9 +34,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.counter.Assumptions]
 
-theorem Counter.Apply.wp_proof
-    (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
-    (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG)) :
+theorem Counter.Apply.wp_proof :
     Counter.Apply.spec (GF := GF) (hG := hG) := by
   intro γ c
   iintro #Hpkg #Hc
@@ -49,7 +48,7 @@ theorem Counter.Apply.wp_proof
   wp_call
   wp_auto
   iunfold isCounter at Hc
-  wp_apply wp_Lock (muAddr c) (counterR γ c) $$ [$Hc] as ⟨Hlocked, %n, Hn, Hg⟩
+  wp_apply sync.Mutex.wp_Lock (muAddr c) (counterR γ c) $$ [$Hc] as ⟨Hlocked, %n, Hn, Hg⟩
   -- the linearization point
   simp only [LawfulSet.diff_empty]
   iapply fupd_wp
@@ -65,7 +64,7 @@ theorem Counter.Apply.wp_proof
   rw [counterNext_boxB]
   cases b <;> (simp only [Bool.false_eq_true, ite_false, ite_true]; wp_auto)
   all_goals
-    wp_apply wp_Unlock (muAddr c) (counterR γ c) $$ [$Hc $Hlocked Hn Hg]
+    wp_apply sync.Mutex.wp_Unlock (muAddr c) (counterR γ c) $$ [$Hc $Hlocked Hn Hg]
     · iexists _
       iframe
     unfold boxI

@@ -10,6 +10,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lintest.CounterClock
 public import Perennial.Spec.sync.atomic.Int64__Add
+public import Perennial.Proof.sync.atomic.Link
 
 @[expose] public section
 
@@ -30,8 +31,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.Assumptions]
 
-theorem CounterClock.wp_proof
-    (wp_Int64_Add : sync.atomic.Int64.Add.spec (GF := GF) (hG := hG)) :
+theorem CounterClock.wp_proof :
     CounterClock.spec (GF := GF) (hG := hG) := fun N Hbound => by
   wp_start
   iapply wp_fupd
@@ -69,7 +69,7 @@ theorem CounterClock.wp_proof
   inext
   iintro Hr Hlc
   iapply wp_value'
-  wp_apply_core wp_Int64_Add «$r0_ptr» (W64 1) $$ [] [-]
+  wp_apply_core sync.atomic.Int64.wp_Add «$r0_ptr» (W64 1) $$ [] [-]
   · iPkgInit
   iinv Hinv with ⟨%k, >Hu, >Hv, >Hk⟩ Hclose
   imod HAU with ⟨%t0, Hv', Hcommit⟩

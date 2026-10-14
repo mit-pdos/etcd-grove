@@ -1,0 +1,35 @@
+# The functions linked in `Proof/github_com/anishathalye/porcupine/Link.lean` (all Lean-first: no
+# Rocq counterpart), read by `etc/gen-link.py --porcupine`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+#
+# `sort.Sort`: Perennial's pdqsort, proved (`Proof/sort/Sort.lean`).
+sort_Sort:
+# makeEntries: the sorted call and return entries
+byTime__Len:
+byTime__Less:
+byTime__Swap:
+makeEntries: sort_Sort byTime__Len byTime__Less byTime__Swap
+# fillDefault: the model's defaults
+noPartition:
+fillDefault: noPartition
+# checkSingle: the search, over the bitset, the cache and the linked list
+bitsetIndex:
+newBitset:
+bitset__set: bitsetIndex
+bitset__clear: bitsetIndex
+bitset__clone:
+bitset__hash:
+bitset__equal:
+cacheKey: bitset__hash
+cacheContains: bitset__equal
+insertBefore:
+makeLinkedEntries: insertBefore
+lift:
+unlift:
+checkSingle: makeLinkedEntries insertBefore newBitset bitset__set bitset__clear bitset__clone cacheKey cacheContains lift unlift
+# the partitions in goroutines, the entry points
+checkParallel: checkSingle
+checkOperations: fillDefault makeEntries checkParallel
+CheckOperations: checkOperations
+CheckOperationsTimeout: checkOperations
+CheckOperationsVerbose: checkOperations

@@ -14,6 +14,7 @@ module
 public import Spec.github_com.anishathalye.porcupine.fillDefault
 public import Spec.github_com.anishathalye.porcupine.noPartition
 public import Perennial.Spec.context.Background
+public import Perennial.Proof.context.Link
 
 @[expose] public section
 
@@ -69,8 +70,7 @@ theorem filled_of (hNoPartition : noPartition.spec (GF := GF) (hG := hG)) {σ : 
   · iapply noPartitionSpec_of hNoPartition $$ Hpkg
 
 theorem fillDefault.wp_proof
-    (hNoPartition : noPartition.spec (GF := GF) (hG := hG))
-    (hBackground : context.Background.spec (GF := GF) (hG := hG)) :
+    (hNoPartition : noPartition.spec (GF := GF) (hG := hG)) :
     fillDefault.spec (GF := GF) (hG := hG) :=
   fun σ S m => by
   wp_start as #Hm
@@ -111,7 +111,7 @@ theorem fillDefault.wp_proof
       wp_auto
       simp only [hS4, Hif, _root_.decide_true]
       wp_auto
-      wp_apply hBackground
+      wp_apply context.wp_Background
       iapply HΦ
       iapply (filled_of hNoPartition S m _ ?hP ?hI ?hE ?hH)
       case hP => exact hP4

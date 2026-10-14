@@ -10,14 +10,14 @@ around), with the clock's invariant at any namespace `N` other than `lintestN`.
 
 - `CheckCounterClock.wp_proof` derives it from `CounterClock.spec` and `Check.spec`, as the
   discipline asks (callee specs as hypotheses).
-- `CheckCounterClock.wp_of_Run` links it down to `Run.spec`: the counter's proofs here, the
-  clock's (`CounterClock.wp_proof`) and Perennial's linked `sync` results. `Run.spec` itself is
-  `Run.wp_proof`'s, which still takes porcupine's `CheckOperationsVerbose.spec` (being proved by
-  other units), `runClient.spec` and `sync.WaitGroup`'s specs.
+- `wp_CheckCounterClock` is it with every callee linked: the counter's (`counter/Link.lean`),
+  the driver's (`lintest/Link.lean`: `Run`, `runClient`, `CounterClock`) and porcupine's
+  (`porcupine/Link.lean`: the whole checker). Its `#print axioms` is the trust base of the
+  example, end to end.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.counter.Check
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.counter.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.counter.Model
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.counter.New
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter__Apply
@@ -76,13 +76,10 @@ theorem CheckCounterClock.wp_proof
   ipureintro
   exact Hr
 
-/-- `CheckCounterClock.spec` from `Run.spec` alone (see the file header). -/
-theorem CheckCounterClock.wp_of_Run (wp_Run : lintest.Run.spec (GF := GF) (hG := hG)) :
-    CheckCounterClock.spec (GF := GF) (hG := hG) :=
-  CheckCounterClock.wp_proof
-    (lintest.CounterClock.wp_proof sync.atomic.Int64.wp_Add)
-    (Check.wp_proof wp_Run Model.wp_proof New.wp_proof
-      (Counter.Apply.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock))
+/-- **The closed result**: `CheckCounterClock.spec`, with every callee linked (the counter's,
+the driver's and porcupine's proofs, `Link.lean`). -/
+theorem wp_CheckCounterClock : CheckCounterClock.spec (GF := GF) (hG := hG) :=
+  CheckCounterClock.wp_proof lintest.wp_CounterClock counter.wp_Check
 
 end results
 
@@ -91,4 +88,4 @@ end lintest
 end EtcdGrove
 end Perennial
 
-#print axioms Perennial.EtcdGrove.lintest.counter.CheckCounterClock.wp_of_Run
+#print axioms Perennial.EtcdGrove.lintest.counter.wp_CheckCounterClock
