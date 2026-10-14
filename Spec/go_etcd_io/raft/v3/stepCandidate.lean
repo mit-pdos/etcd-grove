@@ -126,6 +126,108 @@ def CandidateStepResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Mes
       m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus then dropped = false ∧ s' = s
   else False
 
+/-- `CandVoteRespResult` at the configuration `c` (2026-10-13, reconfiguration stage A2): `poll`'s
+facts are joint (`JQuorum`, `JLost`). -/
+def CandVoteRespResultC (c : CfgM) (id : w64) (s : NState) (m : raftpb.Message)
+    (s' : NState) : Prop :=
+  ∃ (won lost : Bool) (ms : List Msg) (pvs : GMap w64 Progress),
+    let votes' := recordVote s.votes m.From' (!m.Reject')
+    (won = true →
+       JQuorum c (granted votes') ∧
+       ReplSends id (becomeLeader id { s with votes := votes' }) ms ∧
+       prvalsMatch pvs = resetMatched id (logLast s.logst) s.prvals) ∧
+    (lost = true → JLost c votes') ∧
+    s' = { voteRespResult id s m.From' m.Reject' won lost ms with prvals := pvs }
+
+/-- `PrecandVoteRespResult` at the configuration `c`: the joint facts, and on a win the peers
+`campaign` asked, the other voters of either half. -/
+def PrecandVoteRespResultC (c : CfgM) (id : w64) (s : NState) (m : raftpb.Message)
+    (s' : NState) : Prop :=
+  ∃ (won lost : Bool) (peers : List w64) (pvs : GMap w64 Progress),
+    let votes' := recordVote s.votes m.From' (!m.Reject')
+    (won = true → JQuorum c (granted votes') ∧ peers ≡ₚ elements (c.voters \ {[id]})) ∧
+    (lost = true → JLost c votes') ∧
+    s' = { prevoteRespResult id s m.From' m.Reject' won lost peers with prvals := pvs }
+
+/-- `CandidateStepResult` at the configuration `c` (2026-10-13, reconfiguration stage A2), with the
+configuration `c'` the node is at afterwards (`c`, but the snapshot's after a `MsgSnap`). -/
+def CandidateStepResultC (c : CfgM) (id : w64) (s : NState) (m : raftpb.Message)
+    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
+    (c' : CfgM) (cl : List w8 := []) : Prop :=
+  (if m.Type' = MsgSnap then c' = CfgM.simple c.incoming (domSet s'.progress \ c.incoming)
+   else c' = c) ∧
+  (if m.Type' = MsgVoteResp then
+       dropped = false ∧
+       (if s.role = .preCandidate then s' = s
+        else CandVoteRespResultC c id s m s')
+     else if m.Type' = MsgProp then dropped = true ∧ s' = s
+     else if m.Type' = MsgApp then
+       dropped = false ∧
+       ∃ (pvs : GMap w64 Progress), HandleAppResult id
+         { becomeFollower s s.term m.From' with prvals := pvs } m ents s'
+     else if m.Type' = MsgHeartbeat then
+       dropped = false ∧
+       ∃ (pvs : GMap w64 Progress), s' = heartbeatResult id
+         { becomeFollower s s.term m.From' with prvals := pvs } m cl
+     else if m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp then
+       dropped = false ∧ s' = s
+     else if m.Type' = MsgSnap then
+       dropped = false ∧
+       ∃ (pvs : GMap w64 Progress), HandleSnapResult id
+         { becomeFollower s s.term m.From' with prvals := pvs } m sv s'
+     else if m.Type' = MsgPreVoteResp then
+       dropped = false ∧
+       (if s.role = .preCandidate then PrecandVoteRespResultC c id s m s'
+        else s' = s)
+     else if m.Type' = MsgReadIndex ∨ m.Type' = MsgReadIndexResp then dropped = false ∧ s' = s
+     else if m.Type' = MsgForgetLeader ∨ m.Type' = MsgTransferLeader ∨ m.Type' = MsgTimeoutNow ∨
+         m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus then dropped = false ∧ s' = s
+     else False)
+
+theorem CandVoteRespResultC.simple {cfg L : GSet w64} {id : w64} {s : NState} {m : raftpb.Message}
+    {s' : NState} (hne : cfg ≠ ∅) (h : CandVoteRespResultC (CfgM.simple cfg L) id s m s') :
+    CandVoteRespResult cfg id s m s' := by
+  obtain ⟨won, lost, ms, pvs, h1, h2, h3⟩ := h
+  refine ⟨won, lost, ms, pvs, fun hw => ?_, fun hl => ?_, h3⟩
+  · obtain ⟨a, b, c⟩ := h1 hw
+    exact ⟨(JQuorum_of_out (c := CfgM.simple cfg L) hne rfl _).1 a, b, c⟩
+  · exact (JLost_of_out (c := CfgM.simple cfg L) hne rfl _).1 (h2 hl)
+
+theorem PrecandVoteRespResultC.simple {cfg L : GSet w64} {id : w64} {s : NState} {m : raftpb.Message}
+    {s' : NState} (hne : cfg ≠ ∅) (h : PrecandVoteRespResultC (CfgM.simple cfg L) id s m s') :
+    PrecandVoteRespResult cfg id s m s' := by
+  obtain ⟨won, lost, peers, pvs, h1, h2, h3⟩ := h
+  refine ⟨won, lost, peers, pvs, fun hw => ?_, fun hl => ?_, h3⟩
+  · obtain ⟨a, b⟩ := h1 hw
+    refine ⟨(JQuorum_of_out (c := CfgM.simple cfg L) hne rfl _).1 a, ?_⟩
+    rw [CfgM.voters_simple] at b; exact b
+  · exact (JLost_of_out (c := CfgM.simple cfg L) hne rfl _).1 (h2 hl)
+
+theorem CandidateStepResultC.simple {cfg L : GSet w64} {id : w64} {s : NState} {m : raftpb.Message}
+    {ents : List raftpb.Entry} {sv : raftpb.Snapshot} {dropped : Bool} {s' : NState} {c' : CfgM}
+    {cl : List w8} (hne : cfg ≠ ∅)
+    (h : CandidateStepResultC (CfgM.simple cfg L) id s m ents sv dropped s' c' cl) :
+    CandidateStepResult cfg id s m ents sv dropped s' cl := by
+  obtain ⟨-, h⟩ := h
+  unfold CandidateStepResult
+  by_cases hV : m.Type' = MsgVoteResp
+  · simp only [hV, ↓reduceIte] at h ⊢
+    refine ⟨h.1, ?_⟩
+    have h2 := h.2
+    split at h2
+    · rename_i hp; simp only [hp, ↓reduceIte]; exact h2
+    · rename_i hp; simp only [hp, ↓reduceIte]; exact h2.simple hne
+  by_cases hP : m.Type' = MsgPreVoteResp
+  · simp [hP, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp, MsgHeartbeatResp,
+      MsgSnap, MsgPreVoteResp] at h ⊢
+    refine ⟨h.1, ?_⟩
+    have h2 := h.2
+    split at h2
+    · rename_i hp; simp only [hp, ↓reduceIte]; exact h2.simple hne
+    · rename_i hp; simp only [hp, ↓reduceIte]; exact h2
+  simp only [hV, hP, if_false] at h ⊢
+  exact h
+
 end results
 
 section spec
@@ -151,9 +253,15 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
   the log and `m.From ≠ id`;
 - `Hents`: the `Entries` slice and its capacity, for `MsgApp` only;
 - a pre-candidate's `MsgPreVoteResp`: the term does not wrap, since a win runs
-  `campaign`, which increments it. -/
+  `campaign`, which increments it. 
+
+At any configuration since 2026-10-13 (reconfiguration stage A2): the struct at `c`
+(`ownRaftPhysCV c c.voters`), `poll`'s facts joint, a pre-vote win's campaign over the voters
+of either half (`CandidateStepResultC`); a `MsgSnap` only at a non-joint `c`, after which the
+node is at the snapshot's configuration. The old statement is `stepCandidate.specS`.
+-/
 abbrev stepCandidate.spec : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (voters : List w64) (cl : List w8),
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
    m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
@@ -183,8 +291,58 @@ abbrev stepCandidate.spec : Prop :=
   (s.role = .preCandidate → m.Type' = MsgPreVoteResp →
    uint.Z s.term + 1 < 2 ^ 64) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhys cfg r id s ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- the `Context` (2026-10-12): what the response to a heartbeat carries
+      "Hctx" ∷ (⌜m.Type' = MsgHeartbeat⌝ -∗ m.Context' ↦*□ cl) ∗
+      "Hsnap" ∷ (⌜m.Type' = MsgSnap⌝ -∗
+                 ∃ learners, ⌜c.outgoing = ∅ ∧ SnapScope c.incoming sv voters learners ∧
+                   m.From' ≠ id⌝ ∗
+                 m.Snapshot' ↦□ sv ∗
+                 sv.Metadata'.ConfState'.Voters' ↦*□ voters ∗
+                 ownIdList sv.Metadata'.ConfState'.Learners' DFrac.discard learners) ∗
+      "Hents" ∷ (⌜m.Type' = MsgApp⌝ -∗
+                 m.Entries' ↦*□ ents ∗
+                 ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1)) }}
+    (App (App (Val #(functions stepCandidate [])) (Val #r)) (Val #m))
+  {{ (err : GoInterface) (s' : NState) (dropped : Bool) (c' : CfgM), RET #err;
+      ownRaftPhysCV c' c'.voters r id s' ∗
+      ⌜CandidateStepResultC c id s m ents sv dropped s' c' cl⌝ ∗
+      (if dropped then globalAddr ErrProposalDropped ↦□ err
+       else ⌜err = interface.nil⌝) }}
+
+/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
+derived from `stepCandidate.spec` by `stepCandidate.spec_simple`. -/
+abbrev stepCandidate.specS : Prop :=
+  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
+    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (voters : List w64) (cl : List w8),
+  (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
+   m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
+   (m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp) ∨
+   m.Type' = MsgSnap ∨ m.Type' = MsgPreVoteResp ∨
+   m.Type' = MsgReadIndex ∨
+   (m.Type' = MsgReadIndexResp ∨ m.Type' = MsgForgetLeader ∨ m.Type' = MsgTransferLeader ∨
+    m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus)) →
+  (m.Type' = MsgVoteResp ∨ m.Type' = MsgApp ∨
+   m.Type' = MsgHeartbeat ∨ m.Type' = MsgSnap →
+   m.Term' = s.term ∧ m.Term' ≠ W64 0) →
+  s.role = .candidate ∨ s.role = .preCandidate →
+  (m.Type' = MsgApp →
+     PlogWf (entryID.mk m.LogTerm' m.Index') ents ∧
+     uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 ∧
+     (let ls := s.logst
+      let es := ls.sents ++ ls.uents
+      uint.Z ls.committed ≤ uint.Z m.Index' →
+      PlogMatches ls.prev es (entryID.mk m.LogTerm' m.Index') →
+      plogFindConflict ls.prev es ents = W64 0 ∨
+      uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents)) ∧
+     m.From' ≠ id) →
+  (m.Type' = MsgHeartbeat →
+     uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) ∧
+     m.From' ≠ id) →
+  (s.role = .preCandidate → m.Type' = MsgPreVoteResp →
+   uint.Z s.term + 1 < 2 ^ 64) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhys cfg r id s ∗
       "Hctx" ∷ (⌜m.Type' = MsgHeartbeat⌝ -∗ m.Context' ↦*□ cl) ∗
       "Hsnap" ∷ (⌜m.Type' = MsgSnap⌝ -∗
                  ∃ learners, ⌜SnapScope cfg sv voters learners ∧ m.From' ≠ id⌝ ∗
@@ -200,6 +358,39 @@ abbrev stepCandidate.spec : Prop :=
       ⌜CandidateStepResult cfg id s m ents sv dropped s' cl⌝ ∗
       (if dropped then globalAddr ErrProposalDropped ↦□ err
        else ⌜err = interface.nil⌝) }}
+
+open Iris.ProofMode in
+theorem stepCandidate.spec_simple
+    (H : stepCandidate.spec (GF := GF) (hG := hG)) :
+    stepCandidate.specS (GF := GF) (hG := hG) := by
+  intro cfg r id s m ents sv voters cl Hty Hterm Hrole Happ Hhb Hpvnw
+  iintro %Φ ⟨#Hpkg, Hphys, Hctx, Hsnap, Hents⟩ HΦ
+  icases ownRaftPhys_voter cfg r id s $$ Hphys with ⟨%Hv, Hphys⟩
+  have Hin : id ∈ cfg := Hv (by rcases Hrole with h | h <;> rw [h] <;> decide)
+  have Hne : cfg ≠ ∅ := fun h => GMap.not_elem_of_empty id (h ▸ Hin)
+  ihave Hphys := ownRaftPhys_toC' $$ Hphys
+  iapply H (CfgM.simple cfg (domSet s.progress \ cfg)) r id s m ents sv voters cl Hty Hterm Hrole
+      Happ Hhb Hpvnw
+    $$ [$Hpkg $Hphys $Hctx Hsnap $Hents]
+  · iintro %Hm
+    icases Hsnap $$ %Hm with ⟨%learners, %Hsc, Hsv⟩
+    iexists learners
+    iframe Hsv
+    ipureintro
+    exact ⟨rfl, Hsc.1, Hsc.2⟩
+  inext
+  iintro %err %s' %dropped %c' ⟨Hphys, %Hres, Hdr⟩
+  have Hc' := Hres.1
+  have Hcs : ∃ L, c' = CfgM.simple cfg L := by
+    split at Hc'
+    · exact ⟨_, Hc'⟩
+    · exact ⟨_, Hc'⟩
+  obtain ⟨L, rfl⟩ := Hcs
+  ihave Hphys := ownRaftPhysC_toS $$ Hphys
+  iapply HΦ $$ %err %s' %dropped
+  iframe Hphys Hdr
+  ipureintro
+  exact Hres.simple Hne
 
 end spec
 
