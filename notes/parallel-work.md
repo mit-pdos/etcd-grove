@@ -19,9 +19,9 @@ L, A1, A2; leader transfer; read-index) before picking a task.
     `CCApplies` size bound. Touches `stepLeader*.lean`, `raft__Step*.lean`,
     `RawNode__*.lean`, `InvRaftPhys.lean`, `InvRawnodeC.lean`, `InvApplyConfC.lean`,
     `InvTracker*.lean`, `Spec/go_etcd_io/raft/v3/*`, `Link.lean`, `etc/link-lean-first.txt`.
-  - **Stage B1** (protocol-level reconfiguration safety, first stage): pure overlap
-    lemmas in a new `Proof/go_etcd_io/raft/v3/Protocol/CfgOverlap.lean`, and the written
-    paper proof `notes/reconfiguration-safety.md`.
+  - (Stage B1, the overlap lemmas `Protocol/CfgOverlap.lean` and the paper proof
+    `notes/reconfiguration-safety.md`, has merged.) Stage B2 starts after A3 merges and
+    edits `Protocol/*.lean` and the `raft__Step.lean` boundary.
 - Next on the critical path (integration session, sequential): B2 (ghost layer on
   `StepC` at a constant configuration) → B3 (model fields, guards, invariants I1–I3) →
   B4 (winners table, configuration-carrying predicates, static mode) → B5 (safety under
@@ -51,8 +51,8 @@ Each is self-contained; pick one or more. They avoid the files above.
    `go test ./...` passes, and think through async-storage mode
    (`MsgStorageApplyResp`). Deliverable: a patch file and notes under
    `issues/raft-conf-lag-model/`, linked from the issue file.
-3. **Adversarial review of B1's paper proof** — only once
-   `notes/reconfiguration-safety.md` exists on the branch (B1 has landed). Read it
+3. **Adversarial review of B1's paper proof** (`notes/reconfiguration-safety.md`, merged
+   2026-10-14 as `bfa867336`; its five repairs and B2's first steps end its report). Read it
    against the Go code (`.lake/go-src/etcd-raft`) and try to break it: the winners table
    and win-time election safety, the commit-fact witnesses and their well-foundedness,
    the generalized leader-completeness case analysis, read index with joint quorums,
