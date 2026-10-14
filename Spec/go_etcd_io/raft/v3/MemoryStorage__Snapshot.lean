@@ -37,7 +37,15 @@ snapshot's metadata is the storage's `ss` (`snapId`) -- until 2026-10-10 also
 non-empty, because `ownMemoryStorage` said `ss.index <> 0`; a new `MemoryStorage` has
 no snapshot and returns an empty one, which `isStorage` excludes, so the instance
 (`MemstorageInstance.lean`) adds the premise instead -- and its `ConfState.Voters` slice
-is the read-only one `ownMemoryStorage` holds. -/
+is the read-only one `ownMemoryStorage` holds.
+
+What it does not say (2026-10-14, reconfiguration stage B8): *which* `ConfState` -- the
+storage's state as raft sees it (`StorState`) records the snapshot's id only, so the
+`ConfState` returned is not related to the one `CreateSnapshot`/`ApplySnapshot` stored, though
+it is that one (the lock's half of `ms.snapshot` and `memStorMeta`'s agree); nor the other
+three slices, which the storage keeps (`ownCSRO` in `memstorageFields`) but this triple, as
+`isStorage`'s `HSnapshot`, does not hand out. Both are for the stage that restores a
+snapshot's configuration through `raft.Step` (notes/STATUS.md, "Reconfiguration, stage B8"). -/
 abbrev MemoryStorage.Snapshot.spec : Prop :=
   ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState)
     (esu : GoInterface),

@@ -32,9 +32,18 @@ bound is in the method's documentation
 (issues/raft-memorystorage-createsnapshot-bounds.md).
 
 Like `ApplySnapshot`, it takes `ownMemoryStorage` with nothing pending and
-`memStorMeta`; a non-`nil` `cs` comes with its read-only `Voters` (the stored snapshot's
-`ConfState` is the storage's, its slices read-only for good) and is given back. The
-error variable's value is passed in, as `Snapshot`'s spec does for its error. -/
+`memStorMeta`; a non-`nil` `cs` comes with its four slices read-only (`ownCSRO`; until
+2026-10-14 only `Voters`: a joint `ConfState`'s other slices are what `confchange.Restore`
+reads too) -- the stored snapshot's `ConfState` is the storage's, its slices read-only for
+good -- and is given back. The error variable's value is passed in, as `Snapshot`'s spec
+does for its error.
+
+The `ConfState` (2026-10-14, reconfiguration stage B8): the one stored, and held by the new
+`memStorMeta`, is exactly `*cs` (`memSnapCreated_confState`; the previous one when `cs = nil`),
+at the id `(t, i)` (`memSnapCreated_snapId`). So the application's obligation A3, that a
+snapshot's `ConfState` is the configuration of its prefix and its index at most the applied
+one (`SnapObl`, `SnapConf.lean`), is a statement about `c`'s lists and `i`, which the
+application proves before the call. -/
 abbrev MemoryStorage.CreateSnapshot.spec : Prop :=
   ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState) (hs : raftpb.HardState)
     (snap : raftpb.Snapshot) (i : w64) (cs : Loc) (dq : DFrac) (c : raftpb.ConfState)
@@ -46,7 +55,7 @@ abbrev MemoryStorage.CreateSnapshot.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hms" ∷ ownMemoryStorage ms γs σ ∗
       "Hmeta" ∷ memStorMeta ms γs hs snap ∗
-      "Hcs" ∷ (⌜cs = null⌝ ∨ cs ↦{dq} c ∗ ∃ (voters : List w64), c.Voters' ↦*□ voters) ∗
+      "Hcs" ∷ (⌜cs = null⌝ ∨ cs ↦{dq} c ∗ ∃ (voters : List w64), ownCSRO c voters) ∗
       "#Herr" ∷ globalAddr ErrSnapOutOfDate ↦□ eood }}
     (App (App (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"CreateSnapshot"))
       (Val #i)) (Val #cs)) (Val #data))

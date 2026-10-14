@@ -205,8 +205,8 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
     iexists _
     iframe Hgs_inv
     isplitl
-    · ihave #Hcv' : (raftpb.Snapshot.mk data
-          (raftpb.SnapshotMetadata.mk c i e.Term')).Metadata'.ConfState'.Voters' ↦*□ vc $$ []
+    · ihave #Hcv' : ownCSRO (raftpb.Snapshot.mk data
+          (raftpb.SnapshotMetadata.mk c i e.Term')).Metadata'.ConfState' vc $$ []
       · iexact Hcv
       iexists hs1, raftpb.Snapshot.mk data (raftpb.SnapshotMetadata.mk c i e.Term'), es1, dummy1,
         nfi1, nli1, nen1, nte1, nsn1, vc

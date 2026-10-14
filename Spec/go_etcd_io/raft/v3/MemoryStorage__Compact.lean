@@ -23,7 +23,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `ms.Compact(ci)`: unless `ci` is at or below the compaction boundary
 (`ErrCompacted`, nothing changed), the entries up to `ci` are dropped: the boundary is
 `ci` at its term, the stored entries those after it (`memStorCompacted`). The snapshot
-is not touched.
+is not touched (`ss` unchanged; `memStorMeta`, which the application keeps, is not taken, so
+it still holds the stored snapshot, `ConfState` included).
 
 It changes what raft reads, so it takes the owner's `ownMemoryStorage` with nothing
 pending (no `Ready`'s entries being appended); not `memStorMeta`. The premises, for a

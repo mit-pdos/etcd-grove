@@ -65,6 +65,7 @@ theorem MemoryStorage.Snapshot.wp_proof :
   · ipureintro
     exact ⟨rfl, Hsnap_id.trans Hvw.2.1⟩
   iexists voters
+  iapply ownCSRO_voters
   iexact Hvoters
 
 end proof

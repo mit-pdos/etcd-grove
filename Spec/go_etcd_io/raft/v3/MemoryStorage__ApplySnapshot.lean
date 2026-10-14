@@ -29,8 +29,10 @@ returns.
 It changes what raft reads, so it takes the owner's `ownMemoryStorage` with nothing
 pending (no `Ready`'s entries being appended), and `memStorMeta`. The premises: the
 snapshot's index is below `2^61` (`ownMemoryStorage`'s bound; a client assumption, as
-`Append`'s), and its `ConfState.Voters` slice is read-only, for good (as
-`memstorageFields` holds it). The error variable's value is passed in, as `Snapshot`'s
+`Append`'s), and its `ConfState`'s four slices are read-only, for good (`ownCSRO`, as
+`memstorageFields` holds them; until 2026-10-14 only `Voters`). The snapshot stored, and held
+by the new `memStorMeta`, is `snap'` itself, `ConfState` included: A3 (`SnapObl`,
+`SnapConf.lean`) is the application's to show of `snap'` before the call. The error variable's value is passed in, as `Snapshot`'s
 spec does for its error. -/
 abbrev MemoryStorage.ApplySnapshot.spec : Prop :=
   ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState) (hs : raftpb.HardState)
@@ -40,7 +42,7 @@ abbrev MemoryStorage.ApplySnapshot.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hms" ∷ ownMemoryStorage ms γs σ ∗
       "Hmeta" ∷ memStorMeta ms γs hs snap ∗
-      "#Hvoters" ∷ snap'.Metadata'.ConfState'.Voters' ↦*□ voters ∗
+      "#Hvoters" ∷ ownCSRO snap'.Metadata'.ConfState' voters ∗
       "#Herr" ∷ globalAddr ErrSnapOutOfDate ↦□ eood }}
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"ApplySnapshot"))
       (Val #snap'))

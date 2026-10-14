@@ -88,6 +88,20 @@ def memSnapCreated (snap : raftpb.Snapshot) (i t : w64) (ocs : Option raftpb.Con
       Index' := i, Term' := t, ConfState' := ocs.getD snap.Metadata'.ConfState' },
     Data' := data }
 
+/-- What `CreateSnapshot` stores of the `ConfState` it is given (2026-10-14, B8): exactly
+`*cs`; with `cs = nil`, the previous snapshot's. So an obligation the application states on the
+`ConfState` it passes (A3, `SnapObl`, `SnapConf.lean`) holds of the stored one. -/
+theorem memSnapCreated_confState (snap : raftpb.Snapshot) (i t : w64) (c : raftpb.ConfState)
+    (data : GoSlice) : (memSnapCreated snap i t (some c) data).Metadata'.ConfState' = c := rfl
+
+theorem memSnapCreated_confState_none (snap : raftpb.Snapshot) (i t : w64) (data : GoSlice) :
+    (memSnapCreated snap i t none data).Metadata'.ConfState' = snap.Metadata'.ConfState' := rfl
+
+/-- The created snapshot's id: the index given, the term of that index. -/
+theorem memSnapCreated_snapId (snap : raftpb.Snapshot) (i t : w64)
+    (ocs : Option raftpb.ConfState) (data : GoSlice) :
+    snapId (memSnapCreated snap i t ocs data) = entryID.mk t i := rfl
+
 /-- A list between `H` and `H ++ [x]` in the prefix order is one of the two. -/
 theorem prefix_between {A : Type _} (H D : List A) (x : A) (H1 : H <+: D)
     (H2 : D <+: H ++ [x]) : D = H ∨ D = H ++ [x] := by
@@ -193,6 +207,49 @@ structure MemStorNames where
   done : GName
   ep : GName
 
+/-- The slices of a `ConfState` other than `Voters`, read-only for good (2026-10-14,
+reconfiguration stage B8): the learners, the outgoing voters and the staged learners, which a
+joint configuration's `ConfState` has. The storage keeps them as it keeps `Voters`
+(`memstorageFields`, `memStorMeta`): `MemoryStorage` never writes a snapshot's slices in place
+(`CreateSnapshot` replaces the whole `ConfState`, `ApplySnapshot` the whole snapshot), so what
+it stores is what it was given, and `confchange.Restore` of a joint `ConfState` reads all four
+(`Restore.specG`). -/
+def ownCSRest (cs : raftpb.ConfState) : IProp GF :=
+  iprop(∃ (l vo ln : List w64), cs.Learners' ↦*□ l ∗ cs.VotersOutgoing' ↦*□ vo ∗
+    cs.LearnersNext' ↦*□ ln)
+
+instance ownCSRest_persistent (cs : raftpb.ConfState) : Persistent (ownCSRest (GF := GF) cs) := by
+  unfold ownCSRest; infer_instance
+
+/-- A `ConfState`'s four slices read-only, its voters `voters` (2026-10-14, B8; until then the
+storage kept only `Voters`). -/
+def ownCSRO (cs : raftpb.ConfState) (voters : List w64) : IProp GF :=
+  iprop(cs.Voters' ↦*□ voters ∗ ownCSRest cs)
+
+instance ownCSRO_persistent (cs : raftpb.ConfState) (voters : List w64) :
+    Persistent (ownCSRO (GF := GF) cs voters) := by
+  unfold ownCSRO; infer_instance
+
+theorem ownCSRO_voters (cs : raftpb.ConfState) (voters : List w64) :
+    ownCSRO (GF := GF) cs voters ⊢ cs.Voters' ↦*□ voters := by
+  unfold ownCSRO; iintro ⟨H, -⟩; iexact H
+
+/-- The zero `ConfState`'s: its slices are `nil`. -/
+theorem ownCSRest_zero : ⊢ ownCSRest (GF := GF) (zero_val raftpb.ConfState) := by
+  unfold ownCSRest
+  iexists [], [], []
+  isplitr
+  · iapply ownSlice_nil
+  isplitr
+  · iapply ownSlice_nil
+  iapply ownSlice_nil
+
+theorem ownCSRO_zero : ⊢ ownCSRO (GF := GF) (zero_val raftpb.ConfState) [] := by
+  unfold ownCSRO
+  isplitr
+  · iapply ownSlice_nil
+  iapply ownCSRest_zero
+
 /-- What the lock protects, at a given abstract state, *without* the ghost link: the
 five fields other than the mutex, and everything hanging off them. This is what the
 private helpers `lastIndex`/firstIndex` are specified on -- they are called with the
@@ -210,7 +267,7 @@ def memstorageFields (ms : Loc) (σ : StorState) : IProp GF :=
   "HhardState" ∷ ms.[MemoryStorage, go!"hardState"] ↦{DFrac.own (1 : Qp).half} hs ∗
   "Hsnapshot" ∷ ms.[MemoryStorage, go!"snapshot"] ↦{DFrac.own (1 : Qp).half} snap ∗
   "%Hsnap_id" ∷ ⌜snapId snap = σ.ss⌝ ∗
-  "Hvoters" ∷ snap.Metadata'.ConfState'.Voters' ↦*□ voters ∗
+  "Hvoters" ∷ ownCSRO snap.Metadata'.ConfState' voters ∗
   "Hents_f" ∷ ms.[MemoryStorage, go!"ents"] ↦ es ∗
   "Hents" ∷ es ↦*□ (dummy :: σ.ents) ∗
   "Hents_cap" ∷ ownSliceCap raftpb.Entry es (DFrac.own 1) ∗
@@ -279,7 +336,7 @@ def memStorMeta (ms : Loc) (γs : MemStorNames) (hs : raftpb.HardState)
   "#Hmu" ∷ sync.isMutex (ms.[MemoryStorage, go!"Mutex"]) (memstorageInv ms γs) ∗
   "HhardState" ∷ ms.[MemoryStorage, go!"hardState"] ↦{DFrac.own (1 : Qp).half} hs ∗
   "Hsnapshot" ∷ ms.[MemoryStorage, go!"snapshot"] ↦{DFrac.own (1 : Qp).half} snap ∗
-  "#Hvoters" ∷ snap.Metadata'.ConfState'.Voters' ↦*□ voters ∗
+  "#Hvoters" ∷ ownCSRO snap.Metadata'.ConfState' voters ∗
   "Hcs_initialState" ∷
     (ms.[MemoryStorage, go!"callStats"]).[inMemStorageCallStats, go!"initialState"] ↦ n)
 

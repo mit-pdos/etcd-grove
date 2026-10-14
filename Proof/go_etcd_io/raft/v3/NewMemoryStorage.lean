@@ -58,7 +58,7 @@ theorem NewMemoryStorage.wp_proof :
       isplitr
       · ipureintro; rfl
       isplitr
-      · iapply ownSlice_nil
+      · iapply ownCSRO_zero
       isplitr
       · rw [show zero_val raftpb.Entry :: memStorEmpty.ents = List.replicate 1 (zero_val raftpb.Entry)
           from rfl]
@@ -73,7 +73,7 @@ theorem NewMemoryStorage.wp_proof :
     iexists _, []
     simp only [named]
     iframe Hpkg Hmu HhardState Hsnapshot cs_initialState
-    iapply ownSlice_nil
+    iapply ownCSRO_zero
   unfold ownMemoryStorage memView
   simp only [named]
   iframe Hpkg Hmu
