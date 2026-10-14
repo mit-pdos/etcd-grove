@@ -106,9 +106,9 @@ end proof
 The protocol with configurations changing by applied conf entries (`StepR` at the dynamic
 configurations `AdmFold dec c0`), proved with the ghost argument: the dynamic ghost state
 `ownRaftGhostR` is allocated for fresh nodes from `c0`, kept by every `StepR` step, and gives
-log agreement and election safety. A model theorem: **not yet reached from Go** (the code's
-specs produce `Step` witnesses at a static configuration; stage B7 connects them). Its
-assumptions are listed in `Protocol/ResultsDyn.lean` and `notes/STATUS.md`
+log agreement, election safety and (stage B6) the read-index guarantee. A model theorem:
+**not yet reached from Go** (the code's specs produce `Step` witnesses at a static
+configuration; stage B7 connects them). Its assumptions are listed in `Protocol/ResultsDyn.lean` and `notes/STATUS.md`
 ("Reconfiguration, stage B5"). Restated here so that they are roots of the trust report
 (`etc/tcb-collections/raft-dyn.txt`). -/
 
@@ -148,6 +148,24 @@ theorem raft_reconfig_election_safety (γ : RaftNames) (dec : CCDec) (c0 : CCSta
       ⌜id1 = id2⌝ :=
   raft_dyn_election_safety γ dec c0 id1 id2 r1 r2
 
+/-- The read-index guarantee under reconfiguration (2026-10-14, stage B6): the `ReadState`s a
+node holds, and hands out with the `Ready` (`StepR.takeReads`), are each `readStateOk`. -/
+theorem raft_reconfig_read_states (γ : RaftNames) (dec : CCDec) (c0 : CCState) (id : w64)
+    (r : RState) :
+    ⊢ ownRaftGhostR (GF := GF) γ dec c0 id r -∗ [∗list] st ∈ r.p.rd.states, readStateOk γ st :=
+  raft_dyn_read_states γ dec c0 id r
+
+/-- ... so a client that created the read knowing the committed log `Lc` (`readReq γ c Lc`)
+and registered its context slice (`isPropData`) finds that log a prefix of the committed
+prefix of every node whose commit index reaches the `ReadState`'s index. -/
+theorem raft_reconfig_read_index (γ : RaftNames) (dec : CCDec) (c0 : CCState) (id1 id2 : w64)
+    (r1 r2 : RState) (st : ReadState) (c : List w8) (Lc : List raftpb.Entry) :
+    st ∈ r1.p.rd.states → uint.Z st.Index' ≤ uint.Z r2.p.commit →
+    ⊢ ownRaftGhostR (GF := GF) γ dec c0 id1 r1 -∗ ownRaftGhostR γ dec c0 id2 r2 -∗
+      isPropData γ st.RequestCtx' c -∗ readReq γ c Lc -∗
+      ⌜Lc <+: r2.full.take (uint.nat r2.p.commit)⌝ :=
+  raft_dyn_read_index γ dec c0 id1 id2 r1 r2 st c Lc
+
 end dyn
 
 
@@ -183,3 +201,5 @@ end Perennial
 #print axioms Perennial.EtcdGrove.raft_reconfig_step
 #print axioms Perennial.EtcdGrove.raft_reconfig_log_agreement
 #print axioms Perennial.EtcdGrove.raft_reconfig_election_safety
+#print axioms Perennial.EtcdGrove.raft_reconfig_read_states
+#print axioms Perennial.EtcdGrove.raft_reconfig_read_index

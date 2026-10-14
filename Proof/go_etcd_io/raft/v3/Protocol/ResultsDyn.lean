@@ -15,6 +15,10 @@ configuration (`raft__Step.lean`); stage B7 connects it to `StepR` and to this g
   of any two nodes are prefixes of one another -- each is a prefix of the one global committed
   log (`isCommitted`).
 * `raft_dyn_election_safety`: two leaders of a term are one node.
+* `raft_dyn_read_states`, `raft_dyn_read_index` (2026-10-14, stage B6, **the read-index
+  guarantee**): every `ReadState` a node holds (hands out at `StepR.takeReads`) is
+  `readStateOk`, so the committed prefix of any node whose commit index reaches its index
+  extends the committed log the request was created knowing.
 
 Assumptions (model restrictions, `notes/STATUS.md`, "Reconfiguration, stage B5"): A1
 (`ApplyConfChange` for every committed conf entry, in order, once, before the `Advance` that
@@ -126,6 +130,65 @@ theorem raft_dyn_election_safety (γ : RaftNames) (dec : CCDec) (c0 : CCState)
   · rw [← Ht]; iapply ownRaftGhost_isLeader γ id1 r1.p Hl1 $$ Hg1
   ihave #Hle2 := ownRaftGhost_isLeader γ id2 r2.p Hl2 $$ Hg2
   iapply isLeader_unique γ id1 id2 r2.p.term $$ Hle1 Hle2
+
+/-- The `ReadState`s of a node of the dynamic model (the ones `StepR.takeReads`, i.e.
+`acceptReady`, hands out with the `Ready`), each `readStateOk`: persistent facts copied out of
+the ghost state's `rdOwn` (as `ownRaftGhost_readStates` in the static mode). -/
+theorem raft_dyn_read_states (γ : RaftNames) (dec : CCDec) (c0 : CCState) (id : w64)
+    (r : RState) :
+    ⊢ ownRaftGhostR (GF := GF) γ dec c0 id r -∗ [∗list] st ∈ r.p.rd.states, readStateOk γ st := by
+  iintro H
+  unfold ownRaftGhostR
+  icases H with ⟨Hg, -⟩
+  iunfold ownRaftGhost at Hg
+  icases Hg with ⟨%γv, %voted, %kl, Hg⟩
+  iNamed Hg
+  iunfold rdOwn at Hrd
+  icases Hrd with ⟨%γl, %rqm, -, -, -, -, -, #Hst0, -⟩
+  iexact Hst0
+
+/-- **The read-index guarantee** of the dynamic model: a `ReadState{Index: i, RequestCtx}` that
+a node `id1` holds (and hands out), whose context is the slice a client registered with bytes
+`c` (`isPropData`) when it created the read knowing the committed log `Lc` (`readReq γ c Lc`),
+promises that the committed prefix of any node `id2` whose commit index is at least `i` extends
+`Lc`: applying up to `i` reads a state at least as new as the request. (`readOk_prefix` uses
+only the agreement of committed logs, `isCommitted_agree`, which the dynamic mode keeps.) -/
+theorem raft_dyn_read_index (γ : RaftNames) (dec : CCDec) (c0 : CCState) (id1 id2 : w64)
+    (r1 r2 : RState) (st : ReadState) (c : List w8) (Lc : List raftpb.Entry) :
+    st ∈ r1.p.rd.states → uint.Z st.Index' ≤ uint.Z r2.p.commit →
+    ⊢ ownRaftGhostR (GF := GF) γ dec c0 id1 r1 -∗ ownRaftGhostR γ dec c0 id2 r2 -∗
+      isPropData γ st.RequestCtx' c -∗ readReq γ c Lc -∗
+      ⌜Lc <+: r2.full.take (uint.nat r2.p.commit)⌝ := by
+  intro Hin Hle
+  iintro H1 H2 #Hpd #Hrq
+  ihave #Hsts := raft_dyn_read_states γ dec c0 id1 r1 $$ H1
+  ihave #Hst := (BigSepL.bigSepL_mem (Φ := fun st => readStateOk (GF := GF) γ st) Hin) $$ Hsts
+  iunfold readStateOk at Hst
+  icases Hst with ⟨%c', #Hpd', #Hok⟩
+  unfold isPropData
+  icases ghostMapElem_agree _ _ _ _ _ _ $$ Hpd Hpd' with %Heq
+  subst Heq
+  unfold ownRaftGhostR
+  icases H2 with ⟨Hg2, %HI2, #Hfr2, -⟩
+  iunfold ownRaftGhost at Hg2
+  icases Hg2 with ⟨%γv2, %voted2, %kl2, Hg2⟩
+  iNamed Hg2
+  icases ownLogGhost_cmt γ id2 r2.p kl2 $$ Hlg with ⟨%fp2, %Hf2, #Hfrc2, #Hc2⟩
+  icases FullOk_unique γ r2.p.base fp2 r2.fp Hf2 HI2.full $$ Hfrc2 Hfr2 with %He2
+  subst He2
+  have Hfl := HI2.full_length
+  have Hcl := HI2.commit_last
+  unfold RState.full at Hfl
+  clear HI2
+  have Hlen : uint.Z st.Index' ≤ ((cprefix r2.fp r2.p).length : Int) := by
+    unfold cprefix
+    rw [List.length_take]
+    word
+  icases readOk_prefix γ c st.Index' Lc (cprefix r2.fp r2.p) Hlen $$ Hok Hrq Hc2 with %H
+  ipureintro
+  unfold cprefix at H
+  rw [toNat_uZ] at H
+  exact H
 
 end ghost
 

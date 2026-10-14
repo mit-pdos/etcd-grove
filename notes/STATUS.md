@@ -1,6 +1,11 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-14 (reconfiguration, stage B5: **safety under reconfiguration at the
+**Last updated:** 2026-10-14 (reconfiguration, stage B6: **the read-index guarantee under
+reconfiguration, at the model level** -- every `ReadState` a node of the dynamic model holds (and
+hands out at `StepR.takeReads`) is `readStateOk`, and the committed prefix of any node whose
+commit index reaches its index extends the request's log (`Results.lean`:
+`raft_reconfig_read_states`/`_read_index`); no gap in B5's read argument; see "Reconfiguration,
+stage B6"; reconfiguration, stage B5: **safety under reconfiguration at the
 model level** -- the ghost state in a dynamic mode (`RaftNames.reDyn`, `CfgAt` the fold of the
 prefix) follows every `StepR` step at the dynamic configurations `AdmFold dec c0`
 (`ownRaftGhostR_stepR`, no `sorry`), allocated for fresh nodes from `c0`, giving log agreement
@@ -24,6 +29,27 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## Reconfiguration, stage B6: the read-index guarantee under reconfiguration, at the model level (2026-10-14)
+
+The read-index guarantee (section "Read-index (`ReadOnlySafe`)") now holds in the dynamic model
+of B5 (`Protocol/ResultsDyn.lean`, restated in `Results.lean`, roots of `raft-dyn.txt`, which
+stays at 0 axioms of this repository and 0 `sorry`s):
+- `raft_reconfig_read_states` (`raft_dyn_read_states`): `ownRaftGhostR γ dec c0 id r -∗
+  [∗list] st ∈ r.p.rd.states, readStateOk γ st` -- the `ReadState`s a node holds, i.e. what
+  `StepR.takeReads` (`acceptReady`) hands out, each carry `readStateOk`.
+- `raft_reconfig_read_index` (`raft_dyn_read_index`): for `st ∈ r1.p.rd.states` with
+  `st.Index ≤ r2.p.commit`, `ownRaftGhostR … id1 r1 -∗ ownRaftGhostR … id2 r2 -∗
+  isPropData γ st.RequestCtx c -∗ readReq γ c Lc -∗ ⌜Lc <+: r2.full.take r2.p.commit⌝`: the
+  committed log the request was created knowing is a prefix of the committed prefix of every
+  node whose commit index reaches the read index.
+
+Nothing static-only was in the way: `readOk_prefix` rests only on `isCommitted_agree`, and
+`readStateOk` lives in `rdOwn`, which `ownRaftGhost` carries in either mode; B5 already keeps
+`rdOwn` across the read rules (`rqRecOk_confirm_dyn` at `readAck`). The commit-index bound
+(`commit ≤` the log's length) comes from `RInv.commit_last`. No gap found in B5's read argument;
+no new model rule or premise. As for B5, a model theorem: B7 must reach it from Go (the static
+code path hands out `readStateOk` through `ownRaftGhost_readStates`, unchanged).
 
 ## Reconfiguration, stage B5: safety under reconfiguration, at the model level (2026-10-14)
 
