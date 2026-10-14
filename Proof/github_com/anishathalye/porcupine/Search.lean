@@ -324,6 +324,17 @@ theorem longestElems_get (ps : List Loc) (k : Nat) (p : Loc) (hk : ps[k]? = some
     ([∗list] p ∈ ps, longestElem (GF := GF) p) ⊢ longestElem p :=
   BigSepL.bigSepL_lookup (Φ := fun _ p => longestElem (GF := GF) p) hk
 
+/-- `computePartial`'s copy, made read-only (once `longest` points to it). -/
+theorem persist_or (l : Loc) (sl : GoSlice) (xs : List w64) :
+    ((l ↦ sl ∗ sl ↦* xs) ∨ (l ↦□ sl ∗ sl ↦*□ xs)) ⊢ |==> (l ↦□ sl ∗ sl ↦*□ xs : IProp GF) := by
+  iintro (⟨H1, H2⟩ | ⟨#H1, #H2⟩)
+  · ipersist H1
+    ipersist H2
+    imodintro
+    iframe H1 H2
+  · imodintro
+    iframe H1 H2
+
 /-- The loop invariant of `checkSingle` (see the file header), at the abstract state
 `(fs, s, p, cache)`. -/
 def searchInv (S : ModelSpec GF σ) (h : List (Op OpV)) (aes : List Entry) (hd : Loc)
