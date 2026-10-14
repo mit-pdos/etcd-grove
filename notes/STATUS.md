@@ -44,6 +44,32 @@ module system").
   `runtimeNano` (and `runtimeIsBubbled` false outside `synctest`, `Now`'s result carrying a
   monotonic reading), and `Duration.Nanoseconds` translated.
 
+## Unit E (porcupine): the instance `examples/lintest/counter` (2026-10-14, branch `worktree-agent-afea469cf4311342e`)
+
+`Proof/github_com/mit_pdos/etcd_grove/examples/lintest/counter/` (namespace
+`Perennial.EtcdGrove.lintest.counter`), specs in `Spec/.../lintest/counter/`; all proved, no
+`sorry`, no new axiom:
+
+- `Defs.lean`: the model `counterS` (states `w64`; `(i, o)` allowed iff `o` is the boxed
+  `int64` of `counterNext s i`, `s + 1` if `i ≠ nil`; `rep v s := v = boxI s`,
+  `ioOk i o := ∃ x, o = boxI x`), the lock invariant (`c.n` and half a ghost variable),
+  `isCounter`, `counterState`.
+- `Model.wp_proof` (`isModel counterS`), `New.wp_proof`, `Counter.Apply.wp_proof`
+  (`applySpec counterS (counterState γ) ∅ (c.Apply)`, from `sync.Mutex.{Lock,Unlock}.spec`;
+  linearization point right after `Lock`), `Check.wp_proof` (from `Run.spec`, `Model.spec`,
+  `New.spec`, `Counter.Apply.spec`; `genSpec` of the closure inline).
+- `Results.lean`: `CheckCounterClock.wp_proof` (`Check(CounterClock(), …)` never `Illegal`,
+  from `CounterClock.spec` and `Check.spec`) and `CheckCounterClock.wp_of_Run` (linked down to
+  `Run.spec`: only Perennial's axiomatized types in `#print axioms`).
+- **The Go code changed** (`counter.go`): `Apply` and `Model.Step` choose the operation by
+  `input != nil`, not by `input.(bool)`. `applySpec` quantifies over every `GoInterface`,
+  including ill-formed ones (a payload not of its dynamic type, even a `PanicV`): on one, a
+  type assertion (the comma-ok form too: goose extracts its value) panics or gets stuck, as
+  does a comparison with a non-nil value; the comparison with `nil` does not look at the
+  payload. A library that inspects its input meets `applySpec` only if the driver's spec
+  restricts inputs to well-formed values (e.g. `applySpec` over `∀ i, ⌜wf i⌝ -∗ …` with
+  `genSpec` returning `wf i`, as Perennial's `fmt` specs take `ArgWf`).
+
 ## Unit T1: Put and Get as persistent atomic updates linearized by raft (2026-10-14, branch `worktree-backend`; in progress)
 
 Design: `notes/decisions.md`, "Put and Get as persistent atomic updates linearized by raft". The
