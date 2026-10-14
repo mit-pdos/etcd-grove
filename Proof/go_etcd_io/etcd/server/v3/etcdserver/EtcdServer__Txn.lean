@@ -158,8 +158,8 @@ set_option hygiene false in
 local macro "txn_close_err" : tactic => `(tactic| (
   iapply HΦ
   iframe Hlt
-  isplitl [Hsr Hlr Hrr]
-  · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr
+  isplitl [Hsr Hlr Hrr Hard]
+  · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
   (try rw [hro]); (try simp only [↓reduceIte])
   iframe Hcred
   iright
@@ -187,15 +187,15 @@ local macro "txn_tail" : tactic => `(tactic| (
        (mvcc.errorfIs errv ∗ txn.roTxnRespRd respv ∗
          txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" respv))) ∗
       (∃ te, traceutil.ownTrace trc te)) trc false)
-      $$ [resp err Hsr Hlr Hown0] as %serr Hds
+      $$ [resp err Hsr Hlr Hown0 Hard] as %serr Hds
   · iframe #
     isplitr
-    · iintro %a %info %dq !> %Φ' Ha HΦ'
+    · iintro %a %info %dq !> %Φ' ⟨Ha, Hard⟩ HΦ'
       wp_auto
-      wp_apply (hCTA w.auth w.lessor E.γ E.P E.f a info dq r t) $$ [Ha] as %cerr ⟨Ha, #HcE⟩
-      · iframe # Ha
+      wp_apply (hCTA w.auth w.lessor E.γ E.P E.f E.RD a info dq r t) $$ [Ha Hard] as %cerr ⟨Ha, Hard, #HcE⟩
+      · iframe # Ha Hard
       iapply HΦ'
-      iframe Ha HcE
+      iframe Ha Hard HcE
     isplitr
     · iintro !> %Φ' ⟨⟨Hresp, Herr, Hsr, Hlr⟩, Hown0⟩ HΦ'
       wp_auto
@@ -252,8 +252,8 @@ local macro "txn_tail" : tactic => `(tactic| (
         · iexact Hown
         iright; iright; iframe He Hrd Hh
     iframe
-  icases Hds with (⟨%Hs0, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, %Hlog, Hres, Hown⟩ |
-    ⟨%Hs0, #HsE, Hg⟩)
+  icases Hds with ⟨Hard, (⟨%Hs0, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, %Hlog, Hres, Hown⟩ |
+    ⟨%Hs0, #HsE, Hg⟩)⟩
   · subst Hs0
     wp_auto
     rcases errv with ei | _
@@ -288,8 +288,8 @@ local macro "txn_tail" : tactic => `(tactic| (
         ipureintro; exact Hn
       iapply HΦ
       iframe Hlt
-      isplitl [Hsr Hlr Hrr]
-      · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr
+      isplitl [Hsr Hlr Hrr Hard]
+      · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
       (try rw [hro]); (try simp only [↓reduceIte])
       iframe Hcred
       ileft
@@ -400,7 +400,7 @@ theorem EtcdServer.Txn.wp_proof
   ihave ⟨%log₀, #Hc0, %HL0⟩ := idxCert_join E.γ.idx log₀' F $$ [$Hc0' $HF]
   have Hl0 : 2 ≤ log₀.length := Nat.le_trans Hl0' HL0.1.length_le
   iunfold srvRdCall at Hcall
-  icases Hcall with ⟨Hsr, Hlr, #Hcal, Hrr⟩
+  icases Hcall with ⟨Hsr, Hlr, #Hcal, Hrr, Hard⟩
   ihave #Hsrv' := Hsrv
   iunfold isServerReq at Hsrv'
   icases Hsrv' with ⟨%v, #Hv⟩
@@ -575,8 +575,8 @@ theorem EtcdServer.Txn.wp_proof
       repeat (isplitr; · iexists _; iframe #; try (ipureintro; simp))
       iexists _; iframe #; try (ipureintro; simp)
     (try wp_auto)
-    wp_apply hRR s E ρ ctx3 _ «$a1_ptr» (irrTxn t) F rfl $$ [Hlt Hcred Header] as %resp %err ⟨Hlt, Hres⟩
-    · iframe # Hlt Hcred
+    wp_apply hRR s E ρ ctx3 _ «$a1_ptr» (irrTxn t) F rfl $$ [Hlt Hard Hcred Header] as %resp %err ⟨Hlt, Hard, Hres⟩
+    · iframe # Hlt Hard Hcred
       iexists _; iexact Header
     (try wp_auto)
     icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hok⟩ | ⟨%Hre, #HaE, Hfail⟩)
@@ -609,8 +609,8 @@ theorem EtcdServer.Txn.wp_proof
       (try wp_auto)
       iapply HΦ
       iframe Hlt
-      isplitl [Hsr Hlr Hrr]
-      · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr
+      isplitl [Hsr Hlr Hrr Hard]
+      · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
       ileft
       isplitr
       · ipureintro; exact ⟨by first | rfl | trivial, Hprn⟩
@@ -632,8 +632,8 @@ theorem EtcdServer.Txn.wp_proof
         (try wp_auto)
         iapply HΦ
         iframe Hlt
-        isplitl [Hsr Hlr Hrr]
-        · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr
+        isplitl [Hsr Hlr Hrr Hard]
+        · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
         simp only [Bool.false_eq_true, ↓reduceIte]
         iright
         isplitr
@@ -671,8 +671,8 @@ theorem EtcdServer.Txn.wp_proof
         (try wp_auto)
         iapply HΦ
         iframe Hlt
-        isplitl [Hsr Hlr Hrr]
-        · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr
+        isplitl [Hsr Hlr Hrr Hard]
+        · iunfold srvRdCall; iframe Hsr Hlr Hcal Hrr Hard
         (try rw [hro]); (try simp only [↓reduceIte])
         iframe Hcred
         iright

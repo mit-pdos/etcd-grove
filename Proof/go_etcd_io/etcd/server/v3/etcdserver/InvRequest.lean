@@ -61,8 +61,10 @@ batch before handing it over (`committedLast`, `batchCommittedIdx`), every resul
 linearizable read at that index reads a log extending it. The read names are the request path's
 (`ReqNames.rd`; the apply thread's `isServer` has them its own, `ρ.rd = γr`).
 
-**The auth store's request side** (`isReqAuth st`): `AuthInfoFromCtx`/`AuthInfoFromTLS` return
-`nil` or an `*AuthInfo` with readable `Username`/`Revision` (`authInfoIs`), and an error.
+**The auth store's request side** (`isReqAuth st RD`): `AuthInfoFromCtx`/`AuthInfoFromTLS` return
+`nil` or an `*AuthInfo` with readable `Username`/`Revision` (`authInfoIs`), and an error;
+`AuthInfoFromCtx` with the caller's reader resource `RD` (2026-10-14, unit A2: of the real store
+`auth.authRd st R`, `isReqAuth_of_authInv`).
 -/
 module
 
@@ -990,22 +992,26 @@ def authInfoIs (a : Loc) (user : GoString) (rev : w64) : IProp GF :=
 def authInfoOpt (a : Loc) : IProp GF :=
   iprop(⌜a = null⌝ ∨ ∃ user rev, authInfoIs a user rev)
 
-/-- **The auth store's request side** (persistent; trust boundary: `auth` is names-only):
-`AuthInfoFromCtx(ctx)` returns an auth info (or `nil`) and an error (`nil`, or one the gRPC layer
-can take: `applyErrIs`; 2026-10-12, unit 3a); `AuthInfoFromTLS(ctx)` an auth info (or `nil`). The permission checks and `Revision` are the apply package's
-`isAuthStore`. -/
-def isReqAuth (st : GoInterface) : IProp GF :=
+/-- **The auth store's request side** (persistent): `AuthInfoFromCtx(ctx)`, with the caller's
+reader resource `RD` (held and given back; 2026-10-14, unit A2: the real method read-locks
+`enabledMu`), returns an auth info (or `nil`) and an error (`nil`, or one the gRPC layer can take:
+`applyErrIs`; 2026-10-12, unit 3a); `AuthInfoFromTLS(ctx)` an auth info (or `nil`). Of the real
+store: `isReqAuth_of_authInv` (`AuthReqDerive.lean`). The permission checks and `Revision` are the
+apply package's `isAuthStore`. -/
+def isReqAuth (st : GoInterface) (RD : IProp GF) : IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-      {{ mvcc.txnCtx ctx cd }}
+      {{ mvcc.txnCtx ctx cd ∗ RD }}
         (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
-      {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); authInfoOpt a ∗ applyErrIs err }}) ∗
+      {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
+          applyErrIs err }}) ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
       {{ mvcc.txnCtx ctx cd }}
         (App (Val #(methods ai.ty go!"AuthInfoFromTLS" ai.v)) (Val #(GoInterface.ok ctx)))
       {{ (a : Loc), RET #a; authInfoOpt a }}))
 
-instance isReqAuth_persistent (st : GoInterface) : Persistent (isReqAuth (GF := GF) st) := by
+instance isReqAuth_persistent (st : GoInterface) (RD : IProp GF) :
+    Persistent (isReqAuth (GF := GF) st RD) := by
   unfold isReqAuth; infer_instance
 
 /-- **`RaftKV`'s value is the server** (the `kv` field of `v3rpc.kvServer`: `NewKVServer(s)`

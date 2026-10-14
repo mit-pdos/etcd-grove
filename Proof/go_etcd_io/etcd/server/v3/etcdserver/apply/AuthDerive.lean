@@ -36,7 +36,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace apply
 
-open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3 go_etcd_io.etcd.api.v3
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -44,42 +44,44 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `permCheck2` with the caller's reader resource `RD` and the key's length bound. -/
-def permCheck2R (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) : IProp GF :=
-  iprop(□ (∀ (a : Loc) (info : auth.AuthInfo) (dq : DFrac) (key : GoSlice) (k : List w8)
-      (dk : DFrac),
-    {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ RD ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
-      (App (App (Val #(methods ai.ty m ai.v)) (Val #a)) (Val #key))
-    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ RD ∗ applyErrIs err }}))
-
-/-- `permCheck3` with the caller's reader resource `RD` and the key's length bound. -/
-def permCheck3R (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) : IProp GF :=
-  iprop(□ (∀ (a : Loc) (info : auth.AuthInfo) (dq : DFrac) (key re : GoSlice) (k e : List w8)
-      (dk de : DFrac),
-    {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
-      (App (App (App (Val #(methods ai.ty m ai.v)) (Val #a)) (Val #key)) (Val #re))
-    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗
-        applyErrIs err }}))
-
-/-- **`isAuthStore`'s request-side clauses with a reader resource** `RD` (see the file header):
-the three permission checks, `IsAdminPermitted`, `IsAuthEnabled`, and `Revision` (as
-`isAuthStore` states it). -/
-def isAuthStorePerms (st : GoInterface) (RD : IProp GF) : IProp GF :=
+/-- **`isAuthStore`'s clauses assumed of the real store** (see the file header): `HasRole` (it
+reads `u.Roles` of an axiomatized `authpb.User`) and the admin requests, each a `csContract`
+(`AuthEnable`, `AuthDisable`, `Authenticate`, the user and role requests: their write side is not
+translated). -/
+def isAuthStoreAdmin (st : GoInterface) (P : IProp GF) (f : val) : IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
-    permCheck2R ai go!"IsPutPermitted" RD ∗
-    permCheck3R ai go!"IsRangePermitted" RD ∗
-    permCheck3R ai go!"IsDeleteRangePermitted" RD ∗
-    □ (∀ (a : Loc) (info : auth.AuthInfo) (dq : DFrac),
-      {{ a ↦{dq} info ∗ RD }} (App (Val #(methods ai.ty go!"IsAdminPermitted" ai.v)) (Val #a))
-      {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ RD ∗ applyErrIs err }}) ∗
-    □ ({{ RD }} (App (Val #(methods ai.ty go!"IsAuthEnabled" ai.v)) (Val #()))
-      {{ (b : Bool), RET #b; RD }}) ∗
-    □ ({{ True }} (App (Val #(methods ai.ty go!"Revision" ai.v)) (Val #()))
-      {{ (x : w64), RET #x; True }}))
+    □ (∀ (u r : GoString),
+      {{ True }} (App (App (Val #(methods ai.ty go!"HasRole" ai.v)) (Val #u)) (Val #r))
+      {{ (b : Bool), RET #b; True }}) ∗
+    □ (∀ (Pre Q Post : IProp GF),
+      {{ mvcc.csContract P f Pre Q Post }} (App (Val #(methods ai.ty go!"AuthEnable" ai.v)) (Val #()))
+      {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗ applyErrIs err }}) ∗
+    □ (∀ (Pre Q Post : IProp GF),
+      {{ mvcc.csContract P f Pre Q Post }} (App (Val #(methods ai.ty go!"AuthDisable" ai.v)) (Val #()))
+      {{ RET #(); Post ∨ Pre }}) ∗
+    □ (∀ (ctx : GoInterface) (name pw : GoString) (Pre Q Post : IProp GF),
+      {{ mvcc.csContract P f Pre Q Post }}
+        (App (App (App (Val #(methods ai.ty go!"Authenticate" ai.v)) (Val #ctx)) (Val #name))
+          (Val #pw))
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗
+          respHdrOk etcdserverpb.AuthenticateResponse resp ∗ applyErrIs err }}) ∗
+    authReqContract ai go!"UserAdd" etcdserverpb.AuthUserAddResponse P f ∗
+    authReqContract ai go!"UserDelete" etcdserverpb.AuthUserDeleteResponse P f ∗
+    authReqContract ai go!"UserChangePassword" etcdserverpb.AuthUserChangePasswordResponse P f ∗
+    authReqContract ai go!"UserGrantRole" etcdserverpb.AuthUserGrantRoleResponse P f ∗
+    authReqContract ai go!"UserGet" etcdserverpb.AuthUserGetResponse P f ∗
+    authReqContract ai go!"UserRevokeRole" etcdserverpb.AuthUserRevokeRoleResponse P f ∗
+    authReqContract ai go!"RoleAdd" etcdserverpb.AuthRoleAddResponse P f ∗
+    authReqContract ai go!"RoleGrantPermission" etcdserverpb.AuthRoleGrantPermissionResponse P f ∗
+    authReqContract ai go!"RoleGet" etcdserverpb.AuthRoleGetResponse P f ∗
+    authReqContract ai go!"RoleRevokePermission" etcdserverpb.AuthRoleRevokePermissionResponse P f ∗
+    authReqContract ai go!"RoleDelete" etcdserverpb.AuthRoleDeleteResponse P f ∗
+    authReqContract ai go!"UserList" etcdserverpb.AuthUserListResponse P f ∗
+    authReqContract ai go!"RoleList" etcdserverpb.AuthRoleListResponse P f)
 
-instance isAuthStorePerms_persistent (st : GoInterface) (RD : IProp GF) :
-    Persistent (isAuthStorePerms st RD) := by
-  unfold isAuthStorePerms permCheck2R permCheck3R; infer_instance
+instance isAuthStoreAdmin_persistent (st : GoInterface) (P : IProp GF) (f : val) :
+    Persistent (isAuthStoreAdmin st P f) := by
+  unfold isAuthStoreAdmin authReqContract; infer_instance
 
 end defs
 
@@ -129,25 +131,34 @@ theorem authRevision_of_authInv
   iapply (hRev st R) $$ [] HΦ
   iframe Hpkg Hinv
 
-/-- **`isAuthStore`'s request-side clauses, of the real store** at `st` (`auth.authInv st R`),
-with the reader resource `auth.authRd st R` (see the file header). -/
-theorem isAuthStorePerms_of_authInv
+/-- **The apply package's `isAuthStore`, of the real store** at `st` (`auth.authInv st R`),
+with the reader resource `auth.authRd st R`: the permission checks, `IsAdminPermitted`,
+`IsAuthEnabled` and `Revision` from the store's proofs; `HasRole` and the admin requests from
+the contract `isAuthStoreAdmin` (see the file header). -/
+theorem isAuthStore_of_authInv
     (hPut : auth.authStore.IsPutPermitted.spec (GF := GF) (hG := hG))
     (hRange : auth.authStore.IsRangePermitted.spec (GF := GF) (hG := hG))
     (hDel : auth.authStore.IsDeleteRangePermitted.spec (GF := GF) (hG := hG))
     (hAdmin : auth.authStore.IsAdminPermitted.spec (GF := GF) (hG := hG))
     (hEn : auth.authStore.IsAuthEnabled.spec (GF := GF) (hG := hG))
     (hRev : auth.authStore.Revision.spec (GF := GF) (hG := hG))
-    (st : Loc) (R : IProp GF) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R ⊢
-      isAuthStorePerms (auth.authIface st) (auth.authRd st R) := by
-  iintro ⟨#Hpkg, #Hinv⟩
-  iunfold isAuthStorePerms
+    (st : Loc) (R : IProp GF) (P : IProp GF) (f : val) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R ∗
+      isAuthStoreAdmin (auth.authIface st) P f ⊢
+      isAuthStore (auth.authIface st) P f (auth.authRd st R) := by
+  iintro ⟨#Hpkg, #Hinv, #Hadm⟩
+  iunfold isAuthStoreAdmin at Hadm
+  icases Hadm with ⟨%ai', %Hai', #HHas, #HAE, #HAD, #HAu, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8,
+    #H9, #H10, #H11, #H12, #H13⟩
+  have Hai'' : ai' = interface.mk (go.GoType.PointerType auth.authStore.ty) #st := by
+    unfold auth.authIface at Hai'; cases Hai'; rfl
+  subst Hai''
+  iunfold isAuthStore
   iexists (interface.mk (go.GoType.PointerType auth.authStore.ty) #st)
   isplitr
   · ipureintro; rfl
   isplitr
-  · iunfold permCheck2R
+  · iunfold permCheck2
     iintro !> %a %info %dq %key %k %dk %Φ !> ⟨Ha, Hk, Hrd, %Hlen⟩ HΦ
     iapply (hPut st R a info dq key k dk) $$ [Ha Hk Hrd]
     · iframe; iframe #; ipureintro; exact Hlen
@@ -156,7 +167,7 @@ theorem isAuthStorePerms_of_authInv
     iframe
     iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
   isplitr
-  · iunfold permCheck3R
+  · iunfold permCheck3
     iintro !> %a %info %dq %key %re %k %e %dk %de %Φ !> ⟨Ha, Hk, He, Hrd, %Hlen⟩ HΦ
     iapply (hRange st R a info dq key re k e dk de) $$ [Ha Hk He Hrd]
     · iframe; iframe #; ipureintro; exact Hlen
@@ -165,7 +176,7 @@ theorem isAuthStorePerms_of_authInv
     iframe
     iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
   isplitr
-  · iunfold permCheck3R
+  · iunfold permCheck3
     iintro !> %a %info %dq %key %re %k %e %dk %de %Φ !> ⟨Ha, Hk, He, Hrd, %Hlen⟩ HΦ
     iapply (hDel st R a info dq key re k e dk de) $$ [Ha Hk He Hrd]
     · iframe; iframe #; ipureintro; exact Hlen
@@ -181,6 +192,7 @@ theorem isAuthStorePerms_of_authInv
     iapply HΦ
     iframe
     iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
+  iframe HHas
   isplitr
   · iintro !> %Φ !> Hrd HΦ
     iunfold auth.authRd at Hrd
@@ -191,7 +203,9 @@ theorem isAuthStorePerms_of_authInv
     iapply HΦ
     iunfold auth.authRd
     iframe
+  isplitr
   · iapply authRevision_of_authInv hRev st R $$ [$Hpkg $Hinv]
+  iframe #
 
 end proof
 

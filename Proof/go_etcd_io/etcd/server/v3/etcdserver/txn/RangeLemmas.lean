@@ -224,7 +224,7 @@ theorem rangeRequestIs_sortSet (r : Loc) (o : OpFull) :
   iintro Hr
   iunfold rangeRequestIs at Hr
   icases Hr with ⟨%Hnn, %ksl, %esl, %k, %e, %rev0, %limit, %order, %target, %ser, %ko, %co, %minM,
-    %maxM, %minC, %maxC, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %Ho⟩
+    %maxM, %minC, %maxC, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %Ho, -⟩
   ipureintro
   subst Ho
   simp only [rangeOpOf, ne_eq, sext32_eq order 0 (by omega) (by omega),

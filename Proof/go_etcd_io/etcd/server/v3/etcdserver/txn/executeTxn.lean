@@ -321,7 +321,7 @@ theorem txn.executeTxn.wp_proof
       ihave #Hrr2 := Hrr
       iunfold txn.rangeRequestIs at Hrr2
       icases Hrr2 with ⟨%Hrrn, %ksl, %esl, %k, %e0, %rev0, %limit, %order, %target, %ser, %ko, %co,
-        %minM, %maxM, %minC, %maxC, #Hk, #Hks, #He, #Hes, -, #Hrev, -, -, -, -, -, -, -, -, -, %Ho⟩
+        %minM, %maxM, %minC, %maxC, #Hk, #Hks, #He, #Hes, -, #Hrev, -, -, -, -, -, -, -, -, -, %Ho, -⟩
       wp_auto
       wp_apply wp_bytes_to_string ksl k DFrac.discard $$ [$Hks] as -
       wp_apply wp_bytes_to_string esl e0 DFrac.discard $$ [$Hes] as -
@@ -739,7 +739,7 @@ theorem txn.executeTxn.wp_proof
       try simp only [Bool.false_eq_true, ↓reduceIte]
       ihave #Hpr2 := Hpr
       iunfold txn.putRequestIs at Hpr2
-      icases Hpr2 with ⟨%Hprn, %ksl, %vsl, %k, %v0, %lease, %pk, %iv0, %il, #Hk, #Hks, -, -, -, -, -, -, -, %Ho⟩
+      icases Hpr2 with ⟨%Hprn, %ksl, %vsl, %k, %v0, %lease, %pk, %iv0, %il, #Hk, #Hks, -, -, -, -, -, -, -, %Ho, -⟩
       wp_auto
       wp_apply wp_bytes_to_string ksl k DFrac.discard $$ [$Hks] as -
       wp_apply (hSize.1 pr o) $$ [$Hpr] as %sz -

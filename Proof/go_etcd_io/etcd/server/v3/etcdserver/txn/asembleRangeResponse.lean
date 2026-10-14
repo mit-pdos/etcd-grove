@@ -95,7 +95,7 @@ theorem txn.asembleRangeResponse.wp_proof : txn.asembleRangeResponse.spec (GF :=
   intro rr r o rev count vs
   wp_start as ⟨Hrr, #Hr⟩
   iunfold txn.rangeRequestIs at Hr
-  icases Hr with ⟨%Hnn, %ksl, %esl, %k, %e, %rv, %limit, %order, %target, %ser, %ko, %co, %minM, %maxM, %minC, %maxC, #Hk, #Hks, #He, #Hes, #Hlim, #Hrev, #Hord, #Htgt, #Hser, #Hko, #Hco, #HminM, #HmaxM, #HminC, #HmaxC, %Ho⟩
+  icases Hr with ⟨%Hnn, %ksl, %esl, %k, %e, %rv, %limit, %order, %target, %ser, %ko, %co, %minM, %maxM, %minC, %maxC, #Hk, #Hks, #He, #Hes, #Hlim, #Hrev, #Hord, #Htgt, #Hser, #Hko, #Hco, #HminM, #HmaxM, #HminC, #HmaxC, %Ho, -⟩
   iunfold txn.rangeResultIs at Hrr
   icases Hrr with ⟨%sl, %l, %Hl, Hrr, Hown⟩
   iunfold txn.kvsOwnAt at Hown

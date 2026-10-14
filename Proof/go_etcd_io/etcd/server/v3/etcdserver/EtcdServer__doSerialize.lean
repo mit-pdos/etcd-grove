@@ -50,7 +50,7 @@ theorem EtcdServer.doSerialize.wp_proof
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG)) :
     EtcdServer.doSerialize.spec (GF := GF) (hG := hG) := by
   intro s E ρ γr ctx cd chk get G Q t e
-  wp_start as ⟨#Hsrv, #Hrd, #Hctx, #Hct, #Hchk, #Hget, HG, Htrc⟩
+  wp_start as ⟨#Hsrv, #Hrd, #Hctx, #Hct, #Hchk, #Hget, HG, Htrc, Hard⟩
   iunfold isServerReq at Hsrv
   icases Hsrv with ⟨%v, #Hv⟩
   iunfold srvReqFieldsAt at Hv
@@ -67,12 +67,13 @@ theorem EtcdServer.doSerialize.wp_proof
   wp_auto
   wp_apply hGet ctx (some t) $$ [$Hct] as %tr ⟨%Htr, %Hteq⟩
   subst tr
-  wp_apply hAI s v.auth v.cca ctx cd $$ [] as %a %err ⟨Ha, #HaE⟩
-  · iframe #
+  wp_apply hAI s v.auth E.RD v.cca ctx cd $$ [Hard] as %a %err ⟨Hard, Ha, #HaE⟩
+  · iframe; iframe #
   cases err with
   | ok ei =>
     wp_auto
     iapply HΦ
+    iframe Hard
     iright
     isplitr
     · ipureintro; intro h; cases h
@@ -88,14 +89,16 @@ theorem EtcdServer.doSerialize.wp_proof
       iexists a, _, DFrac.discard
       iframe ai Hp
     wp_bind (App (Val #chk) (Val #a'))
-    iapply Hchk $$ Hai
+    iapply Hchk $$ [Hai Hard]
+    · iframe
     inext
-    iintro %err' ⟨Hai, #HcE⟩
+    iintro %err' ⟨Hai, Hard, #HcE⟩
     wp_auto
     cases err' with
     | ok ei =>
       wp_auto
       iapply HΦ
+      iframe Hard
       iright
       isplitr
       · ipureintro; intro h; cases h
@@ -120,16 +123,19 @@ theorem EtcdServer.doSerialize.wp_proof
       wp_auto
       wp_if_destruct
       · iapply HΦ
+        iframe Hard
         ileft
         iframe HQ
         ipureintro; rfl
       · wp_apply HRev as %x -
         wp_if_destruct
         · iapply HΦ
+          iframe Hard
           ileft
           iframe HQ
           ipureintro; rfl
         · iapply HΦ
+          iframe Hard
           iright
           isplitr
           · ipureintro; intro h; cases h

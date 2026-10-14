@@ -23,16 +23,17 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- `s.AuthInfoFromCtx(ctx)` at a context: an auth info (`nil` or one with its fields,
-`authInfoOpt`) and an error (the auth store's request side, `isReqAuth`). -/
+`authInfoOpt`) and an error (the auth store's request side, `isReqAuth`, with the caller's
+reader resource `RD`: 2026-10-14, unit A2). -/
 abbrev EtcdServer.AuthInfoFromCtx.spec : Prop :=
-  ∀ (s : Loc) (st : GoInterface) (cca : Bool) (ctx : GoInterfaceOk)
+  ∀ (s : Loc) (st : GoInterface) (RD : IProp GF) (cca : Bool) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st ∗
-      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ mvcc.txnCtx ctx cd }}
+      structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st RD ∗
+      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ mvcc.txnCtx ctx cd ∗ RD }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"AuthInfoFromCtx"))
       (Val #(GoInterface.ok ctx)))
-  {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); authInfoOpt a ∗ applyErrIs err }}
+  {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗ applyErrIs err }}
 
 end spec
 

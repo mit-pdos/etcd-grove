@@ -41,7 +41,7 @@ theorem txn.put.wp_proof
   · iPkgInit
   iunfold txn.putRequestIs at Hp
   icases Hp with ⟨%Hpnn, %ksl, %vsl, %k, %v, %lease, %pk, %iv, %il, #Hk, #Hks, #Hv, #Hvs, #Hl,
-    #Hpk, #Hiv, #Hil, -, %Ho⟩
+    #Hpk, #Hiv, #Hil, -, %Ho, -⟩
   wp_auto
   wp_apply (hGet ctx (some trace)) $$ [$Hct] as %t ⟨%Ht, %Hteq⟩
   subst t

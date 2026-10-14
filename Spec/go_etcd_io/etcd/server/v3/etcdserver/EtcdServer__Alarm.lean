@@ -32,11 +32,11 @@ abbrev EtcdServer.Alarm.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (p : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReq s E ρ ∗ srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗ context.isContext ci cd ∗
+      isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ci cd ∗
       (∃ v : etcdserverpb.AlarmRequest, p ↦ v) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Alarm"))
       (Val #(GoInterface.ok ci))) (Val #p))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD }}
 
 end spec
 

@@ -34,7 +34,7 @@ theorem apply.newApplierV3.wp_proof
     (hA : apply.newAuthApplierV3.spec (GF := GF) (hG := hG)) :
     apply.newApplierV3.spec (GF := GF) (hG := hG) := by
   intro E opts
-  wp_start as #Hopts
+  wp_start as ⟨#Hopts, Hard⟩
   ihave #Hok := Hopts
   iunfold apply.backendOptsOk at Hok
   icases Hok with ⟨-, -, -, #Hle, #Has, -⟩
@@ -43,8 +43,8 @@ theorem apply.newApplierV3.wp_proof
   · iframe #
   wp_apply (hQ E .backend opts.Logger' opts.QuotaBackendBytesCfg' opts.Backend' b) $$ [] as %q #Hq
   · iframe #
-  wp_apply (hA E (.quota .backend) opts.AuthStore' q opts.Lessor') $$ [] as %p #Hp
-  · iframe #
+  wp_apply (hA E (.quota .backend) opts.AuthStore' q opts.Lessor') $$ [Hard] as %p #Hp
+  · iframe; iframe #
   iapply HΦ
   simp only [apply.baseChain]
   iexact Hp

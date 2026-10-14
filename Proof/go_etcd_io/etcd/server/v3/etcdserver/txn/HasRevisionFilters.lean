@@ -28,7 +28,7 @@ theorem txn.HasRevisionFilters.wp_proof : txn.HasRevisionFilters.spec (GF := GF)
   intro r o
   wp_start as #Hr
   iunfold txn.rangeRequestIs at Hr
-  icases Hr with ⟨%Hnn, %ksl, %esl, %k, %e, %rev, %limit, %order, %target, %ser, %ko, %co, %minM, %maxM, %minC, %maxC, #Hk, #Hks, #He, #Hes, #Hlim, #Hrev, #Hord, #Htgt, #Hser, #Hko, #Hco, #HminM, #HmaxM, #HminC, #HmaxC, %Ho⟩
+  icases Hr with ⟨%Hnn, %ksl, %esl, %k, %e, %rev, %limit, %order, %target, %ser, %ko, %co, %minM, %maxM, %minC, %maxC, #Hk, #Hks, #He, #Hes, #Hlim, #Hrev, #Hord, #Htgt, #Hser, #Hko, #Hco, #HminM, #HmaxM, #HminC, #HmaxC, %Ho, -⟩
   wp_auto
   wp_if_destruct <;> (try wp_auto) <;> (try wp_if_destruct) <;> (try wp_auto) <;>
     (try wp_if_destruct) <;> (try wp_auto) <;> (try wp_if_destruct) <;> (try wp_auto)

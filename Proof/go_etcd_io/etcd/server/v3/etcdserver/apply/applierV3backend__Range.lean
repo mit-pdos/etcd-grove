@@ -36,7 +36,7 @@ theorem apply.applierV3backend.Range.wp_proof
   wp_start as ⟨#Hb, Hpre⟩
   iunfold apply.rangePre at Hpre
   iunfold apply.kvOwn at Hpre
-  icases Hpre with ⟨%Hrq, #Hr, ⟨Hrd, Hsw, Hknown⟩, Hres⟩
+  icases Hpre with ⟨%Hrq, #Hr, ⟨Hrd, Hsw, Hknown, Hard⟩, Hres⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok

@@ -113,7 +113,7 @@ theorem txn.IsTxnSerializable.wp_proof
       case get o =>
         iunfold txn.rangeRequestIs at Hrr
         icases Hrr with ⟨%Hrn, %ksl, %esl, %k, %e, %rev, %limit, %order, %target, %ser, %ko, %co, %minM,
-          %maxM, %minC, %maxC, -, -, -, -, -, -, -, -, #Hser, -, -, -, -, -, -, %Ho⟩
+          %maxM, %minC, %maxC, -, -, -, -, -, -, -, -, #Hser, -, -, -, -, -, -, %Ho, -⟩
         have hser : ser = false := by subst Ho; simpa [txn.opIsSerGet, txn.rangeOpOf] using hg
         subst hser
         rw [decide_eq_false Hrn]
@@ -131,7 +131,7 @@ theorem txn.IsTxnSerializable.wp_proof
     · obtain ⟨o, rfl⟩ : ∃ o, op = .get o := by cases op <;> simp_all [txn.opIsSerGet]
       iunfold txn.rangeRequestIs at Hrr
       icases Hrr with ⟨%Hrn, %ksl, %esl, %k, %e, %rev, %limit, %order, %target, %ser, %ko, %co, %minM,
-        %maxM, %minC, %maxC, -, -, -, -, -, -, -, -, #Hser, -, -, -, -, -, -, %Ho⟩
+        %maxM, %minC, %maxC, -, -, -, -, -, -, -, -, #Hser, -, -, -, -, -, -, %Ho, -⟩
       have hser : ser = true := by subst Ho; simpa [txn.opIsSerGet, txn.rangeOpOf] using hg
       subst hser
       rw [decide_eq_false Hrn]
@@ -174,7 +174,7 @@ theorem txn.IsTxnSerializable.wp_proof
       case get o =>
         iunfold txn.rangeRequestIs at Hrr
         icases Hrr with ⟨%Hrn, %ksl, %esl, %k, %e, %rev, %limit, %order, %target, %ser, %ko, %co, %minM,
-          %maxM, %minC, %maxC, -, -, -, -, -, -, -, -, #Hser, -, -, -, -, -, -, %Ho⟩
+          %maxM, %minC, %maxC, -, -, -, -, -, -, -, -, #Hser, -, -, -, -, -, -, %Ho, -⟩
         have hser : ser = false := by subst Ho; simpa [txn.opIsSerGet, txn.rangeOpOf] using hg
         subst hser
         rw [decide_eq_false Hrn]
@@ -192,7 +192,7 @@ theorem txn.IsTxnSerializable.wp_proof
     · obtain ⟨o, rfl⟩ : ∃ o, op = .get o := by cases op <;> simp_all [txn.opIsSerGet]
       iunfold txn.rangeRequestIs at Hrr
       icases Hrr with ⟨%Hrn, %ksl, %esl, %k, %e, %rev, %limit, %order, %target, %ser, %ko, %co, %minM,
-        %maxM, %minC, %maxC, -, -, -, -, -, -, -, -, #Hser, -, -, -, -, -, -, %Ho⟩
+        %maxM, %minC, %maxC, -, -, -, -, -, -, -, -, #Hser, -, -, -, -, -, -, %Ho, -⟩
       have hser : ser = true := by subst Ho; simpa [txn.opIsSerGet, txn.rangeOpOf] using hg
       subst hser
       rw [decide_eq_false Hrn]

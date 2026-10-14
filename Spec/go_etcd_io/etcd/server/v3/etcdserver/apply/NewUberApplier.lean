@@ -28,10 +28,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`NewUberApplier(opts)`**: an `*uberApplier` `p` over the options `opts` (whose contracts
 hold in `E`): its fields from the options and the base chain (`uberIs`, persistent), its current
-applier the chain the alarm store's answers ask for (`restoreAlarms`: `alarmChain ns cr`). -/
+applier the chain the alarm store's answers ask for (`restoreAlarms`: `alarmChain ns cr`); the auth
+layer's mutex takes the reader resource `E.RD` (2026-10-14, unit A2). -/
 abbrev apply.NewUberApplier.spec : Prop :=
   ∀ (E : AEnv GF) (opts : ApplierOptions),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendOptsOk E opts }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendOptsOk E opts ∗ E.RD }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.NewUberApplier)) (Val #opts))
   {{ (ua : GoInterface), RET #ua; ∃ p : Loc,
       ⌜ua = interface.mkOk (go.GoType.PointerType uberApplier.ty) #p⌝ ∗ apply.uberIs E p opts ∗

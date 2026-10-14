@@ -20,7 +20,8 @@ unit 4c), and **the store stays small** (`storeSmall`: every certified log has a
 changes, `txn.LogSmall`, the sort's premise; a premise, as the apply thread's `rangeOk`/`TxnPre`
 of its entries).
 
-**A read call's resources** (`srvRdCall s E γr c`, ctx-independent): the store's reader slots
+**A read call's resources** (`srvRdCall s E γr c`, ctx-independent; 2026-10-14, unit A2: and
+the auth store's reader resource `E.RD`): the store's reader slots
 (`mvcc.storeReader`: its `RWMutex`es admit a bounded number of readers), a reader slot of the
 logger's lock (`srvLgReader`), a lower bound `c` of the cluster's committed index the caller
 knew of (`committedAtLeast`: what a linearizable read's `readIndexOk` is relative to), and a
@@ -107,7 +108,7 @@ def srvReadFieldsAt (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v : ReadFie
         #v.rv : GoInterface) ∗
     mvcc.isReadView v.rv E.s E.γ ∗
     srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.γ E.P E.f ∗
-    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.P E.f ∗
+    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.P E.f E.RD ∗
     srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
@@ -143,10 +144,12 @@ def srvReadLR (s : Loc) : IProp GF :=
     (∃ n : Loc, srvFirstCommitAddr s ↦□ n ∗ notifyReader n))
 
 /-- **A read call's resources** (see the file header): the store's reader slots, a reader slot
-of `s.lgMu`, the committed index `c` the caller knew of, and (2026-10-13, unit 4a) a reader slot
-of the read loop's lock (`srvReadReader`). -/
+of `s.lgMu`, the committed index `c` the caller knew of, (2026-10-13, unit 4a) a reader slot
+of the read loop's lock (`srvReadReader`), and (2026-10-14, unit A2) the auth store's reader
+resource (`E.RD`: `AuthInfoFromCtx`, the permission checks). -/
 def srvRdCall (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) : IProp GF :=
-  iprop(mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ committedAtLeast γr c ∗ srvReadReader s γr)
+  iprop(mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ committedAtLeast γr c ∗ srvReadReader s γr ∗
+    E.RD)
 
 /-- **A linearizable read of `log` after the committed index `c`** (persistent; 2026-10-13, the
 request path's unit 4b): the read index (`readIndexOk`: the applied index reached some index at
@@ -226,6 +229,15 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [_root_.Perennial.errors.Assumptions]
+
+/-- A read call's auth reader resource, lent out (2026-10-14, unit A2). -/
+theorem srvRdCall_rd (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) :
+    srvRdCall s E γr c ⊢ E.RD ∗ (E.RD -∗ srvRdCall s E γr c) := by
+  unfold srvRdCall
+  iintro ⟨Hsr, Hlr, Hc, Hrr, Hrd⟩
+  iframe Hrd
+  iintro Hrd
+  iframe
 
 /-- `readLogOk` holds of every extension of the log. -/
 theorem readLogOk_if_mono (b : Bool) (γr : ReadNames) (c : w64) (log log' : mvcc.Log)

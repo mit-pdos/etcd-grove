@@ -38,7 +38,7 @@ theorem txn.checkAndGetPrevKV.wp_proof
   · ipureintro; exact Htr
   iunfold txn.putRequestIs at Hp
   icases Hp with ⟨%Hpnn, %ksl, %vsl, %k, %v, %lease, %pk, %iv, %il, #Hk, #Hks, #Hv, #Hvs, #Hl,
-    #Hpk, #Hiv, #Hil, -, %Ho⟩
+    #Hpk, #Hiv, #Hil, -, %Ho, -⟩
   have hN : txn.needsPrev o = (iv || il) := by subst Ho; rfl
   have hR : txn.readsPrev o = ((iv || il) || pk) := by subst Ho; rfl
   have hK : o.key = k := by subst Ho; rfl

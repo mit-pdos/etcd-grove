@@ -34,7 +34,7 @@ theorem txn.checkLease.wp_proof : txn.checkLease.spec (GF := GF) (hG := hG) := b
   subst Hli
   iunfold txn.putRequestIs at Hp
   icases Hp with ⟨%Hpnn, %ksl, %vsl, %k, %v, %lease, %pk, %iv, %il, #Hk, #Hks, #Hv, #Hvs, #Hl,
-    #Hpk, #Hiv, #Hil, -, %Ho⟩
+    #Hpk, #Hiv, #Hil, -, %Ho, -⟩
   subst Ho
   (try wp_auto)
   wp_if_destruct

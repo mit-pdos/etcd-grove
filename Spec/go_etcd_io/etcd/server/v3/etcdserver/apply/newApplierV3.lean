@@ -27,10 +27,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **`newApplierV3(opts)`**: the base chain (`authApplierV3` over `quotaApplierV3` over
-`applierV3backend`) over the options `opts`, whose contracts hold in `E`. -/
+`applierV3backend`) over the options `opts`, whose contracts hold in `E`; the auth layer's mutex
+takes the reader resource `E.RD` (2026-10-14, unit A2). -/
 abbrev apply.newApplierV3.spec : Prop :=
   ∀ (E : AEnv GF) (opts : ApplierOptions),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendOptsOk E opts }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendOptsOk E opts ∗ E.RD }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3)) (Val #opts))
   {{ (a : GoInterface), RET #a; apply.applierSpec E apply.baseChain a }}
 

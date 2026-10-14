@@ -28,47 +28,48 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.checkPutAuth.wp_proof
     (hLP : apply.checkLeasePuts.spec (GF := GF) (hG := hG)) :
     apply.checkPutAuth.spec (GF := GF) (hG := hG) := by
-  intro st le γ P f ai info dq r o
-  wp_start as ⟨#Hst, #Hle, Hai, #Hr⟩
+  intro st le γ P f RD ai info dq r o
+  wp_start as ⟨#Hst, #Hle, Hai, Hrd, #Hr⟩
   ihave #Hst' := Hst
   iunfold apply.isAuthStore at Hst'
   icases Hst' with ⟨%sti, %Hsti, #HPut, #HRange, -⟩
   iunfold apply.permCheck2 at HPut
   iunfold apply.permCheck3 at HRange
   iunfold txn.putRequestIs at Hr
-  icases Hr with ⟨%Hrn, %ksl, %vsl, %k, %v, %lease, %pk, %iv, %il, #HK, #Hk, -, -, #HL, #HPK, -⟩
+  icases Hr with ⟨%Hrn, %ksl, %vsl, %k, %v, %lease, %pk, %iv, %il, #HK, #Hk, -, -, #HL, #HPK, -, -, -, -, %Hkb⟩
   wp_auto
   rw [Hsti]
-  wp_apply HPut $$ [$Hai $Hk] as %err ⟨Hai, -, #HeI1⟩
+  wp_apply HPut $$ [$Hai $Hk $Hrd] as %err ⟨Hai, -, Hrd, #HeI1⟩
+  · ipureintro; exact Hkb
   cases err with
   | ok e =>
     wp_auto
-    iapply HΦ; iframe Hai; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
+    iapply HΦ; iframe Hai Hrd; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
   | nil =>
   wp_auto
   rw [← Hsti]
-  wp_apply (hLP st le γ P f ai info dq lease) $$ [$Hst $Hle $Hai] as %err ⟨Hai, #HeI2⟩
+  wp_apply (hLP st le γ P f RD ai info dq lease) $$ [$Hst $Hle $Hai $Hrd] as %err ⟨Hai, Hrd, #HeI2⟩
   cases err with
   | ok e =>
     wp_auto
-    iapply HΦ; iframe Hai; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
+    iapply HΦ; iframe Hai Hrd; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
   | nil =>
   wp_auto
   cases pk
   · wp_auto
-    iapply HΦ; iframe Hai; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
+    iapply HΦ; iframe Hai Hrd; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
   wp_auto
   ihave Hnil := ownSlice_nil (V := w8) (GF := GF) (DFrac.own 1)
   rw [Hsti]
-  wp_apply HRange $$ %ai %info %dq %ksl %slice.nil %k %([] : List w8) %DFrac.discard %(DFrac.own 1) [Hai Hnil] as %err ⟨Hai, -, -, #HeI3⟩
-  · iframe; iframe #
+  wp_apply HRange $$ %ai %info %dq %ksl %slice.nil %k %([] : List w8) %DFrac.discard %(DFrac.own 1) [Hai Hnil Hrd] as %err ⟨Hai, -, -, Hrd, #HeI3⟩
+  · iframe; iframe #; try (ipureintro; exact Hkb)
   cases err with
   | ok e =>
     wp_auto
-    iapply HΦ; iframe Hai; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
+    iapply HΦ; iframe Hai Hrd; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
   | nil =>
     wp_auto
-    iapply HΦ; iframe Hai; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
+    iapply HΦ; iframe Hai Hrd; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
 
 end proof
 

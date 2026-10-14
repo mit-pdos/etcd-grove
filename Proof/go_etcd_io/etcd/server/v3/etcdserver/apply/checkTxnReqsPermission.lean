@@ -32,15 +32,15 @@ theorem apply.checkTxnReqsPermission.wp_proof
     (hPut : apply.checkPutAuth.spec (GF := GF) (hG := hG))
     (hTxn : apply.checkTxnPermission.spec (GF := GF) (hG := hG)) :
     apply.checkTxnReqsPermission.spec (GF := GF) (hG := hG) := by
-  intro st le γ P f ai info dq reqs ps ops
-  iintro %Φ ⟨#Hpkg, #Hst, #Hle, Hai, #Hreqs, #Hops⟩ HΦ
-  iapply (apply.checkTxnReqs_of hPut st le γ P f ai info dq reqs ps ops) $$ [Hai] HΦ
-  iframe Hai
+  intro st le γ P f RD ai info dq reqs ps ops
+  iintro %Φ ⟨#Hpkg, #Hst, #Hle, Hai, Hrd, #Hreqs, #Hops⟩ HΦ
+  iapply (apply.checkTxnReqs_of hPut st le γ P f RD ai info dq reqs ps ops) $$ [Hai Hrd] HΦ
+  iframe Hai Hrd
   iframe #
   iunfold apply.txnPermT
   imodintro
   iintro %rt %t %Φ' Hpre HΦ'
-  iapply (hTxn st le γ P f ai info dq rt t) $$ Hpre HΦ'
+  iapply (hTxn st le γ P f RD ai info dq rt t) $$ Hpre HΦ'
 
 end proof
 

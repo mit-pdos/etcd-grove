@@ -5333,6 +5333,55 @@ unchanged, and `etcd_kv_served` registers the `Put` at `ρ.rd` (a user instantia
 `ρ.rd` to get both at one name). *Rejected:* a read-names parameter on `isServerReq` (29 files of
 request-path specs for a name only the wait's condition uses).
 
+## The auth premises over a reader resource (unit A2, 2026-10-14 · adopted)
+
+**Decision:** the server's auth contracts take the caller's reader resource: `isReqAuth st RD`
+(`AuthInfoFromCtx`) and `apply.isAuthStore st P f RD` (the permission checks, `IsAdminPermitted`,
+`IsAuthEnabled`), each call taking `RD` and giving it back, and the permission checks the key's
+length below `2 ^ 63 - 1`. These are P2's derived forms, so the real store meets them:
+`isReqAuth_of_authInv` and `apply.isAuthStore_of_authInv` at `RD := auth.authRd st R` (a slot of
+`enabledMu`, of `rangePermCacheMu`, and the backend's read resource `R`). One resource for both
+contracts: `AuthInfoFromCtx` uses only `authRd`'s `enabledMu` slot, and every holder of one needs
+the other's checks too.
+
+**The resource is the environment's** (`apply.AEnv.RD`, the plan of integration I1): every
+statement over the apply chain or the server's views already names `E`, so the contracts are
+`isAuthStore … E.RD`/`isReqAuth … E.RD` and no statement gains a parameter. Its holders, each a
+thread that calls the store:
+
+- the apply thread, in `kvOwn E log` (every applier method's precondition: the auth layer's KV
+  methods and `UserGet`/`RoleGet`, the backend's `AuthStatus`);
+- the auth layer's mutex (`authIs`: `authInfoOwn p ∗ E.RD`), for `Apply`'s admin check:
+  `Apply` runs before the `applyFunc` hands the thread's resources to the methods, and its own
+  precondition is the caller's opaque `A` (so a second resource, given to `newAuthApplierV3` at
+  construction). *Rejected:* `E.RD` in `chainRes` (one copy, but `chainRes` is `E`-free and in
+  every method's statement); `E.RD` in `Apply`'s triple (the `applyFunc` would then lack it while
+  `Apply` holds it);
+- a read call's `srvRdCall` (the read path's `AuthInfoFromCtx`, `chk`, `CheckTxnAuth`), lent to
+  `EtcdServer.Put`/`DeleteRange` by v3rpc's handlers, which hold one;
+- the write path beside `srvLeadTimeReader s` (`processInternalRaftRequestOnce`'s
+  `AuthInfoFromCtx`, up through `raftRequest`, `Put`, `DeleteRange`, `Alarm`, the quota wrapper);
+- the client's gRPC run slots (`etcdRunSlot`, and one more in `etcdGrpcSlot` for the quota
+  wrapper's alarm): the bounded pool of runs is what makes the bounded `RWMutex` slots enough.
+
+*Rejected* (again, P2): the slots in the store's invariant (unboundedly many concurrent requests).
+
+**The key bound is a conjunct of the request models** (`rangeRequestIs`, `putRequestIs`,
+`deleteRangeRequestIs`, `compareIs`: `⌜sint.Z ksl.len < 2 ^ 63 - 1⌝` of the `Key` slice, the last
+conjunct, so a destructuring pattern ending in `-` is unchanged). The decoding states it (grpc's
+`recv` is the predicate; `pbutil.MustUnmarshalMessage`'s request too): true of every slice in
+memory, the gap is only the model's `make`. The nested transaction's checks inherit it through
+`requestOpIs`. A lease's keys get it from the lessor's `Lookup` contract (`leaseIs`' `Keys()`).
+The one proof that builds a request, `txn.Count`, takes it as a premise. *Rejected:* a model-level
+`keyFits o` beside the predicates (a recursive predicate over the transaction's ops and
+comparisons, restated at every layer that carries a request); a separate slice-level predicate
+(the same recursion).
+
+**The construction premise keeps the contracts** (smaller than stating `auth.authInv st R` in
+`isServerBuilt`: the premise's other clauses are contracts of the same kind): a `NewServer` proof
+would discharge them from `NewAuthStore`'s invariant with the two derivations, the admin part
+`isAuthStoreAdmin` assumed.
+
 **With the revision's token** (the merge with the vertical slice's unit V1, 2026-10-14,
 `merge-origin7`). V1 carries the token of the revision a write minted (`revMinted E log log'`,
 exclusive) along the same path. The two travel together in every result: `resultIsW` (and
@@ -5385,3 +5434,235 @@ contracts that took `isContext` (`grpcInvokerOk`, `withVersion`, `waitRetryBacko
 (the recipes' `newSequentialKV` with `kp = []` breaks); the get contract is derived for `pfx ≠ []`
 only, which the queue needs (`NewQueue`'s `kp ≠ []`); the priority queue (contracts at `""`) is not
 covered.
+
+## Put and Get as persistent atomic updates linearized by raft (unit T1, 2026-10-14 · adopted in part)
+
+**Status.** The user confirmed the direction and decided the open points (2026-10-14). Done in Lean
+so far: the pure KV model (`etcdserver/KVModel.lean`). Not done: the contract restatement and the
+re-proofs, because of the two gaps below ("Two gaps found"), which need decisions before the
+ghost and contract layers are built.
+
+**Goal.** TaDa-style specs, linearized by raft:
+
+- `kv.Get(ctx, k)` takes `□ AU <{∃∃ vo, k ↦kv vo}> <{k ↦kv vo, COMM □ Q vo}>` and returns `□ Q vo`
+  for the value it returns.
+- `kv.Put(ctx, k, v)` takes a *persistent* update `□ AU <{∃∃ vo, k ↦kv vo}> <{k ↦kv putEffect op
+  vo, COMM □ Q vo}>` and returns `□ Q vo` on success.
+
+The update is persistent because the client's retry interceptor may apply a `Put` more than once
+(`issues/etcd-client-retry-put-ctx-error.md`, each attempt a new request id, so a new raft entry),
+and raft may commit one proposal's data more than once. A write is linearized at the commit of an
+entry carrying it, a read at a committed index at or after its read index. A client-side prophecy
+that turns these into ordinary atomic specs is later work.
+
+### Decided
+
+- **The full committed raft log** (user, 2026-10-14). The contract exposes the state at the start
+  index `ai₀` (the snapshot's, `x₀`) and every committed entry after it, at consecutive raft
+  indices (no snapshot after `run` starts: `rnSnapOnce`, as now). Positions are raft indices. The
+  register's first-occurrence client-data log `srvCLog` leaves the server's contract. It was the
+  register's, and justified there only by the register's Go dedup of applied encodings ("The
+  register: TaDa proposals over raft's client log"). etcd's apply thread applies every occurrence.
+- **Non-client entries are no-ops** in the KV model (empty leader entries, conf changes, entries at
+  or below the consistent index `c₀`), as the apply thread treats them.
+- **Every occurrence** (pitfall (b)). The persistent `Put` update fires at every committed
+  occurrence of its data. No uniqueness premise.
+- **`authOn` in the model** (true of Go: `isOpPermitted` returns `nil` when `!as.isAuthEnabled()`).
+- **Plain workload by an invariant, not a premise on the log** (user's decision 1; enforcement
+  below).
+- **Read batching with a list of registered `Q`s** (user's decision 2; below).
+- **One `ReadIndex` spec, whatever the number of voters** (user). The server's contract has no
+  cluster-size premise. The verified spec's `1 < GMap.size γ.raft.reCfg` must go, and the singleton
+  branch must become another case of the same spec (below).
+
+### The KV ghost state and its invariant
+
+- **Points-to** `k ↦kv vo` (`vo : Option GoString`, `none` for an absent key): an element of a ghost
+  map `γkv`. The authority holds only the keys handed out. A key not in it is allocated at its
+  current value (`kv_alloc`, inside the invariant).
+- **The KV invariant** `kvInv γ γkv` (namespace `kvN`, disjoint from `srvRaftN`): `∃ L, srvRLog γ
+  L ∗ ghostMapAuth γkv M ∗ ⌜plainLog L ∧ ∀ k vo, M !! k = some vo → vo = kvVal (kvOf c₀ ch₀ x₀.log
+  L) k⌝`. `srvRLog γ L` is the server's half of the committed raft log after `ai₀`. Raft holds the
+  other half and moves both at each commit.
+- **The model** (`KVModel.lean`, done): `kvOf c₀ ch log₀ A`, the fold of `kvEntry` over raft
+  entries. A normal entry with data that decodes goes through `dispatchLog` (`chainLog` through the
+  chain `ch`, the start's: `restoreAlarms`' chain at `x₀`, fixed since no alarm request is plain);
+  everything else is the identity. `kvVal log k` is the value of `k` after `log`. The model's value
+  stays an mvcc log, so revisions, `idxCert`, `revMinted` and the vertical slice's `EtcdModel`
+  instance (over certified logs) are unaffected. `k ↦kv` is a coarser view of the same log. The
+  new specs do not use `EtcdModel`, and it is not changed.
+- **Plain** (`plainReq`, `plainEntry`, `plainLog`, done):
+  - *plain*: a put with lease `0` and no ignore flags; a range; a delete without `PrevKv`; a
+    request that does not touch the store. A put or delete must not also carry a field that makes
+    `Apply` skip it (`noSideEffect`) or check admin permission (`needAdminPermission`).
+  - *not plain*: txn, compaction, lease grant and revocation, alarm requests, `AuthEnable`.
+- **Determinism, as far as the current model allows** (done):
+  - `batchStep_plain`: on a plain entry, every step the apply relation allows leaves the chain
+    alone and changes the log as `kvEntry` does, unless it is an auth rejection (the log
+    unchanged);
+  - `applyStep_plain`, `dispatchStep_plain`, `chainStep_plain`, `backendStep_plain`: the same per
+    layer.
+
+  The auth disjunct is what `authOn` removes.
+- **The intermediate value lemma** (`kvOf_ivt`, done): a log between `kvOf A₀` and `kvOf B`, with
+  `A₀ <+: B`, is `kvOf A` for some `A` between them, since each entry appends at most one revision
+  (`kvEntry_grow`).
+
+### `authOn` in the model (next step; mechanical but wide)
+
+The auth layer's mode goes in the chain: `Chain.auth (on : Bool) (c : Chain)`, with `baseChain on`
+and `alarmChain on ns cr`. `chainStep`'s auth case rejects only if `on`. `dispatchStep`,
+`applyStep`, `entryStep`, `batchStep` and `entriesStep` keep their signatures (the mode is in
+`x.chain`).
+
+`isAuthStore st on P f RD` gains:
+
+- if `on = false`, the permission checks and `IsAdminPermitted` return `nil`;
+- `AuthEnable` requires `on = true`.
+
+The real store meets it at `on = true` for free (`isAuthStore_of_authInv`). At `on = false` it meets
+it given an `enabled = false` ghost fact in unit A2's `enabledP`, which only `AuthEnable` breaks.
+`newAuthApplierV3`'s spec yields `.auth E.authOn c` (an `AEnv` field). This touches the 26 files
+that name `.auth`, `baseChain` or `alarmChain` (about 100 lines) and `isAuthStore`'s users.
+`chainLog`'s auth case then becomes exact for `on = false`, and `batchStep_plain` loses its auth
+disjunct.
+
+The apply thread must then know that no `AuthEnable` entry reaches it when `on = false`. That
+knowledge comes from the plain invariant through the batch (`srvRLogLb` of the batch and `kvInv`'s
+`plainLog`), replacing that part of `entriesOk`.
+
+### Enforcing the plain workload (decision 1)
+
+Every committed normal entry with data was proposed with a deposited update (raft fires only
+deposited updates; the contract's apply side, `batchCommitted`, already says each is deposited).
+The only way to make a proposal update (`srvPropAu γ d Q'`, raft-level) is `kv_prop_au`. It opens
+`kvInv` and, on commit, must re-establish `plainLog (L ++ [e])`, so it takes `⌜∀ rq, irrDecode d =
+some rq → plainReq rq⌝`. So:
+
+- **The proposal path** (`processInternalRaftRequestOnce`, `raftRequest`, `raftRequestOnce`) takes
+  `⌜plainReq r⌝` of the request it proposes, or a **non-plain credit** `srvNonPlain γkv`: an
+  exclusive token allocated at construction and kept inside `kvInv`, so nobody holds it in this
+  configuration. With it, a proposal could commit a non-plain entry, so `kvInv` gives the token
+  back only in exchange for giving up the KV model, and no one does.
+- **The non-plain handlers' specs** require `srvNonPlain γkv`:
+  - `EtcdServer.Txn` (writing branch);
+  - `LeaseGrant`/`LeaseRevoke`/`Compact`/`Alarm` and the auth admin requests (not on the request
+    path's verified list);
+  - the names-only contracts that propose: `compactorOk` (the auto-compactor; `nil` unless
+    `AutoCompactionRetention ≠ 0`), the lessor's expiry loop (`revokeExpiredLeases`: no lease is
+    ever granted, since a grant is non-plain), the hash monitors (`monitorKVHash`,
+    `monitorCompactHash`: CORRUPT alarms).
+
+  So `txn_end_to_end`'s writing case needs a credit no one has. It is no longer a usable result in
+  this configuration, by design. The read-only `Txn` stays.
+- **The server's internal plain proposals** (`publishV3`'s `ClusterMemberAttrSet`, the cluster
+  version's `ClusterVersionSet`, `DowngradeInfoSet`) are plain (no store change) and deposit an
+  update built by `kv_prop_au` with `Q' := True`.
+- **The NOSPACE alarm** (the apply thread's goroutine, `raftRequestAlarm`, an axiom) is the hard
+  case; see "Two gaps found", gap 2.
+
+### The raft contract, restated (to implement)
+
+It is stated over `ServerRaftNames`, with `cLog`/`committed` replaced by the committed raft log
+`srvRLog γ L` (halves) and its persistent lower bounds `srvRLogLb γ L`.
+
+- **Proposals**:
+  ```
+  srvPropAu γ d Q := □ AU <{∃∃ (L : List EntryModel) (e : EntryModel),
+      srvRLog γ L ∗ ⌜e.typ = W32 0 ∧ e.data = d⌝}> @ ⊤ ∖ ↑srvRaftN, ∅
+    <{srvRLog γ (L ++ [e]), COMM □ Q L}>
+  ```
+  It is fired at every committed occurrence of `d`. Raft records `srvPropWit γ d Q := □ ∀ L,
+  srvRLogLb γ L -∗ ∀ m, ⌜m < L.length ∧ L[m].data = d ∧ L[m].typ = 0⌝ ={⊤}=∗ □ Q (L.take m)`. A
+  retry needs `srvDeposited γ d`.
+- **Raft's own entries**: a standing update given at the node's start, `□ ∀ e, ⌜noopEntry e⌝ → AU
+  <{∃∃ L, srvRLog γ L}> <{srvRLog γ (L ++ [e])}>`, where `noopEntry` is empty data or a conf change.
+  `kvInv` gives it.
+- **The apply side**: `rnReadyData`'s `□ E.C (d ++ ce)` carries `srvRLogLb γ (d ++ ce)`.
+- **Reads**: `ReadIndex(ctx, beBytes id)` takes `srvReadAu γ Qr := □ AU <{∃∃ L, srvRLog γ L}> @ ⊤ ∖
+  ↑srvRaftN, ∅ <{srvRLog γ L, COMM □ Qr L}>` and registers `RQ id Qr`. A read state answering `id`
+  gives its safe index `i = rs.Index` and `srvReadWit γ Qr i := □ ∀ L, srvRLogLb γ L -∗ ⌜uint.Z i ≤
+  uint.Z ai₀ + L.length⌝ ={⊤}=∗ □ Qr L` (pitfall (a): the log through a raft index includes raft's
+  own entries, which `kvOf` skips). One spec, with no voter-count premise (pitfall (c)).
+
+### The read loop: one update per `ReadIndex`, a list of registered `Q`s (decision 2)
+
+Per notifier, the read invariant keeps a **list of registered predicates** `Qs : List (List
+EntryModel → IProp)`, each with its client's KV-level persistent update (saved predicates, the
+updates beside them in the invariant).
+
+- A client calling `LinearizableReadNotify` appends its `Q` and learns, persistently, that it is
+  registered at position `n` of the current notifier's list (`readRegAt γn n Q`, a saved predicate
+  at `n`), along with its bound `c` in the need as today.
+- The loop's swap freezes the list with the need (`needFrozen`: the list's authority in an
+  invariant of its own).
+- The loop builds **one** raft-level persistent update for its `ReadIndex`, `srvReadAu γ (λ L,
+  [∗list] Q ∈ Qs, □ Q L)`, by `kv_read_compose`: open `kvInv` and hand raft `srvRLog γ L`; on the
+  commit, holding the KV authority, fire every frozen client update in turn. Updates whose state is
+  supplied by the prover do not compose sequentially on the prover's side, which is why the KV-level
+  updates are fired on the eliminator's side, with `kvInv` open.
+- `notified` carries `srvReadWit γ (λ L, [∗list] Q ∈ Qs, □ Q L) i`. A served client opens it at a
+  committed `L` and takes element `n` (saved-predicate agreement, one later credit).
+
+The `read` package stays generic: it is parameterized by the deposit (a persistent family of the
+registered predicates' companions) and a composition premise, which the server instantiates with
+`kv_read_compose`.
+
+### Two gaps found (need decisions)
+
+1. **The read's log is not pinned to a raft index.** A linearizable `Range` reads mvcc's *current*
+   log `l` (`txn.Range`: a certified `l` between the caller's certificate `log₀` and its revision
+   tokens). The read side knows only `readLogOk`: `l` extends the log applied through some `ci₀ ≥
+   i`. To get `□ Q (kvVal l k)` from `srvReadWit`, `l` must be `kvOf A` for a committed `A` with
+   `|A| ≥ i - ai₀`. `kvOf_ivt` gives that from an **upper bound** `l <+: kvOf B` for some committed
+   `B`. No existing fact gives one. The apply thread commits an entry's changes to mvcc before
+   depositing its log (`applied_predeposit`), so a reader may see a log that no deposit names yet.
+   The sole writer's revision tokens bound every committed log, but they are the apply thread's, so
+   a reader has none (`txn.Range` takes `m = 0` tokens).
+
+   Options:
+   - (a) mvcc's read transaction exposes its linearization point: `store.Read` (and through it
+     `txn.Range`) takes an observer, run while it holds `revMu` with the committed log
+     (`revMuInv`'s `ghostVar γ.clog`). The apply thread deposits its next log *before* the mvcc
+     commit (it is `kvOf` of the batch, known in advance by determinism), with an invariant that
+     the store's committed log is the deposited log at the applied index or the next. This is a
+     change to mvcc's read and write-transaction specs (`store.Read`, `storeTxnWrite.End`) and to
+     the apply thread's deposit.
+   - (b) The same through the revision tokens: the apply thread parks all but one of its tokens
+     in the applied index's invariant between entries, and readers borrow them for
+     `txn.Range`'s bound. This changes `kvOwn`'s sole writer through the whole apply package.
+
+   (a) is the smaller and more faithful change.
+2. **The NOSPACE alarm.** The quota layer's outcome is a relation (`applied l true`: the quota
+   reports `ErrNoSpace` after a write, depending on the backend's size). On it the apply thread
+   starts the alarm goroutine, which proposes an `ACTIVATE` alarm, a non-plain request: it would
+   need the non-plain credit. The apply thread cannot rule the outcome out from the model.
+
+   Options:
+   - (a) The quota's mode in the model, like `authOn`: `quotaFull : Bool`. With `false`, the
+     backend quota's names-only contract says `Available` is true, so the outcome is never
+     `applied l true`. This is a premise on the environment (the disk), not on the log, like
+     `storeSmall`.
+   - (b) A model of the alarm store, so alarm entries become deterministic (larger).
+
+### What the raft library's proof must prove
+
+Against the verified raft's names (`Protocol/GhostState.lean`, `InvNode.lean`):
+
+- `cLog`/`propAu`/`fire_upto` move to the full committed log (`isCommitted γ L` already is one).
+  Proposal updates become persistent and fire at every committed occurrence. Raft's own entries
+  go through the standing update.
+- `readReq`/`readOk` gain the read update. `node.ReadIndex`/`RawNode.ReadIndex` take `□ readAu`,
+  kept in the leader's read registry with the request. Each commit step fires every registered
+  read update whose safe index the new committed log reaches (and registration fires it if the log
+  is exactly `i` long), recording `srvReadWit`.
+- The safe-index lemma becomes "the committed log at the call is at most `i` long", strengthened
+  from `readReq γ c Lc`'s log the request knew.
+- **One spec for every configuration.** The verified `node.ReadIndex`/`RawNode.ReadIndex` premise
+  `1 < GMap.size γ.raft.reCfg` is dropped. The singleton branch (`raft.go:1343`: `IsSingleton()`
+  answers at once with `r.raftLog.committed`, skipping the heartbeat round and
+  `committedEntryInCurrentTerm`) is another case of the same spec:
+  - immediate for a static single voter, whose committed log is the cluster's;
+  - for a configuration reduced to one voter, it rests on the reconfiguration invariants: the node
+    applies the change that makes it the sole voter only once its commit index has passed that
+    change.

@@ -95,7 +95,7 @@ def srvReqBuilt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) : 
     srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ v.cca ∗
     srvCfgFieldAddr s go!"ElectionTicks" ↦□ v.electionTicks ∗
     srvCfgFieldAddr s go!"TickMs" ↦□ v.tickMs ∗
-    structFieldRef EtcdServer go!"authStore" s ↦□ v.auth ∗ isReqAuth v.auth ∗
+    structFieldRef EtcdServer go!"authStore" s ↦□ v.auth ∗ isReqAuth v.auth E.RD ∗
     structFieldRef EtcdServer go!"memberID" s ↦□ v.memberID ∗
     srvAtomicU64 (structFieldRef EtcdServer go!"lead" s) ∗
     structFieldRef EtcdServer go!"cluster" s ↦□ v.cluster ∗
@@ -117,7 +117,7 @@ def srvReadBuilt (s : Loc) (E : apply.AEnv GF) (v : ReadFields) : IProp GF :=
         #v.rv : GoInterface) ∗
     mvcc.isReadView v.rv E.s E.γ ∗
     srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.γ E.P E.f ∗
-    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.P E.f ∗
+    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.P E.f E.RD ∗
     srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗

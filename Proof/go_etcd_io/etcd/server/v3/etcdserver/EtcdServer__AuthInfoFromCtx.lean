@@ -27,8 +27,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem EtcdServer.AuthInfoFromCtx.wp_proof
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
     EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG) := by
-  intro s st cca ctx cd
-  wp_start as ⟨#Hst, #Hauth, #Hcca, #Hctx⟩
+  intro s st RD cca ctx cd
+  wp_start as ⟨#Hst, #Hauth, #Hcca, #Hctx, Hrd⟩
   ihave #Hauth' := Hauth
   iunfold isReqAuth at Hauth'
   icases Hauth' with ⟨%ai, %Hai, #HFromCtx, #HFromTLS⟩
@@ -37,18 +37,18 @@ theorem EtcdServer.AuthInfoFromCtx.wp_proof
   · iframe #
   subst Hai
   wp_auto
-  wp_apply HFromCtx $$ %ctx %cd [] as %a %err Ha
-  · iframe #
+  wp_apply HFromCtx $$ %ctx %cd [Hrd] as %a %err ⟨Hrd, Ha⟩
+  · iframe; iframe #
   wp_if_destruct
   · cases err with
     | ok ei =>
       wp_auto
-      iapply HΦ; iexact Ha
+      iapply HΦ; iframe Hrd; iexact Ha
     | nil =>
       wp_auto
       cases cca
       · wp_auto
-        iapply HΦ; isplitr
+        iapply HΦ; iframe Hrd; isplitr
         · iunfold authInfoOpt; ileft; ipureintro; rfl
         iapply applyErrIs_nil
       · wp_auto
@@ -58,8 +58,8 @@ theorem EtcdServer.AuthInfoFromCtx.wp_proof
         wp_auto
         wp_apply HFromTLS $$ %ctx %cd [] as %a' Ha'
         · iframe #
-        iapply HΦ; iframe Ha'; iapply applyErrIs_nil
-  · iapply HΦ; iexact Ha
+        iapply HΦ; iframe Hrd Ha'; iapply applyErrIs_nil
+  · iapply HΦ; iframe Hrd; iexact Ha
 
 end proof
 

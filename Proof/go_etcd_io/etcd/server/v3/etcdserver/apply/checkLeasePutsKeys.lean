@@ -26,22 +26,22 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.checkLeasePutsKeys.wp_proof :
     apply.checkLeasePutsKeys.spec (GF := GF) (hG := hG) := by
-  intro st P f ai info dq l id
-  wp_start as ⟨#Hst, Hai, #Hl⟩
+  intro st P f RD ai info dq l id
+  wp_start as ⟨#Hst, Hai, #Hl, Hrd⟩
   iunfold apply.isAuthStore at Hst
   icases Hst with ⟨%sti, %Hsti, #HPut, -, -, #HAdmin, -⟩
   subst Hsti
   iunfold apply.leaseIs at Hl
   icases Hl with ⟨%Hln, -, -, #HKeys⟩
   wp_auto
-  wp_apply HAdmin $$ [$Hai] as %err ⟨Hai, #HeI1⟩
+  wp_apply HAdmin $$ [$Hai $Hrd] as %err ⟨Hai, Hrd, #HeI1⟩
   cases err with
   | nil =>
     wp_auto
-    iapply HΦ; iframe Hai; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
+    iapply HΦ; iframe Hai Hrd; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
   | ok e =>
   wp_auto
-  wp_apply HKeys as %sl ⟨%ks, Hks⟩
+  wp_apply HKeys as %sl ⟨%ks, Hks, %Hksb⟩
   ihave %Hsll := ownSlice_len _ _ _ $$ Hks
   irename «as» => Has
   iunfold apply.permCheck2 at HPut
@@ -63,7 +63,14 @@ theorem apply.checkLeasePutsKeys.wp_proof :
     wp_apply wp_load_slice_index sl (sint.Z n) _ _ kx Hn.1 $$ [Hks] as Hks
     · iframe; ipureintro; exact Hkx
     wp_apply wp_string_to_bytes kx as %bsl ⟨Hb, -⟩
-    wp_apply HPut $$ [$Hai $Hb] as %err ⟨Hai, -, #HeI2⟩
+    ihave %Hbl := ownSlice_len _ _ _ $$ Hb
+    wp_apply HPut $$ [$Hai $Hb $Hrd] as %err ⟨Hai, -, Hrd, #HeI2⟩
+    · ipureintro
+      have h1 := Hksb kx (List.mem_of_getElem? Hkx)
+      rw [Hbl.1] at h1
+      have h3 := Hbl.2
+      unfold sint.nat at h1
+      word
     cases err with
     | nil =>
       wp_auto
@@ -75,8 +82,8 @@ theorem apply.checkLeasePutsKeys.wp_proof :
     | ok e' =>
       wp_auto
       wp_for_post
-      iapply HΦ; iframe Hai; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
-  iapply HΦ; iframe Hai; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
+      iapply HΦ; iframe Hai Hrd; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
+  iapply HΦ; iframe Hai Hrd; first | iexact HeI1 | iexact HeI2 | iexact HeI3 | iexact HeI4 | iapply applyErrIs_nil
 
 end proof
 

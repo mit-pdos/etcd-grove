@@ -330,7 +330,7 @@ def srvReqFieldsAt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields)
     srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ v.cca ∗
     srvCfgFieldAddr s go!"ElectionTicks" ↦□ v.electionTicks ∗
     srvCfgFieldAddr s go!"TickMs" ↦□ v.tickMs ∗
-    structFieldRef EtcdServer go!"authStore" s ↦□ v.auth ∗ isReqAuth v.auth ∗
+    structFieldRef EtcdServer go!"authStore" s ↦□ v.auth ∗ isReqAuth v.auth E.RD ∗
     structFieldRef EtcdServer go!"done" s ↦□ v.done ∗ srvDoneChan v.done ∗
     structFieldRef EtcdServer go!"memberID" s ↦□ v.memberID ∗
     srvAtomicU64 (structFieldRef EtcdServer go!"lead" s) ∗

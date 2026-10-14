@@ -35,6 +35,7 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
   icases Hpre with ⟨%Hk, #Hr, Hwt, Hm⟩
   iunfold apply.mPre at Hm
   icases Hm with ⟨Hkv, Hres, Hcs⟩
+  ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
   ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner $$ Happ Hres
   iunfold apply.authInfoOwn at Hinfo
   icases Hinfo with ⟨%info, Hinfo⟩
@@ -45,7 +46,7 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
   iunfold apply.permCheck3 at HDel
   ihave #Hr' := Hr
   iunfold txn.deleteRangeRequestIs at Hr'
-  icases Hr' with ⟨%Hrn, %ksl, %esl, %k, %e, %pk, #HK, #Hk, #HE, #He, #HPK, -⟩
+  icases Hr' with ⟨%Hrn, %ksl, %esl, %k, %e, %pk, #HK, #Hk, #HE, #He, #HPK, -, %Hkb⟩
   subst Hsti
   ihave #Hin := Hinner
   iunfold apply.applierSpec at Hin
@@ -55,9 +56,10 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
   icases Ht with ⟨-, #HDelI, -⟩
   have hk : apply.authChecks (dispatchKind rq) = true := by rw [Hk.2.1]; rfl
   wp_auto
-  wp_apply HDel $$ %_ %info %(DFrac.own 1) %ksl %esl %k %e %DFrac.discard %DFrac.discard [Hinfo]
-    as %err ⟨Hinfo, -, -, #HeI⟩
-  · iframe; iframe #
+  wp_apply HDel $$ %_ %info %(DFrac.own 1) %ksl %esl %k %e %DFrac.discard %DFrac.discard [Hinfo Hard]
+    as %err ⟨Hinfo, -, -, Hard, #HeI⟩
+  · iframe; iframe #; try (ipureintro; exact Hkb)
+  ihave Hkv := Hkv $$ Hard
   cases err with
   | ok e' =>
     wp_auto
@@ -89,9 +91,11 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
     iapply apply.auth_pass_kvPostF E c p (.ok bi) rq log F _ Pre Post $$ Happ Hpost
     iunfold apply.authInfoOwn; iexists info; iexact Hinfo
   wp_auto
-  wp_apply HRange $$ %_ %info %(DFrac.own 1) %ksl %esl %k %e %DFrac.discard %DFrac.discard [Hinfo]
-    as %err ⟨Hinfo, -, -, #HeI⟩
-  · iframe; iframe #
+  ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
+  wp_apply HRange $$ %_ %info %(DFrac.own 1) %ksl %esl %k %e %DFrac.discard %DFrac.discard [Hinfo Hard]
+    as %err ⟨Hinfo, -, -, Hard, #HeI⟩
+  · iframe; iframe #; try (ipureintro; exact Hkb)
+  ihave Hkv := Hkv $$ Hard
   cases err with
   | ok e' =>
     wp_auto

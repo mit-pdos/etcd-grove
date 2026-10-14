@@ -28,8 +28,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.checkLeasePuts.wp_proof
     (hKeys : apply.checkLeasePutsKeys.spec (GF := GF) (hG := hG)) :
     apply.checkLeasePuts.spec (GF := GF) (hG := hG) := by
-  intro st le γ P f ai info dq id
-  wp_start as ⟨#Hst, #Hle, Hai⟩
+  intro st le γ P f RD ai info dq id
+  wp_start as ⟨#Hst, #Hle, Hai, Hrd⟩
   ihave #Hle' := Hle
   iunfold apply.isApplyLessor at Hle'
   icases Hle' with ⟨-, %li, %Hli, -, -, -, #HLookup⟩
@@ -39,14 +39,14 @@ theorem apply.checkLeasePuts.wp_proof
   icases Hl with (%Hl | #Hl)
   · subst Hl
     wp_auto
-    iapply HΦ; iframe Hai; iapply applyErrIs_nil
+    iapply HΦ; iframe Hai Hrd; iapply applyErrIs_nil
   · ihave #Hl' := Hl
     iunfold apply.leaseIs at Hl'
     icases Hl' with ⟨%Hln, -⟩
     simp only [Hln, decide_false, Bool.not_false]
     wp_auto
-    wp_apply (hKeys st P f ai info dq l id) $$ [$Hst $Hai $Hl] as %err ⟨Hai, #HeI⟩
-    iapply HΦ; iframe Hai HeI
+    wp_apply (hKeys st P f RD ai info dq l id) $$ [$Hst $Hai $Hl $Hrd] as %err ⟨Hai, Hrd, #HeI⟩
+    iapply HΦ; iframe Hai Hrd HeI
 
 end proof
 

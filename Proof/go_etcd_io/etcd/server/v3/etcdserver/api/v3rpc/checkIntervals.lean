@@ -604,7 +604,7 @@ theorem v3rpc.checkIntervals.wp_proof
       iunfold v3rpc.reqOpIs at Hp
       icases Hp with ⟨%Hpn, %w, %r, #HR, #Hw', #Hr⟩
       iunfold txn.deleteRangeRequestIs at Hr
-      icases Hr with ⟨%Hrn, %ksl, %esl, %k, %e, %pk, #HK, #Hk, #HE, #He, #HPK, %Ho⟩
+      icases Hr with ⟨%Hrn, %ksl, %esl, %k, %e, %pk, #HK, #Hk, #HE, #He, #HPK, %Ho, -⟩
       iunfold v3rpc.reqOpWire at Hw
       ihave %Hwe := Hw $$ %w %r %esl HR Hw' HE
       ihave %Hel := ownSlice_len _ _ _ $$ He
@@ -1199,7 +1199,7 @@ theorem v3rpc.checkIntervals.wp_proof
           iunfold v3rpc.reqOpIs at Hp
           icases Hp with ⟨%Hpn, %w, %r, #HR, #Hw', #Hr⟩
           iunfold txn.putRequestIs at Hr
-          icases Hr with ⟨%Hrn, %ksl, %vsl, %k, %v, %lease, %pk, %iv, %il, #HK, #Hk, -, -, -, -, -, -, -, %Hpk⟩
+          icases Hr with ⟨%Hrn, %ksl, %vsl, %k, %v, %lease, %pk, %iv, %il, #HK, #Hk, -, -, -, -, -, -, -, %Hpk, -⟩
           wp_auto
           simp only [Hrn, decide_false]
           wp_auto

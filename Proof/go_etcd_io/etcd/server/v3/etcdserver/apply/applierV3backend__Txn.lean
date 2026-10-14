@@ -37,7 +37,7 @@ theorem apply.applierV3backend.Txn.wp_proof
   iunfold apply.txnPre at Hpre
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
-  icases Hpre with ⟨%Hrq, #Hr, Hwt, ⟨Hrd, Hsw, Hlive⟩, Hres, Hcs⟩
+  icases Hpre with ⟨%Hrq, #Hr, Hwt, ⟨Hrd, Hsw, Hlive, Hard⟩, Hres, Hcs⟩
   iunfold apply.leasesLive at Hlive
   icases Hlive with ⟨%L, #Hknown, Hu⟩
   icases txn.soleWriter_len' _ _ $$ Hsw with ⟨%Hl2, Hsw⟩
@@ -83,8 +83,8 @@ theorem apply.applierV3backend.Txn.wp_proof
     iframe Hres He
     isplitl []
     · ipureintro; exact Herr.1
-    isplitl [Hrd Hsw Hu]
-    · iunfold apply.kvOwn; iframe Hrd Hsw; iunfold apply.leasesLive; iexists L; iframe Hknown Hu
+    isplitl [Hrd Hsw Hu Hard]
+    · iunfold apply.kvOwn; iframe Hrd Hsw Hard; iunfold apply.leasesLive; iexists L; iframe Hknown Hu
     iright; iexact HPre
   · -- the run committed
     isplitr [Htrc]
@@ -103,8 +103,8 @@ theorem apply.applierV3backend.Txn.wp_proof
     iframe Hres Hresp Hhdr
     isplitl []
     · ipureintro; exact ⟨Hok.1, Hl2, hpre.1⟩
-    isplitl [Hrd Hsw Hu]
-    · iunfold apply.kvOwn; iframe Hrd Hsw; iunfold apply.leasesLive; iexists L; iframe Hknown' Hu
+    isplitl [Hrd Hsw Hu Hard]
+    · iunfold apply.kvOwn; iframe Hrd Hsw Hard; iunfold apply.leasesLive; iexists L; iframe Hknown' Hu
     cases txn.txnReadonly t
     · ileft; simp only [Bool.false_eq_true, ↓reduceIte]; iexact HPP
     · iright; simp only [↓reduceIte]; iexact HPP

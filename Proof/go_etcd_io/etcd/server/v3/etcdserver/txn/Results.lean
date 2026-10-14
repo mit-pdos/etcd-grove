@@ -254,7 +254,8 @@ theorem range_soleWriter (log : mvcc.Log) (hlen : log.length + 3 ≤ 2 ^ 63)
 
 /-- **`Count` at the sole writer**: the number of keys of the client's range (`rangeIn` of the
 count-only request `countOp`) in the state at the revision read, at the sole writer's log; or
-`ErrFutureRev` and `0` for a revision past it. -/
+`ErrFutureRev` and `0` for a revision past it. (2026-10-14, unit A2: the key shorter than
+`2 ^ 63 - 1`, as `Count`'s spec.) -/
 theorem count_result (log : mvcc.Log) (hlen : log.length + 3 ≤ 2 ^ 63)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg : Loc) (kv : GoInterface)
     (s : Loc) (γ : mvcc.StoreNames) (key rangeEnd : GoSlice) (k e : GoString) (revision : w64)
@@ -262,7 +263,7 @@ theorem count_result (log : mvcc.Log) (hlen : log.length + 3 ≤ 2 ^ 63)
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
         isKV kv s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗
         key ↦*□ k ∗ rangeEnd ↦*□ e ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
-        ⌜lg ≠ null⌝ }}
+        ⌜lg ≠ null⌝ ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
       (App (App (App (App (App (App (Val (@! txn.Count)) (Val #(GoInterface.ok ctx))) (Val #lg))
         (Val #kv)) (Val #key)) (Val #rangeEnd)) (Val #revision))
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
@@ -273,12 +274,12 @@ theorem count_result (log : mvcc.Log) (hlen : log.length + 3 ≤ 2 ^ 63)
               (countOp k (rangeEndOf rangeEnd e) revision)).length : Int)⌝) ∨
          (⌜(log.length : Int) - 1 < sint.Z revision ∧ n = W64 0⌝ ∗ ∃ ef : GoInterfaceOk,
             globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝)) }} := by
-  wp_start_folded as ⟨#Hkv, Hrd, Hsw, #Hk, #He, #Hctx, #Hct, Hto, %Hlg⟩
+  wp_start_folded as ⟨#Hkv, Hrd, Hsw, #Hk, #He, #Hctx, #Hct, Hto, %Hlg, %Hklen⟩
   iunfold soleWriter at Hsw
   icases Hsw with ⟨#Hc, Ht, %Hl2⟩
   iapply (wp_Count ctx cd lg kv s γ key rangeEnd k e revision (soleBudget log) log ot te)
     $$ [Hrd Ht Hto]
-  · iframe # ∗; ipureintro; exact Hlg
+  · iframe # ∗; ipureintro; exact ⟨Hlg, Hklen⟩
   inext
   iintro %n %err ⟨Hrd, Ht, %log', %rev, -, %Hp, Hres⟩
   have heq := soleWriter_pins_read log log' hlen ⟨Hp.1, Hp.2.1⟩
