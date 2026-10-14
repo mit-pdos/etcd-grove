@@ -102,7 +102,7 @@ def LcIH (γ : RaftNames) (T : w64) : Prop :=
 
 /-- A full log extends the campaign log of its leader, so it reaches that log's last
 entry. -/
-private theorem prefix_camp_last (T : w64) (F0 X : List raftpb.Entry) :
+theorem prefix_camp_last (T : w64) (F0 X : List raftpb.Entry) :
     CampOk T F0 → F0 <+: X →
     plogTermAt base0 X (W64 (plogLastIndexZ base0 F0)) = some (plogLast base0 F0).term' := by
   intro Hcok Hpre

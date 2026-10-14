@@ -235,6 +235,106 @@ theorem doomed_intro (γ : RaftNames) (T t n : w64) (G : List raftpb.Entry) (a :
 section inv
 variable [InvGS GF]
 
+/-- A record whose doom set misses every member of a joint quorum `Q` of the reader's
+configuration (its full log's prefix at its configuration index `aL`) is not doomed, in the
+dynamic mode (2026-10-14, stage B5; the paper's section 8). With `j_r` the reader's and `j_m` the
+doom fact's configuration indices: adjacent, `Q` meets the doom quorum; `j_r ≥ j_m + 2`, the
+reader's witness of its conf entry `j_m + 1` (0-based, `W`) is in the doom term's campaign log
+(`lc_core` at the doom term), so the doom fact's log has two conf entries past its index, against
+its I1 (repair 4); `j_r ≤ j_m - 2`, the doom fact's witness of its conf entry `j_r + 1`: of a term
+above `T`, `Q` meets its quorum (recorded in the doom set); at most `T`, its log is in the reader's
+(`lc_core` at `T`, or the reader's own log of `T`), two conf entries past the reader's
+configuration index, against I3 at the reader. -/
+theorem rqRecOk_confirm_dyn (γ : RaftNames) (T L : w64) (r : RqRec) (FL F0L : List raftpb.Entry)
+    (aL cL : w64) (c : CfgM) (Q : GSet w64) (Hdyn : γ.reDyn ≠ none) :
+    CfgAt γ (FL.take (uint.Z aL).toNat) c → JQuorum c Q →
+    confCount (FL.drop (uint.Z aL).toNat) ≤ 1 → uint.Z aL ≤ uint.Z cL → PlogWf base0 FL →
+    CampOk T F0L → F0L <+: FL →
+    (∀ v ∈ Q, ∀ t' q, r.2 = some (t', q) → v ∉ q) →
+    ⊢ votesTbl (GF := GF) γ -∗ isLeader γ L T -∗ isCamp γ L T F0L -∗ logRecs γ base0 FL -∗
+      isCommitted γ (FL.take (uint.Z aL).toNat) -∗ commitIn γ FL cL T -∗ leadFull γ T FL -∗
+      (□ ∀ G, leadFull γ T G -∗ ⌜plogLastIndexZ base0 G ≤ plogLastIndexZ base0 FL⌝) -∗
+      rqRecOk γ T r -∗ readOk γ r.1.1 r.1.2 := by
+  intro HcQ HQ HI3 HaL HwFL Hcok Hpre Hw
+  iintro HS #Hl #Hc #HrFL #HcFL #HcmL #HflL #HLw
+  rcases h : r.2 with _ | ⟨tD, U⟩ <;> simp only [rqRecOk, h]
+  · iintro H; iexact H
+  unfold doomed
+  iintro ⟨%nD, %GD, %aD, %cD, %qD, %HD, #HcqD, -, #HdW⟩
+  iexfalso
+  icases cqAt_parts γ tD nD GD aD cD qD $$ HcqD with ⟨%Hp, #HflD, #HcGD, -, #HdD⟩
+  ihave #HdD' := dynOn_elim γ _ Hdyn $$ HdD
+  iunfold cqDyn at HdD'
+  icases HdD' with ⟨%HI1D, -⟩
+  ihave #HdW' := dynOn_elim γ _ Hdyn $$ HdW
+  ihave #HcqD' := cqAt_cq γ _ _ _ _ _ _ $$ HcqD
+  icases cq_full γ tD nD GD $$ HcqD' with ⟨%HwGD, #HrGD⟩
+  icases isCommitted_agree γ _ _ $$ HcGD HcFL with %Hpre2
+  by_cases Hadj : confCount (GD.take (uint.Z aD).toNat) ≤ confCount (FL.take (uint.Z aL).toNat) + 1 ∧
+      confCount (FL.take (uint.Z aL).toNat) ≤ confCount (GD.take (uint.Z aD).toNat) + 1
+  · obtain ⟨x, hx1, hx2⟩ := CfgAt.overlap_adj Hpre2 Hadj.2 Hadj.1 Hp.2.2.1 HcQ qD Q Hp.2.2.2 HQ
+    ipureintro
+    exact absurd (HD.2.2 x hx1) (Hw x hx2 tD U h)
+  rcases (by omega : confCount (GD.take (uint.Z aD).toNat) + 2 ≤ confCount (FL.take (uint.Z aL).toNat) ∨
+      confCount (FL.take (uint.Z aL).toNat) + 2 ≤ confCount (GD.take (uint.Z aD).toNat)) with Hfar | Hfar
+  · -- the reader is newer: its witness, in the doom term's campaign log
+    obtain ⟨p, hp, hpc, hpcc⟩ :=
+      exists_confPos FL (uint.Z aL).toNat (confCount (GD.take (uint.Z aD).toNat) + 1) (by omega)
+    ihave #HwL := commitIn_w γ FL cL T Hdyn $$ HcmL
+    iunfold witsB at HwL
+    ihave Hw2 := HwL $$ %p %(⟨hpc, by omega⟩ : IsConfPos FL p ∧ p < (uint.Z cL).toNat)
+    icases Hw2 with ⟨%tw, %nw, %Gw, %aw, %cw, %qw, %Hwo, #Hcqw⟩
+    ihave #Hcqw' := cqAt_cq γ _ _ _ _ _ _ $$ Hcqw
+    icases cq_full γ tw nw Gw $$ Hcqw' with ⟨%HwGw, #HrGw⟩
+    icases cq_base γ tw nw Gw $$ Hcqw' with ⟨%HGwn, -⟩
+    icases leadFull_camp γ tD GD $$ HflD with ⟨%ldr, %F0D, #HlD, #HcD, %HpreD⟩
+    icases isCamp_ok γ ldr tD F0D $$ HcD with %HcokD
+    icases lc_core γ ((uint.Z tD).toNat + 1) tD tw nw Gw ldr F0D GD (by omega)
+      (by have := Hwo.1; have := HD.1; omega) HwGD (prefix_camp_last tD F0D GD HcokD HpreD)
+      $$ HS Hcqw' HlD HcD HrGD with %HGDnw
+    icases full_take_eq γ Gw GD nw HwGw HwGD (by rw [HGwn]; rfl) (by rw [HGwn, HGDnw])
+      $$ HrGw HrGD with %Htk
+    ipureintro
+    refine far_older HI1D ?_ hpc hpcc
+    rw [take_agree_le Htk.symm (by have := Hwo.2.1; omega), Hwo.2.2.2.1]
+  · -- the reader is older: the doom fact's witness
+    obtain ⟨p, hp, hpc, hpcc⟩ :=
+      exists_confPos GD (uint.Z aD).toNat (confCount (FL.take (uint.Z aL).toNat) + 1) (by omega)
+    ihave Hw2 := HdW' $$ %p %(⟨hpc, hp⟩ : IsConfPos GD p ∧ p < (uint.Z aD).toNat)
+    icases Hw2 with ⟨%tw, %nw, %Gw, %aw, %cw, %qw, %Hwo, #Hcqw⟩
+    obtain ⟨Hwo1, HwU⟩ := Hwo
+    icases cqAt_parts γ tw nw Gw aw cw qw $$ Hcqw with ⟨%Hpw, #HflW, #HcGw, -, -⟩
+    ihave #Hcqw' := cqAt_cq γ _ _ _ _ _ _ $$ Hcqw
+    icases cq_full γ tw nw Gw $$ Hcqw' with ⟨%HwGw, #HrGw⟩
+    have Hcw : confCount (Gw.take (uint.Z aw).toNat) = confCount (FL.take (uint.Z aL).toNat) + 1 := by
+      rw [Hwo1.2.2.2.2, hpcc]
+    by_cases HtwT : uint.Z T < uint.Z tw
+    · icases isCommitted_agree γ _ _ $$ HcGw HcFL with %Hpre3
+      obtain ⟨x, hx1, hx2⟩ := CfgAt.overlap_adj Hpre3 (by omega) (by omega) Hpw.2.2.1 HcQ qw Q
+        Hpw.2.2.2 HQ
+      ipureintro
+      exact absurd (HwU HtwT x hx1) (Hw x hx2 tD U h)
+    · ihave %HFLnw : ⌜plogTermAt base0 FL nw = some tw⌝ $$ [HS]
+      · by_cases HtwT' : uint.Z tw < uint.Z T
+        · iapply lc_core γ ((uint.Z T).toNat + 1) T tw nw Gw L F0L FL (by omega) HtwT' HwFL
+            (prefix_camp_last T F0L FL Hcok Hpre) $$ HS Hcqw' Hl Hc HrFL
+        · have Hte : tw = T := uint_Z_inj.mp (by omega)
+          subst Hte
+          ihave %Hlen := HLw $$ %Gw HflW
+          have HsGw : (plogTermAt base0 Gw nw).isSome := by rw [Hpw.1]; rfl
+          have HsFL : (plogTermAt base0 FL nw).isSome := by
+            apply plogTermAt_in_range
+            have := (plogTermAt_some_range _ _ _ _ Hpw.1).2
+            refine ⟨by rw [base0_index]; exact uint_Z_nonneg _, by omega⟩
+          icases leadFull_agree γ tw Gw FL nw HsGw HsFL $$ HflW HflL with %Hag
+          ipureintro; rw [← Hag]; exact Hpw.1
+      icases full_take_eq γ Gw FL nw HwGw HwFL (by rw [Hpw.1]; rfl) (by rw [Hpw.1, HFLnw])
+        $$ HrGw HrFL with %Htk
+      ipureintro
+      refine far_older (ConfI1_of_drop HI3) ?_ hpc hpcc
+      rw [take_agree_le Htk.symm (by have := Hwo1.2.1; omega), Hwo1.2.2.2.1]
+
+
 /-- A campaign's term is nonzero: its log's terms are all below it, the boundary's
 term `0` (at index `0`) among them. -/
 theorem CampOk.term_nz {T : w64} {F : List raftpb.Entry} (H : CampOk T F) : T ≠ W64 0 := by

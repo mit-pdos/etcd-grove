@@ -260,6 +260,18 @@ theorem confCount_take_agree {l l' : List raftpb.Entry} {m k : Nat} (h : l'.take
   simp only [List.take_take, Nat.min_eq_left hk] at this
   rw [this]
 
+/-- At most one conf entry at or past `a` is I1 at `a`. -/
+theorem ConfI1_of_drop {l : List raftpb.Entry} {a : Nat} (h : confCount (l.drop a) ≤ 1) :
+    ConfI1 l a := by
+  intro k1 k2 e1 e2 hlt h1 h2 c1 c2
+  refine Nat.lt_of_not_le fun hge => ?_
+  have h1' : (l.drop a)[k1 - a]? = some e1 := by
+    rw [List.getElem?_drop, Nat.add_sub_cancel' hge]; exact h1
+  have h2' : (l.drop a)[k2 - a]? = some e2 := by
+    rw [List.getElem?_drop, Nat.add_sub_cancel' (by omega)]; exact h2
+  have := two_le_confCount (show k1 - a < k2 - a by omega) h1' h2' c1 c2
+  omega
+
 /-- The far case "older commit fact" (the paper's section 7, `j_c ≥ j_m + 2`): a log with at
 most one conf entry at or past `a` cannot agree up to `k` with a log whose prefix of length `k`
 has two more conf entries than its own prefix of length `a`. -/
