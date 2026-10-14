@@ -13,9 +13,9 @@ L, A1, A2; leader transfer; read-index) before picking a task.
   Proof.github_com.mit_pdos.etcd_grove.examples.register.Adequacy`;
   `etc/tcb-report.py --check` = 75 axioms, 10 sorries.
 - Update 2026-10-14 (head `b2ee06944`): stages A3 and B1 have merged; tasks 1-3 below are done
-  (`parallel/b1-review`, `parallel/raft-guard-fix`, merged). Stage B2 merged (`f28772faa`); **stage B3 is now running** (model
-  fields `applied`/`pci`, the campaign guard, Advance/ApplyConfChange rules, I1/I3) in the
-  integration session: it edits `Protocol/Model.lean`, `CfgOverlap.lean`, and `Proof/go_etcd_io/raft/v3/Protocol/*.lean` (`Refinement`,
+  (`parallel/b1-review`, `parallel/raft-guard-fix`, merged). Stages B2 and B3 merged (`6f2708984`); **stage B4 is now running**
+  (the winners table, configuration-carrying predicates, static mode) in the integration
+  session: it edits `Protocol/*.lean` (also `StepR`, `StepRInv`, `RefinementR`), and `Proof/go_etcd_io/raft/v3/Protocol/*.lean` (`Refinement`,
   `StepGhost`, `Ghost`, `GhostState`, `LeaderCompleteness`, `ReadIndex`, `Facts`, `StepC`) and
   the ghost-update boundary in `raft__Step.lean`, possibly `Link.lean`. Avoid those files.
 - Next on the critical path (integration session, sequential): B2 (ghost layer on
