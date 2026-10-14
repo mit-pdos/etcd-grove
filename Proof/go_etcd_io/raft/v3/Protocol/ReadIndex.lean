@@ -236,6 +236,90 @@ theorem doomed_intro (γ : RaftNames) (T t n : w64) (G : List raftpb.Entry) (a :
 section inv
 variable [InvGS GF]
 
+/-- A leader's current log is at least as long as every log of its term (`leadFull`): the
+entries it created are in its term log, whose indices are within its log
+(`leadLogOwn`). -/
+theorem ownLogGhost_within (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64)
+    (G : List raftpb.Entry) :
+    s.role = .leader →
+    ⊢ isLeader (GF := GF) γ id s.term -∗ leadFull γ s.term G -∗ ownLogGhost γ id s kl -∗
+      ⌜plogLastIndexZ base0 G ≤ plogLastIndexZ s.base s.log⌝ := by
+  intro Hr
+  unfold ownLogGhost
+  iintro #Hl #HG H
+  unfold leadFull leadPrefix lpfull isTermLog leadFrags
+  icases H with ⟨%γm, %terms, %γa, %acks, %fp, %γc, %camps, %γl, %vlogs, %γw, %wins, H⟩
+  iNamed H
+  unfold leadLogOwn
+  rw [Hr]
+  icases Htlog with ⟨%γt, %M, %l0, %Hγt, Ha, -, %Hdom, %Hpre, -⟩
+  icases HG with ⟨%ldr, %bL, %l, %fpG, ⟨#Hl', %γt', %l0', ⟨%γm', %Hγm', #Htf⟩, %Hwr', -, #Hlf'⟩,
+    ⟨%F0, -, -, %HfG⟩, %HG⟩
+  icases isLeader_unique γ id ldr s.term $$ Hl Hl' with %Hid
+  subst Hid
+  rw [Htname] at Hγm'
+  cases Hγm'
+  icases ghost_map_lookup $$ Hterms Htf with %Hlook
+  rw [Hγt] at Hlook
+  obtain ⟨⟨rfl, rfl⟩, rfl⟩ : (γt = γt' ∧ s.base = bL) ∧ l0 = l0' := by simpa using Hlook
+  subst HG
+  obtain ⟨HfG, -, HwG, -⟩ := HfG
+  rw [full_last_index _ _ _ HfG]
+  by_cases Hle : l.length ≤ l0.length
+  · have := Hpre.length_le
+    ipureintro; unfold plogLastIndexZ; omega
+  · obtain ⟨e, He⟩ : ∃ e, l[l.length - 1]? = some e :=
+      ⟨_, List.getElem?_eq_getElem (by omega)⟩
+    ihave He' := BigSepL.bigSepL_lookup (Φ := fun k e => if l0.length ≤ k then
+        iprop(∃ pt : w64, e.Index' ↪[γt]□ ((e, pt) : raftpb.Entry × w64)) else iprop(True)) He
+      $$ Hlf'
+    rw [ite_eq_left (show l0.length ≤ l.length - 1 by omega)]
+    icases He' with ⟨%pt, He'⟩
+    icases ghost_map_lookup $$ Ha He' with %HM
+    have Hd := Hdom _ (by rw [HM]; rfl)
+    have Hw := HwG _ _ He
+    ipureintro; unfold plogLastIndexZ at Hd ⊢; omega
+
+/-- What a leader has: its full log, with records, which extends its campaign log and is
+a `leadFull` of its term; and every log of its term is within it. -/
+theorem node_leader (γ : RaftNames) (id2 : w64) (ps2 : PState) :
+    ps2.role = .leader →
+    ⊢ ownRaftGhost (GF := GF) γ id2 ps2 md -∗
+      ∃ fp2 F0, ⌜FullOk ps2.base fp2 ∧ PlogWf ps2.base ps2.log ∧
+                  F0 <+: fp2 ++ ps2.log⌝ ∗
+        logRecs γ base0 fp2 ∗ logRecs γ ps2.base ps2.log ∗
+        isLeader γ id2 ps2.term ∗ isCamp γ id2 ps2.term F0 ∗
+        leadFull γ ps2.term (fp2 ++ ps2.log) := by
+  intro Hr2
+  unfold ownRaftGhost
+  iintro ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  have Hw : leaderWit (GF := GF) γ id2 ps2 = isLeader γ id2 ps2.term := by
+    unfold leaderWit; rw [Hr2]
+  rw [Hw]
+  icases ownLogGhost_lead_full γ id2 ps2 kl Hr2 $$ Hlead Hlg with ⟨⟨%fp, #Hp, #Hpf, -⟩, Hlg⟩
+  icases ownLogGhost_recs γ id2 ps2 kl $$ Hlg with ⟨-, #Hr⟩
+  ihave #HLF := leadFull_intro γ id2 ps2.term ps2.base ps2.log fp $$ Hp Hpf
+  unfold lpfull
+  icases Hpf with ⟨%F0, #Hc0, #Hfr, %Hf⟩
+  obtain ⟨Hf, Hpre, Hw, -⟩ := Hf
+  iexists fp, F0
+  isplitr; · ipureintro; exact ⟨Hf, Hw, Hpre⟩
+  iframe Hfr Hr Hlead Hc0 HLF
+
+theorem node_within (γ : RaftNames) (id2 : w64) (ps2 : PState) (G : List raftpb.Entry) :
+    ps2.role = .leader →
+    ⊢ ownRaftGhost (GF := GF) γ id2 ps2 md -∗ leadFull γ ps2.term G -∗
+      ⌜plogLastIndexZ base0 G ≤ plogLastIndexZ ps2.base ps2.log⌝ := by
+  intro Hr2
+  unfold ownRaftGhost
+  iintro ⟨%γv, %voted, %kl, H⟩ #HG
+  iNamed H
+  have Hw : leaderWit (GF := GF) γ id2 ps2 = isLeader γ id2 ps2.term := by
+    unfold leaderWit; rw [Hr2]
+  rw [Hw]
+  iapply ownLogGhost_within γ id2 ps2 kl G Hr2 $$ Hlead HG Hlg
+
 /-- A record whose doom set misses every member of a joint quorum `Q` of the reader's
 configuration (its full log's prefix at its configuration index `aL`) is not doomed, in the
 dynamic mode (2026-10-14, stage B5; the paper's section 8). With `j_r` the reader's and `j_m` the
@@ -247,17 +331,17 @@ above `T`, `Q` meets its quorum (recorded in the doom set); at most `T`, its log
 (`lc_core` at `T`, or the reader's own log of `T`), two conf entries past the reader's
 configuration index, against I3 at the reader. -/
 theorem rqRecOk_confirm_dyn (γ : RaftNames) (T L : w64) (r : RqRec) (FL F0L : List raftpb.Entry)
-    (aL cL : w64) (c : CfgM) (Q : GSet w64) (Hdyn : γ.reDyn ≠ none) :
+    (aL cL : w64) (c : CfgM) (Q : GSet w64) (Hdyn : γ.reDyn ≠ none) (Y : IProp GF)
+    (HLw : ∀ G, ⊢ Y -∗ leadFull γ T G -∗ ⌜plogLastIndexZ base0 G ≤ plogLastIndexZ base0 FL⌝) :
     CfgAt γ (FL.take (uint.Z aL).toNat) c → JQuorum c Q →
     confCount (FL.drop (uint.Z aL).toNat) ≤ 1 → uint.Z aL ≤ uint.Z cL → PlogWf base0 FL →
     CampOk T F0L → F0L <+: FL →
     (∀ v ∈ Q, ∀ t' q, r.2 = some (t', q) → v ∉ q) →
     ⊢ votesTbl (GF := GF) γ -∗ isLeader γ L T -∗ isCamp γ L T F0L -∗ logRecs γ base0 FL -∗
       isCommitted γ (FL.take (uint.Z aL).toNat) -∗ commitIn γ FL cL T -∗ leadFull γ T FL -∗
-      (□ ∀ G, leadFull γ T G -∗ ⌜plogLastIndexZ base0 G ≤ plogLastIndexZ base0 FL⌝) -∗
-      rqRecOk γ T r -∗ readOk γ r.1.1 r.1.2 := by
+      Y -∗ rqRecOk γ T r -∗ readOk γ r.1.1 r.1.2 := by
   intro HcQ HQ HI3 HaL HwFL Hcok Hpre Hw
-  iintro HS #Hl #Hc #HrFL #HcFL #HcmL #HflL #HLw
+  iintro HS #Hl #Hc #HrFL #HcFL #HcmL #HflL HY
   rcases h : r.2 with _ | ⟨tD, U⟩ <;> simp only [rqRecOk, h]
   · iintro H; iexact H
   unfold doomed
@@ -315,13 +399,13 @@ theorem rqRecOk_confirm_dyn (γ : RaftNames) (T L : w64) (r : RqRec) (FL F0L : L
         Hpw.2.2.2 HQ
       ipureintro
       exact absurd (HwU HtwT x hx1) (Hw x hx2 tD U h)
-    · ihave %HFLnw : ⌜plogTermAt base0 FL nw = some tw⌝ $$ [HS]
+    · ihave %HFLnw : ⌜plogTermAt base0 FL nw = some tw⌝ $$ [HS HY]
       · by_cases HtwT' : uint.Z tw < uint.Z T
         · iapply lc_core γ ((uint.Z T).toNat + 1) T tw nw Gw L F0L FL (by omega) HtwT' HwFL
             (prefix_camp_last T F0L FL Hcok Hpre) $$ HS Hcqw' Hl Hc HrFL
         · have Hte : tw = T := uint_Z_inj.mp (by omega)
           subst Hte
-          ihave %Hlen := HLw $$ %Gw HflW
+          ihave %Hlen := HLw Gw $$ HY HflW
           have HsGw : (plogTermAt base0 Gw nw).isSome := by rw [Hpw.1]; rfl
           have HsFL : (plogTermAt base0 FL nw).isSome := by
             apply plogTermAt_in_range
