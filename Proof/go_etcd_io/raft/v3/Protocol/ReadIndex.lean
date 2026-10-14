@@ -94,9 +94,10 @@ theorem rqRecOk_confirm (γ : RaftNames) (T : w64) (r : RqRec) (P : List raftpb.
   intro HcQ HQ Hw
   rcases h : r.2 with _ | ⟨t', q⟩ <;> simp only [rqRecOk, h]
   · iintro H; iexact H
-  · unfold doomed cqAt
-    iintro ⟨%n, %G, %a, %c', -, -, -, %Hpq, -⟩
-    obtain ⟨-, Hc', Hq'⟩ := Hpq
+  · unfold doomed
+    iintro ⟨%n, %G, %a, %c', -, #Hcqa⟩
+    icases cqAt_parts γ _ _ _ _ _ _ $$ Hcqa with ⟨%Hpq, -⟩
+    obtain ⟨-, -, Hc', Hq'⟩ := Hpq
     cases HD : γ.dyn with
     | some D => sorry -- B5: the far cases
     | none =>
@@ -167,8 +168,9 @@ theorem ownRaftGhost_not_doomed (γ : RaftNames) (v : w64) (s : PState) (r : RqR
   iintro Hown #Hr
   rcases h : r.2 with _ | ⟨t', q⟩ <;> simp only [rqRecOk, h]
   · ipureintro; intro t' q h'; cases h'
-  · unfold doomed cqAt
-    icases Hr with ⟨%n, %G, %a, %c, %Hpq, -, -, -, -, #Hacks⟩
+  · unfold doomed
+    icases Hr with ⟨%n, %G, %a, %c, %Hpq, #Hcqa⟩
+    icases cqAt_parts γ _ _ _ _ _ _ $$ Hcqa with ⟨-, -, -, #Hacks, -⟩
     have Hlt := Hpq.1
     by_cases hv : v ∈ q
     · ihave ⟨%i', %Hi', #Ha⟩ := BigSepM.bigSepM_lookup
@@ -261,11 +263,9 @@ theorem read_arrive_core (γ : RaftNames) (id : w64) (s : PState) (c : List w8)
         rw [full_term_at s.base fp s.log s.commit Hfull Hbi]; exact Hct
       icases cq_full γ t n G $$ Hcq with ⟨%HwG, #HrG⟩
       icases recs_mono γ G HwG $$ HrG with %Hmono
-      ihave #Hcq' := Hcq
-      ieval (unfold cq) at Hcq'
-      icases Hcq' with ⟨%HGn, -⟩
-      ihave #Hcmt' := Hcmt
-      ieval (unfold commitIn) at Hcmt'
+      icases cq_base γ _ _ _ $$ Hcq with ⟨%HGn, -⟩
+      ihave #Hcmt' := commitIn_j γ _ _ _ $$ Hcmt
+      ieval (unfold commitJ) at Hcmt'
       icases Hcmt' with (%Hc0 | ⟨%t2, %n2, %G2, #Hcq2, %Hc2⟩)
       · -- commit index `0`: the entry there is the sentinel of term `0`
         exfalso

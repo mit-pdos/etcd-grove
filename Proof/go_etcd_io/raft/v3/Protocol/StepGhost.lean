@@ -498,7 +498,7 @@ theorem ownLogGhost_mono (γ : RaftNames) (id : w64) (s s' : PState) (kl : Optio
     · rw [matchedOk_nl γ s' Hr']; ipureintro; trivial
   · iintro %fp %_ - #Hc
     rw [Hcm]
-    iapply commitIn_agree γ _ _ s.commit s.term s'.term (Int.le_of_eq (congrArg _ Hte.symm)) rfl $$ Hc
+    iapply commitIn_agree γ _ _ s.commit s.term s'.term (Int.le_of_eq (congrArg _ Hte.symm)) rfl rfl $$ Hc
   · iintro %fp %_ - #Hc
     unfold cprefix
     rw [Hcm, Hlog]
@@ -521,7 +521,7 @@ theorem ownLogGhost_mono_up (γ : RaftNames) (id : w64) (s s' : PState) (kl : Op
   · rw [matchedOk_nl γ s' Hnl]; ipureintro; trivial
   · iintro %fp %_ - #Hc
     rw [Hcm]
-    iapply commitIn_agree γ _ _ s.commit s.term s'.term (by omega) rfl $$ Hc
+    iapply commitIn_agree γ _ _ s.commit s.term s'.term (by omega) rfl rfl $$ Hc
   · iintro %fp %_ - #Hc
     unfold cprefix
     rw [Hcm, Hlog]
@@ -820,7 +820,7 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
   ihave #Hmatched' : matchedOk (GF := GF) γ (pbecomeCandidate id s) $$ []
   · rw [matchedOk_nl γ _ Hnl]; ipureintro; trivial
   ihave #Hcommit' : commitIn (GF := GF) γ (fp ++ s.log) s.commit (s.term + W64 1) $$ []
-  · iapply commitIn_agree γ _ _ s.commit s.term (s.term + W64 1) (by omega) rfl $$ Hcommit
+  · iapply commitIn_agree γ _ _ s.commit s.term (s.term + W64 1) (by omega) rfl rfl $$ Hcommit
   ihave #Hcown' : campOwn (GF := GF) γ id (pbecomeCandidate id s) (fp ++ s.log) $$ []
   · unfold campOwn
     rw [show (pbecomeCandidate id s).role = .candidate from rfl,
@@ -1071,15 +1071,14 @@ theorem hist_of_commit (γ : RaftNames) (F : List raftpb.Entry) (c tm : w64) (B 
     PlogWf base0 F → uint.Z tm < B →
     ⊢ logRecs (GF := GF) γ base0 F -∗ commitIn γ F c tm -∗ hist γ F tm c B := by
   intro HwF HB
-  iintro #HrF Hc
-  unfold commitIn
-  icases Hc with (%H0 | ⟨%t, %n, %G, #Hq, %Hc⟩)
+  iintro #HrF #Hc
+  ihave #Hcj := commitIn_j γ F c tm $$ Hc
+  unfold commitJ
+  icases Hcj with (%H0 | ⟨%t, %n, %G, #Hq, %Hc⟩)
   · unfold hist
     iintro %j %Hj
     exact absurd Hj (by omega)
-  · ihave #Hq2 := Hq
-    iunfold cq at Hq2
-    icases Hq2 with ⟨%Hn, #Hfl, -⟩
+  · icases cq_base γ t n G $$ Hq with ⟨%Hn, #Hfl⟩
     have HsG : (plogTermAt base0 G c).isSome :=
       full_term_at_some G c n (by rw [Hn]; rfl) Hc.1
     iapply hist_of_agree γ F G tm c B HwF HsG Hc.2.2 $$ HrF

@@ -349,9 +349,9 @@ private theorem matchedOk_nonleader (γ : RaftNames) (s : PState) :
 
 private theorem cq_term (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) :
     ⊢ cq (GF := GF) γ t n G -∗ ⌜plogTermAt base0 G n = some t⌝ := by
-  unfold cq
-  iintro ⟨%H, -⟩
-  ipureintro; exact H
+  iintro #H
+  icases cq_base γ t n G $$ H with ⟨%Hn, -⟩
+  ipureintro; exact Hn
 
 private theorem plogCommitTo_ge (c t : w64) : uint.Z c ≤ uint.Z (plogCommitTo c t) := by
   unfold plogCommitTo; split <;> omega
@@ -363,7 +363,8 @@ private theorem outbox_eq (γ : RaftNames) (s1 s2 : PState) :
 private theorem isMessage_vote_inv (γ : RaftNames) (m : Msg) :
     m.ty = .vote →
     ⊢ isMessage (GF := GF) γ m -∗
-      ∃ Fc, isCamp γ m.src m.term Fc ∗ ⌜plogLast base0 Fc = entryID.mk m.logterm m.index⌝ := by
+      ∃ Fc, isCamp γ m.src m.term Fc ∗ ⌜plogLast base0 Fc = entryID.mk m.logterm m.index⌝ ∗
+        dynOn γ (campDyn γ m.src m.term Fc) := by
   intro Hty
   unfold isMessage; rw [Hty]
   iintro H; iexact H
@@ -371,13 +372,14 @@ private theorem isMessage_vote_inv (γ : RaftNames) (m : Msg) :
 private theorem isMessage_voteReq (γ : RaftNames) (id dst t : w64) (last : entryID)
     (F : List raftpb.Entry) (cl : List w8) :
     plogLast base0 F = last →
-    ⊢ isCamp (GF := GF) γ id t F -∗ isMessage γ (pvoteReq id dst t last cl) := by
+    ⊢ isCamp (GF := GF) γ id t F -∗ dynOn γ (campDyn γ id t F) -∗
+      isMessage γ (pvoteReq id dst t last cl) := by
   intro H
   unfold isMessage pvoteReq
   dsimp only
-  iintro #Hc
+  iintro #Hc #Hd
   iexists F
-  iframe Hc
+  iframe Hc Hd
   ipureintro; rw [H]
 
 /-- The received message of a one-message rule. -/
@@ -662,7 +664,9 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
   · rw [Hs2commit, Hs2term]
     iapply commitIn_agree γ (fp ++ s.log) _ s.commit s.term s.term (Int.le_refl _)
       (HkeepF s.commit (plogTermAt_in_range _ _ _ ⟨by rw [base0_index]; exact uint_Z_nonneg _,
-        by rw [HLF]; exact Hcl⟩)) $$ Hcommit
+        by rw [HLF]; exact Hcl⟩))
+      (take_of_prefix (by rw [HF2]; exact List.prefix_append _ _)
+        (by unfold plogLastIndexZ at HLF; rw [base0_index] at HLF; omega)) $$ Hcommit
   ihave #Hbase2 : baseOk γ s2.base $$ []
   · rw [Hs2base]; iexact Hbase
   have Hbnd2 : bnd s2 (some id) = uint.Z s.term + 1 := by unfold bnd; rw [Hs2term]
@@ -1135,20 +1139,15 @@ theorem ownRaftGhost_step_commit (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ 
   -- commit index, whose prefix is committed; B5: the configuration index, `a ≤ commit`)
   ihave ⟨%fpc, %Hfpc, #Hfrc, #Hcmtc⟩ := ownLogGhost_cmt γ id s kl $$ Hlg
   ihave #Hcmt0 := cprefix_transfer γ fpc fp0 s Hfpc Hfull0.1 $$ Hfrc Hfr0 Hcmtc
-  ihave #Hcq : cq γ s.term n (fp0 ++ s.log) $$ []
-  · unfold cq
-    isplitr
-    · ipureintro
-      rw [full_term_at s.base fp0 s.log n Hfull0.1 (by have := Hok.2.1; omega)]
-      exact Htm
-    isplitr
-    · iexact Hfl
-    iexists s.commit, c, ackedBy s n
-    isplitr
-    · ipureintro; exact ⟨Int.le_of_lt Hlt, CfgAt.of_static _ HC, Hq⟩
-    isplitr
+  ihave #Hcqa : cqAt γ s.term n (fp0 ++ s.log) s.commit c (ackedBy s n) $$ []
+  · iapply cqAt_intro γ s.term n (fp0 ++ s.log) s.commit c (ackedBy s n)
+      (by rw [full_term_at s.base fp0 s.log n Hfull0.1 (by have := Hok.2.1; omega)]
+          exact Htm)
+      (Int.le_of_lt Hlt) (CfgAt.of_static _ HC) Hq $$ Hfl [] [] []
     · rw [show List.take (uint.Z s.commit).toNat (fp0 ++ s.log) = cprefix fp0 s from rfl]
       iexact Hcmt0
+    rotate_left
+    · iapply dynOn_static γ _ HC.2.2
     rw [matchedOk_leader γ s Hrole]
     iapply BigSepM.bigSepM_forall_elim
     iintro %v %u %Hv
@@ -1160,6 +1159,7 @@ theorem ownRaftGhost_step_commit (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ 
     isplitr
     · ipureintro; simpa using Hle'
     · iapply BigSepM.bigSepM_lookup Hx $$ Hmatched
+  ihave #Hcq := cqAt_cq γ _ _ _ _ _ _ $$ Hcqa
   imod lcmOwn_commit γ id s { s with commit := n } n Hrole Hrole rfl rfl (Int.le_of_lt Hlt)
     $$ Hlcm with ⟨Hlcm, #Hclb⟩
   imod commit_extend γ s.term n (fp0 ++ s.log) id $$ Hinv Hcq Hl Hclb with #Hcmn
@@ -1179,11 +1179,14 @@ theorem ownRaftGhost_step_commit (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ 
       icases FullOk_unique γ s.base fp fp0 Hf Hfull0.1 $$ Hfr Hfr0 with %Heq
       subst Heq
       unfold commitIn
-      iright
-      iexists s.term, n, (fp ++ s.log)
-      iframe Hcq
-      ipureintro
-      exact ⟨Int.le_refl _, Int.le_refl _, rfl⟩
+      isplitr
+      · unfold commitJ
+        iright
+        iexists s.term, n, (fp ++ s.log)
+        iframe Hcq
+        ipureintro
+        exact ⟨Int.le_refl _, Int.le_refl _, rfl⟩
+      · iapply dynOn_static γ _ HC.2.2
     · iintro %fp % ⟨Hf, -⟩ #Hfr -
       icases FullOk_unique γ s.base fp fp0 Hf Hfull0.1 $$ Hfr Hfr0 with %Heq
       subst Heq
@@ -1266,8 +1269,9 @@ theorem ownLogGhost_not_doomed (γ : RaftNames) (v : w64) (s : PState) (kl : Opt
   iintro Hown #Hr
   rcases h : r.2 with _ | ⟨t', q⟩ <;> simp only [rqRecOk, h]
   · ipureintro; intro t' q h'; cases h'
-  · unfold doomed cqAt
-    icases Hr with ⟨%n, %G, %a, %c, %Hpq, -, -, -, -, #Hacks⟩
+  · unfold doomed
+    icases Hr with ⟨%n, %G, %a, %c, %Hpq, #Hcqa⟩
+    icases cqAt_parts γ _ _ _ _ _ _ $$ Hcqa with ⟨-, -, -, #Hacks, -⟩
     have Hlt := Hpq.1
     by_cases hv : v ∈ q
     · ihave ⟨%i', %Hi', #Ha⟩ := BigSepM.bigSepM_lookup
@@ -1388,22 +1392,18 @@ theorem ownRaftGhost_step_heartbeat (γ : RaftNames) (id : w64) (s : PState) (m 
         have HwF := full_wf _ _ _ Hf Hw
         icases leadFull_wf γ s.term X $$ HX with ⟨%HwX, #HrX⟩
         ihave %Hmt := full_match γ X (fp ++ s.log) i HwX.1 HwF HsX HXi $$ HrX HrF
-        iunfold commitIn at Hmc
-        icases Hmc with (%H0 | ⟨%t, %n, %G, #Hq, %Hc', %Ht, %HG⟩)
+        icases leadFull_wf γ s.term Fl $$ Hfl with ⟨%HwFl, #HrFl⟩
+        ihave #Hmcj := commitIn_j γ _ _ _ $$ Hmc
+        iunfold commitJ at Hmcj
+        icases Hmcj with (%H0 | ⟨%t, %n, %G, #Hq, %Hc', %Ht, %HG⟩)
         · exfalso; have := uint_Z_nonneg s.commit; omega
-        ihave ⟨%HwG, -⟩ := cq_full $$ Hq
         ihave %Hn := cq_term $$ Hq
         have HsG : (plogTermAt base0 G m.commit).isSome :=
           full_term_at_some G m.commit n (by rw [Hn]; rfl) Hc'
         ihave %HXl := leadFull_agree γ s.term X Fl m.commit
           (full_term_at_some X m.commit i HsX (by omega)) (by rw [← HG]; exact HsG) $$ HX Hfl
-        unfold commitIn
-        iright
-        iexists t, n, G
-        isplitr
-        · iexact Hq
-        · ipureintro
-          exact ⟨Hc', Ht, HG.trans (HXl.symm.trans (Hmt m.commit (by omega)))⟩
+        iapply commitIn_move γ Fl (fp ++ s.log) m.commit s.term s.term (Int.le_refl _) HwFl.1 HwF
+          (by rw [← HG]; exact HsG) ((Hmt m.commit (by omega)).symm.trans HXl) $$ HrFl HrF Hmc
       · iexact Hc
     · iintro %fp % ⟨Hf, Hw⟩ #Hfr #Hcm0
       simp only [cprefix, psendMsgs, padoptLeader, plogCommitTo]
@@ -1418,8 +1418,9 @@ theorem ownRaftGhost_step_heartbeat (γ : RaftNames) (id : w64) (s : PState) (m 
         icases leadFull_wf γ s.term X $$ HX with ⟨%HwX, #HrX⟩
         icases leadFull_wf γ s.term Fl $$ Hfl with ⟨%HwFl, #HrFl⟩
         ihave %Hmt := full_match γ X (fp ++ s.log) i HwX.1 HwF HsX HXi $$ HrX HrF
-        iunfold commitIn at Hmc
-        icases Hmc with (%H0 | ⟨%t, %n, %G, #Hq, %Hc', %Ht, %HG⟩)
+        ihave #Hmcj := commitIn_j γ _ _ _ $$ Hmc
+        iunfold commitJ at Hmcj
+        icases Hmcj with (%H0 | ⟨%t, %n, %G, #Hq, %Hc', %Ht, %HG⟩)
         · exfalso; have := uint_Z_nonneg s.commit; omega
         ihave %Hn := cq_term $$ Hq
         have HsG : (plogTermAt base0 G m.commit).isSome :=
@@ -1714,11 +1715,13 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
     · simp only [padoptLeader, plogCommitTo]
       generalize (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) = X at HXle HXm ⊢
       split
-      · iapply commitIn_agree γ (fpL ++ l') (fp ++ es') X s.term s.term (Int.le_refl _)
-          (HmL X HXle).symm
+      · iapply commitIn_move γ (fpL ++ l') (fp ++ es') X s.term s.term (Int.le_refl _)
+          HwLf.1 HwF' (full_term_at_some _ _ lastnewi Hsli HXle) (HmL X HXle).symm $$ HrLf HrF'
         iapply commitIn_le γ (fpL ++ l') m.commit X s.term HwLf.1 HXm $$ HrLf Hmc
-      · iapply commitIn_agree γ (fp ++ s.log) (fp ++ es') s.commit s.term s.term (Int.le_refl _)
-          (Hlow s.commit Hcidx) $$ Hc
+      · iapply commitIn_move γ (fp ++ s.log) (fp ++ es') s.commit s.term s.term (Int.le_refl _)
+          HwF HwF' (plogTermAt_in_range _ _ _ ⟨by rw [base0_index]; exact uint_Z_nonneg _,
+            by rw [full_last_index _ _ _ Hf]; exact Hcl⟩)
+          (Hlow s.commit Hcidx) $$ HrF HrF' Hc
     isplitr
     · simp only [cprefix, plogCommitTo]
       generalize (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) = X at HXle HXm ⊢
@@ -2089,9 +2092,12 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
   ihave #Hcommit' : commitIn γ (fp ++ (pappend s nw).log) (pappend s nw).commit (pappend s nw).term $$ []
   · rw [show (pappend s nw).log = s.log ++ nw from rfl, show (pappend s nw).commit = s.commit from rfl,
       show (pappend s nw).term = s.term from rfl]
+    have Hcl' : uint.Z s.commit ≤ plogLastIndexZ base0 (fp ++ s.log) := by rw [HLF, ← HL]; exact Hcl
     iapply commitIn_agree γ (fp ++ s.log) _ s.commit s.term s.term (Int.le_refl _)
       (HkeepF s.commit (plogTermAt_in_range _ _ _ ⟨by rw [base0_index]; exact uint_Z_nonneg _,
-        by rw [HLF, ← HL]; exact Hcl⟩)) $$ Hcommit
+        Hcl'⟩))
+      (take_of_prefix (by rw [← List.append_assoc]; exact List.prefix_append _ _)
+        (by unfold plogLastIndexZ at Hcl'; rw [base0_index] at Hcl'; omega)) $$ Hcommit
   ihave Htlog' : leadLogOwn γ (pappend s nw) terms $$ [Htauth]
   · rw [leadLogOwn_leader γ (pappend s nw) terms Hrole, show (pappend s nw).term = s.term from rfl,
       show (pappend s nw).base = s.base from rfl, show (pappend s nw).log = s.log ++ nw from rfl]
@@ -2273,10 +2279,13 @@ theorem ownRaftGhost_step_snap_fastfwd (γ : RaftNames) (id : w64) (s : PState) 
       (Or.inl ⟨rfl, rfl, fun h => h, fun h => by cases h⟩) (Or.inr Hle)
       $$ Hlg [] [] []
   · iapply matchedOk_nonleader γ _ (by intro h; cases h)
-  · iintro %fp % ⟨Hf, -⟩ - -
+  · iintro %fp % ⟨Hf, Hw⟩ #Hfr -
     simp only [padoptLeader]
-    iapply commitIn_agree γ (fpL ++ l') (fp ++ s.log) m.index s.term s.term (Int.le_refl _)
-      (HFeq fp Hf) $$ Hmc
+    ihave #HrF := logRecs_full γ s.base fp s.log Hf $$ Hfr Hrecs
+    iapply commitIn_move γ (fpL ++ l') (fp ++ s.log) m.index s.term s.term (Int.le_refl _)
+      HwLf.1 (full_wf _ _ _ Hf Hw)
+      (by rw [← HFeq fp Hf, full_term_at s.base fp s.log m.index Hf Hb, Hmt']; rfl)
+      (HFeq fp Hf) $$ HrLf HrF Hmc
   · iintro %fp % ⟨Hf, Hw⟩ #Hfr -
     simp only [cprefix, padoptLeader]
     ihave #HrF := logRecs_full γ s.base fp s.log Hf $$ Hfr Hrecs
@@ -2408,7 +2417,7 @@ theorem ownRaftGhost_step_snap_restore (γ : RaftNames) (id : w64) (s : PState) 
     isplitr
     · simp only [padoptLeader]
       iapply commitIn_agree γ (fpL ++ l') _ m.index s.term s.term (Int.le_refl _)
-        (Hfp'j m.index (Int.le_refl _)) $$ Hmc
+        (Hfp'j m.index (Int.le_refl _)) (by simp [List.take_take]) $$ Hmc
     isplitr
     · simp only [cprefix, List.append_nil, List.take_take, Nat.min_self]
       iexact Hmcm
@@ -3184,10 +3193,12 @@ theorem ownRaftGhost_stepC (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id
     have Ht' : uint.Z (s.term + W64 1) = uint.Z s.term + 1 := by word
     have Hfree : voted !! (s.term + W64 1) = none :=
       vote_hist_fresh voted s _ Hhist (by omega)
+    ihave #Hcd : dynOn γ (campDyn γ id (s.term + W64 1) F) $$ []
+    · iapply dynOn_static γ _ HC.2.2
     ihave #Hvj : voteJust γ id (s.term + W64 1) id $$ []
     · unfold voteJust
       iexists kv, false, F, F
-      iframe Hvl Hcamp HrF Hvev
+      iframe Hvl Hcamp HrF Hvev Hcd
       isplitr
       · ipureintro
         refine ⟨HF.1, ?_⟩
@@ -3226,7 +3237,7 @@ theorem ownRaftGhost_stepC (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id
         | none => rw [Hd] at Hk; cases Hk
         | some dst =>
           rw [Hd] at Hk; cases Hk
-          iapply isMessage_voteReq γ id dst _ _ F cl HF.2 $$ Hcamp
+          iapply isMessage_voteReq γ id dst _ _ F cl HF.2 $$ Hcamp Hcd
     · iapply tally_empty γ id _ (by rfl)
     · iapply leaderWit_nonleader γ id _ (by intro h; cases h)
     · iapply ownLogGhost_mono γ id (pbecomeCandidate id s) _ none (by rfl) (by rfl) (by rfl)
@@ -3255,7 +3266,7 @@ theorem ownRaftGhost_stepC (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id
     iunfold ownRaftGhost at Hown
     icases Hown with ⟨%γv, %voted, %kl, H⟩
     iNamed H
-    icases isMessage_vote_inv γ m Hty $$ Hm with ⟨%Fc, #Hcamp, %HFc⟩
+    icases isMessage_vote_inv γ m Hty $$ Hm with ⟨%Fc, #Hcamp, %HFc, #Hcd⟩
     rw [Hterm]
     ihave #Hinv := ownLogGhost_inv $$ Hlg
     ihave H2 : |={⊤}=> ∃ voted', ghostMapAuth γv (1 : Qp).half voted' ∗
@@ -3295,7 +3306,9 @@ theorem ownRaftGhost_stepC (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id
               iexists ldr, qw
               iframe Hw
               ipureintro; exact Hq Hnovote
-          · iexact Hvev
+          · isplitr
+            · iexact Hvev
+            · rw [← Hterm]; iexact Hcd
         imod vote_insert γ id γv voted s.term m.src Hname Hfree $$ Hinv Hvj Hvoted with
           ⟨Hvoted, #Hnew⟩
         ihave #Hisvote : isVote γ id s.term m.src $$ []

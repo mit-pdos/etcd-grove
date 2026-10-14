@@ -121,6 +121,25 @@ is doomed by a quorum containing `v`. -/
 def HbAckOk (v : w64) (q : Nat) (recs : List RqRec) : Prop :=
   q ≤ recs.length ∧ ∀ r ∈ recs.take q, ∀ t' qq, r.2 = some (t', qq) → v ∉ qq
 
+/-! ### Campaign records' dynamic facts (2026-10-14, reconfiguration stage B5)
+
+What the dynamic proof needs of a campaign `(F, k)` of `c` in `T`, beyond `isCampK` (which sits
+below the commit facts and cannot name them): I1 of the campaign log at `k` (`RInv`'s, at the
+campaign), its records, and the candidate's `commitIn` of `k` at a term below `T` -- the
+commit fact that justifies `k` and the witnesses of the conf entries below `k` (the paper's
+repair 3). A vote request carries it (`isMessage`), and so does every vote cast for the
+candidate (`voteJust`): the winners' are found through their votes. -/
+def campDyn (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) : IProp GF :=
+  iprop(∃ (k tm : w64), ⌜uint.Z tm < uint.Z T ∧ ConfI1 F (uint.Z k).toNat ∧ PlogWf base0 F⌝ ∗
+    isCampK γ c T F k ∗ logRecs γ base0 F ∗ commitIn γ F k tm)
+
+instance campDyn_persistent (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) :
+    Persistent (campDyn (GF := GF) γ c T F) := by
+  unfold campDyn; infer_instance
+instance campDyn_timeless (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) :
+    Timeless (campDyn (GF := GF) γ c T F) := by
+  unfold campDyn; infer_instance
+
 /-! ### Messages -/
 
 def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
@@ -129,7 +148,9 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
       -- the candidate's campaign record, whose last entry the request reports
       -- (2026-10-03)
       iprop(∃ Fc, isCamp γ m.src m.term Fc ∗
-        ⌜plogLast base0 Fc = entryID.mk m.logterm m.index⌝)
+        ⌜plogLast base0 Fc = entryID.mk m.logterm m.index⌝ ∗
+        -- (2026-10-14, stage B5) the campaign's dynamic facts
+        dynOn γ (campDyn γ m.src m.term Fc))
   | .voteResp =>
       if m.reject then iprop(True)
       else isVote γ m.src m.term m.dst
@@ -506,7 +527,9 @@ def voteJust (γ : RaftNames) (v T c : w64) : IProp GF :=
   iprop(∃ k d Fv Fc, isVlog γ v k T d Fv ∗ isCamp γ c T Fc ∗ logRecs γ base0 Fv ∗
     ⌜PlogWf base0 Fv ∧ plogUpToDate base0 Fv (plogLast base0 Fc) = true⌝ ∗
     (if d then iprop(∃ ldr q, isWin γ ldr T q ∗ ⌜v ∉ q⌝) else iprop(True)) ∗
-    voteEv γ v T d Fv)
+    voteEv γ v T d Fv ∗
+    -- (2026-10-14, stage B5) the candidate's campaign's dynamic facts
+    dynOn γ (campDyn γ c T Fc))
 
 instance voteJust_persistent (γ : RaftNames) (v T c : w64) :
     Persistent (voteJust (GF := GF) γ v T c) := by

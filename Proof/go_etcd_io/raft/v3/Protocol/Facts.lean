@@ -396,12 +396,8 @@ theorem node_within (γ : RaftNames) (id2 : w64) (ps2 : PState) (G : List raftpb
   iapply ownLogGhost_within γ id2 ps2 kl G Hr2 $$ Hlead HG Hlg
 
 private theorem cq_lead (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) :
-    ⊢ cq (GF := GF) γ t n G -∗ ⌜plogTermAt base0 G n = some t⌝ ∗ leadFull γ t G := by
-  unfold cq
-  iintro ⟨%H, #Hf, -⟩
-  isplitr
-  · ipureintro; exact H
-  · iexact Hf
+    ⊢ cq (GF := GF) γ t n G -∗ ⌜plogTermAt base0 G n = some t⌝ ∗ leadFull γ t G :=
+  cq_base γ t n G
 
 /-- A full log's committed prefix, at a term no later than a leader's, is in the leader's
 full log: in its campaign log by `lc_core` for an earlier term, in its log of the same
@@ -423,8 +419,9 @@ theorem commitIn_leader (γ : RaftNames) (Fn : List raftpb.Entry) (c tm id2 : w6
   obtain ⟨Hf2, Hw2, Hpre⟩ := Hp
   ihave #HrF2 := logRecs_full γ ps2.base fp2 ps2.log Hf2 $$ Hfr2 Hr2'
   have HwF2 := full_wf _ _ _ Hf2 Hw2
-  unfold commitIn
-  icases Hc with (%H0 | ⟨%t, %n, %G, #Hq, %Hcn⟩)
+  ihave #Hcj := commitIn_j γ _ _ _ $$ Hc
+  unfold commitJ
+  icases Hcj with (%H0 | ⟨%t, %n, %G, #Hq, %Hcn⟩)
   · iexists fp2
     isplitr
     · ipureintro
@@ -1005,7 +1002,7 @@ private theorem ownLogGhost_init (γ : RaftNames) (id : w64) (γm γa γc γl γ
     rw [show initPState.log = ([] : List raftpb.Entry) from rfl]
     iapply (BigSepL.bigSepL_nil).2; iempintro
   isplitr; · unfold matchedOk; rw [Hrole]; iempintro
-  isplitr; · unfold commitIn; ileft; ipureintro; rfl
+  isplitr; · iapply commitIn_zero γ _ _ _ rfl
   isplitr; · unfold baseOk; ileft; ipureintro; rfl
   isplitr
   · ipureintro

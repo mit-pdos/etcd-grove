@@ -83,7 +83,7 @@ theorem tbl_voter (γ : RaftNames) (v T c t i : w64) :
   · exact False.elim (by omega)
   ihave Hj := votesTbl_just γ v T c $$ Htbl Hvote
   unfold voteJust
-  icases Hj with ⟨%k, %d, %Fv, %Fc, -, #Hcamp, #HrFv, %Hpure, #Hd, #Hvev⟩
+  icases Hj with ⟨%k, %d, %Fv, %Fc, -, #Hcamp, #HrFv, %Hpure, #Hd, #Hvev, -⟩
   iexists d, Fv, Fc
   iframe Hcamp HrFv Hd
   isplitr
@@ -119,9 +119,7 @@ private theorem lc_agree (γ : RaftNames) (T t n : w64) (F : List raftpb.Entry)
   intro HtT Hj HsX
   iintro HS #Hcq HX
   icases cq_full γ t n F $$ Hcq with ⟨%HwF, #HrF⟩
-  ihave #Hcq' := Hcq
-  ieval (unfold cq) at Hcq'
-  icases Hcq' with ⟨%HFn, #HFl, -⟩
+  icases cq_base γ _ _ _ $$ Hcq with ⟨%HFn, #HFl⟩
   unfold okL
   icases HX with (⟨%t'', %Ht12, #HX⟩ | ⟨%t'', %n'', %Htj, #Hq''⟩)
   · obtain ⟨Ht1, Ht2⟩ := Ht12
@@ -145,9 +143,7 @@ private theorem lc_agree (γ : RaftNames) (T t n : w64) (F : List raftpb.Entry)
   · -- a committed log of an earlier term: `F`'s leader has it (`IH` at `t`)
     obtain ⟨Ht'', Hjn⟩ := Htj
     icases cq_full γ t'' n'' X $$ Hq'' with ⟨%HwX, #HrX⟩
-    ihave #Hq3 := Hq''
-    ieval (unfold cq) at Hq3
-    icases Hq3 with ⟨%HXn'', -⟩
+    icases cq_base γ _ _ _ $$ Hq'' with ⟨%HXn'', -⟩
     icases leadFull_camp γ t F $$ HFl with ⟨%ldr, %F0t, #Hlt, #Hct, %Hpre⟩
     icases isCamp_ok γ ldr t F0t $$ Hct with %Hcok
     icases IH t t'' n'' X ldr F0t F HtT Ht'' HwF (prefix_camp_last t F0t F Hcok Hpre)
@@ -183,9 +179,7 @@ theorem lc_adj (γ : RaftNames) (T t n : w64) (F : List raftpb.Entry) (c : w64)
   intro HtT HwG HGl Hmeet
   iintro HS #Hcq #Hacks #Hwin #Hc #HrG
   icases cq_full γ t n F $$ Hcq with ⟨%HwF, #HrF⟩
-  ihave #Hcq' := Hcq
-  ieval (unfold cq) at Hcq'
-  icases Hcq' with ⟨%HFn, #HFl, -⟩
+  icases cq_base γ _ _ _ $$ Hcq with ⟨%HFn, #HFl⟩
   -- index 0
   by_cases Hn0 : uint.Z n = 0
   · have key : ∀ L : List raftpb.Entry, plogTermAt base0 L n = some base0.term' := by
@@ -344,9 +338,8 @@ theorem lc_core (γ : RaftNames) (k : Nat) :
     IH0 T' t' n' F' c' F0' G' (by omega) h2 h3 h4
   iintro HS #Hcq #Hl #Hc #HrG
   -- the commit quorum and its configuration
-  ihave #Hcq' := Hcq
-  ieval (unfold cq) at Hcq'
-  icases Hcq' with ⟨-, -, %a, %cQ, %q, %Hq, -, #Hacks⟩
+  icases cq_cqAt γ t n F $$ Hcq with ⟨%a, %cQ, %q, #Hcqa⟩
+  icases cqAt_parts γ t n F a cQ q $$ Hcqa with ⟨%Hq, -, -, #Hacks, -⟩
   -- the winning quorum and its configuration
   iunfold isLeader at Hl
   icases Hl with ⟨%V, #Hwin⟩
@@ -358,7 +351,7 @@ theorem lc_core (γ : RaftNames) (k : Nat) :
   cases HD : γ.dyn with
   | some D => sorry -- B5: the far cases
   | none =>
-  have Hmeet := CfgAt.overlap (RaftNames.dyn_eq_none.1 HD) Hq.2.1 Hw.2.2 q V Hq.2.2 Hw.2.1
+  have Hmeet := CfgAt.overlap (RaftNames.dyn_eq_none.1 HD) Hq.2.2.1 Hw.2.2 q V Hq.2.2.2 Hw.2.1
   iapply lc_adj γ T t n F c F0 G q V IH HtT HwG HGl Hmeet $$ HS Hcq Hacks Hwin Hc HrG
 
 /-- Two commit facts agree below the earlier one's index: same term, the leader's logs
@@ -372,11 +365,8 @@ theorem cq_lt_agree (γ : RaftNames) (t1 n1 t2 n2 : w64) (G1 G2 : List raftpb.En
   iintro HS #Hq1 #Hq2
   icases cq_full γ t1 n1 G1 $$ Hq1 with ⟨%Hw1, #Hr1⟩
   icases cq_full γ t2 n2 G2 $$ Hq2 with ⟨%Hw2, #Hr2⟩
-  ihave #Hq1' := Hq1
-  ihave #Hq2' := Hq2
-  ieval (unfold cq) at Hq1' Hq2'
-  icases Hq1' with ⟨%H1n, -⟩
-  icases Hq2' with ⟨-, #Hfl2, -⟩
+  icases cq_base γ _ _ _ $$ Hq1 with ⟨%H1n, -⟩
+  icases cq_base γ _ _ _ $$ Hq2 with ⟨-, #Hfl2⟩
   icases leadFull_camp γ t2 G2 $$ Hfl2 with ⟨%ldr, %F0, #Hl, #Hc, %Hpre⟩
   icases isCamp_ok γ ldr t2 F0 $$ Hc with %Hcok
   have Hcl := camp_last t2 F0 Hcok
@@ -400,9 +390,8 @@ theorem cq_agree (γ : RaftNames) (t1 n1 t2 n2 i : w64) (G1 G2 : List raftpb.Ent
     subst Ht
     icases cq_full γ t1 n1 G1 $$ Hq1 with ⟨%Hw1, #Hr1⟩
     icases cq_full γ t1 n2 G2 $$ Hq2 with ⟨%Hw2, #Hr2⟩
-    ieval (unfold cq) at Hq1 Hq2
-    icases Hq1 with ⟨%H1n, #Hf1, -⟩
-    icases Hq2 with ⟨%H2n, #Hf2, -⟩
+    icases cq_base γ _ _ _ $$ Hq1 with ⟨%H1n, #Hf1⟩
+    icases cq_base γ _ _ _ $$ Hq2 with ⟨%H2n, #Hf2⟩
     have Hs1 := full_term_at_some G1 i n1 (by rw [H1n]; rfl) Hi1
     have Hs2 := full_term_at_some G2 i n2 (by rw [H2n]; rfl) Hi2
     icases leadFull_agree γ t1 G1 G2 i Hs1 Hs2 $$ Hf1 Hf2 with %Hag
@@ -590,9 +579,7 @@ theorem commit_extend (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) (ldr 
   iinv Hinv with ⟨%P, %R, >HP, >Hj, >Htbl, Hpo, Hwt⟩ Hclose
   imod propsOwn_open γ _ P R $$ Hpo with Hpo
   icases cq_full γ t n G $$ Hcq with ⟨%HwG, #HrG⟩
-  ihave #Hcq' := Hcq
-  ieval (unfold cq) at Hcq'
-  icases Hcq' with ⟨%HGn, -⟩
+  icases cq_base γ _ _ _ $$ Hcq with ⟨%HGn, -⟩
   have HnG := (plogTermAt_some_range _ _ _ _ HGn).2
   unfold plogLastIndexZ at HnG
   rw [base0_index] at HnG
@@ -623,9 +610,7 @@ theorem commit_extend (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) (ldr 
     iexact Hc
   · subst HP0
     icases cq_full γ t0 n0 G0 $$ Hcq0 with ⟨%HwG0, #HrG0⟩
-    ihave #Hcq0' := Hcq0
-    ieval (unfold cq) at Hcq0'
-    icases Hcq0' with ⟨%HG0n, -⟩
+    icases cq_base γ _ _ _ $$ Hcq0 with ⟨%HG0n, -⟩
     by_cases Hle : uint.Z n0 ≤ uint.Z n
     · -- the new prefix is longer: extend, firing the registry
       icases cq_agree γ t0 n0 t n n0 G0 G (Int.le_refl _) Hle $$ Htbl Hcq0 Hcq with %Hag

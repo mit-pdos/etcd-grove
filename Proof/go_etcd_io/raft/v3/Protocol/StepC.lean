@@ -154,6 +154,9 @@ theorem confCount_cons (e : raftpb.Entry) (l : List raftpb.Entry) :
   rw [List.countP_cons]
   by_cases h : IsConfEnt e <;> simp [h]
 
+/-- A conf-change entry at position `k` of `l` (2026-10-14, stage B5). -/
+def IsConfPos (l : List raftpb.Entry) (k : Nat) : Prop := ∃ e, l[k]? = some e ∧ IsConfEnt e
+
 /-- I1: of two conf-change entries of `l`, the first is at a position below `c`. -/
 def ConfI1 (l : List raftpb.Entry) (c : Nat) : Prop :=
   ∀ (k1 k2 : Nat) (e1 e2 : raftpb.Entry), k1 < k2 → l[k1]? = some e1 → l[k2]? = some e2 →
