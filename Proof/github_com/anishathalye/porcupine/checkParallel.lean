@@ -345,7 +345,176 @@ theorem checkParallel.wp_proof
   wp_auto
   wp_join iprop(∃ inf : LinearizationInfo, info_ptr ↦ inf) with [info count Htoks]
     as ⟨%inf, info⟩
-  · done
+  · -- `computeInfo`: wait for every goroutine
+    ihave HD : (∃ (c : w64) (R : List Nat),
+        "count" ∷ count_ptr ↦ c ∗
+        "%HR" ∷ ⌜sint.Z c = R.length ∧ R.Nodup ∧ ∀ i ∈ R, i < hs.length⌝ ∗
+        "Htoks" ∷ ([∗list] i ∈ R, ghostMapElem γt i (DFrac.own 1) ()) ∗
+        "#Hcd" ∷ □ (∀ i, ⌜i ∈ R⌝ -∗ cellDone lsl i) : IProp GF) $$ [count Htoks]
+    · iexists c, R
+      iframe
+      iframe #
+      ipureintro; exact HR
+    iclear Hcd
+    wp_for HD
+    wp_if_destruct
+    · wp_apply wp_bag_receive γr rch (resultP S hs γt lsl (dghostVar γc DFrac.discard ())) $$ [$Hbag]
+        as %b HP
+      iunfold resultP at HP
+      icases HP with ⟨%i, %Hi, Hti, #Hcdi, -⟩
+      ihave %Hni := toks_fresh γt R i $$ Htoks Hti
+      have HRlt := nodup_length_lt HR.2.1 HR.2.2 Hi Hni
+      wp_for_post
+      ihave Htoks' : ([∗list] j ∈ i :: R, ghostMapElem γt j (DFrac.own 1) ()) $$ [Hti Htoks]
+      · iapply BigSepL.bigSepL_cons.2; iframe
+      ihave #Hcd' : (□ ∀ j, ⌜j ∈ i :: R⌝ -∗ cellDone lsl j) $$ []
+      · imodintro
+        iintro %j %hj
+        rcases List.mem_cons.1 hj with rfl | hj
+        · iexact Hcdi
+        · iapply Hcd $$ %j %hj
+      iframe
+      iexists c + W64 1, i :: R
+      iframe
+      iframe #
+      ipureintro
+      refine ⟨?_, List.nodup_cons.2 ⟨Hni, HR.2.1⟩, ?_⟩
+      · have := HR.1; simp only [List.length_cons]; word
+      · intro j hj
+        rcases List.mem_cons.1 hj with rfl | hj
+        · exact Hi
+        · exact HR.2.2 j hj
+    have HRn : R.length = hs.length := by
+      have h1 := HR.1
+      have h3 := (HR.2.1).length_le_of_subset (l₂ := List.range hs.length)
+        (fun x hx => List.mem_range.2 (HR.2.2 x hx))
+      simp only [List.length_range] at h3
+      rw [Hlen'] at h3 ⊢
+      word
+    have Hall := nodup_all_mem HR.2.1 HR.2.2 HRn
+    wp_apply wp_slice_make2 (V := GoSlice) hsl.len as %plsl ⟨Hpl, -⟩
+    · ipureintro; word
+    iclear Htoks
+    ihave HO : (∃ (iv : w64) (pls : List GoSlice),
+        "i" ∷ i_ptr ↦ iv ∗ "Hpl" ∷ plsl ↦* pls ∗
+        "%Hiv" ∷ ⌜pls.length = hs.length ∧ 0 ≤ sint.Z iv ∧ sint.Z iv ≤ sint.Z hsl.len⌝ : IProp GF)
+      $$ [i Hpl]
+    · iexists W64 0, _
+      iframe
+      ipureintro
+      refine ⟨by rw [List.length_replicate, Hlen'], by word, by word⟩
+    wp_for HO
+    wp_if_destruct
+    · have Hivn : sint.nat iv < hs.length := by rw [Hlen']; word
+      ihave Hcdi := Hcd $$ %(sint.nat iv) %(Hall _ Hivn)
+      iunfold cellDone at Hcdi
+      icases Hcdi with ⟨%l, #Hcell, #Hlp⟩
+      wp_apply (wp_map_make1 (K := Loc) (V := Unit)) as %setm Hset
+      have hb : 0 ≤ sint.Z iv ∧ sint.Z iv < sint.Z lsl.len := by
+        simp at Hllen; constructor <;> word
+      simp only [hb, and_self, ↓reduceIte]
+      rw [show sint.Z iv = ((sint.nat iv : Nat) : Int) by word]
+      wp_apply (IntoValTyped.wp_load (t := go.int.SliceType.PointerType.SliceType)
+        (sliceIndexRef GoSlice ((sint.nat iv : Nat) : Int) lsl) DFrac.discard l) $$ [$Hcell] as -
+      rename_i oi_ptr
+      iunfold longestPers at Hlp
+      icases Hlp with ⟨%ps, #Hps, #Hpse⟩
+      ihave %Hpslen := ownSlice_len _ _ _ $$ Hps
+      ihave HV : (∃ (j : w64) (vv : Loc) (Ms : GMap Loc Unit),
+          "i" ∷ i_ptr ↦ j ∗ "v" ∷ v_ptr ↦ vv ∗ "Hset" ∷ setm ↦$ Ms ∗
+          "%HMs" ∷ ⌜∀ k, (Ms !! k).isSome → k ∈ ps ∧ k ≠ null⌝ ∗
+          "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z l.len⌝ : IProp GF) $$ [i v Hset]
+      · iexists W64 0, _, ∅
+        iframe
+        ipureintro
+        refine ⟨by simp, by word, by word⟩
+      wp_for HV
+      wp_if_destruct
+      · have hb : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z l.len := ⟨Hj.1, Hif⟩
+        simp only [hb, and_self, ↓reduceIte]
+        list_elem ps (sint.nat j) as p
+        wp_apply wp_load_slice_index l (sint.Z j) ps _ p hb.1 $$ [Hps] as -
+        · iframe #; ipureintro; exact Hp_lookup
+        have Hpm : p ∈ ps := List.mem_of_getElem? Hp_lookup
+        by_cases hp : p = null
+        · simp only [hp, decide_true, Bool.not_true]
+          wp_auto
+          wp_for_post
+          iframe
+          iexists j + W64 1, null, Ms
+          iframe
+          ipureintro
+          exact ⟨HMs, by word, by word⟩
+        · simp only [hp, decide_false, Bool.not_false]
+          wp_auto
+          wp_apply (wp_mapInsert go.int.SliceType.PointerType setm Ms p ()) $$ [$Hset] as Hset
+          wp_for_post
+          iframe
+          iexists j + W64 1, p, <[p := ()]> Ms
+          iframe
+          ipureintro
+          refine ⟨fun k hk => ?_, by word, by word⟩
+          by_cases hkp : p = k
+          · subst hkp; exact ⟨Hpm, hp⟩
+          · rw [GMap.lookup_insert_ne _ _ hkp] at hk; exact HMs k hk
+      -- the set's keys: copies of the partial linearizations
+      wp_func_lits
+      wp_bind (App (App (Val (map.forRange _ _)) _) _)
+      iapply wp_map_for_range (fun (keys : List Loc) (_ : Int) => iprop(
+          ∃ (psl : GoSlice) (xs : List GoSlice) (kv : Loc),
+          "partials" ∷ partials_ptr ↦ psl ∗ "Hpsl" ∷ psl ↦* xs ∗
+          "Hcap" ∷ ownSliceCap GoSlice psl (DFrac.own 1) ∗ "k" ∷ k_ptr ↦ kv)) $$ Hset
+      iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
+      isplitl [partials k]
+      · iexists slice.nil, [], _
+        iframe
+        isplitr
+        · iapply ownSlice_nil
+        iapply ownSliceCap_nil
+      isplitr
+      · imodintro
+        iintro %ik %key %vv ⟨%Hkey, %Hvv⟩ HP
+        iNamed HP
+        have Hkps := HMs key (by rw [Hvv]; rfl)
+        ihave Hke := BigSepL.bigSepL_mem Hkps.1 $$ Hpse
+        icases Hke with (%Hnull | ⟨%ksl, %kxs, #Hk, #Hksl⟩)
+        · exact absurd Hnull Hkps.2
+        ihave %Hksllen := ownSlice_len _ _ _ $$ Hksl
+        wp_auto
+        wp_apply wp_slice_make2 (V := w64) ksl.len as %arr ⟨Harr, -⟩
+        · ipureintro; word
+        wp_apply wp_slice_copy arr _ ksl kxs DFrac.discard $$ [$Harr $Hksl] as %nc ⟨-, -, -⟩
+        wp_apply wp_slice_literal (V := GoSlice) [arr]
+        isplitr
+        · ipureintro; rfl
+        iintro %sl2 ⟨Hsl2, -⟩
+        wp_apply wp_slice_append $$ [$Hpsl $Hcap $Hsl2] as %s' ⟨Hpsl, Hcap, -⟩
+        unfold forMapPostcondition
+        iright
+        ileft
+        isplitr
+        · ipureintro; rfl
+        iexists s', _, key
+        iframe
+      iintro HP Hset
+      iNamed HP
+      wp_auto
+      ihave %Hpllen := ownSlice_len _ _ _ $$ Hpl
+      have hb' : 0 ≤ sint.Z iv ∧ sint.Z iv < sint.Z plsl.len := by
+        constructor <;> word
+      simp only [hb', and_self, ↓reduceIte]
+      wp_apply wp_store_slice_index plsl (sint.Z iv) pls psl $$ [Hpl] as Hpl
+      · iframe; ipureintro; constructor <;> word
+      wp_for_post
+      iframe
+      iexists iv + W64 1, _
+      iframe
+      ipureintro
+      refine ⟨by rw [List.length_set]; exact Hiv.1, by word, by word⟩
+    isplitr
+    · ipureintro; trivial
+    iexists _
+    iframe
   imod tok_or_pd_persist γc $$ Hcan with #HPD
   simp only [github_com.anishathalye.porcupine.Illegal, github_com.anishathalye.porcupine.Ok,
     github_com.anishathalye.porcupine.Unknown]

@@ -19,6 +19,26 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## Unit C (porcupine): `checkParallel`, `checkOperations`, `CheckOperations*` (2026-10-14, branch `worktree-agent-a737c43dbb7a0d1b3`)
+
+`Proof/github_com/anishathalye/porcupine/`, namespace `Perennial.EtcdGrove.porcupine`, all proved
+(no `sorry`; `#print axioms`: Lean's and Perennial's axiomatized standard-library types only):
+
+- `checkParallel.wp_proof` (from `checkSingle.spec`; Perennial's `context.wp_WithCancel_Background`,
+  `time.wp_After`, the bag channel idiom): on partitions that are all linearizable, never
+  `Illegal`; `Ok` if `timeout <= 0`. The context's Done proposition is `□ dghostVar γc .discard ()`,
+  minted only by the main thread from its token when it cancels, so a `false` verdict received
+  before cancelling means a non-linearizable partition (`checkSingle`'s third disjunct contradicts
+  the token). Each verdict carries its goroutine's ghost-map token and its written `longest[i]` cell
+  (`resultP`, `ParallelLemmas.lean`): `n` verdicts are the `n` goroutines', so the `computeInfo`
+  path reads only written cells (memory safety of `partialLinearizations`, no claim on it).
+- `checkOperations.wp_proof` (from `fillDefault`, `makeEntries`, `checkParallel`): one partition.
+- `CheckOperations`, `CheckOperationsTimeout`, `CheckOperationsVerbose`: from `checkOperations`.
+- **Interface change**: the three `CheckOperations*` specs now take `context.isClosedchanInit`
+  (commit "CheckOperations* specs take context.isClosedchanInit"): `WithCancel(Background())`
+  needs it and `isPkgInit` does not give it. `lintest`'s `Run` (unit D) must pass it on: its spec
+  needs the same premise (`Run.lean` fails to build at its `wp_CheckOperationsVerbose` call until then).
+
 ## Unit D (porcupine): the generic driver `examples/lintest` (2026-10-14, branch `worktree-agent-ac7993c0361a09294`)
 
 `Proof/github_com/mit_pdos/etcd_grove/examples/lintest/`, namespace `Perennial.EtcdGrove.lintest`:
