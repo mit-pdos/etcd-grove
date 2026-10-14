@@ -237,6 +237,7 @@ theorem MoveInv_final (st : STMSt) (pre : GMap GoString ReadM) (ks : List GoStri
 
 section choice
 variable {GF : BundledGFunctors}
+variable [EM : EtcdModel GF]
 
 /-- A persistent fact of each element of `l`, holding for some `b`, holds for a list of
 them. -/
@@ -280,6 +281,7 @@ section resp
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 
 /-- **A read transaction's response of a read's get** (on etcd's state `s` at `R`) is a read of

@@ -47,20 +47,12 @@ theorem watchEvents_opts (pfx : GoString) (rev : w64) :
       OpModel.zero, withPrefixM, withRevM, withProgressNotifyM, withCreatedNotifyM,
       OpFull.isPrefixWatch, h]
 
-/-- A progress step from the cursor extends `TailOk`. -/
-theorem tailOk_step {pfx : GoString} {last : Int} {k p : w64} (h : TailOk pfx last k)
-    (hs : EtcdStep k p pfx []) : TailOk pfx last p := by
-  rcases h with h | ⟨q, hq, hs'⟩
-  · exact Or.inr ⟨k, h, hs⟩
-  · exact Or.inr ⟨q, hq, etcdStep_compose q k p pfx [] hs' hs⟩
-
 /-- The pure part of etcd's watch contract for a response that is not an error: the created
 notification, a progress notification, or events. -/
 def WatchCase (pfx : GoString) (k k' : w64) (r : RespModel) : Prop :=
   sint.Z r.hdrRev < 2 ^ 63 - 1 ∧
   ((r.created = true ∧ r.events = [] ∧ k' = k) ∨
-   (r.isProgressNotify = true ∧ sint.Z k ≤ sint.Z r.hdrRev ∧ k' = r.hdrRev ∧
-     EtcdStep k r.hdrRev pfx []) ∨
+   (r.isProgressNotify = true ∧ sint.Z k ≤ sint.Z r.hdrRev ∧ k' = r.hdrRev) ∨
    (r.events ≠ [] ∧ EvRevSorted r.events ∧
      (∀ e ∈ r.events, sint.Z k < sint.Z e.rev ∧ sint.Z e.rev < 2 ^ 63 - 1) ∧
      r.events.getLast?.map EvModel.rev = some k'))
@@ -90,27 +82,73 @@ theorem watchCase_pre {pfx : GoString} {k k' : w64} {r : RespModel} (h : WatchCa
     exact ⟨List.Pairwise.nil, hh, fun e he => by cases he⟩
   · exact ⟨hc.2.1, hh, fun e he => (hc.2.2.1 e he).2⟩
 
+/-! ## Separation-logic lemmas -/
+
+section lemmas
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+
+/-- A progress step from the cursor extends `TailOk`. -/
+theorem tailOk_step (pfx : GoString) (last : Int) (k p : w64) :
+    TailOk (GF := GF) pfx last k ∗ EtcdStep k p pfx [] ⊢ TailOk pfx last p := by
+  unfold TailOk
+  iintro ⟨(%h | ⟨%q, %hq, #Hs'⟩), #Hs⟩
+  · iright; iexists k
+    isplitr
+    · ipureintro; exact h
+    · iexact Hs
+  · iright; iexists q
+    isplitr
+    · ipureintro; exact hq
+    · iapply etcdStep_compose q k p pfx [] $$ [$Hs' $Hs]
+
 /-- The new state after `Broadcast`: the writer's invariant, the stream continuing the watch
-at the new cursor and at `rev - 1`. -/
+at the new cursor and at `rev - 1` (for a progress notification, from etcd's step to its
+revision). -/
 theorem watchEvents_after (pfx : GoString) (cap : Nat) (c : DemuxCore) (r : RespModel)
-    (k k' rev : w64) (hinv' : DemuxInv cap (updResp cap c r)) (hw : WriterOk pfx c)
-    (hk : CursorOk pfx c k) (h0 : CursorOk pfx c (rev - W64 1))
+    (k k' rev : w64) (hinv' : DemuxInv cap (updResp cap c r))
     (hle : sint.Z (rev - W64 1) ≤ sint.Z k) (hcase : WatchCase pfx k k' r) :
-    WriterOk pfx (updResp cap c r) ∧ CursorOk pfx (updResp cap c r) k' ∧
-      CursorOk pfx (updResp cap c r) (rev - W64 1) ∧ sint.Z (rev - W64 1) ≤ sint.Z k' := by
+    WriterOk (GF := GF) pfx c ∗ CursorOk pfx c k ∗ CursorOk pfx c (rev - W64 1) ∗
+      □ (⌜r.isProgressNotify = true⌝ -∗ EtcdStep k r.hdrRev pfx []) ⊢
+    WriterOk pfx (updResp cap c r) ∗ CursorOk pfx (updResp cap c r) k' ∗
+      CursorOk pfx (updResp cap c r) (rev - W64 1) ∗ ⌜sint.Z (rev - W64 1) ≤ sint.Z k'⌝ := by
+  iintro ⟨#Hw, #Hk, #H0, #Hst⟩
   obtain ⟨-, hc | hc | hc⟩ := hcase
   · obtain ⟨hcr, hev, rfl⟩ := hc
     have hu : updResp cap c r = c := by
       unfold updResp; simp [isProgressNotify_false_of_created hcr, hev]
-    rw [hu]; exact ⟨hw, hk, h0, hle⟩
-  · obtain ⟨hp, hkp, rfl, hs⟩ := hc
+    rw [hu]
+    iframe Hw Hk H0
+    ipureintro; exact hle
+  · obtain ⟨hp, hkp, rfl⟩ := hc
     have hu : updResp cap c r = { c with maxRev := r.hdrRev } := by
       unfold updResp; simp [hp]
     rw [hu]
     have hl : ({ c with maxRev := r.hdrRev } : DemuxCore).lastRev = c.lastRev := rfl
-    have ht := tailOk_step hk.2.2 hs
-    refine ⟨fun _ => by rw [hl]; exact ht, ⟨hk.1, by simp only; have := hk.2.1; omega, ht⟩,
-      h0, by omega⟩
+    ihave #Hs := Hst $$ %hp
+    ihave %Hkp := cursorOk_pure pfx c k $$ Hk
+    ihave %H0p := cursorOk_pure pfx c (rev - W64 1) $$ H0
+    iunfold CursorOk at Hk H0
+    icases Hk with ⟨-, #Ht⟩
+    icases H0 with ⟨-, #Ht0⟩
+    ihave #Ht' := tailOk_step pfx c.lastRev k r.hdrRev $$ [$Ht $Hs]
+    unfold WriterOk CursorOk
+    rw [hl]
+    isplitl
+    · iright; iexact Ht'
+    isplitl
+    · isplitr
+      · ipureintro; exact ⟨Hkp.1, by have := Hkp.2; simp only; omega⟩
+      · iexact Ht'
+    isplitl
+    · isplitr
+      · ipureintro; exact H0p
+      · iexact Ht0
+    ipureintro; omega
   · obtain ⟨hne, -, hrevs, hlast⟩ := hc
     have hu : updResp cap c r = updCore cap c r.events := by
       unfold updResp; simp [isProgressNotify_false_of_events hne, hne]
@@ -133,21 +171,21 @@ theorem watchEvents_after (pfx : GoString) (cap : Nat) (c : DemuxCore) (r : Resp
       simp only [List.append_eq_nil_iff, splitBatches_eq_nil_iff] at hs
       exact hne hs.2
     have hke : sint.Z k < sint.Z e.rev := (hrevs e (List.mem_of_getLast? he)).1
-    refine ⟨fun _ => ?_, ⟨hmin, ?_, ?_⟩, ⟨hmin, ?_, ?_⟩, by omega⟩
-    · rw [hl, hmax]; exact Or.inl (Int.le_refl _)
-    · rw [hbase]; have := hk.2.1; omega
-    · rw [hl]; exact Or.inl (Int.le_refl _)
-    · rw [hbase]; exact h0.2.1
-    · rw [hl]; exact Or.inl (by omega)
-
-/-! ## Separation-logic lemmas -/
-
-section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+    ihave %Hkp := cursorOk_pure pfx c k $$ Hk
+    ihave %H0p := cursorOk_pure pfx c (rev - W64 1) $$ H0
+    unfold WriterOk CursorOk CursorPure
+    rw [hl, hmax, hbase]
+    isplitl
+    · iright; iapply tailOk_of_le; exact Int.le_refl _
+    isplitl
+    · isplitr
+      · ipureintro; exact ⟨hmin, by have := Hkp.2; omega⟩
+      · iapply tailOk_of_le; exact Int.le_refl _
+    isplitl
+    · isplitr
+      · ipureintro; exact ⟨hmin, H0p.2⟩
+      · iapply tailOk_of_le; omega
+    ipureintro; omega
 
 theorem etcdStepCert_cert (pfx : GoString) :
     (etcdStepCert (GF := GF) pfx).cert = etcdStepCertBody pfx := rfl
@@ -173,17 +211,18 @@ theorem watchChain_certChain (pfx : GoString) (p : w64) (bs : List Batch) :
 `last`, when nothing changed between `last` and `k` (`TailOk`) and the first batch is above
 `last`. -/
 theorem watchChain_certChain_tail (pfx : GoString) (last : Int) (k : w64) (bs : List Batch)
-    (ht : TailOk pfx last k) (habove : ∀ b, bs.head? = some b → last < sint.Z (batchRev b)) :
-    watchChain (GF := GF) pfx k bs ⊢ certChain (etcdStepCert pfx) last bs := by
+    (habove : ∀ b, bs.head? = some b → last < sint.Z (batchRev b)) :
+    TailOk (GF := GF) pfx last k ∗ watchChain pfx k bs ⊢ certChain (etcdStepCert pfx) last bs := by
   cases bs with
   | nil => iintro _; iapply certChain_nil
   | cons b bs =>
     have hab := habove b rfl
     unfold watchChain
     rw [certChain_cons, etcdStepCert_cert]
-    iintro ⟨#Hb, %Hlt, H⟩
+    iintro ⟨#Ht, #Hb, %Hlt, H⟩
     isplitl []
-    · rcases ht with hle | ⟨q, hq, hs⟩
+    · unfold TailOk
+      icases Ht with (%hle | ⟨%q, %hq, #Hs⟩)
       · iexists k
         isplitr
         · ipureintro; exact ⟨hle, hab⟩
@@ -194,11 +233,12 @@ theorem watchChain_certChain_tail (pfx : GoString) (last : Int) (k : w64) (bs : 
         · ipureintro; exact ⟨hq, hab⟩
         imodintro
         unfold etcdStepCertBody
-        icases Hb with ⟨%cs, #Hm, %Hst, #Hre⟩
+        icases Hb with ⟨%cs, #Hm, #Hstep, %Hst, #Hre⟩
         iexists cs
         iframe Hm Hre
-        ipureintro
-        exact ⟨etcdStep_compose q k (batchRev b) pfx cs hs Hst.1, Hst.2⟩
+        isplitl
+        · iapply etcdStep_compose q k (batchRev b) pfx cs $$ [$Hs $Hstep]
+        · ipureintro; exact Hst
     iapply watchChain_certChain pfx (batchRev b) bs $$ H
 
 /-- etcd's watch contract for a response that is not an error: its pure part, the chain of
@@ -208,23 +248,34 @@ theorem watchRespOk_case (pfx : GoString) (k k' : w64)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (hne : ¬ watchErr v) :
     watchRespOk (GF := GF) pfx k k' v r ⊢
       ⌜WatchCase pfx k k' r⌝ ∗ watchChain pfx k (splitBatches r.events) ∗
-        □ (⌜r.isProgressNotify = true⌝ -∗ etcdReached r.hdrRev) := by
+        □ (⌜r.isProgressNotify = true⌝ -∗ etcdReached r.hdrRev) ∗
+        □ (⌜r.isProgressNotify = true⌝ -∗ EtcdStep k r.hdrRev pfx []) := by
   unfold watchRespOk
-  iintro ⟨%Hh, (⟨%H, -⟩ | ⟨%H, #Hre⟩ | ⟨%H, #Hre⟩ | ⟨%H, #Hc⟩)⟩
+  iintro ⟨%Hh, (⟨%H, -⟩ | ⟨%H, #Hre⟩ | ⟨%H, #Hs, #Hre⟩ | ⟨%H, #Hc⟩)⟩
   · exact absurd H.1 hne
   · isplitr
     · ipureintro; exact ⟨Hh, Or.inl H.2⟩
     isplitr
     · rw [H.2.2.1]; unfold splitBatches watchChain; itrivial
-    imodintro; iintro -; iexact Hre
+    isplitr
+    · imodintro; iintro -; iexact Hre
+    imodintro; iintro %Hp
+    rw [isProgressNotify_false_of_created H.2.1] at Hp
+    cases Hp
   · isplitr
     · ipureintro; exact ⟨Hh, Or.inr (Or.inl H.2)⟩
     isplitr
     · rw [isProgressNotify_events H.2.1]; unfold splitBatches watchChain; itrivial
-    imodintro; iintro -; iexact Hre
+    isplitr
+    · imodintro; iintro -; iexact Hre
+    imodintro; iintro -; iexact Hs
   · isplitr
     · ipureintro; exact ⟨Hh, Or.inr (Or.inr H.2)⟩
     iframe Hc
+    isplitr
+    · imodintro; iintro %Hp
+      rw [isProgressNotify_false_of_events H.2.1] at Hp
+      cases Hp
     imodintro; iintro %Hp
     rw [isProgressNotify_false_of_events H.2.1] at Hp
     cases Hp
@@ -252,13 +303,16 @@ theorem errStrOk_of_ctx (err : GoInterface) :
 /-- What `Broadcast` asks of the caller: the response's certificate, from the stream's state
 `c` continuing the watch at the cursor `k`. -/
 theorem watchEvents_respCert (pfx : GoString) (cap : Nat) (c : DemuxCore) (r : RespModel)
-    (k k' : w64) (hinv : DemuxInv cap c) (hk : CursorOk pfx c k)
+    (k k' : w64) (hinv : DemuxInv cap c)
     (hcase : WatchCase pfx k k' r) :
-    watchChain (GF := GF) pfx k (splitBatches r.events) ⊢
+    CursorOk (GF := GF) pfx c k ⊢ watchChain pfx k (splitBatches r.events) -∗
       □ (⌜r.isProgressNotify = true⌝ -∗ etcdReached r.hdrRev) -∗
       ⌜c.minRev ≠ W64 0 ∧ validRevisions r c.maxRev = true⌝ -∗
         respCert (etcdStepCert pfx) c r := by
-  iintro #Hc #Hpr %Hv
+  iintro #Hk #Hc #Hpr %Hv
+  ihave %Hkp := cursorOk_pure pfx c k $$ Hk
+  iunfold CursorOk at Hk
+  icases Hk with ⟨-, #Ht⟩
   obtain ⟨-, hc | hc | hc⟩ := hcase
   · unfold respCert
     rw [isProgressNotify_false_of_created hc.1, hc.2.1]
@@ -269,7 +323,7 @@ theorem watchEvents_respCert (pfx : GoString) (cap : Nat) (c : DemuxCore) (r : R
     simp only [↓reduceIte]
     isplitr
     · ipureintro
-      have := hk.2.1
+      have := Hkp.2
       omega
     rw [etcdStepCert_prog]
     imodintro
@@ -283,7 +337,7 @@ theorem watchEvents_respCert (pfx : GoString) (cap : Nat) (c : DemuxCore) (r : R
     unfold validRevisions at hvr
     rw [isProgressNotify_false_of_events hne] at hvr
     simp only [Bool.false_eq_true, ↓reduceIte, List.all_eq_true, decide_eq_true_eq] at hvr
-    iapply watchChain_certChain_tail pfx c.lastRev k _ hk.2.2 ?_ $$ Hc
+    iapply watchChain_certChain_tail pfx c.lastRev k _ ?_ $$ [$Ht $Hc]
     intro b hb
     obtain ⟨x, hx, hxr⟩ := splitBatches_rev_mem r.events b (List.mem_of_mem_head? hb)
     rw [← hxr]
@@ -291,7 +345,7 @@ theorem watchEvents_respCert (pfx : GoString) (cap : Nat) (c : DemuxCore) (r : R
     have hkx := (hrevs x hx).1
     unfold DemuxCore.lastRev
     cases hl : c.stream.getLast? with
-    | none => dsimp only; have := hk.2.1; omega
+    | none => dsimp only; have := Hkp.2; omega
     | some b' =>
       dsimp only
       have := hinv.stream_le b' (List.mem_of_getLast? hl)
@@ -303,6 +357,7 @@ section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
@@ -318,8 +373,7 @@ theorem Cache.watchEvents.wp_proof
     (wp_ctxErr : EtcdGrove.context.Err.spec (GF := GF) (hG := hG)) :
     Cache.watchEvents.spec (GF := GF) (hG := hG) := by
   intro c cf γr γd cap rev aec γa P Ws Wc ro c0
-  wp_start as ⟨#Hc, #Hae, Haec, #Honce, Hw, %Hpre⟩
-  obtain ⟨Hrev, Hk0⟩ := Hpre
+  wp_start as ⟨#Hc, #Hae, Haec, #Honce, Hw, %Hrev, #Hk0⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
@@ -380,15 +434,18 @@ theorem Cache.watchEvents.wp_proof
   ihave HI : (∃ (k : w64) (n : Nat) (cc : DemuxCore),
       "Hcons" ∷ etcdWatchConsumer γw n k ∗ "Hw" ∷ cacheWriter cf γd cap cc ∗
       "Haec" ∷ handoffConsumer γa false ∗
-      "%Hk" ∷ ⌜sint.Z (rev - W64 1) ≤ sint.Z k ∧ CursorOk cf.pfx cc k ∧
-        CursorOk cf.pfx cc (rev - W64 1)⌝ : IProp GF)
+      "%Hle" ∷ ⌜sint.Z (rev - W64 1) ≤ sint.Z k⌝ ∗ "#Hkc" ∷ CursorOk cf.pfx cc k ∗
+        "#Hk0c" ∷ CursorOk cf.pfx cc (rev - W64 1) : IProp GF)
     $$ [Hcons Hw Haec]
   · iexists rev - W64 1, 0, c0
     simp only [named]
     iframe Hcons Hw Haec
-    ipureintro; exact ⟨Int.le_refl _, Hk0, Hk0⟩
+    isplitr
+    · ipureintro; exact Int.le_refl _
+    isplitr
+    · iexact Hk0
+    iexact Hk0
   wp_for HI
-  obtain ⟨Hle, Hkc, Hk0c⟩ := Hk
   wp_apply +noauto HDone as %ch1 %γ1 #Hdone
   wp_auto_lc 2
   wp_apply_core chan.wp_select_blocking
@@ -411,7 +468,7 @@ theorem Cache.watchEvents.wp_proof
     iexists cc
     iframe Hw
     isplitr
-    · ipureintro; exact Hk0c
+    · iexact Hk0c
     ileft; iframe Haec; iapply errStrOk_of_ctx; iexact HcS
   iapply BigAndL.bigAndL_cons.2
   isplit
@@ -435,7 +492,7 @@ theorem Cache.watchEvents.wp_proof
       iexists cc
       iframe Hw
       isplitr
-      · ipureintro; exact Hk0c
+      · iexact Hk0c
       ileft; iframe Haec; iapply errStrOk_nil
     simp only [↓reduceIte]
     icases H with ⟨%r, %k', #Hr, #Hok, Hcons⟩
@@ -457,18 +514,18 @@ theorem Cache.watchEvents.wp_proof
       iexists cc
       iframe Hw
       isplitr
-      · ipureintro; exact Hk0c
+      · iexact Hk0c
       ileft; iframe Haec; iapply HwE; iapply watchRespOk_closeErr; iexact Hok
     | nil =>
     have hnw : ¬ watchErr v := by
       have h := Herr.1 rfl
       unfold watchErr
       rintro (h' | h' | h') <;> simp_all
-    icases watchRespOk_case cf.pfx k k' v r hnw $$ Hok with ⟨%Hcase, #Hch, #Hpr⟩
+    icases watchRespOk_case cf.pfx k k' v r hnw $$ Hok with ⟨%Hcase, #Hch, #Hpr, #Hps⟩
     unfold cacheWriter
-    icases Hw with ⟨Hdw, %Hwo, %B, Hbd⟩
+    icases Hw with ⟨Hdw, #Hwo, %B, Hbd⟩
     icases demuxWriter_inv $$ Hdw with ⟨Hdw, %Hinv⟩
-    ihave #Hcert0 := watchEvents_respCert cf.pfx cap cc r k k' Hinv Hkc Hcase $$ Hch Hpr
+    ihave #Hcert0 := watchEvents_respCert cf.pfx cap cc r k k' Hinv Hcase $$ Hkc Hch Hpr
     imod respCert_cacheCert_cond cf cc r B _ $$ [$Hcert0 $Hbd] with ⟨%B', #Hcert, Hbd⟩
     wp_auto
     wp_apply wp_Broadcast cf.demux γd cap (cacheCert cf) cc v r
@@ -486,10 +543,10 @@ theorem Cache.watchEvents.wp_proof
       iframe Hdw
       isplitl [Hbd]
       · isplitr
-        · ipureintro; exact Hwo
+        · iexact Hwo
         iexists B'; iexact Hbd
       isplitr
-      · ipureintro; exact Hk0c
+      · iexact Hk0c
       ileft; iframe Haec; iexact HbS
     | some c' =>
       have hc' : c' = updResp cap cc r := by
@@ -503,7 +560,8 @@ theorem Cache.watchEvents.wp_proof
       icases Hb with ⟨Hdw, %Hberr⟩
       subst Hberr
       icases demuxWriter_inv $$ Hdw with ⟨Hdw, %Hinv'⟩
-      have ha := watchEvents_after cf.pfx cap cc r k k' rev Hinv' Hwo Hkc Hk0c Hle Hcase
+      ihave Ha := watchEvents_after cf.pfx cap cc r k k' rev Hinv' Hle Hcase $$ [$Hwo $Hkc $Hk0c $Hps]
+      icases Ha with ⟨#Hwo', #Hkc', #Hk0c', %Hle'⟩
       wp_auto
       wp_for_post
       iframe HΦ
@@ -512,9 +570,13 @@ theorem Cache.watchEvents.wp_proof
       iframe Hcons Hdw Haec
       isplitl [Hbd]
       · isplitr
-        · ipureintro; exact ha.1
+        · iexact Hwo'
         iexists B'; iexact Hbd
-      ipureintro; exact ⟨ha.2.2.2, ha.2.1, ha.2.2.1⟩
+      isplitr
+      · ipureintro; exact Hle'
+      isplitr
+      · iexact Hkc'
+      iexact Hk0c'
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `<-applyErr`: reset `ready`, return what was received
@@ -535,7 +597,7 @@ theorem Cache.watchEvents.wp_proof
     iexists cc
     iframe Hw
     isplitr
-    · ipureintro; exact Hk0c
+    · iexact Hk0c
     iright
     iframe Haec
     cases ok

@@ -173,6 +173,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+variable [EM : EtcdModel GF]
 
 theorem store.wp_LatestRev :
     store.LatestRev.spec (GF := GF) (hG := hG) :=
@@ -496,6 +497,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+variable [EM : EtcdModel GF]
 
 theorem Cache.wp_Close :
     Cache.Close.spec (GF := GF) (hG := hG) :=

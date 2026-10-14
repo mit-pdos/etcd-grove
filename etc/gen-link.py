@@ -103,6 +103,9 @@ Links searched are those of the `@` callees' packages and those a mode declares 
 `--skip-unproved` (after the mode) leaves out the listed functions with no proof file yet (no
 spec, or no `Proof/` file: a later unit's) and every function that reaches one, and names them
 in the header: a package proved in units links what is done, from the full list.
+The clients' modes (`--cache`, `--concurrency`, `--leasing`, `--recipes`) state their links over
+the clients' model of etcd: their sections take `[EM : EtcdModel GF]` (the class of
+`cache/v3/EtcdModel.lean`, which the server instantiates; the vertical slice's unit V1).
 `--register` links the register example's proofs (`examples/register`), from
 etc/link-lean-first-register.txt; raft's functions it calls are `@` callees, linked in raft's
 `Link.lean`, and its specs' `[RegStor GF]` (the storage registry) is passed on.
@@ -204,7 +207,11 @@ REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
 # The modules a mode imports beside its proofs (its package's translation, through its `Base`,
 # while no proof of the package is linked yet: the v3rpc package's unit 0).
 EXTRA_IMPORTS = {"--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base"]}
+# The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
+# `cache/v3/EtcdModel.lean`, the vertical slice's unit V1): their sections take it as a variable.
+EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes"}
 mode = LEAN_FIRST.get(sys.argv[1])
+em = "variable [EM : EtcdModel GF]\n" if sys.argv[1] in EM_MODES else ""
 cache = mode is not None
 here = os.path.dirname(os.path.abspath(__file__))
 root = os.path.normpath(os.path.join(here, ".."))
@@ -416,7 +423,7 @@ variable [go_gctx : GoGlobalContext]
 variable {{hlc : HasLC}} {{GF : BundledGFunctors}} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : {assumptions}]
-""")
+{em}""")
     def hyp(fn):
         return "h_" + fn
 
@@ -502,7 +509,7 @@ variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : {assumptions}]
-""")
+{em}""")
         out.extend(emit_cache(fn) for fn in special)
         out.append("end links_hasLC\n")
     later = [fn for fn in order if fn in blocked and fn not in pending]
@@ -518,7 +525,7 @@ variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : {assumptions}]
-{hyps}
+{em}{hyps}
 include {names}
 """)
         out.extend(emit_cache(fn) for fn in later)
