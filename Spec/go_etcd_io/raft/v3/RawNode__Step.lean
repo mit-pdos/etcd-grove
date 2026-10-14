@@ -117,6 +117,10 @@ theorem NetMsgOk.restMsgOk [FfiSyntax] {id : w64} {s : NState} {m : raftpb.Messa
     · exact .inr (.inr (.inr (.inr h')))
   · exact absurd (Hun (.inr (.inl h'))) hz
 
+/-- (2026-10-14, stage B7 part 2) The dynamic mode takes no snapshot message (stage B8). -/
+def DynNoSnap [FfiSyntax] (rs : RNState) (m : raftpb.Message) : Prop :=
+  rs.mode.isDyn = true → m.Type' ≠ MsgSnap
+
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -130,8 +134,13 @@ abbrev RawNode.Step.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (ctx : List w8),
   NetMsgOk id m →
-  -- (2026-10-13) a read-index request only with more than one voter (`raft.Step`'s)
-  (m.Type' = MsgReadIndex → 1 < GMap.size γ.reCfg) →
+  -- (2026-10-14, stage B7 part 2) **no snapshot in the dynamic mode** (`DynNoSnap`): a
+  -- snapshot restore at a dynamic configuration is stage B8. (Implied today by `NetMsgOk`,
+  -- which takes no `MsgSnap` in either mode; a separate premise so that B8 can drop it.)
+  DynNoSnap rs m →
+  -- (2026-10-13) a read-index request only when the node is not its own quorum (`raft.Step`'s;
+  -- since 2026-10-14 in the voters it uses, `RNState.vcfg`; until then `1 < GMap.size γ.reCfg`)
+  (m.Type' = MsgReadIndex → NotSingleton (rs.vcfg γ)) →
   -- (2026-10-13) a `MsgTimeoutNow`'s campaign does not wrap the term (`raft.Step`'s)
   (m.Type' = MsgTimeoutNow → uint.Z rs.term + 1 < 2 ^ 64 ∧ uint.Z m.Term' + 1 < 2 ^ 64) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗

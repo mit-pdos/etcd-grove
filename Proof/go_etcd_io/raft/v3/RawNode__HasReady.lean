@@ -50,9 +50,9 @@ local macro "finish" : tactic => `(tactic| (
   ileft
   isplitr
   · ipureintro; rfl
-  iapply ownRawNode_intro γ rn id rs s ps rnv sv steps Hrel Hin Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor
-    Hpvoff Hrs_out Hrs_unst Hrs_clb
-    $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs))
+  iapply ownRawNode_intro γ rn id rs s cf fp rnv sv steps Hwf Hin Hal Hasync Hdlen Hunp Hsnap Hstok
+    Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs))
 
 set_option hygiene false in
 /-- The one path that returns `false`: no queue is non-empty, no unstable entry is
@@ -78,9 +78,9 @@ local macro "finish_false" : tactic => `(tactic| (
   iright
   isplitr
   · ipureintro; rfl
-  iapply ownRawNodeIdle_intro γ rn id rs s ps rnv sv steps Hrel Hin Hasync Hdlen Hunp Hsnap
-    Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb ⟨Hout0, Hnu, Hrd0⟩
-    $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs))
+  iapply ownRawNodeIdle_intro γ rn id rs s cf fp rnv sv steps Hwf Hin Hal Hasync Hdlen Hunp
+    Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb ⟨Hout0, Hnu, Hrd0⟩
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs))
 
 set_option hygiene false in
 /-- The rest of `HasReady` once the hard-state test fell through: Rocq's `all:` tail,
@@ -131,7 +131,7 @@ theorem RawNode.HasReady.wp_proof
   wp_start as H
   iNamed H
   iNamed Hrn
-  icases ownRaftPhys_view γ.reCfg rnv.raft' id s $$ Hphys with
+  icases ownRaftPhysC_view cf rnv.raft' id s $$ Hphys with
     ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
   iNamed Hv
   wp_auto

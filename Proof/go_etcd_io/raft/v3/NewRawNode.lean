@@ -38,6 +38,7 @@ theorem NewRawNode.wp_proof
     Hvne Hvnd Hv0 Hvlen Hc1 Hc2 Hc3 Hal
     $$ [$Hc $Hlg $Hst $HSt $Hinit] as %r %s %cv' ⟨Hphys, Hc, %HAW, %Hpost⟩
   imod rawNodeOwn_of_pts «$r0_ptr» _ $$ «$r0» with «$r0»
+  ihave Hphys := ownRaftPhys_toC' $$ Hphys
   try wp_auto
   wp_apply wp_softState _ r cv.ID' s $$ Hphys as Hphys
   -- `prevSoftSt` points to a `SoftState` nobody writes again
@@ -50,19 +51,23 @@ theorem NewRawNode.wp_proof
     newRaft_post_init hs s Hhs ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho⟩ (by rw [Hp, Hprev])
       (by rw [Hse, Hents]) Hue (by rw [Hcm]; simp [committedAfter, Hhs, Hprev]) Hrst Hrpd
   -- the ghost state's configuration is the node's
+  icases ownRaftPhysC_sdr _ r cv.ID' s $$ Hphys with ⟨#Hsd0, Hphys⟩
+  ihave #Hsdr : sdrOk (GF := GF) r RNMode.static $$ []
+  · iunfold sdrOk; iexists s.sdr; iframe Hsd0; ipureintro; intro h; cases h
+  ihave Hphys := ownRaftPhysC_toS $$ Hphys
   ihave Hphys : ownRaftPhys γ.reCfg r cv.ID' s $$ [Hphys]
   · rw [Hcfg]; iexact Hphys
   iapply HΦ $$ %«$r0_ptr» %interface.nil
   isplitl
-  · iapply ownRawNode_intro γ «$r0_ptr» cv.ID'
+  · iapply ownRawNode_intro_static γ «$r0_ptr» cv.ID'
       { delivered := [], unpersisted := [], steps := [], term := W64 0,
         storage := interface.ok si }
-      s initPState _ _ [] Hrel
+      s initPState _ _ [] rfl Hrel
       (by rw [Hcfg]; exact (GMap.elem_of_list_to_set _ _).2 Hid) ?_
       (by rw [Hap, Hprev, Happ]; rfl) (by rw [Hun]) Hsn trivial
       (by rw [Ht, HT]) (by rw [Hsg]) (by rw [Hpv, HpvF]) (by rw [Hgh]) (by rw [Hgh])
       (uint_Z_nonneg _)
-      $$ «$r0» Hphys Hghost ss [] [] [] [] Hcomm []
+      $$ «$r0» Hphys Hghost Hsdr ss [] [] [] [] Hcomm []
     all_goals first
       | (rw [Hsd, Hents]; iapply storedRecs_nil)
       | iapply ownSlice_nil

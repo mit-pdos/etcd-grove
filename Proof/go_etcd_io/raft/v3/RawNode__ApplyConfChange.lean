@@ -31,10 +31,13 @@ theorem RawNode.ApplyConfChange.wp_proof
     (wp_ConfChangeV2_AsV2 : raftpb.ConfChangeV2.AsV2.spec (GF := GF) (hG := hG))
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     RawNode.ApplyConfChange.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs c o dq Hap0
+  intro γ rn id rs c o dq Hm Hap0
   wp_start as H
   iNamed H
   iNamed Hrn
+  icases ownRawNode_static_open γ rs Hm fp cf rnv.raft' id s $$ Hphys Hghost with ⟨Hphys, Hghost⟩
+  have Hrel : NStateRel s (toPState s) := ⟨rfl, Hwf⟩
+  have Hin := Hin Hm
   rcases o with m | m
   · -- a `ConfChange`: `AsV2` makes the one change
     simp only [ownCCI, ownCCV1]
@@ -57,9 +60,9 @@ theorem RawNode.ApplyConfChange.wp_proof
       wp_apply +noauto (raft.applyConfChange.spec_simple wp_raft_applyConfChange) γ.reCfg rnv.raft' id s v2 _ (DFrac.own 1) lrn' Hd'
         Hsz' Hn
         $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, -, Hvoters, Hls, %Hcs0, %Hok⟩
-      imod rawNode_applyCC_reseal γ rn id rs s s' ps rnv sv steps Hrel Hin Hasync Hdlen Hunp Hsnap
-        Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hok
-        $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs with Hrn
+      imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv steps Hm Hrel Hin Hasync Hdlen Hunp
+        Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hok
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs with Hrn
       try wp_auto
       iapply HΦ
       simp only [named]
@@ -139,9 +142,9 @@ theorem RawNode.ApplyConfChange.wp_proof
       obtain ⟨lrn', Hd', Hsz', Hn⟩ := applyCC_of_shrink γ.reCfg s.progress _ _ Hn0 Hsub Hsz
       wp_apply +noauto (raft.applyConfChange.spec_simple wp_raft_applyConfChange) γ.reCfg rnv.raft' id s v _ dq lrn' Hd' Hsz' Hn
         $$ [$Hphys $Hch] as %cs %xs %ls %s' ⟨Hphys, Hch, Hvoters, Hls, %Hcs0, %Hok⟩
-      imod rawNode_applyCC_reseal γ rn id rs s s' ps rnv sv steps Hrel Hin Hasync Hdlen Hunp Hsnap
-        Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hok
-        $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs with Hrn
+      imod rawNode_applyCC_reseal γ rn id rs s s' _ rnv sv steps Hm Hrel Hin Hasync Hdlen Hunp
+        Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hok
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs with Hrn
       try wp_auto
       iapply HΦ
       simp only [named]

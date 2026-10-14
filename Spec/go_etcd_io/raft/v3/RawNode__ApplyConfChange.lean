@@ -84,6 +84,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev RawNode.ApplyConfChange.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (c : GoInterface) (o : CCMsg)
     (dq : DFrac),
+  -- (2026-10-14, stage B7 part 2) the static mode (the dynamic one: TODO in this stage)
+  rs.mode = .static →
   CCApplies γ.reCfg id (ccV2Of o).1 (ccV2Of o).2 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗

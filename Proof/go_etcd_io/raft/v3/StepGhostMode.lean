@@ -301,6 +301,35 @@ theorem ownStepGhost_congr (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {
     have hr := rOf_congr g hp ha hs hpci
     rw [hp, hr]
 
+/-- What the mode keeps beyond `ownRaftGhost` survives a change of the code state that keeps
+what it reads (2026-10-14, stage B7 part 2): the log, its boundary, the commit index, the term,
+the role, `applied`, the pending snapshot and `pciR` -- e.g. a `Ready`'s drain of the outbox
+and of the `ReadState`s, or `acceptReady`'s moves of `applying` and of what the storage holds. -/
+theorem ghostRest_keep (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {s s' : NState}
+    (hb : (toPState s').base = (toPState s).base) (hl : (toPState s').log = (toPState s).log)
+    (hc : (toPState s').commit = (toPState s).commit) (ht : (toPState s').term = (toPState s).term)
+    (hr : (toPState s').role = (toPState s).role) (ha : s'.logst.applied = s.logst.applied)
+    (hs : s'.logst.snap = s.logst.snap) (hpci : pciR s' = pciR s) :
+    ghostRest (GF := GF) γ md c id s ⊢ ghostRest γ md c id s' := by
+  cases md with
+  | static => simp only [ghostRest]; exact .rfl
+  | dyn dec c0 h0 g =>
+    simp only [ghostRest]
+    iintro ⟨%H, #Hfr, #Hc⟩
+    obtain ⟨HD, hc', HI⟩ := H
+    have hfull : (rOf s' g).full = (rOf s g).full := by
+      simp only [RState.full, rOf.proj_fp, rOf.proj_p]; rw [hl]
+    isplitr
+    · ipureintro
+      refine ⟨HD, hc', HI.frame (by simp [rOf]) (by simp [rOf, hb]) (by simp [rOf, hl])
+        (by simp [rOf, hc]) (by simp [rOf, ha]) (by simp [rOf, hs]) (by simp [rOf])
+        (by simp [rOf]) (.inr ⟨by simp [rOf, hr], by simp [rOf, hpci]⟩)⟩
+    iframe Hfr
+    iintro %hcand
+    rw [hfull, ht, hc]
+    iapply Hc
+    rw [← hr]; exact hcand
+
 end ghost
 
 end EtcdGrove

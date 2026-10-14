@@ -229,8 +229,8 @@ theorem ownRaftGhost_inv (γ : RaftNames) (id : w64) (s : PState) :
   iNamed H
   iapply ownLogGhost_inv $$ Hlg
 
-theorem ownRaftGhost_committed (γ : RaftNames) (id : w64) (s : PState) :
-    ⊢ ownRaftGhost (GF := GF) γ id s -∗
+theorem ownRaftGhost_committed (γ : RaftNames) (id : w64) (s : PState) {md : Bool} :
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗
       ∃ fp, ⌜FullOk s.base fp⌝ ∗
             isCommitted γ ((fp ++ s.log).take (uint.Z s.commit).toNat) := by
   unfold ownRaftGhost

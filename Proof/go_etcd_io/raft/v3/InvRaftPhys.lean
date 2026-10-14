@@ -233,7 +233,9 @@ def raftOwn (l : Loc) (v : raft) : IProp GF :=
     "H_electionTimeout" ∷ l.[raft, go!"electionTimeout"] ↦ v.electionTimeout' ∗
     "H_randomizedElectionTimeout" ∷ l.[raft, go!"randomizedElectionTimeout"] ↦ v.randomizedElectionTimeout' ∗
     "H_disableProposalForwarding" ∷ l.[raft, go!"disableProposalForwarding"] ↦ v.disableProposalForwarding' ∗
-    "H_stepDownOnRemoval" ∷ l.[raft, go!"stepDownOnRemoval"] ↦ v.stepDownOnRemoval' ∗
+    -- (2026-10-14, stage B7 part 2) never written after `newRaft`: persistent, so that a
+    -- client of a step learns it unchanged (`ownRaftPhysC_sdr`)
+    "#H_stepDownOnRemoval" ∷ l.[raft, go!"stepDownOnRemoval"] ↦□ v.stepDownOnRemoval' ∗
     "H_tick" ∷ l.[raft, go!"tick"] ↦ v.tick' ∗
     "H_step" ∷ l.[raft, go!"step"] ↦ v.step' ∗
     "#H_logger" ∷ l.[raft, go!"logger"] ↦□ v.logger' ∗
@@ -250,6 +252,7 @@ theorem raftOwn_of_pts (l : Loc) (v : raft) :
   iNamed Hf
   ipersist id
   ipersist logger
+  ipersist stepDownOnRemoval
   imodintro
   unfold raftOwn
   simp only [named]
@@ -259,6 +262,10 @@ theorem raftOwn_of_pts (l : Loc) (v : raft) :
 theorem raftOwn_id (l : Loc) (v : raft) :
     ⊢ raftOwn (GF := GF) l v -∗ l.[raft, go!"id"] ↦□ v.id' := by
   iintro H; unfold raftOwn; iNamed H; iexact H_id
+
+theorem raftOwn_sdr (l : Loc) (v : raft) :
+    ⊢ raftOwn (GF := GF) l v -∗ l.[raft, go!"stepDownOnRemoval"] ↦□ v.stepDownOnRemoval' := by
+  iintro H; unfold raftOwn; iNamed H; iexact H_stepDownOnRemoval
 
 theorem raftOwn_logger (l : Loc) (v : raft) :
     ⊢ raftOwn (GF := GF) l v -∗ l.[raft, go!"logger"] ↦□ v.logger' := by
@@ -526,16 +533,6 @@ theorem raftOwn_access_store_disableProposalForwarding (l : Loc) (v : raft) (x :
     AccessStrict (PROP := IProp GF) (l.[raft, go!"disableProposalForwarding"] ↦ v.disableProposalForwarding') (l.[raft, go!"disableProposalForwarding"] ↦ x)
       (raftOwn l v) (raftOwn l { v with disableProposalForwarding' := x }) := by
   raftOwn_access H_disableProposalForwarding
-
-theorem raftOwn_access_load_stepDownOnRemoval (l : Loc) (v : raft) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"stepDownOnRemoval"] ↦ v.stepDownOnRemoval') (l.[raft, go!"stepDownOnRemoval"] ↦ v.stepDownOnRemoval')
-      (raftOwn l v) (raftOwn l v) := by
-  raftOwn_access H_stepDownOnRemoval
-
-theorem raftOwn_access_store_stepDownOnRemoval (l : Loc) (v : raft) (x : Bool) :
-    AccessStrict (PROP := IProp GF) (l.[raft, go!"stepDownOnRemoval"] ↦ v.stepDownOnRemoval') (l.[raft, go!"stepDownOnRemoval"] ↦ x)
-      (raftOwn l v) (raftOwn l { v with stepDownOnRemoval' := x }) := by
-  raftOwn_access H_stepDownOnRemoval
 
 theorem raftOwn_access_load_tick (l : Loc) (v : raft) :
     AccessStrict (PROP := IProp GF) (l.[raft, go!"tick"] ↦ v.tick') (l.[raft, go!"tick"] ↦ v.tick')
@@ -2464,6 +2461,15 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 variable (c : CfgM) {V : GSet w64}
 
+/-- The node's id is nonzero (2026-10-14, stage B7 part 2). -/
+theorem ownRaftPhysC_id_nz (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ ⌜id ≠ W64 0⌝ ∗ ownRaftPhysCV c V r id s := by
+  iintro H
+  iNamed_physC H
+  isplitr
+  · ipureintro; exact Hid_nz
+  resealC c s
+
 /-- The leader-transfer target is never the node itself (2026-10-13): read out without
 consuming anything. -/
 theorem ownRaftPhysC_lt_ne (r : Loc) (id : w64) (s : NState) :
@@ -2654,8 +2660,21 @@ theorem raft.wp_load_stepDownOnRemovalC (r : Loc) (id : w64) (s : NState) :
     {{ RET #s.sdr; ownRaftPhysCV c V r id s }} := by
   iintro %Φ H HΦ
   iNamed_physC H
-  wp_apply wp_load_access _ rv.stepDownOnRemoval' _ (raftOwn_access_load_stepDownOnRemoval _ _) $$ Hr as Hr
+  ihave #Hf := raftOwn_sdr _ _ $$ Hr
+  wp_apply wp_load_pers _ rv.stepDownOnRemoval' $$ Hf
   rw [Hsdr]; iapply HΦ; resealC c s
+
+/-- The field `stepDownOnRemoval`, persistent at `s.sdr` (2026-10-14, stage B7 part 2): nobody
+writes it after `newRaft`, so a later state of the same struct has the same `sdr`. -/
+theorem ownRaftPhysC_sdr (r : Loc) (id : w64) (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
+      r.[raft, go!"stepDownOnRemoval"] ↦□ s.sdr ∗ ownRaftPhysCV c V r id s := by
+  iintro H
+  iNamed_physC H
+  ihave #Hf := raftOwn_sdr _ _ $$ Hr
+  isplitr
+  · rw [← Hsdr]; iexact Hf
+  resealC c s
 
 theorem raft.wp_load_leadTransfereeC (r : Loc) (id : w64) (s : NState) :
     {{ ownRaftPhysCV (GF := GF) c V r id s }}

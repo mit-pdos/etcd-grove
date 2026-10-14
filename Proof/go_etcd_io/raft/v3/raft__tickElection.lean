@@ -89,7 +89,7 @@ theorem raft.tickElection.wp_proof
     iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', -, %Hfr, %Htm, -, Herr⟩
     have Hcm := Href.commit_mono
     have e1 := Href.keep (by msg_ne); subst e1
-    have e2 := Hc' (by msg_ne); subst e2
+    have e2 := Hc' (by msg_ne); subst c'
     icases Herr with (%Herr | ⟨%Hc'', -⟩)
     · subst Herr
       wp_auto
