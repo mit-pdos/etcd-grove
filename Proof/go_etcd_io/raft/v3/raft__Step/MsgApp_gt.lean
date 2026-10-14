@@ -96,7 +96,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       functions stepFollower [] := rfl
   rw [Hsf]
   wp_apply _P.stepFollower c ∅ r id { becomeFollower s m.Term' m.From' with prvals := pvs } m
-      ents (zero_val _) [] [] (.inr (.inr (.inl Hty)))
+      ents (zero_val _) [] (.inr (.inr (.inl Hty)))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun _ => ⟨Hpwf, Hnw, Hconf, Hfid⟩)

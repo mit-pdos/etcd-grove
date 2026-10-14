@@ -235,6 +235,9 @@ structure CSLists where
   outgoing : List w64
   learnersNext : List w64
 
+/-- No lists (the argument of a spec about a `ConfState` where none is read). -/
+instance : EmptyCollection CSLists := ⟨⟨[], [], [], []⟩⟩
+
 /-- Each list a permutation of the other's. -/
 def CSLists.Perm (a b : CSLists) : Prop :=
   a.voters ≡ₚ b.voters ∧ a.learners ≡ₚ b.learners ∧ a.outgoing ≡ₚ b.outgoing ∧

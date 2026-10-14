@@ -134,7 +134,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         functions stepFollower [] := rfl
     rw [Hsf]
     wp_apply _P.stepFollower c ∅ r id { becomeFollower s m.Term' (W64 0) with prvals := pvs }
-        m [] (zero_val _) [] [] (.inl Hty)
+        m [] (zero_val _) [] (.inl Hty)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -205,7 +205,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       cases Hrole : s.role
       · -- Follower: `stepFollower` has no `MsgVoteResp` arm.
         simp only [stepFuncOf]
-        wp_apply _P.stepFollower c ∅ r id s m [] (zero_val _) [] [] (.inl Hty)
+        wp_apply _P.stepFollower c ∅ r id s m [] (zero_val _) [] (.inl Hty)
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -257,7 +257,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hback⟩
         icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hlnw, Hlog⟩
         ihave Hphys := Hback $$ Hlog
-        wp_apply _P.stepCandidate c ∅ r id s m [] (zero_val _) [] [] (.inl Hty)
+        wp_apply _P.stepCandidate c ∅ r id s m [] (zero_val _) [] (.inl Hty)
             (fun _ => ⟨Hteq, Hterm⟩) (.inl Hrole)
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -394,7 +394,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       · -- PreCandidate (2026-10-04): `stepCandidate`'s `myVoteRespType` is
         -- `MsgPreVoteResp`, so a vote response is ignored.
         simp only [stepFuncOf]
-        wp_apply _P.stepCandidate c ∅ r id s m [] (zero_val _) [] [] (.inl Hty)
+        wp_apply _P.stepCandidate c ∅ r id s m [] (zero_val _) [] (.inl Hty)
             (fun _ => ⟨Hteq, Hterm⟩) (.inr Hrole)
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
             (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))

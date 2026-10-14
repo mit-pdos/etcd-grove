@@ -169,7 +169,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · -- Follower: forward to the leader, or drop. `send` wants the entries read-only.
     simp only [stepFuncOf]
     ipersist Hents
-    wp_apply _P.stepFollower c ∅ r id s m ents (zero_val _) [] ctx
+    wp_apply _P.stepFollower c ∅ r id s m ents (zero_val _) ctx
         (.inr (.inl Hty))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ => ⟨Hfrom, Hterm, Hlok Hrole⟩)
@@ -234,7 +234,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       ileft; ipureintro; rfl
   · -- Candidate: drop
     simp only [stepFuncOf]
-    wp_apply _P.stepCandidate c ∅ r id s m ents (zero_val _) [] []
+    wp_apply _P.stepCandidate c ∅ r id s m ents (zero_val _) []
         (.inr (.inl Hty))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
@@ -404,7 +404,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         iright; iexact Herrn
   · -- PreCandidate (2026-10-04), as a candidate: drop
     simp only [stepFuncOf]
-    wp_apply _P.stepCandidate c ∅ r id s m ents (zero_val _) [] []
+    wp_apply _P.stepCandidate c ∅ r id s m ents (zero_val _) []
         (.inr (.inl Hty))
         (fun Hc => by
           exfalso; rw [Hty] at Hc

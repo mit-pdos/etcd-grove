@@ -45,7 +45,7 @@ local macro "mtype_simp" : tactic =>
       or_false, false_or, false_and, and_false, ↓reduceIte, Bool.false_eq_true] at *)
 
 /-- `stepFollower` has no `MsgPreVoteResp` arm. -/
-theorem followerStepResult_prevoteresp (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id : w64) (s : NState) (m : raftpb.Message)
+theorem followerStepResult_prevoteresp (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState) :
     m.Type' = MsgPreVoteResp →
     FollowerStepResultC c scfg id s m ents sv dropped s' c' → c = c' ∧ dropped = false ∧ s' = s := by
@@ -132,7 +132,7 @@ theorem prevoteRespResult_resp (id : w64) (s : NState) (src : w64) (reject won l
 
 /-- `stepCandidate` on a `MsgPreVoteResp`: nothing at a candidate; at a pre-candidate,
 the tally and then win / lose / wait, which is `stepC_prevoteRespResult`. -/
-theorem candidateStepResult_prevoteresp (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id : w64) (s : NState)
+theorem candidateStepResult_prevoteresp (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState)
     (m : raftpb.Message) (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool)
     (s' : NState) :
     m.Type' = MsgPreVoteResp →

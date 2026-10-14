@@ -151,11 +151,12 @@ def PrecandVoteRespResultC (c : CfgM) (id : w64) (s : NState) (m : raftpb.Messag
 
 /-- `CandidateStepResult` at the configuration `c` (2026-10-13, reconfiguration stage A2), with the
 configuration `c'` the node is at afterwards (`c`, but the snapshot's after a `MsgSnap` that
-`restore` installs: since 2026-10-14, stage A3, with any voters `scfg`, `SnapCfgOk`). -/
-def CandidateStepResultC (c : CfgM) (scfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
+`restore` installs: since 2026-10-14, stage A3, `SnapCfgOk`; since B8 the configuration the
+`ConfState`'s lists `scfg` denote, any). -/
+def CandidateStepResultC (c : CfgM) (scfg : CSLists) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
     (c' : CfgM) (cl : List w8 := []) : Prop :=
-  (if m.Type' = MsgSnap then SnapCfgOk c scfg s sv s' c'
+  (if m.Type' = MsgSnap then SnapCfgOk c s sv scfg c'
    else c' = c) ∧
   (if m.Type' = MsgVoteResp then
        dropped = false ∧
@@ -204,7 +205,7 @@ theorem PrecandVoteRespResultC.simple {cfg L : GSet w64} {id : w64} {s : NState}
     rw [CfgM.voters_simple] at b; exact b
   · exact (JLost_of_out (c := CfgM.simple cfg L) hne rfl _).1 (h2 hl)
 
-theorem CandidateStepResultC.simple {cfg L scfg : GSet w64} {id : w64} {s : NState}
+theorem CandidateStepResultC.simple {cfg L : GSet w64} {scfg : CSLists} {id : w64} {s : NState}
     {m : raftpb.Message}
     {ents : List raftpb.Entry} {sv : raftpb.Snapshot} {dropped : Bool} {s' : NState} {c' : CfgM}
     {cl : List w8} (hne : cfg ≠ ∅)
@@ -260,14 +261,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 At any configuration since 2026-10-13 (reconfiguration stage A2): the struct at `c`
 (`ownRaftPhysCV c c.voters`), `poll`'s facts joint, a pre-vote win's campaign over the voters
 of either half (`CandidateStepResultC`); a `MsgSnap` (since 2026-10-14, stage A3) at any `c`, of
-a snapshot whose configuration is non-joint with any voters `scfg` containing the node, after
-which the node is at the snapshot's configuration if `restore` installed it (until then: only
-at a non-joint `c`, `scfg = c.incoming`); in the A2 wording: a `MsgSnap` only at a non-joint `c`, after which the
-node is at the snapshot's configuration. The old statement is `stepCandidate.specS`.
+a snapshot whose `ConfState` holds the lists `scfg` (since B8 any well-formed ones, joint
+included, the node an incoming voter: `SnapScope`; in A3 non-joint with any voters; until then
+only at a non-joint `c`), after which the node is at the snapshot's configuration if `restore`
+installed it. (The statement on `ownRaftPhys`, `specS`, had no caller and is gone.)
 -/
 abbrev stepCandidate.spec : Prop :=
-  ∀ (c : CfgM) (scfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (voters : List w64) (cl : List w8),
+  ∀ (c : CfgM) (scfg : CSLists) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
+    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (cl : List w8),
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
    m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
    (m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp) ∨
@@ -300,11 +301,9 @@ abbrev stepCandidate.spec : Prop :=
       -- the `Context` (2026-10-12): what the response to a heartbeat carries
       "Hctx" ∷ (⌜m.Type' = MsgHeartbeat⌝ -∗ m.Context' ↦*□ cl) ∗
       "Hsnap" ∷ (⌜m.Type' = MsgSnap⌝ -∗
-                 ∃ learners, ⌜SnapScope scfg sv voters learners ∧ id ∈ scfg ∧
-                   m.From' ≠ id⌝ ∗
+                 ⌜SnapScope sv scfg ∧ id ∈ scfg.voters ∧ m.From' ≠ id⌝ ∗
                  m.Snapshot' ↦□ sv ∗
-                 sv.Metadata'.ConfState'.Voters' ↦*□ voters ∗
-                 ownIdList sv.Metadata'.ConfState'.Learners' DFrac.discard learners) ∗
+                 ownCSL sv.Metadata'.ConfState' scfg) ∗
       "Hents" ∷ (⌜m.Type' = MsgApp⌝ -∗
                  m.Entries' ↦*□ ents ∗
                  ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1)) }}
@@ -314,90 +313,6 @@ abbrev stepCandidate.spec : Prop :=
       ⌜CandidateStepResultC c scfg id s m ents sv dropped s' c' cl⌝ ∗
       (if dropped then globalAddr ErrProposalDropped ↦□ err
        else ⌜err = interface.nil⌝) }}
-
-/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
-derived from `stepCandidate.spec` by `stepCandidate.spec_simple`. -/
-abbrev stepCandidate.specS : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (voters : List w64) (cl : List w8),
-  (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
-   m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
-   (m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp) ∨
-   m.Type' = MsgSnap ∨ m.Type' = MsgPreVoteResp ∨
-   m.Type' = MsgReadIndex ∨
-   (m.Type' = MsgReadIndexResp ∨ m.Type' = MsgForgetLeader ∨ m.Type' = MsgTransferLeader ∨
-    m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus)) →
-  (m.Type' = MsgVoteResp ∨ m.Type' = MsgApp ∨
-   m.Type' = MsgHeartbeat ∨ m.Type' = MsgSnap →
-   m.Term' = s.term ∧ m.Term' ≠ W64 0) →
-  s.role = .candidate ∨ s.role = .preCandidate →
-  (m.Type' = MsgApp →
-     PlogWf (entryID.mk m.LogTerm' m.Index') ents ∧
-     uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 ∧
-     (let ls := s.logst
-      let es := ls.sents ++ ls.uents
-      uint.Z ls.committed ≤ uint.Z m.Index' →
-      PlogMatches ls.prev es (entryID.mk m.LogTerm' m.Index') →
-      plogFindConflict ls.prev es ents = W64 0 ∨
-      uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents)) ∧
-     m.From' ≠ id) →
-  (m.Type' = MsgHeartbeat →
-     uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) ∧
-     m.From' ≠ id) →
-  (s.role = .preCandidate → m.Type' = MsgPreVoteResp →
-   uint.Z s.term + 1 < 2 ^ 64) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhys cfg r id s ∗
-      "Hctx" ∷ (⌜m.Type' = MsgHeartbeat⌝ -∗ m.Context' ↦*□ cl) ∗
-      "Hsnap" ∷ (⌜m.Type' = MsgSnap⌝ -∗
-                 ∃ learners, ⌜SnapScope cfg sv voters learners ∧ m.From' ≠ id⌝ ∗
-                 m.Snapshot' ↦□ sv ∗
-                 sv.Metadata'.ConfState'.Voters' ↦*□ voters ∗
-                 ownIdList sv.Metadata'.ConfState'.Learners' DFrac.discard learners) ∗
-      "Hents" ∷ (⌜m.Type' = MsgApp⌝ -∗
-                 m.Entries' ↦*□ ents ∗
-                 ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1)) }}
-    (App (App (Val #(functions stepCandidate [])) (Val #r)) (Val #m))
-  {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
-      ownRaftPhys cfg r id s' ∗
-      ⌜CandidateStepResult cfg id s m ents sv dropped s' cl⌝ ∗
-      (if dropped then globalAddr ErrProposalDropped ↦□ err
-       else ⌜err = interface.nil⌝) }}
-
-open Iris.ProofMode in
-theorem stepCandidate.spec_simple
-    (H : stepCandidate.spec (GF := GF) (hG := hG)) :
-    stepCandidate.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s m ents sv voters cl Hty Hterm Hrole Happ Hhb Hpvnw
-  iintro %Φ ⟨#Hpkg, Hphys, Hctx, Hsnap, Hents⟩ HΦ
-  icases ownRaftPhys_voter cfg r id s $$ Hphys with ⟨%Hv, Hphys⟩
-  have Hin : id ∈ cfg := Hv (by rcases Hrole with h | h <;> rw [h] <;> decide)
-  have Hne : cfg ≠ ∅ := fun h => GMap.not_elem_of_empty id (h ▸ Hin)
-  ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H (CfgM.simple cfg (domSet s.progress \ cfg)) cfg r id s m ents sv voters cl Hty Hterm
-      Hrole Happ Hhb Hpvnw
-    $$ [$Hpkg $Hphys $Hctx Hsnap $Hents]
-  · iintro %Hm
-    icases Hsnap $$ %Hm with ⟨%learners, %Hsc, Hsv⟩
-    iexists learners
-    iframe Hsv
-    ipureintro
-    exact ⟨Hsc.1, Hin, Hsc.2⟩
-  inext
-  iintro %err %s' %dropped %c' ⟨Hphys, %Hres, Hdr⟩
-  have Hc' := Hres.1
-  have Hcs : ∃ L, c' = CfgM.simple cfg L := by
-    split at Hc'
-    · rcases Hc' with ⟨-, h⟩ | ⟨-, h⟩
-      · exact ⟨_, h⟩
-      · exact ⟨_, h⟩
-    · exact ⟨_, Hc'⟩
-  obtain ⟨L, rfl⟩ := Hcs
-  ihave Hphys := ownRaftPhysC_toS $$ Hphys
-  iapply HΦ $$ %err %s' %dropped
-  iframe Hphys Hdr
-  ipureintro
-  exact Hres.simple Hne
 
 end spec
 

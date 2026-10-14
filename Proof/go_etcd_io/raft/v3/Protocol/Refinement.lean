@@ -2433,6 +2433,27 @@ theorem ownRaftGhost_step_snap_fastfwd (γ : RaftNames) (id : w64) (s : PState) 
   · lcm_mono
   · rd_mono
 
+/-- A snapshot message shows its prefix (2026-10-14, reconfiguration stage B8): some prefix of
+the full log, recorded (`logRecs`), ends at the snapshot's entry id -- the sender's committed
+prefix up to it (its leader prefix, `isMessage_snap_inv`, taken to the index). This is the
+prefix a receiver's restore takes (`StepR.snapRestore`'s `fp'`, which records make unique). -/
+theorem isMessage_snap_prefix (γ : RaftNames) (m : Msg) (Hty : m.ty = .snap) :
+    ⊢ isMessage (GF := GF) γ m -∗
+      ∃ fp, ⌜FullOk (entryID.mk m.logterm m.index) fp⌝ ∗ logRecs γ base0 fp := by
+  iintro #Hm
+  icases isMessage_snap_inv γ m Hty $$ Hm with
+    ⟨-, -, ⟨%bL, %l', %fpL, #Hp', %Hidx', #Hpf', -, -⟩, -⟩
+  ihave #HLf := leadFull_intro $$ Hp' Hpf'
+  icases leadFull_wf γ m.term (fpL ++ l') $$ HLf with ⟨%HwLf, #HrLf⟩
+  icases lpfull_fp $$ Hpf' with ⟨-, %HfL⟩
+  have HbL := (plogTermAt_some_range _ _ _ _ Hidx').1
+  have HLidx : plogTermAt base0 (fpL ++ l') m.index = some m.logterm := by
+    rw [full_term_at bL fpL l' m.index HfL.1 HbL]; exact Hidx'
+  iexists (fpL ++ l').take (uint.Z m.index).toNat
+  isplitr
+  · ipureintro; exact FullOk_take _ _ _ HwLf.1 HLidx
+  iapply logRecs_take $$ HrLf
+
 /-- `Step.snapRestore`: the log is replaced by the snapshot -- no entries after the new
 base, so no records to keep; the compacted prefix is the leader's full log up to the
 snapshot -- and the commit index becomes the snapshot's, which the message carries the

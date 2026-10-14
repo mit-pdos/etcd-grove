@@ -306,60 +306,67 @@ private theorem dispatch_Beat (P : raft.Step.Postulates (GF := GF) (hG := hG))
       (by resp_other) $$ Hghost Hrest Hphys [] HΦ
   ileft; ipureintro; exact Herr
 
-/-- `MsgSnap` (2026-10-02): the snapshot and its voters come from `"Hsnap"`. At the
+/-- `MsgSnap` (2026-10-02): the snapshot and its `ConfState` come from `"Hsnap"`. At the
 current term the receiver is not a leader -- the sender leads that term (`isMessage`'s
 `isLeader`, `isLeader_unique`) -- and a follower's tally is empty (`FollowerVotesOk`);
 the three `step_snap_*` rules need no other protocol fact: a restore replaces the log
-wholesale and the fast-forward's `commitTo` is in range by `matchTerm`. -/
+wholesale and the fast-forward's `commitTo` is in range by `matchTerm`. In either mode since
+2026-10-14 (stage B8): the branch's `StepCDS` witness updates the mode's ghost state
+(`ghost_stepCDS`), with what the mode asks of the snapshot (`GMode.SnapOk`). -/
 private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
-    (m : raftpb.Message) (sv : raftpb.Snapshot) (voters learners : List w64)
-    (Φ : val → IProp GF)
-    (HC : CfgStatic γ c) (Hin : id ∈ γ.reCfg) (Hwf : NStateWf s)
+    (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
+    (m : raftpb.Message) (sv : raftpb.Snapshot) (scfg : CSLists)
+    (Φ : val → IProp GF) (Hwf : NStateWf s)
     (Hty : m.Type' = MsgSnap)
     (Hm : m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id)
-    (Hscope : SnapScope γ.reCfg sv voters learners) :
+    (Hscope : SnapScope sv scfg) (Hid : id ∈ scfg.voters) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
       ownRaftPhysCV c c.voters r id s -∗
-      ownRaftGhost γ id (toPState s) false -∗
+      ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
       m.Snapshot' ↦□ sv -∗
-      sv.Metadata'.ConfState'.Voters' ↦*□ voters -∗
-      ownIdList sv.Metadata'.ConfState'.Learners' DFrac.discard learners -∗
-      isMessage γ (absSnap m sv voters) -∗
-      ▷ stepPost γ .static c r id s m Φ -∗
+      ownCSL sv.Metadata'.ConfState' scfg -∗
+      md.SnapOk γ sv scfg -∗
+      isMessage γ (absSnap m sv scfg.voters) -∗
+      ▷ stepPost γ md c r id s m Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
         {{ v, |={⊤}=> Φ v }} := by
   obtain ⟨Hto, Hterm, Hfnz, Hfid⟩ := Hm
-  iintro #Hinit Hphys Hghost #Hsv #Hvs #Hls #Hm HΦ
+  iintro #Hinit Hphys Hghost Hrest #Hsv #Hcs #Hso #Hm HΦ
   -- at the current term the receiver is not a leader: the sender leads it
-  ihave #Hl2 := isMessage_snap_isLeader γ m sv voters $$ Hm
+  ihave #Hl2 := isMessage_snap_isLeader γ m sv scfg.voters $$ Hm
   ihave %Hnl := not_leader_of_msg γ id s m Hfid $$ Hghost Hl2
   ihave %Hfv0 := ownRaftGhost_follower_votes γ id (toPState s) $$ Hghost
   have Hfv : s.role = .follower → s.votes = ∅ := followerVotesOk_phys s Hfv0
-  wp_apply (wp_Step_MsgSnap P c r id s m γ.reCfg sv voters learners Hty Hto Hterm Hfnz Hfid
-      Hin Hwf Hscope Hnl Hfv) $$ [$Hphys $Hsv $Hvs $Hls]
+  wp_apply (wp_Step_MsgSnap P c r id s m scfg sv Hty Hto Hterm Hfnz Hfid
+      Hid Hwf Hscope Hnl Hfv) $$ [$Hphys $Hsv $Hcs]
     as %err %s' %c1 ⟨Hphys, %Hc1, %Hwf', %Hst, %Herr⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
-  imod ghost_step_recv γ c id _ _ _ recv HC Hrecv Hstep.1 (by simp [absSnap, absSnapFrom])
-    $$ Hm Hghost with Hghost
-  ihave Hghost : ownStepGhost γ .static c1 id s' $$ [Hghost]
-  · simp only [ownStepGhost, ghostRest, GMode.isDyn]
-    isplitl [Hghost]
-    · iexact Hghost
-    ipureintro
-    rcases Hc1 with rfl | ⟨L, rfl⟩
-    · exact HC
-    · exact CfgStatic.simple γ L HC.2.2
+  -- the received messages, each the snapshot message, none a read-index request
+  have Hcnt : rdCount recv = 0 := by
+    unfold rdCount; rw [List.countP_eq_zero]
+    intro x hx; rw [Hrecv x hx]; simp [absSnap, absSnapFrom]
+  imod rdCred_zero_upd (GF := GF) γ with Hz
+  ihave Hall : ([∗list] x ∈ recv, isMessage (GF := GF) γ x) $$ []
+  · iapply (BigSepL.bigSepL_intro (P := iprop(□ isMessage (GF := GF) γ (absSnap m sv scfg.voters)))
+      (fun k x hx => by
+        rw [Hrecv x (List.mem_of_getElem? hx)]
+        exact intuitionistically_elim))
+    iexact Hm
+  imod ghost_stepCDS γ md c c1 id sv scfg s recv s' (absSnap m sv scfg.voters) ⟨rfl, rfl⟩ Hstep
+      Hid Hc1 $$ Hm Hall [Hz] Hso Hghost Hrest with ⟨%md', %Hout, Hghost, Hrest⟩
+  · rw [Hcnt]; iexact Hz
   imodintro
   unfold stepPost
   ihave Herr' : (⌜err = interface.nil⌝ ∨
       (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err) : IProp GF) $$ []
   · ileft; ipureintro; exact Herr
-  iapply HΦ $$ %err %s' %c1 %GMode.static
+  ihave Hghost : ownStepGhost γ md' c1 id s' $$ [Hghost Hrest]
+  · unfold ownStepGhost; iframe
+  iapply HΦ $$ %err %s' %c1 %md'
   iframe Hphys Hghost Herr'
   ipureintro
   -- the frame and the term step are not claimed for a snapshot
-  exact ⟨Hwf', ⟨rfl, recv, Hstep.1⟩, fun h => absurd Hty h, fun h => absurd Hty h,
+  exact ⟨Hwf', Hout, fun h => absurd Hty h, fun h => absurd Hty h,
     fun h => absurd Hty h, by resp_other⟩
 
 /-- `MsgReadIndex` (2026-10-13): a local or forwarded request, `Term = 0`. -/
@@ -497,7 +504,7 @@ theorem raft.Step.wp_proof
      wp_stepFollower, wp_stepLeader, wp_traceReceiveMessage, wp_raftLog_lastEntryID,
      wp_raftLog_isUpToDate, wp_raftLog_stableTo, wp_raft_appliedTo,
      wp_raft_reduceUncommittedSize, wp_entsSize, wp_payloadsSize⟩
-  intro c md γ r id s m ents ctx Hsm Hin Hhup Hvote Hvoteresp Hprevote Hprevoteresp
+  intro c md γ r id s m ents ctx Hsm Hhup Hvote Hvoteresp Hprevote Hprevoteresp
     Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hri Hsal Hrir Hrest Hwf Hpre
   iintro %Φ ⟨#Hinit, Hphys, Hghost, Hm, #Hctxp, Hcred, #Hsnap⟩ HΦ
   -- (2026-10-14, stage B7) the ghost state in its mode: `ownRaftGhost` (what the protocol facts
@@ -544,7 +551,8 @@ theorem raft.Step.wp_proof
       intro x hx; rw [Hrecv x hx]; simp [absMsg, absMsgFrom]
     imod rdCred_zero (GF := GF) γ with Hz
     imod ghost_step_md γ md c id m s s' _ recv 0 Hrecv Hstep
-      (fun _ _ _ _ hmd HI => Hpre.dynHyp (fun h => absurd (Hty.symm.trans h) (by w32_ne)) hmd HI)
+      (fun _ _ _ _ hmd HI => Hpre.dynHyp (fun h => absurd (Hty.symm.trans h) (by w32_ne))
+        (fun h => absurd (Hty.symm.trans h) (by w32_ne)) hmd HI)
       (by omega) $$ Hm' Hz Hghost Hrest with ⟨%md', %Hout, Hghost⟩
     imodintro
     iapply HΦ $$ %err %s' %c %md'
@@ -581,7 +589,8 @@ theorem raft.Step.wp_proof
       $$ [$Hphys]
       as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hst, %Herr⟩
     imod ghost_step_md0 γ md c id m s s' Hst
-      (fun _ _ _ _ hmd HI => Hpre.dynHyp (fun h => absurd (HtyA.symm.trans h) (by w32_ne)) hmd HI)
+      (fun _ _ _ _ hmd HI => Hpre.dynHyp (fun h => absurd (HtyA.symm.trans h) (by w32_ne))
+        (fun h => absurd (HtyA.symm.trans h) (by w32_ne)) hmd HI)
       $$ Hghost Hrest with ⟨%md', %Hout, Hghost⟩
     imodintro
     iapply HΦ $$ %err %s' %c %md'
@@ -609,7 +618,8 @@ theorem raft.Step.wp_proof
         Hwf (Hsal HtyB)) $$ [$Hphys $Hents]
       as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hst, %Happ', %Herr⟩
     imod ghost_step_md0 γ md c id m s s' Hst
-      (fun _ _ _ _ hmd HI => Hpre.dynHyp (fun _ => Happ') hmd HI)
+      (fun _ _ _ _ hmd HI => Hpre.dynHyp (fun h => absurd (HtyB.symm.trans h) (by w32_ne))
+        (fun _ => Happ') hmd HI)
       $$ Hghost Hrest with ⟨%md', %Hout, Hghost⟩
     imodintro
     iapply HΦ $$ %err %s' %c %md'
@@ -640,20 +650,17 @@ theorem raft.Step.wp_proof
     -- `LocalStepOk` is about the three types handled above
     exact ⟨Hwf', Href, Hc', fun Hl => by rcases Hl with h | h | h <;> contradiction,
       fun h _ => Hfr' h, Htm', Hresp'⟩
-  -- the remaining types are no storage acknowledgement: the dynamic premises from `Hpre`
-  have Hdh : ∀ s', DynHypFor md m s s' := fun _ _ _ _ _ hmd HI =>
-    Hpre.dynHyp (fun h => absurd h HtyB) hmd HI
   by_cases Hns : m.Type' = MsgSnap
-  · -- MsgSnap: `dispatch_Snap`, with the snapshot from `"Hsnap"`.
-    icases Hsnap $$ %Hns with ⟨%sv, %voters, %learners, #Hsv, #Hvs, #Hls, %Hscope, #Hm'⟩
-    -- a snapshot is in the static mode only (`GMode.Pre`)
-    cases md with
-    | dyn dec c0 h0 g => exact absurd Hns Hpre.1
-    | static =>
-      simp only [ghostRest, GMode.isDyn]
-      icases Hrest with %HC
-      iapply dispatch_Snap P γ c r id s m sv voters learners Φ HC (Hin Hns) Hwf Hns
-        (Hsnapt Hns) Hscope $$ Hinit Hphys Hghost Hsv Hvs Hls Hm' HΦ
+  · -- MsgSnap: `dispatch_Snap`, with the snapshot from `"Hsnap"` (either mode since 2026-10-14,
+    -- stage B8)
+    icases Hsnap $$ %Hns with ⟨%sv, %scfg, #Hsv, #Hcs, %Hsc, #Hso, #Hm'⟩
+    obtain ⟨Hscope, Hid⟩ := Hsc
+    iapply dispatch_Snap P γ md c r id s m sv scfg Φ Hwf Hns (Hsnapt Hns) Hscope Hid
+      $$ Hinit Hphys Hghost Hrest Hsv Hcs Hso Hm' HΦ
+  -- the remaining types are no storage acknowledgement and no snapshot: the dynamic premises
+  -- from `Hpre`
+  have Hdh : ∀ s', DynHypFor md m s s' := fun _ _ _ _ _ hmd HI =>
+    Hpre.dynHyp Hns (fun h => absurd h HtyB) hmd HI
   -- from here on `m` is not a `MsgSnap`, so `Hm`'s `ty ≠ .snap` guard always holds
   ihave #Hmsgc : (□ ∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗ isMessage γ (absMsg ty m ents ctx)) $$ []
   · imodintro
