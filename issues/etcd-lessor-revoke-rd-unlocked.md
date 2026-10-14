@@ -1,8 +1,8 @@
-# lease: `Revoke` reads the range deleter outside the lessor's lock
+# lease: `SetRangeDeleter`/`Recover` must not run concurrently with `Revoke` (undocumented)
 
-- **Status**: open (an unstated precondition; not reachable in etcd's server, where
-  `SetRangeDeleter` runs at the store's construction and `Recover` and `Revoke` both run on the
-  apply goroutine).
+- **Status**: open, documentation (an unstated precondition, not a bug: unreachable in etcd's
+  server, where `SetRangeDeleter` runs at the store's construction and `Recover` and `Revoke` both
+  run on the apply goroutine).
 - **Where**: `server/lease/lessor.go` at the pinned revision (`etc/goose.py`, bc8b52a50319):
   `lessor.Revoke` (`lessor.go:326`) unlocks `le.mu` after its map lookup and then reads `le.rd`
   (`if le.rd == nil`, `lessor.go:339`; `txn := le.rd()`, `lessor.go:343`) without the lock;
@@ -49,15 +49,16 @@
 
   reports `WARNING: DATA RACE` between the write at `lessor.go:271` (`SetRangeDeleter`) and the
   read at `lessor.go:339` (`Revoke`) (run 2026-10-13 with go1.27.1).
-- **Expected**: either `Revoke` reads `le.rd` under `le.mu` (with the lease lookup, before
-  unlocking), or the interface documents that `SetRangeDeleter` and `Recover` must not run
-  concurrently with `Revoke`.
-- **How the proof handles it**: `Revoke` is not proved (`notes/STATUS.md`, the backend's unit 9):
-  its read of `le.rd` outside the lock needs a share of the field outside `le.mu`'s invariant
-  (`Proof/go_etcd_io/etcd/server/v3/lease/InvLessor.lean`, `lessorMu`), which `SetRangeDeleter`'s
-  spec (unit 8: any caller, under the lock alone) does not give; the apply package's `Revoke`
-  clause stays a premise (`apply.isApplyLessor_of_lessorInv`).
-- **Possible fixes**: read `rd := le.rd` before `le.mu.Unlock()` in `Revoke` and use `rd`
-  afterwards.
+- **Expected**: the `Lessor` interface documents that `SetRangeDeleter` and `Recover` are not
+  called concurrently with `Revoke` (in etcd: at construction, or on the goroutine that revokes).
+- **How the proof handles it**: `Revoke` is not proved (out of scope for now: the verification
+  targets a client doing Puts and Gets without leases, for which no lease is granted and `Revoke`
+  never runs); the apply package's `Revoke` clause stays a premise
+  (`apply.isApplyLessor_of_lessorInv`). A proof would take the precondition above as a right to
+  `le.rd` shared by the specs of `SetRangeDeleter`, `Recover` and `Revoke`, held by the one
+  goroutine that sets the range deleter and revokes (the apply thread), so no Go change.
+- **Possible fixes**: document the precondition. Changing the implementation (reading
+  `rd := le.rd` before `le.mu.Unlock()` in `Revoke`) is needed only for a spec that allows
+  concurrent `SetRangeDeleter`/`Recover`.
 - **Found**: 2026-10-13, the backend's unit 9 (the lessor's apply-side methods), while writing
   `lessor.Revoke`'s spec; the race confirmed with the test above.
