@@ -41,7 +41,7 @@ theorem Run.wp_proof
     (wp_WaitGroup_Done : sync.WaitGroup.Done.spec (GF := GF) (hG := hG))
     (wp_WaitGroup_Wait : sync.WaitGroup.Wait.spec (GF := GF) (hG := hG)) :
     Run.spec (GF := GF) (hG := hG) :=
-    fun σ S m apply gen clock libState clockVal t0 Eapp Eclk clients ops dur HEapp HEclk
+    fun σ S m apply gen clock inOk libState clockVal t0 Eapp Eclk clients ops dur HEapp HEclk
       Hc0 Hc31 Hops Hbound => by
   wp_start as ⟨#Hmodel, #Happly, #Hgen, #Hclock, Hlib, Hclk⟩
   wp_auto
@@ -109,7 +109,7 @@ theorem Run.wp_proof
     ipersist idc
     wp_apply wp_fork $$ [Hdone Hcell Htok]
     · wp_auto
-      wp_apply wp_runClient σ S libState clockVal Eapp Eclk (sint.nat clients) γ apply gen clock k
+      wp_apply wp_runClient σ S inOk libState clockVal Eapp Eclk (sint.nat clients) γ apply gen clock k
         ops t0 HEapp HEclk Hk.1 $$ [Htok] as %sl ⟨%hc, %Lc, %lr', Hsl, Htok, %Hok, #Hio⟩
       · iframe #
         iexact Htok

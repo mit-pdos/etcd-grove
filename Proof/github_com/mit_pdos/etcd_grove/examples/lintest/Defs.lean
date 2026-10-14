@@ -9,13 +9,15 @@ Lean-first (no Rocq counterpart).
   Perennial's `<<{ … }>>` notation, `ProgramLogic/AtomicFupd.lean`) over its abstract value
   `clockVal t`, with its own invariants in `Eclk`, and monotone: a reading returns the new
   value `t'`, and `t ≤ t'` (signed: the clock is an `int64`).
-- `applySpec S libState Eapp f`: the library `f` is logically atomic against porcupine's
-  sequential model `S.M` over the library's abstract state `libState s`: at its linearization
-  point it takes the state from `s` to `s'` with the output `o` it then returns, and
-  `S.M.step s (i, o) = some s'`; it returns what porcupine's `Step` needs of the input and
-  output (`S.ioOk i o`).
-- `genSpec f`: the input generator returns some value (any: the result holds for whatever
-  inputs it generates, e.g. at random).
+- `applySpec S inOk libState Eapp f`: the library `f` is logically atomic against
+  porcupine's sequential model `S.M` over the library's abstract state `libState s`: given an
+  input `i` with `inOk i`, at its linearization point it takes the state from `s` to `s'`
+  with the output `o` it then returns, and `S.M.step s (i, o) = some s'`; it returns what
+  porcupine's `Step` needs of the input and output (`S.ioOk i o`).
+- `genSpec f inOk`: the input generator returns a value `i` with `inOk i`, persistently.
+  `inOk` is the library's notion of a well-formed input (e.g. `∃ b, i = boxed bool b` for a
+  library that asserts `input.(bool)`); `True` covers any input. Within it, the result holds
+  for whatever inputs `gen` picks, e.g. at random.
 
 All three are persistent: every client calls them concurrently.
 
@@ -66,22 +68,25 @@ def clockSpec (clockVal : w64 → IProp GF) (Eclk : CoPset) (f : GoFunc) : IProp
     <<{ ∃∃ t', clockVal t' ∗ ⌜sint.Z t ≤ sint.Z t'⌝ }>> {{ RET #t'; True }})
 
 /-- A library operation, logically atomic against the model (see the file header). -/
-def applySpec (S : ModelSpec GF σ) (libState : σ → IProp GF) (Eapp : CoPset) (f : GoFunc) :
-    IProp GF :=
-  iprop(∀ i : GoInterface, <<{ ∀∀ s, libState s }>> (App (Val #f) (Val #i)) @@ Eapp
+def applySpec (S : ModelSpec GF σ) (inOk : GoInterface → IProp GF) (libState : σ → IProp GF)
+    (Eapp : CoPset) (f : GoFunc) : IProp GF :=
+  iprop(∀ i : GoInterface,
+    {{ inOk i }} <<{ ∀∀ s, libState s }>> (App (Val #f) (Val #i)) @@ Eapp
     <<{ ∃∃ s' o, libState s' ∗ ⌜S.M.step s (i, o) = some s'⌝ }>> {{ RET #o; S.ioOk i o }})
 
 /-- The input generator (see the file header). -/
-def genSpec (f : GoFunc) : IProp GF :=
+def genSpec (f : GoFunc) (inOk : GoInterface → IProp GF) : IProp GF :=
   iprop(∀ id : w64,
-    {{ True }} (App (Val #f) (Val #id)) {{ (i : GoInterface), RET #i; True }})
+    {{ True }} (App (Val #f) (Val #id)) {{ (i : GoInterface), RET #i; □ inOk i }})
 
 instance clockSpec_persistent (clockVal : w64 → IProp GF) (Eclk : CoPset) (f : GoFunc) :
     Persistent (clockSpec clockVal Eclk f) := by unfold clockSpec; infer_instance
-instance applySpec_persistent (S : ModelSpec GF σ) (libState : σ → IProp GF) (Eapp : CoPset)
-    (f : GoFunc) : Persistent (applySpec S libState Eapp f) := by
+instance applySpec_persistent (S : ModelSpec GF σ) (inOk : GoInterface → IProp GF)
+    (libState : σ → IProp GF) (Eapp : CoPset) (f : GoFunc) :
+    Persistent (applySpec S inOk libState Eapp f) := by
   unfold applySpec; infer_instance
-instance genSpec_persistent (f : GoFunc) : Persistent (genSpec (GF := GF) f) := by
+instance genSpec_persistent (f : GoFunc) (inOk : GoInterface → IProp GF) :
+    Persistent (genSpec f inOk) := by
   unfold genSpec; infer_instance
 
 end defs

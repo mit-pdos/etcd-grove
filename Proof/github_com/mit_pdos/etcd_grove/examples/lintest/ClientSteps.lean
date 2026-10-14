@@ -77,17 +77,18 @@ theorem wp_clock_read (M : SeqModel σ OpV) (libState : σ → IProp GF)
   exact ⟨fun p hp => Int.le_trans (Hok.recs_le Hlook hp) Hle, Int.le_trans (Hok.lr_le' Hlook) Hle⟩
 
 /-- A library operation under the invariant (see the file header). -/
-theorem wp_apply_commit (S : ModelSpec GF σ) (libState : σ → IProp GF)
+theorem wp_apply_commit (S : ModelSpec GF σ) (inOk : GoInterface → IProp GF)
+    (libState : σ → IProp GF)
     (clockVal : w64 → IProp GF) (Eapp : CoPset) (n : Nat) (γ : GName) (apply : GoFunc)
     (c : Nat) (v : ClientV) (i : GoInterface) (HE : (↑lintestN : CoPset) ⊆ ⊤ \ Eapp) :
-    {{ applySpec S libState Eapp apply ∗ inv lintestN (linInv S.M libState clockVal n γ) ∗
-        £ 1 ∗ clientTok γ c v }}
+    {{ applySpec S inOk libState Eapp apply ∗ inOk i ∗
+        inv lintestN (linInv S.M libState clockVal n γ) ∗ £ 1 ∗ clientTok γ c v }}
       (App (Val #apply) (Val #i))
     {{ (o : GoInterface) (t : w64), RET #o; clientTok γ c (v.1 ++ [((i, o), t)], v.2) ∗
         ⌜sint.Z v.2 ≤ sint.Z t⌝ ∗ S.ioOk i o }} := by
-  iintro %Φ ⟨#Happ, #Hinv, Hlc, Htok⟩ HΦ
+  iintro %Φ ⟨#Happ, Hin, #Hinv, Hlc, Htok⟩ HΦ
   iunfold applySpec at Happ
-  iapply Happ $$ %i
+  iapply Happ $$ %i Hin
   inext
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later $$ Hlc Hi with Hi

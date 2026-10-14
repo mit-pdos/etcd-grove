@@ -3,7 +3,8 @@
 `runClient(id, ops, gen, apply, clock)` (lintest.go): one client's loop, under `Run`'s
 invariant (`linInv`, `Proof/.../lintest/Defs.lean`). It starts with its ghost value empty
 (`clientTok γ id ([], lr)`) and returns its trace `hc` (one `Operation` per call of `apply`,
-`ops` of them if `ops ≥ 0`), with its records `Lc` in the ghost log: the trace's operation
+`ops` of them if `ops ≥ 0`; each input is from `gen`, so `apply` gets an input with
+`inOk`), with its records `Lc` in the ghost log: the trace's operation
 `j` is the client's `j`-th linearized operation, called before and returned after its
 linearization point (`ClientOk`), and owns what porcupine's `Step` needs (`opsIoOk`).
 -/
@@ -30,11 +31,12 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.Assumpti
 
 /-- See the file header. -/
 abbrev runClient.spec : Prop :=
-  ∀ (σ : Type) (S : ModelSpec GF σ) (libState : σ → IProp GF) (clockVal : w64 → IProp GF)
+  ∀ (σ : Type) (S : ModelSpec GF σ) (inOk : GoInterface → IProp GF) (libState : σ → IProp GF)
+    (clockVal : w64 → IProp GF)
     (Eapp Eclk : CoPset) (n : Nat) (γ : GName) (apply gen clock : GoFunc) (id ops lr : w64),
   (↑lintestN : CoPset) ⊆ ⊤ \ Eapp → (↑lintestN : CoPset) ⊆ ⊤ \ Eclk → 0 ≤ sint.Z id →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest ∗
-      applySpec S libState Eapp apply ∗ genSpec gen ∗ clockSpec clockVal Eclk clock ∗
+      applySpec S inOk libState Eapp apply ∗ genSpec gen inOk ∗ clockSpec clockVal Eclk clock ∗
       inv lintestN (linInv S.M libState clockVal n γ) ∗ clientTok γ (sint.nat id) ([], lr) }}
     (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lintest.runClient))
       (Val #id)) (Val #ops)) (Val #gen)) (Val #apply)) (Val #clock))

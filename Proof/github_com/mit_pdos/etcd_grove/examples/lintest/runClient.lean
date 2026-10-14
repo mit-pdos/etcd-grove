@@ -29,7 +29,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.Assumptions]
 
 theorem runClient.wp_proof : runClient.spec (GF := GF) (hG := hG) :=
-    fun σ S libState clockVal Eapp Eclk n γ apply gen clock id ops lr HEapp HEclk Hid => by
+    fun σ S inOk libState clockVal Eapp Eclk n γ apply gen clock id ops lr HEapp HEclk Hid => by
   wp_start as ⟨#Happly, #Hgen, #Hclock, #Hinv, Htok⟩
   wp_auto
   ihave Hnil := ownSlice_nil (V := Operation) (GF := GF) (DFrac.own 1)
@@ -59,11 +59,11 @@ theorem runClient.wp_proof : runClient.spec (GF := GF) (hG := hG) :=
   wp_for HI
   wp_if_destruct
   · iunfold genSpec at Hgen
-    wp_apply (lc := 1) Hgen as %input -
+    wp_apply (lc := 1) Hgen as %input #Hin
     wp_apply (lc := 1) wp_clock_read S.M libState clockVal Eclk n γ clock (sint.nat id) (Lc, lr')
       HEclk $$ [$Hclock $Hinv $Hlc1 $Htok] as %call ⟨Htok, %Hcall⟩
-    wp_apply (lc := 1) wp_apply_commit S libState clockVal Eapp n γ apply (sint.nat id) (Lc, call)
-      input HEapp $$ [$Happly $Hinv $Hlc1 $Htok] as %output %τ ⟨Htok, %Hτ, #Hioo⟩
+    wp_apply (lc := 1) wp_apply_commit S inOk libState clockVal Eapp n γ apply (sint.nat id)
+      (Lc, call) input HEapp $$ [$Happly $Hin $Hinv $Hlc1 $Htok] as %output %τ ⟨Htok, %Hτ, #Hioo⟩
     wp_apply wp_clock_read S.M libState clockVal Eclk n γ clock (sint.nat id)
       (Lc ++ [((input, output), τ)], call) HEclk $$ [$Hclock $Hinv $Hlc1 $Htok]
       as %ret ⟨Htok, %Hret⟩
