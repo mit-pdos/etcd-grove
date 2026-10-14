@@ -7,7 +7,8 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                files; exit 1 (printing a diff) if they differ.  A gate for CI: the
                checked-in translation must be exactly what the pinned translator
                produces from the pinned Go source.
-  --project    only this project (etcd-raft, etcd or register; repeatable; default: all).
+  --project    only this project (etcd-raft, etcd, register, porcupine or lintest;
+               repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
                $ETCD_RAFT_SRC).  For a pinned revision not yet pushed, or for trying
@@ -299,7 +300,30 @@ PROJECTS = [
         local=os.path.join("examples", "register"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3="],
         packages=["."],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove")],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "register")],
+    ),
+    Project(
+        name="porcupine",
+        # The linearizability checker of etcd's robustness tests (github.com/anishathalye/
+        # porcupine v1.3.1, the version in etcd's tests/go.mod), vendored with the one change
+        # that makes it translatable (third_party/porcupine/UPSTREAM.md).
+        repo=None,
+        rev=None,
+        local=os.path.join("third_party", "porcupine"),
+        lean_roots=["github.com/anishathalye/porcupine="],
+        packages=["."],
+        owned=[os.path.join("github_com", "anishathalye")],
+    ),
+    Project(
+        name="lintest",
+        # A generic driver over porcupine: clients that run a linearizable library's
+        # operations, traced as etcd's robustness tests trace them, then checked.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "lintest"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lintest")],
     ),
 ]
 
