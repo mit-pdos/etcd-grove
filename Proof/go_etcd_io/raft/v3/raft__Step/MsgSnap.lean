@@ -57,7 +57,7 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.Term' ≠ W64 0 →
     m.From' ≠ W64 0 →
     m.From' ≠ id →
-    id ∈ scfg.voters →
+    scfg.Has id →
     NStateWf s →
     -- the snapshot's `ConfState` well formed, any (joint included), its index below `2^61`
     -- (`Step`'s `"Hsnap"`)

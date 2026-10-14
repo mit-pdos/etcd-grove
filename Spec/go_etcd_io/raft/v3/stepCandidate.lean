@@ -262,7 +262,7 @@ At any configuration since 2026-10-13 (reconfiguration stage A2): the struct at 
 (`ownRaftPhysCV c c.voters`), `poll`'s facts joint, a pre-vote win's campaign over the voters
 of either half (`CandidateStepResultC`); a `MsgSnap` (since 2026-10-14, stage A3) at any `c`, of
 a snapshot whose `ConfState` holds the lists `scfg` (since B8 any well-formed ones, joint
-included, the node an incoming voter: `SnapScope`; in A3 non-joint with any voters; until then
+included, the node one of its ids: `SnapScope`, `CSLists.Has`; in A3 non-joint with any voters; until then
 only at a non-joint `c`), after which the node is at the snapshot's configuration if `restore`
 installed it. (The statement on `ownRaftPhys`, `specS`, had no caller and is gone.)
 -/
@@ -301,7 +301,7 @@ abbrev stepCandidate.spec : Prop :=
       -- the `Context` (2026-10-12): what the response to a heartbeat carries
       "Hctx" ∷ (⌜m.Type' = MsgHeartbeat⌝ -∗ m.Context' ↦*□ cl) ∗
       "Hsnap" ∷ (⌜m.Type' = MsgSnap⌝ -∗
-                 ⌜SnapScope sv scfg ∧ id ∈ scfg.voters ∧ m.From' ≠ id⌝ ∗
+                 ⌜SnapScope sv scfg ∧ scfg.Has id ∧ m.From' ≠ id⌝ ∗
                  m.Snapshot' ↦□ sv ∗
                  ownCSL sv.Metadata'.ConfState' scfg) ∗
       "Hents" ∷ (⌜m.Type' = MsgApp⌝ -∗

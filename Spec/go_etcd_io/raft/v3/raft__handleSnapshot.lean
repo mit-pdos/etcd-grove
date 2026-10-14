@@ -85,14 +85,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. At any configuration since 2026-10-14 (reconfiguration stage A3): the
 struct at any `c`; since B8 the snapshot's `ConfState` any well-formed one, joint included, with
-the node an incoming voter (`restore`'s spec); afterwards the node is at the configuration `c'`
+the node one of its ids (`restore`'s spec); afterwards the node is at the configuration `c'`
 (`SnapCfgOk`). (The statement with the node's own voters, `specS`, had no caller and is gone.) -/
 abbrev raft.handleSnapshot.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (m : raftpb.Message) (sv : raftpb.Snapshot) (cl : CSLists),
   s.role = .follower →
   s.votes = ∅ →
-  id ∈ cl.voters →
+  cl.Has id →
   SnapScope sv cl →
   -- from another node (2026-10-10; `Step`'s premise): the reply goes to `m.From`
   m.From' ≠ id →

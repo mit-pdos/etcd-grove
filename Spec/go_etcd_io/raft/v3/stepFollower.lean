@@ -197,8 +197,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 At any configuration since 2026-10-13 (reconfiguration stage A2): the struct at `c`
 (`ownRaftPhysCV c c.voters`); `MsgTimeoutNow`'s campaign is at `c` (`FollowerStepResultC`).
 A `MsgSnap` (since 2026-10-14, stage A3) at any `c`, joint or not, of a snapshot whose
-`ConfState` holds the lists `scfg` (since B8 any well-formed ones, joint included, the node an
-incoming voter: `SnapScope`; in A3 non-joint with any voters; until then only at a non-joint
+`ConfState` holds the lists `scfg` (since B8 any well-formed ones, joint included, the node one
+of its ids: `SnapScope`, `CSLists.Has`; in A3 non-joint with any voters; until then only at a non-joint
 `c`, its voters `c.incoming`), after which the node is at the snapshot's configuration if
 `restore` installed it (`SnapCfgOk`). (The statement on `ownRaftPhys`, `specS`, had no caller
 and is gone.)
@@ -252,7 +252,7 @@ abbrev stepFollower.spec : Prop :=
                   m.Entries' ↦*□ ents) ∗
       "Hsnap" ∷ (⌜m.Type' = MsgSnap⌝ -∗
                  ⌜SnapScope sv scfg ∧
-                   s.role = .follower ∧ s.votes = ∅ ∧ id ∈ scfg.voters ∧ m.From' ≠ id⌝ ∗
+                   s.role = .follower ∧ s.votes = ∅ ∧ scfg.Has id ∧ m.From' ≠ id⌝ ∗
                  m.Snapshot' ↦□ sv ∗
                  ownCSL sv.Metadata'.ConfState' scfg) ∗
       "Hents" ∷ (⌜m.Type' = MsgApp ∨ m.Type' = MsgProp⌝ -∗

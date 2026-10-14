@@ -278,7 +278,7 @@ abbrev raft.Step.spec : Prop :=
   StepMsg m →
   -- (Until 2026-10-14, stage B8, a premise `m.Type' = MsgSnap → id ∈ γ.reCfg`: the node one of
   -- the ghost state's voters, which a snapshot's `restore` needs. It is now one of the
-  -- snapshot's incoming voters, in `"Hsnap"`.)
+  -- snapshot's ids, in `"Hsnap"`.)
   -- A `MsgHup` is local (`Term = 0`) and may start an election, which increments the
   -- term; `send` panics if that wraps to zero.
   (m.Type' = MsgHup →
@@ -432,7 +432,7 @@ abbrev raft.Step.spec : Prop :=
       -- slices hold, read-only (`ownCSL`); well formed (`SnapScope`, `Spec/raft__restore.lean`:
       -- `CSWf`, no repeats, `AutoLeave` off when not joint, the index below `2^61` -- a pending
       -- snapshot becomes the `Storage`'s boundary, which `isStorage`'s `Hbounded` bounds the
-      -- same way), the node one of its incoming voters; what the mode asks of it
+      -- same way), the node one of its ids (`CSLists.Has`); what the mode asks of it
       -- (`GMode.SnapOk`: statically the ghost state's voters, not joint; dynamically A3, the
       -- `ConfState` the fold of the snapshot's prefix); and the abstraction `absSnap`
       -- (`Defs.lean`) -- the snapshot's metadata, not `m`'s own `Index`/`LogTerm` -- was
@@ -441,7 +441,7 @@ abbrev raft.Step.spec : Prop :=
          ∃ (sv : raftpb.Snapshot) (scfg : CSLists),
            m.Snapshot' ↦□ sv ∗
            ownCSL sv.Metadata'.ConfState' scfg ∗
-           ⌜SnapScope sv scfg ∧ id ∈ scfg.voters⌝ ∗
+           ⌜SnapScope sv scfg ∧ scfg.Has id⌝ ∗
            md.SnapOk γ sv scfg ∗
            isMessage γ (absSnap m sv scfg)) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
@@ -708,7 +708,7 @@ theorem raft.Step.spec_simple (H : raft.Step.spec (GF := GF) (hG := hG)) :
     iframe Hsv Hcs Hm'
     isplitr
     · ipureintro
-      refine ⟨Hscope, ?_⟩
+      refine ⟨Hscope, .inl ?_⟩
       have := Hin Hns
       rw [← Hvs] at this
       exact (GMap.elem_of_list_to_set _ _).1 this

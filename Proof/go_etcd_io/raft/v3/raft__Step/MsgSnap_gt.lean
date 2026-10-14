@@ -45,7 +45,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     m.Term' ≠ W64 0 →
     m.From' ≠ W64 0 →
     m.From' ≠ id →
-    id ∈ scfg.voters →
+    scfg.Has id →
     NStateWf s →
     SnapScope sv scfg →
     -- this file: the incoming term is higher

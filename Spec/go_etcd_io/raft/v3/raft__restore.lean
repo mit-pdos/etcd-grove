@@ -13,8 +13,8 @@ Three exits that matter, in the body's order:
 
 Three more are dead under the premises: the node is not a follower
 (`becomeFollower(Term+1)`, `false`) -- both callers have just made it one, so `s.role =
-.follower`; `r.id` is in none of the `ConfState`'s sets (`false`) -- it is one of its
-voters, `id ∈ cl.voters`; and `confchange.Restore` failing (`panic`) -- the `ConfState` is
+.follower`; `r.id` is in none of the `ConfState`'s sets (`false`) -- it is in one of them, `CSLists.Has cl
+id` (an incoming voter, a learner or an outgoing voter); and `confchange.Restore` failing (`panic`) -- the `ConfState` is
 well formed (`SnapScope`), so `Restore` answers the configuration it denotes (`restoreM_wf`).
 
 `SnapScope sv cl` is the scope for a snapshot, what `Step`'s `"Hsnap"` supplies (since
@@ -26,9 +26,7 @@ without repeats (`assertConfStatesEquivalent` compares them sorted with the sets
 `switchToConfig` reports), not too many (`slices.Sort`'s bound, and `ownTrackerC`'s on the
 progress map), `AutoLeave` off when not joint (`Restore` drops it then, and the comparison
 would see it); and the index is below `2^61` (`LogStoreOk`'s bound for a pending snapshot,
-`InvRaftlog.lean`). The node itself is an incoming voter (`id ∈ cl.voters`: a learner or an
-outgoing-only voter receiving a snapshot needs the `found` search over the other lists, not
-done).
+`InvRaftlog.lean`). The node itself is one of the ids `found` searches (`CSLists.Has`).
 
 The rebuilt tracker: a fresh, empty `Votes` map -- the tally was already empty
 (`s.votes = ∅`: a follower's, `FollowerVotesOk`), so `NState.votes` does not move -- a
@@ -66,6 +64,12 @@ def SnapScope (sv : raftpb.Snapshot) (cl : CSLists) : Prop :=
     ≤ 2 ^ 62 ∧
   (cl.outgoing = [] → cs.AutoLeave' = false) ∧
   uint.Z sv.Metadata'.Index' < 2^61
+
+/-- `id` is in one of the sets `restore`'s `found` search reads: an incoming voter, a learner or
+an outgoing voter (2026-10-14, reconfiguration stage B8; a staged learner is an outgoing voter,
+`CSWf`). -/
+def CSLists.Has (cl : CSLists) (id : w64) : Prop :=
+  id ∈ cl.voters ∨ id ∈ cl.learners ∨ id ∈ cl.outgoing
 
 /-- The configuration a snapshot's `ConfState` denotes (2026-10-14, reconfiguration stage B8). -/
 abbrev snapCfg (sv : raftpb.Snapshot) (cl : CSLists) : CfgM :=
@@ -106,7 +110,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. At any configuration since 2026-10-14 (reconfiguration stage A3): the
 struct at any `c` (`ownRaftPhysCV c c.voters`, joint or not); since B8 (the same day) the
 snapshot's `ConfState` any well-formed one, joint included (`SnapScope`, its four slices
-read-only, `ownCSL`), with the node one of its incoming voters; after a restore the node is at
+read-only, `ownCSL`), with the node one of its ids (`CSLists.Has`); after a restore the node is at
 the configuration it denotes, otherwise still at `c` (`restoreCfg`). (Until B8 the `ConfState`
 was non-joint with the voters `cfg`, `SnapScope cfg sv voters learners`, and a statement
 `specS` with the node's own voters; `specS` had no caller and is gone.) -/
@@ -114,7 +118,7 @@ abbrev raft.restore.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (sv : raftpb.Snapshot) (cl : CSLists),
   s.role = .follower →
   s.votes = ∅ →
-  id ∈ cl.voters →
+  cl.Has id →
   SnapScope sv cl →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗

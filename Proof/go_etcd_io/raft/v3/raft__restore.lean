@@ -147,13 +147,53 @@ theorem ownConfigC_of_restore (c : CfgM) (cfgv : tracker.Config) (prsm : Loc)
       · rw [if_pos hl] at h1; rw [← Option.some.inj h1]; simp [hl]
       · rw [if_neg hl] at h1; cases h1
 
+/-- `restore`'s `found` search has not met `id` in the first `k` of its three sets
+(`[Voters, Learners, VotersOutgoing]`). -/
+def FoundBefore (cl : CSLists) (id : w64) (k : Nat) : Prop :=
+  ∀ (j : Nat) (L : List w64), j < k → [cl.voters, cl.learners, cl.outgoing][j]? = some L →
+    id ∉ L
+
+theorem foundBefore_zero (cl : CSLists) (id : w64) : FoundBefore cl id 0 :=
+  fun _ _ h => absurd h (Nat.not_lt_zero _)
+
+theorem foundBefore_succ {cl : CSLists} {id : w64} {k : Nat} {L : List w64}
+    (H : FoundBefore cl id k) (HL : [cl.voters, cl.learners, cl.outgoing][k]? = some L)
+    (Hn : id ∉ L) : FoundBefore cl id (k + 1) := by
+  intro j L' hj hL'
+  rcases Nat.lt_succ_iff_lt_or_eq.1 hj with h | h
+  · exact H j L' h hL'
+  · subst h; rw [HL] at hL'; cases hL'; exact Hn
+
+theorem foundBefore_three {cl : CSLists} {id : w64} (H : FoundBefore cl id 3)
+    (Hin : id ∈ cl.voters ∨ id ∈ cl.learners ∨ id ∈ cl.outgoing) : False := by
+  rcases Hin with h | h | h
+  · exact H 0 _ (by decide) rfl h
+  · exact H 1 _ (by decide) rfl h
+  · exact H 2 _ (by decide) rfl h
+
+/-- The `k`-th set `found` searches, read-only. -/
+theorem csl_found_slice (cs : raftpb.ConfState) (cl : CSLists) (k : Nat) (hk : k < 3) :
+    ownCSL (GF := GF) cs cl ⊢ ∃ (sl : GoSlice) (L : List w64),
+      ⌜[cs.Voters', cs.Learners', cs.VotersOutgoing'][k]? = some sl ∧
+        [cl.voters, cl.learners, cl.outgoing][k]? = some L⌝ ∗ sl ↦*□ L := by
+  unfold ownCSL
+  iintro ⟨#Hv, #Hl, #Ho, -⟩
+  rcases (show k = 0 ∨ k = 1 ∨ k = 2 by omega) with rfl | rfl | rfl
+  · iexists cs.Voters', cl.voters
+    iframe Hv; ipureintro; exact ⟨rfl, rfl⟩
+  · iexists cs.Learners', cl.learners
+    iframe Hl; ipureintro; exact ⟨rfl, rfl⟩
+  · iexists cs.VotersOutgoing', cl.outgoing
+    iframe Ho; ipureintro; exact ⟨rfl, rfl⟩
+
 /-- The body's exits in order (`raft.restore.impl`):
 
 - `Index <= committed`: `false`;
 - `state != StateFollower`: dead (`s.role = .follower`);
-- the `found` search over `[Voters; Learners; VotersOutgoing]`: `id` is among the
-  voters (`id ∈ cl.voters`), so the inner loop breaks in the first set and the
-  outer loop right after it; the `!found` arm is dead;
+- the `found` search over `[Voters; Learners; VotersOutgoing]`: `id` is in one of them
+  (since 2026-10-14, stage B8; until then among the voters), so the inner loop breaks in some
+  set and the outer loop right after it (`FoundBefore`: no earlier set has it); the `!found`
+  arm is dead;
 - `matchTerm(id)`: `lastEntryID`, an `Infof`, `commitTo(Index)` (in range: `Index` has
   a term in the log) and `false`;
 - otherwise `raftLog.restore(s)`; the tracker replaced by the empty one
@@ -214,27 +254,43 @@ theorem raft.restore.wp_proof
   wp_auto
   ihave %Hrlen := ownSlice_len $$ Hrsl
   simp only [List.length_cons, List.length_nil] at Hrlen
-  -- the outer loop runs once: `id` is among the voters, so the inner loop breaks with
-  -- `found`, and so does the outer one
+  -- the outer loop: no set before the current one has `id`; `id` is in one of the three
+  -- (`Hidv`), so the inner loop finds it in some set, breaking both
   ihave IH : (∃ (k : w64) (st : GoSlice),
       "i" ∷ i_ptr ↦ k ∗ "set" ∷ set_ptr ↦ st ∗ "found" ∷ found_ptr ↦ false ∗
-      "%Hk" ∷ ⌜k = W64 0⌝) $$ [i set found]
+      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ 3 ∧ FoundBefore cl id (sint.Z k).toNat⌝) $$ [i set found]
   · iexists W64 0, zero_val GoSlice
     iframe i set found
-    ipureintro; rfl
+    ipureintro; exact ⟨by word, by word, foundBefore_zero cl id⟩
   wp_for IH
-  subst Hk
+  obtain ⟨Hk0, Hk3, Hkb⟩ := Hk
   wp_if_destruct
   rotate_left
-  · exfalso; apply Hif; word
-  wp_apply wp_load_slice_index (V := GoSlice) (t := go.uint64.SliceType) _ (sint.Z (W64 0)) _ _
-      sv.Metadata'.ConfState'.Voters' (by decide) $$ [$Hrsl] as Hrsl
-  · ipureintro; rfl
-  ihave %Hvlen := ownSlice_len $$ Hvoters
+  · -- the three sets ran out without `id`: impossible
+    exfalso
+    have Hk3' : (sint.Z k).toNat = 3 := by
+      have : ¬ sint.Z k < 3 := by word
+      omega
+    rw [Hk3'] at Hkb
+    exact foundBefore_three Hkb Hidv
+  have Hk3' : (sint.Z k).toNat < 3 := by
+    have : sint.Z k < 3 := by word
+    omega
+  icases csl_found_slice sv.Metadata'.ConfState' cl (sint.Z k).toNat Hk3' $$ [Hvoters Hlearners
+      Houtg Hlnx] with ⟨%sl, %L, %HsL, #HL⟩
+  · unfold ownCSL; iframe Hvoters Hlearners Houtg Hlnx
+  obtain ⟨Hsl, HLk⟩ := HsL
+  rw [if_pos]
+  rotate_left
+  · exact ⟨Hk0, by word⟩
+  wp_apply wp_load_slice_index (V := GoSlice) (t := go.uint64.SliceType) _ (sint.Z k) _ _
+      sl Hk0 $$ [$Hrsl] as Hrsl
+  · ipureintro; exact Hsl
+  ihave %Hvlen := ownSlice_len $$ HL
   ihave IH2 : (∃ (k2 x : w64),
       "i" ∷ i_ptr ↦ k2 ∗ "id" ∷ id_ptr ↦ x ∗ "found" ∷ found_ptr ↦ false ∗
-      "%Hk2" ∷ ⌜(0 ≤ sint.Z k2 ∧ sint.Z k2 ≤ (cl.voters.length : Int)) ∧
-                id ∉ cl.voters.take (sint.Z k2).toNat⌝) $$ [i id found]
+      "%Hk2" ∷ ⌜(0 ≤ sint.Z k2 ∧ sint.Z k2 ≤ (L.length : Int)) ∧
+                id ∉ L.take (sint.Z k2).toNat⌝) $$ [i id found]
   · iexists W64 0, zero_val w64
     iframe i id found
     ipureintro
@@ -243,14 +299,22 @@ theorem raft.restore.wp_proof
   obtain ⟨Hk2b, Hk2n⟩ := Hk2
   wp_if_destruct
   rotate_left
-  · -- the voters ran out without `id`: impossible
-    exfalso; apply Hk2n
-    rw [List.take_of_length_le (by word)]; exact Hidv
-  list_elem cl.voters (sint.Z k2).toNat as y
-  rw [ite_eq_left (show 0 ≤ sint.Z k2 ∧ sint.Z k2 < sint.Z sv.Metadata'.ConfState'.Voters'.len
-    by word)]
-  wp_apply wp_load_slice_index (V := w64) (t := go.uint64) _ (sint.Z k2) cl.voters _ y
-      (by omega) $$ [$Hvoters] as -
+  · -- this set ran out without `id`: on to the next one
+    have HnL : id ∉ L := by
+      have := Hk2n
+      rwa [List.take_of_length_le (by word)] at this
+    wp_for_post
+    iframe
+    iexists _, _
+    iframe
+    ipureintro
+    refine ⟨by word, by word, ?_⟩
+    rw [show (sint.Z (k + W64 1)).toNat = (sint.Z k).toNat + 1 by word]
+    exact foundBefore_succ Hkb HLk HnL
+  list_elem L (sint.Z k2).toNat as y
+  rw [ite_eq_left (show 0 ≤ sint.Z k2 ∧ sint.Z k2 < sint.Z sl.len by word)]
+  wp_apply wp_load_slice_index (V := w64) (t := go.uint64) _ (sint.Z k2) L _ y
+      (by omega) $$ [$HL] as -
   · ipureintro; exact Hy_lookup
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
   by_cases Hne : y = id
@@ -335,7 +399,7 @@ theorem raft.restore.wp_proof
     ipersist Hprs0
     have Hmi0 : 0 ≤ sint.Z tv0.MaxInflight' ∧ sint.Z tv0.MaxInflight' < 2 ^ 62 := by
       rw [Htv0mi]; exact Hmi
-    have Hvne : cl.voters ≠ [] := by rintro h; rw [h] at Hidv; simp at Hidv
+    have Hvne : cl.voters ≠ [] := Hwf.1
     have Hrm := restoreM_wf cl.outgoing cl.voters cl.learners cl.learnersNext
       sv.Metadata'.ConfState'.AutoLeave' Hwf
     have Hinv := restoreM_cfgInv Hrm
@@ -378,25 +442,9 @@ theorem raft.restore.wp_proof
     have Hrole1 : s1.role = .follower := by rw [← HS1]; exact Hrole
     -- `assertConfStatesEquivalent(r.logger, cs, r.switchToConfig(cfg, trk))`
     wp_apply raft.wp_load_loggerC $$ Hphys as %lok0 ⟨Hphys, #Hlg0⟩
-    have Hidc : id ∈ (snapCfg sv cl).voters := by
-      unfold snapCfg csCfgM CfgM.voters
-      exact GMap.elem_of_union_l _ ((GMap.elem_of_list_to_set _ _).2 Hidv)
-    icases ownRaftPhysC_reconfig _ (snapCfg sv cl) r id s1 (fun h => absurd Hrole1 h) $$ Hphys
-      with ⟨%tv1, Htrkf, Hold, Hback2⟩
+    icases ownRaftPhysCV_reconfig _ (snapCfg sv cl) ((snapCfg sv cl).voters ∪ {[id]}) r id s1
+        (fun h => absurd Hrole1 h) $$ Hphys with ⟨%tv1, Htrkf, Hold, Hback2⟩
     icases ownTrackerC_votes $$ Hold with ⟨Hvotes, %Hmi1⟩
-    have Hve : (snapCfg sv cl).voters ∪ {[id]} = (snapCfg sv cl).voters := by
-      apply GMap.set_eq; intro k
-      rw [GMap.elem_of_union]
-      constructor
-      · rintro (h | h)
-        · exact h
-        · rw [GMap.elem_of_singleton] at h; subst h; exact Hidc
-      · intro h; exact .inl h
-    ihave Hback2 : (∀ tv' prs'' pvs'', r.[raft, go!"trk"] ↦ tv' -∗
-        ownTrackerC (snapCfg sv cl) tv' ⟨s1.votes, prs'', pvs''⟩ -∗
-        ownRaftPhysCV (GF := GF) (snapCfg sv cl) ((snapCfg sv cl).voters ∪ {[id]}) r id
-          { s1 with progress := prs'', prvals := pvs'' }) $$ [Hback2]
-    · rw [Hve]; iexact Hback2
     wp_apply wp_raft_switchToConfig (snapCfg sv cl) r id s1 tv1 cfgv prsm prs pvs
         (fun h => absurd (Hrole1.symm.trans h) (by decide))
         (fun h => by rcases h with h | h <;> rw [Hrole1] at h <;> cases h)

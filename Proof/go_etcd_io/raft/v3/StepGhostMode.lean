@@ -212,11 +212,15 @@ instance GMode.SnapOk_persistent (γ : RaftNames) (md : GMode) (sv : raftpb.Snap
     (scfg : CSLists) : Persistent (md.SnapOk (GF := GF) γ sv scfg) := by
   cases md <;> unfold GMode.SnapOk <;> infer_instance
 
-/-- An incoming voter of a snapshot's `ConfState` is an id of the configuration it denotes. -/
-theorem snapCfg_ids {sv : raftpb.Snapshot} {scfg : CSLists} {id : w64} (h : id ∈ scfg.voters) :
+/-- An id `restore`'s `found` search finds is an id of the configuration the `ConfState`
+denotes. -/
+theorem snapCfg_ids {sv : raftpb.Snapshot} {scfg : CSLists} {id : w64} (h : scfg.Has id) :
     id ∈ (snapCfg sv scfg).ids := by
   unfold snapCfg csCfgM CfgM.ids CfgM.voters
-  exact GMap.elem_of_union_l _ (GMap.elem_of_union_l _ ((GMap.elem_of_list_to_set _ _).2 h))
+  rcases h with h | h | h
+  · exact GMap.elem_of_union_l _ (GMap.elem_of_union_l _ ((GMap.elem_of_list_to_set _ _).2 h))
+  · exact GMap.elem_of_union_r _ ((GMap.elem_of_list_to_set _ _).2 h)
+  · exact GMap.elem_of_union_l _ (GMap.elem_of_union_r _ ((GMap.elem_of_list_to_set _ _).2 h))
 
 /-- A `MsgSnap` branch's step updates the mode's ghost state (2026-10-14, stage B8): statically
 `ownRaftGhost_stepC`, the configuration afterwards still the ghost state's (`GMode.SnapOk`);
@@ -226,7 +230,7 @@ theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64)
     (sv : raftpb.Snapshot) (scfg : CSLists) (s : NState) (recv : List Msg) (s' : NState)
     (a : Msg) (Ha : a.ty = .snap ∧ entryID.mk a.logterm a.index = snapId sv)
     (Hstep : StepCDS c c' (snapCfg sv scfg) id (snapId sv) s recv s')
-    (Hid : id ∈ scfg.voters) (Hc' : c' = c ∨ c' = snapCfg sv scfg) :
+    (Hid : scfg.Has id) (Hc' : c' = c ∨ c' = snapCfg sv scfg) :
     ⊢ isMessage (GF := GF) γ a -∗ ([∗list] x ∈ recv, isMessage γ x) -∗ rdCred γ (rdCount recv) -∗
       md.SnapOk γ sv scfg -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id s s' md'⌝ ∗
