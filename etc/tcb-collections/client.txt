@@ -42,6 +42,7 @@ axiom grpcServes_persistent
 axiom grpcWrotePeer
 axiom peer.Peer.String.wp_proof
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof
+axiom proto.Clone.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.MarshalIRR.wp_proof
 axiom proto.Size.wp_proof
