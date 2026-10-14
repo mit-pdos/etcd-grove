@@ -3393,3 +3393,34 @@ append a second conf change before the first is applied), like `ReadOnlyOption =
 - **`StepC` is a copy of `Step` with five rules generalized**, not a parameterization of
   `Step` (which would change every constructor use in the ghost layer); `step_iff_stepC` ties
   them. `CfgM` moved to `Protocol/StepC.lean` so that the protocol layer can name it.
+
+---
+
+## Reconfiguration stage A2: `ownRaftPhysCV` with an abbreviation, `specS` corollaries, a recorded `stepDownOnRemoval`, a detached `RawNode`
+
+**2026-10-14 · accepted**
+
+- **The specs move, the old statements stay.** Each raft function whose callers can be at a
+  joint configuration gets its `spec` restated on `ownRaftPhysC`; the old statement is an
+  `abbrev <fn>.specS` with `<fn>.spec_simple : spec → specS` (through `ownRaftPhys_toC'` and
+  `ownRaftPhysC_toS`), so `Link.lean` still links one triple per function and an old caller
+  changes one line (`wp_apply (X.spec_simple wp_X)`; `raft.Step.Postulates` fields are `specS`).
+  Config-independent proofs were converted by renaming (the field lemmas' `C` copies), not
+  duplicated. *Rejected*: proving each function twice.
+- **`Hvoter`'s set is a parameter (`ownRaftPhysCV c V`), `ownRaftPhysC` its abbreviation.** A
+  removed or demoted leader is, between `switchToConfig`'s install and its `becomeFollower`, a
+  leader outside its configuration; the struct must be sealed there for `becomeFollower` (and
+  `reset`), so their specs and the field lemmas are generic in `V`. Specs write
+  `ownRaftPhysCV c c.voters` rather than the abbreviation: `iframe` does not unify an `abbrev`
+  head with its unfolding up to the record equalities states need.
+- **`r.stepDownOnRemoval` is recorded (`NState.sdr`)**, so that `switchToConfig`'s spec can ask
+  for it when the leader leaves the voters; with it off the Go leader stays leader outside the
+  configuration, which `Hvoter` excludes. A removed candidate is likewise excluded (and is a
+  finding: it can win and panic).
+- **The configuration after a `RawNode.ApplyConfChange` that changes it is not `γ`'s**:
+  `ownRawNodeC` keeps the memory and drops the ghost state, rather than asserting
+  `γ.reCfg = votersOf c'` (the protocol is proved at a fixed voter set). The `Advance` ordering
+  is documentation, not a premise: no predicate records which entries the configuration
+  reflects.
+- **`CCGood` instead of strengthening `confchange`'s specs**: reachability is a pure invariant of
+  the model (`ccApplyM_good`), so the `Changer` proofs are untouched.
