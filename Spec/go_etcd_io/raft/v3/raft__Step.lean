@@ -30,6 +30,8 @@ public import Proof.go_etcd_io.raft.v3.InvReadylog
 public import Proof.go_etcd_io.raft.v3.InvConfChangeMsg
 -- `SnapScope`, for `MsgSnap`
 public import Spec.go_etcd_io.raft.v3.raft__restore
+-- (2026-10-14, stage B7) the ghost modes
+public import Proof.go_etcd_io.raft.v3.StepGhostMode
 public import Proof.go_etcd_io.raft.v3.StepLemmas
 -- `MsgBeat`
 public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
@@ -258,7 +260,11 @@ pending outgoing message is protocol-legal gets that from `ownRaftGhost_outbox`,
 from `ownRaftPhys`. -/
 abbrev raft.Step.spec : Prop :=
   ∀ (c : CfgM)
-    (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (ps : PState)
+    -- (2026-10-14, stage B7) the mode of the ghost state: static (`ownRaftGhost`, at a
+    -- configuration with the ghost state's voters) or dynamic (`ownRaftGhostR`, the node's
+    -- reconfiguration state over the struct's configuration); see `StepGhostMode.lean`
+    (md : GMode)
+    (γ : RaftNames) (r : Loc) (id : w64) (s : NState)
     (m : raftpb.Message)
     -- The message's `Entries` (`[]` for a message without entries), bound here rather
     -- than in `"Hm"` since 2026-10-06. (Until 2026-10-10 also, for a `MsgProp`, the
@@ -269,12 +275,6 @@ abbrev raft.Step.spec : Prop :=
     -- (2026-10-12) the list the message's `Context` holds, which the abstract message
     -- carries (a heartbeat's response echoes it; a forwarded proposal keeps it)
     (ctx : List w8),
-  -- The ghost state is about one configuration, and it is this one. Without this the
-  -- caller could hand `ownRaftGhost_step` a `cfg` of its own choosing -- a singleton
-  -- one, say, in which the node is its own quorum -- and election safety would not
-  -- hold. See `RaftNames`. (2026-10-14, stage B7: the struct is at a configuration `c`
-  -- whose voters are the ghost state's, non-joint, learners free: `CfgStatic`.)
-  CfgStatic γ c →
   StepMsg m →
   -- The node is a voter. `stepCandidate` needs this outright (its `poll` and
   -- `becomeLeader` both do) and `spec_stepCandidate_MsgVoteResp.v` says to thread it
@@ -386,14 +386,18 @@ abbrev raft.Step.spec : Prop :=
      m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) →
   -- (2026-10-13) the local reports, `ForgetLeader` and leader transfer (`RestMsgOk`)
   RestMsgOk s m →
-  -- The one place the two layers meet. `s` is the physical abstract state
-  -- `ownRaftPhys` is indexed by, `ps` the protocol state the ghost state is about,
-  -- and `NStateRel` (`Defs.lean`) connects them: `ps` is `s`'s protocol fields,
-  -- `r.step` agrees with the role, nothing is on loan.
-  NStateRel s ps →
+  -- `r.step` agrees with the role (until 2026-10-14 `NStateRel s ps`, with the protocol
+  -- state `ps` the ghost state was about: now `toPState s`, in `ownStepGhost`)
+  NStateWf s →
+  -- (2026-10-14, stage B7) the dynamic mode's premises (`GMode.Pre`): no `MsgSnap` (a
+  -- snapshot restore at a dynamic configuration is stage B8), no pre-candidate (pre-vote is
+  -- off at the `RawNode` API), A1 at a `MsgStorageApplyResp` (no conf entry between the
+  -- configuration index and the acknowledged index: `ApplyConfChange` before `Advance`), and a
+  -- log short enough for a dropped proposal's `pendingConfIndex`; none in the static mode
+  md.Pre m ents s →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "Hghost" ∷ ownRaftGhost γ id ps ∗
+      "Hghost" ∷ ownStepGhost γ md c id s ∗
       -- The message's `Entries` slice, holding `ents` (`[]` for a message without
       -- entries, `Entries = nil`):
       -- - a proposal is a local message whose batch the caller owns outright --
@@ -448,13 +452,14 @@ abbrev raft.Step.spec : Prop :=
            ⌜SnapScope γ.reCfg sv voters learners⌝ ∗
            isMessage γ (absSnap m sv voters)) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
-  {{ (err : GoInterface) (s' : NState) (ps' : PState) (c' : CfgM), RET #err;
+  {{ (err : GoInterface) (s' : NState) (c' : CfgM) (md' : GMode), RET #err;
       "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
-      "Hghost" ∷ ownRaftGhost γ id ps' ∗
-      "%Hrel" ∷ ⌜NStateRel s' ps'⌝ ∗
-      "%Hrefines" ∷ ⌜∃ recv, StepC c id ps recv ps'⌝ ∗
+      "Hghost" ∷ ownStepGhost γ md' c' id s' ∗
+      "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
+      -- the step in the mode's model: `StepC c` statically, `StepR` dynamically
+      "%Hrefines" ∷ ⌜md.StepOut c id s s' md'⌝ ∗
       -- the configuration afterwards: `c`, or the snapshot's after a `MsgSnap`
-      "%Hcfg'" ∷ ⌜CfgStatic γ c' ∧ (m.Type' ≠ MsgSnap → c' = c)⌝ ∗
+      "%Hcfg'" ∷ ⌜m.Type' ≠ MsgSnap → c' = c⌝ ∗
       -- for the local messages `RawNode` steps, what is kept of the physical state
       -- (2026-10-09)
       "%Hlocal" ∷ ⌜LocalStepOk m ents s s'⌝ ∗
@@ -682,11 +687,12 @@ theorem raft.Step.spec_simple (H : raft.Step.spec (GF := GF) (hG := hG)) :
   intro cfg γ r id s ps m ents ctx Hcfg Hsm Hin Hhup Hvote Hvoteresp Hprevote Hprevoteresp
     Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hri Hrir Hrest Hrel
   subst Hcfg
+  obtain ⟨rfl, Hwf⟩ := Hrel
   iintro %Φ ⟨#Hpkg, Hphys, Hghost, Hm, #Hctx, Hcred, #Hsnap⟩ HΦ
-  ihave %Hst := ownRaftGhost_static γ id ps $$ Hghost
+  ihave %Hst := ownRaftGhost_static γ id _ $$ Hghost
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) γ r id s ps m ents ctx
-      (CfgStatic.simple γ _ Hst) Hsm Hin Hhup Hvote Hvoteresp Hprevote Hprevoteresp
+  iapply H (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) .static γ r id s m ents ctx
+      Hsm Hin Hhup Hvote Hvoteresp Hprevote Hprevoteresp
       Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr
       (fun h => by
         obtain ⟨h1, h2⟩ := Hri h
@@ -694,21 +700,27 @@ theorem raft.Step.spec_simple (H : raft.Step.spec (GF := GF) (hG := hG)) :
         have h3 : GMap.size γ.reCfg = 1 := h3.1
         omega)
       (fun _ h => absurd h (by simp [CfgM.simple]))
-      Hrir Hrest Hrel
-    $$ [$Hpkg $Hphys $Hghost $Hm $Hctx $Hcred $Hsnap]
+      Hrir Hrest Hwf trivial
+    $$ [$Hpkg $Hphys $Hm $Hctx $Hcred $Hsnap Hghost]
+  · simp only [ownStepGhost, ghostRest, GMode.isDyn]
+    isplitl [Hghost]
+    · iexact Hghost
+    ipureintro; exact CfgStatic.simple γ _ Hst
   inext
-  iintro %err %s' %ps' %c' ⟨Hphys, Hghost, %Hrel', %Href, %Hc', %Hlocal, %Hframe, %Hterm,
+  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', %Hlocal, %Hframe, %Hterm,
     %Hresp, Herr⟩
-  obtain ⟨⟨Hi, Ho, -⟩, -⟩ := Hc'
+  obtain ⟨rfl, recv, Hstep⟩ := Href
+  simp only [ownStepGhost, ghostRest, GMode.isDyn]
+  icases Hghost with ⟨Hghost, %HC'⟩
+  obtain ⟨Hi, Ho, -⟩ := HC'
   icases ownRaftPhysC_toPhys c' r id s' Ho $$ Hphys with ⟨Hphys, -⟩
   rw [Hi]
-  iapply HΦ $$ %err %s' %ps'
+  iapply HΦ $$ %err %s' %(toPState s')
   iframe Hphys Hghost Herr
   ipureintro
-  obtain ⟨recv, Hstep⟩ := Href
-  refine ⟨Hrel', ⟨recv, (CfgStatic.stepC_iff γ (domSet s.progress \ γ.reCfg) id ps recv ps').2 Hstep⟩,
+  refine ⟨⟨rfl, Hwf'⟩,
+    ⟨recv, (CfgStatic.stepC_iff γ (domSet s.progress \ γ.reCfg) id _ recv _).2 Hstep⟩,
     Hlocal, Hframe, Hterm, Hresp⟩
-
 end spec
 
 end EtcdGrove
