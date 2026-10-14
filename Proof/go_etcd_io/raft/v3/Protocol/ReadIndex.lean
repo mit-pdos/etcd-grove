@@ -94,9 +94,9 @@ theorem rqRecOk_confirm (γ : RaftNames) (T : w64) (r : RqRec) (P : List raftpb.
   intro HcQ HQ Hw
   rcases h : r.2 with _ | ⟨t', q⟩ <;> simp only [rqRecOk, h]
   · iintro H; iexact H
-  · unfold doomed
-    iintro ⟨%Hpq, -⟩
-    obtain ⟨-, P', c', Hc', Hq'⟩ := Hpq
+  · unfold doomed cqAt
+    iintro ⟨%n, %G, %a, %c', -, -, -, %Hpq, -⟩
+    obtain ⟨-, Hc', Hq'⟩ := Hpq
     obtain ⟨x, Hx1, Hx2⟩ := CfgAt.overlap HcQ Hc' Q q HQ Hq'
     exact absurd Hx2 (Hw x Hx1 t' q h)
 
@@ -164,16 +164,16 @@ theorem ownRaftGhost_not_doomed (γ : RaftNames) (v : w64) (s : PState) (r : RqR
   iintro Hown #Hr
   rcases h : r.2 with _ | ⟨t', q⟩ <;> simp only [rqRecOk, h]
   · ipureintro; intro t' q h'; cases h'
-  · unfold doomed
-    icases Hr with ⟨%Hpq, #Hacks⟩
+  · unfold doomed cqAt
+    icases Hr with ⟨%n, %G, %a, %c, %Hpq, -, -, -, -, #Hacks⟩
     have Hlt := Hpq.1
     by_cases hv : v ∈ q
     · ihave ⟨%i', %Hi', #Ha⟩ := BigSepM.bigSepM_lookup
-        (Φ := fun v _ => iprop(∃ i', ⌜0 < uint.Z i'⌝ ∗ isAcked (GF := GF) γ v t' i'))
+        (Φ := fun v _ => iprop(∃ i', ⌜uint.Z n ≤ uint.Z i'⌝ ∗ isAcked (GF := GF) γ v t' i'))
         ((GMap.elem_of_gset _ _).mp hv) $$ Hacks
       unfold isAcked
       icases Ha with (%H0 | ⟨-, #Hev⟩)
-      · exfalso; omega
+      · exfalso; have := Hpq.2; omega
       · ihave %Hle := ownRaftGhost_ack_le γ v s t' i' $$ Hown Hev
         exfalso; omega
     · ipureintro
@@ -238,17 +238,12 @@ theorem read_arrive_core (γ : RaftNames) (id : w64) (s : PState) (c : List w8)
       · iframe Htbl Hlcm
         iapply Hnone (Hok (uint.Z n) HPn (by rw [Hn0]; exact uint_Z_nonneg _)) $$ Hrq
       · iframe Htbl Hlcm
-        unfold cq
-        icases Hcq with ⟨-, -, %a, %cQ, %q, %Hq, -, #Hacks⟩
+        icases cq_cqAt γ t n G $$ Hcq with ⟨%a, %cQ, %q, #Hcqa⟩
         iexists (some (t, q))
         unfold rqRecOk doomed
-        isplitr; · ipureintro; exact ⟨HtT, _, cQ, Hq.2.1, Hq.2.2⟩
-        iapply BigSepM.bigSepM_impl $$ Hacks
-        imodintro
-        iintro %v %u %_ ⟨%i', %Hi', #Ha⟩
-        iexists i'
-        iframe Ha
-        ipureintro; have := uint_Z_nonneg n; omega
+        iexists n, G, a, cQ
+        iframe Hcqa
+        ipureintro; exact ⟨HtT, by have := uint_Z_nonneg n; omega⟩
     · -- the leader's own commit
       have Ht : t = s.term := uint_Z_inj.mp HtT.symm
       subst Ht

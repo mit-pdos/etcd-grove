@@ -1266,16 +1266,16 @@ theorem ownLogGhost_not_doomed (γ : RaftNames) (v : w64) (s : PState) (kl : Opt
   iintro Hown #Hr
   rcases h : r.2 with _ | ⟨t', q⟩ <;> simp only [rqRecOk, h]
   · ipureintro; intro t' q h'; cases h'
-  · unfold doomed
-    icases Hr with ⟨%Hpq, #Hacks⟩
+  · unfold doomed cqAt
+    icases Hr with ⟨%n, %G, %a, %c, %Hpq, -, -, -, -, #Hacks⟩
     have Hlt := Hpq.1
     by_cases hv : v ∈ q
     · ihave ⟨%i', %Hi', #Ha⟩ := BigSepM.bigSepM_lookup
-        (Φ := fun v _ => iprop(∃ i', ⌜0 < uint.Z i'⌝ ∗ isAcked (GF := GF) γ v t' i'))
+        (Φ := fun v _ => iprop(∃ i', ⌜uint.Z n ≤ uint.Z i'⌝ ∗ isAcked (GF := GF) γ v t' i'))
         ((GMap.elem_of_gset _ _).mp hv) $$ Hacks
       unfold isAcked
       icases Ha with (%H0 | ⟨-, #Hev⟩)
-      · exfalso; omega
+      · exfalso; have := Hpq.2; omega
       · ihave %Hle := ownLogGhost_ack_le γ v s kl t' i' $$ Hown Hev
         exfalso; omega
     · ipureintro

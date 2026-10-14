@@ -1463,6 +1463,42 @@ instance cq_timeless (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) :
     Timeless (cq (GF := GF) γ t n G) := by
   unfold cq; infer_instance
 
+/-- A commit fact with its configuration data exposed (2026-10-14, reconfiguration stage B4):
+`cq` at the configuration index `a`, the configuration `c` and the quorum `q` (the plan's
+`CqData`). What a doomed read record keeps (`doomed`), as the paper's section 8 asks: the
+doom fact itself, not only its term and quorum. -/
+def cqAt (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) (a : w64) (c : CfgM)
+    (q : GSet w64) : IProp GF :=
+  iprop(⌜plogTermAt base0 G n = some t⌝ ∗ leadFull γ t G ∗
+    ⌜uint.Z a ≤ uint.Z n ∧ CfgAt γ (G.take (uint.Z a).toNat) c ∧ JQuorum c q⌝ ∗
+    isCommitted γ (G.take (uint.Z a).toNat) ∗
+    [∗map] v ↦ _u ∈ toMap q, ∃ i', ⌜uint.Z n ≤ uint.Z i'⌝ ∗ isAcked γ v t i')
+
+instance cqAt_persistent (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) (a : w64)
+    (c : CfgM) (q : GSet w64) : Persistent (cqAt (GF := GF) γ t n G a c q) := by
+  unfold cqAt; infer_instance
+instance cqAt_timeless (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) (a : w64)
+    (c : CfgM) (q : GSet w64) : Timeless (cqAt (GF := GF) γ t n G a c q) := by
+  unfold cqAt; infer_instance
+
+theorem cq_cqAt (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) :
+    ⊢ cq (GF := GF) γ t n G -∗ ∃ a c q, cqAt γ t n G a c q := by
+  unfold cq cqAt
+  iintro ⟨%Hn, #Hf, %a, %c, %q, %Hq, #Hc, #Ha⟩
+  iexists a, c, q
+  iframe Hf Hc Ha
+  ipureintro; exact ⟨Hn, Hq⟩
+
+theorem cqAt_cq (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) (a : w64) (c : CfgM)
+    (q : GSet w64) : ⊢ cqAt (GF := GF) γ t n G a c q -∗ cq γ t n G := by
+  unfold cq cqAt
+  iintro ⟨%Hn, #Hf, %Hq, #Hc, #Ha⟩
+  iframe Hf
+  isplitr; · ipureintro; exact Hn
+  iexists a, c, q
+  iframe Hc Ha
+  ipureintro; exact Hq
+
 def commitIn (γ : RaftNames) (F : List raftpb.Entry) (c tm : w64) : IProp GF :=
   iprop(⌜uint.Z c = 0⌝ ∨
     ∃ t n G, cq γ t n G ∗

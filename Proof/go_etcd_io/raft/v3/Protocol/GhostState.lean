@@ -70,12 +70,12 @@ at arrival (the term and quorum of the acknowledgements that doomed it). -/
 abbrev RqRec := (List w8 × w64) × Option (w64 × GSet w64)
 
 /-- A quorum `q` acknowledged at a term `t'` above `T` (each a real acknowledgement, at a
-nonzero index). Since 2026-10-14 (reconfiguration stage B4) `q` is a joint quorum of a
-recorded configuration (`CfgAt`: the doom fact's committer's), was `IsQuorum γ.reCfg q`.
-(The paper's section 8 keeps the doom fact's commit fact itself, for its witnesses: B5.) -/
+nonzero index). Since 2026-10-14 (reconfiguration stage B4) the record keeps the doom fact
+itself, a commit fact of `t'` at a nonzero index with its configuration data (`cqAt`; the
+paper's section 8: B5 reads its witnesses and at-most-one), so `q` is a joint quorum of a
+recorded configuration; it was `IsQuorum γ.reCfg q` and the acknowledgements only. -/
 def doomed (γ : RaftNames) (T t' : w64) (q : GSet w64) : IProp GF :=
-  iprop(⌜uint.Z T < uint.Z t' ∧ ∃ P c, CfgAt γ P c ∧ JQuorum c q⌝ ∗
-    [∗map] v ↦ _u ∈ toMap q, ∃ i', ⌜0 < uint.Z i'⌝ ∗ isAcked γ v t' i')
+  iprop(∃ n G a c, ⌜uint.Z T < uint.Z t' ∧ 0 < uint.Z n⌝ ∗ cqAt γ t' n G a c q)
 
 instance doomed_persistent (γ : RaftNames) (T t' : w64) (q : GSet w64) :
     Persistent (doomed (GF := GF) γ T t' q) := by
