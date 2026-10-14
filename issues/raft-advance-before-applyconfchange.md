@@ -1,6 +1,13 @@
 # raft: calling `Advance` before `ApplyConfChange`, which the documentation allows, breaks safety
 
-- **Status**: open (documentation precondition; not reported upstream yet).
+- **Status**: open (documentation precondition; not reported upstream yet). Upstream drafts:
+  [raft-document-confchange-before-advance](raft-document-confchange-before-advance.md)
+  (document the precondition) and
+  [raft-track-confchange-application](raft-track-confchange-application.md) (the guard fix,
+  prototyped with tests in `raft-conf-lag-model/guard-fix.patch`, notes in
+  [guard-fix.md](raft-conf-lag-model/guard-fix.md)); etcd's leader path:
+  [etcd-leader-advance-before-applyconfchange](etcd-leader-advance-before-applyconfchange.md)
+  (unconfirmed).
 - **Where**: etcd-raft at the pinned revision (`etc/goose.py`):
   - the guards read raft's applied index, not the configuration in use:
     `hasUnappliedConfChanges` (`raft.go:978`, `990`: refuses to campaign with a conf entry in
@@ -76,9 +83,15 @@
       ...
       removed_candidate_test.go:47: PANIC reproduced: runtime error: invalid memory address or nil pointer dereference
 
-  The public-API route is the leader-lag test's: `Advance` past the committed removal, a
-  campaign (no unapplied conf change in `(applied, committed]`), then `ApplyConfChange`. Not
-  demonstrated end to end through `RawNode`. The proof excludes it by premise:
+  The public-API route: `Advance` past the committed removal, a campaign (no unapplied conf
+  change in `(applied, committed]`), then `ApplyConfChange`. Demonstrated end to end through
+  `RawNode` (2026-10-14): `raft-conf-lag-model/removed_candidate_rawnode_test.go`,
+  `TestRemovedCandidateWinsAndPanicsRawNode` (needs `leaderlag_test.go` beside it):
+
+      removed_candidate_rawnode_test.go:60: node 3: StateCandidate, config voters=(1 2)
+      removed_candidate_rawnode_test.go:63: PANIC reproduced: runtime error: invalid memory address or nil pointer dereference
+
+  The proof excludes it by premise:
   `raft.switchToConfig.spec` and `raft.applyConfChange.spec` require a candidate to stay a
   voter, and `RawNode.ApplyConfChange.spec` (`CCApplies`) that the node stays a voter.
 - **How the proof handles it**: today no node ever applies a conf change (the verified
@@ -91,12 +104,20 @@
   index; so the configurations of a committer and a winner are adjacent (overlapping
   quorums) or the winner's committed prefix covers the entry.
 - **Possible fixes**: document the precondition in `doc.go` (step 4) and on `Node.Advance`/
-  `RawNode.Advance`; or have raft remember the index of the last applied configuration and
-  use it in `hasUnappliedConfChanges` and the leader's pending check. etcd's server waits
-  for apply before `Advance` on followers and candidates (`etcdserver/raft.go:296-331`, whose
-  comment names this hazard) but not on the leader (`server.go:1917-1925`): the leader-lag
-  execution may be reachable in etcd (slow apply goroutine plus a partition; not
-  demonstrated).
+  `RawNode.Advance`; or have raft track which conf changes have been passed to
+  `ApplyConfChange` and use that in `hasUnappliedConfChanges` and the leader's pending check.
+  The second is prototyped (`raft-conf-lag-model/guard-fix.patch`, opt-in
+  `Config.TrackConfChangeApplication`; [guard-fix.md](raft-conf-lag-model/guard-fix.md)):
+  with it both executions above are refused, in synchronous and asynchronous storage modes,
+  and `go test ./...` passes. It is opt-in because applications that skip `ApplyConfChange`
+  for rejected changes (as `Node.ApplyConfChange` tells them to, contradicting `doc.go`) or
+  for replayed entries (etcd after a restart) would lose liveness.
+  etcd's server waits for apply before `Advance` on followers and candidates
+  (`etcdserver/raft.go:297-324`, whose comment names this hazard) but not on the leader
+  (`raft.go:325-331`; the conf change is applied later, `server.go:1917-1925`), and its
+  membership checks do not serialize concurrent changes: the leader-lag execution may be
+  reachable in etcd (slow apply loop, a concurrent membership change, a partition; not
+  demonstrated): [etcd-leader-advance-before-applyconfchange](etcd-leader-advance-before-applyconfchange.md).
 - **Found**: 2026-10-13, analysing the reconfiguration stage B0 (apply-time configurations)
   for the protocol model; checked by replay in the abstract model and reproduced by the Go
   test above (the model's exhaustive search covered only depth 10–11: no evidence beyond the
