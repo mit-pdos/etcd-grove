@@ -19,6 +19,81 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## Adequacy for a minimal client example: what is left (2026-10-14)
+
+The target: a closed Go program, `main` starting one etcd member in-process and a client doing
+`Put(k, v)` then `Get(k)` (checking the value), proved with Perennial's `goose_adequacy`
+(`.lake/packages/perennial/Perennial/GooseLang/Adequacy.lean:274`: safety only — the main thread's
+value satisfies the postcondition if it finishes, no thread is stuck, none panics; no crash, no
+distributed adequacy, none needed in one process) as the register example does
+(`Proof/github_com/mit_pdos/etcd_grove/examples/register/Adequacy.lean`, `register_adequate`: the
+template for the functor bundle, the package-initialization table, the bounds).
+
+**What exists, as Go API specs**: `client_put_end_to_end`, `client_get_end_to_end`,
+`client_get_after_put` (`client/v3/Results.lean`: `kv.Put`/`kv.Get` through the proved retry
+interceptor, grpc's client chain, the generated handlers, the quota wrapper and etcd's unary
+interceptors, the server's handlers, the request path, the apply thread, mvcc and the backend over
+bbolt's contract; a successful Get after a successful Put reads a log extending the Put's, and
+returns exactly `k ↦ v` if no later entry touches `k`), `etcd_kv_served` (the registrations from
+the server's facts), `server_Start`/`start_gives_views`, `server_kv_backend`. No `sorry` reached.
+
+**What is left**, by kind:
+
+1. **The program and the adequacy plumbing** (mechanical, after the register): the Go `main` (an
+   `examples/` package: `embed`-free, `etcdserver.NewServer` + `Start`, `v3rpc.Server` +
+   `Serve(l)` on a goroutine, `clientv3.New`, `Put`, `Get`), its translation, the functor bundle
+   with a `GooseGpreS` instance, the package-initialization table, and **`wp_initialize'` proofs
+   for every etcd package on the path**: today about ninety `define_is_pkg_init` facts are
+   assumptions (`v3rpc/Base.lean`, `BaseApply.lean`, `cache/v3/Base.lean`, ...: "not proved from
+   `initialize'`"); the nine `sorry`s of the baseline are standard-library initializers that run
+   opaque code (they stay, as in the register).
+2. **Construction, unverified etcd code** (the `isServerBuilt` table, "Server construction" in this
+   file, and its updates by units 9, A2, C2a: `⌜ρ.rd = γr⌝`, `isReqAuth`/`isAuthStore` at
+   `auth.authRd st R`): `NewServer`/`bootstrap`/`newRaftNode` (not translated); the backend's
+   constructor `New`/`newBackend` (bbolt's `Options` through Perennial's `os.FileMode`), `cindex`'s
+   `NewConsistentIndex` (proved) over it; `mvcc.New` (the watchable store, its bridge to
+   `txn.isKV`); `lease.NewLessor` (unit 9's derivations take `lessorInv`); `auth.NewAuthStore`
+   (gives `authInv`; unit A2's derivations); `v3alarm.NewAlarmStore`; `v3compactor.New`;
+   `stats.NewServerStats`; the cluster's bootstrap (`RaftCluster`, `SetID`: P1b's `clusterCid`,
+   `isRaftCluster`); `v3rpc.Server()` (grpc's `NewServer` with the interceptors,
+   `RegisterKVServer`: translated, not proved; `quotaKVServer.Txn`); on the client,
+   `clientv3.New` (the dial: `isEtcdConn`, no `DialOptions` interceptor,
+   `issues/etcd-client-dialoptions-unary-interceptor.md`; `clientKVAt`).
+3. **New trust-boundary axioms** (the natural boundary; each a Go-level spec, no new kind of
+   trust): grpc's server construction and `Serve` producing `grpcServerAt addr ics regs` (today an
+   opaque token with no producer, `InvGrpc.lean`), grpc's dial producing `grpcConn conn addr ics
+   dopts`, `net.Listen`, the files (bbolt's `Open` takes `fileHolds path D`: a fresh database
+   `D = ∅`; the WAL and snapshot directories).
+4. **The raft contract**: the server's `isRaftNodeIfc` (`InvRaftNode.lean`, `Er.C = srvC …`,
+   `rnSnapOnce`, the committed-index facts unit C2a uses) is discharged by retargeting the verified
+   raft to etcd's v3.7 dependency (protobuf-go v2: "Retargeting raft to upstream"); until then a
+   main needs `raft.StartNode`'s v3.7 spec as an axiom. A single member suffices: the verified
+   `RestartNode` allows one voter, and the results are safety-only.
+5. **Premises a closed proof must discharge or bound**: `storeSmall`, `keySized`, `delCount`
+   (physical bounds: fewer than `2^62` changes; in a closed proof, from a bound on the execution or
+   a change counter in mvcc's invariant), the id budget (`□ |==> idCred`: 48-bit ids never wrap),
+   `threadBound GF ≤ 2^31` (with the register's `T = n + 2`, executions shorter than about `2^31`
+   steps, unless a sharper bound on live threads), the gRPC run-slot pool (at most `N` concurrent
+   handlers), the write budget (from `server_kv_backend`).
+6. **For "the Get returns `v`"** (beyond "no panic"): `client_get_after_put`'s premise that no
+   entry after the Put touches `k` must come from the program: only this client writes, so a ghost
+   argument that every KV-changing entry is a client proposal (`raftPropose` deposits the
+   proposer's update; the server's internal requests — `ClusterVersionSet`, alarms, compaction,
+   lease revocation without leases — change no key). Not started. And the result is conditional on
+   termination (adequacy is safety).
+7. **Known weak spots to keep in view** (true of the trust base, not blockers):
+   `txn.WarnOfExpensiveRequest`/`WarnOfFailedRequest` (axioms false of the Go code: unit P4),
+   `EtcdServer.Alarm`, `raftRequestAlarm` (Perennial's bounded `RWMutex` readers), the `ProtoMsg`
+   instances (trusted wire models), `membership.localKept`
+   (`issues/etcd-unary-interceptor-learner-removed.md`), the lessor's `Promote`/`Demote`/`Revoke`,
+   and no `go.Semantics` instance constructed (non-vacuity, as for the register).
+
+Order that minimizes waiting: (1)'s package-init proofs and (3)'s axioms first (independent of the
+rest), then (2)'s constructors bottom-up (backend, mvcc, lessor, auth, alarm, cluster, raft node,
+`NewServer`, `v3rpc.Server`, `clientv3.New`), with (4) as an axiom until the raft retarget, then
+the main and its adequacy; (6) last. The cluster-level clients' contracts are the vertical slice's
+(below).
+
 ## Unit A2: the server's auth premises in forms the real auth store meets (2026-10-14, branch `worktree-backend`)
 
 The plan of Integration I1 (below), carried out. Design: `notes/decisions.md`, "The auth premises
