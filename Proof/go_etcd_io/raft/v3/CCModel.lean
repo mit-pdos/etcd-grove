@@ -95,24 +95,25 @@ theorem PropRepl.length {es es' : List raftpb.Entry} (H : PropRepl es es') :
 
 For each entry of a proposal, with `cs` its decoded conf change (`none` for an entry that
 is not one): a conf change is refused -- replaced by the empty normal entry -- when one is
-already pending (`pendingConfIndex > applied`) or it asks to leave a joint configuration
-(`wantsLeaveJoint`; the configuration in use is never joint, so `alreadyJoint` is false);
-otherwise it is accepted and `pendingConfIndex` moves to its index-to-be,
+already pending (`pendingConfIndex > applied`) or its `wantsLeaveJoint` disagrees with
+`joint`, whether the configuration in use is joint (`alreadyJoint`): a request to leave
+outside a joint configuration, or a change inside one (since 2026-10-14, reconfiguration
+stage A3; `joint` defaults to `false`, the only case until then); otherwise it is accepted and `pendingConfIndex` moves to its index-to-be,
 `lastIndex() + i + 1`. `propConfStep` is one iteration (the entries so far, whose length
 is `i`, and `pendingConfIndex`), `propConf` the loop. -/
 
-def propConfStep (applied li : w64) (acc : List raftpb.Entry × w64)
+def propConfStep (joint : Bool) (applied li : w64) (acc : List raftpb.Entry × w64)
     (x : raftpb.Entry × Option CCMsg) : List raftpb.Entry × w64 :=
   match x.2 with
   | none => (acc.1 ++ [x.1], acc.2)
   | some c =>
-    if uint.Z applied < uint.Z acc.2 ∨ ccWantsLeave c = true then
+    if uint.Z applied < uint.Z acc.2 ∨ ccWantsLeave c ≠ joint then
       (acc.1 ++ [zero_val raftpb.Entry], acc.2)
     else (acc.1 ++ [x.1], li + W64 (acc.1.length : Int) + W64 1)
 
-def propConf (applied li pci : w64) (ents : List raftpb.Entry) (cs : List (Option CCMsg)) :
-    List raftpb.Entry × w64 :=
-  (ents.zip cs).foldl (propConfStep applied li) ([], pci)
+def propConf (applied li pci : w64) (ents : List raftpb.Entry) (cs : List (Option CCMsg))
+    (joint : Bool := false) : List raftpb.Entry × w64 :=
+  (ents.zip cs).foldl (propConfStep joint applied li) ([], pci)
 
 /-- The decoded conf changes of a batch: one per entry, present exactly for the
 conf-change entries. -/
@@ -137,10 +138,10 @@ theorem cctypes_mem {ents : List raftpb.Entry} {cs : List (Option CCMsg)}
     · simp only at Hs ⊢; rw [Hh] at Hs; exact of_decide_eq_true Hs
     · exact ih x hx Hs
 
-theorem propConf_foldl_repl (applied li : w64) (xs : List (raftpb.Entry × Option CCMsg))
+theorem propConf_foldl_repl {joint : Bool} (applied li : w64) (xs : List (raftpb.Entry × Option CCMsg))
     (Hxs : ∀ x ∈ xs, x.2.isSome = true → IsConfEnt x.1) :
     ∀ (pre : List raftpb.Entry) (acc : List raftpb.Entry × w64), PropRepl pre acc.1 →
-      PropRepl (pre ++ xs.map Prod.fst) (xs.foldl (propConfStep applied li) acc).1 := by
+      PropRepl (pre ++ xs.map Prod.fst) (xs.foldl (propConfStep joint applied li) acc).1 := by
   induction xs with
   | nil => intro pre acc H; simpa using H
   | cons x xs ih =>
@@ -161,25 +162,26 @@ theorem propConf_foldl_repl (applied li : w64) (xs : List (raftpb.Entry × Optio
       · exact forall₂_app H Hfa
 
 /-- The loop's batch is the proposal's, with refused conf changes replaced. -/
-theorem propConf_repl (applied li pci : w64) (ents : List raftpb.Entry)
+theorem propConf_repl {joint : Bool} (applied li pci : w64) (ents : List raftpb.Entry)
     (cs : List (Option CCMsg)) (H : CCTypesOk ents cs) :
-    PropRepl ents (propConf applied li pci ents cs).1 := by
+    PropRepl ents (propConf applied li pci ents cs joint).1 := by
   have Hlen := List.Forall₂.length_eq H
   have Hfst : (ents.zip cs).map Prod.fst = ents := List.map_fst_zip (by omega)
-  have := propConf_foldl_repl applied li (ents.zip cs) (cctypes_mem H) [] ([], pci)
+  have := propConf_foldl_repl (joint := joint) applied li (ents.zip cs) (cctypes_mem H) [] ([], pci)
     List.Forall₂.nil
   rw [List.nil_append, Hfst] at this; exact this
 
-theorem propConfStep_length (applied li : w64) (acc : List raftpb.Entry × w64)
+theorem propConfStep_length {joint : Bool} (applied li : w64) (acc : List raftpb.Entry × w64)
     (x : raftpb.Entry × Option CCMsg) :
-    (propConfStep applied li acc x).1.length = acc.1.length + 1 := by
+    (propConfStep joint applied li acc x).1.length = acc.1.length + 1 := by
   unfold propConfStep
   split
   · simp
   · split <;> simp
 
-theorem foldl_propConfStep_length (applied li : w64) (xs : List (raftpb.Entry × Option CCMsg)) :
-    ∀ acc, (xs.foldl (propConfStep applied li) acc).1.length = acc.1.length + xs.length := by
+theorem foldl_propConfStep_length {joint : Bool} (applied li : w64)
+    (xs : List (raftpb.Entry × Option CCMsg)) :
+    ∀ acc, (xs.foldl (propConfStep joint applied li) acc).1.length = acc.1.length + xs.length := by
   induction xs with
   | nil => intro acc; simp
   | cons x xs ih =>
@@ -187,19 +189,19 @@ theorem foldl_propConfStep_length (applied li : w64) (xs : List (raftpb.Entry ×
     simp only [List.foldl_cons, List.length_cons]
     rw [ih, propConfStep_length]; omega
 
-theorem propConf_length (applied li pci : w64) (es : List raftpb.Entry)
+theorem propConf_length {joint : Bool} (applied li pci : w64) (es : List raftpb.Entry)
     (cs : List (Option CCMsg)) :
-    (propConf applied li pci es cs).1.length = min es.length cs.length := by
+    (propConf applied li pci es cs joint).1.length = min es.length cs.length := by
   unfold propConf
   rw [foldl_propConfStep_length]
   simp [List.length_zip]
 
 /-- One more iteration of the loop. -/
-theorem propConf_take_succ (applied li pci : w64) (es : List raftpb.Entry)
+theorem propConf_take_succ (joint : Bool) (applied li pci : w64) (es : List raftpb.Entry)
     (cs : List (Option CCMsg)) (k : Nat) (e : raftpb.Entry) (o : Option CCMsg)
     (He : es[k]? = some e) (Ho : cs[k]? = some o) :
-    propConf applied li pci (es.take (k + 1)) (cs.take (k + 1)) =
-      propConfStep applied li (propConf applied li pci (es.take k) (cs.take k)) (e, o) := by
+    propConf applied li pci (es.take (k + 1)) (cs.take (k + 1)) joint =
+      propConfStep joint applied li (propConf applied li pci (es.take k) (cs.take k) joint) (e, o) := by
   have Hk1 := (List.getElem?_eq_some_iff.mp He).1
   have Hk2 := (List.getElem?_eq_some_iff.mp Ho).1
   unfold propConf
@@ -208,9 +210,9 @@ theorem propConf_take_succ (applied li pci : w64) (es : List raftpb.Entry)
   rw [List.zip_append (by simp only [List.length_take]; omega), List.foldl_append]
   rfl
 
-theorem propConf_take_zero (applied li pci : w64) (es : List raftpb.Entry)
+theorem propConf_take_zero {joint : Bool} (applied li pci : w64) (es : List raftpb.Entry)
     (cs : List (Option CCMsg)) :
-    propConf applied li pci (es.take 0) (cs.take 0) = ([], pci) := rfl
+    propConf applied li pci (es.take 0) (cs.take 0) joint = ([], pci) := rfl
 
 end pure
 

@@ -486,7 +486,7 @@ theorem raft.Step.wp_proof
     raft.Step.spec (GF := GF) (hG := hG) := by
   have P : raft.Step.Postulates (GF := GF) (hG := hG) :=
     ⟨(raft.hup.spec_simple wp_raft_hup), (raft.becomeFollower.spec_simple wp_raft_becomeFollower), wp_voteRespMsgType, (raft.send.spec_simple wp_raft_send), (stepCandidate.spec_simple wp_stepCandidate),
-     (stepFollower.spec_simple wp_stepFollower), wp_stepLeader, wp_traceReceiveMessage, wp_raftLog_lastEntryID,
+     (stepFollower.spec_simple wp_stepFollower), (stepLeader.spec_simple wp_stepLeader), wp_traceReceiveMessage, wp_raftLog_lastEntryID,
      wp_raftLog_isUpToDate, wp_raftLog_stableTo, wp_raft_appliedTo,
      wp_raft_reduceUncommittedSize, wp_entsSize, wp_payloadsSize⟩
   intro cfg γ r id s ps m ents ctx Hcfg Hsm Hin Hhup Hvote Hvoteresp Hprevote Hprevoteresp

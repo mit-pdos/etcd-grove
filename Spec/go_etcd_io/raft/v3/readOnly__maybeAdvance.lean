@@ -41,10 +41,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
     ro.confirmedReads = newConfirmedReads
     return readStates
 
-The configuration `c` is passed by value: `c[0]` is the voter map `m0` (`ids`), `c[1]`
-is nil (a simple configuration, as `ownTracker`'s). The quorum index `N` of the voters'
-acknowledged positions (`IsQuorumIndex`, over `r.acks`; unknown voters count `0`) is
-how many requests have ever been confirmed; `readonlyAdvance r N` (`InvMisc.lean`) is
+The configuration `c` is passed by value: `c[0]` and `c[1]` are the two voter halves, `nil` or
+maps (`ownIdsetQ`; at any configuration since 2026-10-14, reconfiguration stage A3: until then
+`c[1]` was `nil`). The joint quorum index `N` of the voters' acknowledged positions
+(`JCommittedIdx`: the smaller of the two halves' quorum indices, over `r.acks`, an empty half
+`MaxUint64`; unknown voters count `0`) is how many requests have ever been confirmed; `readonlyAdvance r N` (`InvMisc.lean`) is
 the new record and the confirmed requests, which are removed from the front of the
 queue.
 
@@ -60,28 +61,29 @@ nothing is confirmed the result is `nil`, which satisfies the same triple with
 `ptrs = []`.
 
 **Panics.** The two reslices panic when `N - confirmedReads` exceeds the queue's
-length; and `N = MaxUint64` for an empty voter set. Both are excluded only by what the
+length; and `N = MaxUint64` when both halves are empty. Both are excluded only by what the
 *caller* knows -- that every voter's ack is a position the leader actually sent
 (`≤ confirmed + len pending`; a forged heartbeat context breaks this in real raft) and
 that the voter set is non-empty -- so they are premises (`Hne`, `Hbound`) here, the
-smallest that rule it out. (`Hsz` is `MajorityConfig.CommittedIndex`'s.) The voter map
-`m0` is lent to `CommittedIndex` and comes back at some map with the same key set. -/
+smallest that rule it out: the answer is at most the quorum index of a non-empty half, which is
+some voter's acknowledgement. (`Hsz` is `MajorityConfig.CommittedIndex`'s.) The halves are
+lent to `CommittedIndex` and come back. -/
 abbrev readOnly.maybeAdvance.spec : Prop :=
-  ∀ (ro : Loc) (r : ReadOnly) (c : quorum.JointConfig) (m0 : Loc)
-    (ids : GMap w64 Unit),
+  ∀ (ro : Loc) (r : ReadOnly) (c : quorum.JointConfig) (v0 v1 : Loc) (s0 s1 : GSet w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hown" ∷ ownReadOnly ro r ∗
-      "%Hc" ∷ ⌜c.arr = [m0, map.nil]⌝ ∗
-      "Hvoters" ∷ m0 ↦$ ids ∗
-      "%Hsz" ∷ ⌜(GMap.size (domSet ids) : Int) ≤ 2 ^ 62⌝ ∗
-      "%Hne" ∷ ⌜domSet ids ≠ ∅⌝ ∗
-      "%Hbound" ∷ ⌜∀ v, v ∈ domSet ids →
+      "%Hc" ∷ ⌜c.arr = [v0, v1]⌝ ∗
+      "Hv0" ∷ ownIdsetQ v0 (DFrac.own 1) s0 ∗
+      "Hv1" ∷ ownIdsetQ v1 (DFrac.own 1) s1 ∗
+      "%Hsz" ∷ ⌜(GMap.size s0 : Int) ≤ 2 ^ 62 ∧ (GMap.size s1 : Int) ≤ 2 ^ 62⌝ ∗
+      "%Hne" ∷ ⌜s0 ∪ s1 ≠ ∅⌝ ∗
+      "%Hbound" ∷ ⌜∀ v, v ∈ s0 ∪ s1 →
           uint.Z ((r.acks !! v).getD (W64 0))
             ≤ uint.Z r.confirmed + (r.pending.length : Int)⌝ }}
     (App (Val (ro @!! go.GoType.PointerType readOnly.ty @!! go!"maybeAdvance")) (Val #c))
   {{ (sl : GoSlice) (N : w64), RET #sl;
-      ⌜IsQuorumIndex (domSet ids) (fun v => (r.acks !! v).getD (W64 0)) N⌝ ∗
+      ⌜JCommittedIdx s0 s1 (fun v => (r.acks !! v).getD (W64 0)) N⌝ ∗
       ownReadOnly ro (readonlyAdvance r N).1 ∗
-      (∃ ids' : GMap w64 Unit, ⌜domSet ids' = domSet ids⌝ ∗ m0 ↦$ ids') ∗
+      ownIdsetQ v0 (DFrac.own 1) s0 ∗ ownIdsetQ v1 (DFrac.own 1) s1 ∗
       (∃ ptrs : List Loc, sl ↦*□ ptrs ∗
          [∗list] _k ↦ p;q ∈ ptrs;(readonlyAdvance r N).2, ownReadreq p q) }}
 

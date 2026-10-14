@@ -31,32 +31,34 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-variable (cfg : GSet w64)
-
-/-- The voter map out of a tracker, back at any map with the same key set. -/
-private theorem ownTracker_voters (tv : tracker.ProgressTracker) (t : Trk) :
-    ⊢ ownTracker (GF := GF) cfg tv t -∗
-      ∃ (vr : Loc) (voters : GMap w64 Unit),
-        ⌜tv.Config'.Voters'.arr = [vr, map.nil]⌝ ∗ ⌜domSet voters = cfg⌝ ∗
-        ⌜(GMap.size cfg : Int) ≤ 2 ^ 62⌝ ∗ vr ↦$ voters ∗
-        (∀ voters' : GMap w64 Unit, ⌜domSet voters' = cfg⌝ -∗ vr ↦$ voters' -∗
-           ownTracker cfg tv t) := by
+/-- The two voter halves of the tracker at `c` (2026-10-14, reconfiguration stage A3), as the
+`quorum`/`readOnly` methods take them (`ownIdsetQ`), with their size bounds; given back
+unchanged. -/
+theorem ownTrackerC_halves (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
+    ⊢ ownTrackerC (GF := GF) c tv t -∗
+      ∃ (vin vout : Loc), ⌜tv.Config'.Voters'.arr = [vin, vout]⌝ ∗
+        ⌜(GMap.size c.incoming : Int) ≤ 2 ^ 62 ∧ (GMap.size c.outgoing : Int) ≤ 2 ^ 62⌝ ∗
+        ownIdsetQ vin (DFrac.own 1) c.incoming ∗ ownIdsetQ vout (DFrac.own 1) c.outgoing ∗
+        (ownIdsetQ vin (DFrac.own 1) c.incoming -∗ ownIdsetQ vout (DFrac.own 1) c.outgoing -∗
+           ownTrackerC c tv t) := by
+  obtain ⟨votes, prs, pvs⟩ := t
   iintro Hown
-  iunfold ownTracker at Hown
-  icases Hown with ⟨%voters_ref, %voters, %learners, %learnersNext, Hown⟩
+  icases ownTrackerC_voters_size c tv _ $$ Hown with ⟨%Hsz, Hown⟩
+  iunfold ownTrackerC at Hown
   iNamed Hown
-  iexists voters_ref, voters
+  icases ownCfgCC_voters _ _ $$ Hcfg with ⟨%vin, %vout, %Harr, Hv0, Hv1, Hcback⟩
+  iexists vin, vout
   isplitr
-  · ipureintro; exact Hvoters_arr
+  · ipureintro; exact Harr
   isplitr
-  · ipureintro; exact Hvoters_dom
-  isplitr
-  · ipureintro; exact cfg_size_le cfg _ Hprs_dom Hcfg_size
-  iframe Hvoters
-  iintro %voters' %Hd Hv
-  iapply ownTracker_intro cfg tv t.votes t.prs t.peers voters_ref voters' learners learnersNext
-    Hprs_dom Hvoters_arr Hautoleave Hd Hno_learners Hcfg_size HmaxInfl
-    $$ Hvotes Hprs Hprogs Hv Hlearners HlearnersNext
+  · ipureintro; exact ⟨Hsz.2.1, Hsz.2.2⟩
+  iframe Hv0 Hv1
+  iintro Hv0 Hv1
+  ihave Hcfg := Hcback $$ Hv0 Hv1
+  iapply ownTrackerC_intro c tv votes prs pvs Hinv Hdom Hflags Hsize HmaxInfl
+    $$ Hvotes Hprs Hprogs Hcfg
+
+variable (c : CfgM)
 
 /-- The loop's batch with entry `n` overwritten (2026-10-13). -/
 private theorem list_set_mid {A : Type} (P l : List A) (n : Nat) (x e : A) (hP : P.length = n)
@@ -87,15 +89,16 @@ set_option maxHeartbeats 1600000 in
 /-- **`MsgProp`**
 
 `len(m.Entries) == 0` is false (`ents ≠ []`); `r.trk.Progress[r.id]` is a hit
-(`id ∈ cfg`, and a `Progress` pointer is never nil); a leader transfer in progress drops
+(`id ∈ c.voters`, and a `Progress` pointer is never nil); a leader transfer in progress drops
 the proposal. Then (2026-10-13, reconfiguration stage D) the conf-change loop: entry `n`
 of the batch -- the loop's state is the batch with the first `n` entries as the loop
 left them (`leaderPropConf` of the first `n`), and `pendingConfIndex` as it left it --
 is decoded (`Unmarshal`, from `ccEntsOk`'s bytes, never failing) when it is a conf change,
 and checked: refused (overwritten with `pb.Entry{Type: EntryNormal}`) when a conf change
-is pending or it is an empty `ConfChangeV2`, else accepted (`pendingConfIndex` moved).
-`r.trk.Config.Voters[1]` is `nil` (the configuration in use is simple), so `alreadyJoint`
-is false; `disableConfChangeValidation` is false (`ownRaftPhys`). Then `appendEntry`
+is pending or its `wantsLeaveJoint` (an empty `ConfChangeV2`) disagrees with `alreadyJoint`,
+else accepted (`pendingConfIndex` moved). `alreadyJoint` is `len(r.trk.Config.Voters[1]) >
+0`, `c.joint` (since 2026-10-14, reconfiguration stage A3: until then the outgoing half was
+`nil`); `disableConfChangeValidation` is false (`ownRaftPhysC`). Then `appendEntry`
 stamps the loop's batch and, if it accepts it, `bcastAppend`. -/
 theorem wp_stepLeader_prop
     (wp_raft_bcastAppend : raft.bcastAppend.spec (GF := GF) (hG := hG))
@@ -109,14 +112,14 @@ theorem wp_stepLeader_prop
     (wp_traceChangeConfEvent : traceChangeConfEvent.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (m : raftpb.Message) (ents : List raftpb.Entry)
     (cs : List (Option CCMsg))
-    (Hty : m.Type' = MsgProp) (Hid : id ∈ cfg) (Hne : ents ≠ [])
+    (Hty : m.Type' = MsgProp) (Hid : id ∈ c.voters) (Hne : ents ≠ [])
     (Hsmall : (ents.length : Int) < 2^61) (Hnz : s.term ≠ W64 0) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         m.Entries' ↦* ents ∗ ccEntsOk ents cs }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #m))
     {{ (err : GoInterface) (s' : NState) (dropped : Bool), RET #err;
-        ownRaftPhys cfg r id s' ∗
-        ⌜LeaderProposeResult id s ents dropped s'⌝ ∗
+        ownRaftPhysCV c c.voters r id s' ∗
+        ⌜LeaderProposeResult id s ents dropped s' c.joint⌝ ∗
         (if dropped then globalAddr ErrProposalDropped ↦□ err
          else ⌜err = interface.nil⌝) ∗
         (∃ ents' : List raftpb.Entry, m.Entries' ↦* ents') }} := by
@@ -137,20 +140,20 @@ theorem wp_stepLeader_prop
     apply Hne
     apply List.eq_nil_of_length_eq_zero
     rw [Hl.1, Hif]; rfl
-  wp_apply raft.wp_load_id $$ Hphys as Hphys
-  icases ownRaftPhys_tracker_same cfg r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-  icases ownTracker_progress_map cfg tv _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
-  icases ownTracker_prvals_dom cfg tv _ $$ Htrk with ⟨%Hpdom, Htrk⟩
+  wp_apply raft.wp_load_idC $$ Hphys as Hphys
+  icases ownRaftPhysC_tracker_same c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
+  icases ownTrackerC_progress_map c tv _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
+  icases ownTrackerC_prvals_dom c tv _ $$ Htrk with ⟨%Hpdom, Htrk⟩
   dsimp only at Hdom Hpdom
   wp_auto
   ihave Hphys := Hback $$ Htrkf Htrk
   wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ s.progress
     id _ $$ Hprs with -
   obtain ⟨pr, Hlk⟩ : ∃ pr, s.progress !! id = some pr := by
-    rw [← GMap.elem_of_dom]; exact (GMap.elem_of_subseteq _ _).1 Hdom _ Hid
+    rw [← GMap.elem_of_dom, Hdom]; exact (GMap.elem_of_subseteq _ _).1 (voters_sub_ids c) _ Hid
   obtain ⟨p, Hpvs⟩ : ∃ p, s.prvals !! id = some p := by
     rw [← GMap.elem_of_dom, Hpdom, GMap.elem_of_dom]; exact ⟨pr, Hlk⟩
-  icases ownRaftPhys_pr cfg r id s id pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
+  icases ownRaftPhysC_pr c r id s id pr p $$ Hphys %Hlk %Hpvs with ⟨Hpa, Hpback⟩
   iNamed Hpa
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hpv
   ihave Hphys := Hpback $$ [Hpv Hinfl]
@@ -159,16 +162,16 @@ theorem wp_stepLeader_prop
   simp only [Option.getD_some]
   wp_if_destruct
   · exact absurd rfl Hnn
-  wp_apply raft.wp_load_leadTransferee $$ Hphys as Hphys
+  wp_apply raft.wp_load_leadTransfereeC $$ Hphys as Hphys
   -- (2026-10-13) a leader transfer in progress drops the proposal
   by_cases Hlt : s.lt = W64 0
   rotate_left
   · rw [decide_eq_false Hlt]
     wp_auto
-    wp_apply raft.wp_load_id $$ Hphys as Hphys
-    wp_apply raft.wp_load_Term $$ Hphys as Hphys
-    wp_apply raft.wp_load_leadTransferee $$ Hphys as Hphys
-    wp_raft_log
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
+    wp_apply raft.wp_load_TermC $$ Hphys as Hphys
+    wp_apply raft.wp_load_leadTransfereeC $$ Hphys as Hphys
+    wp_raft_logC
     iapply HΦ $$ %errPropDropped %s %true
     iframe Hphys
     isplitr
@@ -184,7 +187,7 @@ theorem wp_stepLeader_prop
   irename : (gi_ptr ↦ zero_val w64 : IProp GF) => Hgi
   -- the loop's state after `n` entries
   let lpc : Nat → List raftpb.Entry × w64 := fun n =>
-    propConf s.logst.applied (logLast s.logst) s.pci (ents.take n) (cs.take n)
+    propConf s.logst.applied (logLast s.logst) s.pci (ents.take n) (cs.take n) c.joint
   have Hlpc_len : ∀ n, n ≤ ents.length → (lpc n).1.length = n := by
     intro n hn
     simp only [lpc]
@@ -193,7 +196,7 @@ theorem wp_stepLeader_prop
       "Hj" ∷ i_ptr ↦ n ∗
       "Hgi" ∷ gi_ptr ↦ k ∗
       "Hes" ∷ m.Entries' ↦* ((lpc (sint.nat n)).1 ++ ents.drop (sint.nat n)) ∗
-      "Hphys" ∷ ownRaftPhys cfg r id { s with pci := (lpc (sint.nat n)).2 } ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id { s with pci := (lpc (sint.nat n)).2 } ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ents.length : Int)⌝) $$ [i Hgi Hes Hphys]
   · iexists W64 0, zero_val w64
     simp only [lpc, show sint.nat (W64 0) = 0 from rfl, propConf_take_zero, List.nil_append,
@@ -219,12 +222,12 @@ theorem wp_stepLeader_prop
         List.getElem?_drop, Nat.add_zero, He_lookup]
     ihave #Heo := BigSepL2.bigSepL2_lookup (Φ := fun _ e o => ccEntOk (GF := GF) e o)
       He_lookup Ho_lookup $$ Hcc
-    have Hstep := propConf_take_succ s.logst.applied (logLast s.logst) s.pci ents cs
+    have Hstep := propConf_take_succ c.joint s.logst.applied (logLast s.logst) s.pci ents cs
       (sint.nat n) e o He_lookup Ho_lookup
     have Hnext : sint.nat (n + W64 1) = sint.nat n + 1 := by word
     have Hlpcn := Hlpc_len (sint.nat n) (by word)
     -- the next state, when the loop keeps entry `n` or overwrites it
-    have Hkeep : ∀ p', propConfStep s.logst.applied (logLast s.logst) (lpc (sint.nat n)) (e, o) =
+    have Hkeep : ∀ p', propConfStep c.joint s.logst.applied (logLast s.logst) (lpc (sint.nat n)) (e, o) =
         ((lpc (sint.nat n)).1 ++ [e], p') →
         (lpc (sint.nat (n + W64 1))).1 ++ ents.drop (sint.nat (n + W64 1)) =
           (lpc (sint.nat n)).1 ++ ents.drop (sint.nat n) ∧ (lpc (sint.nat (n + W64 1))).2 = p' := by
@@ -232,7 +235,7 @@ theorem wp_stepLeader_prop
       simp only [lpc, Hnext, Hstep] at Hp ⊢
       rw [Hp, list_drop_S ents _ e He_lookup]
       simp
-    have Hzero : ∀ p', propConfStep s.logst.applied (logLast s.logst) (lpc (sint.nat n)) (e, o) =
+    have Hzero : ∀ p', propConfStep c.joint s.logst.applied (logLast s.logst) (lpc (sint.nat n)) (e, o) =
         ((lpc (sint.nat n)).1 ++ [zero_val raftpb.Entry], p') →
         (lpc (sint.nat (n + W64 1))).1 ++ ents.drop (sint.nat (n + W64 1)) =
           ((lpc (sint.nat n)).1 ++ ents.drop (sint.nat n)).set (sint.Z n).toNat
@@ -289,17 +292,17 @@ theorem wp_stepLeader_prop
       subst Herr
       wp_auto
       -- `alreadyPending := r.pendingConfIndex > r.raftLog.applied`
-      wp_apply raft.wp_load_pendingConfIndex $$ Hphys as Hphys
-      wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-      icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hback⟩
+      wp_apply raft.wp_load_pendingConfIndexC $$ Hphys as Hphys
+      wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+      icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩
       icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
       wp_auto
       ihave Hlog := Hlb $$ Hl
       ihave Hphys := Hback $$ Hlog
-      -- `alreadyJoint := len(r.trk.Config.Voters[1]) > 0`: the outgoing half is `nil`
-      icases ownRaftPhys_tracker_same cfg r id _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-      icases ownTracker_voters cfg tv _ $$ Htrk with ⟨%vr, %voters, %Harr, %Hvd, %Hcsz, Hv, Htrkback⟩
-      have Hset1 : array.mk 2 (tv.Config'.Voters'.arr.set (sint.Z (W64 1)).toNat map.nil) =
+      -- `alreadyJoint := len(r.trk.Config.Voters[1]) > 0`: `c.joint` (2026-10-14)
+      icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
+      icases ownTrackerC_halves c tv _ $$ Htrk with ⟨%vin, %vout, %Harr, %Hcsz, Hv0, Hv1, Htrkback⟩
+      have Hset1 : array.mk 2 (tv.Config'.Voters'.arr.set (sint.Z (W64 1)).toNat vout) =
           tv.Config'.Voters' := by
         generalize tv.Config'.Voters' = a at Harr ⊢
         cases a
@@ -312,13 +315,20 @@ theorem wp_stepLeader_prop
           (A' := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Voters"]
             ↦ tv.Config'.Voters')
           (P := r.[raft, go!"trk"] ↦ tv)) $$ Htrkf with ⟨Hvf, Htrkfback⟩
-      icases array_acc _ (sint.Z (W64 1)) _ _ _ map.nil (by decide) (by rw [Harr]; rfl)
+      icases array_acc _ (sint.Z (W64 1)) _ _ _ vout (by decide) (by rw [Harr]; rfl)
         $$ Hvf with ⟨Hc1, Hcback⟩
       wp_auto
       ihave Hvf := Hcback $$ Hc1
       rw [Hset1]
       ihave Htrkf := Htrkfback $$ Hvf
-      ihave Htrk := Htrkback $$ %voters %Hvd Hv
+      wp_apply wp_idset_len $$ Hv1 as ⟨Hv1, %Hlt1⟩
+      have Hjd : decide (sint.Z (W64 0) < sint.Z (W64 (GMap.size c.outgoing : Int))) = c.joint := by
+        unfold CfgM.joint
+        apply decide_eq_decide.2
+        have : sint.Z (W64 (GMap.size c.outgoing : Int)) = GMap.size c.outgoing := by word
+        rw [this]; simp
+      rw [Hjd]
+      ihave Htrk := Htrkback $$ Hv0 Hv1
       ihave Hphys := Hback $$ %tv Htrkf Htrk
       -- `wantsLeaveJoint := len(cc.AsV2().Changes) == 0`: a `ConfChange` has one change
       wp_apply wp_ConfChange_AsV2 as %v2 ⟨-, Hch⟩
@@ -329,9 +339,9 @@ theorem wp_stepLeader_prop
       · -- a conf change is pending: refused
         have Hpend : uint.Z s.logst.applied < uint.Z (lpc (sint.nat n)).2 := by
           rw [← Happ]; exact Hif
-        wp_apply raft.wp_load_pendingConfIndex $$ Hphys as Hphys
-        wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-        icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hback⟩
+        wp_apply raft.wp_load_pendingConfIndexC $$ Hphys as Hphys
+        wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+        icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩
         icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv2, Hl, %Hlv2, Hlb⟩
         wp_auto
         ihave Hlog := Hlb $$ Hl
@@ -352,13 +362,13 @@ theorem wp_stepLeader_prop
           simp
         simp only [decide_eq_false Hstr, Bool.not_false]
         wp_auto
-        have Hstep0 : propConfStep s.logst.applied (logLast s.logst) (lpc (sint.nat n))
+        have Hstep0 : propConfStep c.joint s.logst.applied (logLast s.logst) (lpc (sint.nat n))
             (e, some (.v1 c1)) = ((lpc (sint.nat n)).1 ++ [zero_val raftpb.Entry], (lpc (sint.nat n)).2) := by
           unfold propConfStep
           simp only [Hpend, true_or, ↓reduceIte]
-        wp_apply raft.wp_load_disableConfChangeValidation $$ Hphys as Hphys
-        wp_apply raft.wp_load_id $$ Hphys as Hphys
-        icases ownRaftPhys_tracker_same cfg r id _ $$ Hphys with ⟨%tv2, Htrkf, Htrk, Hback⟩
+        wp_apply raft.wp_load_disableConfChangeValidationC $$ Hphys as Hphys
+        wp_apply raft.wp_load_idC $$ Hphys as Hphys
+        icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tv2, Htrkf, Htrk, Hback⟩
         icases (Access.access
             (A := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"] ↦ tv2.Config')
             (A' := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"] ↦ tv2.Config')
@@ -366,7 +376,7 @@ theorem wp_stepLeader_prop
         wp_auto
         ihave Htrkf := Htrkfback $$ Hcf
         ihave Hphys := Hback $$ %tv2 Htrkf Htrk
-        wp_raft_log
+        wp_raft_logC
         ihave Hes := Hesback $$ %e He
         rw [list_set_self _ (sint.Z n) e Hcur_lookup]
         rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
@@ -380,39 +390,75 @@ theorem wp_stepLeader_prop
         rw [Hcur', Hpci']
         iframe
         ipureintro; word
-      · -- no conf change pending and one change: accepted
+      · -- no conf change pending, one change (`wantsLeaveJoint` false)
         have Hnp : ¬ uint.Z s.logst.applied < uint.Z (lpc (sint.nat n)).2 := by
           rw [← Happ]; exact Hif
         have Hch0 : v2.Changes'.len ≠ W64 0 := by
           intro h; have h1 := Hchl.1; rw [h] at h1; simp [sint.nat] at h1
         rw [decide_eq_false Hch0]
         try wp_auto
-        have Hstep1 : propConfStep s.logst.applied (logLast s.logst) (lpc (sint.nat n))
-            (e, some (.v1 c1)) = ((lpc (sint.nat n)).1 ++ [e],
-              logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1) := by
-          unfold propConfStep
-          simp only [Hnp, ccWantsLeave, Bool.false_eq_true, _root_.or_self, ↓reduceIte, Hlpcn]
-        wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-        icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hback⟩
-        wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
-        ihave Hphys := Hback $$ Hlog
-        try wp_auto
-        wp_apply raft.wp_store_pendingConfIndex $$ Hphys as Hphys
-        wp_apply wp_traceChangeConfEvent
-        ihave Hes := Hesback $$ %e He
-        rw [list_set_self _ (sint.Z n) e Hcur_lookup]
-        have Hli' : li = logLast s.logst := by
-          unfold logLast; simp only at Hli; word
-        obtain ⟨Hcur', Hpci'⟩ := Hkeep _ Hstep1
-        wp_for_post
-        iframe
-        iexists n + W64 1, n
-        rw [Hcur', Hpci']
-        ihave Hphys := ownRaftPhys_eq cfg r id _
-          { s with pci := logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1 }
-          (by rw [Hli']; congr 2; word) $$ Hphys
-        iframe
-        ipureintro; word
+        rcases Bool.eq_false_or_eq_true c.joint with Hjv | Hjv
+        rotate_left
+        · -- outside a joint configuration: accepted
+          rw [Hjv]
+          try wp_auto
+          have Hstep1 : propConfStep c.joint s.logst.applied (logLast s.logst) (lpc (sint.nat n))
+              (e, some (.v1 c1)) = ((lpc (sint.nat n)).1 ++ [e],
+                logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1) := by
+            unfold propConfStep
+            simp only [Hnp, ccWantsLeave, Hjv, ne_eq, not_true_eq_false, _root_.or_self, ↓reduceIte, Hlpcn]
+          wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+          icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩
+          wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
+          ihave Hphys := Hback $$ Hlog
+          try wp_auto
+          wp_apply raft.wp_store_pendingConfIndexC $$ Hphys as Hphys
+          wp_apply wp_traceChangeConfEvent
+          ihave Hes := Hesback $$ %e He
+          rw [list_set_self _ (sint.Z n) e Hcur_lookup]
+          have Hli' : li = logLast s.logst := by
+            unfold logLast; simp only at Hli; word
+          obtain ⟨Hcur', Hpci'⟩ := Hkeep _ Hstep1
+          wp_for_post
+          iframe
+          iexists n + W64 1, n
+          rw [Hcur', Hpci']
+          ihave Hphys := ownRaftPhysC_eq c r id _
+            { s with pci := logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1 }
+            (by rw [Hli']; congr 2; word) $$ Hphys
+          iframe
+          ipureintro; word
+        · -- inside one (`must transition out of joint config first`): refused
+          rw [Hjv]
+          wp_auto
+          have Hstep0 : propConfStep c.joint s.logst.applied (logLast s.logst) (lpc (sint.nat n))
+              (e, some (.v1 c1)) = ((lpc (sint.nat n)).1 ++ [zero_val raftpb.Entry], (lpc (sint.nat n)).2) := by
+            unfold propConfStep
+            simp only [ccWantsLeave, Hjv, ne_eq, Bool.false_eq_true, not_false_eq_true, or_true, ↓reduceIte]
+          wp_apply raft.wp_load_disableConfChangeValidationC $$ Hphys as Hphys
+          wp_apply raft.wp_load_idC $$ Hphys as Hphys
+          icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tv2, Htrkf, Htrk, Hback⟩
+          icases (Access.access
+              (A := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"] ↦ tv2.Config')
+              (A' := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"] ↦ tv2.Config')
+              (P := r.[raft, go!"trk"] ↦ tv2)) $$ Htrkf with ⟨Hcf, Htrkfback⟩
+          wp_auto
+          ihave Htrkf := Htrkfback $$ Hcf
+          ihave Hphys := Hback $$ %tv2 Htrkf Htrk
+          wp_raft_logC
+          ihave Hes := Hesback $$ %e He
+          rw [list_set_self _ (sint.Z n) e Hcur_lookup]
+          rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
+          wp_apply wp_store_slice_index _ (sint.Z n) _ _ $$ [$Hes] as Hes
+          · ipureintro; rw [Hcurlen]; word
+          rw [entry_normal_lit]
+          obtain ⟨Hcur', Hpci'⟩ := Hzero _ Hstep0
+          wp_for_post
+          iframe
+          iexists n + W64 1, n
+          rw [Hcur', Hpci']
+          iframe
+          ipureintro; word
     · -- a `ConfChangeV2`
       iunfold ccEntOk at Heo
       icases Heo with ⟨%H2, %bs, #Hbs, %Hdec⟩
@@ -430,17 +476,17 @@ theorem wp_stepLeader_prop
       ihave %Hchl := ownSlice_len _ _ _ $$ Hch
       wp_auto
       -- `alreadyPending := r.pendingConfIndex > r.raftLog.applied`
-      wp_apply raft.wp_load_pendingConfIndex $$ Hphys as Hphys
-      wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-      icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hback⟩
+      wp_apply raft.wp_load_pendingConfIndexC $$ Hphys as Hphys
+      wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+      icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩
       icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
       wp_auto
       ihave Hlog := Hlb $$ Hl
       ihave Hphys := Hback $$ Hlog
-      -- `alreadyJoint := len(r.trk.Config.Voters[1]) > 0`: the outgoing half is `nil`
-      icases ownRaftPhys_tracker_same cfg r id _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-      icases ownTracker_voters cfg tv _ $$ Htrk with ⟨%vr, %voters, %Harr, %Hvd, %Hcsz, Hv, Htrkback⟩
-      have Hset1 : array.mk 2 (tv.Config'.Voters'.arr.set (sint.Z (W64 1)).toNat map.nil) =
+      -- `alreadyJoint := len(r.trk.Config.Voters[1]) > 0`: `c.joint` (2026-10-14)
+      icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
+      icases ownTrackerC_halves c tv _ $$ Htrk with ⟨%vin, %vout, %Harr, %Hcsz, Hv0, Hv1, Htrkback⟩
+      have Hset1 : array.mk 2 (tv.Config'.Voters'.arr.set (sint.Z (W64 1)).toNat vout) =
           tv.Config'.Voters' := by
         generalize tv.Config'.Voters' = a at Harr ⊢
         cases a
@@ -453,13 +499,20 @@ theorem wp_stepLeader_prop
           (A' := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"].[tracker.Config, go!"Voters"]
             ↦ tv.Config'.Voters')
           (P := r.[raft, go!"trk"] ↦ tv)) $$ Htrkf with ⟨Hvf, Htrkfback⟩
-      icases array_acc _ (sint.Z (W64 1)) _ _ _ map.nil (by decide) (by rw [Harr]; rfl)
+      icases array_acc _ (sint.Z (W64 1)) _ _ _ vout (by decide) (by rw [Harr]; rfl)
         $$ Hvf with ⟨Hc1, Hcback⟩
       wp_auto
       ihave Hvf := Hcback $$ Hc1
       rw [Hset1]
       ihave Htrkf := Htrkfback $$ Hvf
-      ihave Htrk := Htrkback $$ %voters %Hvd Hv
+      wp_apply wp_idset_len $$ Hv1 as ⟨Hv1, %Hlt1⟩
+      have Hjd : decide (sint.Z (W64 0) < sint.Z (W64 (GMap.size c.outgoing : Int))) = c.joint := by
+        unfold CfgM.joint
+        apply decide_eq_decide.2
+        have : sint.Z (W64 (GMap.size c.outgoing : Int)) = GMap.size c.outgoing := by word
+        rw [this]; simp
+      rw [Hjd]
+      ihave Htrk := Htrkback $$ Hv0 Hv1
       ihave Hphys := Hback $$ %tv Htrkf Htrk
       -- `wantsLeaveJoint := len(cc.AsV2().Changes) == 0`: `AsV2` is the change itself
       wp_apply wp_ConfChangeV2_AsV2
@@ -469,9 +522,9 @@ theorem wp_stepLeader_prop
       · -- a conf change is pending: refused
         have Hpend : uint.Z s.logst.applied < uint.Z (lpc (sint.nat n)).2 := by
           rw [← Happ]; exact Hif
-        wp_apply raft.wp_load_pendingConfIndex $$ Hphys as Hphys
-        wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-        icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hback⟩
+        wp_apply raft.wp_load_pendingConfIndexC $$ Hphys as Hphys
+        wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+        icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩
         icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv2, Hl, %Hlv2, Hlb⟩
         wp_auto
         ihave Hlog := Hlb $$ Hl
@@ -492,13 +545,13 @@ theorem wp_stepLeader_prop
           simp
         simp only [decide_eq_false Hstr, Bool.not_false]
         wp_auto
-        have Hstep0 : propConfStep s.logst.applied (logLast s.logst) (lpc (sint.nat n))
+        have Hstep0 : propConfStep c.joint s.logst.applied (logLast s.logst) (lpc (sint.nat n))
             (e, some (.v2 c2)) = ((lpc (sint.nat n)).1 ++ [zero_val raftpb.Entry], (lpc (sint.nat n)).2) := by
           unfold propConfStep
           simp only [Hpend, true_or, ↓reduceIte]
-        wp_apply raft.wp_load_disableConfChangeValidation $$ Hphys as Hphys
-        wp_apply raft.wp_load_id $$ Hphys as Hphys
-        icases ownRaftPhys_tracker_same cfg r id _ $$ Hphys with ⟨%tv2, Htrkf, Htrk, Hback⟩
+        wp_apply raft.wp_load_disableConfChangeValidationC $$ Hphys as Hphys
+        wp_apply raft.wp_load_idC $$ Hphys as Hphys
+        icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tv2, Htrkf, Htrk, Hback⟩
         icases (Access.access
             (A := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"] ↦ tv2.Config')
             (A' := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"] ↦ tv2.Config')
@@ -506,7 +559,7 @@ theorem wp_stepLeader_prop
         wp_auto
         ihave Htrkf := Htrkfback $$ Hcf
         ihave Hphys := Hback $$ %tv2 Htrkf Htrk
-        wp_raft_log
+        wp_raft_logC
         ihave Hes := Hesback $$ %e He
         rw [list_set_self _ (sint.Z n) e Hcur_lookup]
         rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
@@ -528,83 +581,151 @@ theorem wp_stepLeader_prop
           · intro h; apply List.eq_nil_of_length_eq_zero; rw [h1, h]; rfl
           · intro h; rw [h] at h1; simp only [List.length_nil] at h1; word
         by_cases Hcw : c2.changes = []
-        · -- an empty change, outside a joint configuration: refused
-          rw [decide_eq_true (Hlv0.2 Hcw)]
-          wp_auto
-          have Hstep0 : propConfStep s.logst.applied (logLast s.logst) (lpc (sint.nat n))
-              (e, some (.v2 c2)) = ((lpc (sint.nat n)).1 ++ [zero_val raftpb.Entry], (lpc (sint.nat n)).2) := by
-            unfold propConfStep
-            simp only [ccWantsLeave, Hcw, List.isEmpty_nil, or_true, ↓reduceIte]
-          wp_apply raft.wp_load_disableConfChangeValidation $$ Hphys as Hphys
-          wp_apply raft.wp_load_id $$ Hphys as Hphys
-          icases ownRaftPhys_tracker_same cfg r id _ $$ Hphys with ⟨%tv2, Htrkf, Htrk, Hback⟩
-          icases (Access.access
-              (A := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"] ↦ tv2.Config')
-              (A' := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"] ↦ tv2.Config')
-              (P := r.[raft, go!"trk"] ↦ tv2)) $$ Htrkf with ⟨Hcf, Htrkfback⟩
-          wp_auto
-          ihave Htrkf := Htrkfback $$ Hcf
-          ihave Hphys := Hback $$ %tv2 Htrkf Htrk
-          wp_raft_log
-          ihave Hes := Hesback $$ %e He
-          rw [list_set_self _ (sint.Z n) e Hcur_lookup]
-          rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
-          wp_apply wp_store_slice_index _ (sint.Z n) _ _ $$ [$Hes] as Hes
-          · ipureintro; rw [Hcurlen]; word
-          rw [entry_normal_lit]
-          obtain ⟨Hcur', Hpci'⟩ := Hzero _ Hstep0
-          wp_for_post
-          iframe
-          iexists n + W64 1, n
-          rw [Hcur', Hpci']
-          iframe
-          ipureintro; word
-        · -- accepted
-          rw [decide_eq_false (fun h => Hcw (Hlv0.1 h))]
+        · rw [decide_eq_true (Hlv0.2 Hcw)]
           try wp_auto
-          have Hstep1 : propConfStep s.logst.applied (logLast s.logst) (lpc (sint.nat n))
-              (e, some (.v2 c2)) = ((lpc (sint.nat n)).1 ++ [e],
-                logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1) := by
-            unfold propConfStep
-            have Hne : c2.changes.isEmpty = false := by
-              cases h : c2.changes with
-              | nil => exact absurd h Hcw
-              | cons _ _ => rfl
-            simp only [Hnp, ccWantsLeave, Hne, Bool.false_eq_true, _root_.or_self, ↓reduceIte, Hlpcn]
-          wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-          icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hback⟩
-          wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
-          ihave Hphys := Hback $$ Hlog
+          rcases Bool.eq_false_or_eq_true c.joint with Hjv | Hjv
+          rotate_left
+          · -- an empty change outside a joint configuration: refused
+            rw [Hjv]
+            wp_auto
+            have Hstep0 : propConfStep c.joint s.logst.applied (logLast s.logst) (lpc (sint.nat n))
+                (e, some (.v2 c2)) = ((lpc (sint.nat n)).1 ++ [zero_val raftpb.Entry], (lpc (sint.nat n)).2) := by
+              unfold propConfStep
+              simp only [ccWantsLeave, Hcw, Hjv, List.isEmpty_nil, ne_eq, Bool.true_eq_false, not_false_eq_true, or_true, ↓reduceIte]
+            wp_apply raft.wp_load_disableConfChangeValidationC $$ Hphys as Hphys
+            wp_apply raft.wp_load_idC $$ Hphys as Hphys
+            icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tv2, Htrkf, Htrk, Hback⟩
+            icases (Access.access
+                (A := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"] ↦ tv2.Config')
+                (A' := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"] ↦ tv2.Config')
+                (P := r.[raft, go!"trk"] ↦ tv2)) $$ Htrkf with ⟨Hcf, Htrkfback⟩
+            wp_auto
+            ihave Htrkf := Htrkfback $$ Hcf
+            ihave Hphys := Hback $$ %tv2 Htrkf Htrk
+            wp_raft_logC
+            ihave Hes := Hesback $$ %e He
+            rw [list_set_self _ (sint.Z n) e Hcur_lookup]
+            rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
+            wp_apply wp_store_slice_index _ (sint.Z n) _ _ $$ [$Hes] as Hes
+            · ipureintro; rw [Hcurlen]; word
+            rw [entry_normal_lit]
+            obtain ⟨Hcur', Hpci'⟩ := Hzero _ Hstep0
+            wp_for_post
+            iframe
+            iexists n + W64 1, n
+            rw [Hcur', Hpci']
+            iframe
+            ipureintro; word
+          · -- a request to leave the joint configuration: accepted
+            rw [Hjv]
+            try wp_auto
+            have Hstep1 : propConfStep c.joint s.logst.applied (logLast s.logst) (lpc (sint.nat n))
+                (e, some (.v2 c2)) = ((lpc (sint.nat n)).1 ++ [e],
+                  logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1) := by
+              unfold propConfStep
+              simp only [Hnp, ccWantsLeave, Hcw, Hjv, List.isEmpty_nil, ne_eq, not_true_eq_false, _root_.or_self, ↓reduceIte, Hlpcn]
+            wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+            icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩
+            wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
+            ihave Hphys := Hback $$ Hlog
+            try wp_auto
+            wp_apply raft.wp_store_pendingConfIndexC $$ Hphys as Hphys
+            wp_apply wp_traceChangeConfEvent
+            ihave Hes := Hesback $$ %e He
+            rw [list_set_self _ (sint.Z n) e Hcur_lookup]
+            have Hli' : li = logLast s.logst := by
+              unfold logLast; simp only at Hli; word
+            obtain ⟨Hcur', Hpci'⟩ := Hkeep _ Hstep1
+            wp_for_post
+            iframe
+            iexists n + W64 1, n
+            rw [Hcur', Hpci']
+            ihave Hphys := ownRaftPhysC_eq c r id _
+              { s with pci := logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1 }
+              (by rw [Hli']; congr 2; word) $$ Hphys
+            iframe
+            ipureintro; word
+        · rw [decide_eq_false (fun h => Hcw (Hlv0.1 h))]
           try wp_auto
-          wp_apply raft.wp_store_pendingConfIndex $$ Hphys as Hphys
-          wp_apply wp_traceChangeConfEvent
-          ihave Hes := Hesback $$ %e He
-          rw [list_set_self _ (sint.Z n) e Hcur_lookup]
-          have Hli' : li = logLast s.logst := by
-            unfold logLast; simp only at Hli; word
-          obtain ⟨Hcur', Hpci'⟩ := Hkeep _ Hstep1
-          wp_for_post
-          iframe
-          iexists n + W64 1, n
-          rw [Hcur', Hpci']
-          ihave Hphys := ownRaftPhys_eq cfg r id _
-            { s with pci := logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1 }
-            (by rw [Hli']; congr 2; word) $$ Hphys
-          iframe
-          ipureintro; word
+          have Hne : c2.changes.isEmpty = false := by
+            cases h : c2.changes with
+            | nil => exact absurd h Hcw
+            | cons _ _ => rfl
+          rcases Bool.eq_false_or_eq_true c.joint with Hjv | Hjv
+          rotate_left
+          · -- a change outside a joint configuration: accepted
+            rw [Hjv]
+            try wp_auto
+            have Hstep1 : propConfStep c.joint s.logst.applied (logLast s.logst) (lpc (sint.nat n))
+                (e, some (.v2 c2)) = ((lpc (sint.nat n)).1 ++ [e],
+                  logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1) := by
+              unfold propConfStep
+              simp only [Hnp, ccWantsLeave, Hne, Hjv, ne_eq, not_true_eq_false, _root_.or_self, ↓reduceIte, Hlpcn]
+            wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+            icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩
+            wp_apply wp_raftLog_lastIndex $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
+            ihave Hphys := Hback $$ Hlog
+            try wp_auto
+            wp_apply raft.wp_store_pendingConfIndexC $$ Hphys as Hphys
+            wp_apply wp_traceChangeConfEvent
+            ihave Hes := Hesback $$ %e He
+            rw [list_set_self _ (sint.Z n) e Hcur_lookup]
+            have Hli' : li = logLast s.logst := by
+              unfold logLast; simp only at Hli; word
+            obtain ⟨Hcur', Hpci'⟩ := Hkeep _ Hstep1
+            wp_for_post
+            iframe
+            iexists n + W64 1, n
+            rw [Hcur', Hpci']
+            ihave Hphys := ownRaftPhysC_eq c r id _
+              { s with pci := logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1 }
+              (by rw [Hli']; congr 2; word) $$ Hphys
+            iframe
+            ipureintro; word
+          · -- a change inside one: refused
+            rw [Hjv]
+            wp_auto
+            have Hstep0 : propConfStep c.joint s.logst.applied (logLast s.logst) (lpc (sint.nat n))
+                (e, some (.v2 c2)) = ((lpc (sint.nat n)).1 ++ [zero_val raftpb.Entry], (lpc (sint.nat n)).2) := by
+              unfold propConfStep
+              simp only [ccWantsLeave, Hne, Hjv, ne_eq, Bool.false_eq_true, not_false_eq_true, or_true, ↓reduceIte]
+            wp_apply raft.wp_load_disableConfChangeValidationC $$ Hphys as Hphys
+            wp_apply raft.wp_load_idC $$ Hphys as Hphys
+            icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tv2, Htrkf, Htrk, Hback⟩
+            icases (Access.access
+                (A := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"] ↦ tv2.Config')
+                (A' := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"] ↦ tv2.Config')
+                (P := r.[raft, go!"trk"] ↦ tv2)) $$ Htrkf with ⟨Hcf, Htrkfback⟩
+            wp_auto
+            ihave Htrkf := Htrkfback $$ Hcf
+            ihave Hphys := Hback $$ %tv2 Htrkf Htrk
+            wp_raft_logC
+            ihave Hes := Hesback $$ %e He
+            rw [list_set_self _ (sint.Z n) e Hcur_lookup]
+            rw [ite_eq_left_of_eq_true _ _ (eq_true (by word))]
+            wp_apply wp_store_slice_index _ (sint.Z n) _ _ $$ [$Hes] as Hes
+            · ipureintro; rw [Hcurlen]; word
+            rw [entry_normal_lit]
+            obtain ⟨Hcur', Hpci'⟩ := Hzero _ Hstep0
+            wp_for_post
+            iframe
+            iexists n + W64 1, n
+            rw [Hcur', Hpci']
+            iframe
+            ipureintro; word
   · -- the loop is done: `appendEntry` of the loop's batch
     have Hnend : sint.nat n = ents.length := by word
     have Htake : ∀ {A : Type} (l : List A), l.length = ents.length → l.take (sint.nat n) = l := by
       intro A l hl; rw [Hnend, ← hl, List.take_length]
-    have Hfin : lpc (sint.nat n) = leaderPropConf s ents cs := by
+    have Hfin : lpc (sint.nat n) = leaderPropConf s ents cs c.joint := by
       simp only [lpc, leaderPropConf, Htake ents rfl, Htake cs Hcslen]
     rw [Hnend] at Hfin
     rw [Hnend, List.drop_length, List.append_nil, Hfin]
-    have Hlen' : ((leaderPropConf s ents cs).1.length : Int) < 2^61 := by
+    have Hlen' : ((leaderPropConf s ents cs c.joint).1.length : Int) < 2^61 := by
       simp only [leaderPropConf]
       rw [propConf_length, Hcslen, Nat.min_self]; exact Hsmall
-    wp_apply (raft.appendEntry.spec_simple wp_raft_appendEntry) cfg r id { s with pci := (leaderPropConf s ents cs).2 } _
-        (leaderPropConf s ents cs).1 Hlen' Hnz $$ [$Hphys $Hes]
+    wp_apply wp_raft_appendEntry c r id { s with pci := (leaderPropConf s ents cs c.joint).2 } _
+        (leaderPropConf s ents cs c.joint).1 Hlen' Hnz $$ [$Hphys $Hes]
       as %acc ⟨-, Hes, Hphys⟩
     cases acc <;> simp only [Bool.false_eq_true, ↓reduceIte]
     · -- dropped
@@ -619,7 +740,7 @@ theorem wp_stepLeader_prop
       iexists _
       iexact Hes
     · wp_auto
-      wp_apply (raft.bcastAppend.spec_simple wp_raft_bcastAppend) $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+      wp_apply wp_raft_bcastAppend $$ [$Hphys] as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
       iapply HΦ $$ %interface.nil %_ %false
       iframe Hphys
       isplitr
