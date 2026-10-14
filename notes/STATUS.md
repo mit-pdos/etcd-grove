@@ -19,6 +19,21 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## Reconfiguration, stage B1: adversarial review (2026-10-14, parallel task 3)
+
+`notes/reconfiguration-safety-review.md` (branch `parallel/b1-review`): the paper proof read
+against the Go code, claim by claim. The core argument (I1-I3, `W`, the winners table and
+`win_fresh`, `cqW`'s witnesses, the three `lc_core` cases, read index's joint cases) holds. Two
+counterexamples outside it, both Go tests under `issues/raft-conf-lag-model/`:
+`issues/raft-readindex-singleton-stale.md` (the `IsSingleton` read-index shortcut answers stale
+reads once a conf change leaves one voter: a new leader before its first commit, or a removed
+leader; a fix patch) and `issues/raft-joiner-empty-confstate.md` (with `c0` in an index-0
+`ConfState` snapshot, a node added later folds conf changes onto an empty configuration and
+wins alone: section 0's claim about added nodes is false for that bootstrap). Gaps for B2's
+scope: `dec` must be allowed to depend on the prefix (etcd zeroes the `NodeId` of a change it
+rejects); A1/A3 must say "in order, once per entry" and "compaction and snapshots at most
+`applied`"; the read-index premise must exclude single-voter configurations (or the code fixed).
+
 ## Reconfiguration, stage B1: the safety argument on paper, its pure foundation (2026-10-14)
 
 Stage B is protocol-level safety (state machine safety, read index) with configurations taking
