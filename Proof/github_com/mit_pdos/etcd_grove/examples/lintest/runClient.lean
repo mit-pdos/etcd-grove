@@ -6,7 +6,7 @@ The proof of `runClient`.
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lintest.runClient
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.InvLemmas
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.ClientSteps
 
 @[expose] public section
 
@@ -60,8 +60,49 @@ theorem runClient.wp_proof : runClient.spec (GF := GF) (hG := hG) :=
   wp_if_destruct
   · iunfold genSpec at Hgen
     wp_apply (lc := 1) Hgen as %input -
-    done
-  · done
+    wp_apply (lc := 1) wp_clock_read S.M libState clockVal Eclk n γ clock (sint.nat id) (Lc, lr')
+      HEclk $$ [$Hclock $Hinv $Hlc1 $Htok] as %call ⟨Htok, %Hcall⟩
+    wp_apply (lc := 1) wp_apply_commit S libState clockVal Eapp n γ apply (sint.nat id) (Lc, call)
+      input HEapp $$ [$Happly $Hinv $Hlc1 $Htok] as %output %τ ⟨Htok, %Hτ, #Hioo⟩
+    wp_apply wp_clock_read S.M libState clockVal Eclk n γ clock (sint.nat id)
+      (Lc ++ [((input, output), τ)], call) HEclk $$ [$Hclock $Hinv $Hlc1 $Htok]
+      as %ret ⟨Htok, %Hret⟩
+    wp_apply wp_slice_literal (V := Operation)
+      [Operation.mk id input call output ret GoInterface.nil ()]
+    isplitr
+    · ipureintro; rfl
+    iintro %sl2 ⟨Hsl2, -⟩
+    wp_auto
+    wp_apply wp_slice_append $$ [$Hh $Hcap $Hsl2] as %hsl' ⟨Hh, Hcap, -⟩
+    wp_for_post
+    have Hlt : sint.Z i < sint.Z ops := by simpa using Hif
+    iframe
+    iexists (i + W64 1), hsl', _, Lc ++ [((input, output), τ)], ret
+    iframe
+    have Hi1 : sint.Z (i + W64 1) = sint.Z i + 1 := by word
+    unfold named
+    isplitr
+    · ipureintro
+      exact Hok.snoc input output call τ ret Hτ (Hret.1 ((input, output), τ) (by simp))
+    isplitr
+    · ipureintro
+      simp only [List.length_append, List.length_singleton, Hi1]
+      omega
+    unfold opsIoOk
+    iapply BigSepL.bigSepL_snoc.2
+    iframe # ∗
+  · have Hge : ¬ sint.Z i < sint.Z ops := by simpa using Hif
+    iapply HΦ
+    iexists hc, Lc, lr'
+    iframe
+    isplitr
+    · ipureintro
+      refine ⟨Hok, ?_⟩
+      have hl := Hi.2.1
+      have hi0 := Hi.1
+      have hi2 := Hi.2.2
+      word
+    iframe #
 
 end proof
 

@@ -145,6 +145,32 @@ theorem InvOk.commit (H : InvOk M n s t L Ls) {c : Nat} {v : ClientV}
       rw [this]
       simp
 
+/-- A client's trace and records, one operation further. -/
+theorem ClientOk.snoc {id : w64} {hc : List Operation} {Lc : List (OpV × w64)}
+    (H : ClientOk id hc Lc) (input output : GoInterface) (call τ ret : w64)
+    (h1 : sint.Z call ≤ sint.Z τ) (h2 : sint.Z τ ≤ sint.Z ret) :
+    ClientOk id (hc ++ [Operation.mk id input call output ret GoInterface.nil ()])
+      (Lc ++ [((input, output), τ)]) := by
+  obtain ⟨hlen, hj⟩ := H
+  refine ⟨by simp [hlen], ?_⟩
+  intro j o p ho hp
+  rcases Nat.lt_or_ge j hc.length with hlt | hge
+  · rw [List.getElem?_append_left hlt] at ho
+    rw [List.getElem?_append_left (by omega)] at hp
+    exact hj j o p ho hp
+  · rw [List.getElem?_append_right hge] at ho
+    rw [List.getElem?_append_right (by omega)] at hp
+    rcases Nat.lt_or_ge (j - hc.length) 1 with h1' | h1'
+    · have h0 : j - hc.length = 0 := by omega
+      have h0' : j - Lc.length = 0 := by omega
+      rw [h0] at ho
+      rw [h0'] at hp
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at ho hp
+      subst ho hp
+      exact ⟨rfl, rfl, h1, h2⟩
+    · rw [List.getElem?_eq_none (by simp; omega)] at ho
+      cases ho
+
 end ghost
 
 end lintest
