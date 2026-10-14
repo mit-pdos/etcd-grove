@@ -194,6 +194,16 @@ theorem frame_handle_app (id : w64) (t : NState) (m : raftpb.Message)
     exact ⟨⟨H1, H2, H3, H4, H5, H6, rfl, rfl⟩, rfl⟩
   · exact ⟨NetFrame.refl _, rfl⟩
 
+/-- `handleAppendEntries` keeps what `rOf` reads beyond `toPState` (stage B7). -/
+theorem rframe_handle_app (id : w64) (t : NState) (m : raftpb.Message)
+    (ents : List raftpb.Entry) (s' : NState) (H : HandleAppResult id t m ents s') :
+    RFrame t s' := by
+  unfold HandleAppResult at H
+  rcases H with ⟨-, rfl⟩ | ⟨-, _, _, ls', -, -, -, Ha, -, Hfr, rfl⟩ | ⟨-, -, _, _, rfl⟩
+  · exact ⟨rfl, rfl, fun h => ⟨h, rfl⟩⟩
+  · exact ⟨Ha, Hfr.2.1, fun h => ⟨h, rfl⟩⟩
+  · exact ⟨rfl, rfl, fun h => ⟨h, rfl⟩⟩
+
 /-- A `MsgApp` branch's frame and term step: the adoption `s → t` (at most a step-down
 to the message's term), then the handler. -/
 theorem app_frame {id : w64} {m : raftpb.Message} {ents : List raftpb.Entry}
