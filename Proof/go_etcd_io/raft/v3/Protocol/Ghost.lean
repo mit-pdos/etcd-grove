@@ -1785,6 +1785,13 @@ theorem commitIn_j (γ : RaftNames) (F : List raftpb.Entry) (c tm : w64) :
   unfold commitIn
   iintro ⟨#H, -⟩; iexact H
 
+/-- The node-local witnesses of a `commitIn`, in the dynamic mode. -/
+theorem commitIn_w (γ : RaftNames) (F : List raftpb.Entry) (c tm : w64) (Hdyn : γ.reDyn ≠ none) :
+    ⊢ commitIn (GF := GF) γ F c tm -∗ witsB γ F (uint.Z c).toNat (uint.Z tm + 1) := by
+  unfold commitIn
+  iintro ⟨-, #Hd⟩
+  iapply dynOn_elim γ _ Hdyn $$ Hd
+
 def isCommittedIdx (γ : RaftNames) (i : w64) : IProp GF :=
   iprop(⌜uint.Z i = 0⌝ ∨ ∃ t n G, ⌜uint.Z i ≤ uint.Z n⌝ ∗ cq γ t n G)
 
