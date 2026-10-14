@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-14 (reconfiguration, stage B6: **the read-index guarantee under
+**Last updated:** 2026-10-14 (reconfiguration, stage B7 part 1: **`raft.Step` in the dynamic model** -- `raft.Step.spec` takes the ghost state in either mode (`GMode`, `ownStepGhost`); in the dynamic mode every step is a `StepR` step and `ownRaftGhostR` follows the code, under the premises `GMode.Pre` (no `MsgSnap`, no pre-candidate, A1 at `MsgStorageApplyResp`, a log bound for dropped proposals); the struct at any configuration (`ownRaftPhysCV c`); `RawNode`/`node` still static through `raft.Step.specS`; see "Reconfiguration, stage B7, part 1"; reconfiguration, stage B6: **the read-index guarantee under
 reconfiguration, at the model level** -- every `ReadState` a node of the dynamic model holds (and
 hands out at `StepR.takeReads`) is `readStateOk`, and the committed prefix of any node whose
 commit index reaches its index extends the request's log (`Results.lean`:
@@ -29,6 +29,156 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## Reconfiguration, stage B7, part 1: `raft.Step` in the dynamic model (2026-10-14)
+
+The Go function `raft.Step` is now verified against the dynamic reconfiguration model of
+stages B3/B5. Its spec takes the ghost state in either of two modes. The static mode is the
+ghost state as before. In the dynamic mode the ghost state is `ownRaftGhostR` (B5), and each
+step is a `StepR` step at the dynamic configurations, so the dynamic ghost state (log
+agreement, election safety, read index) follows the code. **The public API does not reach
+this yet:** `RawNode`/`node`/`NewRawNode` still use the static mode through
+`raft.Step.specS`, the statement of before this stage. Part 2 of B7, below, is what remains.
+The `raft_reconfig_*` restatements in `Results.lean` and the collection `raft-dyn.txt` stay
+until then.
+
+Commits, each a building state (`Link`, `Results`, the register's `Results`/`Adequacy`):
+- `8b2b68e8e`..`e8979064d` (B7a): `raft.Step` at a configuration.
+- `cccb9b86c` (B7b-1): `AppCommitEq` in `ReplSends`.
+- `fefd28f87` (B7b-2): `HupGuard`.
+- `6381579ef` (B7b-3): `StepCD` from every branch.
+- `c08ce1687`, `f281cf6a2`, `7ee5b149f` (B7b-4): the two modes.
+
+Link unchanged: `etc/gen-link.py` reproduces it, because no callee list moved.
+
+- **B7a, `raft.Step` at a configuration `c`.**
+  - Every branch lemma under `raft__Step/` is now stated on `ownRaftPhysCV c c.voters` and
+    produces `StepC c` witnesses. `raft.Step.Postulates` holds the callees' C specs (`hup`,
+    `becomeFollower`, `send`, `stepCandidate`, `stepFollower`, `stepLeader`). The pure lemmas
+    (`repl_lemmas`/`resp_lemmas`/`prevote_lemmas`, `StepLemmasC`) were converted the same way.
+  - `readAck_step` takes the joint quorum index (`JCommittedIdx.acked`: the answer of
+    `JointConfig.CommittedIndex` is acknowledged by a joint quorum).
+  - `MsgSnap` branches take the snapshot's voters `scfg` and give the configuration
+    afterwards: `c`, or `CfgM.simple scfg L`.
+  - `raft.appliedTo.spec` and `raft.reduceUncommittedSize.spec` are now at `c` (they had no
+    other caller).
+  - **`appliedTo`'s auto-leave branch is excluded at a leader** (premise
+    `c.autoLeave = true → s.role ≠ .leader`, also on `raft.Step` for a
+    `MsgStorageApplyResp`). That branch calls `r.Step`, which would make `appliedTo` and
+    `raft.Step` mutually recursive. The link (one proof per function, callees' specs as
+    hypotheses) does not express that recursion. Joint configurations entered with an explicit
+    transition are in scope.
+- **B7b-1, `ReplSends` carries `AppCommitEq`** (`Defs.lean`): an `MsgApp` carries the sender's
+  commit index. `maybeSendAppend` proves it (`Commit: r.raftLog.committed`). Every result that
+  broadcasts inherits it: `sendAppend`, `bcastAppend`, `switchToConfig`, `stepLeader`'s,
+  `stepCandidate`'s. Lemmas: `ReplSends.replOk`, `replAC_proper`. `StepR.sendApps` and
+  `StepR.win` require this (B3's finding about I1).
+- **B7b-2, `hup` records what it checked** (`HupGuard` in `HupOkC`). It either did nothing, or
+  it ran `campaignState` from a non-leader voter of either half, with no snapshot pending and
+  no unapplied conf entry (`hasUnappliedConfChanges`' answer), asking every other voter.
+- **B7b-3, the bridge to `StepR`** (new `StepLemmasR.lean`):
+  - `StepCF` is `StepC` without the rules that move `StepR`'s extra fields (`campaign`, `win`,
+    `propose`, `snapRestore`), with `sendApps` carrying `AppCommitEq`.
+  - `StepCF.toC` turns it back into `StepC`.
+  - `StepCF.toR` makes it a `StepR` step at any `RState` over it (the `pci` is kept at a
+    leader and cleared on a step-down).
+  - `RGh` is the ghost part (configuration index, configuration, full prefix).
+  - `rOf s g` is the `RState` of the code's `NState`. Its `pci` is `pciR`: the code's at a
+    leader, `0` elsewhere. Go clears it in every `becomeX` but `becomePreCandidate`.
+  - `RFrame` (with `rframe_handle_app`) records the code-side facts `rOf` needs to agree
+    across a frame step.
+  - `StepCD c id m s recv s'` bundles the `StepC` witness with, under `DynHyp`, a `StepR`
+    witness for every ghost part over `c` (the configuration index may move).
+  - Every branch now delivers `StepCD` (the `rframe` macro handles most frame proofs). The
+    special branches:
+    - `MsgHup`/`MsgTimeoutNow`: `stepCD_hup`, a campaign with the guard on the full log via
+      `noConfIn_of_unapplied`.
+    - `MsgVoteResp`'s win: `StepR.win`, whose `pci` is `plastIndex`, which is
+      `becomeLeader`'s `logLast`.
+    - `MsgProp`: `StepR.propose`, which is the loop exactly
+      (`propBatch (rOf s g) = leaderPropConf s _ _ c.joint`), and `StepR.propDrop` for a
+      batch `appendEntry` refused.
+    - `MsgStorageApplyResp`: `StepR.advance`, which moves the configuration index
+      (`stepCD_appliedTo`).
+    - `MsgSnap`, and the pre-candidate's campaign after a won pre-vote: `StepCD.of_excluded`,
+      which gives the `StepC` witness only.
+- **B7b-4, the modes** (new `StepGhostMode.lean`):
+  - `GMode` is `.static` or `.dyn dec c0 h0 g`.
+  - `ownStepGhost γ md c id s` is `ownRaftGhost` of `toPState s` in the mode's flag, together
+    with `ghostRest`: `CfgStatic` in the static mode; in the dynamic mode `RInv`, the records
+    of the full prefix and the campaign record, so that it equals `ownRaftGhostR` at
+    `rOf s g` (`ownStepGhost_dyn`).
+  - `GMode.StepOut` is the step in the mode's model.
+  - `ghost_stepCD` updates either mode: the static one by `ownRaftGhost_stepC`, the dynamic one
+    by `ownRaftGhostR_stepR` with no snapshot prefixes.
+  - The dispatcher and its helpers are generic in the mode (`stepPost`, `finish_branch`,
+    `ghost_step_md`). `dispatch_Snap` stays static.
+  - Facts' message lemmas (`app_recv_wf`, `app_no_conflict_below_commit`,
+    `heartbeat_commit_le_last`, `app_commit_le_lastnewi`), `ghost_rdOk` (now `RdOk` over any
+    set) and `ghost_hbResp_ctx` are generic in the mode flag.
+  - `MsgStorageApplyResp`'s branch gives the new `applied` (`Happ`).
+
+**The public spec changed: `raft.Step.spec`** (`Spec/raft__Step.lean`).
+- Binders: `∀ c md γ r id s m ents ctx`.
+- Premises:
+  - the message premises as before;
+  - `MsgReadIndex → Term = 0 ∧ ¬ (size c.incoming = 1 ∧ size c.outgoing = 0)`;
+  - `MsgStorageApplyResp → c.autoLeave = true → s.role ≠ .leader`;
+  - `NStateWf s` (was `NStateRel s ps`);
+  - `md.Pre m ents s`.
+- Precondition: `ownRaftPhysCV c c.voters r id s ∗ ownStepGhost γ md c id s ∗ …`. The snapshot
+  is `SnapScope γ.reCfg`.
+- Postcondition: `∃ err s' c' md'`, with `ownRaftPhysCV c' c'.voters r id s' ∗
+  ownStepGhost γ md' c' id s' ∗ ⌜NStateWf s'⌝ ∗ ⌜md.StepOut c id s s' md'⌝ ∗
+  ⌜m.Type' ≠ MsgSnap → c' = c⌝` and the frames as before.
+- `raft.Step.specS`, the statement on `ownRaftPhys cfg` of before this stage, is derived
+  (`raft.Step.spec_simple`, static mode). Its callers (`RawNode.*`, `tickElection`,
+  `tickHeartbeat`, `node.run`, `InvNodeRun`) convert in one line.
+- Also changed: `raft.hup.spec` (`HupOkC` with `HupGuard`), `raft.appliedTo.spec`,
+  `raft.reduceUncommittedSize.spec`, and the `ReplSends`-carrying specs.
+
+**The dynamic mode's premises** (`GMode.Pre`; `DynHyp`): each is a scope restriction, stated.
+- No `MsgSnap`. A snapshot restore at a dynamic configuration is B8.
+- No pre-candidate. Pre-vote is off at the `RawNode` API, and the campaign after a won
+  pre-vote checks nothing in Go.
+- At a `MsgStorageApplyResp`, no snapshot pending and A1: no conf entry between the
+  configuration index and the acknowledged index (`ApplyConfChange` before `Advance`).
+- For a `MsgProp`, `plogLastIndexZ + 2^61 < 2^64`. `StepR.propDrop` computes the dropped
+  batch's `pendingConfIndex` without wrapping, and Go checks no bound when `appendEntry`
+  refuses the batch.
+
+Trust base: no new axiom, no new `sorry` (`etc/tcb-report.py --check`: 75 axioms, 10 sorries; `raft.txt` 6/0, `register.txt` 4/9, `raft-dyn.txt` 0/0 unchanged).
+
+Findings: no Go bug. Two scope notes, above: auto-leave at a leader (a recursion the link
+cannot express), and the dropped proposal's index bound.
+
+**Left, B7 part 2 (the public API):**
+1. **The `RawNode` predicate in the dynamic mode.** `ownRawNode` (`InvRawnode.lean`) holds
+   `ownRaftPhys γ.reCfg` and `ownRaftGhost`. Generalize it to `ownRaftPhysCV c` and
+   `ownStepGhost γ md c` with the ghost part `g` existential. `RNState` gains what the client
+   needs to state the dynamic premises: the configuration (`cfg : CCState`) and the
+   configuration index (`capplied`, a prefix of `delivered`). The predicate also needs:
+   - pre-vote off implies no pre-candidate (`s.prevote = false → s.role ≠ .preCandidate`), as
+     a conjunct to re-establish;
+   - `RawNode.Step` excluding `MsgSnap` in the dynamic mode until B8;
+   - the dropped-proposal bound, as a premise of `Propose`/`ProposeConfChange` or as an index
+     budget like `node.go`'s term budget.
+
+   Each `RawNode` spec then calls `raft.Step.spec` with the node's mode instead of `specS`.
+2. **`RawNode.Advance`** with A1 as a premise on `rs.delivered`/`rs.capplied`
+   (`issues/raft-advance-before-applyconfchange.md`).
+3. **`RawNode.ApplyConfChange` in general**, as `StepR.applyConf`:
+   - the application's decoder obligation: `dec (delivered.take k) e = some op`, with `op` the
+     change it passes;
+   - `CCApplies`' size bound at `rs.cfg`;
+   - `switchToConfig`'s `ApplyCCOkC` read as `StepR` steps (`reMatch`, `commit`, `sendApps`,
+     `stepDown`): a `StepR` version of `applyCCOkC_step`;
+   - leader step-down on removal.
+4. **`NewRawNode` and the rest of the API**: allocate in the dynamic mode (`raft_dyn_alloc`),
+   carry `node.go`'s specs over, and move the register to the dynamic mode or keep it static.
+   Then delete the `raft_reconfig_*` restatements, `raft-dyn.txt` and, if nothing else needs
+   it, `raft_election_safety`.
+- Decisions: notes/decisions.md, "Reconfiguration stage B7".
 
 ## Reconfiguration, stage B6: the read-index guarantee under reconfiguration, at the model level (2026-10-14)
 
