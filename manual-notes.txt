@@ -5,7 +5,12 @@ interesting things
 - time receipts for overflow: seems not to be really used yet....
 - thread receipts
 - go interface semantics turns out to expose itab (go-itab-reinterpret-assert.md)
-- ai-driven adversarial development for trustworthy semantics; our hand-written semantics had lots of bugs
+- ai-driven adversarial development for trustworthy semantics; our hand-written
+  semantics had lots of bugs and the early AI-driven edits to semantics/trusted
+  models had issues too.
+  + waitgroup overflow assumption
+  + false postcondition for newtimer
+  + lots of Go semantics unsoundness
 - custom go compiler rewriter to resolve eval order underspecification and non-locality.
 
 - byte memory? strings and interfaces are exposed to be heap allocated.
