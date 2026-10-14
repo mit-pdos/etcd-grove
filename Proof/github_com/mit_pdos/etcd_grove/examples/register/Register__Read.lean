@@ -2,11 +2,14 @@
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/register/Register__Read.lean`.
 Lean-first (no Rocq counterpart).
 
-Under the lock, a new sequence number mints the read's context, registered in raft's
-read-context registry with the committed log of the caller's lower bound (`reg_mint_read`),
-and the read waits on a handoff channel in `reads` (`readsOwn`); `Node.ReadIndex` takes the
-context's slice (registered, `node_read_register`), its record and the read credit; the
-applier answers with `readP` (`Register.answer`).
+Under the lock, a new sequence number mints the read's context and its fresh token for raft's
+read registry (`reg_mint_read`), and the read waits on a handoff channel in `reads`
+(`readsOwn`); `Node.ReadIndex` takes the context's slice (registered, `node_read_register`),
+the token, the read's persistent update (trivial: `reg_readAu`), the committed log of the
+caller's lower bound and the read credit, and deposits the update at a committed log `Lc`
+extending it (2026-10-14, stage R); the applier answers with a read index of the context and the
+value after a committed log at least that long (`readAns`, `Register.answer`), which extends
+`Lc` (`readOk_prefix`) and so the caller's log.
 -/
 module
 
@@ -37,7 +40,7 @@ theorem Register.Read.wp_proof
     (wp_encode : register.encode.spec (GF := GF) (hG := hG))
     (wp_node_ReadIndex : node.ReadIndex.spec (GF := GF) (hG := hG)) :
     Register.Read.spec (GF := GF) (hG := hG) := by
-  intro γr γp r L0 Hcfg
+  intro γr γp r L0
   wp_start as ⟨#Hreg, Hcr, Hrdc, #Hlb⟩
   iunfold isRegister at Hreg
   icases Hreg with ⟨%id, %n, %st, #Hrep⟩
@@ -52,14 +55,14 @@ theorem Register.Read.wp_proof
   imod opCred_spend γp c $$ Hcred Hcr with ⟨%Hc1, Hcred⟩
   have Hns : uint.Z ns + 1 < 2 ^ 64 := by omega
   wp_auto
-  -- the read's context, minted and registered with the caller's committed log
-  imod reg_mint_read γr id ns l0 ⊤ CoPset.subseteq_top Hns $$ Hinv Hseq Hl0
-    with ⟨Hseq, #Hmint, #Hrq⟩
+  -- the read's context, minted, with its fresh token for raft's read registry
+  imod reg_mint_read γr id ns ⊤ CoPset.subseteq_top Hns $$ Hinv Hseq
+    with ⟨Hseq, #Hmint, Hrf⟩
   generalize Hc : encodeOp id (ns + W64 1) opReadB [] = cx
   wp_apply chan.wp_make2 (V := GoString) (W64 1) as %ch %γc ⟨#Hch, %Hcap, Hoc⟩
   · ipureintro; decide
   ihave Hoc : ownChan γc GoString (.Buffered []) $$ Hoc
-  imod start_handoff ch (readP γr (firstOcc ods0)) iprop(True) iprop(False) γc $$ Hch Hoc
+  imod start_handoff ch (readAns γr cx) iprop(True) iprop(False) γc $$ Hch Hoc
     with ⟨%γh, %Hγh, #Hho, Hprod, Hcons⟩
   iunfold readsOwn at Hrds
   iNamed Hrds
@@ -95,9 +98,10 @@ theorem Register.Read.wp_proof
       HRfresh).2
     iframe Hreads
     unfold readWaiterOk
-    iexists cx, l0, ods0, γh
-    iframe Hmint Hrq Hods0 Hho Hprod
-  -- `ReadIndex`, with the context's slice registered
+    iexists cx, γh
+    iframe Hmint Hho Hprod
+  -- `ReadIndex`, with the context's slice registered, its fresh token and the read's
+  -- (trivial) persistent update, at the committed log of the caller's lower bound
   wp_apply context.wp_Background
   wp_apply wp_encode id (ns + W64 1) (W8 3) [] (by simp) as %b ⟨Hb, -⟩
   rw [show (W8 3 : w8) = opReadB from rfl, Hc]
@@ -105,11 +109,13 @@ theorem Register.Read.wp_proof
   imod node_read_register γp.node id n b cx ⊤ CoPset.subseteq_top $$ HisNode Hb with #Hpd
   ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
-  rw [← Hraft] at Hcfg
-  wp_apply wp_node_ReadIndex γp.node id n b cx l0 Hcfg $$ [$Hraftinit $HisNode $Hpd Hrq Hrdc] as %err -
-  · rw [Hraft]; iframe Hrq Hrdc
-  -- the answer
-  wp_apply wp_handoff_receive (t := go.string) γh ch (readP γr (firstOcc ods0))
+  ihave #Hrau := reg_readAu γr $$ Hinv
+  wp_apply wp_node_ReadIndex γp.node id n b cx (fun _ => iprop(True)) l0
+    $$ [$Hraftinit $HisNode $Hpd Hrf Hrdc] as %err ⟨%Lc, %Hl0Lc, #Hrq, -⟩
+  · rw [Hraft]; iframe Hrf Hrdc Hrau Hl0
+  -- the answer: a read index of the context, and the value after a committed log at least
+  -- that long, which extends the log of the deposit (`readOk_prefix`) and so `l0`
+  wp_apply wp_handoff_receive (t := go.string) γh ch (readAns γr cx)
     iprop(True) iprop(False) false $$ [$Hho $Hcons] as %v %ok ⟨Hcons, Hgot⟩
   unfold handoffGot
   simp only [Bool.false_eq_true, ↓reduceIte]
@@ -119,9 +125,21 @@ theorem Register.Read.wp_proof
     iexfalso; iexact Hf
   simp only [↓reduceIte]
   icases Hgot with ⟨Hw, -⟩
+  iunfold readAns at Hw
+  icases Hw with ⟨%i, %ap, %ods, #Hok, #Hap, #Hods, %Hi⟩
+  rw [Hraft]
+  ihave %Hpre := readOk_prefix γr.raft cx i Lc ap Hi.1 $$ Hok Hrq Hap
+  ihave %Hpre2 := entDataIs_list_prefix _ l0 ap ods0 ods (Hl0Lc.trans Hpre) $$ Hods0 Hods
   iapply HΦ
-  rw [← HL0]
-  iunfold readP at Hw; iexact Hw
+  iexists firstOcc ods
+  isplitl
+  · unfold regLb
+    iexists ap, ods
+    iframe Hap Hods
+    ipureintro; rfl
+  ipureintro
+  rw [HL0]
+  exact ⟨firstOcc_prefix_of_prefix _ _ Hpre2, Hi.2⟩
 
 end proof
 

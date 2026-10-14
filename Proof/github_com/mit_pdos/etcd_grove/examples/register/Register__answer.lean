@@ -4,10 +4,9 @@ Lean-first (no Rocq counterpart).
 
 A read state whose index is at most `applied` (so at most `|ap|`) and whose context decodes
 to this replica's read at `seq`, with a waiter in `reads`: the context is the one minted at
-`(id, seq)` (`reg_read_minted`, from raft's read-context registry), so the waiter's record
-(`readReq γ c Lc`) is the read state's (`readOk γ c i`): `Lc <+: ap` (`readOk_prefix`), and the
-client data of `Lc` is a prefix of `ap`'s (`entDataIs_list_prefix`): the value after `ap`
-answers it (`readP`).
+`(id, seq)` (`reg_read_minted`, from the fresh token raft's read registry keeps), and the waiter
+gets the read state's read index with the value after `ap` (`readAns`, 2026-10-14, stage R:
+the reader, which knows the log its deposit was made at, turns it into `readP`).
 -/
 module
 
@@ -24,11 +23,6 @@ namespace EtcdGrove
 namespace register
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
-
-theorem firstOcc_prefix_of_prefix (a b : List (Option (List w8))) (h : a <+: b) :
-    firstOcc a <+: firstOcc b := by
-  obtain ⟨t, rfl⟩ := h
-  exact firstOcc_append_prefix a t
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -160,24 +154,17 @@ theorem Register.answer.wp_proof (wp_decode : register.decode.spec (GF := GF) (h
               icases (BigSepM.bigSepM_delete (Φ := fun s ch => readWaiterOk (GF := GF) γr id s ch)
                 HRs).1 $$ Hreads with ⟨Hw, Hreads⟩
               iunfold readWaiterOk at Hw
-              icases Hw with ⟨%c0, %Lc, %odsc, %γh, #Hmint, #Hrq, #Hodsc, #Hho, Hprod⟩
-              iunfold readOk at Hok
-              icases Hok with ⟨%Lc', #Hrq', %HLc'⟩
-              ihave #Hrq'2 := Hrq'
-              iunfold readReq at Hrq'2
-              icases Hrq'2 with ⟨#Hrel, -⟩
+              icases Hw with ⟨%c0, %γh, #Hmint, #Hho, Hprod⟩
+              -- the waiter's context is the read state's: both are minted at `(id, sq)`
+              ihave #Hok' := Hok
+              iunfold readOk at Hok'
+              icases Hok' with ⟨%Lc', #Hrq', -⟩
               rw [Hif] at Hkey
-              imod reg_read_minted γr cx c0 Lc' (id, sq) ⊤ CoPset.subseteq_top Hkey
-                $$ Hinv Hrel Hmint with %Hc0
+              ihave #Hcinv : raftCommitInv γr.raft $$ []
+              · rw [← Hraft]; open_node HisNode; iexact Hcinv
+              imod reg_read_minted γr cx c0 Lc' (id, sq) ⊤ CoPset.subseteq_top raftN_regN Hkey
+                $$ Hinv Hcinv Hrq' Hmint with %Hc0
               subst Hc0
-              icases readReq_agree γr.raft c0 Lc' Lc $$ Hrq' Hrq with %HLL
-              subst HLL
-              ihave %Hpre := readOk_prefix γr.raft c0 sv.Index' Lc' ap Hle $$ [] Hrq Hap
-              · unfold readOk
-                iexists Lc'
-                iframe Hrq
-                ipureintro; exact HLc'
-              ihave %Hpre2 := entDataIs_list_prefix _ Lc' ap odsc ods Hpre $$ Hodsc Hods
               wp_apply sync.Mutex.wp_Unlock _ _
                 $$ [$Hmu $Hlocked Hns HmW HW Hseq Hcred Hwaiters HmR HRd Hreads]
               · inext
@@ -196,17 +183,13 @@ theorem Register.answer.wp_proof (wp_decode : register.decode.spec (GF := GF) (h
                 by_cases Hss : s = sq
                 · subst Hss; rw [GMap.lookup_delete_eq] at Hs; cases Hs
                 · rw [GMap.lookup_delete_ne _ (Ne.symm Hss)] at Hs; exact HRdom s ch' Hs
-              wp_apply wp_handoff_send (t := go.string) γh ch (readP γr (firstOcc odsc)) iprop(True)
+              wp_apply wp_handoff_send (t := go.string) γh ch (readAns γr c0) iprop(True)
                 iprop(False) v $$ [$Hho $Hprod]
               · isplitl
-                · unfold readP
-                  iexists firstOcc ods
-                  isplitl
-                  · unfold regLb
-                    iexists ap, ods
-                    iframe Hap Hods
-                    ipureintro; rfl
-                  ipureintro; exact ⟨firstOcc_prefix_of_prefix _ _ Hpre2, Hval⟩
+                · unfold readAns
+                  iexists sv.Index', ap, ods
+                  iframe Hok Hap Hods
+                  ipureintro; exact ⟨Hle, Hval⟩
                 · itrivial
               iintro -
               wp_auto

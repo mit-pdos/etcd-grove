@@ -9,8 +9,8 @@ of is known only after the fact (when the read state comes back, its read index 
 past), so the spec is stated with lower bounds, as raft's `ReadState` is (`readOk`).
 
 One operation credit (`Read` takes a sequence number, like an operation) and one read
-credit (`rdCred`, what `Node.ReadIndex` takes); a configuration of more than one voter
-(`Node.ReadIndex`'s). A request raft drops (no leader known) leaves `Read` waiting: partial
+credit (`rdCred`, what `Node.ReadIndex` takes); any number of voters (since 2026-10-14: raft's
+single-voter fix, stage F, and `Node.ReadIndex`'s persistent update, stage R). A request raft drops (no leader known) leaves `Read` waiting: partial
 correctness.
 -/
 module
@@ -38,7 +38,6 @@ variable [RegStor GF]
 /-- See the file header. -/
 abbrev Register.Read.spec : Prop :=
   ∀ (γr : RegNames) (γp : RepNames) (r : Loc) (L0 : List (List w8)),
-  1 < GMap.size γr.raft.reCfg →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.register ∗
       isRegister γr γp r ∗ opCred γp 1 ∗ rdCred γr.raft 1 ∗ regLb γr L0 }}
     (App (Val (r @!! go.GoType.PointerType rRegisterTy @!! go!"Read")) (Val #()))

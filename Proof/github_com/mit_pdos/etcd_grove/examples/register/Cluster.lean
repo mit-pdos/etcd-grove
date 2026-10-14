@@ -267,12 +267,10 @@ theorem deliverable_netMsgOk (id : w64) (m : raftpb.Message) (s' : GoSlice) (Hd 
       fun _ => HF', fun _ _ => HF', fun h => absurd h Hntl⟩
 
 /-- ... and with its entries copied (`s'`), its read credit and its tick credit (one for a
-`MsgTimeoutNow`, 2026-10-13), what `Node.Step` takes, at the node `id` it is addressed to (a
-read-index request only with more than one voter). -/
+`MsgTimeoutNow`, 2026-10-13), what `Node.Step` takes, at the node `id` it is addressed to. -/
 theorem stepP_deliverable (γn : NodeNames) (id : w64) (m : raftpb.Message)
     (ents : List raftpb.Entry) (ctx : List w8) (s' : GoSlice) (Hd : Deliverable m)
-    (Hto : m.To' = id) (Hnil : m.Context' = slice.nil → ctx = [])
-    (Hcfg : 1 < GMap.size γn.raft.reCfg) :
+    (Hto : m.To' = id) (Hnil : m.Context' = slice.nil → ctx = []) :
     ⊢ □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗ isMessage (GF := GF) γn.raft (absMsg ty m ents ctx)) -∗
       m.Context' ↦*□ ctx -∗
       termLB γn.bud m.Term' -∗ s' ↦* ents -∗ ownSliceCap raftpb.Entry s' (DFrac.own 1) -∗
@@ -308,8 +306,6 @@ theorem stepP_deliverable (γn : NodeNames) (id : w64) (m : raftpb.Message)
     · ipureintro; exact deliverable_netMsgOk id m s' Hd Hp Hto
     iexists ents, ctx
     iframe Hs Hcap Hctx' Hlb Hcr Htc
-    isplitr
-    · ipureintro; exact fun _ => Hcfg
     imodintro
     iintro %ty' %Hty2
     rw [Habs]

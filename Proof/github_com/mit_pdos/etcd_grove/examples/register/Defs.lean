@@ -1,18 +1,23 @@
 /-
 Lean-first (no Rocq counterpart).
 
-# The register's predicates (2026-10-10)
+# The register's predicates (2026-10-10; 2026-10-14, stage R)
 
 ## The client-facing state
 
-A cluster of replicas shares raft's ghost state `γr.raft`; its client log
-(`cLog γr.raft L`, `Protocol/GhostState.lean`: the data of the committed proposals, first
-occurrences) is the register's, kept in one invariant with the authoritative register
-value at `regFold L` (`regInv`). A client holds `regVal γr x`, the other half of the
-value. `Put`/`Get` hand their atomic update over `regVal` to `do`, which wraps it in the
-atomic update over `cLog` that `Node.Propose` deposits (`reg_propAu`, `Lemmas.lean`):
-when raft commits the operation's first entry, the wrapper opens `regInv`, runs the
-client's update and moves both to the new client log -- the linearization point.
+A cluster of replicas shares raft's ghost state `γr.raft`. The register keeps the client's half
+of raft's full committed log (`rLog γr.raft L`, `Protocol/GhostState.lean`) with its entries'
+data `ods`; the register's history is their client data, first occurrences (`firstOcc ods`),
+and the invariant keeps the authoritative register value at `regFold (firstOcc ods)`
+(`regInv`). A client holds `regVal γr x`, the other half of the value. `Put`/`Get` hand their
+atomic update over `regVal` to `do`, which mints the operation and keeps the update in the
+operation's slot (`opSlot`, with a later credit), and gives `Node.Propose` the persistent
+atomic update over raft's log that moves the register's log at every committed occurrence of
+the operation's datum (`reg_propAu`, `Lemmas.lean`): at the first, it opens `regInv`, runs the
+client's update from the slot and moves the value -- the linearization point; at a later one
+(a retry, a redelivered proposal) only the log moves. The result stays in the slot until the
+client collects it with its ticket (`reg_collect`). The standing update for raft's own entries
+is the register's too (`reg_noopAu`, given at allocation).
 
 ## Fresh data
 
@@ -23,17 +28,16 @@ replica's last sequence number (`seq`, the replica's element under its lock), an
 persistent record of each minted operation (`mint`): every token is of a minted
 operation, and every minted `(i, s)` has `s` at most replica `i`'s last sequence number.
 So a new sequence number mints a token nobody had, and a datum with a token is the one
-minted at its key.
+minted at its key. Every datum in the log was minted (only the register's updates move it),
+so a new operation's datum is not in the history and its slot starts pending.
 
-A read (2026-10-13, `Read`) mints its context the same way, from the same sequence numbers:
-`regInv` also holds the authority of raft's read-context registry (`reReads`), each of whose
-contexts is minted (`MintOk`'s third clause), so a new sequence number gives a context the
-registry does not have (`readReq_alloc`), and a `ReadState`'s context with a minted key is
-the one minted there (`reg_read_minted`).
+A read (2026-10-13, `Read`) mints its context the same way, from the same sequence numbers,
+with a fresh token of raft's read registry (`reRdFresh`, 2026-10-14, stage R; `MintOk`'s third
+clause): a deposited context with a minted key is the one minted there (`reg_read_minted`).
 
 ## Lower bounds on the history
 
-`regLb γr L` (persistent): the register's history (its client log) has the prefix `L`: `L`
+`regLb γr L` (persistent): the register's history has the prefix `L`: `L`
 is the client data of a committed log (`firstOcc` of its entries' data). Every committed
 log is a prefix of raft's, whose client data is the history, so `L` is a prefix of the
 history; and conversely the history now is such an `L` (`regLb_current`). `Read` takes
@@ -46,9 +50,11 @@ replica has `2^64 - 1` operations), and the waiters: each a handoff channel whos
 producer token the lock holds, for the operation minted at `(id, seq)`, on which the
 replica's applier sends the value after the operation, with where the operation's entry
 first is in a committed log (`waitP`); and (2026-10-13) the reads waiting for their
-answer (`readsOwn`): each a handoff channel for the read context minted at `(id, seq)`,
-created knowing a committed log `Lc` (`readReq`), on which the applier sends the value
-after a committed log extending `Lc` (`readP`). The applier's own state -- the value, the
+answer (`readsOwn`): each a handoff channel for the read context minted at `(id, seq)`, on
+which the applier sends a read index of the context with the value after a committed log at
+least that long (`readAns`; 2026-10-14, stage R: the read's record comes with its deposit,
+inside `Node.ReadIndex`, after the waiter is made, and the reader turns the answer into
+`readP`). The applier's own state -- the value, the
 applied-encodings table, and the committed prefix it applied (`runOwn`) -- is the `run`
 goroutine's alone (only `apply` touches those fields, holding the lock for the waiters).
 
@@ -179,6 +185,10 @@ structure RegNames where
   seq : GName
   /-- the minted operations, `(replica, seq) ↦ data` (persistent elements) -/
   mint : GName
+  /-- (2026-10-14, stage R) the operations' slots, `data ↦ (γq, γk)` (persistent elements,
+  authority in `regInv`): each holds the client's atomic update until the datum's first
+  committed occurrence, then its result or the client's ticket `γk` (`opSlot`) -/
+  ops : GName
 
 def regN : Namespace := nroot.@"register"
 
@@ -192,13 +202,15 @@ theorem regN_raftN : (↑regN : CoPset) ⊆ ⊤ \ ↑raftN :=
 theorem raftN_regN : (↑raftN : CoPset) ⊆ ⊤ \ ↑regN :=
   mask_ndot_ne' nroot "raft_commit" "register" (by decide)
 
-/-- The minting discipline (see the file header): the fresh-data tokens `M` and
-(2026-10-13) the read contexts `R` are minted. -/
-def MintOk [FfiSyntax] (M : GMap (List w8) Unit) (R : GMap (List w8) (List raftpb.Entry))
-    (S : GMap w64 w64) (Mi : GMap (w64 × w64) (List w8)) : Prop :=
+/-- The minting discipline (see the file header): the fresh-data tokens `M`, (2026-10-14,
+stage R) the fresh read-context tokens `F` and the operations' slots `O` are minted. -/
+def MintOk [FfiSyntax] (M : GMap (List w8) Unit) (F : GMap (List w8) Unit)
+    (S : GMap w64 w64) (Mi : GMap (w64 × w64) (List w8)) (O : GMap (List w8) (GName × GName)) :
+    Prop :=
   (∀ d, M !! d = some () → ∃ k, opKey d = some k ∧ Mi !! k = some d) ∧
   (∀ i s d, Mi !! (i, s) = some d → ∃ n, S !! i = some n ∧ uint.Z s ≤ uint.Z n) ∧
-  (∀ c Lc, R !! c = some Lc → ∃ k, opKey c = some k ∧ Mi !! k = some c)
+  (∀ c, F !! c = some () → ∃ k, opKey c = some k ∧ Mi !! k = some c) ∧
+  (∀ d γp, O !! d = some γp → M !! d = some ())
 
 /-- The ticket of a replica's operation credits (`Auth Nat`). -/
 structure RepNames [FfiSyntax] where
@@ -217,22 +229,55 @@ variable [RegStor GF]
 def regVal (γr : RegNames) (x : List w8) : IProp GF :=
   ghostVar γr.val (1 : Qp).half x
 
+/-- An operation's atomic update over the register's value, the value moving by `f`
+(`Put`/`Get` give `opNext kind val`; a slot keeps it as `regApply · d`). -/
+def opAu (γr : RegNames) (f : List w8 → List w8) (Φ : List w8 → IProp GF) : IProp GF :=
+  iprop(AU <{ ∃∃ (x : List w8), regVal γr x }> @ regMask, ∅
+    <{ regVal γr (f x), COMM Φ (f x) }>)
+
+/-- An operation's slot (2026-10-14, stage R; until then raft's proposal slot did this), for the
+register's history `H`: the result predicate (tied to `γp.1`), and either the client's update
+with a later credit, while `d` is not in the history, or -- once `d` first occurred, after
+the history `H0` -- the update's result at the value after `H0 ++ [d]` or the client's
+ticket `γp.2`. -/
+def opSlot (γr : RegNames) (d : List w8) (γp : GName × GName) (H : List (List w8)) : IProp GF :=
+  iprop(∃ Φ : List w8 → IProp GF, savedPredOwn γp.1 DFrac.discard Φ ∗
+    ( (⌜d ∉ H⌝ ∗ £ 1 ∗ opAu γr (fun x => regApply x d) Φ)
+    ∨ (∃ H0, ⌜H0 ++ [d] <+: H ∧ d ∉ H0⌝ ∗ (Φ (regFold (H0 ++ [d])) ∨ token γp.2)) ))
+
+/-- The timeless part of the register's invariant: raft's full committed log (the client's
+half, `rLog`, 2026-10-14, stage R) with its entries' data `ods` -- the history is their client
+data, first occurrences (`firstOcc ods`) --, the value after the history, the authorities of
+raft's fresh tokens (data and read contexts), the sequence numbers, the mint and the slots'
+registry. -/
+def regCore (γr : RegNames) (L : List raftpb.Entry) (ods : List (Option (List w8)))
+    (M : GMap (List w8) Unit) (F : GMap (List w8) Unit) (S : GMap w64 w64)
+    (Mi : GMap (w64 × w64) (List w8)) (O : GMap (List w8) (GName × GName)) : IProp GF :=
+  iprop(rLog γr.raft L ∗ ([∗list] e;o ∈ L;ods, entDataIs γr.raft e o) ∗
+    ghostVar γr.val (1 : Qp).half (regFold (firstOcc ods)) ∗
+    ghostMapAuth γr.raft.reFresh 1 M ∗ ghostMapAuth γr.raft.reRdFresh 1 F ∗
+    ghostMapAuth γr.seq 1 S ∗ ghostMapAuth γr.mint 1 Mi ∗ ghostMapAuth γr.ops 1 O ∗
+    ⌜MintOk M F S Mi O⌝ ∗
+    -- every datum in the log was minted (only the register's updates move `rLog`)
+    ⌜∀ d, some d ∈ ods → M !! d = some ()⌝)
+
+instance regCore_timeless (γr : RegNames) (L : List raftpb.Entry) (ods : List (Option (List w8)))
+    (M : GMap (List w8) Unit) (F : GMap (List w8) Unit) (S : GMap w64 w64)
+    (Mi : GMap (w64 × w64) (List w8)) (O : GMap (List w8) (GName × GName)) :
+    Timeless (regCore (GF := GF) γr L ods M F S Mi O) := by
+  unfold regCore; infer_instance
+
 def regInvBody (γr : RegNames) : IProp GF :=
-  iprop(∃ (L : List (List w8)) (M : GMap (List w8) Unit) (R : GMap (List w8) (List raftpb.Entry))
-      (S : GMap w64 w64) (Mi : GMap (w64 × w64) (List w8)),
-    cLog γr.raft L ∗ ghostVar γr.val (1 : Qp).half (regFold L) ∗
-    ghostMapAuth γr.raft.reFresh 1 M ∗ ghostMapAuth γr.raft.reReads 1 R ∗
-    ghostMapAuth γr.seq 1 S ∗ ghostMapAuth γr.mint 1 Mi ∗
-    ⌜MintOk M R S Mi⌝)
+  iprop(∃ (L : List raftpb.Entry) (ods : List (Option (List w8))) (M : GMap (List w8) Unit)
+      (F : GMap (List w8) Unit) (S : GMap w64 w64) (Mi : GMap (w64 × w64) (List w8))
+      (O : GMap (List w8) (GName × GName)),
+    regCore γr L ods M F S Mi O ∗ [∗map] d ↦ γp ∈ O, opSlot γr d γp (firstOcc ods))
 
 /-- See the file header. -/
 def regInv (γr : RegNames) : IProp GF := inv regN (regInvBody γr)
 
 instance regInv_persistent (γr : RegNames) : Persistent (regInv (GF := GF) γr) := by
   unfold regInv; infer_instance
-
-instance regInvBody_timeless (γr : RegNames) : Timeless (regInvBody (GF := GF) γr) := by
-  unfold regInvBody; infer_instance
 
 /-- What a waiter learns with the value `v`: the operation's datum `d` first occurs at
 `m` in a committed log, and `v` is the register's value after it. -/
@@ -264,15 +309,27 @@ instance readP_persistent (γr : RegNames) (L0 : List (List w8)) (v : List w8) :
     Persistent (readP (GF := GF) γr L0 v) := by
   unfold readP; infer_instance
 
-/-- A read's entry in the lock's invariant: the context `c` minted at `(id, s)`, created
-knowing the committed log `Lc` (with its entries' data `odsc`), and the producer of its
-handoff channel. -/
+/-- What the applier answers a read of the context `c` with (2026-10-14, stage R): a read
+index `i` of `c` (`readOk`), and the value `v` after a committed log `ap` at least `i` long.
+The reader, which knows the log its deposit was made at (`readReq`, from `Node.ReadIndex`),
+turns it into `readP`. -/
+def readAns (γr : RegNames) (c : List w8) (v : List w8) : IProp GF :=
+  iprop(∃ (i : w64) (ap : List raftpb.Entry) (ods : List (Option (List w8))),
+    readOk γr.raft c i ∗ isCommitted γr.raft ap ∗
+    ([∗list] e;o ∈ ap;ods, entDataIs γr.raft e o) ∗
+    ⌜uint.Z i ≤ (ap.length : Int) ∧ v = regFold (firstOcc ods)⌝)
+
+instance readAns_persistent (γr : RegNames) (c v : List w8) :
+    Persistent (readAns (GF := GF) γr c v) := by
+  unfold readAns; infer_instance
+
+/-- A read's entry in the lock's invariant: the context `c` minted at `(id, s)`, and the
+producer of its handoff channel (2026-10-14, stage R: the read's record comes with its
+deposit, inside `Node.ReadIndex`, after the entry is made, so the answer carries `readAns`). -/
 def readWaiterOk (γr : RegNames) (id s : w64) (ch : Loc) : IProp GF :=
-  iprop(∃ (c : List w8) (Lc : List raftpb.Entry) (odsc : List (Option (List w8)))
-      (γh : HandoffNames),
-    (id, s) ↪[γr.mint]□ c ∗ readReq γr.raft c Lc ∗
-    ([∗list] e;o ∈ Lc;odsc, entDataIs γr.raft e o) ∗
-    isHandoff γh ch (readP γr (firstOcc odsc)) iprop(True) iprop(False) ∗
+  iprop(∃ (c : List w8) (γh : HandoffNames),
+    (id, s) ↪[γr.mint]□ c ∗
+    isHandoff γh ch (readAns γr c) iprop(True) iprop(False) ∗
     handoffProducer γh false)
 
 /-- A replica's waiting reads (the lock's), each of a sequence number at most `ns`. -/

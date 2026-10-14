@@ -799,11 +799,11 @@ theorem bigSepM_fupd_thread {K V : Type} [DecidableEq K] [Pos.Countable K] (E : 
   iapply (BigSepM.bigSepM_toList (Φ := Ψ) (m := M)).2 $$ HM
 
 /-- Every read slot, fired at the log grown by one entry. -/
-theorem readsOwn_fire (γ : RaftNames) (l : List raftpb.Entry) (e : raftpb.Entry)
+theorem readsReg_fire (γ : RaftNames) (l : List raftpb.Entry) (e : raftpb.Entry)
     (RR : GMap (List w8) (GName × List raftpb.Entry)) :
-    ⊢ readsOwn (GF := GF) γ l RR -∗ ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ={⊤ \ ↑raftN}=∗
-      ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ∗ readsOwn γ (l ++ [e]) RR := by
-  unfold readsOwn
+    ⊢ readsReg (GF := GF) γ l RR -∗ ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ={⊤ \ ↑raftN}=∗
+      ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ∗ readsReg γ (l ++ [e]) RR := by
+  unfold readsReg
   iintro ⟨Ha, Hs⟩ Hv
   imod bigSepM_fupd_thread (⊤ \ ↑raftN) iprop(ghostVar γ.reRLog (1 : Qp).half (l ++ [e]))
     (fun c r => iprop(readSlot γ r l ∗ rdFresh γ c))
@@ -892,7 +892,7 @@ theorem fire_one (γ : RaftNames) (G : List raftpb.Entry) (m : Nat) (e : raftpb.
         (by intro h; cases h; exact Hne rfl) $$ Ho Hsl
   imod Hfire with ⟨Hv, Hra, Hs⟩
   -- then every read, at the new log
-  imod readsOwn_fire γ (G.take m) e RR $$ Hreads Hv with ⟨Hv, Hreads⟩
+  imod readsReg_fire γ (G.take m) e RR $$ Hreads Hv with ⟨Hv, Hreads⟩
   imodintro
   iframe HP Hds' Hv
   iexists R, RR

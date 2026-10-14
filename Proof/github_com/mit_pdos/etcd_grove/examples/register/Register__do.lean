@@ -42,9 +42,13 @@ theorem Register.do.wp_proof
   iNamed HR
   imod opCred_spend γp c $$ Hcred Hcr with ⟨%Hc1, Hcred⟩
   have Hns : uint.Z ns + 1 < 2 ^ 64 := by omega
-  wp_auto
-  -- the operation's datum, minted
-  imod reg_mint γr id ns kind val ⊤ CoPset.subseteq_top Hns $$ Hinv Hseq with ⟨Hseq, #Hmint, Hfresh⟩
+  wp_auto_lc 1
+  -- the operation's datum, minted, with its slot holding the client's update (2026-10-14,
+  -- stage R)
+  ihave Hau : opAu γr (opNext kind val) Ψ $$ [Hau]
+  · unfold opAu; iexact Hau
+  imod reg_mint γr id ns kind val Ψ ⊤ CoPset.subseteq_top Hns $$ Hinv Hseq Hlc1 Hau
+    with ⟨Hseq, #Hmint, Hfresh, %γo, #Hop, #Hsp, Htok⟩
   generalize Hd : encodeOp id (ns + W64 1) kind val = d
   wp_apply chan.wp_make2 (V := GoString) (W64 1) as %ch %γc ⟨#Hch, %Hcap, Hoc⟩
   · ipureintro; decide
@@ -76,12 +80,11 @@ theorem Register.do.wp_proof
     unfold waiterOk
     iexists d, γh
     iframe Hmint Hho Hprod
-  -- the client's atomic update, as the one `Node.Propose` deposits
-  ihave Hpau := reg_propAu γr d kind val (by rw [← Hd]; exact (regApply_encodeOp · id (ns + W64 1) kind val)) Ψ
-    $$ Hinv Hau
+  -- the persistent update over raft's log that `Node.Propose` deposits (2026-10-14, stage R)
+  ihave #Hpau := reg_propAu γr d γo $$ Hinv Hop
   rw [← Hraft]
-  ihave HI : iprop(propArg γp.node.raft d (fun L => Ψ (regFold (L ++ [d]))) true ∨
-      propRes γp.node.raft d (fun L => Ψ (regFold (L ++ [d]))) true) $$ [Hfresh Hpau]
+  ihave HI : iprop(propArg γp.node.raft d (fun _ => iprop(True)) true ∨
+      deposited γp.node.raft d) $$ [Hfresh]
   · ileft
     unfold propArg
     simp only [↓reduceIte]
@@ -92,27 +95,20 @@ theorem Register.do.wp_proof
   rw [Hd]
   imod ownSlice_persist b _ _ $$ Hb with #Hb
   -- `Propose`: the first time with the update, after that with `d` deposited
-  icases (show ⊢ iprop((propArg γp.node.raft d (fun L => Ψ (regFold (L ++ [d]))) true ∨
-      propRes γp.node.raft d (fun L => Ψ (regFold (L ++ [d]))) true) -∗
-      ∃ fresh : Bool, propArg γp.node.raft d (fun L => Ψ (regFold (L ++ [d]))) fresh ∗
-        (if fresh then True else
-          ∃ γq, isProp γp.node.raft d γq (fun L => Ψ (regFold (L ++ [d]))) ∗ propTok γq)) by
-      iintro (Harg | Hres)
-      · iexists true; iframe Harg; simp only [↓reduceIte]; itrivial
-      · unfold propRes
-        icases Hres with ⟨#Hdep, Hrest⟩
-        iexists false
+  icases (show ⊢ iprop((propArg γp.node.raft d (fun _ => iprop(True)) true ∨
+      deposited γp.node.raft d) -∗
+      ∃ fresh : Bool, propArg γp.node.raft d (fun _ => iprop(True)) fresh) by
+      iintro (Harg | #Hdep)
+      · iexists true; iexact Harg
+      · iexists false
         unfold propArg
-        simp only [Bool.false_eq_true, ↓reduceIte] at *
-        iframe Hdep Hrest) $$ HI with ⟨%fresh, Harg, Hrest⟩
+        simp only [Bool.false_eq_true, ↓reduceIte]
+        iexact Hdep) $$ HI with ⟨%fresh, Harg⟩
   wp_apply wp_node_Propose γp.node id n b d _ fresh $$ [$HisNode $Hb $Harg] as %err Hres
-  ihave Hres : propRes γp.node.raft d (fun L => Ψ (regFold (L ++ [d]))) true $$ [Hres Hrest]
-  · cases fresh
-    · unfold propRes
-      icases Hres with ⟨#Hdep, -⟩
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      iframe Hdep Hrest
-    · iexact Hres
+  ihave #Hdep : deposited γp.node.raft d $$ [Hres]
+  · unfold propRes
+    icases Hres with ⟨#Hd, -⟩
+    iexact Hd
   cases err with
   | ok i =>
     -- dropped: propose again
@@ -123,7 +119,7 @@ theorem Register.do.wp_proof
     wp_for_post
     iframe
     iright
-    iexact Hres
+    iexact Hdep
   | nil =>
     wp_auto
     rw [if_neg (by simp only [decide_eq_true_eq]; intro h; cases go.intoVal_inj (V := Bool) h),
@@ -142,12 +138,11 @@ theorem Register.do.wp_proof
     iunfold waitP at Hw
     icases Hw with ⟨%l, %ods, %m, #Hl, #Hods, %Hm⟩
     obtain ⟨Hm1, Hm2, Hv⟩ := Hm
-    unfold propRes
-    simp only [↓reduceIte]
-    icases Hres with ⟨-, %γq, #Hp, Htok⟩
-    rw [← Hraft]
-    imod node_collect γp.node id n d γq _ l ods m ⊤ CoPset.subseteq_top Hm1 Hm2
-      $$ HisNode Hp Htok Hl Hods with HQ
+    -- the client's result, from the operation's slot (2026-10-14, stage R)
+    ihave #Hcinv : raftCommitInv γr.raft $$ []
+    · rw [← Hraft]; open_node HisNode; iexact Hcinv
+    imod reg_collect γr d γo Ψ l ods m ⊤ CoPset.subseteq_top raftN_regN Hm1 Hm2
+      $$ Hinv Hcinv Hop Hsp Htok Hl Hods with HQ
     imod lc_fupd_elim_later $$ Hlc1 HQ with HQ
     imod lc_fupd_elim_later $$ Hlc2 HQ with HQ
     wp_auto

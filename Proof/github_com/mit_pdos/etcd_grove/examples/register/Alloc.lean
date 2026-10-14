@@ -8,10 +8,10 @@ What a cluster's set-up gives the replicas' `NewStorage` and `New`:
 * `regStorInv_alloc`: the storage registry's invariant, from the authority of an empty
   ghost map at the registry's name (allocated first, `ghost_map_alloc_empty`, and made the
   `RegStor` instance).
-* `regInv_alloc`: the register's invariant over raft's client log, from what raft's
+* `regInv_alloc`: the register's invariant over raft's full committed log, from what raft's
   allocation (`ownRaftGhost_alloc`, `Protocol/Facts.lean`) hands the client -- its half of
-  the empty client log, the authority of the fresh-data tokens and (2026-10-13) that of
-  the read contexts -- with the client's half
+  the empty log, the authority of the fresh-data tokens and (2026-10-14, stage R) that of
+  the fresh read-context tokens -- with the client's half
   of the value (empty) and the replicas' sequence-number tokens at `S0` (for `New`, each
   at 0: `S0 = gsetToGmap (W64 0) ids`).
 -/
@@ -53,32 +53,45 @@ theorem regStorInv_alloc (E : CoPset) :
   iapply BigSepM.bigSepM_empty.2
   itrivial
 
-/-- The register's invariant over raft's client log `γ`, at the empty log: from the
-client's share of raft's allocation, the invariant, the client's half of the value and the
-sequence-number tokens of `S0` (`New` takes `id ↪[γr.seq] 0`). -/
+/-- The register's invariant over raft's full committed log `γ` (2026-10-14, stage R; until
+then the client log), at the empty log: from the client's share of raft's allocation (its half
+of the empty log, the authorities of the fresh-data and fresh read-context tokens), the
+invariant, the client's half of the value and the sequence-number tokens of `S0` (`New` takes
+`id ↪[γr.seq] 0`). -/
 theorem regInv_alloc (E : CoPset) (γ : RaftNames) (S0 : GMap w64 w64) :
-    ⊢ cLog (GF := GF) γ [] -∗ ghostMapAuth γ.reFresh 1 (∅ : GMap (List w8) Unit) -∗
-      ghostMapAuth γ.reReads 1 (∅ : GMap (List w8) (List raftpb.Entry)) ={E}=∗
+    ⊢ rLog (GF := GF) γ [] -∗ ghostMapAuth γ.reFresh 1 (∅ : GMap (List w8) Unit) -∗
+      ghostMapAuth γ.reRdFresh 1 (∅ : GMap (List w8) Unit) ={E}=∗
       ∃ γr : RegNames, ⌜γr.raft = γ⌝ ∗ regInv γr ∗ regVal γr [] ∗
         [∗map] id ↦ s ∈ S0, id ↪[γr.seq] s := by
-  iintro Hcl HM HR
+  iintro Hcl HM HF
   imod ghostVar_alloc (GF := GF) ([] : List w8) with ⟨%γv, Hv⟩
   icases ghostVar_halves γv ([] : List w8) $$ Hv with ⟨Hv1, Hv2⟩
   imod ghost_map_alloc (GF := GF) S0 with ⟨%γs, HS, Hels⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64 × w64) (V := List w8) with ⟨%γm, HMi⟩
-  imod inv_alloc regN E (regInvBody (GF := GF) ⟨γ, γv, γs, γm⟩) $$ [Hcl Hv1 HM HR HS HMi] with #Hinv
+  imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := GName × GName) with ⟨%γo, HO⟩
+  imod inv_alloc regN E (regInvBody (GF := GF) ⟨γ, γv, γs, γm, γo⟩)
+    $$ [Hcl Hv1 HM HF HS HMi HO] with #Hinv
   · inext
     unfold regInvBody
-    iexists [], ∅, ∅, _, ∅
-    simp only [show regFold [] = ([] : List w8) from rfl]
-    iframe Hcl Hv1 HM HR HS HMi
-    ipureintro
-    refine ⟨?_, ?_, ?_⟩
-    · intro d h; simp at h
-    · intro i s d h; simp at h
-    · intro c Lc h; simp at h
+    iexists [], [], ∅, ∅, _, ∅, ∅
+    isplitl
+    · unfold regCore
+      simp only [show regFold (firstOcc []) = ([] : List w8) from rfl]
+      iframe Hcl Hv1 HM HF HS HMi HO
+      isplitr
+      · iapply (BigSepL2.bigSepL2_nil (Φ := fun _ e o => entDataIs (GF := GF) γ e o)).2
+        iempintro
+      ipureintro
+      refine ⟨⟨?_, ?_, ?_, ?_⟩, ?_⟩
+      · intro d h; simp at h
+      · intro i s d h; simp at h
+      · intro c h; simp at h
+      · intro d γp h; simp at h
+      · intro d h; simp at h
+    · iapply BigSepM.bigSepM_empty.2
+      itrivial
   imodintro
-  iexists ⟨γ, γv, γs, γm⟩
+  iexists ⟨γ, γv, γs, γm, γo⟩
   isplitr
   · ipureintro; rfl
   unfold regInv regVal

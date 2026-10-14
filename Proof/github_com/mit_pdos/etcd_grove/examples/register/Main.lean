@@ -133,7 +133,7 @@ theorem constMap_lookup_isSome {V : Type} (l : List w64) (v : V) (k : w64) :
     · rw [GMap.lookup_insert_ne _ _ h, IH]
       simp [List.mem_cons, Ne.symm h]
 
-/-- The cluster has more than one voter (what `Node.ReadIndex` asks). -/
+/-- The cluster has more than one voter. -/
 theorem clusterIds_size : 1 < GMap.size (GMap.listToSet clusterIds) := by
   rw [GMap.size_eq_length _ clusterIds clusterIds_nodup]
   · decide
@@ -240,16 +240,31 @@ theorem Main.wp_proof
   rw [Hsz, Hl]
   imod ownSlice_persist _ _ _ $$ Hvsl with #Hvsl
   -- raft's ghost state for the cluster, the term budget, the proposed slices
+  -- (2026-10-14, stage R) with the register's invariant, the client's half of the value and the
+  -- sequence-number tokens, allocated from the client's share once raft's names exist: the
+  -- register builds the standing update for raft's own entries (`reg_noopAu`)
   imod ownRaftGhost_alloc (GF := GF) ⊤ (GMap.listToSet clusterIds) (GMap.listToSet clusterIds)
-    clusterIds_ne (by rw [GMap.elem_of_list_to_set]; decide)
-    with ⟨%γ, %Hcfg, #Hcinv, #Hc0, Hghosts, ⟨HcL, Hfresh, HreSl⟩, ⟨HrdA, HrdC, #HrdI⟩⟩
+    (fun γ => iprop(∃ γr : RegNames, ⌜γr.raft = γ⌝ ∗ regInv γr ∗ regVal γr [] ∗
+      ([∗map] id ↦ s ∈ constMap clusterIds (W64 0), id ↪[γr.seq] s) ∗
+      ghostMapAuth γ.reSl 1 (∅ : GMap GoSlice (List w8))))
+    clusterIds_ne (by rw [GMap.elem_of_list_to_set]; decide) $$ []
+    with ⟨%γ, %Hcfg, #Hcinv, #Hc0, Hghosts, ⟨%γr, %Hγr, #Hreg, Hval, Hseqs, HreSl⟩,
+      ⟨HrdC, #HrdI⟩⟩
+  · unfold allocClient
+    iintro %γ0 %_ #_ HcL Hfresh HreSl HrdF
+    imod regInv_alloc (GF := GF) ⊤ γ0 (constMap clusterIds (W64 0)) $$ HcL Hfresh HrdF
+      with ⟨%γr0, %Hγr0, #Hreg0, Hval0, Hseqs0⟩
+    ihave #Hnoop := reg_noopAu γr0 $$ Hreg0
+    subst Hγr0
+    imodintro
+    iframe Hnoop
+    iexists γr0
+    iframe Hreg0 Hval0 Hseqs0 HreSl
+    ipureintro; rfl
   imod budget_alloc (GF := GF) (3 * ticksN + timeoutsN) (by unfold ticksN timeoutsN; omega) ⊤
     with ⟨%bud, #Hbinv, Hcred, #Hlb0⟩
   icases (tickCred_split bud (3 * ticksN) timeoutsN).1 $$ Hcred with ⟨Hcred, Htcred⟩
   imod propDataInv_alloc (GF := GF) γ ⊤ $$ HreSl with #Hpd
-  -- the register's invariant, the client's half of the value, the sequence-number tokens
-  imod regInv_alloc (GF := GF) ⊤ γ (constMap clusterIds (W64 0)) $$ HcL Hfresh HrdA
-    with ⟨%γr, %Hγr, #Hreg, Hval, Hseqs⟩
   -- the clients' invariant
   imod ghostVar_alloc (GF := GF) false with ⟨%γf, Hf⟩
   icases ghostVar_halves γf false $$ Hf with ⟨Hf1, Hf2⟩
@@ -471,8 +486,7 @@ theorem Main.wp_proof
         iintro ⟨Hmsl, #Hok, Hcr⟩ HΦ'
         rw [Hr, Hb]
         wp_auto
-        wp_apply (wp_deliver γr.raft bud mP «$r0_ptr» M msl ms
-            (by rw [Hcfg]; exact clusterIds_size))
+        wp_apply (wp_deliver γr.raft bud mP «$r0_ptr» M msl ms)
           $$ [$Hmsl $Hcr]
         · iframe #
         iapply HΦ'
@@ -598,7 +612,7 @@ theorem Main.wp_proof
       -- B's read by read index on replica 3, from the empty history's lower bound
       wp_apply wp_map_lookup1 go.uint64 _ mR R (W64 3) DFrac.discard $$ HmR as -
       simp only [HR3, Option.getD_some]
-      wp_apply (wp_Read γr γp3 r3 [] (by rw [Hcfg]; exact clusterIds_size)) $$ [Hop3 HrdC]
+      wp_apply (wp_Read γr γp3 r3 []) $$ [Hop3 HrdC]
         as %y -
       · iframe Hop3 HrdC Hreg3
         unfold regLb

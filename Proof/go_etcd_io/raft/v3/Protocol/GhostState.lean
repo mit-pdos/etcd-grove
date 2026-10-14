@@ -1034,14 +1034,14 @@ instance readSlot_persistent (γ : RaftNames) (r : GName × List raftpb.Entry)
 
 /-- The read registry, for the committed log `l` (each slot with its context's fresh
 token). -/
-def readsOwn (γ : RaftNames) (l : List raftpb.Entry)
+def readsReg (γ : RaftNames) (l : List raftpb.Entry)
     (RR : GMap (List w8) (GName × List raftpb.Entry)) : IProp GF :=
   iprop(ghostMapAuth γ.reReads 1 RR ∗ [∗map] c ↦ r ∈ RR, readSlot γ r l ∗ rdFresh γ c)
 
 /-- The registries at the committed log `l`, with the standing update. -/
 def regsAt (γ : RaftNames) (l : List raftpb.Entry) : IProp GF :=
   iprop(∃ (R : GMap (List w8) GName) (RR : GMap (List w8) (GName × List raftpb.Entry)),
-    propsOwn γ l R ∗ readsOwn γ l RR ∗ noopAu γ)
+    propsOwn γ l R ∗ readsReg γ l RR ∗ noopAu γ)
 
 /-- The registry half's contents: its quarter of `reRLog` at the committed log, and the
 registries there (held, un-latered, by a ghost step across its derivation). -/

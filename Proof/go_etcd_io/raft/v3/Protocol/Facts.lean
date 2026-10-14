@@ -1288,7 +1288,7 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
     iempintro
   imod inv_alloc raftRegN E (regsOwn γ0) $$ [Hq2 Hpra Hrda] with #Hreg
   · inext
-    unfold regsOwn regsAt propsOwn readsOwn
+    unfold regsOwn regsAt propsOwn readsReg
     iexists []
     iframe Hq2
     iexists ∅, ∅

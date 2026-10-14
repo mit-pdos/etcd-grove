@@ -5,8 +5,8 @@ legitimately sent, `isRaftMsg`, and of a term within the budget, `termLB`: what 
 gives with them) and a read-only peer table whose node at each id is that id's (`peerOk`),
 it steps each deliverable message into its target, which takes it (`Node.Step`'s `stepP`).
 (2026-10-13) It takes each message's read credit (`Ready`'s) and passes a delivered
-message's on to `Step`, dropping the others' with their messages; a read-index request is
-stepped only in a configuration of more than one voter (`Node.Step`'s premise). And
+message's on to `Step`, dropping the others' with their messages (any number of voters since
+2026-10-14: raft's single-voter fix, stage F). And
 (2026-10-13) a `MsgTimeoutNow` is stepped only with a tick credit taken from the transfer
 budget `tr` (`isTransfers`, `transfers.take`).
 -/
@@ -36,7 +36,6 @@ variable [StorageModel GF]
 abbrev deliver.spec : Prop :=
   ∀ (γ : RaftNames) (bud : BudgetNames) (peers tr : Loc) (P : GMap w64 GoInterface)
     (msl : GoSlice) (ms : List raftpb.Message),
-  1 < GMap.size γ.reCfg →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.register ∗ peers ↦${DFrac.discard} P ∗ ([∗map] id ↦ nd ∈ P, peerOk γ bud id nd) ∗
       isTransfers bud tr ∗
       msl ↦* ms ∗ ([∗list] m ∈ ms, isRaftMsg γ m ∗ termLB bud m.Term') ∗

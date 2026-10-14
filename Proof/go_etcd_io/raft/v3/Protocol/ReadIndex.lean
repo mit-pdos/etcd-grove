@@ -78,7 +78,7 @@ theorem read_deposit (γ : RaftNames) (c : List w8) (Qr : List raftpb.Entry → 
   subst Heq
   iunfold regsAt at Hregs
   icases Hregs with ⟨%R, %RR, Hprops, Hreads, #Hnoop⟩
-  iunfold readsOwn at Hreads
+  iunfold readsReg at Hreads
   icases Hreads with ⟨>Hra, Hs⟩
   ihave Hs := (BigSepM.bigSepM_later).1 $$ Hs
   cases HRc : RR !! c with
@@ -115,7 +115,7 @@ theorem read_deposit (γ : RaftNames) (c : List w8) (Qr : List raftpb.Entry → 
   imod Hclose2 $$ [Hq2 Hprops Hra Hs Hfr] with -
   · iexists P
     iframe Hq2
-    unfold regsAt readsOwn
+    unfold regsAt readsReg
     inext
     iexists R, Std.insert RR c (γq, P)
     iframe Hprops Hnoop Hra
@@ -165,7 +165,7 @@ theorem read_collect (γ : RaftNames) (E : CoPset) (c : List w8)
   ihave %HLP := isCommitted_prefix γ L P $$ HL HP
   iunfold regsAt at Hregs
   icases Hregs with ⟨%R, %RR, Hprops, Hreads, #Hnoop⟩
-  iunfold readsOwn at Hreads
+  iunfold readsReg at Hreads
   icases Hreads with ⟨>Hra, Hs⟩
   icases ghost_map_lookup $$ Hra Hel with %HRc
   ihave Hs := (BigSepM.bigSepM_later).1 $$ Hs
@@ -180,7 +180,7 @@ theorem read_collect (γ : RaftNames) (E : CoPset) (c : List w8)
   imod Hclose2 $$ [Hq2 Hprops Hra Hs] with -
   · iexists P
     iframe Hq2
-    unfold regsAt readsOwn
+    unfold regsAt readsReg
     inext
     iexists R, RR
     iframe Hprops Hnoop Hra

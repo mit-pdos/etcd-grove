@@ -31,7 +31,7 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
     (wp_take : transfers.take.spec (GF := GF) (hG := hG))
     (wp_node_Step : node.Step.spec (GF := GF) (hG := hG)) :
     deliver.spec (GF := GF) (hG := hG) := by
-  intro γ bud peers tr P msl ms Hcfg
+  intro γ bud peers tr P msl ms
   wp_start as ⟨#Hpeers, #HP, #Htr, Hms, #Hmsok, Hcr⟩
   ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
@@ -125,7 +125,7 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
           · iapply ownSliceCap_nil
         rw [List.nil_append]
         wp_apply context.wp_Background
-        imod stepP_deliverable γn mm.To' mm ents ctx s' Hd rfl Hnil Hcfg
+        imod stepP_deliverable γn mm.To' mm ents ctx s' Hd rfl Hnil
           $$ Hmsg Hctx Hmlb Hs Hcap Hc1 Htc with Hstep
         wp_apply wp_node_Step γn mm.To' n _ $$ [$Hraftinit $HisNode $Hstep] as %err -
         wp_for_post
@@ -149,7 +149,7 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
           · iapply ownSliceCap_nil
         rw [List.nil_append]
         wp_apply context.wp_Background
-        imod stepP_deliverable γn mm.To' mm ents ctx s' Hd rfl Hnil Hcfg
+        imod stepP_deliverable γn mm.To' mm ents ctx s' Hd rfl Hnil
           $$ Hmsg Hctx Hmlb Hs Hcap Hc1 Htc with Hstep
         wp_apply wp_node_Step γn mm.To' n _ $$ [$Hraftinit $HisNode $Hstep] as %err -
         wp_for_post
