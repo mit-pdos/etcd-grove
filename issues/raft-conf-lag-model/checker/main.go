@@ -414,6 +414,9 @@ func main() {
 	flag.BoolVar(&GhostES, "es", true, "election safety ghost (bit per term won); off for model.py-compatible counts")
 	flag.BoolVar(&ReadIdx, "read", false, "read-index requests (one pending at a time; ghost of the commit at arrival)")
 	flag.BoolVar(&ReadNoTermCheck, "read-no-term-check", false, "validation: read index without the committed-entry-in-term check (a known bug; must be found)")
+	flag.BoolVar(&ReadSingletonBug, "read-singleton-bug", false, "read index as the pinned raft: a single-voter leader skips the committed-entry-in-term check")
+	flag.BoolVar(&RemSelf, "remself", false, "a leader may propose its own removal (model.py excludes it; with -joint also joint changes without it)")
+	flag.BoolVar(&NoStepDown, "nostepdown", false, "StepDownOnRemoval off (raft's default): a removed leader stays leader; model.py always steps down")
 	flag.BoolVar(&useSym, "sym", true, "symmetry reduction (permutations of the initial voters, of the addable nodes)")
 	lagNodes := flag.String("lagnodes", "", "lagging modes: the nodes whose application may lag, e.g. 1 or 1,3 (default all)")
 	inv := flag.String("inv", "sms,lm,es,lc,read", "invariants checked: sms (state machine safety), lm (log matching), es (election safety), lc (leader completeness), read (read index)")
@@ -577,6 +580,9 @@ func search(maxDepth int, tableLog uint, workers int, keepGoing bool) int {
 							slot, isNew := tab.insert(fingerprint(ns, b1, b2), eslot)
 							if isNew {
 								out.add(slot, ns)
+								if tab.count.Load() > limit {
+									stop.Store(true) // the table must never fill up: probing would not end
+								}
 							}
 						})
 					}
@@ -599,7 +605,7 @@ func search(maxDepth int, tableLog uint, workers int, keepGoing bool) int {
 			break
 		}
 		if tab.count.Load() > limit {
-			fmt.Println("visited table 85% full: stopping (raise -tablelog)")
+			fmt.Printf("visited table 85%% full during depth %d: stopping; depths up to %d are complete (raise -tablelog)\n", depth, depth-1)
 			full = true
 			break
 		}

@@ -59,23 +59,26 @@ type State struct {
 
 // Parameters (model.py's argv).
 var (
-	N               int
-	INIT            uint8 // bitmask of the initial voters 1..init
-	NInit           int
-	Mode            string // faithful, lag, crash, fix, fixlit
-	MAXT            int
-	MAXLOG          int
-	MAXCONF         int
-	MAXVAL          int
-	JOINT           bool
-	REDUCED         bool
-	GhostES         bool
-	ReadIdx         bool  // read-index requests (extension, not in model.py)
-	ReadNoTermCheck bool  // validation only: drop committedEntryInCurrentTerm (must fail)
-	lagging         bool  // apply does not move cfgidx; applyconf is an action (at the nodes of LagMask)
-	LagMask         uint8 // the nodes whose application may lag (-lagnodes; default all)
-	InvMask         int   // the invariants checked (bit per violation kind, -inv)
-	guardCfg        bool  // fix modes: the campaign guard scans from cfgidx
+	N                int
+	INIT             uint8 // bitmask of the initial voters 1..init
+	NInit            int
+	Mode             string // faithful, lag, crash, fix, fixlit
+	MAXT             int
+	MAXLOG           int
+	MAXCONF          int
+	MAXVAL           int
+	JOINT            bool
+	REDUCED          bool
+	GhostES          bool
+	ReadIdx          bool  // read-index requests (extension, not in model.py)
+	ReadNoTermCheck  bool  // validation only: drop committedEntryInCurrentTerm (must fail)
+	ReadSingletonBug bool  // the pinned raft: a singleton leader answers without that check (review finding 1)
+	RemSelf          bool  // a leader may propose its own removal (not in model.py)
+	NoStepDown       bool  // StepDownOnRemoval off: a removed leader stays leader (model.py steps down)
+	lagging          bool  // apply does not move cfgidx; applyconf is an action (at the nodes of LagMask)
+	LagMask          uint8 // the nodes whose application may lag (-lagnodes; default all)
+	InvMask          int   // the invariants checked (bit per violation kind, -inv)
+	guardCfg         bool  // fix modes: the campaign guard scans from cfgidx
 )
 
 func bit(i int) uint8 { return 1 << (i - 1) }
@@ -157,6 +160,7 @@ const (
 	AReadReq
 	AReadOk
 	AReadDrop
+	AReadSingle
 )
 
 type Action struct {
@@ -216,6 +220,8 @@ func (a Action) String() string {
 		return fmt.Sprintf("('readok', %d, %d)", a.I, a.X)
 	case AReadDrop:
 		return "('readdrop',)"
+	case AReadSingle:
+		return fmt.Sprintf("('readsingle', %d, %d)", a.I, a.X)
 	}
 	return "?"
 }
@@ -426,7 +432,7 @@ func succ(s *State, emit func(a Action, ns *State, viol int)) {
 						}
 					}
 					for j := 1; j <= N; j++ {
-						if cfg.inc&bit(j) != 0 && j != i && pc(cfg.inc) > 1 {
+						if cfg.inc&bit(j) != 0 && (j != i || RemSelf) && pc(cfg.inc) > 1 {
 							ops = append(ops, mkEnt(term, KC, OpRem, j))
 						}
 					}
@@ -535,6 +541,17 @@ func succ(s *State, emit func(a Action, ns *State, viol int)) {
 			c.Role, c.Commit, c.Applied, c.CfgIdx, c.Match, c.Pending = RF, n.PCommit, 0, 0, [MaxN]uint8{}, 0
 			emit(Action{Kind: ACrash, I: uint8(i), X: n.PCommit}, &ns, VNone)
 		}
+		if ReadIdx && ReadSingletonBug && n.Role == RL && cfg.out == 0 && pc(cfg.inc) == 1 {
+			// the pinned stepLeader: IsSingleton() answers at once with the commit index,
+			// before committedEntryInCurrentTerm, whoever the voter is
+			v := VNone
+			for k := 0; k < N; k++ {
+				if s.Nodes[k].Commit > n.Commit && InvMask&(1<<VRead) != 0 {
+					v = VRead
+				}
+			}
+			emit(Action{Kind: AReadSingle, I: uint8(i), X: n.Commit}, s, v)
+		}
 		if ReadIdx && n.Role == RL && s.RdNode == 0 && (ReadNoTermCheck || n.Commit > 0 && eTerm(n.Log[n.Commit-1]) == term) {
 			// MsgReadIndex arrives at leader i (committedEntryInCurrentTerm holds)
 			ns = *s
@@ -579,7 +596,7 @@ func succ(s *State, emit func(a Action, ns *State, viol int)) {
 // after_cfg: stepDownOnRemoval, auto-leave.
 func afterCfg(i int, c *Node) {
 	c2 := cfgAt(c, int(c.CfgIdx))
-	if c.Role == RL && (c2.inc|c2.out)&bit(i) == 0 {
+	if !NoStepDown && c.Role == RL && (c2.inc|c2.out)&bit(i) == 0 {
 		c.Role, c.Match, c.Pending = RF, [MaxN]uint8{}, 0
 		return
 	}

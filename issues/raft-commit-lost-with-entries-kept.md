@@ -28,4 +28,7 @@
 - **Possible fixes**: document atomic persistence in `doc.go` step 1; or persist the commit
   index before (with) the entries in etcd's WAL record order.
 - **Found**: 2026-10-13, the same analysis as
-  [raft-advance-before-applyconfchange](raft-advance-before-applyconfchange.md).
+  [raft-advance-before-applyconfchange](raft-advance-before-applyconfchange.md). 2026-10-14:
+  the model checker (`raft-conf-lag-model/checker/`) finds a 16-step execution by search
+  (`raft-conf-lag-model/trace-check-crash-sms.txt`, two removals, the restarted node on
+  `C0` wins with the removed node's vote): `notes/reconfiguration-model-check.md`.

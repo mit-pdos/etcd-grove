@@ -49,6 +49,15 @@ Additions, not in `model.py` (each can be switched off):
   state (so it covers fewer executions than raft's, where acknowledgements arrive one by
   one and update terms). `-read-no-term-check` drops the committed-entry-in-term check, a
   known bug the checker must (and does) find, at depth 6.
+- `-read-singleton-bug`: read index as the pinned `stepLeader` does it when
+  `IsSingleton()` (one incoming voter, no outgoing half, whoever it is): `readsingle i`
+  answers at once with `i`'s commit, a violation if some node's commit is larger
+  (`notes/reconfiguration-safety-review.md`, finding 1; `issues/raft-readindex-singleton-stale.md`).
+  The checker finds both of the review's executions (with `-remself`, and `-nostepdown`).
+- `-remself`: a leader may propose its own removal (`model.py` excludes it: `rem j` for
+  `j != i` only; with `-joint`, also a joint change that drops it).
+- `-nostepdown`: `StepDownOnRemoval` off (raft's default); `model.py` always steps a
+  removed leader down (`after_cfg`).
 - `-lagnodes 1,2`: in the lagging modes, only these nodes' applications lag (the others
   apply as in `faithful`, which `model.py` expresses as `apply` then `applyconf`).
 
@@ -60,7 +69,7 @@ canonicalized under the permutations of the node ids that preserve the model's c
 over the group, and hashed to 64 bits (`hash/maphash`); the visited set is an
 open-addressing table of fingerprints (`-tablelog k`: `2^k` slots, 12 bytes each with the
 parent slot for traces, 8 with `-noparents`), lock-free inserts. Frontier states are stored
-4 bits per field. A violation stops the search at the end of its depth (`-all`: keep
+4 bits per field, in memory or (`-spill DIR`) in files. A violation stops the search at the end of its depth (`-all`: keep
 going, one report per invariant) and prints the shortest trace (BFS) rebuilt from the
 parent slots. The search is exhaustive when a level adds no state ("exhaustive: no new
 states"); it stops early, saying so, at `-maxdepth` or when the table is 85% full.
