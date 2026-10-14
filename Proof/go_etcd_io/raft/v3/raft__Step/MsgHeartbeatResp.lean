@@ -60,8 +60,8 @@ theorem wp_Step_MsgHeartbeatResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhys cfg r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜∃ c recv, (c = [] ∨ c = ctx) ∧
-            (∀ m' ∈ recv, m' = absMsg .heartbeatResp m ents c) ∧
+        "%Hrefines" ∷ ⌜∃ cx recv, (cx = [] ∨ cx = ctx) ∧
+            (∀ m' ∈ recv, m' = absMsg .heartbeatResp m ents cx) ∧
             Step cfg id (toPState s) recv (toPState s')⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗

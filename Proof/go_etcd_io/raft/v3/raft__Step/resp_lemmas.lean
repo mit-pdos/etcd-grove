@@ -6,7 +6,7 @@ what the three `stepX` result relations say for those three types, turned into t
 `Parameter`; only files in this directory may `Require` it.
 
 Lean notes:
-* Rocq's section variable `cfg` is an explicit argument of the lemmas that use it.
+* Rocq's section variable `c` is an explicit argument of the lemmas that use it.
 * Rocq's `Local Ltac kill_type_arms` is not needed: the ported proofs `simp` the type
   tests away.
 * Rocq's `Local Lemma`s are `private theorem`s.
@@ -34,22 +34,24 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 namespace StepProof
 
 /-- `MsgBeat`, `MsgAppResp` and `MsgHeartbeatResp` reach no arm of `stepFollower`. -/
-theorem followerStepResult_noop (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
+theorem followerStepResult_noop (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
     (Hty : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp)
-    (H : FollowerStepResult cfg id s m ents sv dropped s') : dropped = false ∧ s' = s := by
-  unfold FollowerStepResult at H
+    (H : FollowerStepResultC c scfg id s m ents sv dropped s' c') : dropped = false ∧ s' = s := by
+  unfold FollowerStepResultC at H
+  replace H := H.2
   rcases Hty with h | h | h <;>
     simp [h, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
       MsgHeartbeatResp, W32] at H <;> exact H
 
 /-- Nor of `stepCandidate`. -/
-theorem candidateStepResult_noop (cfg : GSet w64) (id : w64) (s : NState)
+theorem candidateStepResult_noop (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id : w64) (s : NState)
     (m : raftpb.Message) (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool)
     (s' : NState)
     (Hty : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp)
-    (H : CandidateStepResult cfg id s m ents sv dropped s') : dropped = false ∧ s' = s := by
-  unfold CandidateStepResult at H
+    (H : CandidateStepResultC c scfg id s m ents sv dropped s' c') : dropped = false ∧ s' = s := by
+  unfold CandidateStepResultC at H
+  replace H := H.2
   rcases Hty with h | h | h <;>
     simp [h, MsgBeat, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgAppResp,
       MsgHeartbeatResp, W32] at H <;> exact H
@@ -112,13 +114,57 @@ theorem nstateWf_readRespondAll (id : w64) (t : NState) (qs : List ReadReq) (H :
   obtain ⟨o, r, h⟩ := readRespondAll_eq id t qs
   rw [h]; exact H
 
-/-- The read path of a `MsgHeartbeatResp` at a leader: `Step.readAck`. -/
-theorem readAck_step (cfg : GSet w64) (id : w64) (s1 : NState) (Hr : s1.role = .leader)
+theorem mem_filter_gset (P : w64 → Unit → Bool) (X : GSet w64) (x : w64) :
+    x ∈ GMap.filter P X ↔ x ∈ X ∧ P x () = true := by
+  rw [GMap.mem_iff, GMap.mem_iff, GMap.lookup_filter]
+  cases h : X !! x with
+  | none => simp
+  | some u => cases u; simp [Option.filter]
+
+/-- One half's quorum index bounds a quorum of that half from below: the voters whose value is
+at least any `N` below the half's answer are a majority of it (or the half is empty). -/
+theorem majIdx_majQ {s : GSet w64} {f : w64 → w64} {N0 N : w64} (H : MajIdx s f N0)
+    (Hle : uint.Z N ≤ uint.Z N0) (Q : GSet w64)
+    (HQ : ∀ v, v ∈ s → uint.Z N ≤ uint.Z (f v) → v ∈ Q) : MajQ s Q := by
+  by_cases hs : s = ∅
+  · exact Or.inl hs
+  · right
+    obtain ⟨-, Hq, -⟩ := H.2 hs
+    unfold IsQuorum at Hq ⊢
+    refine Nat.lt_of_lt_of_le Hq (Nat.mul_le_mul_left 2 (GMap.subseteq_size ?_))
+    rw [GMap.elem_of_subseteq]
+    intro v hv
+    rw [GMap.elem_of_intersection] at hv ⊢
+    obtain ⟨hv1, hv2⟩ := hv
+    rw [mem_filter_gset] at hv1
+    refine ⟨HQ v hv2 ?_, hv2⟩
+    have := hv1.2
+    simp only [decide_eq_true_eq] at this
+    omega
+
+/-- `JointConfig.CommittedIndex`'s answer is acknowledged by a joint quorum. -/
+theorem JCommittedIdx.acked {c : CfgM} {f : w64 → w64} {N : w64}
+    (H : JCommittedIdx c.incoming c.outgoing f N) : JQuorumAcked c f N := by
+  obtain ⟨N0, N1, H0, H1, HN⟩ := H
+  have h0 : uint.Z N ≤ uint.Z N0 := by rw [HN]; split <;> omega
+  have h1 : uint.Z N ≤ uint.Z N1 := by rw [HN]; split <;> omega
+  refine ⟨GMap.filter (fun v _ => decide (uint.Z N ≤ uint.Z (f v))) c.voters,
+    ⟨majIdx_majQ H0 h0 _ fun v hv hn => ?_, majIdx_majQ H1 h1 _ fun v hv hn => ?_⟩,
+    fun v hv => ?_⟩
+  · rw [mem_filter_gset]
+    exact ⟨GMap.elem_of_union_l _ hv, by simpa using hn⟩
+  · rw [mem_filter_gset]
+    exact ⟨GMap.elem_of_union_r _ hv, by simpa using hn⟩
+  · rw [mem_filter_gset] at hv
+    simpa using hv.2
+
+/-- The read path of a `MsgHeartbeatResp` at a leader: `StepC.readAck`. -/
+theorem readAck_step (c : CfgM) (id : w64) (s1 : NState) (Hr : s1.role = .leader)
     (a : Msg) (N : w64) (Hty : a.ty = .heartbeatResp) (Hto : a.dst = id)
     (Hterm : a.term = s1.term) (Hne : a.ctx ≠ [])
-    (HQ : IsQuorumIndex cfg
+    (HQ : JCommittedIdx c.incoming c.outgoing
       (fun v => ((readonlyRecvAck s1.rd.ro a.src a.ctx).acks !! v).getD (W64 0)) N) :
-    Step cfg id (toPState s1) [a]
+    StepC c id (toPState s1) [a]
       (toPState (readRespondAll id
         { s1 with rd := { s1.rd with
             ro := (readonlyAdvance (readonlyRecvAck s1.rd.ro a.src a.ctx) N).1 } }
@@ -132,38 +178,25 @@ theorem readAck_step (cfg : GSet w64) (id : w64) (s1 : NState) (Hr : s1.role = .
     rw [Hrd]; simp [toPState, Hr]
   rw [e]
   have Hro : (toPState s1).rd.ro = s1.rd.ro := by rw [Hrd]
-  have := Step.readAck (cfg := cfg) (id := id) a (toPState s1) N Hty Hto
+  have := StepC.readAck (c := c) (id := id) a (toPState s1) N Hty Hto
     (by exact Hterm) (by simp [toPState, Hr, proleRole]) Hne
-    (by
-      rw [Hro]
-      obtain ⟨-, HQq, -⟩ := HQ
-      refine ⟨_, HQq, fun v hv => ?_⟩
-      have h := (GMap.elem_of_gset _ _).mp hv
-      rw [GMap.lookup_filter] at h
-      cases hc : cfg !! v with
-      | none => rw [hc] at h; cases h
-      | some u =>
-        rw [hc] at h
-        simp only [Option.filter] at h
-        split at h
-        · rename_i hp; simpa using hp
-        · cases h)
+    (by rw [Hro]; exact JCommittedIdx.acked HQ)
   rw [Hro] at this ⊢
   exact this
 
-/-- `stepLeader` on `MsgBeat`: the heartbeats are `Step.beat`'s. -/
-theorem leader_beat_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
+/-- `stepLeader` on `MsgBeat`: the heartbeats are `StepC.beat`'s. -/
+theorem leader_beat_step (c : CfgM) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (dropped : Bool) (s' : NState)
     (Hr : s.role = .leader) (Hty : m.Type' = MsgBeat) (Hwf : NStateWf s)
-    (H : LeaderStepResult cfg id s m ents dropped s') :
-    dropped = false ∧ NStateWf s' ∧ Step cfg id (toPState s) [] (toPState s') ∧
+    (H : LeaderStepResultC c id s m ents dropped s') :
+    dropped = false ∧ NStateWf s' ∧ StepC c id (toPState s) [] (toPState s') ∧
       s'.logst = s.logst ∧ s'.term = s.term ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh := by
   have Hpr : (toPState s).role = .leader := by rw [toPState_role, Hr]; rfl
-  unfold LeaderStepResult at H
+  unfold LeaderStepResultC at H
   rw [ite_eq_right (by rw [Hty]; w32_ne)] at H
   obtain ⟨rfl, Hres⟩ := H
   refine ⟨rfl, ?_⟩
-  unfold LeaderNonpropResult at Hres
+  unfold LeaderNonpropResultC at Hres
   rcases Hres with ⟨Hc, -⟩ | ⟨-, ms, pvs, rfl, Hok, Hpm⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc6, -⟩
   rotate_right
   · exfalso
@@ -177,23 +210,23 @@ theorem leader_beat_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Me
   all_goals exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
 
 /-- `stepLeader` on `MsgHeartbeatResp` (of the current term, to this node):
-`sendAppend`'s messages, no `Match` moved -- `Step.sendApps`; then (2026-10-13), with a
-context, the read path -- `Step.readAck`, receiving the message. -/
-theorem leader_hbresp_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
+`sendAppend`'s messages, no `Match` moved -- `StepC.sendApps`; then (2026-10-13), with a
+context, the read path -- `StepC.readAck`, receiving the message. -/
+theorem leader_hbresp_step (c : CfgM) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (ctx : List w8) (dropped : Bool) (s' : NState)
     (Hr : s.role = .leader) (Hty : m.Type' = MsgHeartbeatResp) (Hto : m.To' = id)
     (Hteq : m.Term' = s.term) (Hwf : NStateWf s)
-    (H : LeaderStepResult cfg id s m ents dropped s' ctx) :
+    (H : LeaderStepResultC c id s m ents dropped s' ctx) :
     dropped = false ∧ NStateWf s' ∧
     (∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeatResp m ents ctx) ∧
-      Step cfg id (toPState s) recv (toPState s')) ∧
+      StepC c id (toPState s) recv (toPState s')) ∧
       s'.logst = s.logst ∧ s'.term = s.term ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh := by
   have Hpr : (toPState s).role = .leader := by rw [toPState_role, Hr]; rfl
-  unfold LeaderStepResult at H
+  unfold LeaderStepResultC at H
   rw [ite_eq_right (by rw [Hty]; w32_ne)] at H
   obtain ⟨rfl, Hres⟩ := H
   refine ⟨rfl, ?_⟩
-  unfold LeaderNonpropResult at Hres
+  unfold LeaderNonpropResultC at Hres
   rcases Hres with ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨-, ms, pvs, Hok, Hpm, Hrd⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc6, -⟩
   rotate_right
   · exfalso
@@ -201,7 +234,7 @@ theorem leader_hbresp_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.
   all_goals try (exfalso; rw [Hty] at Hc; first
     | exact absurd Hc (by w32_ne)
     | (rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne)))
-  have H1 : Step cfg id (toPState s) [] (toPState { sendMsgs s ms with prvals := pvs }) := by
+  have H1 : StepC c id (toPState s) [] (toPState { sendMsgs s ms with prvals := pvs }) := by
     rw [toPState_prvals (sendMsgs s ms) pvs (fun _ => Hpm), toPState_sendMsgs]
     exact .sendApps _ ms Hpr Hok
   rcases Hrd with ⟨-, rfl⟩ | ⟨Hne, N, HN, Hs'⟩
@@ -212,7 +245,7 @@ theorem leader_hbresp_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.
       by rw [readRespondAll_frame]; try rfl, by rw [readRespondAll_frame]; try rfl,
       by rw [readRespondAll_frame]; try rfl, by rw [readRespondAll_frame]; try rfl⟩
     · intro m' h; simpa using h
-    · exact .trans _ _ _ _ _ H1 (readAck_step cfg id { sendMsgs s ms with prvals := pvs }
+    · exact .trans _ _ _ _ _ H1 (readAck_step c id { sendMsgs s ms with prvals := pvs }
         (by exact Hr) (absMsg .heartbeatResp m ents ctx) N rfl Hto Hteq Hne HN)
 
 /-- A leader's `matched` is its `Progress` values' `Match`. -/
@@ -232,28 +265,28 @@ private theorem pstate_commit_same (ps : PState) : { ps with commit := ps.commit
 
 /-- `stepLeader` on `MsgAppResp` of the current term:
 
-- no `Progress` for the sender: nothing changes, `Step.refl`;
+- no `Progress` for the sender: nothing changes, `StepC.refl`;
 - rejected: `Next` moves, `Match` does not, and the retries are `ReplOk` --
-  `Step.sendApps` alone;
-- accepted: `Step.appResp` (the sender's `Match` raised, which is `toPState` at the new
-  `Progress` values), then `Step.commit` if `maybeCommit` moved the commit index
-  (its premises, judged at the raised `Match` map), then `Step.sendApps`
+  `StepC.sendApps` alone;
+- accepted: `StepC.appResp` (the sender's `Match` raised, which is `toPState` at the new
+  `Progress` values), then `StepC.commit` if `maybeCommit` moved the commit index
+  (its premises, judged at the raised `Match` map), then `StepC.sendApps`
   for what was sent after the commit. -/
-theorem leader_appresp_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
+theorem leader_appresp_step (c : CfgM) (id : w64) (s : NState) (m : raftpb.Message)
     (ents0 ents : List raftpb.Entry) (dropped : Bool) (s' : NState)
     (Hr : s.role = .leader) (Hty : m.Type' = MsgAppResp) (Hto : m.To' = id)
     (Hteq : m.Term' = s.term) (Hwf : NStateWf s)
-    (H : LeaderStepResult cfg id s m ents0 dropped s') :
+    (H : LeaderStepResultC c id s m ents0 dropped s') :
     dropped = false ∧ NStateWf s' ∧
     (∃ recv, (∀ m' ∈ recv, m' = absMsg .appResp m ents) ∧
-      Step cfg id (toPState s) recv (toPState s')) ∧
+      StepC c id (toPState s) recv (toPState s')) ∧
     NetFrame s s' ∧ TermStep m s s' := by
   have Hpr : (toPState s).role = .leader := by rw [toPState_role, Hr]; rfl
-  unfold LeaderStepResult at H
+  unfold LeaderStepResultC at H
   rw [ite_eq_right (by rw [Hty]; w32_ne)] at H
   obtain ⟨rfl, Hres⟩ := H
   refine ⟨rfl, ?_⟩
-  unfold LeaderNonpropResult at Hres
+  unfold LeaderNonpropResultC at Hres
   rcases Hres with ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨-, Hres⟩ | ⟨Hc6, -⟩
   rotate_right
   · exfalso
@@ -273,8 +306,8 @@ theorem leader_appresp_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb
     rw [toPState_prvals (sendMsgs s ms) pvs (fun _ => Hpm), toPState_sendMsgs]
     exact .sendApps _ ms Hpr Hok
   · -- accepted
-    obtain ⟨x, pvs, c, hb, ms, Hx, Hpvs, Hc, Hms, Hrel⟩ := Hacc
-    by_cases Hcc : c ≠ s.logst.committed
+    obtain ⟨x, pvs, n0, hb, ms, Hx, Hpvs, Hc, Hms, Hrel⟩ := Hacc
+    by_cases Hcc : n0 ≠ s.logst.committed
     · -- a commit, which releases the pending read-index requests (2026-10-13)
       rw [if_neg Hcc] at Hrel
       obtain ⟨Hhb, rfl⟩ := Hrel
@@ -282,16 +315,16 @@ theorem leader_appresp_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb
       · exact absurd Hc Hcc
       refine ⟨Hwf, ?_, keep_frame rfl rfl rfl rfl rfl⟩
       have Hpr1 : (toPState { s with prvals := pvs }).role = .leader := Hpr
-      have H1 : Step cfg id (toPState s) [absMsg .appResp m ents]
+      have H1 : StepC c id (toPState s) [absMsg .appResp m ents]
           (toPState { s with prvals := pvs }) := by
         rw [toPState_prvals_leader s pvs Hr, Hpvs, ← toPState_matched_leader s Hr]
         exact .appResp (absMsg .appResp m ents) (toPState s) x rfl Hto Hteq Hpr Hrej
           (by rw [toPState_matched_leader s Hr]; exact Hx)
-      have H2 : Step cfg id (toPState { s with prvals := pvs }) []
-          { toPState { s with prvals := pvs } with commit := c } :=
-        .commit _ c Hpr1 Hlt Hle Hterm Hq
-      let ps2 : PState := { toPState { s with prvals := pvs } with commit := c }
-      have H3 : Step cfg id ps2 []
+      have H2 : StepC c id (toPState { s with prvals := pvs }) []
+          { toPState { s with prvals := pvs } with commit := n0 } :=
+        .commit _ n0 Hpr1 Hlt Hle Hterm Hq
+      let ps2 : PState := { toPState { s with prvals := pvs } with commit := n0 }
+      have H3 : StepC c id ps2 []
           { ps2 with rd := { ps2.rd with
               pend := []
               ro := readonlyRelease ps2.rd.ro id ps2.commit ps2.rd.pend } } :=
@@ -300,7 +333,7 @@ theorem leader_appresp_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb
               pend := []
               ro := readonlyRelease ps2.rd.ro id ps2.commit ps2.rd.pend } }
       have Hps2rd : ps2.rd = s.rd := by simp [ps2, toPState, Hr]
-      have H4 : Step cfg id ps3 [] (psendMsgs ps3 hb) :=
+      have H4 : StepC c id ps3 [] (psendMsgs ps3 hb) :=
         .beat _ hb Hpr1
           (fun m' h => by
             have := (Hhb m' h).1
@@ -309,17 +342,17 @@ theorem leader_appresp_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb
           (fun m' h => by
             obtain ⟨k, -, -, Hk⟩ := (Hhb m' h).2
             rw [Hk]
-            have : ps3.rd.ro = readonlyRelease s.rd.ro id c s.rd.pend := by
+            have : ps3.rd.ro = readonlyRelease s.rd.ro id n0 s.rd.pend := by
               simp [ps3, ps2, toPState, Hr]
             rw [this]
             exact HbCtxOk_release _ _ _ _ k)
-      have H5 : Step cfg id (psendMsgs ps3 hb) [] (psendMsgs (psendMsgs ps3 hb) ms) :=
+      have H5 : StepC c id (psendMsgs ps3 hb) [] (psendMsgs (psendMsgs ps3 hb) ms) :=
         .sendApps _ ms Hpr1 (fun m' Hm' =>
           replOk_proper _ _ _ _ rfl rfl rfl rfl (Hms m' Hm'))
       refine ⟨[absMsg .appResp m ents] ++ ([] ++ ([] ++ ([] ++ []))), ?_, ?_⟩
       · intro m' Hin; simpa using Hin
       · have He : toPState { sendMsgs (sendMsgs (releasedState id
-              { s with logst := { s.logst with committed := c } }) hb) ms with prvals := pvs } =
+              { s with logst := { s.logst with committed := n0 } }) hb) ms with prvals := pvs } =
             psendMsgs (psendMsgs ps3 hb) ms := by
           simp [ps3, ps2, toPState, sendMsgs, psendMsgs, releasedState, Hr]
         rw [He]
@@ -329,27 +362,27 @@ theorem leader_appresp_step (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb
     obtain ⟨-, rfl⟩ := Hrel
     refine ⟨Hwf, ?_, keep_frame rfl rfl rfl rfl rfl⟩
     have Hpr1 : (toPState { s with prvals := pvs }).role = .leader := Hpr
-    have H1 : Step cfg id (toPState s) [absMsg .appResp m ents]
+    have H1 : StepC c id (toPState s) [absMsg .appResp m ents]
         (toPState { s with prvals := pvs }) := by
       rw [toPState_prvals_leader s pvs Hr, Hpvs, ← toPState_matched_leader s Hr]
       exact .appResp (absMsg .appResp m ents) (toPState s) x rfl Hto Hteq Hpr Hrej
         (by rw [toPState_matched_leader s Hr]; exact Hx)
-    have H2 : Step cfg id (toPState { s with prvals := pvs }) []
-        { toPState { s with prvals := pvs } with commit := c } := by
+    have H2 : StepC c id (toPState { s with prvals := pvs }) []
+        { toPState { s with prvals := pvs } with commit := n0 } := by
       rcases Hc with rfl | ⟨Hlt, Hle, Hterm, Hq⟩
       · rw [show s.logst.committed = (toPState { s with prvals := pvs }).commit from rfl,
           pstate_commit_same (toPState { s with prvals := pvs })]
         exact .refl _
-      · exact .commit _ c Hpr1 Hlt Hle Hterm Hq
-    have H3 : Step cfg id { toPState { s with prvals := pvs } with commit := c } []
-        (psendMsgs { toPState { s with prvals := pvs } with commit := c } ms) :=
+      · exact .commit _ n0 Hpr1 Hlt Hle Hterm Hq
+    have H3 : StepC c id { toPState { s with prvals := pvs } with commit := n0 } []
+        (psendMsgs { toPState { s with prvals := pvs } with commit := n0 } ms) :=
       .sendApps _ ms Hpr1 (fun m' Hm' =>
         replOk_proper _ _ _ _ rfl rfl rfl rfl (Hms m' Hm'))
     refine ⟨[absMsg .appResp m ents] ++ ([] ++ []), ?_, ?_⟩
     · intro m' Hin; simpa using Hin
-    · have He : toPState { sendMsgs { s with logst := { s.logst with committed := c } } ms with
+    · have He : toPState { sendMsgs { s with logst := { s.logst with committed := n0 } } ms with
             prvals := pvs } =
-          psendMsgs { toPState { s with prvals := pvs } with commit := c } ms := by
+          psendMsgs { toPState { s with prvals := pvs } with commit := n0 } ms := by
         simp [toPState, sendMsgs, psendMsgs, Hr]
       rw [He]
       exact .trans _ _ _ _ _ H1 (.trans _ _ _ _ _ H2 H3)

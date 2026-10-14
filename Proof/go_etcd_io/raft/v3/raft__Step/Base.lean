@@ -71,16 +71,16 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- Rocq `STEP_POSTULATES`: the callee specs the branches are proved from. -/
 structure raft.Step.Postulates : Prop where
-  hup : raft.hup.specS (GF := GF) (hG := hG)
-  becomeFollower : raft.becomeFollower.specS (GF := GF) (hG := hG)
+  hup : raft.hup.spec (GF := GF) (hG := hG)
+  becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG)
   voteRespMsgType : voteRespMsgType.spec (GF := GF) (hG := hG)
-  send : raft.send.specS (GF := GF) (hG := hG)
-  stepCandidate : stepCandidate.specS (GF := GF) (hG := hG)
+  send : raft.send.spec (GF := GF) (hG := hG)
+  stepCandidate : stepCandidate.spec (GF := GF) (hG := hG)
   /-- A `MsgVoteResp` falls through `Step`'s type switch to `r.step(m)`, which is any
   of the three depending on the role -- on `m.Term > r.Term` the term preamble has
   already run `becomeFollower`. -/
-  stepFollower : stepFollower.specS (GF := GF) (hG := hG)
-  stepLeader : stepLeader.specS (GF := GF) (hG := hG)
+  stepFollower : stepFollower.spec (GF := GF) (hG := hG)
+  stepLeader : stepLeader.spec (GF := GF) (hG := hG)
   traceReceiveMessage : traceReceiveMessage.spec (GF := GF) (hG := hG)
   lastEntryID : raftLog.lastEntryID.spec (GF := GF) (hG := hG)
   isUpToDate : raftLog.isUpToDate.spec (GF := GF) (hG := hG)
@@ -92,14 +92,17 @@ structure raft.Step.Postulates : Prop where
   payloadsSize : payloadsSize.spec (GF := GF) (hG := hG)
 
 /-- What `raft.Step.spec`'s postcondition hands to `Φ`: the continuation every dispatch
-lemma below ends in. `s` is the state the step starts from. -/
-def stepPost (γ : RaftNames) (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
+lemma below ends in. `s` is the state the step starts from, `c` its configuration
+(2026-10-14, reconfiguration stage B7: the struct at `c`, the step `StepC c`; the
+configuration afterwards `c'` is `c` but after a `MsgSnap`, and static as `c` is). -/
+def stepPost (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (m : raftpb.Message) (Φ : val → IProp GF) : IProp GF :=
-  iprop(∀ (err : GoInterface) (s' : NState) (ps' : PState),
-    ("Hphys" ∷ ownRaftPhys cfg r id s' ∗
+  iprop(∀ (err : GoInterface) (s' : NState) (ps' : PState) (c' : CfgM),
+    ("Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
      "Hghost" ∷ ownRaftGhost γ id ps' ∗
      "%Hrel" ∷ ⌜NStateRel s' ps'⌝ ∗
-     "%Hrefines" ∷ ⌜∃ recv, Step cfg id (toPState s) recv ps'⌝ ∗
+     "%Hrefines" ∷ ⌜∃ recv, StepC c id (toPState s) recv ps'⌝ ∗
+     "%Hcfg'" ∷ ⌜CfgStatic γ c' ∧ (m.Type' ≠ MsgSnap → c' = c)⌝ ∗
      "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → NetFrame s s'⌝ ∗
      "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
      "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
@@ -219,13 +222,13 @@ theorem ghost_hbResp_ctx (γ : RaftNames) (id : w64) (s : NState) (m : raftpb.Me
     omega
 
 /-- The one ghost update of a branch: `recv` is the incoming message, some number of
-times, and that message is `isMessage`. -/
-theorem ghost_step_recv (γ : RaftNames) (cfg : GSet w64) (id : w64)
+times, and that message is `isMessage`. The step is the code's `StepC c` witness, at a
+configuration the ghost state's (`CfgStatic`, 2026-10-14). -/
+theorem ghost_step_recv (γ : RaftNames) (c : CfgM) (id : w64)
     (ps ps' : PState) (a : Msg) (recv : List Msg)
-    (Hcfg : γ.reCfg = cfg) (Hrecv : ∀ m' ∈ recv, m' = a) (Hstep : Step cfg id ps recv ps')
+    (HC : CfgStatic γ c) (Hrecv : ∀ m' ∈ recv, m' = a) (Hstep : StepC c id ps recv ps')
     (Hna : a.ty ≠ .readIndex) :
     ⊢ isMessage (GF := GF) γ a -∗ ownRaftGhost γ id ps ={⊤}=∗ ownRaftGhost γ id ps' := by
-  subst Hcfg
   iintro #Hm Hg
   have Hcnt : rdCount recv = 0 := by
     unfold rdCount; rw [List.countP_eq_zero]
@@ -237,58 +240,65 @@ theorem ghost_step_recv (γ : RaftNames) (cfg : GSet w64) (id : w64)
         rw [Hrecv x (List.mem_of_getElem? hx)]
         exact intuitionistically_elim))
     iexact Hm
-  -- the code's `Step` witness, at the ghost state's configuration (`StepC`, 2026-10-14)
-  ihave %Hst := ownRaftGhost_static γ id ps $$ Hg
-  iapply ownRaftGhost_stepC γ _ (CfgStatic.simple γ ∅ Hst) id ps recv ps'
-    ((CfgStatic.stepC_iff γ ∅ id ps recv ps').1 Hstep) $$ Hall [Hz] Hg
+  iapply ownRaftGhost_stepC γ c HC id ps recv ps' Hstep $$ Hall [Hz] Hg
   rw [Hcnt]; iexact Hz
 
+/-- The ghost update of a step that receives nothing. -/
+theorem ghost_step_nil (γ : RaftNames) (c : CfgM) (id : w64) (ps ps' : PState)
+    (HC : CfgStatic γ c) (Hstep : StepC c id ps [] ps') :
+    ⊢ ownRaftGhost (GF := GF) γ id ps ={⊤}=∗ ownRaftGhost γ id ps' := by
+  iintro Hown
+  imod rdCred_zero (GF := GF) γ with Hcr
+  iapply ownRaftGhost_stepC γ c HC id ps [] ps' Hstep $$ [] [Hcr] Hown
+  · iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
+    iempintro
+  · rw [show rdCount ([] : List Msg) = 0 from rfl]; iexact Hcr
+
 /-- A branch's postcondition, delivered: the ghost step, then `Φ`. -/
-theorem finish_branch (γ : RaftNames) (cfg : GSet w64) (r : Loc) (id : w64)
+theorem finish_branch (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64)
     (s s' : NState) (m : raftpb.Message) (a : Msg) (recv : List Msg) (err : GoInterface)
     (Φ : val → IProp GF)
-    (Hcfg : γ.reCfg = cfg) (Hwf' : NStateWf s') (Hrecv : ∀ m' ∈ recv, m' = a)
-    (Hstep : Step cfg id (toPState s) recv (toPState s'))
+    (HC : CfgStatic γ c) (Hwf' : NStateWf s') (Hrecv : ∀ m' ∈ recv, m' = a)
+    (Hstep : StepC c id (toPState s) recv (toPState s'))
     (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s')
     (Hresp : RespStep m s s') (Hna : a.ty ≠ .readIndex := by simp [absMsg, absMsgFrom]) :
     ⊢ isMessage γ a -∗
       ownRaftGhost γ id (toPState s) -∗
-      ownRaftPhys cfg r id s' -∗
+      ownRaftPhysCV c c.voters r id s' -∗
       (⌜err = interface.nil⌝ ∨
         (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err)) -∗
-      stepPost γ cfg r id s m Φ -∗
+      stepPost γ c r id s m Φ -∗
       |={⊤}=> Φ #err := by
   iintro #Hm Hghost Hphys Herr HΦ
-  imod ghost_step_recv γ cfg id _ _ a recv Hcfg Hrecv Hstep Hna $$ Hm Hghost with Hghost
+  imod ghost_step_recv γ c id _ _ a recv HC Hrecv Hstep Hna $$ Hm Hghost with Hghost
   imodintro
   unfold stepPost
-  iapply HΦ $$ %err %s' %(toPState s')
+  iapply HΦ $$ %err %s' %(toPState s') %c
   iframe Hphys Hghost Herr
   ipureintro
-  exact ⟨⟨rfl, Hwf'⟩, ⟨recv, Hstep⟩, Hfr, Htm, Hresp⟩
+  exact ⟨⟨rfl, Hwf'⟩, ⟨recv, Hstep⟩, ⟨HC, fun _ => rfl⟩, Hfr, Htm, Hresp⟩
 
 /-- The same, for a branch that consumed nothing. -/
-theorem finish_branch0 (γ : RaftNames) (cfg : GSet w64) (r : Loc) (id : w64)
+theorem finish_branch0 (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64)
     (s s' : NState) (m : raftpb.Message) (err : GoInterface) (Φ : val → IProp GF)
-    (Hcfg : γ.reCfg = cfg) (Hwf' : NStateWf s')
-    (Hstep : Step cfg id (toPState s) [] (toPState s'))
+    (HC : CfgStatic γ c) (Hwf' : NStateWf s')
+    (Hstep : StepC c id (toPState s) [] (toPState s'))
     (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s')
     (Hresp : RespStep m s s') :
     ⊢ ownRaftGhost γ id (toPState s) -∗
-      ownRaftPhys cfg r id s' -∗
+      ownRaftPhysCV c c.voters r id s' -∗
       (⌜err = interface.nil⌝ ∨
         (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err)) -∗
-      stepPost γ cfg r id s m Φ -∗
+      stepPost γ c r id s m Φ -∗
       |={⊤}=> Φ #err := by
   iintro Hghost Hphys Herr HΦ
-  have Hst' : Step γ.reCfg id (toPState s) [] (toPState s') := by rw [Hcfg]; exact Hstep
-  imod ownRaftGhost_step_0 γ id _ _ Hst' $$ Hghost with Hghost
+  imod ghost_step_nil γ c id _ _ HC Hstep $$ Hghost with Hghost
   imodintro
   unfold stepPost
-  iapply HΦ $$ %err %s' %(toPState s')
+  iapply HΦ $$ %err %s' %(toPState s') %c
   iframe Hphys Hghost Herr
   ipureintro
-  exact ⟨⟨rfl, Hwf'⟩, ⟨[], Hstep⟩, Hfr, Htm, Hresp⟩
+  exact ⟨⟨rfl, Hwf'⟩, ⟨[], Hstep⟩, ⟨HC, fun _ => rfl⟩, Hfr, Htm, Hresp⟩
 
 end StepProof
 
