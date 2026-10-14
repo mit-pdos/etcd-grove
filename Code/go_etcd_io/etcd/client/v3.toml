@@ -121,8 +121,26 @@ translate = [
   # `RequestProgressAll` compare against
   "AutoWatchID",
   "InvalidWatchID",
+  # unit C1 (the client meets the server): the KV client's Put and Get over gRPC (`kv.go`:
+  # `NewKV`, `kv.Put`, `kv.Get`, `kv.Do`, with the range request `Op.toRangeRequest` and the
+  # sort check `Op.IsSortOptionValid`; `client.go`'s `ContextError`; `retry.go`'s
+  # `RetryKVClient`, `retryKVClient.Put`/`Range`; `retry_interceptor.go`'s
+  # `withRepeatablePolicy`); `ContextError` calls `errors.As`: hence the import of `errors`
+  "NewKV",
+  "kv.Put",
+  "kv.Get",
+  "kv.Do",
+  "Op.toRangeRequest",
+  "Op.IsSortOptionValid",
+  "ContextError",
+  "RetryKVClient",
+  "retryKVClient.Put",
+  "retryKVClient.Range",
+  "withRepeatablePolicy",
+  "repeatable",
+  "nonRepeatable",
 ]
-imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt"]
+imports = ["!*", "context", "sync", "time", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "google.golang.org/grpc/codes", "google.golang.org/grpc/status", "google.golang.org/grpc", "google.golang.org/grpc/credentials", "go.etcd.io/etcd/client/v3/internal/resolver", "go.etcd.io/etcd/client/v3/credentials", "go.uber.org/zap", "sync/atomic", "google.golang.org/protobuf/proto", "fmt", "errors"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

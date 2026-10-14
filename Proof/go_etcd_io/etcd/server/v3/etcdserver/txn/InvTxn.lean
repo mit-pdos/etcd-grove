@@ -26,7 +26,7 @@ response field `nil` and owned (`executeTxn` stores the response there); a neste
 `TxnResponse` complete but for its operations' responses, its `Succeeded` the verdict at the read
 state `s0` (the path).
 
-**Leases** (`leasesOk γl ls`, `leasesKnown γl s`): every lease of `ls` (of the key-values of `s`)
+**Leases** (`leasesOk L ls`, `leasesKnown L s`): every lease of `ls` (of the key-values of `s`)
 is none or one the lessor granted (`leaseOk`); `checkTxn` establishes it for the leases the path's
 puts name (`opsLeases`), and `executeTxn` keeps it for the state (an `IgnoreLease` put writes the
 previous key-value's lease).
@@ -252,18 +252,18 @@ def txnSkel (s0 : List EtcdKv) (resp : Loc) (ok : Bool) (ops : List TxnOp) : IPr
 /-! ## Leases -/
 
 /-- Every lease of `ls` is none or one the lessor granted. -/
-def leasesOk (γl : GName) (ls : List w64) : IProp GF :=
-  iprop(□ ∀ l : w64, ⌜l ∈ ls⌝ -∗ leaseOk γl l)
+def leasesOk (L : List w64) (ls : List w64) : IProp GF :=
+  iprop(□ ∀ l : w64, ⌜l ∈ ls⌝ -∗ leaseOk L l)
 
-instance leasesOk_persistent (γl : GName) (ls : List w64) :
-    Persistent (leasesOk (GF := GF) γl ls) := by
+instance leasesOk_persistent (L : List w64) (ls : List w64) :
+    Persistent (leasesOk (GF := GF) L ls) := by
   unfold leasesOk; infer_instance
 
 /-- **Every lease of the state `s` is known** (none, or granted). -/
-def leasesKnown (γl : GName) (s : List EtcdKv) : IProp GF := leasesOk γl (s.map EtcdKv.lease)
+def leasesKnown (L : List w64) (s : List EtcdKv) : IProp GF := leasesOk L (s.map EtcdKv.lease)
 
-instance leasesKnown_persistent (γl : GName) (s : List EtcdKv) :
-    Persistent (leasesKnown (GF := GF) γl s) := by
+instance leasesKnown_persistent (L : List w64) (s : List EtcdKv) :
+    Persistent (leasesKnown (GF := GF) L s) := by
   unfold leasesKnown; infer_instance
 
 /-! ## `checkTxn`'s errors -/
@@ -352,8 +352,8 @@ theorem kindOk_read (log : mvcc.Log) (rev : w64)
   have hz := lastRev_sint log.length hpos (by have := hok.len; omega)
   refine ⟨hok, ?_, ?_⟩ <;> simp only [mvcc.TxnKind.readRev, mvcc.TxnKind.readLog] <;> rw [hrev, hz] <;> omega
 
-theorem leasesOk_append (γl : GName) (a b : List w64) :
-    leasesOk (GF := GF) γl (a ++ b) ⊣⊢ leasesOk γl a ∗ leasesOk γl b := by
+theorem leasesOk_append (L : List w64) (a b : List w64) :
+    leasesOk (GF := GF) L (a ++ b) ⊣⊢ leasesOk L a ∗ leasesOk L b := by
   unfold leasesOk
   constructor
   · iintro #H
@@ -367,13 +367,13 @@ theorem leasesOk_append (γl : GName) (a b : List w64) :
     · iapply Ha $$ %l; ipureintro; exact h
     · iapply Hb $$ %l; ipureintro; exact h
 
-theorem leasesOk_nil (γl : GName) : ⊢ leasesOk (GF := GF) γl [] := by
+theorem leasesOk_nil (L : List w64) : ⊢ leasesOk (GF := GF) L [] := by
   unfold leasesOk
   imodintro
   iintro %l %hl
   simp at hl
 
-theorem leasesOk_one (γl : GName) (l : w64) : leaseOk (GF := GF) γl l ⊢ leasesOk γl [l] := by
+theorem leasesOk_one (L : List w64) (l : w64) : leaseOk (GF := GF) L l ⊢ leasesOk L [l] := by
   unfold leasesOk
   iintro #H
   imodintro
@@ -383,16 +383,16 @@ theorem leasesOk_one (γl : GName) (l : w64) : leaseOk (GF := GF) γl l ⊢ leas
   iexact H
 
 /-- A lease of the list. -/
-theorem leasesOk_mem (γl : GName) (ls : List w64) (l : w64) (h : l ∈ ls) :
-    leasesOk (GF := GF) γl ls ⊢ leaseOk γl l := by
+theorem leasesOk_mem (L : List w64) (ls : List w64) (l : w64) (h : l ∈ ls) :
+    leasesOk (GF := GF) L ls ⊢ leaseOk L l := by
   unfold leasesOk
   iintro #H
   iapply H $$ %l
   ipureintro; exact h
 
 /-- Fewer leases. -/
-theorem leasesOk_sub (γl : GName) (ls ls' : List w64) (h : ∀ l ∈ ls', l ∈ ls) :
-    leasesOk (GF := GF) γl ls ⊢ leasesOk γl ls' := by
+theorem leasesOk_sub (L : List w64) (ls ls' : List w64) (h : ∀ l ∈ ls', l ∈ ls) :
+    leasesOk (GF := GF) L ls ⊢ leasesOk L ls' := by
   unfold leasesOk
   iintro #H
   imodintro
@@ -402,26 +402,26 @@ theorem leasesOk_sub (γl : GName) (ls ls' : List w64) (h : ∀ l ∈ ls', l ∈
 
 /-- **The lease a put writes is known**: one its request names (checked), or the previous
 key-value's (known with the state). -/
-theorem leaseOk_put (γl : GName) (s0 s : List EtcdKv) (o : OpFull) :
-    leasesOk (GF := GF) γl (opLeases s0 (putTxnOp o)) ∗ leasesKnown γl s ⊢
-      leaseOk γl (putLeaseOf o (mvcc.findKey o.key s)) := by
+theorem leaseOk_put (L : List w64) (s0 s : List EtcdKv) (o : OpFull) :
+    leasesOk (GF := GF) L (opLeases s0 (putTxnOp o)) ∗ leasesKnown L s ⊢
+      leaseOk L (putLeaseOf o (mvcc.findKey o.key s)) := by
   iintro ⟨#Hl, #Hk⟩
   rcases putLeaseOf_mem s0 o s with h | ⟨-, h⟩
-  · iapply leasesOk_mem γl _ _ h $$ Hl
+  · iapply leasesOk_mem L _ _ h $$ Hl
   · rw [h]
     cases hf : mvcc.findKey o.key s with
     | none =>
       simp only [Option.map_none, Option.getD_none]
-      unfold leaseOk; ileft; ipureintro; rfl
+      unfold leaseOk; ipureintro; left; rfl
     | some v =>
       simp only [Option.map_some, Option.getD_some]
       iunfold leasesKnown at Hk
-      iapply leasesOk_mem γl _ _ ?_ $$ Hk
+      iapply leasesOk_mem L _ _ ?_ $$ Hk
       exact List.mem_map_of_mem (List.mem_of_find?_eq_some hf)
 
 /-- A put keeps the state's leases known. -/
-theorem leasesKnown_put (γl : GName) (r : w64) (s : List EtcdKv) (k v : GoString) (l : w64) :
-    leasesKnown (GF := GF) γl s ∗ leaseOk γl l ⊢ leasesKnown γl (putKv r k v l s) := by
+theorem leasesKnown_put (L : List w64) (r : w64) (s : List EtcdKv) (k v : GoString) (l : w64) :
+    leasesKnown (GF := GF) L s ∗ leaseOk L l ⊢ leasesKnown L (putKv r k v l s) := by
   unfold leasesKnown leasesOk
   iintro ⟨#Hk, #Hl⟩
   imodintro
@@ -433,8 +433,8 @@ theorem leasesKnown_put (γl : GName) (r : w64) (s : List EtcdKv) (k v : GoStrin
   · simp only [newKv]; iexact Hl
 
 /-- Fewer key-values keep the leases known. -/
-theorem leasesKnown_sub (γl : GName) (s s' : List EtcdKv) (h : ∀ v ∈ s', v ∈ s) :
-    leasesKnown (GF := GF) γl s ⊢ leasesKnown γl s' := by
+theorem leasesKnown_sub (L : List w64) (s s' : List EtcdKv) (h : ∀ v ∈ s', v ∈ s) :
+    leasesKnown (GF := GF) L s ⊢ leasesKnown L s' := by
   unfold leasesKnown
   apply leasesOk_sub
   intro l hl

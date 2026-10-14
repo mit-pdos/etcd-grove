@@ -199,9 +199,9 @@ theorem txn.executeTxn.wp_proof
     (hPut : txn.put.spec (GF := GF) (hG := hG))
     (hDel : txn.deleteRange.spec (GF := GF) (hG := hG)) :
     txn.executeTxn.spec (GF := GF) (hG := hG) := by
-  intro ctx cd nd lg s γ tw ro ilog pend rt t pl rest tresp skip
+  intro ctx cd nd lg s γ tw ro ilog pend rt t pl rest tresp skip L
   iloeb as IH generalizing %pend %rt %t %pl %rest %tresp
-  wp_start as ⟨Htw, #Hctx, #Hnd, #Hrt, #Hpl, Hskel, #Hleases, #Hknown, %Hpre⟩
+  wp_start as ⟨Htw, #Hctx, #Hnd, #Hrt, #Hpl, Hskel, #Hleases, #Hknown, Hown, %Hpre⟩
   ihave %Htwok := txn.txnWriteIs_ok tw s γ ro ilog pend $$ Htw
   obtain ⟨twi, rfl⟩ := Htwok
   iunfold txn.txnRequestIs at Hrt
@@ -261,9 +261,10 @@ theorem txn.executeTxn.wp_proof
       "Hskel" ∷ opsSkel s0 (rps.drop (sint.nat n)) (ops.drop (sint.nat n)) ∗
       "#Hdone" ∷ responseOpsIs skip (rps.take (sint.nat n)) (ops.take (sint.nat n))
         (srvOps s0 r st (ops.take (sint.nat n))).2 ∗
-      "#Hknown" ∷ (if ro then iprop(True) else leasesKnown γ.leases
+      "#Hknown" ∷ (if ro then iprop(True) else leasesKnown L
         (mvcc.applyChanges r st (srvOps s0 r st (ops.take (sint.nat n))).1)) ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ ops.length⌝) $$ [i iv req txns txnPath err Htw Hskel]
+      "Hown" ∷ (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L) ∗
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ ops.length⌝) $$ [i iv req txns txnPath err Htw Hskel Hown]
   · iexists W64 0, _, _, pl, ok, GoInterface.nil
     simp only [show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.drop_zero, srvOps_nil,
       List.append_nil]
@@ -610,13 +611,13 @@ theorem txn.executeTxn.wp_proof
       rw [hsrv] at hbnd htake
       wp_apply IH $$ %(pend ++ (srvOps s0 r st (ops.take (sint.nat n))).1) %rq'
           %({ cmps := cs, thenOps := ts, elseOps := es } : TxnModel) %(slice.slice plv Bool (W64 1) plv.len)
-          %(opsPath s0 (List.drop (sint.nat n + 1) ops) ++ rest) %r0 [Htw Hrsk]
+          %(opsPath s0 (List.drop (sint.nat n + 1) ops) ++ rest) %r0 [Htw Hrsk Hown]
         as %napp %nerr Hres
       · iframe Htw Hrsk Hctx Hnd Hrq' Hsub
         rw [hps]
-        iframe Hknown
+        iframe Hknown Hown
         isplitl []
-        · iapply leasesOk_sub γ.leases _ _ ?_ $$ Hleases
+        · iapply leasesOk_sub L _ _ ?_ $$ Hleases
           intro l hl
           apply opsLeases_mem s0 ops _ hmem
           rw [txn.opLeases_txn_et]; exact hl
@@ -625,7 +626,7 @@ theorem txn.executeTxn.wp_proof
         · simp only [List.length_append, TxnModel.branch, txnOk] at hbnd ⊢; omega
         · intro hro; cases hro
         · intro h; cases h
-      icases Hres with (⟨%Hres, Htw, #Hresps, #Hknown'⟩ | ⟨%Hc, -⟩)
+      icases Hres with (⟨%Hres, Htw, #Hresps, #Hknown', Hown⟩ | ⟨%Hc, -⟩)
       rotate_left
       · cases Hc
       obtain ⟨rfl, rfl⟩ := Hres
@@ -746,14 +747,16 @@ theorem txn.executeTxn.wp_proof
       ihave Htx : mvcc.isTxnWrite mw s γ ilog (pend ++ (srvOps s0 r st (ops.take (sint.nat n))).1)
           puts deletes putSize $$ [Htx]
       · simp only [mvcc.isTxn]; iexact Htx
-      ihave #Hlo : leaseOk γ.leases (putLeaseOf o (mvcc.findKey o.key stn)) $$ []
-      · iapply leaseOk_put γ.leases s0 stn o
+      ihave #Hlo : leaseOk L (putLeaseOf o (mvcc.findKey o.key stn)) $$ []
+      · iapply leaseOk_put L s0 stn o
         iframe Hknown
-        iapply leasesOk_sub γ.leases _ _ (opsLeases_mem s0 ops _ hmem) $$ Hleases
-      wp_apply (hPut ctx cd mw s γ ilog _ puts deletes putSize pr o pv)
-        $$ [$Hctx $Htx $Hpr Hpv] as %presp ⟨⟨%puts', %putSize', Htx⟩, #Hpresp, -⟩
+        iapply leasesOk_sub L _ _ (opsLeases_mem s0 ops _ hmem) $$ Hleases
+      icases Hown with (%Hro | Hown)
+      · cases Hro
+      wp_apply (hPut ctx cd mw s γ ilog _ puts deletes putSize pr o pv L)
+        $$ [$Hctx $Htx $Hpr Hpv Hown] as %presp ⟨⟨%puts', %putSize', Htx⟩, #Hpresp, -, Hown⟩
       · rw [hps]
-        iframe Hpv Hlo
+        iframe Hpv Hlo Hown
         ipureintro
         refine ⟨txn.opOk_put_et s0 r stn o hokn.1, ?_⟩
         simp only [List.length_append]; omega
@@ -793,6 +796,8 @@ theorem txn.executeTxn.wp_proof
               stn from rfl]
         iapply leasesKnown_put $$ [Hknown Hlo]
         iframe Hknown Hlo
+      isplitl [Hown]
+      · iright; iexact Hown
       ipureintro; exact ⟨by word, by omega⟩
   · -- the end of the loop: every operation done
     have hge : ¬ sint.Z n < sint.Z bsl.len := by simpa using Hif
@@ -811,7 +816,7 @@ theorem txn.executeTxn.wp_proof
       iexists rsl, rps
       iframe Hrsp Hrsl Hdone
     rw [pendState_append, hr, hst]
-    iexact Hknown
+    iframe Hknown Hown
 
 end proof
 

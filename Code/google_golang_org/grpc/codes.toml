@@ -1,8 +1,10 @@
 # Types and names only, with the constants `OK` and `FailedPrecondition`
 # (`clientv3.WatchResponse.Err` passes `FailedPrecondition`, `status.Error`'s spec rules out `OK`;
 # `client/v3/leasing` passes `Unimplemented` and compares with `Unavailable`; the server's
-# `v3rpc.togRPCError` passes `Unknown`).
-translate = ["!*", "OK", "Unknown", "FailedPrecondition", "Unavailable", "Unimplemented"]
+# `v3rpc.togRPCError` passes `Unknown`; unit C1: `clientv3.ContextError` compares with
+# `DeadlineExceeded` and `Canceled`).
+translate = ["!*", "OK", "Unknown", "FailedPrecondition", "Unavailable", "Unimplemented",
+  "DeadlineExceeded", "Canceled"]
 imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports

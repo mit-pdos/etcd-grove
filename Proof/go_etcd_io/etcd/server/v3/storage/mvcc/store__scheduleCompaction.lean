@@ -345,7 +345,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     · iunfold mvcc.compactedAt
       iapply monoNatLbOwn_le _ (Nat.le_max_right _ _) $$ Hflb
     wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
-    iapply HUnl0 $$ [Hlocked HtoksW HwW HclogW HcurW HbvW Hmeta Hfin HP]
+    iapply HUnl0 $$ [Hlocked HtoksW HwW HclogW HcurW HbvW Hmeta Hfin HP HlrdW]
     · iframe Hlocked HP
       iunfold mvcc.writerRes
       iexists ilog, ntok
@@ -426,7 +426,7 @@ theorem mvcc.store.scheduleCompaction.wp_proof
     ipureintro; rfl
   -- a full batch: committed, then the next one after the sleep, unless the store stops
   wp_bind (App (Val #(methods bt.ty _ bt.v)) (Val #()))
-  iapply HUnl0 $$ [Hlocked HtoksW HwW HclogW HcurW HbvW HcresW HP]
+  iapply HUnl0 $$ [Hlocked HtoksW HwW HclogW HcurW HbvW HcresW HP HlrdW]
   · iframe Hlocked HP
     iunfold mvcc.writerRes
     iexists ilog, ntok

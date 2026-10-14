@@ -44,15 +44,16 @@ token (`mvcc.storeWT γ`, whether or not it writes; 2026-10-13, unit 6). -/
 abbrev txn.Txn.specSole : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg rt : Loc) (shared : Bool)
     (kv le : GoInterface) (skip : Bool) (s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log)
-    (t : TxnModel) (P Pre Q Post : IProp GF) (f : val),
+    (t : TxnModel) (P Pre Q Post : IProp GF) (f : val) (L : List w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ txn.soleWriter γ log ∗
       mvcc.storeWT γ ∗ txn.isTxnLessor le γ.leases ∗ txn.txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗
-      mvcc.neverDone cd ∗ txn.leasesKnown γ.leases (mvcc.stateAfter log) ∗ ⌜txn.TxnPre log t⌝ ∗
+      mvcc.neverDone cd ∗ txn.leasesKnown L (mvcc.stateAfter log) ∗ lease.lessorUser γ.leases L ∗
+      ⌜txn.TxnPre log t⌝ ∗
       mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
     (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      mvcc.storeReader s γ ∗
+      mvcc.storeReader s γ ∗ lease.lessorUser γ.leases L ∗
       ((⌜resp = null ∧ trace = null ∧ err ≠ GoInterface.nil⌝ ∗ txn.checkErrIs err ∗
           txn.soleWriter γ log ∗ Pre) ∨
        (⌜err = GoInterface.nil ∧ trace ≠ null ∧
@@ -66,7 +67,7 @@ abbrev txn.Txn.specSole : Prop :=
         txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp) ∗
         txn.soleWriter γ (mvcc.commitLog log
           (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) ∗
-        txn.leasesKnown γ.leases (mvcc.stateAfter (mvcc.commitLog log
+        txn.leasesKnown L (mvcc.stateAfter (mvcc.commitLog log
           (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1)) ∗
         (if txn.txnReadonly t then Pre else Post))) }}
 

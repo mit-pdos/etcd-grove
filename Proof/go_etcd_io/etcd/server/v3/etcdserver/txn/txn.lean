@@ -44,13 +44,13 @@ theorem txn.txn.wp_proof
     (hZErr : zap.Error.spec (GF := GF) (hG := hG))
     (hLgErr : zap.Logger.Error.spec (GF := GF) (hG := hG)) :
     txn.txn.spec (GF := GF) (hG := hG) := by
-  intro ctx cd nd lg s γ tw ro ilog rt t pl skip
-  wp_start as ⟨Htw, #Hctx, #Hnd, #Hrt, #Hpl, #Hleases, #Hknown, %Hpre⟩
+  intro ctx cd nd lg s γ tw ro ilog rt t pl skip L
+  wp_start as ⟨Htw, #Hctx, #Hnd, #Hrt, #Hpl, #Hleases, #Hknown, Hown, %Hpre⟩
   ihave %Htwok := txn.txnWriteIs_ok tw s γ ro ilog [] $$ Htw
   obtain ⟨twi, rfl⟩ := Htwok
   ihave #Hpl' : pl ↦*□ (txnPath (mvcc.stateAfter ilog) t ++ []) $$ []
   · rw [List.append_nil]; iexact Hpl
-  ihave #Hknown0 : (if ro then iprop(True) else leasesKnown γ.leases (pendState ilog [])) $$ []
+  ihave #Hknown0 : (if ro then iprop(True) else leasesKnown L (pendState ilog [])) $$ []
   · rw [pendState_nil]; iexact Hknown
   wp_auto
   wp_apply (hNew rt t (mvcc.stateAfter ilog) pl []) $$ [$Hrt $Hpl'] as %resp %n ⟨Hskel, Hhdr, %Hn⟩
@@ -61,14 +61,14 @@ theorem txn.txn.wp_proof
   · iunfold respsSkel at Hresps
     icases Hresps with ⟨%sl, %ps, #Hsl, -⟩
     iexists sl; iexact Hsl
-  wp_apply (hExec ctx cd nd lg s γ (GoInterface.ok twi) ro ilog [] rt t pl [] resp skip)
-    $$ [$Htw $Hctx $Hnd $Hrt $Hpl' $Hresps $Hleases $Hknown0] as %n2 %err Hres
+  wp_apply (hExec ctx cd nd lg s γ (GoInterface.ok twi) ro ilog [] rt t pl [] resp skip L)
+    $$ [$Htw $Hctx $Hnd $Hrt $Hpl' $Hresps $Hleases $Hknown0 $Hown] as %n2 %err Hres
   · ipureintro
     refine ⟨Hpre.1, ?_, ?_, fun h => (Hpre.2.2.2 h).1⟩
     · simp only [List.length_nil, Nat.zero_add, pendState_nil]; exact Hpre.2.1
     · intro hro op hop
       exact readonly_branch t (Hpre.2.2.1 hro) _ op hop
-  icases Hres with (⟨%Herr, Htw, #Hrs, #Hknown'⟩ | ⟨%Hndf, #He, %pend', Htw⟩)
+  icases Hres with (⟨%Herr, Htw, #Hrs, #Hknown', Hown⟩ | ⟨%Hndf, #He, %pend', Htw⟩)
   rotate_left
   · -- the context done during a range: logged, the response returned with the error
     obtain ⟨hro, hlg⟩ := Hpre.2.2.2 Hndf
@@ -155,7 +155,7 @@ theorem txn.txn.wp_proof
     iexact Hrs
   rw [show pendState ilog chl = mvcc.applyChanges (W64 ↑(List.length ilog)) (mvcc.stateAfter ilog) chl
     from rfl]
-  iexact Hknown'
+  iframe Hknown' Hown
 
 end proof
 

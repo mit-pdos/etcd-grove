@@ -33,7 +33,7 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
   wp_start as ⟨#Hb, ⟨%cms, #Hr, %Hlen1⟩, Hpre⟩
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
-  icases Hpre with ⟨⟨Hrd, Hsw, #Hknown⟩, Hres, Hcs⟩
+  icases Hpre with ⟨⟨Hrd, Hsw, Hknown⟩, Hres, Hcs⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
@@ -116,7 +116,6 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
       iunfold apply.mPost
       iunfold apply.kvOwn
       iframe
-      iframe #
   · -- the loop is done
     ihave HPP : iprop(Post ∨ Pre) $$ [Hst]
     · icases Hst with (⟨-, Hcs⟩ | ⟨-, HPP⟩)
@@ -132,7 +131,6 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
     iunfold apply.mPost
     iunfold apply.kvOwn
     iframe
-    iframe #
 
 end proof
 

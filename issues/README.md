@@ -112,6 +112,12 @@ of a transaction, not the transaction (the flag's text says a transaction; repro
 nested transaction's puts against the level's deletes collected so far, not its siblings', so the
 overlap it rejects depends on the order of the ops (reproduced; found 2026-10-12, the request
 path's unit 0; not filed).
+[etcd-client-retry-put-ctx-error](etcd-client-retry-put-ctx-error.md): the client's retry
+interceptor retries any unary call, a `Put`'s included, after an attempt fails with a gRPC
+`Canceled` or `DeadlineExceeded` while the caller's context is live (a branch for a per-attempt
+context etcd no longer has), bypassing `isSafeRetryMutableRPC`'s write-at-most-once: a write the
+first attempt applied is applied again (reproduced with a mock server; found 2026-10-14, unit C1,
+the client meets the server; not filed).
 
 [go-itab-reinterpret-assert](go-itab-reinterpret-assert.md): in Go itself, a type assertion
 on an `I1` value read through a `*I2` (two named interfaces with the same methods) panics with

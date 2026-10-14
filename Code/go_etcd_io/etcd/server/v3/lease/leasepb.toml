@@ -1,0 +1,9 @@
+# Types and names only: function and method bodies are axiomatized. The lease's protobuf
+# message (`Lease`), which the lessor's `persistTo` and `Revoke` build for the schema's lease
+# writes, is listed explicitly: translate_types never translates a struct with a field of another
+# package's alias type, as every protobuf message has (`state protoimpl.MessageState`, ...).
+translate = ["!*", "Lease"]
+imports = ["!*", "google.golang.org/protobuf/runtime/protoimpl"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

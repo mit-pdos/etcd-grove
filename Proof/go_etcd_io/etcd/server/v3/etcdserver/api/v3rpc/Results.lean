@@ -44,7 +44,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ClientModel
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Wire
 
 @[expose] public section
 
@@ -366,15 +365,14 @@ theorem deleteRange_end_to_end_model (op op' : OpFull) (hm : apply.HeaderModel)
 
 end endToEnd
 
-/-! ## The vertical slice, unit V1 (2026-10-13): the clients' model implemented; the wire
+/-! ## The vertical slice, unit V1 (2026-10-13): the clients' model implemented
 
 `ClientModel.lean`: the clients' class `EtcdModel` (`cache/v3/EtcdModel.lean`, fourteen axioms
 until V1) instantiated by the server (`etcdModelOfServer`), each law a theorem; what the
 server's answers give the model (`etcdState_of_range`, `etcdState_of_txnRead`,
-`etcdReached_of_cert`, `revToken_of_put`). `Wire.lean`: the generated gRPC KV stub's contract
-(four axioms, `kVClient.wp_Range`, ..., in `Link.lean`), each the server's end-to-end theorem
-transported to the client, and `isKVClient`, proved of the stub from the connection
-(`kvclient_of_conn`). -/
+`etcdReached_of_cert`, `revToken_of_put`). (V1's wire, the generated stub's four axioms and
+`isKVClient`, was superseded at the merge of unit C1 by the client's own proof down to grpc's
+`ClientConn.Invoke`: `client/v3/InvKVConn.lean`, `client/v3/Results.lean`.) -/
 
 section slice
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -480,37 +478,6 @@ theorem revToken_of_put (E : apply.AEnv GF) (o : OpFull) (resp : Loc) (r : w64) 
     iexact Ht
   iapply etcdReached_of_cert E x'.log _ (by rw [hcs] at Hlen ⊢; simp at Hlen ⊢; word) $$ Hcert
 
-/-- **The generated stub is a `pb.KVClient` talking to the server** (`isKVClient`): `&kVClient{cc}`
-with `cc` connected to the server's KV service (`connectedTo`), from the stub's four axioms. -/
-theorem kvclient_of_conn (c : Loc) (cc : GoInterface) (p s : Loc) (E : apply.AEnv GF)
-    (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64) :
-    structFieldRef etcdserverpb.kVClient go!"cc" c ↦□ cc ∗ connectedTo cc p s E ρ γr cid mid n ⊢
-      isKVClient ⟨go.GoType.PointerType etcdserverpb.kVClient.ty, #c⟩ E ρ γr cid mid n := by
-  iintro ⟨#Hcc, #Hconn⟩
-  unfold isKVClient
-  isplitl
-  · imodintro
-    iintro %ctx %cd %inp %o %opts !> %Φ ⟨Hpkg, Hctx, Hr⟩ HΦ
-    iapply (kVClient.wp_Range c cc p s E ρ γr cid mid n ctx cd inp o opts) $$ [Hpkg Hctx Hr] HΦ
-    iframe Hpkg Hctx Hr Hcc Hconn
-  isplitl
-  · imodintro
-    iintro %ctx %cd %inp %o %opts !> %Φ ⟨Hpkg, Hctx, Hr⟩ HΦ
-    iapply (kVClient.wp_Put c cc p s E ρ γr cid mid n ctx cd inp o opts) $$ [Hpkg Hctx Hr] HΦ
-    iframe Hpkg Hctx Hr Hcc Hconn
-  isplitl
-  · imodintro
-    iintro %ctx %cd %inp %o %opts !> %Φ ⟨Hpkg, Hctx, Hr⟩ HΦ
-    iapply (kVClient.wp_DeleteRange c cc p s E ρ γr cid mid n ctx cd inp o opts) $$
-      [Hpkg Hctx Hr] HΦ
-    iframe Hpkg Hctx Hr Hcc Hconn
-  · imodintro
-    iintro %ctx %cd %inp %cs %ts %es %opts !> %Φ ⟨Hpkg, Hctx, Hr, Hw, %Hm⟩ HΦ
-    iapply (kVClient.wp_Txn c cc p s E ρ γr cid mid n ctx cd inp cs ts es opts) $$
-      [Hpkg Hctx Hr Hw] HΦ
-    iframe Hpkg Hctx Hr Hw Hcc Hconn
-    ipureintro; exact Hm
-
 end slice
 
 end v3rpc
@@ -542,7 +509,6 @@ end v3rpc
 #print axioms Perennial.EtcdGrove.v3rpc.etcdState_of_txnRead
 #print axioms Perennial.EtcdGrove.v3rpc.etcdReached_of_hdr
 #print axioms Perennial.EtcdGrove.v3rpc.revToken_of_put
-#print axioms Perennial.EtcdGrove.v3rpc.kvclient_of_conn
 
 end EtcdGrove
 end Perennial

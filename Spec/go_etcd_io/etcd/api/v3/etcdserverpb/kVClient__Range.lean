@@ -1,11 +1,10 @@
 /-
-`(*kVClient).Range` (`api/etcdserverpb/rpc_grpc.pb.go`, the generated gRPC stub; names-only): the
-trust boundary of the wire (the vertical slice's unit V1). Lean-first (no Rocq counterpart); see
-`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Wire.lean`.
+`(*etcdserverpb.kVClient).Range(ctx, in, opts...)` (`api/etcdserverpb/rpc_grpc.pb.go`, the generated
+KV stub; translated for unit C1, the client meets the server). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Wire
+public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 
 @[expose] public section
 
@@ -14,33 +13,29 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.etcdserver
+open Iris Iris.BI go_etcd_io.etcd.api.v3
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- **`c.Range(ctx, in, opts...)`** on the stub `c` (`&kVClient{cc}`, `NewKVClient(cc)`), whose
-connection `cc` leads to the KV service `p` of the server `s` (`connectedTo`): the server's
-end-to-end theorem for `Range` transported to the client (`range_end_to_end`: the txn package's range at a certified log of at least two revisions, after the read index (committed index `0`: what a fresh handler knew) unless serializable (`rangeAnsOk`), the header filled; or a non-nil error (the check's, or the server's through `togRPCError`)). The response is the client's fresh
-copy (the same formulas of its fields), every server-side resource removed; any call options.
-`Wire.lean` has the transport's account and its premises (the server's per-call pool, the
-transport's integrity, protobuf round-trips). -/
+/-- `c.Range(ctx, in, opts...)` on a stub on a connection to `K` (`kvStubAt`): `Invoke` of
+`"/etcdserverpb.KV/Range"` with `grpc.StaticMethod()` before the options, into a new
+`*RangeResponse`: the call's answer (`rangeCallOut`, the run's `Q`); the request comes back. -/
 abbrev kVClient.Range.spec : Prop :=
-  ∀ (c : Loc) (cc : GoInterface) (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
-    (cid mid n : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (inp : Loc)
-    (o : OpFull) (opts : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-      structFieldRef etcdserverpb.kVClient go!"cc" c ↦□ cc ∗
-      v3rpc.connectedTo cc p s E ρ γr cid mid n ∗ context.isContext ctx cd ∗
-      txn.rangeRequestIs inp o }}
-    (App (App (App (Val (c @!! go.GoType.PointerType etcdserverpb.kVClient.ty @!! go!"Range"))
+  ∀ (kc conn : Loc) (K : KVConn GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (inp : Loc) (req : etcdserverpb.RangeRequest) (k e : GoString) (opts : GoSlice)
+    (vs : List GoInterface) (Q : RangeRespM → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ kvStubAt kc conn ∗
+      isKVConn conn K ∗ context.isContext ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
+      opts ↦*□ vs ∗ callOptsOk vs ∗ rangeRunOk K (rangeReqOp req k e) Q }}
+    (App (App (App (Val (kc @!! go.GoType.PointerType etcdserverpb.kVClient.ty @!! go!"Range"))
       (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      v3rpc.rangeOutC E γr cid mid o resp err }}
+      (∃ req' : etcdserverpb.RangeRequest, inp ↦ req') ∗ rangeCallOut Q resp err }}
 
 end spec
 

@@ -1,0 +1,38 @@
+# The functions linked in `Proof/go_etcd_io/etcd/client/v3/Link.lean` (all Lean-first: no Rocq
+# counterpart), read by `etc/gen-link.py --client`: the client's KV path over gRPC (unit C1, the
+# client meets the server: `notes/decisions.md`, "The client meets the server (unit C1)"):
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
+# `client` (`client.v3.wp_NewKV`), so that they do not clash with the cache's Link, which links
+# some of the same clientv3 functions under the cache's assumptions.
+#
+# What builds the `Op` of a `Put` and of a `Get` (client/v3/op.go), see InvOp.lean.
+NewOp:
+Op__applyOpts:
+IsOptsWithPrefix: NewOp
+IsOptsWithFromKey: NewOp
+OpGet: IsOptsWithPrefix IsOptsWithFromKey Op__applyOpts
+OpPut: Op__applyOpts
+# The trust boundary: grpc's `ClientConn.Invoke` of the KV service's `Put` and `Range` (the
+# transport contract, the retry interceptor included) and `grpc.StaticMethod()` (axioms).
+grpc_ClientConn__Invoke:
+grpc_StaticMethod:
+# The generated KV stub (api/etcdserverpb/rpc_grpc.pb.go).
+NewKVClient:
+kVClient__Put: grpc_StaticMethod grpc_ClientConn__Invoke
+kVClient__Range: grpc_StaticMethod grpc_ClientConn__Invoke
+# The retry client (client/v3/retry.go, retry_interceptor.go's `withRepeatablePolicy`).
+RetryKVClient: NewKVClient
+retryKVClient__Put: kVClient__Put
+withRepeatablePolicy:
+retryKVClient__Range: withRepeatablePolicy kVClient__Range
+# The KV (client/v3/kv.go, client.go's `ContextError`); `rpctypes.Error` and grpc's
+# `status.FromError` are axioms (not translated).
+v3_NewKV: RetryKVClient
+rpctypes_Error:
+status_FromError:
+ContextError: rpctypes_Error status_FromError
+Op__IsSortOptionValid:
+Op__toRangeRequest:
+kv__Do: Op__IsSortOptionValid Op__toRangeRequest retryKVClient__Range retryKVClient__Put ContextError
+kv__Put: OpPut kv__Do ContextError
+kv__Get: OpGet kv__Do ContextError

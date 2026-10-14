@@ -24,8 +24,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 theorem txn.checkLease.wp_proof : txn.checkLease.spec (GF := GF) (hG := hG) := by
-  intro le γl p o
-  wp_start as ⟨#Hle, #Hp⟩
+  intro le γl p o L
+  wp_start as ⟨#Hle, Hu, #Hp⟩
   ihave Hti : (txn.txnInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hti with ⟨⟨%eL, #HeL⟩, -⟩
@@ -40,20 +40,21 @@ theorem txn.checkLease.wp_proof : txn.checkLease.spec (GF := GF) (hG := hG) := b
   wp_if_destruct
   · -- no lease
     iapply HΦ
+    iframe Hu
     ileft
     isplitl []
     · ipureintro; rfl
     iunfold txn.leaseOk
-    ileft
-    ipureintro; rfl
+    ipureintro; left; rfl
   · -- a lease: the lessor's `Lookup`
-    ihave #HL := HLookup $$ %lease
-    wp_apply HL as %l Hl
+    ihave #HL := HLookup $$ %lease %L
+    wp_apply HL $$ [$Hu] as %l ⟨Hu, Hl⟩
     (try wp_auto)
     wp_if_destruct
     · -- not found
       (try wp_auto)
       iapply HΦ
+      iframe Hu
       iright
       isplitl []
       · ipureintro; exact Hif
@@ -61,17 +62,17 @@ theorem txn.checkLease.wp_proof : txn.checkLease.spec (GF := GF) (hG := hG) := b
       iexists eL
       iframe HeL
       ipureintro; rfl
-    · icases Hl with (%Hl | #Hk)
+    · icases Hl with (%Hl | %Hk)
       · exact absurd Hl Hif
       (try wp_auto)
       iapply HΦ
+      iframe Hu
       ileft
       isplitl []
       · ipureintro; rfl
       iunfold txn.leaseOk
-      iright
       simp only [txn.putOpOf]
-      iexact Hk
+      ipureintro; right; exact Hk
 
 end proof
 

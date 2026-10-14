@@ -33,8 +33,8 @@ theorem txn.put.wp_proof
     (hPutM : mvcc.metricsTxnWrite.Put.spec (GF := GF) (hG := hG))
     (hAdd : traceutil.Trace.AddField.spec (GF := GF) (hG := hG)) :
     txn.put.spec (GF := GF) (hG := hG) := by
-  intro ctx cd mw s γ ilog pend puts deletes putSize p o prev
-  wp_start as ⟨#Hctx, Htx, #Hp, Hprev, %Hneed, #Hlok, %Hpl⟩
+  intro ctx cd mw s γ ilog pend puts deletes putSize p o prev L
+  wp_start as ⟨#Hctx, Htx, #Hp, Hprev, %Hneed, #Hlok, Hown, %Hpl⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
@@ -69,9 +69,9 @@ theorem txn.put.wp_proof
       icases Hprev with %Hpn
       wp_auto
       ihave #HVS := Hvs
-      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl vsl k v lease)
-        $$ [$Htx $Hks $HVS $Hlok]
-        as Htx
+      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl vsl k v lease L)
+        $$ [$Htx $Hks $HVS $Hlok $Hown]
+        as ⟨Htx, Hown⟩
       · ipureintro; exact Hpl
       wp_apply wp_slice_literal
       isplitr
@@ -84,6 +84,7 @@ theorem txn.put.wp_proof
       wp_apply (hAdd t _)
       · ipureintro; exact Ht
       iapply HΦ
+      iframe Hown
       isplitl [Htx]
       · iexists _, _; iexact Htx
       isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
@@ -113,9 +114,9 @@ theorem txn.put.wp_proof
       rw [hl, decide_eq_true (rfl : (W64 0 : w64) = W64 0)]
       (try wp_auto)
       ihave #HVS := Hvs
-      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl vsl k v lease)
-        $$ [$Htx $Hks $HVS $Hlok]
-        as Htx
+      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl vsl k v lease L)
+        $$ [$Htx $Hks $HVS $Hlok $Hown]
+        as ⟨Htx, Hown⟩
       · ipureintro; exact Hpl
       wp_apply wp_slice_literal
       isplitr
@@ -128,6 +129,7 @@ theorem txn.put.wp_proof
       wp_apply (hAdd t _)
       · ipureintro; exact Ht
       iapply HΦ
+      iframe Hown
       isplitl [Htx]
       · iexists _, _; iexact Htx
       isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
@@ -150,9 +152,9 @@ theorem txn.put.wp_proof
       icases Hprev with %Hpn
       wp_auto
       ihave #HVS := Hvs
-      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl vsl k v lease)
-        $$ [$Htx $Hks $HVS $Hlok]
-        as Htx
+      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl vsl k v lease L)
+        $$ [$Htx $Hks $HVS $Hlok $Hown]
+        as ⟨Htx, Hown⟩
       · ipureintro; exact Hpl
       wp_apply wp_slice_literal
       isplitr
@@ -165,6 +167,7 @@ theorem txn.put.wp_proof
       wp_apply (hAdd t _)
       · ipureintro; exact Ht
       iapply HΦ
+      iframe Hown
       isplitl [Htx]
       · iexists _, _; iexact Htx
       isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
@@ -210,9 +213,9 @@ theorem txn.put.wp_proof
       · ipureintro; rfl
       (try wp_auto)
       ihave #HVS := Hvs
-      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl vsl k v lease)
-        $$ [$Htx $Hks $HVS $Hlok]
-        as Htx
+      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl vsl k v lease L)
+        $$ [$Htx $Hks $HVS $Hlok $Hown]
+        as ⟨Htx, Hown⟩
       · ipureintro; exact Hpl
       wp_apply wp_slice_literal
       isplitr
@@ -225,6 +228,7 @@ theorem txn.put.wp_proof
       wp_apply (hAdd t _)
       · ipureintro; exact Ht
       iapply HΦ
+      iframe Hown
       isplitl [Htx]
       · iexists _, _; iexact Htx
       isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
@@ -270,9 +274,9 @@ theorem txn.put.wp_proof
       · ipureintro; rfl
       (try wp_auto)
       ihave #HVS := Hvs
-      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl vsl k v kv.lease)
-        $$ [$Htx $Hks $HVS $Hlok]
-        as Htx
+      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl vsl k v kv.lease L)
+        $$ [$Htx $Hks $HVS $Hlok $Hown]
+        as ⟨Htx, Hown⟩
       · ipureintro; exact Hpl
       wp_apply wp_slice_literal
       isplitr
@@ -285,6 +289,7 @@ theorem txn.put.wp_proof
       wp_apply (hAdd t _)
       · ipureintro; exact Ht
       iapply HΦ
+      iframe Hown
       isplitl [Htx]
       · iexists _, _; iexact Htx
       isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
@@ -335,9 +340,9 @@ theorem txn.put.wp_proof
       · ipureintro; rfl
       (try wp_auto)
       ihave #HVS := Hvs
-      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl vsl k v kv.lease)
-        $$ [$Htx $Hks $HVS $Hlok]
-        as Htx
+      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl vsl k v kv.lease L)
+        $$ [$Htx $Hks $HVS $Hlok $Hown]
+        as ⟨Htx, Hown⟩
       · ipureintro; exact Hpl
       wp_apply wp_slice_literal
       isplitr
@@ -350,6 +355,7 @@ theorem txn.put.wp_proof
       wp_apply (hAdd t _)
       · ipureintro; exact Ht
       iapply HΦ
+      iframe Hown
       isplitl [Htx]
       · iexists _, _; iexact Htx
       isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
@@ -395,9 +401,9 @@ theorem txn.put.wp_proof
       · ipureintro; rfl
       (try wp_auto)
       ihave #HVS := HkVs
-      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl valSl k kv.value lease)
-        $$ [$Htx $Hks $HVS $Hlok]
-        as Htx
+      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl valSl k kv.value lease L)
+        $$ [$Htx $Hks $HVS $Hlok $Hown]
+        as ⟨Htx, Hown⟩
       · ipureintro; exact Hpl
       wp_apply wp_slice_literal
       isplitr
@@ -410,6 +416,7 @@ theorem txn.put.wp_proof
       wp_apply (hAdd t _)
       · ipureintro; exact Ht
       iapply HΦ
+      iframe Hown
       isplitl [Htx]
       · iexists _, _; iexact Htx
       isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
@@ -460,9 +467,9 @@ theorem txn.put.wp_proof
       · ipureintro; rfl
       (try wp_auto)
       ihave #HVS := HkVs
-      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl valSl k kv.value lease)
-        $$ [$Htx $Hks $HVS $Hlok]
-        as Htx
+      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl valSl k kv.value lease L)
+        $$ [$Htx $Hks $HVS $Hlok $Hown]
+        as ⟨Htx, Hown⟩
       · ipureintro; exact Hpl
       wp_apply wp_slice_literal
       isplitr
@@ -475,6 +482,7 @@ theorem txn.put.wp_proof
       wp_apply (hAdd t _)
       · ipureintro; exact Ht
       iapply HΦ
+      iframe Hown
       isplitl [Htx]
       · iexists _, _; iexact Htx
       isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
@@ -525,9 +533,9 @@ theorem txn.put.wp_proof
       · ipureintro; rfl
       (try wp_auto)
       ihave #HVS := HkVs
-      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl valSl k kv.value kv.lease)
-        $$ [$Htx $Hks $HVS $Hlok]
-        as Htx
+      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl valSl k kv.value kv.lease L)
+        $$ [$Htx $Hks $HVS $Hlok $Hown]
+        as ⟨Htx, Hown⟩
       · ipureintro; exact Hpl
       wp_apply wp_slice_literal
       isplitr
@@ -540,6 +548,7 @@ theorem txn.put.wp_proof
       wp_apply (hAdd t _)
       · ipureintro; exact Ht
       iapply HΦ
+      iframe Hown
       isplitl [Htx]
       · iexists _, _; iexact Htx
       isplitr [HClusterId HMemberId HRaftTerm HLeaderId]
@@ -595,9 +604,9 @@ theorem txn.put.wp_proof
       · ipureintro; rfl
       (try wp_auto)
       ihave #HVS := HkVs
-      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl valSl k kv.value kv.lease)
-        $$ [$Htx $Hks $HVS $Hlok]
-        as Htx
+      wp_apply (hPutM mw s γ ilog pend puts deletes putSize ksl valSl k kv.value kv.lease L)
+        $$ [$Htx $Hks $HVS $Hlok $Hown]
+        as ⟨Htx, Hown⟩
       · ipureintro; exact Hpl
       wp_apply wp_slice_literal
       isplitr
@@ -610,6 +619,7 @@ theorem txn.put.wp_proof
       wp_apply (hAdd t _)
       · ipureintro; exact Ht
       iapply HΦ
+      iframe Hown
       isplitl [Htx]
       · iexists _, _; iexact Htx
       isplitr [HClusterId HMemberId HRaftTerm HLeaderId]

@@ -44,26 +44,26 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 /-- **Deletions committed keep the leases known** (a revocation's). -/
-theorem leasesKnown_commit_dels (γl : GName) (log : mvcc.Log) (pend : List mvcc.Change)
+theorem leasesKnown_commit_dels (L : List w64) (log : mvcc.Log) (pend : List mvcc.Change)
     (h : ∀ c ∈ pend, c.isDel = true) :
-    txn.leasesKnown (GF := GF) γl (mvcc.stateAfter log) ⊢
-      txn.leasesKnown γl (mvcc.stateAfter (mvcc.commitLog log pend)) := by
+    txn.leasesKnown (GF := GF) L (mvcc.stateAfter log) ⊢
+      txn.leasesKnown L (mvcc.stateAfter (mvcc.commitLog log pend)) := by
   rw [txn.stateAfter_commitLog]
   apply txn.leasesKnown_sub
   exact applyChanges_dels_mem _ pend _ h
 
 /-- **A delete committed keeps the leases known.** -/
-theorem leasesKnown_commit_delete (γl : GName) (log : mvcc.Log) (o : OpFull) :
-    txn.leasesKnown (GF := GF) γl (mvcc.stateAfter log) ⊢
-      txn.leasesKnown γl
+theorem leasesKnown_commit_delete (L : List w64) (log : mvcc.Log) (o : OpFull) :
+    txn.leasesKnown (GF := GF) L (mvcc.stateAfter log) ⊢
+      txn.leasesKnown L
         (mvcc.stateAfter (mvcc.commitLog log (txn.delChanges (mvcc.stateAfter log) o))) := by
   rw [txn.stateAfter_commitLog]
-  exact txn.leasesKnown_delete γl _ _ o
+  exact txn.leasesKnown_delete L _ _ o
 
 /-- **A put's kept lease is known** (`IgnoreLease`: the previous key-value's, of the state). -/
-theorem leaseOk_ignore (γl : GName) (s : List EtcdKv) (o : OpFull) :
-    txn.leasesKnown (GF := GF) γl s ⊢
-      □ (⌜o.ignoreLease = true⌝ -∗ txn.leaseOk γl (txn.putLeaseOf o (mvcc.findKey o.key s))) := by
+theorem leaseOk_ignore (L : List w64) (s : List EtcdKv) (o : OpFull) :
+    txn.leasesKnown (GF := GF) L s ⊢
+      □ (⌜o.ignoreLease = true⌝ -∗ txn.leaseOk L (txn.putLeaseOf o (mvcc.findKey o.key s))) := by
   iintro #Hk
   imodintro
   iintro %hl
@@ -72,21 +72,42 @@ theorem leaseOk_ignore (γl : GName) (s : List EtcdKv) (o : OpFull) :
   cases hf : mvcc.findKey o.key s with
   | none =>
     simp only [Option.map_none, Option.getD_none]
-    unfold txn.leaseOk; ileft; ipureintro; rfl
+    unfold txn.leaseOk; ipureintro; left; rfl
   | some v =>
     simp only [Option.map_some, Option.getD_some]
     iunfold txn.leasesKnown at Hk
-    iapply txn.leasesOk_mem γl _ _ ?_ $$ Hk
+    iapply txn.leasesOk_mem L _ _ ?_ $$ Hk
     exact List.mem_map_of_mem (List.mem_of_find?_eq_some hf)
 
 /-- **A put committed keeps the leases known**, its own lease known. -/
-theorem leasesKnown_putChange (γl : GName) (log : mvcc.Log) (o : OpFull) (pv : Option EtcdKv) :
-    txn.leasesKnown (GF := GF) γl (mvcc.stateAfter log) ∗ txn.leaseOk γl (txn.putLeaseOf o pv) ⊢
-      txn.leasesKnown γl (mvcc.stateAfter (log ++ [[txn.putChangeOf o pv]])) := by
+theorem leasesKnown_putChange (L : List w64) (log : mvcc.Log) (o : OpFull) (pv : Option EtcdKv) :
+    txn.leasesKnown (GF := GF) L (mvcc.stateAfter log) ∗ txn.leaseOk L (txn.putLeaseOf o pv) ⊢
+      txn.leasesKnown L (mvcc.stateAfter (log ++ [[txn.putChangeOf o pv]])) := by
   rw [txn.stateAfter_snoc]
   simp only [mvcc.applyChanges, List.foldl_cons, List.foldl_nil, txn.putChangeOf,
     mvcc.applyChange]
-  exact txn.leasesKnown_put γl _ _ _ _ _
+  exact txn.leasesKnown_put L _ _ _ _ _
+
+/-- A larger live set keeps the leases known. -/
+theorem leasesOk_mono (L L' : List w64) (ls : List w64) (h : ∀ x ∈ L, x ∈ L') :
+    txn.leasesOk (GF := GF) L ls ⊢ txn.leasesOk L' ls := by
+  unfold txn.leasesOk
+  iintro #H
+  imodintro
+  iintro %l %hl
+  ihave Hl := H $$ %l %hl
+  iunfold txn.leaseOk at Hl
+  icases Hl with %Hl
+  iunfold txn.leaseOk
+  ipureintro
+  rcases Hl with h0 | hin
+  · exact Or.inl h0
+  · exact Or.inr (h _ hin)
+
+theorem leasesKnown_mono (L L' : List w64) (s : List EtcdKv) (h : ∀ x ∈ L, x ∈ L') :
+    txn.leasesKnown (GF := GF) L s ⊢ txn.leasesKnown L' s := by
+  unfold txn.leasesKnown
+  exact leasesOk_mono L L' _ h
 
 end lemmas
 

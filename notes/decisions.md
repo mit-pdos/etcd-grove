@@ -4614,6 +4614,125 @@ that contract from the real backend's, and proves the hook in `hookFnSpec`'s sha
   `hooksSpec`, is not proved; so `server_kv_backend` (generic in the hooks' resource `Pk`) holds
   at `Pk := batchLockInv γA (metaTM γB P)` with the hook's contract still the creator's premise.
 
+### The server's backend hook (unit 8, 2026-10-13 · adopted)
+
+- **The hooks' contract is derived by Löb induction, not assumed**: `isBackend` holds the hooks'
+  contract (`hooksSpec`) and the hook's puts need `isBackend` (the batch transaction's specs take
+  it). `isBackendNH` is `isBackend` without the hooks' contract; `isBackend_of_hooks` derives
+  `isBackend` from it and a hooks' contract given `▷ isBackend` (the hook's call takes a step
+  before it needs the backend), so `BackendHooks.OnPreCommitUnsafe`'s spec takes `▷ isBackend`
+  and `▷ saveSpec`. *Rejected:* `hooksSpec` taking the backend predicate as a parameter (a cycle
+  of definitions); keeping the hooks' contract a premise inside `isBackend` (what unit 7 left).
+- **The indexer's save as a contract of its own** (`saveSpec`, `hookSaveStep`: a hook step with
+  one put of room and the `confState` key free to put): `OnPreCommitUnsafe` is proved for any
+  indexer meeting it; the consistent index's `UnsafeSave` does (`ci_saveSpec`, from
+  `ci_hook_backend_run`, which keeps `hookRun`). The `confState` put needs `hookMax ≥ 3` and the
+  key not one of the hook's own (`hooksParams`): the consistent index's two keys are the own keys,
+  `confState` is written only by the hook.
+- **`MustUnsafeSaveConfStateToBackend` is the trust boundary** (axiom): it is `json.Marshal` of
+  `any` and one `tx.UnsafePut(Meta, "confState", bytes)`; its spec is that put's triple lifted,
+  any bytes. The `ConfState` it reads takes no resource: `ConfState` (protobuf-go v2) is an
+  axiomatized type whose typed points-to is a generated `sorry` instance, and `SetConfState`
+  stores a fresh clone no one writes. *Rejected:* `cs ↦{dq} c` (reaches `sorryAx`).
+
+### The lessor's KV-facing methods and the live leases (unit 8, 2026-10-13 · adopted)
+
+- **A lease is live relative to the lease owner's half, not for good.** mvcc's `put` calls
+  `Attach` and panics on its error, which the real `Attach` returns once `Revoke` has deleted the
+  lease; the persistent `mvcc.leaseKnown γl id` (granted once, known forever) promised `Attach`'s
+  success after a revocation. Now the lessor's ghost map `γl` (the store's `γ.leases`) holds the
+  live set `L` (the lease map's domain), half in `le.mu`'s invariant, half the lease owner's
+  (`lease.leaseOwn γl L`): the apply thread, the one goroutine that grants and revokes. A live
+  lease is the pure `id ∈ L` for that half; `Attach` takes the half (any holder of it agrees with
+  the lessor's under the lock), `Grant`/`Revoke` change `L`. *Rejected:* a persistent fact
+  indexed by a revocation epoch (every statement carrying the epoch: the same threading, more
+  ghost state); fractional, duplicable facts consumed by `Revoke` (a dropped fraction makes the
+  lease unrevokable); a revocation forbidden for known leases (no `LeaseRevoke` proof).
+- **Threaded where the code needs it, and only there**: mvcc's `put` path (`leaseOwn`), the txn
+  package's lease checks (`lessorUser`: the half and a reader slot for `Lookup`'s read lock) and
+  its put and transaction paths, the apply package's `kvOwn` (`leasesLive`: some `L` with the
+  state's leases in it and the owner's resource; a definition, so the apply, server and v3rpc
+  specs are unchanged). `checkTxn` takes the owner's resource only for a request that is not
+  read-only (`⌜lu = false⌝ ∨ lessorUser`), so the server's read-only `Txn` (the request path's
+  `specRead`) is unchanged.
+- **Reader slots**: `GetLease` and `Lookup` take `le.mu`'s read lock, which Perennial's
+  `RWMutex` spec meters (`ownRWMutex`). The store keeps one slot (`lessorRdOf`, in its writer's
+  resource: `GetLease` is called by `put` and `delete`, so no delete spec changes); the owner one
+  (in `lessorUser`, for `Lookup`). Slots name the lessor through the ghost map's pinned element
+  (`lessorPin`), so the owner's resource names `γl` only. *Rejected:* a slot in the delete specs
+  (it reaches the request path's `DeleteRange`).
+- **`Revoke` and `Grant` stay assumed, now honest about the live set**: `Grant` only adds (the
+  granted lease in the new set); `Revoke` removes the lease and keeps the state's leases live,
+  the coupling of the lease's item set (`l.Keys()`, maintained by mvcc's `Attach`/`Detach`) with
+  the store's keys that its deletions rely on, stated as its contract. The apply level's
+  `Lookup {{ True }}` (with `leaseIs`) is left as it was: the proved `Lookup` needs a reader slot.
+
+### The lessor's apply-side methods (unit 9, 2026-10-13 · adopted)
+
+- **More of the lessor under `le.mu`, its statements unchanged** (`lessorExtra lp M q`, a new last
+  conjunct of `lessorMu`): `demotec`, the expiry notifier (`notifierAt`: its map holds exactly the
+  queue's items, each under its own id, each item's `index` its position: what `heap.Fix(&q,
+  old.index)` needs to stay in range), the checkpoint heap (a queue of items), `cp`, and every
+  granted lease's `leaseMeta` (`ID`, `ttl`, `revokec` read-only; `remainingTTL`; the lessor's half
+  of `expiry`). **`expiry` in two halves**: `refresh`/`forever` write it holding `le.mu` and
+  `l.expiryMu`, `Grant` reads it under `le.mu` alone (`&LeaseWithTime{time: l.expiry}`),
+  `Remaining` under `l.expiryMu` alone; `l.expiryMu` guards the other half (`leaseExpiry`).
+  *Rejected:* `expiry` whole under `expiryMu` (`Grant`'s read would be unprovable).
+- **The read-only configuration and the backend as separate persistent facts**, not in
+  `lessorInv` (whose statement unit 8's specs, mvcc's and the txn package's use through
+  `lessorRdOf`/`lessorUser`): `lessorCfg lp` (`minLeaseTTL`, `checkpointPersist`, `cluster` with
+  its `Version()` contract, `checkpointInterval`, `lg`, `leaseRevokeRate`) and `lessorBackend lp P
+  f`: `le.b` read-only and a **contract on the backend for the `Lease` bucket**
+  (`leaseBackend b P f`: `BatchTx()` returns a transaction whose `LockInsideApply()`, under the
+  batch lock's `mvcc.csContract P f Pre Q Post`, gives a token `Lk Post` that `UnsafePut` into
+  `schema.Lease`'s bucket keeps and `Unlock()` turns into `Post`), as mvcc's `isKeyBackend` was
+  for the store before `BackendBridge.lean`: not yet proved of the real backend. `le.b` read-only
+  leaves `Recover` (which replaces it) out. *Rejected:* `lessorInv` parametrized by the backend
+  contract (every unit-8 statement and, through `lessorRdOf`, mvcc's and the txn package's would
+  change); the backend pinned in the lessor's ghost map (no simpler, and `Recover` breaks it
+  too).
+- **`container/heap` as the trust boundary, the notifier proved over it**: `heap.Push` and
+  `heap.Fix` (names only: a standard-library package Perennial does not translate) are axioms
+  over a generic `heap.heapIface h R E` (`Len` the length, `Less`/`Swap` called only in range,
+  `Swap` the list swap, `Push` appends): the contents end a permutation (the heap order is not
+  tracked). `&q` (a `*LeaseQueue`) meets it (`queue_heapIface`, from the proved `Len`, `Less`,
+  `Swap`, `Push`), and `RegisterOrUpdate` is proved over it (the map/queue invariant through the
+  permutation; an item the caller owns is not in the queue, `queue_item_fresh`). *Rejected:*
+  `RegisterOrUpdate` itself an axiom.
+- **What stays at the trust boundary** (axioms, each the function's documented behavior over the
+  resources it touches): `schema.MustUnsafePutLease` (`proto.Marshal`; a put into `Lease`),
+  `version.LessThan` (names-only `api/v3/version`), `scheduleCheckpointIfNeeded`
+  (`int64(le.checkpointInterval.Seconds())`: Perennial's semantics has no float-to-integer
+  conversion), `Promote` (float arithmetic, `time.Duration(rateDelay)`, `sort.Sort` by
+  `Remaining()`, which read-locks each lease's `expiryMu`: a reader slot the invariant does not
+  keep) and `Demote` (translated, not proved: `close(le.demotec)` needs the channel's close right,
+  which a fractional lock invariant at any later-credit level cannot hold as is). The metrics are
+  package facts (`leaseInit`: counters and a histogram whose `Inc`/`Observe` return).
+- **The apply package's contract, derived where proved**: `apply.isApplyLessor`'s `Grant` returns
+  a `leaseTTLIs` lease (its `ID` and `TTL()`: `Keys()` read-locks the lease's `mu`, a reader slot a
+  grant does not hand out, and the apply package does not call it on a granted lease; was
+  `leaseIs`); `apply.isApplyLessor_of_lessorInv` derives the contract of the real lessor from
+  `lessorInv`, `lessorCfg`, `lessorBackend` and the contract's `Revoke` and `Lookup` clauses (the
+  premises). The server's `lessorOk` is derived whole (`lessorOk_of_lessorInv`). Neither is yet
+  used by the server's construction premise (`srvFieldsAt`/`isServerBuilt` still state
+  `lessorOk`/`isApplyLessor`): the lessor's constructor is not proved.
+- **`Revoke` is not proved** (translated): (1) it reads `le.rd` after unlocking `le.mu` (a data
+  race with `SetRangeDeleter`/`Recover`: `issues/etcd-lessor-revoke-rd-unlocked.md`), so it needs a
+  share of `rd` outside the lock, which unit 8's `SetRangeDeleter` spec (any caller) does not
+  leave; (2) `le.rd()` is the store's write closure: its contract (`NewStore`'s closure over
+  `store.Write`, under the sole-writer discipline) would have to be recorded by `SetRangeDeleter`;
+  (3) `l.Keys()` read-locks the lease's `mu` (a reader slot per lease for the owner); (4) its
+  `UnsafeDeleteLease` runs under the store transaction's batch lock, through `le.b` (the backend
+  being the store's); (5) its postcondition (the state's leases still live after deleting `l`'s
+  keys) needs the coupling of each lease's item set with the store's keys, kept by mvcc's
+  `put`/`delete` through `Attach`/`Detach`; and `close(l.revokec)` a close right. Each is a
+  design change across mvcc's and the txn package's statements; left as the contract's premise.
+- **Noted for the expiry loop** (not proved): `revokeExpiredLeases` mutates the notifier
+  (`Unregister`, `RegisterOrUpdate`) under `le.mu.RLock()`; safe in Go only because the loop's
+  goroutine is the one reader that touches the notifier. A proof needs the notifier out of the
+  fractional lock invariant (e.g. an invariant exchanging it for the write lock's or the loop's
+  token).
+
 ---
 
 ## The request path, closed: delivery, the premises kept, and why
@@ -4715,3 +4834,103 @@ are stated in prose: they are what a proof of gRPC and protobuf would discharge.
 transported statements do not give the clients' contracts (linearizability's `lo ≤ r`, mainly)
 is listed in STATUS rather than weakened in the contracts.
 
+**Superseded at the merge of unit C1 (2026-10-14).** The wire above (`grpcConnTo`, `connectedTo`,
+the stub's four axioms, `isKVClient`) is gone: unit C1 translated the generated stub and proved
+`kVClient.Put`/`Range` down to grpc's `ClientConn.Invoke`, whose contract (one axiom) and the
+connection predicate `isKVConn conn K` are the lower boundary now ("The client meets the server
+(unit C1)" below; STATUS, "Merge of `origin/lean` (units 8, 9, C1)"). The class, the server's
+instance and the token's path stay; `DeleteRange`/`Txn` stubs are V2's to prove in C1's style.
+
+## The client meets the server (unit C1)
+
+**2026-10-14 · adopted (unit C1)** (`notes/STATUS.md`, "Unit C1: the client meets the server")
+
+**The trust boundary is grpc's `ClientConn.Invoke`, interceptors included.** The client's KV path
+is verified from `kv.Put`/`kv.Get` down to the generated stub (`kv.Do`, `ContextError`, the retry
+client, `kVClient.Put`/`Range`, `NewKV`, `RetryKVClient`, `NewKVClient`, `withRepeatablePolicy`);
+what is assumed is one call, `(*grpc.ClientConn).Invoke` of the KV service's `Put` and `Range`
+(`Spec/google_golang_org/grpc/ClientConn__Invoke.lean`, an axiom): the network, grpc's client and
+server, the protobuf codec, the client's retry interceptor (installed at dial, `client.go`), and the
+server's runtime (its gRPC server's per-call goroutines, its unary interceptors, the quota wrapper
+`quotaKVServer`). *Rejected:* the boundary below the interceptor (a contract of grpc's `invoke`,
+the interceptor proved): the interceptor's loop reads the auth token (`shouldRefreshToken`,
+`refreshToken`, through the client's auth client), logs through zap, backs off with timers, filters
+call options by type assertion; proving it is a unit of its own, and what it would discharge is
+stated below.
+
+**What a call gives: a run of the handler on a copy, or an error.** The connection
+(`isKVConn conn K`, an axiomatized persistent predicate: a fact about a grpc object and the process
+at its other end, like bbolt's predicates) names the server's handlers (`K.put`, `K.range`:
+function values) and what the server's runtime gives each run (`K.R ctx'`). `Invoke`'s triple takes
+the caller's request (`inp ↦ req`, owned: protobuf's marshaling writes its size cache) and a zero
+reply (`out`, owned), and a persistent premise `putRunOk K o Q` (`rangeRunOk`): the handler's
+triple, with `K.R ctx'` and a fresh decoded copy of the request (`txn.putRequestIs r o`, the
+server's own predicate: the copy's fields read-only, its size cache in an invariant, at the
+server's model of the request, `putReqOp`/`rangeReqOp`), whose success gives a response message
+(`putRespMsg resp m`, `rangeRespMsg`: every field the wire carries, read-only) with the caller's
+persistent knowledge `□ Q m`. It returns `nil` and `out` holding the same message with `□ Q m`, or a
+client error (`clientErr`) and nothing. The run premise is persistent because the handler may run
+several times; `Q` is persistent so that nothing of the runtime's resources leaks to the client.
+*Rejected:* the axiom stated over the server's predicates (`isServerReq`, `kvServerAt`, the
+answers `putAppliedOk`, ...): it would put the server's whole model in the trust base; with the run
+premise the client's results discharge it from `put_end_to_end`/`range_end_to_end` (proved), and
+the axiom says only "the server runs its handler on a copy". A deep-copy relation between the
+server's response and the reply: the message predicates are read-only field contents (no
+ownership, no server-side resource), so the same predicate holds of both, which a copy relation
+would only restate.
+
+**The wire.** The server's model of the client's request is that of a copy: its range end is the
+contents of `RangeEnd` (`rangeReqOp`; protobuf does not carry an empty bytes field, which the
+server decodes as `nil`, and `txn.rangeEndOf nil [] = []`), its key the contents of `Key`
+(`nil` and empty agree); a slice's identity is not on the wire. The reply's message predicates say
+contents only, for the same reason.
+
+**Retries.** The interceptor's attempts are inside the boundary. A `Range` (`withRepeatablePolicy`)
+is retried on `Unavailable`; a `Put` (`nonRepeatable`) on "no connection/address available"
+(`isSafeRetryMutableRPC`: the request was not sent) and also, whatever the policy, after a gRPC
+`Canceled` or `DeadlineExceeded` while the caller's context is live (`issues/
+etcd-client-retry-put-ctx-error.md`: a branch for a per-attempt context etcd no longer has;
+reproduced: a mock server receives the `Put` twice). The contract says what this allows: a
+successful reply is the last run's (the interceptor returns at the first `nil`, and grpc's codec
+resets the reply before unmarshaling), earlier runs may have happened and may have applied the
+put; an error says nothing about any run.
+
+**The runtime's resources are the server's premises, stated per run.** etcd's handlers need, per
+call, a context (`isContext` of the stream's context), one id credit, reader slots of
+`leadTimeMu`, the store, the logger's lock and the read loop's lock (`srvCall`, `srvRdCall`); a
+server-side caller obtains them from the server's runtime, which nothing here models. So `K.R ctx'`
+is given to every run by the axiom: for etcd's server (`client/v3/Results.lean`, `etcdKVConn`)
+`srvCall s ρ ctx' ∗` the reader slots of `srvRdCall`. This is the same idealization the server's own
+results make (`isServerBuilt`'s id budget `□ |==> idCred ρ.ids 1`, `notes/STATUS.md`: the
+generator's `2 ^ 48 - 1` ids are assumed not to wrap), and the reader slots come back from each
+run (the handler's triple returns them), so the bound Perennial's `RWMutex` puts on concurrent
+readers is not reached by the runtime's own accounting. The committed index a linearizable read
+knows of is not the runtime's: `committedAtLeast γr c` is the client's (persistent; `0` is free),
+so `K.R` does not mention `c` and `kvServerAt` is used at any `c` (it reads only `revR`,
+`kvServerAt_srvKVAns`).
+
+**Call options and context errors are typing premises.** `Invoke`'s frame needs that no call
+option writes the caller's memory (grpc's `Header`, `Trailer`, `Peer` options do): `callOptOk`
+admits grpc's scalar option types (the stub's `StaticMethodCallOption`, `client.go`'s
+`defaultCallOpts`) and a `retryOption` whose closure writes only the interceptor's `retryPolicy`
+(`withRepeatablePolicy`'s, proved). The client's call-option slice is full (`len = cap`, as
+`client.go` builds it): `retryKVClient.Range` appends `withRepeatablePolicy()` to it, which with
+spare capacity would write the slice's shared backing array from concurrent calls (grpc's own
+`combine` copies for this reason). `ContextError` hands its result, possibly the context's error,
+to `errors.As` on `kv.Put`'s second `ContextError`; `ctxErrClient` (a premise of `kv.Put`/`kv.Get`)
+says the context's `Err()` returns client errors and keeps returning one once it has: Go's
+documented contract and the method sets of `Canceled`/`DeadlineExceeded`, which the model lacks
+(as `clientErr` itself, which `rpctypes.Error`'s axiom now carries: an `EtcdError` is a leaf error).
+
+**A future proof of the interceptor would discharge** the retry part of the axiom: from a contract
+of grpc's plain `invoke` (one attempt: a run on a copy or an error, the same shape), the loop gives
+"the last attempt's run, earlier attempts' runs unknown"; the options' filtering (`filterCallOptions`,
+a type assertion on `retryOption`) would discharge `callOptOk`'s retry case; the token refresh
+needs the auth client's contract. What stays assumed is grpc's transport and the server's runtime
+(`isKVConn`: the dial, the registration, the runtime's resources).
+
+**What C1 does not state.** Only a single-endpoint connection to one server (a client with several
+endpoints balances attempts over members: unit C2's cluster-level contract), only a `Get` without
+a sort option (`Op.IsSortOptionValid`'s sort case reads `etcdserverpb`'s enumeration maps, package
+facts not stated), only `Put` and `Get` (`kv.Do`'s delete and transaction cases are not specified:
+the precondition `doRunOk` rules them out).

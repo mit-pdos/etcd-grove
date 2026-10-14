@@ -29,14 +29,16 @@ attribute [irreducible] Code.ty
 @[reducible] noncomputable def OK [FfiSyntax] [GoGlobalContext] : val :=
   #(W32 0)
 
-axiom Canceled [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Canceled [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 1)
 
 @[reducible] noncomputable def Unknown [FfiSyntax] [GoGlobalContext] : val :=
   #(W32 2)
 
 axiom InvalidArgument [FfiSyntax] [GoGlobalContext] : val
 
-axiom DeadlineExceeded [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def DeadlineExceeded [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 4)
 
 axiom NotFound [FfiSyntax] [GoGlobalContext] : val
 

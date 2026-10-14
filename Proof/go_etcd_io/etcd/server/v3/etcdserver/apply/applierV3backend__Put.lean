@@ -37,7 +37,9 @@ theorem apply.applierV3backend.Put.wp_proof
   iunfold apply.putPre at Hpre
   iunfold apply.mPre at Hpre
   iunfold apply.kvOwn at Hpre
-  icases Hpre with ⟨%Hrq, #Hr, Hwt, ⟨Hrd, Hsw, #Hknown⟩, Hres, Hcs⟩
+  icases Hpre with ⟨%Hrq, #Hr, Hwt, ⟨Hrd, Hsw, Hlive⟩, Hres, Hcs⟩
+  iunfold apply.leasesLive at Hlive
+  icases Hlive with ⟨%L, #Hknown, Hu⟩
   icases txn.soleWriter_len' _ _ $$ Hsw with ⟨%Hl2, Hsw⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
@@ -51,10 +53,10 @@ theorem apply.applierV3backend.Put.wp_proof
   iunfold apply.isApplyLessor at Hle
   icases Hle with ⟨#Hle, -⟩
   have hlen : log.length + 4 ≤ 2 ^ 63 := Hrq.2.2
-  ihave #Hl := apply.leaseOk_ignore E.γ.leases (mvcc.stateAfter log) o $$ Hknown
+  ihave #Hl := apply.leaseOk_ignore L (mvcc.stateAfter log) o $$ Hknown
   wp_apply (txn.put_soleWriter_of hPut todoCtxVal mvcc.neverCd opts.Logger' opts.Lessor' opts.KV'
-      E.s E.γ r o log E.P Pre Q Post E.f hlen) $$ [$Hrd $Hsw $Hwt $Hcs]
-    as %resp %trace %err ⟨Hrd, %Htr, Hout⟩
+      E.s E.γ r o log E.P Pre Q Post E.f L hlen) $$ [$Hrd $Hsw $Hwt $Hcs $Hu]
+    as %resp %trace %err ⟨Hrd, Hu, %Htr, Hout⟩
   · iframe #
     iapply mvcc.txnCtx_todo
   iapply HΦ
@@ -75,8 +77,8 @@ theorem apply.applierV3backend.Put.wp_proof
     · isplitl []
       · ipureintro; exact Hn.2
       ileft; iexact He
-    isplitl [Hrd Hsw]
-    · iunfold apply.kvOwn; iframe; iframe #
+    isplitl [Hrd Hsw Hu]
+    · iunfold apply.kvOwn; iframe Hrd Hsw; iunfold apply.leasesLive; iexists L; iframe Hknown Hu
     iright; iexact HPre
   · -- the previous key-value missing
     iexists (.rejected .backend)
@@ -91,8 +93,8 @@ theorem apply.applierV3backend.Put.wp_proof
     · isplitl []
       · ipureintro; exact Hn.2.2
       iright; iexact He
-    isplitl [Hrd Hsw]
-    · iunfold apply.kvOwn; iframe; iframe #
+    isplitl [Hrd Hsw Hu]
+    · iunfold apply.kvOwn; iframe Hrd Hsw; iunfold apply.leasesLive; iexists L; iframe Hknown Hu
     ileft; iexact HPost
   · -- the put committed
     iexists (.applied (log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) false)
@@ -106,9 +108,12 @@ theorem apply.applierV3backend.Put.wp_proof
     iframe Hres Hresp Hhdr
     isplitl []
     · ipureintro; exact ⟨Herr, Hl2, hlen⟩
-    isplitl [Hrd Hsw]
+    isplitl [Hrd Hsw Hu]
     · iunfold apply.kvOwn
       iframe Hrd Hsw
+      iunfold apply.leasesLive
+      iexists L
+      iframe Hu
       iapply apply.leasesKnown_putChange
       iframe #
     ileft; iexact HPost

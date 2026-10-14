@@ -50,7 +50,7 @@ theorem WatchResponse.Err.wp_proof
   cases hce : resp.closeErr' with
   | ok i =>
     wp_auto
-    wp_apply wp_rpctypes_Error as %err' ⟨%Hne, #Hw⟩
+    wp_apply wp_rpctypes_Error as %err' ⟨%Hne, #Hw, -⟩
     · ipureintro; simp [hce]
     iapply HΦ
     iframe
@@ -87,7 +87,7 @@ theorem WatchResponse.Err.wp_proof
         · ipureintro
           simp only [google_golang_org.grpc.codes.OK]
           exact fun h => absurd (go.intoVal_inj h) (by decide)
-        wp_apply wp_rpctypes_Error as %e2 ⟨%He2, #Hw⟩
+        wp_apply wp_rpctypes_Error as %e2 ⟨%He2, #Hw, -⟩
         · ipureintro; exact He1
         iapply HΦ
         iframe

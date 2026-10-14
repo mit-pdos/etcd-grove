@@ -186,10 +186,12 @@ instance errVarIs_persistent (g : GoString) (err : GoInterface) :
     Persistent (errVarIs (GF := GF) g err) := by
   unfold errVarIs; infer_instance
 
-/-- A lease a put may attach (mvcc's `Put`): none, or one the lessor granted. -/
-def leaseOk (γl : GName) (id : w64) : IProp GF := iprop(⌜id = W64 0⌝ ∨ leaseKnown γl id)
+/-- A lease a put may attach (mvcc's `Put`): none, or one of the live set `L` (the lease owner's:
+`lease.leaseOwn`; 2026-10-13, unit 8 of the backend: a lease is live relative to the owner's
+half of the lessor's live set, not for good: it was the persistent `leaseKnown`). -/
+def leaseOk (L : List w64) (id : w64) : IProp GF := iprop(⌜id = W64 0 ∨ id ∈ L⌝)
 
-instance leaseOk_persistent (γl : GName) (id : w64) : Persistent (leaseOk (GF := GF) γl id) := by
+instance leaseOk_persistent (L : List w64) (id : w64) : Persistent (leaseOk (GF := GF) L id) := by
   unfold leaseOk; infer_instance
 
 /-- **`getPrevKV`'s answer** `r` at the state `st`: a `RangeResult` (not `nil`) whose key-values

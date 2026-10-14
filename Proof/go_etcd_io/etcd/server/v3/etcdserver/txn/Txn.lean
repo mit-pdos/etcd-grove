@@ -109,8 +109,8 @@ theorem txn.Txn_sole
   have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
   have hWrite := mvcc.store.Write.spec_frozen hWrite
   have hRoEnd := mvcc.txnReadWrite.End.spec_frozen hRoEnd
-  intro ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f
-  wp_start as ⟨#Hkv, Hrd, Hsw, Hwt, #Hle, #Hrt, #Hctx, #Hnd, #Hknown, %Hpre, Hcs, #Hhook⟩
+  intro ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f L
+  wp_start as ⟨#Hkv, Hrd, Hsw, Hwt, #Hle, #Hrt, #Hctx, #Hnd, #Hknown, Hu, %Hpre, Hcs, #Hhook⟩
   iunfold mvcc.csContract at Hcs
   icases Hcs with ⟨HPre, #Htr, Hupd⟩
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
@@ -154,10 +154,15 @@ theorem txn.Txn_sole
     · ipureintro; exact Htr
     try wp_join_done
   ipersist Hsl
-  wp_apply (hCheck tr mw s γ log rev rt t le γ.leases sl []) $$ [$Htx $Hrt $Hle] as %n %err ⟨Htx, Hres⟩
+  ihave Hu : (⌜true = false⌝ ∨ EtcdGrove.lease.lessorUser γ.leases L) $$ [Hu]
+  · iright; iexact Hu
+  wp_apply (hCheck tr mw s γ log rev rt t le γ.leases sl [] L true (fun h => by cases h))
+    $$ [$Htx $Hrt $Hle $Hu] as %n %err ⟨Htx, Hu, Hres⟩
   · isplitl []
     · ipureintro; exact Htr
     rw [List.append_nil]; iexact Hsl
+  icases Hu with (Hf | Hu)
+  · iexfalso; iexact Hf
   icases Hres with (⟨%Hok, #Hleases⟩ | ⟨%Herr, #Hce⟩)
   rotate_left
   · -- a check failed: the read transaction ended, nothing written
@@ -173,7 +178,7 @@ theorem txn.Txn_sole
       · simp only [mvcc.txnEndPre]; itrivial
       wp_apply (hEnd mw s γ (.read log rev)) $$ [$Htx $Hep] as ⟨Hrd, -⟩
       iapply HΦ
-      iframe Hrd
+      iframe Hrd Hu
       ileft
       iframe Hce Hsw HPre
       ipureintro; exact ⟨rfl, rfl, Hne⟩
@@ -193,12 +198,14 @@ theorem txn.Txn_sole
     ihave Htv := (txnViewIs_ro trw s γ log rev).2 $$ Hro
     ihave Htw := txnWriteIs_of_view _ s γ true log [] _ ⟨rfl, rev, rfl⟩ $$ Htv
     have htxn' := htxn ctx' { cd with Values := vs } true lg s γ
-      (interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw) true log rt t sl skip
+      (interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw) true log rt t sl skip L
     simp only [Bool.not_true, ↓reduceIte] at htxn'
     wp_apply htxn'
       $$ [$Htw $Hctx' $Hnd' $Hrt $Hsl $Hleases] as %resp %err Hres
-    · ipureintro; exact ⟨trivial, hoks, Nat.lt_of_lt_of_le Hpre.2.2 (txn.putMax_ge γ), fun _ => hro, fun h => absurd h (by simp)⟩
-    icases Hres with (⟨%Herr, Htw, #Hresp, Hhdr, -⟩ | ⟨%Hc, -⟩)
+    · isplitl []; · itrivial
+      isplitl []; · ileft; itrivial
+      ipureintro; exact ⟨hoks, Nat.lt_of_lt_of_le Hpre.2.2 (txn.putMax_ge γ), fun _ => hro, fun h => absurd h (by simp)⟩
+    icases Hres with (⟨%Herr, Htw, #Hresp, Hhdr, -, -⟩ | ⟨%Hc, -⟩)
     rotate_left
     · cases Hc
     subst Herr
@@ -225,7 +232,7 @@ theorem txn.Txn_sole
     wp_apply (hAdd tr _) $$ []
     · ipureintro; exact Htr
     iapply HΦ
-    iframe Hrd
+    iframe Hrd Hu
     iright
     simp only [srvRunTxn]
     rw [hch]
@@ -263,12 +270,16 @@ theorem txn.Txn_sole
     ihave Htv := (txnViewIs_mw mw' s γ _).2 $$ Htx
     ihave Htw := txnWriteIs_of_view _ s γ false log [] _ ⟨_, _, _, rfl⟩ $$ Htv
     have htxn' := htxn ctx' { cd with Values := vs } true lg s γ
-      (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw') false log rt t sl skip
+      (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw') false log rt t sl skip L
     simp only [Bool.not_false, ↓reduceIte, Bool.false_eq_true] at htxn'
+    iunfold EtcdGrove.lease.lessorUser at Hu
+    icases Hu with ⟨Hown, Hrdo⟩
     wp_apply htxn'
-      $$ [$Htw $Hctx' $Hnd' $Hrt $Hsl $Hleases $Hknown] as %resp %err Hres
-    · ipureintro; exact ⟨hoks, Nat.lt_of_lt_of_le Hpre.2.2 (txn.putMax_ge γ), fun h => h.elim, fun h => absurd h (by simp)⟩
-    icases Hres with (⟨%Herr, Htw, #Hresp, Hhdr, #Hk2⟩ | ⟨%Hc, -⟩)
+      $$ [$Htw $Hctx' $Hnd' $Hrt $Hsl $Hleases $Hknown Hown] as %resp %err Hres
+    · isplitl [Hown]
+      · iright; iexact Hown
+      ipureintro; exact ⟨hoks, Nat.lt_of_lt_of_le Hpre.2.2 (txn.putMax_ge γ), fun h => h.elim, fun h => absurd h (by simp)⟩
+    icases Hres with (⟨%Herr, Htw, #Hresp, Hhdr, #Hk2, Hown⟩ | ⟨%Hc, -⟩)
     rotate_left
     · cases Hc
     subst Herr
@@ -296,8 +307,12 @@ theorem txn.Txn_sole
     wp_auto
     wp_apply (hAdd tr _) $$ []
     · ipureintro; exact Htr
+    icases Hown with (Hf | Hown)
+    · iexfalso; iexact Hf
     iapply HΦ
     iframe Hrd
+    isplitl [Hown Hrdo]
+    · iunfold EtcdGrove.lease.lessorUser; iframe Hown Hrdo
     iright
     isplitl []
     · ipureintro; exact ⟨rfl, Htr, fun h => by rw [hro] at h; cases h⟩
@@ -365,9 +380,12 @@ theorem txn.Txn_read
     iexists sl
     iframe
   ipersist Hsl
-  wp_apply (hCheck tr mw s γ log rev rt t le γ.leases sl []) $$ [$Htx $Hrt $Hle] as %n %err ⟨Htx, Hres⟩
+  wp_apply (hCheck tr mw s γ log rev rt t le γ.leases sl [] [] false (fun _ => hro))
+    $$ [$Htx $Hrt $Hle] as %n %err ⟨Htx, -, Hres⟩
   · isplitl []
     · ipureintro; exact Htr
+    isplitl []
+    · ileft; ipureintro; rfl
     rw [List.append_nil]; iexact Hsl
   icases Hres with (⟨%Hok, #Hleases⟩ | ⟨%Herr, #Hce⟩)
   rotate_left
@@ -403,12 +421,14 @@ theorem txn.Txn_read
   ihave Htv := (txnViewIs_ro trw s γ log rev).2 $$ Hro
   ihave Htw := txnWriteIs_of_view _ s γ true log [] _ ⟨rfl, rev, rfl⟩ $$ Htv
   have htxn' := htxn ctx' { cd with Values := vs } false lg s γ
-    (interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw) true log rt t sl skip
+    (interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw) true log rt t sl skip []
   simp only [Bool.not_true, ↓reduceIte, Bool.false_eq_true] at htxn'
   wp_apply htxn'
     $$ [$Htw $Hctx' $Hrt $Hsl $Hleases] as %resp %err Hres
-  · ipureintro
-    refine ⟨trivial, hoks, ?_, fun _ => hro, fun _ => ⟨trivial, Hlg⟩⟩
+  · isplitl []; · itrivial
+    isplitl []; · ileft; itrivial
+    ipureintro
+    refine ⟨hoks, ?_, fun _ => hro, fun _ => ⟨trivial, Hlg⟩⟩
     simp only [srvRunTxn, hnil, List.length_nil]; have := mvcc.putMax_ge γ; omega
   -- the read transaction ends; the response's fields for the trace
   ihave ⟨%pend', Htw, #Hshell, Hout⟩ : (∃ pend' : List mvcc.Change,

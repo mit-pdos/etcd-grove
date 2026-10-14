@@ -95,7 +95,7 @@ def srvCall (s : Loc) (ρ : ReqNames) (ctx : GoInterface) : IProp GF :=
     context.isContext ci cd ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s)
 
 /-- `putAppliedOk` but the caller's reader slot: the answer's facts (the vertical slice's unit
-V1: what the client's copy of the response has, `Wire.lean`). -/
+V1: what the client learns of the response; `client/v3/Results.lean`'s `etcd_putRunOk`). -/
 def putApplied (E : apply.AEnv GF) (o : OpFull) (resp : Loc) (r : w64) : IProp GF :=
   iprop(∃ (hm : apply.HeaderModel) (x x' : apply.ApplyKV) (l : mvcc.Log)
       (skip : Bool),
@@ -133,7 +133,7 @@ def deleteAppliedOk (s : Loc) (E : apply.AEnv GF) (o : OpFull) (resp : Loc) (r :
   iprop(srvLeadTimeReader s ∗ deleteApplied E o resp r)
 
 /-- `putErrOk` but the reader slot (the vertical slice's unit V1: what the client learns of a
-failed put, `Wire.lean`). -/
+failed put). -/
 def putErr (E : apply.AEnv GF) (ρ : ReqNames) (o : OpFull) (err : GoInterface) : IProp GF :=
   iprop((∃ hm : apply.HeaderModel, appliedErr E (apply.withHeader (irrPut o) hm) err) ∨
     srvMaybeDeposited ρ (irrPut o))

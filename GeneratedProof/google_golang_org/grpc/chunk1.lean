@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.context
 public import Perennial.Golang.Theory
 public import Code.google_golang_org.grpc
 
@@ -208,25 +209,6 @@ instance connectivityStateManager_into_val_typed :
 
 end def_
 end connectivityStateManager
-
-namespace ClientConnInterface
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
-
-instance ClientConnInterface_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.ClientConnInterface :=
-  sorry -- axiomatized type
-
-instance ClientConnInterface_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.ClientConnInterface google_golang_org.grpc.ClientConnInterface.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end ClientConnInterface
 
 namespace addrConn
 section def_
@@ -552,82 +534,6 @@ instance MaxHeaderListSizeDialOption_access_store_MaxHeaderListSize (l : Loc) (v
 end def_
 end MaxHeaderListSizeDialOption
 
-namespace UnaryInvoker
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
-
-instance UnaryInvoker_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.UnaryInvoker :=
-  sorry -- axiomatized type
-
-instance UnaryInvoker_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.UnaryInvoker google_golang_org.grpc.UnaryInvoker.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end UnaryInvoker
-
-namespace UnaryClientInterceptor
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
-
-instance UnaryClientInterceptor_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.UnaryClientInterceptor :=
-  sorry -- axiomatized type
-
-instance UnaryClientInterceptor_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.UnaryClientInterceptor google_golang_org.grpc.UnaryClientInterceptor.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end UnaryClientInterceptor
-
-namespace Streamer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
-
-instance Streamer_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.Streamer :=
-  sorry -- axiomatized type
-
-instance Streamer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.Streamer google_golang_org.grpc.Streamer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Streamer
-
-namespace StreamClientInterceptor
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
-
-instance StreamClientInterceptor_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.StreamClientInterceptor :=
-  sorry -- axiomatized type
-
-instance StreamClientInterceptor_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.StreamClientInterceptor google_golang_org.grpc.StreamClientInterceptor.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end StreamClientInterceptor
-
 namespace UnaryServerInfo
 section def_
 
@@ -684,44 +590,6 @@ instance UnaryServerInfo_access_store_FullMethod (l : Loc) (v : google_golang_or
 
 end def_
 end UnaryServerInfo
-
-namespace UnaryHandler
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
-
-instance UnaryHandler_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.UnaryHandler :=
-  sorry -- axiomatized type
-
-instance UnaryHandler_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.UnaryHandler google_golang_org.grpc.UnaryHandler.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end UnaryHandler
-
-namespace UnaryServerInterceptor
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
-
-instance UnaryServerInterceptor_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.UnaryServerInterceptor :=
-  sorry -- axiomatized type
-
-instance UnaryServerInterceptor_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.UnaryServerInterceptor google_golang_org.grpc.UnaryServerInterceptor.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end UnaryServerInterceptor
 
 namespace StreamServerInfo
 section def_
@@ -1483,6 +1351,145 @@ instance ForceCodecV2CallOption_into_val_typed :
 
 end def_
 end ForceCodecV2CallOption
+
+namespace MaxRetryRPCBufferSizeCallOption
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.grpc.Assumptions]
+
+instance MaxRetryRPCBufferSizeCallOption_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption where
+  typedPointstoDef l v dq := iprop(
+    "MaxRetryRPCBufferSize" ∷ typedPointsto (structFieldRef google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption go!"MaxRetryRPCBufferSize" l) v.MaxRetryRPCBufferSize' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance MaxRetryRPCBufferSizeCallOption_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption.underlying := by
+  solve_into_val_typed_struct
+
+instance MaxRetryRPCBufferSizeCallOption_access_load_MaxRetryRPCBufferSize (l : Loc) (v : google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption go!"MaxRetryRPCBufferSize" l) v.MaxRetryRPCBufferSize' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption go!"MaxRetryRPCBufferSize" l) v.MaxRetryRPCBufferSize' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance MaxRetryRPCBufferSizeCallOption_access_store_MaxRetryRPCBufferSize (l : Loc) (v : google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption) (MaxRetryRPCBufferSize' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption go!"MaxRetryRPCBufferSize" l) v.MaxRetryRPCBufferSize' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption go!"MaxRetryRPCBufferSize" l) MaxRetryRPCBufferSize' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxRetryRPCBufferSize' := MaxRetryRPCBufferSize' } : google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end MaxRetryRPCBufferSizeCallOption
+
+namespace streamReader
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.grpc.Assumptions]
+
+instance streamReader_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.grpc.streamReader :=
+  sorry -- axiomatized type
+
+instance streamReader_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.streamReader google_golang_org.grpc.streamReader.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end streamReader
+
+namespace noCopy
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.grpc.Assumptions]
+
+instance noCopy_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.grpc.noCopy where
+  typedPointstoDef l v dq := iprop(
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+instance noCopy_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.noCopy google_golang_org.grpc.noCopy.underlying := by
+  solve_into_val_typed_struct
+
+end def_
+end noCopy
+
+namespace parser
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.grpc.Assumptions]
+
+instance parser_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.grpc.parser :=
+  sorry -- axiomatized type
+
+instance parser_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.parser google_golang_org.grpc.parser.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end parser
+
+namespace payloadInfo
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.grpc.Assumptions]
+
+instance payloadInfo_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.grpc.payloadInfo :=
+  sorry -- axiomatized type
+
+instance payloadInfo_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.payloadInfo google_golang_org.grpc.payloadInfo.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end payloadInfo
+
+namespace compressorInfo
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : google_golang_org.grpc.Assumptions]
+
+instance compressorInfo_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.grpc.compressorInfo :=
+  sorry -- axiomatized type
+
+instance compressorInfo_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.compressorInfo google_golang_org.grpc.compressorInfo.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end compressorInfo
 
 end google_golang_org.grpc
 end
