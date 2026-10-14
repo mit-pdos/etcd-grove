@@ -3,6 +3,9 @@
 `CheckOperationsVerbose(model, history, timeout)` (porcupine.go), what etcd's robustness
 tests call (`validateLinearizableOperationsAndVisualize`): on a linearizable history it never
 answers `Illegal`, and with no timeout (`timeout <= 0`) it answers `Ok`.
+
+`context.isClosedchanInit` (`context`'s package-init ghost fact: `closedchan` is closed) is what
+`checkParallel`'s `context.WithCancel(context.Background())` needs.
 -/
 module
 
@@ -30,7 +33,8 @@ abbrev CheckOperationsVerbose.spec : Prop :=
   ∀ (σ : Type) (S : ModelSpec GF σ) (m : Model) (sl : GoSlice) (ops : List Operation)
     (dq : DFrac) (dur : w64),
   HistOk ops →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.anishathalye.porcupine ∗ isModel S m ∗ sl ↦*{dq} ops ∗ opsIoOk S ops }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.anishathalye.porcupine ∗ context.isClosedchanInit ∗
+      isModel S m ∗ sl ↦*{dq} ops ∗ opsIoOk S ops }}
     (App (App (App (Val (@! github_com.anishathalye.porcupine.CheckOperationsVerbose))
       (Val #m)) (Val #sl)) (Val #dur))
   {{ (r : GoString) (info : LinearizationInfo), RET (PairV #r #info);
