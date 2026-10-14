@@ -263,41 +263,78 @@ theorem checkParallel.wp_proof
         all_goals
           wp_auto
           wp_if_destruct
-          all_goals
-            isplitr
+          · isplitr
             · ipureintro; first | rfl | trivial
-            iexists _
-            iframe
-            first | (ileft; iframe; ipureintro; first | rfl | trivial)
-              | (iright; iframe; ipureintro; first | rfl | trivial)
+            iexists true
+            iframe done cancel count
+            iright
+            isplitr
+            · ipureintro; rfl
+            ileft; iexact Htok
+          · isplitr
+            · ipureintro; first | rfl | trivial
+            iexists false
+            iframe done cancel count
+            ileft
+            isplitr
+            · ipureintro; rfl
+            iexact Htok
       wp_for_post
-      iframe
-      iexists c + W64 1, k, dn, tov, i :: R
-      iframe
-      isplitr
-      · ipureintro
-        refine ⟨?_, List.nodup_cons.2 ⟨Hni, HR.2.1⟩, ?_⟩
-        · have := HR.1; simp only [List.length_cons]; word
-        · intro j hj
-          rcases List.mem_cons.1 hj with rfl | hj
-          · exact Hi
-          · exact HR.2.2 j hj
-      done
-      isplitl [Hti Htoks]
-      · iapply BigSepL.bigSepL_cons.2
-        iframe
-      isplitr
+      ihave Htoks' : ([∗list] j ∈ i :: R, ghostMapElem γt j (DFrac.own 1) ()) $$ [Hti Htoks]
+      · iapply BigSepL.bigSepL_cons.2; iframe
+      ihave #Hcd' : (□ ∀ j, ⌜j ∈ i :: R⌝ -∗ cellDone lsl j) $$ []
       · imodintro
         iintro %j %hj
         rcases List.mem_cons.1 hj with rfl | hj
         · iexact Hcdi
         · iapply Hcd $$ %j %hj
-      isplitr
-      · ipureintro; exact Hok'
-      isplitr
-      · ipureintro; exact Hto
-      iexact Hcan
-    done
+      iframe
+      iexists c + W64 1, k, dn, tov, i :: R
+      iframe
+      iframe #
+      ipureintro
+      refine ⟨⟨?_, List.nodup_cons.2 ⟨Hni, HR.2.1⟩, ?_⟩, Hok', Hto⟩
+      · have := HR.1; simp only [List.length_cons]; word
+      · intro j hj
+        rcases List.mem_cons.1 hj with rfl | hj
+        · exact Hi
+        · exact HR.2.2 j hj
+    iapply BigAndL.bigAndL_cons.2
+    isplit
+    · icases Htc with (%Hnil | ⟨%γa, %Hdpos, #Hta⟩)
+      · iright
+        iapply chan.nilClausePre_recv time.Time _ _ Hnil
+      · ileft
+        simp only [chan.blockingClausePre]
+        iexists time.Time, inferInstance, inferInstance, inferInstance, inferInstance, tc, γa
+        isplitr
+        · ipureintro; rfl
+        isplitr
+        · iapply is_bag_is_chan $$ Hta
+        iapply bag_recv_au $$ [$Hlc3 $Hlc4] Hta
+        inext
+        iintro %t -
+        wp_auto
+        imod dghostVar_persist γc 1 () $$ Htok with #HPD
+        wp_apply Hcancel' $$ [HPD]
+        · iexact HPD
+        wp_for_post
+        iframe
+        iexists c, okv, true, true, R
+        iframe
+        iframe #
+        isplitr
+        · ipureintro; exact HR
+        isplitr
+        · ipureintro; exact Hok
+        isplitr
+        · ipureintro; exact fun _ => Hdpos
+        iright
+        isplitr
+        · ipureintro; rfl
+        iright; iexact HPD
+    iapply BigAndL.bigAndL_nil.2
+    itrivial
   done
 
 end proof
