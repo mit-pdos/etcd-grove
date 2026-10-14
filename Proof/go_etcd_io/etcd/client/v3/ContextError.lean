@@ -16,6 +16,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3
+open go_etcd_io.etcd.cache.v3 (statusErrOk statusErrOk_nil)
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -29,17 +30,19 @@ theorem ContextError.wp_proof
     (wp_FromError : EtcdGrove.status.FromError.spec (GF := GF) (hG := hG)) :
     ContextError.spec (GF := GF) (hG := hG) := by
   intro ci cd err
-  wp_start as ⟨#Hce, %Herr⟩
+  wp_start as ⟨#Hce, %Herr, #Hse⟩
   iunfold ctxErrClient at Hce
   cases err with
   | nil =>
     wp_auto
     iapply HΦ
-    ipureintro
-    exact ⟨fun _ => rfl, fun h => absurd rfl h⟩
+    isplitl
+    · ipureintro
+      exact ⟨fun _ => rfl, fun h => absurd rfl h⟩
+    · iapply statusErrOk_nil
   | ok ei =>
     wp_auto
-    wp_apply wp_rpctypes_Error as %err1 ⟨%Hne1, -, %Hce1⟩
+    wp_apply wp_rpctypes_Error (GoInterface.ok ei) $$ [$Hse] as %err1 ⟨%Hne1, #Hse1, %Hce1⟩
     · ipureintro; simp
     have Hc1 := Hce1 (Herr (by simp))
     obtain ⟨e1, rfl⟩ : ∃ e1, err1 = GoInterface.ok e1 := by
@@ -53,7 +56,7 @@ theorem ContextError.wp_proof
     ihave #Htree := errors.isErrorTree_leaf (GF := GF) e1 Hleaf Htyped
     wp_apply errors.wp_As (T' := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError)
         (T := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) (· = GoInterface.ok e1)
-        (GoInterface.ok e1) _ _ Htarget $$ [$Herrs $Htree $serverErr] as %b %v' Hse
+        (GoInterface.ok e1) _ _ Htarget $$ [$Herrs $Htree $serverErr] as %b %v' HseA
     · ipureintro; rfl
     have Hc1 : clientErr (GoInterface.ok e1) := ⟨Htarget, Hce'⟩
     have Hfin : ∀ e : GoInterface, e ≠ GoInterface.nil → clientErr e →
@@ -62,46 +65,48 @@ theorem ContextError.wp_proof
       fun e hne hc => ⟨fun h => absurd h (by simp), fun _ => ⟨hne, hc⟩⟩
     cases b
     · wp_auto
-      wp_apply wp_FromError (GoInterface.ok e1) as %sv %okv #HCode
+      ihave #Hst : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status $$ []
+      · iPkgInit
+      wp_apply wp_FromError (GoInterface.ok e1) $$ [$Hst $Hse1] as %sv %okv ⟨-, #HCode, -⟩
       cases okv
       · wp_auto
         iapply HΦ
-        ipureintro; exact Hfin _ Hne1 Hc1
+        iframe #; ipureintro; exact Hfin _ Hne1 Hc1
       · wp_auto
         wp_apply HCode as %c
         wp_if_destruct
-        · wp_apply Hce $$ %Broadcast.Pending as %e2 He2 %Hc2
+        · wp_apply Hce $$ %Broadcast.Pending as %e2 He2 %Hc2 -
           cases e2 with
           | nil =>
             wp_auto
             iapply HΦ
-            ipureintro; exact Hfin _ Hne1 Hc1
+            iframe #; ipureintro; exact Hfin _ Hne1 Hc1
           | ok e2 =>
             simp only [reduceCtorEq, ↓reduceIte]
             wp_auto
-            wp_apply Hce $$ %Broadcast.Done [He2] as %e3 %Hne3 %Hc3
+            wp_apply Hce $$ %Broadcast.Done [He2] as %e3 %Hne3 %Hc3 #Hs3
             · iexact He2
             iapply HΦ
-            ipureintro; exact ⟨False.elim, fun _ => ⟨Hne3, Hc3⟩⟩
+            iframe #; ipureintro; exact ⟨False.elim, fun _ => ⟨Hne3, Hc3⟩⟩
         · wp_if_destruct
-          · wp_apply Hce $$ %Broadcast.Pending as %e2 He2 %Hc2
+          · wp_apply Hce $$ %Broadcast.Pending as %e2 He2 %Hc2 -
             cases e2 with
             | nil =>
               wp_auto
               iapply HΦ
-              ipureintro; exact Hfin _ Hne1 Hc1
+              iframe #; ipureintro; exact Hfin _ Hne1 Hc1
             | ok e2 =>
               simp only [reduceCtorEq, ↓reduceIte]
               wp_auto
-              wp_apply Hce $$ %Broadcast.Done [He2] as %e3 %Hne3 %Hc3
+              wp_apply Hce $$ %Broadcast.Done [He2] as %e3 %Hne3 %Hc3 #Hs3
               · iexact He2
               iapply HΦ
-              ipureintro; exact ⟨False.elim, fun _ => ⟨Hne3, Hc3⟩⟩
+              iframe #; ipureintro; exact ⟨False.elim, fun _ => ⟨Hne3, Hc3⟩⟩
           · iapply HΦ
-            ipureintro; exact Hfin _ Hne1 Hc1
+            iframe #; ipureintro; exact Hfin _ Hne1 Hc1
     · wp_auto
       iapply HΦ
-      ipureintro; exact Hfin _ Hne1 Hc1
+      iframe #; ipureintro; exact Hfin _ Hne1 Hc1
 
 end proof
 

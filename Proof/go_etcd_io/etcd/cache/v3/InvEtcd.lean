@@ -815,8 +815,10 @@ instance watchChain_persistent (pfx : GoString) (prev : w64) (bs : List Batch) :
 at revision `c`, after which it is at `c'`. Its header revision is below `2^63 - 1` (etcd's
 revisions are), and it is one of:
 * an error (`resp.Err() != nil`: a close error, a compaction, a cancel); the position is kept;
-  the close error's `Error()`, if it has one, returns some string (`errStrOk`: a gRPC status
-  error or a context error from the client's stream);
+  the close error is one grpc's `status` accepts (`statusErrOk`, unit P3a; it was `errStrOk`:
+  its `Error()` returns some string; `WatchResponse.Err` passes it to `rpctypes.Error`, which
+  calls its `Error()` and `GRPCStatus()`): a gRPC status error or a context error from the
+  client's stream;
 * the created notification (no events); the position is kept; etcd has reached its header
   revision (`etcdReached`, free if `0`);
 * a progress notification at `p ≥ c`: nothing under the prefix changed in `(c, p]`; the
@@ -827,7 +829,7 @@ revisions are), and it is one of:
 def watchRespOk (pfx : GoString) (c c' : w64) (v : go_etcd_io.etcd.client.v3.WatchResponse)
     (r : RespModel) : IProp GF :=
   iprop(⌜sint.Z r.hdrRev < 2 ^ 63 - 1⌝ ∗
-    ((⌜watchErr v ∧ c' = c⌝ ∗ errStrOk v.closeErr') ∨
+    ((⌜watchErr v ∧ c' = c⌝ ∗ statusErrOk v.closeErr') ∨
      (⌜¬ watchErr v ∧ r.created = true ∧ r.events = [] ∧ c' = c⌝ ∗ etcdReached r.hdrRev) ∨
      (⌜¬ watchErr v ∧ r.isProgressNotify = true ∧ sint.Z c ≤ sint.Z r.hdrRev ∧ c' = r.hdrRev⌝ ∗
        EtcdStep c r.hdrRev pfx [] ∗ etcdReached r.hdrRev) ∨

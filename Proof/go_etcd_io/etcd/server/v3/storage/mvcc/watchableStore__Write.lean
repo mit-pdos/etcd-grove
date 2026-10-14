@@ -30,10 +30,10 @@ of `L`'s budget but the transaction's, the transaction's committed log is `L`. -
 theorem mvcc.watchWriter_pins (γ : mvcc.StoreNames) (L ilog : mvcc.Log) (pend : List mvcc.Change)
     (tw s : Loc) :
     mvcc.idxCert (GF := GF) γ.idx L ∗ ownToks γ.revs (mvcc.wBudget L - 1) ∗
-      mvcc.storeTxnWriteIs tw s γ ilog pend ⊢ ⌜ilog = L⌝ := by
+      mvcc.storeTxnWriteIs tw s γ trace ilog pend ⊢ ⌜ilog = L⌝ := by
   iintro ⟨#Hmycert, Hmine, H⟩
   unfold mvcc.storeTxnWriteIs
-  icases H with ⟨%trace, %ti, %bt, %Locked, %chs, %ps, %ntok, %Pw, %fw, H⟩
+  icases H with ⟨%ti, %bt, %Locked, %chs, %ps, %ntok, %Pw, %fw, H⟩
   iNamed H
   unfold mvcc.revToken
   icombine Hmine Htok as Hall
@@ -47,8 +47,8 @@ theorem mvcc.watchWriter_pins (γ : mvcc.StoreNames) (L ilog : mvcc.Log) (pend :
 theorem mvcc.watchableStore.Write.wp_proof (hWrite : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.Write.spec (GF := GF) (hG := hG) := by
   have hWrite := mvcc.store.Write.spec_frozen hWrite
-  intro s st γ trace L P Pre Q f
-  wp_start as ⟨#Hws, Hrd, Hwt, Hww, %Hlen, %Htrnn, #Hhook, Hpre, #Htr⟩
+  intro s st γ trace L P Pre Q f te
+  wp_start as ⟨#Hws, Hrd, Hwt, Hww, %Hlen, %Htrnn, #Hhook, Hpre, #Htr, Htrc⟩
   ihave #Hws0 : mvcc.isWatchableStore s st γ $$ []
   · iexact Hws
   iunfold mvcc.isWatchableStore at Hws
@@ -59,13 +59,14 @@ theorem mvcc.watchableStore.Write.wp_proof (hWrite : mvcc.store.Write.spec (GF :
   rw [hb]
   icases (ownToks_add 1 (mvcc.wBudget L - 1) γ.st.revs).1 $$ Htoks with ⟨Htoks, H1⟩
   (try wp_auto)
-  wp_apply (hWrite st γ.st trace P Pre Q f) $$ [$Hs $Hrd H1 $Hwt $Hhook $Hpre $Htr] as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
+  wp_apply (hWrite st γ.st trace P Pre Q f te) $$ [$Hs $Hrd H1 $Hwt $Hhook $Hpre $Htr $Htrc]
+    as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
   · unfold mvcc.revToken; iframe H1; ipureintro; exact Htrnn
   iunfold mvcc.isTxnWrite at Htx
   iNamed Htx
   ihave %Heq := mvcc.watchWriter_pins γ.st L ilog [] tw st $$ [$Hcert $Htoks $Htw]
   subst Heq
-  ihave Htx : mvcc.isTxnWrite mw st γ.st ilog [] (W64 0) (W64 0) (W64 0) $$ [Hmw Htw]
+  ihave Htx : mvcc.isTxnWrite mw st γ.st trace ilog [] (W64 0) (W64 0) (W64 0) $$ [Hmw Htw Htrc]
   · iunfold mvcc.isTxnWrite
     iexists tw, ranges
     iframe

@@ -47,26 +47,27 @@ theorem mvcc.writeView.Put.wp_proof
   · iPkgInit
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply hTODO as %t %Ht
+  wp_apply hTODO as %t ⟨%Ht, Htrc⟩
   (try wp_auto)
-  -- `wv.kv.Write(trace)`
-  wp_apply (hWrite s γ t P Pre Q f) $$ [$Hs $Hrd $Htok $Hwt $Hhook $Hpre $Htr] as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
+  -- `wv.kv.Write(t)`
+  wp_apply (hWrite s γ t P Pre Q f true) $$ [$Hs $Hrd $Htok $Hwt $Hhook $Hpre $Htr $Htrc]
+    as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
   · ipureintro; exact Ht
   (try wp_auto)
   -- `tw.Put(key, value, lease)`
-  wp_apply (hPut mw s γ ilog [] (W64 0) (W64 0) (W64 0) key value k v leaseID L)
+  wp_apply (hPut t mw s γ ilog [] (W64 0) (W64 0) (W64 0) key value k v leaseID L)
     $$ [$Htx $Hkey $Hval $Hown] as ⟨Htx, Hown⟩
   · ipureintro; refine ⟨Hlease, ?_⟩; simp; omega
   (try wp_auto)
   -- the deferred `tw.End()`
   rw [List.nil_append]
-  ihave Htx' : mvcc.isTxn mw s γ (.write ilog [.put k v leaseID] (W64 0 + W64 1) (W64 0)
+  ihave Htx' : mvcc.isTxn mw s γ t (.write ilog [.put k v leaseID] (W64 0 + W64 1) (W64 0)
       (W64 0 + (key.len + value.len))) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
   ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ $$ Htx'
   -- the caller's update: the lock's invariant back for `Unlock`
   imod Hupd $$ HQ with ⟨HP, HPost⟩
-  wp_apply (hEnd mw s γ _) $$ [$Htx' Hhook HP] as ⟨Hrd, Hcert⟩
+  wp_apply (hEnd t mw s γ _) $$ [$Htx' Hhook HP] as ⟨Hrd, Hcert, -⟩
   (try wp_auto)
   · iapply mvcc.txnEndPre_write; iframe Hhook HP
   iapply HΦ

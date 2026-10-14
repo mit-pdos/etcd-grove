@@ -119,19 +119,19 @@ theorem mvcc.NewStore_backend
 instance `d`, its write token the backend's write-back budget. -/
 theorem mvcc.store_Write_backend (hWrite : mvcc.store.Write.spec (GF := GF) (hG := hG))
     (s : Loc) (γ : mvcc.StoreNames) (d : mvcc.KBReal) (hk : γ.kb = some d) (trace : Loc)
-    (P Pre Q : IProp GF) (f : val) :
+    (P Pre Q : IProp GF) (f : val) (te : Bool) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗ backend.wbTok d.γB ∗
         ⌜trace ≠ null⌝ ∗ mvcc.hookIs γ P f ∗ Pre ∗
-        □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
+        □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗ traceutil.ownTrace trace te }}
       (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Write")) (Val #trace))
     {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
-        (∃ ilog : mvcc.Log, mvcc.isTxnWrite mw s γ ilog [] (W64 0) (W64 0) (W64 0)) ∗ Q }} := by
+        (∃ ilog : mvcc.Log, mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0)) ∗ Q }} := by
   have hWrite := mvcc.store.Write.spec_frozen hWrite
   have hwt : mvcc.storeWT (GF := GF) γ = backend.wbTok d.γB := by
     unfold mvcc.storeWT mvcc.kbWT; rw [hk]
   rw [← hwt]
-  exact hWrite s γ trace P Pre Q f
+  exact hWrite s γ trace P Pre Q f te
 
 end proof
 

@@ -9,6 +9,6 @@ roots ^Proof/go_etcd_io/etcd/cache/v3/(Link|Results)\.lean$
 axiom context.Err.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.Printf.wp_proof
-axiom rpctypes.Error.wp_proof
 axiom status.Error.wp_proof
+axiom status.FromError.wp_proof
 axiom time.Duration.String.wp_proof

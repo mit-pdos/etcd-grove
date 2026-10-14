@@ -15,6 +15,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.IsTxnReadonly
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.IsTxnSerializable
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Txn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveReadOnlyRangeRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveReadOnlyTxnRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.applyCompare
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.applyCompares
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.asembleRangeResponse
@@ -26,12 +28,17 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.checkTxn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.compareKV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.compareToPath
 public import Proof.context.TODO
+public import Proof.context.WithValue
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.deleteRange
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewLoggableTxnRequest
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse__GetKvs
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp__GetRequestRange
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.executeRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.executeTxn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.filterRangeResults
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.getPrevKV
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.isNil
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate__Less
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByKey__Less
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByMod__Less
@@ -45,6 +52,7 @@ public import Proof.google_golang_org.protobuf.proto.Size
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.pruneKVs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.rangeLimit
+public import Proof.reflect.ValueOf
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.sortRangeResults
 public import Proof.sort.Reverse
 public import Proof.sort.Sort
@@ -52,20 +60,29 @@ public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Get
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__AddField
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__IsEmpty
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__StartSubTrace
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__Step
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__StepWithFunction
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__StopSubTrace
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__disableStep
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__enableStep
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__updateFieldIfExist
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.newTrace
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.txn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApplySecObserve
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Count
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Range
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.RangeSecObserve
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.compareInt64
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.warnOfExpensiveGenericRequest
+public import Proof.go_uber_org.zap.Duration
 public import Proof.go_uber_org.zap.Error
 public import Proof.go_uber_org.zap.Int32
 public import Proof.go_uber_org.zap.Logger__Error
 public import Proof.go_uber_org.zap.Logger__Panic
+public import Proof.go_uber_org.zap.Logger__Warn
+public import Proof.go_uber_org.zap.String
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link
 
 @[expose] public section
@@ -84,6 +101,22 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
+
+theorem traceutil.wp_TODO :
+    EtcdGrove.traceutil.TODO.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.TODO.wp_proof
+
+theorem traceutil.wp_Get :
+    EtcdGrove.traceutil.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.Get.wp_proof traceutil.wp_TODO
+
+theorem traceutil.Trace.wp_IsEmpty :
+    EtcdGrove.traceutil.Trace.IsEmpty.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.Trace.IsEmpty.wp_proof
+
+theorem traceutil.wp_newTrace :
+    EtcdGrove.traceutil.newTrace.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.newTrace.wp_proof
 
 theorem wp_mkGteRange :
     EtcdGrove.txn.mkGteRange.spec (GF := GF) (hG := hG) :=
@@ -109,21 +142,33 @@ theorem wp_checkLease :
     EtcdGrove.txn.checkLease.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.checkLease.wp_proof
 
+theorem traceutil.Trace.wp_disableStep :
+    EtcdGrove.traceutil.Trace.disableStep.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.Trace.disableStep.wp_proof
+
+theorem traceutil.Trace.wp_enableStep :
+    EtcdGrove.traceutil.Trace.enableStep.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.Trace.enableStep.wp_proof
+
+theorem traceutil.Trace.wp_Step :
+    EtcdGrove.traceutil.Trace.Step.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.Trace.Step.wp_proof
+
 theorem traceutil.Trace.wp_StepWithFunction :
     EtcdGrove.traceutil.Trace.StepWithFunction.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.traceutil.Trace.StepWithFunction.wp_proof
+  EtcdGrove.traceutil.Trace.StepWithFunction.wp_proof traceutil.Trace.wp_disableStep traceutil.Trace.wp_enableStep traceutil.Trace.wp_Step
 
 theorem context.wp_TODO :
     EtcdGrove.context.TODO.spec (GF := GF) (hG := hG) :=
   EtcdGrove.context.TODO.wp_proof
 
+theorem traceutil.Trace.wp_updateFieldIfExist :
+    EtcdGrove.traceutil.Trace.updateFieldIfExist.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.Trace.updateFieldIfExist.wp_proof
+
 theorem traceutil.Trace.wp_AddField :
     EtcdGrove.traceutil.Trace.AddField.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.traceutil.Trace.AddField.wp_proof
-
-theorem traceutil.Trace.wp_Step :
-    EtcdGrove.traceutil.Trace.Step.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.traceutil.Trace.Step.wp_proof
+  EtcdGrove.traceutil.Trace.AddField.wp_proof traceutil.Trace.wp_updateFieldIfExist
 
 theorem traceutil.Trace.wp_StartSubTrace :
     EtcdGrove.traceutil.Trace.StartSubTrace.spec (GF := GF) (hG := hG) :=
@@ -197,9 +242,49 @@ theorem zap.Logger.wp_Error :
     EtcdGrove.zap.Logger.Error.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.Error.wp_proof
 
-theorem traceutil.wp_TODO :
-    EtcdGrove.traceutil.TODO.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.traceutil.TODO.wp_proof
+theorem reflect.wp_ValueOf :
+    EtcdGrove.reflect.ValueOf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.reflect.ValueOf.wp_proof
+
+theorem wp_isNil :
+    EtcdGrove.txn.isNil.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.isNil.wp_proof reflect.wp_ValueOf
+
+theorem zap.wp_Duration :
+    EtcdGrove.zap.Duration.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Duration.wp_proof
+
+theorem zap.wp_String :
+    EtcdGrove.zap.String.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.String.wp_proof
+
+theorem zap.Logger.wp_Warn :
+    EtcdGrove.zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.Warn.wp_proof
+
+theorem wp_warnOfExpensiveGenericRequest :
+    EtcdGrove.txn.warnOfExpensiveGenericRequest.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.warnOfExpensiveGenericRequest.wp_proof zap.wp_Duration zap.wp_String zap.wp_Error zap.Logger.wp_Warn
+
+theorem wp_WarnOfExpensiveReadOnlyRangeRequest :
+    EtcdGrove.txn.WarnOfExpensiveReadOnlyRangeRequest.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.WarnOfExpensiveReadOnlyRangeRequest.wp_proof wp_isNil wp_warnOfExpensiveGenericRequest
+
+theorem wp_NewLoggableTxnRequest :
+    EtcdGrove.NewLoggableTxnRequest.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.NewLoggableTxnRequest.wp_proof
+
+theorem ResponseOp.wp_GetResponseRange :
+    EtcdGrove.ResponseOp.GetResponseRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.ResponseOp.GetResponseRange.wp_proof
+
+theorem RangeResponse.wp_GetKvs :
+    EtcdGrove.RangeResponse.GetKvs.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.RangeResponse.GetKvs.wp_proof
+
+theorem wp_WarnOfExpensiveReadOnlyTxnRequest :
+    EtcdGrove.txn.WarnOfExpensiveReadOnlyTxnRequest.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.WarnOfExpensiveReadOnlyTxnRequest.wp_proof wp_NewLoggableTxnRequest wp_isNil ResponseOp.wp_GetResponseRange RangeResponse.wp_GetKvs wp_warnOfExpensiveGenericRequest
 
 theorem wp_ApplySecObserve :
     EtcdGrove.txn.ApplySecObserve.spec (GF := GF) (hG := hG) :=
@@ -228,9 +313,13 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
+theorem context.wp_WithValue :
+    EtcdGrove.context.WithValue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.context.WithValue.wp_proof
+
 theorem traceutil.wp_EnsureTrace :
     EtcdGrove.traceutil.EnsureTrace.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.traceutil.EnsureTrace.wp_proof
+  EtcdGrove.traceutil.EnsureTrace.wp_proof traceutil.wp_Get traceutil.Trace.wp_IsEmpty traceutil.wp_newTrace context.wp_WithValue
 
 theorem wp_deleteRange [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.deleteRange.spec (GF := GF) (hG := hG) :=
@@ -255,10 +344,6 @@ theorem wp_getPrevKV [go_etcd_io.etcd.cache.v3.Assumptions] :
 theorem wp_checkAndGetPrevKV [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.checkAndGetPrevKV.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.checkAndGetPrevKV.wp_proof wp_getPrevKV
-
-theorem traceutil.wp_Get :
-    EtcdGrove.traceutil.Get.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.traceutil.Get.wp_proof
 
 theorem wp_put [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.txn.put.spec (GF := GF) (hG := hG) :=

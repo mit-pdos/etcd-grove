@@ -48,7 +48,8 @@ abbrev EtcdServer.processInternalRaftRequestOnce.spec : Prop :=
       (Val #(GoInterface.ok ctx))) (Val #p))
   {{ (res : Loc) (err : GoInterface), RET (PairV #res #err); srvLeadTimeReader s ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
-          ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ resultIs E rq' res) ∨
+          ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ apply.resTrace res ∗
+          resultIs E rq' res) ∨
        (⌜res = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ srvMaybeDeposited ρ rq)) }}
 
 end spec

@@ -27,11 +27,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- `mw.Rev()` of a transaction of either kind: the revision it began at (`TxnKind.beginRev`: a
 read transaction's revision, a write transaction's committed log's last). -/
 abbrev mvcc.metricsTxnWrite.Rev.spec : Prop :=
-  ∀ (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (crev : Int) (Z : IProp GF),
+  ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (crev : Int)
+    (Z : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isTxn mw s γ kind crev Z }}
+      mvcc.isTxn mw s γ trace kind crev Z }}
     (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Rev")) (Val #()))
-  {{ RET #(kind.beginRev : w64); mvcc.isTxn mw s γ kind crev Z }}
+  {{ RET #(kind.beginRev : w64); mvcc.isTxn mw s γ trace kind crev Z }}
 
 end spec
 

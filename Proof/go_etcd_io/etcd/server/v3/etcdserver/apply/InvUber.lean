@@ -199,6 +199,33 @@ def dispatchResult (rq : IRRModel) (v3 : Bool) (log : mvcc.Log) (skip : Bool) (a
       applyErrIs v.Err')
   else iprop(⌜ar = null⌝)
 
+/-- **The trace of `dispatch`'s result** `ar` (unit P1b, 2026-10-14): owned (`traceRes`), unless
+the result is `nil` or an error (`raftRequest` reads the trace only of a result without error).
+The apply thread hands it, with the result, to the goroutine serving the request. -/
+def resTrace (ar : Loc) : IProp GF :=
+  iprop(⌜ar = null⌝ ∨ ∃ v : Result, ar ↦□ v ∗ (⌜v.Err' ≠ GoInterface.nil⌝ ∨ traceRes v.Trace'))
+
+theorem resTrace_of (ar : Loc) (v : Result) :
+    ar ↦□ v ⊢ traceRes (GF := GF) v.Trace' -∗ resTrace ar := by
+  iintro #H Ht
+  unfold resTrace
+  iright
+  iexists v
+  iframe H
+  iright; iexact Ht
+
+theorem resTrace_err (ar : Loc) (v : Result) (h : v.Err' ≠ GoInterface.nil) :
+    ar ↦□ v ⊢ resTrace (GF := GF) ar := by
+  iintro #H
+  unfold resTrace
+  iright
+  iexists v
+  iframe H
+  ileft; ipureintro; exact h
+
+theorem resTrace_null : ⊢ resTrace (GF := GF) null := by
+  unfold resTrace; iintro; ileft; ipureintro; rfl
+
 /-- The result of the auth layer's admin rejection, read-only (`rejectResultIs`, persisted). -/
 def rejectedResultIs (ar : Loc) : IProp GF :=
   iprop(⌜ar ≠ null⌝ ∗ ∃ v : Result, ar ↦□ v ∗

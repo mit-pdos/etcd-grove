@@ -119,6 +119,14 @@ context etcd no longer has), bypassing `isSafeRetryMutableRPC`'s write-at-most-o
 first attempt applied is applied again (reproduced with a mock server; found 2026-10-14, unit C1,
 the client meets the server; not filed).
 
+[etcd-auth-token-md-empty](etcd-auth-token-md-empty.md): the auth store's `AuthInfoFromCtx`
+indexes `ts[0]` of the token key's metadata values unchecked: a panic on an incoming context whose
+metadata has the key with no value (only an in-process caller can build one; reproduced; found
+2026-10-14, unit P2, the auth store's request side; not filed).
+[etcd-auth-tls-info-assert](etcd-auth-tls-info-assert.md): `AuthInfoFromTLS` asserts the peer's
+`AuthInfo` is a `credentials.TLSInfo` (one-result form): a panic for a peer with other
+credentials, an unstated precondition (unreachable in etcd's servers; reproduced; found
+2026-10-14, unit P2; not filed).
 [go-itab-reinterpret-assert](go-itab-reinterpret-assert.md): in Go itself, a type assertion
 on an `I1` value read through a `*I2` (two named interfaces with the same methods) panics with
 "main.I2 is main.T, not main.T", since the runtime compares itabs (found 2026-10-13, Perennial's

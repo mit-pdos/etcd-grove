@@ -167,14 +167,7 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.pkg.v3.idutil
 
-namespace go_etcd_io.etcd.pkg.v3.notify
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.notify :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.notify :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.pkg.v3.notify
+-- `pkg/v3/notify`: `apply/Base.lean` (2026-10-14, unit P1b: `membership` imports it)
 
 -- `api/v3/version`: `server/v3/lease/Base.lean` (2026-10-13, unit 9: the lessor's
 -- `shouldPersistCheckpoints` reads its `V3_6`)

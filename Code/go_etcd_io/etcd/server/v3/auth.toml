@@ -1,10 +1,30 @@
-# Types and names only: function and method bodies are axiomatized.
+# Types and names only, except the auth store's request side (store.go, range_perm_cache.go;
+# unit P2), with bodies: `IsAuthEnabled`, `Revision`, the permission checks the KV path calls
+# (`IsPutPermitted`, `IsRangePermitted`, `IsDeleteRangePermitted` through `isOpPermitted`,
+# `isRangeOpPermitted` and the permission cache's `checkKeyPoint`/`checkKeyInterval`), and
+# `IsAdminPermitted`; `AuthInfoFromCtx` (with `authInfoFromToken`), and the error variables
+# they return. Names only: `AuthInfoFromTLS` (its peer's `credentials.TLSInfo` and the x509
+# chains are axiomatized types), `hasRootRole` (`u.Roles` of the axiomatized protobuf
+# `authpb.User`), `redactToken` (`crypto/sha256`) and the rest (the admin requests, the token
+# providers, `NewAuthStore`).
 # AuthStore is an interface (the server's apply package calls its methods, and its value is a
 # field of `ApplierOptions` and of the auth applier), so the packages its methods' signatures
 # name are imported (`Authenticate`'s context and the requests and responses, `Recover`'s
-# backend: `AuthBackend`'s users and roles).
-translate = ["!*"]
-imports = ["!*", "context", "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb"]
+# backend: `AuthBackend`'s users and roles); `sync`, `zap` and `adt` for the struct `authStore`
+# (its locks, its logger, the permission cache's interval trees); `strings`, `sync/atomic`,
+# grpc's `metadata` and `rpctypes` for the request side's bodies.
+translate = ["!*", "AuthInfo",
+  "authStore.IsAuthEnabled", "authStore.Revision",
+  "authStore.isOpPermitted", "authStore.IsPutPermitted", "authStore.IsRangePermitted",
+  "authStore.IsDeleteRangePermitted", "authStore.IsAdminPermitted",
+  "authStore.isRangeOpPermitted", "checkKeyPoint", "checkKeyInterval", "isOpenEnded",
+  "authStore.AuthInfoFromCtx", "authStore.authInfoFromToken",
+  "ErrUserEmpty", "ErrUserNotFound", "ErrPermissionDenied", "ErrAuthOldRevision",
+  "ErrInvalidAuthToken"]
+imports = ["!*", "context", "errors", "strings", "sync", "sync/atomic",
+  "go.uber.org/zap", "google.golang.org/grpc/metadata",
+  "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb",
+  "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "go.etcd.io/etcd/pkg/v3/adt"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

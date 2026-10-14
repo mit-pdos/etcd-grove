@@ -158,8 +158,8 @@ local macro "piro_tail" : tactic => `(tactic| (
       iframe Hclaim
       ipureintro; exact ⟨Hdec, rfl⟩
     (try wp_auto)
-    wp_apply hTO (structFieldRef EtcdServer go!"Cfg" s) $$ [] as %tmo -
-    · iframe #; ipureintro; exact Hcfgnn
+    wp_apply hTO (structFieldRef EtcdServer go!"Cfg" s) v.electionTicks v.tickMs $$ [] as %tmo -
+    · iframe #
     (try wp_auto)
     wp_apply context.wp_WithTimeout ctx cd tmo $$ [] as %cctx %γc %cancel %dl ⟨#Hcancel, #Hcctx⟩
     · iframe #
@@ -256,7 +256,7 @@ local macro "piro_tail" : tactic => `(tactic| (
           ihave %Hbad := dghostVar_agree _ _ _ _ _ $$ Hcons' Hc2
           cases Hbad
         iunfold resultΨ at Hres
-        icases Hres with ⟨%ar, %Hx, Hri⟩
+        icases Hres with ⟨%ar, %Hx, HTr, Hri⟩
         subst Hx
         (try wp_auto)
         wp_apply HAddEv
@@ -271,7 +271,7 @@ local macro "piro_tail" : tactic => `(tactic| (
         isplitr
         · ipureintro; rfl
         iexists ⟨id, hv.Username', hv.AuthRevision'⟩, rq'
-        iframe Hri
+        iframe Hri HTr
         ipureintro; exact Hwire
       iapply BigAndL.bigAndL_cons.2
       isplit
@@ -355,7 +355,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
   ihave #Hv' := Hv
   iunfold srvReqFieldsAt at Hv'
   icases Hv' with ⟨#Hgen, #HidGen, #Hw, #Hwi, #Hrn, #Hmrb, #Hfgf, #Hfg, #Hcca, #Het, #Htm,
-    #Has, #Hras, #Hdone, #Hdonec, #Hmid, #Hlead, #Hcl, #Htr, #Hidx, #Hmint, #Hclog, %Hcfgnn⟩
+    #Has, #Hras, #Hdone, #Hdonec, #Hmid, #Hlead, #Hcl, #Htr, #Hpeers, #Hidx, #Hmint, #Hclog, %Hcfgnn⟩
   ihave #Pidutil : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil $$ []
   · iPkgInit
   ihave #Pproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []

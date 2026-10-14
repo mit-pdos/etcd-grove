@@ -22,20 +22,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `c.Range(ctx, in, opts...)` on a stub on a connection to `K` (`kvStubAt`): `Invoke` of
+/-- `c.Range(ctx, in, opts...)` on a stub on a connection to the server at `addr` (`kvStubAt`),
+for a spec `Spec` the server registered for the method and the caller's `Φ`: `Invoke` of
 `"/etcdserverpb.KV/Range"` with `grpc.StaticMethod()` before the options, into a new
-`*RangeResponse`: the call's answer (`rangeCallOut`, the run's `Q`); the request comes back. -/
+`*RangeResponse`: the call's answer (`rangeCallOut`, the run's `Φ`); the request comes back. -/
 abbrev kVClient.Range.spec : Prop :=
-  ∀ (kc conn : Loc) (K : KVConn GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+  ∀ (kc conn : Loc) (addr : GoString) (Spec : GrpcSpec (GF := GF) pbRangeRequest pbRangeResponse)
+    (Φ : RangeRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.RangeRequest) (k e : GoString) (opts : GoSlice)
-    (vs : List GoInterface) (Q : RangeRespM → IProp GF),
+    (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ kvStubAt kc conn ∗
-      isKVConn conn K ∗ context.isContext ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
-      opts ↦*□ vs ∗ callOptsOk vs ∗ rangeRunOk K (rangeReqOp req k e) Q }}
+      isEtcdConn conn addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Range" Spec ∗
+      □ ▷ Spec (rangeReqOp req k e) Φ ∗ context.isContext ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
+      opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (App (Val (kc @!! go.GoType.PointerType etcdserverpb.kVClient.ty @!! go!"Range"))
       (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (∃ req' : etcdserverpb.RangeRequest, inp ↦ req') ∗ rangeCallOut Q resp err }}
+      (∃ req' : etcdserverpb.RangeRequest, inp ↦ req') ∗ rangeCallOut Φ resp err }}
 
 end spec
 

@@ -49,7 +49,7 @@ theorem apply.uberApplier.Apply.wp_proof
         structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
         apply.kvOwn E (o.logAfter x.log) ∗ apply.cPost v3 Pre Post ∗
         ⌜apply.dispatchStep x.chain rq v3 x.log o ∧ apply.chainAfter rq v3 x.chain c'⌝ ∗
-        apply.dispatchResult rq v3 x.log skip ar o))
+        apply.resTrace ar ∗ apply.dispatchResult rq v3 x.log skip ar o))
       [Ha Hkv Hwt Hcs] as %ar Hpost
   · iframe Hw Ha Hkv Hwt Hcs
     imodintro
@@ -62,12 +62,12 @@ theorem apply.uberApplier.Apply.wp_proof
     iintro %ar ⟨Hres, HB⟩
     iapply HΦ'
     iframe Hres HB
-  icases Hpost with (⟨%a', %c', %o, Ha', #Hs'', Hkv, HPP, %Hst, Hres⟩ | ⟨%Hna, ⟨Ha, Hkv, -, Hcs⟩, Hrej⟩)
+  icases Hpost with (⟨%a', %c', %o, Ha', #Hs'', Hkv, HPP, %Hst, Htr, Hres⟩ | ⟨%Hna, ⟨Ha, Hkv, -, Hcs⟩, Hrej⟩)
   · imodintro
     iapply HΦ
     iexists ⟨o.logAfter x.log, c'⟩, (.dispatched o skip)
     simp only [apply.applyResultIs]
-    iframe Hkv HPP Hres
+    iframe Hkv HPP Hres Htr
     isplitl [Ha']
     · iunfold apply.uberOwn; iexists a'; iframe Ha' Hs''
     ipureintro
@@ -87,6 +87,8 @@ theorem apply.uberApplier.Apply.wp_proof
       iexact Hcs
     isplitr
     · ipureintro; exact ⟨⟨Hna, rfl⟩, Or.inl rfl⟩
+    isplitl []
+    · iapply apply.resTrace_err ar v Hvf.1 $$ Hv
     simp only [apply.applyResultIs]
     iunfold apply.rejectedResultIs
     isplitr

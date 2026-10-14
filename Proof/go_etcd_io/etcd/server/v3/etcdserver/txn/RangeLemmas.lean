@@ -148,8 +148,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- A read transaction's log is well formed (its certificate), not empty, and its revision is
 the log's last. -/
 theorem isTxnRead_pure (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) :
-    mvcc.isTxnRead (GF := GF) mw s γ log rev ⊢
-      mvcc.isTxnRead mw s γ log rev ∗ ⌜LogOk log ∧ log ≠ [] ∧ rev = W64 ((log.length : Int) - 1)⌝ := by
+    mvcc.isTxnRead (GF := GF) mw s γ trace log rev ⊢
+      mvcc.isTxnRead mw s γ trace log rev ∗ ⌜LogOk log ∧ log ≠ [] ∧ rev = W64 ((log.length : Int) - 1)⌝ := by
   iintro H
   iunfold mvcc.isTxnRead at H
   iNamed H
@@ -161,7 +161,7 @@ theorem isTxnRead_pure (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev
   icases HcT with ⟨-, -, %Hp, -⟩
   isplitl
   · iunfold mvcc.isTxnRead
-    iexists trw, tr, trace, ti, rt, ranges
+    iexists trw, tr, ti, rt, ranges
     iframe
     iframe #
   · ipureintro
@@ -169,7 +169,7 @@ theorem isTxnRead_pure (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev
 
 /-- A read transaction's certificate. -/
 theorem isTxnRead_cert (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) :
-    mvcc.isTxnRead (GF := GF) mw s γ log rev ⊢ mvcc.isTxnRead mw s γ log rev ∗ mvcc.idxCert γ.idx log := by
+    mvcc.isTxnRead (GF := GF) mw s γ trace log rev ⊢ mvcc.isTxnRead mw s γ trace log rev ∗ mvcc.idxCert γ.idx log := by
   iintro H
   iunfold mvcc.isTxnRead at H
   iNamed H
@@ -178,7 +178,7 @@ theorem isTxnRead_cert (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev
   iNamedSuffix HtrT "T"
   isplitl
   · iunfold mvcc.isTxnRead
-    iexists trw, tr, trace, ti, rt, ranges
+    iexists trw, tr, ti, rt, ranges
     iframe
     iframe #
   · iexact HcertT

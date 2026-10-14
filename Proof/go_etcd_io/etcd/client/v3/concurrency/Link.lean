@@ -90,8 +90,11 @@ public import Proof.go_etcd_io.etcd.client.v3.concurrency.readSet__cmps
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.readSet__first
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.respToValue
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrorDesc
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Error
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.runSTM
 public import Proof.google_golang_org.grpc.status.Error
+public import Proof.google_golang_org.grpc.status.FromError
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.stmSerializable__Get
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.stmSerializable__Rev
 public import Proof.go_etcd_io.etcd.client.v3.concurrency.stmSerializable__commit
@@ -247,9 +250,21 @@ theorem v3.wp_WithRev :
     EtcdGrove.WithRev.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithRev.wp_proof
 
+theorem status.wp_FromError :
+    EtcdGrove.status.FromError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.status.FromError.wp_proof
+
+theorem rpctypes.wp_ErrorDesc :
+    EtcdGrove.rpctypes.ErrorDesc.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rpctypes.ErrorDesc.wp_proof status.wp_FromError
+
+theorem rpctypes.EtcdError.wp_Error :
+    EtcdGrove.rpctypes.EtcdError.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rpctypes.EtcdError.Error.wp_proof
+
 theorem rpctypes.wp_Error :
     EtcdGrove.rpctypes.Error.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.rpctypes.Error.wp_proof
+  EtcdGrove.rpctypes.Error.wp_proof rpctypes.wp_ErrorDesc status.wp_FromError rpctypes.EtcdError.wp_Error
 
 theorem status.wp_Error :
     EtcdGrove.status.Error.spec (GF := GF) (hG := hG) :=

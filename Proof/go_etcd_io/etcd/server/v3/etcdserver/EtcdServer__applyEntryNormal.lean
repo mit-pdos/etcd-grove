@@ -129,6 +129,8 @@ local macro "trig'" : tactic => `(tactic| (
   iexists ar
   isplitr
   · ipureintro; rfl
+  isplitl [HTr]
+  · iexact HTr
   iunfold resultIs
   isplitr
   · ipureintro; exact Har0
@@ -155,6 +157,8 @@ local macro "trig" : tactic => `(tactic| (
   iexists ar
   isplitr
   · ipureintro; rfl
+  isplitl [HTr]
+  · iexact HTr
   iunfold resultIs
   isplitr
   · ipureintro; exact Har0
@@ -198,7 +202,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
   iunfold isServer at Hsrv
   icases Hsrv with ⟨#Hsci, ⟨%fv, #Hfv⟩, #Hat⟩
   iunfold srvFieldsAt at Hfv
-  icases Hfv with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, #Hua, #Happl, %HE, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl, #Hq,
+  icases Hfv with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, #Hua, #Happl, %HE, #Hhook, #Hlv, #Hlok, #Hfc, #Has, #Hcl, #Hrc, #Hq,
     #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
   ihave #He' := He
   iunfold entryAt at He'
@@ -276,7 +280,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       subst Hweq
       wp_apply +noauto hA fv.lg e m fv.ua fv.w false E iprop(True) iprop(True) iprop(True) x rq id0 RD
         (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot
-        $$ [HKV Hwt HRD] as %ar %id ⟨HRD, -, #Har, %Hid, %x', %out, HKV, %Hstep, -, #Hdel⟩
+        $$ [HKV Hwt HRD] as %ar %id ⟨HRD, -, #Har, -, %Hid, %x', %out, HKV, %Hstep, -, #Hdel⟩
       · iframe Happl Hwok' HRD He HKV Hwt
         isplitr
         · iunfold entryRegd at Hreg; iapply Hreg; ipureintro; exact ⟨hdec, hid⟩
@@ -371,7 +375,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
           applyBackend γ ci b) x rq id0 RD
         (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ot
         $$ [Hst Happ Hbe HKV Hwt HRD] as %ar %id
-          ⟨HRD, Hout, #Har, %Hid, %x', %out, HKV, %Hstep, HRes, #Hdel⟩
+          ⟨HRD, Hout, #Har, HTr, %Hid, %x', %out, HKV, %Hstep, HRes, #Hdel⟩
       · iframe Happl Hwok' HRD He HKV Hwt
         isplitr
         · iunfold entryRegd at Hreg; iapply Hreg; ipureintro; exact ⟨hdec, hid⟩
@@ -460,7 +464,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         (try dsimp only)
         ihave #HT := HTrig $$ %id %(interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar)
-        wp_apply HT $$ [HRes HMint]
+        wp_apply HT $$ [HRes HTr HMint]
         · trig
         (try wp_auto)
         tail_any
@@ -475,7 +479,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
           (try dsimp only)
           ihave #HT := HTrig $$ %id %(interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar)
-          wp_apply HT $$ [HRes HMint]
+          wp_apply HT $$ [HRes HTr HMint]
           · trig
           (try wp_auto)
           tail_any
@@ -507,7 +511,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
           iunfold srvGoAttachOk at Hgok'
           icases Hgok' with ⟨%gch, %gc, -, -, -, -, -, #Hctx, -, -⟩
           ihave HTP : iprop(waitTrig (reqWaitR ρ.ids E) id (interface.mkOk (go.GoType.PointerType
-              go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar)) $$ [HRes HMint]
+              go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar)) $$ [HRes HTr HMint]
           · trig'
           ipersist s
           ipersist id

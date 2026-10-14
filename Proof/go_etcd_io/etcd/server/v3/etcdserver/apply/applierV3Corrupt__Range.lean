@@ -38,6 +38,9 @@ theorem apply.applierV3Corrupt.Range.wp_proof :
   icases Hpre with ⟨%Hk, -, Hkv, Hres⟩
   wp_auto
   iapply HΦ
+  isplitl
+  rotate_left
+  · iapply apply.traceRes_null
   iunfold apply.rangePost
   iexists (.rejected .corrupt)
   isplitr

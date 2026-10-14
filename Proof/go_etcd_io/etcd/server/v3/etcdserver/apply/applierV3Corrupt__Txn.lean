@@ -39,6 +39,9 @@ theorem apply.applierV3Corrupt.Txn.wp_proof :
   icases Hpre with ⟨%Hk, -, -, Hkv, Hres, Hcs⟩
   wp_auto
   iapply HΦ
+  isplitl
+  rotate_left
+  · iapply apply.traceRes_null
   iunfold apply.kvPost
   iexists (.rejected .corrupt)
   isplitr

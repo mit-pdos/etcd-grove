@@ -30,13 +30,13 @@ is the committed one again. The sole writer is back at the committed log, with t
 slots and the certificate. The inner `End`'s `Unlock` takes the batch lock's invariant `P` (the
 store's, `hookIs`) back. -/
 abbrev mvcc.watchableStoreTxnWrite.End.spec : Prop :=
-  ∀ (tw s st : Loc) (γ : mvcc.WsNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
+  ∀ (trace : Loc) (tw s st : Loc) (γ : mvcc.WsNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
     (puts deletes putSize : w64) (P : IProp GF) (f : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isWatchTxnWrite tw s st γ ilog pend puts deletes putSize ∗ mvcc.hookIs γ.st P f ∗ P }}
+      mvcc.isWatchTxnWrite tw s st γ trace ilog pend puts deletes putSize ∗ mvcc.hookIs γ.st P f ∗ P }}
     (App (Val (tw @!! go.GoType.PointerType watchableStoreTxnWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); mvcc.storeReader st γ.st ∗ mvcc.idxCert γ.st.idx (mvcc.commitLog ilog pend) ∗
-      mvcc.watchWriter γ (mvcc.commitLog ilog pend) }}
+      mvcc.watchWriter γ (mvcc.commitLog ilog pend) ∗ (∃ te : Bool, traceutil.ownTrace trace te) }}
 
 end spec
 

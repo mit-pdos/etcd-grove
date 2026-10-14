@@ -32,7 +32,7 @@ theorem txn.checkAndGetPrevKV.wp_proof
   wp_start as ⟨%Htr, Htx, #Hp⟩
   ihave Hti : (txn.txnInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hti with ⟨-, ⟨%eK, #HeK⟩⟩
+  icases Hti with ⟨-, ⟨%eK, #HeK⟩, -⟩
   wp_auto
   wp_apply (hGet trace mw s γ kind p o) $$ [$Htx $Hp] as %r ⟨Htx, Hr⟩
   · ipureintro; exact Htr

@@ -29,15 +29,15 @@ context error. (The read case, at an `isContext`, is the spec before the txn pac
 At the compaction revision `crev` the transaction observed (`rangeOutcomeC`; 2026-10-13, unit
 6a); the frozen statement (`crev = -1`: `rangeOutcome`) is `specFrozen` (`spec_frozen`, `FrozenSpecs.lean`). -/
 abbrev mvcc.metricsTxnWrite.Range.spec : Prop :=
-  ∀ (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind)
+  ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool)
     (key endk : GoSlice) (k e : GoString) (ro : RangeOptions) (crev : Int) (Z : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isTxn mw s γ kind crev Z ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e }}
+      mvcc.isTxn mw s γ trace kind crev Z ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e }}
     (App (App (App (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Range"))
       (Val #(GoInterface.ok ctx))) (Val #key)) (Val #endk)) (Val #ro))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
-      ⌜todo = true → r ≠ null⌝ ∗ mvcc.isTxn mw s γ kind crev Z ∗
+      ⌜todo = true → r ≠ null⌝ ∗ mvcc.isTxn mw s γ trace kind crev Z ∗
       mvcc.rangeOutcomeC r err kind.readLog kind.readRev crev (decide (endk = slice.nil)) k e ro }}
 
 end spec

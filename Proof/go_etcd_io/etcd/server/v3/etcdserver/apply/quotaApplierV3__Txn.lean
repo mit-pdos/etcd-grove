@@ -54,7 +54,7 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
   wp_apply HAvail $$ %_ %r [] as %ok -
   · ipureintro; exact Or.inr (Or.inl rfl)
   ihave Hres := apply.chainRes_quota_out c p (.ok bi) $$ Hf Hres
-  wp_apply HTxn $$ %r %skip %rq %t %log %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %trace %err Hpost
+  wp_apply HTxn $$ %r %skip %rq %t %log %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
   · iunfold apply.txnPre
     iunfold apply.mPre
     iframe
@@ -68,6 +68,9 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
   · -- an error: passed on
     wp_auto
     iapply HΦ
+    isplitr [Htrc]
+    rotate_left
+    · iexact Htrc
     iunfold apply.kvPost
     iexists oc
     iframe HR Hkv HPP Hres
@@ -83,6 +86,9 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
     · -- the quota said no: `ErrNoSpace`, the put committed
       wp_auto
       iapply HΦ
+      isplitr [Htrc]
+      rotate_left
+      · iexact Htrc
       iunfold apply.kvPost
       iexists (.applied log' true)
       isplitr
@@ -98,6 +104,9 @@ theorem apply.quotaApplierV3.Txn.wp_proof :
       ipureintro; rfl
     · wp_auto
       iapply HΦ
+      isplitr [Htrc]
+      rotate_left
+      · iexact Htrc
       iunfold apply.kvPost
       iexists (.applied log' false)
       iframe HR Hkv HPP Hres

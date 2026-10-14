@@ -37,3 +37,6 @@ intervalTree__Delete: intervalTree__find intervalNode__successor intervalNode__u
 # proved in unit 4d (`Visit` with a closure inserting into the other tree; the visitor protocol
 # tells the visitor its position among the stabbed entries, for `Insert`'s count bound).
 intervalTree__Union: intervalTree__Visit intervalTree__Insert
+# The bytes-affine intervals (the auth store's permission cache; unit P2, 2026-10-14).
+NewBytesAffineInterval:
+NewBytesAffinePoint: NewBytesAffineInterval

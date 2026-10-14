@@ -1,6 +1,15 @@
-# `TODO` with its body, and the types; the rest names only.
-translate = ["!*", "TODO", "Trace", "step", "Field"]
-imports = ["!*", "time", "go.uber.org/zap"]
+# The traces (trace.go) with bodies (unit P1b, 2026-10-14: `ownTrace`, `notes/decisions.md`,
+# "Traces on the request path"): the constructors, the context's trace (`Get`, `EnsureTrace`),
+# the methods the request path calls and the long-trace loggers; the formatting (`logInfo`,
+# `LogWithStepThreshold`, `writeFields`, `Field.format`: fmt of `any` values, `math/rand`) and
+# `Init`/`Tracer` (otel) are names only.
+translate = ["!*", "TODO", "Trace", "step", "Field", "TraceKey", "StartTimeKey",
+  "newTrace", "Get", "EnsureTrace",
+  "Trace.IsEmpty", "Trace.GetStartTime", "Trace.SetStartTime", "Trace.InsertStep",
+  "Trace.StartSubTrace", "Trace.StopSubTrace", "Trace.Step", "Trace.StepWithFunction",
+  "Trace.AddField", "Trace.updateFieldIfExist", "Trace.disableStep", "Trace.enableStep",
+  "Trace.LogIfLong", "Trace.LogAllStepsIfLong"]
+imports = ["!*", "context", "time", "go.uber.org/zap"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

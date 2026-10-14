@@ -26,10 +26,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 (`storeReaderC`, with the reader's tag `Z`; 2026-10-13, unit 6a). The frozen statement
 (`storeReader`) is `specFrozen` (`spec_frozen`, `FrozenSpecs.lean`). -/
 abbrev mvcc.txnReadWrite.End.spec : Prop :=
-  ∀ (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (crev : Int) (Z : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isRoTxnWrite trw s γ log rev crev Z }}
+  ∀ (trace : Loc) (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (crev : Int)
+    (Z : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isRoTxnWrite trw s γ trace log rev crev Z }}
     (App (Val (trw @!! go.GoType.PointerType txnReadWrite.ty @!! go!"End")) (Val #()))
-  {{ RET #(); mvcc.storeReaderC s γ ∗ □ Z }}
+  {{ RET #(); mvcc.storeReaderC s γ ∗ □ Z ∗ (∃ te : Bool, traceutil.ownTrace trace te) }}
 
 end spec
 

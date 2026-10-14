@@ -29,13 +29,14 @@ theorem mvcc.metricsTxnWrite.Range.wp_proof
     (hRange : mvcc.storeTxnCommon.Range.spec (GF := GF) (hG := hG))
     (hRangeW : mvcc.storeTxnWrite.Range.spec (GF := GF) (hG := hG)) :
     mvcc.metricsTxnWrite.Range.spec (GF := GF) (hG := hG) := by
-  intro mw s γ kind ctx cd todo key endk k e ro crev Z
+  intro trace mw s γ kind ctx cd todo key endk k e ro crev Z
   wp_start as ⟨Htx, #Hctx, #Hkey, #Hend⟩
   cases kind with
   | read log rev =>
     simp only [mvcc.isTxn, mvcc.TxnKind.readLog, mvcc.TxnKind.readRev]
     iunfold mvcc.isTxnRead at Htx
     iNamed Htx
+    icases Htrc with ⟨%te, Htrc⟩
     (try wp_auto)
     -- `tw.TxnWrite.Range(...)`: `txnReadWrite`'s promoted `Range`, then `storeTxnRead`'s
     -- (`storeTxnCommon.Range` on its embedded field)
@@ -43,30 +44,36 @@ theorem mvcc.metricsTxnWrite.Range.wp_proof
     (try wp_auto)
     wp_method_call; wp_call
     (try wp_auto)
-    wp_apply (hRange tr s trace ti rt γ log rev ctx cd todo key endk k e ro crev Z)
-      $$ [$Hs $Htr $Hrd $Hidx $Hti $Hctx $Hkey $Hend $Hmu] as %r %err ⟨%Htodo, Hti, Hmu, Hrd, Hout⟩
+    wp_apply (hRange tr s trace ti rt γ log rev ctx cd todo key endk k e ro te crev Z)
+      $$ [$Hs $Htr $Hrd $Hidx $Hti $Hctx $Hkey $Hend $Hmu $Htrc]
+      as %r %err ⟨%Htodo, Hti, Hmu, Hrd, Htrc, Hout⟩
     (try wp_auto)
     iapply HΦ
     isplitl []
     · ipureintro; exact Htodo
     iframe Hout
+    ihave Htrc : iprop(∃ te' : Bool, traceutil.ownTrace trace te') $$ [Htrc]
+    · iexists te; iexact Htrc
     iunfold mvcc.isTxnRead
-    iexists trw, tr, trace, ti, rt, (ranges + W64 1)
+    iexists trw, tr, ti, rt, (ranges + W64 1)
     iframe
     iframe #
   | write ilog pend puts deletes putSize =>
     simp only [mvcc.isTxn, mvcc.TxnKind.readLog, mvcc.TxnKind.readRev]
     iunfold mvcc.isTxnWrite at Htx
     iNamed Htx
+    icases Htrc with ⟨%te, Htrc⟩
     (try wp_auto)
     -- `tw.TxnWrite.Range(...)`: `storeTxnWrite.Range`
-    wp_apply (hRangeW tw s γ ilog pend ctx cd todo key endk k e ro crev Z)
-      $$ [$Htw $Hctx $Hkey $Hend] as %r %err ⟨%Htodo, Htw, Hout⟩
+    wp_apply (hRangeW trace tw s γ ilog pend ctx cd todo key endk k e ro te crev Z)
+      $$ [$Htw $Hctx $Hkey $Hend $Htrc] as %r %err ⟨%Htodo, Htw, Htrc, Hout⟩
     (try wp_auto)
     iapply HΦ
     isplitl []
     · ipureintro; exact Htodo
     iframe Hout
+    ihave Htrc : iprop(∃ te' : Bool, traceutil.ownTrace trace te') $$ [Htrc]
+    · iexists te; iexact Htrc
     iunfold mvcc.isTxnWrite
     iexists tw, (ranges + W64 1)
     iframe

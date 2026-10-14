@@ -24,6 +24,8 @@ public import Spec.go_opentelemetry_io.otel.«attribute».String
 public import Spec.go_opentelemetry_io.otel.«attribute».Int64
 public import Spec.go_opentelemetry_io.otel.«attribute».Bool
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveReadOnlyRangeRequest
+public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest__String
+public import Spec.google_golang_org.protobuf.proto.Size
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Range
 public import Spec.strconv.FormatBool
 public import Spec.time.Duration__Seconds
@@ -75,6 +77,36 @@ theorem rangeResult_show (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev 
     iexists h, sl, rev
     iframe #
 
+/-- What `WarnOfExpensiveReadOnlyRangeRequest` needs of a range's answer (unit P4, 2026-10-14):
+no response, or one whose `Kvs` it reads and whose `proto.Size` returns lent the header's id
+fields (`rangeHdr`: a response comes with no error). -/
+theorem rangeResult_warn (hSize : proto.Size.spec (GF := GF) (hG := hG))
+    (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (o : OpFull) (wt : Bool) :
+    txn.rangeResult (GF := GF) resp err log rev o wt ⊢
+      ⌜resp = null⌝ ∨
+        (∃ sl : GoSlice, structFieldRef etcdserverpb.RangeResponse go!"Kvs" resp ↦□ sl) ∗
+        txn.sizeOk (interface.mkOk (go.GoType.PointerType etcdserverpb.RangeResponse.ty) #resp)
+          (txn.rangeHdr resp err) := by
+  iunfold txn.rangeResult
+  iintro (⟨%H, -⟩ | ⟨%H, -⟩ | ⟨%H, %kvs, %more, #Hr, -⟩)
+  · ileft; ipureintro; exact H.2
+  · ileft; ipureintro; exact H.2.2.2
+  · iright
+    ihave #Hr' := Hr
+    iunfold txn.rangeResponseIs at Hr'
+    icases Hr' with ⟨-, %h, %sl, %ps, -, -, -, #Hk, -⟩
+    isplitl []
+    · iexists sl; iexact Hk
+    iunfold txn.sizeOk
+    iintro !> %Φ !> ⟨#Hp, HP⟩ HΦ
+    iunfold txn.rangeHdr at HP
+    ihave Hh := HP $$ %H.2
+    wp_apply (hSize.2.1 resp _ kvs more _) $$ [$Hp $Hr $Hh] as %n ⟨-, Hh⟩
+    iapply HΦ
+    iunfold txn.rangeHdr
+    iintro -
+    iexact Hh
+
 instance readIndexOk_persistent_r (γr : ReadNames) (c : w64) :
     Persistent (readIndexOk (GF := GF) γr c) := by
   unfold readIndexOk; infer_instance
@@ -117,8 +149,9 @@ theorem rangeResult_errIs [_root_.Perennial.errors.Assumptions] (resp : Loc) (er
 set_option hygiene false in
 /-- The deferred closure from `LogIfLong` on, then the span's `End`. -/
 local macro "range_defer_c" : tactic => `(tactic| (
-  wp_apply hLong trc _ $$ []
-  · iframe #; ipureintro; exact Htrc
+  icases Hown with ⟨%teL, HownL⟩
+  wp_apply hLong trc teL _ $$ [HownL]
+  · iexact HownL
   (try wp_auto)
   wp_apply time.wp_Since as %_ -
   (try wp_auto)
@@ -142,7 +175,7 @@ local macro "range_defer_c" : tactic => `(tactic| (
 set_option hygiene false in
 /-- The deferred closure from the trace's fields on. -/
 local macro "range_defer_b" : tactic => `(tactic| (
-  wp_join with [resp trace]
+  wp_join with [resp trace Hown]
   · iunfold rangeRespShow at Hshow
     icases Hshow with (%Hn | ⟨%h, %sl, %rv', #HKvs, #Hhd, #Hrv⟩)
     · exact absurd Hn Hif
@@ -150,10 +183,16 @@ local macro "range_defer_b" : tactic => `(tactic| (
     wp_apply wp_slice_literal
     isplitr
     · ipureintro; rfl
-    iintro %fs ⟨-, -⟩
+    iintro %fs ⟨Hfs, -⟩
     (try wp_auto)
-    wp_apply hAdd trc _ $$ []
-    · iframe #; ipureintro; exact Htrc
+    icases Hown with ⟨%teA, HownA⟩
+    wp_apply hAdd trc teA _ _ _ $$ [HownA Hfs] as ⟨HownA, -⟩
+    · iframe HownA Hfs
+      ipureintro
+      exact traceutil.fieldsWf_cons_int _ _ _ (.int _) _
+        (traceutil.fieldsWf_cons_int _ _ _ (.int64 _) _ traceutil.fieldsWf_nil)
+    ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [HownA]
+    · iexists teA; iexact HownA
     wp_join_done
   range_defer_c))
 
@@ -164,7 +203,11 @@ local macro "range_defer" : tactic => `(tactic| (
   wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
   · iframe #; iframe Hlr; ipureintro; exact Hlgn
   (try wp_auto)
-  wp_apply hWarn
+  wp_apply (hWarn _ _ _ _ respv _ (txn.rangeHdr respv _)) $$ [Hhdr] as Hhdr
+  · isplitr; · ipureintro; exact Hlgn
+    isplitr; · iexact Hstr
+    iframe Hhdr
+    iapply rangeResult_warn hSize _ _ _ _ _ _ $$ Hres
   (try wp_auto)
   range_defer_b))
 
@@ -178,7 +221,8 @@ local macro "range_tail" : tactic => `(tactic| (
       err_ptr ↦ errv ∗ mvcc.storeReader E.s E.γ ∗ srvLgReader s ∗ mvcc.idxCert E.γ.idx log ∗
       ⌜logR <+: log ∧ log.length + 0 + 3 ≤ 2 ^ 63 ∧ log ≠ []⌝ ∗
       txn.rangeResult respv errv log (W64 ((log.length : Int) - 1)) o true ∗
-      txn.rangeHdr respv errv)) $$ [resp err Hsr Hlr] as %serr Hds
+      txn.rangeHdr respv errv ∗ (∃ te, traceutil.ownTrace trc te)) trc false)
+      $$ [resp err Hsr Hlr Hown0] as %serr Hds
   · iframe #
     isplitr
     · iintro %a %info %dq !> %Φ' Ha HΦ'
@@ -194,7 +238,7 @@ local macro "range_tail" : tactic => `(tactic| (
       iapply HΦ'
       iframe Ha HpE
     isplitr
-    · iintro !> %Φ' ⟨Hresp, Herr, Hsr, Hlr⟩ HΦ'
+    · iintro !> %Φ' ⟨⟨Hresp, Herr, Hsr, Hlr⟩, Hown0⟩ HΦ'
       wp_auto
       wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
       · iframe #; iframe Hlr; ipureintro; exact Hlgn
@@ -203,9 +247,12 @@ local macro "range_tail" : tactic => `(tactic| (
       · iframe #
       (try wp_auto)
       imod ownToks_0 (GF := GF) E.γ.revs with Hnone
-      wp_apply (hRange ctx2 _ false w.lg w.kv E.s E.γ r o true 0 logR) $$ [Hsr Hnone]
-        as %respv %trv %errv ⟨Hsr, -, %Htrv, %log, %rv, #Hcert, %Hlog, #Hres, Hhdr, -⟩
+      wp_apply (hRange ctx2 _ false w.lg w.kv E.s E.γ r o true 0 logR (some trc) false)
+          $$ [Hsr Hnone Hown0]
+        as %respv %trv %errv ⟨Hsr, -, %Htrv, Hown, %Hteq, %log, %rv, #Hcert, %Hlog, #Hres, Hhdr, -⟩
       · iframe # Hsr Hnone
+        isplitl [Hown0]
+        · simp only [traceutil.ownTraceOpt]; iexact Hown0
         simp only [Bool.false_eq_true, ↓reduceIte]
         isplitr
         · itrivial
@@ -218,13 +265,15 @@ local macro "range_tail" : tactic => `(tactic| (
         ihave %Hs := Hsmall $$ %log' Hc'
         ipureintro; intro _; exact Hs
       obtain ⟨Hl1, Hl2, Hl3, rfl⟩ := Hlog
+      have htv := Hteq trc rfl rfl
+      subst htv
       iapply HΦ'
       iexists respv, errv, log
       iframe
       iframe #
       ipureintro; exact ⟨Hl1, Hl2, Hl3⟩
     iframe
-  icases Hds with (⟨%Hs0, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, %Hlog, #Hres, Hhdr⟩ |
+  icases Hds with (⟨%Hs0, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, %Hlog, #Hres, Hhdr, Hown⟩ |
     ⟨%Hs0, #HsE, Hg⟩)
   · subst Hs0
     ihave #Hshow := rangeResult_show _ _ _ _ _ _ $$ Hres
@@ -260,13 +309,19 @@ local macro "range_tail" : tactic => `(tactic| (
   · cases serr with
     | nil => exact absurd rfl Hs0
     | ok sei =>
-      icases Hg with (⟨resp, err, Hsr, Hlr⟩ |
-        ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, %Hlog, #Hres, -⟩)
+      icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
+        ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, %Hlog, #Hres, Hhdr, Hown⟩)
       · wp_auto
+        ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [Hown0]
+        · iexists false; iexact Hown0
         wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
         · iframe #; iframe Hlr; ipureintro; exact Hlgn
         (try wp_auto)
-        wp_apply hWarn
+        wp_apply (hWarn _ _ _ _ null _ iprop(True)) $$ []
+        · isplitr; · ipureintro; exact Hlgn
+          isplitr; · iexact Hstr
+          isplitr; · itrivial
+          ileft; ipureintro; rfl
         (try wp_auto)
         range_defer_c
         iapply HΦ
@@ -310,10 +365,12 @@ theorem EtcdServer.Range.wp_proof
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG))
     (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
     (hRange : txn.Range.spec (GF := GF) (hG := hG))
-    (hDS : EtcdServer.doSerialize.spec (GF := GF) (hG := hG)) :
+    (hDS : EtcdServer.doSerialize.spec (GF := GF) (hG := hG))
+    (hRStr : RangeRequest.String.spec (GF := GF) (hG := hG))
+    (hSize : proto.Size.spec (GF := GF) (hG := hG)) :
     EtcdServer.Range.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γr c ctx cd r o
-  wp_start as ⟨#Hsrv, #Hrd, Hcall, #Hctx, #Hr, %Hvst⟩
+  intro s E ρ γr c ctx cd r o ot te
+  wp_start as ⟨#Hsrv, #Hrd, Hcall, #Hctx, #Hct, Hto, #Hr, %Hvst⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hrd' := Hrd
   iunfold isServerRead at Hrd'
@@ -331,6 +388,18 @@ theorem EtcdServer.Range.wp_proof
   ihave #HaInit : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Papply
   icases HaInit with ⟨-, -, ⟨-, -, -, -, #HFut, -⟩⟩
+  ihave #Hstr : txn.stringerOk (GF := GF)
+      (interface.mkOk (go.GoType.PointerType etcdserverpb.RangeRequest.ty) #r) $$ []
+  · ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
+    · iPkgInit
+    iunfold txn.stringerOk
+    iexists _
+    isplitr; · ipureintro; rfl
+    iintro !> %Φ' !> - HΦ'
+    wp_apply (hRStr r o) $$ [] as %str -
+    · iframe #
+    iapply HΦ'
+    itrivial
   ihave #Hr' := Hr
   iunfold txn.rangeRequestIs at Hr'
   icases Hr' with ⟨%Hrn, %ksl, %esl, %k, %e, %rev0, %limit, %order, %target, %ser, %ko, %co, %minM,
@@ -384,7 +453,7 @@ theorem EtcdServer.Range.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hsp⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, #Hsp⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   iunfold trace.isSpan at Hsp
   icases Hsp with ⟨%si, %Hsi, #HEnd, -, -⟩
@@ -402,10 +471,20 @@ theorem EtcdServer.Range.wp_proof
   wp_apply wp_slice_literal
   isplitr
   · ipureintro; rfl
-  iintro %fsl ⟨-, -⟩
+  iintro %fsl ⟨Hfl, Hflc⟩
   (try wp_auto)
-  wp_apply hET ctx1 _ w.lg _ _ $$ [] as %ctx2 %trc ⟨%Htrc, %vs2, #Hctx2, -⟩
+  wp_apply hET ctx1 _ ot te w.lg _ _ $$ [Hto Hfl Hflc]
+    as %ctx2 %trc ⟨⟨%Htrc, -⟩, Hown0, #Hct2, %vs2, #Hctx2, -⟩
   · iframe #
+    isplitr
+    · iapply Hctr1 $$ Hct
+    iframe Hto
+    iunfold traceutil.ownFields
+    iexists _
+    iframe Hfl Hflc
+    ipureintro
+    exact traceutil.fieldsWf_cons_string _ _ _
+      (traceutil.fieldsWf_cons_string _ _ _ traceutil.fieldsWf_nil)
   (try wp_auto)
   wp_apply time.wp_Now as %start -
   (try wp_auto)
@@ -431,16 +510,22 @@ theorem EtcdServer.Range.wp_proof
     ihave Hrr : srvReadReader s γr $$ [Hrr]
     · iunfold srvReadReader; iexists _; iframe Hread Hrr
     (try wp_auto)
-    wp_apply hStep trc _ _ $$ []
-    · iframe #; ipureintro; exact Htrc
+    wp_apply hStep trc false _ slice.nil $$ [$Hown0] as Hown0
+    · iapply traceutil.ownFields_nil
     (try wp_auto)
     cases rerr with
     | ok rei =>
       wp_auto
+      ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [Hown0]
+      · iexists false; iexact Hown0
       wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
       · iframe #; iframe Hlr; ipureintro; exact Hlgn
       (try wp_auto)
-      wp_apply hWarn
+      wp_apply (hWarn _ _ _ _ null _ iprop(True)) $$ []
+      · isplitr; · ipureintro; exact Hlgn
+        isplitr; · iexact Hstr
+        isplitr; · itrivial
+        ileft; ipureintro; rfl
       (try wp_auto)
       range_defer_c
       iapply HΦ

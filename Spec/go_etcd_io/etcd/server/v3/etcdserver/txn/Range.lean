@@ -34,14 +34,16 @@ see. At a context never canceled (`nd`: `neverDone`), no context error (2026-10-
 apply package's backend, at `context.TODO()`, whose errors `errors.Is` takes). 2026-10-12 (the
 request path's unit 3b): the sort's premise is asked of the logs the read may see that are
 certified (`idxCert`: the server's readers know only that the store's certified logs are small),
-and a success's response header has its id fields owned (`rangeHdr`). -/
+and a success's response header has its id fields owned (`rangeHdr`).
+2026-10-14 (unit P1b): the context's trace `ot` (`ctxTraceIs`) and its ownership taken
+(`EnsureTrace`); the trace returned owned, the context's if it had a non-empty one. -/
 abbrev txn.Range.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc) (kv : GoInterface)
     (s : Loc) (γ : mvcc.StoreNames) (r : Loc) (o : OpFull) (withTotal : Bool) (m : Nat)
-    (log₀ : mvcc.Log),
+    (log₀ : mvcc.Log) (ot : Option Loc) (te : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
       txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
-      txn.rangeRequestIs r o ∗ mvcc.txnCtx ctx cd ∗
+      txn.rangeRequestIs r o ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
       (if nd then mvcc.neverDone cd else iprop(True)) ∗ ⌜lg ≠ null⌝ ∗ ⌜txn.validSortTarget o⌝ ∗
       (□ ∀ log : mvcc.Log, ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63⌝ -∗
         mvcc.idxCert γ.idx log -∗ ⌜txn.sortOk o log⌝) }}
@@ -49,6 +51,7 @@ abbrev txn.Range.spec : Prop :=
       (Val #r)) (Val #withTotal))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       mvcc.storeReader s γ ∗ ownToks γ.revs m ∗ ⌜trace ≠ null⌝ ∗
+      (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
       ∃ (log : mvcc.Log) (rev : w64), mvcc.idxCert γ.idx log ∗
         ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ log ≠ [] ∧
           rev = W64 ((log.length : Int) - 1)⌝ ∗

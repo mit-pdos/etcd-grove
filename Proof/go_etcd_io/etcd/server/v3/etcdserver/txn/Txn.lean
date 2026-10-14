@@ -109,8 +109,8 @@ theorem txn.Txn_sole
   have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
   have hWrite := mvcc.store.Write.spec_frozen hWrite
   have hRoEnd := mvcc.txnReadWrite.End.spec_frozen hRoEnd
-  intro ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f L
-  wp_start as ⟨#Hkv, Hrd, Hsw, Hwt, #Hle, #Hrt, #Hctx, #Hnd, #Hknown, Hu, %Hpre, Hcs, #Hhook⟩
+  intro ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f L ot te
+  wp_start as ⟨#Hkv, Hrd, Hsw, Hwt, #Hle, #Hrt, #Hctx, #Hct, Hto, #Hnd, #Hknown, Hu, %Hpre, Hcs, #Hhook⟩
   iunfold mvcc.csContract at Hcs
   icases Hcs with ⟨HPre, #Htr, Hupd⟩
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
@@ -119,7 +119,9 @@ theorem txn.Txn_sole
   icases Hkv with ⟨%Hkv, #Hs⟩
   subst Hkv
   wp_auto
-  wp_apply (hEnsure ctx cd lg _ _) $$ [$Hctx] as %ctx' %tr ⟨%Htr, %vs, #Hctx', -⟩
+  wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto]
+    as %ctx' %trace ⟨⟨%Htr, %Hteq⟩, Htrc, #Hct', %vs, #Hctx', -⟩
+  · iapply traceutil.ownFields_nil
   wp_apply (hRO rt t) $$ [$Hrt]
   generalize hw : (!txnReadonly t) = isW
   wp_join iprop(∃ md : w32, mode_ptr ↦ md ∗ txnModeWriteWithSharedBuffer_ptr ↦ shared)
@@ -128,35 +130,48 @@ theorem txn.Txn_sole
       (try simp only [SharedBufReadTxMode, ConcurrentReadTxMode]) <;> wp_auto <;>
       (isplitl []; · itrivial) <;> iexists _ <;> iframe
   have hlen3 : log.length + 3 ≤ 2 ^ 63 := by have := Hpre.1; omega
-  wp_apply (txn.soleWriter_Read hRead s γ md tr log hlen3 Htr) $$ [$Hs $Hrd $Hsw] as %mw ⟨%rev, Htx, Hsw⟩
+  wp_apply (txn.soleWriter_Read hRead s γ md trace log false hlen3 Htr) $$ [$Hs $Hrd $Hsw $Htrc] as %mw ⟨%rev, Htx, Hsw⟩
   -- `compareToPath` in the trace's step
-  wp_apply (hStepF tr _ _ slice.nil
-      (fun x => iprop(⌜x = #()⌝ ∗ ∃ sl : GoSlice, txnPath_ptr ↦ sl ∗
+  icases mvcc.isTxnRead_trace_acc mw s γ trace log rev $$ Htx with ⟨⟨%te1, Htrc⟩, Hback⟩
+  wp_apply (hStepF trace te1 _ _ slice.nil
+      iprop(∃ sl : GoSlice, txnPath_ptr ↦ sl ∗
         sl ↦* txnPath (mvcc.stateAfter log) t ∗ ownSliceCap Bool sl (DFrac.own 1) ∗
-        mvcc.isTxnRead mw s γ log rev ∗
+        ((∃ te, traceutil.ownTrace trace te) -∗ mvcc.isTxnRead mw s γ trace log rev) ∗
         txnRead_ptr ↦ (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface) ∗
-        rt_ptr ↦ rt)))
-    $$ [Htx txnPath txnRead rt] as %rv ⟨%Hrv, %sl, txnPath, Hsl, Hcap, Htx, txnRead, rt⟩
+        rt_ptr ↦ rt))
+    $$ [$Htrc Hback txnPath txnRead rt] as ⟨⟨%sl, txnPath, Hsl, Hcap, Hback, txnRead, rt⟩, %te2, Htrc⟩
   · isplitl []
-    · ipureintro; exact Htr
+    · iapply traceutil.ownFields_nil
+    iintro Htrc
+    ihave Htx := Hback $$ [Htrc]
+    · iexists te1; iexact Htrc
     wp_auto
-    wp_apply (hPath mw s γ log rev rt t) $$ [$Htx $Hrt] as %sl ⟨Htx, Hsl, Hcap⟩
+    wp_apply (hPath trace mw s γ log rev rt t) $$ [$Htx $Hrt] as %sl ⟨Htx, Hsl, Hcap⟩
+    icases mvcc.isTxnRead_trace_acc mw s γ trace log rev $$ Htx with ⟨⟨%te3, Htrc⟩, Hback⟩
     isplitl []; · itrivial
-    iexists sl
-    iframe
-  wp_join with [trace]
+    isplitl [txnPath Hsl Hcap Hback txnRead rt]
+    · iexists sl
+      iframe
+    iexists te3; iexact Htrc
+  ihave Htx := Hback $$ [Htrc]
+  · iexists te2; iexact Htrc
+  wp_join with [trace Htx]
   · wp_apply wp_slice_literal
     isplitr
     · ipureintro; rfl
-    iintro %fs ⟨-, -⟩
+    iintro %fs ⟨Hfs, -⟩
     wp_auto
-    wp_apply (hAdd tr _) $$ []
-    · ipureintro; exact Htr
+    icases mvcc.isTxnRead_trace_acc mw s γ trace log rev $$ Htx with ⟨⟨%te4, Htrc⟩, Hback⟩
+    wp_apply (hAdd trace te4 _ _ _) $$ [$Htrc $Hfs] as ⟨Htrc, -⟩
+    · ipureintro
+      exact traceutil.fieldsWf_cons_bool _ _ _ traceutil.fieldsWf_nil
+    ihave Htx := Hback $$ [Htrc]
+    · iexists te4; iexact Htrc
     try wp_join_done
   ipersist Hsl
   ihave Hu : (⌜true = false⌝ ∨ EtcdGrove.lease.lessorUser γ.leases L) $$ [Hu]
   · iright; iexact Hu
-  wp_apply (hCheck tr mw s γ log rev rt t le γ.leases sl [] L true (fun h => by cases h))
+  wp_apply (hCheck trace mw s γ log rev rt t le γ.leases sl [] L true (fun h => by cases h))
     $$ [$Htx $Hrt $Hle $Hu] as %n %err ⟨Htx, Hu, Hres⟩
   · isplitl []
     · ipureintro; exact Htr
@@ -171,21 +186,28 @@ theorem txn.Txn_sole
     | nil => exact absurd rfl Hne
     | ok ei =>
       wp_auto
-      ihave Htx : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
+      ihave Htx : mvcc.isTxn mw s γ trace (.read log rev) $$ [Htx]
       · simp only [mvcc.isTxn]; iexact Htx
       ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
       ihave Hep : mvcc.txnEndPre γ (.read log rev) $$ []
       · simp only [mvcc.txnEndPre]; itrivial
-      wp_apply (hEnd mw s γ (.read log rev)) $$ [$Htx $Hep] as ⟨Hrd, -⟩
+      wp_apply (hEnd trace mw s γ (.read log rev)) $$ [$Htx $Hep] as ⟨Hrd, -, %te9, Htrc⟩
       iapply HΦ
       iframe Hrd Hu
       ileft
       iframe Hce Hsw HPre
-      ipureintro; exact ⟨rfl, rfl, Hne⟩
+      isplitr
+      · ipureintro; exact ⟨rfl, rfl, Hne⟩
+      iexists trace, te9
+      iframe Htrc
+      ipureintro; exact Hteq
   obtain ⟨rfl, -, Hign⟩ := Hok
   wp_auto
-  wp_apply (hStep tr _ _)
-  · ipureintro; exact Htr
+  icases mvcc.isTxnRead_trace_acc mw s γ trace log rev $$ Htx with ⟨⟨%te4, Htrc⟩, Hback⟩
+  wp_apply (hStep trace te4 _ _) $$ [$Htrc] as Htrc
+  · iapply traceutil.ownFields_nil
+  ihave Htx := Hback $$ [Htrc]
+  · iexists te4; iexact Htrc
   have hoks := opsOk_strong _ _ _ _ Hpre.2.1 Hign
   have hlen4 : log.length + 4 ≤ 2 ^ 63 := Hpre.1
   ihave #Hnd' : mvcc.neverDone { cd with Values := vs } $$ []
@@ -194,14 +216,14 @@ theorem txn.Txn_sole
   · -- a read-only request: the read transaction, wrapped
     have hro : txnReadonly t = true := by simpa using hw
     wp_auto
-    wp_apply (hNewRo mw s γ log rev) $$ [$Htx] as %trw Hro
+    wp_apply (hNewRo trace mw s γ log rev) $$ [$Htx] as %trw Hro
     ihave Htv := (txnViewIs_ro trw s γ log rev).2 $$ Hro
     ihave Htw := txnWriteIs_of_view _ s γ true log [] _ ⟨rfl, rev, rfl⟩ $$ Htv
-    have htxn' := htxn ctx' { cd with Values := vs } true lg s γ
+    have htxn' := htxn trace ctx' { cd with Values := vs } true lg s γ
       (interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw) true log rt t sl skip L
     simp only [Bool.not_true, ↓reduceIte] at htxn'
     wp_apply htxn'
-      $$ [$Htw $Hctx' $Hnd' $Hrt $Hsl $Hleases] as %resp %err Hres
+      $$ [$Htw $Hctx' $Hct' $Hnd' $Hrt $Hsl $Hleases] as %resp %err Hres
     · isplitl []; · itrivial
       isplitl []; · ileft; itrivial
       ipureintro; exact ⟨hoks, Nat.lt_of_lt_of_le Hpre.2.2 (txn.putMax_ge γ), fun _ => hro, fun h => absurd h (by simp)⟩
@@ -215,7 +237,7 @@ theorem txn.Txn_sole
     simp only [↓reduceIte] at hkis
     obtain ⟨hch, rev', rfl⟩ := hkis
     ihave Hro := (txnViewIs_ro trw s γ log rev').1 $$ Hv
-    wp_apply (hRoEnd trw s γ log rev') $$ [$Hro] as Hrd
+    wp_apply (hRoEnd trace trw s γ log rev') $$ [$Hro] as ⟨Hrd, %te5, Htrc⟩
     ihave #Hresp2 := Hresp
     iunfold txnResponseIs at Hresp2
     icases Hresp2 with ⟨%Hrn, #Hf⟩
@@ -227,10 +249,12 @@ theorem txn.Txn_sole
     wp_apply wp_slice_literal
     isplitr
     · ipureintro; rfl
-    iintro %fs ⟨-, -⟩
+    iintro %fs ⟨Hfs, -⟩
     wp_auto
-    wp_apply (hAdd tr _) $$ []
-    · ipureintro; exact Htr
+    wp_apply (hAdd trace te5 _ _ _) $$ [$Htrc $Hfs] as ⟨Htrc, -⟩
+    · ipureintro
+      exact traceutil.fieldsWf_cons_int _ _ _ (.int _) _
+        (traceutil.fieldsWf_cons_int _ _ _ (.int64 _) _ traceutil.fieldsWf_nil)
     iapply HΦ
     iframe Hrd Hu
     iright
@@ -238,6 +262,10 @@ theorem txn.Txn_sole
     rw [hch]
     isplitl []
     · ipureintro; simp [Htr]
+    isplitl [Htrc]
+    · iexists te5; iexact Htrc
+    isplitr
+    · ipureintro; exact Hteq
     simp only [mvcc.commitLog, ↓reduceIte]
     iframe Hsw Hresp Hhdr
     isplitl []
@@ -247,14 +275,14 @@ theorem txn.Txn_sole
   · -- a write: the read ends, the write transaction opens at the sole writer's log
     have hro : txnReadonly t = false := by simpa using hw
     wp_auto
-    ihave Htx : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
+    ihave Htx : mvcc.isTxn mw s γ trace (.read log rev) $$ [Htx]
     · simp only [mvcc.isTxn]; iexact Htx
     ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
     ihave Hep : mvcc.txnEndPre γ (.read log rev) $$ []
     · simp only [mvcc.txnEndPre]; itrivial
-    wp_apply (hEnd mw s γ (.read log rev)) $$ [$Htx $Hep] as ⟨Hrd, -⟩
+    wp_apply (hEnd trace mw s γ (.read log rev)) $$ [$Htx $Hep] as ⟨Hrd, -, %te6, Htrc⟩
     icases soleWriter_split γ log hlen4 $$ Hsw with ⟨Htok, Hsw⟩
-    wp_apply (hWrite s γ tr P Pre Q f) $$ [$Hs $Hrd $Htok $Hwt $Hhook $HPre $Htr]
+    wp_apply (hWrite s γ trace P Pre Q f te6) $$ [$Hs $Hrd $Htok $Hwt $Hhook $HPre $Htr $Htrc]
       as %mw' ⟨⟨%ilog, Htx⟩, HQ⟩
     · ipureintro; exact Htr
     -- the caller's update (the writes are the model's): the lock's invariant back for `End`
@@ -265,17 +293,17 @@ theorem txn.Txn_sole
       (soleBudget log - 1) $$ [$Htoks $Hc $Htx]
     have hil := pinned_sole log ilog hlen4 Hpin
     subst ilog
-    ihave Htx : mvcc.isTxn mw' s γ (.write log [] (W64 0) (W64 0) (W64 0)) $$ [Htx]
+    ihave Htx : mvcc.isTxn mw' s γ trace (.write log [] (W64 0) (W64 0) (W64 0)) $$ [Htx]
     · simp only [mvcc.isTxn]; iexact Htx
     ihave Htv := (txnViewIs_mw mw' s γ _).2 $$ Htx
     ihave Htw := txnWriteIs_of_view _ s γ false log [] _ ⟨_, _, _, rfl⟩ $$ Htv
-    have htxn' := htxn ctx' { cd with Values := vs } true lg s γ
+    have htxn' := htxn trace ctx' { cd with Values := vs } true lg s γ
       (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw') false log rt t sl skip L
     simp only [Bool.not_false, ↓reduceIte, Bool.false_eq_true] at htxn'
     iunfold EtcdGrove.lease.lessorUser at Hu
     icases Hu with ⟨Hown, Hrdo⟩
     wp_apply htxn'
-      $$ [$Htw $Hctx' $Hnd' $Hrt $Hsl $Hleases $Hknown Hown] as %resp %err Hres
+      $$ [$Htw $Hctx' $Hct' $Hnd' $Hrt $Hsl $Hleases $Hknown Hown] as %resp %err Hres
     · isplitl [Hown]
       · iright; iexact Hown
       ipureintro; exact ⟨hoks, Nat.lt_of_lt_of_le Hpre.2.2 (txn.putMax_ge γ), fun h => h.elim, fun h => absurd h (by simp)⟩
@@ -288,7 +316,7 @@ theorem txn.Txn_sole
     obtain ⟨p1, p2, p3, rfl⟩ := hkis
     ihave Htx := (txnViewIs_mw mw' s γ _).1 $$ Hv
     ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
-    wp_apply (hEnd mw' s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost⟩
+    wp_apply (hEnd trace mw' s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost, %te5, Htrc⟩
     · iapply mvcc.txnEndPre_write; iframe Hhook HP
     ihave Hsw := soleWriter_close_end γ log _ p1 p2 p3 hlen4 $$ [Htoks Hpost]
     · iframe Hpost; iunfold soleWriterOpen; iframe Hc Htoks; ipureintro; exact Hl2
@@ -303,10 +331,12 @@ theorem txn.Txn_sole
     wp_apply wp_slice_literal
     isplitr
     · ipureintro; rfl
-    iintro %fs ⟨-, -⟩
+    iintro %fs ⟨Hfs, -⟩
     wp_auto
-    wp_apply (hAdd tr _) $$ []
-    · ipureintro; exact Htr
+    wp_apply (hAdd trace te5 _ _ _) $$ [$Htrc $Hfs] as ⟨Htrc, -⟩
+    · ipureintro
+      exact traceutil.fieldsWf_cons_int _ _ _ (.int _) _
+        (traceutil.fieldsWf_cons_int _ _ _ (.int64 _) _ traceutil.fieldsWf_nil)
     icases Hown with (Hf | Hown)
     · iexfalso; iexact Hf
     iapply HΦ
@@ -316,6 +346,10 @@ theorem txn.Txn_sole
     iright
     isplitl []
     · ipureintro; exact ⟨rfl, Htr, fun h => by rw [hro] at h; cases h⟩
+    isplitl [Htrc]
+    · iexists te5; iexact Htrc
+    isplitr
+    · ipureintro; exact Hteq
     rw [stateAfter_commitLog]
     simp only [srvRunTxn]
     iframe Hresp Hsw Hk2 Hhdr
@@ -341,8 +375,8 @@ theorem txn.Txn_read
   have hRead := mvcc.store.Read.spec_frozen hRead
   have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
   have hRoEnd := mvcc.txnReadWrite.End.spec_frozen hRoEnd
-  intro ctx cd lg rt shared kv le skip s γ m log₀ t
-  wp_start as ⟨#Hkv, Hrd, Htoks, #Hc0, #Hle, #Hrt, #Hctx, %Hpre, #Hsmall⟩
+  intro ctx cd lg rt shared kv le skip s γ m log₀ t ot te
+  wp_start as ⟨#Hkv, Hrd, Htoks, #Hc0, #Hle, #Hrt, #Hctx, #Hct, Hto, %Hpre, #Hsmall⟩
   obtain ⟨Hlg, hro, hgets⟩ := Hpre
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
@@ -350,7 +384,9 @@ theorem txn.Txn_read
   icases Hkv with ⟨%Hkv, #Hs⟩
   subst Hkv
   wp_auto
-  wp_apply (hEnsure ctx cd lg _ _) $$ [$Hctx] as %ctx' %tr ⟨%Htr, %vs, #Hctx', -⟩
+  wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto]
+    as %ctx' %trace ⟨⟨%Htr, %Hteq⟩, Htrc, #Hct', %vs, #Hctx', -⟩
+  · iapply traceutil.ownFields_nil
   wp_apply (hRO rt t) $$ [$Hrt]
   rw [hro]
   wp_join iprop(∃ md : w32, mode_ptr ↦ md ∗ txnModeWriteWithSharedBuffer_ptr ↦ shared)
@@ -358,29 +394,38 @@ theorem txn.Txn_read
   · (try cases shared) <;>
       (try simp only [SharedBufReadTxMode, ConcurrentReadTxMode]) <;> wp_auto <;>
       (isplitl []; · itrivial) <;> iexists _ <;> iframe
-  wp_apply (hRead s γ md tr m log₀) $$ [$Hs $Hrd $Htoks $Hc0] as %mw ⟨%log, %rev, Htx, Htoks, %Hpin⟩
+  wp_apply (hRead s γ md trace m log₀ false) $$ [$Hs $Hrd $Htoks $Hc0 $Htrc] as %mw ⟨%log, %rev, Htx, Htoks, %Hpin⟩
   · ipureintro; exact Htr
   icases isTxnRead_pure mw s γ log rev $$ Htx with ⟨Htx, %Hlog⟩
   icases isTxnRead_cert mw s γ log rev $$ Htx with ⟨Htx, #Hcert⟩
   have hpin' : log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 := ⟨Hpin.1, Hpin.2⟩
   ihave %Hsm := Hsmall $$ %log %hpin' Hcert
   -- `compareToPath` in the trace's step
-  wp_apply (hStepF tr _ _ slice.nil
-      (fun x => iprop(⌜x = #()⌝ ∗ ∃ sl : GoSlice, txnPath_ptr ↦ sl ∗
+  icases mvcc.isTxnRead_trace_acc mw s γ trace log rev $$ Htx with ⟨⟨%te1, Htrc⟩, Hback⟩
+  wp_apply (hStepF trace te1 _ _ slice.nil
+      iprop(∃ sl : GoSlice, txnPath_ptr ↦ sl ∗
         sl ↦* txnPath (mvcc.stateAfter log) t ∗ ownSliceCap Bool sl (DFrac.own 1) ∗
-        mvcc.isTxnRead mw s γ log rev ∗
+        ((∃ te, traceutil.ownTrace trace te) -∗ mvcc.isTxnRead mw s γ trace log rev) ∗
         txnRead_ptr ↦ (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface) ∗
-        rt_ptr ↦ rt)))
-    $$ [Htx txnPath txnRead rt] as %rv ⟨%Hrv, %sl, txnPath, Hsl, Hcap, Htx, txnRead, rt⟩
+        rt_ptr ↦ rt))
+    $$ [$Htrc Hback txnPath txnRead rt] as ⟨⟨%sl, txnPath, Hsl, Hcap, Hback, txnRead, rt⟩, %te2, Htrc⟩
   · isplitl []
-    · ipureintro; exact Htr
+    · iapply traceutil.ownFields_nil
+    iintro Htrc
+    ihave Htx := Hback $$ [Htrc]
+    · iexists te1; iexact Htrc
     wp_auto
-    wp_apply (hPath mw s γ log rev rt t) $$ [$Htx $Hrt] as %sl ⟨Htx, Hsl, Hcap⟩
+    wp_apply (hPath trace mw s γ log rev rt t) $$ [$Htx $Hrt] as %sl ⟨Htx, Hsl, Hcap⟩
+    icases mvcc.isTxnRead_trace_acc mw s γ trace log rev $$ Htx with ⟨⟨%te3, Htrc⟩, Hback⟩
     isplitl []; · itrivial
-    iexists sl
-    iframe
+    isplitl [txnPath Hsl Hcap Hback txnRead rt]
+    · iexists sl
+      iframe
+    iexists te3; iexact Htrc
+  ihave Htx := Hback $$ [Htrc]
+  · iexists te2; iexact Htrc
   ipersist Hsl
-  wp_apply (hCheck tr mw s γ log rev rt t le γ.leases sl [] [] false (fun _ => hro))
+  wp_apply (hCheck trace mw s γ log rev rt t le γ.leases sl [] [] false (fun _ => hro))
     $$ [$Htx $Hrt $Hle] as %n %err ⟨Htx, -, Hres⟩
   · isplitl []
     · ipureintro; exact Htr
@@ -395,12 +440,12 @@ theorem txn.Txn_read
     | nil => exact absurd rfl Hne
     | ok ei =>
       wp_auto
-      ihave Htx : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
+      ihave Htx : mvcc.isTxn mw s γ trace (.read log rev) $$ [Htx]
       · simp only [mvcc.isTxn]; iexact Htx
       ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
       ihave Hep : mvcc.txnEndPre γ (.read log rev) $$ []
       · simp only [mvcc.txnEndPre]; itrivial
-      wp_apply (hEnd mw s γ (.read log rev)) $$ [$Htx $Hep] as ⟨Hrd, -⟩
+      wp_apply (hEnd trace mw s γ (.read log rev)) $$ [$Htx $Hep] as ⟨Hrd, -, %te9, Htrc⟩
       iapply HΦ
       iframe Hrd Htoks
       iexists log
@@ -409,22 +454,29 @@ theorem txn.Txn_read
       · ipureintro; exact ⟨Hpin.1, Hpin.2, Hlog.2.1⟩
       ileft
       iframe Hce
-      ipureintro; exact ⟨rfl, rfl, Hne⟩
+      isplitr
+      · ipureintro; exact ⟨rfl, rfl, Hne⟩
+      iexists trace, te9
+      iframe Htrc
+      ipureintro; exact Hteq
   obtain ⟨rfl, -, -⟩ := Hok
   wp_auto
-  wp_apply (hStep tr _ _)
-  · ipureintro; exact Htr
+  icases mvcc.isTxnRead_trace_acc mw s γ trace log rev $$ Htx with ⟨⟨%te4, Htrc⟩, Hback⟩
+  wp_apply (hStep trace te4 _ _) $$ [$Htrc] as Htrc
+  · iapply traceutil.ownFields_nil
+  ihave Htx := Hback $$ [Htrc]
+  · iexists te4; iexact Htrc
   have hoks := txn.readTxn_opsOk t log Hlog.1 hro hgets Hsm false (W64 (log.length : Int))
   have hnil := txn.srvOps_gets_nil (mvcc.stateAfter log) (W64 (log.length : Int)) (mvcc.stateAfter log)
     _ (readonly_branch t hro (txnOk (mvcc.stateAfter log) t))
-  wp_apply (hNewRo mw s γ log rev) $$ [$Htx] as %trw Hro
+  wp_apply (hNewRo trace mw s γ log rev) $$ [$Htx] as %trw Hro
   ihave Htv := (txnViewIs_ro trw s γ log rev).2 $$ Hro
   ihave Htw := txnWriteIs_of_view _ s γ true log [] _ ⟨rfl, rev, rfl⟩ $$ Htv
-  have htxn' := htxn ctx' { cd with Values := vs } false lg s γ
+  have htxn' := htxn trace ctx' { cd with Values := vs } false lg s γ
     (interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw) true log rt t sl skip []
   simp only [Bool.not_true, ↓reduceIte, Bool.false_eq_true] at htxn'
   wp_apply htxn'
-    $$ [$Htw $Hctx' $Hrt $Hsl $Hleases] as %resp %err Hres
+    $$ [$Htw $Hctx' $Hct' $Hrt $Hsl $Hleases] as %resp %err Hres
   · isplitl []; · itrivial
     isplitl []; · ileft; itrivial
     ipureintro
@@ -432,15 +484,16 @@ theorem txn.Txn_read
     simp only [srvRunTxn, hnil, List.length_nil]; have := mvcc.putMax_ge γ; omega
   -- the read transaction ends; the response's fields for the trace
   ihave ⟨%pend', Htw, #Hshell, Hout⟩ : (∃ pend' : List mvcc.Change,
-      txnWriteIs (interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw) s γ true log pend' ∗
+      txnWriteIs (interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw) s γ trace true log pend' ∗
       txnRespShell resp ∗
       ((⌜err = GoInterface.nil⌝ ∗
         txnResponseIs skip resp (W64 ((log.length : Int) - 1)) t
           (srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
           (srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2 ∗
         respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp)) ∨
-       mvcc.errorfIs err)) $$ [Hres]
-  · icases Hres with (⟨%Herr, Htw, #Hresp, Hhdr, -⟩ | ⟨-, #He, ⟨%pend', Htw⟩, #Hshell⟩)
+       (mvcc.errorfIs err ∗ roTxnRespRd resp ∗
+        respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp)))) $$ [Hres]
+  · icases Hres with (⟨%Herr, Htw, #Hresp, Hhdr, -⟩ | ⟨-, #He, ⟨%pend', Htw⟩, #Hshell, #Hrd, Hhdr⟩)
     · iexists _
       iframe Htw
       have hwr : (W64 (mvcc.writeRev log
@@ -471,14 +524,14 @@ theorem txn.Txn_read
       iexact Hresp
     · iexists pend'
       iframe Htw Hshell
-      iright; iexact He
+      iright; iframe He Hrd Hhdr
   icases txnWriteIs_kind _ s γ true log _ $$ Htw with ⟨%kind, Hv, %Hk⟩
   obtain ⟨hkis, -, -, -, -⟩ := Hk
   unfold KindIs at hkis
   simp only [↓reduceIte] at hkis
   obtain ⟨-, rev', rfl⟩ := hkis
   ihave Hro := (txnViewIs_ro trw s γ log rev').1 $$ Hv
-  wp_apply (hRoEnd trw s γ log rev') $$ [$Hro] as Hrd
+  wp_apply (hRoEnd trace trw s γ log rev') $$ [$Hro] as ⟨Hrd, %te5, Htrc⟩
   ihave #Hshell2 := Hshell
   iunfold txnRespShell at Hshell2
   icases Hshell2 with ⟨%Hrn, %h, %rsl, %rv0, #Hh, #Hrev, #Hrsl⟩
@@ -486,10 +539,12 @@ theorem txn.Txn_read
   wp_apply wp_slice_literal
   isplitr
   · ipureintro; rfl
-  iintro %fs ⟨-, -⟩
+  iintro %fs ⟨Hfs, -⟩
   wp_auto
-  wp_apply (hAdd tr _) $$ []
-  · ipureintro; exact Htr
+  wp_apply (hAdd trace te5 _ _ _) $$ [$Htrc $Hfs] as ⟨Htrc, -⟩
+  · ipureintro
+    exact traceutil.fieldsWf_cons_int _ _ _ (.int _) _
+      (traceutil.fieldsWf_cons_int _ _ _ (.int64 _) _ traceutil.fieldsWf_nil)
   iapply HΦ
   iframe Hrd Htoks
   iexists log
@@ -497,13 +552,23 @@ theorem txn.Txn_read
   isplitl []
   · ipureintro; exact ⟨Hpin.1, Hpin.2, Hlog.2.1⟩
   iright
-  icases Hout with (⟨%Herr, #Hresp, Hhdr⟩ | #He)
+  icases Hout with (⟨%Herr, #Hresp, Hhdr⟩ | ⟨#He, #Hrd, Hhdr⟩)
   · ileft
+    isplitr
+    · ipureintro; exact ⟨Herr, Htr⟩
+    isplitl [Htrc]
+    · iexists te5; iexact Htrc
+    isplitr
+    · ipureintro; exact Hteq
     iframe Hresp Hhdr
-    ipureintro; exact ⟨Herr, Htr⟩
   · iright
-    iframe He
-    ipureintro; exact Htr
+    isplitr
+    · ipureintro; exact Htr
+    isplitl [Htrc]
+    · iexists te5; iexact Htrc
+    isplitr
+    · ipureintro; exact Hteq
+    iframe He Hrd Hhdr
 
 theorem txn.Txn.wp_proof
     (hEnsure : traceutil.EnsureTrace.spec (GF := GF) (hG := hG))

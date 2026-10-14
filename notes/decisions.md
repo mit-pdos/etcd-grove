@@ -4733,6 +4733,54 @@ that contract from the real backend's, and proves the hook in `hookFnSpec`'s sha
   fractional lock invariant (e.g. an invariant exchanging it for the write lock's or the loop's
   token).
 
+### The auth store's request side (unit P2, 2026-10-14 · adopted)
+
+- **The real store's methods, over contracts for what it calls through interfaces**, as unit 9's
+  lessor: `authInv st R` holds the store's fields (the atomic `revision` in an invariant of its own,
+  `lg`/`be`/`tokenProvider` read-only, `enabledMu` and `rangePermCacheMu` with their guards) and
+  three contracts: the backend's read transaction (`authBackendOk be R`: `RLock` turns the caller's
+  `R` into a held token, `UnsafeGetUser` keeps it, `RUnlock` gives `R` back; schema's
+  `authBackend` would meet it over the backend's `readTx` with `R` its reader slot, but its
+  `UnsafeGetUser` unmarshals an axiomatized `authpb.User`), the token provider (`info` returns an
+  auth info with read-only fields, or nil), and each cached interval tree (`ivtQuery`: `Intersects`
+  and `Contains` of a bytes-affine interval return, keeping its slices; `adt.ownIvt`, the tree's
+  proof, is over string-affine intervals). *Rejected:* the backend contract with an IProp-valued
+  token chosen by the store's invariant (one more parameter of every statement for nothing the
+  proofs use); the trees' contract as `adt.ownIvt` (wrong comparables).
+- **Results return nothing about the permission**: the contracts `isAuthStore`/`isReqAuth` only
+  promise an error the gRPC layer can take, so the proofs show no panic and the frame, which is
+  what lets `hasRootRole` be an axiom returning any boolean (its only work is on the axiomatized
+  `authpb.User`).
+- **The contracts cannot be derived as stated** (they take no resource), for two model reasons:
+  `RWMutex` readers are bounded in Perennial (a reader slot per concurrent reader: `IsAuthEnabled`
+  read-locks `enabledMu`, `isRangeOpPermitted` `rangePermCacheMu`, `isOpPermitted` the backend's
+  read transaction), and `NewBytesAffinePoint`'s `make([]byte, len(key)+1)` needs `len(key) <
+  2^63 - 1`, which every slice in memory meets but the model's `make` does not assume (unlike
+  `append`'s length, `README.md`, "Model assumptions"). The derived forms take a reader resource
+  `RD` (held and given back: the shape of the request path's `waitOk w RD`) and the key's bound;
+  `isAuthStorePerms_of_authInv` and `isReqAuthR_of_authInv` derive them of the real store. *Not
+  done here:* changing `isAuthStore`/`isReqAuth` to these forms, which threads a reader resource
+  through the apply thread's and the request goroutines' resources (as `srvRdCall`) and the key
+  bound through the request checks (a key is a request's bytes: the bound is a fact of the gRPC
+  layer's decoding). *Rejected:* the reader slots in the store's invariant (a slot is held across
+  the call: unboundedly many concurrent requests would exhaust any finite supply).
+- **`metadata.FromIncomingContext`'s axiom states non-empty value lists**, narrower than grpc's
+  code (which copies any context's metadata): `AuthInfoFromCtx` indexes `ts[0]`, a panic on a
+  context built with an empty list (`issues/etcd-auth-token-md-empty.md`); grpc's transports build
+  each key from at least one header field. *Rejected:* a premise on the context in `isReqAuth`
+  (the request path's contexts come from grpc's handler axioms, which would have to state it).
+- **`AuthInfoFromTLS` is the trust boundary whole**: `credentials.TLSInfo`, `tls.ConnectionState`
+  and `x509.Certificate` are axiomatized types (no field of them steps), and its one-result type
+  assertion panics for a peer with other credentials (`issues/etcd-auth-tls-info-assert.md`;
+  unreachable in etcd's servers): the axiom states only its result.
+- **The auth package's instance moved to `auth/Base.lean`** (from the apply package's `Base`, which
+  imports it): its facts are its own error variables (`authErrVar`, the shape of `errVarLeaf`,
+  which it cannot import: the apply package imports it) and `rpctypes`' token keys (another
+  package's variables, stated here as the txn package states its foreign errors).
+- **A proof note**: Perennial's `wp_apply` fails (silently, or with "unknown free variable") on a
+  hypothesis whose precondition is an `IProp` bound by the proof (the contract's token `Tk` from
+  `icases %Tk`); the proofs use `wp_bind` and `iapply` there.
+
 ---
 
 ## The request path, closed: delivery, the premises kept, and why
@@ -4845,6 +4893,12 @@ instance and the token's path stay; `DeleteRange`/`Txn` stubs are V2's to prove 
 
 **2026-10-14 · adopted (unit C1)** (`notes/STATUS.md`, "Unit C1: the client meets the server")
 
+*Superseded in part* (2026-10-14) by "A generic gRPC specification" (below): the `Put`/`Range`
+axiom, the connection `isKVConn`, the run premises `putRunOk`/`rangeRunOk` and the runtime's
+resources `K.R` ("What a call gives", "The runtime's resources are the server's premises" below)
+are replaced by the generic contract; the boundary's position, the wire, the retries, the call
+options and the context errors stand as written.
+
 **The trust boundary is grpc's `ClientConn.Invoke`, interceptors included.** The client's KV path
 is verified from `kv.Put`/`kv.Get` down to the generated stub (`kv.Do`, `ContextError`, the retry
 client, `kVClient.Put`/`Range`, `NewKV`, `RetryKVClient`, `NewKVClient`, `withRepeatablePolicy`);
@@ -4934,3 +4988,304 @@ endpoints balances attempts over members: unit C2's cluster-level contract), onl
 a sort option (`Op.IsSortOptionValid`'s sort case reads `etcdserverpb`'s enumeration maps, package
 facts not stated), only `Put` and `Get` (`kv.Do`'s delete and transaction cases are not specified:
 the precondition `doRunOk` rules them out).
+
+## A generic gRPC specification
+
+**2026-10-14 · adopted** (`notes/STATUS.md`, "Unit C1", "The generic gRPC specification")
+
+*Superseded in part* (2026-10-14, unit P3b) by "The server end of the gRPC boundary" (below): the
+server side (`grpc.serve`, `grpcListener`, the handler's level) is now grpc's runtime running the
+generated handler with `dec` and the interceptor chain.
+
+*Superseded in part* (2026-10-14, unit P3a) by "The retry interceptor proved: the gRPC boundary
+below it" (below): the client axiom is now grpc's `Invoke` as the interceptor chain over one
+attempt; `isGrpcConn` is replaced by `grpcConn` and the client's `isEtcdConn`. The server side,
+the messages, the registration and the specs stand.
+
+**The user's request:** one gRPC axiom for every operation, in the shape of Grove's urpc (Rocq,
+`urpc_proof.v`/`urpc_spec.v`): a method's spec registered persistently, a client call of any
+registered method, the server proving its handlers against the specs. The vocabulary is
+`Proof/google_golang_org/grpc/InvGrpc.lean`; the client axiom
+`Spec/google_golang_org/grpc/ClientConn__Invoke.lean`.
+
+**Predicate transformers, as urpc's underlying layer.** A method's spec is
+`Spec : Req.M → (Rep.M → IProp) → IProp` (`GrpcSpec Req Rep`) over the request's and reply's
+*models*: `Spec m Φ` is what a caller asking `m` gives for an answer `m'` with `Φ m'` (urpc's
+`is_urpc_spec_pred`, a saved spec; the `RpcSpec` record with a witness type and `Pre`/`Post` is a
+special case, `Spec m Φ := ∃ x, Pre x m ∗ ∀ r, Post x m r -∗ Φ r`, and was dropped). The client
+gives `□ ▷ Spec m Φ` (the □ pays for redelivery: the retry interceptor's attempts; the ▷ as in
+urpc's `wp_Client__Call_pred`) and, on success, gets `∃ m', Rep.recv out m' ∗ Φ m'`. No saved
+predicate is needed: the spec is a parameter of the registration (`isGrpcRpc addr name Spec :=
+∃ h S, grpcServes addr name h S ∗ grpcHandlerOk h S Spec`), not ghost state, so two specs of one
+method are two facts about the one handler served there, both sound.
+
+**Messages** (`ProtoMsg`): a Go type `T` (passed as `*T`), the model `M` of its wire content,
+`send l m` (the sender's message: what marshaling needs, owned, returned by the call), `recv l m`
+(a decoded copy: read-only, persistent), `blank l` (a zero `*T` the receiver owns). Each instance
+asserts that the codec's copy of a `send` at `m` is a `recv` at `m`; that is not checkable without
+a codec model, so **the instances are trusted wire models** (`pbPutRequest`, `pbRangeRequest`,
+`pbDeleteRangeRequest`, `pbPutResponse`, `pbRangeResponse`, `pbDeleteRangeResponse` in
+`client/v3/InvKVConn.lean`; a wrong instance, e.g. `recv := False`, would make every handler meet
+every spec). They are C1's predicates repackaged: a request's model the server's (`putReqOp`,
+`rangeReqOp`, `deleteReqOp`: `OpFull`), its decoded copy the server's own `txn.*RequestIs`, a
+response's model every field the wire carries, `send = recv` (C1's read-only `putRespMsg`, ...;
+the runtime writes the response's size cache, which nothing owns after the handler: inside the
+boundary, as in C1).
+
+**The server side and its resources.** A handler `h` (a unary method of the registered service
+implementation, called `h ctx req`, returning `(resp, err)`) meets `Spec` with the per-run
+resource `S` (`grpcHandlerOk h S Spec`, persistent): from `S`, `isContext` of the context the
+runtime made, the decoded request at `m` and `Spec m Φ`, it returns `S` and, on success, a
+response `Rep.send resp m'` with `Φ m'`. The one server-side axiom, `grpc.serve addr ms S n`
+(in `InvGrpc.lean`): a server holding the listener at `addr` (`grpcListener addr`, exclusive,
+urpc's `host c↦ ∅`: one registration per address) that registers the methods `ms` (distinct full
+names), each handler meeting its spec with `S`, and hands the runtime `n` copies of `S`, is served:
+`grpcServes addr m.name m.handler S` (persistent, opaque) for each; `grpc_serve_rpcs` derives
+`isGrpcRpc`. The pool is the honest account of the runtime's resources: a run holds one copy and
+gives it back, so the runtime is assumed to run at most `n` handlers at a time. For etcd the copy
+is `etcdRunSlot` (the reader slots of `s.leadTimeMu`, the store, the logger and the read loop:
+bounded `RWMutex` slots, passed explicitly, never duplicated; Go's own `RWMutex` admits at most
+`2 ^ 30` readers, so a bound of that order is a real limit of the server, not only of the proof);
+the id credit a run consumes is minted from the server's `□ |==> idCred ρ.ids 1` (`srvStarted`'s,
+the server's existing idealization), and the context comes from the runtime. *Rejected:* C1's
+`K.R` given freely to every run (an unbounded supply of reader slots); the slots' count in the
+spec visible to the client (the client sees only `Spec`).
+
+**The handler's level: the service method.** The handler registered is `kvServer.Put` (`Range`,
+`DeleteRange`) at the server's `*kvServer`, as in C1. Between grpc's runtime and it are etcd's
+generated `_KV_Put_Handler` (`rpc_grpc.pb.go`: `dec` into a new `*PutRequest`, then the
+interceptor or `srv.(KVServer).Put`), the server's unary interceptor chain (`v3rpc/
+interceptor.go`: logging, metrics, the leader/learner checks) and the quota wrapper
+`quotaKVServer` (which may answer `ErrNoSpace` without running the handler); all three stay
+inside the boundary, assumed transparent on success (a success is the handler's). *Rejected for
+now:* the boundary at `MethodDesc.Handler` (`_KV_Put_Handler` proved, grpc's `dec` closure a
+generic codec contract): it would verify only the generated dispatch, and still need contracts for
+the interceptor chain and the quota wrapper (etcd code, not translated); a later unit can move the
+boundary there without changing the client's side.
+
+**The client side: one axiom.** `grpc.ClientConn.Invoke.spec` is stated for any method, request
+and reply types and spec: `isGrpcConn conn addr` (persistent, opaque: the `*ClientConn` reaches
+`addr`; established by the unverified `clientv3.New`, a premise like C1's `isKVConn`),
+`isGrpcRpc addr method Spec`, `□ ▷ Spec m Φ`, `Req.send inp m`, `Rep.blank out`, the call options
+(`callOptsOk`); it returns `Req.send inp m` and `nil` with `∃ m', Rep.recv out m' ∗ Φ m'` (the last
+run's) or a client error and nothing. C1's honest retry semantics stand (other runs may have
+happened; `issues/etcd-client-retry-put-ctx-error.md`). The client's stack (the stub, the retry
+client, `kv.Do`, `kv.Put`, `kv.Get`) is proved for any spec of the method and any `Φ`; the
+results instantiate etcd's specs (`client/v3/Results.lean`: `etcdPutSpec`, `etcdRangeSpec`,
+`etcdDeleteSpec`), and the client's end-to-end results take the registration and the connection as
+premises, the server's facts having moved to `etcd_kv_served`.
+
+**What the trust base is now:** `Invoke`'s axiom, `grpc.serve`, the opaque `grpcListener`,
+`grpcServes`, `isGrpcConn` (and the two persistence facts), the message instances, `StaticMethod`.
+Gone: the `Put`/`Range` clauses of `Invoke`, `isKVConn`. A new method (`Txn`, `Compact`, another
+service) needs its message instances, its spec and its handler proof (`etcd_deleteHandlerOk` shows
+it for `DeleteRange`), no new axiom.
+
+**The revision's token under the generic spec** (merge with the slice's unit V1, 2026-10-14):
+V1's per-revision token (`revMinted`, exclusive) was dropped under C1's wire, whose `putRunOk`
+asked for persistent knowledge (the transport may run the handler more than once). Under the
+generic spec it is carried: a run's `Spec m Φ` is consumed by that run, the client supplies
+`□ ▷ Spec m Q` (one per attempt) and receives one reply's `Q m'`, which need not be persistent.
+So `etcdPutSpec`/`etcdDeleteSpec` give `putReplied`/`deleteReplied` (the persistent
+`putReplyOk`/`deleteReplyOk` and the token), and `client_put_end_to_end` returns the token of the
+revision its reply reports.
+
+## The retry interceptor proved: the gRPC boundary below it
+
+**2026-10-14 · adopted** (`notes/STATUS.md`, "Unit P3a")
+
+**The boundary is grpc's `invoke`, one attempt; the interceptor chain is stated as grpc composes
+it.** grpc's `ClientConn.Invoke` (`call.go`) runs `cc.dopts.unaryInt(ctx, method, args, reply, cc,
+invoke, combine(cc.dopts.callOptions, opts)...)`, where `unaryInt` is built at dial by
+`chainUnaryClientInterceptors` from `WithUnaryInterceptor`'s interceptor followed by
+`WithChainUnaryInterceptor`'s (the first called with an invoker, `getChainUnaryInvoker`, that runs
+the rest and finally `invoke`). The one client axiom (`Spec/google_golang_org/grpc/
+ClientConn__Invoke.lean`) says exactly that, for any method and any chain: `grpcConn conn addr ics
+dopts` (opaque, persistent: the chain `ics` and default options `dopts` the connection was dialed
+with) and, for any postcondition, `WP Invoke` follows from `chainWP conn ics inv ...` for every
+invoker `inv` meeting `grpcInvokerOk` (`InvGrpc.lean`). `chainWP` is recursive on the chain: with
+no interceptor, the invoker's call; otherwise the first interceptor's call with an invoker `inv'`
+of grpc's making, about which the interceptor knows only that its calls are the rest of the chain
+(`□ ∀ args, chainWP rest inv args -∗ WP (inv' args)`); `grpcInvokerOk_of_wp` transports the
+attempt contract to such an `inv'`. *Rejected:* stating the axiom for etcd's single interceptor
+only (the brief asks for grpc's composition; a client with chained interceptors would need a new
+axiom); an axiom per `getChainUnaryInvoker` closure (the recursion would be grpc code to verify
+with no gain: it is one line).
+
+**One attempt** (`grpcInvokerOk conn addr inv`, a definition, the contract grpc's `invoke` is
+assumed to meet): for a method registered with `Spec`, a request `Req.send inp m` (returned), a
+reply buffer `Rep.own out` (a new `ProtoMsg` field: owned at any content; a zero reply,
+`Rep.blank`, is one, `blank_own`), the caller's `□ ▷ Spec m Φ` (persistent: grpc's own transparent
+retries, and a service config's retry policy, may deliver the request again within one `invoke`),
+and call options grpc applies (`grpcOptOk ps`: holding only scalars, or `grpc.Peer(p)` options for
+buffers `p ∈ ps`, owned and returned, `grpcPeerBuf p`: the zero peer or one grpc wrote,
+`grpcWrotePeer`, opaque): `nil` with `Rep.recv out m' ∗ Φ m'`, or a client error grpc's `status`
+accepts with `out` back. The peer buffer is owned because grpc's `PeerCallOption.after` writes it;
+`peer.Peer.String` (an axiom) reads it. *Rejected:* `Spec m Φ` (not persistent) per attempt: true
+of `invoke` only without grpc's internal retries, which a dial option enables.
+
+**The interceptor's contract** (`etcdInterceptorOk ic`, `client/v3/InvKVConn.lean`): unit C1's
+`Invoke` contract with the invoker and the connection as arguments: for any connection (`grpcConn`,
+for `cc.Target()`) and any invoker meeting `grpcInvokerOk`, the call with the client's options
+(`callOptsOk`), the request, a zero reply and `□ ▷ Spec m Φ` returns `nil` with the last attempt's
+reply and `Φ`, or a client error. `Client.unaryClientInterceptor` returns such a closure
+(proved); the client's connection is `isEtcdConn conn addr := ∃ ic, grpcConn conn addr [ic] [] ∗
+etcdInterceptorOk ic`, a definition: what `clientv3.New` dials (`dialSetupOpts`), given no
+`Config.DialOptions` adding interceptors or default call options (an assumption about the
+unverified constructor; `issues/etcd-client-dialoptions-unary-interceptor.md`: a
+`WithUnaryInterceptor` there replaces the retry interceptor). `etcdConn_Invoke`
+(`client/v3/EtcdInvoke.lean`) derives unit C1's statement from the axiom and the contract; the
+stubs use it, so the client's results are unchanged in form, their premise `isGrpcConn` (opaque)
+now `isEtcdConn` (defined), and errors also `statusErrOk`.
+
+**Inside the interceptor's proof.** The loop is proved with the invariant: the attempt counter,
+`lastErr` (`nil` only before the first attempt, otherwise a client error grpc accepts), the
+request, the reply buffer and the peer buffer. Each attempt reuses `□ ▷ Spec m Φ`; a context
+error with the caller's context live (`ctx.Err() == nil`, `isContext`'s `Err` triple) continues,
+whatever the policy (`issues/etcd-client-retry-put-ctx-error.md`): the contract allows it. The
+options: the interceptor's own (`reuseOrNewWithCallOptions(defaultOptions, optFuncs)`, a package
+fact for `defaultOptions`, the dial's options' closures `optApplyOk`) and a call's (its
+`retryOption`s, `retryApplyOk`: they write only `retryPolicy`) are read-only once built
+(`retryOptsAt`), their backoff function one that returns (`optionsOk`, for the axiom
+`waitRetryBackoff`). The client (`retryClientOk`): its logger, `Token` and `authTokenBundle`
+(read-only since `New`, a bundle whenever a token: what `getToken` needs not to panic).
+
+**The trust base it adds.** grpc: `Peer`, `peer.Peer.String`, `ClientConn.Target`, `status.Code`;
+Go's `errors.Is` of a status error against an `EtcdError` value or a pointer (`errors.IsStatusErr`:
+Perennial's `wp_Is` needs a pointer target and the error tree; an `EtcdError` is a comparable
+struct); zap's `Uint`; etcd functions kept names-only: `waitRetryBackoff` (a timer and a `select`,
+the backoff function's float jitter), `withVersion` (grpc's `metadata`: a value context, same
+`Done`/`Err`), `getToken` (the auth client: an `Authenticate` RPC through the same connection, its
+interceptor included), `Endpoints` (a read under `epMu`'s read lock: Perennial's `RWMutex` readers
+hold bounded, exclusive slots, which a persistent closure cannot carry). *Rejected:* proving
+`Endpoints` with a reader slot in the interceptor's contract (it would thread a slot through every
+caller of `Invoke` for a log line's condition).
+
+**Errors grpc's `status` accepts** (`statusErrOk err`, `cache/v3/Base.lean`; unit P3a also fixed
+`rpctypes.Error`): `status.FromError`/`Code` call the error's `Error()` and (through a type
+assertion) `GRPCStatus()`, and `errors.As` on it; `errors.Is` calls its `Is`. So the premise is:
+`nil`, or a leaf error (no `Unwrap`/`As`) whose `Error()` returns and whose `GRPCStatus()` and
+`Is(error)`, if its method set has them, return (`grpcErrMethodsOk`, conditional on
+`methodSet`, which the model leaves uninterpreted: an error known to lack them, an `EtcdError`, by
+the package fact `rpctypesEtcdErrorTy`, satisfies it vacuously). It travels with `clientErr`
+through every error the client returns or receives (grpc's, the context's via `ctxErrClient`, a
+watch's close error, a leasing transaction's).
+
+## The server end of the gRPC boundary
+
+**2026-10-14 · adopted** (`notes/STATUS.md`, "Unit P3b")
+
+Supersedes the server side of "A generic gRPC specification" ("The server side and its
+resources", "The handler's level: the service method"): the boundary is now grpc's server
+runtime, below etcd's generated handlers, the quota wrapper and the unary interceptors.
+
+**grpc runs the `MethodDesc.Handler`.** grpc's `processUnaryRPC` calls, for a registered unary
+method, `md.Handler(srv, ctx, dec, s.opts.unaryInt)`: the generated handler of the registered
+`ServiceDesc`, the service value given to `RegisterService`, a `dec` closure over the request's
+bytes, and the interceptor `chainUnaryServerInterceptors` built (`nil` for none, the interceptor
+itself for one, a closure over `getChainUnaryHandler` for more). The axiom `grpc.serve` says
+exactly that, for any service: a run of `m.handler` on `m.srv`, the run's context, a `dec`
+meeting `grpcDecOk` (it decodes the request at the call's model into a zero `*T` it is given: the
+codec's unmarshaling, part of the trusted wire model as the message instances are) and an
+interceptor meeting `grpcSrvChain ics` (the chain as grpc composes it, `srvChainWP`, mirroring the
+client's `chainWP`), with one of the `n` run slots. *Rejected:* the chain as an assumed contract
+of etcd's interceptors (they are etcd code, now proved); an axiom per number of interceptors (the
+composition is one recursive definition).
+
+**The server object.** `grpcServerAt addr ics regs` (opaque, exclusive; it was `grpcListener
+addr`) is the server built with the chain `ics`, its registered unary methods `regs` (full name,
+`MethodDesc.Handler`, service value); `grpc.serve` takes any methods among `regs`, with distinct
+names. It is a premise of the server's result, established by unverified code (`v3rpc.Server`,
+`grpc.NewServer`, `RegisterKVServer`, `Serve`), as the client's `grpcConn` is of `clientv3.New`.
+The ghost step keeps the result's form (`etcd_kv_served` gives `isGrpcRpc`); without `ics` and
+`regs` in the predicate the axiom would let a proof pick an interceptor-free chain or another
+service value than the one registered. *Rejected for now:* proving `RegisterKVServer` against a
+`RegisterService` axiom (it needs that axiom and two method-set facts, `srv.(interface{
+testEmbeddedByValue() })`): it would only prove the `KV_ServiceDesc` fact `etcdKVRegs` states.
+
+**Transparent interceptors.** An interceptor's contract (`srvInterceptorOk ic R Q`) is
+"transparent": called with its per-run resource `R`, it calls the handler once on the same
+context and request and returns its result, or returns `(nil, err)` for a non-nil `err` without
+calling it; `R` comes back either way; the caller gives both continuations (`∧`). `Q` is what it
+reads of the request: etcd's learner check (`isRPCSupportedForLearner`) reads a `*RangeRequest`'s
+`Serializable` (`learnerReqOk`), which the generated handler has from the decoded request. A chain
+of such interceptors runs the handler or fails (`srvChainWP_of_ok`), with the resources of all.
+The log interceptor's `R` is a reader slot of `s.lgMu` (`s.Logger()` after the handler); the
+server's run slot (`etcdGrpcSlot`) holds the handlers' slot, one more `leadTimeMu` reader slot
+(the quota's NOSPACE alarm, `raftRequest`), and the interceptors' resources. grpc-prometheus's
+interceptor (not etcd code) is assumed transparent (a premise). `logUnaryRequestStats` is a
+names-only axiom: it reads the request and the response (`proto.Size`, the stringers), which the
+message predicates do not cover field by field; after the handler both are read-only, which the
+wire models already trust (the runtime's marshaling of the response).
+
+**The quota wrapper.** `NewQuotaKVServer(s)` embeds `NewKVServer(s)`'s service in a
+`*quotaKVServer`; its `Put` checks `qa.q.Available(r)` (the apply package's `apply.isQuota`, from
+`storage.NewBackendQuota`'s axiom) and on failure raises the NOSPACE alarm (`s.Alarm`, an axiom
+with `raftRequest`'s request-path premises: `Alarm` is `raftRequest` of an alarm request, which
+`raftRequest`'s verified spec does not build) and answers `ErrGRPCNoSpace`; its `Range` and
+`DeleteRange` are the embedded service's (Goose emits the promoted wrappers only for methods in
+the translate list). The service value registered is the `*quotaKVServer`; that it implements
+`KVServer` (the generated handlers' `srv.(KVServer)`) is a method-set fact, assumed as a class
+(`QuotaKVServerIsKVServer`; `methodSet` is uninterpreted).
+
+**What the trust base gains:** `grpcServerAt`; the names-only `EtcdServer.Alarm`,
+`IsMemberExist`, `IsLearner` (with `membership.localKept`, an assumption that the local member is
+not removed while the server serves: `issues/etcd-unary-interceptor-learner-removed.md`),
+`api.IsCapabilityEnabled`, grpc's `MD.Get`, Go's `utf8.ValidString`, prometheus's
+`CounterVec.WithLabelValues`, `logUnaryRequestStats`. Gone: `grpcListener`, and the generated
+handlers, the quota wrapper and the interceptors from inside the boundary.
+
+## Traces on the request path (unit P1b, 2026-10-14)
+
+`pkg/v3/traceutil`'s `*Trace` methods read and write the trace's fields (`t.steps = append(..)`),
+so a trace is a resource, not a fact. `Proof/go_etcd_io/etcd/pkg/v3/traceutil/Defs.lean`:
+
+- **`ownTrace t e`** (exclusive): the `Trace` struct, its fields slice and its steps slice (with
+  their capacities), each step's fields slice; `e` is the `isEmpty` field (written only at
+  creation: `TODO()`'s traces are empty, `newTrace`'s are not; `EnsureTrace` keeps a context's
+  trace only if not empty). Every method takes and gives it back (`Step`, `AddField`,
+  `StartSubTrace`, ..., `StepWithFunction` lends it to its function); `LogIfLong` and
+  `LogAllStepsIfLong` consume it (their logging aliases the steps' field slices, and nothing
+  uses a trace after logging it).
+- **`ownFields sl`**: a fields slice owned with its capacity, the values formattable by
+  Perennial's `fmt` (`fieldsWf`: nil or a predeclared basic type), since `Step`/`InsertStep`/...
+  keep the slice in the trace and `LogWithStepThreshold` formats it with `%v`.
+- **`ctxTraceIs ctx o`** (persistent): what `ctx.Value(TraceKey{})` returns, `o = some t` (the
+  trace `t`) or `none` (no trace: nil, another type, a nil `*Trace`). The context only names its
+  trace; its ownership is held separately. Sources: `context.WithValue(parent, TraceKey{}, t)`
+  (its spec, extended), any other `WithValue` and `Tracer.Start` preserve the parent's
+  (`□ ∀ o, ctxTraceIs ctx o -∗ ctxTraceIs ctx' o`), `context.TODO()`/`Background()` carry none
+  (`ctxTraceIs_todo`/`_background`, proved from `emptyCtx.Value`'s body).
+
+**Who owns a trace** (the design default of the brief, kept): the goroutine serving the request.
+`EtcdServer.Range`/`Txn` (premise `ctxTraceIs ctx ot ∗ ownTraceOpt ot te`; the gRPC handler's
+context has none, `v3rpc.srvCall` now says so) make it with `EnsureTrace`, step it, lend it to
+`doSerialize` (which steps it and hands it to `get`), whose `txn.Range`/`txn.Txn` find the same
+trace in the context (`EnsureTrace` keeps a non-empty one: `⌜∀ t0, ot = some t0 → te = false →
+trace = t0⌝`) and give it back; the deferred closure adds fields and logs it. **Inside mvcc** the
+trace passed to `store.Read`/`Write` is owned by the transaction predicate while the transaction
+is live (`isTxnRead`/`isTxnWrite`/... take a `trace` parameter and hold `∃ te, ownTrace trace te`;
+`*_trace_acc` lemmas borrow it, e.g. for `getPrevKV`'s `StepWithFunction`, `executeTxn`'s
+sub-traces, `put`'s `AddField`); `End` returns it. **The apply thread's traces** (`txn.Put` etc.
+at `context.TODO()` make a fresh one) are handed to the request goroutine with the result: KV
+methods' posts carry `apply.traceRes trace` (nil or owned), `dispatch` stores it in the result
+(`apply.resTrace ar`), the wait's `resultΨ` carries it, and `raftRequest` steps and logs it
+(`GetStartTime`/`SetStartTime`/`InsertStep`/`LogIfLong`). The read loop's per-iteration trace
+(at `Background()`) stays in its goroutine. No trace is used by two goroutines at once: the
+apply→request handoff is a transfer (the apply thread never touches `ar.Trace` after
+`Trigger`).
+
+`LogWithStepThreshold` stays at the trust boundary (`fmt` of `any`/`Duration`, `rand`, zap).
+`InsertStep` (an overlapping `append`) was too until unit P4, which proved it over a lemma of this
+repository, `wp_slice_append_shift` (`traceutil/SliceShift.lean`: `append(s[:a+1], s[a:]...)`
+from Perennial's `wp_slice_copy_within` and `wp_slice_copy`; no Perennial change).
+
+**The run's context** (with unit P1b's owned traces): a handler run is given, besides
+`isContext`, `grpcRunCtx ci`: the context's `Value(k)` for a key of a named type of etcd's
+packages (`go.etcd.io/etcd/...`) returns `nil`. grpc's server context carries grpc's own values
+(metadata, peer, the stream) and those of what runs in front of the handler (stats handlers such
+as otelgrpc's, etcd's `v3rpc` interceptors, none of which stores under an etcd key type), so this is
+part of the trusted server runtime; it gives `traceutil.ctxTraceIs ci none` (`TraceKey`), what
+`v3rpc.srvCall` needs. *Rejected:* `ctxTraceIs` itself in `grpcHandlerOk` (it would make grpc's
+generic vocabulary, and every client spec mentioning `isGrpcRpc`, depend on `traceutil`'s
+assumptions).

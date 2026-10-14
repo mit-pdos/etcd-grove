@@ -117,7 +117,10 @@ WithCountOnly:
 WithProgressNotify:
 WithCreatedNotify:
 OpWatch: Op__applyOpts
-rpctypes_Error:
+status_FromError:
+rpctypes_ErrorDesc: status_FromError
+rpctypes_EtcdError__Error:
+rpctypes_Error: rpctypes_ErrorDesc status_FromError rpctypes_EtcdError__Error
 status_Error:
 WatchResponse__Err: rpctypes_Error status_Error
 # The trust boundary (etcd-grove axioms, linked in `Proof/fmt/Link.lean`, `@`): `fmt.Errorf` and `fmt.Printf` for arguments that are

@@ -62,6 +62,9 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
   | ok e' =>
     wp_auto
     iapply HΦ
+    isplitl
+    rotate_left
+    · iapply apply.traceRes_null
     iapply apply.auth_reject_kvPost E c p (.ok bi) rq log _ Pre Q Post hk $$ Happ [] Hkv [Hinfo]
       Hres Hcs
     · simp only [apply.deleteAnswerIs, apply.deleteOutcomeIs, apply.rejErrIs]
@@ -73,13 +76,16 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
   wp_auto
   cases pk
   · wp_auto
-    wp_apply HDelI $$ %r %rq %o %log %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %trace %err Hpost
+    wp_apply HDelI $$ %r %rq %o %log %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
     · iunfold apply.deletePre
       iunfold apply.mPre
       iframe
       iframe #
       ipureintro; exact Hk
     iapply HΦ
+    isplitr [Htrc]
+    rotate_left
+    · iexact Htrc
     iapply apply.auth_pass_kvPost E c p (.ok bi) rq log _ Pre Post $$ Happ Hpost
     iunfold apply.authInfoOwn; iexists info; iexact Hinfo
   wp_auto
@@ -90,6 +96,9 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
   | ok e' =>
     wp_auto
     iapply HΦ
+    isplitl
+    rotate_left
+    · iapply apply.traceRes_null
     iapply apply.auth_reject_kvPost E c p (.ok bi) rq log _ Pre Q Post hk $$ Happ [] Hkv [Hinfo]
       Hres Hcs
     · simp only [apply.deleteAnswerIs, apply.deleteOutcomeIs, apply.rejErrIs]
@@ -99,13 +108,16 @@ theorem apply.authApplierV3.DeleteRange.wp_proof :
     · iunfold apply.authInfoOwn; iexists info; iexact Hinfo
   | nil =>
   wp_auto
-  wp_apply HDelI $$ %r %rq %o %log %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %trace %err Hpost
+  wp_apply HDelI $$ %r %rq %o %log %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
   · iunfold apply.deletePre
     iunfold apply.mPre
     iframe
     iframe #
     ipureintro; exact Hk
   iapply HΦ
+  isplitr [Htrc]
+  rotate_left
+  · iexact Htrc
   iapply apply.auth_pass_kvPost E c p (.ok bi) rq log _ Pre Post $$ Happ Hpost
   iunfold apply.authInfoOwn; iexists info; iexact Hinfo
 

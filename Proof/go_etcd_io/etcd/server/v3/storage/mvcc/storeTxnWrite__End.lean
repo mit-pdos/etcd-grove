@@ -24,7 +24,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.storeTxnWrite.End.wp_proof : mvcc.storeTxnWrite.End.spec (GF := GF) (hG := hG) := by
-  intro tw s γ ilog pend chs ps sealed P f crev Z
+  intro trace tw s γ ilog pend chs ps sealed P f crev Z
   wp_start as ⟨Htw, #HhookC, HP⟩
   iunfold mvcc.storeTxnWriteCore at Htw
   iNamed Htw

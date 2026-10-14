@@ -45,13 +45,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- The frozen statement (before unit 6a): a reader of a store never compacted. -/
 abbrev mvcc.store.Read.specFrozen : Prop :=
-  ∀ (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (m : Nat) (log₀ : mvcc.Log),
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (m : Nat) (log₀ : mvcc.Log) (te : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
-      ⌜trace ≠ null⌝ }}
+      ⌜trace ≠ null⌝ ∗ traceutil.ownTrace trace te }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Read")) (Val #mode)) (Val #trace))
   {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
-      ∃ (log : mvcc.Log) (rev : w64), mvcc.isTxnRead mw s γ log rev ∗ ownToks γ.revs m ∗
+      ∃ (log : mvcc.Log) (rev : w64), mvcc.isTxnRead mw s γ trace log rev ∗ ownToks γ.revs m ∗
         ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63⌝ }}
 
 open Iris.ProofMode in
@@ -59,17 +59,17 @@ open Iris.ProofMode in
 revision `-1` (`isTxnRead_frozen`). -/
 theorem mvcc.store.Read.spec_frozen (h : mvcc.store.Read.spec (GF := GF) (hG := hG)) :
     mvcc.store.Read.specFrozen (GF := GF) (hG := hG) := by
-  intro s γ mode trace m log₀
-  iintro %Φ ⟨#Hpkg, #Hs, Hrd, Hm, #Hc0, %Ht⟩ HΦ
+  intro s γ mode trace m log₀ te
+  iintro %Φ ⟨#Hpkg, #Hs, Hrd, Hm, #Hc0, %Ht, Htrc⟩ HΦ
   icases mvcc.storeReader_toC s γ $$ Hrd with ⟨Hrd, #Hf⟩
   imod mvcc.crevLb_neg γ.idx with #Hlb
   iapply wp_fupd
-  iapply (h s γ mode trace m log₀ (-1) (mvcc.crevFrozen γ)) $$ %(fun v => iprop(|={⊤}=> Φ v))
-    [Hrd Hm]
-  · iframe Hrd Hm; iframe #; ipureintro; exact Ht
+  iapply (h s γ mode trace m log₀ te (-1) (mvcc.crevFrozen γ)) $$ %(fun v => iprop(|={⊤}=> Φ v))
+    [Hrd Hm Htrc]
+  · iframe Hrd Hm Htrc; iframe #; ipureintro; exact Ht
   inext
   iintro %mw ⟨%log, %rev, %crev, Htx, Hm, #Hlb', %Hp⟩
-  imod mvcc.isTxnRead_frozen mw s γ log rev crev $$ Htx with ⟨Htx, %Hcr⟩
+  imod mvcc.isTxnRead_frozen mw s γ trace log rev crev $$ Htx with ⟨Htx, %Hcr⟩
   subst Hcr
   imodintro
   iapply HΦ
@@ -81,29 +81,31 @@ theorem mvcc.store.Read.spec_frozen (h : mvcc.store.Read.spec (GF := GF) (hG := 
 
 /-- The frozen statement (before unit 6a). -/
 abbrev mvcc.store.Write.specFrozen : Prop :=
-  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (P Pre Q : IProp GF) (f : val),
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗ mvcc.storeWT γ ∗ ⌜trace ≠ null⌝ ∗
-      mvcc.hookIs γ P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
+      mvcc.hookIs γ P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗
+      traceutil.ownTrace trace te }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Write")) (Val #trace))
   {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
-      (∃ ilog : mvcc.Log, mvcc.isTxnWrite mw s γ ilog [] (W64 0) (W64 0) (W64 0)) ∗ Q }}
+      (∃ ilog : mvcc.Log, mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0)) ∗ Q }}
 
 open Iris.ProofMode in
 /-- **The frozen statement is a corollary** (`isTxnWrite_frozen`). -/
 theorem mvcc.store.Write.spec_frozen (h : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
     mvcc.store.Write.specFrozen (GF := GF) (hG := hG) := by
-  intro s γ trace P Pre Q f
-  iintro %Φ ⟨#Hpkg, #Hs, Hrd, Htok, Hwt, %Ht, #Hh, Hpre, #Htr⟩ HΦ
+  intro s γ trace P Pre Q f te
+  iintro %Φ ⟨#Hpkg, #Hs, Hrd, Htok, Hwt, %Ht, #Hh, Hpre, #Htr, Htrc⟩ HΦ
   icases mvcc.storeReader_toC s γ $$ Hrd with ⟨Hrd, #Hf⟩
   imod mvcc.crevLb_neg γ.idx with #Hlb
   iapply wp_fupd
-  iapply (h s γ trace P Pre Q f (-1) (mvcc.crevFrozen γ)) $$ %(fun v => iprop(|={⊤}=> Φ v))
-    [Hrd Htok Hwt Hpre]
-  · iframe Hrd Htok Hwt Hpre; iframe #; ipureintro; exact Ht
+  iapply (h s γ trace P Pre Q f te (-1) (mvcc.crevFrozen γ)) $$ %(fun v => iprop(|={⊤}=> Φ v))
+    [Hrd Htok Hwt Hpre Htrc]
+  · iframe Hrd Htok Hwt Hpre Htrc; iframe #; ipureintro; exact Ht
   inext
   iintro %mw ⟨⟨%ilog, %crev, Htx, #Hlb', %Hc⟩, HQ⟩
-  imod mvcc.isTxnWrite_frozen mw s γ ilog [] (W64 0) (W64 0) (W64 0) crev $$ Htx with ⟨Htx, %Hcr⟩
+  imod mvcc.isTxnWrite_frozen mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev $$ Htx
+    with ⟨Htx, %Hcr⟩
   subst Hcr
   imodintro
   iapply HΦ
@@ -149,17 +151,17 @@ defaults, `muHeld` at `-1`), the outcome is `rangeOutcome`. -/
 abbrev mvcc.storeTxnCommon.Range.specFrozen : Prop :=
   ∀ (tr s trace ti : Loc) (rt : GoInterfaceOk) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool)
-    (key endk : GoSlice) (k e : GoString) (ro : RangeOptions),
+    (key endk : GoSlice) (k e : GoString) (ro : RangeOptions) (te : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeTxnReadIs tr s rt trace γ log rev ∗ mvcc.txReader γ rt log ∗
       s.[store, go!"kvindex"] ↦□ (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
       mvcc.idxReader ti γ.idx ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e ∗
-      mvcc.muHeld s γ (-1) }}
+      mvcc.muHeld s γ (-1) ∗ traceutil.ownTrace trace te }}
     (App (App (App (App (Val (mvcc.txCommon tr @!! go.GoType.PointerType storeTxnCommon.ty @!!
       go!"Range")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #endk)) (Val #ro))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
       ⌜todo = true → r ≠ null⌝ ∗
-      mvcc.idxReader ti γ.idx ∗ mvcc.muHeld s γ (-1) ∗ mvcc.txReader γ rt log ∗
+      mvcc.idxReader ti γ.idx ∗ mvcc.muHeld s γ (-1) ∗ mvcc.txReader γ rt log ∗ traceutil.ownTrace trace te ∗
       mvcc.rangeOutcome r err log rev (decide (endk = slice.nil)) k e ro }}
 
 open Iris.ProofMode in
@@ -167,16 +169,16 @@ open Iris.ProofMode in
 theorem mvcc.storeTxnCommon.Range.spec_frozen
     (h : mvcc.storeTxnCommon.Range.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnCommon.Range.specFrozen (GF := GF) (hG := hG) := by
-  intro tr s trace ti rt γ log rev ctx cd todo key endk k e ro
-  iintro %Φ ⟨#Hpkg, #Hs, #Htr, Hrd, #Hidx, Hti, #Hctx, #Hkey, #Hend, Hmu⟩ HΦ
+  intro tr s trace ti rt γ log rev ctx cd todo key endk k e ro te
+  iintro %Φ ⟨#Hpkg, #Hs, #Htr, Hrd, #Hidx, Hti, #Hctx, #Hkey, #Hend, Hmu, Htrc⟩ HΦ
   ihave %Hrv := mvcc.storeTxnReadIs_rev tr s rt trace γ log rev (-1) (mvcc.crevFrozen γ) $$ Htr
-  iapply (h tr s trace ti rt γ log rev ctx cd todo key endk k e ro (-1) (mvcc.crevFrozen γ))
-    $$ %Φ [Hrd Hti Hmu]
-  · iframe Hrd Hti Hmu; iframe #
+  iapply (h tr s trace ti rt γ log rev ctx cd todo key endk k e ro te (-1) (mvcc.crevFrozen γ))
+    $$ %Φ [Hrd Hti Hmu Htrc]
+  · iframe Hrd Hti Hmu Htrc; iframe #
   inext
-  iintro %r %err ⟨%Ht, Hti, Hmu, Hrd, Hout⟩
+  iintro %r %err ⟨%Ht, Hti, Hmu, Hrd, Htrc, Hout⟩
   iapply HΦ
-  iframe Hti Hmu Hrd
+  iframe Hti Hmu Hrd Htrc
   isplitl []
   · ipureintro; exact Ht
   iapply mvcc.rangeOutcomeC_neg _ _ _ _ _ _ _ _ Hrv.1 $$ Hout
@@ -211,16 +213,17 @@ theorem mvcc.storeTxnRead.End.spec_frozen (h : mvcc.storeTxnRead.End.spec (GF :=
 
 /-- The frozen statement (before unit 6a). -/
 abbrev mvcc.storeTxnWrite.Range.specFrozen : Prop :=
-  ∀ (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
+  ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool)
-    (key endk : GoSlice) (k e : GoString) (ro : RangeOptions),
+    (key endk : GoSlice) (k e : GoString) (ro : RangeOptions) (te : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.storeTxnWriteIs tw s γ ilog pend ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e }}
+      mvcc.storeTxnWriteIs tw s γ trace ilog pend ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e ∗
+      traceutil.ownTrace trace te }}
     (App (App (App (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"Range"))
       (Val #(GoInterface.ok ctx))) (Val #key)) (Val #endk)) (Val #ro))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
       ⌜todo = true → r ≠ null⌝ ∗
-      mvcc.storeTxnWriteIs tw s γ ilog pend ∗
+      mvcc.storeTxnWriteIs tw s γ trace ilog pend ∗ traceutil.ownTrace trace te ∗
       mvcc.rangeOutcome r err (ilog ++ [pend]) (W64 ((mvcc.writeRev ilog pend : Nat) : Int))
         (decide (endk = slice.nil)) k e ro }}
 
@@ -229,15 +232,16 @@ open Iris.ProofMode in
 theorem mvcc.storeTxnWrite.Range.spec_frozen
     (h : mvcc.storeTxnWrite.Range.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.Range.specFrozen (GF := GF) (hG := hG) := by
-  intro tw s γ ilog pend ctx cd todo key endk k e ro
-  iintro %Φ ⟨#Hpkg, Htw, #Hctx, #Hkey, #Hend⟩ HΦ
-  iapply (h tw s γ ilog pend ctx cd todo key endk k e ro (-1) (mvcc.crevFrozen γ)) $$ %Φ [Htw]
-  · iframe Htw; iframe #
+  intro trace tw s γ ilog pend ctx cd todo key endk k e ro te
+  iintro %Φ ⟨#Hpkg, Htw, #Hctx, #Hkey, #Hend, Htrc⟩ HΦ
+  iapply (h trace tw s γ ilog pend ctx cd todo key endk k e ro te (-1) (mvcc.crevFrozen γ))
+    $$ %Φ [Htw Htrc]
+  · iframe Htw Htrc; iframe #
   inext
-  iintro %r %err ⟨%Ht, Htw, Hout⟩
+  iintro %r %err ⟨%Ht, Htw, Htrc, Hout⟩
   ihave %Hrv := mvcc.storeTxnWriteIs_writeRev tw s γ ilog pend (-1) (mvcc.crevFrozen γ) $$ Htw
   iapply HΦ
-  iframe Htw
+  iframe Htw Htrc
   isplitl []
   · ipureintro; exact Ht
   iapply mvcc.rangeOutcomeC_neg _ _ _ _ _ _ _ _ Hrv $$ Hout
@@ -246,10 +250,10 @@ theorem mvcc.storeTxnWrite.Range.spec_frozen
 
 /-- The frozen statement (before unit 6a). -/
 abbrev mvcc.storeTxnWrite.End.specFrozen : Prop :=
-  ∀ (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
+  ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
     (chs : GoSlice) (ps : List Loc) (sealed : Bool) (P : IProp GF) (f : val),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.storeTxnWriteCore tw s γ ilog pend chs ps sealed ∗ mvcc.hookIs γ P f ∗ P }}
+      mvcc.storeTxnWriteCore tw s γ trace ilog pend chs ps sealed ∗ mvcc.hookIs γ P f ∗ P }}
     (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"End")) (Val #()))
   {{ RET #(); mvcc.storeReader s γ ∗ mvcc.idxCert γ.idx (mvcc.commitLog ilog pend) ∗
       (if pend = [] then mvcc.revToken γ else iprop(True)) }}
@@ -258,9 +262,9 @@ open Iris.ProofMode in
 /-- **The frozen statement is a corollary** (`storeReader_of`). -/
 theorem mvcc.storeTxnWrite.End.spec_frozen (h : mvcc.storeTxnWrite.End.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.End.specFrozen (GF := GF) (hG := hG) := by
-  intro tw s γ ilog pend chs ps sealed P f
+  intro trace tw s γ ilog pend chs ps sealed P f
   iintro %Φ H HΦ
-  iapply (h tw s γ ilog pend chs ps sealed P f (-1) (mvcc.crevFrozen γ)) $$ %Φ [H]
+  iapply (h trace tw s γ ilog pend chs ps sealed P f (-1) (mvcc.crevFrozen γ)) $$ %Φ [H]
   · iexact H
   inext
   iintro ⟨Hr, #Hf, Hrest⟩
@@ -272,15 +276,15 @@ theorem mvcc.storeTxnWrite.End.spec_frozen (h : mvcc.storeTxnWrite.End.spec (GF 
 
 /-- The frozen statement (before unit 6a). -/
 abbrev mvcc.metricsTxnWrite.Range.specFrozen : Prop :=
-  ∀ (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind)
+  ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool)
     (key endk : GoSlice) (k e : GoString) (ro : RangeOptions),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isTxn mw s γ kind ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e }}
+      mvcc.isTxn mw s γ trace kind ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e }}
     (App (App (App (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Range"))
       (Val #(GoInterface.ok ctx))) (Val #key)) (Val #endk)) (Val #ro))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
-      ⌜todo = true → r ≠ null⌝ ∗ mvcc.isTxn mw s γ kind ∗
+      ⌜todo = true → r ≠ null⌝ ∗ mvcc.isTxn mw s γ trace kind ∗
       mvcc.rangeOutcome r err kind.readLog kind.readRev (decide (endk = slice.nil)) k e ro }}
 
 open Iris.ProofMode in
@@ -288,9 +292,9 @@ open Iris.ProofMode in
 theorem mvcc.metricsTxnWrite.Range.spec_frozen
     (h : mvcc.metricsTxnWrite.Range.spec (GF := GF) (hG := hG)) :
     mvcc.metricsTxnWrite.Range.specFrozen (GF := GF) (hG := hG) := by
-  intro mw s γ kind ctx cd todo key endk k e ro
+  intro trace mw s γ kind ctx cd todo key endk k e ro
   iintro %Φ ⟨#Hpkg, Htx, #Hctx, #Hkey, #Hend⟩ HΦ
-  iapply (h mw s γ kind ctx cd todo key endk k e ro (-1) (mvcc.crevFrozen γ)) $$ %Φ [Htx]
+  iapply (h trace mw s γ kind ctx cd todo key endk k e ro (-1) (mvcc.crevFrozen γ)) $$ %Φ [Htx]
   · iframe Htx; iframe #
   inext
   iintro %r %err ⟨%Ht, Htx, Hout⟩
@@ -305,20 +309,20 @@ theorem mvcc.metricsTxnWrite.Range.spec_frozen
 
 /-- The frozen statement (before unit 6a). -/
 abbrev mvcc.metricsTxnWrite.End.specFrozen : Prop :=
-  ∀ (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isTxnEnd mw s γ kind ∗
+  ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isTxnEnd mw s γ trace kind ∗
       mvcc.txnEndPre γ kind }}
     (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"End")) (Val #()))
-  {{ RET #(); mvcc.storeReader s γ ∗ mvcc.txnEndPost γ kind }}
+  {{ RET #(); mvcc.storeReader s γ ∗ mvcc.txnEndPost γ kind ∗ (∃ te : Bool, traceutil.ownTrace trace te) }}
 
 open Iris.ProofMode in
 /-- **The frozen statement is a corollary** (`storeReader_of`). -/
 theorem mvcc.metricsTxnWrite.End.spec_frozen
     (h : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     mvcc.metricsTxnWrite.End.specFrozen (GF := GF) (hG := hG) := by
-  intro mw s γ kind
+  intro trace mw s γ kind
   iintro %Φ H HΦ
-  iapply (h mw s γ kind (-1) (mvcc.crevFrozen γ)) $$ %Φ [H]
+  iapply (h trace mw s γ kind (-1) (mvcc.crevFrozen γ)) $$ %Φ [H]
   · iexact H
   inext
   iintro ⟨Hr, #Hf, Hpost⟩
@@ -330,15 +334,15 @@ theorem mvcc.metricsTxnWrite.End.spec_frozen
 
 /-- The frozen statement (before unit 6a). -/
 abbrev mvcc.txnReadWrite.Range.specFrozen : Prop :=
-  ∀ (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64)
+  ∀ (trace : Loc) (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool) (key endk : GoSlice)
     (k e : GoString) (ro : RangeOptions),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isRoTxnWrite trw s γ log rev ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isRoTxnWrite trw s γ trace log rev ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗
       endk ↦*□ e }}
     (App (App (App (App (Val (trw @!! go.GoType.PointerType txnReadWrite.ty @!! go!"Range"))
       (Val #(GoInterface.ok ctx))) (Val #key)) (Val #endk)) (Val #ro))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
-      ⌜todo = true → r ≠ null⌝ ∗ mvcc.isRoTxnWrite trw s γ log rev ∗
+      ⌜todo = true → r ≠ null⌝ ∗ mvcc.isRoTxnWrite trw s γ trace log rev ∗
       mvcc.rangeOutcome r err log rev (decide (endk = slice.nil)) k e ro }}
 
 open Iris.ProofMode in
@@ -346,9 +350,9 @@ open Iris.ProofMode in
 theorem mvcc.txnReadWrite.Range.spec_frozen
     (h : mvcc.txnReadWrite.Range.spec (GF := GF) (hG := hG)) :
     mvcc.txnReadWrite.Range.specFrozen (GF := GF) (hG := hG) := by
-  intro trw s γ log rev ctx cd todo key endk k e ro
+  intro trace trw s γ log rev ctx cd todo key endk k e ro
   iintro %Φ ⟨#Hpkg, Htx, #Hctx, #Hkey, #Hend⟩ HΦ
-  iapply (h trw s γ log rev ctx cd todo key endk k e ro (-1) (mvcc.crevFrozen γ)) $$ %Φ [Htx]
+  iapply (h trace trw s γ log rev ctx cd todo key endk k e ro (-1) (mvcc.crevFrozen γ)) $$ %Φ [Htx]
   · iframe Htx; iframe #
   inext
   iintro %r %err ⟨%Ht, Htx, Hout⟩
@@ -369,22 +373,23 @@ theorem mvcc.txnReadWrite.Range.spec_frozen
 
 /-- The frozen statement (before unit 6a). -/
 abbrev mvcc.txnReadWrite.End.specFrozen : Prop :=
-  ∀ (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isRoTxnWrite trw s γ log rev }}
+  ∀ (trace : Loc) (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isRoTxnWrite trw s γ trace log rev }}
     (App (Val (trw @!! go.GoType.PointerType txnReadWrite.ty @!! go!"End")) (Val #()))
-  {{ RET #(); mvcc.storeReader s γ }}
+  {{ RET #(); mvcc.storeReader s γ ∗ (∃ te : Bool, traceutil.ownTrace trace te) }}
 
 open Iris.ProofMode in
 /-- **The frozen statement is a corollary** (`storeReader_of`). -/
 theorem mvcc.txnReadWrite.End.spec_frozen (h : mvcc.txnReadWrite.End.spec (GF := GF) (hG := hG)) :
     mvcc.txnReadWrite.End.specFrozen (GF := GF) (hG := hG) := by
-  intro trw s γ log rev
+  intro trace trw s γ log rev
   iintro %Φ H HΦ
-  iapply (h trw s γ log rev (-1) (mvcc.crevFrozen γ)) $$ %Φ [H]
+  iapply (h trace trw s γ log rev (-1) (mvcc.crevFrozen γ)) $$ %Φ [H]
   · iexact H
   inext
-  iintro ⟨Hr, #Hf⟩
+  iintro ⟨Hr, #Hf, Htrc⟩
   iapply HΦ
+  iframe Htrc
   iapply mvcc.storeReader_of $$ [$Hr $Hf]
 
 /-! ### `readView__Range` -/

@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvTxn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvWarn
 
 @[expose] public section
 
@@ -46,13 +46,15 @@ pending revision, its changes pending, the response with header revision the tra
 id fields owned (`respHdrOwn`); `nil` (the panicking branch is not reached). Premises:
 `executeTxn`'s. At a context that may be done (`nd = false`, only for the read-only wrapper, with
 a logger; 2026-10-12, the request path's unit 3b): or `executeTxn`'s context error
-(`mvcc.errorfIs`), logged (`lg.Error`), and the partly filled response (`txnRespShell`). -/
+(`mvcc.errorfIs`), logged (`lg.Error`), and the partly filled response (`txnRespShell`; read-only,
+`roTxnRespRd`, its header's id fields owned, `respHdrOwn`: unit P4, 2026-10-14).
+2026-10-14 (unit P1b): the context carries the transaction's trace (`ctxTraceIs`). -/
 abbrev txn.txn.spec : Prop :=
-  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg s : Loc)
+  ∀ (trace : Loc) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg s : Loc)
     (γ : mvcc.StoreNames) (tw : GoInterface) (ro : Bool) (ilog : mvcc.Log) (rt : Loc)
     (t : TxnModel) (pl : GoSlice) (skip : Bool) (L : List w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.txnWriteIs tw s γ ro ilog [] ∗ mvcc.txnCtx ctx cd ∗
-      (if nd then mvcc.neverDone cd else iprop(True)) ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.txnWriteIs tw s γ trace ro ilog [] ∗ mvcc.txnCtx ctx cd ∗
+      traceutil.ctxTraceIs ctx (some trace) ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
       txn.txnRequestIs rt t ∗ pl ↦*□ txn.txnPath (mvcc.stateAfter ilog) t ∗
       txn.leasesOk L (txn.opsLeases (mvcc.stateAfter ilog)
         (t.branch (txn.txnOk (mvcc.stateAfter ilog) t))) ∗
@@ -66,7 +68,7 @@ abbrev txn.txn.spec : Prop :=
       (Val #tw)) (Val #rt)) (Val #(!ro))) (Val #pl)) (Val #skip))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜err = GoInterface.nil⌝ ∗
-        txn.txnWriteIs tw s γ ro ilog
+        txn.txnWriteIs tw s γ trace ro ilog
           (txn.srvRunTxn (W64 (ilog.length : Int)) (mvcc.stateAfter ilog) t).2.1 ∗
         txn.txnResponseIs skip resp
           (W64 (mvcc.writeRev ilog (txn.srvRunTxn (W64 (ilog.length : Int)) (mvcc.stateAfter ilog) t).2.1
@@ -79,8 +81,9 @@ abbrev txn.txn.spec : Prop :=
             (txn.srvRunTxn (W64 (ilog.length : Int)) (mvcc.stateAfter ilog) t).2.1)) ∗
         (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L)) ∨
       (⌜nd = false⌝ ∗ mvcc.errorfIs err ∗
-        (∃ pend' : List mvcc.Change, txn.txnWriteIs tw s γ ro ilog pend') ∗
-        txn.txnRespShell resp) }}
+        (∃ pend' : List mvcc.Change, txn.txnWriteIs tw s γ trace ro ilog pend') ∗
+        txn.txnRespShell resp ∗ txn.roTxnRespRd resp ∗
+        txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp)) }}
 
 end spec
 

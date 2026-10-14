@@ -40,7 +40,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
     (hZapErr : zap.Error.spec (GF := GF) (hG := hG))
     (hLogErr : zap.Logger.Error.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.delete.spec (GF := GF) (hG := hG) := by
-  intro tw s γ ilog pend key k crev Z
+  intro trace tw s γ ilog pend key k crev Z
   wp_start as ⟨Htw, #Hkey, %Hpre⟩
   obtain ⟨Hpresent, Hbm⟩ := Hpre
   have Hb : pend.length + 1 < 2 ^ 63 := Nat.lt_of_lt_of_le Hbm (mvcc.kbPutMax_le _)
@@ -157,11 +157,11 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
           s' := s, tx' := GoInterface.ok bt, firstRev' := W64 0, rev' := W64 0, trace' := trace },
         tx' := GoInterface.ok bt, beginRev' := W64 ((ilog.length : Int) - 1),
         changes' := chs' } : storeTxnWrite) -∗ lease.lessorRdOf γ.leases -∗
-      mvcc.storeTxnWriteIs tw s γ ilog (pend ++ [.del k]) crev Z : IProp GF)
+      mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ [.del k]) crev Z : IProp GF)
       $$ [Htoks Htok Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hkv]
   · iintro Htw Hlrd
     iunfold mvcc.storeTxnWriteIs
-    iexists trace, ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
+    iexists ti, bt, Locked, chs', (ps ++ [«$r0_ptr»]), ntok
     simp only [named]
     rw [mvcc.pendPuts_append ilog pend (.del k) _ hkvm']
     simp only [mvcc.revOf, mvcc.Change.isDel]

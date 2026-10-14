@@ -35,15 +35,17 @@ with the previous key-value if `PrevKv` asked for it. The trace is not `nil`.
 The write transaction runs under the store's batch lock by the critical-section contract
 (`csContract P f Pre Q Post`, the store's hook `hookIs γ P f`): `Post` once it was opened, `Pre`
 if the lease check failed first. The transaction spends a write token (`mvcc.storeWT γ`: the real
-backend's write-back budget; spent also when the lease check fails; 2026-10-13, unit 6). -/
+backend's write-back budget; spent also when the lease check fails; 2026-10-13, unit 6).
+2026-10-14 (unit P1b): the context's trace `ot` (`ctxTraceIs`) and its ownership taken
+(`EnsureTrace`); the trace returned owned, the context's if it had a non-empty one. -/
 abbrev txn.Put.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg : Loc) (le kv : GoInterface)
     (s : Loc) (γ : mvcc.StoreNames) (p : Loc) (o : OpFull) (m : Nat) (log₀ : mvcc.Log)
-    (P Pre Q Post : IProp GF) (f : val) (L : List w64),
+    (P Pre Q Post : IProp GF) (f : val) (L : List w64) (ot : Option Loc) (te : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗
       mvcc.storeWT γ ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗ txn.isTxnLessor le γ.leases ∗
       lease.lessorUser γ.leases L ∗
-      txn.putRequestIs p o ∗ mvcc.txnCtx ctx cd ∗
+      txn.putRequestIs p o ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗
       □ (∀ ilog : mvcc.Log, ⌜txn.Pinned log₀ m ilog ∧ o.ignoreLease = true⌝ -∗
         txn.leaseOk L (txn.putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter ilog)))) ∗
       mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
@@ -51,6 +53,7 @@ abbrev txn.Put.spec : Prop :=
       (Val #kv)) (Val #p))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       mvcc.storeReader s γ ∗ ownToks γ.revs m ∗ lease.lessorUser γ.leases L ∗ ⌜trace ≠ null⌝ ∗
+      (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
       ((⌜o.leaseID ≠ W64 0 ∧ resp = null⌝ ∗
           txn.errVarIs go_etcd_io.etcd.server.v3.lease.ErrLeaseNotFound err ∗ mvcc.revToken γ ∗
           Pre) ∨

@@ -27,12 +27,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 /-- `applyCompares(rv, cmps)` on a read transaction (of the committed log `log`): whether every
 comparison holds at the state after `log` (`List.all`, the client's verdict). -/
 abbrev txn.applyCompares.spec : Prop :=
-  ∀ (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (sl : GoSlice) (cps : List Loc)
+  ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (sl : GoSlice) (cps : List Loc)
     (cms : List CmpModel),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ mvcc.isTxnRead mw s γ log rev ∗ sl ↦*□ cps ∗ txn.comparesIs cps cms }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ mvcc.isTxnRead mw s γ trace log rev ∗ sl ↦*□ cps ∗ txn.comparesIs cps cms }}
     (App (App (Val (@! txn.applyCompares))
       (Val #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface))) (Val #sl))
-  {{ RET #(cms.all (cmpHolds (mvcc.stateAfter log))); mvcc.isTxnRead mw s γ log rev }}
+  {{ RET #(cms.all (cmpHolds (mvcc.stateAfter log))); mvcc.isTxnRead mw s γ trace log rev }}
 
 end spec
 

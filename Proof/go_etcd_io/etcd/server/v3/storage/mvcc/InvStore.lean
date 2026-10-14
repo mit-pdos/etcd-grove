@@ -44,6 +44,7 @@ public import Perennial.Golang.Theory.Chan
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Proof.go_etcd_io.etcd.pkg.v3.schedule.Defs
 public import Proof.go_etcd_io.etcd.server.v3.lease.InvLessor
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
 
 @[expose] public section
 
@@ -2040,10 +2041,12 @@ theorem storeTxnReadIs_rev (tr s : Loc) (rt : GoInterfaceOk) (trace : Loc) (γ :
 wrapper at `mw` (its counters), around the `txnReadWrite` wrapper around the `storeTxnRead`
 (at the compaction revision `crev`, with the reader's tag `Z`: `storeTxnReadIs`; by default the
 frozen transaction, `crev = -1`, `Z = crevFrozen γ`), with the transaction's tokens (`s.mu` held
-shared until `End`, at `crev`) and its reader's (`txReader`). -/
-def isTxnRead (mw s : Loc) (γ : StoreNames) (log : Log) (rev : w64) (crev : Int := -1)
+shared until `End`, at `crev`) and its reader's (`txReader`), and the trace `trace` the
+transaction steps (owned: `store.Read` takes it, `End` gives it back; a caller stepping the trace
+meanwhile borrows it, `isTxn_trace_acc`). -/
+def isTxnRead (mw s : Loc) (γ : StoreNames) (trace : Loc) (log : Log) (rev : w64) (crev : Int := -1)
     (Z : IProp GF := crevFrozen γ) : IProp GF :=
-  iprop(∃ (trw tr trace ti : Loc) (rt : GoInterfaceOk) (ranges : w64),
+  iprop(∃ (trw tr ti : Loc) (rt : GoInterfaceOk) (ranges : w64),
     "Hmw" ∷ mw ↦ ({
         TxnWrite' := interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw,
         ranges' := ranges, puts' := W64 0, deletes' := W64 0, putSize' := W64 0 } : metricsTxnWrite) ∗
@@ -2056,7 +2059,8 @@ def isTxnRead (mw s : Loc) (γ : StoreNames) (log : Log) (rev : w64) (crev : Int
       (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
     "Hmu" ∷ muHeld s γ crev ∗
     "HrevMu" ∷ sync.ownRWMutex (revMuAddr s) (revMuInv s γ) ∗
-    "Hti" ∷ idxReader ti γ.idx)
+    "Hti" ∷ idxReader ti γ.idx ∗
+    "Htrc" ∷ (∃ te : Bool, traceutil.ownTrace trace te))
 
 /-- **A frozen reader observed no compaction**: with the frozen tag (`Z = crevFrozen γ`), the
 transaction's compaction revision is `-1` (its part of the revision's authority agrees with the
@@ -2076,9 +2080,10 @@ theorem muHeld_frozen (s : Loc) (γ : StoreNames) (crev : Int) :
     iunfold muInvAt; iframe HcmpM HcrevM; iframe #; ipureintro; exact HcM
   ipureintro; exact Hc
 
-theorem isTxnRead_frozen (mw s : Loc) (γ : StoreNames) (log : Log) (rev : w64) (crev : Int) :
-    isTxnRead (GF := GF) mw s γ log rev crev (crevFrozen γ) ={⊤}=∗
-      isTxnRead mw s γ log rev crev (crevFrozen γ) ∗ ⌜crev = -1⌝ := by
+theorem isTxnRead_frozen (mw s : Loc) (γ : StoreNames) (trace : Loc) (log : Log) (rev : w64)
+    (crev : Int) :
+    isTxnRead (GF := GF) mw s γ trace log rev crev (crevFrozen γ) ={⊤}=∗
+      isTxnRead mw s γ trace log rev crev (crevFrozen γ) ∗ ⌜crev = -1⌝ := by
   iintro H
   iunfold isTxnRead at H
   iNamed H
@@ -2089,7 +2094,7 @@ theorem isTxnRead_frozen (mw s : Loc) (γ : StoreNames) (log : Log) (rev : w64) 
   imodintro
   isplitl
   · iunfold isTxnRead
-    iexists trw, tr, trace, ti, rt, ranges
+    iexists trw, tr, ti, rt, ranges
     simp only [named]
     iframe
     iframe #
@@ -2256,9 +2261,9 @@ with, and the transaction's tokens: `s.mu` held shared at the compaction revisio
 transaction observed (one of `ilog`'s revisions, or `-1`), and the reader's tag `Z` (persistent,
 given back at `End`). By default the frozen transaction (`crev = -1`, `Z = crevFrozen γ`: a store
 never compacted, as the packages above mvcc state it; 2026-10-13, unit 6a). -/
-def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
+def storeTxnWriteIs (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (pend : List Change)
     (crev : Int := -1) (Z : IProp GF := crevFrozen γ) : IProp GF :=
-  iprop(∃ (trace ti : Loc) (bt : GoInterfaceOk) (Locked : Puts → IProp GF) (chs : GoSlice)
+  iprop(∃ (ti : Loc) (bt : GoInterfaceOk) (Locked : Puts → IProp GF) (chs : GoSlice)
     (ps : List Loc) (ntok : Nat) (Pw : IProp GF) (fw : val) (Dep : IProp GF),
     "Htoks" ∷ ownTokAuthDfrac γ.revs (DFrac.own (1 : Qp).half) ntok ∗
     "%Hbudget" ∷ ⌜ilog.length + ntok + 3 ≤ 2 ^ 63⌝ ∗
@@ -2302,10 +2307,10 @@ key-values (`chs ↦* ps`, `changesAre ps ilog pend`: the caller's, `storeTxnWri
 the slice is `chs`, of `ps.length = pend.length` pointers, and the index writer may be sealed
 (`idxWriterB`: the watchable store seals the pending revision before it notifies). What
 `storeTxnWrite.End` needs (it reads the slice's length only). -/
-def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
+def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (pend : List Change)
     (chs : GoSlice) (ps : List Loc) (sealed : Bool) (crev : Int := -1)
     (Z : IProp GF := crevFrozen γ) : IProp GF :=
-  iprop(∃ (trace ti : Loc) (bt : GoInterfaceOk) (Locked : Puts → IProp GF) (ntok : Nat)
+  iprop(∃ (ti : Loc) (bt : GoInterfaceOk) (Locked : Puts → IProp GF) (ntok : Nat)
     (Pw : IProp GF) (fw : val) (Dep : IProp GF),
     "Htoks" ∷ ownTokAuthDfrac γ.revs (DFrac.own (1 : Qp).half) ntok ∗
     "%Hbudget" ∷ ⌜ilog.length + ntok + 3 ≤ 2 ^ 63⌝ ∗
@@ -2345,7 +2350,7 @@ def storeTxnWriteCore (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List C
 /-- A write transaction's revision (`writeRev`) is not negative (kept). -/
 theorem storeTxnWriteIs_writeRev (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
     (crev : Int) (Z : IProp GF) :
-    storeTxnWriteIs (GF := GF) tw s γ ilog pend crev Z ⊢
+    storeTxnWriteIs (GF := GF) tw s γ trace ilog pend crev Z ⊢
       ⌜0 ≤ sint.Z (W64 ((writeRev ilog pend : Nat) : Int) : w64)⌝ := by
   iintro H
   iunfold storeTxnWriteIs at H
@@ -2363,8 +2368,8 @@ theorem storeTxnWriteIs_writeRev (tw s : Loc) (γ : StoreNames) (ilog : Log) (pe
 /-- The write transaction as its core, its `changes` and their key-values. -/
 theorem storeTxnWriteIs_split (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
     (crev : Int := -1) (Z : IProp GF := crevFrozen γ) :
-    storeTxnWriteIs (GF := GF) tw s γ ilog pend crev Z ⊢
-      ∃ (chs : GoSlice) (ps : List Loc), storeTxnWriteCore tw s γ ilog pend chs ps false crev Z ∗
+    storeTxnWriteIs (GF := GF) tw s γ trace ilog pend crev Z ⊢
+      ∃ (chs : GoSlice) (ps : List Loc), storeTxnWriteCore tw s γ trace ilog pend chs ps false crev Z ∗
         chs ↦* ps ∗ changesAre ps ilog pend := by
   iintro Htw
   iunfold storeTxnWriteIs at Htw
@@ -2373,7 +2378,7 @@ theorem storeTxnWriteIs_split (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend 
   iexists chs, ps
   iframe Hchs Hkvs
   iunfold storeTxnWriteCore
-  iexists trace, ti, bt, Locked, ntok, Pw, fw, Dep
+  iexists ti, bt, Locked, ntok, Pw, fw, Dep
   simp only [named, idxWriterB_false]
   iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
   iframe #
@@ -2381,14 +2386,14 @@ theorem storeTxnWriteIs_split (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend 
 
 theorem storeTxnWriteIs_join (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
     (chs : GoSlice) (ps : List Loc) (crev : Int := -1) (Z : IProp GF := crevFrozen γ) :
-    storeTxnWriteCore (GF := GF) tw s γ ilog pend chs ps false crev Z ∗ chs ↦* ps ∗
-      changesAre ps ilog pend ⊢ storeTxnWriteIs tw s γ ilog pend crev Z := by
+    storeTxnWriteCore (GF := GF) tw s γ trace ilog pend chs ps false crev Z ∗ chs ↦* ps ∗
+      changesAre ps ilog pend ⊢ storeTxnWriteIs tw s γ trace ilog pend crev Z := by
   iintro ⟨Hc, Hchs, Hkvs⟩
   iunfold storeTxnWriteCore at Hc
   iNamed Hc
   simp only [idxWriterB_false]
   iunfold storeTxnWriteIs
-  iexists trace, ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
+  iexists ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
   simp only [named]
   iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
   iframe #
@@ -2399,8 +2404,8 @@ with the revision committed, persistent. -/
 theorem storeTxnWriteCore_seal (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
     (chs : GoSlice) (ps : List Loc) (hne : pend ≠ []) (crev : Int := -1)
     (Z : IProp GF := crevFrozen γ) :
-    storeTxnWriteCore (GF := GF) tw s γ ilog pend chs ps false crev Z ==∗
-      storeTxnWriteCore tw s γ ilog pend chs ps true crev Z ∗
+    storeTxnWriteCore (GF := GF) tw s γ trace ilog pend chs ps false crev Z ==∗
+      storeTxnWriteCore tw s γ trace ilog pend chs ps true crev Z ∗
         monoListLbOwn γ.idx.hist (histOf (ilog ++ [pend])) := by
   iintro Hc
   iunfold storeTxnWriteCore at Hc
@@ -2410,7 +2415,7 @@ theorem storeTxnWriteCore_seal (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend
   imodintro
   iframe Hlb
   iunfold storeTxnWriteCore
-  iexists trace, ti, bt, Locked, ntok, Pw, fw, Dep
+  iexists ti, bt, Locked, ntok, Pw, fw, Dep
   simp only [named, idxWriterB_true]
   iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
   iframe #
@@ -2420,8 +2425,8 @@ theorem storeTxnWriteCore_seal (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend
 the store's view of `currentRev` (kept). -/
 theorem storeTxnWriteCore_wf (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
     (chs : GoSlice) (ps : List Loc) (b : Bool) (crev : Int := -1) (Z : IProp GF := crevFrozen γ) :
-    storeTxnWriteCore (GF := GF) tw s γ ilog pend chs ps b crev Z ⊢
-      storeTxnWriteCore tw s γ ilog pend chs ps b crev Z ∗
+    storeTxnWriteCore (GF := GF) tw s γ trace ilog pend chs ps b crev Z ⊢
+      storeTxnWriteCore tw s γ trace ilog pend chs ps b crev Z ∗
         ⌜IdxWf ilog pend ∧ ps.length = pend.length ∧ ps.length = sint.nat chs.len ∧
           0 ≤ sint.Z chs.len ∧ ilog ≠ []⌝ := by
   iintro Hc
@@ -2430,7 +2435,7 @@ theorem storeTxnWriteCore_wf (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend :
   ihave %Hwf := idxWriterB_wf γ.idx ilog pend b $$ Hw
   isplitl
   · iunfold storeTxnWriteCore
-    iexists trace, ti, bt, Locked, ntok, Pw, fw, Dep
+    iexists ti, bt, Locked, ntok, Pw, fw, Dep
     simp only [named]
     iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
     iframe #
@@ -2439,29 +2444,31 @@ theorem storeTxnWriteCore_wf (tw s : Loc) (γ : StoreNames) (ilog : Log) (pend :
 
 /-- The write transaction `store.Write` returns, as the caller sees it: the `metricsTxnWrite`
 wrapper at `mw` (its counters `puts`, `deletes`, `putSize`) around the `storeTxnWrite`. -/
-def isTxnWrite (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
+def isTxnWrite (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (pend : List Change)
     (puts deletes putSize : w64) (crev : Int := -1) (Z : IProp GF := crevFrozen γ) : IProp GF :=
   iprop(∃ (tw : Loc) (ranges : w64),
     "Hmw" ∷ mw ↦ ({
         TxnWrite' := interface.mkOk (go.GoType.PointerType storeTxnWrite.ty) #tw,
         ranges' := ranges, puts' := puts, deletes' := deletes, putSize' := putSize } : metricsTxnWrite) ∗
-    "Htw" ∷ storeTxnWriteIs tw s γ ilog pend crev Z)
+    "Htw" ∷ storeTxnWriteIs tw s γ trace ilog pend crev Z ∗
+    "Htrc" ∷ (∃ te : Bool, traceutil.ownTrace trace te))
 
 /-- The write transaction at `mw` without its key-values (`storeTxnWriteCore`). -/
-def isTxnWriteCore (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
+def isTxnWriteCore (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log) (pend : List Change)
     (puts deletes putSize : w64) (chs : GoSlice) (ps : List Loc) (sealed : Bool)
     (crev : Int := -1) (Z : IProp GF := crevFrozen γ) : IProp GF :=
   iprop(∃ (tw : Loc) (ranges : w64),
     "Hmw" ∷ mw ↦ ({
         TxnWrite' := interface.mkOk (go.GoType.PointerType storeTxnWrite.ty) #tw,
         ranges' := ranges, puts' := puts, deletes' := deletes, putSize' := putSize } : metricsTxnWrite) ∗
-    "Htw" ∷ storeTxnWriteCore tw s γ ilog pend chs ps sealed crev Z)
+    "Htw" ∷ storeTxnWriteCore tw s γ trace ilog pend chs ps sealed crev Z ∗
+    "Htrc" ∷ (∃ te : Bool, traceutil.ownTrace trace te))
 
 theorem isTxnWrite_split (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
     (puts deletes putSize : w64) (crev : Int := -1) (Z : IProp GF := crevFrozen γ) :
-    isTxnWrite (GF := GF) mw s γ ilog pend puts deletes putSize crev Z ⊢
+    isTxnWrite (GF := GF) mw s γ trace ilog pend puts deletes putSize crev Z ⊢
       ∃ (chs : GoSlice) (ps : List Loc),
-        isTxnWriteCore mw s γ ilog pend puts deletes putSize chs ps false crev Z ∗
+        isTxnWriteCore mw s γ trace ilog pend puts deletes putSize chs ps false crev Z ∗
         chs ↦* ps ∗ changesAre ps ilog pend := by
   iintro H
   iunfold isTxnWrite at H
@@ -2476,21 +2483,22 @@ theorem isTxnWrite_split (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : Lis
 theorem isTxnWrite_join (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
     (puts deletes putSize : w64) (chs : GoSlice) (ps : List Loc) (crev : Int := -1)
     (Z : IProp GF := crevFrozen γ) :
-    isTxnWriteCore (GF := GF) mw s γ ilog pend puts deletes putSize chs ps false crev Z ∗
-      chs ↦* ps ∗ changesAre ps ilog pend ⊢ isTxnWrite mw s γ ilog pend puts deletes putSize crev Z := by
+    isTxnWriteCore (GF := GF) mw s γ trace ilog pend puts deletes putSize chs ps false crev Z ∗
+      chs ↦* ps ∗ changesAre ps ilog pend ⊢
+        isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z := by
   iintro ⟨H, Hchs, Hkvs⟩
   iunfold isTxnWriteCore at H
   iNamed H
   iunfold isTxnWrite
   iexists tw, ranges
-  iframe Hmw
+  iframe Hmw Htrc
   iapply storeTxnWriteIs_join tw s γ ilog pend chs ps crev Z $$ [$Htw $Hchs $Hkvs]
 
 theorem isTxnWriteCore_seal (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
     (puts deletes putSize : w64) (chs : GoSlice) (ps : List Loc) (hne : pend ≠ [])
     (crev : Int := -1) (Z : IProp GF := crevFrozen γ) :
-    isTxnWriteCore (GF := GF) mw s γ ilog pend puts deletes putSize chs ps false crev Z ==∗
-      isTxnWriteCore mw s γ ilog pend puts deletes putSize chs ps true crev Z ∗
+    isTxnWriteCore (GF := GF) mw s γ trace ilog pend puts deletes putSize chs ps false crev Z ==∗
+      isTxnWriteCore mw s γ trace ilog pend puts deletes putSize chs ps true crev Z ∗
         monoListLbOwn γ.idx.hist (histOf (ilog ++ [pend])) := by
   iintro H
   iunfold isTxnWriteCore at H
@@ -2503,10 +2511,10 @@ theorem isTxnWriteCore_seal (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : 
   iframe
 
 /-- **A frozen writer observed no compaction** (as `isTxnRead_frozen`). -/
-theorem isTxnWrite_frozen (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : List Change)
-    (puts deletes putSize : w64) (crev : Int) :
-    isTxnWrite (GF := GF) mw s γ ilog pend puts deletes putSize crev (crevFrozen γ) ={⊤}=∗
-      isTxnWrite mw s γ ilog pend puts deletes putSize crev (crevFrozen γ) ∗ ⌜crev = -1⌝ := by
+theorem isTxnWrite_frozen (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log)
+    (pend : List Change) (puts deletes putSize : w64) (crev : Int) :
+    isTxnWrite (GF := GF) mw s γ trace ilog pend puts deletes putSize crev (crevFrozen γ) ={⊤}=∗
+      isTxnWrite mw s γ trace ilog pend puts deletes putSize crev (crevFrozen γ) ∗ ⌜crev = -1⌝ := by
   iintro H
   iunfold isTxnWrite at H
   iNamed H
@@ -2517,9 +2525,9 @@ theorem isTxnWrite_frozen (mw s : Loc) (γ : StoreNames) (ilog : Log) (pend : Li
   isplitl
   · iunfold isTxnWrite
     iexists tw, ranges
-    iframe Hmw
+    iframe Hmw Htrc
     iunfold storeTxnWriteIs
-    iexists trace, ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
+    iexists ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
     simp only [named]
     iframe
     iframe #
@@ -2541,26 +2549,27 @@ inductive TxnKind where
   | read (log : Log) (rev : w64)
   | write (ilog : Log) (pend : List Change) (puts deletes putSize : w64)
 
-def isTxn (mw s : Loc) (γ : StoreNames) (kind : TxnKind) (crev : Int := -1)
+def isTxn (mw s : Loc) (γ : StoreNames) (trace : Loc) (kind : TxnKind) (crev : Int := -1)
     (Z : IProp GF := crevFrozen γ) : IProp GF :=
   match kind with
-  | .read log rev => isTxnRead mw s γ log rev crev Z
-  | .write ilog pend puts deletes putSize => isTxnWrite mw s γ ilog pend puts deletes putSize crev Z
+  | .read log rev => isTxnRead mw s γ trace log rev crev Z
+  | .write ilog pend puts deletes putSize =>
+    isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z
 
 /-- What `End` needs of a transaction (`metricsTxnWrite.End`): a read transaction; a write
 transaction's core (its key-values released: `isTxnWrite_split`), sealed or not. -/
-def isTxnEnd (mw s : Loc) (γ : StoreNames) (kind : TxnKind) (crev : Int := -1)
+def isTxnEnd (mw s : Loc) (γ : StoreNames) (trace : Loc) (kind : TxnKind) (crev : Int := -1)
     (Z : IProp GF := crevFrozen γ) : IProp GF :=
   match kind with
-  | .read log rev => isTxnRead mw s γ log rev crev Z
+  | .read log rev => isTxnRead mw s γ trace log rev crev Z
   | .write ilog pend puts deletes putSize =>
     iprop(∃ (chs : GoSlice) (ps : List Loc) (sealed : Bool),
-      isTxnWriteCore mw s γ ilog pend puts deletes putSize chs ps sealed crev Z)
+      isTxnWriteCore mw s γ trace ilog pend puts deletes putSize chs ps sealed crev Z)
 
 /-- A transaction is ready to end (its key-values, if any, dropped). -/
 theorem isTxn_toEnd (mw s : Loc) (γ : StoreNames) (kind : TxnKind) (crev : Int := -1)
     (Z : IProp GF := crevFrozen γ) :
-    isTxn (GF := GF) mw s γ kind crev Z ⊢ isTxnEnd mw s γ kind crev Z := by
+    isTxn (GF := GF) mw s γ trace kind crev Z ⊢ isTxnEnd mw s γ trace kind crev Z := by
   cases kind with
   | read log rev => exact .rfl
   | write ilog pend puts deletes putSize =>
@@ -2569,6 +2578,51 @@ theorem isTxn_toEnd (mw s : Loc) (γ : StoreNames) (kind : TxnKind) (crev : Int 
     icases isTxnWrite_split mw s γ ilog pend puts deletes putSize crev Z $$ H with ⟨%chs, %ps, Hc, -, -⟩
     iexists chs, ps, false
     iexact Hc
+
+/-- A read transaction's trace, borrowed (its owner steps it while the transaction is live). -/
+theorem isTxnRead_trace_acc (mw s : Loc) (γ : StoreNames) (trace : Loc) (log : Log) (rev : w64)
+    (crev : Int := -1) (Z : IProp GF := crevFrozen γ) :
+    isTxnRead (GF := GF) mw s γ trace log rev crev Z ⊢
+      (∃ te, traceutil.ownTrace trace te) ∗
+        ((∃ te, traceutil.ownTrace trace te) -∗ isTxnRead mw s γ trace log rev crev Z) := by
+  iintro H
+  iunfold isTxnRead at H
+  iNamed H
+  iframe Htrc
+  iintro Htrc
+  iunfold isTxnRead
+  iexists trw, tr, ti, rt, ranges
+  iframe
+  iframe #
+
+/-- A write transaction's trace, borrowed. -/
+theorem isTxnWrite_trace_acc (mw s : Loc) (γ : StoreNames) (trace : Loc) (ilog : Log)
+    (pend : List Change) (puts deletes putSize : w64) (crev : Int := -1)
+    (Z : IProp GF := crevFrozen γ) :
+    isTxnWrite (GF := GF) mw s γ trace ilog pend puts deletes putSize crev Z ⊢
+      (∃ te, traceutil.ownTrace trace te) ∗
+        ((∃ te, traceutil.ownTrace trace te) -∗
+          isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z) := by
+  iintro H
+  iunfold isTxnWrite at H
+  iNamed H
+  iframe Htrc
+  iintro Htrc
+  iunfold isTxnWrite
+  iexists tw, ranges
+  iframe
+
+/-- **A transaction's trace, borrowed** (`store.Read`/`Write` took it: its owner steps it while
+the transaction is live, and gives it back). -/
+theorem isTxn_trace_acc (mw s : Loc) (γ : StoreNames) (trace : Loc) (kind : TxnKind)
+    (crev : Int := -1) (Z : IProp GF := crevFrozen γ) :
+    isTxn (GF := GF) mw s γ trace kind crev Z ⊢
+      (∃ te, traceutil.ownTrace trace te) ∗
+        ((∃ te, traceutil.ownTrace trace te) -∗ isTxn mw s γ trace kind crev Z) := by
+  cases kind with
+  | read log rev => exact isTxnRead_trace_acc mw s γ trace log rev crev Z
+  | write ilog pend puts deletes putSize =>
+    exact isTxnWrite_trace_acc mw s γ trace ilog pend puts deletes putSize crev Z
 
 /-- What `End` leaves of a transaction: nothing of a read one; of a write one, the
 certificate of the committed log, and the revision token back if no revision was made. -/

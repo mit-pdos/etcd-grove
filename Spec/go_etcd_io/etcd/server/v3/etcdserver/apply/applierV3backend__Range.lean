@@ -33,7 +33,8 @@ abbrev apply.applierV3backend.Range.spec : Prop :=
       apply.rangePre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) r rq o log }}
     (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"Range")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      apply.rangePost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) rq o log resp err }}
+      apply.rangePost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) rq o log resp err ∗
+      apply.traceRes trace }}
 
 end spec
 

@@ -37,8 +37,8 @@ theorem txn.DeleteRange.wp_proof
     txn.DeleteRange.spec (GF := GF) (hG := hG) := by
   have hWrite := mvcc.store.Write.spec_frozen hWrite
   have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
-  intro ctx cd nd lg kv s γ dr o m log₀ P Pre Q Post f
-  wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, #Hdr, #Hctx, #Hnd, %Hbig, Hcs, #Hhook⟩
+  intro ctx cd nd lg kv s γ dr o m log₀ P Pre Q Post f ot te
+  wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, #Hdr, #Hctx, #Hct, Hto, #Hnd, %Hbig, Hcs, #Hhook⟩
   iunfold mvcc.csContract at Hcs
   icases Hcs with ⟨Hpre, #Htr, Hupd⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
@@ -57,16 +57,23 @@ theorem txn.DeleteRange.wp_proof
   wp_apply wp_slice_literal
   isplitr
   · ipureintro; rfl
-  iintro %fsl ⟨Hfsl, -⟩
+  iintro %fsl ⟨Hfsl, Hfslc⟩
   (try wp_auto)
-  wp_apply (hEnsure ctx cd lg _ _) $$ [$Hctx] as %ctx' %t ⟨%Ht, %vs, #Hctx', -⟩
+  wp_apply (hEnsure ctx cd ot te lg _ _) $$ [$Hctx $Hct $Hto Hfsl Hfslc]
+    as %ctx' %trace ⟨⟨%Ht, %Hteq⟩, Htrc, #Hct', %vs, #Hctx', -⟩
+  · iunfold traceutil.ownFields
+    iexists _
+    iframe Hfsl Hfslc
+    ipureintro
+    exact traceutil.fieldsWf_cons_string _ _ _
+      (traceutil.fieldsWf_cons_string _ _ _ traceutil.fieldsWf_nil)
   (try wp_auto)
   -- `kv.Write(trace)`: the store's
   iunfold txn.isKV at Hkv
   icases Hkv with ⟨%Hkv, #Hs⟩
   subst Hkv
   (try wp_auto)
-  wp_apply (hWrite s γ t P Pre Q f) $$ [$Hs $Hrd $Htok $Hwt $Hhook $Hpre $Htr] as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
+  wp_apply (hWrite s γ trace P Pre Q f false) $$ [$Hs $Hrd $Htok $Hwt $Hhook $Hpre $Htr $Htrc] as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
   · ipureintro; exact Ht
   -- the caller's update (the writes are the model's): the lock's invariant back for `End`
   imod Hupd $$ HQ with ⟨HP, HPost⟩
@@ -81,7 +88,7 @@ theorem txn.DeleteRange.wp_proof
     rw [txn.pendState_nil]
     have := Hbig ilog Hpin
     simp only [List.length_nil]; omega
-  wp_apply (hdel ctx' { cd with Values := vs } nd mw s γ ilog [] (W64 0) (W64 0) (W64 0) dr o)
+  wp_apply (hdel trace ctx' { cd with Values := vs } nd mw s γ ilog [] (W64 0) (W64 0) (W64 0) dr o)
     $$ [$Hctx' $Htx $Hdr] as %resp %err Hout
   · isplitl [Hnd]
     · cases nd
@@ -92,12 +99,12 @@ theorem txn.DeleteRange.wp_proof
   simp only [List.nil_append]
   icases Hout with (⟨%Herr, ⟨%deletes', Htx⟩, #Hresp, Hhdr⟩ | ⟨%Hne, Htx⟩)
   · -- deleted: the deferred `End` commits (if something was deleted)
-    ihave Htx : mvcc.isTxn mw s γ (.write ilog (txn.delChanges (mvcc.stateAfter ilog) o) (W64 0)
+    ihave Htx : mvcc.isTxn mw s γ trace (.write ilog (txn.delChanges (mvcc.stateAfter ilog) o) (W64 0)
         deletes' (W64 0)) $$ [Htx]
     · simp only [mvcc.isTxn]; iexact Htx
     (try wp_auto)
     ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
-    wp_apply (hEnd mw s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost⟩
+    wp_apply (hEnd trace mw s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost, %te', Htrc⟩
     · iapply mvcc.txnEndPre_write; iframe Hhook HP
     simp only [mvcc.txnEndPost]
     icases Hpost with ⟨#Hc, Htok⟩
@@ -107,6 +114,10 @@ theorem txn.DeleteRange.wp_proof
     isplitl []
     · ipureintro; exact Ht
     iframe HPost
+    isplitl [Htrc]
+    · iexists te'; iexact Htrc
+    isplitr
+    · ipureintro; exact Hteq
     iexists ilog
     isplitl []
     · ipureintro; exact ⟨Hpin, Hfx.1⟩
@@ -114,11 +125,11 @@ theorem txn.DeleteRange.wp_proof
     iframe Hresp Hhdr Hc Htok
     ipureintro; exact Herr
   · -- the range read's context error: nothing written, the token back
-    ihave Htx : mvcc.isTxn mw s γ (.write ilog [] (W64 0) (W64 0) (W64 0)) $$ [Htx]
+    ihave Htx : mvcc.isTxn mw s γ trace (.write ilog [] (W64 0) (W64 0) (W64 0)) $$ [Htx]
     · simp only [mvcc.isTxn]; iexact Htx
     (try wp_auto)
     ihave Htx := mvcc.isTxn_toEnd _ _ _ _ $$ Htx
-    wp_apply (hEnd mw s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost⟩
+    wp_apply (hEnd trace mw s γ _) $$ [$Htx Hhook HP] as ⟨Hrd, Hpost, %te', Htrc⟩
     · iapply mvcc.txnEndPre_write; iframe Hhook HP
     simp only [mvcc.txnEndPost, mvcc.commitLog, ↓reduceIte]
     icases Hpost with ⟨#Hc, Htok⟩
@@ -128,6 +139,10 @@ theorem txn.DeleteRange.wp_proof
     isplitl []
     · ipureintro; exact Ht
     iframe HPost
+    isplitl [Htrc]
+    · iexists te'; iexact Htrc
+    isplitr
+    · ipureintro; exact Hteq
     iexists ilog
     isplitl []
     · ipureintro; exact ⟨Hpin, Hfx.1⟩

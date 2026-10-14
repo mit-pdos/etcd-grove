@@ -84,7 +84,7 @@ theorem EtcdServer.DeleteRange.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hsp⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, #Hsp⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
   iunfold trace.isSpan at Hsp

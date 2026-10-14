@@ -28,8 +28,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 theorem txn.Count.wp_proof
     (hRange : txn.Range.spec (GF := GF) (hG := hG)) :
     txn.Count.spec (GF := GF) (hG := hG) := by
-  intro ctx cd lg kv s γ key rangeEnd k e revision m log₀
-  wp_start as ⟨#Hkv, Hrd, Htoks, #Hc0, #Hk, #He, #Hctx, %Hlg⟩
+  intro ctx cd lg kv s γ key rangeEnd k e revision m log₀ ot te
+  wp_start as ⟨#Hkv, Hrd, Htoks, #Hc0, #Hk, #He, #Hctx, #Hct, Hto, %Hlg⟩
   wp_auto
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ «$a3»
   iStructNamed «$a3»
@@ -46,8 +46,8 @@ theorem txn.Count.wp_proof
     ipureintro; rfl
   have heff : (txn.countOp k (txn.rangeEndOf rangeEnd e) revision).effSortOrder = W64 0 := by
     simp [txn.countOp, txn.rangeOpOf, OpFull.effSortOrder]
-  wp_apply (hRange ctx cd false lg kv s γ «$a3_ptr» _ false m log₀) $$ [$Hkv $Hrd $Htoks $Hc0 $Hreq $Hctx]
-    as %resp %tr %err ⟨Hrd, Htoks, %Htr, %log, %rev, #Hcert, %Hpin, #Hres, -, -⟩
+  wp_apply (hRange ctx cd false lg kv s γ «$a3_ptr» _ false m log₀ ot te) $$ [$Hkv $Hrd $Htoks $Hc0 $Hreq $Hctx $Hct $Hto]
+    as %resp %tr %err ⟨Hrd, Htoks, %Htr, -, -, %log, %rev, #Hcert, %Hpin, #Hres, -, -⟩
   · isplitr
     · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
     isplitr

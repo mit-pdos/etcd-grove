@@ -7,6 +7,7 @@ module
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Put
 public import Spec.google_golang_org.grpc.StaticMethod
 public import Spec.google_golang_org.grpc.ClientConn__Invoke
+public import Proof.go_etcd_io.etcd.client.v3.EtcdInvoke
 
 @[expose] public section
 
@@ -28,8 +29,8 @@ theorem kVClient.Put.wp_proof
     (wp_StaticMethod : grpc.StaticMethod.spec (GF := GF) (hG := hG))
     (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG)) :
     kVClient.Put.spec (GF := GF) (hG := hG) := by
-  intro kc conn K ctx cd inp req k v opts vs Q
-  wp_start as ⟨#Hstub, #Hconn, #Hctx, Hin, #Hk, #Hv, #Hopts, #Hok, #Hrun⟩
+  intro kc conn addr Spec Q ctx cd inp req k v opts vs
+  wp_start as ⟨#Hstub, #Hconn, #Hrpc, #Hpre, #Hctx, Hin, #Hk, #Hv, #Hopts, #Hok⟩
   wp_auto
   wp_apply wp_StaticMethod as %sm #Hsm
   wp_apply wp_slice_literal (V := GoInterface) [sm]
@@ -44,20 +45,34 @@ theorem kVClient.Put.wp_proof
   ihave #Hs1 := callOptsOk_singleton sm $$ Hsm
   ihave #Hok2 := callOptsOk_app [sm] vs $$ [Hs1 Hok]
   · iframe #
-  wp_apply wp_Invoke.1 conn K ctx cd inp _ req k v copts ([sm] ++ vs) Q $$ [Hin «$r0»]
-    as %err ⟨Hin', Hres⟩
+  ihave Hsend : pbPutRequest (GF := GF) |>.send inp (putReqOp req k v) $$ [Hin]
+  · simp only [pbPutRequest]
+    iexists req, k, v
+    iframe
+    iframe #
+    ipureintro; rfl
+  ihave Hblank : pbPutResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
+  · simp only [pbPutResponse]
+    iexact «$r0»
+  have hI := etcdConn_Invoke wp_Invoke conn addr go!"/etcdserverpb.KV/Put" pbPutRequest pbPutResponse Spec (putReqOp req k v) Q ctx cd inp «$r0_ptr» copts
+    ([sm] ++ vs)
+  rw [show (pbPutRequest (GF := GF)).ty = etcdserverpb.PutRequest.ty from rfl,
+    show (pbPutResponse (GF := GF)).ty = etcdserverpb.PutResponse.ty from rfl] at hI
+  wp_apply hI $$ [Hsend Hblank] as %err ⟨Hin', Hres⟩
   · iframe #
     iframe
-  icases Hin' with ⟨%req', Hin', -⟩
-  icases Hres with (⟨%Herr, Hm⟩ | %Herr)
+  icases Hin' with ⟨%req', %k', %e', Hin', -⟩
+  icases Hres with (⟨%Herr, %m', Hm, Hq⟩ | ⟨%Herr, #Hse⟩)
   · subst Herr
     wp_auto
     iapply HΦ
     iframe
     unfold putCallOut
     ileft
+    isplitl []
+    · ipureintro; rfl
+    iexists m'
     iframe
-    ipureintro; rfl
   · obtain ⟨Hne, Hce⟩ := Herr
     cases err with
     | nil => exact absurd rfl Hne
@@ -67,6 +82,7 @@ theorem kVClient.Put.wp_proof
       iframe
       unfold putCallOut
       iright
+      iframe #
       ipureintro
       exact ⟨Hne, Hce, rfl⟩
 

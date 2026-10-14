@@ -82,6 +82,9 @@ local macro "fin_same" : tactic => `(tactic| (
   · simp only [apply.cPost, ↓reduceIte]; iexact HPP
   isplitr
   · ipureintro; simp [apply.dispatchStep, apply.chainAfter, hk, apply.preV3Kind, apply.storeKind, apply.Outcome.logAfter]
+  first | isplitl [Htrc] | isplitl []
+  · iapply apply.resTrace_of $$ H0
+    first | iexact Htrc | iapply apply.traceRes_null
   simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.true_or, _root_.or_true, ↓reduceIte]
   iframe %hn
   iexists _
@@ -104,6 +107,9 @@ local macro "fin_kv" : tactic => `(tactic| (
     simp only [apply.dispatchStep, hk, apply.preV3Kind, apply.storeKind,
       Bool.false_eq_true, _root_.or_self, ↓reduceIte]
     exact Hst
+  first | isplitl [Htrc] | isplitl []
+  · iapply apply.resTrace_of $$ H0
+    first | iexact Htrc | iapply apply.traceRes_null
   simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
   iframe %hn
   iexists _
@@ -298,6 +304,8 @@ theorem apply.uberApplier.dispatch.wp_proof
     · simp only [apply.cPost, apply.cPre, Bool.false_eq_true, ↓reduceIte]; iexact Hc
     isplitr
     · ipureintro; simp [apply.dispatchStep, apply.chainAfter, hpre]
+    isplitl []
+    · iapply apply.resTrace_null
     simp only [apply.dispatchResult, hpre, Bool.false_eq_true, or_self, ↓reduceIte]
     ipureintro; trivial
   (try wp_auto)
@@ -315,7 +323,7 @@ theorem apply.uberApplier.dispatch.wp_proof
           structFieldRef uberApplier go!"applyV3" p ↦ a' ∗ apply.applierSpec E c' a' ∗
           apply.kvOwn E (o.logAfter log) ∗ apply.cPost true Pre Post ∗
           ⌜apply.dispatchStep c rq true log o ∧ apply.chainAfter rq true c c'⌝ ∗
-          apply.dispatchResult rq true log skip «$r0_ptr» o))
+          apply.resTrace «$r0_ptr» ∗ apply.dispatchResult rq true log skip «$r0_ptr» o))
     with [a r ar op «$r0» Hc Hres Ha Hkv Hwt]
   · -- Range
     have hl : lRa ≠ null := by simpa using Hif
@@ -324,7 +332,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .range := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HRange $$ %lRa %rq %x %log [Hkv Hres] as %resp %trace %err Hpost
+    wp_apply HRange $$ %lRa %rq %x %log [Hkv Hres] as %resp %trace %err ⟨Hpost, Htrc⟩
     · iunfold apply.rangePre
       isplitr
       · ipureintro; exact ⟨hs, hk, hok x hs⟩
@@ -347,7 +355,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .put := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HPut $$ %lPu %rq %x %log %Pre %Q %Post [Hkv Hwt Hres Hc] as %resp %trace %err Hpost
+    wp_apply HPut $$ %lPu %rq %x %log %Pre %Q %Post [Hkv Hwt Hres Hc] as %resp %trace %err ⟨Hpost, Htrc⟩
     · iunfold apply.putPre
       isplitr
       · ipureintro; exact ⟨hs, hk, hok⟩
@@ -369,7 +377,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .deleteRange := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HDel $$ %lDe %rq %x %log %Pre %Q %Post [Hkv Hwt Hres Hc] as %resp %trace %err Hpost
+    wp_apply HDel $$ %lDe %rq %x %log %Pre %Q %Post [Hkv Hwt Hres Hc] as %resp %trace %err ⟨Hpost, Htrc⟩
     · iunfold apply.deletePre
       isplitr
       · ipureintro; exact ⟨hs, hk, hok x hs⟩
@@ -391,7 +399,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hk : dispatchKind rq = .txn := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, hs]
     have hok := Hok.1
     simp only [rqOk, hk] at hok
-    wp_apply HTxn $$ %lTx %skip %rq %x %log %Pre %Q %Post [Hkv Hwt Hres Hc] as %resp %trace %err Hpost
+    wp_apply HTxn $$ %lTx %skip %rq %x %log %Pre %Q %Post [Hkv Hwt Hres Hc] as %resp %trace %err ⟨Hpost, Htrc⟩
     · iunfold apply.txnPre
       isplitr
       · ipureintro; exact ⟨hs, hk, hok x hs⟩
@@ -497,6 +505,9 @@ theorem apply.uberApplier.dispatch.wp_proof
       rcases hc' with ⟨h1, -⟩ | h2
       · exact Or.inl h1
       · exact Or.inr ⟨rfl, hk, h2⟩
+    first | isplitl [Htrc] | isplitl []
+    · iapply apply.resTrace_of $$ H0
+      first | iexact Htrc | iapply apply.traceRes_null
     simp only [apply.dispatchResult, hk, apply.preV3Kind, _root_.or_true, ↓reduceIte]
     iframe %hn
     iexists _

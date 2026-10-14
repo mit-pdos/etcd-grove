@@ -50,14 +50,21 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
   icases Hkv with ⟨#Hkv, -⟩
   obtain ⟨hdel, hk, hlen, hst⟩ := Hrq
   wp_apply (txn.deleteRange_soleWriter_of hDel todoCtxVal mvcc.neverCd true opts.Logger' opts.KV'
-      E.s E.γ r o log E.P Pre Q Post E.f hlen
+      E.s E.γ r o log E.P Pre Q Post E.f none false hlen
       (Nat.lt_of_lt_of_le hst (txn.putMax_ge E.γ))) $$ [$Hrd $Hsw $Hwt $Hcs]
-    as %resp %trace %err ⟨Hrd, %Htr, HPost, Hout⟩
+    as %resp %trace %err ⟨Hrd, %Htr, HPost, Htrc, -, Hout⟩
   · iframe #
     isplitr
     · iapply mvcc.txnCtx_todo
+    isplitr
+    · iapply traceutil.ctxTraceIs_todo
+    isplitr
+    · simp only [traceutil.ownTraceOpt]; itrivial
     simp only [↓reduceIte]; iapply mvcc.neverDone_neverCd
   iapply HΦ
+  isplitr [Htrc]
+  rotate_left
+  · iunfold apply.traceRes; iright; iexact Htrc
   iunfold apply.kvPost
   icases Hout with (⟨%Herr, #Hresp, Hhdr, Hsw, %Hst⟩ | ⟨%Herr, Hsw⟩)
   · -- the delete committed

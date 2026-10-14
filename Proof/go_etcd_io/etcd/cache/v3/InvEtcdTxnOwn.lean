@@ -17,7 +17,8 @@ branches a transaction's results chose (`gatherResponseOps`).
 operation's is `txnOpRespAt`'s.
 
 **Owned responses** (`txnCommitResultO`): what the client's `Commit()` returns is an error
-(`clientErr`: a leaf of an error tree, as `errors.As` needs) or a fresh message
+(`clientErr`: a leaf of an error tree, as `errors.As` needs; `statusErrOk`: one grpc's `status`
+accepts, as `status.FromError` needs) or a fresh message
 (protobuf decodes it from the gRPC reply), which the caller owns: the transaction's `Succeeded`,
 and the top-level operations' responses (a range response's header, key-values, `More` and
 `Count`; a put's, delete's or nested transaction's header) are owned; the rest is read-only. The
@@ -432,10 +433,11 @@ def txnCommitOk (pfx : GoString) (lo : w64) (t : TxnModel) (resp : Loc) : IProp 
       EtcdStateWf pfx s⌝ ∗
     txnStates pfx r s (runTxn r s t).2.1 (txnWrote (runTxn r s t).2.2))
 
-/-- **What `Commit()` returns, owned**: an error (`clientErr`), or `txnCommitOk`. -/
+/-- **What `Commit()` returns, owned**: an error (`clientErr`; one grpc's `status` accepts,
+`statusErrOk`, unit P3a: the leasing KV passes it to `status.FromError`), or `txnCommitOk`. -/
 def txnCommitResultO (pfx : GoString) (lo : w64) (t : TxnModel) (resp : Loc) (err : GoInterface) :
     IProp GF :=
-  iprop((⌜err ≠ GoInterface.nil⌝ ∗ ⌜clientErr err⌝) ∨
+  iprop((⌜err ≠ GoInterface.nil⌝ ∗ ⌜clientErr err⌝ ∗ statusErrOk err) ∨
     (⌜err = GoInterface.nil⌝ ∗ txnCommitOk pfx lo t resp))
 
 /-! ## The builder with nested operations and owned responses -/

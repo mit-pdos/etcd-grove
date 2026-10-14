@@ -34,16 +34,17 @@ revision of the committed log (or `-1`); its reads answer `rangeOutcomeC` at it.
 `Z` is carried to `End`. The frozen statement (`storeReader`, `crev = -1`) is `specFrozen`
 (`spec_frozen`, `FrozenSpecs.lean`). -/
 abbrev mvcc.store.Write.spec : Prop :=
-  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (P Pre Q : IProp GF) (f : val) (c : Int)
-    (Z : IProp GF),
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool)
+    (c : Int) (Z : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeReaderC s γ ∗ □ Z ∗ mvcc.crevLb γ.idx c ∗ mvcc.revToken γ ∗
       mvcc.storeWT γ ∗ ⌜trace ≠ null⌝ ∗
-      mvcc.hookIs γ P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
+      mvcc.hookIs γ P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗
+      traceutil.ownTrace trace te }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Write")) (Val #trace))
   {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
       (∃ (ilog : mvcc.Log) (crev : Int),
-        mvcc.isTxnWrite mw s γ ilog [] (W64 0) (W64 0) (W64 0) crev Z ∗ mvcc.crevLb γ.idx crev ∗
+        mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0) crev Z ∗ mvcc.crevLb γ.idx crev ∗
         ⌜c ≤ crev⌝) ∗ Q }}
 
 end spec

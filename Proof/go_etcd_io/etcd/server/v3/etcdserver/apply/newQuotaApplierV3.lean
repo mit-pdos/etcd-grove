@@ -89,8 +89,11 @@ theorem apply.newQuotaApplierV3.wp_proof
       iframe #
       ipureintro; exact Hk
     inext
-    iintro %resp %trace %err Hpost
+    iintro %resp %trace %err ⟨Hpost, Htrc⟩
     iapply HΦ'
+    isplitr [Htrc]
+    rotate_left
+    · iexact Htrc
     iunfold apply.kvPost at Hpost
     iunfold apply.kvPost
     icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP⟩
@@ -119,8 +122,11 @@ theorem apply.newQuotaApplierV3.wp_proof
       iframe #
       ipureintro; exact Hk
     inext
-    iintro %resp %trace %err Hpost
+    iintro %resp %trace %err ⟨Hpost, Htrc⟩
     iapply HΦ'
+    isplitr [Htrc]
+    rotate_left
+    · iexact Htrc
     iunfold apply.rangePost at Hpost
     iunfold apply.rangePost
     icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres⟩

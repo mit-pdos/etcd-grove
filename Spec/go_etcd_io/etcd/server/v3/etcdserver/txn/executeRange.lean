@@ -32,18 +32,19 @@ at the log and revision the transaction reads (the response of the server's sele
 `ErrFutureRev`, or a context error); at a context never canceled (`nd`), no context error.
 Premises: a valid sort target, and a small sorted selection (`sortSmall`, at the state read). -/
 abbrev txn.executeRange.spec : Prop :=
-  ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg s : Loc)
+  ∀ (trace : Loc) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg s : Loc)
     (γ : mvcc.StoreNames) (tw : GoInterface) (kind : mvcc.TxnKind) (ro : Bool) (r : Loc)
     (o : OpFull) (withTotal : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
-      txn.txnViewIs tw s γ kind ro ∗ mvcc.txnCtx ctx cd ∗
-      (if nd then mvcc.neverDone cd else iprop(True)) ∗ txn.rangeRequestIs r o ∗
+      txn.txnViewIs tw s γ trace kind ro ∗ mvcc.txnCtx ctx cd ∗
+      (if nd then mvcc.neverDone cd else iprop(True)) ∗ traceutil.ctxTraceIs ctx (some trace) ∗
+      txn.rangeRequestIs r o ∗
       ⌜txn.validSortTarget o ∧ txn.sortSmall o (mvcc.stateAt kind.readLog
         (sint.nat (mvcc.rangeRev kind.readRev o.base.rev)))⌝ }}
     (App (App (App (App (App (Val (@! txn.executeRange)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #tw)) (Val #r)) (Val #withTotal))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      txn.txnViewIs tw s γ kind ro ∗ txn.rangeResult resp err kind.readLog kind.readRev o withTotal ∗
+      txn.txnViewIs tw s γ trace kind ro ∗ txn.rangeResult resp err kind.readLog kind.readRev o withTotal ∗
       txn.rangeHdr resp err ∗ ⌜nd = true → err = GoInterface.nil ∨ sint.Z kind.readRev < sint.Z o.base.rev⌝ }}
 
 end spec

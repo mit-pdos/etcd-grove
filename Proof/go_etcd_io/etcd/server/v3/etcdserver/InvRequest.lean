@@ -349,11 +349,11 @@ def resultIs (E : apply.AEnv GF) (rq : apply.IRRModel) (ar : Loc) : IProp GF :=
       mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log)
 
 /-- **The result the proposer of `rq` expects**: the `*apply.Result` `ar` (as an interface
-value) with `resultIs E rq ar`. -/
+value) with `resultIs E rq ar`, and its trace (`apply.resTrace`, unit P1b). -/
 def resultΨ (E : apply.AEnv GF) (rq : apply.IRRModel) (x : GoInterface) : IProp GF :=
   iprop(∃ ar : Loc,
     ⌜x = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar⌝ ∗
-    resultIs E rq ar)
+    apply.resTrace ar ∗ resultIs E rq ar)
 
 /-- **The server's registration condition**: the expectation of a registered id is
 `resultΨ E rq` for the request `rq` its data decode to, the id claimed for those data. -/

@@ -39,24 +39,26 @@ theorem WatchResponse.Err.wp_proof
     (wp_status_Error : status.Error.spec (GF := GF) (hG := hG)) :
     WatchResponse.Err.spec (GF := GF) (hG := hG) := by
   intro wr resp dq
-  wp_start as Hwr
+  wp_start as ⟨Hwr, #Hcse⟩
   ihave #Hrpc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
   · iPkgInit
   ihave Hri : (rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hrpc
-  icases Hri with ⟨⟨%eFR, #HeFR⟩, ⟨%eCP, #HeCP, #HeCPs⟩, #HFR⟩
+  icases Hri with ⟨⟨%eFR, #HeFR⟩, ⟨%eCP, #HeCP, #HeCPs⟩, #HFR, -⟩
   ihave #HeFRs := HFR $$ HeFR
   wp_auto
   cases hce : resp.closeErr' with
   | ok i =>
     wp_auto
-    wp_apply wp_rpctypes_Error as %err' ⟨%Hne, #Hw, -⟩
-    · ipureintro; simp [hce]
+    rw [hce]
+    wp_apply wp_rpctypes_Error (GoInterface.ok i) $$ [$Hcse] as %err' ⟨%Hne, #Hw, -⟩
+    · ipureintro; simp
     iapply HΦ
     iframe
     isplitl []
     · ipureintro; simp [Hne]
-    rw [hce]; iexact Hw
+    imodintro; iintro -
+    iapply errStrOk_of_statusErrOk; iexact Hw
   | nil =>
     wp_auto
     wp_if_destruct
@@ -87,13 +89,13 @@ theorem WatchResponse.Err.wp_proof
         · ipureintro
           simp only [google_golang_org.grpc.codes.OK]
           exact fun h => absurd (go.intoVal_inj h) (by decide)
-        wp_apply wp_rpctypes_Error as %e2 ⟨%He2, #Hw, -⟩
+        wp_apply wp_rpctypes_Error e1 $$ [$He1s] as %e2 ⟨%He2, #Hw, -⟩
         · ipureintro; exact He1
         iapply HΦ
         iframe
         isplitl []
         · ipureintro; simp [He2]
-        imodintro; iintro -; iapply Hw; iexact He1s
+        imodintro; iintro -; iapply errStrOk_of_statusErrOk; iexact Hw
 
 end proof
 

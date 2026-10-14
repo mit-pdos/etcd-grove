@@ -47,14 +47,14 @@ theorem mvcc.watchableStore.rev.wp_proof
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply hTODO as %t %Ht
+  wp_apply hTODO as %t ⟨%Ht, Htrc⟩
   (try wp_auto)
   rw [method_unfold (t := go.GoType.PointerType watchableStore.ty) (m := go!"Read")]
   wp_auto
   imod ownToks_0 (GF := GF) γ.st.revs with Hnone
   imod mvcc.idxCert_nil (GF := GF) γ.st.idx with #Hc0
   imod mvcc.crevLb_neg γ.st.idx with #Hlbn
-  wp_apply (hRead st γ.st _ t 0 [] (-1) iprop(True)) $$ [$Hs $Hrd $Hnone $Hc0 $Hlbn]
+  wp_apply (hRead st γ.st _ t 0 [] true (-1) iprop(True)) $$ [$Hs $Hrd $Hnone $Hc0 $Hlbn $Htrc]
     as %mw ⟨%log, %rev, %crev, Htx, -, -, -⟩
   · isplitr
     · iintro !>; itrivial
@@ -73,17 +73,17 @@ theorem mvcc.watchableStore.rev.wp_proof
   (try wp_auto)
   wp_apply (hRev (mvcc.txCommon tr) rev) $$ [$HrevT]
   (try wp_auto)
-  ihave Htx : mvcc.isTxnRead mw st γ.st log rev crev iprop(True) $$ [Hmw Htrw Hrd Hmu HrevMu Hti]
+  ihave Htx : mvcc.isTxnRead mw st γ.st t log rev crev iprop(True) $$ [Hmw Htrw Hrd Hmu HrevMu Hti Htrc]
   · iunfold mvcc.isTxnRead
-    iexists trw, tr, trace, ti, rt, ranges
+    iexists trw, tr, ti, rt, ranges
     iframe
     iframe #
-  ihave Htx' : mvcc.isTxn mw st γ.st (.read log rev) crev iprop(True) $$ [Htx]
+  ihave Htx' : mvcc.isTxn mw st γ.st t (.read log rev) crev iprop(True) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
   ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ crev iprop(True) $$ Htx'
   ihave Hep : mvcc.txnEndPre γ.st (.read log rev) $$ []
   · simp only [mvcc.txnEndPre]; itrivial
-  wp_apply (hEnd mw st γ.st (.read log rev) crev iprop(True)) $$ [$Htx' $Hep] as ⟨Hrd, -, -⟩
+  wp_apply (hEnd t mw st γ.st (.read log rev) crev iprop(True)) $$ [$Htx' $Hep] as ⟨Hrd, -, -, -⟩
   (try wp_auto)
   iapply HΦ
   iframe Hrd

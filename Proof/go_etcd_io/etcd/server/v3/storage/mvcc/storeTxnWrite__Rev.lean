@@ -24,14 +24,14 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.storeTxnWrite.Rev.wp_proof : mvcc.storeTxnWrite.Rev.spec (GF := GF) (hG := hG) := by
-  intro tw s γ ilog pend chs ps sealed crev Z
+  intro trace tw s γ ilog pend chs ps sealed crev Z
   wp_start as Htw
   iunfold mvcc.storeTxnWriteCore at Htw
   iNamed Htw
   (try wp_auto)
   iapply HΦ
   iunfold mvcc.storeTxnWriteCore
-  iexists trace, ti, bt, Locked, ntok
+  iexists ti, bt, Locked, ntok
   simp only [named]
   iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
   iframe #

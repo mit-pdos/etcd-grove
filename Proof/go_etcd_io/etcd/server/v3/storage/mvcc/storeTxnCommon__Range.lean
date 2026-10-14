@@ -28,8 +28,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.storeTxnCommon.Range.wp_proof (hRev : mvcc.storeTxnCommon.Rev.spec (GF := GF) (hG := hG))
     (hKeys : mvcc.storeTxnCommon.rangeKeys.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnCommon.Range.spec (GF := GF) (hG := hG) := by
-  intro tr s trace ti rt γ log rev ctx cd todo key endk k e ro crev Z
-  wp_start as ⟨#Hs, #Htr, Hrd, #Hidx, Hti, #Hctx, #Hkey, #Hend, Hmu⟩
+  intro tr s trace ti rt γ log rev ctx cd todo key endk k e ro te crev Z
+  wp_start as ⟨#Hs, #Htr, Hrd, #Hidx, Hti, #Hctx, #Hkey, #Hend, Hmu, Hown⟩
   iunfold mvcc.txReader at Hrd
   icases Hrd with ⟨%m, %m', %Rd, %Tok, Hrd⟩
   iNamed Hrd
@@ -58,14 +58,14 @@ theorem mvcc.storeTxnCommon.Range.wp_proof (hRev : mvcc.storeTxnCommon.Rev.spec 
   · rw [mvcc.idxKnows_cert]; iexact Hcert0
   icases mvcc.muHeld_cmp s γ crev $$ Hmu with ⟨Hcmp, Hcu, %Hcb, Hmub⟩
   wp_apply (hKeys (mvcc.txCommon tr) s trace ti rt DFrac.discard m Tok γ (.cert log) log rev
-      ctx cd todo key endk k e ro _ _ crev log (by assumption))
-    $$ [$Hs $HsT $HtxcT $HtraceT $Hrdr $Htok $Hcert0 $Hkn $Hidx $Hti $Hctx $Hkey $Hend $Hcmp $Hcu]
-    as %r %err ⟨%Htodo, -, -, -, Htok, -, Hti, Hcmp, Hcu, Hout⟩
+      ctx cd todo key endk k e ro _ _ crev log te (by assumption))
+    $$ [$Hs $HsT $HtxcT $HtraceT $Hrdr $Htok $Hcert0 $Hkn $Hidx $Hti $Hctx $Hkey $Hend $Hcmp $Hcu $Hown]
+    as %r %err ⟨%Htodo, -, -, -, Htok, -, Hti, Hcmp, Hcu, Hown, Hout⟩
   · ipureintro; exact ⟨Hsub, ⟨List.prefix_refl _, HcrevT.2⟩, rfl, HneT, hrv, Hcb⟩
   ihave Hmu := Hmub $$ Hcmp Hcu
   (try wp_auto)
   iapply HΦ
-  iframe Hti Hout Hmu
+  iframe Hti Hout Hmu Hown
   isplitl []
   · ipureintro; exact Htodo
   iunfold mvcc.txReader

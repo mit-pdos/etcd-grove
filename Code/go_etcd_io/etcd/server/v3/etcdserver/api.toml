@@ -1,5 +1,7 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
+# Types and names only: function and method bodies are axiomatized; the capability the server's
+# unary interceptor asks for (`V3rpcCapability`, unit P3b: an axiomatized constant is an opaque
+# `val`, which a `let` cannot bind without knowing it is not a panic).
+translate = ["!*", "V3rpcCapability"]
 # The packages `Cluster`'s methods name (types.ID, *membership.Member, *semver.Version), so that
 # the interface type is translated (v3rpc's newHeader calls `s.Cluster().ID()` through it).
 imports = ["!*", "go.etcd.io/etcd/client/pkg/v3/types",

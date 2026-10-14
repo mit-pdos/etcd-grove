@@ -24,10 +24,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `trw.Rev()`: the read transaction's revision, the last of its committed log. -/
 abbrev mvcc.txnReadWrite.Rev.spec : Prop :=
-  ∀ (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (crev : Int) (Z : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isRoTxnWrite trw s γ log rev crev Z }}
+  ∀ (trace : Loc) (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (crev : Int)
+    (Z : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isRoTxnWrite trw s γ trace log rev crev Z }}
     (App (Val (trw @!! go.GoType.PointerType txnReadWrite.ty @!! go!"Rev")) (Val #()))
-  {{ RET #rev; mvcc.isRoTxnWrite trw s γ log rev crev Z ∗
+  {{ RET #rev; mvcc.isRoTxnWrite trw s γ trace log rev crev Z ∗
       ⌜log ≠ [] ∧ rev = W64 ((log.length : Int) - 1)⌝ }}
 
 end spec

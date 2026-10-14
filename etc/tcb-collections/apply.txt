@@ -22,13 +22,6 @@ axiom semver.Version.LessThan.wp_proof
 axiom semver.Version.String.wp_proof
 axiom storage.BackendQuota.Cost.wp_proof
 axiom storage.NewBackendQuota.wp_proof
-axiom traceutil.EnsureTrace.wp_proof
-axiom traceutil.Get.wp_proof
-axiom traceutil.Trace.AddField.wp_proof
-axiom traceutil.Trace.StartSubTrace.wp_proof
-axiom traceutil.Trace.Step.wp_proof
-axiom traceutil.Trace.StepWithFunction.wp_proof
-axiom traceutil.Trace.StopSubTrace.wp_proof
 axiom txn.ApplySecObserve.wp_proof
 axiom txn.RangeSecObserve.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof

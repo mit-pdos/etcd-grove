@@ -1,5 +1,5 @@
 /-
-The trust boundary: `traceutil.Trace.SetStartTime` (a trace's bookkeeping (no effect the model sees); the trace's fields are outside the model).
+Proof of `Spec/go_etcd_io/etcd/pkg/v3/traceutil/Trace__SetStartTime.lean`. Lean-first (no Rocq counterpart); unit P1b (2026-10-14).
 -/
 module
 
@@ -14,15 +14,28 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.pkg.v3
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
-axiom traceutil.Trace.SetStartTime.wp_proof : traceutil.Trace.SetStartTime.spec (GF := GF) (hG := hG)
+theorem traceutil.Trace.SetStartTime.wp_proof :
+    traceutil.Trace.SetStartTime.spec (GF := GF) (hG := hG) := by
+  intro t e st
+  wp_start as Ht
+  iunfold traceutil.ownTrace at Ht
+  icases Ht with ⟨%v, %ss, Ht, Hfs, Hss, Hcap, Hsf, %He⟩
+  wp_auto
+  iapply HΦ
+  iunfold traceutil.ownTrace
+  iexists _, _
+  (try simp only)
+  iframe
+  ipureintro; exact He
 
 end proof
 

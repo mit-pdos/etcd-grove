@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.google_golang_org.grpc.credentials
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.client.v3.credentials
 
@@ -16,25 +17,6 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace go_etcd_io.etcd.client.v3.credentials
-
-namespace PerRPCCredentialsBundle
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.credentials.Assumptions]
-
-instance PerRPCCredentialsBundle_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.credentials.PerRPCCredentialsBundle :=
-  sorry -- axiomatized type
-
-instance PerRPCCredentialsBundle_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.credentials.PerRPCCredentialsBundle go_etcd_io.etcd.client.v3.credentials.PerRPCCredentialsBundle.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end PerRPCCredentialsBundle
 
 namespace perRPCCredentialBundle
 section def_

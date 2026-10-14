@@ -280,18 +280,19 @@ theorem watchRespOk_case (pfx : GoString) (k k' : w64)
     rw [isProgressNotify_false_of_events H.2.1] at Hp
     cases Hp
 
-/-- The close error of a response etcd's watch contract allows (`watchRespOk`) has an `Error()`
-returning some string: the contract says so of an error response, and any other has none. -/
+/-- The close error of a response etcd's watch contract allows (`watchRespOk`) is one grpc's
+`status` accepts (`statusErrOk`; its `Error()` returns some string): the contract says so of an
+error response, and any other has none. -/
 theorem watchRespOk_closeErr (pfx : GoString) (k k' : w64)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :
-    watchRespOk (GF := GF) pfx k k' v r ⊢ errStrOk v.closeErr' := by
+    watchRespOk (GF := GF) pfx k k' v r ⊢ statusErrOk v.closeErr' := by
   unfold watchRespOk
   iintro ⟨%Hh, (⟨%H, #He⟩ | ⟨%H, -⟩ | ⟨%H, -⟩ | ⟨%H, -⟩)⟩
   · iexact He
   all_goals
     have hn : v.closeErr' = GoInterface.nil :=
       Classical.byContradiction fun h => H.1 (Or.inl h)
-    rw [hn]; iapply errStrOk_nil
+    rw [hn]; iapply statusErrOk_nil
 
 /-- `context.errStringOk` (`Spec/context/Err.lean`) is the cache's `errStrOk`. -/
 theorem errStrOk_of_ctx (err : GoInterface) :
@@ -503,7 +504,8 @@ theorem Cache.watchEvents.wp_proof
       wp_apply wp_Set cf.ready γr 0 $$ [$HisReady $Hlb0'] as -
       iapply HΨ
       itrivial
-    wp_apply wp_Err resp_ptr v (DFrac.own 1) $$ [$resp] as %err ⟨resp, %Herr, #HwE⟩
+    ihave #Hcse := watchRespOk_closeErr $$ Hok
+    wp_apply wp_Err resp_ptr v (DFrac.own 1) $$ [$resp $Hcse] as %err ⟨resp, %Herr, #HwE⟩
     cases err with
     | ok e =>
       -- `resp.Err() != nil`: reset `ready`, return the error
@@ -515,7 +517,7 @@ theorem Cache.watchEvents.wp_proof
       iframe Hw
       isplitr
       · iexact Hk0c
-      ileft; iframe Haec; iapply HwE; iapply watchRespOk_closeErr; iexact Hok
+      ileft; iframe Haec; iapply HwE; iapply errStrOk_of_statusErrOk; iexact Hcse
     | nil =>
     have hnw : ¬ watchErr v := by
       have h := Herr.1 rfl

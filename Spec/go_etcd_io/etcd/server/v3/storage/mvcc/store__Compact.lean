@@ -53,16 +53,16 @@ revision (`crevSafe`, in `s.mu`'s resource) and the keys the job deletes carry i
 is what makes the readers' specs hold of a compacted store (`rangeAnswers_not_del`). -/
 abbrev mvcc.store.Compact.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (rev : w64) (c : Int) (P : IProp GF) (f : val)
-    (Pre Q Post : IProp GF) (log : mvcc.Log),
+    (Pre Q Post : IProp GF) (log : mvcc.Log) (te : Bool),
   trace ≠ null → mvcc.storeCmp γ → -1 ≤ c →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeStop s ∗ mvcc.compactRight γ c ∗
       mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
       mvcc.hookIs γ P f ∗
-      mvcc.csContract P f Pre Q Post }}
+      mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Compact")) (Val #trace)) (Val #rev))
-  {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err);
-      (⌜err = GoInterface.nil ∧ c < sint.Z rev⌝ ∗ mvcc.compactRight γ (sint.Z rev) ∗
+  {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err); traceutil.ownTrace trace te ∗
+      ((⌜err = GoInterface.nil ∧ c < sint.Z rev⌝ ∗ mvcc.compactRight γ (sint.Z rev) ∗
         mvcc.crevLb γ.idx (sint.Z rev) ∗ Post ∗ mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev))) ∨
       (⌜sint.Z rev ≤ c⌝ ∗
         (∃ ec : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝) ∗
@@ -70,7 +70,7 @@ abbrev mvcc.store.Compact.spec : Prop :=
       (⌜c < sint.Z rev ∧ ch = chan.nil⌝ ∗
         (∃ ef : GoInterfaceOk, globalAddr ErrFutureRev ↦□ GoInterface.ok ef ∗ ⌜err = GoInterface.ok ef⌝) ∗
         (∃ log : mvcc.Log, mvcc.idxCert γ.idx log ∗ ⌜(log.length : Int) ≤ sint.Z rev⌝) ∗
-        mvcc.compactRight γ c ∗ Pre) }}
+        mvcc.compactRight γ c ∗ Pre)) }}
 
 end spec
 

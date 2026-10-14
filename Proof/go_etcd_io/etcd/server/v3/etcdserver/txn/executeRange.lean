@@ -48,6 +48,9 @@ theorem txn.executeRange_core
     (hAsm : txn.asembleRangeResponse.spec (GF := GF) (hG := hG))
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc)
     (tyX : go.GoType) (vX : val) (V : IProp GF) (kind : mvcc.TxnKind) (hkind : txn.KindOk kind)
+    (trace : Loc)
+    (hV : V ⊢ (∃ te, traceutil.ownTrace (GF := GF) trace te) ∗
+      ((∃ te, traceutil.ownTrace (GF := GF) trace te) -∗ V))
     (hR : ∀ (td : Bool) (key endk : GoSlice) (k e : GoString)
       (ro' : go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions),
       {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ V ∗
@@ -59,7 +62,7 @@ theorem txn.executeRange_core
     (r : Loc) (o : OpFull) (withTotal : Bool) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ V ∗
         mvcc.txnCtx ctx cd ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
-        txn.rangeRequestIs r o ∗
+        traceutil.ctxTraceIs ctx (some trace) ∗ txn.rangeRequestIs r o ∗
         ⌜txn.validSortTarget o ∧ txn.sortSmall o (mvcc.stateAt kind.readLog
           (sint.nat (mvcc.rangeRev kind.readRev o.base.rev)))⌝ }}
       (App (App (App (App (App (Val (@! txn.executeRange)) (Val #(GoInterface.ok ctx))) (Val #lg))
@@ -70,12 +73,13 @@ theorem txn.executeRange_core
   obtain ⟨hok, h0rev, hrevlt⟩ := hkind
   generalize hlog : kind.readLog = log at *
   generalize hrev : kind.readRev = rev at *
-  wp_start as ⟨Htx, #Hctx, #Hnd, #Hr, %Hpre⟩
+  wp_start as ⟨Htx, #Hctx, #Hnd, #Hct, #Hr, %Hpre⟩
   ihave #Hr2 := Hr
   iunfold txn.rangeRequestIs at Hr2
   icases Hr2 with ⟨%Hnn, %ksl, %esl, %k, %e, %rev0, %limit, %order, %target, %ser, %ko, %co, %minM, %maxM, %minC, %maxC, #Hk, #Hks, #He, #Hes, #Hlim, #Hrev, #Hord, #Htgt, #Hser, #Hko, #Hco, #HminM, #HmaxM, #HminC, #HmaxC, %Ho⟩
   wp_auto
-  wp_apply (hGet ctx cd) $$ [$Hctx] as %t %Ht
+  wp_apply (hGet ctx (some trace)) $$ [$Hct] as %t ⟨%Ht, %Hteq⟩
+  subst Hteq
   wp_apply (hLimit r o) $$ [$Hr]
   wp_join (Q := fun v => iprop(⌜v = #(ko && !decide (target = W32 4))⌝ ∗ r_ptr ↦ r))
     at (if: _ then _ else #false) with [r] as ⟨%Hv, r⟩
@@ -217,11 +221,14 @@ theorem txn.executeRange_core
       exact h2 hs
     wp_apply (hSort rr r lg o rev cnt (srvPre o st)) $$ [$Hrr $Hr] as ⟨%vs', Hrr, %Hsorted⟩
     · ipureintro; exact ⟨Hpre.1, hsmall⟩
-    wp_apply (hStep t)
-    · ipureintro; exact Ht
+    icases hV $$ Htx with ⟨⟨%te, Htrc⟩, Hback⟩
+    wp_apply (hStep t te _ slice.nil) $$ [Htrc] as Htrc
+    · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
     wp_apply (hAsm rr r o rev cnt vs') $$ [$Hrr $Hr] as %resp ⟨#Hresp, Hhdr⟩
-    wp_apply (hStep t)
-    · ipureintro; exact Ht
+    wp_apply (hStep t te _ slice.nil) $$ [Htrc] as Htrc
+    · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
+    ihave Htx := Hback $$ [Htrc]
+    · iexists te; iexact Htrc
     iapply HΦ
     iframe Htx
     isplitr [Hhdr]
@@ -253,8 +260,8 @@ theorem txn.executeRange.wp_proof
     txn.executeRange.spec (GF := GF) (hG := hG) := by
   have hRange := mvcc.metricsTxnWrite.Range.spec_frozen hRange
   have hRoRange := mvcc.txnReadWrite.Range.spec_frozen hRoRange
-  intro ctx cd nd lg s γ tw kind ro r o withTotal
-  wp_start_folded as ⟨Htv, #Hctx, #Hnd, #Hr, %Hpre⟩
+  intro trace ctx cd nd lg s γ tw kind ro r o withTotal
+  wp_start_folded as ⟨Htv, #Hctx, #Hnd, #Hct, #Hr, %Hpre⟩
   cases ro
   · -- a transaction behind a `*metricsTxnWrite`
     iunfold txn.txnViewIs at Htv
@@ -263,8 +270,9 @@ theorem txn.executeRange.wp_proof
     subst Htw
     icases txn.isTxn_kindOk mw s γ kind $$ Htx with ⟨%Hk, Htx⟩
     iapply (txn.executeRange_core hGet hLimit hGte hFilter hSort hStep hAsm ctx cd nd lg _ _
-      (mvcc.isTxn mw s γ kind) kind Hk (fun td => hRange mw s γ kind ctx cd td) r o withTotal) $$ [Htx]
-    · iframe Htx Hctx Hnd Hr Hpkg
+      (mvcc.isTxn mw s γ trace kind) kind Hk trace (mvcc.isTxn_trace_acc mw s γ trace kind)
+      (fun td => hRange trace mw s γ kind ctx cd td) r o withTotal) $$ [Htx]
+    · iframe Htx Hctx Hnd Hr Hpkg Hct
       ipureintro; exact Hpre
     inext
     iintro %resp %err ⟨Htx, #Hres, Hhdr, %Hnd'⟩
@@ -281,9 +289,10 @@ theorem txn.executeRange.wp_proof
     subst Htw Hkind
     icases txn.isRoTxnWrite_pure trw s γ log rev $$ Hro with ⟨Hro, %Hp⟩
     iapply (txn.executeRange_core hGet hLimit hGte hFilter hSort hStep hAsm ctx cd nd lg _ _
-      (mvcc.isRoTxnWrite trw s γ log rev) (.read log rev) (txn.kindOk_read log rev Hp)
-      (fun td => hRoRange trw s γ log rev ctx cd td) r o withTotal) $$ [Hro]
-    · iframe Hro Hctx Hnd Hr Hpkg
+      (mvcc.isRoTxnWrite trw s γ trace log rev) (.read log rev) (txn.kindOk_read log rev Hp)
+      trace (mvcc.isRoTxnWrite_trace_acc trw s γ trace log rev)
+      (fun td => hRoRange trace trw s γ log rev ctx cd td) r o withTotal) $$ [Hro]
+    · iframe Hro Hctx Hnd Hr Hpkg Hct
       ipureintro; exact Hpre
     inext
     iintro %resp %err ⟨Hro, #Hres, Hhdr, %Hnd'⟩

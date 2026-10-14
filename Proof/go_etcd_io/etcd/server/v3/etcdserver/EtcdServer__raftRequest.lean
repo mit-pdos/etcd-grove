@@ -73,7 +73,7 @@ theorem EtcdServer.raftRequest.wp_proof
   wp_apply hP s E ρ ctx cd p rq Hid0 $$ [Hrd Hcred Hhdr] as %res %err ⟨Hrd, Hres⟩
   · iframe # Hrd Hcred Hhdr
   (try wp_auto)
-  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hri⟩ | ⟨%Hres, #HaE, Hdep⟩)
+  icases Hres with (⟨%Herr, %hm, %rq', %Hwire, HTr, Hri⟩ | ⟨%Hres, #HaE, Hdep⟩)
   · subst Herr
     (try wp_auto)
     iunfold resultIs at Hri
@@ -169,17 +169,27 @@ theorem EtcdServer.raftRequest.wp_proof
           wp_if_destruct
           · (try wp_auto)
             rr_ok
-          · wp_apply hGS v.Trace' $$ [] as %ast -
-            · iframe #; ipureintro; simpa using Hif
+          · -- the result's trace, handed over by the apply thread (`apply.resTrace`)
+            iunfold apply.resTrace at HTr
+            icases HTr with (%Hrn | ⟨%v', #Hv', HTr⟩)
+            · exact absurd Hrn Hnn
+            icombine Hv Hv' gives %Hvv
+            subst Hvv
+            icases HTr with (%He | HTr)
+            · exact absurd hve He
+            iunfold apply.traceRes at HTr
+            icases HTr with (%Htn | ⟨%te, Htrc⟩)
+            · exact absurd Htn (by simpa using Hif)
+            wp_apply hGS v.Trace' te $$ [$Htrc] as %ast Htrc
             (try wp_auto)
-            wp_apply hSS v.Trace' $$ []
-            · iframe #; ipureintro; simpa using Hif
+            wp_apply hSS v.Trace' te _ $$ [$Htrc] as Htrc
             (try wp_auto)
-            wp_apply hIS v.Trace' $$ []
-            · iframe #; ipureintro; simpa using Hif
+            wp_apply hIS v.Trace' te _ _ _ slice.nil $$ [$Htrc] as Htrc
+            · isplitl []
+              · iapply traceutil.ownFields_nil
+              ipureintro; decide
             (try wp_auto)
-            wp_apply hLL v.Trace' $$ []
-            · iframe #; ipureintro; simpa using Hif
+            wp_apply hLL v.Trace' te _ $$ [$Htrc]
             (try wp_auto)
             rr_ok
   · obtain ⟨rfl, Hne⟩ := Hres

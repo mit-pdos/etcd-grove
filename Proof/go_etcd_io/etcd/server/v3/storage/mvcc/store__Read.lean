@@ -26,8 +26,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) (hG := hG)) :
     mvcc.store.Read.spec (GF := GF) (hG := hG) := by
-  intro s γ mode trace m log₀ clb Z
-  wp_start as ⟨#Hs, Hrd, #HZ, Hmine, #Hc0, #Hclb, %Htrnn⟩
+  intro s γ mode trace m log₀ te clb Z
+  wp_start as ⟨#Hs, Hrd, #HZ, Hmine, #Hc0, #Hclb, %Htrnn, Htrc⟩
+  ihave Htrc : iprop(∃ te' : Bool, traceutil.ownTrace trace te') $$ [Htrc]
+  · iexists te; iexact Htrc
   iunfold mvcc.idxCert at Hc0
   icases Hc0 with ⟨-, -, -, #Hl0⟩
   ihave #Hs0 : mvcc.isStore s γ $$ []
@@ -122,9 +124,9 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     rotate_left
     · iframe Hmine Hlbc; ipureintro; exact ⟨Hpre.2, by omega, Hclbc⟩
     iunfold mvcc.isTxnRead
-    iexists trw, tr, trace, ti2, rt, (W64 0)
+    iexists trw, tr, ti2, rt, (W64 0)
     simp only [named]
-    iframe Hmw HrevMuR HtiR WTxnRead Hmuh
+    iframe Hmw HrevMuR HtiR WTxnRead Hmuh Htrc
     isplitl []
     · iexact Hs0
     isplitl []

@@ -33,10 +33,12 @@ thread's application of the request the proposed data decode to; `txnErrOk`: the
 or the proposal's, which may still be applied). -/
 abbrev EtcdServer.Txn.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
-    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (t : TxnModel),
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (t : TxnModel)
+    (ot : Option Loc) (te : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
-      srvRdCall s E γr c ∗ context.isContext ctx cd ∗ txn.txnRequestIs r t ∗
+      srvRdCall s E γr c ∗ context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
+      traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗
       ⌜txn.txnReadonly t = true → txn.txnGetsOk t⌝ }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Txn"))
       (Val #(GoInterface.ok ctx))) (Val #r))

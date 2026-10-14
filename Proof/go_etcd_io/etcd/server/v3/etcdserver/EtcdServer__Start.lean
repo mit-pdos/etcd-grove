@@ -74,7 +74,7 @@ theorem EtcdServer.Start.wp_proof
   iunfold isServerReq at Hreq'
   icases Hreq' with ⟨%vq, #Hvq⟩
   iunfold srvReqFieldsAt at Hvq
-  icases Hvq with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %Hcfg⟩
+  icases Hvq with ⟨-, -, -, -, -, -, -, -, -, #Het, #Htm, -, -, -, -, -, -, -, -, -, -, -, -, %Hcfg⟩
   ihave #Hrd' := Hrd
   iunfold isServerRead at Hrd'
   icases Hrd' with ⟨%vd, #Hvd⟩
@@ -98,8 +98,8 @@ theorem EtcdServer.Start.wp_proof
     · itrivial
     iintro !> %Φ' - HΦ'
     wp_auto
-    wp_apply hReqT (structFieldRef EtcdServer go!"Cfg" s) $$ [] as %d -
-    · iframe #; ipureintro; exact Hcfg
+    wp_apply hReqT (structFieldRef EtcdServer go!"Cfg" s) vq.electionTicks vq.tickMs $$ [] as %d -
+    · iframe #
     wp_apply hPub s
     iapply HΦ'
     try itrivial

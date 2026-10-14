@@ -36,6 +36,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 public import Spec.google_golang_org.protobuf.proto.MarshalIRR
 public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Defs
 
 @[expose] public section
 
@@ -302,6 +304,19 @@ structure ReqFields where
   memberID : w64
   cluster : Loc
   tr : GoInterface
+  cid : w64
+
+/-- **The cluster and the transport, as the request path reads them** (persistent; unit P1b,
+2026-10-14): the cluster's id `cid` (`RaftCluster.ID`, the response header's), its members
+(`isRaftCluster`: `Members()`, in `parseProposeCtxErr`), and the transport's `ActiveSince`
+(`isConnectedSince`, there too). Contracts of names-only code
+(`membership`'s fields, rafthttp): premises of the server's start (`srvReqBuilt`). -/
+def srvPeersOk (cl : Loc) (cid : w64) (tr : GoInterface) : IProp GF :=
+  iprop(membership.clusterCid cl cid ∗ membership.isRaftCluster cl ∗ rafthttp.isTransporter tr)
+
+instance srvPeersOk_persistent (cl : Loc) (cid : w64) (tr : GoInterface) :
+    Persistent (srvPeersOk (GF := GF) cl cid tr) := by
+  unfold srvPeersOk; infer_instance
 
 /-- **The server `s` as a proposer sees it** at the fields' values `v` (persistent; see the file
 header), the applier's environment `E` (whose store's certificates the results carry), the
@@ -322,6 +337,7 @@ def srvReqFieldsAt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields)
     structFieldRef EtcdServer go!"cluster" s ↦□ v.cluster ∗
     structFieldRef raftNodeConfig go!"transport"
       (structFieldRef raftNode go!"raftNodeConfig" (structFieldRef EtcdServer go!"r" s)) ↦□ v.tr ∗
+    srvPeersOk v.cluster v.cid v.tr ∗
     srvIndexInvs s E ∗
     srvMintInv ρ ∗ srvCLogInv ρ.raft ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
 

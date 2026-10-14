@@ -124,7 +124,8 @@ PROJECTS = [
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=",
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
-                    "encoding/hex=", "container/heap=",
+                    "net=",
+                    "encoding/hex=", "container/heap=", "unicode/utf8=",
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=EtcdDeps"],
         packages=[
             # with bodies (cache/v3.toml)
@@ -221,9 +222,14 @@ PROJECTS = [
             # standard-library packages Perennial does not translate: their names are here
             # (encoding/hex: the backend's putSeq check formats keys with it)
             "net/http",
+            # (net: the interface net.Addr, the type of grpc's peer.Peer's fields; unit P3a)
+            "net",
             "encoding/hex",
             # (container/heap: the lessor's expiry notifier pushes and fixes its queue)
             "container/heap",
+            # (unicode/utf8: the server's unary interceptor checks the client's API version,
+            # unit P3b)
+            "unicode/utf8",
             # types and names only (their .toml)
             "go.etcd.io/etcd/client/v3",
             "go.etcd.io/etcd/api/v3/etcdserverpb",
@@ -242,6 +248,12 @@ PROJECTS = [
             # names only: the types of clientv3.Client's fields
             "google.golang.org/grpc",
             "google.golang.org/grpc/credentials",
+            # types and names only: the peer the client's retry interceptor asks grpc for
+            # (unit P3a)
+            "google.golang.org/grpc/peer",
+            # types and names only: the incoming metadata the auth store's AuthInfoFromCtx
+            # reads (unit P2)
+            "google.golang.org/grpc/metadata",
             "go.etcd.io/etcd/client/v3/credentials",
             "go.etcd.io/etcd/client/v3/internal/resolver",
             # (and go.uber.org/zap, above)
@@ -250,8 +262,9 @@ PROJECTS = [
                os.path.join("github_com", "prometheus"),
                os.path.join("github_com", "Masterminds"),
                "k8s_io", "google_golang_org", "go_uber_org", "go_opentelemetry_io",
-               os.path.join("net", "http"), os.path.join("encoding", "hex"),
-               os.path.join("container", "heap"), os.path.join("github_com", "dustin")],
+               "net", os.path.join("encoding", "hex"),
+               os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
+               os.path.join("github_com", "dustin")],
         parts=[
             # etcd's own raft dependency (go.etcd.io/raft/v3 in etcd's go.mod), whose
             # raftpb is protobuf-go v2: not the gogoproto etcd-raft above, but the same

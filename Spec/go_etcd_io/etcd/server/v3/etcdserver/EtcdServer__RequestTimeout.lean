@@ -22,11 +22,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `s.RequestTimeout()`: `s.Cfg.ReqTimeout()`, some duration. -/
+/-- `s.RequestTimeout()`: `s.Cfg.ReqTimeout()` (the configuration's two fields it reads
+read-only), some duration. -/
 abbrev EtcdServer.RequestTimeout.spec : Prop :=
-  ∀ (s : Loc),
+  ∀ (s : Loc) (et tm : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝ }}
+      srvCfgFieldAddr s go!"ElectionTicks" ↦□ et ∗ srvCfgFieldAddr s go!"TickMs" ↦□ tm }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"RequestTimeout")) (Val #()))
   {{ (d : _root_.Perennial.time.Duration), RET #d; True }}
 

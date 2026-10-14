@@ -54,12 +54,15 @@ local macro "ppce_tail" : tactic => `(tactic| (
     · wp_apply hMid s v.memberID $$ []
       · iframe #
       (try wp_auto)
-      wp_apply hMem v.cluster as %msl -
+      wp_apply hMem v.cluster $$ [] as %msl ⟨%mms, Hmsl⟩
+      · iframe #
       (try wp_auto)
-      wp_apply hQ as %bq -
+      wp_apply hQ _ _ _ _ mms $$ [Hmsl] as %bq -
+      · iframe #; iframe Hmsl
       cases bq <;> (try wp_auto) <;> ppce_exit
     · (try wp_auto)
-      wp_apply hC as %bc -
+      wp_apply hC $$ [] as %bc -
+      · iframe #
       cases bc <;> (try wp_auto) <;> ppce_exit))
 
 set_option maxRecDepth 20000 in
@@ -79,7 +82,9 @@ theorem EtcdServer.parseProposeCtxErr.wp_proof
   icases Hsrv with ⟨%v, #Hv⟩
   iunfold srvReqFieldsAt at Hv
   icases Hv with ⟨-, -, -, -, -, -, -, -, -, #Het, #Htm, -, -, -, -, #Hmid, #Hlead, #Hcl, #Htr,
-    -, -, -, -⟩
+    #Hpeers, -, -, -, -⟩
+  iunfold srvPeersOk at Hpeers
+  icases Hpeers with ⟨-, #Hrc, #Htri⟩
   ihave #Perrors : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
   · iPkgInit
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []

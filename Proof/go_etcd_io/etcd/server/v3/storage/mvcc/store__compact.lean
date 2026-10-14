@@ -56,8 +56,8 @@ theorem mvcc.store.compact.wp_proof
     (h8 : schedule.Scheduler.Schedule.spec (GF := GF) (hG := hG))
     (h9 : traceutil.Trace.Step.spec (GF := GF) (hG := hG)) :
     mvcc.store.compact.spec (GF := GF) (hG := hG) := by
-  intro s γ trace rev prev pcc Htr
-  wp_start as ⟨#Hjob, Hq⟩
+  intro s γ trace rev prev pcc te Htr
+  wp_start as ⟨#Hjob, Hq, Htrc⟩
   ihave #Hsch : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.schedule $$ []
   · iPkgInit
   (try wp_auto)
@@ -186,10 +186,11 @@ theorem mvcc.store.compact.wp_proof
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply (h9 trace _ _) $$ []
-  · iframe #; ipureintro; exact Htr
+  wp_apply (h9 trace te _ slice.nil) $$ [Htrc] as Htrc
+  · iframe #; iframe Htrc; iapply traceutil.ownFields_nil
   (try wp_auto)
   iapply HΦ
+  iframe Htrc
   isplitr
   · iunfold mvcc.compactChan; iexists γc; iexact Hrcv
   iunfold mvcc.compactQueue

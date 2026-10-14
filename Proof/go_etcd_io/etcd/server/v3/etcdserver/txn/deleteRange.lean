@@ -34,7 +34,7 @@ theorem txn.deleteRange.wp_proof
     (hDel : mvcc.metricsTxnWrite.DeleteRange.spec (GF := GF) (hG := hG)) :
     txn.deleteRange.spec (GF := GF) (hG := hG) := by
   have hRange := mvcc.metricsTxnWrite.Range.spec_frozen hRange
-  intro ctx cd nd mw s γ ilog pend puts deletes putSize dr o
+  intro trace ctx cd nd mw s γ ilog pend puts deletes putSize dr o
   wp_start as ⟨#Hctx, #Hnd, Htx, #Hdr, %Hbnd⟩
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
@@ -42,7 +42,7 @@ theorem txn.deleteRange.wp_proof
   icases Hdr with ⟨%Hdnn, %ksl, %esl, %k, %e, %pk, #Hk, #Hks, #He, #Hes, #Hpk, %Ho⟩
   -- the facts of the transaction
   ihave ⟨%Hfx, Htx⟩ := txn.isTxnWrite_facts mw s γ ilog pend puts deletes putSize $$ Htx
-  ihave Htx : mvcc.isTxn mw s γ (.write ilog pend puts deletes putSize) $$ [Htx]
+  ihave Htx : mvcc.isTxn mw s γ trace (.write ilog pend puts deletes putSize) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
   ihave ⟨%Hok, Htx⟩ := txn.isTxn_kindOk mw s γ _ $$ Htx
   have hks := txn.kindState_write ilog pend puts deletes putSize Hfx.1 Hfx.2
@@ -84,10 +84,10 @@ theorem txn.deleteRange.wp_proof
   cases pk
   · -- no `PrevKv`
     (try wp_auto)
-    ihave Htx : mvcc.isTxnWrite mw s γ ilog pend puts deletes putSize $$ [Htx]
+    ihave Htx : mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize $$ [Htx]
     · simp only [mvcc.isTxn]; iexact Htx
     iapply wp_fupd
-    wp_apply (hDel mw s γ ilog pend puts deletes putSize ksl endk k (txn.srvEnd o.base.rangeEnd).2)
+    wp_apply (hDel trace mw s γ ilog pend puts deletes putSize ksl endk k (txn.srvEnd o.base.rangeEnd).2)
       $$ [$Htx $Hks $Hend] as %n %rev ⟨Htx, %Hnr⟩
     · ipureintro; rw [hDlen]; exact Hbnd
     rw [hD, hDlen] at Hnr
@@ -124,7 +124,7 @@ theorem txn.deleteRange.wp_proof
   · -- `PrevKv`: the range read first
     (try wp_auto)
     icases mvcc.txnCtx_rangeCtx nd ctx cd $$ Hctx Hnd with ⟨%td, %Htd, #Hctx'⟩
-    wp_apply (hRange mw s γ (.write ilog pend puts deletes putSize) ctx cd td ksl endk k
+    wp_apply (hRange trace mw s γ (.write ilog pend puts deletes putSize) ctx cd td ksl endk k
         (txn.srvEnd o.base.rangeEnd).2 (zero_val RangeOptions)) $$ [$Htx $Hctx' $Hks $Hend]
       as %rr %rerr ⟨%Hrn', Htx, Hout⟩
     imod txn.rangeOutcome_sel rr rerr _ _ k _ (zero_val RangeOptions) Hok ⟨rfl, rfl, rfl, rfl⟩
@@ -163,11 +163,11 @@ theorem txn.deleteRange.wp_proof
           List.append_nil]
       rw [hps]
       (try wp_auto)
-      ihave Htx : mvcc.isTxnWrite mw s γ ilog pend puts deletes putSize $$ [Htx]
+      ihave Htx : mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize $$ [Htx]
       · simp only [mvcc.isTxn]; iexact Htx
       ipersist Hnsl
       iapply wp_fupd
-      wp_apply (hDel mw s γ ilog pend puts deletes putSize ksl endk k
+      wp_apply (hDel trace mw s γ ilog pend puts deletes putSize ksl endk k
           (txn.srvEnd o.base.rangeEnd).2) $$ [$Htx $Hks $Hend] as %n %rev ⟨Htx, %Hnr⟩
       · ipureintro; rw [hDlen]; exact Hbnd
       rw [hD, hDlen] at Hnr

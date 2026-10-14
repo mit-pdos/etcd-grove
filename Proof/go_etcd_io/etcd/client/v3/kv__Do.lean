@@ -33,7 +33,7 @@ theorem kv.Do.wp_proof
     (wp_retry_Put : retryKVClient.Put.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Do.spec (GF := GF) (hG := hG) := by
-  intro api K ci cd opv o Qp Qr
+  intro api addr ci cd opv o Sp Qp Sr Qr
   wp_start as ⟨#Hkv, #Hctx, #Hce, #Hat, Hrun⟩
   iunfold kvObjAt at Hkv
   icases Hkv with ⟨%rkv, %conn, %sl, #Hremote, #Hrkv, #Hconn, #Hcopts, #Hco⟩
@@ -46,7 +46,7 @@ theorem kv.Do.wp_proof
   wp_auto
   rw [ht]
   iunfold doRunOk at Hrun
-  icases Hrun with (⟨%Hr, #Hrun⟩ | ⟨%Hp, #Hrun⟩)
+  icases Hrun with (⟨%Hr, #Hrpc, #Hrun⟩ | ⟨%Hp, #Hrpc, #Hrun⟩)
   · -- a range
     obtain ⟨Ht, Hs⟩ := Hr
     rw [Ht]
@@ -61,15 +61,15 @@ theorem kv.Do.wp_proof
     wp_auto
     wp_apply wp_toRangeRequest opv o $$ [] as %r ⟨%req, Hr, #Hk, #He, %Hreq⟩
     · iframe #; ipureintro; exact ⟨Ht, Hs⟩
-    ihave #Hrun' : rangeRunOk K (rangeReqOp req o.key o.base.rangeEnd) Qr $$ []
+    ihave #Hrun' : □ ▷ Sr (rangeReqOp req o.key o.base.rangeEnd) Qr $$ []
     · rw [Hreq]; iexact Hrun
-    wp_apply wp_retry_Range rkv conn K ci cd r req o.key o.base.rangeEnd sl vs Qr $$ [Hr]
-      as %resp %err ⟨-, #Hres⟩
+    wp_apply wp_retry_Range rkv conn addr Sr Qr ci cd r req o.key o.base.rangeEnd sl vs $$ [Hr]
+      as %resp %err ⟨-, Hres⟩
     · iframe #
       iframe
       ipureintro; exact Hcap
     iunfold rangeCallOut at Hres
-    icases Hres with (⟨%Herr, #Hm⟩ | %Herr)
+    icases Hres with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse⟩)
     · subst Herr
       wp_auto
       iapply HΦ
@@ -77,20 +77,21 @@ theorem kv.Do.wp_proof
       simp only [Ht, ↓reduceIte]
       unfold rangeCallOut
       ileft
-      iframe #
+      iframe
       ipureintro; rfl
     · obtain ⟨Hne, Hce', Hnull⟩ := Herr
       cases err with
       | nil => exact absurd rfl Hne
       | ok ei =>
         wp_auto
-        wp_apply wp_ContextError ci cd (GoInterface.ok ei) as %err' %Herr'
+        wp_apply wp_ContextError ci cd (GoInterface.ok ei) $$ [$Hse] as %err' ⟨%Herr', #Hse'⟩
         · iframe #; ipureintro; exact fun _ => Hce'
         iapply HΦ
         unfold doOut
         simp only [Ht, ↓reduceIte]
         unfold rangeCallOut
         iright
+        iframe #
         ipureintro
         exact ⟨(Herr'.2 (by simp)).1, (Herr'.2 (by simp)).2, rfl⟩
   · -- a put
@@ -104,19 +105,19 @@ theorem kv.Do.wp_proof
     unfold OpFields at Hf
     obtain ⟨-, hpk, -⟩ := Hf
     obtain ⟨-, -, -, -, hlease, hiv, hil, -⟩ := Hf2
-    ihave #Hrun' : putRunOk K (putReqOp
+    ihave #Hrun' : □ ▷ Sp (putReqOp
         { state' := zeroValDef, Key' := opv.key', Value' := opv.val', Lease' := opv.leaseID',
           PrevKv' := opv.prevKV', IgnoreValue' := opv.ignoreValue',
           IgnoreLease' := opv.ignoreLease', unknownFields' := slice.nil, sizeCache' := 0 }
         o.key o.val) Qp $$ []
     · simp only [putReqOp, putWireOf, hlease, hpk, hiv, hil]
       iexact Hrun
-    wp_apply wp_retry_Put rkv conn K ci cd _ _ o.key o.val sl vs Qp $$ [«$r0»]
-      as %resp %err ⟨-, #Hres⟩
+    wp_apply wp_retry_Put rkv conn addr Sp Qp ci cd _ _ o.key o.val sl vs $$ [«$r0»]
+      as %resp %err ⟨-, Hres⟩
     · iframe #
       iframe
     iunfold putCallOut at Hres
-    icases Hres with (⟨%Herr, #Hm⟩ | %Herr)
+    icases Hres with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse⟩)
     · subst Herr
       wp_auto
       iapply HΦ
@@ -124,20 +125,21 @@ theorem kv.Do.wp_proof
       rw [Hp]; simp only [show (W64 2 = W64 1) = False by decide, ↓reduceIte]
       unfold putCallOut
       ileft
-      iframe #
+      iframe
       ipureintro; rfl
     · obtain ⟨Hne, Hce', Hnull⟩ := Herr
       cases err with
       | nil => exact absurd rfl Hne
       | ok ei =>
         wp_auto
-        wp_apply wp_ContextError ci cd (GoInterface.ok ei) as %err' %Herr'
+        wp_apply wp_ContextError ci cd (GoInterface.ok ei) $$ [$Hse] as %err' ⟨%Herr', #Hse'⟩
         · iframe #; ipureintro; exact fun _ => Hce'
         iapply HΦ
         unfold doOut
         rw [Hp]; simp only [show (W64 2 = W64 1) = False by decide, ↓reduceIte]
         unfold putCallOut
         iright
+        iframe #
         ipureintro
         exact ⟨(Herr'.2 (by simp)).1, (Herr'.2 (by simp)).2, rfl⟩
 

@@ -30,13 +30,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem EtcdServer.RequestTimeout.wp_proof
     (hTO : config.ServerConfig.ReqTimeout.spec (GF := GF) (hG := hG)) :
     EtcdServer.RequestTimeout.spec (GF := GF) (hG := hG) := by
-  intro s
-  wp_start as %Hcfg
+  intro s et tm
+  wp_start as ⟨#Het, #Htm⟩
   ihave #Pc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.config $$ []
   · iPkgInit
   wp_auto
-  wp_apply hTO (structFieldRef EtcdServer go!"Cfg" s) $$ [] as %d -
-  · iframe #; ipureintro; exact Hcfg
+  wp_apply hTO (structFieldRef EtcdServer go!"Cfg" s) et tm $$ [] as %d -
+  · iframe #
   iapply HΦ
   itrivial
 

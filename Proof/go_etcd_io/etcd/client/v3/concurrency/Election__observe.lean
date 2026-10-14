@@ -455,8 +455,9 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
       iright; ipureintro; rfl
     simp only [↓reduceIte]
     icases Hrecv with ⟨HP, Hwcons⟩
+    ihave ⟨#Hse, HP⟩ := rangeWatchElem_closeErr $$ HP
     (try wp_auto)
-    wp_apply wp_Err wr_ptr wv (DFrac.own 1) $$ [$wr] as %werr ⟨wr, %Herr, -⟩
+    wp_apply wp_Err wr_ptr wv (DFrac.own 1) $$ [$wr $Hse] as %werr ⟨wr, %Herr, -⟩
     obtain ⟨e', rfl⟩ | rfl : (∃ e', werr = GoInterface.ok e') ∨ werr = GoInterface.nil := by
       cases werr with
       | ok e' => exact Or.inl ⟨e', rfl⟩
@@ -469,7 +470,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
       iright; ipureintro; rfl
     (try wp_auto)
     iunfold rangeWatchElem at HP
-    icases HP with ⟨%r, %c0, %c', #Hevs, Hhdr, %Hflags, #Hc0, #Hc', #Hok⟩
+    icases HP with ⟨%r, %c0, %c', #Hevs, Hhdr, %Hflags, #Hc0, #Hc', #Hok, -⟩
     simp only [Int.toNat_natCast] at *
     ihave %Hceq := mono_list_idx_agree γw.cur rcv.length c0 c $$ Hc0 Hcur
     subst Hceq
@@ -725,7 +726,7 @@ theorem Election.observe.wp_proof (wp_Client : Session.Client.spec (GF := GF) (h
       simp only [↓reduceIte]
       icases Hrecv with ⟨HP, Hwcons⟩
       iunfold rangeWatchElem at HP
-      icases HP with ⟨%r, %c0, %c', #Hevs, Hhdr, %Hflags, #Hc0, #Hc', #Hok⟩
+      icases HP with ⟨%r, %c0, %c', #Hevs, Hhdr, %Hflags, #Hc0, #Hc', #Hok, -⟩
       simp only [Int.toNat_natCast] at *
       ihave %Hceq := mono_list_idx_agree γw.cur rcv.length c0 c $$ Hc0 Hcur
       subst Hceq

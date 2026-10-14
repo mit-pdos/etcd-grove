@@ -29,10 +29,10 @@ else `lease.ErrLeaseNotFound` (checked first) or `errors.ErrKeyNotFound`. -/
 abbrev txn.checkPut.spec : Prop :=
   ∀ (trace mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (le : GoInterface) (γl : GName)
     (p : Loc) (o : OpFull) (L : List w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ ⌜trace ≠ null⌝ ∗ mvcc.isTxn mw s γ kind ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ ⌜trace ≠ null⌝ ∗ mvcc.isTxn mw s γ trace kind ∗
       txn.putRequestIs p o ∗ txn.isTxnLessor le γl ∗ lease.lessorUser γl L }}
     (App (App (App (App (Val (@! txn.checkPut)) (Val #trace)) (Val #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface))) (Val #le)) (Val #p))
-  {{ (err : GoInterface), RET #err; mvcc.isTxn mw s γ kind ∗ lease.lessorUser γl L ∗
+  {{ (err : GoInterface), RET #err; mvcc.isTxn mw s γ trace kind ∗ lease.lessorUser γl L ∗
       ((⌜err = GoInterface.nil ∧
           (txn.needsPrev o = true → (mvcc.findKey o.key (txn.kindState kind)).isSome)⌝ ∗
           txn.leaseOk L o.leaseID) ∨

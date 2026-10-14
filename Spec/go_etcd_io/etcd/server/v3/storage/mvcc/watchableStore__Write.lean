@@ -28,15 +28,16 @@ transaction's committed log to `L`; the trace not `nil`, as `store.Write` takes 
 `hookIs`) on the caller's `Pre`: its `Q` is the caller's. -/
 abbrev mvcc.watchableStore.Write.spec : Prop :=
   ∀ (s st : Loc) (γ : mvcc.WsNames) (trace : Loc) (L : mvcc.Log) (P Pre Q : IProp GF)
-    (f : val),
+    (f : val) (te : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isWatchableStore s st γ ∗ mvcc.storeReader st γ.st ∗ mvcc.storeWT γ.st ∗
       mvcc.watchWriter γ L ∗
       ⌜L.length + 4 ≤ 2 ^ 63⌝ ∗ ⌜trace ≠ null⌝ ∗
-      mvcc.hookIs γ.st P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
+      mvcc.hookIs γ.st P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗
+      traceutil.ownTrace trace te }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"Write")) (Val #trace))
   {{ (tw : Loc), RET #(interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw);
-      mvcc.isWatchTxnWrite tw s st γ L [] (W64 0) (W64 0) (W64 0) ∗ Q }}
+      mvcc.isWatchTxnWrite tw s st γ trace L [] (W64 0) (W64 0) (W64 0) ∗ Q }}
 
 end spec
 

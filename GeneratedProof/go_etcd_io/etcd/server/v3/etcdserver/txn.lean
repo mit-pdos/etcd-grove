@@ -15,7 +15,9 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.mvcc
 public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.GeneratedProof.math
+public import Perennial.GeneratedProof.reflect
 public import Perennial.GeneratedProof.sort
+public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.txn

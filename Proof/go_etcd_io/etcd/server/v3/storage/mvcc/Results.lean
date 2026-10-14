@@ -293,17 +293,17 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
 
 /-- **`store.Write` over the real backend, linked**. -/
 theorem mvcc_store_Write_backend (s : Loc) (γ : mvcc.StoreNames) (d : mvcc.KBReal)
-    (hk : γ.kb = some d) (trace : Loc) (P Pre Q : IProp GF) (f : val) :
+    (hk : γ.kb = some d) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗ backend.wbTok d.γB ∗
         ⌜trace ≠ null⌝ ∗ mvcc.hookIs γ P f ∗ Pre ∗
-        □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
+        □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗ traceutil.ownTrace trace te }}
       (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.store.ty @!!
         go!"Write")) (Val #trace))
     {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite.ty) #mw);
-        (∃ ilog : mvcc.Log, mvcc.isTxnWrite mw s γ ilog [] (W64 0) (W64 0) (W64 0)) ∗ Q }} :=
-  mvcc.store_Write_backend mvcc.store.wp_Write s γ d hk trace P Pre Q f
+        (∃ ilog : mvcc.Log, mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0)) ∗ Q }} :=
+  mvcc.store_Write_backend mvcc.store.wp_Write s γ d hk trace P Pre Q f te
 
 end store
 
@@ -433,18 +433,18 @@ theorem mvcc_store_Read : mvcc.store.Read.spec (GF := GF) (hG := hG) := mvcc.sto
 revision at or above `rev`**: `store.Compact`'s success gives `crevLb γ.idx rev`, which
 `store.Read` (here at `c = rev`) turns into `rev ≤ crev`. -/
 theorem mvcc_store_Read_after_Compact (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc)
-    (m : Nat) (log₀ : mvcc.Log) (rev : w64) (Z : IProp GF) :
+    (m : Nat) (log₀ : mvcc.Log) (rev : w64) (Z : IProp GF) (te : Bool) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         mvcc.isStore s γ ∗ mvcc.storeReaderC s γ ∗ □ Z ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
-        mvcc.crevLb γ.idx (sint.Z rev) ∗ ⌜trace ≠ null⌝ }}
+        mvcc.crevLb γ.idx (sint.Z rev) ∗ ⌜trace ≠ null⌝ ∗ traceutil.ownTrace trace te }}
       (App (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.store.ty @!!
         go!"Read")) (Val #mode)) (Val #trace))
     {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite.ty) #mw);
-        ∃ (log : mvcc.Log) (rv : w64) (crev : Int), mvcc.isTxnRead mw s γ log rv crev Z ∗
+        ∃ (log : mvcc.Log) (rv : w64) (crev : Int), mvcc.isTxnRead mw s γ trace log rv crev Z ∗
           ownToks γ.revs m ∗ mvcc.crevLb γ.idx crev ∗
           ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63 ∧ sint.Z rev ≤ crev⌝ }} :=
-  mvcc.store.wp_Read s γ mode trace m log₀ (sint.Z rev) Z
+  mvcc.store.wp_Read s γ mode trace m log₀ te (sint.Z rev) Z
 
 /-- **`store.Write`, linked**, of a store that may be compacted. -/
 theorem mvcc_store_Write : mvcc.store.Write.spec (GF := GF) (hG := hG) := mvcc.store.wp_Write

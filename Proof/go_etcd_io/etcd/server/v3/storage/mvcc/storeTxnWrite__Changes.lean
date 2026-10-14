@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.storeTxnWrite.Changes.wp_proof :
     mvcc.storeTxnWrite.Changes.spec (GF := GF) (hG := hG) := by
-  intro tw s γ ilog pend crev Z
+  intro trace tw s γ ilog pend crev Z
   wp_start as Htw
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw
@@ -36,7 +36,7 @@ theorem mvcc.storeTxnWrite.Changes.wp_proof :
   isplitl []
   · ipureintro; exact Hps
   iunfold mvcc.storeTxnWriteCore
-  iexists trace, ti, bt, Locked, ntok
+  iexists ti, bt, Locked, ntok
   simp only [named, mvcc.idxWriterB_false]
   iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
   iframe #

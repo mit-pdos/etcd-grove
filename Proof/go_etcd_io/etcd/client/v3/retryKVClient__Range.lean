@@ -28,8 +28,8 @@ theorem retryKVClient.Range.wp_proof
     (wp_withRepeatablePolicy : withRepeatablePolicy.spec (GF := GF) (hG := hG))
     (wp_kVClient_Range : kVClient.Range.spec (GF := GF) (hG := hG)) :
     retryKVClient.Range.spec (GF := GF) (hG := hG) := by
-  intro rkv conn K ctx cd inp req k e opts vs Q
-  wp_start as ⟨#Hrkv, #Hconn, #Hctx, Hin, #Hk, #He, #Hopts, %Hcap, #Hok, #Hrun⟩
+  intro rkv conn addr Spec Q ctx cd inp req k e opts vs
+  wp_start as ⟨#Hrkv, #Hconn, #Hrpc, #Hpre, #Hctx, Hin, #Hk, #He, #Hopts, %Hcap, #Hok⟩
   iunfold retryKVAt at Hrkv
   icases Hrkv with ⟨%kc, #Hkc, #Hstub⟩
   wp_auto
@@ -53,7 +53,7 @@ theorem retryKVClient.Range.wp_proof
   ihave #Hs1 := callOptsOk_singleton _ $$ Hro1
   ihave #Hok2 := callOptsOk_app vs _ $$ [Hok Hs1]
   · iframe #
-  wp_apply wp_kVClient_Range kc conn K ctx cd inp req k e copts _ Q $$ [Hin] as %resp %err Hres
+  wp_apply wp_kVClient_Range kc conn addr Spec Q ctx cd inp req k e copts _ $$ [Hin] as %resp %err Hres
   · iframe #
     iframe
   iapply HΦ

@@ -263,7 +263,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 `rangeOutcomeC_neg` needs, for the frozen statements of the `Range`s). -/
 theorem isTxn_readRev (mw s : Loc) (γ : StoreNames) (kind : TxnKind) (crev : Int)
     (Z : IProp GF) :
-    isTxn (GF := GF) mw s γ kind crev Z ⊢ isTxn mw s γ kind crev Z ∗ ⌜0 ≤ sint.Z kind.readRev⌝ := by
+    isTxn (GF := GF) mw s γ trace kind crev Z ⊢ isTxn mw s γ trace kind crev Z ∗ ⌜0 ≤ sint.Z kind.readRev⌝ := by
   cases kind with
   | read log rev =>
     simp only [isTxn, TxnKind.readRev]

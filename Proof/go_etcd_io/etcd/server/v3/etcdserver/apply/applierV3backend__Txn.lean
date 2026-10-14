@@ -54,18 +54,25 @@ theorem apply.applierV3backend.Txn.wp_proof
   icases Hle with ⟨#Hle, -⟩
   obtain ⟨ht, hk, hpre⟩ := Hrq
   wp_apply (hTxn.1 todoCtxVal mvcc.neverCd opts.Logger' r opts.TxnModeWriteWithSharedBuffer'
-      opts.KV' opts.Lessor' skip E.s E.γ log t E.P Pre Q Post E.f L) $$ [$Hrd $Hsw $Hwt $Hcs $Hu]
+      opts.KV' opts.Lessor' skip E.s E.γ log t E.P Pre Q Post E.f L none false) $$ [$Hrd $Hsw $Hwt $Hcs $Hu]
     as %resp %trace %err ⟨Hrd, Hu, Hout⟩
   · iframe #
     isplitr
     · iapply mvcc.txnCtx_todo
     isplitr
+    · iapply traceutil.ctxTraceIs_todo
+    isplitr
+    · simp only [traceutil.ownTraceOpt]; itrivial
+    isplitr
     · iapply mvcc.neverDone_neverCd
     ipureintro; exact hpre
   iapply HΦ
-  iunfold apply.kvPost
-  icases Hout with (⟨%Herr, #He, Hsw, HPre⟩ | ⟨%Hok, #Hresp, Hhdr, Hsw, #Hknown', HPP⟩)
+  icases Hout with (⟨%Herr, #He, Hsw, HPre, -⟩ | ⟨%Hok, Htrc, -, #Hresp, Hhdr, Hsw, #Hknown', HPP⟩)
   · -- checkTxn's error
+    isplitl
+    rotate_left
+    · rw [Herr.2.1]; iapply apply.traceRes_null
+    iunfold apply.kvPost
     iexists (.rejected .backend)
     isplitr
     · ipureintro
@@ -80,6 +87,10 @@ theorem apply.applierV3backend.Txn.wp_proof
     · iunfold apply.kvOwn; iframe Hrd Hsw; iunfold apply.leasesLive; iexists L; iframe Hknown Hu
     iright; iexact HPre
   · -- the run committed
+    isplitr [Htrc]
+    rotate_left
+    · iunfold apply.traceRes; iright; iexact Htrc
+    iunfold apply.kvPost
     iexists (.applied (mvcc.commitLog log
       (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) false)
     isplitr
