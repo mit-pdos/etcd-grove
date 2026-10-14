@@ -220,6 +220,14 @@ inductive StepCF : PState → List Msg → PState → Prop where
       StepCF s [] ({ s with rd := { s.rd with
         pend := []
         ro := readonlyRelease s.rd.ro id s.commit s.rd.pend } })
+  | readSingle (m : Msg) (s : PState) :
+      m.ty = .readIndex → s.role = .leader →
+      plogTermAt s.base s.log s.commit = some s.term → CfgSingle c id →
+      StepCF s [m] (preadRespondAll id s [⟨s.commit, m.src, m.entries⟩])
+  | readReleaseSingle (s : PState) :
+      s.role = .leader → plogTermAt s.base s.log s.commit = some s.term → CfgSingle c id →
+      StepCF s [] (preadRespondAll id { s with rd := { s.rd with pend := [] } }
+        (s.rd.pend.map (fun p => ⟨s.commit, p.1.From', p.2⟩)))
   | readAck (m : Msg) (s : PState) (N : w64) :
       m.ty = .heartbeatResp → m.dst = id → m.term = s.term → s.role = .leader →
       m.ctx ≠ [] →
@@ -286,6 +294,8 @@ theorem StepCF.toC {c : CfgM} {id : w64} {s : PState} {ms : List Msg} {s' : PSta
     | (apply StepC.readArrive <;> assumption)
     | (apply StepC.readRelease <;> assumption)
     | (apply StepC.readAck <;> assumption)
+    | (apply StepC.readSingle <;> assumption)
+    | (apply StepC.readReleaseSingle <;> assumption)
     | (apply StepC.readState <;> assumption)
     | (apply StepC.sendFree <;> assumption)
     | (apply StepC.abandon <;> assumption)
@@ -299,6 +309,8 @@ theorem StepCF.leader_back {c : CfgM} {id : w64} {s : PState} {ms : List Msg} {s
   | refl s => exact fun h => h
   | trans _ _ _ _ _ _ _ ih1 ih2 => exact fun h => ih1 (ih2 h)
   | readAck m s N _ _ _ h4 _ _ => exact fun _ => h4
+  | readSingle m s _ h2 _ _ => exact fun _ => h2
+  | readReleaseSingle s h1 _ _ => exact fun _ => h1
   | _ =>
     first
     | (intro h; simp_all [psendMsgs, padoptLeader, pbecomeFollower]; done)
@@ -435,6 +447,14 @@ theorem StepCF.toR {Adm : List raftpb.Entry → CCState → Prop} {dec : CCDec} 
   | readAck m s N h1 h2 h3 h4 h5 h6 =>
     intro r hp hc hz; subst hp
     exact StepR.pci_keep (.readAck m r N h1 h2 h3 h4 h5 (hc ▸ h6))
+      (by rw [preadRespondAll_role]; exact fun h => h) (by rw [preadRespondAll_role]; exact fun h => h) hz
+  | readSingle m s h1 h2 h3 h4 =>
+    intro r hp hc hz; subst hp
+    exact StepR.pci_keep (.readSingle m r h1 h2 h3 (hc ▸ h4))
+      (by rw [preadRespondAll_role]; exact fun h => h) (by rw [preadRespondAll_role]; exact fun h => h) hz
+  | readReleaseSingle s h1 h2 h3 =>
+    intro r hp hc hz; subst hp
+    exact StepR.pci_keep (.readReleaseSingle r h1 h2 (hc ▸ h3))
       (by rw [preadRespondAll_role]; exact fun h => h) (by rw [preadRespondAll_role]; exact fun h => h) hz
   | readState m s e h1 h2 =>
     intro r hp _ hz; subst hp

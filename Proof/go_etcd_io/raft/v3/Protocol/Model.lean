@@ -1897,6 +1897,19 @@ inductive Step : PState → List Msg → PState → Prop where
       Step s [] ({ s with rd := { s.rd with
         pend := []
         ro := readonlyRelease s.rd.ro id s.commit s.rd.pend } })
+  /-- `sendMsgReadIndexResponse` at a single voter that is the leader itself (2026-10-14, the
+  fix of `issues/raft-readindex-singleton-stale.md`): answered at once at the commit index,
+  which is at an entry of the term. -/
+  | readSingle (m : Msg) (s : PState) :
+      m.ty = .readIndex → s.role = .leader →
+      plogTermAt s.base s.log s.commit = some s.term → cfg = {[id]} →
+      Step s [m] (preadRespondAll id s [⟨s.commit, m.src, m.entries⟩])
+  /-- `releasePendingReadIndexMessages` at a single voter that is the leader itself: every
+  pending request answered at the commit index, in order. -/
+  | readReleaseSingle (s : PState) :
+      s.role = .leader → plogTermAt s.base s.log s.commit = some s.term → cfg = {[id]} →
+      Step s [] (preadRespondAll id { s with rd := { s.rd with pend := [] } }
+        (s.rd.pend.map (fun p => ⟨s.commit, p.1.From', p.2⟩)))
   /-- `stepLeader`'s `MsgHeartbeatResp` with a context: the sender's acknowledgement,
   then the requests up to a position a quorum acknowledged confirmed and answered. -/
   | readAck (m : Msg) (s : PState) (N : w64) :

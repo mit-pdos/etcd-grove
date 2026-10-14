@@ -1388,6 +1388,13 @@ theorem Step.commit_mono [FfiSyntax] {cfg : GSet w64} {id : w64} {ps : PState}
            ro := (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).1 } })
       (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).2
     rw [h]; exact Int.le_refl _
+  | readSingle m s =>
+    obtain ⟨o, r, h⟩ := preadRespondAll_eq id s [⟨s.commit, m.src, m.entries⟩]
+    rw [h]; exact Int.le_refl _
+  | readReleaseSingle s =>
+    obtain ⟨o, r, h⟩ := preadRespondAll_eq id ({ s with rd := { s.rd with pend := [] } })
+      (s.rd.pend.map (fun p => ⟨s.commit, p.1.From', p.2⟩))
+    rw [h]; exact Int.le_refl _
   | _ => simp [psendMsgs, pbecomeFollower, pbecomeCandidate, pwinState, pappend, pbecomeLeader,
       padoptLeader]
 

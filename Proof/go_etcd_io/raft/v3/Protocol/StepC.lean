@@ -74,6 +74,38 @@ def JLost (c : CfgM) (votes : GMap w64 Bool) : Prop :=
 def JQuorumAcked (c : CfgM) (f : w64 → w64) (N : w64) : Prop :=
   ∃ Q, JQuorum c Q ∧ ∀ v ∈ Q, uint.Z N ≤ uint.Z (f v)
 
+/-- The node `id` is the only voter, with no outgoing half (2026-10-14, the single-voter
+read-index fix, `issues/raft-readindex-singleton-stale.md`): what `sendMsgReadIndexResponse`'s
+`_, isVoter := r.trk.Voters[0][r.id]; isVoter && r.trk.IsSingleton()` tests. -/
+def CfgSingle (c : CfgM) (id : w64) : Prop := c.incoming = {[id]} ∧ c.outgoing = ∅
+
+theorem cfgSingle_iff (c : CfgM) (id : w64) :
+    CfgSingle c id ↔ id ∈ c.incoming ∧ GMap.size c.incoming = 1 ∧ GMap.size c.outgoing = 0 := by
+  unfold CfgSingle
+  constructor
+  · rintro ⟨h1, h2⟩
+    rw [h1, h2]
+    exact ⟨elem_of_singleton_2 id, size_singleton id, size_empty⟩
+  · rintro ⟨h1, h2, h3⟩
+    obtain ⟨x, hx⟩ := size_1_elem_of _ h2
+    rw [hx, elem_of_singleton] at h1
+    subst h1
+    exact ⟨hx, (size_empty_iff _).1 h3⟩
+
+/-- At a configuration whose only voter is `id`, `{id}` is a joint quorum: the leader's own
+acknowledgement confirms. -/
+theorem JQuorum_single {c : CfgM} {id : w64} (h : CfgSingle c id) : JQuorum c {[id]} := by
+  refine ⟨Or.inr ?_, by rw [h.2]; exact Or.inl rfl⟩
+  unfold IsQuorum
+  rw [h.1, show ({[id]} : GSet w64) ∩ {[id]} = {[id]} from
+    set_eq (fun x => by rw [elem_of_intersection]; exact ⟨fun h => h.1, fun h => ⟨h, h⟩⟩),
+    size_singleton]
+  omega
+
+theorem cfgSingle_simple (cfg lrn : GSet w64) (id : w64) :
+    CfgSingle (CfgM.simple cfg lrn) id ↔ cfg = {[id]} := by
+  unfold CfgSingle CfgM.simple; simp
+
 /-! ### Joint quorums at a non-joint configuration -/
 
 theorem MajQ_empty (q : GSet w64) : MajQ ∅ q := Or.inl rfl
@@ -570,6 +602,14 @@ inductive StepC : PState → List Msg → PState → Prop where
       StepC s [] ({ s with rd := { s.rd with
         pend := []
         ro := readonlyRelease s.rd.ro id s.commit s.rd.pend } })
+  | readSingle (m : Msg) (s : PState) :
+      m.ty = .readIndex → s.role = .leader →
+      plogTermAt s.base s.log s.commit = some s.term → CfgSingle c id →
+      StepC s [m] (preadRespondAll id s [⟨s.commit, m.src, m.entries⟩])
+  | readReleaseSingle (s : PState) :
+      s.role = .leader → plogTermAt s.base s.log s.commit = some s.term → CfgSingle c id →
+      StepC s [] (preadRespondAll id { s with rd := { s.rd with pend := [] } }
+        (s.rd.pend.map (fun p => ⟨s.commit, p.1.From', p.2⟩)))
   | readAck (m : Msg) (s : PState) (N : w64) :
       m.ty = .heartbeatResp → m.dst = id → m.term = s.term → s.role = .leader →
       m.ctx ≠ [] →
@@ -617,6 +657,8 @@ theorem stepC_of_step (c : CfgM) (id : w64) (hi : c.incoming ≠ ∅) (ho : c.ou
   | commit s n h1 h2 h3 h4 h5 => exact .commit s n h1 h2 h3 h4 ((JQuorum_of_out hi ho _).2 h5)
   | readAck m s N h1 h2 h3 h4 h5 h6 =>
     exact .readAck m s N h1 h2 h3 h4 h5 ((JQuorumAcked_of_out hi ho _ _).2 h6)
+  | readSingle m s h1 h2 h3 h4 => exact .readSingle m s h1 h2 h3 ⟨h4, ho⟩
+  | readReleaseSingle s h1 h2 h3 => exact .readReleaseSingle s h1 h2 ⟨h3, ho⟩
   | _ =>
     first
     | (apply StepC.higherTerm <;> assumption)
@@ -662,6 +704,8 @@ theorem step_of_stepC (c : CfgM) (id : w64) (hi : c.incoming ≠ ∅) (ho : c.ou
   | commit s n h1 h2 h3 h4 h5 => exact .commit s n h1 h2 h3 h4 ((JQuorum_of_out hi ho _).1 h5)
   | readAck m s N h1 h2 h3 h4 h5 h6 =>
     exact .readAck m s N h1 h2 h3 h4 h5 ((JQuorumAcked_of_out hi ho _ _).1 h6)
+  | readSingle m s h1 h2 h3 h4 => exact .readSingle m s h1 h2 h3 h4.1
+  | readReleaseSingle s h1 h2 h3 => exact .readReleaseSingle s h1 h2 h3.1
   | _ =>
     first
     | (apply Step.higherTerm <;> assumption)

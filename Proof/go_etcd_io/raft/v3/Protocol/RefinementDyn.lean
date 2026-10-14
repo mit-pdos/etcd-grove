@@ -735,6 +735,38 @@ theorem ownRaftGhostR_stepR (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : 
       | (simp [psendMsgs, pbecomeFollower, padoptLeader, pwinState, pappend, pbecomeLeader]; done)
       | (intro h; rw [preadRespondAll_role] at h; simp at h; simp_all)
       | (intro h; simp_all)
+  | readSingle m r h1 h2 h3 h4 =>
+    iintro #HS Hrecv Hcr Hown
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr, #Hc⟩
+    ihave #Hm := recv_one γ _ $$ Hrecv
+    rw [show rdCount [m] = 1 by simp [rdCount_singleton, h1]]
+    ihave #Henv := ownRaftGhostR_env γ dec c0 h0 HD id r HI $$ Hfr Hc
+    imod ownRaftGhost_step_read_single γ r.cfg.cfg id r.p m h1 h2 h3 h4 $$ Henv Hm Hcr Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    isplitr
+    · ipureintro; exact (RInv_stepR (Adm := AdmS dec c0 S) (id := id) (fun _ _ h => h.1) (StepR.readSingle m r h1 h2 h3 h4) (noApp1 (by rw [h1]; decide)) HI)
+    iintro %h
+    exfalso
+    revert h
+    intro h; rw [preadRespondAll_role, h2] at h; cases h
+  | readReleaseSingle r h1 h2 h3 =>
+    iintro #HS Hrecv Hcr Hown
+    iunfold ownRaftGhostR at Hown
+    icases Hown with ⟨Hg, %HI, #Hfr, #Hc⟩
+    ihave #Henv := ownRaftGhostR_env γ dec c0 h0 HD id r HI $$ Hfr Hc
+    imod ownRaftGhost_step_read_release_single γ r.cfg.cfg id r.p h1 h2 h3 $$ Henv Hg with Hg
+    imodintro
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    isplitr
+    · ipureintro; exact (RInv_stepR (Adm := AdmS dec c0 S) (id := id) (fun _ _ h => h.1) (StepR.readReleaseSingle r h1 h2 h3) noApp0 HI)
+    iintro %h
+    exfalso
+    revert h
+    intro h; rw [preadRespondAll_role] at h; simp only at h; rw [h1] at h; cases h
   | campaign r peers cl h1 h2 h3 h4 h5 h6 =>
     iintro #HS Hrecv Hcr Hown
     iunfold ownRaftGhostR at Hown

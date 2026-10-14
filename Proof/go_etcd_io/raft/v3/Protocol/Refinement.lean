@@ -3320,6 +3320,166 @@ theorem ownRaftGhost_step_read_ack (γ : RaftNames) (c : CfgM) (id : w64)
       iframe Hlg Hrd' Hresp
   iapply ownRaftGhost_respondAll γ id _ _ $$ Hown Hresp
 
+/-- A request at a leader whose commit index is at an entry of its term, at a configuration whose
+only voter is the leader itself (2026-10-14, the single-voter read-index fix,
+`issues/raft-readindex-singleton-stale.md`): read at the commit index, confirmed by the leader's
+own acknowledgement -- `{id}` is a joint quorum there (`JQuorum_single`), and the leader is in no
+doom quorum of its own term (`ownLogGhost_not_doomed`) -- in either mode (`rqRecOk_confirm`,
+`rqRecOk_confirm_dyn`, as the heartbeat path's `ownRaftGhost_step_read_ack`). -/
+theorem ownRaftGhost_single_confirm (γ : RaftNames) (c : CfgM) (id : w64) (s : PState)
+    (cx : List w8) (Lc : List raftpb.Entry) :
+    s.role = .leader → plogTermAt s.base s.log s.commit = some s.term → CfgSingle c id →
+    ⊢ dynEnv γ id c s -∗ ownRaftGhost (GF := GF) γ id s md -∗ readReq γ cx Lc ={⊤}=∗
+      ownRaftGhost γ id s md ∗ readOk γ cx s.commit := by
+  intro Hrole Hct Hsg
+  iintro #Henv Hown #Hrq
+  ihave #Hnl := node_leader γ id s Hrole $$ Hown
+  icases Hnl with ⟨%fpL, %F0L, %HnL, #HfrL, #HrL, #Hl, #Hc0, #HflL⟩
+  imod ownRaftGhost_read_arrive γ id s cx Lc Hrole Hct $$ Hown Hrq with ⟨Hown, %d, #Hrec⟩
+  have HQ := JQuorum_single Hsg
+  iapply ownRaftGhost_rdR γ id s s [] (readOk γ cx s.commit) (by cases s; simp) $$ [] Hown
+  · iapply (BigSepL.bigSepL_nil).2; iempintro
+  iintro %kl Hlg Hrd
+  ihave %Hnd := ownLogGhost_not_doomed γ id s kl ((cx, s.commit), d) $$ Hlg Hrec
+  have Hc : ∀ v ∈ ({[id]} : GSet w64), ∀ t' qq, ((cx, s.commit), d).2 = some (t', qq) →
+      v ∉ qq := by
+    intro v hv
+    rw [GMap.elem_of_singleton] at hv
+    subst hv
+    exact Hnd
+  iunfold dynEnv at Henv
+  icases Henv with (%HC | ⟨%Hdyn, %fpR, %aR, %HR, #HrR, -⟩)
+  · -- static: the reader's configuration is the ghost state's
+    iframe Hlg Hrd
+    imodintro
+    iapply rqRecOk_confirm γ s.term ((cx, s.commit), d) [] c {[id]} HC.2.2
+      (CfgAt.of_static _ HC) HQ Hc $$ Hrec
+  · -- dynamic: as `ownRaftGhost_step_read_ack`'s, with the quorum `{id}`
+    icases FullOk_unique γ s.base fpR fpL HR.1 HnL.1 $$ HrR HfrL with %Heq
+    subst Heq
+    ihave #HrFL := logRecs_full γ s.base fpR s.log HR.1 $$ HfrL HrL
+    have HwFL : PlogWf base0 (fpR ++ s.log) := full_wf _ _ _ HR.1 HnL.2.1
+    icases isCamp_ok γ id s.term F0L $$ Hc0 with %Hcok
+    ihave #HcI := ownLogGhost_commitIn γ id s kl $$ Hlg
+    icases HcI with ⟨%fpw, %Hfw, #Hfrw, -, #Hcomw⟩
+    icases FullOk_unique γ s.base fpw fpR Hfw.1 HR.1 $$ Hfrw HfrL with %Heqw
+    ihave #Hcom : commitIn γ (fpR ++ s.log) s.commit s.term $$ []
+    · rw [← Heqw]; iexact Hcomw
+    ihave #Hcm := ownLogGhost_cmt γ id s kl $$ Hlg
+    icases Hcm with ⟨%fpc, %Hfpc, #Hfrc, #Hcmtc⟩
+    ihave #Hcmt0 := cprefix_transfer γ fpc fpR s Hfpc HR.1 $$ Hfrc HfrL Hcmtc
+    ihave #HcFL : isCommitted γ ((fpR ++ s.log).take (uint.Z aR).toNat) $$ []
+    · iapply isCommitted_mono γ _ (cprefix fpR s)
+        (take_prefix_le _ _ _ (Int.toNat_le_toNat HR.2.2.1)) $$ Hcmt0
+    have Hconf : ⊢ (votesTbl γ ∗ ownLogGhost γ id s kl ∗
+          (isLeader γ id s.term ∗ isCamp γ id s.term F0L ∗ logRecs γ base0 (fpR ++ s.log) ∗
+          isCommitted γ ((fpR ++ s.log).take (uint.Z aR).toNat) ∗
+          commitIn γ (fpR ++ s.log) s.commit s.term ∗ leadFull γ s.term (fpR ++ s.log))) -∗
+          rqRecOk γ s.term ((cx, s.commit), d) -∗ readOk γ cx s.commit := by
+      iintro ⟨HS, HY, #Hl, #Hc0, #HrFL, #HcFL, #Hcom, #HflL⟩ #Hr
+      iapply rqRecOk_confirm_dyn γ s.term id ((cx, s.commit), d) (fpR ++ s.log) F0L aR s.commit c
+        {[id]} Hdyn (iprop(ownLogGhost γ id s kl ∗ isLeader γ id s.term))
+        (fun G => by
+          iintro ⟨HY, #Hl⟩ #HG
+          ihave %h := ownLogGhost_within γ id s kl G Hrole $$ Hl HG HY
+          ipureintro; rw [full_last_index _ _ _ HR.1]; exact h)
+        HR.2.2.2.1 HQ (HR.2.2.2.2.1 Hrole) HR.2.2.1 HwFL Hcok HnL.2.2 Hc
+        $$ HS Hl Hc0 HrFL HcFL Hcom HflL [HY] Hr
+      iframe HY Hl
+    ihave #Hinv := ownLogGhost_inv γ id s kl $$ Hlg
+    unfold raftCommitInv
+    iinv Hinv with ⟨%P, %R, HP, Hjust, >Htbl, Hpo, Hwt⟩ Hclose
+    ihave HX : iprop(votesTbl (GF := GF) γ ∗ ownLogGhost γ id s kl ∗
+        (isLeader γ id s.term ∗ isCamp γ id s.term F0L ∗ logRecs γ base0 (fpR ++ s.log) ∗
+        isCommitted γ ((fpR ++ s.log).take (uint.Z aR).toNat) ∗
+        commitIn γ (fpR ++ s.log) s.commit s.term ∗ leadFull γ s.term (fpR ++ s.log)))
+      $$ [Htbl Hlg]
+    · iframe Htbl Hlg Hl Hc0 HrFL HcFL Hcom HflL
+    ihave #Hok := Hconf $$ HX Hrec
+    icases HX with ⟨Htbl, Hlg, -⟩
+    imod Hclose $$ [HP Hjust Htbl Hpo Hwt] with -
+    · inext
+      iexists P, R
+      iframe
+    imodintro
+    iframe Hlg Hrd Hok
+
+/-- `StepC.readSingle`: the request confirmed at once (`ownRaftGhost_single_confirm`) and
+answered; its read credit is dropped. -/
+theorem ownRaftGhost_step_read_single (γ : RaftNames) (c : CfgM) (id : w64) (s : PState)
+    (m : Msg) :
+    m.ty = .readIndex → s.role = .leader → plogTermAt s.base s.log s.commit = some s.term →
+    CfgSingle c id →
+    ⊢ dynEnv γ id c s -∗ isMessage (GF := GF) γ m -∗ rdCred γ 1 -∗ ownRaftGhost γ id s md ={⊤}=∗
+      ownRaftGhost γ id (preadRespondAll id s [⟨s.commit, m.src, m.entries⟩]) md := by
+  intro Hty Hrole Hct Hsg
+  iintro #Henv #Hm - Hown
+  iunfold isMessage at Hm
+  rw [Hty]
+  icases Hm with ⟨%e, %cx, %Lc, %He, #Hpd, #Hrq⟩
+  imod ownRaftGhost_single_confirm γ c id s cx Lc Hrole Hct Hsg $$ Henv Hown Hrq with ⟨Hown, #Hok⟩
+  rw [preadRespondAll_cons, preadRespondAll_nil]
+  iapply ownRaftGhost_respond γ id s _ $$ Hown []
+  unfold respFacts
+  iexists e, cx
+  iframe Hpd Hok
+  ipureintro; exact He
+
+/-- `StepC.readReleaseSingle`: the pending requests taken out with their facts, each confirmed
+at once (`ownRaftGhost_single_confirm`), then all answered; their credits are dropped. -/
+theorem ownRaftGhost_step_read_release_single (γ : RaftNames) (c : CfgM) (id : w64)
+    (s : PState) :
+    s.role = .leader → plogTermAt s.base s.log s.commit = some s.term → CfgSingle c id →
+    ⊢ dynEnv γ id c s -∗ ownRaftGhost (GF := GF) γ id s md ={⊤}=∗
+      ownRaftGhost γ id (preadRespondAll id { s with rd := { s.rd with pend := [] } }
+        (s.rd.pend.map (fun p => ⟨s.commit, p.1.From', p.2⟩))) md := by
+  intro Hrole Hct Hsg
+  iintro #Henv Hown
+  imod ownRaftGhost_rdR γ id s ({ s with rd := { s.rd with pend := [] } }) []
+    (iprop(([∗list] p ∈ s.rd.pend, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ isPropData (GF := GF) γ e.Data' c ∗
+      readReq γ c Lc) ∗ rdCred γ s.rd.pend.length)) (by cases s; simp) $$ [] Hown [] with
+    ⟨Hown, Hps, -⟩
+  · iapply (BigSepL.bigSepL_nil).2; iempintro
+  · iintro %kl Hlg Hrd
+    iframe Hlg
+    imodintro
+    iapply rdOwn_takePend $$ Hrd
+  -- every pending request confirmed, at the state without them
+  have key : ∀ (l : List (raftpb.Message × List raftpb.Entry)),
+      ⊢ dynEnv γ id c s -∗ ownRaftGhost (GF := GF) γ id ({ s with rd := { s.rd with pend := [] } }) md -∗
+        ([∗list] p ∈ l, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ isPropData γ e.Data' c ∗ readReq γ c Lc) ={⊤}=∗
+        ownRaftGhost γ id ({ s with rd := { s.rd with pend := [] } }) md ∗
+        [∗list] q ∈ l.map (fun p => (⟨s.commit, p.1.From', p.2⟩ : ReadReq)), respFacts γ q := by
+    intro l
+    induction l with
+    | nil =>
+      iintro _ Hown -
+      imodintro
+      iframe Hown
+      rw [List.map_nil]
+      iapply (BigSepL.bigSepL_nil).2; iempintro
+    | cons p l ih =>
+      iintro #Henv Hown Hps
+      icases (BigSepL.bigSepL_cons).1 $$ Hps with ⟨⟨%e, %cx, %Lc, %He, #Hpd, #Hrq⟩, Hps⟩
+      have Henv_eq : dynEnv (GF := GF) γ id c ({ s with rd := { s.rd with pend := [] } }) =
+          dynEnv γ id c s := rfl
+      ihave #Henv1 : dynEnv (GF := GF) γ id c ({ s with rd := { s.rd with pend := [] } }) $$ []
+      · rw [Henv_eq]; iexact Henv
+      imod ownRaftGhost_single_confirm γ c id ({ s with rd := { s.rd with pend := [] } }) cx Lc
+        Hrole Hct Hsg $$ Henv1 Hown Hrq with ⟨Hown, #Hok⟩
+      imod ih $$ Henv Hown Hps with ⟨Hown, Hrs⟩
+      imodintro
+      iframe Hown
+      rw [List.map_cons]
+      iapply (BigSepL.bigSepL_cons).2
+      iframe Hrs
+      unfold respFacts
+      iexists e, cx
+      iframe Hpd Hok
+      ipureintro; exact He
+  imod key s.rd.pend $$ Henv Hown Hps with ⟨Hown, Hrs⟩
+  iapply ownRaftGhost_respondAll γ id _ _ $$ Hown Hrs
+
 theorem ownRaftGhost_step_read_state (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
     (e : raftpb.Entry) :
     m.ty = .readIndexResp → m.entries = [e] →
@@ -3991,6 +4151,16 @@ theorem ownRaftGhost_stepC (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id
     iintro Hrecv - Hown
     ihave #Hm := recv_one $$ Hrecv
     iapply ownRaftGhost_step_read_state γ id s m e Hty He $$ Hm Hown
+  | readSingle m s Hty Hrole Hct Hsg =>
+    iintro Hrecv Hcr Hown
+    ihave #Hm := recv_one $$ Hrecv
+    rw [show rdCount [m] = 1 by simp [rdCount_singleton, Hty]]
+    iapply ownRaftGhost_step_read_single γ c id s m Hty Hrole Hct Hsg $$ [] Hm Hcr Hown
+    iapply dynEnv_static γ id c s HC
+  | readReleaseSingle s Hrole Hct Hsg =>
+    iintro _ - Hown
+    iapply ownRaftGhost_step_read_release_single γ c id s Hrole Hct Hsg $$ [] Hown
+    iapply dynEnv_static γ id c s HC
 
 /-- `ownRaftGhost_stepC` for a step of `Step` at the ghost state's voters, the form the
 code's branch lemmas produce (`step_iff_stepC` at `CfgM.simple γ.reCfg ∅`). -/

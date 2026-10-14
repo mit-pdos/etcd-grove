@@ -965,6 +965,13 @@ theorem RInv_stepR {Adm : List raftpb.Entry → CCState → Prop} {dec : CCDec} 
            ro := (readonlyAdvance (readonlyRecvAck r.p.rd.ro m.src m.ctx) N).1 } })
       (readonlyAdvance (readonlyRecvAck r.p.rd.ro m.src m.ctx) N).2
     exact RInv_keep _ H this.1 this.2.1 this.2.2.1 (Or.inr this.2.2.2)
+  | readSingle m r =>
+    have := preadRespondAll_fields id r.p [⟨r.p.commit, m.src, m.entries⟩]
+    exact RInv_keep _ H this.1 this.2.1 this.2.2.1 (Or.inr this.2.2.2)
+  | readReleaseSingle r =>
+    have := preadRespondAll_fields id ({ r.p with rd := { r.p.rd with pend := [] } })
+      (r.p.rd.pend.map (fun p => ⟨r.p.commit, p.1.From', p.2⟩))
+    exact RInv_keep _ H this.1 this.2.1 this.2.2.1 (Or.inr this.2.2.2)
   | advance r a h1 h2 h3 h4 => exact RInv_advance a H h1 h2 h3 h4
   | applySnap r h1 => exact RInv_applySnap H h1
   | applyConf r k e op cs' h1 h2 h3 h4 h5 h6 h7 h8 _ =>

@@ -345,6 +345,18 @@ inductive StepR : RState → List Msg → RState → Prop where
       StepR r [] { r with p := { r.p with rd := { r.p.rd with
         pend := []
         ro := readonlyRelease r.p.rd.ro id r.p.commit r.p.rd.pend } } }
+  /-- `sendMsgReadIndexResponse` at a single voter that is the leader itself (2026-10-14, the
+  fix of `issues/raft-readindex-singleton-stale.md`): answered at once at the commit index. -/
+  | readSingle (m : Msg) (r : RState) :
+      m.ty = .readIndex → r.p.role = .leader →
+      plogTermAt r.p.base r.p.log r.p.commit = some r.p.term → CfgSingle r.cfg.cfg id →
+      StepR r [m] { r with p := preadRespondAll id r.p [⟨r.p.commit, m.src, m.entries⟩] }
+  /-- `releasePendingReadIndexMessages` at a single voter that is the leader itself. -/
+  | readReleaseSingle (r : RState) :
+      r.p.role = .leader → plogTermAt r.p.base r.p.log r.p.commit = some r.p.term →
+      CfgSingle r.cfg.cfg id →
+      StepR r [] { r with p := (preadRespondAll id ({ r.p with rd := { r.p.rd with pend := [] } })
+        (r.p.rd.pend.map (fun q => ⟨r.p.commit, q.1.From', q.2⟩))) }
   | readAck (m : Msg) (r : RState) (N : w64) :
       m.ty = .heartbeatResp → m.dst = id → m.term = r.p.term → r.p.role = .leader →
       m.ctx ≠ [] →
@@ -451,6 +463,8 @@ theorem StepR.mono {Adm Adm' : List raftpb.Entry → CCState → Prop} {dec : CC
     | (apply StepR.readArrive <;> assumption)
     | (apply StepR.readRelease <;> assumption)
     | (apply StepR.readAck <;> assumption)
+    | (apply StepR.readSingle <;> assumption)
+    | (apply StepR.readReleaseSingle <;> assumption)
     | (apply StepR.readState <;> assumption)
     | (apply StepR.sendFree <;> assumption)
     | (apply StepR.abandon <;> assumption)
@@ -527,6 +541,16 @@ theorem stepR_static {V : GSet w64} {dec : CCDec} {id : w64} {r : RState} {ms : 
     exact ⟨.commit r.p n h1 h2 h3 h4 ((hs.jquorum _).1 h5), hs, hv⟩
   | readAck m r N h1 h2 h3 h4 h5 h6 =>
     refine ⟨.readAck m r.p N h1 h2 h3 h4 h5 ((hs.jquorumAcked _ _).1 h6), hs, ?_⟩
+    intro h; apply hv
+    simp only [preadRespondAll_role] at h
+    exact h
+  | readSingle m r h1 h2 h3 h4 =>
+    refine ⟨.readSingle m r.p h1 h2 h3 ⟨by rw [← hs.1]; exact h4.1, rfl⟩, hs, ?_⟩
+    intro h; apply hv
+    simp only [preadRespondAll_role] at h
+    exact h
+  | readReleaseSingle r h1 h2 h3 =>
+    refine ⟨.readReleaseSingle r.p h1 h2 ⟨by rw [← hs.1]; exact h3.1, rfl⟩, hs, ?_⟩
     intro h; apply hv
     simp only [preadRespondAll_role] at h
     exact h
