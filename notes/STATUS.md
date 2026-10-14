@@ -416,6 +416,27 @@ scope: `dec` must be allowed to depend on the prefix (etcd zeroes the `NodeId` o
 rejects); A1/A3 must say "in order, once per entry" and "compaction and snapshots at most
 `applied`"; the read-index premise must exclude single-voter configurations (or the code fixed).
 
+## Parallel tasks 1, 2, 4, 5 (2026-10-14, notes/parallel-work.md)
+
+- Tasks 1-2 (`issues/raft-conf-lag-model/guard-fix.{md,patch}`): the guard fix, opt-in
+  (`Config.TrackConfChangeApplication`; on by default it costs liveness where an application
+  does not call `ApplyConfChange` once per conf entry: refused changes per `node.go`, etcd's
+  replay below its consistent index). It closes the lag class (not the empty-`ConfState`
+  joiner, non-atomic persistence, or a restart with `Applied` ahead of the `ConfState`).
+  New Go bug: `issues/raft-snapshot-during-apply-stale-confchange.md` (a snapshot restored
+  while a `Ready`'s conf change is applied; the change then lands on the snapshot's
+  configuration). Upstream drafts, unfiled: `issues/raft-document-confchange-before-advance.md`,
+  `issues/raft-track-confchange-application.md`, `issues/etcd-leader-advance-before-applyconfchange.md`
+  (etcd's leader path; by code reading only, not reproduced end to end).
+- Task 4 (`notes/flaky-stepleader-build.md`): the flaky `stepLeader.lean` build is a race on
+  Perennial's process-global `inIframe` flag (`IrisTactics.lean`), shared by theorems
+  elaborated in parallel; fix proposed (an option via `withOptions`), not applied.
+- Task 5 (`notes/reconfiguration-model-check.md`, `issues/raft-conf-lag-model/checker/`): a Go
+  explicit-state checker of `model.py`. Lag and crash modes: counterexamples at depths 16-20.
+  Faithful mode: no violation in eight exhaustive runs (up to 1.6e9 states; no messages in
+  flight, no snapshots/learners/restarts, at most 2 conf changes, 3 terms, 5 entries).
+  Guard-fix mode: none (exhaustive at 3 nodes).
+
 ## Reconfiguration, stage B1: the safety argument on paper, its pure foundation (2026-10-14)
 
 Stage B is protocol-level safety (state machine safety, read index) with configurations taking

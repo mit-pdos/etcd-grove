@@ -27,6 +27,9 @@ L, A1, A2; leader transfer; read-index) before picking a task.
 
 ## Tasks a parallel session can take now (independent of A3 and B1)
 
+**All five done and merged (2026-10-14); results in STATUS, "Reconfiguration, stage B1:
+adversarial review" and "Parallel tasks 1, 2, 4, 5".**
+
 Each is self-contained; pick one or more. They avoid the files above.
 
 1. **Upstream drafts for the two safety findings.** `issues/raft-advance-before-applyconfchange.md`
