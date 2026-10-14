@@ -1,6 +1,9 @@
 # raft: entries persisted without their `HardState.Commit` can break membership safety
 
 - **Status**: open (documentation precondition; plausibility only, not demonstrated on etcd).
+  Upstream draft (with the `Advance` precondition):
+  [raft-document-confchange-before-advance](raft-document-confchange-before-advance.md).
+  The guard fix (`raft-conf-lag-model/guard-fix.md`) does not address it.
 - **Where**: etcd-raft at the pinned revision: `hasUnappliedConfChanges` (`raft.go:990`)
   scans `(applied, committed]` with the *persisted* commit after a restart; `doc.go:74-76`
   (step 1 of handling a `Ready`) asks to write the entries, the `HardState` and the snapshot
