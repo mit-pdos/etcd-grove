@@ -1,7 +1,13 @@
 # The flaky build of `stepLeader.lean` (diagnosis, 2026-10-14)
 
-**Status: diagnosed, with high confidence. The fix is NOT applied**, neither to
-`Proof/go_etcd_io/raft/v3/stepLeader.lean` nor to Perennial. It is proposed below.
+**Status: diagnosed, with high confidence. Stopgap 2 is applied in `stepLeader.lean` only**
+(2026-10-14): a `local elab_rules` for `iframe ∗` after its `open`s, marked TEMPORARY. **Delete
+it once Perennial's fix (below) is in the pinned Perennial.** It runs `iframePrep` itself and
+then Perennial's rule with `goose.iframe.prepass` off, with its own guard an option. Checked by
+forcing `inIframe` on for the whole file (`run_cmd liftTermElabM
+(Perennial.IrisTactics.inIframe.set true)` after the `open`s): without the override the file
+fails at the four sites below (698, 712, 796, 1387 and their follow-ons), with it it passes.
+Other files are not covered (`InvSTMRun.lean` has shown the same symptom).
 
 Tested on `stepLeader.lean` at two versions. The first is `51e39de75`, before A3. The
 second is `b2ee06944`, after A3's `ownRaftPhysC` rewrite (`e3639931c`). Both run against

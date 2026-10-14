@@ -456,7 +456,9 @@ rejects); A1/A3 must say "in order, once per entry" and "compaction and snapshot
   (etcd's leader path; by code reading only, not reproduced end to end).
 - Task 4 (`notes/flaky-stepleader-build.md`): the flaky `stepLeader.lean` build is a race on
   Perennial's process-global `inIframe` flag (`IrisTactics.lean`), shared by theorems
-  elaborated in parallel; fix proposed (an option via `withOptions`), not applied.
+  elaborated in parallel; fix proposed (an option via `withOptions`), not
+  in Perennial yet. **TODO: delete the TEMPORARY `local elab_rules` for `iframe ∗` at the top of
+  `stepLeader.lean`** (the stopgap, applied there only) once the pinned Perennial has the fix.
 - Task 5 (`notes/reconfiguration-model-check.md`, `issues/raft-conf-lag-model/checker/`): a Go
   explicit-state checker of `model.py`. Lag and crash modes: counterexamples at depths 16-20.
   Faithful mode: no violation in eight exhaustive runs (up to 1.6e9 states; no messages in
