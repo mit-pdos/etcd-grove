@@ -322,7 +322,8 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "lintest"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine="],
-        packages=["."],
+        # the driver, and an instance of it (a counter under a mutex, its model)
+        packages=[".", "./counter"],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lintest")],
     ),
 ]
