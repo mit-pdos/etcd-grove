@@ -697,7 +697,7 @@ theorem prop_deposit (γ : RaftNames) (E : CoPset) (d : List w8)
   intro HE
   iintro #Hinv Hfr Hlc Hau
   unfold raftCommitInv
-  iinv Hinv with ⟨%P, %R, >HP, >Hj, >Htbl, Hpo⟩ Hclose
+  iinv Hinv with ⟨%P, %R, >HP, >Hj, >Htbl, Hpo, Hwt⟩ Hclose
   imod propsOwn_open γ _ P R $$ Hpo with Hpo
   unfold propsOwnL
   icases Hpo with ⟨%ods, #Hds, Hv, Hra, Hs⟩
@@ -740,7 +740,7 @@ theorem prop_deposit (γ : RaftNames) (E : CoPset) (d : List w8)
     iexists ods
     iframe Hds Hv Hra Hs
   ihave Hpo := propsOwn_close γ P _ $$ Hpo
-  imod Hclose $$ [HP Hj Htbl Hpo] with -
+  imod Hclose $$ [HP Hj Htbl Hpo Hwt] with -
   · inext
     iexists P, Std.insert R d (γq, γk)
     iframe
@@ -764,7 +764,7 @@ theorem prop_collect (γ : RaftNames) (E : CoPset) (d : List w8) (γp : GName ×
   unfold isProp
   iintro #Hinv ⟨#Hfrag, #Hsp⟩ Htok #Hc #Hds
   unfold raftCommitInv
-  iinv Hinv with ⟨%P, %R, >HP, >Hj, >Htbl, Hpo⟩ Hclose
+  iinv Hinv with ⟨%P, %R, >HP, >Hj, >Htbl, Hpo, Hwt⟩ Hclose
   imod propsOwn_open γ _ P R $$ Hpo with Hpo
   unfold propsOwnL
   icases Hpo with ⟨%odsP, #HdsP, Hv, Hra, Hs⟩
@@ -821,7 +821,7 @@ theorem prop_collect (γ : RaftNames) (E : CoPset) (d : List w8) (γp : GName ×
       iexists odsP
       iframe HdsP Hv Hra Hs
     ihave Hpo := propsOwn_close γ P R $$ Hpo
-    imod Hclose $$ [HP Hj Htbl Hpo] with -
+    imod Hclose $$ [HP Hj Htbl Hpo Hwt] with -
     · inext
       iexists P, R
       iframe
@@ -843,7 +843,7 @@ theorem committed_data (γ : RaftNames) (E : CoPset) (l : List raftpb.Entry) :
   intro HE
   iintro #Hinv #Hc
   unfold raftCommitInv
-  iinv Hinv with ⟨%P, %R, >HP, >Hj, >Htbl, Hpo⟩ Hclose
+  iinv Hinv with ⟨%P, %R, >HP, >Hj, >Htbl, Hpo, Hwt⟩ Hclose
   imod propsOwn_open γ _ P R $$ Hpo with Hpo
   unfold propsOwnL
   icases Hpo with ⟨%odsP, #HdsP, Hv, Hra, Hs⟩
@@ -856,7 +856,7 @@ theorem committed_data (γ : RaftNames) (E : CoPset) (l : List raftpb.Entry) :
     iexists odsP
     iframe HdsP Hv Hra Hs
   ihave Hpo := propsOwn_close γ (l ++ r) R $$ Hpo
-  imod Hclose $$ [HP Hj Htbl Hpo] with -
+  imod Hclose $$ [HP Hj Htbl Hpo Hwt] with -
   · inext
     iexists l ++ r, R
     iframe
@@ -977,7 +977,7 @@ private theorem ownLogGhost_init (γ : RaftNames) (id : w64) (γm γa γc γl γ
     ⊢ raftCommitInv (GF := GF) γ -∗ isCommitted γ [] -∗
       ghostMapAuth γm 1 (∅ : GMap w64 TermRec) -∗
       ghostMapAuth γa 1 (∅ : GMap (w64 × w64) Unit) -∗
-      ghostMapAuth γc 1 (∅ : GMap w64 (List raftpb.Entry)) -∗
+      ghostMapAuth γc 1 (∅ : GMap w64 (List raftpb.Entry × w64)) -∗
       ghostMapAuth γl 1 (∅ : GMap Nat ((w64 × Bool) × List raftpb.Entry)) -∗
       ghostMapAuth γw 1 (∅ : GMap w64 (GSet w64)) -∗
       monoListAuthOwn γe 1 ([] : List Aev) -∗
@@ -1101,7 +1101,7 @@ private theorem ownRaftGhost_init (γ : RaftNames) (id : w64)
       ghostMapAuth γv (1 : Qp).half (∅ : GMap w64 w64) -∗
       ghostMapAuth γm 1 (∅ : GMap w64 TermRec) -∗
       ghostMapAuth γa 1 (∅ : GMap (w64 × w64) Unit) -∗
-      ghostMapAuth γc 1 (∅ : GMap w64 (List raftpb.Entry)) -∗
+      ghostMapAuth γc 1 (∅ : GMap w64 (List raftpb.Entry × w64)) -∗
       ghostMapAuth γl 1 (∅ : GMap Nat ((w64 × Bool) × List raftpb.Entry)) -∗
       ghostMapAuth γw 1 (∅ : GMap w64 (GSet w64)) -∗
       monoListAuthOwn γe 1 ([] : List Aev) -∗
@@ -1166,7 +1166,7 @@ private theorem alloc_nodes (γ : RaftNames) (ids : GSet w64) :
       ([∗map] x ↦ _u ∈ toMap ids, ∃ γx, ⌜γ.reAcks !! x = some γx⌝ ∗
         ghostMapAuth γx 1 (∅ : GMap (w64 × w64) Unit)) -∗
       ([∗map] x ↦ _u ∈ toMap ids, ∃ γx, ⌜γ.reCamp !! x = some γx⌝ ∗
-        ghostMapAuth γx 1 (∅ : GMap w64 (List raftpb.Entry))) -∗
+        ghostMapAuth γx 1 (∅ : GMap w64 (List raftpb.Entry × w64))) -∗
       ([∗map] x ↦ _u ∈ toMap ids, ∃ γx, ⌜γ.reVlogs !! x = some γx⌝ ∗
         ghostMapAuth γx 1 (∅ : GMap Nat ((w64 × Bool) × List raftpb.Entry))) -∗
       ([∗map] x ↦ _u ∈ toMap ids, ∃ γx, ⌜γ.reWins !! x = some γx⌝ ∗
@@ -1231,7 +1231,7 @@ theorem ownRaftGhost_alloc (E : CoPset) (cfg ids : GSet w64) :
   imod alloc_maps (GF := GF) (K := w64) (V := w64) ids with ⟨%nv, %Hnv, Hv⟩
   imod alloc_maps (GF := GF) (K := w64) (V := TermRec) ids with ⟨%nt, -, Ht⟩
   imod alloc_maps (GF := GF) (K := w64 × w64) (V := Unit) ids with ⟨%na, -, Ha⟩
-  imod alloc_maps (GF := GF) (K := w64) (V := List raftpb.Entry) ids with ⟨%nc, -, Hc⟩
+  imod alloc_maps (GF := GF) (K := w64) (V := List raftpb.Entry × w64) ids with ⟨%nc, -, Hc⟩
   imod alloc_maps (GF := GF) (K := Nat) (V := (w64 × Bool) × List raftpb.Entry) ids
     with ⟨%nl, -, Hl⟩
   imod alloc_maps (GF := GF) (K := w64) (V := GSet w64) ids with ⟨%nw, -, Hw⟩
@@ -1247,11 +1247,13 @@ theorem ownRaftGhost_alloc (E : CoPset) (cfg ids : GSet w64) :
   imod ghost_map_alloc_empty (GF := GF) (K := GoSlice) (V := List w8) with ⟨%γsl, Hsla⟩
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := Unit) with ⟨%γfr, Hfra⟩
   imod ghostVar_alloc (GF := GF) ([] : List (List w8)) with ⟨%γcl, Hcl⟩
+  -- (2026-10-14, reconfiguration stage B4) the winners table, empty
+  imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := WinRec) with ⟨%γtb, Htba⟩
   icases ghostVar_split γcl ([] : List (List w8)) (1 : Qp).half (1 : Qp).half $$ [Hcl]
     with ⟨Hcl1, Hcl2⟩
   · rw [Qp.half_add_half]; iexact Hcl
   obtain ⟨γ0, Hγ0⟩ : ∃ γ0 : RaftNames,
-      γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γsl, γcl, γfr, nlc, nrq, γrd, γrc, Hcne⟩ :=
+      γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γsl, γcl, γfr, nlc, nrq, γrd, γrc, γtb, Hcne⟩ :=
     ⟨_, rfl⟩
   have e1 : γ0.reVotes = nv := by rw [Hγ0]
   have e2 : γ0.reTerms = nt := by rw [Hγ0]
@@ -1270,8 +1272,9 @@ theorem ownRaftGhost_alloc (E : CoPset) (cfg ids : GSet w64) :
   have e14 : γ0.reRdq = nrq := by rw [Hγ0]
   have e15 : γ0.reReads = γrd := by rw [Hγ0]
   have e16 : γ0.reRdCred = γrc := by rw [Hγ0]
+  have e17 : γ0.reTbl = γtb := by rw [Hγ0]
   rw [← e1, ← e2, ← e3, ← e4, ← e5, ← e6, ← e7, ← e8, ← e9, ← e10, ← e11, ← e12, ← e13, ← e14,
-    ← e15, ← e16]
+    ← e15, ← e16, ← e17]
   imod inv_alloc rdCredN E iprop(∃ B : Nat, own γ0.reRdCred (● B : Auth Nat) ∗
       ⌜B < 2 ^ 64 - 1⌝) $$ [HCa] with #Hcinv
   · inext
@@ -1318,8 +1321,9 @@ theorem ownRaftGhost_alloc (E : CoPset) (cfg ids : GSet w64) :
     · iexact Hav
     · iapply (BigSepM.bigSepM_empty).2; iempintro
   imod inv_alloc raftN E iprop(∃ l, ∃ (R : GMap (List w8) (GName × GName)),
-               ownCommitted γ0 l ∗ committedJust γ0 l ∗ votesTbl γ0 ∗ propsOwn γ0 l R)
-    $$ [Hcauth Htbl Hpra Hcl1] with #Hinv
+               ownCommitted γ0 l ∗ committedJust γ0 l ∗ votesTbl γ0 ∗ propsOwn γ0 l R ∗
+               winTbl γ0)
+    $$ [Hcauth Htbl Hpra Hcl1 Htba] with #Hinv
   · inext
     iexists [], ∅
     isplitl [Hcauth]
@@ -1327,14 +1331,19 @@ theorem ownRaftGhost_alloc (E : CoPset) (cfg ids : GSet w64) :
     isplitr
     · unfold committedJust; ileft; ipureintro; rfl
     isplitl [Htbl]; · iexact Htbl
-    unfold propsOwn
-    iexists []
-    isplitr
-    · iapply (BigSepL2.bigSepL2_nil (Φ := fun _ e o => entDataIs (GF := GF) γ0 e o)).2
-      iempintro
-    isplitl [Hcl1]
-    · rw [show firstOcc [] = ([] : List (List w8)) from rfl]; iexact Hcl1
-    isplitl [Hpra]; · iexact Hpra
+    isplitl [Hcl1 Hpra]
+    · unfold propsOwn
+      iexists []
+      isplitr
+      · iapply (BigSepL2.bigSepL2_nil (Φ := fun _ e o => entDataIs (GF := GF) γ0 e o)).2
+        iempintro
+      isplitl [Hcl1]
+      · rw [show firstOcc [] = ([] : List (List w8)) from rfl]; iexact Hcl1
+      isplitl [Hpra]; · iexact Hpra
+      iapply (BigSepM.bigSepM_empty).2; iempintro
+    unfold winTbl
+    iexists ∅
+    iframe Htba
     iapply (BigSepM.bigSepM_empty).2; iempintro
   ihave #Hinv' : raftCommitInv (GF := GF) γ0 $$ []
   · unfold raftCommitInv; iexact Hinv

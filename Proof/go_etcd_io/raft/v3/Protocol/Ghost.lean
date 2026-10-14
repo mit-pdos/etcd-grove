@@ -221,6 +221,12 @@ structure RaftNames where
   leader keeps the ones its requests carried (`ownReadGhost`), which bounds its request
   positions. -/
   reRdCred : GName
+  /-- The winners table (2026-10-14, reconfiguration stage B4): a ghost map
+  `term ↦ ((winner, configuration), quorum)` (`WinRec`) of every term's winner, whose
+  authority is in `raftCommitInv` with each winner's record (`isWinCore`) and whose
+  persistent elements `isWin` holds. One entry per term is election safety (`isLeader_unique`
+  is the elements' agreement); the entry is added at win time (`win_fresh`, `winTbl_insert`). -/
+  reTbl : GName
   /-- The voter set is not empty (2026-10-14, reconfiguration stage B2). The protocol's
   step at a configuration (`StepC`) reads quorums by Go's convention, under which every
   set is a majority of an empty voter set (`MajQ`); the ghost state needs a real quorum
@@ -259,6 +265,47 @@ theorem CfgStatic.stepC_iff [FfiSyntax] (γ : RaftNames) (lrn : GSet w64) (id : 
     (s : PState) (ms : List Msg) (s' : PState) :
     Step γ.reCfg id s ms s' ↔ StepC (CfgM.simple γ.reCfg lrn) id s ms s' :=
   step_iff_stepC γ.reCfg lrn id γ.reCfg_ne s ms s'
+
+/-! ### The configurations the ghost state records (2026-10-14, reconfiguration stage B4)
+
+Every quorum the ghost state keeps -- a term's winning quorum (`isWinCore`), a commit fact's
+acknowledging quorum (`cq`), a read record's doom quorum (`doomed`) -- is a joint quorum
+(`JQuorum`) of a configuration it records with it, and `CfgAt γ P c` says what that
+configuration may be: the configuration of the committed log prefix `P` (the winner's
+committed campaign prefix, the committer's committed prefix up to its configuration index).
+That is the paper proof's `C_j` (`notes/reconfiguration-safety.md`, sections 2 and 5-8).
+
+At B4 the definition is the static one: every recorded configuration is the ghost state's
+(`CfgStatic`), whatever the prefix, so any two recorded configurations overlap
+(`CfgAt.overlap`). That one lemma is where the static instance discharges what the dynamic
+proof argues by cases on the configuration indices; its uses are exactly the paper's three
+case splits: `win_fresh` (two winners of a term), `lc_core` (a winner and a commit fact of an
+earlier term), `rqRecOk_confirm` (a read's confirming quorum and its doom quorum). B5 redefines
+`CfgAt` as "`c` is the configuration of `cfgFold dec c0 P`" and replaces each use of
+`CfgAt.overlap` by the adjacent/far case split (`fold_adjacent` for the adjacent case). -/
+
+/-- The configuration `c` is the one of the committed prefix `P` (static: the ghost state's,
+see above). -/
+def CfgAt [FfiSyntax] (γ : RaftNames) (_P : List raftpb.Entry) (c : CfgM) : Prop :=
+  CfgStatic γ c
+
+theorem CfgAt.of_static [FfiSyntax] {γ : RaftNames} {c : CfgM} (P : List raftpb.Entry)
+    (HC : CfgStatic γ c) : CfgAt γ P c := HC
+
+/-- Two recorded configurations overlap (the static instance: both are the ghost state's).
+B5: only when their configuration indices differ by at most one (`fold_adjacent`). -/
+theorem CfgAt.overlap [FfiSyntax] {γ : RaftNames} {P1 P2 : List raftpb.Entry} {c1 c2 : CfgM}
+    (H1 : CfgAt γ P1 c1) (H2 : CfgAt γ P2 c2) : QOverlap c1 c2 := by
+  intro q1 q2 h1 h2
+  obtain ⟨x, hx1, hx2⟩ := quorums_intersect γ.reCfg q1 q2
+    (CfgStatic.isQuorum H1 h1) (CfgStatic.isQuorum H2 h2)
+  exact ⟨x, hx1, hx2⟩
+
+/-- A joint quorum of a recorded configuration has a member. -/
+theorem CfgAt.member [FfiSyntax] {γ : RaftNames} {P : List raftpb.Entry} {c : CfgM}
+    {q : GSet w64} (H : CfgAt γ P c) (hq : JQuorum c q) : ∃ x, x ∈ q := by
+  obtain ⟨x, hx, -⟩ := CfgAt.overlap H H q q hq hq
+  exact ⟨x, hx⟩
 
 /-- An event of a node's history (`reEvs`): an acknowledgement `(t, i)`, or a vote in
 `T` cast knowing the leader of `T` iff `d`, with full log `F` (`isVlog`'s data). -/
@@ -333,15 +380,192 @@ theorem isVote_agree (γ : RaftNames) (v term c1 c2 : w64) :
   cases Hγ2
   iapply ghostMapElem_agree $$ H1 H2
 
+/-! ### The global committed log (2026-10-05)
+
+The external face of commitment: the illusion of one global log. `isCommitted γ l` --
+the list of entries `l` is a prefix of the global committed log -- is a persistent lower
+bound, the only resource a client sees. `ownCommitted γ l` -- the global committed log
+is `l` -- is its authority, a `mono_list` authority on `reCommit` held whole by the
+internal invariant `raftCommitInv` (below, with the facts that justify the log: a quorum
+of acknowledgements of one leader, and that leader's log). `Step.commit` extends it
+inside a leader's `Step`; no party outside the invariant holds any of it (the leader
+commits its own term's no-op with no client involved, and leadership moves between
+nodes). Every `isCommitted` is a prefix of `ownCommitted` (`isCommitted_prefix`), so any
+two are prefixes of one another (`isCommitted_agree`): every node's committed prefix,
+every commit index a message reports, is a prefix of one log. -/
+
+def isCommittedDef (γ : RaftNames) (l : List raftpb.Entry) : IProp GF :=
+  monoListLbOwn γ.reCommit l
+@[irreducible] def isCommitted (γ : RaftNames) (l : List raftpb.Entry) : IProp GF :=
+  isCommittedDef γ l
+theorem isCommitted_unseal : @isCommitted = @isCommittedDef := by
+  funext; with_unfolding_all rfl
+
+def ownCommittedDef (γ : RaftNames) (l : List raftpb.Entry) : IProp GF :=
+  monoListAuthOwn γ.reCommit 1 l
+@[irreducible] def ownCommitted (γ : RaftNames) (l : List raftpb.Entry) : IProp GF :=
+  ownCommittedDef γ l
+theorem ownCommitted_unseal : @ownCommitted = @ownCommittedDef := by
+  funext; with_unfolding_all rfl
+
+instance isCommitted_persistent (γ : RaftNames) (l : List raftpb.Entry) :
+    Persistent (isCommitted (GF := GF) γ l) := by
+  rw [isCommitted_unseal]; unfold isCommittedDef; infer_instance
+instance isCommitted_timeless (γ : RaftNames) (l : List raftpb.Entry) :
+    Timeless (isCommitted (GF := GF) γ l) := by
+  rw [isCommitted_unseal]; unfold isCommittedDef; infer_instance
+instance ownCommitted_timeless (γ : RaftNames) (l : List raftpb.Entry) :
+    Timeless (ownCommitted (GF := GF) γ l) := by
+  rw [ownCommitted_unseal]; unfold ownCommittedDef; infer_instance
+
+theorem isCommitted_agree (γ : RaftNames) (l1 l2 : List raftpb.Entry) :
+    ⊢ isCommitted (GF := GF) γ l1 -∗ isCommitted γ l2 -∗ ⌜l1 <+: l2 ∨ l2 <+: l1⌝ := by
+  rw [isCommitted_unseal]; unfold isCommittedDef
+  exact mono_list_lb_valid _ _ _
+
+theorem isCommitted_mono (γ : RaftNames) (l1 l2 : List raftpb.Entry) :
+    l1 <+: l2 → ⊢ isCommitted (GF := GF) γ l2 -∗ isCommitted γ l1 := by
+  intro Hp
+  rw [isCommitted_unseal]; unfold isCommittedDef
+  iintro H; iapply monoListLbOwn_le _ Hp; iexact H
+
+theorem ownCommitted_lb (γ : RaftNames) (l : List raftpb.Entry) :
+    ⊢ ownCommitted (GF := GF) γ l -∗ isCommitted γ l := by
+  rw [ownCommitted_unseal, isCommitted_unseal]; unfold ownCommittedDef isCommittedDef
+  iintro H; iapply monoListLbOwn_get; iexact H
+
+theorem isCommitted_prefix (γ : RaftNames) (l l' : List raftpb.Entry) :
+    ⊢ isCommitted (GF := GF) γ l -∗ ownCommitted γ l' -∗ ⌜l <+: l'⌝ := by
+  rw [ownCommitted_unseal, isCommitted_unseal]; unfold ownCommittedDef isCommittedDef
+  iintro H1 H2
+  icases mono_list_auth_lb_valid $$ H2 H1 with %H
+  ipureintro; exact H.2
+
+/-- Extending the global log (inside the invariant). (Rocq `Local`; public here, since
+the later modules use it.) -/
+theorem ownCommitted_extend (γ : RaftNames) (l l' : List raftpb.Entry) :
+    l <+: l' → ⊢ ownCommitted (GF := GF) γ l ==∗ ownCommitted γ l' ∗ isCommitted γ l' := by
+  intro Hp
+  rw [ownCommitted_unseal, isCommitted_unseal]; unfold ownCommittedDef isCommittedDef
+  exact monoListAuthOwn_update _ Hp
+
+/-- (Rocq `Local`.) -/
+theorem ownCommitted_alloc :
+    ⊢ |==> ∃ γc : GName, monoListAuthOwn (GF := GF) γc 1 ([] : List raftpb.Entry) ∗
+                         monoListLbOwn γc ([] : List raftpb.Entry) := by
+  exact mono_list_own_alloc _
+
+/-! ### Campaign records -/
+
+/-- `c`'s campaign record of term `T`: its full log (`fp ++ log`, see "Full logs") when
+it became candidate in `T` -- unchanged until it wins (`campOwn`), so it is also the log
+the leader of `T` started from. Frozen when allocated (`Step.campaign`); a `vote`
+request carries it (`isMessage`), so the `(LogTerm, Index)` a voter checks is the last
+entry of a log the candidate really had. Every term in it is below `T` (the candidate
+has nothing of its own term), which is `CampOk`. (2026-10-03.)
+
+Since 2026-10-14 (reconfiguration stage B4, the paper's repair 3) the record also holds the
+commit index `k` at the campaign, at most the log's last index, with the committed prefix
+`F.take k` (`isCampK`): the winner's configuration is that prefix's (`isWinCore`, `CfgAt`).
+(B5 adds the witnesses for the conf entries up to `k`.) -/
+def isCampK (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) (k : w64) : IProp GF :=
+  iprop(∃ γc, ⌜γ.reCamp !! c = some γc ∧ CampOk T F ∧ uint.Z k ≤ plogLastIndexZ base0 F⌝ ∗
+    T ↪[γc]□ ((F, k) : List raftpb.Entry × w64) ∗ isCommitted γ (F.take (uint.Z k).toNat))
+
+def isCamp (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) : IProp GF :=
+  iprop(∃ k, isCampK γ c T F k)
+
+instance isCampK_persistent (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) (k : w64) :
+    Persistent (isCampK (GF := GF) γ c T F k) := by
+  unfold isCampK; infer_instance
+
+instance isCampK_timeless (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) (k : w64) :
+    Timeless (isCampK (GF := GF) γ c T F k) := by
+  unfold isCampK; infer_instance
+
+instance isCamp_persistent (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) :
+    Persistent (isCamp (GF := GF) γ c T F) := by
+  unfold isCamp; infer_instance
+
+instance isCamp_timeless (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) :
+    Timeless (isCamp (GF := GF) γ c T F) := by
+  unfold isCamp; infer_instance
+
+theorem isCampK_agree (γ : RaftNames) (c T : w64) (F1 F2 : List raftpb.Entry) (k1 k2 : w64) :
+    ⊢ isCampK (GF := GF) γ c T F1 k1 -∗ isCampK γ c T F2 k2 -∗ ⌜F1 = F2 ∧ k1 = k2⌝ := by
+  unfold isCampK
+  iintro ⟨%γ1, %H1, Hf1, -⟩ ⟨%γ2, %H2, Hf2, -⟩
+  rw [H1.1] at H2
+  obtain ⟨H2, -⟩ := H2
+  cases H2
+  icases ghostMapElem_agree $$ Hf1 Hf2 with %H
+  simp only [Prod.mk.injEq] at H
+  ipureintro; exact H
+
+theorem isCamp_agree (γ : RaftNames) (c T : w64) (F1 F2 : List raftpb.Entry) :
+    ⊢ isCamp (GF := GF) γ c T F1 -∗ isCamp γ c T F2 -∗ ⌜F1 = F2⌝ := by
+  unfold isCamp
+  iintro ⟨%k1, #H1⟩ ⟨%k2, #H2⟩
+  icases isCampK_agree γ c T F1 F2 k1 k2 $$ H1 H2 with %H
+  ipureintro; exact H.1
+
+theorem isCampK_ok (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) (k : w64) :
+    ⊢ isCampK (GF := GF) γ c T F k -∗ ⌜CampOk T F⌝ := by
+  unfold isCampK
+  iintro ⟨%_, %H, -⟩
+  ipureintro; exact H.2.1
+
+theorem isCamp_ok (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) :
+    ⊢ isCamp (GF := GF) γ c T F -∗ ⌜CampOk T F⌝ := by
+  unfold isCamp
+  iintro ⟨%k, #H⟩
+  iapply isCampK_ok $$ H
+
+theorem isCampK_camp (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) (k : w64) :
+    ⊢ isCampK (GF := GF) γ c T F k -∗ isCamp γ c T F := by
+  iintro #H; unfold isCamp; iexists k; iexact H
+
 /-! ### Leadership -/
 
-/-- `id` won `term` with the quorum `q` of votes: frozen in `id`'s map `reWins` when it
-won (`Step.win`), so the winning quorum of a term is unique (`isWin_agree`) -- which is
-what tells a vote that counted in the election from one cast later, after the winner
-had already replicated to the voter (pre-vote; see `voteJust`). (2026-10-05.) -/
+/-- A configuration is countable data (the winners table stores one per term). -/
+instance CfgM_countable : Pos.Countable CfgM :=
+  .ofInjective (fun c => Pos.Countable.encode
+      (c.incoming, c.outgoing, c.learners, c.learnersNext, c.autoLeave))
+    (by
+      rintro ⟨_, _, _, _, _⟩ ⟨_, _, _, _, _⟩ h
+      have h := Pos.encode_inj h
+      simp only [Prod.mk.injEq] at h
+      obtain ⟨h1, h2, h3, h4, h5⟩ := h
+      subst h1 h2 h3 h4 h5; rfl)
+
+/-- A winners-table entry: `((winner, configuration), quorum)`. -/
+abbrev WinRec := (w64 × CfgM) × GSet w64
+
+/-- What `id` winning `term` at the configuration `c` with the quorum `q` of votes records:
+the quorum, frozen in `id`'s map `reWins` (so the winning quorum of a term is unique,
+`isWin_agree` -- which is what tells a vote that counted in the election from one cast later,
+after the winner had already replicated to the voter; pre-vote, see `voteJust`), a joint
+quorum of `c`, each member's vote, and `id`'s campaign record `(F0, k)` of `term`, whose
+committed prefix `c` is the configuration of (`CfgAt`). (2026-10-05; the configuration and
+the campaign record since 2026-10-14, reconfiguration stage B4: was `IsQuorum γ.reCfg q`.) -/
+def isWinCore (γ : RaftNames) (id term : w64) (c : CfgM) (q : GSet w64) : IProp GF :=
+  iprop(∃ γw F0 k, ⌜γ.reWins !! id = some γw ∧ JQuorum c q ∧
+      CfgAt γ (F0.take (uint.Z k).toNat) c⌝ ∗
+    isCampK γ id term F0 k ∗ term ↪[γw]□ q ∗
+    [∗map] v ↦ _u ∈ toMap q, isVote γ v term id)
+
+instance isWinCore_persistent (γ : RaftNames) (id term : w64) (c : CfgM) (q : GSet w64) :
+    Persistent (isWinCore (GF := GF) γ id term c q) := by
+  unfold isWinCore; infer_instance
+
+instance isWinCore_timeless (γ : RaftNames) (id term : w64) (c : CfgM) (q : GSet w64) :
+    Timeless (isWinCore (GF := GF) γ id term c q) := by
+  unfold isWinCore; infer_instance
+
+/-- `id` won `term` with the quorum `q`: its record, and its entry in the winners table
+(2026-10-14, reconfiguration stage B4). -/
 def isWin (γ : RaftNames) (id term : w64) (q : GSet w64) : IProp GF :=
-  iprop(∃ γw, ⌜γ.reWins !! id = some γw ∧ IsQuorum γ.reCfg q⌝ ∗ term ↪[γw]□ q ∗
-        [∗map] v ↦ _u ∈ toMap q, isVote γ v term id)
+  iprop(∃ c, isWinCore γ id term c q ∗ term ↪[γ.reTbl]□ (((id, c), q) : WinRec))
 
 instance isWin_persistent (γ : RaftNames) (id term : w64) (q : GSet w64) :
     Persistent (isWin (GF := GF) γ id term q) := by
@@ -351,14 +575,34 @@ instance isWin_timeless (γ : RaftNames) (id term : w64) (q : GSet w64) :
     Timeless (isWin (GF := GF) γ id term q) := by
   unfold isWin; infer_instance
 
+/-- Two winners of a term are one table entry. -/
+theorem isWin_tbl_agree (γ : RaftNames) (id1 id2 term : w64) (q1 q2 : GSet w64) :
+    ⊢ isWin (GF := GF) γ id1 term q1 -∗ isWin γ id2 term q2 -∗ ⌜id1 = id2 ∧ q1 = q2⌝ := by
+  unfold isWin
+  iintro ⟨%c1, -, #F1⟩ ⟨%c2, -, #F2⟩
+  icases ghostMapElem_agree $$ F1 F2 with %H
+  simp only [Prod.mk.injEq] at H
+  ipureintro; exact ⟨H.1.1, H.2⟩
+
 theorem isWin_agree (γ : RaftNames) (id term : w64) (q1 q2 : GSet w64) :
     ⊢ isWin (GF := GF) γ id term q1 -∗ isWin γ id term q2 -∗ ⌜q1 = q2⌝ := by
+  iintro #H1 #H2
+  icases isWin_tbl_agree γ id id term q1 q2 $$ H1 H2 with %H
+  ipureintro; exact H.2
+
+/-- A winning quorum's votes. -/
+theorem isWin_votes (γ : RaftNames) (id term : w64) (q : GSet w64) :
+    ⊢ isWin (GF := GF) γ id term q -∗ [∗map] v ↦ _u ∈ toMap q, isVote γ v term id := by
+  unfold isWin isWinCore
+  iintro ⟨%c, ⟨%γw, %F0, %k, -, -, -, #Hv⟩, -⟩
+  iexact Hv
+
+/-- A winner's record. -/
+theorem isWin_core (γ : RaftNames) (id term : w64) (q : GSet w64) :
+    ⊢ isWin (GF := GF) γ id term q -∗ ∃ c, isWinCore γ id term c q := by
   unfold isWin
-  iintro ⟨%γ1, %H1, #F1, -⟩ ⟨%γ2, %H2, #F2, -⟩
-  rw [H1.1] at H2
-  obtain ⟨H2, -⟩ := H2
-  cases H2
-  iapply ghostMapElem_agree $$ F1 F2
+  iintro ⟨%c, #Hc, -⟩
+  iexists c; iexact Hc
 
 def isLeader (γ : RaftNames) (id term : w64) : IProp GF :=
   iprop(∃ q, isWin γ id term q)
@@ -373,8 +617,11 @@ instance isLeader_timeless (γ : RaftNames) (id term : w64) :
 
 /-! ## Election safety
 
-Two leaders in one term were each elected by a quorum; the quorums meet in a voter that
-cast one vote. -/
+Since 2026-10-14 (reconfiguration stage B4) the agreement of two winners-table entries
+(`isLeader_unique`, `isWin_tbl_agree`): the table has one entry per term, and a winner adds
+its own only after showing that no other node won the term (`win_fresh`: there, two winning
+quorums of overlapping configurations meet in a voter that cast one vote). Until then it was
+quorum intersection at the one voter set `γ.reCfg`. -/
 /-- The leader `ldr` of `t` had a commit index of at least `n` (2026-10-12): a lower bound
 of its commit lower bound for `t` (`reLcm`). -/
 def cmtLb (γ : RaftNames) (ldr t n : w64) : IProp GF :=
@@ -389,14 +636,10 @@ instance cmtLb_timeless (γ : RaftNames) (ldr t n : w64) :
 
 theorem isLeader_unique (γ : RaftNames) (id1 id2 term : w64) :
     ⊢ isLeader (GF := GF) γ id1 term -∗ isLeader γ id2 term -∗ ⌜id1 = id2⌝ := by
-  unfold isLeader isWin
-  iintro ⟨%q1, %γ1, %Hq1, -, #H1⟩ ⟨%q2, %γ2, %Hq2, -, #H2⟩
-  obtain ⟨v, Hv1, Hv2⟩ := quorums_intersect _ _ _ Hq1.2 Hq2.2
-  ihave #Hv1 := BigSepM.bigSepM_lookup (Φ := fun v _ => isVote (GF := GF) γ v term id1)
-    ((GMap.elem_of_gset _ _).mp Hv1) $$ H1
-  ihave #Hv2 := BigSepM.bigSepM_lookup (Φ := fun v _ => isVote (GF := GF) γ v term id2)
-    ((GMap.elem_of_gset _ _).mp Hv2) $$ H2
-  iapply isVote_agree $$ Hv1 Hv2
+  unfold isLeader
+  iintro ⟨%q1, #H1⟩ ⟨%q2, #H2⟩
+  icases isWin_tbl_agree γ id1 id2 term q1 q2 $$ H1 H2 with %H
+  ipureintro; exact H.1
 
 /-! ### Entries, acknowledgements, commitment -/
 
@@ -409,38 +652,6 @@ def isTermLog (γ : RaftNames) (v t : w64) (γt : GName) (b : entryID)
     (l0 : List raftpb.Entry) : IProp GF :=
   iprop(∃ γm, ⌜γ.reTerms !! v = some γm⌝ ∗
     t ↪[γm]□ (((γt, b), l0) : (GName × entryID) × List raftpb.Entry))
-
-/-- `c`'s campaign record of term `T`: its full log (`fp ++ log`, see "Full logs") when
-it became candidate in `T` -- unchanged until it wins (`campOwn`), so it is also the log
-the leader of `T` started from. Frozen when allocated (`Step.campaign`); a `vote`
-request carries it (`isMessage`), so the `(LogTerm, Index)` a voter checks is the last
-entry of a log the candidate really had. Every term in it is below `T` (the candidate
-has nothing of its own term), which is `CampOk`. (2026-10-03.) -/
-def isCamp (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) : IProp GF :=
-  iprop(∃ γc, ⌜γ.reCamp !! c = some γc ∧ CampOk T F⌝ ∗ T ↪[γc]□ F)
-
-instance isCamp_persistent (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) :
-    Persistent (isCamp (GF := GF) γ c T F) := by
-  unfold isCamp; infer_instance
-
-instance isCamp_timeless (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) :
-    Timeless (isCamp (GF := GF) γ c T F) := by
-  unfold isCamp; infer_instance
-
-theorem isCamp_agree (γ : RaftNames) (c T : w64) (F1 F2 : List raftpb.Entry) :
-    ⊢ isCamp (GF := GF) γ c T F1 -∗ isCamp γ c T F2 -∗ ⌜F1 = F2⌝ := by
-  unfold isCamp
-  iintro ⟨%γ1, %H1, Hf1⟩ ⟨%γ2, %H2, Hf2⟩
-  rw [H1.1] at H2
-  obtain ⟨H2, -⟩ := H2
-  cases H2
-  iapply ghostMapElem_agree $$ Hf1 Hf2
-
-theorem isCamp_ok (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) :
-    ⊢ isCamp (GF := GF) γ c T F -∗ ⌜CampOk T F⌝ := by
-  unfold isCamp
-  iintro ⟨%_, %H, -⟩
-  ipureintro; exact H.2
 
 /-! ### Proposed data (2026-10-10)
 
@@ -1227,13 +1438,22 @@ theorem leadFull_agree (γ : RaftNames) (t : w64) (G1 G2 : List raftpb.Entry) (j
 
 `cq γ t n G`: a quorum acknowledged the leader of `t` up to at least `n`, and `G`, a full
 log of that leader, has an entry of term `t` at `n` -- what `Step.commit` establishes.
+Since 2026-10-14 (reconfiguration stage B4) the quorum is a joint quorum of the configuration
+`c` the committer had, recorded with its configuration index `a ≤ n` (the committer's
+configuration is that of `G`'s committed prefix `G.take a`, `CfgAt`): the paper's `cqW t n G a`
+(`notes/reconfiguration-safety.md`, section 2) without what only a dynamic configuration
+needs -- the committer's "at most one conf entry of `G` above `a`" and the witnesses of the
+conf positions up to `a`, which B5 adds here (their source is I3 and the node-local witness
+invariant `W`, which need the ghost state to follow `StepR`).
 `commitIn γ F c tm`: the full log `F` agrees, at `c`, with such a `G` for some `t ≤ tm`
 with `c ≤ n`. A node keeps `commitIn` of its commit index; messages carry it of the
 `Commit` they report. `isCommittedIdx γ i` forgets the log. -/
 
 def cq (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) : IProp GF :=
   iprop(⌜plogTermAt base0 G n = some t⌝ ∗ leadFull γ t G ∗
-    ∃ q, ⌜IsQuorum γ.reCfg q⌝ ∗
+    ∃ (a : w64), ∃ (c : CfgM), ∃ q,
+      ⌜uint.Z a ≤ uint.Z n ∧ CfgAt γ (G.take (uint.Z a).toNat) c ∧ JQuorum c q⌝ ∗
+      isCommitted γ (G.take (uint.Z a).toNat) ∗
       [∗map] v ↦ _u ∈ toMap q, ∃ i', ⌜uint.Z n ≤ uint.Z i'⌝ ∗ isAcked γ v t i')
 
 instance cq_persistent (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) :
@@ -1285,81 +1505,6 @@ theorem commitIn_committed (γ : RaftNames) (F : List raftpb.Entry) (c tm : w64)
   iintro (%H0 | ⟨%t, %n, %G, #Hq, %Hc⟩)
   · ileft; ipureintro; exact H0
   · iright; iexists t, n, G; iframe Hq; ipureintro; exact Hc.1
-
-/-! ### The global committed log (2026-10-05)
-
-The external face of commitment: the illusion of one global log. `isCommitted γ l` --
-the list of entries `l` is a prefix of the global committed log -- is a persistent lower
-bound, the only resource a client sees. `ownCommitted γ l` -- the global committed log
-is `l` -- is its authority, a `mono_list` authority on `reCommit` held whole by the
-internal invariant `raftCommitInv` (below, with the facts that justify the log: a quorum
-of acknowledgements of one leader, and that leader's log). `Step.commit` extends it
-inside a leader's `Step`; no party outside the invariant holds any of it (the leader
-commits its own term's no-op with no client involved, and leadership moves between
-nodes). Every `isCommitted` is a prefix of `ownCommitted` (`isCommitted_prefix`), so any
-two are prefixes of one another (`isCommitted_agree`): every node's committed prefix,
-every commit index a message reports, is a prefix of one log. -/
-
-def isCommittedDef (γ : RaftNames) (l : List raftpb.Entry) : IProp GF :=
-  monoListLbOwn γ.reCommit l
-@[irreducible] def isCommitted (γ : RaftNames) (l : List raftpb.Entry) : IProp GF :=
-  isCommittedDef γ l
-theorem isCommitted_unseal : @isCommitted = @isCommittedDef := by
-  funext; with_unfolding_all rfl
-
-def ownCommittedDef (γ : RaftNames) (l : List raftpb.Entry) : IProp GF :=
-  monoListAuthOwn γ.reCommit 1 l
-@[irreducible] def ownCommitted (γ : RaftNames) (l : List raftpb.Entry) : IProp GF :=
-  ownCommittedDef γ l
-theorem ownCommitted_unseal : @ownCommitted = @ownCommittedDef := by
-  funext; with_unfolding_all rfl
-
-instance isCommitted_persistent (γ : RaftNames) (l : List raftpb.Entry) :
-    Persistent (isCommitted (GF := GF) γ l) := by
-  rw [isCommitted_unseal]; unfold isCommittedDef; infer_instance
-instance isCommitted_timeless (γ : RaftNames) (l : List raftpb.Entry) :
-    Timeless (isCommitted (GF := GF) γ l) := by
-  rw [isCommitted_unseal]; unfold isCommittedDef; infer_instance
-instance ownCommitted_timeless (γ : RaftNames) (l : List raftpb.Entry) :
-    Timeless (ownCommitted (GF := GF) γ l) := by
-  rw [ownCommitted_unseal]; unfold ownCommittedDef; infer_instance
-
-theorem isCommitted_agree (γ : RaftNames) (l1 l2 : List raftpb.Entry) :
-    ⊢ isCommitted (GF := GF) γ l1 -∗ isCommitted γ l2 -∗ ⌜l1 <+: l2 ∨ l2 <+: l1⌝ := by
-  rw [isCommitted_unseal]; unfold isCommittedDef
-  exact mono_list_lb_valid _ _ _
-
-theorem isCommitted_mono (γ : RaftNames) (l1 l2 : List raftpb.Entry) :
-    l1 <+: l2 → ⊢ isCommitted (GF := GF) γ l2 -∗ isCommitted γ l1 := by
-  intro Hp
-  rw [isCommitted_unseal]; unfold isCommittedDef
-  iintro H; iapply monoListLbOwn_le _ Hp; iexact H
-
-theorem ownCommitted_lb (γ : RaftNames) (l : List raftpb.Entry) :
-    ⊢ ownCommitted (GF := GF) γ l -∗ isCommitted γ l := by
-  rw [ownCommitted_unseal, isCommitted_unseal]; unfold ownCommittedDef isCommittedDef
-  iintro H; iapply monoListLbOwn_get; iexact H
-
-theorem isCommitted_prefix (γ : RaftNames) (l l' : List raftpb.Entry) :
-    ⊢ isCommitted (GF := GF) γ l -∗ ownCommitted γ l' -∗ ⌜l <+: l'⌝ := by
-  rw [ownCommitted_unseal, isCommitted_unseal]; unfold ownCommittedDef isCommittedDef
-  iintro H1 H2
-  icases mono_list_auth_lb_valid $$ H2 H1 with %H
-  ipureintro; exact H.2
-
-/-- Extending the global log (inside the invariant). (Rocq `Local`; public here, since
-the later modules use it.) -/
-theorem ownCommitted_extend (γ : RaftNames) (l l' : List raftpb.Entry) :
-    l <+: l' → ⊢ ownCommitted (GF := GF) γ l ==∗ ownCommitted γ l' ∗ isCommitted γ l' := by
-  intro Hp
-  rw [ownCommitted_unseal, isCommitted_unseal]; unfold ownCommittedDef isCommittedDef
-  exact monoListAuthOwn_update _ Hp
-
-/-- (Rocq `Local`.) -/
-theorem ownCommitted_alloc :
-    ⊢ |==> ∃ γc : GName, monoListAuthOwn (GF := GF) γc 1 ([] : List raftpb.Entry) ∗
-                         monoListLbOwn γc ([] : List raftpb.Entry) := by
-  exact mono_list_own_alloc _
 
 /-- Two full logs with records that agree at `c` have the same first `c` entries. -/
 theorem full_take_eq (γ : RaftNames) (F1 F2 : List raftpb.Entry) (c : w64) :

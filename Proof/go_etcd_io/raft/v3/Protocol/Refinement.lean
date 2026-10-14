@@ -450,11 +450,10 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     plogLastIndexZ s.base s.log + 1 < 2 ^ 64 →
     LeaderMatchOk id s mt →
     (∀ m ∈ ms, ReplOk id (pwinState id s mt) m) →
-    ⊢ ownRaftGhost (GF := GF) γ id s ==∗
+    ⊢ ownRaftGhost (GF := GF) γ id s ={⊤}=∗
       ownRaftGhost γ id (psendMsgs (pwinState id s mt)
                            ([pselfAck id (pwinState id s mt)] ++ ms)) := by
   intro Hrole Hq Hnw Hmt Hms
-  replace Hq := HC.isQuorum Hq
   obtain ⟨Hmid, Hmoth⟩ := Hmt
   have Hs2log : (pwinState id s mt).log = s.log ++ [pleaderEntry s] := rfl
   have Hs2out : (pwinState id s mt).outbox = s.outbox := rfl
@@ -486,19 +485,22 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
       · omega
       · rw [Hrole] at Hr; cases Hr
   imod ghost_map_insert_persist s.term (granted s.votes) Hwfree $$ Hwins with ⟨Hwins, #Hwf⟩
-  ihave #Hwin : isWin γ id s.term (granted s.votes) $$ []
-  · unfold isWin
-    iexists γw
-    isplitr
-    · ipureintro; exact ⟨Hwname, Hq⟩
-    isplitr
-    · iexact Hwf
-    · iexact Htally
+  rw [campOwn_cand γ id s _ Hrole]
+  -- the winner's record: its quorum, a joint quorum of its configuration, which is its
+  -- committed campaign prefix's (B4: the static one); then its winners-table entry
+  -- (2026-10-14, reconfiguration stage B4: election safety at win time, `win_register`)
+  ihave #Hcore : isWinCore γ id s.term c (granted s.votes) $$ []
+  · iunfold isCamp at Hcown
+    icases Hcown with ⟨%k, #Hk⟩
+    unfold isWinCore
+    iexists γw, (fp ++ s.log), k
+    iframe Hk Hwf Htally
+    ipureintro; exact ⟨Hwname, Hq, CfgAt.of_static _ HC⟩
+  imod win_register γ id s.term c (granted s.votes) $$ Hinv Hcore with #Hwin
   ihave #Hnewlead : isLeader γ id s.term $$ []
   · unfold isLeader; iexists _; iexact Hwin
   obtain ⟨Hwf, Hbc, Hcl⟩ := Hlog_ok
   obtain ⟨Hfp, Hwl, Htle⟩ := Hfull
-  rw [campOwn_cand γ id s _ Hrole]
   have HwF : PlogWf base0 (fp ++ s.log) := full_wf _ _ _ Hfp Hwl
   have Hfree : terms !! s.term = none := by
     cases Ht : terms !! s.term with
@@ -1117,7 +1119,6 @@ theorem ownRaftGhost_step_commit (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ 
     JQuorum c (ackedBy s n) →
     ⊢ ownRaftGhost (GF := GF) γ id s ={⊤}=∗ ownRaftGhost γ id { s with commit := n } := by
   intro Hrole Hlt Hle Htm Hq
-  replace Hq := HC.isQuorum Hq
   iintro Hown
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γv, %voted, %kl, H⟩
@@ -1130,6 +1131,10 @@ theorem ownRaftGhost_step_commit (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ 
   ihave ⟨#Hfr0, %Hfull0⟩ := lpfull_fp $$ Hpf
   ihave #Hmatched := ownLogGhost_matched $$ Hlg
   ihave #Hinv := ownLogGhost_inv $$ Hlg
+  -- the commit fact, at the leader's configuration with its configuration index (B4: the
+  -- commit index, whose prefix is committed; B5: the configuration index, `a ≤ commit`)
+  ihave ⟨%fpc, %Hfpc, #Hfrc, #Hcmtc⟩ := ownLogGhost_cmt γ id s kl $$ Hlg
+  ihave #Hcmt0 := cprefix_transfer γ fpc fp0 s Hfpc Hfull0.1 $$ Hfrc Hfr0 Hcmtc
   ihave #Hcq : cq γ s.term n (fp0 ++ s.log) $$ []
   · unfold cq
     isplitr
@@ -1138,9 +1143,12 @@ theorem ownRaftGhost_step_commit (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ 
       exact Htm
     isplitr
     · iexact Hfl
-    iexists ackedBy s n
+    iexists s.commit, c, ackedBy s n
     isplitr
-    · ipureintro; exact Hq
+    · ipureintro; exact ⟨Int.le_of_lt Hlt, CfgAt.of_static _ HC, Hq⟩
+    isplitr
+    · rw [show List.take (uint.Z s.commit).toNat (fp0 ++ s.log) = cprefix fp0 s from rfl]
+      iexact Hcmt0
     rw [matchedOk_leader γ s Hrole]
     iapply BigSepM.bigSepM_forall_elim
     iintro %v %u %Hv
@@ -2813,16 +2821,19 @@ prefix of the term's registry), then the requests up to a position `N` a quorum
 acknowledged confirmed: each of their records is not doomed (`rqRecOk_confirm`), so each
 confirmed request has its answer's facts. -/
 theorem rdOwn_ack (γ : RaftNames) (id : w64) (s : PState) (src q N : w64)
-    (recs0 : List RqRec) :
+    (recs0 : List RqRec) (P : List raftpb.Entry) (c : CfgM) :
     s.role = .leader →
-    QuorumAcked γ.reCfg
+    -- (2026-10-14, reconfiguration stage B4) a joint quorum of a recorded configuration, the
+    -- reader's (was `QuorumAcked γ.reCfg`)
+    CfgAt γ P c →
+    JQuorumAcked c
       (fun v => ((readonlyRecvAck s.rd.ro src (u64Le q)).acks !! v).getD (W64 0)) N →
     HbAckOk src (uint.nat q) recs0 →
     ⊢ rdOwn (GF := GF) γ id s -∗ rqLb γ id s.term recs0 -∗
       rdOwn γ id { s with rd := { s.rd with
         ro := (readonlyAdvance (readonlyRecvAck s.rd.ro src (u64Le q)) N).1 } } ∗
       [∗list] q' ∈ (readonlyAdvance (readonlyRecvAck s.rd.ro src (u64Le q)) N).2, respFacts γ q' := by
-  intro Hr HQ Hq0
+  intro Hr HcP HQ Hq0
   rw [readonlyRecvAck_eq] at HQ ⊢
   unfold rdOwn
   iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv⟩ #Hlb
@@ -2901,7 +2912,7 @@ theorem rdOwn_ack (γ : RaftNames) (id : w64) (s : PState) (src q N : w64)
       | some a =>
         simp only [Hx, Option.getD_some] at h
         exact HbAckOk_le v _ _ recs (uint_nat_le_of_Z_le h) (Hacks' v a Hx)
-    obtain ⟨v0, Hv0, -, -⟩ := quorums_intersect_cfg _ _ _ HQq HQq
+    obtain ⟨v0, Hv0⟩ := CfgAt.member HcP HQq
     have HNle : uint.nat N ≤ recs.length := (HQN v0 Hv0).1
     have Hk : uint.nat (N - s.rd.ro.confirmed) = uint.nat N - uint.nat s.rd.ro.confirmed := by
       have := uint_nat_eq N
@@ -2970,7 +2981,7 @@ theorem rdOwn_ack (γ : RaftNames) (id : w64) (s : PState) (src q N : w64)
         exact ⟨uint.nat s.rd.ro.confirmed + j, by rw [List.getElem?_take_of_lt HiN]; exact Hx.1⟩
       ihave #Hrr := BigSepL.bigSepL_lookup (Φ := fun _ r => rqRecOk (GF := GF) γ s.term r) Hx.1
         $$ Hrs
-      ihave #Hok := rqRecOk_confirm γ s.term r Q HQq
+      ihave #Hok := rqRecOk_confirm γ s.term r P c Q HcP HQq
         (fun v hv t' qq h => (HQN v hv).2 r Hmem t' qq h) $$ Hrr
       unfold respFacts
       iexists e', r.1.1
@@ -3053,7 +3064,6 @@ theorem ownRaftGhost_step_read_ack (γ : RaftNames) (c : CfgM) (HC : CfgStatic �
              ro := (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).1 } })
         (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).2) := by
   intro Hty Hto Hterm Hrole Hctx HQ
-  replace HQ := HC.quorumAcked HQ
   iintro #Hm Hown
   iunfold isMessage at Hm
   rw [Hty]
@@ -3070,7 +3080,9 @@ theorem ownRaftGhost_step_read_ack (γ : RaftNames) (c : CfgM) (HC : CfgStatic �
   · iintro %kl Hlg Hrd
     iframe Hlg
     imodintro
-    iapply rdOwn_ack γ id s m.src q N recs0 Hrole HQ Hack $$ Hrd Hlb
+    -- the reader's configuration (B4: the static one, of any prefix; B5: of the reader's
+    -- applied prefix, its configuration index)
+    iapply rdOwn_ack γ id s m.src q N recs0 [] c Hrole (CfgAt.of_static _ HC) HQ Hack $$ Hrd Hlb
   iapply ownRaftGhost_respondAll γ id _ _ $$ Hown Hresp
 
 theorem ownRaftGhost_step_read_state (γ : RaftNames) (id : w64) (s : PState) (m : Msg)

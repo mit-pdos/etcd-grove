@@ -741,7 +741,7 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
     cases h : camps !! (s.term + W64 1) with
     | none => rfl
     | some _ => have := Hcamps_ok _ (by rw [h]; rfl); omega
-  imod ghost_map_insert_persist (s.term + W64 1) (fp ++ s.log) Hcfree $$ Hcamps with ⟨Hcamps', #Hcf⟩
+  imod ghost_map_insert_persist (s.term + W64 1) (fp ++ s.log, s.commit) Hcfree $$ Hcamps with ⟨Hcamps', #Hcf⟩
   obtain ⟨k, Hk⟩ := Iris.Std.List.fresh vlogs.domList
   have Hkfree : vlogs !! k = none := by
     cases h : vlogs !! k with
@@ -750,14 +750,17 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
   imod ghost_map_insert_persist k ((s.term + W64 1, false), fp ++ s.log) Hkfree $$ Hvlogs
     with ⟨Hvl, #Hvf⟩
   ihave #Hcamp : isCamp (GF := GF) γ id (s.term + W64 1) (fp ++ s.log) $$ []
-  · unfold isCamp
-    iexists γc
+  · unfold isCamp isCampK
+    iexists s.commit, γc
     isplitr
     · ipureintro
-      refine ⟨Hcname, HwF, fun j x Hx => ?_⟩
-      have := (Htle j x Hx).1
-      omega
-    iexact Hcf
+      refine ⟨Hcname, ⟨HwF, fun j x Hx => ?_⟩, ?_⟩
+      · have := (Htle j x Hx).1
+        omega
+      · rw [full_last_index _ _ _ Hf]; exact Hlog_ok.2.2
+    iframe Hcf
+    rw [show List.take (uint.Z s.commit).toNat (fp ++ s.log) = cprefix fp s from rfl]
+    iexact Hcmt
   ihave #HrF := logRecs_full γ s.base fp s.log Hf $$ Hfrecs Hrecs
   imod ownEvs_vote γ id s.term (s.term + W64 1) acks false (fp ++ s.log) (by omega) $$ Hevs []
     with ⟨Hevs', #Hvev⟩
@@ -793,7 +796,7 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
     show uint.Z x ≤ uint.Z (s.term + W64 1) ∧
       (Role.candidate = Role.candidate → uint.Z x < uint.Z (s.term + W64 1))
     exact ⟨by omega, fun _ => by omega⟩
-  have Hcamps_ok' : ∀ T, ((<[s.term + W64 1 := fp ++ s.log]> camps) !! T).isSome →
+  have Hcamps_ok' : ∀ T, ((<[s.term + W64 1 := (fp ++ s.log, s.commit)]> camps) !! T).isSome →
       uint.Z T ≤ uint.Z (s.term + W64 1) := by
     intro T HT
     by_cases hT : T = s.term + W64 1
@@ -861,7 +864,7 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
   imodintro
   iexists k, fp ++ s.log
   isplitl
-  · iexists γm, terms, γa, acks, fp, γc, (<[s.term + W64 1 := fp ++ s.log]> camps), γl,
+  · iexists γm, terms, γa, acks, fp, γc, (<[s.term + W64 1 := (fp ++ s.log, s.commit)]> camps), γl,
       (<[k := ((s.term + W64 1, false), fp ++ s.log)]> vlogs), γw, wins
     rw [show (pbecomeCandidate id s).log = s.log from rfl,
       show (pbecomeCandidate id s).base = s.base from rfl,
@@ -1130,8 +1133,7 @@ theorem vote_excl (γ : RaftNames) (id : w64) (s : PState) (γv : GName)
   iintro Ha Hw
   by_cases H0 : s.vote = W64 0
   · by_cases Hin : id ∈ q
-    · iunfold isWin at Hw
-      icases Hw with ⟨%γw, -, -, #Hq⟩
+    · ihave #Hq := isWin_votes γ ldr s.term q $$ Hw
       ihave #Hf := BigSepM.bigSepM_lookup (Φ := fun v _ => isVote (GF := GF) γ v s.term ldr)
         ((GMap.elem_of_gset _ _).mp Hin) $$ Hq
       iunfold isVote at Hf

@@ -91,7 +91,7 @@ theorem tbl_voter (γ : RaftNames) (v T c t i : w64) :
   iapply ev_pair γ v t i T d Fv Ht $$ Hev Hvev
 
 /-- The induction hypothesis of `lc_core`, below the term `T`. -/
-private def LcIH (γ : RaftNames) (T : w64) : Prop :=
+def LcIH (γ : RaftNames) (T : w64) : Prop :=
   ∀ (T' t' n' : w64) (F' : List raftpb.Entry) (c' : w64) (F0' G' : List raftpb.Entry),
     uint.Z T' < uint.Z T → uint.Z t' < uint.Z T' →
     PlogWf base0 G' →
@@ -156,41 +156,36 @@ private theorem lc_agree (γ : RaftNames) (T t n : w64) (F : List raftpb.Entry)
       $$ HrX HrF with %Hm
     ipureintro; exact Hm j Hjn
 
-/-- The core of Leader Completeness, by strong induction on the term `T` of the leader
-(`k` bounds it). If a quorum acknowledged the leader of `t < T` up to `n`, where its log
-`F` has an entry of term `t`, then every full log `G` with records that reaches the last
-entry of the campaign log of `T`'s leader has term `t` at `n`.
+/-- The adjacent case of Leader Completeness (`lc_adj`, the paper's section 7; 2026-10-14,
+reconfiguration stage B4, split out of `lc_core`): given the induction hypothesis below `T` and
+a voter `v` in both the commit quorum `q` of `t < T` and the winning quorum `V` of `T`, every
+full log `G` with records that reaches the last entry of the campaign log of `T`'s leader has
+term `t` at `n`.
 
-The election quorum of `T` and the acknowledgement quorum of `t` meet in a voter `v`:
-its log `Fv` when it voted had `t` at `n` (its history of the acknowledgement, every
-log it mentions agreeing with `F` below `n` by the induction hypothesis), and the
-campaign log of `T` was at least as up to date. Same last term: `G` has that term down
-to `Fv`'s last index (`recs_chain`), so it matches `Fv` there and below. A later last
-term `tc`: `G` has `tc`'s campaign log's last entry (`recs_chain`), and the induction
-hypothesis at `tc` applies to `G` itself. -/
-theorem lc_core (γ : RaftNames) (k : Nat) :
-    ∀ (T t n : w64) (F : List raftpb.Entry) (c : w64) (F0 G : List raftpb.Entry),
-    uint.Z T < (k : Int) → uint.Z t < uint.Z T →
+`v`'s log `Fv` when it voted had `t` at `n` (its history of the acknowledgement, every log it
+mentions agreeing with `F` below `n` by the induction hypothesis), and the campaign log of `T`
+was at least as up to date. Same last term: `G` has that term down to `Fv`'s last index
+(`recs_chain`), so it matches `Fv` there and below. A later last term `tc`: `G` has `tc`'s
+campaign log's last entry (`recs_chain`), and the induction hypothesis at `tc` applies to `G`
+itself. The vote counted in the election (the `d` branch: a vote cast knowing the leader of `T`
+is not in its winning quorum) by election safety, the winners table's agreement. -/
+theorem lc_adj (γ : RaftNames) (T t n : w64) (F : List raftpb.Entry) (c : w64)
+    (F0 G : List raftpb.Entry) (q V : GSet w64) (IH : LcIH (GF := GF) γ T) :
+    uint.Z t < uint.Z T →
     PlogWf base0 G →
     plogTermAt base0 G (W64 (plogLastIndexZ base0 F0))
       = some (plogLast base0 F0).term' →
-    ⊢ votesTbl (GF := GF) γ -∗ cq γ t n F -∗ isLeader γ c T -∗ isCamp γ c T F0 -∗
+    (∃ v, v ∈ q ∧ v ∈ V) →
+    ⊢ votesTbl (GF := GF) γ -∗ cq γ t n F -∗
+      ([∗map] v ↦ _u ∈ toMap q, ∃ i', ⌜uint.Z n ≤ uint.Z i'⌝ ∗ isAcked γ v t i') -∗
+      isWin γ c T V -∗ isCamp γ c T F0 -∗
       logRecs γ base0 G -∗ ⌜plogTermAt base0 G n = some t⌝ := by
-  induction k with
-  | zero =>
-    intro T t n F c F0 G HTk
-    have := uint_Z_nonneg T
-    omega
-  | succ k IH0 =>
-  intro T t n F c F0 G HTk HtT HwG HGl
-  -- the induction hypothesis, for every term below `T`
-  have IH : LcIH (GF := GF) γ T := fun T' t' n' F' c' F0' G' h1 h2 h3 h4 =>
-    IH0 T' t' n' F' c' F0' G' (by omega) h2 h3 h4
-  iintro HS #Hcq #Hl #Hc #HrG
+  intro HtT HwG HGl Hmeet
+  iintro HS #Hcq #Hacks #Hwin #Hc #HrG
   icases cq_full γ t n F $$ Hcq with ⟨%HwF, #HrF⟩
   ihave #Hcq' := Hcq
   ieval (unfold cq) at Hcq'
-  icases Hcq' with ⟨%HFn, #HFl, %q, %Hq, #Hacks⟩
+  icases Hcq' with ⟨%HFn, #HFl, -⟩
   -- index 0
   by_cases Hn0 : uint.Z n = 0
   · have key : ∀ L : List raftpb.Entry, plogTermAt base0 L n = some base0.term' := by
@@ -198,15 +193,12 @@ theorem lc_core (γ : RaftNames) (k : Nat) :
     rw [key] at HFn
     ipureintro; rw [key]; exact HFn
   -- the voter in both quorums
-  ihave #Hl' := Hl
-  ieval (unfold isLeader isWin) at Hl'
-  icases Hl' with ⟨%V, %γwc, %HγV, #Hwfc, #Hvotes⟩
-  obtain ⟨Hγwc, HV⟩ := HγV
-  obtain ⟨v, Hvq, HvV, -⟩ := quorums_intersect_cfg _ _ _ Hq HV
+  obtain ⟨v, Hvq, HvV⟩ := Hmeet
   ihave Hackv0 := BigSepM.bigSepM_lookup
     (Φ := fun v _ => iprop(∃ i', ⌜uint.Z n ≤ uint.Z i'⌝ ∗ isAcked (GF := GF) γ v t i'))
     ((GMap.elem_of_gset _ _).mp Hvq) $$ Hacks
   icases Hackv0 with ⟨%iv, %Hiv, #Hackv⟩
+  ihave #Hvotes := isWin_votes γ c T V $$ Hwin
   ihave #Hvotev := BigSepM.bigSepM_lookup (Φ := fun v _ => isVote (GF := GF) γ v T c)
     ((GMap.elem_of_gset _ _).mp HvV) $$ Hvotes
   icases tbl_voter γ v T c t iv HtT (by have := uint_Z_nonneg n; omega) $$ HS Hvotev Hackv
@@ -221,20 +213,11 @@ theorem lc_core (γ : RaftNames) (k : Nat) :
     | true =>
       simp only [↓reduceIte]
       icases Hd with ⟨%ldr, %qd, #Hwd, %Hvq'⟩
-      ihave #HwV : isWin γ c T V $$ []
-      · unfold isWin
-        iexists γwc
-        isplitr
-        · ipureintro; exact ⟨Hγwc, HV⟩
-        isplitr
-        · iexact Hwfc
-        · iexact Hvotes
-      ihave #Hld : isLeader γ ldr T $$ []
-      · unfold isLeader; iexists qd; iexact Hwd
-      icases isLeader_unique γ ldr c T $$ Hld Hl with %Heq
-      subst Heq
-      icases isWin_agree γ ldr T qd V $$ Hwd HwV with %Heq
-      subst Heq
+      -- election safety: the winners table's entry of `T` (B5: for a winner not yet in
+      -- the table, `win_fresh`'s case "new winner older", this is where the existing
+      -- winner's `lc_core` comes in, the paper's repair 2)
+      icases isWin_tbl_agree γ ldr c T qd V $$ Hwd Hwin with %Heq
+      obtain ⟨rfl, rfl⟩ := Heq
       exact absurd HvV Hvq'
   icases isCamp_agree γ c T F0 Fc $$ Hc Hcv with %HF0
   subst HF0
@@ -327,6 +310,53 @@ theorem lc_core (γ : RaftNames) (k : Nat) :
       $$ HrG HrFv with %Hm
     ipureintro
     rw [Hm n Hnli]; exact HFvn
+
+
+/-- The core of Leader Completeness, by strong induction on the term `T` of the leader
+(`k` bounds it). If a quorum acknowledged the leader of `t < T` up to `n`, where its log
+`F` has an entry of term `t`, then every full log `G` with records that reaches the last
+entry of the campaign log of `T`'s leader has term `t` at `n`.
+
+Since 2026-10-14 (reconfiguration stage B4) structured as the paper's section 7: at `T`, the
+commit quorum is a joint quorum of the committer's configuration and the winning quorum one
+of the winner's (both recorded, `CfgAt`); when the two overlap, the adjacent case `lc_adj`
+(with the induction hypothesis below `T`). At B4 they always overlap (`CfgAt.overlap`, the
+static instance). B5 replaces that one step by the case split on the configuration indices:
+adjacent, `lc_adj`; far, `j_c ≥ j_m + 2` (the commit fact's at-most-one) or `j_c ≤ j_m - 2`
+(`lc_adj` at the commit fact's witness, then I1 at the campaign). -/
+theorem lc_core (γ : RaftNames) (k : Nat) :
+    ∀ (T t n : w64) (F : List raftpb.Entry) (c : w64) (F0 G : List raftpb.Entry),
+    uint.Z T < (k : Int) → uint.Z t < uint.Z T →
+    PlogWf base0 G →
+    plogTermAt base0 G (W64 (plogLastIndexZ base0 F0))
+      = some (plogLast base0 F0).term' →
+    ⊢ votesTbl (GF := GF) γ -∗ cq γ t n F -∗ isLeader γ c T -∗ isCamp γ c T F0 -∗
+      logRecs γ base0 G -∗ ⌜plogTermAt base0 G n = some t⌝ := by
+  induction k with
+  | zero =>
+    intro T t n F c F0 G HTk
+    have := uint_Z_nonneg T
+    omega
+  | succ k IH0 =>
+  intro T t n F c F0 G HTk HtT HwG HGl
+  -- the induction hypothesis, for every term below `T`
+  have IH : LcIH (GF := GF) γ T := fun T' t' n' F' c' F0' G' h1 h2 h3 h4 =>
+    IH0 T' t' n' F' c' F0' G' (by omega) h2 h3 h4
+  iintro HS #Hcq #Hl #Hc #HrG
+  -- the commit quorum and its configuration
+  ihave #Hcq' := Hcq
+  ieval (unfold cq) at Hcq'
+  icases Hcq' with ⟨-, -, %a, %cQ, %q, %Hq, -, #Hacks⟩
+  -- the winning quorum and its configuration
+  iunfold isLeader at Hl
+  icases Hl with ⟨%V, #Hwin⟩
+  icases isWin_core γ c T V $$ Hwin with ⟨%cW, #Hcore⟩
+  iunfold isWinCore at Hcore
+  icases Hcore with ⟨%γw, %F0w, %kw, %Hw, -⟩
+  -- B4: the two recorded configurations overlap (the static instance). B5: the case split
+  -- on their configuration indices (`notes/reconfiguration-safety.md`, section 7).
+  have Hmeet := CfgAt.overlap Hq.2.1 Hw.2.2 q V Hq.2.2 Hw.2.1
+  iapply lc_adj γ T t n F c F0 G q V IH HtT HwG HGl Hmeet $$ HS Hcq Hacks Hwin Hc HrG
 
 /-- Two commit facts agree below the earlier one's index: same term, the leader's logs
 agree; an earlier term, `lc_core` puts the earlier committed log's entry in the later
@@ -554,7 +584,7 @@ theorem commit_extend (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) (ldr 
       isCommitted γ (G.take (uint.Z n).toNat) := by
   iintro #Hinv #Hcq #Hldr #Hclb
   unfold raftCommitInv
-  iinv Hinv with ⟨%P, %R, >HP, >Hj, >Htbl, Hpo⟩ Hclose
+  iinv Hinv with ⟨%P, %R, >HP, >Hj, >Htbl, Hpo, Hwt⟩ Hclose
   imod propsOwn_open γ _ P R $$ Hpo with Hpo
   icases cq_full γ t n G $$ Hcq with ⟨%HwG, #HrG⟩
   ihave #Hcq' := Hcq
@@ -575,12 +605,12 @@ theorem commit_extend (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) (ldr 
     rw [Nat.zero_add]
     ihave #Hc := ownCommitted_lb γ _ $$ HP
     ihave Hpo := propsOwn_close γ _ R $$ Hpo
-    imod Hclose $$ [HP Htbl Hpo] with -
+    imod Hclose $$ [HP Htbl Hpo Hwt] with -
     · inext
       iexists _, R
       isplitl [HP]
       · iexact HP
-      isplitr [Htbl Hpo]
+      isplitr [Htbl Hpo Hwt]
       · iright
         iexists t, n, G, ldr
         iframe Hcq Hldr Hclb
@@ -605,12 +635,12 @@ theorem commit_extend (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) (ldr 
         by omega]
       ihave #Hc := ownCommitted_lb γ _ $$ HP
       ihave Hpo := propsOwn_close γ _ R $$ Hpo
-      imod Hclose $$ [HP Htbl Hpo] with -
+      imod Hclose $$ [HP Htbl Hpo Hwt] with -
       · inext
         iexists _, R
         isplitl [HP]
         · iexact HP
-        isplitr [Htbl Hpo]
+        isplitr [Htbl Hpo Hwt]
         · iright
           iexists t, n, G, ldr
           iframe Hcq Hldr Hclb
@@ -625,12 +655,12 @@ theorem commit_extend (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) (ldr 
         $$ HrG0 HrG with %Htk
       ihave #Hc0 := ownCommitted_lb γ _ $$ HP
       ihave Hpo := propsOwn_close γ _ R $$ Hpo
-      imod Hclose $$ [HP Htbl Hpo] with -
+      imod Hclose $$ [HP Htbl Hpo Hwt] with -
       · inext
         iexists _, R
         isplitl [HP]
         · iexact HP
-        isplitr [Htbl Hpo]
+        isplitr [Htbl Hpo Hwt]
         · iright
           iexists t0, n0, G0, ldr0
           iframe Hcq0 Hldr0 Hclb0
@@ -658,6 +688,109 @@ theorem vote_insert (γ : RaftNames) (id : w64) (γv : GName) (voted : GMap w64 
   isplitl [Ha]
   · iexact Ha
   · iexact Hf
+
+
+/-! ### The winners table (2026-10-14, reconfiguration stage B4)
+
+A candidate that wins `T` adds its entry to the winners table (`winTbl`, in `raftCommitInv`)
+only after showing that every entry of `T` already there is its own: election safety is proved
+at win time (the paper's `win_fresh`, section 5), and `isLeader_unique` is the table's
+agreement. The table and the new winner's quorums meet in a voter (`win_fresh`), who voted
+once in `T` (`isVote_agree`), so the entry's winner is the new one, whose quorum is frozen in
+its `reWins` map. -/
+
+/-- The new winner's quorum meets the quorum of any entry of its term (the static instance:
+the two recorded configurations overlap, `CfgAt.overlap`). B5: by cases on the two
+configuration indices -- adjacent, `fold_adjacent`; far, a contradiction through `lc_adj` at a
+witness of the campaign record and I1 at a campaign, which for an older new winner needs the
+existing winner's `lc_core` (the paper's repair 2). -/
+theorem win_fresh (γ : RaftNames) (id T : w64) (c : CfgM) (V : GSet w64) :
+    ⊢ isWinCore (GF := GF) γ id T c V -∗
+      ∀ (id' : w64) (c' : CfgM) (q' : GSet w64),
+        isWinCore γ id' T c' q' -∗ ⌜∃ v, v ∈ V ∧ v ∈ q'⌝ := by
+  iintro #H %id' %c' %q' #H'
+  iunfold isWinCore at H H'
+  icases H with ⟨%γw, %F0, %k, %Hw, -⟩
+  icases H' with ⟨%γw', %F0', %k', %Hw', -⟩
+  ipureintro
+  exact CfgAt.overlap Hw.2.2 Hw'.2.2 V q' Hw.2.1 Hw'.2.1
+
+/-- Adding a winner to the table, given that its quorum meets that of any entry of its term
+(`win_fresh`): an existing entry of the term is the same winner with the same quorum. -/
+theorem winTbl_insert (γ : RaftNames) (id T : w64) (c : CfgM) (V : GSet w64) :
+    ⊢ winTbl (GF := GF) γ -∗ isWinCore γ id T c V -∗
+      (∀ (id' : w64) (c' : CfgM) (q' : GSet w64),
+        isWinCore γ id' T c' q' -∗ ⌜∃ v, v ∈ V ∧ v ∈ q'⌝) ==∗
+      winTbl γ ∗ isWin γ id T V := by
+  iintro Ht #Hw Hmeet
+  unfold winTbl
+  icases Ht with ⟨%W, Ha, #Hrecs⟩
+  cases HT : W !! T with
+  | none =>
+    imod ghost_map_insert_persist T (((id, c), V) : WinRec) HT $$ Ha with ⟨Ha, #Hf⟩
+    imodintro
+    isplitl [Ha]
+    · iexists (<[T := ((id, c), V)]> W)
+      iframe Ha
+      iapply (BigSepM.bigSepM_insert (Φ := fun T (r : WinRec) =>
+        iprop(isWinCore (GF := GF) γ r.1.1 T r.1.2 r.2 ∗ T ↪[γ.reTbl]□ r)) HT).2
+      iframe Hw Hrecs Hf
+    · unfold isWin
+      iexists c
+      iframe Hw Hf
+  | some r =>
+    obtain ⟨⟨id', c'⟩, q'⟩ := r
+    ihave ⟨#Hr, #Hf⟩ := BigSepM.bigSepM_lookup (Φ := fun T (r : WinRec) =>
+      iprop(isWinCore (GF := GF) γ r.1.1 T r.1.2 r.2 ∗ T ↪[γ.reTbl]□ r)) HT $$ Hrecs
+    icases Hmeet $$ %id' %c' %q' Hr with %Hv
+    obtain ⟨v, HvV, Hvq⟩ := Hv
+    -- the voter voted once in `T`: the entry's winner is `id`
+    ihave #Hvotes : iprop([∗map] v ↦ _u ∈ toMap V, isVote (GF := GF) γ v T id) $$ []
+    · iunfold isWinCore at Hw
+      icases Hw with ⟨%γw, %F0, %k, -, -, -, #Hv⟩
+      iexact Hv
+    ihave #Hvotes' : iprop([∗map] v ↦ _u ∈ toMap q', isVote (GF := GF) γ v T id') $$ []
+    · iunfold isWinCore at Hr
+      icases Hr with ⟨%γw, %F0, %k, -, -, -, #Hv⟩
+      iexact Hv
+    ihave #Hvs := BigSepM.bigSepM_lookup (Φ := fun v _ => isVote (GF := GF) γ v T id)
+      ((GMap.elem_of_gset _ _).mp HvV) $$ Hvotes
+    ihave #Hvs' := BigSepM.bigSepM_lookup (Φ := fun v _ => isVote (GF := GF) γ v T id')
+      ((GMap.elem_of_gset _ _).mp Hvq) $$ Hvotes'
+    icases isVote_agree γ v T id id' $$ Hvs Hvs' with %Hid
+    subst Hid
+    -- and its quorum is the one frozen in `id`'s `reWins`
+    ihave %Hq : ⌜V = q'⌝ $$ []
+    · iunfold isWinCore at Hw Hr
+      icases Hw with ⟨%γw, %F0, %k, %Hw1, -, #Hf1, -⟩
+      icases Hr with ⟨%γw', %F0', %k', %Hw2, -, #Hf2, -⟩
+      rw [Hw1.1] at Hw2
+      obtain ⟨Hw2, -⟩ := Hw2
+      cases Hw2
+      iapply ghostMapElem_agree $$ Hf1 Hf2
+    subst Hq
+    imodintro
+    isplitl [Ha]
+    · iexists W
+      iframe Ha Hrecs
+    · unfold isWin
+      iexists c'
+      iframe Hr Hf
+
+/-- `Step.win` on the winners table: inside the commit invariant. -/
+theorem win_register (γ : RaftNames) (id T : w64) (c : CfgM) (V : GSet w64) :
+    ⊢ raftCommitInv (GF := GF) γ -∗ isWinCore γ id T c V ={⊤}=∗ isWin γ id T V := by
+  iintro #Hinv #Hw
+  unfold raftCommitInv
+  iinv Hinv with ⟨%P, %R, HP, Hjust, Htbl, Hpo, >Hwt⟩ Hclose
+  imod winTbl_insert γ id T c V $$ Hwt Hw [] with ⟨Hwt, #Hwin⟩
+  · iapply win_fresh $$ Hw
+  imod Hclose $$ [HP Hjust Htbl Hpo Hwt] with -
+  · inext
+    iexists P, R
+    iframe
+  imodintro
+  iexact Hwin
 
 end ghost
 
