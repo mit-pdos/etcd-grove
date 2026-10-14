@@ -24,8 +24,7 @@ module system").
 Code-level verification of arbitrary configuration changes against the `confchange` model, no
 protocol claim: the ghost link stays at fixed voters (`raft.Step`, `ownRawNode γ`, `γ.reCfg`
 unchanged). Trust base: no new axiom, no new `sorry` (`etc/tcb-report.py --check`: 75 axioms,
-10 sorries; `raft.txt` 6/0 and `register.txt` 4/9 unchanged). Commits `0ba20404b` ..
-(this section's).
+10 sorries; `raft.txt` 6/0 and `register.txt` 4/9 unchanged). Commits `0ba20404b` to `3da239183`.
 
 - **`ownRaftPhysCV c V r id s`** (`InvRaftPhys.lean`): A1's body at `ownTrackerC c` with
   `Hvoter`'s set `V` a parameter, sealed; **`ownRaftPhysC c` is an `abbrev`** for it at
@@ -48,8 +47,7 @@ unchanged). Trust base: no new axiom, no new `sorry` (`etc/tcb-report.py --check
 - **34 raft functions on `ownRaftPhysC`**, each `<fn>.spec` now at `c : CfgM`, the old statement
   `<fn>.specS` derived by `<fn>.spec_simple` (callers on `ownRaftPhys` switched by one line;
   `raft.Step.Postulates` holds the `specS` of `send`, `hup`, `becomeFollower`, `stepCandidate`,
-  `stepFollower`): `send`, `abortLeaderTransfer`, `resetRandomizedElectionTimeout`,
-  `increaseUncommittedSize`, `committedEntryInCurrentTerm`, `maybeSendSnapshot`,
+  `stepFollower`): `send`, `increaseUncommittedSize`, `committedEntryInCurrentTerm`, `maybeSendSnapshot`,
   `sendHeartbeat`, `sendTimeoutNow`, `appendEntry`, `responseToReadIndexReq`,
   `handleAppendEntries`, `handleHeartbeat`, `maybeSendAppend`, `sendAppend`, `bcastAppend`,
   `bcastHeartbeatWithCtx`, `bcastHeartbeat`, `releasePendingReadIndexMessages`,
