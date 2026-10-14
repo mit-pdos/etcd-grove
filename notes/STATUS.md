@@ -19,6 +19,31 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
 
+## Unit D (porcupine): the generic driver `examples/lintest` (2026-10-14, branch `worktree-agent-ac7993c0361a09294`)
+
+`Proof/github_com/mit_pdos/etcd_grove/examples/lintest/`, namespace `Perennial.EtcdGrove.lintest`:
+
+- `Run.wp_proof` (proved, from `runClient.spec`, porcupine's `CheckOperationsVerbose.spec` and
+  `sync.WaitGroup.{Add,Done,Wait}.spec`): for a model `isModel S m`, a library `apply`
+  logically atomic against `S.M` (`applySpec`, `<<{ ∀∀ s, libState s }>> … <<{ ∃∃ s' o, … }>>`,
+  Perennial's `AtomicFupd` notation), any `gen`, a monotone logically atomic `clock`
+  (`clockSpec`), `clients * ops < 2^60`, `0 ≤ ops`, `0 ≤ clients < 2^31`: `Run` returns
+  `r ≠ "Illegal"` and `r = "Ok"` if `timeout ≤ 0`.
+- The argument: a ghost log in `Run`'s invariant (`linInv`, `Defs.lean`: library state, clock
+  value, the linearized operations with the clock's value `τ` at their linearization point,
+  per-client records in a ghost map); `ClientSteps.lean` (a clock reading, a commit, each under
+  the invariant, with a later credit); `LinTheory.lean` (pure: the log as history indices
+  `c * ops + j` is a porcupine linearization); `RunLemmas.lean` (assembly, `HistOk`).
+- `runClient.wp_proof`, `CounterClock.wp_proof` (proved; `CounterClock` under
+  `receiptBound GF ≤ 2^63`: time receipts bound the `atomic.Int64` counter).
+- `MonotonicClock`: **not specified**. Its closure is `time.Since(base).Nanoseconds()`, and
+  Perennial's trusted model of `time.runtimeNano` is `ArbitraryInt` (fresh at every call;
+  `TrustedCode/time.lean`), with `runtimeIsBubbled` arbitrary too: in the model two readings
+  can decrease, so an axiom that it is a monotone clock would contradict the trusted model
+  (not only Perennial's opaque `time.Now`/`Since` specs). Needed first: a monotone model of
+  `runtimeNano` (and `runtimeIsBubbled` false outside `synctest`, `Now`'s result carrying a
+  monotonic reading), and `Duration.Nanoseconds` translated.
+
 ## Unit T1: Put and Get as persistent atomic updates linearized by raft (2026-10-14, branch `worktree-backend`; in progress)
 
 Design: `notes/decisions.md`, "Put and Get as persistent atomic updates linearized by raft". The
