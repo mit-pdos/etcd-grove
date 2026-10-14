@@ -5623,3 +5623,37 @@ Against the verified raft's names (`Protocol/GhostState.lean`, `InvNode.lean`):
   - for a configuration reduced to one voter, it rests on the reconfiguration invariants: the node
     applies the change that makes it the sole voter only once its commit index has passed that
     change.
+
+---
+
+## Porcupine: vendored, complete only, a model as closure specs, a driver over TaDa
+
+**2026-10-14 · proposed**
+
+- **Vendored, not forked** (`third_party/porcupine`, a local Goose project like the register):
+  upstream v1.3.1 (etcd's `tests/go.mod`), with the one rewrite Goose needs (a labeled `break`
+  out of a `select` becomes a `done` flag, `UPSTREAM.md`; upstream's tests pass on it). Its Go
+  module path is upstream's, so the translation's names are those etcd's tests import.
+  *Rejected:* a GitHub fork (an outward-facing step for a one-hunk change; the vendored copy can
+  move to one later, as etcd's `goose-lean` branch).
+- **Completeness only**: the specs say a linearizable history is never `Illegal` (and is `Ok`
+  without a timeout), not that `Ok` means linearizable. That is what "testing a linearizable
+  library never fails" needs, and it makes the search's argument a backtracking invariant
+  (`Theory.Inv`: the stack's configurations, a cursor past calls already tried, a cache of
+  configurations each on the stack or without completion) with no termination argument
+  (partial correctness).
+- **The model is specified by its closures** (`ModelSpec`: a deterministic `SeqModel` over
+  `(input, output)` interface values, a persistent `rep` of states, a persistent `ioOk` of an
+  operation's input and output): what porcupine calls is exactly `Init`, `Step`/`StepContext`,
+  `Equal`, `Hash`. `Equal` need only be sound (true ⇒ same state), `Hash` nothing: the cache is
+  sound for any hash. *Rejected:* a pure model with the closures as a trusted translation.
+- **Cancellation as a token**: `checkSingle` returns `true`, or the history is not linearizable,
+  or its context's Done proposition holds; `checkParallel` picks that proposition to be "this
+  thread called `cancel`", minted from a token it holds until then, so a `false` result before it
+  cancels refutes linearizability.
+- **The driver is generic** (`examples/lintest`): the library, the inputs and the clock are
+  closures with specs (`applySpec` logically atomic, `genSpec` with an input predicate `inOk`
+  that `apply` assumes, `clockSpec` logically atomic and monotone); the linearization order is a
+  ghost log of the linearization points with the clock value at each. `CounterClock` is proved;
+  `MonotonicClock` (etcd's `time.Since`) is not specifiable in Perennial's time model
+  (`STATUS.md`, "Porcupine").
