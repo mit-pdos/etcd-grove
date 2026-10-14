@@ -29,17 +29,20 @@ token's revision against the auth store's (`ErrAuthOldRevision`). Success: `get`
 failure: an error the gRPC layer can take, and `get` ran or not (`G ∨ Q`). -/
 abbrev EtcdServer.doSerialize.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (chk get : GoFunc) (G Q : IProp GF),
+    (cd : context.ContextDesc (IProp GF)) (chk get : GoFunc) (G Q : IProp GF) (t : Loc) (e : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ isServerRead s E γr ∗ mvcc.txnCtx ctx cd ∗
+      traceutil.ctxTraceIs ctx (some t) ∗
       (∀ (a : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac),
         {{ a ↦{dq} info }} (App (Val #chk) (Val #a))
         {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ applyErrIs err }}) ∗
-      {{ G }} (App (Val #get) (Val #())) {{ RET #(); Q }} ∗ G }}
+      {{ G ∗ traceutil.ownTrace t e }} (App (Val #get) (Val #())) {{ RET #(); Q }} ∗ G ∗
+      traceutil.ownTrace t e }}
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"doSerialize"))
       (Val #(GoInterface.ok ctx))) (Val #chk)) (Val #get))
   {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ Q) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ (G ∨ Q)) }}
+      (⌜err = GoInterface.nil⌝ ∗ Q) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+        ((G ∗ traceutil.ownTrace t e) ∨ Q)) }}
 
 end spec
 

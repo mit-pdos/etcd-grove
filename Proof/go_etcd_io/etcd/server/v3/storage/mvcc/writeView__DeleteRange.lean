@@ -43,27 +43,27 @@ theorem mvcc.writeView.DeleteRange.wp_proof
   · iPkgInit
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply hTODO as %t %Ht
+  wp_apply hTODO as %t ⟨%Ht, Htrc⟩
   (try wp_auto)
-  -- `wv.kv.Write(trace)`
-  wp_apply (hWrite s γ t P Pre Q f) $$ [$Hs $Hrd $Htok $Hwt $Hhook $Hpre $Htr] as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
+  -- `wv.kv.Write(t)`
+  wp_apply (hWrite s γ t P Pre Q f true) $$ [$Hs $Hrd $Htok $Hwt $Hhook $Hpre $Htr $Htrc] as %mw ⟨⟨%ilog, Htx⟩, HQ⟩
   · ipureintro; exact Ht
   (try wp_auto)
   -- `tw.DeleteRange(key, end)`
-  wp_apply (hDel mw s γ ilog [] (W64 0) (W64 0) (W64 0) key endk k e)
+  wp_apply (hDel t mw s γ ilog [] (W64 0) (W64 0) (W64 0) key endk k e)
     $$ [$Htx $Hkey $Hend] as %n %rev ⟨Htx, %Hnr⟩
   · ipureintro; simp only [List.length_nil, Nat.zero_add]; exact Hb ilog
   (try wp_auto)
   -- the deferred `tw.End()`
   rw [List.nil_append]
-  ihave Htx' : mvcc.isTxn mw s γ (.write ilog
+  ihave Htx' : mvcc.isTxn mw s γ t (.write ilog
       ((mvcc.delKeys ilog [] (decide (endk = slice.nil)) k e).map .del) (W64 0)
       (W64 0 + W64 1) (W64 0)) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
   ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ $$ Htx'
   -- the caller's update: the lock's invariant back for `Unlock`
   imod Hupd $$ HQ with ⟨HP, HPost⟩
-  wp_apply (hEnd mw s γ _) $$ [$Htx' Hhook HP] as ⟨Hrd, Hcert⟩
+  wp_apply (hEnd t mw s γ _) $$ [$Htx' Hhook HP] as ⟨Hrd, Hcert, -⟩
   (try wp_auto)
   · iapply mvcc.txnEndPre_write; iframe Hhook HP
   iapply HΦ

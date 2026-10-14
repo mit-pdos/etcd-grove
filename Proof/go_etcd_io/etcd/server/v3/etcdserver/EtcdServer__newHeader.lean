@@ -40,8 +40,8 @@ theorem EtcdServer.newHeader.wp_proof
     (hTerm : EtcdServer.Term.spec (GF := GF) (hG := hG))
     (hLead : EtcdServer.Leader.spec (GF := GF) (hG := hG)) :
     EtcdServer.newHeader.spec (GF := GF) (hG := hG) := by
-  intro s E γr cl mid
-  wp_start as ⟨#Hrd, #Hcl, #Hmid, #Hlead, Hsr⟩
+  intro s E γr cl mid cid
+  wp_start as ⟨#Hrd, #Hcl, #Hcid, #Hmid, #Hlead, Hsr⟩
   iunfold isServerRead at Hrd
   icases Hrd with ⟨%v, #Hf⟩
   iunfold srvReadFieldsAt at Hf
@@ -54,7 +54,8 @@ theorem EtcdServer.newHeader.wp_proof
   ihave #Hmv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
   wp_auto
-  wp_apply hID cl $$ [] as %cid -
+  wp_apply hID cl cid $$ []
+  · iframe #
   wp_apply hMID s mid $$ []
   · iframe #
   wp_apply hKV s v.kv $$ []
@@ -77,7 +78,7 @@ theorem EtcdServer.newHeader.wp_proof
   iexists _, log
   iframe Hh Hc
   ipureintro
-  exact ⟨Hl.2.2.1, rfl, Hl.2.2.2⟩
+  exact ⟨Hl.2.2.1, rfl, rfl, Hl.2.2.2⟩
 
 end proof
 

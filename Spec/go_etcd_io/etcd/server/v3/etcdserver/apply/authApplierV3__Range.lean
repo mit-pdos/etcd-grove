@@ -33,7 +33,8 @@ abbrev apply.authApplierV3.Range.spec : Prop :=
       apply.rangePre E (.auth c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) r rq o log }}
     (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"Range")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      apply.rangePost E (.auth c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) rq o log resp err }}
+      apply.rangePost E (.auth c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) rq o log resp err ∗
+      apply.traceRes trace }}
 
 end spec
 

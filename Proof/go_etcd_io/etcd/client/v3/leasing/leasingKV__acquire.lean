@@ -254,7 +254,7 @@ theorem leasingKV.acquire.wp_proof
   wp_apply HCommit $$ %_ %lo [$HB $Hlo] as %resp %err Hres
   · ipureintro; exact TxnModel.under_nil _
   iunfold txnCommitResultO at Hres
-  icases Hres with (⟨%Hne, %Hce⟩ | ⟨%Heq, Hok⟩)
+  icases Hres with (⟨%Hne, %Hce, #Hse⟩ | ⟨%Heq, Hok⟩)
   · -- an error: `errors.As`, then `status.FromError`
     obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
       cases err with
@@ -274,7 +274,7 @@ theorem leasingKV.acquire.wp_proof
     · wp_auto
       ihave #Hst : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status $$ []
       · iPkgInit
-      wp_apply hFE (GoInterface.ok e) $$ [$Hst] as %sv %okv #HCode
+      wp_apply hFE (GoInterface.ok e) $$ [$Hst $Hse] as %sv %okv ⟨-, #HCode, -⟩
       (try wp_auto)
       cases okv
       · wp_auto

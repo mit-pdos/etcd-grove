@@ -178,14 +178,14 @@ theorem txn.checkTxn_strong
     (t : TxnModel) (le : GoInterface) (γl : GName) (pl : GoSlice) (rest : List Bool)
     (Lv : List w64) (lu : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ ⌜trace ≠ null⌝ ∗
-      mvcc.isTxnRead mw s γ log rev ∗ txn.txnRequestIs rt t ∗
+      mvcc.isTxnRead mw s γ trace log rev ∗ txn.txnRequestIs rt t ∗
       txn.isTxnLessor le γl ∗ (⌜lu = false⌝ ∨ lease.lessorUser γl Lv) ∗
       pl ↦*□ (txn.txnPath (mvcc.stateAfter log) t ++ rest) ∗
       ⌜lu = false → txn.txnReadonly t = true⌝ }}
     (App (App (App (App (App (Val (@! txn.checkTxn)) (Val #trace))
       (Val #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface)))
       (Val #rt)) (Val #le)) (Val #pl))
-  {{ (n : w64) (err : GoInterface), RET (PairV #n #err); mvcc.isTxnRead mw s γ log rev ∗
+  {{ (n : w64) (err : GoInterface), RET (PairV #n #err); mvcc.isTxnRead mw s γ trace log rev ∗
       (⌜lu = false⌝ ∨ lease.lessorUser γl Lv) ∗
       ((⌜err = GoInterface.nil ∧ n = W64 (txn.nestedCount (mvcc.stateAfter log) t : Int) ∧
           txn.PathsIgnOk (mvcc.stateAfter log)
@@ -280,7 +280,7 @@ theorem txn.checkTxn_strong
     · -- a range
       subst Hopk
       wp_auto
-      wp_apply (hRange mw s γ log rev r o) $$ [$Htx $Hr] as %err ⟨Htx, #Herr⟩
+      wp_apply (hRange trace mw s γ log rev r o) $$ [$Htx $Hr] as %err ⟨Htx, #Herr⟩
       iunfold txn.checkRangeErr at Herr
       icases Herr with (%He | ⟨%Hne, %ef, #Hef, %He⟩ | ⟨%Hne, %ec, #Hec, %He⟩)
       · obtain ⟨rfl, -⟩ := He
@@ -331,12 +331,12 @@ theorem txn.checkTxn_strong
       icases Hu with (%Hlu' | Hu)
       · cases Hlu'
       wp_auto
-      ihave Htx : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
+      ihave Htx : mvcc.isTxn mw s γ trace (.read log rev) $$ [Htx]
       · simp only [mvcc.isTxn]; iexact Htx
       wp_apply (hPut trace mw s γ (.read log rev) le γl r o Lv) $$ [$Htx $Hr $Hle $Hu]
         as %err ⟨Htx, Hu, Herr⟩
       · ipureintro; exact Htr
-      ihave Htx : mvcc.isTxnRead mw s γ log rev $$ [Htx]
+      ihave Htx : mvcc.isTxnRead mw s γ trace log rev $$ [Htx]
       · simp only [mvcc.isTxn]; iexact Htx
       rw [hks]
       icases Herr with (⟨⟨%He, %Hnp⟩, #Hlok⟩ | ⟨%Hne, #He⟩ | ⟨%Hne, #He⟩)

@@ -3316,6 +3316,59 @@ noncomputable def firstOpLease.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp.ty)))) (Pair (Var "operation") (Var "$value"))))))))))))))
 
+/-- isConnectedToQuorumSince reports whether the local member has been connected
+    to a quorum of the current cluster continuously since the given time.
+
+    go: util.go:28:6 -/
+noncomputable def isConnectedToQuorumSince.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "transport"
+  (Lam "since"
+  (Lam "self"
+  (Lam "members"
+  (App (Val exceptionDo)
+  (Let "members" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "members"))
+  (Let "self" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "self"))
+  (Let "since" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (Var "since"))
+  (Let "transport" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transporter.ty))) (Var "transport"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transporter.ty))) (Var "transport"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "since"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "self"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "members"))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve numConnectedSince []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")))))) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "members"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))]))) (Val #())) (Var "$a0")))
+  (App (App (Val (GoInstruction (FuncResolve quorum []))) (Val #())) (Var "$a0")))))))))))))))
+
+/-- go: util.go:46:6 -/
+noncomputable def quorum.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "num"
+  (App (Val exceptionDo)
+  (Let "num" (App (Val (GoInstruction (GoAlloc go.int))) (Var "num"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoOp GoDiv go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "num")) (Val #(W64 2)))) (Val #(W64 1))))))))
+
+/-- isConnectedSince checks whether the local member is connected to the
+    remote member since the given time.
+
+    go: util.go:52:6 -/
+noncomputable def isConnectedSince.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "transport"
+  (Lam "since"
+  (Lam "remote"
+  (App (Val exceptionDo)
+  (Let "remote" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "remote"))
+  (Let "since" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (Var "since"))
+  (Let "transport" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transporter.ty))) (Var "transport"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "remote"))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transporter.ty go!"ActiveSince"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transporter.ty))) (Var "transport"))) (Var "$a0")))
+  (Let "t" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"IsZero"))) (Var "t")) (Val #()))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "since"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Before"))) (Var "t")) (Var "$a0"))) (Val #false)))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "t") (Var "$r0"))))))))))))))
+
 /-- exceedsRequestLimit checks if the committed index is too far ahead of the applied index.
     LeaseRevoke requests are prioritized to ensure timely lease expiration,
     which helps mitigate pressure on the cluster.
@@ -3357,6 +3410,48 @@ noncomputable def isPriorityRequest.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (Var "r"))
   (App (Val doReturn)
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (Var "r")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty go!"LeaseRevoke"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (Var "r")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)))) (Val UntypedNil))))) (Val #false))))))
+
+/-- numConnectedSince counts how many members are connected to the local member
+    since the given time.
+
+    go: util.go:78:6 -/
+noncomputable def numConnectedSince.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "transport"
+  (Lam "since"
+  (Lam "self"
+  (Lam "members"
+  (App (Val exceptionDo)
+  (Let "members" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "members"))
+  (Let "self" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "self"))
+  (Let "since" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (Var "since"))
+  (Let "transport" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transporter.ty))) (Var "transport"))
+  (Let "$r0" (Val #(W64 0))
+  (Let "connectedNum" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "connectedNum")))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))))) (Var "members"))
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Val #())))
+  (App (App (Val (slice.forRange (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Var "m")))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "self")))) (Val #true) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transporter.ty))) (Var "transport"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "since"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Var "m"))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve isConnectedSince []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "connectedNum") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "connectedNum")) (Val #(W64 1)))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)))) (Pair (Var "m") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "connectedNum") (Var "$r0"))))))))))))))))
 
 /-- go: v3_server.go:106:22 -/
 noncomputable def EtcdServer.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -6393,8 +6488,12 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   firstOpKey_unfold : FuncUnfold firstOpKey [] firstOpKey.impl
   firstOpType_unfold : FuncUnfold firstOpType [] firstOpType.impl
   firstOpLease_unfold : FuncUnfold firstOpLease [] firstOpLease.impl
+  isConnectedToQuorumSince_unfold : FuncUnfold isConnectedToQuorumSince [] isConnectedToQuorumSince.impl
+  quorum_unfold : FuncUnfold quorum [] quorum.impl
+  isConnectedSince_unfold : FuncUnfold isConnectedSince [] isConnectedSince.impl
   exceedsRequestLimit_unfold : FuncUnfold exceedsRequestLimit [] exceedsRequestLimit.impl
   isPriorityRequest_unfold : FuncUnfold isPriorityRequest [] isPriorityRequest.impl
+  numConnectedSince_unfold : FuncUnfold numConnectedSince [] numConnectedSince.impl
   getRequestType_unfold : FuncUnfold getRequestType [] getRequestType.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
@@ -6483,8 +6582,12 @@ attribute [instance] Assumptions.serverVersionAdapter_instance
   Assumptions.firstOpKey_unfold
   Assumptions.firstOpType_unfold
   Assumptions.firstOpLease_unfold
+  Assumptions.isConnectedToQuorumSince_unfold
+  Assumptions.quorum_unfold
+  Assumptions.isConnectedSince_unfold
   Assumptions.exceedsRequestLimit_unfold
   Assumptions.isPriorityRequest_unfold
+  Assumptions.numConnectedSince_unfold
   Assumptions.getRequestType_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_semver_Assumption

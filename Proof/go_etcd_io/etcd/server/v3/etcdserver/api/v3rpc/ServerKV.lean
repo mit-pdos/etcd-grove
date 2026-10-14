@@ -88,10 +88,13 @@ theorem srvErrIs_of_applyErrIs (err : GoInterface) (hne : err ≠ GoInterface.ni
 /-- **What one call of the server's write path needs** (`EtcdServer.Put`/`DeleteRange`): the
 request's context (a `context.Context` value with Perennial's `isContext`), one id credit (for
 `reqIDGen.Next()`), a reader slot of `s.leadTimeMu` (`parseProposeCtxErr` read-locks it; given
-back with the answer). -/
+back with the answer). The context carries no trace (`traceutil.ctxTraceIs ci none`, unit P1b,
+2026-10-14: `EtcdServer.Range`/`Txn` take the context's trace, `EnsureTrace` makes theirs; a
+gRPC handler's context has no `TraceKey` value). -/
 def srvCall (s : Loc) (ρ : ReqNames) (ctx : GoInterface) : IProp GF :=
   iprop(∃ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)), ⌜ctx = GoInterface.ok ci⌝ ∗
-    context.isContext ci cd ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s)
+    context.isContext ci cd ∗ traceutil.ctxTraceIs ci none ∗ idCred ρ.ids 1 ∗
+    srvLeadTimeReader s)
 
 /-- **A successful `Put` of `o`** (`EtcdServer.Put`'s success, at the handler's level): the
 request with the server's header (`hm`) was dispatched by the apply thread at the KV state `x`
@@ -380,7 +383,7 @@ theorem kvPutOk_of_server (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
   simp only [srvKVAns]
   icases Hcall with ⟨Hcall, Hrc⟩
   iunfold srvCall at Hcall
-  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, Hcred, Hrd⟩
+  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, -, Hcred, Hrd⟩
   subst Hci
   wp_apply hPut s E ρ ci cd r o $$ [Hrd Hcred] as %resp %err ⟨Hrd, Hres⟩
   · iframe #; iframe Hrd Hcred
@@ -434,7 +437,7 @@ theorem kvDeleteOk_of_server (hDel : EtcdServer.DeleteRange.spec (GF := GF) (hG 
   simp only [srvKVAns]
   icases Hcall with ⟨Hcall, Hrc⟩
   iunfold srvCall at Hcall
-  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, Hcred, Hrd⟩
+  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, -, Hcred, Hrd⟩
   subst Hci
   wp_apply hDel s E ρ ci cd r o $$ [Hrd Hcred] as %resp %err ⟨Hrd, Hres⟩
   · iframe #; iframe Hrd Hcred
@@ -489,10 +492,13 @@ theorem kvRangeOk_of_server (hRange : EtcdServer.Range.spec (GF := GF) (hG := hG
   simp only [srvKVAns]
   icases Hcall with ⟨Hcall, Hrc⟩
   iunfold srvCall at Hcall
-  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, Hcred, Hlt⟩
+  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hct, Hcred, Hlt⟩
   subst Hci
-  wp_apply hRange s E ρ γr c ci cd r o $$ [Hrc] as %resp %err ⟨Hrc, Hres⟩
-  · iframe #; iframe Hrc; ipureintro; exact validSortTarget_of_rangeCheck o Hok.1
+  wp_apply hRange s E ρ γr c ci cd r o none false $$ [Hrc] as %resp %err ⟨Hrc, Hres⟩
+  · iframe #; iframe Hrc
+    isplitr
+    · simp only [traceutil.ownTraceOpt]; itrivial
+    ipureintro; exact validSortTarget_of_rangeCheck o Hok.1
   iapply HΦ
   iunfold kvAnswer
   icases Hres with (⟨%Herr, Hok'⟩ | ⟨%Hre, #HaE⟩)
@@ -544,17 +550,20 @@ theorem kvTxnOk_of_server (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
   simp only [srvKVAns] at Hin ⊢
   icases Hcall with ⟨Hcall, Hrc⟩
   iunfold srvCall at Hcall
-  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, Hcred, Hlt⟩
+  icases Hcall with ⟨%ci, %cd, %Hci, #Hctx, #Hct, Hcred, Hlt⟩
   subst Hci
   ihave #Hrt := txnReqIs_txnRequestIs r cs ts es ts' es' hts hes $$ Hr
   generalize ht : ({ cmps := cs, thenOps := ts', elseOps := es' } : TxnModel) = t at hm ⊢
   have hg := txnGetsOk_of_check _ _ _ _ _ Hck hm Hin
-  have hT := hTxn s E ρ γr c ci cd r t
+  have hT := hTxn s E ρ γr c ci cd r t none false
   cases hro : txn.txnReadonly t
   · -- a writing transaction: through raft, as `Put`
     simp only [hro, Bool.false_eq_true, ↓reduceIte] at hT
     wp_apply hT $$ [Hlt Hcred Hrc] as %resp %err ⟨Hlt, Hrc, Hres⟩
-    · iframe #; iframe Hlt Hcred Hrc; ipureintro; exact fun h => h.elim
+    · iframe #; iframe Hlt Hcred Hrc
+      isplitr
+      · simp only [traceutil.ownTraceOpt]; itrivial
+      ipureintro; exact fun h => h.elim
     iapply HΦ
     iunfold kvAnswer
     icases Hres with (⟨%Herr, Hok'⟩ | ⟨%Hre, #HaE, Hfail⟩)
@@ -604,7 +613,10 @@ theorem kvTxnOk_of_server (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
   · -- a read-only transaction: read locally
     simp only [hro, ↓reduceIte] at hT
     wp_apply hT $$ [Hlt Hcred Hrc] as %resp %err ⟨Hlt, Hrc, Hcred, Hres⟩
-    · iframe #; iframe Hlt Hcred Hrc; ipureintro; exact fun _ => hg hro
+    · iframe #; iframe Hlt Hcred Hrc
+      isplitr
+      · simp only [traceutil.ownTraceOpt]; itrivial
+      ipureintro; exact fun _ => hg hro
     iapply HΦ
     iunfold kvAnswer
     icases Hres with (⟨%Herr, Hok'⟩ | ⟨%Hne, #HaE⟩)
@@ -668,7 +680,9 @@ theorem kvGetOk_of_server (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
   iunfold isServerReq at Hsrv
   icases Hsrv with ⟨%v, #Hv⟩
   iunfold srvReqFieldsAt at Hv
-  icases Hv with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, #Hlead, #Hcl, -⟩
+  icases Hv with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, #Hlead, #Hcl, #Htr, #Hpeers, -⟩
+  iunfold srvPeersOk at Hpeers
+  icases Hpeers with ⟨#Hcid, -, -⟩
   iunfold isServerRead at Hsrd
   icases Hsrd with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAt at Hw
@@ -702,8 +716,10 @@ theorem kvGetOk_of_server (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
     isplitr
     · ipureintro; rfl
     iintro !> %Φ' - HΦ'
-    wp_apply hID v.cluster
-    iexact HΦ'
+    wp_apply hID v.cluster v.cid $$ []
+    · iframe #
+    iapply HΦ'
+    itrivial
   isplitr
   · iintro !> %Φ - HΦ
     wp_apply hMID s v.memberID $$ []

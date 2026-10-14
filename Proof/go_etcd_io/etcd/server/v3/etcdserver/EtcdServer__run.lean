@@ -255,7 +255,7 @@ theorem EtcdServer.run.wp_proof
   ihave #Hfv' := Hfv
   iunfold srvFieldsAt at Hfv'
   icases Hfv' with ⟨#Hlgf, %Hslgnn, #Hw, #Hwok, #Hua, #Happl, %HE, #Hhook, #Hlv, #Hlok, #Hfc, #Has,
-    #Hcl, #Hq, #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
+    #Hcl, #Hrc, #Hq, #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
   ihave #Hrf' := Hrf
   iunfold srvRunFieldsAt at Hrf'
   icases Hrf' with ⟨#Hecf, ⟨%γe, #Hecb⟩, #Hscf, #Hscb, #Hdcf, #Hcff, #Hcfs, #Hcpf, #Hcpok, #Hstf,

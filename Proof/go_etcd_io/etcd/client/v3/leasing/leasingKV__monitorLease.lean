@@ -235,7 +235,7 @@ theorem leasingKV.monitorLease.wp_proof
     simp only [↓reduceIte]
     icases H with ⟨HP, Hcons⟩
     iunfold rangeWatchElem at HP
-    icases HP with ⟨%rm, %c, %c', #Hevs, -, -, -, -, #Hok⟩
+    icases HP with ⟨%rm, %c, %c', #Hevs, -, -, -, -, #Hok, -⟩
     iunfold eventsAt at Hevs
     icases Hevs with ⟨%ls, #Hls, %Hlen, #Hev⟩
     wp_auto
@@ -382,7 +382,7 @@ theorem leasingKV.monitorLease.wp_proof
     simp only [↓reduceIte]
     icases H with ⟨HP, Hcons⟩
     iunfold rangeWatchElem at HP
-    icases HP with ⟨%rm, %c, %c', #Hevs, -, -, -, -, #Hok⟩
+    icases HP with ⟨%rm, %c, %c', #Hevs, -, -, -, -, #Hok, -⟩
     iunfold eventsAt at Hevs
     icases Hevs with ⟨%ls, #Hls, %Hlen, #Hev⟩
     wp_auto

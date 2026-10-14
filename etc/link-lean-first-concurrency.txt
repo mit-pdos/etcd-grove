@@ -60,7 +60,10 @@ Session__Close: Session__Orphan
 OpGet: IsOptsWithPrefix IsOptsWithFromKey Op__applyOpts
 WithRev:
 WithSerializable:
-rpctypes_Error:
+status_FromError:
+rpctypes_ErrorDesc: status_FromError
+rpctypes_EtcdError__Error:
+rpctypes_Error: rpctypes_ErrorDesc status_FromError rpctypes_EtcdError__Error
 status_Error:
 WatchResponse__Err: rpctypes_Error status_Error
 ResponseOp__GetResponseRange:

@@ -21,17 +21,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `kv.Put(ctx, key, val, opts...)` on a `*kv` over a connection to `K`: `kv.Do` of
+/-- `kv.Put(ctx, key, val, opts...)` on a `*kv` over a connection to `addr`: `kv.Do` of
 `OpPut(key, val, opts...)` (options with transformers `gs` that do not make `OpPut` panic nor
 change the operation's type), the
 error through `ContextError`: `putCallOut` for the put the server reads (`putWireOf`). -/
 abbrev kv.Put.spec : Prop :=
-  ∀ (api : Loc) (K : KVConn GF) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (key val : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (Q : PutRespM → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api K ∗
+  ∀ (api : Loc) (addr : GoString) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (key val : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (Spec : GrpcSpec (GF := GF) pbPutRequest pbPutResponse)
+    (Q : PutRespM → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ kvObjAt api addr ∗
       context.isContext ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
       ⌜¬ (opPutModel key val gs).putPanics ∧ (opPutModel key val gs).t = W64 2⌝ ∗
-      putRunOk K (putWireOf (opPutModel key val gs)) Q }}
+      isGrpcRpc addr go!"/etcdserverpb.KV/Put" Spec ∗
+      □ ▷ Spec (putWireOf (opPutModel key val gs)) Q }}
     (App (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
         go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); putCallOut Q resp err }}

@@ -67,7 +67,8 @@ abbrev apply.Apply.spec : Prop :=
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
   {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗
-      (if v3 then iprop(Post ∨ Pre) else Pre) ∗ apply.resultErrOk ar ∗ ⌜id' = id⌝ ∗
+      (if v3 then iprop(Post ∨ Pre) else Pre) ∗ apply.resultErrOk ar ∗ apply.resTrace ar ∗
+      ⌜id' = id⌝ ∗
       ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), apply.applyKV E ua x' ∗
         ⌜apply.applyStep rq v3 x x' out⌝ ∗ apply.applyResultIs rq v3 x.log ar out ∗
         (⌜out.waived = false⌝ ∨ G ot id) }}

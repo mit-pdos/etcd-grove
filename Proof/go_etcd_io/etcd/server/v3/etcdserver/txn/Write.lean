@@ -230,11 +230,11 @@ theorem kvPtrIs_not_null (full : Bool) (p : Loc) (kv : EtcdKv) :
 tokens and certificate of `log₀`, beside a write transaction it opened with one more token. -/
 theorem storeTxnWriteIs_pinned (γ : mvcc.StoreNames) (log₀ ilog : Log) (pend : List Change)
     (tw s : Loc) (m : Nat) :
-    ownToks γ.revs m ∗ idxCert (GF := GF) γ.idx log₀ ∗ storeTxnWriteIs tw s γ ilog pend ⊢
+    ownToks γ.revs m ∗ idxCert (GF := GF) γ.idx log₀ ∗ storeTxnWriteIs tw s γ trace ilog pend ⊢
       ⌜Pinned log₀ m ilog⌝ := by
   iintro ⟨Hmine, #Hmycert, H⟩
   unfold storeTxnWriteIs
-  icases H with ⟨%trace, %ti, %bt, %Locked, %chs, %ps, %ntok, H⟩
+  icases H with ⟨%ti, %bt, %Locked, %chs, %ps, %ntok, H⟩
   iNamed H
   unfold revToken
   icombine Hmine Htok as Hall
@@ -247,23 +247,23 @@ theorem storeTxnWriteIs_pinned (γ : mvcc.StoreNames) (log₀ ilog : Log) (pend 
 theorem isTxnWrite_pinned (γ : mvcc.StoreNames) (log₀ ilog : Log) (pend : List Change) (mw s : Loc)
     (puts deletes putSize : w64) (m : Nat) :
     ownToks γ.revs m ∗ idxCert (GF := GF) γ.idx log₀ ∗
-        isTxnWrite mw s γ ilog pend puts deletes putSize ⊢
+        isTxnWrite mw s γ trace ilog pend puts deletes putSize ⊢
       ⌜Pinned log₀ m ilog⌝ ∗
-        (ownToks γ.revs m ∗ idxCert γ.idx log₀ ∗ isTxnWrite mw s γ ilog pend puts deletes putSize) := by
+        (ownToks γ.revs m ∗ idxCert γ.idx log₀ ∗ isTxnWrite mw s γ trace ilog pend puts deletes putSize) := by
   refine persistent_entails_right ?_
   iintro ⟨Hmine, #Hc, H⟩
   unfold isTxnWrite
-  icases H with ⟨%tw, %ranges, -, Htw⟩
+  icases H with ⟨%tw, %ranges, -, Htw, -⟩
   iapply storeTxnWriteIs_pinned γ log₀ ilog pend tw s m $$ [$Hmine $Hc $Htw]
 
 /-- A write transaction's committed log is not empty and leaves room for its revision. -/
 theorem isTxnWrite_facts (mw s : Loc) (γ : mvcc.StoreNames) (ilog : Log) (pend : List Change)
     (puts deletes putSize : w64) :
-    isTxnWrite (GF := GF) mw s γ ilog pend puts deletes putSize ⊢
-      ⌜ilog ≠ [] ∧ ilog.length + 1 < 2 ^ 63⌝ ∗ isTxnWrite mw s γ ilog pend puts deletes putSize := by
+    isTxnWrite (GF := GF) mw s γ trace ilog pend puts deletes putSize ⊢
+      ⌜ilog ≠ [] ∧ ilog.length + 1 < 2 ^ 63⌝ ∗ isTxnWrite mw s γ trace ilog pend puts deletes putSize := by
   refine persistent_entails_right ?_
   unfold isTxnWrite storeTxnWriteIs
-  iintro ⟨%tw, %ranges, -, %trace, %ti, %bt, %Locked, %chs, %ps, %ntok, H⟩
+  iintro ⟨%tw, %ranges, -, ⟨%ti, %bt, %Locked, %chs, %ps, %ntok, H⟩, -⟩
   iNamed H
   ihave %Hwf := idxWriter_wf γ.idx ilog pend $$ Hw
   ipureintro
@@ -272,13 +272,13 @@ theorem isTxnWrite_facts (mw s : Loc) (γ : mvcc.StoreNames) (ilog : Log) (pend 
 /-- **What a transaction reads is well formed** (its certificate, or the index writer's
 `IdxWf`), with its revision in its log. -/
 theorem isTxn_kindOk (mw s : Loc) (γ : mvcc.StoreNames) (kind : TxnKind) :
-    isTxn (GF := GF) mw s γ kind ⊢ ⌜KindOk kind⌝ ∗ isTxn mw s γ kind := by
+    isTxn (GF := GF) mw s γ trace kind ⊢ ⌜KindOk kind⌝ ∗ isTxn mw s γ trace kind := by
   refine persistent_entails_right ?_
   cases kind with
   | read log rev =>
     simp only [isTxn, KindOk, TxnKind.readLog, TxnKind.readRev]
     unfold isTxnRead
-    iintro ⟨%trw, %tr, %trace, %ti, %rt, %ranges, H⟩
+    iintro ⟨%trw, %tr, %ti, %rt, %ranges, H⟩
     iNamed H
     iunfold storeTxnReadIs at Htr
     iNamed Htr
@@ -291,7 +291,7 @@ theorem isTxn_kindOk (mw s : Loc) (γ : mvcc.StoreNames) (kind : TxnKind) :
   | write ilog pend puts deletes putSize =>
     simp only [isTxn, KindOk, TxnKind.readLog, TxnKind.readRev]
     unfold isTxnWrite storeTxnWriteIs
-    iintro ⟨%tw, %ranges, -, %trace, %ti, %bt, %Locked, %chs, %ps, %ntok, H⟩
+    iintro ⟨%tw, %ranges, -, ⟨%ti, %bt, %Locked, %chs, %ps, %ntok, H⟩, -⟩
     iNamed H
     ihave %Hwf := idxWriter_wf γ.idx ilog pend $$ Hw
     ipureintro

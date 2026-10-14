@@ -29,13 +29,14 @@ theorem kv.Put.wp_proof
     (wp_Do : kv.Do.spec (GF := GF) (hG := hG))
     (wp_ContextError : ContextError.spec (GF := GF) (hG := hG)) :
     kv.Put.spec (GF := GF) (hG := hG) := by
-  intro api K ci cd key val sl gs Q
-  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, %Hnp, #Hrun⟩
+  intro api addr ci cd key val sl gs Spec Q
+  wp_start as ⟨#Hkv, #Hctx, #Hce, #Hopts, %Hnp, #Hrpc, #Hrun⟩
   obtain ⟨Hnp, Ht⟩ := Hnp
   wp_auto
   wp_apply wp_OpPut key val sl gs $$ [] as %opv #Hat
   · iframe #; ipureintro; exact Hnp
-  wp_apply wp_Do api K ci cd opv (opPutModel key val gs) Q (fun _ => iprop(True)) $$ []
+  wp_apply wp_Do api addr ci cd opv (opPutModel key val gs) Spec Q (fun _ _ => iprop(True))
+    (fun _ => iprop(True)) $$ []
     as %r %err Hout
   · iframe #
     unfold doRunOk
@@ -48,23 +49,25 @@ theorem kv.Put.wp_proof
       unfold doOut; rw [Ht]; simp only [show (W64 2 = W64 1) = False by decide, ↓reduceIte]
     rw [← Heq]; iexact Hout
   iunfold putCallOut at Hout'
-  icases Hout' with (⟨%Herr, #Hm⟩ | %Herr)
+  icases Hout' with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse⟩)
   · subst Herr
-    wp_apply wp_ContextError ci cd GoInterface.nil as %err' %Herr'
+    ihave #Hse0 := go_etcd_io.etcd.cache.v3.statusErrOk_nil (GF := GF)
+    wp_apply wp_ContextError ci cd GoInterface.nil $$ [$Hse0] as %err' ⟨%Herr', -⟩
     · iframe #; ipureintro; exact fun h => (h rfl).elim
     obtain ⟨H1, -⟩ := Herr'
     rw [H1 rfl]
     iapply HΦ
     unfold putCallOut
     ileft
-    iframe #
+    iframe
     ipureintro; rfl
   · obtain ⟨Hne, Hce', Hnull⟩ := Herr
-    wp_apply wp_ContextError ci cd err as %err' %Herr'
+    wp_apply wp_ContextError ci cd err $$ [$Hse] as %err' ⟨%Herr', #Hse'⟩
     · iframe #; ipureintro; exact fun _ => Hce'
     iapply HΦ
     unfold putCallOut
     iright
+    iframe #
     ipureintro
     exact ⟨(Herr'.2 Hne).1, (Herr'.2 Hne).2, Hnull⟩
 

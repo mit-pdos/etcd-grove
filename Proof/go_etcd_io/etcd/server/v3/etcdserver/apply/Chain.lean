@@ -47,6 +47,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvTxn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.TxnRun
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.RangeModel
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
 
 @[expose] public section
 
@@ -483,6 +484,16 @@ def resp0Methods : List GoString := [go!"AuthEnable", go!"AuthDisable"]
 
 /-! ## The triples of an applier value -/
 
+/-- **A trace a KV method returns** (unit P1b, 2026-10-14): `nil`, or owned (`ownTrace`).
+`dispatch` stores it in the result (`resTrace`), which the apply thread hands, through the wait,
+to the goroutine serving the request (`raftRequest` steps and logs it). -/
+def traceRes (t : Loc) : IProp GF :=
+  iprop(⌜t = null⌝ ∨ ∃ e : Bool, traceutil.ownTrace t e)
+
+theorem traceRes_null : ⊢ traceRes (GF := GF) null := by
+  unfold traceRes; iintro; ileft; ipureintro; rfl
+
+
 /-- **The method triples of the `applierV3` value `ai` of the chain `c`** in the environment
 `E` (each persistent: `dispatch` calls one per request). -/
 def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
@@ -492,23 +503,23 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
       {{ putPre E c (.ok ai) r rq o log Pre Q Post }}
         (App (Val #(methods ai.ty go!"Put" ai.v)) (Val #r))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-          kvPost E c (.ok ai) rq log (putAnswerIs log o resp err) Pre Post }}) ∗
+          kvPost E c (.ok ai) rq log (putAnswerIs log o resp err) Pre Post ∗ traceRes trace }}) ∗
     □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF),
       {{ deletePre E c (.ok ai) r rq o log Pre Q Post }}
         (App (Val #(methods ai.ty go!"DeleteRange" ai.v)) (Val #r))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-          kvPost E c (.ok ai) rq log (deleteAnswerIs log o resp err) Pre Post }}) ∗
+          kvPost E c (.ok ai) rq log (deleteAnswerIs log o resp err) Pre Post ∗ traceRes trace }}) ∗
     □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log),
       {{ rangePre E c (.ok ai) r rq o log }}
         (App (Val #(methods ai.ty go!"Range" ai.v)) (Val #r))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-          rangePost E c (.ok ai) rq o log resp err }}) ∗
+          rangePost E c (.ok ai) rq o log resp err ∗ traceRes trace }}) ∗
     □ (∀ (r : Loc) (skip : Bool) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log)
         (Pre Q Post : IProp GF),
       {{ txnPre E c (.ok ai) r rq t log Pre Q Post }}
         (App (App (Val #(methods ai.ty go!"Txn" ai.v)) (Val #r)) (Val #skip))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-          kvPost E c (.ok ai) rq log (txnAnswerIs log t skip resp err) Pre Post }}) ∗
+          kvPost E c (.ok ai) rq log (txnAnswerIs log t skip resp err) Pre Post ∗ traceRes trace }}) ∗
     □ (∀ (r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log) (Pre Q Post : IProp GF),
       {{ revokePre E c (.ok ai) r rq id log Pre Q Post }}
         (App (Val #(methods ai.ty go!"LeaseRevoke" ai.v)) (Val #r))

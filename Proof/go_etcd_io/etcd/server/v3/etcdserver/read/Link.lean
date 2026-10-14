@@ -10,6 +10,7 @@ module
 
 public import Proof.context.ErrDone
 public import Proof.context.WithTimeoutBackground
+public import Proof.context.WithValue
 public import Proof.errors.Is
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.NewRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Read__LinearizableReadLoop
@@ -22,9 +23,15 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.notifier__notify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.uint64ToBigEndianBytes
 public import Proof.strconv.FormatUint
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Get
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__AddField
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__IsEmpty
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__LogAllStepsIfLong
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__LogWithStepThreshold
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__Step
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__updateFieldIfExist
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.newTrace
 public import Proof.go_uber_org.zap.Duration
 public import Proof.go_uber_org.zap.Error
 public import Proof.go_uber_org.zap.Logger__Info
@@ -52,6 +59,22 @@ theorem errors.wp_Is :
     EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
   EtcdGrove.errors.Is.wp_proof
 
+theorem traceutil.wp_TODO :
+    EtcdGrove.traceutil.TODO.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.TODO.wp_proof
+
+theorem traceutil.wp_Get :
+    EtcdGrove.traceutil.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.Get.wp_proof traceutil.wp_TODO
+
+theorem traceutil.Trace.wp_IsEmpty :
+    EtcdGrove.traceutil.Trace.IsEmpty.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.Trace.IsEmpty.wp_proof
+
+theorem traceutil.wp_newTrace :
+    EtcdGrove.traceutil.newTrace.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.newTrace.wp_proof
+
 theorem zap.wp_Error :
     EtcdGrove.zap.Error.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Error.wp_proof
@@ -76,17 +99,25 @@ theorem traceutil.Trace.wp_Step :
     EtcdGrove.traceutil.Trace.Step.spec (GF := GF) (hG := hG) :=
   EtcdGrove.traceutil.Trace.Step.wp_proof
 
+theorem traceutil.Trace.wp_updateFieldIfExist :
+    EtcdGrove.traceutil.Trace.updateFieldIfExist.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.Trace.updateFieldIfExist.wp_proof
+
 theorem traceutil.Trace.wp_AddField :
     EtcdGrove.traceutil.Trace.AddField.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.traceutil.Trace.AddField.wp_proof
+  EtcdGrove.traceutil.Trace.AddField.wp_proof traceutil.Trace.wp_updateFieldIfExist
 
 theorem strconv.wp_FormatUint :
     EtcdGrove.strconv.FormatUint.spec (GF := GF) (hG := hG) :=
   EtcdGrove.strconv.FormatUint.wp_proof
 
+theorem traceutil.Trace.wp_LogWithStepThreshold :
+    EtcdGrove.traceutil.Trace.LogWithStepThreshold.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.Trace.LogWithStepThreshold.wp_proof
+
 theorem traceutil.Trace.wp_LogAllStepsIfLong :
     EtcdGrove.traceutil.Trace.LogAllStepsIfLong.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.traceutil.Trace.LogAllStepsIfLong.wp_proof
+  EtcdGrove.traceutil.Trace.LogAllStepsIfLong.wp_proof traceutil.Trace.wp_LogWithStepThreshold
 
 end links
 
@@ -107,6 +138,10 @@ theorem context.wp_WithTimeoutBackground :
     EtcdGrove.context.WithTimeoutBackground.spec (GF := GF) (hG := hG) :=
   EtcdGrove.context.WithTimeoutBackground.wp_proof
 
+theorem context.wp_WithValue :
+    EtcdGrove.context.WithValue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.context.WithValue.wp_proof
+
 theorem wp_newNotifier :
     EtcdGrove.read.newNotifier.spec (GF := GF) (hG := hG) :=
   EtcdGrove.read.newNotifier.wp_proof
@@ -121,7 +156,7 @@ theorem wp_NewRead :
 
 theorem traceutil.wp_EnsureTrace :
     EtcdGrove.traceutil.EnsureTrace.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.traceutil.EnsureTrace.wp_proof
+  EtcdGrove.traceutil.EnsureTrace.wp_proof traceutil.wp_Get traceutil.Trace.wp_IsEmpty traceutil.wp_newTrace context.wp_WithValue
 
 theorem wp_uint64ToBigEndianBytes :
     EtcdGrove.read.uint64ToBigEndianBytes.spec (GF := GF) (hG := hG) :=

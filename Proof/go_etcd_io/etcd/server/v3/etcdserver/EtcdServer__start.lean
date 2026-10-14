@@ -102,7 +102,15 @@ theorem EtcdServer.start.wp_proof
   icases Hfb' with ⟨%fv, #Hfv⟩
   ihave #Hfv' := Hfv
   iunfold srvFieldsBuilt at Hfv'
-  icases Hfv' with ⟨#Hlgf, %Hlgn, -, -, -, -, -, -, #Hfcf, -, #Hclf, -, -, #Hmidf, -, -, -, -, -⟩
+  icases Hfv' with ⟨#Hlgf, %Hlgn, -, -, -, -, -, -, #Hfcf, -, #Hclf, -, -, -, #Hmidf, -, -, -, -, -⟩
+  -- the cluster's id (the request path's view of the same `s.cluster`)
+  ihave #Hreqb' := Hreqb
+  icases Hreqb' with ⟨%vq0, #Hvq0⟩
+  iunfold srvReqBuilt at Hvq0
+  icases Hvq0 with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, #Hclq, -, #Hpq, -⟩
+  icombine Hclf Hclq gives %Hcleq
+  iunfold srvPeersOk at Hpq
+  icases Hpq with ⟨#Hcidq, -, -⟩
   wp_auto
   wp_apply hLg s fv.lg $$ [Hlr] as ⟨-, Hlr⟩
   · iframe #; iframe Hlr; ipureintro; exact Hlgn
@@ -261,7 +269,8 @@ theorem EtcdServer.start.wp_proof
     wp_apply hZS as %f1 -
     wp_apply hCl s fv.cluster $$ []
     · iframe #
-    wp_apply hRCID fv.cluster as %cid -
+    wp_apply hRCID fv.cluster vq0.cid $$ []
+    · rw [Hcleq]; iframe #
     wp_apply hIDS as %ids2 -
     wp_apply hZS as %f2 -
     wp_bind (App (Val #(methods (go.GoType.PointerType EtcdServer.ty) go!"ClusterVersion" #s))
@@ -314,7 +323,7 @@ theorem EtcdServer.start.wp_proof
       ihave #Hfv2 := Hfv
       iunfold srvFieldsBuilt at Hfv2
       icases Hfv2 with ⟨#F1, %F2, #F3, #F4, %F5, #F6, #F7, #F8, #F9, #F10, #F11, #F12, #F13, #F14,
-        #F15, #F16, #F17, #F18, #F19⟩
+        #F15, #F16, #F17, #F18, #F19, #F20⟩
       iunfold srvFieldsAt
       iframe #
       isplitr
@@ -382,7 +391,7 @@ theorem EtcdServer.start.wp_proof
   icases Hreqb with ⟨%vq, #Hvq⟩
   iunfold srvReqBuilt at Hvq
   icases Hvq with ⟨#Q1, #Q2, #Q3, #Q4, #Q5, #Q6, #Q7, #Q8, #Q9, #Q10, #Q11, #Q12, #Q13, #Q14,
-    #Q15, #Q16, #Q17, %Q18⟩
+    #Q15, #Q16, #Q17, #Q18, %Q19⟩
   ihave #Hreq : isServerReq s E { ρ with wait := γw } $$ []
   · iunfold isServerReq
     iexists { vq with w := w, done := dch }
@@ -403,7 +412,7 @@ theorem EtcdServer.start.wp_proof
     have hmint : srvMintInv (GF := GF) { ρ with wait := γw } = srvMintInv ρ := rfl
     rw [hmint]
     iframe #
-    ipureintro; exact Q18
+    ipureintro; exact Q19
   icases Hrdb with ⟨%vd, #Hvd⟩
   iunfold srvReadBuilt at Hvd
   icases Hvd with ⟨#R1, #R2, #R3, #R4, #R5, #R6, #R7, #R8, #R9, %R10, #R11, #R12, #R13, #R14, #R15⟩

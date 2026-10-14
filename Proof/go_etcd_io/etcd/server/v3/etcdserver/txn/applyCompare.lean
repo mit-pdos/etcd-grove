@@ -35,7 +35,7 @@ theorem txn.applyCompare.wp_proof
     (hRange : mvcc.metricsTxnWrite.Range.spec (GF := GF) (hG := hG))
     (hKV : txn.compareKV.spec (GF := GF) (hG := hG)) :
     txn.applyCompare.spec (GF := GF) (hG := hG) := by
-  intro mw s γ log rev c cm
+  intro trace mw s γ log rev c cm
   wp_start as ⟨Htx, #Hc⟩
   ihave #Hc2 := Hc
   iunfold txn.compareIs at Hc2
@@ -55,11 +55,11 @@ theorem txn.applyCompare.wp_proof
   have Hend := (txn.srvEnd_mkGte esl esl' e hnil Hgte)
   rw [← Hre] at Hend
   generalize (if e = [W8 0] then [] else e) = e' at Hend ⊢
-  ihave Htx : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
+  ihave Htx : mvcc.isTxn mw s γ trace (.read log rev) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
   ihave #Hctx : mvcc.rangeCtx true todoCtxVal txn.todoCd $$ []
   · simp only [mvcc.rangeCtx, ↓reduceIte]; ileft; iapply mvcc.doneNil_todo
-  wp_apply (hRange mw s γ (.read log rev) todoCtxVal txn.todoCd true ksl esl' cm.key e'
+  wp_apply (hRange trace mw s γ (.read log rev) todoCtxVal txn.todoCd true ksl esl' cm.key e'
       (zero_val go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions)) $$ [$Htx $Hctx $Hks $Hes']
     as %rr %err ⟨%Hrn, Htx, Hout⟩
   ihave ⟨%Hok, Htx⟩ := txn.isTxn_kindOk mw s γ _ $$ Htx
@@ -90,7 +90,7 @@ theorem txn.applyCompare.wp_proof
   rw [hH]
   simp only
   generalize (mvcc.stateAfter log).filter (fun v => inRange cm.key cm.rangeEnd v.key) = sel
-  ihave Htx : mvcc.isTxnRead mw s γ log rev $$ [Htx]
+  ihave Htx : mvcc.isTxnRead mw s γ trace log rev $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
   iStructNamedPrefix Hrr "Q"
   ihave #Hnil : (slice.nil ↦*□ ([] : List w8) : IProp GF) $$ []

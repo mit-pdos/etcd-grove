@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.context
 public import Perennial.Golang.Theory
 public import Code.google_golang_org.grpc.credentials
 
@@ -16,25 +17,6 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace google_golang_org.grpc.credentials
-
-namespace PerRPCCredentials
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.credentials.Assumptions]
-
-instance PerRPCCredentials_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.credentials.PerRPCCredentials :=
-  sorry -- axiomatized type
-
-instance PerRPCCredentials_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.credentials.PerRPCCredentials google_golang_org.grpc.credentials.PerRPCCredentials.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end PerRPCCredentials
 
 namespace CommonAuthInfo
 section def_

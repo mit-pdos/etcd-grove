@@ -49,8 +49,8 @@ theorem EtcdServer.doSerialize.wp_proof
     (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG)) :
     EtcdServer.doSerialize.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γr ctx cd chk get G Q
-  wp_start as ⟨#Hsrv, #Hrd, #Hctx, #Hchk, #Hget, HG⟩
+  intro s E ρ γr ctx cd chk get G Q t e
+  wp_start as ⟨#Hsrv, #Hrd, #Hctx, #Hct, #Hchk, #Hget, HG, Htrc⟩
   iunfold isServerReq at Hsrv
   icases Hsrv with ⟨%v, #Hv⟩
   iunfold srvReqFieldsAt at Hv
@@ -65,8 +65,8 @@ theorem EtcdServer.doSerialize.wp_proof
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   wp_auto
-  wp_apply hGet ctx cd $$ [] as %tr %Htr
-  · iframe #
+  wp_apply hGet ctx (some t) $$ [$Hct] as %tr ⟨%Htr, %Hteq⟩
+  subst tr
   wp_apply hAI s v.auth v.cca ctx cd $$ [] as %a %err ⟨Ha, #HaE⟩
   · iframe #
   cases err with
@@ -76,7 +76,7 @@ theorem EtcdServer.doSerialize.wp_proof
     iright
     isplitr
     · ipureintro; intro h; cases h
-    iframe HaE; ileft; iexact HG
+    iframe HaE; ileft; iframe HG Htrc
   | nil =>
     wp_auto
     wp_join iprop(∃ (a' : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac),
@@ -99,13 +99,14 @@ theorem EtcdServer.doSerialize.wp_proof
       iright
       isplitr
       · ipureintro; intro h; cases h
-      iframe HcE; ileft; iexact HG
+      iframe HcE; ileft; iframe HG Htrc
     | nil =>
       wp_auto
-      wp_apply hStep tr _ _ $$ []
-      · iframe #; ipureintro; exact Htr
+      wp_apply hStep t e _ slice.nil $$ [$Htrc] as Htrc
+      · iapply traceutil.ownFields_nil
       wp_bind (App (Val #get) (Val #()))
-      iapply Hget $$ HG
+      iapply Hget $$ [HG Htrc]
+      · iframe HG Htrc
       inext
       iintro HQ
       wp_auto

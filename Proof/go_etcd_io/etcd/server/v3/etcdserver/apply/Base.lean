@@ -31,6 +31,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Base
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Proof.go_etcd_io.etcd.server.v3.auth.Base
 public import Perennial.Proof.sync
 public import Perennial.Proof.time
 public import Perennial.Proof.context
@@ -286,15 +287,8 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.pkg.v3.wait
 
--- `server/v3/auth` (names only: the `AuthStore` interface, `AuthInfo`)
-namespace go_etcd_io.etcd.server.v3.auth
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.auth
+-- `server/v3/auth`: `server/v3/auth/Base.lean` (2026-10-14, unit P2: its request side is
+-- translated with bodies, and its facts are the error variables it returns)
 
 -- `api/v3alarm` (names only: `AlarmStore`)
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm
@@ -306,8 +300,20 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm
 
--- `api/membership` (names only: `RaftCluster`; 2026-10-13, the request path's unit 4c: the package
--- variable `ClusterVersionMetrics`, which the server's `start` sets, holds some `*GaugeVec`)
+-- `pkg/v3/notify` (moved from `BaseApply.lean`, 2026-10-14, unit P1b: `membership` imports it,
+-- for `RaftCluster`'s field types)
+namespace go_etcd_io.etcd.pkg.v3.notify
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.notify :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.notify :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.pkg.v3.notify
+
+-- `api/membership` (names only but `RaftCluster.ID`; 2026-10-13, the request path's unit 4c: the
+-- package variable `ClusterVersionMetrics`, which the server's `start` sets, holds some
+-- `*GaugeVec`)
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.membership
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership :=

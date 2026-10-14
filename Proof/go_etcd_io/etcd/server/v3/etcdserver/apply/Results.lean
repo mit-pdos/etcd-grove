@@ -209,7 +209,7 @@ theorem chain_put (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
           (App (Val #(methods ai.ty go!"Put" ai.v)) (Val #r))
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
             ∃ oc : Outcome, ⌜alarmPut ns cr o log oc⌝ ∗ putAnswerIs log o resp err oc ∗
-              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain ns cr) (.ok ai) ∗ (Post ∨ Pre) }}) := by
+              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain ns cr) (.ok ai) ∗ (Post ∨ Pre) ∗ traceRes trace }}) := by
   iintro #Hs
   iunfold applierSpec at Hs
   icases Hs with ⟨%ai, %Ha, #Ht⟩
@@ -229,12 +229,13 @@ theorem chain_put (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
     iframe Hm Hr
     ipureintro; exact Hk
   inext
-  iintro %resp %trace %err Hpost
+  iintro %resp %trace %err ⟨Hpost, Htr⟩
   iapply HΦ
   iunfold kvPost at Hpost
   icases Hpost with ⟨%oc, %Hst, HR⟩
   iexists oc
-  iframe HR
+  icases HR with ⟨H1, H2, H3, H4⟩
+  iframe H1 H2 H3 H4 Htr
   ipureintro
   exact chainStep_alarm_put ns cr rq o log oc Hk.2.1 Hk.1 Hst
 /-- **A delete through the uber-applier's chain** (`alarmChain ns cr`; `baseChain` at
@@ -248,7 +249,7 @@ theorem chain_deleteRange (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
           (App (Val #(methods ai.ty go!"DeleteRange" ai.v)) (Val #r))
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
             ∃ oc : Outcome, ⌜alarmDelete cr o log oc⌝ ∗ deleteAnswerIs log o resp err oc ∗
-              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain ns cr) (.ok ai) ∗ (Post ∨ Pre) }}) := by
+              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain ns cr) (.ok ai) ∗ (Post ∨ Pre) ∗ traceRes trace }}) := by
   iintro #Hs
   iunfold applierSpec at Hs
   icases Hs with ⟨%ai, %Ha, #Ht⟩
@@ -268,12 +269,13 @@ theorem chain_deleteRange (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
     iframe Hm Hr
     ipureintro; exact Hk
   inext
-  iintro %resp %trace %err Hpost
+  iintro %resp %trace %err ⟨Hpost, Htr⟩
   iapply HΦ
   iunfold kvPost at Hpost
   icases Hpost with ⟨%oc, %Hst, HR⟩
   iexists oc
-  iframe HR
+  icases HR with ⟨H1, H2, H3, H4⟩
+  iframe H1 H2 H3 H4 Htr
   ipureintro
   exact chainStep_alarm_delete ns cr rq o log oc Hk.2.1 Hk.1 Hst
 /-- **A range through the uber-applier's chain**: the outcome `alarmRange` (`rangeResult` at
@@ -286,7 +288,7 @@ theorem chain_range (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
           (App (Val #(methods ai.ty go!"Range" ai.v)) (Val #r))
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
             ∃ oc : Outcome, ⌜alarmRange cr log oc⌝ ∗ rangeOutcomeIs log o resp err oc ∗
-              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain ns cr) (.ok ai) }}) := by
+              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain ns cr) (.ok ai) ∗ traceRes trace }}) := by
   iintro #Hs
   iunfold applierSpec at Hs
   icases Hs with ⟨%ai, %Ha, #Ht⟩
@@ -306,12 +308,13 @@ theorem chain_range (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
     iframe Hm Hr
     ipureintro; exact Hk
   inext
-  iintro %resp %trace %err Hpost
+  iintro %resp %trace %err ⟨Hpost, Htr⟩
   iapply HΦ
   iunfold rangePost at Hpost
   icases Hpost with ⟨%oc, %Hst, HR⟩
   iexists oc
-  iframe HR
+  icases HR with ⟨H1, H2, H3⟩
+  iframe H1 H2 H3 Htr
   ipureintro
   exact chainStep_alarm_range ns cr rq log oc Hk.2.1 Hst
 
@@ -327,7 +330,7 @@ theorem chain_txn (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
           (App (App (Val #(methods ai.ty go!"Txn" ai.v)) (Val #r)) (Val #skip))
         {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
             ∃ oc : Outcome, ⌜alarmTxn ns cr t log oc⌝ ∗ txnAnswerIs log t skip resp err oc ∗
-              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain ns cr) (.ok ai) ∗ (Post ∨ Pre) }}) := by
+              kvOwn E (oc.logAfter log) ∗ chainRes (alarmChain ns cr) (.ok ai) ∗ (Post ∨ Pre) ∗ traceRes trace }}) := by
   iintro #Hs
   iunfold applierSpec at Hs
   icases Hs with ⟨%ai, %Ha, #Ht⟩
@@ -347,12 +350,13 @@ theorem chain_txn (E : AEnv GF) (ns cr : Bool) (a : GoInterface) :
     iframe Hm Hr
     ipureintro; exact Hk
   inext
-  iintro %resp %trace %err Hpost
+  iintro %resp %trace %err ⟨Hpost, Htr⟩
   iapply HΦ
   iunfold kvPost at Hpost
   icases Hpost with ⟨%oc, %Hst, HR⟩
   iexists oc
-  iframe HR
+  icases HR with ⟨H1, H2, H3, H4⟩
+  iframe H1 H2 H3 H4 Htr
   ipureintro
   exact chainStep_alarm_txn ns cr rq t log oc Hk.2.1 Hk.1 Hst
 

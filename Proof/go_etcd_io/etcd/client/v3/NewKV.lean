@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 theorem NewKV.wp_proof (wp_RetryKVClient : RetryKVClient.spec (GF := GF) (hG := hG)) :
     NewKV.spec (GF := GF) (hG := hG) := by
-  intro cl K
+  intro cl addr
   wp_start as #Hcl
   iunfold clientKVAt at Hcl
   icases Hcl with ⟨%Hne, %conn, %sl, #Hconn, #Hkc, #Hcopts, #Hok⟩

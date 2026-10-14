@@ -47,9 +47,9 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG))
     (hUnm : proto.Unmarshal.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnCommon.rangeKeys.spec (GF := GF) (hG := hG) := by
-  intro txc s trace ti rt dq m R γ kn log rev ctx cd todo key endk k e ro qm qc c Htrnn
+  intro txc s trace ti rt dq m R γ kn log rev ctx cd todo key endk k e ro qm qc c te Htrnn
   wp_start as ⟨#Hs, HsT, HtxcT, HtraceT, #Hrdr, HRr, %HsubT, Hkn, %Hklog, %HneT, %Hrv, #Hidx0, Hti0,
-    #Hctx, #Hkey, #Hend, Hcmp, Hcu, %Hc0⟩
+    #Hctx, #Hkey, #Hend, Hcmp, Hcu, %Hc0, Hown⟩
   iunfold mvcc.isStore at Hs
   icases Hs with ⟨%b, %ti', %lg, Hs⟩
   iNamed Hs
@@ -68,7 +68,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
     iapply HΦ
     isplitl []
     · ipureintro; intro _; exact Hrnn
-    iframe Hti0 HsT HtxcT HtraceT HRr Hkn Hcmp Hcu
+    iframe Hti0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
     iunfold mvcc.rangeOutcomeC
     iright
     isplitl []
@@ -116,7 +116,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
       iapply HΦ
       isplitl []
       · ipureintro; intro _; exact Hrnn
-      iframe Hti0 HsT HtxcT HtraceT HRr Hkn Hcmp Hcu
+      iframe Hti0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
       iunfold mvcc.rangeOutcomeC
       ileft
       isplitl []
@@ -135,8 +135,8 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
       · ipureintro; rw [Hklog]; exact ⟨⟨Hc0.1, hcle⟩, hR0, hRlt⟩
       rw [Hklog]
       (try wp_auto)
-      wp_apply (hStep trace _ _)
-      · ipureintro; exact Htrnn
+      wp_apply (hStep trace te _ slice.nil) $$ [Hown] as Hown
+      · iframe #; iframe Hown; iapply traceutil.ownFields_nil
       (try wp_auto)
       wp_alloc r as Hr
       ihave %Hrnn := typedPointsto_not_null _ _ _ $$ Hr
@@ -144,7 +144,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
       iapply HΦ
       isplitl []
       · ipureintro; intro _; exact Hrnn
-      iframe Hti0 HsT HtxcT HtraceT HRr Hkn Hcmp Hcu
+      iframe Hti0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
       iunfold mvcc.rangeOutcomeC
       iright
       isplitl []
@@ -172,8 +172,8 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
         rw [Hklog]
         rw [Hklog] at Htotal
         (try wp_auto)
-        wp_apply (hStep trace _ _)
-        · ipureintro; exact Htrnn
+        wp_apply (hStep trace te _ slice.nil) $$ [Hown] as Hown
+        · iframe #; iframe Hown; iapply traceutil.ownFields_nil
         (try wp_auto)
         generalize hT : mvcc.rangeTaken log (decide (endk = slice.nil)) k e
           (mvcc.rangeRev rev ro.Rev') ro.Limit' = taken at *
@@ -193,7 +193,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
           iapply HΦ
           isplitl []
           · ipureintro; intro _; exact Hrnn
-          iframe Hti0 HsT HtxcT HtraceT HRr Hkn Hcmp Hcu
+          iframe Hti0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
           iunfold mvcc.rangeOutcomeC
           iright
           isplitl []
@@ -346,7 +346,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
             (try wp_auto)
             (try simp only [named])
             iframe HΦ tr ro curRev Hend0 key ctx Hrevp Hti0 Hmodcap Hcrecap Hverscap keys modifies
-              creates versions total Hkcap Hzip Hkvscap kvs HsT HtxcT HtraceT HRr Hkn Hcmp Hcu
+              creates versions total Hkcap Hzip Hkvscap kvs HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
             iexists (i + 1), (ps ++ [«$r0_ptr»]), (W64 (i : Int))
             (try simp only [named])
             have hsucc : (W64 ((i + 1 : Nat) : Int)) = W64 (i : Int) + W64 1 := by
@@ -388,7 +388,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
             iapply HΦ
             isplitl []
             · ipureintro; intro _; exact Hrnn
-            iframe Hti0 HsT HtxcT HtraceT HRr Hkn Hcmp Hcu
+            iframe Hti0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
             iunfold mvcc.rangeOutcomeC
             iright
             isplitl []
@@ -424,8 +424,8 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
         rw [Hklog]
         rw [Hklog] at Htotal
         (try wp_auto)
-        wp_apply (hStep trace _ _)
-        · ipureintro; exact Htrnn
+        wp_apply (hStep trace te _ slice.nil) $$ [Hown] as Hown
+        · iframe #; iframe Hown; iapply traceutil.ownFields_nil
         (try wp_auto)
         generalize hT : mvcc.rangeTaken log (decide (endk = slice.nil)) k e
           (mvcc.rangeRev rev ro.Rev') ro.Limit' = taken at *
@@ -442,7 +442,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
           iapply HΦ
           isplitl []
           · ipureintro; intro _; exact Hrnn
-          iframe Hti0 HsT HtxcT HtraceT HRr Hkn Hcmp Hcu
+          iframe Hti0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
           iunfold mvcc.rangeOutcomeC
           iright
           isplitl []
@@ -582,12 +582,13 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                     txc.[storeTxnCommon, go!"trace"] ↦{dq} trace ∗
                     R ∗ mvcc.idxKnows γ.idx kn ∗ mvcc.idxReader ti γ.idx ∗
                     s.[store, go!"compactMainRev"] ↦{DFrac.own qm} (W64 c : w64) ∗
-                    mvcc.crevUB γ.idx qc c ∗
+                    mvcc.crevUB γ.idx qc c ∗ traceutil.ownTrace trace te ∗
                     mvcc.rangeOutcomeC r err log rev c (decide (endk = slice.nil)) k e ro -∗
                     Φ (PairV #r #err)) ∗
                   txc.[storeTxnCommon, go!"s"] ↦{dq} s ∗
                   txc.[storeTxnCommon, go!"tx"] ↦{dq} (GoInterface.ok rt : GoInterface) ∗
-                  txc.[storeTxnCommon, go!"trace"] ↦{dq} trace ∗ R ∗ mvcc.idxKnows γ.idx kn ∗
+                  txc.[storeTxnCommon, go!"trace"] ↦{dq} trace ∗ traceutil.ownTrace trace te ∗ R ∗
+                  mvcc.idxKnows γ.idx kn ∗
                   s.[store, go!"compactMainRev"] ↦{DFrac.own qm} (W64 c : w64) ∗
                   mvcc.crevUB γ.idx qc c ∗
                   tr_ptr ↦ txc ∗ ro_ptr ↦ ro ∗ curRev_ptr ↦ rev ∗ end_ptr ↦ endk ∗
@@ -601,7 +602,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                   [∗list] pa ∈ ps.zip (taken.take i), ∃ kv : EtcdKv,
                     ⌜mvcc.findKey pa.2.1 (mvcc.stateAt log (sint.nat (mvcc.rangeRev rev ro.Rev'))) =
                       some kv⌝ ∗ mvcc.kvPtrIs true pa.1 kv)
-                $$ [] [HΦ HsT HtxcT HtraceT HRr Hkn Hcmp Hcu tr ro curRev Hend0 key ctx Hti0 Hrevscap revpairs total Hkvscap kvs Hi Hgo
+                $$ [] [HΦ HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu tr ro curRev Hend0 key ctx Hti0 Hrevscap revpairs total Hkvscap kvs Hi Hgo
                   Hrp revBytes Hrb Hrbcap Hkvs Hps] []
             · cases todo
               case true =>
@@ -612,7 +613,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                   iapply chan.nilClausePre_recv Unit dch _ Hnil
                 -- a context never canceled: the case never fires (it would give `PDone`)
                 ileft
-                iintro ⟨HΦ, HsT, HtxcT, HtraceT, HRr, Hkn, Hcmp, Hcu, tr, ro, curRev, Hend0, key, ctx, Hti0,
+                iintro ⟨HΦ, HsT, HtxcT, HtraceT, Hown, HRr, Hkn, Hcmp, Hcu, tr, ro, curRev, Hend0, key, ctx, Hti0,
                   Hrevscap, revpairs, total, Hkvscap, kvs, Hi, Hgo, Hrp, revBytes, Hrb, Hrbcap, Hkvs,
                   Hps⟩
                 simp only [chan.nonblockingAltClausePre]
@@ -633,7 +634,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
               icases Hdone with ⟨%γd, #Hdone⟩
               ihave #Hctx2 := Hctx
               iNamed Hctx2
-              iintro ⟨HΦ, HsT, HtxcT, HtraceT, HRr, Hkn, Hcmp, Hcu, tr, ro, curRev, Hend0, key, ctx, Hti0, Hrevscap,
+              iintro ⟨HΦ, HsT, HtxcT, HtraceT, Hown, HRr, Hkn, Hcmp, Hcu, tr, ro, curRev, Hend0, key, ctx, Hti0, Hrevscap,
                 revpairs, total, Hkvscap,
                 kvs, Hi, Hgo, Hrp, revBytes, Hrb, Hrbcap, Hkvs, Hps⟩
               simp only [chan.nonblockingAltClausePre]
@@ -662,7 +663,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                 iapply HΦ
                 isplitl []
                 · ipureintro; intro h; cases h
-                iframe Hti0 HsT HtxcT HtraceT HRr Hkn Hcmp Hcu
+                iframe Hti0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
                 iunfold mvcc.rangeOutcomeC
                 iright
                 isplitl []
@@ -678,7 +679,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                 iexact He'
               · iframe
             · iframe
-            · iintro ⟨HΦ, HsT, HtxcT, HtraceT, HRr, Hkn, Hcmp, Hcu, tr, ro, curRev, Hend0, key, ctx, Hti0, Hrevscap,
+            · iintro ⟨HΦ, HsT, HtxcT, HtraceT, Hown, HRr, Hkn, Hcmp, Hcu, tr, ro, curRev, Hend0, key, ctx, Hti0, Hrevscap,
                 revpairs, total, Hkvscap,
                 kvs, Hi, Hgo, Hrp, revBytes, Hrb, Hrbcap, Hkvs, Hps⟩ -
               (try wp_auto)
@@ -751,7 +752,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
               (try wp_auto)
               (try simp only [named])
               iframe HΦ tr ro curRev Hend0 key ctx Hti0 Hrevscap revpairs total Hkvscap kvs
-                HsT HtxcT HtraceT HRr Hkn Hcmp Hcu
+                HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
               iexists (i + 1), (ps ++ [«$r0_ptr»]), (W64 (i : Int)), (mvcc.revVal a.2.1), rb',
                 (mvcc.revBytes a.2.1 false)
               (try simp only [named])
@@ -789,8 +790,8 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
             subst hin
             rw [Nat.sub_self, List.replicate_zero, List.append_nil]
             (try wp_auto)
-            wp_apply (hStep trace _ _)
-            · ipureintro; exact Htrnn
+            wp_apply (hStep trace te _ slice.nil) $$ [Hown] as Hown
+            · iframe #; iframe Hown; iapply traceutil.ownFields_nil
             (try wp_auto)
             wp_alloc r as Hr
             ihave %Hrnn := typedPointsto_not_null _ _ _ $$ Hr
@@ -799,7 +800,7 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
             iapply HΦ
             isplitl []
             · ipureintro; intro _; exact Hrnn
-            iframe Hti0 HsT HtxcT HtraceT HRr Hkn Hcmp Hcu
+            iframe Hti0 HsT HtxcT HtraceT Hown HRr Hkn Hcmp Hcu
             iunfold mvcc.rangeOutcomeC
             iright
             isplitl []

@@ -292,17 +292,17 @@ theorem mvcc_NewStore_backend (lg : Loc) (le : GoInterface)
 
 /-- **`store.Write` over the real backend, linked**. -/
 theorem mvcc_store_Write_backend (s : Loc) (γ : mvcc.StoreNames) (d : mvcc.KBReal)
-    (hk : γ.kb = some d) (trace : Loc) (P Pre Q : IProp GF) (f : val) :
+    (hk : γ.kb = some d) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
         mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗ backend.wbTok d.γB ∗
         ⌜trace ≠ null⌝ ∗ mvcc.hookIs γ P f ∗ Pre ∗
-        □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
+        □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗ traceutil.ownTrace trace te }}
       (App (Val (s @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.store.ty @!!
         go!"Write")) (Val #trace))
     {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite.ty) #mw);
-        (∃ ilog : mvcc.Log, mvcc.isTxnWrite mw s γ ilog [] (W64 0) (W64 0) (W64 0)) ∗ Q }} :=
-  mvcc.store_Write_backend mvcc.store.wp_Write s γ d hk trace P Pre Q f
+        (∃ ilog : mvcc.Log, mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0)) ∗ Q }} :=
+  mvcc.store_Write_backend mvcc.store.wp_Write s γ d hk trace P Pre Q f te
 
 end store
 

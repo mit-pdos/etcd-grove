@@ -27,11 +27,11 @@ key-values, `isTxnEnd`: `isTxn_toEnd`): the metrics updated, the wrapped transac
 committed log is certified (`txnEndPost`). A write transaction's `Unlock` takes the batch
 lock's invariant back (`txnEndPre`). -/
 abbrev mvcc.metricsTxnWrite.End.spec : Prop :=
-  ∀ (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isTxnEnd mw s γ kind ∗
+  ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isTxnEnd mw s γ trace kind ∗
       mvcc.txnEndPre γ kind }}
     (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"End")) (Val #()))
-  {{ RET #(); mvcc.storeReader s γ ∗ mvcc.txnEndPost γ kind }}
+  {{ RET #(); mvcc.storeReader s γ ∗ mvcc.txnEndPost γ kind ∗ (∃ te : Bool, traceutil.ownTrace trace te) }}
 
 end spec
 

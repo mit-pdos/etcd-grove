@@ -90,8 +90,9 @@ local macro "txn_defer" : tactic => `(tactic| (
   (try wp_auto)
   wp_apply hWarn
   (try wp_auto)
-  wp_apply hLong trc _ $$ []
-  · iframe #; ipureintro; exact Htrc
+  icases Hown with ⟨%teL, HownL⟩
+  wp_apply hLong trc teL _ $$ [HownL]
+  · iexact HownL
   (try wp_auto)
   wp_apply time.wp_Since as %_ -
   (try wp_auto)
@@ -143,7 +144,8 @@ local macro "txn_tail" : tactic => `(tactic| (
            (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
            (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2 ∗
          txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" respv)) ∨
-       mvcc.errorfIs errv))) $$ [resp err Hsr Hlr] as %serr Hds
+       mvcc.errorfIs errv) ∗ (∃ te, traceutil.ownTrace trc te)) trc false)
+      $$ [resp err Hsr Hlr Hown0] as %serr Hds
   · iframe #
     isplitr
     · iintro %a %info %dq !> %Φ' Ha HΦ'
@@ -153,7 +155,7 @@ local macro "txn_tail" : tactic => `(tactic| (
       iapply HΦ'
       iframe Ha HcE
     isplitr
-    · iintro !> %Φ' ⟨Hresp, Herr, Hsr, Hlr⟩ HΦ'
+    · iintro !> %Φ' ⟨⟨Hresp, Herr, Hsr, Hlr⟩, Hown0⟩ HΦ'
       wp_auto
       wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
       · iframe #; iframe Hlr; ipureintro; exact Hlgn
@@ -166,9 +168,12 @@ local macro "txn_tail" : tactic => `(tactic| (
       · iframe #
       (try wp_auto)
       imod ownToks_0 (GF := GF) E.γ.revs with Hnone
-      wp_apply (hTxn.2 ctx2 _ w.lg r en w.kv w.lessor false E.s E.γ 0 logR t) $$ [Hsr Hnone]
+      wp_apply (hTxn.2 ctx2 _ w.lg r en w.kv w.lessor false E.s E.γ 0 logR t (some trc) false)
+          $$ [Hsr Hnone Hown0]
         as %respv %trv %errv ⟨Hsr, -, %log, #Hcert, %Hlog, Hres⟩
       · iframe # Hsr Hnone
+        isplitl [Hown0]
+        · simp only [traceutil.ownTraceOpt]; iexact Hown0
         isplitr
         · ipureintro; exact ⟨Hlgn, hro, Hg⟩
         iintro !> %log' - #Hc'
@@ -179,17 +184,33 @@ local macro "txn_tail" : tactic => `(tactic| (
       iframe Hresp Herr Hsr Hlr Hcert
       isplitr
       · ipureintro; exact Hlog
-      icases Hres with (⟨%H1, #Hce⟩ | ⟨%H2, #Hr, Hh⟩ | ⟨-, #He⟩)
-      · ileft; iframe Hce; ipureintro; exact ⟨H1.1, H1.2.2⟩
-      · iright; ileft
+      icases Hres with (⟨%H1, #Hce, %t', %te', Hown, %Hteq⟩ | ⟨%H2, Hown, %Hteq, #Hr, Hh⟩ |
+        ⟨-, Hown, %Hteq, #He⟩)
+      · have htv := Hteq trc (by simp) (by simp)
+        subst htv
+        isplitr [Hown]
+        rotate_left
+        · iexists te'; iexact Hown
+        ileft; iframe Hce; ipureintro; exact ⟨H1.1, H1.2.2⟩
+      · have htv := Hteq trc (by simp) (by simp)
+        subst htv
+        isplitr [Hown]
+        rotate_left
+        · iexact Hown
+        iright; ileft
         isplitr
         · ipureintro; exact H2.1
         isplitl []
         · simp only [txn.srvRunTxn]; iexact Hr
         iexact Hh
-      · iright; iright; iexact He
+      · have htv := Hteq trc (by simp) (by simp)
+        subst htv
+        isplitr [Hown]
+        rotate_left
+        · iexact Hown
+        iright; iright; iexact He
     iframe
-  icases Hds with (⟨%Hs0, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, %Hlog, Hres⟩ |
+  icases Hds with (⟨%Hs0, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, %Hlog, Hres, Hown⟩ |
     ⟨%Hs0, #HsE, Hg⟩)
   · subst Hs0
     wp_auto
@@ -236,9 +257,11 @@ local macro "txn_tail" : tactic => `(tactic| (
     | ok sei =>
       ihave #HeE : applyErrIs (GoInterface.ok sei) $$ []
       · iexact HsE
-      icases Hg with (⟨resp, err, Hsr, Hlr⟩ |
-        ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, -, -, -⟩)
+      icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
+        ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, -, -, -, Hown⟩)
       · wp_auto
+        ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [Hown0]
+        · iexists false; iexact Hown0
         txn_defer
         txn_close_err
       · wp_auto
@@ -281,8 +304,8 @@ theorem EtcdServer.Txn.wp_proof
     (hWV : context.WithValue.spec (GF := GF) (hG := hG))
     (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG)) :
     EtcdServer.Txn.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γr c ctx cd r t
-  wp_start as ⟨#Hsrv, #Hrd, Hlt, Hcred, Hcall, #Hctx, #Hrt, %Hgets⟩
+  intro s E ρ γr c ctx cd r t ot te
+  wp_start as ⟨#Hsrv, #Hrd, Hlt, Hcred, Hcall, #Hctx, #Hct, Hto, #Hrt, %Hgets⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hrd' := Hrd
   iunfold isServerRead at Hrd'
@@ -384,7 +407,7 @@ theorem EtcdServer.Txn.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hsp⟩
+  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, #Hsp⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
   iunfold trace.isSpan at Hsp
@@ -397,10 +420,19 @@ theorem EtcdServer.Txn.wp_proof
   wp_apply wp_slice_literal
   isplitr
   · ipureintro; rfl
-  iintro %fsl' ⟨-, -⟩
+  iintro %fsl' ⟨Hfl, Hflc⟩
   (try wp_auto)
-  wp_apply hET ctx1 _ w.lg _ _ $$ [] as %ctx2 %trc ⟨%Htrc, %vs2, #Hctx2, Hctx2w⟩
+  wp_apply hET ctx1 _ ot te w.lg _ _ $$ [Hto Hfl Hflc]
+    as %ctx2 %trc ⟨⟨%Htrc, -⟩, Hown0, #Hct2, %vs2, #Hctx2, Hctx2w⟩
   · iframe #
+    isplitr
+    · iapply Hctr1 $$ Hct
+    iframe Hto
+    iunfold traceutil.ownFields
+    iexists _
+    iframe Hfl Hflc
+    ipureintro
+    exact traceutil.fieldsWf_cons_bool _ _ _ traceutil.fieldsWf_nil
   ihave #Hctx2i := Hctx2w $$ Hctx1
   (try wp_auto)
   cases hro : txn.txnReadonly t
@@ -408,8 +440,8 @@ theorem EtcdServer.Txn.wp_proof
     (try wp_auto)
     wp_apply time.wp_Now as %now -
     (try wp_auto)
-    wp_apply hWV ctx2 ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _ $$ [] as %c3 ⟨%Hc3, -, #Hc3w⟩
-    · iframe #; ipureintro; right; right; rfl
+    wp_apply hWV ctx2 ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _ $$ [] as %c3 ⟨%Hc3, -, #Hc3w, -⟩
+    · iframe #; ipureintro; right; right; left; rfl
     ihave ⟨%ctx3, %vs3, %Hc3e, #Hctx3⟩ := Hc3w $$ %_ Hctx2i
     subst Hc3e
     (try wp_auto)
@@ -541,8 +573,8 @@ theorem EtcdServer.Txn.wp_proof
       ihave Hrr : srvReadReader s γr $$ [Hrr]
       · iunfold srvReadReader; iexists _; iframe Hread Hrr
       (try wp_auto)
-      wp_apply hStep trc _ _ $$ []
-      · iframe #; ipureintro; exact Htrc
+      wp_apply hStep trc false _ slice.nil $$ [$Hown0] as Hown0
+      · iapply traceutil.ownFields_nil
       (try wp_auto)
       cases rerr with
       | ok rei =>

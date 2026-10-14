@@ -35,14 +35,16 @@ nothing was deleted), the response with their number, the revision (`writeRev`: 
 the range read's context error (`ctx` done): nothing deleted, the token back. The trace is not
 `nil`. The write transaction runs under the store's batch lock by the critical-section contract
 (`csContract P f Pre Q Post`, the store's hook `hookIs γ P f`): `Post`. At a context never
-canceled (`nd`: `neverDone`), no context error (2026-10-12: for the apply package's backend). -/
+canceled (`nd`: `neverDone`), no context error (2026-10-12: for the apply package's backend).
+2026-10-14 (unit P1b): the context's trace `ot` (`ctxTraceIs`) and its ownership taken
+(`EnsureTrace`); the trace returned owned, the context's if it had a non-empty one. -/
 abbrev txn.DeleteRange.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc) (kv : GoInterface)
     (s : Loc) (γ : mvcc.StoreNames) (dr : Loc) (o : OpFull) (m : Nat) (log₀ : mvcc.Log)
-    (P Pre Q Post : IProp GF) (f : val),
+    (P Pre Q Post : IProp GF) (f : val) (ot : Option Loc) (te : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ mvcc.revToken γ ∗
       mvcc.storeWT γ ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗ txn.deleteRangeRequestIs dr o ∗
-      mvcc.txnCtx ctx cd ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
+      mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
       ⌜∀ ilog : mvcc.Log, txn.Pinned log₀ m ilog →
         (rangeIn (mvcc.stateAfter ilog) o).length < mvcc.putMax γ⌝ ∗
       mvcc.csContract P f Pre Q Post ∗ mvcc.hookIs γ P f }}
@@ -50,6 +52,7 @@ abbrev txn.DeleteRange.spec : Prop :=
       (Val #kv)) (Val #dr))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       mvcc.storeReader s γ ∗ ownToks γ.revs m ∗ ⌜trace ≠ null⌝ ∗ Post ∗
+      (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗
       ∃ ilog : mvcc.Log, ⌜txn.Pinned log₀ m ilog ∧ ilog ≠ []⌝ ∗
         ((⌜err = GoInterface.nil⌝ ∗
             txn.deleteRangeResponseIs resp

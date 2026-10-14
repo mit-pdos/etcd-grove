@@ -177,11 +177,11 @@ transaction's committed log `ilog` is the sole writer's. The tokens bound `ilog`
 `soleBudget log - 1 + 1 ≤ ntok`, and `ilog.length + ntok + 3 ≤ 2 ^ 63`); the index writer's
 committed-log authority is above `log`'s certificate (`log <+: ilog`, `idxWriter_cert_prefix`). -/
 theorem soleWriter_pins_write (γ : mvcc.StoreNames) (log ilog : Log) (pend : List Change) (tw s : Loc) :
-    soleWriterOpen (GF := GF) γ log ∗ storeTxnWriteIs tw s γ ilog pend ⊢ ⌜ilog = log⌝ := by
+    soleWriterOpen (GF := GF) γ log ∗ storeTxnWriteIs tw s γ trace ilog pend ⊢ ⌜ilog = log⌝ := by
   unfold soleWriterOpen
   iintro ⟨⟨#Hmycert, Hmine, -⟩, H⟩
   unfold storeTxnWriteIs
-  icases H with ⟨%trace, %ti, %bt, %Locked, %chs, %ps, %ntok, H⟩
+  icases H with ⟨%ti, %bt, %Locked, %chs, %ps, %ntok, H⟩
   iNamed H
   unfold revToken
   icombine Hmine Htok as Hall
@@ -195,8 +195,8 @@ theorem soleWriter_pins_write (γ : mvcc.StoreNames) (log ilog : Log) (pend : Li
 
 /-- `soleWriter_pins_write`, keeping the resources. -/
 theorem soleWriter_pins_write' (γ : mvcc.StoreNames) (log ilog : Log) (pend : List Change) (tw s : Loc) :
-    soleWriterOpen (GF := GF) γ log ∗ storeTxnWriteIs tw s γ ilog pend ⊢
-      ⌜ilog = log⌝ ∗ (soleWriterOpen γ log ∗ storeTxnWriteIs tw s γ ilog pend) :=
+    soleWriterOpen (GF := GF) γ log ∗ storeTxnWriteIs tw s γ trace ilog pend ⊢
+      ⌜ilog = log⌝ ∗ (soleWriterOpen γ log ∗ storeTxnWriteIs tw s γ trace ilog pend) :=
   persistent_entails_right (soleWriter_pins_write γ log ilog pend tw s)
 
 /-- **The sole writer pins its read transaction**, from `store.Read`'s post at the sole
@@ -235,17 +235,17 @@ open go_etcd_io.etcd.server.v3.storage.mvcc in
 /-- **`store.Read` at the sole writer** reads its log: `store.Read`'s spec at the sole writer's
 tokens and certificate, with `soleWriter_pins_read`. -/
 theorem soleWriter_Read (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG))
-    (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (log : Log)
+    (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (log : Log) (te : Bool)
     (hlen : log.length + 3 ≤ 2 ^ 63) (htr : trace ≠ null) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-        mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log }}
+        mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ soleWriter γ log ∗ traceutil.ownTrace trace te }}
       (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Read")) (Val #mode)) (Val #trace))
     {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
-        ∃ rev : w64, mvcc.isTxnRead mw s γ log rev ∗ soleWriter γ log }} := by
-  wp_start_folded as ⟨#Hs, Hrd, Hsw⟩
+        ∃ rev : w64, mvcc.isTxnRead mw s γ trace log rev ∗ soleWriter γ log }} := by
+  wp_start_folded as ⟨#Hs, Hrd, Hsw, Htrc⟩
   iunfold soleWriter at Hsw
   icases Hsw with ⟨#Hc, Ht, %Hl2⟩
-  iapply (hRead s γ mode trace (soleBudget log) log) $$ [Hrd Ht]
+  iapply (hRead s γ mode trace (soleBudget log) log te) $$ [Hrd Ht Htrc]
   · iframe # ∗
     ipureintro; exact htr
   inext

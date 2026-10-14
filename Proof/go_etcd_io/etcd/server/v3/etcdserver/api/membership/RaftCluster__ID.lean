@@ -1,5 +1,6 @@
 /-
-The trust boundary: `membership.RaftCluster.ID` (a read of a field fixed at the cluster's creation; as `Members`).
+Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/membership/RaftCluster__ID.lean`.
+Lean-first (no Rocq counterpart); unit P1b (2026-10-14).
 -/
 module
 
@@ -14,7 +15,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -23,7 +24,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-axiom membership.RaftCluster.ID.wp_proof : membership.RaftCluster.ID.spec (GF := GF) (hG := hG)
+theorem membership.RaftCluster.ID.wp_proof :
+    membership.RaftCluster.ID.spec (GF := GF) (hG := hG) := by
+  intro c cid
+  wp_start as #Hcid
+  iunfold membership.clusterCid at Hcid
+  wp_auto
+  iapply HΦ
+  itrivial
 
 end proof
 

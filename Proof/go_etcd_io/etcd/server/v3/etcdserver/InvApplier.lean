@@ -35,6 +35,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 public import Perennial.Proof.errors
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Defs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
 
 @[expose] public section
 
@@ -321,7 +322,8 @@ def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
       hookSpec γ ci TM v.hook ∗
       srvLessorAddr s ↦□ v.lessor ∗ lessorOk v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
-      srvClusterAddr s ↦□ v.cluster ∗ srvQuotaAddr s ↦□ v.quota ∗
+      srvClusterAddr s ↦□ v.cluster ∗ membership.isRaftCluster v.cluster ∗
+      srvQuotaAddr s ↦□ v.quota ∗
       srvLgMuAddr s ↦□ v.lgMu ∗ srvMemberIDAddr s ↦□ v.memberID ∗ srvLeadInv s ∗
       cfgElectionTicksAddr (srvCfgAddr s) ↦□ v.electionTicks ∗
       cfgTickMsAddr (srvCfgAddr s) ↦□ v.tickMs ∗

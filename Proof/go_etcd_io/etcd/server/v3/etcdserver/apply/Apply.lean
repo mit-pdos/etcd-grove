@@ -41,7 +41,7 @@ set_option hygiene false in
 /-- The call `uberApply.Apply(wrapper, v3)` and the postcondition. -/
 local macro "call_tail" : tactic => `(tactic| (
   wp_apply (hUA E p opts x «$r0_ptr» rq sk v3 Pre Q Post)
-      $$ [Hown Hkv Hwt Hcs] as %ar ⟨%x', %out, Hown, Hkv, HPP, %Hst, Hres⟩
+      $$ [Hown Hkv Hwt Hcs] as %ar ⟨%x', %out, Hown, Hkv, HPP, %Hst, Htr, Hres⟩
   · iframe # Hown Hkv Hwt Hcs
     ipureintro
     refine ⟨⟨Hrq, Hdk⟩, ?_⟩
@@ -56,7 +56,7 @@ local macro "call_tail" : tactic => `(tactic| (
   iframe HRD
   isplitl [HPP]
   · iapply cPost_if; iexact HPP
-  iframe Hok
+  iframe Hok Htr
   isplitr
   · ipureintro; rfl
   iexists x', out
@@ -193,6 +193,8 @@ theorem apply.Apply.wp_proof
       · iapply cPost_if; iapply apply.cPost_of_pre; iapply apply.cPre_pre; iexact Hcs
       isplitr
       · iunfold apply.resultErrOk; ileft; ipureintro; rfl
+      isplitr
+      · iapply apply.resTrace_null
       isplitr
       · ipureintro; rfl
       iexists x, .skipped

@@ -44,8 +44,8 @@ theorem txn.txn.wp_proof
     (hZErr : zap.Error.spec (GF := GF) (hG := hG))
     (hLgErr : zap.Logger.Error.spec (GF := GF) (hG := hG)) :
     txn.txn.spec (GF := GF) (hG := hG) := by
-  intro ctx cd nd lg s γ tw ro ilog rt t pl skip L
-  wp_start as ⟨Htw, #Hctx, #Hnd, #Hrt, #Hpl, #Hleases, #Hknown, Hown, %Hpre⟩
+  intro trace ctx cd nd lg s γ tw ro ilog rt t pl skip L
+  wp_start as ⟨Htw, #Hctx, #Hct, #Hnd, #Hrt, #Hpl, #Hleases, #Hknown, Hown, %Hpre⟩
   ihave %Htwok := txn.txnWriteIs_ok tw s γ ro ilog [] $$ Htw
   obtain ⟨twi, rfl⟩ := Htwok
   ihave #Hpl' : pl ↦*□ (txnPath (mvcc.stateAfter ilog) t ++ []) $$ []
@@ -61,8 +61,8 @@ theorem txn.txn.wp_proof
   · iunfold respsSkel at Hresps
     icases Hresps with ⟨%sl, %ps, #Hsl, -⟩
     iexists sl; iexact Hsl
-  wp_apply (hExec ctx cd nd lg s γ (GoInterface.ok twi) ro ilog [] rt t pl [] resp skip L)
-    $$ [$Htw $Hctx $Hnd $Hrt $Hpl' $Hresps $Hleases $Hknown0 $Hown] as %n2 %err Hres
+  wp_apply (hExec trace ctx cd nd lg s γ (GoInterface.ok twi) ro ilog [] rt t pl [] resp skip L)
+    $$ [$Htw $Hctx $Hct $Hnd $Hrt $Hpl' $Hresps $Hleases $Hknown0 $Hown] as %n2 %err Hres
   · ipureintro
     refine ⟨Hpre.1, ?_, ?_, fun h => (Hpre.2.2.2 h).1⟩
     · simp only [List.length_nil, Nat.zero_add, pendState_nil]; exact Hpre.2.1

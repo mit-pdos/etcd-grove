@@ -30,7 +30,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
     (hRange : mvcc.treeIndex.Range.spec (GF := GF) (hG := hG))
     (hDel : mvcc.storeTxnWrite.delete.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.deleteRange.spec (GF := GF) (hG := hG) := by
-  intro tw s γ ilog pend key endk k e
+  intro trace tw s γ ilog pend key endk k e
   wp_start as ⟨Htw, #Hkey, #Hend, %Hb⟩
   have hpm := mvcc.putMax_le γ
   generalize hks : mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e = ks at *
@@ -143,7 +143,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
       (try wp_auto)
       iapply HΦ
       iunfold mvcc.storeTxnWriteIs
-      iexists trace, ti, bt, Locked, chs, ps, ntok
+      iexists ti, bt, Locked, chs, ps, ntok
       simp only [named]
       iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
       iframe #
@@ -152,10 +152,10 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
       have hpres := mvcc.delKeys_present ilog pend (decide (endk = slice.nil)) k e hwfL hlenL hcsL Hne
       have hnodup := mvcc.delKeys_nodup ilog pend (decide (endk = slice.nil)) k e
       rw [hks] at hpres hnodup
-      ihave Htx : mvcc.storeTxnWriteIs tw s γ ilog pend
+      ihave Htx : mvcc.storeTxnWriteIs tw s γ trace ilog pend
           $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd]
       · iunfold mvcc.storeTxnWriteIs
-        iexists trace, ti, bt, Locked, chs, ps, ntok
+        iexists ti, bt, Locked, chs, ps, ntok
         simp only [named]
         iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
         iframe #
@@ -165,7 +165,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
           "Hri" ∷ i_ptr ↦ (W64 (j : Int) : w64) ∗
           "Hk" ∷ key_ptr ↦ kv0 ∗
           "%Hj" ∷ ⌜j ≤ ks.length⌝ ∗
-          "Htx" ∷ mvcc.storeTxnWriteIs tw s γ ilog (pend ++ (ks.take j).map .del)) $$ [i key Htx]
+          "Htx" ∷ mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ (ks.take j).map .del)) $$ [i key Htx]
       · iexists 0, zero_val GoSlice
         simp only [named, List.take_zero, List.map_nil, List.append_nil]
         rw [show (W64 ((0 : Nat) : Int) : w64) = W64 0 from rfl]
@@ -205,7 +205,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
             rw [List.getElem?_eq_getElem (by omega), hget, hkj]
           have := (List.Nodup.getElem?_inj (by omega) hnodup).1 h1
           omega
-        wp_apply (hDel tw s γ ilog (pend ++ (ks.take j).map .del) kw kj) $$ [$Htx $Hkj] as Htx
+        wp_apply (hDel trace tw s γ ilog (pend ++ (ks.take j).map .del) kw kj) $$ [$Htx $Hkj] as Htx
         · ipureintro
           refine ⟨?_, by simp only [List.length_append, List.length_map, List.length_take]; omega⟩
           rw [show mvcc.applyChanges (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)
@@ -303,7 +303,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
       (try wp_auto)
       iapply HΦ
       iunfold mvcc.storeTxnWriteIs
-      iexists trace, ti, bt, Locked, chs, ps, ntok
+      iexists ti, bt, Locked, chs, ps, ntok
       simp only [named]
       iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
       iframe #
@@ -312,10 +312,10 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
       have hpres := mvcc.delKeys_present ilog pend (decide (endk = slice.nil)) k e hwfL hlenL hcsL Hne
       have hnodup := mvcc.delKeys_nodup ilog pend (decide (endk = slice.nil)) k e
       rw [hks] at hpres hnodup
-      ihave Htx : mvcc.storeTxnWriteIs tw s γ ilog pend
+      ihave Htx : mvcc.storeTxnWriteIs tw s γ trace ilog pend
           $$ [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd]
       · iunfold mvcc.storeTxnWriteIs
-        iexists trace, ti, bt, Locked, chs, ps, ntok
+        iexists ti, bt, Locked, chs, ps, ntok
         simp only [named]
         iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
         iframe #
@@ -325,7 +325,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
           "Hri" ∷ i_ptr ↦ (W64 (j : Int) : w64) ∗
           "Hk" ∷ key_ptr ↦ kv0 ∗
           "%Hj" ∷ ⌜j ≤ ks.length⌝ ∗
-          "Htx" ∷ mvcc.storeTxnWriteIs tw s γ ilog (pend ++ (ks.take j).map .del)) $$ [i key Htx]
+          "Htx" ∷ mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ (ks.take j).map .del)) $$ [i key Htx]
       · iexists 0, zero_val GoSlice
         simp only [named, List.take_zero, List.map_nil, List.append_nil]
         rw [show (W64 ((0 : Nat) : Int) : w64) = W64 0 from rfl]
@@ -365,7 +365,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
             rw [List.getElem?_eq_getElem (by omega), hget, hkj]
           have := (List.Nodup.getElem?_inj (by omega) hnodup).1 h1
           omega
-        wp_apply (hDel tw s γ ilog (pend ++ (ks.take j).map .del) kw kj) $$ [$Htx $Hkj] as Htx
+        wp_apply (hDel trace tw s γ ilog (pend ++ (ks.take j).map .del) kw kj) $$ [$Htx $Hkj] as Htx
         · ipureintro
           refine ⟨?_, by simp only [List.length_append, List.length_map, List.length_take]; omega⟩
           rw [show mvcc.applyChanges (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)

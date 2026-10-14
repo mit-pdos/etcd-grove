@@ -13,10 +13,10 @@ context_WithTimeoutBackground:
 context_ErrDone:
 errors_Is:
 strconv_FormatUint:
-traceutil_EnsureTrace:
+traceutil_EnsureTrace: traceutil_Get traceutil_Trace__IsEmpty traceutil_newTrace context_WithValue
 traceutil_Trace__Step:
-traceutil_Trace__AddField:
-traceutil_Trace__LogAllStepsIfLong:
+traceutil_Trace__AddField: traceutil_Trace__updateFieldIfExist
+traceutil_Trace__LogAllStepsIfLong: traceutil_Trace__LogWithStepThreshold
 zap_Error:
 zap_Uint64:
 zap_Duration:
@@ -32,3 +32,12 @@ read_Read__requestCurrentIndex: read_Read__sendReadIndex zap_Uint64 zap_Duration
 read_Read__LinearizableReadNotify: context_ErrDone
 read_NewRead: read_newNotifier read_Read__LinearizableReadNotify
 read_Read__LinearizableReadLoop: traceutil_EnsureTrace read_newNotifier read_Read__requestCurrentIndex read_isStopped read_notifier__notify traceutil_Trace__Step traceutil_Trace__AddField strconv_FormatUint traceutil_Trace__LogAllStepsIfLong
+# traceutil, proved (unit P1b): the callees of the functions above; `LogWithStepThreshold` and
+# `context.WithValue` are axioms.
+traceutil_Get: traceutil_TODO
+traceutil_TODO:
+traceutil_Trace__updateFieldIfExist:
+traceutil_Trace__IsEmpty:
+traceutil_newTrace:
+traceutil_Trace__LogWithStepThreshold:
+context_WithValue:

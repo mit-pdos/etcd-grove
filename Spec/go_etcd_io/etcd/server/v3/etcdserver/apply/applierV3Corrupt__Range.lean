@@ -33,7 +33,8 @@ abbrev apply.applierV3Corrupt.Range.spec : Prop :=
       apply.rangePre E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) r rq o log }}
     (App (Val (p @!! go.GoType.PointerType applierV3Corrupt.ty @!! go!"Range")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-      apply.rangePost E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) rq o log resp err }}
+      apply.rangePost E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p) rq o log resp err ∗
+      apply.traceRes trace }}
 
 end spec
 

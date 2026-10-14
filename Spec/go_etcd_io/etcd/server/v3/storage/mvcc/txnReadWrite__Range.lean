@@ -26,15 +26,15 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- `trw.Range(ctx, key, end, ro)`: the read transaction's range
 (`metricsTxnWrite.Range`; at a context never canceled, `todo`, no context error). -/
 abbrev mvcc.txnReadWrite.Range.spec : Prop :=
-  ∀ (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64)
+  ∀ (trace : Loc) (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool) (key endk : GoSlice)
     (k e : GoString) (ro : RangeOptions),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isRoTxnWrite trw s γ log rev ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isRoTxnWrite trw s γ trace log rev ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗
       endk ↦*□ e }}
     (App (App (App (App (Val (trw @!! go.GoType.PointerType txnReadWrite.ty @!! go!"Range"))
       (Val #(GoInterface.ok ctx))) (Val #key)) (Val #endk)) (Val #ro))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
-      ⌜todo = true → r ≠ null⌝ ∗ mvcc.isRoTxnWrite trw s γ log rev ∗
+      ⌜todo = true → r ≠ null⌝ ∗ mvcc.isRoTxnWrite trw s γ trace log rev ∗
       mvcc.rangeOutcome r err log rev (decide (endk = slice.nil)) k e ro }}
 
 end spec

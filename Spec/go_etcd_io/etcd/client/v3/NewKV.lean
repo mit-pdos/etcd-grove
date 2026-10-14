@@ -21,15 +21,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `NewKV(c)` on a `*Client` with a connection to `K` (`clientKVAt`): a new `*kv` over a
+/-- `NewKV(c)` on a `*Client` with a connection to `addr` (`clientKVAt`): a new `*kv` over a
 `*retryKVClient` on that connection, with the client's call options (`kvObjAt`), as a `KV`. -/
 abbrev NewKV.spec : Prop :=
-  ∀ (cl : Loc) (K : KVConn GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientKVAt cl K }}
+  ∀ (cl : Loc) (addr : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientKVAt cl addr }}
     (App (Val (@! go_etcd_io.etcd.client.v3.NewKV)) (Val #cl))
   {{ (v : GoInterface), RET #v; ∃ api : Loc,
       ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api⌝ ∗
-      kvObjAt api K }}
+      kvObjAt api addr }}
 
 end spec
 

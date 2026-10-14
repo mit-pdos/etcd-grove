@@ -27,17 +27,17 @@ of `s.mu`, `muHeld` at `-1`, given back), under the transaction's reader (`txRea
 abbrev mvcc.storeTxnCommon.Range.spec : Prop :=
   ∀ (tr s trace ti : Loc) (rt : GoInterfaceOk) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool)
-    (key endk : GoSlice) (k e : GoString) (ro : RangeOptions),
+    (key endk : GoSlice) (k e : GoString) (ro : RangeOptions) (te : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeTxnReadIs tr s rt trace γ log rev ∗ mvcc.txReader γ rt log ∗
       s.[store, go!"kvindex"] ↦□ (interface.mkOk (go.GoType.PointerType treeIndex.ty) #ti : GoInterface) ∗
       mvcc.idxReader ti γ.idx ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e ∗
-      mvcc.muHeld s γ (-1) }}
+      mvcc.muHeld s γ (-1) ∗ traceutil.ownTrace trace te }}
     (App (App (App (App (Val (mvcc.txCommon tr @!! go.GoType.PointerType storeTxnCommon.ty @!!
       go!"Range")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #endk)) (Val #ro))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
       ⌜todo = true → r ≠ null⌝ ∗
-      mvcc.idxReader ti γ.idx ∗ mvcc.muHeld s γ (-1) ∗ mvcc.txReader γ rt log ∗
+      mvcc.idxReader ti γ.idx ∗ mvcc.muHeld s γ (-1) ∗ mvcc.txReader γ rt log ∗ traceutil.ownTrace trace te ∗
       mvcc.rangeOutcome r err log rev (decide (endk = slice.nil)) k e ro }}
 
 end spec

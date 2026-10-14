@@ -1,5 +1,6 @@
 /-
-The trust boundary: `config.ServerConfig.ReqTimeout` (arithmetic on two configuration fields (no overflow at sane values); total).
+Proof of `Spec/go_etcd_io/etcd/server/v3/config/ServerConfig__ReqTimeout.lean`. Lean-first (no Rocq
+counterpart); unit P1b (2026-10-14).
 -/
 module
 
@@ -14,15 +15,22 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 section proof
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-axiom config.ServerConfig.ReqTimeout.wp_proof : config.ServerConfig.ReqTimeout.spec (GF := GF) (hG := hG)
+theorem config.ServerConfig.ReqTimeout.wp_proof :
+    config.ServerConfig.ReqTimeout.spec (GF := GF) (hG := hG) := by
+  intro c et tm
+  wp_start as ⟨#Het, #Htm⟩
+  wp_auto
+  iapply HΦ
+  itrivial
 
 end proof
 

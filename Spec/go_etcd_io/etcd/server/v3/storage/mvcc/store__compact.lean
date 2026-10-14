@@ -29,14 +29,14 @@ with no effect; on a cancelled context or a failed pass, the barrier; the token 
 below `rev` in every case), the queue back with the job's `Post` last, the channel it closes
 returned with the receive right (`compactChan`: a receive gives `compactDone s γ rev`). -/
 abbrev mvcc.store.compact.spec : Prop :=
-  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (rev prev : w64) (pcc : Bool),
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (rev prev : w64) (pcc : Bool) (te : Bool),
   trace ≠ null →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.compactJobPre s γ rev ∗
-      mvcc.compactQueue γ (sint.Z rev) }}
+      mvcc.compactQueue γ (sint.Z rev) ∗ traceutil.ownTrace trace te }}
     (App (App (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"compact")) (Val #trace))
       (Val #rev)) (Val #prev)) (Val #pcc))
   {{ (ch : GoChan), RET #ch; mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev)) ∗
-      mvcc.compactQueue γ (sint.Z rev) }}
+      mvcc.compactQueue γ (sint.Z rev) ∗ traceutil.ownTrace trace te }}
 
 end spec
 

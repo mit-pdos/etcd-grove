@@ -2,28 +2,30 @@
 **The client meets the server** (unit C1, 2026-10-14): the vocabulary of the client's KV path
 over gRPC (`client/v3/kv.go`, `retry.go`, the generated stub `api/etcdserverpb/rpc_grpc.pb.go`)
 and of its trust boundary, grpc's `ClientConn.Invoke` (`Spec/google_golang_org/grpc/
-ClientConn__Invoke.lean`). Lean-first (no Rocq counterpart); the design is in
-`notes/decisions.md`, "The client meets the server (unit C1)".
+ClientConn__Invoke.lean`, generic since 2026-10-14). Lean-first (no Rocq counterpart); the design
+is in `notes/decisions.md`, "The client meets the server (unit C1)" and "A generic gRPC
+specification".
 
-**The connection** (`isKVConn conn K`, persistent, an axiomatized predicate: a fact about grpc's
-`*ClientConn` and the process at its other end, which nothing here models): the client's
-connection `conn` reaches a gRPC server whose KV service answers a `Put` (a `Range`) with a run
-of the handler `K.put` (`K.range`) on a copy of the request, each run given by the server's
-runtime the resources `K.R ctx'` (for its context `ctx'`). For etcd's server, `K.put` is
-`kvServer.Put` at the server's `*kvServer`, `K.R` the server-side call resources `srvCall`,
-`srvRdCall` (the client's end-to-end results, `client/v3/Results.lean`).
+**The connection** (`isEtcdConn conn addr`, unit P3a; it was grpc's opaque `isGrpcConn conn
+addr`): the client's connection `conn` reaches the gRPC server at `addr` (grpc's `grpcConn`,
+`google_golang_org/grpc/InvGrpc.lean`), whose methods are registered with their specs
+(`isGrpcRpc addr name Spec`), with one unary interceptor that meets the retry interceptor's
+contract (`etcdInterceptorOk`: what `Client.unaryClientInterceptor` returns,
+`Client__unaryClientInterceptor.lean`) and no default call options: what `clientv3.New`'s
+`dialSetupOpts` dials with, given no `Config.DialOptions` that add interceptors or call options
+(an assumption about the unverified constructor and its configuration). The client's
+calls are specified for any spec of the KV service's `Put` and `Range` (predicate transformers
+over the messages' models, `GrpcSpec pbPutRequest pbPutResponse`, ...), and for any caller's
+postcondition `Φ`; etcd's server's specs and handler proofs are in `client/v3/Results.lean`.
 
-**What a run gives** (`putRunOk K o Q`, `rangeRunOk K o Q`; persistent: a run may happen several
-times, the retry interceptor's attempts): the handler's triple for the request `o` (the server's
-model of the copy the gRPC server decodes, `txn.putRequestIs`/`txn.rangeRequestIs`), with the
-runtime's resources, whose success is a response message `m` (`putRespMsg`, `rangeRespMsg`: every
-field of the message, as the reply's copy holds it) with the caller's persistent knowledge `Q m`.
-
-**Messages** (`PutRespM`, `RangeRespM`; `putRespMsg l m`, `rangeRespMsg l m`, read-only): a
-response's every field the wire carries: its header (`hdrFull`, the five fields), a put's previous
-key-value (`txn.kvIs`, the six fields), a range's key-values (`txn.kvsIs`), `More`, `Count`. The
-gRPC reply is a copy of the server's response (a protobuf round trip), so the same predicate holds
-of both (a slice's contents, not whether it is `nil`).
+**Messages** (`ProtoMsg` instances: `pbPutRequest`, `pbRangeRequest`, `pbPutResponse`,
+`pbRangeResponse`; `pbDeleteRangeRequest`, `pbDeleteRangeResponse` for the server's side): a request's model is the server's model of it (`putReqOp`, `rangeReqOp`:
+`OpFull`), the sender's message the owned struct with its slices' contents, the decoded copy the
+server's own predicate (`txn.putRequestIs`, `txn.rangeRequestIs`); a response's model is every
+field the wire carries (`PutRespM`, `RangeRespM`: its header (`hdrFull`, the five fields), a put's
+previous key-value (`txn.kvIs`, the six fields), a range's key-values (`txn.kvsIs`), `More`,
+`Count`), held read-only (`putRespMsg`, `rangeRespMsg`) by the server's response and by the
+client's decoded reply alike (a slice's contents, not whether it is `nil`).
 
 **Call options** (`callOptOk`, `callOptsOk`): what the client passes in a call's `opts`: grpc's own
 option values that hold only scalars (`StaticMethodCallOption`, `FailFastCallOption`,
@@ -39,8 +41,8 @@ errors (leaf errors, not `EtcdError`s), which the model does not have; a premise
 `ContextError` (whose result `kv.Put` passes to `errors.As` on a second `ContextError`).
 
 **The objects**: `kvStubAt kc conn` (the generated `*kVClient` on `conn`), `retryKVAt rkv conn`
-(a `*retryKVClient` over one), `kvObjAt api K` (a `*kv` over one, with its call options),
-`clientKVAt cl K` (what `NewKV` reads of a `*Client`: its connection and call options, fixed
+(a `*retryKVClient` over one), `kvObjAt api addr` (a `*kv` over one, with its call options),
+`clientKVAt cl addr` (what `NewKV` reads of a `*Client`: its connection and call options, fixed
 since `clientv3.New`, an assumption about the unverified constructor). The call options' slice is
 full (`len = cap`, as `client.go` builds it): `retryKVClient.Range` appends to it, which, with
 spare capacity, would write the slice's shared backing array from concurrent calls.
@@ -55,6 +57,7 @@ public import Proof.go_etcd_io.etcd.cache.v3.InvEtcdTxnOwn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Requests
 public import Proof.go_etcd_io.etcd.client.v3.ClientErr
 public import Perennial.Proof.context
+public import Proof.google_golang_org.grpc.InvGrpc
 
 @[expose] public section
 
@@ -66,26 +69,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.etcd.api.v3
-
-/-! ## The connection -/
-
-/-- **A KV service at the other end of a connection**: the handlers the gRPC server runs for a
-`Put` and a `Range` (function values: called with the call's context and the request), and the
-resources the server's runtime gives each run, for its context. -/
-structure KVConn [FfiSyntax] (GF : BundledGFunctors) where
-  put : val
-  range : val
-  R : GoInterface → IProp GF
-
-/-- **The client's connection `conn` reaches the KV service `K`** (persistent; an axiomatized
-predicate, see the file header): grpc's `*ClientConn`, dialed by the client with its
-interceptors, to a server whose registered KV service answers with runs of `K`'s handlers. -/
-axiom isKVConn {GF : BundledGFunctors} [FfiSyntax] (conn : Loc) (K : KVConn GF) : IProp GF
-
-axiom isKVConn_persistent {GF : BundledGFunctors} [FfiSyntax] (conn : Loc) (K : KVConn GF) :
-  Persistent (isKVConn conn K)
-
-attribute [instance] isKVConn_persistent
+open go_etcd_io.etcd.cache.v3 (statusErrOk statusErrOk_nil)
 
 /-! ## Messages -/
 
@@ -103,6 +87,18 @@ structure RangeRespM where
   kvs : List EtcdKv
   more : Bool
   count : w64
+
+/-- A `*pb.DeleteRangeResponse` as the wire carries it: its header, `Deleted`, `PrevKvs`. -/
+structure DelRespM where
+  hdr : HdrM
+  deleted : w64
+  prevs : List EtcdKv
+
+/-- **The server's model of the delete request `req`** (whose `Key` holds `k`, `RangeEnd` `e`):
+the copy the gRPC server decodes (`txn.deleteRangeRequestIs`) denotes it, its range end the
+contents `e` (as `rangeReqOp`'s). -/
+def deleteReqOp (req : etcdserverpb.DeleteRangeRequest) (k e : GoString) : OpFull :=
+  txn.deleteOpOf k e req.PrevKv'
 
 /-- **The server's model of the put request `kv.Do` sends for the `Op` `o`** (`txn.putOpOf` of
 the request's fields). -/
@@ -176,53 +172,102 @@ instance rangeRespMsg_persistent (l : Loc) (m : RangeRespM) :
     Persistent (rangeRespMsg (GF := GF) l m) := by
   unfold rangeRespMsg; infer_instance
 
-/-! ## What a run of a handler gives -/
+/-- **The `*pb.DeleteRangeResponse` `l` holds the message `m`** (read-only). -/
+def delRespMsg (l : Loc) (m : DelRespM) : IProp GF :=
+  iprop(⌜l ≠ null⌝ ∗ ∃ (h : Loc) (sl : GoSlice) (ps : List Loc),
+    structFieldRef etcdserverpb.DeleteRangeResponse go!"Header" l ↦□ h ∗ hdrFull h m.hdr ∗
+    structFieldRef etcdserverpb.DeleteRangeResponse go!"Deleted" l ↦□ m.deleted ∗
+    structFieldRef etcdserverpb.DeleteRangeResponse go!"PrevKvs" l ↦□ sl ∗ sl ↦*□ ps ∗
+    txn.kvsIs ps m.prevs)
 
-/-- **A run of the `Put` handler of `K` on the put `o`** (persistent; see the file header): with
-the runtime's resources and the decoded request, it answers `(resp, err)`, and if `err` is `nil`,
-`resp` holds a message `m` with the caller's knowledge `Q m`. -/
-def putRunOk (K : KVConn GF) (o : OpFull) (Q : PutRespM → IProp GF) : IProp GF :=
-  iprop(∀ (ctx : GoInterface) (r : Loc),
-    {{ K.R ctx ∗ txn.putRequestIs r o }}
-      (App (App (Val K.put) (Val #ctx)) (Val #r))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        ⌜err = GoInterface.nil⌝ -∗ ∃ m : PutRespM, putRespMsg resp m ∗ □ Q m }})
-
-instance putRunOk_persistent (K : KVConn GF) (o : OpFull) (Q : PutRespM → IProp GF) :
-    Persistent (putRunOk K o Q) := by
-  unfold putRunOk; infer_instance
-
-/-- **A run of the `Range` handler of `K` on the get `o`** (as `putRunOk`). -/
-def rangeRunOk (K : KVConn GF) (o : OpFull) (Q : RangeRespM → IProp GF) : IProp GF :=
-  iprop(∀ (ctx : GoInterface) (r : Loc),
-    {{ K.R ctx ∗ txn.rangeRequestIs r o }}
-      (App (App (Val K.range) (Val #ctx)) (Val #r))
-    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        ⌜err = GoInterface.nil⌝ -∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗ □ Q m }})
-
-instance rangeRunOk_persistent (K : KVConn GF) (o : OpFull) (Q : RangeRespM → IProp GF) :
-    Persistent (rangeRunOk K o Q) := by
-  unfold rangeRunOk; infer_instance
+instance delRespMsg_persistent (l : Loc) (m : DelRespM) :
+    Persistent (delRespMsg (GF := GF) l m) := by
+  unfold delRespMsg; infer_instance
 
 /-- **What a unary `Put` call returns** to the client (every layer's postcondition: the stub's,
 the retry client's, `kv.Do`'s at its `put` field): `nil` and a response holding a message `m`
-(`putRespMsg`) with the run's knowledge `Q m`; or a client error and no response. -/
+(`putRespMsg`) with the run's knowledge `Q m`; or a client error that grpc's `status` accepts
+(`statusErrOk`, unit P3a: `ContextError` passes it to `rpctypes.Error`) and no response. -/
 def putCallOut (Q : PutRespM → IProp GF) (resp : Loc) (err : GoInterface) : IProp GF :=
-  iprop((⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗ □ Q m) ∨
-    ⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝)
+  iprop((⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗ Q m) ∨
+    (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err))
 
 /-- **What a unary `Range` call returns** to the client (as `putCallOut`). -/
 def rangeCallOut (Q : RangeRespM → IProp GF) (resp : Loc) (err : GoInterface) : IProp GF :=
-  iprop((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗ □ Q m) ∨
-    ⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝)
+  iprop((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗ Q m) ∨
+    (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err))
 
-instance putCallOut_persistent (Q : PutRespM → IProp GF) (resp : Loc) (err : GoInterface) :
-    Persistent (putCallOut Q resp err) := by
-  unfold putCallOut; infer_instance
+/-! ## The KV service's messages -/
 
-instance rangeCallOut_persistent (Q : RangeRespM → IProp GF) (resp : Loc) (err : GoInterface) :
-    Persistent (rangeCallOut Q resp err) := by
-  unfold rangeCallOut; infer_instance
+/-- **A `*pb.PutRequest`** on the wire (see the file header). -/
+def pbPutRequest : ProtoMsg GF where
+  ty := etcdserverpb.PutRequest.ty
+  M := OpFull
+  send inp o := iprop(∃ (req : etcdserverpb.PutRequest) (k v : GoString), inp ↦ req ∗
+    req.Key' ↦*□ k ∗ req.Value' ↦*□ v ∗ ⌜o = putReqOp req k v⌝)
+  recv r o := txn.putRequestIs r o
+  recv_persistent _ _ := inferInstance
+  blank l := iprop(l ↦ (zero_val etcdserverpb.PutRequest))
+  own l := iprop(∃ v : etcdserverpb.PutRequest, l ↦ v)
+  blank_own l := by iintro H; iexists _; iexact H
+
+/-- **A `*pb.RangeRequest`** on the wire (see the file header). -/
+def pbRangeRequest : ProtoMsg GF where
+  ty := etcdserverpb.RangeRequest.ty
+  M := OpFull
+  send inp o := iprop(∃ (req : etcdserverpb.RangeRequest) (k e : GoString), inp ↦ req ∗
+    req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗ ⌜o = rangeReqOp req k e⌝)
+  recv r o := txn.rangeRequestIs r o
+  recv_persistent _ _ := inferInstance
+  blank l := iprop(l ↦ (zero_val etcdserverpb.RangeRequest))
+  own l := iprop(∃ v : etcdserverpb.RangeRequest, l ↦ v)
+  blank_own l := by iintro H; iexists _; iexact H
+
+/-- **A `*pb.PutResponse`** on the wire (see the file header). -/
+def pbPutResponse : ProtoMsg GF where
+  ty := etcdserverpb.PutResponse.ty
+  M := PutRespM
+  send := putRespMsg
+  recv := putRespMsg
+  recv_persistent _ _ := inferInstance
+  blank l := iprop(l ↦ (zero_val etcdserverpb.PutResponse))
+  own l := iprop(∃ v : etcdserverpb.PutResponse, l ↦ v)
+  blank_own l := by iintro H; iexists _; iexact H
+
+/-- **A `*pb.RangeResponse`** on the wire (see the file header). -/
+def pbRangeResponse : ProtoMsg GF where
+  ty := etcdserverpb.RangeResponse.ty
+  M := RangeRespM
+  send := rangeRespMsg
+  recv := rangeRespMsg
+  recv_persistent _ _ := inferInstance
+  blank l := iprop(l ↦ (zero_val etcdserverpb.RangeResponse))
+  own l := iprop(∃ v : etcdserverpb.RangeResponse, l ↦ v)
+  blank_own l := by iintro H; iexists _; iexact H
+
+/-- **A `*pb.DeleteRangeRequest`** on the wire (see the file header; the server's side only: the
+client's `kv.Do` does not send one in this development). -/
+def pbDeleteRangeRequest : ProtoMsg GF where
+  ty := etcdserverpb.DeleteRangeRequest.ty
+  M := OpFull
+  send inp o := iprop(∃ (req : etcdserverpb.DeleteRangeRequest) (k e : GoString), inp ↦ req ∗
+    req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗ ⌜o = deleteReqOp req k e⌝)
+  recv r o := txn.deleteRangeRequestIs r o
+  recv_persistent _ _ := inferInstance
+  blank l := iprop(l ↦ (zero_val etcdserverpb.DeleteRangeRequest))
+  own l := iprop(∃ v : etcdserverpb.DeleteRangeRequest, l ↦ v)
+  blank_own l := by iintro H; iexists _; iexact H
+
+/-- **A `*pb.DeleteRangeResponse`** on the wire. -/
+def pbDeleteRangeResponse : ProtoMsg GF where
+  ty := etcdserverpb.DeleteRangeResponse.ty
+  M := DelRespM
+  send := delRespMsg
+  recv := delRespMsg
+  recv_persistent _ _ := inferInstance
+  blank l := iprop(l ↦ (zero_val etcdserverpb.DeleteRangeResponse))
+  own l := iprop(∃ v : etcdserverpb.DeleteRangeResponse, l ↦ v)
+  blank_own l := by iintro H; iexists _; iexact H
 
 /-! ## Call options -/
 
@@ -237,12 +282,6 @@ def retryApplyOk (f : GoFunc) : IProp GF :=
 
 instance retryApplyOk_persistent (f : GoFunc) : Persistent (retryApplyOk (GF := GF) f) := by
   unfold retryApplyOk; infer_instance
-
-/-- grpc's call options that hold only scalars (see the file header). -/
-def grpcScalarOptTys : List go.GoType :=
-  [google_golang_org.grpc.StaticMethodCallOption.ty, google_golang_org.grpc.FailFastCallOption.ty,
-    google_golang_org.grpc.MaxSendMsgSizeCallOption.ty,
-    google_golang_org.grpc.MaxRecvMsgSizeCallOption.ty]
 
 /-- **A call option the client passes** (persistent; see the file header). -/
 def callOptOk (v : GoInterface) : IProp GF :=
@@ -280,12 +319,59 @@ theorem callOptsOk_singleton (v : GoInterface) : callOptOk (GF := GF) v ⊢ call
   iapply BigSepL.bigSepL_singleton.2
   iexact H
 
+/-! ## The connection -/
+
+/-- **The client's retry interceptor's contract** (persistent; unit P3a: what
+`Client.unaryClientInterceptor` returns, `Client__unaryClientInterceptor.lean`): called on a
+connection to `addr` (`grpcConn`, any interceptors) with an invoker making one attempt
+(`grpcInvokerOk`), for a method registered at `addr` with `Spec`, the request `inp`
+(`Req.send`, given back), a zero reply `out` (`Rep.blank`), the client's call options
+(`callOptsOk`) and the caller's `□ ▷ Spec m Φ` (persistent: the request may be delivered several
+times, the attempts), it returns
+* `nil`: an attempt succeeded, the last one (the loop returns at the first `nil`), and `out` holds
+  its reply's copy of a response (`Rep.recv out m'`) with its run's `Φ m'`; other attempts may
+  have run the handler: an attempt that failed with a gRPC `Canceled` or `DeadlineExceeded` while
+  `ctx` is not done is retried whatever the method (`issues/etcd-client-retry-put-ctx-error.md`);
+* an error: a client error (`clientErr`) that grpc's `status` accepts (`statusErrOk`); nothing
+  about whether, or how often, the handler ran, nor about `out`. -/
+def etcdInterceptorOk (ic : GoFunc) : IProp GF :=
+  iprop(□ ∀ (conn : Loc) (addr : GoString) (ics : List GoFunc) (dopts : List GoInterface)
+      (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpec Req Rep)
+      (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
+      (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice)
+      (vs : List GoInterface),
+    {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpc addr method Spec ∗
+        □ ▷ Spec m Φ ∗ context.isContext ctx cd ∗ Req.send inp m ∗ Rep.blank out ∗
+        opts ↦*□ vs ∗ callOptsOk vs }}
+      (interceptorCall ic #(GoInterface.ok ctx) #method
+        #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
+        #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface) #conn inv #opts)
+    {{ (err : GoInterface), RET #err; Req.send inp m ∗
+        ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Φ m') ∨
+          (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err)) }})
+
+instance etcdInterceptorOk_persistent (ic : GoFunc) : Persistent (etcdInterceptorOk (GF := GF) ic) := by
+  unfold etcdInterceptorOk; infer_instance
+
+/-- **An etcd client's connection `conn` to the server at `addr`** (persistent; unit P3a; see the
+file header): grpc's connection with one unary interceptor, the client's retry interceptor
+(`etcdInterceptorOk`), and no default call options. -/
+def isEtcdConn (conn : Loc) (addr : GoString) : IProp GF :=
+  iprop(∃ ic : GoFunc, grpcConn conn addr [ic] [] ∗ etcdInterceptorOk ic)
+
+instance isEtcdConn_persistent (conn : Loc) (addr : GoString) :
+    Persistent (isEtcdConn (GF := GF) conn addr) := by
+  unfold isEtcdConn; infer_instance
+
 /-! ## Context errors -/
 
 /-- **The context `ci` (descriptor `cd`)'s `Err()` returns client errors** (persistent; see the
 file header): `isContext`'s triple of `Err()` (`"#HErr"`: a non-nil error makes the context done,
 `ContextClosed`, after which `Err()` is non-nil: Go's "successive calls to Err return the same
-error"), with `clientErr` of the error returned. -/
+error"), with `clientErr` of the error returned, which grpc's `status` accepts (`statusErrOk`,
+unit P3a: `kv.Put` passes `ContextError`'s result, possibly the context's error, to a second
+`ContextError`, which passes it to `rpctypes.Error`; `context.Canceled` is an `errors.New` error,
+`DeadlineExceeded` a `deadlineExceededError`, neither with a `GRPCStatus` or `Is` method). -/
 def ctxErrClient (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
   iprop(□ ∀ (cl : Broadcast) (Φ : val → IProp GF),
     (match cl with
@@ -296,7 +382,7 @@ def ctxErrClient (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IP
          | .Done => iprop(⌜err ≠ interface.nil⌝)
          | _ => if err = interface.nil then iprop(True)
                 else context.ContextClosed cd.Done_gn) -∗
-        ⌜clientErr err⌝ -∗ Φ #err) -∗
+        ⌜clientErr err⌝ -∗ statusErrOk err -∗ Φ #err) -∗
     WP (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #())) {{ Φ }})
 
 instance ctxErrClient_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
@@ -330,26 +416,28 @@ def callOptsAt (sl : GoSlice) : IProp GF :=
 instance callOptsAt_persistent (sl : GoSlice) : Persistent (callOptsAt (GF := GF) sl) := by
   unfold callOptsAt; infer_instance
 
-/-- **The `*kv` `api`** (what `NewKV` returns) over a `*retryKVClient` on a connection to `K`. -/
-def kvObjAt (api : Loc) (K : KVConn GF) : IProp GF :=
+/-- **The `*kv` `api`** (what `NewKV` returns) over a `*retryKVClient` on a connection to the
+server at `addr`. -/
+def kvObjAt (api : Loc) (addr : GoString) : IProp GF :=
   iprop(∃ (rkv conn : Loc) (sl : GoSlice),
     structFieldRef go_etcd_io.etcd.client.v3.kv go!"remote" api ↦□
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.retryKVClient.ty) #rkv :
         GoInterface) ∗
-    retryKVAt rkv conn ∗ isKVConn conn K ∗
+    retryKVAt rkv conn ∗ isEtcdConn conn addr ∗
     structFieldRef go_etcd_io.etcd.client.v3.kv go!"callOpts" api ↦□ sl ∗ callOptsAt sl)
 
-instance kvObjAt_persistent (api : Loc) (K : KVConn GF) : Persistent (kvObjAt api K) := by
+instance kvObjAt_persistent (api : Loc) (addr : GoString) : Persistent (kvObjAt (GF := GF) api addr) := by
   unfold kvObjAt; infer_instance
 
-/-- **What `NewKV` reads of the `*Client` `cl`**: its connection (to `K`) and call options, fixed
-since `clientv3.New` (an assumption about the unverified constructor). -/
-def clientKVAt (cl : Loc) (K : KVConn GF) : IProp GF :=
+/-- **What `NewKV` reads of the `*Client` `cl`**: its connection (to the server at `addr`) and call
+options, fixed since `clientv3.New` (an assumption about the unverified constructor). -/
+def clientKVAt (cl : Loc) (addr : GoString) : IProp GF :=
   iprop(⌜cl ≠ null⌝ ∗ ∃ (conn : Loc) (sl : GoSlice),
-    structFieldRef go_etcd_io.etcd.client.v3.Client go!"conn" cl ↦□ conn ∗ isKVConn conn K ∗
+    structFieldRef go_etcd_io.etcd.client.v3.Client go!"conn" cl ↦□ conn ∗ isEtcdConn conn addr ∗
     structFieldRef go_etcd_io.etcd.client.v3.Client go!"callOpts" cl ↦□ sl ∗ callOptsAt sl)
 
-instance clientKVAt_persistent (cl : Loc) (K : KVConn GF) : Persistent (clientKVAt cl K) := by
+instance clientKVAt_persistent (cl : Loc) (addr : GoString) :
+    Persistent (clientKVAt (GF := GF) cl addr) := by
   unfold clientKVAt; infer_instance
 
 end defs

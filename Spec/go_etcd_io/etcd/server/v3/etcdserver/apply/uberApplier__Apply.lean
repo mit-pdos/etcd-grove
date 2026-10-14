@@ -41,7 +41,7 @@ abbrev apply.uberApplier.Apply.spec : Prop :=
   {{ (ar : Loc), RET #ar; ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
       apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
       ⌜apply.applyStep rq v3 x x' out ∧ (out = .rejected ∨ ∃ o, out = .dispatched o skip)⌝ ∗
-      apply.applyResultIs rq v3 x.log ar out }}
+      apply.resTrace ar ∗ apply.applyResultIs rq v3 x.log ar out }}
 
 end spec
 

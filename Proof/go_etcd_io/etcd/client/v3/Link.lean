@@ -8,6 +8,12 @@ hand.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.Client__Endpoints
+public import Proof.go_etcd_io.etcd.client.v3.Client__GetLogger
+public import Proof.go_etcd_io.etcd.client.v3.Client__getToken
+public import Proof.go_etcd_io.etcd.client.v3.Client__refreshToken
+public import Proof.go_etcd_io.etcd.client.v3.Client__shouldRefreshToken
+public import Proof.go_etcd_io.etcd.client.v3.Client__unaryClientInterceptor
 public import Proof.go_etcd_io.etcd.client.v3.ContextError
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithFromKey
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithPrefix
@@ -19,19 +25,43 @@ public import Proof.go_etcd_io.etcd.client.v3.Op__IsSortOptionValid
 public import Proof.go_etcd_io.etcd.client.v3.Op__applyOpts
 public import Proof.go_etcd_io.etcd.client.v3.Op__toRangeRequest
 public import Proof.go_etcd_io.etcd.client.v3.RetryKVClient
+public import Proof.errors.IsStatusErr
+public import Proof.go_etcd_io.etcd.client.v3.filterCallOptions
 public import Proof.google_golang_org.grpc.ClientConn__Invoke
+public import Proof.google_golang_org.grpc.ClientConn__Target
+public import Proof.google_golang_org.grpc.Peer
 public import Proof.google_golang_org.grpc.StaticMethod
+public import Proof.go_etcd_io.etcd.client.v3.isContextError
+public import Proof.go_etcd_io.etcd.client.v3.isSafeRetry
+public import Proof.go_etcd_io.etcd.client.v3.isSafeRetryImmutableRPC
+public import Proof.go_etcd_io.etcd.client.v3.isSafeRetryMutableRPC
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Put
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Range
 public import Proof.go_etcd_io.etcd.client.v3.kv__Do
 public import Proof.go_etcd_io.etcd.client.v3.kv__Get
 public import Proof.go_etcd_io.etcd.client.v3.kv__Put
+public import Proof.google_golang_org.grpc.peer.Peer__String
 public import Proof.go_etcd_io.etcd.client.v3.retryKVClient__Put
 public import Proof.go_etcd_io.etcd.client.v3.retryKVClient__Range
+public import Proof.go_etcd_io.etcd.client.v3.retryPolicy__String
+public import Proof.go_etcd_io.etcd.client.v3.reuseOrNewWithCallOptions
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrorDesc
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Code
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Error
+public import Proof.google_golang_org.grpc.status.Code
 public import Proof.google_golang_org.grpc.status.FromError
 public import Proof.go_etcd_io.etcd.client.v3.NewKV
+public import Proof.go_etcd_io.etcd.client.v3.waitRetryBackoff
+public import Proof.go_etcd_io.etcd.client.v3.withBackoff
+public import Proof.go_etcd_io.etcd.client.v3.withMax
 public import Proof.go_etcd_io.etcd.client.v3.withRepeatablePolicy
+public import Proof.go_etcd_io.etcd.client.v3.withVersion
+public import Proof.go_uber_org.zap.Error
+public import Proof.go_uber_org.zap.Logger__Debug
+public import Proof.go_uber_org.zap.Logger__Warn
+public import Proof.go_uber_org.zap.String
+public import Proof.go_uber_org.zap.Uint
 
 @[expose] public section
 
@@ -50,13 +80,57 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-theorem rpctypes.wp_Error :
-    EtcdGrove.rpctypes.Error.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.rpctypes.Error.wp_proof
-
 theorem status.wp_FromError :
     EtcdGrove.status.FromError.spec (GF := GF) (hG := hG) :=
   EtcdGrove.status.FromError.wp_proof
+
+theorem rpctypes.wp_ErrorDesc :
+    EtcdGrove.rpctypes.ErrorDesc.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rpctypes.ErrorDesc.wp_proof status.wp_FromError
+
+theorem rpctypes.EtcdError.wp_Error :
+    EtcdGrove.rpctypes.EtcdError.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rpctypes.EtcdError.Error.wp_proof
+
+theorem rpctypes.wp_Error :
+    EtcdGrove.rpctypes.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rpctypes.Error.wp_proof rpctypes.wp_ErrorDesc status.wp_FromError rpctypes.EtcdError.wp_Error
+
+theorem grpc.wp_Peer :
+    EtcdGrove.grpc.Peer.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.Peer.wp_proof
+
+theorem grpc.ClientConn.wp_Target :
+    EtcdGrove.grpc.ClientConn.Target.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.ClientConn.Target.wp_proof
+
+theorem zap.wp_String :
+    EtcdGrove.zap.String.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.String.wp_proof
+
+theorem zap.wp_Uint :
+    EtcdGrove.zap.Uint.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Uint.wp_proof
+
+theorem zap.Logger.wp_Debug :
+    EtcdGrove.zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.Debug.wp_proof
+
+theorem zap.wp_Error :
+    EtcdGrove.zap.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Error.wp_proof
+
+theorem zap.Logger.wp_Warn :
+    EtcdGrove.zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.Warn.wp_proof
+
+theorem status.wp_Code :
+    EtcdGrove.status.Code.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.status.Code.wp_proof
+
+theorem rpctypes.EtcdError.wp_Code :
+    EtcdGrove.rpctypes.EtcdError.Code.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rpctypes.EtcdError.Code.wp_proof
 
 theorem v3.wp_NewOp :
     EtcdGrove.NewOp.spec (GF := GF) (hG := hG) :=
@@ -92,6 +166,74 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+theorem v3.Client.wp_Endpoints :
+    EtcdGrove.Client.Endpoints.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Client.Endpoints.wp_proof
+
+theorem v3.Client.wp_GetLogger :
+    EtcdGrove.Client.GetLogger.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Client.GetLogger.wp_proof
+
+theorem v3.Client.wp_getToken :
+    EtcdGrove.Client.getToken.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Client.getToken.wp_proof
+
+theorem v3.Client.wp_refreshToken :
+    EtcdGrove.Client.refreshToken.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Client.refreshToken.wp_proof v3.Client.wp_getToken
+
+theorem errors.wp_IsStatusErr :
+    EtcdGrove.errors.IsStatusErr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.IsStatusErr.wp_proof
+
+theorem v3.Client.wp_shouldRefreshToken :
+    EtcdGrove.Client.shouldRefreshToken.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Client.shouldRefreshToken.wp_proof rpctypes.wp_Error errors.wp_IsStatusErr
+
+theorem v3.wp_reuseOrNewWithCallOptions :
+    EtcdGrove.reuseOrNewWithCallOptions.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.reuseOrNewWithCallOptions.wp_proof
+
+theorem v3.wp_withVersion :
+    EtcdGrove.withVersion.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.withVersion.wp_proof
+
+theorem v3.wp_filterCallOptions :
+    EtcdGrove.filterCallOptions.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.filterCallOptions.wp_proof
+
+theorem v3.wp_waitRetryBackoff :
+    EtcdGrove.waitRetryBackoff.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.waitRetryBackoff.wp_proof
+
+theorem peer.Peer.wp_String :
+    EtcdGrove.peer.Peer.String.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.peer.Peer.String.wp_proof
+
+theorem v3.wp_isContextError :
+    EtcdGrove.isContextError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.isContextError.wp_proof status.wp_Code
+
+theorem v3.wp_isSafeRetryImmutableRPC :
+    EtcdGrove.isSafeRetryImmutableRPC.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.isSafeRetryImmutableRPC.wp_proof rpctypes.wp_Error rpctypes.EtcdError.wp_Code status.wp_FromError
+
+theorem v3.wp_isSafeRetryMutableRPC :
+    EtcdGrove.isSafeRetryMutableRPC.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.isSafeRetryMutableRPC.wp_proof status.wp_FromError rpctypes.wp_ErrorDesc
+
+theorem v3.retryPolicy.wp_String :
+    EtcdGrove.retryPolicy.String.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.retryPolicy.String.wp_proof
+
+theorem v3.wp_isSafeRetry :
+    EtcdGrove.isSafeRetry.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.isSafeRetry.wp_proof v3.wp_isContextError errors.wp_IsStatusErr v3.Client.wp_Endpoints v3.wp_isSafeRetryImmutableRPC v3.wp_isSafeRetryMutableRPC v3.Client.wp_GetLogger v3.retryPolicy.wp_String zap.wp_String zap.Logger.wp_Warn
+
+theorem v3.Client.wp_unaryClientInterceptor :
+    EtcdGrove.Client.unaryClientInterceptor.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Client.unaryClientInterceptor.wp_proof v3.wp_reuseOrNewWithCallOptions v3.wp_withVersion v3.wp_filterCallOptions grpc.wp_Peer v3.wp_waitRetryBackoff v3.Client.wp_GetLogger grpc.ClientConn.wp_Target zap.wp_String zap.wp_Uint zap.Logger.wp_Debug peer.Peer.wp_String zap.wp_Error zap.Logger.wp_Warn v3.wp_isContextError v3.Client.wp_shouldRefreshToken v3.Client.wp_refreshToken v3.wp_isSafeRetry
 
 theorem v3.wp_ContextError :
     EtcdGrove.ContextError.spec (GF := GF) (hG := hG) :=
@@ -156,6 +298,14 @@ theorem v3.kv.wp_Put :
 theorem v3.wp_NewKV :
     EtcdGrove.NewKV.spec (GF := GF) (hG := hG) :=
   EtcdGrove.NewKV.wp_proof v3.wp_RetryKVClient
+
+theorem v3.wp_withBackoff :
+    EtcdGrove.withBackoff.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.withBackoff.wp_proof
+
+theorem v3.wp_withMax :
+    EtcdGrove.withMax.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.withMax.wp_proof
 
 end links_hasLC
 

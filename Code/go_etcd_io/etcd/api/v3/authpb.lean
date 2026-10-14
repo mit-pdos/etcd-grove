@@ -46,8 +46,6 @@ def Role.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Role.ty
 
-axiom Permission_Type.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom UserAddOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom User.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -56,11 +54,14 @@ axiom Permission.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom Role.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom Permission_READ [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Permission_READ [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 0)
 
-axiom Permission_WRITE [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Permission_WRITE [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 1)
 
-axiom Permission_READWRITE [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Permission_READWRITE [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 2)
 
 axiom file_auth_proto_rawDesc [FfiSyntax] [GoGlobalContext] : val
 
@@ -142,18 +143,15 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val Permission_Type_name.init) (Val #()))))))))
 
-axiom Permission_Type : Type
-axiom Permission_Type.zero_val : ZeroVal Permission_Type
-attribute [instance] Permission_Type.zero_val
+abbrev Permission_Type [FfiSyntax] : Type := w32
+
+@[reducible] def Permission_Type.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  go.int32
 
 class Permission_Type.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying Permission_Type.underlying Permission_Type
   underlying : go.UnderlyingDirectedEq Permission_Type.ty Permission_Type.underlying
-  isUnderlying : go.IsUnderlying Permission_Type.underlying Permission_Type.underlying
 
-attribute [instance] Permission_Type.TypeAssumptions.type_repr
-  Permission_Type.TypeAssumptions.underlying
-  Permission_Type.TypeAssumptions.isUnderlying
+attribute [instance] Permission_Type.TypeAssumptions.underlying
 
 axiom UserAddOptions : Type
 axiom UserAddOptions.zero_val : ZeroVal UserAddOptions

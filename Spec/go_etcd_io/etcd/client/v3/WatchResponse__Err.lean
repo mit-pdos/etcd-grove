@@ -26,10 +26,14 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 is not canceled (otherwise some error: `rpctypes.Error(closeErr)`, `rpctypes.ErrCompacted`, or
 for a cancellation `rpctypes.Error` of a `FailedPrecondition` status with the cancel reason, or
 `rpctypes.ErrFutureRev` without one), whose `Error()` returns some string if the close
-error's does (`errStrOk`). A read, on any fraction. -/
+error's does (`errStrOk`). A read, on any fraction. The close error is one grpc's `status`
+accepts (`statusErrOk`, unit P3a, 2026-10-14: `rpctypes.Error` calls its `Error()` and
+`GRPCStatus()`; the spec had no premise, which made it false for a close error whose methods
+panic). -/
 abbrev WatchResponse.Err.spec : Prop :=
   ∀ (wr : Loc) (resp : go_etcd_io.etcd.client.v3.WatchResponse) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ wr ↦{dq} resp }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ wr ↦{dq} resp ∗
+      statusErrOk resp.closeErr' }}
     (App (Val (wr @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.WatchResponse.ty @!! go!"Err")) (Val #()))
   {{ (err : GoError), RET #err; wr ↦{dq} resp ∗
       ⌜err = interface.nil ↔

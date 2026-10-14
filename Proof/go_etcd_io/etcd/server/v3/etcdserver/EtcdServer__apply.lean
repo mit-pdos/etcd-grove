@@ -77,6 +77,9 @@ theorem EtcdServer.apply.wp_proof
   intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr hne hfrom hok hEok
   wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hents, Hst, Hbe, Happ, Hcs, Hlr, Hgr, HKV, Hao, HW⟩
   ihave #Hsrv0 := Hsrv
+  ihave #Pmem : isPkgInit (PROP := IProp GF)
+      pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
+  · iPkgInit
   iunfold isServer at Hsrv
   icases Hsrv with ⟨#Hsci, ⟨%sv, #Hfl⟩, #Hat⟩
   ihave #Hat' := Hat
@@ -87,7 +90,7 @@ theorem EtcdServer.apply.wp_proof
   icases Hsci' with ⟨#Hcif, #Hci, #Hinv⟩
   iunfold srvFieldsAt at Hfl
   icases Hfl with ⟨#Hlg, %Hlgnn, #Hw, #Hwok, #Hua, #Happlier, %HE, #Hhook, #Hls, #Hlok, #Hfc, #Hals,
-    #Hcl, #Hq, #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
+    #Hcl, #Hrc, #Hq, #Hlgmu, #Hmid, #Hlead, #Het, #Htm, #Hnot, #Halm⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave %Hesl := ownSlice_len _ _ _ $$ Hes
@@ -416,7 +419,8 @@ theorem EtcdServer.apply.wp_proof
         wp_apply (hId cc_ptr v'' (DFrac.own 1) (ccIdOf m.data)) $$ [Hcc] as Hcc
         · rw [hIdEq]; iframe Hcc Hcid
         (try wp_auto)
-        wp_apply hMem as %msl -
+        wp_apply hMem sv.cluster $$ [] as %msl -
+        · iframe #
         (try wp_auto)
         wp_alloc rsp as Hrsp
         (try wp_auto)
@@ -585,7 +589,8 @@ theorem EtcdServer.apply.wp_proof
         wp_apply (hId cc_ptr v'' (DFrac.own 1) (ccIdOf m.data)) $$ [Hcc] as Hcc
         · rw [hIdEq]; iframe Hcc Hcid
         (try wp_auto)
-        wp_apply hMem as %msl -
+        wp_apply hMem sv.cluster $$ [] as %msl -
+        · iframe #
         (try wp_auto)
         wp_alloc rsp as Hrsp
         (try wp_auto)

@@ -59,6 +59,9 @@ theorem apply.authApplierV3.Range.wp_proof :
   | ok e' =>
     wp_auto
     iapply HΦ
+    isplitl
+    rotate_left
+    · iapply apply.traceRes_null
     iunfold apply.rangePost
     iexists (.rejected .auth)
     isplitr
@@ -75,12 +78,15 @@ theorem apply.authApplierV3.Range.wp_proof :
     iexists info; iexact Hinfo
   | nil =>
   wp_auto
-  wp_apply HRangeI $$ %r %rq %o %log [Hkv Hres] as %resp %trace %err Hpost
+  wp_apply HRangeI $$ %r %rq %o %log [Hkv Hres] as %resp %trace %err ⟨Hpost, Htrc⟩
   · iunfold apply.rangePre
     iframe
     iframe #
     ipureintro; exact Hk
   iapply HΦ
+  isplitr [Htrc]
+  rotate_left
+  · iexact Htrc
   iunfold apply.rangePost at Hpost
   iunfold apply.rangePost
   icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres⟩

@@ -1,7 +1,12 @@
-# Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
+# Types and names only: function and method bodies are axiomatized, except (unit P3a) `Error`,
+# `ErrorDesc` and `EtcdError`'s methods `Error` and `Code` (the client's `ContextError` and
+# retry interceptor, the cache's `WatchResponse.Err` call `Error`), which call grpc's
+# `status.FromError` and `(*Status).Message`/`Code` (names only: hence the import of grpc's
+# `status`); the package's variables (`errStringToError`, the errors) stay names only (their
+# values are the package-init facts, `cache/v3/Base.lean`).
+translate = ["!*", "Error", "ErrorDesc", "EtcdError.Error", "EtcdError.Code"]
 # `EtcdError`'s field `code` is a `codes.Code`: `client/v3/leasing`'s `acquire` allocates one.
-imports = ["!*", "google.golang.org/grpc/codes"]
+imports = ["!*", "google.golang.org/grpc/codes", "google.golang.org/grpc/status"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

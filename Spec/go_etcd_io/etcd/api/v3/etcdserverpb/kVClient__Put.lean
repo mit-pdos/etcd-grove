@@ -22,20 +22,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `c.Put(ctx, in, opts...)` on a stub on a connection to `K` (`kvStubAt`): `Invoke` of
+/-- `c.Put(ctx, in, opts...)` on a stub on a connection to the server at `addr` (`kvStubAt`),
+for a spec `Spec` the server registered for the method and the caller's `Φ`: `Invoke` of
 `"/etcdserverpb.KV/Put"` with `grpc.StaticMethod()` before the options, into a new
-`*PutResponse`: the call's answer (`putCallOut`, the run's `Q`); the request comes back. -/
+`*PutResponse`: the call's answer (`putCallOut`, the run's `Φ`); the request comes back. -/
 abbrev kVClient.Put.spec : Prop :=
-  ∀ (kc conn : Loc) (K : KVConn GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+  ∀ (kc conn : Loc) (addr : GoString) (Spec : GrpcSpec (GF := GF) pbPutRequest pbPutResponse)
+    (Φ : PutRespM → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (inp : Loc) (req : etcdserverpb.PutRequest) (k v : GoString) (opts : GoSlice)
-    (vs : List GoInterface) (Q : PutRespM → IProp GF),
+    (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ kvStubAt kc conn ∗
-      isKVConn conn K ∗ context.isContext ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.Value' ↦*□ v ∗
-      opts ↦*□ vs ∗ callOptsOk vs ∗ putRunOk K (putReqOp req k v) Q }}
+      isEtcdConn conn addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Put" Spec ∗
+      □ ▷ Spec (putReqOp req k v) Φ ∗ context.isContext ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.Value' ↦*□ v ∗
+      opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (App (Val (kc @!! go.GoType.PointerType etcdserverpb.kVClient.ty @!! go!"Put"))
       (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (∃ req' : etcdserverpb.PutRequest, inp ↦ req') ∗ putCallOut Q resp err }}
+      (∃ req' : etcdserverpb.PutRequest, inp ↦ req') ∗ putCallOut Φ resp err }}
 
 end spec
 

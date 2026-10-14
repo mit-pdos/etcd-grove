@@ -39,6 +39,17 @@ axiom grpcOverheadBytes [FfiSyntax] [GoGlobalContext] : val
 noncomputable def CheckDuplicateURL [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/config.CheckDuplicateURL"
 
+/-- ReqTimeout returns timeout for request to finish.
+
+    go: config.go:316:24 -/
+noncomputable def ServerConfig.ReqTimeout.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ServerConfig.ty)))) (Var "c"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoOp GoPlus _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 5)) (Val _root_.Perennial.time.Second))) (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (Val #(W64 2)) (App (Val (GoInstruction (Convert go.int _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"ElectionTicks"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"TickMs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))))))))) (Val _root_.Perennial.time.Millisecond))))))))))
+
 /-- go: config.go:322:24 -/
 noncomputable def ServerConfig.ElectionTimeout.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "c"
@@ -331,6 +342,7 @@ class ServerConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   get_Metrics : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"Metrics") #x (Val #(x.Metrics'))
   set_Metrics : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"Metrics") (PairV #x #y) (Val #(({ x with Metrics' := y } : ServerConfig)))
   ptr_ElectionTimeout_unfold : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"ElectionTimeout" ServerConfig.ElectionTimeout.impl
+  ptr_ReqTimeout_unfold : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"ReqTimeout" ServerConfig.ReqTimeout.impl
 
 attribute [instance] ServerConfig.TypeAssumptions.type_repr
   ServerConfig.TypeAssumptions.underlying
@@ -449,6 +461,7 @@ attribute [instance] ServerConfig.TypeAssumptions.type_repr
   ServerConfig.TypeAssumptions.get_Metrics
   ServerConfig.TypeAssumptions.set_Metrics
   ServerConfig.TypeAssumptions.ptr_ElectionTimeout_unfold
+  ServerConfig.TypeAssumptions.ptr_ReqTimeout_unfold
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   ServerConfig_instance : ServerConfig.TypeAssumptions

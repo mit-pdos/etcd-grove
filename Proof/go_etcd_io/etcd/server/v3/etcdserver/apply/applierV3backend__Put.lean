@@ -55,11 +55,18 @@ theorem apply.applierV3backend.Put.wp_proof
   have hlen : log.length + 4 ≤ 2 ^ 63 := Hrq.2.2
   ihave #Hl := apply.leaseOk_ignore L (mvcc.stateAfter log) o $$ Hknown
   wp_apply (txn.put_soleWriter_of hPut todoCtxVal mvcc.neverCd opts.Logger' opts.Lessor' opts.KV'
-      E.s E.γ r o log E.P Pre Q Post E.f L hlen) $$ [$Hrd $Hsw $Hwt $Hcs $Hu]
-    as %resp %trace %err ⟨Hrd, Hu, %Htr, Hout⟩
+      E.s E.γ r o log E.P Pre Q Post E.f L none false hlen) $$ [$Hrd $Hsw $Hwt $Hcs $Hu]
+    as %resp %trace %err ⟨Hrd, Hu, %Htr, Htrc, -, Hout⟩
   · iframe #
-    iapply mvcc.txnCtx_todo
+    isplitr
+    · iapply mvcc.txnCtx_todo
+    isplitr
+    · iapply traceutil.ctxTraceIs_todo
+    simp only [traceutil.ownTraceOpt]; itrivial
   iapply HΦ
+  isplitr [Htrc]
+  rotate_left
+  · iunfold apply.traceRes; iright; iexact Htrc
   iunfold apply.kvPost
   obtain ⟨hput, hk, -⟩ := Hrq
   icases Hout with (⟨%Hn, #He, Hsw, HPre⟩ | ⟨%Hn, #He, Hsw, HPost⟩ |

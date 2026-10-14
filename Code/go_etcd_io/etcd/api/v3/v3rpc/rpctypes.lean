@@ -2,6 +2,7 @@
 module
 
 public import Code.google_golang_org.grpc.codes
+public import Code.google_golang_org.grpc.status
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -678,8 +679,115 @@ noncomputable def Error [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def ErrorDesc [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrorDesc"
 
+/-- Code returns grpc/codes.Code.
+    TODO: define clientv3/codes.Code.
+
+    go: error.go:248:20 -/
+noncomputable def EtcdError.Code.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc EtcdError.ty))) (Var "e"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (App (Val (GoInstruction (StructFieldRef EtcdError.ty go!"code"))) (Var "e"))))))))
+
+/-- go: error.go:252:20 -/
+noncomputable def EtcdError.Error.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc EtcdError.ty))) (Var "e"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef EtcdError.ty go!"desc"))) (Var "e"))))))))
+
+/-- go: error.go:256:6 -/
+noncomputable def Error.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "err"
+  (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (map.lookup2 go.string go.error)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.error)))) (App (Val (GoInstruction (GlobalVarAddr errStringToError))) (Val #())))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve ErrorDesc []))) (Val #())) (Var "$a0"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "verr" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "verr"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.FromError []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ev" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "desc" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert EtcdError.ty go.error))) (Let "$v0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty) go!"Code"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Var "ev"))) (Val #()))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "desc"))
+  (App (Val (GoInstruction (CompositeLiteral EtcdError.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"code")) (ElementExpression _root_.Perennial.google_golang_org.grpc.codes.Code.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"desc")) (ElementExpression go.string (Var "$v1")))]))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty) go!"Message"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Var "ev"))) (Val #()))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "desc") (Var "$r0")))))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "verr"))) (Val #()))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "desc") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Pair (Var "ev") (Var "$r0")))))))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "verr") (Var "$r0"))))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))
+  (App (Val doExecute)
+  (Val #())))))))
+
+/-- go: error.go:274:6 -/
+noncomputable def ErrorDesc.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "err"
+  (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))) (Val #())))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.status.FromError []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (Val doReturn)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty) go!"Message"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Var "s"))) (Val #())))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)))) (Pair (Var "s") (Var "$r0"))))))))))))))))
+
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes where
-  pkgImportedPkgs := [pkg_id.google_golang_org.grpc.codes]
+  pkgImportedPkgs := [pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -687,6 +795,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1072,7 +1181,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrGRPCEmptyKey.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.google_golang_org.grpc.codes.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.google_golang_org.grpc.codes.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.status.initialize') (Val #()))))))))
 
 structure EtcdError [FfiSyntax] where
   mk ::
@@ -1103,6 +1214,12 @@ class EtcdError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   set_code : ∀ (x : EtcdError) (y : _root_.Perennial.google_golang_org.grpc.codes.Code), go.IsGoStepPureDetTagged under (StructFieldSet EtcdError.underlying go!"code") (PairV #x #y) (Val #(({ x with code' := y } : EtcdError)))
   get_desc : ∀ (x : EtcdError), go.IsGoStepPureDetTagged under (StructFieldGet EtcdError.underlying go!"desc") #x (Val #(x.desc'))
   set_desc : ∀ (x : EtcdError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet EtcdError.underlying go!"desc") (PairV #x #y) (Val #(({ x with desc' := y } : EtcdError)))
+  Code_unfold : MethodUnfold EtcdError.ty go!"Code" EtcdError.Code.impl
+  Error_unfold : MethodUnfold EtcdError.ty go!"Error" EtcdError.Error.impl
+  ptr_Code_unfold : MethodUnfold (go.GoType.PointerType EtcdError.ty) go!"Code" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve EtcdError.ty go!"Code"))) (App (Val (GoInstruction (GoLoad EtcdError.ty))) (Var "$r"))))
+  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType EtcdError.ty) go!"Error" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve EtcdError.ty go!"Error"))) (App (Val (GoInstruction (GoLoad EtcdError.ty))) (Var "$r"))))
 
 attribute [instance] EtcdError.TypeAssumptions.type_repr
   EtcdError.TypeAssumptions.underlying
@@ -1110,6 +1227,10 @@ attribute [instance] EtcdError.TypeAssumptions.type_repr
   EtcdError.TypeAssumptions.set_code
   EtcdError.TypeAssumptions.get_desc
   EtcdError.TypeAssumptions.set_desc
+  EtcdError.TypeAssumptions.Code_unfold
+  EtcdError.TypeAssumptions.Error_unfold
+  EtcdError.TypeAssumptions.ptr_Code_unfold
+  EtcdError.TypeAssumptions.ptr_Error_unfold
 
 structure TokenFieldNameGRPCKey [FfiSyntax] where
   mk ::
@@ -1140,11 +1261,17 @@ attribute [instance] TokenFieldNameGRPCKey.TypeAssumptions.type_repr
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   EtcdError_instance : EtcdError.TypeAssumptions
   TokenFieldNameGRPCKey_instance : TokenFieldNameGRPCKey.TypeAssumptions
+  Error_unfold : FuncUnfold Error [] Error.impl
+  ErrorDesc_unfold : FuncUnfold ErrorDesc [] ErrorDesc.impl
   import_codes_Assumption : _root_.Perennial.google_golang_org.grpc.codes.Assumptions
+  import_status_Assumption : _root_.Perennial.google_golang_org.grpc.status.Assumptions
 
 attribute [instance] Assumptions.EtcdError_instance
   Assumptions.TokenFieldNameGRPCKey_instance
+  Assumptions.Error_unfold
+  Assumptions.ErrorDesc_unfold
   Assumptions.import_codes_Assumption
+  Assumptions.import_status_Assumption
 
 end go_etcd_io.etcd.api.v3.v3rpc.rpctypes
 

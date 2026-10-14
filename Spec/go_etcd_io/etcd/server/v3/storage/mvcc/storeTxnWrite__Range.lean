@@ -28,16 +28,17 @@ appended (`ilog ++ [pend]`; with no change the empty revision changes nothing), 
 index by the writer and from the bucket through the batch transaction, which sees its own
 puts. At `context.TODO()` (`todo`), no context error. -/
 abbrev mvcc.storeTxnWrite.Range.spec : Prop :=
-  ∀ (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
+  ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool)
-    (key endk : GoSlice) (k e : GoString) (ro : RangeOptions),
+    (key endk : GoSlice) (k e : GoString) (ro : RangeOptions) (te : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.storeTxnWriteIs tw s γ ilog pend ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e }}
+      mvcc.storeTxnWriteIs tw s γ trace ilog pend ∗ mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e ∗
+      traceutil.ownTrace trace te }}
     (App (App (App (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"Range"))
       (Val #(GoInterface.ok ctx))) (Val #key)) (Val #endk)) (Val #ro))
   {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
       ⌜todo = true → r ≠ null⌝ ∗
-      mvcc.storeTxnWriteIs tw s γ ilog pend ∗
+      mvcc.storeTxnWriteIs tw s γ trace ilog pend ∗ traceutil.ownTrace trace te ∗
       mvcc.rangeOutcome r err (ilog ++ [pend]) (W64 ((mvcc.writeRev ilog pend : Nat) : Int))
         (decide (endk = slice.nil)) k e ro }}
 

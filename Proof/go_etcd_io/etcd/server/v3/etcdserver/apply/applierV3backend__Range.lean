@@ -48,15 +48,22 @@ theorem apply.applierV3backend.Range.wp_proof
   icases Hkv with ⟨#Hkv, -⟩
   obtain ⟨hr, hk, hlen, hsort, hok⟩ := Hrq
   wp_apply (txn.range_soleWriter_of hRange log hlen todoCtxVal mvcc.neverCd true opts.Logger'
-      opts.KV' E.s E.γ r o true) $$ [$Hrd $Hsw]
-    as %resp %trace %err ⟨Hrd, Hsw, %Htr, Hout, %Hnd⟩
+      opts.KV' E.s E.γ r o true none false) $$ [$Hrd $Hsw]
+    as %resp %trace %err ⟨Hrd, Hsw, %Htr, Htrc, -, Hout, %Hnd⟩
   · iframe #
     isplitr
     · iapply mvcc.txnCtx_todo
     isplitr
+    · iapply traceutil.ctxTraceIs_todo
+    isplitr
+    · simp only [traceutil.ownTraceOpt]; itrivial
+    isplitr
     · simp only [↓reduceIte]; iapply mvcc.neverDone_neverCd
     ipureintro; exact ⟨Hlg, hsort, hok⟩
   iapply HΦ
+  isplitr [Htrc]
+  rotate_left
+  · iunfold apply.traceRes; iright; iexact Htrc
   iunfold apply.rangePost
   iexists (.applied log false)
   isplitr

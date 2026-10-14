@@ -56,6 +56,9 @@ theorem apply.applierV3Capped.Txn.wp_proof
   wp_if_destruct
   · -- the request costs: `ErrNoSpace`
     iapply HΦ
+    isplitl
+    rotate_left
+    · iapply apply.traceRes_null
     iunfold apply.kvPost
     iexists (.rejected .noSpace)
     isplitr
@@ -76,13 +79,16 @@ theorem apply.applierV3Capped.Txn.wp_proof
   · -- the inner applier's `Txn`
     ihave Hres := apply.chainRes_capped_out c p (.ok bi) $$ Hc Hres
     wp_apply HTxn $$ %r %skip %rq %t %log %Pre %Q %Post [Hwt Hkv Hres Hcs]
-      as %resp %trace %err Hpost
+      as %resp %trace %err ⟨Hpost, Htrc⟩
     · iunfold apply.txnPre
       iunfold apply.mPre
       iframe
       iframe #
       ipureintro; exact Hk
     iapply HΦ
+    isplitr [Htrc]
+    rotate_left
+    · iexact Htrc
     iunfold apply.kvPost at Hpost
     iunfold apply.kvPost
     icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP⟩

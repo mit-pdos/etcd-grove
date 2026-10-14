@@ -1,13 +1,11 @@
 /-
-`(*traceutil.Trace).AddField`: the trust boundary (`pkg/v3/traceutil` is names-only). Lean-first.
-
-`t.AddField(fields...)` adds or updates fields of the trace `t` (not nil): bookkeeping for logs, no effect here.
+`(*traceutil.Trace).AddField` (`trace.go`: each field updated in place or appended). Lean-first (no Rocq counterpart); unit P1b (2026-10-14): the trace owned (`ownTrace`,
+`notes/decisions.md`, "Traces on the request path").
 -/
 module
 
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
-public import GeneratedProof.go_etcd_io.etcd.pkg.v3.traceutil
-public import Perennial.Proof.context
 
 @[expose] public section
 
@@ -25,13 +23,16 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
-/-- `t.AddField(fields...)` (a trace not nil) returns. -/
+/-- `t.AddField(fields...)` of an owned trace, the fields read (their values formattable): it
+returns; the trace kept. -/
 abbrev traceutil.Trace.AddField.spec : Prop :=
-  ∀ (t : Loc) (fields : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ ⌜t ≠ null⌝ }}
-    (App (Val (t @!! go.GoType.PointerType traceutil.Trace.ty @!! go!"AddField")) (Val #fields))
-  {{ RET #(); True }}
+  ∀ (t : Loc) (e : Bool) (fields : GoSlice) (fs : List traceutil.Field) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ traceutil.ownTrace t e ∗ fields ↦*{dq} fs ∗
+      ⌜traceutil.fieldsWf fs⌝ }}
+    (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty @!! go!"AddField")) (Val #fields))
+  {{ RET #(); traceutil.ownTrace t e ∗ fields ↦*{dq} fs }}
 
 end spec
 

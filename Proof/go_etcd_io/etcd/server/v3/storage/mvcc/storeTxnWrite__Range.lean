@@ -27,8 +27,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.storeTxnWrite.Range.wp_proof
     (hKeys : mvcc.storeTxnCommon.rangeKeys.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.Range.spec (GF := GF) (hG := hG) := by
-  intro tw s γ ilog pend ctx cd todo key endk k e ro
-  wp_start as ⟨Htw, #Hctx, #Hkey, #Hend⟩
+  intro trace tw s γ ilog pend ctx cd todo key endk k e ro te
+  wp_start as ⟨Htw, #Hctx, #Hkey, #Hend, Hown⟩
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw
   -- the writer's log and the number of changes
@@ -104,9 +104,9 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
         ((mvcc.pendPuts ilog pend).foldl (fun m p => GMap.insert p.1 p.2 m) (mvcc.bucketMap ilog))
         iprop(Locked (mvcc.pendPuts ilog pend) ∗ mvcc.bucketView γ (1 : Qp).half (mvcc.bucketMap ilog))
         γ (.writer ilog pend) (ilog ++ [pend]) (W64 ((mvcc.writeRev ilog pend : Nat) : Int))
-        ctx cd todo key endk k e ro _ _ (-1) (by assumption))
-      $$ [$Hs $Cs $Ctx $Ctrace $Hrdr $HR $Hkn $Hidx $Hti $Hctx $Hkey $Hend $Hcmp $Hcu]
-      as %r %err ⟨%Htodo, Cs, Ctx, Ctrace, ⟨Hlocked, Hbv⟩, Hw, Hti, Hcmp, Hcu, Hout⟩
+        ctx cd todo key endk k e ro _ _ (-1) te (by assumption))
+      $$ [$Hs $Cs $Ctx $Ctrace $Hrdr $HR $Hkn $Hidx $Hti $Hctx $Hkey $Hend $Hcmp $Hcu $Hown]
+      as %r %err ⟨%Htodo, Cs, Ctx, Ctrace, ⟨Hlocked, Hbv⟩, Hw, Hti, Hcmp, Hcu, Hown, Hout⟩
     · ipureintro
       refine ⟨?_, rfl, by simp, ?_, by decide, by decide⟩
       · rw [mvcc.bucketMap_append ilog pend Hne]; exact fun _ _ h => h
@@ -130,9 +130,9 @@ theorem mvcc.storeTxnWrite.Range.wp_proof
     iapply HΦ
     isplitl []
     · ipureintro; exact Htodo
-    iframe Hout
+    iframe Hout Hown
     iunfold mvcc.storeTxnWriteIs
-    iexists trace, ti, bt, Locked, chs, ps, ntok
+    iexists ti, bt, Locked, chs, ps, ntok
     simp only [named]
     iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
     iframe #

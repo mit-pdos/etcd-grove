@@ -95,7 +95,7 @@ Notifier__Notify:
 ServerConfig__ElectionTimeout:
 AlarmStore__Get:
 # (the trust boundary, continued)
-RaftCluster__Members:
+RaftCluster__Members: Member__Clone sort_Sort MembersByID__Len MembersByID__Less MembersByID__Swap
 errors_Is:
 go_humanize_Bytes:
 zap_Logger__Debug:
@@ -163,14 +163,14 @@ strconv_FormatBool:
 time_Duration__Seconds:
 time_Time__After:
 prometheus_HistogramVec__WithLabelValues:
-traceutil_Trace__LogIfLong:
+traceutil_Trace__LogIfLong: traceutil_Trace__LogWithStepThreshold
 traceutil_Trace__GetStartTime:
 traceutil_Trace__SetStartTime:
 traceutil_Trace__InsertStep:
 txn_WarnOfExpensiveReadOnlyRangeRequest:
 txn_WarnOfExpensiveReadOnlyTxnRequest:
-etcdserver_isConnectedSince:
-etcdserver_isConnectedToQuorumSince:
+etcdserver_isConnectedSince: time_Time__IsZero
+etcdserver_isConnectedToQuorumSince: numConnectedSince quorum
 config_ServerConfig__ReqTimeout:
 membership_RaftCluster__ID:
 proto_MarshalIRR:
@@ -232,10 +232,10 @@ txn_IsTxnReadonly: @
 txn_IsTxnSerializable: @
 apply_CheckTxnAuth: @
 mvcc_store__Rev: @
-traceutil_EnsureTrace:
-traceutil_Get:
+traceutil_EnsureTrace: traceutil_Get traceutil_Trace__IsEmpty traceutil_newTrace context_WithValue
+traceutil_Get: traceutil_TODO
 traceutil_Trace__Step:
-traceutil_Trace__AddField:
+traceutil_Trace__AddField: traceutil_Trace__updateFieldIfExist
 # etcdserverpb's getters the read side's trace attributes call, with bodies (proved).
 Compare__GetKey:
 RangeRequest__GetKey:
@@ -334,3 +334,44 @@ read_NewRead: @
 read_Read__LinearizableReadLoop: @
 EtcdServer__start: EtcdServer__Logger zap_Logger__Info zap_String zap_Uint64 wait_New wait_NewTimeList wait_timeList__Wait wait_timeList__Trigger read_NewRead NewNotifier EtcdServer__MemberID EtcdServer__Cluster membership_RaftCluster__ID types_ID__String Version__String version_Cluster prometheus_GaugeVec__With EtcdServer__run EtcdServer__ApplyWait EtcdServer__Done EtcdServer__Stopping EtcdServer__LeaderChanged EtcdServer__FirstCommitInTermNotify EtcdServer__NextRequestID EtcdServer__RequestTimeout EtcdServer__AppliedIndex raftNode__ReadState raftNode__ReadIndex
 EtcdServer__Start: EtcdServer__start EtcdServer__GoAttach EtcdServer__Logger EtcdServer__adjustTicks EtcdServer__publishV3 config_ServerConfig__ReqTimeout EtcdServer__purgeFile monitorFileDescriptor EtcdServer__monitorClusterVersions EtcdServer__monitorStorageVersion read_Read__LinearizableReadLoop EtcdServer__monitorKVHash EtcdServer__monitorCompactHash EtcdServer__monitorDowngrade
+#
+# Unit P1b (2026-10-14): the request path's leaf functions proved (traceutil, the cluster's
+# members, the transport queries; `time.Time.IsZero` and `LogWithStepThreshold` are axioms).
+Member__Clone:
+MembersByID__Len:
+MembersByID__Less:
+MembersByID__Swap:
+sort_Sort:
+time_Time__IsZero:
+numConnectedSince: etcdserver_isConnectedSince
+quorum:
+traceutil_TODO:
+traceutil_Trace__IsEmpty:
+traceutil_newTrace:
+traceutil_Trace__updateFieldIfExist:
+traceutil_Trace__LogWithStepThreshold:
+#
+# Unit P2 (2026-10-14): the auth store's request side (server/v3/auth, proved over `auth.authInv`,
+# InvAuth.lean); adt's bytes-affine intervals are linked in adt's Link.lean (`@`). The trust
+# boundary: metadata.FromIncomingContext, AuthInfoFromTLS, hasRootRole, redactToken, zap.ByteString.
+zap_ByteString:
+zap_Logger__Error:
+metadata_FromIncomingContext:
+auth_hasRootRole:
+auth_redactToken:
+auth_authStore__AuthInfoFromTLS:
+NewBytesAffinePoint: @
+NewBytesAffineInterval: @
+auth_authStore__Revision:
+auth_authStore__IsAuthEnabled:
+auth_isOpenEnded:
+auth_checkKeyPoint: NewBytesAffinePoint
+auth_checkKeyInterval: auth_isOpenEnded NewBytesAffineInterval
+auth_authStore__isRangeOpPermitted: zap_String zap_Logger__Error auth_checkKeyInterval auth_checkKeyPoint
+auth_authStore__isOpPermitted: auth_authStore__IsAuthEnabled auth_authStore__Revision zap_Uint64 zap_ByteString zap_Error zap_Logger__Warn zap_String zap_Logger__Error auth_hasRootRole auth_authStore__isRangeOpPermitted
+auth_authStore__IsPutPermitted: auth_authStore__isOpPermitted
+auth_authStore__IsRangePermitted: auth_authStore__isOpPermitted
+auth_authStore__IsDeleteRangePermitted: auth_authStore__isOpPermitted
+auth_authStore__IsAdminPermitted: auth_authStore__IsAuthEnabled auth_hasRootRole
+auth_authStore__authInfoFromToken: auth_authStore__Revision
+auth_authStore__AuthInfoFromCtx: auth_authStore__IsAuthEnabled metadata_FromIncomingContext auth_authStore__authInfoFromToken auth_redactToken zap_String zap_Logger__Warn

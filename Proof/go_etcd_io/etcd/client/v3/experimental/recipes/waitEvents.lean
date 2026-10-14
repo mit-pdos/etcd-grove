@@ -56,7 +56,7 @@ theorem waitEvents.wp_proof : waitEvents.spec (GF := GF) (hG := hG) := by
   simp only [↓reduceIte]
   icases H with ⟨HP, Hcons⟩
   iunfold rangeWatchElem at HP
-  icases HP with ⟨%r, %c, %c', #Hevs, -, -, -, -, #Hok⟩
+  icases HP with ⟨%r, %c, %c', #Hevs, -, -, -, -, #Hok, -⟩
   iunfold rangeWatchRespOk at Hok
   icases Hok with ⟨-, #Hok⟩
   iunfold eventsAt at Hevs

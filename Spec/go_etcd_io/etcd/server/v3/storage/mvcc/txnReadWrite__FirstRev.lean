@@ -24,10 +24,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `trw.FirstRev()`: the read transaction's first revision, `-1` (no compaction). -/
 abbrev mvcc.txnReadWrite.FirstRev.spec : Prop :=
-  ∀ (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isRoTxnWrite trw s γ log rev }}
+  ∀ (trace : Loc) (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isRoTxnWrite trw s γ trace log rev }}
     (App (Val (trw @!! go.GoType.PointerType txnReadWrite.ty @!! go!"FirstRev")) (Val #()))
-  {{ RET #(W64 (-1)); mvcc.isRoTxnWrite trw s γ log rev }}
+  {{ RET #(W64 (-1)); mvcc.isRoTxnWrite trw s γ trace log rev }}
 
 end spec
 

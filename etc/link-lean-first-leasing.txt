@@ -160,4 +160,4 @@ leasingKV__Do: Op__IsGet leasingKV__get GetResponse__OpResponse Op__IsPut leasin
 # Unit 5: the session monitor, Close, NewKV (kv.go).
 leasingKV__monitorSession: NewSession Session__Done
 leasingKV__Close:
-NewKV: Client__Ctx leasingKV__monitorSession leaseCache__clearOldRevokes leasingKV__Close leasingKV__waitSession
+leasing_NewKV: Client__Ctx leasingKV__monitorSession leaseCache__clearOldRevokes leasingKV__Close leasingKV__waitSession

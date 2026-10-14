@@ -136,8 +136,11 @@ public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__findLastIndexLessOrEqua
 public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__full
 public import Proof.go_etcd_io.etcd.cache.v3.ringBuffer__moduloIndex
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrorDesc
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Error
 public import Proof.go_etcd_io.etcd.cache.v3.snapshot__Range
 public import Proof.google_golang_org.grpc.status.Error
+public import Proof.google_golang_org.grpc.status.FromError
 public import Proof.go_etcd_io.etcd.cache.v3.store__Apply
 public import Proof.go_etcd_io.etcd.cache.v3.store__Get
 public import Proof.go_etcd_io.etcd.cache.v3.store__LatestRev
@@ -386,9 +389,21 @@ theorem wp_WithCreatedNotify :
     WithCreatedNotify.spec (GF := GF) (hG := hG) :=
   WithCreatedNotify.wp_proof
 
+theorem status.wp_FromError :
+    status.FromError.spec (GF := GF) (hG := hG) :=
+  status.FromError.wp_proof
+
+theorem rpctypes.wp_ErrorDesc :
+    rpctypes.ErrorDesc.spec (GF := GF) (hG := hG) :=
+  rpctypes.ErrorDesc.wp_proof status.wp_FromError
+
+theorem rpctypes.EtcdError.wp_Error :
+    rpctypes.EtcdError.Error.spec (GF := GF) (hG := hG) :=
+  rpctypes.EtcdError.Error.wp_proof
+
 theorem rpctypes.wp_Error :
     rpctypes.Error.spec (GF := GF) (hG := hG) :=
-  rpctypes.Error.wp_proof
+  rpctypes.Error.wp_proof rpctypes.wp_ErrorDesc status.wp_FromError rpctypes.EtcdError.wp_Error
 
 theorem status.wp_Error :
     status.Error.spec (GF := GF) (hG := hG) :=

@@ -31,13 +31,13 @@ the last log committed, the log read is that log: the txn package's sole writer.
 (`ownToks_0`) and `log₀ = []` (`idxCert_nil`), both ghost updates, it is the spec without
 them. -/
 abbrev mvcc.store.Read.spec : Prop :=
-  ∀ (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (m : Nat) (log₀ : mvcc.Log),
+  ∀ (s : Loc) (γ : mvcc.StoreNames) (mode : w32) (trace : Loc) (m : Nat) (log₀ : mvcc.Log) (te : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeReader s γ ∗ ownToks γ.revs m ∗ mvcc.idxCert γ.idx log₀ ∗
-      ⌜trace ≠ null⌝ }}
+      ⌜trace ≠ null⌝ ∗ traceutil.ownTrace trace te }}
     (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Read")) (Val #mode)) (Val #trace))
   {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
-      ∃ (log : mvcc.Log) (rev : w64), mvcc.isTxnRead mw s γ log rev ∗ ownToks γ.revs m ∗
+      ∃ (log : mvcc.Log) (rev : w64), mvcc.isTxnRead mw s γ trace log rev ∗ ownToks γ.revs m ∗
         ⌜log₀ <+: log ∧ log.length + m + 3 ≤ 2 ^ 63⌝ }}
 
 end spec

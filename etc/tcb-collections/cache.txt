@@ -17,6 +17,6 @@ axiom etcdStep_delete_present
 axiom etcdStep_transfer
 axiom fmt.Errorf.wp_proof
 axiom fmt.Printf.wp_proof
-axiom rpctypes.Error.wp_proof
 axiom status.Error.wp_proof
+axiom status.FromError.wp_proof
 axiom time.Duration.String.wp_proof

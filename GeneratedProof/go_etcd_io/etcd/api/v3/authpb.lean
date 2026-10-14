@@ -17,25 +17,6 @@ open Iris Iris.BI
 noncomputable section
 namespace go_etcd_io.etcd.api.v3.authpb
 
-namespace Permission_Type
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.authpb.Assumptions]
-
-instance Permission_Type_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.authpb.Permission_Type :=
-  sorry -- axiomatized type
-
-instance Permission_Type_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.authpb.Permission_Type go_etcd_io.etcd.api.v3.authpb.Permission_Type.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Permission_Type
-
 namespace UserAddOptions
 section def_
 

@@ -60,8 +60,8 @@ theorem isReadServer_of_server
   iunfold isServerReq at Hsrv
   icases Hsrv with ⟨%v, #Hv⟩
   iunfold srvReqFieldsAt at Hv
-  icases Hv with ⟨#Hgenf, #Hgen, -, -, -, -, -, -, -, -, -, -, -, #Hdonef, #Hdone, -, -, -, -, -, -,
-    -, %Hcfg⟩
+  icases Hv with ⟨#Hgenf, #Hgen, -, -, -, -, -, -, -, #Het, #Htm, -, -, #Hdonef, #Hdone, -, -, -, -, -, -,
+    -, -, %Hcfg⟩
   iunfold isServerRead at Hsrd
   icases Hsrd with ⟨%w, #Hw⟩
   iunfold srvReadFieldsAt at Hw
@@ -167,8 +167,8 @@ theorem isReadServer_of_server
     itrivial
   -- `RequestTimeout()`
   · iintro !> %Φ !> - HΦ
-    wp_apply hRT s $$ [] as %d -
-    · iframe #; ipureintro; exact Hcfg
+    wp_apply hRT s v.electionTicks v.tickMs $$ [] as %d -
+    · iframe #
     iapply HΦ
     itrivial
 

@@ -707,13 +707,13 @@ def watchWriter (γ : WsNames) (L : Log) : IProp GF :=
 /-- The write transaction `s.Write` returns (`tw`, a `watchableStoreTxnWrite`): its fields, the
 inner transaction (`isTxnWrite` of `metricsTxnWrite` `mw`) over the inner store `st`, and the
 sole writer's certificate, tokens but the transaction's and notified-log half. -/
-def isWatchTxnWrite (tw s st : Loc) (γ : WsNames) (ilog : Log) (pend : List Change)
+def isWatchTxnWrite (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : Log) (pend : List Change)
     (puts deletes putSize : w64) : IProp GF :=
   iprop(∃ mw : Loc,
     "Htw" ∷ tw ↦ ({ TxnWrite' := interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw,
                     s' := s } : watchableStoreTxnWrite) ∗
     "#Hws" ∷ isWatchableStore s st γ ∗
-    "Htx" ∷ isTxnWrite mw st γ.st ilog pend puts deletes putSize ∗
+    "Htx" ∷ isTxnWrite mw st γ.st trace ilog pend puts deletes putSize ∗
     "#Hcert" ∷ idxCert γ.st.idx ilog ∗
     "Htoks" ∷ ownToks γ.st.revs (wBudget ilog - 1) ∗
     "Hwlog" ∷ ghostVar γ.wlog (1 : Qp).half ilog)

@@ -27,20 +27,20 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.txnReadWrite.End.wp_proof
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     mvcc.txnReadWrite.End.spec (GF := GF) (hG := hG) := by
-  intro trw s γ log rev
+  intro trace trw s γ log rev
   wp_start as Hro
   iunfold mvcc.isRoTxnWrite at Hro
   icases Hro with ⟨%mw, Hf, Htx⟩
   (try wp_auto)
-  ihave Htx' : mvcc.isTxn mw s γ (.read log rev) $$ [Htx]
+  ihave Htx' : mvcc.isTxn mw s γ trace (.read log rev) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
   ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ $$ Htx'
   ihave Hep : mvcc.txnEndPre γ (.read log rev) $$ []
   · simp only [mvcc.txnEndPre]; itrivial
-  wp_apply (hEnd mw s γ (.read log rev)) $$ [$Hpkg $Htx' $Hep] as ⟨Hrd, -⟩
+  wp_apply (hEnd trace mw s γ (.read log rev)) $$ [$Hpkg $Htx' $Hep] as ⟨Hrd, -, Htrc⟩
   (try wp_auto)
   iapply HΦ
-  iexact Hrd
+  iframe
 
 end proof
 

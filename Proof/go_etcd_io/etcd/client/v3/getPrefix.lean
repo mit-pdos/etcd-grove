@@ -27,7 +27,7 @@ theorem getPrefix.wp_proof : getPrefix.spec (GF := GF) (hG := hG) := by
   ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
   ihave Hci : (clientv3Init : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hci with ⟨%npe, #Hnpe, #Hnpe_sl⟩
+  icases Hci with ⟨⟨%npe, #Hnpe, #Hnpe_sl⟩, -⟩
   wp_auto
   wp_apply wp_slice_make2 (V := w8) as %e ⟨He, Hecap⟩
   · ipureintro; exact Hlen.2

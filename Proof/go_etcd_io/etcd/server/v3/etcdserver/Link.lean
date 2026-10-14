@@ -89,6 +89,10 @@ public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.HardState__GetTerm
 public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.HardState__GetVote
 public import EtcdDeps.Proof.go_etcd_io.raft.v3.IsEmptyHardState
 public import EtcdDeps.Proof.go_etcd_io.raft.v3.IsEmptySnap
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member__Clone
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID__Len
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID__Less
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembersByID__Swap
 public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.Message__GetTo
 public import EtcdDeps.Proof.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.NewConsistentIndex
@@ -117,6 +121,22 @@ public import Proof.go_opentelemetry_io.otel.attribute.Bool
 public import Proof.go_opentelemetry_io.otel.attribute.Int
 public import Proof.go_opentelemetry_io.otel.attribute.Int64
 public import Proof.go_opentelemetry_io.otel.attribute.String
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromCtx
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromTLS
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsAdminPermitted
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsAuthEnabled
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsDeleteRangePermitted
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsPutPermitted
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__IsRangePermitted
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__Revision
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__authInfoFromToken
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__isOpPermitted
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__isRangeOpPermitted
+public import Proof.go_etcd_io.etcd.server.v3.auth.checkKeyInterval
+public import Proof.go_etcd_io.etcd.server.v3.auth.checkKeyPoint
+public import Proof.go_etcd_io.etcd.server.v3.auth.hasRootRole
+public import Proof.go_etcd_io.etcd.server.v3.auth.isOpenEnded
+public import Proof.go_etcd_io.etcd.server.v3.auth.redactToken
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
 public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__ReqTimeout
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex__ConsistentApplyingIndex
@@ -172,12 +192,15 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__isPrimary
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__scheduleCheckpointIfNeeded
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__shouldPersistCheckpoints
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__ID
+public import Proof.google_golang_org.grpc.metadata.FromIncomingContext
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.monitorFileDescriptor
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.numConnectedSince
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage
 public import Proof.github_com.prometheus.client_golang.prometheus.GaugeVec__With
 public import Proof.github_com.prometheus.client_golang.prometheus.HistogramVec__WithLabelValues
 public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.google_golang_org.protobuf.proto.MarshalIRR
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.quorum
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__ReadIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__ReadState
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__advanceTicks
@@ -195,20 +218,26 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadConsisten
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndexForce
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeUpdateConsistentIndex
+public import Proof.sort.Sort
 public import Proof.go_etcd_io.etcd.server.v3.storage.BackendHooks__OnPreCommitUnsafe
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendHooks
 public import Proof.strconv.FormatBool
 public import Proof.time.Duration__Seconds
 public import Proof.time.Time__After
+public import Proof.time.Time__IsZero
 public import Proof.go_opentelemetry_io.otel.trace.WithAttributes
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Get
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__AddField
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__GetStartTime
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__InsertStep
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__IsEmpty
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__LogIfLong
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__LogWithStepThreshold
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__SetStartTime
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__updateFieldIfExist
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Tracer__Start
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.newTrace
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveReadOnlyRangeRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveReadOnlyTxnRequest
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.ID__String
@@ -226,10 +255,12 @@ public import Proof.go_etcd_io.etcd.pkg.v3.wait.timeList__Trigger
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.timeList__Wait
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.waitWithResponse__Register
 public import Proof.go_etcd_io.etcd.pkg.v3.wait.waitWithResponse__Trigger
+public import Proof.go_uber_org.zap.ByteString
 public import Proof.go_uber_org.zap.Logger__Debug
 public import Proof.go_uber_org.zap.Logger__Fatal
 public import Proof.go_uber_org.zap.Stringer
 public import Proof.go_uber_org.zap.Uint64
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Link
@@ -312,17 +343,49 @@ theorem EtcdServer.wp_MemberID :
     EtcdServer.MemberID.spec (GF := GF) (hG := hG) :=
   EtcdServer.MemberID.wp_proof
 
+theorem membership.Member.wp_Clone :
+    membership.Member.Clone.spec (GF := GF) (hG := hG) :=
+  membership.Member.Clone.wp_proof
+
+theorem sort.wp_Sort :
+    sort.«Sort».spec (GF := GF) (hG := hG) :=
+  sort.«Sort».wp_proof
+
+theorem membership.MembersByID.wp_Len :
+    membership.MembersByID.Len.spec (GF := GF) (hG := hG) :=
+  membership.MembersByID.Len.wp_proof
+
+theorem membership.MembersByID.wp_Less :
+    membership.MembersByID.Less.spec (GF := GF) (hG := hG) :=
+  membership.MembersByID.Less.wp_proof
+
+theorem membership.MembersByID.wp_Swap :
+    membership.MembersByID.Swap.spec (GF := GF) (hG := hG) :=
+  membership.MembersByID.Swap.wp_proof
+
 theorem membership.RaftCluster.wp_Members :
     membership.RaftCluster.Members.spec (GF := GF) (hG := hG) :=
-  membership.RaftCluster.Members.wp_proof
+  membership.RaftCluster.Members.wp_proof membership.Member.wp_Clone sort.wp_Sort membership.MembersByID.wp_Len membership.MembersByID.wp_Less membership.MembersByID.wp_Swap
 
-theorem wp_isConnectedToQuorumSince :
-    isConnectedToQuorumSince.spec (GF := GF) (hG := hG) :=
-  isConnectedToQuorumSince.wp_proof
+theorem time.Time.wp_IsZero :
+    time.Time.IsZero.spec (GF := GF) (hG := hG) :=
+  time.Time.IsZero.wp_proof
 
 theorem wp_isConnectedSince :
     isConnectedSince.spec (GF := GF) (hG := hG) :=
-  isConnectedSince.wp_proof
+  isConnectedSince.wp_proof time.Time.wp_IsZero
+
+theorem wp_numConnectedSince :
+    numConnectedSince.spec (GF := GF) (hG := hG) :=
+  numConnectedSince.wp_proof wp_isConnectedSince
+
+theorem wp_quorum :
+    quorum.spec (GF := GF) (hG := hG) :=
+  quorum.wp_proof
+
+theorem wp_isConnectedToQuorumSince :
+    isConnectedToQuorumSince.spec (GF := GF) (hG := hG) :=
+  isConnectedToQuorumSince.wp_proof wp_numConnectedSince wp_quorum
 
 theorem strconv.wp_FormatBool :
     strconv.FormatBool.spec (GF := GF) (hG := hG) :=
@@ -348,9 +411,13 @@ theorem traceutil.Trace.wp_InsertStep :
     traceutil.Trace.InsertStep.spec (GF := GF) (hG := hG) :=
   traceutil.Trace.InsertStep.wp_proof
 
+theorem traceutil.Trace.wp_LogWithStepThreshold :
+    traceutil.Trace.LogWithStepThreshold.spec (GF := GF) (hG := hG) :=
+  traceutil.Trace.LogWithStepThreshold.wp_proof
+
 theorem traceutil.Trace.wp_LogIfLong :
     traceutil.Trace.LogIfLong.spec (GF := GF) (hG := hG) :=
-  traceutil.Trace.LogIfLong.wp_proof
+  traceutil.Trace.LogIfLong.wp_proof traceutil.Trace.wp_LogWithStepThreshold
 
 theorem trace.wp_WithAttributes :
     trace.WithAttributes.spec (GF := GF) (hG := hG) :=
@@ -404,13 +471,29 @@ theorem RangeRequest.wp_GetKeysOnly :
     RangeRequest.GetKeysOnly.spec (GF := GF) (hG := hG) :=
   RangeRequest.GetKeysOnly.wp_proof
 
+theorem traceutil.wp_Get :
+    traceutil.Get.spec (GF := GF) (hG := hG) :=
+  traceutil.Get.wp_proof traceutil.wp_TODO
+
+theorem traceutil.Trace.wp_IsEmpty :
+    traceutil.Trace.IsEmpty.spec (GF := GF) (hG := hG) :=
+  traceutil.Trace.IsEmpty.wp_proof
+
+theorem traceutil.wp_newTrace :
+    traceutil.newTrace.spec (GF := GF) (hG := hG) :=
+  traceutil.newTrace.wp_proof
+
 theorem txn.wp_WarnOfExpensiveReadOnlyRangeRequest :
     txn.WarnOfExpensiveReadOnlyRangeRequest.spec (GF := GF) (hG := hG) :=
   txn.WarnOfExpensiveReadOnlyRangeRequest.wp_proof
 
+theorem traceutil.Trace.wp_updateFieldIfExist :
+    traceutil.Trace.updateFieldIfExist.spec (GF := GF) (hG := hG) :=
+  traceutil.Trace.updateFieldIfExist.wp_proof
+
 theorem traceutil.Trace.wp_AddField :
     traceutil.Trace.AddField.spec (GF := GF) (hG := hG) :=
-  traceutil.Trace.AddField.wp_proof
+  traceutil.Trace.AddField.wp_proof traceutil.Trace.wp_updateFieldIfExist
 
 theorem zap.wp_Uint64 :
     zap.Uint64.spec (GF := GF) (hG := hG) :=
@@ -587,6 +670,78 @@ theorem EtcdServer.wp_getTxPostLockInsideApplyHook :
 theorem wp_NewConsistentIndex :
     NewConsistentIndex.spec (GF := GF) (hG := hG) :=
   NewConsistentIndex.wp_proof
+
+theorem auth.authStore.wp_IsAuthEnabled :
+    auth.authStore.IsAuthEnabled.spec (GF := GF) (hG := hG) :=
+  auth.authStore.IsAuthEnabled.wp_proof
+
+theorem metadata.wp_FromIncomingContext :
+    metadata.FromIncomingContext.spec (GF := GF) (hG := hG) :=
+  metadata.FromIncomingContext.wp_proof
+
+theorem auth.authStore.wp_Revision :
+    auth.authStore.Revision.spec (GF := GF) (hG := hG) :=
+  auth.authStore.Revision.wp_proof
+
+theorem auth.authStore.wp_authInfoFromToken :
+    auth.authStore.authInfoFromToken.spec (GF := GF) (hG := hG) :=
+  auth.authStore.authInfoFromToken.wp_proof auth.authStore.wp_Revision
+
+theorem auth.wp_redactToken :
+    auth.redactToken.spec (GF := GF) (hG := hG) :=
+  auth.redactToken.wp_proof
+
+theorem auth.authStore.wp_AuthInfoFromCtx :
+    auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG) :=
+  auth.authStore.AuthInfoFromCtx.wp_proof auth.authStore.wp_IsAuthEnabled metadata.wp_FromIncomingContext auth.authStore.wp_authInfoFromToken auth.wp_redactToken zap.wp_String zap.Logger.wp_Warn
+
+theorem auth.authStore.wp_AuthInfoFromTLS :
+    auth.authStore.AuthInfoFromTLS.spec (GF := GF) (hG := hG) :=
+  auth.authStore.AuthInfoFromTLS.wp_proof
+
+theorem auth.wp_hasRootRole :
+    auth.hasRootRole.spec (GF := GF) (hG := hG) :=
+  auth.hasRootRole.wp_proof
+
+theorem auth.authStore.wp_IsAdminPermitted :
+    auth.authStore.IsAdminPermitted.spec (GF := GF) (hG := hG) :=
+  auth.authStore.IsAdminPermitted.wp_proof auth.authStore.wp_IsAuthEnabled auth.wp_hasRootRole
+
+theorem zap.wp_ByteString :
+    zap.ByteString.spec (GF := GF) (hG := hG) :=
+  zap.ByteString.wp_proof
+
+theorem auth.wp_isOpenEnded :
+    auth.isOpenEnded.spec (GF := GF) (hG := hG) :=
+  auth.isOpenEnded.wp_proof
+
+theorem auth.wp_checkKeyInterval :
+    auth.checkKeyInterval.spec (GF := GF) (hG := hG) :=
+  auth.checkKeyInterval.wp_proof auth.wp_isOpenEnded adt.wp_NewBytesAffineInterval
+
+theorem auth.wp_checkKeyPoint :
+    auth.checkKeyPoint.spec (GF := GF) (hG := hG) :=
+  auth.checkKeyPoint.wp_proof adt.wp_NewBytesAffinePoint
+
+theorem auth.authStore.wp_isRangeOpPermitted :
+    auth.authStore.isRangeOpPermitted.spec (GF := GF) (hG := hG) :=
+  auth.authStore.isRangeOpPermitted.wp_proof zap.wp_String zap.Logger.wp_Error auth.wp_checkKeyInterval auth.wp_checkKeyPoint
+
+theorem auth.authStore.wp_isOpPermitted :
+    auth.authStore.isOpPermitted.spec (GF := GF) (hG := hG) :=
+  auth.authStore.isOpPermitted.wp_proof auth.authStore.wp_IsAuthEnabled auth.authStore.wp_Revision zap.wp_Uint64 zap.wp_ByteString zap.wp_Error zap.Logger.wp_Warn zap.wp_String zap.Logger.wp_Error auth.wp_hasRootRole auth.authStore.wp_isRangeOpPermitted
+
+theorem auth.authStore.wp_IsDeleteRangePermitted :
+    auth.authStore.IsDeleteRangePermitted.spec (GF := GF) (hG := hG) :=
+  auth.authStore.IsDeleteRangePermitted.wp_proof auth.authStore.wp_isOpPermitted
+
+theorem auth.authStore.wp_IsPutPermitted :
+    auth.authStore.IsPutPermitted.spec (GF := GF) (hG := hG) :=
+  auth.authStore.IsPutPermitted.wp_proof auth.authStore.wp_isOpPermitted
+
+theorem auth.authStore.wp_IsRangePermitted :
+    auth.authStore.IsRangePermitted.spec (GF := GF) (hG := hG) :=
+  auth.authStore.IsRangePermitted.wp_proof auth.authStore.wp_isOpPermitted
 
 theorem consistentIndex.wp_SetBackend :
     consistentIndex.SetBackend.spec (GF := GF) (hG := hG) :=
@@ -865,11 +1020,7 @@ theorem EtcdServer.wp_Put :
 
 theorem traceutil.wp_EnsureTrace :
     traceutil.EnsureTrace.spec (GF := GF) (hG := hG) :=
-  traceutil.EnsureTrace.wp_proof
-
-theorem traceutil.wp_Get :
-    traceutil.Get.spec (GF := GF) (hG := hG) :=
-  traceutil.Get.wp_proof
+  traceutil.EnsureTrace.wp_proof traceutil.wp_Get traceutil.Trace.wp_IsEmpty traceutil.wp_newTrace context.wp_WithValue
 
 theorem EtcdServer.wp_doSerialize :
     EtcdServer.doSerialize.spec (GF := GF) (hG := hG) :=

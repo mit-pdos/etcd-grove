@@ -50,11 +50,11 @@ theorem mvcc.store.compactLockfree.wp_proof
     ⟨⟨%Hlt, %Hch, %Hprev⟩, ⟨%ef, #Hef, %Herr⟩, #Hcert, Hmu, Hright, HPre⟩)
   · subst Herr
     (try wp_auto)
-    wp_apply h2 as %t %Ht
+    wp_apply h2 as %t ⟨%Ht, Htrc⟩
     (try wp_auto)
     iunfold mvcc.compactRight at Hright
     icases Hright with ⟨Hcrev, Hq⟩
-    wp_apply (h3 s γ t rev prev pcc Ht) $$ [$Hjob $Hq] as %ch' ⟨#Hch', Hq⟩
+    wp_apply (h3 s γ t rev prev pcc true Ht) $$ [$Hjob $Hq $Htrc] as %ch' ⟨#Hch', Hq, -⟩
     (try wp_auto)
     iapply HΦ
     ileft

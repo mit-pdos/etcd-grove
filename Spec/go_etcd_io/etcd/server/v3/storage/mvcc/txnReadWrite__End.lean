@@ -24,10 +24,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `trw.End()`: the read transaction ended (`metricsTxnWrite.End`): its tokens back. -/
 abbrev mvcc.txnReadWrite.End.spec : Prop :=
-  ∀ (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isRoTxnWrite trw s γ log rev }}
+  ∀ (trace : Loc) (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isRoTxnWrite trw s γ trace log rev }}
     (App (Val (trw @!! go.GoType.PointerType txnReadWrite.ty @!! go!"End")) (Val #()))
-  {{ RET #(); mvcc.storeReader s γ }}
+  {{ RET #(); mvcc.storeReader s γ ∗ (∃ te : Bool, traceutil.ownTrace trace te) }}
 
 end spec
 

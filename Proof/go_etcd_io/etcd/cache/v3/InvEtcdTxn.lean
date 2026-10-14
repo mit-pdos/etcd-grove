@@ -963,13 +963,26 @@ def watchHdrOwn (h : Loc) (r : RespModel) : IProp GF :=
 
 /-- The `i`-th response `v` of a range watch channel: modelled by some `r` (its events, read-only;
 its header, `watchHdrOwn`; the flags), satisfying the contract from the position before it to the
-one after it (`γ.cur`, a monotone list of positions). -/
+one after it (`γ.cur`, a monotone list of positions); its close error is one grpc's `status`
+accepts (`statusErrOk`, unit P3a: `WatchResponse.Err` passes it to `rpctypes.Error`; a gRPC
+status error or a context error from the client's stream, or `nil`). -/
 def rangeWatchElem (γ : EtcdWatchNames) (pfx : GoString) (o : OpFull) (rev : w64) (i : Int)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) : IProp GF :=
   iprop(∃ (r : RespModel) (c c' : w64), eventsAt v.Events' r.events ∗ watchHdrOwn v.Header' r ∗
     ⌜v.CompactRevision' = r.compactRev ∧ v.Canceled' = r.canceled ∧ v.Created' = r.created⌝ ∗
     monoListIdxOwn γ.cur i.toNat c ∗ monoListIdxOwn γ.cur (i.toNat + 1) c' ∗
-    rangeWatchRespOk pfx o rev c c' r)
+    rangeWatchRespOk pfx o rev c c' r ∗ statusErrOk v.closeErr')
+
+/-- A range watch response's close error is one grpc's `status` accepts (unit P3a). -/
+theorem rangeWatchElem_closeErr (γ : EtcdWatchNames) (pfx : GoString) (o : OpFull) (rev : w64)
+    (i : Int) (v : go_etcd_io.etcd.client.v3.WatchResponse) :
+    rangeWatchElem (GF := GF) γ pfx o rev i v ⊢ statusErrOk v.closeErr' ∗ rangeWatchElem γ pfx o rev i v := by
+  unfold rangeWatchElem
+  iintro ⟨%r, %c, %c', He, Hh, %Hf, Hi, Hi', Hok, #Hse⟩
+  iframe #
+  iexists r, c, c'
+  iframe
+  ipureintro; exact Hf
 
 /-- **The client's range watch** (`clientv3.Watcher`'s `Watch`; a definition, as `isEtcdWatcher`
 for the cache's prefix watch): a watch of a range under `pfx` (a key, or a sub-prefix with

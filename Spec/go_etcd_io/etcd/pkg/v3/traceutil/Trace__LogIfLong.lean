@@ -1,10 +1,11 @@
 /-
-`traceutil.Trace.LogIfLong`: the trust boundary (`pkg/v3/traceutil` is names-only). Lean-first (no Rocq counterpart); the request path
-(`notes/decisions.md`, "The request path").
+`(*traceutil.Trace).LogIfLong` (`trace.go`: logs the trace, steps longer than a share of the threshold, if it took longer). Lean-first (no Rocq counterpart); unit P1b (2026-10-14): the trace owned (`ownTrace`,
+`notes/decisions.md`, "Traces on the request path").
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 
 @[expose] public section
 
@@ -15,18 +16,21 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI 
+open Iris Iris.BI go_etcd_io.etcd.pkg.v3
 
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
-/-- `t.LogIfLong(threshold)` logs the trace if it took longer: it returns (on a non-nil trace). -/
+/-- `t.LogIfLong(d)` of an owned trace returns. The trace is consumed: the logger's `logInfo`
+merges a subtrace's fields into its steps' with `append`, so the steps' fields slices may then
+share their arrays (each caller logs a trace last). -/
 abbrev traceutil.Trace.LogIfLong.spec : Prop :=
-  ∀ (t : Loc) (d : _root_.Perennial.time.Duration),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ ⌜t ≠ null⌝ }}
+  ∀ (t : Loc) (e : Bool) (d : _root_.Perennial.time.Duration),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ traceutil.ownTrace t e }}
     (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty @!! go!"LogIfLong")) (Val #d))
   {{ RET #(); True }}
 

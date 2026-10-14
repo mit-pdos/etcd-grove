@@ -36,13 +36,13 @@ abbrev txn.checkTxn.spec : Prop :=
     (t : TxnModel) (le : GoInterface) (γl : GName) (pl : GoSlice) (rest : List Bool)
     (L : List w64) (lu : Bool),
   (lu = false → txn.txnReadonly t = true) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ ⌜trace ≠ null⌝ ∗ mvcc.isTxnRead mw s γ log rev ∗ txn.txnRequestIs rt t ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ ⌜trace ≠ null⌝ ∗ mvcc.isTxnRead mw s γ trace log rev ∗ txn.txnRequestIs rt t ∗
       txn.isTxnLessor le γl ∗ (⌜lu = false⌝ ∨ lease.lessorUser γl L) ∗
       pl ↦*□ (txn.txnPath (mvcc.stateAfter log) t ++ rest) }}
     (App (App (App (App (App (Val (@! txn.checkTxn)) (Val #trace))
       (Val #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface)))
       (Val #rt)) (Val #le)) (Val #pl))
-  {{ (n : w64) (err : GoInterface), RET (PairV #n #err); mvcc.isTxnRead mw s γ log rev ∗
+  {{ (n : w64) (err : GoInterface), RET (PairV #n #err); mvcc.isTxnRead mw s γ trace log rev ∗
       (⌜lu = false⌝ ∨ lease.lessorUser γl L) ∗
       ((⌜err = GoInterface.nil ∧ n = W64 (txn.nestedCount (mvcc.stateAfter log) t : Int) ∧
           txn.PathsIgnOk (mvcc.stateAfter log)

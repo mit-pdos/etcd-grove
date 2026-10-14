@@ -53,6 +53,9 @@ theorem apply.authApplierV3.Put.wp_proof
   | ok e' =>
     wp_auto
     iapply HΦ
+    isplitl
+    rotate_left
+    · iapply apply.traceRes_null
     iapply apply.auth_reject_kvPost E c p (.ok bi) rq log _ Pre Q Post hk $$ Happ [] Hkv [Hinfo]
       Hres Hcs
     · simp only [apply.putAnswerIs, apply.putOutcomeIs, apply.rejErrIs]
@@ -62,13 +65,16 @@ theorem apply.authApplierV3.Put.wp_proof
     · iunfold apply.authInfoOwn; iexists info; iexact Hinfo
   | nil =>
   wp_auto
-  wp_apply HI $$ %r %rq %o %log %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %trace %err Hpost
+  wp_apply HI $$ %r %rq %o %log %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
   · iunfold apply.putPre
     iunfold apply.mPre
     iframe
     iframe #
     ipureintro; exact Hk
   iapply HΦ
+  isplitr [Htrc]
+  rotate_left
+  · iexact Htrc
   iapply apply.auth_pass_kvPost E c p (.ok bi) rq log _ Pre Post $$ Happ Hpost
   iunfold apply.authInfoOwn; iexists info; iexact Hinfo
 

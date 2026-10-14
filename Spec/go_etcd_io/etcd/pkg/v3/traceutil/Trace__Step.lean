@@ -1,12 +1,15 @@
 /-
-`(*traceutil.Trace).Step`: the trust boundary (`pkg/v3/traceutil` is names-only). Lean-first.
+`(*traceutil.Trace).Step` (`trace.go`: appends a step unless steps are disabled). Lean-first (no Rocq counterpart); unit P1b (2026-10-14): the trace owned (`ownTrace`,
+`notes/decisions.md`, "Traces on the request path").
 -/
 module
 
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
-public import GeneratedProof.go_etcd_io.etcd.pkg.v3.traceutil
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -20,14 +23,14 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
-/-- `t.Step(msg, fields...)` (a trace not nil: `Step` reads `t.stepDisabled`) returns. -/
+/-- `t.Step(msg, fields...)` of an owned trace, the fields owned: it returns; the trace kept. -/
 abbrev traceutil.Trace.Step.spec : Prop :=
-  ∀ (t : Loc) (msg : GoString) (fields : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ ⌜t ≠ null⌝ }}
-    (App (App (Val (t @!! go.GoType.PointerType traceutil.Trace.ty @!! go!"Step")) (Val #msg))
-      (Val #fields))
-  {{ RET #(); True }}
+  ∀ (t : Loc) (e : Bool) (msg : GoString) (fields : GoSlice),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∗ traceutil.ownTrace t e ∗ traceutil.ownFields fields }}
+    (App (App (Val (t @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty @!! go!"Step")) (Val #msg)) (Val #fields))
+  {{ RET #(); traceutil.ownTrace t e }}
 
 end spec
 

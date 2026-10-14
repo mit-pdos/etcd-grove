@@ -27,11 +27,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
     (hdel : mvcc.storeTxnWrite.deleteRange.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.DeleteRange.spec (GF := GF) (hG := hG) := by
-  intro tw s γ ilog pend key endk k e
+  intro trace tw s γ ilog pend key endk k e
   wp_start as ⟨Htw, #Hkey, #Hend, %Hb⟩
   have hpm := mvcc.putMax_le γ
   (try wp_auto)
-  wp_apply (hdel tw s γ ilog pend key endk k e) $$ [$Htw $Hkey $Hend] as Htw
+  wp_apply (hdel trace tw s γ ilog pend key endk k e) $$ [$Htw $Hkey $Hend] as Htw
   · ipureintro; exact Hb
   (try wp_auto)
   iunfold mvcc.storeTxnWriteIs at Htw
@@ -88,7 +88,7 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
       iapply HΦ
       isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd]
       iunfold mvcc.storeTxnWriteIs
-      iexists trace, ti, bt, Locked, chs, ps, ntok
+      iexists ti, bt, Locked, chs, ps, ntok
       simp only [named]
       iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
       iframe #
@@ -107,7 +107,7 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
       iapply HΦ
       isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd]
       iunfold mvcc.storeTxnWriteIs
-      iexists trace, ti, bt, Locked, chs, ps, ntok
+      iexists ti, bt, Locked, chs, ps, ntok
       simp only [named]
       iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
       iframe #
@@ -124,7 +124,7 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
     iapply HΦ
     isplitl [Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd]
     iunfold mvcc.storeTxnWriteIs
-    iexists trace, ti, bt, Locked, chs, ps, ntok
+    iexists ti, bt, Locked, chs, ps, ntok
     simp only [named]
     iframe Htoks Htok Htw Hchs Hcap Hkvs Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
     iframe #

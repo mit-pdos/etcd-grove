@@ -27,15 +27,16 @@ lessor's `GetLease` the old lease to detach, and `leaseID` is attached). The key
 value's bytes are read-only for good (the index and the change keep them); the lease, if
 any, is a granted one; the revision has room for the change. -/
 abbrev mvcc.storeTxnWrite.put.spec : Prop :=
-  ∀ (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
-    (key value : GoSlice) (k v : GoString) (leaseID : w64) (L : List w64),
+  ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
+    (key value : GoSlice) (k v : GoString) (leaseID : w64) (L : List w64) (te : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.storeTxnWriteIs tw s γ ilog pend ∗ key ↦*□ k ∗ value ↦*□ v ∗
-      lease.leaseOwn γ.leases L ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗ ⌜pend.length + 1 < mvcc.putMax γ⌝ }}
+      mvcc.storeTxnWriteIs tw s γ trace ilog pend ∗ key ↦*□ k ∗ value ↦*□ v ∗
+      lease.leaseOwn γ.leases L ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗ ⌜pend.length + 1 < mvcc.putMax γ⌝ ∗
+      traceutil.ownTrace trace te }}
     (App (App (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"put")) (Val #key))
       (Val #value)) (Val #leaseID))
-  {{ RET #(); mvcc.storeTxnWriteIs tw s γ ilog (pend ++ [.put k v leaseID]) ∗
-      lease.leaseOwn γ.leases L }}
+  {{ RET #(); mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ [.put k v leaseID]) ∗
+      lease.leaseOwn γ.leases L ∗ traceutil.ownTrace trace te }}
 
 end spec
 

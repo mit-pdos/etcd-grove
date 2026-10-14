@@ -46,11 +46,11 @@ local macro "loop_tail" : tactic => `(tactic| (
     iframe Hfz Hai'
     ipureintro; word
   (try wp_auto)
-  wp_apply hStep t _ _ $$ []
-  · iframe #; ipureintro; exact Ht
+  wp_apply hStep t false _ slice.nil $$ [Htrc] as Htrc
+  · iframe Htrc; iapply traceutil.ownFields_nil
   (try wp_auto)
-  wp_apply hLog t _ $$ []
-  · iframe #; ipureintro; exact Ht
+  wp_apply hLog t false _ $$ [Htrc]
+  · iexact Htrc
   (try wp_auto)
   wp_for_post
   iframe))
@@ -125,14 +125,21 @@ theorem read.Read.LinearizableReadLoop.wp_proof
     wp_auto
     wp_apply context.wp_Background
     wp_apply HLg $$ [$HLR] as %lg ⟨%Hlg, HLR⟩
-    wp_apply hET context.backgroundCtxVal mvcc.neverCd lg _ _ $$ [] as %ctx' %t ⟨%Ht, -⟩
+    wp_apply hET context.backgroundCtxVal mvcc.neverCd none false lg _ slice.nil $$ []
+      as %ctx' %t ⟨⟨%Ht, -⟩, Htrc, -⟩
     · iframe #
-      iunfold mvcc.txnCtx
-      ileft
-      iunfold mvcc.doneNil
-      iintro !> %Φ' !> - HΦ'
-      iapply context.wp_background_Done $$ [] HΦ'
-      itrivial
+      isplitl []
+      · iunfold mvcc.txnCtx
+        ileft
+        iunfold mvcc.doneNil
+        iintro !> %Φ' !> - HΦ'
+        iapply context.wp_background_Done $$ [] HΦ'
+        itrivial
+      isplitl []
+      · iapply traceutil.ctxTraceIs_background
+      isplitl []
+      · simp only [traceutil.ownTraceOpt]; itrivial
+      iapply traceutil.ownFields_nil
     wp_apply hNN γr as %nc' ⟨%γn', #Hnis', Hown', Hauth'⟩
     wp_apply sync.RWMutex.wp_Lock_guard (readMuAddr r) (readMuP r γr) $$ [] as ⟨Hwl, HP⟩
     · iframe #
@@ -162,26 +169,26 @@ theorem read.Read.LinearizableReadLoop.wp_proof
     | nil =>
     have Hci' := Hci rfl
     wp_auto
-    wp_apply hStep t _ _ $$ []
-    · iframe #; ipureintro; exact Ht
+    wp_apply hStep t false _ slice.nil $$ [$Htrc] as Htrc
+    · iapply traceutil.ownFields_nil
     (try wp_auto)
     wp_apply wp_slice_literal
     isplitr
     · ipureintro; rfl
-    iintro %fs1 ⟨-, -⟩
+    iintro %fs1 ⟨Hfs1, -⟩
     (try wp_auto)
-    wp_apply hAdd t _ $$ []
-    · iframe #; ipureintro; exact Ht
+    wp_apply hAdd t false _ _ _ $$ [$Htrc $Hfs1] as ⟨Htrc, -⟩
+    · ipureintro; exact traceutil.fieldsWf_cons_int _ _ _ (.uint64 _) _ traceutil.fieldsWf_nil
     (try wp_auto)
     wp_apply HAI as %ai #Hai
     wp_apply hFU as %str -
     wp_apply wp_slice_literal
     isplitr
     · ipureintro; rfl
-    iintro %fs2 ⟨-, -⟩
+    iintro %fs2 ⟨Hfs2, -⟩
     (try wp_auto)
-    wp_apply hAdd t _ $$ []
-    · iframe #; ipureintro; exact Ht
+    wp_apply hAdd t false _ _ _ $$ [$Htrc $Hfs2] as ⟨Htrc, -⟩
+    · ipureintro; exact traceutil.fieldsWf_cons_string _ _ _ traceutil.fieldsWf_nil
     (try wp_auto)
     wp_if_destruct
     · wp_apply HAW $$ %ci as %awc ⟨%Qaw, #Hawc, #Hawq⟩

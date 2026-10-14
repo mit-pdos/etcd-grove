@@ -1,5 +1,10 @@
 /-
-The trust boundary: `traceutil.Trace.InsertStep` (a trace's bookkeeping (no effect the model sees); the trace's fields are outside the model).
+The trust boundary: `traceutil.Trace.InsertStep` (translated, unit P1b, 2026-10-14). Its body
+shifts the steps with an overlapping `append(t.steps[:at+1], t.steps[at:]...)` (in place when
+the capacity allows: a memmove within one slice), for which Perennial's slice library has no
+triple yet (`wp_slice_append` takes the source slice separately owned; `wp_slice_copy_within`
+is the overlapping `copy` such a triple would rest on). The spec is the other methods' (the trace
+owned, `ownTrace`, its emptiness kept); its one caller is `raftRequest`.
 -/
 module
 

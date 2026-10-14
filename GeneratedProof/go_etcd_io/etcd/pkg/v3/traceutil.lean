@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.context
 public import GeneratedProof.go_uber_org.zap
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory

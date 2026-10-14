@@ -9,6 +9,8 @@ hand.
 module
 
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Interval__Compare
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.NewBytesAffineInterval
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.NewBytesAffinePoint
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.NewIntervalTree
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.NewStringAffineInterval
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.NewStringAffinePoint
@@ -58,6 +60,14 @@ theorem adt.StringAffineComparable.wp_Compare :
 theorem adt.Interval.wp_Compare :
     adt.Interval.Compare.spec (GF := GF) (hG := hG) :=
   adt.Interval.Compare.wp_proof adt.StringAffineComparable.wp_Compare
+
+theorem adt.wp_NewBytesAffineInterval :
+    adt.NewBytesAffineInterval.spec (GF := GF) (hG := hG) :=
+  adt.NewBytesAffineInterval.wp_proof
+
+theorem adt.wp_NewBytesAffinePoint :
+    adt.NewBytesAffinePoint.spec (GF := GF) (hG := hG) :=
+  adt.NewBytesAffinePoint.wp_proof adt.wp_NewBytesAffineInterval
 
 theorem adt.wp_NewIntervalTree :
     adt.NewIntervalTree.spec (GF := GF) (hG := hG) :=

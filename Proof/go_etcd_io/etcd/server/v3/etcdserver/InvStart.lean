@@ -71,7 +71,8 @@ def srvFieldsBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp
       hookSpec γ ci TM v.hook ∗
       srvLessorAddr s ↦□ v.lessor ∗ lessorOk v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
-      srvClusterAddr s ↦□ v.cluster ∗ srvQuotaAddr s ↦□ v.quota ∗
+      srvClusterAddr s ↦□ v.cluster ∗ membership.isRaftCluster v.cluster ∗
+      srvQuotaAddr s ↦□ v.quota ∗
       srvLgMuAddr s ↦□ v.lgMu ∗ srvMemberIDAddr s ↦□ v.memberID ∗ srvLeadInv s ∗
       cfgElectionTicksAddr (srvCfgAddr s) ↦□ v.electionTicks ∗
       cfgTickMsAddr (srvCfgAddr s) ↦□ v.tickMs ∗
@@ -97,6 +98,7 @@ def srvReqBuilt (s : Loc) (ρ : ReqNames) (v : ReqFields) : IProp GF :=
     structFieldRef EtcdServer go!"cluster" s ↦□ v.cluster ∗
     structFieldRef raftNodeConfig go!"transport"
       (structFieldRef raftNode go!"raftNodeConfig" (structFieldRef EtcdServer go!"r" s)) ↦□ v.tr ∗
+    srvPeersOk v.cluster v.cid v.tr ∗
     srvMintInv ρ ∗ srvCLogInv ρ.raft ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
 
 instance srvReqBuilt_persistent (s : Loc) (ρ : ReqNames) (v : ReqFields) :

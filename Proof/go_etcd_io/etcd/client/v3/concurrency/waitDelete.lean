@@ -80,10 +80,12 @@ theorem waitDelete.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     rw [Hw3, Hw4]; exact keyRangeUnder_key pfx key Hp.1
   ihave IH : iprop(∃ (rcv : List go_etcd_io.etcd.client.v3.WatchResponse)
       (v : go_etcd_io.etcd.client.v3.WatchResponse),
-      "Hcons" ∷ spscConsumer γw.spsc rcv ∗ "wr" ∷ wr_ptr ↦ v) $$ [Hcons wr]
+      "Hcons" ∷ spscConsumer γw.spsc rcv ∗ "wr" ∷ wr_ptr ↦ v ∗
+      "#Hse" ∷ go_etcd_io.etcd.cache.v3.statusErrOk v.closeErr') $$ [Hcons wr]
   · iexists [], _
     simp only [named]
     iframe
+    iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
   wp_for IH
   (try wp_auto)
   wp_bind (App (Val (chan.receive _)) _)
@@ -95,7 +97,7 @@ theorem waitDelete.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     icases H with ⟨-, %Hv⟩
     wp_auto
     wp_for_post
-    wp_apply wp_Err wr_ptr v (DFrac.own 1) $$ [$wr] as %err ⟨wr, %Herr, -⟩
+    wp_apply wp_Err wr_ptr v (DFrac.own 1) $$ [$wr $Hse] as %err ⟨wr, %Herr, -⟩
     cases err with
     | ok e =>
       wp_auto
@@ -130,7 +132,7 @@ theorem waitDelete.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
   simp only [↓reduceIte]
   icases H with ⟨HP, Hcons⟩
   iunfold rangeWatchElem at HP
-  icases HP with ⟨%r, %c, %c', #Hevs, -, -, -, -, #Hok⟩
+  icases HP with ⟨%r, %c, %c', #Hevs, -, -, -, -, #Hok, #Hse'⟩
   iunfold eventsAt at Hevs
   icases Hevs with ⟨%ls, #Hls, %Hlen, #Hev⟩
   wp_auto
@@ -193,6 +195,7 @@ theorem waitDelete.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
   iexists rcv ++ [v'], v'
   simp only [named]
   iframe
+  iexact Hse'
 
 end proof
 
