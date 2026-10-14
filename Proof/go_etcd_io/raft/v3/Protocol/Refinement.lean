@@ -186,7 +186,7 @@ private theorem tally_empty (γ : RaftNames) (id : w64) (s : PState) :
   exact BigSepM.bigSepM_empty.2
 
 /-- What `lpfull` says of the compacted prefix. -/
-private theorem lpfull_fp (γ : RaftNames) (ldr t : w64) (bL : entryID)
+theorem lpfull_fp (γ : RaftNames) (ldr t : w64) (bL : entryID)
     (l fp : List raftpb.Entry) :
     ⊢ lpfull (GF := GF) γ ldr t bL l fp -∗
       logRecs γ base0 fp ∗
@@ -385,7 +385,7 @@ private theorem isMessage_voteReq (γ : RaftNames) (id dst t : w64) (last : entr
   ipureintro; rw [H]
 
 /-- The received message of a one-message rule. -/
-private theorem recv_one (γ : RaftNames) (m : Msg) :
+theorem recv_one (γ : RaftNames) (m : Msg) :
     ⊢ ([∗list] m ∈ [m], isMessage (GF := GF) γ m) -∗ isMessage γ m := by
   iintro H
   iapply (BigSepL.bigSepL_singleton (Φ := fun _ m => isMessage (GF := GF) γ m)).1 $$ H
