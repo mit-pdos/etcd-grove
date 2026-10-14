@@ -539,8 +539,105 @@ theorem checkSingle.wp_proof
       have : ¬ ((!decide (curLoc loc (rem (es.map entryOf) (ids fs)) 0 = null)) = true) :=
         fun h' => Hif (by rw [h'])
       simpa using this
-    trace_state
-    sorry
+    rw [hnull]
+    simp only [_root_.decide_true, Bool.not_true, ↓reduceIte]
+    wp_auto
+    ihave %Hcl := callsRep_length S loc ces fs $$ Hces
+    ihave %Hcsl := ownSlice_len $$ Hcalls
+    obtain ⟨Hcsl1, Hcsl2⟩ := Hcsl
+    wp_apply wp_slice_make2 (V := w64) $$ [] as %sq ⟨Hsq, -⟩
+    · ipureintro; exact Hcsl2
+    rename_i iu_ptr
+    irename : (iu_ptr ↦ zero_val w64 : IProp GF) => Hiu
+    ihave HF : (∃ (k iv : w64) (vv : callsEntry) (xs : List w64),
+        "i" ∷ i_ptr ↦ k ∗ "Hiu" ∷ iu_ptr ↦ iv ∗ "v" ∷ v_ptr ↦ vv ∗ "Hsq" ∷ sq ↦* xs ∗
+        "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z csl.len ∧ xs.length = ces.length⌝ : IProp GF)
+      $$ [i Hiu v Hsq]
+    · iexists W64 0, _, _, _
+      iframe
+      ipureintro
+      refine ⟨by decide, by word, ?_⟩
+      rw [List.length_replicate]; word
+    wp_for HF
+    obtain ⟨Hk1, Hk2, Hk3⟩ := Hk
+    wp_if_destruct
+    · have Hb : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z csl.len := ⟨Hk1, Hif⟩
+      simp only [Hb, _root_.and_self, ↓reduceIte]
+      list_elem ces (sint.nat k) as ce
+      have hkf : sint.nat k < fs.reverse.length := by rw [List.length_reverse, ← Hcl]; word
+      list_elem fs.reverse (sint.nat k) as f
+      wp_apply wp_load_slice_index csl (sint.Z k) ces (DFrac.own 1) ce Hk1 $$ [Hcalls] as Hcalls
+      · iframe; ipureintro; exact Hce_lookup
+      ihave %Hcent := callsRep_get S loc ces fs Hce_lookup Hf_lookup $$ Hces
+      have hfm : f ∈ fs := List.mem_reverse.mp (List.mem_of_getElem? Hf_lookup)
+      have hcm : (⟨false, f.id⟩ : Entry) ∈ es.map entryOf := framesOk_mem Hinv.2.1 f hfm
+      rw [Hcent]
+      icases nodesG_read hnd (mem_slots_some hcm) _ $$ HG with ⟨Hc, HG⟩
+      simp only [slotLoc]
+      wp_auto
+      ihave HG := HG $$ Hc
+      ihave %Hsql := ownSlice_len $$ Hsq
+      obtain ⟨Hsql1, Hsql2⟩ := Hsql
+      have Hb' : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z sq.len := by
+        constructor
+        · exact Hk1
+        · have : xs.length = ces.length := Hk3
+          word
+      simp only [Hb', _root_.and_self, ↓reduceIte]
+      wp_apply wp_store_slice_index $$ [Hsq] as Hsq
+      · iframe; ipureintro; constructor <;> word
+      wp_for_post
+      iframe
+      iexists k + W64 1, k, ce, _
+      iframe
+      ipureintro
+      refine ⟨by word, by word, by simp [Hk3]⟩
+    · -- the copy loop exit
+      -- the copy is made: read-only from now on; every `longest[i]` points to it
+      ipersist seq
+      ipersist Hsq
+      iunfold longestOwn at Hlongest
+      icases Hlongest with ⟨%ps, Hps, %Hpsl, #Hpse⟩
+      ihave HL : (∃ (k : w64) (ps' : List Loc),
+          "i" ∷ i_ptr ↦ k ∗ "Hps" ∷ lgst ↦* ps' ∗ "#Hpse" ∷ ([∗list] p ∈ ps', longestElem (GF := GF) p) ∗
+          "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ h.length ∧ ps'.length = h.length⌝ : IProp GF)
+        $$ [i Hps]
+      · iexists W64 0, ps
+        iframe
+        iframe Hpse
+        ipureintro
+        exact ⟨by decide, by word, Hpsl⟩
+      wp_for HL
+      obtain ⟨Hk1, Hk2, Hk3⟩ := Hk
+      ihave %Hpsl' := ownSlice_len $$ Hps
+      obtain ⟨Hpsl1, Hpsl2⟩ := Hpsl'
+      wp_if_destruct
+      · have Hb : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z lgst.len := by
+          constructor
+          · exact Hk1
+          · exact idx_lt_of k lgst.len h.length hlen Hif (Hk3.symm.trans Hpsl1) Hpsl2
+        simp only [Hb, _root_.and_self, ↓reduceIte]
+        wp_apply wp_store_slice_index $$ [Hps] as Hps
+        · iframe; ipureintro; constructor <;> word
+        wp_for_post
+        iframe
+        iexists k + W64 1, _
+        iframe
+        isplitl []
+        · iapply longestElems_set ps' (sint.Z k).toNat seq_ptr (by word)
+          iframe Hpse
+          iright
+          iexists sq, xs
+          iframe seq Hsq
+        ipureintro
+        refine ⟨by word, by word, by simp [Hk3]⟩
+      · iapply HΦ
+        isplitl []
+        · ileft; ipureintro; rfl
+        iunfold longestOwn
+        iexists ps'
+        iframe Hps Hpse
+        ipureintro; exact Hk3
 
 end proof
 

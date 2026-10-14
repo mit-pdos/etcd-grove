@@ -106,6 +106,11 @@ theorem nbrLoc_next (hd : Loc) (loc : Entry → Loc) {es : List Entry} (hnd : es
 theorem len_zero_of (l : w64) (h1 : 0 = sint.nat l) (h2 : 0 ≤ sint.Z l) : l = W64 0 := by
   word
 
+theorem idx_lt_of (k l : w64) (n : Nat) (hn : (n : Int) < 2 ^ 60)
+    (h1 : sint.Z k < sint.Z (W64 n)) (h2 : n = sint.nat l) (h3 : 0 ≤ sint.Z l) :
+    sint.Z k < sint.Z l := by
+  word
+
 /-- `len(history) / 2` (a signed division). -/
 theorem sdiv_two (l : w64) (k : Nat) (h1 : sint.Z l = 2 * (k : Int)) (hk : (k : Int) < 2 ^ 60) :
     BitVec.sdiv l (W64 2) = W64 k := by
@@ -302,6 +307,22 @@ theorem longestOwn_replicate (lg : GoSlice) (n : Nat) :
   isplitl []
   · ipureintro; exact List.length_replicate
   · iapply nulls_ok
+
+/-- An element of `longest` (`longestOwn`). -/
+abbrev longestElem (p : Loc) : IProp GF :=
+  iprop(⌜p = null⌝ ∨ ∃ (sl : GoSlice) (xs : List w64), p ↦□ sl ∗ sl ↦*{DFrac.discard} xs)
+
+theorem longestElems_set (ps : List Loc) (k : Nat) (q : Loc) (hk : k < ps.length) :
+    ([∗list] p ∈ ps, longestElem (GF := GF) p) ∗ longestElem q ⊢
+      [∗list] p ∈ ps.set k q, longestElem p := by
+  iintro ⟨H, Hq⟩
+  icases BigSepL.bigSepL_insert_acc (Φ := fun _ p => longestElem (GF := GF) p)
+    (List.getElem?_eq_getElem hk) $$ H with ⟨-, Hback⟩
+  iapply Hback $$ Hq
+
+theorem longestElems_get (ps : List Loc) (k : Nat) (p : Loc) (hk : ps[k]? = some p) :
+    ([∗list] p ∈ ps, longestElem (GF := GF) p) ⊢ longestElem p :=
+  BigSepL.bigSepL_lookup (Φ := fun _ p => longestElem (GF := GF) p) hk
 
 /-- The loop invariant of `checkSingle` (see the file header), at the abstract state
 `(fs, s, p, cache)`. -/
