@@ -79,7 +79,7 @@ structure raft.Step.Postulates : Prop where
   /-- A `MsgVoteResp` falls through `Step`'s type switch to `r.step(m)`, which is any
   of the three depending on the role -- on `m.Term > r.Term` the term preamble has
   already run `becomeFollower`. -/
-  stepFollower : stepFollower.spec (GF := GF) (hG := hG)
+  stepFollower : stepFollower.specS (GF := GF) (hG := hG)
   stepLeader : stepLeader.spec (GF := GF) (hG := hG)
   traceReceiveMessage : traceReceiveMessage.spec (GF := GF) (hG := hG)
   lastEntryID : raftLog.lastEntryID.spec (GF := GF) (hG := hG)

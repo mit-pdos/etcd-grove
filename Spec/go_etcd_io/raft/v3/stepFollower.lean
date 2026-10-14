@@ -116,6 +116,59 @@ def FollowerStepResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Mess
   else if m.Type' = MsgTimeoutNow then dropped = false ∧ HupOk cfg id s s'
   else False
 
+/-- `FollowerStepResult` at the configuration `c` (2026-10-13, reconfiguration stage A2), with
+the configuration `c'` the node is at afterwards: `c` itself, except after a `MsgSnap`, which
+installs the snapshot's (`restore`: the same voters, by `SnapScope`, and the snapshot's
+learners); `MsgTimeoutNow` campaigns at `c` (`HupOkC`). -/
+def FollowerStepResultC (c : CfgM) (id : w64) (s : NState) (m : raftpb.Message)
+    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
+    (c' : CfgM) (cl : List w8 := []) : Prop :=
+  (if m.Type' = MsgSnap then c' = CfgM.simple c.incoming (domSet s'.progress \ c.incoming)
+   else c' = c) ∧
+  (if m.Type' = MsgVoteResp then dropped = false ∧ s' = s
+     else if m.Type' = MsgProp then
+       if s.lead = W64 0 then dropped = true ∧ s' = s
+       else dropped = false ∧ s' = sendMsgs s [propForward id s.lead m ents cl]
+     else if m.Type' = MsgApp then
+       dropped = false ∧ HandleAppResult id { s with lead := m.From' } m ents s'
+     else if m.Type' = MsgHeartbeat then
+       dropped = false ∧ s' = heartbeatResult id { s with lead := m.From' } m cl
+     else if m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp then
+       dropped = false ∧ s' = s
+     else if m.Type' = MsgSnap then
+       dropped = false ∧ HandleSnapResult id { s with lead := m.From' } m sv s'
+     else if m.Type' = MsgPreVoteResp then dropped = false ∧ s' = s
+     -- read-index (2026-10-12): a request goes to the leader, a response becomes a `ReadState`
+     else if m.Type' = MsgReadIndex then
+       dropped = false ∧
+       (if s.lead = W64 0 then s' = s
+        else s' = sendMsgs s [readForward id s.lead m ents cl])
+     else if m.Type' = MsgReadIndexResp then
+       dropped = false ∧
+       (match ents with
+        | [e] => s' = addReadState s m.Index' e.Data'
+        | _ => s' = s)
+     else if m.Type' = MsgForgetLeader then dropped = false ∧ s' = { s with lead := W64 0 }
+     else if m.Type' = MsgTransferLeader ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus then
+       dropped = false ∧ s' = s
+     else if m.Type' = MsgTimeoutNow then dropped = false ∧ HupOkC c id s s'
+     else False)
+
+/-- At a simple configuration, `FollowerStepResultC`'s step is `FollowerStepResult`'s. -/
+theorem FollowerStepResultC.simple {cfg L : GSet w64} {id : w64} {s : NState} {m : raftpb.Message}
+    {ents : List raftpb.Entry} {sv : raftpb.Snapshot} {dropped : Bool} {s' : NState} {c' : CfgM}
+    {cl : List w8} (h : FollowerStepResultC (CfgM.simple cfg L) id s m ents sv dropped s' c' cl) :
+    FollowerStepResult cfg id s m ents sv dropped s' cl := by
+  obtain ⟨-, h⟩ := h
+  unfold FollowerStepResult
+  by_cases hT : m.Type' = MsgTimeoutNow
+  · simp [hT, MsgVoteResp, MsgProp, MsgApp, MsgHeartbeat, MsgBeat, MsgAppResp, MsgHeartbeatResp,
+      MsgSnap, MsgPreVoteResp, MsgReadIndex, MsgReadIndexResp, MsgForgetLeader, MsgTransferLeader,
+      MsgUnreachable, MsgSnapStatus, MsgTimeoutNow] at h ⊢
+    exact ⟨h.1, h.2.simple⟩
+  · simp only [hT, if_false] at h ⊢
+    exact h
+
 end results
 
 section spec
@@ -137,9 +190,16 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
   self-addressed `Panicf`);
 - `Hents`: the `Entries` slice for the two types that use it -- read-only for
   `send`/`maybeAppend`, with its capacity for `maybeAppend` (it may adopt the slice).
-  For `MsgVoteResp` the wand is discharged by the type. -/
+  For `MsgVoteResp` the wand is discharged by the type. 
+
+At any configuration since 2026-10-13 (reconfiguration stage A2): the struct at `c`
+(`ownRaftPhysCV c c.voters`); a `MsgSnap` only at a non-joint `c` (`c.outgoing = ∅`, the
+snapshot's voters `c.incoming`: `SnapScope`, as before, since `restore`'s spec is at a simple
+configuration), after which the node is at the snapshot's configuration; `MsgTimeoutNow`'s
+campaign is at `c` (`FollowerStepResultC`). The old statement is `stepFollower.specS`.
+-/
 abbrev stepFollower.spec : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (voters : List w64) (cl : List w8),
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
    m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
@@ -177,12 +237,68 @@ abbrev stepFollower.spec : Prop :=
         m.Entries' = slice.nil ∧ m.Context' = slice.nil) ∧
      (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ NStateWf s)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhys cfg r id s ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- the `Context` (2026-10-12): what a forwarded proposal and the response to a
       -- heartbeat carry
       "Hctx" ∷ (⌜m.Type' = MsgHeartbeat ∨ m.Type' = MsgProp ∨ m.Type' = MsgReadIndex⌝ -∗
                  m.Context' ↦*□ cl) ∗
       -- (2026-10-12) a read-index message's entries, read-only
+      "Hrents" ∷ (⌜m.Type' = MsgReadIndex ∨ m.Type' = MsgReadIndexResp⌝ -∗
+                  m.Entries' ↦*□ ents) ∗
+      "Hsnap" ∷ (⌜m.Type' = MsgSnap⌝ -∗ ∃ learners,
+                 ⌜c.outgoing = ∅ ∧ SnapScope c.incoming sv voters learners ∧
+                   s.role = .follower ∧ s.votes = ∅ ∧ id ∈ c.incoming ∧ m.From' ≠ id⌝ ∗
+                 m.Snapshot' ↦□ sv ∗
+                 sv.Metadata'.ConfState'.Voters' ↦*□ voters ∗
+                 ownIdList sv.Metadata'.ConfState'.Learners' DFrac.discard learners) ∗
+      "Hents" ∷ (⌜m.Type' = MsgApp ∨ m.Type' = MsgProp⌝ -∗
+                 m.Entries' ↦*□ ents ∗
+                 ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1)) }}
+    (App (App (Val #(functions stepFollower [])) (Val #r)) (Val #m))
+  {{ (err : GoInterface) (s' : NState) (dropped : Bool) (c' : CfgM), RET #err;
+      ownRaftPhysCV c' c'.voters r id s' ∗
+      ⌜FollowerStepResultC c id s m ents sv dropped s' c' cl⌝ ∗
+      (if dropped then globalAddr ErrProposalDropped ↦□ err
+       else ⌜err = interface.nil⌝) }}
+
+/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
+derived from `stepFollower.spec` by `stepFollower.spec_simple`. -/
+abbrev stepFollower.specS : Prop :=
+  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
+    (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (voters : List w64) (cl : List w8),
+  (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
+   m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
+   (m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp) ∨
+   m.Type' = MsgSnap ∨ m.Type' = MsgPreVoteResp ∨
+   m.Type' = MsgReadIndex ∨
+   (m.Type' = MsgReadIndexResp ∨ m.Type' = MsgForgetLeader ∨ m.Type' = MsgTransferLeader ∨
+    m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus)) →
+  (m.Type' = MsgReadIndex → m.Term' = W64 0 ∧ s.lead ≠ id) →
+  (m.Type' = MsgProp →
+     (m.From' = W64 0 ∨ m.From' = id) ∧
+     m.Term' = W64 0 ∧
+     s.lead ≠ id) →
+  (m.Type' = MsgApp →
+     PlogWf (entryID.mk m.LogTerm' m.Index') ents ∧
+     uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 ∧
+     (let ls := s.logst
+      let es := ls.sents ++ ls.uents
+      uint.Z ls.committed ≤ uint.Z m.Index' →
+      PlogMatches ls.prev es (entryID.mk m.LogTerm' m.Index') →
+      plogFindConflict ls.prev es ents = W64 0 ∨
+      uint.Z ls.committed < uint.Z (plogFindConflict ls.prev es ents)) ∧
+     m.From' ≠ id) →
+  (m.Type' = MsgHeartbeat →
+     uint.Z m.Commit' ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents) ∧
+     m.From' ≠ id) →
+  (m.Type' = MsgTransferLeader ∨ m.Type' = MsgTimeoutNow →
+     (m.Type' = MsgTransferLeader → (s.lead = W64 0 ∨ (m.Term' = W64 0 ∧ s.lead ≠ id)) ∧
+        m.Entries' = slice.nil ∧ m.Context' = slice.nil) ∧
+     (m.Type' = MsgTimeoutNow → uint.Z s.term + 1 < 2 ^ 64 ∧ NStateWf s)) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhys cfg r id s ∗
+      "Hctx" ∷ (⌜m.Type' = MsgHeartbeat ∨ m.Type' = MsgProp ∨ m.Type' = MsgReadIndex⌝ -∗
+                 m.Context' ↦*□ cl) ∗
       "Hrents" ∷ (⌜m.Type' = MsgReadIndex ∨ m.Type' = MsgReadIndexResp⌝ -∗
                   m.Entries' ↦*□ ents) ∗
       "Hsnap" ∷ (⌜m.Type' = MsgSnap⌝ -∗ ∃ learners,
@@ -200,6 +316,37 @@ abbrev stepFollower.spec : Prop :=
       ⌜FollowerStepResult cfg id s m ents sv dropped s' cl⌝ ∗
       (if dropped then globalAddr ErrProposalDropped ↦□ err
        else ⌜err = interface.nil⌝) }}
+
+open Iris.ProofMode in
+theorem stepFollower.spec_simple
+    (H : stepFollower.spec (GF := GF) (hG := hG)) :
+    stepFollower.specS (GF := GF) (hG := hG) := by
+  intro cfg r id s m ents sv voters cl Hty Hri Hprop Happ Hhb Hrest
+  iintro %Φ ⟨#Hpkg, Hphys, Hctx, Hrents, Hsnap, Hents⟩ HΦ
+  ihave Hphys := ownRaftPhys_toC' $$ Hphys
+  iapply H (CfgM.simple cfg (domSet s.progress \ cfg)) r id s m ents sv voters cl Hty Hri Hprop
+      Happ Hhb Hrest
+    $$ [$Hpkg $Hphys $Hctx $Hrents Hsnap $Hents]
+  · iintro %Hm
+    icases Hsnap $$ %Hm with ⟨%learners, %Hsc, Hsv⟩
+    iexists learners
+    iframe Hsv
+    ipureintro
+    obtain ⟨H1, H2, H3, H4, H5⟩ := Hsc
+    exact ⟨rfl, H1, H2, H3, H4, H5⟩
+  inext
+  iintro %err %s' %dropped %c' ⟨Hphys, %Hres, Hdr⟩
+  have Hc' := Hres.1
+  have Hcs : ∃ L, c' = CfgM.simple cfg L := by
+    split at Hc'
+    · exact ⟨_, Hc'⟩
+    · exact ⟨_, Hc'⟩
+  obtain ⟨L, rfl⟩ := Hcs
+  ihave Hphys := ownRaftPhysC_toS $$ Hphys
+  iapply HΦ $$ %err %s' %dropped
+  iframe Hphys Hdr
+  ipureintro
+  exact Hres.simple
 
 end spec
 
