@@ -33,6 +33,7 @@ open Iris Iris.BI GMap go_etcd_io.raft.v3
 section ghost
 variable [FfiSyntax]
 variable {GF : BundledGFunctors} [AllG GF]
+variable {md : Bool}
 
 /-! ### Read contexts -/
 
@@ -352,7 +353,7 @@ self-acknowledgement with it: `RawNode.Advance` steps that message, and `Step` a
 `MsgAppResp` for a nonzero term. -/
 theorem ownRaftGhost_term_nz (γ : RaftNames) (id : w64) (s : PState) :
     s.role ≠ .follower →
-    ⊢ ownRaftGhost (GF := GF) γ id s -∗ ⌜s.term ≠ W64 0⌝ := by
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ ⌜s.term ≠ W64 0⌝ := by
   intro Hr
   unfold ownRaftGhost ownLogGhost
   iintro ⟨%γv, %voted, %kl, H⟩
@@ -375,7 +376,7 @@ theorem ownRaftGhost_term_nz (γ : RaftNames) (id : w64) (s : PState) :
 /-! ### Followers: no acknowledgement above their term -/
 
 theorem ownRaftGhost_ack_le (γ : RaftNames) (v : w64) (s : PState) (t i : w64) :
-    ⊢ ownRaftGhost (GF := GF) γ v s -∗ ackEv γ v t i -∗ ⌜uint.Z t ≤ uint.Z s.term⌝ := by
+    ⊢ ownRaftGhost (GF := GF) γ v s md -∗ ackEv γ v t i -∗ ⌜uint.Z t ≤ uint.Z s.term⌝ := by
   unfold ownRaftGhost ownLogGhost ownEvs ackEv
   iintro ⟨%γv, %voted, %kl, H⟩ ⟨%γe', %L, %HL, #Hlb⟩
   iNamed H
@@ -391,7 +392,7 @@ theorem ownRaftGhost_ack_le (γ : RaftNames) (v : w64) (s : PState) (t i : w64) 
 
 /-- A node at term `T` is in no quorum that dooms a record of `T`. -/
 theorem ownRaftGhost_not_doomed (γ : RaftNames) (v : w64) (s : PState) (r : RqRec) :
-    ⊢ ownRaftGhost (GF := GF) γ v s -∗ rqRecOk γ s.term r -∗
+    ⊢ ownRaftGhost (GF := GF) γ v s md -∗ rqRecOk γ s.term r -∗
       ⌜∀ t' q, r.2 = some (t', q) → v ∉ q⌝ := by
   iintro Hown #Hr
   rcases h : r.2 with _ | ⟨t', q⟩ <;> simp only [rqRecOk, h]
@@ -515,8 +516,8 @@ theorem ownRaftGhost_read_arrive (γ : RaftNames) (id : w64) (s : PState) (c : L
     (Lc : List raftpb.Entry) :
     s.role = .leader →
     plogTermAt s.base s.log s.commit = some s.term →
-    ⊢ ownRaftGhost (GF := GF) γ id s -∗ readReq γ c Lc ={⊤}=∗
-      ownRaftGhost γ id s ∗ ∃ d, rqRecOk γ s.term ((c, s.commit), d) := by
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ readReq γ c Lc ={⊤}=∗
+      ownRaftGhost γ id s md ∗ ∃ d, rqRecOk γ s.term ((c, s.commit), d) := by
   intro Hr Hct
   iintro Hown #Hrq
   icases persistent_entails_right

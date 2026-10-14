@@ -45,6 +45,7 @@ open Iris Iris.BI GMap go_etcd_io.raft.v3
 section ghost
 variable [FfiSyntax]
 variable {GF : BundledGFunctors} [AllG GF]
+variable {md : Bool}
 
 /-! ### Read-index (2026-10-12; see `Protocol/ReadIndex.lean`) -/
 
@@ -1675,6 +1676,14 @@ theorem ownRaftGhost_intro (γ : RaftNames) (id : w64) (s : PState) (γv : GName
   isplitl [H13]; · iexact H13
   ipureintro; exact Hmode
 
+/-- The mode of a node's ghost state. -/
+theorem ownRaftGhost_mode (γ : RaftNames) (id : w64) (s : PState) :
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ ⌜γ.reDyn.isSome = md⌝ := by
+  unfold ownRaftGhost
+  iintro ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  ipureintro; exact Hmode
+
 /-- The code's ghost state is static. -/
 theorem ownRaftGhost_static (γ : RaftNames) (id : w64) (s : PState) :
     ⊢ ownRaftGhost (GF := GF) γ id s -∗ ⌜γ.reDyn = none⌝ := by
@@ -1688,7 +1697,7 @@ theorem ownRaftGhost_static (γ : RaftNames) (id : w64) (s : PState) :
 
 /-- A non-leader does not record itself as leader. -/
 theorem ownRaftGhost_lead_ok (γ : RaftNames) (id : w64) (s : PState) :
-    ⊢ ownRaftGhost (GF := GF) γ id s -∗ ⌜LeadOk id s⌝ := by
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ ⌜LeadOk id s⌝ := by
   unfold ownRaftGhost
   iintro ⟨%γv, %voted, %kl, H⟩
   iNamed H
@@ -1696,7 +1705,7 @@ theorem ownRaftGhost_lead_ok (γ : RaftNames) (id : w64) (s : PState) :
 
 /-- A follower's tally is empty. -/
 theorem ownRaftGhost_follower_votes (γ : RaftNames) (id : w64) (s : PState) :
-    ⊢ ownRaftGhost (GF := GF) γ id s -∗ ⌜FollowerVotesOk s⌝ := by
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ ⌜FollowerVotesOk s⌝ := by
   unfold ownRaftGhost
   iintro ⟨%γv, %voted, %kl, H⟩
   iNamed H
@@ -1712,7 +1721,7 @@ theorem matchedOk_eq (γ : RaftNames) (s1 s2 : PState) :
   iintro H; iexact H
 
 theorem ownRaftGhost_excl (γ : RaftNames) (id : w64) (s1 s2 : PState) :
-    ⊢ ownRaftGhost (GF := GF) γ id s1 -∗ ownRaftGhost γ id s2 -∗ False := by
+    ⊢ ownRaftGhost (GF := GF) γ id s1 md -∗ ownRaftGhost γ id s2 md -∗ False := by
   -- the vote map is half the node's since 2026-10-05; the term-log map is whole
   unfold ownRaftGhost ownLogGhost
   iintro ⟨%γ1, %v1, %k1, H1⟩ ⟨%γ2, %v2, %k2, H2⟩
@@ -1726,7 +1735,7 @@ theorem ownRaftGhost_excl (γ : RaftNames) (id : w64) (s1 s2 : PState) :
 
 /-- Everything in a node's outbox was legitimately put there. -/
 theorem ownRaftGhost_outbox (γ : RaftNames) (id : w64) (s : PState) :
-    ⊢ ownRaftGhost (GF := GF) γ id s -∗ ([∗list] m ∈ s.outbox, isMessage γ m) := by
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ ([∗list] m ∈ s.outbox, isMessage γ m) := by
   unfold ownRaftGhost
   iintro ⟨%γv, %voted, %kl, H⟩
   iNamed H
@@ -1734,7 +1743,7 @@ theorem ownRaftGhost_outbox (γ : RaftNames) (id : w64) (s : PState) :
 
 theorem ownRaftGhost_isLeader (γ : RaftNames) (id : w64) (s : PState) :
     s.role = .leader →
-    ⊢ ownRaftGhost (GF := GF) γ id s -∗ isLeader γ id s.term := by
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ isLeader γ id s.term := by
   intro Hrole
   unfold ownRaftGhost
   iintro ⟨%γv, %voted, %kl, H⟩

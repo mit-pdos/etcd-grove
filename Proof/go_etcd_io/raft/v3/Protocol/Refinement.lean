@@ -88,6 +88,7 @@ local macro "rd_mono" : tactic => `(tactic| (
 section ghost
 variable [FfiSyntax]
 variable {GF : BundledGFunctors} [AllG GF] [InvGS GF]
+variable {md : Bool}
 
 theorem rdCount_replOk (id : w64) (s : PState) (ms : List Msg) (h : ∀ m ∈ ms, ReplOk id s m) :
     rdCount ms = 0 := by
@@ -294,11 +295,11 @@ private theorem ownRaftGhost_step_stale (γ : RaftNames) (id : w64) (s : PState)
     m.term = s.term →
     s.role ≠ .leader →
     ⊢ isMessage (GF := GF) γ m -∗
-      ownRaftGhost γ id s ==∗
+      ownRaftGhost γ id s md ==∗
       ownRaftGhost γ id
         (psendMsgs (padoptLeader s m.src)
            [Msg.mk .appResp id m.src s.term false s.commit
-              (W64 0) (W64 0) (W64 0) []]) := by
+              (W64 0) (W64 0) (W64 0) []]) md := by
   intro Hty Hfid Hterm Hrole
   iintro #Hm Hown
   iunfold ownRaftGhost at Hown
@@ -452,9 +453,9 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) 
     plogLastIndexZ s.base s.log + 1 < 2 ^ 64 →
     LeaderMatchOk id s mt →
     (∀ m ∈ ms, ReplOk id (pwinState id s mt) m) →
-    ⊢ ownRaftGhost (GF := GF) γ id s ={⊤}=∗
+    ⊢ ownRaftGhost (GF := GF) γ id s md ={⊤}=∗
       ownRaftGhost γ id (psendMsgs (pwinState id s mt)
-                           ([pselfAck id (pwinState id s mt)] ++ ms)) := by
+                           ([pselfAck id (pwinState id s mt)] ++ ms)) md := by
   intro Hrole Hq Hnw Hmt Hms
   obtain ⟨Hmid, Hmoth⟩ := Hmt
   have Hs2log : (pwinState id s mt).log = s.log ++ [pleaderEntry s] := rfl
@@ -887,7 +888,7 @@ theorem ownRaftGhost_step_beat (γ : RaftNames) (id : w64) (s : PState) (ms : Li
     s.role = .leader →
     (∀ m ∈ ms, HeartbeatOk id s m) →
     (∀ m ∈ ms, HbCtxOk s.rd.ro m.ctx) →
-    ⊢ ownRaftGhost (GF := GF) γ id s ==∗ ownRaftGhost γ id (psendMsgs s ms) := by
+    ⊢ ownRaftGhost (GF := GF) γ id s md ==∗ ownRaftGhost γ id (psendMsgs s ms) md := by
   intro Hrole Hms Hctx
   have Hcnt : rdCount ms = 0 := by
     unfold rdCount; rw [List.countP_eq_zero]
@@ -959,7 +960,7 @@ theorem ownRaftGhost_step_send_apps (γ : RaftNames) (id : w64) (s : PState)
     (ms : List Msg) :
     s.role = .leader →
     (∀ m ∈ ms, ReplOk id s m) →
-    ⊢ ownRaftGhost (GF := GF) γ id s ==∗ ownRaftGhost γ id (psendMsgs s ms) := by
+    ⊢ ownRaftGhost (GF := GF) γ id s md ==∗ ownRaftGhost γ id (psendMsgs s ms) md := by
   intro Hrole Hms
   have Hcnt := rdCount_replOk id s ms Hms
   iintro Hown
@@ -996,12 +997,12 @@ theorem ownRaftGhost_step_send_apps (γ : RaftNames) (id : w64) (s : PState)
 what it says of them (2026-10-10). -/
 theorem ownRaftGhost_step_prop_forward (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
     (Hty : m.ty = .propose) :
-    ⊢ isMessage (GF := GF) γ m -∗ ownRaftGhost γ id s ==∗
+    ⊢ isMessage (GF := GF) γ m -∗ ownRaftGhost γ id s md ==∗
       ownRaftGhost γ id
         (psendMsgs s
            [Msg.mkV .propose id s.lead (W64 0) m.reject
               m.index m.logterm m.commit m.rejecthint
-              m.entries [] m.ctx]) := by
+              m.entries [] m.ctx]) md := by
   iintro #Hm Hown
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γv, %voted, %kl, H⟩
@@ -1037,11 +1038,11 @@ theorem ownRaftGhost_step_app_resp (γ : RaftNames) (id : w64) (s : PState) (m :
     m.reject = false →
     s.matched !! m.src = some x →
     ⊢ isMessage (GF := GF) γ m -∗
-      ownRaftGhost γ id s ==∗
+      ownRaftGhost γ id s md ==∗
       ownRaftGhost γ id
         { s with matched :=
             <[m.src := if uint.Z x < uint.Z m.index
-                       then m.index else x]> s.matched } := by
+                       then m.index else x]> s.matched } md := by
   intro Hty Hterm Hrole Hrej Hx
   iintro #Hm Hown
   iunfold ownRaftGhost at Hown
@@ -1079,7 +1080,7 @@ peer's old one (acknowledged already). -/
 theorem ownRaftGhost_step_rematch (γ : RaftNames) (id : w64) (s : PState) (mt : GMap w64 w64) :
     s.role = .leader →
     (∀ v i, mt !! v = some i → uint.Z i = 0 ∨ s.matched !! v = some i) →
-    ⊢ ownRaftGhost (GF := GF) γ id s ==∗ ownRaftGhost γ id { s with matched := mt } := by
+    ⊢ ownRaftGhost (GF := GF) γ id s md ==∗ ownRaftGhost γ id { s with matched := mt } md := by
   intro Hrole Hmt
   iintro Hown
   iunfold ownRaftGhost at Hown
@@ -1121,7 +1122,7 @@ theorem ownRaftGhost_step_commit (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ 
     uint.Z n ≤ plogLastIndexZ s.base s.log →
     plogTermAt s.base s.log n = some s.term →
     JQuorum c (ackedBy s n) →
-    ⊢ ownRaftGhost (GF := GF) γ id s ={⊤}=∗ ownRaftGhost γ id { s with commit := n } := by
+    ⊢ ownRaftGhost (GF := GF) γ id s md ={⊤}=∗ ownRaftGhost γ id { s with commit := n } md := by
   intro Hrole Hlt Hle Htm Hq
   iintro Hown
   iunfold ownRaftGhost at Hown
@@ -1205,11 +1206,11 @@ theorem ownRaftGhost_step_app_stale (γ : RaftNames) (id : w64) (s : PState) (m 
     m.term = s.term →
     s.role ≠ .leader →
     ⊢ isMessage (GF := GF) γ m -∗
-      ownRaftGhost γ id s ==∗
+      ownRaftGhost γ id s md ==∗
       ownRaftGhost γ id
         (psendMsgs (padoptLeader s m.src)
            [Msg.mk .appResp id m.src s.term false s.commit
-              (W64 0) (W64 0) (W64 0) []]) := by
+              (W64 0) (W64 0) (W64 0) []]) md := by
   intro Hty Hfid Hterm Hrole
   exact ownRaftGhost_step_stale γ id s m (Or.inl Hty) Hfid Hterm Hrole
 
@@ -1220,11 +1221,11 @@ theorem ownRaftGhost_step_app_reject (γ : RaftNames) (id : w64) (s : PState) (m
     m.src ≠ id →
     s.role ≠ .leader →
     ⊢ isMessage (GF := GF) γ m -∗
-      ownRaftGhost γ id s ==∗
+      ownRaftGhost γ id s md ==∗
       ownRaftGhost γ id
         (psendMsgs (padoptLeader s m.src)
            [Msg.mk .appResp id m.src s.term true m.index
-              hintterm (W64 0) hint []]) := by
+              hintterm (W64 0) hint []]) md := by
   intro _ Hfid Hrole
   iintro #_ Hown
   iunfold ownRaftGhost at Hown
@@ -1338,11 +1339,11 @@ theorem ownRaftGhost_step_heartbeat (γ : RaftNames) (id : w64) (s : PState) (m 
     s.role ≠ .leader →
     uint.Z m.commit ≤ plogLastIndexZ s.base s.log →
     ⊢ isMessage (GF := GF) γ m -∗
-      ownRaftGhost γ id s ==∗
+      ownRaftGhost γ id s md ==∗
       ownRaftGhost γ id
         (psendMsgs
            { padoptLeader s m.src with commit := plogCommitTo s.commit m.commit }
-           [{ Msg.plain .heartbeatResp id m.src s.term false with ctx := m.ctx }]) := by
+           [{ Msg.plain .heartbeatResp id m.src s.term false with ctx := m.ctx }]) md := by
   intro Hty Hto Hterm Hfid Hrole Hcm
   iintro #Hm Hown
   iunfold ownRaftGhost at Hown
@@ -1454,7 +1455,7 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
       (entryID.mk m.logterm m.index) m.entries
       = some (lastnewi, es') →
     ⊢ isMessage (GF := GF) γ m -∗
-      ownRaftGhost γ id s ==∗
+      ownRaftGhost γ id s md ==∗
       ownRaftGhost γ id
         (psendMsgs
            { padoptLeader s m.src with
@@ -1463,7 +1464,7 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
                            (if uint.Z m.commit < uint.Z lastnewi
                             then m.commit else lastnewi) }
            [Msg.mk .appResp id m.src s.term false lastnewi
-              (W64 0) (W64 0) (W64 0) []]) := by
+              (W64 0) (W64 0) (W64 0) []]) md := by
   intro Hty Hfid Hterm Hrole Hcidx Happ
   iintro #Hm Hown
   iunfold ownRaftGhost at Hown
@@ -1905,10 +1906,10 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
     (ents : List raftpb.Entry) :
     s.role = .leader →
     plogLastIndexZ s.base s.log + (ents.length : Int) < 2 ^ 64 →
-    ⊢ ([∗list] e ∈ ents, entData (GF := GF) γ e) -∗ ownRaftGhost γ id s ==∗
+    ⊢ ([∗list] e ∈ ents, entData (GF := GF) γ e) -∗ ownRaftGhost γ id s md ==∗
       ownRaftGhost γ id
         (psendMsgs (pappend s (ents.mapIdx (stamp s.term (plastIndex s))))
-          [pselfAck id (pappend s (ents.mapIdx (stamp s.term (plastIndex s))))]) := by
+          [pselfAck id (pappend s (ents.mapIdx (stamp s.term (plastIndex s))))]) md := by
   intro Hrole Hnw
   rw [show plastIndex s = W64 (plogLastIndexZ s.base s.log) from rfl]
   generalize HL : plogLastIndexZ s.base s.log = L at Hnw ⊢
@@ -2216,11 +2217,11 @@ theorem ownRaftGhost_step_snap_stale (γ : RaftNames) (id : w64) (s : PState) (m
     m.term = s.term →
     s.role ≠ .leader →
     ⊢ isMessage (GF := GF) γ m -∗
-      ownRaftGhost γ id s ==∗
+      ownRaftGhost γ id s md ==∗
       ownRaftGhost γ id
         (psendMsgs (padoptLeader s m.src)
            [Msg.mk .appResp id m.src s.term false s.commit
-              (W64 0) (W64 0) (W64 0) []]) := by
+              (W64 0) (W64 0) (W64 0) []]) md := by
   intro Hty Hfid Hterm Hrole
   exact ownRaftGhost_step_stale γ id s m (Or.inr Hty) Hfid Hterm Hrole
 
@@ -2236,12 +2237,12 @@ theorem ownRaftGhost_step_snap_fastfwd (γ : RaftNames) (id : w64) (s : PState) 
     PlogMatches s.base s.log
       (entryID.mk m.logterm m.index) →
     ⊢ isMessage (GF := GF) γ m -∗
-      ownRaftGhost γ id s ==∗
+      ownRaftGhost γ id s md ==∗
       ownRaftGhost γ id
         (psendMsgs
            { padoptLeader s m.src with commit := m.index }
            [Msg.mk .appResp id m.src s.term false m.index
-              (W64 0) (W64 0) (W64 0) []]) := by
+              (W64 0) (W64 0) (W64 0) []]) md := by
   intro Hty Hfid Hterm Hrole Hlt Hmt
   iintro #Hm Hown
   iunfold ownRaftGhost at Hown
@@ -2333,7 +2334,7 @@ theorem ownRaftGhost_step_snap_restore (γ : RaftNames) (id : w64) (s : PState) 
     ¬ PlogMatches s.base s.log
         (entryID.mk m.logterm m.index) →
     ⊢ isMessage (GF := GF) γ m -∗
-      ownRaftGhost γ id s ==∗
+      ownRaftGhost γ id s md ==∗
       ownRaftGhost γ id
         (psendMsgs
            { padoptLeader s m.src with
@@ -2341,7 +2342,7 @@ theorem ownRaftGhost_step_snap_restore (γ : RaftNames) (id : w64) (s : PState) 
                log := [],
                commit := m.index }
            [Msg.mk .appResp id m.src s.term false m.index
-              (W64 0) (W64 0) (W64 0) []]) := by
+              (W64 0) (W64 0) (W64 0) []]) md := by
   intro Hty Hfid Hterm Hrole Hlt Hnm
   iintro #Hm Hown
   iunfold ownRaftGhost at Hown
@@ -2478,8 +2479,8 @@ theorem ownRaftGhost_step_snap_restore (γ : RaftNames) (id : w64) (s : PState) 
 `Ready` gives the transport with each `MsgReadIndex`. -/
 theorem ownRaftGhost_drain (γ : RaftNames) (id : w64) (s : PState) (o' : List Msg)
     (Hsub : o'.Subperm s.outbox) :
-    ⊢ ownRaftGhost (GF := GF) γ id s ==∗
-      ownRaftGhost γ id { s with outbox := o' } ∗ rdCred γ (rdCount s.outbox - rdCount o') := by
+    ⊢ ownRaftGhost (GF := GF) γ id s md ==∗
+      ownRaftGhost γ id { s with outbox := o' } md ∗ rdCred γ (rdCount s.outbox - rdCount o') := by
   iintro Hown
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γv, %voted, %kl, H⟩
@@ -2508,10 +2509,10 @@ theorem ownRaftGhost_drain (γ : RaftNames) (id : w64) (s : PState) (o' : List M
 ghost state is updated by `Hupd`, which may consult the log ghost state. -/
 theorem ownRaftGhost_rd (γ : RaftNames) (id : w64) (s s' : PState) (ms : List Msg)
     (Hs' : s' = { s with outbox := s.outbox ++ ms, rd := s'.rd }) :
-    ⊢ ([∗list] m ∈ ms, isMessage (GF := GF) γ m) -∗ ownRaftGhost γ id s -∗
+    ⊢ ([∗list] m ∈ ms, isMessage (GF := GF) γ m) -∗ ownRaftGhost γ id s md -∗
       (∀ kl, ownLogGhost γ id s kl -∗ rdOwn γ id s ={⊤}=∗
         ownLogGhost γ id s kl ∗ rdOwn γ id s') ={⊤}=∗
-      ownRaftGhost γ id s' := by
+      ownRaftGhost γ id s' md := by
   generalize Hr : s'.rd = rd' at Hs'
   subst Hs'
   iintro #Hms Hown Hupd
@@ -2543,11 +2544,11 @@ theorem isMessage_readIndex_tr (γ : RaftNames) (m m' : Msg) :
 
 theorem ownRaftGhost_step_read_fwd (γ : RaftNames) (id : w64) (s : PState) (m : Msg) :
     m.ty = .readIndex → s.role ≠ .leader → s.lead ≠ W64 0 →
-    ⊢ isMessage (GF := GF) γ m -∗ rdCred γ 1 -∗ ownRaftGhost γ id s ={⊤}=∗
+    ⊢ isMessage (GF := GF) γ m -∗ rdCred γ 1 -∗ ownRaftGhost γ id s md ={⊤}=∗
       ownRaftGhost γ id (psendMsgs s [{ m with
         src := if m.src = W64 0 then id else m.src
         dst := s.lead
-        term := W64 0 }]) := by
+        term := W64 0 }]) md := by
   intro Hty Hrole Hlead
   iintro #Hm Hcr Hown
   iapply ownRaftGhost_rd γ id s _ [{ m with
@@ -2569,8 +2570,8 @@ theorem ownRaftGhost_step_read_fwd (γ : RaftNames) (id : w64) (s : PState) (m :
 theorem ownRaftGhost_step_read_pend (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
     (pm : raftpb.Message) :
     m.ty = .readIndex → s.role = .leader →
-    ⊢ isMessage (GF := GF) γ m -∗ rdCred γ 1 -∗ ownRaftGhost γ id s ={⊤}=∗
-      ownRaftGhost γ id ({ s with rd := { s.rd with pend := s.rd.pend ++ [(pm, m.entries)] } }) := by
+    ⊢ isMessage (GF := GF) γ m -∗ rdCred γ 1 -∗ ownRaftGhost γ id s md ={⊤}=∗
+      ownRaftGhost γ id ({ s with rd := { s.rd with pend := s.rd.pend ++ [(pm, m.entries)] } }) md := by
   intro Hty Hrole
   iintro #Hm Hcr Hown
   iapply ownRaftGhost_rd γ id s _ [] (by cases s; simp) $$ [] Hown
@@ -2708,10 +2709,10 @@ theorem rdOwn_arrive (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) 
 /-- `ownRaftGhost_rd`, with a resource `R` taken out of the update. -/
 theorem ownRaftGhost_rdR (γ : RaftNames) (id : w64) (s s' : PState) (ms : List Msg)
     (R : IProp GF) (Hs' : s' = { s with outbox := s.outbox ++ ms, rd := s'.rd }) :
-    ⊢ ([∗list] m ∈ ms, isMessage (GF := GF) γ m) -∗ ownRaftGhost γ id s -∗
+    ⊢ ([∗list] m ∈ ms, isMessage (GF := GF) γ m) -∗ ownRaftGhost γ id s md -∗
       (∀ kl, ownLogGhost γ id s kl -∗ rdOwn γ id s ={⊤}=∗
         ownLogGhost γ id s kl ∗ rdOwn γ id s' ∗ R) ={⊤}=∗
-      ownRaftGhost γ id s' ∗ R := by
+      ownRaftGhost γ id s' md ∗ R := by
   generalize Hr : s'.rd = rd' at Hs'
   subst Hs'
   iintro #Hms Hown Hupd
@@ -2742,9 +2743,9 @@ theorem ownRaftGhost_arrive (γ : RaftNames) (id : w64) (t : PState) (src : w64)
     (ents : List raftpb.Entry) (t' : PState) :
     t.role = .leader → plogTermAt t.base t.log t.commit = some t.term →
     t' = { t with rd := { t.rd with ro := readonlyArrive t.rd.ro id ⟨t.commit, src, ents⟩ } } →
-    ⊢ ownRaftGhost (GF := GF) γ id t -∗
+    ⊢ ownRaftGhost (GF := GF) γ id t md -∗
       (∃ e c Lc, ⌜ents = [e]⌝ ∗ isPropData γ e.Data' c ∗ readReq γ c Lc) -∗ rdCred γ 1 ={⊤}=∗
-      ownRaftGhost γ id t' := by
+      ownRaftGhost γ id t' md := by
   intro Hr Hct Ht'
   subst Ht'
   iintro Hown ⟨%e, %c, %Lc, %He, #Hpd, #Hrq⟩ Hc1
@@ -2757,9 +2758,9 @@ theorem ownRaftGhost_arrive (γ : RaftNames) (id : w64) (t : PState) (src : w64)
 theorem ownRaftGhost_step_read_arrive (γ : RaftNames) (id : w64) (s : PState) (m : Msg) :
     m.ty = .readIndex → s.role = .leader →
     plogTermAt s.base s.log s.commit = some s.term →
-    ⊢ isMessage (GF := GF) γ m -∗ rdCred γ 1 -∗ ownRaftGhost γ id s ={⊤}=∗
+    ⊢ isMessage (GF := GF) γ m -∗ rdCred γ 1 -∗ ownRaftGhost γ id s md ={⊤}=∗
       ownRaftGhost γ id ({ s with rd := { s.rd with
-        ro := readonlyArrive s.rd.ro id ⟨s.commit, m.src, m.entries⟩ } }) := by
+        ro := readonlyArrive s.rd.ro id ⟨s.commit, m.src, m.entries⟩ } }) md := by
   intro Hty Hrole Hct
   iintro #Hm Hcr Hown
   iunfold isMessage at Hm
@@ -2768,10 +2769,10 @@ theorem ownRaftGhost_step_read_arrive (γ : RaftNames) (id : w64) (s : PState) (
 
 theorem ownRaftGhost_step_read_release (γ : RaftNames) (id : w64) (s : PState) :
     s.role = .leader → plogTermAt s.base s.log s.commit = some s.term →
-    ⊢ ownRaftGhost (GF := GF) γ id s ={⊤}=∗
+    ⊢ ownRaftGhost (GF := GF) γ id s md ={⊤}=∗
       ownRaftGhost γ id ({ s with rd := { s.rd with
         pend := []
-        ro := readonlyRelease s.rd.ro id s.commit s.rd.pend } }) := by
+        ro := readonlyRelease s.rd.ro id s.commit s.rd.pend } }) md := by
   intro Hrole Hct
   iintro Hown
   imod ownRaftGhost_rdR γ id s ({ s with rd := { s.rd with pend := [] } }) []
@@ -2785,12 +2786,12 @@ theorem ownRaftGhost_step_read_release (γ : RaftNames) (id : w64) (s : PState) 
     iapply rdOwn_takePend $$ Hrd
   -- the pending requests arrive one by one
   have key : ∀ (l : List (raftpb.Message × List raftpb.Entry)) (r : ReadOnly),
-      ⊢ ownRaftGhost (GF := GF) γ id ({ s with rd := { s.rd with pend := [], ro := r } }) -∗
+      ⊢ ownRaftGhost (GF := GF) γ id ({ s with rd := { s.rd with pend := [], ro := r } }) md -∗
         ([∗list] p ∈ l, ∃ e c Lc, ⌜p.2 = [e]⌝ ∗ isPropData γ e.Data' c ∗ readReq γ c Lc) -∗
         rdCred γ l.length ={⊤}=∗
         ownRaftGhost γ id ({ s with rd := { s.rd with
           pend := []
-          ro := l.foldl (fun r p => readonlyArrive r id ⟨s.commit, p.1.From', p.2⟩) r } }) := by
+          ro := l.foldl (fun r p => readonlyArrive r id ⟨s.commit, p.1.From', p.2⟩) r } }) md := by
     intro l
     induction l with
     | nil =>
@@ -2997,8 +2998,8 @@ theorem rdOwn_ack (γ : RaftNames) (id : w64) (s : PState) (src q N : w64)
 
 /-- An answer, given its facts. -/
 theorem ownRaftGhost_respond (γ : RaftNames) (id : w64) (t : PState) (q : ReadReq) :
-    ⊢ ownRaftGhost (GF := GF) γ id t -∗ respFacts γ q ={⊤}=∗
-      ownRaftGhost γ id (preadRespond id t q) := by
+    ⊢ ownRaftGhost (GF := GF) γ id t md -∗ respFacts γ q ={⊤}=∗
+      ownRaftGhost γ id (preadRespond id t q) md := by
   iintro Hown #Hq
   iunfold respFacts at Hq
   icases Hq with ⟨%e, %c, %He, #Hpd, #Hok⟩
@@ -3042,8 +3043,8 @@ theorem ownRaftGhost_respond (γ : RaftNames) (id : w64) (t : PState) (q : ReadR
       iexact Hz
 
 theorem ownRaftGhost_respondAll (γ : RaftNames) (id : w64) (qs : List ReadReq) :
-    ∀ t, ⊢ ownRaftGhost (GF := GF) γ id t -∗ ([∗list] q ∈ qs, respFacts γ q) ={⊤}=∗
-      ownRaftGhost γ id (preadRespondAll id t qs) := by
+    ∀ t, ⊢ ownRaftGhost (GF := GF) γ id t md -∗ ([∗list] q ∈ qs, respFacts γ q) ={⊤}=∗
+      ownRaftGhost γ id (preadRespondAll id t qs) md := by
   induction qs with
   | nil =>
     intro t
@@ -3063,11 +3064,11 @@ theorem ownRaftGhost_step_read_ack (γ : RaftNames) (c : CfgM) (HC : CfgStatic �
     m.ty = .heartbeatResp → m.dst = id → m.term = s.term → s.role = .leader → m.ctx ≠ [] →
     JQuorumAcked c
       (fun v => ((readonlyRecvAck s.rd.ro m.src m.ctx).acks !! v).getD (W64 0)) N →
-    ⊢ isMessage (GF := GF) γ m -∗ ownRaftGhost γ id s ={⊤}=∗
+    ⊢ isMessage (GF := GF) γ m -∗ ownRaftGhost γ id s md ={⊤}=∗
       ownRaftGhost γ id (preadRespondAll id
         ({ s with rd := { s.rd with
              ro := (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).1 } })
-        (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).2) := by
+        (readonlyAdvance (readonlyRecvAck s.rd.ro m.src m.ctx) N).2) md := by
   intro Hty Hto Hterm Hrole Hctx HQ
   iintro #Hm Hown
   iunfold isMessage at Hm
@@ -3093,9 +3094,9 @@ theorem ownRaftGhost_step_read_ack (γ : RaftNames) (c : CfgM) (HC : CfgStatic �
 theorem ownRaftGhost_step_read_state (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
     (e : raftpb.Entry) :
     m.ty = .readIndexResp → m.entries = [e] →
-    ⊢ isMessage (GF := GF) γ m -∗ ownRaftGhost γ id s ={⊤}=∗
+    ⊢ isMessage (GF := GF) γ m -∗ ownRaftGhost γ id s md ={⊤}=∗
       ownRaftGhost γ id ({ s with rd := { s.rd with
-        states := s.rd.states ++ [⟨m.index, e.Data'⟩] } }) := by
+        states := s.rd.states ++ [⟨m.index, e.Data'⟩] } }) md := by
   intro Hty He
   iintro #Hm Hown
   iapply ownRaftGhost_rd γ id s _ [] (by cases s; simp) $$ [] Hown
@@ -3130,8 +3131,8 @@ theorem ownRaftGhost_stepC (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id
     StepC c id s recv s' →
     ⊢ ([∗list] m ∈ recv, isMessage (GF := GF) γ m) -∗
       rdCred γ (rdCount recv) -∗
-      ownRaftGhost γ id s ={⊤}=∗
-      ownRaftGhost γ id s' := by
+      ownRaftGhost γ id s md ={⊤}=∗
+      ownRaftGhost γ id s' md := by
   intro Hstep
   induction Hstep with
   | refl s =>
