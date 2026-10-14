@@ -108,14 +108,14 @@ section cfg_eq
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- Off a `MsgSnap`, `stepFollower` leaves the configuration. -/
-theorem FollowerStepResultC.cfg {c : CfgM} {scfg : GSet w64} {id : w64} {s : NState}
+theorem FollowerStepResultC.cfg {c : CfgM} {scfg : CSLists} {id : w64} {s : NState}
     {m : raftpb.Message} {ents : List raftpb.Entry} {sv : raftpb.Snapshot} {dropped : Bool}
     {s' : NState} {c' : CfgM} {cl : List w8} (h : m.Type' ≠ MsgSnap)
     (H : FollowerStepResultC c scfg id s m ents sv dropped s' c' cl) : c' = c := by
   have := H.1; rwa [if_neg h] at this
 
 /-- Off a `MsgSnap`, `stepCandidate` leaves the configuration. -/
-theorem CandidateStepResultC.cfg {c : CfgM} {scfg : GSet w64} {id : w64} {s : NState}
+theorem CandidateStepResultC.cfg {c : CfgM} {scfg : CSLists} {id : w64} {s : NState}
     {m : raftpb.Message} {ents : List raftpb.Entry} {sv : raftpb.Snapshot} {dropped : Bool}
     {s' : NState} {c' : CfgM} {cl : List w8} (h : m.Type' ≠ MsgSnap)
     (H : CandidateStepResultC c scfg id s m ents sv dropped s' c' cl) : c' = c := by

@@ -13,7 +13,9 @@ one:
   the premise the dispatch derives from `isLeader_unique`.
 
 `handleSnapshot`'s three exits refine `StepC.snapStale`, `StepC.snapFastfwd` and
-`StepC.snapRestore` (`step_handle_snap`).
+`StepC.snapRestore` (`step_handle_snap`), and (2026-10-14, stage B8) the dynamic model's
+`StepR` rules of the same names, the restore at the configuration the snapshot's `ConfState`
+denotes (`stepCDS_handle_snap`, `StepCDS`).
 
 Proof structure, not specification: no `Module Type`, no `Parameter`; only
 `Proof/raft__Step.lean`, or another module of this directory, may import it.
@@ -49,17 +51,17 @@ namespace StepProof
 
 theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
-    (scfg : GSet w64) (sv : raftpb.Snapshot) (voters learners : List w64) :
+    (scfg : CSLists) (sv : raftpb.Snapshot) :
     m.Type' = MsgSnap →
     m.To' = id →
     m.Term' ≠ W64 0 →
     m.From' ≠ W64 0 →
     m.From' ≠ id →
-    id ∈ scfg →
+    scfg.Has id →
     NStateWf s →
-    -- the snapshot's `ConfState` is `c`'s voters and learners outside `c`, zero-free,
-    -- no joint configuration; its index below `2^61` (`Step`'s `"Hsnap"`)
-    SnapScope scfg sv voters learners →
+    -- the snapshot's `ConfState` well formed, any (joint included), its index below `2^61`
+    -- (`Step`'s `"Hsnap"`)
+    SnapScope sv scfg →
     -- protocol facts the dispatch derives from the ghost state: at the current term
     -- the receiver is not a leader (`isLeader_unique`), and a follower's tally is
     -- empty (`FollowerVotesOk`)
@@ -68,24 +70,23 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "#Hsv" ∷ m.Snapshot' ↦□ sv ∗
-        "#Hvs" ∷ sv.Metadata'.ConfState'.Voters' ↦*□ voters ∗
-        "#Hls" ∷ ownIdList sv.Metadata'.ConfState'.Learners' DFrac.discard learners }}
+        "#Hcs" ∷ ownCSL sv.Metadata'.ConfState' scfg }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState) (c' : CfgM), RET #err;
         "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
         -- (2026-10-14, stage B7) the snapshot's configuration after a restore
-        "%Hc'" ∷ ⌜c' = c ∨ ∃ L, c' = CfgM.simple scfg L⌝ ∗
+        "%Hc'" ∷ ⌜c' = c ∨ c' = snapCfg sv scfg⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv voters) ∧
-            StepCD c id m s recv s'⌝ ∗
+        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv scfg) ∧
+            StepCDS c c' (snapCfg sv scfg) id (snapId sv) s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hnl Hvotes
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · exact wp_Step_MsgSnap_gt _P c r id s m scfg sv voters learners Hty Hto Hterm Hfnz Hfid Hcfg
+  · exact wp_Step_MsgSnap_gt _P c r id s m scfg sv Hty Hto Hterm Hfnz Hfid Hcfg
       Hwf Hscope Hgt
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · wp_start_folded as ⟨Hphys, -, -, -⟩
-      iapply wp_Step_MsgSnap_lt _P c r id s m sv voters Hty Hto Hterm Hwf Hlt $$ [$Hpkg $Hphys]
+    · wp_start_folded as ⟨Hphys, -, -⟩
+      iapply wp_Step_MsgSnap_lt _P c r id s m sv scfg Hty Hto Hterm Hwf Hlt $$ [$Hpkg $Hphys]
       inext
       iintro %err %s' ⟨Hphys, %Hwf', %Href, %Herr⟩
       iapply HΦ $$ %err %s' %c
@@ -93,7 +94,7 @@ theorem wp_Step_MsgSnap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       ipureintro
       exact ⟨Or.inl rfl, Hwf', Href, Herr⟩
     · have Hteq : m.Term' = s.term := by word
-      exact wp_Step_MsgSnap_eq _P c r id s m scfg sv voters learners Hty Hto Hterm Hfnz Hfid Hcfg
+      exact wp_Step_MsgSnap_eq _P c r id s m scfg sv Hty Hto Hterm Hfnz Hfid Hcfg
         Hwf Hscope Hteq (Hnl Hteq) Hvotes
 
 end StepProof

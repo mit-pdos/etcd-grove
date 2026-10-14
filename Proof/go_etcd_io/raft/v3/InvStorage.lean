@@ -226,6 +226,19 @@ def PendOk (σ : StorState) (p : List raftpb.Entry) : Prop :=
     uint.Z σ.prev.index' < uint.Z e0.Index' ∧
     uint.Z e0.Index' ≤ uint.Z σ.prev.index' + (σ.ents.length : Int) + 1
 
+/-- No lists (the argument of a spec about a `ConfState` where none is read). -/
+instance : EmptyCollection CSLists := ⟨⟨[], [], [], []⟩⟩
+
+/-- Each list a permutation of the other's. -/
+def CSLists.Perm (a b : CSLists) : Prop :=
+  a.voters ≡ₚ b.voters ∧ a.learners ≡ₚ b.learners ∧ a.outgoing ≡ₚ b.outgoing ∧
+  a.learnersNext ≡ₚ b.learnersNext
+
+/-- Each list at most `2^62` long (`slices.Sort`'s bound). -/
+def CSLists.Bounded (a : CSLists) : Prop :=
+  (a.voters.length : Int) ≤ 2 ^ 62 ∧ (a.learners.length : Int) ≤ 2 ^ 62 ∧
+  (a.outgoing.length : Int) ≤ 2 ^ 62 ∧ (a.learnersNext.length : Int) ≤ 2 ^ 62
+
 end termAt
 
 section proof
@@ -234,6 +247,22 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- A `ConfState`'s four slices read-only, holding the lists `cl` (2026-10-14, reconfiguration
+stage B8): what a snapshot's `ConfState` comes with, from the storage (`HSnapshot`) to a
+`MsgSnap` (`msgAbs`) to its receiver (`raft.Step`'s `"Hsnap"`). -/
+def ownCSL (cs : raftpb.ConfState) (cl : CSLists) : IProp GF :=
+  iprop(cs.Voters' ↦*□ cl.voters ∗ cs.Learners' ↦*□ cl.learners ∗
+    cs.VotersOutgoing' ↦*□ cl.outgoing ∗ cs.LearnersNext' ↦*□ cl.learnersNext)
+
+instance ownCSL_persistent (cs : raftpb.ConfState) (cl : CSLists) :
+    Persistent (ownCSL (GF := GF) cs cl) := by
+  unfold ownCSL; infer_instance
+
+open Iris.ProofMode in
+theorem ownCSL_voters (cs : raftpb.ConfState) (cl : CSLists) :
+    ownCSL (GF := GF) cs cl ⊢ cs.Voters' ↦*□ cl.voters := by
+  unfold ownCSL; iintro ⟨H, -⟩; iexact H
 
 /-- The interface contract, against an arbitrary ownership predicate `P` for the
 storage's contents (a `StorState`, as in `ownStorage`). Persistent: it is a
@@ -372,7 +401,7 @@ def isStorageWith (P : StorState → IProp GF)
          P σ ∗
          (⌜err = esu⌝ ∨
           (⌜err = interface.nil ∧ snapId snap = σ.ss ∧ snap.Metadata'.Index' ≠ W64 0⌝ ∗
-           ∃ (voters : List w64), snap.Metadata'.ConfState'.Voters' ↦*□ voters)) }}) ∗
+           ∃ (voters : CSLists), ownCSL snap.Metadata'.ConfState' voters)) }}) ∗
   /- The pending append (2026-10-10, for `node.go`; notes/decisions.md, "Storage: a
      pending append, for node.go"). The application appends a `Ready`'s entries on its own
      goroutine while raft keeps reading the storage. Two laws, ghost updates of the

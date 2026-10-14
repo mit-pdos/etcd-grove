@@ -55,7 +55,7 @@ theorem stepFollower.wp_proof
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
     (wp_raft_hup : raft.hup.spec (GF := GF) (hG := hG)) :
     stepFollower.spec (GF := GF) (hG := hG) := by
-  intro c scfg r id s m ents sv voters cl Hty Hri Hprop Happ Hhb Hrest
+  intro c scfg r id s m ents sv cl Hty Hri Hprop Happ Hhb Hrest
   wp_start as H
   iNamed H
   ihave #Hinit := isInitialized_access $$ Hpkg
@@ -165,7 +165,7 @@ theorem stepFollower.wp_proof
         MsgAppResp, MsgHeartbeatResp, MsgSnap, MsgPreVoteResp]
   · -- `MsgSnap`: adopt the sender as leader, then `handleSnapshot`
     ihave Hs := Hsnap $$ %Hty
-    icases Hs with ⟨%learners, %Hsc, #Hsv, #Hvs, #Hls⟩
+    icases Hs with ⟨%Hsc, #Hsv, #Hcs⟩
     obtain ⟨Hscope, Hrole, Hvotes, Hcfg, Hfid⟩ := Hsc
     rw [Hty]
     simp only [MsgSnap]
@@ -173,8 +173,8 @@ theorem stepFollower.wp_proof
     wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
     wp_apply raft.wp_store_leadC $$ Hphys as Hphys
     -- (2026-10-14) at any configuration: `handleSnapshot` on the struct at `c`
-    wp_apply wp_raft_handleSnapshot c scfg _ _ { s with lead := m.From' } _ sv voters learners Hrole
-      Hvotes Hcfg Hscope Hfid $$ [$Hphys $Hsv $Hvs $Hls]
+    wp_apply wp_raft_handleSnapshot c _ _ { s with lead := m.From' } _ sv scfg Hrole
+      Hvotes Hcfg Hscope Hfid $$ [$Hphys $Hsv $Hcs]
       as %s' %c' ⟨Hphys, %Hres, %Hc'⟩
     iapply HΦ $$ %GoInterface.nil %s' %false %c'
     iframe

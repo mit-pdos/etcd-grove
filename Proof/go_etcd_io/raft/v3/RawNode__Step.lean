@@ -116,7 +116,7 @@ theorem RawNode.Step.wp_proof
       have P8 : m.Type' = MsgStorageApplyResp → m.Term' = W64 0 := by not_net
       icases ownRaftPhysC_preFacts cf rnv.raft' id s Hpvoff $$ Hphys with ⟨%Hpf, Hphys⟩
       icases ownStepGhost_vcfg γ rs fp cf id s $$ Hghost with ⟨%Hvc, Hghost⟩
-      wp_apply wp_raft_Step cf _ γ _ id s m ents ctx Hsm (by not_net) P1
+      wp_apply wp_raft_Step cf _ γ _ id s m ents ctx Hsm  P1
         (fun h => Hnr h (by ty_ne))
         (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1⟩) P2 P3
         (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
@@ -160,7 +160,7 @@ theorem RawNode.Step.wp_proof
       simp only [HnP, ↓reduceIte]
       iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, -⟩
       have Hc := Href.commit_mono
-      have e1 := Href.keep (by not_net); subst e1
+      have e1 := Href.keep (by not_net) (by not_net); subst e1
       have e2 := Hcc (by not_net); subst c'
       obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by not_net) (by not_net)
       obtain ⟨Ht1, -, Ht3, -, Ht5⟩ := Htm (by not_net)

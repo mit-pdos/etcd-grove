@@ -51,7 +51,7 @@ theorem RawNode.ProposeConfChange.wp_proof
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   icases ownRaftPhysC_preFacts cf rnv.raft' id s Hpvoff $$ Hphys with ⟨%Hpf, Hphys⟩
   wp_apply wp_raft_Step cf _ γ _ id s (ccPropMsg esl) [ccEntry (some o) data] []
-    (by simp [StepMsg, stepMsgTypes, ccPropMsg, MsgProp]) (by msg_ne)
+    (by simp [StepMsg, stepMsgTypes, ccPropMsg, MsgProp]) 
     (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne)
@@ -102,7 +102,7 @@ theorem RawNode.ProposeConfChange.wp_proof
   simp only [ccPropMsg, MsgProp, ite_true]
   iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', %Hloc, %_, %_, %_, Herr⟩
   have Hc := Href.commit_mono
-  have e1 := Href.keep (by msg_ne); subst e1
+  have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
   have e2 := Hc' (by msg_ne); subst c'
   wp_auto
   -- what the `RawNode` tracks is kept: `LocalStepOk`, and the commit index does not move

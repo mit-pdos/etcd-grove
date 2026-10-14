@@ -194,7 +194,7 @@ mode afterwards is the node's at some `ca'`, moved only by a `MsgStorageApplyRes
 most the new `applied` (`CidxMove`), and not at all in the static mode. -/
 theorem RNMode.stepOut_ca {mode : RNMode} {ca : Nat} {cfg : CCState} {fp : List raftpb.Entry}
     {c : CfgM} {id : w64} {m : raftpb.Message} {s s' : NState} {md' : GMode}
-    (H : (mode.toG ⟨ca, cfg, fp⟩).StepOut c id m s s' md') :
+    (H : (mode.toG ⟨ca, cfg, fp⟩).StepOut c id m s s' md') (hs : m.Type' ≠ MsgSnap) :
     ∃ ca', md' = mode.toG ⟨ca', cfg, fp⟩ ∧ ca ≤ ca' ∧
       ca' ≤ max ca (uint.nat s'.logst.applied) ∧ (mode = .static → ca' = ca) ∧
       (m.Type' ≠ MsgStorageApplyResp → ca' = ca) := by
@@ -202,17 +202,14 @@ theorem RNMode.stepOut_ca {mode : RNMode} {ca : Nat} {cfg : CCState} {fp : List 
   | static =>
     exact ⟨ca, H.1, Nat.le_refl _, Nat.le_max_left _ _, fun _ => rfl, fun _ => rfl⟩
   | dyn dec c0 h0 =>
-    obtain ⟨cidx', Hcm, rfl, -⟩ := H
-    refine ⟨cidx', rfl, ?_, ?_, fun h => (by cases h), fun hm => ?_⟩
-    · rcases Hcm with h | ⟨-, h⟩
-      · rw [h]; exact Nat.le_refl _
-      · rw [h]; exact Nat.le_max_left _ _
-    · rcases Hcm with h | ⟨-, h⟩
-      · rw [h]; exact Nat.le_max_left _ _
-      · rw [h]; exact Nat.le_refl _
-    · rcases Hcm with h | ⟨h, -⟩
-      · exact h
-      · exact absurd h hm
+    obtain ⟨g', Hcm, rfl, -⟩ := H
+    rcases Hcm with h | h | ⟨hty, h⟩
+    · exact absurd h hs
+    · subst h
+      exact ⟨ca, rfl, Nat.le_refl _, Nat.le_max_left _ _, fun h => (by cases h), fun _ => rfl⟩
+    · subst h
+      exact ⟨_, rfl, Nat.le_max_left _ _, Nat.le_refl _, fun h => (by cases h),
+        fun hm => absurd hty hm⟩
 
 /-- A configuration in which the node is not its own quorum (`raft.Step`'s premise for a
 read-index request: `IsSingleton`'s immediate answer is out of scope). -/
@@ -540,7 +537,7 @@ theorem GMode.Pre.of_facts {md : GMode} {m : raftpb.Message} {ents : List raftpb
     md.Pre m ents s := by
   cases md with
   | static => trivial
-  | dyn dec c0 h0 g => exact ⟨h1, h.1, fun h' => absurd h' h3, fun _ => h.2⟩
+  | dyn dec c0 h0 g => exact ⟨h.1, fun h' => absurd h' h3, fun _ => h.2⟩
 
 /-- ... read off the struct, at a node with pre-vote off. -/
 theorem ownRaftPhysC_preFacts (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState)
@@ -570,7 +567,7 @@ theorem ownRaftPhysC_pre (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NSt
   cases md with
   | static => trivial
   | dyn dec c0 h0 g =>
-    refine ⟨h1, fun h => ?_, fun h => absurd h h3, fun _ => Hb⟩
+    refine ⟨fun h => ?_, fun h => absurd h h3, fun _ => Hb⟩
     have := Hpc h; rw [Hpv] at this; cases this
 
 end proof

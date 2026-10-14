@@ -53,7 +53,7 @@ theorem RawNode.ReadIndex.wp_proof
   icases ownStepGhost_vcfg γ rs fp cf id s $$ Hghost with ⟨%Hvc, Hghost⟩
   wp_apply wp_raft_Step cf _ γ _ id s _
     [({ (zero_val raftpb.Entry) with Data' := rctx } : raftpb.Entry)] []
-    (by simp [StepMsg, stepMsgTypes, MsgReadIndex]) (by msg_ne)
+    (by simp [StepMsg, stepMsgTypes, MsgReadIndex]) 
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (fun _ => ⟨rfl, by unfold NotSingleton at Hsing; rw [Hvc.1, Hvc.2]; exact Hsing⟩)
@@ -92,7 +92,7 @@ theorem RawNode.ReadIndex.wp_proof
   simp only [hP]
   iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, -⟩
   have Hc := Href.commit_mono
-  have e1 := Href.keep (by msg_ne); subst e1
+  have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
   have e2 := Hcc (by msg_ne); subst c'
   wp_auto
   obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by msg_ne) (by msg_ne)

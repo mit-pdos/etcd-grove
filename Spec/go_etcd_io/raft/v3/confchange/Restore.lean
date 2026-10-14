@@ -45,7 +45,7 @@ but no voter `EnterJoint` errs anyway); the empty tracker `MakeProgressTracker` 
 Result: the configuration as `ownCfgCC` at `s'.cfg` (the incoming voter map owned, the other
 three sets canonical, `AutoLeave`), the progress map with domain `s'.prs`'s, each `Progress`
 owned with `IsLearner` as `s'.prs` says. -/
-abbrev confchange.Restore.specG : Prop :=
+abbrev confchange.Restore.spec : Prop :=
   ∀ (chg : confchange.Changer) (cs : raftpb.ConfState)
     (voters learners outgoing learnersNext : List w64) (dq dql dqo dqn : DFrac) (v0 : Loc)
     (s' : CCState),
@@ -81,7 +81,8 @@ abbrev confchange.Restore.specG : Prop :=
 `chg.Tracker` and returns the resulting `Config` and `ProgressMap`.
 
 The statement of 2026-10-13, kept for raft's callers (`newRaft`, `raft.restore`) and derived
-from the general `specG` (`spec_of_specG`). (Until 2026-10-08 the package was not translated
+from the general `spec` (`spec_simple`; until 2026-10-14 this was `spec` and the general one
+`specG`). (Until 2026-10-08 the package was not translated
 and this triple was an axiom.) It is stated for a non-joint `ConfState` (voters and, since
 2026-10-13, learners) applied to the empty tracker `MakeProgressTracker` builds; the
 learners come after the voters (`toConfChangeSingle`), one `AddLearnerNode` each. Read
@@ -115,7 +116,7 @@ repeated voter.
 
 `MaxInflight`'s bound is what `ownProgress` (via `InflightsOk`) asks of the fresh
 `Inflights`; see `spec_tracker_NewInflights.v`. -/
-abbrev confchange.Restore.spec : Prop :=
+abbrev confchange.Restore.specS : Prop :=
   ∀ (chg : confchange.Changer) (cs : raftpb.ConfState)
     (voters learners : List w64) (dq dql : DFrac) (v0 : Loc),
   voters ≠ [] →
@@ -155,8 +156,8 @@ abbrev confchange.Restore.spec : Prop :=
 
 /-- The non-joint statement from the general one: with no outgoing voter and no staged learner
 the model's answer is the voters and the learners (`simpleFold_restoreIn`). -/
-theorem confchange.Restore.spec_of_specG (H : confchange.Restore.specG (GF := GF) (hG := hG)) :
-    confchange.Restore.spec (GF := GF) (hG := hG) := by
+theorem confchange.Restore.spec_simple (H : confchange.Restore.spec (GF := GF) (hG := hG)) :
+    confchange.Restore.specS (GF := GF) (hG := hG) := by
   intro chg cs voters learners dq dql v0 Hvne Hv0n Hl0n Hdis Hcvo Hcln Hmi Harr Hl Hln Hal
   iintro %Φ ⟨#Hpkg, Hvs, Hls, Hv0, #Hpm⟩ HΦ
   have Hm : restoreM [] voters learners [] cs.AutoLeave' =

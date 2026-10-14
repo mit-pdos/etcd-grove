@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-14 (reconfiguration, stage B7 part 1: **`raft.Step` in the dynamic model** -- `raft.Step.spec` takes the ghost state in either mode (`GMode`, `ownStepGhost`); in the dynamic mode every step is a `StepR` step and `ownRaftGhostR` follows the code, under the premises `GMode.Pre` (no `MsgSnap`, no pre-candidate, A1 at `MsgStorageApplyResp`, a log bound for dropped proposals); the struct at any configuration (`ownRaftPhysCV c`); `RawNode`/`node` still static through `raft.Step.specS`; see "Reconfiguration, stage B7, part 1"; reconfiguration, stage B8, standalone part: **`confchange.Restore`
+**Last updated:** 2026-10-14 (reconfiguration, stage B8: **snapshots at a changing configuration** -- a snapshot of any well-formed `ConfState`, joint included, restored through `raft.restore`/`handleSnapshot`/`stepFollower`/`stepCandidate`/`raft.Step` (the general `confchange.Restore`, `ConfState.Equivalent`, `assertConfStatesEquivalent` as `spec`; the node any id of the `ConfState`, learners and outgoing voters included), `MsgSnap` in `raft.Step`'s dynamic mode as `StepR.snapRestore` (`StepCDS`, `ghost_stepCDS`; the prefix from the message, `isMessage_snap_prefix`; A3 the receiver's premise `GMode.SnapOk`), the four `ConfState` lists from the storage to the outbox (`CSLists`, `ownCSL`); A3 carried from the sender's storage by the message left; see "Reconfiguration, stage B8 (snapshots at a changing configuration)"; reconfiguration, stage B7 part 1: **`raft.Step` in the dynamic model** -- `raft.Step.spec` takes the ghost state in either mode (`GMode`, `ownStepGhost`); in the dynamic mode every step is a `StepR` step and `ownRaftGhostR` follows the code, under the premises `GMode.Pre` (no `MsgSnap`, no pre-candidate, A1 at `MsgStorageApplyResp`, a log bound for dropped proposals); the struct at any configuration (`ownRaftPhysCV c`); `RawNode`/`node` still static through `raft.Step.specS`; see "Reconfiguration, stage B7, part 1"; reconfiguration, stage B8, standalone part: **`confchange.Restore`
 for any `ConfState`** (`Restore.specG`, joint included, against `restoreM`; the non-joint
 `Restore.spec` derived), A3 as definitions (`SnapConf.lean`: `SnapConfOk`, `SnapObl`),
 `MemoryStorage` keeping a snapshot's four `ConfState` slices, and the asynchronous-storage
@@ -33,6 +33,142 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## Reconfiguration, stage B8 (snapshots at a changing configuration) (2026-10-14)
+
+A snapshot whose `ConfState` is any well-formed one, joint included, is now restored through
+`raft.restore`, `handleSnapshot`, `stepFollower`/`stepCandidate` and `raft.Step`, and
+`raft.Step`'s `MsgSnap` branch is in scope in the dynamic mode: it is a `StepR.snapRestore`
+step (or a frame step) of B5's model, and `ownRaftGhostR` follows it. The A3 obligation (the
+snapshot's `ConfState` is the configuration of the log prefix it covers) is a premise of the
+receiving `raft.Step`, stated on the snapshot's recorded prefix; it is not yet carried by the
+message from the sender's storage (left, below). Trust base unchanged
+(`etc/tcb-report.py --check`: 75 axioms, 10 sorries; `raft.txt` 6/0, `register.txt` 4/9,
+`raft-dyn.txt` 0/0). `Link.lean` unchanged (`etc/gen-link.py` reproduces it: no callee list
+moved).
+
+Commits, each building the five targets (`Link`, `Results`, the register's
+`Results`/`Adequacy`, `SnapConf`):
+- `6a8c5a672`: the general `confchange.Restore`, `ConfState.Equivalent`,
+  `assertConfStatesEquivalent` as `spec`.
+- `894e6ee10`: joint snapshots through `raft.restore` .. `raft.Step`; `MsgSnap` in the
+  dynamic mode.
+- `cabbe8de2`: the four `ConfState` lists from the storage to the outbox.
+- `05cf5c611`: `restore`'s `found` search over all three lists.
+- this notes commit.
+
+**Specs changed** (statement shapes):
+- **`confchange.Restore.spec`** is the general statement (was `specG`): any `ConfState`, the
+  model's answer `restoreM`. The non-joint statement is `Restore.specS`, derived
+  (`Restore.spec_simple`, was `spec_of_specG`). `newRaft` takes `specS` in one line.
+- **`raftpb.ConfState.Equivalent.spec`**, **`assertConfStatesEquivalent.spec`**: any two
+  `ConfState`s with equal `AutoLeave` and each of the four id lists of one a permutation of the
+  other's (`CSLists.Perm`, `CSLists.Bounded`; slices as `ownCSIds cs dq dl cl`: `Voters` a
+  points-to, the other three `ownIdList`). The non-joint statements are `specS`, derived
+  (`spec_simple`); `newRaft` takes `assertConfStatesEquivalent.specS` in one line.
+- **`CSLists`** (`Defs.lean`): the four id lists of a `ConfState`; **`ownCSL cs cl`**
+  (`InvStorage.lean`): its four slices read-only.
+- **`raft.restore.spec`**: `∀ c r id s sv cl`, premises `s.role = .follower`, `s.votes = ∅`,
+  `cl.Has id` (`CSLists.Has`: an incoming voter, a learner or an outgoing voter -- the three
+  lists `restore`'s `found` search reads; until now the node had to be a voter), `SnapScope sv
+  cl`; pre `ownRaftPhysCV c c.voters r id s ∗ ownCSL
+  sv.Metadata'.ConfState' cl`; post at `restoreCfg c sv cl b` (the configuration the
+  `ConfState` denotes, `snapCfg sv cl = csCfgM ...`, after a restore; `c` otherwise).
+  **`SnapScope sv cl`** (was `SnapScope cfg sv voters learners`, non-joint with the voters
+  `cfg`): `CSWf` of the lists, each without repeats (the comparison with `switchToConfig`'s
+  sets), their total length at most `2^62`, `AutoLeave` off when not joint (`Restore` drops it
+  then), the index below `2^61`. The proof: `Restore.spec` answers `cfgStateC (csCfgM ...)`
+  (`restoreM_wf`), which is an `ownConfigC` (`ownConfigC_of_restore`), `switchToConfig` at that
+  configuration, the general `assertConfStatesEquivalent`; the `found` search over all three
+  lists (`FoundBefore`, `csl_found_slice`). `raft.restore.specS` (no caller) is gone.
+- **`raft.handleSnapshot.spec`**, **`stepFollower.spec`**, **`stepCandidate.spec`**: the
+  snapshot's lists `scfg : CSLists` in place of `scfg : GSet w64` and `voters`;
+  `SnapCfgOk c s sv scfg c'` (the snapshot's `snapCfg` after a restore). Their `specS` (no
+  caller) are gone. The other branch files pass `∅ : CSLists` (an `EmptyCollection`
+  instance) and one argument fewer.
+- **`raft.Step.spec`**: the premise `m.Type' = MsgSnap → id ∈ γ.reCfg` is gone; `"Hsnap"` is
+  `□ (⌜m.Type' = MsgSnap⌝ -∗ ∃ sv scfg, m.Snapshot' ↦□ sv ∗ ownCSL sv.Metadata'.ConfState'
+  scfg ∗ ⌜SnapScope sv scfg ∧ scfg.Has id⌝ ∗ md.SnapOk γ sv scfg ∗ isMessage γ (absSnap m
+  sv scfg))`. **`GMode.SnapOk`** (`StepGhostMode.lean`): statically `⌜GMap.listToSet
+  scfg.voters = γ.reCfg ∧ scfg.outgoing = []⌝` (the restored configuration is still
+  `CfgStatic`); dynamically A3, `□ ∀ fp, logRecs γ base0 fp -∗ ⌜FullOk (snapId sv) fp⌝ -∗
+  ⌜SnapConfOk dec c0 fp scfg.outgoing scfg.voters scfg.learners scfg.learnersNext
+  AutoLeave⌝` -- for any recorded prefix ending at the snapshot's entry id (records agree, so
+  there is one; the message shows one exists, `isMessage_snap_prefix`). `raft.Step.specS`
+  keeps its premises; its `"Hsnap"` is the static one over `CSLists` (`GMap.listToSet
+  scfg.voters = cfg ∧ scfg.outgoing = []`).
+- **`GMode.Pre`** (dynamic): no longer excludes `MsgSnap`. **`GMode.StepOut`** (dynamic):
+  `∃ g', md' = .dyn dec c0 h0 g' ∧ ∃ recv, StepR (AdmFold dec c0) dec id (rOf s g) recv (rOf
+  s' g')` (was: only the configuration index moved, at `AdmS dec c0 (fun _ => False)`).
+- **`isStorage`'s `HSnapshot`**, **`MemoryStorage.Snapshot.spec`**, **`raftLog.snapshot.spec`**,
+  `ownSnap` (the pending snapshot), **`unstable.restore.spec`**, **`raftLog.restore.spec`**,
+  **`raft.send.spec`**'s `"Hsnap"` and **`msgAbs`**: the snapshot's four lists (`∃ voters :
+  CSLists, ownCSL ... voters`, was `Voters ↦*□ voters`); `absSnap`/`absSnapFrom` take the
+  lists (the abstract message keeps `voters.voters`). The register's `Storage.Snapshot.spec`
+  follows (its proof, and every pattern on `msgAbs`, unchanged).
+
+**The dynamic `MsgSnap` step** (`StepLemmasR.lean`, `repl_lemmas.lean`, `StepGhostMode.lean`):
+- `StepCDS c c' cn id sid s recv s'`: the `MsgSnap` branch's witness, beside `StepCD`: the
+  `StepC` step, and for every ghost part over `c`, prefix `fp'` with `FullOk sid fp'`, and
+  configuration state `cs'` over `cn` admitted after `fp'`, a `StepR` step to some ghost part
+  over `c'`. (`StepCD` keeps the ghost part but its configuration index; a restore replaces
+  configuration index, configuration and full prefix.)
+- `stepR_snap_restore` (`StepR.snapRestore` at `rOf`: `applied` kept, the snapshot pending,
+  `pci` `0` at a non-leader), `StepCDS.frame`, `StepCDS.trans_frame`;
+  `stepCDS_handle_snap` (`handleSnapshot`'s three exits), `stepCF_handle_snap_keep`,
+  `stepCF_higher_term_snap`.
+- `ghost_stepCDS`: either mode. Statically `ownRaftGhost_stepC`; dynamically the prefix `fp0`
+  the message shows (`isMessage_snap_prefix`, new in `Protocol/Refinement.lean`: the sender's
+  leader prefix taken to the snapshot's index, with its records), A3 of it from
+  `GMode.SnapOk`, then `ownRaftGhostR_stepR` with `S := (· = fp0)` (B5's snapshot-prefix
+  premise, supplied by `fp0`'s records).
+- B5's under-constraint of `StepR.snapRestore` (its `fp'` only `FullOk` and `Adm`) is handled
+  as B5 planned, by the records: the code picks the message's prefix, no model change.
+
+**Scope** (stated where it applies):
+- The node is one of the snapshot's ids (`CSLists.Has`); a learner and a voter of the outgoing
+  half only (a node being removed) are in scope (stage L's "a learner receiving a snapshot needs
+  the `found` search over the learners" is done). A node in none of them makes Go's `restore`
+  ignore the snapshot (`return false`), which `RestoreResult` does not describe: left out by the
+  premise.
+- A3 is a premise of the receiving `raft.Step` in the dynamic mode (`GMode.SnapOk`), not yet a
+  fact the message carries (below).
+
+Findings: no Go bug, no false statement.
+
+**Left** (precisely):
+1. **A3 from the sender's storage to the message** (the task's item 3). What it needs:
+   - `StorState` with the snapshot's lists and `AutoLeave` (or a persistent per-id record),
+     `isStorage`'s `HSnapshot` returning them, `memstorageFields` relating them (`ownCSRO`
+     already keeps the four slices), `CreateSnapshot`/`ApplySnapshot` updating them, and the
+     application's obligation at `CreateSnapshot`/`ApplySnapshot` (`SnapObl`, as a persistent
+     fact of the shape of `GMode.SnapOk`'s dynamic clause, keyed by `γ` through `γ.dyn`);
+   - raft keeping that fact for its stored and its pending snapshot (`ghostRest`'s dynamic
+     clause; the pending snapshot's lists then a field of the log state);
+   - and the message carrying it: the abstract `Msg` keeps only `voters`, so `isMessage`
+     cannot name the other three lists, and the outbox relation (`msgAbs`, in the physical
+     `ownRaftPhys`) cannot name the ghost fact. Either `Msg` gains the lists (every `Msg.mkV`
+     site, `isMessage`'s `snap` case with a `dynOn`-guarded A3, and the refinement's
+     `sendApps` taking the A3 of the snapshots it sends as a premise, like B5's `S`), or the
+     `RawNode` delivery predicate (B7 part 2) hands the fact out with each `MsgSnap`. Until
+     then a client stepping a `MsgSnap` in the dynamic mode supplies `GMode.SnapOk` itself.
+2. `RawNode.Step` takes no `MsgSnap` from the network (`netStepTypes`), in either mode: a
+   `MsgSnap` reaches `raft.Step` only through a client of `raft.Step` itself. Admitting it at
+   the `RawNode` API is B7 part 2's (with item 1's fact, or `GMode.SnapOk` as a premise).
+
+**Edits needed in B7 part 2's files** (none was needed for this stage's build: every `RawNode`
+caller uses `raft.Step.specS` and discharges `"Hsnap"` by the message type):
+- a call of `raft.Step.spec` (not `specS`) drops the argument for the removed premise
+  `m.Type' = MsgSnap → id ∈ γ.reCfg` (the one after `StepMsg m`);
+- a dynamic-mode `GMode.Pre` is built without its former first conjunct `m.Type' ≠ MsgSnap`;
+- a consumer of `GMode.StepOut` in the dynamic mode gets `∃ g', md' = .dyn dec c0 h0 g' ∧ ∃ recv,
+  StepR (AdmFold dec c0) ...` (was `∃ cidx'`, `{ g with cidx := cidx' }`, `AdmS dec c0 (fun _ =>
+  False)`);
+- `RawNode.Step`'s planned "no `MsgSnap` in the dynamic mode" premise is not needed by
+  `raft.Step` (it would be by `RawNode.Step` only while it does not supply `GMode.SnapOk`);
+- `msgAbs`'s snapshot disjunct binds `voters : CSLists` (patterns `⟨%sv, %voters, %H, -, -⟩`
+  unchanged); `absSnap m sv voters` takes the lists.
+- Decisions: notes/decisions.md, "Reconfiguration stage B8".
 
 ## Reconfiguration, stage B7, part 1: `raft.Step` in the dynamic model (2026-10-14)
 
@@ -142,7 +278,9 @@ Link unchanged: `etc/gen-link.py` reproduces it, because no callee list moved.
   `raft.reduceUncommittedSize.spec`, and the `ReplSends`-carrying specs.
 
 **The dynamic mode's premises** (`GMode.Pre`; `DynHyp`): each is a scope restriction, stated.
-- No `MsgSnap`. A snapshot restore at a dynamic configuration is B8.
+- No `MsgSnap`. A snapshot restore at a dynamic configuration is B8. (Gone with B8: a `MsgSnap`
+  is a `StepCDS` step, its A3 `"Hsnap"`'s `GMode.SnapOk`; see "Reconfiguration, stage B8
+  (snapshots at a changing configuration)".)
 - No pre-candidate. Pre-vote is off at the `RawNode` API, and the campaign after a won
   pre-vote checks nothing in Go.
 - At a `MsgStorageApplyResp`, no snapshot pending and A1: no conf entry between the
@@ -249,7 +387,8 @@ axiom, no new `sorry` (`etc/tcb-report.py --check`: 75 axioms, 10 sorries; `raft
   index greater than raftLog.applied"), so it is not recorded in `issues/`.
 
 **What B8's remaining part (restore at a dynamic configuration through `raft.Step`/`RawNode`, after
-B7) needs from this:**
+B7) needs from this** (done, but for the `StorState` relation and A3 in the message, in
+"Reconfiguration, stage B8 (snapshots at a changing configuration)" above)**:**
 - swap the names (`Restore.spec` := `specG`, the old one `specS` with `spec_simple :=
   spec_of_specG`) and switch `raft.restore`'s and `newRaft`'s hypotheses (one line each), then
   `raft.restore.spec` at a joint `ConfState` from `specG` + `restoreM_wf`; `SnapScope`'s

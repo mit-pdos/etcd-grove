@@ -3667,3 +3667,49 @@ add model-level theorems as deliverables. (The user's decision, 2026-10-14.)
 - **`AppCommitEq` went into `ReplSends`'s definition** rather than into a separate
   postcondition conjunct. Every producer already satisfies it (`maybeSendAppend` is the only
   one that builds an `MsgApp`). Consumers that need only `ReplOk` take `ReplSends.replOk`.
+
+## Reconfiguration stage B8: the general statements as `spec`, a snapshot's lists as a record, A3 as the receiver's premise
+
+**2026-10-14 · accepted**
+
+- **The general statement is the `.spec` and the old one `specS`** for `confchange.Restore`,
+  `ConfState.Equivalent` and `assertConfStatesEquivalent` (as A1/A2 did for the raft
+  functions). The link (`Link.lean`) gives each callee's `.spec`, so a caller needing the
+  general statement gets it with no new link entry; the callers keeping the old statement
+  (`newRaft`) convert in one line (`spec_simple`). *Rejected*: keeping `specG` beside `spec`
+  -- a caller of `specG` would need its own link entry.
+- **A snapshot's `ConfState` lists as one record, `CSLists`**, with one read-only predicate
+  `ownCSL` for its four slices, from the storage (`HSnapshot`) through `raftLog.snapshot`, the
+  pending snapshot, `send` and the outbox (`msgAbs`) to the receiver (`"Hsnap"`).
+  `absSnap`/`absSnapFrom` take the record, so every pattern on `msgAbs` and every mention of
+  `absSnap m sv voters` kept its text (the binder's type changed). The abstract message
+  (`Msg`) still keeps the incoming voters only.
+- **`SnapScope sv cl`** is `CSWf` plus what the comparison with `switchToConfig`'s sets needs
+  (no repeats, `AutoLeave` off when not joint) and the bounds; the node is in one of the three
+  lists `found` searches (`CSLists.Has`). The `ConfState`'s configuration is `snapCfg sv cl`
+  (`csCfgM`), which `Restore` answers exactly (`restoreM_wf`).
+- **The `MsgSnap` branch delivers `StepCDS`, not `StepCD`.** `StepCD` keeps the ghost part but
+  its configuration index, which a restore replaces wholesale (configuration index,
+  configuration, full prefix); and it is universal in `Adm`, which a restore cannot be (its
+  prefix and configuration must be admitted). `StepCDS` quantifies over the prefix `fp'` and
+  configuration state `cs'` the dynamic model admits, and gives some ghost part over the
+  configuration afterwards. `GMode.StepOut` moves to any ghost part, at `AdmFold`
+  (`StepR.mono` from `AdmS`).
+- **A3 is a premise of the receiving `raft.Step`, stated on the snapshot's recorded prefix**
+  (`GMode.SnapOk`, dynamic: `□ ∀ fp, logRecs γ base0 fp -∗ ⌜FullOk (snapId sv) fp⌝ -∗
+  ⌜SnapConfOk ...⌝`). The prefix itself comes from the message (`isMessage_snap_prefix`: the
+  sender's leader prefix taken to the snapshot's index, with records), so B5's
+  snapshot-prefix premise `S` is supplied by the code without changing `StepR` (B5's plan).
+  The form quantifies over recorded prefixes rather than naming one: records agree, so it is
+  one prefix, and the statement names no node's log -- it is a fact about the ghost records
+  that, once true, stays true, which is what a sender could later hand along with the message.
+  *Rejected for now*: `isMessage` carrying A3 (the message from the sender's storage). The
+  abstract `Msg` keeps only the incoming voters, so `isMessage` cannot name the other three
+  lists; the physical outbox relation (`msgAbs`, in `ownRaftPhys`) has no ghost names. Either
+  needs a structural change (the lists in `Msg` and every `Msg.mkV` site, with the refinement's
+  `sendApps` taking the A3 of the snapshots it sends; or the `RawNode` delivery predicate
+  handing the fact out), recorded in notes/STATUS.md as left.
+- **The static mode's snapshot** is `GMode.SnapOk`'s static clause, `listToSet scfg.voters =
+  γ.reCfg ∧ scfg.outgoing = []`: the configuration a restore installs is still `CfgStatic`.
+  `raft.Step.specS` keeps its premise list (its callers, the `RawNode` files, discharge
+  `"Hsnap"` by the message type and did not change).

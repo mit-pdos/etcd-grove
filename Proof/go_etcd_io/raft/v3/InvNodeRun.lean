@@ -396,7 +396,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   have P8 : m.Type' = MsgStorageApplyResp → m.Term' = W64 0 := by not_net
   icases ownRaftPhysC_preFacts cf rnv.raft' id s Hpvoff $$ Hphys with ⟨%Hpf, Hphys⟩
   icases ownStepGhost_vcfg γ rs fp cf id s $$ Hghost with ⟨%Hvc, Hghost⟩
-  wp_apply wp_raft_Step cf _ γ _ id s m ents ctx Hsm (by not_net) P1
+  wp_apply wp_raft_Step cf _ γ _ id s m ents ctx Hsm  P1
     (fun h => Hnr h (by ty_ne))
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1⟩) P2 P3
     (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
@@ -440,7 +440,7 @@ theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)
   simp only [HnP, ↓reduceIte]
   iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, -⟩
   have Hc := Href.commit_mono
-  have e1 := Href.keep (by not_net); subst e1
+  have e1 := Href.keep (by not_net) (by not_net); subst e1
   have e2 := Hcc (by not_net); subst c'
   obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by not_net) (by not_net)
   obtain ⟨Ht1, -, Ht3, -, Ht5⟩ := Htm (by not_net)
@@ -625,7 +625,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   icases ownRaftPhysC_preFacts cf rnv.raft' id s Hpvoff $$ Hphys with ⟨%Hpf, Hphys⟩
   wp_apply wp_raft_Step cf _ γ _ id s ({ m with From' := id }) ents ctx
-    (by simp only [StepMsg, stepMsgTypes]; rw [Hty']; simp [MsgProp]) (by msg_ne')
+    (by simp only [StepMsg, stepMsgTypes]; rw [Hty']; simp [MsgProp]) 
     (by msg_ne') (by msg_ne')
     (by msg_ne') (by msg_ne')
     (by msg_ne') (by msg_ne')
@@ -670,7 +670,7 @@ theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG
       simp [Hty', MsgProp, MsgSnap] at Hc
   iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, %Hloc, %_, %_, %_, -⟩
   have Hc := Href.commit_mono
-  have e1 := Href.keep (by msg_ne'); subst e1
+  have e1 := Href.keep (by msg_ne') (by msg_ne'); subst e1
   have e2 := Hcc (by msg_ne'); subst c'
   obtain ⟨Hfr, Hap⟩ := Hloc (.inl Hty')
   have Hap' := Hap (fun Hc => by rw [Hty'] at Hc; simp [MsgProp, MsgStorageApplyResp] at Hc)

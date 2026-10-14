@@ -209,7 +209,7 @@ def ownSnapDef (p : Loc) (snap : Option entryID) : IProp GF :=
   | some sid =>
       iprop(∃ (sv : raftpb.Snapshot), p ↦□ sv ∗
         ⌜sv.Metadata'.Index' = sid.index' ∧ sv.Metadata'.Term' = sid.term'⌝ ∗
-        ∃ (voters : List w64), sv.Metadata'.ConfState'.Voters' ↦*□ voters)
+        ∃ (voters : CSLists), ownCSL sv.Metadata'.ConfState' voters)
 
 /-- Sealed: unfolded, a `none`/`some` instance reduces to its body, and the re-seal
 lemmas (`ownRaftLog_intro`) can then no longer infer `snap` from the hypothesis.
@@ -227,7 +227,7 @@ theorem ownSnap_Some (p : Loc) (sid : entryID) :
     ownSnap (GF := GF) p (some sid) ⊣⊢
     ∃ (sv : raftpb.Snapshot), p ↦□ sv ∗
       ⌜sv.Metadata'.Index' = sid.index' ∧ sv.Metadata'.Term' = sid.term'⌝ ∗
-      ∃ (voters : List w64), sv.Metadata'.ConfState'.Voters' ↦*□ voters := by
+      ∃ (voters : CSLists), ownCSL sv.Metadata'.ConfState' voters := by
   rw [ownSnap_unseal]; exact .rfl
 
 /-- The case split on a record's `snap` field that leaves the goal alone (`cases Hs :
@@ -246,7 +246,7 @@ theorem ownSnap_of_eq_some {p : Loc} {snap : Option entryID} {sid : entryID}
     ownSnap (GF := GF) p snap ⊢
     ∃ (sv : raftpb.Snapshot), p ↦□ sv ∗
       ⌜sv.Metadata'.Index' = sid.index' ∧ sv.Metadata'.Term' = sid.term'⌝ ∗
-      ∃ (voters : List w64), sv.Metadata'.ConfState'.Voters' ↦*□ voters := by
+      ∃ (voters : CSLists), ownCSL sv.Metadata'.ConfState' voters := by
   subst Hs; exact (ownSnap_Some p sid).1
 
 instance ownSnap_pers (p : Loc) (snap : Option entryID) :

@@ -34,7 +34,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 namespace StepProof
 
 /-- `MsgBeat`, `MsgAppResp` and `MsgHeartbeatResp` reach no arm of `stepFollower`. -/
-theorem followerStepResult_noop (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id : w64) (s : NState) (m : raftpb.Message)
+theorem followerStepResult_noop (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
     (Hty : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp)
     (H : FollowerStepResultC c scfg id s m ents sv dropped s' c') : c = c' ∧ dropped = false ∧ s' = s := by
@@ -46,7 +46,7 @@ theorem followerStepResult_noop (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id : w
       MsgHeartbeatResp, W32] at H <;> exact H
 
 /-- Nor of `stepCandidate`. -/
-theorem candidateStepResult_noop (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id : w64) (s : NState)
+theorem candidateStepResult_noop (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState)
     (m : raftpb.Message) (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool)
     (s' : NState)
     (Hty : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp)

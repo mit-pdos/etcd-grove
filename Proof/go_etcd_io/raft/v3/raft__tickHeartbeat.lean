@@ -118,7 +118,7 @@ theorem raft.tickHeartbeat.wp_proof
     imod rdCred_zero_upd (GF := GF) γ with Hcr
     wp_apply wp_raft_Step c md γ r id s1 _ [] []
       (by simp [StepMsg, stepMsgTypes, MsgBeat])
-      (by intro h; simp [MsgBeat, MsgSnap] at h)
+      
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (fun _ => rfl) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
@@ -149,7 +149,7 @@ theorem raft.tickHeartbeat.wp_proof
     simp only [hP, ↓reduceIte]
     iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, Herr⟩
     have Hcm := Href.commit_mono
-    have e1 := Href.keep (by msg_ne); subst e1
+    have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
     have e2 := Hcc (by msg_ne); subst c'
     icases Herr with (%Herr | ⟨%Hc', -⟩)
     · subst Herr

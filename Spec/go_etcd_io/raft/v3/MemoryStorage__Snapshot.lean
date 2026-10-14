@@ -39,13 +39,14 @@ no snapshot and returns an empty one, which `isStorage` excludes, so the instanc
 (`MemstorageInstance.lean`) adds the premise instead -- and its `ConfState.Voters` slice
 is the read-only one `ownMemoryStorage` holds.
 
-What it does not say (2026-10-14, reconfiguration stage B8): *which* `ConfState` -- the
-storage's state as raft sees it (`StorState`) records the snapshot's id only, so the
-`ConfState` returned is not related to the one `CreateSnapshot`/`ApplySnapshot` stored, though
-it is that one (the lock's half of `ms.snapshot` and `memStorMeta`'s agree); nor the other
-three slices, which the storage keeps (`ownCSRO` in `memstorageFields`) but this triple, as
-`isStorage`'s `HSnapshot`, does not hand out. Both are for the stage that restores a
-snapshot's configuration through `raft.Step` (notes/STATUS.md, "Reconfiguration, stage B8"). -/
+Since 2026-10-14 (reconfiguration stage B8) all four of its `ConfState`'s slices, read-only
+(`ownCSL`), which the storage keeps (`ownCSRO` in `memstorageFields`) and `isStorage`'s
+`HSnapshot` hands out. What it does not say: *which* `ConfState` -- the storage's state as raft
+sees it (`StorState`) records the snapshot's id only, so the `ConfState` returned is not related
+to the one `CreateSnapshot`/`ApplySnapshot` stored, though it is that one (the lock's half of
+`ms.snapshot` and `memStorMeta`'s agree). Relating it is what carrying A3 from the application
+to a leader's `MsgSnap` needs (notes/STATUS.md, "Reconfiguration, stage B8 (snapshots at a
+changing configuration)"). -/
 abbrev MemoryStorage.Snapshot.spec : Prop :=
   ∀ (ms : Loc) (γs : MemStorNames) (σ : StorState)
     (esu : GoInterface),
@@ -57,7 +58,7 @@ abbrev MemoryStorage.Snapshot.spec : Prop :=
       ownMemoryStorage ms γs σ ∗
       (⌜err = esu⌝ ∨
        (⌜err = interface.nil ∧ snapId snap = σ.ss⌝ ∗
-        ∃ (voters : List w64), snap.Metadata'.ConfState'.Voters' ↦*□ voters)) }}
+        ∃ (voters : CSLists), ownCSL snap.Metadata'.ConfState' voters)) }}
 
 end spec
 

@@ -56,7 +56,7 @@ theorem raft.tickElection.wp_proof
     imod rdCred_zero_upd (GF := GF) γ with Hcr
     wp_apply wp_raft_Step c md γ r id s _ [] []
       (by simp [StepMsg, stepMsgTypes, MsgHup])
-      (by intro h; simp [MsgHup, MsgSnap] at h)
+      
       (fun _ => ⟨rfl, Hterm⟩)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
@@ -88,7 +88,7 @@ theorem raft.tickElection.wp_proof
     simp only [hP, ↓reduceIte]
     iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', -, %Hfr, %Htm, -, Herr⟩
     have Hcm := Href.commit_mono
-    have e1 := Href.keep (by msg_ne); subst e1
+    have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
     have e2 := Hc' (by msg_ne); subst c'
     icases Herr with (%Herr | ⟨%Hc'', -⟩)
     · subst Herr

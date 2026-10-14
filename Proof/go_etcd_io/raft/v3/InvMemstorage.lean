@@ -234,6 +234,14 @@ theorem ownCSRO_voters (cs : raftpb.ConfState) (voters : List w64) :
     ownCSRO (GF := GF) cs voters ⊢ cs.Voters' ↦*□ voters := by
   unfold ownCSRO; iintro ⟨H, -⟩; iexact H
 
+/-- The four slices as `ownCSL` (2026-10-14, B8: what `Snapshot` hands out). -/
+theorem ownCSRO_csl (cs : raftpb.ConfState) (voters : List w64) :
+    ownCSRO (GF := GF) cs voters ⊢ ∃ cl : CSLists, ownCSL cs cl := by
+  unfold ownCSRO ownCSRest ownCSL
+  iintro ⟨#Hv, %l, %vo, %ln, #Hl, #Ho, #Hn⟩
+  iexists ⟨voters, l, vo, ln⟩
+  iframe Hv Hl Ho Hn
+
 /-- The zero `ConfState`'s: its slices are `nil`. -/
 theorem ownCSRest_zero : ⊢ ownCSRest (GF := GF) (zero_val raftpb.ConfState) := by
   unfold ownCSRest

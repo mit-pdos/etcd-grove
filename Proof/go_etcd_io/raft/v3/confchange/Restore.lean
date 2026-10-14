@@ -5,9 +5,9 @@ Until 2026-10-08 this file was `axiom confchange.Restore.wp_proof` (the Rocq
 `proof_confchange_Restore.v`'s `Axiom`): the package was not translated. It is now
 proved from its callees (`toConfChangeSingle`, the `chg.Simple(cc)` and
 `chg.EnterJoint(...)` closures, `chain`). Since 2026-10-14 (reconfiguration stage B8) for any
-`ConfState` (`specG`, joint or not; `wp_proofG`), each op a `Simple` or `EnterJoint` step of the
+`ConfState` (`spec`, joint or not; until 2026-10-14 `specG`), each op a `Simple` or `EnterJoint` step of the
 model (`restoreM`, `InvRestore.lean`) on the pair held as `ownCCSt`; the statement of 2026-10-13
-(`spec`, non-joint) follows (`spec_of_specG`).
+(`specS`, non-joint) follows (`spec_simple`).
 -/
 module
 
@@ -384,7 +384,7 @@ theorem wp_restore_ej_op (H : confchange.Changer.EnterJoint.spec (GF := GF) (hG 
   iframe Hst
   ipureintro; exact .inr ⟨rfl, rfl⟩
 
-/-- The pair at the end, in the model's final state: `specG`'s postcondition. -/
+/-- The pair at the end, in the model's final state: `spec`'s postcondition. -/
 theorem ownCCSt_post (cfg : tracker.Config) (prsm : Loc) (s' : CCState) :
     ownCCSt (GF := GF) cfg prsm s' ⊢ ∃ prs : GMap w64 Loc,
       ownCfgCC cfg (DFrac.own 1) s'.cfg ∗ prsm ↦$ prs ∗ ⌜domSet prs = domSet s'.prs⌝ ∗
@@ -405,12 +405,12 @@ theorem ownCCSt_post (cfg : tracker.Config) (prsm : Loc) (s' : CCState) :
   apply GMap.set_eq; intro k
   rw [GMap.elem_of_dom', GMap.elem_of_dom', GMap.mem_iff, Hdom' k, ← flagsOf_mem, Hfl]
 
-theorem confchange.Restore.wp_proofG
+theorem confchange.Restore.wp_proof
     (wp_confchange_toConfChangeSingle : confchange.toConfChangeSingle.spec (GF := GF) (hG := hG))
     (wp_Changer_Simple : confchange.Changer.Simple.spec (GF := GF) (hG := hG))
     (wp_Changer_EnterJoint : confchange.Changer.EnterJoint.spec (GF := GF) (hG := hG))
     (wp_confchange_chain : confchange.chain.spec (GF := GF) (hG := hG)) :
-    confchange.Restore.specG (GF := GF) (hG := hG) := by
+    confchange.Restore.spec (GF := GF) (hG := hG) := by
   intro chg cs voters learners outgoing learnersNext dq dql dqo dqn v0 s' Hvne Hm Hmi Harr Hl Hln
     Hal
   wp_start as ⟨Hvs, Hls, Hlo, Hln, Hv0, #Hpm⟩
@@ -696,15 +696,6 @@ theorem confchange.Restore.wp_proofG
     iframe
     iframe Hpm
     ipureintro; exact Hdom
-
-theorem confchange.Restore.wp_proof
-    (wp_confchange_toConfChangeSingle : confchange.toConfChangeSingle.spec (GF := GF) (hG := hG))
-    (wp_Changer_Simple : confchange.Changer.Simple.spec (GF := GF) (hG := hG))
-    (wp_Changer_EnterJoint : confchange.Changer.EnterJoint.spec (GF := GF) (hG := hG))
-    (wp_confchange_chain : confchange.chain.spec (GF := GF) (hG := hG)) :
-    confchange.Restore.spec (GF := GF) (hG := hG) :=
-  confchange.Restore.spec_of_specG (confchange.Restore.wp_proofG wp_confchange_toConfChangeSingle
-    wp_Changer_Simple wp_Changer_EnterJoint wp_confchange_chain)
 
 end proof
 

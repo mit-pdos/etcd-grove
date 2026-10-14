@@ -202,7 +202,7 @@ private theorem wp_step_pending
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState) (md' : GMode), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗ ownStepGhost γ md' c id s' ∗
-        ⌜NStateWf s' ∧ md.StepOut c id m s s' md' ∧
+        ⌜NStateWf s' ∧ md.StepOut c id m s s' md' ∧ m.Type' ≠ MsgSnap ∧
          ((∀ ce, p ≠ .applyAck ce) → m.Type' ≠ MsgStorageApplyResp) ∧
          s'.logst.applying = s.logst.applying ∧
          s'.logst.unpersisted = s.logst.unpersisted ∧ s'.logst.snap = s.logst.snap ∧
@@ -221,7 +221,7 @@ private theorem wp_step_pending
     have Hfnz : m.From' ≠ W64 0 := by rw [Hfr]; exact Hidnz
     have Hsm : StepMsg m := by
       rcases Hty with h | h | h <;> simp [StepMsg, stepMsgTypes, h]
-    iapply wp_raft_Step c md γ r id s m [] [] Hsm (by not_self)
+    iapply wp_raft_Step c md γ r id s m [] [] Hsm 
       (by not_self) (by not_self) (fun _ => ⟨Hto, Hnz⟩) (by not_self)
       (fun _ => ⟨Hto, Hnz, Hfnz, Hnw _ _ rfl⟩) (by not_self) (by not_self)
       (fun h => ⟨Hto, Hnz, Hfnz, fun Hr => by rw [Hrj h] at Hr; cases Hr⟩)
@@ -262,7 +262,7 @@ private theorem wp_step_pending
       iapply HΦ $$ %err %s' %md'
       iframe Hphys Hghost
       ipureintro
-      refine ⟨Hwf', Hstp, fun _ => by not_self, Hfr'.1, Hfr'.2.2.1, Hfr'.2.1, Htm.1, ?_,
+      refine ⟨Hwf', Hstp, by not_self, fun _ => by not_self, Hfr'.1, Hfr'.2.2.1, Hfr'.2.1, Htm.1, ?_,
         Hfr'.2.2.2.1, Hfr'.2.2.2.2.1, Hfr'.2.2.2.2.2.1, Hfr'.2.2.2.2.2.2.1, Hfr'.2.2.2.2.2.2.2⟩
       show SelfStep _ _ s s'
       refine ⟨fun hpv => ?_, fun hpv => ?_⟩
@@ -288,7 +288,7 @@ private theorem wp_step_pending
     ihave Hghost : ownStepGhost γ md c id s $$ [Hghost Hrest]
     · iunfold ownStepGhost; iframe Hghost Hrest
     iapply wp_raft_Step c md γ r id s (appendAckMsg id t e) [] []
-      (by simp [StepMsg, stepMsgTypes, appendAckMsg]) (by msg_ne)
+      (by simp [StepMsg, stepMsgTypes, appendAckMsg]) 
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (fun _ => ⟨rfl, Hle, fun _ _ => Hsok, Hghoff⟩) (by msg_ne) (by msg_ne) (by msg_ne)
@@ -329,7 +329,7 @@ private theorem wp_step_pending
       iapply HΦ $$ %err %s' %md'
       iframe Hphys Hghost
       ipureintro
-      exact ⟨Hwf', Hstp, fun _ => by msg_ne, Hap (fun Hc => absurd Hc (by msg_ne)), Hfr.2.2.1,
+      exact ⟨Hwf', Hstp, by msg_ne, fun _ => by msg_ne, Hap (fun Hc => absurd Hc (by msg_ne)), Hfr.2.2.1,
         Hfr.2.2.2.1, by rw [Hfr.1]; exact Int.le_refl _, Hfr.1, Hfr.2.2.2.2.1, Hfr.2.2.2.2.2.1,
         Hfr.2.2.2.2.2.2⟩
   | applyAck ce =>
@@ -338,7 +338,7 @@ private theorem wp_step_pending
     subst Hm
     unfold pendingOwn
     iapply wp_raft_Step c md γ r id s (applyAckMsg id sl) ce []
-      (by simp [StepMsg, stepMsgTypes, applyAckMsg]) (by msg_ne)
+      (by simp [StepMsg, stepMsgTypes, applyAckMsg]) 
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (by msg_ne) (fun _ => rfl) (by msg_ne) (fun _ h => by rw [Hal] at h; cases h) (by msg_ne)
@@ -378,7 +378,7 @@ private theorem wp_step_pending
       iapply HΦ $$ %err %s' %md'
       iframe Hphys Hghost
       ipureintro
-      exact ⟨Hwf', Hstp, fun h => absurd rfl (h ce), Hap (fun _ e He => (Hok e He).2), Hfr.2.2.1,
+      exact ⟨Hwf', Hstp, by msg_ne, fun h => absurd rfl (h ce), Hap (fun _ e He => (Hok e He).2), Hfr.2.2.1,
         Hfr.2.2.2.1, by rw [Hfr.1]; exact Int.le_refl _, Hfr.1, Hfr.2.2.2.2.1, Hfr.2.2.2.2.2.1,
         Hfr.2.2.2.2.2.2⟩
 
@@ -486,7 +486,7 @@ theorem RawNode.Advance.wp_proof
         ipureintro
         intro ce m' hp hty
         subst hp
-        refine ⟨by rw [hty]; simp [MsgStorageApplyResp, MsgSnap], Hpf1.1,
+        refine ⟨Hpf1.1,
           fun _ => ⟨Hs1.2.2.1.trans Hsnap, fun e He => ?_⟩,
           fun h => absurd (hty.symm.trans h) (by simp [MsgStorageApplyResp, MsgProp])⟩
         have He' := (Hpok e He).2
@@ -500,9 +500,9 @@ theorem RawNode.Advance.wp_proof
       (Hs1.2.2.1.trans Hsnap) (Hs1.2.1.trans Hunp') Hnw1
       (by rw [Hsg1.2.2, ← Hrs_unst]; exact Hunst0) Hpf1 Hpre1
       $$ [$Hphys $Hghost $Hpm $Hpo $Hstr1] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
-    obtain ⟨Hwf2, Hout2, Hna2, Ha2, Hu2, Hsn2, Ht2, Hps2, Hpv2, Hsd2, Hsg2⟩ := Hst2
+    obtain ⟨Hwf2, Hout2, Hns2, Hna2, Ha2, Hu2, Hsn2, Ht2, Hps2, Hpv2, Hsd2, Hsg2⟩ := Hst2
     have Hc12 := Hout2.commit_mono
-    obtain ⟨ca', rfl, Hca1, Hca2, Hca3, -⟩ := RNMode.stepOut_ca Hout2
+    obtain ⟨ca', rfl, Hca1, Hca2, Hca3, -⟩ := RNMode.stepOut_ca Hout2 Hns2
     icases ownRaftPhysC_logwf cf rnv.raft' id s2 $$ Hphys with ⟨%Hlw2, Hphys⟩
     -- `stepsOnAdvance[i] = pb.Message{}`
     rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, Hlt⟩)]

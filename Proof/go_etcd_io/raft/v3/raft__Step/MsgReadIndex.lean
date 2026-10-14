@@ -33,7 +33,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
 
-theorem followerStepResult_readIndex (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id : w64) (s : NState) (m : raftpb.Message)
+theorem followerStepResult_readIndex (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
     (cl : List w8) (Hty : m.Type' = MsgReadIndex)
     (H : FollowerStepResultC c scfg id s m ents sv dropped s' c' cl) :
@@ -46,7 +46,7 @@ theorem followerStepResult_readIndex (c : CfgM) {scfg : GSet w64} {c' : CfgM} (i
     MsgHeartbeatResp, MsgSnap, MsgPreVoteResp, MsgReadIndex, W32] at H
   simpa using H
 
-theorem candidateStepResult_readIndex (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id : w64) (s : NState)
+theorem candidateStepResult_readIndex (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w64) (s : NState)
     (m : raftpb.Message) (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool)
     (s' : NState) (cl : List w8)
     (Hty : m.Type' = MsgReadIndex ∨ m.Type' = MsgReadIndexResp)
@@ -102,7 +102,7 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   cases Hrole : s.role
   · -- Follower: forward to the leader, or drop
     simp only [stepFuncOf]
-    wp_apply _P.stepFollower c ∅ r id s m ents (zero_val _) [] ctx
+    wp_apply _P.stepFollower c ∅ r id s m ents (zero_val _) ctx
         (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))))
         (fun _ => ⟨Hterm, Hlok Hrole⟩)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
@@ -157,7 +157,7 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       exact this
   · -- a candidate (a pre-candidate is one too) ignores it
     simp only [stepFuncOf]
-    wp_apply _P.stepCandidate c ∅ r id s m ents (zero_val _) [] ctx
+    wp_apply _P.stepCandidate c ∅ r id s m ents (zero_val _) ctx
         (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))))
         (fun Hc => by
           exfalso; rw [Hty] at Hc
@@ -269,7 +269,7 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       exact .trans _ _ _ _ _ H1 H2
   · -- a candidate (a pre-candidate is one too) ignores it
     simp only [stepFuncOf]
-    wp_apply _P.stepCandidate c ∅ r id s m ents (zero_val _) [] ctx
+    wp_apply _P.stepCandidate c ∅ r id s m ents (zero_val _) ctx
         (.inr (.inr (.inr (.inr (.inr (.inr (.inr (.inl Hty))))))))
         (fun Hc => by
           exfalso; rw [Hty] at Hc

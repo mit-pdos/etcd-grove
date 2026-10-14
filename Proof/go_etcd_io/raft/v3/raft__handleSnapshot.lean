@@ -42,17 +42,17 @@ theorem raft.handleSnapshot.wp_proof
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG))
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG)) :
     raft.handleSnapshot.spec (GF := GF) (hG := hG) := by
-  intro c cfg r id s m sv voters learners Hrole Hvotes Hin Hscope Hfid
+  intro c r id s m sv cl Hrole Hvotes Hin Hscope Hfid
   wp_start as H
   iNamed H
   wp_auto
   ihave %Hnn := typedPointsto_not_null $$ Hsv
   rw [decide_eq_false Hnn]
   wp_auto
-  wp_apply wp_raft_restore c cfg _ _ _ sv voters learners Hrole Hvotes Hin Hscope
-    $$ [$Hphys $Hvoters $Hlearners]
+  wp_apply wp_raft_restore c _ _ _ sv cl Hrole Hvotes Hin Hscope
+    $$ [$Hphys $Hcs]
     as %b %s1 ⟨Hphys, %Hres⟩
-  generalize Hc1 : restoreCfg c cfg b s1 = c1
+  generalize Hc1 : restoreCfg c sv cl b = c1
   rcases Hres with ⟨Hst, rfl, rfl⟩ | ⟨Hlt, Hm, rfl, rfl⟩ | ⟨Hlt, Hnm, rfl, prs, pvs, il, rfl⟩
   · -- obsolete: acknowledge the commit index
     wp_auto
@@ -154,7 +154,7 @@ theorem raft.handleSnapshot.wp_proof
       exact Or.inr (Or.inr ⟨Hlt, Hnm, prs, pvs, il, rfl⟩)
     ipureintro
     simp only [restoreCfg, ↓reduceIte] at Hc1
-    exact Or.inl ⟨⟨Hlt, Hnm⟩, by rw [← Hc1]; rfl⟩
+    exact Or.inl ⟨⟨Hlt, Hnm⟩, Hc1.symm⟩
 
 end proof
 

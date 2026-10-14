@@ -63,7 +63,7 @@ abbrev raftLog.snapshot.spec : Prop :=
           uint.Z snap.Metadata'.Index' ≤ uint.Z ls.committed ∧
           plogTermAt ls.prev (ls.sents ++ ls.uents) snap.Metadata'.Index'
             = some snap.Metadata'.Term'⌝ ∗
-        ∃ (voters : List w64), snap.Metadata'.ConfState'.Voters' ↦*□ voters)) }}
+        ∃ (voters : CSLists), ownCSL snap.Metadata'.ConfState' voters)) }}
 
 end spec
 
