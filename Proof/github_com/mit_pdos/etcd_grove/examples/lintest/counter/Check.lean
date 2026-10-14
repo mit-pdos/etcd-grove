@@ -41,7 +41,7 @@ theorem Check.wp_proof
     (wp_Apply : Counter.Apply.spec (GF := GF) (hG := hG)) :
     Check.spec (GF := GF) (hG := hG) := by
   intro clockVal t0 Eclk clock clients ops dur HN H0 H31 Hops Hmul
-  wp_start as ⟨#Hclk, Ht0⟩
+  wp_start as ⟨#Hcc, #Hclk, Ht0⟩
   wp_auto
   wp_apply wp_New as %c ⟨%γ, #Hc, Hs⟩
   wp_apply wp_Model as %m #Hm

@@ -36,6 +36,7 @@ abbrev Check.spec : Prop :=
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
   sint.Z clients * sint.Z ops < 2 ^ 60 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.counter ∗
+      context.isClosedchanInit ∗
       clockSpec clockVal Eclk clock ∗ clockVal t0 }}
     (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.lintest.counter.Check))

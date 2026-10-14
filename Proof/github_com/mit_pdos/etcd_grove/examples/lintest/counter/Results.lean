@@ -53,7 +53,8 @@ abbrev CheckCounterClock.spec : Prop :=
   receiptBound GF ≤ 2 ^ 63 → (↑lintestN : CoPset) ⊆ ⊤ \ ↑N →
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
   sint.Z clients * sint.Z ops < 2 ^ 60 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.counter }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.counter ∗
+      context.isClosedchanInit }}
     (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.lintest.counter.Check))
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lintest.CounterClock)) (Val #())))
@@ -65,7 +66,7 @@ theorem CheckCounterClock.wp_proof
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     CheckCounterClock.spec (GF := GF) (hG := hG) := by
   intro N clients ops dur Hbound HN H0 H31 Hops Hmul
-  iintro %Φ #Hpkg HΦ
+  iintro %Φ ⟨#Hpkg, #Hcc⟩ HΦ
   wp_apply wp_CounterClock N Hbound as %f ⟨%clockVal, #Hclk, Ht0⟩
   wp_apply wp_Check clockVal (W64 0) ↑N f clients ops dur HN H0 H31 Hops Hmul $$ [Ht0]
     as %r %Hr

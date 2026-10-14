@@ -43,7 +43,7 @@ theorem Run.wp_proof
     Run.spec (GF := GF) (hG := hG) :=
     fun σ S m apply gen clock inOk libState clockVal t0 Eapp Eclk clients ops dur HEapp HEclk
       Hc0 Hc31 Hops Hbound => by
-  wp_start as ⟨#Hmodel, #Happly, #Hgen, #Hclock, Hlib, Hclk⟩
+  wp_start as ⟨#Hcc, #Hmodel, #Happly, #Hgen, #Hclock, Hlib, Hclk⟩
   wp_auto
   wp_apply (wp_slice_make2 (V := GoSlice) clients) as %hsl ⟨Hhs, -⟩
   · ipureintro; exact Hc0

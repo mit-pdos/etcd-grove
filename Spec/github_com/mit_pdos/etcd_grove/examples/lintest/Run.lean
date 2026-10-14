@@ -53,6 +53,7 @@ abbrev Run.spec : Prop :=
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
   sint.Z clients * sint.Z ops < 2 ^ 60 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest ∗
+      context.isClosedchanInit ∗
       isModel S m ∗ applySpec S inOk libState Eapp apply ∗ genSpec gen inOk ∗
       clockSpec clockVal Eclk clock ∗ libState S.M.init ∗ clockVal t0 }}
     (App (App (App (App (App (App (App
