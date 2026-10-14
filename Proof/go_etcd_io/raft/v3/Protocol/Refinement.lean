@@ -221,7 +221,7 @@ private theorem matchedOk_leader (γ : RaftNames) (s : PState) :
     matchedOk (GF := GF) γ s = iprop([∗map] v ↦ i ∈ s.matched, isAcked γ v s.term i) := by
   intro H; unfold matchedOk; rw [H]
 
-private theorem isMessage_app_inv (γ : RaftNames) (m : Msg) :
+theorem isMessage_app_inv (γ : RaftNames) (m : Msg) :
     m.ty = .app →
     ⊢ isMessage (GF := GF) γ m -∗
       ⌜AppPayloadOk m⌝ ∗

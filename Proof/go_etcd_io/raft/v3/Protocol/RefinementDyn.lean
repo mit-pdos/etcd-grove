@@ -85,6 +85,109 @@ theorem cfgAt_of_fold {γ : RaftNames} {dec : CCDec} {c0 : CCState} {h0 : CfgOk 
 theorem reDyn_of {γ : RaftNames} {D : DynCfg} (HD : γ.dyn = some D) : γ.reDyn ≠ none := by
   intro h; rw [RaftNames.dyn_none h] at HD; cases HD
 
+/-- `full_take_eq`'s pure core: two full logs whose records agree (`RecsAgree`) and that have
+the same term at `c` have the same first `c` entries. -/
+theorem full_take_eq_pure (F1 F2 : List raftpb.Entry) (c : w64) (Hw1 : PlogWf base0 F1)
+    (Hw2 : PlogWf base0 F2) (HRA : RecsAgree base0 F1 base0 F2)
+    (Hs : (plogTermAt base0 F1 c).isSome) (Heq : plogTermAt base0 F1 c = plogTermAt base0 F2 c) :
+    F1.take (uint.Z c).toNat = F2.take (uint.Z c).toNat := by
+  have Hm : ∀ j : w64, uint.Z j ≤ uint.Z c → plogTermAt base0 F1 j = plogTermAt base0 F2 j := by
+    intro j Hj
+    have := uint_Z_nonneg j
+    exact plog_match_down _ _ _ _ c (PlogWf_wfR _ _ Hw1) (PlogWf_wfR _ _ Hw2) HRA Hs Heq j
+      (by rw [base0_index]; omega) (by rw [base0_index]; omega) Hj
+  obtain ⟨x, Hx⟩ := Option.isSome_iff_exists.mp Hs
+  have Hc1 := (plogTermAt_some_range _ _ _ _ Hx).2
+  rw [Heq] at Hx
+  have Hc2 := (plogTermAt_some_range _ _ _ _ Hx).2
+  unfold plogLastIndexZ at Hc1 Hc2; rw [base0_index] at Hc1 Hc2
+  apply List.ext_getElem?
+  intro k
+  rw [List.getElem?_take, List.getElem?_take]
+  by_cases Hk : k < (uint.Z c).toNat
+  · simp only [Hk, ite_true]
+    obtain ⟨e1, He1⟩ : ∃ e, F1[k]? = some e := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+    obtain ⟨e2, He2⟩ : ∃ e, F2[k]? = some e := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+    rw [He1, He2]
+    have Hi1 := Hw1 _ _ He1
+    have Hi2 := Hw2 _ _ He2
+    rw [base0_index] at Hi1 Hi2
+    have := uint_Z_lt c
+    have HW : uint.Z (W64 ((k : Int) + 1)) = (k : Int) + 1 :=
+      uint_Z_W64 _ (by omega) (by omega)
+    have Ht := Hm (W64 ((k : Int) + 1)) (by rw [HW]; omega)
+    rw [plogTermAt_lookup _ _ _ k e1 He1 (by rw [HW, base0_index]; push_cast; omega),
+      plogTermAt_lookup _ _ _ k e2 He2 (by rw [HW, base0_index]; push_cast; omega)] at Ht
+    simp only [Option.some.injEq] at Ht
+    obtain ⟨H, -⟩ := HRA k k e1 e2 He1 He2 (by rw [base0_index]; omega)
+      (by rw [base0_index]; omega) Ht (uint_Z_inj.mp (by omega))
+    rw [H]
+  · simp only [Hk, ite_false]
+
+/-- What an `MsgApp` tells its receiver for I1 (`AppKnow`), from the sender's log `fp ++ l` the
+message knows (its previous term, the batch in it, I1 at `Commit`) and log matching with the
+receiver's full log (their records agree). -/
+theorem appKnow_pure (r : RState) (m : Msg) (bL : entryID) (fp l : List raftpb.Entry)
+    (HwR : PlogWf base0 r.full) (Hpay : AppPayloadOk m)
+    (Hprev : plogTermAt bL l m.index = some m.logterm)
+    (Hpre : m.entries <+: plogFrom bL l (m.index + W64 1))
+    (Hfl : FullOk bL fp) (HwF : PlogWf base0 (fp ++ l))
+    (HI1 : ConfI1 (fp ++ l) (uint.nat m.commit))
+    (HRA : RecsAgree base0 r.full base0 (fp ++ l)) : AppKnow r m := by
+  obtain ⟨hb, hle⟩ := plogTermAt_some_range _ _ _ _ Hprev
+  have hfl : (fp.length : Int) = uint.Z bL.index' := Hfl.1
+  have hin := rUnat_eq m.index
+  obtain ⟨t, ht'⟩ := Hpre
+  have hnw := Hpay.2
+  have hnw1 : uint.Z (m.index + W64 1) = uint.Z m.index + 1 := by word
+  unfold plogFrom at ht'
+  rw [hnw1] at ht'
+  have hsplit : fp ++ l = ((fp ++ l).take (uint.nat m.index) ++ m.entries) ++ t := by
+    have hk : uint.nat m.index =
+        fp.length + (uint.Z m.index + 1 - uint.Z bL.index' - 1).toNat := by omega
+    rw [hk, List.take_length_add_append, List.append_assoc, List.append_assoc, ht',
+      List.take_append_drop]
+  have hiF : uint.nat m.index ≤ (fp ++ l).length := by
+    unfold plogLastIndexZ at hle; rw [List.length_append]; omega
+  have htl : ((fp ++ l).take (uint.nat m.index)).length = uint.nat m.index := by
+    rw [List.length_take]; omega
+  have hGpre : ((fp ++ l).take (uint.nat m.index) ++ m.entries) <+: fp ++ l :=
+    ⟨t, hsplit.symm⟩
+  refine ⟨Hpay, (fp ++ l).take (uint.nat m.index) ++ m.entries, ?_, ?_, ?_, ?_, ?_⟩
+  · rw [List.length_append, htl]
+  · exact List.drop_left' htl
+  · have := HI1; rw [hsplit] at this; exact this.prefix
+  · intro hpos
+    obtain ⟨e, he⟩ : ∃ e, (fp ++ l)[uint.nat m.index - 1]? = some e :=
+      ⟨_, List.getElem?_eq_getElem (by omega)⟩
+    refine ⟨e, ?_, ?_⟩
+    · rw [List.getElem?_append_left (by omega), List.getElem?_take, if_pos (by omega)]
+      exact he
+    · have h1 := full_term_at bL fp l m.index Hfl hb
+      rw [Hprev] at h1
+      rw [plogTermAt_lookup base0 (fp ++ l) m.index (uint.nat m.index - 1) e he
+        (by rw [base0_index]; push_cast; omega)] at h1
+      exact Option.some.inj h1
+  · intro k e e' h1 h2 heq
+    have hkG : k < ((fp ++ l).take (uint.nat m.index) ++ m.entries).length :=
+      (List.getElem?_eq_some_iff.mp h2).1
+    have h2' : (fp ++ l)[k]? = some e' := by
+      obtain ⟨M, hM⟩ := hGpre
+      rw [← hM, List.getElem?_append_left hkG]; exact h2
+    have hkR : k < r.full.length := (List.getElem?_eq_some_iff.mp h1).1
+    have hrng := PlogWf_range _ _ HwR
+    unfold plogLastIndexZ at hrng; rw [base0_index] at hrng
+    have HW : uint.Z (W64 ((k : Int) + 1)) = (k : Int) + 1 :=
+      uint_Z_W64 _ (by omega) (by omega)
+    have hR : plogTermAt base0 r.full (W64 ((k : Int) + 1)) = some e.Term' :=
+      plogTermAt_lookup _ _ _ k e h1 (by rw [HW, base0_index]; push_cast; omega)
+    have hF : plogTermAt base0 (fp ++ l) (W64 ((k : Int) + 1)) = some e'.Term' :=
+      plogTermAt_lookup _ _ _ k e' h2' (by rw [HW, base0_index]; push_cast; omega)
+    have Htk := full_take_eq_pure r.full (fp ++ l) (W64 ((k : Int) + 1)) HwR HwF HRA
+      (by rw [hR]; rfl) (by rw [hR, hF, heq])
+    rw [HW, show ((k : Int) + 1).toNat = k + 1 by omega] at Htk
+    rw [Htk, take_of_prefix hGpre (by omega)]
+
 /-- No `MsgApp` received. -/
 theorem noApp1 {dec : CCDec} {c0 : CCState} {m : Msg} (h : m.ty ≠ .app) :
     ∀ (r1 : RState) (m' : Msg), m' ∈ [m] → m'.ty = .app → RInv dec c0 r1 → AppKnow r1 m' := by
@@ -147,6 +250,33 @@ theorem ownRaftGhostR_env (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : Cf
       · rw [Hw]; exact cfgAt_of_fold HD HI.cfg
       · intro hl; rw [Hw]; exact HI.leader_drop_cidx hl
     · iintro %h; exact absurd h hc
+
+/-- A node's log is well formed, with records (a persistent accessor). -/
+theorem ownRaftGhost_logRecs (γ : RaftNames) (id : w64) (s : PState) (md : Bool) :
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ ⌜PlogWf s.base s.log⌝ ∗ logRecs γ s.base s.log := by
+  unfold ownRaftGhost
+  iintro ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  ihave %Hw := ownLogGhost_wf γ id s kl $$ Hlg
+  icases ownLogGhost_recs γ id s kl $$ Hlg with ⟨-, #Hr⟩
+  iframe Hr
+  ipureintro; exact Hw
+
+/-- What a received `MsgApp` tells the dynamic receiver (`AppKnow`), from its knowledge. -/
+theorem appKnow_of_msg (γ : RaftNames) (r : RState) (m : Msg) (Hty : m.ty = .app)
+    (Hdyn : γ.reDyn ≠ none) (HwR : PlogWf base0 r.full) :
+    ⊢ isMessage (GF := GF) γ m -∗ logRecs γ base0 r.full -∗ ⌜AppKnow r m⌝ := by
+  iintro #Hm #HrR
+  icases isMessage_app_inv γ m Hty $$ Hm with
+    ⟨%Hpay, -, ⟨%bL, %l, %fp, #Hp, %Hpl, #Hpf, -, -, #Hi1⟩, -⟩
+  icases dynOn_elim γ _ Hdyn $$ Hi1 with %HI1
+  icases lpfull_fp γ _ _ _ _ _ $$ Hpf with ⟨#Hfrp, %Hfl⟩
+  icases leadPrefix_wf γ _ _ _ _ $$ Hp with ⟨-, #Hrlp⟩
+  ihave #HrF := logRecs_full γ bL fp l Hfl.1 $$ Hfrp Hrlp
+  icases logRecs_agree γ base0 r.full base0 (fp ++ l) $$ HrR HrF with %HRA
+  ipureintro
+  exact appKnow_pure r m bL fp l HwR Hpay Hpl.1 Hpl.2 Hfl.1 (full_wf _ _ _ Hfl.1 Hfl.2.1)
+    (by rw [← toNat_uZ]; exact HI1) HRA
 
 /-- Closing a step that keeps the full prefix, and a candidate's campaign record. -/
 theorem ownRaftGhostR_close (γ : RaftNames) (dec : CCDec) (c0 : CCState) (id : w64)
@@ -713,9 +843,20 @@ theorem ownRaftGhostR_stepR (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : 
     iunfold ownRaftGhostR at Hown
     icases Hown with ⟨Hg, %HI, #Hfr, #Hc⟩
     ihave #Hm := recv_one γ _ $$ Hrecv
+    -- what the message tells the receiver for I1 (`AppKnow`), from its knowledge and records
+    icases ownRaftGhost_logRecs γ id r.p true $$ Hg with ⟨%HwL, #HrL⟩
+    ihave #HrR : logRecs γ base0 r.full $$ []
+    · unfold RState.full; iapply logRecs_full γ r.p.base r.fp r.p.log HI.full $$ Hfr HrL
+    icases appKnow_of_msg γ r m h1 (reDyn_of HD) (full_wf _ _ _ HI.full HwL) $$ Hm HrR with %HK
     imod ownRaftGhost_step_app_accept γ id r.p m lastnewi es' h1 h3 h4 h5 h6 h7 $$ Hm Hg with Hg
     imodintro
-    sorry
+    iunfold ownRaftGhostR
+    iframe Hg Hfr
+    isplitr
+    · ipureintro; exact RInv_appAccept m lastnewi es' _ HI h7 h8 HK
+    iintro %h
+    exfalso
+    simp [psendMsgs, padoptLeader] at h
   | stepDown r h1 h2 =>
     iintro #HS Hrecv Hcr Hown
     iunfold ownRaftGhostR at Hown
