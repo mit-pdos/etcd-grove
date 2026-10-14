@@ -357,6 +357,20 @@ theorem ownTrackerC_pure (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
   iapply ownTrackerC_intro c tv t.votes t.prs t.peers Hinv Hdom Hflags Hsize HmaxInfl
     $$ Hvotes Hprs Hprogs Hcfg
 
+/-- The configuration's `AutoLeave` (2026-10-14, stage B7: `raft.appliedTo` reads it). -/
+theorem ownTrackerC_autoleave (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
+    ownTrackerC (GF := GF) c tv t ⊢
+      ⌜tv.Config'.AutoLeave' = c.autoLeave⌝ ∗ ownTrackerC c tv t := by
+  iintro Hown
+  iunfold ownTrackerC at Hown
+  iNamed Hown
+  icases ownCfgCC_elim _ _ _ $$ Hcfg with ⟨%vin, %vout, %Harr, Hin, Hout, Hl, Hln, %Hal⟩
+  isplitr
+  · ipureintro; exact Hal
+  iapply ownTrackerC_intro c tv t.votes t.prs t.peers Hinv Hdom Hflags Hsize HmaxInfl
+    $$ Hvotes Hprs Hprogs [Hin Hout Hl Hln]
+  iapply ownCfgCC_intro _ _ c vin vout Harr Hal $$ Hin Hout Hl Hln
+
 /-- The voters of either half number at most `2^62` (they are tracked). -/
 theorem ownTrackerC_voters_size (c : CfgM) (tv : tracker.ProgressTracker) (t : Trk) :
     ownTrackerC (GF := GF) c tv t ⊢

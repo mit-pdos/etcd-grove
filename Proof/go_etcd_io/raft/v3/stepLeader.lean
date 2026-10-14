@@ -1303,7 +1303,7 @@ private theorem wp_stepLeader_appresp
           (by simp [sendMsgs, releasedState]) $$ Hphys
         iframe
         ipureintro
-        refine ⟨Or.inr HcN, ?_, fun m' hm => replOk_proper _ _ _ _ rfl rfl rfl rfl (Hms m' hm),
+        refine ⟨Or.inr HcN, ?_, fun m' hm => replAC_proper _ _ _ _ rfl rfl rfl rfl (Hms m' hm),
           Hmm4.trans HmmR⟩
         simp only [HNne, ↓reduceIte, and_true]
         exact Hhb
@@ -1351,7 +1351,7 @@ private theorem wp_stepLeader_appresp
       have Hms3 : ReplSends id sc (ms' ++ ms'') :=
         replSends_app _ _ _ _ Hms' (by
           intro m' hm
-          refine replOk_proper _ _ _ _ ?_ ?_ ?_ ?_ (Hms'' m' hm)
+          refine replAC_proper _ _ _ _ ?_ ?_ ?_ ?_ (Hms'' m' hm)
           · exact Hs2l.1.symm
           · exact congrArg LogState.prev Hs2l.2.symm
           · exact congrArg (fun l => l.sents ++ l.uents) Hs2l.2.symm

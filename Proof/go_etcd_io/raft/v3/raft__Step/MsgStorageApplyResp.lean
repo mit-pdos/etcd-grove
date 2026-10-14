@@ -7,7 +7,7 @@ import this module.
 
 Lean notes: the branch lemma takes the callee specs (Rocq's functor argument
 `P : STEP_POSTULATES`) as its first argument `_P : raft.Step.Postulates`, and Rocq's
-section variable `cfg` as its second.
+section variable `c` as its second.
 -/
 module
 
@@ -31,6 +31,31 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
 
+/-- `appliedTo` as a `StepCD` step (2026-10-14, stage B7): nothing the protocol sees, and in the
+dynamic model `StepR.advance` to the new `applied` (A1, from `DynHyp`), which moves the
+configuration index along. -/
+private theorem stepCD_appliedTo (c : CfgM) (id : w64) (m : raftpb.Message) (s : NState)
+    (idx sz : w64) (Hty : m.Type' = MsgStorageApplyResp)
+    (Hidx : uint.Z idx ≤ uint.Z s.logst.committed)
+    (Hac : uint.Z s.logst.applied ≤ uint.Z s.logst.committed) :
+    StepCD c id m s [] { s with logst := logAppliedTo s.logst idx sz } := by
+  refine ⟨by rw [toPState_logAppliedTo]; exact .refl _, fun Adm dec g hc hd => ?_⟩
+  obtain ⟨Hsn, Ha1⟩ := hd.2.2.2.1 Hty
+  refine ⟨max g.cidx (uint.nat (w64Max idx s.logst.applied)), ?_⟩
+  have Hr : rOf { s with logst := logAppliedTo s.logst idx sz }
+      { g with cidx := max g.cidx (uint.nat (w64Max idx s.logst.applied)) } =
+      { rOf s g with applied := w64Max idx s.logst.applied,
+                     cidx := max (rOf s g).cidx (uint.nat (w64Max idx s.logst.applied)) } := by
+    unfold rOf pciR
+    rw [toPState_logAppliedTo]
+    simp [logAppliedTo]
+  rw [Hr]
+  refine StepR.advance (rOf s g) (w64Max idx s.logst.applied) (by simp [rOf, Hsn]) ?_ ?_ Ha1
+  · show uint.Z s.logst.applied ≤ uint.Z (w64Max idx s.logst.applied)
+    unfold w64Max; split <;> word
+  · show uint.Z (w64Max idx s.logst.applied) ≤ uint.Z s.logst.committed
+    unfold w64Max; split <;> word
+
 /-- The local acknowledgement `RawNode.Advance` steps after the application applied a
 `Ready`'s committed entries (`newStorageApplyRespMsg`: `Term = 0`, `Entries` the
 entries). The term preamble is skipped; the type switch's `MsgStorageApplyResp` case
@@ -42,28 +67,33 @@ runs
         r.reduceUncommittedSize(payloadsSize(m.Entries))
     }
 
-moving `applied` (`logAppliedTo`). Nothing the protocol sees changes: `Step.refl`. The
+moving `applied` (`logAppliedTo`). Nothing the protocol sees changes: `StepC.refl`. The
 premise is `appliedTo`'s: the last entry is committed. -/
 theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) :
     m.Type' = MsgStorageApplyResp →
     m.Term' = W64 0 →
     (∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s.logst.committed) →
     NStateWf s →
+    -- (2026-10-14, stage B7) `appliedTo`'s auto-leave branch is not taken
+    (c.autoLeave = true → s.role ≠ .leader) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "#Hents" ∷ m.Entries' ↦*□ ents }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hframe" ∷ ⌜LocalFrame s s' ∧
                      ((∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s.logst.applying) →
                       s'.logst.applying = s.logst.applying)⌝ ∗
-        "%Hrefines" ∷ ⌜Step cfg id (toPState s) [] (toPState s')⌝ ∗
+        "%Hrefines" ∷ ⌜StepCD c id m s [] s'⌝ ∗
+        -- (2026-10-14, stage B7) `applied` moves at most to the last entry's index
+        "%Happ" ∷ ⌜s'.logst.applied = s.logst.applied ∨
+          ∃ e, ents.getLast? = some e ∧ s'.logst.applied = w64Max e.Index' s.logst.applied⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  intro Hty Hterm Hlast Hwf
+  intro Hty Hterm Hlast Hwf Hal
   wp_start as ⟨Hphys, #Hents⟩
   wp_auto
   wp_apply _P.traceReceiveMessage
@@ -85,7 +115,8 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
-    exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, fun _ => rfl⟩, .refl _, rfl⟩
+    exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, fun _ => rfl⟩,
+      StepCD.frame (.refl _) (RFrame.refl _), .inl rfl, rfl⟩
   | some e =>
     obtain ⟨es, rfl⟩ := List.getLast?_eq_some_iff.1 He
     simp only [List.length_append, List.length_singleton] at Hlen
@@ -100,22 +131,23 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     wp_auto
     wp_apply _P.entsSize $$ [$Hents] as %sz -
     -- `applied ≤ applying`: `applying` stays put when the entries end at or below it
-    icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hback⟩
+    icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hback⟩
     icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hrw, Hlog⟩
+    icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcm, Hlog⟩
     ihave Hphys := Hback $$ Hlog
-    wp_apply _P.appliedTo cfg r id s e.Index' sz (Hlast e He) $$ [$Hphys] as Hphys
+    wp_apply _P.appliedTo c r id s e.Index' sz (Hlast e He) Hal $$ [$Hphys] as Hphys
     wp_apply _P.payloadsSize $$ [$Hents] as %psz -
     wp_apply _P.reduceUncommittedSize $$ [$Hphys] as Hphys
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro
-    refine ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, fun Hle => ?_⟩, ?_, rfl⟩
+    refine ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, fun Hle => ?_⟩, ?_,
+      .inr ⟨e, by simp, rfl⟩, rfl⟩
     · have H1 := Hle e (by simp)
       show w64Max s.logst.applying (w64Max e.Index' s.logst.applied) = s.logst.applying
       unfold w64Max
       split <;> split <;> word
-    rw [toPState_logAppliedTo]
-    exact .refl _
+    exact stepCD_appliedTo c id m s e.Index' sz Hty (Hlast e He) Hcm.1.2.1
 
 end StepProof
 

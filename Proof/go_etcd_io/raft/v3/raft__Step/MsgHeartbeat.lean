@@ -5,10 +5,10 @@
 this lemma only picks one:
 
 - `m.Term > r.Term` (`proof_raft__Step_MsgHeartbeat_gt.v`): the preamble's
-  `becomeFollower(m.Term, m.From)` (`Step.higherTerm`, which adopts the sender for a
+  `becomeFollower(m.Term, m.From)` (`StepC.higherTerm`, which adopts the sender for a
   `fromLeader` type), then `stepFollower`'s arm on the stepped-down state;
 - `m.Term < r.Term` (`_lt.v`): with `checkQuorum` and `preVote` off the message is
-  logged and dropped (`Step.refl`, nothing received);
+  logged and dropped (`StepC.refl`, nothing received);
 - `m.Term = r.Term` (`_eq.v`): `r.step(m)` by role -- the follower's and the
   candidate's arms adopt the sender and run the handler, the leader's does nothing.
 
@@ -18,7 +18,7 @@ Proof structure, not specification: no `Module Type`, no `Parameter`; only
 Lean notes:
 * The branch lemma takes the callee specs (Rocq's functor argument
   `P : STEP_POSTULATES`) as its first argument `_P : raft.Step.Postulates`, and Rocq's
-  section variable `cfg` as its second.
+  section variable `c` as its second.
 * The statement is the one `Proof/raft__Step.lean` had for this branch before the
   split (Rocq's, with the GUARD on the conflict/commit premise and the follower-votes
   premise); the proof dispatches on the term to the three sub-case lemmas
@@ -49,7 +49,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 namespace StepProof
 
 theorem wp_Step_MsgHeartbeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (ctx : List w8) :
     m.Type' = MsgHeartbeat →
     m.To' = id →
@@ -65,26 +65,26 @@ theorem wp_Step_MsgHeartbeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- ADDED (not in the brief): a follower's vote tally is empty (see `MsgApp`)
     (s.role = .follower → s.votes = ∅) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "#Hents" ∷ m.Entries' ↦*□ ents ∗
         "#Hctx" ∷ m.Context' ↦*□ ctx }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeat m ents ctx) ∧
-            Step cfg id (toPState s) recv (toPState s')⌝ ∗
+            StepCD c id m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hcommit Hvotes
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · exact wp_Step_MsgHeartbeat_gt _P cfg r id s m ents ctx Hty Hto Hterm Hfnz Hfid Hwf
+  · exact wp_Step_MsgHeartbeat_gt _P c r id s m ents ctx Hty Hto Hterm Hfnz Hfid Hwf
       (Hcommit (by omega)) Hgt
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · exact wp_Step_MsgHeartbeat_lt _P cfg r id s m ents ctx Hty Hto Hterm Hfnz Hfid Hwf Hlt
+    · exact wp_Step_MsgHeartbeat_lt _P c r id s m ents ctx Hty Hto Hterm Hfnz Hfid Hwf Hlt
     · have Hteq : m.Term' = s.term := by word
-      exact wp_Step_MsgHeartbeat_eq _P cfg r id s m ents ctx Hty Hto Hterm Hfnz Hfid Hwf
+      exact wp_Step_MsgHeartbeat_eq _P c r id s m ents ctx Hty Hto Hterm Hfnz Hfid Hwf
         (Hcommit (by omega)) Hteq Hvotes
 
 end StepProof

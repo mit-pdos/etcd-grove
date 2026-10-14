@@ -345,7 +345,7 @@ local macro "ty_ne" : tactic => `(tactic| (simp [UnstampedType, MsgApp, MsgAppRe
 
 /-- `r.Step(m)` on a message from the network, `r` the node's raft struct: the tail of
 `RawNode.Step` (its guards are `run`'s own code). -/
-theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
+theorem wp_rn_raft_Step_net (wp_raft_Step : raft.Step.specS (GF := GF) (hG := hG))
     (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (m : raftpb.Message)
     (ents : List raftpb.Entry) (ctx : List w8) (Hok : NetMsgOk id m)
     (Hsing : m.Type' = MsgReadIndex → 1 < GMap.size γ.reCfg)
@@ -589,7 +589,7 @@ theorem propData_ccEnts (γ : RaftNames) (ents : List raftpb.Entry) (E : CoPset)
 node's raft struct: the batch owned, the proposal legitimately sent (its entries' data:
 their updates deposited), its context. Either the one `Propose` built, or (2026-10-10)
 one forwarded by a peer. -/
-theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
+theorem wp_rn_raft_Step_prop (wp_raft_Step : raft.Step.specS (GF := GF) (hG := hG))
     (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (m : raftpb.Message)
     (ents : List raftpb.Entry) (Hty : m.Type' = MsgProp) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗

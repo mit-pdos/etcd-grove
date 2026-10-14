@@ -26,22 +26,35 @@ def HupOk (cfg : GSet w64) (id : w64) (s s' : NState) : Prop :=
   (s'.logst = s.logst ∧ uint.Z s.term ≤ uint.Z s'.term ∧
    uint.Z s'.term ≤ uint.Z s.term + 1 ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh)
 
+/-- What `hup` checked before it campaigned (2026-10-14, reconfiguration stage B7: the dynamic
+model's `StepR.campaign` guard): nothing done, or a campaign (`campaignState`) by a non-leader
+voter of either half, with no snapshot pending (`promotable`) and no conf-change entry committed
+but not applied (`hasUnappliedConfChanges`), asking every other voter. -/
+def HupGuard (c : CfgM) (id : w64) (s s' : NState) : Prop :=
+  s' = s ∨
+  (s.role ≠ .leader ∧ id ∈ c.voters ∧ s.logst.snap = none ∧
+   (¬ ∃ e ∈ unappliedEnts s.logst, IsConfEnt e) ∧
+   ∃ (pre : Bool) (peers : List w64) (pvs : GMap w64 Progress) (cl : List w8),
+     peers ≡ₚ elements (c.voters \ {[id]}) ∧
+     s' = { campaignState id s pre peers cl with prvals := pvs })
+
 /-- `HupOk` at a joint configuration (2026-10-13, reconfiguration stage A2): the step is
 `StepC c`, and a node that is not a voter of either half does nothing (it is not
 `promotable`). The last conjunct is what lets the simple-configuration statement be derived
-at an empty voter set, where `StepC` and `Step` differ (`HupOkC.simple`). -/
+at an empty voter set, where `StepC` and `Step` differ (`HupOkC.simple`). (2026-10-14, stage
+B7) And what `hup` checked (`HupGuard`). -/
 def HupOkC (c : CfgM) (id : w64) (s s' : NState) : Prop :=
   NStateWf s' ∧ StepC c id (toPState s) [] (toPState s') ∧
   (s'.logst = s.logst ∧ uint.Z s.term ≤ uint.Z s'.term ∧
    uint.Z s'.term ≤ uint.Z s.term + 1 ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh) ∧
-  (id ∉ c.voters → s' = s)
+  (id ∉ c.voters → s' = s) ∧ HupGuard c id s s'
 
 /-- At a simple configuration, `HupOkC` is `HupOk`. -/
 theorem HupOkC.simple {cfg lrn : GSet w64} {id : w64} {s s' : NState}
     (h : HupOkC (CfgM.simple cfg lrn) id s s') : HupOk cfg id s s' := by
   refine ⟨h.1, ?_, h.2.2.1⟩
   by_cases hne : cfg = ∅
-  · have hs : s' = s := h.2.2.2 (by
+  · have hs : s' = s := h.2.2.2.1 (by
       rw [CfgM.voters_simple, hne]; exact GMap.not_elem_of_empty _)
     rw [hs]; exact .refl _
   · exact (step_iff_stepC cfg lrn id hne _ _ _).2 h.2.1

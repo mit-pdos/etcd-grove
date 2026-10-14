@@ -908,9 +908,17 @@ def NStateRel (s : NState) (ps : PState) : Prop := toPState s = ps ∧ NStateWf 
 
 /-- What `maybeSendAppend` and its callers may send, at the state `s` they were called
 in: `ReplOk` (`Protocol/Model.lean`) of the protocol reading of `s`. Replaced
-`AppSends` on 2026-10-01. -/
+`AppSends` on 2026-10-01. (2026-10-14, reconfiguration stage B7) and an `MsgApp` carries the
+sender's commit index exactly (`AppCommitEq`: `sendAppend`'s `Commit: r.raftLog.committed`),
+which the dynamic model's `StepR.sendApps`/`win` require (stage B3's finding: I1 fails for an
+`MsgApp` with an older commit index). -/
 def ReplSends (id : w64) (s : NState) (ms : List Msg) : Prop :=
-  ∀ m ∈ ms, ReplOk id (toPState s) m
+  ∀ m ∈ ms, ReplOk id (toPState s) m ∧ AppCommitEq (toPState s) m
+
+/-- The `ReplOk` half of `ReplSends`: what `StepC.sendApps` takes. -/
+theorem ReplSends.replOk {id : w64} {s : NState} {ms : List Msg} (H : ReplSends id s ms) :
+    ∀ m ∈ ms, ReplOk id (toPState s) m :=
+  fun m hm => (H m hm).1
 
 /-! Each physical transition is its protocol counterpart on `toPState`. Stated so that
 proofs rewrite rather than unfold. -/
@@ -1043,10 +1051,18 @@ theorem replOk_proper (id : w64) (ps ps' : PState) (m : Msg)
   unfold ReplOk AppOk SnapOk at *
   rw [Ht, Hb, Hl, Hc]; exact H
 
+/-- `replOk_proper` for `ReplSends`'s element (with `AppCommitEq`, 2026-10-14). -/
+theorem replAC_proper (id : w64) (ps ps' : PState) (m : Msg)
+    (Ht : ps'.term = ps.term) (Hb : ps'.base = ps.base) (Hl : ps'.log = ps.log)
+    (Hc : ps'.commit = ps.commit) (H : ReplOk id ps m ∧ AppCommitEq ps m) :
+    ReplOk id ps' m ∧ AppCommitEq ps' m :=
+  ⟨replOk_proper id ps ps' m Ht Hb Hl Hc H.1, fun h => by rw [Hc]; exact H.2 h⟩
+
 theorem replSends_prvals (id : w64) (s : NState) (pvs : GMap w64 Progress) (ms : List Msg) :
     ReplSends id { s with prvals := pvs } ms ↔ ReplSends id s ms := by
   unfold ReplSends
-  constructor <;> intro H m Hm <;> exact replOk_proper _ _ _ _ rfl rfl rfl rfl (H m Hm)
+  constructor <;> intro H m Hm <;>
+    exact ⟨replOk_proper _ _ _ _ rfl rfl rfl rfl (H m Hm).1, (H m Hm).2⟩
 
 theorem replSends_app (id : w64) (s : NState) (ms1 ms2 : List Msg)
     (H1 : ReplSends id s ms1) (H2 : ReplSends id s ms2) : ReplSends id s (ms1 ++ ms2) := by
@@ -1061,7 +1077,8 @@ theorem replSends_send_prvals (id : w64) (s : NState) (ms0 : List Msg)
     (pvs : GMap w64 Progress) (ms : List Msg) :
     ReplSends id { sendMsgs s ms0 with prvals := pvs } ms ↔ ReplSends id s ms := by
   unfold ReplSends
-  constructor <;> intro H m Hm <;> exact replOk_proper _ _ _ _ rfl rfl rfl rfl (H m Hm)
+  constructor <;> intro H m Hm <;>
+    exact ⟨replOk_proper _ _ _ _ rfl rfl rfl rfl (H m Hm).1, (H m Hm).2⟩
 
 end phys_state
 

@@ -7,7 +7,7 @@ Proof structure, not specification: no `Module Type`, no `Parameter`, no Hoare t
 Each lemma takes a `stepX` result relation apart for `MsgPreVoteResp`, outside any WP,
 where the `decide` chains are cheap. Only files in this directory may `Require` it.
 
-Lean notes: Rocq's section variable `cfg` is an explicit first argument of every lemma
+Lean notes: Rocq's section variable `c` is an explicit first argument of every lemma
 that uses it. Rocq's `case_decide … w32_ne` chains are the local macro `mtype_simp`
 (unfold the message-type constants, decide the equalities between them).
 -/
@@ -45,28 +45,30 @@ local macro "mtype_simp" : tactic =>
       or_false, false_or, false_and, and_false, ↓reduceIte, Bool.false_eq_true] at *)
 
 /-- `stepFollower` has no `MsgPreVoteResp` arm. -/
-theorem followerStepResult_prevoteresp (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
+theorem followerStepResult_prevoteresp (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState) :
     m.Type' = MsgPreVoteResp →
-    FollowerStepResult cfg id s m ents sv dropped s' → dropped = false ∧ s' = s := by
+    FollowerStepResultC c scfg id s m ents sv dropped s' c' → c = c' ∧ dropped = false ∧ s' = s := by
   intro Hty H
-  unfold FollowerStepResult at H
+  unfold FollowerStepResultC at H
+  refine ⟨(FollowerStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
+  replace H := H.2
   rw [Hty] at H
   mtype_simp
   exact H
 
 /-- `stepLeader` has none either. -/
-theorem leaderStepResult_prevoteresp (cfg : GSet w64) (id : w64) (s : NState)
+theorem leaderStepResult_prevoteresp (c : CfgM) (id : w64) (s : NState)
     (m : raftpb.Message) (ents : List raftpb.Entry) (dropped : Bool) (s' : NState) :
     m.Type' = MsgPreVoteResp →
-    LeaderStepResult cfg id s m ents dropped s' → dropped = false ∧ s' = s := by
+    LeaderStepResultC c id s m ents dropped s' → dropped = false ∧ s' = s := by
   intro Hty H
-  unfold LeaderStepResult at H
+  unfold LeaderStepResultC at H
   rw [Hty] at H
   mtype_simp
   obtain ⟨rfl, Hres⟩ := H
   refine ⟨rfl, ?_⟩
-  unfold LeaderNonpropResult at Hres
+  unfold LeaderNonpropResultC at Hres
   rw [Hty] at Hres
   rcases Hres with ⟨-, Hres⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc6, -⟩
   rotate_right
@@ -129,20 +131,22 @@ theorem prevoteRespResult_resp (id : w64) (s : NState) (src : w64) (reject won l
     · exact ⟨.inl (Int.le_max_left _ _), fun _ => ⟨Hp, rfl⟩⟩
 
 /-- `stepCandidate` on a `MsgPreVoteResp`: nothing at a candidate; at a pre-candidate,
-the tally and then win / lose / wait, which is `step_prevoteRespResult`. -/
-theorem candidateStepResult_prevoteresp (cfg : GSet w64) (id : w64) (s : NState)
+the tally and then win / lose / wait, which is `stepC_prevoteRespResult`. -/
+theorem candidateStepResult_prevoteresp (c : CfgM) {scfg : GSet w64} {c' : CfgM} (id : w64) (s : NState)
     (m : raftpb.Message) (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool)
     (s' : NState) :
     m.Type' = MsgPreVoteResp →
     (s.role = .candidate ∨ s.role = .preCandidate) →
-    id ∈ cfg →
+    id ∈ c.voters →
     (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) →
     NStateWf s →
-    CandidateStepResult cfg id s m ents sv dropped s' →
-    dropped = false ∧ NStateWf s' ∧ Step cfg id (toPState s) [] (toPState s') ∧
+    CandidateStepResultC c scfg id s m ents sv dropped s' c' →
+    c = c' ∧ dropped = false ∧ NStateWf s' ∧ StepCD c id m s [] s' ∧
       RespStep m s s' ∧ NetFrame s s' ∧ TermStep m s s' := by
   intro Hty Hrole Hin Hnw Hwf H
-  unfold CandidateStepResult at H
+  unfold CandidateStepResultC at H
+  refine ⟨(CandidateStepResultC.cfg (by nonsnap Hty) H).symm, ?_⟩
+  replace H := H.2
   rw [Hty] at H
   mtype_simp
   obtain ⟨rfl, Hres⟩ := H
@@ -153,11 +157,12 @@ theorem candidateStepResult_prevoteresp (cfg : GSet w64) (id : w64) (s : NState)
     refine ⟨nstateWf_prvals _ _ (nstateWf_prevoteRespResult _ _ _ _ _ _ _ Hwf), ?_,
       prevoteRespResult_resp id s _ _ won lost peers pvs m Hty Hp (Hnw Hp),
       prevoteRespResult_frame id s _ _ won lost peers pvs m Hty (Hnw Hp)⟩
-    exact step_prevoteRespResult cfg id s _ _ won lost peers pvs Hp Hin (Hnw Hp)
-      (fun Hwon => (Hw Hwon).2)
+    exact StepCD.of_excluded (stepC_prevoteRespResult c id s _ _ won lost peers pvs Hp Hin (Hnw Hp)
+      (fun Hwon => (Hw Hwon).2)) (.inr Hp)
   · simp only [Hp, ↓reduceIte] at Hres
     subst Hres
-    exact ⟨Hwf, .refl _, RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
+    exact ⟨Hwf, StepCD.frame (.refl _) (RFrame.refl _), RespStep.refl _ _,
+      keep_frame rfl rfl rfl rfl rfl⟩
 
 end StepProof
 

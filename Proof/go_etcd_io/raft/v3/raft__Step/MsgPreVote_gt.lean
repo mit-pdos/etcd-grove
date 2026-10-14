@@ -8,9 +8,9 @@ no `Parameter`; only files in this directory may import it.
 Lean notes:
 * The branch lemma takes the callee specs (Rocq's functor argument
   `P : STEP_POSTULATES`) as its first argument `_P : raft.Step.Postulates`, and Rocq's
-  section variable `cfg` as its second.
+  section variable `c` as its second.
 * Rocq's `Local Ltac cv_step` (one step of `canVote`'s evaluation: a field load
-  through `raft.wp_load_Vote`/`wp_load_lead`/`wp_load_Term`, or a `bool_decide`
+  through `raft.wp_load_VoteC`/`wp_load_lead`/`wp_load_Term`, or a `bool_decide`
   decided by case analysis) is the local macro `cv_step` (with `wp_if_destruct` for
   the case analysis); `canVote`'s evaluation is joined with `wp_join` (Rocq:
   `wp_bind` + `wp_wand`). The answer's tail, written out three times in Rocq, is the
@@ -44,25 +44,25 @@ load, or a comparison decided by case analysis. Works on `Hphys`. -/
 local macro "cv_step" : tactic =>
   `(tactic| first
     | wp_auto
-    | wp_apply Perennial.EtcdGrove.raft.wp_load_Vote $$ Hphys as Hphys
-    | wp_apply Perennial.EtcdGrove.raft.wp_load_lead $$ Hphys as Hphys
-    | wp_apply Perennial.EtcdGrove.raft.wp_load_Term $$ Hphys as Hphys
+    | wp_apply Perennial.EtcdGrove.raft.wp_load_VoteC $$ Hphys as Hphys
+    | wp_apply Perennial.EtcdGrove.raft.wp_load_leadC $$ Hphys as Hphys
+    | wp_apply Perennial.EtcdGrove.raft.wp_load_TermC $$ Hphys as Hphys
     | wp_if_destruct)
 
 set_option hygiene false in
 /-- The answer's tail, granted or rejected: the log call, `voteRespMsgType`, `send`, and
-(after a grant) the `MsgVote` test, then `Step.sendFree`. Uses `Hphys`, `HΦ`, `Hty`,
+(after a grant) the `MsgVote` test, then `StepC.sendFree`. Uses `Hphys`, `HΦ`, `Hty`,
 `Hwf`, and the answer's term being nonzero as `Hterm` (a grant at `m.Term`) or `Hs0`
 (a rejection at `r.Term`). -/
 local macro "prevote_resp_tail" : tactic =>
   `(tactic| (
-    wp_apply Perennial.EtcdGrove.raft.wp_load_id $$ Hphys as Hphys
-    wp_apply Perennial.EtcdGrove.raft.wp_load_Vote $$ Hphys as Hphys
-    wp_apply Perennial.EtcdGrove.raft.wp_load_Term $$ Hphys as Hphys
-    wp_raft_log
-    try (wp_apply Perennial.EtcdGrove.raft.wp_load_Term $$ Hphys as Hphys)
+    wp_apply Perennial.EtcdGrove.raft.wp_load_idC $$ Hphys as Hphys
+    wp_apply Perennial.EtcdGrove.raft.wp_load_VoteC $$ Hphys as Hphys
+    wp_apply Perennial.EtcdGrove.raft.wp_load_TermC $$ Hphys as Hphys
+    wp_raft_logC
+    try (wp_apply Perennial.EtcdGrove.raft.wp_load_TermC $$ Hphys as Hphys)
     wp_apply _P.voteRespMsgType m.Type' _ (.inr ⟨Hty, rfl⟩)
-    wp_apply _P.send cfg r id s _ [] [] _ (Or.inl rfl)
+    wp_apply _P.send c r id s _ [] [] _ (Or.inl rfl)
         (Or.inl ⟨.preVoteResp, Or.inr (Or.inr (Or.inr rfl)), mtypeOf_MsgPreVoteResp,
           by first | exact Hterm | exact Hs0,
           fun Hc => by rcases Hc with Hc | Hc <;> exact absurd Hc (by w32_ne),
@@ -83,7 +83,8 @@ local macro "prevote_resp_tail" : tactic =>
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro
-    refine ⟨nstateWf_sendMsgs _ _ Hwf, ?_, rfl, keep_frame rfl rfl rfl rfl rfl⟩
+    refine ⟨nstateWf_sendMsgs _ _ Hwf, StepCD.frame ?_ (by rframe), rfl,
+      keep_frame rfl rfl rfl rfl rfl⟩
     rw [toPState_sendMsgs]
     exact .sendFree _ _ (.inr rfl) rfl))
 
@@ -91,11 +92,11 @@ local macro "prevote_resp_tail" : tactic =>
 and a pre-vote **never** steps the node down. `canVote` holds by its third disjunct
 (`MsgPreVote` for a future term). The answer is a `MsgPreVoteResp`: granted at `m.Term`
 if the candidate's log is up to date, else rejected at `r.Term`; nothing is recorded
-either way. Both are free messages: `Step.sendFree`. The rejection's `Term` is the
+either way. Both are free messages: `StepC.sendFree`. The rejection's `Term` is the
 node's own, which `send` needs non-zero: at term `0` the candidate is up to date (the
 premise `Hutd0`). -/
 theorem wp_Step_MsgPreVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
-    (cfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message) :
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message) :
     m.Type' = MsgPreVote →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -111,13 +112,13 @@ theorem wp_Step_MsgPreVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     -- pre-vote on (2026-10-10; `raft.Step.spec`)
     s.prevote = true →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        "Hphys" ∷ ownRaftPhys cfg r id s ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "#Hctx" ∷ (∃ (ctx : List w8), m.Context' ↦*□ ctx) }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState), RET #err;
-        "Hphys" ∷ ownRaftPhys cfg r id s' ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜Step cfg id (toPState s) [] (toPState s')⌝ ∗
+        "%Hrefines" ∷ ⌜StepCD c id m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -130,7 +131,7 @@ theorem wp_Step_MsgPreVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   -- `m.Term ≠ 0`, so the first arm of the term preamble is skipped
   rw [decide_eq_false Hterm]
   wp_auto
-  wp_apply raft.wp_load_Term $$ Hphys as Hphys
+  wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   rw [decide_eq_true Hgt0]
   wp_auto
   -- `MsgVote || MsgPreVote`: the lease check
@@ -143,7 +144,7 @@ theorem wp_Step_MsgPreVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   wp_apply wp_string_to_bytes as %ct_sl ⟨ct_sl, -⟩
   wp_apply bytes.wp_Equal _ _ DFrac.discard (DFrac.own 1) ctx (go!"CampaignTransfer")
       $$ [$Hctx_sl $ct_sl] as ⟨-, -⟩
-  wp_apply raft.wp_load_checkQuorum $$ Hphys as Hphys
+  wp_apply raft.wp_load_checkQuorumC $$ Hphys as Hphys
   -- `force` (2026-10-13): a leader transfer's vote request or not; either way
   -- `!force && inLease` is false, `inLease` being false without check-quorum
   by_cases Hforce : ctx = go!"CampaignTransfer"
@@ -162,7 +163,7 @@ theorem wp_Step_MsgPreVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_auto
     -- `canVote`: true by its third disjunct, whichever way the first two go; the
     -- evaluation is joined
-    wp_join (Q := fun v => iprop(⌜v = #true⌝ ∗ ownRaftPhys cfg r id s ∗
+    wp_join (Q := fun v => iprop(⌜v = #true⌝ ∗ ownRaftPhysCV c c.voters r id s ∗
         r_ptr ↦ r ∗ m_ptr ↦ m)) at (if: _ then _ else _) with [Hphys r m]
       as ⟨%Hv, Hphys, r, m⟩
     · repeat (any_goals cv_step)
@@ -170,12 +171,12 @@ theorem wp_Step_MsgPreVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     subst Hv
     wp_auto
     -- `lastEntryID`, then `isUpToDate`
-    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-    icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hback⟩
+    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+    icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩
     wp_apply _P.lastEntryID $$ [$Hlog] as %lastID ⟨Hlog, -⟩
     ihave Hphys := Hback $$ Hlog
-    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-    icases ownRaftPhys_log_same cfg r id _ $$ Hphys with ⟨Hlog, Hback⟩
+    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+    icases ownRaftPhysC_log_same c r id _ $$ Hphys with ⟨Hlog, Hback⟩
     wp_apply _P.isUpToDate $$ [$Hlog] as %uptodate ⟨Hlog, %Hutd⟩
     ihave Hphys := Hback $$ Hlog
     cases uptodate

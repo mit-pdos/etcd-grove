@@ -3619,3 +3619,51 @@ checked (no `sorry`, no axiom) before any Go spec reaches it. Once the Go code t
 it is verified (for `raft_reconfig_*`, stages B7/B8: the public specs carrying the dynamic
 ghost), the stage that does so deletes the restatement and its collection. New stages do not
 add model-level theorems as deliverables. (The user's decision, 2026-10-14.)
+
+
+---
+
+## Reconfiguration stage B7: `raft.Step`'s branches deliver `StepCD`; the spec is generic in a ghost mode
+
+**2026-10-14 · accepted**
+
+- **`raft.Step` at a configuration first (B7a), by conversion.** The branch lemmas are physical
+  triples with pure witnesses, so moving them to `ownRaftPhysCV c c.voters` and `StepC c` was a
+  textual conversion (accessor names, `Step` to `StepC` constructors) followed by fixes: the C
+  inversion lemmas give `c = c'` off a snapshot. Five forks converted the leaf families in
+  parallel against a recipe validated on one file. *Rejected*: keeping the static branch lemmas
+  and lifting at the dispatcher, because `ownRaftPhys` cannot express a joint configuration.
+- **`StepCF` plus `RFrame`, not `StepR` witnesses written per site.** Most rules leave
+  `StepR`'s extra fields alone. So a sub-relation `StepCF` of `StepC` (without `campaign`,
+  `win`, `propose`, `snapRestore`; `sendApps` with `AppCommitEq`) lifts to `StepR` once
+  (`StepCF.toR`), and a branch only proves `RFrame s s'` (`applied`, the pending snapshot, a
+  leader's `pci`) for `rOf` to agree. The constructor names are shared, so the frame branches
+  converted textually. Only six special branches needed a hand-written `StepR` witness.
+  *Rejected*: a lift of arbitrary `StepC` derivations (no inductive shape to inspect), and
+  writing `StepR` at every site (about 80 sites, each with its own frame equation).
+- **`StepCD` bundles both witnesses.** A branch delivers the `StepC` witness (static mode) and,
+  under `DynHyp`, a `StepR` witness for every ghost part over `c`. This keeps the static path
+  intact and makes the dynamic path available with no second set of branch lemmas. Branches
+  outside the dynamic scope (a `MsgSnap`, a pre-candidate's campaign) give only the first
+  (`StepCD.of_excluded`).
+- **`pci` is the code's at a leader and `0` elsewhere** (`pciR`). The model's
+  `lose`/`abandon` keep `pci`, while the code's `becomeFollower` clears it. A pre-candidate
+  keeps it, since Go's `becomePreCandidate` does not `reset`. Mapping non-leaders to `0` makes
+  the two agree with no new code invariant, and `StepR` reads `pci` only at a leader.
+- **One spec, generic in a mode (`GMode`), not a conjunction of two triples.** The ghost-fact
+  lemmas the dispatcher reads are generic in `ownRaftGhost`'s flag, and only the update depends
+  on the mode (`ghost_stepCD`). So one dispatcher proof serves both modes, `raft.Step.spec`
+  stays one Hoare triple, and the static statement is derived (`spec_simple`). *Rejected*:
+  moving `RawNode`, `node.go` and the register to the dynamic mode in the same step, which is
+  part 2's work.
+- **The dynamic mode's unchecked conditions are premises (`GMode.Pre`), named.** They are: no
+  `MsgSnap` (B8), no pre-candidate, A1 at `MsgStorageApplyResp`, and the dropped-proposal
+  index bound. The A1 premise is on the acknowledged entry's index. The branch gives the new
+  `applied` (`Happ`), and `RInv`'s `applied ≤ cidx` covers the case where `applied` does not
+  move (`GMode.Pre.dynHyp`).
+- **`appliedTo`'s auto-leave excluded at a leader rather than specified.** Its `r.Step` makes
+  `appliedTo` and `raft.Step` mutually recursive, and the link (one proof per function,
+  callees' specs as hypotheses) has no form for that.
+- **`AppCommitEq` went into `ReplSends`'s definition** rather than into a separate
+  postcondition conjunct. Every producer already satisfies it (`maybeSendAppend` is the only
+  one that builds an `MsgApp`). Consumers that need only `ReplOk` take `ReplSends.replOk`.

@@ -148,6 +148,7 @@ local macro "msa_send" : tactic => `(tactic| (
   · intro m Hm
     simp only [List.mem_singleton] at Hm
     subst Hm
+    refine ⟨?_, fun _ => Hlvc.1⟩
     left
     have Hn1 : p.next - W64 1 + W64 1 = p.next := by word
     refine ⟨rfl, rfl, rfl, Hto, Hterm_at, ?_, Hpkgin, by rw [Hn1]; exact Hpkgpre, ?_⟩

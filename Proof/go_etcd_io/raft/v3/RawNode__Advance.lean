@@ -185,7 +185,7 @@ holds, whose records `ownRawNode` keeps, nothing is unpersisted and no snapshot 
 `ready_stable_ok`); a self-addressed response (2026-10-10) is what `pendingRel` says, and
 a pre-candidate's term does not wrap (`Hnw`, for a pre-vote response). -/
 private theorem wp_step_pending
-    (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
+    (wp_raft_Step : raft.Step.specS (GF := GF) (hG := hG))
     (γ : RaftNames) (r : Loc) (id : w64) (s : NState)
     (ps : PState) (m : raftpb.Message) (p : Pending)
     (Hin : id ∈ γ.reCfg) (Hrel : NStateRel s ps) (Hok : PendingOk s p)
@@ -365,6 +365,7 @@ private theorem wp_step_pending
 theorem RawNode.Advance.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Advance.spec (GF := GF) (hG := hG) := by
+  have wp_raft_Step := raft.Step.spec_simple wp_raft_Step
   intro γ rn id rs rd Hunp0 Hterm0 Hunst0
   wp_start as H
   iNamed H

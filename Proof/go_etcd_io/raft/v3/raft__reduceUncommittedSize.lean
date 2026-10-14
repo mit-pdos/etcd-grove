@@ -23,16 +23,16 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem raft.reduceUncommittedSize.wp_proof :
     raft.reduceUncommittedSize.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s sz
+  intro c r id s sz
   wp_start as Hphys
   iNamed Hphys
   wp_auto
-  wp_apply raft.wp_load_uncommittedSize $$ Hphys as %v Hphys
+  wp_apply raft.wp_load_uncommittedSizeC $$ Hphys as %v Hphys
   wp_if_destruct
-  · wp_apply raft.wp_store_uncommittedSize $$ Hphys as Hphys
+  · wp_apply raft.wp_store_uncommittedSizeC $$ Hphys as Hphys
     iapply HΦ $$ Hphys
-  · wp_apply raft.wp_load_uncommittedSize $$ Hphys as %v2 Hphys
-    wp_apply raft.wp_store_uncommittedSize $$ Hphys as Hphys
+  · wp_apply raft.wp_load_uncommittedSizeC $$ Hphys as %v2 Hphys
+    wp_apply raft.wp_store_uncommittedSizeC $$ Hphys as Hphys
     iapply HΦ $$ Hphys
 
 end proof
