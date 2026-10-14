@@ -165,10 +165,13 @@ only what the specs on it need (`notes/decisions.md`, "Predicate indices"). In p
 translator, each of a Go repository at the revision pinned in `etc/goose.py`. They are
 generated: never edit the `.lean` files by hand.
 
-- `{Code,GeneratedProof}/go_etcd_io/raft/`: etcd-raft, upstream `etcd-io/raft` unmodified,
-  at the last commit before its raftpb moved to protobuf-go v2 (2026-04-15; the later
+- `{Code,GeneratedProof}/go_etcd_io/raft/`: etcd-raft, upstream `etcd-io/raft` at the
+  last commit before its raftpb moved to protobuf-go v2 (`40f8be7`, 2026-04-15; the later
   commits pass messages as pointers with getters, which the proof does not model yet:
-  `notes/STATUS.md`, "Retargeting raft to upstream"); modules `Code.go_etcd_io.raft.v3`, ....
+  `notes/STATUS.md`, "Retargeting raft to upstream") plus one fix, the single-voter
+  read-index shortcut (`issues/raft-readindex-singleton-stale.md`), taken from branch
+  `raft-goose-lean` of the fork `upamanyus/etcd` (a branch holding etcd-io/raft's
+  history); modules `Code.go_etcd_io.raft.v3`, ....
 - `{Code,GeneratedProof}/{go_etcd_io/etcd,k8s_io,google_golang_org,go_uber_org}/`: etcd's
   `cache` package (the fork `upamanyus/etcd`, branch `goose-lean`; branch `goose` is the
   Rocq side's), with bodies, and the B-tree it uses
