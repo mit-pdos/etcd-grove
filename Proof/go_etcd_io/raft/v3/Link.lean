@@ -1038,6 +1038,10 @@ theorem raft.wp_committedEntryInCurrentTerm :
     raft.committedEntryInCurrentTerm.spec (GF := GF) (hG := hG) :=
   raft.committedEntryInCurrentTerm.wp_proof raftLog.wp_term raftLog.wp_zeroTermOnOutOfBounds
 
+theorem raft.wp_responseToReadIndexReq :
+    raft.responseToReadIndexReq.spec (GF := GF) (hG := hG) :=
+  raft.responseToReadIndexReq.wp_proof
+
 theorem readOnly.wp_addRequest :
     readOnly.addRequest.spec (GF := GF) (hG := hG) :=
   readOnly.addRequest.wp_proof
@@ -1048,7 +1052,7 @@ theorem readOnly.wp_recvAck :
 
 theorem wp_sendMsgReadIndexResponse :
     sendMsgReadIndexResponse.spec (GF := GF) (hG := hG) :=
-  sendMsgReadIndexResponse.wp_proof readOnly.wp_addRequest readOnly.wp_recvAck readOnly.wp_heartbeatCtx raft.wp_bcastHeartbeat
+  sendMsgReadIndexResponse.wp_proof tracker.ProgressTracker.wp_IsSingleton raft.wp_responseToReadIndexReq raft.wp_send readOnly.wp_addRequest readOnly.wp_recvAck readOnly.wp_heartbeatCtx raft.wp_bcastHeartbeat
 
 theorem wp_releasePendingReadIndexMessages :
     releasePendingReadIndexMessages.spec (GF := GF) (hG := hG) :=
@@ -1062,10 +1066,6 @@ theorem readOnly.wp_maybeAdvance :
     readOnly.maybeAdvance.spec (GF := GF) (hG := hG) :=
   readOnly.maybeAdvance.wp_proof quorum.JointConfig.wp_CommittedIndex readOnly.wp_AckedIndex
 
-theorem raft.wp_responseToReadIndexReq :
-    raft.responseToReadIndexReq.spec (GF := GF) (hG := hG) :=
-  raft.responseToReadIndexReq.wp_proof
-
 theorem raft.wp_sendTimeoutNow :
     raft.sendTimeoutNow.spec (GF := GF) (hG := hG) :=
   raft.sendTimeoutNow.wp_proof raft.wp_send
@@ -1076,7 +1076,7 @@ theorem wp_traceChangeConfEvent :
 
 theorem wp_stepLeader :
     stepLeader.spec (GF := GF) (hG := hG) :=
-  stepLeader.wp_proof raft.wp_bcastHeartbeat raft.wp_sendAppend raft.wp_maybeSendAppend raft.wp_bcastAppend raft.wp_appendEntry raft.wp_maybeCommit wp_releasePendingReadIndexMessages tracker.Progress.wp_MaybeUpdate tracker.Progress.wp_MaybeDecrTo tracker.Progress.wp_BecomeProbe tracker.Progress.wp_BecomeReplicate tracker.Progress.wp_CanBumpCommit tracker.Inflights.wp_FreeLE raftLog.wp_findConflictByTerm raftLog.wp_lastIndex raftLog.wp_firstIndex tracker.ProgressTracker.wp_IsSingleton raft.wp_committedEntryInCurrentTerm wp_sendMsgReadIndexResponse readOnly.wp_recvAck readOnly.wp_maybeAdvance raft.wp_responseToReadIndexReq raft.wp_send raft.wp_sendTimeoutNow raft.wp_abortLeaderTransfer raftpb.ConfChange.wp_Unmarshal raftpb.ConfChangeV2.wp_Unmarshal raftpb.ConfChange.wp_AsV2 raftpb.ConfChangeV2.wp_AsV2 fmt.wp_Sprintf wp_traceChangeConfEvent
+  stepLeader.wp_proof raft.wp_bcastHeartbeat raft.wp_sendAppend raft.wp_maybeSendAppend raft.wp_bcastAppend raft.wp_appendEntry raft.wp_maybeCommit wp_releasePendingReadIndexMessages tracker.Progress.wp_MaybeUpdate tracker.Progress.wp_MaybeDecrTo tracker.Progress.wp_BecomeProbe tracker.Progress.wp_BecomeReplicate tracker.Progress.wp_CanBumpCommit tracker.Inflights.wp_FreeLE raftLog.wp_findConflictByTerm raftLog.wp_lastIndex raftLog.wp_firstIndex raft.wp_committedEntryInCurrentTerm wp_sendMsgReadIndexResponse readOnly.wp_recvAck readOnly.wp_maybeAdvance raft.wp_responseToReadIndexReq raft.wp_send raft.wp_sendTimeoutNow raft.wp_abortLeaderTransfer raftpb.ConfChange.wp_Unmarshal raftpb.ConfChangeV2.wp_Unmarshal raftpb.ConfChange.wp_AsV2 raftpb.ConfChangeV2.wp_AsV2 fmt.wp_Sprintf wp_traceChangeConfEvent
 
 theorem wp_traceReceiveMessage :
     traceReceiveMessage.spec (GF := GF) (hG := hG) :=

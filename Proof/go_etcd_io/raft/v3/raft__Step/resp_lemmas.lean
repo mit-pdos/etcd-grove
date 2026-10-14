@@ -61,27 +61,6 @@ theorem candidateStepResult_noop (c : CfgM) {scfg : CSLists} {c' : CfgM} (id : w
 theorem toPState_rd_leader (s : NState) (Hr : s.role = .leader) : (toPState s).rd = s.rd := by
   simp [toPState, Hr]
 
-/-- `readRespond` changes only the outbox and the read state (2026-10-13). -/
-theorem readRespond_eq (id : w64) (s : NState) (q : ReadReq) :
-    ∃ o r, readRespond id s q = { s with outbox := o, rd := r } := by
-  unfold readRespond
-  split
-  · split
-    · exact ⟨_, _, rfl⟩
-    · exact ⟨s.outbox, s.rd, by cases s; rfl⟩
-  · exact ⟨_, _, rfl⟩
-
-theorem readRespondAll_eq (id : w64) (s : NState) (qs : List ReadReq) :
-    ∃ o r, readRespondAll id s qs = { s with outbox := o, rd := r } := by
-  unfold readRespondAll
-  induction qs generalizing s with
-  | nil => exact ⟨s.outbox, s.rd, by cases s; rfl⟩
-  | cons q qs ih =>
-    rw [List.foldl_cons]
-    obtain ⟨o1, r1, h1⟩ := readRespond_eq id s q
-    rw [h1]
-    exact ih { s with outbox := o1, rd := r1 }
-
 theorem toPState_readRespond (id : w64) (s : NState) (Hr : s.role = .leader) (q : ReadReq) :
     toPState (readRespond id s q) = preadRespond id (toPState s) q := by
   unfold readRespond preadRespond
@@ -315,9 +294,67 @@ theorem leader_appresp_step (c : CfgM) (id : w64) (s : NState) (m : raftpb.Messa
     by_cases Hcc : n0 ≠ s.logst.committed
     · -- a commit, which releases the pending read-index requests (2026-10-13)
       rw [if_neg Hcc] at Hrel
-      obtain ⟨Hhb, rfl⟩ := Hrel
       rcases Hc with Hc | ⟨Hlt, Hle, Hterm, Hq⟩
       · exact absurd Hc Hcc
+      rcases Hrel with ⟨-, Hhb, rfl⟩ | ⟨Hsg, -, rfl⟩
+      rotate_left
+      · -- (2026-10-14) the leader is the single voter: the pending requests answered at once
+        have Hpr1 : (toPState { s with prvals := pvs }).role = .leader := Hpr
+        have H1 : StepCF c id (toPState s) [absMsg .appResp m ents]
+            (toPState { s with prvals := pvs }) := by
+          rw [toPState_prvals_leader s pvs Hr, Hpvs, ← toPState_matched_leader s Hr]
+          exact .appResp (absMsg .appResp m ents) (toPState s) x rfl Hto Hteq Hpr Hrej
+            (by rw [toPState_matched_leader s Hr]; exact Hx)
+        have H2 : StepCF c id (toPState { s with prvals := pvs }) []
+            { toPState { s with prvals := pvs } with commit := n0 } :=
+          .commit _ n0 Hpr1 Hlt Hle Hterm Hq
+        let ps2 : PState := { toPState { s with prvals := pvs } with commit := n0 }
+        have H3 : StepCF c id ps2 []
+            (preadRespondAll id { ps2 with rd := { ps2.rd with pend := [] } }
+              (ps2.rd.pend.map (fun p => ⟨ps2.commit, p.1.From', p.2⟩))) :=
+          .readReleaseSingle _ Hpr1 Hterm Hsg
+        obtain ⟨o3, rd3, H3e⟩ := preadRespondAll_eq id ({ ps2 with rd := { ps2.rd with pend := [] } })
+          (ps2.rd.pend.map (fun p => ⟨ps2.commit, p.1.From', p.2⟩))
+        rw [H3e] at H3
+        have H5 : StepCF c id { ({ ps2 with rd := { ps2.rd with pend := [] } }) with
+              outbox := o3, rd := rd3 } []
+            (psendMsgs { ({ ps2 with rd := { ps2.rd with pend := [] } }) with
+              outbox := o3, rd := rd3 } ms) :=
+          .sendApps _ ms Hpr1 (fun m' Hm' =>
+            replOk_proper _ _ _ _ rfl rfl rfl rfl (Hms m' Hm').1)
+            (fun m' Hm' h => (Hms m' Hm').2 h)
+        have Hrr := readRespondAll_eq id
+          ({ s with logst := { s.logst with committed := n0 }, rd := { s.rd with pend := [] } } : NState)
+          (pendReqs { s with logst := { s.logst with committed := n0 } })
+        obtain ⟨o4, rd4, H4e⟩ := Hrr
+        refine ⟨?_, ⟨[absMsg .appResp m ents] ++ ([] ++ ([] ++ [])), ?_,
+          StepCD.frame ?_ ?_⟩, ?_⟩
+        · rw [H4e]; exact Hwf
+        · intro m' Hin; simpa using Hin
+        · have He : toPState { sendMsgs (readRespondAll id
+                { s with logst := { s.logst with committed := n0 }, rd := { s.rd with pend := [] } }
+                (pendReqs { s with logst := { s.logst with committed := n0 } })) ms with
+                prvals := pvs } =
+              psendMsgs { ({ ps2 with rd := { ps2.rd with pend := [] } }) with
+                outbox := o3, rd := rd3 } ms := by
+            rw [← H3e]
+            have Hpv := readRespondAll_prvals id
+              ({ s with logst := { s.logst with committed := n0 }, rd := { s.rd with pend := [] } } : NState)
+              pvs (pendReqs { s with logst := { s.logst with committed := n0 } })
+            have e1 : ({ sendMsgs (readRespondAll id
+                ({ s with logst := { s.logst with committed := n0 }, rd := { s.rd with pend := [] } } : NState)
+                (pendReqs { s with logst := { s.logst with committed := n0 } })) ms with
+                prvals := pvs } : NState) =
+                sendMsgs ({ readRespondAll id
+                ({ s with logst := { s.logst with committed := n0 }, rd := { s.rd with pend := [] } } : NState)
+                (pendReqs { s with logst := { s.logst with committed := n0 } }) with prvals := pvs }) ms :=
+              rfl
+            rw [e1, ← Hpv, toPState_sendMsgs, toPState_readRespondAll id _ (by exact Hr)]
+            simp [ps2, pendReqs, toPState, Hr]
+          rw [He]
+          exact .trans _ _ _ _ _ H1 (.trans _ _ _ _ _ H2 (.trans _ _ _ _ _ H3 H5))
+        · rw [H4e]; exact ⟨rfl, rfl, fun _ => ⟨Hr, rfl⟩⟩
+        · rw [H4e]; exact keep_frame rfl rfl rfl rfl rfl
       refine ⟨Hwf, ?_, keep_frame rfl rfl rfl rfl rfl⟩
       have Hpr1 : (toPState { s with prvals := pvs }).role = .leader := Hpr
       have H1 : StepCF c id (toPState s) [absMsg .appResp m ents]

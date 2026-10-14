@@ -375,7 +375,7 @@ private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := h
     (m : raftpb.Message) (ents : List raftpb.Entry) (ctx : List w8) (Φ : val → IProp GF)
     (md : GMode) (Hdh : ∀ s', DynHypFor md m s s') (Hwf : NStateWf s)
     (Hty : m.Type' = MsgReadIndex)
-    (Hm : m.Term' = W64 0 ∧ ¬ (GMap.size c.incoming = 1 ∧ GMap.size c.outgoing = 0)) :
+    (Hterm : m.Term' = W64 0) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗
       ownRaftPhysCV c c.voters r id s -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s -∗
@@ -386,7 +386,6 @@ private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := h
       ▷ stepPost γ md c r id s m Φ -∗
       WP (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
         {{ v, |={⊤}=> Φ v }} := by
-  obtain ⟨Hterm, Hsz⟩ := Hm
   iintro #Hinit Hphys Hghost Hrest #Hents #Hctxp #Hm Hcred HΦ
   -- a request has an entry (its context)
   have Hne_lem : ⊢ isMessage (GF := GF) γ (absMsg .readIndex m ents ctx) -∗ ⌜ents ≠ []⌝ := by
@@ -413,7 +412,7 @@ private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := h
       ipureintro; intro _; exact H1
     · ipureintro; exact fun h => absurd h hl
   ihave %Hlrd := Hlrd_lem $$ Hghost
-  wp_apply (wp_Step_MsgReadIndex P c r id s m ents ctx Hty Hterm Hsz Hne Hlok Hlrd Hwf)
+  wp_apply (wp_Step_MsgReadIndex P c r id s m ents ctx Hty Hterm Hne Hlok Hlrd Hwf)
     $$ [$Hphys $Hents $Hctxp] as %err %s' ⟨Hphys, %Hwf', %Hst, %Herr, %Hfr, %Htm⟩
   obtain ⟨recv, Hrecv, Hlen, Hstep⟩ := Hst
   -- the request's credit goes with it, if it was received

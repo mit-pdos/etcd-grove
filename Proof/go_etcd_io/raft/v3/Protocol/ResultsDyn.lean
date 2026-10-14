@@ -25,10 +25,10 @@ Assumptions (model restrictions, `notes/STATUS.md`, "Reconfiguration, stage B5")
 acknowledges it: `StepR.advance`/`applyConf`); A3 (a snapshot's configuration is its prefix's
 fold, `AdmFold`, and the restored prefix is the committed one: its records, `S`); fresh nodes
 from one `c0` with `CfgOk c0` and an empty log, no crash-restart (so atomic persistence is moot);
-no panic (`cfgFold` defined on the applied prefixes: `RInv`); the single-voter read-index
-shortcut is not modelled (`StepR.readAck` confirms with a joint quorum, as Go's fixed code would;
-`issues/raft-readindex-singleton-stale.md`); `AppCommitEq` (an `MsgApp` carries the sender's
-commit index, as Go's `sendAppend` does).
+no panic (`cfgFold` defined on the applied prefixes: `RInv`); `AppCommitEq` (an `MsgApp` carries the sender's
+commit index, as Go's `sendAppend` does). (Until 2026-10-14 also: the single-voter read-index
+shortcut not modelled; it is now `StepR.readSingle`/`readReleaseSingle`, the fixed raft's,
+`issues/raft-readindex-singleton-stale.md`.)
 -/
 module
 

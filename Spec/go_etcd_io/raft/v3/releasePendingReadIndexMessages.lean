@@ -21,6 +21,25 @@ variable [FfiSyntax]
 def releasedState (id : w64) (s : NState) : NState :=
   { s with rd := { s.rd with pend := [], ro := readonlyRelease s.rd.ro id s.logst.committed s.rd.pend } }
 
+/-- The pending requests, read at the commit index (2026-10-14). -/
+def pendReqs (s : NState) : List ReadReq :=
+  s.rd.pend.map (fun p => ⟨s.logst.committed, p.1.From', p.2⟩)
+
+/-- What releasing the pending requests does at the configuration `c` (2026-10-14, the
+single-voter read-index fix): at a configuration whose only voter is the leader itself, each is
+answered at once at the commit index (`sendMsgReadIndexResponse`'s first branch); otherwise each
+arrives (`readonlyRelease`) and heartbeats are broadcast, each with the position after one of
+them. -/
+def ReleaseResult (c : CfgM) (id : w64) (s s' : NState) : Prop :=
+  (CfgSingle c id ∧
+     s' = readRespondAll id { s with rd := { s.rd with pend := [] } } (pendReqs s)) ∨
+  (¬ CfgSingle c id ∧ ∃ (ms : List Msg) (pvs : GMap w64 Progress),
+     s' = { sendMsgs (releasedState id s) ms with prvals := pvs } ∧
+     (∀ m' ∈ ms, HeartbeatOk id (toPState s) m' ∧
+       ∃ k, 0 < k ∧ k ≤ s.rd.pend.length ∧
+         m'.ctx = hbCtx (readonlyRelease s.rd.ro id s.logst.committed (s.rd.pend.take k))) ∧
+     prvalsMatch pvs = prvalsMatch s.prvals)
+
 end results
 
 section spec
@@ -43,7 +62,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 Each pending request arrives as `sendMsgReadIndexResponse` makes it, read at the commit
 index (2026-10-12; until then none was ever pending, the phase-1 scope): the queue holds
 them in order (`readonlyRelease`), and each arrival broadcasts heartbeats with the position
-after it. The `Error` arm is dead: `stepLeader` calls this only after a successful
+after it -- or (2026-10-14, the single-voter fix) at a configuration whose only voter is the
+leader itself, each is answered at once (`ReleaseResult`). Each has entries (`req.Entries[0]`
+in that branch; the read-only state keeps them so, `RdOk`). The `Error` arm is dead: `stepLeader` calls this only after a successful
 `maybeCommit`, which commits an entry of the leader's term (the premise). -/
 abbrev releasePendingReadIndexMessages.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
@@ -52,51 +73,12 @@ abbrev releasePendingReadIndexMessages.spec : Prop :=
   (s.rd.pend ≠ [] →
      plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) s.logst.committed
        = some s.term) →
+  (∀ p ∈ s.rd.pend, p.2 ≠ []) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s }}
     (App (Val #(functions releasePendingReadIndexMessages [])) (Val #r))
-  {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
-      ownRaftPhysCV c c.voters r id
-        { sendMsgs (releasedState id s) ms with prvals := pvs } ∗
-      ⌜∀ m' ∈ ms, HeartbeatOk id (toPState s) m' ∧
-         ∃ k, 0 < k ∧ k ≤ s.rd.pend.length ∧
-           m'.ctx = hbCtx (readonlyRelease s.rd.ro id s.logst.committed (s.rd.pend.take k))⌝ ∗
-      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
-
-/-- The statement on `ownRaftPhys` (the simple configuration `cfg`) until 2026-10-13,
-derived from `releasePendingReadIndexMessages.spec` by `releasePendingReadIndexMessages.spec_simple`. -/
-abbrev releasePendingReadIndexMessages.specS : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
-  s.role = .leader →
-  s.term ≠ W64 0 →
-  (s.rd.pend ≠ [] →
-     plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) s.logst.committed
-       = some s.term) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hphys" ∷ ownRaftPhys cfg r id s }}
-    (App (Val #(functions releasePendingReadIndexMessages [])) (Val #r))
-  {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
-      ownRaftPhys cfg r id
-        { sendMsgs (releasedState id s) ms with prvals := pvs } ∗
-      ⌜∀ m' ∈ ms, HeartbeatOk id (toPState s) m' ∧
-         ∃ k, 0 < k ∧ k ≤ s.rd.pend.length ∧
-           m'.ctx = hbCtx (readonlyRelease s.rd.ro id s.logst.committed (s.rd.pend.take k))⌝ ∗
-      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
-
-open Iris.ProofMode in
-theorem releasePendingReadIndexMessages.spec_simple
-    (H : releasePendingReadIndexMessages.spec (GF := GF) (hG := hG)) :
-    releasePendingReadIndexMessages.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s Hl Ht Hp
-  iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
-  ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H _ r id s Hl Ht Hp $$ [$Hpkg $Hphys]
-  inext
-  iintro %ms %pvs ⟨Hphys, %H1, %H2⟩
-  ihave Hphys := ownRaftPhysC_toS $$ Hphys
-  iapply HΦ
-  iframe Hphys
-  ipureintro; exact ⟨H1, H2⟩
+  {{ (s' : NState), RET #();
+      ownRaftPhysCV c c.voters r id s' ∗ ⌜ReleaseResult c id s s'⌝ }}
 
 end spec
 

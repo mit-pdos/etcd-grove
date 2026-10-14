@@ -368,11 +368,11 @@ abbrev raft.Step.spec : Prop :=
      s.gh.unst = false) →
   (m.Type' = MsgStorageApplyResp → m.Term' = W64 0) →
   -- Read-index (2026-10-13): a request is unstamped (`Term = 0`; a local one from
-  -- `ReadIndex`, a forwarded one from a follower), and not in a single-voter
-  -- configuration (`IsSingleton`'s immediate answer is out of scope); a response is a
-  -- leader's, from another node.
-  (m.Type' = MsgReadIndex → m.Term' = W64 0 ∧
-     ¬ (GMap.size c.incoming = 1 ∧ GMap.size c.outgoing = 0)) →
+  -- `ReadIndex`, a forwarded one from a follower); a response is a leader's, from another
+  -- node. (Until 2026-10-14 also not in a single-voter configuration, `IsSingleton`'s
+  -- immediate answer: in scope since the pinned raft has the fix of
+  -- `issues/raft-readindex-singleton-stale.md`.)
+  (m.Type' = MsgReadIndex → m.Term' = W64 0) →
   -- (2026-10-14, stage B7) `appliedTo`'s auto-leave proposal is out of scope: no `AutoLeave`
   -- at a leader (`raft.appliedTo.spec`)
   (m.Type' = MsgStorageApplyResp → c.autoLeave = true → s.role ≠ .leader) →
@@ -686,11 +686,7 @@ theorem raft.Step.spec_simple (H : raft.Step.spec (GF := GF) (hG := hG)) :
   iapply H (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) .static γ r id s m ents ctx
       Hsm Hhup Hvote Hvoteresp Hprevote Hprevoteresp
       Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr
-      (fun h => by
-        obtain ⟨h1, h2⟩ := Hri h
-        refine ⟨h1, fun h3 => ?_⟩
-        have h3 : GMap.size γ.reCfg = 1 := h3.1
-        omega)
+      (fun h => (Hri h).1)
       (fun _ h => absurd h (by simp [CfgM.simple]))
       Hrir Hrest Hwf trivial
     $$ [$Hpkg $Hphys $Hm $Hctx $Hcred Hghost]

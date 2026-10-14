@@ -1,12 +1,12 @@
 # raft: `ReadOnlySafe` read index answers stale reads at a single-voter configuration reached by a configuration change
 
-- **Status**: fixed in a fork commit, to be verified (2026-10-14): `0560cb7` (etcd-io/raft
+- **Status**: fixed in a fork commit, verified at `raft.Step` (2026-10-14, stage F): `0560cb7` (etcd-io/raft
   `40f8be7` plus the fix of `raft-conf-lag-model/readindex-singleton-fix.patch` and regression
   tests `readindex_singleton_test.go`, which fail without it), saved as
   `raft-conf-lag-model/0001-raft-readindex-singleton-fix.patch` (`git am` on `40f8be7`), pushed
   as branch `raft-goose-lean` of `upamanyus/etcd` (a branch holding etcd-io/raft's history), from
-  which the proof's raft pin (`etc/goose.py`, project `etcd-raft`) is taken. Not reported
-  upstream.
+  which the proof's raft pin (`etc/goose.py`, project `etcd-raft`) is taken since 2026-10-14
+  (the register's `go.mod` replaces `go.etcd.io/raft/v3` by it). Not reported upstream.
 - **Where** (etcd-io/raft at `40f8be730b18`, the revision `etc/goose.py` pins):
   - `raft.go:1341-1348` (`stepLeader`, `MsgReadIndex`): `if r.trk.IsSingleton()` answers at
     once with `r.raftLog.committed`. This runs *before* the `committedEntryInCurrentTerm`
@@ -47,7 +47,18 @@
   own), which is why the static proof could exclude the path by a premise.
 - **Expected**: `ReadOnlySafe` read index is linearizable (`ReadOnlySafe`'s documentation,
   `raft.go`'s `ReadOnlyOption`): the answer covers every entry committed before the request.
-- **How the proof handles it**: the static read-index proof excludes the path by the premise
+- **Verified (2026-10-14, stage F)**: with the pin at `0560cb7`, `raft.Step.spec` takes a
+  `MsgReadIndex` at any configuration, in both ghost modes (static and dynamic): its premise
+  `¬ (size c.incoming = 1 ∧ size c.outgoing = 0)` is gone, and so are `stepLeader`'s. The
+  shortcut is a model rule (`StepC`/`StepR.readSingle`, `readReleaseSingle`: at a configuration
+  whose only voter is the leader, with an entry of its term committed), refined like the heartbeat
+  path with the quorum `{id}`: the leader's own acknowledgement confirms its record
+  (`ownRaftGhost_single_confirm`, `Protocol/Refinement.lean`). What remains is at the public API
+  (stage B7 part 2's files): `RawNode.Step.spec`'s and `RawNode.ReadIndex.spec`'s read-index
+  premise (`NotSingleton`), `node.ReadIndex`'s and the register's `1 < size reCfg`, and the static
+  `raft.Step.specS`'s `1 < GMap.size cfg` (kept for its callers), none of which `raft.Step` needs
+  any more (`notes/STATUS.md`, "The single-voter read-index fix").
+- **How the proof handled it until 2026-10-14**: the static read-index proof excluded the path by the premise
   `1 < size cfg` of `raft.Step`/`node.ReadIndex` (`notes/STATUS.md`, "Read-index"). Under
   reconfiguration the configuration is not the caller's to fix, so the premise becomes a
   restriction on the run (no configuration with a single incoming voter and no outgoing half

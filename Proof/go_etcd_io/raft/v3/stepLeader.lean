@@ -42,7 +42,6 @@ public import Spec.go_etcd_io.raft.v3.raft__responseToReadIndexReq
 public import Spec.go_etcd_io.raft.v3.raft__send
 public import Spec.go_etcd_io.raft.v3.readOnly__recvAck
 public import Spec.go_etcd_io.raft.v3.readOnly__maybeAdvance
-public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__IsSingleton
 -- (2026-10-13) leader transfer
 public import Spec.go_etcd_io.raft.v3.raft__sendTimeoutNow
 public import Spec.go_etcd_io.raft.v3.raft__abortLeaderTransfer
@@ -920,17 +919,17 @@ private theorem wp_stepLeader_hbresp
     ipureintro
     exact ⟨rfl, Or.inr (Or.inr (Or.inl ⟨Hty, ms, pvs, Hms, Hmm, Or.inr ⟨Hc0, N, HN, rfl⟩⟩))⟩
 
-/-- **`MsgReadIndex`** (not at a single voter): pending until an entry of the term is
-committed, then `sendMsgReadIndexResponse`. -/
+/-- **`MsgReadIndex`**: pending until an entry of the term is committed, then
+`sendMsgReadIndexResponse` (since 2026-10-14, the pinned raft having the single-voter fix,
+also at a single voter: the shortcut is in `sendMsgReadIndexResponse`). -/
 private theorem wp_stepLeader_readindex
-    (wp_IsSingleton : tracker.ProgressTracker.IsSingleton.spec (GF := GF) (hG := hG))
     (wp_raft_committedEntryInCurrentTerm :
       raft.committedEntryInCurrentTerm.spec (GF := GF) (hG := hG))
     (wp_sendMsgReadIndexResponse : sendMsgReadIndexResponse.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (m : raftpb.Message) (ents : List raftpb.Entry)
     (ctx : List w8)
     (Hty : m.Type' = MsgReadIndex) (Hlead : s.role = .leader) (Hnz : s.term ≠ W64 0)
-    (Hsz : ¬ (GMap.size c.incoming = 1 ∧ GMap.size c.outgoing = 0)) :
+    (Hne : ents ≠ []) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         m.Entries' ↦*□ ents }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #m))
@@ -941,13 +940,6 @@ private theorem wp_stepLeader_readindex
   wp_auto
   simp only [Hty, MsgReadIndex]
   wp_auto
-  -- `r.trk.IsSingleton()`: no, more than one voter
-  icases ownRaftPhysC_tracker_same c r id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-  wp_apply (tracker.ProgressTracker.IsSingleton.spec_trackerC wp_IsSingleton c _ (DFrac.own 1) tv _)
-    $$ [$Htrkf $Htrk] as ⟨Htrkf, Htrk⟩
-  simp only [Hsz, decide_false]
-  wp_auto
-  ihave Hphys := Hback $$ %tv Htrkf Htrk
   -- `r.committedEntryInCurrentTerm()`
   wp_apply wp_raft_committedEntryInCurrentTerm c r id s Hnz $$ [$Hphys] as %b ⟨Hphys, %Hb⟩
   cases b
@@ -979,12 +971,12 @@ private theorem wp_stepLeader_readindex
   · -- `sendMsgReadIndexResponse(r, m)`
     have Hb' := Hb.1 rfl
     wp_auto
-    wp_apply wp_sendMsgReadIndexResponse c r id s m ents Hlead $$ [$Hphys $Hes]
-      as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+    wp_apply wp_sendMsgReadIndexResponse c r id s m ents Hlead Hne $$ [$Hphys $Hes]
+      as %s' ⟨Hphys, %Hres⟩
     iapply HΦ
     iframe Hphys
     ipureintro
-    exact ⟨rfl, Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Or.inr ⟨Hb', ms, pvs, rfl, Hms, Hmm⟩⟩)))⟩
+    exact ⟨rfl, Or.inr (Or.inr (Or.inr (Or.inl ⟨Hty, Or.inr ⟨Hb', Hres⟩⟩)))⟩
 
 /-- **`MsgAppResp`** -/
 private theorem wp_stepLeader_appresp
@@ -1008,6 +1000,7 @@ private theorem wp_stepLeader_appresp
     (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
     (Hty : m.Type' = MsgAppResp) (Hlead : s.role = .leader) (Hid : id ∈ c.voters)
     (Hfrom0 : m.From' ≠ W64 0) (Hself : m.Reject' = true → m.From' ≠ id) (Hnz : s.term ≠ W64 0)
+    (Hrdp : ∀ p ∈ s.rd.pend, p.2 ≠ [])
     (ents : List raftpb.Entry) (ctx : List w8) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
       (App (App (Val #(functions stepLeader [])) (Val #r)) (Val #m))
@@ -1219,9 +1212,15 @@ private theorem wp_stepLeader_appresp
         "%Hs2" ∷ ⌜if n = s.logst.committed then
                     hb = [] ∧ s2 = { s with logst := { s.logst with committed := n } }
                   else
-                    ReleaseHbs id { s with logst := { s.logst with committed := n },
-                                           prvals := pvs3 } hb ∧
-                    s2 = releasedState id { s with logst := { s.logst with committed := n } }⌝ ∗
+                    (¬ CfgSingle c id ∧
+                     ReleaseHbs id { s with logst := { s.logst with committed := n },
+                                            prvals := pvs3 } hb ∧
+                     s2 = releasedState id { s with logst := { s.logst with committed := n } }) ∨
+                    (CfgSingle c id ∧ hb = [] ∧
+                     s2 = readRespondAll id
+                       { s with logst := { s.logst with committed := n },
+                                rd := { s.rd with pend := [] } }
+                       (pendReqs { s with logst := { s.logst with committed := n } }))⌝ ∗
         "%Hms" ∷ ⌜ReplSends id { s with logst := { s.logst with committed := n } } ms⌝ ∗
         "%Hmm4" ∷ ⌜prvalsMatch pvs4 = prvalsMatch pvs3⌝ ∗
         "m" ∷ m_ptr ↦ m ∗ "r" ∷ r_ptr ↦ r ∗ "pr" ∷ pr_ptr ↦ pr) at next
@@ -1291,8 +1290,43 @@ private theorem wp_stepLeader_appresp
         wp_auto
         wp_apply wp_releasePendingReadIndexMessages c r id
             { s with prvals := pvs3, logst := { s.logst with committed := N } } Hlead Hnz
-            (fun _ => HcN.2.2.1) $$ [$Hphys]
-          as %hb %pvsR ⟨Hphys, %Hhb, %HmmR⟩
+            (fun _ => HcN.2.2.1) Hrdp $$ [$Hphys]
+          as %sR ⟨Hphys, %HR⟩
+        rcases HR with ⟨Hsg, rfl⟩ | ⟨Hns, hb, pvsR, rfl, Hhb, HmmR⟩
+        · -- (2026-10-14) the leader is the single voter: each answered at once
+          have Hf := readRespondAll_fields id
+            { s with logst := { s.logst with committed := N }, rd := { s.rd with pend := [] } }
+            (pendReqs { s with logst := { s.logst with committed := N } })
+          have Hpv := readRespondAll_prvals id
+            { s with logst := { s.logst with committed := N }, rd := { s.rd with pend := [] } }
+            pvs3 (pendReqs { s with logst := { s.logst with committed := N } })
+          ihave Hphys := ownRaftPhysC_eq c r id _
+            { readRespondAll id
+                { s with logst := { s.logst with committed := N }, rd := { s.rd with pend := [] } }
+                (pendReqs { s with logst := { s.logst with committed := N } }) with
+              prvals := pvs3 }
+            (by rw [← Hpv]; rfl) $$ Hphys
+          wp_apply wp_raft_bcastAppend $$ [$Hphys] as %ms %pvs4 ⟨Hphys, %Hms, %Hmm4⟩
+          wp_join_done
+          iexists N, readRespondAll id
+            { s with logst := { s.logst with committed := N }, rd := { s.rd with pend := [] } }
+            (pendReqs { s with logst := { s.logst with committed := N } }), [], ms, pvs4
+          ihave Hphys := ownRaftPhysC_eq c r id _
+            { sendMsgs (sendMsgs (readRespondAll id
+                { s with logst := { s.logst with committed := N }, rd := { s.rd with pend := [] } }
+                (pendReqs { s with logst := { s.logst with committed := N } })) []) ms with
+              prvals := pvs4 }
+            (by simp [sendMsgs]) $$ Hphys
+          iframe
+          ipureintro
+          refine ⟨Or.inr HcN, ?_, fun m' hm => replAC_proper _ _ _ _ ?_ ?_ ?_ ?_ (Hms m' hm),
+            Hmm4⟩
+          · simp only [HNne, ↓reduceIte]
+            first
+              | exact Or.inr ⟨Hsg, rfl, rfl⟩
+              | exact Or.inr ⟨Hsg, rfl, trivial⟩
+              | exact Or.inr ⟨Hsg, trivial, trivial⟩
+          all_goals simp only [toPState, Hf.1, Hf.2.2]
         wp_apply wp_raft_bcastAppend $$ [$Hphys] as %ms %pvs4 ⟨Hphys, %Hms, %Hmm4⟩
         wp_join_done
         iexists N, releasedState id { s with logst := { s.logst with committed := N } }, hb, ms,
@@ -1305,14 +1339,25 @@ private theorem wp_stepLeader_appresp
         ipureintro
         refine ⟨Or.inr HcN, ?_, fun m' hm => replAC_proper _ _ _ _ rfl rfl rfl rfl (Hms m' hm),
           Hmm4.trans HmmR⟩
-        simp only [HNne, ↓reduceIte, and_true]
-        exact Hhb
+        simp only [HNne, ↓reduceIte]
+        first
+          | exact Or.inl ⟨Hns, Hhb, rfl⟩
+          | exact Or.inl ⟨Hns, Hhb, trivial⟩
     iNamed HJ
-    have Hs2p : s2.progress = s.progress := by
-      split at Hs2 <;> (obtain ⟨-, rfl⟩ := Hs2; rfl)
+    have Hs2f : s2.progress = s.progress ∧ s2.term = s.term ∧
+        s2.logst = { s.logst with committed := n } := by
+      split at Hs2
+      · obtain ⟨-, rfl⟩ := Hs2; exact ⟨rfl, rfl, rfl⟩
+      · rcases Hs2 with ⟨-, -, rfl⟩ | ⟨-, -, rfl⟩
+        · exact ⟨rfl, rfl, rfl⟩
+        · obtain ⟨o, rd', h⟩ := readRespondAll_eq id
+            ({ s with logst := { s.logst with committed := n }, rd := { s.rd with pend := [] } } : NState)
+            (pendReqs { s with logst := { s.logst with committed := n } })
+          rw [h]; exact ⟨rfl, rfl, rfl⟩
+    have Hs2p : s2.progress = s.progress := Hs2f.1
     generalize Hsc : ({ s with logst := { s.logst with committed := n } } : NState) = sc at *
     have Hs2l : s2.term = sc.term ∧ s2.logst = sc.logst := by
-      split at Hs2 <;> (obtain ⟨-, rfl⟩ := Hs2; exact ⟨rfl, rfl⟩)
+      rw [← Hsc]; exact ⟨Hs2f.2.1, Hs2f.2.2⟩
     wp_auto
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
     -- `if r.id != m.From { for r.maybeSendAppend(m.From, false) {} }`, joined
@@ -1379,8 +1424,7 @@ private theorem wp_stepLeader_appresp
     wp_auto
     -- (2026-10-13) `if m.From == r.leadTransferee && pr.Match == r.raftLog.lastIndex()`: a
     -- transferee that caught up gets its `MsgTimeoutNow`, which the model does not see
-    have Hs2p : s2.progress = s.progress := by
-      subst Hsc; split at Hs2 <;> (obtain ⟨-, rfl⟩ := Hs2; rfl)
+    have Hs2p : s2.progress = s.progress := Hs2f.1
     obtain ⟨p5, Hp5⟩ : ∃ p5, pvs5 !! m.From' = some p5 := by
       have H5 : prvalsMatch pvs5 !! m.From' ≠ none := by
         rw [Hmm5, Hmm4, Hmm3, Hmm2, GMap.lookup_insert_eq]; simp
@@ -1431,12 +1475,14 @@ private theorem wp_stepLeader_appresp
         obtain ⟨rfl, rfl⟩ := Hs2
         exact ⟨rfl, by simp [sendMsgs]⟩
       · simp only [Hceq, ↓reduceIte] at Hs2 ⊢
-        obtain ⟨Hhb, rfl⟩ := Hs2
-        refine ⟨fun m' hm => ⟨?_, (Hhb m' hm).2⟩, rfl⟩
-        have Hts' : toPState { s with logst := { s.logst with committed := n }, prvals := pvs5 } =
-            toPState { s with logst := { s.logst with committed := n }, prvals := pvs3 } := by
-          simp only [toPState, Hmm5, Hmm4]
-        rw [Hts']; exact (Hhb m' hm).1
+        rcases Hs2 with ⟨Hns, Hhb, rfl⟩ | ⟨Hsg, rfl, rfl⟩
+        · refine Or.inl ⟨Hns, fun m' hm => ⟨?_, (Hhb m' hm).2⟩, rfl⟩
+          have Hts' : toPState { s with logst := { s.logst with committed := n }, prvals := pvs5 } =
+              toPState { s with logst := { s.logst with committed := n }, prvals := pvs3 } := by
+            simp only [toPState, Hmm5, Hmm4]
+          rw [Hts']; exact (Hhb m' hm).1
+        · refine Or.inr ⟨Hsg, rfl, ?_⟩
+          simp [sendMsgs]
   · -- rejected
     have Hself := Hself Hrej
     wp_auto
@@ -1544,8 +1590,6 @@ theorem stepLeader.wp_proof
     (wp_raftLog_findConflictByTerm : raftLog.findConflictByTerm.spec (GF := GF) (hG := hG))
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG))
     (wp_raftLog_firstIndex : raftLog.firstIndex.spec (GF := GF) (hG := hG))
-    (wp_ProgressTracker_IsSingleton :
-      tracker.ProgressTracker.IsSingleton.spec (GF := GF) (hG := hG))
     (wp_raft_committedEntryInCurrentTerm :
       raft.committedEntryInCurrentTerm.spec (GF := GF) (hG := hG))
     (wp_sendMsgReadIndexResponse : sendMsgReadIndexResponse.spec (GF := GF) (hG := hG))
@@ -1646,7 +1690,7 @@ theorem stepLeader.wp_proof
       wp_Progress_BecomeReplicate wp_Progress_CanBumpCommit wp_Inflights_FreeLE
       wp_raftLog_findConflictByTerm wp_raftLog_lastIndex wp_raftLog_firstIndex
       wp_raft_sendTimeoutNow r id s m Hty Hlead Hid (Hfrom0 Hty) (fun Hr => Hself (Or.inr ⟨Hty, Hr⟩))
-      (Hrdnz (Or.inr (Or.inl Hty))).2 ents ctx
+      (Hrdnz (Or.inr (Or.inl Hty))).2 (Hrdnz (Or.inr (Or.inl Hty))).1.2.2 ents ctx
       $$ [Hphys] HΦ'
     iframe
     iexact Hinit
@@ -1661,11 +1705,10 @@ theorem stepLeader.wp_proof
       $$ [Hphys] HΦ'
     iframe
     iexact Hinit
-  · obtain ⟨Hsz, -⟩ := Hri Hty
-    ihave #Hes := Hrents $$ %Hty
-    iapply wp_stepLeader_readindex c wp_ProgressTracker_IsSingleton
+  · ihave #Hes := Hrents $$ %Hty
+    iapply wp_stepLeader_readindex c
       wp_raft_committedEntryInCurrentTerm wp_sendMsgReadIndexResponse r id s m ents ctx Hty Hlead
-      (Hrdnz (Or.inr (Or.inr Hty))).2 Hsz $$ [Hphys] HΦ'
+      (Hrdnz (Or.inr (Or.inr Hty))).2 (Hri Hty) $$ [Hphys] HΦ'
     iframe
     iframe Hinit Hes
 

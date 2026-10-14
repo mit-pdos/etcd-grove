@@ -7,13 +7,16 @@ preamble is skipped and `r.step(r, m)` runs:
 - `stepCandidate` ignores it;
 - `stepLeader` queues it as pending while no entry of its term is committed
   (`StepCF.readPend`), or lets it arrive (`StepCF.readArrive`) and broadcasts heartbeats
-  carrying the new position (`StepC.beat`).
+  carrying the new position (`StepC.beat`) -- or (2026-10-14, the pinned raft with the
+  single-voter fix) at a configuration whose only voter is the leader itself answers it at once
+  (`StepCF.readSingle`).
 
 Proof structure, not specification: only `Proof/raft__Step.lean` may import this module.
 -/
 module
 
 public import Proof.go_etcd_io.raft.v3.raft__Step.Base
+public import Proof.go_etcd_io.raft.v3.raft__Step.resp_lemmas
 
 @[expose] public section
 
@@ -68,7 +71,6 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (ents : List raftpb.Entry) (ctx : List w8) :
     m.Type' = MsgReadIndex →
     m.Term' = W64 0 →
-    ¬ (GMap.size c.incoming = 1 ∧ GMap.size c.outgoing = 0) →
     ents ≠ [] →
     (s.role = .follower → s.lead ≠ id) →
     (s.role = .leader → RdOk c.voters s.rd ∧ s.term ≠ W64 0) →
@@ -86,7 +88,7 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
-  intro Hty Hterm Hsz Hne Hlok Hlrd Hwf
+  intro Hty Hterm Hne Hlok Hlrd Hwf
   wp_start as ⟨Hphys, #Hents, #Hctx⟩
   wp_auto
   wp_apply _P.traceReceiveMessage
@@ -195,7 +197,7 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           rcases Hc with Hc | ⟨Hc, -⟩ <;> exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun _ => Hlrd Hrole)
-        (fun _ => ⟨Hsz, Hne⟩)
+        (fun _ => Hne)
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       $$ [$Hphys] as %err %s' %dropped ⟨Hphys, %Hres, Herrn, -⟩
     · isplitl []
@@ -218,7 +220,7 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     icases Herrn with %Herrn
     subst Herrn
     wp_auto
-    rcases Hri with ⟨Hnct, rfl⟩ | ⟨Hct, ms, pvs, rfl, Hms, Hpm⟩
+    rcases Hri with ⟨Hnct, rfl⟩ | ⟨Hct, ⟨Hsg, rfl⟩ | ⟨-, ms, pvs, rfl, Hms, Hpm⟩⟩
     · -- no entry of the term committed: pending
       iapply HΦ $$ %interface.nil %({ s with rd := { s.rd with pend := s.rd.pend ++ [(m, ents)] } })
       iframe Hphys
@@ -231,6 +233,24 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         rw [Hrd]; simp [toPState, Hrole, absMsg, absMsgFrom]
       rw [e]
       exact StepCF.readPend (absMsg .readIndex m ents ctx) (toPState s) m rfl Hpr rfl
+    · -- (2026-10-14) the leader is the single voter: answered at once
+      ihave Hphys := ownRaftPhysC_eq (V := c.voters) c r id (readRespond id s (arriveReq s m ents))
+        (readRespondAll id s [arriveReq s m ents]) rfl $$ Hphys
+      iapply HΦ $$ %interface.nil %(readRespondAll id s [arriveReq s m ents])
+      iframe Hphys
+      ipureintro
+      refine ⟨nstateWf_readRespondAll id _ _ Hwf,
+        ⟨[absMsg .readIndex m ents ctx], by simp, by simp, StepCD.frame ?_ ?_⟩, rfl, ?_, ?_⟩
+      · rw [toPState_readRespondAll id s Hrole]
+        have H1 := StepCF.readSingle (c := c) (id := id) (absMsg .readIndex m ents ctx)
+          (toPState s) rfl Hpr Hct Hsg
+        first
+          | exact H1
+          | (simp only [absMsg, absMsgFrom, toPState, arriveReq] at H1 ⊢; exact H1)
+      · rw [readRespondAll_frame]
+        exact ⟨rfl, rfl, fun _ => ⟨Hrole, rfl⟩⟩
+      · rw [readRespondAll_frame]; exact NetFrame.of_logst rfl
+      · rw [readRespondAll_frame]; exact TermStep.of_term rfl (fun _ => Int.le_refl _)
     · -- arrival, then the heartbeats
       iapply HΦ $$ %interface.nil %({ sendMsgs (arriveState id s m ents) ms with prvals := pvs })
       iframe Hphys
