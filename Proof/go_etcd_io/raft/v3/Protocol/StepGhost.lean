@@ -211,16 +211,24 @@ theorem ownLogGhost_upd (γ : RaftNames) (id : w64) (s s' : PState) (kl kl' : Op
     intro t Ht
     rcases Hterms_ok t Ht with Hlt | ⟨rfl, Hr⟩
     · left; omega
-    · by_cases Hr' : s'.role = .leader
-      · obtain ⟨-, Hte, -⟩ := Hlead Hr'; right; exact ⟨Hte.symm, Hr'⟩
-      · left; exact Hdown Hr' Hr
+    · by_cases Hlt : uint.Z s.term < uint.Z s'.term
+      · left; exact Hlt
+      · right
+        refine ⟨uint_Z_inj.mp (by omega), fun hc => Hr (Hcand hc).1⟩
   have Hwins_ok' : WinsOk wins s' := by
     intro t Ht
     rcases Hwins_ok t Ht with Hlt | ⟨rfl, Hr⟩
     · left; omega
-    · by_cases Hr' : s'.role = .leader
-      · obtain ⟨-, Hte, -⟩ := Hlead Hr'; right; exact ⟨Hte.symm, Hr'⟩
-      · left; exact Hdown Hr' Hr
+    · by_cases Hlt : uint.Z s.term < uint.Z s'.term
+      · left; exact Hlt
+      · right
+        refine ⟨uint_Z_inj.mp (by omega), fun hc => Hr (Hcand hc).1⟩
+  have Hlacks' : LeadAcksOk s' acks := by
+    refine ⟨fun hc i => ?_, fun hl i hi => ?_⟩
+    · obtain ⟨hc0, hte⟩ := Hcand hc
+      rw [hte]; exact Hlacks.1 hc0 i
+    · obtain ⟨hl0, hte, hb, hlg⟩ := Hlead hl
+      rw [hte] at hi; rw [hb, hlg]; exact Hlacks.2 hl0 i hi
   have Hacks_term' : AcksTerm s' acks := fun k Hk => by have := Hacks_term k Hk; omega
   have Hcamps_ok' : ∀ T, (camps !! T).isSome → uint.Z T ≤ uint.Z s'.term :=
     fun T HT => by have := Hcamps_ok T HT; omega
@@ -590,7 +598,8 @@ theorem ack_invs_insert (γ : RaftNames) (s : PState) (kl : Option w64)
 /-- A node acknowledges at its own term, with the justification `acksOk` asks of it and
 the history `histsOk` asks of it. -/
 theorem ownLogGhost_ack (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64)
-    (i : w64) :
+    (i : w64) (Hnc : s.role ≠ .candidate)
+    (Hli : s.role = .leader → uint.Z i ≤ plogLastIndexZ s.base s.log) :
     ⊢ ackOk (GF := GF) γ s (s.term, i) -∗
       (∀ fp, ⌜FullOk s.base fp ∧ PlogWf s.base s.log⌝ -∗
          logRecs γ base0 fp -∗
@@ -608,6 +617,11 @@ theorem ownLogGhost_ack (γ : RaftNames) (id : w64) (s : PState) (kl : Option w6
   imod acks_add γa acks (s.term, i) $$ Hacks Hafrags with ⟨Hacks', #Hafr', #Hnew⟩
   imod ownEvs_ack γ id s.term acks i $$ Hevs with ⟨Hevs', #Hev⟩
   have Hacks_term' := AcksTerm_insert s acks s.term i (Int.le_refl _) Hacks_term
+  have Hlacks' : LeadAcksOk s (<[(s.term, i) := ()]> acks) := by
+    refine ⟨fun hc => absurd hc Hnc, fun hl j hj => ?_⟩
+    by_cases hji : (s.term, j) = (s.term, i)
+    · simp only [Prod.mk.injEq, true_and] at hji; subst hji; exact Hli hl
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hji)] at hj; exact Hlacks.2 hl j hj
   ihave #Hacks_ok' : acksOk (GF := GF) γ s (<[(s.term, i) := ()]> acks) $$ []
   · by_cases Hr : s.role = .leader
     · rw [acksOk_l γ s (<[(s.term, i) := ()]> acks) Hr]; ipureintro; trivial
@@ -778,16 +792,24 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
     intro t Ht
     left
     show uint.Z t < uint.Z (s.term + W64 1)
-    rcases Hterms_ok t Ht with h | ⟨-, h⟩
+    rcases Hterms_ok t Ht with h | ⟨ht, -⟩
     · omega
-    · exact absurd h Hr
+    · rw [ht]; omega
   have Hwins_ok' : WinsOk wins (pbecomeCandidate id s) := by
     intro t Ht
     left
     show uint.Z t < uint.Z (s.term + W64 1)
-    rcases Hwins_ok t Ht with h | ⟨-, h⟩
+    rcases Hwins_ok t Ht with h | ⟨ht, -⟩
     · omega
-    · exact absurd h Hr
+    · rw [ht]; omega
+  have Hlacks' : LeadAcksOk (pbecomeCandidate id s) acks := by
+    refine ⟨fun _ i => ?_, fun hl => by cases hl⟩
+    show acks !! (s.term + W64 1, i) = none
+    cases h : acks !! (s.term + W64 1, i) with
+    | none => rfl
+    | some _ =>
+      have := Hacks_term (s.term + W64 1, i) (by rw [h]; rfl)
+      simp only at this; omega
   have Hacks_term' : AcksTerm (pbecomeCandidate id s) acks := fun kk Hkk => by
     have := Hacks_term kk Hkk
     show uint.Z kk.1 ≤ uint.Z (s.term + W64 1)

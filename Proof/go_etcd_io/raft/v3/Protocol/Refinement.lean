@@ -39,8 +39,9 @@ set_option hygiene false in
 term (2026-10-12, `lcmOwn_mono`): each of the four premises is a computation on the
 rule's states. -/
 local macro "lcm_mono" : tactic => `(tactic| (
-  iapply lcmOwn_mono _ _ _ _ ?_ ?_ ?_ ?_ $$ Hlcm <;>
+  iapply lcmOwn_mono _ _ _ _ ?_ ?_ ?_ ?_ ?_ $$ Hlcm <;>
   first
+    | (intro _; right; dsimp only [psendMsgs, pbecomeCandidate]; omega)
     | (intro h; simp_all [psendMsgs, padoptLeader, pbecomeFollower, pbecomeCandidate]; done)
     | (intro h h'; simp_all [psendMsgs, padoptLeader, pbecomeFollower, pbecomeCandidate]; done)
     | (simp_all [psendMsgs, padoptLeader, pbecomeFollower, pbecomeCandidate]; done)
@@ -59,9 +60,10 @@ set_option hygiene false in
 /-- The read-index ghost state across a rule that touches no read state (2026-10-12,
 `rdOwn_mono`). -/
 local macro "rd_mono" : tactic => `(tactic| (
-  iapply rdOwn_mono _ _ _ _ ?_ ?_ ?_ ?_ ?_ ?_ ?_ $$ Hrd <;>
+  iapply rdOwn_mono _ _ _ _ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ $$ Hrd <;>
   first
     | rfl
+    | (intro _; right; dsimp only [psendMsgs, pbecomeCandidate]; omega)
     | (intro h; right; exact ⟨by assumption, rfl⟩)
     | (intro h; left; rfl)
     | (apply List.Subperm.countP_le; assumption)
@@ -315,7 +317,8 @@ private theorem ownRaftGhost_step_stale (γ : RaftNames) (id : w64) (s : PState)
   ihave ⟨%Hok, #Hrecs⟩ := ownLogGhost_recs $$ Hlg
   ihave Hlg := ownLogGhost_mono γ id s (padoptLeader s m.src) (some m.src) rfl rfl rfl
     (by intro h; cases h) (by intro h; cases h) (by intro h; exact absurd h Hrole) rfl (fun h => h) $$ Hlg
-  imod ownLogGhost_ack γ id (padoptLeader s m.src) (some m.src) s.commit $$ [] [] Hlg with ⟨Hlg, #Hack⟩
+  imod ownLogGhost_ack γ id (padoptLeader s m.src) (some m.src) s.commit
+    (by simp [padoptLeader]) (by intro h; simp [padoptLeader] at h) $$ [] [] Hlg with ⟨Hlg, #Hack⟩
   · unfold ackOk
     iintro %H
     exfalso; exact absurd H.2 (Int.lt_irrefl _)
@@ -489,7 +492,7 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
       exfalso
       rcases Hwins_ok s.term (by rw [Ht]; rfl) with Hlt | ⟨-, Hr⟩
       · omega
-      · rw [Hrole] at Hr; cases Hr
+      · exact absurd Hrole Hr
   imod ghost_map_insert_persist s.term (granted s.votes) Hwfree $$ Hwins with ⟨Hwins, #Hwf⟩
   rw [campOwn_cand γ id s _ Hrole]
   -- the winner's record: its quorum, a joint quorum of its configuration, which is its
@@ -533,7 +536,7 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
       exfalso
       rcases Hterms_ok s.term (by rw [Ht]; rfl) with Hlt | ⟨-, Hr⟩
       · omega
-      · rw [Hrole] at Hr; cases Hr
+      · exact absurd Hrole Hr
   generalize HL : plogLastIndexZ s.base s.log = L at Hnw Hcl
   have HL0 : 0 ≤ L := by rw [← HL]; exact plogLastIndexZ_nonneg _ _
   have HLF : plogLastIndexZ base0 (fp ++ s.log) = L := by rw [← HL]; exact full_last_index _ _ _ Hfp
@@ -747,25 +750,36 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
     intro t Ht
     rw [Hs2term, Hs2role]
     by_cases Htt : t = s.term
-    · right; exact ⟨Htt, rfl⟩
+    · right; exact ⟨Htt, by decide⟩
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm Htt)] at Ht
       rcases Hterms_ok t Ht with Hlt | ⟨-, Hr⟩
       · left; exact Hlt
-      · rw [Hrole] at Hr; cases Hr
+      · exact absurd Hrole Hr
   have Hwins_ok' : WinsOk (<[s.term := granted s.votes]> wins) s2 := by
     intro t Ht
     rw [Hs2term, Hs2role]
     by_cases Htt : t = s.term
-    · right; exact ⟨Htt, rfl⟩
+    · right; exact ⟨Htt, by decide⟩
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm Htt)] at Ht
       rcases Hwins_ok t Ht with Hlt | ⟨-, Hr⟩
       · left; exact Hlt
-      · rw [Hrole] at Hr; cases Hr
+      · exact absurd Hrole Hr
   have Hacks_term' : AcksTerm s2 (<[(s2.term, plastIndex s2) := ()]>
       (<[(s2.term, plastIndex s) := ()]> acks)) := by
     apply AcksTerm_insert _ _ _ _ (Int.le_refl _)
     apply AcksTerm_insert _ _ _ _ (Int.le_refl _)
     intro k Hk; rw [Hs2term]; exact Hacks_term k Hk
+  have Hlacks' : LeadAcksOk s2 (<[(s2.term, plastIndex s2) := ()]>
+      (<[(s2.term, plastIndex s) := ()]> acks)) := by
+    refine ⟨fun hc => (by rw [Hs2role] at hc; cases hc), fun _ j hj => ?_⟩
+    rw [HLs2]
+    by_cases h2 : (s2.term, j) = (s2.term, plastIndex s2)
+    · simp only [Prod.mk.injEq, true_and] at h2; subst h2; omega
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm h2)] at hj
+      by_cases h1 : (s2.term, j) = (s2.term, plastIndex s)
+      · simp only [Prod.mk.injEq, true_and] at h1; subst h1; omega
+      · rw [GMap.lookup_insert_ne _ _ (Ne.symm h1), Hs2term, Hlacks.1 Hrole j] at hj
+        cases hj
   have Hlog_ok' : LogOk s2 := by
     refine ⟨PlogWf_wfR _ _ (by rw [Hs2base]; exact Hwl2), by rw [Hs2base, Hs2commit]; exact Hbc, ?_⟩
     rw [HLs2, Hs2commit]; omega
@@ -849,10 +863,10 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
     iframe % # ∗
   have Hwl2' : PlogWfR s2.base s2.log := by rw [Hs2base]; exact PlogWf_wfR _ _ Hwl2
   -- the commit lower bound of the new term (2026-10-12)
-  imod lcmOwn_win γ id s s2 (by rw [Hrole]; decide) Hs2role Hs2term
+  imod lcmOwn_win γ id s s2 Hrole Hs2role Hs2term
     (by rw [Hs2commit]; exact Int.le_refl _) $$ Hlcm with Hlcm
   -- the read registry of the new term (2026-10-13)
-  imod rdOwn_win γ id s (psendMsgs s2 ([pselfAck id s2] ++ ms)) (by rw [Hrole]; decide) Hs2role
+  imod rdOwn_win γ id s (psendMsgs s2 ([pselfAck id s2] ++ ms)) Hrole Hs2role
     Hs2term Hs2rd
     (by
       show rdCount (s2.outbox ++ ([pselfAck id s2] ++ ms)) ≤ rdCount s.outbox
@@ -1856,7 +1870,8 @@ theorem ownRaftGhost_step_app_accept (γ : RaftNames) (id : w64) (s : PState) (m
           log := es',
           commit := plogCommitTo s.commit
             (if uint.Z m.commit < uint.Z lastnewi then m.commit else lastnewi) }
-      (some m.src) lastnewi $$ [] [] Hlg with ⟨Hlg, #Hack⟩
+      (some m.src) lastnewi (by simp [padoptLeader]) (by intro h; simp [padoptLeader] at h)
+      $$ [] [] Hlg with ⟨Hlg, #Hack⟩
   · unfold ackOk
     iintro %_
     simp only [padoptLeader]
@@ -2211,6 +2226,13 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
       exact absurd Hrole H
   have Hterms_ok' : TermsOk terms (pappend s nw) := Hterms_ok
   have Hacks_term' : AcksTerm (pappend s nw) acks := Hacks_term
+  have Hlacks' : LeadAcksOk (pappend s nw) acks := by
+    refine ⟨fun hc => absurd hc (by show s.role ≠ .candidate; rw [Hrole]; decide),
+      fun _ i hi => ?_⟩
+    have := Hlacks.2 Hrole i hi
+    show uint.Z i ≤ plogLastIndexZ s.base (s.log ++ nw)
+    unfold plogLastIndexZ at this ⊢
+    rw [List.length_append]; push_cast; omega
   have Hcamps_ok' : ∀ T, (camps !! T).isSome → uint.Z T ≤ uint.Z (pappend s nw).term := Hcamps_ok
   have Hwins_ok' : WinsOk wins (pappend s nw) := Hwins_ok
   ihave #Hrecs'' : logRecs γ (pappend s nw).base (pappend s nw).log $$ []
@@ -2247,7 +2269,9 @@ theorem ownRaftGhost_step_propose (γ : RaftNames) (id : w64) (s : PState)
     rw [List.length_append, Hlen]; push_cast; omega
   have Hpl : uint.Z (plastIndex (pappend s nw)) = L + (ents.length : Int) := by
     unfold plastIndex; rw [HLs', uint_Z_W64 _ (by omega) (by omega)]
-  imod ownLogGhost_ack γ id (pappend s nw) kl (plastIndex (pappend s nw)) $$ [] [] Hlg with
+  imod ownLogGhost_ack γ id (pappend s nw) kl (plastIndex (pappend s nw))
+      (by show s.role ≠ .candidate; rw [Hrole]; decide)
+      (fun _ => by rw [Hpl, HLs']; exact Int.le_refl _) $$ [] [] Hlg with
     ⟨Hlg, #Hack⟩
   · unfold ackOk
     iintro %_
@@ -2381,6 +2405,7 @@ theorem ownRaftGhost_step_snap_fastfwd (γ : RaftNames) (id : w64) (s : PState) 
       (by rw [full_term_at s.base fp s.log m.index Hf Hb, Hmt']; rfl) (HFeq fp Hf) $$ HrF HrLf
     rw [Htk]; iexact Hmcm
   imod ownLogGhost_ack γ id { padoptLeader s m.src with commit := m.index } (some m.src) m.index
+    (by simp [padoptLeader]) (by intro h; simp [padoptLeader] at h)
     $$ [] [] Hlg with ⟨Hlg, #Hack⟩
   · unfold ackOk
     iintro %H
@@ -2531,7 +2556,8 @@ theorem ownRaftGhost_step_snap_restore (γ : RaftNames) (id : w64) (s : PState) 
   imod ownLogGhost_ack γ id
       { padoptLeader s m.src with
           base := entryID.mk m.logterm m.index, log := [], commit := m.index }
-      (some m.src) m.index $$ [] [] Hlg with ⟨Hlg, #Hack⟩
+      (some m.src) m.index (by simp [padoptLeader]) (by intro h; simp [padoptLeader] at h)
+      $$ [] [] Hlg with ⟨Hlg, #Hack⟩
   · unfold ackOk
     iintro %H
     exfalso; exact absurd H.2 (Int.lt_irrefl _)
@@ -2721,7 +2747,7 @@ theorem rdOwn_arrive (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) 
     intro t Ht
     rcases Hok t Ht with h | ⟨h1, -⟩
     · left; exact h
-    · right; exact ⟨h1, rfl⟩
+    · right; exact ⟨h1, by simp⟩
   isplitl [Hauth Hcrs]
   · simp only [readonlyArrive_eq]
     iexists γq, recs ++ [((c, s.commit), d)]
@@ -3005,7 +3031,7 @@ theorem rdOwn_ack (γ : RaftNames) (id : w64) (s : PState) (src q N : w64)
         intro t Ht
         rcases Hok t Ht with h | ⟨h1, -⟩
         · left; exact h
-        · right; exact ⟨h1, rfl⟩
+        · right; exact ⟨h1, by simp⟩
       isplitl [Hauth Hcrs]
       · iexists γq, recs
         isplitr; · ipureintro; exact Hq
@@ -3067,7 +3093,7 @@ theorem rdOwn_ack (γ : RaftNames) (id : w64) (s : PState) (src q N : w64)
         intro t Ht
         rcases Hok t Ht with h | ⟨h1, -⟩
         · left; exact h
-        · right; exact ⟨h1, rfl⟩
+        · right; exact ⟨h1, by simp⟩
       isplitl [Hauth Hcrs]
       · iexists γq, recs
         isplitr; · ipureintro; exact Hq
@@ -3747,8 +3773,9 @@ theorem ownRaftGhost_step_campaign (γ : RaftNames) (c : CfgM) (id : w64) (s : P
     · iexact Hvrecs
   · ipureintro; exact ⟨fun _ => rfl, fun _ => rfl⟩
   · lcm_mono
-  · iapply rdOwn_mono _ _ _ _ ?_ ?_ ?_ ?_ ?_ ?_ ?_ $$ Hrd <;>
+  · iapply rdOwn_mono _ _ _ _ ?_ ?_ ?_ ?_ ?_ ?_ ?_ ?_ $$ Hrd <;>
       first
+        | (intro _; right; dsimp only [psendMsgs, pbecomeCandidate]; omega)
         | (rw [psendMsgs_outbox, rdCount_append, Hcnt]; simp [pbecomeCandidate]; done)
         | (intro h; simp_all [psendMsgs, pbecomeCandidate]; done)
         | (intro h; simp [psendMsgs, pbecomeCandidate, rdNL])

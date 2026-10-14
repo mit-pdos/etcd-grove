@@ -356,7 +356,7 @@ abbrev TermRec := (GName × entryID) × List raftpb.Entry
 def TermsOk (terms : GMap w64 TermRec) (s : PState) : Prop :=
   ∀ t, (terms !! t).isSome →
     uint.Z t < uint.Z s.term ∨
-    (t = s.term ∧ s.role = .leader)
+    (t = s.term ∧ s.role ≠ .candidate)
 
 /-- A leader owns the term log of its term, whose recorded base and initial log are the
 leader's base and a prefix of its log, and holds a fragment of it for every entry it has
@@ -916,7 +916,7 @@ theorem uint_nat_le_of_Z_le {a b : w64} (h : uint.Z a ≤ uint.Z b) : uint.nat a
 def LcmOk (lcm : GMap w64 GName) (s : PState) : Prop :=
   ∀ t, (lcm !! t).isSome →
     uint.Z t < uint.Z s.term ∨
-    (t = s.term ∧ s.role = .leader)
+    (t = s.term ∧ s.role ≠ .candidate)
 
 def lcmLead (s : PState) (lcm : GMap w64 GName) : IProp GF :=
   match s.role with
@@ -955,8 +955,9 @@ theorem lcmOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
     (s'.role ≠ .leader → s.role = .leader → uint.Z s.term < uint.Z s'.term) →
     uint.Z s.term ≤ uint.Z s'.term →
     uint.Z s.commit ≤ uint.Z s'.commit →
+    (s'.role = .candidate → s.role = .candidate ∨ uint.Z s.term < uint.Z s'.term) →
     lcmOwn (GF := GF) γ id s ⊢ lcmOwn γ id s' := by
-  intro Hlead Hdown Hle Hcm
+  intro Hlead Hdown Hle Hcm Hcand
   unfold lcmOwn
   iintro ⟨%γl, %lcm, %Hγl, Ha, #Hf, %Hok, Hl⟩
   iexists γl, lcm
@@ -967,9 +968,13 @@ theorem lcmOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
     intro t Ht
     rcases Hok t Ht with Hlt | ⟨rfl, Hr⟩
     · left; omega
-    · by_cases Hr' : s'.role = .leader
-      · obtain ⟨-, Hte⟩ := Hlead Hr'; right; exact ⟨Hte.symm, Hr'⟩
-      · left; exact Hdown Hr' Hr
+    · by_cases Hlt : uint.Z s.term < uint.Z s'.term
+      · left; exact Hlt
+      · right
+        refine ⟨uint_Z_inj.mp (by omega), fun hc => ?_⟩
+        rcases Hcand hc with h | h
+        · exact Hr h
+        · exact Hlt h
   by_cases Hr' : s'.role = .leader
   · obtain ⟨Hr, Hte⟩ := Hlead Hr'
     rw [lcmLead_leader s lcm Hr, lcmLead_leader s' lcm Hr', Hte]
@@ -986,7 +991,7 @@ theorem lcmOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
 /-- A candidate that wins its term allocates the term's lower bound, at its commit
 index. -/
 theorem lcmOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
-    s.role ≠ .leader → s'.role = .leader → s'.term = s.term →
+    s.role = .candidate → s'.role = .leader → s'.term = s.term →
     uint.Z s.commit ≤ uint.Z s'.commit →
     lcmOwn (GF := GF) γ id s ⊢ |==> lcmOwn γ id s' := by
   intro Hr Hr' Hte Hcm
@@ -998,7 +1003,7 @@ theorem lcmOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
     | some _ =>
       rcases Hok s.term (by simp [h]) with Hlt | ⟨-, Hl⟩
       · omega
-      · exact absurd Hl Hr
+      · exact absurd Hr Hl
   imod mono_nat_own_alloc (GF := GF) (uint.nat s.commit) with ⟨%γc, Hac, -⟩
   imod ghost_map_insert_persist s.term γc Hfree $$ Ha with ⟨Ha, #Hfc⟩
   imodintro
@@ -1013,11 +1018,11 @@ theorem lcmOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
   · ipureintro
     intro t Ht
     by_cases Htt : s.term = t
-    · subst Htt; right; exact ⟨Hte.symm, Hr'⟩
+    · subst Htt; right; exact ⟨Hte.symm, by rw [Hr']; decide⟩
     · rw [GMap.lookup_insert_ne _ _ Htt] at Ht
       rcases Hok t Ht with Hlt | ⟨rfl, Hl⟩
       · left; rw [Hte]; exact Hlt
-      · exact absurd Hl Hr
+      · exact absurd Hr Hl
   rw [lcmLead_leader s' _ Hr', Hte]
   iexists γc, uint.nat s.commit
   iframe Hac
@@ -1048,7 +1053,7 @@ theorem lcmOwn_commit (γ : RaftNames) (id : w64) (s s' : PState) (n : w64) :
       intro t Ht
       rcases Hok t Ht with Hlt | ⟨rfl, -⟩
       · left; rw [Hte]; exact Hlt
-      · right; exact ⟨Hte.symm, Hr'⟩
+      · right; exact ⟨Hte.symm, by rw [Hr']; decide⟩
     rw [lcmLead_leader s' lcm Hr', Hte]
     iexists γc, uint.nat n
     iframe Hac
@@ -1264,8 +1269,9 @@ theorem rdOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
     uint.Z s.term ≤ uint.Z s'.term →
     s'.rd.states = s.rd.states → s'.rd.pend = s.rd.pend →
     rdCount s'.outbox ≤ rdCount s.outbox →
+    (s'.role = .candidate → s.role = .candidate ∨ uint.Z s.term < uint.Z s'.term) →
     rdOwn (GF := GF) γ id s ⊢ rdOwn γ id s' := by
-  intro Hlead Hnl Hdown Hle Hst Hpd Hcnt
+  intro Hlead Hnl Hdown Hle Hst Hpd Hcnt Hcand
   unfold rdOwn
   iintro ⟨%γl, %rqm, %Hγl, Ha, #Hf, %Hok, Hl, #Hst0, #Hpd0, Hcr, #Hinv⟩
   iexists γl, rqm
@@ -1276,9 +1282,13 @@ theorem rdOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
     intro t Ht
     rcases Hok t Ht with Hlt | ⟨rfl, Hr⟩
     · left; omega
-    · by_cases Hr' : s'.role = .leader
-      · obtain ⟨-, Hte, -⟩ := Hlead Hr'; right; exact ⟨Hte.symm, Hr'⟩
-      · left; exact Hdown Hr' Hr
+    · by_cases Hlt : uint.Z s.term < uint.Z s'.term
+      · left; exact Hlt
+      · right
+        refine ⟨uint_Z_inj.mp (by omega), fun hc => ?_⟩
+        rcases Hcand hc with h | h
+        · exact Hr h
+        · exact Hlt h
   isplitl [Hl]
   · by_cases Hr' : s'.role = .leader
     · obtain ⟨Hr, Hte, Hrd⟩ := Hlead Hr'
@@ -1302,7 +1312,7 @@ theorem rdOwn_mono (γ : RaftNames) (id : w64) (s s' : PState) :
 
 /-- Winning: a registry for the term, empty, the read-only object fresh. -/
 theorem rdOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
-    s.role ≠ .leader → s'.role = .leader → s'.term = s.term →
+    s.role = .candidate → s'.role = .leader → s'.term = s.term →
     s'.rd = rdNL s.rd → rdCount s'.outbox ≤ rdCount s.outbox →
     rdOwn (GF := GF) γ id s ⊢ |==> rdOwn γ id s' := by
   intro Hr Hr' Hte Hrd Hcnt
@@ -1314,7 +1324,7 @@ theorem rdOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
     | some _ =>
       rcases Hok s.term (by simp [h]) with Hlt | ⟨-, Hl⟩
       · omega
-      · exact absurd Hl Hr
+      · exact absurd Hr Hl
   imod mono_list_own_alloc (GF := GF) ([] : List RqRec) with ⟨%γq, Haq, -⟩
   imod ghost_map_insert_persist s.term γq Hfree $$ Ha with ⟨Ha, #Hfq⟩
   have Hpd : s'.rd.pend = s.rd.pend := by rw [Hrd]; rfl
@@ -1340,11 +1350,11 @@ theorem rdOwn_win (γ : RaftNames) (id : w64) (s s' : PState) :
   · ipureintro
     intro t Ht
     by_cases Htt : s.term = t
-    · subst Htt; right; exact ⟨Hte.symm, Hr'⟩
+    · subst Htt; right; exact ⟨Hte.symm, by rw [Hr']; decide⟩
     · rw [GMap.lookup_insert_ne _ _ Htt] at Ht
       rcases Hok t Ht with Hlt | ⟨rfl, Hl⟩
       · left; rw [Hte]; exact Hlt
-      · exact absurd Hl Hr
+      · exact absurd Hr Hl
   isplitl [Haq Hz]
   · unfold rdLead
     rw [Hr']
@@ -1583,7 +1593,15 @@ theorem hbCtx_isMessage (γ : RaftNames) (id T : w64) (r : ReadOnly) (ctx : List
 def WinsOk (wins : GMap w64 (GSet w64)) (s : PState) : Prop :=
   ∀ t, (wins !! t).isSome →
     uint.Z t < uint.Z s.term ∨
-    (t = s.term ∧ s.role = .leader)
+    (t = s.term ∧ s.role ≠ .candidate)
+
+/-- A candidate has no acknowledgement of its term; a leader's of its term are within its log
+(it acknowledges only its own entries then). What a leader that steps down at its term needs
+(2026-10-14, stage B5: the non-leader's `acksOk`). -/
+def LeadAcksOk (s : PState) (acks : GMap (w64 × w64) Unit) : Prop :=
+  (s.role = .candidate → ∀ i, acks !! (s.term, i) = none) ∧
+  (s.role = .leader → ∀ i, (acks !! (s.term, i)).isSome →
+    uint.Z i ≤ plogLastIndexZ s.base s.log)
 
 def ownLogGhost (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) : IProp GF :=
   iprop(∃ γm, ∃ (terms : GMap w64 TermRec), ∃ γa, ∃ (acks : GMap (w64 × w64) Unit),
@@ -1627,7 +1645,9 @@ def ownLogGhost (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) : IPr
     -- entries, a prefix of the global log
     "Hevs"     ∷ ownEvs γ id s.term acks ∗
     "#Hinv"    ∷ raftCommitInv γ ∗
-    "#Hcmt"    ∷ isCommitted γ (cprefix fp s))
+    "#Hcmt"    ∷ isCommitted γ (cprefix fp s) ∗
+    -- 2026-10-14 (stage B5): a candidate's and a leader's acknowledgements of their term
+    "%Hlacks"  ∷ ⌜LeadAcksOk s acks⌝)
 
 -- Not `Timeless` since 2026-10-05: it holds the invariant `raftCommitInv`.
 

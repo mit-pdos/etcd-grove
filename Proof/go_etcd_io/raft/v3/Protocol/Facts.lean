@@ -960,7 +960,9 @@ private theorem ownLogGhost_init (γ : RaftNames) (id : w64) (γm γa γc γl γ
   · unfold cprefix
     rw [show ((([] : List raftpb.Entry) ++ initPState.log).take (uint.Z initPState.commit).toNat)
       = [] from rfl]
-    iexact Hc0
+    isplitl; · iexact Hc0
+    ipureintro
+    exact ⟨fun h => (by cases h), fun h => (by cases h)⟩
 
 private theorem ghostMapAuth_halves {K V : Type} [DecidableEq K] [Pos.Countable K]
     [Pos.Countable V] (γx : GName) (m : GMap K V) :
