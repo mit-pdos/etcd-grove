@@ -1,0 +1,92 @@
+/-
+Lean-first (no Rocq counterpart).
+
+The proof of `(*Counter).Apply`: the linearization point is right after `c.mu.Lock()`: there the lock invariant gives `c.n = s` (with the ghost variable's other
+half, which agrees with the abstract state), and the abstract state goes to
+`counterNext s input`, which the critical section then stores in `c.n` and returns.
+-/
+module
+
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lintest.counter.Counter__Apply
+public import Perennial.Spec.sync.Mutex__Lock
+public import Perennial.Spec.sync.Mutex__Unlock
+
+@[expose] public section
+
+set_option linter.iris.style.nameCheck false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace lintest
+namespace counter
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+open github_com.anishathalye.porcupine
+
+section proof
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.counter.Assumptions]
+
+theorem Counter.Apply.wp_proof
+    (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
+    (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG)) :
+    Counter.Apply.spec (GF := GF) (hG := hG) := by
+  intro γ c
+  iintro #Hpkg #Hc
+  unfold applySpec
+  iintro %i
+  imodintro
+  iintro %Φ HAU
+  wp_method_call
+  wp_call
+  wp_call
+  wp_auto
+  iunfold isCounter at Hc
+  wp_apply wp_Lock (muAddr c) (counterR γ c) $$ [$Hc] as ⟨Hlocked, %n, Hn, Hg⟩
+  -- the linearization point
+  simp only [LawfulSet.diff_empty]
+  iapply fupd_wp
+  imod HAU with ⟨%s, Hs, Hcommit⟩
+  icombine Hg Hs gives % ⟨_, Heq⟩
+  subst Heq
+  imod ghostVar_update_halves (counterNext n i) γ _ _ $$ Hg Hs with ⟨Hg, Hs⟩
+  imod Hcommit $$ %(counterNext n i) %(boxI (counterNext n i)) [Hs] with HΦ
+  · iframe
+    ipureintro
+    simp [counterS, counterM_step]
+  imodintro
+  cases i with
+  | nil =>
+    simp only [counterNext, isInc, Bool.false_eq_true, ite_false]
+    wp_auto
+    wp_apply wp_Unlock (muAddr c) (counterR γ c) $$ [$Hc $Hlocked Hn Hg]
+    · iexists _
+      iframe
+    unfold boxI
+    iapply HΦ
+    simp only [counterS]
+    ipureintro
+    exact ⟨_, rfl⟩
+  | ok ii =>
+    simp only [counterNext, isInc, ite_true]
+    wp_auto
+    wp_apply wp_Unlock (muAddr c) (counterR γ c) $$ [$Hc $Hlocked Hn Hg]
+    · iexists _
+      iframe
+    unfold boxI
+    iapply HΦ
+    simp only [counterS]
+    ipureintro
+    exact ⟨_, rfl⟩
+
+end proof
+
+end counter
+end lintest
+end EtcdGrove
+end Perennial
