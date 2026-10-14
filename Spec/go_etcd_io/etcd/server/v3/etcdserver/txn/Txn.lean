@@ -46,8 +46,10 @@ token (`mvcc.storeWT γ`, whether or not it writes; 2026-10-13, unit 6).
 abbrev txn.Txn.specSole : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg rt : Loc) (shared : Bool)
     (kv le : GoInterface) (skip : Bool) (s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log)
-    (t : TxnModel) (P Pre Q Post : IProp GF) (f : val) (L : List w64) (ot : Option Loc) (te : Bool),
+    (t : TxnModel) (P Pre Q Post : IProp GF) (f : val) (L : List w64) (ot : Option Loc) (te : Bool)
+    (F : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ txn.isKV kv s γ ∗ mvcc.storeReader s γ ∗ txn.soleWriter γ log ∗
+      mvcc.idxCert γ.idx F ∗
       mvcc.storeWT γ ∗ txn.isTxnLessor le γ.leases ∗ txn.txnRequestIs rt t ∗ mvcc.txnCtx ctx cd ∗
       traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ mvcc.neverDone cd ∗
       txn.leasesKnown L (mvcc.stateAfter log) ∗ lease.lessorUser γ.leases L ∗
@@ -61,7 +63,7 @@ abbrev txn.Txn.specSole : Prop :=
           txn.soleWriter γ log ∗ Pre ∗
           (∃ (t' : Loc) (te' : Bool), traceutil.ownTrace t' te' ∗
             ⌜∀ t0, ot = some t0 → te = false → t' = t0⌝)) ∨
-       (⌜err = GoInterface.nil ∧ trace ≠ null ∧
+       (⌜err = GoInterface.nil ∧ trace ≠ null ∧ F <+: log ∧
           (txn.txnReadonly t = true →
             (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1 = [])⌝ ∗
         (∃ te' : Bool, traceutil.ownTrace trace te') ∗ ⌜∀ t0, ot = some t0 → te = false → trace = t0⌝ ∗

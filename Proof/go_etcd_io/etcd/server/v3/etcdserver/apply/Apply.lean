@@ -40,12 +40,11 @@ theorem cPost_if (v3 : Bool) (Pre Post : IProp GF) :
 set_option hygiene false in
 /-- The call `uberApply.Apply(wrapper, v3)` and the postcondition. -/
 local macro "call_tail" : tactic => `(tactic| (
-  wp_apply (hUA E p opts x «$r0_ptr» rq sk v3 Pre Q Post)
+  wp_apply (hUA E p opts x «$r0_ptr» rq sk v3 F Pre Q Post)
       $$ [Hown Hkv Hwt Hcs] as %ar ⟨%x', %out, Hown, Hkv, HPP, %Hst, Htr, Hres⟩
   · iframe # Hown Hkv Hwt Hcs
     ipureintro
-    refine ⟨⟨Hrq, Hdk⟩, ?_⟩
-    intro h
+    refine ⟨⟨Hrq, Hdk⟩, fun h => ?_⟩
     rw [← hsk] at h
     simp only [Bool.and_eq_true, Bool.not_eq_true', decide_eq_false_iff_not] at h
     cases ht : rq.txn with
@@ -64,10 +63,10 @@ local macro "call_tail" : tactic => `(tactic| (
   isplitl [Hown Hkv]
   · iunfold apply.applyKV; iexists p; iframe Hown Hkv; ipureintro; rfl
   isplitr
-  · ipureintro; exact Hst.1
+  · ipureintro; exact ⟨Hst.1, Hst.2.2⟩
   icases Hwv with (%Hsk | HG)
   · ileft; ipureintro
-    rcases Hst.2 with h | ⟨o, h⟩ <;> subst h <;> simp [apply.ApplyOut.waived, Hsk]
+    rcases Hst.2.1 with h | ⟨o, h⟩ <;> subst h <;> simp [apply.ApplyOut.waived, Hsk]
   · iright; iexact HG))
 
 theorem apply.Apply.wp_proof
@@ -77,8 +76,8 @@ theorem apply.Apply.wp_proof
     (hNSE : apply.noSideEffect.spec (GF := GF) (hG := hG))
     (hUA : apply.uberApplier.Apply.spec (GF := GF) (hG := hG)) :
     apply.Apply.spec (GF := GF) (hG := hG) := by
-  intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot
-  wp_start as ⟨#Hfor, #Hwok, HRD, HK, %Hlg, #He, Hhook, HPre, Hkv, Hwt, %Hprem⟩
+  intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot F
+  wp_start as ⟨#Hfor, #Hwok, HRD, HK, %Hlg, #He, Hhook, HPre, Hkv, Hwt, %Hprem, #HF⟩
   obtain ⟨Hdec, Hid, Hrq, Hdk⟩ := Hprem
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -202,7 +201,7 @@ theorem apply.Apply.wp_proof
       isplitl [Hown Hkv]
       · iunfold apply.applyKV; iexists p; iframe Hown Hkv; ipureintro; rfl
       isplitr
-      · ipureintro; simp [apply.applyStep, hns]
+      · ipureintro; simp [apply.applyStep, apply.applyFloorOk, hns]
       isplitr
       · itrivial
       iright; iexact HG

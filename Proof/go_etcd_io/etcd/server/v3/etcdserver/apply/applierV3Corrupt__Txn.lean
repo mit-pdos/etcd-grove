@@ -28,8 +28,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.applierV3Corrupt.Txn.wp_proof :
     apply.applierV3Corrupt.Txn.spec (GF := GF) (hG := hG) := by
-  intro E c inner p r skip rq t log Pre Q Post
-  wp_start as ⟨-, Hpre⟩
+  intro E c inner p r skip rq t log F Pre Q Post
+  wp_start as ⟨-, Hpre, #HF⟩
   ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hai with ⟨-, -, #Hev⟩
@@ -42,10 +42,11 @@ theorem apply.applierV3Corrupt.Txn.wp_proof :
   isplitl
   rotate_left
   · iapply apply.traceRes_null
-  iunfold apply.kvPost
+  iunfold apply.kvPostF
   iexists (.rejected .corrupt)
   isplitr
   · ipureintro
+    refine ⟨?_, fun _ _ h => by cases h⟩
     simp only [apply.chainStep, apply.corruptRejects, Hk.2.1, ↓reduceIte]
   simp only [apply.txnAnswerIs, apply.txnOutcomeIs, apply.rejErrIs, apply.Outcome.logAfter]
   iframe Hkv Hres

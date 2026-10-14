@@ -424,6 +424,16 @@ instance srvFieldsAt_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Met
     Persistent (srvFieldsAt s γ ci TM E ρ v) := by
   unfold srvFieldsAt; infer_instance
 
+/-- **The server's id generator** (persistent; the vertical slice's unit V2): the apply thread
+reads, from a committed entry's claim, the floor its proposer recorded (`idClaim_fact` at the
+server's `srvFloorFact`). -/
+def srvGenAt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) : IProp GF :=
+  iprop(∃ g : Loc, srvReqIDGenAddr s ↦□ g ∗ idGen ρ.ids g (srvFloorFact E))
+
+instance srvGenAt_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
+    Persistent (srvGenAt (GF := GF) s E ρ) := by
+  unfold srvGenAt; infer_instance
+
 /-- The apply thread's view of the server `s` (persistent): `s.consistIndex` (with the
 protocol, `isServerCI`), the fields `applyEntryNormal` and `apply` read (the applier's in the
 environment `E`), and the atomics (the applied index's at the read names `γr`: unit 4b); the
@@ -432,7 +442,7 @@ hands the wait carry a witness at them, `resultIsW`). -/
 def isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) : IProp GF :=
   iprop(⌜ρ.rd = γr⌝ ∗ isServerCI s γ ci ∗ (∃ v : SrvFields, srvFieldsAt s γ ci TM E ρ v) ∗
-    srvAtomics s E γr)
+    srvAtomics s E γr ∗ srvGenAt s E ρ)
 
 instance isServer_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
@@ -524,14 +534,15 @@ theorem srvApplyKV_idxCert (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : appl
   · iexact Hkv
   iexact Hw
 
-/-- Two claims of one id agree on the data. -/
-theorem idClaim_agree' (γi : IdNames) (id : w64) (d1 d2 : List w8) :
-    ⊢ idClaim (GF := GF) γi id d1 -∗ idClaim γi id d2 -∗ ⌜d1 = d2⌝ := by
+/-- Two claims of one id agree on the data and the ghost name. -/
+theorem idClaim_agree' (γi : IdNames) (id : w64) (d1 d2 : List w8) (γ1 γ2 : GName) :
+    ⊢ idClaim (GF := GF) γi id d1 γ1 -∗ idClaim γi id d2 γ2 -∗ ⌜d1 = d2 ∧ γ1 = γ2⌝ := by
   iintro H1 H2
   iunfold idClaim at H1 H2
   icombine H1 H2 gives %Hag
   ipureintro
-  exact Option.some.inj Hag.2
+  have := Option.some.inj Hag.2
+  exact ⟨(Prod.mk.inj this).1, (Prod.mk.inj this).2⟩
 
 end defs_lc
 

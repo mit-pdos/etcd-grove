@@ -30,8 +30,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.quotaApplierV3.Put.wp_proof :
     apply.quotaApplierV3.Put.spec (GF := GF) (hG := hG) := by
-  intro E c inner p r rq o log Pre Q Post
-  wp_start as ⟨#Hq, #Hin, Hpre⟩
+  intro E c inner p r rq o log F Pre Q Post
+  wp_start as ⟨#Hq, #Hin, Hpre, #HF⟩
   iunfold apply.quotaIs at Hq
   icases Hq with ⟨#Hf, %q, #Hqf, #Hqc⟩
   iunfold apply.isQuota at Hqc
@@ -54,14 +54,15 @@ theorem apply.quotaApplierV3.Put.wp_proof :
   wp_apply HAvail $$ %_ %r [] as %ok -
   · ipureintro; exact Or.inl rfl
   ihave Hres := apply.chainRes_quota_out c p (.ok bi) $$ Hf Hres
-  wp_apply HPut $$ %r %rq %o %log %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
+  wp_apply HPut $$ %r %rq %o %log %F %Pre %Q %Post [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
   · iunfold apply.putPre
     iunfold apply.mPre
     iframe
     iframe #
     ipureintro; exact Hk
-  iunfold apply.kvPost at Hpost
-  icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP⟩
+  iunfold apply.kvPostF at Hpost
+  icases Hpost with ⟨%oc, %Hst0, HR, Hkv, Hres, HPP⟩
+  obtain ⟨Hst, Hfl⟩ := Hst0
   ihave Hres := apply.chainRes_quota_in c p (.ok bi) $$ Hf Hres
   have hq : apply.quotaChecks (dispatchKind rq) = true := by rw [Hk.2.1]; rfl
   rcases err with e | _
@@ -71,12 +72,12 @@ theorem apply.quotaApplierV3.Put.wp_proof :
     isplitr [Htrc]
     rotate_left
     · iexact Htrc
-    iunfold apply.kvPost
+    iunfold apply.kvPostF
     iexists oc
     iframe HR Hkv HPP Hres
     ipureintro
     simp only [apply.chainStep, hq, ↓reduceIte]
-    exact ⟨_, Hst, Or.inl rfl⟩
+    exact ⟨⟨_, Hst, Or.inl rfl⟩, Hfl⟩
 
   · -- `err == nil`: the inner applied the put
     ihave %Hap := apply.putAnswerIs_nil log o resp oc $$ HR
@@ -89,12 +90,12 @@ theorem apply.quotaApplierV3.Put.wp_proof :
       isplitr [Htrc]
       rotate_left
       · iexact Htrc
-      iunfold apply.kvPost
+      iunfold apply.kvPostF
       iexists (.applied log' true)
       isplitr
       · ipureintro
         simp only [apply.chainStep, hq, ↓reduceIte]
-        exact ⟨_, Hst, Or.inr ⟨log', rfl, rfl⟩⟩
+        exact ⟨⟨_, Hst, Or.inr ⟨log', rfl, rfl⟩⟩, fun l b h => by cases h; exact Hfl _ _ rfl⟩
       simp only [apply.putAnswerIs, apply.putOutcomeIs, apply.noSpaceErrIs, apply.Outcome.logAfter, ↓reduceIte]
       icases HR with ⟨⟨Hresp, -⟩, Hhdr⟩
       iframe Hresp Hhdr Hkv HPP Hres
@@ -107,12 +108,12 @@ theorem apply.quotaApplierV3.Put.wp_proof :
       isplitr [Htrc]
       rotate_left
       · iexact Htrc
-      iunfold apply.kvPost
+      iunfold apply.kvPostF
       iexists (.applied log' false)
       iframe HR Hkv HPP Hres
       ipureintro
       simp only [apply.chainStep, hq, ↓reduceIte]
-      exact ⟨_, Hst, Or.inl rfl⟩
+      exact ⟨⟨_, Hst, Or.inl rfl⟩, Hfl⟩
 
 end proof
 

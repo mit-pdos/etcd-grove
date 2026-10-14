@@ -87,8 +87,8 @@ instance srvFieldsBuilt_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : 
 
 /-- **`isServerReq`'s fields but `w` and `done`** (persistent; `srvReqFieldsAt` without them and
 without the indices' invariants, which `isServerBuilt` states once). -/
-def srvReqBuilt (s : Loc) (ρ : ReqNames) (v : ReqFields) : IProp GF :=
-  iprop(structFieldRef EtcdServer go!"reqIDGen" s ↦□ v.gen ∗ idGen ρ.ids v.gen ∗
+def srvReqBuilt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) : IProp GF :=
+  iprop(structFieldRef EtcdServer go!"reqIDGen" s ↦□ v.gen ∗ idGen ρ.ids v.gen (srvFloorFact E) ∗
     srvRaftNode s ρ.raft ∗
     srvCfgFieldAddr s go!"MaxRequestBytes" ↦□ v.maxReq ∗
     srvCfgFieldAddr s go!"ServerFeatureGate" ↦□ v.fg ∗ isFeatureGate v.fg ∗
@@ -104,8 +104,8 @@ def srvReqBuilt (s : Loc) (ρ : ReqNames) (v : ReqFields) : IProp GF :=
     srvPeersOk v.cluster v.cid v.tr ∗
     srvMintInv ρ ∗ srvCLogInv ρ.raft ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
 
-instance srvReqBuilt_persistent (s : Loc) (ρ : ReqNames) (v : ReqFields) :
-    Persistent (srvReqBuilt (GF := GF) s ρ v) := by
+instance srvReqBuilt_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) :
+    Persistent (srvReqBuilt (GF := GF) s E ρ v) := by
   unfold srvReqBuilt; infer_instance
 
 /-- **`isServerRead`'s fields but `read`, `applyWait`, `leaderChanged`, `stopping`** (persistent;
@@ -182,7 +182,7 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
   iprop(-- the server's views but the fields `start` sets
     "#Hci" ∷ isServerCI s γ ci ∗
     "#Hfb" ∷ (∃ v : SrvFields, srvFieldsBuilt s γ ci TM E v) ∗
-    "#Hreqb" ∷ (∃ v : ReqFields, srvReqBuilt s ρ v) ∗
+    "#Hreqb" ∷ (∃ v : ReqFields, srvReqBuilt s E ρ v) ∗
     "#Hrdb" ∷ (∃ v : ReadFields, srvReadBuilt s E v) ∗
     "#Hrunb" ∷ (∃ v : RunFields, srvRunBuilt s v) ∗
     "#Hsab" ∷ srvApplyAllBuilt s ∗

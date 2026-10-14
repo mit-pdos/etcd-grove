@@ -44,8 +44,8 @@ theorem EtcdServer.Put.wp_proof
     (hAS : «attribute».String.spec (GF := GF) (hG := hG))
     (hWV : context.WithValue.spec (GF := GF) (hG := hG)) :
     EtcdServer.Put.spec (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd r op
-  wp_start as ⟨#Hsrv, Hrd, Hcred, #Hctx, #Hput⟩
+  intro s E ρ ctx cd r op F
+  wp_start as ⟨#Hsrv, Hrd, Hcred, #Hctx, #Hput, #HF⟩
   wp_apply wp_with_defer as %defer defer
   ihave Hinit : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -132,7 +132,7 @@ theorem EtcdServer.Put.wp_proof
     repeat (isplitr; · iexists _; iframe #; try (ipureintro; simp))
     iexists _; iframe #; try (ipureintro; simp)
   (try wp_auto)
-  wp_apply hRR s E ρ ctx2 _ «$a1_ptr» (irrPut op) rfl $$ [Hrd Hcred Header] as %resp %err ⟨Hrd, Hres⟩
+  wp_apply hRR s E ρ ctx2 _ «$a1_ptr» (irrPut op) F rfl $$ [Hrd Hcred Header] as %resp %err ⟨Hrd, Hres⟩
   · iframe # Hrd Hcred
     iexists _; iexact Header
   (try wp_auto)
@@ -143,9 +143,11 @@ theorem EtcdServer.Put.wp_proof
       simp [irrNoZeroEnd, apply.withHeader, irrPut, apply.irrEmpty]
     subst Hrq
     iunfold appliedOk at Hok
-    icases Hok with ⟨%x, %x', %o, %skip, %Hstep, Hans, #Hcert, HMint, #Hwit⟩
+    icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit⟩
+    obtain ⟨Hstep, Hfl⟩ := Hstep0
     have Hk : apply.dispatchKind (apply.withHeader (irrPut op) hm) = .put := by
       simp [apply.dispatchKind, apply.withHeader, irrPut, apply.irrEmpty]
+    have Hfl' := Hfl rfl (by unfold apply.isFloorKind; rw [Hk])
     iunfold apply.dispatchAnswer at Hans
     rw [Hk] at *
     icases Hans with ⟨%op', %pr, %Hop, Hpo⟩
@@ -166,7 +168,7 @@ theorem EtcdServer.Put.wp_proof
     · ipureintro; rfl
     iexists hm, x, x', .applied log' false, skip
     iframe Hpo Hhdr Hcert HMint Hwit
-    ipureintro; exact ⟨Hstep, log', rfl⟩
+    ipureintro; exact ⟨Hstep, ⟨log', rfl⟩, Hfl' log' false rfl⟩
   · obtain ⟨rfl, Hne⟩ := Hre
     (try wp_auto)
     rcases err with ei | _

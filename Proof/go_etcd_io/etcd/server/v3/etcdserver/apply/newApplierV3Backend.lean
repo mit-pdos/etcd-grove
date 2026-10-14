@@ -105,18 +105,18 @@ theorem apply.newApplierV3Backend.wp_proof
   iunfold apply.applierTriples
   isplitr
   · imodintro
-    iintro %r %rq %o %log %Pre %Q %Post
+    iintro %r %rq %o %log %F %Pre %Q %Post
     imodintro
-    iintro %Φ' Hpre HΦ'
-    iapply (hPut E p r rq o log Pre Q Post) $$ [Hpre] HΦ'
+    iintro %Φ' ⟨Hpre, #HF⟩ HΦ'
+    iapply (hPut E p r rq o log F Pre Q Post) $$ [Hpre] HΦ'
     iframe Hpre
     iframe #
   isplitr
   · imodintro
-    iintro %r %rq %o %log %Pre %Q %Post
+    iintro %r %rq %o %log %F %Pre %Q %Post
     imodintro
-    iintro %Φ' Hpre HΦ'
-    iapply (hDeleteRange E p r rq o log Pre Q Post) $$ [Hpre] HΦ'
+    iintro %Φ' ⟨Hpre, #HF⟩ HΦ'
+    iapply (hDeleteRange E p r rq o log F Pre Q Post) $$ [Hpre] HΦ'
     iframe Hpre
     iframe #
   isplitr
@@ -129,10 +129,10 @@ theorem apply.newApplierV3Backend.wp_proof
     iframe #
   isplitr
   · imodintro
-    iintro %r %skip %rq %t %log %Pre %Q %Post
+    iintro %r %skip %rq %t %log %F %Pre %Q %Post
     imodintro
-    iintro %Φ' Hpre HΦ'
-    iapply (hTxn E p r skip rq t log Pre Q Post) $$ [Hpre] HΦ'
+    iintro %Φ' ⟨Hpre, #HF⟩ HΦ'
+    iapply (hTxn E p r skip rq t log F Pre Q Post) $$ [Hpre] HΦ'
     iframe Hpre
     iframe #
   isplitr
