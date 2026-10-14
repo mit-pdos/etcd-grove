@@ -182,7 +182,7 @@ theorem ConfI1.append_nonconf {l x : List raftpb.Entry} {c : Nat} (h : ConfI1 l 
     exact absurd c2 (hx e2 (List.mem_of_getElem? h2))
 
 /-- Every list with one conf entry at most past `a` has I1 at any `c ≥ a`. -/
-theorem ConfI1_of_drop {l : List raftpb.Entry} {a c : Nat} (h : confCount (l.drop a) ≤ 1)
+theorem ConfI1_of_drop_le {l : List raftpb.Entry} {a c : Nat} (h : confCount (l.drop a) ≤ 1)
     (hac : a ≤ c) : ConfI1 l c := by
   intro k1 k2 e1 e2 hlt h1 h2 c1 c2
   apply Classical.byContradiction
@@ -232,7 +232,7 @@ theorem RInv.cfgOk {dec : CCDec} {c0 : CCState} {r : RState} (H : RInv dec c0 r)
 /-- A leader's I1 comes from its I3. -/
 theorem RInv.i1_of_i3 {dec : CCDec} {c0 : CCState} {r : RState} (H : RInv dec c0 r)
     (hl : r.p.role = .leader) : ConfI1 r.full (uint.nat r.p.commit) :=
-  ConfI1_of_drop (H.i3 hl).2 (Nat.le_trans H.applied_cidx H.cidx_commit)
+  ConfI1_of_drop_le (H.i3 hl).2 (Nat.le_trans H.applied_cidx H.cidx_commit)
 
 /-- A rule that moves none of the fields the invariant reads, and keeps the role (with
 `pci`) or makes a follower. -/
@@ -579,7 +579,7 @@ theorem RInv_propose {r : RState} (id : w64) (m : Msg) (cs : List (Option CCMsg)
     unfold plogLastIndexZ at hcl ⊢; simp only [List.length_append]; push_cast; omega
   · rw [hfull, List.take_append_of_le_length hcidx]; exact H.cfg
   · rw [hfull]
-    exact ConfI1_of_drop i3'.2 (show uint.nat r.applied ≤ uint.nat r.p.commit by
+    exact ConfI1_of_drop_le i3'.2 (show uint.nat r.applied ≤ uint.nat r.p.commit by
       have := H.applied_cidx; have := H.cidx_commit; omega)
   · intro _; rw [hfull]; exact i3'
 
