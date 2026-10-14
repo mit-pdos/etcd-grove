@@ -37,8 +37,10 @@ theorem RestartNode.wp_proof
   icases (entails_wand (persistent_entails_left (wand_entails
       (ownRaftGhost_static (GF := GF) γ cv.ID' initPState)))) $$ Hghost with ⟨Hghost, %Hstatic⟩
   wp_auto
-  wp_apply wp_NewRawNode γ c cv lok si σ hs cs voters dqv P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 P11
-    P12 P13 P14 P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P27
+  ihave Hghost : rnInit γ .static cv.ID' (GMap.listToSet voters) $$ [Hghost]
+  · iunfold rnInit; iexact Hghost
+  wp_apply wp_NewRawNode γ .static c cv lok si σ hs cs voters dqv P1 P2 P3 P4 P5 P6 P7 P8 P9
+    P10 P11 P12 P13 P14 P15 P16 P17 P18 P19 P20 P21 P22 P23 P24 P25 P26 P27 (fun h => by cases h)
     $$ [$Hc $Hlg $Hsto $Hown $Hinit $Hghost $Hcommitted] as %rn %err H
   iNamed H
   subst Herr

@@ -55,7 +55,10 @@ def ConfigPreserved (cv cv' : Config) : Prop :=
   -- read by `newRaft` (2026-10-12, read-index)
   cv'.ReadOnlyOption' = cv.ReadOnlyOption' ∧
   -- read by `newRaft` (2026-10-13, reconfiguration stage D)
-  cv'.DisableConfChangeValidation' = cv.DisableConfChangeValidation'
+  cv'.DisableConfChangeValidation' = cv.DisableConfChangeValidation' ∧
+  -- read by `newRaft` (2026-10-14, reconfiguration stage B7 part 2: a dynamic `RawNode` needs
+  -- it on)
+  cv'.StepDownOnRemoval' = cv.StepDownOnRemoval'
 
 end defs
 
