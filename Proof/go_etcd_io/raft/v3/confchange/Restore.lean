@@ -26,9 +26,9 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
--- The theorems of this file are elaborated one at a time: Perennial's `iframe ∗` keeps a
--- process-global reentrancy flag, so two of them framing at once can skip its prepass
--- (notes/flaky-stepleader-build.md).
+-- The theorems of this file are elaborated one at a time, a precaution: Perennial's `iframe ∗`
+-- keeps a process-global reentrancy flag, so two of them framing at once can skip its prepass
+-- (notes/flaky-stepleader-build.md). Delete with that file's stopgap.
 set_option Elab.async false
 
 section proof

@@ -1,6 +1,10 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-14 (reconfiguration, stage B6: **the read-index guarantee under
+**Last updated:** 2026-10-14 (reconfiguration, stage B8, standalone part: **`confchange.Restore`
+for any `ConfState`** (`Restore.specG`, joint included, against `restoreM`; the non-joint
+`Restore.spec` derived), A3 as definitions (`SnapConf.lean`: `SnapConfOk`, `SnapObl`),
+`MemoryStorage` keeping a snapshot's four `ConfState` slices, and the asynchronous-storage
+window found unreachable; see "Reconfiguration, stage B8 (standalone part)"; reconfiguration, stage B6: **the read-index guarantee under
 reconfiguration, at the model level** -- every `ReadState` a node of the dynamic model holds (and
 hands out at `StepR.takeReads`) is `readStateOk`, and the committed prefix of any node whose
 commit index reaches its index extends the request's log (`Results.lean`:
@@ -29,6 +33,94 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## Reconfiguration, stage B8 (standalone part): snapshots carrying a configuration (2026-10-14)
+
+The part of B8 that does not wait for B7 (which rewrites `raft.Step`, the RawNode files and the
+ghost files in parallel): `confchange.Restore` of any `ConfState`, what `MemoryStorage` keeps of a
+snapshot's `ConfState`, A3 as a definition, and the asynchronous-storage window. No caller's file
+changed (`raft.restore`, `newRaft` still use the non-joint `Restore.spec`). Trust base: no new
+axiom, no new `sorry` (`etc/tcb-report.py --check`: 75 axioms, 10 sorries; `raft.txt`,
+`register.txt`, `raft-dyn.txt` pass).
+
+- **`InvRestore.lean`** (new, pure): `restoreM vo v l ln al`, `Restore`'s replay of a `ConfState`
+  on the model `ccApplyM` is made of -- not joint: one `simpleM` per change of `in`
+  (`restoreInCC`: `AddNode` per voter, `AddLearnerNode` per learner and staged learner); joint:
+  `simpleM [AddNode id]` per outgoing voter (`restoreOutCC`), then one `enterJointM al in` with
+  `in` = `RemoveNode` per outgoing voter, then the same. `CSWf` (at least one voter, no `0`, a
+  learner no voter of either half, a staged learner an outgoing voter that is neither an incoming
+  voter nor a learner, no staged learner when not joint), `csCfgM` (the configuration the lists
+  denote; `AutoLeave` only when joint, as `Restore` keeps it), **`restoreM_wf`**: `CSWf → restoreM
+  ... = some (cfgStateC (csCfgM ...))`; `restoreM_cfgInv`, `simpleFold_step`/`_append`.
+- **`confchange.toConfChangeSingle.spec` general** (any lists; `out` holds `restoreOutCC`, `in`
+  `restoreInCC`; the three non-voter lists as `ownIdList`). Its only caller is `Restore`'s proof.
+- **`confchange.Restore.specG`** (new statement, same Spec file): any `ConfState`; premises
+  `voters ≠ []`, `restoreM outgoing voters learners learnersNext cs.AutoLeave' = some s'` (no
+  `Changer` error: raft's callers `panic` on one), `MaxInflight`'s bound and the empty tracker
+  `MakeProgressTracker` builds (as before); the four lists (`Voters` as `↦*`, the others as
+  `ownIdList`) given back; post `ownCfgCC cfgv (DFrac.own 1) s'.cfg`, `prsm ↦$ prs`, `domSet prs =
+  domSet s'.prs`, each `Progress` owned with `s'.prs !! k = some p.learner`. Proved
+  (`wp_proofG`, from `toConfChangeSingle`, `Changer.Simple`, `Changer.EnterJoint`, `chain`): the
+  pair threaded by `chain` held as `ownCCSt` at the model state (`RestoreAt`: the fold of the
+  first `j` `Simple` ops, then `s'` after the `EnterJoint`); the `EnterJoint` closure reads
+  `cs.AutoLeave` and `incoming` through persistent points-tos. **`Restore.spec` unchanged**,
+  derived by `spec_of_specG` (`wp_proof := spec_of_specG (wp_proofG ...)`); the link gains
+  `Changer__EnterJoint` (`etc/link-lean-first.txt`, `Link.lean` regenerated). The proof file sets
+  `Elab.async false`, a precaution against Perennial's `iframe ∗` race
+  (notes/flaky-stepleader-build.md): its first draft failed with that race's symptoms ("not
+  pure" after `iframe`, "unknown free variable"), though other errors were mixed in and the file
+  also passed once without the option.
+- **`SnapConf.lean`** (new, pure; A3 for the B7/B8 specs to take as a premise):
+  `SnapConfOk dec c0 pre vo v l ln al` (`CSWf`, and `csCfgM ... = s.cfg` for `cfgFold dec c0 pre
+  = some s`: B5's `AdmFold` read on a `ConfState`), `SnapObl dec c0 applied i ...` (`i ≤
+  |applied|` and `SnapConfOk` of `applied.take i`: the snapshot is of an applied prefix and its
+  `ConfState` that prefix's configuration). `SnapConfOk.restoreM_eq`/`SnapObl.restoreM_eq`:
+  `Restore` of such a `ConfState` answers exactly the fold's state, given `CCGood c0`
+  (`cfgFold_good`, `cfgStateC_of_good`).
+- **`MemoryStorage`**: what was there (U3) already states the `ConfState` exactly where the
+  application is involved: `CreateSnapshot` stores `*cs` (now named, `memSnapCreated_confState`,
+  `_none`, `_snapId`), `ApplySnapshot` stores `snap'`, both hand back `memStorMeta` at the stored
+  snapshot, `InitialState` returns its `ConfState`, `Compact` leaves it (`memStorMeta` not
+  taken). Added: **`ownCSRO cs voters`** (all four slices read-only) in `memstorageFields` and
+  `memStorMeta` in place of `Voters` alone, so a joint `ConfState` passes through the storage;
+  `CreateSnapshot`/`ApplySnapshot` take it for the `ConfState` they store (no caller in a proof).
+  `Snapshot.spec` (and the register's use of it) unchanged.
+- **The asynchronous-storage window: unreachable** at the pinned raft. B1's scope note (4.10 of
+  notes/reconfiguration-safety.md, now corrected) had `stableSnapTo` (append response) and
+  `appliedSnap` (apply response) stepped apart, leaving the node promotable with `applied < base`.
+  In this raft `appliedSnap` *is* `stableSnapTo` followed by `appliedTo(index)`, both run when the
+  `MsgStorageAppendResp` carrying the snapshot is stepped (`raft.go:764`, `1166`, `1189`; also
+  under a term change), and the node is unpromotable until then (`hasNextOrInProgressSnapshot`).
+  Checked with a Go test against a scratch copy (both orders of the append and apply responses,
+  then `Campaign`: no panic, `applied = 10` before it; not committed: it shows an absence).
+  What remains is the application compacting its storage above raft's `applied` (with
+  asynchronous writes, before stepping the apply response): then `hasUnappliedConfChanges`
+  scans compacted entries and `Panicf`s, but `Compact`'s documentation forbids it ("not compact an
+  index greater than raftLog.applied"), so it is not recorded in `issues/`.
+
+**What B8's remaining part (restore at a dynamic configuration through `raft.Step`/`RawNode`, after
+B7) needs from this:**
+- swap the names (`Restore.spec` := `specG`, the old one `specS` with `spec_simple :=
+  spec_of_specG`) and switch `raft.restore`'s and `newRaft`'s hypotheses (one line each), then
+  `raft.restore.spec` at a joint `ConfState` from `specG` + `restoreM_wf`; `SnapScope`'s
+  `VotersOutgoing = []` goes;
+- the snapshot's four lists in a `MsgSnap`: `msgAbs` (`InvRaftPhys.lean`) reads only `Voters`,
+  and `isStorage`'s `HSnapshot` (`InvStorage.lean`) hands out only `Voters ↦*□`; the storage now
+  keeps all four (`ownCSRO`), so `MemoryStorage.Snapshot.spec` can hand them out once `HSnapshot`
+  asks (the register's `Storage.Snapshot` proof then changes by one pattern);
+- **which** `ConfState` `Snapshot()` returns: raft's view (`StorState`) records the snapshot's id
+  only. To carry A3 from the application to a leader's `MsgSnap`, `StorState` needs the
+  snapshot's `ConfState` lists (or a persistent record per snapshot index, agreeing; index `0` is
+  rewritable by `ApplySnapshot`, raft never sends it), related in `memstorageFields`, with raft
+  keeping `SnapConfOk` of it as it keeps `StoredSnapOk`; and the writers under a running node
+  still need a protocol (`MemoryStorage`'s open item);
+- the premise to take: `SnapObl` (or `SnapConfOk`) on the lists, `CCGood c0` for
+  `restoreM_eq`; a fold state is `CSWf`-shaped only with two invariants not proved yet (no `0` id
+  in a configuration, a staged learner no incoming voter): until then the obligation includes
+  `CSWf`.
+
+Commits `d23e28bf7` (confchange, `SnapConf.lean`), `7265be18b` (`MemoryStorage`) and this notes
+commit.
 
 ## Reconfiguration, stage B6: the read-index guarantee under reconfiguration, at the model level (2026-10-14)
 

@@ -58,7 +58,8 @@ Conclusions, in short:
   (`issues/raft-unknown-transition-panic.md`, `issues/raft-joint-empty-transition-panic.md`,
   "removed all voters") is applied by no node of the argument: `cfgFold` is `none` past it and
   `RawNode.ApplyConfChange.spec` requires `some`.
-* Synchronous storage (no `AsyncStorageWrites`): see 4.10 for the window it would open.
+* Synchronous storage (no `AsyncStorageWrites`): see 4.10 (the window once thought to open
+  with asynchronous writes does not exist).
 
 ## 1. Definitions
 
@@ -223,11 +224,13 @@ entry up to it is already applied (`a ≥ applied`). Auto-leave as 4.4.
 **4.10 ApplyConfChange** (new; `ApplyCCOkC` of stage A2): `a` moves past the next conf entry
 (in `(a, applying]`); `cfgFold` gives the new configuration (some, by the no-panic scope).
 A leader may then commit (4.7 at the new configuration). Nothing else changes (I1, I3, `W`
-do not mention the configuration). With asynchronous storage writes, `stableSnapTo` (the
-append response) and `appliedSnap` (the apply response) can be stepped apart: in between
-the node is promotable with `applied < base`, and `hasUnappliedConfChanges` scans compacted
-entries and `Panicf`s -- a liveness/panic matter, out of scope (synchronous `Advance` steps
-both).
+do not mention the configuration). (Corrected 2026-10-14, stage B8: this said that with
+asynchronous storage writes `stableSnapTo` and `appliedSnap` could be stepped apart, leaving
+the node promotable with `applied < base`. At the pinned raft `appliedSnap` is `stableSnapTo`
+then `appliedTo(index)`, both when the `MsgStorageAppendResp` carrying the snapshot is
+stepped, and the node is unpromotable until then: no such window. `hasUnappliedConfChanges`
+scans compacted entries only if the application compacts its storage above raft's `applied`,
+which `Compact`'s documentation forbids. notes/STATUS.md, "Reconfiguration, stage B8".)
 
 **4.11 leader step-down on removal** (new; `switchToConfig`, `raft.go:1986-1994`): with
 `stepDownOnRemoval` a removed or demoted leader becomes a follower at the same term. The
