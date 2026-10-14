@@ -335,7 +335,40 @@ theorem checkParallel.wp_proof
         iright; iexact HPD
     iapply BigAndL.bigAndL_nil.2
     itrivial
-  done
+  -- the loop is done
+  icases Hcan with (⟨%Hc, -⟩ | ⟨-, Hcan⟩)
+  · cases Hc
+  rw [show decide ((#(!true) : val) = #true) = false by simp [intoVal_eq_iff]]
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  rw [show decide ((#(!true) : val) = #false) = true by simp]
+  simp only [↓reduceIte]
+  wp_auto
+  wp_join iprop(∃ inf : LinearizationInfo, info_ptr ↦ inf) with [info count Htoks]
+    as ⟨%inf, info⟩
+  · done
+  imod tok_or_pd_persist γc $$ Hcan with #HPD
+  simp only [github_com.anishathalye.porcupine.Illegal, github_com.anishathalye.porcupine.Ok,
+    github_com.anishathalye.porcupine.Unknown]
+  cases okv
+  · wp_auto
+    wp_apply Hcancel' $$ [HPD]
+    · iexact HPD
+    iapply HΦ
+    ipureintro
+    intro Hall; exact absurd (Hok Hall) (by simp)
+  · cases tov
+    · wp_auto
+      wp_apply Hcancel' $$ [HPD]
+      · iexact HPD
+      iapply HΦ
+      ipureintro
+      intro _; exact ⟨by decide, fun _ => rfl⟩
+    · wp_auto
+      wp_apply Hcancel' $$ [HPD]
+      · iexact HPD
+      iapply HΦ
+      ipureintro
+      intro _; exact ⟨by decide, fun h => absurd (Hto rfl) (by omega)⟩
 
 end proof
 

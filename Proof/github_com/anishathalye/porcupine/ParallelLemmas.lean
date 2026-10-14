@@ -154,6 +154,15 @@ theorem tok_pd_false (γ : GName) :
   rw [h1] at this
   exact absurd this (by decide)
 
+/-- Cancelling: the token (if still held) mints the Done proposition. -/
+theorem tok_or_pd_persist (γ : GName) :
+    (dghostVar (GF := GF) γ (DFrac.own 1) () ∨ □ dghostVar γ DFrac.discard ()) ⊢
+      |==> □ dghostVar γ DFrac.discard () := by
+  iintro (Htok | #Hpd)
+  · imod dghostVar_persist γ 1 () $$ Htok with #Hpd
+    imodintro; iexact Hpd
+  · imodintro; iexact Hpd
+
 end defs
 
 end github_com.anishathalye.porcupine
