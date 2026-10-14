@@ -375,7 +375,8 @@ def srvMaybeDeposited (ρ : ReqNames) (rq : apply.IRRModel) : IProp GF :=
 /-- **The apply thread's answer to `rq'` was a success** with the response `resp`: it dispatched
 the request at the KV state `x` (its log `x.log`, the log the entry met), to `x'`
 (`apply.applyStep`, outcome `o`, `skip` the wrapper's `SkipRangeExecution`), the response is the
-apply package's (`dispatchAnswer` with no error), and mvcc's certificate of the log after; and
+apply package's (`dispatchAnswer` with no error), mvcc's certificate of the log after, the
+token of the revision the step appended, if it appended one (`revMinted`, unit V1); and
 (2026-10-14, unit C2a) the log after applied through an index of the committed log
 (`appliedWit γr`, the result's witness, `resultIsW`). -/
 def appliedOk (E : apply.AEnv GF) (γr : ReadNames) (rq' : apply.IRRModel) (resp : GoInterface) :
@@ -383,7 +384,7 @@ def appliedOk (E : apply.AEnv GF) (γr : ReadNames) (rq' : apply.IRRModel) (resp
   iprop(∃ (x x' : apply.ApplyKV) (o : apply.Outcome) (skip : Bool),
     ⌜apply.applyStep rq' true x x' (.dispatched o skip)⌝ ∗
     apply.dispatchAnswer rq' x.log skip resp GoInterface.nil o ∗ mvcc.idxCert E.γ.idx x'.log ∗
-    appliedWit γr x'.log)
+    revMinted E x.log x'.log ∗ appliedWit γr x'.log)
 
 /-- **The apply thread's answer to `rq'` carried the error `err`** (`result.Err`): the result
 `ar` of applying `rq'` (`resultIs`), whose `Err` is `err`. -/

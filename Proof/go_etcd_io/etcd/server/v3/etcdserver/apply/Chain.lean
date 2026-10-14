@@ -229,14 +229,18 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 /-! ## The environment and the thread's resources -/
 
 /-- **A chain's environment**: the store `s` (ghost names `γ`) the backend's KV is, its
-backend's batch lock's invariant `P` and post-lock hook `f`, and the auth store's reader resource
-`RD` (see the file header). -/
+backend's batch lock's invariant `P` and post-lock hook `f`, the auth store's reader resource
+`RD` (see the file header); `γrev`, the ghost map of the
+revisions' tokens the server's apply thread mints as the KV's log grows (the clients'
+`etcdRevToken`, the vertical slice's unit V1: `InvRequest.lean`, `revTok`), which the apply package
+does not use. -/
 structure AEnv (GF : BundledGFunctors) where
   s : Loc
   γ : mvcc.StoreNames
   P : IProp GF
   f : val
   RD : IProp GF
+  γrev : GName
 
 /-- **The live leases of the state `s`** (2026-10-13, unit 8 of the backend): the lease owner's
 resource at some live set `L` (its half of the lessor's live set, a reader slot of its lock) of

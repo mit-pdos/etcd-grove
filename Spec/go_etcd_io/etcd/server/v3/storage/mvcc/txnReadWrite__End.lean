@@ -22,12 +22,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `trw.End()`: the read transaction ended (`metricsTxnWrite.End`): its tokens back. -/
+/-- `trw.End()`: the read transaction ended (`metricsTxnWrite.End`): its tokens back
+(`storeReaderC`, with the reader's tag `Z`; 2026-10-13, unit 6a). The frozen statement
+(`storeReader`) is `specFrozen` (`spec_frozen`, `FrozenSpecs.lean`). -/
 abbrev mvcc.txnReadWrite.End.spec : Prop :=
-  ∀ (trace : Loc) (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isRoTxnWrite trw s γ trace log rev }}
+  ∀ (trace : Loc) (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (crev : Int)
+    (Z : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isRoTxnWrite trw s γ trace log rev crev Z }}
     (App (Val (trw @!! go.GoType.PointerType txnReadWrite.ty @!! go!"End")) (Val #()))
-  {{ RET #(); mvcc.storeReader s γ ∗ (∃ te : Bool, traceutil.ownTrace trace te) }}
+  {{ RET #(); mvcc.storeReaderC s γ ∗ □ Z ∗ (∃ te : Bool, traceutil.ownTrace trace te) }}
 
 end spec
 

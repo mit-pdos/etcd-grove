@@ -22,13 +22,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `s.rev()`: the inner store's revision (`store.Rev`, through its read view, which reads the
-watchable store): the last revision of a committed log. -/
+watchable store): the last revision of a committed log. Of a store that may be compacted
+(`storeReaderC`; 2026-10-13, unit 6a); the frozen statement (`storeReader`) is `specFrozen`
+(`spec_frozen`, `FrozenSpecs.lean`). -/
 abbrev mvcc.watchableStore.rev.spec : Prop :=
   ∀ (s st : Loc) (γ : mvcc.WsNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isWatchableStore s st γ ∗ mvcc.storeReader st γ.st }}
+      mvcc.isWatchableStore s st γ ∗ mvcc.storeReaderC st γ.st }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"rev")) (Val #()))
-  {{ (r : w64), RET #r; mvcc.storeReader st γ.st ∗
+  {{ (r : w64), RET #r; mvcc.storeReaderC st γ.st ∗
       ∃ log : mvcc.Log, mvcc.idxCert γ.st.idx log ∗ ⌜log ≠ [] ∧ r = W64 ((log.length : Int) - 1)⌝ }}
 
 end spec

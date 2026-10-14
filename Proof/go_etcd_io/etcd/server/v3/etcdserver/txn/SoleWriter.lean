@@ -26,6 +26,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Lemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 @[expose] public section
 
@@ -242,6 +243,7 @@ theorem soleWriter_Read (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG))
       (App (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Read")) (Val #mode)) (Val #trace))
     {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
         ∃ rev : w64, mvcc.isTxnRead mw s γ trace log rev ∗ soleWriter γ log }} := by
+  have hRead := mvcc.store.Read.spec_frozen hRead
   wp_start_folded as ⟨#Hs, Hrd, Hsw, Htrc⟩
   iunfold soleWriter at Hsw
   icases Hsw with ⟨#Hc, Ht, %Hl2⟩

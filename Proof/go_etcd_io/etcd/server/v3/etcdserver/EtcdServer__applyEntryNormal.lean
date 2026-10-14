@@ -135,7 +135,7 @@ local macro "trig'" : tactic => `(tactic| (
   isplitr
   · ipureintro; exact Har0
   iexists x, x', out
-  iframe HRes Hcert
+  iframe HRes Hcert HMint
   isplitr
   · ipureintro; exact Hstep
   iunfold appliedWit
@@ -168,7 +168,7 @@ local macro "trig" : tactic => `(tactic| (
   isplitr
   · ipureintro; exact Har0
   iexists x, x', out
-  iframe HRes Hcert
+  iframe HRes Hcert HMint
   isplitr
   · ipureintro; exact Hstep
   iunfold appliedWit
@@ -291,7 +291,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         word
       obtain ⟨rq, hdec, ⟨id0, hid⟩, hrq, hdk⟩ := Hok.resolve_left hdata
       iunfold srvApplyKV at HKV
-      icases HKV with ⟨%ua', #Hua', HKV, %w', %RD, #Hw', #Hwok', HRD⟩
+      icases HKV with ⟨%ua', #Hua', HKV, HRA, %w', %RD, #Hw', #Hwok', HRD⟩
       icombine Hua Hua' gives %Hueq
       subst Hueq
       icombine Hw Hw' gives %Hweq
@@ -309,6 +309,9 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         isplitr
         · itrivial
         ipureintro; exact ⟨hdec, hid, hrq, hdk⟩
+      ihave ⟨HKV, #Hcert⟩ := applyKV_idxCert E fv.ua x' $$ HKV
+      ihave %Hlen := idxCert_len E.γ.idx x'.log $$ Hcert
+      imod revAuth_step E x.log x'.log (applyStep_grow Hstep) Hlen ⊤ $$ HRA with ⟨HRA, -⟩
       (try wp_auto)
       imod applied_predeposit s E γr v m.index x.log x'.log Hvi
         (applyStep_prefix rq false x x' out Hstep) $$ Hainv Hao HLv with Hpre
@@ -320,6 +323,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       isplitl
       · iunfold srvApplyKV; iexists fv.ua; isplitr; · iexact Hua
         isplitl [HKV]; · iexact HKV
+        isplitl [HRA]; · iexact HRA
         iexists fv.w, RD; iframe Hw Hwok' HRD
       isplitr
       · ipureintro; unfold entryStep; rw [ite_eq_right hdata]; exact ⟨rq, id0, hdec, hid, Hstep⟩
@@ -381,7 +385,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         word
       obtain ⟨rq, hdec, ⟨id0, hid⟩, hrq, hdk⟩ := Hok.resolve_left hdata
       iunfold srvApplyKV at HKV
-      icases HKV with ⟨%ua', #Hua', HKV, %w', %RD, #Hw', #Hwok', HRD⟩
+      icases HKV with ⟨%ua', #Hua', HKV, HRA, %w', %RD, #Hw', #Hwok', HRD⟩
       icombine Hua Hua' gives %Hueq
       subst Hueq
       icombine Hw Hw' gives %Hweq
@@ -432,17 +436,20 @@ theorem EtcdServer.applyEntryNormal.wp_proof
           imodintro; iexists _; iframe Hst Happ Hbe; ipureintro; right; rfl
       imod Hj with ⟨%st1, Hst, Happ, Hbe, %hst1⟩
       ihave ⟨HKV, #Hcert⟩ := applyKV_idxCert E fv.ua x' $$ HKV
+      ihave %Hlen := idxCert_len E.γ.idx x'.log $$ Hcert
+      imod revAuth_step E x.log x'.log (applyStep_grow Hstep) Hlen ⊤ $$ HRA with ⟨HRA, HMint⟩
       imod applied_predeposit s E γr v m.index x.log x'.log Hvi
         (applyStep_prefix rq true x x' out Hstep) $$ Hainv Hao HLv with Hpre
       icases srvAppliedPre_log γr v m.index x'.log $$ Hpre with ⟨Hpre, #HLpre⟩
       ihave HKV : iprop(∃ (x'' : apply.ApplyKV) (out' : apply.ApplyOut), srvApplyKV s E ρ.wait x'' ∗
           ⌜entryStep m true x x'' out'⌝ ∗ entryDelivered ρ.wait m ot out' ∗
-          srvAppliedPre γr v m.index x''.log) $$ [HKV HRD Hpre]
+          srvAppliedPre γr v m.index x''.log) $$ [HKV HRD HRA Hpre]
       · iexists x', out
         iframe Hpre
         isplitl
         · iunfold srvApplyKV; iexists fv.ua; isplitr; · iexact Hua
           isplitl [HKV]; · iexact HKV
+          isplitl [HRA]; · iexact HRA
           iexists fv.w, RD; iframe Hw Hwok' HRD
         isplitr
         · ipureintro; unfold entryStep; rw [ite_eq_right hdata]; exact ⟨rq, id0, hdec, hid, Hstep⟩
@@ -488,7 +495,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         (try dsimp only)
         ihave #HT := HTrig $$ %id %(interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar)
-        wp_apply HT $$ [HRes HTr]
+        wp_apply HT $$ [HRes HTr HMint]
         · trig
         (try wp_auto)
         tail_any
@@ -503,7 +510,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
           (try dsimp only)
           ihave #HT := HTrig $$ %id %(interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar)
-          wp_apply HT $$ [HRes HTr]
+          wp_apply HT $$ [HRes HTr HMint]
           · trig
           (try wp_auto)
           tail_any
@@ -535,7 +542,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
           iunfold srvGoAttachOk at Hgok'
           icases Hgok' with ⟨%gch, %gc, -, -, -, -, -, #Hctx, -, -⟩
           ihave HTP : iprop(waitTrig (reqWaitR ρ.ids E ρ.rd) id (interface.mkOk (go.GoType.PointerType
-              go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar)) $$ [HRes HTr]
+              go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar)) $$ [HRes HTr HMint]
           · trig'
           ipersist s
           ipersist id

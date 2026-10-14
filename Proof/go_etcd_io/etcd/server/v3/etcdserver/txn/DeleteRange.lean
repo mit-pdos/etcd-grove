@@ -8,6 +8,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.deleteRange
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 @[expose] public section
 
@@ -34,6 +35,8 @@ theorem txn.DeleteRange.wp_proof
     (hdel : txn.deleteRange.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.DeleteRange.spec (GF := GF) (hG := hG) := by
+  have hWrite := mvcc.store.Write.spec_frozen hWrite
+  have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
   intro ctx cd nd lg kv s γ dr o m log₀ P Pre Q Post f ot te
   wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, #Hdr, #Hctx, #Hct, Hto, #Hnd, %Hbig, Hcs, #Hhook⟩
   iunfold mvcc.csContract at Hcs

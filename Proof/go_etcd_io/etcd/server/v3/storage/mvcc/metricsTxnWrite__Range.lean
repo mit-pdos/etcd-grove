@@ -29,7 +29,7 @@ theorem mvcc.metricsTxnWrite.Range.wp_proof
     (hRange : mvcc.storeTxnCommon.Range.spec (GF := GF) (hG := hG))
     (hRangeW : mvcc.storeTxnWrite.Range.spec (GF := GF) (hG := hG)) :
     mvcc.metricsTxnWrite.Range.spec (GF := GF) (hG := hG) := by
-  intro trace mw s γ kind ctx cd todo key endk k e ro
+  intro trace mw s γ kind ctx cd todo key endk k e ro crev Z
   wp_start as ⟨Htx, #Hctx, #Hkey, #Hend⟩
   cases kind with
   | read log rev =>
@@ -44,7 +44,7 @@ theorem mvcc.metricsTxnWrite.Range.wp_proof
     (try wp_auto)
     wp_method_call; wp_call
     (try wp_auto)
-    wp_apply (hRange tr s trace ti rt γ log rev ctx cd todo key endk k e ro te)
+    wp_apply (hRange tr s trace ti rt γ log rev ctx cd todo key endk k e ro te crev Z)
       $$ [$Hs $Htr $Hrd $Hidx $Hti $Hctx $Hkey $Hend $Hmu $Htrc]
       as %r %err ⟨%Htodo, Hti, Hmu, Hrd, Htrc, Hout⟩
     (try wp_auto)
@@ -65,7 +65,7 @@ theorem mvcc.metricsTxnWrite.Range.wp_proof
     icases Htrc with ⟨%te, Htrc⟩
     (try wp_auto)
     -- `tw.TxnWrite.Range(...)`: `storeTxnWrite.Range`
-    wp_apply (hRangeW trace tw s γ ilog pend ctx cd todo key endk k e ro te)
+    wp_apply (hRangeW trace tw s γ ilog pend ctx cd todo key endk k e ro te crev Z)
       $$ [$Htw $Hctx $Hkey $Hend $Htrc] as %r %err ⟨%Htodo, Htw, Htrc, Hout⟩
     (try wp_auto)
     iapply HΦ

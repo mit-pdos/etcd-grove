@@ -7,6 +7,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.getPrevKV
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Trace__StepWithFunction
 public import Spec.context.TODO
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Range
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 @[expose] public section
 
@@ -33,6 +34,7 @@ theorem txn.getPrevKV.wp_proof
     (hTODO : context.TODO.spec (GF := GF) (hG := hG))
     (hRange : mvcc.metricsTxnWrite.Range.spec (GF := GF) (hG := hG)) :
     txn.getPrevKV.spec (GF := GF) (hG := hG) := by
+  have hRange := mvcc.metricsTxnWrite.Range.spec_frozen hRange
   intro trace mw s γ kind p o
   wp_start as ⟨%Htr, Htx, #Hp⟩
   iunfold txn.putRequestIs at Hp

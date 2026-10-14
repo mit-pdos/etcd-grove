@@ -222,6 +222,7 @@ section clock
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
@@ -261,53 +262,126 @@ end clock
 
 /-! ## The watch loop: the writer's position and the store watcher's -/
 
+section tail
+variable {GF : BundledGFunctors} [EM : EtcdModel GF]
+
 /-- Nothing under the prefix changed between the stream's last batch (`last`; `base` for an
 empty stream) and `cursor`, or `cursor` is not past it: a progress step from at most `last` to
 `cursor`. What lets the writer certify the next batch of its watch, which starts at `cursor`,
-from the stream's last batch (`respCert`). -/
-def TailOk (pfx : GoString) (last : Int) (cursor : w64) : Prop :=
-  sint.Z cursor ≤ last ∨ ∃ q : w64, sint.Z q ≤ last ∧ EtcdStep q cursor pfx []
+from the stream's last batch (`respCert`). An `IProp` since the vertical slice's unit V1
+(`EtcdStep` is one: the server's step is a fact about its certified log); persistent and
+timeless. -/
+def TailOk (pfx : GoString) (last : Int) (cursor : w64) : IProp GF :=
+  iprop(⌜sint.Z cursor ≤ last⌝ ∨ ∃ q : w64, ⌜sint.Z q ≤ last⌝ ∗ EtcdStep q cursor pfx [])
+
+instance TailOk_persistent (pfx : GoString) (last : Int) (cursor : w64) :
+    Persistent (TailOk (GF := GF) pfx last cursor) := by
+  unfold TailOk; infer_instance
+
+instance TailOk_timeless (pfx : GoString) (last : Int) (cursor : w64) :
+    Timeless (TailOk (GF := GF) pfx last cursor) := by
+  unfold TailOk; infer_instance
+
+/-- A cursor not past the last batch: `TailOk`, for free. -/
+theorem tailOk_of_le (pfx : GoString) (last : Int) (cursor : w64) (h : sint.Z cursor ≤ last) :
+    ⊢ TailOk (GF := GF) pfx last cursor := by
+  unfold TailOk
+  iintro
+  ileft; ipureintro; exact h
 
 /-- The writer's invariant across watches: once `maxRev` is set, nothing changed between the last
 batch and `maxRev` (`Init` continues a stream at `maxRev + 1`). -/
-def WriterOk (pfx : GoString) (c : DemuxCore) : Prop :=
-  c.maxRev ≠ W64 0 → TailOk pfx c.lastRev c.maxRev
+def WriterOk (pfx : GoString) (c : DemuxCore) : IProp GF :=
+  iprop(⌜c.maxRev = W64 0⌝ ∨ TailOk pfx c.lastRev c.maxRev)
+
+instance WriterOk_persistent (pfx : GoString) (c : DemuxCore) :
+    Persistent (WriterOk (GF := GF) pfx c) := by
+  unfold WriterOk; infer_instance
+
+instance WriterOk_timeless (pfx : GoString) (c : DemuxCore) :
+    Timeless (WriterOk (GF := GF) pfx c) := by
+  unfold WriterOk; infer_instance
+
+/-- The pure part of `CursorOk`: the stream is initialized and its base is at or below `cursor`. -/
+def CursorPure (c : DemuxCore) (cursor : w64) : Prop :=
+  c.minRev ≠ W64 0 ∧ c.base ≤ sint.Z cursor
 
 /-- A watch at `cursor` continues the demux's stream: initialized, its base at or below
-`cursor`, and nothing changed between the last batch and `cursor`. -/
-def CursorOk (pfx : GoString) (c : DemuxCore) (cursor : w64) : Prop :=
-  c.minRev ≠ W64 0 ∧ c.base ≤ sint.Z cursor ∧ TailOk pfx c.lastRev cursor
+`cursor` (`CursorPure`), and nothing changed between the last batch and `cursor`. -/
+def CursorOk (pfx : GoString) (c : DemuxCore) (cursor : w64) : IProp GF :=
+  iprop(⌜CursorPure c cursor⌝ ∗ TailOk pfx c.lastRev cursor)
+
+instance CursorOk_persistent (pfx : GoString) (c : DemuxCore) (cursor : w64) :
+    Persistent (CursorOk (GF := GF) pfx c cursor) := by
+  unfold CursorOk; infer_instance
+
+instance CursorOk_timeless (pfx : GoString) (c : DemuxCore) (cursor : w64) :
+    Timeless (CursorOk (GF := GF) pfx c cursor) := by
+  unfold CursorOk; infer_instance
+
+theorem cursorOk_pure (pfx : GoString) (c : DemuxCore) (cursor : w64) :
+    CursorOk (GF := GF) pfx c cursor ⊢ ⌜CursorPure c cursor⌝ := by
+  unfold CursorOk
+  iintro ⟨%H, -⟩
+  ipureintro; exact H
 
 /-- After `Init(rev)` the stream continues a watch at `rev - 1`, and the writer's invariant
 holds. -/
 theorem initCore_ok (pfx : GoString) (cap : Nat) (c : DemuxCore) (rev : w64)
-    (hinv : DemuxInv cap c) (hw : WriterOk pfx c) (hrev : 0 < sint.Z rev) :
-    CursorOk pfx (initCore c rev).1 (rev - W64 1) ∧ WriterOk pfx (initCore c rev).1 := by
+    (hinv : DemuxInv cap c) (hrev : 0 < sint.Z rev) :
+    WriterOk (GF := GF) pfx c ⊢
+      CursorOk pfx (initCore c rev).1 (rev - W64 1) ∗ WriterOk pfx (initCore c rev).1 := by
   have hr1 : sint.Z (rev - W64 1) = sint.Z rev - 1 := by word
   have hne : rev ≠ W64 0 := by intro h; subst h; simp at hrev
+  have hinit : ⊢ CursorOk (GF := GF) pfx
+      { DemuxCore.init with minRev := rev, base := sint.Z rev - 1 } (rev - W64 1) ∗
+      WriterOk pfx { DemuxCore.init with minRev := rev, base := sint.Z rev - 1 } := by
+    unfold CursorOk WriterOk
+    iintro
+    isplitl
+    · isplitr
+      · ipureintro
+        refine ⟨hne, ?_⟩
+        show sint.Z rev - 1 ≤ sint.Z (rev - W64 1); omega
+      · iapply tailOk_of_le
+        show sint.Z (rev - W64 1) ≤ sint.Z rev - 1; omega
+    · ileft; ipureintro; rfl
+  iintro #Hw
   unfold initCore
   rw [ite_eq_right hne]
   by_cases h0 : c.minRev = W64 0
   · rw [ite_eq_left h0]
     obtain ⟨hs, hm⟩ := hinv.uninit h0
-    refine ⟨⟨hne, ?_, Or.inl ?_⟩, fun h => absurd hm h⟩
-    · show sint.Z rev - 1 ≤ sint.Z (rev - W64 1); omega
-    · unfold DemuxCore.lastRev; rw [hs]; show sint.Z (rev - W64 1) ≤ sint.Z rev - 1; omega
+    unfold CursorOk WriterOk
+    isplitl
+    · isplitr
+      · ipureintro
+        refine ⟨hne, ?_⟩
+        show sint.Z rev - 1 ≤ sint.Z (rev - W64 1); omega
+      · iapply tailOk_of_le
+        unfold DemuxCore.lastRev; rw [hs]; show sint.Z (rev - W64 1) ≤ sint.Z rev - 1; omega
+    · ileft; ipureintro; exact hm
   rw [ite_eq_right h0]
-  have hinit : CursorOk pfx { DemuxCore.init with minRev := rev, base := sint.Z rev - 1 }
-      (rev - W64 1) ∧ WriterOk pfx { DemuxCore.init with minRev := rev, base := sint.Z rev - 1 } := by
-    refine ⟨⟨hne, ?_, Or.inl ?_⟩, fun h => absurd rfl h⟩
-    · show sint.Z rev - 1 ≤ sint.Z (rev - W64 1); omega
-    · show sint.Z (rev - W64 1) ≤ sint.Z rev - 1; omega
   by_cases h2 : c.maxRev = W64 0
-  · rw [ite_eq_left h2]; exact hinit
+  · rw [ite_eq_left h2]; iapply hinit
   rw [ite_eq_right h2]
   by_cases h3 : rev = c.maxRev + W64 1
   · rw [ite_eq_left h3]
     have hk : rev - W64 1 = c.maxRev := by rw [h3]; bv_omega
     rw [hk]
-    exact ⟨⟨h0, hinv.base_maxRev h2, hw h2⟩, hw⟩
-  · rw [ite_eq_right h3]; exact hinit
+    ihave #Hw' := Hw
+    unfold WriterOk
+    icases Hw' with (%Hm | #Ht)
+    · exact absurd Hm h2
+    unfold CursorOk
+    isplitl
+    · isplitr
+      · ipureintro; exact ⟨h0, hinv.base_maxRev h2⟩
+      · iexact Ht
+    · iexact Hw
+  · rw [ite_eq_right h3]; iapply hinit
+
+end tail
 
 /-- The revision of the last event of a log of responses, `dflt` if it has none: where the store
 watcher's consumer is in the stream. -/
@@ -327,6 +401,7 @@ section prdefs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
@@ -370,6 +445,7 @@ section watchdefs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
@@ -810,7 +886,7 @@ def cacheCert (cf : CacheFields) : DemuxCert GF where
     · ileft; ipureintro; decide
   cert_prog := fun p b => by
     unfold cacheRev etcdStepCertBody
-    iintro ⟨⟨%cs, -, -, H1⟩, H2⟩
+    iintro ⟨⟨%cs, -, -, -, H1⟩, H2⟩
     iframe H1 H2
 
 /-- The cache's demux certificate is stronger than etcd's (`etcdStepCert`), the one `Watch`'s
@@ -1007,7 +1083,7 @@ theorem respCert_cacheCert_cond (cf : CacheFields) (c : DemuxCore) (r : RespMode
 /-- The demux's writer for the cache (`cacheCert`), with its invariant across watches, and the
 revision bound's authority. -/
 def cacheWriter (cf : CacheFields) (γd : DemuxNames) (cap : Nat) (c : DemuxCore) : IProp GF :=
-  iprop(demuxWriter cf.demux γd cap (cacheCert cf) c ∗ ⌜WriterOk cf.pfx c⌝ ∗
+  iprop(demuxWriter cf.demux γd cap (cacheCert cf) c ∗ WriterOk cf.pfx c ∗
     ∃ B : w64, cacheBound cf B)
 
 /-- What a log `L` of responses on `Cache.Watch`'s channel is: a log the watcher's producer had,
@@ -1235,6 +1311,7 @@ section cache
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 

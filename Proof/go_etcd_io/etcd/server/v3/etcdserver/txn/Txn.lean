@@ -19,6 +19,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.NewReadOnlyTxnWrite
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.txn
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__End
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 @[expose] public section
 
@@ -105,6 +106,9 @@ theorem txn.Txn_sole
     (htxn : txn.txn.spec (GF := GF) (hG := hG))
     (hRoEnd : mvcc.txnReadWrite.End.spec (GF := GF) (hG := hG)) :
     txn.Txn.specSole (GF := GF) (hG := hG) := by
+  have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
+  have hWrite := mvcc.store.Write.spec_frozen hWrite
+  have hRoEnd := mvcc.txnReadWrite.End.spec_frozen hRoEnd
   intro ctx cd lg rt shared kv le skip s γ log t P Pre Q Post f L ot te
   wp_start as ⟨#Hkv, Hrd, Hsw, Hwt, #Hle, #Hrt, #Hctx, #Hct, Hto, #Hnd, #Hknown, Hu, %Hpre, Hcs, #Hhook⟩
   iunfold mvcc.csContract at Hcs
@@ -368,6 +372,9 @@ theorem txn.Txn_read
     (htxn : txn.txn.spec (GF := GF) (hG := hG))
     (hRoEnd : mvcc.txnReadWrite.End.spec (GF := GF) (hG := hG)) :
     txn.Txn.specRead (GF := GF) (hG := hG) := by
+  have hRead := mvcc.store.Read.spec_frozen hRead
+  have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
+  have hRoEnd := mvcc.txnReadWrite.End.spec_frozen hRoEnd
   intro ctx cd lg rt shared kv le skip s γ m log₀ t ot te
   wp_start as ⟨#Hkv, Hrd, Htoks, #Hc0, #Hle, #Hrt, #Hctx, #Hct, Hto, %Hpre, #Hsmall⟩
   obtain ⟨Hlg, hro, hgets⟩ := Hpre

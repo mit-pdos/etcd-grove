@@ -24,13 +24,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- `s.compactLockfree(rev)` (`restore`'s, with `s.mu` held exclusively: `muInvAt s γ 1 c`):
 `updateCompactRev` then, on success, `compact` (at `context.TODO()`'s trace), the job scheduled on
 the compaction right's queue (2026-10-13, unit 5c). Of a store whose
-backend supports the compaction (`storeCmp`). -/
+backend supports the compaction (`storeCmp`). The caller asserts that revision `rev` of a
+certified log does not delete then put a key (`NoDelPutAt`, as `store.Compact`'s; 2026-10-13,
+unit 6a). -/
 abbrev mvcc.store.compactLockfree.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (rev : w64) (c : Int) (P : IProp GF) (f : val)
-    (Pre Q Post : IProp GF),
+    (Pre Q Post : IProp GF) (log : mvcc.Log),
   mvcc.storeCmp γ →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isStore s γ ∗ mvcc.storeStop s ∗ mvcc.muInvAt s γ 1 c ∗ mvcc.compactRight γ c ∗
+      mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length ∧ mvcc.NoDelPutAt log (sint.Z rev)⌝ ∗
       mvcc.hookIs γ P f ∗ mvcc.csContract P f Pre Q Post }}
     (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"compactLockfree")) (Val #rev))
   {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err);

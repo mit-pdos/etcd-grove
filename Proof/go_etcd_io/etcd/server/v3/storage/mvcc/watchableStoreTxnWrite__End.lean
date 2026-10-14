@@ -8,6 +8,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Chang
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Rev
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 @[expose] public section
 
@@ -69,7 +70,7 @@ theorem mvcc.isTxnWriteCore_room (mw s : Loc) (γ : mvcc.StoreNames) (ilog : mvc
     unfold mvcc.revToken
     iframe Htoks Htok Htw Hcap Hlocked Hw Hclog Hcur Hbv Hmu HrevMu Hti Hrt Hcres Hlrd
     iframe #
-    ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn⟩
+    ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
   ipureintro; omega
 
 /-- The writer's unsealed history bounds every synced watcher's delivery: its lower bound is
@@ -165,6 +166,7 @@ theorem mvcc.watchableStoreTxnWrite.End.wp_proof
     (hRev : mvcc.storeTxnWrite.Rev.spec (GF := GF) (hG := hG))
     (hNotify : mvcc.watchableStore.notify.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStoreTxnWrite.End.spec (GF := GF) (hG := hG) := by
+  have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
   intro trace tw s st γ ilog pend puts deletes putSize P f
   wp_start as ⟨Hw, #Hhook, HPh⟩
   iunfold mvcc.isWatchTxnWrite at Hw

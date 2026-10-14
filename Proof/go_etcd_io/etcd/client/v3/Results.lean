@@ -12,8 +12,11 @@ the design: `notes/decisions.md`, "A generic gRPC specification".
 
 **etcd's specs of the KV methods** (`etcdPutSpec`, `etcdRangeSpec`, `etcdDeleteSpec`: predicate
 transformers over the messages' models, `GrpcSpec`): a caller asking the request `o` gets a reply
-message `m` with `putReplyOk` (`rangeReplyOk` at the committed index `c` the caller knows of,
-`committedAtLeast γr c`, persistent, `0` free; `deleteReplyOk`).
+message `m` with `putReplied` (`putReplyOk`, persistent, with the write's witness `appliedWit γr`
+since unit C2a, and the token of the revision the put made, `revMinted`: the slice's unit V1,
+carried since a reply's `Φ` is delivered once),
+`rangeReplyOk` at the committed index `c` the caller knows of (`committedAtLeast γr c`,
+persistent, `0` free), `deleteReplied` (`deleteReplyOk` and the token).
 
 **The handlers** (`etcd_putHandlerOk`, `etcd_rangeHandlerOk`, `etcd_deleteHandlerOk`:
 `grpcHandlerOk`): `kvServer.Put`/`Range`/`DeleteRange` at the server's `*kvServer` `p`, with the
@@ -47,12 +50,15 @@ The results:
   the runtime `N` run slots, registers etcd's three specs at `addr` (`isGrpcRpc`).
 * **`client_put_end_to_end`**: `kv.Put(ctx, key, val)` with no options on a connection to `addr`
   whose `Put` is registered with `etcdPutSpec`: `nil` and a reply holding a message `m`
-  (`putRespMsg`) with `putReplyOk` for the put `key ↦ val`; or an error.
+  (`putRespMsg`) with `putReplied` for the put `key ↦ val` (`putReplyOk` and the revision's
+  token `revMinted`, carried by the reply's `Φ` since the merge with the slice's unit V1); or an
+  error.
 * **`client_get_end_to_end`**: `kv.Get(ctx, key)` with no options, `Range` registered with
   `etcdRangeSpec`: `nil` and a reply holding a message `m` (`rangeRespMsg`) with `rangeReplyOk`
   for the get of `key`; or an error.
 * **`client_get_after_put`** (unit C2a, 2026-10-14; one server): after a `Put` of `key ↦ val`
-  that returned `nil` (its reply's `putReplyOk E γr`, now with the witness `appliedWit γr` of the
+  that returned `nil` (its reply's `putReplyOk E γr`, `client_put_end_to_end`'s `putReplied` with
+  its token dropped, `putReplied_ok`; with the witness `appliedWit γr` of the
   log after: applied through an index `i` of the committed log), `kv.Get(ctx', key)` with `Range`
   registered at the same read names: `nil` and a reply `m` that reads the put (`getAfterPutOk`:
   at a certified log extending the put's log after, its revision at least the put's; and, if no
@@ -330,13 +336,38 @@ instance rangeReplyOk_persistent (E : apply.AEnv GF) (γr : ReadNames) (c : w64)
     (cid mid : w64) (m : RangeRespM) : Persistent (rangeReplyOk E γr c o cid mid m) := by
   unfold rangeReplyOk; split <;> infer_instance
 
+/-- **What a successful `Put` of `o` delivers to the client** with the reply's message `m`
+(the merge of the generic gRPC specification with the slice's unit V1, 2026-10-14): `putReplyOk`'s
+knowledge (with its witness at the read names `γr`, unit C2a) and the token of the revision the
+put made (`revMinted`, exclusive: a reply's `Φ` is delivered once, so the generic spec carries it;
+`putReplied_ok` drops it). -/
+def putReplied (E : apply.AEnv GF) (γr : ReadNames) (o : OpFull) (cid mid : w64) (m : PutRespM) :
+    IProp GF :=
+  iprop(∃ (hm : apply.HeaderModel) (x x' : apply.ApplyKV) (l : mvcc.Log) (skip : Bool),
+    ⌜apply.applyStep (apply.withHeader (irrPut o) hm) true x x'
+        (.dispatched (.applied l false) skip) ∧
+      m.hdr.revision = W64 (x.log.length : Int) ∧ m.hdr.clusterId = cid ∧ m.hdr.memberId = mid ∧
+      m.prev = (if o.base.prevKV then mvcc.findKey o.key (mvcc.stateAfter x.log) else none)⌝ ∗
+    mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γr x'.log)
+
+open Iris.ProofMode in
+/-- The knowledge of a delivered put (its token dropped; the witness kept). -/
+theorem putReplied_ok (E : apply.AEnv GF) (γr : ReadNames) (o : OpFull) (cid mid : w64)
+    (m : PutRespM) : putReplied E γr o cid mid m ⊢ putReplyOk E γr o cid mid m := by
+  iintro H
+  unfold putReplied putReplyOk
+  icases H with ⟨%hm, %x, %x', %l, %skip, %Hp, #Hc, -, #Hw⟩
+  iexists hm, x, x', l, skip
+  iframe Hc Hw
+  ipureintro; exact Hp
+
 /-- **etcd's spec of the KV service's `Put`** (a predicate transformer; see the file header): a
-caller asking the put `o` gets a reply message `m` with `putReplyOk` (its witness at the read
-names `γr`, 2026-10-14, unit C2a). -/
+caller asking the put `o` gets a reply message `m` with `putReplied` (`putReplyOk`, with its
+witness at the read names `γr` (2026-10-14, unit C2a), and the revision's token). -/
 def etcdPutSpec (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
     GrpcSpec (GF := GF) pbPutRequest pbPutResponse :=
   fun (o : OpFull) (Φ : PutRespM → IProp GF) =>
-    iprop(∀ m : PutRespM, putReplyOk E γr o cid mid m -∗ Φ m)
+    iprop(∀ m : PutRespM, putReplied E γr o cid mid m -∗ Φ m)
 
 /-- **A get of `key` after the put of `key ↦ val` read the put** (persistent; unit C2a,
 2026-10-14; `client_get_after_put`): the put's reply `mp` and the get's reply `m` are of two logs of
@@ -398,12 +429,39 @@ instance deleteReplyOk_persistent (E : apply.AEnv GF) (o : OpFull) (cid mid : w6
     (m : DelRespM) : Persistent (deleteReplyOk E o cid mid m) := by
   unfold deleteReplyOk; infer_instance
 
+/-- **What a successful `DeleteRange` of `o` delivers to the client** (as `putReplied`):
+`deleteReplyOk`'s knowledge and the revision's token (`revMinted`; none minted if nothing was
+deleted). -/
+def deleteReplied (E : apply.AEnv GF) (o : OpFull) (cid mid : w64) (m : DelRespM) : IProp GF :=
+  iprop(∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel) (op' : OpFull) (x x' : apply.ApplyKV)
+      (l : mvcc.Log) (skip : Bool),
+    ⌜irrWireOf (apply.withHeader (irrDeleteRange o) hm) rq' ∧ rq'.deleteRange = some op' ∧
+      (irrNoZeroEnd (irrDeleteRange o) → op' = o) ∧
+      apply.applyStep rq' true x x' (.dispatched (.applied l false) skip) ∧
+      m.hdr.revision =
+        W64 ((mvcc.writeRev x.log (txn.delChanges (mvcc.stateAfter x.log) op') : Nat) : Int) ∧
+      m.hdr.clusterId = cid ∧ m.hdr.memberId = mid ∧
+      m.deleted = W64 ((rangeIn (mvcc.stateAfter x.log) op').length : Int) ∧
+      m.prevs = (if op'.base.prevKV then rangeIn (mvcc.stateAfter x.log) op' else [])⌝ ∗
+    mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log)
+
+open Iris.ProofMode in
+/-- The knowledge of a delivered delete (its token dropped). -/
+theorem deleteReplied_ok (E : apply.AEnv GF) (o : OpFull) (cid mid : w64) (m : DelRespM) :
+    deleteReplied E o cid mid m ⊢ deleteReplyOk E o cid mid m := by
+  iintro H
+  unfold deleteReplied deleteReplyOk
+  icases H with ⟨%hm, %rq', %op', %x, %x', %l, %skip, %Hp, #Hc, -⟩
+  iexists hm, rq', op', x, x', l, skip
+  iframe Hc
+  ipureintro; exact Hp
+
 /-- **etcd's spec of the KV service's `DeleteRange`**: a caller asking the delete `o` gets a
-reply message `m` with `deleteReplyOk`. -/
+reply message `m` with `deleteReplied` (`deleteReplyOk` and the revision's token). -/
 def etcdDeleteSpec (E : apply.AEnv GF) (cid mid : w64) :
     GrpcSpec (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse :=
   fun (o : OpFull) (Φ : DelRespM → IProp GF) =>
-    iprop(∀ m : DelRespM, deleteReplyOk E o cid mid m -∗ Φ m)
+    iprop(∀ m : DelRespM, deleteReplied E o cid mid m -∗ Φ m)
 
 /-- **etcd's KV methods** as registered (unit P3b): `Put`, `Range` and `DeleteRange`, the generated
 handlers of `KV_ServiceDesc` (`rpc_grpc.pb.go`) with the service value `RegisterKVServer` is
@@ -488,7 +546,7 @@ theorem ctxTraceIs_none_of_runCtx (ci : GoInterfaceOk) :
 /-- **etcd's `Put` handler meets etcd's `Put` spec** (`grpcHandlerOk`; from `put_end_to_end`):
 a run, with its slot, the runtime's context, an id credit the server mints (`□ |==> idCred ρ.ids
 1`, `srvStarted`'s), the decoded request: its slot back, the reply holds the response's
-message, with `putReplyOk`. -/
+message, with `putReplied` (`putReplyOk` and the revision's token). -/
 theorem etcd_putHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (cid mid n : w64) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
@@ -543,7 +601,11 @@ theorem etcd_putHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
     icases Hpost with (⟨%Herr, %h, %rv, %rv', #Hh, Hf, -, Hc0, Hap⟩ | ⟨%Herr, %e, Hc0, Hep⟩)
     · obtain ⟨rfl, Hrn⟩ := Herr
       iunfold v3rpc.putAppliedOk at Hap
-      icases Hap with ⟨Hlt, %hm, %x, %x', %l, %skip, %Hst, Hout, #Hcert, #Hwit⟩
+      icases Hap with ⟨Hlt, Hap⟩
+      iunfold v3rpc.putApplied at Hap
+      -- the revision's token (`revMinted`, exclusive) goes to the reply's `Φ` (`putReplied`),
+      -- with the witness (`appliedWit`, persistent)
+      icases Hap with ⟨%hm, %x, %x', %l, %skip, %Hst, Hout, #Hcert, Htok, #Hwit⟩
       iunfold apply.putOutcomeIs at Hout
       icases Hout with ⟨#Hpr, -⟩
       iunfold txn.putResponseIs at Hpr
@@ -574,8 +636,9 @@ theorem etcd_putHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
         ipureintro; exact Hh2n
       · iunfold etcdPutSpec at Hspec
         iapply Hspec
-        unfold putReplyOk
+        unfold putReplied
         iexists hm, x, x', l, skip
+        iframe Htok
         iframe #
         ipureintro
         exact ⟨Hst.1, rfl, rfl, rfl, rfl⟩
@@ -753,7 +816,10 @@ theorem etcd_deleteHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
     icases Hpost with (⟨%Herr, %h, %rv, %rv', #Hh, Hf, -, Hc0, Hap⟩ | ⟨%Herr, %e, Hc0, Hep⟩)
     · obtain ⟨rfl, Hrn⟩ := Herr
       iunfold v3rpc.deleteAppliedOk at Hap
-      icases Hap with ⟨Hlt, %hm, %rq', %op', %x, %x', %l, %skip, %Hst, Hout, #Hcert⟩
+      icases Hap with ⟨Hlt, Hap⟩
+      iunfold v3rpc.deleteApplied at Hap
+      -- the revision's token (`revMinted`) goes to the reply's `Φ` (`deleteReplied`)
+      icases Hap with ⟨%hm, %rq', %op', %x, %x', %l, %skip, %Hst, Hout, #Hcert, Htok⟩
       iunfold apply.deleteOutcomeIs at Hout
       icases Hout with ⟨#Hdr, -⟩
       iunfold txn.deleteRangeResponseIs at Hdr
@@ -787,8 +853,9 @@ theorem etcd_deleteHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
         ipureintro; exact Hh2n
       · iunfold etcdDeleteSpec at Hspec
         iapply Hspec
-        unfold deleteReplyOk
+        unfold deleteReplied
         iexists hm, rq', op', x, x', l, skip
+        iframe Htok
         iframe #
         ipureintro
         exact ⟨Hst.1, Hst.2.1, Hst.2.2.1, Hst.2.2.2.1, rfl, rfl, rfl, rfl, rfl⟩
@@ -993,7 +1060,8 @@ theorem etcd_kv_served [v3rpc.QuotaKVServerIsKVServer] (addr : GoString) (p q s 
 /-- **`client_put_end_to_end`** (see the file header): `kv.Put(ctx, key, val)` with no options
 (`optsAt sl []`, e.g. `nil`) on a `*kv` over a connection to the server at `addr` (`kvObjAt`:
 what `NewKV` returns, `v3.wp_NewKV`) whose `Put` is registered with etcd's spec (`isGrpcRpc`, what
-`etcd_kv_served` gives): `nil` and the reply's message `m` with `putReplyOk` for the put
+`etcd_kv_served` gives): `nil` and the reply's message `m` with `putReplied` (`putReplyOk` and the
+revision's token) for the put
 `key ↦ val` the server decodes (no lease, no previous key-value, value and lease not ignored); or
 an error and no reply. Premises: the registration, the context's (`ctxErrClient`), the package's.
 -/
@@ -1007,11 +1075,11 @@ theorem client_put_end_to_end (api : Loc) (addr : GoString) (E : apply.AEnv GF) 
           go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗
-            putReplyOk E γr (txn.putOpOf key val (W64 0) false false false) cid mid m) ∨
+            putReplied E γr (txn.putOpOf key val (W64 0) false false false) cid mid m) ∨
           ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
   iintro %Φ ⟨#Pc, #Hkv, #Hrpc, #Hctx, #Hce, #Hopts⟩ HΦ
   iapply (v3.kv.wp_Put api addr ci cd key val sl [] (etcdPutSpec E γr cid mid)
-    (putReplyOk E γr (txn.putOpOf key val (W64 0) false false false) cid mid)) $$ []
+    (putReplied E γr (txn.putOpOf key val (W64 0) false false false) cid mid)) $$ []
   · iframe #
     isplitl []
     · ipureintro

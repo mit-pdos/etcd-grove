@@ -4257,6 +4257,64 @@ where `treeIndex.Compact` needs `c ≤ rev`; the queue under `s.mu` or `s.revMu`
 - `crevFrozen` is the invariant of the right's revision half (`crevUB γ.idx ½ (-1)`), not of the
   whole right (the queue holds saved propositions, not timeless).
 
+### Compaction-aware readers (unit 6a): the delete-then-put premise on `Compact`, the frozen reader a corollary
+
+**2026-10-13 · adopted** (`STATUS.md`, "The store's compaction", unit 6a)
+
+**Decision 1: the one who compacts asserts `NoDelPutAt` at its revision.** `store.Compact`
+(`compactLockfree`, `updateCompactRev`) takes `idxCert γ.idx log`, `sint.Z rev < log.length` and
+`⌜NoDelPutAt log (sint.Z rev)⌝`: compaction at a revision that deletes a key and puts it again
+deletes the key's live value (`issues/etcd-compaction-delete-then-put.md`), after which a read
+`Fatal`s. Transactions that delete then put exist (any `store.Write` user may issue them); the
+gRPC checks (`checkIntervals`) exclude them on the request path only; the apply thread, which
+compacts at a revision of the raft log, cannot prove it of an arbitrary applied entry; what can
+is a statement about who wrote revision `rev` (e.g. every applied transaction passed the request
+path's checks), which belongs to the compactor's caller. So the premise is the compactor's, for
+its own revision. The fact is
+`crevSafe γ c` (a certified log with revision `c` and `NoDelPutAt` there: no ghost state,
+`NoDelPutAt` is of revision `c` alone, so every certified log covering `c` has it,
+`crevSafe_cert`). It is recorded where each reader finds it: in `s.mu`'s resource for the current
+revision (`muInvAt`'s certified log, which already held `c < log₀.length`; a transaction reads it
+from `muHeld`), in the job's premises (`compactJobPre`), and on every key the job deletes
+(`delKey`: the backend contract's `Del` now carries the deleting compaction's `NoDelPutAt`). The
+readers use the last: a read at or above its transaction's revision `crev` may meet a key deleted
+by any earlier compaction `c' ≤ crev` (the job of an earlier `Compact`, possibly still running),
+and needs `NoDelPutAt` at `c'`, not at `crev` (`rangeAnswers_not_del`: `named_not_del` through the
+prefix order of the certified logs, `KeyDel_prefix`, `NoDelPutAt_prefix`).
+*Rejected:* a history invariant on `End` (no transaction deletes then puts a key): its writers
+exist and the store cannot refuse them; it would be a premise of every `store.Write` user, the
+txn package's and the server's statements included, for a property only compaction needs.
+*Rejected:* the fact for the current revision only (in `muInvAt`): a reader at `crev` meets keys
+deleted by earlier compactions, whose revisions are lower bounds (`delKey`'s `crevLb`), not the
+current one; a ghost map from revisions to the fact (the deletable keys can carry it directly).
+
+**Decision 2: the transactions observe `crev` and carry a tag `Z`; the frozen ones are their
+defaults.** The store's specs take `storeReaderC` and quantify over the transaction's compaction
+revision `crev` (fixed while it holds `s.mu`; `store.Read` reads it into `firstRev`) and a
+persistent tag `Z` given back at `End` (`storeReaderC ∗ □ Z`): `Z = crevFrozen γ` for the frozen
+readers (so `End` gives `storeReader` back), `True` for a compacting client. The transaction
+predicates (`storeTxnReadIs`, `isTxnRead`, `isRoTxnWrite`, `storeTxnWriteIs`/`Core`,
+`isTxnWrite`/`Core`, `isTxn`/`isTxnEnd`) take `(crev : Int := -1) (Z : IProp GF := crevFrozen γ)`:
+at their defaults they are the frozen transactions, so the statements of the packages above mvcc
+(`mvcc.isTxn mw s γ kind`, …) are unchanged in text and in meaning, and the specs that only pass
+the transaction through (`Put`, `DeleteRange`, `Changes`, `Rev`, `put`, `delete`, `deleteRange`,
+`NewReadOnlyTxnWrite`) are general with their frozen statements as instances (unification picks
+the defaults). The specs whose shape changes (a `Range`'s outcome `rangeOutcomeC`, `FirstRev`'s
+value, `storeReaderC` for `storeReader`, `Read`/`Write`'s lower bound `crevLb γ.idx c`) have
+their old statement as `<fn>.specFrozen` and the corollary `<fn>.spec_frozen`, all in one
+Proof-side module, `Proof/…/storage/mvcc/FrozenSpecs.lean` (a `Spec` file holds its triple and
+nothing else; the clients import the module, as they import mvcc's `Inv` modules); the clients
+above mvcc apply it in one line (`have h := mvcc.<fn>.spec_frozen h`). The snapshot a transaction reads may miss
+keys compaction deleted (`txReader`'s `snapThin`, `keyReaderD`, `batchTx_readerD`); `rangeKeys`
+shows the keys a read at or above `crev` names are present (above).
+*Rejected:* separate general predicates (`isTxnReadC`, `isTxnC`, …) with the frozen ones as
+abbreviations: every lemma twice, and the iris tactics match hypotheses up to syntax, not
+unfolding; a `TxnKind` constructor for the general transactions (the txn package's `cases kind`
+would change); the frozen fact in the store-level resources (a compacting client's `End` cannot
+produce `crevFrozen`, so the frozen `End`'s `storeReader` must come from the transaction:
+the tag); `rangeOutcome` with an `ErrCompacted` disjunct guarded by a lower bound (unit 5a's
+rejection: the revision may be higher than the bound).
+
 ## The read loop's notifier: deposited lower bounds
 
 **2026-10-13 · accepted (the request path's unit 4a, `server/v3/etcdserver/read`; `STATUS.md`,
@@ -4775,6 +4833,62 @@ needing contracts of names-only constructors (lessor, alarm store, auth store, t
 compactor, stats, cluster version), three premises no `NewServer` proof can discharge (the raft
 contract, the id budget, `storeSmall`).
 
+## The client's model as a class the server instantiates; the wire as the handler's theorem transported
+
+(The vertical slice's unit V1, 2026-10-13; `notes/STATUS.md`, "The vertical slice: client to
+server".)
+
+**A class, not axioms.** The clients' fourteen axioms about etcd (`etcdState` and its laws,
+`etcdReachedAt`, `etcdRevToken`, `EtcdStep` and its laws) are the fields of `class EtcdModel GF`,
+a section variable of every client file that reaches them; the server's `etcdModelOfServer E` is a
+`def`, applied where the slice is stated, not an `instance` (a client result is about any model;
+the slice picks the server's). A field is the real fact: `etcdState` is a certified log's state at
+the revision restricted to the prefix, `EtcdStep` a certified log's events under the prefix
+between two revisions, `etcdRevToken` a ghost token the apply thread mints when the log grows,
+`etcdReachedAt` a certified log having the revision. Nothing is `True` or `False`.
+
+**`EtcdStep` became an `IProp`.** The server's step is a fact about its certified log, a ghost
+lower bound; a pure proposition cannot refer to it. The cost: `TailOk`/`WriterOk`/`CursorOk` in the
+cache's watch loop became persistent, timeless `IProp`s, and the pure lemmas over them
+entailments. The alternative, a `Prop` field quantifying over "the" server log, has no log to
+name.
+
+**`LogSmall` in the state, not `NoDupKeysPerRev`.** `etcdState_revs`' positive version holds of a
+log that writes each key at most once per revision, which etcd's server does not guarantee (two
+known `checkIntervals` gaps); it holds too of a log of at most `2 ^ 62` changes (the version
+counts puts), which the read path already assumes (`storeSmall`). So `etcdState` carries
+`LogSmall`, and the server's results producing it take `storeSmall` (from `isServerRead`).
+
+**The state at a revision of a certified log, not of a certificate of that length.** `etcdState
+rev` is `underPfx pfx (stateAt log rev)` for some certified `log` with `rev < |log|`; the brief's
+"a certificate of a log of length `rev + 1`" needs a certificate of a prefix, which mvcc does not
+provide (its history and event lower bounds would need prefix lemmas), and says the same.
+
+**The token where the log grows.** `apply.Apply` is the apply package's, which knows nothing of
+clients; the server's `applyEntryNormal` holds the authority (`revAuth`, in `srvApplyKV`) and mints
+after `Apply` returns, from `applyStep_grow` (a step appends at most one revision). The token rides
+the entry's result through the wait (`resultIs`), delivered once, to the handler's answer. A
+revision no request awaits (a lease revocation's) mints a token no one receives: exclusivity needs
+only that keys never repeat.
+
+**The wire is the handler's theorem, transported.** The generated gRPC stub is names-only; its four
+methods are axioms stated as the server's end-to-end theorems with the server-side resources
+removed and the response the client's fresh copy (the same field formulas), at committed index
+`0` (a fresh handler knows none), the revision field without the store's reader slot
+(`hdrRevC`), and errors only as non-nil (gRPC transports a status, not a value). The connection is
+one opaque predicate (`grpcConnTo`) inside `connectedTo` with the server facts the theorems
+assume. The axioms' premises (the per-call pool, the transport's integrity, protobuf round-trips)
+are stated in prose: they are what a proof of gRPC and protobuf would discharge. What the
+transported statements do not give the clients' contracts (linearizability's `lo ≤ r`, mainly)
+is listed in STATUS rather than weakened in the contracts.
+
+**Superseded at the merge of unit C1 (2026-10-14).** The wire above (`grpcConnTo`, `connectedTo`,
+the stub's four axioms, `isKVClient`) is gone: unit C1 translated the generated stub and proved
+`kVClient.Put`/`Range` down to grpc's `ClientConn.Invoke`, whose contract (one axiom) and the
+connection predicate `isKVConn conn K` are the lower boundary now ("The client meets the server
+(unit C1)" below; STATUS, "Merge of `origin/lean` (units 8, 9, C1)"). The class, the server's
+instance and the token's path stay; `DeleteRange`/`Txn` stubs are V2's to prove in C1's style.
+
 ## The client meets the server (unit C1)
 
 **2026-10-14 · adopted (unit C1)** (`notes/STATUS.md`, "Unit C1: the client meets the server")
@@ -4966,6 +5080,15 @@ premises, the server's facts having moved to `etcd_kv_served`.
 Gone: the `Put`/`Range` clauses of `Invoke`, `isKVConn`. A new method (`Txn`, `Compact`, another
 service) needs its message instances, its spec and its handler proof (`etcd_deleteHandlerOk` shows
 it for `DeleteRange`), no new axiom.
+
+**The revision's token under the generic spec** (merge with the slice's unit V1, 2026-10-14):
+V1's per-revision token (`revMinted`, exclusive) was dropped under C1's wire, whose `putRunOk`
+asked for persistent knowledge (the transport may run the handler more than once). Under the
+generic spec it is carried: a run's `Spec m Φ` is consumed by that run, the client supplies
+`□ ▷ Spec m Q` (one per attempt) and receives one reply's `Q m'`, which need not be persistent.
+So `etcdPutSpec`/`etcdDeleteSpec` give `putReplied`/`deleteReplied` (the persistent
+`putReplyOk`/`deleteReplyOk` and the token), and `client_put_end_to_end` returns the token of the
+revision its reply reports.
 
 ## The retry interceptor proved: the gRPC boundary below it
 
@@ -5258,3 +5381,13 @@ comparisons, restated at every layer that carries a request); a separate slice-l
 `isServerBuilt`: the premise's other clauses are contracts of the same kind): a `NewServer` proof
 would discharge them from `NewAuthStore`'s invariant with the two derivations, the admin part
 `isAuthStoreAdmin` assumed.
+
+**With the revision's token** (the merge with the vertical slice's unit V1, 2026-10-14,
+`merge-origin7`). V1 carries the token of the revision a write minted (`revMinted E log log'`,
+exclusive) along the same path. The two travel together in every result: `resultIsW` (and
+`resultIs`, which keeps the token and drops only the witness), `appliedOk E γr`, `EtcdServer.Put`'s
+success, `v3rpc.putApplied E γw` (`putAppliedOk = srvLeadTimeReader ∗ putApplied`), the client's
+`putReplied E γr` (`putReplyOk E γr` and `revMinted`), which `etcdPutSpec E γr` hands the reply's
+`Φ`. `putReplied_ok` drops the token and keeps the witness, so `client_get_after_put` stays over the
+persistent `putReplyOk`. `DeleteRange`/`Txn` carry the token only (their witness is dropped at
+`EtcdServer.DeleteRange`/`Txn`, as in C2a).

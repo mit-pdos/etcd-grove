@@ -15,6 +15,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.filterRangeResults
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.sortRangeResults
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.asembleRangeResponse
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.executeRange
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 @[expose] public section
 
@@ -257,6 +258,8 @@ theorem txn.executeRange.wp_proof
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG))
     (hAsm : txn.asembleRangeResponse.spec (GF := GF) (hG := hG)) :
     txn.executeRange.spec (GF := GF) (hG := hG) := by
+  have hRange := mvcc.metricsTxnWrite.Range.spec_frozen hRange
+  have hRoRange := mvcc.txnReadWrite.Range.spec_frozen hRoRange
   intro trace ctx cd nd lg s γ tw kind ro r o withTotal
   wp_start_folded as ⟨Htv, #Hctx, #Hnd, #Hct, #Hr, %Hpre⟩
   cases ro

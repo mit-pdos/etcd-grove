@@ -11,6 +11,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.checkAndGetPrevKV
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.put
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 @[expose] public section
 
@@ -40,6 +41,8 @@ theorem txn.Put.wp_proof
     (hput : txn.put.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.Put.spec (GF := GF) (hG := hG) := by
+  have hWrite := mvcc.store.Write.spec_frozen hWrite
+  have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
   intro ctx cd lg le kv s γ p o m log₀ P Pre Q Post f L ot te
   wp_start as ⟨#Hkv, Hrd, Htok, Hwt, Htoks, #Hc0, #Hle, Hu, #Hp, #Hctx, #Hct, Hto, #Hlprem, Hcs, #Hhook⟩
   iunfold mvcc.csContract at Hcs

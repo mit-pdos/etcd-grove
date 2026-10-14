@@ -20,6 +20,7 @@ section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [EM : EtcdModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
@@ -49,11 +50,11 @@ abbrev Cache.watchEvents.spec : Prop :=
       isCacheFields c cf γr γd cap ∗
       isHandoff γa aec P Ws Wc ∗ handoffConsumer γa false ∗
       sync.isOnce ro iprop(True) iprop(True) ∗
-      cacheWriter cf γd cap c0 ∗ ⌜0 < sint.Z rev ∧ CursorOk cf.pfx c0 (rev - W64 1)⌝ }}
+      cacheWriter cf γd cap c0 ∗ ⌜0 < sint.Z rev⌝ ∗ CursorOk cf.pfx c0 (rev - W64 1) }}
     (App (App (App (Val (c @!! go.GoType.PointerType Cache.ty @!! go!"watchEvents")) (Val #rev))
       (Val #aec)) (Val #ro))
   {{ (err : GoInterface), RET #err; ∃ c1 : DemuxCore, cacheWriter cf γd cap c1 ∗
-      ⌜CursorOk cf.pfx c1 (rev - W64 1)⌝ ∗
+      CursorOk cf.pfx c1 (rev - W64 1) ∗
       ((handoffConsumer γa false ∗ errStrOk err) ∨
         (handoffConsumer γa true ∗ ((P err ∗ Ws) ∨ (⌜err = GoInterface.nil⌝ ∗ Wc)))) }}
 

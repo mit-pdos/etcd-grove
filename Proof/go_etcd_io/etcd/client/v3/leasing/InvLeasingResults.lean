@@ -172,6 +172,7 @@ theorem getResult_acq (o : OpFull) (e : LeaseEntry) (h : e.kv = e.acq) :
 
 section logic
 variable {GF : BundledGFunctors}
+variable [EM : EtcdModel GF]
 
 /-- **A cached read is etcd's record while the lease lasts** (the corollary of theorem 1, from
 `leased_value_stable`): under the protocol premise, an entry `e` with its facts (the lease key at

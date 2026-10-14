@@ -27,8 +27,9 @@ the index answers what the uncompacted index does (`IdxCRep.kiAt`, `IdxCRep.rang
 with main at or below `c` that compaction does not keep. A read at or above `c` never names one
 (`named_not_del`), provided revision `c` does not delete a key and put it again
 (`NoDelPutAt`): when it does, `doCompact` keeps the tombstone and drops the put that follows it
-in the same revision, the key's live revision (`issues/etcd-compaction-delete-then-put.md`); so
-the premise is the readers' (of a compacted store), not the compaction's.
+in the same revision, the key's live revision (`issues/etcd-compaction-delete-then-put.md`); the
+premise is asserted by the one who compacts (`store.Compact`'s, since unit 6a) and carried by the
+keys compaction deletes, so the compacted store's readers have it (`rangeAnswers_not_del`).
 -/
 module
 
@@ -205,6 +206,9 @@ theorem genWalk_spec (revs : List Rev) (p : Rev → Bool) :
 
 theorem LogB.prefix {log : Log} {cs : List Change} (h : LogB (log ++ [cs])) : LogB log :=
   ⟨by have := h.1; simp at this; omega, fun c hc => h.2 c (List.mem_append_left _ hc)⟩
+
+theorem LogB.prefix' {log log' : Log} (h : LogB log') (hpre : log <+: log') : LogB log :=
+  ⟨by have := hpre.length_le; have := h.1; omega, fun c hc => h.2 c (hpre.subset hc)⟩
 
 /-! ### The events of a log: strictly increasing revisions -/
 
@@ -1803,6 +1807,94 @@ theorem kiAvail_kiCompact (log : Log) (hb : LogB log) (k : GoString) (c c' : Int
     kiAvail (W64 c') (kiCompact (W64 c) (kiOfKey (evsOf log) k)) =
       kiAvail (W64 c') (kiOfKey (evsOf log) k) :=
   kiAvail_kiCompact_S (kiOfKey_KiS log hb k).wf _ _ (by word)
+
+/-! ### Compaction-aware readers (2026-10-13, unit 6a)
+
+`NoDelPutAt log c` depends only on revision `c` of the log (`NoDelPutAt_prefix`); a read at or
+above a compaction revision `c'` names no key compaction at `c'` deletes, of any certified log
+agreeing with the reader's up to `c'` (`rangeAnswers_not_del`: `named_not_del` through the
+prefix order). -/
+
+/-- No compaction (`c < 0`) needs nothing. -/
+theorem NoDelPutAt_neg {log : Log} {c : Int} (h : c < 0) : NoDelPutAt log c := by
+  intro _ _ _ _ _ _ h0; omega
+
+/-- `NoDelPutAt` at `c` is a property of revision `c` alone: two logs in prefix order, both
+with revision `c`, agree on it. -/
+theorem NoDelPutAt_prefix {log log' : Log} (hpre : log <+: log') {c : Int}
+    (hc : c < log.length) : NoDelPutAt log' c ↔ NoDelPutAt log c := by
+  have hget : 0 ≤ c → log'[c.toNat]? = log[c.toNat]? := by
+    intro h0
+    obtain ⟨t, rfl⟩ := hpre
+    rw [List.getElem?_append_left (by omega)]
+  unfold NoDelPutAt
+  constructor
+  · intro h cs i j k v l h0 hl
+    exact h cs i j k v l h0 (by rw [hget h0]; exact hl)
+  · intro h cs i j k v l h0 hl
+    exact h cs i j k v l h0 (by rw [← hget h0]; exact hl)
+
+/-- An answer of a range read is its key's index's answer. -/
+theorem rangeAnswers_get (log : Log) (endNil : Bool) (k e : GoString) (atRev : w64)
+    (a : GoString × Rev × Rev × w64) (ha : a ∈ rangeAnswers log endNil k e atRev) :
+    kiGet (kiOfKey (evsOf log) a.1) atRev = some a.2 := by
+  obtain ⟨key, m, c, v⟩ := a
+  simp only
+  rw [← idxGet_indexOf_bind]
+  cases endNil with
+  | true =>
+    rw [rangeAnswers_nil, Option.mem_toList] at ha
+    cases hg : kiGet (kiOfKey (evsOf log) k) atRev with
+    | none => rw [hg] at ha; simp at ha
+    | some ans =>
+      rw [hg] at ha
+      simp only [Option.map_some, Option.some.injEq, Prod.mk.injEq] at ha
+      obtain ⟨rfl, rfl⟩ := ha
+      rw [idxGet_indexOf_bind]
+      exact hg
+  | false =>
+    unfold rangeAnswers at ha
+    simp only [Bool.false_eq_true, ↓reduceIte] at ha
+    unfold rangeAt at ha
+    rw [List.mem_filterMap] at ha
+    obtain ⟨z, hz, hza⟩ := ha
+    rw [List.mem_filter] at hz
+    cases hg : kiGet z.2 atRev with
+    | none => rw [hg] at hza; simp at hza
+    | some ans =>
+      rw [hg] at hza
+      simp only [Option.map_some, Option.some.injEq, Prod.mk.injEq] at hza
+      obtain ⟨rfl, rfl⟩ := hza
+      rw [idxGet_of_mem _ (indexOf_sorted _) z hz.1]
+      exact hg
+
+/-- **A read at or above a compaction revision names no key that compaction deletes** (unit 6a):
+the reader's log `log` extends a log `lc` with revision `c'`, the deleter's certified log `log'`
+is in prefix order with `lc`, and revision `c'` of it does not delete then put a key
+(`NoDelPutAt`, what the compactor asserted): an answer of a read of `log` at `atRev ≥ c'`, at
+revision bytes of its modification, is not a key compaction at `c'` deletes (`KeyDel log' c'`). -/
+theorem rangeAnswers_not_del (lc log log' : Log) (hpre : lc <+: log) (hb : LogB log)
+    (hb' : LogB log') (hcmp : lc <+: log' ∨ log' <+: lc) (c' : Int) (hc0 : -1 ≤ c')
+    (hc' : c' < lc.length) (hnd : NoDelPutAt log' c') (endNil : Bool) (k e : GoString)
+    (atRev : w64) (hca : c' ≤ sint.Z atRev) (a : GoString × Rev × Rev × w64)
+    (ha : a ∈ rangeAnswers log endNil k e atRev) (t : Bool) :
+    ¬ KeyDel log' c' (revBytes a.2.1 t) := by
+  intro hdel
+  have hblc : LogB lc := hb.prefix' hpre
+  -- the deleter's log and the reader's agree up to `c'`: through `lc`
+  have hdel_lc : KeyDel lc c' (revBytes a.2.1 t) := by
+    rcases hcmp with h | h
+    · exact (KeyDel_prefix lc log' h hb' c' hc0 hc' _).1 hdel
+    · exact (KeyDel_prefix log' lc h hblc c' hc0 hdel.1 _).2 hdel
+  have hnd_lc : NoDelPutAt lc c' := by
+    rcases hcmp with h | h
+    · exact (NoDelPutAt_prefix h hc').1 hnd
+    · exact (NoDelPutAt_prefix h hdel.1).2 hnd
+  have hdel_log : KeyDel log c' (revBytes a.2.1 t) :=
+    (KeyDel_prefix lc log hpre hb c' hc0 hc' _).2 hdel_lc
+  have hnd_log : NoDelPutAt log c' := (NoDelPutAt_prefix hpre hc').2 hnd_lc
+  exact named_not_del log hb c' hc0 hnd_log a.1 atRev hca a.2.1 a.2.2.1 a.2.2.2
+    (rangeAnswers_get log endNil k e atRev a ha) t hdel_log
 
 end mvcc
 end EtcdGrove

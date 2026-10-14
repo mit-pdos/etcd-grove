@@ -20,6 +20,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 @[expose] public section
 
@@ -126,6 +127,7 @@ theorem mvcc.store_Write_backend (hWrite : mvcc.store.Write.spec (GF := GF) (hG 
       (App (Val (s @!! go.GoType.PointerType store.ty @!! go!"Write")) (Val #trace))
     {{ (mw : Loc), RET #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw);
         (∃ ilog : mvcc.Log, mvcc.isTxnWrite mw s γ trace ilog [] (W64 0) (W64 0) (W64 0)) ∗ Q }} := by
+  have hWrite := mvcc.store.Write.spec_frozen hWrite
   have hwt : mvcc.storeWT (GF := GF) γ = backend.wbTok d.γB := by
     unfold mvcc.storeWT mvcc.kbWT; rw [hk]
   rw [← hwt]

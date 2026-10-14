@@ -10,6 +10,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.RangeSecObserve
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.executeRange
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 @[expose] public section
 
@@ -37,6 +38,8 @@ theorem txn.Range.wp_proof
     (hExec : txn.executeRange.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     txn.Range.spec (GF := GF) (hG := hG) := by
+  have hRead := mvcc.store.Read.spec_frozen hRead
+  have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
   intro ctx cd nd lg kv s γ r o withTotal m log₀ ot te
   wp_start as ⟨#Hkv, Hrd, Htoks, #Hc0, #Hr, #Hctx, #Hct, Hto, #Hnd, %Hlg, %Hvst, #Hsort⟩
   iunfold txn.isKV at Hkv

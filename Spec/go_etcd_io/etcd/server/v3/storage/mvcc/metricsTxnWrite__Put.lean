@@ -24,15 +24,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 /-- `tw.Put(key, value, lease)` of a write transaction: the counters, then the wrapped `Put`. -/
 abbrev mvcc.metricsTxnWrite.Put.spec : Prop :=
   ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
-    (puts deletes putSize : w64) (key value : GoSlice) (k v : GoString) (leaseID : w64) (L : List w64),
+    (puts deletes putSize : w64) (key value : GoSlice) (k v : GoString) (leaseID : w64) (L : List w64)
+    (crev : Int) (Z : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize ∗ key ↦*□ k ∗ value ↦*□ v ∗
+      mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z ∗ key ↦*□ k ∗ value ↦*□ v ∗
       lease.leaseOwn γ.leases L ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗ ⌜pend.length + 1 < mvcc.putMax γ⌝ }}
     (App (App (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Put")) (Val #key))
       (Val #value)) (Val #leaseID))
   {{ RET #(W64 (ilog.length : Int) : w64);
       mvcc.isTxnWrite mw s γ trace ilog (pend ++ [.put k v leaseID]) (puts + W64 1) deletes
-        (putSize + (key.len + value.len)) ∗ lease.leaseOwn γ.leases L }}
+        (putSize + (key.len + value.len)) crev Z ∗ lease.leaseOwn γ.leases L }}
 
 end spec
 

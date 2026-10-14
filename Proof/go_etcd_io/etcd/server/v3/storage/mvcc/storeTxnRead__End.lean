@@ -25,12 +25,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.storeTxnRead.End.wp_proof : mvcc.storeTxnRead.End.spec (GF := GF) (hG := hG) := by
-  intro tr s trace ti rt γ log rev
+  intro tr s trace ti rt γ log rev crev Z
   wp_start as ⟨-, #Htr, Hrd, #Hidx0, Hmu0, HrevMu0, Hti0⟩
   iunfold mvcc.storeTxnReadIs at Htr
   iNamedSuffix Htr "T"
   iunfold mvcc.txReader at Hrd
-  icases Hrd with ⟨%m, %Rd, %Tok, Hrd⟩
+  icases Hrd with ⟨%m, %m', %Rd, %Tok, Hrd⟩
   iNamed Hrd
   iunfold mvcc.keyReadLocked at Hsnap
   icases Hsnap with ⟨#HRU, -, -, -⟩
@@ -42,10 +42,11 @@ theorem mvcc.storeTxnRead.End.wp_proof : mvcc.storeTxnRead.End.spec (GF := GF) (
   iunfold mvcc.muHeld at Hmu0
   icases Hmu0 with ⟨Hmu0, Hmua⟩
   wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hmu0 Hmua] as Hmu0
-  · inext; iunfold mvcc.muInv; iexists -1; iexact Hmua
+  · inext; iunfold mvcc.muInv; iexists crev; iexact Hmua
   (try wp_auto)
   iapply HΦ
-  iunfold mvcc.storeReader
+  iframe HZT
+  iunfold mvcc.storeReaderC
   iexists ti
   simp only [named]
   iframe Hmu0 HrevMu0 Hti0 Hrt

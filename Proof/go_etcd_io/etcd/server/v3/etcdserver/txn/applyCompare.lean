@@ -9,6 +9,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.compareKV
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Range
 public import Spec.context.TODO
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.RangeLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.FrozenSpecs
 
 @[expose] public section
 
@@ -35,6 +36,7 @@ theorem txn.applyCompare.wp_proof
     (hRange : mvcc.metricsTxnWrite.Range.spec (GF := GF) (hG := hG))
     (hKV : txn.compareKV.spec (GF := GF) (hG := hG)) :
     txn.applyCompare.spec (GF := GF) (hG := hG) := by
+  have hRange := mvcc.metricsTxnWrite.Range.spec_frozen hRange
   intro trace mw s γ log rev c cm
   wp_start as ⟨Htx, #Hc⟩
   ihave #Hc2 := Hc

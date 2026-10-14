@@ -25,13 +25,17 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 key-values, `isTxnEnd`: `isTxn_toEnd`): the metrics updated, the wrapped transaction ended
 (`storeTxnRead.End` or `storeTxnWrite.End`): the tokens are back, and a write transaction's
 committed log is certified (`txnEndPost`). A write transaction's `Unlock` takes the batch
-lock's invariant back (`txnEndPre`). -/
+lock's invariant back (`txnEndPre`). At any compaction revision `crev`, the tokens back as
+`storeReaderC` with the reader's tag `Z` (2026-10-13, unit 6a); the frozen statement
+(`storeReader`) is `specFrozen` (`spec_frozen`, `FrozenSpecs.lean`). -/
 abbrev mvcc.metricsTxnWrite.End.spec : Prop :=
-  ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isTxnEnd mw s γ trace kind ∗
+  ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (crev : Int)
+    (Z : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.isTxnEnd mw s γ trace kind crev Z ∗
       mvcc.txnEndPre γ kind }}
     (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"End")) (Val #()))
-  {{ RET #(); mvcc.storeReader s γ ∗ mvcc.txnEndPost γ kind ∗ (∃ te : Bool, traceutil.ownTrace trace te) }}
+  {{ RET #(); mvcc.storeReaderC s γ ∗ □ Z ∗ mvcc.txnEndPost γ kind ∗
+      (∃ te : Bool, traceutil.ownTrace trace te) }}
 
 end spec
 
