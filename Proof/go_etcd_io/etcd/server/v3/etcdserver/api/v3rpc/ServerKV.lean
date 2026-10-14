@@ -98,24 +98,29 @@ def srvCall (s : Loc) (ρ : ReqNames) (ctx : GoInterface) : IProp GF :=
     srvLeadTimeReader s)
 
 /-- `putAppliedOk` but the caller's reader slot: the answer's facts (the vertical slice's unit
-V1: what the client learns of the response; `client/v3/Results.lean`'s `etcd_putRunOk`). -/
-def putApplied (E : apply.AEnv GF) (o : OpFull) (resp : Loc) (r : w64) : IProp GF :=
+V1: what the client learns of the response; `client/v3/Results.lean`'s `etcd_putRunOk`), with
+(2026-10-14, unit C2a) the write's witness at the read names `γw` (`appliedWit`). -/
+def putApplied (E : apply.AEnv GF) (γw : ReadNames) (o : OpFull) (resp : Loc) (r : w64) :
+    IProp GF :=
   iprop(∃ (hm : apply.HeaderModel) (x x' : apply.ApplyKV) (l : mvcc.Log)
       (skip : Bool),
     ⌜apply.applyStep (apply.withHeader (irrPut o) hm) true x x' (.dispatched (.applied l false) skip) ∧
       r = W64 (x.log.length : Int)⌝ ∗
     apply.putOutcomeIs x.log o resp GoInterface.nil (.applied l false) ∗
-    mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log)
+    mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γw x'.log)
 
 /-- **A successful `Put` of `o`** (`EtcdServer.Put`'s success, at the handler's level): the
 request with the server's header (`hm`) was dispatched by the apply thread at the KV state `x`
 to `x'` and applied (`applied l false`: `putModel`'s, no `ErrNoSpace`), the response is the
 put's (`putOutcomeIs` at `x.log`: header revision `x.log.length`, the previous key-value if
-asked), the header's revision `r` is that revision, mvcc's certificate of the log after; the
-caller's reader slot back. -/
-def putAppliedOk (s : Loc) (E : apply.AEnv GF) (o : OpFull) (resp : Loc) (r : w64) :
-    IProp GF :=
-  iprop(srvLeadTimeReader s ∗ putApplied E o resp r)
+asked), the header's revision `r` is that revision, mvcc's certificate of the log after, the
+token of the revision it appended (`revMinted`, unit V1), and (2026-10-14, unit C2a) the log
+after applied through an index of the committed log (`appliedWit γw`, at the request path's read
+names: a linearizable read at that index reads a log extending it); the caller's reader slot
+back. -/
+def putAppliedOk (s : Loc) (E : apply.AEnv GF) (γw : ReadNames) (o : OpFull) (resp : Loc)
+    (r : w64) : IProp GF :=
+  iprop(srvLeadTimeReader s ∗ putApplied E γw o resp r)
 
 /-- `deleteAppliedOk` but the caller's reader slot (as `putApplied`). -/
 def deleteApplied (E : apply.AEnv GF) (o : OpFull) (resp : Loc) (r : w64) : IProp GF :=
@@ -219,7 +224,7 @@ def srvKVAns (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c 
     | .txn cs ts es => txnInModel cs ts es
     | _ => True
   ok q resp _h r := iprop(srvRdCall s E γr c ∗ match q with
-    | .put o => putAppliedOk s E o resp r
+    | .put o => putAppliedOk s E ρ.rd o resp r
     | .deleteRange o => deleteAppliedOk s E o resp r
     | .range o => iprop(idCred ρ.ids 1 ∗ srvLeadTimeReader s ∗ rangeAnsOk E γr c o resp r)
     | .txn cs ts es => iprop(srvLeadTimeReader s ∗ ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
@@ -406,7 +411,7 @@ theorem kvPutOk_of_server (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
   · iframe #; iframe Hrd Hcred
   iapply HΦ
   iunfold kvAnswer
-  icases Hres with (⟨%Herr, %hm, %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert, HMint⟩ |
+  icases Hres with (⟨%Herr, %hm, %x, %x', %oc, %skip, %Hst, Hpo, Hhdr, #Hcert, HMint, #Hwit⟩ |
     ⟨%Hre, #HaE, Hfail⟩)
   · obtain ⟨Hstep, l, rfl⟩ := Hst
     subst Herr
@@ -430,7 +435,7 @@ theorem kvPutOk_of_server (hPut : EtcdServer.Put.spec (GF := GF) (hG := hG))
     iframe Hrd
     iunfold putApplied
     iexists hm, x, x', l, skip
-    iframe Hcert HMint
+    iframe Hcert HMint Hwit
     isplitr
     · ipureintro; exact ⟨Hstep, rfl⟩
     simp only [apply.putOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]

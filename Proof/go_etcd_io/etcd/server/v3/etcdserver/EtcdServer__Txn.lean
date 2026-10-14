@@ -579,7 +579,7 @@ theorem EtcdServer.Txn.wp_proof
     icases Hres with (⟨%Herr, %hm, %rq', %Hwire, Hok⟩ | ⟨%Hre, #HaE, Hfail⟩)
     · subst Herr
       iunfold appliedOk at Hok
-      icases Hok with ⟨%x, %x', %oc, %skip, %Hstep, Hans, #Hcert, HMint⟩
+      icases Hok with ⟨%x, %x', %oc, %skip, %Hstep, Hans, #Hcert, HMint, -⟩
       have Hk : apply.dispatchKind rq' = .txn := by
         rw [Hwire.2.2.1]
         simp [apply.dispatchKind, apply.withHeader, irrTxn, apply.irrEmpty]

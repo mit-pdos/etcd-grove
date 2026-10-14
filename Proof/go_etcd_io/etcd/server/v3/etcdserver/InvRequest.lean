@@ -51,6 +51,16 @@ authority, the applied logs `γr.logs`), the apply thread holding the other half
 (`appliedLogAt`); the committed index's are `s.committedIndex`'s (`srvCommittedInv`; the writer's
 half `srvCommittedOwn` is the raft loop's, unit 4c).
 
+**A write's witness** (2026-10-14, unit C2a; `notes/decisions.md`, "A write's witness for later
+reads"). The apply thread deposits the log after an entry *before* the entry's result reaches its
+proposer (`applied_predeposit`, `srvAppliedPre`: the ghost variable `γr.pend` says the next
+index's log is in), and the applied logs are in their indices' order as prefixes (`srvAppliedInv`'s
+`appliedMonoMap`, read as `appliedMono`); with the raft loop raising the committed index past a
+batch before handing it over (`committedLast`, `batchCommittedIdx`), every result carries
+`appliedWit γr log` (`resultIsW`): its log is applied through an index of the committed log, so a
+linearizable read at that index reads a log extending it. The read names are the request path's
+(`ReqNames.rd`; the apply thread's `isServer` has them its own, `ρ.rd = γr`).
+
 **The auth store's request side** (`isReqAuth st`): `AuthInfoFromCtx`/`AuthInfoFromTLS` return
 `nil` or an `*AuthInfo` with readable `Username`/`Revision` (`authInfoIs`), and an error.
 -/
@@ -164,6 +174,141 @@ instance srvCommittedLb_persistent (γ : ServerRaftNames) (cs : List (List w8)) 
 
 end ghost
 
+/-! ## Reads (`read.Read`, names-only until unit 4) -/
+
+section readGhost
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- Raft's `ReadState` (v3.7) is countable (a channel's element type: the raft wrapper's
+`readStateC`, the read loop's `ReadState()`; moved here from `InvRaftNode.lean`, 2026-10-13, for
+the read package, which must not import the raft wrapper's invariants). -/
+instance readState_countable : Pos.Countable go_etcd_io.raft.v3.ReadState :=
+  countableOfLeftInverse (fun r : go_etcd_io.raft.v3.ReadState => (r.Index', r.RequestCtx'))
+    (fun p => ⟨p.1, p.2⟩) (fun _ => rfl)
+
+/-- The read-index ghost names: lower bounds of the applied index and of the committed
+index; and (2026-10-13, the request path's unit 4a) the read loop's current notifier, a ghost
+variable of the notifier and the name of its need (`read/Inv.lean`), whose halves the read loop's
+`RWMutex` and its invariant hold: the lock's resource (`readMuP`) names it, so a caller's reader
+slot of the lock (`readReader`) is a predicate of the names; and (2026-10-13, unit 4b) the applied
+logs, a ghost map from an applied index to the KV log the apply thread had right after applying
+the entry at that index (`appliedLogAt`); and (2026-10-14, unit C2a) whether the log of the next
+index is already deposited (`pend`, a ghost variable whose halves the applied index's invariant and
+the apply thread hold: the apply thread deposits the log after an entry before `setAppliedIndex`,
+so that the proposer the entry answers learns it, `srvAppliedPre`). -/
+structure ReadNames where
+  applied : GName
+  committed : GName
+  notifier : GName
+  logs : GName
+  pend : GName
+
+/-- The applied index is at least `i` (persistent). -/
+def appliedAtLeast (γr : ReadNames) (i : w64) : IProp GF := monoNatLbOwn γr.applied (uint.nat i)
+
+/-- The cluster's committed index is at least `i` (persistent: what a caller knew). -/
+def committedAtLeast (γr : ReadNames) (i : w64) : IProp GF :=
+  monoNatLbOwn γr.committed (uint.nat i)
+
+instance appliedAtLeast_persistent (γr : ReadNames) (i : w64) :
+    Persistent (appliedAtLeast (GF := GF) γr i) := by
+  unfold appliedAtLeast; infer_instance
+instance committedAtLeast_persistent (γr : ReadNames) (i : w64) :
+    Persistent (committedAtLeast (GF := GF) γr i) := by
+  unfold committedAtLeast; infer_instance
+
+/-- **The log applied through the index `i`** (persistent, agreeing: `appliedLogAt_agree`): the KV
+log the apply thread had right after applying the entry at index `i` (deposited by
+`setAppliedIndex`, the request path's unit 4b). -/
+def appliedLogAt (γr : ReadNames) (i : w64) (L : mvcc.Log) : IProp GF := i ↪[γr.logs]□ L
+
+instance appliedLogAt_persistent (γr : ReadNames) (i : w64) (L : mvcc.Log) :
+    Persistent (appliedLogAt (GF := GF) γr i L) := by
+  unfold appliedLogAt; infer_instance
+
+instance appliedLogAt_timeless (γr : ReadNames) (i : w64) (L : mvcc.Log) :
+    Timeless (appliedLogAt (GF := GF) γr i L) := by
+  unfold appliedLogAt; infer_instance
+
+/-- mvcc's certificate is timeless (ghost lower bounds and a pure fact). -/
+instance idxCert_timeless_req (γ : mvcc.IdxNames) (log : mvcc.Log) :
+    Timeless (mvcc.idxCert (GF := GF) γ log) := by
+  unfold mvcc.idxCert; infer_instance
+
+/-- Two logs applied through one index are one. -/
+theorem appliedLogAt_agree (γr : ReadNames) (i : w64) (L L' : mvcc.Log) :
+    ⊢ appliedLogAt (GF := GF) γr i L -∗ appliedLogAt γr i L' -∗ ⌜L = L'⌝ := by
+  iintro H1 H2
+  iunfold appliedLogAt at H1 H2
+  icombine H1 H2 gives %Hag
+  ipureintro
+  exact Hag.2
+
+/-- A lower bound of the committed index is one of every smaller index. -/
+theorem committedAtLeast_le (γr : ReadNames) (i j : w64) (h : uint.Z j ≤ uint.Z i) :
+    ⊢ committedAtLeast (GF := GF) γr i -∗ committedAtLeast γr j := by
+  iintro H
+  iunfold committedAtLeast at H
+  iunfold committedAtLeast
+  iapply monoNatLbOwn_le (uint.nat j) (by word) $$ H
+
+/-- **A batch's last entry is committed** (persistent; 2026-10-14, unit C2a): the committed index
+has reached the batch's last index (the raft loop's `updateCommittedIndex` before it hands the
+batch to the apply thread); nothing for an empty batch. -/
+def committedLast (γr : ReadNames) (ce : List EntryModel) : IProp GF :=
+  match ce.getLast? with
+  | some m => committedAtLeast γr m.index
+  | none => iprop(True)
+
+instance committedLast_persistent (γr : ReadNames) (ce : List EntryModel) :
+    Persistent (committedLast (GF := GF) γr ce) := by
+  unfold committedLast; split <;> infer_instance
+
+/-- **Every entry of a batch is committed** (persistent; 2026-10-14, unit C2a): the committed
+index has reached each entry's index. -/
+def batchCommittedIdx (γr : ReadNames) (ms : List EntryModel) : IProp GF :=
+  iprop(□ ∀ m, ⌜m ∈ ms⌝ -∗ committedAtLeast γr m.index)
+
+instance batchCommittedIdx_persistent (γr : ReadNames) (ms : List EntryModel) :
+    Persistent (batchCommittedIdx (GF := GF) γr ms) := by
+  unfold batchCommittedIdx; infer_instance
+
+/-- **The applied logs grow with the index** (persistent; 2026-10-14, unit C2a): two logs applied
+through two indices are in the indices' order as prefixes. A capability: the applied index's
+invariant (`srvAppliedInv`, `appliedMono_of_inv`) keeps the applied logs in prefix order. -/
+def appliedMono (γr : ReadNames) : IProp GF :=
+  iprop(□ ∀ (i j : w64) (L1 L2 : mvcc.Log), ⌜uint.Z i ≤ uint.Z j⌝ -∗ appliedLogAt γr i L1 -∗
+    appliedLogAt γr j L2 ={⊤}=∗ ⌜L1 <+: L2⌝)
+
+instance appliedMono_persistent (γr : ReadNames) : Persistent (appliedMono (GF := GF) γr) := by
+  unfold appliedMono; infer_instance
+
+/-- **A write's witness for later reads** (persistent; 2026-10-14, unit C2a): the KV log `log` is
+the log applied through an index `i` of the cluster's committed log (`committedAtLeast γr i`: the
+raft loop raised the committed index past the entry before the apply thread applied it), and the
+applied logs grow with the index (`appliedMono`). A linearizable read at `i` (`readLogOk γr i`)
+reads a log that extends `log`. -/
+def appliedWit (γr : ReadNames) (log : mvcc.Log) : IProp GF :=
+  iprop(∃ i : w64, committedAtLeast γr i ∗ appliedLogAt γr i log ∗ appliedMono γr)
+
+instance appliedWit_persistent (γr : ReadNames) (log : mvcc.Log) :
+    Persistent (appliedWit (GF := GF) γr log) := by
+  unfold appliedWit; infer_instance
+
+/-- **`LinearizableReadNotify` succeeded**: the applied index has reached an index at least the
+committed index `c` the caller knew of. -/
+def readIndexOk (γr : ReadNames) (c : w64) : IProp GF :=
+  iprop(∃ ci₀ : w64, ⌜uint.Z c ≤ uint.Z ci₀⌝ ∗ appliedAtLeast γr ci₀)
+
+instance readIndexOk_persistent (γr : ReadNames) (c : w64) :
+    Persistent (readIndexOk (GF := GF) γr c) := by
+  unfold readIndexOk; infer_instance
+
+end readGhost
+
 /-! ## The wait registry (`pkg/wait`) -/
 
 section wait
@@ -172,12 +317,15 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- The request path's ghost names: the raft contract's, the ids', and the wait's registered
-ids' (`isWait`'s `γw`). -/
+/-- The request path's ghost names: the raft contract's, the ids', the wait's registered
+ids' (`isWait`'s `γw`), and (2026-10-14, unit C2a) the read names the apply thread's answers are
+stated at (`rd`: a result carries the read names' witness of its log, `resultIsW`; the apply
+thread's view `isServer` has them the read side's). -/
 structure ReqNames where
   raft : ServerRaftNames
   ids : IdNames
   wait : GName
+  rd : ReadNames
 
 /-! ### The revisions' tokens (the vertical slice's unit V1) -/
 
@@ -348,22 +496,47 @@ def resultIs (E : apply.AEnv GF) (rq : apply.IRRModel) (ar : Loc) : IProp GF :=
       ⌜apply.applyStep rq true y y' out⌝ ∗ apply.applyResultIs rq true y.log ar out ∗
       mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log)
 
+/-- **The result `ar` of applying `rq`, with its witness** (2026-10-14, unit C2a): `resultIs`
+(with its minted token, `revMinted`, unit V1), and the log after is applied through an index of
+the committed log (`appliedWit γr y'.log`: the apply thread deposits it before it hands the
+result over, `srvAppliedPre`). -/
+def resultIsW (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (ar : Loc) : IProp GF :=
+  iprop(⌜ar ≠ null⌝ ∗
+    ∃ (y y' : apply.ApplyKV) (out : apply.ApplyOut),
+      ⌜apply.applyStep rq true y y' out⌝ ∗ apply.applyResultIs rq true y.log ar out ∗
+      mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log)
+
+/-- The witness dropped. -/
+theorem resultIsW_resultIs (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (ar : Loc) :
+    resultIsW (GF := GF) E γr rq ar ⊢ resultIs E rq ar := by
+  iintro H
+  iunfold resultIsW at H
+  icases H with ⟨%Hnn, %y, %y', %out, %Hst, Hres, Hc, Hm, -⟩
+  iunfold resultIs
+  isplitr
+  · ipureintro; exact Hnn
+  iexists y, y', out
+  iframe Hres Hc Hm
+  ipureintro; exact Hst
+
 /-- **The result the proposer of `rq` expects**: the `*apply.Result` `ar` (as an interface
-value) with `resultIs E rq ar`, and its trace (`apply.resTrace`, unit P1b). -/
-def resultΨ (E : apply.AEnv GF) (rq : apply.IRRModel) (x : GoInterface) : IProp GF :=
+value) with `resultIsW E γr rq ar` (`resultIs` until 2026-10-14, unit C2a), and its trace
+(`apply.resTrace`, unit P1b). -/
+def resultΨ (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (x : GoInterface) :
+    IProp GF :=
   iprop(∃ ar : Loc,
     ⌜x = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar⌝ ∗
-    apply.resTrace ar ∗ resultIs E rq ar)
+    apply.resTrace ar ∗ resultIsW E γr rq ar)
 
 /-- **The server's registration condition**: the expectation of a registered id is
-`resultΨ E rq` for the request `rq` its data decode to, the id claimed for those data. -/
-def reqWaitR (γi : IdNames) (E : apply.AEnv GF) (id : w64) (Ψ : GoInterface → IProp GF) :
-    IProp GF :=
+`resultΨ E γr rq` for the request `rq` its data decode to, the id claimed for those data. -/
+def reqWaitR (γi : IdNames) (E : apply.AEnv GF) (γr : ReadNames) (id : w64)
+    (Ψ : GoInterface → IProp GF) : IProp GF :=
   iprop(∃ (d : List w8) (rq : apply.IRRModel), idClaim γi id d ∗
-    ⌜apply.irrDecode d = some rq ∧ Ψ = resultΨ E rq⌝)
+    ⌜apply.irrDecode d = some rq ∧ Ψ = resultΨ E γr rq⌝)
 
-instance reqWaitR_persistent (γi : IdNames) (E : apply.AEnv GF) (id : w64)
-    (Ψ : GoInterface → IProp GF) : Persistent (reqWaitR γi E id Ψ) := by
+instance reqWaitR_persistent (γi : IdNames) (E : apply.AEnv GF) (γr : ReadNames) (id : w64)
+    (Ψ : GoInterface → IProp GF) : Persistent (reqWaitR γi E γr id Ψ) := by
   unfold reqWaitR; infer_instance
 
 /-- **The server's wait** `s.w` (persistent): a `wait.Wait` (`wait.New`'s contract) with the
@@ -371,7 +544,7 @@ server's registration condition, the ids `ρ.ids`, the registered ids' map `ρ.w
 reader's resource (the apply thread's `srvApplyKV` holds `IsRegistered`'s, as the apply package's
 `waitOk`). Replaces the apply package's `waitOk` in `srvFieldsAt` (unit 2). -/
 def waitInv (w : GoInterface) (ρ : ReqNames) (E : apply.AEnv GF) : IProp GF :=
-  iprop(∃ RD : IProp GF, isWait w ρ.ids ρ.wait (reqWaitR ρ.ids E) RD)
+  iprop(∃ RD : IProp GF, isWait w ρ.ids ρ.wait (reqWaitR ρ.ids E ρ.rd) RD)
 
 instance waitInv_persistent (w : GoInterface) (ρ : ReqNames) (E : apply.AEnv GF) :
     Persistent (waitInv (GF := GF) w ρ E) := by
@@ -387,7 +560,7 @@ def entryWaitOk (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel) : IProp GF 
     iprop(∀ (rq : apply.IRRModel) (id : w64),
       ⌜m.data ≠ [] ∧ apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id⌝ -∗
         idClaim ρ.ids id m.data)
-  else iprop(□ ∀ Ψ, reqWaitR ρ.ids E (ccIdOf m.data) Ψ -∗ False)
+  else iprop(□ ∀ Ψ, reqWaitR ρ.ids E ρ.rd (ccIdOf m.data) Ψ -∗ False)
 
 instance entryWaitOk_persistent (ρ : ReqNames) (E : apply.AEnv GF) (m : EntryModel) :
     Persistent (entryWaitOk (GF := GF) ρ E m) := by
@@ -469,86 +642,6 @@ instance srvRaftNode_persistent (s : Loc) (γ : ServerRaftNames) :
 
 end raftNode
 
-/-! ## Reads (`read.Read`, names-only until unit 4) -/
-
-section readGhost
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- Raft's `ReadState` (v3.7) is countable (a channel's element type: the raft wrapper's
-`readStateC`, the read loop's `ReadState()`; moved here from `InvRaftNode.lean`, 2026-10-13, for
-the read package, which must not import the raft wrapper's invariants). -/
-instance readState_countable : Pos.Countable go_etcd_io.raft.v3.ReadState :=
-  countableOfLeftInverse (fun r : go_etcd_io.raft.v3.ReadState => (r.Index', r.RequestCtx'))
-    (fun p => ⟨p.1, p.2⟩) (fun _ => rfl)
-
-/-- The read-index ghost names: lower bounds of the applied index and of the committed
-index; and (2026-10-13, the request path's unit 4a) the read loop's current notifier, a ghost
-variable of the notifier and the name of its need (`read/Inv.lean`), whose halves the read loop's
-`RWMutex` and its invariant hold: the lock's resource (`readMuP`) names it, so a caller's reader
-slot of the lock (`readReader`) is a predicate of the names; and (2026-10-13, unit 4b) the applied
-logs, a ghost map from an applied index to the KV log the apply thread had right after applying
-the entry at that index (`appliedLogAt`). -/
-structure ReadNames where
-  applied : GName
-  committed : GName
-  notifier : GName
-  logs : GName
-
-/-- The applied index is at least `i` (persistent). -/
-def appliedAtLeast (γr : ReadNames) (i : w64) : IProp GF := monoNatLbOwn γr.applied (uint.nat i)
-
-/-- The cluster's committed index is at least `i` (persistent: what a caller knew). -/
-def committedAtLeast (γr : ReadNames) (i : w64) : IProp GF :=
-  monoNatLbOwn γr.committed (uint.nat i)
-
-instance appliedAtLeast_persistent (γr : ReadNames) (i : w64) :
-    Persistent (appliedAtLeast (GF := GF) γr i) := by
-  unfold appliedAtLeast; infer_instance
-instance committedAtLeast_persistent (γr : ReadNames) (i : w64) :
-    Persistent (committedAtLeast (GF := GF) γr i) := by
-  unfold committedAtLeast; infer_instance
-
-/-- **The log applied through the index `i`** (persistent, agreeing: `appliedLogAt_agree`): the KV
-log the apply thread had right after applying the entry at index `i` (deposited by
-`setAppliedIndex`, the request path's unit 4b). -/
-def appliedLogAt (γr : ReadNames) (i : w64) (L : mvcc.Log) : IProp GF := i ↪[γr.logs]□ L
-
-instance appliedLogAt_persistent (γr : ReadNames) (i : w64) (L : mvcc.Log) :
-    Persistent (appliedLogAt (GF := GF) γr i L) := by
-  unfold appliedLogAt; infer_instance
-
-instance appliedLogAt_timeless (γr : ReadNames) (i : w64) (L : mvcc.Log) :
-    Timeless (appliedLogAt (GF := GF) γr i L) := by
-  unfold appliedLogAt; infer_instance
-
-/-- mvcc's certificate is timeless (ghost lower bounds and a pure fact). -/
-instance idxCert_timeless_req (γ : mvcc.IdxNames) (log : mvcc.Log) :
-    Timeless (mvcc.idxCert (GF := GF) γ log) := by
-  unfold mvcc.idxCert; infer_instance
-
-/-- Two logs applied through one index are one. -/
-theorem appliedLogAt_agree (γr : ReadNames) (i : w64) (L L' : mvcc.Log) :
-    ⊢ appliedLogAt (GF := GF) γr i L -∗ appliedLogAt γr i L' -∗ ⌜L = L'⌝ := by
-  iintro H1 H2
-  iunfold appliedLogAt at H1 H2
-  icombine H1 H2 gives %Hag
-  ipureintro
-  exact Hag.2
-
-/-- **`LinearizableReadNotify` succeeded**: the applied index has reached an index at least the
-committed index `c` the caller knew of. -/
-def readIndexOk (γr : ReadNames) (c : w64) : IProp GF :=
-  iprop(∃ ci₀ : w64, ⌜uint.Z c ≤ uint.Z ci₀⌝ ∗ appliedAtLeast γr ci₀)
-
-instance readIndexOk_persistent (γr : ReadNames) (c : w64) :
-    Persistent (readIndexOk (GF := GF) γr c) := by
-  unfold readIndexOk; infer_instance
-
-end readGhost
-
 section applied
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -558,17 +651,43 @@ variable [sem : go.Semantics]
 /-- The server's atomics' invariants' namespace (moved here from `InvApplier.lean`, 2026-10-13). -/
 abbrev srvN : Namespace := nroot.@"server"
 
+/-- The applied logs' keys at the applied index `v`: at most `v`, or `v + 1` once its log is
+deposited ahead (`p`, unit C2a). -/
+def appliedKeysOk (M : GMap w64 mvcc.Log) (v : w64) (p : Bool) : Prop :=
+  ∀ k L', M.lookup k = some L' → uint.Z k ≤ uint.Z v ∨ (p = true ∧ uint.Z k = uint.Z v + 1)
+
+/-- The applied logs are in their indices' order as prefixes (unit C2a). -/
+def appliedMonoMap (M : GMap w64 mvcc.Log) : Prop :=
+  ∀ k k' L1 L2, M.lookup k = some L1 → M.lookup k' = some L2 → uint.Z k ≤ uint.Z k' → L1 <+: L2
+
+/-- A deposit at the next index of a log extending the current one keeps the order. -/
+theorem appliedMonoMap_insert (M : GMap w64 mvcc.Log) (v v' : w64) (L0 L : mvcc.Log)
+    (hk : ∀ k L', M.lookup k = some L' → uint.Z k ≤ uint.Z v) (hmono : appliedMonoMap M)
+    (hv : M.lookup v = some L0) (hp : L0 <+: L) (hv' : uint.Z v' = uint.Z v + 1) :
+    appliedMonoMap (M.insert v' L) := by
+  intro k k' L1 L2 h1 h2 hle
+  rw [GMap.lookup_insert_Some] at h1 h2
+  rcases h1 with ⟨rfl, rfl⟩ | ⟨hk1, h1⟩ <;> rcases h2 with ⟨rfl, rfl⟩ | ⟨hk2, h2⟩
+  · exact List.prefix_refl _
+  · have := hk k' L2 h2; omega
+  · exact (hmono k v L1 L0 h1 hv (hk k L1 h1)).trans hp
+  · exact hmono k k' L1 L2 h1 h2 hle
+
 /-- **The applied index's invariant** (persistent; the request path's unit 4b, see
 `notes/decisions.md`, "The applied index: a certified log per index"): the atomic
 `s.appliedIndex` at `v`, half of the authority of the applied index's lower bounds (`γr.applied`:
 the apply thread, the only writer, holds the other half, `srvAppliedOwn`) at `v`, the authority of
 the applied logs (`γr.logs`), every key at most `v` (so `setAppliedIndex` of a larger index
-deposits a fresh one), and the log applied through `v`, with mvcc's certificate. -/
+deposits a fresh one), and the log applied through `v`, with mvcc's certificate. Since 2026-10-14
+(unit C2a): half of the ghost variable `γr.pend` (`p`: the apply thread deposited the log of `v +
+1` ahead, `applied_predeposit`, so the key `v + 1` may be present), and the applied logs in their
+indices' order as prefixes (`appliedMonoMap`: what `appliedMono` reads). -/
 def srvAppliedInv (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
-  inv srvN iprop(∃ (v : w64) (L : mvcc.Log) (M : GMap w64 mvcc.Log),
+  inv srvN iprop(∃ (v : w64) (L : mvcc.Log) (M : GMap w64 mvcc.Log) (p : Bool),
     sync.atomic.ownUint64 (srvAppliedIndexAddr s) (DFrac.own 1) v ∗
     monoNatAuthOwn γr.applied (1 : Qp).half (uint.nat v) ∗
-    ghostMapAuth γr.logs 1 M ∗ ⌜∀ k L', M.lookup k = some L' → uint.Z k ≤ uint.Z v⌝ ∗
+    ghostMapAuth γr.logs 1 M ∗ ghostVar γr.pend (1 : Qp).half p ∗
+    ⌜appliedKeysOk M v p ∧ appliedMonoMap M⌝ ∗
     appliedLogAt γr v L ∗ mvcc.idxCert E.γ.idx L)
 
 instance srvAppliedInv_persistent (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
@@ -576,9 +695,118 @@ instance srvAppliedInv_persistent (s : Loc) (E : apply.AEnv GF) (γr : ReadNames
   unfold srvAppliedInv; infer_instance
 
 /-- **The apply thread's half of the applied index's authority** at `v` (the only writer of
-`s.appliedIndex`; `setAppliedIndex` moves it). -/
+`s.appliedIndex`; `setAppliedIndex` moves it), and (2026-10-14, unit C2a) its half of `γr.pend`,
+`false`: the next index's log not deposited yet. -/
 def srvAppliedOwn (γr : ReadNames) (v : w64) : IProp GF :=
-  monoNatAuthOwn γr.applied (1 : Qp).half (uint.nat v)
+  iprop(monoNatAuthOwn γr.applied (1 : Qp).half (uint.nat v) ∗ ghostVar γr.pend (1 : Qp).half false)
+
+/-- **The apply thread at the applied index `v`, the log `L` of the next index `v'` deposited
+ahead** (2026-10-14, unit C2a; `applied_predeposit`): what `setAppliedIndex(v')` takes. -/
+def srvAppliedPre (γr : ReadNames) (v v' : w64) (L : mvcc.Log) : IProp GF :=
+  iprop(monoNatAuthOwn γr.applied (1 : Qp).half (uint.nat v) ∗ ghostVar γr.pend (1 : Qp).half true ∗
+    appliedLogAt γr v' L ∗ ⌜uint.Z v' = uint.Z v + 1⌝)
+
+/-- The deposited log, kept. -/
+theorem srvAppliedPre_log (γr : ReadNames) (v v' : w64) (L : mvcc.Log) :
+    srvAppliedPre (GF := GF) γr v v' L ⊢ srvAppliedPre γr v v' L ∗ appliedLogAt γr v' L := by
+  iintro H
+  iunfold srvAppliedPre at H
+  icases H with ⟨Ha, Hp, #HL, %Hv⟩
+  iframe HL
+  iunfold srvAppliedPre
+  iframe Ha Hp HL
+  ipureintro; exact Hv
+
+/-- The apply thread's half gives a lower bound of the applied index. -/
+theorem srvAppliedOwn_lb (γr : ReadNames) (v : w64) :
+    srvAppliedOwn (GF := GF) γr v ⊢ srvAppliedOwn γr v ∗ appliedAtLeast γr v := by
+  iintro H
+  iunfold srvAppliedOwn at H
+  icases H with ⟨Ha, Hp⟩
+  ihave #Hlb := monoNatLbOwn_get γr.applied _ _ $$ Ha
+  iunfold srvAppliedOwn
+  iunfold appliedAtLeast
+  iframe Ha Hp Hlb
+
+/-- **The log after the next entry, deposited ahead** (2026-10-14, unit C2a): the apply thread at
+the applied index `v`, whose log is `L₀` (`appliedLogAt γr v L₀`), deposits a log `L` extending it
+as the log applied through `v' = v + 1`, before `setAppliedIndex(v')` publishes the index: so the
+proposer of the entry learns `appliedLogAt γr v' L` with its result. -/
+theorem applied_predeposit (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v v' : w64)
+    (L₀ L : mvcc.Log) (hv : uint.Z v' = uint.Z v + 1) (hp : L₀ <+: L) :
+    ⊢ srvAppliedInv (GF := GF) s E γr -∗ srvAppliedOwn γr v -∗ appliedLogAt γr v L₀ ={⊤}=∗
+      srvAppliedPre γr v v' L := by
+  iintro #Hinv Hown #HL₀
+  iunfold srvAppliedInv at Hinv
+  iinv Hinv with Hi Hclose
+  icases Hi with ⟨%v0, %Lc, %M, %p, Hat, >Hauth, >HM, >Hp, >%HMk, >#HLc, >#Hc⟩
+  iunfold srvAppliedOwn at Hown
+  icases Hown with ⟨Hown, Hpo⟩
+  ihave %Hag := monoNatAuthOwn_agree γr.applied _ _ _ _ $$ Hown Hauth
+  have hv0 : v0 = v := by
+    have h2 := Hag.2
+    unfold uint.nat at h2
+    exact (BitVec.eq_of_toNat_eq h2).symm
+  subst hv0
+  ihave %Hpg := ghostVar_agree γr.pend _ _ _ _ $$ Hpo Hp
+  subst Hpg
+  ihave %HLeq := appliedLogAt_agree γr v0 Lc L₀ $$ HLc HL₀
+  subst HLeq
+  ihave %HMv : iprop(⌜M.lookup v0 = some Lc⌝) $$ [HM]
+  · iunfold appliedLogAt at HLc
+    iapply ghost_map_lookup $$ HM HLc
+  have hk : ∀ k L', M.lookup k = some L' → uint.Z k ≤ uint.Z v0 := by
+    intro k L' h
+    rcases HMk.1 k L' h with h | ⟨h, -⟩
+    · exact h
+    · cases h
+  have hfresh : M.lookup v' = none := by
+    cases h : M.lookup v' with
+    | none => rfl
+    | some L' => have := hk v' L' h; omega
+  imod ghost_map_insert_persist v' L hfresh $$ HM with ⟨HM, #HLv'⟩
+  imod ghostVar_update_halves true γr.pend false false $$ Hpo Hp with ⟨Hpo, Hp⟩
+  imod Hclose $$ [Hat Hauth HM Hp] with -
+  · inext
+    iexists v0, Lc, M.insert v' L, true
+    iframe Hat Hauth HM Hp HLc Hc
+    ipureintro
+    refine ⟨?_, appliedMonoMap_insert M v0 v' Lc L hk HMk.2 HMv hp hv⟩
+    intro k L' h
+    rw [GMap.lookup_insert_Some] at h
+    rcases h with ⟨rfl, -⟩ | ⟨-, h⟩
+    · exact Or.inr ⟨rfl, hv⟩
+    · exact Or.inl (hk k L' h)
+  imodintro
+  iunfold srvAppliedPre
+  iframe Hown Hpo
+  isplitr
+  · iunfold appliedLogAt; iexact HLv'
+  ipureintro; exact hv
+
+/-- **The applied logs grow with the index** (`appliedMono`, from the invariant). -/
+theorem appliedMono_of_inv (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    srvAppliedInv (GF := GF) s E γr ⊢ appliedMono γr := by
+  iintro #Hinv
+  iunfold appliedMono
+  iintro !> %i %j %L1 %L2 %hij #H1 #H2
+  iunfold srvAppliedInv at Hinv
+  iinv Hinv with Hi Hclose
+  icases Hi with ⟨%v, %L, %M, %p, Hat, >Hauth, >HM, >Hp, >%HMk, >#HL, >#Hc⟩
+  ihave %Hm1 : iprop(⌜M.lookup i = some L1⌝) $$ [HM]
+  · iunfold appliedLogAt at H1
+    iapply ghost_map_lookup $$ HM H1
+  ihave %Hm2 : iprop(⌜M.lookup j = some L2⌝) $$ [HM]
+  · iunfold appliedLogAt at H2
+    iapply ghost_map_lookup $$ HM H2
+  imod Hclose $$ [Hat Hauth HM Hp] with -
+  · inext
+    iexists v, L, M, p
+    iframe Hat Hauth HM Hp HL Hc
+    ipureintro; exact HMk
+  imodintro
+  ipureintro
+  exact HMk.2 i j L1 L2 Hm1 Hm2 hij
 
 /-- **The committed index's invariant** (persistent; unit 4b, symmetric to `srvAppliedInv`, no
 log): the atomic `s.committedIndex` at `v` and half of the authority of the committed index's
@@ -642,11 +870,11 @@ theorem readIndexOk_log (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64
   icases Hok with ⟨%ci, %Hci, #Hlb⟩
   iunfold srvAppliedInv at Hinv
   iinv Hinv with Hi Hclose
-  icases Hi with ⟨%v, %L, %M, Hat, >Hauth, >HM, >%HMk, >#HL, >#Hc⟩
+  icases Hi with ⟨%v, %L, %M, %p, Hat, >Hauth, >HM, >Hp, >%HMk, >#HL, >#Hc⟩
   iunfold appliedAtLeast at Hlb
   ihave %Hle := monoNatLbOwn_valid γr.applied _ _ _ $$ Hauth Hlb
-  imod Hclose $$ [Hat Hauth HM] with -
-  · inext; iexists v, L, M; iframe Hat Hauth HM HL Hc; ipureintro; exact HMk
+  imod Hclose $$ [Hat Hauth HM Hp] with -
+  · inext; iexists v, L, M, p; iframe Hat Hauth HM Hp HL Hc; ipureintro; exact HMk
   imodintro
   iexists v, L
   iframe HL Hc

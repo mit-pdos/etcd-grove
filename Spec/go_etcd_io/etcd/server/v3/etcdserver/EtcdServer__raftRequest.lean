@@ -24,7 +24,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- `s.raftRequest(ctx, r)` (as `processInternalRaftRequestOnce`): success, the apply thread's
 answer to `rq'` (`appliedOk`: dispatched, the apply package's response, no error); failure, no
-response and an error: the apply's (`appliedErr`), or `processInternalRaftRequestOnce`'s (the
+response and an error (2026-10-14, unit C2a: the success with the result's witness at `ρ.rd`,
+`appliedWit`): the apply's (`appliedErr`), or `processInternalRaftRequestOnce`'s (the
 proposal, if made, deposited). -/
 abbrev EtcdServer.raftRequest.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
@@ -38,7 +39,7 @@ abbrev EtcdServer.raftRequest.spec : Prop :=
       (Val #(GoInterface.ok ctx))) (Val #p))
   {{ (resp err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
-          ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ appliedOk E rq' resp) ∨
+          ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ appliedOk E ρ.rd rq' resp) ∨
        (⌜resp = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
          ((∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
             ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ appliedErr E rq' err) ∨

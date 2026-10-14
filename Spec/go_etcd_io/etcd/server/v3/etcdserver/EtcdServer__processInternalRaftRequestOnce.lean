@@ -30,7 +30,8 @@ the header's), one id credit and a reader slot of `s.leadTimeMu`:
 * success (`err = nil`): `res` is the apply thread's result of applying `rq'`, the request the
   proposed data decode to (`irrWireOf`: `rq` with its header, up to the model's `[0]` range ends):
   `resultIs E rq' res` (the apply package's `applyStep` and `applyResultIs` at the KV state the
-  entry met, and mvcc's certificate of the log after);
+  entry met, and mvcc's certificate of the log after; 2026-10-14, unit C2a: `resultIsW E ρ.rd`, with
+  the witness that the log after is applied through an index of the committed log, `appliedWit`);
 * failure: no result, an error the gRPC layer can take (`applyErrIs`: in an error tree, a safe map
   key, with a message; 2026-10-12, unit 3a), and the proposal, if made, deposited (`srvMaybeDeposited`: it may
   still be applied: the request limit, the auth store's error, the marshal's error, the size
@@ -49,7 +50,7 @@ abbrev EtcdServer.processInternalRaftRequestOnce.spec : Prop :=
   {{ (res : Loc) (err : GoInterface), RET (PairV #res #err); srvLeadTimeReader s ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
           ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ apply.resTrace res ∗
-          resultIs E rq' res) ∨
+          resultIsW E ρ.rd rq' res) ∨
        (⌜res = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ srvMaybeDeposited ρ rq)) }}
 
 end spec

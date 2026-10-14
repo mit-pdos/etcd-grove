@@ -27,8 +27,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem updateCommittedIndex.wp_proof
     (hGI : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG)) :
     updateCommittedIndex.spec (GF := GF) (hG := hG) := by
-  intro ap rh es ceL ce R
+  intro ap rh es ceL ce R γr
   wp_start as ⟨#Hes, #Hsl, #Hents, #Hsnap, #Hrh, HR⟩
+  imod monoNatLbOwn_0 (GF := GF) γr.committed with #H0
   ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
   iunfold entriesAt at Hents
   icases Hents with ⟨%Hlen2, #Hent⟩
@@ -36,14 +37,23 @@ theorem updateCommittedIndex.wp_proof
   · iPkgInit
   wp_auto
   -- `ci`: the last entry's index, or 0
-  wp_join iprop(∃ ci : w64, ci_ptr ↦ ci ∗ ap_ptr ↦ ap)
-    at next with [ci ap] as ⟨%ci, ci, ap⟩
+  wp_join iprop(∃ ci : w64, ci_ptr ↦ ci ∗ ap_ptr ↦ ap ∗
+      ⌜(ce.getLast?).map EntryModel.index = some ci ∨ (ce = [] ∧ ci = W64 0)⌝)
+    at next with [ci ap] as ⟨%ci, ci, ap, %Hci⟩
   · wp_if_destruct
     · -- no entries: `ci` stays 0
       (try wp_auto)
       isplitr
       · itrivial
       iexists _; iframe ci ap
+      ipureintro
+      right
+      refine ⟨?_, rfl⟩
+      have h0 : sint.Z es.len = 0 := by
+        rw [show es.len = W64 0 by first | exact Hif | exact of_decide_eq_true (go.intoVal_inj Hif)]
+        rfl
+      have : ceL.length = 0 := by rw [Hlen.1]; unfold sint.nat; rw [Hif]; rfl
+      exact List.length_eq_zero_iff.mp (by rw [← Hlen2]; exact this)
     · have hlenz : 0 < sint.Z es.len := by
         rcases Hlen with ⟨h1, h2⟩
         rcases Int.lt_or_eq_of_le h2 with h | h
@@ -66,21 +76,49 @@ theorem updateCommittedIndex.wp_proof
       isplitr
       · itrivial
       iexists _; iframe ci ap
+      ipureintro
+      left
+      rw [List.getLast?_eq_getElem?, ← Hlen2, hm]
+      rfl
   -- `ap.snapshot != nil`: never (no snapshot)
   iunfold isReadyHandler at Hrh
   icases Hrh with ⟨%gl, %ul, %uls, %uci, #Hgl, #Hul, #Huls, #Huci, #Hglt, #Hult, #Hulst, #Hucit⟩
   wp_if_destruct
   · iapply HΦ
-    iexact HR
+    iframe HR
+    unfold committedLast
+    rcases Hci with h | ⟨h, -⟩
+    · cases hl : ce.getLast? with
+      | none => simp only; itrivial
+      | some m =>
+        simp only
+        rw [hl] at h
+        simp only [Option.map_some, Option.some.injEq] at h
+        rw [h]
+        iunfold committedAtLeast
+        rw [show uint.nat (W64 0) = 0 from rfl]
+        iexact H0
+    · subst h; simp only [List.getLast?_nil]; itrivial
   · ispecialize Hucit $$ %ci
     -- (`wp_bind` then `iapply`: a `wp_apply` of the hypothesis triple inside `exceptionDo` can
     -- close the goal with a synthetic `sorry`)
     wp_bind (App (Val #uci) (Val #ci))
     iapply Hucit $$ HR
     inext
-    iintro HR
+    iintro ⟨HR, #Hca⟩
     wp_auto
-    iapply HΦ $$ HR
+    iapply HΦ
+    iframe HR
+    unfold committedLast
+    rcases Hci with h | ⟨-, h⟩
+    · cases hl : ce.getLast? with
+      | none => rw [hl] at h; cases h
+      | some m =>
+        simp only
+        rw [hl] at h
+        simp only [Option.map_some, Option.some.injEq] at h
+        rw [h]; iexact Hca
+    · exfalso; apply Hif; rw [h]
 
 end proof
 

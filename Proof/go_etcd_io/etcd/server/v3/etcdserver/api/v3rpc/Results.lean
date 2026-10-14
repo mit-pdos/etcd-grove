@@ -164,7 +164,7 @@ theorem put_end_to_end (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Re
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
               structFieldRef etcdserverpb.PutResponse go!"Header" resp ↦□ h ∗ hdrFilled h cid mid ∗
               hdrRevOut (mvcc.storeReader E.s E.γ) h rv rv' ∗ srvRdCall s E γr c ∗
-              putAppliedOk s E o resp rv) ∨
+              putAppliedOk s E ρ.rd o resp rv) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
             srvRdCall s E γr c ∗ putErrOk s E ρ o e) }} := by
   iintro %Φ ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, Hc, Hc0, #Hr⟩ HΦ
@@ -460,12 +460,12 @@ theorem etcdState_of_txnRead (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (t 
 /-- **What a successful `Put` gives the clients' model** (`put_end_to_end`'s `putAppliedOk`, the
 client's `putApplied`): the token of the header's revision `r` (`etcdRevToken r`: the apply thread
 minted it when the put's revision committed) and that etcd has reached `r`. -/
-theorem revToken_of_put (E : apply.AEnv GF) (o : OpFull) (resp : Loc) (r : w64) :
-    putApplied E o resp r ⊢
+theorem revToken_of_put (E : apply.AEnv GF) (γw : ReadNames) (o : OpFull) (resp : Loc) (r : w64) :
+    putApplied E γw o resp r ⊢
       etcdRevToken (self := etcdModelOfServer E) r ∗ etcdReached (EM := etcdModelOfServer E) r := by
   iintro Hok
   iunfold putApplied at Hok
-  icases Hok with ⟨%hm, %x, %x', %l, %skip, %Hp, -, #Hcert, HMint⟩
+  icases Hok with ⟨%hm, %x, %x', %l, %skip, %Hp, -, #Hcert, HMint, -⟩
   obtain ⟨Hstep, rfl⟩ := Hp
   obtain ⟨cs, hcs⟩ := put_appended o hm x x' l skip Hstep
   ihave %Hlen := idxCert_len E.γ.idx x'.log $$ Hcert

@@ -24,14 +24,16 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- `updateCommittedIndex(ap, rh)` on a batch with no snapshot (its fields read-only), with the
-ready handler's resource `R` (2026-10-13, the request path's unit 4c). -/
+ready handler's resource `R` (2026-10-13, the request path's unit 4c): and (2026-10-14, unit C2a)
+the committed index at least the batch's last index after (`committedLast`). -/
 abbrev updateCommittedIndex.spec : Prop :=
-  ∀ (ap rh : Loc) (es : GoSlice) (ceL : List Loc) (ce : List EntryModel) (R : IProp GF),
+  ∀ (ap rh : Loc) (es : GoSlice) (ceL : List Loc) (ce : List EntryModel) (R : IProp GF)
+    (γr : ReadNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       taEntriesAddr ap ↦□ es ∗ es ↦*□ ceL ∗ entriesAt ceL ce ∗
-      structFieldRef toApply go!"snapshot" ap ↦□ (null : Loc) ∗ isReadyHandler rh R ∗ R }}
+      structFieldRef toApply go!"snapshot" ap ↦□ (null : Loc) ∗ isReadyHandler rh R γr ∗ R }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex)) (Val #ap)) (Val #rh))
-  {{ RET #(); R }}
+  {{ RET #(); R ∗ committedLast γr ce }}
 
 end spec
 

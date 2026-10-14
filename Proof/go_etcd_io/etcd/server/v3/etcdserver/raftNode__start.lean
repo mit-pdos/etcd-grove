@@ -339,10 +339,10 @@ theorem raftNode.start.wp_proof
       -- (`wp_bind` then `iapply`: `wp_apply` fails silently here, framing the generic `R`)
       wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex))
         (Val #ap_ptr)) (Val #rh))
-      iapply (wp_updateCommittedIndex ap_ptr rh rd.CommittedEntries' ceL ce R) $$ [HR]
+      iapply (wp_updateCommittedIndex ap_ptr rh rd.CommittedEntries' ceL ce R E.γr) $$ [HR]
       · iframe HR; iframe #
       inext
-      iintro HR
+      iintro ⟨HR, #Hclast⟩
       wp_auto
       -- `cum` extended with the batch, then `applyc <- ap` (or `<-r.stopped`)
       imod cum_extend γ.cum cums L' ce sent.length Hcums.1 Hcums.2 $$ Hauth with ⟨Hauth, #Hcn, #Hcn1⟩
@@ -373,9 +373,11 @@ theorem raftNode.start.wp_proof
           · iunfold isUnitBag
             iexists γnc
             iexact Hncb
-          iunfold isUnitBag
-          iexists γac
-          iexact Hacb
+          isplitr
+          · iunfold isUnitBag
+            iexists γac
+            iexact Hacb
+          iexact Hclast
         inext
         iintro Hprod
         wp_auto

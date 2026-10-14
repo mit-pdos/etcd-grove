@@ -21,15 +21,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `s.setAppliedIndex(v')`, by the apply thread (the only writer: `srvAppliedOwn γr v`, `v <
-v'`), right after applying the entry at index `v'`, with mvcc's certificate of the KV log `L` it
-left (the request path's unit 4b): it stores `v'` into the atomic `s.appliedIndex` and, at that
-point, raises the ghost applied index to `v'` and deposits `L` as the log applied through `v'`. -/
+/-- `s.setAppliedIndex(v')`, by the apply thread (the only writer), right after applying the entry
+at index `v'`, with mvcc's certificate of the KV log `L` it left (the request path's unit 4b): it
+stores `v'` into the atomic `s.appliedIndex` and, at that point, raises the ghost applied index to
+`v'` and makes `L` the current applied log. Since 2026-10-14 (unit C2a) the log `L` is deposited
+ahead as the log applied through `v' = v + 1` (`srvAppliedPre γr v v' L`, `applied_predeposit`:
+before the entry's result goes to its proposer), and the store publishes it. -/
 abbrev EtcdServer.setAppliedIndex.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v v' : w64) (L : mvcc.Log),
-  uint.Z v < uint.Z v' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      srvAppliedInv s E γr ∗ srvAppliedOwn γr v ∗ mvcc.idxCert E.γ.idx L }}
+      srvAppliedInv s E γr ∗ srvAppliedPre γr v v' L ∗ mvcc.idxCert E.γ.idx L }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"setAppliedIndex")) (Val #v'))
   {{ RET #(); srvAppliedOwn γr v' ∗ appliedAtLeast γr v' ∗ appliedLogAt γr v' L }}
 

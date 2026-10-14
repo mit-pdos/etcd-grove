@@ -29,7 +29,8 @@ no snapshot, `rnApP`; its `notifyc`, a unit bag channel raft signals once it per
 by the apply thread: `applySnapshot` (nothing: no snapshot), `applyEntries` (the KV goes from `x`
 to `x'` by `entriesStep` over the entries above `ai`, under `entriesOk`; the applied index to `ai'`,
 the last entry's or `ai`; each `setAppliedIndex` deposits the KV log after its entry, so the log
-applied through `ai'` is `x'.log`), the backend's verification (`VerifyBackendConsistency`, the
+applied through `ai'` is `x'.log`; 2026-10-14, unit C2a: each entry committed,
+`batchCommittedIdx`, and its log deposited ahead of its result), the backend's verification (`VerifyBackendConsistency`, the
 trust boundary), the `proposalsApplied` gauge, **`applyWait.Trigger(ai')`** (with `appliedAtLeast γr
 ai'`: the read loop's `ApplyWait` waiters through `ai'` are released once the KV has applied through
 `ai'`), `<-ap.notifyc`, the snapshot trigger (`snapshotIfNeededAndCompactRaftLog`, over the
@@ -51,7 +52,7 @@ abbrev EtcdServer.applyAll.spec : Prop :=
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfStateAddr ep ↦ cs ∗
       srvSnapState s ep ∗ applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
       srvLgReader s ∗ srvGoRes s ∗ srvBemuReader s ∗ srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr ai ∗
-      appliedLogAt γr ai x.log ∗ txn.storeWTs E.γ (unapplied ai ms).length }}
+      appliedLogAt γr ai x.log ∗ batchCommittedIdx γr ms ∗ txn.storeWTs E.γ (unapplied ai ms).length }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
       (Val #ap))
   {{ RET #();

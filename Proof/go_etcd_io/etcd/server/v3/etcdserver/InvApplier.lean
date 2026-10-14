@@ -116,6 +116,96 @@ def entryStep (m : EntryModel) (v3 : Bool) (x x' : apply.ApplyKV) (out : apply.A
   else ∃ rq id, apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧
     apply.applyStep rq v3 x x' out
 
+/-- The backend's outcome extends the log (2026-10-14, unit C2a). -/
+theorem backendStep_prefix (rq : apply.IRRModel) (log : mvcc.Log) (o : apply.Outcome)
+    (h : apply.backendStep rq log o) : log <+: o.logAfter log := by
+  have hc : ∀ pend, log <+: mvcc.commitLog log pend := by
+    intro pend; unfold mvcc.commitLog; split
+    · exact List.prefix_refl _
+    · exact List.prefix_append _ _
+  unfold apply.backendStep at h
+  split at h
+  · obtain ⟨op, -, h⟩ := h
+    rcases h with ⟨-, rfl⟩ | ⟨-, -, rfl⟩ | rfl
+    · exact List.prefix_refl _
+    · exact List.prefix_refl _
+    · exact List.prefix_append _ _
+  · obtain ⟨op, -, h⟩ := h
+    rcases h with rfl | ⟨-, rfl⟩
+    · exact hc _
+    · exact List.prefix_refl _
+  · subst h; exact List.prefix_refl _
+  · obtain ⟨t, -, h⟩ := h
+    rcases h with rfl | ⟨rfl, -⟩
+    · exact List.prefix_refl _
+    · exact hc _
+  · obtain ⟨pend, -, rfl⟩ := h
+    exact hc _
+  · exact h.elim
+  · exact h.elim
+  · rcases h with rfl | rfl <;> exact List.prefix_refl _
+
+/-- Through any chain, the outcome extends the log (2026-10-14, unit C2a). -/
+theorem chainStep_prefix (c : apply.Chain) (rq : apply.IRRModel) (log : mvcc.Log)
+    (o : apply.Outcome) (h : apply.chainStep apply.backendStep c rq log o) :
+    log <+: o.logAfter log := by
+  induction c generalizing o with
+  | backend => exact backendStep_prefix rq log o h
+  | corrupt c ih =>
+    unfold apply.chainStep at h
+    split at h
+    · subst h; exact List.prefix_refl _
+    · exact ih o h
+  | capped c ih =>
+    unfold apply.chainStep at h
+    split at h
+    · subst h; exact List.prefix_refl _
+    · split at h
+      · rcases h with rfl | h
+        · exact List.prefix_refl _
+        · exact ih o h
+      · exact ih o h
+  | auth c ih =>
+    unfold apply.chainStep at h
+    split at h
+    · rcases h with rfl | h
+      · exact List.prefix_refl _
+      · exact ih o h
+    · exact ih o h
+  | quota c ih =>
+    unfold apply.chainStep at h
+    split at h
+    · obtain ⟨o', h', ho⟩ := h
+      rcases ho with rfl | ⟨l', rfl, rfl⟩
+      · exact ih o h'
+      · have := ih _ h'; simpa only [apply.Outcome.logAfter] using this
+    · exact ih o h
+
+/-- `apply.Apply`'s step extends the KV's log (2026-10-14, unit C2a). -/
+theorem applyStep_prefix (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV)
+    (out : apply.ApplyOut) (h : apply.applyStep rq v3 x x' out) : x.log <+: x'.log := by
+  cases out with
+  | skipped => obtain ⟨-, rfl⟩ := h; exact List.prefix_refl _
+  | rejected => obtain ⟨-, rfl⟩ := h; exact List.prefix_refl _
+  | dispatched o skip =>
+    obtain ⟨-, hd, hl, -⟩ := h
+    rw [hl]
+    unfold apply.dispatchStep at hd
+    split at hd
+    · subst hd; exact List.prefix_refl _
+    · split at hd
+      · exact chainStep_prefix _ rq x.log o hd
+      · rw [hd]; exact List.prefix_refl _
+
+/-- `applyEntryNormal`'s step extends the KV's log (2026-10-14, unit C2a). -/
+theorem entryStep_prefix (m : EntryModel) (v3 : Bool) (x x' : apply.ApplyKV)
+    (out : apply.ApplyOut) (h : entryStep m v3 x x' out) : x.log <+: x'.log := by
+  unfold entryStep at h
+  split at h
+  · obtain ⟨rfl, -⟩ := h; exact List.prefix_refl _
+  · obtain ⟨rq, id, -, -, h⟩ := h
+    exact applyStep_prefix rq v3 x x' out h
+
 /-- **What `apply` does to the KV with one entry** of a batch that starts at the consistent
 index `c`: a normal entry by `entryStep`, with `v3` iff it is above `c` (an entry at or below is
 replayed, `ApplyV2storeOnly`); a conf change leaves the KV. -/
@@ -336,10 +426,13 @@ instance srvFieldsAt_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Met
 
 /-- The apply thread's view of the server `s` (persistent): `s.consistIndex` (with the
 protocol, `isServerCI`), the fields `applyEntryNormal` and `apply` read (the applier's in the
-environment `E`), and the atomics (the applied index's at the read names `γr`: unit 4b). -/
+environment `E`), and the atomics (the applied index's at the read names `γr`: unit 4b); the
+request path's read names are `γr` (`ρ.rd`, 2026-10-14, unit C2a: the results the apply thread
+hands the wait carry a witness at them, `resultIsW`). -/
 def isServer (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) : IProp GF :=
-  iprop(isServerCI s γ ci ∗ (∃ v : SrvFields, srvFieldsAt s γ ci TM E ρ v) ∗ srvAtomics s E γr)
+  iprop(⌜ρ.rd = γr⌝ ∗ isServerCI s γ ci ∗ (∃ v : SrvFields, srvFieldsAt s γ ci TM E ρ v) ∗
+    srvAtomics s E γr)
 
 instance isServer_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :

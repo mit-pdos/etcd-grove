@@ -151,7 +151,7 @@ def srvRdCall (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) : IProp 
 /-- **A linearizable read of `log` after the committed index `c`** (persistent; 2026-10-13, the
 request path's unit 4b): the read index (`readIndexOk`: the applied index reached some index at
 least `c`), and `log` extends the log applied through some index `ci₀ ≥ c` (`appliedLogAt`: the
-apply thread's log right after the entry at `ci₀`, deposited by `setAppliedIndex`; see
+apply thread's log right after the entry at `ci₀`, published by `setAppliedIndex`; see
 `notes/decisions.md`, "The applied index: a certified log per index"). -/
 def readLogOk (γr : ReadNames) (c : w64) (log : mvcc.Log) : IProp GF :=
   iprop(readIndexOk γr c ∗ ∃ (ci₀ : w64) (L₀ : mvcc.Log), ⌜uint.Z c ≤ uint.Z ci₀⌝ ∗
