@@ -121,4 +121,8 @@
 - **Found**: 2026-10-13, analysing the reconfiguration stage B0 (apply-time configurations)
   for the protocol model; checked by replay in the abstract model and reproduced by the Go
   test above (the model's exhaustive search covered only depth 10–11: no evidence beyond the
-  traces).
+  traces). 2026-10-14: a Go checker of the same model (`raft-conf-lag-model/checker/`)
+  finds the violation by search, in shorter executions (leader completeness at depth 18;
+  state machine safety at depth 17 with three nodes and two removals,
+  `raft-conf-lag-model/trace-check-lag-sms.txt`), and none in the faithful mode at the
+  bounds it searched exhaustively: `notes/reconfiguration-model-check.md`.
