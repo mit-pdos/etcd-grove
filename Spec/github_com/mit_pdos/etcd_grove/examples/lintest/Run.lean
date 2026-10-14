@@ -46,7 +46,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lintest.Assumpti
 abbrev Run.spec : Prop :=
   ∀ (σ : Type) (S : ModelSpec GF σ) (m : Model) (apply gen clock : GoFunc)
     (libState : σ → IProp GF) (clockVal : w64 → IProp GF) (t0 : w64) (Eapp Eclk : CoPset)
-    (clients ops timeout : w64),
+    (clients ops dur : w64),
   (↑lintestN : CoPset) ⊆ ⊤ \ Eapp → (↑lintestN : CoPset) ⊆ ⊤ \ Eclk →
   0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
   sint.Z clients * sint.Z ops < 2 ^ 60 →
@@ -56,8 +56,8 @@ abbrev Run.spec : Prop :=
     (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.lintest.Run))
       (Val #m)) (Val #apply)) (Val #gen)) (Val #clock)) (Val #clients)) (Val #ops))
-      (Val #timeout))
-  {{ (r : GoString), RET #r; ⌜r ≠ go!"Illegal" ∧ (sint.Z timeout ≤ 0 → r = go!"Ok")⌝ }}
+      (Val #dur))
+  {{ (r : GoString), RET #r; ⌜r ≠ go!"Illegal" ∧ (sint.Z dur ≤ 0 → r = go!"Ok")⌝ }}
 
 end spec
 

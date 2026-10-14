@@ -195,6 +195,45 @@ theorem final_histOk {n m : Nat} {hs : List (List Operation)} {ps : List (Nat ×
     obtain ⟨-, -, h1, h2⟩ := hok.2 j o q hj hq
     exact Int.le_trans h1 h2
 
+/-- The clients' initial ghost values: `v0` for clients `0, ..., n - 1`. -/
+def initMap (n : Nat) (v0 : ClientV) : GMap Nat ClientV :=
+  match n with
+  | 0 => ∅
+  | k + 1 => (initMap k v0).insert k v0
+
+theorem initMap_lookup (n c : Nat) (v0 : ClientV) :
+    (initMap n v0).lookup c = if c < n then some v0 else none := by
+  induction n with
+  | zero => simp [initMap]
+  | succ n ih =>
+    simp only [initMap]
+    rw [GMap.lookup_insert_eq_iff, ih]
+    by_cases h : n = c
+    · subst h; simp
+    · simp only [h, ↓reduceIte]
+      by_cases hc : c < n
+      · simp [hc, show c < n + 1 by omega]
+      · simp [hc, show ¬ c < n + 1 by omega]
+
+theorem InvOk.init (M : SeqModel σ OpV) (n : Nat) (t0 : w64) :
+    InvOk M n M.init t0 [] (initMap n ([], t0)) where
+  runs := rfl
+  sorted := List.Pairwise.nil
+  le_t e he := by cases he
+  lr_le c v hv := by
+    rw [initMap_lookup] at hv
+    split at hv
+    · cases hv; exact Int.le_refl _
+    · cases hv
+  dom c v hv := by
+    rw [initMap_lookup] at hv
+    split at hv
+    · assumption
+    · cases hv
+  filt c := by
+    simp only [List.filter_nil, recsOf, initMap_lookup]
+    split <;> rfl
+
 end pure
 
 section heap
@@ -242,26 +281,6 @@ theorem ownSlice_replicate_elems {V : Type} [ZeroVal V] [TypedPointsto (GF := GF
       (fun (k : Nat) (x : V) => typedPointsto (GF := GF) (arrayIndexRef V (k : Int) s.ptr) x dq)
     iexact Hsl
 
-/-- The clients' initial ghost values: `v0` for clients `0, ..., n - 1`. -/
-def initMap (n : Nat) (v0 : ClientV) : GMap Nat ClientV :=
-  match n with
-  | 0 => ∅
-  | k + 1 => (initMap k v0).insert k v0
-
-theorem initMap_lookup (n c : Nat) (v0 : ClientV) :
-    (initMap n v0).lookup c = if c < n then some v0 else none := by
-  induction n with
-  | zero => simp [initMap]
-  | succ n ih =>
-    simp only [initMap]
-    rw [GMap.lookup_insert_eq_iff, ih]
-    by_cases h : n = c
-    · subst h; simp
-    · simp only [h, ↓reduceIte]
-      by_cases hc : c < n
-      · simp [hc, show c < n + 1 by omega]
-      · simp [hc, show ¬ c < n + 1 by omega]
-
 theorem initMap_alloc_from (γ : GName) (n : Nat) (v0 : ClientV) :
     ghostMapAuth (GF := GF) γ 1 (∅ : GMap Nat ClientV) ⊢
       |==> (ghostMapAuth γ 1 (initMap n v0) ∗ [∗list] c ∈ List.range n, clientTok γ c v0) := by
@@ -293,6 +312,15 @@ theorem initMap_alloc (n : Nat) (v0 : ClientV) :
   imodintro
   iexists γ
   iframe
+
+/-- What client `c` hands back to `Run` (through the wait group): its trace `hc` in its cell of
+`histories` (`hsl`), its ghost value, its records matching its trace, `m` of them, and what
+porcupine's `Step` needs of the trace. -/
+def clientDone {σ : Type} (S : ModelSpec GF σ) (γ : GName) (hsl : GoSlice) (m : Nat) (c : Nat) :
+    IProp GF :=
+  iprop(∃ (sl : GoSlice) (hc : List Operation) (Lc : List (OpV × w64)) (lr cid : w64),
+    typedPointsto (sliceIndexRef GoSlice ((c : Nat) : Int) hsl) sl (DFrac.own 1) ∗ sl ↦* hc ∗
+    clientTok γ c (Lc, lr) ∗ ⌜ClientOk cid hc Lc ∧ Lc.length = m⌝ ∗ opsIoOk S hc)
 
 /-- The ghost map agrees with the clients' ghost values. -/
 theorem toks_lookup (γ : GName) (q : Qp) (Ls : GMap Nat ClientV) :
