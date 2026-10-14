@@ -108,6 +108,7 @@ theorem lift_core {l : List Slot} (hlnd : l.Nodup) {p q : Nat} {c r : Slot}
     (hc : l[p + 1]? = some c) (hpq : p < q) (hr : l[q + 1]? = some r)
     {G : Slot → Option Slot × Option Slot} (hG : ∀ x ∈ l, G x = nb l x) :
     ∃ (pc nc rp : Slot) (rn : Option Slot),
+      pc ∈ l ∧ nc ∈ l ∧ rp ∈ l ∧ (∀ n', rn = some n' → n' ∈ l) ∧ c ≠ pc ∧ r ≠ rp ∧
       G c = (some pc, some nc) ∧ eraseG G pc (some nc) r = (some rp, rn) ∧
       (∀ x ∈ (l.erase c).erase r, eraseG (eraseG G pc (some nc)) rp rn x =
         nb ((l.erase c).erase r) x) ∧
@@ -135,7 +136,15 @@ theorem lift_core {l : List Slot} (hlnd : l.Nodup) {p q : Nat} {c r : Slot}
   obtain ⟨hB1, hB2⟩ := erase_step hl1nd hr1 hrp hA1
   have hcl1 : c ∉ l.erase c := List.Nodup.not_mem_erase hlnd
   have hrl2 : r ∉ (l.erase c).erase r := List.Nodup.not_mem_erase hl1nd
-  refine ⟨pc, nc, rp, (l.erase c)[q' + 2]?, hG0c, ?_, hB1, ?_, ?_, ?_⟩
+  have hfacts : pc ∈ l ∧ nc ∈ l ∧ rp ∈ l ∧ (∀ n', (l.erase c)[q' + 2]? = some n' → n' ∈ l) ∧
+      c ≠ pc ∧ r ≠ rp := by
+    refine ⟨List.mem_of_getElem? hpc, List.mem_of_getElem? hnc,
+      (List.erase_subset) (List.mem_of_getElem? hrp),
+      fun n' h => (List.erase_subset) (List.mem_of_getElem? h), fun h => ?_, fun h => ?_⟩
+    · have := getElem?_inj hlnd hc (h ▸ hpc); omega
+    · have := getElem?_inj hl1nd hr1 (h ▸ hrp); omega
+  obtain ⟨f1, f2, f3, f4, f5, f6⟩ := hfacts
+  refine ⟨pc, nc, rp, (l.erase c)[q' + 2]?, f1, f2, f3, f4, f5, f6, hG0c, ?_, hB1, ?_, ?_, ?_⟩
   · rw [hA1 r hrm1]; unfold nb; rw [prevOf_succ hl1nd hr1, nextOf_getElem? hl1nd hr1, hrp]
   · rw [hB2 r hrl2, hA1 r hrm1]
   · rw [hB2 c (fun h => hcl1 ((List.erase_subset) h)), hA2 c hcl1]
@@ -151,6 +160,7 @@ theorem unlift_core {l : List Slot} (hlnd : l.Nodup) {p q : Nat} {c r : Slot}
     (hG : ∀ x ∈ (l.erase c).erase r, G x = nb ((l.erase c).erase r) x)
     (hGr : G r = nb (l.erase c) r) (hGc : G c = nb l c) :
     ∃ (pc nc rp : Slot) (rn : Option Slot),
+      pc ∈ l ∧ nc ∈ l ∧ rp ∈ l ∧ (∀ n', rn = some n' → n' ∈ l) ∧ c ≠ pc ∧ r ≠ rp ∧
       G r = (some rp, rn) ∧ insertG G rp r rn c = (some pc, some nc) ∧
       (∀ x ∈ l, insertG (insertG G rp r rn) pc c (some nc) x = nb l x) ∧
       (∀ x, x ∉ l → insertG (insertG G rp r rn) pc c (some nc) x = G x) := by
@@ -172,7 +182,15 @@ theorem unlift_core {l : List Slot} (hlnd : l.Nodup) {p q : Nat} {c r : Slot}
   have hGmc : insertG G rp r (l.erase c)[q' + 2]? c = nb l c := by rw [hB2 c hcl2, hGc]
   obtain ⟨hA1, hA2⟩ := insert_step hlnd hc hpc hB1 hGmc
   rw [hnc] at hA1 hA2
-  refine ⟨pc, nc, rp, (l.erase c)[q' + 2]?, ?_, ?_, hA1, ?_⟩
+  have hfacts : pc ∈ l ∧ nc ∈ l ∧ rp ∈ l ∧ (∀ n', (l.erase c)[q' + 2]? = some n' → n' ∈ l) ∧
+      c ≠ pc ∧ r ≠ rp := by
+    refine ⟨List.mem_of_getElem? hpc, List.mem_of_getElem? hnc,
+      (List.erase_subset) (List.mem_of_getElem? hrp),
+      fun n' h => (List.erase_subset) (List.mem_of_getElem? h), fun h => ?_, fun h => ?_⟩
+    · have := getElem?_inj hlnd hc (h ▸ hpc); omega
+    · have := getElem?_inj hl1nd hr1 (h ▸ hrp); omega
+  obtain ⟨f1, f2, f3, f4, f5, f6⟩ := hfacts
+  refine ⟨pc, nc, rp, (l.erase c)[q' + 2]?, f1, f2, f3, f4, f5, f6, ?_, ?_, hA1, ?_⟩
   · rw [hGr]; unfold nb; rw [prevOf_succ hl1nd hr1, nextOf_getElem? hl1nd hr1, hrp]
   · rw [hGmc]; unfold nb; rw [prevOf_succ hlnd hc, nextOf_getElem? hlnd hc, hpc, hnc]
   · intro x hx
@@ -186,14 +204,16 @@ unlinked). -/
 theorem lift_layout {es : List Entry} (hnd : es.Nodup) {B : List Nat} {p q y : Nat}
     (hp : (rem es B)[p]? = some ⟨false, y⟩) (hpq : p < q) (hq : (rem es B)[q]? = some ⟨true, y⟩) :
     ∃ (pc nc rp : Slot) (rn : Option Slot),
+      pc ∈ cur es B ∧ nc ∈ cur es B ∧ rp ∈ cur es B ∧ (∀ n', rn = some n' → n' ∈ cur es B) ∧
+      (some ⟨false, y⟩ : Slot) ≠ pc ∧ (some ⟨true, y⟩ : Slot) ≠ rp ∧
       layout es B (some ⟨false, y⟩) = (some pc, some nc) ∧
       eraseG (layout es B) pc (some nc) (some ⟨true, y⟩) = (some rp, rn) ∧
       (∀ x, eraseG (eraseG (layout es B) pc (some nc)) rp rn x = layout es (y :: B) x) := by
   have hc : (cur es B)[p + 1]? = some (some ⟨false, y⟩) := by rw [cur_getElem?, hp]; rfl
   have hr : (cur es B)[q + 1]? = some (some ⟨true, y⟩) := by rw [cur_getElem?, hq]; rfl
-  obtain ⟨pc, nc, rp, rn, h1, h2, h3, h4, h5, h6⟩ :=
+  obtain ⟨pc, nc, rp, rn, f1, f2, f3, f4, f5, f6, h1, h2, h3, h4, h5, h6⟩ :=
     lift_core (cur_nodup hnd B) hc hpq hr (fun x hx => layout_cur hx)
-  refine ⟨pc, nc, rp, rn, h1, h2, fun x => ?_⟩
+  refine ⟨pc, nc, rp, rn, f1, f2, f3, f4, f5, f6, h1, h2, fun x => ?_⟩
   rw [← cur_cons hnd] at h3
   by_cases hx2 : x ∈ cur es (y :: B)
   · rw [h3 x hx2, layout_cur hx2]
@@ -220,6 +240,8 @@ neighbours, frozen), `pc`, `nc` (`c`'s, frozen). -/
 theorem unlift_layout {es : List Entry} (hnd : es.Nodup) {B : List Nat} {p q y : Nat}
     (hp : (rem es B)[p]? = some ⟨false, y⟩) (hpq : p < q) (hq : (rem es B)[q]? = some ⟨true, y⟩) :
     ∃ (pc nc rp : Slot) (rn : Option Slot),
+      pc ∈ cur es B ∧ nc ∈ cur es B ∧ rp ∈ cur es B ∧ (∀ n', rn = some n' → n' ∈ cur es B) ∧
+      (some ⟨false, y⟩ : Slot) ≠ pc ∧ (some ⟨true, y⟩ : Slot) ≠ rp ∧
       layout es (y :: B) (some ⟨true, y⟩) = (some rp, rn) ∧
       insertG (layout es (y :: B)) rp (some ⟨true, y⟩) rn (some ⟨false, y⟩) = (some pc, some nc) ∧
       (∀ x, insertG (insertG (layout es (y :: B)) rp (some ⟨true, y⟩) rn) pc (some ⟨false, y⟩)
@@ -232,12 +254,13 @@ theorem unlift_layout {es : List Entry} (hnd : es.Nodup) {B : List Nat} {p q y :
     rw [hl2]; intro h; exact (List.Nodup.not_mem_erase hlnd) ((List.erase_subset) h)
   have hrnot : (some ⟨true, y⟩ : Slot) ∉ cur es (y :: B) := by
     rw [hl2]; exact List.Nodup.not_mem_erase (hlnd.erase _)
-  obtain ⟨pc, nc, rp, rn, h1, h2, h3, h4⟩ := unlift_core hlnd hc hpq hr (G := layout es (y :: B))
+  obtain ⟨pc, nc, rp, rn, f1, f2, f3, f4, f5, f6, h1, h2, h3, h4⟩ :=
+    unlift_core hlnd hc hpq hr (G := layout es (y :: B))
     (fun x hx => by rw [← hl2] at hx ⊢; exact layout_cur hx)
     (by simp only [layout, hrnot, ↓reduceIte, Option.some.injEq, Entry.mk.injEq,
           Bool.true_eq_false, false_and])
     (by simp only [layout, hcnot, ↓reduceIte])
-  refine ⟨pc, nc, rp, rn, h1, h2, fun x => ?_⟩
+  refine ⟨pc, nc, rp, rn, f1, f2, f3, f4, f5, f6, h1, h2, fun x => ?_⟩
   by_cases hxl : x ∈ cur es B
   · rw [h3 x hxl, layout_cur hxl]
   · rw [h4 x hxl]
