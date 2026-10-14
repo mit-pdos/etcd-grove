@@ -34,6 +34,7 @@ local macro "msg_ne" : tactic => `(tactic| (intro Hc; simp [MsgHup, MsgVote, Msg
 theorem RawNode.ReportUnreachable.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.ReportUnreachable.spec (GF := GF) (hG := hG) := by
+  have wp_raft_Step := raft.Step.spec_simple wp_raft_Step
   intro γ rn id rs to
   wp_start as H
   iNamed H

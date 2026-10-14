@@ -33,6 +33,7 @@ theorem raft.tickElection.wp_proof
     (wp_pastElectionTimeout : raft.pastElectionTimeout.spec (GF := GF) (hG := hG))
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     raft.tickElection.spec (GF := GF) (hG := hG) := by
+  have wp_raft_Step := raft.Step.spec_simple wp_raft_Step
   intro cfg γ r id s ps Hcfg Hterm Hrel
   wp_start as H
   iNamed H

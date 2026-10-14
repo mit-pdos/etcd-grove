@@ -43,6 +43,7 @@ theorem node.run.wp_proof
     (wp_IsLocalMsgTarget : IsLocalMsgTarget.spec (GF := GF) (hG := hG))
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     node.run.spec (GF := GF) (hG := hG) := by
+  have wp_raft_Step := raft.Step.spec_simple wp_raft_Step
   intro γ id n
   wp_start as ⟨#Hnode, Hpre⟩
   ihave #Hnode' := Hnode

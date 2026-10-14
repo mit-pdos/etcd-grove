@@ -35,6 +35,7 @@ the message's is `0`). -/
 theorem RawNode.ReadIndex.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.ReadIndex.spec (GF := GF) (hG := hG) := by
+  have wp_raft_Step := raft.Step.spec_simple wp_raft_Step
   intro γ rn id rs rctx c Lc Hsing
   wp_start as H
   iNamed H

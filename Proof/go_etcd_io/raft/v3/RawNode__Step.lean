@@ -59,6 +59,7 @@ theorem RawNode.Step.wp_proof
     (wp_IsLocalMsgTarget : IsLocalMsgTarget.spec (GF := GF) (hG := hG))
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Step.spec (GF := GF) (hG := hG) := by
+  have wp_raft_Step := raft.Step.spec_simple wp_raft_Step
   intro γ rn id rs m ents ctx Hok Hsing Htn
   have Hok0 := Hok
   obtain ⟨Hty, Hnri, Hri, Hself, Hrej, -⟩ := Hok0

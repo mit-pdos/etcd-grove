@@ -257,6 +257,220 @@ one `Step` witness and takes one `ownRaftGhost_step`. A caller that needs to kno
 pending outgoing message is protocol-legal gets that from `ownRaftGhost_outbox`, not
 from `ownRaftPhys`. -/
 abbrev raft.Step.spec : Prop :=
+  ∀ (c : CfgM)
+    (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (ps : PState)
+    (m : raftpb.Message)
+    -- The message's `Entries` (`[]` for a message without entries), bound here rather
+    -- than in `"Hm"` since 2026-10-06. (Until 2026-10-10 also, for a `MsgProp`, the
+    -- client's result predicate for each entry: a proposal's atomic update is now
+    -- deposited before the proposal reaches `Step` (`prop_deposit`), and its entries'
+    -- `isMessage` says so (`entData`).)
+    (ents : List raftpb.Entry)
+    -- (2026-10-12) the list the message's `Context` holds, which the abstract message
+    -- carries (a heartbeat's response echoes it; a forwarded proposal keeps it)
+    (ctx : List w8),
+  -- The ghost state is about one configuration, and it is this one. Without this the
+  -- caller could hand `ownRaftGhost_step` a `cfg` of its own choosing -- a singleton
+  -- one, say, in which the node is its own quorum -- and election safety would not
+  -- hold. See `RaftNames`. (2026-10-14, stage B7: the struct is at a configuration `c`
+  -- whose voters are the ghost state's, non-joint, learners free: `CfgStatic`.)
+  CfgStatic γ c →
+  StepMsg m →
+  -- The node is a voter. `stepCandidate` needs this outright (its `poll` and
+  -- `becomeLeader` both do) and `spec_stepCandidate_MsgVoteResp.v` says to thread it
+  -- in "from the caller" -- but `Step` *is* the outermost caller, so it has to enter
+  -- the development here. Under the no-learner, no-reconfiguration scope this is a
+  -- property of the node, not of a particular call. Added 2026-09-16 for the
+  -- `MsgVoteResp` branch.
+  -- (2026-10-13, reconfiguration stage L: a learner steps too; a candidate or leader is a
+  -- voter by `ownRaftPhys`, and only a snapshot's `restore` still needs this)
+  (m.Type' = MsgSnap → id ∈ γ.reCfg) →
+  -- A `MsgHup` is local (`Term = 0`) and may start an election, which increments the
+  -- term; `send` panics if that wraps to zero.
+  (m.Type' = MsgHup →
+     m.Term' = W64 0 ∧
+     uint.Z s.term + 1 < 2 ^ 64) →
+  (m.Type' = MsgVote →
+     m.To' = id ∧ m.Term' ≠ W64 0 ∧
+     m.From' ≠ W64 0) →
+  (m.Type' = MsgVoteResp →
+     m.To' = id ∧ m.Term' ≠ W64 0) →
+  -- Pre-vote (2026-10-04), by what the transport and the peers guarantee, like
+  -- `MsgVote`; Go checks none of it. Two more:
+  -- - a `MsgPreVote` of a higher term is answered at the node's own term when the
+  --   candidate's log is behind (`Term: r.Term, Reject: true`; the term is not raised
+  --   for a pre-vote), and `send` panics on a vote message with `Term = 0`. So a node
+  --   at term `0` must find every pre-vote candidate up to date -- true of a node
+  --   whose log holds nothing past term `0`, i.e. of every node etcd builds (a fresh
+  --   node has an empty log; `Bootstrap` and `RestartNode` start at a term of at
+  --   least the log's), but not implied by `ownRaftPhys`, which admits a persisted
+  --   log ahead of the persisted term;
+  -- - a `MsgPreVoteResp` at a pre-candidate may win, which runs the real `campaign`
+  --   and increments the term: it must not wrap (as for `MsgHup`). Only at a
+  --   pre-candidate (2026-10-10: `RawNode.Advance` may step its own pre-vote response
+  --   after a won pre-vote raised the term, at a candidate, which ignores it);
+  -- - (2026-10-10) a `MsgPreVote` reaches only a node with pre-vote on (the setting is
+  --   the cluster's): a node with pre-vote off then never sends a pre-vote message, and
+  --   every message it queues is of a term at most its own (`OutTermOk`). `RawNode.Step`
+  --   takes no pre-vote message at all.
+  (m.Type' = MsgPreVote →
+     m.To' = id ∧ m.Term' ≠ W64 0 ∧
+     m.From' ≠ W64 0 ∧ m.From' ≠ id ∧
+     (s.term = W64 0 →
+      plogUpToDate s.logst.prev (s.logst.sents ++ s.logst.uents)
+        (entryID.mk m.LogTerm' m.Index') = true) ∧
+     s.prevote = true) →
+  (m.Type' = MsgPreVoteResp →
+     m.To' = id ∧ m.Term' ≠ W64 0 ∧
+     m.From' ≠ W64 0 ∧
+     (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64)) →
+  -- The replication types, by what the transport and the peers guarantee (Go checks
+  -- none of it). A leader's `MsgApp`/`MsgHeartbeat`, and a `MsgHeartbeatResp`, come
+  -- from another node: `send` never queues them to oneself. An accepting
+  -- `MsgAppResp` may be the node's own (`appendEntry`'s self-acknowledgement); a
+  -- rejecting one is not.
+  (m.Type' = MsgApp →
+     m.To' = id ∧ m.Term' ≠ W64 0 ∧
+     m.From' ≠ W64 0 ∧ m.From' ≠ id) →
+  (m.Type' = MsgHeartbeat →
+     m.To' = id ∧ m.Term' ≠ W64 0 ∧
+     m.From' ≠ W64 0 ∧ m.From' ≠ id) →
+  (m.Type' = MsgAppResp →
+     m.To' = id ∧ m.Term' ≠ W64 0 ∧
+     m.From' ≠ W64 0 ∧
+     (m.Reject' = true → m.From' ≠ id)) →
+  (m.Type' = MsgHeartbeatResp →
+     m.To' = id ∧ m.Term' ≠ W64 0 ∧
+     m.From' ≠ W64 0 ∧ m.From' ≠ id) →
+  -- A leader's `MsgSnap`, likewise (2026-10-02).
+  (m.Type' = MsgSnap →
+     m.To' = id ∧ m.Term' ≠ W64 0 ∧
+     m.From' ≠ W64 0 ∧ m.From' ≠ id) →
+  -- `MsgBeat` and `MsgProp` are local (`Term = 0`); a proposal is not yet stamped
+  -- with a sender (`From = 0`), or is stamped with the node's own id
+  -- (`RawNode.Propose` sets `From: r.id`; since 2026-10-06). The proposal's batch is
+  -- constrained in `Hm` below, where its list is named.
+  (m.Type' = MsgBeat → m.Term' = W64 0) →
+  (m.Type' = MsgProp →
+     m.Term' = W64 0 ∧
+     (m.From' = W64 0 ∨ m.From' = id)) →
+  -- The two local acknowledgements `RawNode.Advance` steps (2026-10-05), as
+  -- `acceptReady` builds them (`InvRawnode.lean`, `appendAckMsg`, `applyAckMsg`). A
+  -- `MsgStorageAppendResp` carries no snapshot (a pending snapshot is out of `Ready`'s
+  -- scope; `appliedSnap` is phase 2), is not from a later term (it would make the node
+  -- step down to a term no message brought), and -- when its `stableTo` runs (`Term`
+  -- `0` or current, a nonzero `Index`) -- acknowledges only persisted entries
+  -- (`StableOk`: Go compares only the term at `Index`). A `MsgStorageApplyResp` is
+  -- local (`Term = 0`); its entries' last index is committed (the bound is in `"Hm"`,
+  -- where the list is named).
+  (m.Type' = MsgStorageAppendResp →
+     m.Snapshot' = null ∧
+     uint.Z m.Term' ≤ uint.Z s.term ∧
+     (m.Term' = W64 0 ∨ m.Term' = s.term →
+      m.Index' ≠ W64 0 →
+      StableOk s.logst (entryID.mk m.LogTerm' m.Index')) ∧
+     -- (2026-10-10) `stableTo` may hand out every unstable entry still to come
+     -- (`NGhost.unst`): `RawNode.Advance` steps it only after `acceptReady` reset the flag
+     s.gh.unst = false) →
+  (m.Type' = MsgStorageApplyResp → m.Term' = W64 0) →
+  -- Read-index (2026-10-13): a request is unstamped (`Term = 0`; a local one from
+  -- `ReadIndex`, a forwarded one from a follower), and not in a single-voter
+  -- configuration (`IsSingleton`'s immediate answer is out of scope); a response is a
+  -- leader's, from another node.
+  (m.Type' = MsgReadIndex → m.Term' = W64 0 ∧
+     ¬ (GMap.size c.incoming = 1 ∧ GMap.size c.outgoing = 0)) →
+  -- (2026-10-14, stage B7) `appliedTo`'s auto-leave proposal is out of scope: no `AutoLeave`
+  -- at a leader (`raft.appliedTo.spec`)
+  (m.Type' = MsgStorageApplyResp → c.autoLeave = true → s.role ≠ .leader) →
+  (m.Type' = MsgReadIndexResp →
+     m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) →
+  -- (2026-10-13) the local reports, `ForgetLeader` and leader transfer (`RestMsgOk`)
+  RestMsgOk s m →
+  -- The one place the two layers meet. `s` is the physical abstract state
+  -- `ownRaftPhys` is indexed by, `ps` the protocol state the ghost state is about,
+  -- and `NStateRel` (`Defs.lean`) connects them: `ps` is `s`'s protocol fields,
+  -- `r.step` agrees with the role, nothing is on loan.
+  NStateRel s ps →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      "Hghost" ∷ ownRaftGhost γ id ps ∗
+      -- The message's `Entries` slice, holding `ents` (`[]` for a message without
+      -- entries, `Entries = nil`):
+      -- - a proposal is a local message whose batch the caller owns outright --
+      --   `appendEntry` writes `Term`/`Index` into the entries -- while every network
+      --   message's entries are read-only;
+      -- - the slice's capacity, owned: `raftLog.maybeAppend` can adopt the caller's
+      --   slice (`unstable.truncateAndAppend`'s replace arm), so a received `MsgApp`
+      --   needs it;
+      -- - a proposal's batch is non-empty (`stepLeader`'s `Panicf`) and short enough for
+      --   `appendEntry`'s indices not to wrap, and (2026-10-13, reconfiguration stage D;
+      --   until then `EntryNormal` only) its conf-change entries' bytes decode (`ccEntsOk`:
+      --   `stepLeader` `Unmarshal`s them, panicking on an error);
+      -- - what the message carries as a protocol message: its abstraction (`absMsg`,
+      --   which needs the entries) was legitimately sent -- for every type but
+      --   `MsgSnap`, whose abstraction is `absSnap` (`"Hsnap"` below).
+      "Hm" ∷ (
+         "Hents" ∷ (if m.Type' = MsgProp then m.Entries' ↦* ents ∗ (∃ cs, ccEntsOk ents cs)
+                    else m.Entries' ↦*□ ents) ∗
+         "Hents_cap" ∷ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) ∗
+         "%Hprop" ∷ ⌜m.Type' = MsgProp →
+                      ents ≠ [] ∧
+                      (ents.length : Int) < 2^61⌝ ∗
+         "%Happly" ∷ ⌜m.Type' = MsgStorageApplyResp →
+                       ∀ e, ents.getLast? = some e →
+                       uint.Z e.Index' ≤ uint.Z s.logst.committed⌝ ∗
+         "#Hmsg" ∷ □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗
+                            ⌜ty ≠ .snap⌝ -∗
+                            isMessage γ (absMsg ty m ents ctx))) ∗
+      -- the `Context`. (Until 2026-10-13 not the leader-transfer marker -- a transfer's
+      -- vote request is now an ordinary one: with `checkQuorum` off its `force` changes
+      -- nothing -- and empty on a heartbeat response; a read-index position is now what
+      -- `isMessage` says it is.)
+      "#Hctx" ∷ m.Context' ↦*□ ctx ∗
+      -- (2026-10-13) a read-index request carries a read credit (`rdOwn`)
+      "Hcred" ∷ rdCred γ (if m.Type' = MsgReadIndex then 1 else 0) ∗
+      -- A `MsgSnap`'s snapshot (2026-10-02): what `m.Snapshot` points to, read-only,
+      -- and the list behind its `ConfState.Voters`; under the fixed-voter-set scope
+      -- `SnapScope` (`Spec/raft__restore.lean`): the voters are `cfg`'s, `cfg` is
+      -- zero-free, the other three sets are empty and `AutoLeave` is off (what
+      -- `confchange.Restore`'s and `assertConfStatesEquivalent`'s specs cover), and
+      -- the index is below `2^61` (a pending snapshot becomes the `Storage`'s
+      -- boundary, which `isStorage`'s `Hbounded` bounds the same way). And the
+      -- abstraction `absSnap` (`Defs.lean`) -- the snapshot's metadata, not `m`'s own
+      -- `Index`/`LogTerm` -- was legitimately sent. The two added on 2026-10-02 with
+      -- the branch (`W64 0 ∉ cfg`, `AutoLeave`, the index bound) are transport/client
+      -- assumptions like the rest.
+      "#Hsnap" ∷ □ (⌜m.Type' = MsgSnap⌝ -∗
+         ∃ (sv : raftpb.Snapshot) (voters learners : List w64),
+           m.Snapshot' ↦□ sv ∗
+           sv.Metadata'.ConfState'.Voters' ↦*□ voters ∗
+           ownIdList sv.Metadata'.ConfState'.Learners' DFrac.discard learners ∗
+           ⌜SnapScope γ.reCfg sv voters learners⌝ ∗
+           isMessage γ (absSnap m sv voters)) }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
+  {{ (err : GoInterface) (s' : NState) (ps' : PState) (c' : CfgM), RET #err;
+      "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
+      "Hghost" ∷ ownRaftGhost γ id ps' ∗
+      "%Hrel" ∷ ⌜NStateRel s' ps'⌝ ∗
+      "%Hrefines" ∷ ⌜∃ recv, StepC c id ps recv ps'⌝ ∗
+      -- the configuration afterwards: `c`, or the snapshot's after a `MsgSnap`
+      "%Hcfg'" ∷ ⌜CfgStatic γ c' ∧ (m.Type' ≠ MsgSnap → c' = c)⌝ ∗
+      -- for the local messages `RawNode` steps, what is kept of the physical state
+      -- (2026-10-09)
+      "%Hlocal" ∷ ⌜LocalStepOk m ents s s'⌝ ∗
+      -- for every other message but a snapshot, what is kept of the log (2026-10-09)
+      "%Hframe" ∷ ⌜m.Type' ≠ MsgSnap → m.Type' ≠ MsgStorageApplyResp → NetFrame s s'⌝ ∗
+      -- and how the term moves (2026-10-09)
+      "%Hterm" ∷ ⌜m.Type' ≠ MsgSnap → TermStep m s s'⌝ ∗
+      -- and what a response does to the role and the term (2026-10-10)
+      "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
+      -- only a proposal can be dropped, with `ErrProposalDropped`
+      "Herr" ∷ (⌜err = interface.nil⌝ ∨
+                (⌜m.Type' = MsgProp⌝ ∗
+                 globalAddr ErrProposalDropped ↦□ err)) }}
+
+/-- The statement on `ownRaftPhys cfg` until 2026-10-14 (stage B7). -/
+abbrev raft.Step.specS : Prop :=
   ∀ (cfg : GSet w64)
     (γ : RaftNames) (r : Loc) (id : w64) (s : NState) (ps : PState)
     (m : raftpb.Message)
@@ -461,6 +675,39 @@ abbrev raft.Step.spec : Prop :=
       "Herr" ∷ (⌜err = interface.nil⌝ ∨
                 (⌜m.Type' = MsgProp⌝ ∗
                  globalAddr ErrProposalDropped ↦□ err)) }}
+
+open Iris.ProofMode in
+theorem raft.Step.spec_simple (H : raft.Step.spec (GF := GF) (hG := hG)) :
+    raft.Step.specS (GF := GF) (hG := hG) := by
+  intro cfg γ r id s ps m ents ctx Hcfg Hsm Hin Hhup Hvote Hvoteresp Hprevote Hprevoteresp
+    Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hri Hrir Hrest Hrel
+  subst Hcfg
+  iintro %Φ ⟨#Hpkg, Hphys, Hghost, Hm, #Hctx, Hcred, #Hsnap⟩ HΦ
+  ihave %Hst := ownRaftGhost_static γ id ps $$ Hghost
+  ihave Hphys := ownRaftPhys_toC' $$ Hphys
+  iapply H (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) γ r id s ps m ents ctx
+      (CfgStatic.simple γ _ Hst) Hsm Hin Hhup Hvote Hvoteresp Hprevote Hprevoteresp
+      Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr
+      (fun h => by
+        obtain ⟨h1, h2⟩ := Hri h
+        refine ⟨h1, fun h3 => ?_⟩
+        have h3 : GMap.size γ.reCfg = 1 := h3.1
+        omega)
+      (fun _ h => absurd h (by simp [CfgM.simple]))
+      Hrir Hrest Hrel
+    $$ [$Hpkg $Hphys $Hghost $Hm $Hctx $Hcred $Hsnap]
+  inext
+  iintro %err %s' %ps' %c' ⟨Hphys, Hghost, %Hrel', %Href, %Hc', %Hlocal, %Hframe, %Hterm,
+    %Hresp, Herr⟩
+  obtain ⟨⟨Hi, Ho, -⟩, -⟩ := Hc'
+  icases ownRaftPhysC_toPhys c' r id s' Ho $$ Hphys with ⟨Hphys, -⟩
+  rw [Hi]
+  iapply HΦ $$ %err %s' %ps'
+  iframe Hphys Hghost Herr
+  ipureintro
+  obtain ⟨recv, Hstep⟩ := Href
+  refine ⟨Hrel', ⟨recv, (CfgStatic.stepC_iff γ (domSet s.progress \ γ.reCfg) id ps recv ps').2 Hstep⟩,
+    Hlocal, Hframe, Hterm, Hresp⟩
 
 end spec
 
