@@ -198,7 +198,7 @@ private theorem wp_step_pending
       md.Pre m' ce s) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
         ownStepGhost γ md c id s ∗ pendingRel γ id m p ∗ pendingOwn m p ∗
-        storedRecs γ s.logst.prev s.logst.stored }}
+        storedRecs γ s.logst.prev s.logst.stored ∗ £ 1 }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #m))
     {{ (err : GoInterface) (s' : NState) (md' : GMode), RET #err;
         ownRaftPhysCV c c.voters r id s' ∗ ownStepGhost γ md' c id s' ∗
@@ -210,7 +210,7 @@ private theorem wp_step_pending
          PendStep p s s' ∧
          s'.logst.prev = s.logst.prev ∧ s'.logst.stored = s.logst.stored ∧
          s'.logst.storage = s.logst.storage ∧ s'.prevote = s.prevote ∧ s'.gh = s.gh⌝ }} := by
-  iintro %Φ ⟨#Hinit, Hphys, Hghost, #Hp, Hown, #Hstr⟩ HΦ
+  iintro %Φ ⟨#Hinit, Hphys, Hghost, #Hp, Hown, #Hstr, Hlc⟩ HΦ
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   cases p with
   | self pv t =>
@@ -229,7 +229,7 @@ private theorem wp_step_pending
       (by not_self) (by not_self) (by not_self)
       (RestMsgOk.of_ne ⟨by not_self, by not_self, by not_self, by not_self, by not_self⟩) Hwf
       (GMode.Pre.of_facts Hpf (by not_self) (by not_self))
-      $$ [$Hinit $Hphys $Hghost Hcr]
+      $$ [$Hinit $Hphys $Hghost $Hlc Hcr]
     · have hP : m.Type' ≠ MsgProp := by not_self
       simp only [hP, ↓reduceIte, named]
       rw [Hen, Hcn]
@@ -295,7 +295,7 @@ private theorem wp_step_pending
       (by msg_ne)
       (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
       (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne))
-      $$ [$Hinit $Hphys $Hghost Hcr]
+      $$ [$Hinit $Hphys $Hghost $Hlc Hcr]
     · have hP : (appendAckMsg id t e).Type' ≠ MsgProp := by msg_ne
       simp only [hP, ↓reduceIte, named]
       have Hty0 : mtypeOf (appendAckMsg id t e).Type' = none := rfl
@@ -344,7 +344,7 @@ private theorem wp_step_pending
       (by msg_ne) (fun _ => rfl) (by msg_ne) (fun _ h => by rw [Hal] at h; cases h) (by msg_ne)
       (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
       (Hpre ce _ rfl rfl)
-      $$ [$Hinit $Hphys $Hghost Hown Hcr]
+      $$ [$Hinit $Hphys $Hghost $Hlc Hown Hcr]
     · have hP : (applyAckMsg id sl).Type' ≠ MsgProp := by msg_ne
       simp only [hP, ↓reduceIte, named]
       have Hty0 : mtypeOf (applyAckMsg id sl).Type' = none := rfl
@@ -447,7 +447,7 @@ theorem RawNode.Advance.wp_proof
     ihave #Hpm := BigSepL2.bigSepL2_lookup (Φ := fun _ m p => pendingRel (GF := GF) γ id m p)
       Hmm_lookup Hp_lookup $$ Hpend
     rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, Hlt⟩)]
-    wp_apply wp_load_slice_index rnv.stepsOnAdvance' (sint.Z n) steps1 (DFrac.own 1) mm Hn.1
+    wp_apply (lc := 1) wp_load_slice_index rnv.stepsOnAdvance' (sint.Z n) steps1 (DFrac.own 1) mm Hn.1
       $$ [Hsteps] with Hsteps
     · iframe
       ipureintro
@@ -499,7 +499,7 @@ theorem RawNode.Advance.wp_proof
     wp_apply wp_step_pending wp_raft_Step γ cf _ rnv.raft' id s1 mm p Hwf1 Hpok Hal
       (Hs1.2.2.1.trans Hsnap) (Hs1.2.1.trans Hunp') Hnw1
       (by rw [Hsg1.2.2, ← Hrs_unst]; exact Hunst0) Hpf1 Hpre1
-      $$ [$Hphys $Hghost $Hpm $Hpo $Hstr1] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
+      $$ [$Hphys $Hghost $Hpm $Hpo $Hstr1 $Hlc1] as %err %s2 %md2 ⟨Hphys, Hghost, %Hst2⟩
     obtain ⟨Hwf2, Hout2, Hns2, Hna2, Ha2, Hu2, Hsn2, Ht2, Hps2, Hpv2, Hsd2, Hsg2⟩ := Hst2
     have Hc12 := Hout2.commit_mono
     obtain ⟨ca', rfl, Hca1, Hca2, Hca3, -⟩ := RNMode.stepOut_ca Hout2 Hns2

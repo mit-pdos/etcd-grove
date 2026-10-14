@@ -38,7 +38,7 @@ theorem RawNode.ReportSnapshot.wp_proof
   wp_start as H
   iNamed H
   iNamed Hrn
-  wp_auto
+  wp_auto_lc 1
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   icases ownRaftPhysC_preFacts cf rnv.raft' id s Hpvoff $$ Hphys with ⟨%Hpf, Hphys⟩
   wp_apply wp_raft_Step cf _ γ _ id s _ [] []
@@ -48,7 +48,7 @@ theorem RawNode.ReportSnapshot.wp_proof
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (⟨fun _ => rfl, fun h => absurd h (by msg_ne), fun h => absurd h (by msg_ne)⟩ : RestMsgOk s _) Hwf
     (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne))
-    $$ [$Hphys $Hghost Hcr]
+    $$ [$Hphys $Hghost $Hlc1 Hcr]
   · -- the message: no entries, no `Context`, no snapshot
     have hP : (W32 11 : w32) ≠ MsgProp := by simp [MsgProp]
     simp only [hP, ↓reduceIte, named]

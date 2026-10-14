@@ -6,11 +6,16 @@
 goroutine: the request goes onto `recvc` (`netP`), and `run` steps it as
 `RawNode.ReadIndex` does. Specified for `context.Background()`. What the client supplies is
 as for `RawNode.ReadIndex` (`Spec/RawNode__ReadIndex.lean`): its context's slice recorded
-(`isPropData`, `node_read_register`), the request's record `readReq γ c Lc` and one read
-credit; a configuration of more than one voter. The answer is a `ReadState` a later
-`Ready` hands out (`readyData`), from which the client reads `readOk` of its read
-(`node_readState_data`, `readStateOk_readOk`, `readStateOk_prefix`). The error says only
-whether the request reached `run`.
+(`isPropData`, `node_read_register`), the context's fresh token (`rdFresh`), its persistent
+atomic update (`readAu`, 2026-10-14, stage R), a committed log it knows (`L0`) and one read
+credit; any number of voters. The update is deposited at the start, on the caller's goroutine
+(`node_read_deposit`), before the request goes onto `recvc`: the client gets the request's
+record `readReq γ c Lc` -- `Lc` the global committed log at the deposit, extending `L0` -- and
+its handle `isRead γ c Qr`, whatever the error. The answer is a `ReadState` a later `Ready`
+hands out (`readyData`), from which the client reads `readOk` of its read
+(`node_readState_data`), the witness `readWit γ c Qr i` with its handle, and the update's
+results (`node_read_collect`). The error says only whether the request reached `run`; a
+dropped request leaves the update deposited, firing harmlessly, with no `ReadState` naming it.
 -/
 module
 
@@ -36,13 +41,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 abbrev node.ReadIndex.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (rctx : GoSlice) (c : List w8)
-    (Lc : List raftpb.Entry),
-  1 < GMap.size γ.raft.reCfg →
+    (Qr : List raftpb.Entry → IProp GF) (L0 : List raftpb.Entry),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
-      isPropData γ.raft rctx c ∗ readReq γ.raft c Lc ∗ rdCred γ.raft 1 }}
+      isPropData γ.raft rctx c ∗ rdFresh γ.raft c ∗ readAu γ.raft Qr ∗
+      isCommitted γ.raft L0 ∗ rdCred γ.raft 1 }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReadIndex"))
       (Val #(interface.ok context.backgroundCtxVal))) (Val #rctx))
-  {{ (err : GoInterface), RET #err; True }}
+  {{ (err : GoInterface), RET #err;
+      ∃ Lc, ⌜L0 <+: Lc⌝ ∗ readReq γ.raft c Lc ∗ isRead γ.raft c Qr }}
 
 end spec
 

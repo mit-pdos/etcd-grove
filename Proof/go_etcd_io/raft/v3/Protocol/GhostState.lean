@@ -30,6 +30,7 @@ public import Proof.go_etcd_io.raft.v3.Protocol.Ghost
 public import Perennial.Ghost.GhostVar
 public import Iris.BI.Lib.Atomic
 public import Iris.Instances.Lib.FUpd
+public import Perennial.Std.Namespaces
 
 @[expose] public section
 
@@ -49,9 +50,11 @@ variable {md : Bool}
 
 /-! ### Read-index (2026-10-12; see `Protocol/ReadIndex.lean`) -/
 
-/-- The read context `c` was created knowing the committed log `Lc`. -/
+/-- The read context `c` was deposited when the global committed log was `Lc` (2026-10-14,
+stage R: `read_deposit`; until then `Lc` was a committed log the client knew when it created
+the context). The registry element also names the read's result predicate (`isRead`). -/
 def readReq (γ : RaftNames) (c : List w8) (Lc : List raftpb.Entry) : IProp GF :=
-  iprop(c ↪[γ.reReads]□ Lc ∗ isCommitted γ Lc)
+  iprop(∃ γq : GName, c ↪[γ.reReads]□ ((γq, Lc) : GName × List raftpb.Entry) ∗ isCommitted γ Lc)
 
 instance readReq_persistent (γ : RaftNames) (c : List w8) (Lc : List raftpb.Entry) :
     Persistent (readReq (GF := GF) γ c Lc) := by
@@ -769,35 +772,84 @@ instance committedJust_persistent (γ : RaftNames) (l : List raftpb.Entry) :
 
 def raftN : Namespace := nroot .@ "raft_commit"
 
-/-! ### The client log and the proposal registry (2026-10-10)
+/-! ### The client's log, the registries and the commit invariant (2026-10-14, stage R)
 
-The client's view of the committed log is `cLog γ L`: the data of the committed client
-entries, in commit order, first occurrences only (`firstOcc`, `Model.lean`); a leader's own
-entries (the zero slice) do not count. `raftCommitInv` holds one half of the ghost
-variable `reCLog`, the client the other: raft cannot move it without the client.
+The client's view of the committed log is `rLog γ L`: the **full** committed log, entries at
+their raft positions (entry `k` of `L` has index `k + 1`). `raftCommitInv` holds the other
+half of the ghost variable `reRLog`, always at the global committed log; raft cannot move it
+without the client.
 
-What moves it is the client's **atomic update** for a proposal of data `d`
-(`propAu γ d Q`: `AU <{ ∃∃ L, cLog γ L }> @ ⊤ ∖ ↑raftN, ∅ <{ cLog γ (L ++ [d]), COMM Q L }>`),
-deposited in the registry before the proposal leaves the proposing node
-(`prop_deposit`), and fired by the ghost commit (`commit_extend`) when the first entry
-with data `d` is committed -- the linearization point. Each pending slot holds a later
-credit with its update: the update is under the invariant's later, and the credit strips
-it when the commit fires it (the commit itself is a ghost step, without a later of its
-own). A data is deposited once (the fresh token `propFresh γ d`, kept by the invariant);
-a retried proposal of the same data carries the persistent `deposited γ d`, and a
-duplicate entry (a retry, a redelivered proposal) does not move `cLog`.
+What moves it is a deposited **persistent atomic update**: for an entry `e` with the client
+data `d` (`entDataIs γ e (some d)`), the update of the proposal of `d` (`propAu γ d Q`); for an
+entry of raft's own (a leader's empty entry, a refused conf change's replacement, a conf-change
+entry: `entDataIs γ e none`), the standing `noopAu γ` the client gave at allocation. Both are
+fired by the ghost commit (`commit_extend`), at **every** committed entry -- every occurrence of
+`d` -- with the log before it; their results are persistent (`□ Q L`). The entry is raft's
+choice: the updates bind it with `∀∀` and hand the client its data (`entDataIs`). A read's
+update (`readAu γ Qr`) leaves the log as it is: it is fired at the deposit (`read_deposit`) and
+then at every commit after it, at the new log, whatever the request's read index turns out to
+be; the read index enters only in what the client may collect (`readWit`, `read_collect`).
 
-A slot `d ↦ (γq, γk)` (`propSlot`) is pending (holding the credit and the update, while
-`d ∉ L`) or fired (`d ∈ L`, after the client log `L0` it was fired at), holding the
-update's result `Q L0` or, once the client collected it (`prop_collect`), the client's
-ticket `γk`. The client's `Q` is tied to the slot by a saved predicate (`isProp`). -/
+The commit invariant has two halves (two invariants under `raftN`, which every update's outer
+mask `⊤ ∖ ↑raftN` excludes): the log half (`raftLogInv`: the global committed log, its
+justification, the vote and winners tables, the committed entries' data and a quarter of the
+invariant's half of `reRLog`) and the registry half (`raftRegInv`: the other quarter, the
+proposal and read registries with their updates, and `noopAu`). A ghost step of a node opens
+the registry half once, with one later credit (`£ 1`), and keeps it open across the step's
+derivation (`regsOwn`, at the mask `⊤ ∖ ↑raftRegN`): a derivation of the transitive closure may
+commit several times, and each commit fires updates that live under the invariant's later.
+The other ghost lemmas open the log half only. -/
 
-/-- The client's half of the client log. -/
-def cLog (γ : RaftNames) (L : List (List w8)) : IProp GF :=
-  ghostVar γ.reCLog (1 : Qp).half L
+/-- The log half of the commit invariant. -/
+abbrev raftLogN : Namespace := raftN .@ "log"
+/-- The registry half of the commit invariant. -/
+abbrev raftRegN : Namespace := raftN .@ "reg"
 
-instance cLog_timeless (γ : RaftNames) (L : List (List w8)) : Timeless (cLog (GF := GF) γ L) := by
-  unfold cLog; infer_instance
+/-- Opening the log half with the registry half open (`iinv`'s side condition, by `simp`). -/
+@[simp] theorem raftLogN_sub : (↑raftLogN : CoPset) ⊆ ⊤ \ ↑raftRegN :=
+  mask_ndot_ne' raftN "log" "reg" (by decide)
+
+@[simp] theorem raftRegN_sub : (↑raftRegN : CoPset) ⊆ ⊤ \ ↑raftLogN :=
+  mask_ndot_ne' raftN "reg" "log" (by decide)
+
+/-- The updates' outer mask, inside both halves open. -/
+theorem raftN_open_sub : (⊤ \ ↑raftN : CoPset) ⊆ (⊤ \ ↑raftRegN) \ ↑raftLogN :=
+  mask_diff_ndot2 raftN "reg" "log"
+
+theorem raftLogN_of {E : CoPset} (HE : ↑raftN ⊆ E) : (↑raftLogN : CoPset) ⊆ E :=
+  fun p hp => HE p (nclose_subseteq raftN "log" p hp)
+
+theorem raftRegN_of {E : CoPset} (HE : ↑raftN ⊆ E) : (↑raftRegN : CoPset) ⊆ E :=
+  fun p hp => HE p (nclose_subseteq raftN "reg" p hp)
+
+theorem raftLogN_of_diff {E : CoPset} (HE : ↑raftN ⊆ E) : (↑raftLogN : CoPset) ⊆ E \ ↑raftRegN := by
+  intro p hp
+  rw [Iris.Std.LawfulSet.mem_diff]
+  exact ⟨HE p (nclose_subseteq raftN "log" p hp),
+    fun h => ndot_ne_disjoint raftN (show "log" ≠ "reg" by decide) p ⟨hp, h⟩⟩
+
+/-- The quarter of `reRLog` each half of the commit invariant holds. -/
+abbrev rlq : Qp := (1 : Qp).half.half
+
+theorem rlq_add : rlq + rlq = (1 : Qp).half := Qp.half_add_half _
+
+/-- The client's half of the full committed log. -/
+def rLog (γ : RaftNames) (L : List raftpb.Entry) : IProp GF :=
+  ghostVar γ.reRLog (1 : Qp).half L
+
+instance rLog_timeless (γ : RaftNames) (L : List raftpb.Entry) : Timeless (rLog (GF := GF) γ L) := by
+  unfold rLog; infer_instance
+
+/-- The data of a log's entries (persistent). -/
+def entsData (γ : RaftNames) (l : List raftpb.Entry) : IProp GF :=
+  iprop(∃ ods : List (Option (List w8)), [∗list] e;o ∈ l;ods, entDataIs γ e o)
+
+instance entsData_persistent (γ : RaftNames) (l : List raftpb.Entry) :
+    Persistent (entsData (GF := GF) γ l) := by
+  unfold entsData; infer_instance
+instance entsData_timeless (γ : RaftNames) (l : List raftpb.Entry) :
+    Timeless (entsData (GF := GF) γ l) := by
+  unfold entsData; infer_instance
 
 /-- The token for depositing `d` the first time (an element of the client's map
 `reFresh`). -/
@@ -808,73 +860,193 @@ instance propFresh_timeless (γ : RaftNames) (d : List w8) :
     Timeless (propFresh (GF := GF) γ d) := by
   unfold propFresh; infer_instance
 
+/-- The token for depositing a read of the context `c` (an element of the client's map
+`reRdFresh`). -/
+def rdFresh (γ : RaftNames) (c : List w8) : IProp GF :=
+  c ↪[γ.reRdFresh] ()
+
+instance rdFresh_timeless (γ : RaftNames) (c : List w8) :
+    Timeless (rdFresh (GF := GF) γ c) := by
+  unfold rdFresh; infer_instance
+
 /-- The client's handle on its deposited proposal: the slot of `d`, with result `Q`. -/
-def isProp (γ : RaftNames) (d : List w8) (γp : GName × GName)
-    (Q : List (List w8) → IProp GF) : IProp GF :=
-  iprop(d ↪[γ.reProps]□ γp ∗ savedPredOwn γp.1 DFrac.discard Q)
+def isProp (γ : RaftNames) (d : List w8) (γq : GName)
+    (Q : List raftpb.Entry → IProp GF) : IProp GF :=
+  iprop(d ↪[γ.reProps]□ γq ∗ savedPredOwn γq DFrac.discard Q)
 
-/-- The ticket the client trades for the result. -/
-def propTok (γp : GName × GName) : IProp GF := token γp.2
-
-instance isProp_persistent (γ : RaftNames) (d : List w8) (γp : GName × GName)
-    (Q : List (List w8) → IProp GF) : Persistent (isProp γ d γp Q) := by
+instance isProp_persistent (γ : RaftNames) (d : List w8) (γq : GName)
+    (Q : List raftpb.Entry → IProp GF) : Persistent (isProp γ d γq Q) := by
   unfold isProp; infer_instance
-instance propTok_timeless (γp : GName × GName) : Timeless (propTok (GF := GF) γp) := by
-  unfold propTok; infer_instance
 
-theorem isProp_deposited (γ : RaftNames) (d : List w8) (γp : GName × GName)
-    (Q : List (List w8) → IProp GF) : ⊢ isProp (GF := GF) γ d γp Q -∗ deposited γ d := by
+theorem isProp_deposited (γ : RaftNames) (d : List w8) (γq : GName)
+    (Q : List raftpb.Entry → IProp GF) : ⊢ isProp (GF := GF) γ d γq Q -∗ deposited γ d := by
   unfold isProp deposited
   iintro ⟨#H, -⟩
-  iexists γp; iexact H
+  iexists γq; iexact H
+
+/-- The client's handle on its deposited read: the update's result predicate. -/
+def isRead (γ : RaftNames) (c : List w8) (Qr : List raftpb.Entry → IProp GF) : IProp GF :=
+  iprop(∃ (γq : GName) (Lc : List raftpb.Entry),
+    c ↪[γ.reReads]□ ((γq, Lc) : GName × List raftpb.Entry) ∗ savedPredOwn γq DFrac.discard Qr)
+
+instance isRead_persistent (γ : RaftNames) (c : List w8) (Qr : List raftpb.Entry → IProp GF) :
+    Persistent (isRead γ c Qr) := by
+  unfold isRead; infer_instance
+
+/-- The read witness: the handle and a read index `i` for the context. -/
+def readWit (γ : RaftNames) (c : List w8) (Qr : List raftpb.Entry → IProp GF) (i : w64) :
+    IProp GF :=
+  iprop(isRead γ c Qr ∗ readOk γ c i)
+
+instance readWit_persistent (γ : RaftNames) (c : List w8) (Qr : List raftpb.Entry → IProp GF)
+    (i : w64) : Persistent (readWit γ c Qr i) := by
+  unfold readWit; infer_instance
 
 section inv
 variable [InvGS GF]
 
-/-- See the section header. -/
-def propAu (γ : RaftNames) (d : List w8) (Q : List (List w8) → IProp GF) : IProp GF :=
-  iprop(AU <{ ∃∃ (L : List (List w8)), cLog γ L }> @ ⊤ \ ↑raftN, ∅
-          <{ cLog γ (L ++ [d]), COMM Q L }>)
+/-- A read's update (see the section header): persistent, the log unchanged, a persistent
+result. -/
+def readAu (γ : RaftNames) (Qr : List raftpb.Entry → IProp GF) : IProp GF :=
+  iprop(□ AU <{ ∃∃ (L : List raftpb.Entry), rLog γ L }> @ ⊤ \ ↑raftN, ∅
+              <{ rLog γ L, COMM □ Qr L }>)
 
-/-- Firing a deposited update: the raft half of the client log, at `Lr`, moves to
-`Lr ++ [d]` with the client's half, and the update's result comes out. -/
-theorem propAu_fire (γ : RaftNames) (d : List w8) (Q : List (List w8) → IProp GF)
-    (Lr : List (List w8)) :
-    ⊢ propAu γ d Q -∗ ghostVar γ.reCLog (1 : Qp).half Lr ={⊤ \ ↑raftN}=∗
-      ghostVar γ.reCLog (1 : Qp).half (Lr ++ [d]) ∗ Q Lr := by
-  iintro Hau Hv
+instance readAu_persistent (γ : RaftNames) (Qr : List raftpb.Entry → IProp GF) :
+    Persistent (readAu (GF := GF) γ Qr) := by
+  unfold readAu; infer_instance
+
+/-- A proposal's update (see the section header): persistent; raft chooses the entry `e` (a
+normal entry whose proposed slice holds `d`, `entDataIs`); fired at every committed
+occurrence, with the log before it. -/
+def propAu (γ : RaftNames) (d : List w8) (Q : List raftpb.Entry → IProp GF) : IProp GF :=
+  iprop(□ AU <{ ∃∃ (L : List raftpb.Entry), rLog γ L }> @ ⊤ \ ↑raftN, ∅
+              <{ ∀∀ (e : raftpb.Entry), rLog γ (L ++ [e]) ∗ entDataIs γ e (some d),
+                 COMM □ Q L }>)
+
+instance propAu_persistent (γ : RaftNames) (d : List w8) (Q : List raftpb.Entry → IProp GF) :
+    Persistent (propAu (GF := GF) γ d Q) := by
+  unfold propAu; infer_instance
+
+/-- The standing update for raft's own entries (see the section header): the client gives it
+at allocation (`ownRaftGhost_alloc_gen`); it lives in `raftCommitInv`. -/
+def noopAu (γ : RaftNames) : IProp GF :=
+  iprop(□ AU <{ ∃∃ (L : List raftpb.Entry), rLog γ L }> @ ⊤ \ ↑raftN, ∅
+              <{ ∀∀ (e : raftpb.Entry), rLog γ (L ++ [e]) ∗ entDataIs γ e none, COMM True }>)
+
+instance noopAu_persistent (γ : RaftNames) : Persistent (noopAu (GF := GF) γ) := by
+  unfold noopAu; infer_instance
+
+/-- Firing a read's update: the invariant's half at `l` agrees with the client's, both
+unchanged. -/
+theorem readAu_fire (γ : RaftNames) (Qr : List raftpb.Entry → IProp GF) (l : List raftpb.Entry) :
+    ⊢ readAu γ Qr -∗ ghostVar γ.reRLog (1 : Qp).half l ={⊤ \ ↑raftN}=∗
+      ghostVar γ.reRLog (1 : Qp).half l ∗ □ Qr l := by
+  iintro #Hau Hv
+  unfold readAu
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%L', HcL, Hclose⟩
+  unfold rLog
+  ihave %Heq := ghostVar_agree γ.reRLog l (1 : Qp).half L' (1 : Qp).half $$ Hv HcL
+  subst Heq
+  icases Hclose with ⟨-, Hcomm⟩
+  isimp only [tforall_nil, Std.Tele.app, ULift.down] at Hcomm
+  imod Hcomm $$ HcL with HQ
+  imodintro
+  iframe Hv HQ
+
+/-- Firing a proposal's update at an entry `e` holding its data: the raft half of the client's
+log, at `l`, moves to `l ++ [e]` with the client's half, and the result at `l` comes out. -/
+theorem propAu_fire (γ : RaftNames) (d : List w8) (Q : List raftpb.Entry → IProp GF)
+    (l : List raftpb.Entry) (e : raftpb.Entry) :
+    ⊢ propAu γ d Q -∗ entDataIs γ e (some d) -∗ ghostVar γ.reRLog (1 : Qp).half l ={⊤ \ ↑raftN}=∗
+      ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ∗ □ Q l := by
+  iintro #Hau #He Hv
   unfold propAu
   ihave Hacc := aupd_aacc $$ Hau
   unfold atomic_acc
   imod Hacc with Hacc
   isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
   icases Hacc with ⟨%L', HcL, Hclose⟩
-  unfold cLog
-  ihave %Heq := ghostVar_agree γ.reCLog Lr (1 : Qp).half L' (1 : Qp).half $$ Hv HcL
+  unfold rLog
+  ihave %Heq := ghostVar_agree γ.reRLog l (1 : Qp).half L' (1 : Qp).half $$ Hv HcL
   subst Heq
-  imod ghostVar_update_halves (Lr ++ [d]) γ.reCLog Lr Lr $$ Hv HcL with ⟨Hv, HcL⟩
+  imod ghostVar_update_halves (l ++ [e]) γ.reRLog l l $$ Hv HcL with ⟨Hv, HcL⟩
   icases Hclose with ⟨-, Hcomm⟩
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcomm
-  imod Hcomm $$ HcL with HQ
+  imod Hcomm $$ %e [HcL] with HQ
+  · iframe HcL He
   imodintro
   iframe Hv HQ
 
-def propSlot (γ : RaftNames) (d : List w8) (γp : GName × GName) (L : List (List w8)) :
-    IProp GF :=
-  iprop(∃ Q : List (List w8) → IProp GF, savedPredOwn γp.1 DFrac.discard Q ∗
-    ( (⌜d ∉ L⌝ ∗ £ 1 ∗ propAu γ d Q)
-    ∨ (∃ L0, ⌜L0 ++ [d] <+: L ∧ d ∉ L0⌝ ∗ (Q L0 ∨ token γp.2)) ))
+/-- Firing the standing update at an entry `e` of raft's own. -/
+theorem noopAu_fire (γ : RaftNames) (l : List raftpb.Entry) (e : raftpb.Entry) :
+    ⊢ noopAu γ -∗ entDataIs γ e none -∗ ghostVar γ.reRLog (1 : Qp).half l ={⊤ \ ↑raftN}=∗
+      ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) := by
+  iintro #Hau #He Hv
+  unfold noopAu
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%L', HcL, Hclose⟩
+  unfold rLog
+  ihave %Heq := ghostVar_agree γ.reRLog l (1 : Qp).half L' (1 : Qp).half $$ Hv HcL
+  subst Heq
+  imod ghostVar_update_halves (l ++ [e]) γ.reRLog l l $$ Hv HcL with ⟨Hv, HcL⟩
+  icases Hclose with ⟨-, Hcomm⟩
+  isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcomm
+  imod Hcomm $$ %e [HcL] with -
+  · iframe HcL He
+  imodintro
+  iexact Hv
 
-/-- The registry and the client log, for the committed log `l`: each committed entry's
-data (`ods`), the raft half of the client log at `firstOcc ods`, and the slots (each
-holding its data's fresh token). -/
-def propsOwn (γ : RaftNames) (l : List raftpb.Entry) (R : GMap (List w8) (GName × GName)) :
+/-- A proposal slot, for the committed log `l`: the result predicate (tied to `γq`), the
+update, and its results at every occurrence of `d` in `l` (with the log before it). -/
+def propSlot (γ : RaftNames) (d : List w8) (γq : GName) (l : List raftpb.Entry) : IProp GF :=
+  iprop(∃ Q : List raftpb.Entry → IProp GF, savedPredOwn γq DFrac.discard Q ∗ propAu γ d Q ∗
+    □ (∀ (m : Nat) (e : raftpb.Entry), ⌜l[m]? = some e⌝ -∗ entDataIs γ e (some d) -∗
+         □ Q (l.take m)))
+
+instance propSlot_persistent (γ : RaftNames) (d : List w8) (γq : GName)
+    (l : List raftpb.Entry) : Persistent (propSlot (GF := GF) γ d γq l) := by
+  unfold propSlot; infer_instance
+
+/-- The proposal registry, for the committed log `l` (each slot with its data's fresh
+token). -/
+def propsOwn (γ : RaftNames) (l : List raftpb.Entry) (R : GMap (List w8) GName) : IProp GF :=
+  iprop(ghostMapAuth γ.reProps 1 R ∗ [∗map] d ↦ γq ∈ R, propSlot γ d γq l ∗ propFresh γ d)
+
+/-- A read slot, for the committed log `l`: the result predicate (tied to `r.1`), the update,
+the deposit's log `r.2` (a prefix of `l`), and the results so far: `□ Qr` of every prefix of
+`l` at least `r.2` long, i.e. of every log the update was fired at. -/
+def readSlot (γ : RaftNames) (r : GName × List raftpb.Entry) (l : List raftpb.Entry) :
     IProp GF :=
-  iprop(∃ (ods : List (Option (List w8))),
-    ([∗list] e;o ∈ l;ods, entDataIs γ e o) ∗
-    ghostVar γ.reCLog (1 : Qp).half (firstOcc ods) ∗
-    ghostMapAuth γ.reProps 1 R ∗
-    [∗map] d ↦ γp ∈ R, propSlot γ d γp (firstOcc ods) ∗ propFresh γ d)
+  iprop(∃ Qr : List raftpb.Entry → IProp GF, savedPredOwn r.1 DFrac.discard Qr ∗ readAu γ Qr ∗
+    ⌜r.2 <+: l⌝ ∗
+    □ (∀ (n : Nat), ⌜r.2.length ≤ n ∧ n ≤ l.length⌝ -∗ □ Qr (l.take n)))
+
+instance readSlot_persistent (γ : RaftNames) (r : GName × List raftpb.Entry)
+    (l : List raftpb.Entry) : Persistent (readSlot (GF := GF) γ r l) := by
+  unfold readSlot; infer_instance
+
+/-- The read registry, for the committed log `l` (each slot with its context's fresh
+token). -/
+def readsOwn (γ : RaftNames) (l : List raftpb.Entry)
+    (RR : GMap (List w8) (GName × List raftpb.Entry)) : IProp GF :=
+  iprop(ghostMapAuth γ.reReads 1 RR ∗ [∗map] c ↦ r ∈ RR, readSlot γ r l ∗ rdFresh γ c)
+
+/-- The registries at the committed log `l`, with the standing update. -/
+def regsAt (γ : RaftNames) (l : List raftpb.Entry) : IProp GF :=
+  iprop(∃ (R : GMap (List w8) GName) (RR : GMap (List w8) (GName × List raftpb.Entry)),
+    propsOwn γ l R ∗ readsOwn γ l RR ∗ noopAu γ)
+
+/-- The registry half's contents: its quarter of `reRLog` at the committed log, and the
+registries there (held, un-latered, by a ghost step across its derivation). -/
+def regsOwn (γ : RaftNames) : IProp GF :=
+  iprop(∃ l, ghostVar γ.reRLog rlq l ∗ regsAt γ l)
 
 /-- The winners table (2026-10-14, reconfiguration stage B4): the authority of `reTbl`, each
 entry with its winner's record (and the entry's persistent element). -/
@@ -885,14 +1057,40 @@ def winTbl (γ : RaftNames) : IProp GF :=
 instance winTbl_timeless (γ : RaftNames) : Timeless (winTbl (GF := GF) γ) := by
   unfold winTbl; infer_instance
 
-def raftCommitInv (γ : RaftNames) : IProp GF :=
-  inv raftN iprop(∃ l, ∃ (R : GMap (List w8) (GName × GName)),
-               ownCommitted γ l ∗ committedJust γ l ∗ votesTbl γ ∗ propsOwn γ l R ∗
-               winTbl γ)
+/-- The log half's remaining contents at the committed log `l`: its entries' data and the
+half's quarter of `reRLog`. -/
+def logRest (γ : RaftNames) (l : List raftpb.Entry) : IProp GF :=
+  iprop(entsData γ l ∗ ghostVar γ.reRLog rlq l)
 
+instance logRest_timeless (γ : RaftNames) (l : List raftpb.Entry) :
+    Timeless (logRest (GF := GF) γ l) := by
+  unfold logRest; infer_instance
+
+def raftLogInvBody (γ : RaftNames) : IProp GF :=
+  iprop(∃ l, ownCommitted γ l ∗ committedJust γ l ∗ votesTbl γ ∗ winTbl γ ∗ logRest γ l)
+
+/-- The log half of the commit invariant. -/
+def raftLogInv (γ : RaftNames) : IProp GF := inv raftLogN (raftLogInvBody γ)
+
+/-- The registry half of the commit invariant. -/
+def raftRegInv (γ : RaftNames) : IProp GF := inv raftRegN (regsOwn γ)
+
+/-- The commit invariant (see the section header). -/
+def raftCommitInv (γ : RaftNames) : IProp GF := iprop(raftLogInv γ ∗ raftRegInv γ)
+
+instance raftLogInv_persistent (γ : RaftNames) : Persistent (raftLogInv (GF := GF) γ) := by
+  unfold raftLogInv; infer_instance
+instance raftRegInv_persistent (γ : RaftNames) : Persistent (raftRegInv (GF := GF) γ) := by
+  unfold raftRegInv; infer_instance
 instance raftCommitInv_persistent (γ : RaftNames) :
     Persistent (raftCommitInv (GF := GF) γ) := by
   unfold raftCommitInv; infer_instance
+
+theorem raftCommitInv_log (γ : RaftNames) : raftCommitInv (GF := GF) γ ⊢ raftLogInv γ := by
+  unfold raftCommitInv; iintro ⟨#H, -⟩; iexact H
+
+theorem raftCommitInv_reg (γ : RaftNames) : raftCommitInv (GF := GF) γ ⊢ raftRegInv γ := by
+  unfold raftCommitInv; iintro ⟨-, #H⟩; iexact H
 
 /-- A node's committed prefix: the first `commit` entries of its full log `fp ++ log` (the
 entries at indices `1 .. commit`). -/
@@ -1142,6 +1340,12 @@ theorem lcmOwn_bound_keep (γ : RaftNames) (id : w64) (s : PState) (n : w64) :
 - the credits' invariant. -/
 
 def rdCredN : Namespace := nroot .@ "raft_read_credits"
+
+/-- The read credits' invariant, inside a ghost step (the commit invariant's registry half
+open, 2026-10-14, stage R). -/
+theorem rdCredN_sub : (↑rdCredN : CoPset) ⊆ ⊤ \ ↑raftRegN :=
+  fun p hp => mask_diff_ndot raftN "reg" p
+    (mask_ndot_ne' nroot "raft_read_credits" "raft_commit" (by decide) p hp)
 
 /-- `n` read credits. -/
 def rdCred (γ : RaftNames) (n : Nat) : IProp GF :=

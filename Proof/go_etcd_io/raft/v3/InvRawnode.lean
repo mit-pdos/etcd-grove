@@ -212,15 +212,6 @@ theorem RNMode.stepOut_ca {mode : RNMode} {ca : Nat} {cfg : CCState} {fp : List 
       exact ⟨_, rfl, Nat.le_max_left _ _, Nat.le_refl _, fun h => (by cases h),
         fun hm => absurd hty hm⟩
 
-/-- A configuration in which the node is not its own quorum (`raft.Step`'s premise for a
-read-index request: `IsSingleton`'s immediate answer is out of scope). -/
-def NotSingleton (c : CfgM) : Prop := ¬ (GMap.size c.incoming = 1 ∧ GMap.size c.outgoing = 0)
-
-/-- In the static mode, more than one voter is no singleton configuration. -/
-theorem notSingleton_static {γ : RaftNames} {rs : RNState} (hm : rs.mode = .static)
-    (h : 1 < GMap.size γ.reCfg) : NotSingleton (rs.vcfg γ) := by
-  unfold NotSingleton RNState.vcfg; rw [hm]; simp only [CfgM.simple]; omega
-
 
 def hsAbs (h : raftpb.HardState) : HardSt :=
   ⟨h.Term', h.Vote', h.Commit'⟩

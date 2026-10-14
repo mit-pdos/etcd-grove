@@ -352,11 +352,12 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
         rw [Hrecv x (List.mem_of_getElem? hx)]
         exact intuitionistically_elim))
     iexact Hm
+  unfold stepPost
+  icases HΦ with ⟨Hlc, HΦ⟩
   imod ghost_stepCDS γ md c c1 id m Hty sv scfg s recv s' (absSnap m sv scfg) ⟨rfl, rfl⟩ Hstep
-      Hid Hc1 $$ Hm Hall [Hz] Hso Hghost Hrest with ⟨%md', %Hout, Hghost, Hrest⟩
+      Hid Hc1 $$ Hm Hall [Hz] Hlc Hso Hghost Hrest with ⟨%md', %Hout, Hghost, Hrest⟩
   · rw [Hcnt]; iexact Hz
   imodintro
-  unfold stepPost
   ihave Herr' : (⌜err = interface.nil⌝ ∨
       (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err) : IProp GF) $$ []
   · ileft; ipureintro; exact Herr
@@ -420,10 +421,11 @@ private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := h
     have : rdCount recv ≤ recv.length := List.countP_le_length
     omega
   -- the step in the mode's model (2026-10-14)
-  imod ghost_step_md γ md c id m s s' _ recv 1 Hrecv Hstep (Hdh s') Hcnt $$ Hm Hcred Hghost Hrest
-    with ⟨%md', %Hout, Hghost⟩
-  imodintro
   unfold stepPost
+  icases HΦ with ⟨Hlc, HΦ⟩
+  imod ghost_step_md γ md c id m s s' _ recv 1 Hrecv Hstep (Hdh s') Hcnt $$ Hm Hcred Hlc Hghost
+      Hrest with ⟨%md', %Hout, Hghost⟩
+  imodintro
   ihave Herr' : (⌜err = interface.nil⌝ ∨
       (⌜m.Type' = MsgProp⌝ ∗ globalAddr ErrProposalDropped ↦□ err) : IProp GF) $$ []
   · ileft; ipureintro; exact Herr
@@ -505,7 +507,7 @@ theorem raft.Step.wp_proof
      wp_raft_reduceUncommittedSize, wp_entsSize, wp_payloadsSize⟩
   intro c md γ r id s m ents ctx Hsm Hhup Hvote Hvoteresp Hprevote Hprevoteresp
     Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hri Hsal Hrir Hrest Hwf Hpre
-  iintro %Φ ⟨#Hinit, Hphys, Hghost, Hm, #Hctxp, Hcred, #Hsnap⟩ HΦ
+  iintro %Φ ⟨#Hinit, Hphys, Hghost, Hm, #Hctxp, Hcred, Hlc, #Hsnap⟩ HΦ
   -- (2026-10-14, stage B7) the ghost state in its mode: `ownRaftGhost` (what the protocol facts
   -- below read) and the rest
   iunfold ownStepGhost at Hghost
@@ -552,7 +554,7 @@ theorem raft.Step.wp_proof
     imod ghost_step_md γ md c id m s s' _ recv 0 Hrecv Hstep
       (fun _ _ _ _ hmd HI => Hpre.dynHyp (fun h => absurd (Hty.symm.trans h) (by w32_ne))
         (fun h => absurd (Hty.symm.trans h) (by w32_ne)) hmd HI)
-      (by omega) $$ Hm' Hz Hghost Hrest with ⟨%md', %Hout, Hghost⟩
+      (by omega) $$ Hm' Hz Hlc Hghost Hrest with ⟨%md', %Hout, Hghost⟩
     imodintro
     iapply HΦ $$ %err %s' %c %md'
     iframe Hphys Hghost
@@ -590,7 +592,7 @@ theorem raft.Step.wp_proof
     imod ghost_step_md0 γ md c id m s s' Hst
       (fun _ _ _ _ hmd HI => Hpre.dynHyp (fun h => absurd (HtyA.symm.trans h) (by w32_ne))
         (fun h => absurd (HtyA.symm.trans h) (by w32_ne)) hmd HI)
-      $$ Hghost Hrest with ⟨%md', %Hout, Hghost⟩
+      $$ Hlc Hghost Hrest with ⟨%md', %Hout, Hghost⟩
     imodintro
     iapply HΦ $$ %err %s' %c %md'
     iframe Hphys Hghost
@@ -619,7 +621,7 @@ theorem raft.Step.wp_proof
     imod ghost_step_md0 γ md c id m s s' Hst
       (fun _ _ _ _ hmd HI => Hpre.dynHyp (fun h => absurd (HtyB.symm.trans h) (by w32_ne))
         (fun _ => Happ') hmd HI)
-      $$ Hghost Hrest with ⟨%md', %Hout, Hghost⟩
+      $$ Hlc Hghost Hrest with ⟨%md', %Hout, Hghost⟩
     imodintro
     iapply HΦ $$ %err %s' %c %md'
     iframe Hphys Hghost
@@ -639,9 +641,10 @@ theorem raft.Step.wp_proof
     · ipureintro; exact RespStep.of_type (by rw [HtyB]; w32_ne) (by rw [HtyB]; w32_ne)
         (by rw [HtyB]; w32_ne)
     ileft; ipureintro; exact Herr
-  ihave HΦ : ▷ stepPost γ md c r id s m Φ $$ [HΦ]
+  ihave HΦ : ▷ stepPost γ md c r id s m Φ $$ [HΦ Hlc]
   · inext
     unfold stepPost
+    iframe Hlc
     iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', %Hfr', %Htm', %Hresp', Herr⟩
     iapply HΦ $$ %err %s' %c' %md'
     iframe Hphys Hghost Herr

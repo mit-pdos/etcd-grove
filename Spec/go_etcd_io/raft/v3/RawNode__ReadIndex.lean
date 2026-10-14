@@ -5,23 +5,28 @@
 `ReadIndex(rctx)` is `rn.raft.Step(pb.Message{Type: MsgReadIndex, Entries:
 []pb.Entry{{Data: rctx}}})` (`readIndexMsg`), its error dropped: at a leader the request is
 queued until an entry of its term is committed, then confirmed by a quorum's heartbeat
-acknowledgements (`ReadOnlySafe`); at a follower it is forwarded to the leader (and the
-answer comes back as a `MsgReadIndexResp`); with no leader known it is dropped. Once
-confirmed, a `Ready` hands out `ReadState{Index: i, RequestCtx: rctx}` (`readStateOk`).
+acknowledgements (`ReadOnlySafe`), or answered at once when the leader is the only voter
+(stage F); at a follower it is forwarded to the leader (and the answer comes back as a
+`MsgReadIndexResp`); with no leader known it is dropped. Once confirmed, a `Ready` hands out
+`ReadState{Index: i, RequestCtx: rctx}` (`readStateOk`).
 
-The client supplies the read context: its slice `rctx` recorded as a proposed slice
-holding `c` (`isPropData`; through a node: `node_read_register`), the request's record
-`readReq γ c Lc` -- created fresh by the holder of the read registry's authority
-(`readReq_alloc`) with a committed log `Lc` it knows -- and one read credit (`rdCred`,
-`Protocol/GhostState.lean`: the credits bound the requests a leader may count, so that its
-request positions do not wrap). From a `ReadState` whose context is `rctx` the client
-reads `readOk γ c i` (`readStateOk_readOk`): `|Lc| ≤ i`, so the committed log up to `i`
-extends `Lc` (`readStateOk_prefix`).
+**A persistent atomic update (2026-10-14, stage R; `notes/raft-readindex-spec.md`).** The
+client passes a persistent atomic update `readAu γ Qr` = `□ AU <{ ∃∃ L, rLog γ L }> @ ⊤ ∖
+↑raftN, ∅ <{ rLog γ L, COMM □ Qr L }>` over raft's full committed log (`rLog`), with the
+context's fresh token (`rdFresh`) and a committed log it knows (`L0`, `[]` if none). The call
+deposits it (`read_deposit`): it is fired at once, at the global committed log `Lc` of that
+moment -- a log extending `L0` --, and then at every commit after it. The client gets the
+request's record `readReq γ c Lc` (`Lc` exact) and its handle `isRead γ c Qr`. A `ReadState`
+with context `c` and index `i` carries `readOk γ c i` (`|Lc| ≤ i`); with the handle it is the
+witness `readWit γ c Qr i`, which gives `▷ ▷ □ Qr L` for every committed `L` at least `i` long
+(`read_collect`): each such log was the global one at some commit after the deposit. The
+client also supplies the read context's slice `rctx` recorded as a proposed slice holding `c`
+(`isPropData`; through a node: `node_read_register`) and one read credit (`rdCred`: the
+credits bound the requests a leader may count, so that its request positions do not wrap).
 
-`IsSingleton`'s immediate answer (a single voter) is out of scope: the configuration has
-more than one voter (`raft.Step`'s premise). The `RawNode`'s client-facing state is
-unchanged: a `MsgReadIndex` moves no term and no log (`raft.Step`'s `NetFrame`,
-`TermStep`).
+Any number of voters (the single-voter premise went with stage F's fix). The `RawNode`'s
+client-facing state is unchanged: a `MsgReadIndex` moves no term and no log (`raft.Step`'s
+`NetFrame`, `TermStep`).
 
 Lean notes: as `RawNode.Propose.spec` (`hlc := HasLC.hasLC`, `[AllG GF]`).
 -/
@@ -53,17 +58,17 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 abbrev RawNode.ReadIndex.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rctx : GoSlice) (c : List w8)
-    (Lc : List raftpb.Entry),
-  -- (2026-10-14, stage B7 part 2; until then `1 < GMap.size γ.reCfg`) the node is not its own
-  -- quorum, in the voters it uses (`RNState.vcfg`)
-  NotSingleton (rs.vcfg γ) →
+    (Qr : List raftpb.Entry → IProp GF) (L0 : List raftpb.Entry),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       "#Hpd" ∷ isPropData γ rctx c ∗
-      "#Hrq" ∷ readReq γ c Lc ∗
+      "Hfr" ∷ rdFresh γ c ∗
+      "#Hau" ∷ readAu γ Qr ∗
+      "#HL0" ∷ isCommitted γ L0 ∗
       "Hcred" ∷ rdCred γ 1 }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"ReadIndex")) (Val #rctx))
-  {{ RET #(); "Hrn" ∷ ownRawNode γ rn id rs }}
+  {{ RET #(); "Hrn" ∷ ownRawNode γ rn id rs ∗
+      ∃ Lc, "%HL0c" ∷ ⌜L0 <+: Lc⌝ ∗ "#Hrq" ∷ readReq γ c Lc ∗ "#Hrd" ∷ isRead γ c Qr }}
 
 end spec
 

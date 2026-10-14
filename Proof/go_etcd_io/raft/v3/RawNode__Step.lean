@@ -59,7 +59,7 @@ theorem RawNode.Step.wp_proof
     (wp_IsLocalMsgTarget : IsLocalMsgTarget.spec (GF := GF) (hG := hG))
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Step.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs m ents ctx Hok _Hdns Hsing Htn
+  intro γ rn id rs m ents ctx Hok _Hdns Htn
   have Hok0 := Hok
   obtain ⟨Hty, Hnri, Hri, Hself, Hrej, -⟩ := Hok0
   have Hnr : ∀ {t : w32}, m.Type' = t → ¬ UnstampedType t →
@@ -71,7 +71,7 @@ theorem RawNode.Step.wp_proof
   iNamed Hrn
   ihave #HI := isInitialized_access $$ Hpkg
   iNamed HI
-  wp_auto
+  wp_auto_lc 1
   -- `IsLocalMsg(m.Type) && !IsLocalMsgTarget(m.From)`
   wp_apply wp_IsLocalMsg _ Hty0 as %b1 _
   wp_if_destruct
@@ -115,7 +115,6 @@ theorem RawNode.Step.wp_proof
         not_net
       have P8 : m.Type' = MsgStorageApplyResp → m.Term' = W64 0 := by not_net
       icases ownRaftPhysC_preFacts cf rnv.raft' id s Hpvoff $$ Hphys with ⟨%Hpf, Hphys⟩
-      icases ownStepGhost_vcfg γ rs fp cf id s $$ Hghost with ⟨%Hvc, Hghost⟩
       wp_apply wp_raft_Step cf _ γ _ id s m ents ctx Hsm  P1
         (fun h => Hnr h (by ty_ne))
         (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1⟩) P2 P3
@@ -133,7 +132,7 @@ theorem RawNode.Step.wp_proof
         (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
           Hself (.inr (.inr (.inr h)))⟩) Hrest Hwf
         (GMode.Pre.of_facts Hpf (by not_net) (by not_net))
-        $$ [$Hphys $Hghost Hents_cap Hcred]
+        $$ [$Hphys $Hghost $Hlc1 Hents_cap Hcred]
       · simp only [HnP, ↓reduceIte, named]
         isplitl [Hents_cap]
         · isplitr

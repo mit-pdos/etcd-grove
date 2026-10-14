@@ -41,7 +41,7 @@ theorem RawNode.Propose.wp_proof
   wp_start as H
   iNamed H
   iNamed Hrn
-  wp_auto
+  wp_auto_lc 1
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
   icases ownRaftPhysC_preFacts cf rnv.raft' id s Hpvoff $$ Hphys with ⟨%Hpf, Hphys⟩
   wp_apply wp_slice_literal (l := [propEntry data_sl])
@@ -61,7 +61,7 @@ theorem RawNode.Propose.wp_proof
     (fun _ => ⟨rfl, .inr rfl⟩) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
     (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne))
-    $$ [$Hphys $Hghost Hes Hcap Hcr]
+    $$ [$Hphys $Hghost $Hlc1 Hes Hcap Hcr]
   · -- the message: its one-entry batch, owned; `Context` nil
     simp only [MsgProp, ite_true]
     isplitl [Hes Hcap]

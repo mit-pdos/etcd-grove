@@ -25,8 +25,10 @@ a message from the network (`netP`) as far as `run` is concerned. -/
 theorem node.ReadIndex.wp_proof
     (wp_node_step : node.step.spec (GF := GF) (hG := hG)) :
     node.ReadIndex.spec (GF := GF) (hG := hG) := by
-  intro γ id n rctx c Lc Hsing
-  wp_start as ⟨#Hnode, #Hpd, #Hrq, Hcred⟩
+  intro γ id n rctx c Qr L0
+  wp_start as ⟨#Hnode, #Hpd, Hfr, #Hau, #HL0, Hcred⟩
+  -- the deposit (2026-10-14, stage R), before the request leaves for `run`
+  imod node_read_deposit γ id n c Qr L0 $$ Hnode Hfr Hau HL0 with ⟨%Lc, %HL0c, #Hrq, #Hrd⟩
   wp_auto
   wp_apply wp_slice_literal (l := [({ (zero_val raftpb.Entry) with Data' := rctx } :
     raftpb.Entry)])
@@ -57,8 +59,6 @@ theorem node.ReadIndex.wp_proof
     isplitr
     · iapply ownSlice_nil
     isplitr
-    · ipureintro; exact fun _ => Hsing
-    isplitr
     · imodintro
       iintro %ty %Hty
       rw [show mtypeOf (W32 15) = some .readIndex from rfl] at Hty
@@ -78,7 +78,9 @@ theorem node.ReadIndex.wp_proof
   iintro %err -
   wp_auto
   iapply HΦ
-  itrivial
+  iexists Lc
+  iframe Hrq Hrd
+  ipureintro; exact HL0c
 
 end proof
 

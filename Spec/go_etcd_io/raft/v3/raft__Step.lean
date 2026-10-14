@@ -427,6 +427,9 @@ abbrev raft.Step.spec : Prop :=
       "#Hctx" ∷ m.Context' ↦*□ ctx ∗
       -- (2026-10-13) a read-index request carries a read credit (`rdOwn`)
       "Hcred" ∷ rdCred γ (if m.Type' = MsgReadIndex then 1 else 0) ∗
+      -- (2026-10-14, stage R) a later credit, for the ghost step: the commit invariant's
+      -- registry half is opened around it, its persistent updates fired at every commit
+      "Hlc" ∷ £ 1 ∗
       -- A `MsgSnap`'s snapshot (2026-10-02; any `ConfState` since 2026-10-14, stage B8): what
       -- `m.Snapshot` points to, read-only, and the four lists `scfg` its `ConfState`'s
       -- slices hold, read-only (`ownCSL`); well formed (`SnapScope`, `Spec/raft__restore.lean`:
@@ -590,7 +593,7 @@ abbrev raft.Step.specS : Prop :=
   -- `ReadIndex`, a forwarded one from a follower), and not in a single-voter
   -- configuration (`IsSingleton`'s immediate answer is out of scope); a response is a
   -- leader's, from another node.
-  (m.Type' = MsgReadIndex → m.Term' = W64 0 ∧ 1 < GMap.size cfg) →
+  (m.Type' = MsgReadIndex → m.Term' = W64 0) →
   (m.Type' = MsgReadIndexResp →
      m.To' = id ∧ m.Term' ≠ W64 0 ∧ m.From' ≠ W64 0 ∧ m.From' ≠ id) →
   -- (2026-10-13) the local reports, `ForgetLeader` and leader transfer (`RestMsgOk`)
@@ -638,6 +641,9 @@ abbrev raft.Step.specS : Prop :=
       "#Hctx" ∷ m.Context' ↦*□ ctx ∗
       -- (2026-10-13) a read-index request carries a read credit (`rdOwn`)
       "Hcred" ∷ rdCred γ (if m.Type' = MsgReadIndex then 1 else 0) ∗
+      -- (2026-10-14, stage R) a later credit, for the ghost step: the commit invariant's
+      -- registry half is opened around it, its persistent updates fired at every commit
+      "Hlc" ∷ £ 1 ∗
       -- A `MsgSnap`'s snapshot (2026-10-02): what `m.Snapshot` points to, read-only,
       -- and the list behind its `ConfState.Voters`; under the fixed-voter-set scope
       -- `SnapScope` (`Spec/raft__restore.lean`): the voters are `cfg`'s, `cfg` is
@@ -682,16 +688,16 @@ theorem raft.Step.spec_simple (H : raft.Step.spec (GF := GF) (hG := hG)) :
     Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hri Hrir Hrest Hrel
   subst Hcfg
   obtain ⟨rfl, Hwf⟩ := Hrel
-  iintro %Φ ⟨#Hpkg, Hphys, Hghost, Hm, #Hctx, Hcred, #Hsnap⟩ HΦ
+  iintro %Φ ⟨#Hpkg, Hphys, Hghost, Hm, #Hctx, Hcred, Hlc, #Hsnap⟩ HΦ
   ihave %Hst := ownRaftGhost_static γ id _ $$ Hghost
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
   iapply H (CfgM.simple γ.reCfg (domSet s.progress \ γ.reCfg)) .static γ r id s m ents ctx
       Hsm Hhup Hvote Hvoteresp Hprevote Hprevoteresp
       Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr
-      (fun h => (Hri h).1)
+      Hri
       (fun _ h => absurd h (by simp [CfgM.simple]))
       Hrir Hrest Hwf trivial
-    $$ [$Hpkg $Hphys $Hm $Hctx $Hcred Hghost]
+    $$ [$Hpkg $Hphys $Hm $Hctx $Hcred $Hlc Hghost]
   · isplitl [Hghost]
     · simp only [ownStepGhost, ghostRest, GMode.isDyn]
       isplitl [Hghost]

@@ -220,7 +220,7 @@ theorem node.run.wp_proof
     iunfold propP at HP
     icases HP with (⟨%data_sl, %esl, %data, %γr, %Hpm, Hes, Hcap, #Hdata, #Hent, #Hho, Hprod⟩ |
       ⟨%Hres, Hfwd⟩)
-    · wp_auto
+    · wp_auto_lc 1
       ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid
       iunfold runHead at Hhead
       icases Hhead with ⟨%rs, Hrn, Hrest⟩
@@ -232,7 +232,7 @@ theorem node.run.wp_proof
       · rw [show (propMsg esl).Entries' = esl from rfl]; iexact Hcap
       ihave #Hpdi := isNode_propDataInv γ id n $$ Hnode
       wp_apply wp_rn_raft_Step_prop wp_raft_Step γ.raft nv.rn' id rs r (propMsg esl)
-        [propEntry data_sl] rfl $$ [$Hpdi $Hrn $Hrnraft $Hes $Hcap $Hm]
+        [propEntry data_sl] rfl $$ [$Hpdi $Hrn $Hrnraft $Hes $Hcap $Hm $Hlc1]
         as %err Hrn
       · iexists []
         rw [show (propMsg esl).Context' = slice.nil from rfl]
@@ -261,13 +261,13 @@ theorem node.run.wp_proof
     · -- a proposal forwarded by a peer (2026-10-10): no result channel
       iunfold fwdP at Hfwd
       icases Hfwd with ⟨%Hty, %ents, %ctx, Hes, Hcap, #Hctx, #Hm⟩
-      wp_auto
+      wp_auto_lc 1
       ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid
       iunfold runHead at Hhead
       icases Hhead with ⟨%rs, Hrn, Hrest⟩
       ihave #Hpdi := isNode_propDataInv γ id n $$ Hnode
       wp_apply wp_rn_raft_Step_prop wp_raft_Step γ.raft nv.rn' id rs r pm.m' ents Hty
-        $$ [$Hpdi $Hrn $Hrnraft $Hes $Hcap $Hm] as %err Hrn
+        $$ [$Hpdi $Hrn $Hrnraft $Hes $Hcap $Hm $Hlc1] as %err Hrn
       · iexists ctx
         iframe Hctx
       rw [Hres]
@@ -300,10 +300,10 @@ theorem node.run.wp_proof
     inext
     iintro %m Hnet
     iunfold netP at Hnet
-    icases Hnet with ⟨%Hok, %ents, %ctx, #Hents, Hents_cap, #Hctx, %Hsing, #Hmsg, #Hlbm,
+    icases Hnet with ⟨%Hok, %ents, %ctx, #Hents, Hents_cap, #Hctx, #Hmsg, #Hlbm,
       Hcred, Htc⟩
     have Hty0 : 0 ≤ sint.Z m.Type' := netStepTypes_nonneg Hok.1
-    wp_auto
+    wp_auto_lc 1
     ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid
     iunfold runHead at Hhead
     icases Hhead with ⟨%rs, Hrn, Hrest⟩
@@ -342,9 +342,8 @@ theorem node.run.wp_proof
         $$ Hbud Hlb' Hlbm Htc with ⟨%Hbnd, %tb, #Hlbtb, %Htb⟩
       icases ownRawNode_mode γ.raft nv.rn' id rs $$ Hrn with ⟨%Hmd, Hrn⟩
       wp_apply wp_rn_raft_Step_net wp_raft_Step γ.raft nv.rn' id rs r m ents ctx Hok
-        (fun h => notSingleton_static (Hmd.2 Hstatic) (Hsing h))
-        (fun _ => Hbnd) $$ [Hrn Hents_cap Hcred] as %err %t ⟨Hrn, %Ht⟩
-      · iframe Hrn Hents_cap Hrnraft Hents Hctx Hmsg Hcred
+        (fun _ => Hbnd) $$ [Hrn Hents_cap Hcred Hlc1] as %err %t ⟨Hrn, %Ht⟩
+      · iframe Hrn Hents_cap Hrnraft Hents Hctx Hmsg Hcred Hlc1
       ihave #Hlbt : termLB γ.bud t $$ []
       · iapply termLB_le γ.bud tb t (Int.le_trans Ht.2 Htb) $$ Hlbtb
       ihave Hrest := headRest_term γ nv rs ac rc' rdv' t $$ Hrest Hlbt
@@ -376,7 +375,7 @@ theorem node.run.wp_proof
     iintro %cc HP
     iunfold confcP at HP
     icases HP with ⟨%ccs, #Hccs, %Hn⟩
-    wp_auto
+    wp_auto_lc 1
     ihave Hhead := runMid_head γ id nv ac rc' rdv' $$ Hmid
     iunfold runHead at Hhead
     icases Hhead with ⟨%rs, Hrn, Hrest⟩
@@ -397,7 +396,7 @@ theorem node.run.wp_proof
     -- `cs := r.applyConfChange(cc)`
     wp_apply wp_rn_raft_applyConfChange wp_raft_applyConfChange γ.raft nv.rn' id rs r cc ccs
       Hstatic Hn
-      $$ [$Hrn $Hrnraft $Hccs] as %cs %xs %ls ⟨Hrn, Hvoters, Hls, %Hcs⟩
+      $$ [$Hrn $Hrnraft $Hccs $Hlc1] as %cs %xs %ls ⟨Hrn, Hvoters, Hls, %Hcs⟩
     -- `_, okAfter := r.trk.Progress[r.id]`: still a voter
     icases ownRawNode_borrow_in γ.raft nv.rn' id rs r Hstatic $$ Hrn Hrnraft
       with ⟨%s2, %Hin2, Hphys, Hback⟩

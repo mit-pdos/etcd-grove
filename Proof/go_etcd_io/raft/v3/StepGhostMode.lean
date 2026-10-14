@@ -239,6 +239,13 @@ def ghostRest (γ : RaftNames) : GMode → CfgM → w64 → NState → IProp GF
 def ownStepGhost (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) : IProp GF :=
   iprop(ownRaftGhost γ id (toPState s) md.isDyn ∗ ghostRest γ md c id s)
 
+/-- The commit invariant, from the ghost state in either mode (2026-10-14, stage R). -/
+theorem ownStepGhost_inv (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
+    ownStepGhost (GF := GF) γ md c id s ⊢ raftCommitInv γ := by
+  unfold ownStepGhost
+  iintro ⟨Hg, -⟩
+  iapply ownRaftGhost_inv_md γ id (toPState s) $$ Hg
+
 /-- In the dynamic mode, `ownStepGhost` is `ownRaftGhostR`. -/
 theorem ownStepGhost_dyn (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh)
     (c : CfgM) (id : w64) (s : NState) :
@@ -268,15 +275,15 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : ra
     (s : NState) (recv : List Msg) (s' : NState) (Hstep : StepCD c id m s recv s')
     (Hdh : ∀ (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = .dyn dec c0 h0 g →
       RInv dec c0 (rOf s g) → DynHyp m s s' g) :
-    ⊢ ([∗list] x ∈ recv, isMessage (GF := GF) γ x) -∗ rdCred γ (rdCount recv) -∗
+    ⊢ ([∗list] x ∈ recv, isMessage (GF := GF) γ x) -∗ rdCred γ (rdCount recv) -∗ £ 1 -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
         ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRest γ md' c id s' := by
   cases md with
   | static =>
     simp only [ghostRest, GMode.isDyn]
-    iintro Hrecv Hcr Hg %HC
-    imod ownRaftGhost_stepC γ c HC id (toPState s) recv (toPState s') Hstep.1 $$ Hrecv Hcr Hg
+    iintro Hrecv Hcr Hlc Hg %HC
+    imod ownRaftGhost_stepC γ c HC id (toPState s) recv (toPState s') Hstep.1 $$ Hrecv Hcr Hlc Hg
       with Hg
     imodintro
     iexists GMode.static
@@ -286,7 +293,7 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : ra
     ipureintro; exact HC
   | dyn dec c0 h0 g =>
     simp only [ghostRest, GMode.isDyn]
-    iintro Hrecv Hcr Hg ⟨%Hdc, #Hfr, #Hc⟩
+    iintro Hrecv Hcr Hlc Hg ⟨%Hdc, #Hfr, #Hc⟩
     obtain ⟨HD, hc, HI⟩ := Hdc
     obtain ⟨cidx', Hcm, HR⟩ := Hstep.2 (AdmS dec c0 (fun _ => False)) dec g hc
       (Hdh dec c0 h0 g rfl HI)
@@ -297,7 +304,7 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : ra
       · ipureintro; exact HI
       iintro %hcand; iapply Hc; exact hcand
     imod ownRaftGhostR_stepR γ dec c0 h0 HD (fun _ => False) id (rOf s g) recv _ HR
-      $$ [] Hrecv Hcr Hown with Hown
+      $$ [] Hrecv Hcr Hlc Hown with Hown
     · imodintro
       iintro %fp %h
       exact h.elim
@@ -402,15 +409,15 @@ theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m 
     (a : Msg) (Ha : a.ty = .snap ∧ entryID.mk a.logterm a.index = snapId sv)
     (Hstep : StepCDS c c' (snapCfg sv scfg) id (snapId sv) s recv s')
     (Hid : scfg.Has id) (Hc' : c' = c ∨ c' = snapCfg sv scfg) :
-    ⊢ isMessage (GF := GF) γ a -∗ ([∗list] x ∈ recv, isMessage γ x) -∗ rdCred γ (rdCount recv) -∗
+    ⊢ isMessage (GF := GF) γ a -∗ ([∗list] x ∈ recv, isMessage γ x) -∗ rdCred γ (rdCount recv) -∗ £ 1 -∗
       md.SnapOk γ sv scfg -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
         ownRaftGhost γ id (toPState s') md'.isDyn ∗ ghostRest γ md' c' id s' := by
   cases md with
   | static =>
     simp only [ghostRest, GMode.isDyn, GMode.SnapOk]
-    iintro - Hrecv Hcr %Hso Hg %HC
-    imod ownRaftGhost_stepC γ c HC id (toPState s) recv (toPState s') Hstep.1 $$ Hrecv Hcr Hg
+    iintro - Hrecv Hcr Hlc %Hso Hg %HC
+    imod ownRaftGhost_stepC γ c HC id (toPState s) recv (toPState s') Hstep.1 $$ Hrecv Hcr Hlc Hg
       with Hg
     imodintro
     iexists GMode.static
@@ -425,7 +432,7 @@ theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m 
       · simp only [snapCfg, csCfgM]; rw [Hso.2]; try rfl
   | dyn dec c0 h0 g =>
     simp only [ghostRest, GMode.isDyn, GMode.SnapOk]
-    iintro #Hm Hrecv Hcr #Hso Hg ⟨%Hdc, #Hfr, #Hc⟩
+    iintro #Hm Hrecv Hcr Hlc #Hso Hg ⟨%Hdc, #Hfr, #Hc⟩
     obtain ⟨HD, hc, HI⟩ := Hdc
     -- the snapshot's prefix, from the message, and A3 of it
     icases isMessage_snap_prefix γ a Ha.1 $$ Hm with ⟨%fp0, %Hfp0, #Hr0⟩
@@ -441,7 +448,7 @@ theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m 
       · ipureintro; exact HI
       iintro %hcand; iapply Hc; exact hcand
     imod ownRaftGhostR_stepR γ dec c0 h0 HD (fun fp => fp = fp0) id (rOf s g) recv _ HR
-      $$ [] Hrecv Hcr Hown with Hown
+      $$ [] Hrecv Hcr Hlc Hown with Hown
     · imodintro
       iintro %fp %h
       subst h

@@ -37,7 +37,7 @@ theorem raft.tickHeartbeat.wp_proof
   intro c md γ r id s Hwf Hpc
   wp_start as H
   iNamed H
-  wp_auto
+  wp_auto_lc 1
   -- `r.heartbeatElapsed++`, `r.electionElapsed++`
   wp_apply raft.wp_load_heartbeatElapsedC $$ Hphys as %v1 Hphys
   wp_apply raft.wp_store_heartbeatElapsedC $$ Hphys as Hphys
@@ -124,7 +124,7 @@ theorem raft.tickHeartbeat.wp_proof
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf1
       (GMode.Pre.of_other (by msg_ne) (fun h => by rw [Hrole1]; exact Hpc h) (by msg_ne) (by msg_ne))
-      $$ [$Hphys $Hghost Hcr]
+      $$ [$Hphys $Hghost $Hlc1 Hcr]
     · simp only [hP, ↓reduceIte, named]
       isplitr
       · isplitr

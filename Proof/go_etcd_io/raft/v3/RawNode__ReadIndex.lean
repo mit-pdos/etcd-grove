@@ -35,11 +35,14 @@ the message's is `0`). -/
 theorem RawNode.ReadIndex.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.ReadIndex.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs rctx c Lc Hsing
+  intro γ rn id rs rctx c Qr L0
   wp_start as H
   iNamed H
   iNamed Hrn
-  wp_auto
+  -- the deposit (2026-10-14, stage R): the update fired at the global committed log `Lc`
+  ihave #Hcinv := ownStepGhost_inv γ _ cf id s $$ Hghost
+  imod read_deposit γ c Qr L0 $$ Hcinv Hfr Hau HL0 with ⟨%Lc, %HL0c, #Hrq, #Hrd⟩
+  wp_auto_lc 1
   wp_apply wp_slice_literal (l := [({ (zero_val raftpb.Entry) with Data' := rctx } :
     raftpb.Entry)])
   isplitr
@@ -50,7 +53,6 @@ theorem RawNode.ReadIndex.wp_proof
   have hP : (W32 15 : w32) ≠ MsgProp := by simp [MsgProp]
   have hR : (W32 15 : w32) = MsgReadIndex := rfl
   icases ownRaftPhysC_preFacts cf rnv.raft' id s Hpvoff $$ Hphys with ⟨%Hpf, Hphys⟩
-  icases ownStepGhost_vcfg γ rs fp cf id s $$ Hghost with ⟨%Hvc, Hghost⟩
   wp_apply wp_raft_Step cf _ γ _ id s _
     [({ (zero_val raftpb.Entry) with Data' := rctx } : raftpb.Entry)] []
     (by simp [StepMsg, stepMsgTypes, MsgReadIndex]) 
@@ -59,7 +61,7 @@ theorem RawNode.ReadIndex.wp_proof
     (by msg_ne) (by msg_ne) (fun _ => rfl)
     (by msg_ne) (by msg_ne) (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
     (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne))
-    $$ [$Hphys $Hghost Hcap Hcred]
+    $$ [$Hphys $Hghost $Hlc1 Hcap Hcred]
   · -- the message: its one-entry batch, read-only; `Context` nil; the client's request
     simp only [hP, ↓reduceIte, named]
     isplitl [Hcap]
@@ -107,8 +109,13 @@ theorem RawNode.ReadIndex.wp_proof
     word
   have Hstok' : StepsOk s' rs.steps := stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha Hpre Hstok
   ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs
+  ihave #Hpost : iprop(∃ Lc, ⌜L0 <+: Lc⌝ ∗ readReq γ c Lc ∗ isRead γ c Qr) $$ []
+  · iexists Lc
+    iframe Hrq Hrd
+    ipureintro; exact HL0c
   iapply HΦ
   simp only [named]
+  iframe Hpost
   iapply ownRawNode_intro γ rn id rs s' cf fp rnv sv steps Hwf' Hin Hal
     Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
     Hstok' (by rw [Hterm]; exact Htrm) (by rw [Hsg]; exact Hstor) (by rw [Hpre]; exact Hpvoff)

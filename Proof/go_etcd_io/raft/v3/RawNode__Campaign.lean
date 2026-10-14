@@ -38,7 +38,7 @@ theorem RawNode.Campaign.wp_proof
   wp_start as H
   iNamed H
   iNamed Hrn
-  wp_auto
+  wp_auto_lc 1
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   icases ownRaftPhysC_preFacts cf rnv.raft' id s Hpvoff $$ Hphys with ⟨%Hpf, Hphys⟩
   wp_apply wp_raft_Step cf _ γ _ id s _ [] []
@@ -49,7 +49,7 @@ theorem RawNode.Campaign.wp_proof
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
     (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne))
-    $$ [$Hphys $Hghost Hcr]
+    $$ [$Hphys $Hghost $Hlc1 Hcr]
   · -- the message: no entries, no `Context`, no snapshot
     have hP : (W32 0 : w32) ≠ MsgProp := by simp [MsgProp]
     simp only [hP, ↓reduceIte, named]

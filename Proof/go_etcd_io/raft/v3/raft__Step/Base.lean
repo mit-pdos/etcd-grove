@@ -165,7 +165,9 @@ lemma below ends in. `s` is the state the step starts from, `c` its configuratio
 the mode's model, `GMode.StepOut`). -/
 def stepPost (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (m : raftpb.Message) (Φ : val → IProp GF) : IProp GF :=
-  iprop(∀ (err : GoInterface) (s' : NState) (c' : CfgM) (md' : GMode),
+  -- (2026-10-14, stage R) the later credit of `raft.Step`'s precondition, for the branch's
+  -- ghost step (`ghost_step_md`: the commit invariant's registry half opened around it)
+  iprop(£ 1 ∗ ∀ (err : GoInterface) (s' : NState) (c' : CfgM) (md' : GMode),
     ("Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
      "Hghost" ∷ ownStepGhost γ md' c' id s' ∗
      "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
@@ -302,8 +304,8 @@ theorem ghost_step_recv (γ : RaftNames) (c : CfgM) (id : w64)
     (ps ps' : PState) (a : Msg) (recv : List Msg)
     (HC : CfgStatic γ c) (Hrecv : ∀ m' ∈ recv, m' = a) (Hstep : StepC c id ps recv ps')
     (Hna : a.ty ≠ .readIndex) :
-    ⊢ isMessage (GF := GF) γ a -∗ ownRaftGhost γ id ps ={⊤}=∗ ownRaftGhost γ id ps' := by
-  iintro #Hm Hg
+    ⊢ isMessage (GF := GF) γ a -∗ £ 1 -∗ ownRaftGhost γ id ps ={⊤}=∗ ownRaftGhost γ id ps' := by
+  iintro #Hm Hlc Hg
   have Hcnt : rdCount recv = 0 := by
     unfold rdCount; rw [List.countP_eq_zero]
     intro x hx; rw [Hrecv x hx]; simp [Hna]
@@ -314,7 +316,7 @@ theorem ghost_step_recv (γ : RaftNames) (c : CfgM) (id : w64)
         rw [Hrecv x (List.mem_of_getElem? hx)]
         exact intuitionistically_elim))
     iexact Hm
-  iapply ownRaftGhost_stepC γ c HC id ps recv ps' Hstep $$ Hall [Hz] Hg
+  iapply ownRaftGhost_stepC γ c HC id ps recv ps' Hstep $$ Hall [Hz] Hlc Hg
   rw [Hcnt]; iexact Hz
 
 /-- The one ghost update of a branch, in the mode `md`: `recv` is the incoming message, some
@@ -324,10 +326,10 @@ theorem ghost_step_md (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : r
     (s s' : NState) (a : Msg) (recv : List Msg) (n : Nat)
     (Hrecv : ∀ m' ∈ recv, m' = a) (Hstep : StepCD c id m s recv s') (Hdh : DynHypFor md m s s')
     (Hn : rdCount recv ≤ n) :
-    ⊢ isMessage (GF := GF) γ a -∗ rdCred γ n -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗
+    ⊢ isMessage (GF := GF) γ a -∗ rdCred γ n -∗ £ 1 -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗
       ghostRest γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗ ownStepGhost γ md' c id s' := by
-  iintro #Hm Hcr Hg Hrest
+  iintro #Hm Hcr Hlc Hg Hrest
   ihave Hall : ([∗list] m ∈ recv, isMessage (GF := GF) γ m) $$ []
   · iapply (BigSepL.bigSepL_intro (P := iprop(□ isMessage (GF := GF) γ a))
       (fun k x hx => by
@@ -337,7 +339,7 @@ theorem ghost_step_md (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : r
   ihave Hc := (rdCred_split γ (rdCount recv) (n - rdCount recv)).1 $$ [Hcr]
   · rw [show rdCount recv + (n - rdCount recv) = n by omega]; iexact Hcr
   icases Hc with ⟨Hc, -⟩
-  imod ghost_stepCD γ md c id m s recv s' Hstep Hdh $$ Hall Hc Hg Hrest
+  imod ghost_stepCD γ md c id m s recv s' Hstep Hdh $$ Hall Hc Hlc Hg Hrest
     with ⟨%md', %Hout, Hg, Hrest⟩
   imodintro
   iexists md'
@@ -349,11 +351,11 @@ theorem ghost_step_md (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : r
 /-- The same, for a branch that receives nothing. -/
 theorem ghost_step_md0 (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : raftpb.Message)
     (s s' : NState) (Hstep : StepCD c id m s [] s') (Hdh : DynHypFor md m s s') :
-    ⊢ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
+    ⊢ £ 1 -∗ ownRaftGhost (GF := GF) γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗ ownStepGhost γ md' c id s' := by
-  iintro Hg Hrest
+  iintro Hlc Hg Hrest
   imod rdCred_zero (GF := GF) γ with Hcr
-  imod ghost_stepCD γ md c id m s [] s' Hstep Hdh $$ [] [Hcr] Hg Hrest
+  imod ghost_stepCD γ md c id m s [] s' Hstep Hdh $$ [] [Hcr] Hlc Hg Hrest
     with ⟨%md', %Hout, Hg, Hrest⟩
   · iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
     iempintro
@@ -385,10 +387,11 @@ theorem finish_branch (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w
     unfold rdCount; rw [List.countP_eq_zero]
     intro x hx; rw [Hrecv x hx]; simp [Hna]
   imod rdCred_zero (GF := GF) γ with Hz
-  imod ghost_step_md γ md c id m s s' a recv 0 Hrecv Hstep Hdh (by omega) $$ Hm Hz Hghost Hrest
+  unfold stepPost
+  icases HΦ with ⟨Hlc, HΦ⟩
+  imod ghost_step_md γ md c id m s s' a recv 0 Hrecv Hstep Hdh (by omega) $$ Hm Hz Hlc Hghost Hrest
     with ⟨%md', %Hout, Hghost⟩
   imodintro
-  unfold stepPost
   iapply HΦ $$ %err %s' %c %md'
   iframe Hphys Hghost Herr
   ipureintro
@@ -408,9 +411,10 @@ theorem finish_branch0 (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : 
       stepPost γ md c r id s m Φ -∗
       |={⊤}=> Φ #err := by
   iintro Hghost Hrest Hphys Herr HΦ
-  imod ghost_step_md0 γ md c id m s s' Hstep Hdh $$ Hghost Hrest with ⟨%md', %Hout, Hghost⟩
-  imodintro
   unfold stepPost
+  icases HΦ with ⟨Hlc, HΦ⟩
+  imod ghost_step_md0 γ md c id m s s' Hstep Hdh $$ Hlc Hghost Hrest with ⟨%md', %Hout, Hghost⟩
+  imodintro
   iapply HΦ $$ %err %s' %c %md'
   iframe Hphys Hghost Herr
   ipureintro

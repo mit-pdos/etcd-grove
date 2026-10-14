@@ -666,72 +666,169 @@ theorem cq_agree (γ : RaftNames) (t1 n1 t2 n2 i : w64) (G1 G2 : List raftpb.Ent
   · icases cq_lt_agree γ t2 n2 t1 n1 G2 G1 Hgt $$ HS Hq2 Hq1 with %H
     ipureintro; intro j Hj; exact (H j (by omega)).symm
 
-/-! Firing the registry as the global log grows by one entry `e`, the entry at position
-`m` of a full log `G` with records (2026-10-10). The entry's record carries its data
-(`entData`): the client log moves only for a proposed data seen for the first time, and
-then exactly by the deposited atomic update of that data, run now with the later credit
-its slot holds (`fire_one`); every other slot keeps its state (`slot_grow`). -/
+/-! Firing the registries as the global log grows by one entry `e`, the entry at position `m`
+of a full log `G` with records (2026-10-10; 2026-10-14, stage R: persistent updates fired at
+every entry). The entry's record carries its data (`entData`): the entry's own update moves
+the client's log (`propAu` of its data, or the standing `noopAu`), then every read slot is
+fired at the new log (`readSlot_fire`); every other proposal slot keeps its results
+(`propSlot_grow`). -/
 
-/-- The registry and the client log, with the invariant's later on the slots only (what
-`propsOwn` is once the timeless parts are out of the later). -/
-def propsOwnL (γ : RaftNames) (l : List raftpb.Entry) (R : GMap (List w8) (GName × GName)) :
-    IProp GF :=
-  iprop(∃ (ods : List (Option (List w8))),
-    ([∗list] e;o ∈ l;ods, entDataIs γ e o) ∗
-    ghostVar γ.reCLog (1 : Qp).half (firstOcc ods) ∗
-    ghostMapAuth γ.reProps 1 R ∗
-    [∗map] d ↦ γp ∈ R, ▷ (propSlot γ d γp (firstOcc ods) ∗ propFresh γ d))
+/-- A position of a log grown by one entry: one of the old log's, or the new entry. -/
+theorem getElem?_snoc_cases {A : Type _} {l : List A} {e e' : A} {m : Nat}
+    (h : (l ++ [e])[m]? = some e') :
+    (m < l.length ∧ l[m]? = some e' ∧ (l ++ [e]).take m = l.take m) ∨
+    (m = l.length ∧ e' = e ∧ (l ++ [e]).take m = l) := by
+  by_cases hm : m < l.length
+  · left
+    refine ⟨hm, ?_, List.take_append_of_le_length (Nat.le_of_lt hm)⟩
+    rw [List.getElem?_append_left hm] at h; exact h
+  · right
+    have hle : l.length ≤ m := Nat.le_of_not_lt hm
+    rw [List.getElem?_append_right hle] at h
+    have h0 : m - l.length = 0 := by
+      cases hk : m - l.length with
+      | zero => rfl
+      | succ k => rw [hk] at h; simp at h
+    have hml : m = l.length := by omega
+    subst hml
+    refine ⟨rfl, ?_, List.take_left⟩
+    rw [h0] at h; simp at h; exact h.symm
 
-theorem propsOwn_open (γ : RaftNames) (E : CoPset) (l : List raftpb.Entry)
-    (R : GMap (List w8) (GName × GName)) :
-    ⊢ ▷ propsOwn (GF := GF) γ l R ={E}=∗ propsOwnL γ l R := by
-  iintro H
-  unfold propsOwn
-  icases H with ⟨%ods, >Hds, >Hv, >Hra, Hs⟩
-  imodintro
-  unfold propsOwnL
-  iexists ods
-  iframe Hds Hv Hra
-  iapply (BigSepM.bigSepM_later).1 $$ Hs
+theorem take_snoc_le {A : Type _} (l : List A) (e : A) (n : Nat) (h : n ≤ l.length) :
+    (l ++ [e]).take n = l.take n :=
+  List.take_append_of_le_length h
 
-theorem propsOwn_close (γ : RaftNames) (l : List raftpb.Entry)
-    (R : GMap (List w8) (GName × GName)) :
-    ⊢ propsOwnL (GF := GF) γ l R -∗ ▷ propsOwn γ l R := by
-  unfold propsOwnL propsOwn
-  iintro ⟨%ods, Hds, Hv, Hra, Hs⟩
-  ihave Hs := (BigSepM.bigSepM_later).2 $$ Hs
-  inext
-  iexists ods
-  iframe Hds Hv Hra Hs
+/-- A committed entry with the client data `d` was deposited. -/
+theorem entDataIs_deposited (γ : RaftNames) (e : raftpb.Entry) (d : List w8) :
+    entDataIs (GF := GF) γ e (some d) ⊢ deposited γ d := by
+  unfold entDataIs
+  iintro ⟨-, -, #H⟩
+  iexact H
 
-/-- A slot other than the new data's keeps its state as the client log grows. -/
-theorem slot_grow (γ : RaftNames) (d' : List w8) (γp : GName × GName) (L : List (List w8))
-    (d : List w8) (Hne : d' ≠ d) :
-    ⊢ propSlot (GF := GF) γ d' γp L -∗ propSlot γ d' γp (L ++ [d]) := by
+/-- A proposal slot keeps its results as the log grows by an entry whose data is not its. -/
+theorem propSlot_grow (γ : RaftNames) (d : List w8) (γq : GName) (l : List raftpb.Entry)
+    (e : raftpb.Entry) (o : Option (List w8)) (Hne : o ≠ some d) :
+    ⊢ entDataIs (GF := GF) γ e o -∗ propSlot γ d γq l -∗ propSlot γ d γq (l ++ [e]) := by
   unfold propSlot
-  iintro ⟨%Q, #Hsp, Hst⟩
+  iintro #He ⟨%Q, #Hsp, #Hau, #Hres⟩
   iexists Q
-  iframe Hsp
-  icases Hst with (⟨%Hn, Hlc, Hau⟩ | ⟨%L0, %Hp, HQ⟩)
-  · ileft
-    iframe Hlc Hau
-    ipureintro
-    simp only [List.mem_append, List.mem_singleton, not_or]
-    exact ⟨Hn, Hne⟩
-  · iright
-    iexists L0
-    iframe HQ
-    ipureintro
-    exact ⟨Hp.1.trans (List.prefix_append _ _), Hp.2⟩
+  iframe Hsp Hau
+  imodintro
+  iintro %m %e' %Hm #He'
+  rcases getElem?_snoc_cases Hm with ⟨-, Hl, Ht⟩ | ⟨-, rfl, -⟩
+  · rw [Ht]; iapply Hres $$ %m %e' %Hl He'
+  · ihave %Ho := entDataIs_agree γ e' o (some d) $$ He He'
+    exact absurd Ho Hne
 
-theorem fire_one (γ : RaftNames) (G : List raftpb.Entry) (m : Nat) (e : raftpb.Entry)
-    (R : GMap (List w8) (GName × GName)) :
+/-- The new entry's own proposal slot, fired: its result at the log before is added. -/
+theorem propSlot_fire (γ : RaftNames) (d : List w8) (γq : GName) (l : List raftpb.Entry)
+    (e : raftpb.Entry) (Q : List raftpb.Entry → IProp GF) :
+    ⊢ savedPredOwn γq DFrac.discard Q -∗ propAu γ d Q -∗ □ Q l -∗
+      □ (∀ (m : Nat) (e' : raftpb.Entry), ⌜l[m]? = some e'⌝ -∗ entDataIs γ e' (some d) -∗
+         □ Q (l.take m)) -∗
+      propSlot γ d γq (l ++ [e]) := by
+  iintro #Hsp #Hau #HQ #Hres
+  unfold propSlot
+  iexists Q
+  iframe Hsp Hau
+  imodintro
+  iintro %m %e' %Hm #He'
+  rcases getElem?_snoc_cases Hm with ⟨-, Hl, Ht⟩ | ⟨-, -, Ht⟩
+  · rw [Ht]; iapply Hres $$ %m %e' %Hl He'
+  · rw [Ht]; iexact HQ
+
+/-- A read slot, fired at the log grown by one entry. -/
+theorem readSlot_fire (γ : RaftNames) (r : GName × List raftpb.Entry) (l : List raftpb.Entry)
+    (e : raftpb.Entry) :
+    ⊢ readSlot (GF := GF) γ r l -∗ ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ={⊤ \ ↑raftN}=∗
+      ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ∗ readSlot γ r (l ++ [e]) := by
+  unfold readSlot
+  iintro ⟨%Qr, #Hsp, #Hau, %Hpre, #Hres⟩ Hv
+  imod readAu_fire γ Qr (l ++ [e]) $$ Hau Hv with ⟨Hv, #HQ⟩
+  imodintro
+  iframe Hv
+  iexists Qr
+  iframe Hsp Hau
+  isplitr
+  · ipureintro; exact Hpre.trans (List.prefix_append _ _)
+  imodintro
+  iintro %n %Hn
+  by_cases hn : n ≤ l.length
+  · rw [take_snoc_le l e n hn]
+    iapply Hres $$ %n
+    ipureintro; exact ⟨Hn.1, hn⟩
+  · have : n = (l ++ [e]).length := by simp at Hn ⊢; omega
+    rw [this, List.take_length]
+    iexact HQ
+
+/-- A step over a list, threading a resource `R` through the elements' updates. -/
+theorem bigSepL_fupd_thread {A : Type _} (E : CoPset) (R : IProp GF) (Φ Ψ : A → IProp GF) :
+    ∀ (l : List A),
+    ⊢ □ (∀ x, R -∗ Φ x ={E}=∗ R ∗ Ψ x) -∗ R -∗ ([∗list] x ∈ l, Φ x) ={E}=∗
+      R ∗ [∗list] x ∈ l, Ψ x
+  | [] => by
+    iintro #_ HR _
+    imodintro
+    iframe HR
+    iapply (BigSepL.bigSepL_nil (Φ := fun _ x => Ψ x)).2
+    iempintro
+  | x :: xs => by
+    iintro #Hstep HR Hl
+    icases (BigSepL.bigSepL_cons (Φ := fun _ x => Φ x)).1 $$ Hl with ⟨Hx, Hl⟩
+    imod Hstep $$ %x HR Hx with ⟨HR, Hx⟩
+    imod bigSepL_fupd_thread E R Φ Ψ xs $$ Hstep HR Hl with ⟨HR, Hl⟩
+    imodintro
+    iframe HR
+    iapply (BigSepL.bigSepL_cons (Φ := fun _ x => Ψ x)).2
+    iframe Hx Hl
+
+/-- The same over a map. -/
+theorem bigSepM_fupd_thread {K V : Type} [DecidableEq K] [Pos.Countable K] (E : CoPset)
+    (R : IProp GF) (Φ Ψ : K → V → IProp GF) (M : GMap K V) :
+    ⊢ □ (∀ k v, R -∗ Φ k v ={E}=∗ R ∗ Ψ k v) -∗ R -∗ ([∗map] k ↦ v ∈ M, Φ k v) ={E}=∗
+      R ∗ [∗map] k ↦ v ∈ M, Ψ k v := by
+  iintro #Hstep HR HM
+  ihave HM := (BigSepM.bigSepM_toList (Φ := Φ) (m := M)).1 $$ HM
+  imod bigSepL_fupd_thread E R (fun kv : K × V => Φ kv.1 kv.2) (fun kv => Ψ kv.1 kv.2)
+    (Std.toList M) $$ [] HR HM with ⟨HR, HM⟩
+  · imodintro
+    iintro %kv HR Hx
+    iapply Hstep $$ %kv.1 %kv.2 HR Hx
+  imodintro
+  iframe HR
+  iapply (BigSepM.bigSepM_toList (Φ := Ψ) (m := M)).2 $$ HM
+
+/-- Every read slot, fired at the log grown by one entry. -/
+theorem readsOwn_fire (γ : RaftNames) (l : List raftpb.Entry) (e : raftpb.Entry)
+    (RR : GMap (List w8) (GName × List raftpb.Entry)) :
+    ⊢ readsOwn (GF := GF) γ l RR -∗ ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ={⊤ \ ↑raftN}=∗
+      ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ∗ readsOwn γ (l ++ [e]) RR := by
+  unfold readsOwn
+  iintro ⟨Ha, Hs⟩ Hv
+  imod bigSepM_fupd_thread (⊤ \ ↑raftN) iprop(ghostVar γ.reRLog (1 : Qp).half (l ++ [e]))
+    (fun c r => iprop(readSlot γ r l ∗ rdFresh γ c))
+    (fun c r => iprop(readSlot γ r (l ++ [e]) ∗ rdFresh γ c)) RR $$ [] Hv Hs with ⟨Hv, Hs⟩
+  · imodintro
+    iintro %c %r Hv ⟨Hsl, Hfr⟩
+    imod readSlot_fire γ r l e $$ Hsl Hv with ⟨Hv, Hsl⟩
+    imodintro
+    iframe Hv Hsl Hfr
+  imodintro
+  iframe Hv Ha Hs
+
+/-- What the commit moves, at the global committed log `l`: its authority, its entries' data,
+the invariant's half of `reRLog` and the registries. -/
+def commitSt (γ : RaftNames) (l : List raftpb.Entry) : IProp GF :=
+  iprop(ownCommitted γ l ∗ entsData γ l ∗ ghostVar γ.reRLog (1 : Qp).half l ∗ regsAt γ l)
+
+theorem fire_one (γ : RaftNames) (G : List raftpb.Entry) (m : Nat) (e : raftpb.Entry) :
     PlogWf base0 G → G[m]? = some e →
-    ⊢ logRecs (GF := GF) γ base0 G -∗ ownCommitted γ (G.take m) -∗ propsOwnL γ (G.take m) R
-      ={⊤ \ ↑raftN}=∗
-      ownCommitted γ (G.take (m + 1)) ∗ propsOwnL γ (G.take (m + 1)) R := by
+    ⊢ logRecs (GF := GF) γ base0 G -∗ commitSt γ (G.take m) ={⊤ \ ↑raftN}=∗
+      commitSt γ (G.take (m + 1)) := by
   intro Hwf He
-  iintro #Hr HP Hpo
+  iintro #Hr Hst
+  unfold commitSt
+  icases Hst with ⟨HP, #Hds, Hv, Hregs⟩
   have Hei := Hwf _ _ He
   rw [base0_index] at Hei
   push_cast at Hei
@@ -741,203 +838,231 @@ theorem fire_one (γ : RaftNames) (G : List raftpb.Entry) (m : Nat) (e : raftpb.
   unfold isEntryR entData
   icases Her with ⟨%ldr, %γt, %b, %l0, %F0, -, -, -, -, -, %o, #Ho⟩
   have Htk : G.take (m + 1) = G.take m ++ [e] := by rw [List.take_add_one, He]; rfl
-  imod ownCommitted_extend γ (G.take m) (G.take (m + 1))
-    (by rw [Htk]; exact List.prefix_append _ _) $$ HP with ⟨HP, -⟩
-  unfold propsOwnL
-  icases Hpo with ⟨%ods, Hds, Hv, Hra, Hs⟩
-  ihave Hds : iprop([∗list] e;o ∈ G.take (m + 1);ods ++ [o], entDataIs γ e o) $$ [Hds]
-  · rw [Htk]
+  rw [Htk]
+  imod ownCommitted_extend γ (G.take m) (G.take m ++ [e]) (List.prefix_append _ _) $$ HP
+    with ⟨HP, -⟩
+  ihave #Hds' : entsData γ (G.take m ++ [e]) $$ []
+  · unfold entsData
+    icases Hds with ⟨%ods, #Hds⟩
+    iexists ods ++ [o]
     iapply (BigSepL2.bigSepL2_snoc (Φ := fun _ e o => entDataIs (GF := GF) γ e o)).2
     iframe Hds Ho
-  -- whether the client log moves
-  by_cases Hfire : ∃ d, o = some d ∧ d ∉ firstOcc ods
-  · obtain ⟨d, rfl, Hdn⟩ := Hfire
-    have Hocc : firstOcc (ods ++ [some d]) = firstOcc ods ++ [d] := by
-      rw [firstOcc_snoc]; show (if d ∈ firstOcc ods then _ else _) = _; rw [if_neg Hdn]
-    unfold entDataIs deposited
-    icases Ho with ⟨-, -, %γp, #Hdep⟩
-    icases ghost_map_lookup $$ Hra Hdep with %HRd
-    icases (BigSepM.bigSepM_delete (Φ := fun d γp =>
-      iprop(▷ (propSlot (GF := GF) γ d γp (firstOcc ods) ∗ propFresh γ d))) HRd).1 $$ Hs
-      with ⟨Hsd, Hs⟩
-    icases Hsd with ⟨Hsl, Hfr⟩
-    iunfold propSlot at Hsl
-    icases Hsl with ⟨%Q, #Hsp, Hst⟩
-    icases Hst with (⟨>%Hn, >Hlc, Hau⟩ | ⟨%L0, >%Hp, -⟩)
-    · imod lc_fupd_elim_later $$ Hlc Hau with Hau
-      imod propAu_fire γ d Q (firstOcc ods) $$ Hau Hv with ⟨Hv, HQ⟩
-      ihave Hs : iprop([∗map] d' ↦ γp' ∈ Std.delete R d,
-          ▷ (propSlot γ d' γp' (firstOcc ods ++ [d]) ∗ propFresh γ d')) $$ [Hs]
-      · iapply BigSepM.bigSepM_impl $$ Hs
-        imodintro
-        iintro %k %v %Hkv ⟨Hsl, Hf⟩
-        have Hne : k ≠ d := (Iris.Std.LawfulPartialMap.get?_delete_some_iff.mp Hkv).1.symm
-        inext
-        iframe Hf
-        iapply slot_grow γ k v (firstOcc ods) d Hne $$ Hsl
-      ihave Hsd : iprop(▷ (propSlot γ d γp (firstOcc ods ++ [d]) ∗ propFresh γ d))
-        $$ [Hsp HQ Hfr]
-      · inext
-        iframe Hfr
-        unfold propSlot
-        iexists Q
-        iframe Hsp
-        iright
-        iexists (firstOcc ods)
-        iframe HQ
-        ipureintro
-        exact ⟨List.prefix_refl _, Hdn⟩
+  unfold regsAt
+  icases Hregs with ⟨%R, %RR, Hprops, Hreads, #Hnoop⟩
+  unfold propsOwn
+  icases Hprops with ⟨Hra, Hs⟩
+  -- the entry's own update moves the log; the other proposal slots keep their results
+  ihave Hfire : |={⊤ \ ↑raftN}=> ghostVar γ.reRLog (1 : Qp).half (G.take m ++ [e]) ∗
+      ghostMapAuth γ.reProps 1 R ∗
+      [∗map] d ↦ γq ∈ R, propSlot γ d γq (G.take m ++ [e]) ∗ propFresh γ d $$ [Hv Hra Hs]
+  · cases o with
+    | none =>
+      imod noopAu_fire γ (G.take m) e $$ Hnoop Ho Hv with Hv
       imodintro
-      iframe HP
-      iexists ods ++ [some d]
-      rw [Hocc]
-      iframe Hds Hv Hra
-      iapply (BigSepM.bigSepM_delete (Φ := fun d' γp =>
-        iprop(▷ (propSlot (GF := GF) γ d' γp (firstOcc ods ++ [d]) ∗ propFresh γ d'))) HRd).2
-      iframe Hsd Hs
-    · exact absurd (Hp.1.subset (List.mem_append_right _ (List.mem_singleton_self d))) Hdn
-  · have Hocc : firstOcc (ods ++ [o]) = firstOcc ods := by
-      rw [firstOcc_snoc]
-      cases o with
-      | none => rfl
-      | some d =>
-        have : d ∈ firstOcc ods :=
-          Classical.byContradiction fun h => Hfire ⟨d, rfl, h⟩
-        show (if d ∈ firstOcc ods then _ else _) = _
-        rw [if_pos this]
-    imodintro
-    iframe HP
-    iexists ods ++ [o]
-    rw [Hocc]
-    iframe Hds Hv Hra Hs
+      iframe Hv Hra
+      iapply BigSepM.bigSepM_impl $$ Hs
+      imodintro
+      iintro %d %γq %_ ⟨Hsl, Hfr⟩
+      iframe Hfr
+      iapply propSlot_grow γ d γq (G.take m) e none (by simp) $$ Ho Hsl
+    | some d =>
+      ihave #Hdep := entDataIs_deposited γ e d $$ Ho
+      unfold deposited
+      icases Hdep with ⟨%γq, #Hdq⟩
+      icases ghost_map_lookup $$ Hra Hdq with %HRd
+      icases (BigSepM.bigSepM_delete (Φ := fun d γq =>
+        iprop(propSlot (GF := GF) γ d γq (G.take m) ∗ propFresh γ d)) HRd).1 $$ Hs
+        with ⟨⟨Hsl, Hfr⟩, Hs⟩
+      iunfold propSlot at Hsl
+      icases Hsl with ⟨%Q, #Hsp, #Hau, #Hres⟩
+      imod propAu_fire γ d Q (G.take m) e $$ Hau Ho Hv with ⟨Hv, #HQ⟩
+      imodintro
+      iframe Hv Hra
+      iapply (BigSepM.bigSepM_delete (Φ := fun d γq =>
+        iprop(propSlot (GF := GF) γ d γq (G.take m ++ [e]) ∗ propFresh γ d)) HRd).2
+      isplitl [Hfr]
+      · iframe Hfr
+        iapply propSlot_fire γ d γq (G.take m) e Q $$ Hsp Hau HQ Hres
+      iapply BigSepM.bigSepM_impl $$ Hs
+      imodintro
+      iintro %d' %γq' %Hk ⟨Hsl, Hfr⟩
+      have Hne : d' ≠ d := (Iris.Std.LawfulPartialMap.get?_delete_some_iff.mp Hk).1.symm
+      iframe Hfr
+      iapply propSlot_grow γ d' γq' (G.take m) e (some d)
+        (by intro h; cases h; exact Hne rfl) $$ Ho Hsl
+  imod Hfire with ⟨Hv, Hra, Hs⟩
+  -- then every read, at the new log
+  imod readsOwn_fire γ (G.take m) e RR $$ Hreads Hv with ⟨Hv, Hreads⟩
+  imodintro
+  iframe HP Hds' Hv
+  iexists R, RR
+  iframe Hreads Hnoop Hra Hs
 
-theorem fire_upto (γ : RaftNames) (G : List raftpb.Entry)
-    (R : GMap (List w8) (GName × GName)) (d m : Nat) :
+theorem fire_upto (γ : RaftNames) (G : List raftpb.Entry) (d m : Nat) :
     PlogWf base0 G → m + d ≤ G.length →
-    ⊢ logRecs (GF := GF) γ base0 G -∗ ownCommitted γ (G.take m) -∗ propsOwnL γ (G.take m) R
-      ={⊤ \ ↑raftN}=∗
-      ownCommitted γ (G.take (m + d)) ∗ propsOwnL γ (G.take (m + d)) R := by
+    ⊢ logRecs (GF := GF) γ base0 G -∗ commitSt γ (G.take m) ={⊤ \ ↑raftN}=∗
+      commitSt γ (G.take (m + d)) := by
   induction d generalizing m with
   | zero =>
     intro _ _
-    iintro #Hr HP Hs
+    iintro #Hr Hs
     imodintro
-    iframe HP Hs
+    iexact Hs
   | succ d IH =>
     intro Hwf Hle
-    iintro #Hr HP Hs
+    iintro #Hr Hs
     obtain ⟨e, He⟩ : ∃ e, G[m]? = some e := ⟨G[m]'(by omega), List.getElem?_eq_getElem _⟩
-    imod fire_one γ G m e R Hwf He $$ Hr HP Hs with ⟨HP, Hs⟩
+    imod fire_one γ G m e Hwf He $$ Hr Hs with Hs
     rw [show m + (d + 1) = (m + 1) + d by omega]
-    iapply IH (m + 1) Hwf (by omega) $$ Hr HP Hs
+    iapply IH (m + 1) Hwf (by omega) $$ Hr Hs
+
+/-- `fire_upto` with both halves of the commit invariant open, from a ghost step. -/
+theorem fire_upto_open (γ : RaftNames) (G : List raftpb.Entry) (d m : Nat) :
+    PlogWf base0 G → m + d ≤ G.length →
+    ⊢ logRecs (GF := GF) γ base0 G -∗ commitSt γ (G.take m) ={(⊤ \ ↑raftRegN) \ ↑raftLogN}=∗
+      commitSt γ (G.take (m + d)) := by
+  intro Hwf Hle
+  iintro #Hr Hs
+  iapply (fupd_mask_mono (P := commitSt (GF := GF) γ (G.take (m + d))) raftN_open_sub)
+  iapply fire_upto γ G d m Hwf Hle $$ Hr Hs
+
+/-- The two quarters of `reRLog` the commit invariant's halves hold agree, and make its
+half. -/
+theorem rlq_join (γ : RaftNames) (l1 l2 : List raftpb.Entry) :
+    ⊢ ghostVar (GF := GF) γ.reRLog rlq l1 -∗ ghostVar γ.reRLog rlq l2 -∗
+      ⌜l1 = l2⌝ ∗ ghostVar γ.reRLog (1 : Qp).half l1 := by
+  iintro H1 H2
+  ihave %Heq := ghostVar_agree γ.reRLog l1 rlq l2 rlq $$ H1 H2
+  subst Heq
+  isplitr; · ipureintro; rfl
+  rw [← rlq_add]
+  iframe H1 H2
+
+theorem rlq_split (γ : RaftNames) (l : List raftpb.Entry) :
+    ⊢ ghostVar (GF := GF) γ.reRLog (1 : Qp).half l -∗
+      ghostVar γ.reRLog rlq l ∗ ghostVar γ.reRLog rlq l := by
+  iintro H
+  rw [← rlq_add]
+  iapply ghostVar_split $$ H
 
 /-- Committing: a new commit fact `cq γ t n G` extends the global log to `G`'s first `n`
 entries, or finds it already past them. Inside the invariant, the global log is the
 first `n0` entries of the log `G0` of an earlier commit fact; the two commit facts agree
 below both (`cq_agree`, from the vote table), so -- the logs having records -- the two
 prefixes are prefixes of one another (`full_take_eq`). The extension is entry by entry,
-firing the deposited updates (`fire_upto`) -- with the invariant open, so at
-`⊤ ∖ ↑raftN`, which the updates' outer mask is. -/
+firing the deposited updates (`fire_upto`) -- with both halves of the invariant open: the
+registry half by the ghost step (its contents `regsOwn`, held across the step since it took
+`£ 1` to open them), the log half here; the updates' outer mask `⊤ ∖ ↑raftN` excludes
+both. -/
 theorem commit_extend (γ : RaftNames) (t n : w64) (G : List raftpb.Entry) (ldr : w64) :
-    ⊢ raftCommitInv (GF := GF) γ -∗ cq γ t n G -∗ isLeader γ ldr t -∗ cmtLb γ ldr t n ={⊤}=∗
-      isCommitted γ (G.take (uint.Z n).toNat) := by
-  iintro #Hinv #Hcq #Hldr #Hclb
-  unfold raftCommitInv
-  iinv Hinv with ⟨%P, %R, >HP, >Hj, >Htbl, Hpo, Hwt⟩ Hclose
-  imod propsOwn_open γ _ P R $$ Hpo with Hpo
+    ⊢ raftCommitInv (GF := GF) γ -∗ regsOwn γ -∗ cq γ t n G -∗ isLeader γ ldr t -∗
+      cmtLb γ ldr t n ={⊤ \ ↑raftRegN}=∗
+      regsOwn γ ∗ isCommitted γ (G.take (uint.Z n).toNat) := by
+  iintro #Hinv Hregs #Hcq #Hldr #Hclb
+  ihave #Hli := raftCommitInv_log γ $$ Hinv
+  unfold raftLogInv raftLogInvBody
+  iinv Hli with ⟨%P, >HP, >#Hj, >Htbl, >Hwt, >Hrest⟩ Hclose
+  unfold logRest regsOwn
+  icases Hrest with ⟨#Hds, Hq1⟩
+  icases Hregs with ⟨%l', Hq2, Hregs⟩
+  icases rlq_join γ P l' $$ Hq1 Hq2 with ⟨%Heq, Hv⟩
+  subst Heq
   icases cq_full γ t n G $$ Hcq with ⟨%HwG, #HrG⟩
   icases cq_base γ _ _ _ $$ Hcq with ⟨%HGn, -⟩
   have HnG := (plogTermAt_some_range _ _ _ _ HGn).2
   unfold plogLastIndexZ at HnG
   rw [base0_index] at HnG
-  unfold committedJust
-  icases Hj with (%HP0 | ⟨%t0, %n0, %G0, %ldr0, #Hcq0, %HP0, #Hldr0, #Hclb0⟩)
-  · subst HP0
-    ihave HP' : ownCommitted γ (G.take 0) $$ [HP]
-    · rw [List.take_zero]; iexact HP
-    ihave Hpo' : propsOwnL γ (G.take 0) R $$ [Hpo]
-    · rw [List.take_zero]; iexact Hpo
-    imod fire_upto γ G R (uint.Z n).toNat 0 HwG (by omega) $$ HrG HP' Hpo'
-      with ⟨HP, Hpo⟩
-    rw [Nat.zero_add]
-    ihave #Hc := ownCommitted_lb γ _ $$ HP
-    ihave Hpo := propsOwn_close γ _ R $$ Hpo
-    imod Hclose $$ [HP Htbl Hpo Hwt] with -
-    · inext
-      iexists _, R
-      isplitl [HP]
-      · iexact HP
-      isplitr [Htbl Hpo Hwt]
-      · iright
+  -- the log after: extended to `G`'s first `n` entries, or already past them
+  ihave Hext : |={(⊤ \ ↑raftRegN) \ ↑raftLogN}=> ∃ P', commitSt γ P' ∗ committedJust γ P' ∗
+      votesTbl γ ∗ isCommitted γ (G.take (uint.Z n).toNat) $$ [HP Hv Hregs Htbl]
+  · unfold committedJust
+    icases Hj with (%HP0 | ⟨%t0, %n0, %G0, %ldr0, #Hcq0, %HP0, #Hldr0, #Hclb0⟩)
+    · subst HP0
+      ihave Hst : commitSt γ (G.take 0) $$ [HP Hv Hregs]
+      · unfold commitSt; rw [List.take_zero]; iframe HP Hds Hv Hregs
+      imod fire_upto_open γ G (uint.Z n).toNat 0 HwG (by omega) $$ HrG Hst with Hst
+      rw [Nat.zero_add]
+      ihave #Hc : isCommitted γ (G.take (uint.Z n).toNat) $$ [Hst]
+      · unfold commitSt
+        icases Hst with ⟨HP, -⟩
+        iapply ownCommitted_lb γ _ $$ HP
+      imodintro
+      iexists _
+      iframe Hst Hc Htbl
+      iright
+      iexists t, n, G, ldr
+      iframe Hcq Hldr Hclb
+      ipureintro; rfl
+    · subst HP0
+      icases cq_full γ t0 n0 G0 $$ Hcq0 with ⟨%HwG0, #HrG0⟩
+      icases cq_base γ _ _ _ $$ Hcq0 with ⟨%HG0n, -⟩
+      by_cases Hle : uint.Z n0 ≤ uint.Z n
+      · -- the new prefix is longer: extend, firing the registries
+        icases cq_agree γ t0 n0 t n n0 G0 G (Int.le_refl _) Hle $$ Htbl Hcq0 Hcq with %Hag
+        icases full_take_eq γ G0 G n0 HwG0 HwG (by rw [HG0n]; rfl) (Hag n0 (Int.le_refl _))
+          $$ HrG0 HrG with %Htk
+        ihave Hst : commitSt γ (G.take (uint.Z n0).toNat) $$ [HP Hv Hregs]
+        · unfold commitSt; rw [← Htk]; iframe HP Hds Hv Hregs
+        imod fire_upto_open γ G ((uint.Z n).toNat - (uint.Z n0).toNat) (uint.Z n0).toNat HwG
+          (by omega) $$ HrG Hst with Hst
+        rw [show (uint.Z n0).toNat + ((uint.Z n).toNat - (uint.Z n0).toNat) = (uint.Z n).toNat
+          by omega]
+        ihave #Hc : isCommitted γ (G.take (uint.Z n).toNat) $$ [Hst]
+        · unfold commitSt
+          icases Hst with ⟨HP, -⟩
+          iapply ownCommitted_lb γ _ $$ HP
+        imodintro
+        iexists _
+        iframe Hst Hc Htbl
+        iright
         iexists t, n, G, ldr
         iframe Hcq Hldr Hclb
         ipureintro; rfl
-      iframe
-    imodintro
-    iexact Hc
-  · subst HP0
-    icases cq_full γ t0 n0 G0 $$ Hcq0 with ⟨%HwG0, #HrG0⟩
-    icases cq_base γ _ _ _ $$ Hcq0 with ⟨%HG0n, -⟩
-    by_cases Hle : uint.Z n0 ≤ uint.Z n
-    · -- the new prefix is longer: extend, firing the registry
-      icases cq_agree γ t0 n0 t n n0 G0 G (Int.le_refl _) Hle $$ Htbl Hcq0 Hcq with %Hag
-      icases full_take_eq γ G0 G n0 HwG0 HwG (by rw [HG0n]; rfl) (Hag n0 (Int.le_refl _))
-        $$ HrG0 HrG with %Htk
-      rw [Htk]
-      imod fire_upto γ G R ((uint.Z n).toNat - (uint.Z n0).toNat) (uint.Z n0).toNat HwG
-        (by omega) $$ HrG HP Hpo with ⟨HP, Hpo⟩
-      rw [show (uint.Z n0).toNat + ((uint.Z n).toNat - (uint.Z n0).toNat) = (uint.Z n).toNat
-        by omega]
-      ihave #Hc := ownCommitted_lb γ _ $$ HP
-      ihave Hpo := propsOwn_close γ _ R $$ Hpo
-      imod Hclose $$ [HP Htbl Hpo Hwt] with -
-      · inext
-        iexists _, R
-        isplitl [HP]
-        · iexact HP
-        isplitr [Htbl Hpo Hwt]
-        · iright
-          iexists t, n, G, ldr
-          iframe Hcq Hldr Hclb
-          ipureintro; rfl
-        iframe
-      imodintro
-      iexact Hc
-    · -- the global log is already past it
-      icases cq_agree γ t0 n0 t n n G0 G (by omega) (Int.le_refl _) $$ Htbl Hcq0 Hcq with %Hag
-      icases full_take_eq γ G0 G n HwG0 HwG
-        (full_term_at_some G0 n n0 (by rw [HG0n]; rfl) (by omega)) (Hag n (Int.le_refl _))
-        $$ HrG0 HrG with %Htk
-      ihave #Hc0 := ownCommitted_lb γ _ $$ HP
-      ihave Hpo := propsOwn_close γ _ R $$ Hpo
-      imod Hclose $$ [HP Htbl Hpo Hwt] with -
-      · inext
-        iexists _, R
-        isplitl [HP]
-        · iexact HP
-        isplitr [Htbl Hpo Hwt]
+      · -- the global log is already past it
+        icases cq_agree γ t0 n0 t n n G0 G (by omega) (Int.le_refl _) $$ Htbl Hcq0 Hcq with %Hag
+        icases full_take_eq γ G0 G n HwG0 HwG
+          (full_term_at_some G0 n n0 (by rw [HG0n]; rfl) (by omega)) (Hag n (Int.le_refl _))
+          $$ HrG0 HrG with %Htk
+        ihave #Hc0 := ownCommitted_lb γ _ $$ HP
+        imodintro
+        iexists (G0.take (uint.Z n0).toNat)
+        isplitl [HP Hv Hregs]
+        · unfold commitSt; iframe HP Hds Hv Hregs
+        iframe Htbl
+        isplitr
         · iright
           iexists t0, n0, G0, ldr0
           iframe Hcq0 Hldr0 Hclb0
           ipureintro; rfl
-        iframe
-      imodintro
-      iapply isCommitted_mono γ _ _ (by rw [← Htk]; exact take_prefix_le _ _ _ (by omega)) $$ Hc0
-
+        iapply isCommitted_mono γ _ _ (by rw [← Htk]; exact take_prefix_le _ _ _ (by omega)) $$ Hc0
+  imod Hext with ⟨%P', Hst, #Hj', Htbl, #Hc⟩
+  unfold commitSt
+  icases Hst with ⟨HP, #Hds', Hv, Hregs⟩
+  icases rlq_split γ P' $$ Hv with ⟨Hq1, Hq2⟩
+  imod Hclose $$ [HP Htbl Hwt Hq1] with -
+  · inext
+    iexists P'
+    iframe HP Hj' Htbl Hwt Hds' Hq1
+  imodintro
+  iframe Hc
+  iexists P'
+  iframe Hq2 Hregs
 /-- A vote, recorded in the node's half of its vote map and in the table. -/
 theorem vote_insert (γ : RaftNames) (id : w64) (γv : GName) (voted : GMap w64 w64)
     (T c : w64) :
     γ.reVotes !! id = some γv → voted !! T = none →
-    ⊢ raftCommitInv (GF := GF) γ -∗ voteJust γ id T c -∗ ghostMapAuth γv (1 : Qp).half voted ={⊤}=∗
+    ⊢ raftCommitInv (GF := GF) γ -∗ voteJust γ id T c -∗ ghostMapAuth γv (1 : Qp).half voted
+      ={⊤ \ ↑raftRegN}=∗
       ghostMapAuth γv (1 : Qp).half (<[T := c]> voted) ∗ T ↪[γv]□ c := by
   intro Hγv Hfree
   iintro #Hinv #Hj Ha
-  unfold raftCommitInv
-  iinv Hinv with ⟨%P, %R, HP, Hjust, >Htbl, Hrest⟩ Hclose
+  ihave #Hli := raftCommitInv_log γ $$ Hinv
+  unfold raftLogInv raftLogInvBody
+  iinv Hli with ⟨%P, HP, Hjust, >Htbl, Hrest⟩ Hclose
   imod votesTbl_insert γ id γv voted T c Hγv Hfree $$ Hj Htbl Ha with ⟨Htbl, Ha, #Hf⟩
   imod Hclose $$ [HP Hjust Htbl Hrest] with -
   · inext
-    iexists P, R
+    iexists P
     iframe
   imodintro
   isplitl [Ha]
@@ -1134,14 +1259,15 @@ theorem winTbl_insert (γ : RaftNames) (id T : w64) (c : CfgM) (V : GSet w64) :
 
 /-- `Step.win` on the winners table: inside the commit invariant. -/
 theorem win_register (γ : RaftNames) (id T : w64) (c : CfgM) (V : GSet w64) :
-    ⊢ raftCommitInv (GF := GF) γ -∗ isWinCore γ id T c V ={⊤}=∗ isWin γ id T V := by
+    ⊢ raftCommitInv (GF := GF) γ -∗ isWinCore γ id T c V ={⊤ \ ↑raftRegN}=∗ isWin γ id T V := by
   iintro #Hinv #Hw
-  unfold raftCommitInv
-  iinv Hinv with ⟨%P, %R, HP, Hjust, >Htbl, Hpo, >Hwt⟩ Hclose
+  ihave #Hli := raftCommitInv_log γ $$ Hinv
+  unfold raftLogInv raftLogInvBody
+  iinv Hli with ⟨%P, HP, Hjust, >Htbl, >Hwt, Hpo⟩ Hclose
   imod winTbl_insert γ id T c V $$ Hwt Htbl Hw with ⟨Hwt, Htbl, #Hwin⟩
   imod Hclose $$ [HP Hjust Htbl Hpo Hwt] with -
   · inext
-    iexists P, R
+    iexists P
     iframe
   imodintro
   iexact Hwin

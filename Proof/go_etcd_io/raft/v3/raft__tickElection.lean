@@ -37,7 +37,7 @@ theorem raft.tickElection.wp_proof
   intro c md γ r id s Hterm Hwf Hpc
   wp_start as H
   iNamed H
-  wp_auto
+  wp_auto_lc 1
   -- `r.electionElapsed++`
   wp_apply raft.wp_load_electionElapsedC $$ Hphys as %v Hphys
   wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
@@ -63,7 +63,7 @@ theorem raft.tickElection.wp_proof
       (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
       (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
       (GMode.Pre.of_other (by msg_ne) Hpc (by msg_ne) (by msg_ne))
-      $$ [$Hphys $Hghost Hcr]
+      $$ [$Hphys $Hghost $Hlc1 Hcr]
     · simp only [hP, ↓reduceIte, named]
       isplitr
       · isplitr

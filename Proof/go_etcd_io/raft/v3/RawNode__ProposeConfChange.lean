@@ -41,7 +41,7 @@ theorem RawNode.ProposeConfChange.wp_proof
   wp_start as H
   iNamed H
   iNamed Hrn
-  wp_auto
+  wp_auto_lc 1
   wp_apply wp_confChangeToMsg c (some o) dq $$ [$Hc] as %esl %data %bs ⟨Hc, Hes, Hcap, Hdata, %Hbs⟩
   ipersist Hdata
   iunfold propRegister at Hreg
@@ -61,7 +61,7 @@ theorem RawNode.ProposeConfChange.wp_proof
     (fun _ => ⟨rfl, .inl rfl⟩) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
     (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne))
-    $$ [$Hphys $Hghost Hes Hcap Hcr]
+    $$ [$Hphys $Hghost $Hlc1 Hes Hcap Hcr]
   · -- the message: its one-entry batch, owned, with the entry's bytes; `Context` nil
     simp only [ccPropMsg, MsgProp, ite_true]
     isplitl [Hes Hcap]

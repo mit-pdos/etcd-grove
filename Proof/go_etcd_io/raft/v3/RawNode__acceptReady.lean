@@ -634,7 +634,7 @@ theorem RawNode.acceptReady.wp_proof
   -- `Step.takeReads` (2026-10-13): the `ReadState`s were handed out, with their facts, by
   -- `readyWithoutAccept`
   imod rdCred_zero_upd (GF := GF) γ with Hcr0
-  imod ownRaftGhost_step_takeReads γ id _ $$ [] [Hcr0] Hghost with Hghost
+  imod ownRaftGhost_step_takeReads (E := ⊤) γ id _ $$ [] [Hcr0] Hghost with Hghost
   · iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
     iempintro
   · rw [show rdCount ([] : List Msg) = 0 from rfl]; iexact Hcr0

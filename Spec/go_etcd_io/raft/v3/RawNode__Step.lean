@@ -138,9 +138,6 @@ abbrev RawNode.Step.spec : Prop :=
   -- snapshot restore at a dynamic configuration is stage B8. (Implied today by `NetMsgOk`,
   -- which takes no `MsgSnap` in either mode; a separate premise so that B8 can drop it.)
   DynNoSnap rs m →
-  -- (2026-10-13) a read-index request only when the node is not its own quorum (`raft.Step`'s;
-  -- since 2026-10-14 in the voters it uses, `RNState.vcfg`; until then `1 < GMap.size γ.reCfg`)
-  (m.Type' = MsgReadIndex → NotSingleton (rs.vcfg γ)) →
   -- (2026-10-13) a `MsgTimeoutNow`'s campaign does not wrap the term (`raft.Step`'s)
   (m.Type' = MsgTimeoutNow → uint.Z rs.term + 1 < 2 ^ 64 ∧ uint.Z m.Term' + 1 < 2 ^ 64) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗

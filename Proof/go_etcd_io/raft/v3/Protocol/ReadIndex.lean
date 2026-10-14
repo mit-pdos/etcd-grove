@@ -41,25 +41,168 @@ variable {md : Bool}
 theorem readReq_agree (γ : RaftNames) (c : List w8) (L1 L2 : List raftpb.Entry) :
     ⊢ readReq (GF := GF) γ c L1 -∗ readReq γ c L2 -∗ ⌜L1 = L2⌝ := by
   unfold readReq
-  iintro ⟨#H1, -⟩ ⟨#H2, -⟩
-  iapply ghostMapElem_agree $$ H1 H2
+  iintro ⟨%q1, #H1, -⟩ ⟨%q2, #H2, -⟩
+  ihave %H := ghostMapElem_agree $$ H1 H2
+  ipureintro
+  exact congrArg Prod.snd H
 
-/-- Creating a fresh read context, by the holder of the registry's authority. -/
-theorem readReq_alloc (γ : RaftNames) (R : GMap (List w8) (List raftpb.Entry)) (c : List w8)
-    (Lc : List raftpb.Entry) :
-    R !! c = none →
-    ⊢ ghostMapAuth (GF := GF) γ.reReads 1 R -∗ isCommitted γ Lc ==∗
-      ghostMapAuth γ.reReads 1 (<[c := Lc]> R) ∗ readReq γ c Lc := by
-  intro Hfree
-  iintro Ha #Hc
-  imod ghost_map_insert_persist c Lc Hfree $$ Ha with ⟨Ha, #Hel⟩
+section inv
+variable [InvGS GF]
+
+/-- Firing a read's update with both halves of the commit invariant open. -/
+theorem readAu_fire_open (γ : RaftNames) (Qr : List raftpb.Entry → IProp GF)
+    (l : List raftpb.Entry) :
+    ⊢ readAu (GF := GF) γ Qr -∗ ghostVar γ.reRLog (1 : Qp).half l
+      ={(⊤ \ ↑raftRegN) \ ↑raftLogN}=∗ ghostVar γ.reRLog (1 : Qp).half l ∗ □ Qr l := by
+  iintro #Hau Hv
+  iapply (fupd_mask_mono (P := iprop(ghostVar (GF := GF) γ.reRLog (1 : Qp).half l ∗ □ Qr l))
+    raftN_open_sub)
+  iapply readAu_fire γ Qr l $$ Hau Hv
+
+/-- Depositing a read (2026-10-14, stage R; replaces `readReq_alloc`), at `⊤`: the update is
+fired at once, at the global committed log `Lc` of the moment, with the invariant open. The
+client gets that log -- every committed log it knew (`L0`) is a prefix of it --, the request's
+record and its handle. -/
+theorem read_deposit (γ : RaftNames) (c : List w8) (Qr : List raftpb.Entry → IProp GF)
+    (L0 : List raftpb.Entry) :
+    ⊢ raftCommitInv (GF := GF) γ -∗ rdFresh γ c -∗ readAu γ Qr -∗ isCommitted γ L0 ={⊤}=∗
+      ∃ Lc, ⌜L0 <+: Lc⌝ ∗ readReq γ c Lc ∗ isRead γ c Qr := by
+  iintro #Hinv Hfr #Hau #HL0
+  ihave #Hri := raftCommitInv_reg γ $$ Hinv
+  ihave #Hli := raftCommitInv_log γ $$ Hinv
+  unfold raftRegInv regsOwn
+  iinv Hri with ⟨%l, >Hq2, Hregs⟩ Hclose2
+  unfold raftLogInv raftLogInvBody logRest
+  iinv Hli with ⟨%P, >HP, >#Hj, >Htbl, >Hwt, >#Hds, >Hq1⟩ Hclose1
+  icases rlq_join γ P l $$ Hq1 Hq2 with ⟨%Heq, Hv⟩
+  subst Heq
+  iunfold regsAt at Hregs
+  icases Hregs with ⟨%R, %RR, Hprops, Hreads, #Hnoop⟩
+  iunfold readsOwn at Hreads
+  icases Hreads with ⟨>Hra, Hs⟩
+  ihave Hs := (BigSepM.bigSepM_later).1 $$ Hs
+  cases HRc : RR !! c with
+  | some r =>
+    icases (BigSepM.bigSepM_delete (Φ := fun c r =>
+      iprop(▷ (readSlot (GF := GF) γ r P ∗ rdFresh γ c))) HRc).1 $$ Hs
+      with ⟨⟨-, >Hfr'⟩, -⟩
+    unfold rdFresh
+    ihave %Hne := ghostMapElem_ne γ.reRdFresh c c (DFrac.own 1) () () $$ Hfr Hfr'
+    exact absurd rfl Hne
+  | none =>
+  imod readAu_fire_open γ Qr P $$ Hau Hv with ⟨Hv, #HQ⟩
+  imod saved_pred_alloc Qr DFrac.discard trivial with ⟨%γq, #Hsp⟩
+  imod ghost_map_insert_persist c ((γq, P) : GName × List raftpb.Entry) HRc $$ Hra
+    with ⟨Hra, #Hel⟩
+  ihave #Hslot : readSlot γ (γq, P) P $$ []
+  · unfold readSlot
+    iexists Qr
+    iframe Hsp Hau
+    isplitr
+    · ipureintro; exact List.prefix_refl _
+    imodintro
+    iintro %n %Hn
+    have : n = P.length := by simp at Hn; omega
+    rw [this, List.take_length]
+    iexact HQ
+  ihave #HcP := ownCommitted_lb γ P $$ HP
+  ihave %HL0P := isCommitted_prefix γ L0 P $$ HL0 HP
+  icases rlq_split γ P $$ Hv with ⟨Hq1, Hq2⟩
+  imod Hclose1 $$ [HP Htbl Hwt Hq1] with -
+  · inext
+    iexists P
+    iframe HP Hj Htbl Hwt Hds Hq1
+  imod Hclose2 $$ [Hq2 Hprops Hra Hs Hfr] with -
+  · iexists P
+    iframe Hq2
+    unfold regsAt readsOwn
+    inext
+    iexists R, Std.insert RR c (γq, P)
+    iframe Hprops Hnoop Hra
+    iapply (BigSepM.bigSepM_insert (Φ := fun c r =>
+      iprop(readSlot (GF := GF) γ r P ∗ rdFresh γ c)) HRc).2
+    iframe Hslot Hfr
+    iexact Hs
   imodintro
-  iframe Ha
-  unfold readReq
-  iframe Hel Hc
+  iexists P
+  isplitr
+  · ipureintro; exact HL0P
+  isplitr
+  · unfold readReq
+    iexists γq
+    iframe Hel HcP
+  unfold isRead
+  iexists γq, P
+  iframe Hel Hsp
 
+/-- Collecting (2026-10-14, stage R): a read witness at `i` and a committed log at least `i`
+long give the update's result at that log -- it was fired there, the log being the global one
+at some commit after the deposit (`|Lc| ≤ i`) --, under the invariant's later and the saved
+predicate's. -/
+theorem read_collect (γ : RaftNames) (E : CoPset) (c : List w8)
+    (Qr : List raftpb.Entry → IProp GF) (i : w64) (L : List raftpb.Entry) :
+    ↑raftN ⊆ E → uint.Z i ≤ (L.length : Int) →
+    ⊢ raftCommitInv (GF := GF) γ -∗ readWit γ c Qr i -∗ isCommitted γ L ={E}=∗ ▷ ▷ □ Qr L := by
+  intro HE HiL
+  iintro #Hinv #Hw #HL
+  unfold readWit isRead readOk readReq
+  icases Hw with ⟨⟨%γq, %Lc, #Hel, #Hsp⟩, ⟨%Lc', ⟨%γq', #Hel', -⟩, %HLc⟩⟩
+  ihave %Hpq := ghostMapElem_agree $$ Hel Hel'
+  have HLc' : Lc = Lc' := congrArg Prod.snd Hpq
+  subst HLc'
+  have Hlen : Lc.length ≤ L.length := by have := HLc; have := HiL; omega
+  clear Hpq HLc HiL
+  ihave #Hri := raftCommitInv_reg γ $$ Hinv
+  ihave #Hli := raftCommitInv_log γ $$ Hinv
+  have HE1 := raftRegN_of HE
+  unfold raftRegInv regsOwn
+  iinv Hri with ⟨%l, >Hq2, Hregs⟩ Hclose2
+  have HE2 := raftLogN_of_diff HE
+  unfold raftLogInv raftLogInvBody logRest
+  iinv Hli with ⟨%P, >HP, >#Hj, >Htbl, >Hwt, >#Hds, >Hq1⟩ Hclose1
+  ihave %Heq := ghostVar_agree γ.reRLog P rlq l rlq $$ Hq1 Hq2
+  subst Heq
+  ihave %HLP := isCommitted_prefix γ L P $$ HL HP
+  iunfold regsAt at Hregs
+  icases Hregs with ⟨%R, %RR, Hprops, Hreads, #Hnoop⟩
+  iunfold readsOwn at Hreads
+  icases Hreads with ⟨>Hra, Hs⟩
+  icases ghost_map_lookup $$ Hra Hel with %HRc
+  ihave Hs := (BigSepM.bigSepM_later).1 $$ Hs
+  ihave #Hslot : ▷ readSlot γ (γq, Lc) P $$ [Hs]
+  · ihave ⟨⟨#Hsl, -⟩, -⟩ := (BigSepM.bigSepM_delete (Φ := fun c r =>
+      iprop(▷ (readSlot (GF := GF) γ r P ∗ rdFresh γ c))) HRc).1 $$ Hs
+    iexact Hsl
+  imod Hclose1 $$ [HP Htbl Hwt Hq1] with -
+  · inext
+    iexists P
+    iframe HP Hj Htbl Hwt Hds Hq1
+  imod Hclose2 $$ [Hq2 Hprops Hra Hs] with -
+  · iexists P
+    iframe Hq2
+    unfold regsAt readsOwn
+    inext
+    iexists R, RR
+    iframe Hprops Hnoop Hra
+    iexact Hs
+  imodintro
+  inext
+  iunfold readSlot at Hslot
+  icases Hslot with ⟨%Qr', #Hsp', #-, %Hpre, #Hres⟩
+  have HlenP : L.length ≤ P.length := HLP.length_le
+  have Hn : Lc.length ≤ L.length ∧ L.length ≤ P.length := ⟨Hlen, HlenP⟩
+  ihave #HQ' := Hres $$ %L.length %Hn
+  have HtL : P.take L.length = L := by
+    obtain ⟨r, rfl⟩ := HLP; exact List.take_left
+  rw [HtL]
+  ihave #Heq := saved_pred_agree γq DFrac.discard DFrac.discard Qr' Qr L $$ Hsp' Hsp
+  inext
+  ihave Hiff := internalEq_iff _ _ $$ Heq
+  icases Hiff with ⟨Hiff, -⟩
+  imodintro
+  iapply Hiff $$ HQ'
 
-/-- A client's reading of `readOk`: any committed log at least `i` long extends `Lc`. -/
+end inv
 theorem readOk_prefix (γ : RaftNames) (c : List w8) (i : w64) (Lc D : List raftpb.Entry) :
     uint.Z i ≤ (D.length : Int) →
     ⊢ readOk (GF := GF) γ c i -∗ readReq γ c Lc -∗ isCommitted γ D -∗ ⌜Lc <+: D⌝ := by
@@ -69,7 +212,7 @@ theorem readOk_prefix (γ : RaftNames) (c : List w8) (i : w64) (Lc D : List raft
   icases readReq_agree γ c L Lc $$ Hr Hr' with %Heq
   subst Heq
   unfold readReq
-  icases Hr with ⟨-, #Hc⟩
+  icases Hr with ⟨%_, -, #Hc⟩
   icases isCommitted_agree γ L D $$ Hc HD with %Hp
   ipureintro
   rcases Hp with Hp | Hp
@@ -600,7 +743,7 @@ theorem ownRaftGhost_read_arrive (γ : RaftNames) (id : w64) (s : PState) (c : L
     (Lc : List raftpb.Entry) :
     s.role = .leader →
     plogTermAt s.base s.log s.commit = some s.term →
-    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ readReq γ c Lc ={⊤}=∗
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ readReq γ c Lc ={⊤ \ ↑raftRegN}=∗
       ownRaftGhost γ id s md ∗ ∃ d, rqRecOk γ s.term ((c, s.commit), d) := by
   intro Hr Hct
   iintro Hown #Hrq
@@ -616,15 +759,16 @@ theorem ownRaftGhost_read_arrive (γ : RaftNames) (id : w64) (s : PState) (c : L
   ihave #Hinv := ownLogGhost_inv $$ Hlg
   ihave #Hrq' := Hrq
   ieval (unfold readReq) at Hrq'
-  icases Hrq' with ⟨-, #HLc⟩
-  unfold raftCommitInv
-  iinv Hinv with ⟨%P, %R, >HP, >#Hj, >Htbl, Hpo, Hwt⟩ Hclose
+  icases Hrq' with ⟨%_, -, #HLc⟩
+  ihave #Hli := raftCommitInv_log γ $$ Hinv
+  unfold raftLogInv raftLogInvBody
+  iinv Hli with ⟨%P, >HP, >#Hj, >Htbl, Hwt, Hpo⟩ Hclose
   ihave %HLP := isCommitted_prefix γ Lc P $$ HLc HP
   icases read_arrive_core γ id s c Lc P fp Hr Htnz Hct HLP Hfl.1 Hfl.2
     $$ Hj Htbl Hlcm Hl Hcmt Hrq with ⟨Htbl, Hlcm, #Hres⟩
   imod Hclose $$ [HP Htbl Hpo Hwt] with -
   · inext
-    iexists P, R
+    iexists P
     iframe
     iexact Hj
   imodintro

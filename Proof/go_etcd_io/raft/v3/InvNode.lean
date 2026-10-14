@@ -382,7 +382,6 @@ def netP (γ : NodeNames) (id : w64) (m : raftpb.Message) : IProp GF :=
     ∃ (ents : List raftpb.Entry) (ctx : List w8),
       m.Entries' ↦*□ ents ∗ ownSliceCap raftpb.Entry m.Entries' (DFrac.own 1) ∗
       m.Context' ↦*□ ctx ∗
-      ⌜m.Type' = MsgReadIndex → 1 < GMap.size γ.raft.reCfg⌝ ∗
       □ (∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗ isMessage γ.raft (absMsg ty m ents ctx)) ∗
       termLB γ.bud m.Term' ∗
       rdCred γ.raft (if m.Type' = MsgReadIndex then 1 else 0) ∗
@@ -429,8 +428,6 @@ theorem netP_local (γ : NodeNames) (id : w64) (m : raftpb.Message)
   · iapply ownSliceCap_nil
   isplitr
   · iapply ownSlice_nil
-  isplitr
-  · ipureintro; intro h; exact absurd h Hnr
   isplitr
   · imodintro
     iintro %ty %Hty'
@@ -646,17 +643,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- What `Node.Propose` takes for its data `d` (`fresh`: the first proposal of `d`, with
-its fresh token and the client's atomic update; otherwise a retry, with `d` deposited). -/
-def propArg (γ : RaftNames) (d : List w8) (Q : List (List w8) → IProp GF) (fresh : Bool) :
+its fresh token and the client's persistent atomic update (2026-10-14, stage R); otherwise a
+retry, with `d` deposited). -/
+def propArg (γ : RaftNames) (d : List w8) (Q : List raftpb.Entry → IProp GF) (fresh : Bool) :
     IProp GF :=
   if fresh then iprop(propFresh γ d ∗ propAu γ d Q) else deposited γ d
 
-/-- What it gives back: `d` deposited, and for a first proposal the handle and ticket for
-the update's result. -/
-def propRes (γ : RaftNames) (d : List w8) (Q : List (List w8) → IProp GF) (fresh : Bool) :
+/-- What it gives back: `d` deposited, and for a first proposal the handle on the update's
+results (2026-10-14, stage R: persistent, no ticket). -/
+def propRes (γ : RaftNames) (d : List w8) (Q : List raftpb.Entry → IProp GF) (fresh : Bool) :
     IProp GF :=
   iprop(deposited γ d ∗
-    if fresh then iprop(∃ γp, isProp γ d γp Q ∗ propTok γp) else iprop(True))
+    if fresh then iprop(∃ γq, isProp γ d γq Q) else iprop(True))
 
 theorem propDataInv_alloc (γ : RaftNames) (E : CoPset) :
     ⊢ ghostMapAuth γ.reSl 1 (∅ : GMap GoSlice (List w8)) ={E}=∗
@@ -732,17 +730,17 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- A proposal's ghost work before it leaves the node (`Node.Propose`): its slice
-recorded, its update deposited (a first proposal; a later credit with it), so that its
-entry carries its data (`entData`). -/
+recorded, its update deposited (a first proposal), so that its entry carries its data
+(`entData`). -/
 theorem node_propose_ghost (γ : NodeNames) (id : w64) (n : Loc) (data_sl : GoSlice)
-    (data : List w8) (Q : List (List w8) → IProp GF) (fresh : Bool) (E : CoPset)
+    (data : List w8) (Q : List raftpb.Entry → IProp GF) (fresh : Bool) (E : CoPset)
     (HE1 : ↑raftN ⊆ E) (HE2 : ↑propDataN ⊆ E) :
-    ⊢ isNode γ id n -∗ data_sl ↦*□ data -∗ £ 1 -∗ propArg γ.raft data Q fresh ={E}=∗
+    ⊢ isNode γ id n -∗ data_sl ↦*□ data -∗ propArg γ.raft data Q fresh ={E}=∗
       entData γ.raft (propEntry data_sl) ∗ propRes γ.raft data Q fresh := by
-  iintro #Hnode #Hdata Hlc Harg
+  iintro #Hnode #Hdata Harg
   open_node Hnode
   imod propData_register γ.raft data_sl data E HE2 $$ Hpdinv Hdata with #Hpd
-  ihave Hres : |={E}=> propRes γ.raft data Q fresh $$ [Hlc Harg]
+  ihave Hres : |={E}=> propRes γ.raft data Q fresh $$ [Harg]
   · unfold propArg propRes
     cases fresh with
     | false =>
@@ -752,12 +750,12 @@ theorem node_propose_ghost (γ : NodeNames) (id : w64) (n : Loc) (data_sl : GoSl
     | true =>
       simp only [↓reduceIte]
       icases Harg with ⟨Hfr, Hau⟩
-      imod prop_deposit γ.raft E data Q HE1 $$ Hcinv Hfr Hlc Hau with ⟨%γp, #Hp, Htok⟩
+      imod prop_deposit γ.raft E data Q HE1 $$ Hcinv Hfr Hau with ⟨%γq, #Hp⟩
       imodintro
       isplitr
       · iapply isProp_deposited $$ Hp
-      · iexists γp
-        iframe Hp Htok
+      · iexists γq
+        iframe Hp
   imod Hres with Hres
   ihave #Hdep : deposited γ.raft data $$ [Hres]
   · unfold propRes
@@ -821,17 +819,38 @@ theorem node_entData_heap (γ : NodeNames) (id : w64) (n : Loc) (e : raftpb.Entr
   icases He with ⟨-, #Hpd, -⟩
   iapply propData_heap γ.raft e.Data' d E HE $$ Hpdinv Hpd
 
-/-- Collecting a proposal's result (`prop_collect`), at the node. -/
-theorem node_collect (γ : NodeNames) (id : w64) (n : Loc) (d : List w8) (γp : GName × GName)
-    (Q : List (List w8) → IProp GF) (l : List raftpb.Entry) (ods : List (Option (List w8)))
-    (m : Nat) (E : CoPset) (HE : ↑raftN ⊆ E) :
-    ods[m]? = some (some d) → d ∉ firstOcc (ods.take m) →
-    ⊢ isNode γ id n -∗ isProp γ.raft d γp Q -∗ propTok γp -∗ isCommitted γ.raft l -∗
-      ([∗list] e;o ∈ l;ods, entDataIs γ.raft e o) ={E}=∗ ▷ ▷ Q (firstOcc (ods.take m)) := by
-  intro Hm Hf
-  iintro #Hnode #Hp Htok #Hc #Hds
+/-- Collecting a proposal's result (`prop_collect`), at the node: at a committed occurrence
+of its data, the result at the log before it (2026-10-14, stage R). -/
+theorem node_collect (γ : NodeNames) (id : w64) (n : Loc) (d : List w8) (γq : GName)
+    (Q : List raftpb.Entry → IProp GF) (L : List raftpb.Entry) (m : Nat) (e : raftpb.Entry)
+    (E : CoPset) (HE : ↑raftN ⊆ E) :
+    L[m]? = some e →
+    ⊢ isNode γ id n -∗ isProp γ.raft d γq Q -∗ isCommitted γ.raft L -∗
+      entDataIs γ.raft e (some d) ={E}=∗ ▷ ▷ □ Q (L.take m) := by
+  intro Hm
+  iintro #Hnode #Hp #Hc #He
   open_node Hnode
-  iapply prop_collect γ.raft E d γp Q l ods m HE Hm Hf $$ Hcinv Hp Htok Hc Hds
+  iapply prop_collect γ.raft E d γq Q L m e HE Hm $$ Hcinv Hp Hc He
+
+/-- Depositing a read (`read_deposit`), at the node (2026-10-14, stage R). -/
+theorem node_read_deposit (γ : NodeNames) (id : w64) (n : Loc) (c : List w8)
+    (Qr : List raftpb.Entry → IProp GF) (L0 : List raftpb.Entry) :
+    ⊢ isNode γ id n -∗ rdFresh γ.raft c -∗ readAu γ.raft Qr -∗ isCommitted γ.raft L0 ={⊤}=∗
+      ∃ Lc, ⌜L0 <+: Lc⌝ ∗ readReq γ.raft c Lc ∗ isRead γ.raft c Qr := by
+  iintro #Hnode Hfr #Hau #HL0
+  open_node Hnode
+  iapply read_deposit γ.raft c Qr L0 $$ Hcinv Hfr Hau HL0
+
+/-- Collecting a read's result (`read_collect`), at the node (2026-10-14, stage R). -/
+theorem node_read_collect (γ : NodeNames) (id : w64) (n : Loc) (c : List w8)
+    (Qr : List raftpb.Entry → IProp GF) (i : w64) (L : List raftpb.Entry) (E : CoPset)
+    (HE : ↑raftN ⊆ E) :
+    uint.Z i ≤ (L.length : Int) →
+    ⊢ isNode γ id n -∗ readWit γ.raft c Qr i -∗ isCommitted γ.raft L ={E}=∗ ▷ ▷ □ Qr L := by
+  intro HiL
+  iintro #Hnode #Hw #HL
+  open_node Hnode
+  iapply read_collect γ.raft E c Qr i L HE HiL $$ Hcinv Hw HL
 
 end nodeprops
 

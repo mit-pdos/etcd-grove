@@ -222,20 +222,23 @@ structure RaftNames where
   /-- The global committed log: a `mono_list` of entries whose authority is in
   `raftCommitInv` and whose lower bounds are `isCommitted` (2026-10-05). -/
   reCommit : GName
-  /-- The proposal registry (2026-10-10, re-keyed by data): a ghost map
-  `data ↦ (γq, γk)` of the proposals whose atomic update was deposited (`prop_deposit`),
-  whose authority is in `raftCommitInv`; `γq` names the update's result predicate, `γk`
-  the client's ticket for it. -/
+  /-- The proposal registry (2026-10-10, re-keyed by data; 2026-10-14, stage R: persistent
+  updates): a ghost map `data ↦ γq` (persistent elements) of the proposals whose persistent
+  atomic update was deposited (`prop_deposit`), whose authority is in `raftCommitInv`'s
+  registry half; `γq` names the update's result predicate. (Until stage R `data ↦ (γq, γk)`,
+  `γk` the client's ticket for a one-shot result.) -/
   reProps : GName
   /-- The proposed slices (2026-10-10): a ghost map `slice ↦ data` (persistent
   elements, `isPropData`): the data a proposed entry's `Data'` slice holds, so that the
   ghost commit knows what it commits. The authority is the application's
   (`propDataInv`, `InvNode.lean`, keeps the heap points-tos). -/
   reSl : GName
-  /-- The client log (2026-10-10): a ghost variable, halved between `raftCommitInv` and
-  the client (`cLog`), of the data of the committed client entries in commit order,
-  first occurrences only. Only a deposited atomic update moves it. -/
-  reCLog : GName
+  /-- The full committed log, client view (2026-10-14, stage R; replaces the client log
+  `reCLog` of first-occurrence data): a ghost variable of entries, halved between
+  `raftCommitInv` (always the global committed log; the invariant's half split in quarters
+  between its two invariants) and the client (`rLog`). Only a deposited update moves it
+  (`propAu` of the entry's data, or the standing `noopAu`). -/
+  reRLog : GName
   /-- The fresh-data tokens (2026-10-10): a ghost map `data ↦ ()` whose authority the
   client holds; `propFresh γ d` (an element) is what a first deposit of `d` consumes
   (the invariant keeps it), so no data is deposited twice. -/
@@ -248,10 +251,17 @@ structure RaftNames where
   /-- `reRdq !! id` (2026-10-12): node `id`'s map `term ↦ γq` of the read-request
   registries of the terms it led (a `mono_list` of `rqRec`s, `ownReadGhost`). -/
   reRdq : GMap w64 GName
-  /-- The read contexts (2026-10-12): a ghost map `ctx ↦ Lc` (persistent elements,
-  `readReq`), the committed log when the context was created; the authority is in
-  `raftCommitInv`, and creating a context consumes its fresh token (`propFresh`). -/
+  /-- The read registry (2026-10-12; 2026-10-14, stage R): a ghost map
+  `ctx ↦ (γq, Lc)` (persistent elements): `γq` names the read's persistent update's result
+  predicate, `Lc` is the global committed log at the deposit (`read_deposit`). The authority
+  is in `raftCommitInv`'s registry half; a deposit consumes the context's fresh token
+  (`rdFresh`, kept by the invariant). (Until stage R `ctx ↦ Lc`, a committed log the client
+  knew, the authority the client's.) -/
   reReads : GName
+  /-- The fresh read-context tokens (2026-10-14, stage R): a ghost map `ctx ↦ ()` whose
+  authority the client holds; `rdFresh γ c` (an element) is what a read deposit consumes and
+  the invariant keeps, so no context is deposited twice. -/
+  reRdFresh : GName
   /-- The read credits (2026-10-12): an `Auth Nat`; a `MsgReadIndex` carries one, and a
   leader keeps the ones its requests carried (`ownReadGhost`), which bounds its request
   positions. -/
@@ -761,9 +771,9 @@ update was deposited (`deposited`). -/
 def isPropData (γ : RaftNames) (sl : GoSlice) (d : List w8) : IProp GF :=
   sl ↪[γ.reSl]□ d
 
-/-- `d`'s atomic update was deposited (persistent): its slot names `γp`. -/
+/-- `d`'s atomic update was deposited (persistent): its slot names `γq`. -/
 def deposited (γ : RaftNames) (d : List w8) : IProp GF :=
-  iprop(∃ γp : GName × GName, d ↪[γ.reProps]□ γp)
+  iprop(∃ γq : GName, d ↪[γ.reProps]□ γq)
 
 /-- The data of entry `e`: `some d` for a normal entry whose slice was proposed holding
 the client data `d`; `none` for an entry that is not a client operation -- a normal entry

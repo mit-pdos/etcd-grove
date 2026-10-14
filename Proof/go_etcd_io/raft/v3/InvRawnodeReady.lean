@@ -628,6 +628,18 @@ theorem readStateOk_readOk (γ : RaftNames) (st : ReadState) (c : List w8) :
   subst Heq
   iexact Hok
 
+/-- ... and with the client's handle on its deposited read (2026-10-14, stage R), the read
+witness: the update's results at every committed log at least `st.Index'` long
+(`read_collect`). -/
+theorem readStateOk_readWit (γ : RaftNames) (st : ReadState) (c : List w8)
+    (Qr : List raftpb.Entry → IProp GF) :
+    ⊢ readStateOk (GF := GF) γ st -∗ isPropData γ st.RequestCtx' c -∗ isRead γ c Qr -∗
+      readWit γ c Qr st.Index' := by
+  iintro #Hst #Hpd #Hrd
+  unfold readWit
+  iframe Hrd
+  iapply readStateOk_readOk γ st c $$ Hst Hpd
+
 /-- ... and with `readOk_prefix`: every committed log at least `st.Index'` long extends the
 committed log `Lc` the read was created knowing (`readReq γ c Lc`), so applying the log up
 to an index of at least `st.Index'` reads a state at least as new as the request. -/
