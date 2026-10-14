@@ -49,6 +49,11 @@ the adoption; the `stepX`-specific lemmas below establish that equation. -/
 private theorem toPState_sendMsgs' (s : NState) (ms : List Msg) :
     toPState (sendMsgs s ms) = psendMsgs (toPState s) ms := rfl
 
+theorem stepCF_eq (c : CfgM) (id : w64) (ps : PState) (recv : List Msg)
+    (ps1 ps2 : PState) :
+    StepCF c id ps recv ps1 → ps1 = ps2 → StepCF c id ps recv ps2 := by
+  intro H He; subst He; exact H
+
 theorem step_eq (c : CfgM) (id : w64) (ps : PState) (recv : List Msg)
     (ps1 ps2 : PState) :
     StepC c id ps recv ps1 → ps1 = ps2 → StepC c id ps recv ps2 := by
@@ -68,7 +73,7 @@ theorem step_handle_app (c : CfgM) (id : w64) (ps : PState) (t : NState)
      uint.Z ps.commit < uint.Z (plogFindConflict ps.base ps.log ents)) →
     HandleAppResult id t m ents s' →
     m.From' ≠ id →
-    StepC c id ps [absMsg .app m ents] (toPState s') := by
+    StepCF c id ps [absMsg .app m ents] (toPState s') := by
   intro Ht Hto Hterm Hnl Hconf Hres Hfid
   have Htm : t.term = ps.term := congrArg PState.term Ht
   have Hb : t.logst.prev = ps.base := congrArg PState.base Ht
@@ -80,16 +85,16 @@ theorem step_handle_app (c : CfgM) (id : w64) (ps : PState) (t : NState)
   rcases Hres with ⟨Hlt, rfl⟩ | ⟨Hle, lastnewi, es', ls', Happ, Hprev', Hes, -, Hcm', -, rfl⟩ |
       ⟨Hle, Hnm, hint, hintterm, rfl⟩
   · -- stale
-    refine step_eq c id _ _ _ _
-      (StepC.appStale (absMsg .app m ents) ps rfl Hto Hfid Hterm Hnl Hlt) ?_
+    refine stepCF_eq c id _ _ _ _
+      (StepCF.appStale (absMsg .app m ents) ps rfl Hto Hfid Hterm Hnl Hlt) ?_
     rw [toPState_sendMsgs', Ht]
     simp only [appResp, Htm, Hc, absMsg, absMsgFrom]
   · -- accept
     have Hm : PlogMatches ps.base ps.log (entryID.mk m.LogTerm' m.Index') := by
       refine Classical.byContradiction fun Hn => ?_
       simp [plogMaybeAppend, Hn] at Happ
-    refine step_eq c id _ _ _ _
-      (StepC.appAccept (absMsg .app m ents) ps lastnewi es' rfl Hto Hfid Hterm Hnl Hle Happ
+    refine stepCF_eq c id _ _ _ _
+      (StepCF.appAccept (absMsg .app m ents) ps lastnewi es' rfl Hto Hfid Hterm Hnl Hle Happ
         (Hconf Hle Hm)) ?_
     rw [toPState_sendMsgs']
     have Hs : toPState { t with logst := ls' } =
@@ -99,8 +104,8 @@ theorem step_handle_app (c : CfgM) (id : w64) (ps : PState) (t : NState)
     simp only [appResp, Htm, absMsg, absMsgFrom, padoptLeader]
     rfl
   · -- reject
-    refine step_eq c id _ _ _ _
-      (StepC.appReject (absMsg .app m ents) ps hint hintterm rfl Hto Hfid Hterm Hnl Hle Hnm) ?_
+    refine stepCF_eq c id _ _ _ _
+      (StepCF.appReject (absMsg .app m ents) ps hint hintterm rfl Hto Hfid Hterm Hnl Hle Hnm) ?_
     rw [toPState_sendMsgs', Ht]
     simp only [appResp, Htm, absMsg, absMsgFrom]
 
@@ -113,11 +118,11 @@ theorem step_handle_heartbeat (c : CfgM) (id : w64) (ps : PState) (t : NState)
     ps.role ≠ .leader →
     uint.Z m.Commit' ≤ plogLastIndexZ ps.base ps.log →
     m.From' ≠ id →
-    StepC c id ps [absMsg .heartbeat m ents ctx] (toPState (heartbeatResult id t m ctx)) := by
+    StepCF c id ps [absMsg .heartbeat m ents ctx] (toPState (heartbeatResult id t m ctx)) := by
   intro Ht Hto Hterm Hnl Hcm Hfid
   have Htm : t.term = ps.term := congrArg PState.term Ht
-  refine step_eq c id _ _ _ _
-    (StepC.heartbeat (absMsg .heartbeat m ents ctx) ps rfl Hto Hfid Hterm Hnl Hcm) ?_
+  refine stepCF_eq c id _ _ _ _
+    (StepCF.heartbeat (absMsg .heartbeat m ents ctx) ps rfl Hto Hfid Hterm Hnl Hcm) ?_
   unfold heartbeatResult
   rw [toPState_sendMsgs']
   have Hs : toPState { t with logst := { t.logst with
@@ -133,10 +138,10 @@ theorem step_higher_term_leader (c : CfgM) (id : w64) (ps : PState) (ty : MsgTyp
     uint.Z ps.term < uint.Z m.Term' →
     m.To' = id →
     m.From' ≠ id →
-    StepC c id ps [absMsg ty m ents ctx] (pbecomeFollower ps m.Term' m.From') := by
+    StepCF c id ps [absMsg ty m ents ctx] (pbecomeFollower ps m.Term' m.From') := by
   intro Hfl Hgt Hto Hfid
-  refine step_eq c id _ _ _ _
-    (StepC.higherTerm (absMsg ty m ents ctx) ps Hgt Hto (fun _ => Hfid)) ?_
+  refine stepCF_eq c id _ _ _ _
+    (StepCF.higherTerm (absMsg ty m ents ctx) ps Hgt Hto (fun _ => Hfid)) ?_
   simp only [absMsg, absMsgFrom, Hfl, ↓reduceIte]
 
 /-! ## The three adoptions are `padoptLeader` -/

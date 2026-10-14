@@ -341,7 +341,7 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
       Hin Hwf Hscope Hnl Hfv) $$ [$Hphys $Hsv $Hvs $Hls]
     as %err %s' %c1 ⟨Hphys, %Hc1, %Hwf', %Hst, %Herr⟩
   obtain ⟨recv, Hrecv, Hstep⟩ := Hst
-  imod ghost_step_recv γ c id _ _ _ recv HC Hrecv Hstep (by simp [absSnap, absSnapFrom])
+  imod ghost_step_recv γ c id _ _ _ recv HC Hrecv Hstep.1 (by simp [absSnap, absSnapFrom])
     $$ Hm Hghost with Hghost
   imodintro
   unfold stepPost
@@ -353,7 +353,7 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
   ipureintro
   -- the frame and the term step are not claimed for a snapshot; the configuration is `c`,
   -- or the snapshot's, the ghost state's voters
-  refine ⟨⟨rfl, Hwf'⟩, ⟨recv, Hstep⟩, ⟨?_, fun h => absurd Hty h⟩, fun h => absurd Hty h,
+  refine ⟨⟨rfl, Hwf'⟩, ⟨recv, Hstep.1⟩, ⟨?_, fun h => absurd Hty h⟩, fun h => absurd Hty h,
     fun h => absurd Hty h, by resp_other⟩
   rcases Hc1 with rfl | ⟨L, rfl⟩
   · exact HC
@@ -421,7 +421,7 @@ private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := h
         exact intuitionistically_elim))
     iexact Hm
   -- the code's `StepC c` witness, at the ghost state's configuration (2026-10-14)
-  imod ownRaftGhost_stepC γ c HC id _ recv _ Hstep $$ Hall Hc Hghost with Hghost
+  imod ownRaftGhost_stepC γ c HC id _ recv _ Hstep.1 $$ Hall Hc Hghost with Hghost
   imodintro
   unfold stepPost
   ihave Herr' : (⌜err = interface.nil⌝ ∨
@@ -430,7 +430,7 @@ private theorem dispatch_ReadIndex (P : raft.Step.Postulates (GF := GF) (hG := h
   iapply HΦ $$ %err %s' %(toPState s') %c
   iframe Hphys Hghost Herr'
   ipureintro
-  exact ⟨⟨rfl, Hwf'⟩, ⟨recv, Hstep⟩, ⟨HC, fun _ => rfl⟩, fun _ => Hfr, fun _ => Htm,
+  exact ⟨⟨rfl, Hwf'⟩, ⟨recv, Hstep.1⟩, ⟨HC, fun _ => rfl⟩, fun _ => Hfr, fun _ => Htm,
     by resp_other⟩
 
 /-- `MsgReadIndexResp` (2026-10-13): a leader's answer to a forwarded request. -/
@@ -542,17 +542,8 @@ theorem raft.Step.wp_proof
     wp_apply (wp_Step_MsgProp P c r id s m ents ctx cs Hty Hterm Hfrom Hne Hlen Hlok Hlnz
       Hwf)
       $$ [$Hphys $Hents $Hcc $Hcap $Hctxp] as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hst, Herr⟩
-    have Hst' : ∃ recv, (∀ m' ∈ recv, m' = absMsg .propose m ents ctx) ∧
-        StepC c id (toPState s) recv (toPState s') := by
-      rcases Hst with H | ⟨-, Hrl, ents', Hrepl, Hnw, Hstep⟩
-      · exact H
-      · -- appended at the leader: `StepC.propose` receives the proposal (2026-10-10), the
-        -- batch after the conf-change loop (2026-10-13)
-        exact ⟨[absMsg .propose m ents ctx] ++ [], by simp,
-          .trans _ _ _ _ _ (.propose (absMsg .propose m ents ctx) _ ents' rfl Hrepl Hrl Hnw)
-            Hstep⟩
-    obtain ⟨recv, Hrecv, Hstep⟩ := Hst'
-    imod ghost_step_recv γ c id _ _ _ recv HC Hrecv Hstep (by simp [absMsg, absMsgFrom])
+    obtain ⟨recv, Hrecv, Hstep⟩ := Hst
+    imod ghost_step_recv γ c id _ _ _ recv HC Hrecv Hstep.1 (by simp [absMsg, absMsgFrom])
       $$ Hm' Hghost with Hghost
     imodintro
     iapply HΦ $$ %err %s' %(toPState s') %c
@@ -560,7 +551,7 @@ theorem raft.Step.wp_proof
     isplitr
     · ipureintro; exact ⟨rfl, Hwf'⟩
     isplitr
-    · ipureintro; exact ⟨recv, Hstep⟩
+    · ipureintro; exact ⟨recv, Hstep.1⟩
     isplitr
     · ipureintro; exact ⟨HC, fun _ => rfl⟩
     isplitr
@@ -588,14 +579,14 @@ theorem raft.Step.wp_proof
     wp_apply (wp_Step_MsgStorageAppendResp P c r id s m HtyA Hsn Hle Hstok Hghoff Hwf)
       $$ [$Hphys]
       as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hst, %Herr⟩
-    imod ghost_step_nil γ c id _ _ HC Hst $$ Hghost with Hghost
+    imod ghost_step_nil γ c id _ _ HC Hst.1 $$ Hghost with Hghost
     imodintro
     iapply HΦ $$ %err %s' %(toPState s') %c
     iframe Hphys Hghost
     isplitr
     · ipureintro; exact ⟨rfl, Hwf'⟩
     isplitr
-    · ipureintro; exact ⟨[], Hst⟩
+    · ipureintro; exact ⟨[], Hst.1⟩
     isplitr
     · ipureintro; exact ⟨HC, fun _ => rfl⟩
     isplitr
@@ -613,14 +604,14 @@ theorem raft.Step.wp_proof
     -- `Hents` is already read-only: the `MsgProp` case split reduced its `if`
     wp_apply (wp_Step_MsgStorageApplyResp P c r id s m ents HtyB (Hsapr HtyB) (Happly HtyB)
         Hwf (Hsal HtyB)) $$ [$Hphys $Hents] as %err %s' ⟨Hphys, %Hwf', %Hfr, %Hst, %Herr⟩
-    imod ghost_step_nil γ c id _ _ HC Hst $$ Hghost with Hghost
+    imod ghost_step_nil γ c id _ _ HC Hst.1 $$ Hghost with Hghost
     imodintro
     iapply HΦ $$ %err %s' %(toPState s') %c
     iframe Hphys Hghost
     isplitr
     · ipureintro; exact ⟨rfl, Hwf'⟩
     isplitr
-    · ipureintro; exact ⟨[], Hst⟩
+    · ipureintro; exact ⟨[], Hst.1⟩
     isplitr
     · ipureintro; exact ⟨HC, fun _ => rfl⟩
     isplitr

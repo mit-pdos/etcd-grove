@@ -103,7 +103,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .voteResp m ents) ∧
-            StepC c id (toPState s) recv (toPState s')⌝ ∗
+            StepCD c id m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
@@ -164,11 +164,11 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ
     iframe Hphys
     ipureintro
-    refine ⟨⟨rfl, rfl⟩, ⟨[absMsg .voteResp m ents], by simp, ?_⟩, rfl,
+    refine ⟨⟨rfl, rfl⟩, ⟨[absMsg .voteResp m ents], by simp, StepCD.frame ?_ (by rframe)⟩, rfl,
       RespStep.of_fresh Hnpv (Int.le_of_lt Hgt), stepdown_frame (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt) rfl rfl rfl rfl rfl⟩
     rw [toPState_prvals_nl (becomeFollower s m.Term' (W64 0)) pvs (by simp [becomeFollower]),
       toPState_becomeFollower]
-    exact StepC.higherTerm (c := c) (id := id) (absMsg .voteResp m ents) (toPState s)
+    exact StepCF.higherTerm (c := c) (id := id) (absMsg .voteResp m ents) (toPState s)
       Hgt Hto (by simp [absMsg, absMsgFrom, fromLeader])
   · rw [decide_eq_false Hgt]
     wp_auto
@@ -191,7 +191,8 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         iapply HΦ $$ %interface.nil %s
         iframe Hphys
         ipureintro
-        exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl,
+        exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
+          StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
     · -- m.Term = r.Term: the preamble does nothing and control reaches the type
       -- switch, whose default arm is `r.step(m)`.
@@ -235,7 +236,8 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         iapply HΦ $$ %interface.nil %s
         iframe Hphys
         ipureintro
-        exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl,
+        exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
+          StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
       · -- Candidate: `stepCandidate` records the vote and may win or lose in the same
         -- call.
@@ -284,43 +286,76 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           RespStep.of_fresh Hnpv (Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hteq.symm)),
           voteRespResult_frame _ _ _ _ _ _ _ _ _⟩
         refine ⟨[absMsg .voteResp m ents], by simp, ?_⟩
-        rw [toPState_voteRespResult _ _ _ _ _ _ _ _ Hrole]
         have Hnp : s.role ≠ .preCandidate := by rw [Hrole]; decide
         have Hvotes : (toPState s).votes = s.votes := toPState_votes_nonpre _ Hnp
         have Hpr : (toPState s).role = .candidate := by rw [toPState_role, Hrole]; rfl
-        unfold pvoteRespResult
         cases won
-        · cases lost
-          · simp only [Bool.false_eq_true, ↓reduceIte]
-            exact StepC.recordVote (c := c) (id := id) (absMsg .voteResp m ents) (toPState s)
-              rfl Hto Hteq Hpr
-          · simp only [Bool.false_eq_true, ↓reduceIte]
-            have Hq := Hlost rfl
-            rw [← Hvotes] at Hq
-            exact stepC_record_then_lose c id (toPState s) (absMsg .voteResp m ents)
-              rfl Hto Hteq Hpr Hq
-        · simp only [↓reduceIte]
+        · -- pending or lost: a frame step
+          refine StepCD.frame ?_ ?_
+          · rw [toPState_voteRespResult _ _ _ _ _ _ _ _ Hrole]
+            unfold pvoteRespResult
+            cases lost
+            · simp only [Bool.false_eq_true, ↓reduceIte]
+              exact StepCF.recordVote (c := c) (id := id) (absMsg .voteResp m ents) (toPState s)
+                rfl Hto Hteq Hpr
+            · simp only [Bool.false_eq_true, ↓reduceIte]
+              have Hq := Hlost rfl
+              rw [← Hvotes] at Hq
+              exact stepCF_record_then_lose c id (toPState s) (absMsg .voteResp m ents)
+                rfl Hto Hteq Hpr Hq
+          · cases lost <;>
+              exact ⟨rfl, rfl, fun h => by simp [voteRespResult, becomeFollower, Hrole] at h⟩
+        · -- won: `StepC.win`; in the dynamic model `StepR.win`, which sets `pendingConfIndex`
           obtain ⟨Hq, Hms, Hmt⟩ := Hwon rfl
           rw [← Hvotes] at Hq
-          refine stepC_record_then_win c id (toPState s) (absMsg .voteResp m ents)
-            (prvalsMatch pvs) ms rfl Hto Hteq Hpr ?_ ?_ Hq ?_
-          · rw [Hmt]
+          have Hmt' : LeaderMatchOk id { toPState s with
+              votes := recordVote (toPState s).votes m.From' (!m.Reject') } (prvalsMatch pvs) := by
+            rw [Hmt]
             exact resetMatched_leader_ok id s Hid _ rfl rfl
-          · -- the broadcast was judged at `becomeLeader`'s state, which is
+          have Hbl := toPState_becomeLeader id
+            { s with votes := recordVote s.votes m.From' (!m.Reject') }
+            (becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') }).prvals
+          have Hms' : ∀ m' ∈ ms, ReplOk id (pwinState id { toPState s with
+              votes := recordVote (toPState s).votes m.From' (!m.Reject') } (prvalsMatch pvs)) m' := by
+            -- the broadcast was judged at `becomeLeader`'s state, which is
             -- `pwinState`'s up to the outbox and `Match`
             intro m' Hm'
             have H := (Hms m' Hm').1
-            have Hbl := toPState_becomeLeader id
-              { s with votes := recordVote s.votes m.From' (!m.Reject') }
-              (becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') }).prvals
             refine replOk_proper _ _ _ _ ?_ ?_ ?_ ?_ H
             · rfl
             · rfl
             · exact (congrArg PState.log Hbl).symm
             · rfl
-          · simp only [plogLastIndexZ, toPState, List.length_append]
+          have Hac : ∀ m' ∈ ms, AppCommitEq (pwinState id { toPState s with
+              votes := recordVote (toPState s).votes m.From' (!m.Reject') } (prvalsMatch pvs)) m' :=
+            fun m' Hm' h => (Hms m' Hm').2 h
+          have Hnw' : plogLastIndexZ (toPState s).base (toPState s).log + 1 < 2 ^ 64 := by
+            simp only [plogLastIndexZ, toPState, List.length_append]
             push_cast
             omega
+          refine ⟨?_, fun Adm dec g hc hd => ⟨g.cidx, ?_⟩⟩
+          · rw [toPState_voteRespResult _ _ _ _ _ _ _ _ Hrole]
+            unfold pvoteRespResult
+            simp only [↓reduceIte]
+            exact stepC_record_then_win c id (toPState s) (absMsg .voteResp m ents)
+              (prvalsMatch pvs) ms rfl Hto Hteq Hpr Hmt' Hms' Hq Hnw'
+          · change StepR Adm dec id (rOf s g) ([absMsg .voteResp m ents] ++ [])
+              (rOf { voteRespResult id s m.From' m.Reject' true lost ms with prvals := pvs } g)
+            have Hr : rOf { voteRespResult id s m.From' m.Reject' true lost ms with prvals := pvs } g =
+                { rOf s g with
+                  p := toPState { voteRespResult id s m.From' m.Reject' true lost ms with prvals := pvs },
+                  pci := plastIndex (toPState s) } := by
+              unfold rOf pciR
+              simp [voteRespResult, becomeLeader, becomeLeaderLog, becomeLeaderPre, sendMsgs,
+                resetTo, resetTo0, plastIndex_toPState]
+            rw [Hr, toPState_voteRespResult _ _ _ _ _ _ _ _ Hrole]
+            unfold pvoteRespResult
+            simp only [↓reduceIte]
+            have Hrp : (rOf s g).p = toPState s := rfl
+            have Hrc : (rOf s g).cfg.cfg = c := hc
+            refine .trans _ _ _ _ _ (StepR.recordVote (absMsg .voteResp m ents) (rOf s g) rfl Hto
+              Hteq Hpr) ?_
+            exact StepR.win _ (prvalsMatch pvs) ms Hpr (by rw [Hrc]; exact Hq) Hnw' Hmt' Hms' Hac
       · -- Leader: `stepLeader`'s `MsgVoteResp` arm only reads.
         simp only [stepFuncOf]
         wp_apply _P.stepLeader c r id s m [] [] (.inl Hty) Hrole
@@ -353,7 +388,8 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         iapply HΦ $$ %interface.nil %s
         iframe Hphys
         ipureintro
-        exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl,
+        exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
+          StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
       · -- PreCandidate (2026-10-04): `stepCandidate`'s `myVoteRespType` is
         -- `MsgPreVoteResp`, so a vote response is ignored.
@@ -384,7 +420,8 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         iapply HΦ $$ %interface.nil %s
         iframe Hphys
         ipureintro
-        exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl,
+        exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
+          StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
 
 end StepProof

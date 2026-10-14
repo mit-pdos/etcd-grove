@@ -61,7 +61,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeat m ents ctx) ∧
-            StepC c id (toPState s) recv (toPState s')⌝ ∗
+            StepCD c id m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -113,7 +113,8 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
       keep_frame rfl rfl rfl rfl rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
-    · exact step_handle_heartbeat c id _ _ m ents ctx (adopt_follower s m.From' Hrole Hvs) Hto Hteq
+    · refine StepCD.frame ?_ (by rframe)
+      exact step_handle_heartbeat c id _ _ m ents ctx (adopt_follower s m.From' Hrole Hvs) Hto Hteq
         (by simp [toPState, Hrole, proleRole]) Hcommit Hfid
   · -- Candidate: `becomeFollower(r.Term, m.From)`, then the handler
     simp only [stepFuncOf]
@@ -140,7 +141,8 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
       keep_frame rfl rfl rfl rfl rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
-    · exact step_handle_heartbeat c id _ _ m ents ctx (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
+    · refine StepCD.frame ?_ (by rframe)
+      exact step_handle_heartbeat c id _ _ m ents ctx (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
         (by simp [toPState, Hrole, proleRole]) Hcommit Hfid
   · -- Leader: `stepLeader` has no arm for it; nothing changes
     simp only [stepFuncOf]
@@ -169,7 +171,7 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     iframe Hphys
     ipureintro
     rw [Hs']
-    exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl,
+    exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       keep_frame rfl rfl rfl rfl rfl⟩
   · -- PreCandidate (2026-10-04), as a candidate: `becomeFollower(r.Term, m.From)`, then
     -- the handler
@@ -197,7 +199,8 @@ theorem wp_Step_MsgHeartbeat_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG)
       keep_frame rfl rfl rfl rfl rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
-    · exact step_handle_heartbeat c id _ _ m ents ctx (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
+    · refine StepCD.frame ?_ (by rframe)
+      exact step_handle_heartbeat c id _ _ m ents ctx (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
         (by simp [toPState, Hrole, proleRole]) Hcommit Hfid
 
 end StepProof

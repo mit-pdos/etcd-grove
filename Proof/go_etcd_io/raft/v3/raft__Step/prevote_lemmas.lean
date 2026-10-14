@@ -141,7 +141,7 @@ theorem candidateStepResult_prevoteresp (c : CfgM) {scfg : GSet w64} {c' : CfgM}
     (s.role = .preCandidate → uint.Z s.term + 1 < 2 ^ 64) →
     NStateWf s →
     CandidateStepResultC c scfg id s m ents sv dropped s' c' →
-    c = c' ∧ dropped = false ∧ NStateWf s' ∧ StepC c id (toPState s) [] (toPState s') ∧
+    c = c' ∧ dropped = false ∧ NStateWf s' ∧ StepCD c id m s [] s' ∧
       RespStep m s s' ∧ NetFrame s s' ∧ TermStep m s s' := by
   intro Hty Hrole Hin Hnw Hwf H
   unfold CandidateStepResultC at H
@@ -157,11 +157,12 @@ theorem candidateStepResult_prevoteresp (c : CfgM) {scfg : GSet w64} {c' : CfgM}
     refine ⟨nstateWf_prvals _ _ (nstateWf_prevoteRespResult _ _ _ _ _ _ _ Hwf), ?_,
       prevoteRespResult_resp id s _ _ won lost peers pvs m Hty Hp (Hnw Hp),
       prevoteRespResult_frame id s _ _ won lost peers pvs m Hty (Hnw Hp)⟩
-    exact stepC_prevoteRespResult c id s _ _ won lost peers pvs Hp Hin (Hnw Hp)
-      (fun Hwon => (Hw Hwon).2)
+    exact StepCD.of_excluded (stepC_prevoteRespResult c id s _ _ won lost peers pvs Hp Hin (Hnw Hp)
+      (fun Hwon => (Hw Hwon).2)) (.inr Hp)
   · simp only [Hp, ↓reduceIte] at Hres
     subst Hres
-    exact ⟨Hwf, .refl _, RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
+    exact ⟨Hwf, StepCD.frame (.refl _) (RFrame.refl _), RespStep.refl _ _,
+      keep_frame rfl rfl rfl rfl rfl⟩
 
 end StepProof
 

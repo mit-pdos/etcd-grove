@@ -61,7 +61,7 @@ theorem wp_Step_MsgStorageAppendResp (_P : raft.Step.Postulates (GF := GF) (hG :
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hframe" ∷ ⌜LocalFrame s s' ∧ s'.logst.applying = s.logst.applying⌝ ∗
-        "%Hrefines" ∷ ⌜StepC c id (toPState s) [] (toPState s')⌝ ∗
+        "%Hrefines" ∷ ⌜StepCD c id m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hsn Hle Hstok Hghoff Hwf
   wp_start as Hphys
@@ -101,7 +101,8 @@ theorem wp_Step_MsgStorageAppendResp (_P : raft.Step.Postulates (GF := GF) (hG :
       iapply HΦ $$ %interface.nil %s
       iframe Hphys
       ipureintro
-      exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl⟩, .refl _, rfl⟩
+      exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl⟩,
+        StepCD.frame (.refl _) (RFrame.refl _), rfl⟩
   -- `Term = 0` or `Term = r.Term`: the switch's case
   have Hmt : m.Term' = W64 0 ∨ m.Term' = s.term := by
     by_cases Hz : m.Term' = W64 0
@@ -133,7 +134,8 @@ theorem wp_Step_MsgStorageAppendResp (_P : raft.Step.Postulates (GF := GF) (hG :
       iapply HΦ $$ %interface.nil %s
       iframe Hphys
       ipureintro
-      exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl⟩, .refl _, rfl⟩
+      exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl⟩,
+        StepCD.frame (.refl _) (RFrame.refl _), rfl⟩
     · rw [decide_eq_false Hi0]
       wp_auto
       -- `r.raftLog.stableTo(entryID{m.LogTerm, m.Index})`
@@ -149,6 +151,7 @@ theorem wp_Step_MsgStorageAppendResp (_P : raft.Step.Postulates (GF := GF) (hG :
       obtain ⟨Hap, Hun, Hsn', Hip, Hpv, Hst⟩ :=
         logStableTo_fields s.logst (entryID.mk m.LogTerm' m.Index')
       refine ⟨Hwf, ⟨⟨rfl, Hip, Hun, Hsn', Hpv, Hst, logStableTo_storage _ _, rfl, rfl⟩, Hap⟩, ?_, rfl⟩
+      refine StepCD.frame ?_ ⟨by unfold logStableTo; split <;> rfl, Hsn', fun h => ⟨h, rfl⟩⟩
       rw [toPState_logStableTo]
       exact .refl _
 

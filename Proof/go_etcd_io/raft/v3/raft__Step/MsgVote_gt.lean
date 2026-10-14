@@ -77,7 +77,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- `raft.Step.wp_proof` discharge the `isMessage` side of `ownRaftGhost_step`
         -- from the single fact it holds about `m`.
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .vote m ents) ∧
-            StepC c id (toPState s) recv (toPState s')⌝ ∗
+            StepCD c id m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -198,8 +198,9 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       refine ⟨nstateWf_sendMsgs _ _ Hwf1, ⟨[absMsg .vote m ents] ++ [absMsg .vote m ents], ?_, ?_⟩,
         rfl, stepdown_frame' (by rw [Hty]; w32_ne) Hgt0 Hs1 rfl rfl⟩
       · intro m' Hm'; simpa using Hm'
-      · rw [toPState_sendMsgs, Hps1, Ht1]
-        exact stepC_stepdown_then_reject c id (toPState s) (absMsg .vote m ents) rfl Hto Hgt0
+      · refine StepCD.frame ?_ (by subst Hs1; rframe)
+        rw [toPState_sendMsgs, Hps1, Ht1]
+        exact stepCF_stepdown_then_reject c id (toPState s) (absMsg .vote m ents) rfl Hto Hgt0
     · -- the candidate's log is up to date: grant the vote
       wp_apply _P.voteRespMsgType m.Type' MsgVoteResp (.inl ⟨Hty, rfl⟩)
       try wp_auto
@@ -233,10 +234,11 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       refine ⟨Hwf1, ⟨[absMsg .vote m ents] ++ [absMsg .vote m ents], ?_, ?_⟩, rfl,
         stepdown_frame' (by rw [Hty]; w32_ne) Hgt0 Hs1 rfl rfl⟩
       · intro m' Hm'; simpa using Hm'
-      · have H : StepC c id (toPState s) ([absMsg .vote m ents] ++ [absMsg .vote m ents])
+      · refine StepCD.frame ?_ (by subst Hs1; exact ⟨rfl, rfl, fun h => absurd h (by simp [becomeFollower])⟩)
+        have H : StepCF c id (toPState s) ([absMsg .vote m ents] ++ [absMsg .vote m ents])
             (psendMsgs { pbecomeFollower (toPState s) m.Term' (W64 0) with vote := m.From' }
               [Msg.plain .voteResp id m.From' m.Term' false]) :=
-          stepC_stepdown_then_vote c id (toPState s) (absMsg .vote m ents) rfl Hto Hfnz
+          stepCF_stepdown_then_vote c id (toPState s) (absMsg .vote m ents) rfl Hto Hfnz
           Hgt0 (by subst Hs1; exact Hutd.symm)
         rw [← Hps1] at H
         exact H

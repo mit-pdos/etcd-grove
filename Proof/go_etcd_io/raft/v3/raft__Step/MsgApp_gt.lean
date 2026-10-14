@@ -37,6 +37,16 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
 
+/-- `handleAppendEntries` keeps what `rOf` reads beyond `toPState` (stage B7). -/
+private theorem rframe_handle_app (id : w64) (t : NState) (m : raftpb.Message)
+    (ents : List raftpb.Entry) (s' : NState) (H : HandleAppResult id t m ents s') :
+    RFrame t s' := by
+  unfold HandleAppResult at H
+  rcases H with ⟨-, rfl⟩ | ⟨-, _, _, ls', -, -, -, Ha, -, Hfr, rfl⟩ | ⟨-, -, _, _, rfl⟩
+  · exact ⟨rfl, rfl, fun h => ⟨h, rfl⟩⟩
+  · exact ⟨Ha, Hfr.2.1, fun h => ⟨h, rfl⟩⟩
+  · exact ⟨rfl, rfl, fun h => ⟨h, rfl⟩⟩
+
 theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) :
@@ -68,7 +78,7 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .app m ents) ∧
-            StepC c id (toPState s) recv (toPState s')⌝ ∗
+            StepCD c id m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -127,7 +137,8 @@ theorem wp_Step_MsgApp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     app_frame Hty Happ (NetFrame.refl _) (Int.le_of_lt Hgt) (Int.le_max_right _ _)⟩
   refine ⟨[absMsg .app m ents] ++ [absMsg .app m ents], ?_, ?_⟩
   · intro m' Hm'; simpa using Hm'
-  · refine StepC.trans _ _ _ _ _
+  · refine StepCD.frame ?_ (RFrame.trans (by rframe) (rframe_handle_app _ _ _ _ _ Happ))
+    refine StepCF.trans _ _ _ _ _
       (step_higher_term_leader c id (toPState s) .app m ents [] rfl Hgt Hto Hfid) ?_
     exact step_handle_app c id _ _ m ents s1
       (adopt_after_stepdown s m.Term' m.From' pvs) Hto rfl (by simp [pbecomeFollower])

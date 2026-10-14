@@ -2,11 +2,11 @@
 request, local (`ReadIndex`, `From = 0`) or forwarded by a follower; `Term = 0`, so the term
 preamble is skipped and `r.step(r, m)` runs:
 
-- `stepFollower` forwards it to the leader (`StepC.readFwd`) or, with no leader known,
+- `stepFollower` forwards it to the leader (`StepCF.readFwd`) or, with no leader known,
   drops it (`StepC.refl`);
 - `stepCandidate` ignores it;
 - `stepLeader` queues it as pending while no entry of its term is committed
-  (`StepC.readPend`), or lets it arrive (`StepC.readArrive`) and broadcasts heartbeats
+  (`StepCF.readPend`), or lets it arrive (`StepCF.readArrive`) and broadcasts heartbeats
   carrying the new position (`StepC.beat`).
 
 Proof structure, not specification: only `Proof/raft__Step.lean` may import this module.
@@ -82,7 +82,7 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .readIndex m ents ctx) ∧
-            recv.length ≤ 1 ∧ StepC c id (toPState s) recv (toPState s')⌝ ∗
+            recv.length ≤ 1 ∧ StepCD c id m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -129,7 +129,7 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       iapply HΦ $$ %interface.nil %s
       iframe Hphys
       ipureintro
-      exact ⟨Hwf, ⟨[], by simp, by simp, .refl _⟩, rfl, NetFrame.refl _, TermStep.refl _ _⟩
+      exact ⟨Hwf, ⟨[], by simp, by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _, TermStep.refl _ _⟩
     · rw [if_neg Hl0] at Hs1
       subst s1
       iapply HΦ $$ %interface.nil %(sendMsgs s [readForward id s.lead m ents ctx])
@@ -137,10 +137,10 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       ipureintro
       have Hld : (toPState s).lead = s.lead :=
         toPState_lead_nonpre s (by rw [Hrole]; exact PRole.noConfusion)
-      refine ⟨nstateWf_sendMsgs _ _ Hwf, ⟨[absMsg .readIndex m ents ctx], by simp, by simp, ?_⟩,
+      refine ⟨nstateWf_sendMsgs _ _ Hwf, ⟨[absMsg .readIndex m ents ctx], by simp, by simp, StepCD.frame ?_ (by rframe)⟩,
         rfl, NetFrame.of_logst rfl, TermStep.of_term rfl (fun _ => Int.le_refl _)⟩
       rw [toPState_sendMsgs]
-      have := StepC.readFwd (c := c) (id := id) (absMsg .readIndex m ents ctx) (toPState s)
+      have := StepCF.readFwd (c := c) (id := id) (absMsg .readIndex m ents ctx) (toPState s)
         rfl (by simp [toPState, Hrole, proleRole]) (by rw [Hld]; exact Hl0)
       rw [Hld] at this
       have He : readForward id s.lead m ents ctx =
@@ -181,7 +181,7 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
-    exact ⟨Hwf, ⟨[], by simp, by simp, .refl _⟩, rfl, NetFrame.refl _, TermStep.refl _ _⟩
+    exact ⟨Hwf, ⟨[], by simp, by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _, TermStep.refl _ _⟩
   · -- Leader: pending, or arrival and heartbeats
     simp only [stepFuncOf]
     have Hpr : (toPState s).role = .leader := by simp [toPState, Hrole, proleRole]
@@ -223,30 +223,30 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       iapply HΦ $$ %interface.nil %({ s with rd := { s.rd with pend := s.rd.pend ++ [(m, ents)] } })
       iframe Hphys
       ipureintro
-      refine ⟨Hwf, ⟨[absMsg .readIndex m ents ctx], by simp, by simp, ?_⟩, rfl,
+      refine ⟨Hwf, ⟨[absMsg .readIndex m ents ctx], by simp, by simp, StepCD.frame ?_ (by rframe)⟩, rfl,
         NetFrame.of_logst rfl, TermStep.of_term rfl (fun _ => Int.le_refl _)⟩
       have e : toPState { s with rd := { s.rd with pend := s.rd.pend ++ [(m, ents)] } } =
           { toPState s with rd := { (toPState s).rd with
               pend := (toPState s).rd.pend ++ [(m, (absMsg .readIndex m ents ctx).entries)] } } := by
         rw [Hrd]; simp [toPState, Hrole, absMsg, absMsgFrom]
       rw [e]
-      exact StepC.readPend (absMsg .readIndex m ents ctx) (toPState s) m rfl Hpr rfl
+      exact StepCF.readPend (absMsg .readIndex m ents ctx) (toPState s) m rfl Hpr rfl
     · -- arrival, then the heartbeats
       iapply HΦ $$ %interface.nil %({ sendMsgs (arriveState id s m ents) ms with prvals := pvs })
       iframe Hphys
       ipureintro
       refine ⟨nstateWf_prvals _ _ (nstateWf_sendMsgs _ _ Hwf),
-        ⟨[absMsg .readIndex m ents ctx] ++ [], by simp, by simp, ?_⟩, rfl,
+        ⟨[absMsg .readIndex m ents ctx] ++ [], by simp, by simp, StepCD.frame ?_ (by rframe)⟩, rfl,
         NetFrame.of_logst rfl, TermStep.of_term rfl (fun _ => Int.le_refl _)⟩
       let ps1 : PState := { toPState s with rd := { (toPState s).rd with
           ro := readonlyArrive (toPState s).rd.ro id
             ⟨(toPState s).commit, (absMsg .readIndex m ents ctx).src,
              (absMsg .readIndex m ents ctx).entries⟩ } }
-      have H1 : StepC c id (toPState s) [absMsg .readIndex m ents ctx] ps1 :=
-        StepC.readArrive (absMsg .readIndex m ents ctx) (toPState s) rfl Hpr Hct
+      have H1 : StepCF c id (toPState s) [absMsg .readIndex m ents ctx] ps1 :=
+        StepCF.readArrive (absMsg .readIndex m ents ctx) (toPState s) rfl Hpr Hct
       have Hps1ro : ps1.rd.ro = readonlyArrive s.rd.ro id (arriveReq s m ents) := by
         simp [ps1, arriveReq, toPState, Hrole, absMsg, absMsgFrom]
-      have H2 : StepC c id ps1 [] (psendMsgs ps1 ms) :=
+      have H2 : StepCF c id ps1 [] (psendMsgs ps1 ms) :=
         .beat _ ms Hpr
           (fun m' h => by
             have := (Hms m' h).1
@@ -293,7 +293,7 @@ theorem wp_Step_MsgReadIndex (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
-    exact ⟨Hwf, ⟨[], by simp, by simp, .refl _⟩, rfl, NetFrame.refl _, TermStep.refl _ _⟩
+    exact ⟨Hwf, ⟨[], by simp, by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _, TermStep.refl _ _⟩
 
 end StepProof
 

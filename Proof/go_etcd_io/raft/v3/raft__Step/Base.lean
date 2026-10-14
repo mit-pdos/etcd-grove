@@ -21,6 +21,7 @@ Lean notes:
 module
 
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
+public import Proof.go_etcd_io.raft.v3.StepLemmasR
 public import Spec.go_etcd_io.raft.v3.raft__Step
 public import Spec.go_etcd_io.raft.v3.raft__hup
 public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
@@ -79,6 +80,28 @@ macro_rules
         Perennial.EtcdGrove.MsgSnapStatus, Perennial.EtcdGrove.MsgTransferLeader,
         Perennial.EtcdGrove.MsgTimeoutNow, _root_.or_false, _root_.false_or,
         _root_.or_self]; word))
+
+/-- `RFrame s s'` (`StepLemmasR.lean`) for a branch's end state `s'` built from `s` by record
+updates and the code's transition functions (2026-10-14, stage B7). -/
+macro "rframe" : tactic =>
+  `(tactic| first
+    | exact Perennial.EtcdGrove.RFrame.refl _
+    | (refine ⟨?_, ?_, ?_⟩ <;>
+        first
+        | rfl
+        | (intro hrf; exact ⟨by assumption, rfl⟩)
+        | (intro hrf
+           simp_all [Perennial.EtcdGrove.becomeFollower, Perennial.EtcdGrove.becomeCandidate,
+             Perennial.EtcdGrove.becomePrecandidate, Perennial.EtcdGrove.sendMsgs,
+             Perennial.EtcdGrove.resetTo, Perennial.EtcdGrove.resetTo0,
+             Perennial.EtcdGrove.heartbeatResult, Perennial.EtcdGrove.addReadState,
+             Perennial.EtcdGrove.arriveState, Perennial.EtcdGrove.releasedState]
+           done)
+        | (simp [Perennial.EtcdGrove.becomeFollower, Perennial.EtcdGrove.becomeCandidate,
+             Perennial.EtcdGrove.becomePrecandidate, Perennial.EtcdGrove.sendMsgs,
+             Perennial.EtcdGrove.resetTo, Perennial.EtcdGrove.resetTo0,
+             Perennial.EtcdGrove.heartbeatResult, Perennial.EtcdGrove.addReadState,
+             Perennial.EtcdGrove.arriveState, Perennial.EtcdGrove.releasedState]; done)))
 
 section cfg_eq
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
@@ -302,7 +325,7 @@ theorem finish_branch (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64)
     (s s' : NState) (m : raftpb.Message) (a : Msg) (recv : List Msg) (err : GoInterface)
     (Φ : val → IProp GF)
     (HC : CfgStatic γ c) (Hwf' : NStateWf s') (Hrecv : ∀ m' ∈ recv, m' = a)
-    (Hstep : StepC c id (toPState s) recv (toPState s'))
+    (Hstep : StepCD c id m s recv s')
     (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s')
     (Hresp : RespStep m s s') (Hna : a.ty ≠ .readIndex := by simp [absMsg, absMsgFrom]) :
     ⊢ isMessage γ a -∗
@@ -313,19 +336,19 @@ theorem finish_branch (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64)
       stepPost γ c r id s m Φ -∗
       |={⊤}=> Φ #err := by
   iintro #Hm Hghost Hphys Herr HΦ
-  imod ghost_step_recv γ c id _ _ a recv HC Hrecv Hstep Hna $$ Hm Hghost with Hghost
+  imod ghost_step_recv γ c id _ _ a recv HC Hrecv Hstep.1 Hna $$ Hm Hghost with Hghost
   imodintro
   unfold stepPost
   iapply HΦ $$ %err %s' %(toPState s') %c
   iframe Hphys Hghost Herr
   ipureintro
-  exact ⟨⟨rfl, Hwf'⟩, ⟨recv, Hstep⟩, ⟨HC, fun _ => rfl⟩, Hfr, Htm, Hresp⟩
+  exact ⟨⟨rfl, Hwf'⟩, ⟨recv, Hstep.1⟩, ⟨HC, fun _ => rfl⟩, Hfr, Htm, Hresp⟩
 
 /-- The same, for a branch that consumed nothing. -/
 theorem finish_branch0 (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64)
     (s s' : NState) (m : raftpb.Message) (err : GoInterface) (Φ : val → IProp GF)
     (HC : CfgStatic γ c) (Hwf' : NStateWf s')
-    (Hstep : StepC c id (toPState s) [] (toPState s'))
+    (Hstep : StepCD c id m s [] s')
     (Hfr : m.Type' ≠ MsgSnap → NetFrame s s') (Htm : m.Type' ≠ MsgSnap → TermStep m s s')
     (Hresp : RespStep m s s') :
     ⊢ ownRaftGhost γ id (toPState s) -∗
@@ -335,13 +358,13 @@ theorem finish_branch0 (γ : RaftNames) (c : CfgM) (r : Loc) (id : w64)
       stepPost γ c r id s m Φ -∗
       |={⊤}=> Φ #err := by
   iintro Hghost Hphys Herr HΦ
-  imod ghost_step_nil γ c id _ _ HC Hstep $$ Hghost with Hghost
+  imod ghost_step_nil γ c id _ _ HC Hstep.1 $$ Hghost with Hghost
   imodintro
   unfold stepPost
   iapply HΦ $$ %err %s' %(toPState s') %c
   iframe Hphys Hghost Herr
   ipureintro
-  exact ⟨⟨rfl, Hwf'⟩, ⟨[], Hstep⟩, ⟨HC, fun _ => rfl⟩, Hfr, Htm, Hresp⟩
+  exact ⟨⟨rfl, Hwf'⟩, ⟨[], Hstep.1⟩, ⟨HC, fun _ => rfl⟩, Hfr, Htm, Hresp⟩
 
 end StepProof
 

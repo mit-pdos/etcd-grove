@@ -105,10 +105,11 @@ local macro "vote_grant_tail" : tactic => `(tactic| (
   ipureintro
   refine ⟨Hwf, ⟨[absMsg .vote m ents], fun m' Hm' => by simpa using Hm', ?_⟩, rfl,
     keep_frame rfl rfl rfl rfl rfl⟩
-  have H : StepC c id (toPState s) [absMsg .vote m ents]
+  refine StepCD.frame ?_ (by rframe)
+  have H : StepCF c id (toPState s) [absMsg .vote m ents]
       (psendMsgs { toPState s with vote := m.From' }
         [Msg.plain .voteResp id m.From' s.term false]) :=
-    StepC.grantVote (absMsg .vote m ents) (toPState s) rfl Hto Hfnz Heq0 Hcan Hutd.symm
+    StepCF.grantVote (absMsg .vote m ents) (toPState s) rfl Hto Hfnz Heq0 Hcan Hutd.symm
   rw [← Heq0] at H
   exact H))
 
@@ -141,7 +142,7 @@ local macro "vote_reject_tail" : tactic => `(tactic| (
   iframe Hphys
   ipureintro
   exact ⟨Hwf, ⟨[absMsg .vote m ents], fun m' Hm' => by simpa using Hm',
-    StepC.rejectVote (absMsg .vote m ents) (toPState s) rfl Hto⟩, rfl,
+    StepCD.frame (StepCF.rejectVote (absMsg .vote m ents) (toPState s) rfl Hto) (by rframe)⟩, rfl,
     keep_frame rfl rfl rfl rfl rfl⟩))
 
 /-! `MsgVote`: step down if the term is higher, then grant or decline.
@@ -199,7 +200,7 @@ theorem wp_Step_MsgVote_eq_novote (_P : raft.Step.Postulates (GF := GF) (hG := h
         -- `raft.Step.wp_proof` discharge the `isMessage` side of `ownRaftGhost_step`
         -- from the single fact it holds about `m`.
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .vote m ents) ∧
-            StepC c id (toPState s) recv (toPState s')⌝ ∗
+            StepCD c id m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by

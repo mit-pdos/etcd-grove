@@ -54,7 +54,7 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜StepC c id (toPState s) [] (toPState s')⌝ ∗
+        "%Hrefines" ∷ ⌜StepCD c id m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -111,7 +111,8 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro
-    refine ⟨nstateWf_sendMsgs _ _ Hwf, ?_, rfl, keep_frame rfl rfl rfl rfl rfl⟩
+    refine ⟨nstateWf_sendMsgs _ _ Hwf, StepCD.frame ?_ (by rframe), rfl,
+      keep_frame rfl rfl rfl rfl rfl⟩
     rw [toPState_sendMsgs]
     exact .sendFree _ _ (.inr rfl) rfl
 

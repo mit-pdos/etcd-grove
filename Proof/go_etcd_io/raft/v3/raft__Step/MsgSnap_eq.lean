@@ -66,7 +66,7 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hc'" ∷ ⌜c' = c ∨ ∃ L, c' = CfgM.simple scfg L⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv voters) ∧
-            StepC c id (toPState s) recv (toPState s')⌝ ∗
+            StepCD c id m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hteq Hnl Hvotes
   wp_start as ⟨Hphys, #Hsv, #Hvs, #Hls⟩
@@ -123,7 +123,8 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       ⟨[absSnap m sv voters], ?_, ?_⟩, rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
-    · exact step_handle_snap c id _ _ m sv voters s1 (adopt_follower s m.From' Hrole Hvs) Hto
+    · refine StepCD.of_excluded ?_ (.inl Hty)
+      exact step_handle_snap c id _ _ m sv voters s1 (adopt_follower s m.From' Hrole Hvs) Hto
         Hteq (by simp [toPState, Hrole, proleRole]) Hfid Hhs
   · -- Candidate: `becomeFollower(r.Term, m.From)`, then `handleSnapshot`
     simp only [stepFuncOf]
@@ -156,7 +157,8 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · exact ⟨rfl, rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
-    · exact step_handle_snap c id _ _ m sv voters s1 (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
+    · refine StepCD.of_excluded ?_ (.inl Hty)
+      exact step_handle_snap c id _ _ m sv voters s1 (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
         (by simp [toPState, Hrole, proleRole]) Hfid Hhs
   · -- Leader: excluded
     exact absurd Hrole Hnl
@@ -192,7 +194,8 @@ theorem wp_Step_MsgSnap_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     · exact ⟨rfl, rfl⟩
     · intro m' Hm'
       exact List.mem_singleton.mp Hm'
-    · exact step_handle_snap c id _ _ m sv voters s1 (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
+    · refine StepCD.of_excluded ?_ (.inl Hty)
+      exact step_handle_snap c id _ _ m sv voters s1 (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
         (by simp [toPState, Hrole, proleRole]) Hfid Hhs
 
 end StepProof

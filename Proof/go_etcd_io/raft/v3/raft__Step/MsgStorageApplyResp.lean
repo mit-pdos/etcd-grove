@@ -31,6 +31,31 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
 
+/-- `appliedTo` as a `StepCD` step (2026-10-14, stage B7): nothing the protocol sees, and in the
+dynamic model `StepR.advance` to the new `applied` (A1, from `DynHyp`), which moves the
+configuration index along. -/
+private theorem stepCD_appliedTo (c : CfgM) (id : w64) (m : raftpb.Message) (s : NState)
+    (idx sz : w64) (Hty : m.Type' = MsgStorageApplyResp)
+    (Hidx : uint.Z idx ≤ uint.Z s.logst.committed)
+    (Hac : uint.Z s.logst.applied ≤ uint.Z s.logst.committed) :
+    StepCD c id m s [] { s with logst := logAppliedTo s.logst idx sz } := by
+  refine ⟨by rw [toPState_logAppliedTo]; exact .refl _, fun Adm dec g hc hd => ?_⟩
+  obtain ⟨Hsn, Ha1⟩ := hd.2.2.2.1 Hty
+  refine ⟨max g.cidx (uint.nat (w64Max idx s.logst.applied)), ?_⟩
+  have Hr : rOf { s with logst := logAppliedTo s.logst idx sz }
+      { g with cidx := max g.cidx (uint.nat (w64Max idx s.logst.applied)) } =
+      { rOf s g with applied := w64Max idx s.logst.applied,
+                     cidx := max (rOf s g).cidx (uint.nat (w64Max idx s.logst.applied)) } := by
+    unfold rOf pciR
+    rw [toPState_logAppliedTo]
+    simp [logAppliedTo]
+  rw [Hr]
+  refine StepR.advance (rOf s g) (w64Max idx s.logst.applied) (by simp [rOf, Hsn]) ?_ ?_ Ha1
+  · show uint.Z s.logst.applied ≤ uint.Z (w64Max idx s.logst.applied)
+    unfold w64Max; split <;> word
+  · show uint.Z (w64Max idx s.logst.applied) ≤ uint.Z s.logst.committed
+    unfold w64Max; split <;> word
+
 /-- The local acknowledgement `RawNode.Advance` steps after the application applied a
 `Ready`'s committed entries (`newStorageApplyRespMsg`: `Term = 0`, `Entries` the
 entries). The term preamble is skipped; the type switch's `MsgStorageApplyResp` case
@@ -63,7 +88,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
         "%Hframe" ∷ ⌜LocalFrame s s' ∧
                      ((∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s.logst.applying) →
                       s'.logst.applying = s.logst.applying)⌝ ∗
-        "%Hrefines" ∷ ⌜StepC c id (toPState s) [] (toPState s')⌝ ∗
+        "%Hrefines" ∷ ⌜StepCD c id m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hterm Hlast Hwf Hal
   wp_start as ⟨Hphys, #Hents⟩
@@ -87,7 +112,8 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
-    exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, fun _ => rfl⟩, .refl _, rfl⟩
+    exact ⟨Hwf, ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, fun _ => rfl⟩,
+      StepCD.frame (.refl _) (RFrame.refl _), rfl⟩
   | some e =>
     obtain ⟨es, rfl⟩ := List.getLast?_eq_some_iff.1 He
     simp only [List.length_append, List.length_singleton] at Hlen
@@ -104,6 +130,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     -- `applied ≤ applying`: `applying` stays put when the entries end at or below it
     icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hback⟩
     icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hrw, Hlog⟩
+    icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcm, Hlog⟩
     ihave Hphys := Hback $$ Hlog
     wp_apply _P.appliedTo c r id s e.Index' sz (Hlast e He) Hal $$ [$Hphys] as Hphys
     wp_apply _P.payloadsSize $$ [$Hents] as %psz -
@@ -116,8 +143,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
       show w64Max s.logst.applying (w64Max e.Index' s.logst.applied) = s.logst.applying
       unfold w64Max
       split <;> split <;> word
-    rw [toPState_logAppliedTo]
-    exact .refl _
+    exact stepCD_appliedTo c id m s e.Index' sz Hty (Hlast e He) Hcm.1.2.1
 
 end StepProof
 

@@ -62,7 +62,7 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "%Hc'" ∷ ⌜c' = c ∨ ∃ L, c' = CfgM.simple scfg L⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absSnap m sv voters) ∧
-            StepC c id (toPState s) recv (toPState s')⌝ ∗
+            StepCD c id m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
   intro Hty Hto Hterm Hfnz Hfid Hcfg Hwf Hscope Hgt
   wp_start as ⟨Hphys, #Hsv, #Hvs, #Hls⟩
@@ -126,7 +126,8 @@ theorem wp_Step_MsgSnap_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   · intro m' Hm'
     simp only [List.mem_append, List.mem_singleton, or_self] at Hm'
     exact Hm'
-  · refine .trans _ _ _ _ _ (step_higher_term_snap c id (toPState s) m sv voters Hgt Hto Hfid) ?_
+  · refine StepCD.of_excluded ?_ (.inl Hty)
+    refine .trans _ _ _ _ _ (step_higher_term_snap c id (toPState s) m sv voters Hgt Hto Hfid) ?_
     exact step_handle_snap c id _ _ m sv voters s1
       (adopt_after_stepdown s m.Term' m.From' pvs) Hto rfl (by simp [pbecomeFollower]) Hfid
       Hhs

@@ -56,7 +56,7 @@ theorem wp_Step_Resp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg ty m ents) ∧
-            StepC c id (toPState s) recv (toPState s')⌝ ∗
+            StepCD c id m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -118,9 +118,10 @@ theorem wp_Step_Resp_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     ipureintro
     refine ⟨⟨rfl, rfl⟩, ⟨[absMsg ty m ents], fun _ Hin => List.mem_singleton.1 Hin, ?_⟩, rfl,
       stepdown_frame (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt) rfl rfl rfl rfl rfl⟩
+    refine StepCD.frame ?_ (by rframe)
     rw [toPState_prvals_nl (becomeFollower s m.Term' (W64 0)) pvs
       (by simp [becomeFollower]), toPState_becomeFollower]
-    have Hst := StepC.higherTerm (c := c) (id := id) (absMsg ty m ents) (toPState s) Hgt Hto
+    have Hst := StepCF.higherTerm (c := c) (id := id) (absMsg ty m ents) (toPState s) Hgt Hto
       (fun h => by simp [absMsg, absMsgFrom, Hfl] at h)
     rw [show (if fromLeader (absMsg ty m ents).ty then (absMsg ty m ents).src else W64 0)
       = W64 0 by simp [absMsg, absMsgFrom, Hfl]] at Hst

@@ -78,7 +78,7 @@ local macro "prevote_resp_dispatch" : tactic =>
       iapply HΦ $$ %interface.nil %_
       iframe Hphys
       ipureintro
-      exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl,
+      exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
     · -- Candidate: `myVoteRespType` is `MsgVoteResp`; a stale pre-vote response is
       -- ignored
@@ -138,7 +138,7 @@ local macro "prevote_resp_dispatch" : tactic =>
       iapply HΦ $$ %interface.nil %_
       iframe Hphys
       ipureintro
-      exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl,
+      exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       RespStep.refl _ _, keep_frame rfl rfl rfl rfl rfl⟩
     · -- PreCandidate: the pre-vote tally
       simp only [stepFuncOf]
@@ -192,7 +192,7 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .preVoteResp m ents) ∧
-            StepC c id (toPState s) recv (toPState s')⌝ ∗
+            StepCD c id m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
@@ -246,10 +246,10 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
   rw [Hty]
   wp_auto
   wp_apply raft.wp_load_stepC $$ Hphys as Hphys
-  have Hsd : StepC c id (toPState s) [absMsg .preVoteResp m ents]
+  have Hsd : StepCF c id (toPState s) [absMsg .preVoteResp m ents]
       (toPState (becomeFollower s m.Term' (W64 0))) := by
     rw [toPState_becomeFollower]
-    exact StepC.higherTerm (absMsg .preVoteResp m ents) (toPState s) Hgt Hto
+    exact StepCF.higherTerm (absMsg .preVoteResp m ents) (toPState s) Hgt Hto
       (by simp [absMsg, absMsgFrom, fromLeader])
   rw [show ({ becomeFollower s m.Term' (W64 0) with prvals := pvs } : NState).stepfn =
     functions stepFollower [] from rfl]
@@ -279,7 +279,8 @@ theorem wp_Step_MsgPreVoteResp_gt (_P : raft.Step.Postulates (GF := GF) (hG := h
   iapply HΦ $$ %interface.nil %_
   iframe Hphys
   ipureintro
-  refine ⟨⟨rfl, rfl⟩, ⟨[absMsg .preVoteResp m ents], fun _ h => List.mem_singleton.1 h, ?_⟩, rfl,
+  refine ⟨⟨rfl, rfl⟩, ⟨[absMsg .preVoteResp m ents], fun _ h => List.mem_singleton.1 h,
+    StepCD.frame ?_ (by rframe)⟩, rfl,
     ⟨fun h => by rcases h with h | h <;> rw [Hty] at h <;> exact absurd h (by w32_ne),
      fun _ => ⟨.inl (Int.le_max_right _ _), fun h => absurd h (by simp [becomeFollower])⟩⟩,
     stepdown_frame (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt) rfl rfl rfl rfl rfl⟩

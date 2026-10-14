@@ -45,7 +45,7 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜StepC c id (toPState s) [] (toPState s')⌝ ∗
+        "%Hrefines" ∷ ⌜StepCD c id m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -96,7 +96,7 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
-    exact ⟨Hwf, .refl _, rfl, keep_frame rfl rfl rfl rfl rfl⟩
+    exact ⟨Hwf, StepCD.frame (.refl _) (RFrame.refl _), rfl, keep_frame rfl rfl rfl rfl rfl⟩
   · -- Candidate: no `MsgBeat` arm either
     simp only [stepFuncOf]
     wp_apply _P.stepCandidate c ∅ r id s m [] (zero_val _) [] []
@@ -124,7 +124,7 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
-    exact ⟨Hwf, .refl _, rfl, keep_frame rfl rfl rfl rfl rfl⟩
+    exact ⟨Hwf, StepCD.frame (.refl _) (RFrame.refl _), rfl, keep_frame rfl rfl rfl rfl rfl⟩
   · -- Leader: `bcastHeartbeat`
     simp only [stepFuncOf]
     wp_apply _P.stepLeader c r id s m [] [] (.inr (.inl Hty)) Hrole
@@ -179,7 +179,7 @@ theorem wp_Step_MsgBeat (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
-    exact ⟨Hwf, .refl _, rfl, keep_frame rfl rfl rfl rfl rfl⟩
+    exact ⟨Hwf, StepCD.frame (.refl _) (RFrame.refl _), rfl, keep_frame rfl rfl rfl rfl rfl⟩
 
 end StepProof
 

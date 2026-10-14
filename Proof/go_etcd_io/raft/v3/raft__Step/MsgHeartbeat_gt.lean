@@ -60,7 +60,7 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeat m ents ctx) ∧
-            StepC c id (toPState s) recv (toPState s')⌝ ∗
+            StepCD c id m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -118,7 +118,8 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     · intro m' Hm'
       simp only [List.mem_append, List.mem_singleton, or_self] at Hm'
       exact Hm'
-    · refine .trans _ _ _ _ _
+    · refine StepCD.frame ?_ (by rframe)
+      refine .trans _ _ _ _ _
         (step_higher_term_leader c id (toPState s) .heartbeat m ents ctx rfl Hgt Hto Hfid) ?_
       exact step_handle_heartbeat c id _ _ m ents ctx
         (adopt_after_stepdown s m.Term' m.From' pvs) Hto rfl (by simp [pbecomeFollower]) Hcommit Hfid

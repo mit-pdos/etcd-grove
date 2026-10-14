@@ -56,7 +56,7 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
-        "%Hrefines" ∷ ⌜StepC c id (toPState s) [] (toPState s')⌝ ∗
+        "%Hrefines" ∷ ⌜StepCD c id m s [] s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -74,6 +74,14 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   -- `hup(campaignPreElection)` with pre-vote on, `hup(campaignElection)` otherwise;
   -- `hup`'s spec covers both
   wp_apply raft.wp_load_preVoteC $$ Hphys as Hphys
+  -- (2026-10-14, stage B7) the log facts the campaign guard reads on the full log
+  icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hback⟩
+  icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hcm, Hlog⟩
+  icases ownRaftLog_nowrap _ _ $$ Hlog with ⟨%Hlnw, Hlog⟩
+  ihave Hphys := Hback $$ Hlog
+  have Hlogf : (s.logst.snap = none → uint.Z s.logst.prev.index' ≤ uint.Z s.logst.applied) ∧
+      uint.Z s.logst.applied ≤ uint.Z s.logst.committed ∧ uint.Z s.logst.committed + 1 < 2 ^ 64 :=
+    ⟨Hcm.2, Hcm.1.2.1, by have := Hcm.1.2.2; omega⟩
   -- `hup(campaignPreElection)` exactly when `r.preVote`
   cases Hpv : s.prevote
   all_goals
@@ -86,11 +94,12 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         | exact fun h => by
             have := congrArg List.length h
             simp [campaignElection, campaignPreElection] at this
+    have HCD := stepCD_hup (m := m) Hok Hnowrap Hlogf
     obtain ⟨Hwf', Hstep, ⟨Hl, Ht1, Ht2, Hpv', Hg'⟩, -⟩ := Hok
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys
     ipureintro
-    exact ⟨Hwf', Hstep, rfl, NetFrame.of_logst Hl Hpv' Hg', Ht1, fun _ => Ht2,
+    exact ⟨Hwf', HCD, rfl, NetFrame.of_logst Hl Hpv' Hg', Ht1, fun _ => Ht2,
       fun h _ _ => absurd Hty h, fun _ => by rw [Hl]; exact Int.le_refl _,
       fun h => absurd (Hty.symm.trans h) (by w32_ne)⟩
 

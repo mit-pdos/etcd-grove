@@ -75,6 +75,36 @@ omit ext ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
 private theorem ite_neg {α : Sort _} {c : Prop} [Decidable c] {a b : α} (h : ¬c) :
     (if c then a else b) = b := by simp [h]
 
+/-- A proposal the leader drops after the conf-change loop moved `pendingConfIndex`
+(2026-10-14, stage B7): nothing the protocol sees, `StepR.propDrop` in the dynamic model. -/
+private theorem stepCD_propDrop (c : CfgM) (id : w64) (m : raftpb.Message) (s : NState)
+    (ents : List raftpb.Entry) (cs : List (Option CCMsg)) (ctx : List w8)
+    (Hty : m.Type' = MsgProp) (Hr : s.role = .leader) (Hct : CCTypesOk ents cs)
+    (Hlen : (ents.length : Int) < 2 ^ 61) :
+    StepCD c id m s [] { s with pci := (leaderPropConf s ents cs c.joint).2 } := by
+  refine ⟨.refl _, fun Adm dec g hc hd => ⟨g.cidx, ?_⟩⟩
+  change StepR Adm dec id (rOf s g) []
+    (rOf { s with pci := (leaderPropConf s ents cs c.joint).2 } g)
+  have Hnw := hd.2.2.2.2 Hty
+  have Hrl : (rOf s g).p.role = .leader := by simp [rOf, toPState, Hr, proleRole]
+  have Hpb : propBatch (rOf s g) ents cs = leaderPropConf s ents cs c.joint := by
+    show propConf s.logst.applied (plastIndex (toPState s)) (pciR s) ents cs
+        (CfgM.joint g.cfg.cfg) = propConf s.logst.applied (logLast s.logst) s.pci ents cs c.joint
+    have Hli : plastIndex (toPState s) = logLast s.logst := by
+      simp only [plastIndex, plogLastIndexZ, logLast, toPState, List.length_append]
+      congr 1; push_cast; omega
+    rw [Hli, hc]; simp [pciR, Hr]
+  have Hrr : rOf { s with pci := (leaderPropConf s ents cs c.joint).2 } g =
+      { rOf s g with pci := (leaderPropConf s ents cs c.joint).2 } := by
+    unfold rOf pciR
+    rw [show ({ s with pci := (leaderPropConf s ents cs c.joint).2 } : NState).role = s.role
+      from rfl, if_pos Hr]
+    rfl
+  rw [Hrr, ← Hpb]
+  exact StepR.propDrop (absMsg .propose m ents ctx) (rOf s g) cs rfl Hrl Hct
+    (by show plogLastIndexZ (toPState s).base (toPState s).log + (ents.length : Int) < 2 ^ 64
+        omega)
+
 /-- `MsgProp`: a local message (`Term = 0`), so the term preamble is skipped and the
 type switch's default arm runs `r.step(r, m)`:
 
@@ -119,18 +149,10 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         -- `StepC.propose`'s ghost update with the registry
         -- (`ownRaftGhost_step_propose_reg`) and the uniform one for the rest
         -- (2026-10-06).
-        "%Hrefines" ∷ ⌜(∃ recv, (∀ m' ∈ recv, m' = absMsg .propose m ents ctx) ∧
-              StepC c id (toPState s) recv (toPState s')) ∨
-            (err = interface.nil ∧ (toPState s).role = .leader ∧
-             -- (2026-10-13) the batch after the conf-change loop
-             ∃ ents', PropRepl ents ents' ∧
-             plogLastIndexZ (toPState s).base (toPState s).log + (ents'.length : Int) < 2 ^ 64 ∧
-             StepC c id
-               (psendMsgs (pappend (toPState s)
-                   (ents'.mapIdx (stamp (toPState s).term (plastIndex (toPState s)))))
-                 [pselfAck id (pappend (toPState s)
-                   (ents'.mapIdx (stamp (toPState s).term (plastIndex (toPState s)))))])
-               [] (toPState s'))⌝ ∗
+        -- (2026-10-14, stage B7: the whole step, the proposal received when it is forwarded
+        -- or appended; until then the appended case handed `Step` `StepC.propose`'s premises)
+        "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .propose m ents ctx) ∧
+              StepCD c id m s recv s'⌝ ∗
         "Herr" ∷ (⌜err = interface.nil⌝ ∨ globalAddr ErrProposalDropped ↦□ err) }} := by
   intro Hty Hterm Hfrom Hne Hlen Hlok Hlnz Hwf
   wp_start as ⟨Hphys, Hents, #Hcc, Hcap, #Hctx⟩
@@ -184,7 +206,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         isplitr
         · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl⟩
         isplitr
-        · ipureintro; left; exact ⟨[], by simp, .refl _⟩
+        · ipureintro; exact ⟨[], by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩
         iright; iexact Herrn
     · -- forwarded: `StepC.propForward`
       rw [ite_neg Hl0] at Hres
@@ -200,12 +222,12 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl⟩
       isplitr
-      · ipureintro; left
-        refine ⟨[absMsg .propose m ents ctx], by simp, ?_⟩
+      · ipureintro
+        refine ⟨[absMsg .propose m ents ctx], by simp, StepCD.frame ?_ (by rframe)⟩
         have Hld : (toPState s).lead = s.lead :=
           toPState_lead_nonpre s (by rw [Hrole]; exact PRole.noConfusion)
         rw [toPState_sendMsgs]
-        have := StepC.propForward (c := c) (id := id) (absMsg .propose m ents ctx) (toPState s)
+        have := StepCF.propForward (c := c) (id := id) (absMsg .propose m ents ctx) (toPState s)
           rfl (by rw [toPState_role, Hrole]; rfl) (by rw [Hld]; exact Hl0)
         rw [Hld] at this
         exact this
@@ -245,7 +267,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl⟩
       isplitr
-      · ipureintro; left; exact ⟨[], by simp, .refl _⟩
+      · ipureintro; exact ⟨[], by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩
       iright; iexact Herrn
   · -- Leader: append and broadcast, or drop
     simp only [stepFuncOf]
@@ -289,23 +311,76 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl⟩
       isplitr
-      · ipureintro; right
-        refine ⟨rfl, by rw [toPState_role, Hrole]; rfl, (leaderPropConf s ents cs' c.joint).1, Hrepl, ?_, ?_⟩
-        · simp only [proposed, sendMsgs, logAppend, List.length_append, List.length_mapIdx] at Hnw
+      · ipureintro
+        have Hrl : (toPState s).role = .leader := by rw [toPState_role, Hrole]; rfl
+        have Hnwb : plogLastIndexZ (toPState s).base (toPState s).log
+            + ((leaderPropConf s ents cs' c.joint).1.length : Int) < 2 ^ 64 := by
+          simp only [proposed, sendMsgs, logAppend, List.length_append, List.length_mapIdx] at Hnw
           simp only [plogLastIndexZ, toPState, List.length_append]
           push_cast at Hnw ⊢
           omega
-        · generalize Hsp : ({ s with pci := (leaderPropConf s ents cs' c.joint).2 } : NState) = sp at Hms ⊢
-          have Hspv : sp.prvals = s.prvals := by rw [← Hsp]
-          rw [← Hspv] at Hpvs
-          have Hsps : toPState sp = toPState s := by rw [← Hsp]; rfl
-          have Hspt : sp.term = s.term := by rw [← Hsp]
+        have Hnwe : plogLastIndexZ (toPState s).base (toPState s).log + (ents.length : Int)
+            < 2 ^ 64 := by rw [← Hrepl.length]; exact Hnwb
+        generalize Hsp : ({ s with pci := (leaderPropConf s ents cs' c.joint).2 } : NState) = sp
+          at Hms ⊢
+        have Hspv : sp.prvals = s.prvals := by rw [← Hsp]
+        rw [← Hspv] at Hpvs
+        have Hsps : toPState sp = toPState s := by rw [← Hsp]; rfl
+        have Hspt : sp.term = s.term := by rw [← Hsp]
+        have HP : toPState { sendMsgs (proposed id sp (leaderPropConf s ents cs' c.joint).1) ms with
+              prvals := pvs } =
+            psendMsgs (psendMsgs
+              (pappend (toPState s)
+                ((leaderPropConf s ents cs' c.joint).1.mapIdx
+                  (stamp (toPState s).term (plastIndex (toPState s)))))
+              [pselfAck id (pappend (toPState s)
+                ((leaderPropConf s ents cs' c.joint).1.mapIdx
+                  (stamp (toPState s).term (plastIndex (toPState s)))))]) ms := by
           rw [toPState_prvals (sendMsgs (proposed id sp (leaderPropConf s ents cs' c.joint).1) ms) pvs
             (fun _ => Hpvs), toPState_sendMsgs, toPState_proposed, Hsps, Hspt]
-          unfold ReplSends at Hms
-          rw [toPState_proposed, Hsps, Hspt] at Hms
-          exact StepC.sendApps _ _ (by simp [psendMsgs, pappend, toPState, Hrole, proleRole])
-            (fun m hm => (Hms m hm).1)
+          rfl
+        unfold ReplSends at Hms
+        rw [toPState_proposed, Hsps, Hspt] at Hms
+        have Hrl2 : (psendMsgs (pappend (toPState s)
+              ((leaderPropConf s ents cs' c.joint).1.mapIdx
+                (stamp (toPState s).term (plastIndex (toPState s)))))
+            [pselfAck id (pappend (toPState s)
+              ((leaderPropConf s ents cs' c.joint).1.mapIdx
+                (stamp (toPState s).term (plastIndex (toPState s)))))]).role = .leader := by
+          simp [psendMsgs, pappend, toPState, Hrole, proleRole]
+        refine ⟨[absMsg .propose m ents ctx] ++ [], by simp, ?_, fun Adm dec g hc hd => ⟨g.cidx, ?_⟩⟩
+        · -- `StepC.propose` of the loop's batch, then the broadcast
+          rw [HP]
+          exact .trans _ _ _ _ _
+            (.propose (absMsg .propose m ents ctx) _ (leaderPropConf s ents cs' c.joint).1 rfl Hrepl
+              Hrl Hnwb)
+            (StepC.sendApps _ _ Hrl2 (fun m hm => (Hms m hm).1))
+        · -- `StepR.propose`: the loop exactly, `pendingConfIndex` moved; then the broadcast
+          change StepR Adm dec id (rOf s g) ([absMsg .propose m ents ctx] ++ [])
+            (rOf { sendMsgs (proposed id sp (leaderPropConf s ents cs' c.joint).1) ms with
+              prvals := pvs } g)
+          have Hpb : propBatch (rOf s g) ents cs' = leaderPropConf s ents cs' c.joint := by
+            show propConf s.logst.applied (plastIndex (toPState s)) (pciR s) ents cs'
+                (CfgM.joint g.cfg.cfg) =
+              propConf s.logst.applied (logLast s.logst) s.pci ents cs' c.joint
+            have Hli : plastIndex (toPState s) = logLast s.logst := by
+              simp only [plastIndex, plogLastIndexZ, logLast, toPState, List.length_append]
+              congr 1; push_cast; omega
+            rw [Hli, hc]; simp [pciR, Hrole]
+          have Hr : rOf { sendMsgs (proposed id sp (leaderPropConf s ents cs' c.joint).1) ms with
+                prvals := pvs } g =
+              { rOf s g with
+                p := toPState { sendMsgs (proposed id sp (leaderPropConf s ents cs' c.joint).1) ms
+                  with prvals := pvs },
+                pci := (leaderPropConf s ents cs' c.joint).2 } := by
+            rw [← Hsp]
+            unfold rOf pciR
+            simp [proposed, sendMsgs, logAppend, Hrole]
+          rw [Hr, HP]
+          refine .trans _ _ _ _ _
+            (StepR.propose (absMsg .propose m ents ctx) (rOf s g) cs' rfl Hrl Hct Hnwe) ?_
+          rw [show (absMsg .propose m ents ctx).entries = ents from rfl, Hpb]
+          exact StepR.sendApps _ ms Hrl2 (fun m hm => (Hms m hm).1) (fun m hm => (Hms m hm).2)
       ileft; ipureintro; rfl
     · -- dropped: a leader transfer in progress, or `appendEntry` refused the batch (only
       -- `pendingConfIndex` moved, 2026-10-13)
@@ -321,7 +396,11 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         isplitr
         · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl⟩
         isplitr
-        · ipureintro; left; exact ⟨[], by simp, .refl _⟩
+        · ipureintro
+          exact ⟨[], by simp, by
+            first
+            | exact StepCD.frame (.refl _) (RFrame.refl _)
+            | exact stepCD_propDrop c id m s ents cs' ctx Hty Hrole Hct Hlen⟩
         iright; iexact Herrn
   · -- PreCandidate (2026-10-04), as a candidate: drop
     simp only [stepFuncOf]
@@ -358,7 +437,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       isplitr
       · ipureintro; exact ⟨⟨rfl, Int.le_refl _, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩, rfl⟩
       isplitr
-      · ipureintro; left; exact ⟨[], by simp, .refl _⟩
+      · ipureintro; exact ⟨[], by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩
       iright; iexact Herrn
 
 end StepProof

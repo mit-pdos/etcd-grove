@@ -61,7 +61,7 @@ theorem wp_Step_MsgApp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .app m ents) ∧
-            StepC c id (toPState s) recv (toPState s')⌝ ∗
+            StepCD c id m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -93,7 +93,7 @@ theorem wp_Step_MsgApp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %s
     iframe Hphys
     ipureintro
-    exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl,
+    exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (by rframe)⟩, rfl,
       keep_frame rfl rfl rfl rfl rfl⟩
   · wp_auto
     repeat (rw [Hty]; wp_auto)
@@ -115,6 +115,7 @@ theorem wp_Step_MsgApp_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     ipureintro
     refine ⟨nstateWf_sendMsgs _ _ Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, ?_⟩, rfl,
       keep_frame rfl rfl rfl rfl rfl⟩
+    refine StepCD.frame ?_ (by rframe)
     exact .zeroAck _ _
 
 end StepProof

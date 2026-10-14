@@ -36,6 +36,16 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
 
+/-- `handleAppendEntries` keeps what `rOf` reads beyond `toPState` (stage B7). -/
+private theorem rframe_handle_app (id : w64) (t : NState) (m : raftpb.Message)
+    (ents : List raftpb.Entry) (s' : NState) (H : HandleAppResult id t m ents s') :
+    RFrame t s' := by
+  unfold HandleAppResult at H
+  rcases H with ⟨-, rfl⟩ | ⟨-, _, _, ls', -, -, -, Ha, -, Hfr, rfl⟩ | ⟨-, -, _, _, rfl⟩
+  · exact ⟨rfl, rfl, fun h => ⟨h, rfl⟩⟩
+  · exact ⟨Ha, Hfr.2.1, fun h => ⟨h, rfl⟩⟩
+  · exact ⟨rfl, rfl, fun h => ⟨h, rfl⟩⟩
+
 theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) :
@@ -69,7 +79,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .app m ents) ∧
-            StepC c id (toPState s) recv (toPState s')⌝ ∗
+            StepCD c id m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -121,7 +131,8 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     refine ⟨nstateWf_handle_app _ _ _ _ _ Hwf1 Happ, ⟨[absMsg .app m ents], ?_, ?_⟩, rfl,
       app_frame Hty Happ (NetFrame.refl _) (Int.le_refl _) (Int.le_max_left _ _)⟩
     · intro m' Hm'; simpa using Hm'
-    · exact step_handle_app c id _ _ m ents s1 (adopt_follower s m.From' Hrole Hvs) Hto Hteq
+    · refine StepCD.frame ?_ (RFrame.trans (by rframe) (rframe_handle_app _ _ _ _ _ Happ))
+      exact step_handle_app c id _ _ m ents s1 (adopt_follower s m.From' Hrole Hvs) Hto Hteq
         (by simp [toPState, Hrole, proleRole]) Hconf Happ Hfid
   · -- Candidate: `becomeFollower(r.Term, m.From)`, then the handler
     simp only [stepFuncOf]
@@ -149,7 +160,8 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     refine ⟨nstateWf_handle_app _ _ _ _ _ Hwf1 Happ, ⟨[absMsg .app m ents], ?_, ?_⟩, rfl,
       app_frame Hty Happ (NetFrame.refl _) (Int.le_refl _) (Int.le_max_left _ _)⟩
     · intro m' Hm'; simpa using Hm'
-    · exact step_handle_app c id _ _ m ents s1 (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
+    · refine StepCD.frame ?_ (RFrame.trans (by rframe) (rframe_handle_app _ _ _ _ _ Happ))
+      exact step_handle_app c id _ _ m ents s1 (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
         (by simp [toPState, Hrole, proleRole]) Hconf Happ Hfid
   · -- Leader: `stepLeader` has no arm for it; nothing changes
     simp only [stepFuncOf]
@@ -177,7 +189,7 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     iapply HΦ $$ %interface.nil %_
     iframe Hphys
     ipureintro
-    exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, .refl _⟩, rfl,
+    exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame (.refl _) (by rframe)⟩, rfl,
       keep_frame rfl rfl rfl rfl rfl⟩
   · -- PreCandidate (2026-10-04), as a candidate: `becomeFollower(r.Term, m.From)`, then
     -- the handler
@@ -206,7 +218,8 @@ theorem wp_Step_MsgApp_eq (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     refine ⟨nstateWf_handle_app _ _ _ _ _ Hwf1 Happ, ⟨[absMsg .app m ents], ?_, ?_⟩, rfl,
       app_frame Hty Happ (NetFrame.refl _) (Int.le_refl _) (Int.le_max_left _ _)⟩
     · intro m' Hm'; simpa using Hm'
-    · exact step_handle_app c id _ _ m ents s1 (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
+    · refine StepCD.frame ?_ (RFrame.trans (by rframe) (rframe_handle_app _ _ _ _ _ Happ))
+      exact step_handle_app c id _ _ m ents s1 (adopt_candidate s m.From' pvs (by rw [Hrole]; decide)) Hto Hteq
         (by simp [toPState, Hrole, proleRole]) Hconf Happ Hfid
 
 end StepProof

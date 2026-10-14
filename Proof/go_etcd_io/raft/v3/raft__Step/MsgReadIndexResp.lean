@@ -3,10 +3,10 @@ to a request this node forwarded, carrying the request's entry (its context) and
 index.
 
 - `m.Term > r.Term`: the preamble steps down (`becomeFollower(m.Term, None)`, the type is
-  not `fromLeader`), then `stepFollower` records a `ReadState` (`StepC.higherTerm`,
-  `StepC.readState`);
+  not `fromLeader`), then `stepFollower` records a `ReadState` (`StepCF.higherTerm`,
+  `StepCF.readState`);
 - `m.Term < r.Term`: logged and dropped (`StepC.refl`);
-- `m.Term = r.Term`: a follower records a `ReadState` (`StepC.readState`); a candidate
+- `m.Term = r.Term`: a follower records a `ReadState` (`StepCF.readState`); a candidate
   and a leader ignore it (`StepC.refl`).
 
 Proof structure, not specification: only `Proof/raft__Step.lean` may import this module.
@@ -68,7 +68,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .readIndexResp m [e] ctx) ∧
-            StepC c id (toPState s) recv (toPState s')⌝ ∗
+            StepCD c id m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
         "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
@@ -128,17 +128,17 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
       (s' := addReadState { becomeFollower s m.Term' (W64 0) with prvals := pvs } m.Index' e.Data')
       (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt) rfl rfl rfl rfl rfl
     refine ⟨⟨rfl, rfl⟩, ⟨[absMsg .readIndexResp m [e] ctx] ++ [absMsg .readIndexResp m [e] ctx],
-      by simp, ?_⟩, rfl, Hfr.1, Hfr.2⟩
+      by simp, StepCD.frame ?_ (by rframe)⟩, rfl, Hfr.1, Hfr.2⟩
     rw [toPState_addReadState _ _ _ (by simp [becomeFollower]),
       toPState_prvals_nl (becomeFollower s m.Term' (W64 0)) pvs (by simp [becomeFollower]),
       toPState_becomeFollower]
-    have Hst := StepC.higherTerm (c := c) (id := id) (absMsg .readIndexResp m [e] ctx)
+    have Hst := StepCF.higherTerm (c := c) (id := id) (absMsg .readIndexResp m [e] ctx)
       (toPState s) Hgt Hto (fun h => by simp [absMsg, absMsgFrom, Hfl] at h)
     rw [show (if fromLeader (absMsg .readIndexResp m [e] ctx).ty then
         (absMsg .readIndexResp m [e] ctx).src else W64 0) = W64 0 by
       simp [absMsg, absMsgFrom, Hfl]] at Hst
     refine .trans _ _ _ _ _ Hst ?_
-    exact StepC.readState (absMsg .readIndexResp m [e] ctx) _ e rfl rfl
+    exact StepCF.readState (absMsg .readIndexResp m [e] ctx) _ e rfl rfl
   · rw [decide_eq_false Hgt]
     wp_auto
     wp_apply raft.wp_load_TermC $$ Hphys as Hphys
@@ -157,7 +157,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         iapply HΦ $$ %interface.nil %s
         iframe Hphys
         ipureintro
-        exact ⟨Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil, .refl _⟩, rfl,
+        exact ⟨Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
           NetFrame.refl _, TermStep.refl _ _⟩
     · -- the current term
       have Hteq : m.Term' = s.term := by word
@@ -195,10 +195,10 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         iapply HΦ $$ %interface.nil %(addReadState s m.Index' e.Data')
         iframe Hphys
         ipureintro
-        refine ⟨Hwf, ⟨[absMsg .readIndexResp m [e] ctx], by simp, ?_⟩, rfl,
+        refine ⟨Hwf, ⟨[absMsg .readIndexResp m [e] ctx], by simp, StepCD.frame ?_ (by rframe)⟩, rfl,
           NetFrame.of_logst rfl, TermStep.of_term rfl (fun _ => Int.le_refl _)⟩
         rw [toPState_addReadState _ _ _ (by rw [Hrole]; decide)]
-        exact StepC.readState (absMsg .readIndexResp m [e] ctx) _ e rfl rfl
+        exact StepCF.readState (absMsg .readIndexResp m [e] ctx) _ e rfl rfl
       · -- Candidate: ignored
         simp only [stepFuncOf]
         wp_apply _P.stepCandidate c ∅ r id s m [e] (zero_val _) [] []
@@ -225,7 +225,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         iapply HΦ $$ %interface.nil %s
         iframe Hphys
         ipureintro
-        exact ⟨Hwf, ⟨[], by simp, .refl _⟩, rfl, NetFrame.refl _, TermStep.refl _ _⟩
+        exact ⟨Hwf, ⟨[], by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _, TermStep.refl _ _⟩
       · -- Leader: ignored (neither switch has it)
         simp only [stepFuncOf]
         wp_apply _P.stepLeader c r id s m [e] []
@@ -262,7 +262,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         iapply HΦ $$ %interface.nil %s
         iframe Hphys
         ipureintro
-        exact ⟨Hwf, ⟨[], by simp, .refl _⟩, rfl, NetFrame.refl _, TermStep.refl _ _⟩
+        exact ⟨Hwf, ⟨[], by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _, TermStep.refl _ _⟩
       · -- PreCandidate: ignored
         simp only [stepFuncOf]
         wp_apply _P.stepCandidate c ∅ r id s m [e] (zero_val _) [] []
@@ -289,7 +289,7 @@ theorem wp_Step_MsgReadIndexResp (_P : raft.Step.Postulates (GF := GF) (hG := hG
         iapply HΦ $$ %interface.nil %s
         iframe Hphys
         ipureintro
-        exact ⟨Hwf, ⟨[], by simp, .refl _⟩, rfl, NetFrame.refl _, TermStep.refl _ _⟩
+        exact ⟨Hwf, ⟨[], by simp, StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _, TermStep.refl _ _⟩
 
 end StepProof
 
