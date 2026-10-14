@@ -211,7 +211,10 @@ def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
          lpfull γ m.src m.term bL l fp ∗
          commitIn γ (fp ++ l) m.commit m.term ∗
          -- the leader's committed prefix up to `Commit` (2026-10-05)
-         isCommitted γ ((fp ++ l).take (uint.Z m.commit).toNat)) ∗
+         isCommitted γ ((fp ++ l).take (uint.Z m.commit).toNat) ∗
+         -- (2026-10-14, stage B5) I1 of the leader's log at `Commit` (`RInv`'s, with
+         -- `AppCommitEq`): what the receiver's I1 needs (`AppKnow`)
+         dynOn γ iprop(⌜ConfI1 (fp ++ l) (uint.Z m.commit).toNat⌝)) ∗
       ⌜m.src ≠ W64 0⌝)
   | .appResp =>
       if m.reject then iprop(True)

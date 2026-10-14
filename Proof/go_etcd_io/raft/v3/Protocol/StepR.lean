@@ -99,9 +99,6 @@ def RState.full (r : RState) : List raftpb.Entry := r.fp ++ r.p.log
 def NoConfIn (l : List raftpb.Entry) (lo hi : Nat) : Prop :=
   ∀ (k : Nat) (e : raftpb.Entry), lo ≤ k → k < hi → l[k]? = some e → ¬ IsConfEnt e
 
-/-- An `MsgApp` carries the sender's commit index (Go's `sendAppend`). -/
-def AppCommitEq (s : PState) (m : Msg) : Prop := m.ty = .app → m.commit = s.commit
-
 /-- `stepLeader`'s conf-change loop at `r`: the batch and the new `pendingConfIndex`. -/
 def propBatch (r : RState) (ents : List raftpb.Entry) (cs : List (Option CCMsg)) :
     List raftpb.Entry × w64 :=

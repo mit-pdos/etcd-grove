@@ -126,15 +126,6 @@ theorem confCount_mapIdx {l : List raftpb.Entry} {f : Nat → raftpb.Entry → r
     · rw [if_pos (hi.2 hc), if_pos hc]
     · rw [if_neg (fun h => hc (hi.1 h)), if_neg hc]
 
-theorem isConfEnt_stamp (t li : w64) (k : Nat) (e : raftpb.Entry) :
-    IsConfEnt (stamp t li k e) ↔ IsConfEnt e := Iff.rfl
-
-theorem not_isConfEnt_zero : ¬ IsConfEnt (zero_val raftpb.Entry) := by
-  have h : (zero_val raftpb.Entry).Type' = W32 0 := rfl
-  unfold IsConfEnt; rw [h]
-  intro hc; rcases hc with h1 | h2
-  · revert h1; word
-  · revert h2; word
 
 /-! ### `NoConfIn` -/
 

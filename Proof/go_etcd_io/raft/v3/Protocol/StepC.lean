@@ -272,6 +272,56 @@ theorem ConfI1_of_drop {l : List raftpb.Entry} {a : Nat} (h : confCount (l.drop 
   have := two_le_confCount (show k1 - a < k2 - a by omega) h1' h2' c1 c2
   omega
 
+theorem isConfEnt_stamp (t li : w64) (k : Nat) (e : raftpb.Entry) :
+    IsConfEnt (stamp t li k e) ↔ IsConfEnt e := Iff.rfl
+
+theorem not_isConfEnt_zero : ¬ IsConfEnt (zero_val raftpb.Entry) := by
+  have h : (zero_val raftpb.Entry).Type' = W32 0 := rfl
+  unfold IsConfEnt; rw [h]
+  intro hc; rcases hc with h1 | h2
+  · revert h1; word
+  · revert h2; word
+
+theorem ConfI1_snoc {l : List raftpb.Entry} {c : Nat} {e : raftpb.Entry} (h : ConfI1 l c)
+    (he : ¬ IsConfEnt e) : ConfI1 (l ++ [e]) c := by
+  intro k1 k2 e1 e2 hlt h1 h2 c1 c2
+  have hk2 : k2 < l.length := by
+    refine Nat.lt_of_not_le fun hge => ?_
+    have : (l ++ [e])[k2]? = some e2 := h2
+    rw [List.getElem?_append_right (by omega)] at this
+    have hk : k2 - l.length = 0 := by
+      have := (List.getElem?_eq_some_iff.mp this).1
+      simp at this; omega
+    rw [hk] at this
+    simp at this
+    subst this; exact he c2
+  rw [List.getElem?_append_left (by omega)] at h1
+  rw [List.getElem?_append_left hk2] at h2
+  exact h k1 k2 e1 e2 hlt h1 h2 c1 c2
+
+theorem ConfI1_take {l : List raftpb.Entry} {c n : Nat} (h : ConfI1 l c) : ConfI1 (l.take n) c := by
+  intro k1 k2 e1 e2 hlt h1 h2 c1 c2
+  rw [List.getElem?_take] at h1 h2
+  by_cases hk1 : k1 < n <;> by_cases hk2 : k2 < n <;>
+    simp only [hk1, hk2, ite_true, ite_false] at h1 h2
+  · exact h k1 k2 e1 e2 hlt h1 h2 c1 c2
+  all_goals (first | cases h1 | cases h2)
+
+/-- With at most one conf entry at or past `a`, a conf entry at `k ≥ a` has exactly the conf
+entries of the prefix of length `a` before it. -/
+theorem confCount_take_eq_of_drop {l : List raftpb.Entry} {a k : Nat}
+    (h : confCount (l.drop a) ≤ 1) (hk : IsConfPos l k) (hak : a ≤ k) :
+    confCount (l.take k) = confCount (l.take a) := by
+  have hle := confCount_take_mono l hak
+  refine Nat.le_antisymm ?_ hle
+  refine Nat.le_of_not_lt fun hlt => ?_
+  obtain ⟨j, hj, hjp, hjc⟩ := exists_confPos l k (confCount (l.take a)) hlt
+  have haj : a ≤ j := confPos_ge_of_count l hjp (by omega)
+  obtain ⟨e1, he1, hc1⟩ := hjp
+  obtain ⟨e2, he2, hc2⟩ := hk
+  have := ConfI1_of_drop h j k e1 e2 hj he1 he2 hc1 hc2
+  omega
+
 /-- The far case "older commit fact" (the paper's section 7, `j_c ≥ j_m + 2`): a log with at
 most one conf entry at or past `a` cannot agree up to `k` with a log whose prefix of length `k`
 has two more conf entries than its own prefix of length `a`. -/
@@ -305,6 +355,10 @@ theorem far_older {F F0 : List raftpb.Entry} {k k2 : Nat} (hI1 : ConfI1 F0 k)
   obtain ⟨e2, he2', hc2'⟩ := hp2'
   have := hI1 k1 k2 e1 e2 hk1 he1' he2' hc1' hc2'
   omega
+
+/-- An `MsgApp` carries the sender's commit index (Go's `sendAppend`; moved here from
+`StepR.lean` in stage B5, the ghost state's rules read it). -/
+def AppCommitEq (s : PState) (m : Msg) : Prop := m.ty = .app → m.commit = s.commit
 
 end conf
 

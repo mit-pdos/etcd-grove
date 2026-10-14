@@ -1022,6 +1022,8 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
     (fp : List raftpb.Entry) :
     PlogWfR s.base s.log →
     ReplOk id s m → id ≠ W64 0 →
+    -- (2026-10-14, stage B5) in the dynamic mode, an `MsgApp`'s I1 at its `Commit`
+    (γ.reDyn ≠ none → m.ty = .app → ConfI1 (fp ++ s.log) (uint.Z m.commit).toNat) →
     ⊢ isLeader (GF := GF) γ id s.term -∗
       leadPrefix γ id s.term s.base s.log -∗
       lpfull γ id s.term s.base s.log fp -∗
@@ -1030,7 +1032,7 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
       baseOk γ s.base -∗
       isCommitted γ (cprefix fp s) -∗
       isMessage γ m := by
-  intro Hr Hok Hid
+  intro Hr Hok Hid Hi1
   iintro #Hl #Hp #Hlf #Hrecs #Hc #Hb #Hcm
   ihave #Hlf2 := Hlf
   iunfold lpfull at Hlf2
@@ -1050,8 +1052,13 @@ theorem replOk_message (γ : RaftNames) (id : w64) (s : PState) (m : Msg)
       isplitr; · ipureintro; exact ⟨Hidx, Hpre⟩
       isplitr; · iexact Hlf
       isplitr; · iapply commitIn_le γ _ s.commit m.commit s.term HwF Hcm' $$ HrF Hc
-      iapply isCommitted_mono γ ((fp ++ s.log).take (uint.Z m.commit).toNat) (cprefix fp s)
-        (take_prefix_le _ _ _ (Int.toNat_le_toNat Hcm')) $$ Hcm
+      isplitr
+      · iapply isCommitted_mono γ ((fp ++ s.log).take (uint.Z m.commit).toNat) (cprefix fp s)
+          (take_prefix_le _ _ _ (Int.toNat_le_toNat Hcm')) $$ Hcm
+      unfold dynOn
+      by_cases hD : γ.reDyn = none
+      · ileft; ipureintro; exact hD
+      · iright; ipureintro; exact Hi1 hD Hty
     · ipureintro; exact Hid
   · ihave #Hc' := commitIn_committed γ _ _ _ $$ Hc
     icases snapOk_message γ id s m Hr Hsnap $$ Hc' Hrecs Hb with ⟨-, #Hmeta, %Hidx⟩
