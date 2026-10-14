@@ -1150,16 +1150,17 @@ theorem ownRaftGhost_step_rematch (γ : RaftNames) (id : w64) (s : PState) (mt :
 /-- `Step.commit`: a quorum of `Match`es at least `n` is a commit fact `cq`, which extends
 the global committed log (`commit_extend`, inside the invariant) -- the node's committed
 prefix is then `isCommitted`. -/
-theorem ownRaftGhost_step_commit (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id : w64)
+theorem ownRaftGhost_step_commit (γ : RaftNames) (c : CfgM) (id : w64)
     (s : PState) (n : w64) :
     s.role = .leader →
     uint.Z s.commit < uint.Z n →
     uint.Z n ≤ plogLastIndexZ s.base s.log →
     plogTermAt s.base s.log n = some s.term →
     JQuorum c (ackedBy s n) →
-    ⊢ ownRaftGhost (GF := GF) γ id s md ={⊤}=∗ ownRaftGhost γ id { s with commit := n } md := by
+    ⊢ dynEnv γ id c s -∗
+      ownRaftGhost (GF := GF) γ id s md ={⊤}=∗ ownRaftGhost γ id { s with commit := n } md := by
   intro Hrole Hlt Hle Htm Hq
-  iintro Hown
+  iintro #Henv Hown
   iunfold ownRaftGhost at Hown
   icases Hown with ⟨%γv, %voted, %kl, H⟩
   iNamed H
@@ -1175,15 +1176,47 @@ theorem ownRaftGhost_step_commit (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ 
   -- commit index, whose prefix is committed; B5: the configuration index, `a ≤ commit`)
   ihave ⟨%fpc, %Hfpc, #Hfrc, #Hcmtc⟩ := ownLogGhost_cmt γ id s kl $$ Hlg
   ihave #Hcmt0 := cprefix_transfer γ fpc fp0 s Hfpc Hfull0.1 $$ Hfrc Hfr0 Hcmtc
-  ihave #Hcqa : cqAt γ s.term n (fp0 ++ s.log) s.commit c (ackedBy s n) $$ []
-  · iapply cqAt_intro γ s.term n (fp0 ++ s.log) s.commit c (ackedBy s n)
+  -- (2026-10-14, stage B5) the node's commit justification, with its node-local witnesses
+  ihave #HcI := ownLogGhost_commitIn γ id s kl $$ Hlg
+  icases HcI with ⟨%fpw, %Hfw, #Hfrw, -, #Hcomw⟩
+  icases FullOk_unique γ s.base fpw fp0 Hfw.1 Hfull0.1 $$ Hfrw Hfr0 with %Heqw
+  ihave #Hcom0 : commitIn γ (fp0 ++ s.log) s.commit s.term $$ []
+  · rw [← Heqw]; iexact Hcomw
+  -- the configuration index: static, the commit index; dynamic, the node's (`RInv`), with at
+  -- most one conf entry at or past it (I3)
+  ihave %Henvp : ⌜∃ a : w64, uint.Z a ≤ uint.Z s.commit ∧
+      CfgAt γ ((fp0 ++ s.log).take (uint.Z a).toNat) c ∧
+      (γ.reDyn ≠ none → confCount ((fp0 ++ s.log).drop (uint.Z a).toNat) ≤ 1)⌝ $$ []
+  · iunfold dynEnv at Henv
+    icases Henv with (%HC | ⟨%Hdyn, %fpR, %aR, %HR, #HrR, -⟩)
+    · ipureintro
+      exact ⟨s.commit, Int.le_refl _, CfgAt.of_static _ HC, fun h => absurd HC.2.2 h⟩
+    · icases FullOk_unique γ s.base fpR fp0 HR.1 Hfull0.1 $$ HrR Hfr0 with %Heq
+      ipureintro; rw [← Heq]
+      exact ⟨aR, HR.2.2.1, HR.2.2.2.1, fun _ => HR.2.2.2.2.1 Hrole⟩
+  obtain ⟨a, Ha, Hcfga, HI3a⟩ := Henvp
+  ihave #Hcmta : isCommitted γ ((fp0 ++ s.log).take (uint.Z a).toNat) $$ []
+  · iapply isCommitted_mono γ _ (cprefix fp0 s) (take_prefix_le _ _ _ (Int.toNat_le_toNat Ha))
+      $$ Hcmt0
+  ihave #Hcqa : cqAt γ s.term n (fp0 ++ s.log) a c (ackedBy s n) $$ []
+  · iapply cqAt_intro γ s.term n (fp0 ++ s.log) a c (ackedBy s n)
       (by rw [full_term_at s.base fp0 s.log n Hfull0.1 (by have := Hok.2.1; omega)]
           exact Htm)
-      (Int.le_of_lt Hlt) (CfgAt.of_static _ HC) Hq $$ Hfl [] [] []
-    · rw [show List.take (uint.Z s.commit).toNat (fp0 ++ s.log) = cprefix fp0 s from rfl]
-      iexact Hcmt0
+      (by omega) Hcfga Hq $$ Hfl Hcmta [] []
     rotate_left
-    · iapply dynOn_static γ _ HC.2.2
+    · -- dynamic: I1 at `a` (I3) and the witnesses of the conf entries below it (`W`)
+      unfold dynOn
+      by_cases hD : γ.reDyn = none
+      · ileft; ipureintro; exact hD
+      · iright
+        unfold cqDyn
+        isplitr
+        · ipureintro; exact ConfI1_of_drop (HI3a hD)
+        · ihave #Hw := commitIn_w γ _ _ _ hD $$ Hcom0
+          ihave #Hw' := witsB_le γ _ _ (uint.Z a).toNat _ _ (Int.toNat_le_toNat Ha) (Int.le_refl _)
+            $$ Hw
+          iunfold witsB at Hw'
+          iexact Hw'
     rw [matchedOk_leader γ s Hrole]
     iapply BigSepM.bigSepM_forall_elim
     iintro %v %u %Hv
@@ -1211,9 +1244,12 @@ theorem ownRaftGhost_step_commit (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ 
       (by exact Or.inl ⟨rfl, rfl, fun h => h, fun h => h⟩) (by exact Or.inr Hle)
       $$ Hlg [] [] []
     · iapply matchedOk_eq γ s _ (by rfl) (by rfl) (by rfl) $$ Hmatched
-    · iintro %fp % ⟨Hf, -⟩ #Hfr -
+    · iintro %fp % ⟨Hf, -⟩ #Hfr #Hcold
       icases FullOk_unique γ s.base fp fp0 Hf Hfull0.1 $$ Hfr Hfr0 with %Heq
       subst Heq
+      ihave #Hwo : (∀ (_ : γ.reDyn ≠ none),
+          witsB γ (fp ++ s.log) (uint.Z s.commit).toNat (uint.Z s.term + 1)) $$ []
+      · iintro %hD; iapply commitIn_w γ _ _ _ hD $$ Hcold
       unfold commitIn
       isplitr
       · unfold commitJ
@@ -1222,7 +1258,27 @@ theorem ownRaftGhost_step_commit (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ 
         iframe Hcq
         ipureintro
         exact ⟨Int.le_refl _, Int.le_refl _, rfl⟩
-      · iapply dynOn_static γ _ HC.2.2
+      · -- the node-local witnesses up to `n`: the old ones below the old commit index, the new
+        -- commit fact itself for the conf entry (at most one, I3) in between (the paper's 4.7)
+        unfold dynOn
+        by_cases hD : γ.reDyn = none
+        · ileft; ipureintro; exact hD
+        · iright
+          ihave #Hw := Hwo $$ %hD
+          unfold witsB
+          iintro %k %Hk
+          by_cases hkc : k < (uint.Z s.commit).toNat
+          · ihave Hk' := Hw $$ %k %(⟨Hk.1, hkc⟩ : IsConfPos (fp ++ s.log) k ∧ k < (uint.Z s.commit).toNat)
+            icases Hk' with ⟨%t', %n', %G', %a', %c', %q', %Hwo, #Hcw⟩
+            iexists t', n', G', a', c', q'
+            iexists Hwo
+            iexact Hcw
+          · iexists s.term, n, (fp ++ s.log), a, c, (ackedBy s n)
+            have Hkn : k < (uint.Z n).toNat := Hk.2
+            iexists (⟨by omega, by omega, by omega, rfl,
+              (confCount_take_eq_of_drop (HI3a hD) Hk.1 (by omega)).symm⟩ :
+              WitOk (fp ++ s.log) k s.term n (fp ++ s.log) a (uint.Z s.term + 1))
+            iexact Hcqa
     · iintro %fp % ⟨Hf, -⟩ #Hfr -
       icases FullOk_unique γ s.base fp fp0 Hf Hfull0.1 $$ Hfr Hfr0 with %Heq
       subst Heq
@@ -3694,7 +3750,8 @@ theorem ownRaftGhost_stepC (γ : RaftNames) (c : CfgM) (HC : CfgStatic γ c) (id
     imodintro; iexact Hown
   | commit s n Hrole Hlt Hle Htm Hq =>
     iintro _ - Hown
-    iapply ownRaftGhost_step_commit γ c HC id s n Hrole Hlt Hle Htm Hq $$ Hown
+    iapply ownRaftGhost_step_commit γ c id s n Hrole Hlt Hle Htm Hq $$ [] Hown
+    iapply dynEnv_static γ id c s HC
   | sendApps s ms Hrole Hms =>
     iintro _ - Hown
     imod ownRaftGhost_step_send_apps γ c id s ms Hrole Hms (fun h => absurd HC.2.2 h) $$ [] Hown
