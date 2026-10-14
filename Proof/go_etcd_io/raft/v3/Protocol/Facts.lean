@@ -63,12 +63,12 @@ acknowledgement of `pr.Match` in `m.term`. The receiver acknowledges only at its
 it is not leader -- the role premise) the acknowledgement is at most the commit index or
 justified by its log (`acksOk`, `ackAgree`), and either way within it (`LogOk`). `Step`
 holds the ghost state before its term preamble: hence `≤`. -/
-theorem heartbeat_commit_le_last (γ : RaftNames) (id : w64) (ps : PState) (m : Msg) :
+theorem heartbeat_commit_le_last (γ : RaftNames) (id : w64) (ps : PState) (m : Msg) {md : Bool} :
     m.ty = .heartbeat →
     m.dst = id →
     uint.Z ps.term ≤ uint.Z m.term →
     (m.term = ps.term → ps.role ≠ .leader) →
-    ⊢ ownRaftGhost (GF := GF) γ id ps -∗ isMessage γ m -∗
+    ⊢ ownRaftGhost (GF := GF) γ id ps md -∗ isMessage γ m -∗
       ⌜uint.Z m.commit ≤ plogLastIndexZ ps.base ps.log⌝ := by
   intro Hty Hto Hle Hrole
   simp only [isMessage, Hty]
@@ -102,10 +102,10 @@ theorem heartbeat_commit_le_last (γ : RaftNames) (id : w64) (ps : PState) (m : 
 /-- What `raftLog.maybeAppend` needs of a received `app`'s batch: carried by the message
 (`AppPayloadOk`). No premise on the terms: it is a fact of the message alone (until
 2026-10-02 it was stated for `m.term = ps.term`). -/
-theorem app_recv_wf (γ : RaftNames) (id : w64) (ps : PState) (m : Msg) :
+theorem app_recv_wf (γ : RaftNames) (id : w64) (ps : PState) (m : Msg) {md : Bool} :
     m.ty = .app →
     m.dst = id →
-    ⊢ ownRaftGhost (GF := GF) γ id ps -∗ isMessage γ m -∗
+    ⊢ ownRaftGhost (GF := GF) γ id ps md -∗ isMessage γ m -∗
       ⌜PlogWf (entryID.mk m.logterm m.index) m.entries ∧
         uint.Z m.index + (m.entries.length : Int) + 1 < 2 ^ 64⌝ := by
   intro Hty _
@@ -115,7 +115,7 @@ theorem app_recv_wf (γ : RaftNames) (id : w64) (ps : PState) (m : Msg) :
 
 /-- `maybeAppend`'s `commitTo(min(committed, lastnewi))` panics if the log ends before
 it: it never does (`plogMaybeAppend_last`, from the batch's `AppPayloadOk`). -/
-theorem app_commit_le_lastnewi (γ : RaftNames) (id : w64) (ps : PState) (m : Msg)
+theorem app_commit_le_lastnewi (γ : RaftNames) (id : w64) (ps : PState) (m : Msg) {md : Bool}
     (lastnewi : w64) (es' : List raftpb.Entry) :
     m.ty = .app →
     m.dst = id →
@@ -123,7 +123,7 @@ theorem app_commit_le_lastnewi (γ : RaftNames) (id : w64) (ps : PState) (m : Ms
     plogMaybeAppend ps.base ps.log
       (entryID.mk m.logterm m.index) m.entries
       = some (lastnewi, es') →
-    ⊢ ownRaftGhost (GF := GF) γ id ps -∗ isMessage γ m -∗
+    ⊢ ownRaftGhost (GF := GF) γ id ps md -∗ isMessage γ m -∗
       ⌜uint.Z lastnewi ≤ plogLastIndexZ ps.base es'⌝ := by
   intro Hty Hto _ Happ
   iintro Hown #Hm
@@ -138,12 +138,12 @@ arithmetic: a conflict is the index of one of the batch's entries, which are at
 `m.Index + 1` and above (`AppPayloadOk`). (Until 2026-10-02 this was admitted as a
 consequence of Leader Completeness; the premise makes it local. The term premise is not
 needed.) -/
-theorem app_no_conflict_below_commit (γ : RaftNames) (id : w64) (ps : PState) (m : Msg) :
+theorem app_no_conflict_below_commit (γ : RaftNames) (id : w64) (ps : PState) (m : Msg) {md : Bool} :
     m.ty = .app →
     m.dst = id →
     uint.Z ps.term ≤ uint.Z m.term →
     uint.Z ps.commit ≤ uint.Z m.index →
-    ⊢ ownRaftGhost (GF := GF) γ id ps -∗ isMessage γ m -∗
+    ⊢ ownRaftGhost (GF := GF) γ id ps md -∗ isMessage γ m -∗
       ⌜PlogMatches ps.base ps.log
           (entryID.mk m.logterm m.index) →
         plogFindConflict ps.base ps.log m.entries = W64 0 ∨
