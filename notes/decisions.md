@@ -3475,3 +3475,56 @@ append a second conf change before the first is applied), like `ReadOnlyOption =
   B4 replaces. The three quorum-reading rules convert `JQuorum c` to `IsQuorum γ.reCfg` at their
   start; the ghost definitions keep `IsQuorum γ.reCfg` (moving them is the winners table's
   work).
+
+---
+
+## Reconfiguration stage B3: a separate state `RState` and relation `StepR`, `Adm` for the configurations
+
+**2026-10-14 · accepted**
+
+- **The new fields are on `RState` (`Protocol/StepR.lean`), not on `PState`.** `PState` is what
+  the ghost state holds and what `toPState` (`Defs.lean`) computes from the physical `NState`
+  in ~100 places; adding `applied`/`pci`/`snap` there would make every code-side witness
+  (`raft.Step`'s branches, `RawNode.Advance`'s `appliedTo`, which steps `MsgStorageApplyResp`)
+  prove the new fields equal, and the configuration index, the configuration and the full
+  prefix are not in `NState` at all. `RState` is `PState` plus `applied`, `pci`, `snap`,
+  `cidx` (Nat, ghost), `cfg : CCState` and `fp` (ghost full prefix). `StepC`,
+  `step_iff_stepC`, `ownRaftGhost_stepC` and every code proof are untouched. *Rejected*:
+  fields with defaults on `PState` (the `where`-built states `pbecomeFollower` etc. would
+  silently reset them; `toPState` would have to supply them, and then every `Step` witness
+  that moves them would change).
+- **`StepR` duplicates `StepC`'s rules** (as `StepC` duplicated `Step`) rather than lifting a
+  `StepC` step: a lift constructor would let `StepC.campaign`/`propose` bypass the guard and
+  the exact proposal loop, and `StepC`'s constructors cannot be split into "touches the new
+  fields" and "does not" without renaming the ones the code-level C specs use.
+- **`step_iff_stepC`'s replacement is a projection, not an equivalence.** `StepR` is strictly
+  stronger than `StepC` (the guard, `propConf` instead of any `PropRepl`, `AppCommitEq`), so no
+  embedding `StepC → StepR` exists; what the ghost needs is `stepR_static`: at a static
+  configuration (`StaticAdm V`), from a state whose non-follower is a voter (`RoleVoter`, the
+  code's `Hvoter`), a `StepR` derivation is a `StepC (CfgM.simple V ∅)` derivation of the
+  `PState`s, and `ownRaftGhost_stepR` follows from `ownRaftGhost_stepC` in one line. The
+  dispatcher boundary is unchanged: the code still produces `Step` witnesses.
+- **`Adm : List Entry → CCState → Prop` parameterizes `StepR`**: the configurations a node may
+  take on after a prefix, by `applyConf` or `snapRestore`. One relation serves both the static
+  model (`StaticAdm V`, under which the projection holds) and the dynamic one (`AdmFold dec c0`:
+  A3, a snapshot's `ConfState` is its prefix's fold); `StepR.mono` moves between them. A
+  snapshot's configuration being its prefix's fold is not something the receiving node checks,
+  so it is not a premise of its own; `Adm` carries it. *Rejected*: `c0` as a parameter with A3
+  as a premise of `snapRestore` (then the static model, which has no `c0`, needs one), or A3 as
+  a hypothesis of `RInv_stepR` only (then it would quantify over the derivation's choices).
+- **The decoder is in `StepR`'s `applyConf`** (`dec (full.take k) e = some op`): the application
+  passing the decoded change, in order, once per entry, is A1's scope, so the rule states it.
+  `CCDec` takes the prefix (the review's gap 3): `cfgFold` is now `cfgFoldFrom dec []`, which
+  passes the prefix along; `CfgOverlap.lean`'s lemmas are generic in it and kept their proofs up
+  to the `pre` argument. `decOfData data` is the entry-only decoder from the proposed bytes
+  (`isPropData`'s map as a function).
+- **The invariants' message knowledge is a hypothesis per rule** (`AppKnow` for `appAccept`):
+  the sender's log `G` with I1 at the message's commit index and log matching with the
+  receiver's full log are ghost facts (B4). The induction `RInv_stepR` states it for any state
+  with the invariant, since a derivation does not name the receiving state; B4 can use the
+  per-rule lemmas inside its own induction instead.
+- **`AppCommitEq` is a premise of `StepR.sendApps`/`win`.** I1 is false under `StepC`'s `AppOk`
+  (`m.commit ≤ s.commit`); Go sends the exact commit index. Recorded in notes/STATUS.md as a
+  finding about the model, not about Go.
+- **`propDrop` receives nothing**: the code's dropped proposal takes no protocol step (its
+  `Step` witness is `refl`), but `stepLeader`'s loop has already moved `pendingConfIndex`.

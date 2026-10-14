@@ -269,12 +269,7 @@ def RdOk (cfg : GSet w64) (rd : RdState) : Prop :=
 
 /-! ### At any configuration (2026-10-14, reconfiguration stage A3) -/
 
-/-- Whether the configuration `c` is joint: `len(r.trk.Config.Voters[1]) > 0`, `stepLeader`'s
-`alreadyJoint`. -/
-def CfgM.joint (c : CfgM) : Bool := decide (0 < GMap.size c.outgoing)
-
-theorem CfgM.joint_simple (cfg lrn : GSet w64) : (CfgM.simple cfg lrn).joint = false := by
-  simp [CfgM.joint, CfgM.simple, GMap.map_size_empty]
+-- `CfgM.joint` (`alreadyJoint`) is in `Protocol/StepC.lean` since stage B3.
 
 /-- `AppRespAccepted` at the configuration `c`: the commit by a joint quorum (`CommitOkC`). -/
 def AppRespAcceptedC (c : CfgM) (id : w64) (s : NState) (src index : w64)

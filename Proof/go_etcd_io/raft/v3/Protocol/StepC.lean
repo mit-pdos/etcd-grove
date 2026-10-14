@@ -104,6 +104,13 @@ theorem JQuorumAcked_of_out {c : CfgM} (hi : c.incoming ≠ ∅) (ho : c.outgoin
   unfold JQuorumAcked QuorumAcked
   simp only [JQuorum_of_out hi ho]
 
+/-- Whether the configuration `c` is joint: `len(r.trk.Config.Voters[1]) > 0`, `stepLeader`'s
+`alreadyJoint` (moved here from `Spec/stepLeader.lean` in stage B3, for `StepR`'s proposals). -/
+def CfgM.joint (c : CfgM) : Bool := decide (0 < GMap.size c.outgoing)
+
+theorem CfgM.joint_simple (cfg lrn : GSet w64) : (CfgM.simple cfg lrn).joint = false := by
+  simp [CfgM.joint, CfgM.simple, GMap.map_size_empty]
+
 section model
 variable [FfiSyntax]
 
