@@ -20,11 +20,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem raft.softState.wp_proof : raft.softState.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s
+  intro c r id s
   wp_start as Hphys
   wp_auto
-  wp_apply raft.wp_load_lead $$ Hphys as Hphys
-  wp_apply raft.wp_load_state $$ Hphys as Hphys
+  wp_apply raft.wp_load_leadC $$ Hphys as Hphys
+  wp_apply raft.wp_load_stateC $$ Hphys as Hphys
   rw [show ({ Lead' := s.lead, RaftState' := stateW64 s.role } : SoftState) =
     softstateVal (nodeSoftstate s) from rfl]
   iapply HΦ $$ Hphys

@@ -1,6 +1,6 @@
 # Status (Lean port)
 
-**Last updated:** 2026-10-14 (reconfiguration, stage B8: **snapshots at a changing configuration** -- a snapshot of any well-formed `ConfState`, joint included, restored through `raft.restore`/`handleSnapshot`/`stepFollower`/`stepCandidate`/`raft.Step` (the general `confchange.Restore`, `ConfState.Equivalent`, `assertConfStatesEquivalent` as `spec`; the node any id of the `ConfState`, learners and outgoing voters included), `MsgSnap` in `raft.Step`'s dynamic mode as `StepR.snapRestore` (`StepCDS`, `ghost_stepCDS`; the prefix from the message, `isMessage_snap_prefix`; A3 the receiver's premise `GMode.SnapOk`), the four `ConfState` lists from the storage to the outbox (`CSLists`, `ownCSL`); A3 carried from the sender's storage by the message left; see "Reconfiguration, stage B8 (snapshots at a changing configuration)"; reconfiguration, stage B7 part 1: **`raft.Step` in the dynamic model** -- `raft.Step.spec` takes the ghost state in either mode (`GMode`, `ownStepGhost`); in the dynamic mode every step is a `StepR` step and `ownRaftGhostR` follows the code, under the premises `GMode.Pre` (no `MsgSnap`, no pre-candidate, A1 at `MsgStorageApplyResp`, a log bound for dropped proposals); the struct at any configuration (`ownRaftPhysCV c`); `RawNode`/`node` still static through `raft.Step.specS`; see "Reconfiguration, stage B7, part 1"; reconfiguration, stage B8, standalone part: **`confchange.Restore`
+**Last updated:** 2026-10-14 (reconfiguration, stage B7 part 2: **the `RawNode` API in the dynamic model** -- `RNState.mode` (static or dynamic), `ownRawNode` in either mode, `NewRawNode` from the dynamic ghost state, `ApplyConfChange` as `StepR.applyConf` (a removed leader steps down), `Advance` with A1, every other `RawNode` spec unchanged in shape; `node.go`/the register still static; the `raft_reconfig_*` scaffolding deleted; see "Reconfiguration, stage B7, part 2"; reconfiguration, stage B8: **snapshots at a changing configuration** -- a snapshot of any well-formed `ConfState`, joint included, restored through `raft.restore`/`handleSnapshot`/`stepFollower`/`stepCandidate`/`raft.Step` (the general `confchange.Restore`, `ConfState.Equivalent`, `assertConfStatesEquivalent` as `spec`; the node any id of the `ConfState`, learners and outgoing voters included), `MsgSnap` in `raft.Step`'s dynamic mode as `StepR.snapRestore` (`StepCDS`, `ghost_stepCDS`; the prefix from the message, `isMessage_snap_prefix`; A3 the receiver's premise `GMode.SnapOk`), the four `ConfState` lists from the storage to the outbox (`CSLists`, `ownCSL`); A3 carried from the sender's storage by the message left; see "Reconfiguration, stage B8 (snapshots at a changing configuration)"; reconfiguration, stage B7 part 1: **`raft.Step` in the dynamic model** -- `raft.Step.spec` takes the ghost state in either mode (`GMode`, `ownStepGhost`); in the dynamic mode every step is a `StepR` step and `ownRaftGhostR` follows the code, under the premises `GMode.Pre` (no `MsgSnap`, no pre-candidate, A1 at `MsgStorageApplyResp`, a log bound for dropped proposals); the struct at any configuration (`ownRaftPhysCV c`); `RawNode`/`node` still static through `raft.Step.specS`; see "Reconfiguration, stage B7, part 1"; reconfiguration, stage B8, standalone part: **`confchange.Restore`
 for any `ConfState`** (`Restore.specG`, joint included, against `restoreM`; the non-joint
 `Restore.spec` derived), A3 as definitions (`SnapConf.lean`: `SnapConfOk`, `SnapObl`),
 `MemoryStorage` keeping a snapshot's four `ConfState` slices, and the asynchronous-storage
@@ -33,6 +33,103 @@ generated and checked by `etc/goose.py`. Files are laid out by kind and Go packa
 (`Spec/go_etcd_io/raft/v3/raft__Step.lean`) and every file is a module of Lean's module
 system (2026-10-08; decisions.md, "Layout by kind and Go package path" and "Lean's
 module system").
+
+## Reconfiguration, stage B7, part 2: the `RawNode` API in the dynamic model (2026-10-14)
+
+**Changing the voter set is now verified from the Go public API, at the `RawNode` layer.** A
+`RawNode` is in one of two modes (`RNState.mode`, constant): static (the voters fixed at
+`γ.reCfg`, as before) or dynamic (`RNMode.dyn dec c0 h0 h1`: the configuration changes by
+applied conf entries, B5's `ownRaftGhostR` underneath). Every `RawNode` spec holds in both
+modes; the dynamic mode is reached from `NewRawNode`. `node.go` and the register stay in the
+static mode (below, "Left").
+
+Commits on the worktree branch, each a building state (`Link`, `Results`, the register's
+`Results`/`Adequacy`): `a620ecba1` (B7c-1), `8f29b04f8` (B7c-2), `f3b825caa`, `8bf69789d`
+(B7c-3), `feb8f34b7` (B7c-4), `13b5e02e7` (scaffolding deleted), the merge of B8b
+(`b7bb3d987`), and this notes commit.
+
+- **B7c-1, raft level.**
+  - `ownRaftPhys` records that a pre-candidate has pre-vote on (`Hprevote`'s second conjunct;
+    `raft.wp_store_stateC` premise, `becomePreCandidate.spec` takes `s.prevote = true`), so a
+    node with pre-vote off is never a pre-candidate (`ownRaftPhysC_precand`): the dynamic
+    mode's "no pre-candidate" premise is discharged, not assumed.
+  - `stepDownOnRemoval` is persistent in `raftOwn` (`ownRaftPhysC_sdr`): a later state of the
+    same struct has the same `sdr`, with no frame lemma.
+  - `GMode.StepOut` takes the message and says how the ghost part moves (`GMove`: freely only
+    at a snapshot (B8), the configuration index at a `MsgStorageApplyResp` (`CidxMove`), else
+    not at all); `StepOut.keep`, `StepOut.commit_mono` (also `StepC`/`StepR.commit_mono`).
+  - `raft.tickElection`/`tickHeartbeat` specs in either mode; `pastElectionTimeout`,
+    `hardState`, `softState`, `getBasicStatus` at any configuration.
+- **B7c-2, `ownRawNode` in either mode** (`InvRawnode.lean`). `RNState` gains `mode`, `cfg`
+  (the configuration in use, with learner flags) and `capplied` (the configuration index:
+  every conf entry of the committed log below it applied). `ownRawNode` holds
+  `ownRaftPhysCV cf` and `ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf`,
+  `sdrOk` (in the dynamic mode `StepDownOnRemoval` on), no auto-leave joint configuration;
+  `ownRawNodeReady`/`Idle` likewise. Every `RawNode` proof calls `raft.Step.spec` in the
+  node's mode; the dynamic premises are discharged from the struct (`PreFacts`: no
+  pre-candidate; the dropped proposal's index room `plogLastIndexZ + 2^61 < 2^64` from the
+  log's own bound, `ownRaftLog_last_bound` -- **no client premise, no index budget needed**).
+  `ownRawNode_static_open`/`_intro_static` give the old static view.
+- **B7c-3, `RawNode.ApplyConfChange` in the dynamic mode** (`wp_applyConf_dyn`): the change is
+  the next committed conf entry's decoded change (`DynCCPre`: position `k ≥ capplied`, none in
+  between, `dec (delivered.take k) e = some (ccV2Of o)`, `ccStepB` applies at `rs.cfg`, no
+  auto-leave), proved as `StepR.applyConf` followed by `applyCCOkC_stepR` (reMatch, commit by a
+  joint quorum, sendApps; or reMatch and **`StepR.stepDown` for a removed leader**). A
+  candidate is excluded by the model (`RInv.cand`: no conf entry past `applied`), a
+  pre-candidate by pre-vote off, `StepDownOnRemoval` by `sdrOk`. `RNMode.dyn` carries
+  `CCGood c0`, so the code's configuration is the model's (`cfgStateC_of_good`).
+- **B7c-4, `NewRawNode` in either mode** (`rnInit γ md id V`: statically `ownRaftGhost` at
+  `initPState`, dynamically `ownRaftGhostR` at `rinit c0` with `c0 = cfgState V ∅` and
+  `γ.dyn = some (DynCfg.ofFold dec c0 h0)`, what `raft_dyn_alloc` hands out). `newRaft`'s post
+  also gives `s.sdr = cv.StepDownOnRemoval'` and the voters tracked (`ConfigPreserved` keeps
+  `StepDownOnRemoval`).
+
+**The public specs that changed** (statement shapes):
+- `RNState`: `mode : RNMode := .static`, `cfg : CCState`, `capplied : Nat := 0`.
+- `NewRawNode.spec`: binder `md : RNMode`, premise `md.isDyn = true →
+  cv.StepDownOnRemoval' = true`, `"Hghost" ∷ rnInit γ md cv.ID' (listToSet voters)`; post at
+  `{ …, mode := md, cfg := cfgState (listToSet voters) ∅ }`.
+- `RawNode.Advance.spec`: premise A1 `rs.mode.isDyn = true → NoConfIn rs.delivered rs.capplied
+  rs.delivered.length`; post `∃ t ca`, `ownRawNode … { rs with steps := [], term := t,
+  capplied := ca }`, `rs.capplied ≤ ca ≤ max rs.capplied rs.delivered.length`, `ca =
+  rs.capplied` statically.
+- `RawNode.ApplyConfChange.spec`: binders `k e cs'`; premises `rs.mode = .static → CCApplies …`
+  and `rs.mode = .dyn … → DynCCPre dec rs o k e cs'`; post `Hres` is the old disjunction under
+  `⌜rs.mode = .static⌝`, or `⌜rs.mode.isDyn⌝ ∗ ownRawNode … { rs with cfg := cs', capplied :=
+  k + 1 } ∗` the four `ConfState` lists as `cs'`'s.
+- `RawNode.Step.spec`: new premise `DynNoSnap rs m` (`rs.mode.isDyn = true → m.Type' ≠
+  MsgSnap`; implied today by `NetMsgOk`, kept separate for a later RawNode-level snapshot);
+  the read-index premise is `NotSingleton (rs.vcfg γ)` (was `1 < size γ.reCfg`). Same change
+  in `RawNode.ReadIndex.spec`.
+- Unchanged statements: `Propose`, `ProposeConfChange`, `Campaign`, `Tick`, `Ready`
+  (`readyWithoutAccept`/`acceptReady`), `HasReady`, `BasicStatus`, the reports, `TransferLeader`,
+  `ForgetLeader` -- all now hold in either mode.
+- `node.go`: `isNode` gains `⌜γ.raft.reDyn = none⌝` (node.go is verified in the static mode);
+  `RestartNode` passes the static mode. No `node.*` statement changed.
+
+**Scaffolding deleted:** the `raft_reconfig_*` restatements, `etc/tcb-collections/raft-dyn.txt`
+and `raft_election_safety` (nothing needed it). `Results.lean` only prints axioms.
+
+Trust base: no new axiom, no new `sorry` (`etc/tcb-report.py --check`: 75 axioms, 10 sorries;
+`raft.txt` 6/0, `register.txt` 4/9). `Link.lean` reproduces (`etc/gen-link.py`): no callee
+list moved.
+
+Findings: no Go bug. Two scope facts discharged rather than assumed (no pre-candidate with
+pre-vote off; the dropped proposal's index room). Scope kept: no auto-leave joint
+configuration at a `RawNode` (`appliedTo`'s auto-leave proposal, B7 part 1), and
+`StepDownOnRemoval` on in the dynamic mode (a removed leader that does not step down leaves
+`Hvoter`, which `ownRaftPhysCV c c.voters` does not admit).
+
+**Left:**
+1. **`node.go` in the dynamic mode.** Its `confc` arm calls `raft.applyConfChange` with the
+   static premise (`CCShrink` through `confcP`); the dynamic one needs `DynCCPre` against the
+   run loop's `RNState` (`capplied`, `cfg`), which the driver would have to share as ghost
+   state as it shares `delivered` (`dlv`), and the `advancec` arm A1 from the driver.
+   `isNode`'s `Hstatic` then goes.
+2. **The register in the dynamic mode**, which waits for (1): its Go apply loop would call
+   `ApplyConfChange` for each committed conf entry before `Advance`.
+3. A snapshot at a `RawNode` (from the network, `DynNoSnap`; `GMode.SnapOk` in the dynamic
+   mode), and `Ready`'s hand-out of a pending snapshot.
 
 ## Reconfiguration, stage B8 (snapshots at a changing configuration) (2026-10-14)
 

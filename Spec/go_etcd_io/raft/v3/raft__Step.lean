@@ -450,7 +450,9 @@ abbrev raft.Step.spec : Prop :=
       "Hghost" ∷ ownStepGhost γ md' c' id s' ∗
       "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
       -- the step in the mode's model: `StepC c` statically, `StepR` dynamically
-      "%Hrefines" ∷ ⌜md.StepOut c id s s' md'⌝ ∗
+      -- (2026-10-14, stage B7 part 2) and in the dynamic mode the configuration index moves only
+      -- by a `MsgStorageApplyResp` (`CidxMove`)
+      "%Hrefines" ∷ ⌜md.StepOut c id m s s' md'⌝ ∗
       -- the configuration afterwards: `c`, or the snapshot's after a `MsgSnap`
       "%Hcfg'" ∷ ⌜m.Type' ≠ MsgSnap → c' = c⌝ ∗
       -- for the local messages `RawNode` steps, what is kept of the physical state

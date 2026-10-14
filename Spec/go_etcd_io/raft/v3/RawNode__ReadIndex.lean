@@ -54,7 +54,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 abbrev RawNode.ReadIndex.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rctx : GoSlice) (c : List w8)
     (Lc : List raftpb.Entry),
-  1 < GMap.size γ.reCfg →
+  -- (2026-10-14, stage B7 part 2; until then `1 < GMap.size γ.reCfg`) the node is not its own
+  -- quorum, in the voters it uses (`RNState.vcfg`)
+  NotSingleton (rs.vcfg γ) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       "#Hpd" ∷ isPropData γ rctx c ∗

@@ -352,7 +352,7 @@ private theorem dispatch_Snap (P : raft.Step.Postulates (GF := GF) (hG := hG))
         rw [Hrecv x (List.mem_of_getElem? hx)]
         exact intuitionistically_elim))
     iexact Hm
-  imod ghost_stepCDS γ md c c1 id sv scfg s recv s' (absSnap m sv scfg) ⟨rfl, rfl⟩ Hstep
+  imod ghost_stepCDS γ md c c1 id m Hty sv scfg s recv s' (absSnap m sv scfg) ⟨rfl, rfl⟩ Hstep
       Hid Hc1 $$ Hm Hall [Hz] Hso Hghost Hrest with ⟨%md', %Hout, Hghost, Hrest⟩
   · rw [Hcnt]; iexact Hz
   imodintro

@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raft.becomePreCandidate.wp_proof
     (wp_ProgressTracker_ResetVotes : tracker.ProgressTracker.ResetVotes.spec (GF := GF) (hG := hG)) :
     raft.becomePreCandidate.spec (GF := GF) (hG := hG) := by
-  intro c r id s Hrole Hcfg
+  intro c r id s Hrole Hcfg Hpv
   wp_start as Hphys
   wp_auto
   -- `becomePreCandidate` panics on a leader; by assumption we are not one.
@@ -47,7 +47,7 @@ theorem raft.becomePreCandidate.wp_proof
   wp_apply raft.wp_store_tickC (Hf := .inl rfl) $$ Hphys as Hphys
   wp_apply raft.wp_store_leadC $$ Hphys as Hphys
   rw [show go_etcd_io.raft.v3.StatePreCandidate = #(stateW64 .preCandidate) from rfl]
-  wp_apply raft.wp_store_stateC _ _ _ _ .preCandidate (fun _ => Hcfg) $$ Hphys as Hphys
+  wp_apply raft.wp_store_stateC _ _ _ _ .preCandidate (fun _ => Hcfg) (by intro _; exact Hpv) $$ Hphys as Hphys
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   wp_raft_logC

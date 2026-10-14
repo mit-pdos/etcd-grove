@@ -18,6 +18,8 @@ module
 public import Proof.go_etcd_io.raft.v3.InvRawnode
 public import Spec.go_etcd_io.raft.v3.newRaft
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
+-- `rinit` (2026-10-14, reconfiguration stage B7 part 2)
+public import Proof.go_etcd_io.raft.v3.Protocol.ResultsDyn
 
 @[expose] public section
 
@@ -65,9 +67,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- The ghost state a fresh node starts from, in the mode `md` (2026-10-14, reconfiguration stage
+B7 part 2): statically the protocol's initial state (`ownRaftGhost_alloc`); dynamically the
+dynamic model's (`raft_dyn_alloc`, at `rinit c0`), the initial configuration `c0` the voters `V`
+of the persisted `ConfState`, with no learner. -/
+def rnInit (γ : RaftNames) (md : RNMode) (id : w64) (V : GSet w64) : IProp GF :=
+  match md with
+  | .static => ownRaftGhost γ id initPState
+  | .dyn dec c0 h0 _ => iprop(⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ c0 = cfgState V ∅⌝ ∗
+      ownRaftGhostR γ dec c0 id (rinit c0))
+
 /-- See the file header. -/
 abbrev NewRawNode.spec : Prop :=
-  ∀ (γ : RaftNames) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
+  ∀ (γ : RaftNames) (md : RNMode) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
     (σ : StorState)
     (hs : raftpb.HardState) (cs : raftpb.ConfState)
     (voters : List w64) (dqv : DFrac),
@@ -102,6 +114,8 @@ abbrev NewRawNode.spec : Prop :=
   cs.AutoLeave' = false →
   γ.reCfg = GMap.listToSet voters →
   cv.ID' ∈ voters →
+  -- (2026-10-14) the dynamic mode with `StepDownOnRemoval` (a removed leader steps down)
+  (md.isDyn = true → cv.StepDownOnRemoval' = true) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
       □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
@@ -109,13 +123,13 @@ abbrev NewRawNode.spec : Prop :=
             cs.Voters' ↦*{dqv} voters -∗
             Φ (PairV (PairV #hs #cs) #interface.nil)) -∗
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
-      "Hghost" ∷ ownRaftGhost γ cv.ID' initPState ∗
+      "Hghost" ∷ rnInit γ md cv.ID' (GMap.listToSet voters) ∗
       "#Hcommitted" ∷ isCommitted γ [] }}
     (App (Val #(functions NewRawNode [])) (Val #c))
   {{ (rn : Loc) (err : GoInterface), RET (PairV #rn #err);
       "Hrn" ∷ ownRawNode γ rn cv.ID'
         { delivered := [], unpersisted := [], steps := [], term := W64 0,
-          storage := interface.ok si } ∗
+          storage := interface.ok si, mode := md, cfg := cfgState (GMap.listToSet voters) ∅ } ∗
       "%Herr" ∷ ⌜err = interface.nil⌝ }}
 
 end spec

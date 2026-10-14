@@ -209,10 +209,12 @@ theorem RawNode.readyWithoutAccept.wp_proof
   | cons _ _ => simp at Hlen0
   | nil =>
   -- ghost facts, read before anything moves
+  iunfold ownStepGhost at Hghost
+  icases Hghost with ⟨Hghost, Hrest⟩
   ihave #Hout := ownRaftGhost_outbox _ _ _ $$ Hghost
   ihave #Hrs_ok := ownRaftGhost_readStates _ _ _ $$ Hghost
-  icases ownRaftGhost_committed _ _ _ $$ Hghost with ⟨%fp, %Hfp, #Hcm⟩
-  icases ownRaftPhys_view γ.reCfg rnv.raft' id s $$ Hphys with ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
+  icases ownRaftGhost_committed _ _ _ $$ Hghost with ⟨%fp0, %Hfp, #Hcm⟩
+  icases ownRaftPhysC_view cf rnv.raft' id s $$ Hphys with ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
   iNamed Hv
   icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hwf1, Hlog⟩
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hwf2, Hlog⟩
@@ -408,7 +410,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
     by_cases He : s.rd.states = []
     · rw [ite_pos' He, He]; iapply ownSlice_nil
     · rw [ite_neg' He]; iexact HreadStates
-  ihave Hphys : ownRaftPhysReady γ.reCfg rnv.raft' id s msl (ms1 ++ nonself id ms2) false $$
+  ihave Hphys : ownRaftPhysReady cf rnv.raft' id s msl (ms1 ++ nonself id ms2) false $$
     [Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates_cap Hf_raftLog Hf_state Hf_lead Hf_msgs
      Hf_msgsAA HmsgsAA HmsgsAA_cap Hundo Hlog Hclose]
   · unfold ownRaftPhysReady
@@ -444,8 +446,6 @@ theorem RawNode.readyWithoutAccept.wp_proof
     unfold rdCountM at Hnf ⊢
     rw [List.countP_append]
     omega
-  obtain ⟨Hps, Hwfs⟩ := Hrel
-  subst Hps
   have Hin_out : ∀ a ∈ as1 ++ as2, ∀ x, a = some x → x ∈ s.outbox := by
     intro a Ha x Hx
     subst Hx
@@ -454,12 +454,12 @@ theorem RawNode.readyWithoutAccept.wp_proof
     exact List.mem_filterMap.2 ⟨some x, Ha, rfl⟩
   -- the committed entries handed out extend `delivered`: both are prefixes of the
   -- global committed log, and `delivered` is as long as the `applying` entries before `ce`
-  have Hpre := ready_committed_prefix fp (s.logst.sents ++ s.logst.uents) ce s.logst.prev
+  have Hpre := ready_committed_prefix fp0 (s.logst.sents ++ s.logst.uents) ce s.logst.prev
     s.logst.committed s.logst.applying Hfp.1
     ⟨by have := Hwf2.2 Hsnap; omega, Hwf1.2.2⟩
     (by simp only [List.length_append]; push_cast; omega) (by omega) Hcepre
   ihave #Hcm' : isCommitted γ
-      ((fp ++ (s.logst.sents ++ s.logst.uents)).take (uint.Z s.logst.applying).toNat ++ ce)
+      ((fp0 ++ (s.logst.sents ++ s.logst.uents)).take (uint.Z s.logst.applying).toNat ++ ce)
     $$ []
   · rw [show (toPState s).commit = s.logst.committed from rfl,
       show (toPState s).log = s.logst.sents ++ s.logst.uents from rfl]
@@ -479,14 +479,17 @@ theorem RawNode.readyWithoutAccept.wp_proof
   iapply HΦ $$ %(readyVal sp HS RS sents sce msl MS) %ce %(nextUnstable s.logst)
     %(ms1 ++ nonself id ms2) %s.rd.states
   simp only [named]
-  isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hce_cap]
+  isplitl [Hrn Hphys Hghost Hrest Hsteps Hsteps_cap Hce_cap]
   · unfold ownRawNodeReady
-    iexists s, toPState s, rnv, sv
+    iexists s, cf, fp, rnv, sv
     simp only [named, Bool.false_eq_true, ↓reduceIte]
-    iframe Hrn Hphys Hghost Hout Hsoft Hsteps Hsteps_cap Hdeliv' Hstrecs Hrdsoft Hrdrs' Hce
+    rw [show s.outbox = (toPState s).outbox from rfl]
+    iframe Hrn Hphys Hsdrf Hout Hsoft Hsteps Hsteps_cap Hdeliv' Hstrecs Hrdsoft Hrdrs' Hce
       Hce_cap
+    isplitl [Hghost Hrest]
+    · iunfold ownStepGhost; iframe Hghost Hrest
     ipureintro
-    exact ⟨⟨rfl, Hwfs⟩, Hin, Hasync, Hdlen, HunpS, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
+    exact ⟨Hwf, Hin, Hal, Hasync, Hdlen, HunpS, Hsnap, Htrm, Hstor, Hpvoff, Hrs_out, Hrs_unst,
       Hrs_clb,
       ceOk_of_prefix s.logst ce Hidx ⟨by have := Hwf2.2 Hsnap; omega, Hwf1.2.2⟩ (by omega) Hcepre,
       trivial, Hrdc⟩

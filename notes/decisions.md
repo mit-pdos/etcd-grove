@@ -3713,3 +3713,38 @@ add model-level theorems as deliverables. (The user's decision, 2026-10-14.)
   γ.reCfg ∧ scfg.outgoing = []`: the configuration a restore installs is still `CfgStatic`.
   `raft.Step.specS` keeps its premise list (its callers, the `RawNode` files, discharge
   `"Hsnap"` by the message type and did not change).
+
+
+---
+
+## Reconfiguration stage B7 part 2: one `ownRawNode`, generic in a mode
+
+**2026-10-14 · accepted**
+
+- **The mode is a field of `RNState`, not a parameter of `ownRawNode`.** Every spec already
+  says `ownRawNode γ rn id { rs with … }`, which keeps the mode, so no statement of a spec
+  that does not care about reconfiguration changed shape. The mode is the ghost state's
+  (`ownRawNode_mode`: static iff `γ.reDyn = none`).
+- **One body for both modes** (`ownRaftPhysCV cf`, `ownStepGhost` in `rs.mode.toG …`), not a
+  `match` on the mode: every proof is written once, through `raft.Step.spec` in the node's
+  mode. The static view (`ownRaftPhys γ.reCfg`, `ownRaftGhost`) is recovered where a proof is
+  about the static mode only (`ownRawNode_static_open`/`_intro_static`).
+- **Discharge the dynamic premises from the struct rather than state them to the client.** No
+  pre-candidate: a new conjunct of `ownRaftPhys` (a pre-candidate has pre-vote on), kept by the
+  one role store that makes one. The dropped proposal's index room: the log's own bound
+  (stable part below `isStorage`'s `2^61`, unstable part a Go slice), as `appendEntry` already
+  derives it. *Rejected*: an index budget like `node.go`'s term budget (nothing to budget: the
+  bound always holds).
+- **`stepDownOnRemoval` persistent in `raftOwn`.** The dynamic `ApplyConfChange` needs `sdr`
+  on at the current state; carrying `s'.sdr = s.sdr` through `raft.Step`'s frames would touch
+  every branch and callee result (tried: the cascade reaches `stepLeader`'s results). The field
+  is never written after `newRaft`, so a persistent points-to gives it for free.
+  `ownRawNode` keeps `sdrOk` (the field's value, on in the dynamic mode).
+- **`GMove` in `GMode.StepOut`** (merged with B8b's `∃ g'`): the RawNode layer needs to know
+  that the configuration index moves only at a `MsgStorageApplyResp` (and how), to keep
+  `RNState.capplied` exact for the client's A1.
+- **`ApplyConfChange` is one triple with a mode split** in its premises and its post, the
+  static outcome unchanged under `⌜rs.mode = .static⌝`.
+- **`node.go` stays static** (`isNode`'s `Hstatic`): its `confc` arm and channel protocols carry
+  the static premise; making them dynamic needs the configuration index shared with the driver
+  (left).

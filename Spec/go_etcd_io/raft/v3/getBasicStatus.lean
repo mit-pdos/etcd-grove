@@ -33,10 +33,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `getBasicStatus(r)` (status.go:56): reads only; returns `basicStatusOf id s`. -/
 abbrev getBasicStatus.spec : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
-  {{ ownRaftPhys (GF := GF) cfg r id s }}
+  -- (2026-10-14, stage B7 part 2) at any configuration (until then `ownRaftPhys cfg`)
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  {{ ownRaftPhysCV (GF := GF) c c.voters r id s }}
     (App (Val #(functions getBasicStatus [])) (Val #r))
-  {{ RET #(basicStatusOf id s); ownRaftPhys cfg r id s }}
+  {{ RET #(basicStatusOf id s); ownRaftPhysCV c c.voters r id s }}
 
 end spec
 

@@ -37,7 +37,6 @@ theorem RawNode.ProposeConfChange.wp_proof
     (wp_confChangeToMsg : confChangeToMsg.spec (GF := GF) (hG := hG))
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.ProposeConfChange.spec (GF := GF) (hG := hG) := by
-  have wp_raft_Step := raft.Step.spec_simple wp_raft_Step
   intro γ rn id rs c o dq
   wp_start as H
   iNamed H
@@ -50,16 +49,18 @@ theorem RawNode.ProposeConfChange.wp_proof
   ihave #Hent := entData_cc γ o data bs Hbs $$ Hpd
   ihave #Hcc := ccEntsOk_cc o data bs Hbs $$ Hdata
   imod rdCred_zero_upd (GF := GF) γ with Hcr
-  wp_apply wp_raft_Step γ.reCfg γ _ id s ps (ccPropMsg esl) [ccEntry (some o) data] [] rfl
-    (by simp [StepMsg, stepMsgTypes, ccPropMsg, MsgProp]) (fun _ => Hin)
+  icases ownRaftPhysC_preFacts cf rnv.raft' id s Hpvoff $$ Hphys with ⟨%Hpf, Hphys⟩
+  wp_apply wp_raft_Step cf _ γ _ id s (ccPropMsg esl) [ccEntry (some o) data] []
+    (by simp [StepMsg, stepMsgTypes, ccPropMsg, MsgProp]) 
     (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne)
     (by msg_ne)
-    (fun _ => ⟨rfl, .inl rfl⟩) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
-    (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hrel
+    (fun _ => ⟨rfl, .inl rfl⟩) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
+    (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
+    (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne))
     $$ [$Hphys $Hghost Hes Hcap Hcr]
   · -- the message: its one-entry batch, owned, with the entry's bytes; `Context` nil
     simp only [ccPropMsg, MsgProp, ite_true]
@@ -99,24 +100,22 @@ theorem RawNode.ProposeConfChange.wp_proof
       iintro %Hc
       simp [MsgSnap] at Hc
   simp only [ccPropMsg, MsgProp, ite_true]
-  iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, %Hloc, %_, %_, %_, Herr⟩
+  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hc', %Hloc, %_, %_, %_, Herr⟩
+  have Hc := Href.commit_mono
+  have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
+  have e2 := Hc' (by msg_ne); subst c'
   wp_auto
   -- what the `RawNode` tracks is kept: `LocalStepOk`, and the commit index does not move
   -- back (`Step.commit_mono`)
   obtain ⟨Hfr, Hap⟩ := Hloc (.inl rfl)
   have Hap' := Hap (fun Hc => absurd Hc (by msg_ne))
-  have Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed := by
-    obtain ⟨recv, Hst⟩ := Href
-    have H := Step.commit_mono Hst
-    rw [← Hrel.1, ← Hrel'.1] at H
-    exact H
   ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hfr.2.2.2.2.1
     Hfr.2.2.2.2.2.1 $$ Hstrecs
   iapply HΦ
   simp only [named]
   iframe Hc
   isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hpown]
-  · iapply ownRawNode_intro γ rn id rs s' ps' rnv sv steps Hrel' Hin Hasync
+  · iapply ownRawNode_intro γ rn id rs s' cf fp rnv sv steps Hwf' Hin Hal Hasync
       (by rw [Hap']; exact Hdlen) (by rw [Hfr.2.2.1]; exact Hunp)
       (by rw [Hfr.2.2.2.1]; exact Hsnap)
       (stepsOk_mono s s' _ Hfr.1 ⟨Hfr.2.2.2.2.1, Hfr.2.2.2.2.2.1⟩ Hc Hap'
@@ -125,7 +124,7 @@ theorem RawNode.ProposeConfChange.wp_proof
       (by rw [Hfr.2.2.2.2.2.2.2.1]; exact Hpvoff)
       (by rw [Hfr.2.2.2.2.2.2.2.2]; exact Hrs_out) (by rw [Hfr.2.2.2.2.2.2.2.2]; exact Hrs_unst)
       (Int.le_trans Hrs_clb Hc)
-      $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstr'
+      $$ Hrn Hphys Hghost Hsdrf Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstr'
   icases Herr with (%Herr | ⟨-, #Hd⟩)
   · ileft; ipureintro; exact Herr
   · iright; iexact Hd

@@ -22,10 +22,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `electionElapsed >= randomizedElectionTimeout`, two fields the abstraction does not
 track: some `bool`, the state unchanged. -/
 abbrev raft.pastElectionTimeout.spec : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhys cfg r id s }}
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  -- (2026-10-14, stage B7 part 2) at any configuration (until then `ownRaftPhys cfg`)
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"pastElectionTimeout")) (Val #()))
-  {{ (b : Bool), RET #b; ownRaftPhys cfg r id s }}
+  {{ (b : Bool), RET #b; ownRaftPhysCV c c.voters r id s }}
 
 end spec
 

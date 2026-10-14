@@ -513,7 +513,10 @@ def isNode (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=
     "#Hbud" ∷ inv budgetN (budgetInv γ.bud) ∗
     -- the cluster's commit invariant and proposed slices (2026-10-10)
     "#Hcinv" ∷ raftCommitInv γ.raft ∗
-    "#Hpdinv" ∷ inv propDataN (propDataInv γ.raft))
+    "#Hpdinv" ∷ inv propDataN (propDataInv γ.raft) ∗
+    -- (2026-10-14, reconfiguration stage B7 part 2) `node.go` is verified in the static mode
+    -- (the ghost state's voters fixed): its `ApplyConfChange` arm is a shrinking change's
+    "%Hstatic" ∷ ⌜γ.raft.reDyn = none⌝)
 
 set_option synthInstance.maxHeartbeats 400000 in
 set_option synthInstance.maxSize 4096 in
