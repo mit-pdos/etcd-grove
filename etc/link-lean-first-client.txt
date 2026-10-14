@@ -12,6 +12,14 @@ IsOptsWithPrefix: NewOp
 IsOptsWithFromKey: NewOp
 OpGet: IsOptsWithPrefix IsOptsWithFromKey Op__applyOpts
 OpPut: Op__applyOpts
+OpDelete: IsOptsWithPrefix IsOptsWithFromKey Op__applyOpts
+# clientv3's comparisons as a transaction clones them (`Cmp.Clone`, `Cmp.GetCompare`); protobuf's
+# `proto.Clone` is an axiom (as in the concurrency package's Link); the vertical slice's unit V2
+proto_Clone:
+cloneCompare: proto_Clone
+Cmp__ensureCompare:
+Cmp__Clone: cloneCompare
+Cmp__GetCompare: Cmp__ensureCompare
 # The trust boundary: grpc's `ClientConn.Invoke` of any registered unary method (the generic
 # transport contract, the retry interceptor included; `google_golang_org/grpc/InvGrpc.lean`) and
 # `grpc.StaticMethod()` (axioms).
@@ -21,11 +29,16 @@ grpc_StaticMethod:
 NewKVClient:
 kVClient__Put: grpc_StaticMethod grpc_ClientConn__Invoke
 kVClient__Range: grpc_StaticMethod grpc_ClientConn__Invoke
+# the vertical slice's unit V2: the stub's `DeleteRange` and `Txn`, over the same generic `Invoke`
+kVClient__DeleteRange: grpc_StaticMethod grpc_ClientConn__Invoke
+kVClient__Txn: grpc_StaticMethod grpc_ClientConn__Invoke
 # The retry client (client/v3/retry.go, retry_interceptor.go's `withRepeatablePolicy`).
 RetryKVClient: NewKVClient
 retryKVClient__Put: kVClient__Put
 withRepeatablePolicy:
 retryKVClient__Range: withRepeatablePolicy kVClient__Range
+retryKVClient__DeleteRange: kVClient__DeleteRange
+retryKVClient__Txn: kVClient__Txn
 # The KV (client/v3/kv.go, client.go's `ContextError`); grpc's `status.FromError` is an axiom
 # (not translated); `rpctypes.Error`, `ErrorDesc`, `EtcdError.Error` are proved (unit P3a).
 v3_NewKV: RetryKVClient
@@ -36,9 +49,18 @@ rpctypes_Error: rpctypes_ErrorDesc status_FromError rpctypes_EtcdError__Error
 ContextError: rpctypes_Error status_FromError
 Op__IsSortOptionValid:
 Op__toRangeRequest:
-kv__Do: Op__IsSortOptionValid Op__toRangeRequest retryKVClient__Range retryKVClient__Put ContextError
+kv__Do: Op__IsSortOptionValid Op__toRangeRequest retryKVClient__Range retryKVClient__Put retryKVClient__DeleteRange ContextError
 kv__Put: OpPut kv__Do ContextError
-kv__Get: OpGet kv__Do ContextError
+kv__Get: NewOp kv__Do ContextError
+kv__Delete: OpDelete kv__Do ContextError
+# the transaction builder (client/v3/txn.go; the operations' requests, op.go), unit V2
+kv__Txn:
+Op__isWrite:
+Op__toRequestOp: Op__toRangeRequest
+txn__If: Cmp__Clone Cmp__GetCompare
+txn__Then: Op__isWrite Op__toRequestOp
+txn__Else: Op__isWrite Op__toRequestOp
+txn__Commit: retryKVClient__Txn ContextError
 # Unit P3a: the client's retry interceptor (client/v3/retry_interceptor.go, retry.go's
 # `isSafeRetry*` and `retryPolicy.String`), below grpc's boundary. Trust boundary: grpc's `Peer`,
 # `peer.Peer.String`, `ClientConn.Target`, `status.Code`, `errors.Is` of a status error

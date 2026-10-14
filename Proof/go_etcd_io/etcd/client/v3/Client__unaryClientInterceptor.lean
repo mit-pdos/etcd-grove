@@ -229,6 +229,24 @@ theorem Client.unaryClientInterceptor.wp_proof
       rotate_left
       · -- a context error: the caller's context's, or retried
         ihave #HC := Hctx'
+        iunfold ctxOk at HC
+        icases HC with (#HC | #HQ)
+        rotate_left
+        · -- a quiet context (`context.TODO()`, the vertical slice's unit V2): `Err()` is `nil`
+          (try wp_auto)
+          iunfold ctxQuiet at HQ
+          wp_bind (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #()))
+          iapply HQ
+          inext
+          (try wp_auto)
+          wp_for_post
+          iframe
+          iexists a + W64 1, GoInterface.ok ei
+          simp only [named]
+          iframe
+          iright
+          iframe #
+          ipureintro; exact ⟨Hne, Hce⟩
         iunfold _root_.Perennial.context.isContext at HC
         iunfold _root_.Perennial.context.isContextDef at HC
         iNamed HC

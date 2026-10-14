@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 theorem v3rpc.quotaAlarmer.check.wp_proof
     (wp_Alarm : EtcdServer.Alarm.spec (GF := GF) (hG := hG)) :
     v3rpc.quotaAlarmer.check.spec (GF := GF) (hG := hG) := by
-  intro qa s E ρ ci cd r
+  intro qa s E ρ ci cd r rt hrt
   wp_start as ⟨#Hqa, #Hsrv, #HNR, Hlt, #Hctx⟩
   ihave Hinit : (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.v3rpcInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -45,8 +45,8 @@ theorem v3rpc.quotaAlarmer.check.wp_proof
   icases Hiq with ⟨%qi, %Hqi, #HAv, -⟩
   subst Hqi
   wp_auto
-  wp_apply HAv $$ %(go.GoType.PointerType etcdserverpb.PutRequest.ty) %r as %b -
-  · ipureintro; left; rfl
+  wp_apply HAv $$ %rt %r as %b -
+  · ipureintro; exact hrt
   cases b
   · wp_auto
     ihave Hu := HNR

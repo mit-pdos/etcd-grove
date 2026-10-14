@@ -33,7 +33,7 @@ abbrev kVClient.Range.spec : Prop :=
     (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ kvStubAt kc conn ∗
       isEtcdConn conn addr ∗ isGrpcRpc addr go!"/etcdserverpb.KV/Range" Spec ∗
-      □ ▷ Spec (rangeReqOp req k e) Φ ∗ context.isContext ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
+      □ ▷ Spec (rangeReqOp req k e) Φ ∗ ctxOk ctx cd ∗ inp ↦ req ∗ req.Key' ↦*□ k ∗ req.RangeEnd' ↦*□ e ∗
       opts ↦*□ vs ∗ callOptsOk vs }}
     (App (App (App (Val (kc @!! go.GoType.PointerType etcdserverpb.kVClient.ty @!! go!"Range"))
       (Val #(GoInterface.ok ctx))) (Val #inp)) (Val #opts))

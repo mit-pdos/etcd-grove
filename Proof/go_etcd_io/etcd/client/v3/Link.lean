@@ -14,17 +14,24 @@ public import Proof.go_etcd_io.etcd.client.v3.Client__getToken
 public import Proof.go_etcd_io.etcd.client.v3.Client__refreshToken
 public import Proof.go_etcd_io.etcd.client.v3.Client__shouldRefreshToken
 public import Proof.go_etcd_io.etcd.client.v3.Client__unaryClientInterceptor
+public import Proof.go_etcd_io.etcd.client.v3.Cmp__Clone
+public import Proof.go_etcd_io.etcd.client.v3.Cmp__GetCompare
+public import Proof.go_etcd_io.etcd.client.v3.Cmp__ensureCompare
 public import Proof.go_etcd_io.etcd.client.v3.ContextError
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithFromKey
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithPrefix
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewKVClient
 public import Proof.go_etcd_io.etcd.client.v3.NewOp
+public import Proof.go_etcd_io.etcd.client.v3.OpDelete
 public import Proof.go_etcd_io.etcd.client.v3.OpGet
 public import Proof.go_etcd_io.etcd.client.v3.OpPut
 public import Proof.go_etcd_io.etcd.client.v3.Op__IsSortOptionValid
 public import Proof.go_etcd_io.etcd.client.v3.Op__applyOpts
+public import Proof.go_etcd_io.etcd.client.v3.Op__isWrite
 public import Proof.go_etcd_io.etcd.client.v3.Op__toRangeRequest
+public import Proof.go_etcd_io.etcd.client.v3.Op__toRequestOp
 public import Proof.go_etcd_io.etcd.client.v3.RetryKVClient
+public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
 public import Proof.errors.IsStatusErr
 public import Proof.go_etcd_io.etcd.client.v3.filterCallOptions
 public import Proof.google_golang_org.grpc.ClientConn__Invoke
@@ -35,14 +42,21 @@ public import Proof.go_etcd_io.etcd.client.v3.isContextError
 public import Proof.go_etcd_io.etcd.client.v3.isSafeRetry
 public import Proof.go_etcd_io.etcd.client.v3.isSafeRetryImmutableRPC
 public import Proof.go_etcd_io.etcd.client.v3.isSafeRetryMutableRPC
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__DeleteRange
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Put
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Range
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.kVClient__Txn
+public import Proof.go_etcd_io.etcd.client.v3.kv__Delete
 public import Proof.go_etcd_io.etcd.client.v3.kv__Do
 public import Proof.go_etcd_io.etcd.client.v3.kv__Get
 public import Proof.go_etcd_io.etcd.client.v3.kv__Put
+public import Proof.go_etcd_io.etcd.client.v3.kv__Txn
 public import Proof.google_golang_org.grpc.peer.Peer__String
+public import Proof.google_golang_org.protobuf.proto.Clone
+public import Proof.go_etcd_io.etcd.client.v3.retryKVClient__DeleteRange
 public import Proof.go_etcd_io.etcd.client.v3.retryKVClient__Put
 public import Proof.go_etcd_io.etcd.client.v3.retryKVClient__Range
+public import Proof.go_etcd_io.etcd.client.v3.retryKVClient__Txn
 public import Proof.go_etcd_io.etcd.client.v3.retryPolicy__String
 public import Proof.go_etcd_io.etcd.client.v3.reuseOrNewWithCallOptions
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error
@@ -51,6 +65,10 @@ public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Code
 public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Error
 public import Proof.google_golang_org.grpc.status.Code
 public import Proof.google_golang_org.grpc.status.FromError
+public import Proof.go_etcd_io.etcd.client.v3.txn__Commit
+public import Proof.go_etcd_io.etcd.client.v3.txn__Else
+public import Proof.go_etcd_io.etcd.client.v3.txn__If
+public import Proof.go_etcd_io.etcd.client.v3.txn__Then
 public import Proof.go_etcd_io.etcd.client.v3.NewKV
 public import Proof.go_etcd_io.etcd.client.v3.waitRetryBackoff
 public import Proof.go_etcd_io.etcd.client.v3.withBackoff
@@ -132,6 +150,26 @@ theorem rpctypes.EtcdError.wp_Code :
     EtcdGrove.rpctypes.EtcdError.Code.spec (GF := GF) (hG := hG) :=
   EtcdGrove.rpctypes.EtcdError.Code.wp_proof
 
+theorem proto.wp_Clone :
+    EtcdGrove.proto.Clone.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.proto.Clone.wp_proof
+
+theorem v3.wp_cloneCompare :
+    EtcdGrove.cloneCompare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cloneCompare.wp_proof proto.wp_Clone
+
+theorem v3.Cmp.wp_Clone :
+    EtcdGrove.Cmp.Clone.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Cmp.Clone.wp_proof v3.wp_cloneCompare
+
+theorem v3.Cmp.wp_ensureCompare :
+    EtcdGrove.Cmp.ensureCompare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Cmp.ensureCompare.wp_proof
+
+theorem v3.Cmp.wp_GetCompare :
+    EtcdGrove.Cmp.GetCompare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Cmp.GetCompare.wp_proof v3.Cmp.wp_ensureCompare
+
 theorem v3.wp_NewOp :
     EtcdGrove.NewOp.spec (GF := GF) (hG := hG) :=
   EtcdGrove.NewOp.wp_proof
@@ -147,6 +185,10 @@ theorem v3.wp_IsOptsWithPrefix :
 theorem v3.Op.wp_applyOpts :
     EtcdGrove.Op.applyOpts.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Op.applyOpts.wp_proof
+
+theorem v3.wp_OpDelete :
+    EtcdGrove.OpDelete.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.OpDelete.wp_proof v3.wp_IsOptsWithPrefix v3.wp_IsOptsWithFromKey v3.Op.wp_applyOpts
 
 theorem v3.wp_OpGet :
     EtcdGrove.OpGet.spec (GF := GF) (hG := hG) :=
@@ -247,9 +289,17 @@ theorem v3.Op.wp_IsSortOptionValid :
     EtcdGrove.Op.IsSortOptionValid.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Op.IsSortOptionValid.wp_proof
 
+theorem v3.Op.wp_isWrite :
+    EtcdGrove.Op.isWrite.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Op.isWrite.wp_proof
+
 theorem v3.Op.wp_toRangeRequest :
     EtcdGrove.Op.toRangeRequest.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Op.toRangeRequest.wp_proof
+
+theorem v3.Op.wp_toRequestOp :
+    EtcdGrove.Op.toRequestOp.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Op.toRequestOp.wp_proof v3.Op.wp_toRangeRequest
 
 theorem v3.wp_RetryKVClient :
     EtcdGrove.RetryKVClient.spec (GF := GF) (hG := hG) :=
@@ -263,6 +313,10 @@ theorem grpc.wp_StaticMethod :
     EtcdGrove.grpc.StaticMethod.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.StaticMethod.wp_proof
 
+theorem kVClient.wp_DeleteRange :
+    EtcdGrove.kVClient.DeleteRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.kVClient.DeleteRange.wp_proof grpc.wp_StaticMethod grpc.ClientConn.wp_Invoke
+
 theorem kVClient.wp_Put :
     EtcdGrove.kVClient.Put.spec (GF := GF) (hG := hG) :=
   EtcdGrove.kVClient.Put.wp_proof grpc.wp_StaticMethod grpc.ClientConn.wp_Invoke
@@ -270,6 +324,10 @@ theorem kVClient.wp_Put :
 theorem kVClient.wp_Range :
     EtcdGrove.kVClient.Range.spec (GF := GF) (hG := hG) :=
   EtcdGrove.kVClient.Range.wp_proof grpc.wp_StaticMethod grpc.ClientConn.wp_Invoke
+
+theorem kVClient.wp_Txn :
+    EtcdGrove.kVClient.Txn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.kVClient.Txn.wp_proof grpc.wp_StaticMethod grpc.ClientConn.wp_Invoke
 
 theorem v3.wp_withRepeatablePolicy :
     EtcdGrove.withRepeatablePolicy.spec (GF := GF) (hG := hG) :=
@@ -283,17 +341,49 @@ theorem v3.retryKVClient.wp_Put :
     EtcdGrove.retryKVClient.Put.spec (GF := GF) (hG := hG) :=
   EtcdGrove.retryKVClient.Put.wp_proof kVClient.wp_Put
 
+theorem v3.retryKVClient.wp_DeleteRange :
+    EtcdGrove.retryKVClient.DeleteRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.retryKVClient.DeleteRange.wp_proof kVClient.wp_DeleteRange
+
 theorem v3.kv.wp_Do :
     EtcdGrove.kv.Do.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.kv.Do.wp_proof v3.Op.wp_IsSortOptionValid v3.Op.wp_toRangeRequest v3.retryKVClient.wp_Range v3.retryKVClient.wp_Put v3.wp_ContextError
+  EtcdGrove.kv.Do.wp_proof v3.Op.wp_IsSortOptionValid v3.Op.wp_toRangeRequest v3.retryKVClient.wp_Range v3.retryKVClient.wp_Put v3.retryKVClient.wp_DeleteRange v3.wp_ContextError
+
+theorem v3.kv.wp_Delete :
+    EtcdGrove.kv.Delete.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.kv.Delete.wp_proof v3.wp_OpDelete v3.kv.wp_Do v3.wp_ContextError
 
 theorem v3.kv.wp_Get :
     EtcdGrove.kv.Get.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.kv.Get.wp_proof v3.wp_OpGet v3.kv.wp_Do v3.wp_ContextError
+  EtcdGrove.kv.Get.wp_proof v3.wp_NewOp v3.kv.wp_Do v3.wp_ContextError
 
 theorem v3.kv.wp_Put :
     EtcdGrove.kv.Put.spec (GF := GF) (hG := hG) :=
   EtcdGrove.kv.Put.wp_proof v3.wp_OpPut v3.kv.wp_Do v3.wp_ContextError
+
+theorem v3.kv.wp_Txn :
+    EtcdGrove.kv.Txn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.kv.Txn.wp_proof
+
+theorem v3.retryKVClient.wp_Txn :
+    EtcdGrove.retryKVClient.Txn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.retryKVClient.Txn.wp_proof kVClient.wp_Txn
+
+theorem v3.txn.wp_Commit :
+    EtcdGrove.txn.Commit.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.Commit.wp_proof v3.retryKVClient.wp_Txn v3.wp_ContextError
+
+theorem v3.txn.wp_Else :
+    EtcdGrove.txn.Else.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.Else.wp_proof v3.Op.wp_isWrite v3.Op.wp_toRequestOp
+
+theorem v3.txn.wp_If :
+    EtcdGrove.txn.If.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.If.wp_proof v3.Cmp.wp_Clone v3.Cmp.wp_GetCompare
+
+theorem v3.txn.wp_Then :
+    EtcdGrove.txn.Then.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.Then.wp_proof v3.Op.wp_isWrite v3.Op.wp_toRequestOp
 
 theorem v3.wp_NewKV :
     EtcdGrove.NewKV.spec (GF := GF) (hG := hG) :=

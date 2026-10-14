@@ -61,6 +61,8 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   # (`rpc_grpc.pb.go`: `NewKVClient`, `kVClient.Put`/`Range` and their method names)
   "NewKVClient", "kVClient.Put", "kVClient.Range", "KV_Put_FullMethodName",
   "KV_Range_FullMethodName",
+  # the vertical slice's unit V2: the stub's `DeleteRange` and `Txn` (their method names below)
+  "kVClient.DeleteRange", "kVClient.Txn",
   # unit P3b (the server end of the gRPC boundary): the generated server-side handlers of the KV
   # service's unary methods (`rpc_grpc.pb.go`: decode, then the interceptor or the service's
   # method) and their method names; the registration `RegisterKVServer` and its `ServiceDesc`

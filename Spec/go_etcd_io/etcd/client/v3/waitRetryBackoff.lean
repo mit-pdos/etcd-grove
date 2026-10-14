@@ -30,7 +30,7 @@ returns: `retryOptsAt`) and returns `nil`, or, if the context is done first, a g
 `clientErrOk`). -/
 abbrev waitRetryBackoff.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (attempt : w64) (o : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ context.isContext ctx cd ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ ctxOk ctx cd ∗
       retryOptsAt o }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.v3.waitRetryBackoff))
       (Val #(GoInterface.ok ctx))) (Val #attempt)) (Val #o))
