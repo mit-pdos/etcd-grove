@@ -44,29 +44,6 @@ instance Inc_into_val_typed :
 end def_
 end Inc
 
-namespace Read
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lintest.counter.Assumptions]
-
-instance Read_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.lintest.counter.Read where
-  typedPointstoDef l v dq := iprop(
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-instance Read_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.lintest.counter.Read github_com.mit_pdos.etcd_grove.examples.lintest.counter.Read.underlying := by
-  solve_into_val_typed_struct
-
-end def_
-end Read
-
 namespace Counter
 section def_
 
