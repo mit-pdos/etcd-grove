@@ -3,6 +3,9 @@
 # election safety it gives, and (stage B6) the read-index guarantee (`raft_reconfig_*` in
 # Proof/go_etcd_io/raft/v3/Results.lean).
 # A model theorem, not yet reached from Go (notes/STATUS.md, "Reconfiguration, stage B5").
+# Scaffolding: delete this collection and the `raft_reconfig_*` restatements once the Go
+# public specs reach them (stages B7/B8; notes/decisions.md, "Model-level theorems in
+# `Results.lean` are scaffolding").
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/raft-dyn.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/raft-dyn.txt --check    against the lines below

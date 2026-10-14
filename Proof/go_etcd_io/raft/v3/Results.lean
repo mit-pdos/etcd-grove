@@ -24,10 +24,20 @@ with no protocol state in them; the refinement above is how they are proved.
 (2026-10-10), which `node.go` calls apart (through `ownRawNodeReady`,
 `InvRawnodeReady.lean`).
 
-Scope, matching `Protocol/`:
-  - no pre-vote, no check-quorum,
-  - no proposals, no read-only requests,
-  - no reconfiguration and no learners.
+Scope: see `notes/STATUS.md` (its first sections) for what the Go-level results cover today:
+proposals, read index (`ReadOnlySafe`), leader transfer, learners and conf changes at a fixed
+voter set are in; pre-vote is verified in `raft.Step` but off at the public API (`ownRawNode`
+holds `prevote = false`); check-quorum, the lease-based read option, asynchronous storage
+writes and crash-restart are out; changing the voter set is verified only at the model level
+(the `raft_reconfig_*` theorems below, reconfiguration stage B5/B6), not yet from Go.
+
+**The boundary is the Go public API.** The specs of the public functions (`RawNode.wp_*`,
+`node.wp_*`, `wp_NewRawNode`, ... in `Link.lean`) are what this development verifies; a
+protocol-level theorem in this file (`raft_election_safety`, `raft_reconfig_*`) is
+scaffolding: it is kept while it drives development (a non-vacuity check of the model, or
+a trust-report root that keeps a model proof checked before code reaches it) and is
+deleted, with its trust-base collection, once the Go code that reaches it is verified
+(for `raft_reconfig_*`: reconfiguration stages B7/B8).
 
 Trust boundary. Two kinds, and the layout keeps them apart:
   - A `Proof/<fn>.lean` of a function outside the scope is an `axiom <fn>.wp_proof`.

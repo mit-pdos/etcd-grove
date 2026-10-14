@@ -3607,3 +3607,15 @@ append a second conf change before the first is applied), like `ReadOnlyOption =
   would have to carry, for a rule the model already has.
 - **The ghost refines `StepR` in the dynamic mode and `StepC` in the static mode**, both from the
   same per-rule lemmas; B4's decision (the code-facing ghost stays on `StepC`) stands until B7.
+
+## Model-level theorems in `Results.lean` are scaffolding (2026-10-14)
+
+The verified boundary is the Go public API: the specs of `RawNode`/`node`/`NewRawNode`/...
+(`Link.lean`). A protocol-level theorem restated in `Proof/go_etcd_io/raft/v3/Results.lean`
+(`raft_election_safety`; the reconfiguration stage B5/B6 results `raft_reconfig_*`, with the
+collection `etc/tcb-collections/raft-dyn.txt`) is kept only while it drives development: a
+check that the model is not vacuous, or a root of the trust report that keeps a model proof
+checked (no `sorry`, no axiom) before any Go spec reaches it. Once the Go code that reaches
+it is verified (for `raft_reconfig_*`, stages B7/B8: the public specs carrying the dynamic
+ghost), the stage that does so deletes the restatement and its collection. New stages do not
+add model-level theorems as deliverables. (The user's decision, 2026-10-14.)
