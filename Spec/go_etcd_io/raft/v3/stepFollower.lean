@@ -117,13 +117,13 @@ def FollowerStepResult (cfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Mess
   else False
 
 /-- `FollowerStepResult` at the configuration `c` (2026-10-13, reconfiguration stage A2), with
-the configuration `c'` the node is at afterwards: `c` itself, except after a `MsgSnap`, which
-installs the snapshot's (`restore`: the same voters, by `SnapScope`, and the snapshot's
-learners); `MsgTimeoutNow` campaigns at `c` (`HupOkC`). -/
-def FollowerStepResultC (c : CfgM) (id : w64) (s : NState) (m : raftpb.Message)
+the configuration `c'` the node is at afterwards: `c` itself, except after a `MsgSnap` that
+`restore` installs, which moves it to the snapshot's (since 2026-10-14, stage A3: its voters
+`scfg`, any, and its learners; `SnapCfgOk`); `MsgTimeoutNow` campaigns at `c` (`HupOkC`). -/
+def FollowerStepResultC (c : CfgM) (scfg : GSet w64) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (dropped : Bool) (s' : NState)
     (c' : CfgM) (cl : List w8 := []) : Prop :=
-  (if m.Type' = MsgSnap then c' = CfgM.simple c.incoming (domSet s'.progress \ c.incoming)
+  (if m.Type' = MsgSnap then SnapCfgOk c scfg s sv s' c'
    else c' = c) ∧
   (if m.Type' = MsgVoteResp then dropped = false ∧ s' = s
      else if m.Type' = MsgProp then
@@ -155,9 +155,10 @@ def FollowerStepResultC (c : CfgM) (id : w64) (s : NState) (m : raftpb.Message)
      else False)
 
 /-- At a simple configuration, `FollowerStepResultC`'s step is `FollowerStepResult`'s. -/
-theorem FollowerStepResultC.simple {cfg L : GSet w64} {id : w64} {s : NState} {m : raftpb.Message}
+theorem FollowerStepResultC.simple {cfg L scfg : GSet w64} {id : w64} {s : NState}
+    {m : raftpb.Message}
     {ents : List raftpb.Entry} {sv : raftpb.Snapshot} {dropped : Bool} {s' : NState} {c' : CfgM}
-    {cl : List w8} (h : FollowerStepResultC (CfgM.simple cfg L) id s m ents sv dropped s' c' cl) :
+    {cl : List w8} (h : FollowerStepResultC (CfgM.simple cfg L) scfg id s m ents sv dropped s' c' cl) :
     FollowerStepResult cfg id s m ents sv dropped s' cl := by
   obtain ⟨-, h⟩ := h
   unfold FollowerStepResult
@@ -193,13 +194,15 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
   For `MsgVoteResp` the wand is discharged by the type. 
 
 At any configuration since 2026-10-13 (reconfiguration stage A2): the struct at `c`
-(`ownRaftPhysCV c c.voters`); a `MsgSnap` only at a non-joint `c` (`c.outgoing = ∅`, the
-snapshot's voters `c.incoming`: `SnapScope`, as before, since `restore`'s spec is at a simple
-configuration), after which the node is at the snapshot's configuration; `MsgTimeoutNow`'s
-campaign is at `c` (`FollowerStepResultC`). The old statement is `stepFollower.specS`.
+(`ownRaftPhysCV c c.voters`); `MsgTimeoutNow`'s campaign is at `c` (`FollowerStepResultC`).
+A `MsgSnap` (since 2026-10-14, stage A3) at any `c`, joint or not, of a snapshot whose
+configuration is non-joint with any voters `scfg` containing the node (`SnapScope scfg`;
+until then only at a non-joint `c`, `scfg = c.incoming`), after which the node is at the
+snapshot's configuration if `restore` installed it (`SnapCfgOk`). The old statement is
+`stepFollower.specS`.
 -/
 abbrev stepFollower.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
+  ∀ (c : CfgM) (scfg : GSet w64) (r : Loc) (id : w64) (s : NState) (m : raftpb.Message)
     (ents : List raftpb.Entry) (sv : raftpb.Snapshot) (voters : List w64) (cl : List w8),
   (m.Type' = MsgVoteResp ∨ m.Type' = MsgProp ∨
    m.Type' = MsgApp ∨ m.Type' = MsgHeartbeat ∨
@@ -246,8 +249,8 @@ abbrev stepFollower.spec : Prop :=
       "Hrents" ∷ (⌜m.Type' = MsgReadIndex ∨ m.Type' = MsgReadIndexResp⌝ -∗
                   m.Entries' ↦*□ ents) ∗
       "Hsnap" ∷ (⌜m.Type' = MsgSnap⌝ -∗ ∃ learners,
-                 ⌜c.outgoing = ∅ ∧ SnapScope c.incoming sv voters learners ∧
-                   s.role = .follower ∧ s.votes = ∅ ∧ id ∈ c.incoming ∧ m.From' ≠ id⌝ ∗
+                 ⌜SnapScope scfg sv voters learners ∧
+                   s.role = .follower ∧ s.votes = ∅ ∧ id ∈ scfg ∧ m.From' ≠ id⌝ ∗
                  m.Snapshot' ↦□ sv ∗
                  sv.Metadata'.ConfState'.Voters' ↦*□ voters ∗
                  ownIdList sv.Metadata'.ConfState'.Learners' DFrac.discard learners) ∗
@@ -257,7 +260,7 @@ abbrev stepFollower.spec : Prop :=
     (App (App (Val #(functions stepFollower [])) (Val #r)) (Val #m))
   {{ (err : GoInterface) (s' : NState) (dropped : Bool) (c' : CfgM), RET #err;
       ownRaftPhysCV c' c'.voters r id s' ∗
-      ⌜FollowerStepResultC c id s m ents sv dropped s' c' cl⌝ ∗
+      ⌜FollowerStepResultC c scfg id s m ents sv dropped s' c' cl⌝ ∗
       (if dropped then globalAddr ErrProposalDropped ↦□ err
        else ⌜err = interface.nil⌝) }}
 
@@ -324,7 +327,7 @@ theorem stepFollower.spec_simple
   intro cfg r id s m ents sv voters cl Hty Hri Hprop Happ Hhb Hrest
   iintro %Φ ⟨#Hpkg, Hphys, Hctx, Hrents, Hsnap, Hents⟩ HΦ
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  iapply H (CfgM.simple cfg (domSet s.progress \ cfg)) r id s m ents sv voters cl Hty Hri Hprop
+  iapply H (CfgM.simple cfg (domSet s.progress \ cfg)) cfg r id s m ents sv voters cl Hty Hri Hprop
       Happ Hhb Hrest
     $$ [$Hpkg $Hphys $Hctx $Hrents Hsnap $Hents]
   · iintro %Hm
@@ -332,14 +335,15 @@ theorem stepFollower.spec_simple
     iexists learners
     iframe Hsv
     ipureintro
-    obtain ⟨H1, H2, H3, H4, H5⟩ := Hsc
-    exact ⟨rfl, H1, H2, H3, H4, H5⟩
+    exact Hsc
   inext
   iintro %err %s' %dropped %c' ⟨Hphys, %Hres, Hdr⟩
   have Hc' := Hres.1
   have Hcs : ∃ L, c' = CfgM.simple cfg L := by
     split at Hc'
-    · exact ⟨_, Hc'⟩
+    · rcases Hc' with ⟨-, h⟩ | ⟨-, h⟩
+      · exact ⟨_, h⟩
+      · exact ⟨_, h⟩
     · exact ⟨_, Hc'⟩
   obtain ⟨L, rfl⟩ := Hcs
   ihave Hphys := ownRaftPhysC_toS $$ Hphys

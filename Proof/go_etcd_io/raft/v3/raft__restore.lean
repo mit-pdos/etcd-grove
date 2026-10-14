@@ -56,14 +56,14 @@ theorem raft.restore.wp_proof
     (wp_raft_switchToConfig : raft.switchToConfig.spec (GF := GF) (hG := hG))
     (wp_assertConfStatesEquivalent : assertConfStatesEquivalent.spec (GF := GF) (hG := hG)) :
     raft.restore.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s sv voters learners Hrole Hvotes Hin Hscope
+  intro c cfg r id s sv voters learners Hrole Hvotes Hin Hscope
   obtain ⟨Hperm, H0, Hlnd, Hlok, Hlsz, Hcvo, Hcln, Hcal, Hidx61⟩ := Hscope
   wp_start as H
   iNamed H
   wp_auto
   -- `s.Metadata.Index <= r.raftLog.committed`
-  wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-  icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
+  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+  icases ownRaftPhysC_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
   icases ownRaftLog_struct $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
   wp_auto
   ihave Hlog := Hlb $$ Hl
@@ -75,13 +75,14 @@ theorem raft.restore.wp_proof
     rw [decide_eq_true Hst]
     wp_auto
     iapply HΦ $$ %false %s
+    simp only [restoreCfg, Bool.false_eq_true, ↓reduceIte]
     iframe Hphys
     ipureintro
     exact .inl ⟨Hst, rfl, rfl⟩
   rw [decide_eq_false Hst]
   wp_auto
   -- `r.state != StateFollower`: a follower
-  wp_apply raft.wp_load_state $$ Hphys as Hphys
+  wp_apply raft.wp_load_stateC $$ Hphys as Hphys
   rw [Hrole, decide_eq_true (show stateW64 PRole.follower = W64 0 from rfl)]
   wp_auto
   -- the `found` search over `[Voters; Learners; VotersOutgoing]`
@@ -135,7 +136,7 @@ theorem raft.restore.wp_proof
   wp_apply wp_load_slice_index (V := w64) (t := go.uint64) _ (sint.Z k2) voters _ y
       (by omega) $$ [$Hvoters] as -
   · ipureintro; exact Hy_lookup
-  wp_apply raft.wp_load_id $$ Hphys as Hphys
+  wp_apply raft.wp_load_idC $$ Hphys as Hphys
   by_cases Hne : y = id
   rotate_left
   · -- not this one: next
@@ -158,8 +159,8 @@ theorem raft.restore.wp_proof
   wp_for_post
   wp_for_post
   -- `matchTerm(id)`
-  wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-  icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
+  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+  icases ownRaftPhysC_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
   wp_apply wp_raftLog_matchTerm _ _ { term' := sv.Metadata'.Term', index' := sv.Metadata'.Index' }
     $$ [$Hlog] as %b ⟨Hlog, %Hb⟩
   ihave Hphys := Hlogback $$ Hlog
@@ -168,26 +169,27 @@ theorem raft.restore.wp_proof
   · -- the log has the snapshot's last entry: fast-forward the commit
     rw [Hb, decide_eq_true Hm]
     wp_auto
-    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-    icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
+    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+    icases ownRaftPhysC_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     wp_apply wp_raftLog_lastEntryID $$ [$Hlog] as %last ⟨Hlog, -⟩
     ihave Hphys := Hlogback $$ Hlog
     -- the `Infof`: `r.id`, `r.raftLog.committed`, the two ids
-    wp_apply raft.wp_load_id $$ Hphys as Hphys
-    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-    icases ownRaftPhys_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
+    wp_apply raft.wp_load_idC $$ Hphys as Hphys
+    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+    icases ownRaftPhysC_log_same $$ Hphys with ⟨Hlog, Hlogback⟩
     icases ownRaftLog_struct $$ Hlog with ⟨%lv2, Hl, -, Hlb⟩
     wp_auto
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
-    wp_raft_log
+    wp_raft_logC
     -- `commitTo(Index)`: in range, the log has a term at `Index`
     obtain ⟨-, Hle⟩ := plogTermAt_some_range _ _ _ _ Hm
-    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-    icases ownRaftPhys_log_at $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
+    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+    icases ownRaftPhysC_log_at $$ Hphys with ⟨Hlog, %Hgh0, Hlogback⟩
     wp_apply wp_raftLog_commitTo _ _ sv.Metadata'.Index' Hle $$ [$Hlog] as Hlog
     ihave Hphys := Hlogback $$ Hlog %(LogGhOk.of_fields Hgh0 rfl rfl rfl rfl rfl)
     iapply HΦ $$ %false %_
+    simp only [restoreCfg, Bool.false_eq_true, ↓reduceIte]
     iframe Hphys
     ipureintro
     refine .inr (.inl ⟨by simp only [snapId]; omega, Hm, rfl, ?_⟩)
@@ -196,15 +198,19 @@ theorem raft.restore.wp_proof
   · rw [Hb, decide_eq_false Hm]
     wp_auto
     -- `r.raftLog.restore(s)`
-    wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-    icases ownRaftPhys_log_at $$ Hphys with ⟨Hlog, -, Hlogback⟩
+    wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+    icases ownRaftPhysC_log_at $$ Hphys with ⟨Hlog, -, Hlogback⟩
     wp_apply wp_raftLog_restore _ _ sv voters (by simp only [snapId]; omega)
         (by simp only [snapId]; omega) $$ [$Hlog $Hvoters] as Hlog
     ihave Hphys := Hlogback $$ %_ Hlog %(LogGhOk.of_snap (by simp [logRestore]))
     -- the tracker replaced by the empty one, the log used meanwhile
-    icases ownRaftPhys_retrack _ ∅ _ _ _ (by intro h; exact absurd Hrole h) $$ Hphys with ⟨%tv, Htrkf, Htrk, Hlf, Hlog, Hback⟩
-    icases ownTracker_size $$ Htrk with ⟨%Hcfg_size, Htrk⟩
-    icases ownTracker_maxinflight $$ Htrk with ⟨%Hmi, -⟩
+    icases ownRaftPhysC_retrack c c.voters (CfgM.simple ∅ (domSet (∅ : GMap w64 Loc) \ ∅)).voters
+        (c := CfgM.simple ∅ (domSet (∅ : GMap w64 Loc) \ ∅)) _ _ _
+        (by intro h; exact absurd Hrole h) $$ Hphys with ⟨%tv, Htrkf, Htrk, Hlf, Hlog, Hback⟩
+    icases ownTrackerC_maxinflight $$ Htrk with ⟨%Hmi, -⟩
+    have Hcfg_size : (GMap.size cfg : Int) ≤ 2 ^ 62 := by
+      have := Hlsz; have : (0 : Int) ≤ learners.length := by omega
+      omega
     wp_auto
     wp_apply wp_MakeProgressTracker as %tv0 %v0 ⟨%Htv0, Hv0, Hvotes0, Hprs0⟩
     obtain ⟨Htv0mi, Htv0mb, Htv0arr, Htv0l, Htv0ln, Htv0al⟩ := Htv0
@@ -227,8 +233,10 @@ theorem raft.restore.wp_proof
     obtain ⟨Hcfgarr, Hcfgln, Hcfgal⟩ := Hcfgv
     -- the struct, re-sealed over the empty configuration
     ihave Htrk0 := ownTracker_empty tv0 v0 Htv0arr Htv0l Htv0ln Htv0al Hmi0 $$ Hv0 Hvotes0 Hprs0
+    ihave Htrk0 := ownTracker_toC _ _ _ $$ Htrk0
     ihave Hphys := Hback $$ %tv0 %∅ %∅ %∅ %_ Hlf Htrkf Htrk0 Hlog
       %(LogGhOk.of_snap (by simp [logRestore]))
+    ihave Hphys := ownRaftPhysC_toS $$ Hphys
     -- `assertConfStatesEquivalent(r.logger, cs, r.switchToConfig(cfg, trk))`
     wp_apply raft.wp_load_logger $$ Hphys as %lok0 ⟨Hphys, #Hlg0⟩
     have Hcfgeq : GMap.listToSet voters = cfg := by
@@ -279,6 +287,8 @@ theorem raft.restore.wp_proof
     ihave Hphys := Hlogback $$ Hlog
     wp_raft_log
     iapply HΦ $$ %true %_
+    simp only [restoreCfg, ↓reduceIte]
+    ihave Hphys := ownRaftPhys_toC' $$ Hphys
     iframe Hphys
     ipureintro
     refine .inr (.inr ⟨by simp only [snapId]; omega, Hm, rfl, prs, pvs1, learnerOf cfg prs id, ?_⟩)

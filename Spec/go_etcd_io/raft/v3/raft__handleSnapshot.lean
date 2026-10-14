@@ -60,6 +60,20 @@ def HandleSnapResult (id : w64) (s : NState) (m : raftpb.Message)
                             isLearner := il }
             [appResp id s dst false sid.index' (W64 0) (W64 0)])
 
+/-- Whether `restore` restored the snapshot (its third exit): newer than the commit index, and
+its last entry not in the log. -/
+def SnapRestores (s : NState) (sv : raftpb.Snapshot) : Prop :=
+  uint.Z s.logst.committed < uint.Z (snapId sv).index' ∧
+  ¬ PlogMatches s.logst.prev (s.logst.sents ++ s.logst.uents) (snapId sv)
+
+/-- The configuration after `handleSnapshot` (2026-10-14, reconfiguration stage A3): the
+snapshot's (its voters `cfg`, the learners the tracked ids outside them) after a restore, the
+old one `c` otherwise. -/
+def SnapCfgOk (c : CfgM) (cfg : GSet w64) (s : NState) (sv : raftpb.Snapshot) (s' : NState)
+    (c' : CfgM) : Prop :=
+  (SnapRestores s sv ∧ c' = CfgM.simple cfg (domSet s'.progress \ cfg)) ∨
+  (¬ SnapRestores s sv ∧ c' = c)
+
 end results
 
 section spec
@@ -69,8 +83,30 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- See the file header. -/
+/-- See the file header. At any configuration since 2026-10-14 (reconfiguration stage A3): the
+struct at any `c`, the snapshot's non-joint configuration with the voters `cfg` (`restore`'s
+spec); afterwards the node is at the configuration `c'` (`SnapCfgOk`). The old statement is
+`raft.handleSnapshot.specS`. -/
 abbrev raft.handleSnapshot.spec : Prop :=
+  ∀ (c : CfgM) (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
+    (m : raftpb.Message) (sv : raftpb.Snapshot) (voters learners : List w64),
+  s.role = .follower →
+  s.votes = ∅ →
+  id ∈ cfg →
+  SnapScope cfg sv voters learners →
+  m.From' ≠ id →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      "#Hsv" ∷ m.Snapshot' ↦□ sv ∗
+      "#Hvoters" ∷ sv.Metadata'.ConfState'.Voters' ↦*□ voters ∗
+      "#Hlearners" ∷ ownIdList sv.Metadata'.ConfState'.Learners' DFrac.discard learners }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleSnapshot")) (Val #m))
+  {{ (s' : NState) (c' : CfgM), RET #();
+      ownRaftPhysCV c' c'.voters r id s' ∗ ⌜HandleSnapResult id s m sv s'⌝ ∗
+      ⌜SnapCfgOk c cfg s sv s' c'⌝ }}
+
+/-- The statement until 2026-10-14: the snapshot's voters are the node's, `cfg`. -/
+abbrev raft.handleSnapshot.specS : Prop :=
   ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState)
     (m : raftpb.Message) (sv : raftpb.Snapshot) (voters learners : List w64),
   s.role = .follower →
@@ -87,6 +123,27 @@ abbrev raft.handleSnapshot.spec : Prop :=
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleSnapshot")) (Val #m))
   {{ (s' : NState), RET #();
       ownRaftPhys cfg r id s' ∗ ⌜HandleSnapResult id s m sv s'⌝ }}
+
+open Iris.ProofMode in
+theorem raft.handleSnapshot.spec_simple
+    (H : raft.handleSnapshot.spec (GF := GF) (hG := hG)) :
+    raft.handleSnapshot.specS (GF := GF) (hG := hG) := by
+  intro cfg r id s m sv voters learners Hrole Hvotes Hin Hscope Hfid
+  iintro %Φ ⟨#Hpkg, Hphys, #Hsv, #Hvoters, #Hlearners⟩ HΦ
+  ihave Hphys := ownRaftPhys_toC' $$ Hphys
+  iapply H _ cfg r id s m sv voters learners Hrole Hvotes Hin Hscope Hfid
+    $$ [$Hpkg $Hphys $Hsv $Hvoters $Hlearners]
+  inext
+  iintro %s' %c' ⟨Hphys, %Hres, %Hc'⟩
+  have Hcs : ∃ L, c' = CfgM.simple cfg L := by
+    rcases Hc' with ⟨-, h⟩ | ⟨-, h⟩
+    · exact ⟨_, h⟩
+    · exact ⟨_, h⟩
+  obtain ⟨L, rfl⟩ := Hcs
+  ihave Hphys := ownRaftPhysC_toS $$ Hphys
+  iapply HΦ
+  iframe Hphys
+  ipureintro; exact Hres
 
 end spec
 
