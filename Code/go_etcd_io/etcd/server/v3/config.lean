@@ -34,7 +34,8 @@ def ServerConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] ServerConfig.ty
 
-axiom grpcOverheadBytes [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def grpcOverheadBytes [FfiSyntax] [GoGlobalContext] : val :=
+  #(524288 : Int)
 
 noncomputable def CheckDuplicateURL [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/config.CheckDuplicateURL"
@@ -58,6 +59,15 @@ noncomputable def ServerConfig.ElectionTimeout.impl [FfiSyntax] [GoGlobalContext
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ServerConfig.ty)))) (Var "c"))
   (App (Val doReturn)
   (App (Val (GoInstruction (GoOp GoMul _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (Convert go.int _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"ElectionTicks"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"TickMs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))))))) (Val _root_.Perennial.time.Millisecond))))))))
+
+/-- go: config.go:354:24 -/
+noncomputable def ServerConfig.MaxRequestBytesWithOverhead.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ServerConfig.ty)))) (Var "c"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoOp GoPlus go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"MaxRequestBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c")))) (App (Val (GoInstruction (Convert go.untypedInt go.uint))) (Val grpcOverheadBytes)))))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.config where
   pkgImportedPkgs := [pkg_id.time, pkg_id.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.bbolt, pkg_id.go_etcd_io.etcd.client.pkg.v3.transport, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.featuregate, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery]
@@ -342,6 +352,7 @@ class ServerConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   get_Metrics : ∀ (x : ServerConfig), go.IsGoStepPureDetTagged under (StructFieldGet ServerConfig.underlying go!"Metrics") #x (Val #(x.Metrics'))
   set_Metrics : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"Metrics") (PairV #x #y) (Val #(({ x with Metrics' := y } : ServerConfig)))
   ptr_ElectionTimeout_unfold : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"ElectionTimeout" ServerConfig.ElectionTimeout.impl
+  ptr_MaxRequestBytesWithOverhead_unfold : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"MaxRequestBytesWithOverhead" ServerConfig.MaxRequestBytesWithOverhead.impl
   ptr_ReqTimeout_unfold : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"ReqTimeout" ServerConfig.ReqTimeout.impl
 
 attribute [instance] ServerConfig.TypeAssumptions.type_repr
@@ -461,6 +472,7 @@ attribute [instance] ServerConfig.TypeAssumptions.type_repr
   ServerConfig.TypeAssumptions.get_Metrics
   ServerConfig.TypeAssumptions.set_Metrics
   ServerConfig.TypeAssumptions.ptr_ElectionTimeout_unfold
+  ServerConfig.TypeAssumptions.ptr_MaxRequestBytesWithOverhead_unfold
   ServerConfig.TypeAssumptions.ptr_ReqTimeout_unfold
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

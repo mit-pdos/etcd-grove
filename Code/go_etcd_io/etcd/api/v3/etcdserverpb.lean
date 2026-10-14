@@ -873,14 +873,6 @@ axiom SnapshotRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom SnapshotResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom WatchRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom WatchCreateRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom WatchCancelRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom WatchProgressRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom LeaseKeepAliveRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom LeaseKeepAliveResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -1061,9 +1053,11 @@ axiom file_raft_internal_proto_rawDesc [FfiSyntax] [GoGlobalContext] : val
 @[reducible] noncomputable def Compare_LEASE [FfiSyntax] [GoGlobalContext] : val :=
   #(W32 4)
 
-axiom WatchCreateRequest_NOPUT [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def WatchCreateRequest_NOPUT [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 0)
 
-axiom WatchCreateRequest_NODELETE [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def WatchCreateRequest_NODELETE [FfiSyntax] [GoGlobalContext] : val :=
+  #(W32 1)
 
 @[reducible] noncomputable def AlarmRequest_GET [FfiSyntax] [GoGlobalContext] : val :=
   #(W32 0)
@@ -2594,6 +2588,18 @@ noncomputable def _KV_Txn_Handler.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType TxnRequest.ty)))) (Pair (Var "in") (Var "$r0"))))))))))))))))
+
+/-- go: rpc_grpc.pb.go:437:6 -/
+noncomputable def _Watch_Watch_Handler.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "srv"
+  (Lam "stream"
+  (App (Val exceptionDo)
+  (Let "stream" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.ServerStream.ty))) (Var "stream"))
+  (Let "srv" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (Var "srv"))
+  (App (Val doReturn)
+  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType (_root_.Perennial.google_golang_org.grpc.GenericServerStream.ty WatchRequest.ty WatchResponse.ty)) (_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty WatchRequest.ty WatchResponse.ty)))) (App (Val (GoInstruction (GoAlloc (_root_.Perennial.google_golang_org.grpc.GenericServerStream.ty WatchRequest.ty WatchResponse.ty)))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ServerStream.ty))) (Var "stream"))
+  (App (Val (GoInstruction (CompositeLiteral (_root_.Perennial.google_golang_org.grpc.GenericServerStream.ty WatchRequest.ty WatchResponse.ty)))) (LiteralValue [(KeyedElement (some (KeyField go!"ServerStream")) (ElementExpression _root_.Perennial.google_golang_org.grpc.ServerStream.ty (Var "$v0")))])))))
+  (App (App (Val (GoInstruction (MethodResolve WatchServer.ty go!"Watch"))) (App (Val (GoInstruction (TypeAssert WatchServer.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "srv")))) (Var "$a0")))))))))
 
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.runtime.protoimpl, pkg_id.go_etcd_io.etcd.api.v3.membershippb, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.context, pkg_id.google_golang_org.grpc]
@@ -4899,19 +4905,6 @@ attribute [instance] SnapshotResponse.TypeAssumptions.type_repr
   SnapshotResponse.TypeAssumptions.underlying
   SnapshotResponse.TypeAssumptions.isUnderlying
 
-axiom WatchRequest : Type
-axiom WatchRequest.zero_val : ZeroVal WatchRequest
-attribute [instance] WatchRequest.zero_val
-
-class WatchRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying WatchRequest.underlying WatchRequest
-  underlying : go.UnderlyingDirectedEq WatchRequest.ty WatchRequest.underlying
-  isUnderlying : go.IsUnderlying WatchRequest.underlying WatchRequest.underlying
-
-attribute [instance] WatchRequest.TypeAssumptions.type_repr
-  WatchRequest.TypeAssumptions.underlying
-  WatchRequest.TypeAssumptions.isUnderlying
-
 abbrev isWatchRequest_RequestUnion [FfiSyntax] : Type := GoInterface
 
 @[reducible] def isWatchRequest_RequestUnion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
@@ -4921,6 +4914,55 @@ class isWatchRequest_RequestUnion.TypeAssumptions [FfiSyntax] [GoGlobalContext] 
   underlying : go.UnderlyingDirectedEq isWatchRequest_RequestUnion.ty isWatchRequest_RequestUnion.underlying
 
 attribute [instance] isWatchRequest_RequestUnion.TypeAssumptions.underlying
+
+structure WatchRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  RequestUnion' : isWatchRequest_RequestUnion
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance WatchRequest.zero_val [FfiSyntax] : ZeroVal WatchRequest :=
+  ⟨WatchRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def WatchRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"RequestUnion" isWatchRequest_RequestUnion.ty),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def WatchRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  WatchRequest.fieldsUnsealed
+
+instance equals_unfold_WatchRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold WatchRequest.fields WatchRequest.fieldsUnsealed :=
+  ⟨by unfold WatchRequest.fields; rfl⟩
+
+@[reducible] def WatchRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType WatchRequest.fields)
+
+class WatchRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying WatchRequest.underlying WatchRequest
+  underlying : go.UnderlyingDirectedEq WatchRequest.ty WatchRequest.underlying
+  get_state : ∀ (x : WatchRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : WatchRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet WatchRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : WatchRequest)))
+  get_RequestUnion : ∀ (x : WatchRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchRequest.underlying go!"RequestUnion") #x (Val #(x.RequestUnion'))
+  set_RequestUnion : ∀ (x : WatchRequest) (y : isWatchRequest_RequestUnion), go.IsGoStepPureDetTagged under (StructFieldSet WatchRequest.underlying go!"RequestUnion") (PairV #x #y) (Val #(({ x with RequestUnion' := y } : WatchRequest)))
+  get_unknownFields : ∀ (x : WatchRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : WatchRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WatchRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : WatchRequest)))
+  get_sizeCache : ∀ (x : WatchRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : WatchRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet WatchRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : WatchRequest)))
+
+attribute [instance] WatchRequest.TypeAssumptions.type_repr
+  WatchRequest.TypeAssumptions.underlying
+  WatchRequest.TypeAssumptions.get_state
+  WatchRequest.TypeAssumptions.set_state
+  WatchRequest.TypeAssumptions.get_RequestUnion
+  WatchRequest.TypeAssumptions.set_RequestUnion
+  WatchRequest.TypeAssumptions.get_unknownFields
+  WatchRequest.TypeAssumptions.set_unknownFields
+  WatchRequest.TypeAssumptions.get_sizeCache
+  WatchRequest.TypeAssumptions.set_sizeCache
 
 structure WatchRequest_CreateRequest [FfiSyntax] where
   mk ::
@@ -5015,44 +5057,188 @@ attribute [instance] WatchRequest_ProgressRequest.TypeAssumptions.type_repr
   WatchRequest_ProgressRequest.TypeAssumptions.get_ProgressRequest
   WatchRequest_ProgressRequest.TypeAssumptions.set_ProgressRequest
 
-axiom WatchCreateRequest : Type
-axiom WatchCreateRequest.zero_val : ZeroVal WatchCreateRequest
-attribute [instance] WatchCreateRequest.zero_val
+structure WatchCreateRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  Key' : GoSlice
+  RangeEnd' : GoSlice
+  StartRevision' : w64
+  ProgressNotify' : Bool
+  Filters' : GoSlice
+  PrevKv' : Bool
+  WatchId' : w64
+  Fragment' : Bool
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance WatchCreateRequest.zero_val [FfiSyntax] : ZeroVal WatchCreateRequest :=
+  ⟨WatchCreateRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def WatchCreateRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"Key" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"RangeEnd" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"StartRevision" go.int64),
+(go.field_decl.FieldDecl go!"ProgressNotify" go.bool),
+(go.field_decl.FieldDecl go!"Filters" (go.GoType.SliceType WatchCreateRequest_FilterType.ty)),
+(go.field_decl.FieldDecl go!"PrevKv" go.bool),
+(go.field_decl.FieldDecl go!"WatchId" go.int64),
+(go.field_decl.FieldDecl go!"Fragment" go.bool),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def WatchCreateRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  WatchCreateRequest.fieldsUnsealed
+
+instance equals_unfold_WatchCreateRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold WatchCreateRequest.fields WatchCreateRequest.fieldsUnsealed :=
+  ⟨by unfold WatchCreateRequest.fields; rfl⟩
+
+@[reducible] def WatchCreateRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType WatchCreateRequest.fields)
 
 class WatchCreateRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WatchCreateRequest.underlying WatchCreateRequest
   underlying : go.UnderlyingDirectedEq WatchCreateRequest.ty WatchCreateRequest.underlying
-  isUnderlying : go.IsUnderlying WatchCreateRequest.underlying WatchCreateRequest.underlying
+  get_state : ∀ (x : WatchCreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCreateRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : WatchCreateRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet WatchCreateRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : WatchCreateRequest)))
+  get_Key : ∀ (x : WatchCreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCreateRequest.underlying go!"Key") #x (Val #(x.Key'))
+  set_Key : ∀ (x : WatchCreateRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WatchCreateRequest.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : WatchCreateRequest)))
+  get_RangeEnd : ∀ (x : WatchCreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCreateRequest.underlying go!"RangeEnd") #x (Val #(x.RangeEnd'))
+  set_RangeEnd : ∀ (x : WatchCreateRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WatchCreateRequest.underlying go!"RangeEnd") (PairV #x #y) (Val #(({ x with RangeEnd' := y } : WatchCreateRequest)))
+  get_StartRevision : ∀ (x : WatchCreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCreateRequest.underlying go!"StartRevision") #x (Val #(x.StartRevision'))
+  set_StartRevision : ∀ (x : WatchCreateRequest) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet WatchCreateRequest.underlying go!"StartRevision") (PairV #x #y) (Val #(({ x with StartRevision' := y } : WatchCreateRequest)))
+  get_ProgressNotify : ∀ (x : WatchCreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCreateRequest.underlying go!"ProgressNotify") #x (Val #(x.ProgressNotify'))
+  set_ProgressNotify : ∀ (x : WatchCreateRequest) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet WatchCreateRequest.underlying go!"ProgressNotify") (PairV #x #y) (Val #(({ x with ProgressNotify' := y } : WatchCreateRequest)))
+  get_Filters : ∀ (x : WatchCreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCreateRequest.underlying go!"Filters") #x (Val #(x.Filters'))
+  set_Filters : ∀ (x : WatchCreateRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WatchCreateRequest.underlying go!"Filters") (PairV #x #y) (Val #(({ x with Filters' := y } : WatchCreateRequest)))
+  get_PrevKv : ∀ (x : WatchCreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCreateRequest.underlying go!"PrevKv") #x (Val #(x.PrevKv'))
+  set_PrevKv : ∀ (x : WatchCreateRequest) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet WatchCreateRequest.underlying go!"PrevKv") (PairV #x #y) (Val #(({ x with PrevKv' := y } : WatchCreateRequest)))
+  get_WatchId : ∀ (x : WatchCreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCreateRequest.underlying go!"WatchId") #x (Val #(x.WatchId'))
+  set_WatchId : ∀ (x : WatchCreateRequest) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet WatchCreateRequest.underlying go!"WatchId") (PairV #x #y) (Val #(({ x with WatchId' := y } : WatchCreateRequest)))
+  get_Fragment : ∀ (x : WatchCreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCreateRequest.underlying go!"Fragment") #x (Val #(x.Fragment'))
+  set_Fragment : ∀ (x : WatchCreateRequest) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet WatchCreateRequest.underlying go!"Fragment") (PairV #x #y) (Val #(({ x with Fragment' := y } : WatchCreateRequest)))
+  get_unknownFields : ∀ (x : WatchCreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCreateRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : WatchCreateRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WatchCreateRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : WatchCreateRequest)))
+  get_sizeCache : ∀ (x : WatchCreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCreateRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : WatchCreateRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet WatchCreateRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : WatchCreateRequest)))
 
 attribute [instance] WatchCreateRequest.TypeAssumptions.type_repr
   WatchCreateRequest.TypeAssumptions.underlying
-  WatchCreateRequest.TypeAssumptions.isUnderlying
+  WatchCreateRequest.TypeAssumptions.get_state
+  WatchCreateRequest.TypeAssumptions.set_state
+  WatchCreateRequest.TypeAssumptions.get_Key
+  WatchCreateRequest.TypeAssumptions.set_Key
+  WatchCreateRequest.TypeAssumptions.get_RangeEnd
+  WatchCreateRequest.TypeAssumptions.set_RangeEnd
+  WatchCreateRequest.TypeAssumptions.get_StartRevision
+  WatchCreateRequest.TypeAssumptions.set_StartRevision
+  WatchCreateRequest.TypeAssumptions.get_ProgressNotify
+  WatchCreateRequest.TypeAssumptions.set_ProgressNotify
+  WatchCreateRequest.TypeAssumptions.get_Filters
+  WatchCreateRequest.TypeAssumptions.set_Filters
+  WatchCreateRequest.TypeAssumptions.get_PrevKv
+  WatchCreateRequest.TypeAssumptions.set_PrevKv
+  WatchCreateRequest.TypeAssumptions.get_WatchId
+  WatchCreateRequest.TypeAssumptions.set_WatchId
+  WatchCreateRequest.TypeAssumptions.get_Fragment
+  WatchCreateRequest.TypeAssumptions.set_Fragment
+  WatchCreateRequest.TypeAssumptions.get_unknownFields
+  WatchCreateRequest.TypeAssumptions.set_unknownFields
+  WatchCreateRequest.TypeAssumptions.get_sizeCache
+  WatchCreateRequest.TypeAssumptions.set_sizeCache
 
-axiom WatchCancelRequest : Type
-axiom WatchCancelRequest.zero_val : ZeroVal WatchCancelRequest
-attribute [instance] WatchCancelRequest.zero_val
+structure WatchCancelRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  WatchId' : w64
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance WatchCancelRequest.zero_val [FfiSyntax] : ZeroVal WatchCancelRequest :=
+  ⟨WatchCancelRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def WatchCancelRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"WatchId" go.int64),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def WatchCancelRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  WatchCancelRequest.fieldsUnsealed
+
+instance equals_unfold_WatchCancelRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold WatchCancelRequest.fields WatchCancelRequest.fieldsUnsealed :=
+  ⟨by unfold WatchCancelRequest.fields; rfl⟩
+
+@[reducible] def WatchCancelRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType WatchCancelRequest.fields)
 
 class WatchCancelRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WatchCancelRequest.underlying WatchCancelRequest
   underlying : go.UnderlyingDirectedEq WatchCancelRequest.ty WatchCancelRequest.underlying
-  isUnderlying : go.IsUnderlying WatchCancelRequest.underlying WatchCancelRequest.underlying
+  get_state : ∀ (x : WatchCancelRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCancelRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : WatchCancelRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet WatchCancelRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : WatchCancelRequest)))
+  get_WatchId : ∀ (x : WatchCancelRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCancelRequest.underlying go!"WatchId") #x (Val #(x.WatchId'))
+  set_WatchId : ∀ (x : WatchCancelRequest) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet WatchCancelRequest.underlying go!"WatchId") (PairV #x #y) (Val #(({ x with WatchId' := y } : WatchCancelRequest)))
+  get_unknownFields : ∀ (x : WatchCancelRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCancelRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : WatchCancelRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WatchCancelRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : WatchCancelRequest)))
+  get_sizeCache : ∀ (x : WatchCancelRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCancelRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : WatchCancelRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet WatchCancelRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : WatchCancelRequest)))
 
 attribute [instance] WatchCancelRequest.TypeAssumptions.type_repr
   WatchCancelRequest.TypeAssumptions.underlying
-  WatchCancelRequest.TypeAssumptions.isUnderlying
+  WatchCancelRequest.TypeAssumptions.get_state
+  WatchCancelRequest.TypeAssumptions.set_state
+  WatchCancelRequest.TypeAssumptions.get_WatchId
+  WatchCancelRequest.TypeAssumptions.set_WatchId
+  WatchCancelRequest.TypeAssumptions.get_unknownFields
+  WatchCancelRequest.TypeAssumptions.set_unknownFields
+  WatchCancelRequest.TypeAssumptions.get_sizeCache
+  WatchCancelRequest.TypeAssumptions.set_sizeCache
 
-axiom WatchProgressRequest : Type
-axiom WatchProgressRequest.zero_val : ZeroVal WatchProgressRequest
-attribute [instance] WatchProgressRequest.zero_val
+structure WatchProgressRequest [FfiSyntax] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+instance WatchProgressRequest.zero_val [FfiSyntax] : ZeroVal WatchProgressRequest :=
+  ⟨WatchProgressRequest.mk zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def WatchProgressRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] def WatchProgressRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  WatchProgressRequest.fieldsUnsealed
+
+instance equals_unfold_WatchProgressRequest [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold WatchProgressRequest.fields WatchProgressRequest.fieldsUnsealed :=
+  ⟨by unfold WatchProgressRequest.fields; rfl⟩
+
+@[reducible] def WatchProgressRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType WatchProgressRequest.fields)
 
 class WatchProgressRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WatchProgressRequest.underlying WatchProgressRequest
   underlying : go.UnderlyingDirectedEq WatchProgressRequest.ty WatchProgressRequest.underlying
-  isUnderlying : go.IsUnderlying WatchProgressRequest.underlying WatchProgressRequest.underlying
+  get_state : ∀ (x : WatchProgressRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchProgressRequest.underlying go!"state") #x (Val #(x.state'))
+  set_state : ∀ (x : WatchProgressRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState), go.IsGoStepPureDetTagged under (StructFieldSet WatchProgressRequest.underlying go!"state") (PairV #x #y) (Val #(({ x with state' := y } : WatchProgressRequest)))
+  get_unknownFields : ∀ (x : WatchProgressRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchProgressRequest.underlying go!"unknownFields") #x (Val #(x.unknownFields'))
+  set_unknownFields : ∀ (x : WatchProgressRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WatchProgressRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : WatchProgressRequest)))
+  get_sizeCache : ∀ (x : WatchProgressRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchProgressRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
+  set_sizeCache : ∀ (x : WatchProgressRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet WatchProgressRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : WatchProgressRequest)))
 
 attribute [instance] WatchProgressRequest.TypeAssumptions.type_repr
   WatchProgressRequest.TypeAssumptions.underlying
-  WatchProgressRequest.TypeAssumptions.isUnderlying
+  WatchProgressRequest.TypeAssumptions.get_state
+  WatchProgressRequest.TypeAssumptions.set_state
+  WatchProgressRequest.TypeAssumptions.get_unknownFields
+  WatchProgressRequest.TypeAssumptions.set_unknownFields
+  WatchProgressRequest.TypeAssumptions.get_sizeCache
+  WatchProgressRequest.TypeAssumptions.set_sizeCache
 
 structure WatchResponse [FfiSyntax] where
   mk ::
@@ -7973,6 +8159,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   _KV_Put_Handler_unfold : FuncUnfold _KV_Put_Handler [] _KV_Put_Handler.impl
   _KV_DeleteRange_Handler_unfold : FuncUnfold _KV_DeleteRange_Handler [] _KV_DeleteRange_Handler.impl
   _KV_Txn_Handler_unfold : FuncUnfold _KV_Txn_Handler [] _KV_Txn_Handler.impl
+  _Watch_Watch_Handler_unfold : FuncUnfold _Watch_Watch_Handler [] _Watch_Watch_Handler.impl
   import_protoimpl_Assumption : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
   import_membershippb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.Assumptions
   import_authpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Assumptions
@@ -8152,6 +8339,7 @@ attribute [instance] Assumptions.Metadata_instance
   Assumptions._KV_Put_Handler_unfold
   Assumptions._KV_DeleteRange_Handler_unfold
   Assumptions._KV_Txn_Handler_unfold
+  Assumptions._Watch_Watch_Handler_unfold
   Assumptions.import_protoimpl_Assumption
   Assumptions.import_membershippb_Assumption
   Assumptions.import_authpb_Assumption

@@ -4565,6 +4565,17 @@ noncomputable def getRequestType.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #(go!"Unknown")))))))))))))))))))))))))))))))))))))
 
+/-- Watchable returns a watchable interface attached to the etcdserver.
+
+    go: v3_server.go:1204:22 -/
+noncomputable def EtcdServer.Watchable.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (App (Val doReturn)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"KV"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #())))))))
+
 /-- go: v3_server.go:1206:22 -/
 noncomputable def EtcdServer.AuthInfoFromCtx.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
@@ -5947,6 +5958,7 @@ class EtcdServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   ptr_Stopping_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Stopping" EtcdServer.Stopping.impl
   ptr_Term_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Term" EtcdServer.Term.impl
   ptr_Txn_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Txn" EtcdServer.Txn.impl
+  ptr_Watchable_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Watchable" EtcdServer.Watchable.impl
   ptr_apply_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"apply" EtcdServer.apply.impl
   ptr_applyAll_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"applyAll" EtcdServer.applyAll.impl
   ptr_applyEntries_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"applyEntries" EtcdServer.applyEntries.impl
@@ -6096,6 +6108,7 @@ attribute [instance] EtcdServer.TypeAssumptions.type_repr
   EtcdServer.TypeAssumptions.ptr_Stopping_unfold
   EtcdServer.TypeAssumptions.ptr_Term_unfold
   EtcdServer.TypeAssumptions.ptr_Txn_unfold
+  EtcdServer.TypeAssumptions.ptr_Watchable_unfold
   EtcdServer.TypeAssumptions.ptr_apply_unfold
   EtcdServer.TypeAssumptions.ptr_applyAll_unfold
   EtcdServer.TypeAssumptions.ptr_applyEntries_unfold

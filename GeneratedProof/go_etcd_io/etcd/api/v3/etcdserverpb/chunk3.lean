@@ -228,25 +228,6 @@ instance SnapshotResponse_into_val_typed :
 end def_
 end SnapshotResponse
 
-namespace WatchRequest
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance WatchRequest_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest :=
-  sorry -- axiomatized type
-
-instance WatchRequest_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest go_etcd_io.etcd.api.v3.etcdserverpb.WatchRequest.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end WatchRequest
-
 namespace WatchRequest_CreateRequest
 section def_
 
@@ -376,12 +357,203 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 instance WatchCreateRequest_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest where
+  typedPointstoDef l v dq := iprop(
+    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"state" l) v.state' dq ∗
+    "Key" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"Key" l) v.Key' dq ∗
+    "RangeEnd" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"RangeEnd" l) v.RangeEnd' dq ∗
+    "StartRevision" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"StartRevision" l) v.StartRevision' dq ∗
+    "ProgressNotify" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"ProgressNotify" l) v.ProgressNotify' dq ∗
+    "Filters" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"Filters" l) v.Filters' dq ∗
+    "PrevKv" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"PrevKv" l) v.PrevKv' dq ∗
+    "WatchId" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"WatchId" l) v.WatchId' dq ∗
+    "Fragment" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"Fragment" l) v.Fragment' dq ∗
+    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"unknownFields" l) v.unknownFields' dq ∗
+    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"sizeCache" l) v.sizeCache' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance WatchCreateRequest_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest.underlying := by
+  solve_into_val_typed_struct
+
+instance WatchCreateRequest_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"state" l) v.state' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCreateRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"state" l) state' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCreateRequest_access_load_Key (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"Key" l) v.Key' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCreateRequest_access_store_Key (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (Key' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"Key" l) v.Key' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"Key" l) Key' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := Key' } : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCreateRequest_access_load_RangeEnd (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"RangeEnd" l) v.RangeEnd' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"RangeEnd" l) v.RangeEnd' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCreateRequest_access_store_RangeEnd (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (RangeEnd' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"RangeEnd" l) v.RangeEnd' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"RangeEnd" l) RangeEnd' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RangeEnd' := RangeEnd' } : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCreateRequest_access_load_StartRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"StartRevision" l) v.StartRevision' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"StartRevision" l) v.StartRevision' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCreateRequest_access_store_StartRevision (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (StartRevision' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"StartRevision" l) v.StartRevision' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"StartRevision" l) StartRevision' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StartRevision' := StartRevision' } : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCreateRequest_access_load_ProgressNotify (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"ProgressNotify" l) v.ProgressNotify' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"ProgressNotify" l) v.ProgressNotify' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCreateRequest_access_store_ProgressNotify (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (ProgressNotify' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"ProgressNotify" l) v.ProgressNotify' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"ProgressNotify" l) ProgressNotify' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ProgressNotify' := ProgressNotify' } : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCreateRequest_access_load_Filters (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"Filters" l) v.Filters' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"Filters" l) v.Filters' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCreateRequest_access_store_Filters (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (Filters' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"Filters" l) v.Filters' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"Filters" l) Filters' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Filters' := Filters' } : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCreateRequest_access_load_PrevKv (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"PrevKv" l) v.PrevKv' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"PrevKv" l) v.PrevKv' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCreateRequest_access_store_PrevKv (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (PrevKv' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"PrevKv" l) v.PrevKv' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"PrevKv" l) PrevKv' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PrevKv' := PrevKv' } : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCreateRequest_access_load_WatchId (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"WatchId" l) v.WatchId' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"WatchId" l) v.WatchId' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCreateRequest_access_store_WatchId (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (WatchId' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"WatchId" l) v.WatchId' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"WatchId" l) WatchId' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WatchId' := WatchId' } : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCreateRequest_access_load_Fragment (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"Fragment" l) v.Fragment' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"Fragment" l) v.Fragment' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCreateRequest_access_store_Fragment (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (Fragment' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"Fragment" l) v.Fragment' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"Fragment" l) Fragment' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Fragment' := Fragment' } : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCreateRequest_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCreateRequest_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (unknownFields' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"unknownFields" l) unknownFields' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := unknownFields' } : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCreateRequest_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCreateRequest_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (sizeCache' : w32) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest go!"sizeCache" l) sizeCache' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := sizeCache' } : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCreateRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end WatchCreateRequest
@@ -395,12 +567,84 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 instance WatchCancelRequest_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest where
+  typedPointstoDef l v dq := iprop(
+    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest go!"state" l) v.state' dq ∗
+    "WatchId" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest go!"WatchId" l) v.WatchId' dq ∗
+    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest go!"unknownFields" l) v.unknownFields' dq ∗
+    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest go!"sizeCache" l) v.sizeCache' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance WatchCancelRequest_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest.underlying := by
+  solve_into_val_typed_struct
+
+instance WatchCancelRequest_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest go!"state" l) v.state' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCancelRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest go!"state" l) state' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCancelRequest_access_load_WatchId (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest go!"WatchId" l) v.WatchId' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest go!"WatchId" l) v.WatchId' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCancelRequest_access_store_WatchId (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest) (WatchId' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest go!"WatchId" l) v.WatchId' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest go!"WatchId" l) WatchId' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WatchId' := WatchId' } : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCancelRequest_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCancelRequest_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest) (unknownFields' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest go!"unknownFields" l) unknownFields' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := unknownFields' } : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCancelRequest_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchCancelRequest_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest) (sizeCache' : w32) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest go!"sizeCache" l) sizeCache' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := sizeCache' } : go_etcd_io.etcd.api.v3.etcdserverpb.WatchCancelRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end WatchCancelRequest
@@ -414,12 +658,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 instance WatchProgressRequest_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest where
+  typedPointstoDef l v dq := iprop(
+    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest go!"state" l) v.state' dq ∗
+    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest go!"unknownFields" l) v.unknownFields' dq ∗
+    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest go!"sizeCache" l) v.sizeCache' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 instance WatchProgressRequest_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest.underlying := by
+  solve_into_val_typed_struct
+
+instance WatchProgressRequest_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest go!"state" l) v.state' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchProgressRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest go!"state" l) state' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchProgressRequest_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchProgressRequest_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest) (unknownFields' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest go!"unknownFields" l) unknownFields' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := unknownFields' } : go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchProgressRequest_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+instance WatchProgressRequest_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest) (sizeCache' : w32) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest go!"sizeCache" l) sizeCache' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := sizeCache' } : go_etcd_io.etcd.api.v3.etcdserverpb.WatchProgressRequest) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end WatchProgressRequest
@@ -1173,226 +1472,6 @@ instance LeaseCheckpoint_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.a
 
 end def_
 end LeaseCheckpoint
-
-namespace LeaseCheckpointRequest
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance LeaseCheckpointRequest_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest where
-  typedPointstoDef l v dq := iprop(
-    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest go!"state" l) v.state' dq ∗
-    "Checkpoints" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest go!"Checkpoints" l) v.Checkpoints' dq ∗
-    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest go!"unknownFields" l) v.unknownFields' dq ∗
-    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest go!"sizeCache" l) v.sizeCache' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-instance LeaseCheckpointRequest_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest.underlying := by
-  solve_into_val_typed_struct
-
-instance LeaseCheckpointRequest_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest go!"state" l) v.state' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest go!"state" l) v.state' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance LeaseCheckpointRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest go!"state" l) state' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance LeaseCheckpointRequest_access_load_Checkpoints (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest go!"Checkpoints" l) v.Checkpoints' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest go!"Checkpoints" l) v.Checkpoints' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance LeaseCheckpointRequest_access_store_Checkpoints (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest) (Checkpoints' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest go!"Checkpoints" l) v.Checkpoints' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest go!"Checkpoints" l) Checkpoints' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Checkpoints' := Checkpoints' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance LeaseCheckpointRequest_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance LeaseCheckpointRequest_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest) (unknownFields' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest go!"unknownFields" l) unknownFields' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := unknownFields' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance LeaseCheckpointRequest_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance LeaseCheckpointRequest_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest) (sizeCache' : w32) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest go!"sizeCache" l) sizeCache' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := sizeCache' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointRequest) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end LeaseCheckpointRequest
-
-namespace LeaseCheckpointResponse
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance LeaseCheckpointResponse_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse where
-  typedPointstoDef l v dq := iprop(
-    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse go!"state" l) v.state' dq ∗
-    "Header" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse go!"Header" l) v.Header' dq ∗
-    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse go!"unknownFields" l) v.unknownFields' dq ∗
-    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse go!"sizeCache" l) v.sizeCache' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-instance LeaseCheckpointResponse_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse.underlying := by
-  solve_into_val_typed_struct
-
-instance LeaseCheckpointResponse_access_load_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse go!"state" l) v.state' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse go!"state" l) v.state' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance LeaseCheckpointResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse go!"state" l) state' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance LeaseCheckpointResponse_access_load_Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse go!"Header" l) v.Header' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse go!"Header" l) v.Header' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance LeaseCheckpointResponse_access_store_Header (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse) (Header' : Loc) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse go!"Header" l) v.Header' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse go!"Header" l) Header' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Header' := Header' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance LeaseCheckpointResponse_access_load_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance LeaseCheckpointResponse_access_store_unknownFields (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse) (unknownFields' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse go!"unknownFields" l) unknownFields' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := unknownFields' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-instance LeaseCheckpointResponse_access_load_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-instance LeaseCheckpointResponse_access_store_sizeCache (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse) (sizeCache' : w32) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse go!"sizeCache" l) sizeCache' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := sizeCache' } : go_etcd_io.etcd.api.v3.etcdserverpb.LeaseCheckpointResponse) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end LeaseCheckpointResponse
-
-namespace LeaseKeepAliveRequest
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance LeaseKeepAliveRequest_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest :=
-  sorry -- axiomatized type
-
-instance LeaseKeepAliveRequest_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveRequest.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end LeaseKeepAliveRequest
-
-namespace LeaseKeepAliveResponse
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
-
-instance LeaseKeepAliveResponse_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse :=
-  sorry -- axiomatized type
-
-instance LeaseKeepAliveResponse_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end LeaseKeepAliveResponse
 
 end go_etcd_io.etcd.api.v3.etcdserverpb
 end

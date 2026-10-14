@@ -67,7 +67,14 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   # service's unary methods (`rpc_grpc.pb.go`: decode, then the interceptor or the service's
   # method) and their method names; the registration `RegisterKVServer` and its `ServiceDesc`
   "_KV_Range_Handler", "_KV_Put_Handler", "_KV_DeleteRange_Handler", "_KV_Txn_Handler",
-  "KV_DeleteRange_FullMethodName", "KV_Txn_FullMethodName", "RegisterKVServer", "KV_ServiceDesc"]
+  "KV_DeleteRange_FullMethodName", "KV_Txn_FullMethodName", "RegisterKVServer", "KV_ServiceDesc",
+  # the watch slice's unit W-S (the server's watch service, `v3rpc/watch.go`): the requests it
+  # reads (`WatchRequest` and its oneof wrappers, the create/cancel/progress requests, the filter
+  # types) and the generated stream handler `_Watch_Watch_Handler`
+  "WatchRequest", "WatchRequest_CreateRequest", "WatchRequest_CancelRequest",
+  "WatchRequest_ProgressRequest", "WatchCreateRequest", "WatchCancelRequest",
+  "WatchProgressRequest", "WatchCreateRequest_NOPUT", "WatchCreateRequest_NODELETE",
+  "WatchServer", "_Watch_Watch_Handler"]
 imports = ["!*", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/membershippb",
   "go.etcd.io/etcd/api/v3/authpb",
   "google.golang.org/protobuf/runtime/protoimpl", "google.golang.org/grpc", "context"]
