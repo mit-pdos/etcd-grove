@@ -157,6 +157,29 @@ instance forall_prop_timeless {PROP : Type _} [BI PROP] {P : Prop} (Ψ : P → P
 
 /-! ## Ghost state names -/
 
+/-- The dynamic configurations (2026-10-14, reconfiguration stage B5): the configuration of a
+committed log prefix (`fold`, partial: `none` past an entry that would panic), and the one fact
+of it the safety argument uses, that two prefixes of one log whose conf counts differ by at most
+one have overlapping configurations (`adj`; `fold_adjacent` for `cfgFold`). Abstract here: the
+ghost files sit below `CfgOverlap.lean`, which instantiates it (`DynCfg.ofFold`). -/
+structure DynCfg [FfiSyntax] where
+  fold : List raftpb.Entry → Option CfgM
+  adj : ∀ (P1 P2 : List raftpb.Entry) (c1 c2 : CfgM), P1 <+: P2 →
+    confCount P2 ≤ confCount P1 + 1 → fold P1 = some c1 → fold P2 = some c2 → QOverlap c1 c2
+
+/-- No configuration at all. -/
+def DynCfg.trivial [FfiSyntax] : DynCfg :=
+  ⟨fun _ => none, by intro _ _ _ _ _ _ h; cases h⟩
+
+/-- `D`, at its own `FfiSyntax` instance (`RaftNames.reDyn` is a function of the instance,
+since `RaftNames` takes none). -/
+def DynCfg.all [ext : FfiSyntax] (D : DynCfg) : (e : FfiSyntax) → @DynCfg e := by
+  classical
+  exact fun e => if h : e = ext then h ▸ D else @DynCfg.trivial e
+
+theorem DynCfg.all_self [ext : FfiSyntax] (D : DynCfg) : D.all ext = D := by
+  unfold DynCfg.all; simp
+
 structure RaftNames where
   /-- The voter set this ghost state is about. It lives in `γ` rather than being a
   parameter of `ownRaftGhost_step`: a step free to choose its own `cfg` could choose a
@@ -227,6 +250,13 @@ structure RaftNames where
   persistent elements `isWin` holds. One entry per term is election safety (`isLeader_unique`
   is the elements' agreement); the entry is added at win time (`win_fresh`, `winTbl_insert`). -/
   reTbl : GName
+  /-- The mode (2026-10-14, reconfiguration stage B5): `none`, static -- every configuration
+  is the ghost state's voters `reCfg` (`CfgStatic`), what the code proofs use; `some D`,
+  dynamic -- the configuration of a committed prefix is `D`'s fold (`CfgAt`), and the
+  dynamic-only facts (`dynOn`: a commit fact's at-most-one and witnesses, a campaign
+  record's, the node-local witnesses) are required. A function of the `FfiSyntax` instance
+  (`DynCfg.all`), since `RaftNames` takes none. -/
+  reDyn : Option ((e : FfiSyntax) → @DynCfg e)
   /-- The voter set is not empty (2026-10-14, reconfiguration stage B2). The protocol's
   step at a configuration (`StepC`) reads quorums by Go's convention, under which every
   set is a majority of an empty voter set (`MajQ`); the ghost state needs a real quorum
@@ -240,25 +270,25 @@ learners and `AutoLeave` free). This is the one place the refinement (`ownRaftGh
 constrains the step's configuration; the later stages replace it by what the winners table
 says about the term. -/
 def CfgStatic (γ : RaftNames) (c : CfgM) : Prop :=
-  c.incoming = γ.reCfg ∧ c.outgoing = ∅
+  c.incoming = γ.reCfg ∧ c.outgoing = ∅ ∧ γ.reDyn = none
 
-theorem CfgStatic.simple (γ : RaftNames) (lrn : GSet w64) :
-    CfgStatic γ (CfgM.simple γ.reCfg lrn) := ⟨rfl, rfl⟩
+theorem CfgStatic.simple (γ : RaftNames) (lrn : GSet w64) (Hst : γ.reDyn = none) :
+    CfgStatic γ (CfgM.simple γ.reCfg lrn) := ⟨rfl, rfl, Hst⟩
 
 theorem CfgStatic.voters {γ : RaftNames} {c : CfgM} (HC : CfgStatic γ c) :
     c.voters = γ.reCfg := by
-  rw [CfgM.voters_of_out HC.2, HC.1]
+  rw [CfgM.voters_of_out HC.2.1, HC.1]
 
 /-- A joint quorum of a static configuration is a quorum of the ghost state's voters. -/
 theorem CfgStatic.isQuorum {γ : RaftNames} {c : CfgM} (HC : CfgStatic γ c) {q : GSet w64}
     (H : JQuorum c q) : IsQuorum γ.reCfg q := by
   have hi : c.incoming ≠ ∅ := by rw [HC.1]; exact γ.reCfg_ne
-  rw [← HC.1]; exact (JQuorum_of_out hi HC.2 q).1 H
+  rw [← HC.1]; exact (JQuorum_of_out hi HC.2.1 q).1 H
 
 theorem CfgStatic.quorumAcked {γ : RaftNames} {c : CfgM} (HC : CfgStatic γ c)
     {f : w64 → w64} {N : w64} (H : JQuorumAcked c f N) : QuorumAcked γ.reCfg f N := by
   have hi : c.incoming ≠ ∅ := by rw [HC.1]; exact γ.reCfg_ne
-  rw [← HC.1]; exact (JQuorumAcked_of_out hi HC.2 f N).1 H
+  rw [← HC.1]; exact (JQuorumAcked_of_out hi HC.2.1 f N).1 H
 
 /-- The ghost state's step relation at a static configuration is `Step` at its voters. -/
 theorem CfgStatic.stepC_iff [FfiSyntax] (γ : RaftNames) (lrn : GSet w64) (id : w64)
@@ -284,27 +314,70 @@ earlier term), `rqRecOk_confirm` (a read's confirming quorum and its doom quorum
 `CfgAt` as "`c` is the configuration of `cfgFold dec c0 P`" and replaces each use of
 `CfgAt.overlap` by the adjacent/far case split (`fold_adjacent` for the adjacent case). -/
 
-/-- The configuration `c` is the one of the committed prefix `P` (static: the ghost state's,
-see above). -/
-def CfgAt [FfiSyntax] (γ : RaftNames) (_P : List raftpb.Entry) (c : CfgM) : Prop :=
-  CfgStatic γ c
+/-- The mode's dynamic configurations, at the ambient `FfiSyntax` instance. -/
+def RaftNames.dyn [ext : FfiSyntax] (γ : RaftNames) : Option DynCfg :=
+  γ.reDyn.map fun f => f ext
+
+theorem RaftNames.dyn_none [FfiSyntax] {γ : RaftNames} (h : γ.reDyn = none) : γ.dyn = none := by
+  unfold RaftNames.dyn; rw [h]; rfl
+
+theorem RaftNames.dyn_eq_none [FfiSyntax] {γ : RaftNames} : γ.dyn = none ↔ γ.reDyn = none := by
+  unfold RaftNames.dyn; cases γ.reDyn <;> simp
+
+/-- The configuration `c` is the one of the committed prefix `P`: static, the ghost state's
+(`CfgStatic`, the prefix unused); dynamic, the mode's fold of `P` (2026-10-14, reconfiguration
+stage B5; until then static only). -/
+def CfgAt [FfiSyntax] (γ : RaftNames) (P : List raftpb.Entry) (c : CfgM) : Prop :=
+  match γ.dyn with
+  | none => CfgStatic γ c
+  | some D => D.fold P = some c
 
 theorem CfgAt.of_static [FfiSyntax] {γ : RaftNames} {c : CfgM} (P : List raftpb.Entry)
-    (HC : CfgStatic γ c) : CfgAt γ P c := HC
+    (HC : CfgStatic γ c) : CfgAt γ P c := by
+  unfold CfgAt; rw [RaftNames.dyn_none HC.2.2]; exact HC
 
-/-- Two recorded configurations overlap (the static instance: both are the ghost state's).
-B5: only when their configuration indices differ by at most one (`fold_adjacent`). -/
+theorem CfgAt.static [FfiSyntax] {γ : RaftNames} {P : List raftpb.Entry} {c : CfgM}
+    (Hst : γ.reDyn = none) (H : CfgAt γ P c) : CfgStatic γ c := by
+  unfold CfgAt at H; rw [RaftNames.dyn_none Hst] at H; exact H
+
+theorem CfgAt.dyn [FfiSyntax] {γ : RaftNames} {D : DynCfg} {P : List raftpb.Entry} {c : CfgM}
+    (HD : γ.dyn = some D) (H : CfgAt γ P c) : D.fold P = some c := by
+  unfold CfgAt at H; rw [HD] at H; exact H
+
+theorem CfgAt.of_dyn [FfiSyntax] {γ : RaftNames} {D : DynCfg} {P : List raftpb.Entry} {c : CfgM}
+    (HD : γ.dyn = some D) (H : D.fold P = some c) : CfgAt γ P c := by
+  unfold CfgAt; rw [HD]; exact H
+
+/-- Two recorded configurations overlap, at a static ghost state (both are the ghost state's).
+Dynamic: only when their conf counts differ by at most one (`CfgAt.overlap_adj`); the far cases
+are `win_fresh`'s, `lc_core`'s and `rqRecOk_confirm`'s. -/
 theorem CfgAt.overlap [FfiSyntax] {γ : RaftNames} {P1 P2 : List raftpb.Entry} {c1 c2 : CfgM}
-    (H1 : CfgAt γ P1 c1) (H2 : CfgAt γ P2 c2) : QOverlap c1 c2 := by
+    (Hst : γ.reDyn = none) (H1 : CfgAt γ P1 c1) (H2 : CfgAt γ P2 c2) : QOverlap c1 c2 := by
   intro q1 q2 h1 h2
   obtain ⟨x, hx1, hx2⟩ := quorums_intersect γ.reCfg q1 q2
-    (CfgStatic.isQuorum H1 h1) (CfgStatic.isQuorum H2 h2)
+    (CfgStatic.isQuorum (CfgAt.static Hst H1) h1) (CfgStatic.isQuorum (CfgAt.static Hst H2) h2)
   exact ⟨x, hx1, hx2⟩
+
+/-- Two recorded configurations of comparable prefixes whose conf counts differ by at most
+one overlap (both modes). -/
+theorem CfgAt.overlap_adj [FfiSyntax] {γ : RaftNames} {P1 P2 : List raftpb.Entry} {c1 c2 : CfgM}
+    (Hp : P1 <+: P2 ∨ P2 <+: P1) (Hc1 : confCount P2 ≤ confCount P1 + 1)
+    (Hc2 : confCount P1 ≤ confCount P2 + 1)
+    (H1 : CfgAt γ P1 c1) (H2 : CfgAt γ P2 c2) : QOverlap c1 c2 := by
+  cases HD : γ.dyn with
+  | none => exact CfgAt.overlap (RaftNames.dyn_eq_none.1 HD) H1 H2
+  | some D =>
+    have h1 := CfgAt.dyn HD H1
+    have h2 := CfgAt.dyn HD H2
+    rcases Hp with Hp | Hp
+    · exact D.adj P1 P2 c1 c2 Hp Hc1 h1 h2
+    · exact (D.adj P2 P1 c2 c1 Hp Hc2 h2 h1).symm
 
 /-- A joint quorum of a recorded configuration has a member. -/
 theorem CfgAt.member [FfiSyntax] {γ : RaftNames} {P : List raftpb.Entry} {c : CfgM}
     {q : GSet w64} (H : CfgAt γ P c) (hq : JQuorum c q) : ∃ x, x ∈ q := by
-  obtain ⟨x, hx, -⟩ := CfgAt.overlap H H q q hq hq
+  obtain ⟨x, hx, -⟩ := CfgAt.overlap_adj (Or.inl (List.prefix_refl P)) (by omega) (by omega)
+    H H q q hq hq
   exact ⟨x, hx⟩
 
 /-- An event of a node's history (`reEvs`): an acknowledgement `(t, i)`, or a vote in

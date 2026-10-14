@@ -97,7 +97,10 @@ theorem rqRecOk_confirm (γ : RaftNames) (T : w64) (r : RqRec) (P : List raftpb.
   · unfold doomed cqAt
     iintro ⟨%n, %G, %a, %c', -, -, -, %Hpq, -⟩
     obtain ⟨-, Hc', Hq'⟩ := Hpq
-    obtain ⟨x, Hx1, Hx2⟩ := CfgAt.overlap HcQ Hc' Q q HQ Hq'
+    cases HD : γ.dyn with
+    | some D => sorry -- B5: the far cases
+    | none =>
+    obtain ⟨x, Hx1, Hx2⟩ := CfgAt.overlap (RaftNames.dyn_eq_none.1 HD) HcQ Hc' Q q HQ Hq'
     exact absurd Hx2 (Hw x Hx1 t' q h)
 
 section inv

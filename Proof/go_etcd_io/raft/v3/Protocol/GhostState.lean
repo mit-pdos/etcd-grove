@@ -1566,7 +1566,7 @@ def RoleOk (id : w64) (s : PState) : Prop :=
   (s.role ≠ .follower → s.vote = id) ∧
   (s.role = .candidate → s.lead = W64 0)
 
-def ownRaftGhost (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
+def ownRaftGhost (γ : RaftNames) (id : w64) (s : PState) (md : Bool := false) : IProp GF :=
   iprop(∃ γv, ∃ (voted : GMap w64 w64), ∃ (kl : Option w64),
     "%Hname"  ∷ ⌜γ.reVotes !! id = some γv⌝ ∗
     "%Hidnz"  ∷ ⌜id ≠ W64 0⌝ ∗
@@ -1584,14 +1584,18 @@ def ownRaftGhost (γ : RaftNames) (id : w64) (s : PState) : IProp GF :=
     -- 2026-10-12 (read-index): the commit lower bounds of the terms it led
     "Hlcm"     ∷ lcmOwn γ id s ∗
     -- 2026-10-12: the read-index ghost state
-    "Hrd"      ∷ rdOwn γ id s)
+    "Hrd"      ∷ rdOwn γ id s ∗
+    -- 2026-10-14 (reconfiguration stage B5): the mode, `md` (`false` by default: the code's
+    -- ghost state is static, `γ.reDyn = none`, `ownRaftGhost_static`)
+    "%Hmode"   ∷ ⌜γ.reDyn.isSome = md⌝)
 
 -- Not `Timeless` since 2026-10-05: `ownLogGhost` holds the invariant `raftCommitInv`.
 
 theorem ownRaftGhost_intro (γ : RaftNames) (id : w64) (s : PState) (γv : GName)
-    (voted : GMap w64 w64) (kl : Option w64) :
+    (voted : GMap w64 w64) (kl : Option w64) {md : Bool} :
     γ.reVotes !! id = some γv →
     id ≠ W64 0 →
+    γ.reDyn.isSome = md →
     ⊢ ghostMapAuth (GF := GF) γv (1 : Qp).half voted -∗
       ⌜VoteHistOk voted s⌝ -∗
       ([∗map] t ↦ c ∈ voted, isVote γ id t c) -∗
@@ -1605,8 +1609,8 @@ theorem ownRaftGhost_intro (γ : RaftNames) (id : w64) (s : PState) (γv : GName
       ⌜RoleOk id s⌝ -∗
       lcmOwn γ id s -∗
       rdOwn γ id s -∗
-      ownRaftGhost γ id s := by
-  intro Hname Hidnz
+      ownRaftGhost γ id s md := by
+  intro Hname Hidnz Hmode
   unfold ownRaftGhost
   iintro H1 %H2 #H3 #H4 #H5 #H6 H7 %H8 %H9 #H10 %H11 H12 H13
   iexists γv, voted, kl
@@ -1624,7 +1628,19 @@ theorem ownRaftGhost_intro (γ : RaftNames) (id : w64) (s : PState) (γv : GName
   isplitr; · iexact H10
   isplitr; · ipureintro; exact H11
   isplitl [H12]; · iexact H12
-  iexact H13
+  isplitl [H13]; · iexact H13
+  ipureintro; exact Hmode
+
+/-- The code's ghost state is static. -/
+theorem ownRaftGhost_static (γ : RaftNames) (id : w64) (s : PState) :
+    ⊢ ownRaftGhost (GF := GF) γ id s -∗ ⌜γ.reDyn = none⌝ := by
+  unfold ownRaftGhost
+  iintro ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  ipureintro
+  cases h : γ.reDyn with
+  | none => rfl
+  | some _ => rw [h] at Hmode; cases Hmode
 
 /-- A non-leader does not record itself as leader. -/
 theorem ownRaftGhost_lead_ok (γ : RaftNames) (id : w64) (s : PState) :

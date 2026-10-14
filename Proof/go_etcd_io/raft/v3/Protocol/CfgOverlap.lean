@@ -257,9 +257,6 @@ def cfgFoldFrom (dec : CCDec) (pre : List raftpb.Entry) (s : CCState) :
 def cfgFold (dec : CCDec) (s : CCState) (l : List raftpb.Entry) : Option CCState :=
   cfgFoldFrom dec [] s l
 
-/-- The number of conf-change entries of `l`. -/
-def confCount (l : List raftpb.Entry) : Nat := l.countP fun e => decide (IsConfEnt e)
-
 /-- The positions of the conf-change entries of `l`, in order, counted from `k`. -/
 def confPosFrom (k : Nat) : List raftpb.Entry → List Nat
   | [] => []
@@ -300,16 +297,6 @@ theorem mem_confPos (l : List raftpb.Entry) (i : Nat) :
   unfold confPos
   rw [mem_confPosFrom]
   simp
-
-theorem confCount_append (l1 l2 : List raftpb.Entry) :
-    confCount (l1 ++ l2) = confCount l1 + confCount l2 := by
-  unfold confCount; exact List.countP_append ..
-
-theorem confCount_cons (e : raftpb.Entry) (l : List raftpb.Entry) :
-    confCount (e :: l) = confCount l + (if IsConfEnt e then 1 else 0) := by
-  unfold confCount
-  rw [List.countP_cons]
-  by_cases h : IsConfEnt e <;> simp [h]
 
 theorem length_confPosFrom (k : Nat) (l : List raftpb.Entry) :
     (confPosFrom k l).length = confCount l := by

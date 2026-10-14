@@ -135,6 +135,48 @@ def CfgM.joint (c : CfgM) : Bool := decide (0 < GMap.size c.outgoing)
 theorem CfgM.joint_simple (cfg lrn : GSet w64) : (CfgM.simple cfg lrn).joint = false := by
   simp [CfgM.joint, CfgM.simple, GMap.map_size_empty]
 
+/-! ### Conf-change entries of a log (moved here from `CfgOverlap.lean` and `StepRInv.lean`
+in stage B5: the ghost state's dynamic facts read them) -/
+
+section conf
+variable [FfiSyntax]
+
+/-- The number of conf-change entries of `l`. -/
+def confCount (l : List raftpb.Entry) : Nat := l.countP fun e => decide (IsConfEnt e)
+
+theorem confCount_append (l1 l2 : List raftpb.Entry) :
+    confCount (l1 ++ l2) = confCount l1 + confCount l2 := by
+  unfold confCount; exact List.countP_append ..
+
+theorem confCount_cons (e : raftpb.Entry) (l : List raftpb.Entry) :
+    confCount (e :: l) = confCount l + (if IsConfEnt e then 1 else 0) := by
+  unfold confCount
+  rw [List.countP_cons]
+  by_cases h : IsConfEnt e <;> simp [h]
+
+/-- I1: of two conf-change entries of `l`, the first is at a position below `c`. -/
+def ConfI1 (l : List raftpb.Entry) (c : Nat) : Prop :=
+  ∀ (k1 k2 : Nat) (e1 e2 : raftpb.Entry), k1 < k2 → l[k1]? = some e1 → l[k2]? = some e2 →
+    IsConfEnt e1 → IsConfEnt e2 → k1 < c
+
+theorem confCount_pos {l : List raftpb.Entry} {k : Nat} {e : raftpb.Entry} (h : l[k]? = some e)
+    (hc : IsConfEnt e) : 0 < confCount l := by
+  unfold confCount
+  rw [List.countP_pos_iff]
+  exact ⟨e, List.mem_of_getElem? h, by simpa using hc⟩
+
+theorem two_le_confCount {l : List raftpb.Entry} {k1 k2 : Nat} {e1 e2 : raftpb.Entry}
+    (hlt : k1 < k2) (h1 : l[k1]? = some e1) (h2 : l[k2]? = some e2) (c1 : IsConfEnt e1)
+    (c2 : IsConfEnt e2) : 2 ≤ confCount l := by
+  rw [← List.take_append_drop k2 l, confCount_append]
+  have a : 0 < confCount (l.take k2) :=
+    confCount_pos (k := k1) (by rw [List.getElem?_take, if_pos hlt]; exact h1) c1
+  have b : 0 < confCount (l.drop k2) :=
+    confCount_pos (k := 0) (by rw [List.getElem?_drop, Nat.add_zero]; exact h2) c2
+  omega
+
+end conf
+
 section model
 variable [FfiSyntax]
 

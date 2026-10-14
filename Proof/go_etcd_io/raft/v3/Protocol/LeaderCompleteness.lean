@@ -355,7 +355,10 @@ theorem lc_core (γ : RaftNames) (k : Nat) :
   icases Hcore with ⟨%γw, %F0w, %kw, %Hw, -⟩
   -- B4: the two recorded configurations overlap (the static instance). B5: the case split
   -- on their configuration indices (`notes/reconfiguration-safety.md`, section 7).
-  have Hmeet := CfgAt.overlap Hq.2.1 Hw.2.2 q V Hq.2.2 Hw.2.1
+  cases HD : γ.dyn with
+  | some D => sorry -- B5: the far cases
+  | none =>
+  have Hmeet := CfgAt.overlap (RaftNames.dyn_eq_none.1 HD) Hq.2.1 Hw.2.2 q V Hq.2.2 Hw.2.1
   iapply lc_adj γ T t n F c F0 G q V IH HtT HwG HGl Hmeet $$ HS Hcq Hacks Hwin Hc HrG
 
 /-- Two commit facts agree below the earlier one's index: same term, the leader's logs
@@ -713,7 +716,9 @@ theorem win_fresh (γ : RaftNames) (id T : w64) (c : CfgM) (V : GSet w64) :
   icases H with ⟨%γw, %F0, %k, %Hw, -⟩
   icases H' with ⟨%γw', %F0', %k', %Hw', -⟩
   ipureintro
-  exact CfgAt.overlap Hw.2.2 Hw'.2.2 V q' Hw.2.1 Hw'.2.1
+  cases HD : γ.dyn with
+  | none => exact CfgAt.overlap (RaftNames.dyn_eq_none.1 HD) Hw.2.2 Hw'.2.2 V q' Hw.2.1 Hw'.2.1
+  | some D => sorry -- B5: the far cases
 
 /-- Adding a winner to the table, given that its quorum meets that of any entry of its term
 (`win_fresh`): an existing entry of the term is the same winner with the same quorum. -/

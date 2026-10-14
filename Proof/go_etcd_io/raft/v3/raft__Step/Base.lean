@@ -238,7 +238,8 @@ theorem ghost_step_recv (γ : RaftNames) (cfg : GSet w64) (id : w64)
         exact intuitionistically_elim))
     iexact Hm
   -- the code's `Step` witness, at the ghost state's configuration (`StepC`, 2026-10-14)
-  iapply ownRaftGhost_stepC γ _ (CfgStatic.simple γ ∅) id ps recv ps'
+  ihave %Hst := ownRaftGhost_static γ id ps $$ Hg
+  iapply ownRaftGhost_stepC γ _ (CfgStatic.simple γ ∅ Hst) id ps recv ps'
     ((CfgStatic.stepC_iff γ ∅ id ps recv ps').1 Hstep) $$ Hall [Hz] Hg
   rw [Hcnt]; iexact Hz
 

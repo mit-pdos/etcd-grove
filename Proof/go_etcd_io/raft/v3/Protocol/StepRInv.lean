@@ -66,31 +66,10 @@ theorem rUnat_le {a b : w64} (h : uint.Z a ≤ uint.Z b) : uint.nat a ≤ uint.n
 
 /-! ### Conf entries of a list -/
 
-/-- I1: of two conf-change entries of `l`, the first is at a position below `c`. -/
-def ConfI1 (l : List raftpb.Entry) (c : Nat) : Prop :=
-  ∀ (k1 k2 : Nat) (e1 e2 : raftpb.Entry), k1 < k2 → l[k1]? = some e1 → l[k2]? = some e2 →
-    IsConfEnt e1 → IsConfEnt e2 → k1 < c
-
 /-- I3: every conf-change entry is at a position below `pci`, at most one at or past `a`. -/
 def ConfI3 (l : List raftpb.Entry) (pci a : Nat) : Prop :=
   (∀ (k : Nat) (e : raftpb.Entry), l[k]? = some e → IsConfEnt e → k < pci) ∧
   confCount (l.drop a) ≤ 1
-
-theorem confCount_pos {l : List raftpb.Entry} {k : Nat} {e : raftpb.Entry} (h : l[k]? = some e)
-    (hc : IsConfEnt e) : 0 < confCount l := by
-  unfold confCount
-  rw [List.countP_pos_iff]
-  exact ⟨e, List.mem_of_getElem? h, by simpa using hc⟩
-
-theorem two_le_confCount {l : List raftpb.Entry} {k1 k2 : Nat} {e1 e2 : raftpb.Entry}
-    (hlt : k1 < k2) (h1 : l[k1]? = some e1) (h2 : l[k2]? = some e2) (c1 : IsConfEnt e1)
-    (c2 : IsConfEnt e2) : 2 ≤ confCount l := by
-  rw [← List.take_append_drop k2 l, confCount_append]
-  have a : 0 < confCount (l.take k2) :=
-    confCount_pos (k := k1) (by rw [List.getElem?_take, if_pos hlt]; exact h1) c1
-  have b : 0 < confCount (l.drop k2) :=
-    confCount_pos (k := 0) (by rw [List.getElem?_drop, Nat.add_zero]; exact h2) c2
-  omega
 
 theorem confCount_eq_zero {l : List raftpb.Entry}
     (h : ∀ (k : Nat) (e : raftpb.Entry), l[k]? = some e → ¬ IsConfEnt e) : confCount l = 0 := by

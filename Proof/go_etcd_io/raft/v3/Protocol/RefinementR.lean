@@ -36,8 +36,12 @@ theorem ownRaftGhost_stepR (γ : RaftNames) (dec : CCDec) (id : w64) (r : RState
     ⊢ ([∗list] m ∈ recv, isMessage (GF := GF) γ m) -∗
       rdCred γ (rdCount recv) -∗
       ownRaftGhost γ id r.p ={⊤}=∗
-      ownRaftGhost γ id r'.p := fun Hstep =>
-  ownRaftGhost_stepC γ _ (CfgStatic.simple γ ∅) id r.p recv r'.p (stepR_static Hstep HS HV).1
+      ownRaftGhost γ id r'.p := by
+  intro Hstep
+  iintro Hrecv Hcr Hown
+  ihave %Hst := ownRaftGhost_static γ id r.p $$ Hown
+  iapply ownRaftGhost_stepC γ _ (CfgStatic.simple γ ∅ Hst) id r.p recv r'.p
+    (stepR_static Hstep HS HV).1 $$ Hrecv Hcr Hown
 
 end ghost
 
