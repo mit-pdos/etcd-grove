@@ -447,8 +447,19 @@ theorem txn.executeTxn.wp_proof
         iapply kvsIs_nil
       iintro (⟨%Hv0, %rr0, %e1, resp, err, txnWrite, ctx, lg, tv, Htw, %rev1, Hrr0⟩ | ⟨%e', %Hv0, %Hndf, #He', %pend', Htw⟩)
       rotate_left
-      · -- the context error, returned
+      · -- the context error, returned, with the responses so far (read-only: `roRespsRd`)
         subst Hv0
+        have hro : ro = true := Hpre.2.2.2 Hndf
+        have hg : ops.all opIsGet = true := by
+          rw [List.all_eq_true]; intro op hop; exact Hpre.2.2.1 hro op hop
+        ihave Hsk : opsSkel s0 (rps.drop (sint.nat n)) (ops.drop (sint.nat n)) $$ [Hw Hskel]
+        · iapply (opsSkel_drop s0 rps ops (sint.nat n) p (.get o) Hp_lookup Hop_lookup).2
+          iframe Hskel
+          iunfold opSkel
+          isplitl []; · ipureintro; exact Hpn
+          iexists w
+          iframe Hpw Hw
+        imod roOps_split skip s0 rps ops _ (sint.nat n) hg $$ Hdone Hsk with #Hro
         wp_auto
         wp_for_post
         iapply HΦ
@@ -456,8 +467,12 @@ theorem txn.executeTxn.wp_proof
         iframe He'
         isplitr
         · ipureintro; exact Hndf
-        iexists pend'
-        iexact Htw
+        isplitl [Htw]
+        · iexists pend'
+          iexact Htw
+        iunfold roRespsRd
+        iexists rsl, rps
+        iframe Hrsp Hrsl Hro
       subst Hv0
       wp_auto
       ipersist Hw
@@ -727,7 +742,7 @@ theorem txn.executeTxn.wp_proof
       icases Hpr2 with ⟨%Hprn, %ksl, %vsl, %k, %v0, %lease, %pk, %iv0, %il, #Hk, #Hks, -, -, -, -, -, -, -, %Ho⟩
       wp_auto
       wp_apply wp_bytes_to_string ksl k DFrac.discard $$ [$Hks] as -
-      wp_apply (hSize pr o) $$ [$Hpr] as %sz -
+      wp_apply (hSize.1 pr o) $$ [$Hpr] as %sz -
       wp_apply wp_slice_literal
       isplitr
       · ipureintro; rfl

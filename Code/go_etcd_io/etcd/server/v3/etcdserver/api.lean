@@ -36,7 +36,8 @@ attribute [irreducible] Cluster.ty
 
 axiom AuthCapability [FfiSyntax] [GoGlobalContext] : val
 
-axiom V3rpcCapability [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def V3rpcCapability [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"v3rpc")
 
 noncomputable def capabilityMaps [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api.capabilityMaps"

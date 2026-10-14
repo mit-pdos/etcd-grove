@@ -15,6 +15,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.IsTxnReadonly
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.IsTxnSerializable
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Txn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveReadOnlyRangeRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveReadOnlyTxnRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.applyCompare
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.applyCompares
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.asembleRangeResponse
@@ -28,11 +30,15 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.compareToPath
 public import Proof.context.TODO
 public import Proof.context.WithValue
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.deleteRange
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewLoggableTxnRequest
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse__GetKvs
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp__GetRequestRange
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.executeRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.executeTxn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.filterRangeResults
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.getPrevKV
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.isNil
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByCreate__Less
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByKey__Less
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.kvSortByMod__Less
@@ -46,6 +52,7 @@ public import Proof.google_golang_org.protobuf.proto.Size
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.pruneKVs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.rangeLimit
+public import Proof.reflect.ValueOf
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.sortRangeResults
 public import Proof.sort.Reverse
 public import Proof.sort.Sort
@@ -68,10 +75,14 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Count
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Range
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.RangeSecObserve
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.compareInt64
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.warnOfExpensiveGenericRequest
+public import Proof.go_uber_org.zap.Duration
 public import Proof.go_uber_org.zap.Error
 public import Proof.go_uber_org.zap.Int32
 public import Proof.go_uber_org.zap.Logger__Error
 public import Proof.go_uber_org.zap.Logger__Panic
+public import Proof.go_uber_org.zap.Logger__Warn
+public import Proof.go_uber_org.zap.String
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link
 
 @[expose] public section
@@ -230,6 +241,50 @@ theorem zap.wp_Error :
 theorem zap.Logger.wp_Error :
     EtcdGrove.zap.Logger.Error.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.Error.wp_proof
+
+theorem reflect.wp_ValueOf :
+    EtcdGrove.reflect.ValueOf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.reflect.ValueOf.wp_proof
+
+theorem wp_isNil :
+    EtcdGrove.txn.isNil.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.isNil.wp_proof reflect.wp_ValueOf
+
+theorem zap.wp_Duration :
+    EtcdGrove.zap.Duration.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Duration.wp_proof
+
+theorem zap.wp_String :
+    EtcdGrove.zap.String.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.String.wp_proof
+
+theorem zap.Logger.wp_Warn :
+    EtcdGrove.zap.Logger.Warn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Logger.Warn.wp_proof
+
+theorem wp_warnOfExpensiveGenericRequest :
+    EtcdGrove.txn.warnOfExpensiveGenericRequest.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.warnOfExpensiveGenericRequest.wp_proof zap.wp_Duration zap.wp_String zap.wp_Error zap.Logger.wp_Warn
+
+theorem wp_WarnOfExpensiveReadOnlyRangeRequest :
+    EtcdGrove.txn.WarnOfExpensiveReadOnlyRangeRequest.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.WarnOfExpensiveReadOnlyRangeRequest.wp_proof wp_isNil wp_warnOfExpensiveGenericRequest
+
+theorem wp_NewLoggableTxnRequest :
+    EtcdGrove.NewLoggableTxnRequest.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.NewLoggableTxnRequest.wp_proof
+
+theorem ResponseOp.wp_GetResponseRange :
+    EtcdGrove.ResponseOp.GetResponseRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.ResponseOp.GetResponseRange.wp_proof
+
+theorem RangeResponse.wp_GetKvs :
+    EtcdGrove.RangeResponse.GetKvs.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.RangeResponse.GetKvs.wp_proof
+
+theorem wp_WarnOfExpensiveReadOnlyTxnRequest :
+    EtcdGrove.txn.WarnOfExpensiveReadOnlyTxnRequest.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.txn.WarnOfExpensiveReadOnlyTxnRequest.wp_proof wp_NewLoggableTxnRequest wp_isNil ResponseOp.wp_GetResponseRange RangeResponse.wp_GetKvs wp_warnOfExpensiveGenericRequest
 
 theorem wp_ApplySecObserve :
     EtcdGrove.txn.ApplySecObserve.spec (GF := GF) (hG := hG) :=

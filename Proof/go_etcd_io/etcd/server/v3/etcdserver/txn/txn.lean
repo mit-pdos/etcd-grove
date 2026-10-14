@@ -68,7 +68,7 @@ theorem txn.txn.wp_proof
     · simp only [List.length_nil, Nat.zero_add, pendState_nil]; exact Hpre.2.1
     · intro hro op hop
       exact readonly_branch t (Hpre.2.2.1 hro) _ op hop
-  icases Hres with (⟨%Herr, Htw, #Hrs, #Hknown', Hown⟩ | ⟨%Hndf, #He, %pend', Htw⟩)
+  icases Hres with (⟨%Herr, Htw, #Hrs, #Hknown', Hown⟩ | ⟨%Hndf, #He, ⟨%pend', Htw⟩, #Hros⟩)
   rotate_left
   · -- the context done during a range: logged, the response returned with the error
     obtain ⟨hro, hlg⟩ := Hpre.2.2.2 Hndf
@@ -103,12 +103,21 @@ theorem txn.txn.wp_proof
     iframe He
     isplitl [Htw]
     · iexists _; iexact Htw
-    iunfold txnRespShell
     isplitr
-    · ipureintro; exact Hrn
-    icases Hrsl with ⟨%sl, #Hsl⟩
-    iexists h, sl, _
-    iframe Hh Hrev Hsl
+    · iunfold txnRespShell
+      isplitr
+      · ipureintro; exact Hrn
+      icases Hrsl with ⟨%sl, #Hsl⟩
+      iexists h, sl, _
+      iframe Hh Hrev Hsl
+    isplitr
+    · iunfold roTxnRespRd
+      isplitr
+      · ipureintro; exact Hrn
+      iexists h, _, _
+      iframe Hh Hrev Hsucc Hros
+      ipureintro; exact Hhn
+    iexact Hhdr
   obtain ⟨rfl, -⟩ := Herr
   wp_auto
   try simp only [List.nil_append] at *

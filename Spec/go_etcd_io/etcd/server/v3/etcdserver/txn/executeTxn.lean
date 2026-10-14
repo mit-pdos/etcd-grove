@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvTxn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvWarn
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
 
 @[expose] public section
@@ -35,7 +35,10 @@ pending revision on the state after `pend`, its changes pending, its responses f
 the run's (`OpsOk`), room for its changes, the leases its puts name known (`checkTxn`'s) and
 those of the state (not for the read-only wrapper). At a context that may be done (`nd = false`,
 only for the read-only wrapper; 2026-10-12, the request path's unit 3b), a range may fail with
-the context error: `executeTxn` returns `fmt.Errorf`'s wrapping of it (`mvcc.errorfIs`).
+the context error: `executeTxn` returns `fmt.Errorf`'s wrapping of it (`mvcc.errorfIs`), the
+responses partly filled, read-only (`roRespsRd`: the ranges before the failed one answered, the
+others' `ResponseRange` still `nil`; unit P4, 2026-10-14, for the server's warning of a slow
+read-only transaction, `txn.WarnOfExpensiveReadOnlyTxnRequest`).
 2026-10-14 (unit P1b): the context carries the transaction's trace (`ctxTraceIs`), which
 `Get` returns. -/
 abbrev txn.executeTxn.spec : Prop :=
@@ -74,7 +77,8 @@ abbrev txn.executeTxn.spec : Prop :=
             (t.branch (txn.txnOk (mvcc.stateAfter ilog) t))).1))) ∗
         (⌜ro = true⌝ ∨ lease.leaseOwn γ.leases L)) ∨
       (⌜nd = false⌝ ∗ mvcc.errorfIs err ∗
-        ∃ pend' : List mvcc.Change, txn.txnWriteIs tw s γ trace ro ilog pend') }}
+        (∃ pend' : List mvcc.Change, txn.txnWriteIs tw s γ trace ro ilog pend') ∗
+        txn.roRespsRd tresp) }}
 
 end spec
 

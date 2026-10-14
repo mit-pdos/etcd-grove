@@ -4879,6 +4879,10 @@ the precondition `doRunOk` rules them out).
 
 **2026-10-14 · adopted** (`notes/STATUS.md`, "Unit C1", "The generic gRPC specification")
 
+*Superseded in part* (2026-10-14, unit P3b) by "The server end of the gRPC boundary" (below): the
+server side (`grpc.serve`, `grpcListener`, the handler's level) is now grpc's runtime running the
+generated handler with `dec` and the interceptor chain.
+
 *Superseded in part* (2026-10-14, unit P3a) by "The retry interceptor proved: the gRPC boundary
 below it" (below): the client axiom is now grpc's `Invoke` as the interceptor chain over one
 attempt; `isGrpcConn` is replaced by `grpcConn` and the client's `isEtcdConn`. The server side,
@@ -5044,6 +5048,70 @@ the package fact `rpctypesEtcdErrorTy`, satisfies it vacuously). It travels with
 through every error the client returns or receives (grpc's, the context's via `ctxErrClient`, a
 watch's close error, a leasing transaction's).
 
+## The server end of the gRPC boundary
+
+**2026-10-14 · adopted** (`notes/STATUS.md`, "Unit P3b")
+
+Supersedes the server side of "A generic gRPC specification" ("The server side and its
+resources", "The handler's level: the service method"): the boundary is now grpc's server
+runtime, below etcd's generated handlers, the quota wrapper and the unary interceptors.
+
+**grpc runs the `MethodDesc.Handler`.** grpc's `processUnaryRPC` calls, for a registered unary
+method, `md.Handler(srv, ctx, dec, s.opts.unaryInt)`: the generated handler of the registered
+`ServiceDesc`, the service value given to `RegisterService`, a `dec` closure over the request's
+bytes, and the interceptor `chainUnaryServerInterceptors` built (`nil` for none, the interceptor
+itself for one, a closure over `getChainUnaryHandler` for more). The axiom `grpc.serve` says
+exactly that, for any service: a run of `m.handler` on `m.srv`, the run's context, a `dec`
+meeting `grpcDecOk` (it decodes the request at the call's model into a zero `*T` it is given: the
+codec's unmarshaling, part of the trusted wire model as the message instances are) and an
+interceptor meeting `grpcSrvChain ics` (the chain as grpc composes it, `srvChainWP`, mirroring the
+client's `chainWP`), with one of the `n` run slots. *Rejected:* the chain as an assumed contract
+of etcd's interceptors (they are etcd code, now proved); an axiom per number of interceptors (the
+composition is one recursive definition).
+
+**The server object.** `grpcServerAt addr ics regs` (opaque, exclusive; it was `grpcListener
+addr`) is the server built with the chain `ics`, its registered unary methods `regs` (full name,
+`MethodDesc.Handler`, service value); `grpc.serve` takes any methods among `regs`, with distinct
+names. It is a premise of the server's result, established by unverified code (`v3rpc.Server`,
+`grpc.NewServer`, `RegisterKVServer`, `Serve`), as the client's `grpcConn` is of `clientv3.New`.
+The ghost step keeps the result's form (`etcd_kv_served` gives `isGrpcRpc`); without `ics` and
+`regs` in the predicate the axiom would let a proof pick an interceptor-free chain or another
+service value than the one registered. *Rejected for now:* proving `RegisterKVServer` against a
+`RegisterService` axiom (it needs that axiom and two method-set facts, `srv.(interface{
+testEmbeddedByValue() })`): it would only prove the `KV_ServiceDesc` fact `etcdKVRegs` states.
+
+**Transparent interceptors.** An interceptor's contract (`srvInterceptorOk ic R Q`) is
+"transparent": called with its per-run resource `R`, it calls the handler once on the same
+context and request and returns its result, or returns `(nil, err)` for a non-nil `err` without
+calling it; `R` comes back either way; the caller gives both continuations (`∧`). `Q` is what it
+reads of the request: etcd's learner check (`isRPCSupportedForLearner`) reads a `*RangeRequest`'s
+`Serializable` (`learnerReqOk`), which the generated handler has from the decoded request. A chain
+of such interceptors runs the handler or fails (`srvChainWP_of_ok`), with the resources of all.
+The log interceptor's `R` is a reader slot of `s.lgMu` (`s.Logger()` after the handler); the
+server's run slot (`etcdGrpcSlot`) holds the handlers' slot, one more `leadTimeMu` reader slot
+(the quota's NOSPACE alarm, `raftRequest`), and the interceptors' resources. grpc-prometheus's
+interceptor (not etcd code) is assumed transparent (a premise). `logUnaryRequestStats` is a
+names-only axiom: it reads the request and the response (`proto.Size`, the stringers), which the
+message predicates do not cover field by field; after the handler both are read-only, which the
+wire models already trust (the runtime's marshaling of the response).
+
+**The quota wrapper.** `NewQuotaKVServer(s)` embeds `NewKVServer(s)`'s service in a
+`*quotaKVServer`; its `Put` checks `qa.q.Available(r)` (the apply package's `apply.isQuota`, from
+`storage.NewBackendQuota`'s axiom) and on failure raises the NOSPACE alarm (`s.Alarm`, an axiom
+with `raftRequest`'s request-path premises: `Alarm` is `raftRequest` of an alarm request, which
+`raftRequest`'s verified spec does not build) and answers `ErrGRPCNoSpace`; its `Range` and
+`DeleteRange` are the embedded service's (Goose emits the promoted wrappers only for methods in
+the translate list). The service value registered is the `*quotaKVServer`; that it implements
+`KVServer` (the generated handlers' `srv.(KVServer)`) is a method-set fact, assumed as a class
+(`QuotaKVServerIsKVServer`; `methodSet` is uninterpreted).
+
+**What the trust base gains:** `grpcServerAt`; the names-only `EtcdServer.Alarm`,
+`IsMemberExist`, `IsLearner` (with `membership.localKept`, an assumption that the local member is
+not removed while the server serves: `issues/etcd-unary-interceptor-learner-removed.md`),
+`api.IsCapabilityEnabled`, grpc's `MD.Get`, Go's `utf8.ValidString`, prometheus's
+`CounterVec.WithLabelValues`, `logUnaryRequestStats`. Gone: `grpcListener`, and the generated
+handlers, the quota wrapper and the interceptors from inside the boundary.
+
 ## Traces on the request path (unit P1b, 2026-10-14)
 
 `pkg/v3/traceutil`'s `*Trace` methods read and write the trace's fields (`t.steps = append(..)`),
@@ -5084,8 +5152,10 @@ methods' posts carry `apply.traceRes trace` (nil or owned), `dispatch` stores it
 apply→request handoff is a transfer (the apply thread never touches `ar.Trace` after
 `Trigger`).
 
-`InsertStep` stays at the trust boundary (an overlapping `append`, no Perennial triple), as does
-`LogWithStepThreshold` (`fmt` of `any`/`Duration`, `rand`, zap).
+`LogWithStepThreshold` stays at the trust boundary (`fmt` of `any`/`Duration`, `rand`, zap).
+`InsertStep` (an overlapping `append`) was too until unit P4, which proved it over a lemma of this
+repository, `wp_slice_append_shift` (`traceutil/SliceShift.lean`: `append(s[:a+1], s[a:]...)`
+from Perennial's `wp_slice_copy_within` and `wp_slice_copy`; no Perennial change).
 
 **The run's context** (with unit P1b's owned traces): a handler run is given, besides
 `isContext`, `grpcRunCtx ci`: the context's `Value(k)` for a key of a named type of etcd's

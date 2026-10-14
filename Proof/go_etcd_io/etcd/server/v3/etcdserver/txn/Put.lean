@@ -58,7 +58,7 @@ theorem txn.Put.wp_proof
   (try wp_auto)
   wp_apply wp_bytes_to_string $$ [$Hks] as -
   (try wp_auto)
-  wp_apply (hSize p o) $$ [$Hp] as %sz -
+  wp_apply (hSize.1 p o) $$ [$Hp] as %sz -
   (try wp_auto)
   wp_apply wp_slice_literal
   isplitr

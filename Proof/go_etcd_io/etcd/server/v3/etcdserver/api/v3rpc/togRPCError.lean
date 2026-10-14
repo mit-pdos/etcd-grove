@@ -46,7 +46,7 @@ theorem v3rpc.togRPCError.wp_proof
   · iPkgInit
   ihave #Hinit : (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.v3rpcInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨#Hmap, -, -, #Hcanc⟩
+  icases Hinit with ⟨#Hmap, -, -, #Hcanc, -⟩
   ihave #Hctx : (_root_.Perennial.context.isInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Pctx
   icases Hctx with ⟨-, -, -, ⟨%de, #Hde, -⟩, -⟩

@@ -102,3 +102,18 @@ traceutil_Trace__updateFieldIfExist:
 traceutil_Trace__IsEmpty:
 traceutil_newTrace:
 context_WithValue:
+#
+# util.go's read-only loggers, proved (unit P4, 2026-10-14; they were trust-boundary axioms, linked
+# in the server's Link.lean): their callees, and the trust boundary they reach (reflect's
+# `ValueOf`, etcdserverpb's `NewLoggableTxnRequest`; `proto.Size` above).
+reflect_ValueOf:
+etcdserverpb_NewLoggableTxnRequest:
+etcdserverpb_ResponseOp__GetResponseRange:
+etcdserverpb_RangeResponse__GetKvs:
+zap_Duration:
+zap_String:
+zap_Logger__Warn:
+isNil: reflect_ValueOf
+warnOfExpensiveGenericRequest: zap_Duration zap_String zap_Error zap_Logger__Warn
+WarnOfExpensiveReadOnlyRangeRequest: isNil warnOfExpensiveGenericRequest
+WarnOfExpensiveReadOnlyTxnRequest: etcdserverpb_NewLoggableTxnRequest isNil etcdserverpb_ResponseOp__GetResponseRange etcdserverpb_RangeResponse__GetKvs warnOfExpensiveGenericRequest

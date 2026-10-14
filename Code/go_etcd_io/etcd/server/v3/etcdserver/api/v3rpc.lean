@@ -5,13 +5,23 @@ public import Perennial.Code.context
 public import Code.go_etcd_io.etcd.api.v3.etcdserverpb
 public import Code.go_etcd_io.etcd.server.v3.auth
 public import Code.go_etcd_io.etcd.server.v3.etcdserver
+public import Code.github_com.prometheus.client_golang.prometheus
+public import Code.go_uber_org.zap
+public import Code.google_golang_org.grpc
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.apply
+public import Perennial.Code.time
+public import Code.unicode.utf8
+public import Code.google_golang_org.grpc.metadata
 public import Code.go_etcd_io.etcd.api.v3.v3rpc.rpctypes
+public import Code.go_etcd_io.etcd.client.pkg.v3.types
+public import Code.go_etcd_io.etcd.server.v3.etcdserver.api
+public import EtcdDeps.Code.go_etcd_io.raft.v3
 public import Code.google_golang_org.grpc.codes
 public import Code.google_golang_org.grpc.status
 public import Code.go_etcd_io.etcd.pkg.v3.adt
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.txn
 public import Perennial.Code.errors
+public import Code.go_etcd_io.etcd.server.v3.storage
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -183,10 +193,6 @@ axiom streamsMap.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom cancellableContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
-axiom serverStreamWithCtx.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom LeaseServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
 axiom KVGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom BackendGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
@@ -194,10 +200,6 @@ axiom BackendGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 axiom ConfigGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom maintenanceServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom ClusterServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom quotaAlarmer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 axiom watchServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
@@ -470,6 +472,169 @@ noncomputable def header.fillWithoutRevision.impl [FfiSyntax] [GoGlobalContext] 
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
   (App (Val doExecute)
   (Val #()))))))))))
+
+/-- go: interceptor.go:47:6 -/
+noncomputable def newUnaryInterceptor.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (Val doReturn)
+  (Lam "ctx"
+  (Lam "req"
+  (Lam "info"
+  (Lam "handler"
+  (App (Val exceptionDo)
+  (Let "handler" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.UnaryHandler.ty))) (Var "handler"))
+  (Let "info" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty)))) (Var "info"))
+  (Let "req" (App (Val (GoInstruction (GoAlloc go.any))) (Var "req"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.grpc.metadata.FromIncomingContext []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "md" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.metadata.MD.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.google_golang_org.grpc.metadata.MD.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.any))) (Var "req"))
+  (App (App (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.UnaryHandler.ty))) (Var "handler")) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (Var "$ret0") (Var "$ret1"))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (Val #(go!"unknown"))
+  (Let "$r1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataClientAPIVersionKey))) (Val #())))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.metadata.MD.ty) go!"Get"))) (Var "md")) (Var "$a0")))
+  (Let "vs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (Let "ver" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (map.lookup1 go.string (go.GoType.SliceType go.string))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.metadata.MD.ty))) (Var "md"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataRequireLeaderKey))) (Val #()))))
+  (Let "ks" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "ks"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "ks")) (Val #(W64 0))))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataHasLeader))) (Val #()))))) (Val #false)))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"Leader"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Val #())) (Val _root_.Perennial.go_etcd_io.raft.v3.None'))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil go.any))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoLeader))) (Val #())))))
+  (App (Val doExecute)
+  (Val #())))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "ks") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty go!"Inc"))) (Let "$a0" (Let "$sl0" (Val #(go!"unary"))
+  (Let "$sl1" (App (Val (GoInstruction (GoLoad go.string))) (Var "ver"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0"))), (KeyedElement none (ElementExpression go.string (Var "$sl1")))]))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty) go!"WithLabelValues"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterVec.ty)))) (App (Val (GoInstruction (GlobalVarAddr clientRequests))) (Val #())))) (Var "$a0")))) (Val #()))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "ver"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.unicode.utf8.ValidString []))) (Val #())) (Var "$a0"))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil go.any))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidClientAPIVersion))) (Val #())))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "vs"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "vs")) (Val #(W64 0)))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "ver") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "vs") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "ver") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.metadata.MD.ty))) (Pair (Var "md") (Var "$r0"))))))))))))))
+  (If (If (If (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"IsMemberExist"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Var "$a0"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"IsLearner"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Val #())) (Val #false)) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.any))) (Var "req"))
+  (App (App (Val (GoInstruction (FuncResolve isRPCSupportedForLearner []))) (Val #())) (Var "$a0")))) (Val #false))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil go.any))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotSupportedForLearner))) (Val #())))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.V3rpcCapability)
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.IsCapabilityEnabled []))) (Val #())) (Var "$a0"))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil go.any))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotCapable))) (Val #())))))
+  (App (Val doExecute)
+  (Val #())))))))))))))))))
+
+/-- go: interceptor.go:79:6 -/
+noncomputable def newLogUnaryInterceptor.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (Val doReturn)
+  (Lam "ctx"
+  (Lam "req"
+  (Lam "info"
+  (Lam "handler"
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "handler" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.UnaryHandler.ty))) (Var "handler"))
+  (Let "info" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty)))) (Var "info"))
+  (Let "req" (App (Val (GoInstruction (GoAlloc go.any))) (Var "req"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (Let "startTime" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.any))) (Var "req"))
+  (App (App (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.UnaryHandler.ty))) (Var "handler")) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "resp" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (GoLoad go.any))) (Var "resp")) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"WarningUnaryRequestDuration"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s")))))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty)))) (Var "info"))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "startTime"))
+  (Let "$a5" (App (Val (GoInstruction (GoLoad go.any))) (Var "req"))
+  (Let "$a6" (App (Val (GoInstruction (GoLoad go.any))) (Var "resp"))
+  (Let "$f" (App (Val (GoInstruction (FuncResolve logUnaryRequestStats []))) (Val #()))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (App (App (App (App (App (App (Var "$f") (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6"))
+  (App (Var "$oldf") (Val #()))))))))))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "resp") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "startTime") (Var "$r0")))))))))))))))))))))
 
 /-- go: key.go:44:6 -/
 noncomputable def NewKVServer.impl [FfiSyntax] [GoGlobalContext] : val :=
@@ -1456,6 +1621,131 @@ noncomputable def checkRequestOp.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCKeyNotFound))) (Val #()))))))))))))))))))))))))))
 
+/-- check whether request satisfies the quota. If there is not enough space,
+    ignore request and raise the free space alarm.
+
+    go: quota.go:40:25 -/
+noncomputable def quotaAlarmer.check.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "qa"
+  (Lam "ctx"
+  (Lam "r"
+  (App (Val exceptionDo)
+  (Let "qa" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType quotaAlarmer.ty)))) (Var "qa"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc go.any))) (Var "r"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef quotaAlarmer.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType quotaAlarmer.ty)))) (Var "qa"))))
+  (Let "$v1" (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest_ACTIVATE)
+  (Let "$v2" (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType_NOSPACE)
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"MemberID")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"Action")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest_AlarmAction.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"Alarm")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmType.ty (Var "$v2")))]))))))
+  (Let "req" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoSpace))) (Val #()))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)))) (Var "req"))
+  (App (App (App (Val (GoInstruction (MethodResolve Alarmer.ty go!"Alarm"))) (App (Val (GoInstruction (GoLoad Alarmer.ty))) (App (Val (GoInstruction (StructFieldRef quotaAlarmer.ty go!"a"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType quotaAlarmer.ty)))) (Var "qa"))))) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmRequest.ty)))) (Pair (Var "req") (Var "$r0")))))))))
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.any))) (Var "r"))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota.ty go!"Available"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota.ty))) (App (Val (GoInstruction (StructFieldRef quotaAlarmer.ty go!"q"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType quotaAlarmer.ty)))) (Var "qa"))))) (Var "$a0")))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))
+  (App (Val doExecute)
+  (Val #())))))))))))
+
+/-- go: quota.go:53:6 -/
+noncomputable def NewQuotaKVServer.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType quotaKVServer.ty) _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty))) (App (Val (GoInstruction (GoAlloc quotaKVServer.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve NewKVServer []))) (Val #())) (Var "$a0")))
+  (Let "$v1" (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (Let "$a1" (Val #(go!"kv"))
+  (App (App (App (Val (GoInstruction (FuncResolve newBackendQuota []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (Let "$v2" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"MemberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral quotaAlarmer.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota.ty (Var "$v0"))), (KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) (Var "$v1"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (Var "$v2")))])))))
+  (App (Val (GoInstruction (CompositeLiteral quotaKVServer.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty (Var "$v0"))), (KeyedElement none (ElementExpression quotaAlarmer.ty (Var "$v1")))]))))))))))
+
+/-- go: quota.go:60:25 -/
+noncomputable def quotaKVServer.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "ctx"
+  (Lam "r"
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType quotaKVServer.ty)))) (Var "s"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)))) (Var "r"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)))) (Var "r"))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty go!"Put"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty))) (App (Val (GoInstruction (StructFieldRef quotaKVServer.ty go!"KVServer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType quotaKVServer.ty)))) (Var "s"))))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (Var "$ret0") (Var "$ret1"))))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)))) (Var "r")))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType quotaAlarmer.ty) go!"check"))) (App (Val (GoInstruction (StructFieldRef quotaKVServer.ty go!"qa"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType quotaKVServer.ty)))) (Var "s")))) (Var "$a0")) (Var "$a1"))))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))))
+
+/-- go: quota.go:67:25 -/
+noncomputable def quotaKVServer.Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "ctx"
+  (Lam "r"
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType quotaKVServer.ty)))) (Var "s"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)))) (Var "r"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)))) (Var "r"))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty go!"Txn"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty))) (App (Val (GoInstruction (StructFieldRef quotaKVServer.ty go!"KVServer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType quotaKVServer.ty)))) (Var "s"))))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (Var "$ret0") (Var "$ret1"))))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)))) (Var "r")))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType quotaAlarmer.ty) go!"check"))) (App (Val (GoInstruction (StructFieldRef quotaKVServer.ty go!"qa"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType quotaKVServer.ty)))) (Var "s")))) (Var "$a0")) (Var "$a1"))))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))))
+
+/-- go: quota.go:93:6 -/
+noncomputable def newBackendQuota.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "name"
+  (App (Val exceptionDo)
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))
+  (App (Val doReturn)
+  (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"Logger"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"QuotaBackendBytes"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s")))))
+  (Let "$a2" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty) go!"Backend"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Var "s"))) (Val #()))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.NewBackendQuota []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))))))))
+
 /-- go: util.go:98:6 -/
 noncomputable def togRPCError.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "err"
@@ -1495,8 +1785,33 @@ noncomputable def togRPCError.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))
 
+/-- in v3.4, learner is allowed to serve serializable read and endpoint status
+
+    go: util.go:143:6 -/
+noncomputable def isRPCSupportedForLearner.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "req"
+  (App (Val exceptionDo)
+  (Let "req" (App (Val (GoInstruction (GoAlloc go.any))) (Var "req"))
+  (Let "$y" (App (Val (GoInstruction (GoLoad go.any))) (Var "req"))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.StatusRequest.ty)))) (Var "$y"))
+  (Let "$x" (Fst (Var "__p"))
+  (Let "$ok" (Snd (Var "__p"))
+  (If (Var "$ok")
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.StatusRequest.ty)))) (Var "$x"))
+  (App (Val doReturn)
+  (Val #true)))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "$y"))
+  (Let "$x" (Fst (Var "__p"))
+  (Let "$ok" (Snd (Var "__p"))
+  (If (Var "$ok")
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "$x"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"Serializable"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))))))
+  (App (Val doReturn)
+  (Val #false))))))))))))))
+
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, pkg_id.errors]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.time, pkg_id.unicode.utf8, pkg_id.google_golang_org.grpc.metadata, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.raft.v3, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, pkg_id.errors, pkg_id.go_etcd_io.etcd.server.v3.storage]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -1504,6 +1819,16 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1553,9 +1878,27 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.prometheus.client_golang.prometheus.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.time.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.unicode.utf8.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.metadata.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.raft.v3.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.codes.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -1565,7 +1908,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.errors.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.errors.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.initialize') (Val #()))))))))
 
 structure AuthServer [FfiSyntax] where
   mk ::
@@ -1773,18 +2118,42 @@ attribute [instance] cancellableContext.TypeAssumptions.type_repr
   cancellableContext.TypeAssumptions.underlying
   cancellableContext.TypeAssumptions.isUnderlying
 
-axiom serverStreamWithCtx : Type
-axiom serverStreamWithCtx.zero_val : ZeroVal serverStreamWithCtx
-attribute [instance] serverStreamWithCtx.zero_val
+structure serverStreamWithCtx [FfiSyntax] where
+  mk ::
+  ServerStream' : _root_.Perennial.google_golang_org.grpc.ServerStream
+  ctx' : Loc
+
+instance serverStreamWithCtx.zero_val [FfiSyntax] : ZeroVal serverStreamWithCtx :=
+  ⟨serverStreamWithCtx.mk zeroValDef zeroValDef⟩
+
+@[reducible] def serverStreamWithCtx.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"ServerStream" _root_.Perennial.google_golang_org.grpc.ServerStream.ty),
+(go.field_decl.FieldDecl go!"ctx" (go.GoType.PointerType cancellableContext.ty))]
+
+@[irreducible] def serverStreamWithCtx.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  serverStreamWithCtx.fieldsUnsealed
+
+instance equals_unfold_serverStreamWithCtx [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold serverStreamWithCtx.fields serverStreamWithCtx.fieldsUnsealed :=
+  ⟨by unfold serverStreamWithCtx.fields; rfl⟩
+
+@[reducible] def serverStreamWithCtx.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType serverStreamWithCtx.fields)
 
 class serverStreamWithCtx.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serverStreamWithCtx.underlying serverStreamWithCtx
   underlying : go.UnderlyingDirectedEq serverStreamWithCtx.ty serverStreamWithCtx.underlying
-  isUnderlying : go.IsUnderlying serverStreamWithCtx.underlying serverStreamWithCtx.underlying
+  get_ServerStream : ∀ (x : serverStreamWithCtx), go.IsGoStepPureDetTagged under (StructFieldGet serverStreamWithCtx.underlying go!"ServerStream") #x (Val #(x.ServerStream'))
+  set_ServerStream : ∀ (x : serverStreamWithCtx) (y : _root_.Perennial.google_golang_org.grpc.ServerStream), go.IsGoStepPureDetTagged under (StructFieldSet serverStreamWithCtx.underlying go!"ServerStream") (PairV #x #y) (Val #(({ x with ServerStream' := y } : serverStreamWithCtx)))
+  get_ctx : ∀ (x : serverStreamWithCtx), go.IsGoStepPureDetTagged under (StructFieldGet serverStreamWithCtx.underlying go!"ctx") #x (Val #(x.ctx'))
+  set_ctx : ∀ (x : serverStreamWithCtx) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet serverStreamWithCtx.underlying go!"ctx") (PairV #x #y) (Val #(({ x with ctx' := y } : serverStreamWithCtx)))
 
 attribute [instance] serverStreamWithCtx.TypeAssumptions.type_repr
   serverStreamWithCtx.TypeAssumptions.underlying
-  serverStreamWithCtx.TypeAssumptions.isUnderlying
+  serverStreamWithCtx.TypeAssumptions.get_ServerStream
+  serverStreamWithCtx.TypeAssumptions.set_ServerStream
+  serverStreamWithCtx.TypeAssumptions.get_ctx
+  serverStreamWithCtx.TypeAssumptions.set_ctx
 
 structure kvServer [FfiSyntax] where
   mk ::
@@ -1892,18 +2261,54 @@ attribute [instance] headerFillingRangeStream.TypeAssumptions.type_repr
   headerFillingRangeStream.TypeAssumptions.set_hdr
   headerFillingRangeStream.TypeAssumptions.ptr_Send_unfold
 
-axiom LeaseServer : Type
-axiom LeaseServer.zero_val : ZeroVal LeaseServer
-attribute [instance] LeaseServer.zero_val
+structure LeaseServer [FfiSyntax] where
+  mk ::
+  lg' : Loc
+  hdr' : header
+  le' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Lessor
+  UnsafeLeaseServer' : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeLeaseServer
+
+instance LeaseServer.zero_val [FfiSyntax] : ZeroVal LeaseServer :=
+  ⟨LeaseServer.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def LeaseServer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
+(go.field_decl.FieldDecl go!"hdr" header.ty),
+(go.field_decl.FieldDecl go!"le" _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Lessor.ty),
+(go.field_decl.EmbeddedField go!"UnsafeLeaseServer" _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeLeaseServer.ty)]
+
+@[irreducible] def LeaseServer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  LeaseServer.fieldsUnsealed
+
+instance equals_unfold_LeaseServer [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold LeaseServer.fields LeaseServer.fieldsUnsealed :=
+  ⟨by unfold LeaseServer.fields; rfl⟩
+
+@[reducible] def LeaseServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType LeaseServer.fields)
 
 class LeaseServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LeaseServer.underlying LeaseServer
   underlying : go.UnderlyingDirectedEq LeaseServer.ty LeaseServer.underlying
-  isUnderlying : go.IsUnderlying LeaseServer.underlying LeaseServer.underlying
+  get_lg : ∀ (x : LeaseServer), go.IsGoStepPureDetTagged under (StructFieldGet LeaseServer.underlying go!"lg") #x (Val #(x.lg'))
+  set_lg : ∀ (x : LeaseServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet LeaseServer.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : LeaseServer)))
+  get_hdr : ∀ (x : LeaseServer), go.IsGoStepPureDetTagged under (StructFieldGet LeaseServer.underlying go!"hdr") #x (Val #(x.hdr'))
+  set_hdr : ∀ (x : LeaseServer) (y : header), go.IsGoStepPureDetTagged under (StructFieldSet LeaseServer.underlying go!"hdr") (PairV #x #y) (Val #(({ x with hdr' := y } : LeaseServer)))
+  get_le : ∀ (x : LeaseServer), go.IsGoStepPureDetTagged under (StructFieldGet LeaseServer.underlying go!"le") #x (Val #(x.le'))
+  set_le : ∀ (x : LeaseServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Lessor), go.IsGoStepPureDetTagged under (StructFieldSet LeaseServer.underlying go!"le") (PairV #x #y) (Val #(({ x with le' := y } : LeaseServer)))
+  get_UnsafeLeaseServer : ∀ (x : LeaseServer), go.IsGoStepPureDetTagged under (StructFieldGet LeaseServer.underlying go!"UnsafeLeaseServer") #x (Val #(x.UnsafeLeaseServer'))
+  set_UnsafeLeaseServer : ∀ (x : LeaseServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeLeaseServer), go.IsGoStepPureDetTagged under (StructFieldSet LeaseServer.underlying go!"UnsafeLeaseServer") (PairV #x #y) (Val #(({ x with UnsafeLeaseServer' := y } : LeaseServer)))
 
 attribute [instance] LeaseServer.TypeAssumptions.type_repr
   LeaseServer.TypeAssumptions.underlying
-  LeaseServer.TypeAssumptions.isUnderlying
+  LeaseServer.TypeAssumptions.get_lg
+  LeaseServer.TypeAssumptions.set_lg
+  LeaseServer.TypeAssumptions.get_hdr
+  LeaseServer.TypeAssumptions.set_hdr
+  LeaseServer.TypeAssumptions.get_le
+  LeaseServer.TypeAssumptions.set_le
+  LeaseServer.TypeAssumptions.get_UnsafeLeaseServer
+  LeaseServer.TypeAssumptions.set_UnsafeLeaseServer
 
 axiom KVGetter : Type
 axiom KVGetter.zero_val : ZeroVal KVGetter
@@ -2044,31 +2449,93 @@ attribute [instance] authMaintenanceServer.TypeAssumptions.type_repr
   authMaintenanceServer.TypeAssumptions.get_AuthAdmin
   authMaintenanceServer.TypeAssumptions.set_AuthAdmin
 
-axiom ClusterServer : Type
-axiom ClusterServer.zero_val : ZeroVal ClusterServer
-attribute [instance] ClusterServer.zero_val
+structure ClusterServer [FfiSyntax] where
+  mk ::
+  cluster' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster
+  server' : Loc
+  UnsafeClusterServer' : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeClusterServer
+
+instance ClusterServer.zero_val [FfiSyntax] : ZeroVal ClusterServer :=
+  ⟨ClusterServer.mk zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def ClusterServer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"cluster" _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty),
+(go.field_decl.FieldDecl go!"server" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)),
+(go.field_decl.EmbeddedField go!"UnsafeClusterServer" _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeClusterServer.ty)]
+
+@[irreducible] def ClusterServer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  ClusterServer.fieldsUnsealed
+
+instance equals_unfold_ClusterServer [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold ClusterServer.fields ClusterServer.fieldsUnsealed :=
+  ⟨by unfold ClusterServer.fields; rfl⟩
+
+@[reducible] def ClusterServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType ClusterServer.fields)
 
 class ClusterServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClusterServer.underlying ClusterServer
   underlying : go.UnderlyingDirectedEq ClusterServer.ty ClusterServer.underlying
-  isUnderlying : go.IsUnderlying ClusterServer.underlying ClusterServer.underlying
+  get_cluster : ∀ (x : ClusterServer), go.IsGoStepPureDetTagged under (StructFieldGet ClusterServer.underlying go!"cluster") #x (Val #(x.cluster'))
+  set_cluster : ∀ (x : ClusterServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster), go.IsGoStepPureDetTagged under (StructFieldSet ClusterServer.underlying go!"cluster") (PairV #x #y) (Val #(({ x with cluster' := y } : ClusterServer)))
+  get_server : ∀ (x : ClusterServer), go.IsGoStepPureDetTagged under (StructFieldGet ClusterServer.underlying go!"server") #x (Val #(x.server'))
+  set_server : ∀ (x : ClusterServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ClusterServer.underlying go!"server") (PairV #x #y) (Val #(({ x with server' := y } : ClusterServer)))
+  get_UnsafeClusterServer : ∀ (x : ClusterServer), go.IsGoStepPureDetTagged under (StructFieldGet ClusterServer.underlying go!"UnsafeClusterServer") #x (Val #(x.UnsafeClusterServer'))
+  set_UnsafeClusterServer : ∀ (x : ClusterServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.UnsafeClusterServer), go.IsGoStepPureDetTagged under (StructFieldSet ClusterServer.underlying go!"UnsafeClusterServer") (PairV #x #y) (Val #(({ x with UnsafeClusterServer' := y } : ClusterServer)))
 
 attribute [instance] ClusterServer.TypeAssumptions.type_repr
   ClusterServer.TypeAssumptions.underlying
-  ClusterServer.TypeAssumptions.isUnderlying
+  ClusterServer.TypeAssumptions.get_cluster
+  ClusterServer.TypeAssumptions.set_cluster
+  ClusterServer.TypeAssumptions.get_server
+  ClusterServer.TypeAssumptions.set_server
+  ClusterServer.TypeAssumptions.get_UnsafeClusterServer
+  ClusterServer.TypeAssumptions.set_UnsafeClusterServer
 
-axiom quotaAlarmer : Type
-axiom quotaAlarmer.zero_val : ZeroVal quotaAlarmer
-attribute [instance] quotaAlarmer.zero_val
+structure quotaAlarmer [FfiSyntax] where
+  mk ::
+  q' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota
+  a' : Alarmer
+  id' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
+
+instance quotaAlarmer.zero_val [FfiSyntax] : ZeroVal quotaAlarmer :=
+  ⟨quotaAlarmer.mk zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] def quotaAlarmer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"q" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota.ty),
+(go.field_decl.FieldDecl go!"a" Alarmer.ty),
+(go.field_decl.FieldDecl go!"id" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)]
+
+@[irreducible] def quotaAlarmer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  quotaAlarmer.fieldsUnsealed
+
+instance equals_unfold_quotaAlarmer [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold quotaAlarmer.fields quotaAlarmer.fieldsUnsealed :=
+  ⟨by unfold quotaAlarmer.fields; rfl⟩
+
+@[reducible] def quotaAlarmer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType quotaAlarmer.fields)
 
 class quotaAlarmer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying quotaAlarmer.underlying quotaAlarmer
   underlying : go.UnderlyingDirectedEq quotaAlarmer.ty quotaAlarmer.underlying
-  isUnderlying : go.IsUnderlying quotaAlarmer.underlying quotaAlarmer.underlying
+  get_q : ∀ (x : quotaAlarmer), go.IsGoStepPureDetTagged under (StructFieldGet quotaAlarmer.underlying go!"q") #x (Val #(x.q'))
+  set_q : ∀ (x : quotaAlarmer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Quota), go.IsGoStepPureDetTagged under (StructFieldSet quotaAlarmer.underlying go!"q") (PairV #x #y) (Val #(({ x with q' := y } : quotaAlarmer)))
+  get_a : ∀ (x : quotaAlarmer), go.IsGoStepPureDetTagged under (StructFieldGet quotaAlarmer.underlying go!"a") #x (Val #(x.a'))
+  set_a : ∀ (x : quotaAlarmer) (y : Alarmer), go.IsGoStepPureDetTagged under (StructFieldSet quotaAlarmer.underlying go!"a") (PairV #x #y) (Val #(({ x with a' := y } : quotaAlarmer)))
+  get_id : ∀ (x : quotaAlarmer), go.IsGoStepPureDetTagged under (StructFieldGet quotaAlarmer.underlying go!"id") #x (Val #(x.id'))
+  set_id : ∀ (x : quotaAlarmer) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet quotaAlarmer.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : quotaAlarmer)))
+  ptr_check_unfold : MethodUnfold (go.GoType.PointerType quotaAlarmer.ty) go!"check" quotaAlarmer.check.impl
 
 attribute [instance] quotaAlarmer.TypeAssumptions.type_repr
   quotaAlarmer.TypeAssumptions.underlying
-  quotaAlarmer.TypeAssumptions.isUnderlying
+  quotaAlarmer.TypeAssumptions.get_q
+  quotaAlarmer.TypeAssumptions.set_q
+  quotaAlarmer.TypeAssumptions.get_a
+  quotaAlarmer.TypeAssumptions.set_a
+  quotaAlarmer.TypeAssumptions.get_id
+  quotaAlarmer.TypeAssumptions.set_id
+  quotaAlarmer.TypeAssumptions.ptr_check_unfold
 
 structure quotaKVServer [FfiSyntax] where
   mk ::
@@ -2099,6 +2566,16 @@ class quotaKVServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_KVServer : ∀ (x : quotaKVServer) (y : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer), go.IsGoStepPureDetTagged under (StructFieldSet quotaKVServer.underlying go!"KVServer") (PairV #x #y) (Val #(({ x with KVServer' := y } : quotaKVServer)))
   get_qa : ∀ (x : quotaKVServer), go.IsGoStepPureDetTagged under (StructFieldGet quotaKVServer.underlying go!"qa") #x (Val #(x.qa'))
   set_qa : ∀ (x : quotaKVServer) (y : quotaAlarmer), go.IsGoStepPureDetTagged under (StructFieldSet quotaKVServer.underlying go!"qa") (PairV #x #y) (Val #(({ x with qa' := y } : quotaKVServer)))
+  DeleteRange_unfold : MethodUnfold quotaKVServer.ty go!"DeleteRange" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty go!"DeleteRange"))) (App (Val (GoInstruction (StructFieldGet quotaKVServer.ty go!"KVServer"))) (Var "$r"))))
+  Range_unfold : MethodUnfold quotaKVServer.ty go!"Range" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty go!"Range"))) (App (Val (GoInstruction (StructFieldGet quotaKVServer.ty go!"KVServer"))) (Var "$r"))))
+  ptr_DeleteRange_unfold : MethodUnfold (go.GoType.PointerType quotaKVServer.ty) go!"DeleteRange" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty go!"DeleteRange"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty))) (App (Val (GoInstruction (StructFieldRef quotaKVServer.ty go!"KVServer"))) (Var "$r")))))
+  ptr_Put_unfold : MethodUnfold (go.GoType.PointerType quotaKVServer.ty) go!"Put" quotaKVServer.Put.impl
+  ptr_Range_unfold : MethodUnfold (go.GoType.PointerType quotaKVServer.ty) go!"Range" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty go!"Range"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KVServer.ty))) (App (Val (GoInstruction (StructFieldRef quotaKVServer.ty go!"KVServer"))) (Var "$r")))))
+  ptr_Txn_unfold : MethodUnfold (go.GoType.PointerType quotaKVServer.ty) go!"Txn" quotaKVServer.Txn.impl
 
 attribute [instance] quotaKVServer.TypeAssumptions.type_repr
   quotaKVServer.TypeAssumptions.underlying
@@ -2106,6 +2583,12 @@ attribute [instance] quotaKVServer.TypeAssumptions.type_repr
   quotaKVServer.TypeAssumptions.set_KVServer
   quotaKVServer.TypeAssumptions.get_qa
   quotaKVServer.TypeAssumptions.set_qa
+  quotaKVServer.TypeAssumptions.DeleteRange_unfold
+  quotaKVServer.TypeAssumptions.Range_unfold
+  quotaKVServer.TypeAssumptions.ptr_DeleteRange_unfold
+  quotaKVServer.TypeAssumptions.ptr_Put_unfold
+  quotaKVServer.TypeAssumptions.ptr_Range_unfold
+  quotaKVServer.TypeAssumptions.ptr_Txn_unfold
 
 structure quotaLeaseServer [FfiSyntax] where
   mk ::
@@ -2201,6 +2684,8 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   watchServer_instance : watchServer.TypeAssumptions
   serverWatchStream_instance : serverWatchStream.TypeAssumptions
   newHeader_unfold : FuncUnfold newHeader [] newHeader.impl
+  newUnaryInterceptor_unfold : FuncUnfold newUnaryInterceptor [] newUnaryInterceptor.impl
+  newLogUnaryInterceptor_unfold : FuncUnfold newLogUnaryInterceptor [] newLogUnaryInterceptor.impl
   NewKVServer_unfold : FuncUnfold NewKVServer [] NewKVServer.impl
   checkRangeRequest_unfold : FuncUnfold checkRangeRequest [] checkRangeRequest.impl
   checkRangeStreamRequest_unfold : FuncUnfold checkRangeStreamRequest [] checkRangeStreamRequest.impl
@@ -2209,18 +2694,31 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   checkTxnRequest_unfold : FuncUnfold checkTxnRequest [] checkTxnRequest.impl
   checkIntervals_unfold : FuncUnfold checkIntervals [] checkIntervals.impl
   checkRequestOp_unfold : FuncUnfold checkRequestOp [] checkRequestOp.impl
+  NewQuotaKVServer_unfold : FuncUnfold NewQuotaKVServer [] NewQuotaKVServer.impl
+  newBackendQuota_unfold : FuncUnfold newBackendQuota [] newBackendQuota.impl
   togRPCError_unfold : FuncUnfold togRPCError [] togRPCError.impl
+  isRPCSupportedForLearner_unfold : FuncUnfold isRPCSupportedForLearner [] isRPCSupportedForLearner.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
   import_auth_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.Assumptions
   import_etcdserver_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions
+  import_prometheus_Assumption : _root_.Perennial.github_com.prometheus.client_golang.prometheus.Assumptions
+  import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
+  import_grpc_Assumption : _root_.Perennial.google_golang_org.grpc.Assumptions
   import_apply_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions
+  import_time_Assumption : _root_.Perennial.time.Assumptions
+  import_utf8_Assumption : _root_.Perennial.unicode.utf8.Assumptions
+  import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
   import_rpctypes_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions
+  import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
+  import_api_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Assumptions
+  import_raft_Assumption : _root_.Perennial.go_etcd_io.raft.v3.Assumptions
   import_codes_Assumption : _root_.Perennial.google_golang_org.grpc.codes.Assumptions
   import_status_Assumption : _root_.Perennial.google_golang_org.grpc.status.Assumptions
   import_adt_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.Assumptions
   import_txn_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
+  import_storage_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.Assumptions
 
 attribute [instance] Assumptions.AuthServer_instance
   Assumptions.AuthGetter_instance
@@ -2252,6 +2750,8 @@ attribute [instance] Assumptions.AuthServer_instance
   Assumptions.watchServer_instance
   Assumptions.serverWatchStream_instance
   Assumptions.newHeader_unfold
+  Assumptions.newUnaryInterceptor_unfold
+  Assumptions.newLogUnaryInterceptor_unfold
   Assumptions.NewKVServer_unfold
   Assumptions.checkRangeRequest_unfold
   Assumptions.checkRangeStreamRequest_unfold
@@ -2260,18 +2760,31 @@ attribute [instance] Assumptions.AuthServer_instance
   Assumptions.checkTxnRequest_unfold
   Assumptions.checkIntervals_unfold
   Assumptions.checkRequestOp_unfold
+  Assumptions.NewQuotaKVServer_unfold
+  Assumptions.newBackendQuota_unfold
   Assumptions.togRPCError_unfold
+  Assumptions.isRPCSupportedForLearner_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_etcdserverpb_Assumption
   Assumptions.import_auth_Assumption
   Assumptions.import_etcdserver_Assumption
+  Assumptions.import_prometheus_Assumption
+  Assumptions.import_zap_Assumption
+  Assumptions.import_grpc_Assumption
   Assumptions.import_apply_Assumption
+  Assumptions.import_time_Assumption
+  Assumptions.import_utf8_Assumption
+  Assumptions.import_metadata_Assumption
   Assumptions.import_rpctypes_Assumption
+  Assumptions.import_types_Assumption
+  Assumptions.import_api_Assumption
+  Assumptions.import_raft_Assumption
   Assumptions.import_codes_Assumption
   Assumptions.import_status_Assumption
   Assumptions.import_adt_Assumption
   Assumptions.import_txn_Assumption
   Assumptions.import_errors_Assumption
+  Assumptions.import_storage_Assumption
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 

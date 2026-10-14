@@ -484,8 +484,9 @@ theorem txn.Txn_read
           (srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
           (srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2 ∗
         respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp)) ∨
-       mvcc.errorfIs err)) $$ [Hres]
-  · icases Hres with (⟨%Herr, Htw, #Hresp, Hhdr, -⟩ | ⟨-, #He, ⟨%pend', Htw⟩, #Hshell⟩)
+       (mvcc.errorfIs err ∗ roTxnRespRd resp ∗
+        respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp)))) $$ [Hres]
+  · icases Hres with (⟨%Herr, Htw, #Hresp, Hhdr, -⟩ | ⟨-, #He, ⟨%pend', Htw⟩, #Hshell, #Hrd, Hhdr⟩)
     · iexists _
       iframe Htw
       have hwr : (W64 (mvcc.writeRev log
@@ -516,7 +517,7 @@ theorem txn.Txn_read
       iexact Hresp
     · iexists pend'
       iframe Htw Hshell
-      iright; iexact He
+      iright; iframe He Hrd Hhdr
   icases txnWriteIs_kind _ s γ true log _ $$ Htw with ⟨%kind, Hv, %Hk⟩
   obtain ⟨hkis, -, -, -, -⟩ := Hk
   unfold KindIs at hkis
@@ -544,7 +545,7 @@ theorem txn.Txn_read
   isplitl []
   · ipureintro; exact ⟨Hpin.1, Hpin.2, Hlog.2.1⟩
   iright
-  icases Hout with (⟨%Herr, #Hresp, Hhdr⟩ | #He)
+  icases Hout with (⟨%Herr, #Hresp, Hhdr⟩ | ⟨#He, #Hrd, Hhdr⟩)
   · ileft
     isplitr
     · ipureintro; exact ⟨Herr, Htr⟩
@@ -560,7 +561,7 @@ theorem txn.Txn_read
     · iexists te5; iexact Htrc
     isplitr
     · ipureintro; exact Hteq
-    iframe He
+    iframe He Hrd Hhdr
 
 theorem txn.Txn.wp_proof
     (hEnsure : traceutil.EnsureTrace.spec (GF := GF) (hG := hG))

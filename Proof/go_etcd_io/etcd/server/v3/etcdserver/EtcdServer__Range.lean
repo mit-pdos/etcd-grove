@@ -24,6 +24,8 @@ public import Spec.go_opentelemetry_io.otel.«attribute».String
 public import Spec.go_opentelemetry_io.otel.«attribute».Int64
 public import Spec.go_opentelemetry_io.otel.«attribute».Bool
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveReadOnlyRangeRequest
+public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest__String
+public import Spec.google_golang_org.protobuf.proto.Size
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.txn.Range
 public import Spec.strconv.FormatBool
 public import Spec.time.Duration__Seconds
@@ -74,6 +76,36 @@ theorem rangeResult_show (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev 
     iright
     iexists h, sl, rev
     iframe #
+
+/-- What `WarnOfExpensiveReadOnlyRangeRequest` needs of a range's answer (unit P4, 2026-10-14):
+no response, or one whose `Kvs` it reads and whose `proto.Size` returns lent the header's id
+fields (`rangeHdr`: a response comes with no error). -/
+theorem rangeResult_warn (hSize : proto.Size.spec (GF := GF) (hG := hG))
+    (resp : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (o : OpFull) (wt : Bool) :
+    txn.rangeResult (GF := GF) resp err log rev o wt ⊢
+      ⌜resp = null⌝ ∨
+        (∃ sl : GoSlice, structFieldRef etcdserverpb.RangeResponse go!"Kvs" resp ↦□ sl) ∗
+        txn.sizeOk (interface.mkOk (go.GoType.PointerType etcdserverpb.RangeResponse.ty) #resp)
+          (txn.rangeHdr resp err) := by
+  iunfold txn.rangeResult
+  iintro (⟨%H, -⟩ | ⟨%H, -⟩ | ⟨%H, %kvs, %more, #Hr, -⟩)
+  · ileft; ipureintro; exact H.2
+  · ileft; ipureintro; exact H.2.2.2
+  · iright
+    ihave #Hr' := Hr
+    iunfold txn.rangeResponseIs at Hr'
+    icases Hr' with ⟨-, %h, %sl, %ps, -, -, -, #Hk, -⟩
+    isplitl []
+    · iexists sl; iexact Hk
+    iunfold txn.sizeOk
+    iintro !> %Φ !> ⟨#Hp, HP⟩ HΦ
+    iunfold txn.rangeHdr at HP
+    ihave Hh := HP $$ %H.2
+    wp_apply (hSize.2.1 resp _ kvs more _) $$ [$Hp $Hr $Hh] as %n ⟨-, Hh⟩
+    iapply HΦ
+    iunfold txn.rangeHdr
+    iintro -
+    iexact Hh
 
 instance readIndexOk_persistent_r (γr : ReadNames) (c : w64) :
     Persistent (readIndexOk (GF := GF) γr c) := by
@@ -171,7 +203,11 @@ local macro "range_defer" : tactic => `(tactic| (
   wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
   · iframe #; iframe Hlr; ipureintro; exact Hlgn
   (try wp_auto)
-  wp_apply hWarn
+  wp_apply (hWarn _ _ _ _ respv _ (txn.rangeHdr respv _)) $$ [Hhdr] as Hhdr
+  · isplitr; · ipureintro; exact Hlgn
+    isplitr; · iexact Hstr
+    iframe Hhdr
+    iapply rangeResult_warn hSize _ _ _ _ _ _ $$ Hres
   (try wp_auto)
   range_defer_b))
 
@@ -274,14 +310,18 @@ local macro "range_tail" : tactic => `(tactic| (
     | nil => exact absurd rfl Hs0
     | ok sei =>
       icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
-        ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, %Hlog, #Hres, -, Hown⟩)
+        ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, %Hlog, #Hres, Hhdr, Hown⟩)
       · wp_auto
         ihave Hown : iprop(∃ te, traceutil.ownTrace trc te) $$ [Hown0]
         · iexists false; iexact Hown0
         wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
         · iframe #; iframe Hlr; ipureintro; exact Hlgn
         (try wp_auto)
-        wp_apply hWarn
+        wp_apply (hWarn _ _ _ _ null _ iprop(True)) $$ []
+        · isplitr; · ipureintro; exact Hlgn
+          isplitr; · iexact Hstr
+          isplitr; · itrivial
+          ileft; ipureintro; rfl
         (try wp_auto)
         range_defer_c
         iapply HΦ
@@ -325,7 +365,9 @@ theorem EtcdServer.Range.wp_proof
     (hStep : traceutil.Trace.Step.spec (GF := GF) (hG := hG))
     (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
     (hRange : txn.Range.spec (GF := GF) (hG := hG))
-    (hDS : EtcdServer.doSerialize.spec (GF := GF) (hG := hG)) :
+    (hDS : EtcdServer.doSerialize.spec (GF := GF) (hG := hG))
+    (hRStr : RangeRequest.String.spec (GF := GF) (hG := hG))
+    (hSize : proto.Size.spec (GF := GF) (hG := hG)) :
     EtcdServer.Range.spec (GF := GF) (hG := hG) := by
   intro s E ρ γr c ctx cd r o ot te
   wp_start as ⟨#Hsrv, #Hrd, Hcall, #Hctx, #Hct, Hto, #Hr, %Hvst⟩
@@ -346,6 +388,18 @@ theorem EtcdServer.Range.wp_proof
   ihave #HaInit : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Papply
   icases HaInit with ⟨-, -, ⟨-, -, -, -, #HFut, -⟩⟩
+  ihave #Hstr : txn.stringerOk (GF := GF)
+      (interface.mkOk (go.GoType.PointerType etcdserverpb.RangeRequest.ty) #r) $$ []
+  · ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
+    · iPkgInit
+    iunfold txn.stringerOk
+    iexists _
+    isplitr; · ipureintro; rfl
+    iintro !> %Φ' !> - HΦ'
+    wp_apply (hRStr r o) $$ [] as %str -
+    · iframe #
+    iapply HΦ'
+    itrivial
   ihave #Hr' := Hr
   iunfold txn.rangeRequestIs at Hr'
   icases Hr' with ⟨%Hrn, %ksl, %esl, %k, %e, %rev0, %limit, %order, %target, %ser, %ko, %co, %minM,
@@ -467,7 +521,11 @@ theorem EtcdServer.Range.wp_proof
       wp_apply hLg s w.lg $$ [Hlr] as ⟨-, Hlr⟩
       · iframe #; iframe Hlr; ipureintro; exact Hlgn
       (try wp_auto)
-      wp_apply hWarn
+      wp_apply (hWarn _ _ _ _ null _ iprop(True)) $$ []
+      · isplitr; · ipureintro; exact Hlgn
+        isplitr; · iexact Hstr
+        isplitr; · itrivial
+        ileft; ipureintro; rfl
       (try wp_auto)
       range_defer_c
       iapply HΦ

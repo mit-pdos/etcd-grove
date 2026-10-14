@@ -153,6 +153,7 @@ public import Proof.errors.Is
 public import Proof.errors.IsCtxErr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isConnectedSince
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isConnectedToQuorumSince
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest__String
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.exceedsRequestLimit
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstCompareKey
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpKey
@@ -200,6 +201,7 @@ public import Proof.github_com.prometheus.client_golang.prometheus.GaugeVec__Wit
 public import Proof.github_com.prometheus.client_golang.prometheus.HistogramVec__WithLabelValues
 public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.google_golang_org.protobuf.proto.MarshalIRR
+public import Proof.google_golang_org.protobuf.proto.Size
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.quorum
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__ReadIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.raftNode__ReadState
@@ -238,8 +240,6 @@ public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__SetStartTime
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__updateFieldIfExist
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Tracer__Start
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.newTrace
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveReadOnlyRangeRequest
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.WarnOfExpensiveReadOnlyTxnRequest
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.ID__String
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.ServerStats__BecomeLeader
@@ -483,10 +483,6 @@ theorem traceutil.wp_newTrace :
     traceutil.newTrace.spec (GF := GF) (hG := hG) :=
   traceutil.newTrace.wp_proof
 
-theorem txn.wp_WarnOfExpensiveReadOnlyRangeRequest :
-    txn.WarnOfExpensiveReadOnlyRangeRequest.spec (GF := GF) (hG := hG) :=
-  txn.WarnOfExpensiveReadOnlyRangeRequest.wp_proof
-
 theorem traceutil.Trace.wp_updateFieldIfExist :
     traceutil.Trace.updateFieldIfExist.spec (GF := GF) (hG := hG) :=
   traceutil.Trace.updateFieldIfExist.wp_proof
@@ -494,6 +490,14 @@ theorem traceutil.Trace.wp_updateFieldIfExist :
 theorem traceutil.Trace.wp_AddField :
     traceutil.Trace.AddField.spec (GF := GF) (hG := hG) :=
   traceutil.Trace.AddField.wp_proof traceutil.Trace.wp_updateFieldIfExist
+
+theorem RangeRequest.wp_String :
+    RangeRequest.String.spec (GF := GF) (hG := hG) :=
+  RangeRequest.String.wp_proof
+
+theorem proto.wp_Size :
+    proto.Size.spec (GF := GF) (hG := hG) :=
+  proto.Size.wp_proof
 
 theorem zap.wp_Uint64 :
     zap.Uint64.spec (GF := GF) (hG := hG) :=
@@ -650,10 +654,6 @@ theorem «attribute».wp_Int :
 theorem TxnRequest.wp_GetFailure :
     TxnRequest.GetFailure.spec (GF := GF) (hG := hG) :=
   TxnRequest.GetFailure.wp_proof
-
-theorem txn.wp_WarnOfExpensiveReadOnlyTxnRequest :
-    txn.WarnOfExpensiveReadOnlyTxnRequest.spec (GF := GF) (hG := hG) :=
-  txn.WarnOfExpensiveReadOnlyTxnRequest.wp_proof
 
 theorem consistentIndex.wp_ConsistentApplyingIndex :
     consistentIndex.ConsistentApplyingIndex.spec (GF := GF) (hG := hG) :=
@@ -1028,7 +1028,7 @@ theorem EtcdServer.wp_doSerialize :
 
 theorem EtcdServer.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.Range.spec (GF := GF) (hG := hG) :=
-  EtcdServer.Range.wp_proof traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_String «attribute».wp_Int64 «attribute».wp_Bool RangeRequest.wp_GetKey RangeRequest.wp_GetRangeEnd RangeRequest.wp_GetRevision RangeRequest.wp_GetLimit RangeRequest.wp_GetCountOnly RangeRequest.wp_GetKeysOnly EtcdServer.wp_Logger traceutil.wp_EnsureTrace txn.wp_WarnOfExpensiveReadOnlyRangeRequest traceutil.Trace.wp_AddField traceutil.Trace.wp_LogIfLong strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues traceutil.Trace.wp_Step EtcdServer.wp_KV txn.wp_Range EtcdServer.wp_doSerialize
+  EtcdServer.Range.wp_proof traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_String «attribute».wp_Int64 «attribute».wp_Bool RangeRequest.wp_GetKey RangeRequest.wp_GetRangeEnd RangeRequest.wp_GetRevision RangeRequest.wp_GetLimit RangeRequest.wp_GetCountOnly RangeRequest.wp_GetKeysOnly EtcdServer.wp_Logger traceutil.wp_EnsureTrace txn.wp_WarnOfExpensiveReadOnlyRangeRequest traceutil.Trace.wp_AddField traceutil.Trace.wp_LogIfLong strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues traceutil.Trace.wp_Step EtcdServer.wp_KV txn.wp_Range EtcdServer.wp_doSerialize RangeRequest.wp_String proto.wp_Size
 
 theorem EtcdServer.wp_RequestTimeout :
     EtcdServer.RequestTimeout.spec (GF := GF) (hG := hG) :=
@@ -1256,7 +1256,7 @@ theorem wp_firstOpLease :
 
 theorem EtcdServer.wp_Txn [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.Txn.spec (GF := GF) (hG := hG) :=
-  EtcdServer.Txn.wp_proof txn.wp_IsTxnReadonly traceutil.Tracer.wp_Start trace.wp_WithAttributes TxnRequest.wp_GetCompare wp_firstCompareKey «attribute».wp_String TxnRequest.wp_GetSuccess wp_firstOpKey wp_firstOpType wp_firstOpLease «attribute».wp_Int64 «attribute».wp_Int TxnRequest.wp_GetFailure «attribute».wp_Bool EtcdServer.wp_Logger traceutil.wp_EnsureTrace txn.wp_IsTxnSerializable traceutil.Trace.wp_Step apply.wp_CheckTxnAuth txn.wp_WarnOfExpensiveReadOnlyTxnRequest traceutil.Trace.wp_LogIfLong strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues EtcdServer.wp_KV txn.wp_Txn EtcdServer.wp_doSerialize context.wp_WithValue EtcdServer.wp_raftRequest
+  EtcdServer.Txn.wp_proof txn.wp_IsTxnReadonly traceutil.Tracer.wp_Start trace.wp_WithAttributes TxnRequest.wp_GetCompare wp_firstCompareKey «attribute».wp_String TxnRequest.wp_GetSuccess wp_firstOpKey wp_firstOpType wp_firstOpLease «attribute».wp_Int64 «attribute».wp_Int TxnRequest.wp_GetFailure «attribute».wp_Bool EtcdServer.wp_Logger traceutil.wp_EnsureTrace txn.wp_IsTxnSerializable traceutil.Trace.wp_Step apply.wp_CheckTxnAuth txn.wp_WarnOfExpensiveReadOnlyTxnRequest traceutil.Trace.wp_LogIfLong strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues EtcdServer.wp_KV txn.wp_Txn EtcdServer.wp_doSerialize context.wp_WithValue EtcdServer.wp_raftRequest proto.wp_Size
 
 theorem EtcdServer.wp_newHeader :
     EtcdServer.newHeader.spec (GF := GF) (hG := hG) :=

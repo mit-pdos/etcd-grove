@@ -8,7 +8,16 @@ hand.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Alarm
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__IsLearner
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__IsMemberExist
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewKVServer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewQuotaKVServer
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_DeleteRange_Handler
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_Put_Handler
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_Range_Handler
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb._KV_Txn_Handler
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.IsCapabilityEnabled
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkDeleteRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkIntervals
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkPutRequest
@@ -21,16 +30,29 @@ public import Proof.errors.IsDeadlineExceeded
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.headerFillingRangeStream__Send
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header__fill
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.header__fillWithoutRevision
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.isRPCSupportedForLearner
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__DeleteRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Put
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Range
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer__Txn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.logUnaryRequestStats
+public import Proof.google_golang_org.grpc.metadata.FromIncomingContext
+public import Proof.google_golang_org.grpc.metadata.MD__Get
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newBackendQuota
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newHeader
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newLogUnaryInterceptor
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newUnaryInterceptor
+public import Proof.github_com.prometheus.client_golang.prometheus.CounterVec__WithLabelValues
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaAlarmer__check
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer__Put
 public import Proof.google_golang_org.grpc.status.Error
 public import Proof.google_golang_org.grpc.status.Errorf
+public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendQuota
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError
+public import Proof.unicode.utf8.ValidString
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Link
 
 @[expose] public section
@@ -57,6 +79,14 @@ theorem wp_newHeader :
 theorem wp_NewKVServer :
     EtcdGrove.v3rpc.NewKVServer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.NewKVServer.wp_proof wp_newHeader
+
+theorem storage.wp_NewBackendQuota :
+    EtcdGrove.storage.NewBackendQuota.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.storage.NewBackendQuota.wp_proof
+
+theorem api.wp_IsCapabilityEnabled :
+    EtcdGrove.api.IsCapabilityEnabled.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.api.IsCapabilityEnabled.wp_proof
 
 theorem wp_checkDeleteRequest :
     EtcdGrove.v3rpc.checkDeleteRequest.spec (GF := GF) (hG := hG) :=
@@ -134,7 +164,94 @@ theorem kvServer.wp_Txn :
     EtcdGrove.v3rpc.kvServer.Txn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.kvServer.Txn.wp_proof wp_checkTxnRequest wp_checkIntervals wp_togRPCError header.wp_fill
 
+theorem metadata.wp_FromIncomingContext :
+    EtcdGrove.metadata.FromIncomingContext.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.metadata.FromIncomingContext.wp_proof
+
+theorem metadata.MD.wp_Get :
+    EtcdGrove.metadata.MD.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.metadata.MD.Get.wp_proof
+
+theorem utf8.wp_ValidString :
+    EtcdGrove.utf8.ValidString.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.utf8.ValidString.wp_proof
+
+theorem prometheus.CounterVec.wp_WithLabelValues :
+    EtcdGrove.prometheus.CounterVec.WithLabelValues.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.prometheus.CounterVec.WithLabelValues.wp_proof
+
 end links
+
+/-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
+`context` (Perennial states them there: their invariants need later credits). -/
+section links_hasLC
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
+theorem EtcdServer.wp_Alarm :
+    EtcdGrove.EtcdServer.Alarm.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.EtcdServer.Alarm.wp_proof
+
+theorem EtcdServer.wp_IsLearner :
+    EtcdGrove.EtcdServer.IsLearner.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.EtcdServer.IsLearner.wp_proof
+
+theorem EtcdServer.wp_IsMemberExist :
+    EtcdGrove.EtcdServer.IsMemberExist.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.EtcdServer.IsMemberExist.wp_proof
+
+theorem wp_newBackendQuota :
+    EtcdGrove.v3rpc.newBackendQuota.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.newBackendQuota.wp_proof EtcdServer.wp_Logger EtcdServer.wp_Backend storage.wp_NewBackendQuota
+
+theorem wp_NewQuotaKVServer :
+    EtcdGrove.v3rpc.NewQuotaKVServer.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.NewQuotaKVServer.wp_proof wp_NewKVServer wp_newBackendQuota EtcdServer.wp_MemberID
+
+theorem etcdserverpb.wp__KV_DeleteRange_Handler :
+    EtcdGrove.etcdserverpb._KV_DeleteRange_Handler.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb._KV_DeleteRange_Handler.wp_proof
+
+theorem etcdserverpb.wp__KV_Put_Handler :
+    EtcdGrove.etcdserverpb._KV_Put_Handler.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb._KV_Put_Handler.wp_proof
+
+theorem etcdserverpb.wp__KV_Range_Handler :
+    EtcdGrove.etcdserverpb._KV_Range_Handler.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb._KV_Range_Handler.wp_proof
+
+theorem etcdserverpb.wp__KV_Txn_Handler :
+    EtcdGrove.etcdserverpb._KV_Txn_Handler.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb._KV_Txn_Handler.wp_proof
+
+theorem wp_isRPCSupportedForLearner :
+    EtcdGrove.v3rpc.isRPCSupportedForLearner.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.isRPCSupportedForLearner.wp_proof
+
+theorem wp_logUnaryRequestStats :
+    EtcdGrove.v3rpc.logUnaryRequestStats.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.logUnaryRequestStats.wp_proof
+
+theorem wp_newLogUnaryInterceptor :
+    EtcdGrove.v3rpc.newLogUnaryInterceptor.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.newLogUnaryInterceptor.wp_proof EtcdServer.wp_Logger wp_logUnaryRequestStats
+
+theorem wp_newUnaryInterceptor :
+    EtcdGrove.v3rpc.newUnaryInterceptor.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.newUnaryInterceptor.wp_proof api.wp_IsCapabilityEnabled EtcdServer.wp_MemberID EtcdServer.wp_IsMemberExist EtcdServer.wp_IsLearner wp_isRPCSupportedForLearner metadata.wp_FromIncomingContext metadata.MD.wp_Get utf8.wp_ValidString prometheus.CounterVec.wp_WithLabelValues EtcdServer.wp_Leader
+
+theorem quotaAlarmer.wp_check :
+    EtcdGrove.v3rpc.quotaAlarmer.check.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.quotaAlarmer.check.wp_proof EtcdServer.wp_Alarm
+
+theorem quotaKVServer.wp_Put :
+    EtcdGrove.v3rpc.quotaKVServer.Put.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.quotaKVServer.Put.wp_proof quotaAlarmer.wp_check
+
+end links_hasLC
 
 end v3rpc
 end EtcdGrove

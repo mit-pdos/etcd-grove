@@ -1090,9 +1090,11 @@ axiom KV_RangeStream_FullMethodName [FfiSyntax] [GoGlobalContext] : val
 @[reducible] noncomputable def KV_Put_FullMethodName [FfiSyntax] [GoGlobalContext] : val :=
   #(go!"/etcdserverpb.KV/Put")
 
-axiom KV_DeleteRange_FullMethodName [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def KV_DeleteRange_FullMethodName [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"/etcdserverpb.KV/DeleteRange")
 
-axiom KV_Txn_FullMethodName [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def KV_Txn_FullMethodName [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"/etcdserverpb.KV/Txn")
 
 axiom KV_Compact_FullMethodName [FfiSyntax] [GoGlobalContext] : val
 
@@ -1327,8 +1329,6 @@ axiom file_rpc_proto_depIdxs.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def KV_ServiceDesc [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.KV_ServiceDesc"
-
-axiom KV_ServiceDesc.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def Watch_ServiceDesc [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.Watch_ServiceDesc"
@@ -1709,6 +1709,21 @@ noncomputable def RangeRequest.GetCountOnly.impl [FfiSyntax] [GoGlobalContext] :
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType RangeRequest.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RangeRequest.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType RangeRequest.ty)))) (Val UntypedNil))))))
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef RangeRequest.ty go!"CountOnly"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RangeRequest.ty)))) (Var "x")))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- go: rpc.pb.go:745:25 -/
+noncomputable def RangeResponse.GetKvs.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RangeResponse.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Val UntypedNil)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType RangeResponse.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RangeResponse.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType RangeResponse.ty)))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef RangeResponse.ty go!"Kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RangeResponse.ty)))) (Var "x")))))
   (App (Val doExecute)
   (Val #()))))))))
 
@@ -2172,6 +2187,328 @@ noncomputable def kVClient.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)))) (Pair (Var "cOpts") (Var "$r0"))))))))))))))))
 
+/-- go: rpc_grpc.pb.go:206:6 -/
+noncomputable def RegisterKVServer.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "srv"
+  (App (Val exceptionDo)
+  (Let "srv" (App (Val (GoInstruction (GoAlloc KVServer.ty))) (Var "srv"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GlobalVarAddr KV_ServiceDesc))) (Val #()))
+  (Let "$a1" (App (Val (GoInstruction (Convert KVServer.ty go.any))) (App (Val (GoInstruction (GoLoad KVServer.ty))) (Var "srv")))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty go!"RegisterService"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.ServiceRegistrar.ty))) (Var "s"))) (Var "$a0")) (Var "$a1")))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (App (Val (GoInstruction (GoLoad KVServer.ty))) (Var "srv")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))]) go!"testEmbeddedByValue"))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Var "t"))) (Val #())))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"testEmbeddedByValue" (go.signature.Signature [] false []))])))) (Pair (Var "t") (Var "$r0")))))))))))))))))))
+
+/-- go: rpc_grpc.pb.go:217:6 -/
+noncomputable def _KV_Range_Handler.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "srv"
+  (Lam "ctx"
+  (Lam "dec"
+  (Lam "interceptor"
+  (App (Val exceptionDo)
+  (Let "interceptor" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Var "interceptor"))
+  (Let "dec" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))))) (Var "dec"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "srv" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (Var "srv"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc RangeRequest.ty))) (App (Val (GoInstruction (GoZeroVal RangeRequest.ty))) (Val #())))
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RangeRequest.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType RangeRequest.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "srv"))
+  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val KV_Range_FullMethodName))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Server")) (ElementExpression (go.GoType.InterfaceType []) (Var "$v0"))), (KeyedElement (some (KeyField go!"FullMethod")) (ElementExpression go.string (Var "$v1")))])))))
+  (Let "info" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam "ctx"
+  (Lam "req"
+  (App (Val exceptionDo)
+  (Let "req" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (Var "req"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (TypeAssert (go.GoType.PointerType RangeRequest.ty)))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "req")))
+  (App (App (App (Val (GoInstruction (MethodResolve KVServer.ty go!"Range"))) (App (Val (GoInstruction (TypeAssert KVServer.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "srv")))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType RangeResponse.ty) (go.GoType.InterfaceType [])))) (Var "$ret0")) (Var "$ret1")))))))))))
+  (Let "handler" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.error]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.error]))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType RangeRequest.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RangeRequest.ty)))) (Var "in")))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty)))) (Var "info"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.error]))))) (Var "handler"))
+  (App (App (App (App (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Var "interceptor")) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (Var "$ret0") (Var "$ret1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.error]))))) (Pair (Var "handler") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty)))) (Pair (Var "info") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Var "interceptor")) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Val UntypedNil)))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RangeRequest.ty)))) (Var "in"))
+  (App (App (App (Val (GoInstruction (MethodResolve KVServer.ty go!"Range"))) (App (Val (GoInstruction (TypeAssert KVServer.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "srv")))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType RangeResponse.ty) (go.GoType.InterfaceType [])))) (Var "$ret0")) (Var "$ret1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType RangeRequest.ty) (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RangeRequest.ty)))) (Var "in")))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))))) (Var "dec")) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.InterfaceType [])))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType RangeRequest.ty)))) (Pair (Var "in") (Var "$r0"))))))))))))))))
+
+/-- go: rpc_grpc.pb.go:246:6 -/
+noncomputable def _KV_Put_Handler.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "srv"
+  (Lam "ctx"
+  (Lam "dec"
+  (Lam "interceptor"
+  (App (Val exceptionDo)
+  (Let "interceptor" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Var "interceptor"))
+  (Let "dec" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))))) (Var "dec"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "srv" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (Var "srv"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc PutRequest.ty))) (App (Val (GoInstruction (GoZeroVal PutRequest.ty))) (Val #())))
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType PutRequest.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType PutRequest.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "srv"))
+  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val KV_Put_FullMethodName))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Server")) (ElementExpression (go.GoType.InterfaceType []) (Var "$v0"))), (KeyedElement (some (KeyField go!"FullMethod")) (ElementExpression go.string (Var "$v1")))])))))
+  (Let "info" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam "ctx"
+  (Lam "req"
+  (App (Val exceptionDo)
+  (Let "req" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (Var "req"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (TypeAssert (go.GoType.PointerType PutRequest.ty)))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "req")))
+  (App (App (App (Val (GoInstruction (MethodResolve KVServer.ty go!"Put"))) (App (Val (GoInstruction (TypeAssert KVServer.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "srv")))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType PutResponse.ty) (go.GoType.InterfaceType [])))) (Var "$ret0")) (Var "$ret1")))))))))))
+  (Let "handler" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.error]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.error]))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType PutRequest.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PutRequest.ty)))) (Var "in")))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty)))) (Var "info"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.error]))))) (Var "handler"))
+  (App (App (App (App (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Var "interceptor")) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (Var "$ret0") (Var "$ret1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.error]))))) (Pair (Var "handler") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty)))) (Pair (Var "info") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Var "interceptor")) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Val UntypedNil)))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PutRequest.ty)))) (Var "in"))
+  (App (App (App (Val (GoInstruction (MethodResolve KVServer.ty go!"Put"))) (App (Val (GoInstruction (TypeAssert KVServer.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "srv")))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType PutResponse.ty) (go.GoType.InterfaceType [])))) (Var "$ret0")) (Var "$ret1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType PutRequest.ty) (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PutRequest.ty)))) (Var "in")))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))))) (Var "dec")) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.InterfaceType [])))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType PutRequest.ty)))) (Pair (Var "in") (Var "$r0"))))))))))))))))
+
+/-- go: rpc_grpc.pb.go:264:6 -/
+noncomputable def _KV_DeleteRange_Handler.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "srv"
+  (Lam "ctx"
+  (Lam "dec"
+  (Lam "interceptor"
+  (App (Val exceptionDo)
+  (Let "interceptor" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Var "interceptor"))
+  (Let "dec" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))))) (Var "dec"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "srv" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (Var "srv"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc DeleteRangeRequest.ty))) (App (Val (GoInstruction (GoZeroVal DeleteRangeRequest.ty))) (Val #())))
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType DeleteRangeRequest.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType DeleteRangeRequest.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "srv"))
+  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val KV_DeleteRange_FullMethodName))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Server")) (ElementExpression (go.GoType.InterfaceType []) (Var "$v0"))), (KeyedElement (some (KeyField go!"FullMethod")) (ElementExpression go.string (Var "$v1")))])))))
+  (Let "info" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam "ctx"
+  (Lam "req"
+  (App (Val exceptionDo)
+  (Let "req" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (Var "req"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (TypeAssert (go.GoType.PointerType DeleteRangeRequest.ty)))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "req")))
+  (App (App (App (Val (GoInstruction (MethodResolve KVServer.ty go!"DeleteRange"))) (App (Val (GoInstruction (TypeAssert KVServer.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "srv")))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType DeleteRangeResponse.ty) (go.GoType.InterfaceType [])))) (Var "$ret0")) (Var "$ret1")))))))))))
+  (Let "handler" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.error]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.error]))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType DeleteRangeRequest.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DeleteRangeRequest.ty)))) (Var "in")))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty)))) (Var "info"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.error]))))) (Var "handler"))
+  (App (App (App (App (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Var "interceptor")) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (Var "$ret0") (Var "$ret1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.error]))))) (Pair (Var "handler") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty)))) (Pair (Var "info") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Var "interceptor")) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Val UntypedNil)))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DeleteRangeRequest.ty)))) (Var "in"))
+  (App (App (App (Val (GoInstruction (MethodResolve KVServer.ty go!"DeleteRange"))) (App (Val (GoInstruction (TypeAssert KVServer.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "srv")))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType DeleteRangeResponse.ty) (go.GoType.InterfaceType [])))) (Var "$ret0")) (Var "$ret1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType DeleteRangeRequest.ty) (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType DeleteRangeRequest.ty)))) (Var "in")))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))))) (Var "dec")) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.InterfaceType [])))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType DeleteRangeRequest.ty)))) (Pair (Var "in") (Var "$r0"))))))))))))))))
+
+/-- go: rpc_grpc.pb.go:282:6 -/
+noncomputable def _KV_Txn_Handler.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "srv"
+  (Lam "ctx"
+  (Lam "dec"
+  (Lam "interceptor"
+  (App (Val exceptionDo)
+  (Let "interceptor" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Var "interceptor"))
+  (Let "dec" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))))) (Var "dec"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "srv" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (Var "srv"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc TxnRequest.ty))) (App (Val (GoInstruction (GoZeroVal TxnRequest.ty))) (Val #())))
+  (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType TxnRequest.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType TxnRequest.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "srv"))
+  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val KV_Txn_FullMethodName))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Server")) (ElementExpression (go.GoType.InterfaceType []) (Var "$v0"))), (KeyedElement (some (KeyField go!"FullMethod")) (ElementExpression go.string (Var "$v1")))])))))
+  (Let "info" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam "ctx"
+  (Lam "req"
+  (App (Val exceptionDo)
+  (Let "req" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (Var "req"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (TypeAssert (go.GoType.PointerType TxnRequest.ty)))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "req")))
+  (App (App (App (Val (GoInstruction (MethodResolve KVServer.ty go!"Txn"))) (App (Val (GoInstruction (TypeAssert KVServer.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "srv")))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType TxnResponse.ty) (go.GoType.InterfaceType [])))) (Var "$ret0")) (Var "$ret1")))))))))))
+  (Let "handler" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.error]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.error]))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType TxnRequest.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TxnRequest.ty)))) (Var "in")))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty)))) (Var "info"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.error]))))) (Var "handler"))
+  (App (App (App (App (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Var "interceptor")) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (Var "$ret0") (Var "$ret1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.InterfaceType [])] false [(go.GoType.InterfaceType []), go.error]))))) (Pair (Var "handler") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.UnaryServerInfo.ty)))) (Pair (Var "info") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Var "interceptor")) (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty))) (Val UntypedNil)))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TxnRequest.ty)))) (Var "in"))
+  (App (App (App (Val (GoInstruction (MethodResolve KVServer.ty go!"Txn"))) (App (Val (GoInstruction (TypeAssert KVServer.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "srv")))) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert (go.GoType.PointerType TxnResponse.ty) (go.GoType.InterfaceType [])))) (Var "$ret0")) (Var "$ret1"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType TxnRequest.ty) (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType TxnRequest.ty)))) (Var "in")))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))))) (Var "dec")) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.InterfaceType [])))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType TxnRequest.ty)))) (Pair (Var "in") (Var "$r0"))))))))))))))))
+
 instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.runtime.protoimpl, pkg_id.go_etcd_io.etcd.api.v3.membershippb, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.context, pkg_id.google_golang_org.grpc]
 
@@ -2214,6 +2551,26 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (Val #(go!"etcdserverpb.KV"))
+  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType KVServer.ty)))) (Val UntypedNil))
+  (Let "$v2" (Let "$v0" (Val #(go!"Range"))
+  (Let "$v1" (App (Val (GoInstruction (FuncResolve _KV_Range_Handler []))) (Val #()))
+  (Let "$v2" (Val #(go!"Put"))
+  (Let "$v3" (App (Val (GoInstruction (FuncResolve _KV_Put_Handler []))) (Val #()))
+  (Let "$v4" (Val #(go!"DeleteRange"))
+  (Let "$v5" (App (Val (GoInstruction (FuncResolve _KV_DeleteRange_Handler []))) (Val #()))
+  (Let "$v6" (Val #(go!"Txn"))
+  (Let "$v7" (App (Val (GoInstruction (FuncResolve _KV_Txn_Handler []))) (Val #()))
+  (Let "$v8" (Val #(go!"Compact"))
+  (Let "$v9" (App (Val (GoInstruction (FuncResolve _KV_Compact_Handler []))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.MethodDesc.ty)))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v1")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v3")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v4"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v5")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v6"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v7")))])), (KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"MethodName")) (ElementExpression go.string (Var "$v8"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), _root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty] false [(go.GoType.InterfaceType []), go.error])) (Var "$v9")))]))]))))))))))))
+  (Let "$v3" (Let "$v0" (Val #(go!"RangeStream"))
+  (Let "$v1" (App (Val (GoInstruction (FuncResolve _KV_RangeStream_Handler []))) (Val #()))
+  (Let "$v2" (Val #true)
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty)))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"StreamName")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Handler")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), _root_.Perennial.google_golang_org.grpc.ServerStream.ty] false [go.error])) (Var "$v1"))), (KeyedElement (some (KeyField go!"ServerStreams")) (ElementExpression go.bool (Var "$v2")))]))])))))
+  (Let "$v4" (Val #(go!"rpc.proto"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ServiceName")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"HandlerType")) (ElementExpression (go.GoType.PointerType KVServer.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"Methods")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.MethodDesc.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"Streams")) (ElementExpression (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.StreamDesc.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"Metadata")) (ElementExpression go.string (Var "$v4")))])))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2229,7 +2586,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val Watch_ServiceDesc.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val KV_ServiceDesc.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr KV_ServiceDesc))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val file_rpc_proto_depIdxs.init) (Val #()))))))
   (App (Val doExecute)
@@ -2293,7 +2650,9 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.google_golang_org.grpc.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.google_golang_org.grpc.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc KV_ServiceDesc _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty)) (Val #()))))))))
 
 axiom Metadata : Type
 axiom Metadata.zero_val : ZeroVal Metadata
@@ -3232,6 +3591,7 @@ class RangeResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_unknownFields : ∀ (x : RangeResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RangeResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : RangeResponse)))
   get_sizeCache : ∀ (x : RangeResponse), go.IsGoStepPureDetTagged under (StructFieldGet RangeResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : RangeResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet RangeResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : RangeResponse)))
+  ptr_GetKvs_unfold : MethodUnfold (go.GoType.PointerType RangeResponse.ty) go!"GetKvs" RangeResponse.GetKvs.impl
 
 attribute [instance] RangeResponse.TypeAssumptions.type_repr
   RangeResponse.TypeAssumptions.underlying
@@ -3249,6 +3609,7 @@ attribute [instance] RangeResponse.TypeAssumptions.type_repr
   RangeResponse.TypeAssumptions.set_unknownFields
   RangeResponse.TypeAssumptions.get_sizeCache
   RangeResponse.TypeAssumptions.set_sizeCache
+  RangeResponse.TypeAssumptions.ptr_GetKvs_unfold
 
 structure PutRequest [FfiSyntax] where
   mk ::
@@ -7517,6 +7878,11 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   UnimplementedAuthServer_instance : UnimplementedAuthServer.TypeAssumptions
   UnsafeAuthServer_instance : UnsafeAuthServer.TypeAssumptions
   NewKVClient_unfold : FuncUnfold NewKVClient [] NewKVClient.impl
+  RegisterKVServer_unfold : FuncUnfold RegisterKVServer [] RegisterKVServer.impl
+  _KV_Range_Handler_unfold : FuncUnfold _KV_Range_Handler [] _KV_Range_Handler.impl
+  _KV_Put_Handler_unfold : FuncUnfold _KV_Put_Handler [] _KV_Put_Handler.impl
+  _KV_DeleteRange_Handler_unfold : FuncUnfold _KV_DeleteRange_Handler [] _KV_DeleteRange_Handler.impl
+  _KV_Txn_Handler_unfold : FuncUnfold _KV_Txn_Handler [] _KV_Txn_Handler.impl
   import_protoimpl_Assumption : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
   import_membershippb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.Assumptions
   import_authpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Assumptions
@@ -7691,6 +8057,11 @@ attribute [instance] Assumptions.Metadata_instance
   Assumptions.UnimplementedAuthServer_instance
   Assumptions.UnsafeAuthServer_instance
   Assumptions.NewKVClient_unfold
+  Assumptions.RegisterKVServer_unfold
+  Assumptions._KV_Range_Handler_unfold
+  Assumptions._KV_Put_Handler_unfold
+  Assumptions._KV_DeleteRange_Handler_unfold
+  Assumptions._KV_Txn_Handler_unfold
   Assumptions.import_protoimpl_Assumption
   Assumptions.import_membershippb_Assumption
   Assumptions.import_authpb_Assumption

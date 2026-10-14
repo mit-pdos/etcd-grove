@@ -49,3 +49,39 @@ headerFillingRangeStream__Send: header__fillWithoutRevision
 # Not verified: `kvServer.RangeStream` (the server's `RangeStream`, the streaming read, is out of
 # the request path's model: no contract for it) and `kvServer.Compact` (`AuthAdmin.isPermitted`
 # and the server's `Compact`: compaction is out of the model, as in the apply package).
+#
+# Unit P3b: the server end of the gRPC boundary (notes/decisions.md, "The server end of the gRPC
+# boundary"). The generated server-side handlers of the KV service (api/etcdserverpb/
+# rpc_grpc.pb.go: decode with grpc's `dec`, then the interceptor chain or the service method:
+# their contracts are premises, `InvGrpc.lean`); the quota wrapper (quota.go); the unary
+# interceptors (interceptor.go, util.go's `isRPCSupportedForLearner`). The server's getters are
+# linked in the server's Link (`@`). Trust boundary (axioms): the apply package's
+# `storage.NewBackendQuota`; the names-only `EtcdServer.Alarm` (`raftRequest` of an alarm),
+# `IsMemberExist`, `IsLearner` (the cluster's), `api.IsCapabilityEnabled`, grpc's
+# `metadata.FromIncomingContext`/`MD.Get`, `utf8.ValidString`, prometheus's
+# `CounterVec.WithLabelValues`, and `logUnaryRequestStats` (zap, peer, proto.Size).
+_KV_Put_Handler:
+_KV_Range_Handler:
+_KV_DeleteRange_Handler:
+_KV_Txn_Handler:
+EtcdServer__Logger: @
+EtcdServer__Backend: @
+EtcdServer__MemberID: @
+EtcdServer__Leader: @
+metadata_FromIncomingContext:
+storage_NewBackendQuota:
+EtcdServer__Alarm:
+EtcdServer__IsMemberExist:
+EtcdServer__IsLearner:
+api_IsCapabilityEnabled:
+metadata_MD__Get:
+utf8_ValidString:
+prometheus_CounterVec__WithLabelValues:
+logUnaryRequestStats:
+isRPCSupportedForLearner:
+newBackendQuota: EtcdServer__Logger EtcdServer__Backend storage_NewBackendQuota
+NewQuotaKVServer: NewKVServer newBackendQuota EtcdServer__MemberID
+quotaAlarmer__check: EtcdServer__Alarm
+quotaKVServer__Put: quotaAlarmer__check
+newLogUnaryInterceptor: EtcdServer__Logger logUnaryRequestStats
+newUnaryInterceptor: api_IsCapabilityEnabled EtcdServer__MemberID EtcdServer__IsMemberExist EtcdServer__IsLearner isRPCSupportedForLearner metadata_FromIncomingContext metadata_MD__Get utf8_ValidString prometheus_CounterVec__WithLabelValues EtcdServer__Leader

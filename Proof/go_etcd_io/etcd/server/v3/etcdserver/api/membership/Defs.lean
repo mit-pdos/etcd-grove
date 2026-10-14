@@ -96,6 +96,20 @@ instance membership.isRaftCluster_persistent (c : Loc) :
 
 end defs
 
+/-- **The cluster `c`'s local member stays in its members map** (persistent; an axiomatized
+predicate, unit P3b: an assumption about the server's run, introduced by nothing):
+`RaftCluster.IsLocalMemberLearner` panics (`c.lg.Panic`) when `c.members` has no entry for
+`c.localID`; the local member is removed only when the server applies its own removal, after
+which it stops (`issues/etcd-unary-interceptor-learner-removed.md`: the server's unary
+interceptor's `IsMemberExist(MemberID()) && IsLearner()` races with that removal). A premise of
+`EtcdServer.IsLearner`'s spec, and so of the server's gRPC results. -/
+axiom membership.localKept {GF : BundledGFunctors} [FfiSyntax] (c : Loc) : IProp GF
+
+axiom membership.localKept_persistent {GF : BundledGFunctors} [FfiSyntax] (c : Loc) :
+  Persistent (membership.localKept (GF := GF) c)
+
+attribute [instance] membership.localKept_persistent
+
 section lemmas
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]

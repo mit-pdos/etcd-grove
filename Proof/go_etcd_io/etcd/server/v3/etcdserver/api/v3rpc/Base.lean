@@ -40,6 +40,12 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
+-- `unicode/utf8` (names only; unit P3b: the unary interceptor's `utf8.ValidString`)
+instance utf8_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.unicode.utf8 :=
+  define_is_pkg_init iprop(True)
+instance utf8_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.unicode.utf8 :=
+  build_get_is_pkg_init_wf
+
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 
 /-- The package variable `g` holds a fixed non-nil error (persistent). -/
@@ -91,6 +97,28 @@ def ctxCanceledPtr : IProp GF :=
   iprop(∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok e ∗
     ⌜_root_.Perennial.errors.IsPointerError e⌝)
 
+/-- **What the quota wrapper and the unary interceptors read** (unit P3b): the `rpctypes` errors
+they return (`ErrGRPCNoSpace`, `ErrGRPCNotCapable`, `ErrGRPCNotSupportedForLearner`,
+`ErrGRPCInvalidClientAPIVersion`, `ErrGRPCNoLeader`: fixed non-nil errors), the metadata keys
+and value they compare with (`rpctypes.MetadataClientAPIVersionKey`, `MetadataRequireLeaderKey`,
+`MetadataHasLeader`: fixed strings), and the counter vector `clientRequests` (`metrics.go`), as
+the rest stated here. -/
+def interceptorVars : IProp GF :=
+  iprop(errVarSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoSpace ∗
+    errVarSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotCapable ∗
+    errVarSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNotSupportedForLearner ∗
+    errVarSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCInvalidClientAPIVersion ∗
+    errVarSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCNoLeader ∗
+    (∃ k : GoString,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataClientAPIVersionKey ↦□ k) ∗
+    (∃ k : GoString,
+      globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataRequireLeaderKey ↦□ k) ∗
+    (∃ k : GoString, globalAddr go_etcd_io.etcd.api.v3.v3rpc.rpctypes.MetadataHasLeader ↦□ k) ∗
+    (∃ cv : Loc, globalAddr clientRequests ↦□ cv))
+
+instance interceptorVars_persistent : Persistent (interceptorVars (GF := GF)) := by
+  unfold interceptorVars; infer_instance
+
 instance grpcErrMap_persistent : Persistent (grpcErrMap (GF := GF)) := by
   unfold grpcErrMap; infer_instance
 instance sortNameMaps_persistent : Persistent (sortNameMaps (GF := GF)) := by
@@ -98,9 +126,10 @@ instance sortNameMaps_persistent : Persistent (sortNameMaps (GF := GF)) := by
 instance ctxCanceledPtr_persistent : Persistent (ctxCanceledPtr (GF := GF)) := by
   unfold ctxCanceledPtr; infer_instance
 
-/-- The package's facts: the error map, the checks' errors, the sort-name maps and
-`context.Canceled`. -/
-abbrev v3rpcInit : IProp GF := iprop(grpcErrMap ∗ checkErrVars ∗ sortNameMaps ∗ ctxCanceledPtr)
+/-- The package's facts: the error map, the checks' errors, the sort-name maps,
+`context.Canceled`, and (unit P3b) what the quota wrapper and the interceptors read. -/
+abbrev v3rpcInit : IProp GF :=
+  iprop(grpcErrMap ∗ checkErrVars ∗ sortNameMaps ∗ ctxCanceledPtr ∗ interceptorVars)
 
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc :=
