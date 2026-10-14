@@ -34,29 +34,26 @@ theorem RawNode.Tick.wp_proof
   iNamed H
   iNamed Hrn
   wp_auto
-  wp_apply raft.wp_load_tick γ.reCfg rnv.raft' id s Hrel.2.2 $$ Hphys as %f ⟨Hphys, %Hf⟩
+  wp_apply raft.wp_load_tickC cf rnv.raft' id s Hwf.2 $$ Hphys as %f ⟨Hphys, %Hf⟩
+  icases ownRaftPhysC_preFacts cf rnv.raft' id s Hpvoff $$ Hphys with ⟨%Hpf, Hphys⟩
   rcases Hf with rfl | rfl
   all_goals first
-    | wp_apply wp_tickElection γ.reCfg γ rnv.raft' id s ps rfl
-        (by rw [← Htrm]; exact Hterm) Hrel
-        $$ [$Hphys $Hghost] as %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, %Htk⟩
-    | wp_apply wp_tickHeartbeat γ.reCfg γ rnv.raft' id s ps rfl Hrel
-        $$ [$Hphys $Hghost] as %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, %Htk⟩
+    | wp_apply wp_tickElection cf _ γ rnv.raft' id s
+        (by rw [← Htrm]; exact Hterm) Hwf (fun _ => Hpf.1)
+        $$ [$Hphys $Hghost] as %s' ⟨Hphys, Hghost, %Hwf', %Hc, %Htk⟩
+    | wp_apply wp_tickHeartbeat cf _ γ rnv.raft' id s Hwf (fun _ => Hpf.1)
+        $$ [$Hphys $Hghost] as %s' ⟨Hphys, Hghost, %Hwf', %Hc, %Htk⟩
   all_goals (
     obtain ⟨⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩, Ht1, Ht2, -⟩ := Htk
     ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs
-    have Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed := by
-      obtain ⟨recv, Hst⟩ := Href
-      have H := Step.commit_mono Hst
-      rw [← Hrel.1, ← Hrel'.1] at H
-      exact H
     iapply HΦ $$ %s'.term
     isplitl
-    · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' ps' rnv sv steps Hrel' Hin
+    · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv steps
+        Hwf' Hin Hal
         Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
         (stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha Hpre Hstok) rfl (by rw [Hsg]; exact Hstor) (by rw [Hpre]; exact Hpvoff)
         (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
-        $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstr'
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstr'
     ipureintro
     rw [Htrm]
     exact ⟨Ht1, Ht2⟩)

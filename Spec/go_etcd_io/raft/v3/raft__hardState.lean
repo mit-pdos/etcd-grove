@@ -22,10 +22,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `r.hardState()`: `pb.HardState{Term: r.Term, Vote: r.Vote, Commit:
 r.raftLog.committed}`. -/
 abbrev raft.hardState.spec : Prop :=
-  ∀ (cfg : GSet w64) (r : Loc) (id : w64) (s : NState),
-  {{ ownRaftPhys (GF := GF) cfg r id s }}
+  -- (2026-10-14, stage B7 part 2) at any configuration (until then `ownRaftPhys cfg`)
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  {{ ownRaftPhysCV (GF := GF) c c.voters r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"hardState")) (Val #()))
-  {{ RET #(hardstateVal (nodeHardstate s)); ownRaftPhys cfg r id s }}
+  {{ RET #(hardstateVal (nodeHardstate s)); ownRaftPhysCV c c.voters r id s }}
 
 end spec
 

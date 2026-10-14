@@ -35,7 +35,6 @@ the message's is `0`). -/
 theorem RawNode.ReadIndex.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.ReadIndex.spec (GF := GF) (hG := hG) := by
-  have wp_raft_Step := raft.Step.spec_simple wp_raft_Step
   intro γ rn id rs rctx c Lc Hsing
   wp_start as H
   iNamed H
@@ -50,12 +49,16 @@ theorem RawNode.ReadIndex.wp_proof
   wp_auto
   have hP : (W32 15 : w32) ≠ MsgProp := by simp [MsgProp]
   have hR : (W32 15 : w32) = MsgReadIndex := rfl
-  wp_apply wp_raft_Step γ.reCfg γ _ id s ps _
-    [({ (zero_val raftpb.Entry) with Data' := rctx } : raftpb.Entry)] [] rfl
-    (by simp [StepMsg, stepMsgTypes, MsgReadIndex]) (fun _ => Hin)
+  icases ownRaftPhysC_preFacts cf rnv.raft' id s Hpvoff $$ Hphys with ⟨%Hpf, Hphys⟩
+  icases ownStepGhost_vcfg γ rs fp cf id s $$ Hghost with ⟨%Hvc, Hghost⟩
+  wp_apply wp_raft_Step cf _ γ _ id s _
+    [({ (zero_val raftpb.Entry) with Data' := rctx } : raftpb.Entry)] []
+    (by simp [StepMsg, stepMsgTypes, MsgReadIndex]) 
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
-    (by msg_ne) (by msg_ne) (fun _ => ⟨rfl, Hsing⟩) (by msg_ne) (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hrel
+    (by msg_ne) (by msg_ne) (fun _ => ⟨rfl, by unfold NotSingleton at Hsing; rw [Hvc.1, Hvc.2]; exact Hsing⟩)
+    (by msg_ne) (by msg_ne) (RestMsgOk.of_ne ⟨by msg_ne, by msg_ne, by msg_ne, by msg_ne, by msg_ne⟩) Hwf
+    (GMode.Pre.of_facts Hpf (by msg_ne) (by msg_ne))
     $$ [$Hphys $Hghost Hcap Hcred]
   · -- the message: its one-entry batch, read-only; `Context` nil; the client's request
     simp only [hP, ↓reduceIte, named]
@@ -87,7 +90,10 @@ theorem RawNode.ReadIndex.wp_proof
     revert Hc
     msg_ne
   simp only [hP]
-  iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, -, -⟩
+  iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, -⟩
+  have Hc := Href.commit_mono
+  have e1 := Href.keep (by msg_ne) (by msg_ne); subst e1
+  have e2 := Hcc (by msg_ne); subst c'
   wp_auto
   obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by msg_ne) (by msg_ne)
   obtain ⟨Ht1, -, Ht3, -⟩ := Htm (by msg_ne)
@@ -99,20 +105,15 @@ theorem RawNode.ReadIndex.wp_proof
     have h0 : 0 ≤ uint.Z s.term := by word
     rw [Int.max_eq_left h0] at Ht3
     word
-  have Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed := by
-    obtain ⟨recv, Hst⟩ := Href
-    have H := Step.commit_mono Hst
-    rw [← Hrel.1, ← Hrel'.1] at H
-    exact H
   have Hstok' : StepsOk s' rs.steps := stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha Hpre Hstok
   ihave #Hstr' := storedRecs_eq γ _ s'.logst.prev _ s'.logst.stored Hpv Hsd $$ Hstrecs
   iapply HΦ
   simp only [named]
-  iapply ownRawNode_intro γ rn id rs s' ps' rnv sv steps Hrel' Hin
+  iapply ownRawNode_intro γ rn id rs s' cf fp rnv sv steps Hwf' Hin Hal
     Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
     Hstok' (by rw [Hterm]; exact Htrm) (by rw [Hsg]; exact Hstor) (by rw [Hpre]; exact Hpvoff)
     (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
-    $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstr'
+    $$ Hrn Hphys Hghost Hsdrf Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstr'
 
 end proof
 

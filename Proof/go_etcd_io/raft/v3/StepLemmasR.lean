@@ -522,20 +522,27 @@ def DynHyp (m : raftpb.Message) (s s' : NState) (g : RGh) : Prop :=
   -- `raft.Step` takes (below `2^61` entries)
   (m.Type' = MsgProp → plogLastIndexZ (toPState s).base (toPState s).log + 2 ^ 61 < 2 ^ 64)
 
+/-- How a step moves the configuration index (2026-10-14, stage B7 part 2): not at all, but for
+a `MsgStorageApplyResp`, whose `StepR.advance` takes it to the new `applied` when below. -/
+def CidxMove (m : raftpb.Message) (s' : NState) (g : RGh) (cidx' : Nat) : Prop :=
+  cidx' = g.cidx ∨
+    (m.Type' = MsgStorageApplyResp ∧ cidx' = max g.cidx (uint.nat s'.logst.applied))
+
 /-- What a branch of `raft.Step` delivers (see the file header): the `StepC c` witness, and the
 `StepR` one at every ghost part over `c`, under the dynamic model's premises. -/
 def StepCD (c : CfgM) (id : w64) (m : raftpb.Message) (s : NState) (recv : List Msg)
     (s' : NState) : Prop :=
   StepC c id (toPState s) recv (toPState s') ∧
   ∀ (Adm : List raftpb.Entry → CCState → Prop) (dec : CCDec) (g : RGh), g.cfg.cfg = c →
-    DynHyp m s s' g → ∃ cidx', StepR Adm dec id (rOf s g) recv (rOf s' { g with cidx := cidx' })
+    DynHyp m s s' g → ∃ cidx', CidxMove m s' g cidx' ∧
+      StepR Adm dec id (rOf s g) recv (rOf s' { g with cidx := cidx' })
 
 /-- A frame step of the code is a `StepCD` one. -/
 theorem StepCD.frame {c : CfgM} {id : w64} {m : raftpb.Message} {s : NState}
     {recv : List Msg} {s' : NState}
     (h : StepCF c id (toPState s) recv (toPState s')) (hf : RFrame s s') :
     StepCD c id m s recv s' := by
-  refine ⟨h.toC, fun Adm dec g hc _ => ⟨g.cidx, ?_⟩⟩
+  refine ⟨h.toC, fun Adm dec g hc _ => ⟨g.cidx, .inl rfl, ?_⟩⟩
   rw [show ({ g with cidx := g.cidx } : RGh) = g from rfl, rOf_frame s s' g hf]
   exact h.toR (rOf s g) rfl hc (rOf_pci_zero s g)
 
@@ -555,8 +562,8 @@ theorem StepCD.trans_frame {c : CfgM} {id : w64} {m : raftpb.Message} {s s1 s' :
     (h2 : StepCD c id m s1 r2 s') (hd : ∀ g, DynHyp m s s' g → DynHyp m s1 s' g) :
     StepCD c id m s (r1 ++ r2) s' := by
   refine ⟨.trans _ _ _ _ _ h1.toC h2.1, fun Adm dec g hc hdy => ?_⟩
-  obtain ⟨cidx', H2⟩ := h2.2 Adm dec g hc (hd g hdy)
-  refine ⟨cidx', .trans _ _ _ _ _ ?_ H2⟩
+  obtain ⟨cidx', Hcm, H2⟩ := h2.2 Adm dec g hc (hd g hdy)
+  refine ⟨cidx', Hcm, .trans _ _ _ _ _ ?_ H2⟩
   rw [rOf_frame s s1 g hf]
   exact h1.toR (rOf s g) rfl hc (rOf_pci_zero s g)
 
@@ -731,7 +738,7 @@ theorem stepCD_hup {c : CfgM} {id : w64} {m : raftpb.Message} {s s' : NState}
     (Hlog : (s.logst.snap = none → uint.Z s.logst.prev.index' ≤ uint.Z s.logst.applied) ∧
       uint.Z s.logst.applied ≤ uint.Z s.logst.committed ∧ uint.Z s.logst.committed + 1 < 2 ^ 64) :
     StepCD c id m s [] s' := by
-  refine ⟨Hok.2.1, fun Adm dec g hc hd => ⟨g.cidx, ?_⟩⟩
+  refine ⟨Hok.2.1, fun Adm dec g hc hd => ⟨g.cidx, .inl rfl, ?_⟩⟩
   change StepR Adm dec id (rOf s g) [] (rOf s' g)
   obtain ⟨-, -, ⟨Hl, -⟩, -, Hg⟩ := Hok
   rcases Hg with rfl | ⟨Hnl, Hin, Hsn, Hno, pre, peers, pvs, cl, Hperm, rfl⟩

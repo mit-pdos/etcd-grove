@@ -25,19 +25,23 @@ with no protocol state in them; the refinement above is how they are proved.
 `InvRawnodeReady.lean`).
 
 Scope: see `notes/STATUS.md` (its first sections) for what the Go-level results cover today:
-proposals, read index (`ReadOnlySafe`), leader transfer, learners and conf changes at a fixed
-voter set are in; pre-vote is verified in `raft.Step` but off at the public API (`ownRawNode`
-holds `prevote = false`); check-quorum, the lease-based read option, asynchronous storage
-writes and crash-restart are out; changing the voter set is verified only at the model level
-(the `raft_reconfig_*` theorems below, reconfiguration stage B5/B6), not yet from Go.
+proposals, read index (`ReadOnlySafe`), leader transfer, learners and conf changes are in;
+since 2026-10-14 (reconfiguration stage B7 part 2) **changing the voter set through the
+`RawNode` API**: a `RawNode` in the dynamic mode (`RNState.mode`, `NewRawNode` from
+`raft_dyn_alloc`'s ghost state) takes `ApplyConfChange` of the next committed conf entry and
+`Advance` after it (A1), with the committed log handed out (`isCommitted`) and the read
+states (`readStateOk`) as in the static mode; `node.go` and the register stay in the static
+mode. Pre-vote is verified in `raft.Step` but off at the public API (`ownRawNode` holds
+`prevote = false`); check-quorum, the lease-based read option, asynchronous storage writes
+and crash-restart are out; a snapshot at a `RawNode` (from the network) is out.
 
 **The boundary is the Go public API.** The specs of the public functions (`RawNode.wp_*`,
-`node.wp_*`, `wp_NewRawNode`, ... in `Link.lean`) are what this development verifies; a
-protocol-level theorem in this file (`raft_election_safety`, `raft_reconfig_*`) is
-scaffolding: it is kept while it drives development (a non-vacuity check of the model, or
-a trust-report root that keeps a model proof checked before code reaches it) and is
-deleted, with its trust-base collection, once the Go code that reaches it is verified
-(for `raft_reconfig_*`: reconfiguration stages B7/B8).
+`node.wp_*`, `wp_NewRawNode`, ... in `Link.lean`) are what this development verifies. A
+protocol-level theorem is scaffolding (notes/decisions.md, "Model-level theorems in
+`Results.lean` are scaffolding"): the reconfiguration model's restatements (`raft_reconfig_*`,
+with the collection `raft-dyn.txt`) and the static sanity check `raft_election_safety` were
+deleted on 2026-10-14 (stage B7 part 2), once the public specs reached the dynamic ghost
+state. This file now only prints the top-level results' trust base.
 
 Trust boundary. Two kinds, and the layout keeps them apart:
   - A `Proof/<fn>.lean` of a function outside the scope is an `axiom <fn>.wp_proof`.
@@ -53,12 +57,6 @@ the callee's own result, and adds nothing to `#print axioms`. The `#print axioms
 end of this file print the trust base of the top-level results in the build log.
 
 Lean notes:
-* `raft_election_safety`'s comment says, as the Rocq does, that it "cannot yet serve
-  even that purpose" because the ghost state has no allocation lemma. That is out of date
-  in Rocq too: `own_raft_ghost_alloc` exists (here `ownRaftGhost_alloc`,
-  `Protocol/Facts.lean`), allocating a fresh ghost state for any set of nodes at
-  `initPState`, so the ghost predicates are inhabited; and in Lean the ghost state is
-  defined (`Protocol/GhostState.lean`), not axiomatized. The comment below is adapted.
 * `newRaft_post_init` takes its premise in the shape of `newRaft`'s postcondition
   (`Spec/newRaft.lean`) minus the `s.prevote = cv.PreVote'` conjunct, as the Rocq does.
 -/
@@ -67,8 +65,6 @@ module
 public import Proof.go_etcd_io.raft.v3.Link
 -- `newRaft_post_init` (moved there 2026-10-09: `NewRawNode`'s proof uses it)
 public import Spec.go_etcd_io.raft.v3.NewRawNode
--- the dynamic model's results (2026-10-14, reconfiguration stage B5)
-public import Proof.go_etcd_io.raft.v3.Protocol.ResultsDyn
 
 @[expose] public section
 
@@ -80,104 +76,6 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
-
-section proof
-variable [ext : FfiSyntax]
-variable {GF : BundledGFunctors} [AllG GF] [InvGS GF] [StorageModel GF]
-
-/-- **Sanity check on the model: election safety.**
-
-Two nodes that `Step` leaves in the leader role in the same term are the same node.
-
-This is **not** the result of the development -- `raft.wp_Step` (`Link.lean`) is,
-along with the other top-level function specs. A verified spec for a Go function is what
-a client of this proof consumes; a protocol-level theorem is an internal detail in
-service of one. What this corollary is for is evidence that `PState` and `step` entail
-the property raft exists to provide, and so were not defined into triviality; that it is
-not vacuous rests on `ownRaftGhost_alloc` (`Protocol/Facts.lean`), which shows the ghost
-state inhabited (see the Lean notes above). See the Rocq repository's
-notes/decisions.md, 2026-09-21. -/
-theorem raft_election_safety (γ : RaftNames) (id1 id2 : w64) (s1 s2 : PState) :
-    s1.role = .leader →
-    s2.role = .leader →
-    s1.term = s2.term →
-    ⊢ ownRaftGhost (GF := GF) γ id1 s1 -∗ ownRaftGhost γ id2 s2 -∗ ⌜id1 = id2⌝ := by
-  intro Hl1 Hl2 Hterm
-  iintro H1 H2
-  ihave #Hle1 := ownRaftGhost_isLeader γ id1 s1 Hl1 $$ H1
-  ihave #Hle2 := ownRaftGhost_isLeader γ id2 s2 Hl2 $$ H2
-  rw [Hterm]
-  iapply isLeader_unique γ id1 id2 s2.term $$ Hle1 Hle2
-
-end proof
-
-/-! ### Safety under reconfiguration (2026-10-14, stage B5)
-
-The protocol with configurations changing by applied conf entries (`StepR` at the dynamic
-configurations `AdmFold dec c0`), proved with the ghost argument: the dynamic ghost state
-`ownRaftGhostR` is allocated for fresh nodes from `c0`, kept by every `StepR` step, and gives
-log agreement, election safety and (stage B6) the read-index guarantee. A model theorem:
-**not yet reached from Go** (the code's specs produce `Step` witnesses at a static
-configuration; stage B7 connects them). Its assumptions are listed in `Protocol/ResultsDyn.lean` and `notes/STATUS.md`
-("Reconfiguration, stage B5"). Restated here so that they are roots of the trust report
-(`etc/tcb-collections/raft-dyn.txt`). -/
-
-section dyn
-open GMap
-variable [ext : FfiSyntax]
-variable {GF : BundledGFunctors} [AllG GF] [InvGS GF]
-
-theorem raft_reconfig_alloc (E : CoPset) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
-    (ids : GSet w64) :
-    W64 0 ∉ ids →
-    ⊢ |={E}=> ∃ γ : RaftNames, ⌜γ.dyn = some (DynCfg.ofFold dec c0 h0)⌝ ∗
-        raftCommitInv (GF := GF) γ ∗
-        [∗map] id ↦ _u ∈ toMap ids, ownRaftGhostR γ dec c0 id (rinit c0) :=
-  raft_dyn_alloc E dec c0 h0 ids
-
-theorem raft_reconfig_step (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
-    (HD : γ.dyn = some (DynCfg.ofFold dec c0 h0)) (S : List raftpb.Entry → Prop)
-    (id : w64) (r : RState) (recv : List Msg) (r' : RState) :
-    StepR (AdmS dec c0 S) dec id r recv r' →
-    ⊢ (□ ∀ (fp : List raftpb.Entry), ⌜S fp⌝ -∗ logRecs (GF := GF) γ base0 fp) -∗
-      ([∗list] m ∈ recv, isMessage γ m) -∗ rdCred γ (rdCount recv) -∗
-      ownRaftGhostR γ dec c0 id r ={⊤}=∗ ownRaftGhostR γ dec c0 id r' :=
-  ownRaftGhostR_stepR γ dec c0 h0 HD S id r recv r'
-
-theorem raft_reconfig_log_agreement (γ : RaftNames) (dec : CCDec) (c0 : CCState)
-    (id1 id2 : w64) (r1 r2 : RState) :
-    ⊢ ownRaftGhostR (GF := GF) γ dec c0 id1 r1 -∗ ownRaftGhostR γ dec c0 id2 r2 -∗
-      ⌜r1.full.take (uint.nat r1.p.commit) <+: r2.full.take (uint.nat r2.p.commit) ∨
-        r2.full.take (uint.nat r2.p.commit) <+: r1.full.take (uint.nat r1.p.commit)⌝ :=
-  raft_dyn_committed_agree γ dec c0 id1 id2 r1 r2
-
-theorem raft_reconfig_election_safety (γ : RaftNames) (dec : CCDec) (c0 : CCState)
-    (id1 id2 : w64) (r1 r2 : RState) :
-    r1.p.role = .leader → r2.p.role = .leader → r1.p.term = r2.p.term →
-    ⊢ ownRaftGhostR (GF := GF) γ dec c0 id1 r1 -∗ ownRaftGhostR γ dec c0 id2 r2 -∗
-      ⌜id1 = id2⌝ :=
-  raft_dyn_election_safety γ dec c0 id1 id2 r1 r2
-
-/-- The read-index guarantee under reconfiguration (2026-10-14, stage B6): the `ReadState`s a
-node holds, and hands out with the `Ready` (`StepR.takeReads`), are each `readStateOk`. -/
-theorem raft_reconfig_read_states (γ : RaftNames) (dec : CCDec) (c0 : CCState) (id : w64)
-    (r : RState) :
-    ⊢ ownRaftGhostR (GF := GF) γ dec c0 id r -∗ [∗list] st ∈ r.p.rd.states, readStateOk γ st :=
-  raft_dyn_read_states γ dec c0 id r
-
-/-- ... so a client that created the read knowing the committed log `Lc` (`readReq γ c Lc`)
-and registered its context slice (`isPropData`) finds that log a prefix of the committed
-prefix of every node whose commit index reaches the `ReadState`'s index. -/
-theorem raft_reconfig_read_index (γ : RaftNames) (dec : CCDec) (c0 : CCState) (id1 id2 : w64)
-    (r1 r2 : RState) (st : ReadState) (c : List w8) (Lc : List raftpb.Entry) :
-    st ∈ r1.p.rd.states → uint.Z st.Index' ≤ uint.Z r2.p.commit →
-    ⊢ ownRaftGhostR (GF := GF) γ dec c0 id1 r1 -∗ ownRaftGhostR γ dec c0 id2 r2 -∗
-      isPropData γ st.RequestCtx' c -∗ readReq γ c Lc -∗
-      ⌜Lc <+: r2.full.take (uint.nat r2.p.commit)⌝ :=
-  raft_dyn_read_index γ dec c0 id1 id2 r1 r2 st c Lc
-
-end dyn
-
 
 end EtcdGrove
 end Perennial
@@ -195,6 +93,7 @@ end Perennial
 #print axioms Perennial.EtcdGrove.RawNode.wp_Campaign
 #print axioms Perennial.EtcdGrove.RawNode.wp_Step
 #print axioms Perennial.EtcdGrove.RawNode.wp_Tick
+#print axioms Perennial.EtcdGrove.RawNode.wp_ApplyConfChange
 #print axioms Perennial.EtcdGrove.wp_NewRawNode
 #print axioms Perennial.EtcdGrove.MemoryStorage.wp_Append
 #print axioms Perennial.EtcdGrove.wp_NewMemoryStorage
@@ -207,9 +106,3 @@ end Perennial
 #print axioms Perennial.EtcdGrove.node.wp_Tick
 #print axioms Perennial.EtcdGrove.node.wp_Ready
 #print axioms Perennial.EtcdGrove.node.wp_Advance
-#print axioms Perennial.EtcdGrove.raft_reconfig_alloc
-#print axioms Perennial.EtcdGrove.raft_reconfig_step
-#print axioms Perennial.EtcdGrove.raft_reconfig_log_agreement
-#print axioms Perennial.EtcdGrove.raft_reconfig_election_safety
-#print axioms Perennial.EtcdGrove.raft_reconfig_read_states
-#print axioms Perennial.EtcdGrove.raft_reconfig_read_index

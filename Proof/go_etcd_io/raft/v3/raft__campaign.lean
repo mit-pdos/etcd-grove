@@ -147,7 +147,8 @@ theorem raft.campaign.wp_proof
       "term" ∷ term_ptr ↦ (s.term + W64 1) ∗
       "voteMsg" ∷ voteMsg_ptr ↦ vreqW32 (decide (t = campaignPreElection)) ∗
       "r" ∷ r_ptr ↦ r ∗ "t" ∷ t_ptr ↦ t) with [Hphys term voteMsg r t]
-  · wp_apply wp_raft_becomePreCandidate _ _ _ _ Hrole Hid_cfg $$ [$Hphys] as Hphys
+  · wp_apply wp_raft_becomePreCandidate _ _ _ _ Hrole Hid_cfg
+      (by first | exact Hpv rfl | (apply Hpv; assumption) | simp_all) $$ [$Hphys] as Hphys
     rw [show raftpb.MsgPreVote = #MsgPreVote from rfl]
     wp_auto
     wp_apply raft.wp_load_TermC $$ Hphys as Hphys

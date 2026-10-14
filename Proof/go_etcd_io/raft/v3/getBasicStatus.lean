@@ -25,15 +25,15 @@ theorem getBasicStatus.wp_proof
     (wp_raft_hardState : raft.hardState.spec (GF := GF) (hG := hG))
     (wp_raft_softState : raft.softState.spec (GF := GF) (hG := hG)) :
     getBasicStatus.spec (GF := GF) (hG := hG) := by
-  intro cfg r id s
+  intro c r id s
   wp_start as Hphys
   wp_auto
-  wp_apply raft.wp_load_id $$ Hphys as Hphys
-  wp_apply raft.wp_load_leadTransferee $$ Hphys as Hphys
+  wp_apply raft.wp_load_idC $$ Hphys as Hphys
+  wp_apply raft.wp_load_leadTransfereeC $$ Hphys as Hphys
   wp_apply wp_raft_hardState $$ Hphys as Hphys
   wp_apply wp_raft_softState $$ Hphys as Hphys
-  wp_apply raft.wp_load_raftLog $$ Hphys as Hphys
-  icases ownRaftPhys_log_same cfg r id s $$ Hphys with ⟨Hlog, Hback⟩
+  wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
+  icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hback⟩
   icases ownRaftLog_struct _ _ $$ Hlog with ⟨%lv, Hl, %Hlv, Hlb⟩
   wp_auto
   ihave Hlog := Hlb $$ Hl

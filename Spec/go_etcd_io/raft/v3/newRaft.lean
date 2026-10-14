@@ -174,7 +174,10 @@ abbrev newRaft.spec : Prop :=
         -- no ghost lower bound yet (2026-10-10, `NGhost`)
         s.gh = {} ∧
         -- no read state (2026-10-13)
-        s.rd.states = [] ∧ s.rd.pend = []⌝ }}
+        s.rd.states = [] ∧ s.rd.pend = [] ∧
+        -- (2026-10-14, reconfiguration stage B7 part 2, for a dynamic `NewRawNode`) the
+        -- `Config`'s `StepDownOnRemoval`, and the voters tracked, no learner
+        s.sdr = cv.StepDownOnRemoval' ∧ domSet s.progress = GMap.listToSet voters⌝ }}
 
 end spec
 

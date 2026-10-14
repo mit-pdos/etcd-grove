@@ -333,7 +333,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             simp only [plogLastIndexZ, toPState, List.length_append]
             push_cast
             omega
-          refine ⟨?_, fun Adm dec g hc hd => ⟨g.cidx, ?_⟩⟩
+          refine ⟨?_, fun Adm dec g hc hd => ⟨g.cidx, .inl rfl, ?_⟩⟩
           · rw [toPState_voteRespResult _ _ _ _ _ _ _ _ Hrole]
             unfold pvoteRespResult
             simp only [↓reduceIte]

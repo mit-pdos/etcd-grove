@@ -82,7 +82,7 @@ private theorem stepCD_propDrop (c : CfgM) (id : w64) (m : raftpb.Message) (s : 
     (Hty : m.Type' = MsgProp) (Hr : s.role = .leader) (Hct : CCTypesOk ents cs)
     (Hlen : (ents.length : Int) < 2 ^ 61) :
     StepCD c id m s [] { s with pci := (leaderPropConf s ents cs c.joint).2 } := by
-  refine ⟨.refl _, fun Adm dec g hc hd => ⟨g.cidx, ?_⟩⟩
+  refine ⟨.refl _, fun Adm dec g hc hd => ⟨g.cidx, .inl rfl, ?_⟩⟩
   change StepR Adm dec id (rOf s g) []
     (rOf { s with pci := (leaderPropConf s ents cs c.joint).2 } g)
   have Hnw := hd.2.2.2.2 Hty
@@ -348,7 +348,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
               ((leaderPropConf s ents cs' c.joint).1.mapIdx
                 (stamp (toPState s).term (plastIndex (toPState s)))))]).role = .leader := by
           simp [psendMsgs, pappend, toPState, Hrole, proleRole]
-        refine ⟨[absMsg .propose m ents ctx] ++ [], by simp, ?_, fun Adm dec g hc hd => ⟨g.cidx, ?_⟩⟩
+        refine ⟨[absMsg .propose m ents ctx] ++ [], by simp, ?_, fun Adm dec g hc hd => ⟨g.cidx, .inl rfl, ?_⟩⟩
         · -- `StepC.propose` of the loop's batch, then the broadcast
           rw [HP]
           exact .trans _ _ _ _ _

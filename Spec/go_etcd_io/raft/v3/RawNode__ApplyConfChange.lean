@@ -72,6 +72,24 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.raft.v3
 
+section dyn
+variable [FfiSyntax]
+
+/-- The dynamic mode's premises of `ApplyConfChange` (2026-10-14, stage B7 part 2), at the change
+`o` the application passes: it is the decoded change (`dec`, from the entry and the log before
+it) of the next conf-change entry `e` of the committed log handed out, at position `k` (log index
+`k + 1`), past every applied one (`capplied ≤ k`, none in between: in order, once); it applies to
+the configuration in use (`ccStepB`: no `confchange` error, fewer than `2^62` tracked ids -- Go
+panics otherwise); and its result is no auto-leave joint configuration (`appliedTo`'s auto-leave
+proposal is out of `raft.Step`'s scope). -/
+def DynCCPre (dec : CCDec) (rs : RNState) (o : CCMsg) (k : Nat) (e : raftpb.Entry)
+    (cs' : CCState) : Prop :=
+  rs.capplied ≤ k ∧ k < rs.delivered.length ∧ rs.delivered[k]? = some e ∧ IsConfEnt e ∧
+  NoConfIn rs.delivered rs.capplied k ∧ dec (rs.delivered.take k) e = some (ccV2Of o) ∧
+  ccStepB (ccV2Of o) rs.cfg = some cs' ∧ cs'.cfg.autoLeave = false
+
+end dyn
+
 section spec
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -83,8 +101,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- See the file header. -/
 abbrev RawNode.ApplyConfChange.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (c : GoInterface) (o : CCMsg)
-    (dq : DFrac),
-  CCApplies γ.reCfg id (ccV2Of o).1 (ccV2Of o).2 →
+    (dq : DFrac)
+    -- (2026-10-14, stage B7 part 2) the dynamic mode's: the conf entry applied (at position `k`),
+    -- and the configuration it gives
+    (k : Nat) (e : raftpb.Entry) (cs' : CCState),
+  -- the static mode (the voters fixed): the change applies at a voter
+  (rs.mode = .static → CCApplies γ.reCfg id (ccV2Of o).1 (ccV2Of o).2) →
+  -- the dynamic mode: it is the next committed conf entry's decoded change, and applies
+  (∀ dec c0 h0 h1, rs.mode = .dyn dec c0 h0 h1 → DynCCPre dec rs o k e cs') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       "Hc" ∷ ownCCI c dq (some o) }}
@@ -95,6 +119,7 @@ abbrev RawNode.ApplyConfChange.spec : Prop :=
       "Hvoters" ∷ cs.Voters' ↦* xs ∗
       "Hlearners" ∷ cs.Learners' ↦* ls ∗
       "Hres" ∷ (
+        (⌜rs.mode = .static⌝ ∗ (
         -- a shrinking change: the node stays where it was
         (⌜CCShrink γ.reCfg (ccV2Of o).1 (ccV2Of o).2⌝ ∗
           ownRawNode γ rn id rs ∗
@@ -110,7 +135,15 @@ abbrev RawNode.ApplyConfChange.spec : Prop :=
               ccApplyM (ccV2Of o).1 (ccV2Of o).2 (cfgState γ.reCfg lrn) = some c' ∧
               xs ≡ₚ elements c'.cfg.incoming ∧ os ≡ₚ elements c'.cfg.outgoing ∧
               ls ≡ₚ elements c'.cfg.learners ∧ lns ≡ₚ elements c'.cfg.learnersNext ∧
-              cs.AutoLeave' = c'.cfg.autoLeave ∧ ApplyCCOkC c'.cfg id s s'⌝)) }}
+              cs.AutoLeave' = c'.cfg.autoLeave ∧ ApplyCCOkC c'.cfg id s s'⌝))) ∨
+        -- (2026-10-14, stage B7 part 2) the dynamic mode: the node at the new configuration,
+        -- the entry applied (`StepR.applyConf`; a removed leader has stepped down)
+        (⌜rs.mode.isDyn = true⌝ ∗
+          ownRawNode γ rn id { rs with cfg := cs', capplied := k + 1 } ∗
+          ∃ (os lns : List w64), cs.VotersOutgoing' ↦* os ∗ cs.LearnersNext' ↦* lns ∗
+            ⌜xs ≡ₚ elements cs'.cfg.incoming ∧ os ≡ₚ elements cs'.cfg.outgoing ∧
+              ls ≡ₚ elements cs'.cfg.learners ∧ lns ≡ₚ elements cs'.cfg.learnersNext ∧
+              cs.AutoLeave' = cs'.cfg.autoLeave⌝)) }}
 
 end spec
 

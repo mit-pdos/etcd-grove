@@ -364,6 +364,8 @@ theorem RawNode.acceptReady.wp_proof
   -- ghost facts, read before anything moves; the ghost state is at the drained outbox
   -- (`ownRawNodeReady_handout`, 2026-10-13), the outbox's messages' facts in `Hout`
   simp only [↓reduceIte]
+  iunfold ownStepGhost at Hghost
+  icases Hghost with ⟨Hghost, Hrest⟩
   icases ownRaftGhost_storedRecs_keep _ _ _ $$ Hghost with ⟨Hghost, #Hlr⟩
   icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hwf1, Hlog⟩
   icases ownRaftLog_committed _ _ $$ Hlog with ⟨%Hwf2, Hlog⟩
@@ -631,10 +633,11 @@ theorem RawNode.acceptReady.wp_proof
   -- the ghost state: `Step.drain` was taken by `ownRawNodeReady_handout` (2026-10-13); now
   -- `Step.takeReads` (2026-10-13): the `ReadState`s were handed out, with their facts, by
   -- `readyWithoutAccept`
-  have Htake : Step γ.reCfg id { ps with outbox := [] } []
-      { ps with outbox := [], rd := { ps.rd with states := [] } } :=
-    Step.takeReads _
-  imod ownRaftGhost_step_0 _ _ _ _ Htake $$ Hghost with Hghost
+  imod rdCred_zero_upd (GF := GF) γ with Hcr0
+  imod ownRaftGhost_step_takeReads γ id _ $$ [] [Hcr0] Hghost with Hghost
+  · iapply (BigSepL.bigSepL_nil (Φ := fun _ m => isMessage (GF := GF) γ m)).2
+    iempintro
+  · rw [show rdCount ([] : List Msg) = 0 from rfl]; iexact Hcr0
   wp_apply wp_traceReady
   -- the raft struct, closed with empty queues
   ihave Hphys := Hclose $$ %slice.nil %slice.nil %([] : List raftpb.Message)
@@ -655,8 +658,6 @@ theorem RawNode.acceptReady.wp_proof
   · ipureintro; intro h; cases h
   iunfold outboxRel at Houtbox
   icases Houtbox with ⟨%as1, %as2, %Hperm, #Hb1, #Hb2⟩
-  obtain ⟨Hps, Hwfs⟩ := Hrel
-  subst Hps
   have Hin_out : ∀ a ∈ as1 ++ as2, ∀ x, a = some x → x ∈ s.outbox := by
     intro a Ha x Hx
     subst Hx
@@ -714,9 +715,24 @@ theorem RawNode.acceptReady.wp_proof
     · intro e He
       obtain ⟨H1, H2, -, -⟩ := Hce_ok e He
       exact ⟨H1, H2⟩
-  ihave Hphys : ownRaftPhys γ.reCfg rnv.raft' id (readyNstate s ce sz) $$ [Hphys]
+  ihave Hphys : ownRaftPhysCV cf cf.voters rnv.raft' id (readyNstate s ce sz) $$ [Hphys]
   · unfold readyNstate
     iexact Hphys
+  have Hrapp : (readyNstate s ce sz).logst.applied = s.logst.applied := by
+    simp only [readyNstate, logAcceptApplying, logAcceptUnstable]
+    split <;> rfl
+  ihave Hrest := ghostRest_keep γ _ cf id (s := { s with outbox := [] })
+    (s' := readyNstate s ce sz) (by rw [toPState_ready]; rfl) (by rw [toPState_ready]; rfl)
+    (by rw [toPState_ready]; rfl) (by rw [toPState_ready]; rfl) (by rw [toPState_ready]; rfl)
+    Hrapp (by rw [Hlogst, Hlf.2.2.2.1]; rfl) rfl $$ Hrest
+  ihave Hghost : ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩) cf id
+      (readyNstate s ce sz) $$ [Hghost Hrest]
+  · iunfold ownStepGhost
+    iframe Hrest
+    rw [show toPState (readyNstate s ce sz) = { toPState { s with outbox := [] } with
+        rd := { (toPState { s with outbox := [] }).rd with states := [] } } by
+      rw [toPState_ready]; rfl]
+    iexact Hghost
   ihave #Hstrecs' := storedRecs_eq γ _ (readyNstate s ce sz).logst.prev _
     (readyNstate s ce sz).logst.stored (by rw [Hlogst, Hlf.2.2.2.2.1]; rfl)
     (by rw [Hlogst, Hlf.2.2.2.2.2]; rfl) $$ Hlr
@@ -726,20 +742,19 @@ theorem RawNode.acceptReady.wp_proof
     { rs with delivered := rs.delivered ++ ce, unpersisted := nextUnstable s.logst,
               steps := readySteps s ((selfmsgs id ms2).map selfPending) ce,
               outlb := 0, unst := false }
-    (readyNstate s ce sz)
-    { toPState s with outbox := [], rd := { (toPState s).rd with states := [] } }
+    (readyNstate s ce sz) cf fp
     { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl4 }
     v _
-    (nstateRel_ready s _ ce sz ⟨rfl, Hwfs⟩) Hin Hasync Hdlen'
+    Hwf Hin Hal Hasync Hdlen'
     (by rw [Hlogst, Hlf.2.2.1]; rfl) (by rw [Hlogst, Hlf.2.2.2.1]; exact Hsnap) Hstok' Htrm
     (by rw [Hlogst, logAcceptApplying_storage]; exact Hstor) Hpvoff rfl rfl
     (by rw [Hlogst, Hlf.1]; exact Hrs_clb)
-    $$ Hrn Hphys Hghost Hpsp Hsteps Hsteps_cap [] [Hcecap] Hcommitted Hstrecs'
+    $$ Hrn Hphys Hghost Hsdrf Hpsp Hsteps Hsteps_cap [] [Hcecap] Hcommitted Hstrecs'
   · -- the pending steps' messages
     simp only [readySteps]
     iapply BigSepL2.bigSepL2_app_wand $$ [] []
     · iapply BigSepL2.bigSepL2_app_wand $$ [] []
-      · iapply self_pending γ id s.term (toPState s).outbox ms2 as2
+      · iapply self_pending γ id s.term s.outbox ms2 as2
           (fun a Ha => Hin_out a (List.mem_append_right _ Ha)) HmsgsAA_ok $$ Hout Hb2
       · by_cases hu : s.logst.uents = []
         · rw [ite_pos' hu, ite_pos' hu]; iempintro

@@ -33,9 +33,9 @@ local macro "early_return" e:term : tactic => `(tactic| (
   try wp_auto
   iapply HΦ $$ %$e %rs.term
   isplitl
-  · iapply ownRawNode_intro γ rn id { rs with term := rs.term } s ps rnv sv steps Hrel Hin
-      Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
-      $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs
+  · iapply ownRawNode_intro γ rn id { rs with term := rs.term } s cf fp rnv sv steps Hwf Hin
+      Hal Hasync Hdlen Hunp Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb
+      $$ Hrn Hphys Hghost Hsdrf Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstrecs
   ipureintro; refine ⟨Int.le_refl _, ?_⟩; split <;> omega))
 
 set_option hygiene false in
@@ -59,8 +59,7 @@ theorem RawNode.Step.wp_proof
     (wp_IsLocalMsgTarget : IsLocalMsgTarget.spec (GF := GF) (hG := hG))
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Step.spec (GF := GF) (hG := hG) := by
-  have wp_raft_Step := raft.Step.spec_simple wp_raft_Step
-  intro γ rn id rs m ents ctx Hok Hsing Htn
+  intro γ rn id rs m ents ctx Hok _Hdns Hsing Htn
   have Hok0 := Hok
   obtain ⟨Hty, Hnri, Hri, Hself, Hrej, -⟩ := Hok0
   have Hnr : ∀ {t : w32}, m.Type' = t → ¬ UnstampedType t →
@@ -82,8 +81,8 @@ theorem RawNode.Step.wp_proof
   all_goals (wp_apply wp_IsResponseMsg _ Hty0 as %b2 _; wp_if_destruct)
   all_goals try (wp_apply wp_IsLocalMsgTarget m.From'; wp_if_destruct)
   all_goals try (
-    icases ownRaftPhys_tracker_same γ.reCfg rnv.raft' id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
-    icases ownTracker_progress_map γ.reCfg tv _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
+    icases ownRaftPhysC_tracker_same cf rnv.raft' id s $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
+    icases ownTrackerC_progress_map cf tv _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
     wp_auto
     wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ _ m.From' _
       $$ Hprs with -
@@ -115,7 +114,9 @@ theorem RawNode.Step.wp_proof
             StableOk s.logst (entryID.mk m.LogTerm' m.Index')) ∧ s.gh.unst = false := by
         not_net
       have P8 : m.Type' = MsgStorageApplyResp → m.Term' = W64 0 := by not_net
-      wp_apply wp_raft_Step γ.reCfg γ _ id s ps m ents ctx rfl Hsm (fun _ => Hin) P1
+      icases ownRaftPhysC_preFacts cf rnv.raft' id s Hpvoff $$ Hphys with ⟨%Hpf, Hphys⟩
+      icases ownStepGhost_vcfg γ rs fp cf id s $$ Hghost with ⟨%Hvc, Hghost⟩
+      wp_apply wp_raft_Step cf _ γ _ id s m ents ctx Hsm  P1
         (fun h => Hnr h (by ty_ne))
         (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1⟩) P2 P3
         (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
@@ -126,9 +127,13 @@ theorem RawNode.Step.wp_proof
           Hrej h⟩)
         (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
           Hself (.inr (.inr (.inl h)))⟩)
-        P4 P5 P6 P7 P8 (fun h => ⟨Hri (.inl h), Hsing h⟩)
+        P4 P5 P6 P7 P8
+        (fun h => ⟨Hri (.inl h), by
+          have := Hsing h; unfold NotSingleton at this; rw [Hvc.1, Hvc.2]; exact this⟩)
+        (by not_net)
         (fun h => ⟨(Hnr h (by ty_ne)).1, (Hnr h (by ty_ne)).2.1, (Hnr h (by ty_ne)).2.2,
-          Hself (.inr (.inr (.inr h)))⟩) Hrest Hrel
+          Hself (.inr (.inr (.inr h)))⟩) Hrest Hwf
+        (GMode.Pre.of_facts Hpf (by not_net) (by not_net))
         $$ [$Hphys $Hghost Hents_cap Hcred]
       · simp only [HnP, ↓reduceIte, named]
         isplitl [Hents_cap]
@@ -153,7 +158,10 @@ theorem RawNode.Step.wp_proof
         revert h
         not_net
       simp only [HnP, ↓reduceIte]
-      iintro %err %s' %ps' ⟨Hphys, Hghost, %Hrel', %Href, -, %Hfr, %Htm, -, -⟩
+      iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Htm, -, -⟩
+      have Hc := Href.commit_mono
+      have e1 := Href.keep (by not_net) (by not_net); subst e1
+      have e2 := Hcc (by not_net); subst c'
       obtain ⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh⟩ := Hfr (by not_net) (by not_net)
       obtain ⟨Ht1, -, Ht3, -, Ht5⟩ := Htm (by not_net)
       have Ht3 : uint.Z s'.term ≤ max (uint.Z s.term) (uint.Z m.Term') +
@@ -161,11 +169,6 @@ theorem RawNode.Step.wp_proof
         by_cases h : m.Type' = MsgTimeoutNow
         · rw [if_pos h]; exact Ht5 h
         · rw [if_neg h]; have := Ht3 (by not_net) (by not_net) h; omega
-      have Hc : uint.Z s.logst.committed ≤ uint.Z s'.logst.committed := by
-        obtain ⟨recv, Hst⟩ := Href
-        have H := Step.commit_mono Hst
-        rw [← Hrel.1, ← Hrel'.1] at H
-        exact H
       -- the queue survives any step, a truncating `MsgApp`'s too: what it needs of the log
       -- is `prev` and `stored`, which no network step changes (`NetFrame`)
       have Hstok' : StepsOk s' rs.steps := stepsOk_mono_le s s' _ Ht1 ⟨Hpv, Hsd⟩ Hc Ha Hpre Hstok
@@ -173,11 +176,12 @@ theorem RawNode.Step.wp_proof
       wp_auto
       iapply HΦ $$ %err %s'.term
       isplitl
-      · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' ps' rnv sv steps Hrel' Hin
+      · iapply ownRawNode_intro γ rn id { rs with term := s'.term } s' cf fp rnv sv steps Hwf' Hin
+          Hal
           Hasync (by rw [Ha]; exact Hdlen) (by rw [Hu]; exact Hunp) (by rw [Hsn]; exact Hsnap)
           Hstok' rfl (by rw [Hsg]; exact Hstor) (by rw [Hpre]; exact Hpvoff)
           (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
-          $$ Hrn Hphys Hghost Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstr'
+          $$ Hrn Hphys Hghost Hsdrf Hsoft Hsteps Hsteps_cap Hpend Hpown Hdeliv Hstr'
       ipureintro
       rw [Htrm]
       exact ⟨Ht1, Ht3⟩)

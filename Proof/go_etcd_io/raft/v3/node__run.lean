@@ -43,7 +43,6 @@ theorem node.run.wp_proof
     (wp_IsLocalMsgTarget : IsLocalMsgTarget.spec (GF := GF) (hG := hG))
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     node.run.spec (GF := GF) (hG := hG) := by
-  have wp_raft_Step := raft.Step.spec_simple wp_raft_Step
   intro γ id n
   wp_start as ⟨#Hnode, Hpre⟩
   ihave #Hnode' := Hnode
@@ -313,10 +312,10 @@ theorem node.run.wp_proof
     wp_if_destruct
     all_goals try (wp_apply wp_IsLocalMsgTarget m.From'; wp_if_destruct)
     all_goals try (
-      icases ownRawNode_borrow γ.raft nv.rn' id rs r $$ Hrn Hrnraft with ⟨%s, Hphys, Hback⟩
-      icases ownRaftPhys_tracker_same γ.raft.reCfg r id s $$ Hphys with
+      icases ownRawNode_borrow γ.raft nv.rn' id rs r $$ Hrn Hrnraft with ⟨%cf, %s, Hphys, Hback⟩
+      icases ownRaftPhysC_tracker_same cf r id s $$ Hphys with
         ⟨%tv, Htrkf, Htrk, Hback2⟩
-      icases ownTracker_progress_map γ.raft.reCfg tv _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
+      icases ownTrackerC_progress_map cf tv _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
       wp_auto
       wp_apply wp_map_lookup1 go.uint64 (go.GoType.PointerType tracker.Progress.ty) _ _ m.From' _
         $$ Hprs with -
@@ -341,7 +340,9 @@ theorem node.run.wp_proof
       -- the budget covers the step: a `MsgTimeoutNow` spends its tick credit
       imod budget_step γ.bud rs.term m.Term' (m.Type' = MsgTimeoutNow) ⊤ (by solve_ndisj)
         $$ Hbud Hlb' Hlbm Htc with ⟨%Hbnd, %tb, #Hlbtb, %Htb⟩
-      wp_apply wp_rn_raft_Step_net wp_raft_Step γ.raft nv.rn' id rs r m ents ctx Hok Hsing
+      icases ownRawNode_mode γ.raft nv.rn' id rs $$ Hrn with ⟨%Hmd, Hrn⟩
+      wp_apply wp_rn_raft_Step_net wp_raft_Step γ.raft nv.rn' id rs r m ents ctx Hok
+        (fun h => notSingleton_static (Hmd.2 Hstatic) (Hsing h))
         (fun _ => Hbnd) $$ [Hrn Hents_cap Hcred] as %err %t ⟨Hrn, %Ht⟩
       · iframe Hrn Hents_cap Hrnraft Hents Hctx Hmsg Hcred
       ihave #Hlbt : termLB γ.bud t $$ []
@@ -380,7 +381,7 @@ theorem node.run.wp_proof
     iunfold runHead at Hhead
     icases Hhead with ⟨%rs, Hrn, Hrest⟩
     -- `_, okBefore := r.trk.Progress[r.id]`: the node is a voter
-    icases ownRawNode_borrow_in γ.raft nv.rn' id rs r $$ Hrn Hrnraft
+    icases ownRawNode_borrow_in γ.raft nv.rn' id rs r Hstatic $$ Hrn Hrnraft
       with ⟨%s, %Hin, Hphys, Hback⟩
     icases ownRaftPhys_tracker_same _ r id _ $$ Hphys with ⟨%tv, Htrkf, Htrk, Htb⟩
     icases ownTracker_progress_map _ _ _ $$ Htrk with ⟨#Hprs, %Hdom, Htrk⟩
@@ -394,10 +395,11 @@ theorem node.run.wp_proof
     rw [Hb]
     try wp_auto
     -- `cs := r.applyConfChange(cc)`
-    wp_apply wp_rn_raft_applyConfChange wp_raft_applyConfChange γ.raft nv.rn' id rs r cc ccs Hn
+    wp_apply wp_rn_raft_applyConfChange wp_raft_applyConfChange γ.raft nv.rn' id rs r cc ccs
+      Hstatic Hn
       $$ [$Hrn $Hrnraft $Hccs] as %cs %xs %ls ⟨Hrn, Hvoters, Hls, %Hcs⟩
     -- `_, okAfter := r.trk.Progress[r.id]`: still a voter
-    icases ownRawNode_borrow_in γ.raft nv.rn' id rs r $$ Hrn Hrnraft
+    icases ownRawNode_borrow_in γ.raft nv.rn' id rs r Hstatic $$ Hrn Hrnraft
       with ⟨%s2, %Hin2, Hphys, Hback⟩
     try wp_auto
     icases ownRaftPhys_tracker_same _ r id _ $$ Hphys with ⟨%tv2, Htrkf, Htrk, Htb⟩
@@ -629,8 +631,10 @@ theorem node.run.wp_proof
       iexact Hrcpt
     imod ownRawNode_appended γ.raft nv.rn' id rs $$ Hrn Hrcpt' with Hrn
     imod termLB_bound γ.bud rs.term ⊤ (by solve_ndisj) $$ Hbud Hlb' with %Hbnd
+    icases ownRawNode_mode γ.raft nv.rn' id _ $$ Hrn with ⟨%Hmd, Hrn⟩
     wp_apply wp_RawNode_Advance γ.raft nv.rn' id { rs with unpersisted := [] } rdv' rfl
-      (by simp only; omega) Hunst $$ [$Hrn] as %t ⟨Hrn, %Ht1, %Ht2⟩
+      (by simp only; omega) Hunst
+      (fun h => by rw [Hmd.2 Hstatic] at h; cases h) $$ [$Hrn] as %t %ca ⟨Hrn, %Ht1, %Ht2, -⟩
     subst Ht2 Hrc
     wp_for_post
     iframe HΦ n r
