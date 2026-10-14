@@ -309,7 +309,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           · -- the broadcast was judged at `becomeLeader`'s state, which is
             -- `pwinState`'s up to the outbox and `Match`
             intro m' Hm'
-            have H := Hms m' Hm'
+            have H := (Hms m' Hm').1
             have Hbl := toPState_becomeLeader id
               { s with votes := recordVote s.votes m.From' (!m.Reject') }
               (becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') }).prvals

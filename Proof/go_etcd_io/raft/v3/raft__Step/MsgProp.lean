@@ -304,7 +304,8 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             (fun _ => Hpvs), toPState_sendMsgs, toPState_proposed, Hsps, Hspt]
           unfold ReplSends at Hms
           rw [toPState_proposed, Hsps, Hspt] at Hms
-          exact StepC.sendApps _ _ (by simp [psendMsgs, pappend, toPState, Hrole, proleRole]) Hms
+          exact StepC.sendApps _ _ (by simp [psendMsgs, pappend, toPState, Hrole, proleRole])
+            (fun m hm => (Hms m hm).1)
       ileft; ipureintro; rfl
     · -- dropped: a leader transfer in progress, or `appendEntry` refused the batch (only
       -- `pendingConfIndex` moved, 2026-10-13)

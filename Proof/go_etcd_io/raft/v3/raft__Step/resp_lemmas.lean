@@ -238,7 +238,7 @@ theorem leader_hbresp_step (c : CfgM) (id : w64) (s : NState) (m : raftpb.Messag
     | (rcases Hc with Hc | Hc | Hc | Hc <;> exact absurd Hc (by w32_ne)))
   have H1 : StepC c id (toPState s) [] (toPState { sendMsgs s ms with prvals := pvs }) := by
     rw [toPState_prvals (sendMsgs s ms) pvs (fun _ => Hpm), toPState_sendMsgs]
-    exact .sendApps _ ms Hpr Hok
+    exact .sendApps _ ms Hpr Hok.replOk
   rcases Hrd with ⟨-, rfl⟩ | ⟨Hne, N, HN, Hs'⟩
   · exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, H1⟩, rfl, rfl, rfl, rfl⟩
   · -- the read path
@@ -306,7 +306,7 @@ theorem leader_appresp_step (c : CfgM) (id : w64) (s : NState) (m : raftpb.Messa
     refine ⟨Hwf, ⟨[], fun _ Hin => absurd Hin (List.not_mem_nil), ?_⟩,
       keep_frame rfl rfl rfl rfl rfl⟩
     rw [toPState_prvals (sendMsgs s ms) pvs (fun _ => Hpm), toPState_sendMsgs]
-    exact .sendApps _ ms Hpr Hok
+    exact .sendApps _ ms Hpr Hok.replOk
   · -- accepted
     obtain ⟨x, pvs, n0, hb, ms, Hx, Hpvs, Hc, Hms, Hrel⟩ := Hacc
     by_cases Hcc : n0 ≠ s.logst.committed
@@ -350,7 +350,7 @@ theorem leader_appresp_step (c : CfgM) (id : w64) (s : NState) (m : raftpb.Messa
             exact HbCtxOk_release _ _ _ _ k)
       have H5 : StepC c id (psendMsgs ps3 hb) [] (psendMsgs (psendMsgs ps3 hb) ms) :=
         .sendApps _ ms Hpr1 (fun m' Hm' =>
-          replOk_proper _ _ _ _ rfl rfl rfl rfl (Hms m' Hm'))
+          replOk_proper _ _ _ _ rfl rfl rfl rfl (Hms m' Hm').1)
       refine ⟨[absMsg .appResp m ents] ++ ([] ++ ([] ++ ([] ++ []))), ?_, ?_⟩
       · intro m' Hin; simpa using Hin
       · have He : toPState { sendMsgs (sendMsgs (releasedState id
@@ -379,7 +379,7 @@ theorem leader_appresp_step (c : CfgM) (id : w64) (s : NState) (m : raftpb.Messa
     have H3 : StepC c id { toPState { s with prvals := pvs } with commit := n0 } []
         (psendMsgs { toPState { s with prvals := pvs } with commit := n0 } ms) :=
       .sendApps _ ms Hpr1 (fun m' Hm' =>
-        replOk_proper _ _ _ _ rfl rfl rfl rfl (Hms m' Hm'))
+        replOk_proper _ _ _ _ rfl rfl rfl rfl (Hms m' Hm').1)
     refine ⟨[absMsg .appResp m ents] ++ ([] ++ []), ?_, ?_⟩
     · intro m' Hin; simpa using Hin
     · have He : toPState { sendMsgs { s with logst := { s.logst with committed := n0 } } ms with

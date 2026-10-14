@@ -201,6 +201,7 @@ theorem raft.maybeSendSnapshot.wp_proof
       intro m' Hm'
       rw [List.mem_singleton] at Hm'
       subst Hm'
+      refine ⟨?_, fun h => absurd h (by simp [absSnapFrom])⟩
       right
       exact ⟨rfl, rfl, rfl, Hto, Hnz, Hsle, Hsterm⟩
     · exact prvalsMatch_insert_same _ _ pp _ Hpl rfl

@@ -88,7 +88,7 @@ theorem applyCCOk_step (cfg : GSet w64) (id : w64) (s s' : NState) (H : ApplyCCO
           toPState { sendMsgs s2 ms with prvals := pvs2 } := rfl
       rw [e, toPState_prvals (sendMsgs s2 ms) pvs2 (fun _ => by
         rw [Hmm]; rw [← Hs2]; rfl), toPState_sendMsgs]
-      exact .sendApps _ ms (by simp [toPState, Hl2, proleRole]) Hms
+      exact .sendApps _ ms (by simp [toPState, Hl2, proleRole]) Hms.replOk
     refine ⟨.trans _ _ _ _ _ H1 (.trans _ _ _ _ _ H2 H3), ?_⟩
     subst Hs1 Hs2
     refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_⟩
@@ -181,7 +181,7 @@ theorem applyCCOkC_step (c' : CfgM) (id : w64) (s s' : NState) (H : ApplyCCOkC c
             toPState { sendMsgs s2 ms with prvals := pvs2 } := rfl
         rw [e, toPState_prvals (sendMsgs s2 ms) pvs2 (fun _ => by
           rw [Hmm]; rw [← Hs2]; rfl), toPState_sendMsgs]
-        exact .sendApps _ ms (by simp [toPState, Hl2, proleRole]) Hms
+        exact .sendApps _ ms (by simp [toPState, Hl2, proleRole]) Hms.replOk
       refine ⟨.trans _ _ _ _ _ H1 (.trans _ _ _ _ _ H2 H3), ?_⟩
       subst Hs1 Hs2
       refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_⟩

@@ -124,7 +124,7 @@ theorem leaderStepResult_rest (c : CfgM) (id : w64) (s : NState) (m : raftpb.Mes
   · refine ⟨rfl, Hwf, ?_, rfl, rfl, rfl, rfl⟩
     have Hpr : (toPState s).role = .leader := by rw [toPState_role, Hr]; rfl
     rw [toPState_prvals (sendMsgs { s with lt := lt' } ms) pvs (fun _ => Hpm), toPState_sendMsgs]
-    exact StepC.sendApps _ ms Hpr Hms
+    exact StepC.sendApps _ ms Hpr Hms.replOk
   all_goals exfalso
   all_goals rcases Hty with h | h | h | h | h <;> rw [h] at Hc
   all_goals first
