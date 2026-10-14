@@ -722,10 +722,13 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
     uint.Z s.term + 1 < 2 ^ 64 →
     ⊢ ownLogGhost (GF := GF) γ id s kl ==∗
       ∃ k F, ownLogGhost γ id (pbecomeCandidate id s) none ∗
-        isCamp γ id (s.term + W64 1) F ∗
+        isCampK γ id (s.term + W64 1) F s.commit ∗
         isVlog γ id k (s.term + W64 1) false F ∗ logRecs γ base0 F ∗
         ⌜PlogWf base0 F ∧ plogLast base0 F = plogLast s.base s.log⌝ ∗
-        voteEv γ id (s.term + W64 1) false F := by
+        voteEv γ id (s.term + W64 1) false F ∗
+        -- (2026-10-14, stage B5) the campaign log's prefix and commit justification
+        (∃ fp, ⌜FullOk s.base fp ∧ F = fp ++ s.log⌝ ∗ logRecs γ base0 fp ∗
+          commitIn γ F s.commit s.term) := by
   intro Hr Hnw
   iintro H
   unfold ownLogGhost
@@ -749,9 +752,9 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
     | some _ => exact absurd ((GMap.mem_dom_list vlogs k).mpr (by rw [h]; rfl)) Hk
   imod ghost_map_insert_persist k ((s.term + W64 1, false), fp ++ s.log) Hkfree $$ Hvlogs
     with ⟨Hvl, #Hvf⟩
-  ihave #Hcamp : isCamp (GF := GF) γ id (s.term + W64 1) (fp ++ s.log) $$ []
-  · unfold isCamp isCampK
-    iexists s.commit, γc
+  ihave #HcK : isCampK (GF := GF) γ id (s.term + W64 1) (fp ++ s.log) s.commit $$ []
+  · unfold isCampK
+    iexists γc
     isplitr
     · ipureintro
       refine ⟨Hcname, ⟨HwF, fun j x Hx => ?_⟩, ?_⟩
@@ -761,6 +764,7 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
     iframe Hcf
     rw [show List.take (uint.Z s.commit).toNat (fp ++ s.log) = cprefix fp s from rfl]
     iexact Hcmt
+  ihave #Hcamp := isCampK_camp γ id (s.term + W64 1) (fp ++ s.log) s.commit $$ HcK
   ihave #HrF := logRecs_full γ s.base fp s.log Hf $$ Hfrecs Hrecs
   imod ownEvs_vote γ id s.term (s.term + W64 1) acks false (fp ++ s.log) (by omega) $$ Hevs []
     with ⟨Hevs', #Hvev⟩
@@ -871,7 +875,7 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
       show (pbecomeCandidate id s).commit = s.commit from rfl,
       show (pbecomeCandidate id s).term = s.term + W64 1 from rfl]
     iframe % # ∗
-  · isplitr; · iexact Hcamp
+  · isplitr; · iexact HcK
     isplitr
     · unfold isVlog
       iexists γl
@@ -879,7 +883,10 @@ theorem ownLogGhost_campaign (γ : RaftNames) (id : w64) (s : PState) (kl : Opti
       iexact Hvf
     isplitr; · iexact HrF
     isplitr; · ipureintro; exact ⟨HwF, full_last _ _ _ Hf⟩
-    iexact Hvev
+    isplitr; · iexact Hvev
+    iexists fp
+    iframe Hfrecs Hcommit
+    ipureintro; exact ⟨Hf, rfl⟩
 
 /-- A first vote, on the log ghost state: record the vote-time log, which has the
 histories of all acknowledgements, at the node's bound -- the term, or the term plus one

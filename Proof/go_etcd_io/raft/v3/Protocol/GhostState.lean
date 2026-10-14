@@ -162,6 +162,30 @@ instance campDyn_timeless (γ : RaftNames) (c T : w64) (F : List raftpb.Entry) :
     Timeless (campDyn (GF := GF) γ c T F) := by
   unfold campDyn; infer_instance
 
+/-- What the rules that read the configuration need of the node's reconfiguration state
+(2026-10-14, stage B5), at the configuration `c` of the step: static, `c` is the ghost state's;
+dynamic, the full log's prefix `fpR` (with records, so the ghost state's), I1 of the full log at the
+commit index, a configuration index `a ≤ commit` whose prefix's configuration is `c` (`CfgAt`), at
+a leader at most one conf entry at or past `a` (I3), at a candidate `a` is the commit index (I2)
+and its campaign record is of its full log at the commit index. The dynamic refinement
+(`RefinementDyn.lean`) supplies it from `RInv`. -/
+def dynEnv (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) : IProp GF :=
+  iprop(⌜CfgStatic γ c⌝ ∨ (⌜γ.reDyn ≠ none⌝ ∗ ∃ (fpR : List raftpb.Entry) (a : w64),
+    ⌜FullOk s.base fpR ∧ ConfI1 (fpR ++ s.log) (uint.Z s.commit).toNat ∧
+      uint.Z a ≤ uint.Z s.commit ∧ CfgAt γ ((fpR ++ s.log).take (uint.Z a).toNat) c ∧
+      (s.role = .leader → confCount ((fpR ++ s.log).drop (uint.Z a).toNat) ≤ 1) ∧
+      (s.role = .candidate → a = s.commit)⌝ ∗
+    logRecs γ base0 fpR ∗
+    (∀ (_ : s.role = .candidate), isCampK γ id s.term (fpR ++ s.log) s.commit)))
+
+instance dynEnv_persistent (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) :
+    Persistent (dynEnv (GF := GF) γ id c s) := by
+  unfold dynEnv; infer_instance
+
+theorem dynEnv_static (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) (HC : CfgStatic γ c) :
+    ⊢ dynEnv (GF := GF) γ id c s := by
+  unfold dynEnv; ileft; ipureintro; exact HC
+
 /-! ### Messages -/
 
 def isMessage (γ : RaftNames) (m : Msg) : IProp GF :=
