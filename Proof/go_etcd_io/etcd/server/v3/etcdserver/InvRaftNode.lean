@@ -301,8 +301,10 @@ instance isRNIDRemoved_persistent (f : GoFunc) : Persistent (isRNIDRemoved (GF :
 /-- **The ready handler `rh`** (the server's four closures, `run`): each returns; and
 `updateCommittedIndex` keeps the raft loop's resource `R` (2026-10-13, the request path's unit
 4c: the server's `R` is the committed index's writer half, `∃ v, srvCommittedOwn γr v`, which the
-raft loop owns across its iterations; the wrapper's proofs are parametric in `R`). -/
-def isReadyHandler (rh : Loc) (R : IProp GF) : IProp GF :=
+raft loop owns across its iterations; the wrapper's proofs are parametric in `R`), and (2026-10-14,
+unit C2a) leaves the committed index at least its argument (`committedAtLeast γr v`: the server's
+closure raises it to `v` if it is below). -/
+def isReadyHandler (rh : Loc) (R : IProp GF) (γr : ReadNames) : IProp GF :=
   iprop(∃ (gl ul uls uci : GoFunc),
     structFieldRef raftReadyHandler go!"getLead" rh ↦□ gl ∗
     structFieldRef raftReadyHandler go!"updateLead" rh ↦□ ul ∗
@@ -311,10 +313,10 @@ def isReadyHandler (rh : Loc) (R : IProp GF) : IProp GF :=
     □ ({{ True }} (App (Val #gl) (Val #())) {{ (v : w64), RET #v; True }}) ∗
     □ (∀ v : w64, {{ True }} (App (Val #ul) (Val #v)) {{ RET #(); True }}) ∗
     □ (∀ b : Bool, {{ True }} (App (Val #uls) (Val #b)) {{ RET #(); True }}) ∗
-    □ (∀ v : w64, {{ R }} (App (Val #uci) (Val #v)) {{ RET #(); R }}))
+    □ (∀ v : w64, {{ R }} (App (Val #uci) (Val #v)) {{ RET #(); R ∗ committedAtLeast γr v }}))
 
-instance isReadyHandler_persistent (rh : Loc) (R : IProp GF) :
-    Persistent (isReadyHandler (GF := GF) rh R) := by
+instance isReadyHandler_persistent (rh : Loc) (R : IProp GF) (γr : ReadNames) :
+    Persistent (isReadyHandler (GF := GF) rh R γr) := by
   unfold isReadyHandler; infer_instance
 
 /-- **The ticker `tk`** (Perennial models no `time.Ticker`): its `C` is a channel on which a
@@ -343,12 +345,14 @@ instance isUnitBag_persistent (c : Loc) : Persistent (isUnitBag (GF := GF) c) :=
   unfold isUnitBag; infer_instance
 
 /-- The `i`th payload on `applyc`: the log `F` forwarded before it (`cum[i]`) and the batch
-`ce` it extends it with (`cum[i + 1] = F ++ ce`, committed), no snapshot, and its two channels. -/
+`ce` it extends it with (`cum[i + 1] = F ++ ce`, committed), no snapshot, and its two channels;
+and (2026-10-14, unit C2a) the committed index at least the batch's last index (`committedLast`:
+`updateCommittedIndex` raised it before the send). -/
 def rnApP (E : RNEnv GF) (γ : RNNames) (i : Int) (ap : toApply) : IProp GF :=
   iprop(∃ (F ce : List EntryModel) (ceL : List Loc),
     monoListIdxOwn γ.cum i.toNat F ∗ monoListIdxOwn γ.cum (i.toNat + 1) (F ++ ce) ∗
     ap.entries' ↦*□ ceL ∗ entriesAt ceL ce ∗ □ E.C (F ++ ce) ∗ ⌜ap.snapshot' = null⌝ ∗
-    isUnitBag ap.notifyc' ∗ isUnitBag ap.raftAdvancedC')
+    isUnitBag ap.notifyc' ∗ isUnitBag ap.raftAdvancedC' ∗ committedLast E.γr ce)
 
 /-- `applyc` (persistent): an SPSC channel of `rnApP` payloads, never closed (its close's
 resource is `False`: 2026-10-13, the request path's unit 4c, `True` until then; the loop never

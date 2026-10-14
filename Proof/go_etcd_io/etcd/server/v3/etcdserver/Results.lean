@@ -28,8 +28,10 @@ The corollaries are on the run's trace (`entriesStep_trace`: the states it passe
 **The apply loop's step and the applied index** (the request path's unit 4b, 2026-10-13):
 `applyAll_model` (linked `applyAll`: `applyEntries_model`'s content for the whole step, the
 applied index's waiters triggered at the new applied index, under raft's no-snapshot contract);
-`applied_log_at` (each `setAppliedIndex` deposits the KV log after its entry as the log applied
-through that index, `appliedLogAt`, which agrees); with `range_linearizable`, a linearizable read
+`applied_log_at` (each `setAppliedIndex` publishes the KV log after its entry as the log applied
+through that index, `appliedLogAt`, which agrees; since unit C2a, 2026-10-14, the log is deposited
+ahead, `applied_predeposit`, before the entry's result reaches its proposer, and the applied logs
+grow with the index, `appliedMono`); with `range_linearizable`, a linearizable read
 at the committed index `c` returns the state of a log extending the one applied through some
 index `ci₀ ≥ c`, and that log is exactly the apply thread's after the entry `ci₀`. The read
 loop's contracts are met by the server's objects: `read_server` (`isReadServer` for `*EtcdServer`)
@@ -159,7 +161,8 @@ theorem applyAll_model : EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
 
 /-- **The applied logs** (the apply-side half of `range_linearizable`'s log; the request path's
 unit 4b): `setAppliedIndex` (linked), right after the entry at index `v'` with mvcc's certificate
-of the KV log `L`, deposits `L` as the log applied through `v'` (`appliedLogAt γr v' L`); `apply`
+of the KV log `L`, publishes `L` as the log applied through `v'` (`appliedLogAt γr v' L`; deposited
+ahead since unit C2a, 2026-10-14, `srvAppliedPre`, `applied_predeposit`); `apply`
 (linked) does it for every entry, so its result's index has the KV's log after the batch; and the
 log applied through an index is unique. Together with `range_linearizable`: a linearizable read at
 the committed index `c` returns the state of a log extending the one applied through some index
@@ -340,16 +343,21 @@ side-effect-free nor its ranges skipped, `SkipRangeExecution`) unless that regis
 `IsRegistered`, the proposer's own `Trigger(id, nil)` on giving up, or a `Trigger` with a result
 from an earlier application of the same id). With `request_handoff`: a proposer still waiting
 (its consumer token unspent) receives the result of its entry's full application, unless its
-context ended first. -/
+context ended first. Since 2026-10-14 (unit C2a), with the apply thread's applied-index resources
+at `v = m.index - 1` (`srvAppliedOwn`, the log `appliedLogAt γr v x.log`) and the entry committed
+(`committedAtLeast γr m.index`): the KV log after the entry is deposited ahead as the log applied
+through `m.index` (`srvAppliedPre`), the witness the result carries. -/
 theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (b : GoInterface) (e : Loc) (m : EntryModel)
     (st : ApplyState) (v3 : Bool) (x : apply.ApplyKV) (γr : ReadNames) (rq : apply.IRRModel)
-    (id : w64) (t : GName) (hne : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
+    (id : w64) (t : GName) (v : w64) (hne : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
     (hid : apply.irrId rq = some id) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServer s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ waitRegd ρ.wait id t ∗ entryAt e m ∗
         applyThread γ st ∗ applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗
         srvApplyKV s E ρ.wait x ∗ mvcc.storeWT E.γ ∗
+        srvAppliedOwn γr v ∗ appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
+        ⌜uint.Z m.index = uint.Z v + 1⌝ ∗
         ⌜st.pending = false ∧ entryOk x m ∧ m.typ = W32 0⌝ ∗
         (if v3 then iprop(ciApplying ci m.index m.term ∗
             ⌜m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
@@ -359,14 +367,16 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
         (Val #e)) (Val #v3))
     {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗
         (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKV s E ρ.wait x' ∗
-          ⌜entryStep m v3 x x' out⌝ ∗ (⌜out.waived = false⌝ ∨ waitGone ρ.wait id t)) ∗
+          ⌜entryStep m v3 x x' out⌝ ∗ (⌜out.waived = false⌝ ∨ waitGone ρ.wait id t) ∗
+          srvAppliedPre γr v m.index x'.log) ∗
         (if v3 then iprop(ciApplying ci m.index m.term ∗
             ∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩)
          else applyThread γ st) }} := by
-  iintro %Φ ⟨#Hpkg, #Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, %Hpo, Hv3⟩ HΦ
-  iapply (EtcdServer.wp_applyEntryNormal s γ ci TM E ρ b e m st v3 x γr (some t))
-    $$ [Hst Hbe Hlr Hgr HKV Hwt Hv3]
-  · iframe Hst Hbe Hlr Hgr HKV Hwt Hv3
+  iintro %Φ ⟨#Hpkg, #Hsrv, #Hewo, #Hreg, #He, Hst, Hbe, Hlr, Hgr, HKV, Hwt, Hao, #HLv, #Hcm, %Hvi,
+    %Hpo, Hv3⟩ HΦ
+  iapply (EtcdServer.wp_applyEntryNormal s γ ci TM E ρ b e m st v3 x γr (some t) v)
+    $$ [Hst Hbe Hlr Hgr HKV Hwt Hv3 Hao]
+  · iframe Hst Hbe Hlr Hgr HKV Hwt Hv3 Hao
     iframe #
     isplitr
     · iunfold entryRegd
@@ -378,13 +388,13 @@ theorem request_delivered (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
       subst this
       iunfold waitRegdOpt
       iexact Hreg
-    ipureintro; exact Hpo
+    ipureintro; exact ⟨Hvi, Hpo⟩
   inext
-  iintro ⟨Hbe, Hlr, Hgr, ⟨%x', %out, HKV, %Hstep, #Hdel⟩, Hpost⟩
+  iintro ⟨Hbe, Hlr, Hgr, ⟨%x', %out, HKV, %Hstep, #Hdel, Hpre⟩, Hpost⟩
   iapply HΦ
   iframe Hbe Hlr Hgr Hpost
   iexists x', out
-  iframe HKV
+  iframe HKV Hpre
   isplitr
   · ipureintro; exact Hstep
   iunfold entryDelivered at Hdel

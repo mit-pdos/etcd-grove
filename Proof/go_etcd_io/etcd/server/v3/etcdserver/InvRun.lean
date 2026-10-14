@@ -214,6 +214,32 @@ instance srvC_persistent (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) 
     (L : List EntryModel) : Persistent (srvC (GF := GF) ρ E ai₀ c₀ x₀ L) := by
   unfold srvC; infer_instance
 
+/-- **A batch after `A` is committed entry by entry** (2026-10-14, unit C2a): its indices are
+consecutive (`srvIdxOk`), so the committed index past its last index (`committedLast`, what raft's
+batch carries) is past each. -/
+theorem batchCommittedIdx_of_last (γr : ReadNames) (ai₀ : w64) (A ce : List EntryModel)
+    (h : srvIdxOk ai₀ (A ++ ce)) :
+    committedLast (GF := GF) γr ce ⊢ batchCommittedIdx γr ce := by
+  rcases List.eq_nil_or_concat ce with hce | ⟨L, b, rfl⟩
+  · subst hce
+    iintro -
+    iunfold batchCommittedIdx
+    iintro !> %m %hm
+    exact absurd hm List.not_mem_nil
+  · have hl : (L.concat b).getLast? = some b := by simp
+    unfold committedLast
+    rw [hl]
+    iintro #Hl
+    iunfold batchCommittedIdx
+    iintro !> %m %hm
+    obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
+    have hlen : n < L.length + 1 := by
+      have := (List.getElem?_eq_some_iff.mp hn).1; simpa using this
+    have h1 := (h.2 (A.length + n) m (by
+      rw [List.getElem?_append_right (by omega)]; simpa using hn)).1
+    have h2 := (h.2 (A.length + L.length) b (by simp)).1
+    iapply committedAtLeast_le γr b.index m.index (by push_cast at h1 h2; omega) $$ Hl
+
 /-- The names and values the apply thread's resources are stated over (fixed for `run`). -/
 structure ApplyCtx (GF : BundledGFunctors) where
   s : Loc

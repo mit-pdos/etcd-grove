@@ -66,12 +66,13 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
         isServer C.s C.γ C.ci TM C.E ρ C.γr ∗ isServerApplyAll C.s C.γr ∗ batchWaitOk ρ C.E (A ++ ce) ∗
         taEntriesAddr apL ↦□ es ∗ taRaftAdvancedCAddr apL ↦□ rac ∗
         taSnapshotAddr apL ↦□ (null : Loc) ∗ taNotifycAddr apL ↦□ nc ∗ isUnitBag nc ∗
-        es ↦*□ ceL ∗ entriesAt ceL ce ∗ schedule.schedRunning γs ∗ applyRes C A ∗
-        txn.storeWTs C.E.γ ce.length }}
+        es ↦*□ ceL ∗ entriesAt ceL ce ∗ batchCommittedIdx C.γr ce ∗ schedule.schedRunning γs ∗
+        applyRes C A ∗ txn.storeWTs C.E.γ ce.length }}
       (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
         (Val #apL))
     {{ RET #(); schedule.schedRunning γs ∗ applyRes C (A ++ ce) }} := by
-  iintro %Φ ⟨#Hpkg, #Hsrv, #Hsa, #Hbw, #Hes, #Hrac, #Hsn, #Hnc, #Hncb, #Hesl, #Hents, Hrun, HR, HWc⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hsrv, #Hsa, #Hbw, #Hes, #Hrac, #Hsn, #Hnc, #Hncb, #Hesl, #Hents, #Hbc, Hrun, HR,
+    HWc⟩ HΦ
   iunfold applyRes at HR
   icases HR with ⟨%st, %ai, %at', %a, %t, %cs, %x, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hbr,
     Hwr, HKV, Hao, #Hlog, %Hpure⟩
@@ -251,7 +252,7 @@ theorem EtcdServer.run.wp_proof
   wp_apply wp_with_defer as %defer defer
   ihave #Hsrv' := Hsrv
   iunfold isServer at Hsrv'
-  icases Hsrv' with ⟨#Hsci, ⟨%fv, #Hfv⟩, #Hat⟩
+  icases Hsrv' with ⟨%Hrd, #Hsci, ⟨%fv, #Hfv⟩, #Hat⟩
   ihave #Hfv' := Hfv
   iunfold srvFieldsAt at Hfv'
   icases Hfv' with ⟨#Hlgf, %Hslgnn, #Hw, #Hwok, #Hua, #Happl, %HE, #Hhook, #Hlv, #Hlok, #Hfc, #Has,
@@ -310,7 +311,7 @@ theorem EtcdServer.run.wp_proof
   ipersist updateLead
   ipersist updateLeadership
   ipersist updateCommittedIndex
-  ihave #Hrh : iprop(isReadyHandler «$r0_ptr» (∃ c : w64, srvCommittedOwn γr c)) $$ []
+  ihave #Hrh : iprop(isReadyHandler «$r0_ptr» (∃ c : w64, srvCommittedOwn γr c) γr) $$ []
   · iunfold isReadyHandler
     iexists _, _, _, _
     iframe getLead updateLead updateLeadership updateCommittedIndex
@@ -411,18 +412,28 @@ theorem EtcdServer.run.wp_proof
       subst hc
       (try wp_auto)
       wp_if_destruct
-      · wp_apply hSCI s γr cci ci' (by word) $$ [Hown] as ⟨Hown, -⟩
+      · wp_apply hSCI s γr cci ci' (by word) $$ [Hown] as ⟨Hown, #Hca⟩
         · iframe #; iexact Hown
         (try wp_auto)
         iapply HΦ'
+        iframe Hca
         iexists ci'; iexact Hown
-      · (try wp_auto)
+      · iunfold srvCommittedOwn at Hown
+        ihave #Hlb := monoNatLbOwn_get γr.committed _ _ $$ Hown
+        ihave #Hca : iprop(committedAtLeast γr ci') $$ []
+        · iapply committedAtLeast_le γr cci ci' (by word)
+          iunfold committedAtLeast
+          iexact Hlb
+        (try wp_auto)
         iapply HΦ'
-        iexists cci; iexact Hown
+        iframe Hca
+        iexists cci
+        iunfold srvCommittedOwn
+        iexact Hown
   -- `s.r.start(rh)`: the raft loop, owning the committed index's writer half
   wp_apply hRS Er γn (srvRAddr s) «$r0_ptr» [] (∃ c : w64, srvCommittedOwn γr c)
     $$ [Hloop Hrdone Hcomm]
-  · iframe #; iframe
+  · rw [HEγr]; iframe #; iframe
   (try wp_auto)
   -- `ep`: the snapshot's conf state, index and term
   ihave #HmdI : iprop(⌜md = null ∧ ai₀ = W64 0⌝ ∨ ∃ pi : Loc, ⌜md ≠ null⌝ ∗
@@ -523,7 +534,7 @@ theorem EtcdServer.run.wp_proof
     simp only [↓reduceIte]
     icases Hrecv with ⟨HP, Hcons⟩
     icases rnApplyTok_recv Er γn rcv A apv $$ Hcons Hidx HP with
-      ⟨%ce, %ceL, Happly, #Hents, #Hentsat, #HC, %Hsnap, #Hnc, #Hrac⟩
+      ⟨%ce, %ceL, Happly, #Hents, #Hentsat, #HC, %Hsnap, #Hnc, #Hrac, #Hcl⟩
     ihave #HC' : iprop(srvC ρ E ai₀ c₀ x₀ (A ++ ce)) $$ []
     · rw [← HEC]; iexact HC
     (try wp_auto)
@@ -537,6 +548,9 @@ theorem EtcdServer.run.wp_proof
     iunfold srvC at HC''
     icases HC'' with ⟨%Hcp, #Hbw⟩
     obtain ⟨hidx, hok⟩ := Hcp
+    ihave #Hbc : iprop(batchCommittedIdx γr ce) $$ []
+    · rw [← HEγr]
+      iapply batchCommittedIdx_of_last Er.γr ai₀ A ce hidx $$ Hcl
     imod (schedule.savedProp_alloc (applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait⟩ (A ++ ce)))
       with ⟨%post, #Hpost⟩
     wp_apply hNJ γs _ _ iprop(R ∗ txn.storeWTs E.γ ce.length) Q

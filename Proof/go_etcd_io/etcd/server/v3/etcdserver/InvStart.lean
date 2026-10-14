@@ -14,7 +14,8 @@ starts `run`. Everything else is `NewServer`'s, and is stated here as it is when
   `srvRunBuilt`, `srvApplyAllBuilt`: the persistent views `isServer`, `isServerReq`,
   `isServerRead`, `srvRunFieldsAt`, `isServerApplyAll` without those fields);
 * the read names `γr` with the applied and committed indices' invariants: `NewServer` allocates
-  them, as the raft node's contract (`isRaftNode Er γn`, `Er.γr = γr`) is stated over them;
+  them, as the raft node's contract (`isRaftNode Er γn`, `Er.γr = γr`) is stated over them, and the
+  request path's (`ρ.rd = γr`, 2026-10-14, unit C2a: the wait's results carry a witness at them);
 * the raft wrapper (its node contract over the server's `E.C`, `srvC`), its tokens at the empty
   log, the raft storage's snapshot contract (`rnSnapOnce`);
 * the apply thread's resources at the snapshot's index `ai₀` (`applyBuilt`: `applyStart` but the
@@ -190,6 +191,8 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     -- the raft wrapper over the server's `E.C`
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
     "%HEr" ∷ ⌜Er.C = srvC ρ E ai₀ c₀ x₀ ∧ Er.γr = γr⌝ ∗
+    -- the request path's read names (2026-10-14, unit C2a)
+    "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     "#HT" ∷ □ (|==> Er.T) ∗
     "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms ai₀ at₀) ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗

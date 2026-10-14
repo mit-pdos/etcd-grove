@@ -26,12 +26,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem EtcdServer.setAppliedIndex.wp_proof :
     EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) := by
-  intro s E γr v v' L hlt
-  wp_start as ⟨#Hinv, Hown, #Hc⟩
+  intro s E γr v v' L
+  wp_start as ⟨#Hinv, Hpre, #Hc⟩
+  iunfold srvAppliedPre at Hpre
+  icases Hpre with ⟨Hown, Hpo, #HLv', %hv⟩
   ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
   wp_auto
-  wp_apply_core sync.atomic.Uint64.wp_Store (srvAppliedIndexAddr s) v' $$ [] [HΦ Hown]
+  wp_apply_core sync.atomic.Uint64.wp_Store (srvAppliedIndexAddr s) v' $$ [] [HΦ Hown Hpo]
   · iexact Hatomic
   ihave #Hinv' := Hinv
   iunfold srvAppliedInv at Hinv'
@@ -39,47 +41,38 @@ theorem EtcdServer.setAppliedIndex.wp_proof :
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
   inext
-  icases Hi with ⟨%v0, %L0, %M, Hv, Hauth, HM, %HMk, #HL0, #Hc0⟩
+  icases Hi with ⟨%v0, %L0, %M, %p, Hv, Hauth, HM, Hp, %HMk, #HL0, #Hc0⟩
   iexists v0
   iframe Hv
   iintro Hv
   imod Hmask with -
-  iunfold srvAppliedOwn at Hown
   ihave %Hag := monoNatAuthOwn_agree γr.applied _ _ _ _ $$ Hown Hauth
   have hv0 : v0 = v := by
     have h2 := Hag.2
     unfold uint.nat at h2
     exact (BitVec.eq_of_toNat_eq h2).symm
   subst hv0
+  ihave %Hpg := ghostVar_agree γr.pend _ _ _ _ $$ Hpo Hp
+  subst Hpg
   imod monoNat_halves_update γr.applied (uint.nat v0) (uint.nat v') (by word) $$ Hown Hauth
     with ⟨Hown, Hauth, #Hlb⟩
-  have hfresh : M.lookup v' = none := by
-    cases h : M.lookup v' with
-    | none => rfl
-    | some L' => have := HMk v' L' h; omega
-  imod ghost_map_insert_persist v' L hfresh $$ HM with ⟨HM, #HLv'⟩
-  imod Hclose $$ [Hv Hauth HM] with -
+  imod ghostVar_update_halves false γr.pend true true $$ Hpo Hp with ⟨Hpo, Hp⟩
+  imod Hclose $$ [Hv Hauth HM Hp] with -
   · inext
-    iexists v', L, M.insert v' L
-    iframe Hv Hauth HM Hc
-    isplitr
-    · ipureintro
-      intro k L' hk
-      by_cases hkv : v' = k
-      · subst hkv; exact Int.le_refl _
-      · have hk' : M.lookup k = some L' := by
-          rw [← GMap.lookup_insert_ne M L hkv]; exact hk
-        have := HMk k L' hk'; omega
-    · iunfold appliedLogAt; iexact HLv'
+    iexists v', L, M, false
+    iframe Hv Hauth HM Hp Hc HLv'
+    ipureintro
+    refine ⟨?_, HMk.2⟩
+    intro k L' hk
+    left
+    rcases HMk.1 k L' hk with h | ⟨-, h⟩ <;> omega
   imodintro
   wp_auto
   iapply HΦ
   iunfold srvAppliedOwn
-  iframe Hown
+  iframe Hown Hpo
   iunfold appliedAtLeast
-  iframe Hlb
-  iunfold appliedLogAt
-  iexact HLv'
+  iframe Hlb HLv'
 
 end proof
 

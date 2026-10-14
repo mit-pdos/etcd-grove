@@ -42,13 +42,20 @@ log after). It spends one write token of the store (`mvcc.storeWT E.γ`, `apply.
 2026-10-13, unit 6). **The delivery** (the request path's unit 4d): to a caller that knows the
 entry's id was registered (`entryRegd ρ.wait m (some t)`), the entry is applied in full (its
 outcome not waived for want of a waiter) unless that registration is gone (`entryDelivered`:
-a `Trigger` took it out first); the apply loops know nothing (`none`). -/
+a `Trigger` took it out first); the apply loops know nothing (`none`). **The applied log**
+(2026-10-14, unit C2a): at the applied index `v = m.index - 1` with its log the KV's
+(`appliedLogAt γr v x.log`) and the entry committed (`committedAtLeast γr m.index`, raft's
+`toApply` batches: `rnApP`), the KV log after the entry is deposited as the log applied through
+`m.index` before the result goes to the waiter (`srvAppliedPre`, `applied_predeposit`; the
+result's witness, `resultIsW`), for `apply`'s `setAppliedIndex(m.index)` to publish. -/
 abbrev EtcdServer.applyEntryNormal.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (e : Loc) (m : EntryModel) (st : ApplyState) (v3 : Bool) (x : apply.ApplyKV)
-    (γr : ReadNames) (ot : Option GName),
+    (γr : ReadNames) (ot : Option GName) (v : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ entryWaitOk ρ E m ∗ entryRegd ρ.wait m ot ∗ entryAt e m ∗ applyThread γ st ∗ applyBackend γ ci b ∗
       srvLgReader s ∗ srvGoRes s ∗ srvApplyKV s E ρ.wait x ∗ mvcc.storeWT E.γ ∗
+      srvAppliedOwn γr v ∗ appliedLogAt γr v x.log ∗ committedAtLeast γr m.index ∗
+      ⌜uint.Z m.index = uint.Z v + 1⌝ ∗
       ⌜st.pending = false ∧ entryOk x m ∧ m.typ = W32 0⌝ ∗
       (if v3 then iprop(ciApplying ci m.index m.term ∗
           ⌜m.index = st.p + 1 ∧ uint.Z st.p < uint.Z m.index ∧
@@ -58,7 +65,8 @@ abbrev EtcdServer.applyEntryNormal.spec : Prop :=
       (Val #e)) (Val #v3))
   {{ RET #(); applyBackend γ ci b ∗ srvLgReader s ∗ srvGoRes s ∗
       (∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), srvApplyKV s E ρ.wait x' ∗
-        ⌜entryStep m v3 x x' out⌝ ∗ entryDelivered ρ.wait m ot out) ∗
+        ⌜entryStep m v3 x x' out⌝ ∗ entryDelivered ρ.wait m ot out ∗
+        srvAppliedPre γr v m.index x'.log) ∗
       (if v3 then iprop(ciApplying ci m.index m.term ∗
           ∃ eff : w64, applyThread γ ⟨m.index, m.index, eff, false⟩)
        else applyThread γ st) }}

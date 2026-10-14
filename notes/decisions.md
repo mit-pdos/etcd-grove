@@ -5166,3 +5166,46 @@ part of the trusted server runtime; it gives `traceutil.ctxTraceIs ci none` (`Tr
 `v3rpc.srvCall` needs. *Rejected:* `ctxTraceIs` itself in `grpcHandlerOk` (it would make grpc's
 generic vocabulary, and every client spec mentioning `isGrpcRpc`, depend on `traceutil`'s
 assumptions).
+
+## A write's witness for later reads (unit C2a, 2026-10-14 · adopted)
+
+**Decision:** every result the apply thread hands a proposer carries `appliedWit γr log` for the
+log after the entry: `∃ i, committedAtLeast γr i ∗ appliedLogAt γr i log ∗ appliedMono γr`. A
+client that got a successful `Put` passes `i` to its next linearizable `Get`
+(`etcdRangeSpec`'s `committedAtLeast γr c`, with `c := i`), whose `readLogOk γr i l` gives a log
+applied through some `ci₀ ≥ i` that `l` extends; `appliedMono` (the applied logs grow with the
+index) closes `log <+: l` (`client_get_after_put`). The read side is unchanged.
+
+**Three pieces, each where the code does it.**
+
+- *Committed before applied.* The raft loop calls `updateCommittedIndex(&ap, rh)` before
+  `applyc <- ap`; the server's closure raises `s.committedIndex` to the batch's last index. The
+  ready handler's contract gives `committedAtLeast γr v` (`isReadyHandler rh R γr`), the `applyc`
+  payload carries `committedLast γr ce`, and the apply side spreads it to each entry
+  (`batchCommittedIdx`, from `srvIdxOk`'s consecutive indices). This is no new claim about raft: it
+  is the server's own committed index, the one `ReadIndex`'s contract (`isReadRaft`) relates read
+  indices to.
+- *Deposited before handed over.* The proposer may return (and its client read) before
+  `apply` calls `setAppliedIndex(i)`, so the log of index `i` is deposited in `γr.logs` before
+  `Trigger` (`applied_predeposit`, in `applyEntryNormal`; for a conf change, in `apply`).
+  `srvAppliedInv` admits the key `v + 1` while a ghost variable `γr.pend` (halves: the invariant,
+  the apply thread's `srvAppliedOwn`/`srvAppliedPre`) says it is in, and `setAppliedIndex(v + 1)`
+  publishes it. *Rejected:* depositing at `Trigger` only (conf changes and empty entries have no
+  trigger, and `setAppliedIndex` would need two modes); an exclusive map element of `v + 1` held
+  by the apply thread (it needs `v + 1 < 2 ^ 64` from the start, a construction premise).
+- *Applied logs in prefix order.* `appliedMonoMap M` in the invariant: a deposit extends the
+  current log (the apply thread holds `appliedLogAt γr v x.log` and a step only appends,
+  `entryStep_prefix`). The client gets it as a capability (`appliedMono`, a persistent
+  `□ ∀ …, ={⊤}=∗ ⌜L1 <+: L2⌝` from the invariant), because the comparison happens after both the
+  `Put` and the `Get` returned, outside any server resource. *Rejected:* comparing by certificates
+  alone (`idxCert_prefix` gives comparability, not the order); a caller-supplied log lower bound
+  for `Range` (true at one member, as mvcc's committed log is monotone, but it bypasses the read
+  index and does not lift to a cluster, plan item 3 of C2).
+
+**The names.** The wait's registration condition fixes the proposer's expectation (`resultΨ`), so
+the witness's read names must be the proposer's: `ReqNames.rd`. The apply thread's view
+`isServer … ρ γr` says `ρ.rd = γr` (and the construction premise `isServerBuilt`), so the apply
+thread deposits at the names the waiter expects; the read side (`isServerRead s E γr`) is
+unchanged, and `etcd_kv_served` registers the `Put` at `ρ.rd` (a user instantiates its `γr` with
+`ρ.rd` to get both at one name). *Rejected:* a read-names parameter on `isServerReq` (29 files of
+request-path specs for a name only the wait's condition uses).

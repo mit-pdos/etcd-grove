@@ -31,7 +31,7 @@ the node; it stops (`onStop`) on `stopped`. The loop owns the ready handler's re
 unit 4c). -/
 abbrev raftNode.start.spec : Prop :=
   ∀ (E : RNEnv GF) (γ : RNNames) (r rh : Loc) (L : List EntryModel) (R : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗ isReadyHandler rh R ∗ R ∗ rnLoopTok γ L ∗ rnDoneTok γ r ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗ isReadyHandler rh R E.γr ∗ R ∗ rnLoopTok γ L ∗ rnDoneTok γ r ∗
       □ (|==> E.T) }}
     (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"start")) (Val #rh))
   {{ RET #(); True }}

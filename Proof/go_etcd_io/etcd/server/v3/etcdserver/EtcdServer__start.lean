@@ -135,7 +135,7 @@ theorem EtcdServer.start.wp_proof
   ipersist Hsc
   ipersist Hscu
   -- `s.w = wait.New()`
-  wp_apply hWN ρ.ids (reqWaitR ρ.ids E) as %w ⟨%γw, %RD, #Hwait, HRD⟩
+  wp_apply hWN ρ.ids (reqWaitR ρ.ids E ρ.rd) as %w ⟨%γw, %RD, #Hwait, HRD⟩
   icases Hw with ⟨%w0, Hw⟩
   wp_auto
   -- `s.applyWait = wait.NewTimeList()`
@@ -318,6 +318,8 @@ theorem EtcdServer.start.wp_proof
   ihave #Hsrv : isServer s γ ci TM E { ρ with wait := γw } γr $$ []
   · iunfold isServer
     iframe Hci
+    isplitr
+    · ipureintro; exact Hρrd
     isplitr
     · iexists { fv with w := w }
       ihave #Hfv2 := Hfv

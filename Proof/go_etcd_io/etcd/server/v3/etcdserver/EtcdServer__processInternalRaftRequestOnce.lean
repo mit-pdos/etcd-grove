@@ -150,7 +150,7 @@ local macro "piro_tail" : tactic => `(tactic| (
     icases Hwait with ⟨%wi, %Hwi', #HReg, #HTrig, -⟩
     rw [Hwi']
     (try wp_auto)
-    wp_apply HReg $$ %id %(resultΨ E rq') [Hslot] as %ch ⟨%γh, Hrecv, #Hregd⟩
+    wp_apply HReg $$ %id %(resultΨ E ρ.rd rq') [Hslot] as %ch ⟨%γh, Hrecv, #Hregd⟩
     · iframe Hslot
       imodintro
       iunfold reqWaitR
@@ -237,7 +237,7 @@ local macro "piro_tail" : tactic => `(tactic| (
         · ipureintro; rfl
         isplitr
         · iexact Hchan
-        iapply handoff_rcv_au γh ch (waitVal γh (resultΨ E rq')) iprop(True) iprop(False) false _
+        iapply handoff_rcv_au γh ch (waitVal γh (resultΨ E ρ.rd rq')) iprop(True) iprop(False) false _
           $$ Hho Hlc1 Hcons
         inext
         iintro %x %ok ⟨Hcons', Hgot⟩

@@ -48,10 +48,10 @@ theorem EtcdServer.applyAll.wp_proof
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) := by
   intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x Hms Hai1 Hok hEok
   wp_start as ⟨#Hsrv, #Hsa, #Hbw, #Hes, #Hrac, #Hsn, #Hnc, #Hncb, #Hesl, #Hentsat, Hai, Hat, Hcs,
-    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, HW⟩
+    Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, HW⟩
   ihave #Hsrv' := Hsrv
   iunfold isServer at Hsrv'
-  icases Hsrv' with ⟨-, ⟨%sv, #Hfl⟩, -⟩
+  icases Hsrv' with ⟨-, -, ⟨%sv, #Hfl⟩, -⟩
   iunfold srvFieldsAt at Hfl
   icases Hfl with ⟨#Hlgf, %Hlgnn, -⟩
   ihave #Hsa' := Hsa
@@ -88,13 +88,12 @@ theorem EtcdServer.applyAll.wp_proof
   wp_apply Hgs
   (try wp_auto)
   -- `s.applyWait.Trigger(ep.appliedi)`: the waiters through `ai'`
-  iunfold srvAppliedOwn at Hao
-  ihave #Hlb := monoNatLbOwn_get γr.applied _ _ $$ Hao
+  icases srvAppliedOwn_lb γr ai' $$ Hao with ⟨Hao, #Hlb⟩
   iunfold isWaitTime at Hwt
   icases Hwt with ⟨%wi, %Hwi, -, #HTrig⟩
   subst Hwi
   wp_apply HTrig $$ []
-  · iintro !>; iunfold appliedAtLeast; iexact Hlb
+  · iintro !>; iexact Hlb
   (try wp_auto)
   -- `<-apply.notifyc`
   iunfold isUnitBag at Hncb
@@ -151,9 +150,9 @@ theorem EtcdServer.applyAll.wp_proof
           iexists st'', ai', at', a', t', cs'
           iframe Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hbr
           isplitl [Hao]
-          · iunfold srvAppliedOwn; iexact Hao
+          · iexact Hao
           isplitr
-          · iunfold appliedAtLeast; iexact Hlb
+          · iexact Hlb
           isplitl [HKV]
           · iexists x'; iframe HKV Hlog'; ipureintro; exact Hx'
           ipureintro; exact ⟨Hst''.1, hai', by rw [Hst''.2]; exact hci'⟩
@@ -172,9 +171,9 @@ theorem EtcdServer.applyAll.wp_proof
           iexists st'', ai', at', a', t', cs'
           iframe Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hbr
           isplitl [Hao]
-          · iunfold srvAppliedOwn; iexact Hao
+          · iexact Hao
           isplitr
-          · iunfold appliedAtLeast; iexact Hlb
+          · iexact Hlb
           isplitl [HKV]
           · iexists x'; iframe HKV Hlog'; ipureintro; exact Hx'
           ipureintro; exact ⟨Hst''.1, hai', by rw [Hst''.2]; exact hci'⟩
@@ -188,9 +187,9 @@ theorem EtcdServer.applyAll.wp_proof
     iexists st'', ai', at', a', t', cs'
     iframe Hai Hat Hcs Hss Hst Hbe Happ Hlr Hgr Hbr
     isplitl [Hao]
-    · iunfold srvAppliedOwn; iexact Hao
+    · iexact Hao
     isplitr
-    · iunfold appliedAtLeast; iexact Hlb
+    · iexact Hlb
     isplitl [HKV]
     · iexists x'; iframe HKV Hlog'; ipureintro; exact Hx'
     ipureintro; exact ⟨Hst''.1, hai', by rw [Hst''.2]; exact hci'⟩
