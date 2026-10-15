@@ -7035,3 +7035,22 @@ layer (`InvRaftPhys`, `InvMisc`, the `raft.go` specs):
   value builders of `ProposeConfChange`, are R5's); `InvRaftpb` is gone (`SortedW64` moved to
   `InvPb` in R1, `confStateDeepEq` with `reflect.DeepEqual`); `InvApplyConf(C)` port by the
   rename; `InvBig`, `Init` copy.
+
+**D6 (2026-10-15, after phase 2): an entry's data is its bytes.** `EntryM.Data' : List w8` (it was
+the Go slice `GoSlice`, D1's field-for-field rename). Why: v3.7's `appendEntry` clones each proposed
+entry (`proto.Clone`, a fresh `Data` slice holding the same bytes) and appends the clones, so the
+log's records would differ from the proposal's in their slice, while the model's propose step
+appends the proposal's entries verbatim; and the ghost state already keys a proposal's deposit by
+its bytes (`deposited γ d`, `d ↪[γ.reProps]□ γq`), the slice map `isPropData γ sl d` only recording
+which bytes a slice holds. With bytes in the record a clone *is* its original, the propose step and
+its 19k lines of model proofs stay, `isPropData`/`γ.reSl` go (`entDataIs` says `e.Data' = d`), a
+conf-change entry decodes by its record alone (`ccEntOk` pure, `decOfData`'s `data` parameter
+gone), and a `ReadState`'s context is bytes (`ReadStateM`, the model's; etcd matches read states by
+`bytes.Equal`, so this is the right identity). Physically `entPts` holds `l.Data ↦{dq} ds ∗ ds ↦*□
+e.Data'`: an entry's bytes are read-only from the moment it is built (raft never writes them; the
+proposer's data must be frozen, which R5's `Propose` takes as its premise). Consequences: a
+leader's own empty entry and a client proposal of empty bytes are the same record, so a proposal's
+data must be non-empty (`entDataIs (some d)`: `d ≠ []`; a premise of `Propose`); `payloadSize`
+returns the bytes' length. *Rejected*: the model's propose step admitting data copies
+(`EntsDataCopy`), which changes the step rule every model theorem inverts and needs the clone's
+slice registered in `isPropData` from inside `appendEntry`.
