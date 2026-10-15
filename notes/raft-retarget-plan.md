@@ -1,15 +1,16 @@
 # Retargeting the raft proof to raft v3.7 (protobuf-go v2)
 
-**Stage R0, 2026-10-15, branch `raft-retarget`.** For review: the "Design" section is a
-proposal; nothing in it is decided beyond what R0 had to do to port `quorum` and `tracker`
-(marked *provisional*). Line numbers are of the new source (`.lake/go-src/raft37`, commit
+**Stage R0, 2026-10-15, branch `raft-retarget`; stage R1 done the same day** (`notes/STATUS.md`,
+"Retargeting raft to v3.7, stage R1"). The "Design" section was R0's proposal; the review's answers
+to its open questions are under "Open questions for the reviewer", "Decisions", and what R1 found
+is marked *R1* where it corrects or refines a fact. Line numbers are of the new source (`.lake/go-src/raft37`, commit
 `509271dac` = etcd-io/raft v3.7.0 `b867cf13` plus the read-index fix) unless marked OLD
 (`.lake/go-src/etcd-raft`, `0560cb7` = `40f8be7` plus the fix).
 
 ## Where things are
 
-- Source: branch `raft37-goose-lean` of a local clone at `.lake/go-src/raft37` (to be pushed to
-  `upamanyus/etcd`), one commit on v3.7.0: the fix of `issues/raft-readindex-singleton-stale.md`
+- Source: branch `raft37-goose-lean` of `upamanyus/etcd` (pushed; a local clone at
+  `.lake/go-src/raft37`), one commit on v3.7.0: the fix of `issues/raft-readindex-singleton-stale.md`
   rebased onto pointer messages (`issues/raft-conf-lag-model/0001-raft-readindex-singleton-fix-v3.7.0.patch`).
   `go test ./...` passes; the two regression tests fail without the fix.
 - Translation: project `raft37` of `etc/goose.py` (`Project.root = "Raft37"`), modules
@@ -21,8 +22,7 @@ proposal; nothing in it is decided beyond what R0 had to do to port `quorum` and
   `etc/link-lean-first-raft37.txt`), results in `Raft37/Proof/go_etcd_io/raft/v3/Results.lean`,
   collection `etc/tcb-collections/raft37.txt`. `etc/proof_roots.py` and `etc/verified-code.py`
   see the root (packages keyed `Raft37:go.etcd.io/raft/v3`).
-- Until the branch is pushed: `GOTOOLCHAIN=go1.27.1 etc/goose.py --check --src raft37=.lake/go-src/raft37`
-  (CI's plain `etc/goose.py --check` cannot fetch `509271dac` yet).
+- The branch is pushed (R1): a plain `GOTOOLCHAIN=go1.27.1 etc/goose.py --check` fetches `509271dac`.
 
 ## Inventory
 
@@ -109,7 +109,10 @@ messages `[]*T`, hidden `state`/`sizeCache`/`unknownFields`, nil-safe getters, n
 7. `ConfState.Equivalent` (confstate.go:26-52) clones, sorts, treats nil `AutoLeave` as false,
    compares with `proto.Equal` (unknown fields included, nil = empty slice); nil on either side is
    an error. `ConfChangeV2.LeaveJoint` (111-114) tests the getters instead of `proto.Equal`.
-   Spec: equivalent in every case the specs state.
+   Spec: equivalent in every case the specs state. *R1*: not quite: since `proto.Equal` compares
+   unknown fields, a `ConfState` with one is "not equivalent" to the same configuration and raft
+   panics (`issues/raft-confstate-unknown-fields-panic.md`, reproduced); the specs cover conf states
+   without unknown fields (`InvPb.lean`'s `csPts`), a premise of the later `restore`/`newRaft` specs.
 8. `MemoryStorage`: `Snapshot()`/`CreateSnapshot` return deep clones (OLD: shallow value copies);
    `ApplySnapshot` stores a clone; `SetHardState` keeps the caller's pointer; `Append` keeps the
    caller's entry pointers and `Entries` returns them (capped subslice, 162-165). Spec: ownership
@@ -261,7 +264,7 @@ uncloned from `InitialState`. **Conf changes**: `ConfChange.AsV2` allocates a fr
 
 ### Proposal
 
-**D1. The model's data are pure records, field for field** (*provisional, done in R0*). The
+**D1. The model's data are pure records, field for field** (*done in R0, final in R1*: Q1). The
 protocol model, `Plog`, `CCModel` and the specs' records use `EntryM` (`Term' Index' Type' Data'`),
 `MessageM` (the scalar fields: `Type' To' From' Term' LogTerm' Index' Commit' Vote' Reject'
 RejectHint'`) and `ConfChangeSingleM` (`Type' NodeId'`) in `Raft37/Proof/.../PbModel.lean`: what
@@ -270,7 +273,10 @@ were, so 19k lines of model port by a rename and `LogState`, `UnstableSt`, `Stor
 `Msg`, `PState` keep their shapes (`List EntryM`). `absMsg` takes a `MessageM` (it already reads
 only scalar fields). The same for a `SnapshotM` (`Metadata.Index/Term`, the `ConfState` lists and
 `AutoLeave`, i.e. today's `SnapTrip` plus `Data`) to replace `snapId`/`snapTrip`/`absSnap`'s
-`raftpb.Snapshot`, and a `HardStateM` (`Term Vote Commit`) for `hardstateVal`.
+`raftpb.Snapshot`, and a `HardStateM` (`Term Vote Commit`) for `hardstateVal`. *R1*: done, the
+snapshot nested as the Go messages are: `SnapshotM` (`Data' : List w8`, `Metadata' :
+SnapshotMetadataM`), `SnapshotMetadataM` (`ConfState' : ConfStateM`, `Index'`, `Term'`), `ConfStateM`
+(the four lists, `AutoLeave'`), so `sv.Metadata'.ConfState'.AutoLeave'` reads as before.
 
 **D2. An entry, once built, is a persistent read-only fact** `entRO (l : Loc) (e : EntryM)`:
 `l.Term ↦□ p ∗ cellRO p e.Term'` and likewise `Index`, `Type` (`cellRO p v := p = nil ∧ v = 0 ∨
@@ -306,7 +312,8 @@ fraction).
 
 **D5. protobuf's runtime is the trust boundary.** Hidden fields (`state`, `sizeCache`,
 `unknownFields`) are split off at allocation into an invariant, `pbMsg l` (persistent), which only
-the `proto.*` axioms take; verified code never touches them. New trust-boundary axioms (all of
+the `proto.*` axioms take (*R1*: `pbMsg T l uf`, one per object, nested objects each their own,
+indexed by the unknown fields' bytes because `proto.Equal` compares them); verified code never touches them. New trust-boundary axioms (all of
 Go functions of `google.golang.org/protobuf/proto`, names-only, each a spec per message type):
 `proto.Clone` (Entry, Snapshot, ConfState: a fresh deep copy, `pbMsg` of the copy), `proto.Size`
 (returns some `n`: the specs never fix sizes), `proto.Marshal`/`Unmarshal` (ConfChange,
@@ -326,8 +333,8 @@ value with slice facts), `Ready`'s fields (nil-or-pointer `HardState`/`Snapshot`
 
 | stage | what | old lines (Spec+Proof) | kind |
 |---|---|---:|---|
-| R1 | D1 records final; `Protocol/*` rest, `Plog`, `CCModel`, `SnapConf`, `StepLemmas*`, `StepGhostMode` | ~22k | rename (R0 did 7.5k) |
-| R1 | raftpb: getters, `Enum`, `Ensure*`, codec (`AsV1/AsV2/EnterJoint/LeaveJoint`, `MarshalConfChange`, `Equivalent`), D5 axioms, `pbMsg` | ~2.5k | redo |
+| R1 **done** | D1 records final; `Protocol/*` rest, `Plog`, `CCModel`, `SnapConf`, `StepLemmas*`, `StepGhostMode` | ~22k | rename (R0 did 7.5k). *Actual*: 19 files / 16,151 lines: 13 / 12,547 by the rename alone, 4 / 2,339 with an import edited, `CCApply(C)` 2 / 1,265 split off `InvApplyConf(C)`; `SpecResults` 151 (moved definitions) |
+| R1 **done** | raftpb: getters, `Enum`, `Ensure*`, codec (`AsV1/AsV2/EnterJoint/LeaveJoint`, `MarshalConfChange`, `Equivalent`), D5 axioms, `pbMsg` | ~2.5k | redo. *Actual*: `InvPb.lean` 807; 55 functions (40 getters, 4 `Enum`, 3 `Ensure*`, 8 of the codec and `Equivalent`) in 110 Spec/Proof files / 5,567 lines; 9 `proto.*` axioms in 18 files / 754 lines |
 | R2 | confchange (`Restore`, `toConfChangeSingle` on `*ConfState`; `Changer` unchanged) | ~3.4k (1k changed) | adapt |
 | R3 | `log_unstable`, `log`, `storage` (`MemoryStorage`), `InvRaftlog`/`InvStorage`/`InvMemstorage`, `entRO` | ~12k | redesign of physical predicates |
 | R4 | `raft.go`: `InvRaftPhys` (`msgOwn`, `outboxRel`), `raft__Step/*`, `stepLeader`, per-function | ~35k | redesign + adapt |
@@ -339,6 +346,26 @@ R2 and R3; R5 on R4. R4 is the largest and can be split per `raft__Step` case on
 `InvRaftPhys` is redesigned.
 
 ### Open questions for the reviewer
+
+**Decisions** (the review of R0, applied from R1 on):
+
+- **Q1**: the primed field-for-field records, final (R1 added `ConfStateM`, `SnapshotMetadataM`,
+  `SnapshotM`, `HardStateM`).
+- **Q2**: `readyWithoutAccept`'s `Ready` is a read-only view of raft's messages; `acceptReady`
+  transfers their ownership to the caller (R5).
+- **Q3**: `Step` takes the caller's message and keeps it (R4, R5; the issue
+  `raft-step-writes-caller-message` documents it).
+- **Q4**: the hidden fields in a persistent invariant per object (`pbMsg T l uf`), taken only by the
+  `proto.*` axioms, because `proto.Size` writes `sizeCache` on log entries several holders share
+  (done in R1; `notes/decisions.md`, "The protobuf runtime as raft's trust boundary").
+- **Q5**: `Ensure*` takes ownership where it writes (done in R1: `EnsureConfState`,
+  `EnsureSnapshotMetadata`, `EnsureSnapshot` take their argument at `1`).
+- **Q6**: the storage contract models `MemoryStorage` (no clone required where it gives none);
+  `InitialState` is specified for its single call, at construction (`newRaft`) (R3).
+- **Q7**: one swap at the end (R6).
+- **Q8**: `RdState.pend` stays R0's rename (`List (MessageM × List EntryM)`).
+
+The questions as R0 put them:
 
 1. **D1's names**: keep the primed field-for-field records (`EntryM`, `MessageM`, ...: cheapest,
    the model text unchanged) or rename to the model's own vocabulary now (a larger diff, once)?

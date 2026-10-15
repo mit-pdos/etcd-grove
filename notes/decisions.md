@@ -6831,3 +6831,64 @@ proved).
   `PbModel.lean`'s `EntryM`, `MessageM`, `ConfChangeSingleM` keep the old field names, so the model
   ports by a type rename; porting `quorum`/`tracker` needed it because their shared definitions
   import the model. The names and the rest of the design are for the review of the plan.
+
+---
+
+## The protobuf runtime as raft's trust boundary
+
+**2026-10-15 · accepted (stage R1 of the raft v3.7 retarget, branch `raft-retarget`)**
+
+In raft v3.7 the raftpb messages are protobuf-go v2 structs: pointer fields read through
+generated getters, plus three fields of protobuf's runtime (`state`, `sizeCache`,
+`unknownFields`); marshalling, sizing, cloning and comparing go through
+`google.golang.org/protobuf/proto` (names-only in the translation). The proof's boundary is
+drawn there:
+
+- **Translated and proved**: everything raftpb's own Go code does: the 40 getters, the four
+  `Enum()`s, `Ensure*` (`raftpb/util.go`), the conf-change codec (`AsV1`/`AsV2`, `EnterJoint`,
+  `LeaveJoint`, `MarshalConfChange`) and `ConfState.Equivalent`. None of it needs the runtime's
+  internals: the getters read the pointer fields, the rest calls `proto.*`.
+- **Axioms: exactly the `proto.*` calls raft makes, one spec per message type it makes them at**
+  (nine: `Clone` of an `Entry`, `Snapshot`, `ConfState`; `Size` of an `Entry`; `Marshal` and
+  `Unmarshal` of a `ConfChange`, `ConfChangeV2`; `Equal` of two `ConfState`s), stated over the
+  `InvPb.lean` predicates (`Spec/google_golang_org/protobuf/proto/`), each justified in its
+  docstring against protobuf-go v1.36.11 (`proto/merge.go`, `size.go`, `encode.go`, `decode.go`,
+  `equal.go` and `internal/impl`): a clone is a fresh deep copy and only reads the source; a
+  size is some non-negative `int` (no spec fixes one: `entsSize`/`limitSize` leave sizes
+  unspecified, and proto2 presence makes the exact size depend on which fields are set); marshal
+  cannot fail on proto2 `raft.proto` (no `required`, no `string`, a fraction excluding concurrent
+  writers) and its output decodes back (the round trip is the postcondition, no pure encoder is
+  claimed); unmarshal resets the message, never panics, copies the bytes out; `Equal` is record
+  equality under the premises below. One spec per type, not a generic `proto.Message` spec: a
+  generic one would need a reflective model of messages that nothing here uses. *Rejected*:
+  translating protobuf's runtime (reflection, `unsafe`, atomics: Goose translates none of it).
+- **The hidden fields are an invariant, not a field of the predicates** (Q4): `pbMsg T l uf`, one
+  per object, persistent, made once at allocation (`pbMsg_alloc` from the fresh struct's zero
+  fields) and taken only by the axioms. Because `proto.Size` (and `Marshal`) store the size cache
+  atomically into the message (`internal/impl/encode.go:118-129`), on log entries that the
+  unstable log, `MemoryStorage`, `MsgApp`s and `Ready` share read-only (`entsSize`, `limitSize`):
+  a read-only entry fact (`entRO`, D2) holding `sizeCache` would contradict that write, and a
+  fraction of it would not allow it. Inside an invariant the write is the runtime's business and
+  every holder's fact stays persistent. *Rejected*: ignoring the hidden fields (the atomic store
+  would be outside the model, i.e. a heap write the model says does not happen); owning them with
+  the struct (makes every log entry fact non-persistent for a field verified code never reads).
+- **What it replaces.** The old proof (gogoproto, `40f8be7`) had: the generated
+  `raftpb.ConfChange{,V2}.{Marshal,Unmarshal}` as axioms, now `proto.{Marshal,Unmarshal}ConfChange{,V2}`
+  (stating the same codec, `ccDecodeV1`/`V2` of `CCModel.lean`); `reflect.DeepEqual` on two
+  `ConfState` values (`Equivalent`; "`ConfState.Equivalent`: `reflect.DeepEqual` is the axiom"
+  above), now `proto.EqualConfState`, and with it the nil-versus-empty bookkeeping goes
+  (`proto.Equal` treats them alike, so `wp_slice_append_nil_empty` is not needed);
+  `gogoproto.Equal` (in `LeaveJoint`) with no replacement, since v3.7's `LeaveJoint` tests the
+  getters; and the generated `Entry.Size`/`sovRaft`, translated and proved before, now the
+  `proto.SizeEntry` axiom. The new `Clone` axioms have no old counterpart (gogoproto values were
+  copied by value). The old axioms stay in the baseline until the swap (R6).
+- **Unknown fields bear on `Equal`'s statement.** `proto.Equal` compares unknown fields, so
+  `EqualConfState` could not honestly say "equal configurations give `true`" for conf states
+  that carry some; it is stated for two conf states with none, which `csPts` records
+  (`pbMsg raftpb.ConfState p []`), and with both `AutoLeave`s set (as `Equivalent` makes them;
+  an unset optional `bool` is unpopulated, not `false`, to `Equal`). The restriction is a real
+  one in the code: a `ConfState` with an unknown field (written by a newer raftpb) is "not
+  equivalent" to the same configuration and `raft.restore`/`newRaft` panic
+  (`issues/raft-confstate-unknown-fields-panic.md`, reproduced); the later `restore`/`newRaft`
+  specs inherit it as a premise. Other messages' predicates keep their unknown fields
+  existential (`entPts`, `msgPts`, ...): no axiom there compares them.

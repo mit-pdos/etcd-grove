@@ -39,13 +39,16 @@ structure CCV2M [FfiSyntax] where
   changes : List ConfChangeSingleM
   context : List w8
 
-/-- What gogoproto's `(*ConfChange).Unmarshal` (`raft.pb.go:2940`) makes of `bs`, read into
-a zero `ConfChange`: the decoded content, or `none` where it returns an error. Opaque: the
-trust-boundary specs of `Marshal`/`Unmarshal` are what is known of it. -/
+/-- What protobuf-go's `proto.Unmarshal` makes of `bs` into a `*ConfChange` (raft v3.7; until the
+retarget, gogoproto's generated `(*ConfChange).Unmarshal`): the decoded content (the getters'
+values), or `none` where it returns an error. Opaque: the trust-boundary specs of
+`proto.Marshal`/`proto.Unmarshal` (`Spec/google_golang_org/protobuf/proto/{Marshal,Unmarshal}ConfChange.lean`)
+are what is known of it. -/
 opaque ccDecodeV1 [FfiSyntax] : List w8 → Option CCV1M
 
-/-- What gogoproto's `(*ConfChangeV2).Unmarshal` (`raft.pb.go:3169`) makes of `bs`, read into
-a zero `ConfChangeV2`; `none` where it returns an error. Opaque, as `ccDecodeV1`. -/
+/-- What protobuf-go's `proto.Unmarshal` makes of `bs` into a `*ConfChangeV2` (until the
+retarget, gogoproto's generated `(*ConfChangeV2).Unmarshal`); `none` where it returns an error.
+Opaque, as `ccDecodeV1`. -/
 opaque ccDecodeV2 [FfiSyntax] : List w8 → Option CCV2M
 
 /-- A conf change as `MarshalConfChange` sees it: a legacy `ConfChange` or a `ConfChangeV2`. -/
@@ -215,6 +218,43 @@ theorem propConf_take_zero {joint : Bool} (applied li pci : w64) (es : List Entr
     propConf applied li pci (es.take 0) (cs.take 0) joint = ([], pci) := rfl
 
 end pure
+
+/-! ### The pure part of `InvConfChangeMsg.lean` (moved here in the raft v3.7 retarget, stage R1)
+
+`ccEntryType`, `CCData` and `enterJointOf` name no Go value; the model of applying a change
+(`CCApply.lean`) reads `enterJointOf`, so they are here rather than with the codec's
+ownership predicates. -/
+
+section codec
+variable [FfiSyntax]
+
+/-- The `EntryType` of an entry carrying a conf change (`MarshalConfChange`): `nil` and a
+`ConfChangeV2` are `EntryConfChangeV2` (2), a `ConfChange` is `EntryConfChange` (1). -/
+def ccEntryType : Option CCMsg → raftpb.EntryType
+  | some (.v1 _) => W32 1
+  | _ => W32 2
+
+/-- The bytes `bs` carry the conf change `o` (`MarshalConfChange`'s data): for a
+`ConfChange`, bytes `ccDecodeV1` decodes back to it; for a `ConfChangeV2`, `ccDecodeV2`;
+for `nil`, nothing (the data slice is `nil`). -/
+def CCData : Option CCMsg → List w8 → Prop
+  | none, bs => bs = []
+  | some (.v1 m), bs => ccDecodeV1 bs = some m
+  | some (.v2 m), bs => ccDecodeV2 bs = some m
+
+end codec
+
+/-- `ConfChangeV2.EnterJoint`'s answer `(autoLeave, ok)` (`raftpb/confchange.go:82`) for a
+transition `t` and a number `n` of changes: joint consensus when the transition is not `Auto`
+or there is more than one change, left automatically unless the transition is
+`JointExplicit`; `none` where it panics (joint consensus with a transition other than the
+three defined ones). -/
+def enterJointOf (t : w32) (n : Nat) : Option (Bool × Bool) :=
+  if t ≠ W32 0 ∨ 1 < n then
+    if t = W32 0 ∨ t = W32 1 then some (true, true)
+    else if t = W32 2 then some (false, true)
+    else none
+  else some (false, false)
 
 end EtcdGrove
 end Perennial
